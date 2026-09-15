@@ -1,12 +1,16 @@
 # Rossi 改造路线图
 
 > 目标：以 Breeze 为产品基座，逐步构建高性能跨平台漫画阅读器，并为 Xiranite 集成保留清晰的模块边界。
+>
+> **平台策略：重心在桌面端。Windows / macOS 为主战场且是 Gate A 的验收平台，Linux 跟随桌面路径，Android / iOS 只做最低程度适配。**
 
 ## Phase 0 — 基线与可回退点
 
 - [x] Fork 上游 Breeze 为 `HibernalGlow/rossi`
-- [ ] 保留上游同步入口，不直接污染 `main`
-- [ ] 确认当前 Windows/macOS/Linux 构建基线
+- [x] 保留上游同步入口，不直接污染 `main`（`upstream` remote 指向 `deretame/Breeze`，`main` 与上游无漂移）
+- [x] 确认平台优先级：桌面优先，移动端最低适配
+- [x] 记录环境基线：Flutter `3.47.3` / FRB `2.13.0` / Dart `^3.12.0`（详见 `docs/RESEARCH.md` §3.1）
+- [ ] 确认当前 Windows/macOS/Linux 构建基线（三平台各跑通一次 release 构建）
 - [ ] 记录现有 Reader 的帧率、内存、翻页延迟
 - [ ] 记录现有 RealSR/CoreML/Android 超分链路
 
@@ -29,6 +33,12 @@ Metal / D3D12 / Vulkan
       ↓
 Flutter-composited texture/surface
 ```
+
+验收平台范围：
+
+- **Gate A 只以 Windows + macOS 为准**；
+- Linux 跟随桌面路径，尽力而为，不阻塞 Gate A；
+- Android / iOS **不纳入** Gate A，见「移动端最低适配」。
 
 验收：
 
@@ -188,12 +198,26 @@ Web 端不要求与 native GPU backend 使用完全相同的实现，只要求�
 - texture upload latency
 - page-ready latency
 
+## 移动端最低适配（横切约束）
+
+Android 与 iOS 不是当前投入方向，只做最低程度适配：
+
+- 不实现 `ImageSurface` 的 native texture 后端；
+- Reader 继续使用现有 `photo_view` + Flutter Image 显示链；
+- 保留既有超分能力（iOS：CoreML；Android：ncnn/Vulkan/waifu2x CLI），不新增模型；
+- 只保证编译通过、既有功能不回归；
+- 移动端问题不阻塞桌面端 Gate，也不参与 Gate A/B 判定；
+- 若日后确实需要 GPU 路径，独立立项重新评估（`wgpu` 原生支持 Android Vulkan，缺的是 Flutter 侧 surface 桥）。
+
+代价与对策：桌面与移动端会长期并存两条显示实现，页面尺寸计算、缩放语义、超分注入时序可能在两端产生差异行为。需把显示层抽象成同一套上层语义（见 `docs/RESEARCH.md` R5）。
+
 ## 明确不做
 
 - 不先重写整个 Breeze UI
 - 不先迁移到 Mangayomi
 - 不先兼容所有插件协议
 - 不先做 Web 版本
+- 不为 Android / iOS 实现 GPU texture / external surface 后端
 - 不把所有图片转成 Dart `Uint8List` 后再交给 Flutter
 - 不在没有 PoC 数据的情况下宣称“追平 mImageViewer”
 
@@ -201,7 +225,7 @@ Web 端不要求与 native GPU backend 使用完全相同的实现，只要求�
 
 ### Gate A
 
-GPU texture PoC 在 Windows/macOS 的性能与稳定性达标后，才进入 Phase 2。
+GPU texture PoC 在 **Windows 与 macOS** 上的性能与稳定性达标后，才进入 Phase 2。Linux 不参与 Gate A 判定，Android / iOS 不在范围内。
 
 ### Gate B
 
