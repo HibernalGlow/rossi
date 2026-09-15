@@ -151,3 +151,88 @@
    其余是 `ColorImage` / `Color32` / `Rect` 三个与 UI 无关的纯数据类型的替换。
 4. Phase 0 剩余项（`ROADMAP.md`）：三平台 release 构建基线、现有 Reader 的帧率 / 内存 / 翻页延迟基线、
    现有超分链路记录。
+
+## 5. 补测：它的**阅读器也是全尺寸解码**（2026-09-16，只为回答一个具体问题）
+
+问题来源：Rossi 的 Dart 兜底路径上，单页 44.8 MPix 的全尺寸解码 332 ms、而缩到 1600 px 只要 140 ms。
+那么「mImageViewer 的阅读器是不是按显示尺寸解码」——如果是，它就有值得我们抄的招。
+
+**答案：不是。它同样全尺寸解码。** 核对如下（`vendor/mimageviewer`，gitlink `1fd6f863`）：
+
+| 环节 | 位置 | 事实 |
+|---|---|---|
+| 全屏加载主路径 | `src/app.rs:54021` `start_fs_load` | → `start_fs_load_with_purpose`，worker 线程 |
+| 解码调用 | `src/app.rs:54639` | `decode_canonical_image(canonical_source, CanonicalDecodeOptions::fullscreen_cancellable(..))` —— **没有任何目标尺寸参数** |
+| 上传前唯一的缩小 | `src/app.rs:75236` `clamp_dynamic_for_gpu` | **仅当某条边 > 8192 才触发**，且它是防 `wgpu` 默认 `Limits` **panic** 的安全网，不是性能路径 |
+| 那条 8192 的来历 | `src/app.rs:75164-75168` | 注释明说：eframe 用默认 `Limits` 初始化，超 8192 会 panic；RTX 4090 实际能到 16384 |
+| TurboJPEG DCT 缩放 | `src/app/cache_ops.rs:481-499` | **只用在缩略图缓存生成**（`thumb_px`），全屏路径不经过它 |
+| `compute_display_px` | `src/thumb_loader.rs:966`，被调于 `app.rs:27071 / 34785 / 35911` | 全是**网格 / 缩略图**场景（`cell_w` / `cell_h` / `dpi`），不是阅读器 |
+
+它对同一个代价的处理方式，是**承认它并绕过 UI 线程**，不是消除它：
+`app.rs:75174` 的注释写着「UI 线程上跑 `resize_exact(Triangle)`，7K–9K 级图片会**秒级同步卡死**」，
+于是它做了两件事 —— ① 换成 SIMD 的 `fast_image_resize`（自称比 `image` 的标量 Triangle 快 **7–10×**）；
+② 把 clamp 挪到 worker 线程（`clamp_color_image_for_gpu`）。
+
+### 5.1 三个对 Rossi 直接的结论
+
+1. **这不是「mImage 更快」，也不是「它不做全尺寸」** —— 我们量到的 60 ms 读页 vs 500 ms 解码
+   是这条 CPU 路径的固有成本，不是 Rossi 的实现缺陷。它的阅读器同样是全尺寸解码。
+2. **GPU 缩放这条线是真的，但它替代不了解码**（见 §5.3）。它把「缩放」放到了 GPU，
+   CPU 一次缩放都不用做；但 CPU 的全尺寸解码照付。
+3. **真正让它手感好的，是「付在翻页之前」**（见 §5.4 的前后预取），不是任何一次绘制的优化。
+   这与 `ROADMAP.md` Phase 1 那条「解码必须移出翻页关键路径」是同一件事 —— 现在有上游代码作旁证。
+
+### 5.2 一处必须读准的数字
+
+ADR-0001 / ADR-0005 / `START_WORK.md` 里的「20MP 26–58 ms/张」注的是**紧随其后的 `load_texture`（上传）**，
+**不是解码**。按 Rossi 自己量的吞吐（Skia 全尺寸 ≈ 135 MPix/s），20 MPix 解码应在 **150 ms 量级**；
+26–58 ms 对应的是 80 MB RGBA 以 **1.4–3 GB/s** 上卡 —— 只有上传对得上。
+两者相差约 3× 且方向不同，读错会把「上传贵」当成「解码便宜」。
+
+### 5.3 它**有** GPU 重采样，但位置在解码**之后**
+
+`src/gpu_lanczos.rs`（**3270 行**）是生产级的全屏重采样，着色器有五个：
+`gpu_lanczos_spike.wgsl`（Lanczos3）、`gpu_lanczos_visible_upscale.wgsl`（可见区）、
+`gpu_nis.wgsl`（NIS）、`gpu_pixel_aa.wgsl`，以及 `gpu_anime4k{,_s,_m,_l,_ul}.wgsl`（Anime4K）。
+
+关键是它挂在链路的哪一段 —— 模块头第一段就写明了：
+
+> The original `egui::TextureHandle` remains the logical-size owner.
+> A native resampled texture only replaces the `egui::TextureId` supplied to paint.
+
+即：**CPU 解码出的全尺寸纹理仍是所有者**，GPU 重采样产物只是替换「绘制时引用的 texture id」。
+分支由 `fullscreen_paint_scale_branch(logical_scale, pixels_per_point, post_filter)` 决定
+（`src/gpu_lanczos.rs:80-101`）：
+
+| 条件 | 分支 | 含义 |
+|---|---|---|
+| 近整数且 `physical_scale ≤ 1.0` | `OriginalOneToOne` | 不重采样，直接用原纹理 |
+| `physical_scale < 1.0` | **`DownscaleLanczos`** | **缩小由 GPU 做**（CPU 不缩） |
+| `≥ 1.0` + `PostFilter::None` | `UpscaleLanczos` | 放大默认走 GPU Lanczos3 |
+| `≥ 1.0` + NIS / Anime / PixelArt | `UpscaleNis` / `UpscaleAnime` / `UpscalePixelArt` | 按后处理滤镜选上采样器 |
+
+→ 它的 CPU **从不做缩放**，但 CPU **照做全尺寸解码**。GPU 重采样省掉的是「CPU 重采样那一趟」。
+输出另有上限：`MAX_UPSCALE_TARGET_PIXELS = 4096×4096`（16.7 MPix），持久输出每个 ≤ 64 MiB。
+
+### 5.4 手感好的真正来源：**前后预取**
+
+- `src/app.rs:5765`：`enum FsLoadPurpose { Display, Prefetch, AnimationPromotion }`，
+  由 `for_page(is_current)` 决定 —— 当前页走 `Display`，邻页走 `Prefetch`。
+- `src/app/prefetch_policy.rs:219-222`：**先読み枚数の設定上限は前後とも 10 枚**，
+  默认 **後方 2／前方 3**；UI 上还有「先読み: 取得済み／取得中／未取得」的状态指示器。
+- 另有一条防饥饿规则（同文件 `PREFETCH_IDLE_THRESHOLD = 100 ms` / `PREFETCH_BACKSTOP = 3 s`），
+  不过那是**网格缩略图**的入队抑制，与阅读器邻页预取是两套。
+
+→ **全尺寸解码那笔钱它照付，只是付在翻页之前。** 我们量到的 500 ms 是「裸付」的数字。
+
+### 5.5 给 Rossi 的可用杠杆（按性价比排序，均未实施）
+
+| 杠杆 | 预计收益 | 前提 / 代价 |
+|---|---|---|
+| **邻页预取**（解码移出关键路径） | 翻页**命中**时解码成本 ≈ 0 | 需要内存/VRAM 预算与淘汰策略；`ROADMAP.md` Phase 1 已列 |
+| **JPEG DCT scale**（`turbojpeg`，1/1·1/2·1/4·1/8） | 8192 宽单页 → 1/2 档 ≈ **4× 便宜** | **仅 JPEG**；档位离散，1/2（4096）用于 4K 屏不是无损 |
+| GPU 重采样（Lanczos/NIS） | 省掉 **CPU 重采样**那一趟，质量更好 | **不减解码**；多一趟 GPU pass + 一块常驻纹理 |
+| 更快的 inflate 后端 | 读页那 60 ms 中的一部分 | 与解码那 500 ms 无关 |
+
+**不要指望 `cacheWidth` / `ResizeImage`**：实测像素量降 45× 只换来解码 4.6×（Skia 仍是先解后缩）——
+这条已在 `docs/v0.1-local-core.md` §12 用数据否掉。

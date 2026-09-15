@@ -9,6 +9,7 @@ import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:toastification/toastification.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/router/router.gr.dart';
+import 'package:zephyr/debug/local_source_debug_page.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
 import 'package:zephyr/service/download/download_queue_manager.dart';
@@ -226,6 +227,25 @@ class _NavigationBarState extends State<NavigationBar> {
                   labelType: NavigationRailLabelType.all,
                   backgroundColor: context.backgroundColor,
                   destinations: navRailDestinations,
+                  // v0.1 判据 A 的观察窗口。放在 `trailing`（默认 `trailingAtBottom:
+                  // false`，渲染在最后一个 destination 正下方）而**不是**第四个
+                  // destination：它不是 tab —— 加进去会连带改手机端底部导航的信息架构，
+                  // 且会被 `IndexedStack` 常驻，把本地会话一直挂在那儿。这里是「动作」
+                  // 不是「视图」，所以走 push。
+                  trailing: Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: IconButton(
+                      icon: const Icon(Icons.folder_open_outlined),
+                      // 与 `debug_setting_page.dart` 的同名入口一致：诊断工具，
+                      // 不为它补 i18n 词条、也不触发一次全量 slang codegen。
+                      tooltip: '本地来源读取（判据 A）',
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const LocalSourceDebugPage(),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
               Padding(
