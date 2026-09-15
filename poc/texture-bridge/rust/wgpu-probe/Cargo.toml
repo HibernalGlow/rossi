@@ -1,0 +1,31 @@
+[package]
+name = "wgpu_probe"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+# rlib 是给 src/bin/bench.rs 用的：离屏带宽基准要以普通可执行文件跑，
+# 不经过 Flutter 窗口，也就不受 vsync / 窗口尺寸约束。
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# 用默认 features：wgpu-core 是 optional 依赖，只有 dx12/metal/... 这些
+# feature 通过 "wgpu-core?/xxx" 转发，靠默认集合把它带进来。
+# 改成 default-features = false 会得到一个没有 core 的空壳。
+wgpu = "27"
+pollster = "0.4"
+
+# 版本必须与 wgpu-hal 27.0.4 依赖的 windows crate 完全一致（0.58），
+# 否则 ID3D12Device / ID3D12Resource 会是两个互不兼容的类型，
+# 无法把 wgpu 的裸资源交给原生 D3D12 API。
+windows = { version = "0.58", features = [
+  "Win32_Foundation",
+  "Win32_System_Threading",
+  "Win32_Graphics_Direct3D12",
+  "Win32_Graphics_Dxgi",
+  "Win32_Graphics_Dxgi_Common",
+] }
+
+[profile.release]
+opt-level = 2

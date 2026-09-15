@@ -20,6 +20,37 @@
 
 目标不是做完整 Reader，而是证明 Flutter 能否承载目标级别的图片显示。
 
+**进展（2026-09-15）**：Gate A 已按「先验 Flutter 侧通道，再验 wgpu 导出」的顺序拆成两个
+独立风险。**两个风险在 Windows 上都已跑通**，证据（`handleOpened` 计数、adapter LUID 命中、
+像素通道校验、resize/浸泡稳定性）见 `docs/gate-a/README.md`，验证工程为
+`poc/texture-bridge/`。
+
+过程中定下两条会影响后续架构的硬结论：
+
+1. **直接共享 wgpu texture 不可行**（`CreateSharedHandle` 返回 `E_INVALIDARG`，因为 wgpu
+   的纹理建在默认堆、不带 `D3D12_HEAP_FLAG_SHARED`）；且 wgpu 27 的公开 API 不提供
+   「用外部资源反包 texture」的入口，**零拷贝方案在当前 wgpu 上已关闭**。
+2. 可行路径是**自建共享纹理 + 每帧一次 GPU→GPU `CopyResource`**。该拷贝不经过 CPU，
+   满足「无 GPU→CPU→GPU 往返」，成本已用离屏基准实测量化：视口量级（≤16 MB）占
+   60 fps 预算 **0.07%–0.56%**，4K 单页 **2.1%**，8K 双页 **8.3%**。barrier 往返与
+   SHARED 堆标志的净成本实测均可忽略（±6% 内）。结论：**不为省掉这次拷贝去改 wgpu-hal**，
+   优先落地「copy 按需而非每帧」这一实现约束（见 `docs/gate-a/README.md` §3.5）。
+3. **第三条路径（Flutter GPU）已评估，结论是不作为当前替代方案。** 它在 Windows 上
+   实测可用（`Texture.asImage()` 零拷贝产出 `ui.Image`，全程无跨设备共享），但**无法导入
+   外部纹理** —— 只能替代而不能补充 Rust/wgpu；且引擎导出的符号里**没有任何 compute
+   能力**，超分等 GPU 通用计算实现不了。要省掉那次拷贝，正确方向是给 wgpu-hal 打补丁、
+   让其纹理分配带上 `D3D12_HEAP_FLAG_SHARED`。详见 `docs/gate-a/flutter-gpu-path.md`。
+
+**Gate A 整体仍未通过**，缺三件事：
+
+1. 全部结论来自 Debug 构建，Release 行为未验证（含「引擎每帧重新打开 handle」是否同样
+   存在），性能完全未量化 —— 而「性能与稳定性达标」才是 Gate A 的实质；
+2. macOS 侧未验证（当前无可用 Mac），按约定 macOS 结论标记为待定；
+3. 跨设备同步（keyed mutex / fence）与真实渲染负载均未纳入。
+
+另有一个前置缺口：Gate A 需要一个**对照物**才能判定「达标」，即 Phase 0 尚未采集的
+现有 Reader 帧率 / 内存 / 翻页延迟基线。
+
 ```text
 Flutter Widget
       ↓
