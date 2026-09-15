@@ -61,4 +61,6 @@ rev 由父仓库记录 → 仍然等价于「独立仓库 + 锁 rev」；同步�
   会留下一个**索引为空**的子模块（`git -C vendor/mimageviewer ls-files` 返回 0，
   2235 个文件全被报成 `D`），但 `.gitmodules` 与 gitlink 都没写。
   修复顺序：先 `GIT_LFS_SKIP_SMUDGE=1 git -C vendor/mimageviewer reset --hard HEAD` 重建工作树，
-  再手写 `.gitmodules` 并 `git add` 该路径（gitlink 的 mode 必须是 `160000`）。
+  再手写 `.gitmodules` 并 `git add` 该路径（gitlink 的 mode 必须是 `160000`），
+  **最后还要 `git submodule init`** —— `submodule add` 被中断时不会往 `.git/config` 写登记，
+  漏了这步 `git submodule status` 会以 `-` 开头（表示「未初始化」），看起来像子模块坏了。
