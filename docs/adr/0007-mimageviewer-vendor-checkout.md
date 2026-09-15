@@ -2,16 +2,21 @@
 
 > **⚠️ 对象回到 mImageViewer（ADR-0011，2026-09-16）。** ADR-0010 曾把 v0.1 阶段的检出对象换成
 > `vendor/comicRD/`（且因为 `comicrd_core` 本来就是干净 crate，不需要先建 fork），该决定已撤回。
-> 本 ADR 按原文生效，且**已落地（2026-09-16）**：检出对象是 **`vendor/mimageviewer/`**，
-> clone 自 fork **`HibernalGlow/neoxide`**（注意：fork 的仓库名是 `neoxide`，不是 `mimageviewer`；
-> 它是 `MikageSawatari/mimageviewer` 的 fork），父仓库 gitlink = `f2380d2b`。
-> 检出时与上游 **diverged：领先 2（中文 i18n 层）、落后 34** —— 是否 merge 上游未做。
+> 本 ADR 按原文生效，且**已落地（2026-09-16）**：检出对象是 **`vendor/mimageviewer/`**。
+>
+> **源头是原版上游，不是个人 fork**（同日第二次更正）：最初检出的是
+> `HibernalGlow/neoxide`（那是 `MikageSawatari/mimageviewer` 的 fork，只多出 2 个中文 i18n 提交，
+> 且与上游 diverged：领先 2、落后 34）。**该 fork 不会被维护，所以它不该当源头** ——
+> 让它躺在中间只会制造「以为在跟上游、其实停在某个私人分支」的静默漂移（正是 ADR-0002 要避免的）。
+> 现在的形态：`.gitmodules` 直接指向 `https://github.com/MikageSawatari/mimageviewer.git`，
+> 父仓库 gitlink = **`1fd6f863`**（上游 `main` 当时的提交），子模块工作树与上游零漂移。
+> 丢掉的只是那 2 个 i18n 提交 —— 它们是 UI 字符串层，而 ADR-0005 已经把 UI 层排除在复用范围外。
 > 详见 `docs/phase0-vendor-spike.md` §0。
 
 Rossi 需要「方便本地开发」与「能持续吃掉上游更新」同时成立。我们决定：
 **mImageViewer 的源码以独立 git 检出放在 rossi 仓库的 `vendor/mimageviewer/`**
-（clone 自 `HibernalGlow/neoxide` fork，该 fork 的 `upstream` 指向 `MikageSawatari/mimageviewer`），
-父仓库以 **gitlink 记录它的 commit**（即 submodule 语义，`.gitmodules` 记录 fork URL）；
+（**直接 clone 自原版上游** `MikageSawatari/mimageviewer`，不经过个人 fork，理由见上方横幅），
+父仓库以 **gitlink 记录它的 commit**（即 submodule 语义，`.gitmodules` 记录上游 URL）；
 Cargo 侧由**适配层用 `path` 依赖**指向该检出，而不是 `git` 依赖。
 
 效果：源码在树内 → 改一行立刻生效，不需要 `[patch.crates-io]` 指回本机目录；

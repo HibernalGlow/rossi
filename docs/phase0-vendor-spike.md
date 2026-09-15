@@ -10,12 +10,25 @@
 
 | 事实 | 值 |
 |---|---|
-| fork | **`HibernalGlow/neoxide`** —— 2026-09-13 创建，父仓库是 `MikageSawatari/mimageviewer`。**名字不叫 `mimageviewer`** |
-| 检出位置 | `vendor/mimageviewer/`（gitlink = `f2380d2b`），`origin` → 该 fork，`upstream` → 上游 |
-| 与上游的关系 | **diverged：领先 2、落后 34**。领先的 2 个是中文 i18n 层（`feat(i18n): add Chinese (zh-hans) translation layer`） |
-| 是否 merge 上游 | **没做** —— 一条命令的事，留给用户定：`git -C vendor/mimageviewer merge upstream/main` |
+| 源头 | **原版上游 `MikageSawatari/mimageviewer`**（同日第二次更正：最初指向个人 fork `HibernalGlow/neoxide`，但该 fork 不会被维护，且与上游 diverged 领先 2 / 落后 34，见 §0.1） |
+| 检出位置 | `vendor/mimageviewer/`，`.gitmodules` 记录上游 URL，gitlink = **`1fd6f863`**（上游 `main`） |
+| 与上游的关系 | **零漂移**（`git rev-list --left-right --count main...origin/main` = `0 0`） |
+| 上游同步 | `git -C vendor/mimageviewer fetch origin main && git -C vendor/mimageviewer reset --hard origin/main`，父仓库只改一个 gitlink |
 | LFS | 仓库用 **git-lfs** 存根目录 `models/` 下 9 个模型，合计 **335 MB**。当前检出**保留指针文件**（v0.1 用不到模型） |
 | 恢复 LFS | `git -C vendor/mimageviewer lfs pull`（约 335 MB 带宽） |
+
+### 0.1 为什么把源头从 fork 换成上游
+
+最初检出的是 `HibernalGlow/neoxide`（2026-09-13 建），它只比上游多 2 个提交：
+`feat(i18n): add Chinese (zh-hans) translation layer` 与
+`tools(i18n): add wrap/verify script and i18n design docs`。
+
+丢掉它不会损失任何 v0.1 需要的东西——那 2 个提交是 **UI 字符串层**，
+而 ADR-0005 已经把 UI 层明确排除在复用范围外（只复用归档 / 解码 / 缓存 / 超分）。
+
+反过来说，留着它有真实代价：一个不会被维护的 fork 停在「落后上游 N 个提交」的位置，
+会让 `vendor/` 看起来在跟上游、实际却锚在一个私人分支上。这类漂移是**静默**的，
+和 ADR-0007 实测到的 `[patch.crates-io]` 不传播属于同一类问题——没人会提醒你。
 
 仓库内部还有一个 `vendor/`，两类东西要分清：
 

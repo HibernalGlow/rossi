@@ -1,0 +1,32 @@
+[package]
+name = "rossi_local_core"
+version = "0.1.0"
+edition = "2024"
+description = "Rossi 本地漫画核心：散图文件夹 / CBZ / CBR 的直读（v0.1 判据 A）"
+license = "MIT"
+
+[dependencies]
+anyhow = "1"
+# 与 windcore 同版本同特性集：两处都是 0.25.10，feature 合并后不会出现双份编译。
+image = { version = "0.25.10", default-features = false, features = [
+    "jpeg",
+    "png",
+    "webp",
+    "bmp",
+    "gif",
+    "tiff",
+] }
+# 与 windcore 同版本（8.2.0），避免 Cargo 同时编译 zip 8 与 zip 2（见 v0.1_acceptance §4.4）。
+zip = { version = "8.2.0", default-features = false, features = [
+    "deflate",
+    "time",
+] }
+# RAR 直读沿用 mImageViewer 打过补丁的 0.5.8（ADR-0011 §6）。
+# 该 crate 在 vendor 检出里被其 workspace `exclude`，本身就是独立可用的包。
+# 补丁内容：UCM_CHANGEVOLUMEW 回调不再按固定 2048 长度切片读变长分卷名。
+unrar = { path = "../../vendor/mimageviewer/crates/unrar-patched" }
+
+[dev-dependencies]
+tempfile = "3"
+# 只给测试用：RAR 夹具是 mImageViewer 源码里内嵌的 base64 块（见 rar_source.rs 的注释）。
+base64 = "0.22"

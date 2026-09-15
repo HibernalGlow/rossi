@@ -38,8 +38,10 @@
 - [ ] 确认当前 Windows/macOS/Linux 构建基线（三平台各跑通一次 release 构建）
 - [ ] 记录现有 Reader 的帧率、内存、翻页延迟
 - [ ] 记录现有 RealSR/CoreML/Android 超分链路
-- [x] **vendor 检出**（ADR-0007，2026-09-16 完成）：`vendor/mimageviewer/` = fork `HibernalGlow/neoxide`
-      的 gitlink 检出（`f2380d2b`），`origin` → 该 fork、`upstream` → `MikageSawatari/mimageviewer`
+- [x] **vendor 检出**（ADR-0007，2026-09-16 完成）：`vendor/mimageviewer/` 直连**原版上游**
+      `MikageSawatari/mimageviewer`（`.gitmodules` 记录上游 URL），gitlink = `1fd6f863`，
+      子模块与上游零漂移。初版检出曾指向个人 fork `HibernalGlow/neoxide`，
+      因该 fork 不会被维护而改回上游（丢掉的只是 UI i18n 层，不在复用范围内）
 - [x] **vendor spike**（ADR-0005 / ADR-0007）—— **2026-09-16 完成**，结论见 `docs/phase0-vendor-spike.md`：
       `src/` 467 个 `.rs` 里 **183 个碰 egui**，其中 **92 个名字不像 UI**（按目录切不出「核心」）；
       但 11 个复用种子里 8 个干净，**剪掉 9 个直接脏依赖**即可自洽；
@@ -131,9 +133,13 @@ GPU Surface
 
 重点：
 
-- ZIP/CBZ 原位读取
-- **CBR/RAR 读取**（v0.1 验收判据要求；`windcore` 当前**无任何 RAR 依赖**，
-  随 mImageViewer 的 `unrar-patched` 检出引入）。三个必须记账的点：
+- [x] **ZIP/CBZ 原位读取** —— 已实现于 `rust/local_core/src/zip_source.rs`
+      （按中央目录下标寻址、每次重开归档不常驻句柄；见 `docs/v0.1-local-core.md`）
+- [x] **CBR/RAR 读取** —— 已实现于 `rust/local_core/src/rar_source.rs`（v0.1 判据要求）。
+      依赖落在新增的 `local_core` crate 上（`windcore` 本身**无任何 RAR 依赖**），
+      用的是 vendor 检出里的 `crates/unrar-patched`。读取模型是**逐条目按需读**：
+      打开归档顺序 `read_header`，命中条目读出字节、未命中 `skip()`，
+      **不落盘、不建 session、不跨调用持有句柄**（ADR-0011）。四个必须记账的点：
   ① **读取模型是「逐条目按需读」**——打开归档顺序 `read_header`，命中条目读出字节、未命中 `skip()`，
   **不落盘、不建 session、不跨调用持有句柄**（ADR-0011）；
   ② 原表述「RAR 解码以文件路径为前提、读不了流」的正确边界是**归档本身**需要路径，

@@ -1,3 +1,15 @@
+# rust/ 同时是「windcore 这个包」和「workspace 根」。
+#
+# 为什么不让 windcore 挪进 rust/windcore/：Flutter 侧的 native-assets 构建钩子
+# (`hook/build.dart` → `native_toolchain_rust`)、FRB 配置 (`flutter_rust_bridge.yaml`
+# 的 `rust_root: rust/`) 以及各平台工程都按「`rust/Cargo.toml` 就是 windcore」来定位。
+# 保留根包 + 显式 default-members = ["."] 可以让 `cargo build`（无论谁来调）仍只构建
+# windcore，新增成员不改变既有构建语义。
+[workspace]
+resolver = "3"
+members = ["local_core"]
+default-members = ["."]
+
 [package]
 name = "windcore"
 version = "0.1.0"
