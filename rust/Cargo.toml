@@ -21,6 +21,10 @@ crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
 flutter_rust_bridge = "=2.13.0"
+# 本地漫画核心（散图文件夹 / CBZ / CBR 直读，v0.1 判据 A）。
+# 独立 crate：默认构建仍只构建 windcore 本身，但 windcore 现在**在依赖图上**包含它，
+# 因此 Flutter 侧产物会带上 RAR（unrar-patched）与 image 的多格式 feature 集。
+rossi_local_core = { path = "local_core" }
 image = { version = "0.25.10", default-features = false, features = [
     "jpeg",
     "png",
@@ -88,6 +92,10 @@ serde_bytes = "0.11.19"
 serde-xml-rs = "0.8.2"
 ciborium = "0.2.2"
 xxhash-rust = { version = "0.8.15", features = ["xxh3"] }
+
+[dev-dependencies]
+# 只给 `api::local` 的会话层测试造 CBZ 夹具用。
+tempfile = "3"
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.15.1"

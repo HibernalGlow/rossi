@@ -558,3 +558,80 @@ command -v bash sort find     # bash 指向 System32 即为中招
 
 修复：把 Git 的 `usr/bin` 前置到 PATH。已固化进 `win-baseline-env.sh` 第 0 节，
 脚本启动时自行探测并修复，无需人工干预。
+
+### 7.6 Rust 依赖树的三个坑（2026-09-16 首次编译 `windcore` 时发现）
+
+`windcore` 的重依赖（reqwest / tokio / rquickjs / aws-lc-sys / sevenz-rust）**在本机是第一次被编译**，
+所以这批问题此前没暴露过。三个坑互相独立，但症状都长得像「环境坏了」。
+
+#### (a) `aws-lc-sys` 是本机最重的 C 依赖，首次约 15 分钟
+
+来源：`reqwest` 的 `rustls` feature → `rustls` → `aws-lc-rs` → `aws-lc-sys`。
+它会编译**数千个 C 文件**（整份 BoringSSL 派生源码），在 RTX 4060 / MSVC 14.44 上**首次约 15 分钟**。
+之后有缓存，只改 Rust 侧代码不会再碰它。
+
+它的 Windows x86-64 要求 NASM 或 prebuilt NASM objects。本机**已有 NASM**：
+`/d/scoop/apps/mingw-winlibs/current/bin/nasm`，所以无需设 `AWS_LC_SYS_PREBUILT_NASM`。
+
+编译过程会刷大量 `C4819`（文件含非当前代码页 936 能表示的字符）与 `C4100`（未使用参数）警告，
+**这些都不是错误**，不要据此判断构建失败。
+
+#### (b) **不要并行跑两个 cl.exe 密集的构建**
+
+**这是本轮最容易误诊的一条。** 症状：`cargo check -p windcore` 在 `aws-lc-sys` 的
+`ui.c` 上报 `cl.exe ... status code exit code: 2`，并伴随
+`Compilation of 'stdalign_check.c' failed`，看起来像「编译器/配置坏了」。
+
+实际原因是当时**同时**在跑 `cargo install flutter_rust_bridge_codegen` 与 `cargo check`，
+两个进程都在密集调用 `cl.exe`。单独重跑 `cargo build -p aws-lc-sys` 时，
+全程只有 C4819 / C4100 警告并 **exit=0**。
+
+→ 判定方法：**把构建单独跑一遍**。如果单独跑能过，就是并发资源争用，不是配置问题。
+→ 纪律：Rust 构建串行执行，尤其是首次编译依赖树时。
+
+#### (c) `cargo check` 与 `cargo test` 的产物不通用；构建目录会偶发「拒绝访问」
+
+- `cargo check` 只产出 `.rmeta`（元数据），不产目标文件。
+  所以 `cargo test` / `cargo build` 会**把整棵依赖树重新 codegen 一遍**（≈20 分钟），
+  不是「检查过了所以很快」。
+- 这个过程里会偶发：
+  `failed to write ...\libtokio-<hash>.rmeta: 拒绝访问。 (os error 5)`，或
+  `failed to remove ...url-<hash>-cgu.7.rcgu.o: 拒绝访问。 (os error 5)`。
+
+**先别怀疑沙箱。** 定点验证过：用 Python 对**同一个文件**执行 `os.remove` 是**成功**的
+（新建+删除也成功）。所以既不是文件系统层拒绝，也不是沙箱策略的删除拦截（对比 §7.3），
+而是构建期间文件被其他句柄（AV 实时扫描 / 索引）**临时**占用。
+
+→ 处置：**直接重试**。cargo 会从断点续跑，每次重试都推进一段；
+三次重试包成一个循环是最省事的做法。
+
+```bash
+for i in 1 2 3; do
+  cargo test -p windcore --lib <过滤> && break
+  echo "attempt $i failed, retrying"
+done
+```
+
+#### (d) FRB codegen 必须能编译整棵树
+
+`flutter_rust_bridge_codegen generate` **内部调用 `cargo-expand`**，因此它必须把 crate
+真正编译一遍才能展开宏。后果：
+
+- 「能不能跑 codegen」等价于「**能不能编译 windcore**」；
+- 编译失败时 codegen 不会立刻报错，而是**静默卡住**（本轮卡了 14 分钟才被发现并手工终止）。
+
+→ 顺序上先 `cargo check -p windcore --lib` 确认能编译，再跑 codegen。
+→ 版本必须与 `Cargo.lock` 一致：`cargo install flutter_rust_bridge_codegen --version 2.13.0 --locked`
+→ 装在 `$CARGO_HOME/bin`（本机 = `D:\scoop\persist\rustup\.cargo\bin`）。
+
+#### (e) 结束卡住的构建进程：别用 `taskkill //F`
+
+Git-Bash 会把 `//F` 做参数转换，破坏命令且**不杀进程**（与 MEMORY 里那条同类）。
+可靠写法是经 Python：
+
+```python
+# tasklist 输出是 GBK，必须容错解码
+out = subprocess.run(['tasklist','/FO','CSV','/NH'], capture_output=True).stdout.decode('gbk', errors='replace')
+# 再对目标 PID 执行： subprocess.run(['taskkill','/PID',pid,'/F'])
+```
+
