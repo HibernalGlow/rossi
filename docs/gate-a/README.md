@@ -1,10 +1,14 @@
 # Gate A — GPU Texture PoC 验证记录
 
-> 对应 `docs/ROADMAP.md` 的决策门 **Gate A**：GPU texture PoC 在 Windows 与 macOS
-> 上的性能与稳定性达标后，才允许进入 Phase 2。
+> 对应 `docs/ROADMAP.md` 的决策门 **Gate A**（已按 ADR-0004 拆成两只门）：
 >
-> 本文记录 Gate A 的**分步验证过程与结论**，不是最终判定。**Gate A 尚未通过**：
-> Windows 侧的可行性已证完，但 macOS 未验、对照基线未采、性能未在 Release 下量化。
+> - **Gate A-W（Windows）：已通过。** 可行性两条路径都已证完。
+> - **Gate A-M（macOS）：尚未进行**，与 A-W 等价，**不阻塞 Phase 1–2**，是显式技术债。
+>
+> 旧表述「Gate A 在 Windows 与 macOS 上均达标后才允许进入 Phase 2」**已废弃**。
+>
+> 本文记录 Gate A 的**分步验证过程与结论**。仍未量化的两项：Release 下的行为与性能、
+> 以及对照基线（现有 Reader 的帧率 / 内存 / 翻页延迟，Phase 0 未勾选项）。
 >
 > 本文覆盖前两条路径（外部纹理共享）。针对「能否绕开共享」评估的第三条路径见
 > [`flutter-gpu-path.md`](./flutter-gpu-path.md)：Flutter GPU 在 Windows 上实测可用，

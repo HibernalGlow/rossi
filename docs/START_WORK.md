@@ -4,6 +4,24 @@
 >
 > 核心原则：**尽可能拼装现有成熟能力，不重写已经存在的 Reader / Archive / 超分 / GPU 核心。** Rossi 主要负责 Flutter UI、协议适配、生命周期管理和各能力之间的胶水。
 
+---
+
+> **⚠️ 本文档的技术前提已在 2026-09-16 的决策轮次中被部分推翻，正文按「保留原文 + 就地更正」处理。**
+> **权威来源是 `CONTEXT.md`（术语）+ `docs/adr/`（决策）+ `docs/ROADMAP.md`（计划）+
+> `docs/v0.1_acceptance.md`（验收判据）；与本文档冲突时以上述为准。**
+>
+> | 位置 | 原文的说法 | 现状 |
+> |---|---|---|
+> | §3 全节 | mImage 是一个可 vendor 的 Rust 核心 | mImage = `MikageSawatari/mimageviewer`，是 **Windows 11 独占的 egui 单体应用**，架构上不可当库。见 ADR-0001 / 0005 / 0007 |
+> | §3.1 | 「Rossi 不重新实现本地漫画 Reader core」 | **已改写**：Rossi 拥有本地核心，mImageViewer 是**源码来源与行为标杆** |
+> | §7 | 超分参考 Venera-SSR | 超分以 **mImageViewer 的 `ort` 核心**为准；Venera-SSR 是 GPL，**只能读不能抄** |
+> | §2 | 「React UI 迁移为 Flutter」 | 只**提取视觉与交互语言**，在现有 `lib/page/comic_read` 上重建；业务实现不迁移。见 ADR-0003 |
+> | §10 | `vendor/mimage/`、`lib/app/`、`lib/features/*`、`rust/mimage_bridge` | 这些路径**全部不存在**；见 §10 就地更正 |
+> | §12 | 功能验收清单（含「在线源可以打开」） | v0.1 判据见 `docs/v0.1_acceptance.md`，**在线源不在 v0.1** |
+> | §14 | 「mImage 做本地核心并 vendor 成 Rust crate」 | 表述已更正；Gate A 已拆为 A-W（已通过）/ A-M（待验、**不阻塞**） |
+>
+> 四份「不要据此开工」的约束另见 ADR-0008（v0.1 冻结线：在线源 / OCR 翻译 / 上色 / Anime4K / 视频全不进）。
+
 ## 1. 总体方案
 
 Rossi 的最终结构：
@@ -62,6 +80,14 @@ Rossi 正式前端使用 Flutter，不保留 React DOM/WebView 作为桌面 Read
 - 不把 React Canvas 当成 GPU Reader；
 - 不为了“跨端复用 React”牺牲桌面端 Reader 的 GPU 路线。
 
+> 更正（2026-09-16，ADR-0003）：上列「保留交互方式和视觉语言」**不包括业务实现**。
+> neoview 是约 20 万行的完整应用（前端 96,384 行 + 后端 103,216 行），其中约 80% 是业务
+> （OPDS 客户端、zip/7z/epub loader、5 个超分 service、AI 翻译、语音与手势输入），**一律不迁移**。
+> Reader 的**骨骼用现有 `lib/page/comic_read`**，neoview 只提供视觉与交互语言。
+> → **「迁移」在本项目里只指视觉与交互语言的重建，不指代码移植。**
+> → `ntrn` 只当**结构提取器**用（出组件图 / 设计令牌 / 路由报告）：它的转换能力只支持基础
+>   JSX→Widget，样式转换排在 v0.9，状态在 v0.8，且它是 GPL（代码不可抄）。
+
 ### 2.2 UI 迁移顺序
 
 先做 Reader 最小闭环，不需要一次迁移所有页面：
@@ -77,26 +103,38 @@ Rossi 正式前端使用 Flutter，不保留 React DOM/WebView 作为桌面 Read
 
 UI 迁移阶段禁止引入新的状态管理复杂度；优先让页面结构稳定，再统一 state architecture。
 
-## 3. 本地核心：mImage
+## 3. 本地核心：mImageViewer（源码来源 + 行为标杆，不是依赖库）
 
 ### 3.1 原则
 
-**Rossi 不重新实现本地漫画 Reader core。**
+**Rossi 拥有本地核心；mImageViewer 提供源码来源与行为标杆。**
 
-mImage 作为本地图片/漫画处理的 Rust 核心，并以 vendor 方式放进 Rossi，使 Rossi 可以直接以 crate/workspace dependency 使用，而不是通过独立进程或网络服务通信。
+> 更正（2026-09-16）：原文写「Rossi 不重新实现本地漫画 Reader core」，前提是 mImage 可以作为一个
+> Rust 核心库被 vendor。该前提不成立 —— `MikageSawatari/mimageviewer` 虽有 lib target，
+> 但架构上是 **Windows 11 独占的 egui 单体应用**，依赖树带 ffmpeg / pdfium / ort / tantivy
+> 与三个被 `[patch.crates-io]` 替换的 egui；且它的显示管线（decode → CPU RGBA → `load_texture`，
+> 20MP 26–58 ms/张）与 Rossi「禁止 GPU→CPU→GPU 往返」的目标方向相反。
+> 见 ADR-0001 / ADR-0005。
 
-建议目录：
+**可复用范围限定在归档 / 解码 / 缓存 / 超分，不含上屏路径。**
+
+建议目录（已按 ADR-0007 更正）：
 
 ```text
 vendor/
-└── mimage/
+└── mimageviewer/          ← 独立 git 检出（clone 自自己的 fork），父仓库以 gitlink 记录 commit
+                             适配层用 Cargo `path` 指向它；同步上游 = 在此目录 `git merge upstream/main`
 
-rust/
-├── ...
-└── mimage_bridge/
+rust/                      ← 由单 crate `windcore` 改为 workspace
+├── windcore/（现有 FRB crate，保持不动）
+└── mimageviewer_adapter/  ← 薄适配 crate（不含 UI 与平台专属代码）
 ```
 
-实际 crate 名称和 workspace 组织以 mImage 当前仓库结构为准，不为适配 Rossi 大改上游代码。
+**注意**：`vendor/mimageviewer/` **不得**成为 Rossi workspace 的 member（否则 ffmpeg / ort /
+tantivy / egui 会一起进构建）；新机 clone 需要 `--recursive`，忘了会报「找不到
+`vendor/mimageviewer/.../Cargo.toml`」，那个报错看起来像路径写错。
+
+改动上游代码是允许的（要跟得住 merge，见 ADR-0002），但不为适配 Rossi 而大改其架构。
 
 ### 3.2 Rossi 只包一层 Adapter
 
@@ -273,9 +311,16 @@ Flutter
 
 不要因为 `CreateSharedHandle` 探针得到 `E_INVALIDARG` 就视为故障；对于普通 wgpu 默认堆资源，这是当前路径的预期边界。
 
-## 7. 超分：参考 Venera-SSR，优先复用 Rossi 已有后端
+## 7. 超分：以 mImageViewer 的 ort 核心为准
 
-Venera-SSR 最值得借鉴的是**Reader 内超分的业务组织方式**，而不是整个 Reader。
+> 更正（2026-09-16）：原文是「参考 Venera-SSR，优先复用 Rossi 已有后端」。现在改为：
+> **实现与模型集统一以 mImageViewer 的 Rust 核心为准**（`ort` + Real-ESRGAN / Real-CUGAN /
+> NMKD-Siax），Windows 先行、macOS 后续转原生，其余平台暂沿用 Breeze 现有后端（CoreML / ncnn）。
+> **取消「按内容分工」**（Anime4K 类做线条）：参考实现是 GPL，且不在 v0.1。
+> **超分验收只以 Windows 为准**（两套后端意味着模型集不同，跨平台画质必然不一致，不做对齐）。
+
+Venera-SSR 仍值得借鉴的是**Reader 内超分的业务组织方式**（`UpscalerController` 放在哪、
+什么时候触发），而不是它的实现代码。
 
 推荐边界：
 
@@ -312,7 +357,7 @@ Venera-SSR 当前的 Dart/Android 实现不直接成为 Rossi 的最终 GPU pipe
 
 | 项目 | 在 Rossi 中的角色 | 是否直接嵌入 |
 |---|---|---|
-| React UI | Flutter UI 的视觉/交互参考 | 否 |
+| React UI | Flutter UI 的视觉/交互参考"D:\1VSCODE\Projects\Xiranite\src\nodes\neoview" | 否 |
 | mImage | **本地 Reader / image core** | **是，vendor crate** |
 | Breeze | 在线漫画源 / QuickJS plugin runtime | **是，保留现有代码** |
 | Venera-SSR | SR service / model management 参考 | 部分复用思想/实现 |
@@ -395,37 +440,43 @@ existing SR backend
 
 ## 10. 推荐工程目录
 
+> 更正（2026-09-16）：下面是**更正后**的结构。原文提议的 `vendor/mimage/`、`lib/app/`、
+> `lib/features/{library,reader,source,settings}/`、`lib/rendering/`、`lib/upscale/`、`lib/bridge/`、
+> `rust/mimage_bridge/`、`rust/gpu_renderer/`、`rust/source_bridge/` **全部不存在**。
+> 仓库现状：`lib/page/`（已有 `comic_read` / `bookshelf` / `setting` / `plugin_store` / `comic_follow`）、
+> `rust/` 是单 crate `windcore`（无 workspace）。
+
 ```text
 rossi/
 ├── docs/
 │   ├── RESEARCH.md
 │   ├── REFERENCE_RESEARCH.md
-│   └── START_WORK.md
+│   ├── ROADMAP.md
+│   ├── START_WORK.md
+│   ├── v0.1_acceptance.md
+│   ├── adr/                     ← 决策的权威来源（0001–0008）
+│   └── gate-a/  windows-build/
+│
+├── CONTEXT.md                   ← 术语表（仓库根）
 │
 ├── vendor/
-│   └── mimage/
+│   └── mimageviewer/            ← 独立 git 检出（gitlink），**不是** rossi 自己的文件
 │
 ├── lib/
-│   ├── app/
-│   ├── features/
-│   │   ├── library/
-│   │   ├── reader/
-│   │   ├── source/
-│   │   └── settings/
-│   ├── rendering/
-│   ├── upscale/
-│   └── bridge/
+│   └── page/
+│       ├── comic_read/          ← Reader 骨骼（ADR-0003：在这上面重建，不从零画）
+│       ├── bookshelf/  setting/  plugin_store/  comic_follow/
+│       └── ...
 │
-├── rust/
-│   ├── mimage_bridge/
-│   ├── gpu_renderer/
-│   ├── source_bridge/
-│   └── ...
+├── rust/                        ← 由单 crate 改为 workspace
+│   ├── windcore/                ← 现有 FRB crate，保持
+│   ├── mimageviewer_adapter/    ← 薄适配 crate（待建）
+│   └── wgpu-probe/ …            ← PoC（在 poc/ 下，不进发布路径）
 │
-└── ...
+└── poc/                         ← Gate A 验证工程，独立于主代码
 ```
 
-实际目录以现有 Breeze 结构为基准增量调整，不进行大规模重排。
+`lib/` 不做大规模重排——现有 Breeze 结构是基准，**新增目录只在真正需要时加**。
 
 ## 11. 第一阶段不要做什么
 
@@ -443,11 +494,17 @@ rossi/
 
 ## 12. 验收标准
 
+> **v0.1 的验收判据以 [`v0.1_acceptance.md`](./v0.1_acceptance.md) 为准**（四条：覆盖度 /
+> 冷启动 ≤ 2 s / 翻页 p95≤16.7ms·p99≤33ms·无 >100ms 单帧 / 连读三本 RSS 增幅 ≤5%）。
+> 下面这份清单是**更长期的目标**，其中多项不在 v0.1：**「在线源可以打开」不在 v0.1**（ADR-0008）。
+> `CBR` 在 v0.1 判据里是**硬要求**，但它不是本清单里的任何一项 —— 见 `v0.1_acceptance.md` §4。
+
 ### 功能
 
 - [ ] 本地文件夹可以打开
 - [ ] CBZ/ZIP 可以打开
-- [ ] 在线源可以打开
+- [ ] CBR/RAR 可以打开（v0.1 硬要求）
+- [ ] 在线源可以打开（**不在 v0.1**）
 - [ ] 单页/双页可切换
 - [ ] 连续滚动稳定
 - [ ] zoom/pan 稳定
@@ -521,9 +578,17 @@ mImage → Reader → wgpu → Flutter Texture
 ## 14. 开工判定
 
 **现在正式进入开发，不再以“寻找一个已经全部完成的项目”为前置条件。**
+**Gate A 也不再是开工门槛**（已按 ADR-0004 拆分：A-W 已通过，A-M 待验但不阻塞）。
 
-最终方案就是：
+最终方案（已更正）：
 
-> **Flutter 做 UI；既有 React UI 迁移为 Flutter；mImage 做本地核心并 vendor 成 Rust crate；Breeze 保留在线源插件生态；Venera-SSR 提供超分架构参考；Rust/wgpu 做 GPU renderer；Flutter Texture 做 presentation。**
+> **Flutter 做 UI；neoview 只提供视觉与交互语言，在现有 `lib/page/comic_read` 上重建；
+> mImageViewer 提供本地能力的源码与标杆（vendor 到 `vendor/mimageviewer/`，Rossi 侧加薄适配 crate）；
+> Breeze 保留在线源插件生态（但不在 v0.1）；超分统一以 mImageViewer 的 `ort` 核心为准；
+> Rust/wgpu 做 GPU renderer；Flutter Texture 做 presentation。**
+
+v0.1 = **本地漫画 → 归档直读 → 解码 → GPU 上屏 → 超分**，判据见 `docs/v0.1_acceptance.md`。
+动手前的第一件事是 Phase 0 那两项未勾选任务与 **vendor spike**（统计 mImageViewer `src/` 下多少模块
+`use egui`，决定「薄适配层」能否成立）。
 
 重点不是重新造一个漫画阅读器，而是把这些已经存在的能力用最薄的 adapter 拼成一个统一 Reader。
