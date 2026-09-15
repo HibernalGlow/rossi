@@ -1,0 +1,3 @@
+[submodule "vendor/mimageviewer"]
+	path = vendor/mimageviewer
+	url = https://github.com/HibernalGlow/neoxide.git
