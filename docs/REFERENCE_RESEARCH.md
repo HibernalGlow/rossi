@@ -6,6 +6,12 @@
 
 仓库：<https://github.com/andrizan/comicRD>
 
+> **定位更正（ADR-0011，2026-09-16）**：ComicRD 在本项目中**只作参考实现**——不 vendor、不依赖、
+> 不进 Cargo；本地核心的来源是 mImageViewer（ADR-0001 恢复有效）。
+> 它的 RAR 做法（`rar-sessions`：首次访问 chapter 时把整章图片提取到临时目录）**已被明确否决**，
+> Rossi 的 RAR 读取模型以 mImageViewer 的 `src/rar_loader.rs` 为准（逐条目按需读、不落盘）。
+> 它仍值得对照的是：tile 布局（`TILE_MAX_HEIGHT = 2048`）、预取窗口、tile 字节缓存。
+
 ComicRD 是一个真实落地的 Flutter + Rust 桌面本地漫画阅读器，重点价值不是 GPU，而是它已经把本地 Reader 最核心的数据生命周期放到了 Rust：文件系统发现、ZIP/CBZ、RAR/CBR、SQLite、进度/书签/历史，以及图片 pipeline。
 
 ### 已落地能力
@@ -35,7 +41,8 @@ Tile / viewport pipeline
 RenderBackend
 ```
 
-Rossi 不应照搬 ComicRD 的 Flutter Widget，而应吸收其 Rust Reader core，并把最后一层抽象成：
+Rossi 不应照搬 ComicRD 的 Flutter Widget，也不把它的 Rust Reader core 当依赖——只按其**接口形状**
+（PageSource / bytes-on-demand / 有界预取）自建，并把最后一层抽象成：
 
 ```text
 RenderBackend

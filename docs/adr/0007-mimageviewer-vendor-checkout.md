@@ -1,5 +1,10 @@
 # mImageViewer 源码以 `vendor/` 内的独立 git 检出复用
 
+> **⚠️ 对象回到 mImageViewer（ADR-0011，2026-09-16）。** ADR-0010 曾把 v0.1 阶段的检出对象换成
+> `vendor/comicRD/`（且因为 `comicrd_core` 本来就是干净 crate，不需要先建 fork），该决定已撤回。
+> 本 ADR 按原文生效：检出对象是 **`vendor/mimageviewer/`**，clone 自 `HibernalGlow/mimageviewer` fork
+> （其 `upstream` 指向 `MikageSawatari/mimageviewer`），**需要先建这个 fork**，且 v0.1 阶段就要 clone。
+
 Rossi 需要「方便本地开发」与「能持续吃掉上游更新」同时成立。我们决定：
 **mImageViewer 的源码以独立 git 检出放在 rossi 仓库的 `vendor/mimageviewer/`**
 （clone 自 `HibernalGlow/mimageviewer` fork，该 fork 的 `upstream` 指向 `MikageSawatari/mimageviewer`），

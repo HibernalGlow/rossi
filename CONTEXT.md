@@ -28,6 +28,13 @@ _Avoid_: React UI、React 前端、migration target
 _See_: ADR-0001
 _Avoid_: mImage、mImage core（这两个名字指向错误的粒度）
 
+**ComicRD**:
+`andrizan/comicRD`——Flutter + Rust 的桌面本地漫画阅读器，MIT，其 `crates/comicrd_core` 是一个干净的
+可复用 crate。在 Rossi 中**只作参考实现**：不 vendor、不依赖、不进 Cargo。
+它的 tile 布局、预取窗口、tile 字节缓存可作对照；**它的 RAR 做法（整章落盘提取）明确不采用**。
+_See_: ADR-0011
+_Avoid_: 用它表示「本地核心的来源」；也不要再说「用 ComicRD 做 Reader」
+
 **上游同步**（upstream sync）:
 Rossi 保留从 Breeze 与 mImageViewer 拉取上游改动的能力，但**不对齐**它们：允许破坏性变更，不向上游提 PR。
 _See_: ADR-0002
@@ -57,14 +64,28 @@ _Avoid_: 用它指 neoview 的 Reader 或 `lib/page/comic_read` 那两个东西�
 **本地核心**（Local Core）:
 负责本地文件与压缩包的打开、页列举、解码、页元数据的组件。**所有权在 Rossi**；
 Windows 上的实现以 mImageViewer 的源码为来源，macOS / Linux 上参照它重建可移植子集。
-_See_: ADR-0005
-_Avoid_: mImage
+_See_: ADR-0005、ADR-0011（来源曾在 2026-09-16 当天一度改为 ComicRD，同日回退）
+_Avoid_: mImage、ComicRD（它已降为参考实现，不再指代来源）
 
 **适配层**（adapter crate）:
 Rossi Rust 侧新增的薄 crate，把外部的 mImageViewer 源码包成 Rossi 需要的接口。
 它**不**包含 mImageViewer 的 UI 与平台专属代码。
 **「薄」是设计目标而不是已成立的事实**——取决于对方 `src/` 里多少模块引用了 egui。
 _See_: ADR-0005
+
+**逐条目按需读**（per-entry on-demand read）:
+RAR/CBR 的读取模型：打开归档 → `read_header` 顺序推进 → 命中条目读出字节、未命中跳过；
+字节直接进内存交给解码器。**不落盘、不建 session、不跨调用持有归档句柄**；
+缓存只允许缓存**判定结果**（key = `path + len + mtime`），不允许缓存归档内容或句柄。
+_See_: ADR-0011
+_Avoid_: 归档会话（session）、归档句柄池
+
+**整章落盘**（chapter materialization）:
+曾被考虑、**已被否决**的 RAR 实现：首次访问 chapter 时把整章图片一次性提取到
+`<app-data>/rar-sessions/chapter-<id>`，之后 probe / read 走磁盘。
+唯一允许临时文件的场景是**嵌套归档**（内层必须先落地成路径才能被打开），v0.1 不实现嵌套。
+_See_: ADR-0011
+_Avoid_: 用「RAR 读不了流」概括这条约束——需要路径的是**归档本身**，不是条目字节
 
 **PageSource**:
 Reader 唯一的页面来源抽象，把本地页与在线页统一到同一个接口。

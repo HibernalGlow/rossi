@@ -1,5 +1,10 @@
 # 以「外部 fork 源码 + rossi 内薄适配 crate」复用 mImageViewer
 
+> **⚠️ 对象回到 mImageViewer（ADR-0011，2026-09-16）。** ADR-0010 曾把 `vendor/` 下的封装对象换成
+> ComicRD（那里的封装是**映射**而不是抽瘦），该决定已撤销 —— 原因是 ComicRD 的 RAR 走整章落盘，
+> 与 Rossi 的读取模型直接冲突。本 ADR 描述的 mImageViewer 形态**按原文生效**：
+> **「薄」是设计目标而不是已成立的事实**，「`use egui` 探针」是动手前必做项（见 Consequences）。
+
 Rossi 需要 mImageViewer 的本地能力（归档直读、解码、缩略图缓存、双页拆分、ONNX 超分，后续还有视频），
 但它是一个 16 crate 的 egui 单体应用、文档里没有任何 macOS/Linux 计划、依赖树里带
 ffmpeg / pdfium / ort / tantivy。我们决定：**它的源码以独立 fork 存在**（便于 `git merge upstream/main`

@@ -1,5 +1,11 @@
 # 以 mImageViewer 为 Rossi 本地核心的来源
 
+> **✅ 恢复有效（ADR-0011，2026-09-16）。** ADR-0010 曾在同日把本地核心来源改为 ComicRD，
+> 但那次选型只核对了「能不能读」而没有核对「读一页的代价」（它把 `rar-sessions` 整章落盘当成了优点），
+> 已被 ADR-0011 取代并撤回。本 ADR 的全部结论**重新成立**：源码级 fork、抽出不含 UI 与平台专属代码的
+> 瘦 lib crate、复用范围限定在归档 / 解码 / 缓存 / 超分、显示管线不照抄。
+> ADR-0005 与 ADR-0007 的对象也随之回到 mImageViewer。
+
 `MikageSawatari/mimageviewer` 是 Windows 11 独占的成熟查看器应用（MIT / v3.10.0 / 16 crate workspace /
 5,586 commits），但它在架构上是**单体应用**而非可依赖的库——`src/lib.rs` 虽是 crate root，
 却声明了全部模块（含全部 `ui_*` 与 WIC / Shell / DPAPI / WASAPI 平台专属代码），

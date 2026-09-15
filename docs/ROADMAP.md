@@ -128,10 +128,14 @@ GPU Surface
 重点：
 
 - ZIP/CBZ 原位读取
-- **CBR/RAR 读取**（v0.1 验收判据要求；`windcore` 当前**无任何 RAR 依赖**，需新引入。
-  两个必须记账的点：RAR 解码以**文件路径**为前提、读不了流，本地核心要预留
-  「归档项 → 临时文件 → 解码器」这条路径；UnRAR 许可证非 copyleft，但分发须附其条款文本。
-  见 `docs/v0.1_acceptance.md` §4）
+- **CBR/RAR 读取**（v0.1 验收判据要求；`windcore` 当前**无任何 RAR 依赖**，
+  随 mImageViewer 的 `unrar-patched` 检出引入）。三个必须记账的点：
+  ① **读取模型是「逐条目按需读」**——打开归档顺序 `read_header`，命中条目读出字节、未命中 `skip()`，
+  **不落盘、不建 session、不跨调用持有句柄**（ADR-0011）；
+  ② 原表述「RAR 解码以文件路径为前提、读不了流」的正确边界是**归档本身**需要路径，
+  不是条目字节——临时文件只在**嵌套归档**时才允许，v0.1 不实现嵌套；
+  ③ UnRAR 许可证非 copyleft，但分发须附其条款文本。
+  **solid / 加密 CBR 不在 v0.1 判据内**（报明确错误即可）。见 `docs/v0.1_acceptance.md` §4）
 - 7z 仍属后续评估
 - 大图 tile 化
 - LRU GPU/CPU cache
