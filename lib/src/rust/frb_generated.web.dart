@@ -9,6 +9,7 @@
 import 'api/data_backup.dart';
 import 'api/http.dart';
 import 'api/image.dart';
+import 'api/local.dart';
 import 'api/localization.dart';
 import 'api/logger.dart';
 import 'api/memory.dart';
@@ -114,6 +115,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ImageInfo dco_decode_box_autoadd_image_info(dynamic raw);
 
   @protected
+  LocalRejection dco_decode_box_autoadd_local_rejection(dynamic raw);
+
+  @protected
+  LocalSourceInfo dco_decode_box_autoadd_local_source_info(dynamic raw);
+
+  @protected
   PackInfo dco_decode_box_autoadd_pack_info(dynamic raw);
 
   @protected
@@ -154,6 +161,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<String> dco_decode_list_String(dynamic raw);
 
   @protected
+  List<LocalPageInfo> dco_decode_list_local_page_info(dynamic raw);
+
+  @protected
   List<int> dco_decode_list_prim_u_8_loose(dynamic raw);
 
   @protected
@@ -164,6 +174,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<TaggedAllocation> dco_decode_list_tagged_allocation(dynamic raw);
+
+  @protected
+  LocalPageInfo dco_decode_local_page_info(dynamic raw);
+
+  @protected
+  LocalRejection dco_decode_local_rejection(dynamic raw);
+
+  @protected
+  LocalRejectionKind dco_decode_local_rejection_kind(dynamic raw);
+
+  @protected
+  LocalSourceInfo dco_decode_local_source_info(dynamic raw);
+
+  @protected
+  LocalSourceKind dco_decode_local_source_kind(dynamic raw);
+
+  @protected
+  LocalSourceOpenResult dco_decode_local_source_open_result(dynamic raw);
 
   @protected
   Map<String, String>? dco_decode_opt_Map_String_String_None(dynamic raw);
@@ -186,6 +214,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   HttpClientOptions? dco_decode_opt_box_autoadd_http_client_options(
     dynamic raw,
   );
+
+  @protected
+  LocalRejection? dco_decode_opt_box_autoadd_local_rejection(dynamic raw);
+
+  @protected
+  LocalSourceInfo? dco_decode_opt_box_autoadd_local_source_info(dynamic raw);
 
   @protected
   QjsRuntimeBundleBuild? dco_decode_opt_box_autoadd_qjs_runtime_bundle_build(
@@ -223,6 +257,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   int dco_decode_u_16(dynamic raw);
+
+  @protected
+  int dco_decode_u_32(dynamic raw);
 
   @protected
   BigInt dco_decode_u_64(dynamic raw);
@@ -313,6 +350,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ImageInfo sse_decode_box_autoadd_image_info(SseDeserializer deserializer);
 
   @protected
+  LocalRejection sse_decode_box_autoadd_local_rejection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LocalSourceInfo sse_decode_box_autoadd_local_source_info(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PackInfo sse_decode_box_autoadd_pack_info(SseDeserializer deserializer);
 
   @protected
@@ -355,6 +402,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<String> sse_decode_list_String(SseDeserializer deserializer);
 
   @protected
+  List<LocalPageInfo> sse_decode_list_local_page_info(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<int> sse_decode_list_prim_u_8_loose(SseDeserializer deserializer);
 
   @protected
@@ -367,6 +419,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<TaggedAllocation> sse_decode_list_tagged_allocation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LocalPageInfo sse_decode_local_page_info(SseDeserializer deserializer);
+
+  @protected
+  LocalRejection sse_decode_local_rejection(SseDeserializer deserializer);
+
+  @protected
+  LocalRejectionKind sse_decode_local_rejection_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LocalSourceInfo sse_decode_local_source_info(SseDeserializer deserializer);
+
+  @protected
+  LocalSourceKind sse_decode_local_source_kind(SseDeserializer deserializer);
+
+  @protected
+  LocalSourceOpenResult sse_decode_local_source_open_result(
     SseDeserializer deserializer,
   );
 
@@ -393,6 +467,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   HttpClientOptions? sse_decode_opt_box_autoadd_http_client_options(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LocalRejection? sse_decode_opt_box_autoadd_local_rejection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LocalSourceInfo? sse_decode_opt_box_autoadd_local_source_info(
     SseDeserializer deserializer,
   );
 
@@ -438,6 +522,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   int sse_decode_u_16(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_u_32(SseDeserializer deserializer);
 
   @protected
   BigInt sse_decode_u_64(SseDeserializer deserializer);
@@ -553,6 +640,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_local_rejection(
+    LocalRejection self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_local_source_info(
+    LocalSourceInfo self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_pack_info(
     PackInfo self,
     SseSerializer serializer,
@@ -601,6 +700,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_local_page_info(
+    List<LocalPageInfo> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_prim_u_8_loose(List<int> self, SseSerializer serializer);
 
   @protected
@@ -618,6 +723,39 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_tagged_allocation(
     List<TaggedAllocation> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_local_page_info(LocalPageInfo self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_local_rejection(
+    LocalRejection self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_local_rejection_kind(
+    LocalRejectionKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_local_source_info(
+    LocalSourceInfo self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_local_source_kind(
+    LocalSourceKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_local_source_open_result(
+    LocalSourceOpenResult self,
     SseSerializer serializer,
   );
 
@@ -648,6 +786,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_http_client_options(
     HttpClientOptions? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_local_rejection(
+    LocalRejection? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_local_source_info(
+    LocalSourceInfo? self,
     SseSerializer serializer,
   );
 
@@ -707,6 +857,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_u_16(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_u_32(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_64(BigInt self, SseSerializer serializer);
