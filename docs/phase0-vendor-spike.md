@@ -73,6 +73,13 @@
 
 > 注意 `ui_helpers` 被 4 个种子共用 —— 它像是一个「人人都 import 的杂物间」。
 > 剪它之前要先看那 252 行里有多少是**真的被用到的工具函数**（要拆，不是删）。
+>
+> **再往下一层量过之后（见 `docs/adapter-cut-plan.md`）**：这 9 个模块的**生产代码**里 egui 相关行
+> 合计只有 **67 行**，其中**真 UI 只有 4 行**（`settings::apply_ui_scale_factor` 的 `&egui::Context`、
+> `grid_item` 与 `fs_animation` 的 `TextureHandle`）；其余都是 `ColorImage` / `Color32` / `Rect`
+> 这三个**与 UI 无关的纯数据类型**的替换。
+> 尤其注意 **`canonical_image_loader` 的生产代码是 0 行** —— 它的 7 处引用全在 `#[cfg(test)]` 里。
+> → 所以上面那个「301 模块 / 120 脏」是**「不剪边」的假象**，真实代价是可控的。
 
 ### 1.3 `crates/` 的干净程度（意外的好消息）
 
@@ -126,7 +133,8 @@
 
 1. **（待用户定）** 是否在检出里 `git merge upstream/main`（落后 34 个提交）。
 2. **（待用户定）** 是否 `git lfs pull` 拿那 335 MB 模型（v0.1 不需要，Gate B 才需要）。
-3. 把 §1.2 的 9 个模块写成具体工单：先动 `settings` / `grid_item` / `catalog` 这三个 ≤3 行的，
-   再动 `ui_helpers`（要先判断 252 行里哪些函数真的被用到）。
+3. 把 §1.2 的 9 个模块写成具体工单 —— **已完成**，见 **`docs/adapter-cut-plan.md`**：
+   9 个模块生产代码里的 egui 行合计 **67 行**，其中**真 UI 只有 4 行**，
+   其余是 `ColorImage` / `Color32` / `Rect` 三个与 UI 无关的纯数据类型的替换。
 4. Phase 0 剩余项（`ROADMAP.md`）：三平台 release 构建基线、现有 Reader 的帧率 / 内存 / 翻页延迟基线、
    现有超分链路记录。
