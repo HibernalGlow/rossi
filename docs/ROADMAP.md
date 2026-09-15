@@ -146,6 +146,13 @@ GPU Surface
   不是条目字节——临时文件只在**嵌套归档**时才允许，v0.1 不实现嵌套；
   ③ UnRAR 许可证非 copyleft，但分发须附其条款文本。
   **solid / 加密 CBR 不在 v0.1 判据内**（报明确错误即可）。见 `docs/v0.1_acceptance.md` §4）
+- [x] **Dart 侧接线（判据 A 的观察窗口）** —— `lib/debug/local_source_debug_page.dart`，
+      入口为 设置 → 调试 → **本地来源读取（判据 A）**：打开文件夹 / CBZ / CBR、
+      页列表 + 预览、会话数探针、逐页计时（判据「按需 seek vs 整段解压」的尺子）。
+      它走的是 **Dart 兜底显示路径**（`Image.memory`，即编码字节过桥），
+      **不是目标上屏形态、不能当判据 B/C 的依据** —— 判据 B/C 要等 Phase 1 的
+      GPU 上屏接线。手测夹具由 `poc/local-samples/make_samples.py` 生成
+      （真实截图 + 含两条拒绝路径的固实/加密 CBR）。见 `docs/v0.1-local-core.md` §11。
 - 7z 仍属后续评估
 - 大图 tile 化
 - LRU GPU/CPU cache

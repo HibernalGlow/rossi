@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/router/router.gr.dart';
+import 'package:zephyr/debug/local_source_debug_page.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/src/rust/api/qjs.dart';
@@ -83,6 +84,21 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
               onTap: () => context.pushRoute(const CoreMLUpscaleDebugRoute()),
             ),
           ],
+          // 本地来源读取（v0.1 判据 A 的观察窗口）**刻意不放在 kDebugMode 里**：
+          // 判据 B/C/D 只在 Release 下成立，需要被观察的窗口却只在 debug 可见，
+          // 就等于「量不到」。它是诊断工具而不是功能特性，所以无 i18n 词条，
+          // 并走 MaterialPageRoute 直连而不是 @RoutePage（不触发全量 codegen）。
+          ListTile(
+            leading: const Icon(Icons.collections_bookmark_outlined),
+            title: const Text('本地来源读取（判据 A）'),
+            subtitle: const Text('散图文件夹 / CBZ / CBR 直读，含逐页耗时与拒绝类别'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const LocalSourceDebugPage(),
+              ),
+            ),
+          ),
           const SizedBox(height: 32),
         ],
       ),
