@@ -1,0 +1,39 @@
+=== Cargo [patch.crates-io] 跨 workspace 传递性实验 ===
+日期: 2026-09-16   cargo: cargo 1.98.1 (797e8a9bc 2026-08-05)
+
+### 基线：patch 就在这个 workspace 根里  (D:/1VSCODE/Projects/rossi/poc/cargo-patch-scope/gen/external)
+    cfg-if 1.0.0 -> PATH(本地副本)
+    cargo build:
+    (build 无 error 输出 = 编译通过)
+
+### 案例 1：外部有 patch，父 workspace 没有  (D:/1VSCODE/Projects/rossi/poc/cargo-patch-scope/gen/host-nopatch)
+    cfg-if 1.0.4 -> registry+https://github.com/rust-lang/crates.io-index
+    cargo build:
+      error[E0425]: cannot find value `SOURCE_MARKER` in crate `cfg_if`
+      For more information about this error, try `rustc --explain E0425`.
+      error: could not compile `vendored-core` (lib) due to 1 previous error
+    (build 无 error 输出 = 编译通过)
+
+### 案例 2：父 workspace 自己补一份同样的 patch  (D:/1VSCODE/Projects/rossi/poc/cargo-patch-scope/gen/host-patch)
+    cfg-if 1.0.0 -> PATH(本地副本)
+    cargo build:
+    (build 无 error 输出 = 编译通过)
+
+### 案例 3：外部直接 path 依赖，父 workspace 又依赖 crates.io 同名（版本不同）  (D:/1VSCODE/Projects/rossi/poc/cargo-patch-scope/gen/host-dup)
+    cfg-if 1.0.0 -> PATH(本地副本)
+    cfg-if 1.0.4 -> registry+https://github.com/rust-lang/crates.io-index
+    cargo build:
+      error[E0425]: cannot find value `SOURCE_MARKER` in crate `cfg_if`
+      For more information about this error, try `rustc --explain E0425`.
+      error: could not compile `adapter` (lib) due to 1 previous error
+    (build 无 error 输出 = 编译通过)
+
+### 案例 4：同上，但父锁到与本地副本完全相同的版本（=1.0.0）  (D:/1VSCODE/Projects/rossi/poc/cargo-patch-scope/gen/host-dup-samever)
+    cfg-if 1.0.0 -> PATH(本地副本)
+    cfg-if 1.0.0 -> registry+https://github.com/rust-lang/crates.io-index
+    cargo build:
+      error[E0425]: cannot find value `SOURCE_MARKER` in crate `cfg_if`
+      For more information about this error, try `rustc --explain E0425`.
+      error: could not compile `adapter` (lib) due to 1 previous error
+    (build 无 error 输出 = 编译通过)
+

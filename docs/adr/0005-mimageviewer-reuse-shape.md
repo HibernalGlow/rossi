@@ -2,8 +2,9 @@
 
 > **⚠️ 对象回到 mImageViewer（ADR-0011，2026-09-16）。** ADR-0010 曾把 `vendor/` 下的封装对象换成
 > ComicRD（那里的封装是**映射**而不是抽瘦），该决定已撤销 —— 原因是 ComicRD 的 RAR 走整章落盘，
-> 与 Rossi 的读取模型直接冲突。本 ADR 描述的 mImageViewer 形态**按原文生效**：
-> **「薄」是设计目标而不是已成立的事实**，「`use egui` 探针」是动手前必做项（见 Consequences）。
+> 与 Rossi 的读取模型直接冲突。本 ADR 描述的 mImageViewer 形态**按原文生效**。
+> **`use egui` 探针已于 2026-09-16 跑完**，结论见 `docs/phase0-vendor-spike.md` 与下方 Consequences
+> ——「薄」成立，但方式是**剪 9 条反向依赖边**，不是排除 `ui_*` 目录。
 
 Rossi 需要 mImageViewer 的本地能力（归档直读、解码、缩略图缓存、双页拆分、ONNX 超分，后续还有视频），
 但它是一个 16 crate 的 egui 单体应用、文档里没有任何 macOS/Linux 计划、依赖树里带
@@ -24,9 +25,17 @@ ffmpeg / pdfium / ort / tantivy。我们决定：**它的源码以独立 fork �
 ## Consequences
 
 - rossi 的 Rust 侧从单 crate `windcore` 变为 workspace（现有 FRB crate + 适配 crate + 后续的 renderer crate）。
-- **「薄」是设计目标，不是已成立的事实。** mImageViewer 的 `src/` 没有文档化的「核心 vs UI」边界，
-  若底层模块也引用 egui 类型，适配层就会退化成逐个模块写 shim。
-  → **动手前先做一个 spike**：统计 `src/` 下有多少模块 `use egui`，据此判断适配层的真实工作量。
+- **「薄」是设计目标，不是已成立的事实** —— 这一点被实测证实了，但结论比预期好：
+  1. **「核心 vs UI」按名字切不出来**：`src/` 467 个 `.rs` 里 **183 个碰 egui**，
+     其中 **92 个名字完全不像 UI**（`books` / `keymap` / `ime_focus` / `settings` / `thumb_loader`…）。
+     所以「排除 `ui_*` 目录」这条路不存在。
+  2. **但切集很小**：v0.1 要复用的 11 个种子里 **8 个完全干净**，脏的 3 个都是个位数行数；
+     逐种子的直接脏依赖去重后只有 **9 个模块**要处理（`ui_helpers` 252 行、`displayed_image_transform` 292 行
+     是仅有的两个大件）。**不剪边**才会滚成 301 个模块的闭包。
+  → 工作量口径因此改为「**逐个种子模块剪反向依赖**」，而不是「一次性统计」；数据见 `docs/phase0-vendor-spike.md`。
+- **patch 传递性：不要依赖外部那份 `[patch.crates-io]`**（ADR-0007 已实测）：它不传递且**静默失效**，
+  父 workspace 会拿到 crates.io 上的未打补丁版本。→ 让适配层**不依赖任何被 patch 的 crate**
+  （`egui` / `eframe` / `egui-wgpu`），比在 rossi 根再抄一份 patch 表更干净。
 - 上游只保证 Windows（`wgpu-hal` 只开 `dx12` feature），macOS / Linux 的可移植子集需要逐模块判定。
 - **复用范围以 v0.1 冻结线为界**（ADR-0008）：v0.1 只用到归档 / 解码 / 超分；视频等一并推迟。
 - 它是 MIT，可原文拷入，保留版权声明即可。

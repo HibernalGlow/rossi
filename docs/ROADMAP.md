@@ -38,8 +38,12 @@
 - [ ] 确认当前 Windows/macOS/Linux 构建基线（三平台各跑通一次 release 构建）
 - [ ] 记录现有 Reader 的帧率、内存、翻页延迟
 - [ ] 记录现有 RealSR/CoreML/Android 超分链路
-- [ ] **vendor spike**（ADR-0005 / ADR-0007，动手前必做）：统计 mImageViewer `src/` 下多少模块
-      `use egui`（决定适配层真实厚度）；验证 path 依赖跨 workspace 的 Cargo 归属行为
+- [x] **vendor 检出**（ADR-0007，2026-09-16 完成）：`vendor/mimageviewer/` = fork `HibernalGlow/neoxide`
+      的 gitlink 检出（`f2380d2b`），`origin` → 该 fork、`upstream` → `MikageSawatari/mimageviewer`
+- [x] **vendor spike**（ADR-0005 / ADR-0007）—— **2026-09-16 完成**，结论见 `docs/phase0-vendor-spike.md`：
+      `src/` 467 个 `.rs` 里 **183 个碰 egui**，其中 **92 个名字不像 UI**（按目录切不出「核心」）；
+      但 11 个复用种子里 8 个干净，**剪掉 9 个直接脏依赖**即可自洽；
+      path 依赖的 `[patch.crates-io]` **不传递、且静默**（实测解析到 crates.io 最新版，不报错）
 
 分支：`research/gpu-reader-foundation`
 

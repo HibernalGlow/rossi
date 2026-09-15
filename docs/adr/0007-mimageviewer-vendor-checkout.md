@@ -2,12 +2,15 @@
 
 > **⚠️ 对象回到 mImageViewer（ADR-0011，2026-09-16）。** ADR-0010 曾把 v0.1 阶段的检出对象换成
 > `vendor/comicRD/`（且因为 `comicrd_core` 本来就是干净 crate，不需要先建 fork），该决定已撤回。
-> 本 ADR 按原文生效：检出对象是 **`vendor/mimageviewer/`**，clone 自 `HibernalGlow/mimageviewer` fork
-> （其 `upstream` 指向 `MikageSawatari/mimageviewer`），**需要先建这个 fork**，且 v0.1 阶段就要 clone。
+> 本 ADR 按原文生效，且**已落地（2026-09-16）**：检出对象是 **`vendor/mimageviewer/`**，
+> clone 自 fork **`HibernalGlow/neoxide`**（注意：fork 的仓库名是 `neoxide`，不是 `mimageviewer`；
+> 它是 `MikageSawatari/mimageviewer` 的 fork），父仓库 gitlink = `f2380d2b`。
+> 检出时与上游 **diverged：领先 2（中文 i18n 层）、落后 34** —— 是否 merge 上游未做。
+> 详见 `docs/phase0-vendor-spike.md` §0。
 
 Rossi 需要「方便本地开发」与「能持续吃掉上游更新」同时成立。我们决定：
 **mImageViewer 的源码以独立 git 检出放在 rossi 仓库的 `vendor/mimageviewer/`**
-（clone 自 `HibernalGlow/mimageviewer` fork，该 fork 的 `upstream` 指向 `MikageSawatari/mimageviewer`），
+（clone 自 `HibernalGlow/neoxide` fork，该 fork 的 `upstream` 指向 `MikageSawatari/mimageviewer`），
 父仓库以 **gitlink 记录它的 commit**（即 submodule 语义，`.gitmodules` 记录 fork URL）；
 Cargo 侧由**适配层用 `path` 依赖**指向该检出，而不是 `git` 依赖。
 
@@ -33,11 +36,29 @@ rev 由父仓库记录 → 仍然等价于「独立仓库 + 锁 rev」；同步�
   「找不到 `vendor/mimageviewer/.../Cargo.toml`」，看起来像路径写错，实际是子模块没拉下来。
 - `vendor/mimageviewer/` **不得**成为 rossi workspace 的 member —— 它是另一个 workspace 的根，
   挂进来会把 ffmpeg / pdfium / ort / tantivy 与三个被 `[patch.crates-io]` 替换的 egui 一起拉进构建。
-- **spike 阶段必须一并验证的 Cargo 语义（第二个是本次新增）**：
-  1. `src/` 下多少模块 `use egui` —— 决定适配层的真实厚度（ADR-0005 已要求）；
+- **它用 git-lfs 存根目录 `models/` 下 9 个模型（合计 335 MB）。**
+  当前检出**保留指针文件**（v0.1 用不到模型，Gate B 才用）。`git lfs pull` 可取回（约 335 MB 带宽）。
+  注意两个「另一处的 ONNX」不要混：`src/ai/model_manager.rs` 的 `include_bytes!` 指向
+  **`vendor/models/`**，那个目录被 `.gitignore` 排除、**由 `build.rs` 构建期生成**——
+  所以「干净检出上直接编译它的主 crate」本来就不成立。
+- **spike 阶段必须一并验证的 Cargo 语义（已全部完成，2026-09-16）**：
+  1. `src/` 下多少模块 `use egui` —— 467 个 `.rs` 里 **183 个碰 egui，其中 92 个名字不像 UI**；
+     但 11 个复用种子里 8 个干净，**剪 9 个直接脏依赖**即可自洽（`docs/phase0-vendor-spike.md` §1）。
   2. path 依赖跨 workspace 的归属行为，以及**它的 `[patch.crates-io]` 不会传递到 rossi**。
-     后者其实是好事：适配 crate 若真的够薄（不依赖任何 egui），patch 问题自动消失；
-     若不薄，会撞上「同名 crate 有两个来源」的构建错误 —— 这个错误本身就是「不够薄」的证据。
+     **已实测**（证据在 `poc/cargo-patch-scope/`）：确实不传递，而且症状是**静默**的 ——
+     父 workspace 会解析到 crates.io 上的最新满足版本（实测 `cfg-if = "1"` 拿到 **1.0.4**，
+     比外部本地副本的 1.0.0 还新），**不报错**。
+     → **原表述「若不薄，会撞上『同名 crate 有两个来源』的构建错误」已实测证伪**：
+     同名同版本来自两个来源时 Cargo 允许共存（实测案例 3 / 4），不会给任何提示。
+     → 修法有两条：**（a）**rossi 自己的 workspace 根（`rust/Cargo.toml`）写一份同样的
+     `[patch.crates-io]` 指向 `vendor/mimageviewer/vendor/egui`（实测生效，
+     代价是这份 patch 表要跟着上游同步维护）；**（b）**适配层**不依赖任何被 patch 的 crate**
+     —— 那 patch 传不传递就与我们无关。**（b）才是「薄」的意义所在。**
 - 父仓库从此多一个 gitlink。`git status` 显示 `vendor/mimageviewer (new commits)` 是**预期信号**，
   不是脏工作区。
 - 每次同步上游后，rossi 侧要重新验证的只有**适配层接口**是否还对得上，不是全部源码。
+- **运维坑（2026-09-16 实际踩到）**：`git submodule add` 若在 checkout 阶段被 LFS 打断，
+  会留下一个**索引为空**的子模块（`git -C vendor/mimageviewer ls-files` 返回 0，
+  2235 个文件全被报成 `D`），但 `.gitmodules` 与 gitlink 都没写。
+  修复顺序：先 `GIT_LFS_SKIP_SMUDGE=1 git -C vendor/mimageviewer reset --hard HEAD` 重建工作树，
+  再手写 `.gitmodules` 并 `git add` 该路径（gitlink 的 mode 必须是 `160000`）。
