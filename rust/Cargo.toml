@@ -24,7 +24,13 @@ flutter_rust_bridge = "=2.13.0"
 # 本地漫画核心（散图文件夹 / CBZ / CBR 直读，v0.1 判据 A）。
 # 独立 crate：默认构建仍只构建 windcore 本身，但 windcore 现在**在依赖图上**包含它，
 # 因此 Flutter 侧产物会带上 RAR（unrar-patched）与 image 的多格式 feature 集。
-rossi_local_core = { path = "local_core" }
+#
+# `default-features = false`：JXL 后端由**本包的 [features]** 决定（见下），
+# 不吃 local_core 自己的 default —— 切换后端只改这里的 default 一行重编即可。
+# avif 显式列出（dav1d，ADR 同 §12.6）。
+rossi_local_core = { path = "local_core", default-features = false, features = [
+    "avif",
+] }
 image = { version = "0.25.10", default-features = false, features = [
     "jpeg",
     "png",
@@ -96,6 +102,17 @@ xxhash-rust = { version = "0.8.15", features = ["xxh3"] }
 [dev-dependencies]
 # 只给 `api::local` 的会话层测试造 CBZ 夹具用。
 tempfile = "3"
+
+[features]
+# JXL 后端编译期开关（透传给 rossi_local_core，后端对照表见 local_core/src/jxl_backend.rs）。
+# **切换 = 改 default 里的名字 + 重编**；三个 feature 可叠加，叠加时运行时按
+# 固定优先级取第一个（jxl-rs-mt > jxl-rs-1t > jxl-oxide）。
+# 实测（docs/v0.1-local-core.md §12.8，44.8 MPix 页全尺寸解码）：
+#   jxl-rs-mt 91ms（全场最快，比 dav1d 快 1.6×） / jxl-rs-1t 563ms / jxl-oxide 937ms。
+default = ["jxl-rs-mt"]
+jxl-rs-mt = ["rossi_local_core/jxl-rs-mt"]  # jxl 0.7 纯 Rust（libjxl 官方重写，BSD-3）+ rayon 全核
+jxl-rs-1t = ["rossi_local_core/jxl-rs-1t"]  # 同上，官方 image hook，单线程
+jxl-oxide = ["rossi_local_core/jxl-oxide"]  # jxl-oxide 0.12 纯 Rust，慢约 10×，只作对照
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.15.1"

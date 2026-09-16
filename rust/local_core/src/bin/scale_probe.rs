@@ -23,26 +23,13 @@ use anyhow::Result;
 use image::imageops::FilterType;
 // `decode` 同时是模块名和函数名（`pub mod decode` 里的 `pub fn decode`），
 // `lib.rs` 只 re-export 了 `decode_rgba`。这里显式走模块路径，别指望顶层能用。
-use rossi_local_core::{LocalSource, decode as decode_mod};
+//
+// JXL 后端不再在探针里重复实现：三个纯 Rust 后端统一在 `jxl_backend`
+// 模块（feature 门控），探针只剩 GPL 的 libjxl 对照。
+use rossi_local_core::{LocalSource, decode as decode_mod, jxl_backend};
 
 fn ms(started: Instant) -> f64 {
     started.elapsed().as_secs_f64() * 1000.0
-}
-
-/// JXL 只有两种载体：裸 codestream（`FF 0A`）与 ISOBMFF 容器
-/// （`00 00 00 0C 'JXL \r\n\x87\n'`）。两种都认，别只认一种。
-fn sniff_jxl(bytes: &[u8]) -> bool {
-    bytes.starts_with(&[0xFF, 0x0A])
-        || bytes.starts_with(&[0x00, 0x00, 0x00, 0x0C, b'J', b'X', b'L', b' ', 0x0D, 0x0A, 0x87, 0x0A])
-}
-
-/// jxl-oxide → DynamicImage。jxl-oxide 进不了 dev-dependencies 的 bin 目标（E0433 实测），
-/// 所以挂在 `jxl-probe` feature 下，只开给探针构建。
-#[cfg(feature = "jxl-probe")]
-fn decode_jxl(bytes: &[u8]) -> Result<image::DynamicImage> {
-    use jxl_oxide::integration::JxlDecoder;
-    let decoder = JxlDecoder::new(std::io::Cursor::new(bytes))?;
-    Ok(image::DynamicImage::from_decoder(decoder)?)
 }
 
 /// libjxl（jpegxl-rs 封装）→ DynamicImage。**GPL-3.0-or-later**：只许进探针，不许进 App。
@@ -66,137 +53,8 @@ fn decode_jxl_libjxl(bytes: &[u8], threaded: bool) -> Result<image::DynamicImage
     frame.ok_or_else(|| anyhow::anyhow!("libjxl decode_to_image 返回 None（无可用帧？）"))
 }
 
-/// **jxl-rs**（libjxl 官方组织的纯 Rust 解码器，Chrome 145 / Firefox 采用中，BSD-3）。
-/// 集成走 image 的 hook 机制：进程级注册一次，`load_from_memory` 对 JXL 魔数自动接管。
-/// 注册是全局的，但只命中 JXL 魔数，非 JXL 页走 decode_mod 的路径不受影响。
-/// **注意：官方集成把 parallel_runner 硬编码成 None（单线程）** —— 这就是 `jxlrs` 档的口径。
-#[cfg(feature = "jxl-probe")]
-fn decode_jxl_jxlrs(bytes: &[u8]) -> Result<image::DynamicImage> {
-    use std::sync::Once;
-    static REGISTER: Once = Once::new();
-    // 返回值是「是否真的注册上了」（false = 槽位被占，多半是注册了两次）。
-    // 探针里 Once 保证只调一次，返回 false 属异常，直接断言失败别静默继续。
-    REGISTER.call_once(|| {
-        assert!(
-            jxl_image_rs_integration::register_image_decoding_hook(),
-            "jxl-rs 的 image hook 注册失败"
-        );
-    });
-    Ok(image::load_from_memory(bytes)?)
-}
-
-/// jxl-rs **多线程**直连路径：绕开官方 image 集成（它把 parallel_runner 硬编码成 None），
-/// 用 `jxl::api` 直接驱动 + rayon runner，量 jxl-rs 多线程的真实水平 ——
-/// 这才是和 Chrome 内嵌口径（带线程池）对齐的数字。
-/// 只支持 8-bit 输出（探针样本全是 Rgba8）；Float/16-bit 页显式报错，不静默降级。
-#[cfg(feature = "jxl-probe")]
-fn decode_jxl_jxlrs_threaded(bytes: &[u8]) -> Result<image::DynamicImage> {
-    use jxl::api::{
-        JxlColorType, JxlDataFormat, JxlDecoder as ApiJxlDecoder, JxlDecoderOptions,
-        JxlOutputBuffer, JxlParallelRunner, JxlParallelRunnerFun, JxlPixelFormat,
-        ProcessingResult, states,
-    };
-    use std::sync::Mutex;
-
-    /// rayon 背书的 runner：~10 行，trait 只要求 run + num_threads。
-    struct RayonRunner;
-    impl JxlParallelRunner for RayonRunner {
-        fn run(&mut self, num: usize, fun: &JxlParallelRunnerFun<'_>) -> jxl::error::Result<()> {
-            use rayon::prelude::*;
-            let err = Mutex::new(None);
-            (0..num).into_par_iter().for_each(|i| {
-                if let Err(e) = fun(i) {
-                    *err.lock().unwrap() = Some(e);
-                }
-            });
-            match err.into_inner().unwrap() {
-                Some(e) => Err(e),
-                None => Ok(()),
-            }
-        }
-        fn num_threads(&self) -> usize {
-            rayon::current_num_threads()
-        }
-    }
-
-    let mut input: &[u8] = bytes; // &[u8] 自带 JxlBitstreamInput 实现
-    let mut runner = RayonRunner;
-
-    let decoder = ApiJxlDecoder::<states::Initialized>::new(JxlDecoderOptions::default());
-    let mut decoder = match decoder.process(&mut input, Some(&mut runner))? {
-        ProcessingResult::Complete { result } => result,
-        ProcessingResult::NeedsMoreInput { .. } => {
-            anyhow::bail!("输入被截断（不该发生：探针是全量内存输入）")
-        }
-    };
-
-    let info = decoder.basic_info().clone();
-    let width = u32::try_from(info.size.0)?;
-    let height = u32::try_from(info.size.1)?;
-    let has_alpha = info
-        .extra_channels
-        .iter()
-        .any(|c| c.ec_type == jxl::headers::extra_channels::ExtraChannel::Alpha);
-    let grayscale = decoder.current_pixel_format().color_type.is_grayscale();
-
-    let (color_type, jxl_ct) = match (&info.bit_depth, grayscale, has_alpha) {
-        (jxl::api::JxlBitDepth::Int { bits_per_sample }, g, a) if *bits_per_sample <= 8 => {
-            match (g, a) {
-                (true, false) => (image::ColorType::L8, JxlColorType::Grayscale),
-                (true, true) => (image::ColorType::La8, JxlColorType::GrayscaleAlpha),
-                (false, false) => (image::ColorType::Rgb8, JxlColorType::Rgb),
-                (false, true) => (image::ColorType::Rgba8, JxlColorType::Rgba),
-            }
-        }
-        _ => anyhow::bail!("非 8-bit 整型 JXL 页，多线程直连路径不支持"),
-    };
-    decoder.set_pixel_format(JxlPixelFormat {
-        color_type: jxl_ct,
-        color_data_format: Some(JxlDataFormat::U8 { bit_depth: 8 }),
-        extra_channel_format: vec![None; info.extra_channels.len()],
-    })?;
-
-    let bpp = color_type.bytes_per_pixel() as usize;
-    let bytes_per_row = width as usize * bpp;
-    let mut buf = vec![0u8; bytes_per_row * height as usize];
-    {
-        let mut output = JxlOutputBuffer::new(&mut buf, height as usize, bytes_per_row);
-        let outputs = std::slice::from_mut(&mut output);
-        let mut frame_decoder = match decoder.process(&mut input, Some(&mut runner))? {
-            ProcessingResult::Complete { result } => result,
-            ProcessingResult::NeedsMoreInput { .. } => anyhow::bail!("输入被截断"),
-        };
-        // WithFrameInfo::process 才吃 buffers；NeedsMoreInput 的 fallback 是同状态，可重试。
-        loop {
-            match frame_decoder.process(&mut input, outputs, Some(&mut runner))? {
-                ProcessingResult::Complete { .. } => break,
-                ProcessingResult::NeedsMoreInput { fallback, .. } => {
-                    if input.is_empty() {
-                        anyhow::bail!("输入被截断（帧解码中途耗尽）");
-                    }
-                    frame_decoder = fallback;
-                }
-            }
-        }
-    }
-    let dyn_img = match color_type {
-        image::ColorType::L8 => {
-            image::GrayImage::from_raw(width, height, buf).map(image::DynamicImage::ImageLuma8)
-        }
-        image::ColorType::La8 => image::GrayAlphaImage::from_raw(width, height, buf)
-            .map(image::DynamicImage::ImageLumaA8),
-        image::ColorType::Rgb8 => {
-            image::RgbImage::from_raw(width, height, buf).map(image::DynamicImage::ImageRgb8)
-        }
-        image::ColorType::Rgba8 => {
-            image::RgbaImage::from_raw(width, height, buf).map(image::DynamicImage::ImageRgba8)
-        }
-        _ => unreachable!("上面只构造了这四种"),
-    };
-    dyn_img.ok_or_else(|| anyhow::anyhow!("像素缓冲尺寸不匹配 {width}x{height}"))
-}
-
 /// JXL 后端分发：`--jxl-backend libjxl|libjxl1t|jxlrs|jxlrs-mt|oxide`。
+/// 纯 Rust 三后端直接转发 `jxl_backend` 模块；GPL 对照留在这里。
 /// 各路产同样的 DynamicImage，下游全复用。
 fn decode_jxl_dispatch(bytes: &[u8], backend: &str) -> Result<image::DynamicImage> {
     match backend {
@@ -204,14 +62,25 @@ fn decode_jxl_dispatch(bytes: &[u8], backend: &str) -> Result<image::DynamicImag
         "libjxl" => decode_jxl_libjxl(bytes, true),
         #[cfg(feature = "jxl-probe-libjxl")]
         "libjxl1t" => decode_jxl_libjxl(bytes, false),
-        #[cfg(feature = "jxl-probe")]
-        "jxlrs" => decode_jxl_jxlrs(bytes),
-        #[cfg(feature = "jxl-probe")]
-        "jxlrs-mt" => decode_jxl_jxlrs_threaded(bytes),
-        #[cfg(feature = "jxl-probe")]
-        _ => decode_jxl(bytes),
-        #[cfg(not(any(feature = "jxl-probe", feature = "jxl-probe-libjxl")))]
-        _ => anyhow::bail!("未开任何 jxl-probe feature，解不了 JXL"),
+        #[cfg(feature = "jxl-rs-1t")]
+        "jxlrs" => jxl_backend::decode_jxl_rs_hooked(bytes),
+        #[cfg(feature = "jxl-rs-mt")]
+        "jxlrs-mt" => jxl_backend::decode_jxl_rs_threaded(bytes),
+        #[cfg(feature = "jxl-oxide")]
+        "oxide" => jxl_backend::decode_jxl_oxide(bytes),
+        // 默认：按当前构建的 feature 优先级取后端（与 App 解码路径同一分发）。
+        #[cfg(any(
+            feature = "jxl-rs-mt",
+            feature = "jxl-rs-1t",
+            feature = "jxl-oxide"
+        ))]
+        _ => jxl_backend::decode_dispatch(bytes),
+        #[cfg(not(any(
+            feature = "jxl-rs-mt",
+            feature = "jxl-rs-1t",
+            feature = "jxl-oxide"
+        )))]
+        _ => anyhow::bail!("未开任何 JXL 后端 feature，解不了 JXL"),
     }
 }
 
@@ -227,14 +96,14 @@ fn main() -> Result<()> {
     };
     let mut index = 0usize;
     let mut rounds = 3usize;
-    let mut jxl_backend = "libjxl".to_string();
+    let mut jxl_backend_arg = "libjxl".to_string();
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--rounds" => {
                 rounds = args.next().and_then(|v| v.parse().ok()).unwrap_or(3).max(1);
             }
             "--jxl-backend" => {
-                jxl_backend = args.next().unwrap_or_else(|| "libjxl".to_string());
+                jxl_backend_arg = args.next().unwrap_or_else(|| "libjxl".to_string());
             }
             other => index = other.parse().unwrap_or(0),
         }
@@ -260,16 +129,24 @@ fn main() -> Result<()> {
     println!("读页      : {:>8.1} ms  ({} B)", ms(started), bytes.len());
 
     // 先看一次真尺寸与色彩类型，后面所有档位都以它为基准。
-    // JXL 单独分流：`image` 0.25 不支持 jxl，走 jxl-oxide 的 JxlDecoder（同样产 DynamicImage），
+    // JXL 单独分流：`image` 0.25 不支持 jxl，走 jxl_backend 模块（feature 门控），
     // 下游缩放/装箱代码完全复用 —— 三种格式的差异只在这一步。
-    let jxl = sniff_jxl(&bytes);
+    let jxl = jxl_backend::sniff_jxl(&bytes);
     if jxl {
-        #[cfg(not(feature = "jxl-probe"))]
-        anyhow::bail!("该页是 JXL，但本次构建未开 --features jxl-probe，解不了");
-        println!("格式分流  : JXL (backend={jxl_backend})");
+        #[cfg(not(any(
+            feature = "jxl-rs-mt",
+            feature = "jxl-rs-1t",
+            feature = "jxl-oxide"
+        )))]
+        anyhow::bail!("该页是 JXL，但本次构建未开任何 JXL 后端 feature，解不了");
+        println!(
+            "格式分流  : JXL (生效后端={}, 指定={})",
+            jxl_backend::ACTIVE_BACKEND,
+            jxl_backend_arg
+        );
     }
     let probe = if jxl {
-        decode_jxl_dispatch(&bytes, &jxl_backend)?
+        decode_jxl_dispatch(&bytes, &jxl_backend_arg)?
     } else {
         decode_mod::decode(&bytes)?
     };
@@ -302,7 +179,7 @@ fn main() -> Result<()> {
     for _ in 0..rounds {
         let started = Instant::now();
         let img = if jxl {
-            decode_jxl_dispatch(&bytes, &jxl_backend)?
+            decode_jxl_dispatch(&bytes, &jxl_backend_arg)?
         } else {
             decode_mod::decode(&bytes)?
         };

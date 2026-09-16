@@ -78,6 +78,12 @@ set(CMAKE_VS_INCLUDE_INSTALL_TO_DEFAULT_BUILD 1)
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX "${BUILD_BUNDLE_DIR}" CACHE PATH "..." FORCE)
 endif()
+# 2026-09-16：仅靠上面的分支，实测会出现 prefix 被冻结成默认 `C:/Program Files/zephyr`
+# 的情况（INITIALIZED_TO_DEFAULT 在这条 configure 顺序下不成立），INSTALL 步骤因写不进
+# Program Files 必报 MSB3073 —— build/windows 每次全新 configure 都复现。
+# 这里无条件再 FORCE 一次：值与模板一致（bundle 输出目录），install() 的
+# DESTINATION 支持生成器表达式，生成 install 脚本时会展开成 runner/Release。
+set(CMAKE_INSTALL_PREFIX "${BUILD_BUNDLE_DIR}" CACHE PATH "..." FORCE)
 
 set(INSTALL_BUNDLE_DATA_DIR "${CMAKE_INSTALL_PREFIX}/data")
 set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}")

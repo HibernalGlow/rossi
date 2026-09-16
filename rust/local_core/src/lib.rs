@@ -40,6 +40,13 @@
 pub mod decode;
 pub mod entry_name;
 pub mod folder_source;
+// JXL 后端选择层：只在至少开了一个后端 feature 时编译（见 jxl_backend.rs 头注释）。
+#[cfg(any(
+    feature = "jxl-rs-mt",
+    feature = "jxl-rs-1t",
+    feature = "jxl-oxide"
+))]
+pub mod jxl_backend;
 pub mod page_load_scheduler;
 pub mod page_order;
 pub mod perf_sink;
@@ -230,8 +237,9 @@ impl LocalSource {
     /// 取一页的像素（RGBA8），按原尺寸。
     ///
     /// **只对核心能解的格式成立**（`DecodeSupport::Core`）。归档里出现
-    /// `avif` / `jxl` / `heic` 这类页时返回 `ShellOnlyFormat` 而不是笼统的解码失败：
+    /// `heic` 这类页时返回 `ShellOnlyFormat` 而不是笼统的解码失败：
     /// 那些页要靠外壳（Flutter/Skia）显示，类别信息得留给调用方。
+    /// （`avif` / `jxl` 已随 feature 进核心档：avif = dav1d，jxl = jxl_backend。）
     ///
     /// 显示路径请用 [`Self::page_pixels_scaled`]：原尺寸的 44.8 MPix 会解出
     /// 179 MB 位图，而这条路径后面还有两次等量拷贝（过桥 + 建纹理）。
@@ -353,15 +361,16 @@ mod tests {
         assert!(source.page_bytes(0).is_err());
     }
 
-    /// 归档里混着 jxl（核心不能解）与 png（能解）时：
+    /// 归档里混着 heic（核心不能解）与 png（能解）时：
     /// 两者**都要出现在页序里**，但只有后者能从核心拿像素。
     ///
-    /// 用垃圾字节冒充 jxl 是刻意的：闸门必须在**解码之前**生效，
-    /// 所以「内容不是合法 jxl」这件事根本不该被读到。
+    /// 用垃圾字节冒充 heic 是刻意的：闸门必须在**解码之前**生效，
+    /// 所以「内容不是合法 heic」这件事根本不该被读到。
     ///
     /// 这一条原先拿 `avif` 当例子。`avif` 打开 dav1d 之后搬到了核心档，
     /// 所以回归线换了人 —— 留着旧断言等于在测一个已经不存在的行为。
     /// `avif` 的归属现在按 feature 分支断言（见 `page_order.rs` 的测试）。
+    /// 样例格式用 heic 而不是 jxl：jxl 开了后端 feature 后也进核心档了。
     #[test]
     fn shell_only_pages_are_listed_but_rejected_by_the_core_decoder() {
         let dir = tempfile::tempdir().unwrap();
@@ -370,7 +379,7 @@ mod tests {
             let file = std::fs::File::create(&path).unwrap();
             let mut zip = zip::ZipWriter::new(file);
             let options = zip::write::SimpleFileOptions::default();
-            for name in ["1.png", "2.jxl", "3.png"] {
+            for name in ["1.png", "2.heic", "3.png"] {
                 zip.start_file(name, options).unwrap();
                 let mut buffer = image::RgbaImage::new(2, 2);
                 for pixel in buffer.pixels_mut() {
@@ -386,7 +395,7 @@ mod tests {
         }
 
         let source = LocalSource::open(&path).unwrap();
-        assert_eq!(source.len(), 3, "jxl 也应当算作一页");
+        assert_eq!(source.len(), 3, "heic 也应当算作一页");
         assert_eq!(source.page_decode_support(0), Some(DecodeSupport::Core));
         assert_eq!(
             source.page_decode_support(1),
@@ -402,6 +411,30 @@ mod tests {
         let reason = error
             .downcast_ref::<ShellOnlyFormat>()
             .expect("应当是类型化的 ShellOnlyFormat");
-        assert_eq!(reason.extension, "jxl");
+        assert_eq!(reason.extension, "heic");
+    }
+
+    /// `jxl` 的归属**跟着后端 feature 走**：任一 JXL 后端开启（App 默认
+    /// `jxl-rs-mt`）就在核心档，全关才退回外壳档 —— 与 `avif` 的模式相同。
+    #[test]
+    fn jxl_ownership_follows_the_backend_feature() {
+        #[cfg(any(
+            feature = "jxl-rs-mt",
+            feature = "jxl-rs-1t",
+            feature = "jxl-oxide"
+        ))]
+        {
+            assert_eq!(decode_support("1.jxl"), Some(DecodeSupport::Core));
+            assert!(!needs_shell_decoder("1.jxl"));
+        }
+        #[cfg(not(any(
+            feature = "jxl-rs-mt",
+            feature = "jxl-rs-1t",
+            feature = "jxl-oxide"
+        )))]
+        {
+            assert_eq!(decode_support("1.jxl"), Some(DecodeSupport::ShellOnly));
+            assert!(needs_shell_decoder("1.jxl"));
+        }
     }
 }

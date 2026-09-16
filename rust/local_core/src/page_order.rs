@@ -15,6 +15,9 @@ use std::cmp::Ordering;
 /// `avif` 跟着 `avif` feature 走（默认开启）。它从外壳档搬到这里，
 /// 是因为 Windows 引擎实测解不了 —— 交给外壳等于交给「解不动」，
 /// 而 dav1d 已经证明能解（见 `SHELL_DECODABLE_EXTENSIONS` 的实测表）。
+///
+/// `jxl` 不在表里：它跟着 `jxl_backend` 的三个后端 feature 走，
+/// 归属判断在 [`decode_support`] 里（见 [`JXL_CORE`]）。
 #[cfg(feature = "avif")]
 pub const CORE_DECODABLE_EXTENSIONS: &[&str] = &[
     "jpg", "jpeg", "png", "webp", "bmp", "gif", "tif", "tiff", "avif",
@@ -26,7 +29,20 @@ pub const CORE_DECODABLE_EXTENSIONS: &[&str] = &[
     "jpg", "jpeg", "png", "webp", "bmp", "gif", "tif", "tiff",
 ];
 
+/// `jxl` 是否已进核心档：任一 JXL 后端 feature（`jxl-rs-mt` / `jxl-rs-1t` /
+/// `jxl-oxide`）开启即为真。App 默认开 `jxl-rs-mt`，所以默认构建里
+/// `jxl` 由核心自己解（§12.8 实测比 dav1d 快 1.6–2.3×），不再依赖外壳。
+pub const JXL_CORE: bool = cfg!(any(
+    feature = "jxl-rs-mt",
+    feature = "jxl-rs-1t",
+    feature = "jxl-oxide"
+));
+
 /// **本 crate 解不了、但外壳（Flutter / Skia）可能能解**的扩展名。
+///
+/// `jxl` 一直留在这一档表里作为**兜底**：它实际的归属由 [`decode_support`] 里的
+/// [`JXL_CORE`] 先行判断 —— 任一 JXL 后端 feature 开着就是核心档，只有全关
+/// （`--no-default-features` 这类构建）才真正落到这张表。
 ///
 /// 这一档是实测逼出来的，不是预留。用户的真实归档
 /// `G44 不会受伤 - NO.119 碧蓝档案 和纱 [30P-421MB].zip` 里 30 张**全是 `.avif`**。
@@ -113,6 +129,11 @@ pub fn is_image_name(name: &str) -> bool {
 /// 这一页由谁解码。不认识的格式返回 `None`（不算页）。
 pub fn decode_support(name: &str) -> Option<DecodeSupport> {
     let ext = extension_lower(name)?;
+    // jxl 先于两档常量表判断：开着后端 feature 时它在核心档，
+    // 全关时落进下面的 SHELL_DECODABLE_EXTENSIONS（"jxl" 一直留在那张表里）。
+    if JXL_CORE && ext == "jxl" {
+        return Some(DecodeSupport::Core);
+    }
     if CORE_DECODABLE_EXTENSIONS.contains(&ext.as_str()) {
         Some(DecodeSupport::Core)
     } else if SHELL_DECODABLE_EXTENSIONS.contains(&ext.as_str()) {
@@ -236,7 +257,26 @@ mod tests {
         for name in ["1.avif", "1.AVIF", "1.jxl", "ch/2.heic", "3.HEIF"] {
             assert!(is_image_name(name), "{name} 应当算作一页");
         }
-        for name in ["1.jxl", "ch/2.heic", "3.HEIF"] {
+        // jxl 的归属**随后端 feature 变**（与 avif 同模式）。
+        #[cfg(any(
+            feature = "jxl-rs-mt",
+            feature = "jxl-rs-1t",
+            feature = "jxl-oxide"
+        ))]
+        {
+            assert_eq!(decode_support("1.jxl"), Some(DecodeSupport::Core));
+            assert!(!needs_shell_decoder("1.jxl"));
+        }
+        #[cfg(not(any(
+            feature = "jxl-rs-mt",
+            feature = "jxl-rs-1t",
+            feature = "jxl-oxide"
+        )))]
+        {
+            assert!(needs_shell_decoder("1.jxl"), "1.jxl 应当由外壳解码");
+            assert_eq!(decode_support("1.jxl"), Some(DecodeSupport::ShellOnly));
+        }
+        for name in ["ch/2.heic", "3.HEIF"] {
             assert!(needs_shell_decoder(name), "{name} 应当由外壳解码");
             assert_eq!(decode_support(name), Some(DecodeSupport::ShellOnly));
         }

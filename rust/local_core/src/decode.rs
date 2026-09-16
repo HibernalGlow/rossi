@@ -70,9 +70,20 @@ impl PagePixels {
 ///
 /// 格式由内容（魔数）决定，不看扩展名——漫画包里的扩展名经常是错的，
 /// 而 `image` 的猜测足够可靠。
+///
+/// JXL 单独分流：`image` 0.25 没有 jxl 解码器，魔数命中的走
+/// [`crate::jxl_backend`]（后端由编译期 feature 选择，默认 `jxl-rs-mt`）。
 pub fn decode(bytes: &[u8]) -> Result<DynamicImage> {
     if bytes.is_empty() {
         bail!("页面字节为空，无法解码");
+    }
+    #[cfg(any(
+        feature = "jxl-rs-mt",
+        feature = "jxl-rs-1t",
+        feature = "jxl-oxide"
+    ))]
+    if crate::jxl_backend::sniff_jxl(bytes) {
+        return crate::jxl_backend::decode_dispatch(bytes);
     }
     image::load_from_memory(bytes).with_context(|| {
         format!(
@@ -171,7 +182,19 @@ pub fn decode_rgba(bytes: &[u8]) -> Result<PagePixels> {
 }
 
 /// 便宜地读尺寸而不做完整解码（列表/布局阶段用）。
+///
+/// JXL 魔数命中时走 [`crate::jxl_backend`] 的探尺寸（`jxl-rs-mt` 下只读头，
+/// 不解像素）；`image` 的 `with_guessed_format` 不认识 JXL，不分流必报
+/// 「无法从内容判断图片格式」。
 pub fn probe_size(bytes: &[u8]) -> Result<(u32, u32)> {
+    #[cfg(any(
+        feature = "jxl-rs-mt",
+        feature = "jxl-rs-1t",
+        feature = "jxl-oxide"
+    ))]
+    if crate::jxl_backend::sniff_jxl(bytes) {
+        return crate::jxl_backend::probe_size_dispatch(bytes);
+    }
     let reader = image::ImageReader::new(std::io::Cursor::new(bytes))
         .with_guessed_format()
         .context("无法从内容判断图片格式")?;

@@ -299,8 +299,9 @@ pub struct LocalPagePixels {
 /// 「这一页的格式核心没解码器」和「字节坏了」给用户的下一步动作完全不同。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LocalDecodeFailureKind {
-    /// 核心没有这个格式的解码器（`jxl` / `heic` / `heif`），要交外壳 —— 而外壳解得动
-    /// 与否取决于平台（Windows 引擎实测解不动，见 `rossi_local_core::page_order`）。
+    /// 核心没有这个格式的解码器（`heic` / `heif`；`jxl` 开了后端 feature 就进
+    /// 核心档了），要交外壳 —— 而外壳解得动与否取决于平台
+    /// （Windows 引擎实测解不动，见 `rossi_local_core::page_order`）。
     ShellOnlyFormat,
     /// 核心有解码器但没解出来：字节损坏、内容与格式不符等。
     DecodeFailed,
@@ -704,8 +705,9 @@ mod tests {
             .write_to(&mut encoded, image::ImageFormat::Png)
             .unwrap();
         std::fs::write(root.join("1.png"), encoded.into_inner()).unwrap();
-        // 垃圾字节冒充 jxl：闸门在解码**之前**，所以内容是什么无关紧要。
-        std::fs::write(root.join("2.jxl"), b"not really a jxl").unwrap();
+        // 垃圾字节冒充 heic：闸门在解码**之前**，所以内容是什么无关紧要。
+        // 样例不用 jxl：jxl 开了后端 feature（App 默认 jxl-rs-mt）就进核心档了。
+        std::fs::write(root.join("2.heic"), b"not really a heic").unwrap();
         // 垃圾字节冒充 png：这一页会真的走到解码器，报出的必须是 DecodeFailed。
         std::fs::write(root.join("3.png"), b"not really a png").unwrap();
 
