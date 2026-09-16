@@ -45,6 +45,31 @@ fn decode_jxl(bytes: &[u8]) -> Result<image::DynamicImage> {
     Ok(image::DynamicImage::from_decoder(decoder)?)
 }
 
+/// libjxl（jpegxl-rs 封装）→ DynamicImage。**GPL-3.0-or-later**：只许进探针，不许进 App。
+/// ThreadsRunner = 全核并行池，与 jxl-oxide 的 rayon 池口径一致。
+#[cfg(feature = "jxl-probe-libjxl")]
+fn decode_jxl_libjxl(bytes: &[u8]) -> Result<image::DynamicImage> {
+    use jpegxl_rs::decoder_builder;
+    use jpegxl_rs::image::ToDynamic;
+    let runner = jpegxl_rs::ThreadsRunner::default();
+    let mut decoder = decoder_builder().parallel_runner(&runner).build()?;
+    decoder
+        .decode_to_image(bytes)?
+        .ok_or_else(|| anyhow::anyhow!("libjxl decode_to_image 返回 None（无可用帧？）"))
+}
+
+/// JXL 后端分发：`--jxl-backend libjxl|oxide`。两路产同样的 DynamicImage，下游全复用。
+fn decode_jxl_dispatch(bytes: &[u8], backend: &str) -> Result<image::DynamicImage> {
+    match backend {
+        #[cfg(feature = "jxl-probe-libjxl")]
+        "libjxl" => decode_jxl_libjxl(bytes),
+        #[cfg(feature = "jxl-probe")]
+        _ => decode_jxl(bytes),
+        #[cfg(not(any(feature = "jxl-probe", feature = "jxl-probe-libjxl")))]
+        _ => anyhow::bail!("未开任何 jxl-probe feature，解不了 JXL"),
+    }
+}
+
 /// 降到这么多宽（保持比例）。档位覆盖「预览区宽度 × DPR」的常见落点：
 /// 1080p 屏在 1.0–1.5 DPR 下预览区宽 600–1200 px，4K 屏能到 2600 px。
 const TARGETS: [u32; 6] = [4096, 2048, 1440, 1024, 768, 600];
@@ -57,10 +82,14 @@ fn main() -> Result<()> {
     };
     let mut index = 0usize;
     let mut rounds = 3usize;
+    let mut jxl_backend = "libjxl".to_string();
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--rounds" => {
                 rounds = args.next().and_then(|v| v.parse().ok()).unwrap_or(3).max(1);
+            }
+            "--jxl-backend" => {
+                jxl_backend = args.next().unwrap_or_else(|| "libjxl".to_string());
             }
             other => index = other.parse().unwrap_or(0),
         }
@@ -92,9 +121,13 @@ fn main() -> Result<()> {
     if jxl {
         #[cfg(not(feature = "jxl-probe"))]
         anyhow::bail!("该页是 JXL，但本次构建未开 --features jxl-probe，解不了");
-        println!("格式分流  : JXL (jxl-oxide)");
+        println!("格式分流  : JXL (backend={jxl_backend})");
     }
-    let probe = if jxl { decode_jxl(&bytes)? } else { decode_mod::decode(&bytes)? };
+    let probe = if jxl {
+        decode_jxl_dispatch(&bytes, &jxl_backend)?
+    } else {
+        decode_mod::decode(&bytes)?
+    };
     let (full_w, full_h) = (probe.width(), probe.height());
     println!(
         "原始尺寸  : {full_w}x{full_h} = {:.1} MPix",
@@ -123,7 +156,11 @@ fn main() -> Result<()> {
 
     for _ in 0..rounds {
         let started = Instant::now();
-        let img = if jxl { decode_jxl(&bytes)? } else { decode_mod::decode(&bytes)? };
+        let img = if jxl {
+            decode_jxl_dispatch(&bytes, &jxl_backend)?
+        } else {
+            decode_mod::decode(&bytes)?
+        };
         full_decode = full_decode.min(ms(started));
 
         let started = Instant::now();

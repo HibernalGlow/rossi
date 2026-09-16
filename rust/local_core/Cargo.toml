@@ -35,6 +35,13 @@ jxl-oxide = { version = "0.12", optional = true, default-features = false, featu
     "rayon",
     "image",
 ] }
+# 第二种 JXL 后端（对照用）：jpegxl-rs 0.15 = libjxl 0.12 官方 C 库的安全封装。
+# **License 是 GPL-3.0-or-later**（crates.io 全版本核实）——只允许进探针这种不分发的
+# dev 工具，绝不能进 local_core/App（MIT）。真要吃 libjxl 得自写 BSD 侧薄 FFI 或进程隔离。
+jpegxl-rs = { version = "0.15", optional = true, default-features = false, features = [
+    "image",
+    "vendored",
+] }
 
 [features]
 # AVIF 解码。
@@ -55,6 +62,8 @@ default = ["avif"]
 avif = ["image/avif-native"]
 # 只开给 scale_probe：`cargo build -p rossi_local_core --bin scale_probe --features jxl-probe`
 jxl-probe = ["dep:jxl-oxide"]
+# libjxl 后端对照：`--features jxl-probe,jxl-probe-libjxl`，探针 `--jxl-backend libjxl` 切换
+jxl-probe-libjxl = ["dep:jpegxl-rs"]
 
 [dev-dependencies]
 tempfile = "3"
