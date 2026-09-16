@@ -1028,13 +1028,30 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
 
     // 目标顺序 `+1, -1, +2, …`（同距离 forward 先），边界由上游函数处理。
     //
-    // **窗口大小是刻意偏离上游的。** 上游 `settings.rs` 的全屏页预取默认是
-    // `prefetch_forward = 12` / `prefetch_back = 4`（keep 各 +1）—— 它能开这么大，
-    // 是因为它的页是 JPEG/PDF，单页解码几十到一百多 ms，而且 6 张许可并发。
-    // 我们这一版页是 44.8 MPix 的 AVIF，dav1d **不可并行**：单页 430–540 ms，
-    // 并发只会互相拖（上面那段注释）。所以窗口按「用户读一页能备好几页」来定，
-    // 不是照抄 12/4 —— 照抄的结果是一轮预取要跑 8.7 秒，全程占着核。
-    // 等 Phase 2 的 tile 化/GPU 上屏之后，这里的数字才有资格往上调。
+    // **窗口大小是刻意偏离上游的，而且理由不是「上游的页便宜」。**
+    //
+    // 上游全屏页预取的默认窗口是 `prefetch_forward = 12` / `prefetch_back = 4`
+    // （`settings.rs:6065`，keep 各 +1）。它敢开这么大，是因为它的解码**一张只占一个核**：
+    // 全屏解码主路径是 `image` crate（`canonical_image_loader.rs:453/466`
+    // → zune-jpeg / png，都是单线程），**WIC 只是第二顺位 fallback**（:455/468，
+    // 顺序被测试 `byte_fallback_order_is_image_then_wic_then_susie` 钉住），
+    // 而 `wic_decoder.rs` 本身也是「全尺寸、单线程、不做解码侧缩放」。
+    // 于是「6 张许可」在上游是**真并行**（6 个核），窗口开大 = 纯赚吞吐。
+    // 上游单张解码其实也不快 —— 它快在**用并发把单张的慢藏起来**。
+    //
+    // **更要紧的是**：这套模型建立在「一张图一个核」上，而 `image` 的 avif 后端是
+    // `dav1d::Decoder::new()`（`image-0.25.10/src/codecs/avif/decoder.rs:82`，
+    // 默认 `n_threads = 0` = auto）—— **一条流吃满 16 核**（1→16 核只有 2.25×，
+    // 见 §12.4）。**AVIF 会把上游那套模型同样打破**；我们整本都是 AVIF，
+    // 所以**我们从一开始就没有那条路可走，这不是我们的实现缺陷**。
+    //
+    // 所以窗口按「用户读一页能备好几页」定，不照抄 12/4（那会变成一轮预取跑 8.7 秒、
+    // 全程占着核）。而且串行之下**窗口不是瓶颈、吞吐才是**：用户读一页 2 秒，
+    // 最多也就备好 3–4 页。
+    //
+    // 要把上游那条「并发换吞吐」的路在我们这边重新打开，唯一的钥匙是
+    // **按优先级分配 dav1d 的线程数**（翻页全核 / 预取少核），而 `image` 不暴露
+    // `dav1d::Settings`。见 `docs/v0.1-local-core.md` §12.6 末段。
     final targets = await localPrefetchTargets(
       pos: _current,
       n: _pages.length,
