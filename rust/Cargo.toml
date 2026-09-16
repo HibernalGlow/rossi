@@ -7,7 +7,11 @@
 # windcore，新增成员不改变既有构建语义。
 [workspace]
 resolver = "3"
-members = ["local_core"]
+# `gpu_present` 是 Windows 专用的呈现器（wgpu → DXGI 共享纹理 → Flutter 合成），
+# 产物是独立的 `rossi_gpu_present.dll`，由 C++ runner 用 LoadLibrary 加载。
+# 它**不在** default-members 里，所以 `cargo build` / `cargo test` 仍然只碰 windcore；
+# Flutter 的 native-assets hook 也显式带 `--package windcore`，不会被连带构建。
+members = ["local_core", "gpu_present"]
 default-members = ["."]
 
 [package]

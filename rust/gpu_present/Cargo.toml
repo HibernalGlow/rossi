@@ -1,0 +1,53 @@
+[package]
+name = "rossi_gpu_present"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Rossi GPU 呈现器：解码页 → wgpu 渲染 → DXGI shared texture → Flutter 合成"
+license = "MIT"
+
+[lib]
+# cdylib 是给 App 用的（`rossi_gpu_present.dll`，C++ 侧 LoadLibrary 加载，不走 import lib）。
+# rlib 是给 `present_probe` 用的：脱离 Flutter 的端到端回读验证要以普通可执行文件跑。
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+anyhow = "1"
+# 解码与归档直读复用本地核心 —— 这条路径**不自己实现解码**，
+# 否则「Rust 解码 → GPU」这句话就没有单一真源了。
+rossi_local_core = { path = "../local_core", default-features = false, features = [
+    "avif",
+    "jxl-rs-mt",
+] }
+# 探针的命令行解析。**故意不放在 target-specific 段里**：那样在非 Windows 上
+# `--features probe` 会因为"启用了本目标不存在的 optional 依赖"直接报错。
+# clap 到处都能编，没有理由让它跟着平台走。
+clap = { version = "4", features = ["derive"], optional = true }
+
+# ── 以下依赖全部只在 Windows 上需要 ──
+# 本 crate 是 rust/ workspace 的成员，在 macOS / Linux / Android 上也要能编过；
+# 那些平台上 lib.rs 会退化成一个空壳（见 lib.rs 顶部的 cfg 门）。
+[target.'cfg(target_os = "windows")'.dependencies]
+wgpu = "27"
+pollster = "0.4"
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_System_Threading",
+    "Win32_Graphics_Direct3D12",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Dxgi_Common",
+] }
+
+[features]
+default = []
+# 端到端回读验证所需的额外设施（把 shared 纹理拷回 CPU 检查像素）。
+# 只在探针上开：`cargo run -p rossi_gpu_present --bin present_probe --features probe -- <路径>`
+probe = ["dep:clap"]
+
+[[bin]]
+name = "present_probe"
+path = "src/bin/present_probe.rs"
+required-features = ["probe"]
+
+# 不在这里写 [profile.*]：作为 workspace 成员，非根包里的 profile 会被忽略并告警。
+# 优化档位统一在 rust/Cargo.toml 里定。

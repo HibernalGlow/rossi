@@ -1,3 +1,6 @@
 /target
+# rust/gpu_present 由 windows/runner/CMakeLists.txt 以**自己的** CARGO_TARGET_DIR
+# 构建（刻意与 Flutter native-assets 的 target 隔离），所以它是 rust/ 下的第二个 target。
+/*/target/
 **/dist/**
 /assets/**/*
