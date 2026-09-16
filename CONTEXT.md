@@ -80,6 +80,16 @@ RAR/CBR 的读取模型：打开归档 → `read_header` 顺序推进 → 命中
 _See_: ADR-0011
 _Avoid_: 归档会话（session）、归档句柄池
 
+**降采样解码**（decode-time downscale）:
+在解码出口就按目标宽度把位图缩小（`target_width` / `decode_rgba_scaled`），
+而不是把原尺寸位图交给上层再缩。
+**在「Rust 解码 → 过桥 → `decodeImageFromPixels`」这条路径上它不是画质选项，
+是可用性前提**：一页 44.8 MPix 的原尺寸位图 170.8 MB，实测端到端 1526 ms 里
+有 1260 ms 花在搬运而不是解码，砍像素量就是砍那 1260 ms。
+_See_: `docs/v0.1-local-core.md` §5.3、`rust/local_core/src/bin/scale_probe.rs`
+_Avoid_: 与外壳路径的 `cacheWidth` / `ResizeImage` 混为一谈 —— 那是「先全尺寸解、
+再重采样」，解码成本砍不掉；降采样解码砍的是**解码之后**的搬运
+
 **整章落盘**（chapter materialization）:
 曾被考虑、**已被否决**的 RAR 实现：首次访问 chapter 时把整章图片一次性提取到
 `<app-data>/rar-sessions/chapter-<id>`，之后 probe / read 走磁盘。

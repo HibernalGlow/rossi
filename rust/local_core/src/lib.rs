@@ -34,10 +34,11 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 
-pub use decode::{PagePixels, ShellOnlyFormat, decode_rgba, probe_size};
+pub use decode::{PagePixels, ShellOnlyFormat, decode_rgba, decode_rgba_scaled, probe_size};
 pub use page_order::{DecodeSupport, decode_support, is_image_name, needs_shell_decoder};
 pub use rar_source::{
-    RarDirectReadDecision, RarInspection, RarVolumeKind, ensure_direct_readable, inspect, is_rar_path,
+    RarDirectReadDecision, RarInspection, RarVolumeKind, ensure_direct_readable, inspect,
+    is_rar_path,
 };
 
 /// 来源类型。
@@ -102,10 +103,9 @@ pub enum UnsupportedSource {
 impl fmt::Display for UnsupportedSource {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::UnknownFormat(ext) => write!(
-                f,
-                "v0.1 只支持散图文件夹 / CBZ / CBR，不支持 .{ext}"
-            ),
+            Self::UnknownFormat(ext) => {
+                write!(f, "v0.1 只支持散图文件夹 / CBZ / CBR，不支持 .{ext}")
+            }
             Self::RarSolid => write!(f, "这是固实（solid）压缩的 RAR，v0.1 不支持直读"),
             Self::RarNestedArchive => write!(f, "归档里含嵌套归档，v0.1 不展开"),
             Self::RarEncrypted => write!(f, "这是加密的 RAR，v0.1 不支持"),
@@ -129,8 +129,8 @@ impl LocalSource {
     /// 按路径打开：目录、`.zip`/`.cbz`、`.rar`/`.cbr`。
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         let root = path.as_ref().to_path_buf();
-        let meta = std::fs::metadata(&root)
-            .with_context(|| format!("找不到来源: {}", root.display()))?;
+        let meta =
+            std::fs::metadata(&root).with_context(|| format!("找不到来源: {}", root.display()))?;
 
         if meta.is_dir() {
             let pages = folder_source::enumerate(&root)?;
@@ -199,14 +199,29 @@ impl LocalSource {
         .with_context(|| format!("读取第 {} 页失败: {}", index + 1, page.name))
     }
 
-    /// 取一页的像素（RGBA8）。
+    /// 取一页的像素（RGBA8），按原尺寸。
     ///
     /// **只对核心能解的格式成立**（`DecodeSupport::Core`）。归档里出现
     /// `avif` / `jxl` / `heic` 这类页时返回 `ShellOnlyFormat` 而不是笼统的解码失败：
     /// 那些页要靠外壳（Flutter/Skia）显示，类别信息得留给调用方。
+    ///
+    /// 显示路径请用 [`Self::page_pixels_scaled`]：原尺寸的 44.8 MPix 会解出
+    /// 179 MB 位图，而这条路径后面还有两次等量拷贝（过桥 + 建纹理）。
     pub fn page_pixels(&self, index: usize) -> Result<PagePixels> {
+        self.page_pixels_scaled(index, None)
+    }
+
+    /// 取一页的像素（RGBA8），按 `target_width` 降采样。
+    ///
+    /// `target_width` 为 `None` / `0` / 不小于原宽时等价于 [`Self::page_pixels`]（**不放大**）。
+    /// 尺寸与取舍依据见 [`decode::decode_rgba_scaled`]。
+    pub fn page_pixels_scaled(
+        &self,
+        index: usize,
+        target_width: Option<u32>,
+    ) -> Result<PagePixels> {
         self.ensure_core_decodable(index)?;
-        decode_rgba(&self.page_bytes(index)?)
+        decode_rgba_scaled(&self.page_bytes(index)?, target_width)
     }
 
     /// 这一页由谁解码。下标越界返回 `None`。
@@ -345,7 +360,10 @@ mod tests {
         let source = LocalSource::open(&path).unwrap();
         assert_eq!(source.len(), 3, "jxl 也应当算作一页");
         assert_eq!(source.page_decode_support(0), Some(DecodeSupport::Core));
-        assert_eq!(source.page_decode_support(1), Some(DecodeSupport::ShellOnly));
+        assert_eq!(
+            source.page_decode_support(1),
+            Some(DecodeSupport::ShellOnly)
+        );
         assert_eq!(source.page_decode_support(9), None, "越界应当是 None");
 
         // 核心能解的那两页照常

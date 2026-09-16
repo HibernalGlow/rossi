@@ -28,16 +28,31 @@ Future<Uint8List> localPageBytes({required BigInt id, required int index}) =>
 ///   `Could not decompress image.`（实测见 `rossi_local_core::page_order`）。
 /// - 这一条走 **Rust 侧解码器**，是 avif 目前唯一能出图的路。
 ///
+/// # `target_width`：这个参数决定这条路径能不能用
+///
+/// `None` = 原尺寸。**对 44.8 MPix 的页，原尺寸是不可接受的**：
+/// Rust 侧解出来只要约 267 ms（其中 dav1d 249 ms），但 170 MB 的位图
+/// 过桥 + 交给 `ui.decodeImageFromPixels` 要多花约 1260 ms —— 实测 App 里
+/// 同一页量到 1526 ms，**其中解码只占 17%**。
+///
+/// 给了 `target_width` 之后，位图按宽度降采样（不放大），后面那 1260 ms
+/// 随位图大小等比下降：缩到 768 px 时位图 3.4 MB，Rust 侧总成本约 305 ms。
+/// 完整档位实测见 `rossi_local_core::decode::decode_rgba_scaled`。
+///
 /// # 这是过渡形态，不是终点
 ///
-/// Phase 1 的目标是「Rust 解码 → GPU texture 上屏」，那一步**不过桥**。
-/// 这里把 RGBA 整块搬给 Dart（再由 `ui.decodeImageFromPixels` 上屏），
-/// 一页 44.8 MPix 就是 179 MB 的拷贝 —— 判据 C 的 p95 ≤ 16.7 ms
-/// **不在这一形态下成立**，别拿它的数字当结论。
+/// Phase 1 的目标是「Rust 解码 → GPU texture 上屏」，那一步**不过桥**，
+/// 因而也不需要靠降采样来省拷贝。判据 C 的 p95 ≤ 16.7 ms 不在当前形态下成立，
+/// 别拿它的数字当结论。
 Future<LocalPageDecodeResult> localPagePixels({
   required BigInt id,
   required int index,
-}) => RustLib.instance.api.crateApiLocalLocalPagePixels(id: id, index: index);
+  int? targetWidth,
+}) => RustLib.instance.api.crateApiLocalLocalPagePixels(
+  id: id,
+  index: index,
+  targetWidth: targetWidth,
+);
 
 /// 关闭会话并释放。返回 `false` 表示 id 不存在（重复关闭、或已被回收）。
 bool localClose({required BigInt id}) =>
@@ -136,17 +151,29 @@ class LocalPagePixels {
   final int width;
   final int height;
 
+  /// 解码器输出的原始尺寸（降采样之前）。与 `width`/`height` 分开，
+  /// 是为了让「请求的宽度到底生效了没有」在 UI 上一眼可见。
+  final int sourceWidth;
+  final int sourceHeight;
+
   /// `width * height * 4` 字节。
   final Uint8List rgba;
 
   const LocalPagePixels({
     required this.width,
     required this.height,
+    required this.sourceWidth,
+    required this.sourceHeight,
     required this.rgba,
   });
 
   @override
-  int get hashCode => width.hashCode ^ height.hashCode ^ rgba.hashCode;
+  int get hashCode =>
+      width.hashCode ^
+      height.hashCode ^
+      sourceWidth.hashCode ^
+      sourceHeight.hashCode ^
+      rgba.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -155,6 +182,8 @@ class LocalPagePixels {
           runtimeType == other.runtimeType &&
           width == other.width &&
           height == other.height &&
+          sourceWidth == other.sourceWidth &&
+          sourceHeight == other.sourceHeight &&
           rgba == other.rgba;
 }
 

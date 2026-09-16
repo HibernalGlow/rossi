@@ -119,6 +119,19 @@ opt-level = 1
 # 减少增量编译生成的碎片文件
 incremental = true
 
+# 单独给 `image` 提优化级别。
+#
+# 为什么只给这一个 crate：本地来源（判据 A）的翻页路径上有一段
+# `DynamicImage::thumbnail_exact` 的降采样 —— 44.8 MPix 的页降到显示尺寸，
+# 它的实例化发生在 `image` **内部**，因此吃的是 `image` 自己的 opt-level。
+# `[profile.dev]` 的 opt-level = 1 下这段实测约 227 ms（降到 768 px），
+# 而它是本地来源显示路径里仅次于 dav1d 解码的第二大项。
+#
+# 不直接抬 `[profile.dev].opt-level`：那会让整个增量构建变慢，
+# 而这个项目的日常就是热重载。release 构建本来就是 opt-level 3，不受影响。
+[profile.dev.package.image]
+opt-level = 3
+
 # 临时 patch：rquickjs-sys 0.12.0 在 Windows 交叉编译 Android 时，
 # host 构建会错误使用 Android NDK 的 libclang 生成绑定，导致 JSValue 类型不匹配。
 # 详见：https://github.com/DelSkayn/rquickjs/issues/709

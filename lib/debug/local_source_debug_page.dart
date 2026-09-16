@@ -14,17 +14,24 @@ import 'package:zephyr/src/rust/api/local.dart';
 ///    （`docs/v0.1-local-core.md` §9 允许的兜底形态）；「Rust」= `local_page_pixels`
 ///    解码后把 RGBA 交给 Dart —— 这是 avif 唯一能出图的形态。
 ///    **两者都不是最终上屏路径**：目标是 Rust 解码后直接进 GPU texture（Phase 1 的
-///    `texture-bridge`）。Rust 路目前要把整块 RGBA 过桥（44.8 MPix = 179 MB），
-///    所以本页的帧率**不能**当作判据 B/C 的结论。
+///    `texture-bridge`）。Rust 路目前要把整块 RGBA 过桥，所以本页的帧率**不能**
+///    当作判据 B/C 的结论。
+/// 1b. **Rust 路的瓶颈不在解码，在搬运，所以它必须降采样。** 2026-09-16 实测
+///    （`cargo run -p rossi_local_core --bin scale_probe`，5464×8192 的 AVIF）：
+///    Rust 侧全尺寸解码 + 装箱只要 **267 ms**（其中 dav1d 249 ms），
+///    而当时 App 里同一页量到 `解码 1526.8 ms` —— **83% 花在「170 MB 过桥 +
+///    173 MB 的 `decodeImageFromPixels`」**。位图降到 3.4 MB 时整段掉到 300–400 ms。
+///    所以「尺寸」这个开关对 Rust 路不是画质旋钮，是可用性前提；
+///    原始尺寸也一并显示出来，好判断降采样到底生效没有。
 /// 2. **不做页面缓存。** 每次翻页都重新 `localPageBytes`，顺便让「不常驻句柄」
 ///    这条性质在 UI 上可见（判据 D 的结构性依据）。只保留当前页，**换页时连上一页
 ///    的解码结果一起 `evict`** —— 真实扫描页单页可达 44.8 MPix（RGBA 位图 179 MB），
 ///    不主动释放会立刻冲垮 Flutter 默认 100 MB 的图片缓存，变成「反复解码」。
-/// 3. **默认按「显示尺寸」解码，这是量具不是优化。** 实测一本 29 页、单页
-///    JPEG 5464×8192 的 CBZ：读页 15–60 ms、**解码约 500 ms**、上屏数十 ms。
-///    关掉这个开关就能看到全尺寸解码的原始成本 —— 这正是判据 C
-///    （p95 ≤ 16.7 ms）不可能由「Dart/CPU 全尺寸解码」路径达成的直接证据。
-///    放大超过 2× 会看到模糊，属预期。
+/// 3. **默认按「显示尺寸」解码。** 对两条路径它都是默认档，但意义不同：
+///    外壳路径上它是**量具**（关掉就能看到引擎全尺寸解码的原价，也是判据 C
+///    不可能由「Dart/CPU 全尺寸解码」达成的直接证据）；Rust 路径上它是
+///    **可用性前提**（全尺寸 = 把 170 MB 搬过桥，见上一条 1b）。
+///    代价是放大超过 2× 会看到模糊 —— 属预期，真正的解在 Phase 2 的 tile 化。
 /// 4. **本页不新增 i18n 键、不注册 auto_route**：调试页属于内部工具，走
 ///    `MaterialPageRoute` 直连，避免为一个诊断页触发全量 codegen。
 ///    若将来要转正，再补 `@RoutePage()` 与 `slang` 词条。
@@ -42,27 +49,52 @@ class _StageRow {
     required this.mode,
     required this.read,
     required this.decode,
+    required this.pack,
     required this.paint,
     required this.total,
     required this.width,
     required this.height,
     required this.cacheHit,
+    this.sourceWidth = 0,
+    this.sourceHeight = 0,
   });
 
   final int index;
   final String mode;
   final Duration read;
+
+  /// 编码字节 → 位图。
+  ///
+  /// 两条路径的**含义不同，别直接比**：外壳路径是引擎解码；
+  /// Rust 路径是「Rust 解码器 + FRB 过桥」，读页那一段也并了进来（所以 `read` 为 0）。
   final Duration decode;
+
+  /// Rust 路径专有：位图字节 → `ui.Image`（`ui.decodeImageFromPixels`）。
+  /// 外壳路径没有这一步，记 0。
+  final Duration pack;
+
   final Duration paint;
   final Duration total;
   final int width;
   final int height;
+
+  /// 解码器输出的原始尺寸（降采样前）。外壳路径拿不到，记 0。
+  final int sourceWidth;
+  final int sourceHeight;
+
   final bool cacheHit;
 
   int get pixels => width * height;
 
   /// RGBA 位图的字节数 —— 也就是要走一趟 PCIe 的那个量。
   int get bitmapBytes => pixels * 4;
+
+  /// 相对原始像素量省下的比例，0 表示没省。
+  double get pixelSaving {
+    final source = sourceWidth * sourceHeight;
+    if (source == 0) return 0;
+    return 1 - pixels / source;
+  }
 }
 
 /// 这一页让谁来解码。
@@ -73,8 +105,10 @@ class _StageRow {
 enum _DecoderMode {
   /// 先试 Rust；它明确回答「这页归外壳」时才退回外壳。
   auto('解码器：自动'),
+
   /// 只走 Rust（`local_page_pixels`）。avif 唯一能出图的形态。
   rust('解码器：Rust'),
+
   /// 只走外壳（Flutter / Skia），即「编码字节过桥」。
   shell('解码器：外壳');
 
@@ -202,7 +236,9 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
 
       final rejection = result.rejection;
       if (rejection != null) {
-        debugPrint('[local-debug] open 被拒绝: ${rejection.kind} ${rejection.message}');
+        debugPrint(
+          '[local-debug] open 被拒绝: ${rejection.kind} ${rejection.message}',
+        );
         if (!mounted) return;
         setState(() {
           _rejection = rejection;
@@ -213,13 +249,17 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
       }
 
       final info = result.source!;
-      debugPrint('[local-debug] open 成功(未取页): id=${info.id} '
-          'kind=${info.kind} pages=${info.pageCount} '
-          'bytes=${info.totalBytes} ${swOpen.elapsedMilliseconds}ms');
+      debugPrint(
+        '[local-debug] open 成功(未取页): id=${info.id} '
+        'kind=${info.kind} pages=${info.pageCount} '
+        'bytes=${info.totalBytes} ${swOpen.elapsedMilliseconds}ms',
+      );
 
       final pages = await localSourcePages(id: info.id);
-      debugPrint('[local-debug] 取页完成: ${pages.length} 条 '
-          '${swOpen.elapsedMilliseconds}ms');
+      debugPrint(
+        '[local-debug] 取页完成: ${pages.length} 条 '
+        '${swOpen.elapsedMilliseconds}ms',
+      );
 
       if (!mounted) return;
       setState(() {
@@ -239,8 +279,10 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
         await _loadPage(0);
       } else {
         // 0 页必须留下声音：否则「没反应」和「崩溃」在日志里长得一样。
-        debugPrint('[local-debug] 打开成功但 0 页 —— '
-            '归档里没有任何 v0.1 能识别的页面: $path');
+        debugPrint(
+          '[local-debug] 打开成功但 0 页 —— '
+          '归档里没有任何 v0.1 能识别的页面: $path',
+        );
       }
       debugPrint('[local-debug] open 流程结束 ${swOpen.elapsedMilliseconds}ms');
     } catch (e, st) {
@@ -276,8 +318,7 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
     if (!_displaySizedDecode) return null;
     final media = MediaQuery.maybeOf(context);
     if (media == null) return null;
-    final logical =
-        _viewerWidth > 0 ? _viewerWidth : media.size.width * 0.6;
+    final logical = _viewerWidth > 0 ? _viewerWidth : media.size.width * 0.6;
     final px = (logical * media.devicePixelRatio).round();
     return px.clamp(64, 8192);
   }
@@ -295,7 +336,8 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
     final ext = dot < 0 ? '' : name.substring(dot + 1).toLowerCase();
 
     // 编码字节读出来了 = 归档读取这一步没问题，失败发生在解码那一步。
-    final head = '第 $index 页解码失败。\n'
+    final head =
+        '第 $index 页解码失败。\n'
         '编码字节 $byteCount B 已完整读出（归档读取正常，失败在解码这一步）。';
 
     if (ext == 'avif') {
@@ -361,8 +403,10 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
     }
     swRead.stop();
     final read = swRead.elapsed;
-    debugPrint('[local-debug] 读页完成 index=$index ${bytes.length} B '
-        '${read.inMilliseconds}ms（解码前）');
+    debugPrint(
+      '[local-debug] 读页完成 index=$index ${bytes.length} B '
+      '${read.inMilliseconds}ms（解码前）',
+    );
     if (!mounted) return;
 
     // ── 第 2 段：解码。解码宽度决定像素量，像素量决定解码与上屏的成本。──
@@ -422,6 +466,8 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
             mode: mode,
             read: read,
             decode: decode,
+            // 外壳路径没有「位图字节 → ui.Image」这一步：引擎一步到位。
+            pack: Duration.zero,
             paint: paint.isNegative ? Duration.zero : paint,
             total: total,
             width: width,
@@ -431,10 +477,12 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
           _history.insert(0, _stage!);
           if (_history.length > 6) _history.removeLast();
         });
-        debugPrint('[local-debug] 翻页完成 index=$index $mode '
-            '读${read.inMilliseconds} 解${decode.inMilliseconds} '
-            '屏${paint.inMilliseconds} 合${total.inMilliseconds}ms '
-            '${width}x$height');
+        debugPrint(
+          '[local-debug] 翻页完成 index=$index $mode '
+          '读${read.inMilliseconds} 解${decode.inMilliseconds} '
+          '屏${paint.inMilliseconds} 合${total.inMilliseconds}ms '
+          '${width}x$height',
+        );
       });
     }
 
@@ -472,21 +520,36 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   /// （`shellOnlyFormat`），调用方该退回外壳路径。这不是错误，是格式归属 ——
   /// 归属与失败必须分开，否则 `auto` 会退化成「随便挑一条能走的路」。
   ///
-  /// 计时口径与外壳路径不同，**别直接比**：这里「解码」一段包含 Rust 解码 +
-  /// FRB 过桥（44.8 MPix 就是 179 MB）+ `decodeImageFromPixels` 建纹理，
-  /// 读页那一段合并了进来（所以 `read` 记 0）。两边真正可比的是「上屏」。
+  /// ## 计时口径与外壳路径不同，别直接比
+  ///
+  /// 这里「解码」= Rust 解码器 **+ FRB 过桥**（字节量级 = 位图大小），
+  /// 读页那一段并了进来（所以 `read` 记 0）；「建图」= `decodeImageFromPixels`。
+  /// **Rust 侧解码本身的单价从 Dart 侧量不到**，要用
+  /// `cargo run -p rossi_local_core --bin scale_probe` 量。
+  ///
+  /// ## `targetWidth` 不是可选优化
+  ///
+  /// 不给宽度就是原尺寸：44.8 MPix 的页解出 170.8 MB 位图，实测这一整段
+  /// 要 1526 ms，而 Rust 侧纯解码只要 267 ms —— **83% 花在搬那 170 MB 上**。
+  /// 给了宽度之后位图缩到几 MB，这一段跟着掉到 300–400 ms 量级。
   Future<bool> _loadPageViaRust(BigInt id, int index) async {
     final swAll = Stopwatch()..start();
-    final swDecode = Stopwatch()..start();
-    debugPrint('[local-debug] Rust 解码开始 index=$index');
+    final targetWidth = _targetDecodeWidth();
+    final swBridge = Stopwatch()..start();
+    debugPrint('[local-debug] Rust 解码开始 index=$index target=$targetWidth');
 
     final LocalPageDecodeResult result;
     try {
-      result = await localPagePixels(id: id, index: index);
+      result = await localPagePixels(
+        id: id,
+        index: index,
+        targetWidth: targetWidth,
+      );
     } catch (e) {
       debugPrint('[local-debug] Rust 解码调用失败 index=$index: $e');
       return false;
     }
+    swBridge.stop();
 
     final pixels = result.pixels;
     final failure = result.failure;
@@ -504,12 +567,13 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
       return true;
     }
 
+    final swPack = Stopwatch()..start();
     final decoded = await _imageFromRgba(
       pixels.rgba,
       pixels.width,
       pixels.height,
     );
-    swDecode.stop();
+    swPack.stop();
 
     if (!mounted) {
       decoded.dispose();
@@ -523,34 +587,49 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
     unawaited(staleProvider?.evict());
     stale?.dispose();
 
+    // 这里必须 setState：`RawImage` 不像 `Image` 那样订阅 ImageStream，
+    // 少了这一句新位图根本不会被画出来，要等下一次**别的**原因触发的重建。
+    // 实测那种「等」能长到 3.9 s —— 用户不动鼠标就一直不出图，
+    // 而且它会被算进下面的「上屏」，让这个数字看起来像上屏花了 3.9 s。
+    setState(() {
+      _current = index;
+      _currentBytes = null;
+      _currentBytesIndex = index;
+      _error = null;
+    });
+
     // 上屏：与外壳路径同一套口径 —— 等含这张图的下一帧画完再收尾。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !identical(_rustImage, decoded)) return;
       final total = swAll.elapsed;
-      final decode = swDecode.elapsed;
-      final paint = total - decode;
+      final bridge = swBridge.elapsed;
+      final pack = swPack.elapsed;
+      final paint = total - bridge - pack;
       setState(() {
-        _current = index;
-        _currentBytes = null;
-        _currentBytesIndex = index;
-        _error = null;
         _stage = _StageRow(
           index: index,
-          mode: 'Rust 解码',
+          mode: 'Rust ${pixels.width}px',
           read: Duration.zero,
-          decode: decode,
+          decode: bridge,
+          pack: pack,
           paint: paint.isNegative ? Duration.zero : paint,
           total: total,
           width: pixels.width,
           height: pixels.height,
+          sourceWidth: pixels.sourceWidth,
+          sourceHeight: pixels.sourceHeight,
           cacheHit: false,
         );
         _history.insert(0, _stage!);
         if (_history.length > 6) _history.removeLast();
       });
-      debugPrint('[local-debug] Rust 翻页完成 index=$index '
-          '解${decode.inMilliseconds} 屏${paint.inMilliseconds} '
-          '合${total.inMilliseconds}ms ${pixels.width}x${pixels.height}');
+      debugPrint(
+        '[local-debug] Rust 翻页完成 index=$index '
+        '桥${bridge.inMilliseconds} 图${pack.inMilliseconds} '
+        '屏${paint.inMilliseconds} 合${total.inMilliseconds}ms '
+        '${pixels.sourceWidth}x${pixels.sourceHeight}'
+        '→${pixels.width}x${pixels.height}',
+      );
     });
     return true;
   }
@@ -676,7 +755,8 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
             ),
           ),
           Tooltip(
-            message: '谁负责解这一页。点按循环切换：\n'
+            message:
+                '谁负责解这一页。点按循环切换：\n'
                 '自动 = Rust 优先，Rust 明确说「归外壳」时才退回引擎；\n'
                 'Rust = 只走 Rust 解码器（avif 唯一能出图的形态）；\n'
                 '外壳 = 编码字节过桥交给引擎，只有引擎认识的格式能出图。',
@@ -791,18 +871,24 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
         spacing: 16,
         runSpacing: 4,
         children: [
-          Text('来源：${_kindLabel(info.kind)}',
-              style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text(
+            '来源：${_kindLabel(info.kind)}',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
           Text('会话 id：${info.id}'),
           Text('页数：${info.pageCount}'),
           Text('总字节：${info.totalBytes}'),
-          Text(info.path, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          Text(
+            info.path,
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
+          ),
         ],
       ),
     );
   }
 
-  static String _fmtMs(Duration d) => (d.inMicroseconds / 1000.0).toStringAsFixed(1);
+  static String _fmtMs(Duration d) =>
+      (d.inMicroseconds / 1000.0).toStringAsFixed(1);
 
   /// 分段耗时面板 —— 本页存在的主要理由。
   ///
@@ -819,26 +905,38 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (stage == null)
-            const Text('翻页后这里会显示 读页 / 解码 / 上屏 的分段耗时。',
-                style: TextStyle(fontSize: 12))
+            const Text(
+              '翻页后这里会显示 读页 / 解码 / 上屏 的分段耗时。',
+              style: TextStyle(fontSize: 12),
+            )
           else ...[
             Text(
               '第 ${stage.index + 1} 页（${stage.mode}）：'
               '读页 ${_fmtMs(stage.read)} ms › '
               '解码 ${stage.cacheHit ? "缓存命中" : "${_fmtMs(stage.decode)} ms"} › '
+              '${stage.pack > Duration.zero ? "建图 ${_fmtMs(stage.pack)} ms › " : ""}'
               '上屏 ${_fmtMs(stage.paint)} ms · '
               '合计 ${_fmtMs(stage.total)} ms',
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 2),
             Text(
-              '解出 ${stage.width}×${stage.height}'
+              '${stage.sourceWidth > 0 && stage.sourceWidth != stage.width ? "原始 ${stage.sourceWidth}×${stage.sourceHeight} → 解出 ${stage.width}×${stage.height}（像素 −${(stage.pixelSaving * 100).toStringAsFixed(1)}%）" : "解出 ${stage.width}×${stage.height}"}'
               '${stage.pixels > 0 ? " = ${(stage.pixels / 1e6).toStringAsFixed(1)} MPix" : ""}'
               '${stage.pixels > 0 ? " · RGBA 位图 ${(stage.bitmapBytes / 1e6).toStringAsFixed(1)} MB" : ""}'
               ' · 编码字节 ${_currentBytes?.length ?? 0} B'
               ' （${sniffImageFormat(_currentBytes)}）',
               style: const TextStyle(fontSize: 12),
             ),
+            if (!_displaySizedDecode && stage.mode.startsWith('Rust')) ...[
+              const SizedBox(height: 3),
+              Text(
+                '注：当前是「全尺寸」，Rust 路径会把整块 RGBA 搬过桥 —— '
+                '这一页的位图 ${(stage.bitmapBytes / 1e6).toStringAsFixed(1)} MB 里，'
+                '大部分时间花在搬运而不是解码。切到「显示」可直接对照。',
+                style: const TextStyle(fontSize: 11, color: Colors.red),
+              ),
+            ],
             const SizedBox(height: 4),
             Text(
               '全局图片缓存：${(cache.currentSizeBytes / 1e6).toStringAsFixed(1)} MB '
@@ -855,19 +953,25 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
           ],
           if (_history.length > 1) ...[
             const SizedBox(height: 6),
-            const Text('最近几次（新→旧）：', style: TextStyle(fontSize: 11, color: Colors.grey)),
+            const Text(
+              '最近几次（新→旧）：',
+              style: TextStyle(fontSize: 11, color: Colors.grey),
+            ),
             for (final row in _history)
               Text(
                 '  第 ${(row.index + 1).toString().padLeft(3)} 页  ${row.mode.padRight(11)}'
                 '  读 ${_fmtMs(row.read).padLeft(7)}  解 ${_fmtMs(row.decode).padLeft(8)}'
-                '  屏 ${_fmtMs(row.paint).padLeft(6)}  合 ${_fmtMs(row.total).padLeft(8)} ms',
+                '  装 ${_fmtMs(row.pack).padLeft(6)}  屏 ${_fmtMs(row.paint).padLeft(6)}'
+                '  合 ${_fmtMs(row.total).padLeft(8)} ms',
                 style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
               ),
           ],
           const SizedBox(height: 3),
           const Text(
-            '口径：读页含归档解压与 FRB 过桥；解码是编码字节→位图；上屏是解码完成→含该图的下一帧绘制完'
-            '（含纹理上传）。解码宽度 = 预览区宽度 × 设备像素比。',
+            '口径：读页含归档解压与 FRB 过桥；解码是编码字节→位图'
+            '（Rust 路径这一段还会把 RGBA 搬过桥）；「装」是位图字节→ui.Image'
+            '（只有 Rust 路径有）；上屏是解码完成→含该图的下一帧绘制完（含纹理上传）。'
+            '解码宽度 = 预览区宽度 × 设备像素比，两条路径都遵守。',
             style: TextStyle(fontSize: 11, color: Colors.grey),
           ),
         ],
@@ -974,14 +1078,14 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
     double pick(double q) =>
         sorted[((sorted.length - 1) * q).round().clamp(0, sorted.length - 1)];
 
-    final first5 = ms.take(5).fold<double>(0, (a, b) => a + b) / ms.take(5).length;
+    final first5 =
+        ms.take(5).fold<double>(0, (a, b) => a + b) / ms.take(5).length;
     final last5 =
-        ms.reversed.take(5).fold<double>(0, (a, b) => a + b) / ms.reversed.take(5).length;
+        ms.reversed.take(5).fold<double>(0, (a, b) => a + b) /
+        ms.reversed.take(5).length;
     final ratio = first5 == 0 ? double.infinity : last5 / first5;
 
-    final verdict = ratio < 2.0
-        ? '近似常量 → 按需 seek，未整段解压'
-        : '随页序增长 → 疑似整段解压';
+    final verdict = ratio < 2.0 ? '近似常量 → 按需 seek，未整段解压' : '随页序增长 → 疑似整段解压';
 
     return Container(
       width: double.infinity,
@@ -1016,30 +1120,24 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   Widget _rejectionView(LocalRejection r) {
     final (icon, hint) = switch (r.kind) {
       LocalRejectionKind.unknownFormat => (
-          Icons.help_outline,
-          'v0.1 只认散图文件夹 / CBZ / CBR。7z、PDF、视频都在这条线之外。',
-        ),
+        Icons.help_outline,
+        'v0.1 只认散图文件夹 / CBZ / CBR。7z、PDF、视频都在这条线之外。',
+      ),
       LocalRejectionKind.rarSolid => (
-          Icons.compress,
-          '固实压缩：读第 N 页要先解压前 N-1 页，与「翻页 p95 ≤ 16.7ms」不相容。'
-              '可用其它工具重新打包为 CBZ（zip）后重试。',
-        ),
+        Icons.compress,
+        '固实压缩：读第 N 页要先解压前 N-1 页，与「翻页 p95 ≤ 16.7ms」不相容。'
+            '可用其它工具重新打包为 CBZ（zip）后重试。',
+      ),
       LocalRejectionKind.rarNestedArchive => (
-          Icons.account_tree_outlined,
-          '归档里套了归档。v0.1 明确不展开嵌套——这是唯一会需要临时文件的场景。',
-        ),
+        Icons.account_tree_outlined,
+        '归档里套了归档。v0.1 明确不展开嵌套——这是唯一会需要临时文件的场景。',
+      ),
       LocalRejectionKind.rarEncrypted => (
-          Icons.lock_outline,
-          '加密归档：v0.1 不提供密码输入。',
-        ),
-      LocalRejectionKind.notFound => (
-          Icons.link_off,
-          '路径不存在或不可读。',
-        ),
-      LocalRejectionKind.io => (
-          Icons.error_outline,
-          'IO 或解析失败（含归档损坏）。',
-        ),
+        Icons.lock_outline,
+        '加密归档：v0.1 不提供密码输入。',
+      ),
+      LocalRejectionKind.notFound => (Icons.link_off, '路径不存在或不可读。'),
+      LocalRejectionKind.io => (Icons.error_outline, 'IO 或解析失败（含归档损坏）。'),
     };
 
     return Center(
@@ -1074,10 +1172,10 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   }
 
   String _kindLabel(LocalSourceKind kind) => switch (kind) {
-        LocalSourceKind.folder => '散图文件夹',
-        LocalSourceKind.zip => 'ZIP 归档',
-        LocalSourceKind.rar => 'RAR 归档',
-      };
+    LocalSourceKind.folder => '散图文件夹',
+    LocalSourceKind.zip => 'ZIP 归档',
+    LocalSourceKind.rar => 'RAR 归档',
+  };
 }
 
 /// 从编码字节的魔数判断格式。
@@ -1088,11 +1186,18 @@ String sniffImageFormat(Uint8List? bytes) {
   if (bytes == null || bytes.length < 12) return '未知';
   final b = bytes;
   if (b[0] == 0xFF && b[1] == 0xD8 && b[2] == 0xFF) return 'JPEG';
-  if (b[0] == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47) return 'PNG';
+  if (b[0] == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47)
+    return 'PNG';
   if (b[0] == 0x47 && b[1] == 0x49 && b[2] == 0x46) return 'GIF';
   if (b[0] == 0x42 && b[1] == 0x4D) return 'BMP';
-  if (b[0] == 0x52 && b[1] == 0x49 && b[2] == 0x46 && b[3] == 0x46 &&
-      b[8] == 0x57 && b[9] == 0x45 && b[10] == 0x42 && b[11] == 0x50) {
+  if (b[0] == 0x52 &&
+      b[1] == 0x49 &&
+      b[2] == 0x46 &&
+      b[3] == 0x46 &&
+      b[8] == 0x57 &&
+      b[9] == 0x45 &&
+      b[10] == 0x42 &&
+      b[11] == 0x50) {
     return 'WebP';
   }
   return '未知';

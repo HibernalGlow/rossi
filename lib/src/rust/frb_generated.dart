@@ -230,6 +230,7 @@ abstract class RustLibApi extends BaseApi {
   Future<LocalPageDecodeResult> crateApiLocalLocalPagePixels({
     required BigInt id,
     required int index,
+    int? targetWidth,
   });
 
   Future<List<LocalPageInfo>> crateApiLocalLocalSourcePages({
@@ -1711,6 +1712,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Future<LocalPageDecodeResult> crateApiLocalLocalPagePixels({
     required BigInt id,
     required int index,
+    int? targetWidth,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -1718,6 +1720,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_u_64(id, serializer);
           sse_encode_u_32(index, serializer);
+          sse_encode_opt_box_autoadd_u_32(targetWidth, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1730,7 +1733,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: null,
         ),
         constMeta: kCrateApiLocalLocalPagePixelsConstMeta,
-        argValues: [id, index],
+        argValues: [id, index, targetWidth],
         apiImpl: this,
       ),
     );
@@ -1739,7 +1742,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiLocalLocalPagePixelsConstMeta =>
       const TaskConstMeta(
         debugName: "local_page_pixels",
-        argNames: ["id", "index"],
+        argNames: ["id", "index", "targetWidth"],
       );
 
   @override
@@ -3373,6 +3376,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  int dco_decode_box_autoadd_u_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
+  }
+
+  @protected
   BigInt dco_decode_box_autoadd_u_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_u_64(raw);
@@ -3551,12 +3560,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   LocalPagePixels dco_decode_local_page_pixels(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
     return LocalPagePixels(
       width: dco_decode_u_32(arr[0]),
       height: dco_decode_u_32(arr[1]),
-      rgba: dco_decode_list_prim_u_8_strict(arr[2]),
+      sourceWidth: dco_decode_u_32(arr[2]),
+      sourceHeight: dco_decode_u_32(arr[3]),
+      rgba: dco_decode_list_prim_u_8_strict(arr[4]),
     );
   }
 
@@ -3687,6 +3698,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return raw == null
         ? null
         : dco_decode_box_autoadd_qjs_runtime_bundle_build(raw);
+  }
+
+  @protected
+  int? dco_decode_opt_box_autoadd_u_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_u_32(raw);
   }
 
   @protected
@@ -4029,6 +4046,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  int sse_decode_box_autoadd_u_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_u_32(deserializer));
+  }
+
+  @protected
   BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_u_64(deserializer));
@@ -4253,10 +4276,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_width = sse_decode_u_32(deserializer);
     var var_height = sse_decode_u_32(deserializer);
+    var var_sourceWidth = sse_decode_u_32(deserializer);
+    var var_sourceHeight = sse_decode_u_32(deserializer);
     var var_rgba = sse_decode_list_prim_u_8_strict(deserializer);
     return LocalPagePixels(
       width: var_width,
       height: var_height,
+      sourceWidth: var_sourceWidth,
+      sourceHeight: var_sourceHeight,
       rgba: var_rgba,
     );
   }
@@ -4448,6 +4475,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_qjs_runtime_bundle_build(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  int? sse_decode_opt_box_autoadd_u_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_u_32(deserializer));
     } else {
       return null;
     }
@@ -4878,6 +4916,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_u_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_32(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_u_64(self, serializer);
@@ -5066,6 +5110,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_u_32(self.width, serializer);
     sse_encode_u_32(self.height, serializer);
+    sse_encode_u_32(self.sourceWidth, serializer);
+    sse_encode_u_32(self.sourceHeight, serializer);
     sse_encode_list_prim_u_8_strict(self.rgba, serializer);
   }
 
@@ -5254,6 +5300,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_qjs_runtime_bundle_build(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_u_32(int? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_u_32(self, serializer);
     }
   }
 

@@ -222,6 +222,10 @@ pub async fn local_page_bytes(id: u64, index: u32) -> Result<Vec<u8>, Error> {
 pub struct LocalPagePixels {
     pub width: u32,
     pub height: u32,
+    /// 解码器输出的原始尺寸（降采样之前）。与 `width`/`height` 分开，
+    /// 是为了让「请求的宽度到底生效了没有」在 UI 上一眼可见。
+    pub source_width: u32,
+    pub source_height: u32,
     /// `width * height * 4` 字节。
     pub rgba: Vec<u8>,
 }
@@ -259,21 +263,35 @@ pub struct LocalPageDecodeResult {
 ///   `Could not decompress image.`（实测见 `rossi_local_core::page_order`）。
 /// - 这一条走 **Rust 侧解码器**，是 avif 目前唯一能出图的路。
 ///
+/// # `target_width`：这个参数决定这条路径能不能用
+///
+/// `None` = 原尺寸。**对 44.8 MPix 的页，原尺寸是不可接受的**：
+/// Rust 侧解出来只要约 267 ms（其中 dav1d 249 ms），但 170 MB 的位图
+/// 过桥 + 交给 `ui.decodeImageFromPixels` 要多花约 1260 ms —— 实测 App 里
+/// 同一页量到 1526 ms，**其中解码只占 17%**。
+///
+/// 给了 `target_width` 之后，位图按宽度降采样（不放大），后面那 1260 ms
+/// 随位图大小等比下降：缩到 768 px 时位图 3.4 MB，Rust 侧总成本约 305 ms。
+/// 完整档位实测见 `rossi_local_core::decode::decode_rgba_scaled`。
+///
 /// # 这是过渡形态，不是终点
 ///
-/// Phase 1 的目标是「Rust 解码 → GPU texture 上屏」，那一步**不过桥**。
-/// 这里把 RGBA 整块搬给 Dart（再由 `ui.decodeImageFromPixels` 上屏），
-/// 一页 44.8 MPix 就是 179 MB 的拷贝 —— 判据 C 的 p95 ≤ 16.7 ms
-/// **不在这一形态下成立**，别拿它的数字当结论。
+/// Phase 1 的目标是「Rust 解码 → GPU texture 上屏」，那一步**不过桥**，
+/// 因而也不需要靠降采样来省拷贝。判据 C 的 p95 ≤ 16.7 ms 不在当前形态下成立，
+/// 别拿它的数字当结论。
 #[frb]
-pub async fn local_page_pixels(id: u64, index: u32) -> LocalPageDecodeResult {
+pub async fn local_page_pixels(
+    id: u64,
+    index: u32,
+    target_width: Option<u32>,
+) -> LocalPageDecodeResult {
     let source = match session(id) {
         Ok(source) => source,
         Err(error) => return decode_failed(format!("{error:#}")),
     };
 
     rquickjs_playground::global_handle()
-        .spawn_blocking(move || decode_page_impl(&source, index as usize))
+        .spawn_blocking(move || decode_page_impl(&source, index as usize, target_width))
         .await
         .unwrap_or_else(|error| decode_failed(format!("解码任务失败: {error}")))
 }
@@ -288,12 +306,18 @@ fn decode_failed(message: String) -> LocalPageDecodeResult {
     }
 }
 
-fn decode_page_impl(source: &LocalSource, index: usize) -> LocalPageDecodeResult {
-    match source.page_pixels(index) {
+fn decode_page_impl(
+    source: &LocalSource,
+    index: usize,
+    target_width: Option<u32>,
+) -> LocalPageDecodeResult {
+    match source.page_pixels_scaled(index, target_width) {
         Ok(pixels) => LocalPageDecodeResult {
             pixels: Some(LocalPagePixels {
                 width: pixels.width,
                 height: pixels.height,
+                source_width: pixels.source_width,
+                source_height: pixels.source_height,
                 rgba: pixels.rgba,
             }),
             failure: None,
@@ -420,9 +444,8 @@ mod tests {
         assert!(opened.source.is_none());
 
         // 路径不存在：必须是 NotFound（UI 提示「文件不见了」而不是「格式不支持」）。
-        let opened = open_local_source_impl(
-            dir.path().join("nope.cbz").to_string_lossy().into_owned(),
-        );
+        let opened =
+            open_local_source_impl(dir.path().join("nope.cbz").to_string_lossy().into_owned());
         let rejection = opened.rejection.expect("应当被拒绝");
         assert_eq!(rejection.kind, LocalRejectionKind::NotFound);
     }
@@ -467,20 +490,48 @@ mod tests {
         let source = LocalSource::open(&root).unwrap();
         assert_eq!(source.len(), 3);
 
-        let ok = decode_page_impl(&source, 0);
+        let ok = decode_page_impl(&source, 0, None);
         assert!(ok.failure.is_none(), "{:?}", ok.failure);
         assert_eq!(ok.pixels.unwrap().width, 4);
 
-        let shell = decode_page_impl(&source, 1);
+        let shell = decode_page_impl(&source, 1, None);
         assert_eq!(
             shell.failure.expect("应当失败").kind,
             LocalDecodeFailureKind::ShellOnlyFormat
         );
 
-        let broken = decode_page_impl(&source, 2);
+        let broken = decode_page_impl(&source, 2, None);
         assert_eq!(
             broken.failure.expect("应当失败").kind,
             LocalDecodeFailureKind::DecodeFailed
         );
+    }
+
+    /// 过桥之后「原始尺寸」必须还在 —— 否则 UI 无法判断降采样到底生效没有。
+    ///
+    /// 这一条同时把「不放大」钉在 API 层：上层传一个比原图大的宽度时，
+    /// 返回的仍是原尺寸，而不是被悄悄放大成 179 MB。
+    #[test]
+    fn target_width_reaches_the_pixels_and_keeps_the_source_size() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("wide");
+        std::fs::create_dir(&root).unwrap();
+
+        let buffer = image::RgbaImage::new(64, 32);
+        let mut encoded = std::io::Cursor::new(Vec::new());
+        image::DynamicImage::ImageRgba8(buffer)
+            .write_to(&mut encoded, image::ImageFormat::Png)
+            .unwrap();
+        std::fs::write(root.join("1.png"), encoded.into_inner()).unwrap();
+
+        let source = LocalSource::open(&root).unwrap();
+
+        let scaled = decode_page_impl(&source, 0, Some(16)).pixels.unwrap();
+        assert_eq!((scaled.width, scaled.height), (16, 8));
+        assert_eq!((scaled.source_width, scaled.source_height), (64, 32));
+        assert_eq!(scaled.rgba.len(), 16 * 8 * 4);
+
+        let big = decode_page_impl(&source, 0, Some(4096)).pixels.unwrap();
+        assert_eq!((big.width, big.height), (64, 32), "不放大");
     }
 }
