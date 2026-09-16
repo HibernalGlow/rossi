@@ -41,7 +41,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1962777245;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -2141799295;
 
 // Section: executor
 
@@ -1665,6 +1665,38 @@ fn wire__crate__api__local__local_page_bytes_impl(
         },
     )
 }
+fn wire__crate__api__local__local_page_load_stats_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "local_page_load_stats",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Ok::<_, ()>(crate::api::local::local_page_load_stats())?;
+                    std::result::Result::Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__local__local_page_pixels_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -1690,6 +1722,10 @@ fn wire__crate__api__local__local_page_pixels_impl(
             let api_id = <u64>::sse_decode(&mut deserializer);
             let api_index = <u32>::sse_decode(&mut deserializer);
             let api_target_width = <Option<u32>>::sse_decode(&mut deserializer);
+            let api_priority =
+                <crate::api::local::LocalPageLoadPriority>::sse_decode(&mut deserializer);
+            let api_contract =
+                <crate::api::local::LocalPageLoadContract>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, ()>(
@@ -1699,6 +1735,8 @@ fn wire__crate__api__local__local_page_pixels_impl(
                                 api_id,
                                 api_index,
                                 api_target_width,
+                                api_priority,
+                                api_contract,
                             )
                             .await,
                         )?;
@@ -1706,6 +1744,84 @@ fn wire__crate__api__local__local_page_pixels_impl(
                     })()
                     .await,
                 )
+            }
+        },
+    )
+}
+fn wire__crate__api__local__local_prefetch_decision_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "local_prefetch_decision",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_ms_since_last_turn = <Option<u64>>::sse_decode(&mut deserializer);
+            let api_visible_pending = <u32>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Ok::<_, ()>(crate::api::local::local_prefetch_decision(
+                        api_ms_since_last_turn,
+                        api_visible_pending,
+                    ))?;
+                    std::result::Result::Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__local__local_prefetch_targets_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "local_prefetch_targets",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_pos = <u32>::sse_decode(&mut deserializer);
+            let api_n = <u32>::sse_decode(&mut deserializer);
+            let api_forward = <u32>::sse_decode(&mut deserializer);
+            let api_back = <u32>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Ok::<_, ()>(crate::api::local::local_prefetch_targets(
+                        api_pos,
+                        api_n,
+                        api_forward,
+                        api_back,
+                    ))?;
+                    std::result::Result::Ok(output_ok)
+                })())
             }
         },
     )
@@ -3494,6 +3610,18 @@ impl SseDecode for Vec<crate::api::local::LocalPageInfo> {
     }
 }
 
+impl SseDecode for Vec<u32> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<u32>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<u8> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -3551,6 +3679,7 @@ impl SseDecode for crate::api::local::LocalDecodeFailureKind {
         return match inner {
             0 => crate::api::local::LocalDecodeFailureKind::ShellOnlyFormat,
             1 => crate::api::local::LocalDecodeFailureKind::DecodeFailed,
+            2 => crate::api::local::LocalDecodeFailureKind::Cancelled,
             _ => unreachable!("Invalid variant for LocalDecodeFailureKind: {}", inner),
         };
     }
@@ -3583,6 +3712,50 @@ impl SseDecode for crate::api::local::LocalPageInfo {
     }
 }
 
+impl SseDecode for crate::api::local::LocalPageLoadContract {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::local::LocalPageLoadContract::Sequential,
+            1 => crate::api::local::LocalPageLoadContract::LatestSeek,
+            _ => unreachable!("Invalid variant for LocalPageLoadContract: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::local::LocalPageLoadPriority {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::local::LocalPageLoadPriority::Normal,
+            1 => crate::api::local::LocalPageLoadPriority::High,
+            _ => unreachable!("Invalid variant for LocalPageLoadPriority: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::local::LocalPageLoadStats {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_waiting = <u32>::sse_decode(deserializer);
+        let mut var_running = <u32>::sse_decode(deserializer);
+        let mut var_cancelling = <u32>::sse_decode(deserializer);
+        let mut var_runningNormal = <u32>::sse_decode(deserializer);
+        let mut var_totalLimit = <u32>::sse_decode(deserializer);
+        let mut var_highReserved = <u32>::sse_decode(deserializer);
+        return crate::api::local::LocalPageLoadStats {
+            waiting: var_waiting,
+            running: var_running,
+            cancelling: var_cancelling,
+            running_normal: var_runningNormal,
+            total_limit: var_totalLimit,
+            high_reserved: var_highReserved,
+        };
+    }
+}
+
 impl SseDecode for crate::api::local::LocalPagePixels {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -3597,6 +3770,20 @@ impl SseDecode for crate::api::local::LocalPagePixels {
             source_width: var_sourceWidth,
             source_height: var_sourceHeight,
             rgba: var_rgba,
+        };
+    }
+}
+
+impl SseDecode for crate::api::local::LocalPrefetchDecision {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_allowed = <bool>::sse_decode(deserializer);
+        let mut var_reason = <String>::sse_decode(deserializer);
+        let mut var_message = <String>::sse_decode(deserializer);
+        return crate::api::local::LocalPrefetchDecision {
+            allowed: var_allowed,
+            reason: var_reason,
+            message: var_message,
         };
     }
 }
@@ -4054,78 +4241,87 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         45 => wire__crate__api__local__local_page_bytes_impl(port, ptr, rust_vec_len, data_len),
-        46 => wire__crate__api__local__local_page_pixels_impl(port, ptr, rust_vec_len, data_len),
-        47 => wire__crate__api__local__local_source_pages_impl(port, ptr, rust_vec_len, data_len),
-        48 => wire__crate__api__local__open_local_source_impl(port, ptr, rust_vec_len, data_len),
-        50 => wire__crate__api__simple__pack_folder_impl(port, ptr, rust_vec_len, data_len),
-        51 => wire__crate__api__simple__pack_folder_zip_impl(port, ptr, rust_vec_len, data_len),
-        52 => {
+        46 => {
+            wire__crate__api__local__local_page_load_stats_impl(port, ptr, rust_vec_len, data_len)
+        }
+        47 => wire__crate__api__local__local_page_pixels_impl(port, ptr, rust_vec_len, data_len),
+        48 => {
+            wire__crate__api__local__local_prefetch_decision_impl(port, ptr, rust_vec_len, data_len)
+        }
+        49 => {
+            wire__crate__api__local__local_prefetch_targets_impl(port, ptr, rust_vec_len, data_len)
+        }
+        50 => wire__crate__api__local__local_source_pages_impl(port, ptr, rust_vec_len, data_len),
+        51 => wire__crate__api__local__open_local_source_impl(port, ptr, rust_vec_len, data_len),
+        53 => wire__crate__api__simple__pack_folder_impl(port, ptr, rust_vec_len, data_len),
+        54 => wire__crate__api__simple__pack_folder_zip_impl(port, ptr, rust_vec_len, data_len),
+        55 => {
             wire__crate__api__qjs__qjs_cancel_tasks_by_group_impl(port, ptr, rust_vec_len, data_len)
         }
-        53 => wire__crate__api__qjs__qjs_clear_bundle_impl(port, ptr, rust_vec_len, data_len),
-        54 => wire__crate__api__qjs__qjs_current_bundle_impl(port, ptr, rust_vec_len, data_len),
-        55 => wire__crate__api__qjs__qjs_debug_snapshot_impl(port, ptr, rust_vec_len, data_len),
-        56 => wire__crate__api__qjs__qjs_drop_runtime_impl(port, ptr, rust_vec_len, data_len),
-        57 => wire__crate__api__qjs__qjs_fetch_image_impl(port, ptr, rust_vec_len, data_len),
-        58 => wire__crate__api__qjs__qjs_replace_bundle_impl(port, ptr, rust_vec_len, data_len),
-        59 => wire__crate__api__qjs__qjs_task_call_impl(port, ptr, rust_vec_len, data_len),
-        60 => wire__crate__api__data_backup__read_data_backup_config_impl(
+        56 => wire__crate__api__qjs__qjs_clear_bundle_impl(port, ptr, rust_vec_len, data_len),
+        57 => wire__crate__api__qjs__qjs_current_bundle_impl(port, ptr, rust_vec_len, data_len),
+        58 => wire__crate__api__qjs__qjs_debug_snapshot_impl(port, ptr, rust_vec_len, data_len),
+        59 => wire__crate__api__qjs__qjs_drop_runtime_impl(port, ptr, rust_vec_len, data_len),
+        60 => wire__crate__api__qjs__qjs_fetch_image_impl(port, ptr, rust_vec_len, data_len),
+        61 => wire__crate__api__qjs__qjs_replace_bundle_impl(port, ptr, rust_vec_len, data_len),
+        62 => wire__crate__api__qjs__qjs_task_call_impl(port, ptr, rust_vec_len, data_len),
+        63 => wire__crate__api__data_backup__read_data_backup_config_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        62 => wire__crate__api__memory__reset_rust_memory_stats_impl(
+        65 => wire__crate__api__memory__reset_rust_memory_stats_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        71 => wire__crate__api__user_utils__setup_default_user_utils_impl(
+        74 => wire__crate__api__user_utils__setup_default_user_utils_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        72 => wire__crate__api__simple__sleep_test_impl(port, ptr, rust_vec_len, data_len),
-        73 => wire__crate__api__system__start_shutdown_listener_impl(
+        75 => wire__crate__api__simple__sleep_test_impl(port, ptr, rust_vec_len, data_len),
+        76 => wire__crate__api__system__start_shutdown_listener_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        74 => wire__crate__api__simple__stream_test_impl(port, ptr, rust_vec_len, data_len),
-        75 => wire__crate__api__webdav__webdav_delete_remote_files_impl(
+        77 => wire__crate__api__simple__stream_test_impl(port, ptr, rust_vec_len, data_len),
+        78 => wire__crate__api__webdav__webdav_delete_remote_files_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        76 => {
+        79 => {
             wire__crate__api__webdav__webdav_download_file_impl(port, ptr, rust_vec_len, data_len)
         }
-        77 => {
+        80 => {
             wire__crate__api__webdav__webdav_download_text_impl(port, ptr, rust_vec_len, data_len)
         }
-        78 => wire__crate__api__webdav__webdav_ensure_remote_ready_impl(
+        81 => wire__crate__api__webdav__webdav_ensure_remote_ready_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        79 => wire__crate__api__webdav__webdav_list_remote_data_files_impl(
+        82 => wire__crate__api__webdav__webdav_list_remote_data_files_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        80 => {
+        83 => {
             wire__crate__api__webdav__webdav_test_connection_impl(port, ptr, rust_vec_len, data_len)
         }
-        81 => wire__crate__api__webdav__webdav_upload_bytes_impl(port, ptr, rust_vec_len, data_len),
-        82 => wire__crate__api__webdav__webdav_upload_text_impl(port, ptr, rust_vec_len, data_len),
-        83 => wire__crate__api__simple__zstd_compress_bytes_impl(port, ptr, rust_vec_len, data_len),
-        84 => {
+        84 => wire__crate__api__webdav__webdav_upload_bytes_impl(port, ptr, rust_vec_len, data_len),
+        85 => wire__crate__api__webdav__webdav_upload_text_impl(port, ptr, rust_vec_len, data_len),
+        86 => wire__crate__api__simple__zstd_compress_bytes_impl(port, ptr, rust_vec_len, data_len),
+        87 => {
             wire__crate__api__simple__zstd_decompress_bytes_impl(port, ptr, rust_vec_len, data_len)
         }
         _ => unreachable!(),
@@ -4169,18 +4365,18 @@ fn pde_ffi_dispatcher_sync_impl(
         42 => wire__crate__api__local__local_close_impl(ptr, rust_vec_len, data_len),
         43 => wire__crate__api__local__local_close_all_impl(ptr, rust_vec_len, data_len),
         44 => wire__crate__api__local__local_open_session_count_impl(ptr, rust_vec_len, data_len),
-        49 => wire__crate__api__qjs__opencc_convert_impl(ptr, rust_vec_len, data_len),
-        61 => wire__crate__api__qjs__register_function_impl(ptr, rust_vec_len, data_len),
-        63 => wire__crate__api__qjs__set_host_cache_gc_enabled_impl(ptr, rust_vec_len, data_len),
-        64 => wire__crate__api__qjs__set_http_proxy_impl(ptr, rust_vec_len, data_len),
-        65 => wire__crate__api__qjs__set_http_requests_blocked_impl(ptr, rust_vec_len, data_len),
-        66 => wire__crate__api__qjs__set_log_http_forward_impl(ptr, rust_vec_len, data_len),
-        67 => {
+        52 => wire__crate__api__qjs__opencc_convert_impl(ptr, rust_vec_len, data_len),
+        64 => wire__crate__api__qjs__register_function_impl(ptr, rust_vec_len, data_len),
+        66 => wire__crate__api__qjs__set_host_cache_gc_enabled_impl(ptr, rust_vec_len, data_len),
+        67 => wire__crate__api__qjs__set_http_proxy_impl(ptr, rust_vec_len, data_len),
+        68 => wire__crate__api__qjs__set_http_requests_blocked_impl(ptr, rust_vec_len, data_len),
+        69 => wire__crate__api__qjs__set_log_http_forward_impl(ptr, rust_vec_len, data_len),
+        70 => {
             wire__crate__api__qjs__set_qjs_error_message_language_impl(ptr, rust_vec_len, data_len)
         }
-        68 => wire__crate__api__qjs__set_qjs_error_stack_enabled_impl(ptr, rust_vec_len, data_len),
-        69 => wire__crate__api__qjs__set_socks5_proxy_impl(ptr, rust_vec_len, data_len),
-        70 => wire__crate__api__qjs__set_tls_verify_enabled_impl(ptr, rust_vec_len, data_len),
+        71 => wire__crate__api__qjs__set_qjs_error_stack_enabled_impl(ptr, rust_vec_len, data_len),
+        72 => wire__crate__api__qjs__set_socks5_proxy_impl(ptr, rust_vec_len, data_len),
+        73 => wire__crate__api__qjs__set_tls_verify_enabled_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -4366,6 +4562,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::local::LocalDecodeFailureKind
         match self {
             Self::ShellOnlyFormat => 0.into_dart(),
             Self::DecodeFailed => 1.into_dart(),
+            Self::Cancelled => 2.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -4425,6 +4622,73 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::local::LocalPageInfo>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::local::LocalPageLoadContract {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Sequential => 0.into_dart(),
+            Self::LatestSeek => 1.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::local::LocalPageLoadContract
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::local::LocalPageLoadContract>
+    for crate::api::local::LocalPageLoadContract
+{
+    fn into_into_dart(self) -> crate::api::local::LocalPageLoadContract {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::local::LocalPageLoadPriority {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Normal => 0.into_dart(),
+            Self::High => 1.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::local::LocalPageLoadPriority
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::local::LocalPageLoadPriority>
+    for crate::api::local::LocalPageLoadPriority
+{
+    fn into_into_dart(self) -> crate::api::local::LocalPageLoadPriority {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::local::LocalPageLoadStats {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.waiting.into_into_dart().into_dart(),
+            self.running.into_into_dart().into_dart(),
+            self.cancelling.into_into_dart().into_dart(),
+            self.running_normal.into_into_dart().into_dart(),
+            self.total_limit.into_into_dart().into_dart(),
+            self.high_reserved.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::local::LocalPageLoadStats
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::local::LocalPageLoadStats>
+    for crate::api::local::LocalPageLoadStats
+{
+    fn into_into_dart(self) -> crate::api::local::LocalPageLoadStats {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::local::LocalPagePixels {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -4445,6 +4709,28 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::local::LocalPagePixels>
     for crate::api::local::LocalPagePixels
 {
     fn into_into_dart(self) -> crate::api::local::LocalPagePixels {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::local::LocalPrefetchDecision {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.allowed.into_into_dart().into_dart(),
+            self.reason.into_into_dart().into_dart(),
+            self.message.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::local::LocalPrefetchDecision
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::local::LocalPrefetchDecision>
+    for crate::api::local::LocalPrefetchDecision
+{
+    fn into_into_dart(self) -> crate::api::local::LocalPrefetchDecision {
         self
     }
 }
@@ -4889,6 +5175,16 @@ impl SseEncode for Vec<crate::api::local::LocalPageInfo> {
     }
 }
 
+impl SseEncode for Vec<u32> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <u32>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<u8> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4934,6 +5230,7 @@ impl SseEncode for crate::api::local::LocalDecodeFailureKind {
             match self {
                 crate::api::local::LocalDecodeFailureKind::ShellOnlyFormat => 0,
                 crate::api::local::LocalDecodeFailureKind::DecodeFailed => 1,
+                crate::api::local::LocalDecodeFailureKind::Cancelled => 2,
                 _ => {
                     unimplemented!("");
                 }
@@ -4960,6 +5257,50 @@ impl SseEncode for crate::api::local::LocalPageInfo {
     }
 }
 
+impl SseEncode for crate::api::local::LocalPageLoadContract {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::local::LocalPageLoadContract::Sequential => 0,
+                crate::api::local::LocalPageLoadContract::LatestSeek => 1,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::local::LocalPageLoadPriority {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::local::LocalPageLoadPriority::Normal => 0,
+                crate::api::local::LocalPageLoadPriority::High => 1,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::local::LocalPageLoadStats {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u32>::sse_encode(self.waiting, serializer);
+        <u32>::sse_encode(self.running, serializer);
+        <u32>::sse_encode(self.cancelling, serializer);
+        <u32>::sse_encode(self.running_normal, serializer);
+        <u32>::sse_encode(self.total_limit, serializer);
+        <u32>::sse_encode(self.high_reserved, serializer);
+    }
+}
+
 impl SseEncode for crate::api::local::LocalPagePixels {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4968,6 +5309,15 @@ impl SseEncode for crate::api::local::LocalPagePixels {
         <u32>::sse_encode(self.source_width, serializer);
         <u32>::sse_encode(self.source_height, serializer);
         <Vec<u8>>::sse_encode(self.rgba, serializer);
+    }
+}
+
+impl SseEncode for crate::api::local::LocalPrefetchDecision {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.allowed, serializer);
+        <String>::sse_encode(self.reason, serializer);
+        <String>::sse_encode(self.message, serializer);
     }
 }
 

@@ -28,19 +28,40 @@
 //! 上屏路径的目标形态是 Rust 侧解码后直接进 GPU texture（Phase 1 的 `texture-bridge`），
 //! 编码字节过桥只用于 Dart 侧兜底显示与尺寸探测。
 
+use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{Duration, Instant};
 
 use anyhow::Error;
 use dashmap::DashMap;
 use flutter_rust_bridge::frb;
 use lazy_static::lazy_static;
-use rossi_local_core::{LocalSource, ShellOnlyFormat, SourceKind, UnsupportedSource};
+use rossi_local_core::{
+    AllowReason, BlockReason, FS_PAGE_LOAD_HIGH_RESERVED_PERMITS, FS_PAGE_LOAD_TOTAL_PERMITS,
+    FsPageLoadContract, FsPageLoadPriority, FsPageLoadScheduler, LocalSource,
+    PREFETCH_IDLE_THRESHOLD, PrefetchDecision, ShellOnlyFormat, SourceKind, UnsupportedSource,
+    decide_prefetch_allowed, interleaved_prefetch_positions,
+};
 
 lazy_static! {
     /// `id → LocalSource`。**只存路径与页元数据**，所以它的体积与「打开了几本」成正比，
     /// 与「读了多少页」无关——这是判据 D 在 App 层仍然成立的原因。
     static ref SESSIONS: DashMap<u64, LocalSource> = DashMap::new();
     static ref NEXT_SESSION_ID: AtomicU64 = AtomicU64::new(1);
+    /// 页加载请求的调用序号。只喂给调度器的 perf 埋点（`perf_seq`），
+    /// 让它能把「同一页的排队 → 拿到许可 → 完成」串起来。
+    static ref NEXT_LOAD_SEQ: AtomicU64 = AtomicU64::new(1);
+
+    /// 页加载**许可调度器**（进程级单例）。
+    ///
+    /// 类型来自 `rossi_local_core::FsPageLoadScheduler`（逐字搬自 mImageViewer，
+    /// 见 `docs/local-core-vendored-modules.md`）。它放在**会话层**而不是 core：
+    /// core 不持有会话、也不该知道「谁在请求」，而调度器的 `owner_context` 正是会话 id。
+    ///
+    /// 它管的是**并发度**：总 6 张许可、其中 2 张留给 `High`。
+    /// 不加限制时「预取 3 页 + 用户翻页」会同时解 4 张全尺寸 AVIF —— 每张 170 MB 位图，
+    /// 这就是 2026-09-16 之前那个「连翻几页 RSS 一路涨」的结构性来源。
+    static ref FS_PAGE_LOAD: Arc<FsPageLoadScheduler> = Arc::new(FsPageLoadScheduler::new());
 }
 
 /// 来源类型。与 `rossi_local_core::SourceKind` 一一对应（单独声明是为了不受
@@ -217,6 +238,50 @@ pub async fn local_page_bytes(id: u64, index: u32) -> Result<Vec<u8>, Error> {
         .await?
 }
 
+/// 这次页加载的**优先级**。语义来自 mImageViewer 的 `FsPageLoadPriority`。
+///
+/// 为什么要有它：用户正在等的那一页（`High`）必须能插队到预取（`Normal`）前面，
+/// 否则「预取把全部许可占满、用户翻页排在后面」就是必然。
+/// 调度器为此留了 2 张许可只给 `High`。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LocalPageLoadPriority {
+    /// 预取、预热之类：可以等。
+    Normal,
+    /// 用户此刻在等这一页。
+    High,
+}
+
+/// 这次页加载的**准入契约**。语义来自 mImageViewer 的 `FsPageLoadContract`。
+///
+/// 区别只在「它会不会作废别的请求」：
+/// - `Sequential`：顺序翻页。**永不**作废已受理的目标 —— 连翻三页就是三页都要，
+///   中间那页用户真的看过。
+/// - `LatestSeek`：直接跳页。用户已经改主意了，同一会话里还在排队的旧请求
+///   全部作废（它们读完也没人看），从而把许可让给新的目标。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LocalPageLoadContract {
+    Sequential,
+    LatestSeek,
+}
+
+impl From<LocalPageLoadPriority> for FsPageLoadPriority {
+    fn from(value: LocalPageLoadPriority) -> Self {
+        match value {
+            LocalPageLoadPriority::Normal => Self::Normal,
+            LocalPageLoadPriority::High => Self::High,
+        }
+    }
+}
+
+impl From<LocalPageLoadContract> for FsPageLoadContract {
+    fn from(value: LocalPageLoadContract) -> Self {
+        match value {
+            LocalPageLoadContract::Sequential => Self::Sequential,
+            LocalPageLoadContract::LatestSeek => Self::LatestSeek,
+        }
+    }
+}
+
 /// 一页解码后的像素（RGBA8，未预乘，行主序）。
 #[derive(Debug, Clone)]
 pub struct LocalPagePixels {
@@ -239,6 +304,11 @@ pub enum LocalDecodeFailureKind {
     ShellOnlyFormat,
     /// 核心有解码器但没解出来：字节损坏、内容与格式不符等。
     DecodeFailed,
+    /// **没轮到就作废了**：请求还在排队时被更新的 `LatestSeek` 取代，或调用方放弃。
+    ///
+    /// 与上两者分开，是因为它既不是格式问题也不是数据问题 —— **这一页完全可能解得出**，
+    /// 只是没人要了。UI 不该把它显示成错误，更不该据此判定「这本解不了」。
+    Cancelled,
 }
 
 #[derive(Debug, Clone)]
@@ -284,16 +354,48 @@ pub async fn local_page_pixels(
     id: u64,
     index: u32,
     target_width: Option<u32>,
+    priority: LocalPageLoadPriority,
+    contract: LocalPageLoadContract,
 ) -> LocalPageDecodeResult {
     let source = match session(id) {
         Ok(source) => source,
         Err(error) => return decode_failed(format!("{error:#}")),
     };
 
-    rquickjs_playground::global_handle()
-        .spawn_blocking(move || decode_page_impl(&source, index as usize, target_width))
-        .await
-        .unwrap_or_else(|error| decode_failed(format!("解码任务失败: {error}")))
+    // 拿号。`LatestSeek` 会在这一步把同一会话里**还在排队**的旧请求作废 ——
+    // 用户连点页码时，中间那些页读完也没人看，不该占着许可。
+    let ticket = FS_PAGE_LOAD.request(
+        id,
+        index as usize,
+        priority.into(),
+        contract.into(),
+        None,
+        NEXT_LOAD_SEQ.fetch_add(1, Ordering::Relaxed),
+    );
+    let waiter = ticket.waiter();
+
+    let outcome = rquickjs_playground::global_handle()
+        .spawn_blocking(move || {
+            // 排队等许可。**这一步会阻塞**，所以它在 spawn_blocking 的线程里 ——
+            // 不卡 UI 线程，也不卡 tokio 的调度线程。
+            let Some(_permit) = waiter.acquire_cancellable() else {
+                // 被 `LatestSeek` 取代（或调用方放弃）：这不是错误，见 `Cancelled` 的说明。
+                return LocalPageDecodeResult {
+                    pixels: None,
+                    failure: Some(LocalDecodeFailure {
+                        kind: LocalDecodeFailureKind::Cancelled,
+                        message: "该请求已被更新的跳页取代，未解码".to_string(),
+                    }),
+                };
+            };
+            decode_page_impl(&source, index as usize, target_width)
+        })
+        .await;
+
+    // `ticket` 到这里才 drop。它 armed 时会在 Drop 里 cancel —— 那时请求已完成
+    // （permit 已释放、记录已移除），所以是 no-op。真正有意义的是**提前返回**的路径：
+    // Dart 侧若放弃这个 future，`ticket` 随之 drop 并 cancel，排队中的请求会立刻退出。
+    outcome.unwrap_or_else(|error| decode_failed(format!("解码任务失败: {error}")))
 }
 
 fn decode_failed(message: String) -> LocalPageDecodeResult {
@@ -339,6 +441,126 @@ fn decode_page_impl(
                 }),
             }
         }
+    }
+}
+
+// ── 预取策略的桥接 ───────────────────────────────────────────────────────────
+//
+// 判决与目标选择**都在 Rust 侧**（`rossi_local_core::prefetch_policy`，
+// 逐字搬自 mImageViewer，见 `docs/local-core-vendored-modules.md`）。
+// 这里只做两件事：把 Dart 的状态翻译成上游函数的入参，把上游的返回值翻译成
+// 能显示给人看的形状。**不在这一层写第二套策略** —— 那会让上面那些测试失去意义。
+
+/// 预取准入判决的结果。
+///
+/// 带**理由**而不是一个 bool —— 上游的理由枚举（`AllowReason` / `BlockReason`）
+/// 就是为了让人看到「现在为什么不预取」。只返回 bool 的话，调试页只能显示
+/// 「没预取」，而「因为当前页还在加载」和「因为你刚翻页 43 ms」是完全不同的两件事，
+/// 对应的下一步动作也不同。
+#[derive(Debug, Clone)]
+pub struct LocalPrefetchDecision {
+    pub allowed: bool,
+    /// 机器可读的理由标签。
+    pub reason: String,
+    /// 可直接展示的说明（中文）。
+    pub message: String,
+}
+
+/// 现在该不该发预取。
+///
+/// 上游语义在这里一一对应（分页阅读 vs 连续阅读，判据同构）：
+///
+/// | 上游（连续阅读） | 这里（分页阅读） |
+/// |---|---|
+/// | `last_prefetch_scroll_at` | 上一次翻页/跳页的时刻，用「距现在多少毫秒」传 |
+/// | `visible_state_pending` | 当前页是否还没出图（0 = 已出图） |
+///
+/// `Instant` 不能跨桥，所以传毫秒差；还原成 `Instant` 是这一层唯一的翻译动作。
+///
+/// 三种放行：还没翻过页 / 翻完 100 ms 且当前页已出图 / 距上次翻页满 3 秒
+/// （兜底：防止「当前页永远加载不出来」把预取永久冻住）。
+#[frb]
+pub fn local_prefetch_decision(
+    ms_since_last_turn: Option<u64>,
+    visible_pending: u32,
+) -> LocalPrefetchDecision {
+    let now = Instant::now();
+    // 时钟异常时 `checked_sub` 给 None：退化成「刚翻过页」，宁可少预取。
+    let last =
+        ms_since_last_turn.map(|ms| now.checked_sub(Duration::from_millis(ms)).unwrap_or(now));
+
+    match decide_prefetch_allowed(now, last, visible_pending as usize) {
+        PrefetchDecision::Allow { reason } => {
+            let (tag, message) = match reason {
+                AllowReason::NoScrollYet => ("no_scroll_yet", "还没翻过页，可以预取"),
+                AllowReason::ScrollIdleAndVisibleReady => (
+                    "scroll_idle_and_visible_ready",
+                    "翻页已静默且当前页已出图，可以预取",
+                ),
+                AllowReason::Backstop3s => ("backstop_3s", "距上次翻页已满 3 秒，兜底放行"),
+            };
+            LocalPrefetchDecision {
+                allowed: true,
+                reason: tag.to_string(),
+                message: message.to_string(),
+            }
+        }
+        PrefetchDecision::Block { reason } => match reason {
+            BlockReason::ScrollNotIdle { elapsed_ms } => LocalPrefetchDecision {
+                allowed: false,
+                reason: "scroll_not_idle".to_string(),
+                message: format!(
+                    "刚翻过页（{elapsed_ms} ms 前），等满 {} ms 再预取",
+                    PREFETCH_IDLE_THRESHOLD.as_millis()
+                ),
+            },
+            BlockReason::VisibleStillLoading { pending } => LocalPrefetchDecision {
+                allowed: false,
+                reason: "visible_still_loading".to_string(),
+                message: format!("当前页还没出图（{pending} 项待完成），先别抢许可"),
+            },
+        },
+    }
+}
+
+/// 预取目标（页序号）。顺序是 `+1, -1, +2, -2, …`，同距离 **forward 先**。
+///
+/// 为什么 forward 先：下一个要看的页大概率是下一页；而 backward 那页用户刚看过，
+/// 它的解码结果很可能还在（或还在用），先解它等于把许可花在更没用的地方。
+///
+/// 边界由上游函数处理：`pos` 在头/尾时只有一侧有值，越界的位置直接跳过。
+#[frb]
+pub fn local_prefetch_targets(pos: u32, n: u32, forward: u32, back: u32) -> Vec<u32> {
+    interleaved_prefetch_positions(pos as usize, n as usize, forward as usize, back as usize)
+        .into_iter()
+        .map(|position| position as u32)
+        .collect()
+}
+
+/// 调度器此刻的快照 —— 「在跑几个解码」。
+///
+/// 这是 `FS_PAGE_LOAD` 的**可观测面**。没有它，判据 D（连读内存不增长）与
+/// 「预取有没有在抢当前页的许可」只能靠感觉判断。
+#[derive(Debug, Clone, Copy)]
+pub struct LocalPageLoadStats {
+    pub waiting: u32,
+    pub running: u32,
+    pub cancelling: u32,
+    pub running_normal: u32,
+    pub total_limit: u32,
+    pub high_reserved: u32,
+}
+
+#[frb]
+pub fn local_page_load_stats() -> LocalPageLoadStats {
+    let stats = FS_PAGE_LOAD.stats();
+    LocalPageLoadStats {
+        waiting: stats.waiting as u32,
+        running: stats.running as u32,
+        cancelling: stats.cancelling as u32,
+        running_normal: stats.running_normal as u32,
+        total_limit: FS_PAGE_LOAD_TOTAL_PERMITS as u32,
+        high_reserved: FS_PAGE_LOAD_HIGH_RESERVED_PERMITS as u32,
     }
 }
 
@@ -533,5 +755,88 @@ mod tests {
 
         let big = decode_page_impl(&source, 0, Some(4096)).pixels.unwrap();
         assert_eq!((big.width, big.height), (64, 32), "不放大");
+    }
+
+    /// 许可模型接上来之后，**并发请求不许被丢掉**。
+    ///
+    /// 调度器只有 6 张许可（其中 2 张不给 `Normal`）。8 个请求同时来必然排队 ——
+    /// 排队是设计，丢请求是 bug。这条盯的是「接线对不对」：每一份都要出图，
+    /// 且跑完之后许可必须**全部归还**（`running` / `waiting` 归零）——
+    /// 漏归还一个请求，判据 D 那类「连读不增长」的观测就被永久污染了。
+    ///
+    /// 值得单测的理由：`waiter.acquire_cancellable()` 是 `Mutex` + `Condvar`，
+    /// 接线写错（在 async 上下文里持锁、忘了 drop permit）的表现是**偶发卡死**
+    /// 而不是报错 —— 那种 bug 只有并发测试抓得到。
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn concurrent_page_loads_queue_instead_of_dropping() {
+        let _guard = lock_sessions();
+        let dir = tempfile::tempdir().unwrap();
+        let path = make_cbz(dir.path(), "scheduled.cbz");
+        let opened = open_local_source_impl(path.to_string_lossy().into_owned());
+        assert!(opened.rejection.is_none(), "{:?}", opened.rejection);
+        let info = opened.source.unwrap();
+
+        let mut handles = Vec::new();
+        for i in 0..8_u32 {
+            handles.push(tokio::spawn(local_page_pixels(
+                info.id,
+                i % 2,
+                None,
+                LocalPageLoadPriority::Normal,
+                LocalPageLoadContract::Sequential,
+            )));
+        }
+        for handle in handles {
+            let result = handle.await.expect("任务不应 panic");
+            assert!(result.failure.is_none(), "{:?}", result.failure);
+            assert!(result.pixels.is_some());
+        }
+
+        let stats = local_page_load_stats();
+        assert_eq!(stats.running, 0, "许可必须全部归还");
+        assert_eq!(stats.waiting, 0, "等待队列必须清空");
+        assert_eq!(stats.total_limit as usize, FS_PAGE_LOAD_TOTAL_PERMITS);
+
+        local_close(info.id);
+    }
+
+    /// 判决与目标选择确实是**上游那两个函数**在回答，而不是桥接层自己又判了一遍。
+    ///
+    /// 每条断言都对着 `rossi_local_core::prefetch_policy` 里那条同名测试的期望值，
+    /// 所以这一层改坏了、而上游函数没动，这里就会红。
+    #[test]
+    fn prefetch_decision_and_targets_bridge_the_core_policy() {
+        // 还没翻过页 → 放行（上游 `AllowReason::NoScrollYet`）。
+        let fresh = local_prefetch_decision(None, 0);
+        assert!(fresh.allowed);
+        assert_eq!(fresh.reason, "no_scroll_yet");
+
+        // 刚翻过页（0 ms 前）→ 拦截，这是 100 ms 静默阈值的边界。
+        let just_turned = local_prefetch_decision(Some(0), 0);
+        assert!(!just_turned.allowed);
+        assert_eq!(just_turned.reason, "scroll_not_idle");
+
+        // 翻完 200 ms 但当前页还在加载 → 换一个拦截理由。
+        let still_loading = local_prefetch_decision(Some(200), 1);
+        assert!(!still_loading.allowed);
+        assert_eq!(still_loading.reason, "visible_still_loading");
+
+        // 翻完 200 ms 且当前页已出图 → 放行。
+        let ready = local_prefetch_decision(Some(200), 0);
+        assert!(ready.allowed);
+        assert_eq!(ready.reason, "scroll_idle_and_visible_ready");
+
+        // 目标顺序取自上游 `interleaved_prefetch_positions`：forward 先，越界自动跳过。
+        assert_eq!(local_prefetch_targets(3, 7, 1, 1), vec![4, 2]);
+        assert_eq!(
+            local_prefetch_targets(0, 7, 1, 1),
+            vec![1],
+            "头部没有上一页"
+        );
+        assert_eq!(
+            local_prefetch_targets(6, 7, 1, 1),
+            vec![5],
+            "尾部没有下一页"
+        );
     }
 }

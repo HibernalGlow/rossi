@@ -232,11 +232,27 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   static const int _prefetchMaxBytes = 64 << 20;
 
   /// 预取代号：每次翻页 +1，让上一轮「预取邻居」的循环自己退场。
+  ///
+  /// 它取代了原先那个 `bool _prefetchBusy`：「同一时刻只跑一个预取」现在由
+  /// **代号退场**保证（连翻时上一轮直接结束），而「别抢用户那一页的许可」由
+  /// Rust 侧调度器的优先级保证（预取是 `Normal`，拿不到留给 `High` 的 2 张）。
   int _prefetchGeneration = 0;
 
-  /// 同一时刻只允许一个预取在跑。dav1d 会吃满所有核，
-  /// 并发两个预取只会把用户真正在等的那一次翻页拖慢。
-  bool _prefetchBusy = false;
+  /// 上一次翻页/跳页的时刻。上游 `last_prefetch_scroll_at` 在分页阅读下的对应物
+  /// —— 判决（`local_prefetch_decision`）用它算「静默了多久」。
+  DateTime? _lastTurnAt;
+
+  /// 当前这一页是否还在加载。上游 `visible_state_pending` 的对应物：
+  /// 还在加载就不该让预取去抢许可，否则用户正在等的那一页会排在预取后面。
+  bool _loadInFlight = false;
+
+  /// 最近一次预取判决。**显示用** —— 让「现在为什么不预取」看得见：
+  /// 只显示「没预取」的话，分不清是「还没静默」还是「当前页还在加载」。
+  LocalPrefetchDecision? _lastPrefetchDecision;
+
+  /// 调度器快照：此刻在跑/在等几个解码。这是许可模型的**可观测面** ——
+  /// 没有它，「预取有没有在抢当前页的许可」只能靠感觉。
+  LocalPageLoadStats? _loadStats;
 
   /// 由 `LayoutBuilder` 回填的预览区宽度（逻辑像素），用于估算解码目标宽度。
   double _viewerWidth = 0;
@@ -465,22 +481,44 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
       return;
     }
 
+    // 这两个是给预取判决用的状态（上游 `last_prefetch_scroll_at` 与
+    // `visible_state_pending` 的对应物）。判决本身在 Rust 侧，这里只报事实。
+    _lastTurnAt = DateTime.now();
+    _loadInFlight = true;
+
+    // 相邻页 = 顺序翻页；跨页与「重读当前页」= 跳页。
+    //
+    // 这个区分交给 Rust 调度器（`FsPageLoadContract`）：`LatestSeek` 会把同一会话里
+    // **还在排队**的旧请求作废 —— 用户已经改主意了，中间那些页读完也没人看。
+    // 而 `Sequential` 永不作废：连翻三页就是三页都要，中间那页用户真的看过。
+    final contract = (index - _current).abs() == 1
+        ? LocalPageLoadContract.sequential
+        : LocalPageLoadContract.latestSeek;
+
     // 预取命中：翻页路径上只剩下「换个引用 + 画一帧」。
     // `force`（重读本页 / 切开关）刻意绕过它 —— 那是「立刻重新解一遍」的语义。
     if (!force) {
       final hit = _takePrefetch(index);
       if (hit != null) {
         _presentPrefetched(index, hit);
+        _loadInFlight = false;
         return;
       }
     }
 
-    if (_decoderMode != _DecoderMode.shell) {
-      final settled = await _loadPageViaRust(id, index);
-      if (settled) return;
-      debugPrint('[local-debug] Rust 判定这页归外壳，退回外壳路径 index=$index');
+    try {
+      if (_decoderMode != _DecoderMode.shell) {
+        final settled = await _loadPageViaRust(id, index, contract: contract);
+        if (settled) return;
+        debugPrint('[local-debug] Rust 判定这页归外壳，退回外壳路径 index=$index');
+      }
+      await _loadPageViaShell(id, index);
+    } finally {
+      // 出图了才算「可见区就绪」。预取的 100 ms 静默期是从**上一次翻页**算起的，
+      // 不是从这里算起，所以不需要在这里再加延迟。
+      _loadInFlight = false;
+      unawaited(_refreshLoadStats());
     }
-    await _loadPageViaShell(id, index);
   }
 
   /// 外壳路径：把**编码字节**交给 Flutter 引擎解。
@@ -633,7 +671,11 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   /// 不给宽度就是原尺寸：44.8 MPix 的页解出 170.8 MB 位图，实测这一整段
   /// 要 1526 ms，而 Rust 侧纯解码只要 267 ms —— **83% 花在搬那 170 MB 上**。
   /// 给了宽度之后位图缩到几 MB，这一段跟着掉到 300–400 ms 量级。
-  Future<bool> _loadPageViaRust(BigInt id, int index) async {
+  Future<bool> _loadPageViaRust(
+    BigInt id,
+    int index, {
+    required LocalPageLoadContract contract,
+  }) async {
     final swAll = Stopwatch()..start();
     final targetWidth = _targetDecodeWidth();
     final swBridge = Stopwatch()..start();
@@ -645,6 +687,10 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
         id: id,
         index: index,
         targetWidth: targetWidth,
+        // 用户此刻在等这一页：`High`。调度器为此留了 2 张许可**不给**预取 ——
+        // 「预取不会拖慢翻页」在结构上就是这么成立的，不靠调参。
+        priority: LocalPageLoadPriority.high,
+        contract: contract,
       );
     } catch (e) {
       debugPrint('[local-debug] Rust 解码调用失败 index=$index: $e');
@@ -658,6 +704,12 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
     if (pixels == null) {
       if (failure?.kind == LocalDecodeFailureKind.shellOnlyFormat) {
         return false;
+      }
+      if (failure?.kind == LocalDecodeFailureKind.cancelled) {
+        // 还没轮到就被更新的跳页取代了。**这不是错误** —— 这一页完全可能解得出，
+        // 只是没人要了。报成失败会把用户误导成「这本解不了」。
+        debugPrint('[local-debug] 请求已作废 index=$index：${failure?.message}');
+        return true;
       }
       debugPrint('[local-debug] Rust 解码失败 index=$index: ${failure?.message}');
       if (!mounted) return true;
@@ -810,10 +862,31 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   // 成本没有消失，是从翻页路径挪到了用户正在读当前页的那段时间里。
   // 页面上必须同时显示「预取当时花了多少」，否则这个数字像是凭空变出来的。
 
+  /// 刷新调度器快照。翻完一页调一次就够 —— 它不是实时表，是「此刻许可怎么分的」。
+  Future<void> _refreshLoadStats() async {
+    final stats = await localPageLoadStats();
+    if (!mounted) return;
+    setState(() => _loadStats = stats);
+  }
+
+  String _loadStatsLabel() {
+    final stats = _loadStats;
+    if (stats == null) return '—';
+    final busy = stats.running + stats.cancelling;
+    return '$busy/${stats.totalLimit} 张在用'
+        '（${stats.runningNormal} 张是预取；预留 ${stats.highReserved} 张给翻页），'
+        '${stats.waiting} 个在等';
+  }
+
   /// 把当前页的相邻页排进预取队列。
   ///
-  /// 只预取 ±1：一条 300 ms 的解码，翻页间隔通常够跑完下一页，
-  /// 排太多只会让真正在等的那一次翻页跟预取抢核。
+  /// **判决在 Rust 侧**（`local_prefetch_decision` → 上游 `decide_prefetch_allowed`），
+  /// 这里只递状态、并按节奏再问一次。目标顺序同样来自 Rust
+  /// （`local_prefetch_targets` → 上游 `interleaved_prefetch_positions`）。
+  ///
+  /// **刻意不在这一层写第二套策略。** 一旦本地也判一次，`rossi_local_core::prefetch_policy`
+  /// 里那 13 条测试就管不到真实行为了 —— 我们手搓的「180 ms 延迟 + 一个布尔」
+  /// 就是它的退化版，被替换掉正是这次搬运的目的。
   void _schedulePrefetch() {
     if (!_prefetchEnabled) return;
     // 用户明确选了「外壳」就别再走 Rust 解 —— 预取缓存会被 `_takePrefetch`
@@ -826,14 +899,48 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   }
 
   Future<void> _prefetchNeighbors(BigInt id, int generation) async {
-    // 先让当前这一帧画完、并给用户一个「翻页已经结束」的信号窗口：
-    // 连翻时每翻一页 generation 都会 +1，下面这个循环会在下一次检查点直接退场。
-    for (final target in [_current + 1, _current - 1]) {
+    // 等放行。上游是每帧问一次 `decide_prefetch_allowed`；宿主从 egui 的帧循环
+    // 换成 Flutter 之后，改成每 50 ms 问一次 —— 同一个门槛，只是问的节奏变了。
+    //
+    // 每次翻页 generation 都会 +1，所以**下面每个检查点都会直接退场**：
+    // 连翻时一次预取都不会发。这是有意的 —— dav1d 吃满 16 核，
+    // 跟正在等的那次翻页抢核就是拖慢用户。
+    for (var round = 0; ; round++) {
       if (!mounted || generation != _prefetchGeneration) return;
-      if (target < 0 || target >= _pages.length) continue;
+      final decision = await localPrefetchDecision(
+        msSinceLastTurn: _lastTurnAt == null
+            ? null
+            : BigInt.from(
+                DateTime.now().difference(_lastTurnAt!).inMilliseconds,
+              ),
+        visiblePending: _loadInFlight ? 1 : 0,
+      );
+      if (!mounted || generation != _prefetchGeneration) return;
+      if (_lastPrefetchDecision?.reason != decision.reason) {
+        setState(() => _lastPrefetchDecision = decision);
+      }
+      if (decision.allowed) break;
+      // 3 秒 backstop 之后判决必然放行（上游保证）。问到 4 秒还拦着，
+      // 说明是判决本身出了问题，不是「还没到点」—— 退场而不是死循环。
+      if (round > 80) {
+        debugPrint('[local-debug] 预取放弃：判决持续拦截 ${decision.message}');
+        return;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+
+    // 目标顺序 `+1, -1`（forward 先），边界由上游处理。
+    // 只取一页：冷页解码地板 270 ms，排太多只会让下一次翻页跟预取抢核。
+    final targets = await localPrefetchTargets(
+      pos: _current,
+      n: _pages.length,
+      forward: 1,
+      back: 1,
+    );
+    if (!mounted || generation != _prefetchGeneration) return;
+    for (final target in targets) {
+      if (!mounted || generation != _prefetchGeneration) return;
       if (_prefetch.containsKey(target)) continue;
-      await Future<void>.delayed(const Duration(milliseconds: 180));
-      if (!mounted || generation != _prefetchGeneration) return;
       await _prefetchPage(id, target);
     }
   }
@@ -843,65 +950,65 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   Future<void> _prefetchPage(BigInt id, int index) async {
     // 全尺寸一页是 179 MB 位图，预取三页就是 500 MB —— 那种档位不预取。
     if (!_displaySizedDecode) return;
-    if (_prefetchBusy) return;
-    _prefetchBusy = true;
+
+    final targetWidth = _targetDecodeWidth();
+    final stale = _prefetch[index];
+    if (stale != null && stale.targetWidth == targetWidth) return;
+
     final swDecode = Stopwatch()..start();
+    final LocalPageDecodeResult result;
     try {
-      final targetWidth = _targetDecodeWidth();
-      final stale = _prefetch[index];
-      if (stale != null && stale.targetWidth == targetWidth) return;
-
-      final LocalPageDecodeResult result;
-      try {
-        result = await localPagePixels(
-          id: id,
-          index: index,
-          targetWidth: targetWidth,
-        );
-      } catch (e) {
-        debugPrint('[local-debug] 预取失败 index=$index: $e');
-        return;
-      }
-      final pixels = result.pixels;
-      if (pixels == null) {
-        // 归外壳或解不开：两种情况都留给翻页时按正常流程处理。
-        return;
-      }
-      final decode = swDecode.elapsed;
-
-      final swPack = Stopwatch()..start();
-      final image = await _imageFromRgba(
-        pixels.rgba,
-        pixels.width,
-        pixels.height,
+      result = await localPagePixels(
+        id: id,
+        index: index,
+        targetWidth: targetWidth,
+        // 预取可以等：`Normal` 拿不到那 2 张留给 `High` 的许可，所以
+        // 「预取占满许可、用户翻页排在后面」在结构上不会发生。
+        priority: LocalPageLoadPriority.normal,
+        contract: LocalPageLoadContract.sequential,
       );
-      final pack = swPack.elapsed;
-
-      if (!mounted) {
-        image.dispose();
-        return;
-      }
-      _storePrefetch(
-        _PrefetchedPage(
-          index: index,
-          targetWidth: targetWidth,
-          image: image,
-          width: pixels.width,
-          height: pixels.height,
-          sourceWidth: pixels.sourceWidth,
-          sourceHeight: pixels.sourceHeight,
-          decode: decode,
-          pack: pack,
-        ),
-      );
-      debugPrint(
-        '[local-debug] 预取完成 index=$index '
-        '解${decode.inMilliseconds} 图${pack.inMilliseconds}ms '
-        '${pixels.width}x${pixels.height}',
-      );
-    } finally {
-      _prefetchBusy = false;
+    } catch (e) {
+      debugPrint('[local-debug] 预取失败 index=$index: $e');
+      return;
     }
+    final pixels = result.pixels;
+    if (pixels == null) {
+      // 归外壳、解不开、或被更新的跳页作废 —— 三种都留给翻页时按正常流程处理。
+      // 预取是机会主义行为：它失败不该在界面上留下错误，更不能顶掉当前页。
+      return;
+    }
+    final decode = swDecode.elapsed;
+
+    final swPack = Stopwatch()..start();
+    final image = await _imageFromRgba(
+      pixels.rgba,
+      pixels.width,
+      pixels.height,
+    );
+    final pack = swPack.elapsed;
+
+    if (!mounted) {
+      image.dispose();
+      return;
+    }
+    _storePrefetch(
+      _PrefetchedPage(
+        index: index,
+        targetWidth: targetWidth,
+        image: image,
+        width: pixels.width,
+        height: pixels.height,
+        sourceWidth: pixels.sourceWidth,
+        sourceHeight: pixels.sourceHeight,
+        decode: decode,
+        pack: pack,
+      ),
+    );
+    debugPrint(
+      '[local-debug] 预取完成 index=$index '
+      '解${decode.inMilliseconds} 图${pack.inMilliseconds}ms '
+      '${pixels.width}x${pixels.height}',
+    );
   }
 
   void _storePrefetch(_PrefetchedPage page) {
@@ -1300,7 +1407,7 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
               '${stage.cacheHit ? "（本页命中缓存，未重新解码）" : ""}'
               '   ｜   预取缓存：${_prefetch.length} 页 / '
               '${(_totalPrefetchBytes() / 1e6).toStringAsFixed(1)} MB'
-              ' ${_prefetchBusy ? "（正在解下一页…）" : ""}',
+              '   ｜   解码许可：${_loadStatsLabel()}',
               style: TextStyle(
                 fontSize: 11,
                 color: cache.currentSizeBytes > cache.maximumSizeBytes
@@ -1308,6 +1415,21 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
                     : Colors.grey,
               ),
             ),
+            if (_lastPrefetchDecision != null) ...[
+              const SizedBox(height: 3),
+              Text(
+                '预取门（Rust 侧判决，不是本地判断）：'
+                '${_lastPrefetchDecision!.allowed ? "放行" : "拦截"}'
+                ' · ${_lastPrefetchDecision!.message}'
+                '   [${_lastPrefetchDecision!.reason}]',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: _lastPrefetchDecision!.allowed
+                      ? Colors.teal.shade700
+                      : Colors.grey.shade700,
+                ),
+              ),
+            ],
           ],
           if (_history.length > 1) ...[
             const SizedBox(height: 6),

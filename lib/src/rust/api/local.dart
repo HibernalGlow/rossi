@@ -7,8 +7,8 @@ import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `classify_open_error`, `decode_failed`, `decode_page_impl`, `open_local_source_impl`, `session`
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `NEXT_SESSION_ID`, `SESSIONS`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `deref`, `deref`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `initialize`, `initialize`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `FS_PAGE_LOAD`, `NEXT_LOAD_SEQ`, `NEXT_SESSION_ID`, `SESSIONS`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `deref`, `deref`, `deref`, `deref`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `initialize`, `initialize`, `initialize`, `initialize`
 
 Future<LocalSourceOpenResult> openLocalSource({required String path}) =>
     RustLib.instance.api.crateApiLocalOpenLocalSource(path: path);
@@ -48,11 +48,57 @@ Future<LocalPageDecodeResult> localPagePixels({
   required BigInt id,
   required int index,
   int? targetWidth,
+  required LocalPageLoadPriority priority,
+  required LocalPageLoadContract contract,
 }) => RustLib.instance.api.crateApiLocalLocalPagePixels(
   id: id,
   index: index,
   targetWidth: targetWidth,
+  priority: priority,
+  contract: contract,
 );
+
+/// 现在该不该发预取。
+///
+/// 上游语义在这里一一对应（分页阅读 vs 连续阅读，判据同构）：
+///
+/// | 上游（连续阅读） | 这里（分页阅读） |
+/// |---|---|
+/// | `last_prefetch_scroll_at` | 上一次翻页/跳页的时刻，用「距现在多少毫秒」传 |
+/// | `visible_state_pending` | 当前页是否还没出图（0 = 已出图） |
+///
+/// `Instant` 不能跨桥，所以传毫秒差；还原成 `Instant` 是这一层唯一的翻译动作。
+///
+/// 三种放行：还没翻过页 / 翻完 100 ms 且当前页已出图 / 距上次翻页满 3 秒
+/// （兜底：防止「当前页永远加载不出来」把预取永久冻住）。
+Future<LocalPrefetchDecision> localPrefetchDecision({
+  BigInt? msSinceLastTurn,
+  required int visiblePending,
+}) => RustLib.instance.api.crateApiLocalLocalPrefetchDecision(
+  msSinceLastTurn: msSinceLastTurn,
+  visiblePending: visiblePending,
+);
+
+/// 预取目标（页序号）。顺序是 `+1, -1, +2, -2, …`，同距离 **forward 先**。
+///
+/// 为什么 forward 先：下一个要看的页大概率是下一页；而 backward 那页用户刚看过，
+/// 它的解码结果很可能还在（或还在用），先解它等于把许可花在更没用的地方。
+///
+/// 边界由上游函数处理：`pos` 在头/尾时只有一侧有值，越界的位置直接跳过。
+Future<Uint32List> localPrefetchTargets({
+  required int pos,
+  required int n,
+  required int forward,
+  required int back,
+}) => RustLib.instance.api.crateApiLocalLocalPrefetchTargets(
+  pos: pos,
+  n: n,
+  forward: forward,
+  back: back,
+);
+
+Future<LocalPageLoadStats> localPageLoadStats() =>
+    RustLib.instance.api.crateApiLocalLocalPageLoadStats();
 
 /// 关闭会话并释放。返回 `false` 表示 id 不存在（重复关闭、或已被回收）。
 bool localClose({required BigInt id}) =>
@@ -97,6 +143,12 @@ enum LocalDecodeFailureKind {
 
   /// 核心有解码器但没解出来：字节损坏、内容与格式不符等。
   decodeFailed,
+
+  /// **没轮到就作废了**：请求还在排队时被更新的 `LatestSeek` 取代，或调用方放弃。
+  ///
+  /// 与上两者分开，是因为它既不是格式问题也不是数据问题 —— **这一页完全可能解得出**，
+  /// 只是没人要了。UI 不该把它显示成错误，更不该据此判定「这本解不了」。
+  cancelled,
 }
 
 /// `local_page_pixels` 的返回值：要么 `pixels`，要么 `failure`。
@@ -146,6 +198,71 @@ class LocalPageInfo {
           size == other.size;
 }
 
+/// 这次页加载的**准入契约**。语义来自 mImageViewer 的 `FsPageLoadContract`。
+///
+/// 区别只在「它会不会作废别的请求」：
+/// - `Sequential`：顺序翻页。**永不**作废已受理的目标 —— 连翻三页就是三页都要，
+///   中间那页用户真的看过。
+/// - `LatestSeek`：直接跳页。用户已经改主意了，同一会话里还在排队的旧请求
+///   全部作废（它们读完也没人看），从而把许可让给新的目标。
+enum LocalPageLoadContract { sequential, latestSeek }
+
+/// 这次页加载的**优先级**。语义来自 mImageViewer 的 `FsPageLoadPriority`。
+///
+/// 为什么要有它：用户正在等的那一页（`High`）必须能插队到预取（`Normal`）前面，
+/// 否则「预取把全部许可占满、用户翻页排在后面」就是必然。
+/// 调度器为此留了 2 张许可只给 `High`。
+enum LocalPageLoadPriority {
+  /// 预取、预热之类：可以等。
+  normal,
+
+  /// 用户此刻在等这一页。
+  high,
+}
+
+/// 调度器此刻的快照 —— 「在跑几个解码」。
+///
+/// 这是 `FS_PAGE_LOAD` 的**可观测面**。没有它，判据 D（连读内存不增长）与
+/// 「预取有没有在抢当前页的许可」只能靠感觉判断。
+class LocalPageLoadStats {
+  final int waiting;
+  final int running;
+  final int cancelling;
+  final int runningNormal;
+  final int totalLimit;
+  final int highReserved;
+
+  const LocalPageLoadStats({
+    required this.waiting,
+    required this.running,
+    required this.cancelling,
+    required this.runningNormal,
+    required this.totalLimit,
+    required this.highReserved,
+  });
+
+  @override
+  int get hashCode =>
+      waiting.hashCode ^
+      running.hashCode ^
+      cancelling.hashCode ^
+      runningNormal.hashCode ^
+      totalLimit.hashCode ^
+      highReserved.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LocalPageLoadStats &&
+          runtimeType == other.runtimeType &&
+          waiting == other.waiting &&
+          running == other.running &&
+          cancelling == other.cancelling &&
+          runningNormal == other.runningNormal &&
+          totalLimit == other.totalLimit &&
+          highReserved == other.highReserved;
+}
+
 /// 一页解码后的像素（RGBA8，未预乘，行主序）。
 class LocalPagePixels {
   final int width;
@@ -185,6 +302,40 @@ class LocalPagePixels {
           sourceWidth == other.sourceWidth &&
           sourceHeight == other.sourceHeight &&
           rgba == other.rgba;
+}
+
+/// 预取准入判决的结果。
+///
+/// 带**理由**而不是一个 bool —— 上游的理由枚举（`AllowReason` / `BlockReason`）
+/// 就是为了让人看到「现在为什么不预取」。只返回 bool 的话，调试页只能显示
+/// 「没预取」，而「因为当前页还在加载」和「因为你刚翻页 43 ms」是完全不同的两件事，
+/// 对应的下一步动作也不同。
+class LocalPrefetchDecision {
+  final bool allowed;
+
+  /// 机器可读的理由标签。
+  final String reason;
+
+  /// 可直接展示的说明（中文）。
+  final String message;
+
+  const LocalPrefetchDecision({
+    required this.allowed,
+    required this.reason,
+    required this.message,
+  });
+
+  @override
+  int get hashCode => allowed.hashCode ^ reason.hashCode ^ message.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LocalPrefetchDecision &&
+          runtimeType == other.runtimeType &&
+          allowed == other.allowed &&
+          reason == other.reason &&
+          message == other.message;
 }
 
 class LocalRejection {

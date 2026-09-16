@@ -56,8 +56,9 @@ _Avoid_: 用它指代 React 迁移的产出
 ### Reader 层
 
 **Reader**:
-Rossi 自己的阅读编排层。它拥有会话生命周期、当前页、缩放与平移、翻页、预取、进度、是否触发超分，
-以及 RenderBackend 的选择。它**不**拥有解码与归档。
+Rossi 自己的阅读编排层。它拥有会话生命周期、当前页、缩放与平移、翻页、**预取的执行**
+（谁来解、解完存哪、淘汰谁）、进度、是否触发超分，以及 RenderBackend 的选择。
+它**不**拥有解码与归档，也**不**拥有「该不该预取」这个判决——那在本地核心（见「预取判决」）。
 _See_: ADR-0003
 _Avoid_: 用它指 neoview 的 Reader 或 `lib/page/comic_read` 那两个东西；提到它们时必须带限定词
 
@@ -90,12 +91,28 @@ _See_: `docs/v0.1-local-core.md` §5.3、`rust/local_core/src/bin/scale_probe.rs
 _Avoid_: 与外壳路径的 `cacheWidth` / `ResizeImage` 混为一谈 —— 那是「先全尺寸解、
 再重采样」，解码成本砍不掉；降采样解码砍的是**解码之后**的搬运
 
-**整章落盘**（chapter materialization）:
+**整章落盘**（chapter materialization):
 曾被考虑、**已被否决**的 RAR 实现：首次访问 chapter 时把整章图片一次性提取到
 `<app-data>/rar-sessions/chapter-<id>`，之后 probe / read 走磁盘。
 唯一允许临时文件的场景是**嵌套归档**（内层必须先落地成路径才能被打开），v0.1 不实现嵌套。
 _See_: ADR-0011
 _Avoid_: 用「RAR 读不了流」概括这条约束——需要路径的是**归档本身**，不是条目字节
+
+**预取判决**（prefetch admission decision）:
+「现在该不该发预取、发哪几页」的判决，由本地核心的 `prefetch_policy` 出，
+**带理由而不是一个 bool**（没翻过页 / 翻页静默且当前页已出图 / 3 秒兜底 vs 还没静默 / 当前页还在加载）。
+它是**纯函数**：输入是时刻与计数，输出是判决 —— 不持有任何一页的字节或像素，
+所以它的位置在本地核心而不违反「Reader 拥有预取」那条线。
+_See_: `docs/local-core-vendored-modules.md`、`docs/v0.1-local-core.md` §12.5
+_Avoid_: 在宿主侧再写一套判决 —— 那会让 `prefetch_policy` 的测试管不到真实行为
+
+**页加载许可**（page load permit）:
+本地核心的 `page_load_scheduler` 持有的**在跑 / 在等的请求数与许可**（总 6 张、其中 2 张
+只给高优先级）。请求分两种**优先级**（用户正在等的 `High` / 可以等的 `Normal`）与两种**契约**
+（相邻翻页 `Sequential` 永不互相作废 / 跳页 `LatestSeek` 作废同会话中还在排队的旧请求）。
+它管的是**并发度**，不是页内容 —— 「预取占满许可、用户那一页排在后面」因此在结构上不可能。
+_See_: `docs/local-core-vendored-modules.md`、`docs/v0.1-local-core.md` §12.5
+_Avoid_: 与「预取判决」混用（一个是该不该发，一个是能同时跑几个）；也别把它当成缓存淘汰
 
 **PageSource**:
 Reader 唯一的页面来源抽象，把本地页与在线页统一到同一个接口。

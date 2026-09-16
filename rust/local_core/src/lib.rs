@@ -17,15 +17,33 @@
 //!
 //! - 不持有会话状态、不持有归档句柄、不做缓存淘汰（那属于 Reader 层）；
 //! - 不做上屏、不认识 wgpu / Flutter；
-//! - 不做 tile 化、预取、超分（Phase 2/3 的事）。
+//! - 不做 tile 化、超分（Phase 2/3 的事）。
 //!
 //! 这样切的目的是让「连读三本内存不增长」（判据 D）成为这一层的**结构性事实**，
 //! 而不是某个缓存策略是否写对的结果。
+//!
+//! ## 预取判决与并发控制在这里，但**不含页内容**（2026-09-16 补）
+//!
+//! [`prefetch_policy`] 与 [`page_load_scheduler`] 是 2026-09-16 从 mImageViewer 搬进来的
+//! （来源与同步步骤见 `docs/local-core-vendored-modules.md`）。它们的加入**没有**动上面那条
+//! 边界，理由是两者都不持有页内容：
+//!
+//! - [`prefetch_policy`] 是**纯函数**：输入是时刻与计数，输出是「该不该预取」+ 理由。
+//!   不持有任何一页的字节或像素，和 [`page_order`] 那些判决函数同一性质。
+//! - [`page_load_scheduler`] 持有的是**在跑/在等的请求数与许可**，不是页内容。
+//!   它的作用恰恰是**限制**并发度（总 6 张、2 张留给高优先级），
+//!   让「一页 179 MB 同时解好几张」这种内存爆炸在结构上不可能发生。
+//!
+//! 预取的**执行**（谁来解、解完存哪、淘汰谁）仍然在 Reader 层 —— 那是「谁拥有 `pixels`」
+//! 的问题，不是判决问题。判据 D 的依据不变。
 
 pub mod decode;
 pub mod entry_name;
 pub mod folder_source;
+pub mod page_load_scheduler;
 pub mod page_order;
+pub mod perf_sink;
+pub mod prefetch_policy;
 pub mod rar_source;
 pub mod zip_source;
 
@@ -35,7 +53,17 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 
 pub use decode::{PagePixels, ShellOnlyFormat, decode_rgba, decode_rgba_scaled, probe_size};
+pub use page_load_scheduler::{
+    FS_PAGE_LOAD_HIGH_RESERVED_PERMITS, FS_PAGE_LOAD_TOTAL_PERMITS, FsPageLoadContract,
+    FsPageLoadPermit, FsPageLoadPriority, FsPageLoadScheduler, FsPageLoadSchedulerStats,
+    FsPageLoadTicket, FsPageLoadWaiter,
+};
 pub use page_order::{DecodeSupport, decode_support, is_image_name, needs_shell_decoder};
+pub use prefetch_policy::{
+    AllowReason, BlockReason, FinalEffectPrefetchAdmission, PREFETCH_BACKSTOP,
+    PREFETCH_IDLE_THRESHOLD, PrefetchDecision, decide_prefetch_allowed,
+    interleaved_prefetch_positions, interleaved_prefetch_targets, should_prefetch_final_effect,
+};
 pub use rar_source::{
     RarDirectReadDecision, RarInspection, RarVolumeKind, ensure_direct_readable, inspect,
     is_rar_path,

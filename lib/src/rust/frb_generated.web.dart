@@ -173,6 +173,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<LocalPageInfo> dco_decode_list_local_page_info(dynamic raw);
 
   @protected
+  Uint32List dco_decode_list_prim_u_32_strict(dynamic raw);
+
+  @protected
   List<int> dco_decode_list_prim_u_8_loose(dynamic raw);
 
   @protected
@@ -197,7 +200,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   LocalPageInfo dco_decode_local_page_info(dynamic raw);
 
   @protected
+  LocalPageLoadContract dco_decode_local_page_load_contract(dynamic raw);
+
+  @protected
+  LocalPageLoadPriority dco_decode_local_page_load_priority(dynamic raw);
+
+  @protected
+  LocalPageLoadStats dco_decode_local_page_load_stats(dynamic raw);
+
+  @protected
   LocalPagePixels dco_decode_local_page_pixels(dynamic raw);
+
+  @protected
+  LocalPrefetchDecision dco_decode_local_prefetch_decision(dynamic raw);
 
   @protected
   LocalRejection dco_decode_local_rejection(dynamic raw);
@@ -452,6 +467,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  Uint32List sse_decode_list_prim_u_32_strict(SseDeserializer deserializer);
+
+  @protected
   List<int> sse_decode_list_prim_u_8_loose(SseDeserializer deserializer);
 
   @protected
@@ -486,7 +504,27 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   LocalPageInfo sse_decode_local_page_info(SseDeserializer deserializer);
 
   @protected
+  LocalPageLoadContract sse_decode_local_page_load_contract(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LocalPageLoadPriority sse_decode_local_page_load_priority(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LocalPageLoadStats sse_decode_local_page_load_stats(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   LocalPagePixels sse_decode_local_page_pixels(SseDeserializer deserializer);
+
+  @protected
+  LocalPrefetchDecision sse_decode_local_prefetch_decision(
+    SseDeserializer deserializer,
+  );
 
   @protected
   LocalRejection sse_decode_local_rejection(SseDeserializer deserializer);
@@ -797,6 +835,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_prim_u_32_strict(
+    Uint32List self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_prim_u_8_loose(List<int> self, SseSerializer serializer);
 
   @protected
@@ -839,8 +883,32 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_local_page_info(LocalPageInfo self, SseSerializer serializer);
 
   @protected
+  void sse_encode_local_page_load_contract(
+    LocalPageLoadContract self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_local_page_load_priority(
+    LocalPageLoadPriority self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_local_page_load_stats(
+    LocalPageLoadStats self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_local_page_pixels(
     LocalPagePixels self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_local_prefetch_decision(
+    LocalPrefetchDecision self,
     SseSerializer serializer,
   );
 
