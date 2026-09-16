@@ -23,15 +23,28 @@ import 'package:zephyr/src/rust/api/local.dart';
 ///    173 MB 的 `decodeImageFromPixels`」**。位图降到 3.4 MB 时整段掉到 300–400 ms。
 ///    所以「尺寸」这个开关对 Rust 路不是画质旋钮，是可用性前提；
 ///    原始尺寸也一并显示出来，好判断降采样到底生效没有。
-/// 2. **不做页面缓存。** 每次翻页都重新 `localPageBytes`，顺便让「不常驻句柄」
-///    这条性质在 UI 上可见（判据 D 的结构性依据）。只保留当前页，**换页时连上一页
-///    的解码结果一起 `evict`** —— 真实扫描页单页可达 44.8 MPix（RGBA 位图 179 MB），
-///    不主动释放会立刻冲垮 Flutter 默认 100 MB 的图片缓存，变成「反复解码」。
+/// 2. **不缓存归档句柄，只缓存「解好的 ±1 页」。** 每次翻页都重新走
+///    `localPageBytes` / `localPagePixels`，顺便让「不常驻句柄」这条性质在 UI 上可见
+///    （判据 D 的结构性依据）。缓存只有预取那一份，且是**有界**的（≤3 页 / ≤64 MB，
+///    见 `_prefetchMaxEntries`、`_prefetchMaxBytes`）—— 它缓的是**派生结果**，
+///    不是归档内容或句柄，所以判据 D 的结论不变。当前页换掉时上一页的解码结果
+///    一起释放（`_releaseCurrentImage`，预取也一并丢）—— 真实扫描页单页可达
+///    44.8 MPix（RGBA 位图 179 MB），不主动释放会立刻冲垮 Flutter 默认 100 MB
+///    的图片缓存，变成「反复解码」。
 /// 3. **默认按「显示尺寸」解码。** 对两条路径它都是默认档，但意义不同：
 ///    外壳路径上它是**量具**（关掉就能看到引擎全尺寸解码的原价，也是判据 C
 ///    不可能由「Dart/CPU 全尺寸解码」达成的直接证据）；Rust 路径上它是
 ///    **可用性前提**（全尺寸 = 把 170 MB 搬过桥，见上一条 1b）。
 ///    代价是放大超过 2× 会看到模糊 —— 属预期，真正的解在 Phase 2 的 tile 化。
+/// 3b. **预取相邻页，是「翻页 < 200 ms」唯一成立的理由。** 这本 AVIF 的冷页解码
+///    地板是 **270 ms**，而且软硬两侧都压不下去：dav1d 已用满 16 核仍只有 2.25×
+///    加速（这条流几乎没有 tile 级并行），NVDEC 直接拒绝 4:4:4
+///    （`av1_cuvid: not supported with this chroma format`）。所以只能**不在翻页时解码**：
+///    翻完一页后等 180 ms（连翻时自动退场），把 ±1 页解好、`ui.Image` 也建好存起来，
+///    翻到时路径上只剩「换个引用 + 画一帧」。
+///    **成本没消失，是被挪到用户读上一页的时候了** —— 所以页面上必须同时显示
+///    「预取时花了多少」，否则那个数字会读成「解码变快了」。预取只走 Rust 路径
+///    （外壳路径的位图在全局图片缓存里，那是另一套机制，未接）。
 /// 4. **本页不新增 i18n 键、不注册 auto_route**：调试页属于内部工具，走
 ///    `MaterialPageRoute` 直连，避免为一个诊断页触发全量 codegen。
 ///    若将来要转正，再补 `@RoutePage()` 与 `slang` 词条。
@@ -57,6 +70,8 @@ class _StageRow {
     required this.cacheHit,
     this.sourceWidth = 0,
     this.sourceHeight = 0,
+    this.prefetchHit = false,
+    this.prefetchCost,
   });
 
   final int index;
@@ -84,6 +99,15 @@ class _StageRow {
 
   final bool cacheHit;
 
+  /// 这一页是**预取命中**：翻页时既没解码也没建图，`decode` / `pack` 都是 0。
+  ///
+  /// 必须与 `cacheHit` 分开标：`cacheHit` 说的是「图片缓存命中，没重新解码」，
+  /// 而这一条是「用户在翻之前我们就解好了」—— 成本没有消失，只是**挪到了翻页之外**。
+  final bool prefetchHit;
+
+  /// 预取这一页时实际花掉的（解码 + 建图），用于证明成本只是被挪走而非消失。
+  final Duration? prefetchCost;
+
   int get pixels => width * height;
 
   /// RGBA 位图的字节数 —— 也就是要走一趟 PCIe 的那个量。
@@ -95,6 +119,47 @@ class _StageRow {
     if (source == 0) return 0;
     return 1 - pixels / source;
   }
+}
+
+/// 预取好的一页：已经解完码、已经建成 `ui.Image`，翻到它时零解码零建图。
+///
+/// 为什么必须有这个：这本 AVIF 单页冷解码的地板是 **270 ms**
+/// （AV1 4:4:4、一个 tile、dav1d 已用满 16 核仍只有 2.25× 加速 —— 见
+/// `docs/v0.1-local-core.md` §12.4），而且 **NVDEC 明确拒绝 4:4:4**
+/// （`av1_cuvid` 报 `not supported with this chroma format`），
+/// 所以「把解码本身做快」这条路在软硬两侧都走不通。
+/// 唯一能让翻页掉到 200 ms 以下的办法是**别在翻页时解码**。
+class _PrefetchedPage {
+  _PrefetchedPage({
+    required this.index,
+    required this.targetWidth,
+    required this.image,
+    required this.width,
+    required this.height,
+    required this.sourceWidth,
+    required this.sourceHeight,
+    required this.decode,
+    required this.pack,
+  });
+
+  final int index;
+
+  /// 预取时的目标宽。翻页时若窗口/开关变了，这份就作废（宁可重解也不能给错尺寸）。
+  final int? targetWidth;
+
+  final ui.Image image;
+  final int width;
+  final int height;
+  final int sourceWidth;
+  final int sourceHeight;
+
+  /// 预取时花掉的两段成本，翻页后原样报出来。
+  final Duration decode;
+  final Duration pack;
+
+  int get bytes => width * height * 4;
+
+  void dispose() => image.dispose();
 }
 
 /// 这一页让谁来解码。
@@ -152,6 +217,27 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   /// 按显示尺寸解码（默认开）。关掉即量全尺寸成本。
   bool _displaySizedDecode = true;
 
+  /// 后台预取相邻页（默认开）。关掉即回到「每次翻页现解」的对照形态。
+  bool _prefetchEnabled = true;
+
+  /// 预取缓存：页号 → 已解好且已建图的页。
+  ///
+  /// 有界（`_prefetchMaxEntries` / `_prefetchMaxBytes`）：一页显示尺寸约 4 MB 位图，
+  /// 但**全尺寸是 179 MB** —— 那种档位下不开预取，见 `_prefetchPage`。
+  final Map<int, _PrefetchedPage> _prefetch = {};
+
+  static const int _prefetchMaxEntries = 3;
+
+  /// 预取缓存的总字节上限。超过就从「离当前页最远」的开始扔。
+  static const int _prefetchMaxBytes = 64 << 20;
+
+  /// 预取代号：每次翻页 +1，让上一轮「预取邻居」的循环自己退场。
+  int _prefetchGeneration = 0;
+
+  /// 同一时刻只允许一个预取在跑。dav1d 会吃满所有核，
+  /// 并发两个预取只会把用户真正在等的那一次翻页拖慢。
+  bool _prefetchBusy = false;
+
   /// 由 `LayoutBuilder` 回填的预览区宽度（逻辑像素），用于估算解码目标宽度。
   double _viewerWidth = 0;
 
@@ -172,11 +258,12 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
     super.dispose();
   }
 
-  /// 释放当前页的两条显示资源。
+  /// 释放当前页的两条显示资源，连同预取缓存。
   ///
   /// 外壳路径的位图挂在全局图片缓存里，要 `evict`；Rust 路径的是我们自己的
   /// `ui.Image`，要 `dispose`。**两条都必须走这里** —— 一页 44.8 MPix 是 179 MB，
   /// 漏掉任一边都会在翻几页之后把内存顶上去（曾观测到 RSS 592 MB）。
+  /// 预取缓存也在这里统一丢：它是「另一个会话 / 另一本书」的位图，留着没有意义。
   void _releaseCurrentImage() {
     final provider = _provider;
     _provider = null;
@@ -185,6 +272,8 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
     final rustImage = _rustImage;
     _rustImage = null;
     rustImage?.dispose();
+
+    _clearPrefetch();
   }
 
   Future<void> _refreshProbe() async {
@@ -262,6 +351,8 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
       );
 
       if (!mounted) return;
+      // 换书了：上一本解好的位图一页都不能留。
+      _clearPrefetch();
       setState(() {
         _sessionId = info.id;
         _info = info;
@@ -372,6 +463,16 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
     if (!force && _currentBytesIndex == index && _currentBytes != null) {
       setState(() => _current = index);
       return;
+    }
+
+    // 预取命中：翻页路径上只剩下「换个引用 + 画一帧」。
+    // `force`（重读本页 / 切开关）刻意绕过它 —— 那是「立刻重新解一遍」的语义。
+    if (!force) {
+      final hit = _takePrefetch(index);
+      if (hit != null) {
+        _presentPrefetched(index, hit);
+        return;
+      }
     }
 
     if (_decoderMode != _DecoderMode.shell) {
@@ -630,8 +731,63 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
         '${pixels.sourceWidth}x${pixels.sourceHeight}'
         '→${pixels.width}x${pixels.height}',
       );
+      // 这一页已经上屏，用户接下来多半在读它 —— 这段时间正好用来解下一页。
+      _schedulePrefetch();
     });
     return true;
+  }
+
+  /// 预取命中：翻页路径上没有任何解码、没有 `decodeImageFromPixels`。
+  ///
+  /// 这条路径**只可能出现在 Rust 解码路径上**：预取本身走的就是 `local_page_pixels`。
+  /// 页面上必须同时报出「预取时花了多少」，否则这个 20 ms 看起来像是解码变快了 ——
+  /// 实际是那 300 ms 被挪到了用户读上一页的时候。
+  void _presentPrefetched(int index, _PrefetchedPage hit) {
+    final swAll = Stopwatch()..start();
+
+    final stale = _rustImage;
+    _rustImage = hit.image;
+    final staleProvider = _provider;
+    _provider = null;
+    unawaited(staleProvider?.evict());
+    stale?.dispose();
+
+    setState(() {
+      _current = index;
+      _currentBytes = null;
+      _currentBytesIndex = index;
+      _error = null;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !identical(_rustImage, hit.image)) return;
+      final total = swAll.elapsed;
+      setState(() {
+        _stage = _StageRow(
+          index: index,
+          mode: '预取命中',
+          read: Duration.zero,
+          decode: Duration.zero,
+          pack: Duration.zero,
+          paint: total,
+          total: total,
+          width: hit.width,
+          height: hit.height,
+          sourceWidth: hit.sourceWidth,
+          sourceHeight: hit.sourceHeight,
+          cacheHit: false,
+          prefetchHit: true,
+          prefetchCost: hit.decode + hit.pack,
+        );
+        _history.insert(0, _stage!);
+        if (_history.length > 6) _history.removeLast();
+      });
+      debugPrint(
+        '[local-debug] 预取命中 index=$index 屏${total.inMilliseconds}ms '
+        '（预取时解${hit.decode.inMilliseconds} 图${hit.pack.inMilliseconds}）',
+      );
+      _schedulePrefetch();
+    });
   }
 
   Future<ui.Image> _imageFromRgba(Uint8List rgba, int width, int height) {
@@ -646,6 +802,156 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
     return done.future;
   }
 
+  // ───────────────────────── 预取 ─────────────────────────
+  //
+  // 为什么预取是这个页面最该有的东西：冷页解码的地板是 270 ms（见
+  // `docs/v0.1-local-core.md` §12.4），软硬两侧都压不下去 ——
+  // 所以「翻页 < 200 ms」只能靠**不在翻页时解码**。
+  // 成本没有消失，是从翻页路径挪到了用户正在读当前页的那段时间里。
+  // 页面上必须同时显示「预取当时花了多少」，否则这个数字像是凭空变出来的。
+
+  /// 把当前页的相邻页排进预取队列。
+  ///
+  /// 只预取 ±1：一条 300 ms 的解码，翻页间隔通常够跑完下一页，
+  /// 排太多只会让真正在等的那一次翻页跟预取抢核。
+  void _schedulePrefetch() {
+    if (!_prefetchEnabled) return;
+    // 用户明确选了「外壳」就别再走 Rust 解 —— 预取缓存会被 `_takePrefetch`
+    // 直接采用，那就等于偷偷把解码器换回去了。
+    if (_decoderMode == _DecoderMode.shell) return;
+    final id = _sessionId;
+    if (id == null) return;
+    final generation = ++_prefetchGeneration;
+    unawaited(_prefetchNeighbors(id, generation));
+  }
+
+  Future<void> _prefetchNeighbors(BigInt id, int generation) async {
+    // 先让当前这一帧画完、并给用户一个「翻页已经结束」的信号窗口：
+    // 连翻时每翻一页 generation 都会 +1，下面这个循环会在下一次检查点直接退场。
+    for (final target in [_current + 1, _current - 1]) {
+      if (!mounted || generation != _prefetchGeneration) return;
+      if (target < 0 || target >= _pages.length) continue;
+      if (_prefetch.containsKey(target)) continue;
+      await Future<void>.delayed(const Duration(milliseconds: 180));
+      if (!mounted || generation != _prefetchGeneration) return;
+      await _prefetchPage(id, target);
+    }
+  }
+
+  /// 解好并建好一页，收进预取缓存。任何失败都**静默放弃**：
+  /// 预取是机会主义行为，它失败不该在界面上留下错误，更不能顶掉当前页。
+  Future<void> _prefetchPage(BigInt id, int index) async {
+    // 全尺寸一页是 179 MB 位图，预取三页就是 500 MB —— 那种档位不预取。
+    if (!_displaySizedDecode) return;
+    if (_prefetchBusy) return;
+    _prefetchBusy = true;
+    final swDecode = Stopwatch()..start();
+    try {
+      final targetWidth = _targetDecodeWidth();
+      final stale = _prefetch[index];
+      if (stale != null && stale.targetWidth == targetWidth) return;
+
+      final LocalPageDecodeResult result;
+      try {
+        result = await localPagePixels(
+          id: id,
+          index: index,
+          targetWidth: targetWidth,
+        );
+      } catch (e) {
+        debugPrint('[local-debug] 预取失败 index=$index: $e');
+        return;
+      }
+      final pixels = result.pixels;
+      if (pixels == null) {
+        // 归外壳或解不开：两种情况都留给翻页时按正常流程处理。
+        return;
+      }
+      final decode = swDecode.elapsed;
+
+      final swPack = Stopwatch()..start();
+      final image = await _imageFromRgba(
+        pixels.rgba,
+        pixels.width,
+        pixels.height,
+      );
+      final pack = swPack.elapsed;
+
+      if (!mounted) {
+        image.dispose();
+        return;
+      }
+      _storePrefetch(
+        _PrefetchedPage(
+          index: index,
+          targetWidth: targetWidth,
+          image: image,
+          width: pixels.width,
+          height: pixels.height,
+          sourceWidth: pixels.sourceWidth,
+          sourceHeight: pixels.sourceHeight,
+          decode: decode,
+          pack: pack,
+        ),
+      );
+      debugPrint(
+        '[local-debug] 预取完成 index=$index '
+        '解${decode.inMilliseconds} 图${pack.inMilliseconds}ms '
+        '${pixels.width}x${pixels.height}',
+      );
+    } finally {
+      _prefetchBusy = false;
+    }
+  }
+
+  void _storePrefetch(_PrefetchedPage page) {
+    // 一页自己就吃满整个预算（4K 窗口 × 大图可以到 80 MB 以上）：干脆不缓存。
+    // 判据 D 要的是「连读三本 RSS 增幅 ≤5%」，缓存宁可小。
+    if (page.bytes > _prefetchMaxBytes) {
+      debugPrint(
+        '[local-debug] 预取放弃 index=${page.index}：'
+        '单页 ${(page.bytes / 1e6).toStringAsFixed(1)} MB 超过预算',
+      );
+      page.dispose();
+      return;
+    }
+
+    _prefetch[page.index] = page;
+    // 超限就从「离当前页最远」的开始扔 —— 相邻页才是下一个会被翻到的。
+    while (_prefetch.length > 1 &&
+        (_prefetch.length > _prefetchMaxEntries ||
+            _totalPrefetchBytes() > _prefetchMaxBytes)) {
+      final victim = _prefetch.keys.reduce(
+        (a, b) => (a - _current).abs() >= (b - _current).abs() ? a : b,
+      );
+      _prefetch.remove(victim)?.dispose();
+    }
+  }
+
+  int _totalPrefetchBytes() =>
+      _prefetch.values.fold(0, (sum, p) => sum + p.bytes);
+
+  /// 取走一页预取结果。尺寸对不上就丢掉（宁可重解也不能显示错尺寸）。
+  _PrefetchedPage? _takePrefetch(int index) {
+    final hit = _prefetch.remove(index);
+    if (hit == null) return null;
+    if (hit.targetWidth != _targetDecodeWidth()) {
+      hit.dispose();
+      return null;
+    }
+    return hit;
+  }
+
+  /// 丢掉全部预取。翻页宽度、解码器开关、会话变化之后都要走这一趟 ——
+  /// 拿着旧尺寸的位图显示，比慢更糟。
+  void _clearPrefetch() {
+    _prefetchGeneration++;
+    for (final page in _prefetch.values) {
+      page.dispose();
+    }
+    _prefetch.clear();
+  }
+
   /// 逐页读一遍并计时。这条曲线是 `docs/v0.1-local-core.md` §7 那把尺子：
   /// 近似常量 ⇒ 归档支持按需 seek；随 N 线性增长 ⇒ 实际在解压整段。
   ///
@@ -654,6 +960,10 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   Future<void> _sweep() async {
     final id = _sessionId;
     if (id == null || _pages.isEmpty) return;
+
+    // 逐页计时量的是读页耗时，60 ms 量级的信号扛不住旁边一个吃满核的 dav1d ——
+    // 先让预取退场，否则这把尺子会量到别人的噪声。
+    _clearPrefetch();
 
     setState(() {
       _busy = true;
@@ -681,6 +991,7 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
       setState(() => _error = '逐页计时中断：$e');
     } finally {
       if (mounted) setState(() => _busy = false);
+      _schedulePrefetch();
     }
   }
 
@@ -749,6 +1060,8 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
               label: Text(_displaySizedDecode ? '尺寸：显示' : '尺寸：全尺寸'),
               onSelected: (v) {
                 setState(() => _displaySizedDecode = v);
+                // 预取缓存是按目标宽度存的，尺寸一变就整批作废。
+                _clearPrefetch();
                 // 重新读当前页，让两种模式的数字直接可比。
                 _loadPage(_current, force: true);
               },
@@ -770,8 +1083,38 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
                   _DecoderMode.shell => _DecoderMode.auto,
                 };
                 setState(() => _decoderMode = next);
+                // 换了解码器，旧预取是另一条路解出来的，不能混用。
+                _clearPrefetch();
                 // 立刻重读本页：这个开关的意义就是让两条路的数字当场可比。
                 _loadPage(_current, force: true);
+              },
+            ),
+          ),
+          Tooltip(
+            message: _prefetchEnabled
+                ? '当前：翻完一页就顺手解下一页（±1），翻页时直接用已解好的位图。\n'
+                      '关掉即可看到「每次翻页现解」的原始数字。\n'
+                      '预取缓存：${_prefetch.length} 页 / '
+                      '${(_totalPrefetchBytes() / 1e6).toStringAsFixed(1)} MB'
+                : '当前：不预取，每次翻页都现解。\n'
+                      '这本 AVIF 单页冷解码的地板是 270 ms（一个 tile、dav1d 已用满核），'
+                      '所以「翻页 < 200 ms」只能靠预取把解码挪出翻页路径。',
+            child: FilterChip(
+              selected: _prefetchEnabled,
+              avatar: Icon(
+                _prefetchEnabled
+                    ? Icons.bolt_outlined
+                    : Icons.hourglass_empty_outlined,
+                size: 18,
+              ),
+              label: Text(_prefetchEnabled ? '预取：开' : '预取：关'),
+              onSelected: (v) {
+                setState(() => _prefetchEnabled = v);
+                if (!v) {
+                  _clearPrefetch();
+                } else {
+                  _schedulePrefetch();
+                }
               },
             ),
           ),
@@ -913,7 +1256,7 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
             Text(
               '第 ${stage.index + 1} 页（${stage.mode}）：'
               '读页 ${_fmtMs(stage.read)} ms › '
-              '解码 ${stage.cacheHit ? "缓存命中" : "${_fmtMs(stage.decode)} ms"} › '
+              '解码 ${stage.prefetchHit ? "预取命中" : (stage.cacheHit ? "缓存命中" : "${_fmtMs(stage.decode)} ms")} › '
               '${stage.pack > Duration.zero ? "建图 ${_fmtMs(stage.pack)} ms › " : ""}'
               '上屏 ${_fmtMs(stage.paint)} ms · '
               '合计 ${_fmtMs(stage.total)} ms',
@@ -928,6 +1271,18 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
               ' （${sniffImageFormat(_currentBytes)}）',
               style: const TextStyle(fontSize: 12),
             ),
+            if (stage.prefetchHit) ...[
+              const SizedBox(height: 3),
+              Text(
+                '本页是预取来的：翻页本身只花了「上屏」那 '
+                '${_fmtMs(stage.paint)} ms，解码与建图都不在翻页路径上。\n'
+                '成本没有消失 —— 这一页当初解了 '
+                '${_fmtMs(stage.prefetchCost ?? Duration.zero)} ms（解码 + 建图），'
+                '花在你读上一页的时候。关掉「预取：开」再翻这一页，'
+                '就能看到它的真实总价。',
+                style: TextStyle(fontSize: 11, color: Colors.teal.shade700),
+              ),
+            ],
             if (!_displaySizedDecode && stage.mode.startsWith('Rust')) ...[
               const SizedBox(height: 3),
               Text(
@@ -942,7 +1297,10 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
               '全局图片缓存：${(cache.currentSizeBytes / 1e6).toStringAsFixed(1)} MB '
               '/ 上限 ${(cache.maximumSizeBytes / 1e6).toStringAsFixed(0)} MB '
               '· 条目数 ${cache.currentSize}'
-              '${stage.cacheHit ? "（本页命中缓存，未重新解码）" : ""}',
+              '${stage.cacheHit ? "（本页命中缓存，未重新解码）" : ""}'
+              '   ｜   预取缓存：${_prefetch.length} 页 / '
+              '${(_totalPrefetchBytes() / 1e6).toStringAsFixed(1)} MB'
+              ' ${_prefetchBusy ? "（正在解下一页…）" : ""}',
               style: TextStyle(
                 fontSize: 11,
                 color: cache.currentSizeBytes > cache.maximumSizeBytes
@@ -971,7 +1329,9 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
             '口径：读页含归档解压与 FRB 过桥；解码是编码字节→位图'
             '（Rust 路径这一段还会把 RGBA 搬过桥）；「装」是位图字节→ui.Image'
             '（只有 Rust 路径有）；上屏是解码完成→含该图的下一帧绘制完（含纹理上传）。'
-            '解码宽度 = 预览区宽度 × 设备像素比，两条路径都遵守。',
+            '解码宽度 = 预览区宽度 × 设备像素比，两条路径都遵守。\n'
+            '「预取命中」那一行的解码/建图是 0，因为成本已经在你读上一页时付掉了 —— '
+            '同一页关掉预取再翻一次，才是它的真实总价。',
             style: TextStyle(fontSize: 11, color: Colors.grey),
           ),
         ],
