@@ -80,37 +80,72 @@ fn main() -> Result<()> {
     for index in listed {
         let page = &source.pages()[index];
         println!(
-            "  {index:>5}  {:>10} B  {}",
+            "  {index:>5}  {:>10} B  {:<10}  {}",
             page.size,
+            source
+                .page_decode_support(index)
+                .map_or("unknown", |support| support.label()),
             shorten(&page.name, 72)
         );
     }
 
     println!("\n--- 读取 + 解码（repeat={repeat}）---");
-    println!("{:>6}  {:>10}  {:>10}  {:>12}  name", "index", "read ms", "decode ms", "size");
+    println!(
+        "{:>6}  {:>10}  {:>10}  {:>12}  who      name",
+        "index", "read ms", "decode ms", "size"
+    );
     let probes = probe_indices(source.len());
     for index in probes {
+        let who = source
+            .page_decode_support(index)
+            .map_or("unknown", |support| support.label());
         let mut read_total = 0f64;
-        let mut decode_total = 0f64;
         let mut dimensions = (0u32, 0u32);
+        let mut decode_total = 0f64;
+        let mut decode_note = String::new();
         for _ in 0..repeat {
             let started = Instant::now();
             let bytes = source.page_bytes(index)?;
             read_total += started.elapsed().as_secs_f64() * 1000.0;
 
             let started = Instant::now();
-            let pixels = rossi_local_core::decode_rgba(&bytes)?;
-            decode_total += started.elapsed().as_secs_f64() * 1000.0;
-            dimensions = (pixels.width, pixels.height);
+            match rossi_local_core::decode_rgba(&bytes) {
+                Ok(pixels) => {
+                    decode_total += started.elapsed().as_secs_f64() * 1000.0;
+                    dimensions = (pixels.width, pixels.height);
+                }
+                Err(error) => {
+                    // 外壳格式不该让探针整体失败——探针的职责是把事实**报出来**，
+                    // 而不是替用户决定这算不算错误。见 page_order::SHELL_DECODABLE_EXTENSIONS。
+                    decode_note = format!("内核不解：{error}");
+                    break;
+                }
+            }
         }
         println!(
-            "{index:>6}  {:>10.3}  {:>10.3}  {:>5}x{:<6}  {}",
+            "{index:>6}  {:>10.3}  {:>10}  {:>12}  {who:<8} {}",
             read_total / repeat as f64,
-            decode_total / repeat as f64,
-            dimensions.0,
-            dimensions.1,
+            if decode_note.is_empty() {
+                format!("{:.3}", decode_total / repeat as f64)
+            } else {
+                "-".to_string()
+            },
+            if decode_note.is_empty() {
+                format!("{}x{}", dimensions.0, dimensions.1)
+            } else {
+                "-".to_string()
+            },
             shorten(&source.pages()[index].name, 48)
         );
+        if !decode_note.is_empty() {
+            // shell-only 的失败是**设计内**的（`page_order::SHELL_DECODABLE_EXTENSIONS`），
+            // 措辞上必须与「这本坏了」区分开，否则读日志的人会去追一个不存在的 bug。
+            if who == "shell-only" {
+                println!("        └─ 内核不解（预期，非故障）：{who} 格式，外层 Skia 可解");
+            } else {
+                println!("        └─ {decode_note}");
+            }
+        }
     }
 
     // 「不落盘」这条约束是可以被证伪的：读完之后临时目录里不该多出任何东西。

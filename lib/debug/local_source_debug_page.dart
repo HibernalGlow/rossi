@@ -140,6 +140,13 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   }
 
   Future<void> _openPath(String path) async {
+    // 打点的目的是**让下一次原生崩溃有现场**。
+    // 起因：一次 `zephyr has stopped working` 在 flutter run 控制台里
+    // 一行输出都没有（无 Dart 异常、Windows 事件日志也无记录），
+    // 事后完全无法判断崩溃前走到哪一步。这条日志就是给那种情况留的指纹。
+    final swOpen = Stopwatch()..start();
+    debugPrint('[local-debug] open 开始: $path');
+
     setState(() {
       _busy = true;
       _error = null;
@@ -154,6 +161,7 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
 
       final rejection = result.rejection;
       if (rejection != null) {
+        debugPrint('[local-debug] open 被拒绝: ${rejection.kind} ${rejection.message}');
         if (!mounted) return;
         setState(() {
           _rejection = rejection;
@@ -164,7 +172,13 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
       }
 
       final info = result.source!;
+      debugPrint('[local-debug] open 成功(未取页): id=${info.id} '
+          'kind=${info.kind} pages=${info.pageCount} '
+          'bytes=${info.totalBytes} ${swOpen.elapsedMilliseconds}ms');
+
       final pages = await localSourcePages(id: info.id);
+      debugPrint('[local-debug] 取页完成: ${pages.length} 条 '
+          '${swOpen.elapsedMilliseconds}ms');
 
       if (!mounted) return;
       setState(() {
@@ -182,7 +196,12 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
       await _refreshProbe();
       if (pages.isNotEmpty) {
         await _loadPage(0);
+      } else {
+        // 0 页必须留下声音：否则「没反应」和「崩溃」在日志里长得一样。
+        debugPrint('[local-debug] 打开成功但 0 页 —— '
+            '归档里没有任何 v0.1 能识别的页面: $path');
       }
+      debugPrint('[local-debug] open 流程结束 ${swOpen.elapsedMilliseconds}ms');
     } catch (e, st) {
       debugPrint('openLocalSource failed: $e\n$st');
       if (!mounted) return;
@@ -231,6 +250,7 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
     }
 
     final swAll = Stopwatch()..start();
+    debugPrint('[local-debug] 读页开始 index=$index');
 
     // ── 第 1 段：读页（归档 → Rust → FRB → Dart 字节）──
     final swRead = Stopwatch()..start();
@@ -238,12 +258,15 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
     try {
       bytes = await localPageBytes(id: id, index: index);
     } catch (e) {
+      debugPrint('[local-debug] 读页失败 index=$index: $e');
       if (!mounted) return;
       setState(() => _error = '读第 $index 页失败：$e');
       return;
     }
     swRead.stop();
     final read = swRead.elapsed;
+    debugPrint('[local-debug] 读页完成 index=$index ${bytes.length} B '
+        '${read.inMilliseconds}ms（解码前）');
     if (!mounted) return;
 
     // ── 第 2 段：解码。解码宽度决定像素量，像素量决定解码与上屏的成本。──
@@ -309,6 +332,10 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
           _history.insert(0, _stage!);
           if (_history.length > 6) _history.removeLast();
         });
+        debugPrint('[local-debug] 翻页完成 index=$index $mode '
+            '读${read.inMilliseconds} 解${decode.inMilliseconds} '
+            '屏${paint.inMilliseconds} 合${total.inMilliseconds}ms '
+            '${width}x$height');
       });
     }
 
@@ -657,6 +684,22 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   }
 
   Widget _viewer() {
+    // 0 页时**不要**留一个转圈：那看起来像「还在加载」，实际是「这本没页可看」。
+    // 触发过一次真实误判 —— 归档里 30 张全是 `.avif`（v0.1 当时不认），
+    // 用户看到的就是空列表 + 转圈，只能描述成「打开 zip 没反应/崩了」。
+    if (_pages.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            '这个来源里**没有**可显示的页面（0 页）。\n'
+            '常见原因：归档里全是 v0.1 不认识的格式，或图片都在被忽略的目录里（隐藏 / __MACOSX）。',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
     return Column(
       children: [
         Expanded(

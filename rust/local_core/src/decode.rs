@@ -4,8 +4,34 @@
 //! 而解码本身交给 `image` crate（与 windcore 同一版本）。
 //! 大图 tile 化、GPU 驻留、预取等都在后面，不在这里。
 
+use std::fmt;
+
 use anyhow::{Context, Result, bail};
 use image::DynamicImage;
+
+/// 核心没有这个格式的解码器，但**外壳（Flutter / Skia）有**。
+///
+/// 用类型而不是字符串，理由与 `UnsupportedSource` 相同：调用方需要按类别决定动作——
+/// 「这本是 avif，走 Dart 兜底能看」和「这个文件坏了」该给用户完全不同的下一步。
+/// 见 `page_order::SHELL_DECODABLE_EXTENSIONS` 的模块注释。
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ShellOnlyFormat {
+    /// 小写扩展名（不含点）。
+    pub extension: String,
+}
+
+impl fmt::Display for ShellOnlyFormat {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "`.{}` 需要外壳（Flutter/Skia）解码，`rossi_local_core` 的内置解码器不支持；\
+             这一页可走 Dart 兜底显示路径，但暂不进 Rust → GPU 上屏路径",
+            self.extension
+        )
+    }
+}
+
+impl std::error::Error for ShellOnlyFormat {}
 
 /// 单页解码后的 RGBA8 缓冲（未预乘，行主序）。
 ///

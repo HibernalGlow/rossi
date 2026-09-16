@@ -7,14 +7,49 @@
 
 use std::cmp::Ordering;
 
-/// 认作页面并且**本 crate 真能解码**的扩展名（小写、不含前导点）。
+/// **本 crate 真能解码**的扩展名（小写、不含前导点）。
 ///
 /// 与 `Cargo.toml` 里 `image` 的 feature 集严格对齐：这里列了却解不了，
-/// 就是让用户在读到那一页时才失败。mImageViewer 的表更长（heic / jxl / 相机 RAW），
-/// 但那些走它的 WIC 路径，不属于 v0.1。
-pub const IMAGE_EXTENSIONS: &[&str] = &[
+/// 就是让用户在读到那一页时才失败。
+pub const CORE_DECODABLE_EXTENSIONS: &[&str] = &[
     "jpg", "jpeg", "png", "webp", "bmp", "gif", "tif", "tiff",
 ];
+
+/// **本 crate 解不了、但外壳（Flutter / Skia）能解**的扩展名。
+///
+/// 这一档是实测逼出来的，不是预留。用户的真实归档
+/// `G44 不会受伤 - NO.119 碧蓝档案 和纱 [30P-421MB].zip` 里 30 张**全是 `.avif`**，
+/// 而 Flutter 的 `ui.instantiateImageCodec` 能把它们正常解成 5464×8192
+/// （`test/avif_decode_probe_test.dart` 有可复跑的探针）。
+///
+/// 早先把这两类合成一张表，后果是**用户看到「打开 zip 没反应」**：
+/// 枚举阶段就把全部条目滤掉，UI 收到 0 页，既没有页也没有拒绝原因。
+/// 「算不算一页」是**格式识别**问题，「这一页谁来解」是**解码能力**问题，
+/// 把后者当前者的门槛，症状就落在用户身上。
+///
+/// 代价必须写在这里免得以后误读：这些页**只能走 Dart 兜底显示路径**
+/// （`docs/v0.1-local-core.md` §9），Phase 1 那条「Rust 解码 → GPU texture 上屏」
+/// 对它们**暂时不成立** —— `image` 要解 avif 得带 libavif/dav1d 这类原生依赖，
+/// 属 core 之外的东西，是否纳入由 Gate 决定。
+pub const SHELL_DECODABLE_EXTENSIONS: &[&str] = &["avif", "jxl", "heic", "heif"];
+
+/// 一页的解码归属。
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DecodeSupport {
+    /// `decode_rgba` 能解，可进 Phase 1 的 Rust → GPU 上屏路径。
+    Core,
+    /// 只有外壳（Flutter / Skia）能解；`decode_rgba` 会明确拒绝。
+    ShellOnly,
+}
+
+impl DecodeSupport {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Core => "core",
+            Self::ShellOnly => "shell-only",
+        }
+    }
+}
 
 /// 取小写扩展名（不含点）。
 ///
@@ -30,9 +65,31 @@ pub fn extension_lower(name: &str) -> Option<String> {
 }
 
 /// 是否为可读页面。
+///
+/// 两档都算页：只要**某一侧能解**，它就该出现在页序里。
+/// 「谁负责解」由 [`decode_support`] 单独回答。
 pub fn is_image_name(name: &str) -> bool {
-    extension_lower(name)
-        .is_some_and(|ext| IMAGE_EXTENSIONS.contains(&ext.as_str()))
+    decode_support(name).is_some()
+}
+
+/// 这一页由谁解码。不认识的格式返回 `None`（不算页）。
+pub fn decode_support(name: &str) -> Option<DecodeSupport> {
+    let ext = extension_lower(name)?;
+    if CORE_DECODABLE_EXTENSIONS.contains(&ext.as_str()) {
+        Some(DecodeSupport::Core)
+    } else if SHELL_DECODABLE_EXTENSIONS.contains(&ext.as_str()) {
+        Some(DecodeSupport::ShellOnly)
+    } else {
+        None
+    }
+}
+
+/// 是否必须交给外壳解码（等价于 `decode_support(..) == Some(ShellOnly)`）。
+///
+/// 单独给一个谓词，是因为调用点（`LocalSource::page_pixels`、探针、以后的上屏层）
+/// 想要的都是这个判断，而不是枚举值本身。
+pub fn needs_shell_decoder(name: &str) -> bool {
+    decode_support(name) == Some(DecodeSupport::ShellOnly)
 }
 
 /// 是否应当完全忽略（macOS 资源叉、隐藏文件/目录）。
@@ -127,9 +184,25 @@ mod tests {
         for name in ["1.jpg", "1.JPEG", "1.png", "1.webp", "1.bmp", "1.gif", "1.tiff"] {
             assert!(is_image_name(name), "{name}");
         }
-        // 这一步是 v0.1 的克制之处：能列出来就必须能解出来
-        for name in ["1.heic", "1.jxl", "1.avif", "1.cr2", "1.mp4", "1.txt"] {
+        // 谁都不认识的格式不是页：列出来只会让用户在翻到它时才失败
+        for name in ["1.cr2", "1.mp4", "1.txt", "no_dot"] {
             assert!(!is_image_name(name), "{name}");
+        }
+    }
+
+    /// 这一条是**回归线**，不是补充测试：把 `avif` 挡在页枚举之外，
+    /// 曾让用户看到「打开 zip 没反应」（30 张全是 avif → 0 页，且无拒绝原因）。
+    #[test]
+    fn shell_only_formats_are_pages_but_not_core_decodable() {
+        for name in ["1.avif", "1.AVIF", "ch/2.jxl", "3.heic", "4.HEIF"] {
+            assert!(is_image_name(name), "{name} 应当算作一页");
+            assert!(needs_shell_decoder(name), "{name} 应当由外壳解码");
+            assert_eq!(decode_support(name), Some(DecodeSupport::ShellOnly));
+        }
+        // 反过来：核心能解的页绝不能被标成 shell-only
+        for name in ["1.jpg", "1.png", "1.webp"] {
+            assert_eq!(decode_support(name), Some(DecodeSupport::Core), "{name}");
+            assert!(!needs_shell_decoder(name), "{name}");
         }
     }
 

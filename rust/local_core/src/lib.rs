@@ -34,7 +34,8 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 
-pub use decode::{PagePixels, decode_rgba, probe_size};
+pub use decode::{PagePixels, ShellOnlyFormat, decode_rgba, probe_size};
+pub use page_order::{DecodeSupport, decode_support, is_image_name, needs_shell_decoder};
 pub use rar_source::{
     RarDirectReadDecision, RarInspection, RarVolumeKind, ensure_direct_readable, inspect, is_rar_path,
 };
@@ -199,8 +200,35 @@ impl LocalSource {
     }
 
     /// 取一页的像素（RGBA8）。
+    ///
+    /// **只对核心能解的格式成立**（`DecodeSupport::Core`）。归档里出现
+    /// `avif` / `jxl` / `heic` 这类页时返回 `ShellOnlyFormat` 而不是笼统的解码失败：
+    /// 那些页要靠外壳（Flutter/Skia）显示，类别信息得留给调用方。
     pub fn page_pixels(&self, index: usize) -> Result<PagePixels> {
+        self.ensure_core_decodable(index)?;
         decode_rgba(&self.page_bytes(index)?)
+    }
+
+    /// 这一页由谁解码。下标越界返回 `None`。
+    pub fn page_decode_support(&self, index: usize) -> Option<DecodeSupport> {
+        self.pages
+            .get(index)
+            .and_then(|page| decode_support(&page.name))
+    }
+
+    /// 挡在核心解码之前的闸门：把「没有解码器」与「解不出来」分开。
+    fn ensure_core_decodable(&self, index: usize) -> Result<()> {
+        let page = self
+            .pages
+            .get(index)
+            .with_context(|| format!("页下标越界: {index} / {}", self.pages.len()))?;
+        if decode_support(&page.name) == Some(DecodeSupport::ShellOnly) {
+            return Err(anyhow::Error::new(ShellOnlyFormat {
+                extension: crate::page_order::extension_lower(&page.name).unwrap_or_default(),
+            }))
+            .with_context(|| format!("第 {} 页无法由核心解码: {}", index + 1, page.name));
+        }
+        Ok(())
     }
 
     /// 只读尺寸，不做完整解码。
@@ -280,5 +308,50 @@ mod tests {
         let source = LocalSource::open(&path).unwrap();
         assert!(source.is_empty());
         assert!(source.page_bytes(0).is_err());
+    }
+
+    /// 归档里混着 avif（核心不能解）与 png（能解）时：
+    /// 两者**都要出现在页序里**，但只有后者能从核心拿像素。
+    ///
+    /// 用垃圾字节冒充 avif 是刻意的：闸门必须在**解码之前**生效，
+    /// 所以「内容不是合法 avif」这件事根本不该被读到。
+    #[test]
+    fn shell_only_pages_are_listed_but_rejected_by_the_core_decoder() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("mixed.cbz");
+        {
+            let file = std::fs::File::create(&path).unwrap();
+            let mut zip = zip::ZipWriter::new(file);
+            let options = zip::write::SimpleFileOptions::default();
+            for name in ["1.png", "2.avif", "3.png"] {
+                zip.start_file(name, options).unwrap();
+                let mut buffer = image::RgbaImage::new(2, 2);
+                for pixel in buffer.pixels_mut() {
+                    *pixel = image::Rgba([1, 2, 3, 255]);
+                }
+                let mut bytes = std::io::Cursor::new(Vec::new());
+                image::DynamicImage::ImageRgba8(buffer)
+                    .write_to(&mut bytes, image::ImageFormat::Png)
+                    .unwrap();
+                zip.write_all(&bytes.into_inner()).unwrap();
+            }
+            zip.finish().unwrap();
+        }
+
+        let source = LocalSource::open(&path).unwrap();
+        assert_eq!(source.len(), 3, "avif 也应当算作一页");
+        assert_eq!(source.page_decode_support(0), Some(DecodeSupport::Core));
+        assert_eq!(source.page_decode_support(1), Some(DecodeSupport::ShellOnly));
+        assert_eq!(source.page_decode_support(9), None, "越界应当是 None");
+
+        // 核心能解的那两页照常
+        assert_eq!(source.page_pixels(0).unwrap().width, 2);
+
+        // 中间那页：必须是**类型化的**「外壳才解得动」，而不是笼统的解码失败
+        let error = source.page_pixels(1).unwrap_err();
+        let reason = error
+            .downcast_ref::<ShellOnlyFormat>()
+            .expect("应当是类型化的 ShellOnlyFormat");
+        assert_eq!(reason.extension, "avif");
     }
 }
