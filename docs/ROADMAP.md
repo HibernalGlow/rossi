@@ -156,9 +156,18 @@ GPU Surface
       入口为 设置 → 调试 → **本地来源读取（判据 A）**：打开文件夹 / CBZ / CBR、
       页列表 + 预览、会话数探针、逐页计时（判据「按需 seek vs 整段解压」的尺子）。
       它走的是 **Dart 兜底显示路径**（`Image.memory`，即编码字节过桥），
-      **不是目标上屏形态、不能当判据 B/C 的依据** —— 判据 B/C 要等 Phase 1 的
-      GPU 上屏接线。手测夹具由 `poc/local-samples/make_samples.py` 生成
+      **不是目标上屏形态、不能当判据 B/C 的依据** —— 判据 B/C 要等下面那条 GPU 上屏接线
+      （**链路已接通，但帧时间尚未在 Release 下量**）。手测夹具由 `poc/local-samples/make_samples.py` 生成
       （真实截图 + 含两条拒绝路径的固实/加密 CBR）。见 `docs/v0.1-local-core.md` §11。
+- [x] **GPU 上屏接线（Phase 1 收口）** —— `rust/gpu_present/`（cdylib `rossi_gpu_present.dll`）
+      + `windows/runner/gpu_present_bridge.{h,cpp}` + `lib/gpu/gpu_present_{bridge,page}.dart`。
+      链路 `解码 → wgpu 上传/渲染(letterbox) → GPU→GPU CopyResource → D3D12 共享纹理(BGRA8)
+      → Flutter(D3D11/ANGLE) 合成`：**像素全程不过桥**，Dart 侧只拿到一个 `textureId`。
+      入口：设置 → 调试 → **GPU 上屏（D3D12 共享纹理）**；判据读数是 `handleOpened > 0`。
+      已验证两条：① Rust 侧端到端回读（底色占比／内容包围盒／页内采样／非全黑 四判据全过）；
+      ② **真机引擎上 `handleOpened = 1`** —— 引擎确实打开了共享句柄，即"链路真通"。
+      已知待办：启动期 `initMs ≈ 982 ms`（wgpu device + 管线）压在第一帧之前，**威胁判据 B**；
+      判据 C 的帧时间分布尚未在 Release 下测。见 `docs/texture-bridge-integration.md`。
 - 7z 仍属后续评估
 - 大图 tile 化
 - LRU GPU/CPU cache

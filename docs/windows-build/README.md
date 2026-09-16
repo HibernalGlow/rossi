@@ -688,3 +688,121 @@ meson 从 PATH 里把 `sccache.EXE` 当成了编译器启动器，探测 MSVC �
 `static=dav1d` 对导入库毫无意义。要绕开得把 sccache 移出 PATH，**加参数绕不过去**。
 动态依赖可接受，这条就没继续（细节见 `docs/v0.1-local-core.md` §5.2）。
 
+### 7.8 陷阱：`windows/flutter/ephemeral/cpp_client_wrapper` 里只有 `include/`（2026-09-16）
+
+**现象**：Windows 构建在编译 C++ 包装器时立刻失败，报的是「源文件不存在」而不是任何逻辑错误：
+
+```
+windows\flutter\ephemeral\cpp_client_wrapper\core_implementations.cc(1,1):
+  error C1083: 无法打开源文件: "...\cpp_client_wrapper\core_implementations.cc"
+```
+
+**根因**：flutter 工具每轮构建会把引擎缓存里的 C++ 包装器拷进
+`windows/flutter/ephemeral/cpp_client_wrapper/`，本机这次只落下了 `include/` 子目录，
+`.cc` 全缺。缓存里的原件是齐的 —— 所以**既不是引擎产物缺失，也不是仓库被删**，
+别去重装 Flutter、也别去 `git checkout` 那个目录（它本来就不入库）。
+
+**判别（10 秒）**：
+
+```bash
+ls windows/flutter/ephemeral/cpp_client_wrapper/
+# 只有 include/  → 中招
+
+ls /d/1Dev/flutter/bin/cache/artifacts/engine/windows-x64/cpp_client_wrapper/
+# 这里 core_implementations.cc / standard_codec.cc / plugin_registrar.cc /
+# flutter_engine.cc / flutter_view_controller.cc 都在 → 原件没丢
+```
+
+需要的清单可以在 `windows/flutter/CMakeLists.txt` 里对（`CPP_WRAPPER_SOURCES_CORE` / `_PLUGIN` / `_APP`）。
+
+**处理**：从引擎缓存把缺的补回去（等价于工具本该做的事）：
+
+```bash
+cp -r /d/1Dev/flutter/bin/cache/artifacts/engine/windows-x64/cpp_client_wrapper/. \
+      windows/flutter/ephemeral/cpp_client_wrapper/
+```
+
+补完直接重跑构建即可，**不需要删 `build/windows`**（失败发生在编译期，CMake 缓存是好的）。
+`ephemeral/` 不入库，所以这只是本机修复，别试图把它 commit 进去。
+
+### 7.9 陷阱：手敲 `cmake` 会重配 Flutter 的构建目录，而本机 PATH 上的 `cmake` **不是** Flutter 用的那个（2026-09-16）
+
+**做了什么**：为了看 CMake 重新生成出来的工程文件，在仓库里手敲了一次：
+
+```bash
+cmake -SD:/1VSCODE/Projects/rossi/windows -BD:/1VSCODE/Projects/rossi/build/windows/x64
+```
+
+**结果有两层，第二层是真正的坑**：
+
+1. 那次配置自己就失败了 —— `objectbox-download` 的 FetchContent 下载报
+   `SSL certificate verification failed: certificate signer not trusted`。
+   **这个错误在 Flutter 构建里从来不会出现**，出现了就说明用的不是同一个 CMake。
+2. 它把 `build/windows/x64/CMakeCache.txt` 改写了：
+
+   ```
+   CMAKE_CACHE_MAJOR_VERSION:INTERNAL=4
+   CMAKE_COMMAND:INTERNAL=D:/scoop/apps/mingw-winlibs/current/bin/cmake.exe
+   ```
+
+   即 scoop 的 mingw 版 **CMake 4.3**，而 Flutter 用的是 VS BuildTools 自带的 **CMake 3.31**。
+   `CMAKE_COMMAND` 是**缓存项**，会被生成出来的构建规则直接拿去调用 —— 缓存一旦指向另一个
+   CMake，之后所有自定义命令都在用"另一个工具链"驱动。而且 FetchContent 的子工程
+   （`_deps/<name>-subbuild/`）有**自己的**缓存，会一起被带偏。
+
+**判别（一眼）**：
+
+```bash
+grep -n "CMAKE_COMMAND:INTERNAL" build/windows/x64/CMakeCache.txt
+# 出现 mingw-winlibs 就是中招了
+```
+
+**处理**：
+
+- **改了任何 `CMakeLists.txt` 就让 Flutter 自己重配**（它必然会重配），不要手敲 `cmake`。
+- 真要手动看一眼，用 VS 自带那个：
+
+  ```bash
+  "/c/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe" \
+      -S windows -B build/windows/x64
+  ```
+
+- 已经被污染时，**不必删整个 `build/windows`**：删掉被污染的那个 `_deps/<name>-subbuild/`
+  即可 —— `-src` 里已经下载好的 SDK 还能复用，比全量重建省很多时间。
+  （§7.2 那条"删 `build/windows`"针对的是**陈旧的**缓存，两者不是一回事。）
+
+### 7.10 陷阱：`cmake -E env` 遇到分号分隔的值，会用错参数（2026-09-16）
+
+我们自己写的 `windows/runner/CMakeLists.txt` 里，GPU 呈现器的构建步骤要把
+`PKG_CONFIG_PATH` 透传给 cargo。本机的 `PKG_CONFIG_PATH` 是**分号分隔的多条路径**
+（vcpkg 的 release + debug），于是：
+
+```cmake
+list(APPEND GPU_PRESENT_ENV "PKG_CONFIG_PATH=$ENV{PKG_CONFIG_PATH}")   # ✗
+```
+
+CMake 会把它**当列表在分号处拆成两个元素**，生成出来的命令行就成了：
+
+```
+cmake -E env PKG_CONFIG_PATH=<第一条> <第二条> <cargo ...>
+```
+
+而 `cmake -E env` 会把**第一个不含 `=` 的参数当成要执行的命令** —— 于是它去 "执行" 一个目录，
+立刻失败。
+
+**症状的指纹很好认**：`MSB8066 自定义生成已退出，代码为 1`，而且日志里
+**被调用工具（cargo）自己的输出一个字都没有** —— 因为它压根没被启动。
+反过来，如果自定义命令失败**并且**工具有输出，那就是工具自己的问题，别往这上面找。
+
+**修法**：把分号转义，让它作为**一个**参数过去。
+
+```cmake
+string(REPLACE ";" "\\;" GPU_PRESENT_PKG_CONFIG_PATH "$ENV{PKG_CONFIG_PATH}")
+list(APPEND GPU_PRESENT_ENV "PKG_CONFIG_PATH=${GPU_PRESENT_PKG_CONFIG_PATH}")
+```
+
+生成出来会是 `"PKG_CONFIG_PATH=A";"B"`，C 运行时的命令行解析会把它还原成一个参数 `A;B`。
+**验证方式**：在临时目录里用一个最小 CMake 工程复刻这个写法，配置一次后 grep 生成的
+`.vcxproj`，再 `cmake --build` 跑一下 —— 比在被污染的真实构建目录里试快得多
+（真实工程里试一次的代价是几分钟，还得先处理 §7.9）。
+
