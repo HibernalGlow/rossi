@@ -29,6 +29,22 @@ fn ms(started: Instant) -> f64 {
     started.elapsed().as_secs_f64() * 1000.0
 }
 
+/// JXL 只有两种载体：裸 codestream（`FF 0A`）与 ISOBMFF 容器
+/// （`00 00 00 0C 'JXL \r\n\x87\n'`）。两种都认，别只认一种。
+fn sniff_jxl(bytes: &[u8]) -> bool {
+    bytes.starts_with(&[0xFF, 0x0A])
+        || bytes.starts_with(&[0x00, 0x00, 0x00, 0x0C, b'J', b'X', b'L', b' ', 0x0D, 0x0A, 0x87, 0x0A])
+}
+
+/// jxl-oxide → DynamicImage。jxl-oxide 进不了 dev-dependencies 的 bin 目标（E0433 实测），
+/// 所以挂在 `jxl-probe` feature 下，只开给探针构建。
+#[cfg(feature = "jxl-probe")]
+fn decode_jxl(bytes: &[u8]) -> Result<image::DynamicImage> {
+    use jxl_oxide::integration::JxlDecoder;
+    let decoder = JxlDecoder::new(std::io::Cursor::new(bytes))?;
+    Ok(image::DynamicImage::from_decoder(decoder)?)
+}
+
 /// 降到这么多宽（保持比例）。档位覆盖「预览区宽度 × DPR」的常见落点：
 /// 1080p 屏在 1.0–1.5 DPR 下预览区宽 600–1200 px，4K 屏能到 2600 px。
 const TARGETS: [u32; 6] = [4096, 2048, 1440, 1024, 768, 600];
@@ -70,7 +86,15 @@ fn main() -> Result<()> {
     println!("读页      : {:>8.1} ms  ({} B)", ms(started), bytes.len());
 
     // 先看一次真尺寸与色彩类型，后面所有档位都以它为基准。
-    let probe = decode_mod::decode(&bytes)?;
+    // JXL 单独分流：`image` 0.25 不支持 jxl，走 jxl-oxide 的 JxlDecoder（同样产 DynamicImage），
+    // 下游缩放/装箱代码完全复用 —— 三种格式的差异只在这一步。
+    let jxl = sniff_jxl(&bytes);
+    if jxl {
+        #[cfg(not(feature = "jxl-probe"))]
+        anyhow::bail!("该页是 JXL，但本次构建未开 --features jxl-probe，解不了");
+        println!("格式分流  : JXL (jxl-oxide)");
+    }
+    let probe = if jxl { decode_jxl(&bytes)? } else { decode_mod::decode(&bytes)? };
     let (full_w, full_h) = (probe.width(), probe.height());
     println!(
         "原始尺寸  : {full_w}x{full_h} = {:.1} MPix",
@@ -91,12 +115,15 @@ fn main() -> Result<()> {
     let mut full_size = (0u32, 0u32);
     let mut full_bytes = 0usize;
 
-    // 每个档位记 (tri 结果, thumb 结果)
-    let mut rows: Vec<(u32, f64, f64, f64, (u32, u32), usize, f64, f64)> = Vec::new();
+    // 每个档位记 (tri 结果, thumb 结果)。按 TARGETS 长度预铺 Option：
+    // 页宽小于第一档（4096）时前排档位会被跳过，若用 slot 当 rows 下标会越界
+    // （页 19 宽 3858，panic "index out of bounds" 实测）。
+    let mut rows: Vec<Option<(u32, f64, f64, f64, (u32, u32), usize, f64, f64)>> =
+        vec![None; TARGETS.len()];
 
     for _ in 0..rounds {
         let started = Instant::now();
-        let img = decode_mod::decode(&bytes)?;
+        let img = if jxl { decode_jxl(&bytes)? } else { decode_mod::decode(&bytes)? };
         full_decode = full_decode.min(ms(started));
 
         let started = Instant::now();
@@ -110,18 +137,16 @@ fn main() -> Result<()> {
             if *target >= full_w {
                 continue;
             }
-            if rows.len() <= slot {
-                rows.push((
-                    *target,
-                    f64::MAX,
-                    f64::MAX,
-                    f64::MAX,
-                    (0, 0),
-                    0,
-                    f64::MAX,
-                    f64::MAX,
-                ));
-            }
+            let entry = rows[slot].get_or_insert((
+                *target,
+                f64::MAX,
+                f64::MAX,
+                f64::MAX,
+                (0, 0),
+                0,
+                f64::MAX,
+                f64::MAX,
+            ));
 
             let started = Instant::now();
             let small = img.resize(*target, u32::MAX, FilterType::Triangle);
@@ -133,7 +158,6 @@ fn main() -> Result<()> {
             let len = packed.len();
             drop(packed);
 
-            let entry = &mut rows[slot];
             entry.1 = entry.1.min(resize);
             entry.2 = entry.2.min(pack);
             entry.4 = dims;
@@ -164,7 +188,7 @@ fn main() -> Result<()> {
         (full_size.0 as f64 * full_size.1 as f64) / 1e6,
         full_bytes as f64 / 1_048_576.0
     );
-    for (target, resize, pack, _, dims, len, t_resize, t_pack) in &rows {
+    for (target, resize, pack, _, dims, len, t_resize, t_pack) in rows.iter().flatten() {
         println!(
             "{:>22}  {:>9.1}  {:>9.1}  {:>9.1}  {:>10.1}  {:>10.1}  {:>9.1}",
             format!("triangle -> {target}"),

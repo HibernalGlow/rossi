@@ -25,6 +25,16 @@ zip = { version = "8.2.0", default-features = false, features = [
 # 该 crate 在 vendor 检出里被其 workspace `exclude`，本身就是独立可用的包。
 # 补丁内容：UCM_CHANGEVOLUMEW 回调不再按固定 2048 长度切片读变长分卷名。
 unrar = { path = "../../vendor/mimageviewer/crates/unrar-patched" }
+# 仅探针用，默认关闭：`image` 0.25 不带 jxl（feature 全表没有它，src/codecs/ 也没有该模块），
+# JXL 的解码能力在 jxl-oxide 侧 —— 它的 `image` feature 提供 JxlDecoder，直接实现
+# image::ImageDecoder，`DynamicImage::from_decoder` 无缝接入，探针零手写解码代码。
+# 注意：dev-dependencies 对 bin 目标不可用（E0433 实测），所以只能进 [dependencies]；
+# 用 feature 门住，App 与测试构建不受影响。
+# 注意版本：jxl-oxide 的 image feature 依赖 image 0.25，与主依赖同版本，不会双份编译。
+jxl-oxide = { version = "0.12", optional = true, default-features = false, features = [
+    "rayon",
+    "image",
+] }
 
 [features]
 # AVIF 解码。
@@ -43,6 +53,8 @@ unrar = { path = "../../vendor/mimageviewer/crates/unrar-patched" }
 # 这不是意外，是同一份依赖；要分开得靠依赖方显式 `default-features = false`。
 default = ["avif"]
 avif = ["image/avif-native"]
+# 只开给 scale_probe：`cargo build -p rossi_local_core --bin scale_probe --features jxl-probe`
+jxl-probe = ["dep:jxl-oxide"]
 
 [dev-dependencies]
 tempfile = "3"
