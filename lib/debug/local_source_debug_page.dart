@@ -82,6 +82,7 @@ class _StageRow {
     this.prefetchHit = false,
     this.prefetchCost,
     this.prefetchDuringDecode = 0,
+    this.prefetchWait,
   });
 
   final int index;
@@ -124,6 +125,12 @@ class _StageRow {
   /// （1 核 610–667 ms / 16 核 269–295 ms），所以两个解码同时跑不是分核，是双输。
   /// 记在行上而不是让人自己从「许可 N/6 在用」去推 —— 那个数在翻页结束时就变了。
   final int prefetchDuringDecode;
+
+  /// 翻页等了「正在预取的这一页」多久才拿到图（合并路径，见 `_loadPage`）。
+  ///
+  /// 走这条路径时 `decode` / `pack` 仍是 0（翻页没解），但**用户确实等了**——
+  /// 等待时间记在这里，不记进「屏」，否则历史行会谎报「合 9 ms」。
+  final Duration? prefetchWait;
 
   int get pixels => width * height;
 
@@ -242,6 +249,15 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   /// 有界（`_prefetchMaxEntries` / `_prefetchMaxBytes`）：一页显示尺寸约 4 MB 位图，
   /// 但**全尺寸是 179 MB** —— 那种档位下不开预取，见 `_prefetchPage`。
   final Map<int, _PrefetchedPage> _prefetch = {};
+
+  /// 正在解的预取（index → 那一路的 future）。
+  ///
+  /// 有了让路机制还差一块：用户翻到「正在预取的那一页」时，那一路已经
+  /// in-flight、取消不掉 —— 没有这张表的话翻页会**再解一遍同一页**
+  /// （实测 2026-09-16：翻页 699 ms + 预取 829 ms，同一页并发解两次）。
+  /// 翻页先查这里：等在跑的那路解完直接用。等待严格优于并发 ——
+  /// 等待期内没有第二路在抢核；上游不需要这一步是因为它一张图一个核。
+  final Map<int, Future<void>> _prefetchInFlight = {};
 
   static const int _prefetchMaxEntries = 3;
 
@@ -584,6 +600,30 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
         _loadInFlight = false;
         return;
       }
+      // 翻到了「正在预取的那一页」：等在跑的那一路，而不是再解一遍。
+      // 让路机制只挡「发起下一页」，挡不住已经 in-flight 的那路 ——
+      // 观测到的正是这个洞：翻页 699 ms + 预取 829 ms，同一页并发解两次。
+      // 预取那路万一没产出（解失败 / 单页超预算），掉回正常翻页路径重解。
+      final inFlight = _prefetchInFlight[index];
+      if (inFlight != null) {
+        final swWait = Stopwatch()..start();
+        debugPrint('[local-debug] 翻页目标正在预取，等在跑的那一路 index=$index');
+        await inFlight;
+        final waited = swWait.elapsed;
+        debugPrint('[local-debug] 等预取完成 index=$index 等${waited.inMilliseconds}ms');
+        final hitAfterWait = _takePrefetch(index);
+        if (hitAfterWait != null) {
+          _presentPrefetched(
+            index,
+            hitAfterWait,
+            waitedWhilePrefetching: waited,
+          );
+          _loadInFlight = false;
+          unawaited(_refreshLoadStats());
+          return;
+        }
+        debugPrint('[local-debug] 在跑的预取没产出，掉回正常翻页 index=$index');
+      }
     }
 
     try {
@@ -886,7 +926,11 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   /// 这条路径**只可能出现在 Rust 解码路径上**：预取本身走的就是 `local_page_pixels`。
   /// 页面上必须同时报出「预取时花了多少」，否则这个 20 ms 看起来像是解码变快了 ——
   /// 实际是那 300 ms 被挪到了用户读上一页的时候。
-  void _presentPrefetched(int index, _PrefetchedPage hit) {
+  void _presentPrefetched(
+    int index,
+    _PrefetchedPage hit, {
+    Duration? waitedWhilePrefetching,
+  }) {
     final swAll = Stopwatch()..start();
 
     final stale = _rustImage;
@@ -922,13 +966,15 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
           cacheHit: false,
           prefetchHit: true,
           prefetchCost: hit.decode + hit.pack,
+          prefetchWait: waitedWhilePrefetching,
         );
         _history.insert(0, _stage!);
         if (_history.length > 6) _history.removeLast();
       });
       debugPrint(
         '[local-debug] 预取命中 index=$index 屏${total.inMilliseconds}ms '
-        '（预取时解${hit.decode.inMilliseconds} 图${hit.pack.inMilliseconds}）',
+        '（预取时解${hit.decode.inMilliseconds} 图${hit.pack.inMilliseconds}'
+        '${waitedWhilePrefetching != null ? "，等预取${waitedWhilePrefetching.inMilliseconds}ms" : ""}）',
       );
       _schedulePrefetch();
     });
@@ -1089,7 +1135,19 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   Future<void> _prefetchPage(BigInt id, int index) async {
     // 全尺寸一页是 179 MB 位图，预取三页就是 500 MB —— 那种档位不预取。
     if (!_displaySizedDecode) return;
+    // 同一页只允许一路在解：老一轮被 generation 退场后，它 await 的那一页
+    // 仍在解；新一轮如果瞄准同一页，必须跳过而不是叠上去。
+    if (_prefetchInFlight.containsKey(index)) return;
+    final task = _prefetchPageTask(id, index);
+    _prefetchInFlight[index] = task;
+    try {
+      await task;
+    } finally {
+      _prefetchInFlight.remove(index);
+    }
+  }
 
+  Future<void> _prefetchPageTask(BigInt id, int index) async {
     final targetWidth = _targetDecodeWidth();
     final stale = _prefetch[index];
     if (stale != null && stale.targetWidth == targetWidth) return;
@@ -1524,7 +1582,7 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
                 '${_fmtMs(stage.paint)} ms，解码与建图都不在翻页路径上。\n'
                 '成本没有消失 —— 这一页当初解了 '
                 '${_fmtMs(stage.prefetchCost ?? Duration.zero)} ms（解码 + 建图），'
-                '花在你读上一页的时候。关掉「预取：开」再翻这一页，'
+                '${stage.prefetchWait != null ? "而且翻页等了它 ${_fmtMs(stage.prefetchWait!)} ms（等在跑的那路，好过再解一遍）。\n" : ""}关掉「预取：开」再翻这一页，'
                 '就能看到它的真实总价。',
                 style: TextStyle(fontSize: 11, color: Colors.teal.shade700),
               ),
@@ -1614,7 +1672,8 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
                 '  合 ${_fmtMs(row.total).padLeft(8)} ms'
                 // 病根直接标在行上。让用户自己从「许可 1/6 在用」推出
                 // 「所以这一行是被预取拖慢的」，是我不该让他做的事。
-                '${row.prefetchDuringDecode > 0 ? "  ⟵ 解码时与预取并发（${row.prefetchDuringDecode} 张）" : ""}',
+                '${row.prefetchDuringDecode > 0 ? "  ⟵ 解码时与预取并发（${row.prefetchDuringDecode} 张）" : ""}'
+                '${row.prefetchWait != null ? "  ⟵ 等在跑的预取 ${_fmtMs(row.prefetchWait!)} ms（合并路径）" : ""}',
                 style: TextStyle(
                   fontSize: 11,
                   fontFamily: 'monospace',
