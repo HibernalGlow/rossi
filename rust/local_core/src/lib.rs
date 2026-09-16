@@ -310,11 +310,15 @@ mod tests {
         assert!(source.page_bytes(0).is_err());
     }
 
-    /// 归档里混着 avif（核心不能解）与 png（能解）时：
+    /// 归档里混着 jxl（核心不能解）与 png（能解）时：
     /// 两者**都要出现在页序里**，但只有后者能从核心拿像素。
     ///
-    /// 用垃圾字节冒充 avif 是刻意的：闸门必须在**解码之前**生效，
-    /// 所以「内容不是合法 avif」这件事根本不该被读到。
+    /// 用垃圾字节冒充 jxl 是刻意的：闸门必须在**解码之前**生效，
+    /// 所以「内容不是合法 jxl」这件事根本不该被读到。
+    ///
+    /// 这一条原先拿 `avif` 当例子。`avif` 打开 dav1d 之后搬到了核心档，
+    /// 所以回归线换了人 —— 留着旧断言等于在测一个已经不存在的行为。
+    /// `avif` 的归属现在按 feature 分支断言（见 `page_order.rs` 的测试）。
     #[test]
     fn shell_only_pages_are_listed_but_rejected_by_the_core_decoder() {
         let dir = tempfile::tempdir().unwrap();
@@ -323,7 +327,7 @@ mod tests {
             let file = std::fs::File::create(&path).unwrap();
             let mut zip = zip::ZipWriter::new(file);
             let options = zip::write::SimpleFileOptions::default();
-            for name in ["1.png", "2.avif", "3.png"] {
+            for name in ["1.png", "2.jxl", "3.png"] {
                 zip.start_file(name, options).unwrap();
                 let mut buffer = image::RgbaImage::new(2, 2);
                 for pixel in buffer.pixels_mut() {
@@ -339,7 +343,7 @@ mod tests {
         }
 
         let source = LocalSource::open(&path).unwrap();
-        assert_eq!(source.len(), 3, "avif 也应当算作一页");
+        assert_eq!(source.len(), 3, "jxl 也应当算作一页");
         assert_eq!(source.page_decode_support(0), Some(DecodeSupport::Core));
         assert_eq!(source.page_decode_support(1), Some(DecodeSupport::ShellOnly));
         assert_eq!(source.page_decode_support(9), None, "越界应当是 None");
@@ -352,6 +356,6 @@ mod tests {
         let reason = error
             .downcast_ref::<ShellOnlyFormat>()
             .expect("应当是类型化的 ShellOnlyFormat");
-        assert_eq!(reason.extension, "avif");
+        assert_eq!(reason.extension, "jxl");
     }
 }

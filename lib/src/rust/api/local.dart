@@ -6,9 +6,9 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `classify_open_error`, `open_local_source_impl`, `session`
+// These functions are ignored because they are not marked as `pub`: `classify_open_error`, `decode_failed`, `decode_page_impl`, `open_local_source_impl`, `session`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `NEXT_SESSION_ID`, `SESSIONS`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `deref`, `deref`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `initialize`, `initialize`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `deref`, `deref`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `initialize`, `initialize`
 
 Future<LocalSourceOpenResult> openLocalSource({required String path}) =>
     RustLib.instance.api.crateApiLocalOpenLocalSource(path: path);
@@ -19,6 +19,25 @@ Future<List<LocalPageInfo>> localSourcePages({required BigInt id}) =>
 /// 取一页的**编码字节**。每调用一次都会重新打开来源（不常驻句柄，判据 D）。
 Future<Uint8List> localPageBytes({required BigInt id, required int index}) =>
     RustLib.instance.api.crateApiLocalLocalPageBytes(id: id, index: index);
+
+/// 取一页的**解码后像素**。
+///
+/// 和 [`local_page_bytes`] 的分工必须说清，否则很容易用错：
+/// - `local_page_bytes` 给的是**编码字节**，Dart 侧自己解 —— 只对 Dart 引擎认识的格式有效。
+///   Windows 引擎没有 AV1 解码器，所以 avif 走那条路只会得到
+///   `Could not decompress image.`（实测见 `rossi_local_core::page_order`）。
+/// - 这一条走 **Rust 侧解码器**，是 avif 目前唯一能出图的路。
+///
+/// # 这是过渡形态，不是终点
+///
+/// Phase 1 的目标是「Rust 解码 → GPU texture 上屏」，那一步**不过桥**。
+/// 这里把 RGBA 整块搬给 Dart（再由 `ui.decodeImageFromPixels` 上屏），
+/// 一页 44.8 MPix 就是 179 MB 的拷贝 —— 判据 C 的 p95 ≤ 16.7 ms
+/// **不在这一形态下成立**，别拿它的数字当结论。
+Future<LocalPageDecodeResult> localPagePixels({
+  required BigInt id,
+  required int index,
+}) => RustLib.instance.api.crateApiLocalLocalPagePixels(id: id, index: index);
 
 /// 关闭会话并释放。返回 `false` 表示 id 不存在（重复关闭、或已被回收）。
 bool localClose({required BigInt id}) =>
@@ -33,6 +52,56 @@ int localOpenSessionCount() =>
 
 /// 关闭全部会话。用于「换书」「退出阅读器」这类整批释放的场景。
 int localCloseAll() => RustLib.instance.api.crateApiLocalLocalCloseAll();
+
+class LocalDecodeFailure {
+  final LocalDecodeFailureKind kind;
+
+  /// 可直接展示的说明（已本地化）。
+  final String message;
+
+  const LocalDecodeFailure({required this.kind, required this.message});
+
+  @override
+  int get hashCode => kind.hashCode ^ message.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LocalDecodeFailure &&
+          runtimeType == other.runtimeType &&
+          kind == other.kind &&
+          message == other.message;
+}
+
+/// 解码失败的**类别**。用枚举而不是字符串，理由与 `LocalRejection` 相同：
+/// 「这一页的格式核心没解码器」和「字节坏了」给用户的下一步动作完全不同。
+enum LocalDecodeFailureKind {
+  /// 核心没有这个格式的解码器（`jxl` / `heic` / `heif`），要交外壳 —— 而外壳解得动
+  /// 与否取决于平台（Windows 引擎实测解不动，见 `rossi_local_core::page_order`）。
+  shellOnlyFormat,
+
+  /// 核心有解码器但没解出来：字节损坏、内容与格式不符等。
+  decodeFailed,
+}
+
+/// `local_page_pixels` 的返回值：要么 `pixels`，要么 `failure`。
+class LocalPageDecodeResult {
+  final LocalPagePixels? pixels;
+  final LocalDecodeFailure? failure;
+
+  const LocalPageDecodeResult({this.pixels, this.failure});
+
+  @override
+  int get hashCode => pixels.hashCode ^ failure.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LocalPageDecodeResult &&
+          runtimeType == other.runtimeType &&
+          pixels == other.pixels &&
+          failure == other.failure;
+}
 
 class LocalPageInfo {
   final int index;
@@ -60,6 +129,33 @@ class LocalPageInfo {
           index == other.index &&
           name == other.name &&
           size == other.size;
+}
+
+/// 一页解码后的像素（RGBA8，未预乘，行主序）。
+class LocalPagePixels {
+  final int width;
+  final int height;
+
+  /// `width * height * 4` 字节。
+  final Uint8List rgba;
+
+  const LocalPagePixels({
+    required this.width,
+    required this.height,
+    required this.rgba,
+  });
+
+  @override
+  int get hashCode => width.hashCode ^ height.hashCode ^ rgba.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LocalPagePixels &&
+          runtimeType == other.runtimeType &&
+          width == other.width &&
+          height == other.height &&
+          rgba == other.rgba;
 }
 
 class LocalRejection {

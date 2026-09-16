@@ -26,6 +26,24 @@ zip = { version = "8.2.0", default-features = false, features = [
 # 补丁内容：UCM_CHANGEVOLUMEW 回调不再按固定 2048 长度切片读变长分卷名。
 unrar = { path = "../../vendor/mimageviewer/crates/unrar-patched" }
 
+[features]
+# AVIF 解码。
+#
+# 开（默认）：image 的 `avif-native`（dav1d + mp4parse），归档里的 avif 能真正解出像素。
+#   代价有两处，都写在这里免得后来人意外：
+#   - **构建时**要求 pkg-config 找得到 dav1d（Windows 见 docs/windows-build/README.md，
+#     macOS `brew install dav1d`，Linux `apt install libdav1d-dev`）。
+#   - **运行时**要求 dav1d.dll 随 App 分发（BSD-2-Clause，可自由分发）。
+# 关：退回「avif 只算页、不解码」的旧行为，给没有 dav1d 的构建机留一条不阻塞的路：
+#   `cargo build -p rossi_local_core --no-default-features`，
+#   或在依赖方写 `rossi_local_core = { path = ..., default-features = false }`。
+#
+# 注意 Cargo 的 feature 合并：`windcore` 依赖的是**同一份** image 0.25.10，
+# 所以 local_core 打开这个 feature，**Flutter App 的 Rust 侧构建同样会需要 dav1d**。
+# 这不是意外，是同一份依赖；要分开得靠依赖方显式 `default-features = false`。
+default = ["avif"]
+avif = ["image/avif-native"]
+
 [dev-dependencies]
 tempfile = "3"
 # 只给测试用：RAR 夹具是 mImageViewer 源码里内嵌的 base64 块（见 rar_source.rs 的注释）。

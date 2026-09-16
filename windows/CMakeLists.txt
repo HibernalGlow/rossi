@@ -103,6 +103,25 @@ install(DIRECTORY "${NATIVE_ASSETS_DIR}"
    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
    COMPONENT Runtime)
 
+# === dav1d（AVIF 解码的**动态**依赖）===
+# rossi_local_core 的 `avif` feature 让 Rust 侧经 image/avif-native 链接 dav1d。
+# windcore.dll 在加载时就要解析它，所以 dav1d.dll 必须和 zephyr.exe 同目录 ——
+# 少一个文件的表现不是「AVIF 解不开」，而是**App 直接起不来**。
+# 位置由构建环境给出（docs/windows-build/win-baseline-env.sh 会探测并 export），
+# 这里不硬编码任何机器路径；找不到只警告、不中断构建。
+if(NOT DAV1D_DLL)
+  set(DAV1D_DLL "$ENV{DAV1D_DLL}")
+endif()
+if(DAV1D_DLL AND EXISTS "${DAV1D_DLL}")
+  message(STATUS "dav1d: 随包安装 ${DAV1D_DLL}")
+  install(FILES "${DAV1D_DLL}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+    COMPONENT Runtime)
+else()
+  message(WARNING
+    "dav1d: DAV1D_DLL 未设置或文件不存在 —— 产物会缺少 dav1d.dll，"
+    "AVIF 页运行时报错。见 docs/v0.1-local-core.md。")
+endif()
+
 # Fully re-copy the assets directory on each build to avoid having stale files
 # from a previous install.
 set(FLUTTER_ASSET_DIR_NAME "flutter_assets")

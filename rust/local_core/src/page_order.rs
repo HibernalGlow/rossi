@@ -11,11 +11,22 @@ use std::cmp::Ordering;
 ///
 /// 与 `Cargo.toml` 里 `image` 的 feature 集严格对齐：这里列了却解不了，
 /// 就是让用户在读到那一页时才失败。
+///
+/// `avif` 跟着 `avif` feature 走（默认开启）。它从外壳档搬到这里，
+/// 是因为 Windows 引擎实测解不了 —— 交给外壳等于交给「解不动」，
+/// 而 dav1d 已经证明能解（见 `SHELL_DECODABLE_EXTENSIONS` 的实测表）。
+#[cfg(feature = "avif")]
+pub const CORE_DECODABLE_EXTENSIONS: &[&str] = &[
+    "jpg", "jpeg", "png", "webp", "bmp", "gif", "tif", "tiff", "avif",
+];
+
+/// `avif` feature 关闭时的核心档（见 `Cargo.toml` 的 `[features]`）。
+#[cfg(not(feature = "avif"))]
 pub const CORE_DECODABLE_EXTENSIONS: &[&str] = &[
     "jpg", "jpeg", "png", "webp", "bmp", "gif", "tif", "tiff",
 ];
 
-/// **本 crate 解不了、但外壳（Flutter / Skia）能解**的扩展名。
+/// **本 crate 解不了、但外壳（Flutter / Skia）可能能解**的扩展名。
 ///
 /// 这一档是实测逼出来的，不是预留。用户的真实归档
 /// `G44 不会受伤 - NO.119 碧蓝档案 和纱 [30P-421MB].zip` 里 30 张**全是 `.avif`**。
@@ -45,15 +56,18 @@ pub const CORE_DECODABLE_EXTENSIONS: &[&str] = &[
 /// **`dav1d` / `libavif` / `aom` / `avif` 一个都没有** —— 它没链进 AV1 解码器。
 /// 关掉 Impeller 重测无变化。
 ///
-/// 所以这一档的准确含义是：**本 crate 不解，交由外壳；外壳解得动与否取决于平台，
-/// Windows 上目前解不动。** 列出来的价值在于用户能看见「书里有 30 页」，
-/// 而不是价值在于「能显示」。
+/// 所以留在这一档的格式，准确含义是：
+/// **本 crate 不解，交由外壳；外壳解得动与否取决于平台。**
+/// 列出来的价值在于用户能看见「书里有 N 页」，而不是「能显示」。
 ///
-/// 代价必须写在这里免得以后误读：这些页**只能走 Dart 兜底显示路径**
-/// （`docs/v0.1-local-core.md` §9），Phase 1 那条「Rust 解码 → GPU texture 上屏」
-/// 对它们**不成立** —— `image` 要解 avif 得带 libavif/dav1d 这类原生依赖，
-/// 属 core 之外的东西，是否纳入由 Gate 决定；在补齐之前，
-/// 「打开 avif 归档只能看到页表」是**已知且已记录**的行为，不是 bug。
+/// 曾经 `avif` 也在这里。后来量出 dav1d 这条路可行（同尺寸实测
+/// 176–304 ms / 张，与 JPEG 同量级），才把它搬到核心档 —— 结论是
+/// **不要把一个能自己解决的问题挂到平台能力上**。
+#[cfg(feature = "avif")]
+pub const SHELL_DECODABLE_EXTENSIONS: &[&str] = &["jxl", "heic", "heif"];
+
+/// `avif` feature 关闭时，它退回这一档（只列页、不解码）。
+#[cfg(not(feature = "avif"))]
 pub const SHELL_DECODABLE_EXTENSIONS: &[&str] = &["avif", "jxl", "heic", "heif"];
 
 /// 一页的解码归属。
@@ -216,13 +230,28 @@ mod tests {
 
     /// 这一条是**回归线**，不是补充测试：把 `avif` 挡在页枚举之外，
     /// 曾让用户看到「打开 zip 没反应」（30 张全是 avif → 0 页，且无拒绝原因）。
+    /// 无论 `avif` feature 开关，这些格式都必须**算页**。
     #[test]
     fn shell_only_formats_are_pages_but_not_core_decodable() {
-        for name in ["1.avif", "1.AVIF", "ch/2.jxl", "3.heic", "4.HEIF"] {
+        for name in ["1.avif", "1.AVIF", "1.jxl", "ch/2.heic", "3.HEIF"] {
             assert!(is_image_name(name), "{name} 应当算作一页");
+        }
+        for name in ["1.jxl", "ch/2.heic", "3.HEIF"] {
             assert!(needs_shell_decoder(name), "{name} 应当由外壳解码");
             assert_eq!(decode_support(name), Some(DecodeSupport::ShellOnly));
         }
+        // avif 的归属**随 feature 变**：开着由 dav1d 自己解，关着才交外壳。
+        #[cfg(feature = "avif")]
+        {
+            assert_eq!(decode_support("1.avif"), Some(DecodeSupport::Core));
+            assert!(!needs_shell_decoder("1.avif"));
+        }
+        #[cfg(not(feature = "avif"))]
+        {
+            assert_eq!(decode_support("1.avif"), Some(DecodeSupport::ShellOnly));
+            assert!(needs_shell_decoder("1.avif"));
+        }
+
         // 反过来：核心能解的页绝不能被标成 shell-only
         for name in ["1.jpg", "1.png", "1.webp"] {
             assert_eq!(decode_support(name), Some(DecodeSupport::Core), "{name}");

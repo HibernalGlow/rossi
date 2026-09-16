@@ -635,3 +635,34 @@ out = subprocess.run(['tasklist','/FO','CSV','/NH'], capture_output=True).stdout
 # 再对目标 PID 执行： subprocess.run(['taskkill','/PID',pid,'/F'])
 ```
 
+### 7.7 dav1d —— AVIF 解码的**动态**依赖（2026-09-16 接入）
+
+`rossi_local_core` 的 `avif` feature（默认开）让 Rust 侧经 `image/avif-native`
+链接 dav1d。两件事必须知道：
+
+**构建时**：`dav1d-sys` 通过 pkg-config 找 dav1d。本机已有 vcpkg 的 `x64-windows`
+（`D:\scoop\persist\vcpkg\installed\x64-windows`，1.5.3，含 `lib/pkgconfig/dav1d.pc`），
+`PKG_CONFIG_PATH` 由 scoop 的环境带进来。缺了它构建会失败。
+macOS 用 `brew install dav1d`，Linux 用 `apt install libdav1d-dev`。
+
+**运行时**：dav1d 是动态库。`dav1d.dll` 不在 `zephyr.exe` 旁边时 `windcore.dll` 加载失败，
+**App 直接起不来** —— 不是「AVIF 解不开」，别往解码那边找。
+`windows/CMakeLists.txt` 读环境变量 `DAV1D_DLL` 并把它装进 bundle；
+这个变量由 `win-baseline-env.sh` 末尾那段探测后 export。
+source 该脚本时会打印 `[rossi-env] dav1d.dll = D:/scoop/...`，没打印就是没找到。
+
+**试过但没成的一条（别重复踩）**：`dav1d-sys` 有 `build_from_src`
+（`SYSTEM_DEPS_DAV1D_BUILD_INTERNAL=always` + `SYSTEM_DEPS_LINK=static`），
+能 git clone + meson + ninja 出静态库、免去分发 DLL。本机跑到 meson setup 就断了：
+
+```
+C compiler for the host machine: ...\.cargo\bin\sccache.EXE cl
+ERROR: Could not determine vs dep dependency prefix string. output: "unknown proxy name: 'sccache'"
+ninja: error: loading 'build.ninja': The system cannot find the file specified
+```
+
+meson 从 PATH 里把 `sccache.EXE` 当成了编译器启动器，探测 MSVC 依赖前缀那步直接失败，
+`build.ninja` 根本没生成，之后 ninja 无事可做 —— 产物仍是链接 vcpkg 的**导入库**，
+`static=dav1d` 对导入库毫无意义。要绕开得把 sccache 移出 PATH，**加参数绕不过去**。
+动态依赖可接受，这条就没继续（细节见 `docs/v0.1-local-core.md` §5.2）。
+

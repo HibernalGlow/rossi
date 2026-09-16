@@ -113,6 +113,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ImageInfo dco_decode_box_autoadd_image_info(dynamic raw);
 
   @protected
+  LocalDecodeFailure dco_decode_box_autoadd_local_decode_failure(dynamic raw);
+
+  @protected
+  LocalPagePixels dco_decode_box_autoadd_local_page_pixels(dynamic raw);
+
+  @protected
   LocalRejection dco_decode_box_autoadd_local_rejection(dynamic raw);
 
   @protected
@@ -174,7 +180,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<TaggedAllocation> dco_decode_list_tagged_allocation(dynamic raw);
 
   @protected
+  LocalDecodeFailure dco_decode_local_decode_failure(dynamic raw);
+
+  @protected
+  LocalDecodeFailureKind dco_decode_local_decode_failure_kind(dynamic raw);
+
+  @protected
+  LocalPageDecodeResult dco_decode_local_page_decode_result(dynamic raw);
+
+  @protected
   LocalPageInfo dco_decode_local_page_info(dynamic raw);
+
+  @protected
+  LocalPagePixels dco_decode_local_page_pixels(dynamic raw);
 
   @protected
   LocalRejection dco_decode_local_rejection(dynamic raw);
@@ -212,6 +230,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   HttpClientOptions? dco_decode_opt_box_autoadd_http_client_options(
     dynamic raw,
   );
+
+  @protected
+  LocalDecodeFailure? dco_decode_opt_box_autoadd_local_decode_failure(
+    dynamic raw,
+  );
+
+  @protected
+  LocalPagePixels? dco_decode_opt_box_autoadd_local_page_pixels(dynamic raw);
 
   @protected
   LocalRejection? dco_decode_opt_box_autoadd_local_rejection(dynamic raw);
@@ -348,6 +374,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ImageInfo sse_decode_box_autoadd_image_info(SseDeserializer deserializer);
 
   @protected
+  LocalDecodeFailure sse_decode_box_autoadd_local_decode_failure(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LocalPagePixels sse_decode_box_autoadd_local_page_pixels(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   LocalRejection sse_decode_box_autoadd_local_rejection(
     SseDeserializer deserializer,
   );
@@ -421,7 +457,25 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  LocalDecodeFailure sse_decode_local_decode_failure(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LocalDecodeFailureKind sse_decode_local_decode_failure_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LocalPageDecodeResult sse_decode_local_page_decode_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   LocalPageInfo sse_decode_local_page_info(SseDeserializer deserializer);
+
+  @protected
+  LocalPagePixels sse_decode_local_page_pixels(SseDeserializer deserializer);
 
   @protected
   LocalRejection sse_decode_local_rejection(SseDeserializer deserializer);
@@ -465,6 +519,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   HttpClientOptions? sse_decode_opt_box_autoadd_http_client_options(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LocalDecodeFailure? sse_decode_opt_box_autoadd_local_decode_failure(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LocalPagePixels? sse_decode_opt_box_autoadd_local_page_pixels(
     SseDeserializer deserializer,
   );
 
@@ -638,6 +702,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_local_decode_failure(
+    LocalDecodeFailure self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_local_page_pixels(
+    LocalPagePixels self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_local_rejection(
     LocalRejection self,
     SseSerializer serializer,
@@ -725,7 +801,31 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_local_decode_failure(
+    LocalDecodeFailure self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_local_decode_failure_kind(
+    LocalDecodeFailureKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_local_page_decode_result(
+    LocalPageDecodeResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_local_page_info(LocalPageInfo self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_local_page_pixels(
+    LocalPagePixels self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_local_rejection(
@@ -784,6 +884,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_http_client_options(
     HttpClientOptions? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_local_decode_failure(
+    LocalDecodeFailure? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_local_page_pixels(
+    LocalPagePixels? self,
     SseSerializer serializer,
   );
 

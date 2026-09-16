@@ -10,10 +10,12 @@ import 'package:zephyr/src/rust/api/local.dart';
 ///
 /// 四条边界，写在这里免得以后误读：
 ///
-/// 1. **这里走的是 Dart 兜底显示路径。** 用 `Image` 让 Flutter 解码，
-///    即「编码字节过桥」——`docs/v0.1-local-core.md` §9 明确允许，用于兜底与
-///    尺寸探测。**目标形态是 Rust 侧解码后直接进 GPU texture**（Phase 1 的
-///    `texture-bridge`），本页不代表最终上屏路径，不要拿它的帧率当判据 B/C。
+/// 1. **两条解码路径都在这里，可当场对照。** 「外壳」= 编码字节过桥交给 Flutter 引擎
+///    （`docs/v0.1-local-core.md` §9 允许的兜底形态）；「Rust」= `local_page_pixels`
+///    解码后把 RGBA 交给 Dart —— 这是 avif 唯一能出图的形态。
+///    **两者都不是最终上屏路径**：目标是 Rust 解码后直接进 GPU texture（Phase 1 的
+///    `texture-bridge`）。Rust 路目前要把整块 RGBA 过桥（44.8 MPix = 179 MB），
+///    所以本页的帧率**不能**当作判据 B/C 的结论。
 /// 2. **不做页面缓存。** 每次翻页都重新 `localPageBytes`，顺便让「不常驻句柄」
 ///    这条性质在 UI 上可见（判据 D 的结构性依据）。只保留当前页，**换页时连上一页
 ///    的解码结果一起 `evict`** —— 真实扫描页单页可达 44.8 MPix（RGBA 位图 179 MB），
@@ -63,6 +65,24 @@ class _StageRow {
   int get bitmapBytes => pixels * 4;
 }
 
+/// 这一页让谁来解码。
+///
+/// 这一维是 `avif` 逼出来的：Windows 引擎（`flutter_windows.dll`）没有链入 AV1
+/// 解码器，外壳路径对它**必然失败**；而 Rust 侧（dav1d）能解。
+/// 留着开关是为了让两条路径的耗时当场可比，而不是只能信文档里的数字。
+enum _DecoderMode {
+  /// 先试 Rust；它明确回答「这页归外壳」时才退回外壳。
+  auto('解码器：自动'),
+  /// 只走 Rust（`local_page_pixels`）。avif 唯一能出图的形态。
+  rust('解码器：Rust'),
+  /// 只走外壳（Flutter / Skia），即「编码字节过桥」。
+  shell('解码器：外壳');
+
+  const _DecoderMode(this.label);
+
+  final String label;
+}
+
 class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   BigInt? _sessionId;
   LocalSourceInfo? _info;
@@ -79,6 +99,15 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
 
   /// 当前页的 provider —— 持有它才能在换页时把上一页从图片缓存里踢掉。
   ImageProvider? _provider;
+
+  /// Rust 解码路径产出的位图。非 null 时优先渲染，同时 `_provider` 会被清空。
+  ///
+  /// 两条路径的资源**互斥**，都靠 `_releaseCurrentImage()` 统一释放：
+  /// 一页 44.8 MPix 的 RGBA 是 179 MB，漏掉任一边都会把内存顶上去。
+  ui.Image? _rustImage;
+
+  /// 解码器选择。默认 `auto`：Rust 优先，格式归外壳时自动退回。
+  _DecoderMode _decoderMode = _DecoderMode.auto;
 
   /// 最近一次翻页的分段耗时与解出的尺寸。
   _StageRow? _stage;
@@ -105,9 +134,23 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
     if (id != null) {
       localClose(id: id);
     }
-    // 大位图不主动踢会一直挂在全局图片缓存里。
-    _provider?.evict();
+    _releaseCurrentImage();
     super.dispose();
+  }
+
+  /// 释放当前页的两条显示资源。
+  ///
+  /// 外壳路径的位图挂在全局图片缓存里，要 `evict`；Rust 路径的是我们自己的
+  /// `ui.Image`，要 `dispose`。**两条都必须走这里** —— 一页 44.8 MPix 是 179 MB，
+  /// 漏掉任一边都会在翻几页之后把内存顶上去（曾观测到 RSS 592 MB）。
+  void _releaseCurrentImage() {
+    final provider = _provider;
+    _provider = null;
+    unawaited(provider?.evict());
+
+    final rustImage = _rustImage;
+    _rustImage = null;
+    rustImage?.dispose();
   }
 
   Future<void> _refreshProbe() async {
@@ -119,10 +162,8 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
     final id = _sessionId;
     if (id == null) return;
     localClose(id: id);
-    final old = _provider;
-    _provider = null;
     // 解绑是大位图的唯一释放途径（见类注释第 2 条）。
-    unawaited(old?.evict());
+    _releaseCurrentImage();
     if (!mounted) return;
     setState(() {
       _sessionId = null;
@@ -246,7 +287,7 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   /// 直接把引擎原文丢出来（`Exception: Could not decompress image.`）等于把内部
   /// 细节推给用户；他真正需要知道的是「换个格式 / 等哪个功能 / 是不是书坏了」。
   /// 这里的措辞有实测依据，别随手改软：`integration_test/avif_decode_probe_test.dart`。
-  static const _shellOnlyExtensions = {'avif', 'jxl', 'heic', 'heif'};
+  static const _shellOnlyExtensions = {'jxl', 'heic', 'heif'};
 
   String _explainDecodeFailure(int index, int byteCount, String? errorText) {
     final name = index < _pages.length ? _pages[index].name : '';
@@ -257,24 +298,53 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
     final head = '第 $index 页解码失败。\n'
         '编码字节 $byteCount B 已完整读出（归档读取正常，失败在解码这一步）。';
 
+    if (ext == 'avif') {
+      // 这条现在是「走错了路」而不是「做不到」——Rust 侧有 dav1d。
+      // 措辞别改软，实测依据在 integration_test/avif_decode_probe_test.dart。
+      return '$head\n'
+          '该页是 .avif，**Rust 侧能解**（dav1d），解不了的是当前这条「外壳」路径：'
+          'flutter_windows.dll 没有链入 AV1 解码器 —— 实测它读得出尺寸、给不出像素，'
+          '而同尺寸 JPEG 完全正常。把上面的解码器切到「自动」或「Rust」即可。';
+    }
+
     if (_shellOnlyExtensions.contains(ext)) {
       return '$head\n'
-          '该页是 .$ext：本 crate 不认这种格式，要交给引擎解，而本机引擎'
-          '（flutter_windows.dll）没有链入 AV1 解码器 —— 实测它读得出尺寸、'
-          '给不出像素；同尺寸 JPEG 正常，所以不是大图的问题。'
+          '该页是 .$ext：本 crate 与这台机器的引擎都没有这种格式的解码器。'
           '这是已知平台限制，不是书坏了。';
     }
     return '$head\n引擎报错：${errorText ?? '未知'}';
   }
 
+  /// 翻页入口：按 `_decoderMode` 决定让谁解。
+  ///
+  /// `auto` 的语义是「**Rust 优先，格式归外壳时退回**」，不是「随便挑一个能用的」。
+  /// 只有 Rust 明确回答 `shellOnlyFormat` 才算「这页归外壳」；解码失败是另一回事，
+  /// 那种情况就地报错 —— 偷偷换条路会把失败藏起来，而失败正是这张页面要显示的东西。
   Future<void> _loadPage(int index, {bool force = false}) async {
     final id = _sessionId;
     if (id == null || index < 0 || index >= _pages.length) return;
+    if (!force && _currentBytesIndex == index && _rustImage != null) {
+      setState(() => _current = index);
+      return;
+    }
     if (!force && _currentBytesIndex == index && _currentBytes != null) {
       setState(() => _current = index);
       return;
     }
 
+    if (_decoderMode != _DecoderMode.shell) {
+      final settled = await _loadPageViaRust(id, index);
+      if (settled) return;
+      debugPrint('[local-debug] Rust 判定这页归外壳，退回外壳路径 index=$index');
+    }
+    await _loadPageViaShell(id, index);
+  }
+
+  /// 外壳路径：把**编码字节**交给 Flutter 引擎解。
+  ///
+  /// 这是最早的形态，留着有两个理由：引擎认识的格式（jpg / png / …）走这条更省内存
+  /// （能按显示尺寸解，不必全尺寸 RGBA 过桥），而且两条路径的耗时需要有个对照。
+  Future<void> _loadPageViaShell(BigInt id, int index) async {
     final swAll = Stopwatch()..start();
     debugPrint('[local-debug] 读页开始 index=$index');
 
@@ -345,6 +415,8 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
           _current = index;
           _currentBytes = bytes;
           _currentBytesIndex = index;
+          // 上一页失败留下的说明要清掉，否则翻到好页也还挂着红字。
+          _error = null;
           _stage = _StageRow(
             index: index,
             mode: mode,
@@ -392,6 +464,107 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
       },
     );
     stream.addListener(listener);
+  }
+
+  /// Rust 路径：`local_page_pixels` —— Rust 解码后把 RGBA 交给 Dart 上屏。
+  ///
+  /// 返回值是「这件事办完了吗」：`false` 表示 Rust **明确回答这页归外壳**
+  /// （`shellOnlyFormat`），调用方该退回外壳路径。这不是错误，是格式归属 ——
+  /// 归属与失败必须分开，否则 `auto` 会退化成「随便挑一条能走的路」。
+  ///
+  /// 计时口径与外壳路径不同，**别直接比**：这里「解码」一段包含 Rust 解码 +
+  /// FRB 过桥（44.8 MPix 就是 179 MB）+ `decodeImageFromPixels` 建纹理，
+  /// 读页那一段合并了进来（所以 `read` 记 0）。两边真正可比的是「上屏」。
+  Future<bool> _loadPageViaRust(BigInt id, int index) async {
+    final swAll = Stopwatch()..start();
+    final swDecode = Stopwatch()..start();
+    debugPrint('[local-debug] Rust 解码开始 index=$index');
+
+    final LocalPageDecodeResult result;
+    try {
+      result = await localPagePixels(id: id, index: index);
+    } catch (e) {
+      debugPrint('[local-debug] Rust 解码调用失败 index=$index: $e');
+      return false;
+    }
+
+    final pixels = result.pixels;
+    final failure = result.failure;
+
+    if (pixels == null) {
+      if (failure?.kind == LocalDecodeFailureKind.shellOnlyFormat) {
+        return false;
+      }
+      debugPrint('[local-debug] Rust 解码失败 index=$index: ${failure?.message}');
+      if (!mounted) return true;
+      setState(() {
+        _current = index;
+        _error = '第 $index 页 Rust 解码失败。\n${failure?.message ?? '未知原因'}';
+      });
+      return true;
+    }
+
+    final decoded = await _imageFromRgba(
+      pixels.rgba,
+      pixels.width,
+      pixels.height,
+    );
+    swDecode.stop();
+
+    if (!mounted) {
+      decoded.dispose();
+      return true;
+    }
+
+    final stale = _rustImage;
+    _rustImage = decoded;
+    final staleProvider = _provider;
+    _provider = null;
+    unawaited(staleProvider?.evict());
+    stale?.dispose();
+
+    // 上屏：与外壳路径同一套口径 —— 等含这张图的下一帧画完再收尾。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !identical(_rustImage, decoded)) return;
+      final total = swAll.elapsed;
+      final decode = swDecode.elapsed;
+      final paint = total - decode;
+      setState(() {
+        _current = index;
+        _currentBytes = null;
+        _currentBytesIndex = index;
+        _error = null;
+        _stage = _StageRow(
+          index: index,
+          mode: 'Rust 解码',
+          read: Duration.zero,
+          decode: decode,
+          paint: paint.isNegative ? Duration.zero : paint,
+          total: total,
+          width: pixels.width,
+          height: pixels.height,
+          cacheHit: false,
+        );
+        _history.insert(0, _stage!);
+        if (_history.length > 6) _history.removeLast();
+      });
+      debugPrint('[local-debug] Rust 翻页完成 index=$index '
+          '解${decode.inMilliseconds} 屏${paint.inMilliseconds} '
+          '合${total.inMilliseconds}ms ${pixels.width}x${pixels.height}');
+    });
+    return true;
+  }
+
+  Future<ui.Image> _imageFromRgba(Uint8List rgba, int width, int height) {
+    final done = Completer<ui.Image>();
+    ui.decodeImageFromPixels(
+      rgba,
+      width,
+      height,
+      ui.PixelFormat.rgba8888,
+      done.complete,
+    );
+    return done.future;
   }
 
   /// 逐页读一遍并计时。这条曲线是 `docs/v0.1-local-core.md` §7 那把尺子：
@@ -494,10 +667,30 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
                     : Icons.photo_size_select_actual_outlined,
                 size: 18,
               ),
-              label: Text(_displaySizedDecode ? '解码：显示尺寸' : '解码：全尺寸'),
+              label: Text(_displaySizedDecode ? '尺寸：显示' : '尺寸：全尺寸'),
               onSelected: (v) {
                 setState(() => _displaySizedDecode = v);
                 // 重新读当前页，让两种模式的数字直接可比。
+                _loadPage(_current, force: true);
+              },
+            ),
+          ),
+          Tooltip(
+            message: '谁负责解这一页。点按循环切换：\n'
+                '自动 = Rust 优先，Rust 明确说「归外壳」时才退回引擎；\n'
+                'Rust = 只走 Rust 解码器（avif 唯一能出图的形态）；\n'
+                '外壳 = 编码字节过桥交给引擎，只有引擎认识的格式能出图。',
+            child: ActionChip(
+              avatar: const Icon(Icons.memory_outlined, size: 18),
+              label: Text(_decoderMode.label),
+              onPressed: () {
+                final next = switch (_decoderMode) {
+                  _DecoderMode.auto => _DecoderMode.rust,
+                  _DecoderMode.rust => _DecoderMode.shell,
+                  _DecoderMode.shell => _DecoderMode.auto,
+                };
+                setState(() => _decoderMode = next);
+                // 立刻重读本页：这个开关的意义就是让两条路的数字当场可比。
                 _loadPage(_current, force: true);
               },
             ),
@@ -518,9 +711,7 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
             onPressed: () async {
               final n = localCloseAll();
               if (!mounted) return;
-              final old = _provider;
-              _provider = null;
-              unawaited(old?.evict());
+              _releaseCurrentImage();
               setState(() {
                 _sessionId = null;
                 _info = null;
@@ -735,13 +926,21 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
             builder: (context, constraints) {
               // 回填给下一次翻页估算解码宽度（首次翻页时还没布局，会退回窗口宽度估算）。
               _viewerWidth = constraints.maxWidth;
+              final rustImage = _rustImage;
               final provider = _provider;
-              if (provider == null) {
+              if (rustImage == null && provider == null) {
                 return const Center(child: CircularProgressIndicator());
               }
               return InteractiveViewer(
                 maxScale: 8,
-                child: Image(image: provider, fit: BoxFit.contain, gaplessPlayback: true),
+                child: rustImage != null
+                    // Rust 路径：位图已经解好了，直接画。
+                    ? RawImage(image: rustImage, fit: BoxFit.contain)
+                    : Image(
+                        image: provider!,
+                        fit: BoxFit.contain,
+                        gaplessPlayback: true,
+                      ),
               );
             },
           ),

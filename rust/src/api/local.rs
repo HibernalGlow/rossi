@@ -34,7 +34,7 @@ use anyhow::Error;
 use dashmap::DashMap;
 use flutter_rust_bridge::frb;
 use lazy_static::lazy_static;
-use rossi_local_core::{LocalSource, SourceKind, UnsupportedSource};
+use rossi_local_core::{LocalSource, ShellOnlyFormat, SourceKind, UnsupportedSource};
 
 lazy_static! {
     /// `id → LocalSource`。**只存路径与页元数据**，所以它的体积与「打开了几本」成正比，
@@ -217,6 +217,107 @@ pub async fn local_page_bytes(id: u64, index: u32) -> Result<Vec<u8>, Error> {
         .await?
 }
 
+/// 一页解码后的像素（RGBA8，未预乘，行主序）。
+#[derive(Debug, Clone)]
+pub struct LocalPagePixels {
+    pub width: u32,
+    pub height: u32,
+    /// `width * height * 4` 字节。
+    pub rgba: Vec<u8>,
+}
+
+/// 解码失败的**类别**。用枚举而不是字符串，理由与 `LocalRejection` 相同：
+/// 「这一页的格式核心没解码器」和「字节坏了」给用户的下一步动作完全不同。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LocalDecodeFailureKind {
+    /// 核心没有这个格式的解码器（`jxl` / `heic` / `heif`），要交外壳 —— 而外壳解得动
+    /// 与否取决于平台（Windows 引擎实测解不动，见 `rossi_local_core::page_order`）。
+    ShellOnlyFormat,
+    /// 核心有解码器但没解出来：字节损坏、内容与格式不符等。
+    DecodeFailed,
+}
+
+#[derive(Debug, Clone)]
+pub struct LocalDecodeFailure {
+    pub kind: LocalDecodeFailureKind,
+    /// 可直接展示的说明（已本地化）。
+    pub message: String,
+}
+
+/// `local_page_pixels` 的返回值：要么 `pixels`，要么 `failure`。
+#[derive(Debug, Clone)]
+pub struct LocalPageDecodeResult {
+    pub pixels: Option<LocalPagePixels>,
+    pub failure: Option<LocalDecodeFailure>,
+}
+
+/// 取一页的**解码后像素**。
+///
+/// 和 [`local_page_bytes`] 的分工必须说清，否则很容易用错：
+/// - `local_page_bytes` 给的是**编码字节**，Dart 侧自己解 —— 只对 Dart 引擎认识的格式有效。
+///   Windows 引擎没有 AV1 解码器，所以 avif 走那条路只会得到
+///   `Could not decompress image.`（实测见 `rossi_local_core::page_order`）。
+/// - 这一条走 **Rust 侧解码器**，是 avif 目前唯一能出图的路。
+///
+/// # 这是过渡形态，不是终点
+///
+/// Phase 1 的目标是「Rust 解码 → GPU texture 上屏」，那一步**不过桥**。
+/// 这里把 RGBA 整块搬给 Dart（再由 `ui.decodeImageFromPixels` 上屏），
+/// 一页 44.8 MPix 就是 179 MB 的拷贝 —— 判据 C 的 p95 ≤ 16.7 ms
+/// **不在这一形态下成立**，别拿它的数字当结论。
+#[frb]
+pub async fn local_page_pixels(id: u64, index: u32) -> LocalPageDecodeResult {
+    let source = match session(id) {
+        Ok(source) => source,
+        Err(error) => return decode_failed(format!("{error:#}")),
+    };
+
+    rquickjs_playground::global_handle()
+        .spawn_blocking(move || decode_page_impl(&source, index as usize))
+        .await
+        .unwrap_or_else(|error| decode_failed(format!("解码任务失败: {error}")))
+}
+
+fn decode_failed(message: String) -> LocalPageDecodeResult {
+    LocalPageDecodeResult {
+        pixels: None,
+        failure: Some(LocalDecodeFailure {
+            kind: LocalDecodeFailureKind::DecodeFailed,
+            message,
+        }),
+    }
+}
+
+fn decode_page_impl(source: &LocalSource, index: usize) -> LocalPageDecodeResult {
+    match source.page_pixels(index) {
+        Ok(pixels) => LocalPageDecodeResult {
+            pixels: Some(LocalPagePixels {
+                width: pixels.width,
+                height: pixels.height,
+                rgba: pixels.rgba,
+            }),
+            failure: None,
+        },
+        Err(error) => {
+            // 与 `classify_open_error` 同理：`page_pixels` 内部也用 `with_context` 包过，
+            // 类型化的原因必须 `downcast_ref` **向下穿透**。否则「这本是 jxl、要交外壳」
+            // 会退化成「解码失败」，而这两者的下一步动作完全不同。
+            let kind = if error.downcast_ref::<ShellOnlyFormat>().is_some() {
+                LocalDecodeFailureKind::ShellOnlyFormat
+            } else {
+                LocalDecodeFailureKind::DecodeFailed
+            };
+            LocalPageDecodeResult {
+                pixels: None,
+                failure: Some(LocalDecodeFailure {
+                    kind,
+                    message: format!("{error:#}"),
+                }),
+            }
+        }
+    }
+}
+
 /// 关闭会话并释放。返回 `false` 表示 id 不存在（重复关闭、或已被回收）。
 #[frb(sync)]
 pub fn local_close(id: u64) -> bool {
@@ -251,6 +352,21 @@ fn session(id: u64) -> Result<LocalSource, Error> {
 mod tests {
     use super::*;
 
+    /// 碰全局 `SESSIONS` 的测试必须串行 —— `cargo test` 默认是多线程的。
+    ///
+    /// `SESSIONS` 是进程级单例：`open_read_close_round_trip` 插入会话的那一瞬间，
+    /// 如果 `session_count_does_not_drift_when_books_are_cycled` 正在读计数，
+    /// 断言就会看到 1 而不是 0。这不是逻辑错，是**拿共享全局状态当夹具**的固有代价。
+    /// 2026-09-16 观察到这个抖动：新增一条测试改变了调度顺序，它才露出来。
+    static SESSIONS_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    fn lock_sessions() -> std::sync::MutexGuard<'static, ()> {
+        // 有测试 panic 过会把锁标记为 poisoned；这里关心的是互斥，不是那次失败。
+        SESSIONS_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
     fn make_cbz(dir: &std::path::Path, name: &str) -> std::path::PathBuf {
         use std::io::Write;
         let path = dir.join(name);
@@ -272,6 +388,7 @@ mod tests {
 
     #[test]
     fn open_read_close_round_trip() {
+        let _guard = lock_sessions();
         let dir = tempfile::tempdir().unwrap();
         let path = make_cbz(dir.path(), "book.cbz");
 
@@ -312,6 +429,7 @@ mod tests {
 
     #[test]
     fn session_count_does_not_drift_when_books_are_cycled() {
+        let _guard = lock_sessions();
         // 判据 D 的探针在 App 层仍然要成立：反复开关不会留下会话。
         let dir = tempfile::tempdir().unwrap();
         let baseline = local_open_session_count();
@@ -322,5 +440,47 @@ mod tests {
             assert_eq!(local_close(info.id), true);
             assert_eq!(local_open_session_count(), baseline);
         }
+    }
+
+    /// 解码归属**不能**在过桥时退化成「解码失败」。
+    ///
+    /// 三种输入各走一条岔路：能解的、核心没解码器的（交外壳）、核心解不出来的（坏了）。
+    /// 前两个若被合成一个，UI 就没法给出正确的下一步动作 —— 这是 `LocalRejection`
+    /// 那条教训在解码侧的同一个形状。
+    #[test]
+    fn page_pixels_separate_shell_only_from_broken_bytes() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("mixed");
+        std::fs::create_dir(&root).unwrap();
+
+        let buffer = image::RgbaImage::new(4, 3);
+        let mut encoded = std::io::Cursor::new(Vec::new());
+        image::DynamicImage::ImageRgba8(buffer)
+            .write_to(&mut encoded, image::ImageFormat::Png)
+            .unwrap();
+        std::fs::write(root.join("1.png"), encoded.into_inner()).unwrap();
+        // 垃圾字节冒充 jxl：闸门在解码**之前**，所以内容是什么无关紧要。
+        std::fs::write(root.join("2.jxl"), b"not really a jxl").unwrap();
+        // 垃圾字节冒充 png：这一页会真的走到解码器，报出的必须是 DecodeFailed。
+        std::fs::write(root.join("3.png"), b"not really a png").unwrap();
+
+        let source = LocalSource::open(&root).unwrap();
+        assert_eq!(source.len(), 3);
+
+        let ok = decode_page_impl(&source, 0);
+        assert!(ok.failure.is_none(), "{:?}", ok.failure);
+        assert_eq!(ok.pixels.unwrap().width, 4);
+
+        let shell = decode_page_impl(&source, 1);
+        assert_eq!(
+            shell.failure.expect("应当失败").kind,
+            LocalDecodeFailureKind::ShellOnlyFormat
+        );
+
+        let broken = decode_page_impl(&source, 2);
+        assert_eq!(
+            broken.failure.expect("应当失败").kind,
+            LocalDecodeFailureKind::DecodeFailed
+        );
     }
 }

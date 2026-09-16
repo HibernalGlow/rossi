@@ -122,3 +122,26 @@ export FLUTTER_STORAGE_BASE_URL="https://storage.flutter-io.cn"
 # ── 关闭 Flutter 遥测与版本检查，压掉基线构建的噪声变量 ──
 export FLUTTER_SUPPRESS_ANALYTICS=true
 export CI=true
+
+# ── dav1d：AVIF 解码的**动态**依赖 ──
+# rossi_local_core 的 `avif` feature（默认开）让 Rust 侧经 image/avif-native 链接 dav1d。
+# 它是动态库，必须和 zephyr.exe 同目录，否则 windcore.dll 加载失败、App 直接起不来。
+# 这个变量只回答「dav1d.dll 在哪」——windows/CMakeLists.txt 据此把它装进 bundle。
+# 注意：找不到它**不会**让构建失败，只会让产物缺一个运行时依赖（AVIF 页解不出来）。
+_rossi_dav1d_dll=""
+for _rossi_cand in \
+    /d/scoop/persist/vcpkg/installed/*/bin/dav1d.dll \
+    /d/scoop/apps/vcpkg/current/installed/*/bin/dav1d.dll; do
+  if [ -f "$_rossi_cand" ]; then
+    # CMake 认 Windows 风格路径（D:/...），MSYS 的 /d/... 它读不懂。
+    _rossi_dav1d_dll=$(cygpath -m "$_rossi_cand" 2>/dev/null || echo "$_rossi_cand")
+    break
+  fi
+done
+if [ -n "$_rossi_dav1d_dll" ]; then
+  export DAV1D_DLL="$_rossi_dav1d_dll"
+  echo "[rossi-env] dav1d.dll = $DAV1D_DLL"
+else
+  echo "[rossi-env] 警告：未找到 dav1d.dll；AVIF 页运行时会解不出来（见 docs/v0.1-local-core.md）" >&2
+fi
+unset _rossi_dav1d_dll _rossi_cand
