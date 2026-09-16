@@ -1,0 +1,58 @@
+{
+  "archive": "E:\\1Hub\\EH\\G44 不会受伤 - NO.119 碧蓝档案 和纱 [30P-421MB].zip",
+  "index": 0,
+  "logical_cpus": 16,
+  "sweep": [
+    {
+      "mask": 1,
+      "mask_actual": 1,
+      "decode_ms": 696.2,
+      "size": "5464x8192",
+      "cores": 1
+    },
+    {
+      "mask": 3,
+      "mask_actual": 3,
+      "decode_ms": 530.1,
+      "size": "5464x8192",
+      "cores": 2
+    },
+    {
+      "mask": 15,
+      "mask_actual": 15,
+      "decode_ms": 349.1,
+      "size": "5464x8192",
+      "cores": 4
+    },
+    {
+      "mask": 255,
+      "mask_actual": 255,
+      "decode_ms": 269.3,
+      "size": "5464x8192",
+      "cores": 8
+    },
+    {
+      "mask": 65535,
+      "mask_actual": 65535,
+      "decode_ms": 251.8,
+      "size": "5464x8192",
+      "cores": 16
+    }
+  ],
+  "concurrent": [
+    {
+      "mask": 255,
+      "mask_actual": 255,
+      "decode_ms": 339.0,
+      "size": "5464x8192",
+      "cores": 8
+    },
+    {
+      "mask": 65280,
+      "mask_actual": 65280,
+      "decode_ms": 346.7,
+      "size": "5464x8192",
+      "cores": 8
+    }
+  ]
+}
