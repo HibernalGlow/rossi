@@ -18,19 +18,42 @@ pub const CORE_DECODABLE_EXTENSIONS: &[&str] = &[
 /// **本 crate 解不了、但外壳（Flutter / Skia）能解**的扩展名。
 ///
 /// 这一档是实测逼出来的，不是预留。用户的真实归档
-/// `G44 不会受伤 - NO.119 碧蓝档案 和纱 [30P-421MB].zip` 里 30 张**全是 `.avif`**，
-/// 而 Flutter 的 `ui.instantiateImageCodec` 能把它们正常解成 5464×8192
-/// （`test/avif_decode_probe_test.dart` 有可复跑的探针）。
+/// `G44 不会受伤 - NO.119 碧蓝档案 和纱 [30P-421MB].zip` 里 30 张**全是 `.avif`**。
 ///
 /// 早先把这两类合成一张表，后果是**用户看到「打开 zip 没反应」**：
 /// 枚举阶段就把全部条目滤掉，UI 收到 0 页，既没有页也没有拒绝原因。
 /// 「算不算一页」是**格式识别**问题，「这一页谁来解」是**解码能力**问题，
-/// 把后者当前者的门槛，症状就落在用户身上。
+/// 把后者当前者的门槛，症状就落在用户身上。所以枚举必须包含这一档。
+///
+/// # 但「交给外壳」不等于「外壳解得动」
+///
+/// 这里踩过一次，记清楚免得再犯：当初的判据是
+/// 「`ui.instantiateImageCodec` 能把样本解成 5464×8192」，据此认定
+/// **显示路径可用**。那个结论是错的 —— 它跑在 `flutter_tester` 上，
+/// 而 App 跑的是 `flutter_windows.dll`，**两者的解码器不是同一个**。
+///
+/// 在真机引擎上复测（`integration_test/avif_decode_probe_test.dart`）：
+///
+/// | 样本 | 裸解码 | `ResizeImage` | 只读描述子 |
+/// |---|---|---|---|
+/// | avif（4:2:0 与 4:4:4、同尺寸对照） | 失败 | 失败 | **成功、尺寸正确** |
+/// | 同尺寸 jpeg 5208×7808 | 成功 | 成功 | 成功 |
+///
+/// 症状是最刺眼的那种「半能」：**读得出尺寸，解不出像素**
+/// （`Exception: Could not decompress image.`）。
+/// 引擎的 PDB 里只有 `jpeg` / `png` / `wuffs` / `libwebp` 符号，
+/// **`dav1d` / `libavif` / `aom` / `avif` 一个都没有** —— 它没链进 AV1 解码器。
+/// 关掉 Impeller 重测无变化。
+///
+/// 所以这一档的准确含义是：**本 crate 不解，交由外壳；外壳解得动与否取决于平台，
+/// Windows 上目前解不动。** 列出来的价值在于用户能看见「书里有 30 页」，
+/// 而不是价值在于「能显示」。
 ///
 /// 代价必须写在这里免得以后误读：这些页**只能走 Dart 兜底显示路径**
 /// （`docs/v0.1-local-core.md` §9），Phase 1 那条「Rust 解码 → GPU texture 上屏」
-/// 对它们**暂时不成立** —— `image` 要解 avif 得带 libavif/dav1d 这类原生依赖，
-/// 属 core 之外的东西，是否纳入由 Gate 决定。
+/// 对它们**不成立** —— `image` 要解 avif 得带 libavif/dav1d 这类原生依赖，
+/// 属 core 之外的东西，是否纳入由 Gate 决定；在补齐之前，
+/// 「打开 avif 归档只能看到页表」是**已知且已记录**的行为，不是 bug。
 pub const SHELL_DECODABLE_EXTENSIONS: &[&str] = &["avif", "jxl", "heic", "heif"];
 
 /// 一页的解码归属。
@@ -38,7 +61,8 @@ pub const SHELL_DECODABLE_EXTENSIONS: &[&str] = &["avif", "jxl", "heic", "heif"]
 pub enum DecodeSupport {
     /// `decode_rgba` 能解，可进 Phase 1 的 Rust → GPU 上屏路径。
     Core,
-    /// 只有外壳（Flutter / Skia）能解；`decode_rgba` 会明确拒绝。
+    /// `decode_rgba` 明确拒绝；交给外壳，**外壳解得动与否取决于平台**
+    /// （Windows 引擎实测解不动 avif，见上）。
     ShellOnly,
 }
 

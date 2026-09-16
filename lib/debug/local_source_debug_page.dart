@@ -241,6 +241,32 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
     return px.clamp(64, 8192);
   }
 
+  /// 解码失败时给一句**能指导下一步**的话。
+  ///
+  /// 直接把引擎原文丢出来（`Exception: Could not decompress image.`）等于把内部
+  /// 细节推给用户；他真正需要知道的是「换个格式 / 等哪个功能 / 是不是书坏了」。
+  /// 这里的措辞有实测依据，别随手改软：`integration_test/avif_decode_probe_test.dart`。
+  static const _shellOnlyExtensions = {'avif', 'jxl', 'heic', 'heif'};
+
+  String _explainDecodeFailure(int index, int byteCount, String? errorText) {
+    final name = index < _pages.length ? _pages[index].name : '';
+    final dot = name.lastIndexOf('.');
+    final ext = dot < 0 ? '' : name.substring(dot + 1).toLowerCase();
+
+    // 编码字节读出来了 = 归档读取这一步没问题，失败发生在解码那一步。
+    final head = '第 $index 页解码失败。\n'
+        '编码字节 $byteCount B 已完整读出（归档读取正常，失败在解码这一步）。';
+
+    if (_shellOnlyExtensions.contains(ext)) {
+      return '$head\n'
+          '该页是 .$ext：本 crate 不认这种格式，要交给引擎解，而本机引擎'
+          '（flutter_windows.dll）没有链入 AV1 解码器 —— 实测它读得出尺寸、'
+          '给不出像素；同尺寸 JPEG 正常，所以不是大图的问题。'
+          '这是已知平台限制，不是书坏了。';
+    }
+    return '$head\n引擎报错：${errorText ?? '未知'}';
+  }
+
   Future<void> _loadPage(int index, {bool force = false}) async {
     final id = _sessionId;
     if (id == null || index < 0 || index >= _pages.length) return;
@@ -294,6 +320,7 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
       required Duration decode,
       required bool cacheHit,
       required bool isError,
+      String? errorText,
     }) {
       if (handled || !mounted) return;
       handled = true;
@@ -302,7 +329,7 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
           _current = index;
           _currentBytes = bytes;
           _currentBytesIndex = index;
-          _error = '第 $index 页解码失败（编码字节 ${bytes.length} B）';
+          _error = _explainDecodeFailure(index, bytes.length, errorText);
         });
         return;
       }
@@ -359,6 +386,7 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
           decode: swDecode.elapsed,
           cacheHit: false,
           isError: true,
+          errorText: error.toString(),
         );
         stream.removeListener(listener);
       },
