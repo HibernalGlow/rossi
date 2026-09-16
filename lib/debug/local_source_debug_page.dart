@@ -40,11 +40,20 @@ import 'package:zephyr/src/rust/api/local.dart';
 ///    地板是 **270 ms**，而且软硬两侧都压不下去：dav1d 已用满 16 核仍只有 2.25×
 ///    加速（这条流几乎没有 tile 级并行），NVDEC 直接拒绝 4:4:4
 ///    （`av1_cuvid: not supported with this chroma format`）。所以只能**不在翻页时解码**：
-///    翻完一页后等 180 ms（连翻时自动退场），把 ±1 页解好、`ui.Image` 也建好存起来，
+///    翻完一页后把窗口内的页解好、`ui.Image` 也建好存起来，
 ///    翻到时路径上只剩「换个引用 + 画一帧」。
 ///    **成本没消失，是被挪到用户读上一页的时候了** —— 所以页面上必须同时显示
 ///    「预取时花了多少」，否则那个数字会读成「解码变快了」。预取只走 Rust 路径
 ///    （外壳路径的位图在全局图片缓存里，那是另一套机制，未接）。
+/// 3c. **预取必须给翻页让路，而且这件事比「提高优先级」更重要。**
+///    2026-09-16 实测咬过一次：预取**命中**的一页（位图只有 1.5 MB）翻页仍要
+///    87–258 ms 才出帧，冷页也从 431 ms 涨到 550–648 ms。原因不是纹理上传
+///    （位图小了 10 倍反而更慢），是**预取与翻页同时解码** —— dav1d 一条流几乎
+///    不能并行，并发不是分核而是双输，顺带把 Flutter 的帧生产也饿住了。
+///    做法照上游 mImageViewer `update_prefetch_window`（`app.rs:55192`）：
+///    当前页还没显示出来时取消其它 pending、连新的先読み也不发；
+///    我们另加一条「每解完一页重新问一次『用户在等吗』」。
+///    字段与显示见 `_prefetchGeneration` / `_prefetchNote` / `_frameCostLabel`。
 /// 4. **本页不新增 i18n 键、不注册 auto_route**：调试页属于内部工具，走
 ///    `MaterialPageRoute` 直连，避免为一个诊断页触发全量 codegen。
 ///    若将来要转正，再补 `@RoutePage()` 与 `slang` 词条。
@@ -72,6 +81,7 @@ class _StageRow {
     this.sourceHeight = 0,
     this.prefetchHit = false,
     this.prefetchCost,
+    this.prefetchDuringDecode = 0,
   });
 
   final int index;
@@ -107,6 +117,13 @@ class _StageRow {
 
   /// 预取这一页时实际花掉的（解码 + 建图），用于证明成本只是被挪走而非消失。
   final Duration? prefetchCost;
+
+  /// 这一页**开始解码那一刻**，预取正占着几张许可。
+  ///
+  /// 这是「解 572 ms 而不是 431 ms」的解释项：dav1d 一条流几乎不并行
+  /// （1 核 610–667 ms / 16 核 269–295 ms），所以两个解码同时跑不是分核，是双输。
+  /// 记在行上而不是让人自己从「许可 N/6 在用」去推 —— 那个数在翻页结束时就变了。
+  final int prefetchDuringDecode;
 
   int get pixels => width * height;
 
@@ -234,8 +251,13 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   /// 预取代号：每次翻页 +1，让上一轮「预取邻居」的循环自己退场。
   ///
   /// 它取代了原先那个 `bool _prefetchBusy`：「同一时刻只跑一个预取」现在由
-  /// **代号退场**保证（连翻时上一轮直接结束），而「别抢用户那一页的许可」由
-  /// Rust 侧调度器的优先级保证（预取是 `Normal`，拿不到留给 `High` 的 2 张）。
+  /// **代号退场**保证（翻页时上一轮直接结束）。
+  ///
+  /// **别再指望「High 预留 2 张许可」来保证预取不拖慢翻页** —— 那只保证翻页
+  /// *拿得到许可*，不保证它*不跟预取分核*。dav1d 一条流几乎不并行，所以
+  /// 「两张许可同时跑」= 两边都慢近一倍。上游也踩过同一个坑（`app.rs:55196`：
+  /// 判断「有 High 预留枠就不需要取消 pending」而撤掉让路逻辑，实机 p50 148→396 ms）。
+  /// 真正管用的是代号退场 + `_prefetchNeighbors` 里那个「用户在等吗」的每页复查。
   int _prefetchGeneration = 0;
 
   /// 上一次翻页/跳页的时刻。上游 `last_prefetch_scroll_at` 在分页阅读下的对应物
@@ -254,6 +276,21 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   /// 没有它，「预取有没有在抢当前页的许可」只能靠感觉。
   LocalPageLoadStats? _loadStats;
 
+  /// 「这一轮预取为什么中途收手」——让路 / 退场的原因。**显示用**。
+  ///
+  /// 与 `_lastPrefetchDecision`（准入门）分开：门说的是「这一刻该不该发」，
+  /// 这里说的是「已经在跑的这一轮为什么停了」。缺了它，
+  /// 「预取在给翻页让路」和「预取卡死了」在界面上长得一模一样。
+  String? _prefetchNote;
+
+  /// 最近一帧的耗时分解。
+  ///
+  /// **「上屏」不能用 postFrame 相减去量** —— 那里混着「等下一帧 vsync」的时间，
+  /// 于是「143 ms」到底是**等**出来的还是**画**出来的分不清。这条纪律项目里早写过
+  /// （见 `docs/v0.1-local-core.md` §12.2），但一直只是纪律；2026-09-16 有实测数据
+  /// 咬人（命中预取的一页报 143–258 ms）才补上这个量具。
+  ui.FrameTiming? _lastTiming;
+
   /// 由 `LayoutBuilder` 回填的预览区宽度（逻辑像素），用于估算解码目标宽度。
   double _viewerWidth = 0;
 
@@ -264,7 +301,31 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   int _probeCount = 0;
 
   @override
+  void initState() {
+    super.initState();
+    // 「上屏」这把尺子的修正件，见 `_lastTiming` 的说明。
+    WidgetsBinding.instance.addTimingsCallback(_onFrameTimings);
+  }
+
+  void _onFrameTimings(List<ui.FrameTiming> timings) {
+    if (timings.isEmpty) return;
+    _lastTiming = timings.last;
+    // 刻意不 setState：在帧回调里重建会自己制造抖动，量具就成了噪声源。
+    // 这个数在下一次由别的原因触发的重建里顺带显示出来。
+  }
+
+  /// 一帧的耗时分解，一行字。
+  String _frameCostLabel() {
+    final t = _lastTiming;
+    if (t == null) return '—';
+    return 'build ${t.buildDuration.inMilliseconds} '
+        'raster ${t.rasterDuration.inMilliseconds} '
+        'vsync ${t.vsyncOverhead.inMilliseconds} ms';
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeTimingsCallback(_onFrameTimings);
     // 页面销毁时把会话还回去，否则反复进出会看到探针单调上升。
     final id = _sessionId;
     if (id != null) {
@@ -486,6 +547,25 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
     _lastTurnAt = DateTime.now();
     _loadInFlight = true;
 
+    // ── 用户要翻页了：立刻让在跑的预取退场 ──
+    //
+    // 照的是 mImageViewer `update_prefetch_window` 的做法（`src/app.rs:55192`）：
+    // **当前页还没有可显示内容的时候，取消其它 pending，并且连新的先読み也不发**。
+    // 上游把这段撤过（判断「有 High 预留枠就不需要」），实机立刻变差：
+    // 页面完成 p50 **148 ms → 396 ms**；理由是「已经拿到许可的先読み 会 commit 到
+    // 一段不可中断的读取上」。所以这不是保守，是被数据逼回来的一行。
+    //
+    // 我们这边比上游更硬：dav1d 一条流几乎不能并行（实测 1 核 610–667 ms /
+    // 16 核 269–295 ms，1→16 只有 2.25×），所以「预取与翻页并发」不是分核，
+    // 而是**两边都慢近一倍**。观测到的正是这个：预取单独跑 431.6 ms，
+    // 而它与翻页并发时，翻页那一次报 572–648 ms。
+    //
+    // 正在跑的那一页**取消不掉**（dav1d 一次调用不可中断，`acquire_cancellable`
+    // 只覆盖「等许可」阶段）—— 但它跑完就会看到代号变了而退出循环，
+    // 不会再发起下一页。这与上游 `pending.cancel()` 的覆盖面一致。
+    _prefetchGeneration++;
+    _prefetchNote = null;
+
     // 相邻页 = 顺序翻页；跨页与「重读当前页」= 跳页。
     //
     // 这个区分交给 Rust 调度器（`FsPageLoadContract`）：`LatestSeek` 会把同一会话里
@@ -678,8 +758,18 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   }) async {
     final swAll = Stopwatch()..start();
     final targetWidth = _targetDecodeWidth();
+
+    // 开始解码之前先看一眼许可：预取正占着几张？这一趟解码会跟它抢核，
+    // 抢到的结果是**两边都慢**（dav1d 一条流几乎不并行），所以把它记在行上。
+    final beforeStats = await localPageLoadStats();
+    final concurrentPrefetch = beforeStats.runningNormal;
+
     final swBridge = Stopwatch()..start();
-    debugPrint('[local-debug] Rust 解码开始 index=$index target=$targetWidth');
+    debugPrint(
+      '[local-debug] Rust 解码开始 index=$index target=$targetWidth '
+      '并发的预取=$concurrentPrefetch 许可在跑=${beforeStats.running}'
+      '（预取 ${beforeStats.runningNormal}）等 ${beforeStats.waiting}',
+    );
 
     final LocalPageDecodeResult result;
     try {
@@ -772,6 +862,7 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
           sourceWidth: pixels.sourceWidth,
           sourceHeight: pixels.sourceHeight,
           cacheHit: false,
+          prefetchDuringDecode: concurrentPrefetch,
         );
         _history.insert(0, _stage!);
         if (_history.length > 6) _history.removeLast();
@@ -781,7 +872,8 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
         '桥${bridge.inMilliseconds} 图${pack.inMilliseconds} '
         '屏${paint.inMilliseconds} 合${total.inMilliseconds}ms '
         '${pixels.sourceWidth}x${pixels.sourceHeight}'
-        '→${pixels.width}x${pixels.height}',
+        '→${pixels.width}x${pixels.height}'
+        '${concurrentPrefetch > 0 ? " [与 $concurrentPrefetch 张预取并发]" : ""}',
       );
       // 这一页已经上屏，用户接下来多半在读它 —— 这段时间正好用来解下一页。
       _schedulePrefetch();
@@ -902,9 +994,10 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
     // 等放行。上游是每帧问一次 `decide_prefetch_allowed`；宿主从 egui 的帧循环
     // 换成 Flutter 之后，改成每 50 ms 问一次 —— 同一个门槛，只是问的节奏变了。
     //
-    // 每次翻页 generation 都会 +1，所以**下面每个检查点都会直接退场**：
-    // 连翻时一次预取都不会发。这是有意的 —— dav1d 吃满 16 核，
-    // 跟正在等的那次翻页抢核就是拖慢用户。
+    // 代号（`_prefetchGeneration`）在**两个**地方 +1：翻页发起时（`_loadPage`，
+    // 对应上游「当前页不可显示 ⇒ 取消其它 pending」）和本函数被重新调度时。
+    // 所以下面每个检查点都会在翻页的瞬间直接退场 —— 连翻时一页都不会解，
+    // 那是有意的：dav1d 吃满 16 核，跟正在等的那次翻页抢核就是拖慢用户。
     for (var round = 0; ; round++) {
       if (!mounted || generation != _prefetchGeneration) return;
       final decision = await localPrefetchDecision(
@@ -929,18 +1022,47 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
       await Future<void>.delayed(const Duration(milliseconds: 50));
     }
 
-    // 目标顺序 `+1, -1`（forward 先），边界由上游处理。
-    // 只取一页：冷页解码地板 270 ms，排太多只会让下一次翻页跟预取抢核。
+    // 判决放行了，这一轮真的开始跑 —— 把上一轮的收手理由清掉。
+    // 不清的话，「预取在让路」会一直挂在界面上，看起来像预取再也没动过。
+    if (_prefetchNote != null) setState(() => _prefetchNote = null);
+
+    // 目标顺序 `+1, -1, +2, …`（同距离 forward 先），边界由上游函数处理。
+    //
+    // **窗口大小是刻意偏离上游的。** 上游 `settings.rs` 的全屏页预取默认是
+    // `prefetch_forward = 12` / `prefetch_back = 4`（keep 各 +1）—— 它能开这么大，
+    // 是因为它的页是 JPEG/PDF，单页解码几十到一百多 ms，而且 6 张许可并发。
+    // 我们这一版页是 44.8 MPix 的 AVIF，dav1d **不可并行**：单页 430–540 ms，
+    // 并发只会互相拖（上面那段注释）。所以窗口按「用户读一页能备好几页」来定，
+    // 不是照抄 12/4 —— 照抄的结果是一轮预取要跑 8.7 秒，全程占着核。
+    // 等 Phase 2 的 tile 化/GPU 上屏之后，这里的数字才有资格往上调。
     final targets = await localPrefetchTargets(
       pos: _current,
       n: _pages.length,
-      forward: 1,
+      forward: 2,
       back: 1,
     );
     if (!mounted || generation != _prefetchGeneration) return;
-    for (final target in targets) {
+    for (var i = 0; i < targets.length; i++) {
+      final target = targets[i];
       if (!mounted || generation != _prefetchGeneration) return;
       if (_prefetch.containsKey(target)) continue;
+
+      // 每页之间重新问一次「用户在等吗」。用户完全可能在我们解上一页的时候翻页了 ——
+      // 光靠开头的 generation 检查挡不住这种（那时循环已经在 await 里）。
+      // 这不是「等一会儿再来」，而是**整轮退出**：下一轮由翻页完成后的
+      // `_schedulePrefetch` 重新发起。
+      final stats = await localPageLoadStats();
+      if (!mounted || generation != _prefetchGeneration) return;
+      final highRunning = stats.running - stats.runningNormal;
+      if (highRunning > 0 || stats.waiting > 0) {
+        final why =
+            '让路：用户在等（翻页在跑 $highRunning 张 / 排队 ${stats.waiting} 个），'
+            '本轮还剩 ${targets.length - i} 页没备';
+        debugPrint('[local-debug] 预取$why');
+        setState(() => _prefetchNote = why);
+        return;
+      }
+
       await _prefetchPage(id, target);
     }
   }
@@ -1390,6 +1512,19 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
                 style: TextStyle(fontSize: 11, color: Colors.teal.shade700),
               ),
             ],
+            if (stage.prefetchDuringDecode > 0) ...[
+              const SizedBox(height: 3),
+              Text(
+                '本次解码开始时预取正占着 ${stage.prefetchDuringDecode} 张许可 —— '
+                '这两个解码是**同时**跑的。dav1d 一条流几乎不能并行'
+                '（1 核 610–667 ms / 16 核 269–295 ms），所以并发不是分核而是两边都慢，'
+                '顺带把 Flutter 的帧生产也饿住（命中预取却还要等 100+ ms 出帧就是这个）。\n'
+                '翻页时已经让预取退场（`_prefetchGeneration`），但**已经在解的那一页取消不掉** '
+                '（dav1d 一次调用不可中断）—— 这是这个形态的残余成本，'
+                '上游也是同一处妥协（`app.rs:55198`）。',
+                style: TextStyle(fontSize: 11, color: Colors.orange.shade800),
+              ),
+            ],
             if (!_displaySizedDecode && stage.mode.startsWith('Rust')) ...[
               const SizedBox(height: 3),
               Text(
@@ -1430,6 +1565,23 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
                 ),
               ),
             ],
+            if (_prefetchNote != null) ...[
+              const SizedBox(height: 3),
+              Text(
+                '预取收手：$_prefetchNote',
+                style: TextStyle(fontSize: 11, color: Colors.orange.shade800),
+              ),
+            ],
+            const SizedBox(height: 3),
+            Text(
+              // 「上屏」这个数要用这一行来读：它把「等下一帧」与「画这一帧」分开了。
+              // 143 ms 的「上屏」若对应 raster 3 ms，那 140 ms 是**等**出来的
+              // （CPU 被解码占满，Flutter 的帧生产排在后面），不是纹理上传慢。
+              '最近一帧：${_frameCostLabel()}   ｜   '
+              '（「上屏」= 换引用到下一帧画完，含等 vsync；'
+              '真正画的耗时看 raster）',
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
           ],
           if (_history.length > 1) ...[
             const SizedBox(height: 6),
@@ -1442,8 +1594,17 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
                 '  第 ${(row.index + 1).toString().padLeft(3)} 页  ${row.mode.padRight(11)}'
                 '  读 ${_fmtMs(row.read).padLeft(7)}  解 ${_fmtMs(row.decode).padLeft(8)}'
                 '  装 ${_fmtMs(row.pack).padLeft(6)}  屏 ${_fmtMs(row.paint).padLeft(6)}'
-                '  合 ${_fmtMs(row.total).padLeft(8)} ms',
-                style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                '  合 ${_fmtMs(row.total).padLeft(8)} ms'
+                // 病根直接标在行上。让用户自己从「许可 1/6 在用」推出
+                // 「所以这一行是被预取拖慢的」，是我不该让他做的事。
+                '${row.prefetchDuringDecode > 0 ? "  ⟵ 解码时与预取并发（${row.prefetchDuringDecode} 张）" : ""}',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                  color: row.prefetchDuringDecode > 0
+                      ? Colors.orange.shade800
+                      : null,
+                ),
               ),
           ],
           const SizedBox(height: 3),
