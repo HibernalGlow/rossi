@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/debug/local_source_debug_page.dart';
+import 'package:zephyr/gpu/gpu_present_page.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/src/rust/api/qjs.dart';
@@ -96,6 +97,20 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (_) => const LocalSourceDebugPage(),
+              ),
+            ),
+          ),
+          // GPU 上屏（D3D12 共享纹理）。与上一条同理**刻意不放进 kDebugMode**：
+          // 这条链路通不通由「引擎有没有来打开共享句柄」判定，而那要拖窗口、
+          // 要看合成，只有在 Release 下跑出来的数才作数。
+          ListTile(
+            leading: const Icon(Icons.memory_outlined),
+            title: const Text('GPU 上屏（D3D12 共享纹理）'),
+            subtitle: const Text('Rust 解码 → wgpu → GPU 拷贝 → 共享纹理，像素不过桥'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const GpuPresentPage(),
               ),
             ),
           ),
