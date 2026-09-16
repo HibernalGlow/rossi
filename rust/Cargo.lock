@@ -194,6 +194,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
 
 [[package]]
+name = "array-init"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3d62b7694a562cdf5a74227903507c56ab2cc8bdd1f781ed5cb4cf9c9f810bfc"
+
+[[package]]
 name = "ascii"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2615,6 +2621,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "jxl"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "35aca5f134772b17dd8361cc73e25454e2420a7230afaeece1d476b1949d0193"
+dependencies = [
+ "array-init",
+ "byteorder",
+ "jxl_macros",
+ "jxl_simd",
+ "jxl_transforms",
+ "num-derive",
+ "num-traits",
+ "thiserror 2.0.20",
+]
+
+[[package]]
 name = "jxl-bitstream"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2684,6 +2706,17 @@ dependencies = [
  "jxl-grid",
  "jxl-oxide-common",
  "tracing",
+]
+
+[[package]]
+name = "jxl-image-rs-integration"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f6fbf8346abe90a6c52ee107ca830e619de5ebf3ec24b2d4a1b929a3de5a3dd"
+dependencies = [
+ "bytemuck",
+ "image",
+ "jxl",
 ]
 
 [[package]]
@@ -2792,6 +2825,32 @@ dependencies = [
  "jxl-oxide-common",
  "jxl-threadpool",
  "tracing",
+]
+
+[[package]]
+name = "jxl_macros"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b80e14920b09c3ee9c1e7b73958326515e4c07f14d569a28f657d0301a214c7"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
+name = "jxl_simd"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f98970e5b241335f9cf5d397399e52a6f8ce40c2f46566391b42bc558049132e"
+
+[[package]]
+name = "jxl_transforms"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f8bdfa4b7b3465e54beb39fe0f37e8d8d74225ef8a36f6870b1cbc4081ec808"
+dependencies = [
+ "jxl_simd",
 ]
 
 [[package]]
@@ -3840,7 +3899,10 @@ dependencies = [
  "base64",
  "image",
  "jpegxl-rs",
+ "jxl",
+ "jxl-image-rs-integration",
  "jxl-oxide",
+ "rayon",
  "tempfile",
  "unrar",
  "zip",

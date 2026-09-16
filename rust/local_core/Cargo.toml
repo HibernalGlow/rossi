@@ -42,6 +42,18 @@ jpegxl-rs = { version = "0.15", optional = true, default-features = false, featu
     "image",
     "vendored",
 ] }
+# 第三种 JXL 后端：**jxl-rs**（libjxl 官方组织的纯 Rust 解码器，BSD-3-Clause，
+# Chrome 145 / Firefox 采用中 —— 注意与 jxl-oxide 是完全不同的项目）。crates.io 上
+# 核心叫 `jxl`、image 集成叫 `jxl-image-rs-integration`：走 image 的 hook 机制，
+# `register_image_decoding_hook()` 进程级注册一次后 `load_from_memory` 对 JXL 魔数自动接管。
+# 默认 SIMD（all-simd：avx/avx512/sse42 按目标 CPU 运行时分发）。rust-version 1.89 < 本机 1.96。
+jxl-image-rs-integration = { version = "0.7", optional = true, default-features = false, features = [
+    "all-simd",
+] }
+# jxlrs-mt 的 RayonRunner 用（探针专用；jxl-oxide 也带 rayon，但那是间接依赖，不能直接用）。
+rayon = { version = "1", optional = true }
+# jxl-rs 核心解码器（jxlrs-mt 直连路径直接驱动 jxl::api；与集成 crate 同版本 0.7）。
+jxl = { version = "0.7", optional = true }
 
 [features]
 # AVIF 解码。
@@ -61,7 +73,7 @@ jpegxl-rs = { version = "0.15", optional = true, default-features = false, featu
 default = ["avif"]
 avif = ["image/avif-native"]
 # 只开给 scale_probe：`cargo build -p rossi_local_core --bin scale_probe --features jxl-probe`
-jxl-probe = ["dep:jxl-oxide"]
+jxl-probe = ["dep:jxl-oxide", "dep:jxl-image-rs-integration", "dep:rayon", "dep:jxl"]
 # libjxl 后端对照：`--features jxl-probe,jxl-probe-libjxl`，探针 `--jxl-backend libjxl` 切换
 jxl-probe-libjxl = ["dep:jpegxl-rs"]
 

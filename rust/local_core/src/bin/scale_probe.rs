@@ -48,21 +48,166 @@ fn decode_jxl(bytes: &[u8]) -> Result<image::DynamicImage> {
 /// libjxl（jpegxl-rs 封装）→ DynamicImage。**GPL-3.0-or-later**：只许进探针，不许进 App。
 /// ThreadsRunner = 全核并行池，与 jxl-oxide 的 rayon 池口径一致。
 #[cfg(feature = "jxl-probe-libjxl")]
-fn decode_jxl_libjxl(bytes: &[u8]) -> Result<image::DynamicImage> {
+fn decode_jxl_libjxl(bytes: &[u8], threaded: bool) -> Result<image::DynamicImage> {
     use jpegxl_rs::decoder_builder;
     use jpegxl_rs::image::ToDynamic;
-    let runner = jpegxl_rs::ThreadsRunner::default();
-    let mut decoder = decoder_builder().parallel_runner(&runner).build()?;
-    decoder
-        .decode_to_image(bytes)?
-        .ok_or_else(|| anyhow::anyhow!("libjxl decode_to_image 返回 None（无可用帧？）"))
+    // 不挂 parallel_runner = libjxl 默认顺序执行（单线程）。
+    // 与 jxl-rs 的官方 image 集成同口径（它把 parallel_runner 硬编码成 None）——
+    // 没有这一档，「jxl-rs 慢 4×」分不清是实现的锅还是线程的锅。
+    // builder 是 typestate（parallel_runner 换类型），只能两支各自 build。
+    let frame = if threaded {
+        let runner = jpegxl_rs::ThreadsRunner::default();
+        let mut decoder = decoder_builder().parallel_runner(&runner).build()?;
+        decoder.decode_to_image(bytes)?
+    } else {
+        let mut decoder = decoder_builder().build()?;
+        decoder.decode_to_image(bytes)?
+    };
+    frame.ok_or_else(|| anyhow::anyhow!("libjxl decode_to_image 返回 None（无可用帧？）"))
 }
 
-/// JXL 后端分发：`--jxl-backend libjxl|oxide`。两路产同样的 DynamicImage，下游全复用。
+/// **jxl-rs**（libjxl 官方组织的纯 Rust 解码器，Chrome 145 / Firefox 采用中，BSD-3）。
+/// 集成走 image 的 hook 机制：进程级注册一次，`load_from_memory` 对 JXL 魔数自动接管。
+/// 注册是全局的，但只命中 JXL 魔数，非 JXL 页走 decode_mod 的路径不受影响。
+/// **注意：官方集成把 parallel_runner 硬编码成 None（单线程）** —— 这就是 `jxlrs` 档的口径。
+#[cfg(feature = "jxl-probe")]
+fn decode_jxl_jxlrs(bytes: &[u8]) -> Result<image::DynamicImage> {
+    use std::sync::Once;
+    static REGISTER: Once = Once::new();
+    // 返回值是「是否真的注册上了」（false = 槽位被占，多半是注册了两次）。
+    // 探针里 Once 保证只调一次，返回 false 属异常，直接断言失败别静默继续。
+    REGISTER.call_once(|| {
+        assert!(
+            jxl_image_rs_integration::register_image_decoding_hook(),
+            "jxl-rs 的 image hook 注册失败"
+        );
+    });
+    Ok(image::load_from_memory(bytes)?)
+}
+
+/// jxl-rs **多线程**直连路径：绕开官方 image 集成（它把 parallel_runner 硬编码成 None），
+/// 用 `jxl::api` 直接驱动 + rayon runner，量 jxl-rs 多线程的真实水平 ——
+/// 这才是和 Chrome 内嵌口径（带线程池）对齐的数字。
+/// 只支持 8-bit 输出（探针样本全是 Rgba8）；Float/16-bit 页显式报错，不静默降级。
+#[cfg(feature = "jxl-probe")]
+fn decode_jxl_jxlrs_threaded(bytes: &[u8]) -> Result<image::DynamicImage> {
+    use jxl::api::{
+        JxlColorType, JxlDataFormat, JxlDecoder as ApiJxlDecoder, JxlDecoderOptions,
+        JxlOutputBuffer, JxlParallelRunner, JxlParallelRunnerFun, JxlPixelFormat,
+        ProcessingResult, states,
+    };
+    use std::sync::Mutex;
+
+    /// rayon 背书的 runner：~10 行，trait 只要求 run + num_threads。
+    struct RayonRunner;
+    impl JxlParallelRunner for RayonRunner {
+        fn run(&mut self, num: usize, fun: &JxlParallelRunnerFun<'_>) -> jxl::error::Result<()> {
+            use rayon::prelude::*;
+            let err = Mutex::new(None);
+            (0..num).into_par_iter().for_each(|i| {
+                if let Err(e) = fun(i) {
+                    *err.lock().unwrap() = Some(e);
+                }
+            });
+            match err.into_inner().unwrap() {
+                Some(e) => Err(e),
+                None => Ok(()),
+            }
+        }
+        fn num_threads(&self) -> usize {
+            rayon::current_num_threads()
+        }
+    }
+
+    let mut input: &[u8] = bytes; // &[u8] 自带 JxlBitstreamInput 实现
+    let mut runner = RayonRunner;
+
+    let decoder = ApiJxlDecoder::<states::Initialized>::new(JxlDecoderOptions::default());
+    let mut decoder = match decoder.process(&mut input, Some(&mut runner))? {
+        ProcessingResult::Complete { result } => result,
+        ProcessingResult::NeedsMoreInput { .. } => {
+            anyhow::bail!("输入被截断（不该发生：探针是全量内存输入）")
+        }
+    };
+
+    let info = decoder.basic_info().clone();
+    let width = u32::try_from(info.size.0)?;
+    let height = u32::try_from(info.size.1)?;
+    let has_alpha = info
+        .extra_channels
+        .iter()
+        .any(|c| c.ec_type == jxl::headers::extra_channels::ExtraChannel::Alpha);
+    let grayscale = decoder.current_pixel_format().color_type.is_grayscale();
+
+    let (color_type, jxl_ct) = match (&info.bit_depth, grayscale, has_alpha) {
+        (jxl::api::JxlBitDepth::Int { bits_per_sample }, g, a) if *bits_per_sample <= 8 => {
+            match (g, a) {
+                (true, false) => (image::ColorType::L8, JxlColorType::Grayscale),
+                (true, true) => (image::ColorType::La8, JxlColorType::GrayscaleAlpha),
+                (false, false) => (image::ColorType::Rgb8, JxlColorType::Rgb),
+                (false, true) => (image::ColorType::Rgba8, JxlColorType::Rgba),
+            }
+        }
+        _ => anyhow::bail!("非 8-bit 整型 JXL 页，多线程直连路径不支持"),
+    };
+    decoder.set_pixel_format(JxlPixelFormat {
+        color_type: jxl_ct,
+        color_data_format: Some(JxlDataFormat::U8 { bit_depth: 8 }),
+        extra_channel_format: vec![None; info.extra_channels.len()],
+    })?;
+
+    let bpp = color_type.bytes_per_pixel() as usize;
+    let bytes_per_row = width as usize * bpp;
+    let mut buf = vec![0u8; bytes_per_row * height as usize];
+    {
+        let mut output = JxlOutputBuffer::new(&mut buf, height as usize, bytes_per_row);
+        let outputs = std::slice::from_mut(&mut output);
+        let mut frame_decoder = match decoder.process(&mut input, Some(&mut runner))? {
+            ProcessingResult::Complete { result } => result,
+            ProcessingResult::NeedsMoreInput { .. } => anyhow::bail!("输入被截断"),
+        };
+        // WithFrameInfo::process 才吃 buffers；NeedsMoreInput 的 fallback 是同状态，可重试。
+        loop {
+            match frame_decoder.process(&mut input, outputs, Some(&mut runner))? {
+                ProcessingResult::Complete { .. } => break,
+                ProcessingResult::NeedsMoreInput { fallback, .. } => {
+                    if input.is_empty() {
+                        anyhow::bail!("输入被截断（帧解码中途耗尽）");
+                    }
+                    frame_decoder = fallback;
+                }
+            }
+        }
+    }
+    let dyn_img = match color_type {
+        image::ColorType::L8 => {
+            image::GrayImage::from_raw(width, height, buf).map(image::DynamicImage::ImageLuma8)
+        }
+        image::ColorType::La8 => image::GrayAlphaImage::from_raw(width, height, buf)
+            .map(image::DynamicImage::ImageLumaA8),
+        image::ColorType::Rgb8 => {
+            image::RgbImage::from_raw(width, height, buf).map(image::DynamicImage::ImageRgb8)
+        }
+        image::ColorType::Rgba8 => {
+            image::RgbaImage::from_raw(width, height, buf).map(image::DynamicImage::ImageRgba8)
+        }
+        _ => unreachable!("上面只构造了这四种"),
+    };
+    dyn_img.ok_or_else(|| anyhow::anyhow!("像素缓冲尺寸不匹配 {width}x{height}"))
+}
+
+/// JXL 后端分发：`--jxl-backend libjxl|libjxl1t|jxlrs|jxlrs-mt|oxide`。
+/// 各路产同样的 DynamicImage，下游全复用。
 fn decode_jxl_dispatch(bytes: &[u8], backend: &str) -> Result<image::DynamicImage> {
     match backend {
         #[cfg(feature = "jxl-probe-libjxl")]
-        "libjxl" => decode_jxl_libjxl(bytes),
+        "libjxl" => decode_jxl_libjxl(bytes, true),
+        #[cfg(feature = "jxl-probe-libjxl")]
+        "libjxl1t" => decode_jxl_libjxl(bytes, false),
+        #[cfg(feature = "jxl-probe")]
+        "jxlrs" => decode_jxl_jxlrs(bytes),
+        #[cfg(feature = "jxl-probe")]
+        "jxlrs-mt" => decode_jxl_jxlrs_threaded(bytes),
         #[cfg(feature = "jxl-probe")]
         _ => decode_jxl(bytes),
         #[cfg(not(any(feature = "jxl-probe", feature = "jxl-probe-libjxl")))]
