@@ -25,6 +25,42 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
+
+  // === GPU 上屏路径（Windows / D3D12 共享纹理）===
+  //
+  // 契约：本桥只负责"把句柄交给引擎"与"通知引擎来取帧"，
+  // 像素由 Rust 侧的 rossi_gpu_present.dll 从解码到上屏全程不经 CPU。
+  //
+  // 用 `GetRegistrarForPlugin` 而不是 `PluginRegistrarManager`：
+  // 后者要引入 cpp_client_wrapper 的额外头文件，而 registrar 只需一个名字，
+  // 名字本身不参与任何查找逻辑（Flutter 对应用自有 registrar 一律返回有效值）。
+  {
+    flutter::FlutterEngine* engine = flutter_controller_->engine();
+    FlutterDesktopPluginRegistrarRef registrar =
+        engine->GetRegistrarForPlugin("rossi_gpu_present");
+    FlutterDesktopTextureRegistrarRef texture_registrar =
+        registrar != nullptr ? FlutterDesktopRegistrarGetTextureRegistrar(registrar) : nullptr;
+
+    if (texture_registrar != nullptr) {
+      auto bridge = std::make_unique<GpuPresentBridge>(engine, texture_registrar);
+      // ok() 为假时**不要**调 Register()：那种情况下它只会立刻返回 false，
+      // 真正的原因（DLL 没构建、显卡不支持、registrar 拿不到……）已经在 error() 里了。
+      const bool registered = bridge->ok() && bridge->Register();
+      if (!registered) {
+        // 不中断启动：窗口照常显示，原因由 Dart 侧读 `stats` 显示在页面上。
+        // 这里只再留一条调试输出 —— "为什么黑屏"不该只有挂调试器才看得到。
+        OutputDebugStringA("GpuPresentBridge 初始化失败: ");
+        OutputDebugStringA(bridge->error().c_str());
+        OutputDebugStringA("\n");
+      }
+      // 失败也保留这个对象：构造函数会把 MethodChannel 先建好，所以即便
+      // 呈现器不可用，Dart 侧仍能读到失败原因，而不是收到一个无解释的异常。
+      gpu_present_bridge_ = std::move(bridge);
+    } else {
+      OutputDebugStringA("无法获取 Flutter texture registrar\n");
+    }
+  }
+
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
@@ -40,6 +76,13 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  // 必须先拆 GPU 呈现桥再拆 Flutter controller：
+  // 桥的析构会调用 `FlutterDesktopTextureRegistrarUnregisterExternalTexture` 注销纹理，
+  // 那需要 engine 仍然活着；反过来 engine 先没了，注销就落在空 engine 上。
+  // 桥自己还持有 wgpu / D3D12 资源，它们的析构函数在 rossi_gpu_present.dll 里，
+  // 所以顺序只能是：注销纹理 → 析构桥 → 卸载 DLL。
+  gpu_present_bridge_.reset();
+
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
   }
