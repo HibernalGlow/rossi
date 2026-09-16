@@ -259,6 +259,9 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   /// 等待期内没有第二路在抢核；上游不需要这一步是因为它一张图一个核。
   final Map<int, Future<void>> _prefetchInFlight = {};
 
+  /// 正在跑的翻页（index → 那一路的 future），防止快速连点造成同页双解。
+  final Map<int, Future<void>> _turnInFlight = {};
+
   static const int _prefetchMaxEntries = 3;
 
   /// 预取缓存的总字节上限。超过就从「离当前页最远」的开始扔。
@@ -543,9 +546,6 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
 
   /// 翻页入口：按 `_decoderMode` 决定让谁解。
   ///
-  /// `auto` 的语义是「**Rust 优先，格式归外壳时退回**」，不是「随便挑一个能用的」。
-  /// 只有 Rust 明确回答 `shellOnlyFormat` 才算「这页归外壳」；解码失败是另一回事，
-  /// 那种情况就地报错 —— 偷偷换条路会把失败藏起来，而失败正是这张页面要显示的东西。
   Future<void> _loadPage(int index, {bool force = false}) async {
     final id = _sessionId;
     if (id == null || index < 0 || index >= _pages.length) return;
@@ -558,6 +558,31 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
       return;
     }
 
+    // 同一页只允许一路翻页在跑。快速连点会让两个 `_loadPage(index)` 同时进来，
+    // 都过不了上面的守卫（`_currentBytesIndex` 还没变）。实测（2026-09-16）：
+    // 两路一起挤进「等在跑的预取」，预取产出只够一路拿到命中，另一路
+    // 「没产出，掉回正常翻页」把同一页**再解一遍**（index=4 / 21 各一次）。
+    // `force`（重读语义）刻意不参与去重。
+    final existingTurn = _turnInFlight[index];
+    if (existingTurn != null && !force) {
+      await existingTurn;
+      return;
+    }
+    final task = _loadPageTask(id, index, force: force);
+    if (!force) {
+      _turnInFlight[index] = task;
+    }
+    try {
+      await task;
+    } finally {
+      if (!force) _turnInFlight.remove(index);
+    }
+  }
+
+  /// `auto` 的语义是「**Rust 优先，格式归外壳时退回**」，不是「随便挑一个能用的」。
+  /// 只有 Rust 明确回答 `shellOnlyFormat` 才算「这页归外壳」；解码失败是另一回事，
+  /// 那种情况就地报错 —— 偷偷换条路会把失败藏起来，而失败正是这张页面要显示的东西。
+  Future<void> _loadPageTask(BigInt id, int index, {required bool force}) async {
     // 这两个是给预取判决用的状态（上游 `last_prefetch_scroll_at` 与
     // `visible_state_pending` 的对应物）。判决本身在 Rust 侧，这里只报事实。
     _lastTurnAt = DateTime.now();
