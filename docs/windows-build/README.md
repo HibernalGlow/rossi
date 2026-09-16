@@ -641,9 +641,31 @@ out = subprocess.run(['tasklist','/FO','CSV','/NH'], capture_output=True).stdout
 链接 dav1d。两件事必须知道：
 
 **构建时**：`dav1d-sys` 通过 pkg-config 找 dav1d。本机已有 vcpkg 的 `x64-windows`
-（`D:\scoop\persist\vcpkg\installed\x64-windows`，1.5.3，含 `lib/pkgconfig/dav1d.pc`），
-`PKG_CONFIG_PATH` 由 scoop 的环境带进来。缺了它构建会失败。
+（`D:\scoop\persist\vcpkg\installed\x64-windows`，1.5.3，含 `lib/pkgconfig/dav1d.pc`）。
 macOS 用 `brew install dav1d`，Linux 用 `apt install libdav1d-dev`。
+
+**这里有个反直觉的坑，记清楚**：光在 shell 里 `export PKG_CONFIG_PATH` **没有用**。
+Flutter 跑 native assets 的 hook 时，**子进程环境是干净的** —— 实测
+`PKG_CONFIG_PATH` / `PKG_CONFIG` / `VCPKG_ROOT` / `CARGO_HOME` / `CARGO_TARGET_DIR`
+**全部为空**，PATH 里也没有任何 vcpkg 段。连 `CARGO_TARGET_DIR` 都没继承，
+说明不是「选择性过滤」而是整个环境被重建过了。
+
+症状很有欺骗性：
+
+- 同样的 cargo 命令在终端里跑得通：
+  `cd rust && cargo build -p windcore --target x86_64-pc-windows-msvc --target-dir <别的目录>`
+- 但 `flutter build windows` 挂在 `dav1d-sys` 的 build.rs，日志里**只有一句**
+  `failed to run custom build command for dav1d-sys v0.8.3` ——
+  build script 的 stdout/stderr 被构建链整个吞掉，连 pkg-config 的报错都看不到。
+
+所以通道走 **Cargo 自己的 `[env]` 段**（它不依赖调用者的环境）：
+`win-baseline-env.sh` 探测 vcpkg 的 pkgconfig 目录，写成 `<repo>/.cargo/config.toml`，
+用 `force = false` 让环境变量优先、别的机器可以直接 export 覆盖。
+该文件**不入库**（`.gitignore` 里有它），因为里面是本机路径。
+
+**排障提示**：hook 的输出被吞时，让 hook 自己落盘比翻构建日志有效得多
+（写文件到 `.workbuddy/logs/` 之类）；或者先在终端复现同样的 cargo 命令 ——
+**「终端过、flutter 不过」这个差异本身就是结论**：问题一定在环境，不在代码。
 
 **运行时**：dav1d 是动态库。`dav1d.dll` 不在 `zephyr.exe` 旁边时 `windcore.dll` 加载失败，
 **App 直接起不来** —— 不是「AVIF 解不开」，别往解码那边找。

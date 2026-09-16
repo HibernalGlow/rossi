@@ -145,3 +145,42 @@ else
   echo "[rossi-env] 警告：未找到 dav1d.dll；AVIF 页运行时会解不出来（见 docs/v0.1-local-core.md）" >&2
 fi
 unset _rossi_dav1d_dll _rossi_cand
+
+# ── dav1d 的 pkg-config 通道：写进 Cargo 的 [env] 段 ──
+# 为什么不能只靠 export：Flutter 跑 native assets 的 hook 时**子进程环境是干净的**
+# （实测 PKG_CONFIG_PATH / CARGO_HOME / CARGO_TARGET_DIR 全为空，PATH 里也没有 vcpkg），
+# shell 里的 export 传不到 cargo 的 build script。表现为 `flutter build` 挂在
+# dav1d-sys 的 build.rs —— 只有一句 "failed to run custom build command"，
+# 而同样的 cargo 命令在终端里跑得通。Cargo 自己的 [env] 段不依赖调用者环境，
+# 正好补上这一段。
+# 生成物不入库（.gitignore 有 .cargo/config.toml），因为里面是本机的 vcpkg 路径。
+_rossi_pkgconfig_dir=""
+for _rossi_pc in /d/scoop/persist/vcpkg/installed/*/lib/pkgconfig \
+                  /d/scoop/apps/vcpkg/current/installed/*/lib/pkgconfig; do
+  if [ -f "$_rossi_pc/dav1d.pc" ]; then
+    _rossi_pkgconfig_dir=$(cygpath -m "$_rossi_pc" 2>/dev/null || echo "$_rossi_pc")
+    break
+  fi
+done
+if [ -n "$_rossi_pkgconfig_dir" ]; then
+  _rossi_repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+  mkdir -p "$_rossi_repo_root/.cargo"
+  cat > "$_rossi_repo_root/.cargo/config.toml" <<EOF
+# 本文件由 docs/windows-build/win-baseline-env.sh 生成，不入库（.gitignore 有它）。
+#
+# 为什么要它：Flutter 跑 native assets 的 hook 时子进程环境是干净的
+# （实测 PKG_CONFIG_PATH / CARGO_HOME / CARGO_TARGET_DIR 全为空），
+# shell 里的 export 传不到 cargo 的 build script。而 image 的 avif-native
+# 要经 pkg-config 找 dav1d —— 少了这段，"flutter build" 会挂在 dav1d-sys 的
+# build.rs，且只报 "failed to run custom build command"，很难定位。
+# Cargo 的 [env] 段不依赖调用者环境，正好补这一段。
+#
+# force = false 表示环境变量优先：别的机器可以直接 export PKG_CONFIG_PATH 覆盖。
+[env]
+PKG_CONFIG_PATH = { value = "$_rossi_pkgconfig_dir", force = false }
+EOF
+  echo "[rossi-env] .cargo/config.toml -> $_rossi_pkgconfig_dir"
+else
+  echo "[rossi-env] 警告：未找到 dav1d.pc；avif 解码在构建期会失败" >&2
+fi
+unset _rossi_pkgconfig_dir _rossi_pc _rossi_repo_root

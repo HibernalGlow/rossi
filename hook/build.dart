@@ -36,7 +36,34 @@ Map<String, String> _extraCargoEnvironmentVariables(
   if (codeConfig.targetOS == OS.android) {
     return _androidEnvironmentVariables(codeConfig, projectRoot);
   }
-  return const <String, String>{};
+  return _hostEnvironmentVariables();
+}
+
+/// 宿主平台（Windows / macOS / Linux）：把**构建前置**显式交给 cargo。
+///
+/// 为什么必须显式：hook 是 Flutter 工具另起的进程，环境不保证与终端一致。
+/// 实测（2026-09-16）：`cargo build -p windcore --target x86_64-pc-windows-msvc`
+/// 在终端里编得过，同一命令在 native assets 构建里却挂在 `dav1d-sys` 的 build.rs
+/// —— `image` 的 `avif-native` 要经 pkg-config 找 dav1d，而 pkg-config 看不见
+/// `PKG_CONFIG_PATH` 就只能失败。**不赌「环境会继承」，把要用的写明白。**
+///
+/// 变量本身仍由构建环境提供（`docs/windows-build/win-baseline-env.sh` 负责 export），
+/// 这里只做透传 —— 仓库里不出现任何机器绝对路径。
+Map<String, String> _hostEnvironmentVariables() {
+  const passthrough = ['PKG_CONFIG_PATH', 'PKG_CONFIG', 'VCPKG_ROOT'];
+  final env = <String, String>{};
+  for (final key in passthrough) {
+    final value = Platform.environment[key];
+    if (value != null && value.isNotEmpty) {
+      env[key] = value;
+    }
+  }
+  // 打点：这个构建前置在 CI 上最容易缺，出问题时要能一眼看出它当时是什么。
+  stderr.writeln(
+    '[rossi-hook] 构建前置 -> cargo: '
+    '${env.isEmpty ? '(全部缺失，涉及 pkg-config 的 crate 会失败)' : env}',
+  );
+  return env;
 }
 
 // ────────────────────────── iOS ──────────────────────────

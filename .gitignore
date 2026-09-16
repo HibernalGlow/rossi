@@ -108,3 +108,8 @@ third_party/ncnn-src/
 # Native bridge generated files
 compile_commands.json
 native/generated/ir.json
+
+# 本机构建基线生成物：Cargo 的 [env] 通道（含本机 vcpkg 路径），由
+# docs/windows-build/win-baseline-env.sh 写入。不入库 —— 见该脚本与
+# docs/v0.1-local-core.md §5.2。
+.cargo/config.toml
