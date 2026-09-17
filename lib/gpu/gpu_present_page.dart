@@ -88,7 +88,10 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
   Future<void> _autorunProbe() async {
     final PageTurnProbeRun run = PageTurnProbeRun()..startRecording();
     run.note('量具模式：${PageTurnProbe.logPath}');
-    run.note('轮数 ${PageTurnProbe.turns}，每轮停留 ${PageTurnProbe.dwellMs} ms');
+    run.note(
+      '轮数 ${PageTurnProbe.turns}，每轮停留 ${PageTurnProbe.dwellMs} ms，'
+      '每轮翻 ${PageTurnProbe.stride} 页',
+    );
 
     // 先把表头落盘：跑挂了也留得下痕迹（否则"没文件"和"没跑"分不出来）。
     try {
@@ -125,7 +128,9 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
       for (int turn = 0; turn < PageTurnProbe.turns; turn++) {
         // 页号**绕回**，不是夹到最后一页：轮数多于页数时（判据 C 要 100 次）夹住会变成
         // "把同一页反复交出去"，量到的是幂等早退，不是翻页。
-        final int page = turn % source.pageCount;
+        // `stride > 1` 时刻意跳到预取半径之外，让**每一轮都是冷页**（见
+        // `PageTurnProbe.stride`）。绕回规则不变：跨着翻也会回到开头。
+        final int page = (turn * PageTurnProbe.stride) % source.pageCount;
         final int framesBefore = run.frameCount;
         final int seqBefore = _presenter.presentCount;
         _show(page);
@@ -146,6 +151,8 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
             framesAfter: run.frameCount,
             presentMs: pushed ? _presenter.lastPresentMs : null,
             presentSeq: _presenter.presentCount,
+            showAsync: _presenter.stats?.showAsync,
+            showBusyRejected: _presenter.stats?.showBusyRejected ?? 0,
             rust: _presenter.stats?.probe,
           ),
         );

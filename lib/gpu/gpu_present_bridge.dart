@@ -198,7 +198,42 @@ class GpuPresentBridge {
 
   /// 呈现第 [index] 页。返回即表示像素已经落在共享纹理里，且引擎已被通知来取。
   Future<void> show(int index) async {
-    await channel.invokeMethod<bool>('show', <String, Object?>{'index': index});
+    _trace('show-enter idx=$index');
+    try {
+      await channel.invokeMethod<bool>('show', <String, Object?>{'index': index});
+      _trace('show-done idx=$index');
+    } catch (error) {
+      _trace('show-error idx=$index err=$error');
+      rethrow;
+    }
+  }
+
+  /// 排查用：把 `show` 的发起与返回落到盘上。
+  ///
+  /// # 为什么 C++ 侧那份跟踪不够
+  ///
+  /// 桥里的 `ROSSI_GPU_SHOW_TRACE` 只能证明"平台上发生了什么"，
+  /// **证明不了"应答有没有回到 Dart"**。而"投回平台线程的任务没跑"与
+  /// "平台线程答了但 Dart 没收到"这两件事的排查方向完全不同 ——
+  /// 在 GUI 子系统下两条通道都看不见，只能各自落盘。
+  ///
+  /// 设 `ROSSI_GPU_SHOW_TRACE_DART=<路径>` 才写；没设时是空分支。
+  /// 单 isolate 写文件，不会互相盖行，所以同步写就够（一次翻页两行）。
+  static void _trace(String line) {
+    final String path =
+        (Platform.environment['ROSSI_GPU_SHOW_TRACE_DART'] ?? '').trim();
+    if (path.isEmpty) {
+      return;
+    }
+    try {
+      File(path).writeAsStringSync(
+        '${DateTime.now().millisecondsSinceEpoch} $line\n',
+        mode: FileMode.append,
+        flush: true,
+      );
+    } catch (_) {
+      // 跟踪写不出去不该影响呈现 —— 它是诊断，不是功能。
+    }
   }
 
   /// 开关后台预取。
@@ -241,6 +276,8 @@ class GpuPresentStats {
     required this.handleOpened,
     required this.resizes,
     required this.pageCount,
+    required this.showAsync,
+    required this.showBusyRejected,
     required this.probe,
     required this.probeRaw,
   });
@@ -277,6 +314,15 @@ class GpuPresentStats {
   final int resizes;
   /// 最近一次打开的来源有几页。
   final int pageCount;
+
+  /// `show` 是不是在桥自己的工作线程上跑的（`ROSSI_GPU_SHOW_ASYNC=0` 可以关掉）。
+  ///
+  /// 报出来是因为 A/B 要**先证明开关生效了**：开关没生效时两组读数几乎一样，
+  /// 而那个"一样"会被读成"这个改动没用"。
+  final bool showAsync;
+
+  /// 因为"上一页还在呈现"而被拒掉的 `show` 次数。正常恒为 0。
+  final int showBusyRejected;
   /// Rust 侧上报的 JSON，已解析。
   final Map<String, Object?> probe;
   /// 上面那份 JSON 的原文，用来在解析失败时还能给人看。
@@ -310,6 +356,8 @@ class GpuPresentStats {
       handleOpened: _asInt(map['handleOpened']),
       resizes: _asInt(map['resizes']),
       pageCount: _asInt(map['pageCount']),
+      showAsync: map['showAsync'] == true,
+      showBusyRejected: _asInt(map['showBusyRejected']),
       probe: probe,
       probeRaw: probeRaw,
     );

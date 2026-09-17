@@ -60,7 +60,8 @@ class PageTurnProbe {
       'present_ms,present_seq,cache_hit,rust_total_ms,rust_decode_ms,rust_upload_ms,'
       'rust_submit_ms,'
       'decoded_w,decoded_h,target_w,target_h,source_w,source_h,'
-      'init_ms,init_device_ms,prefetch_decoded,prefetch_enabled\n';
+      'init_ms,init_device_ms,prefetch_decoded,prefetch_enabled,'
+      'show_async,show_busy_rejected\n';
 
   static String get logPath => (Platform.environment[_logVar] ?? '').trim();
 
@@ -72,6 +73,14 @@ class PageTurnProbe {
       (Platform.environment['ROSSI_GPU_PRESENT_SAMPLE'] ?? '').trim();
 
   static int get turns => _intFromEnv('ROSSI_PAGE_TURN_TURNS', 8);
+
+  /// 每轮往前翻几页。默认 1（顺序读）。
+  ///
+  /// **设成大于预取半径（±2）是为了专门制造"冷页"。** 顺序翻页下几乎每一轮都被
+  /// 预取命中，于是 `show` 那条"现解一页"的路径根本不被走到 —— 而它正是"窗口会
+  /// 不会被冻住"的那条路。跨着翻（比如 10）时落点旁边没有任何已解好的页，
+  /// **每一轮都是冷页**，这条路径才被真正压到。
+  static int get stride => _intFromEnv('ROSSI_PAGE_TURN_STRIDE', 1);
   static int get dwellMs => _intFromEnv('ROSSI_PAGE_TURN_DWELL_MS', 900);
   static int get readyTimeoutMs => _intFromEnv('ROSSI_PAGE_TURN_READY_MS', 10000);
 
@@ -133,6 +142,8 @@ class ProbeTurn {
     required this.framesAfter,
     required this.presentMs,
     required this.presentSeq,
+    required this.showAsync,
+    required this.showBusyRejected,
     required this.rust,
   });
 
@@ -160,6 +171,19 @@ class ProbeTurn {
   /// 页号会重复（连翻绕回、反复点同一页），所以"页号对得上"不足以证明这一轮的
   /// `presentMs` 是**这一次**量出来的。看它比上一轮大了没有，才是硬证据。
   final int presentSeq;
+
+  /// 桥这一份进程是不是把 `show` 放在工作线程上跑的（`ROSSI_GPU_SHOW_ASYNC`）。
+  ///
+  /// **A/B 时必须先看这个**：它记的是"开关真的生效了"，而不是"我设了环境变量"。
+  /// 开关没生效时两组数据几乎一样，看着就像"这个改动没用"。
+  ///
+  /// `null` = native 侧没上报（`stats` 还没刷到）。**必须与 `false` 分开** ——
+  /// 把"没拿到"当成"对照组"正是这一条要防的误读。
+  final bool? showAsync;
+
+  /// 因为"上一页还在呈现"而被拒掉的 `show` 次数。正常恒为 0 ——
+  /// 不为 0 说明 Dart 侧出现了没被 `await` 串起来的并发。
+  final int showBusyRejected;
 
   /// Rust 侧诊断快照（可能为 null：还没刷到）。
   final Map<String, Object?>? rust;
@@ -217,6 +241,8 @@ class ProbeTurn {
       _num('initDeviceMs', digits: 0),
       _int('prefetchDecoded')?.toString() ?? '',
       _bool('prefetchEnabled'),
+      showAsync == null ? '' : (showAsync! ? '1' : '0'),
+      '$showBusyRejected',
     ].join(',');
   }
 
@@ -389,6 +415,29 @@ class PageTurnProbeRun {
       '- 引擎打开共享句柄累计：$lastOpened '
       '${lastOpened > 0 ? '✅ 链路真通' : '❌ 引擎一次都没来取帧'}',
     );
+    // `show` 到底在哪个线程上跑 —— A/B 的第一件事是**先证明开关生效了**。
+    // 不先看这一条，两组读数一旦接近就会被读成"这个改动没用"。
+    final bool? showAsync = _turns.isEmpty ? null : _turns.last.showAsync;
+    final int busyRejected = _turns.isEmpty ? 0 : _turns.last.showBusyRejected;
+    out.writeln(
+      '- `show` 跑在：${switch (showAsync) {
+        true => '桥的工作线程（默认）',
+        false => '**平台线程（对照）**',
+        null => 'native 侧没上报',
+      }}',
+    );
+    if (busyRejected > 0) {
+      out.writeln(
+        '- ⚠️ 有 $busyRejected 次 `show` 因为"上一页还在呈现"被拒 —— '
+        'Dart 侧出现了没被 await 串起来的并发，去查调用点。',
+      );
+    }
+    if (lastOpened == 0) {
+      out.writeln(
+        '- ⚠️ 引擎一次都没来取帧：下面那些"帧"与这张纹理无关，'
+        '整份数据的用途只剩下量具自检。',
+      );
+    }
     if (gpuTurns != _turns.length) {
       out.writeln(
         '- ⚠️ 有轮次落在 CPU 兜底路上。那些轮次**不能**当作 GPU 路的延迟。',

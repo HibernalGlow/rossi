@@ -4,6 +4,7 @@
 #include <flutter/encodable_value.h>
 #include <flutter/flutter_engine.h>
 #include <flutter/method_channel.h>
+#include <flutter/method_result.h>
 #include <flutter/standard_method_codec.h>
 #include <flutter_plugin_registrar.h>
 #include <flutter_texture_registrar.h>
@@ -13,10 +14,13 @@
 // 需要 dxgi1_6.h（dxgi1_4.h 里没有这两个符号）。
 #include <dxgi1_6.h>
 
+#include <condition_variable>
 #include <cstdint>
 #include <memory>
 #include <mutex>
 #include <string>
+#include <thread>
+#include <utility>
 #include <vector>
 
 // Rossi GPU 呈现桥（Windows）。
@@ -54,6 +58,40 @@
 //
 // 把 loading 和 failed 合成一个"还没好"是不行的：一个该等、一个该放弃，
 // 而调用方没法从"还没好"里分辨是哪一个。
+//
+// # `show` 不在平台线程上跑
+//
+// 冷页的 `show` 要 400–500 ms（60 MPix 的 AVIF 在 dav1d 上是**固定成本**，档位再小
+// 也不减），而它原先是在**平台线程上同步跑**的 —— 平台线程同时还是 Win32 的消息泵，
+// 所以那 400 ms 里窗口连拖动和输入都不响应。观感比"慢"更糟，这一条被用户直接报了。
+//
+// 于是重活挪到本类自己的一个工作线程上：平台线程只做参数校验、把这一份交出去、
+// 立刻返回；Dart 侧的 `await` 照旧等，只是不再占着平台线程。线程契约：
+//
+// - **至多一份 `show` 在飞。** Dart 侧 `await` 每一份，所以这是表述而不是限制；
+//   真的并发来了就报错（`busy`），**不排队** —— 排队等于让"用户早翻过去了"的那些页
+//   继续解下去，正是预取那边刻意避开的那种积压。
+// - 完成时用 `FlutterEngine::PostPlatformThreadTask` 把应答**送回平台线程**再调
+//   `MethodResult` —— 它不保证线程安全，在别的线程上应答属于未定义用法。
+// - `mutex_` 的持有者因此可能是工作线程。它是"presenter 访问锁"，
+//   不再是"平台线程的锁"。退出次序见 `~GpuPresentBridge`。
+// - `ROSSI_GPU_SHOW_ASYNC=0` 让 `show` 退回平台线程同步跑。**只为 A/B 存在**：
+//   同一份二进制、只差这一处，才排得掉代码漂移对数字的影响。
+//
+// # 两把锁，不是一个
+//
+// 把 `show` 挪走之后还剩一个洞：`mutex_` 在工作线程上要持 400–500 ms，
+// 而 `SurfaceCallback`（raster 线程）原先也要拿同一把 —— 于是 raster 被挡在
+// 冷页解码后面，观感就是"翻页时画面顿住"。实测对照组帧跨度
+// （`vsyncStart → rasterFinish`）最大 **487.7 ms**，就是这个。
+//
+// 所以拆成两把，**加锁顺序恒为 `mutex_` → `snapshot_mutex_`**：
+//
+// - `mutex_`：presenter 访问 + 计数。只在调用 `rossi_gpu_present_*` 时持有，
+//   冷页时确实会持几百毫秒。
+// - `snapshot_mutex_`：只护一份极小的"当前句柄/尺寸/代际"快照。
+//   `SurfaceCallback` 的稳态路径（尺寸没变）**只拿这一把**，所以它绝不会
+//   排在解码后面；真需要 resize 时才升级去拿 `mutex_`。
 //
 // 状态每次现问（`QueryStateLocked`），不在 C++ 侧缓存 —— 见那里的说明。
 class GpuPresentBridge {
@@ -119,6 +157,74 @@ class GpuPresentBridge {
                         std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
   flutter::EncodableMap BuildStats();
 
+  // ── `show`：重活与应答分开 ──
+  //
+  // 两者必须分开：重活可以（也应该）在工作线程上做，而应答**只能**在平台线程上做。
+  // 把它们合成一个函数，就等于把"在哪个线程应答"这个决定藏进了调用点。
+  struct ShowOutcome {
+    bool ok = false;
+    std::string code;
+    std::string message;
+  };
+
+  // 一次 `show` 请求：页下标 + 还没应答的那一份 `result`。
+  struct ShowJob {
+    ShowJob(uint32_t page, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> r)
+        : index(page), result(std::move(r)) {}
+    uint32_t index = 0;
+    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result;
+  };
+
+  void StartWorker();
+  void StopWorker();
+  void WorkerLoop();
+  // 做 `show` 的重活：持 `mutex_` 调 Rust，成功后通知引擎来取帧。不碰 `MethodResult`。
+  ShowOutcome PerformShow(uint32_t index);
+  // 在**调用者线程**上把结果交给 Dart。**只有平台线程可以调。**
+  //
+  // 收裸指针而不是 `unique_ptr`：要把应答投到平台线程上得用
+  // `FlutterEngine::PostPlatformThreadTask`，而它的参数是 `std::function<void()>` ——
+  // `std::function` 要求可调用对象**可拷贝**，所以搬不进去一个移动语义的
+  // `unique_ptr`（这正是第一次编译报的那条 `C2338`）。所有权因此交给
+  // `shared_ptr` 持有，投递时复制的是那个 `shared_ptr`。
+  static void ResolveShow(const ShowOutcome& outcome,
+                          flutter::MethodResult<flutter::EncodableValue>* result);
+  // 告诉引擎"这一帧有新像素了"。**必须在释放 `mutex_` 之后调**（引擎可能同步回调
+  // `SurfaceCallback`，而那要拿 `mutex_`，持锁调用会直接死锁）。
+  //
+  // 顺带记一句：`FlutterDesktopTextureRegistrarMarkExternalTextureFrameAvailable`
+  // 的头文件明说"可以任何线程调"，所以异步 `show` 之后这一句是在**工作线程**上执行的 ——
+  // 也就是说 `SurfaceCallback` 有可能就发生在工作线程上。那正是快路径必须只拿
+  // `snapshot_mutex_` 的原因之一。
+  void MarkFrameAvailable();
+
+  // 排查用的落盘跟踪。设了 `ROSSI_GPU_SHOW_TRACE=<ASCII 路径>` 才写。
+  //
+  // 为什么要这个东西：Windows runner 是 GUI 子系统，**没有控制台** —— 线程卡在哪
+  // 一步，从外面完全看不出来（表现只是"产物只写了个表头，然后什么都没有"）。
+  // 跨线程的活一旦卡住，只有一个文件能说话。
+  void Trace(const char* fmt, ...);
+  std::string trace_path_;
+  // `SurfaceCallback` 被调过几次。只用来给跟踪限量（每帧都会来一次）。
+  // 它不是统计量，`stats` 里报的那个是 `resize_count_`。
+  mutable uint64_t surface_calls_ = 0;
+
+  // ── `show` 的工作线程 ──
+  //
+  // 单槽而不是队列：见类注释里的线程契约。
+  std::thread worker_;
+  mutable std::mutex work_mutex_;
+  std::condition_variable work_cv_;
+  std::unique_ptr<ShowJob> pending_show_;
+  bool show_in_flight_ = false;
+  bool worker_stopping_ = false;
+  // 是否把 `show` 挪到工作线程。`ROSSI_GPU_SHOW_ASYNC=0` 可以关掉（A/B 用）。
+  bool async_show_ = true;
+  // 因为"上一页还没做完"而被拒掉的 `show` 次数。**正常恒为 0** ——
+  // 它不为 0 就说明 Dart 侧出现了没被 `await` 串起来的并发，那是 bug 不是常态。
+  uint64_t show_busy_rejected_ = 0;
+
+  // 构造之后**只读**：所以 `show` 的工作线程可以不拿锁读它，用来把应答投回平台线程。
   flutter::FlutterEngine* engine_ = nullptr;
   FlutterDesktopTextureRegistrarRef texture_registrar_ = nullptr;
 
@@ -147,6 +253,12 @@ class GpuPresentBridge {
   bool luid_known_ = false;
   std::string adapter_name_;
 
+  // ── 下面这一组由 `snapshot_mutex_` 护着 ──
+  //
+  // 它们就是"当前该把哪个句柄、多大尺寸交给引擎"的全部状态。单独一把锁的理由：
+  // `SurfaceCallback` 在 raster 线程上每次合成都要读它，而 `mutex_` 在冷页 `show`
+  // 期间会被持有几百毫秒 —— 共用一把就等于让 raster 排队等解码。
+  //
   // 当前句柄对应的目标尺寸与代际号。
   uint32_t width_ = 0;
   uint32_t height_ = 0;
@@ -154,8 +266,13 @@ class GpuPresentBridge {
   uint64_t generation_ = 0;
 
   // descriptor 必须长期有效：引擎会一直持有这个指针，直到下一次 callback。
+  // （指针的存活期到下一次 callback 为止 —— 与本次改动之前**完全一样**，
+  // 没有变得更宽松，也没有变得更紧。）
   FlutterDesktopGpuSurfaceDescriptor descriptor_ = {};
+  mutable std::mutex snapshot_mutex_;
 
+  // ── 下面这一组由 `mutex_` 护着 ──
+  //
   // 统计。`handle_opened_` 是"链路真的通了"的硬证据 ——
   // 引擎只有在确实把这张纹理合成了才会去打开句柄。
   uint64_t frames_marked_ = 0;
@@ -163,8 +280,12 @@ class GpuPresentBridge {
   uint32_t resize_count_ = 0;
   uint32_t last_open_page_count_ = 0;
 
-  // `SurfaceCallback` 在 raster 线程，`show` / `open` / `resize` 在平台线程，
-  // 两者都会碰 `presenter_` 与上面这些字段。
+  // presenter 访问锁：凡是调 `rossi_gpu_present_*` 的地方都拿它。
+  // 持有者可能是平台线程（`open` / `init` / `stats`）、raster 线程（`SurfaceCallback`
+  // 里那次 resize）、或 `show` 的工作线程 —— 所以它**不是**"平台线程的锁"，
+  // 也不要指望它短。
+  //
+  // **加锁顺序恒为 `mutex_` → `snapshot_mutex_`。** 反过来就有互锁空间。
   mutable std::mutex mutex_;
 
   bool ok_ = false;

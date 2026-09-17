@@ -1,7 +1,9 @@
 #include "gpu_present_bridge.h"
 
 #include <algorithm>
+#include <cstdarg>
 #include <cstdio>
+#include <cstdlib>
 #include <utility>
 #include <vector>
 
@@ -97,6 +99,63 @@ bool TryGetString(const flutter::EncodableMap& map, const char* key,
   return false;
 }
 
+// 排查用的落盘跟踪（可选）。设了 `ROSSI_GPU_SHOW_TRACE=<ASCII 路径>` 才写。
+//
+// 为什么要这个东西：Windows runner 是 GUI 子系统，**没有控制台** —— 线程卡在哪一步
+// 从外面完全看不出来（表现只是"产物只写了个表头，然后什么都没有"）。跨线程的活一旦
+// 卡住，只有一个文件能说话。
+//
+// # 为什么不是"每次调 fopen_s/写/fclose"
+//
+// 第一版就是这么干的，结果是**会丢行**：平台线程、`show` 工作线程、raster 线程同时
+// 开同一个文件、"a" 模式各自 seek 到末尾再写，几条日志互相盖掉。丢的恰好是排查最需要
+// 的那一行时，"没有这一行"会被读成"这一步没发生" —— 比没有日志更坏。**这个坑真踩了。**
+//
+// 所以改成：**一个进程级的 sink，一把互斥，一行一次写**。写成**不依赖桥对象**的自由
+// 函数，因为"工作线程投到平台线程上的那一段"也要打点，而那个 lambda 可能在桥析构之后
+// 才轮到执行 —— 捕获 `this` 再调成员就是悬垂。所以它只认一个路径副本。
+struct TraceSink {
+  std::mutex mutex;
+  FILE* file = nullptr;
+  std::string path;
+};
+
+// **故意泄漏**：这个 sink 会被"桥已经析构之后才轮到的任务"用到，
+// 让它有一个会在退出时被析构的对象，等于给自己造一个 use-after-free。
+TraceSink& Sink() {
+  static TraceSink* sink = new TraceSink();
+  return *sink;
+}
+
+void TraceToV(const std::string& path, const char* fmt, va_list args) {
+  if (path.empty()) {
+    return;
+  }
+  TraceSink& sink = Sink();
+  std::lock_guard<std::mutex> guard(sink.mutex);
+  if (sink.file == nullptr || sink.path != path) {
+    if (sink.file != nullptr) {
+      std::fclose(sink.file);
+      sink.file = nullptr;
+    }
+    if (::fopen_s(&sink.file, path.c_str(), "a") != 0 || sink.file == nullptr) {
+      return;
+    }
+    sink.path = path;
+  }
+  std::fprintf(sink.file, "%llu ", static_cast<unsigned long long>(::GetTickCount64()));
+  std::vfprintf(sink.file, fmt, args);
+  std::fputc(10, sink.file);  // 10 = 换行。**不用字符字面量**：转义层在 Windows 上很容易把这一行写坏。
+  std::fflush(sink.file);
+}
+
+void TraceTo(const std::string& path, const char* fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  TraceToV(path, fmt, args);
+  va_end(args);
+}
+
 }  // namespace
 
 GpuPresentBridge::GpuPresentBridge(flutter::FlutterEngine* engine,
@@ -155,10 +214,50 @@ GpuPresentBridge::GpuPresentBridge(flutter::FlutterEngine* engine,
     return;
   }
 
+  // `ROSSI_GPU_SHOW_ASYNC=0` 让 `show` 退回"在平台线程上同步跑"。**只为 A/B 存在**：
+  // 同一份二进制、只差这一处，才排得掉代码漂移对数字的影响（与预取那个开关同理）。
+  wchar_t async_flag[8] = {};
+  if (::GetEnvironmentVariableW(L"ROSSI_GPU_SHOW_ASYNC", async_flag, 8) > 0) {
+    async_show_ = !(async_flag[0] == L'0' && async_flag[1] == L'\0');
+  }
+
+  // 排查用的落盘跟踪（可选）。路径必须是 ASCII —— `fopen_s` 用窄字符 API，
+  // 中文路径在这个编码下会打不开，而"打不开"的表现是**静默没有任何跟踪**。
+  //
+  // 用 `GetEnvironmentVariableA` 而不是 `std::getenv`：后者在 MSVC 上是 C4996
+  // （"unsafe"，建议 `_dupenv_s`），而本工程开了 `/W4 /WX` —— 一句
+  // 排查用的读环境变量会把整个构建拦下来，不值当。
+  char trace_env[512] = {};
+  if (::GetEnvironmentVariableA("ROSSI_GPU_SHOW_TRACE", trace_env,
+                                static_cast<DWORD>(sizeof(trace_env))) > 0) {
+    trace_path_ = trace_env;
+    Trace("bridge-init ok=%d async=%d", 1, async_show_ ? 1 : 0);
+  }
+
+  // 工作线程即使 `async_show_ == false` 也起：它待着不做事，省掉一条"到底起没起过"
+  // 的分支，`StopWorker` 也就不用猜。
+  StartWorker();
+
+  // 冒烟：从**平台线程**投一份空任务回去。它和 `WorkerLoop` 里那一份走的是同一条路，
+  // 但起点不同 —— 两者放在一起就能把"投递机制坏了"与"从别的线程投不行"分开。
+  // （排查用；`TraceTo` 在没设跟踪路径时是 no-op，正式路径零代价。）
+  if (engine_ != nullptr) {
+    engine_->PostPlatformThreadTask(
+        [path = trace_path_]() { TraceTo(path, "smoke-from-platform"); });
+  }
+
   ok_ = true;
 }
 
 GpuPresentBridge::~GpuPresentBridge() {
+  // **第一件事**：把 `show` 的工作线程停下来、并等它做完手上那一份。
+  //
+  // 次序不能改 —— 下面马上要在 `mutex_` 保护下调用 Rust、注销纹理、最后卸载 DLL，
+  // 而工作线程会调进 `presenter_`；不等它就是"在已卸下的代码页上跳转"。
+  // 代价：关窗时如果正好在解一页，这里会等最多一页解码（~0.5 s）。
+  // 与 Rust 侧 `Drop` 里 stop + join 预取线程是同一种取舍 —— 宁可慢一点收尾。
+  StopWorker();
+
   // 顺序很重要：先注销纹理，再销毁呈现器，最后卸载 DLL。
   // Rust 对象里持有 wgpu 与 D3D12 资源，它们的析构函数在 DLL 里，
   // 卸载后再析构就是"在已卸下的代码页上跳转"。
@@ -282,26 +381,62 @@ const FlutterDesktopGpuSurfaceDescriptor* GpuPresentBridge::SurfaceCallback(
     return nullptr;
   }
 
-  std::lock_guard<std::mutex> guard(self->mutex_);
-
-  // 未就绪时没有句柄可给，只能回 nullptr（语义是"这一帧没有 surface"，合法）。
-  // 把 `shared_handle_` 的初始值 nullptr 当成合法句柄交出去就不是合法用法了。
-  //
-  // 正常流程里走不到这里：Dart 侧在收到 `ready` 之前不构建 `Texture`，
-  // 引擎也就不会来要帧。这一段是防误用，不是主路径。
-  if (self->QueryStateLocked(nullptr) != kGpuStateReady) {
-    return nullptr;
-  }
-
   const uint32_t target_width =
       static_cast<uint32_t>(width > 0 ? std::min<size_t>(width, 8192) : 1);
   const uint32_t target_height =
       static_cast<uint32_t>(height > 0 ? std::min<size_t>(height, 8192) : 1);
-
-  if (!self->SyncTarget(target_width, target_height)) {
-    return nullptr;
+  // 跟踪只记前若干次：`SurfaceCallback` 每合成一帧就会来一次，全记会把文件写爆。
+  const bool traced = self->surface_calls_ < 400;
+  self->surface_calls_++;
+  if (traced) {
+    self->Trace("surface-enter %ux%u", target_width, target_height);
   }
-  return &self->descriptor_;
+
+  // ── 稳态快路径：尺寸没变，只拿 `snapshot_mutex_` ──
+  //
+  // 这一条是**为冷页加的**。`show` 的工作线程此刻可能正持着 `mutex_` 解一页
+  // 400–500 ms，而本函数跑在 raster 线程上；两者原先共用一把锁，于是 raster
+  // 排到解码后面去，观感就是"翻页时画面顿住"（实测帧跨度最大 487.7 ms）。
+  // 尺寸没变时这里根本不需要 presenter，也就不该去排那把长锁。
+  {
+    std::lock_guard<std::mutex> snapshot(self->snapshot_mutex_);
+    if (self->shared_handle_ != nullptr && self->width_ == target_width &&
+        self->height_ == target_height) {
+      if (traced) {
+        self->Trace("surface-fast-ok");
+      }
+      return &self->descriptor_;
+    }
+  }
+
+  // ── 慢路径：首次（尺寸还是 0）或尺寸真的变了，才去碰 presenter ──
+  {
+    if (traced) {
+      self->Trace("surface-slow-wait-lock");
+    }
+    std::lock_guard<std::mutex> guard(self->mutex_);
+    if (traced) {
+      self->Trace("surface-slow-locked");
+    }
+
+    // 未就绪时没有句柄可给，只能回 nullptr（语义是"这一帧没有 surface"，合法）。
+    // 把 `shared_handle_` 的初始值 nullptr 当成合法句柄交出去就不是合法用法了。
+    //
+    // 正常流程里走不到这里：Dart 侧在收到 `ready` 之前不构建 `Texture`，
+    // 引擎也就不会来要帧。这一段是防误用，不是主路径。
+    if (self->QueryStateLocked(nullptr) != kGpuStateReady) {
+      return nullptr;
+    }
+    if (!self->SyncTarget(target_width, target_height)) {
+      return nullptr;
+    }
+    if (traced) {
+      self->Trace("surface-slow-done");
+    }
+    // 加锁顺序 `mutex_` → `snapshot_mutex_`，与别处一致。
+    std::lock_guard<std::mutex> snapshot(self->snapshot_mutex_);
+    return &self->descriptor_;
+  }
 }
 
 // 向 Rust 问当前就绪状态。调用方必须已持有 `mutex_`。
@@ -330,8 +465,11 @@ bool GpuPresentBridge::SyncTarget(uint32_t width, uint32_t height) {
   if (presenter_ == nullptr || resize_ == nullptr) {
     return false;
   }
-  if (shared_handle_ != nullptr && width_ == width && height_ == height) {
-    return true;
+  {
+    std::lock_guard<std::mutex> snapshot(snapshot_mutex_);
+    if (shared_handle_ != nullptr && width_ == width && height_ == height) {
+      return true;
+    }
   }
 
   std::vector<uint8_t> err(1024, 0);
@@ -341,15 +479,22 @@ bool GpuPresentBridge::SyncTarget(uint32_t width, uint32_t height) {
     return false;
   }
 
-  shared_handle_ = handle;
-  width_ = width;
-  height_ = height;
-  generation_ = generation_fn_(presenter_);
-  resize_count_++;
-  RefreshDescriptor();
+  // `presenter_` 在我们持有 `mutex_` 期间是稳定的，所以代际号可以放在取快照之前问，
+  // 临界区里就只剩几次赋值。
+  const uint64_t generation = generation_fn_ != nullptr ? generation_fn_(presenter_) : 0;
+  {
+    std::lock_guard<std::mutex> snapshot(snapshot_mutex_);
+    shared_handle_ = handle;
+    width_ = width;
+    height_ = height;
+    generation_ = generation;
+    resize_count_++;
+    RefreshDescriptor();
+  }
   return true;
 }
 
+// 调用方必须已持有 `snapshot_mutex_`（它写的是那一组字段）。
 void GpuPresentBridge::RefreshDescriptor() {
   descriptor_ = {};
   descriptor_.struct_size = sizeof(FlutterDesktopGpuSurfaceDescriptor);
@@ -388,6 +533,176 @@ void GpuPresentBridge::OnHandleOpened(void* release_context) {
   }
 }
 
+void GpuPresentBridge::Trace(const char* fmt, ...) {
+  if (trace_path_.empty()) {
+    return;
+  }
+  va_list args;
+  va_start(args, fmt);
+  TraceToV(trace_path_, fmt, args);
+  va_end(args);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// `show`：重活、应答、工作线程
+//
+// 三件事刻意分成三个函数，因为它们的**线程约束各不相同**：
+// `PerformShow` 可以在任何线程（自己拿 `mutex_`）、`ResolveShow` 只能在平台线程、
+// `WorkerLoop` 是那条把前者搬到后者上去的线。
+// ─────────────────────────────────────────────────────────────────────────────
+
+GpuPresentBridge::ShowOutcome GpuPresentBridge::PerformShow(uint32_t index) {
+  {
+    Trace("perform-wait-lock idx=%u", index);
+    std::lock_guard<std::mutex> guard(mutex_);
+    Trace("perform-locked idx=%u", index);
+    if (QueryStateLocked(nullptr) != kGpuStateReady) {
+      Trace("perform-not-ready idx=%u", index);
+      return {false, "not-ready", "呈现器尚未就绪，此刻应走兜底路径"};
+    }
+    std::vector<uint8_t> err(1024, 0);
+    const int32_t rc = show_(presenter_, index, err.data(), static_cast<size_t>(err.size()));
+    Trace("perform-ffi-done idx=%u rc=%d", index, rc);
+    if (rc != 0) {
+      return {false, "show-failed", reinterpret_cast<const char*>(err.data())};
+    }
+  }
+  // 锁放掉了才通知引擎 —— 见 `MarkFrameAvailable` 的说明。
+  MarkFrameAvailable();
+  return {true, std::string(), std::string()};
+}
+
+void GpuPresentBridge::MarkFrameAvailable() {
+  int64_t texture_id = -1;
+  {
+    // `texture_id_` 只在 `Register()`（平台线程）与析构里改，而析构那次发生在
+    // `StopWorker()` 之后 —— 所以这里读不到半截。拿一下锁只是为了不给"它在不在"
+    // 留悬念，代价是几次原子操作。
+    std::lock_guard<std::mutex> guard(mutex_);
+    texture_id = texture_id_;
+  }
+  // **必须**在释放 `mutex_` 之后再通知引擎：引擎可能同步回调 `SurfaceCallback`，
+  // 而它（慢路径）要拿 `mutex_`，持锁调用会直接死锁。
+  if (texture_registrar_ != nullptr && texture_id >= 0) {
+    Trace("mark-enter id=%lld", static_cast<long long>(texture_id));
+    FlutterDesktopTextureRegistrarMarkExternalTextureFrameAvailable(texture_registrar_,
+                                                                    texture_id);
+    Trace("mark-done id=%lld", static_cast<long long>(texture_id));
+    std::lock_guard<std::mutex> guard(mutex_);
+    frames_marked_++;
+  }
+}
+
+// 静态成员：没有 `this`，所以投到平台任务队列里的 lambda 可以放心调它 ——
+// 即使它轮到执行时桥已经析构。
+void GpuPresentBridge::ResolveShow(
+    const ShowOutcome& outcome,
+    flutter::MethodResult<flutter::EncodableValue>* result) {
+  if (outcome.ok) {
+    result->Success(flutter::EncodableValue(true));
+  } else {
+    result->Error(outcome.code, outcome.message);
+  }
+}
+
+void GpuPresentBridge::StartWorker() {
+  {
+    std::lock_guard<std::mutex> guard(work_mutex_);
+    if (worker_.joinable()) {
+      return;
+    }
+    worker_stopping_ = false;
+  }
+  worker_ = std::thread([this] { WorkerLoop(); });
+}
+
+void GpuPresentBridge::StopWorker() {
+  std::unique_ptr<ShowJob> dropped;
+  {
+    std::lock_guard<std::mutex> guard(work_mutex_);
+    if (!worker_.joinable()) {
+      return;
+    }
+    worker_stopping_ = true;
+    dropped = std::move(pending_show_);
+    pending_show_.reset();
+  }
+  work_cv_.notify_all();
+
+  // 等这一份做完。**不能不等** —— 工作线程会调进 `presenter_`，而析构流程马上
+  // 就要销毁呈现器并卸载 DLL。代价是"关窗时正好在解一页"会等最多一页解码
+  // （~0.5 s）；与 Rust 侧 `Drop` 里 stop + join 预取线程是同一种取舍：
+  // 宁可慢一点收尾，也不要"在已卸下的代码页上跳转"。
+  worker_.join();
+
+  if (dropped != nullptr) {
+    // 还没轮到的那一份以错误收尾，别让 Dart 的 future 悬着。
+    // 此刻引擎还活着（关停次序见 `flutter_window.cpp` 的 `OnDestroy`），
+    // 而本函数在平台线程上跑，所以这一次应答是合法的。
+    ResolveShow(ShowOutcome{false, "shutting-down", "呈现器正在关闭，这一页没有呈现"},
+                dropped->result.get());
+  }
+}
+
+void GpuPresentBridge::WorkerLoop() {
+  for (;;) {
+    uint32_t index = 0;
+    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result;
+    {
+      std::unique_lock<std::mutex> lock(work_mutex_);
+      work_cv_.wait(lock, [this] { return worker_stopping_ || pending_show_ != nullptr; });
+      if (pending_show_ == nullptr) {
+        return;  // 停止，而且手上没有活
+      }
+      index = pending_show_->index;
+      result = std::move(pending_show_->result);
+      pending_show_.reset();
+    }
+
+    Trace("worker-pickup idx=%u", index);
+    const ShowOutcome outcome = PerformShow(index);
+    Trace("worker-perform-done idx=%u ok=%d", index, outcome.ok ? 1 : 0);
+
+    // 先把应答投出去、**再**放行下一份：否则新的一份可能抢先把应答送到平台线程，
+    // 让 Dart 看到两页的先后颠倒。
+    //
+    // 所有权交给 `shared_ptr` 才能塞进 `std::function`（它要求可拷贝，见
+    // `ResolveShow` 的说明）。这个 lambda **只捕获 outcome 与那一份 `shared_ptr`、
+    // 不捕获 `this`** —— 它可能在本对象析构之后才轮到执行（桥在 `OnDestroy` 里就
+    // 没了，而平台任务队列还可能有货），那时再碰成员就是悬垂；`ResolveShow` 是静态的，
+    // 所以不需要 `this`。
+    flutter::FlutterEngine* engine = engine_;  // 构造后只读，读它不用拿锁
+    if (engine != nullptr) {
+      std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>> owned(
+          std::move(result));
+      // 跟踪路径也拷一份进来：这个 lambda 可能在桥析构之后才轮到执行，
+      // 那时捕获 `this` 去读成员就是悬垂。
+      const std::string trace_path = trace_path_;
+      Trace("worker-post idx=%u", index);
+      // 冒烟：先证"从工作线程投回平台线程"这条路本身通不通。它跑在真正的应答之前，
+      // 所以两者一前一后地出现/缺失，能把故障定到"投递机制"还是"我们的应答代码"。
+      engine->PostPlatformThreadTask(
+          [trace_path]() { TraceTo(trace_path, "smoke-from-worker"); });
+      engine->PostPlatformThreadTask([outcome, owned, trace_path]() {
+        TraceTo(trace_path, "resolve-enter");
+        ResolveShow(outcome, owned.get());
+        TraceTo(trace_path, "resolve-done");
+      });
+      Trace("worker-posted idx=%u", index);
+    } else {
+      // 引擎没了就别往平台任务队列里投，但这一份也不能一丢了之 ——
+      // 没应答的 future 会一直悬着。退化成"就地应答"。
+      ResolveShow(outcome, result.get());
+    }
+
+    {
+      std::lock_guard<std::mutex> guard(work_mutex_);
+      show_in_flight_ = false;
+    }
+    Trace("worker-inflight-clear idx=%u", index);
+  }
+}
+
 flutter::EncodableMap GpuPresentBridge::BuildStats() {
   std::lock_guard<std::mutex> guard(mutex_);
 
@@ -405,6 +720,29 @@ flutter::EncodableMap GpuPresentBridge::BuildStats() {
     }
   }
 
+  // 快照字段是另一把锁护的，先把它们取出来（加锁顺序 `mutex_` → `snapshot_mutex_`）。
+  //
+  // 顺带说明一个**已知的洞**：本函数整体要等 `mutex_`，所以冷页解码期间调 `stats`
+  // 会等最多一页的时间。`stats` 是诊断调用，产品路径上没有周期性调用者
+  // （调试页那 1 s 心跳除外，而它量的正是翻完之后的读数）。
+  uint32_t width = 0;
+  uint32_t height = 0;
+  uint64_t generation = 0;
+  uint32_t resizes = 0;
+  {
+    std::lock_guard<std::mutex> snapshot(snapshot_mutex_);
+    width = width_;
+    height = height_;
+    generation = generation_;
+    resizes = resize_count_;
+  }
+  uint64_t busy_rejected = 0;
+  {
+    // `work_mutex_` 是叶子锁：没有人在持另外两把的时候拿它，反过来也一样。
+    std::lock_guard<std::mutex> work(work_mutex_);
+    busy_rejected = show_busy_rejected_;
+  }
+
   flutter::EncodableMap map;
   // `ok` 的语义是"这条路径**有实现**"（DLL 在、符号齐、呈现器对象建出来了），
   // **不是**"现在能用"。能不能用看 `state` —— 把这两件事压进一个 bool，
@@ -416,23 +754,27 @@ flutter::EncodableMap GpuPresentBridge::BuildStats() {
       flutter::EncodableValue(state_error.empty() ? error_ : state_error);
   map[flutter::EncodableValue("textureId")] =
       flutter::EncodableValue(static_cast<int64_t>(texture_id_));
-  map[flutter::EncodableValue("width")] = flutter::EncodableValue(static_cast<int32_t>(width_));
-  map[flutter::EncodableValue("height")] = flutter::EncodableValue(static_cast<int32_t>(height_));
+  map[flutter::EncodableValue("width")] = flutter::EncodableValue(static_cast<int32_t>(width));
+  map[flutter::EncodableValue("height")] = flutter::EncodableValue(static_cast<int32_t>(height));
   map[flutter::EncodableValue("adapter")] = flutter::EncodableValue(adapter_name_);
   map[flutter::EncodableValue("luidKnown")] = flutter::EncodableValue(luid_known_);
   map[flutter::EncodableValue("adapterLuid")] = flutter::EncodableValue(
       static_cast<int64_t>(adapter_luid_ & 0x7FFFFFFFFFFFFFFFLL));
   map[flutter::EncodableValue("generation")] =
-      flutter::EncodableValue(static_cast<int64_t>(generation_));
+      flutter::EncodableValue(static_cast<int64_t>(generation));
   map[flutter::EncodableValue("framesMarked")] =
       flutter::EncodableValue(static_cast<int64_t>(frames_marked_));
   // 这一条是"链路真的通了"的硬证据：引擎只有确实把这张纹理合成了才会打开句柄。
   map[flutter::EncodableValue("handleOpened")] =
       flutter::EncodableValue(static_cast<int64_t>(handle_opened_));
   map[flutter::EncodableValue("resizes")] =
-      flutter::EncodableValue(static_cast<int32_t>(resize_count_));
+      flutter::EncodableValue(static_cast<int32_t>(resizes));
   map[flutter::EncodableValue("pageCount")] =
       flutter::EncodableValue(static_cast<int32_t>(last_open_page_count_));
+  // `show` 是不是真的挪到工作线程了 —— A/B 时先看这一条，别只看数字差。
+  map[flutter::EncodableValue("showAsync")] = flutter::EncodableValue(async_show_);
+  map[flutter::EncodableValue("showBusyRejected")] =
+      flutter::EncodableValue(static_cast<int64_t>(busy_rejected));
   map[flutter::EncodableValue("probe")] = flutter::EncodableValue(probe_json);
   return map;
 }
@@ -441,6 +783,9 @@ void GpuPresentBridge::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue>& call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
   const std::string& method = call.method_name();
+  // 每一个进来的调用都记一笔。排查「Dart 到底有没有再调 show」这类问题时，
+  // 「有没有到达桥」与「到了之后卡在哪」是两件事，必须分得开。
+  Trace("call %s", method.c_str());
 
   if (method == "stats") {
     result->Success(flutter::EncodableValue(BuildStats()));
@@ -600,30 +945,37 @@ void GpuPresentBridge::HandleMethodCall(
       return;
     }
 
-    {
-      std::lock_guard<std::mutex> guard(mutex_);
-      if (QueryStateLocked(nullptr) != kGpuStateReady) {
-        result->Error("not-ready", "呈现器尚未就绪，此刻应走兜底路径");
-        return;
-      }
-      std::vector<uint8_t> err(1024, 0);
-      const int32_t rc = show_(presenter_, static_cast<uint32_t>(index), err.data(),
-                               static_cast<size_t>(err.size()));
-      if (rc != 0) {
-        result->Error("show-failed", reinterpret_cast<const char*>(err.data()));
-        return;
-      }
+    // 这里**故意不先问一遍就绪**。问它要拿 `mutex_`，而冷页时 `mutex_` 正被上一份
+    // `show` 占着 —— 在平台线程上等它，就把"平台线程不阻塞"这件事又还回去了。
+    // 就绪与否交给 `PerformShow` 在工作线程上判，错误照样回得到 Dart（晚一个投递）。
+    if (!async_show_) {
+      // 对照路径：仍在平台线程上同步跑（`ROSSI_GPU_SHOW_ASYNC=0`）。
+      ResolveShow(PerformShow(static_cast<uint32_t>(index)), result.get());
+      return;
     }
 
-    // 必须在**释放锁之后**再通知引擎：引擎可能同步回调 SurfaceCallback，
-    // 而 SurfaceCallback 要拿同一把锁，持锁调用会直接死锁。
-    if (texture_registrar_ != nullptr && texture_id_ >= 0) {
-      FlutterDesktopTextureRegistrarMarkExternalTextureFrameAvailable(texture_registrar_,
-                                                                      texture_id_);
-      std::lock_guard<std::mutex> guard(mutex_);
-      frames_marked_++;
+    auto job = std::make_unique<ShowJob>(static_cast<uint32_t>(index), std::move(result));
+    {
+      std::lock_guard<std::mutex> guard(work_mutex_);
+      if (worker_stopping_ || !worker_.joinable()) {
+        // 正在关窗。老实报出来，不要把这一份挂在那里等一个永远不会有的应答。
+        job->result->Error("shutting-down", "呈现器正在关闭");
+        return;
+      }
+      if (show_in_flight_) {
+        // Dart 侧 `await` 每一份 `show`，所以这不该发生 —— 真发生了就报出来，
+        // 而不是排队：排队等于让"用户早翻过去了"的那一页继续解下去，
+        // 那正是预取那边刻意避开的积压。
+        show_busy_rejected_++;
+        Trace("handler-reject-busy idx=%lld", static_cast<long long>(index));
+        job->result->Error("busy", "上一页还在呈现：本桥一次只接一份 show");
+        return;
+      }
+      show_in_flight_ = true;
+      pending_show_ = std::move(job);
     }
-    result->Success(flutter::EncodableValue(true));
+    Trace("handler-accept idx=%lld", static_cast<long long>(index));
+    work_cv_.notify_all();
     return;
   }
 
