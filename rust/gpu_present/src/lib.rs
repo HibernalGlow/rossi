@@ -12,12 +12,24 @@
 //!    C++ 用 `LoadLibraryW` 显式加载本 DLL（与 Gate A 的 PoC 同一条路子，
 //!    不走 import lib），不依赖任何加载顺序。
 //!
+//! # 创建是异步的
+//!
+//! [`rossi_gpu_present_create`] **不建 wgpu device**，它只记下参数并起一个线程，
+//! 立刻返回。调用方用 [`rossi_gpu_present_status`] 查进度。
+//!
+//! 这不是为了好看：本函数在 `FlutterWindow::OnCreate` 里被调，而 wgpu device +
+//! 管线实测要 ~1 s。同步做就是把它压在第一帧之前、直接吃冷启动预算（判据 B）。
+//! 拆开之后启动期只剩"起线程"的开销，那 ~1 s 与 UI 首帧并行发生；
+//! 在此期间调用方走 CPU 兜底路径，就绪后再切到本路径。
+//!
 //! # C ABI 契约
 //!
 //! - 所有函数都**不 panic 穿过边界**（内部 `catch_unwind`）。
 //! - 返回指针的函数失败时返回 `NULL` 并写 `err_buf`；返回 `i32` 的函数失败时返回负数。
 //! - `err_buf` 是调用方提供的 UTF-8 缓冲区，写完会补 `\0`。
 //! - 线程契约见 [`presenter::Presenter`]：所有入口内部串行化，调用方不必自己加锁。
+//! - **呈现器就绪之前，除了 `status` / `stats` / `destroy` 之外的所有入口都会失败**，
+//!   错误文本里带原因。调用方应当先用 `status` 判断，而不是靠捕获失败来探测状态。
 //!
 //! 符号名一律以 `rossi_gpu_present_` 开头，方便 C++ 侧 `GetProcAddress` 时对齐。
 
@@ -36,28 +48,50 @@ pub use presenter::Readback;
 mod platform {
     use std::ffi::c_void;
     use std::panic::{catch_unwind, AssertUnwindSafe};
-    use std::sync::Mutex;
+    use std::sync::{Arc, Mutex, MutexGuard};
+    use std::thread::JoinHandle;
 
+    use super::presenter::escape;
     use super::Presenter;
     use windows::Win32::Foundation::HANDLE;
 
-    /// C++ 侧持有的那个指针指向的东西。
+    /// 呈现器创建的状态码。与 C++ 侧 `rossi_gpu_present_status` 的返回值一一对应。
     ///
-    /// 包一层 `Mutex` 是**必要**的而不是保险：`SurfaceCallback`（raster 线程）
-    /// 与 Dart 的 `show`/`open`（平台线程）会同时碰到它，
-    /// 而 D3D12 的命令列表 / 分配器不允许并发使用。
-    pub struct GpuPresenter {
-        inner: Mutex<Presenter>,
+    /// 抽成常量而不是裸数字：这三个值跨了语言边界，Rust 这边改一个数、
+    /// C++ 那边的分支就会静默走错。
+    pub const STATE_LOADING: i32 = 0;
+    pub const STATE_READY: i32 = 1;
+    pub const STATE_FAILED: i32 = 2;
+
+    /// 就绪槽。
+    ///
+    /// # 为什么要显式区分「建中」与「建失败」
+    ///
+    /// 这两件事对调用方的含义**正好相反**：前者该等（并且在此期间走兜底路径），
+    /// 后者该彻底放弃这条路。把两者都塞进一个"还没好"，调用方就只能在
+    /// "一直等"和"直接报错"之间二选一 —— 而那正是这个枚举存在的理由。
+    enum Slot {
+        Loading,
+        Ready(Box<Presenter>),
+        Failed(String),
     }
 
-    impl GpuPresenter {
-        fn lock(&self) -> std::sync::MutexGuard<'_, Presenter> {
-            // 某个调用 panic 过会把锁标记为 poisoned。这里关心的是互斥，不是那次失败 ——
-            // 而且拒绝继续服务会让"一次偶发 panic"升级成"整个 GPU 路径永久失效"。
-            self.inner
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner())
-        }
+    /// C++ 侧持有的那个指针指向的东西。
+    pub struct GpuPresenter {
+        /// 后台线程与调用方共享的就绪槽。
+        ///
+        /// 用 `Arc<Mutex<_>>` 而不是把整个 `GpuPresenter` 包进 `Arc`：线程只需要写这
+        /// 一个槽，没必要让它续命整个对象 —— 一旦那样，析构时机就由引用计数决定，
+        /// 而那个时机**必须由 C++ 掌握**（它得赶在 DLL 卸载之前）。
+        slot: Arc<Mutex<Slot>>,
+        /// 建呈现器的那个线程。`destroy` 必须 join 它 —— 见 [`rossi_gpu_present_destroy`]。
+        worker: Mutex<Option<JoinHandle<()>>>,
+    }
+
+    fn lock_slot(slot: &Mutex<Slot>) -> MutexGuard<'_, Slot> {
+        // 某个调用 panic 过会把锁标记为 poisoned。这里关心的是互斥，不是那次失败 ——
+        // 而且拒绝继续服务会让"一次偶发 panic"升级成"整个 GPU 路径永久失效"。
+        slot.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     /// 把错误写进调用方的缓冲区（UTF-8，补 `\0`）。
@@ -104,10 +138,39 @@ mod platform {
         Some(&*(presenter as *const GpuPresenter))
     }
 
-    /// 建呈现器。失败返回 `NULL`。
+    /// 在「已就绪」的前提下执行；未就绪时写下原因并返回 `failure`。
+    ///
+    /// 调用方应当先问 [`rossi_gpu_present_status`] 再决定要不要走这条路 ——
+    /// 这里的未就绪分支是防竞态与防误用的兜底，不是主流程。
+    fn with_ready<T>(
+        holder: &GpuPresenter,
+        err_buf: *mut u8,
+        err_len: usize,
+        failure: T,
+        body: impl FnOnce(&mut Presenter) -> Result<T, String>,
+    ) -> T {
+        guard(err_buf, err_len, failure, || {
+            let mut slot = lock_slot(&holder.slot);
+            match &mut *slot {
+                Slot::Ready(presenter) => body(presenter),
+                Slot::Loading => Err(
+                    "呈现器尚未就绪：后台仍在创建 wgpu device 与渲染管线（调用方应走兜底路径）"
+                        .to_string(),
+                ),
+                Slot::Failed(message) => Err(format!("呈现器创建失败: {message}")),
+            }
+        })
+    }
+
+    /// 建呈现器**并立刻返回**，真正的创建在后台线程里进行。
     ///
     /// `adapter_luid` 由 C++ 侧从 `FlutterEngine::GetGraphicsAdapter()` 读出后传进来
     /// （**同一块卡是硬约束**，见 `presenter::Presenter::new`）。传 0 = 随便挑一块。
+    ///
+    /// 返回的指针**总是非空**，除非连对象都分配不出来 —— "呈现器建不出来"这种失败
+    /// 现在通过 [`rossi_gpu_present_status`] 返回 `STATE_FAILED` 表达，而不是返回 NULL。
+    /// 这个区别是有意的：NULL 是立刻可判定的，而"建不出来"要等 ~1 s 才知道，
+    /// 用它当初返回值会逼 C++ 侧同步等。
     #[no_mangle]
     pub extern "C" fn rossi_gpu_present_create(
         adapter_luid: u64,
@@ -117,11 +180,65 @@ mod platform {
         err_len: usize,
     ) -> *mut c_void {
         guard(err_buf, err_len, std::ptr::null_mut(), || {
-            let presenter = Presenter::new(adapter_luid, width, height).map_err(|e| format!("{e:#}"))?;
+            let slot: Arc<Mutex<Slot>> = Arc::new(Mutex::new(Slot::Loading));
+            let for_worker = Arc::clone(&slot);
+
+            let spawned = std::thread::Builder::new()
+                .name("rossi-gpu-present-init".to_string())
+                .spawn(move || {
+                    let outcome = Presenter::new(adapter_luid, width, height);
+                    let mut slot = lock_slot(&for_worker);
+                    *slot = match outcome {
+                        Ok(presenter) => Slot::Ready(Box::new(presenter)),
+                        Err(error) => Slot::Failed(format!("{error:#}")),
+                    };
+                });
+
+            let worker = match spawned {
+                Ok(handle) => Some(handle),
+                Err(_) => {
+                    // 起不了线程（资源耗尽之类）就退化成同步建：宁可启动多花那 ~1 s，
+                    // 也好过整条 GPU 路径直接不可用。这条路上没有"并行"可言，
+                    // 但功能与异步版完全一致。
+                    let outcome = Presenter::new(adapter_luid, width, height);
+                    let mut slot = lock_slot(&slot);
+                    *slot = match outcome {
+                        Ok(presenter) => Slot::Ready(Box::new(presenter)),
+                        Err(error) => Slot::Failed(format!("{error:#}")),
+                    };
+                    None
+                }
+            };
+
             Ok(Box::into_raw(Box::new(GpuPresenter {
-                inner: Mutex::new(presenter),
+                slot,
+                worker: Mutex::new(worker),
             })) as *mut c_void)
         })
+    }
+
+    /// 查后台创建的状态：`0` 建中 / `1` 就绪 / `2` 失败。
+    ///
+    /// 返回 `2` 时 `err_buf` 里是原因。**`0` 不是错误** —— 它意味着调用方此刻
+    /// 应该走兜底路径，而不是把这条路径判死。
+    #[no_mangle]
+    pub extern "C" fn rossi_gpu_present_status(
+        presenter: *mut c_void,
+        err_buf: *mut u8,
+        err_len: usize,
+    ) -> i32 {
+        let Some(holder) = (unsafe { borrow(presenter) }) else {
+            write_err(err_buf, err_len, "呈现器指针为空");
+            return STATE_FAILED;
+        };
+        match &*lock_slot(&holder.slot) {
+            Slot::Loading => STATE_LOADING,
+            Slot::Ready(_) => STATE_READY,
+            Slot::Failed(message) => {
+                write_err(err_buf, err_len, message);
+                STATE_FAILED
+            }
+        }
     }
 
     /// 释放呈现器。必须在 Flutter engine 仍然活着时调用 ——
@@ -132,7 +249,23 @@ mod platform {
             return;
         }
         let _ = catch_unwind(AssertUnwindSafe(|| {
-            drop(unsafe { Box::from_raw(presenter as *mut GpuPresenter) });
+            let holder = unsafe { Box::from_raw(presenter as *mut GpuPresenter) };
+
+            // 必须先等后台线程结束，再析构。
+            //
+            // 线程握着 `Arc<Mutex<Slot>>` 的一份克隆，而 `Slot::Ready` 里那个
+            // `Presenter` 的析构函数**在本 DLL 里**。不等它的后果是：
+            // destroy 返回 → C++ 卸载 DLL → 线程这时才写槽或释放 Presenter →
+            // 跳进已卸下的代码页。
+            //
+            // 线程已经跑完时 join 立刻返回，所以正常路径上没有额外代价。
+            if let Ok(mut guard) = holder.worker.lock() {
+                if let Some(handle) = guard.take() {
+                    let _ = handle.join();
+                }
+            }
+
+            drop(holder);
         }));
     }
 
@@ -142,7 +275,12 @@ mod platform {
         let Some(holder) = (unsafe { borrow(presenter) }) else {
             return std::ptr::null_mut();
         };
-        holder.lock().handle().0
+        match &mut *lock_slot(&holder.slot) {
+            Slot::Ready(inner) => inner.handle().0,
+            // 未就绪就没有句柄。C++ 侧拿到空指针应当放弃这一帧，而不是把它
+            // 当成一个合法句柄交给引擎。
+            _ => std::ptr::null_mut(),
+        }
     }
 
     /// 当前这一代的编号。C++ 侧把它当 `release_context` 交给引擎，
@@ -152,7 +290,10 @@ mod platform {
         let Some(holder) = (unsafe { borrow(presenter) }) else {
             return 0;
         };
-        holder.lock().generation()
+        match &mut *lock_slot(&holder.slot) {
+            Slot::Ready(inner) => inner.generation(),
+            _ => 0,
+        }
     }
 
     /// 引擎告诉我们"第 `generation` 代的句柄已经被打开了"，可以安全退休。
@@ -166,7 +307,9 @@ mod platform {
             return;
         };
         let _ = catch_unwind(AssertUnwindSafe(|| {
-            holder.lock().notify_released(generation);
+            if let Slot::Ready(inner) = &mut *lock_slot(&holder.slot) {
+                inner.notify_released(generation);
+            }
         }));
     }
 
@@ -186,8 +329,7 @@ mod platform {
             write_err(err_buf, err_len, "呈现器指针为空");
             return std::ptr::null_mut();
         };
-        guard(err_buf, err_len, std::ptr::null_mut(), || {
-            let mut inner = holder.lock();
+        with_ready(holder, err_buf, err_len, std::ptr::null_mut(), |inner| {
             inner.ensure_target(width, height).map_err(|e| format!("{e:#}"))?;
             Ok(inner.handle().0)
         })
@@ -215,15 +357,12 @@ mod platform {
             write_err(err_buf, err_len, "路径不是合法 UTF-8");
             return -1;
         };
-        guard(err_buf, err_len, -1, || {
-            let mut inner = holder.lock();
-            match inner.open(path) {
-                Ok(count) => Ok(count as i32),
-                Err(error) => {
-                    let message = format!("{error:#}");
-                    inner.set_error(message.clone());
-                    Err(message)
-                }
+        with_ready(holder, err_buf, err_len, -1, |inner| match inner.open(path) {
+            Ok(count) => Ok(count as i32),
+            Err(error) => {
+                let message = format!("{error:#}");
+                inner.set_error(message.clone());
+                Err(message)
             }
         })
     }
@@ -233,7 +372,10 @@ mod platform {
         let Some(holder) = (unsafe { borrow(presenter) }) else {
             return -1;
         };
-        holder.lock().page_count() as i32
+        match &mut *lock_slot(&holder.slot) {
+            Slot::Ready(inner) => inner.page_count() as i32,
+            _ => -1,
+        }
     }
 
     /// 呈现第 `index` 页。成功返回 0，失败返回 -1。
@@ -251,20 +393,22 @@ mod platform {
             write_err(err_buf, err_len, "呈现器指针为空");
             return -1;
         };
-        guard(err_buf, err_len, -1, || {
-            let mut inner = holder.lock();
-            match inner.show(index as usize) {
-                Ok(_) => Ok(0),
-                Err(error) => {
-                    let message = format!("{error:#}");
-                    inner.set_error(message.clone());
-                    Err(message)
-                }
+        with_ready(holder, err_buf, err_len, -1, |inner| match inner.show(index as usize) {
+            Ok(_) => Ok(0),
+            Err(error) => {
+                let message = format!("{error:#}");
+                inner.set_error(message.clone());
+                Err(message)
             }
         })
     }
 
     /// 诊断快照（JSON，UTF-8）。返回写入的字节数，失败返回 -1。
+    ///
+    /// 与别的入口不同，它在**未就绪时也能给出结果** —— 而且必须能，因为
+    /// "现在到底是什么状态"正是调用方最想知道的那件事。未就绪时输出一个只含
+    /// `state` 的最小对象；就绪时是 `Presenter` 的完整快照（那里的 `state`
+    /// 恒为 `ready`，由 C++ 侧补上）。
     #[no_mangle]
     pub extern "C" fn rossi_gpu_present_stats(
         presenter: *mut c_void,
@@ -277,7 +421,18 @@ mod platform {
         if buf.is_null() || len == 0 {
             return -1;
         }
-        let json = holder.lock().stats_json();
+        let json = catch_unwind(AssertUnwindSafe(|| {
+            match &mut *lock_slot(&holder.slot) {
+                Slot::Ready(inner) => inner.stats_json(),
+                Slot::Loading => "{\"state\":\"loading\"}".to_string(),
+                Slot::Failed(message) => format!(
+                    "{{\"state\":\"failed\",\"error\":\"{}\"}}",
+                    escape(message)
+                ),
+            }
+        }))
+        .unwrap_or_else(|_| "{\"state\":\"failed\",\"error\":\"stats 内部 panic\"}".to_string());
+
         let bytes = json.as_bytes();
         let count = bytes.len().min(len - 1);
         unsafe {

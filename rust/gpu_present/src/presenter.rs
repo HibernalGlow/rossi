@@ -221,6 +221,13 @@ pub struct Presenter {
     /// 这条记录就是"为什么要多走一次拷贝"的运行时可查证据。
     direct_share: String,
     init_ms: f64,
+    /// `init_ms` 的三个分段。分开记是因为它们的**可优化性完全不同**：
+    /// device 那一段是适配器枚举与驱动的事，管线那一段是 WGSL → DXIL 的编译
+    /// （可预热），剩下的是我们自己的建资源加一次句柄探测。
+    /// 合成一个数字看不出"还能不能省、该往哪省"。
+    init_device_ms: f64,
+    init_pipeline_ms: f64,
+    init_rest_ms: f64,
     presents: u64,
     recreates: u32,
     released_total: u64,
@@ -311,6 +318,7 @@ impl Presenter {
             let raw_queue: ID3D12CommandQueue = hal.raw_queue().clone();
             (raw_device, raw_queue)
         };
+        let t_device = Instant::now();
 
         // ── 着色器管线 ──
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -401,6 +409,7 @@ impl Presenter {
             multiview: None,
             cache: None,
         });
+        let t_pipeline = Instant::now();
 
         // ── 原生命令设施 ──
         //
@@ -432,6 +441,7 @@ impl Presenter {
         };
 
         let direct_share = probe_direct_share(&device, &d3d_device);
+        let t_end = Instant::now();
 
         let mut presenter = Self {
             device,
@@ -458,6 +468,9 @@ impl Presenter {
             target_luid: adapter_luid,
             direct_share,
             init_ms: t0.elapsed().as_secs_f64() * 1000.0,
+            init_device_ms: (t_device - t0).as_secs_f64() * 1000.0,
+            init_pipeline_ms: (t_pipeline - t_device).as_secs_f64() * 1000.0,
+            init_rest_ms: (t_end - t_pipeline).as_secs_f64() * 1000.0,
             presents: 0,
             recreates: 0,
             released_total: 0,
@@ -1083,6 +1096,9 @@ impl Presenter {
                 "\"directShareOfWgpuTexture\":\"{}\",",
                 "\"copyPath\":\"GPU->GPU CopyResource\",",
                 "\"initMs\":{:.1},",
+                "\"initDeviceMs\":{:.1},",
+                "\"initPipelineMs\":{:.1},",
+                "\"initRestMs\":{:.1},",
                 "\"width\":{},",
                 "\"height\":{},",
                 "\"presents\":{},",
@@ -1110,6 +1126,9 @@ impl Presenter {
             self.target_luid,
             escape(&self.direct_share),
             self.init_ms,
+            self.init_device_ms,
+            self.init_pipeline_ms,
+            self.init_rest_ms,
             width,
             height,
             self.presents,
@@ -1529,6 +1548,6 @@ unsafe fn release_barriers(barriers: &mut [D3D12_RESOURCE_BARRIER]) {
     }
 }
 
-fn escape(text: &str) -> String {
+pub fn escape(text: &str) -> String {
     text.replace('\\', "\\\\").replace('"', "\\\"")
 }
