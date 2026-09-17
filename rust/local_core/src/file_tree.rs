@@ -12,7 +12,11 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 
 use crate::entry_name::normalize_entry_name;
-use crate::page_order::{is_image_name, should_ignore_name, sort_natural};
+use crate::page_order::{is_image_name, should_ignore_name};
+// `sort_natural` 只在 macOS 分支用（/Volumes 卷列表要按自然序排），
+// 无条件 import 会在 Windows/Linux 上触发 unused_imports。
+#[cfg(target_os = "macos")]
+use crate::page_order::sort_natural;
 
 /// 根路径/常用位置。
 #[derive(Debug, Clone, PartialEq, Eq)]

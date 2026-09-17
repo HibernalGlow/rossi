@@ -4327,6 +4327,7 @@ dependencies = [
  "rayon",
  "tempfile",
  "unrar",
+ "windows",
  "zip",
  "zune-core",
  "zune-jpeg",

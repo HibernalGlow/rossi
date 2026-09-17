@@ -51,6 +51,18 @@ jpegxl-rs = { version = "0.15", optional = true, default-features = false, featu
     "vendored",
 ] }
 
+# ── 仅 Windows 需要的依赖 ──
+# 只给 `src/file_tree.rs` 的 `get_available_roots()` 枚举本机盘符用：
+# `GetLogicalDrives` / `GetDriveTypeW` 在 wind32 API 里没有 std 等价物，
+# 自己拼 `A:\`…`Z:\` 再 `is_dir()` 探测会把光驱/未就绪的卷判成「存在」。
+# 版本与 `gpu_present` 保持一致（0.58），feature 合并后不会出现双份编译。
+# 非 Windows 平台这段不参与构建，file_tree.rs 的对应分支由 cfg 门关掉。
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_Storage_FileSystem",
+] }
+
 [features]
 # AVIF 解码。
 #

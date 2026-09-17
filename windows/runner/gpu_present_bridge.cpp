@@ -238,13 +238,43 @@ GpuPresentBridge::GpuPresentBridge(flutter::FlutterEngine* engine,
   // 的分支，`StopWorker` 也就不用猜。
   StartWorker();
 
-  // 冒烟：从**平台线程**投一份空任务回去。它和 `WorkerLoop` 里那一份走的是同一条路，
-  // 但起点不同 —— 两者放在一起就能把"投递机制坏了"与"从别的线程投不行"分开。
-  // （排查用；`TraceTo` 在没设跟踪路径时是 no-op，正式路径零代价。）
-  if (engine_ != nullptr) {
-    engine_->PostPlatformThreadTask(
-        [path = trace_path_]() { TraceTo(path, "smoke-from-platform"); });
-  }
+  // ───────────────────────────────────────────────────────────────────────────
+  // 这里原本有一段"从平台线程投一份空任务回去"的冒烟打点：
+  //
+  //   engine_->PostPlatformThreadTask(
+  //       [path = trace_path_]() { TraceTo(path, "smoke-from-platform"); });
+  //
+  // **已删除，不要放回来。** 它是本文件里唯一一处 `PostPlatformThreadTask`，
+  // 而只要有它在，Windows 版就一定在启动后十几秒内崩 `0xC0000005`（异常地址 0x0）。
+  //
+  // 崩因不在这一层，在引擎「取消」契约被破坏 —— `flutter_windows.h` 对
+  // `FlutterDesktopEnginePostPlatformThreadTask` 写明了回调与取消**二选一**：
+  //
+  //   If the task is discarded without being executed (e.g. during engine
+  //   shutdown), |on_cancel| is called on the platform thread so the caller
+  //   can cleanup allocations.
+  //
+  // 而 cpp_client_wrapper 的两半各自是（flutter_engine.cc:124-141）：
+  //   callback : std::unique_ptr<std::function<void()>> cb{user_data}; (*cb)();
+  //   on_cancel: delete static_cast<std::function<void()>*>(user_data);
+  //
+  // 实测**两者都被调用了**（先 `on_cancel` 后 `callback`），于是 `(*cb)()` 落在
+  // 已经被 delete 的那只 `std::function` 上：`_Func_class::operator()` 里的
+  // `_Empty()` 判空能过（指针不为空），紧接着 `_Impl->_Do_call()` 读到的是回收后
+  // 被复用的堆内存。崩溃现场 `RAX` 里是 ASCII 文本而不是虚表指针，正是这个指纹。
+  //
+  // 定位凭据（Debug 版带 PDB，Release 无符号，两边互相印证）：
+  //   崩溃栈  std::_Func_class<void>::operator()   functional:921
+  //        ←  <lambda_f78b9e1c…>::operator()        flutter_engine.cc:134（callback 那一半）
+  //        ←  main.cpp:109  ::DispatchMessage
+  //   触发点  本构造函数（`window.Create` → `OnCreate`）
+  // 反向佐证：把 `rossi_gpu_present.dll` 挪走，`LoadSymbols()` 提前 return、不投这段，
+  // App 就完全正常 —— 与"崩因就是这一处"严格一致。
+  //
+  // 工作线程那条路在 3322ebce 已改成"就地应答、不经过平台任务队列"（见 `WorkerLoop`），
+  // 删掉这一处之后**本文件不再使用 `PostPlatformThreadTask`**。
+  // 若将来要重新验证平台任务投递，请另起隔离实验，不要放回启动路径。
+  // ───────────────────────────────────────────────────────────────────────────
 
   ok_ = true;
 }
