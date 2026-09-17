@@ -405,9 +405,18 @@ All tests passed
   差 2.2 倍），所以最可能是核显驱动的初始化开销。
 - **判据 C 还没量。** 本轮只证明"链路真通"，帧时间分布（p95/p99、无 >100 ms 单帧）要在
   **Release** 下用真实漫画量，见 `docs/v0.1_acceptance.md`。
-- **Release 配置下的打包未复验。** 本轮验证走的是 Debug 配置（集成测试的默认）。CMake 的
-  自定义命令与 POST_BUILD 是**配置无关**的，但 Release 产物里 `rossi_gpu_present.dll` 与两个
-  DXC DLL 的落位，应该在量判据 C 时一并确认。
+- ~~**Release 配置下的打包未复验**~~ → **已复验（2026-09-17）**，而且**确实需要复验**：
+  `flutter build windows --release`（EXIT=0，79.1 s）之后，`rossi_gpu_present.dll`、
+  `dxcompiler.dll`、`dxil.dll` 都在 `Release/` 里，与 Debug 侧大小一致。
+  更要紧的是 —— **复验之前那份 Release 产物里，两个 DXC DLL 是缺的**：它们的时间戳是
+  本次构建的 10:44，而 `dav1d.dll` 还是 7 月的。也就是说，**在 Debug 下往 CMake 里加的
+  拷贝步骤，不会自动追上已经存在的 Release 目录**。教训：改了 CMake 的生成／拷贝步骤
+  之后，产物目录**不会自己变新**；`copy_if_different` 的语义让 mtime 成了这件事的判据
+  （文件在 = 内容不同或本来没有）。
+  另一个反直觉的点，一并记下：`rossi_gpu_present.dll` 在 Debug 与 Release 下
+  **md5 完全相同**，这**不是漏编** —— `windows/runner/CMakeLists.txt` 把 profile 写死成
+  `--release`（`:90`、`:157`），两个配置**共用同一份**。正面意义是量判据 C 时
+  GPU 侧不会被 debug profile 污染。
 - **tile / LRU / 双页**：当前一次只呈现一页，且是整页一张纹理。
 - **"copy 按需而非每帧"**：现在每次 `show` 一次拷贝；连续动画场景要按需，判据见 §3.1。
 - **预取与呈现的联动**：本地核心的预取判决已经能给目标，但呈现器还没消费它
