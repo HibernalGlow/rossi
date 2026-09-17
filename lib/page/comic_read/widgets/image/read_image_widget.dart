@@ -8,8 +8,8 @@ import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
-import 'package:zephyr/gpu/hdr_image_surface.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
+import 'package:zephyr/reader/image_surface.dart';
 import 'package:zephyr/widgets/picture_bloc/bloc/picture_bloc.dart';
 import 'package:zephyr/widgets/picture_bloc/models/picture_info.dart';
 
@@ -74,14 +74,10 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
 
       // 不再写死 context.screenWidth，继承父容器传入的约束（contentWidth），
       // 消除 RenderFlex overflowed 导致的红黄条纹色块。
-      //
-      // 用 HdrImageSurface（而不是直接 ImageSurface）：它在 HDR 关闭或本机不支持时
-      // 会把整个盒子原样转交给 ImageSurface，所以默认行为与从前一致；
-      // 只有在真 HDR 生效时才换成原生 EDR 图层。
       return Container(
         color: backgroundColor,
         child: isActiveSlot && source != null && GpuPresentController.isPlatformSupported
-            ? HdrImageSurface(
+            ? ImageSurface(
                 source: source,
                 index: localIndex,
                 presenter: presenter,

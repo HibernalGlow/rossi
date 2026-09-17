@@ -20,7 +20,7 @@ use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, Context, Result};
-use crate::wgpu_resampler::{HdrConfig, WgpuResampler, HDR_EXTENDED_LINEAR};
+use crate::wgpu_resampler::WgpuResampler;
 use rossi_local_core::{interleaved_prefetch_positions, LocalSource, PagePixels};
 
 /// 留白背景色：BGRA 字节顺序对应 0xFF05050A（Rossi 深黑底色）。
@@ -48,7 +48,6 @@ pub struct PreRenderedFrame {
     pub target_h: u32,
     pub bgra: Vec<u8>,
     pub stride: usize,
-    pub bpp: usize,
 }
 
 struct CachedPage {
@@ -186,13 +185,6 @@ impl PageCache {
     fn set_pixels(&mut self, index: usize, epoch: u64, pixels: Arc<PagePixels>) {
         if let Some(entry) = self.entries.iter_mut().find(|e| e.index == index && e.epoch == epoch) {
             entry.pixels = Some(pixels);
-        }
-    }
-
-    /// 清空所有缓存的预渲染视口帧（HDR 模式/参数变更时调用）
-    fn clear_pre_rendered(&mut self) {
-        for entry in &mut self.entries {
-            entry.pre_rendered.clear();
         }
     }
 }
@@ -369,10 +361,9 @@ fn prefetch_worker_loop(
                     let pixels = Arc::new(pixels);
                     let mut pre_rendered = Vec::new();
                     if view.target_width > 0 && view.target_height > 0 {
+                        let stride = view.target_width as usize * 4;
+                        let mut bgra = vec![0u8; stride * view.target_height as usize];
                         if let Ok(mut r) = resampler.lock() {
-                            let bpp = r.output_bytes_per_pixel();
-                            let stride = view.target_width as usize * bpp;
-                            let mut bgra = vec![0u8; stride * view.target_height as usize];
                             if r.resample_to_buffer(
                                 &pixels.rgba,
                                 pixels.width,
@@ -390,7 +381,6 @@ fn prefetch_worker_loop(
                                     target_h: view.target_height,
                                     bgra,
                                     stride,
-                                    bpp,
                                 });
                             }
                         }
@@ -436,10 +426,9 @@ fn prefetch_worker_loop(
             });
 
             if let Some((index, pixels)) = need_render {
+                let stride = view.target_width as usize * 4;
+                let mut bgra = vec![0u8; stride * view.target_height as usize];
                 if let Ok(mut r) = resampler.lock() {
-                    let bpp = r.output_bytes_per_pixel();
-                    let stride = view.target_width as usize * bpp;
-                    let mut bgra = vec![0u8; stride * view.target_height as usize];
                     if r.resample_to_buffer(
                         &pixels.rgba,
                         pixels.width,
@@ -458,7 +447,6 @@ fn prefetch_worker_loop(
                                 target_h: view.target_height,
                                 bgra,
                                 stride,
-                                bpp,
                             });
                         }
                     }
@@ -492,8 +480,6 @@ pub struct MacPresenter {
     last_source_height: u32,
     last_decoded_width: u32,
     last_decoded_height: u32,
-
-    hdr: HdrConfig,
 
     init_ms: f64,
     presents: u64,
@@ -549,7 +535,6 @@ impl MacPresenter {
             last_source_height: 0,
             last_decoded_width: 0,
             last_decoded_height: 0,
-            hdr: HdrConfig::default(),
             init_ms: t0.elapsed().as_secs_f64() * 1000.0,
             presents: 0,
             last: PresentTimings::default(),
@@ -595,78 +580,6 @@ impl MacPresenter {
 
     pub fn generation(&self) -> u64 {
         self.generation
-    }
-
-    /// 获取当前输出每像素字节数 (4: BGRA8, 8: RGBA16F)
-    pub fn output_bytes_per_pixel(&self) -> usize {
-        self.resampler
-            .lock()
-            .map(|r| r.output_bytes_per_pixel())
-            .unwrap_or(4)
-    }
-
-    /// 获取当前 HDR 配置
-    pub fn hdr(&self) -> HdrConfig {
-        self.hdr
-    }
-
-    /// 更新色调映射模式与参数。
-    ///
-    /// 它**不动输出通路** —— 8 位还是浮点由 [`Self::set_output_mode`] 决定。
-    /// 两者拆开是必须的：同一组参数在两条通路上都合法，只是 8 位通路最后会被
-    /// 压回 SDR 白点。
-    pub fn set_hdr(&mut self, config: HdrConfig) -> Result<()> {
-        let sanitized = config.sanitized();
-        {
-            let mut r = self.resampler.lock().unwrap_or_else(|p| p.into_inner());
-            r.set_hdr(sanitized)?;
-            self.hdr = r.hdr();
-        }
-        self.invalidate_prerendered();
-        Ok(())
-    }
-
-    /// 切换输出通路。
-    ///
-    /// - `true`：走 EDR 平台视图（`Rgba16Float` 线性浮点）。数值可以超过 1.0，
-    ///   1.0 = SDR 参考白，多出来的部分由 macOS 合成器交给显示器 EDR 头顶空间。
-    ///   **这是真 HDR 唯一可能的通路。**
-    /// - `false`：走 Flutter 外部纹理（`Bgra8Unorm` 8 位）。引擎把这条通路的像素
-    ///   格式写死为 8 位无符号归一化，物理上限 1.0，只能做 SDR 增强。
-    pub fn set_output_mode(&mut self, float_output: bool) -> Result<()> {
-        let format = if float_output {
-            wgpu::TextureFormat::Rgba16Float
-        } else {
-            wgpu::TextureFormat::Bgra8Unorm
-        };
-        {
-            let mut r = self.resampler.lock().unwrap_or_else(|p| p.into_inner());
-            r.set_target_format(format)?;
-            // 退回 8 位通路时「扩展线性」不再成立：与其继续报着这个模式名
-            // 却只能得到钳制结果，不如显式降级成 SDR 增强，让状态可读。
-            if !float_output && self.hdr.mode == HDR_EXTENDED_LINEAR {
-                r.set_hdr(HdrConfig::sdr_boost(self.hdr.boost.max(1.0)))?;
-            }
-            self.hdr = r.hdr();
-        }
-        self.invalidate_prerendered();
-        Ok(())
-    }
-
-    /// 当前是否在浮点（EDR）通路上。
-    pub fn is_float_output(&self) -> bool {
-        self.resampler
-            .lock()
-            .map(|r| r.output_bytes_per_pixel() == 8)
-            .unwrap_or(false)
-    }
-
-    /// 丢弃所有预渲染帧（格式或色调映射参数一变就必须丢，否则会拿旧内容上屏）。
-    fn invalidate_prerendered(&mut self) {
-        if let Ok(mut c) = self.shared_cache.cache.lock() {
-            c.clear_pre_rendered();
-        }
-        self.generation = self.generation.wrapping_add(1);
     }
 
     /// 解码并渲染当前页，直接写入 CVPixelBuffer 物理内存。
@@ -786,8 +699,7 @@ impl MacPresenter {
                 false,
             )?;
             // 现场渲染后，将当前视口尺寸保存到该页预渲染缓存中，后续再次访问即可瞬间命中
-            let bpp = r.output_bytes_per_pixel();
-            let stride = target_width as usize * bpp;
+            let stride = target_width as usize * 4;
             let mut bgra = vec![0u8; stride * target_height as usize];
             if r.resample_to_buffer(
                 &pixels.rgba,
@@ -805,7 +717,6 @@ impl MacPresenter {
                         target_h: target_height,
                         bgra,
                         stride,
-                        bpp,
                     });
                 }
             }
@@ -856,10 +767,6 @@ impl MacPresenter {
               \"height\":{},\
               \"generation\":{},\
               \"presents\":{},\
-              \"hdrMode\":{},\
-              \"hdrBoost\":{:.2},\
-              \"hdrPeak\":{:.2},\
-              \"outputBpp\":{},\
               \"cacheHit\":{},\
               \"prerenderHit\":{},\
               \"cacheHits\":{},\
@@ -879,10 +786,6 @@ impl MacPresenter {
             self.target_height,
             self.generation,
             self.presents,
-            self.hdr.mode,
-            self.hdr.boost,
-            self.hdr.peak,
-            self.output_bytes_per_pixel(),
             if self.last_cache_hit { 1 } else { 0 },
             if self.last_prerender_hit { 1 } else { 0 },
             hits,
@@ -921,10 +824,9 @@ unsafe fn copy_pre_rendered_frame(
     target_w: u32,
     target_h: u32,
 ) {
-    let bpp = frame.bpp.max(4);
     let copy_w = frame.target_w.min(target_w) as usize;
     let copy_h = frame.target_h.min(target_h) as usize;
-    let copy_bytes = copy_w * bpp;
+    let copy_bytes = copy_w * 4;
     let src_stride = frame.stride;
 
     if frame.target_w == target_w
@@ -946,23 +848,12 @@ unsafe fn copy_pre_rendered_frame(
                 let src_row = frame.bgra.as_ptr().add(y * src_stride);
                 std::ptr::copy_nonoverlapping(src_row, dst_row, copy_bytes);
                 if (target_w as usize) > copy_w {
-                    let fill_ptr = dst_row.add(copy_bytes);
-                    let fill_len = ((target_w as usize) - copy_w) * bpp;
-                    if bpp == 4 {
-                        let fill_u32 = fill_ptr as *mut u32;
-                        std::slice::from_raw_parts_mut(fill_u32, (target_w as usize) - copy_w).fill(bg_pixel);
-                    } else {
-                        std::ptr::write_bytes(fill_ptr, 0, fill_len);
-                    }
+                    let fill_ptr = (dst_row as *mut u32).add(copy_w);
+                    std::slice::from_raw_parts_mut(fill_ptr, (target_w as usize) - copy_w).fill(bg_pixel);
                 }
             } else {
-                let fill_len = (target_w as usize) * bpp;
-                if bpp == 4 {
-                    let fill_u32 = dst_row as *mut u32;
-                    std::slice::from_raw_parts_mut(fill_u32, target_w as usize).fill(bg_pixel);
-                } else {
-                    std::ptr::write_bytes(dst_row, 0, fill_len);
-                }
+                let fill_ptr = dst_row as *mut u32;
+                std::slice::from_raw_parts_mut(fill_ptr, target_w as usize).fill(bg_pixel);
             }
         }
     }
@@ -1032,7 +923,6 @@ mod tests {
             target_h: 10,
             bgra: vec![123u8; 10 * 10 * 4],
             stride: 40,
-            bpp: 4,
         };
 
         // 模拟 1 像素微差（例如 10x10 拷入 10x9，或者 10x10 拷入 10x11）

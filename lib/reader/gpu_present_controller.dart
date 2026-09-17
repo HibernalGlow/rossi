@@ -137,20 +137,6 @@ class GpuPresentController extends ChangeNotifier {
   String? mismatchFor(PageSource source) =>
       identical(_mismatchSource, source) ? _mismatchMessage : null;
 
-  /// 丢掉「已经推过什么」的记忆，让下一次 [present] 必定重新推一次。
-  ///
-  /// 存在的理由很具体：[present] 是幂等的（三样都没变就早退），而**上屏端换过图层**
-  /// 这件事对它是不可见的 —— 输出通路从 8 位纹理换成 EDR 浮点图层之后，
-  /// 如果还认为“推过了”，新图层就永远是空的。空图层是不透明的，
-  /// 表现就是画面被一块黑盖住。所以换通路的人有义务调一次这个。
-  void invalidate() {
-    _pushedPath = null;
-    _pushedIndex = null;
-    _pushedSize = null;
-    _pushedWidth = null;
-    _pushedHeight = null;
-  }
-
   /// 当前平台有没有这条路的实现。
   static bool get isPlatformSupported => GpuPresentBridge.isPlatformSupported;
 
@@ -386,53 +372,6 @@ class GpuPresentController extends ChangeNotifier {
       return await _bridge.setPrefetchEnabled(enabled);
     } catch (_) {
       return false;
-    }
-  }
-
-  /// 配置 GPU 呈现器的 HDR 逆色调映射 / SDR 增强模式。
-  ///
-  /// [mode]: 0: 关闭, 1: 扩展线性 HDR (scRGB/RGBA16F, 突破 1.0 白点), 2: SDR 增强
-  /// [boost]: 高光与白点扩展倍率 (推荐 1.5 ~ 3.0)
-  /// [peak]: 显示器可用峰值倍率 (0.0 为自动探测系统 EDR Headroom)
-  Future<bool> setHdr({
-    required int mode,
-    double boost = 1.5,
-    double peak = 0.0,
-  }) async {
-    if (_disposed || !GpuPresentBridge.isPlatformSupported) {
-      return false;
-    }
-    try {
-      final Map<String, dynamic>? res =
-          await _bridge.setHdr(mode: mode, boost: boost, peak: peak);
-      if (res != null && res['ok'] == true) {
-        // 强制标记当前页需要以新 HDR 参数重新呈现
-        if (_pushedIndex != null) {
-          final int currentIdx = _pushedIndex!;
-          _pushedIndex = null;
-          try {
-            await _bridge.show(currentIdx);
-            _pushedIndex = currentIdx;
-          } catch (_) {}
-        }
-        notifyListeners();
-        return true;
-      }
-      return false;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  /// 查询当前屏幕与呈现器的 HDR / EDR 能力状态。
-  Future<Map<String, dynamic>?> getHdrStatus() async {
-    if (_disposed || !GpuPresentBridge.isPlatformSupported) {
-      return null;
-    }
-    try {
-      return await _bridge.getHdrStatus();
-    } catch (_) {
-      return null;
     }
   }
 

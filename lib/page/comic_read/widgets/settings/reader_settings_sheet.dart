@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -6,11 +5,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
-import 'package:zephyr/gpu/gpu_present_bridge.dart';
-import 'package:zephyr/gpu/hdr_image_surface.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
-import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/util/debouncer.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
