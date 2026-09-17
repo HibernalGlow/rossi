@@ -60,6 +60,8 @@ class GpuPresentController extends ChangeNotifier {
   int? _pushedIndex;
   /// 已推过去的呈现目标尺寸。
   Size? _pushedSize;
+  int? _pushedWidth;
+  int? _pushedHeight;
 
   /// 页数对不上的是**哪一个来源**（按实例身份，不按路径）。
   ///
@@ -244,7 +246,8 @@ class GpuPresentController extends ChangeNotifier {
     // ── 已经同步就什么都不做（不然每帧一次 MethodChannel 往返）──
     if (_pushedPath == source.path &&
         _pushedIndex == index &&
-        _pushedSize == physicalSize &&
+        _pushedWidth == width &&
+        _pushedHeight == height &&
         _mismatchSource == null) {
       return _textureId != null;
     }
@@ -292,6 +295,8 @@ class GpuPresentController extends ChangeNotifier {
             _pushedPath = null;
             _pushedIndex = null;
             _pushedSize = null;
+            _pushedWidth = null;
+            _pushedHeight = null;
           });
           return false;
         }
@@ -302,10 +307,18 @@ class GpuPresentController extends ChangeNotifier {
           // 刚 open，native 侧还没有当前页，强制走一次呈现。
           _pushedIndex = null;
           _pushedSize = null;
+          _pushedWidth = null;
+          _pushedHeight = null;
         });
       }
 
-      if (_pushedSize != physicalSize || _pushedIndex != index) {
+      final bool samePage = _pushedIndex == index;
+      final bool sizeChanged = _pushedWidth == null ||
+          _pushedHeight == null ||
+          (width - _pushedWidth!).abs() > 2 ||
+          (height - _pushedHeight!).abs() > 2;
+
+      if (!samePage || sizeChanged) {
         await _bridge.show(index);
         if (_disposed) {
           return false;
@@ -314,6 +327,8 @@ class GpuPresentController extends ChangeNotifier {
         _mutate(() {
           _pushedIndex = index;
           _pushedSize = physicalSize;
+          _pushedWidth = width;
+          _pushedHeight = height;
         });
       }
       return _textureId != null;

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:zephyr/gpu/gpu_present_bridge.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/page_source.dart';
 
@@ -89,9 +90,14 @@ class _ImageSurfaceState extends State<ImageSurface> {
 
   Size? _physicalSize;
 
+  GpuPresentState? _lastKnownState;
+  int? _lastKnownTextureId;
+
   @override
   void initState() {
     super.initState();
+    _lastKnownState = widget.presenter.state;
+    _lastKnownTextureId = widget.presenter.textureId;
     widget.presenter.addListener(_onPresenterChanged);
   }
 
@@ -100,6 +106,8 @@ class _ImageSurfaceState extends State<ImageSurface> {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.presenter, widget.presenter)) {
       oldWidget.presenter.removeListener(_onPresenterChanged);
+      _lastKnownState = widget.presenter.state;
+      _lastKnownTextureId = widget.presenter.textureId;
       widget.presenter.addListener(_onPresenterChanged);
     }
     if (!identical(oldWidget.source, widget.source) || oldWidget.index != widget.index) {
@@ -126,11 +134,17 @@ class _ImageSurfaceState extends State<ImageSurface> {
     if (!mounted) {
       return;
     }
-    // 就绪那一刻可能没有新的布局来驱动同步，所以这里补一次重建 + 同步。
-    setState(() {});
-    final Size? size = _physicalSize;
-    if (size != null) {
-      unawaited(_sync(size));
+    final GpuPresentState newState = widget.presenter.state;
+    final int? newTex = widget.presenter.textureId;
+    // 只有呈现器状态或纹理真实变了才触发同步，心跳刷统计绝不重新调 _sync
+    if (newState != _lastKnownState || newTex != _lastKnownTextureId) {
+      _lastKnownState = newState;
+      _lastKnownTextureId = newTex;
+      setState(() {});
+      final Size? size = _physicalSize;
+      if (size != null) {
+        unawaited(_sync(size));
+      }
     }
   }
 

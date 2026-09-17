@@ -6,7 +6,7 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `canonicalize_iana_id`, `format_offset_seconds`, `normalize_locale`
+// These functions are ignored because they are not marked as `pub`: `canonicalize_iana_id`, `format_offset_seconds`, `normalize_locale`, `timezone_offset_via_tz_rs`
 
 /// 获取系统首选语言，返回统一的 BCP-47 字符串（等价于 Web 的 `navigator.language`）。
 /// Get the system's most preferred language as a unified BCP-47 string.

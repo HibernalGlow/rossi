@@ -8,7 +8,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `classify_open_error`, `decode_failed`, `decode_page_impl`, `open_local_source_impl`, `session`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `FS_PAGE_LOAD`, `NEXT_LOAD_SEQ`, `NEXT_SESSION_ID`, `SESSIONS`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `deref`, `deref`, `deref`, `deref`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `initialize`, `initialize`, `initialize`, `initialize`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `deref`, `deref`, `deref`, `deref`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `initialize`, `initialize`, `initialize`, `initialize`
 
 Future<LocalSourceOpenResult> openLocalSource({required String path}) =>
     RustLib.instance.api.crateApiLocalOpenLocalSource(path: path);
@@ -114,6 +114,14 @@ int localOpenSessionCount() =>
 /// 关闭全部会话。用于「换书」「退出阅读器」这类整批释放的场景。
 int localCloseAll() => RustLib.instance.api.crateApiLocalLocalCloseAll();
 
+/// 获取跨平台的可用根路径与驱动器列表。
+List<LocalRootLocation> localGetAvailableRoots() =>
+    RustLib.instance.api.crateApiLocalLocalGetAvailableRoots();
+
+/// 列出指定目录下的节点（子目录、漫画包、图片，已按自然排序整理）。
+Future<List<LocalFileTreeNode>> localListDirectory({required String dirPath}) =>
+    RustLib.instance.api.crateApiLocalLocalListDirectory(dirPath: dirPath);
+
 class LocalDecodeFailure {
   final LocalDecodeFailureKind kind;
 
@@ -137,8 +145,9 @@ class LocalDecodeFailure {
 /// 解码失败的**类别**。用枚举而不是字符串，理由与 `LocalRejection` 相同：
 /// 「这一页的格式核心没解码器」和「字节坏了」给用户的下一步动作完全不同。
 enum LocalDecodeFailureKind {
-  /// 核心没有这个格式的解码器（`jxl` / `heic` / `heif`），要交外壳 —— 而外壳解得动
-  /// 与否取决于平台（Windows 引擎实测解不动，见 `rossi_local_core::page_order`）。
+  /// 核心没有这个格式的解码器（`heic` / `heif`；`jxl` 开了后端 feature 就进
+  /// 核心档了），要交外壳 —— 而外壳解得动与否取决于平台
+  /// （Windows 引擎实测解不动，见 `rossi_local_core::page_order`）。
   shellOnlyFormat,
 
   /// 核心有解码器但没解出来：字节损坏、内容与格式不符等。
@@ -149,6 +158,50 @@ enum LocalDecodeFailureKind {
   /// 与上两者分开，是因为它既不是格式问题也不是数据问题 —— **这一页完全可能解得出**，
   /// 只是没人要了。UI 不该把它显示成错误，更不该据此判定「这本解不了」。
   cancelled,
+}
+
+/// 文件树节点。
+class LocalFileTreeNode {
+  final String path;
+  final String name;
+  final bool isDir;
+  final bool isArchive;
+  final bool isImage;
+  final BigInt size;
+  final bool hasChildren;
+
+  const LocalFileTreeNode({
+    required this.path,
+    required this.name,
+    required this.isDir,
+    required this.isArchive,
+    required this.isImage,
+    required this.size,
+    required this.hasChildren,
+  });
+
+  @override
+  int get hashCode =>
+      path.hashCode ^
+      name.hashCode ^
+      isDir.hashCode ^
+      isArchive.hashCode ^
+      isImage.hashCode ^
+      size.hashCode ^
+      hasChildren.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LocalFileTreeNode &&
+          runtimeType == other.runtimeType &&
+          path == other.path &&
+          name == other.name &&
+          isDir == other.isDir &&
+          isArchive == other.isArchive &&
+          isImage == other.isImage &&
+          size == other.size &&
+          hasChildren == other.hasChildren;
 }
 
 /// `local_page_pixels` 的返回值：要么 `pixels`，要么 `failure`。
@@ -377,6 +430,25 @@ enum LocalRejectionKind {
 
   /// 其他 IO / 解析失败（含归档损坏）。
   io,
+}
+
+/// 根位置条目（跨平台驱动器、挂载卷、常用主目录）。
+class LocalRootLocation {
+  final String label;
+  final String path;
+
+  const LocalRootLocation({required this.label, required this.path});
+
+  @override
+  int get hashCode => label.hashCode ^ path.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LocalRootLocation &&
+          runtimeType == other.runtimeType &&
+          label == other.label &&
+          path == other.path;
 }
 
 class LocalSourceInfo {

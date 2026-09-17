@@ -168,7 +168,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<String> dco_decode_list_String(dynamic raw);
 
   @protected
+  List<LocalFileTreeNode> dco_decode_list_local_file_tree_node(dynamic raw);
+
+  @protected
   List<LocalPageInfo> dco_decode_list_local_page_info(dynamic raw);
+
+  @protected
+  List<LocalRootLocation> dco_decode_list_local_root_location(dynamic raw);
 
   @protected
   Uint32List dco_decode_list_prim_u_32_strict(dynamic raw);
@@ -190,6 +196,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LocalDecodeFailureKind dco_decode_local_decode_failure_kind(dynamic raw);
+
+  @protected
+  LocalFileTreeNode dco_decode_local_file_tree_node(dynamic raw);
 
   @protected
   LocalPageDecodeResult dco_decode_local_page_decode_result(dynamic raw);
@@ -217,6 +226,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LocalRejectionKind dco_decode_local_rejection_kind(dynamic raw);
+
+  @protected
+  LocalRootLocation dco_decode_local_root_location(dynamic raw);
 
   @protected
   LocalSourceInfo dco_decode_local_source_info(dynamic raw);
@@ -460,7 +472,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<String> sse_decode_list_String(SseDeserializer deserializer);
 
   @protected
+  List<LocalFileTreeNode> sse_decode_list_local_file_tree_node(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<LocalPageInfo> sse_decode_list_local_page_info(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<LocalRootLocation> sse_decode_list_local_root_location(
     SseDeserializer deserializer,
   );
 
@@ -490,6 +512,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LocalDecodeFailureKind sse_decode_local_decode_failure_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LocalFileTreeNode sse_decode_local_file_tree_node(
     SseDeserializer deserializer,
   );
 
@@ -529,6 +556,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LocalRejectionKind sse_decode_local_rejection_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LocalRootLocation sse_decode_local_root_location(
     SseDeserializer deserializer,
   );
 
@@ -827,8 +859,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_local_file_tree_node(
+    List<LocalFileTreeNode> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_local_page_info(
     List<LocalPageInfo> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_local_root_location(
+    List<LocalRootLocation> self,
     SseSerializer serializer,
   );
 
@@ -868,6 +912,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_local_decode_failure_kind(
     LocalDecodeFailureKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_local_file_tree_node(
+    LocalFileTreeNode self,
     SseSerializer serializer,
   );
 
@@ -919,6 +969,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_local_rejection_kind(
     LocalRejectionKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_local_root_location(
+    LocalRootLocation self,
     SseSerializer serializer,
   );
 

@@ -39,6 +39,7 @@
 
 pub mod decode;
 pub mod entry_name;
+pub mod file_tree;
 pub mod folder_source;
 // JXL 后端选择层：只在至少开了一个后端 feature 时编译（见 jxl_backend.rs 头注释）。
 #[cfg(any(
@@ -60,6 +61,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 
 pub use decode::{PagePixels, ShellOnlyFormat, decode_rgba, decode_rgba_scaled, probe_size};
+pub use file_tree::{FileTreeNode, RootLocation, get_available_roots, is_comic_archive_path, list_directory};
 pub use page_load_scheduler::{
     FS_PAGE_LOAD_HIGH_RESERVED_PERMITS, FS_PAGE_LOAD_TOTAL_PERMITS, FsPageLoadContract,
     FsPageLoadPermit, FsPageLoadPriority, FsPageLoadScheduler, FsPageLoadSchedulerStats,

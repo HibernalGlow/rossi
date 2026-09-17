@@ -8,6 +8,7 @@ import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/image_surface.dart';
 import 'package:zephyr/reader/local_page_source.dart';
 import 'package:zephyr/reader/page_source.dart';
+import 'package:zephyr/gpu/local_file_tree_sheet.dart';
 import 'package:zephyr/src/rust/api/local.dart';
 
 /// GPU 上屏调试页（Windows）。
@@ -210,7 +211,20 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
     if (!mounted) {
       return;
     }
-    setState(() => _sessions = sessions);
+    if (_sessions != sessions) {
+      setState(() => _sessions = sessions);
+    }
+  }
+
+  Future<void> _browseLocalTree() async {
+    final String? selected = await showLocalFileTreeSheet(
+      context: context,
+      initialPath: _pathController.text.trim(),
+    );
+    if (selected != null && selected.isNotEmpty && mounted) {
+      _pathController.text = selected;
+      unawaited(_open());
+    }
   }
 
   Future<void> _open() async {
@@ -293,10 +307,16 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
               child: _buildStage(),
             ),
           ),
-          ListenableBuilder(
-            listenable: _presenter,
-            builder: (BuildContext context, Widget? child) =>
-                _buildPanel(devicePixelRatio),
+          SizedBox(
+            height: 205,
+            child: ListenableBuilder(
+              listenable: _presenter,
+              builder: (BuildContext context, Widget? child) =>
+                  SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: _buildPanel(devicePixelRatio),
+              ),
+            ),
           ),
         ],
       ),
@@ -361,7 +381,16 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
                   onSubmitted: (_) => _open(),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF7C3AED),
+                ),
+                onPressed: _busy ? null : _browseLocalTree,
+                icon: const Icon(Icons.folder_open_rounded, size: 18),
+                label: const Text('浏览...'),
+              ),
+              const SizedBox(width: 8),
               FilledButton(
                 onPressed: _busy ? null : _open,
                 child: const Text('打开'),
@@ -372,20 +401,46 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
           Row(
             children: <Widget>[
               FilledButton.tonal(
+                onPressed: _busy || _index <= 0
+                    ? null
+                    : () => _show((_index - 5).clamp(0, pageCount - 1)),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                ),
+                child: const Text('<< -5'),
+              ),
+              const SizedBox(width: 6),
+              FilledButton.tonal(
                 onPressed: _busy || _index <= 0 ? null : () => _show(_index - 1),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
                 child: const Text('上一页'),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               FilledButton.tonal(
                 onPressed: _busy || _index + 1 >= pageCount
                     ? null
                     : () => _show(_index + 1),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
                 child: const Text('下一页'),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 6),
+              FilledButton.tonal(
+                onPressed: _busy || _index + 1 >= pageCount
+                    ? null
+                    : () => _show((_index + 5).clamp(0, pageCount - 1)),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                ),
+                child: const Text('+5 >>'),
+              ),
+              const SizedBox(width: 14),
               Text(
                 pageCount == 0 ? '尚未打开来源' : '第 ${_index + 1} / $pageCount 页',
-                style: const TextStyle(fontSize: 14, color: Color(0xFFE6EDF3)),
+                style: const TextStyle(fontSize: 14, color: Color(0xFFE6EDF3), fontWeight: FontWeight.w500),
               ),
               const Spacer(),
               Flexible(
@@ -449,6 +504,16 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
                     '${stats.probeDouble('submitMs').toStringAsFixed(1)} ms',
                   ),
                   _stat('合计', '${stats.probeDouble('totalMs').toStringAsFixed(1)} ms'),
+                  if (stats.probe.containsKey('prerenderHit'))
+                    _stat(
+                      '预渲染直拷',
+                      stats.probeInt('prerenderHit') == 1 ? '⚡️ 命中' : '现场计算',
+                    ),
+                  if (stats.probe.containsKey('cacheBytes'))
+                    _stat(
+                      '原图预取缓存',
+                      '${(stats.probeInt('cacheBytes') / (1024 * 1024)).toStringAsFixed(1)} MB',
+                    ),
                   _stat(
                     '直接共享 wgpu 纹理',
                     '${stats['directShareOfWgpuTexture'] ?? '—'}',

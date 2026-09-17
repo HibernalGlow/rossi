@@ -595,6 +595,59 @@ fn session(id: u64) -> Result<LocalSource, Error> {
         .ok_or_else(|| anyhow::anyhow!("本地来源会话不存在或已关闭: id={id}"))
 }
 
+// ───────────────────────── 文件树浏览 ─────────────────────────
+
+/// 根位置条目（跨平台驱动器、挂载卷、常用主目录）。
+#[frb]
+#[derive(Debug, Clone)]
+pub struct LocalRootLocation {
+    pub label: String,
+    pub path: String,
+}
+
+/// 文件树节点。
+#[frb]
+#[derive(Debug, Clone)]
+pub struct LocalFileTreeNode {
+    pub path: String,
+    pub name: String,
+    pub is_dir: bool,
+    pub is_archive: bool,
+    pub is_image: bool,
+    pub size: u64,
+    pub has_children: bool,
+}
+
+/// 获取跨平台的可用根路径与驱动器列表。
+#[frb(sync)]
+pub fn local_get_available_roots() -> Vec<LocalRootLocation> {
+    rossi_local_core::get_available_roots()
+        .into_iter()
+        .map(|r| LocalRootLocation {
+            label: r.label,
+            path: r.path,
+        })
+        .collect()
+}
+
+/// 列出指定目录下的节点（子目录、漫画包、图片，已按自然排序整理）。
+pub fn local_list_directory(dir_path: String) -> anyhow::Result<Vec<LocalFileTreeNode>> {
+    let path = std::path::Path::new(&dir_path);
+    let nodes = rossi_local_core::list_directory(path)?;
+    Ok(nodes
+        .into_iter()
+        .map(|n| LocalFileTreeNode {
+            path: n.path,
+            name: n.name,
+            is_dir: n.is_dir,
+            is_archive: n.is_archive,
+            is_image: n.is_image,
+            size: n.size,
+            has_children: n.has_children,
+        })
+        .collect())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
