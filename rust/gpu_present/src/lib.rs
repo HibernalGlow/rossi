@@ -471,7 +471,7 @@ mod platform {
 #[cfg(target_os = "windows")]
 pub use platform::*;
 
-// ───────────────────────── macOS 实现 ─────────────────────────
+pub mod wgpu_resampler;
 
 #[cfg(target_os = "macos")]
 mod mac_presenter;
@@ -748,3 +748,9 @@ mod mac_platform {
 
 #[cfg(target_os = "macos")]
 pub use mac_platform::*;
+
+#[cfg(target_arch = "wasm32")]
+pub mod web_presenter;
+
+#[cfg(target_arch = "wasm32")]
+pub use web_presenter::RossiWebPresenter;

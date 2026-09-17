@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Rossi WebGPU Reader Presenter</title>
+  <style>
+    body {
+      margin: 0;
+      background: #05050A;
+      color: #C9D1D9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    #canvas-container {
+      width: 90vw;
+      height: 80vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #30363D;
+      background: #05050A;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .controls {
+      margin-top: 16px;
+      display: flex;
+      gap: 12px;
+    }
+    button {
+      background: #21262D;
+      border: 1px solid #30363D;
+      color: #C9D1D9;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #30363D;
+    }
+    .status {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #8B949E;
+    }
+  </style>
+</head>
+<body>
+  <h2>Rossi WebGPU 硬件呈现测试</h2>
+  <div id="canvas-container">
+    <canvas id="rossi-webgpu-canvas"></canvas>
+  </div>
+  <div class="controls">
+    <button id="btn-draw">绘制测试渐变图 (Lanczos3)</button>
+    <button id="btn-anime4k">切换 Anime4K 边缘锐化</button>
+  </div>
+  <div class="status" id="status-text">初始化 WebAssembly 与 WebGPU...</div>
+
+  <script type="module">
+    import init, { create_web_presenter } from './rossi_webgpu/rossi_gpu_present.js';
+
+    let presenter = null;
+    let anime4k = false;
+    const canvas = document.getElementById('rossi-webgpu-canvas');
+    const statusText = document.getElementById('status-text');
+
+    async function main() {
+      try {
+        await init('./rossi_webgpu/rossi_gpu_present_bg.wasm');
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        const w = Math.round(rect.width * dpr);
+        const h = Math.round(rect.height * dpr);
+
+        presenter = await create_web_presenter('rossi-webgpu-canvas', w, h);
+        statusText.innerText = `WebGPU 硬件呈现就绪！分辨率: ${w}x${h}, DPR: ${dpr}`;
+        drawSampleImage();
+      } catch (err) {
+        statusText.innerText = `初始化失败: ${err}`;
+        console.error(err);
+      }
+    }
+
+    function drawSampleImage() {
+      if (!presenter) return;
+      const srcW = 800;
+      const srcH = 1200;
+      const rgba = new Uint8Array(srcW * srcH * 4);
+
+      // 生成示例漫画网点与渐变色彩
+      for (let y = 0; y < srcH; y++) {
+        for (let x = 0; x < srcW; x++) {
+          const idx = (y * srcW + x) * 4;
+          rgba[idx + 0] = (x / srcW) * 255;
+          rgba[idx + 1] = (y / srcH) * 255;
+          rgba[idx + 2] = 200;
+          rgba[idx + 3] = 255;
+        }
+      }
+
+      const t0 = performance.now();
+      presenter.render_page(rgba, srcW, srcH, anime4k);
+      const dt = (performance.now() - t0).toFixed(2);
+      statusText.innerText = `GPU 呈现完成: ${srcW}x${srcH} → 视口 (Anime4K: ${anime4k ? '开启' : '关闭'}), 渲染耗时: ${dt} ms`;
+    }
+
+    document.getElementById('btn-draw').onclick = () => {
+      drawSampleImage();
+    };
+
+    document.getElementById('btn-anime4k').onclick = () => {
+      anime4k = !anime4k;
+      drawSampleImage();
+    };
+
+    window.addEventListener('resize', () => {
+      if (!presenter) return;
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const w = Math.round(rect.width * dpr);
+      const h = Math.round(rect.height * dpr);
+      presenter.resize(w, h);
+      drawSampleImage();
+    });
+
+    main();
+  </script>
+</body>
+</html>

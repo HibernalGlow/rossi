@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// GPU 上屏路径的当前状态。
@@ -136,7 +137,8 @@ class GpuPresentBridge {
   static const MethodChannel channel = MethodChannel('rossi/gpu_present');
 
   /// 这个平台有没有这条路径的**实现**（Windows / macOS 均支持 GPU 外部纹理硬件上屏）。
-  static bool get isPlatformSupported => Platform.isWindows || Platform.isMacOS;
+  static bool get isPlatformSupported =>
+      !kIsWeb && (Platform.isWindows || Platform.isMacOS);
 
   /// 让 native 侧按 [width] / [height]（**物理像素**）确保呈现目标存在。
   ///

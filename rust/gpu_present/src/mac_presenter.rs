@@ -20,8 +20,7 @@ use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, Context, Result};
-use fast_image_resize::images::{Image, ImageRef};
-use fast_image_resize::{FilterType, PixelType, ResizeAlg, ResizeOptions, Resizer};
+use crate::wgpu_resampler::WgpuResampler;
 use rossi_local_core::{interleaved_prefetch_positions, LocalSource, PagePixels};
 
 /// 留白背景色：BGRA 字节顺序对应 0xFF05050A（Rossi 深黑底色）。
@@ -293,15 +292,19 @@ impl PrefetchHub {
 fn spawn_prefetch_worker(
     shared_cache: Arc<SharedCache>,
     hub: Arc<PrefetchHub>,
+    resampler: Arc<Mutex<WgpuResampler>>,
 ) -> JoinHandle<()> {
     thread::Builder::new()
         .name("rossi-mac-prefetch".to_string())
-        .spawn(move || prefetch_worker_loop(&shared_cache, &hub))
+        .spawn(move || prefetch_worker_loop(&shared_cache, &hub, &resampler))
         .expect("无法启动 macOS 预取线程")
 }
 
-fn prefetch_worker_loop(shared_cache: &SharedCache, hub: &PrefetchHub) {
-    let mut worker_resizer = Resizer::new();
+fn prefetch_worker_loop(
+    shared_cache: &SharedCache,
+    hub: &PrefetchHub,
+    resampler: &Arc<Mutex<WgpuResampler>>,
+) {
     loop {
         {
             let Ok(guard) = hub.shared.lock() else { return };
@@ -358,13 +361,28 @@ fn prefetch_worker_loop(shared_cache: &SharedCache, hub: &PrefetchHub) {
                     let pixels = Arc::new(pixels);
                     let mut pre_rendered = Vec::new();
                     if view.target_width > 0 && view.target_height > 0 {
-                        if let Some(f) = pre_render_letterbox(
-                            &pixels,
-                            view.target_width,
-                            view.target_height,
-                            &mut worker_resizer,
-                        ) {
-                            pre_rendered.push(f);
+                        let stride = view.target_width as usize * 4;
+                        let mut bgra = vec![0u8; stride * view.target_height as usize];
+                        if let Ok(mut r) = resampler.lock() {
+                            if r.resample_to_buffer(
+                                &pixels.rgba,
+                                pixels.width,
+                                pixels.height,
+                                view.target_width,
+                                view.target_height,
+                                bgra.as_mut_ptr(),
+                                stride,
+                                false,
+                            )
+                            .is_ok()
+                            {
+                                pre_rendered.push(PreRenderedFrame {
+                                    target_w: view.target_width,
+                                    target_h: view.target_height,
+                                    bgra,
+                                    stride,
+                                });
+                            }
                         }
                     }
 
@@ -408,15 +426,29 @@ fn prefetch_worker_loop(shared_cache: &SharedCache, hub: &PrefetchHub) {
             });
 
             if let Some((index, pixels)) = need_render {
-                let pre_rendered = pre_render_letterbox(
-                    &pixels,
-                    view.target_width,
-                    view.target_height,
-                    &mut worker_resizer,
-                );
-                if let Some(frame) = pre_rendered {
-                    if let Ok(mut c) = shared_cache.cache.lock() {
-                        c.add_pre_rendered(index, view.epoch, frame);
+                let stride = view.target_width as usize * 4;
+                let mut bgra = vec![0u8; stride * view.target_height as usize];
+                if let Ok(mut r) = resampler.lock() {
+                    if r.resample_to_buffer(
+                        &pixels.rgba,
+                        pixels.width,
+                        pixels.height,
+                        view.target_width,
+                        view.target_height,
+                        bgra.as_mut_ptr(),
+                        stride,
+                        false,
+                    )
+                    .is_ok()
+                    {
+                        if let Ok(mut c) = shared_cache.cache.lock() {
+                            c.add_pre_rendered(index, view.epoch, PreRenderedFrame {
+                                target_w: view.target_width,
+                                target_h: view.target_height,
+                                bgra,
+                                stride,
+                            });
+                        }
                     }
                 }
                 continue;
@@ -442,7 +474,7 @@ pub struct MacPresenter {
     last_cache_hit: bool,
     last_prerender_hit: bool,
 
-    resizer: Mutex<Resizer>,
+    resampler: Arc<Mutex<WgpuResampler>>,
 
     last_source_width: u32,
     last_source_height: u32,
@@ -461,7 +493,28 @@ impl MacPresenter {
         let target_height = height.max(1);
         let shared_cache = Arc::new(SharedCache::new());
         let hub = Arc::new(PrefetchHub::new(target_width, target_height));
-        let prefetch_thread = Some(spawn_prefetch_worker(shared_cache.clone(), hub.clone()));
+
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+            backends: wgpu::Backends::all(),
+            ..Default::default()
+        });
+        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+            power_preference: wgpu::PowerPreference::HighPerformance,
+            compatible_surface: None,
+            force_fallback_adapter: false,
+        }))
+        .context("无法获取 Metal / wgpu 图形适配器")?;
+
+        let (device, queue) = pollster::block_on(adapter.request_device(
+            &wgpu::DeviceDescriptor {
+                label: Some("rossi_mac_wgpu_device"),
+                ..Default::default()
+            },
+        ))
+        .context("无法初始化 wgpu 逻辑设备")?;
+
+        let resampler = Arc::new(Mutex::new(WgpuResampler::new(Arc::new(device), Arc::new(queue))?));
+        let prefetch_thread = Some(spawn_prefetch_worker(shared_cache.clone(), hub.clone(), resampler.clone()));
 
         Ok(Self {
             target_width,
@@ -477,7 +530,7 @@ impl MacPresenter {
             prefetch_thread,
             last_cache_hit: false,
             last_prerender_hit: false,
-            resizer: Mutex::new(Resizer::new()),
+            resampler,
             last_source_width: 0,
             last_source_height: 0,
             last_decoded_width: 0,
@@ -634,21 +687,37 @@ impl MacPresenter {
             self.last_decoded_width = pixels.width;
             self.last_decoded_height = pixels.height;
 
-            let mut resizer = self.resizer.lock().unwrap_or_else(|p| p.into_inner());
-            unsafe {
-                render_rgba_to_bgra_letterbox(
-                    &pixels,
-                    dst_ptr,
-                    dst_stride,
-                    target_width,
-                    target_height,
-                    &mut resizer,
-                )?;
-            }
+            let mut r = self.resampler.lock().unwrap_or_else(|p| p.into_inner());
+            r.resample_to_buffer(
+                &pixels.rgba,
+                pixels.width,
+                pixels.height,
+                target_width,
+                target_height,
+                dst_ptr,
+                dst_stride,
+                false,
+            )?;
             // 现场渲染后，将当前视口尺寸保存到该页预渲染缓存中，后续再次访问即可瞬间命中
-            if let Some(frame) = pre_render_letterbox(&pixels, target_width, target_height, &mut resizer) {
+            let stride = target_width as usize * 4;
+            let mut bgra = vec![0u8; stride * target_height as usize];
+            if r.resample_to_buffer(
+                &pixels.rgba,
+                pixels.width,
+                pixels.height,
+                target_width,
+                target_height,
+                bgra.as_mut_ptr(),
+                stride,
+                false,
+            ).is_ok() {
                 if let Ok(mut c) = self.shared_cache.cache.lock() {
-                    c.add_pre_rendered(index, self.source_epoch, frame);
+                    c.add_pre_rendered(index, self.source_epoch, PreRenderedFrame {
+                        target_w: target_width,
+                        target_h: target_height,
+                        bgra,
+                        stride,
+                    });
                 }
             }
         } else if let Some(ref p) = pixels_opt {
@@ -746,37 +815,6 @@ impl Drop for MacPresenter {
     }
 }
 
-/// 预渲染一个 Letterbox BGRA 帧供前台瞬间直拷上屏。
-fn pre_render_letterbox(
-    src: &PagePixels,
-    target_w: u32,
-    target_h: u32,
-    resizer: &mut Resizer,
-) -> Option<PreRenderedFrame> {
-    if target_w == 0 || target_h == 0 {
-        return None;
-    }
-    let stride = target_w as usize * 4;
-    let mut bgra = vec![0u8; stride * target_h as usize];
-    unsafe {
-        render_rgba_to_bgra_letterbox(
-            src,
-            bgra.as_mut_ptr(),
-            stride,
-            target_w,
-            target_h,
-            resizer,
-        )
-        .ok()?;
-    }
-    Some(PreRenderedFrame {
-        target_w,
-        target_h,
-        bgra,
-        stride,
-    })
-}
-
 /// 极速内存直拷：将预渲染好的视口帧直接写入 CVPixelBuffer 物理内存（< 0.5 ms 零开销）。
 /// 支持目标微小尺寸差异（<= 3 像素容差）时的裁切与留白填补，避免因微小抖动产生昂贵的重新渲染。
 unsafe fn copy_pre_rendered_frame(
@@ -821,114 +859,6 @@ unsafe fn copy_pre_rendered_frame(
     }
 }
 
-/// 将 RGBA 像素进行 100% 原始尺寸或高质量抗锯齿重采样，并在视口中 Letterbox 居中写入 CVPixelBuffer (BGRA)。
-unsafe fn render_rgba_to_bgra_letterbox(
-    src: &PagePixels,
-    dst_ptr: *mut u8,
-    dst_stride: usize,
-    target_w: u32,
-    target_h: u32,
-    resizer: &mut Resizer,
-) -> Result<()> {
-    let src_w = src.width.max(1);
-    let src_h = src.height.max(1);
-
-    if target_w == 0 || target_h == 0 {
-        return Ok(());
-    }
-
-    // 计算等比缩放目标尺寸 (Contain / Letterbox 模式)
-    let scale_x = target_w as f64 / src_w as f64;
-    let scale_y = target_h as f64 / src_h as f64;
-    let scale = scale_x.min(scale_y);
-
-    let render_w = ((src_w as f64 * scale).round() as u32).clamp(1, target_w);
-    let render_h = ((src_h as f64 * scale).round() as u32).clamp(1, target_h);
-
-    let offset_x = (target_w.saturating_sub(render_w)) / 2;
-    let offset_y = (target_h.saturating_sub(render_h)) / 2;
-
-    let bg_pixel = u32::from_ne_bytes(BACKGROUND_BGRA);
-
-    // ① 填充上留白
-    for y in 0..offset_y {
-        let row_ptr = dst_ptr.add(y as usize * dst_stride) as *mut u32;
-        std::slice::from_raw_parts_mut(row_ptr, target_w as usize).fill(bg_pixel);
-    }
-
-    // 辅助闭包：将 render_w * render_h 的 RGBA 切片按行转换并写入 CVPixelBuffer (BGRA)
-    let draw_rows = |rgba_slice: &[u8], row_bytes: usize| {
-        for y in 0..render_h {
-            let dst_y = offset_y + y;
-            if dst_y >= target_h {
-                break;
-            }
-            let row_ptr = dst_ptr.add(dst_y as usize * dst_stride) as *mut u32;
-
-            // 左留白
-            if offset_x > 0 {
-                std::slice::from_raw_parts_mut(row_ptr, offset_x as usize).fill(bg_pixel);
-            }
-
-            // 图像像素：从 RGBA 转换为 BGRA 并写入
-            let src_row = &rgba_slice[y as usize * row_bytes..];
-            let dst_row = row_ptr.add(offset_x as usize);
-            for x in 0..render_w as usize {
-                let r = src_row[x * 4];
-                let g = src_row[x * 4 + 1];
-                let b = src_row[x * 4 + 2];
-                let a = src_row[x * 4 + 3];
-                *dst_row.add(x) = u32::from_ne_bytes([b, g, r, a]);
-            }
-
-            // 右留白
-            let right_start = offset_x + render_w;
-            if right_start < target_w {
-                std::slice::from_raw_parts_mut(
-                    row_ptr.add(right_start as usize),
-                    (target_w - right_start) as usize,
-                )
-                .fill(bg_pixel);
-            }
-        }
-    };
-
-    // ② 绘制图像区域
-    if render_w == src_w && render_h == src_h {
-        // 1:1 原尺寸，直接转换上屏
-        draw_rows(&src.rgba, src_w as usize * 4);
-    } else {
-        // 自适应智能滤波：
-        // 大比例下采样（缩放到 1/3 以下，例如 8 倍缩小）采用 Bilinear 展开反走样卷积：
-        // 采样点缩减 90%，耗时暴降 10 倍，同时过渡平滑自然无走样；
-        // 轻度缩放或放大采用 Lanczos3 保持极致锐利。
-        let filter = if scale < 0.35 {
-            FilterType::Bilinear
-        } else {
-            FilterType::Lanczos3
-        };
-
-        let src_image = ImageRef::new(src_w, src_h, &src.rgba, PixelType::U8x4)
-            .map_err(|e| anyhow!("创建源图像 ImageRef 失败: {e:?}"))?;
-        let mut dst_image = Image::new(render_w, render_h, PixelType::U8x4);
-
-        let opts = ResizeOptions::new().resize_alg(ResizeAlg::Convolution(filter));
-        resizer
-            .resize(&src_image, &mut dst_image, &opts)
-            .map_err(|e| anyhow!("{filter:?} 图像重采样失败: {e:?}"))?;
-
-        draw_rows(dst_image.buffer(), render_w as usize * 4);
-    }
-
-    // ③ 填充下留白
-    for y in (offset_y + render_h)..target_h {
-        let row_ptr = dst_ptr.add(y as usize * dst_stride) as *mut u32;
-        std::slice::from_raw_parts_mut(row_ptr, target_w as usize).fill(bg_pixel);
-    }
-
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -944,9 +874,11 @@ mod tests {
     }
 
     #[test]
-    fn test_render_rgba_to_bgra_letterbox() {
-        let mut resizer = Resizer::new();
-        // 2x1 横图放入 4x4 目标，上下各有 1 像素留白
+    fn test_wgpu_resample_letterbox() {
+        let presenter = MacPresenter::new(4, 4).expect("创建 MacPresenter 失败");
+        let mut r = presenter.resampler.lock().unwrap();
+
+        // 2x1 横图放入 4x4 目标，上下留白
         let pixels = PagePixels {
             width: 2,
             height: 1,
@@ -963,17 +895,17 @@ mod tests {
         let stride = target_w * 4;
         let mut buffer = vec![0u8; (target_h * stride) as usize];
 
-        unsafe {
-            render_rgba_to_bgra_letterbox(
-                &pixels,
-                buffer.as_mut_ptr(),
-                stride as usize,
-                target_w,
-                target_h,
-                &mut resizer,
-            )
-            .expect("渲染失败");
-        }
+        r.resample_to_buffer(
+            &pixels.rgba,
+            pixels.width,
+            pixels.height,
+            target_w,
+            target_h,
+            buffer.as_mut_ptr(),
+            stride as usize,
+            false,
+        )
+        .expect("GPU 重采样失败");
 
         let bg = BACKGROUND_BGRA;
         // y=0 行是上留白
@@ -982,28 +914,6 @@ mod tests {
         // y=3 行是下留白
         let bottom_bg_offset = (3 * stride) as usize;
         assert_eq!(&buffer[bottom_bg_offset..bottom_bg_offset + 4], &bg);
-    }
-
-    #[test]
-    fn test_pre_render_and_copy_roundtrip() {
-        let mut resizer = Resizer::new();
-        let pixels = PagePixels {
-            width: 4,
-            height: 4,
-            source_width: 4,
-            source_height: 4,
-            rgba: vec![200; 4 * 4 * 4],
-        };
-
-        let frame = pre_render_letterbox(&pixels, 8, 8, &mut resizer).expect("预渲染失败");
-        assert_eq!(frame.target_w, 8);
-        assert_eq!(frame.target_h, 8);
-
-        let mut dst = vec![0u8; 8 * 32];
-        unsafe {
-            copy_pre_rendered_frame(&frame, dst.as_mut_ptr(), 32, 8, 8);
-        }
-        assert_eq!(dst, frame.bgra);
     }
 
     #[test]

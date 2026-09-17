@@ -14,29 +14,41 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 anyhow = "1"
 # 解码与归档直读复用本地核心 —— 这条路径**不自己实现解码**，
-# 否则「Rust 解码 → GPU」这句话就没有单一真源了。
-rossi_local_core = { path = "../local_core", default-features = false, features = [
-    "avif",
-    "jxl-rs-mt",
-] }
 # 探针的命令行解析。**故意不放在 target-specific 段里**：那样在非 Windows 上
 # `--features probe` 会因为"启用了本目标不存在的 optional 依赖"直接报错。
 # clap 到处都能编，没有理由让它跟着平台走。
 clap = { version = "4", features = ["derive"], optional = true }
-fast_image_resize = { version = "5", features = ["image"] }
-
-# ── 以下依赖全部只在 Windows 上需要 ──
-# 本 crate 是 rust/ workspace 的成员，在 macOS / Linux / Android 上也要能编过；
-# 那些平台上 lib.rs 会退化成一个空壳（见 lib.rs 顶部的 cfg 门）。
-[target.'cfg(target_os = "windows")'.dependencies]
 wgpu = "27"
 pollster = "0.4"
+bytemuck = { version = "1.16", features = ["derive"] }
+
+# ── 桌面端（macOS / Windows）解码与归档直读依赖 ──
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+rossi_local_core = { path = "../local_core", default-features = false, features = [
+    "avif",
+    "jxl-rs-mt",
+] }
+
+# ── Windows 专有依赖 ──
+[target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.58", features = [
     "Win32_Foundation",
     "Win32_System_Threading",
     "Win32_Graphics_Direct3D12",
     "Win32_Graphics_Dxgi",
     "Win32_Graphics_Dxgi_Common",
+] }
+
+# ── Web (WASM) 专有依赖 ──
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = [
+    "Document",
+    "Element",
+    "HtmlCanvasElement",
+    "Window",
 ] }
 
 [features]
