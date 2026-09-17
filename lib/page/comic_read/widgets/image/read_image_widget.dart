@@ -7,6 +7,8 @@ import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/reader/gpu_present_controller.dart';
+import 'package:zephyr/reader/image_surface.dart';
 import 'package:zephyr/widgets/picture_bloc/bloc/picture_bloc.dart';
 import 'package:zephyr/widgets/picture_bloc/models/picture_info.dart';
 
@@ -49,6 +51,33 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
     final foregroundColor = readSetting.resolveReaderForegroundColor(
       brightness,
     );
+
+    // 本地漫画 GPU 呈现管线直通
+    final bool isLocalGpu = widget.pictureInfo.extern['isLocalGpu'] == true;
+    if (isLocalGpu) {
+      final int localIndex = widget.pictureInfo.extern['localIndex'] as int? ?? widget.index;
+      final session = LocalReadSession.instance;
+      final source = session.currentSource;
+      final presenter = session.getOrCreatePresenter();
+
+      return SizedBox(
+        width: context.screenWidth,
+        child: Container(
+          color: backgroundColor,
+          child: source != null && GpuPresentController.isPlatformSupported
+              ? ImageSurface(
+                  source: source,
+                  index: localIndex,
+                  presenter: presenter,
+                )
+              : placeholder(
+                  backgroundColor: backgroundColor,
+                  foregroundColor: foregroundColor,
+                ),
+        ),
+      );
+    }
+
     final pictureInfoTemp = widget.pictureInfo.copyWith(
       pictureType: PictureType.page,
     );

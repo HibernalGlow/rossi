@@ -3,6 +3,7 @@ import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:equatable/equatable.dart';
 import 'package:stream_transform/stream_transform.dart';
 import 'package:zephyr/page/comic_read/method/get_local_info.dart';
+import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/page/comic_read/method/get_plugin_read_snapshot.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
 import 'package:zephyr/page/comic_read/type/chapter_extern.dart';
@@ -32,12 +33,15 @@ class PageBloc extends Bloc<PageEvent, PageState> {
     emit(state.copyWith(status: PageStatus.initial));
 
     try {
+      final isLocal = isLocalComicSource(event.from, event.comicId);
       final isDownload =
           event.type == ComicEntryType.download ||
           event.type == ComicEntryType.historyAndDownload;
 
       late final NormalComicEpInfo result;
-      if (isDownload) {
+      if (isLocal) {
+        result = await getLocalComicEpInfo(event.comicId);
+      } else if (isDownload) {
         result = await getPluginInfoFromLocal(
           event.from,
           event.comicId,

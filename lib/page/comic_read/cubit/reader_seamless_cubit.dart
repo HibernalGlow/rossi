@@ -7,6 +7,7 @@ import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
 import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_seamless_state.dart';
 import 'package:zephyr/page/comic_read/method/get_local_info.dart';
+import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/page/comic_read/method/get_plugin_read_snapshot.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
 import 'package:zephyr/page/comic_read/model/seamless_transition_state.dart';
@@ -72,6 +73,15 @@ class ReaderSeamlessCubit extends Cubit<ReaderSeamlessState> {
 
   void _initChapterCatalog() {
     _chapterRefs = resolveUnifiedComicChapters(_comicInfo, _from);
+    if (_chapterRefs.isEmpty && isLocalComicSource(_from, _comicId)) {
+      _chapterRefs = <UnifiedComicChapterRef>[
+        UnifiedComicChapterRef(
+          id: _comicId,
+          name: '全本',
+          order: _initialOrder,
+        ),
+      ];
+    }
     _chapterOrderToCatalogIndex = <int, int>{};
     for (var i = 0; i < _chapterRefs.length; i++) {
       _chapterOrderToCatalogIndex[_chapterRefs[i].order] = i;

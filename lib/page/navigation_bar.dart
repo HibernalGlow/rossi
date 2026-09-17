@@ -9,7 +9,6 @@ import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:toastification/toastification.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/router/router.gr.dart';
-import 'package:zephyr/debug/local_source_debug_page.dart';
 import 'package:zephyr/gpu/gpu_present_page.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
@@ -21,6 +20,9 @@ import 'package:zephyr/service/update/check_update.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/util/error_filter.dart';
 import 'package:zephyr/util/manage_cache.dart';
+import 'package:zephyr/gpu/local_file_tree_sheet.dart';
+import 'package:zephyr/cubit/string_select.dart';
+import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/widgets/memory/memory_overlay_widget.dart';
 import 'package:zephyr/widgets/toast.dart';
 
@@ -240,14 +242,27 @@ class _NavigationBarState extends State<NavigationBar> {
                       children: <Widget>[
                         IconButton(
                           icon: const Icon(Icons.folder_open_outlined),
-                          // 与 `debug_setting_page.dart` 的同名入口一致：诊断工具，
-                          // 不为它补 i18n 词条、也不触发一次全量 slang codegen。
-                          tooltip: '本地来源读取（判据 A）',
-                          onPressed: () => Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => const LocalSourceDebugPage(),
-                            ),
-                          ),
+                          tooltip: '打开本地漫画（Breeze 原版阅读器 + GPU 零拷贝）',
+                          onPressed: () async {
+                            try {
+                              final selected = await showLocalFileTreeSheet(context: context);
+                              if (selected != null && selected.isNotEmpty && mounted) {
+                                context.pushRoute(
+                                  ComicReadRoute(
+                                    comicId: selected,
+                                    order: 0,
+                                    from: 'local',
+                                    epsNumber: 1,
+                                    type: ComicEntryType.normal,
+                                    comicInfo: selected,
+                                    stringSelectCubit: StringSelectCubit(),
+                                  ),
+                                );
+                              }
+                            } catch (e, st) {
+                              debugPrint('打开本地漫画出错: $e\n$st');
+                            }
+                          },
                         ),
                         // GPU 上屏（D3D12 共享纹理）：像素从 Rust 侧直接进合成链，
                         // 不再经 `ui.decodeImageFromPixels`。同上，不补 i18n 词条。
