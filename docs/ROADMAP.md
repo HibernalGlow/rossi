@@ -166,7 +166,7 @@ GPU Surface
       链路 `解码 → wgpu 上传/渲染(letterbox) → GPU→GPU CopyResource → D3D12 共享纹理(BGRA8)
       → Flutter(D3D11/ANGLE) 合成`：**像素全程不过桥**，Dart 侧只拿到一个 `textureId`。
       入口：设置 → 调试 → **GPU 上屏（D3D12 共享纹理）**；判据读数是 `handleOpened > 0`。
-      已验证四条：① Rust 侧端到端回读（底色占比／内容包围盒／页内采样／非全黑 四判据全过）；
+      已验证六条：① Rust 侧端到端回读（底色占比／内容包围盒／页内采样／非全黑 四判据全过）；
       ② **真机引擎上 `handleOpened = 1`** —— 引擎确实打开了共享句柄，即"链路真通"。
       ③ **呈现器异步创建**：`create` 只起线程就返回（三态 `loading/ready/failed`），
       启动期不再被那 ~1 s 压住；就绪前 Dart 侧走 CPU 兜底路径，就绪后切到共享纹理。
@@ -179,7 +179,13 @@ GPU Surface
       现在收在一个 `ImageSurface` —— 它自己维持与 native 侧状态一致（注册的纹理、打开的是
       哪一份、呈现的是第几页、目标多大），调用方只给"哪一本、第几页"。两条路共用一个来源：
       就绪前落 `RawImage`、就绪后落 `Texture`，外面不替它排序（真机实测 `通路 = cpu→gpu`）。
-      判据 C 的帧时间分布尚未在 Release 下测。见 `docs/texture-bridge-integration.md` §3.6、§6.2。
+      ⑥ **Release 配置下的打包已复验**（2026-09-17，原待办）：`flutter build windows --release`
+      通过，`rossi_gpu_present.dll` / `dxcompiler.dll` / `dxil.dll` 均已落位。复验本身**查出过
+      一个真问题**——上一份 Release 产物里两个 DXC DLL 是缺的，因为**在 Debug 下改的 CMake
+      拷贝步骤不会自动追上已经存在的 Release 目录**。同时确认 `rossi_gpu_present.dll` 在两个
+      配置下**是同一份 release 产物**（profile 在 CMake 里写死），故判据 C 的 GPU 侧不受 debug 污染。
+      判据 C 的帧时间分布尚未在 Release 下测 —— **产物已就绪，可以开始量**。
+      见 `docs/texture-bridge-integration.md` §3.6、§6.2、§7。
 - 7z 仍属后续评估
 - 大图 tile 化
 - LRU GPU/CPU cache
