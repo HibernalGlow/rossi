@@ -110,7 +110,50 @@ Flutter Windows 走 ANGLE/D3D11 打开这张共享纹理来合成，而 **D3D11 
 `windows` crate 的 COM 接口布局一旦与 `wgpu-hal` 编译时用的那套不一致，
 拿到手的就是一个"布局对不上的结构体指针"——不会编译错，只会在调用时炸。当前两边都是 0.58。
 
-## 4. 黑屏的七种原因，与各自的指纹
+### 3.5 为什么创建是异步的（以及兜底路径要付什么）
+
+`rossi_gpu_present_create` 在 `FlutterWindow::OnCreate` 里被调，而创建 wgpu device +
+渲染管线实测要 **~1 s**。同步做的后果很直接：那 1 s 压在第一帧之前，**直接吃判据 B
+（冷启动 ≤2 s）的预算** —— 而绝大多数启动根本用不到上屏。
+
+所以 `create` 现在只做两件事：记下参数、起一个后台线程。它立刻返回，就绪与否由
+`rossi_gpu_present_status` 回答（`0` 建中 / `1` 就绪 / `2` 失败）。
+
+**状态必须有三态，只有"好了/没好"是不够的。** 前两件事对调用方的含义正好相反：
+
+| 状态 | 调用方的动作 |
+| --- | --- |
+| `loading` | 走 CPU 兜底，**继续等** |
+| `ready` | 挂 `Texture(textureId)`，走 GPU 路 |
+| `failed` | 走 CPU 兜底，**不再等** |
+
+合成一个"还没好"，调用方就只能在"一直等"和"直接报错"之间二选一 —— 而这两件事恰好
+一个该等、一个该放弃。同理，C++ 侧的 `ok` 字段只表示"这条路径**有实现**"
+（DLL 在、符号齐、呈现器对象建出来了），**不等于**"现在能用"；能不能用看 `state`。
+
+**兜底路径不是添头，它是这个方案的另一半。** 就绪前用户看到的必须是内容而不是黑屏，
+所以 Dart 侧在那段时间用 `local_core` 的 FRB 接口（`openLocalSource` /
+`localPagePixels`）+ `ui.decodeImageFromPixels` 显示当前页，轮询到 `ready` 之后再切到
+共享纹理。轮询用 120 ms 一次、不引跨线程回调：等的是**一次性**信号，而少一条
+"后台线程 post 到平台线程"的路径就少一类析构顺序的 bug。
+
+它的代价写清楚，别让它悄悄变成技术债：
+
+- **两条路各开一份来源。** GPU 路走 `gpu_present` crate 自己的 `open`，兜底路走
+  `local_core`。同一个文件被打开两次，切换时要重新 `open` 一遍（归档目录解析只值
+  几毫秒，所以这次重复是可接受的）。**接线进真正的阅读器时页来源应当统一** ——
+  否则翻页要维护两套页索引状态。
+- **兜底比 GPU 路慢一个量级。** 它要过桥一份 RGBA（给了 `targetWidth` 之后是几 MB
+  而不是 170 MB）再让引擎建图。这是"降级"的应有之义，不是实现缺陷。
+- **`destroy` 必须 join 后台线程。** 线程握着就绪槽的一份 `Arc` 克隆，而 `Presenter`
+  的析构函数在**本 DLL 里**；不等它就可能出现"C++ 卸载 DLL → 线程这时才释放
+  `Presenter` → 跳进已卸下的代码页"。线程已结束时 `join` 立刻返回，正常路径没有代价。
+
+还有一条硬约束落到调用方头上：**`ready` 之前不要构建 `Texture(textureId)`**。
+未就绪时引擎来要帧只会拿到空句柄，画面是黑的 —— 而兜底路径存在的意义正是不让人
+看到那个黑屏。C++ 侧的 `SurfaceCallback` 也在未就绪时直接返回 `nullptr` 作为兜底。
+
+## 4. 黑屏的八种原因，与各自的指纹
 
 这一节是这张文档最实用的部分。"黑屏"本身没有信息量，所以调试页第一行永远先报**可区分的原因**：
 
@@ -118,7 +161,8 @@ Flutter Windows 走 ANGLE/D3D11 打开这张共享纹理来合成，而 **D3D11 
 | --- | --- | --- |
 | DLL 没构建/没拷到 exe 旁 | `native ok=false`，`error` 里有"加载 rossi_gpu_present.dll 失败" | `windows/runner/CMakeLists.txt` 的 cargo 命令 |
 | DLL 版本不匹配 | `error` 里有"缺少必要的导出符号" | 两边符号表对不上，重编 |
-| 创建 wgpu 设备失败 | `error` 里有"wgpu 呈现器创建失败" | 显卡/驱动/DXC |
+| 呈现器还在后台创建 | `state=loading`、`handleOpened=0` | **不是故障**：正常中间态，此刻该走兜底路径（§3.5） |
+| 创建 wgpu 设备失败 | `state=failed`，`error` 里是 anyhow 的错误链 | 显卡/驱动/DXC |
 | 没拿到 Flutter 的 LUID | `luidKnown=false` | 跨卡共享有风险，画面可能不出来或极慢 |
 | 纹理没注册 | `tex-1 未注册` | `Register()` 失败 |
 | 通知了但没人来取 | `framesMarked>0` 而 `handleOpened=0` | 纹理没被真正合成（不在树上/尺寸为 0） |
@@ -132,9 +176,10 @@ Flutter Windows 走 ANGLE/D3D11 打开这张共享纹理来合成，而 **D3D11 
 ### 5.1 脱离 Flutter：端到端回读（`present_probe`）
 
 ```bash
-# 散图文件夹 / CBZ / CBR 都行
+# 散图文件夹 / CBZ / CBR 都行。
+# 注意路径是**位置参数**，没有 `--path` 这个选项（写成 --path 会被 clap 拒绝）。
 cargo run -p rossi_gpu_present --features probe --bin present_probe -- \
-  --path <归档或文件夹> --index 0 --width 900 --height 1350
+  <归档或文件夹> --index 0 --width 900 --height 1350
 ```
 
 它把整条 Rust 侧链路跑一遍（解码→上传→letterbox→拷贝→共享纹理），然后把共享纹理
@@ -155,7 +200,14 @@ flutter test integration_test/gpu_present_probe_test.dart -d windows
 ```
 
 样本路径可用 `ROSSI_GPU_PRESENT_SAMPLE` 覆盖；样本缺失时静默跳过。
-它断言 `framesMarked>0` 与 **`handleOpened>0`**——即"引擎真的来取了这一帧"。
+它断言三件事：**`handleOpened>0`**（引擎真的来取了这一帧）、**`state` 从 `loading`
+走到 `ready`**（异步创建成立），以及**兜底路径能解出页**。
+
+> **陷阱**：集成测试的入口是**测试文件自己**，不是 `lib/main.dart`，所以
+> flutter_rust_bridge **从未被初始化**。走到兜底那一段（它用 `local_core` 的 FRB 接口）
+> 会抛 `flutter_rust_bridge has not been initialized` —— 要先 `await initRustLib()`
+> （`lib/util/rust_loader.dart`）。
+> 反过来这也说明 GPU 路径确实不依赖 FRB：它走的是自己的 MethodChannel。
 **必须在真机引擎上跑**：`flutter test`（单元测试）跑的是 `flutter_tester`，
 软件渲染、没有 Windows embedder、连 `TextureRegistrar` 都没有，在那里"通过"什么也证明不了。
 
@@ -163,10 +215,13 @@ flutter test integration_test/gpu_present_probe_test.dart -d windows
 
 调试页可换来源、翻页、看统计。`ROSSI_GPU_PRESENT_SAMPLE` 环境变量可指定默认打开的样本。
 
-## 6. 实测（本轮，2026-09-16）
+## 6. 实测（2026-09-16 / 09-17 两轮）
 
-环境：RTX 4060 Laptop（引擎选的是**独显**；本机还有一块 AMD 780M，但没被用上）。
-顺序是先证 Rust 侧像素对，再证引擎真的来取帧。
+环境：同一台笔记本，同时有 **RTX 4060 Laptop** 与 **AMD Radeon 780M** 两块卡，
+Flutter 用哪块会变（第一轮是独显，第二轮落到核显上）。这个变化本身有价值 ——
+两轮的 `initMs` 差了 2.2 倍，而那个对照直接决定了异步化是不是必需。
+
+顺序：先证 Rust 侧像素对，再证引擎真的来取帧，最后证异步化与兜底路径。
 
 ### 6.1 Rust 侧端到端回读（`present_probe`，不需要 Flutter）
 
@@ -186,6 +241,8 @@ flutter test integration_test/gpu_present_probe_test.dart -d windows
 ```bash
 flutter test integration_test/gpu_present_probe_test.dart -d windows
 ```
+
+**第一轮（09-16，独显）：**
 
 ```
 native ok=true  adapter=NVIDIA GeForce RTX 4060 Laptop GPU  luidKnown=true
@@ -207,21 +264,42 @@ decoded 800x1200   ←   source 1200x1800      （按显示宽度解，不是全
 decodeMs 29.0 / uploadMs 0.4 / submitMs 6.5 / totalMs 36.0
 ```
 
-两点值得单独记下来：
+**第二轮（09-17，异步化之后，核显）：**
 
-- **`adapterMatched: true` 不是理所当然的。** 单独跑 `present_probe` 时挑中的是本机的
-  **AMD 780M**，而在 App 里必须是 Flutter 正在用的那块卡（这里是 RTX 4060）。两边 LUID 对上，
-  共享才谈得上成立 —— 这也是 §3.4 那条硬约束的存在理由。
-- **`initMs ≈ 982 ms` 是启动期成本。** 创建 wgpu device + 管线目前发生在
-  `flutter_window.cpp::OnCreate` 里，**因此压在第一帧之前**。判据 B（冷启动 ≤2 s）要把它算进去 ——
-  见 §7 第一条。
+```
+native ok=true  state=loading  adapter=AMD Radeon 780M Graphics  luidKnown=true
+启动后首次 status = loading            ← create 没阻塞启动
+等呈现器就绪：2003 ms → ready
+textureId = 489352400   pageCount = 3
+framesMarked=1  handleOpened=1  resizes=1  size=800x600
+兜底路径：800x1200  rgba=3840000 字节（targetWidth 已生效）
+All tests passed
+```
+
+三点值得单独记下来：
+
+- **`adapterMatched: true` 不是理所当然的，而且用哪块卡会变。** 第一轮 App 里用的是
+  **RTX 4060**（单独跑 `present_probe` 挑中的反而是本机的 AMD 780M）；第二轮 App 自己
+  也落到 780M 上了。两边 LUID 每次都对上，共享才谈得上成立 —— 这既是 §3.4 那条硬约束的
+  存在理由，也说明**不能假设"用户机器上跑的就是那块独显"**。
+- **那 ~1 s 的瓶颈在 device，不在管线 —— 与直觉相反。** 两轮分段读数：RTX 4060 上
+  `982 ms`（当时还没分段），AMD 780M 上 `2176 ms = device 2171 + 管线 5 + 其余 0`。
+  也就是说 **WGSL → DXIL 的编译几乎不花时间**，成本全在 instance 创建 / adapter 枚举 /
+  `request_device` 那一段。要再优化就得往那里下手，**别去折腾着色器预编译**。
+- **异步化不是"优化"，它是判据 B 的必要条件。** 核显上这 2.2 s **本身就超过判据 B 的
+  全部预算（2 s）**：同步做的话，核显机器冷启动直接不过线 —— 而核显笔记本恰恰是装机量
+  最大的一类。现在这 2003 ms 发生在后台，与首帧并行。
 
 ## 7. 还没做的
 
-- **启动期那 ~1 s 要挪走。** `initMs ≈ 982 ms`（wgpu device + 管线）现在压在第一帧之前，
-  直接吃判据 B 的预算。做法是让呈现器**首次使用时才创建**（第一次 `init` 或第一次
-  `SurfaceCallback`），或至少挪到首帧之后。但要注意：一旦 GPU 上屏成为阅读器的**主路径**，
-  这笔成本还是会在启动期出现 —— 那时要的是"后台创建 + 就绪前走兜底路径"，而不是简单挪位置。
+- ~~启动期那 ~1 s 要挪走~~ → **已做，见 §3.5**：呈现器改在后台线程建，就绪前走 CPU
+  兜底、就绪后切到共享纹理。遗留下来的是**页来源没统一** —— 兜底与 GPU 路各开一份，
+  这在调试页里可以接受，接线进真正的阅读器时必须收敛成一份。
+- **`initMs` 的 3 段已经分开，但都还是 Debug 下的读数。** 已有结论的那一半是可靠的：
+  **瓶颈在 device 段、管线可以不管** —— 管线那 5 ms 在两种配置下都不会变成主角
+  （见 §6.2）。缺的是 device 那 2.2 s 的**内部构成**：instance 创建 / adapter 枚举 /
+  `request_device` 各占多少，要拆它得再加计时点。那一段随 adapter 变（982 / 2171 ms
+  差 2.2 倍），所以最可能是核显驱动的初始化开销。
 - **判据 C 还没量。** 本轮只证明"链路真通"，帧时间分布（p95/p99、无 >100 ms 单帧）要在
   **Release** 下用真实漫画量，见 `docs/v0.1_acceptance.md`。
 - **Release 配置下的打包未复验。** 本轮验证走的是 Debug 配置（集成测试的默认）。CMake 的
