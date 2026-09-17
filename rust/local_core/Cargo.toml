@@ -16,6 +16,8 @@ image = { version = "0.25.10", default-features = false, features = [
     "gif",
     "tiff",
 ] }
+zune-jpeg = "0.5"
+zune-core = "0.5"
 # 与 windcore 同版本（8.2.0），避免 Cargo 同时编译 zip 8 与 zip 2（见 v0.1_acceptance §4.4）。
 zip = { version = "8.2.0", default-features = false, features = [
     "deflate",

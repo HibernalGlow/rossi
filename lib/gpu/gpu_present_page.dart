@@ -40,7 +40,7 @@ class GpuPresentPage extends StatefulWidget {
 class _GpuPresentPageState extends State<GpuPresentPage> {
   final TextEditingController _pathController = TextEditingController(
     text: Platform.environment['ROSSI_GPU_PRESENT_SAMPLE'] ??
-        r'D:\1Dev\tmp\rossi-probe\probe.cbz',
+        (Platform.isWindows ? r'D:\1Dev\tmp\rossi-probe\probe.cbz' : ''),
   );
   final GpuPresentController _presenter = GpuPresentController();
 
@@ -134,9 +134,18 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
         final int framesBefore = run.frameCount;
         final int seqBefore = _presenter.presentCount;
         _show(page);
-        await Future<void>.delayed(
-          Duration(milliseconds: PageTurnProbe.dwellMs),
-        );
+        // 显式等待呈现完成（计数递增），上限 3000 ms；
+        // 随后补足 dwellMs，确保满足采样窗口要求，同时避免冷页耗时抖动造成下一轮假早退。
+        final Stopwatch turnTimer = Stopwatch()..start();
+        while (_presenter.presentCount == seqBefore &&
+            turnTimer.elapsedMilliseconds < 3000) {
+          await Future<void>.delayed(const Duration(milliseconds: 16));
+        }
+        final int remainingDwell =
+            PageTurnProbe.dwellMs - turnTimer.elapsedMilliseconds;
+        if (remainingDwell > 0) {
+          await Future<void>.delayed(Duration(milliseconds: remainingDwell));
+        }
         await _presenter.refreshStats();
         // 只有"这一轮真的交出去过页"才算它的往返：**页号会重复**，所以判据是计数变大，
         // 不是页号对得上 —— 后者会把上一轮的残值记成这一轮的延迟。
@@ -266,7 +275,7 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('GPU 上屏（D3D12 共享纹理）'),
+        title: Text(Platform.isWindows ? 'GPU 上屏（D3D12 共享纹理）' : 'GPU 上屏（Metal / UMA 零拷贝）'),
         actions: <Widget>[
           IconButton(
             tooltip: '刷新统计',

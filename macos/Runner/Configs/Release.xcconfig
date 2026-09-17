@@ -1,2 +1,6 @@
 #include "../../Flutter/Flutter-Release.xcconfig"
 #include "Warnings.xcconfig"
+
+ARCHS = arm64
+ONLY_ACTIVE_ARCH = YES
+

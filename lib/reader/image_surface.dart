@@ -411,8 +411,9 @@ class _ImageSurfaceState extends State<ImageSurface> {
       return failure;
     }
     if (!GpuPresentController.isPlatformSupported) {
-      return '当前平台没有 GPU 上屏这条路。\n\nD3D12 共享纹理是 Windows 专属；\n'
-          'macOS / Linux / 移动端走各自的上屏路径（尚未实现）。';
+      return '当前平台没有 GPU 上屏这条路。\n\n'
+          'GPU 上屏目前支持 Windows (D3D12 共享纹理) 与 macOS (Metal / CVPixelBuffer 硬件零拷贝)；\n'
+          'Linux / 移动端走各自的上屏路径（尚未实现）。';
     }
     final String? mismatch = widget.presenter.mismatchFor(widget.source);
     if (mismatch != null) {

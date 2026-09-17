@@ -135,8 +135,8 @@ class GpuPresentBridge {
   /// 与 `windows/runner/gpu_present_bridge.cpp` 里的 channel 名一致。
   static const MethodChannel channel = MethodChannel('rossi/gpu_present');
 
-  /// 这个平台有没有这条路径的**实现**。
-  static bool get isPlatformSupported => Platform.isWindows;
+  /// 这个平台有没有这条路径的**实现**（Windows / macOS 均支持 GPU 外部纹理硬件上屏）。
+  static bool get isPlatformSupported => Platform.isWindows || Platform.isMacOS;
 
   /// 让 native 侧按 [width] / [height]（**物理像素**）确保呈现目标存在。
   ///

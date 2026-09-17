@@ -160,7 +160,7 @@ class GpuPresentController extends ChangeNotifier {
     if (!GpuPresentBridge.isPlatformSupported) {
       _mutate(() {
         _state = GpuPresentState.unsupported;
-        _error = '当前平台没有 D3D12 共享纹理这条路';
+        _error = '当前平台未支持 GPU 共享纹理呈现';
       });
       return;
     }

@@ -23,6 +23,7 @@ rossi_local_core = { path = "../local_core", default-features = false, features 
 # `--features probe` 会因为"启用了本目标不存在的 optional 依赖"直接报错。
 # clap 到处都能编，没有理由让它跟着平台走。
 clap = { version = "4", features = ["derive"], optional = true }
+fast_image_resize = { version = "5", features = ["image"] }
 
 # ── 以下依赖全部只在 Windows 上需要 ──
 # 本 crate 是 rust/ workspace 的成员，在 macOS / Linux / Android 上也要能编过；

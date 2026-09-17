@@ -1405,6 +1405,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "fast_image_resize"
+version = "5.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fbc7fe45cf92b43817ff62a3723e862b85bd1d06288f63007f7645d1d2f7a060"
+dependencies = [
+ "bytemuck",
+ "cfg-if",
+ "document-features",
+ "image",
+ "num-traits",
+ "thiserror 2.0.20",
+]
+
+[[package]]
 name = "fastrand"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2850,6 +2864,8 @@ dependencies = [
 [[package]]
 name = "jpegxl-src"
 version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06f56a51e36f688517deebb0b7c10a11c598476936838938495c93764696180a"
 dependencies = [
  "cmake",
 ]
@@ -4290,6 +4306,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "fast_image_resize",
  "pollster",
  "rossi_local_core",
  "wgpu",
@@ -4311,6 +4328,8 @@ dependencies = [
  "tempfile",
  "unrar",
  "zip",
+ "zune-core",
+ "zune-jpeg",
 ]
 
 [[package]]

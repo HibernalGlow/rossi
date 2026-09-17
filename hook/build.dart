@@ -58,6 +58,12 @@ Map<String, String> _hostEnvironmentVariables() {
       env[key] = value;
     }
   }
+  if (Platform.isMacOS && !env.containsKey('PKG_CONFIG_PATH')) {
+    const brewPkgConfig = '/opt/homebrew/lib/pkgconfig';
+    if (Directory(brewPkgConfig).existsSync()) {
+      env['PKG_CONFIG_PATH'] = brewPkgConfig;
+    }
+  }
   // 打点：这个构建前置在 CI 上最容易缺，出问题时要能一眼看出它当时是什么。
   stderr.writeln(
     '[rossi-hook] 构建前置 -> cargo: '

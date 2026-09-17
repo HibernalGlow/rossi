@@ -6,7 +6,7 @@
 
 use std::fmt;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{anyhow, bail, Context, Result};
 use image::DynamicImage;
 
 /// 核心没有这个格式的解码器，但**外壳（Flutter / Skia）有**。
@@ -149,7 +149,42 @@ fn fit_width(width: u32, height: u32, target_width: Option<u32>) -> (u32, u32) {
 ///
 /// 滤波器选 box 平均（`thumbnail` 家族）而不是 `FilterType::Triangle`：
 /// release 实测同一档位 76.6 vs 180.0 ms，3× 以上降采样倍数下两者肉眼无差。
+pub fn is_jpeg(bytes: &[u8]) -> bool {
+    bytes.len() >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF
+}
+
+fn try_decode_jpeg_rgba(bytes: &[u8]) -> Result<PagePixels> {
+    use std::io::Cursor;
+    use zune_core::colorspace::ColorSpace;
+    use zune_core::options::DecoderOptions;
+    use zune_jpeg::JpegDecoder;
+
+    let options = DecoderOptions::default().jpeg_set_out_colorspace(ColorSpace::RGBA);
+    let mut decoder = JpegDecoder::new_with_options(Cursor::new(bytes), options);
+    let rgba = decoder
+        .decode()
+        .map_err(|e| anyhow!("zune-jpeg 解码失败: {e:?}"))?;
+    let (width, height) = decoder
+        .dimensions()
+        .ok_or_else(|| anyhow!("无法获取 JPEG 尺寸信息"))?;
+    Ok(PagePixels {
+        width: width as u32,
+        height: height as u32,
+        source_width: width as u32,
+        source_height: height as u32,
+        rgba,
+    })
+}
+
 pub fn decode_rgba_scaled(bytes: &[u8], target_width: Option<u32>) -> Result<PagePixels> {
+    // 快速直通：全尺寸原图原解时若为 JPEG，直接通过 zune-jpeg 解出 RGBA，
+    // 避免 DynamicImage RGB -> to_rgba8 的二次堆内存分配和逐像素复制
+    if target_width.is_none() && is_jpeg(bytes) {
+        if let Ok(pixels) = try_decode_jpeg_rgba(bytes) {
+            return Ok(pixels);
+        }
+    }
+
     let image = decode(bytes)?;
     let (source_width, source_height) = (image.width(), image.height());
     let (target_w, target_h) = fit_width(source_width, source_height, target_width);

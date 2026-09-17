@@ -180,13 +180,12 @@ class GpuPresentBridge {
   void WorkerLoop();
   // 做 `show` 的重活：持 `mutex_` 调 Rust，成功后通知引擎来取帧。不碰 `MethodResult`。
   ShowOutcome PerformShow(uint32_t index);
-  // 在**调用者线程**上把结果交给 Dart。**只有平台线程可以调。**
+  // 把结果交给 Dart。
   //
-  // 收裸指针而不是 `unique_ptr`：要把应答投到平台线程上得用
-  // `FlutterEngine::PostPlatformThreadTask`，而它的参数是 `std::function<void()>` ——
-  // `std::function` 要求可调用对象**可拷贝**，所以搬不进去一个移动语义的
-  // `unique_ptr`（这正是第一次编译报的那条 `C2338`）。所有权因此交给
-  // `shared_ptr` 持有，投递时复制的是那个 `shared_ptr`。
+  // Flutter 官方 C++ wrapper 的 `EngineMethodResult` 底层 `BinaryReply` 回调自带
+  // `FlutterDesktopMessengerLock` 保护，头文件与源码注释明确写明
+  // "This lambda can be called on any thread"。因此工作线程完成渲染后可直接在此
+  // 回复 Dart，无需经过 `PostPlatformThreadTask`，避免任务排队被 cancel 吞失。
   static void ResolveShow(const ShowOutcome& outcome,
                           flutter::MethodResult<flutter::EncodableValue>* result);
   // 告诉引擎"这一帧有新像素了"。**必须在释放 `mutex_` 之后调**（引擎可能同步回调

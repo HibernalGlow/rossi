@@ -162,5 +162,5 @@ opt-level = 3
 # `jxl-probe-libjxl`（探针对照量 JXL 用，GPL）时进入依赖图；不开此 feature 的机器
 # 不受影响。若要在别的机器复现：拷 registry 里的 jpegxl-src-0.12.0、删 lib.rs:93 一行即可。
 [patch.crates-io]
-jpegxl-src = { path = "D:/1Dev/vendor/jpegxl-src-0.12.0/jpegxl-src-0.12.0" }
+# jpegxl-src = { path = "D:/1Dev/vendor/jpegxl-src-0.12.0/jpegxl-src-0.12.0" }
 rquickjs-sys = { git = "https://github.com/deretame/rquickjs.git", branch = "fix/android-windows-bindgen" }

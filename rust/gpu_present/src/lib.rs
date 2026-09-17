@@ -470,3 +470,281 @@ mod platform {
 
 #[cfg(target_os = "windows")]
 pub use platform::*;
+
+// ───────────────────────── macOS 实现 ─────────────────────────
+
+#[cfg(target_os = "macos")]
+mod mac_presenter;
+
+#[cfg(target_os = "macos")]
+pub use mac_presenter::MacPresenter;
+
+#[cfg(target_os = "macos")]
+mod mac_platform {
+    use std::ffi::c_void;
+    use std::panic::{catch_unwind, AssertUnwindSafe};
+    use std::path::Path;
+    use std::sync::{Arc, Mutex, MutexGuard};
+    use std::thread::JoinHandle;
+
+    use super::mac_presenter::MacPresenter;
+
+    pub const STATE_LOADING: i32 = 0;
+    pub const STATE_READY: i32 = 1;
+    pub const STATE_FAILED: i32 = 2;
+
+    enum Slot {
+        Loading,
+        Ready(Box<MacPresenter>),
+        Failed(String),
+    }
+
+    pub struct GpuPresenter {
+        slot: Arc<Mutex<Slot>>,
+        worker: Mutex<Option<JoinHandle<()>>>,
+    }
+
+    fn lock_slot(slot: &Mutex<Slot>) -> MutexGuard<'_, Slot> {
+        slot.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn write_err(buf: *mut u8, len: usize, message: &str) {
+        if buf.is_null() || len == 0 {
+            return;
+        }
+        let bytes = message.as_bytes();
+        let copy_len = bytes.len().min(len - 1);
+        unsafe {
+            std::ptr::copy_nonoverlapping(bytes.as_ptr(), buf, copy_len);
+            *buf.add(copy_len) = 0;
+        }
+    }
+
+    unsafe fn borrow<'a>(ptr: *mut c_void) -> Option<&'a GpuPresenter> {
+        if ptr.is_null() {
+            None
+        } else {
+            Some(&*(ptr as *const GpuPresenter))
+        }
+    }
+
+    #[no_mangle]
+    pub extern "C" fn rossi_gpu_present_create(
+        width: u32,
+        height: u32,
+        _err_buf: *mut u8,
+        _err_len: usize,
+    ) -> *mut c_void {
+        let slot = Arc::new(Mutex::new(Slot::Loading));
+        let slot_clone = slot.clone();
+
+        let worker = std::thread::Builder::new()
+            .name("rossi-gpu-present-mac-init".to_string())
+            .spawn(move || {
+                let res = catch_unwind(AssertUnwindSafe(|| {
+                    MacPresenter::new(width, height)
+                }));
+                let mut guard = lock_slot(&slot_clone);
+                match res {
+                    Ok(Ok(p)) => *guard = Slot::Ready(Box::new(p)),
+                    Ok(Err(e)) => *guard = Slot::Failed(format!("MacPresenter 初始化失败: {e:#}")),
+                    Err(_) => *guard = Slot::Failed("MacPresenter 初始化 panic".to_string()),
+                }
+            })
+            .expect("起不了 macOS 呈现器构建线程");
+
+        let holder = Box::new(GpuPresenter {
+            slot,
+            worker: Mutex::new(Some(worker)),
+        });
+        Box::into_raw(holder) as *mut c_void
+    }
+
+    #[no_mangle]
+    pub extern "C" fn rossi_gpu_present_status(
+        presenter: *mut c_void,
+        err_buf: *mut u8,
+        err_len: usize,
+    ) -> i32 {
+        let Some(holder) = (unsafe { borrow(presenter) }) else {
+            write_err(err_buf, err_len, "presenter 指针为空");
+            return STATE_FAILED;
+        };
+        let guard = lock_slot(&holder.slot);
+        match &*guard {
+            Slot::Loading => STATE_LOADING,
+            Slot::Ready(_) => STATE_READY,
+            Slot::Failed(msg) => {
+                write_err(err_buf, err_len, msg);
+                STATE_FAILED
+            }
+        }
+    }
+
+    #[no_mangle]
+    pub extern "C" fn rossi_gpu_present_open(
+        presenter: *mut c_void,
+        path_utf8: *const u8,
+        path_len: usize,
+        err_buf: *mut u8,
+        err_len: usize,
+    ) -> i32 {
+        let Some(holder) = (unsafe { borrow(presenter) }) else {
+            write_err(err_buf, err_len, "presenter 指针为空");
+            return -1;
+        };
+        if path_utf8.is_null() || path_len == 0 {
+            write_err(err_buf, err_len, "path 为空");
+            return -1;
+        }
+        let path_str = match std::str::from_utf8(unsafe { std::slice::from_raw_parts(path_utf8, path_len) }) {
+            Ok(s) => s,
+            Err(e) => {
+                write_err(err_buf, err_len, &format!("path 不是合法的 UTF-8: {e}"));
+                return -1;
+            }
+        };
+
+        let mut guard = lock_slot(&holder.slot);
+        let Slot::Ready(inner) = &mut *guard else {
+            write_err(err_buf, err_len, "呈现器尚未就绪");
+            return -1;
+        };
+
+        match inner.open(Path::new(path_str)) {
+            Ok(count) => count as i32,
+            Err(e) => {
+                write_err(err_buf, err_len, &format!("{e:#}"));
+                -1
+            }
+        }
+    }
+
+    #[no_mangle]
+    pub extern "C" fn rossi_gpu_present_show_into_buffer(
+        presenter: *mut c_void,
+        index: u32,
+        dst_ptr: *mut u8,
+        dst_stride: usize,
+        target_width: u32,
+        target_height: u32,
+        err_buf: *mut u8,
+        err_len: usize,
+    ) -> i32 {
+        let Some(holder) = (unsafe { borrow(presenter) }) else {
+            write_err(err_buf, err_len, "presenter 指针为空");
+            return -1;
+        };
+        let mut guard = lock_slot(&holder.slot);
+        let Slot::Ready(inner) = &mut *guard else {
+            write_err(err_buf, err_len, "呈现器尚未就绪");
+            return -1;
+        };
+
+        match inner.show_into_buffer(index as usize, dst_ptr, dst_stride, target_width, target_height) {
+            Ok(()) => 0,
+            Err(e) => {
+                write_err(err_buf, err_len, &format!("{e:#}"));
+                -1
+            }
+        }
+    }
+
+    #[no_mangle]
+    pub extern "C" fn rossi_gpu_present_resize(
+        presenter: *mut c_void,
+        width: u32,
+        height: u32,
+        err_buf: *mut u8,
+        err_len: usize,
+    ) -> i32 {
+        let Some(holder) = (unsafe { borrow(presenter) }) else {
+            write_err(err_buf, err_len, "presenter 指针为空");
+            return -1;
+        };
+        let mut guard = lock_slot(&holder.slot);
+        let Slot::Ready(inner) = &mut *guard else {
+            write_err(err_buf, err_len, "呈现器尚未就绪");
+            return -1;
+        };
+        match inner.resize(width, height) {
+            Ok(()) => 0,
+            Err(e) => {
+                write_err(err_buf, err_len, &format!("{e:#}"));
+                -1
+            }
+        }
+    }
+
+    #[no_mangle]
+    pub extern "C" fn rossi_gpu_present_set_prefetch(
+        presenter: *mut c_void,
+        enabled: i32,
+    ) -> i32 {
+        let Some(holder) = (unsafe { borrow(presenter) }) else {
+            return -1;
+        };
+        let guard = lock_slot(&holder.slot);
+        if let Slot::Ready(inner) = &*guard {
+            inner.set_prefetch(enabled != 0);
+            0
+        } else {
+            -1
+        }
+    }
+
+    #[no_mangle]
+    pub extern "C" fn rossi_gpu_present_generation(presenter: *mut c_void) -> u64 {
+        let Some(holder) = (unsafe { borrow(presenter) }) else {
+            return 0;
+        };
+        let guard = lock_slot(&holder.slot);
+        if let Slot::Ready(inner) = &*guard {
+            inner.generation()
+        } else {
+            0
+        }
+    }
+
+    #[no_mangle]
+    pub extern "C" fn rossi_gpu_present_stats(
+        presenter: *mut c_void,
+        buf: *mut u8,
+        len: usize,
+    ) -> i32 {
+        let Some(holder) = (unsafe { borrow(presenter) }) else {
+            return -1;
+        };
+        if buf.is_null() || len == 0 {
+            return -1;
+        }
+        let guard = lock_slot(&holder.slot);
+        let json = match &*guard {
+            Slot::Ready(inner) => inner.stats_json(),
+            Slot::Loading => "{\"state\":\"loading\"}".to_string(),
+            Slot::Failed(msg) => format!("{{\"state\":\"failed\",\"error\":\"{}\"}}", msg.replace('"', "\\\"")),
+        };
+        let bytes = json.as_bytes();
+        let count = bytes.len().min(len - 1);
+        unsafe {
+            std::ptr::copy_nonoverlapping(bytes.as_ptr(), buf, count);
+            *buf.add(count) = 0;
+        }
+        count as i32
+    }
+
+    #[no_mangle]
+    pub extern "C" fn rossi_gpu_present_destroy(presenter: *mut c_void) {
+        if presenter.is_null() {
+            return;
+        }
+        let holder = unsafe { Box::from_raw(presenter as *mut GpuPresenter) };
+        let worker_handle = holder.worker.lock().ok().and_then(|mut w| w.take());
+        if let Some(h) = worker_handle {
+            let _ = h.join();
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub use mac_platform::*;

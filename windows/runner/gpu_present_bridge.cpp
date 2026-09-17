@@ -546,9 +546,9 @@ void GpuPresentBridge::Trace(const char* fmt, ...) {
 // ─────────────────────────────────────────────────────────────────────────────
 // `show`：重活、应答、工作线程
 //
-// 三件事刻意分成三个函数，因为它们的**线程约束各不相同**：
-// `PerformShow` 可以在任何线程（自己拿 `mutex_`）、`ResolveShow` 只能在平台线程、
-// `WorkerLoop` 是那条把前者搬到后者上去的线。
+// 三件事刻意分成三个函数：
+// `PerformShow` 跑重活（自己拿 `mutex_`）、`ResolveShow` 应答（跨线程安全）、
+// `WorkerLoop` 调度二者并维护 `show_in_flight_` 单槽。
 // ─────────────────────────────────────────────────────────────────────────────
 
 GpuPresentBridge::ShowOutcome GpuPresentBridge::PerformShow(uint32_t index) {
@@ -663,37 +663,13 @@ void GpuPresentBridge::WorkerLoop() {
     const ShowOutcome outcome = PerformShow(index);
     Trace("worker-perform-done idx=%u ok=%d", index, outcome.ok ? 1 : 0);
 
-    // 先把应答投出去、**再**放行下一份：否则新的一份可能抢先把应答送到平台线程，
-    // 让 Dart 看到两页的先后颠倒。
-    //
-    // 所有权交给 `shared_ptr` 才能塞进 `std::function`（它要求可拷贝，见
-    // `ResolveShow` 的说明）。这个 lambda **只捕获 outcome 与那一份 `shared_ptr`、
-    // 不捕获 `this`** —— 它可能在本对象析构之后才轮到执行（桥在 `OnDestroy` 里就
-    // 没了，而平台任务队列还可能有货），那时再碰成员就是悬垂；`ResolveShow` 是静态的，
-    // 所以不需要 `this`。
-    flutter::FlutterEngine* engine = engine_;  // 构造后只读，读它不用拿锁
-    if (engine != nullptr) {
-      std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>> owned(
-          std::move(result));
-      // 跟踪路径也拷一份进来：这个 lambda 可能在桥析构之后才轮到执行，
-      // 那时捕获 `this` 去读成员就是悬垂。
-      const std::string trace_path = trace_path_;
-      Trace("worker-post idx=%u", index);
-      // 冒烟：先证"从工作线程投回平台线程"这条路本身通不通。它跑在真正的应答之前，
-      // 所以两者一前一后地出现/缺失，能把故障定到"投递机制"还是"我们的应答代码"。
-      engine->PostPlatformThreadTask(
-          [trace_path]() { TraceTo(trace_path, "smoke-from-worker"); });
-      engine->PostPlatformThreadTask([outcome, owned, trace_path]() {
-        TraceTo(trace_path, "resolve-enter");
-        ResolveShow(outcome, owned.get());
-        TraceTo(trace_path, "resolve-done");
-      });
-      Trace("worker-posted idx=%u", index);
-    } else {
-      // 引擎没了就别往平台任务队列里投，但这一份也不能一丢了之 ——
-      // 没应答的 future 会一直悬着。退化成"就地应答"。
-      ResolveShow(outcome, result.get());
-    }
+    // 引擎底层 BinaryReply 回调自带 FlutterDesktopMessengerLock 保护，源码与注释明确注明：
+    // "Note: This lambda can be called on any thread."
+    // 直接在工作线程上应答：不经过 Windows 消息泵/平台任务队列，彻底杜绝丢任务导致的 Future 挂死。
+    // 先应答、再清理 show_in_flight_，严格保证先后顺序。
+    Trace("worker-resolve-enter idx=%u", index);
+    ResolveShow(outcome, result.get());
+    Trace("worker-resolve-done idx=%u", index);
 
     {
       std::lock_guard<std::mutex> guard(work_mutex_);
