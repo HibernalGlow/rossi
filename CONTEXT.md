@@ -138,6 +138,14 @@ Rust/wgpu 渲染出的纹理被复制到 Flutter 可合成的 native texture 的
 实测成本：4K 单页 0.348 ms、4K 双页 0.70 ms、8K 双页 1.38 ms。
 _Avoid_: zero-copy、upload（后者专指 CPU→GPU）
 
+**ImageSurface**:
+一页的**显示节点**：拿一个页面来源与页下标，按当前可用的后端把这一页画出来
+（GPU 共享纹理 / CPU 兜底位图）。它拥有与后端一致的**呈现状态** —— 纹理句柄、目标尺寸、
+那边打开的哪一份来源 —— 所以「拖窗口之后画面还在不在」「页码和画面对不对得上」
+这类问题只在这一处有答案。它**不**拥有页面来源的生命周期，也**不**决定页码。
+_See_: `docs/texture-bridge-integration.md` §2.3、§3.6
+_Avoid_: 上屏组件、渲染器（那是 Rust 侧的 wgpu 呈现器）、Renderer（会与 SR backend 混）
+
 **SR backend**:
 真正执行超分的实现，例如 CoreML、ncnn、ONNX。
 平台矩阵：**Windows 用 mImageViewer 的 ONNX（`ort`）核心**；其余平台**暂时**沿用 Breeze 现有后端
