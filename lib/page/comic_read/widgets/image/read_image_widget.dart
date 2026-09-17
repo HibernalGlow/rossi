@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_read/comic_read.dart';
+import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/config/router/router.gr.dart';
@@ -60,21 +61,31 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
       final source = session.currentSource;
       final presenter = session.getOrCreatePresenter();
 
-      return SizedBox(
-        width: context.screenWidth,
-        child: Container(
-          color: backgroundColor,
-          child: source != null && GpuPresentController.isPlatformSupported
-              ? ImageSurface(
-                  source: source,
-                  index: localIndex,
-                  presenter: presenter,
-                )
-              : placeholder(
-                  backgroundColor: backgroundColor,
-                  foregroundColor: foregroundColor,
-                ),
-        ),
+      // ── 独占 Owner 机制（对齐 mimageviewer NavigationSequence）──
+      // GPU 外部纹理同一时刻只能对应一张画面。PageView 翻页滑动时，
+      // 上一页与下一页会同时挂载。如果它们都向唯一的 presenter 发 present，
+      // 就会在单个 CVPixelBuffer 上交替覆写（Ping-Pong 拔河），表现为
+      // 红黄色块闪烁。解决方案：只有 currentSlot 对应的激活页挂载
+      // ImageSurface 驱动 GPU 呈现，邻近预加载 Slot 展示静态占位。
+      final int currentSlot = context.select(
+        (ReaderCubit c) => c.state.currentSlot,
+      );
+      final bool isActiveSlot = widget.index == currentSlot;
+
+      // 不再写死 context.screenWidth，继承父容器传入的约束（contentWidth），
+      // 消除 RenderFlex overflowed 导致的红黄条纹色块。
+      return Container(
+        color: backgroundColor,
+        child: isActiveSlot && source != null && GpuPresentController.isPlatformSupported
+            ? ImageSurface(
+                source: source,
+                index: localIndex,
+                presenter: presenter,
+              )
+            : placeholder(
+                backgroundColor: backgroundColor,
+                foregroundColor: foregroundColor,
+              ),
       );
     }
 

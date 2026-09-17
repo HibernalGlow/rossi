@@ -468,10 +468,41 @@ impl WgpuResampler {
             let padded_stride = target.padded_bytes_per_row as usize;
 
             unsafe {
+                // 深黑底色 0xFF05050A (BGRA little-endian: B=0x0A G=0x05 R=0x05 A=0xFF)
+                // 的单像素 4 字节表示，用于安全填充行尾 Padding。
+                const BG_PIXEL: [u8; 4] = [0x0A, 0x05, 0x05, 0xFF];
+
                 for y in 0..target_h as usize {
                     let src_row = &mapped[y * padded_stride..y * padded_stride + row_bytes];
                     let dst_row = dst_ptr.add(y * dst_stride);
                     std::ptr::copy_nonoverlapping(src_row.as_ptr(), dst_row, row_bytes);
+
+                    // ── 行跨步 Padding 安全填充（对齐 mimageviewer Stride Safety）──
+                    // macOS CVPixelBuffer 常要求 64 字节行对齐，dst_stride > row_bytes
+                    // 时行尾会有未写入的 Padding。Metal 双线性采样器在边缘可能渗入
+                    // 这些未初始化的脏显存，表现为红黄绿假彩色块。逐像素填充深黑底色。
+                    if dst_stride > row_bytes {
+                        let pad_start = dst_row.add(row_bytes);
+                        let pad_len = dst_stride - row_bytes;
+                        // 按 4 字节（单像素）填充
+                        let full_pixels = pad_len / 4;
+                        for p in 0..full_pixels {
+                            std::ptr::copy_nonoverlapping(
+                                BG_PIXEL.as_ptr(),
+                                pad_start.add(p * 4),
+                                4,
+                            );
+                        }
+                        // 不足一个完整像素的尾部字节也填充
+                        let remainder = pad_len % 4;
+                        if remainder > 0 {
+                            std::ptr::copy_nonoverlapping(
+                                BG_PIXEL.as_ptr(),
+                                pad_start.add(full_pixels * 4),
+                                remainder,
+                            );
+                        }
+                    }
                 }
             }
         }

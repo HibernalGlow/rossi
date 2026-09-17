@@ -362,6 +362,21 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
             let baseAddress = CVPixelBufferGetBaseAddress(buffer)?.assumingMemoryBound(to: UInt8.self)
             let bytesPerRow = CVPixelBufferGetBytesPerRow(buffer)
 
+            // ── 安全零填充（对齐 mimageviewer VRAM Clear 策略）──
+            // CVPixelBufferPool 复用的内存可能包含上一帧的脏数据。
+            // 在 Rust 侧写入之前，先用深黑底色 0xFF05050A (BGRA) 填满整块缓冲区，
+            // 防止行跨步 Padding 区域或解码未覆盖区域暴露红黄绿等假彩色块。
+            if let base = baseAddress {
+                // BGRA 格式：B=0x0A, G=0x05, R=0x05, A=0xFF
+                let totalBytes = bytesPerRow * height
+                // 按 4 字节（单像素）填充 BGRA 深黑底色
+                let pixelPtr = UnsafeMutableRawPointer(base).bindMemory(to: UInt32.self, capacity: totalBytes / 4)
+                let bgra: UInt32 = 0xFF05050A  // BGRA little-endian: B=0x0A G=0x05 R=0x05 A=0xFF
+                for i in 0..<(totalBytes / 4) {
+                    pixelPtr[i] = bgra
+                }
+            }
+
             var err = [UInt8](repeating: 0, count: 1024)
             let rc = showInto(pres, index, baseAddress, bytesPerRow, UInt32(width), UInt32(height), &err, err.count)
             CVPixelBufferUnlockBaseAddress(buffer, [])
