@@ -90,6 +90,9 @@ class GpuPresentBridge {
   using ShowFn = int32_t (*)(void* presenter, uint32_t index, uint8_t* err_buf,
                              size_t err_len);
   using StatsFn = int32_t (*)(void* presenter, uint8_t* buf, size_t len);
+  // 开关后台预取。**可选符号**：它在 `LoadSymbols` 的存在性检查之外 ——
+  // 少了它只是没有运行时开关（预取仍按默认开跑），不该因此把整条 GPU 路判死。
+  using SetPrefetchFn = int32_t (*)(void* presenter, int32_t enabled);
   // 查后台创建进度。它是唯一一个"不要求呈现器已就绪"的入口 —— 正相反，
   // 它存在的全部意义就是回答"就绪了没有"，所以在未就绪时它必须能调。
   using StatusFn = int32_t (*)(void* presenter, uint8_t* err_buf, size_t err_len);
@@ -134,6 +137,7 @@ class GpuPresentBridge {
   ShowFn show_ = nullptr;
   StatsFn stats_ = nullptr;
   StatusFn status_ = nullptr;
+  SetPrefetchFn set_prefetch_ = nullptr;
 
   int64_t texture_id_ = -1;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> channel_;

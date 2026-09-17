@@ -218,6 +218,10 @@ bool GpuPresentBridge::LoadSymbols() {
   show_ = reinterpret_cast<ShowFn>(::GetProcAddress(library_, "rossi_gpu_present_show"));
   stats_ = reinterpret_cast<StatsFn>(::GetProcAddress(library_, "rossi_gpu_present_stats"));
   status_ = reinterpret_cast<StatusFn>(::GetProcAddress(library_, "rossi_gpu_present_status"));
+  // 故意**不在**下面的必需符号检查里：缺它只意味着没有运行时开关，
+  // 预取照样按默认开关跑。为一个可选控制把整条 GPU 路判死是不划算的。
+  set_prefetch_ =
+      reinterpret_cast<SetPrefetchFn>(::GetProcAddress(library_, "rossi_gpu_present_set_prefetch"));
 #pragma warning(pop)
 
   if (create_ == nullptr || destroy_ == nullptr || handle_ == nullptr ||
@@ -620,6 +624,31 @@ void GpuPresentBridge::HandleMethodCall(
       frames_marked_++;
     }
     result->Success(flutter::EncodableValue(true));
+    return;
+  }
+
+  // 开关预取。存在的主要理由是 A/B 与将来的"离开阅读器就关掉"，
+  // 所以**不因未就绪而报错**：还没建好时这个开关本来就无事可做。
+  if (method == "setPrefetch") {
+    bool enabled = true;
+    const auto* arguments = call.arguments();
+    if (const auto* map = arguments != nullptr ? std::get_if<flutter::EncodableMap>(arguments)
+                                              : nullptr) {
+      const auto it = map->find(flutter::EncodableValue("enabled"));
+      if (it != map->end()) {
+        if (const auto* value = std::get_if<bool>(&it->second)) {
+          enabled = *value;
+        }
+      }
+    }
+    if (set_prefetch_ == nullptr) {
+      // 老 DLL（没有这个导出）。老实说"做不到"，而不是假装成功 —— 假装成功会
+      // 让人以为 A/B 的"关"那一路真的关了。
+      result->Error("unsupported", "这个 rossi_gpu_present.dll 没有 set_prefetch 导出");
+      return;
+    }
+    std::lock_guard<std::mutex> guard(mutex_);
+    result->Success(flutter::EncodableValue(set_prefetch_(presenter_, enabled ? 1 : 0) == 0));
     return;
   }
 

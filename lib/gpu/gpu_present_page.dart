@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:zephyr/gpu/gpu_present_bridge.dart';
+import 'package:zephyr/gpu/page_turn_probe.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/image_surface.dart';
 import 'package:zephyr/reader/local_page_source.dart';
@@ -67,11 +68,114 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
   void initState() {
     super.initState();
     _presenter.start();
+    if (PageTurnProbe.isRequested) {
+      // 量具模式：**不要**那个 1 秒心跳。它会替我们多打几次 `stats`，而那些调用
+      // 同样要过 native 那把锁（`show` 解码时正持着它）—— 正好污染要量的东西。
+      unawaited(_autorunProbe());
+      return;
+    }
     _statsTimer = Timer.periodic(
       const Duration(seconds: 1),
       (_) => unawaited(_refreshCounters()),
     );
     unawaited(_presenter.refreshStats());
+  }
+
+  /// 量具模式：无人值守跑一遍翻页序列。契约见 `page_turn_probe.dart`。
+  ///
+  /// 顺序有讲究：**先等呈现器就绪、再打开来源**。反过来的话第一页会落在 CPU 兜底路上
+  /// （那是另一条路径的延迟），把 GPU 路的基线污染掉。
+  Future<void> _autorunProbe() async {
+    final PageTurnProbeRun run = PageTurnProbeRun()..startRecording();
+    run.note('量具模式：${PageTurnProbe.logPath}');
+    run.note('轮数 ${PageTurnProbe.turns}，每轮停留 ${PageTurnProbe.dwellMs} ms');
+
+    // 先把表头落盘：跑挂了也留得下痕迹（否则"没文件"和"没跑"分不出来）。
+    try {
+      final File header = File('${PageTurnProbe.logPath}.turns.csv');
+      await header.parent.create(recursive: true);
+      await header.writeAsString(PageTurnProbe.turnsCsvHeader, flush: true);
+    } catch (error) {
+      run.note('写表头失败（继续跑）：$error');
+    }
+
+    try {
+      final int waited = await _waitForPresenterReady();
+      run.note(
+        waited < 0
+            ? '等呈现器就绪超时（上限 ${PageTurnProbe.readyTimeoutMs} ms）—— '
+                '这份基线会混进 CPU 兜底路径，别当 GPU 路的数用'
+            : '呈现器 $waited ms 后就绪',
+      );
+
+      final String sample = PageTurnProbe.sample;
+      if (sample.isNotEmpty) {
+        _pathController.text = sample;
+      }
+      await _open();
+      final PageSource? source = _source;
+      if (source == null || !mounted) {
+        run.note('来源没打开成功：${_rejectedMessage ?? _actionError ?? '未知原因'}');
+        run.note('**这份数据无效**');
+        await run.finish();
+        exit(2);
+      }
+      run.note('来源 ${source.path}（${source.pageCount} 页）');
+
+      for (int turn = 0; turn < PageTurnProbe.turns; turn++) {
+        // 页号**绕回**，不是夹到最后一页：轮数多于页数时（判据 C 要 100 次）夹住会变成
+        // "把同一页反复交出去"，量到的是幂等早退，不是翻页。
+        final int page = turn % source.pageCount;
+        final int framesBefore = run.frameCount;
+        final int seqBefore = _presenter.presentCount;
+        _show(page);
+        await Future<void>.delayed(
+          Duration(milliseconds: PageTurnProbe.dwellMs),
+        );
+        await _presenter.refreshStats();
+        // 只有"这一轮真的交出去过页"才算它的往返：**页号会重复**，所以判据是计数变大，
+        // 不是页号对得上 —— 后者会把上一轮的残值记成这一轮的延迟。
+        final bool pushed = _presenter.presentCount > seqBefore;
+        run.recordTurn(
+          ProbeTurn(
+            turn: turn,
+            page: page,
+            path: _path.name,
+            handleOpened: _presenter.stats?.handleOpened ?? 0,
+            framesBefore: framesBefore,
+            framesAfter: run.frameCount,
+            presentMs: pushed ? _presenter.lastPresentMs : null,
+            presentSeq: _presenter.presentCount,
+            rust: _presenter.stats?.probe,
+          ),
+        );
+      }
+
+      final String summary = await run.finish();
+      // 控制台在 GUI 子系统下常常不可见，所以真正的交付物是那三个文件；
+      // 这句只是给从终端直接拉起的情况留个方便。
+      // ignore: avoid_print
+      print(summary);
+      exit(0);
+    } catch (error, stack) {
+      run.note('量具自己抛了：$error');
+      run.note('$stack');
+      await run.finish();
+      exit(3);
+    }
+  }
+
+  /// 等呈现器脱离 `loading`。返回等了多久（毫秒）；没等到返回 -1。
+  Future<int> _waitForPresenterReady() async {
+    final Stopwatch clock = Stopwatch()..start();
+    while (_presenter.state == GpuPresentState.loading &&
+        clock.elapsedMilliseconds < PageTurnProbe.readyTimeoutMs) {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+    if (_presenter.state != GpuPresentState.ready) {
+      return -1;
+    }
+    return clock.elapsedMilliseconds;
   }
 
   @override

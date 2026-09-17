@@ -71,6 +71,24 @@ class GpuPresentController extends ChangeNotifier {
   PageSource? _mismatchSource;
   String? _mismatchMessage;
 
+  /// 最近一次**真把一页交出去**的 [present] 往返耗时（毫秒）。
+  ///
+  /// 「往返」= 从进入 `present` 到它返回，**含**跨语言调用与 native 侧的全部工作
+  /// （解码 → 上传 → 渲染 → `CopyResource` → 通知引擎）。翻页量具拿它当
+  /// "这一页等了多久" —— 从 Dart 侧再往下（引擎何时合成这一帧）就观测不到了。
+  ///
+  /// **幂等早退与"没就绪"不更新它**：那些调用没有把页交出去，拿它们的耗时当延迟
+  /// 会把数读小。所以这个字段只在 `show` 真的被调过之后才写。
+  ///
+  /// 它**不进 `_mutate` 的快照**：每个翻页都会变，进快照就会变成"每次翻页多一次
+  /// 重建"，而重建又会走回 `_sync`。量具直接读它，不需要经监听。
+  int? _lastPresentMs;
+  /// [_lastPresentMs] 对应的页下标。
+  int? _lastPresentIndex;
+
+  /// 真的把页交出去过几次（单调递增）。理由见 [presentCount]。
+  int _presentCount = 0;
+
   /// 呈现器自身的状态。
   GpuPresentState get state => _state;
 
@@ -88,6 +106,12 @@ class GpuPresentController extends ChangeNotifier {
 
   /// native 侧的诊断快照（界面用）。
   GpuPresentStats? get stats => _stats;
+
+  /// 最近一次真把一页交出去的 [present] 往返耗时（毫秒）。`null` = 还没交出去过。
+  int? get lastPresentMs => _lastPresentMs;
+
+  /// [lastPresentMs] 对应的页下标。
+  int? get lastPresentIndex => _lastPresentIndex;
 
   /// 呈现器就绪 —— 这条路存在，有资格试着走。
   ///
@@ -226,6 +250,9 @@ class GpuPresentController extends ChangeNotifier {
     }
 
     _syncing = true;
+    // 从"决定干活"到"页真的交出去了"的整段，就是翻页的那一刻延迟。
+    final Stopwatch roundTrip = Stopwatch()..start();
+    bool pushed = false;
     try {
       final GpuPresentStatus status = await _bridge.tryInit(
         width: width,
@@ -283,6 +310,7 @@ class GpuPresentController extends ChangeNotifier {
         if (_disposed) {
           return false;
         }
+        pushed = true;
         _mutate(() {
           _pushedIndex = index;
           _pushedSize = physicalSize;
@@ -296,6 +324,39 @@ class GpuPresentController extends ChangeNotifier {
       return false;
     } finally {
       _syncing = false;
+      roundTrip.stop();
+      // 只有真的把页交出去了才记 —— 早退那些调用没有延迟可言。
+      if (pushed) {
+        _lastPresentMs = roundTrip.elapsedMilliseconds;
+        _lastPresentIndex = index;
+        _presentCount++;
+      }
+    }
+  }
+
+  /// 真的把页交出去过几次（单调递增）。
+  ///
+  /// [#lastPresentMs] / [#lastPresentIndex] 只说"上一次交出去的是什么"，**没说是不是
+  /// 这一次** —— 页号会重复（连翻绕回第一页、反复点同一页），所以单靠"页号对得上"
+  /// 会把上一轮的延迟算到这一轮头上。量具用这个计数判断"这一轮到底交了没有"。
+  int get presentCount => _presentCount;
+
+  /// 开关 native 侧的后台预取。
+  ///
+  /// 默认是开的（native 侧默认开）—— 它就是修翻页延迟的那件事：真页解码要
+  /// 400–500 ms，而用户停在某一页的时间是秒级，**趁这段时间把下一页解好**是
+  /// 唯一能把这个数打下来的办法（`docs/texture-bridge-integration.md` §6.3）。
+  ///
+  /// 留这个入口是为了 A/B（同一份二进制只差这一处）与将来的"离开阅读器就关掉"。
+  /// 返回是否被接受；没被接受时**继续按原状态跑**，不抛异常。
+  Future<bool> setPrefetchEnabled(bool enabled) async {
+    if (_disposed || !GpuPresentBridge.isPlatformSupported) {
+      return false;
+    }
+    try {
+      return await _bridge.setPrefetchEnabled(enabled);
+    } catch (_) {
+      return false;
     }
   }
 

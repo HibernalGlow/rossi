@@ -201,6 +201,17 @@ class GpuPresentBridge {
     await channel.invokeMethod<bool>('show', <String, Object?>{'index': index});
   }
 
+  /// 开关后台预取。
+  ///
+  /// 返回 `false` = native 侧没接受（还没就绪，或这个 DLL 没有这个导出）。
+  /// **不抛异常**：这是个可选的性能开关，调用方不该为它写 try/catch；
+  /// 而且"没接受"和"关了"必须能分辨 —— 混在一起会让 A/B 的对照组是假的。
+  Future<bool> setPrefetchEnabled(bool enabled) async {
+    final bool? accepted = await channel
+        .invokeMethod<bool>('setPrefetch', <String, Object?>{'enabled': enabled});
+    return accepted ?? false;
+  }
+
   Future<GpuPresentStats> stats() async {
     final Map<Object?, Object?>? result =
         await channel.invokeMethod<Map<Object?, Object?>>('stats');

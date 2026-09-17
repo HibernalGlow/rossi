@@ -25,6 +25,7 @@ import 'package:zephyr/config/global/global.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/router/router.dart';
 import 'package:zephyr/cubit/plugin_registry_cubit.dart';
+import 'package:zephyr/gpu/page_turn_probe.dart';
 import 'package:zephyr/i18n/i18n_helper.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/i18n/system_locale_service.dart';
@@ -117,6 +118,30 @@ class MyAlwaysLogFilter extends LogFilter {
 Future<void> main(List<String> args) async {
   // 1. 基础初始化
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 翻页量具的无人值守模式：设了 `ROSSI_PAGE_TURN_LOG` 就**绕开整个 App 启动**，
+  // 只跑 GPU 上屏那条路，把帧时间与分段耗时写成 CSV。
+  //
+  // 位置是有意的 —— 必须在 `_initServices()` **之前**。量时间的东西不该被数据库
+  // 初始化、插件注册、窗口尺寸还原这些东西影响；而且它们跟这条链路本来无关。
+  // 判据 C 只在 Release 下成立，而 `flutter test` 只能跑 Debug，
+  // 所以量具只能挂在 App 自己身上。见 `lib/gpu/page_turn_probe.dart`。
+  if (PageTurnProbe.isRequested) {
+    // 量具要用 FRB 打开来源，所以 Rust 侧得先站起来（正常启动里这一步在
+    // `_initServices()` 里，这里绕过去了）。
+    //
+    // 整段包住并把失败落盘：本进程是 GUI 子系统、没有控制台，`print` 与未捕获
+    // 异常都不会出现在任何地方，表现成「rc=1、无输出、无文件」，跟「启动崩溃」
+    // 分不开（这个坑实际吃过一次）。所以量具的失败路径**只认文件**。
+    try {
+      await initRustLib();
+      runApp(const PageTurnProbeApp());
+    } catch (e, stack) {
+      await writeProbeBootFailure(e, stack);
+      exit(4);
+    }
+    return;
+  }
 
   // 先生成本地同步设备 ID，后续文件夹/链接的版本向量会使用它
   await ensureSyncDeviceId();

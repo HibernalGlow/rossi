@@ -66,10 +66,18 @@ void RestoreExistingWindow(HWND hwnd) {
 
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t* command_line, _In_ int show_command) {
-  HWND hwnd = ::FindWindow(L"FLUTTER_RUNNER_WIN32_WINDOW", L"zephyr");
-  if (hwnd != NULL) {
-    RestoreExistingWindow(hwnd);
-    return EXIT_FAILURE;
+  // 量具/基准运行（已设 ROSSI_PAGE_TURN_LOG）必须能拿到自己的窗口。单实例守卫会在
+  // **任何**已存在的 zephyr 窗口上直接 `EXIT_FAILURE` 退出，而这看起来与「启动崩溃」
+  // 完全一样：rc=1、没有任何输出（本进程是 GUI 子系统，不 attach 控制台）。
+  // 这个坑实际吃过一次 —— 见 `docs/texture-bridge-integration.md`。
+  const bool is_probe_run =
+      ::GetEnvironmentVariableW(L"ROSSI_PAGE_TURN_LOG", nullptr, 0) > 0;
+  if (!is_probe_run) {
+    HWND hwnd = ::FindWindow(L"FLUTTER_RUNNER_WIN32_WINDOW", L"zephyr");
+    if (hwnd != NULL) {
+      RestoreExistingWindow(hwnd);
+      return EXIT_FAILURE;
+    }
   }
   // Attach to console when present (e.g., 'flutter run') or create a
   // new console when running with a debugger.

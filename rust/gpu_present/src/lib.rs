@@ -403,6 +403,25 @@ mod platform {
         })
     }
 
+    /// 开关预取。`enabled != 0` 打开。返回 0 成功、-1 表示还没就绪。
+    ///
+    /// 加这个入口是为了 **A/B**：同一份二进制、只差这一处，比"改代码前后各量一次"
+    /// 少一个变量（代码漂移会混进数字里）。启动期的等价写法是环境变量
+    /// `ROSSI_GPU_PREFETCH=0`。
+    #[no_mangle]
+    pub extern "C" fn rossi_gpu_present_set_prefetch(presenter: *mut c_void, enabled: i32) -> i32 {
+        let Some(holder) = (unsafe { borrow(presenter) }) else {
+            return -1;
+        };
+        match &mut *lock_slot(&holder.slot) {
+            Slot::Ready(inner) => {
+                inner.set_prefetch_enabled(enabled != 0);
+                0
+            }
+            _ => -1,
+        }
+    }
+
     /// 诊断快照（JSON，UTF-8）。返回写入的字节数，失败返回 -1。
     ///
     /// 与别的入口不同，它在**未就绪时也能给出结果** —— 而且必须能，因为

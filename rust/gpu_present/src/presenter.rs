@@ -38,10 +38,38 @@
 //! `RENDER_TARGET → COPY_SOURCE` 拷完再 `COPY_SOURCE → RENDER_TARGET`。
 //! 这条不做的话，后面会变成很难查的花屏 / 校验层报错。
 
-use std::time::Instant;
+//! # 预取为什么要长在 Rust 侧
+//!
+//! 翻页的账几乎全是解码（实测 60 MPix 的 AVIF 页：合计 511 ms，其中解码 471–545 ms，
+//! 上传 1.5 ms、渲染提交 2 ms）。所以**唯一的杠杆是在用户还没翻之前把下一页解出来**
+//! —— 在 Dart 侧"提前解码"做不到：GPU 这条路上像素不跨语言边界，Dart 里根本没有
+//! 一个解好的位图可以缓存（见 `docs/texture-bridge-integration.md` §6）。
+//!
+//! 于是预取的形态是：**后台一条线程解码，把 RGBA 按当前档位存进有界缓存**，
+//! `show` 命中就直接上传。三条纪律都是为了不把翻页拖慢：
+//!
+//! 1. **只解一页、只留最新一个请求**（[`PrefetchSlot`]）—— 排队会积压，
+//!    积压的解码与呈现线程抢核，这正是"预取了还慢"曾经的样子；
+//! 2. **翻页就把在等的预取作废**（请求记着投递时的 `present_seq`）——
+//!    用户已经在连翻时，预取下一页对他没用，只会抢核；
+//! 3. **档位变了整批作废**（缓存记 `epoch`）—— 拖动窗口会改解码档位，
+//!    旧档位的结果既不合观感也不再省时间。
+
+use std::collections::VecDeque;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Condvar, Mutex};
+use std::thread::{self, JoinHandle};
+use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, Context, Result};
-use rossi_local_core::LocalSource;
+// 预取的**准入判决与目标次序都取自本地核心**，不在这边另立一套。
+// 那两条策略是从 mImageViewer 搬来的纯函数（`rossi_local_core::prefetch_policy`），
+// 而 Rossi 这边「滚动」= 翻页、「可见区待完成」= 当前页还没出图 —— 语义完全对上。
+// 自己手搓一份「延迟 + 一个布尔」只会得到它的退化版，而且迟早两边不一致。
+use rossi_local_core::{
+    decide_prefetch_allowed, interleaved_prefetch_positions, LocalSource, PagePixels,
+    PrefetchDecision,
+};
 
 use wgpu::hal::api::Dx12;
 // `Interface` 必须在作用域内，否则 `ID3D12Resource::cast()` 找不到方法。
@@ -72,6 +100,34 @@ const MAX_EDGE: u32 = 8192;
 /// 正常情况下靠 `release_callback` 回收（见 [`Presenter::notify_released`]）；
 /// 这个硬上限是防"回调始终不来"时无限堆积 —— 有界总比泄漏好。
 const MAX_RETIRED: usize = 4;
+
+/// 预取缓存保留几页。
+///
+/// 3 = 当前页 + 前后各一档（`interleaved_prefetch_positions` 的 `+1, -1, +2`）。
+/// **不是随手取的数**：这一层缓存的是**解码结果**，而解码结果按显示档位存 ——
+/// 一页 1898×1265 的 RGBA 是 9.2 MB，全尺寸 60 MPix 页则是 179 MB。
+/// 所以容量必须小，靠"最新者优先"而不是靠堆量。
+const PREFETCH_CAPACITY: usize = 3;
+
+/// 预取缓存的字节上限。
+///
+/// 与条数上限并列，因为条数与内存量级不是线性关系：可能是 500×500 的跨页图，
+/// 也可能是 1898×2847。条数上限只管住"最多几页"，字节上限管住"最多多少 M"。
+const PREFETCH_MAX_BYTES: usize = 48 * 1024 * 1024;
+
+/// 预取朝前看几页、朝后看几页（交互次序 `+1, -1, +2, -2, …`）。
+///
+/// 朝前多一页是有道理的：阅读方向是向前的，往回翻是偶尔为之。
+const PREFETCH_FORWARD: usize = 2;
+const PREFETCH_BACK: usize = 1;
+
+/// 预取线程的轮询间隔。
+///
+/// 用它而不是纯 `Condvar::wait`：循环里要重新评估"准入判决"，而判决依赖时间
+/// （`PREFETCH_IDLE_THRESHOLD` 就是一个时间量）。靠定时醒来重判，比让每个
+/// 状态变化点都记得去 notify 更不容易出错 —— 代价是 50 ms 的判定粒度，
+/// 相对 400–500 ms 的解码量级可以忽略。
+const PREFETCH_POLL: Duration = Duration::from_millis(50);
 
 /// 全屏三角形 + letterbox 采样。
 ///
@@ -176,6 +232,132 @@ pub struct PresentTimings {
     pub total_ms: f64,
 }
 
+/// 预取缓存里的一页解码结果。
+struct CachedPage {
+    index: usize,
+    /// 按哪个档位解出来的。
+    ///
+    /// 必须连档位一起存：目标尺寸一变（拖窗口），旧档位的结果就**不能**再用 ——
+    /// 既不合观感（页会比目标大/小一截），省下的时间也白省。
+    hint: u32,
+    /// 来源代次。换来源（打开另一本）后旧结果整体作废。
+    epoch: u64,
+    pixels: PagePixels,
+}
+
+/// 解码结果缓存 + 命中统计。
+///
+/// 两条线程碰到它：呈现线程（`show` 来取走）、预取线程（解完来放）。
+/// 统计不是装饰 —— 判据要回答的是「这一页为什么快」，而"命中预取"与"没命中"
+/// 是两个完全不同的答案，分不开就说不清。
+#[derive(Default)]
+struct PageCache {
+    entries: VecDeque<CachedPage>,
+    hits: u64,
+    misses: u64,
+    /// 预取线程解出来并放进来的页数。
+    prefetched: u64,
+    /// 解完发现档位/来源已变而丢掉的页数。
+    stale: u64,
+    /// 被容量或字节上限挤掉的页数。
+    evicted: u64,
+    /// 预取线程此刻正在解哪一页（`None` = 闲着）。只用于诊断。
+    in_flight: Option<usize>,
+}
+
+impl PageCache {
+    fn bytes(&self) -> usize {
+        self.entries.iter().map(|e| e.pixels.rgba.len()).sum()
+    }
+
+    /// 取走某一页（命中就把它从缓存里摘掉）。
+    ///
+    /// **取走而不是复制**：一页 9.2 MB，为了留在缓存里再复制一份，等于把
+    /// "省下的解码"换成一次 memcpy 加一份常驻内存。页一旦上屏，它的正本就在
+    /// 显存里了，缓存里那份没有理由再留着。
+    fn take(&mut self, index: usize, hint: u32, epoch: u64) -> Option<PagePixels> {
+        let at = self
+            .entries
+            .iter()
+            .position(|e| e.index == index && e.hint == hint && e.epoch == epoch)?;
+        let entry = self.entries.remove(at)?;
+        self.hits += 1;
+        Some(entry.pixels)
+    }
+
+    fn has(&self, index: usize, hint: u32, epoch: u64) -> bool {
+        self.entries
+            .iter()
+            .any(|e| e.index == index && e.hint == hint && e.epoch == epoch)
+    }
+
+    /// 放进一条，并按上限裁剪。
+    fn insert(&mut self, page: CachedPage) {
+        self.entries.retain(|e| {
+            !(e.index == page.index && e.hint == page.hint && e.epoch == page.epoch)
+        });
+        self.entries.push_back(page);
+        self.prefetched += 1;
+
+        while self.entries.len() > PREFETCH_CAPACITY
+            || (self.bytes() > PREFETCH_MAX_BYTES && self.entries.len() > 1)
+        {
+            self.entries.pop_front();
+            self.evicted += 1;
+        }
+    }
+
+    /// 换来源时整体作废。
+    fn drop_range(&mut self, epoch: u64) {
+        let before = self.entries.len();
+        self.entries.retain(|e| e.epoch == epoch);
+        self.evicted += (before - self.entries.len()) as u64;
+    }
+}
+
+/// 预取线程要用的"呈现进度"快照。
+#[derive(Clone, Default)]
+struct PrefetchView {
+    /// 用户现在停在哪一页 —— 预取围绕它展开。
+    anchor: Option<usize>,
+    page_count: usize,
+    /// 当前的解码档位。
+    hint: u32,
+    /// 上一次翻页的时刻。
+    ///
+    /// 直接喂本地核心的 `decide_prefetch_allowed` 作为 `last_prefetch_scroll_at`：
+    /// **它要的就是这个语义**（「滚动」在 Rossi 这儿就是翻页），见
+    /// `rossi_local_core::prefetch_policy` 的模块文档。
+    last_show_at: Option<Instant>,
+    /// 当前页是不是还没出图（喂 `visible_state_pending`）：0 = 已出图。
+    visible_pending: usize,
+    /// 来源代次。
+    epoch: u64,
+    source: Option<Arc<LocalSource>>,
+}
+
+#[derive(Default)]
+struct PrefetchShared {
+    view: PrefetchView,
+    /// 呈现线程投递过多少次锚点（诊断用）。
+    anchors_posted: u64,
+}
+
+/// 预取线程与呈现线程之间共享的那一格。
+///
+/// 只有一格、且**只表达"用户现在在哪一页"**，不排任务队列。排队会积压：
+/// 用户连翻 5 页就积 5 个解码任务，每个 400–500 ms，呈现线程随后要的解码会和
+/// 这些积压抢核，把翻页拖成秒级 —— 这正是"预取了还慢"曾经的样子
+/// （两个 auto=16 的并发预取把翻页饿到 ~1 核）。锚点式的表述没有积压可积。
+struct PrefetchHub {
+    shared: Mutex<PrefetchShared>,
+    cv: Condvar,
+    stop: AtomicBool,
+    /// 开关。关掉时预取线程照旧活着，但不解任何页 ——
+    /// A/B 要的就是"同一份二进制，只差一个开关"。
+    enabled: AtomicBool,
+}
+
 /// GPU 呈现器。
 ///
 /// # 线程契约（重要）
@@ -209,8 +391,23 @@ pub struct Presenter {
     retired: Vec<RetiredTarget>,
 
     // ── 阅读状态 ──
-    source: Option<LocalSource>,
+    //
+    // `Arc` 是有意的：预取线程也要拿着同一个来源去解码。`LocalSource` 只存
+    // 「根路径 + 类型 + 页序列」，**不持有任何打开的文件/归档对象**
+    // （每次读页重开归档），所以它跨线程用是安全的 —— 而且正因为不共享句柄，
+    // 两条线程各读各的页不会互相干扰。
+    source: Option<Arc<LocalSource>>,
     page_index: Option<usize>,
+
+    // ── 预取 ──
+    /// 解码结果缓存（`show` 来取，预取线程来放）。
+    cache: Arc<Mutex<PageCache>>,
+    /// 与预取线程共享的一格状态。
+    hub: Arc<PrefetchHub>,
+    prefetch_thread: Option<JoinHandle<()>>,
+    /// 最近一轮 `show` 有没有命中预取缓存。诊断/判据要用
+    /// —— "这一页为什么快"和"这一页为什么慢"的答案往往就差这一个布尔。
+    last_cache_hit: bool,
 
     // ── 诊断 ──
     adapter_name: String,
@@ -443,6 +640,14 @@ impl Presenter {
         let direct_share = probe_direct_share(&device, &d3d_device);
         let t_end = Instant::now();
 
+        let cache: Arc<Mutex<PageCache>> = Arc::new(Mutex::new(PageCache::default()));
+        let hub: Arc<PrefetchHub> = Arc::new(PrefetchHub {
+            shared: Mutex::new(PrefetchShared::default()),
+            cv: Condvar::new(),
+            stop: AtomicBool::new(false),
+            enabled: AtomicBool::new(prefetch_enabled_from_env()),
+        });
+
         let mut presenter = Self {
             device,
             queue,
@@ -462,6 +667,10 @@ impl Presenter {
             retired: Vec::new(),
             source: None,
             page_index: None,
+            cache,
+            hub,
+            prefetch_thread: None,
+            last_cache_hit: false,
             adapter_name,
             adapter_matched,
             adapter_luid,
@@ -481,6 +690,13 @@ impl Presenter {
             last: PresentTimings::default(),
             last_error: String::new(),
         };
+
+        // 预取线程随 Presenter 一起活。没打开来源、或开关关着的时候，它只是每
+        // `PREFETCH_POLL` 醒一次看一眼，不解任何页。
+        presenter.prefetch_thread = Some(spawn_prefetch_worker(
+            Arc::clone(&presenter.cache),
+            Arc::clone(&presenter.hub),
+        ));
 
         if width > 0 && height > 0 {
             presenter.ensure_target(width, height)?;
@@ -675,9 +891,35 @@ impl Presenter {
         if count == 0 {
             return Err(anyhow!("这个来源里没有可显示的页: {path}"));
         }
-        self.source = Some(source);
+        self.source = Some(Arc::new(source));
         self.page_index = None;
+
+        // 换来源 = 缓存整体作废，并让预取线程改用新来源。
+        {
+            let mut shared = self.hub.shared.lock().expect("prefetch shared 中毒");
+            shared.view.epoch += 1;
+            shared.view.source = self.source.clone();
+            shared.view.anchor = None;
+            shared.view.page_count = count;
+            // 刚打开还没显示任何页 —— 从这里起算"没有翻页过"是**对**的语义：
+            // 准入判决的 `NoScrollYet` 分支本来就是给"启动/切来源之后"准备的。
+            shared.view.last_show_at = None;
+            shared.view.visible_pending = 1;
+        }
+        let epoch = self.current_epoch();
+        if let Ok(mut cache) = self.cache.lock() {
+            cache.drop_range(epoch);
+        }
+        self.hub.cv.notify_all();
         Ok(count)
+    }
+
+    fn current_epoch(&self) -> u64 {
+        self.hub
+            .shared
+            .lock()
+            .map(|s| s.view.epoch)
+            .unwrap_or_default()
     }
 
     pub fn page_count(&self) -> usize {
@@ -701,9 +943,11 @@ impl Presenter {
             .ok_or_else(|| anyhow!("还没有呈现目标：引擎尚未用 SurfaceCallback 报过尺寸"))?;
         let (target_width, target_height) = (target.width, target.height);
 
+        // 这里克隆一次 `Arc` 而不是借 `&self.source`：后面要改 `self` 的几个
+        // 诊断字段，而借住 `self` 会挡住它们。`Arc` 的克隆不走文件系统。
         let source = self
             .source
-            .as_ref()
+            .clone()
             .ok_or_else(|| anyhow!("还没有打开任何本地来源"))?;
         if index >= source.len() {
             return Err(anyhow!("页下标越界: {index} / {}", source.len()));
@@ -716,11 +960,35 @@ impl Presenter {
         // 解码与上传都按面积等比下降（`docs/v0.1-local-core.md` §12）。
         // 解码器不会放大，所以传一个"过大"的宽度是安全的 —— 它自己会停在原宽。
         let hint = target_width.min(MAX_EDGE);
+
+        // 先告诉预取线程"用户到这一页了、而且这一页还没出图"。顺序不能反：
+        // 反过来的话，预取线程可能在这个窗口里按上一个锚点挑目标，
+        // 而准入判决看到的还是"当前页已就绪"，于是正好在翻页的当口开始解码抢核。
+        self.publish_show_start(index, hint, source.len());
+
         let t_decode = Instant::now();
-        let pixels = source
-            .page_pixels_scaled(index, Some(hint))
-            .with_context(|| format!("第 {} 页解码失败", index + 1))?;
+        // 代次要**在拿缓存锁之前**读出来。两条线程的加锁顺序必须一致
+        // （缓存 → 共享状态），反过来就有互锁的空间：这条路上是 `cache` 里再去
+        // 锁 `shared`，而预取线程是 `shared` 解锁后去锁 `cache` —— 目前不会死，
+        // 但那只是因为它恰好没有把两者嵌起来，不该指望这个巧合。
+        let epoch = self.current_epoch();
+        let cached = self.cache.lock().ok().and_then(|mut c| c.take(index, hint, epoch));
+        let cache_hit = cached.is_some();
+        let pixels = match cached {
+            Some(pixels) => pixels,
+            None => {
+                if let Ok(mut c) = self.cache.lock() {
+                    c.misses += 1;
+                }
+                source
+                    .page_pixels_scaled(index, Some(hint))
+                    .with_context(|| format!("第 {} 页解码失败", index + 1))?
+            }
+        };
+        // 命中时这里读到的是"从缓存取走"的耗时（微秒级），不是解码耗时 ——
+        // 这正是要报出来的东西：`cacheHit` 会一起进 stats，两者一起看才不会误读。
         let decode_ms = t_decode.elapsed().as_secs_f64() * 1000.0;
+        self.last_cache_hit = cache_hit;
 
         self.decoded_width = pixels.width;
         self.decoded_height = pixels.height;
@@ -752,7 +1020,57 @@ impl Presenter {
         self.presents += 1;
         self.page_index = Some(index);
         self.last = timings;
+
+        // 页确实上屏了才把锚点交出去。放在最后是有意的：预取的准入判决要读
+        // "当前页已就绪"（`visible_pending == 0`），而这个事实到这一刻才成立。
+        // 提前交锚点，等于告诉预取线程"可以开始抢核了"，而呈现线程还没画完。
+        self.publish_show_end();
         Ok(timings)
+    }
+
+    /// 呈现线程：宣告"正在翻到第 `index` 页，而且它还没出图"。
+    fn publish_show_start(&self, index: usize, hint: u32, page_count: usize) {
+        if let Ok(mut shared) = self.hub.shared.lock() {
+            shared.view.anchor = Some(index);
+            shared.view.hint = hint;
+            shared.view.page_count = page_count;
+            shared.view.visible_pending = 1;
+            shared.anchors_posted += 1;
+        }
+        self.hub.cv.notify_all();
+    }
+
+    /// 呈现线程：宣告"这一页确实出图了"，同时记下翻页时刻。
+    ///
+    /// 翻页时刻就是准入判决里的"滚动时刻"（`last_prefetch_scroll_at`）——
+    /// 本地核心会在它之后 `PREFETCH_IDLE_THRESHOLD`（100 ms）内拦下所有预取。
+    /// 记在 `show` **返回时**而不是开始时：`show` 自己就要几百毫秒，
+    /// 从开始算的话这个"静默期"在翻页动作还没结束时就过期了，等于没有。
+    fn publish_show_end(&self) {
+        if let Ok(mut shared) = self.hub.shared.lock() {
+            shared.view.last_show_at = Some(Instant::now());
+            shared.view.visible_pending = 0;
+        }
+        self.hub.cv.notify_all();
+    }
+
+    /// 预取开关。默认开 —— 它就是修翻页延迟的那件事。
+    ///
+    /// 留这个开关是为了 A/B：**在同一份二进制上只改这一处**，才排得掉代码漂移
+    /// 对数字的影响。环境变量 `ROSSI_GPU_PREFETCH=0` 是同一个开关的启动期写法。
+    pub fn set_prefetch_enabled(&mut self, enabled: bool) {
+        self.hub.enabled.store(enabled, Ordering::Relaxed);
+        if let Ok(mut shared) = self.hub.shared.lock() {
+            if !enabled {
+                // 关掉时连锚点一起撤。不撤的话恢复时会先去解一页早就翻过去的页。
+                shared.view.anchor = None;
+            }
+        }
+        self.hub.cv.notify_all();
+    }
+
+    pub fn prefetch_enabled(&self) -> bool {
+        self.hub.enabled.load(Ordering::Relaxed)
     }
 
     fn upload_page(&mut self, rgba: &[u8], width: u32, height: u32) -> Result<()> {
@@ -1085,6 +1403,25 @@ impl Presenter {
     pub fn stats_json(&self) -> String {
         let (width, height) = self.target_size();
         let timings = self.last;
+
+        // 缓存统计要先取出来：`format!` 的参数位里写不了语句。
+        let (hits, misses, cache_bytes, decoded, stale, evicted, in_flight) = self
+            .cache
+            .lock()
+            .map(|c| {
+                (
+                    c.hits,
+                    c.misses,
+                    c.bytes() as u64,
+                    c.prefetched,
+                    c.stale,
+                    c.evicted,
+                    c.in_flight.map(|i| i as i64).unwrap_or(-1),
+                )
+            })
+            .unwrap_or((0, 0, 0, 0, 0, 0, -1));
+        let prefetch_on = self.prefetch_enabled();
+
         format!(
             concat!(
                 "{{",
@@ -1117,6 +1454,15 @@ impl Presenter {
                 "\"uploadMs\":{:.1},",
                 "\"submitMs\":{:.1},",
                 "\"totalMs\":{:.1},",
+                "\"cacheHit\":{},",
+                "\"cacheHits\":{},",
+                "\"cacheMisses\":{},",
+                "\"cacheBytes\":{},",
+                "\"prefetchEnabled\":{},",
+                "\"prefetchDecoded\":{},",
+                "\"prefetchStale\":{},",
+                "\"prefetchEvicted\":{},",
+                "\"prefetchInFlight\":{},",
                 "\"error\":\"{}\"",
                 "}}"
             ),
@@ -1147,13 +1493,155 @@ impl Presenter {
             timings.upload_ms,
             timings.submit_ms,
             timings.total_ms,
+            self.last_cache_hit,
+            hits,
+            misses,
+            cache_bytes,
+            prefetch_on,
+            decoded,
+            stale,
+            evicted,
+            in_flight,
             escape(&self.last_error),
         )
     }
 }
 
+/// 从环境变量读预取的默认开关。
+///
+/// 只认 `0` / `false` / `off` 为关，其余（含未设置）都当开。默认开是对的默认值：
+/// 它就是修翻页延迟的那件事，默认关会让人以为没做。
+fn prefetch_enabled_from_env() -> bool {
+    match std::env::var("ROSSI_GPU_PREFETCH") {
+        Ok(raw) => {
+            let v = raw.trim().to_ascii_lowercase();
+            !(v == "0" || v == "false" || v == "off")
+        }
+        Err(_) => true,
+    }
+}
+
+fn spawn_prefetch_worker(cache: Arc<Mutex<PageCache>>, hub: Arc<PrefetchHub>) -> JoinHandle<()> {
+    thread::Builder::new()
+        .name("rossi-prefetch".to_string())
+        .spawn(move || prefetch_worker_loop(&cache, &hub))
+        .expect("起不了预取线程")
+}
+
+/// 预取线程主体。
+///
+/// 一轮 = 醒来看一眼「用户在哪一页 / 现在该不该预取 / 下一个目标是谁」，最多解一页。
+/// **没有任务队列**：积压就是抢核的源头，见 [`PrefetchHub`]。
+fn prefetch_worker_loop(cache: &Mutex<PageCache>, hub: &PrefetchHub) {
+    loop {
+        // ① 睡到下轮判定（或被 `notify_all` 提前叫醒）。
+        //
+        // 这里必须用 `wait_timeout` 而不是 `wait`：循环里要重新评估的准入判决本身
+        // 就含时间量（`PREFETCH_IDLE_THRESHOLD` = 100 ms），靠定时醒来重判，
+        // 比让每个状态变化点都记得去 notify 更不容易漏。
+        {
+            let Ok(guard) = hub.shared.lock() else {
+                // 锁中毒 = 进程状态已不可信。静默退出好过在解码线程里 panic。
+                return;
+            };
+            if hub.stop.load(Ordering::Relaxed) {
+                return;
+            }
+            let _ = hub.cv.wait_timeout(guard, PREFETCH_POLL);
+        }
+        if hub.stop.load(Ordering::Relaxed) {
+            return;
+        }
+        if !hub.enabled.load(Ordering::Relaxed) {
+            continue;
+        }
+
+        // ② 取一份"当前进度"快照。
+        let Some(view) = hub.snapshot() else { return };
+        let (Some(anchor), Some(source)) = (view.anchor, view.source.clone()) else {
+            continue; // 还没打开来源 / 还没显示过任何页
+        };
+        if view.page_count == 0 {
+            continue;
+        }
+
+        // ③ 准入判决 —— 直接问本地核心，不在这边另立一套。
+        if let PrefetchDecision::Block { .. } =
+            decide_prefetch_allowed(Instant::now(), view.last_show_at, view.visible_pending)
+        {
+            continue;
+        }
+
+        // ④ 挑目标：交互次序（`+1, -1, +2, …`）里第一个"还没缓存、也不在解"的。
+        let target = interleaved_prefetch_positions(
+            anchor,
+            view.page_count,
+            PREFETCH_FORWARD,
+            PREFETCH_BACK,
+        )
+        .into_iter()
+        .find(|index| {
+            cache
+                .lock()
+                .map(|c| c.in_flight != Some(*index) && !c.has(*index, view.hint, view.epoch))
+                .unwrap_or(false)
+        });
+        let Some(index) = target else {
+            continue; // 这一圈该预取的都齐了
+        };
+
+        if let Ok(mut c) = cache.lock() {
+            c.in_flight = Some(index);
+        }
+
+        // ⑤ 解码。**慢**（真页几百毫秒），所以全程**不持锁** ——
+        //    持着锁解一页，呈现线程来取缓存时会被挡掉整整一页的时间。
+        let decoded = source.page_pixels_scaled(index, Some(view.hint));
+
+        let epoch_now = hub.epoch();
+        if let Ok(mut c) = cache.lock() {
+            c.in_flight = None;
+            match decoded {
+                Ok(pixels) if epoch_now == view.epoch => c.insert(CachedPage {
+                    index,
+                    hint: view.hint,
+                    epoch: view.epoch,
+                    pixels,
+                }),
+                // 解完发现来源已经换了：这条数据属于另一本，丢掉。
+                Ok(_) => c.stale += 1,
+                // 预取失败**不是错误**：真需要这一页时 `show` 会再解一次，
+                // 错误会在那条路径上被报出来。这里吞掉，免得扰乱错误通道。
+                Err(_) => {}
+            }
+        }
+    }
+}
+
+impl PrefetchHub {
+    fn snapshot(&self) -> Option<PrefetchView> {
+        self.shared.lock().ok().map(|s| s.view.clone())
+    }
+
+    fn epoch(&self) -> u64 {
+        self.shared.lock().map(|s| s.view.epoch).unwrap_or_default()
+    }
+}
+
 impl Drop for Presenter {
     fn drop(&mut self) {
+        // 先把预取线程收掉，而且**必须 join**（等它真的退出）。
+        //
+        // 不是"顺手清理"：预取线程手里可能正握着 `Arc<LocalSource>` 和一份
+        // 解码缓冲，而它一旦跑过 `device` 的析构点还活着，就会在进程退出时
+        // 与 D3D12 的释放顺序打架（表现是偶发崩溃，且复现不了）。
+        // 代价是最多等一页解码的时间（几百毫秒），只发生在关窗/换呈现器时。
+        self.hub.stop.store(true, Ordering::Relaxed);
+        self.hub.cv.notify_all();
+        if let Some(handle) = self.prefetch_thread.take() {
+            let _ = handle.join();
+        }
+
         // 直接释放，不做延迟：此刻引擎已经不再持有 texture（C++ 侧先注销再析构）。
         for entry in self.retired.drain(..) {
             free_retired(entry);
