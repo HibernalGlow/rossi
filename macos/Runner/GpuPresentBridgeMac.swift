@@ -35,6 +35,9 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
     private typealias FnGeneration = @convention(c) (UnsafeMutableRawPointer?) -> UInt64
     private typealias FnStats = @convention(c) (UnsafeMutableRawPointer?, UnsafeMutablePointer<UInt8>?, Int) -> Int32
     private typealias FnDestroy = @convention(c) (UnsafeMutableRawPointer?) -> Void
+    private typealias FnSetHdr = @convention(c) (UnsafeMutableRawPointer?, UInt32, Float, Float, UnsafeMutablePointer<UInt8>?, Int) -> Int32
+    private typealias FnOutputBpp = @convention(c) (UnsafeMutableRawPointer?) -> Int32
+    private typealias FnSetOutputMode = @convention(c) (UnsafeMutableRawPointer?, UInt32, UnsafeMutablePointer<UInt8>?, Int) -> Int32
 
     private var fnCreate: FnCreate?
     private var fnStatus: FnStatus?
@@ -45,6 +48,20 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
     private var fnGeneration: FnGeneration?
     private var fnStats: FnStats?
     private var fnDestroy: FnDestroy?
+    private var fnSetHdr: FnSetHdr?
+    private var fnOutputBpp: FnOutputBpp?
+    private var fnSetOutputMode: FnSetOutputMode?
+
+    private var currentPixelFormat: OSType = kCVPixelFormatType_32BGRA
+    private var currentHdrMode: UInt32 = 0
+    private var currentHdrBoost: Float = 1.5
+    private var currentHdrPeak: Float = 1.0
+
+    /// 当前接管的 EDR 平台视图。非 nil 时所有呈现都走它（浮点通路）。
+    private weak var hdrView: RossiHdrView?
+    private var hdrViewIdentifier: Int64 = -1
+    /// 期望的底层输出通路：true = 浮点（真 HDR）。
+    private var wantsFloatOutput = false
 
     init(textureRegistry: FlutterTextureRegistry, binaryMessenger: FlutterBinaryMessenger) {
         self.textureRegistry = textureRegistry
@@ -136,6 +153,9 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
         fnGeneration = unsafeBitCast(dlsym(h, "rossi_gpu_present_generation"), to: FnGeneration?.self)
         fnStats = unsafeBitCast(dlsym(h, "rossi_gpu_present_stats"), to: FnStats?.self)
         fnDestroy = unsafeBitCast(dlsym(h, "rossi_gpu_present_destroy"), to: FnDestroy?.self)
+        fnSetHdr = unsafeBitCast(dlsym(h, "rossi_gpu_present_set_hdr"), to: FnSetHdr?.self)
+        fnOutputBpp = unsafeBitCast(dlsym(h, "rossi_gpu_present_output_bpp"), to: FnOutputBpp?.self)
+        fnSetOutputMode = unsafeBitCast(dlsym(h, "rossi_gpu_present_set_output_mode"), to: FnSetOutputMode?.self)
     }
 
     private var framesMarked: Int = 0
@@ -196,6 +216,29 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
         case "stats":
             handleStats(result: result)
 
+        case "setHdr":
+            guard let args = call.arguments as? [String: Any],
+                  let mode = args["mode"] as? Int else {
+                result(FlutterError(code: "bad-arguments", message: "setHdr 需要 mode (0: Off, 1: Extended Linear, 2: SDR Boost)", details: nil))
+                return
+            }
+            let boost = (args["boost"] as? Double) ?? 1.5
+            let peak = (args["peak"] as? Double) ?? 1.0
+            handleSetHdr(mode: UInt32(mode), boost: Float(boost), peak: Float(peak), result: result)
+
+        case "hdrStatus":
+            handleHdrStatus(result: result)
+
+        case "attachHdrView":
+            guard let args = call.arguments as? [String: Any] else {
+                result(FlutterError(code: "bad-arguments", message: "attachHdrView 需要 viewId", details: nil))
+                return
+            }
+            handleAttachHdrView(args, result: result)
+
+        case "hdrDiagnostics":
+            handleHdrDiagnostics(result: result)
+
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -235,6 +278,7 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
         if presenter == nil {
             var err = [UInt8](repeating: 0, count: 1024)
             presenter = create(UInt32(width), UInt32(height), &err, err.count)
+            rossiGpuLog("handleInit 创建呈现器 尺寸=\(width)x\(height) handle=\(presenter != nil ? "非空" : "NULL") err=\(String(cString: err))")
         }
 
         guard let pres = presenter else {
@@ -254,6 +298,7 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
 
         var err = [UInt8](repeating: 0, count: 1024)
         let s = status(pres, &err, err.count)
+        rossiGpuLog("handleInit status=\(s) textureId=\(textureId) bufferPool=\(bufferPool != nil ? "有" : "无") pixelFormat=\(currentPixelFormat)")
         switch s {
         case 1: // Ready
             result([
@@ -291,18 +336,22 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
         bufferLock.lock()
         defer { bufferLock.unlock() }
 
-        if bufferPool != nil && targetWidth == width && targetHeight == height {
+        let bpp = (presenter != nil && fnOutputBpp != nil) ? Int(fnOutputBpp!(presenter)) : 4
+        let pixelFormat: OSType = (bpp == 8) ? kCVPixelFormatType_64RGBAHalf : kCVPixelFormatType_32BGRA
+
+        if bufferPool != nil && targetWidth == width && targetHeight == height && currentPixelFormat == pixelFormat {
             return
         }
 
         targetWidth = max(1, width)
         targetHeight = max(1, height)
+        currentPixelFormat = pixelFormat
 
         let poolAttributes: [CFString: Any] = [
             kCVPixelBufferPoolMinimumBufferCountKey: 2
         ]
-        let pixelBufferAttributes: [CFString: Any] = [
-            kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_32BGRA,
+        var pixelBufferAttributes: [CFString: Any] = [
+            kCVPixelBufferPixelFormatTypeKey: pixelFormat,
             kCVPixelBufferWidthKey: targetWidth,
             kCVPixelBufferHeightKey: targetHeight,
             kCVPixelBufferIOSurfacePropertiesKey: [:] as [String: Any],
@@ -310,11 +359,198 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
             kCVPixelBufferCGImageCompatibilityKey: true
         ]
 
+        if bpp == 8 {
+            pixelBufferAttributes[kCVImageBufferColorPrimariesKey] = kCVImageBufferColorPrimaries_ITU_R_709_2
+            pixelBufferAttributes[kCVImageBufferTransferFunctionKey] = kCVImageBufferTransferFunction_Linear
+        }
+
         var newPool: CVPixelBufferPool?
         let status = CVPixelBufferPoolCreate(kCFAllocatorDefault, poolAttributes as CFDictionary, pixelBufferAttributes as CFDictionary, &newPool)
         if status == kCVReturnSuccess {
             bufferPool = newPool
         }
+    }
+
+    private func handleSetHdr(mode: UInt32, boost: Float, peak: Float, result: @escaping FlutterResult) {
+        guard let pres = presenter, let setHdr = fnSetHdr else {
+            result(FlutterError(code: "not-ready", message: "呈现器尚未就绪", details: nil))
+            return
+        }
+
+        var effectivePeak = peak
+        // 若为扩展线性 HDR 且未明确指定峰值，则从当前显示器查询可用 EDR Headroom
+        if mode == 1 && effectivePeak <= 1.0 {
+            let edr = NSScreen.main?.maximumExtendedDynamicRangeColorComponentValue ?? 1.0
+            effectivePeak = Float(max(edr, 1.0))
+        }
+
+        var err = [UInt8](repeating: 0, count: 1024)
+        let rc = setHdr(pres, mode, boost, effectivePeak, &err, err.count)
+        if rc == 0 {
+            currentHdrMode = mode
+            currentHdrBoost = boost
+            currentHdrPeak = effectivePeak
+            // 重建匹配新格式与色彩空间的缓冲池
+            setupPixelBufferPool(width: targetWidth, height: targetHeight)
+            result([
+                "ok": true,
+                "mode": Int(mode),
+                "boost": Double(boost),
+                "peak": Double(effectivePeak),
+                "bpp": (fnOutputBpp != nil) ? Int(fnOutputBpp!(pres)) : 4
+            ])
+        } else {
+            let msg = String(cString: err)
+            result(FlutterError(code: "set-hdr-failed", message: msg.isEmpty ? "设置 HDR 失败" : msg, details: nil))
+        }
+    }
+
+    private func handleHdrStatus(result: @escaping FlutterResult) {
+        let maxEdr = NSScreen.main?.maximumExtendedDynamicRangeColorComponentValue ?? 1.0
+        let potentialEdr = NSScreen.main?.maximumPotentialExtendedDynamicRangeColorComponentValue ?? 1.0
+        let isHdrScreen = potentialEdr > 1.0
+
+        result([
+            "hdrSupported": isHdrScreen,
+            "maxEdrHeadroom": maxEdr,
+            "potentialEdrHeadroom": potentialEdr,
+            "currentMode": Int(currentHdrMode),
+            "currentBoost": Double(currentHdrBoost),
+            "currentPeak": Double(currentHdrPeak),
+            "outputBpp": (presenter != nil && fnOutputBpp != nil) ? Int(fnOutputBpp!(presenter)) : 4
+        ])
+    }
+
+    // MARK: - EDR（真 HDR）平台视图接管
+
+    /// 由 `RossiHdrViewFactory` 在平台视图创建时调用。
+    ///
+    /// 一接管就把底层呈现器切到浮点通路：`Rgba16Float` 是唯一能承载
+    /// 大于 1.0 亮度的格式，而 8 位通路（Flutter 外部纹理）物理上不可能超过 SDR 白点。
+    func attachHdrView(_ view: RossiHdrView, identifier: Int64) {
+        hdrView = view
+        hdrViewIdentifier = identifier
+        wantsFloatOutput = true
+        rossiGpuLog("attachHdrView id=\(identifier) presenter=\(presenter != nil ? "已就绪" : "尚未就绪")")
+        applyOutputMode()
+    }
+
+    /// 由 Dart 侧在平台视图销毁时调用，把底层呈现器退回 8 位通路。
+    func detachHdrView(identifier: Int64) {
+        // 只接受“当前那个”的释放。翻页时旧槽位会 dispose、新槽位会 attach，
+        // 两者的跨语言调用是异步的；不做这个身份校验，晚到的 detach 会把新图层踢掉，
+        // 现象是翻一页之后 HDR 就不再生效（而日志里看不出谁干的）。
+        guard hdrViewIdentifier == identifier else {
+            rossiGpuLog("忽略过期的 detachHdrView id=\(identifier)（当前=\(hdrViewIdentifier)）")
+            return
+        }
+        hdrView = nil
+        hdrViewIdentifier = -1
+        wantsFloatOutput = false
+        applyOutputMode()
+    }
+
+    /// 把“期望的输出通路”推给底层呈现器。
+    ///
+    /// 呈现器可能还没建好（创建是异步的），那时先记下意图，
+    /// 等它真正要渲染时再推（见 [renderHdrFrame]）。
+    @discardableResult
+    private func applyOutputMode() -> Bool {
+        guard let pres = presenter, let setOutputMode = fnSetOutputMode else { return false }
+        var err = [UInt8](repeating: 0, count: 1024)
+        let rc = setOutputMode(pres, wantsFloatOutput ? 1 : 0, &err, err.count)
+        if rc != 0 {
+            let msg = String(cString: err)
+            rossiGpuLog("切换输出通路失败: \(msg)(\(rc))")
+            return false
+        }
+        rossiGpuLog("输出通路 = \(wantsFloatOutput ? "RGBA16F 线性浮点（EDR，可真 HDR）" : "BGRA8（Flutter 纹理）")")
+        // 通路一变，适配对象也跟着变：浮点要 8 字节宽度的缓冲池，8 位要 4 字节的。
+        // 不改就会让 `show_into_buffer` 往一个尺寸不对的缓冲里写（见那边的
+        // 行跨步检查），所以这一步是必须的，不是优化。
+        refreshPixelBufferPoolForCurrentPath()
+        return true
+    }
+
+    /// 按当前输出通路的字节数重建像素缓冲池。
+    private func refreshPixelBufferPoolForCurrentPath() {
+        let bpp = (presenter != nil && fnOutputBpp != nil) ? Int(fnOutputBpp!(presenter)) : 4
+        bufferLock.lock()
+        let needsRebuild = currentPixelFormat
+            != ((bpp == 8) ? kCVPixelFormatType_64RGBAHalf : kCVPixelFormatType_32BGRA)
+        bufferLock.unlock()
+        if needsRebuild {
+            setupPixelBufferPool(width: targetWidth, height: targetHeight)
+        }
+    }
+
+    /// 由 `RossiHdrView` 回调：把第 `index` 页渲染进它给的物理缓冲区。
+    ///
+    /// 缓冲区由视图用 `kCVPixelFormatType_64RGBAHalf` 分配 —— 半精度浮点，
+    /// 数值上限远高于 1.0，这是「真 HDR」能出得了 Rust 边界的前提。
+    /// 返回 `nil` 表示成功。
+    func renderHdrFrame(width: Int,
+                        height: Int,
+                        base: UnsafeMutableRawPointer,
+                        stride: Int,
+                        index: UInt32) -> String? {
+        guard let pres = presenter, let showInto = fnShowIntoBuffer else {
+            return "底层呈现器尚未就绪"
+        }
+        // 首次渲染前补推一次输出通路：平台视图可能在呈现器就绪之前就建好了。
+        applyOutputMode()
+
+        var err = [UInt8](repeating: 0, count: 1024)
+        let rc = showInto(pres,
+                          index,
+                          base.assumingMemoryBound(to: UInt8.self),
+                          stride,
+                          UInt32(width),
+                          UInt32(height),
+                          &err,
+                          err.count)
+        if rc == 0 {
+            framesMarked += 1
+            return nil
+        }
+        let msg = String(cString: err)
+        return msg.isEmpty ? "HDR 呈现失败（rc=\(rc)）" : msg
+    }
+
+    private func handleAttachHdrView(_ args: [String: Any], result: @escaping FlutterResult) {
+        let viewId = args["viewId"] as? Int ?? -1
+        rossiGpuLog("attachHdrView(Channel) viewId=\(viewId) 当前图层=\(hdrView != nil ? "已挂" : "未挂")")
+        if viewId < 0 {
+            detachHdrView(identifier: hdrViewIdentifier)
+            result(["ok": true, "attached": false])
+            return
+        }
+        // 平台视图的创建回调已经绑定过一次，这里只做确认与通路切换。
+        wantsFloatOutput = true
+        applyOutputMode()
+        result([
+            "ok": hdrView != nil,
+            "attached": hdrView != nil,
+            "viewId": hdrViewIdentifier,
+            "outputBpp": (presenter != nil && fnOutputBpp != nil) ? Int(fnOutputBpp!(presenter)) : 4,
+        ])
+    }
+
+    private func handleHdrDiagnostics(result: @escaping FlutterResult) {
+        var payload: [String: Any] = [
+            "attached": hdrView != nil,
+            "viewId": hdrViewIdentifier,
+            "wantsFloatOutput": wantsFloatOutput,
+            "outputBpp": (presenter != nil && fnOutputBpp != nil) ? Int(fnOutputBpp!(presenter)) : 4,
+            "hdrMode": Int(currentHdrMode),
+            "hdrBoost": Double(currentHdrBoost),
+            "hdrPeak": Double(currentHdrPeak),
+            "screenMaxEdr": Double(NSScreen.main?.maximumExtendedDynamicRangeColorComponentValue ?? 1.0),
+        ]
+        if let view = hdrView {
+            payload["view"] = view.diagnostics()
+        }
+        result(payload)
     }
 
     private func handleOpen(path: String, result: @escaping FlutterResult) {
@@ -340,7 +576,37 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
     }
 
     private func handleShow(index: UInt32, result: @escaping FlutterResult) {
+        // ── EDR（真 HDR）通路 ──
+        // 平台视图自己带着一个扩展线性浮点图层，由 macOS 合成器直接把
+        // 大于 1.0 的部分交给显示器 EDR 头顶空间。这条路上**不经过**
+        // Flutter 的纹理合成，所以那边那个 8 位限制在这里不存在。
+        if let view = hdrView {
+            rossiGpuLog("show index=\(index) → EDR 图层通路")
+            // 进 EDR 通路之前先把输出格式摆正：帧长度必须与视图缓冲区一致。
+            // 不做这一步就会出现“呈现器写 8 字节、缓冲区只有 4 字节宽”的堆越界。
+            wantsFloatOutput = true
+            if !applyOutputMode() {
+                rossiGpuLog("EDR 通路不可用（切换输出格式失败），本帧改走 Flutter 纹理通路")
+            } else {
+                let failure = view.renderFrame(index: index)
+                if let failure = failure {
+                    rossiGpuLog("EDR 呈现失败: \(failure)")
+                    result(FlutterError(code: "show-failed", message: failure, details: nil))
+                } else {
+                    result(true)
+                }
+                return
+            }
+        }
+        // Flutter 纹理通路：输出必须是 8 位，否则缓冲池宽度对不上。
+        if wantsFloatOutput {
+            wantsFloatOutput = false
+            applyOutputMode()
+        }
+        rossiGpuLog("show index=\(index) → Flutter 纹理通路")
+
         guard let pres = presenter, let showInto = fnShowIntoBuffer, let pool = bufferPool else {
+            rossiGpuLog("handleShow 前置条件不满足 presenter=\(presenter != nil) showInto=\(fnShowIntoBuffer != nil) pool=\(bufferPool != nil)")
             result(FlutterError(code: "not-ready", message: "呈现器或缓冲池尚未就绪", details: nil))
             return
         }
@@ -362,18 +628,22 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
             let baseAddress = CVPixelBufferGetBaseAddress(buffer)?.assumingMemoryBound(to: UInt8.self)
             let bytesPerRow = CVPixelBufferGetBytesPerRow(buffer)
 
-            // ── 安全零填充（对齐 mimageviewer VRAM Clear 策略）──
+            // ── 安全底色填充（对齐 mimageviewer VRAM Clear 策略）──
             // CVPixelBufferPool 复用的内存可能包含上一帧的脏数据。
-            // 在 Rust 侧写入之前，先用深黑底色 0xFF05050A (BGRA) 填满整块缓冲区，
-            // 防止行跨步 Padding 区域或解码未覆盖区域暴露红黄绿等假彩色块。
+            // 在 Rust 侧写入之前，先用对应格式的底色填满整块缓冲区，
+            // 防止行跨步 Padding 区域或解码未覆盖区域暴露脏显存。
             if let base = baseAddress {
-                // BGRA 格式：B=0x0A, G=0x05, R=0x05, A=0xFF
                 let totalBytes = bytesPerRow * height
-                // 按 4 字节（单像素）填充 BGRA 深黑底色
-                let pixelPtr = UnsafeMutableRawPointer(base).bindMemory(to: UInt32.self, capacity: totalBytes / 4)
-                let bgra: UInt32 = 0xFF05050A  // BGRA little-endian: B=0x0A G=0x05 R=0x05 A=0xFF
-                for i in 0..<(totalBytes / 4) {
-                    pixelPtr[i] = bgra
+                if self.currentPixelFormat == kCVPixelFormatType_64RGBAHalf {
+                    // 浮点线性格式清零即为纯黑
+                    memset(base, 0, totalBytes)
+                } else {
+                    // BGRA 格式：B=0x0A, G=0x05, R=0x05, A=0xFF
+                    let pixelPtr = UnsafeMutableRawPointer(base).bindMemory(to: UInt32.self, capacity: totalBytes / 4)
+                    let bgra: UInt32 = 0xFF05050A
+                    for i in 0..<(totalBytes / 4) {
+                        pixelPtr[i] = bgra
+                    }
                 }
             }
 

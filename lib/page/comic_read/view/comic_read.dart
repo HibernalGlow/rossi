@@ -219,7 +219,7 @@ class _ComicReadPageState extends State<_ComicReadPage>
     _transformationController.dispose();
     unawaited(_orientationController.restorePortrait());
     if (isLocalComicSource(widget.from, comicId)) {
-      unawaited(LocalReadSession.instance.dispose());
+      unawaited(LocalReadSession.instance.release());
     }
     super.dispose();
   }

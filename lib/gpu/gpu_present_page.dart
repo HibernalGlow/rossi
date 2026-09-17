@@ -3,7 +3,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:zephyr/gpu/gpu_present_bridge.dart';
+import 'package:zephyr/gpu/hdr_image_surface.dart';
 import 'package:zephyr/gpu/page_turn_probe.dart';
+import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/image_surface.dart';
 import 'package:zephyr/reader/local_page_source.dart';
@@ -65,10 +67,17 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
   bool _busy = false;
   String? _actionError;
 
+  int _hdrMode = 0; // 0: 关闭, 1: 扩展线性 HDR, 2: SDR 增强
+  double _hdrBoost = 2.0;
+  double _hdrPeak = 0.0;
+  Map<String, dynamic>? _hdrStatus;
+  Map<String, dynamic>? _hdrDiag;
+
   @override
   void initState() {
     super.initState();
     _presenter.start();
+    _queryHdrStatus();
     if (PageTurnProbe.isRequested) {
       // 量具模式：**不要**那个 1 秒心跳。它会替我们多打几次 `stats`，而那些调用
       // 同样要过 native 那把锁（`show` 解码时正持着它）—— 正好污染要量的东西。
@@ -208,12 +217,44 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
   Future<void> _refreshCounters() async {
     final int sessions = localOpenSessionCount();
     await _presenter.refreshStats();
+    if (_hdrStatus == null) {
+      await _queryHdrStatus();
+    }
     if (!mounted) {
       return;
     }
     if (_sessions != sessions) {
       setState(() => _sessions = sessions);
     }
+  }
+
+  Future<void> _queryHdrStatus() async {
+    final status = await _presenter.getHdrStatus();
+    final diag = await const GpuPresentBridge().getHdrDiagnostics();
+    if (mounted && status != null) {
+      setState(() {
+        _hdrStatus = status;
+        if (diag != null) _hdrDiag = diag;
+      });
+    }
+  }
+
+  Future<void> _updateHdr(int mode, {double? boost, double? peak}) async {
+    setState(() {
+      _hdrMode = mode;
+      if (boost != null) _hdrBoost = boost;
+      if (peak != null) _hdrPeak = peak;
+    });
+    // 走会话这一层而不是直接推 presentation：会话是 HDR 设置的唯一真相源，
+    // 显示节点（HdrImageSurface）读的也是它。绕过它就会出现
+    // “参数已经推下去了、但节点还以为 HDR 是关的”这种不一致。
+    await LocalReadSession.instance.setHdr(
+      mode: _hdrMode,
+      boost: _hdrBoost,
+      peak: _hdrPeak,
+    );
+    await _presenter.setHdr(mode: _hdrMode, boost: _hdrBoost, peak: _hdrPeak);
+    await _queryHdrStatus();
   }
 
   Future<void> _browseLocalTree() async {
@@ -308,7 +349,7 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
             ),
           ),
           SizedBox(
-            height: 205,
+            height: 275,
             child: ListenableBuilder(
               listenable: _presenter,
               builder: (BuildContext context, Widget? child) =>
@@ -332,7 +373,7 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
                 '呈现器就绪前这里走 CPU 兜底路径，就绪后自动换成共享纹理。',
       );
     }
-    return ImageSurface(
+    return HdrImageSurface(
       source: source,
       index: _index,
       presenter: _presenter,
@@ -458,7 +499,92 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
+          // ── HDR 逆色调映射控制条 ──
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1B1F27),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFF30363D)),
+            ),
+            child: Row(
+              children: <Widget>[
+                const Text(
+                  'HDR 模式:',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFE6EDF3),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: const Text('关闭 (SDR)'),
+                  selected: _hdrMode == 0,
+                  onSelected: (_) => _updateHdr(0),
+                ),
+                const SizedBox(width: 6),
+                ChoiceChip(
+                  label: const Text('SDR 增强'),
+                  selected: _hdrMode == 2,
+                  onSelected: (_) => _updateHdr(2),
+                ),
+                const SizedBox(width: 6),
+                ChoiceChip(
+                  label: const Text('扩展线性 HDR'),
+                  selected: _hdrMode == 1,
+                  onSelected: (_) => _updateHdr(1),
+                ),
+                if (_hdrMode != 0) ...<Widget>[
+                  const SizedBox(width: 14),
+                  Text(
+                    '高光: ${_hdrBoost.toStringAsFixed(1)}x',
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF8B949E)),
+                  ),
+                  SizedBox(
+                    width: 110,
+                    child: Slider(
+                      value: _hdrBoost,
+                      min: 1.0,
+                      max: 4.0,
+                      divisions: 30,
+                      onChanged: (v) => _updateHdr(_hdrMode, boost: v),
+                    ),
+                  ),
+                ],
+                const Spacer(),
+                if (_hdrDiag != null)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: Text(
+                      '输出: ${((_hdrDiag!['outputBpp'] as num?)?.toInt() ?? 4) == 8 ? 'RGBA16F 浮点（真 HDR）' : 'BGRA8（SDR）'}'
+                      '　图层: ${_hdrDiag!['attached'] == true ? '已接管' : '未接管'}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: ((_hdrDiag!['outputBpp'] as num?)?.toInt() ?? 4) == 8
+                            ? const Color(0xFF34D399)
+                            : const Color(0xFF8B949E),
+                      ),
+                    ),
+                  ),
+                if (_hdrStatus != null && _hdrStatus!['hdrSupported'] == true)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D3E24),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: const Color(0xFF34D399)),
+                    ),
+                    child: Text(
+                      '🍎 EDR ${(_hdrStatus!['maxEdrHeadroom'] as num?)?.toStringAsFixed(1) ?? '1.0'}x',
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF34D399)),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
           Wrap(
             spacing: 22,
             runSpacing: 6,

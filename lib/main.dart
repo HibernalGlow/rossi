@@ -115,7 +115,112 @@ class MyAlwaysLogFilter extends LogFilter {
   bool shouldLog(LogEvent event) => true; // 强制通过所有日志
 }
 
+/// 启动失败时把原因落盘。
+///
+/// 这不是调试残留，是这条路径**唯一**的可观测手段：这个进程属于 GUI 子系统，
+/// `print` / `logger` / 未配置 DSN 的 Sentry 都不会把任何东西送到人能看见的地方。
+/// 而启动期抛异常的直接后果是**根本不会调用 `runApp`** —— 窗口永远停在一片黑，
+/// 看起来像渲染坏了，其实是启动就死在了初始化里。不落盘就永远查不出原因。
+Future<void> _writeBootLog(String stage, [Object? error, StackTrace? stack]) async {
+  try {
+    final String text = error == null
+        ? '${DateTime.now().toIso8601String()} [$stage]\n'
+        : '${DateTime.now().toIso8601String()} [$stage] $error\n$stack\n\n';
+    await File('/tmp/breeze_boot.log').writeAsString(
+      text,
+      mode: FileMode.append,
+      flush: true,
+    );
+  } catch (_) {
+    // 连日志都写不出去时不再往上抛。
+  }
+}
+
+/// 启动失败时的**可见**界面。
+///
+/// 这里原来是「吞掉异常 + 直接 return」，而 `return` 意味着**永远不会调用 `runApp`**：
+/// 用户看到的是一片永远不动的黑，且没有控制台、没有 Sentry、没有日志。
+/// 于是一个本来能被修的问题被表现成「渲染坏了」。
+///
+/// 宁可显示一个丑但能读的错误页，也不要一片黑 —— 黑屏的排查成本已经被低估过太多次。
+void _runBootFailureApp(String stage, Object error, StackTrace stack) {
+  runApp(
+    MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: const Color(0xFF101014),
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  const Icon(Icons.error_outline,
+                      color: Color(0xFFFF6B6B), size: 44),
+                  const SizedBox(height: 16),
+                  const Text(
+                    '应用启动失败',
+                    style: TextStyle(
+                      color: Color(0xFFE6EDF3),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  SelectableText(
+                    '阶段: $stage',
+                    style: const TextStyle(color: Color(0xFF8B949E), fontSize: 12),
+                  ),
+                  const SizedBox(height: 14),
+                  SelectableText(
+                    '$error',
+                    style: const TextStyle(color: Color(0xFFFF9C6B), fontSize: 13),
+                  ),
+                  const SizedBox(height: 14),
+                  SelectableText(
+                    '$stack',
+                    style: const TextStyle(color: Color(0xFF6E7681), fontSize: 10),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 Future<void> main(List<String> args) async {
+  // 启动标记：这个进程是 GUI 子系统、没有控制台，`print` 与未捕获异常都不会
+  // 出现在任何地方（见下方量具那段注释）。排查「打开就是黑屏」时，
+  // 「main 到底跑到哪一步了」必须先能被回答，否则一切只能靠猜。
+  try {
+    File('/tmp/breeze_boot.log').writeAsStringSync(
+      '${DateTime.now().toIso8601String()} main() 进入\n',
+      mode: FileMode.append,
+      flush: true,
+    );
+  } catch (_) {}
+
+  // 框架级错误也落盘。
+  //
+  // 这个进程属于 GUI 子系统：`FlutterError.reportError` 默认只往控制台写，
+  // 而这里没有控制台 —— 于是“平台视图创建失败”这类错误会**彻底消失**，
+  // 表现仍然是一片黑。排查黑屏时最贵的就是这种静默失败。
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    unawaited(
+      _writeBootLog(
+        'FlutterError(${details.context ?? '无上下文'})',
+        details.exception,
+        details.stack,
+      ),
+    );
+  };
+
   // 1. 基础初始化
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -194,6 +299,8 @@ Future<void> main(List<String> args) async {
       if (kDebugMode || sentryDsn.isEmpty) {
         logger.e("App Setup Failed", error: e, stackTrace: stack);
       }
+      await _writeBootLog('initServices(无 Sentry 路径)', e, stack);
+      _runBootFailureApp('_initServices（无 Sentry 路径）', e, stack);
     }
 
     return;
@@ -232,7 +339,9 @@ Future<void> main(List<String> args) async {
     },
     appRunner: () async {
       try {
+        await _writeBootLog('appRunner 开始初始化');
         final (globalSettingCubit, pluginRegistryCubit) = await _initServices();
+        await _writeBootLog('initServices 完成');
         final comicFollowCubit = ComicFollowCubit();
 
         await addArchitectureTagsToSentry();
@@ -249,7 +358,12 @@ Future<void> main(List<String> args) async {
             ),
           ),
         );
+        await _writeBootLog('runApp 已调用');
       } catch (exception, stackTrace) {
+        // 这里原来只上报 Sentry 就结束了。没配 DSN 时等于**什么都没发生**，
+        // 而代价是 runApp 永远不会被调用 —— 用户看到的是一片永远不动的黑。
+        await _writeBootLog('appRunner 启动失败', exception, stackTrace);
+        _runBootFailureApp('appRunner / _initServices', exception, stackTrace);
         await Sentry.captureException(exception, stackTrace: stackTrace);
       }
     },
