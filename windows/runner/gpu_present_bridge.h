@@ -41,6 +41,21 @@
 // 构造函数里任何一步失败（没 cargo 构建产物、显卡不支持、注册纹理失败）都只把原因
 // 记进 `error()`，窗口照常显示。Dart 侧读 `stats` 就能看到为什么不可用 ——
 // 这比"启动即崩"或"黑屏但没提示"都好。
+//
+// # 呈现器是异步建的：所以状态有三个，不是两个
+//
+// Rust 侧的 `create` 只起线程、立刻返回，真正的 wgpu device 与渲染管线在后台
+// ~1 s 建好（它要是在这里同步做，就会压在第一帧之前、直接吃冷启动预算）。
+//
+// 于是本桥的状态是 **loading / ready / failed** 三态：
+// - `loading`：还在建。调用方此刻该走 CPU 兜底路径，并且**不该**挂 `Texture`；
+// - `ready`：可以拿句柄上屏；
+// - `failed`：这条路走不通了，兜底是终点。
+//
+// 把 loading 和 failed 合成一个"还没好"是不行的：一个该等、一个该放弃，
+// 而调用方没法从"还没好"里分辨是哪一个。
+//
+// 状态每次现问（`QueryStateLocked`），不在 C++ 侧缓存 —— 见那里的说明。
 class GpuPresentBridge {
  public:
   GpuPresentBridge(flutter::FlutterEngine* engine,
@@ -75,6 +90,9 @@ class GpuPresentBridge {
   using ShowFn = int32_t (*)(void* presenter, uint32_t index, uint8_t* err_buf,
                              size_t err_len);
   using StatsFn = int32_t (*)(void* presenter, uint8_t* buf, size_t len);
+  // 查后台创建进度。它是唯一一个"不要求呈现器已就绪"的入口 —— 正相反，
+  // 它存在的全部意义就是回答"就绪了没有"，所以在未就绪时它必须能调。
+  using StatusFn = int32_t (*)(void* presenter, uint8_t* err_buf, size_t err_len);
 
   static const FlutterDesktopGpuSurfaceDescriptor* SurfaceCallback(size_t width,
                                                                   size_t height,
@@ -84,6 +102,12 @@ class GpuPresentBridge {
   static void OnHandleOpened(void* release_context);
 
   bool LoadSymbols();
+  // 向 Rust 问当前就绪状态。**调用方必须已持有 `mutex_`。**
+  //
+  // 不缓存结果：这个状态是在后台线程上改变的，在 C++ 侧存一份就等于多了一份
+  // 会过期的真相。它已经足够便宜（拿锁 + 读一个枚举 + 可能拷一段错误文本），
+  // 而调用点只有 `init` / `status` / `stats` / `SurfaceCallback` 四处。
+  int32_t QueryStateLocked(std::string* error);
   // 让 Rust 侧的呈现目标与引擎请求的尺寸一致。返回是否可用。
   bool SyncTarget(uint32_t width, uint32_t height);
   void RefreshDescriptor();
@@ -109,6 +133,7 @@ class GpuPresentBridge {
   PageCountFn page_count_ = nullptr;
   ShowFn show_ = nullptr;
   StatsFn stats_ = nullptr;
+  StatusFn status_ = nullptr;
 
   int64_t texture_id_ = -1;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> channel_;

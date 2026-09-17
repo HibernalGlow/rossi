@@ -45,6 +45,24 @@ std::string WideToUtf8(const wchar_t* wide) {
 std::mutex g_release_target_mutex;
 GpuPresentBridge* g_release_target = nullptr;
 
+// 呈现器状态码。**必须与 `rust/gpu_present/src/lib.rs` 的 `STATE_*` 逐一对应** ——
+// 这是一处跨语言的枚举，改一边不改另一边不会有任何编译错误，
+// 只会把 `loading` 判成 `failed` 之类的静默错判。
+constexpr int32_t kGpuStateLoading = 0;
+constexpr int32_t kGpuStateReady = 1;
+constexpr int32_t kGpuStateFailed = 2;
+
+const char* GpuStateName(int32_t state) {
+  switch (state) {
+    case kGpuStateReady:
+      return "ready";
+    case kGpuStateLoading:
+      return "loading";
+    default:
+      return "failed";
+  }
+}
+
 // 取一个整数参数；Dart 的 int 可能以 int32_t / int64_t / double 三种形态过桥。
 bool TryGetInt(const flutter::EncodableMap& map, const char* key, int64_t* out) {
   const auto iterator = map.find(flutter::EncodableValue(key));
@@ -199,12 +217,17 @@ bool GpuPresentBridge::LoadSymbols() {
       reinterpret_cast<PageCountFn>(::GetProcAddress(library_, "rossi_gpu_present_page_count"));
   show_ = reinterpret_cast<ShowFn>(::GetProcAddress(library_, "rossi_gpu_present_show"));
   stats_ = reinterpret_cast<StatsFn>(::GetProcAddress(library_, "rossi_gpu_present_stats"));
+  status_ = reinterpret_cast<StatusFn>(::GetProcAddress(library_, "rossi_gpu_present_status"));
 #pragma warning(pop)
 
   if (create_ == nullptr || destroy_ == nullptr || handle_ == nullptr ||
       generation_fn_ == nullptr || notify_released_ == nullptr || resize_ == nullptr ||
-      open_ == nullptr || page_count_ == nullptr || show_ == nullptr || stats_ == nullptr) {
-    error_ = "rossi_gpu_present.dll 缺少必要的导出符号（版本不匹配？）";
+      open_ == nullptr || page_count_ == nullptr || show_ == nullptr || stats_ == nullptr ||
+      status_ == nullptr) {
+    error_ =
+        "rossi_gpu_present.dll 缺少必要的导出符号（版本不匹配？）。"
+        "若是刚升过版，注意 `rossi_gpu_present_status` 是异步创建引入的新符号，"
+        "旧的 DLL 要重新 cargo build";
     return false;
   }
   return true;
@@ -257,6 +280,15 @@ const FlutterDesktopGpuSurfaceDescriptor* GpuPresentBridge::SurfaceCallback(
 
   std::lock_guard<std::mutex> guard(self->mutex_);
 
+  // 未就绪时没有句柄可给，只能回 nullptr（语义是"这一帧没有 surface"，合法）。
+  // 把 `shared_handle_` 的初始值 nullptr 当成合法句柄交出去就不是合法用法了。
+  //
+  // 正常流程里走不到这里：Dart 侧在收到 `ready` 之前不构建 `Texture`，
+  // 引擎也就不会来要帧。这一段是防误用，不是主路径。
+  if (self->QueryStateLocked(nullptr) != kGpuStateReady) {
+    return nullptr;
+  }
+
   const uint32_t target_width =
       static_cast<uint32_t>(width > 0 ? std::min<size_t>(width, 8192) : 1);
   const uint32_t target_height =
@@ -268,9 +300,28 @@ const FlutterDesktopGpuSurfaceDescriptor* GpuPresentBridge::SurfaceCallback(
   return &self->descriptor_;
 }
 
+// 向 Rust 问当前就绪状态。调用方必须已持有 `mutex_`。
+int32_t GpuPresentBridge::QueryStateLocked(std::string* error) {
+  if (presenter_ == nullptr || status_ == nullptr) {
+    if (error != nullptr) {
+      *error = error_.empty() ? std::string("呈现器不可用") : error_;
+    }
+    return kGpuStateFailed;
+  }
+
+  std::vector<uint8_t> err(1024, 0);
+  const int32_t state = status_(presenter_, err.data(), static_cast<size_t>(err.size()));
+  if (state == kGpuStateFailed && error != nullptr) {
+    *error = reinterpret_cast<const char*>(err.data());
+  }
+  return state;
+}
+
 // 让 Rust 侧的呈现目标与请求尺寸一致，并刷新本地缓存的句柄/尺寸。
 //
-// 调用方必须已经持有 `mutex_`。
+// 调用方必须已经持有 `mutex_`，**并且必须先确认呈现器已就绪** ——
+// 未就绪时 Rust 侧的 `resize` 会失败，而那不是"这个尺寸不行"，是"还没轮到"，
+// 把两者混起来报错会把排查方向带偏。
 bool GpuPresentBridge::SyncTarget(uint32_t width, uint32_t height) {
   if (presenter_ == nullptr || resize_ == nullptr) {
     return false;
@@ -336,6 +387,9 @@ void GpuPresentBridge::OnHandleOpened(void* release_context) {
 flutter::EncodableMap GpuPresentBridge::BuildStats() {
   std::lock_guard<std::mutex> guard(mutex_);
 
+  std::string state_error;
+  const int32_t state = QueryStateLocked(&state_error);
+
   // Rust 侧的状态以 JSON 字符串透传，C++ 侧不解析 —— 免得两侧结构体
   // 定义要手动保持同步。Dart 侧按 key 取。
   std::string probe_json;
@@ -348,9 +402,14 @@ flutter::EncodableMap GpuPresentBridge::BuildStats() {
   }
 
   flutter::EncodableMap map;
+  // `ok` 的语义是"这条路径**有实现**"（DLL 在、符号齐、呈现器对象建出来了），
+  // **不是**"现在能用"。能不能用看 `state` —— 把这两件事压进一个 bool，
+  // 正是 loading 与 failed 分不开的根源。
   map[flutter::EncodableValue("ok")] =
       flutter::EncodableValue(ok_ && presenter_ != nullptr);
-  map[flutter::EncodableValue("error")] = flutter::EncodableValue(error_);
+  map[flutter::EncodableValue("state")] = flutter::EncodableValue(GpuStateName(state));
+  map[flutter::EncodableValue("error")] =
+      flutter::EncodableValue(state_error.empty() ? error_ : state_error);
   map[flutter::EncodableValue("textureId")] =
       flutter::EncodableValue(static_cast<int64_t>(texture_id_));
   map[flutter::EncodableValue("width")] = flutter::EncodableValue(static_cast<int32_t>(width_));
@@ -384,6 +443,43 @@ void GpuPresentBridge::HandleMethodCall(
     return;
   }
 
+  // 只问状态，不做别的事。Dart 侧在等呈现器就绪时轮询它。
+  //
+  // 单独开一个方法而不复用 `stats`：`stats` 会去问 Rust 要一份完整快照
+  // （解码档位、分段耗时、代际号……），那些字段在"还在建"的等待期全是零，
+  // 一起拖过来既慢（多一次跨语言往返）又让人误以为"已经有数据可看"。
+  if (method == "status") {
+    // 桥本身不可用也必须给出**可判定**的结论，不能让 Dart 一直在 loading 里等 ——
+    // 那是把"永远等不到"伪装成"再等等"。
+    if (!ok_) {
+      flutter::EncodableMap payload;
+      payload[flutter::EncodableValue("state")] = flutter::EncodableValue("failed");
+      payload[flutter::EncodableValue("error")] = flutter::EncodableValue(error_);
+      result->Success(flutter::EncodableValue(payload));
+      return;
+    }
+
+    std::string state_error;
+    int32_t state = kGpuStateLoading;
+    int64_t texture_id = -1;
+    {
+      std::lock_guard<std::mutex> guard(mutex_);
+      state = QueryStateLocked(&state_error);
+      texture_id = static_cast<int64_t>(texture_id_);
+    }
+
+    flutter::EncodableMap payload;
+    payload[flutter::EncodableValue("state")] = flutter::EncodableValue(GpuStateName(state));
+    payload[flutter::EncodableValue("textureId")] = flutter::EncodableValue(texture_id);
+    payload[flutter::EncodableValue("adapter")] = flutter::EncodableValue(adapter_name_);
+    payload[flutter::EncodableValue("luidKnown")] = flutter::EncodableValue(luid_known_);
+    if (!state_error.empty()) {
+      payload[flutter::EncodableValue("error")] = flutter::EncodableValue(state_error);
+    }
+    result->Success(flutter::EncodableValue(payload));
+    return;
+  }
+
   // Dart 侧带尺寸来，是为了在"还没建 Texture widget"之前就能把目标建好 ——
   // 否则第一次 `show` 会因为没有呈现目标而失败。
   if (method == "init") {
@@ -399,26 +495,49 @@ void GpuPresentBridge::HandleMethodCall(
       TryGetInt(*map, "width", &width);
       TryGetInt(*map, "height", &height);
     }
+    // 参数错误与"还没就绪"是两回事，先校验参数 —— 它在任何状态下都是错的。
     if (width <= 0 || height <= 0) {
       result->Error("bad-arguments", "init 需要正的 width / height");
       return;
     }
 
+    std::string state_error;
+    int32_t state = kGpuStateLoading;
     {
       std::lock_guard<std::mutex> guard(mutex_);
-      if (!SyncTarget(static_cast<uint32_t>(width), static_cast<uint32_t>(height))) {
-        result->Error("resize-failed", error_);
-        return;
+      state = QueryStateLocked(&state_error);
+      // 只有就绪时才碰呈现目标。未就绪时调 `resize` 也会失败，但那个失败
+      // 什么都不说明 —— 现在本来就不该建目标。
+      if (state == kGpuStateReady) {
+        if (!SyncTarget(static_cast<uint32_t>(width), static_cast<uint32_t>(height))) {
+          result->Error("resize-failed", error_);
+          return;
+        }
+        // 幂等：`OnCreate` 时已注册过一次，这里再调是兜底（比如那次失败了）。
+        if (!Register()) {
+          result->Error("register-failed", error_);
+          return;
+        }
       }
     }
 
+    // **未就绪走 Success 而不是 Error**：`{state:"loading"}` 的语义是
+    // "这条路还没铺好，你先走兜底"，它是一个正常中间态。报成错误会逼 Dart 侧
+    // 把"再等等就好"和"永远不行"当成同一件事处理。
     flutter::EncodableMap payload;
-    payload[flutter::EncodableValue("textureId")] =
-        flutter::EncodableValue(static_cast<int64_t>(texture_id_));
+    payload[flutter::EncodableValue("state")] = flutter::EncodableValue(GpuStateName(state));
     payload[flutter::EncodableValue("width")] = flutter::EncodableValue(static_cast<int32_t>(width));
     payload[flutter::EncodableValue("height")] =
         flutter::EncodableValue(static_cast<int32_t>(height));
     payload[flutter::EncodableValue("adapter")] = flutter::EncodableValue(adapter_name_);
+    if (state == kGpuStateReady) {
+      payload[flutter::EncodableValue("textureId")] =
+          flutter::EncodableValue(static_cast<int64_t>(texture_id_));
+    }
+    if (state == kGpuStateFailed) {
+      payload[flutter::EncodableValue("error")] =
+          flutter::EncodableValue(state_error.empty() ? error_ : state_error);
+    }
     result->Success(flutter::EncodableValue(payload));
     return;
   }
@@ -440,6 +559,12 @@ void GpuPresentBridge::HandleMethodCall(
     }
 
     std::lock_guard<std::mutex> guard(mutex_);
+    if (QueryStateLocked(nullptr) != kGpuStateReady) {
+      // 单独一个 error code：调用方（和人）要能一眼分辨"这条路还没铺好"
+      // 与"这个文件打不开"—— 两者的下一步动作完全不同。
+      result->Error("not-ready", "呈现器尚未就绪，此刻应走兜底路径");
+      return;
+    }
     std::vector<uint8_t> err(1024, 0);
     const int32_t count = open_(presenter_, reinterpret_cast<const uint8_t*>(path.data()),
                                path.size(), err.data(), static_cast<size_t>(err.size()));
@@ -473,8 +598,8 @@ void GpuPresentBridge::HandleMethodCall(
 
     {
       std::lock_guard<std::mutex> guard(mutex_);
-      if (presenter_ == nullptr) {
-        result->Error("unavailable", "呈现器不存在");
+      if (QueryStateLocked(nullptr) != kGpuStateReady) {
+        result->Error("not-ready", "呈现器尚未就绪，此刻应走兜底路径");
         return;
       }
       std::vector<uint8_t> err(1024, 0);

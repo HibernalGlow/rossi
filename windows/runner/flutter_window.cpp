@@ -42,9 +42,15 @@ bool FlutterWindow::OnCreate() {
         registrar != nullptr ? FlutterDesktopRegistrarGetTextureRegistrar(registrar) : nullptr;
 
     if (texture_registrar != nullptr) {
+      // 这一步**不再等呈现器建好**：Rust 侧的 `create` 只起线程就返回，
+      // wgpu device 与渲染管线在后台 ~1 s 建好。所以下面之后的第一帧不受它影响。
+      // 就绪之前 Dart 侧走 CPU 兜底路径 —— 见 `gpu_present_bridge.h` 的说明。
       auto bridge = std::make_unique<GpuPresentBridge>(engine, texture_registrar);
       // ok() 为假时**不要**调 Register()：那种情况下它只会立刻返回 false，
       // 真正的原因（DLL 没构建、显卡不支持、registrar 拿不到……）已经在 error() 里了。
+      //
+      // 注意 `ok()` 不再等于"呈现器可用"，只等于"这条路径有实现" ——
+      // 注册纹理本身很廉价，也不依赖呈现器已就绪。
       const bool registered = bridge->ok() && bridge->Register();
       if (!registered) {
         // 不中断启动：窗口照常显示，原因由 Dart 侧读 `stats` 显示在页面上。
