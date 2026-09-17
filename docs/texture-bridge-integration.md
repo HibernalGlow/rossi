@@ -67,14 +67,25 @@ v0.1 的链路里，`解码` 之后是 `上屏`。本地核心已经能把归档
 
 ### 2.3 Dart 侧
 
-- `lib/gpu/gpu_present_bridge.dart`：MethodChannel `rossi/gpu_present` 的封装，非 Windows 优雅降级。
-- `lib/gpu/gpu_present_page.dart`：调试页。入口 **更多 → 全局设置 → 调试 → GPU 上屏（D3D12 共享纹理）**，
-  以及导航栏侧栏的第二个诊断按钮。与判据 A 的窗口同理，**刻意不放进 `if (kDebugMode)`**。
+Dart 侧分两层，**这条界线是本节最要紧的部分**：
+
+| 文件 | 职责 | 不许做 |
+| --- | --- | --- |
+| `lib/gpu/gpu_present_bridge.dart` | MethodChannel `rossi/gpu_present` 的封装，非 Windows 优雅降级 | 不碰字节、不决定页码 |
+| `lib/reader/page_source.dart` | `PageSource` 抽象：页身份、页内容、加载意图（词汇表见 `CONTEXT.md`） | 不含 Flutter 依赖、不持位图 |
+| `lib/reader/local_page_source.dart` | 本地实现；**`local_core` 会话的唯一持有者** | 不取像素给 GPU 路 |
+| `lib/reader/gpu_present_controller.dart` | 就绪状态与呈现目标的镜像：轮询、尺寸同步、让 native 侧打开同一份来源、页数交叉校验 | 不管第几页、不管书目 |
+| `lib/reader/image_surface.dart` | 显示节点：GPU 用 `Texture`、否则 CPU 兜底 `RawImage`，并负责释放上一页位图 | 不拥有来源生命周期、不决定页码 |
+| `lib/gpu/gpu_present_page.dart` | 调试页。入口 **更多 → 全局设置 → 调试 → GPU 上屏（D3D12 共享纹理）**，以及导航栏侧栏的诊断按钮 | 只负责「打开哪一本、在第几页」 |
+
+- 调试页**刻意不放进 `if (kDebugMode)`**：判据只在 Release 下成立。
 - 只给 `init` 传**物理像素**（`constraints * devicePixelRatio`）：Flutter 的纹理按物理像素合成，
   传逻辑尺寸会在 1.5x/2x 屏上得到一张被拉伸的模糊图，而且引擎随后会用另一个尺寸来问
   `SurfaceCallback`，两边永远对不上，形成反复重建——症状是拖窗口时画面闪烁。
 - `Texture` 铺满整个盒子是**故意的**：等比缩放与留边已经在 Rust 侧完成，这里再套 `AspectRatio`
   或 `BoxFit` 只会引入第二次缩放。
+- **「现在走哪条路」「拖窗口之后画面还在不在」不写在调试页里**，它们在节点与控制器里。
+  这样阅读器接进来时换掉的是调试页，不是节点。
 
 ## 3. 关键设计决定（每条都有代价）
 
@@ -140,9 +151,9 @@ Flutter Windows 走 ANGLE/D3D11 打开这张共享纹理来合成，而 **D3D11 
 它的代价写清楚，别让它悄悄变成技术债：
 
 - **两条路各开一份来源。** GPU 路走 `gpu_present` crate 自己的 `open`，兜底路走
-  `local_core`。同一个文件被打开两次，切换时要重新 `open` 一遍（归档目录解析只值
-  几毫秒，所以这次重复是可接受的）。**接线进真正的阅读器时页来源应当统一** ——
-  否则翻页要维护两套页索引状态。
+  `local_core`。同一个文件被打开两次（归档目录解析只值几毫秒，所以这次重复是可接受的）。
+  **会话层已经收敛成一份**，见 §3.6；剩下的是两边的**解码器各一份**，而那是"像素不过桥"
+  的必然结果，不打算统一。
 - **兜底比 GPU 路慢一个量级。** 它要过桥一份 RGBA（给了 `targetWidth` 之后是几 MB
   而不是 170 MB）再让引擎建图。这是"降级"的应有之义，不是实现缺陷。
 - **`destroy` 必须 join 后台线程。** 线程握着就绪槽的一份 `Arc` 克隆，而 `Presenter`
@@ -153,7 +164,56 @@ Flutter Windows 走 ANGLE/D3D11 打开这张共享纹理来合成，而 **D3D11 
 未就绪时引擎来要帧只会拿到空句柄，画面是黑的 —— 而兜底路径存在的意义正是不让人
 看到那个黑屏。C++ 侧的 `SurfaceCallback` 也在未就绪时直接返回 `nullptr` 作为兜底。
 
-## 4. 黑屏的八种原因，与各自的指纹
+### 3.6 收敛页来源：统一了什么，没统一什么
+
+「同一份文件被打开两次」在调试页里只是浪费，进了阅读器就会变成错误：两边各维护
+「有几页、现在是第几页、拒绝原因是哪一类」，会在这三处漂移 —— 页数（读了两个不同时刻的
+目录）、拒绝类别（只有 FRB 那条能给出「固实 RAR」这种精确分类）、生命周期（会话 id 存在
+界面里、`dispose` 时不关，于是换书就漏一个会话）。
+
+于是有了 `PageSource`（词汇表在 `CONTEXT.md`）：
+
+```text
+        ┌────────────── PageSource（唯一）───────────────┐
+        │  页表 · 会话 id · 关闭 · (path, index) 页标识    │
+        └──────┬────────────────────────────┬───────────┘
+      load() → 像素                rasterTargetFor() → 页标识
+               │                            │
+      CPU 兜底 RawImage            GPU Texture（native 侧自己解码）
+```
+
+**统一的是**页表、会话、关闭路径，以及「当前是哪一本 / 第几页」这个判决。
+`local_core` 的会话 id 只由 `LocalPageSource` 持有 —— 换书必须关掉上一本，否则
+`localOpenSessionCount()` 会单调上升（判据 D 的探针，而会话泄漏**不体现在 RSS 里**）。
+另有一条只在收敛后才有归属的翻译：「格式对、但里面 0 页」在本地核心是**正常打开**
+（`LocalSource::is_empty()`），所以它只能在这一层被翻译成给用户看的说法，
+而不是让界面显示「0 / 0 页」却说不清是"没打开"还是"打开了但没有页"。
+
+**没有统一、也不打算统一的是解码器**：GPU 路必须由 native 侧自己解码，否则像素就得过桥，
+整个方案的意义就没了。所以两侧各留一份 `LocalSource`。
+
+两侧能对同一页达成一致，靠的是它们跑**同一份枚举代码**（`rossi_gpu_present` 依赖
+`rossi_local_core`，用的是同一个 `LocalSource::open`）—— 而不是靠任何同步动作。
+正因为这条一致性依赖一个**前提**，控制器会**交叉校验页数**：
+
+- 一致 → 记下 `(path, index)` 已推过，之后幂等（不再重复 open / show）；
+- 不一致 → **不猜哪边对**，记下说明并让显示节点回落 CPU 兜底（兜底路走页面这一份，
+  至少页码与画面自洽）。这个记账**按来源实例**，两种更省事的写法各有各的坏处：
+  记一个 bool → 一个坏来源会把 GPU 路永久钉死，换了书也回不来；记路径 →
+  「关掉再打开同一个文件」也回不来（路径没变）。记实例则两种情形都对。
+
+三条纪律是踩出来的，`GpuPresentController` 的文档注释里也写着：
+
+1. `notifyListeners` **只在实际变化时**发（否则「通知 → 重建 → 再 present」会变成每帧重建）；
+2. `present` **先判已经同步再动手**（否则每帧一次 MethodChannel 往返）；
+3. **`canPresent` 只回答「就绪了没有」，不回答「纹理注册了没有」。**
+   把后者并进来会把调用方与 `present` 锁成一个环：`textureId` 只有 `present` 会产生，
+   而 `present` 又要调用方先问过 `canPresent` —— 于是 GPU 路一次都没走成，
+   native 侧连 `init` 都没被调过，画面永远停在兜底（或黑屏）。
+   所以「纹理有没有」由 `present` 的**返回值**回答，节点的顺序是
+   **先推、后决定走哪条路**，而不是先问"能走 GPU 吗"再决定推不推。
+
+## 4. 黑屏的十种原因，与各自的指纹
 
 这一节是这张文档最实用的部分。"黑屏"本身没有信息量，所以调试页第一行永远先报**可区分的原因**：
 
@@ -166,6 +226,8 @@ Flutter Windows 走 ANGLE/D3D11 打开这张共享纹理来合成，而 **D3D11 
 | 没拿到 Flutter 的 LUID | `luidKnown=false` | 跨卡共享有风险，画面可能不出来或极慢 |
 | 纹理没注册 | `tex-1 未注册` | `Register()` 失败 |
 | 通知了但没人来取 | `framesMarked>0` 而 `handleOpened=0` | 纹理没被真正合成（不在树上/尺寸为 0） |
+| **两侧页数对不上** | `state=ready` 却仍显示 CPU 兜底，且文案里带"两侧页数不一致" | 前提（两侧同一份枚举代码）失效，见 §3.6；此时 GPU 会画错页，回落兜底是正确行为 |
+| **就绪了却一直走兜底** | `state=ready` 而 `size=0x0`、`handleOpened=0`（native **连 `init` 都没被调过**） | 入场条件写成了"纹理已注册" → 死锁，见 §3.6 纪律 3 |
 | **链路真通** | `handleOpened>0` | —— |
 
 最后一条是这个页面存在的理由：**引擎只有确实把这张纹理拿去合成了，才会来打开我们给的共享句柄**。
@@ -200,14 +262,24 @@ flutter test integration_test/gpu_present_probe_test.dart -d windows
 ```
 
 样本路径可用 `ROSSI_GPU_PRESENT_SAMPLE` 覆盖；样本缺失时静默跳过。
-它断言三件事：**`handleOpened>0`**（引擎真的来取了这一帧）、**`state` 从 `loading`
-走到 `ready`**（异步创建成立），以及**兜底路径能解出页**。
+三个用例各管一件事：**`state` 从 `loading` 走到 `ready`**（异步创建成立）、
+**两侧页数相等**（收敛页来源的前提没失效）、**显示节点自己换路**（就绪前 `RawImage`、
+就绪后 `Texture`，且 `handleOpened>0` —— 引擎真的来取了这一帧）。
 
 > **陷阱**：集成测试的入口是**测试文件自己**，不是 `lib/main.dart`，所以
 > flutter_rust_bridge **从未被初始化**。走到兜底那一段（它用 `local_core` 的 FRB 接口）
 > 会抛 `flutter_rust_bridge has not been initialized` —— 要先 `await initRustLib()`
 > （`lib/util/rust_loader.dart`）。
 > 反过来这也说明 GPU 路径确实不依赖 FRB：它走的是自己的 MethodChannel。
+>
+> 另外两条跑法上的坑（都在本机踩过）：
+> - **一个一个文件跑。** `integration_test/*.dart` **每个文件都要重新构建一次 Windows
+>   App**，一条 `flutter test integration_test` 跑多个文件时，后面几个会报
+>   `log reader stopped unexpectedly`。
+> - **本机的 `HTTP_PROXY` / `HTTPS_PROXY` 会拦掉 VM-service 的 WebSocket**
+>   （报 `Connection ... was not upgraded to websocket`），因为它们指向本机端口上的
+>   平台代理。跑 `-d windows` 要先
+>   `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy`。
 **必须在真机引擎上跑**：`flutter test`（单元测试）跑的是 `flutter_tester`，
 软件渲染、没有 Windows embedder、连 `TextureRegistrar` 都没有，在那里"通过"什么也证明不了。
 
@@ -290,11 +362,42 @@ All tests passed
   全部预算（2 s）**：同步做的话，核显机器冷启动直接不过线 —— 而核显笔记本恰恰是装机量
   最大的一类。现在这 2003 ms 发生在后台，与首帧并行。
 
+**第三轮（09-17，收敛页来源 + 换显示节点）：**
+
+集成测试从"一条探针"扩成三个用例（异步创建 / 两侧页数一致 / 显示节点自己换路），一次跑完：
+
+```
+呈现器异步创建：启动期不被它压住，且最终就绪                      +1
+收敛后的页来源：页面一份、呈现器一份，页数必须相等                  +2
+显示节点：就绪前落 CPU 兜底（RawImage），就绪后落 GPU（Texture）    +3
+[gpu-present] 通路 = cpu→gpu   handleOpened=1  framesMarked=1  resizes=2  size=800x600
+[gpu-present] pageIndex=0  presents=1  copyPath="GPU->GPU CopyResource"
+[gpu-present] decode=6.4ms  upload=0.7ms  submit=4.5ms  decoded=1200x1800（原图同）
+All tests passed
+```
+
+`通路 = cpu→gpu` 是这一轮要看的东西：**没有外面替它排序**，节点自己先落到兜底
+（就绪前）、再换到共享纹理。`handleOpened=1` 说明换过去之后画面上真的是 GPU 那张。
+
+> **这一轮踩到一个死锁，值得单独记下来**：第一版把入场条件写成
+> `canPresent = 就绪 && textureId != null`。看着很合理，实际是个环 —— `textureId`
+> 只有 `present` 会产生，而 `present` 又要调用方先问过 `canPresent`。
+> 结果：`state` 明明到了 `ready`，节点却永远停在兜底路，`handleOpened` 恒为 0，
+> native 侧**连 `init` 都没被调过**（所以目标尺寸一直是 `0x0`）。
+> 这类"两边都自认为没错、就是不动"的故障，靠读日志很难反推；
+> 就是那行 `size=0x0` 把它定位出来的。见 §3.6 纪律 3 与 §4 的第九行指纹。
+
 ## 7. 还没做的
 
 - ~~启动期那 ~1 s 要挪走~~ → **已做，见 §3.5**：呈现器改在后台线程建，就绪前走 CPU
-  兜底、就绪后切到共享纹理。遗留下来的是**页来源没统一** —— 兜底与 GPU 路各开一份，
-  这在调试页里可以接受，接线进真正的阅读器时必须收敛成一份。
+  兜底、就绪后切到共享纹理。
+- ~~页来源没统一（兜底与 GPU 路各开一份）~~ → **已做，见 §3.6**：`PageSource` 是唯一抽象，
+  `local_core` 会话只由 `LocalPageSource` 持有，显示节点两条路共用一个来源，两侧页数交叉校验。
+  注：**残留的是两侧各有一份解码器**，那不是待办而是「像素不过桥」的必然代价，不打算消掉。
+- ~~「就绪了就切过去」这套判断还散在调试页里~~ → **已做**：`ImageSurface` 是唯一的显示节点
+  （`lib/reader/image_surface.dart`），它自己维持"与 native 侧状态一致"（注册的纹理、打开的是
+  哪一份、呈现的是哪一页、目标多大），并要求调用方只提供"哪一本、第几页"。
+  接线进真正的阅读器时换掉的是调试页，不是节点。见 §6.2 第三轮。
 - **`initMs` 的 3 段已经分开，但都还是 Debug 下的读数。** 已有结论的那一半是可靠的：
   **瓶颈在 device 段、管线可以不管** —— 管线那 5 ms 在两种配置下都不会变成主角
   （见 §6.2）。缺的是 device 那 2.2 s 的**内部构成**：instance 创建 / adapter 枚举 /

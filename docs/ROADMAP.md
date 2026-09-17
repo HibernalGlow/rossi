@@ -160,17 +160,26 @@ GPU Surface
       （**链路已接通，但帧时间尚未在 Release 下量**）。手测夹具由 `poc/local-samples/make_samples.py` 生成
       （真实截图 + 含两条拒绝路径的固实/加密 CBR）。见 `docs/v0.1-local-core.md` §11。
 - [x] **GPU 上屏接线（Phase 1 收口）** —— `rust/gpu_present/`（cdylib `rossi_gpu_present.dll`）
-      + `windows/runner/gpu_present_bridge.{h,cpp}` + `lib/gpu/gpu_present_{bridge,page}.dart`。
+      + `windows/runner/gpu_present_bridge.{h,cpp}` + `lib/gpu/gpu_present_{bridge,page}.dart`
+      + **Reader 层** `lib/reader/`（`page_source` / `local_page_source` / `gpu_present_controller` /
+      `image_surface`）—— 后四个把「页来源」「就绪状态」「显示节点」从调试页里拆了出来。
       链路 `解码 → wgpu 上传/渲染(letterbox) → GPU→GPU CopyResource → D3D12 共享纹理(BGRA8)
       → Flutter(D3D11/ANGLE) 合成`：**像素全程不过桥**，Dart 侧只拿到一个 `textureId`。
       入口：设置 → 调试 → **GPU 上屏（D3D12 共享纹理）**；判据读数是 `handleOpened > 0`。
-      已验证三条：① Rust 侧端到端回读（底色占比／内容包围盒／页内采样／非全黑 四判据全过）；
+      已验证四条：① Rust 侧端到端回读（底色占比／内容包围盒／页内采样／非全黑 四判据全过）；
       ② **真机引擎上 `handleOpened = 1`** —— 引擎确实打开了共享句柄，即"链路真通"。
       ③ **呈现器异步创建**：`create` 只起线程就返回（三态 `loading/ready/failed`），
       启动期不再被那 ~1 s 压住；就绪前 Dart 侧走 CPU 兜底路径，就绪后切到共享纹理。
       顺带量清了那 ~1 s 的构成：**瓶颈在 device 而不是管线**（核显上 2526 / 20 ms）。
-      已知待办：**兜底与 GPU 路各开一份页来源**，接线进阅读器时要收敛成一份；
-      判据 C 的帧时间分布尚未在 Release 下测。见 `docs/texture-bridge-integration.md`。
+      ④ **页来源已收敛成一份**（原待办）：`PageSource` 是唯一抽象，`local_core` 的会话 id
+      只由 `LocalPageSource` 持有（顺带修掉了调试页从不 `close` 的会话泄漏），
+      显示节点 `ImageSurface` 两条路共用一个来源；两侧页数由控制器交叉校验，
+      对不上就回落兜底而不是猜。**仍未统一的只有解码器**，那是"像素不过桥"的必然结果。
+      ⑤ **显示节点已从调试页里换出来**：「就绪了就切过去」那套判断原本散在调试页里，
+      现在收在一个 `ImageSurface` —— 它自己维持与 native 侧状态一致（注册的纹理、打开的是
+      哪一份、呈现的是第几页、目标多大），调用方只给"哪一本、第几页"。两条路共用一个来源：
+      就绪前落 `RawImage`、就绪后落 `Texture`，外面不替它排序（真机实测 `通路 = cpu→gpu`）。
+      判据 C 的帧时间分布尚未在 Release 下测。见 `docs/texture-bridge-integration.md` §3.6、§6.2。
 - 7z 仍属后续评估
 - 大图 tile 化
 - LRU GPU/CPU cache
