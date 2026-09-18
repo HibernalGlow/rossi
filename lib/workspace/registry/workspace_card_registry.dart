@@ -5,7 +5,8 @@ import 'package:zephyr/workspace/widgets/cards/discover_plugins_card.dart';
 import 'package:zephyr/workspace/widgets/cards/download_shelf_card.dart';
 import 'package:zephyr/workspace/widgets/cards/favorite_shelf_card.dart';
 import 'package:zephyr/workspace/widgets/cards/history_shelf_card.dart';
-import 'package:zephyr/workspace/widgets/cards/local_folder_card.dart';
+import 'package:zephyr/workspace/widgets/cards/file_manager_card.dart';
+import 'package:zephyr/workspace/widgets/cards/page_list_card.dart';
 
 /// 卡片外壳交给卡片自己的那点上下文。
 ///
@@ -83,6 +84,7 @@ class WorkspaceCardRegistry {
   static const String download = 'download';
   static const String plugins = 'plugins';
   static const String localFolder = 'local_folder';
+  static const String pageList = 'page_list';
 
   late final List<WorkspaceCardDefinition> cards = List.unmodifiable([
     WorkspaceCardDefinition(
@@ -147,7 +149,21 @@ class WorkspaceCardRegistry {
       icon: Icons.folder_copy_rounded,
       defaultPanelId: WorkspacePanelId.sources,
       defaultOrder: 1,
-      builder: (context, chrome) => LocalFolderCard(
+      builder: (context, chrome) => FileManagerCard(
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
+      ),
+    ),
+    WorkspaceCardDefinition(
+      id: pageList,
+      title: '页面导航',
+      icon: Icons.view_carousel_rounded,
+      defaultPanelId: WorkspacePanelId.sources,
+      defaultOrder: 2,
+      builder: (context, chrome) => PageListCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
         onMoveUp: chrome.onMoveUp,

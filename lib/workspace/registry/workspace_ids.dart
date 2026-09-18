@@ -20,4 +20,7 @@ class WorkspacePanelId {
 
   /// 右泳道：完整复用上游 `MorePage`
   static const String tools = 'tools';
+
+  /// 页面导航面板
+  static const String pageList = 'page_list';
 }
