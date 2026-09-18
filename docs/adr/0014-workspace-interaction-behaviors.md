@@ -123,9 +123,10 @@
 | `flutter test test/workspace/swimlane_runtime_test.dart` | **8 passed**（激活 / 吃点击 / 栏头不吃 / 悬停驻留 / 只认 Reader / 开关 / 边缘揭示 / 揭示收回） |
 | `flutter test test/workspace/workspace_panels_test.dart` | **6 passed**（跨侧精确插入 / 不可移动页签也是落点 / 轨内换位真的能动 / 轨内换位不偏格 / 悬浮摆放 / 拖动跟手） |
 | `flutter test test/workspace/layout_persistence_test.dart` | **7 passed**（去抖 / flush / 重置两半 / 冷启动读盘 / 全新安装不写盘 / 改动落盘 / 重置作废磁盘） |
-| `flutter test test/workspace/`（整目录） | **26 passed**（含既有的 `route_guard_test.dart`） |
+| `flutter test test/workspace/top_chrome_test.dart` | **6 passed**（形态映射穷举 / 触摸屏三条 / 桌面一条 / 揭示形态一条）—— 非桌面常驻顶栏，见 ADR-0012 第 12 条 |
+| `flutter test test/workspace/`（整目录） | **32 passed**（含既有的 `route_guard_test.dart` 5 与后来补的 `top_chrome_test.dart` 6） |
 | `dart run test/workspace/{lane_focus,dwell,panel_bar,layout_snapshot}_check.dart` | **170 checks passed**（46 / 32 / 39 / 53） |
-| `python3 test/workspace/mutation_check.py` | **35/36 捕获 + 1 个已备案的冗余兜底**（全是判据失败，无编译错；EXIT=0） |
+| `python3 test/workspace/mutation_check.py` | **42/43 捕获 + 1 个已备案的冗余兜底**（全是判据失败，无编译错；EXIT=0） |
 | `dart analyze lib/workspace/ test/workspace/` | **No issues found** |
 
 几条**判别方法**上值得留下的东西：
@@ -160,6 +161,8 @@
   栏头约束、悬停范围、揭示真的移了条带、揭示会收回、落点的接受条件、
   悬浮的中心语义、拖动跟手、旗子与作废的顺序、去抖窗口、flush 判空、
   驻留的清项 / 取消范围 / 抑制 / 换目标重排」）**全部被捕获**。
+  （后来补的常驻顶栏又加了 7 个，M37–M43，见 ADR-0012 第 12 条；
+  连起来共 **42/43 捕获 + 1 个已备案的冗余兜底**。）
   其中 **M26 / M35 是第一轮活下来的两个** —— 它们逼出了上面那条
   「『没变』必须配『真的发生过』」的修法，也是这一轮唯一两处**真 bug**
   （轨内换位不可达、抑制分支从未被读到）。
@@ -197,8 +200,10 @@
 - **面板栏的换边停靠**只在**模型**与**摆放**两层验到了（`panelBarDockCandidate` 的阈值判定
   在 `panel_bar_check`，摆放在 `workspace_panels_test`）；**真的按住把手拖到泳道边上**
   这一串手势没验（把手是 `GestureDetector` 的 pan，属于手感）。
-- **移动端仍然没有常驻出口**（照旧，见 ADR-0012）：顶栏悬停揭示，触摸屏唤不出来。
-  桌面端不受影响。
+- ~~**移动端仍然没有常驻出口**（照旧，见 ADR-0012）：顶栏悬停揭示，触摸屏唤不出来。
+  桌面端不受影响。~~ **已补（同日，见 ADR-0012 第 12 条）**：非桌面平台改为**常驻**顶栏
+  （占一行真实高度、底色铺到状态栏下面、内容从它下面开始），桌面端保持揭示。
+  判据 `test/workspace/top_chrome_test.dart`（6 条）。
 - **`WorkspaceDwell.setSuppressed` 目前没有被 widget 调用**：生产路径用的是
   「按下就把三个驻留全部 `cancel()` + 用 `_pointerDown` 挡住新驻留」，
   抑制这件事是在**交互发生的地方**落实的，不是靠这个开关。
