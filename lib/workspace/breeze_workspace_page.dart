@@ -6,7 +6,7 @@ import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/cubit/workspace_state.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
 import 'package:zephyr/workspace/model/workspace_reader_target.dart';
-import 'package:zephyr/workspace/reader/workspace_reader_bridge.dart';
+import 'package:zephyr/workspace/router/workspace_navigation_bridge.dart';
 import 'package:zephyr/workspace/widgets/chrome/workspace_top_chrome.dart';
 import 'package:zephyr/workspace/widgets/edges/controlled_edge_shell.dart';
 import 'package:zephyr/workspace/widgets/swimlane/swimlane_workspace.dart';
@@ -44,13 +44,15 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
     super.initState();
     _cubit = WorkspaceCubit();
     _openInLane = _handleOpenInLane;
-    // 工作台在场期间，上游页面推入的 ComicReadRoute 一律改派进阅读器泳道。
-    WorkspaceReaderBridge.instance.attach(_openInLane);
+    // 工作台在场期间，上游页面推入的 ComicReadRoute 一律改派进阅读器泳道；
+    // 其余推入由守卫交给「发起交互的那个面板」的局部导航栈
+    // （登记随面板自己 attach / detach，见 `EmbeddedUpstreamPage`）。
+    WorkspaceNavigationBridge.instance.attachReader(_openInLane);
   }
 
   @override
   void dispose() {
-    WorkspaceReaderBridge.instance.detach(_openInLane);
+    WorkspaceNavigationBridge.instance.detachReader(_openInLane);
     _cubit.close();
     super.dispose();
   }

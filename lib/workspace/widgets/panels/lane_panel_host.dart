@@ -4,6 +4,8 @@ import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
 import 'package:zephyr/workspace/registry/workspace_panel_registry.dart';
+import 'package:zephyr/workspace/router/workspace_lane_dispatch.dart';
+import 'package:zephyr/workspace/widgets/containers/embedded_upstream_page.dart';
 import 'package:zephyr/workspace/widgets/panels/panel_card_list.dart';
 
 /// **一条面板泳道的内容宿主**：只画「当前面板是什么」。
@@ -15,6 +17,9 @@ import 'package:zephyr/workspace/widgets/panels/panel_card_list.dart';
 /// 面板的保活纪律来自 neoview 的 `mountedPanels`：
 /// **访问过才构建、构建过就留着** —— 切走再切回来不重跑上游页面的加载，
 /// 也不丢滚动位置；但绝不一次性把所有面板都建出来（那会在首帧上冻住）。
+///
+/// 「整页面板」再包一层 `EmbeddedUpstreamPage`：给它一条局部导航栈，
+/// 于是从这块卡片里点开的东西开在卡片里，而不是盖住整个工作台。
 class LanePanelHost extends StatefulWidget {
   const LanePanelHost({super.key, required this.side});
 
@@ -54,7 +59,14 @@ class _LanePanelHostState extends State<LanePanelHost> {
       children: [
         for (final panel in panels)
           if (_visited.contains(panel.id))
-            _buildPanelContent(context, panel, board, cubit)
+            _buildPanelContent(
+              context,
+              panel,
+              board,
+              cubit,
+              // 只有**本泳道当前显示的那一个**面板才是推入的候选落点。
+              isVisible: panel.id == activePanel.id,
+            )
           else
             const SizedBox.shrink(),
       ],
@@ -65,34 +77,47 @@ class _LanePanelHostState extends State<LanePanelHost> {
     BuildContext context,
     WorkspacePanelDefinition panel,
     WorkspaceBoardLayout board,
-    WorkspaceCubit cubit,
-  ) {
+    WorkspaceCubit cubit, {
+    required bool isVisible,
+  }) {
     final page = panel.page;
     if (!panel.acceptsCards && page != null) {
       // 整页复用：面板不多画标题，上游页面自带 chrome。
-      return KeyedSubtree(
-        key: ValueKey<String>('panel-page:${panel.id}'),
-        child: page(context),
+      // 外面这层负责「从这里点开的东西开在这里」（局部导航栈）。
+      return EmbeddedUpstreamPage(
+        host: WorkspaceLaneHost(widget.side.laneId, panel.id),
+        instanceKey: panel.id,
+        isVisible: isVisible,
+        builder: page,
       );
     }
 
+    // 两块内容**都**要装局部导航栈：整页面板里的「设置」、卡片里的「历史 → 漫画详情」
+    // 都属于「点开会铺满整个应用」的入口，只包一边等于漏一半。
     return KeyedSubtree(
       key: ValueKey<String>('panel-cards:${panel.id}'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // 非独占面板才画标题行（独占面板的内容自带 chrome）。
+          // 标题行留在导航栈**外面**：它是这块面板自己的 chrome，
+          // 不该被推进来的页面盖住（用户还得靠它换面板 / 恢复卡片）。
           if (!panel.exclusive)
             PanelHeaderBar(panelId: panel.id, board: board),
           Expanded(
-            child: PanelCardList(
-              panelId: panel.id,
-              board: board,
-              onSetExpanded: (cardId, expanded) =>
-                  cubit.setCardExpanded(cardId, expanded),
-              onMoveCard: (cardId, direction) =>
-                  cubit.moveCardInPanel(panel.id, cardId, direction),
-              onHideCard: (cardId) => cubit.setCardVisible(cardId, false),
+            child: EmbeddedUpstreamPage(
+              host: WorkspaceLaneHost(widget.side.laneId, panel.id),
+              instanceKey: '${panel.id}:cards',
+              isVisible: isVisible,
+              builder: (context) => PanelCardList(
+                panelId: panel.id,
+                board: board,
+                onSetExpanded: (cardId, expanded) =>
+                    cubit.setCardExpanded(cardId, expanded),
+                onMoveCard: (cardId, direction) =>
+                    cubit.moveCardInPanel(panel.id, cardId, direction),
+                onHideCard: (cardId) => cubit.setCardVisible(cardId, false),
+              ),
             ),
           ),
         ],
