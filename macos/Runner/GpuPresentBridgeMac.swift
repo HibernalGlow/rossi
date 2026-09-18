@@ -33,6 +33,8 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
     private typealias FnPrepare = @convention(c) (UnsafeMutableRawPointer?, UInt32, UInt32, UInt32, UnsafeMutablePointer<UInt8>?, Int) -> Int32
     private typealias FnResize = @convention(c) (UnsafeMutableRawPointer?, UInt32, UInt32, UnsafeMutablePointer<UInt8>?, Int) -> Int32
     private typealias FnSetPrefetch = @convention(c) (UnsafeMutableRawPointer?, Int32) -> Int32
+    private typealias FnSetOriginalPreview = @convention(c) (UnsafeMutableRawPointer?, Int32) -> Int32
+    private typealias FnSetEnhancedImage = @convention(c) (UnsafeMutableRawPointer?, UInt32, UnsafePointer<UInt8>?, Int, UInt32, UInt32, UnsafeMutablePointer<UInt8>?, Int) -> Int32
     private typealias FnGeneration = @convention(c) (UnsafeMutableRawPointer?) -> UInt64
     private typealias FnStats = @convention(c) (UnsafeMutableRawPointer?, UnsafeMutablePointer<UInt8>?, Int) -> Int32
     private typealias FnDestroy = @convention(c) (UnsafeMutableRawPointer?) -> Void
@@ -44,6 +46,8 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
     private var fnPrepare: FnPrepare?
     private var fnResize: FnResize?
     private var fnSetPrefetch: FnSetPrefetch?
+    private var fnSetOriginalPreview: FnSetOriginalPreview?
+    private var fnSetEnhancedImage: FnSetEnhancedImage?
     private var fnGeneration: FnGeneration?
     private var fnStats: FnStats?
     private var fnDestroy: FnDestroy?
@@ -136,6 +140,8 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
         fnPrepare = unsafeBitCast(dlsym(h, "rossi_gpu_present_prepare"), to: FnPrepare?.self)
         fnResize = unsafeBitCast(dlsym(h, "rossi_gpu_present_resize"), to: FnResize?.self)
         fnSetPrefetch = unsafeBitCast(dlsym(h, "rossi_gpu_present_set_prefetch"), to: FnSetPrefetch?.self)
+        fnSetOriginalPreview = unsafeBitCast(dlsym(h, "rossi_gpu_present_set_original_preview"), to: FnSetOriginalPreview?.self)
+        fnSetEnhancedImage = unsafeBitCast(dlsym(h, "rossi_gpu_present_set_enhanced_image"), to: FnSetEnhancedImage?.self)
         fnGeneration = unsafeBitCast(dlsym(h, "rossi_gpu_present_generation"), to: FnGeneration?.self)
         fnStats = unsafeBitCast(dlsym(h, "rossi_gpu_present_stats"), to: FnStats?.self)
         fnDestroy = unsafeBitCast(dlsym(h, "rossi_gpu_present_destroy"), to: FnDestroy?.self)
@@ -143,6 +149,7 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
 
     private var framesMarked: Int = 0
     private var currentPageCount: Int = 0
+    private var currentDisplayedIndex: UInt32?
 
     // MARK: - FlutterTexture
     func copyPixelBuffer() -> Unmanaged<CVPixelBuffer>? {
@@ -195,6 +202,36 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
             } else {
                 result(false)
             }
+
+        case "setOriginalPreview":
+            guard let args = call.arguments as? [String: Any],
+                  let active = args["active"] as? Bool else {
+                result(FlutterError(code: "bad-arguments", message: "setOriginalPreview 需要 active", details: nil))
+                return
+            }
+            if let pres = presenter, let setOrig = fnSetOriginalPreview {
+                _ = setOrig(pres, active ? 1 : 0)
+                // 立即重新渲染并提交新帧，让原图/超分切换毫秒级生效！
+                if let idx = currentDisplayedIndex {
+                    handleShow(index: idx) { _ in }
+                } else if textureId >= 0 {
+                    textureRegistry?.textureFrameAvailable(textureId)
+                }
+                result(true)
+            } else {
+                result(false)
+            }
+
+        case "setEnhancedImage":
+            guard let args = call.arguments as? [String: Any],
+                  let index = args["index"] as? Int,
+                  let path = args["path"] as? String else {
+                result(FlutterError(code: "bad-arguments", message: "setEnhancedImage 需要 index 和 path", details: nil))
+                return
+            }
+            let width = (args["width"] as? Int) ?? targetWidth
+            let height = (args["height"] as? Int) ?? targetHeight
+            handleSetEnhancedImage(index: UInt32(index), path: path, width: width, height: height, result: result)
 
         case "stats":
             handleStats(result: result)
@@ -397,19 +434,59 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
             if rc == 0 {
                 self.bufferLock.lock()
                 self.currentPixelBuffer = buffer
+                self.currentDisplayedIndex = index
                 self.bufferLock.unlock()
 
                 self.framesMarked += 1
-                // 通知 Flutter 引擎新帧到达
+                NSLog("[GpuPresentBridgeMac] handleShow 成功 index=\(index), framesMarked=\(self.framesMarked)")
+
+                // 通知 Flutter 引擎新帧到达（必须在主线程调度，确保事件泵送与 Metal 视图重绘）
                 if self.textureId >= 0 {
-                    self.textureRegistry?.textureFrameAvailable(self.textureId)
+                    let tid = self.textureId
+                    DispatchQueue.main.async {
+                        self.textureRegistry?.textureFrameAvailable(tid)
+                    }
                 }
 
                 // 依据此前经验：直接在工作线程上应答，不绕道平台任务队列
                 result(true)
             } else {
                 let msg = String(cString: err)
+                NSLog("[GpuPresentBridgeMac] handleShow 失败 index=\(index), err=\(msg)")
                 result(FlutterError(code: "show-failed", message: msg.isEmpty ? "呈现失败" : msg, details: nil))
+            }
+        }
+    }
+
+    private func handleSetEnhancedImage(index: UInt32, path: String, width: Int, height: Int, result: @escaping FlutterResult) {
+        guard let pres = presenter, let setEnhanced = fnSetEnhancedImage else {
+            NSLog("[GpuPresentBridgeMac] setEnhancedImage 无法执行: presenter=\(String(describing: presenter)), fnSetEnhancedImage=\(String(describing: fnSetEnhancedImage))")
+            result(false)
+            return
+        }
+        workerQueue.async { [weak self] in
+            guard let self = self, !self.isDisposed else { return }
+            guard let pathData = path.data(using: .utf8) else {
+                result(FlutterError(code: "bad-path", message: "路径无法转为 UTF-8", details: nil))
+                return
+            }
+
+            var err = [UInt8](repeating: 0, count: 1024)
+            let rc = pathData.withUnsafeBytes { rawBuffer -> Int32 in
+                let ptr = rawBuffer.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                return setEnhanced(pres, index, ptr, pathData.count, UInt32(width), UInt32(height), &err, err.count)
+            }
+
+            if rc == 0 {
+                NSLog("[GpuPresentBridgeMac] setEnhancedImage 成功注入 index=\(index), currentDisplayed=\(String(describing: self.currentDisplayedIndex))")
+                if self.currentDisplayedIndex == index {
+                    self.handleShow(index: index) { _ in }
+                }
+                result(true)
+            } else {
+                let msg = String(cString: err)
+                NSLog("[GpuPresentBridgeMac] setEnhancedImage 失败 (rc=\(rc)): \(msg)")
+                result(false)
             }
         }
     }

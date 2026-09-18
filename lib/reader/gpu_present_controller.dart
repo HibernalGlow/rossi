@@ -1,8 +1,14 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui' show Size;
 
 import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:zephyr/gpu/gpu_present_bridge.dart';
+import 'package:zephyr/main.dart' show logger;
+import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
+import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 import 'package:zephyr/reader/page_source.dart';
 
 /// GPU 呈现器的就绪状态与呈现目标 —— 从界面里搬出来的一份小状态机。
@@ -33,7 +39,18 @@ import 'package:zephyr/reader/page_source.dart';
 class GpuPresentController extends ChangeNotifier {
   /// [bridge] 是位置可选参数而不是命名参数：字段私有，而命名参数不能以下划线开头。
   /// 正常调用点不传它（用默认实现），只有测试需要替换。
-  GpuPresentController([this._bridge = const GpuPresentBridge()]);
+  GpuPresentController([this._bridge = const GpuPresentBridge()]) {
+    unawaited(_initUpscaleSetting());
+  }
+
+  Future<void> _initUpscaleSetting() async {
+    try {
+      final bool auto = await RealSrSettings.loadAutoUpscale();
+      if (!_disposed && auto) {
+        _mutate(() => _isUpscaleEnabled = true);
+      }
+    } catch (_) {}
+  }
 
   final GpuPresentBridge _bridge;
 
@@ -342,6 +359,10 @@ class GpuPresentController extends ChangeNotifier {
           _mismatchSource = null;
           _mismatchMessage = null;
           _pushedPath = source.path;
+          // 换了来源，超分那边的记账全部作废：页号含义都变了。
+          _confirmedEnhancedFor = null;
+          _upscaleAttempts.clear();
+          _upscaleInProgress.clear();
           // 刚 open，native 侧还没有当前页，强制走一次呈现。
           _pushedIndex = null;
           _pushedSize = null;
@@ -368,6 +389,15 @@ class GpuPresentController extends ChangeNotifier {
           _pushedWidth = width;
           _pushedHeight = height;
         });
+        _lastPushedSource = source;
+
+        // 成功上屏（原图已零延迟展示）后，若开启了超分，异步把这一页换成超分图。
+        //
+        // 只在 `pushed` 里调（= 真的把一页交出去了）而不是每帧：这条路上要问一次
+        // 呈现器状态，而 `present` 本身是每帧被调的幂等操作。
+        if (_isUpscaleEnabled) {
+          unawaited(_ensureEnhancedForIndex(source, index, width, height));
+        }
       }
       return _textureId != null;
     } catch (error) {
@@ -451,6 +481,331 @@ class GpuPresentController extends ChangeNotifier {
     }
   }
 
+  /// 是否处于原图对比旁路状态（对齐 mImageViewer fs_display_bypasses_final_pipeline 原版机制）。
+  bool get isOriginalPreview => _originalPreview;
+  bool _originalPreview = false;
+
+  /// 设置原图对比旁路状态。
+  Future<bool> setOriginalPreview(bool active) async {
+    if (_disposed || !GpuPresentBridge.isPlatformSupported) {
+      return false;
+    }
+    final bool ok = await _bridge.setOriginalPreview(active: active);
+    if (ok) {
+      _mutate(() {
+        _originalPreview = active;
+        _presentCount++;
+      });
+    }
+    return ok;
+  }
+
+  /// 翻转原图对比旁路状态（按下/松开或一键对比）。
+  Future<bool> toggleOriginalPreview() => setOriginalPreview(!_originalPreview);
+
+  /// 当前是否已启用超分增强。
+  bool get isUpscaleEnabled => _isUpscaleEnabled;
+  bool _isUpscaleEnabled = false;
+
+  /// 正在跑超分流水线的页（防同一页并发跑两遍）。
+  final Set<int> _upscaleInProgress = <int>{};
+
+  /// 每一页已经尝试过几次（推理 + 注入，失败也计）。上限见 [_maxUpscaleAttempts]。
+  final Map<int, int> _upscaleAttempts = <int, int>{};
+
+  /// 最近一次**经呈现器确认**「这一页现在用的就是超分轨」的页号。
+  ///
+  /// 它只是省一次跨语言往返的缓存（同一页重推时不必再问一遍），
+  /// **不是权限也不是记账**：判断"要不要再注入"始终以呈现器自己的回答为准。
+  /// 从前那个 `_enhancedIndices` 集合就是在这里出错的 —— 它是 Dart 侧的单方面
+  /// 记账，呈现器按保留集淘汰掉超分图之后它并不知道，于是"这一页已经增强过"
+  /// 会让它永远不再注入，画面停在原图上。
+  int? _confirmedEnhancedFor;
+
+  /// 同一页最多试几次（推理 + 注入合起来算）。到顶就停下并说明，
+  /// 而不是每翻一页刷一次日志、每次重新跑一遍几百毫秒的推理。
+  static const int _maxUpscaleAttempts = 3;
+
+  PageSource? _lastPushedSource;
+
+  /// 设置是否开启超分。
+  void setUpscaleEnabled(bool enabled) {
+    if (_isUpscaleEnabled == enabled) return;
+    _mutate(() {
+      _isUpscaleEnabled = enabled;
+    });
+    if (enabled) {
+      setOriginalPreview(false);
+      // 如果启用了超分，且当前已推送过页面，立即为当前页触发超分流水线
+      if (_pushedPath != null &&
+          _pushedIndex != null &&
+          _lastPushedSource != null) {
+        unawaited(_ensureEnhancedForIndex(
+          _lastPushedSource!,
+          _pushedIndex!,
+          _pushedWidth ?? 0,
+          _pushedHeight ?? 0,
+        ));
+      }
+    } else {
+      setOriginalPreview(true);
+    }
+  }
+
+  /// 翻转超分启用状态。
+  void toggleUpscale() => setUpscaleEnabled(!_isUpscaleEnabled);
+
+  /// 注入异步超分完成的图像并预渲染进 Presenter 缓存。
+  ///
+  /// 返回 `true` **只表示呈现器收下了这份像素**，不表示画面上已经换了 ——
+  /// 后者要等一次 `show` 之后再问呈现器（[_presenterUsesEnhanced]）才算数。
+  Future<bool> setEnhancedImage(
+    int index,
+    String imagePath, {
+    int? width,
+    int? height,
+  }) async {
+    if (_disposed || !GpuPresentBridge.isPlatformSupported) {
+      return false;
+    }
+    return _bridge.setEnhancedImage(
+      index,
+      imagePath,
+      width: width,
+      height: height,
+    );
+  }
+
+  /// 让「第 [index] 页显示成超分图」这件事成真 —— 该注入就注入、该推理就推理。
+  ///
+  /// # 顺序（每一条都必要）
+  ///
+  /// 1. **先问呈现器**："这一页现在用的是超分轨吗"。它自己回答（`probe.usedEnhanced`
+  ///    + `currentIndex`），而不是由 Dart 侧记的账推断 —— 这一条就是修「超分完成了
+  ///    却替换不上去」的关键：Dart 的账与呈现器的实际状态是**两份**，任何时候都可能
+  ///    分叉（最典型的是呈现器按保留集把超分图淘汰了：翻到远处再翻回来时就发生）；
+  /// 2. **已经有产物**（`rossi_sr_cache` 里那张 PNG）→ 只注入，不重跑推理；
+  /// 3. **没有产物** → 跑推理，再注入。
+  ///
+  /// 只在**真的把一页推出去之后**调（`present` 里 `pushed == true` 那一段），
+  /// 所以这里的跨语言往返是"每次翻页一次"，不是"每帧一次"。
+  Future<void> _ensureEnhancedForIndex(
+    PageSource source,
+    int index,
+    int targetW,
+    int targetH,
+  ) async {
+    if (_disposed || !_isUpscaleEnabled || !GpuPresentBridge.isPlatformSupported) {
+      return;
+    }
+    if (_upscaleInProgress.contains(index)) {
+      return;
+    }
+    if (_confirmedEnhancedFor == index) {
+      return;
+    }
+
+    // ① 以呈现器为准：它已经在用超分轨，那就没什么可做的。
+    final bool? presenterUses = await _presenterUsesEnhanced(index);
+    if (_disposed) return;
+    if (presenterUses == true) {
+      _confirmedEnhancedFor = index;
+      return;
+    }
+    if (presenterUses == null) {
+      // 判不了（呈现器没就绪，或上一次呈现已经不是这一页）。**不猜**：
+      // 猜"要注入"会白解一张几十 MB 的大图，猜"不用"就会永远停在原图上。
+      // 下一次翻到这一页时会再问一次。
+      return;
+    }
+
+    final int attempts = _upscaleAttempts[index] ?? 0;
+    if (attempts >= _maxUpscaleAttempts) {
+      return;
+    }
+    // 这一次尝试先记账（注入与推理**两段都算**）：到顶就安静停下，
+    // 既不每翻一页刷一次日志，也不每次重跑几百毫秒的推理。
+    _upscaleAttempts[index] = attempts + 1;
+
+    final Directory srCacheDir = await _srCacheDir();
+    if (_disposed) return;
+    final String outPath = p.join(srCacheDir.path, _srFileName(source, index));
+
+    _upscaleInProgress.add(index);
+    File? tempFile;
+    try {
+      // ② 有产物：只注入。重试也走这里 —— 代价是解码 + 注入，不是几百毫秒的推理。
+      if (File(outPath).existsSync()) {
+        logger.i('[Rossi AI] 第 $index 页命中已缓存的超分图，直接注入呈现器');
+        await _applyEnhancedToPresenter(index, outPath, targetW, targetH);
+        return;
+      }
+
+      // ③ 没有产物：跑一次推理
+      String? inputPath = await source.getPageFilePath(index);
+      if (inputPath == null || !File(inputPath).existsSync()) {
+        final bytes = await source.getPageBytes(index);
+        if (bytes == null || bytes.isEmpty) return;
+
+        tempFile = File(
+          p.join(srCacheDir.path, 'temp_in_${source.path.hashCode}_$index.png'),
+        );
+        await tempFile.writeAsBytes(bytes, flush: true);
+        inputPath = tempFile.path;
+      }
+
+      logger.i('[Rossi AI] 开始对第 $index 页执行超分: $inputPath');
+      final bool produced = await RealSrSuperResolution.upscale(
+        inputPath: inputPath,
+        outputPath: outPath,
+      );
+      if (_disposed) return;
+
+      if (!produced) {
+        logger.w(
+          '[Rossi AI] 第 $index 页超分未产出有效文件（第 ${attempts + 1}/$_maxUpscaleAttempts 次），'
+          '本页保持原图',
+        );
+        return;
+      }
+
+      // 到这里只能说明「文件生成了」。画面上换没换，由下一步的返回值说了算。
+      await _applyEnhancedToPresenter(index, outPath, targetW, targetH);
+    } catch (e, s) {
+      logger.w('[Rossi AI] 第 $index 页超分执行异常', error: e, stackTrace: s);
+    } finally {
+      _upscaleInProgress.remove(index);
+      // 中间产物（从归档里解出来的整页字节）不论成败都删：它与页面同量级。
+      if (tempFile != null && tempFile.existsSync()) {
+        try {
+          await tempFile.delete();
+        } catch (_) {}
+      }
+    }
+  }
+
+  /// 超分图的落盘位置：`<临时目录>/rossi_sr_cache/sr_<来源哈希>_<页号>.png`。
+  ///
+  /// 路径就是一个函数、不散落在各处，是因为它同时是**「这一页推理过了」的凭据**：
+  /// 盘上有它就不必再跑一遍推理。这一点让"注入失败要能重试"变得很便宜。
+  static String _srFileName(PageSource source, int index) =>
+      'sr_${source.path.hashCode}_$index.png';
+
+  Directory? _srCacheDirCache;
+
+  Future<Directory> _srCacheDir() async {
+    final Directory? cached = _srCacheDirCache;
+    if (cached != null && cached.existsSync()) {
+      return cached;
+    }
+    final Directory cacheDir = await getTemporaryDirectory();
+    final Directory srCacheDir = Directory(p.join(cacheDir.path, 'rossi_sr_cache'));
+    if (!srCacheDir.existsSync()) {
+      await srCacheDir.create(recursive: true);
+    }
+    _srCacheDirCache = srCacheDir;
+    return srCacheDir;
+  }
+
+  /// 把超分产物交给呈现器，并**按实际结果**汇报。
+  ///
+  /// # 为什么要拆成两段、为什么两段都要看返回值
+  ///
+  /// 用户眼里的「替换成功」= 画面上换成了超分图。而在代码里，从「超分跑完」到
+  /// 「画面上真的换了」中间有两道闸，各自会失败，而且**后者不能由前者推出来**：
+  ///
+  /// 1. **注入**：[setEnhancedImage] 把像素放进呈现器的双轨缓存。可能失败
+  ///    （呈现器未就绪、大图解码失败、这个平台没有这条实现……）；
+  /// 2. **上屏**：`show` 之后那一帧**确实取自超分轨**。它同样可能失败 —— 最典型的
+  ///    是注入之后该页的原图轨又被预取线程写回，把超分轨整条覆盖掉。
+  ///
+  /// 从前这两件事和「文件生成了」被写成一句「第 N 页超分成功 …… 已触发原子平滑
+  /// 替换呈现」，第 2 段失败时日志照打：**日志说成功、画面还是原图**（虚报）。
+  ///
+  /// 现在的纪律：
+  /// - 上屏后向呈现器要**证据**（`probe.usedEnhanced`），拿不到证据就既不声称成功
+  ///   也不声称失败；
+  /// - 证据说"这次用的还是原图轨"时**如实报失败**（下次呈现该页会重来一遍，
+  ///   而那时盘上已有产物，重来的代价只是注入）。
+  ///
+  /// 返回是否真的在画面上替换了（`false` = 这次没换上，或已注入、等下一次呈现）。
+  Future<bool> _applyEnhancedToPresenter(
+    int index,
+    String outPath,
+    int targetW,
+    int targetH,
+  ) async {
+    final bool injected = await setEnhancedImage(
+      index,
+      outPath,
+      // 0 是「不知道视口多大」，不是「视口是 0」：传 null 让 native 侧用它自己记的
+      // 目标尺寸。真传 0 会让它跳过预渲染帧生成，那一帧只能现场重采样。
+      width: targetW > 0 ? targetW : null,
+      height: targetH > 0 ? targetH : null,
+    );
+    if (_disposed) return false;
+
+    if (!injected) {
+      logger.w('[Rossi AI] 第 $index 页超分图注入呈现器失败，本页仍是原图；下次呈现该页时会重试');
+      return false;
+    }
+
+    if (_pushedIndex != index) {
+      logger.i(
+        '[Rossi AI] 第 $index 页超分图已注入呈现器缓存，但当前呈现的是第 $_pushedIndex 页，'
+        '等它被呈现时会自动用上',
+      );
+      return false;
+    }
+
+    await _bridge.show(index);
+    if (_disposed) return false;
+    _mutate(() {
+      _presentCount++;
+    });
+
+    final bool? confirmed = await _presenterUsesEnhanced(index);
+    if (confirmed == true) {
+      _confirmedEnhancedFor = index;
+      _upscaleAttempts.remove(index);
+      logger.i('[Rossi AI] 第 $index 页超分图已替换上屏（呈现器确认本次呈现取自超分轨）');
+      return true;
+    }
+    if (confirmed == false) {
+      logger.w(
+        '[Rossi AI] 第 $index 页超分图已注入，但呈现器本次呈现用的仍是原图轨：画面上没变。'
+        '下次呈现该页时会重试',
+      );
+      return false;
+    }
+    logger.i(
+      '[Rossi AI] 第 $index 页已请求用超分图重画，但拿不到呈现器的核对结论（期间可能又翻过页），'
+      '本次不作成功/失败判定',
+    );
+    return false;
+  }
+
+  /// 问呈现器：「第 [index] 页现在用的是超分轨吗？」
+  ///
+  /// `null` = **判不了**（呈现器没就绪、或上一次呈现已经不是这一页了）。判不了时
+  /// 既不报成功也不报失败 —— 把不确定说成其中之一，正是这次要修的那个 bug。
+  ///
+  /// 证据来自 Rust 侧 `MacPresenter::show_into_buffer` 的 `usedEnhanced`：它由
+  /// **这一帧的像素从哪来**决定，而不是由"我们调用过 show"推断。所以它既能确认
+  /// 「替换真的上屏了」，也能在**没换上去**时把这件事说出来 —— 而 Dart 侧自己
+  /// 记的账做不到后者（它只知道自己调过注入）。
+  Future<bool?> _presenterUsesEnhanced(int index) async {
+    try {
+      final GpuPresentStats stats = await _bridge.stats();
+      if (stats.probeInt('currentIndex') != index) {
+        return null;
+      }
+      return stats.probeInt('usedEnhanced') == 1;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// 取一份 native 侧诊断快照。
   Future<void> refreshStats() async {
     if (_disposed || !GpuPresentBridge.isPlatformSupported) {
@@ -484,6 +839,8 @@ class GpuPresentController extends ChangeNotifier {
         _pushedSize,
         _mismatchSource,
         _mismatchMessage,
+        _originalPreview,
+        _isUpscaleEnabled,
       );
 
   /// 改状态并在**真的变了**的时候通知。

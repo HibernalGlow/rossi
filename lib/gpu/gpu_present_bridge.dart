@@ -277,6 +277,46 @@ class GpuPresentBridge {
       return false;
     }
   }
+
+  /// 开关原图对比旁路（对齐 mImageViewer fs_display_bypasses_final_pipeline 原版机制）。
+  ///
+  /// [active] 为 true 时强制绕过超分图，瞬时直出 raw 原图；false 时恢复超分图展示。
+  Future<bool> setOriginalPreview({required bool active}) async {
+    if (!isPlatformSupported) return false;
+    try {
+      final bool? ok = await channel.invokeMethod<bool>(
+        'setOriginalPreview',
+        <String, Object?>{'active': active},
+      );
+      return ok ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 注入超分生成的大图文件并预渲染进 Presenter 双轨缓存（对齐 mImageViewer FinalComposite 机制）。
+  Future<bool> setEnhancedImage(
+    int index,
+    String imagePath, {
+    int? width,
+    int? height,
+  }) async {
+    if (!isPlatformSupported) return false;
+    try {
+      final bool? ok = await channel.invokeMethod<bool>(
+        'setEnhancedImage',
+        <String, Object?>{
+          'index': index,
+          'path': imagePath,
+          'width': ?width,
+          'height': ?height,
+        },
+      );
+      return ok ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
 }
 
 /// native 侧的诊断快照。

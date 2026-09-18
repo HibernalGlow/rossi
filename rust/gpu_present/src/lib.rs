@@ -742,6 +742,95 @@ mod mac_platform {
         }
     }
 
+    /// 开关原图对比旁路（对齐 mImageViewer fs_display_bypasses_final_pipeline 原版机制）。
+    /// active != 0 时强制旁路超分图，瞬时直出 raw 原图；0 时正常显示超分图。
+    #[no_mangle]
+    pub extern "C" fn rossi_gpu_present_set_original_preview(
+        presenter: *mut c_void,
+        active: i32,
+    ) -> i32 {
+        let Some(holder) = (unsafe { borrow(presenter) }) else {
+            return -1;
+        };
+        let guard = lock_slot(&holder.slot);
+        if let Slot::Ready(inner) = &*guard {
+            inner.set_original_preview(active != 0);
+            0
+        } else {
+            -1
+        }
+    }
+
+    /// 注入超分图片文件并预渲染进缓存（对齐 mImageViewer FinalComposite 机制）
+    ///
+    /// # 读盘与解码必须放在锁**外**
+    ///
+    /// 一页超分图是几十到上百 MB 的 PNG/WebP，`fs::read` + `decode_rgba` 要
+    /// 几百毫秒到几秒；而 `lock_slot` 是整条上屏路的**总闸** —— `show`（翻页）、
+    /// `stats`（诊断轮询）、`prepare` 全都要过它。把解码放在锁里，注入一开始就等于
+    /// 把翻页和轮询一起冻住：用户看到的是长时间卡住，而卡住期间到达的 `show` 只能
+    /// 排队等着，等它终于跑完时呈现的仍是旧内容。
+    ///
+    /// 所以这里分两段：**① 锁外读盘解码 → ② 持锁把像素装进双轨缓存**。
+    /// 第二段里的重采样只是一个量级更便宜的操作，放在锁里可以接受。
+    #[no_mangle]
+    pub extern "C" fn rossi_gpu_present_set_enhanced_image(
+        presenter: *mut c_void,
+        index: u32,
+        path_utf8: *const u8,
+        path_len: usize,
+        target_width: u32,
+        target_height: u32,
+        err_buf: *mut u8,
+        err_len: usize,
+    ) -> i32 {
+        let Some(holder) = (unsafe { borrow(presenter) }) else {
+            write_err(err_buf, err_len, "presenter 指针为空");
+            return -1;
+        };
+        if path_utf8.is_null() || path_len == 0 {
+            write_err(err_buf, err_len, "path 为空");
+            return -1;
+        }
+        let path_str = match std::str::from_utf8(unsafe { std::slice::from_raw_parts(path_utf8, path_len) }) {
+            Ok(s) => s,
+            Err(e) => {
+                write_err(err_buf, err_len, &format!("path 不是合法的 UTF-8: {e}"));
+                return -1;
+            }
+        };
+
+        // ── ① 锁外：读盘 + 解码 ──
+        let pixels = match std::fs::read(path_str) {
+            Ok(bytes) => match rossi_local_core::decode::decode_rgba(&bytes) {
+                Ok(pixels) => Arc::new(pixels),
+                Err(e) => {
+                    write_err(err_buf, err_len, &format!("解码超分图失败: {e:#}"));
+                    return -1;
+                }
+            },
+            Err(e) => {
+                write_err(err_buf, err_len, &format!("读取超分图失败: {e}"));
+                return -1;
+            }
+        };
+
+        // ── ② 持锁：装进缓存（顺带按视口尺寸预渲染一帧）──
+        let mut guard = lock_slot(&holder.slot);
+        let Slot::Ready(inner) = &mut *guard else {
+            write_err(err_buf, err_len, "呈现器尚未就绪");
+            return -1;
+        };
+
+        match inner.set_enhanced_pixels(index as usize, pixels, target_width, target_height) {
+            Ok(()) => 0,
+            Err(e) => {
+                write_err(err_buf, err_len, &format!("{e:#}"));
+                -1
+            }
+        }
+    }
+
     #[no_mangle]
     pub extern "C" fn rossi_gpu_present_stats(
         presenter: *mut c_void,

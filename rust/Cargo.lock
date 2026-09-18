@@ -4293,6 +4293,7 @@ dependencies = [
  "anyhow",
  "bytemuck",
  "clap",
+ "image",
  "js-sys",
  "pollster",
  "rossi_local_core",

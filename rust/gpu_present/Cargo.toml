@@ -64,3 +64,6 @@ required-features = ["probe"]
 
 # 不在这里写 [profile.*]：作为 workspace 成员，非根包里的 profile 会被忽略并告警。
 # 优化档位统一在 rust/Cargo.toml 里定。
+
+[dev-dependencies]
+image = { version = "0.25.10", default-features = false, features = ["png"] }

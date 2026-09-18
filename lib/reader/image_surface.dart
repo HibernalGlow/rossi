@@ -97,12 +97,14 @@ class _ImageSurfaceState extends State<ImageSurface> {
 
   GpuPresentState? _lastKnownState;
   int? _lastKnownTextureId;
+  int _lastKnownPresentCount = 0;
 
   @override
   void initState() {
     super.initState();
     _lastKnownState = widget.presenter.state;
     _lastKnownTextureId = widget.presenter.textureId;
+    _lastKnownPresentCount = widget.presenter.presentCount;
     widget.presenter.addListener(_onPresenterChanged);
     // 起始通路：呈现器已就绪、纹理也注册了就直接从 GPU 路起步。
     //
@@ -156,13 +158,18 @@ class _ImageSurfaceState extends State<ImageSurface> {
     }
     final GpuPresentState newState = widget.presenter.state;
     final int? newTex = widget.presenter.textureId;
-    // 只有呈现器状态或纹理真实变了才触发同步，心跳刷统计绝不重新调 _sync
-    if (newState != _lastKnownState || newTex != _lastKnownTextureId) {
+    final int newCount = widget.presenter.presentCount;
+    // 呈现器状态、纹理或者上屏帧计数变了均触发重绘，保证原子替换毫秒级刷新
+    if (newState != _lastKnownState ||
+        newTex != _lastKnownTextureId ||
+        newCount != _lastKnownPresentCount) {
       _lastKnownState = newState;
       _lastKnownTextureId = newTex;
+      _lastKnownPresentCount = newCount;
       setState(() {});
       final Size? size = _physicalSize;
-      if (size != null) {
+      if (size != null &&
+          (newState != _lastKnownState || newTex != _lastKnownTextureId)) {
         unawaited(_sync(size));
       }
     }
@@ -417,7 +424,10 @@ class _ImageSurfaceState extends State<ImageSurface> {
       return SizedBox(
         width: constraints.maxWidth,
         height: constraints.maxHeight,
-        child: Texture(textureId: textureId),
+        child: Texture(
+          key: ValueKey('tex_${textureId}_$_lastKnownPresentCount'),
+          textureId: textureId,
+        ),
       );
     }
 

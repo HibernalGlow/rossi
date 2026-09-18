@@ -79,6 +79,18 @@ class _FakeSource implements PageSource {
   Future<void> close() async {
     closeCalls++;
   }
+
+  // 超分流水线要靠这两个取"原始一页"（散图给路径、归档给字节）。
+  // 假来源没有磁盘上的页，如实回 null —— **不要**为了让它看起来能跑超分而造假数据：
+  // 这条路径的测试点在真实夹具上。
+  //
+  // 这两个成员是 `PageSource` 后来加的（带默认实现）。`implements` 不继承默认实现，
+  // 所以每加一个成员，所有假来源都得跟着补 —— 编译期就会报出来，这是故意留着的摩擦。
+  @override
+  Future<String?> getPageFilePath(int index) => Future.value(null);
+
+  @override
+  Future<Uint8List?> getPageBytes(int index) => Future.value(null);
 }
 
 /// 兜底路要过 `ui.decodeImageFromPixels`，它的完成回调走**真实**事件循环，
