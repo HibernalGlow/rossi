@@ -11,10 +11,18 @@ class LocalFolderCard extends StatelessWidget {
   final bool isExpanded;
   final VoidCallback onToggle;
 
+  /// 卡片在面板轨道上的位置动作，由宿主（面板 / 抽屉）传入。
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
+  final VoidCallback? onHide;
+
   const LocalFolderCard({
     super.key,
     required this.isExpanded,
     required this.onToggle,
+    this.onMoveUp,
+    this.onMoveDown,
+    this.onHide,
   });
 
   @override
@@ -27,6 +35,9 @@ class LocalFolderCard extends StatelessWidget {
       icon: Icons.folder_copy_rounded,
       isExpanded: isExpanded,
       onToggle: onToggle,
+      onMoveUp: onMoveUp,
+      onMoveDown: onMoveDown,
+      onHide: onHide,
       trailing: FilledButton.tonalIcon(
         onPressed: () => _openLocalPicker(context),
         icon: const Icon(Icons.folder_open_rounded, size: 16),

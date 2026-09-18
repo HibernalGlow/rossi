@@ -13,10 +13,18 @@ class FavoriteShelfCard extends StatefulWidget {
   final bool isExpanded;
   final VoidCallback onToggle;
 
+  /// 卡片在面板轨道上的位置动作，由宿主（面板 / 抽屉）传入。
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
+  final VoidCallback? onHide;
+
   const FavoriteShelfCard({
     super.key,
     required this.isExpanded,
     required this.onToggle,
+    this.onMoveUp,
+    this.onMoveDown,
+    this.onHide,
   });
 
   @override
@@ -63,6 +71,9 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
           icon: Icons.bookmark_added_rounded,
           isExpanded: widget.isExpanded,
           onToggle: widget.onToggle,
+          onMoveUp: widget.onMoveUp,
+          onMoveDown: widget.onMoveDown,
+          onHide: widget.onHide,
           trailing: Container(
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
             decoration: BoxDecoration(

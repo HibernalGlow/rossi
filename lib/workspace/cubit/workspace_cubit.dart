@@ -2,9 +2,12 @@ import 'dart:math' as math;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/workspace/cubit/workspace_state.dart';
+import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
 import 'package:zephyr/workspace/model/workspace_reader_target.dart';
+import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
+import 'package:zephyr/workspace/registry/workspace_panel_registry.dart';
 
 class WorkspaceCubit extends Cubit<WorkspaceState> {
   WorkspaceCubit() : super(WorkspaceState.initial());
@@ -42,12 +45,138 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
 
   // ── 面板泳道 ───────────────────────────────────────────────────────────
 
-  /// 切换某条面板泳道当前显示的面板（各泳道各自记账）。
+  /// 切换某条泳道当前显示的面板（各泳道各自记账）。
   void setActivePanel(String laneId, String panelId) {
     if (state.activePanel[laneId] == panelId) return;
     final updated = Map<String, String>.from(state.activePanel);
     updated[laneId] = panelId;
     emit(state.copyWith(activePanel: updated));
+  }
+
+  // ── 面板 / 卡片的布局记账 ──────────────────────────────────────────────
+
+  /// 把面板放到 [side] 侧的指定位置（轨内重排与跨泳道搬移走的是同一个口子）。
+  void placePanel({
+    required String panelId,
+    required WorkspacePanelSide side,
+    required List<String> siblingIds,
+    required int insertIndex,
+  }) {
+    emit(
+      state.copyWith(
+        board: state.board.placePanel(
+          panelId: panelId,
+          side: side,
+          siblingIds: siblingIds,
+          insertIndex: insertIndex,
+        ),
+      ),
+    );
+  }
+
+  /// 显示 / 隐藏一个面板。
+  void setPanelVisible(String panelId, bool visible) {
+    final panel = WorkspacePanelRegistry.I.find(panelId);
+    if (panel == null) return;
+    final effective = WorkspacePanelRegistry.I.effectivePanelLayout(
+      panel,
+      state.board,
+    );
+    if (effective.visible == visible) return;
+
+    final order = visible
+        ? WorkspacePanelRegistry.I
+              .panelsForSide(effective.side, state.board)
+              .length
+        : effective.order;
+    emit(
+      state.copyWith(
+        board: state.board.setPanelVisible(
+          panelId: panelId,
+          side: effective.side,
+          order: order,
+          visible: visible,
+        ),
+      ),
+    );
+  }
+
+  /// 在所属面板内上移 / 下移一张卡。
+  ///
+  /// 次序由**注册表算出的当前显示序列**决定 —— 不由调用方传进来，
+  /// 否则「按错了一下」会把某张卡挪到一个谁也没想到的位置。
+  void moveCardInPanel(String panelId, String cardId, int direction) {
+    final registry = WorkspaceCardRegistry.I;
+    final ordered = [
+      for (final card in registry.cardsForPanel(panelId, state.board)) card.id,
+    ];
+    final next = state.board.moveCard(cardId, direction, ordered);
+    if (next == null) return;
+    emit(state.copyWith(board: next));
+  }
+
+  /// 展开 / 折叠一张卡。
+  void setCardExpanded(String cardId, bool expanded) {
+    final card = WorkspaceCardRegistry.I.find(cardId);
+    if (card == null) return;
+    final effective = WorkspaceCardRegistry.I.effectiveLayout(card, state.board);
+    emit(
+      state.copyWith(
+        board: state.board.setCardExpanded(
+          cardId: cardId,
+          panelId: effective.panelId,
+          order: effective.order,
+          expanded: expanded,
+        ),
+      ),
+    );
+  }
+
+  /// 显示 / 隐藏一张卡。
+  void setCardVisible(String cardId, bool visible) {
+    final card = WorkspaceCardRegistry.I.find(cardId);
+    if (card == null) return;
+    final effective = WorkspaceCardRegistry.I.effectiveLayout(card, state.board);
+    emit(
+      state.copyWith(
+        board: state.board.setCardVisible(
+          cardId: cardId,
+          panelId: effective.panelId,
+          order: effective.order,
+          visible: visible,
+        ),
+      ),
+    );
+  }
+
+  /// 把一张卡搬到另一个面板（同样是「卡片成员关系只有一处可改」的落点）。
+  void placeCard({
+    required String cardId,
+    required String panelId,
+    required int insertIndex,
+  }) {
+    final registry = WorkspaceCardRegistry.I;
+    final siblings = [
+      for (final card in registry.cardsForPanel(panelId, state.board))
+        if (card.id != cardId) card.id,
+    ];
+    final fallbackCard = registry.find(cardId);
+    final moved = state.board.placeCard(
+      cardId: cardId,
+      panelId: panelId,
+      siblingCardIds: siblings,
+      insertIndex: insertIndex,
+      fallbackFor: (id) {
+        final definition = registry.find(id) ?? fallbackCard;
+        return CardLayout(
+          panelId: definition?.defaultPanelId ?? panelId,
+          visible: true,
+          order: definition?.defaultOrder ?? 0,
+          expanded: definition?.defaultExpanded ?? true,
+        );
+      },
+    );
+    emit(state.copyWith(board: moved));
   }
 
   // ── 几何 ───────────────────────────────────────────────────────────────
@@ -140,6 +269,23 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
     emit(state.copyWith(layout: state.layout.copyWith(lanes: updated)));
   }
 
+  /// 泳道重排：把 [draggedLaneId] 挪到 [targetLaneId] 原来的位置上。
+  ///
+  /// 顺序是**通用顺序**（一串 id），所以将来加「浮动泳道」之类的标识
+  /// 不需要换模型。阅读器泳道与面板泳道的宽度记账各自独立，
+  /// 重排只改**谁在左、谁在右**，不动任何宽度。
+  void reorderLane(String draggedLaneId, String targetLaneId) {
+    if (draggedLaneId == targetLaneId) return;
+    final order = List<String>.from(state.layout.laneOrder);
+    final from = order.indexOf(draggedLaneId);
+    final to = order.indexOf(targetLaneId);
+    if (from < 0 || to < 0) return;
+
+    order.removeAt(from);
+    order.insert(to, draggedLaneId);
+    emit(state.copyWith(layout: state.layout.copyWith(laneOrder: order)));
+  }
+
   /// 切换泳道独占（Solo）状态。
   ///
   /// Solo 是**泳道自己的属性**，不是全局工作区状态：进入/退出 Sole 都不改写
@@ -170,14 +316,6 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
   }
 
   // ── 卡片与四边栏（edges 模式） ─────────────────────────────────────────
-
-  /// 切换卡片展开/折叠
-  void toggleCardExpanded(String cardId) {
-    final current = state.cardExpanded[cardId] ?? true;
-    final updated = Map<String, bool>.from(state.cardExpanded);
-    updated[cardId] = !current;
-    emit(state.copyWith(cardExpanded: updated));
-  }
 
   /// 切换四边栏边缘抽屉
   void toggleEdgeDrawer(String edgeKey) {
@@ -230,12 +368,16 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
     );
   }
 
-  /// 重置布局为默认（**不动**当前正在读的那一本）
+  /// 重置布局为默认（**不动**当前正在读的那一本）。
+  ///
+  /// 「重置」= 把布局记账清空 —— 因为空账就是「全部按注册表的默认值」，
+  /// 所以重置不需要把默认值再抄一遍，也就不会漏掉后来新加的卡片。
   void resetLayout() {
     emit(
       state.copyWith(
         layout: WorkspaceLayoutConfig.defaults(),
-        activePanel: WorkspaceState.initial().activePanel,
+        board: const WorkspaceBoardLayout(),
+        activePanel: const <String, String>{},
       ),
     );
   }

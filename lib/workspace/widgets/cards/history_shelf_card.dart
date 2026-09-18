@@ -12,10 +12,18 @@ class HistoryShelfCard extends StatelessWidget {
   final bool isExpanded;
   final VoidCallback onToggle;
 
+  /// 卡片在面板轨道上的位置动作，由宿主（面板 / 抽屉）传入。
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
+  final VoidCallback? onHide;
+
   const HistoryShelfCard({
     super.key,
     required this.isExpanded,
     required this.onToggle,
+    this.onMoveUp,
+    this.onMoveDown,
+    this.onHide,
   });
 
   @override
@@ -38,6 +46,9 @@ class HistoryShelfCard extends StatelessWidget {
           icon: Icons.history_rounded,
           isExpanded: isExpanded,
           onToggle: onToggle,
+          onMoveUp: onMoveUp,
+          onMoveDown: onMoveDown,
+          onHide: onHide,
           trailing: Container(
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
             decoration: BoxDecoration(

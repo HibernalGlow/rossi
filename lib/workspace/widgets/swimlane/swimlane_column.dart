@@ -24,6 +24,13 @@ class SwimlaneColumn extends StatelessWidget {
   /// 栏头右侧的附加控件。**必须窄**（图标按钮级别），否则窄栏会挤压标题。
   final List<Widget> headerActions;
 
+  /// **停靠在栏头（顶栏）的面板切换工具栏**。
+  ///
+  /// neoview 的 `ReaderPanelBar` 在 `dock: "top"` 时被 portal 进泳道的
+  /// title slot —— 面板页签就长在泳道的顶栏里，而不是另开一条竖轨。
+  /// 传 `null` = 这条泳道没有面板可切（例如阅读器泳道）。
+  final Widget? panelTabs;
+
   final Widget? child;
   final List<Widget>? cards;
 
@@ -38,6 +45,7 @@ class SwimlaneColumn extends StatelessWidget {
     this.onResetWidth,
     this.titleOverride,
     this.headerActions = const <Widget>[],
+    this.panelTabs,
     this.child,
     this.cards,
   });
@@ -50,7 +58,6 @@ class SwimlaneColumn extends StatelessWidget {
     if (config.collapsed && !isSolo) {
       return _buildCollapsedRail(context, theme);
     }
-
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
@@ -82,12 +89,11 @@ class SwimlaneColumn extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(
-                  laneIcon(laneId),
-                  size: 18,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
+                // 栏头图标 = 泳道重排把手（按住拖到另一条泳道上即可换位）。
+                // neoview：lane header owns collapse, reorder, focus, width ——
+                // 所以「重排」这件事落在栏头，不另开一个拖拽区。
+                _buildLaneHandle(context, theme),
+                const SizedBox(width: 4),
 
                 // 泳道标题（双击重置宽度）
                 Expanded(
@@ -134,6 +140,13 @@ class SwimlaneColumn extends StatelessWidget {
 
                 ...headerActions,
 
+                // 面板切换工具栏（停靠在顶栏）：泳道的面板页签就在这里。
+                if (panelTabs != null) ...[
+                  const SizedBox(width: 4),
+                  panelTabs!,
+                  const SizedBox(width: 4),
+                ],
+
                 // Solo 独占按钮
                 IconButton(
                   icon: Icon(
@@ -168,6 +181,66 @@ class SwimlaneColumn extends StatelessWidget {
                 ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// 栏头最左侧的泳道把手。
+  ///
+  /// 平时就是这条泳道的图标；**按住**才变成可拖动的把手 ——
+  /// 于是「重排泳道」不需要额外占位，也不会误触（拖动与点击是两个手势）。
+  Widget _buildLaneHandle(BuildContext context, ThemeData theme) {
+    final icon = Icon(
+      laneIcon(laneId),
+      size: 18,
+      color: theme.colorScheme.primary,
+    );
+
+    if (isSolo) {
+      return Tooltip(message: config.title, child: icon);
+    }
+
+    return Tooltip(
+      message: '${titleOverride ?? config.title}　（按住可拖动重排泳道）',
+      waitDuration: const Duration(milliseconds: 500),
+      child: LongPressDraggable<String>(
+        data: laneId,
+        delay: const Duration(milliseconds: 200),
+        feedback: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 10,
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  laneIcon(laneId),
+                  size: 16,
+                  color: theme.colorScheme.onPrimaryContainer,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  titleOverride ?? config.title,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onPrimaryContainer,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        child: MouseRegion(cursor: SystemMouseCursors.grab, child: icon),
       ),
     );
   }

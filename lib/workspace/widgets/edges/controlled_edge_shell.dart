@@ -2,12 +2,10 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/cubit/workspace_state.dart';
-import 'package:zephyr/workspace/widgets/cards/discover_plugins_card.dart';
-import 'package:zephyr/workspace/widgets/cards/download_shelf_card.dart';
-import 'package:zephyr/workspace/widgets/cards/favorite_shelf_card.dart';
-import 'package:zephyr/workspace/widgets/cards/history_shelf_card.dart';
-import 'package:zephyr/workspace/widgets/cards/local_folder_card.dart';
+import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/widgets/edges/edge_drawer_panel.dart';
+import 'package:zephyr/workspace/widgets/panels/lane_panel_host.dart';
+import 'package:zephyr/workspace/widgets/panels/panel_tab_strip.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_host.dart';
 
 /// 四边栏沉浸容器：**中央还是 Reader**，四边是悬浮滑出的抽屉。
@@ -67,7 +65,7 @@ class ControlledEdgeShell extends StatelessWidget {
                 ),
               ),
 
-            // 4. 左侧滑出抽屉：真实收藏 / 历史 / 下载
+            // 4. 左侧滑出抽屉：**同一套面板宿主**（图标轨 + 卡片）
             AnimatedPositioned(
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeOutCubic,
@@ -76,27 +74,15 @@ class ControlledEdgeShell extends StatelessWidget {
               bottom: 0,
               width: _drawerWidth,
               child: EdgeDrawerPanel(
-                title: '书架抽屉',
+                title: '左侧面板（书架）',
                 icon: Icons.auto_stories_rounded,
                 onClose: () => cubit.toggleEdgeDrawer('left'),
-                children: [
-                  FavoriteShelfCard(
-                    isExpanded: state.cardExpanded['favorite'] ?? true,
-                    onToggle: () => cubit.toggleCardExpanded('favorite'),
-                  ),
-                  HistoryShelfCard(
-                    isExpanded: state.cardExpanded['history'] ?? true,
-                    onToggle: () => cubit.toggleCardExpanded('history'),
-                  ),
-                  DownloadShelfCard(
-                    isExpanded: state.cardExpanded['download'] ?? true,
-                    onToggle: () => cubit.toggleCardExpanded('download'),
-                  ),
-                ],
+                panelTabs: const PanelTabStrip(side: WorkspacePanelSide.left),
+                child: const LanePanelHost(side: WorkspacePanelSide.left),
               ),
             ),
 
-            // 5. 右侧滑出抽屉：图源与本地
+            // 5. 右侧滑出抽屉：同一套面板宿主
             AnimatedPositioned(
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeOutCubic,
@@ -105,20 +91,11 @@ class ControlledEdgeShell extends StatelessWidget {
               bottom: 0,
               width: _drawerWidth,
               child: EdgeDrawerPanel(
-                title: '图源与本地',
+                title: '右侧面板（发现与图源）',
                 icon: Icons.tune_rounded,
                 onClose: () => cubit.toggleEdgeDrawer('right'),
-                children: [
-                  DiscoverPluginsCard(
-                    isExpanded: state.cardExpanded['discover_plugins'] ?? true,
-                    onToggle: () =>
-                        cubit.toggleCardExpanded('discover_plugins'),
-                  ),
-                  LocalFolderCard(
-                    isExpanded: state.cardExpanded['local_folder'] ?? true,
-                    onToggle: () => cubit.toggleCardExpanded('local_folder'),
-                  ),
-                ],
+                panelTabs: const PanelTabStrip(side: WorkspacePanelSide.right),
+                child: const LanePanelHost(side: WorkspacePanelSide.right),
               ),
             ),
 

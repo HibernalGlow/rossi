@@ -1,11 +1,20 @@
 import 'package:material_ui/material_ui.dart';
 
-/// 边缘滑出抽屉容器面板
+/// 边缘滑出抽屉容器面板。
+///
+/// 内容交给调用方 —— 现在两个抽屉装的是**同一套面板宿主**
+/// （`LanePanelHost`），于是四边栏模式与泳道模式用的是同一份面板注册表、
+/// 同一个图标轨、同一批卡片：「这张卡属于哪个面板」永远只有一处可改。
 class EdgeDrawerPanel extends StatelessWidget {
   final String title;
   final IconData icon;
   final VoidCallback onClose;
-  final List<Widget> children;
+  final Widget child;
+
+  /// 同样停在**顶栏**的面板页签条（左右抽屉各一条）——
+  /// 与泳道模式用的是同一个控件、同一份面板注册表。
+  final Widget? panelTabs;
+
   final double width;
 
   const EdgeDrawerPanel({
@@ -13,7 +22,8 @@ class EdgeDrawerPanel extends StatelessWidget {
     required this.title,
     required this.icon,
     required this.onClose,
-    required this.children,
+    required this.child,
+    this.panelTabs,
     this.width = 340.0,
   });
 
@@ -59,8 +69,14 @@ class EdgeDrawerPanel extends StatelessWidget {
                   child: Text(
                     title,
                     style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                if (panelTabs != null) ...[
+                  panelTabs!,
+                  const SizedBox(width: 4),
+                ],
                 IconButton(
                   icon: const Icon(Icons.close_rounded, size: 20),
                   tooltip: '关闭边栏 (Close)',
@@ -70,13 +86,8 @@ class EdgeDrawerPanel extends StatelessWidget {
               ],
             ),
           ),
-          // Drawer Cards
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              children: children,
-            ),
-          ),
+          // Drawer Content
+          Expanded(child: child),
         ],
       ),
     );

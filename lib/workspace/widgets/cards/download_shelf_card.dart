@@ -11,10 +11,18 @@ class DownloadShelfCard extends StatelessWidget {
   final bool isExpanded;
   final VoidCallback onToggle;
 
+  /// 卡片在面板轨道上的位置动作，由宿主（面板 / 抽屉）传入。
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
+  final VoidCallback? onHide;
+
   const DownloadShelfCard({
     super.key,
     required this.isExpanded,
     required this.onToggle,
+    this.onMoveUp,
+    this.onMoveDown,
+    this.onHide,
   });
 
   @override
@@ -35,6 +43,9 @@ class DownloadShelfCard extends StatelessWidget {
       icon: Icons.download_done_rounded,
       isExpanded: isExpanded,
       onToggle: onToggle,
+      onMoveUp: onMoveUp,
+      onMoveDown: onMoveDown,
+      onHide: onHide,
       trailing: TextButton.icon(
         onPressed: () => context.pushRoute(const DownloadTaskRoute()),
         icon: const Icon(Icons.open_in_new_rounded, size: 14),
