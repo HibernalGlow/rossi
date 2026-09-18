@@ -30,6 +30,10 @@
    - `right` 面板泳道 = 图标轨 + 面板：上游 `DiscoverPage` / 「图源与本地」真实卡片 / 上游 `MorePage`，
      每个面板**按需构建、构建后保活**，各泳道各自记自己的激活面板。
 
+   > 同日第二轮修正：`left` / `right` **都是面板泳道**，各自的**面板页签条长在泳道顶栏里**
+   > （neoview 把 `ReaderPanelBar` portal 进 title slot，`dock: "top"`）；上游 `BookshelfPage`
+   > 只是左泳道里的**一个面板**，不是整条泳道。见下文「面板 / 卡片分层」。
+
 2. **「读在中央泳道」用根路由守卫改派，不改任何调用点。**
    `WorkspaceReaderBridge`（单例）由工作台挂载时登记回调、卸载时注销；
    `WorkspaceReaderGuard` 挂在 `AppRouter.guards` 上，只在**工作台在场**且推入的确是
@@ -68,8 +72,40 @@
    统一改成 `open_comic_item.dart`：本地直接推 `ComicReadRoute`（由守卫决定读在哪），
    插件走详情页 —— 与 `ComicEntryWidget` / `ComicSimplifyEntry` 的两条分支保持一致。
 
-## Considered Options
+9. **面板 / 卡片分层（同日第二轮）** —— 把「泳道里装什么」拆成三张注册表，
+   与 neoview 的 `ReaderPanelDefinition` / `ReaderCardDefinition` / `ReaderPanelBar` 同构：
 
+   - **泳道（lane）**：横向条带上的一条，`left` / `reader` / `right`；
+   - **面板（panel）**：泳道内的一个功能位，**由停在泳道顶栏的页签条切换**；
+   - **卡片（card）**：面板内的一块内容，成员关系**泳道与四边栏共享**。
+
+   三张注册表（各只有一份清单，别处不得再抄一遍）：
+
+   | 文件 | 管什么 |
+   |---|---|
+   | `registry/workspace_ids.dart` | 面板 id 常量（两张注册表互不 import，也不会有环） |
+   | `registry/workspace_panel_registry.dart` | 面板定义：标题 / 图标 / 归属侧 / 默认次序 / 是否独占 / 可否搬移 / 可否收起 / 是否由卡片填充 |
+   | `registry/workspace_card_registry.dart` | 卡片定义：默认面板 / 默认次序 / 默认展开 / 可否收起 / builder |
+
+   - **面板切换工具栏在顶栏**（`widgets/panels/panel_tab_strip.dart`）：
+     左 / 右两条泳道各挂一条，用的是**同一个控件**。三个手势各占一个入口 ——
+     左键切面板、**按住拖动**在轨内重排（拖到另一条泳道的页签条上则把面板搬过去，
+     即 neoview 的 `moveReaderPanel`）、右键收起（页签条右侧的「已收起」入口恢复）。
+     页签条自身可横向滚动，泳道拖窄时不溢出、不换行。
+   - **布局记账是真的数据**（`model/workspace_board_layout.dart`，**纯 Dart**）：
+     `panels{visible, order, side}` + `cards{panelId, visible, order, expanded}`，
+     **只存被改动过的项**，没记录的项回落到注册表里的默认值 ——
+     于是「加一个新面板 / 新卡片」不需要写迁移，也不会被旧记录挡住。
+     「重置布局」= 把记账清空。
+   - **判据放在纯 Dart 里跑**（`test/workspace/board_layout_check.dart`，30 条）：
+     本机 `flutter test` 起不来，所以能从 widget 里抽出来的断言都抽出来，
+     `dart run test/workspace/board_layout_check.dart` 直接跑。
+   - **面板的两种内容来源（本项目对 neoview 的有意扩展）**：
+     `acceptsCards` 为真的面板由卡片注册表填充；为假的面板装**一整张上游原版页面**
+     （`page` builder）。于是「上游 0 侵入 + 功能 100% 保留」与
+     「卡片可增删重排」两件事同时成立 —— 上游页面**不被拆成卡片重写一遍**。
+
+## Considered Options
 - **嵌套 `AutoRouter` / 让每条泳道各有一条导航栈**：更"正统"，但要让上游页面的
   `pushRoute` 落到嵌套路由器上，就得给面板泳道声明一整份路由表；上游日后新增一处跳转，
   这里就会在运行时抛「route not found」。**与 ADR-0002 的合并目标直接冲突。**
@@ -92,7 +128,13 @@
 - **未做的部分（明确记账）**：
   - neoview 的**激活泳道（active lane）**概念：点击阅读器泳道先"激活并恢复 Solo"、
     非激活泳道的第一次点击被工作区吃掉、悬停聚焦 dwell、边缘 dwell 揭示相邻泳道 —— 都没有实现；
-  - **持久化**：泳道顺序、宽度、折叠状态、激活面板、Solo 都只在内存里，重启即回默认；
+  - **面板操作栏（`ReaderPanelBar`）其余的形态**：面板栏的**浮动 / 停靠到别的边**
+    （`panelBarMode: floating`、拖到 left/right/top/bottom）、「限制在本泳道」开关
+    （`panelBarConstrained`）、栏高与栏位持久化 —— 都只做了**停靠在顶栏**这一种；
+  - **面板/卡片跨侧拖动的插入位**：拖到另一条泳道时固定插到末尾（拖到页签条上即换泳道），
+    还没有「落在某一格之间」的精确落点；
+  - **持久化**：泳道顺序、宽度、折叠状态、激活面板、面板次序与可见性、
+    卡片次序与可见性/展开态、Solo 都只在内存里，重启即回默认；
   - 面板泳道宽于视口时的「聚焦到最近可用边缘」：只能靠手动横向滚动；
   - 阅读器泳道折叠成 44dp 轨时，栏头里的控件（含模式切换）随之不可达，
     此时只能用四边栏浮动条或工作台顶栏。
