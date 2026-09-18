@@ -1,12 +1,11 @@
-import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/page/bookshelf/service/favorite_folder_service.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
+import 'package:zephyr/workspace/method/open_comic_item.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 
 /// 真实收藏卡片（读取本地 ObjectBox 数据库，支持分类与直达阅读）
@@ -153,15 +152,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
     final theme = Theme.of(context);
 
     return InkWell(
-      onTap: () {
-        context.pushRoute(
-          ComicInfoRoute(
-            comicId: item.comicId,
-            from: item.source,
-            type: ComicEntryType.normal,
-          ),
-        );
-      },
+      onTap: () => _open(context, item),
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 4.0),
@@ -236,19 +227,17 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
             IconButton(
               icon: const Icon(Icons.arrow_forward_ios_rounded, size: 13),
               color: theme.colorScheme.outline,
-              onPressed: () {
-                context.pushRoute(
-                  ComicInfoRoute(
-                    comicId: item.comicId,
-                    from: item.source,
-                    type: ComicEntryType.normal,
-                  ),
-                );
-              },
+              onPressed: () => _open(context, item),
             ),
           ],
         ),
       ),
     );
+  }
+
+  /// 打开收藏条目。本地来源与插件来源的分岔在 [openComicItem] 里统一处理 ——
+  /// 这里曾经无条件推详情页，本地漫画会被当成「插件 id = local」而加载失败。
+  void _open(BuildContext context, UnifiedComicFavorite item) {
+    openComicItem(context, comicId: item.comicId, from: item.source);
   }
 }
