@@ -26,6 +26,7 @@ class RealSrSettings {
   static const _keyAndroidNcnnNoise = 'realsr_android_ncnn_noise';
   static const _keyDesktopNcnnMode = 'realsr_desktop_ncnn_mode';
   static const _keyDesktopNcnnNoise = 'realsr_desktop_ncnn_noise';
+  static const _keyScale = 'realsr_scale';
 
   /// 根据当前运行平台返回推荐的默认并发数。
   ///
@@ -195,5 +196,38 @@ class RealSrSettings {
   static Future<void> saveDesktopNcnnNoise(AndroidNcnnNoise value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyDesktopNcnnNoise, value.name);
+  }
+
+  static Future<RealSrScale> loadScale() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getInt(_keyScale);
+    return RealSrScale.values.firstWhere(
+      (e) => e.value == value,
+      orElse: () => RealSrScale.x2,
+    );
+  }
+
+  static Future<void> saveScale(RealSrScale value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyScale, value.value);
+  }
+
+  /// 用于超分结果缓存的配置指纹。模型或倍率改变时必须得到不同的文件名，
+  /// 否则会继续显示旧模型产物，看起来就像“换模型没有生效”。
+  static Future<String> loadCacheKey() async {
+    final scale = await loadScale();
+    if (Platform.isMacOS || Platform.isIOS) {
+      final family = await loadCoreMLFamily();
+      final variant = await loadCoreMLVariant(family);
+      return '${family.id}_${variant.fileName}_${scale.value}x';
+    }
+    if (Platform.isWindows || Platform.isLinux) {
+      final mode = await loadDesktopNcnnMode();
+      final noise = await loadDesktopNcnnNoise();
+      return '${mode.name}_noise${noise.noise}_${scale.value}x';
+    }
+    final mode = await loadAndroidNcnnMode();
+    final noise = await loadAndroidNcnnNoise();
+    return '${mode.name}_noise${noise.noise}_${scale.value}x';
   }
 }

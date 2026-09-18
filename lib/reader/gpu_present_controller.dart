@@ -47,7 +47,7 @@ class GpuPresentController extends ChangeNotifier {
     try {
       final bool auto = await RealSrSettings.loadAutoUpscale();
       if (!_disposed && auto) {
-        _mutate(() => _isUpscaleEnabled = true);
+        setUpscaleEnabled(true);
       }
     } catch (_) {}
   }
@@ -73,8 +73,10 @@ class GpuPresentController extends ChangeNotifier {
   // ── native 侧状态的镜像 ──
   /// native 侧当前打开的来源路径（我们推过去的那一个）。
   String? _pushedPath;
+
   /// native 侧当前呈现的页下标。
   int? _pushedIndex;
+
   /// 已推过去的呈现目标尺寸。
   Size? _pushedSize;
   int? _pushedWidth;
@@ -102,6 +104,7 @@ class GpuPresentController extends ChangeNotifier {
   /// 它**不进 `_mutate` 的快照**：每个翻页都会变，进快照就会变成"每次翻页多一次
   /// 重建"，而重建又会走回 `_sync`。量具直接读它，不需要经监听。
   int? _lastPresentMs;
+
   /// [_lastPresentMs] 对应的页下标。
   int? _lastPresentIndex;
 
@@ -345,7 +348,8 @@ class GpuPresentController extends ChangeNotifier {
           // 前提（两侧跑同一份枚举代码）失效了。只记账不动手，见 [mismatchFor]。
           _mutate(() {
             _mismatchSource = source;
-            _mismatchMessage = '两侧页数不一致：页面来源 ${source.pageCount} 页，'
+            _mismatchMessage =
+                '两侧页数不一致：页面来源 ${source.pageCount} 页，'
                 '呈现器 $nativeCount 页。已回落 CPU 兜底路径。';
             _pushedPath = null;
             _pushedIndex = null;
@@ -360,7 +364,6 @@ class GpuPresentController extends ChangeNotifier {
           _mismatchMessage = null;
           _pushedPath = source.path;
           // 换了来源，超分那边的记账全部作废：页号含义都变了。
-          _confirmedEnhancedFor = null;
           _upscaleAttempts.clear();
           _upscaleInProgress.clear();
           // 刚 open，native 侧还没有当前页，强制走一次呈现。
@@ -372,7 +375,8 @@ class GpuPresentController extends ChangeNotifier {
       }
 
       final bool samePage = _pushedIndex == index;
-      final bool sizeChanged = _pushedWidth == null ||
+      final bool sizeChanged =
+          _pushedWidth == null ||
           _pushedHeight == null ||
           (width - _pushedWidth!).abs() > 2 ||
           (height - _pushedHeight!).abs() > 2;
@@ -486,16 +490,68 @@ class GpuPresentController extends ChangeNotifier {
   bool _originalPreview = false;
 
   /// 设置原图对比旁路状态。
-  Future<bool> setOriginalPreview(bool active) async {
+  Future<bool> setOriginalPreview(bool active) {
+    return _enqueueOriginalPreview(active);
+  }
+
+  Future<bool> _enqueueOriginalPreview(
+    bool active, {
+    bool ensureEnhanced = true,
+  }) {
+    final Future<bool> operation = _previewQueue.then(
+      (_) => _setOriginalPreview(active, ensureEnhanced: ensureEnhanced),
+    );
+    _previewQueue = operation.then<void>((_) {}).catchError((_) {});
+    return operation;
+  }
+
+  Future<void> _previewQueue = Future<void>.value();
+
+  Future<bool> _setOriginalPreview(
+    bool active, {
+    required bool ensureEnhanced,
+  }) async {
     if (_disposed || !GpuPresentBridge.isPlatformSupported) {
       return false;
     }
     final bool ok = await _bridge.setOriginalPreview(active: active);
     if (ok) {
+      // 原图旁路只改变 native 侧的选轨标志，不会自动改写已经提交的纹理。
+      // 当前页存在时立即重画一次，否则从原图切回超分后画面会一直停在旧帧，
+      // 直到用户再次翻页才会看到正确的轨道。
+      final int? index = _pushedIndex;
+      final bool wasOriginal = _originalPreview;
+      var redrawn = false;
+      if (index != null && _textureId != null) {
+        try {
+          await _bridge.show(index);
+          if (_disposed) return false;
+          redrawn = true;
+        } catch (_) {
+          // 旁路状态本身已经切换成功；下一次正常 present 会补画当前页。
+        }
+      }
       _mutate(() {
         _originalPreview = active;
-        _presentCount++;
+        if (redrawn) _presentCount++;
       });
+
+      // 原图对比期间不做增强；切回后用现有缓存或继续未完成的推理补当前页。
+      if (wasOriginal &&
+          !active &&
+          ensureEnhanced &&
+          _isUpscaleEnabled &&
+          _lastPushedSource != null &&
+          index != null) {
+        unawaited(
+          _ensureEnhancedForIndex(
+            _lastPushedSource!,
+            index,
+            _pushedWidth ?? 0,
+            _pushedHeight ?? 0,
+          ),
+        );
+      }
     }
     return ok;
   }
@@ -513,15 +569,6 @@ class GpuPresentController extends ChangeNotifier {
   /// 每一页已经尝试过几次（推理 + 注入，失败也计）。上限见 [_maxUpscaleAttempts]。
   final Map<int, int> _upscaleAttempts = <int, int>{};
 
-  /// 最近一次**经呈现器确认**「这一页现在用的就是超分轨」的页号。
-  ///
-  /// 它只是省一次跨语言往返的缓存（同一页重推时不必再问一遍），
-  /// **不是权限也不是记账**：判断"要不要再注入"始终以呈现器自己的回答为准。
-  /// 从前那个 `_enhancedIndices` 集合就是在这里出错的 —— 它是 Dart 侧的单方面
-  /// 记账，呈现器按保留集淘汰掉超分图之后它并不知道，于是"这一页已经增强过"
-  /// 会让它永远不再注入，画面停在原图上。
-  int? _confirmedEnhancedFor;
-
   /// 同一页最多试几次（推理 + 注入合起来算）。到顶就停下并说明，
   /// 而不是每翻一页刷一次日志、每次重新跑一遍几百毫秒的推理。
   static const int _maxUpscaleAttempts = 3;
@@ -529,26 +576,37 @@ class GpuPresentController extends ChangeNotifier {
   PageSource? _lastPushedSource;
 
   /// 设置是否开启超分。
-  void setUpscaleEnabled(bool enabled) {
-    if (_isUpscaleEnabled == enabled) return;
+  Future<void> setUpscaleEnabled(bool enabled) {
+    if (_isUpscaleEnabled == enabled) return Future<void>.value();
+    // 保持旧调用点的同步状态语义：UI 不需要 await 才能马上反映开关。
     _mutate(() {
       _isUpscaleEnabled = enabled;
     });
-    if (enabled) {
-      setOriginalPreview(false);
-      // 如果启用了超分，且当前已推送过页面，立即为当前页触发超分流水线
-      if (_pushedPath != null &&
-          _pushedIndex != null &&
-          _lastPushedSource != null) {
-        unawaited(_ensureEnhancedForIndex(
-          _lastPushedSource!,
-          _pushedIndex!,
-          _pushedWidth ?? 0,
-          _pushedHeight ?? 0,
-        ));
-      }
-    } else {
-      setOriginalPreview(true);
+    final Future<void> operation = _upscaleToggleQueue.then(
+      (_) => _setUpscaleEnabled(enabled),
+    );
+    _upscaleToggleQueue = operation.catchError((_) {});
+    return operation;
+  }
+
+  Future<void> _upscaleToggleQueue = Future<void>.value();
+
+  Future<void> _setUpscaleEnabled(bool enabled) async {
+    // 必须等待旁路切换及当前页重绘完成，再启动超分注入。否则 native
+    // 仍处于 bypass_enhanced=true 时，超分图虽已注入也会被原图帧覆盖。
+    await _enqueueOriginalPreview(!enabled, ensureEnhanced: false);
+
+    if (enabled &&
+        _isUpscaleEnabled &&
+        _pushedPath != null &&
+        _pushedIndex != null &&
+        _lastPushedSource != null) {
+      await _ensureEnhancedForIndex(
+        _lastPushedSource!,
+        _pushedIndex!,
+        _pushedWidth ?? 0,
+        _pushedHeight ?? 0,
+      );
     }
   }
 
@@ -595,21 +653,20 @@ class GpuPresentController extends ChangeNotifier {
     int targetW,
     int targetH,
   ) async {
-    if (_disposed || !_isUpscaleEnabled || !GpuPresentBridge.isPlatformSupported) {
+    if (_disposed ||
+        !_isUpscaleEnabled ||
+        _originalPreview ||
+        !GpuPresentBridge.isPlatformSupported) {
       return;
     }
     if (_upscaleInProgress.contains(index)) {
       return;
     }
-    if (_confirmedEnhancedFor == index) {
-      return;
-    }
-
-    // ① 以呈现器为准：它已经在用超分轨，那就没什么可做的。
+    // 每次重新呈现都核对原生状态；翻页后增强缓存可能已被淘汰。
     final bool? presenterUses = await _presenterUsesEnhanced(index);
     if (_disposed) return;
+    if (_originalPreview) return;
     if (presenterUses == true) {
-      _confirmedEnhancedFor = index;
       return;
     }
     if (presenterUses == null) {
@@ -636,7 +693,12 @@ class GpuPresentController extends ChangeNotifier {
     try {
       // ② 有产物：只注入。重试也走这里 —— 代价是解码 + 注入，不是几百毫秒的推理。
       if (File(outPath).existsSync()) {
-        logger.i('[Rossi AI] 第 $index 页命中已缓存的超分图，直接注入呈现器');
+        final cachedBytes = await File(outPath).length();
+        final cachedStat = await File(outPath).stat();
+        logger.i(
+          '[Rossi AI] 第 $index 页命中已缓存的超分图，直接注入呈现器: '
+          '$outPath ($cachedBytes bytes, mtime=${cachedStat.modified.toIso8601String()})',
+        );
         await _applyEnhancedToPresenter(index, outPath, targetW, targetH);
         return;
       }
@@ -669,6 +731,12 @@ class GpuPresentController extends ChangeNotifier {
         return;
       }
 
+      final producedStat = await File(outPath).stat();
+      logger.i(
+        '[Rossi AI] 第 $index 页超分产物已生成: $outPath '
+        '(${producedStat.size} bytes, mtime=${producedStat.modified.toIso8601String()})',
+      );
+
       // 到这里只能说明「文件生成了」。画面上换没换，由下一步的返回值说了算。
       await _applyEnhancedToPresenter(index, outPath, targetW, targetH);
     } catch (e, s) {
@@ -699,10 +767,13 @@ class GpuPresentController extends ChangeNotifier {
       return cached;
     }
     final Directory cacheDir = await getTemporaryDirectory();
-    final Directory srCacheDir = Directory(p.join(cacheDir.path, 'rossi_sr_cache'));
+    final Directory srCacheDir = Directory(
+      p.join(cacheDir.path, 'rossi_sr_cache'),
+    );
     if (!srCacheDir.existsSync()) {
       await srCacheDir.create(recursive: true);
     }
+    logger.i('[Rossi AI] 超分缓存目录: ${srCacheDir.path}');
     _srCacheDirCache = srCacheDir;
     return srCacheDir;
   }
@@ -738,50 +809,40 @@ class GpuPresentController extends ChangeNotifier {
     final bool injected = await setEnhancedImage(
       index,
       outPath,
-      // 0 是「不知道视口多大」，不是「视口是 0」：传 null 让 native 侧用它自己记的
-      // 目标尺寸。真传 0 会让它跳过预渲染帧生成，那一帧只能现场重采样。
       width: targetW > 0 ? targetW : null,
       height: targetH > 0 ? targetH : null,
     );
     if (_disposed) return false;
-
     if (!injected) {
-      logger.w('[Rossi AI] 第 $index 页超分图注入呈现器失败，本页仍是原图；下次呈现该页时会重试');
+      logger.w('[Rossi AI] 第 $index 页超分图注入呈现器失败');
       return false;
     }
+    if (_pushedIndex != index) return false;
 
-    if (_pushedIndex != index) {
-      logger.i(
-        '[Rossi AI] 第 $index 页超分图已注入呈现器缓存，但当前呈现的是第 $_pushedIndex 页，'
-        '等它被呈现时会自动用上',
-      );
-      return false;
+    // `show` 与 native 预取线程共用一条队列。注入完成后让队列先跑完当前
+    // 帧，再核对像素来源；若恰好读到了前一帧的诊断，立即再重画一次。
+    for (var pass = 0; pass < 3; pass++) {
+      await _bridge.show(index);
+      if (_disposed) return false;
+      _mutate(() => _presentCount++);
+      if (pass > 0) {
+        await Future<void>.delayed(const Duration(milliseconds: 16));
+      }
+      final bool? confirmed = await _presenterUsesEnhanced(index);
+      if (confirmed == true) {
+        _upscaleAttempts.remove(index);
+        logger.i('[Rossi AI] 第 $index 页超分图已替换上屏（呈现器确认本次呈现取自超分轨）');
+        return true;
+      }
+      if (confirmed == null || _originalPreview || _pushedIndex != index) {
+        logger.i('[Rossi AI] 第 $index 页注入后暂时无法核对显示来源: $confirmed');
+        return false;
+      }
+      if (pass < 2) {
+        logger.w('[Rossi AI] 第 $index 页注入后仍检测到原图轨，立即重画重试（${pass + 2}/3）');
+      }
     }
-
-    await _bridge.show(index);
-    if (_disposed) return false;
-    _mutate(() {
-      _presentCount++;
-    });
-
-    final bool? confirmed = await _presenterUsesEnhanced(index);
-    if (confirmed == true) {
-      _confirmedEnhancedFor = index;
-      _upscaleAttempts.remove(index);
-      logger.i('[Rossi AI] 第 $index 页超分图已替换上屏（呈现器确认本次呈现取自超分轨）');
-      return true;
-    }
-    if (confirmed == false) {
-      logger.w(
-        '[Rossi AI] 第 $index 页超分图已注入，但呈现器本次呈现用的仍是原图轨：画面上没变。'
-        '下次呈现该页时会重试',
-      );
-      return false;
-    }
-    logger.i(
-      '[Rossi AI] 第 $index 页已请求用超分图重画，但拿不到呈现器的核对结论（期间可能又翻过页），'
-      '本次不作成功/失败判定',
-    );
+    logger.w('[Rossi AI] 第 $index 页注入后仍显示原图，已保留缓存并等待下一次呈现重试');
     return false;
   }
 
@@ -797,10 +858,12 @@ class GpuPresentController extends ChangeNotifier {
   Future<bool?> _presenterUsesEnhanced(int index) async {
     try {
       final GpuPresentStats stats = await _bridge.stats();
-      if (stats.probeInt('currentIndex') != index) {
+      final usedEnhanced = stats['usedEnhanced'];
+      if (stats['currentIndex'] != index ||
+          (usedEnhanced != 0 && usedEnhanced != 1)) {
         return null;
       }
-      return stats.probeInt('usedEnhanced') == 1;
+      return usedEnhanced == 1;
     } catch (_) {
       return null;
     }
@@ -829,19 +892,20 @@ class GpuPresentController extends ChangeNotifier {
   /// 「快照没变」= 一个 `!=` 就能判出来，不会因为漏了某个字段而变成静默的
   /// 少通知（症状是界面卡住不刷新）或多通知（症状是每帧重建）。
   Object get _snapshot => (
-        _state,
-        _error,
-        _textureId,
-        _readyAfterMs,
-        _stats,
-        _pushedPath,
-        _pushedIndex,
-        _pushedSize,
-        _mismatchSource,
-        _mismatchMessage,
-        _originalPreview,
-        _isUpscaleEnabled,
-      );
+    _state,
+    _error,
+    _textureId,
+    _readyAfterMs,
+    _stats,
+    _pushedPath,
+    _pushedIndex,
+    _pushedSize,
+    _mismatchSource,
+    _mismatchMessage,
+    _originalPreview,
+    _isUpscaleEnabled,
+    _presentCount,
+  );
 
   /// 改状态并在**真的变了**的时候通知。
   void _mutate(VoidCallback change) {

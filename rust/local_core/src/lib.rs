@@ -42,13 +42,9 @@ pub mod entry_name;
 pub mod file_tree;
 pub mod folder_source;
 // JXL 后端选择层：只在至少开了一个后端 feature 时编译（见 jxl_backend.rs 头注释）。
-#[cfg(any(
-    feature = "jxl-rs-mt",
-    feature = "jxl-rs-1t",
-    feature = "jxl-oxide"
-))]
-pub mod jxl_backend;
 pub mod final_pipeline;
+#[cfg(any(feature = "jxl-rs-mt", feature = "jxl-rs-1t", feature = "jxl-oxide"))]
+pub mod jxl_backend;
 pub mod page_load_scheduler;
 pub mod page_order;
 pub mod perf_sink;
@@ -57,8 +53,8 @@ pub mod rar_source;
 pub mod zip_source;
 
 pub use final_pipeline::{
-    AiProcessSizeLimit, FinalAiExecutionOutput, ModelKind,
-    compute_final_pipeline_keep_set, should_process_rect,
+    AiProcessSizeLimit, FinalAiExecutionOutput, ModelKind, compute_final_pipeline_keep_set,
+    should_process_rect,
 };
 
 use std::fmt;
@@ -67,7 +63,9 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 
 pub use decode::{PagePixels, ShellOnlyFormat, decode_rgba, decode_rgba_scaled, probe_size};
-pub use file_tree::{FileTreeNode, RootLocation, get_available_roots, is_comic_archive_path, list_directory};
+pub use file_tree::{
+    FileTreeNode, RootLocation, get_available_roots, is_comic_archive_path, list_directory,
+};
 pub use page_load_scheduler::{
     FS_PAGE_LOAD_HIGH_RESERVED_PERMITS, FS_PAGE_LOAD_TOTAL_PERMITS, FsPageLoadContract,
     FsPageLoadPermit, FsPageLoadPriority, FsPageLoadScheduler, FsPageLoadSchedulerStats,
@@ -426,20 +424,12 @@ mod tests {
     /// `jxl-rs-mt`）就在核心档，全关才退回外壳档 —— 与 `avif` 的模式相同。
     #[test]
     fn jxl_ownership_follows_the_backend_feature() {
-        #[cfg(any(
-            feature = "jxl-rs-mt",
-            feature = "jxl-rs-1t",
-            feature = "jxl-oxide"
-        ))]
+        #[cfg(any(feature = "jxl-rs-mt", feature = "jxl-rs-1t", feature = "jxl-oxide"))]
         {
             assert_eq!(decode_support("1.jxl"), Some(DecodeSupport::Core));
             assert!(!needs_shell_decoder("1.jxl"));
         }
-        #[cfg(not(any(
-            feature = "jxl-rs-mt",
-            feature = "jxl-rs-1t",
-            feature = "jxl-oxide"
-        )))]
+        #[cfg(not(any(feature = "jxl-rs-mt", feature = "jxl-rs-1t", feature = "jxl-oxide")))]
         {
             assert_eq!(decode_support("1.jxl"), Some(DecodeSupport::ShellOnly));
             assert!(needs_shell_decoder("1.jxl"));

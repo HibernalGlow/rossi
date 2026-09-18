@@ -25,9 +25,8 @@ pub const CORE_DECODABLE_EXTENSIONS: &[&str] = &[
 
 /// `avif` feature 关闭时的核心档（见 `Cargo.toml` 的 `[features]`）。
 #[cfg(not(feature = "avif"))]
-pub const CORE_DECODABLE_EXTENSIONS: &[&str] = &[
-    "jpg", "jpeg", "png", "webp", "bmp", "gif", "tif", "tiff",
-];
+pub const CORE_DECODABLE_EXTENSIONS: &[&str] =
+    &["jpg", "jpeg", "png", "webp", "bmp", "gif", "tif", "tiff"];
 
 /// `jxl` 是否已进核心档：任一 JXL 后端 feature（`jxl-rs-mt` / `jxl-rs-1t` /
 /// `jxl-oxide`）开启即为真。App 默认开 `jxl-rs-mt`，所以默认构建里
@@ -212,9 +211,7 @@ fn natural_key(name: &str) -> Vec<Chunk> {
 
 /// 自然序比较。同键时用原始名字做确定性 tiebreak（`1.jpg` 与 `01.jpg` 数值相等）。
 pub fn compare_natural(a: &str, b: &str) -> Ordering {
-    natural_key(a)
-        .cmp(&natural_key(b))
-        .then_with(|| a.cmp(b))
+    natural_key(a).cmp(&natural_key(b)).then_with(|| a.cmp(b))
 }
 
 /// 原地按自然序排序。
@@ -240,7 +237,9 @@ mod tests {
 
     #[test]
     fn only_decodable_extensions_count_as_pages() {
-        for name in ["1.jpg", "1.JPEG", "1.png", "1.webp", "1.bmp", "1.gif", "1.tiff"] {
+        for name in [
+            "1.jpg", "1.JPEG", "1.png", "1.webp", "1.bmp", "1.gif", "1.tiff",
+        ] {
             assert!(is_image_name(name), "{name}");
         }
         // 谁都不认识的格式不是页：列出来只会让用户在翻到它时才失败
@@ -258,20 +257,12 @@ mod tests {
             assert!(is_image_name(name), "{name} 应当算作一页");
         }
         // jxl 的归属**随后端 feature 变**（与 avif 同模式）。
-        #[cfg(any(
-            feature = "jxl-rs-mt",
-            feature = "jxl-rs-1t",
-            feature = "jxl-oxide"
-        ))]
+        #[cfg(any(feature = "jxl-rs-mt", feature = "jxl-rs-1t", feature = "jxl-oxide"))]
         {
             assert_eq!(decode_support("1.jxl"), Some(DecodeSupport::Core));
             assert!(!needs_shell_decoder("1.jxl"));
         }
-        #[cfg(not(any(
-            feature = "jxl-rs-mt",
-            feature = "jxl-rs-1t",
-            feature = "jxl-oxide"
-        )))]
+        #[cfg(not(any(feature = "jxl-rs-mt", feature = "jxl-rs-1t", feature = "jxl-oxide")))]
         {
             assert!(needs_shell_decoder("1.jxl"), "1.jxl 应当由外壳解码");
             assert_eq!(decode_support("1.jxl"), Some(DecodeSupport::ShellOnly));

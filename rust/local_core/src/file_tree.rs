@@ -171,8 +171,8 @@ pub fn list_directory(dir_path: &Path) -> Result<Vec<FileTreeNode>> {
         return Err(anyhow::anyhow!("路径不是有效目录: {}", dir_path.display()));
     }
 
-    let read_dir = fs::read_dir(dir_path)
-        .with_context(|| format!("读取目录失败: {}", dir_path.display()))?;
+    let read_dir =
+        fs::read_dir(dir_path).with_context(|| format!("读取目录失败: {}", dir_path.display()))?;
 
     let mut nodes = Vec::new();
 

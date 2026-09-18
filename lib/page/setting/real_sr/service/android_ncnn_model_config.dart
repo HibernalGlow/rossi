@@ -47,6 +47,18 @@ enum AndroidNcnnNoise {
   }
 }
 
+/// RealSR 的输出倍率。当前随 Breeze 分发的 waifu2x / Real-CUGAN 模型都是
+/// 2x，4x 由同一模型串联两次得到，设置和缓存会区分这两种结果。
+enum RealSrScale {
+  x2(2, '2x'),
+  x4(4, '4x');
+
+  final int value;
+  final String label;
+
+  const RealSrScale(this.value, this.label);
+}
+
 class NcnnModelVariant {
   final String displayName;
 

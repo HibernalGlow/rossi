@@ -23,7 +23,9 @@ pub fn normalize_entry_name(raw: &str) -> Option<String> {
     if s.is_empty() {
         return None;
     }
-    if s.split('/').any(|seg| seg.is_empty() || seg == "." || seg == "..") {
+    if s.split('/')
+        .any(|seg| seg.is_empty() || seg == "." || seg == "..")
+    {
         return None;
     }
     Some(s.to_string())
@@ -56,7 +58,10 @@ mod tests {
 
     #[test]
     fn normalization_unifies_separators_and_trims() {
-        assert_eq!(normalize_entry_name(r"a\b\1.jpg").as_deref(), Some("a/b/1.jpg"));
+        assert_eq!(
+            normalize_entry_name(r"a\b\1.jpg").as_deref(),
+            Some("a/b/1.jpg")
+        );
         assert_eq!(normalize_entry_name("/a/1.jpg").as_deref(), Some("a/1.jpg"));
         assert_eq!(normalize_entry_name("a/1.jpg/").as_deref(), Some("a/1.jpg"));
         assert_eq!(normalize_entry_name("1.jpg").as_deref(), Some("1.jpg"));
@@ -75,8 +80,14 @@ mod tests {
     fn duplicate_names_are_disambiguated_in_a_stable_order() {
         let mut seen = HashSet::new();
         assert_eq!(dedup_entry_name("page.png".into(), &mut seen), "page.png");
-        assert_eq!(dedup_entry_name("page.png".into(), &mut seen), "page (2).png");
-        assert_eq!(dedup_entry_name("page.png".into(), &mut seen), "page (3).png");
+        assert_eq!(
+            dedup_entry_name("page.png".into(), &mut seen),
+            "page (2).png"
+        );
+        assert_eq!(
+            dedup_entry_name("page.png".into(), &mut seen),
+            "page (3).png"
+        );
         // 原本就叫 "page (2).png" 的第三条不能与上面生成的撞名
         assert_eq!(
             dedup_entry_name("page (2).png".into(), &mut seen),

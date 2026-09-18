@@ -128,7 +128,8 @@ class _ImageSurfaceState extends State<ImageSurface> {
       _lastKnownTextureId = widget.presenter.textureId;
       widget.presenter.addListener(_onPresenterChanged);
     }
-    if (!identical(oldWidget.source, widget.source) || oldWidget.index != widget.index) {
+    if (!identical(oldWidget.source, widget.source) ||
+        oldWidget.index != widget.index) {
       // 换来源或翻页：失败记录不再适用，在飞的解码也要作废。
       // **必须立刻作废**，否则切页瞬间会拿旧序号的结果当新页画出来。
       _loadToken++;
@@ -163,13 +164,14 @@ class _ImageSurfaceState extends State<ImageSurface> {
     if (newState != _lastKnownState ||
         newTex != _lastKnownTextureId ||
         newCount != _lastKnownPresentCount) {
+      final bool stateOrTextureChanged =
+          newState != _lastKnownState || newTex != _lastKnownTextureId;
       _lastKnownState = newState;
       _lastKnownTextureId = newTex;
       _lastKnownPresentCount = newCount;
       setState(() {});
       final Size? size = _physicalSize;
-      if (size != null &&
-          (newState != _lastKnownState || newTex != _lastKnownTextureId)) {
+      if (size != null && stateOrTextureChanged) {
         unawaited(_sync(size));
       }
     }
@@ -206,7 +208,8 @@ class _ImageSurfaceState extends State<ImageSurface> {
       return;
     }
 
-    if (widget.presenter.canPresent && widget.presenter.mismatchFor(source) == null) {
+    if (widget.presenter.canPresent &&
+        widget.presenter.mismatchFor(source) == null) {
       final bool ready = await widget.presenter.present(
         source: source,
         index: index,
@@ -250,13 +253,18 @@ class _ImageSurfaceState extends State<ImageSurface> {
   /// 位图、这一段要 1526 ms（其中解码只占 17%，其余全是过桥与 `decodeImageFromPixels`）；
   /// 给了宽度之后位图缩到几 MB，整段掉到 300–400 ms。降采样解码在这里**不是画质选项，
   /// 是可用性前提**。
-  Future<void> _ensureCpuContent(PageSource source, int index, Size physicalSize) async {
+  Future<void> _ensureCpuContent(
+    PageSource source,
+    int index,
+    Size physicalSize,
+  ) async {
     final int targetWidth = physicalSize.width.round();
     if (targetWidth < 1) {
       return;
     }
 
-    final bool alreadyLoaded = identical(_loadedSource, source) &&
+    final bool alreadyLoaded =
+        identical(_loadedSource, source) &&
         _loadedIndex == index &&
         _loadedWidth == targetWidth &&
         _cpuImage != null;
@@ -264,7 +272,8 @@ class _ImageSurfaceState extends State<ImageSurface> {
       return;
     }
     // 同一个目标已经在飞了就不重复发；目标不同则照发（见 [_loadingSource] 注释）。
-    final bool inFlight = identical(_loadingSource, source) &&
+    final bool inFlight =
+        identical(_loadingSource, source) &&
         _loadingIndex == index &&
         _loadingWidth == targetWidth;
     if (inFlight) {
@@ -279,7 +288,10 @@ class _ImageSurfaceState extends State<ImageSurface> {
     _loadingWidth = targetWidth;
     final int token = ++_loadToken;
     try {
-      final PageLoadOutcome outcome = await source.load(index, targetWidth: targetWidth);
+      final PageLoadOutcome outcome = await source.load(
+        index,
+        targetWidth: targetWidth,
+      );
       if (!mounted || token != _loadToken) {
         return;
       }

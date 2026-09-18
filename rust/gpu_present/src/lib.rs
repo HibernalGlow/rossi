@@ -37,7 +37,7 @@
 mod presenter;
 
 #[cfg(target_os = "windows")]
-pub use presenter::{BACKGROUND_RGBA8, PresentTimings, Presenter};
+pub use presenter::{PresentTimings, Presenter, BACKGROUND_RGBA8};
 
 #[cfg(all(target_os = "windows", feature = "probe"))]
 pub use presenter::Readback;
@@ -330,7 +330,9 @@ mod platform {
             return std::ptr::null_mut();
         };
         with_ready(holder, err_buf, err_len, std::ptr::null_mut(), |inner| {
-            inner.ensure_target(width, height).map_err(|e| format!("{e:#}"))?;
+            inner
+                .ensure_target(width, height)
+                .map_err(|e| format!("{e:#}"))?;
             Ok(inner.handle().0)
         })
     }
@@ -357,12 +359,14 @@ mod platform {
             write_err(err_buf, err_len, "路径不是合法 UTF-8");
             return -1;
         };
-        with_ready(holder, err_buf, err_len, -1, |inner| match inner.open(path) {
-            Ok(count) => Ok(count as i32),
-            Err(error) => {
-                let message = format!("{error:#}");
-                inner.set_error(message.clone());
-                Err(message)
+        with_ready(holder, err_buf, err_len, -1, |inner| {
+            match inner.open(path) {
+                Ok(count) => Ok(count as i32),
+                Err(error) => {
+                    let message = format!("{error:#}");
+                    inner.set_error(message.clone());
+                    Err(message)
+                }
             }
         })
     }
@@ -393,12 +397,14 @@ mod platform {
             write_err(err_buf, err_len, "呈现器指针为空");
             return -1;
         };
-        with_ready(holder, err_buf, err_len, -1, |inner| match inner.show(index as usize) {
-            Ok(_) => Ok(0),
-            Err(error) => {
-                let message = format!("{error:#}");
-                inner.set_error(message.clone());
-                Err(message)
+        with_ready(holder, err_buf, err_len, -1, |inner| {
+            match inner.show(index as usize) {
+                Ok(_) => Ok(0),
+                Err(error) => {
+                    let message = format!("{error:#}");
+                    inner.set_error(message.clone());
+                    Err(message)
+                }
             }
         })
     }
@@ -440,14 +446,11 @@ mod platform {
         if buf.is_null() || len == 0 {
             return -1;
         }
-        let json = catch_unwind(AssertUnwindSafe(|| {
-            match &mut *lock_slot(&holder.slot) {
-                Slot::Ready(inner) => inner.stats_json(),
-                Slot::Loading => "{\"state\":\"loading\"}".to_string(),
-                Slot::Failed(message) => format!(
-                    "{{\"state\":\"failed\",\"error\":\"{}\"}}",
-                    escape(message)
-                ),
+        let json = catch_unwind(AssertUnwindSafe(|| match &mut *lock_slot(&holder.slot) {
+            Slot::Ready(inner) => inner.stats_json(),
+            Slot::Loading => "{\"state\":\"loading\"}".to_string(),
+            Slot::Failed(message) => {
+                format!("{{\"state\":\"failed\",\"error\":\"{}\"}}", escape(message))
             }
         }))
         .unwrap_or_else(|_| "{\"state\":\"failed\",\"error\":\"stats 内部 panic\"}".to_string());
@@ -541,9 +544,7 @@ mod mac_platform {
         let worker = std::thread::Builder::new()
             .name("rossi-gpu-present-mac-init".to_string())
             .spawn(move || {
-                let res = catch_unwind(AssertUnwindSafe(|| {
-                    MacPresenter::new(width, height)
-                }));
+                let res = catch_unwind(AssertUnwindSafe(|| MacPresenter::new(width, height)));
                 let mut guard = lock_slot(&slot_clone);
                 match res {
                     Ok(Ok(p)) => *guard = Slot::Ready(Box::new(p)),
@@ -597,13 +598,14 @@ mod mac_platform {
             write_err(err_buf, err_len, "path 为空");
             return -1;
         }
-        let path_str = match std::str::from_utf8(unsafe { std::slice::from_raw_parts(path_utf8, path_len) }) {
-            Ok(s) => s,
-            Err(e) => {
-                write_err(err_buf, err_len, &format!("path 不是合法的 UTF-8: {e}"));
-                return -1;
-            }
-        };
+        let path_str =
+            match std::str::from_utf8(unsafe { std::slice::from_raw_parts(path_utf8, path_len) }) {
+                Ok(s) => s,
+                Err(e) => {
+                    write_err(err_buf, err_len, &format!("path 不是合法的 UTF-8: {e}"));
+                    return -1;
+                }
+            };
 
         let mut guard = lock_slot(&holder.slot);
         let Slot::Ready(inner) = &mut *guard else {
@@ -677,7 +679,13 @@ mod mac_platform {
             return -1;
         };
 
-        match inner.show_into_buffer(index as usize, dst_ptr, dst_stride, target_width, target_height) {
+        match inner.show_into_buffer(
+            index as usize,
+            dst_ptr,
+            dst_stride,
+            target_width,
+            target_height,
+        ) {
             Ok(()) => 0,
             Err(e) => {
                 write_err(err_buf, err_len, &format!("{e:#}"));
@@ -713,10 +721,7 @@ mod mac_platform {
     }
 
     #[no_mangle]
-    pub extern "C" fn rossi_gpu_present_set_prefetch(
-        presenter: *mut c_void,
-        enabled: i32,
-    ) -> i32 {
+    pub extern "C" fn rossi_gpu_present_set_prefetch(presenter: *mut c_void, enabled: i32) -> i32 {
         let Some(holder) = (unsafe { borrow(presenter) }) else {
             return -1;
         };
@@ -792,18 +797,31 @@ mod mac_platform {
             write_err(err_buf, err_len, "path 为空");
             return -1;
         }
-        let path_str = match std::str::from_utf8(unsafe { std::slice::from_raw_parts(path_utf8, path_len) }) {
-            Ok(s) => s,
-            Err(e) => {
-                write_err(err_buf, err_len, &format!("path 不是合法的 UTF-8: {e}"));
-                return -1;
-            }
-        };
+        let path_str =
+            match std::str::from_utf8(unsafe { std::slice::from_raw_parts(path_utf8, path_len) }) {
+                Ok(s) => s,
+                Err(e) => {
+                    write_err(err_buf, err_len, &format!("path 不是合法的 UTF-8: {e}"));
+                    return -1;
+                }
+            };
 
         // ── ① 锁外：读盘 + 解码 ──
         let pixels = match std::fs::read(path_str) {
             Ok(bytes) => match rossi_local_core::decode::decode_rgba(&bytes) {
-                Ok(pixels) => Arc::new(pixels),
+                Ok(pixels) => {
+                    eprintln!(
+                        "[Rossi GPU] set_enhanced_image: index={}, path={}, file_bytes={}, decoded={}x{}, source={}x{}",
+                        index,
+                        path_str,
+                        bytes.len(),
+                        pixels.width,
+                        pixels.height,
+                        pixels.source_width,
+                        pixels.source_height,
+                    );
+                    Arc::new(pixels)
+                }
                 Err(e) => {
                     write_err(err_buf, err_len, &format!("解码超分图失败: {e:#}"));
                     return -1;
@@ -847,7 +865,10 @@ mod mac_platform {
         let json = match &*guard {
             Slot::Ready(inner) => inner.stats_json(),
             Slot::Loading => "{\"state\":\"loading\"}".to_string(),
-            Slot::Failed(msg) => format!("{{\"state\":\"failed\",\"error\":\"{}\"}}", msg.replace('"', "\\\"")),
+            Slot::Failed(msg) => format!(
+                "{{\"state\":\"failed\",\"error\":\"{}\"}}",
+                msg.replace('"', "\\\"")
+            ),
         };
         let bytes = json.as_bytes();
         let count = bytes.len().min(len - 1);

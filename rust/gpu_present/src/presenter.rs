@@ -293,9 +293,8 @@ impl PageCache {
 
     /// 放进一条，并按上限裁剪。
     fn insert(&mut self, page: CachedPage) {
-        self.entries.retain(|e| {
-            !(e.index == page.index && e.hint == page.hint && e.epoch == page.epoch)
-        });
+        self.entries
+            .retain(|e| !(e.index == page.index && e.hint == page.hint && e.epoch == page.epoch));
         self.entries.push_back(page);
         self.prefetched += 1;
 
@@ -481,7 +480,10 @@ impl Presenter {
                 }
             }
             let matched = adapter_luid != 0 && luid == adapter_luid;
-            candidates.push(format!("{name}[{luid:#x}]{}", if matched { "*" } else { "" }));
+            candidates.push(format!(
+                "{name}[{luid:#x}]{}",
+                if matched { "*" } else { "" }
+            ));
             if matched {
                 picked = Some((adapter, name, true));
                 break;
@@ -972,7 +974,11 @@ impl Presenter {
         // 锁 `shared`，而预取线程是 `shared` 解锁后去锁 `cache` —— 目前不会死，
         // 但那只是因为它恰好没有把两者嵌起来，不该指望这个巧合。
         let epoch = self.current_epoch();
-        let cached = self.cache.lock().ok().and_then(|mut c| c.take(index, hint, epoch));
+        let cached = self
+            .cache
+            .lock()
+            .ok()
+            .and_then(|mut c| c.take(index, hint, epoch));
         let cache_hit = cached.is_some();
         let pixels = match cached {
             Some(pixels) => pixels,
@@ -1153,10 +1159,7 @@ impl Presenter {
 
     /// 提交这一帧：wgpu 渲染（letterbox）→ 原生命令列表 `CopyResource` 到共享纹理 → 等落地。
     fn draw_and_copy(&mut self, target_width: u32, target_height: u32) -> Result<()> {
-        let page = self
-            .page
-            .as_ref()
-            .ok_or_else(|| anyhow!("页纹理不存在"))?;
+        let page = self.page.as_ref().ok_or_else(|| anyhow!("页纹理不存在"))?;
         let target = self
             .target
             .as_ref()
@@ -1172,8 +1175,11 @@ impl Presenter {
         let origin_x = ((target_width as f32 - draw_w) * 0.5).max(0.0);
         let origin_y = ((target_height as f32 - draw_h) * 0.5).max(0.0);
 
-        self.queue
-            .write_buffer(&self.uniform, 0, &uniform_bytes(draw_w, draw_h, origin_x, origin_y));
+        self.queue.write_buffer(
+            &self.uniform,
+            0,
+            &uniform_bytes(draw_w, draw_h, origin_x, origin_y),
+        );
 
         // 目标纹理的裸资源。guard 必须先取到再释放，不能跨 &mut self 借用的边界。
         let dst: ID3D12Resource = target.shared.clone();
@@ -1849,14 +1855,8 @@ impl Presenter {
             self.cmd_list.ResourceBarrier(&into);
             release_barriers(&mut into);
 
-            self.cmd_list.CopyTextureRegion(
-                &destination,
-                0,
-                0,
-                0,
-                &source,
-                None,
-            );
+            self.cmd_list
+                .CopyTextureRegion(&destination, 0, 0, 0, &source, None);
 
             let mut back = [transition(
                 &shared,
@@ -1976,9 +1976,7 @@ fn probe_direct_share(device: &wgpu::Device, d3d_device: &ID3D12Device) -> Strin
     });
 
     unsafe {
-        let raw = texture
-            .as_hal::<Dx12>()
-            .map(|t| t.raw_resource().clone());
+        let raw = texture.as_hal::<Dx12>().map(|t| t.raw_resource().clone());
         match raw {
             None => "wgpu 纹理取不到裸资源".to_string(),
             Some(resource) => match resource.cast::<ID3D12DeviceChild>() {

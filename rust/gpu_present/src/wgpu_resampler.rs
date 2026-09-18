@@ -6,8 +6,8 @@
 //! 3. 视口 Letterbox 居中对齐与深黑留白填充（ClearColor）；
 //! 4. RGBA8 -> BGRA8 硬件格式无开销自动转换。
 
-use std::sync::Arc;
 use anyhow::{anyhow, Result};
+use std::sync::Arc;
 use wgpu::util::DeviceExt;
 
 /// 与 WGSL 对齐的 Uniform 结构
@@ -275,9 +275,11 @@ impl WgpuResampler {
             return;
         }
 
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("rossi_mipgen_encoder"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("rossi_mipgen_encoder"),
+            });
 
         let mut level = 1u32;
         while level < source.mip_levels {
@@ -486,19 +488,21 @@ impl WgpuResampler {
         let max_lod = full_mip_levels(src_w, src_h).saturating_sub(1) as f32;
         let sample_lod = mip_lod.min(max_lod);
 
-        let filter_mode = if force_anime4k {
-            2u32
-        } else if sample_lod >= 1.0 {
-            // **只有真的要跨 mip 级才走 mip 采样**（scale < 0.5）。
-            // 判据用 lod 而不是 scale，是因为决定「单点采样够不够」的是
-            // 「有没有降到下一级」，两者在这里是同一件事的两种写法，但用 lod
-            // 不会出现「改了 lod 公式、模式选择忘了跟着改」这种错位。
-            0u32
-        } else {
-            // 放大、以及轻度缩小（footprint ≤ 2 px，5×5 的 Lanczos 核盖得住）：
-            // 继续用 Lanczos3，画质与从前一致。
-            1u32
-        };
+        // 只有 Anime4K 是特殊路径；其余（放大、缩小）**都走 Lanczos3**，
+        // 区别只在于它在哪一级 mip 上做（见 `sample_lod`）。
+        //
+        // 中间曾经有过一条「缩小走 mip 三线性」的分支：它确实抗锯齿，但明显比别的
+        // 软件糊 —— 面积平均没有重建核，高频被抹平。所以撤掉了：抗锯齿交给 mip，
+        // 锐度交给 Lanczos，两件事不能由同一个滤波器兼任。
+        let filter_mode = if force_anime4k { 2u32 } else { 1u32 };
+
+        // 采样几何必须与**实际读取的那一级**一致：
+        // Lanczos 的 tap 间距、`max_w/max_h` 的钳制、anime4k 的 texel 步长
+        // 全都按 `src_width/src_height` 算。传原始尺寸而读半尺寸的那一级，
+        // 结果会是整幅画错位放大 —— 所以这里先按 lod 折算出该级的尺寸。
+        let mip_shift = sample_lod.max(0.0) as u32;
+        let mip_w = (src_w >> mip_shift).max(1);
+        let mip_h = (src_h >> mip_shift).max(1);
 
         // ① 上传源图像到 GPU 纹理
         self.get_or_create_source_texture(src_w, src_h);
@@ -530,8 +534,8 @@ impl WgpuResampler {
 
         // ② 准备 Uniforms
         let uniforms = ResampleUniforms {
-            src_width: src_w as f32,
-            src_height: src_h as f32,
+            src_width: mip_w as f32,
+            src_height: mip_h as f32,
             render_offset_x: offset_x as f32,
             render_offset_y: offset_y as f32,
             render_width: render_w as f32,
@@ -548,11 +552,13 @@ impl WgpuResampler {
             _pad5: 0.0,
         };
 
-        let uniform_buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("rossi_resample_uniform_buf"),
-            contents: bytemuck::bytes_of(&uniforms),
-            usage: wgpu::BufferUsages::UNIFORM,
-        });
+        let uniform_buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("rossi_resample_uniform_buf"),
+                contents: bytemuck::bytes_of(&uniforms),
+                usage: wgpu::BufferUsages::UNIFORM,
+            });
 
         let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("rossi_resample_bg"),
@@ -574,9 +580,11 @@ impl WgpuResampler {
         });
 
         // ③ 执行 GPU RenderPass，输出到传入的 target_view
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("rossi_resample_encoder"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("rossi_resample_encoder"),
+            });
 
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -627,7 +635,9 @@ impl WgpuResampler {
         }
 
         let target = self.get_or_create_target(target_w, target_h);
-        let target_view = target.texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let target_view = target
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
 
         self.render_to_view(
             src_rgba,
@@ -641,9 +651,11 @@ impl WgpuResampler {
 
         // ④ 从 GPU target_texture 拷入 staging_buffer
         let target = self.target_cache.as_ref().unwrap();
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("rossi_staging_copy_encoder"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("rossi_staging_copy_encoder"),
+            });
         encoder.copy_texture_to_buffer(
             wgpu::TexelCopyTextureInfo {
                 texture: &target.texture,
@@ -732,10 +744,10 @@ impl WgpuResampler {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
-    fn init_test_device() -> Option<(Arc<wgpu::Device>, Arc<wgpu::Queue>)> {
+    pub(super) fn init_test_device() -> Option<(Arc<wgpu::Device>, Arc<wgpu::Queue>)> {
         let instance = wgpu::Instance::default();
         let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
             power_preference: wgpu::PowerPreference::HighPerformance,
@@ -814,4 +826,47 @@ mod tests {
             }
         }
     }
+}
+
+#[cfg(test)]
+mod sharpness_tests {
+    use super::*;
+
+    /// 诊断用：把阶梯边放在**两个输出像素之间**，量它跨越了几个「半亮」像素。
+    ///
+    /// 这一点是这轮的关键教训：早先把边缘放在输出像素中心上，任何滤波器都是
+    /// 一跳到底，量不出差别；只有落在像素之间时，滤波器的重建能力才显出来。
+    ///
+    /// 它是**诊断，不是断言**，这是有意的：实测 mip 级上的 Lanczos3 是 190、
+    /// mip 三线性是 178 —— 差 7%，能看出方向，但不够稳定到可以当阈值
+    /// （换 GPU / 换驱动就可能翻）。留一条永远不会失败的测试比没有测试更糟，
+    /// 所以这里只打印数字，人工比对；能真正守住行为的断言是上面那条棋盘格的
+    /// 「面积平均」，它在单点采样下会实实在在地失败。
+    #[test]
+    fn diagnose_edge_width() {
+        let (device, queue) = super::tests::init_test_device().expect("无 GPU 适配器");
+        let (sw, sh) = (64u32, 64u32);
+        let (tw, th) = (20u32, 20u32);
+        for edge in [32u32, 34] {
+            let mut rgba = vec![0u8; (sw * sh * 4) as usize];
+            for y in 0..sh {
+                for x in 0..sw {
+                    let v: u8 = if x < edge { 0 } else { 255 };
+                    let i = ((y * sw + x) * 4) as usize;
+                    rgba[i] = v; rgba[i + 1] = v; rgba[i + 2] = v; rgba[i + 3] = 255;
+                }
+            }
+            let stride = 512usize;
+            let mut out = vec![0u8; stride * th as usize];
+            let mut r = WgpuResampler::new_with_format(device.clone(), queue.clone(), wgpu::TextureFormat::Bgra8Unorm).unwrap();
+            r.resample_to_buffer(&rgba, sw, sh, tw, th, out.as_mut_ptr(), stride, false).unwrap();
+            let y = (th / 2) as usize;
+            let row: Vec<i32> = (0..tw as usize).map(|x| out[y * stride + x * 4] as i32).collect();
+            let partial = row.iter().filter(|v| (20..=235).contains(*v)).count();
+            let mut max_step = 0;
+            for w in row.windows(2) { max_step = max_step.max((w[0] - w[1]).abs()); }
+            println!("边缘 x={edge}: 半亮像素 {partial} 个, 最大跳变 {max_step}");
+        }
+    }
+
 }

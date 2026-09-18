@@ -112,7 +112,9 @@ class ComicReadAppBar extends StatelessWidget {
           label = '超分关';
           icon = Icons.auto_awesome_outlined;
           fgColor = Colors.grey;
-          bgColor = Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3);
+          bgColor = Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3);
           borderColor = Colors.grey.withValues(alpha: 0.3);
         } else if (isOrig) {
           tooltip = '当前显示原图 (点击切回 AI 超分，长按关闭超分)';
@@ -142,7 +144,10 @@ class ComicReadAppBar extends StatelessWidget {
             },
             child: TextButton.icon(
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 backgroundColor: bgColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -188,10 +193,7 @@ class ComicReadAppBar extends StatelessWidget {
                     }
                     return;
                   }
-                  presenter.setUpscaleEnabled(true);
-                  if (isOrig) {
-                    await presenter.setOriginalPreview(false);
-                  }
+                  await presenter.setUpscaleEnabled(true);
                   showInfoToast('AI 超分已启用');
                 } else {
                   final willBeOrig = !isOrig;

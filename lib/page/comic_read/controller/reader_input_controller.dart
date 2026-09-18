@@ -52,6 +52,14 @@ class ReaderInputController {
   TapDownDetails? _doubleTapDownDetails;
   bool _isCtrlPressed = false;
 
+  /// **接收手势的那个盒子**自己量出来的尺寸（也就是阅读区尺寸）。
+  ///
+  /// 点击分区按它算，不按 `MediaQuery.size` —— 后者的含义是「窗口多大」，
+  /// 而工作台把阅读器嵌进泳道时会把它改写成泳道尺寸、独立阅读器时又是窗口尺寸；
+  /// 分区要的是「手指底下这块面多大」。它每次 build 被 `LayoutBuilder` 刷新，
+  /// 是同一个约束下必然相同的纯计算，缓存它没有副作用。
+  Size _tapSurfaceSize = Size.zero;
+
   bool get _isDesktopPlatform =>
       !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
 
@@ -83,31 +91,39 @@ class ReaderInputController {
         onPointerUp: _onPointerUpOrCancel,
         onPointerCancel: _onPointerUpOrCancel,
         onPointerSignal: _onPointerSignal,
-        child: GestureDetector(
-          onTap: _onTap,
-          onTapDown: (details) => _tapDownDetails = details,
-          onDoubleTapDown: isDoubleTapActionEnabled
-              ? (details) => _doubleTapDownDetails = details
-              : null,
-          onDoubleTap: isDoubleTapActionEnabled ? _onDoubleTap : null,
-          child: InteractiveViewer(
-            transformationController: transformationController,
-            boundaryMargin: EdgeInsets.zero,
-            minScale: kMinReaderScale,
-            maxScale: kMaxReaderScale,
-            scaleEnabled:
-                !_isDesktopPlatform ||
-                _isCtrlPressed ||
-                _activeTouchPointers.length >= 2 ||
-                transformationController.value.getMaxScaleOnAxis() >
-                    kScaleLockThreshold,
-            interactionEndFrictionCoefficient: kReaderPanFriction,
-            onInteractionUpdate: (_) => _updateMultiTouchScrollLock(),
-            onInteractionEnd: (_) => _updateMultiTouchScrollLock(),
-            child: isColumnReadMode(readSetting.readMode)
-                ? buildColumnMode(readSetting.doublePageMode)
-                : buildRowMode(),
-          ),
+        // `LayoutBuilder` 紧贴 `GestureDetector` 外沿：它拿到的 `constraints.biggest`
+        // 就是那个盒子的尺寸，于是与 `onTapDown` 给的 `localPosition` **同一个
+        // 坐标系**。点击分区要的正是这两样东西（见 `ReaderGestureLogic.resolveTapZone`）。
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            _tapSurfaceSize = constraints.biggest;
+            return GestureDetector(
+              onTap: _onTap,
+              onTapDown: (details) => _tapDownDetails = details,
+              onDoubleTapDown: isDoubleTapActionEnabled
+                  ? (details) => _doubleTapDownDetails = details
+                  : null,
+              onDoubleTap: isDoubleTapActionEnabled ? _onDoubleTap : null,
+              child: InteractiveViewer(
+                transformationController: transformationController,
+                boundaryMargin: EdgeInsets.zero,
+                minScale: kMinReaderScale,
+                maxScale: kMaxReaderScale,
+                scaleEnabled:
+                    !_isDesktopPlatform ||
+                    _isCtrlPressed ||
+                    _activeTouchPointers.length >= 2 ||
+                    transformationController.value.getMaxScaleOnAxis() >
+                        kScaleLockThreshold,
+                interactionEndFrictionCoefficient: kReaderPanFriction,
+                onInteractionUpdate: (_) => _updateMultiTouchScrollLock(),
+                onInteractionEnd: (_) => _updateMultiTouchScrollLock(),
+                child: isColumnReadMode(readSetting.readMode)
+                    ? buildColumnMode(readSetting.doublePageMode)
+                    : buildRowMode(),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -128,11 +144,15 @@ class ReaderInputController {
     if (_tapDownDetails == null || !context.mounted) return;
 
     final readSetting = context.read<GlobalSettingCubit>().state.readSetting;
+    // `localPosition` 与 `_tapSurfaceSize` 必须成对传：前者来自 `onTapDown`，
+    // 后者是紧贴 `GestureDetector` 外沿那个 `LayoutBuilder` 的 `constraints.biggest`
+    // （见上面那段的注释）—— 两者在同一个坐标系里，点击分区才分得对。
+    // 拿逻辑/屏幕尺寸去配 `localPosition` 会让左右分区错位（改这个参数当时就是为了它）。
     ReaderGestureLogic.handleTap(
       actionController: actionController,
-      controller: pageController,
       context: context,
-      details: _tapDownDetails!,
+      localPosition: _tapDownDetails!.localPosition,
+      viewportSize: _tapSurfaceSize,
       onToggleMenu: readSetting.doubleTapOpenMenu
           ? () {
               final cubit = context.read<ReaderCubit>();

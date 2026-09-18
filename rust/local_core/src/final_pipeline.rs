@@ -6,8 +6,8 @@
 //! 3. `FinalAiExecutionOutput`：超分产出物封装；
 //! 4. `compute_final_pipeline_keep_set`：保留集计算（用于显存淘汰控制）。
 
-use std::sync::Arc;
 use crate::PagePixels;
+use std::sync::Arc;
 
 /// 使用可能な AI モデルの種類（对齐 mImageViewer `ModelKind`）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -103,7 +103,11 @@ pub struct FinalAiExecutionOutput {
 /// 计算 final_pipeline 的保留集页码列表（对齐 mImageViewer 保留集机制）。
 ///
 /// 保留当前停驻页及其前后 `radius` 页的超分结果，其余页面的超分大图自动释放以控制显存。
-pub fn compute_final_pipeline_keep_set(current_idx: usize, total_pages: usize, radius: usize) -> Vec<usize> {
+pub fn compute_final_pipeline_keep_set(
+    current_idx: usize,
+    total_pages: usize,
+    radius: usize,
+) -> Vec<usize> {
     if total_pages == 0 {
         return Vec::new();
     }

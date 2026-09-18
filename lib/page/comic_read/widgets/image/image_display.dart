@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/painting.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
+import 'package:zephyr/page/setting/real_sr/service/upscaled_image_cache.dart';
 
 class ImageDisplay extends StatefulWidget {
   final String imagePath;
@@ -33,6 +33,8 @@ class _ImageDisplayState extends State<ImageDisplay> {
   ImageStream? _imageStream;
   ImageStreamListener? _imageListener;
   Timer? _einkDelayTimer;
+  StreamSubscription<String>? _replacementSubscription;
+  int _imageRevision = 0;
 
   double? _rawWidth;
   double? _rawHeight;
@@ -44,6 +46,9 @@ class _ImageDisplayState extends State<ImageDisplay> {
   @override
   void initState() {
     super.initState();
+    _replacementSubscription = UpscaledImageCache.replacements.listen(
+      _onImageReplaced,
+    );
     _resolveImageMeta();
     _startEinkDelayIfNeeded(
       context.read<GlobalSettingCubit>().state.readSetting,
@@ -98,14 +103,20 @@ class _ImageDisplayState extends State<ImageDisplay> {
     });
   }
 
+  void _onImageReplaced(String path) {
+    if (!mounted || path != widget.imagePath) return;
+
+    _stopListening();
+    setState(() {
+      _rawWidth = null;
+      _rawHeight = null;
+      _imageRevision++;
+    });
+    _resolveImageMeta();
+  }
+
   void _resolveImageMeta() {
     final imageProvider = FileImage(File(widget.imagePath));
-
-    // RealSR replaces the cached file in place. FileImage uses the path as
-    // its cache key, so evict the previous decoded frame before resolving;
-    // otherwise a successful upscale can remain invisible until the global
-    // image cache happens to expire it.
-    PaintingBinding.instance.imageCache.evict(imageProvider);
     final newStream = imageProvider.resolve(ImageConfiguration.empty);
 
     final newListener = ImageStreamListener(
@@ -159,6 +170,7 @@ class _ImageDisplayState extends State<ImageDisplay> {
 
   @override
   void dispose() {
+    _replacementSubscription?.cancel();
     _stopListening();
     _einkDelayTimer?.cancel();
     super.dispose();
@@ -214,7 +226,8 @@ class _ImageDisplayState extends State<ImageDisplay> {
           alignment: widget.imageAlignment,
           child: Image.file(
             File(widget.imagePath),
-            key: ValueKey<String>('reader-image:${widget.imagePath}'),
+            // 同路径覆盖后必须重建 ImageState，单独清理缓存不会切换旧图片流。
+            key: ValueKey((widget.imagePath, _imageRevision)),
             width: width,
             fit: isColumn ? BoxFit.fill : BoxFit.contain,
             alignment: widget.imageAlignment,

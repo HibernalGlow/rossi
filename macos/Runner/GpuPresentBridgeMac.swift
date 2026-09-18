@@ -211,12 +211,8 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
             }
             if let pres = presenter, let setOrig = fnSetOriginalPreview {
                 _ = setOrig(pres, active ? 1 : 0)
-                // 立即重新渲染并提交新帧，让原图/超分切换毫秒级生效！
-                if let idx = currentDisplayedIndex {
-                    handleShow(index: idx) { _ in }
-                } else if textureId >= 0 {
-                    textureRegistry?.textureFrameAvailable(textureId)
-                }
+                // 由 Dart 控制器在旁路切换完成后统一调用一次 show。这里再排队
+                // 一次会造成重复提交，并与超分注入的 show 产生竞态。
                 result(true)
             } else {
                 result(false)
@@ -235,6 +231,28 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
 
         case "stats":
             handleStats(result: result)
+
+        #if DEBUG
+        case "debugFramePixel":
+            // 集成测试读取提交给 Flutter 的真实缓冲区，避免仅靠缓存状态判断替换。
+            bufferLock.lock()
+            let frame = currentPixelBuffer
+            bufferLock.unlock()
+            guard let frame = frame else {
+                result(nil)
+                return
+            }
+            CVPixelBufferLockBaseAddress(frame, .readOnly)
+            defer { CVPixelBufferUnlockBaseAddress(frame, .readOnly) }
+            guard let base = CVPixelBufferGetBaseAddress(frame) else {
+                result(nil)
+                return
+            }
+            let offset = (CVPixelBufferGetHeight(frame) / 2) * CVPixelBufferGetBytesPerRow(frame)
+                + (CVPixelBufferGetWidth(frame) / 2) * 4
+            let pixel = base.advanced(by: offset).assumingMemoryBound(to: UInt8.self)
+            result((0..<4).map { Int(pixel[$0]) })
+        #endif
 
         case "prepare":
             guard let args = call.arguments as? [String: Any],
@@ -420,11 +438,9 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
                 // BGRA 格式：B=0x0A, G=0x05, R=0x05, A=0xFF
                 let totalBytes = bytesPerRow * height
                 // 按 4 字节（单像素）填充 BGRA 深黑底色
-                let pixelPtr = UnsafeMutableRawPointer(base).bindMemory(to: UInt32.self, capacity: totalBytes / 4)
-                let bgra: UInt32 = 0xFF05050A  // BGRA little-endian: B=0x0A G=0x05 R=0x05 A=0xFF
-                for i in 0..<(totalBytes / 4) {
-                    pixelPtr[i] = bgra
-                }
+                var bgra: UInt32 = 0xFF05050A
+                // 用系统批量填充，避免 Debug 构建逐像素循环拖慢每次翻页。
+                memset_pattern4(base, &bgra, totalBytes)
             }
 
             var err = [UInt8](repeating: 0, count: 1024)
@@ -478,10 +494,9 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
             }
 
             if rc == 0 {
-                NSLog("[GpuPresentBridgeMac] setEnhancedImage 成功注入 index=\(index), currentDisplayed=\(String(describing: self.currentDisplayedIndex))")
-                if self.currentDisplayedIndex == index {
-                    self.handleShow(index: index) { _ in }
-                }
+                let fileBytes = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? NSNumber)?.intValue ?? 0
+                NSLog("[GpuPresentBridgeMac] setEnhancedImage 成功注入 index=\(index), path=\(path), fileBytes=\(fileBytes), currentDisplayed=\(String(describing: self.currentDisplayedIndex))")
+                // 注入只更新缓存；Dart 确认当前页后统一调用 show，避免重画两次。
                 result(true)
             } else {
                 let msg = String(cString: err)
@@ -522,26 +537,30 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
             ])
             return
         }
-        var buf = [UInt8](repeating: 0, count: 4096)
-        let written = stats(pres, &buf, buf.count)
-        let jsonStr = written > 0 ? String(cString: buf) : "{}"
+        // show/setEnhanced 都在这条队列上执行。stats 也必须排队，否则 Dart
+        // 在 show 的回调刚返回时读取到的是上一帧的 usedEnhanced。
+        workerQueue.async { [weak self] in
+            guard let self = self, !self.isDisposed else { return }
+            var buf = [UInt8](repeating: 0, count: 4096)
+            let written = stats(pres, &buf, buf.count)
+            let jsonStr = written > 0 ? String(cString: buf) : "{}"
 
-        result([
-            "ok": true,
-            "state": "ready",
-            "textureId": textureId,
-            "width": targetWidth,
-            "height": targetHeight,
-            "adapter": "Apple Silicon (Metal UMA)",
-            "luidKnown": true,
-            "framesMarked": framesMarked,
-            "handleOpened": framesMarked,
-            "resizes": 0,
-            "pageCount": currentPageCount,
-            "showAsync": true,
-            "showBusyRejected": 0,
-            "probe": jsonStr
-        ])
+            result([
+                "ok": true,
+                "state": "ready",
+                "textureId": self.textureId,
+                "width": self.targetWidth,
+                "height": self.targetHeight,
+                "adapter": "Apple Silicon (Metal UMA)",
+                "luidKnown": true,
+                "framesMarked": self.framesMarked,
+                "handleOpened": self.framesMarked,
+                "resizes": 0,
+                "pageCount": self.currentPageCount,
+                "showAsync": true,
+                "showBusyRejected": 0,
+                "probe": jsonStr
+            ])
+        }
     }
 }
-

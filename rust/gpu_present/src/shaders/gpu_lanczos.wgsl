@@ -13,12 +13,14 @@ struct ResampleUniforms {
     target_width: f32,
     target_height: f32,
     scale: f32,
-    filter_mode: u32, // 0: Bilinear, 1: Lanczos3, 2: Anime4k Sharp
+    filter_mode: u32, // 1: Lanczos3（在 sample_lod 那一级上）, 2: Anime4K
     _pad1: f32,
     _pad2: f32,
-    /// 采样用的 mip 等级（由 Rust 侧按缩小倍率算好）。
-    /// 只有 `filter_mode == 0`（缩小）会读它；mipmap 生成那一趟也会附带读到它 ——
-    /// 那里只用 `src_width`/`src_height`，所以无影响。
+    /// 重建所用的 mip 等级，由 Rust 侧按 `log2(1/scale)` 算好。
+    ///
+    /// `src_width`/`src_height` 传的也是**这一级**的尺寸 —— 采样几何必须与
+    /// 实际读取的那一级一致，否则整幅画会错位放大。
+    /// mip 生成那一趟（`fs_mip`）也会读到本结构体，但它只用 `src_width`/`src_height`。
     sample_lod: f32,
     _pad3: f32,
     _pad4: f32,
@@ -88,24 +90,6 @@ fn fs_main(@builtin(position) frag_pos: vec4<f32>) -> @location(0) vec4<f32> {  
     let local_y = (py - min_y) / uniforms.render_height;
     let uv = vec2<f32>(clamp(local_x, 0.0, 1.0), clamp(local_y, 0.0, 1.0));
 
-    // 模式 0：缩小重建（mip 采样）。
-    //
-    // 这里以前是单点双线性 —— 那是**欠采样**：一个输出像素只读了源上的一个点，
-    // 而被它盖住的另外几个像素直接丢掉。缩 3 倍以上时结果就是锯齿与闪烁
-    // （实测：9504 px 宽的扫描件缩到 3200，正好落进这条分支，锯齿肉眼可见）。
-    //
-    // 现在改成读预先算好的 mip 链，LOD 由 Rust 侧按 `log2(1/scale)` 给出：
-    // 采样器的 `mipmap_filter = Linear` 在相邻两级之间插值，等效于在整块覆盖区域上
-    // 做面积平均 —— 这才是缩小时正确的重建，也是硬件本来就擅长的事。
-    if uniforms.filter_mode == 0u {
-        return textureSampleLevel(
-            source_texture,
-            source_sampler,
-            uv,
-            uniforms.sample_lod,
-        );
-    }
-
     // 模式 2：动漫/二次元线条边缘增强 (Anime4K 简化轻量核)
     if uniforms.filter_mode == 2u {
         let center_color = textureSampleLevel(source_texture, source_sampler, uv, 0.0);
@@ -123,7 +107,22 @@ fn fs_main(@builtin(position) frag_pos: vec4<f32>) -> @location(0) vec4<f32> {  
         return clamp(sharpened, vec4<f32>(0.0), vec4<f32>(1.0));
     }
 
-    // 模式 1：Lanczos3 高质量 Sinc 滤波重采样
+    // Lanczos3 高质量 Sinc 滤波重采样。
+    //
+    // # 为什么是在 mip 级上做，而不是分两条路
+    //
+    // 缩小时要同时满足两件事：**不欠采样**（否则锯齿）与**不糊**（否则细节没了）。
+    //   - 只在第 0 级上取一个点/两点 → 欠采样，锯齿；
+    //   - 只靠 mip 三线性（面积平均）→ 不锯齿，但明显比别的软件糊，
+    //     因为面积平均没有重建核，高频被一并抹平。
+    //
+    // 所以分两步走：先用 mip 链把倍率降到 [0.5, 1)（这一步就是正确的面积平均，
+    // 由 Rust 侧算出的 `sample_lod` 指定用哪一级），**再在同一级上跑 Lanczos3**。
+    // 后者是有负瓣的重建核，能把这已经落在采样定理内的频段重新锐回来 ——
+    // 于是既不锯齿也不糊。
+    //
+    // 注意 LOD 取的是 `floor(log2(1/scale))`，所以残余倍率始终落在 [0.5, 1)，
+    // 对应的足迹不超过 2 个像素，正好在下面 5×5 核的覆盖范围内。
     let src_x = uv.x * uniforms.src_width - 0.5;
     let src_y = uv.y * uniforms.src_height - 0.5;
 
@@ -146,7 +145,11 @@ fn fs_main(@builtin(position) frag_pos: vec4<f32>) -> @location(0) vec4<f32> {  
             let wx = lanczos3(f32(dx) - (src_x - f32(base_x)));
             let w = wx * wy;
 
-            let color = textureLoad(source_texture, vec2<i32>(sample_x, sample_y), 0);
+            let color = textureLoad(
+                source_texture,
+                vec2<i32>(sample_x, sample_y),
+                i32(uniforms.sample_lod),
+            );
             accumulated_color = accumulated_color + color * w;
             total_weight = total_weight + w;
         }

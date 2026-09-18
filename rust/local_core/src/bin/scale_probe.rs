@@ -69,17 +69,9 @@ fn decode_jxl_dispatch(bytes: &[u8], backend: &str) -> Result<image::DynamicImag
         #[cfg(feature = "jxl-oxide")]
         "oxide" => jxl_backend::decode_jxl_oxide(bytes),
         // 默认：按当前构建的 feature 优先级取后端（与 App 解码路径同一分发）。
-        #[cfg(any(
-            feature = "jxl-rs-mt",
-            feature = "jxl-rs-1t",
-            feature = "jxl-oxide"
-        ))]
+        #[cfg(any(feature = "jxl-rs-mt", feature = "jxl-rs-1t", feature = "jxl-oxide"))]
         _ => jxl_backend::decode_dispatch(bytes),
-        #[cfg(not(any(
-            feature = "jxl-rs-mt",
-            feature = "jxl-rs-1t",
-            feature = "jxl-oxide"
-        )))]
+        #[cfg(not(any(feature = "jxl-rs-mt", feature = "jxl-rs-1t", feature = "jxl-oxide")))]
         _ => anyhow::bail!("未开任何 JXL 后端 feature，解不了 JXL"),
     }
 }
@@ -133,11 +125,7 @@ fn main() -> Result<()> {
     // 下游缩放/装箱代码完全复用 —— 三种格式的差异只在这一步。
     let jxl = jxl_backend::sniff_jxl(&bytes);
     if jxl {
-        #[cfg(not(any(
-            feature = "jxl-rs-mt",
-            feature = "jxl-rs-1t",
-            feature = "jxl-oxide"
-        )))]
+        #[cfg(not(any(feature = "jxl-rs-mt", feature = "jxl-rs-1t", feature = "jxl-oxide")))]
         anyhow::bail!("该页是 JXL，但本次构建未开任何 JXL 后端 feature，解不了");
         println!(
             "格式分流  : JXL (生效后端={}, 指定={})",

@@ -22,7 +22,9 @@ use image::DynamicImage;
 /// （`00 00 00 0C 'JXL \r\n\x87\n'`）。两种都认，别只认一种。
 pub fn sniff_jxl(bytes: &[u8]) -> bool {
     bytes.starts_with(&[0xFF, 0x0A])
-        || bytes.starts_with(&[0x00, 0x00, 0x00, 0x0C, b'J', b'X', b'L', b' ', 0x0D, 0x0A, 0x87, 0x0A])
+        || bytes.starts_with(&[
+            0x00, 0x00, 0x00, 0x0C, b'J', b'X', b'L', b' ', 0x0D, 0x0A, 0x87, 0x0A,
+        ])
 }
 
 /// 当前构建实际生效的后端（多个 feature 叠加时与 [`decode_dispatch`] 同优先级）。
@@ -47,8 +49,8 @@ pub const ACTIVE_BACKEND: &str = if cfg!(feature = "jxl-rs-mt") {
 pub fn decode_jxl_rs_threaded(bytes: &[u8]) -> Result<DynamicImage> {
     use jxl::api::{
         JxlColorType, JxlDataFormat, JxlDecoder as ApiJxlDecoder, JxlDecoderOptions,
-        JxlOutputBuffer, JxlParallelRunner, JxlParallelRunnerFun, JxlPixelFormat,
-        ProcessingResult, states,
+        JxlOutputBuffer, JxlParallelRunner, JxlParallelRunnerFun, JxlPixelFormat, ProcessingResult,
+        states,
     };
     use std::sync::Mutex;
 
@@ -138,8 +140,9 @@ pub fn decode_jxl_rs_threaded(bytes: &[u8]) -> Result<DynamicImage> {
         image::ColorType::L8 => {
             image::GrayImage::from_raw(width, height, buf).map(DynamicImage::ImageLuma8)
         }
-        image::ColorType::La8 => image::GrayAlphaImage::from_raw(width, height, buf)
-            .map(DynamicImage::ImageLumaA8),
+        image::ColorType::La8 => {
+            image::GrayAlphaImage::from_raw(width, height, buf).map(DynamicImage::ImageLumaA8)
+        }
         image::ColorType::Rgb8 => {
             image::RgbImage::from_raw(width, height, buf).map(DynamicImage::ImageRgb8)
         }
@@ -259,11 +262,7 @@ pub fn decode_dispatch(bytes: &[u8]) -> Result<DynamicImage> {
         feature = "jxl-oxide"
     ))]
     return decode_jxl_oxide(bytes);
-    #[cfg(not(any(
-        feature = "jxl-rs-mt",
-        feature = "jxl-rs-1t",
-        feature = "jxl-oxide"
-    )))]
+    #[cfg(not(any(feature = "jxl-rs-mt", feature = "jxl-rs-1t", feature = "jxl-oxide")))]
     bail!("构建未启用任何 JXL 后端 feature（jxl-rs-mt / jxl-rs-1t / jxl-oxide）")
 }
 
@@ -279,11 +278,7 @@ pub fn probe_size_dispatch(bytes: &[u8]) -> Result<(u32, u32)> {
         feature = "jxl-oxide"
     ))]
     return probe_size_oxide(bytes);
-    #[cfg(not(any(
-        feature = "jxl-rs-mt",
-        feature = "jxl-rs-1t",
-        feature = "jxl-oxide"
-    )))]
+    #[cfg(not(any(feature = "jxl-rs-mt", feature = "jxl-rs-1t", feature = "jxl-oxide")))]
     bail!("构建未启用任何 JXL 后端 feature")
 }
 

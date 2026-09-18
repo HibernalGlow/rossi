@@ -19,8 +19,8 @@ use std::sync::{Arc, Condvar, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
-use anyhow::{anyhow, Context, Result};
 use crate::wgpu_resampler::WgpuResampler;
+use anyhow::{anyhow, Context, Result};
 use rossi_local_core::{
     compute_final_pipeline_keep_set, interleaved_prefetch_positions, LocalSource, PagePixels,
 };
@@ -83,20 +83,35 @@ impl CachedPage {
         self.raw_pixels.clone()
     }
 
-    fn find_frame_in(frames: &[PreRenderedFrame], target_w: u32, target_h: u32) -> Option<PreRenderedFrame> {
-        if let Some(f) = frames.iter().find(|f| f.target_w == target_w && f.target_h == target_h) {
+    fn find_frame_in(
+        frames: &[PreRenderedFrame],
+        target_w: u32,
+        target_h: u32,
+    ) -> Option<PreRenderedFrame> {
+        if let Some(f) = frames
+            .iter()
+            .find(|f| f.target_w == target_w && f.target_h == target_h)
+        {
             return Some(f.clone());
         }
-        frames.iter().find(|f| {
-            (f.target_w as i64 - target_w as i64).abs() <= 3
-                && (f.target_h as i64 - target_h as i64).abs() <= 3
-        }).cloned()
+        frames
+            .iter()
+            .find(|f| {
+                (f.target_w as i64 - target_w as i64).abs() <= 3
+                    && (f.target_h as i64 - target_h as i64).abs() <= 3
+            })
+            .cloned()
     }
 
     /// 级联解析视口预渲染帧（对齐 mImageViewer resolve_fs_display_tex 原版逻辑）：
     /// 1. 若 !bypass_enhanced 且存在 pre_rendered_enhanced，最优先命中！
     /// 2. 否则命中 pre_rendered_raw！
-    fn resolve_display_frame(&self, target_w: u32, target_h: u32, bypass_enhanced: bool) -> Option<PreRenderedFrame> {
+    fn resolve_display_frame(
+        &self,
+        target_w: u32,
+        target_h: u32,
+        bypass_enhanced: bool,
+    ) -> Option<PreRenderedFrame> {
         if !bypass_enhanced {
             if let Some(f) = Self::find_frame_in(&self.pre_rendered_enhanced, target_w, target_h) {
                 return Some(f);
@@ -137,7 +152,8 @@ impl CachedPage {
     }
 
     fn add_raw_frame(&mut self, frame: PreRenderedFrame) {
-        self.pre_rendered_raw.retain(|f| !(f.target_w == frame.target_w && f.target_h == frame.target_h));
+        self.pre_rendered_raw
+            .retain(|f| !(f.target_w == frame.target_w && f.target_h == frame.target_h));
         self.pre_rendered_raw.push(frame);
         if self.pre_rendered_raw.len() > 3 {
             self.pre_rendered_raw.remove(0);
@@ -145,7 +161,8 @@ impl CachedPage {
     }
 
     fn add_enhanced_frame(&mut self, frame: PreRenderedFrame) {
-        self.pre_rendered_enhanced.retain(|f| !(f.target_w == frame.target_w && f.target_h == frame.target_h));
+        self.pre_rendered_enhanced
+            .retain(|f| !(f.target_w == frame.target_w && f.target_h == frame.target_h));
         self.pre_rendered_enhanced.push(frame);
         if self.pre_rendered_enhanced.len() > 3 {
             self.pre_rendered_enhanced.remove(0);
@@ -170,7 +187,11 @@ impl PageCache {
             .iter()
             .map(|e| {
                 let p_len = e.raw_pixels.as_ref().map(|p| p.rgba.len()).unwrap_or(0);
-                let ep_len = e.enhanced_pixels.as_ref().map(|p| p.rgba.len()).unwrap_or(0);
+                let ep_len = e
+                    .enhanced_pixels
+                    .as_ref()
+                    .map(|p| p.rgba.len())
+                    .unwrap_or(0);
                 let r_len: usize = e.pre_rendered_raw.iter().map(|f| f.bgra.len()).sum();
                 let er_len: usize = e.pre_rendered_enhanced.iter().map(|f| f.bgra.len()).sum();
                 p_len + ep_len + r_len + er_len
@@ -195,6 +216,30 @@ impl PageCache {
         self.hits += 1;
         let frame = entry.resolve_display_frame(target_w, target_h, bypass_enhanced);
         let pixels = entry.resolve_display_pixels(bypass_enhanced);
+        self.entries.push_back(entry);
+        Some((pixels, frame))
+    }
+
+    /// 获取原图轨缓存，不参与超分轨选择。
+    ///
+    /// 邻页预取只负责准备原图。若这里复用普通的 [get]，超分图存在时会把
+    /// enhanced_pixels 当成预取输入，随后又写回 raw 预渲染桶，导致两条轨相互污染，
+    /// 并让预取线程反复重采样当前页。
+    fn get_raw(
+        &mut self,
+        index: usize,
+        epoch: u64,
+        target_w: u32,
+        target_h: u32,
+    ) -> Option<(Option<Arc<PagePixels>>, Option<PreRenderedFrame>)> {
+        let at = self
+            .entries
+            .iter()
+            .position(|e| e.index == index && e.epoch == epoch)?;
+        let entry = self.entries.remove(at)?;
+        self.hits += 1;
+        let frame = CachedPage::find_frame_in(&entry.pre_rendered_raw, target_w, target_h);
+        let pixels = entry.raw_pixels.clone();
         self.entries.push_back(entry);
         Some((pixels, frame))
     }
@@ -244,7 +289,11 @@ impl PageCache {
         self.prefetched += 1;
 
         // 1. 如果带 raw pixels 的页面超过 MAX_RAW_PIXELS_COUNT，从最旧的页面卸载原图，保留视口预渲染帧！
-        let raw_count = self.entries.iter().filter(|e| e.raw_pixels.is_some()).count();
+        let raw_count = self
+            .entries
+            .iter()
+            .filter(|e| e.raw_pixels.is_some())
+            .count();
         if raw_count > MAX_RAW_PIXELS_COUNT {
             let to_drop = raw_count - MAX_RAW_PIXELS_COUNT;
             let mut dropped = 0;
@@ -285,8 +334,14 @@ impl PageCache {
         target_w: u32,
         target_h: u32,
     ) -> Option<(Arc<PagePixels>, bool)> {
-        let entry = self.entries.iter().find(|e| e.index == index && e.epoch == epoch)?;
-        if entry.resolve_display_frame(target_w, target_h, false).is_some() {
+        let entry = self
+            .entries
+            .iter()
+            .find(|e| e.index == index && e.epoch == epoch)?;
+        if entry
+            .resolve_display_frame(target_w, target_h, false)
+            .is_some()
+        {
             None
         } else {
             let enhanced = entry.prefers_enhanced(false);
@@ -296,14 +351,22 @@ impl PageCache {
 
     /// 追加或更新页面的原图预渲染视口帧
     fn add_pre_rendered(&mut self, index: usize, epoch: u64, frame: PreRenderedFrame) {
-        if let Some(entry) = self.entries.iter_mut().find(|e| e.index == index && e.epoch == epoch) {
+        if let Some(entry) = self
+            .entries
+            .iter_mut()
+            .find(|e| e.index == index && e.epoch == epoch)
+        {
             entry.add_raw_frame(frame);
         }
     }
 
     /// 追加或更新页面的超分增强预渲染视口帧
     fn add_pre_rendered_enhanced(&mut self, index: usize, epoch: u64, frame: PreRenderedFrame) {
-        if let Some(entry) = self.entries.iter_mut().find(|e| e.index == index && e.epoch == epoch) {
+        if let Some(entry) = self
+            .entries
+            .iter_mut()
+            .find(|e| e.index == index && e.epoch == epoch)
+        {
             entry.add_enhanced_frame(frame);
         } else {
             let mut page = CachedPage::new_raw(index, epoch, None);
@@ -314,14 +377,22 @@ impl PageCache {
 
     /// 回填原图像素
     fn set_pixels(&mut self, index: usize, epoch: u64, pixels: Arc<PagePixels>) {
-        if let Some(entry) = self.entries.iter_mut().find(|e| e.index == index && e.epoch == epoch) {
+        if let Some(entry) = self
+            .entries
+            .iter_mut()
+            .find(|e| e.index == index && e.epoch == epoch)
+        {
             entry.raw_pixels = Some(pixels);
         }
     }
 
     /// 回填超分增强像素
     fn set_enhanced_pixels(&mut self, index: usize, epoch: u64, pixels: Arc<PagePixels>) {
-        if let Some(entry) = self.entries.iter_mut().find(|e| e.index == index && e.epoch == epoch) {
+        if let Some(entry) = self
+            .entries
+            .iter_mut()
+            .find(|e| e.index == index && e.epoch == epoch)
+        {
             entry.enhanced_pixels = Some(pixels);
         } else {
             let mut page = CachedPage::new_raw(index, epoch, None);
@@ -698,20 +769,25 @@ impl MacPresenter {
         // 会让 `request_device` 直接失败，而 16384 已经盖住任何现实的漫画页。
         let adapter_limit = adapter.limits().max_texture_dimension_2d;
         let wanted_texture_dimension = adapter_limit.min(16384);
-        let (device, queue) = pollster::block_on(adapter.request_device(
-            &wgpu::DeviceDescriptor {
-                label: Some("rossi_mac_wgpu_device"),
-                required_limits: wgpu::Limits {
-                    max_texture_dimension_2d: wanted_texture_dimension,
-                    ..wgpu::Limits::default()
-                },
-                ..Default::default()
+        let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
+            label: Some("rossi_mac_wgpu_device"),
+            required_limits: wgpu::Limits {
+                max_texture_dimension_2d: wanted_texture_dimension,
+                ..wgpu::Limits::default()
             },
-        ))
+            ..Default::default()
+        }))
         .context("无法初始化 wgpu 逻辑设备")?;
 
-        let resampler = Arc::new(Mutex::new(WgpuResampler::new(Arc::new(device), Arc::new(queue))?));
-        let prefetch_thread = Some(spawn_prefetch_worker(shared_cache.clone(), hub.clone(), resampler.clone()));
+        let resampler = Arc::new(Mutex::new(WgpuResampler::new(
+            Arc::new(device),
+            Arc::new(queue),
+        )?));
+        let prefetch_thread = Some(spawn_prefetch_worker(
+            shared_cache.clone(),
+            hub.clone(),
+            resampler.clone(),
+        ));
 
         Ok(Self {
             target_width,
@@ -810,9 +886,17 @@ impl MacPresenter {
 
         // ① 已经为这个尺寸渲染过 → 直接返回。翻回上一页走的就是这条，代价接近 0。
         {
-            let mut c = self.shared_cache.cache.lock().unwrap_or_else(|p| p.into_inner());
-            if c.get(index, self.source_epoch, target_width, target_height, false).is_some() {
-                return Ok(());
+            let mut c = self
+                .shared_cache
+                .cache
+                .lock()
+                .unwrap_or_else(|p| p.into_inner());
+            if let Some((_, frame)) =
+                c.get_raw(index, self.source_epoch, target_width, target_height)
+            {
+                if frame.is_some() {
+                    return Ok(());
+                }
             }
             // ② 已有别的线程在解这一页 → 交给它。重复解会争抢磁盘与 CPU，
             //    而它解完会自己预渲染（预取线程的阶段 2 就是干这个的）。
@@ -825,8 +909,12 @@ impl MacPresenter {
         // ③ 解码（缓存里有原图时只是取一份 Arc）
         let decoded = {
             let cached = {
-                let mut c = self.shared_cache.cache.lock().unwrap_or_else(|p| p.into_inner());
-                c.get(index, self.source_epoch, target_width, target_height, false)
+                let mut c = self
+                    .shared_cache
+                    .cache
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner());
+                c.get_raw(index, self.source_epoch, target_width, target_height)
                     .and_then(|(pixels, _)| pixels)
             };
             match cached {
@@ -921,7 +1009,13 @@ impl MacPresenter {
         let (pixels_opt, pre_rendered_opt) = {
             let mut c = self.shared_cache.cache.lock().unwrap();
             // 先尝试从缓存直接拿（对齐 mImageViewer 级联规则）
-            if let Some((p, r)) = c.get(index, self.source_epoch, target_width, target_height, bypass_enhanced) {
+            if let Some((p, r)) = c.get(
+                index,
+                self.source_epoch,
+                target_width,
+                target_height,
+                bypass_enhanced,
+            ) {
                 decode_hit = true;
                 used_enhanced = c.prefers_enhanced(index, self.source_epoch, bypass_enhanced);
                 (p, r)
@@ -933,7 +1027,13 @@ impl MacPresenter {
                     let (guard, _) = self.shared_cache.cv.wait_timeout(c, timeout).unwrap();
                     c = guard;
                 }
-                if let Some((p, r)) = c.get(index, self.source_epoch, target_width, target_height, bypass_enhanced) {
+                if let Some((p, r)) = c.get(
+                    index,
+                    self.source_epoch,
+                    target_width,
+                    target_height,
+                    bypass_enhanced,
+                ) {
                     decode_hit = true;
                     used_enhanced = c.prefers_enhanced(index, self.source_epoch, bypass_enhanced);
                     (p, r)
@@ -942,7 +1042,11 @@ impl MacPresenter {
                     drop(c);
                     let pixels = Arc::new(source.page_pixels(index)?);
                     if let Ok(mut c2) = self.shared_cache.cache.lock() {
-                        c2.insert(CachedPage::new_raw(index, self.source_epoch, Some(pixels.clone())));
+                        c2.insert(CachedPage::new_raw(
+                            index,
+                            self.source_epoch,
+                            Some(pixels.clone()),
+                        ));
                     }
                     (Some(pixels), None)
                 }
@@ -951,7 +1055,11 @@ impl MacPresenter {
                 drop(c);
                 let pixels = Arc::new(source.page_pixels(index)?);
                 if let Ok(mut c2) = self.shared_cache.cache.lock() {
-                    c2.insert(CachedPage::new_raw(index, self.source_epoch, Some(pixels.clone())));
+                    c2.insert(CachedPage::new_raw(
+                        index,
+                        self.source_epoch,
+                        Some(pixels.clone()),
+                    ));
                 }
                 (Some(pixels), None)
             }
@@ -967,7 +1075,13 @@ impl MacPresenter {
             {
                 prerender_hit = true;
                 unsafe {
-                    copy_pre_rendered_frame(frame, dst_ptr, dst_stride, target_width, target_height);
+                    copy_pre_rendered_frame(
+                        frame,
+                        dst_ptr,
+                        dst_stride,
+                        target_width,
+                        target_height,
+                    );
                 }
             }
         }
@@ -1023,7 +1137,9 @@ impl MacPresenter {
                 bgra.as_mut_ptr(),
                 stride,
                 false,
-            ).is_ok() {
+            )
+            .is_ok()
+            {
                 if let Ok(mut c) = self.shared_cache.cache.lock() {
                     let frame = PreRenderedFrame {
                         target_w: target_width,
@@ -1052,8 +1168,16 @@ impl MacPresenter {
         self.last_used_enhanced = used_enhanced;
 
         eprintln!(
-            "[Rossi GPU] show_into_buffer: index={}, prerender_hit={}, decode_hit={}, bypass_enhanced={}, used_enhanced={}",
-            index, prerender_hit, decode_hit, bypass_enhanced, used_enhanced
+            "[Rossi GPU] show_into_buffer: index={}, prerender_hit={}, decode_hit={}, bypass_enhanced={}, used_enhanced={}, source={}x{}, decoded={}x{}",
+            index,
+            prerender_hit,
+            decode_hit,
+            bypass_enhanced,
+            used_enhanced,
+            self.last_source_width,
+            self.last_source_height,
+            self.last_decoded_width,
+            self.last_decoded_height,
         );
 
         self.current_index = Some(index);
@@ -1085,7 +1209,8 @@ impl MacPresenter {
 
     /// 开关原图对比旁路（对齐 mImageViewer fs_display_bypasses_final_pipeline 原版机制）
     pub fn set_original_preview(&self, active: bool) {
-        self.original_preview_active.store(active, Ordering::Relaxed);
+        self.original_preview_active
+            .store(active, Ordering::Relaxed);
     }
 
     /// 查询当前是否处于原图对比旁路状态
@@ -1260,11 +1385,7 @@ unsafe fn copy_pre_rendered_frame(
         && src_stride == copy_bytes
     {
         // 尺寸与跨步完全一致且连续对齐，直接整块单次 memcpy
-        std::ptr::copy_nonoverlapping(
-            frame.bgra.as_ptr(),
-            dst_ptr,
-            src_stride * copy_h,
-        );
+        std::ptr::copy_nonoverlapping(frame.bgra.as_ptr(), dst_ptr, src_stride * copy_h);
     } else {
         let bg_pixel = u32::from_ne_bytes(BACKGROUND_BGRA);
         for y in 0..target_h as usize {
@@ -1274,7 +1395,8 @@ unsafe fn copy_pre_rendered_frame(
                 std::ptr::copy_nonoverlapping(src_row, dst_row, copy_bytes);
                 if (target_w as usize) > copy_w {
                     let fill_ptr = (dst_row as *mut u32).add(copy_w);
-                    std::slice::from_raw_parts_mut(fill_ptr, (target_w as usize) - copy_w).fill(bg_pixel);
+                    std::slice::from_raw_parts_mut(fill_ptr, (target_w as usize) - copy_w)
+                        .fill(bg_pixel);
                 }
             } else {
                 let fill_ptr = dst_row as *mut u32;
@@ -1357,7 +1479,13 @@ mod tests {
         let mut dst = vec![0u8; (target_h * stride) as usize];
 
         unsafe {
-            copy_pre_rendered_frame(&frame, dst.as_mut_ptr(), stride as usize, target_w, target_h);
+            copy_pre_rendered_frame(
+                &frame,
+                dst.as_mut_ptr(),
+                stride as usize,
+                target_w,
+                target_h,
+            );
         }
 
         // 前 10 行应当完全匹配
@@ -1388,14 +1516,23 @@ mod tests {
 
         // 1. 只有原图时：级联解析必定命中原图（原图秒开保底）
         let mut page0 = CachedPage::new_raw(0, epoch, Some(red_raw.clone()));
-        assert_eq!(page0.resolve_display_pixels(false).unwrap().rgba, red_raw.rgba);
+        assert_eq!(
+            page0.resolve_display_pixels(false).unwrap().rgba,
+            red_raw.rgba
+        );
 
         // 2. 超分增强图生成后：普通模式下优先命中超分图（平滑替换）
         page0.enhanced_pixels = Some(blue_enhanced.clone());
-        assert_eq!(page0.resolve_display_pixels(false).unwrap().rgba, blue_enhanced.rgba);
+        assert_eq!(
+            page0.resolve_display_pixels(false).unwrap().rgba,
+            blue_enhanced.rgba
+        );
 
         // 3. 原图对比旁路模式（bypass_enhanced = true）：瞬时绕过超分图，返回原图
-        assert_eq!(page0.resolve_display_pixels(true).unwrap().rgba, red_raw.rgba);
+        assert_eq!(
+            page0.resolve_display_pixels(true).unwrap().rgba,
+            red_raw.rgba
+        );
 
         // 4. Keep-Set 显存控制测试：超出保留集的超分大图自动被淘汰，原图完好保留
         let mut page4 = CachedPage::new_raw(4, epoch, Some(red_raw.clone()));
@@ -1482,12 +1619,52 @@ mod tests {
         });
         cache.set_enhanced_pixels(7, epoch, green_enhanced.clone());
         assert_eq!(
-            cache.get(7, epoch, 100, 100, false).unwrap().0.unwrap().rgba,
+            cache
+                .get(7, epoch, 100, 100, false)
+                .unwrap()
+                .0
+                .unwrap()
+                .rgba,
             green_enhanced.rgba
         );
 
         // ⑤ 原图对比旁路仍然要能瞬切回原图（超分轨在、但不参与呈现）
         assert!(!cache.prefers_enhanced(7, epoch, true));
+    }
+
+    #[test]
+    fn test_raw_prefetch_never_selects_enhanced_track() {
+        let epoch = 9;
+        let raw = Arc::new(PagePixels {
+            width: 1,
+            height: 1,
+            source_width: 1,
+            source_height: 1,
+            rgba: vec![255, 0, 0, 255],
+        });
+        let enhanced = Arc::new(PagePixels {
+            width: 2,
+            height: 2,
+            source_width: 1,
+            source_height: 1,
+            rgba: vec![0, 0, 255, 255].repeat(4),
+        });
+        let mut cache = PageCache::default();
+        let mut page = CachedPage::new_raw(3, epoch, Some(raw.clone()));
+        page.enhanced_pixels = Some(enhanced);
+        page.add_raw_frame(PreRenderedFrame {
+            target_w: 100,
+            target_h: 100,
+            bgra: vec![1; 100 * 100 * 4],
+            stride: 400,
+        });
+        cache.insert(page);
+
+        let (pixels, frame) = cache
+            .get_raw(3, epoch, 100, 100)
+            .expect("原图预取应命中原图条目");
+        assert_eq!(pixels.expect("原图像素应存在").rgba, raw.rgba);
+        assert!(frame.is_some(), "原图预渲染帧应从 raw 桶读取");
     }
 
     /// 回归：**预渲染帧要进对桶**，以及"超分图已在、镜像尺寸变了"时不再空转。
@@ -1527,7 +1704,10 @@ mod tests {
         cache.set_enhanced_pixels(0, epoch, enhanced.clone());
         let (pixels, enhanced_flag) = cache.get_unrendered_pixels(0, epoch, 100, 100).unwrap();
         assert_eq!(pixels.rgba, enhanced.rgba);
-        assert!(enhanced_flag, "超分像素被报成了原图轨 —— 原图对比会显示超分图");
+        assert!(
+            enhanced_flag,
+            "超分像素被报成了原图轨 —— 原图对比会显示超分图"
+        );
 
         // 按这个标志回填之后，同一尺寸就"已渲染"了 —— 预取线程不会再空转重采样
         cache.add_pre_rendered_enhanced(
@@ -1589,8 +1769,14 @@ mod tests {
         let show_raw = presenter.show_into_buffer(0, dst.as_mut_ptr(), 100 * 4, 100, 100);
         assert!(show_raw.is_ok());
         let idx = (50 * 100 + 50) * 4;
-        println!("Initial raw: B={}, G={}, R={}, A={}", dst[idx], dst[idx+1], dst[idx+2], dst[idx+3]);
-        assert_eq!(dst[idx+2], 255, "初次呈现应当为原图红色");
+        println!(
+            "Initial raw: B={}, G={}, R={}, A={}",
+            dst[idx],
+            dst[idx + 1],
+            dst[idx + 2],
+            dst[idx + 3]
+        );
+        assert_eq!(dst[idx + 2], 255, "初次呈现应当为原图红色");
         // 证据必须是"没用超分轨"：Dart 侧就是靠它判断替换有没有生效
         assert!(
             presenter.stats_json().contains("\"usedEnhanced\":0"),
@@ -1612,9 +1798,15 @@ mod tests {
         // 3. 再次 show（模拟 Swift handleShow 重新上屏）：应当原子替换为绿色！
         let show_sr = presenter.show_into_buffer(0, dst.as_mut_ptr(), 100 * 4, 100, 100);
         assert!(show_sr.is_ok());
-        println!("After enhanced: B={}, G={}, R={}, A={}", dst[idx], dst[idx+1], dst[idx+2], dst[idx+3]);
-        assert_eq!(dst[idx+1], 255, "G 通道应当为 255（超分绿色）");
-        assert_eq!(dst[idx+2], 0, "R 通道应当为 0（原图红色已被平滑替换）");
+        println!(
+            "After enhanced: B={}, G={}, R={}, A={}",
+            dst[idx],
+            dst[idx + 1],
+            dst[idx + 2],
+            dst[idx + 3]
+        );
+        assert_eq!(dst[idx + 1], 255, "G 通道应当为 255（超分绿色）");
+        assert_eq!(dst[idx + 2], 0, "R 通道应当为 0（原图红色已被平滑替换）");
         // 证据必须与画面一致：这一帧确实取自超分轨
         let stats = presenter.stats_json();
         assert!(
@@ -1626,9 +1818,15 @@ mod tests {
         presenter.set_original_preview(true);
         let show_orig_bypass = presenter.show_into_buffer(0, dst.as_mut_ptr(), 100 * 4, 100, 100);
         assert!(show_orig_bypass.is_ok());
-        println!("After bypass: B={}, G={}, R={}, A={}", dst[idx], dst[idx+1], dst[idx+2], dst[idx+3]);
-        assert_eq!(dst[idx+1], 0, "G 通道应当为 0");
-        assert_eq!(dst[idx+2], 255, "R 通道应当为 255（瞬切回原图红色）");
+        println!(
+            "After bypass: B={}, G={}, R={}, A={}",
+            dst[idx],
+            dst[idx + 1],
+            dst[idx + 2],
+            dst[idx + 3]
+        );
+        assert_eq!(dst[idx + 1], 0, "G 通道应当为 0");
+        assert_eq!(dst[idx + 2], 255, "R 通道应当为 255（瞬切回原图红色）");
         // 旁路态下证据也必须是 0，否则 Dart 侧会把"用户正在看原图"读成"替换生效"
         assert!(
             presenter.stats_json().contains("\"usedEnhanced\":0"),

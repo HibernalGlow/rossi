@@ -282,8 +282,7 @@ pub fn inspect(path: &Path) -> Result<RarInspection> {
         }
         if is_image_name(&name) {
             image_count = image_count.saturating_add(1);
-            total_uncompressed_bytes =
-                total_uncompressed_bytes.saturating_add(entry.unpacked_size);
+            total_uncompressed_bytes = total_uncompressed_bytes.saturating_add(entry.unpacked_size);
         } else if is_nested_archive_name(&name) {
             nested_archive_count = nested_archive_count.saturating_add(1);
         }
@@ -524,7 +523,10 @@ mod tests {
         // 而不是继续返回一份「看起来还能读」的判定。
         let dir = tempfile::tempdir().unwrap();
         let path = write_fixture(dir.path());
-        assert_eq!(inspect(&path).unwrap().decision, RarDirectReadDecision::Direct);
+        assert_eq!(
+            inspect(&path).unwrap().decision,
+            RarDirectReadDecision::Direct
+        );
         std::fs::remove_file(&path).unwrap();
         assert!(inspect(&path).is_err());
     }

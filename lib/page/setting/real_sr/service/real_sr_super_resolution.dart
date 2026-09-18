@@ -13,6 +13,7 @@ import 'package:zephyr/page/comic_info/method/export_comic.dart';
 import 'package:zephyr/page/setting/real_sr/service/android_ncnn_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/service/desktop_ncnn_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
+import 'package:zephyr/page/setting/real_sr/service/upscaled_image_cache.dart';
 import 'package:zephyr/src/rust/api/image.dart';
 import 'package:zephyr/src/rust/api/simple.dart';
 import 'package:zephyr/type/enum.dart';
@@ -611,9 +612,8 @@ class RealSrSuperResolution {
     // 输出路径若带 webp/jpg 等扩展名会崩溃。因此 Android 先写到临时 PNG，
     // 转 WebP 后再覆盖回原路径。
     if (Platform.isAndroid) {
-      final cacheDir = await getCachePath();
       final tempOutput = p.join(
-        cacheDir,
+        p.dirname(inputPath),
         'realsr_output_${const Uuid().v4()}.png',
       );
 
@@ -628,6 +628,7 @@ class RealSrSuperResolution {
         // 超分成功后输出的是 PNG，再转换为 WebP 以节省空间
         await convertImageToWebp(inputPath: tempOutput, imageType: 'png');
         await File(tempOutput).rename(inputPath);
+        UpscaledImageCache.notifyReplaced(inputPath);
       } catch (e, s) {
         logger.w('Android 超分/WebP 转换失败: $inputPath', error: e, stackTrace: s);
         rethrow;
@@ -681,6 +682,7 @@ class RealSrSuperResolution {
     } catch (e, s) {
       logger.w('WebP 转换失败，保留超分后的原图: $inputPath', error: e, stackTrace: s);
     }
+    UpscaledImageCache.notifyReplaced(inputPath);
   }
 
   /// 对单张图片做超分放大。

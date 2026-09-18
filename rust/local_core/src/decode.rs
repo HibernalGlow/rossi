@@ -6,7 +6,7 @@
 
 use std::fmt;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use image::DynamicImage;
 
 /// 核心没有这个格式的解码器，但**外壳（Flutter / Skia）有**。
@@ -77,11 +77,7 @@ pub fn decode(bytes: &[u8]) -> Result<DynamicImage> {
     if bytes.is_empty() {
         bail!("页面字节为空，无法解码");
     }
-    #[cfg(any(
-        feature = "jxl-rs-mt",
-        feature = "jxl-rs-1t",
-        feature = "jxl-oxide"
-    ))]
+    #[cfg(any(feature = "jxl-rs-mt", feature = "jxl-rs-1t", feature = "jxl-oxide"))]
     if crate::jxl_backend::sniff_jxl(bytes) {
         return crate::jxl_backend::decode_dispatch(bytes);
     }
@@ -222,11 +218,7 @@ pub fn decode_rgba(bytes: &[u8]) -> Result<PagePixels> {
 /// 不解像素）；`image` 的 `with_guessed_format` 不认识 JXL，不分流必报
 /// 「无法从内容判断图片格式」。
 pub fn probe_size(bytes: &[u8]) -> Result<(u32, u32)> {
-    #[cfg(any(
-        feature = "jxl-rs-mt",
-        feature = "jxl-rs-1t",
-        feature = "jxl-oxide"
-    ))]
+    #[cfg(any(feature = "jxl-rs-mt", feature = "jxl-rs-1t", feature = "jxl-oxide"))]
     if crate::jxl_backend::sniff_jxl(bytes) {
         return crate::jxl_backend::probe_size_dispatch(bytes);
     }

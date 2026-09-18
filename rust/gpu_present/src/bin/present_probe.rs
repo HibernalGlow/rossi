@@ -86,8 +86,8 @@ mod win {
 
         let t_init = Instant::now();
         // LUID = 0：没有 Flutter 可问，交给呈现器自己挑一块高性能卡。
-        let mut presenter = Presenter::new(0, args.width, args.height)
-            .context("创建 GPU 呈现器失败")?;
+        let mut presenter =
+            Presenter::new(0, args.width, args.height).context("创建 GPU 呈现器失败")?;
         println!(
             "适配器 : {}（初始化 {:.0} ms，直接共享 wgpu 纹理: {}）",
             presenter.adapter_name(),
@@ -139,9 +139,8 @@ mod win {
         let (x, y, draw_w, draw_h) = presenter
             .expected_draw_rect()
             .ok_or_else(|| anyhow!("拿不到理论绘制矩形"))?;
-        let expected_bg = 1.0
-            - (draw_w as f64 * draw_h as f64)
-                / (frame.width as f64 * frame.height as f64);
+        let expected_bg =
+            1.0 - (draw_w as f64 * draw_h as f64) / (frame.width as f64 * frame.height as f64);
         let actual_bg = frame.background_ratio();
 
         // ── 判据 2：内容包围盒 ≈ 理论绘制矩形 ──
@@ -166,12 +165,24 @@ mod win {
         let baseline = reference
             .page_pixels_scaled(index, Some(hint))
             .context("基准解码失败")?;
-        let samples = compare_samples(&frame, &baseline.rgba, baseline.width, baseline.height, x, y, draw_w, draw_h);
+        let samples = compare_samples(
+            &frame,
+            &baseline.rgba,
+            baseline.width,
+            baseline.height,
+            x,
+            y,
+            draw_w,
+            draw_h,
+        );
 
         // ── 判据 4：不是全黑 ──
         let luma = frame.mean_luma();
 
-        println!("\n回读   : {}×{}（{:.0} ms）", frame.width, frame.height, readback_ms);
+        println!(
+            "\n回读   : {}×{}（{:.0} ms）",
+            frame.width, frame.height, readback_ms
+        );
         println!(
             "底色占比: 实际 {:.3} / 理论 {:.3}（差 {:.4}）",
             actual_bg,
@@ -275,8 +286,7 @@ mod win {
                     .collect::<Vec<_>>()
                     .join(","),
             );
-            std::fs::write(out, json)
-                .with_context(|| format!("写报告失败: {}", out.display()))?;
+            std::fs::write(out, json).with_context(|| format!("写报告失败: {}", out.display()))?;
             println!("\n报告已写入 {}", out.display());
         }
 
@@ -284,7 +294,11 @@ mod win {
             println!("\n结论: 共享纹理里的像素与解码结果一致 —— 这条链路是通的。");
             Ok(())
         } else {
-            Err(anyhow!("有 {} 条判据未通过: {}", failed.len(), failed.join("、")))
+            Err(anyhow!(
+                "有 {} 条判据未通过: {}",
+                failed.len(),
+                failed.join("、")
+            ))
         }
     }
 

@@ -53,6 +53,7 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
   int _tileSize = 0;
   AndroidNcnnMode _desktopNcnnMode = DesktopNcnnModelConfig.defaultMode;
   AndroidNcnnNoise _desktopNcnnNoise = DesktopNcnnModelConfig.defaultNoise;
+  RealSrScale _scale = RealSrScale.x2;
   CoreMLModelFamily _coreMLFamily = CoreMLModelConfig.defaultFamily;
   CoreMLModelVariant _coreMLVariant = CoreMLModelConfig.defaultVariant;
   bool _isAvailable = false;
@@ -96,6 +97,7 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
       RealSrSettings.loadTileSize(),
       RealSrSettings.loadDesktopNcnnMode(),
       RealSrSettings.loadDesktopNcnnNoise(),
+      RealSrSettings.loadScale(),
       RealSrSuperResolution.isAvailable,
     ]);
 
@@ -107,7 +109,8 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
       _tileSize = results[3] as int;
       _desktopNcnnMode = results[4] as AndroidNcnnMode;
       _desktopNcnnNoise = results[5] as AndroidNcnnNoise;
-      _isAvailable = results[6] as bool;
+      _scale = results[6] as RealSrScale;
+      _isAvailable = results[7] as bool;
       _coreMLFamily = family;
       _coreMLVariant = variant;
       _loading = false;
@@ -142,6 +145,11 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
   Future<void> _setDesktopNcnnNoise(AndroidNcnnNoise value) async {
     await RealSrSettings.saveDesktopNcnnNoise(value);
     setState(() => _desktopNcnnNoise = value);
+  }
+
+  Future<void> _setScale(RealSrScale value) async {
+    await RealSrSettings.saveScale(value);
+    setState(() => _scale = value);
   }
 
   Future<void> _setCoreMLFamily(CoreMLModelFamily value) async {
@@ -336,6 +344,17 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
     }
 
     return [
+      ListTile(
+        leading: const Icon(Icons.zoom_out_map_outlined),
+        title: const Text('输出倍率'),
+        subtitle: const Text('2x 为单次模型推理；4x 会串联两次 2x 模型'),
+        trailing: FluentDropdown<RealSrScale>(
+          value: _scale,
+          displayValue: _scale.label,
+          items: {for (final scale in RealSrScale.values) scale: scale.label},
+          onChanged: _setScale,
+        ),
+      ),
       ListTile(
         leading: const Icon(Icons.speed_outlined),
         title: Text(t.realSr.desktopStrategy),

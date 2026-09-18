@@ -95,14 +95,19 @@ class _FakeSource implements PageSource {
 
 /// 兜底路要过 `ui.decodeImageFromPixels`，它的完成回调走**真实**事件循环，
 /// 而 `testWidgets` 默认跑在假时钟里 —— 不显式放它跑，就永远等不到位图。
-Future<void> _flushDecode(WidgetTester tester, {required bool untilRawImage}) async {
+Future<void> _flushDecode(
+  WidgetTester tester, {
+  required bool untilRawImage,
+  ui.Image? previousImage,
+}) async {
   for (int i = 0; i < 20; i++) {
     await tester.pump();
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 10)),
     );
     if (untilRawImage && find.byType(RawImage).evaluate().isNotEmpty) {
-      return;
+      final image = tester.widget<RawImage>(find.byType(RawImage)).image;
+      if (image != null && !identical(image, previousImage)) return;
     }
   }
 }
@@ -164,7 +169,7 @@ void main() {
     expect(firstPage.debugDisposed, isFalse);
 
     await tester.pumpWidget(_host(source, 1, presenter, paths));
-    await _flushDecode(tester, untilRawImage: true);
+    await _flushDecode(tester, untilRawImage: true, previousImage: firstPage);
 
     expect(source.loads.map((r) => r.index), <int>[0, 1]);
     // 单页位图可达 179 MB（44.8 MPix 那一档），翻页不释放等于连读几本就把内存吃光。

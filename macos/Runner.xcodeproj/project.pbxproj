@@ -251,6 +251,7 @@
 				33CC110E2044A8840003C045 /* Bundle Framework */,
 				3399D490228B24CF009A79C7 /* ShellScript */,
 				489CDBFFCE231EA14C08953A /* [CP] Embed Pods Frameworks */,
+				A871049A93C14A429DEAB510 /* Build GPU Presenter */,
 			);
 			buildRules = (
 			);
@@ -336,6 +337,18 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		A871049A93C14A429DEAB510 /* Build GPU Presenter */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = ();
+			inputPaths = ();
+			name = "Build GPU Presenter";
+			outputPaths = ();
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "/bin/bash \"$PROJECT_DIR/../script/build_macos_gpu_present.sh\"\n";
+		};
 		02EC501FF6E08F9A256AD174 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;

@@ -102,6 +102,15 @@ serde_bytes = "0.11.19"
 serde-xml-rs = "0.8.2"
 ciborium = "0.2.2"
 xxhash-rust = { version = "0.8.15", features = ["xxh3"] }
+# mImageViewer 同款 ONNX 推理。macOS/iOS 优先 CoreML（Apple Silicon
+# Neural Engine + GPU），其他平台回退到 ONNX Runtime CPU。
+ort = { version = "2.0.0-rc.12", default-features = false, features = [
+    "std",
+    "ndarray",
+    "coreml",
+    "load-dynamic",
+] }
+ndarray = "0.17"
 
 [dev-dependencies]
 # 只给 `api::local` 的会话层测试造 CBZ 夹具用。
