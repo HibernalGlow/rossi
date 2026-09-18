@@ -896,9 +896,16 @@ mod sharpness_tests {
         let mut rgba = vec![0u8; sw as usize * sh as usize * 4];
         for y in 0..sh as usize {
             for x in 0..sw as usize {
-                let v: u8 = if x < sw as usize / 2 { (x % 251) as u8 } else { 255 - (x % 251) as u8 };
+                let v: u8 = if x < sw as usize / 2 {
+                    (x % 251) as u8
+                } else {
+                    255 - (x % 251) as u8
+                };
                 let i = (y * sw as usize + x) * 4;
-                rgba[i] = v; rgba[i + 1] = v; rgba[i + 2] = v; rgba[i + 3] = 255;
+                rgba[i] = v;
+                rgba[i + 1] = v;
+                rgba[i + 2] = v;
+                rgba[i + 3] = 255;
             }
         }
         // 行跨步是**字节**数：每行 tw 个 BGRA 像素 = tw*4 字节，再按 64 对齐。
@@ -906,19 +913,26 @@ mod sharpness_tests {
         //  新加的跨步校验拦下，没写进越界。）
         let stride = (tw as usize * 4 + 63) & !63;
         let mut out = vec![0u8; stride * th as usize];
-        let mut r = WgpuResampler::new_with_format(device, queue, wgpu::TextureFormat::Bgra8Unorm).unwrap();
-        r.resample_to_buffer(&rgba, sw, sh, tw, th, out.as_mut_ptr(), stride, false).unwrap();
+        let mut r =
+            WgpuResampler::new_with_format(device, queue, wgpu::TextureFormat::Bgra8Unorm).unwrap();
+        r.resample_to_buffer(&rgba, sw, sh, tw, th, out.as_mut_ptr(), stride, false)
+            .unwrap();
         // 预热一次（首次含纹理创建），再量两次取小
         let mut best = f64::MAX;
         for _ in 0..2 {
             let t = std::time::Instant::now();
-            r.resample_to_buffer(&rgba, sw, sh, tw, th, out.as_mut_ptr(), stride, false).unwrap();
+            r.resample_to_buffer(&rgba, sw, sh, tw, th, out.as_mut_ptr(), stride, false)
+                .unwrap();
             best = best.min(t.elapsed().as_secs_f64() * 1000.0);
         }
         let y = (th / 2) as usize;
-        let row: Vec<i32> = (0..tw as usize).map(|x| out[y * stride + x * 4] as i32).collect();
+        let row: Vec<i32> = (0..tw as usize)
+            .map(|x| out[y * stride + x * 4] as i32)
+            .collect();
         let mut max_step = 0;
-        for w in row.windows(2) { max_step = max_step.max((w[0] - w[1]).abs()); }
+        for w in row.windows(2) {
+            max_step = max_step.max((w[0] - w[1]).abs());
+        }
         println!("真实尺寸 9504x6336 → 2940x1608: 渲染 {best:.1} ms，边缘跳变 {max_step}");
     }
 
@@ -942,18 +956,31 @@ mod sharpness_tests {
             for x in 0..sw {
                 let v: u8 = if x < 34 { 0 } else { 255 };
                 let i = ((y * sw + x) * 4) as usize;
-                rgba[i] = v; rgba[i + 1] = v; rgba[i + 2] = v; rgba[i + 3] = 255;
+                rgba[i] = v;
+                rgba[i + 1] = v;
+                rgba[i + 2] = v;
+                rgba[i + 3] = 255;
             }
         }
         let (tw, th) = (20u32, 20u32);
         let stride = 512usize;
         let mut out = vec![0u8; stride * th as usize];
-        let mut r = WgpuResampler::new_with_format(device.clone(), queue.clone(), wgpu::TextureFormat::Bgra8Unorm).unwrap();
-        r.resample_to_buffer(&rgba, sw, sh, tw, th, out.as_mut_ptr(), stride, false).unwrap();
+        let mut r = WgpuResampler::new_with_format(
+            device.clone(),
+            queue.clone(),
+            wgpu::TextureFormat::Bgra8Unorm,
+        )
+        .unwrap();
+        r.resample_to_buffer(&rgba, sw, sh, tw, th, out.as_mut_ptr(), stride, false)
+            .unwrap();
         let y = (th / 2) as usize;
-        let row: Vec<i32> = (0..tw as usize).map(|x| out[y * stride + x * 4] as i32).collect();
+        let row: Vec<i32> = (0..tw as usize)
+            .map(|x| out[y * stride + x * 4] as i32)
+            .collect();
         let mut max_step = 0;
-        for w in row.windows(2) { max_step = max_step.max((w[0] - w[1]).abs()); }
+        for w in row.windows(2) {
+            max_step = max_step.max((w[0] - w[1]).abs());
+        }
 
         // ② 抗锯齿：256×256 周期 4 细条纹 → 81×81（3.16×）→ 应滤成均匀灰
         let (sw2, sh2) = (256u32, 256u32);
@@ -962,13 +989,18 @@ mod sharpness_tests {
             for x in 0..sw2 {
                 let v: u8 = if (x / 2) % 2 == 0 { 0 } else { 255 };
                 let i = ((y * sw2 + x) * 4) as usize;
-                rgba2[i] = v; rgba2[i + 1] = v; rgba2[i + 2] = v; rgba2[i + 3] = 255;
+                rgba2[i] = v;
+                rgba2[i + 1] = v;
+                rgba2[i + 2] = v;
+                rgba2[i + 3] = 255;
             }
         }
         let (tw2, th2) = (81u32, 81u32);
         let mut out2 = vec![0u8; stride * th2 as usize];
-        let mut r2 = WgpuResampler::new_with_format(device, queue, wgpu::TextureFormat::Bgra8Unorm).unwrap();
-        r2.resample_to_buffer(&rgba2, sw2, sh2, tw2, th2, out2.as_mut_ptr(), stride, false).unwrap();
+        let mut r2 =
+            WgpuResampler::new_with_format(device, queue, wgpu::TextureFormat::Bgra8Unorm).unwrap();
+        r2.resample_to_buffer(&rgba2, sw2, sh2, tw2, th2, out2.as_mut_ptr(), stride, false)
+            .unwrap();
         let mut dev = 0f64;
         let mut n = 0f64;
         for y in 8..(th2 as usize - 8) {
@@ -977,7 +1009,10 @@ mod sharpness_tests {
                 n += 1.0;
             }
         }
-        println!("锐度(边缘跳变) = {max_step}  |  残留锯齿(偏离中灰) = {:.1}", dev / n);
+        println!(
+            "锐度(边缘跳变) = {max_step}  |  残留锯齿(偏离中灰) = {:.1}",
+            dev / n
+        );
     }
 
     /// 诊断用：把阶梯边放在**两个输出像素之间**，量它跨越了几个「半亮」像素。
@@ -1001,20 +1036,32 @@ mod sharpness_tests {
                 for x in 0..sw {
                     let v: u8 = if x < edge { 0 } else { 255 };
                     let i = ((y * sw + x) * 4) as usize;
-                    rgba[i] = v; rgba[i + 1] = v; rgba[i + 2] = v; rgba[i + 3] = 255;
+                    rgba[i] = v;
+                    rgba[i + 1] = v;
+                    rgba[i + 2] = v;
+                    rgba[i + 3] = 255;
                 }
             }
             let stride = 512usize;
             let mut out = vec![0u8; stride * th as usize];
-            let mut r = WgpuResampler::new_with_format(device.clone(), queue.clone(), wgpu::TextureFormat::Bgra8Unorm).unwrap();
-            r.resample_to_buffer(&rgba, sw, sh, tw, th, out.as_mut_ptr(), stride, false).unwrap();
+            let mut r = WgpuResampler::new_with_format(
+                device.clone(),
+                queue.clone(),
+                wgpu::TextureFormat::Bgra8Unorm,
+            )
+            .unwrap();
+            r.resample_to_buffer(&rgba, sw, sh, tw, th, out.as_mut_ptr(), stride, false)
+                .unwrap();
             let y = (th / 2) as usize;
-            let row: Vec<i32> = (0..tw as usize).map(|x| out[y * stride + x * 4] as i32).collect();
+            let row: Vec<i32> = (0..tw as usize)
+                .map(|x| out[y * stride + x * 4] as i32)
+                .collect();
             let partial = row.iter().filter(|v| (20..=235).contains(*v)).count();
             let mut max_step = 0;
-            for w in row.windows(2) { max_step = max_step.max((w[0] - w[1]).abs()); }
+            for w in row.windows(2) {
+                max_step = max_step.max((w[0] - w[1]).abs());
+            }
             println!("边缘 x={edge}: 半亮像素 {partial} 个, 最大跳变 {max_step}");
         }
     }
-
 }
