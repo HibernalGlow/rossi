@@ -5,6 +5,7 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/page/setting/global/widgets.dart';
+import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 
 @RoutePage()
@@ -26,6 +27,31 @@ class ContentNetworkSettingPage extends StatelessWidget {
             icon: Icons.filter_alt_outlined,
           ),
           editMaskedKeywords(context),
+          ListTile(
+            leading: const Icon(Icons.star_rounded, color: Color(0xFFF59E0B)),
+            title: Text(t.settings.favoriteArtistManagement),
+            subtitle: Text(
+              state.favoriteArtistSetting.artists.isEmpty
+                  ? t.settings.favoriteArtistManagementSubtitleEmpty
+                  : t.settings.favoriteArtistManagementSubtitle(
+                      count: state.favoriteArtistSetting.artists.length,
+                    ),
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              context.pushRoute(const FavoriteArtistSettingRoute());
+            },
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.highlight_outlined),
+            title: Text(t.settings.favoriteArtistHighlight),
+            subtitle: Text(t.settings.favoriteArtistHighlightSubtitle),
+            thumbIcon: kSettingSwitchThumbIcon,
+            value: state.favoriteArtistSetting.highlightEnabled,
+            onChanged: (value) {
+              cubit.toggleHighlightFavoriteArtists(value);
+            },
+          ),
           _chineseConvertMode(state, cubit),
 
           const SizedBox(height: 8),

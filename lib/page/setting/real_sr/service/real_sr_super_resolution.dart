@@ -1,11 +1,9 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:coreml_upscale/coreml_upscale.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:pool/pool.dart';
 import 'package:uuid/uuid.dart';
 import 'package:zephyr/main.dart';
@@ -19,16 +17,14 @@ import 'package:zephyr/src/rust/api/image.dart';
 import 'package:zephyr/src/rust/api/mimage_onnx.dart';
 import 'package:zephyr/src/rust/api/simple.dart';
 import 'package:zephyr/type/enum.dart';
-import 'package:zephyr/util/coreml_model_config.dart';
-import 'package:zephyr/util/coreml_model_loader.dart';
 import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 /// Breeze 内置 RealSR / Real-CUGAN / CoreML 超分封装
 ///
 /// - Android：调用 bundled 的 waifu2x-ncnn CLI
-/// - iOS / macOS：从 `deretame/breeze-binary` 下载 `MacOS-iOS.7z` 后，
-///   调用 `CoreMLUpscale` 使用用户选择的 waifu2x / Real-CUGAN 模型
+/// - iOS / macOS：下载 mImageViewer 的 ONNX 模型，交给 ONNX Runtime 的
+///   CoreML Execution Provider（Apple Silicon Neural Engine/GPU）执行
 /// - Windows / Linux：从 `deretame/breeze-binary` 下载模型后，
 ///   调用 `getFilePath()/super_resolution/` 下的 waifu2x-ncnn-vulkan
 ///   或 realcugan-ncnn-vulkan
@@ -73,7 +69,7 @@ class RealSrSuperResolution {
   /// 当前设备是否支持内置超分（包含模型/可执行文件是否已就绪）。
   ///
   /// - Android：arm64-v8a 且 NCNN 模型已下载并解压
-  /// - iOS / macOS：CoreML 模型已下载并解压
+  /// - iOS / macOS：当前选择的 mImage ONNX 模型已下载
   /// - Windows / Linux：存在对应平台的 realcugan-ncnn-vulkan 可执行文件
   static Future<bool> get isAvailable async {
     if (Platform.isAndroid) {
@@ -179,19 +175,6 @@ class RealSrSuperResolution {
     return [];
   }
 
-  /// 检查 iOS / macOS 的 CoreML 模型是否已就绪。
-  static Future<bool> get _isCoreMLAvailable async {
-    final results = await Future.wait([
-      CoreMLModelLoader.isModelAvailable(
-        CoreMLModelConfig.defaultVariant.fileName,
-      ),
-      CoreMLModelLoader.isModelAvailable(
-        CoreMLModelConfig.families[1].variants.first.fileName,
-      ),
-    ]);
-    return results.every((e) => e);
-  }
-
   static Future<bool> get _isMImageOnnxAvailable async {
     final root = Directory(p.join(await _modelDirectory, 'mimage_onnx'));
     final model = await RealSrSettings.loadMImageModel();
@@ -212,7 +195,7 @@ class RealSrSuperResolution {
   /// - Android：`realsr-android.7z`
   /// - Windows：`realsr-win.7z`
   /// - Linux：`realsr-linux.7z`
-  /// - iOS / macOS：`MacOS-iOS.7z`
+  /// - iOS / macOS：当前选择的 mImage ONNX 模型文件
   static String? get manualDownloadUrl {
     if (Platform.isIOS || Platform.isMacOS) {
       final model = MImageOnnxModelConfig.defaultModel;
@@ -276,25 +259,28 @@ class RealSrSuperResolution {
         throw const FormatException('7z 压缩包已损坏或解压失败');
       }
 
-      final missing = _missingModelFiles(tempDir);
+      final missing = await _missingModelFiles(tempDir);
       if (missing != null) {
         throw FormatException('压缩包内容不符合当前平台要求: $missing');
       }
 
       if (Platform.isIOS || Platform.isMacOS) {
-        final tempBase = await getTemporaryDirectory();
-        final modelsDir = Directory(p.join(tempBase.path, 'coreml_models'));
-        final destDir = Directory(
-          p.join(modelsDir.path, CoreMLModelConfig.archiveSubDir),
-        );
-        if (modelsDir.existsSync()) {
-          await modelsDir.delete(recursive: true);
+        final model = await RealSrSettings.loadMImageModel();
+        File? imported;
+        for (final entity in Directory(
+          tempDir.path,
+        ).listSync(recursive: true)) {
+          if (entity is File && p.basename(entity.path) == model.fileName) {
+            imported = entity;
+            break;
+          }
         }
-        await modelsDir.create(recursive: true);
-        await _moveDirectory(
-          Directory(p.join(tempDir.path, CoreMLModelConfig.archiveSubDir)),
-          destDir,
-        );
+        if (imported == null) {
+          throw FormatException('压缩包缺少 mImage ONNX 模型 ${model.fileName}');
+        }
+        final destDir = Directory(p.join(await _modelDirectory, 'mimage_onnx'));
+        await destDir.create(recursive: true);
+        await imported.copy(p.join(destDir.path, model.fileName));
       } else {
         final destDir = await _modelDirectory;
         if (Directory(destDir).existsSync()) {
@@ -328,7 +314,7 @@ class RealSrSuperResolution {
   }
 
   /// 检查解压后的内容是否满足当前平台需求，返回缺失内容描述；null 表示通过。
-  static String? _missingModelFiles(Directory extractedRoot) {
+  static Future<String?> _missingModelFiles(Directory extractedRoot) async {
     if (Platform.isAndroid) {
       final variant = AndroidNcnnModelConfig.variantFor(
         mode: AndroidNcnnModelConfig.defaultMode,
@@ -370,22 +356,15 @@ class RealSrSuperResolution {
     }
 
     if (Platform.isIOS || Platform.isMacOS) {
-      final subDir = Directory(
-        p.join(extractedRoot.path, CoreMLModelConfig.archiveSubDir),
-      );
-      if (!subDir.existsSync()) {
-        return '缺少 ${CoreMLModelConfig.archiveSubDir} 目录';
-      }
-      for (final family in CoreMLModelConfig.families) {
-        for (final variant in family.variants) {
-          final path = p.join(subDir.path, variant.fileName);
-          final exists = variant.fileName.endsWith('.mlpackage')
-              ? Directory(path).existsSync()
-              : File(path).existsSync();
-          if (!exists) return '缺少模型 ${variant.fileName}';
+      final model = await RealSrSettings.loadMImageModel();
+      final path = p.join(extractedRoot.path, model.fileName);
+      if (File(path).existsSync()) return null;
+      for (final entity in extractedRoot.listSync(recursive: true)) {
+        if (entity is File && p.basename(entity.path) == model.fileName) {
+          return null;
         }
       }
-      return null;
+      return '缺少 mImage ONNX 模型 ${model.fileName}';
     }
 
     return '当前平台不支持手动导入超分模型';
@@ -420,7 +399,7 @@ class RealSrSuperResolution {
   /// 下载并解压当前平台需要的超分模型。
   ///
   /// - Android：下载 `realsr-android.7z` 并解压 NCNN 模型。
-  /// - iOS / macOS：下载 `MacOS-iOS.7z` 并解压 CoreML 模型。
+  /// - iOS / macOS：直接下载当前选择的 mImage ONNX 模型。
   /// - Windows / Linux：下载对应平台的 realcugan-ncnn-vulkan 压缩包。
   ///
   /// [force] 为 true 时，会先删除本地已有模型再重新下载。
@@ -431,7 +410,9 @@ class RealSrSuperResolution {
     if (Platform.isIOS || Platform.isMacOS) {
       final model = await RealSrSettings.loadMImageModel();
       final modelsDir = Directory(p.join(await _modelDirectory, 'mimage_onnx'));
-      if (force && modelsDir.existsSync()) await modelsDir.delete(recursive: true);
+      if (force && modelsDir.existsSync()) {
+        await modelsDir.delete(recursive: true);
+      }
       await modelsDir.create(recursive: true);
       final destination = File(p.join(modelsDir.path, model.fileName));
       await WindHttp().download(
@@ -503,12 +484,11 @@ class RealSrSuperResolution {
 
   /// 删除当前平台已下载的超分模型。
   ///
-  /// - iOS / macOS：删除临时目录下的 CoreML 模型目录
+  /// - iOS / macOS：删除 `super_resolution/mimage_onnx` 模型目录
   /// - Android / Windows / Linux：删除 `super_resolution` 目录及缓存中的压缩包
   static Future<void> deleteModel() async {
     if (Platform.isIOS || Platform.isMacOS) {
-      final tempDir = await getTemporaryDirectory();
-      final modelsDir = Directory(p.join(tempDir.path, 'coreml_models'));
+      final modelsDir = Directory(p.join(await _modelDirectory, 'mimage_onnx'));
       if (modelsDir.existsSync()) {
         await modelsDir.delete(recursive: true);
       }
@@ -776,7 +756,11 @@ class RealSrSuperResolution {
             tileSize: tileSize,
           );
         } else if (Platform.isIOS || Platform.isMacOS) {
-          await _upscaleMImageOnnx(inputPath: pngInputPath, outputPath: out, tileSize: tileSize);
+          await _upscaleMImageOnnx(
+            inputPath: pngInputPath,
+            outputPath: out,
+            tileSize: tileSize,
+          );
         } else {
           await _upscaleCli(
             inputPath: pngInputPath,
@@ -886,7 +870,7 @@ class RealSrSuperResolution {
       outputPath: outputPath,
       modelPath: modelPath,
       modelId: model.id,
-      tileSize: tileSize == 0 ? 192 : tileSize,
+      tileSize: tileSize,
     );
     logger.i('mImage ONNX 超分完成: $result');
   }

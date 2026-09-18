@@ -47,6 +47,7 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
   oldPageRollbackEnabled: json['oldPageRollbackEnabled'] as bool? ?? false,
   cloudFavoritePreferred: json['cloudFavoritePreferred'] as bool? ?? false,
   autoFollowOnCollect: json['autoFollowOnCollect'] as bool? ?? false,
+  autoFavoriteOnDownload: json['autoFavoriteOnDownload'] as bool? ?? false,
   leftHandModeEnabled: json['leftHandModeEnabled'] as bool? ?? false,
   clickCoverToStartReading: json['clickCoverToStartReading'] as bool? ?? false,
   searchHistory:
@@ -89,6 +90,11 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
       : BookshelfSettingState.fromJson(
           json['bookshelfSetting'] as Map<String, dynamic>,
         ),
+  favoriteArtistSetting: json['favoriteArtistSetting'] == null
+      ? const FavoriteArtistSettingState()
+      : FavoriteArtistSettingState.fromJson(
+          json['favoriteArtistSetting'] as Map<String, dynamic>,
+        ),
 );
 
 Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
@@ -119,6 +125,7 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'oldPageRollbackEnabled': instance.oldPageRollbackEnabled,
       'cloudFavoritePreferred': instance.cloudFavoritePreferred,
       'autoFollowOnCollect': instance.autoFollowOnCollect,
+      'autoFavoriteOnDownload': instance.autoFavoriteOnDownload,
       'leftHandModeEnabled': instance.leftHandModeEnabled,
       'clickCoverToStartReading': instance.clickCoverToStartReading,
       'searchHistory': instance.searchHistory,
@@ -135,6 +142,7 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'chineseConvertMode':
           _$ChineseConvertModeEnumMap[instance.chineseConvertMode]!,
       'bookshelfSetting': instance.bookshelfSetting.toJson(),
+      'favoriteArtistSetting': instance.favoriteArtistSetting.toJson(),
     };
 
 const _$ThemeModeEnumMap = {
@@ -147,6 +155,22 @@ const _$ChineseConvertModeEnumMap = {
   ChineseConvertMode.off: 'off',
   ChineseConvertMode.simplified: 'simplified',
   ChineseConvertMode.traditional: 'traditional',
+};
+
+_FavoriteArtistSettingState _$FavoriteArtistSettingStateFromJson(
+  Map<String, dynamic> json,
+) => _FavoriteArtistSettingState(
+  highlightEnabled: json['highlightEnabled'] as bool? ?? true,
+  artists:
+      (json['artists'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const [],
+);
+
+Map<String, dynamic> _$FavoriteArtistSettingStateToJson(
+  _FavoriteArtistSettingState instance,
+) => <String, dynamic>{
+  'highlightEnabled': instance.highlightEnabled,
+  'artists': instance.artists,
 };
 
 _CacheSettingState _$CacheSettingStateFromJson(Map<String, dynamic> json) =>
@@ -307,6 +331,7 @@ _ReadSettingState _$ReadSettingStateFromJson(Map<String, dynamic> json) =>
           (json['autoScrollColumnDistancePercent'] as num?)?.toInt() ?? 72,
       preloadImageCount: (json['preloadImageCount'] as num?)?.toInt() ?? 3,
       preloadChapterCount: (json['preloadChapterCount'] as num?)?.toInt() ?? 1,
+      readWhileDownloading: json['readWhileDownloading'] as bool? ?? true,
       landscapeReader: json['landscapeReader'] as bool? ?? false,
       doublePageMode: json['doublePageMode'] as bool? ?? false,
       doublePageSeamless: json['doublePageSeamless'] as bool? ?? false,
@@ -363,6 +388,7 @@ Map<String, dynamic> _$ReadSettingStateToJson(
   'autoScrollColumnDistancePercent': instance.autoScrollColumnDistancePercent,
   'preloadImageCount': instance.preloadImageCount,
   'preloadChapterCount': instance.preloadChapterCount,
+  'readWhileDownloading': instance.readWhileDownloading,
   'landscapeReader': instance.landscapeReader,
   'doublePageMode': instance.doublePageMode,
   'doublePageSeamless': instance.doublePageSeamless,

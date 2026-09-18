@@ -13,7 +13,6 @@ import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 import 'package:zephyr/page/setting/real_sr/service/mimage_onnx_model_config.dart';
 import 'package:zephyr/type/enum.dart';
-import 'package:zephyr/util/coreml_model_config.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
 
@@ -55,8 +54,6 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
   AndroidNcnnMode _desktopNcnnMode = DesktopNcnnModelConfig.defaultMode;
   AndroidNcnnNoise _desktopNcnnNoise = DesktopNcnnModelConfig.defaultNoise;
   RealSrScale _scale = RealSrScale.x2;
-  CoreMLModelFamily _coreMLFamily = CoreMLModelConfig.defaultFamily;
-  CoreMLModelVariant _coreMLVariant = CoreMLModelConfig.defaultVariant;
   MImageOnnxModel _mImageModel = MImageOnnxModelConfig.defaultModel;
   bool _isAvailable = false;
   bool _downloading = false;
@@ -90,8 +87,6 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
   }
 
   Future<void> _loadSettings() async {
-    final family = await RealSrSettings.loadCoreMLFamily();
-    final variant = await RealSrSettings.loadCoreMLVariant(family);
     final mImageModel = await RealSrSettings.loadMImageModel();
     final results = await Future.wait([
       RealSrSettings.loadAutoUpscale(),
@@ -114,8 +109,6 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
       _desktopNcnnNoise = results[5] as AndroidNcnnNoise;
       _scale = results[6] as RealSrScale;
       _isAvailable = results[7] as bool;
-      _coreMLFamily = family;
-      _coreMLVariant = variant;
       _mImageModel = mImageModel;
       _loading = false;
     });
@@ -154,23 +147,6 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
   Future<void> _setScale(RealSrScale value) async {
     await RealSrSettings.saveScale(value);
     setState(() => _scale = value);
-  }
-
-  Future<void> _setCoreMLFamily(CoreMLModelFamily value) async {
-    final newVariant = value.variants.first;
-    await Future.wait([
-      RealSrSettings.saveCoreMLFamily(value),
-      RealSrSettings.saveCoreMLVariant(newVariant),
-    ]);
-    setState(() {
-      _coreMLFamily = value;
-      _coreMLVariant = newVariant;
-    });
-  }
-
-  Future<void> _setCoreMLVariant(CoreMLModelVariant value) async {
-    await RealSrSettings.saveCoreMLVariant(value);
-    setState(() => _coreMLVariant = value);
   }
 
   Future<void> _setMImageModel(MImageOnnxModel value) async {
@@ -287,24 +263,15 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
     }
   }
 
-  String get _coreMLBlockInfo {
-    final blockSize = _coreMLVariant.config['blockSize'] as int? ?? 0;
-    final shrinkSize = _coreMLVariant.config['shrinkSize'] as int? ?? 0;
-    final contentSize = CoreMLModelConfig.contentBlockSize(_coreMLVariant);
-    return t.realSr.blockInfoFormat(
-      contentSize: contentSize,
-      blockSize: blockSize,
-      shrinkSize: shrinkSize,
-    );
-  }
-
   List<Widget> _buildModelItems() {
     if (_usesCoreML) {
       return [
         ListTile(
           leading: const Icon(Icons.speed_outlined),
           title: const Text('mImage ONNX 模型'),
-          subtitle: Text('Apple Silicon 使用 CoreML（Neural Engine/GPU），原生 ${_mImageModel.scale}x'),
+          subtitle: Text(
+            'Apple Silicon 使用 CoreML（Neural Engine/GPU），原生 ${_mImageModel.scale}x',
+          ),
           trailing: FluentDropdown<MImageOnnxModel>(
             value: _mImageModel,
             displayValue: _mImageModel.label,
@@ -317,7 +284,11 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
         ListTile(
           leading: const Icon(Icons.healing_outlined),
           title: const Text('降噪'),
-          subtitle: Text(_mImageModel.supportsDenoise ? 'Real-CUGAN conservative（模型内置）' : '由 mImage 模型固定，当前模型不暴露额外降噪参数'),
+          subtitle: Text(
+            _mImageModel.supportsDenoise
+                ? 'Real-CUGAN conservative（模型内置）'
+                : '由 mImage 模型固定，当前模型不暴露额外降噪参数',
+          ),
         ),
         ListTile(
           leading: const Icon(Icons.grid_view_outlined),

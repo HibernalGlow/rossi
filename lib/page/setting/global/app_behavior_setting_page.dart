@@ -88,6 +88,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
           _oldPageRollback(state, cubit),
           _cloudFavoritePreferred(state, cubit),
           _autoFollowOnCollect(state, cubit),
+          _autoFavoriteOnDownload(state, cubit),
           _leftHandMode(state, cubit),
           _clickCoverToStartReading(state, cubit),
           const SizedBox(height: 32),
@@ -172,6 +173,25 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
       onChanged: (bool value) {
         cubit.updateState(
           (current) => current.copyWith(autoFollowOnCollect: value),
+        );
+        showSuccessToast(t.common.settingSaved);
+      },
+    );
+  }
+
+  Widget _autoFavoriteOnDownload(
+    GlobalSettingState state,
+    GlobalSettingCubit cubit,
+  ) {
+    return SwitchListTile(
+      secondary: const Icon(Icons.bookmark_add_outlined),
+      title: Text(t.settings.autoFavoriteOnDownload),
+      subtitle: Text(t.settings.autoFavoriteOnDownloadSubtitle),
+      thumbIcon: kSettingSwitchThumbIcon,
+      value: state.autoFavoriteOnDownload,
+      onChanged: (bool value) {
+        cubit.updateState(
+          (current) => current.copyWith(autoFavoriteOnDownload: value),
         );
         showSuccessToast(t.common.settingSaved);
       },

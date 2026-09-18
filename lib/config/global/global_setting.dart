@@ -127,6 +127,7 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     @Default(false) bool oldPageRollbackEnabled,
     @Default(false) bool cloudFavoritePreferred,
     @Default(false) bool autoFollowOnCollect,
+    @Default(false) bool autoFavoriteOnDownload,
     @Default(false) bool leftHandModeEnabled,
     @Default(false) bool clickCoverToStartReading,
     @Default([]) List<String> searchHistory,
@@ -142,10 +143,23 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     @Default(CacheSettingState()) CacheSettingState cacheSetting,
     @Default(ChineseConvertMode.off) ChineseConvertMode chineseConvertMode,
     @Default(BookshelfSettingState()) BookshelfSettingState bookshelfSetting,
+    @Default(FavoriteArtistSettingState())
+    FavoriteArtistSettingState favoriteArtistSetting,
   }) = _GlobalSettingState;
 
   factory GlobalSettingState.fromJson(Map<String, dynamic> json) =>
       _$GlobalSettingStateFromJson(json);
+}
+
+@freezed
+abstract class FavoriteArtistSettingState with _$FavoriteArtistSettingState {
+  const factory FavoriteArtistSettingState({
+    @Default(true) bool highlightEnabled,
+    @Default([]) List<String> artists,
+  }) = _FavoriteArtistSettingState;
+
+  factory FavoriteArtistSettingState.fromJson(Map<String, dynamic> json) =>
+      _$FavoriteArtistSettingStateFromJson(json);
 }
 
 @freezed
@@ -260,6 +274,7 @@ abstract class ReadSettingState with _$ReadSettingState {
     @Default(72) int autoScrollColumnDistancePercent,
     @Default(3) int preloadImageCount,
     @Default(1) int preloadChapterCount,
+    @Default(true) bool readWhileDownloading,
     @Default(false) bool landscapeReader,
     @Default(false) bool doublePageMode,
     @Default(false) bool doublePageSeamless,
@@ -362,6 +377,59 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
     updateState(
       (current) =>
           current.copyWith(bookshelfSetting: updates(current.bookshelfSetting)),
+    );
+  }
+
+  void updateFavoriteArtistSetting(
+    FavoriteArtistSettingState Function(FavoriteArtistSettingState current)
+    updates,
+  ) {
+    updateState(
+      (current) => current.copyWith(
+        favoriteArtistSetting: updates(current.favoriteArtistSetting),
+      ),
+    );
+  }
+
+  void addFavoriteArtist(String artist) {
+    final trimmed = artist.trim();
+    if (trimmed.isEmpty) return;
+    updateFavoriteArtistSetting((current) {
+      if (current.artists.any(
+        (a) => a.trim().toLowerCase() == trimmed.toLowerCase(),
+      )) {
+        return current;
+      }
+      return current.copyWith(artists: [...current.artists, trimmed]);
+    });
+  }
+
+  void removeFavoriteArtist(String artist) {
+    final trimmed = artist.trim().toLowerCase();
+    updateFavoriteArtistSetting((current) {
+      return current.copyWith(
+        artists: current.artists
+            .where((a) => a.trim().toLowerCase() != trimmed)
+            .toList(),
+      );
+    });
+  }
+
+  void setFavoriteArtists(List<String> artists) {
+    final seen = <String>{};
+    final unique = <String>[];
+    for (final a in artists) {
+      final t = a.trim();
+      if (t.isNotEmpty && seen.add(t.toLowerCase())) {
+        unique.add(t);
+      }
+    }
+    updateFavoriteArtistSetting((current) => current.copyWith(artists: unique));
+  }
+
+  void toggleHighlightFavoriteArtists(bool enabled) {
+    updateFavoriteArtistSetting(
+      (current) => current.copyWith(highlightEnabled: enabled),
     );
   }
 
