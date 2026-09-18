@@ -230,6 +230,17 @@ class _ComicReadPageState extends State<_ComicReadPage>
 
   @override
   Widget build(BuildContext context) => Scaffold(
+    // 阅读器根背景显式设成「阅读背景色」，不留给主题默认值。
+    //
+    // 主题默认在浅色模式下就是白的，而页面区域的各层（slot / 占位 / 位图 / 纹理）
+    // 在切页那一两帧里完全可能什么都没画上去 —— 漏出来的正是这层底色。
+    // 设成阅读背景色之后，即使漏，漏出来的也是用户本来就该看到的颜色，
+    // 而不是一道白闪。
+    backgroundColor: context
+        .watch<GlobalSettingCubit>()
+        .state
+        .readSetting
+        .resolveReaderBackgroundColor(Theme.of(context).brightness),
     body: BlocListener<ReaderSeamlessCubit, ReaderSeamlessState>(
       listener: (context, seamlessState) {
         final order = seamlessState.currentChapterOrder;

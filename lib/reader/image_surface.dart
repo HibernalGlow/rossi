@@ -88,6 +88,11 @@ class _ImageSurfaceState extends State<ImageSurface> {
   ImageSurfacePath _path = ImageSurfacePath.cpu;
   ImageSurfacePath? _reportedPath;
 
+  /// [_cpuImage] 现在装的是**上一页**的图（新页还在解）。它只用于顶住那几帧，
+  /// 不能当成「这一页已就绪」—— 所以 `(source, index, width)` 那套严格比对
+  /// 完全不看这个标志。
+  bool _staleCpuImage = false;
+
   Size? _physicalSize;
 
   GpuPresentState? _lastKnownState;
@@ -99,6 +104,17 @@ class _ImageSurfaceState extends State<ImageSurface> {
     _lastKnownState = widget.presenter.state;
     _lastKnownTextureId = widget.presenter.textureId;
     widget.presenter.addListener(_onPresenterChanged);
+    // 起始通路：呈现器已就绪、纹理也注册了就直接从 GPU 路起步。
+    //
+    // 这一步专门用来消掉翻页时那一瞬的**漏底色**：本节点是随 slot 新建的，
+    // 若从 cpu 路起步，在 `_sync` 那一串跨语言往返完成之前页面区域里什么都没有，
+    // 漏出来的是外层背景（阅读器根 Scaffold 在浅色主题下就是白的），表现就是
+    // 翻页闪白。而那张共享纹理里**本来就有画面**（上一页），先把它画上，
+    // 视觉上就是无缝换页，等 `_sync` 推完新页再换掉即可。
+    if (widget.presenter.canPresent && widget.presenter.textureId != null) {
+      _path = ImageSurfacePath.gpu;
+      _reportedPath = ImageSurfacePath.gpu;
+    }
   }
 
   @override
@@ -111,13 +127,17 @@ class _ImageSurfaceState extends State<ImageSurface> {
       widget.presenter.addListener(_onPresenterChanged);
     }
     if (!identical(oldWidget.source, widget.source) || oldWidget.index != widget.index) {
-      // 换来源或翻页：上一页的位图与失败记录都不再适用。
-      // **必须立刻失效**，否则切页瞬间会拿旧序号的结果当新页画出来。
+      // 换来源或翻页：失败记录不再适用，在飞的解码也要作废。
+      // **必须立刻作废**，否则切页瞬间会拿旧序号的结果当新页画出来。
       _loadToken++;
       _failedSource = null;
       _failedIndex = null;
       _failureMessage = null;
-      _releaseCpuImage();
+      // 但**已解好的位图先留着**（不 `_releaseCpuImage`）：它是上一页的面孔，
+      // 而新一页要等一次解码。把它擦掉，中间那几帧就只剩外层背景色可看 ——
+      // 那就是闪白。留着它就是「旧图 → 新图」，而不是「旧图 → 白 → 新图」。
+      // 旧图会在新图就位时或被 dispose 时释放。
+      _staleCpuImage = true;
     }
   }
 
@@ -290,6 +310,8 @@ class _ImageSurfaceState extends State<ImageSurface> {
             _loadedIndex = index;
             _loadedWidth = targetWidth;
             _failureMessage = null;
+            // 新图就位，刚才那张就只是历史了。
+            _staleCpuImage = false;
           });
           // 先换再释放：反过来会让这一帧的绘制拿到一个已 dispose 的位图。
           if (stale != null && !identical(stale, image)) {
@@ -343,6 +365,7 @@ class _ImageSurfaceState extends State<ImageSurface> {
     _loadedSource = null;
     _loadedIndex = null;
     _loadedWidth = null;
+    _staleCpuImage = false;
     WidgetsBinding.instance.addPostFrameCallback((_) => doomed.dispose());
   }
 
@@ -400,6 +423,11 @@ class _ImageSurfaceState extends State<ImageSurface> {
 
     final ui.Image? image = _cpuImage;
     if (image == null) {
+      return _hint(_cpuHint());
+    }
+    // 顶住那一帧的旧图，在「这一页已经失败」时必须让位给失败提示 —— 否则用户会
+    // 一直看着上一页，而这一页其实永远解不出来，那个错误就永远看不到。
+    if (_staleCpuImage && _failureMessage != null) {
       return _hint(_cpuHint());
     }
     // CPU 路没有着色器，留边只能交给 `BoxFit.contain` —— 用同一个语义
