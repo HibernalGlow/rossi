@@ -614,6 +614,8 @@ pub struct LocalFileTreeNode {
     pub is_dir: bool,
     pub is_archive: bool,
     pub is_image: bool,
+    pub is_video: bool,
+    pub is_audio: bool,
     pub size: u64,
     pub has_children: bool,
 }
@@ -642,6 +644,8 @@ pub fn local_list_directory(dir_path: String) -> anyhow::Result<Vec<LocalFileTre
             is_dir: n.is_dir,
             is_archive: n.is_archive,
             is_image: n.is_image,
+            is_video: n.is_video,
+            is_audio: n.is_audio,
             size: n.size,
             has_children: n.has_children,
         })

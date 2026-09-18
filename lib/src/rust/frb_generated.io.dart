@@ -4,9 +4,11 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api/data_backup.dart';
+import 'api/file_manager.dart';
 import 'api/http.dart';
 import 'api/image.dart';
 import 'api/local.dart';
+import 'api/local_thumbnail.dart';
 import 'api/localization.dart';
 import 'api/logger.dart';
 import 'api/memory.dart';
@@ -71,6 +73,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Map<String, String> dco_decode_Map_String_String_None(dynamic raw);
+
+  @protected
+  Map<String, (int, int)> dco_decode_Map_String_record_u_32_u_32_None(
+    dynamic raw,
+  );
 
   @protected
   HttpClient
@@ -151,6 +158,29 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   FetchResponse dco_decode_fetch_response(dynamic raw);
 
   @protected
+  FileManagerActionResult dco_decode_file_manager_action_result(dynamic raw);
+
+  @protected
+  FileManagerChild dco_decode_file_manager_child(dynamic raw);
+
+  @protected
+  FileManagerEntry dco_decode_file_manager_entry(dynamic raw);
+
+  @protected
+  FileManagerInternalItemsMode dco_decode_file_manager_internal_items_mode(
+    dynamic raw,
+  );
+
+  @protected
+  FileManagerSnapshot dco_decode_file_manager_snapshot(dynamic raw);
+
+  @protected
+  FileManagerTab dco_decode_file_manager_tab(dynamic raw);
+
+  @protected
+  FileManagerViewMode dco_decode_file_manager_view_mode(dynamic raw);
+
+  @protected
   HttpClientOptions dco_decode_http_client_options(dynamic raw);
 
   @protected
@@ -169,6 +199,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<String> dco_decode_list_String(dynamic raw);
 
   @protected
+  List<FileManagerChild> dco_decode_list_file_manager_child(dynamic raw);
+
+  @protected
+  List<FileManagerEntry> dco_decode_list_file_manager_entry(dynamic raw);
+
+  @protected
+  List<FileManagerTab> dco_decode_list_file_manager_tab(dynamic raw);
+
+  @protected
   List<LocalFileTreeNode> dco_decode_list_local_file_tree_node(dynamic raw);
 
   @protected
@@ -185,6 +224,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
+
+  @protected
+  List<(String, (int, int))> dco_decode_list_record_string_record_u_32_u_32(
+    dynamic raw,
+  );
 
   @protected
   List<(String, String)> dco_decode_list_record_string_string(dynamic raw);
@@ -305,7 +349,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   QjsRuntimeBundleBuild dco_decode_qjs_runtime_bundle_build(dynamic raw);
 
   @protected
+  (String, (int, int)) dco_decode_record_string_record_u_32_u_32(dynamic raw);
+
+  @protected
   (String, String) dco_decode_record_string_string(dynamic raw);
+
+  @protected
+  (int, int) dco_decode_record_u_32_u_32(dynamic raw);
 
   @protected
   RustMemoryInfo dco_decode_rust_memory_info(dynamic raw);
@@ -357,6 +407,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Map<String, String> sse_decode_Map_String_String_None(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  Map<String, (int, int)> sse_decode_Map_String_record_u_32_u_32_None(
     SseDeserializer deserializer,
   );
 
@@ -453,6 +508,35 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   FetchResponse sse_decode_fetch_response(SseDeserializer deserializer);
 
   @protected
+  FileManagerActionResult sse_decode_file_manager_action_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileManagerChild sse_decode_file_manager_child(SseDeserializer deserializer);
+
+  @protected
+  FileManagerEntry sse_decode_file_manager_entry(SseDeserializer deserializer);
+
+  @protected
+  FileManagerInternalItemsMode sse_decode_file_manager_internal_items_mode(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileManagerSnapshot sse_decode_file_manager_snapshot(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileManagerTab sse_decode_file_manager_tab(SseDeserializer deserializer);
+
+  @protected
+  FileManagerViewMode sse_decode_file_manager_view_mode(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   HttpClientOptions sse_decode_http_client_options(
     SseDeserializer deserializer,
   );
@@ -471,6 +555,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer);
+
+  @protected
+  List<FileManagerChild> sse_decode_list_file_manager_child(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<FileManagerEntry> sse_decode_list_file_manager_entry(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<FileManagerTab> sse_decode_list_file_manager_tab(
+    SseDeserializer deserializer,
+  );
 
   @protected
   List<LocalFileTreeNode> sse_decode_list_local_file_tree_node(
@@ -495,6 +594,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
+
+  @protected
+  List<(String, (int, int))> sse_decode_list_record_string_record_u_32_u_32(
+    SseDeserializer deserializer,
+  );
 
   @protected
   List<(String, String)> sse_decode_list_record_string_string(
@@ -655,9 +759,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  (String, (int, int)) sse_decode_record_string_record_u_32_u_32(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   (String, String) sse_decode_record_string_string(
     SseDeserializer deserializer,
   );
+
+  @protected
+  (int, int) sse_decode_record_u_32_u_32(SseDeserializer deserializer);
 
   @protected
   RustMemoryInfo sse_decode_rust_memory_info(SseDeserializer deserializer);
@@ -722,6 +834,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_Map_String_String_None(
     Map<String, String> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_Map_String_record_u_32_u_32_None(
+    Map<String, (int, int)> self,
     SseSerializer serializer,
   );
 
@@ -839,6 +957,48 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_fetch_response(FetchResponse self, SseSerializer serializer);
 
   @protected
+  void sse_encode_file_manager_action_result(
+    FileManagerActionResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_manager_child(
+    FileManagerChild self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_manager_entry(
+    FileManagerEntry self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_manager_internal_items_mode(
+    FileManagerInternalItemsMode self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_manager_snapshot(
+    FileManagerSnapshot self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_manager_tab(
+    FileManagerTab self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_manager_view_mode(
+    FileManagerViewMode self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_http_client_options(
     HttpClientOptions self,
     SseSerializer serializer,
@@ -858,6 +1018,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_file_manager_child(
+    List<FileManagerChild> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_file_manager_entry(
+    List<FileManagerEntry> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_file_manager_tab(
+    List<FileManagerTab> self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_list_local_file_tree_node(
@@ -889,6 +1067,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_prim_u_8_strict(
     Uint8List self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_record_string_record_u_32_u_32(
+    List<(String, (int, int))> self,
     SseSerializer serializer,
   );
 
@@ -1091,10 +1275,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_record_string_record_u_32_u_32(
+    (String, (int, int)) self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_record_string_string(
     (String, String) self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_record_u_32_u_32((int, int) self, SseSerializer serializer);
 
   @protected
   void sse_encode_rust_memory_info(

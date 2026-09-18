@@ -1,7 +1,9 @@
 pub mod data_backup;
+pub mod file_manager;
 pub mod http;
 pub mod image;
 pub mod local;
+pub mod local_thumbnail;
 pub mod localization;
 pub mod logger;
 pub mod memory;

@@ -167,6 +167,8 @@ class LocalFileTreeNode {
   final bool isDir;
   final bool isArchive;
   final bool isImage;
+  final bool isVideo;
+  final bool isAudio;
   final BigInt size;
   final bool hasChildren;
 
@@ -176,6 +178,8 @@ class LocalFileTreeNode {
     required this.isDir,
     required this.isArchive,
     required this.isImage,
+    required this.isVideo,
+    required this.isAudio,
     required this.size,
     required this.hasChildren,
   });
@@ -187,6 +191,8 @@ class LocalFileTreeNode {
       isDir.hashCode ^
       isArchive.hashCode ^
       isImage.hashCode ^
+      isVideo.hashCode ^
+      isAudio.hashCode ^
       size.hashCode ^
       hasChildren.hashCode;
 
@@ -200,6 +206,8 @@ class LocalFileTreeNode {
           isDir == other.isDir &&
           isArchive == other.isArchive &&
           isImage == other.isImage &&
+          isVideo == other.isVideo &&
+          isAudio == other.isAudio &&
           size == other.size &&
           hasChildren == other.hasChildren;
 }
