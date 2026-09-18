@@ -37,7 +37,6 @@ import 'package:zephyr/page/comic_follow/cubit/comic_follow_cubit.dart';
 import 'package:zephyr/platform/desktop/native_window.dart';
 import 'package:zephyr/platform/desktop/system_tray.dart';
 import 'package:zephyr/platform/desktop/window_logic.dart';
-import 'package:zephyr/service/reader/reader_desktop_fullscreen_service.dart';
 import 'package:zephyr/service/startup_database_snapshot_service.dart';
 import 'package:zephyr/src/rust/api/qjs.dart';
 import 'package:zephyr/src/rust/api/simple.dart';
@@ -48,7 +47,7 @@ import 'package:zephyr/util/font/font_profile.dart';
 import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/util/manage_cache.dart';
 import 'package:zephyr/util/rust_loader.dart';
-import 'package:zephyr/widgets/desktop/custom_title_bar.dart';
+import 'package:zephyr/widgets/desktop/desktop_shell_frame.dart';
 import 'package:zephyr/widgets/desktop/intent.dart';
 
 export 'package:zephyr/network/http/wind_http.dart'
@@ -831,20 +830,9 @@ class _MyAppState extends State<MyApp>
                   if (Platform.isWindows ||
                       Platform.isLinux ||
                       Platform.isMacOS) {
-                    final desktopContent = content;
-                    content = ValueListenableBuilder<bool>(
-                      valueListenable: ReaderDesktopFullscreenService
-                          .instance
-                          .fullscreenNotifier,
-                      builder: (context, isReaderFullscreen, _) {
-                        return Column(
-                          children: [
-                            if (!isReaderFullscreen) const CustomTitleBar(),
-                            Expanded(child: desktopContent),
-                          ],
-                        );
-                      },
-                    );
+                    // 自制标题栏 + 内容。窗口全屏时标题栏整条让位 ——
+                    // 判据是窗口自己的全屏事件，见 DesktopShellFrame。
+                    content = DesktopShellFrame(child: content);
                   }
                   // 第三方依赖仍有 legacy Material widget，需要这个桥接层提供旧主题
                   // 与本地化上下文；待依赖迁移后可移除。

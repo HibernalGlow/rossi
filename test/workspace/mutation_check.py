@@ -139,6 +139,42 @@ SUITES = [
             ),
         ],
     },
+    {
+        "name": "desktop_shell（widget test：窗口全屏时标题栏让位）",
+        "cmd": ["flutter", "test", "test/desktop/desktop_shell_frame_test.dart"],
+        "baseline_marker": "All tests passed",
+        "mutations": [
+            (
+                "M13 服务不再听「窗口进了全屏」→ 就是用户报的那个 bug",
+                "lib/service/reader/reader_desktop_fullscreen_service.dart",
+                "  void onWindowEnterFullScreen() => _setFullscreen(true);",
+                "  void onWindowEnterFullScreen() {}",
+                False,
+            ),
+            (
+                "M14 服务不再听「窗口退了全屏」→ 退出后标题栏回不来",
+                "lib/service/reader/reader_desktop_fullscreen_service.dart",
+                "  void onWindowLeaveFullScreen() => _setFullscreen(false);",
+                "  void onWindowLeaveFullScreen() {}",
+                False,
+            ),
+            (
+                "M15 全屏时标题栏照旧建（`if` 恒真）",
+                "lib/widgets/desktop/desktop_shell_frame.dart",
+                "            if (!isFullscreen) const CustomTitleBar(),",
+                "            if (true) const CustomTitleBar(),",
+                False,
+            ),
+            (
+                "M16 假让位：标题栏不建了，但那 40px 还占着",
+                "lib/widgets/desktop/desktop_shell_frame.dart",
+                "            if (!isFullscreen) const CustomTitleBar(),",
+                "            if (isFullscreen) const SizedBox(height: 40),\n"
+                "            if (!isFullscreen) const CustomTitleBar(),",
+                False,
+            ),
+        ],
+    },
 ]
 
 REDUNDANT_NOTE = (
@@ -158,10 +194,15 @@ ASSERT_MARKERS = ("[E]", "Expected:", "Test failed", "FAIL:")
 
 def failure_kind(out):
     """→ (kind, 一行摘要)。kind ∈ {test, compile, other}。"""
-    assert_lines = [ln.strip() for ln in out.splitlines() if any(m in ln for m in ASSERT_MARKERS)]
-    compile_lines = [ln.strip() for ln in out.splitlines() if any(m in ln for m in COMPILE_MARKERS)]
+    lines = out.splitlines()
+    assert_lines = [ln.strip() for ln in lines if any(m in ln for m in ASSERT_MARKERS)]
+    compile_lines = [ln.strip() for ln in lines if any(m in ln for m in COMPILE_MARKERS)]
     if assert_lines:
-        return "test", assert_lines[0]
+        # 把「哪条断言红的」也带出来：只说「判据失败」看不出抓的是不是这条不变量。
+        expected = next((ln.strip() for ln in lines if ln.strip().startswith("Expected:")), "")
+        actual = next((ln.strip() for ln in lines if ln.strip().startswith("Actual:")), "")
+        why = " ".join(x for x in (expected, actual) if x)
+        return "test", (f"{assert_lines[0]} ｜ {why}" if why else assert_lines[0])
     if compile_lines:
         return "compile", compile_lines[0]
     return "other", ""
@@ -190,6 +231,15 @@ def main():
         rows = []
         try:
             for name, rel, find, repl, redundant in suite["mutations"]:
+                # **每个变异体都从干净基线出发**：先把这套判据碰过的所有文件还原，
+                # 再单独写这一个变异。
+                #
+                # 不这么做的话，跨文件的判据组会留下上一个变异体（比如「服务不听
+                # 全屏事件」还留在 fileA 里），于是后一个变异体**因为别人的错**变红
+                # —— 那是假红，和假绿一样有毒：它让「捕获」这个结论失去意义。
+                for r, s in originals.items():
+                    (ROOT / r).write_text(s)
+
                 path = ROOT / rel
                 if rel not in originals:
                     originals[rel] = path.read_text()
