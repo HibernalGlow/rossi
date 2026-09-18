@@ -767,8 +767,9 @@ impl MacPresenter {
         // 既然 8192 只是保守默认值而不是 Metal 的能力，就直接向适配器要它
         // 实际支持的上限。这里仍然取 `min(适配器, 16384)`：要超过适配器的值
         // 会让 `request_device` 直接失败，而 16384 已经盖住任何现实的漫画页。
-        let adapter_limit = adapter.limits().max_texture_dimension_2d;
-        let wanted_texture_dimension = adapter_limit.min(16384);
+        let wanted_texture_dimension = crate::wgpu_resampler::requested_texture_dimension(
+            adapter.limits().max_texture_dimension_2d,
+        );
         let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
             label: Some("rossi_mac_wgpu_device"),
             required_limits: wgpu::Limits {

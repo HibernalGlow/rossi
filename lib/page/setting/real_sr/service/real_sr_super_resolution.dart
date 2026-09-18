@@ -14,7 +14,9 @@ import 'package:zephyr/page/setting/real_sr/service/android_ncnn_model_config.da
 import 'package:zephyr/page/setting/real_sr/service/desktop_ncnn_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/upscaled_image_cache.dart';
+import 'package:zephyr/page/setting/real_sr/service/mimage_onnx_model_config.dart';
 import 'package:zephyr/src/rust/api/image.dart';
+import 'package:zephyr/src/rust/api/mimage_onnx.dart';
 import 'package:zephyr/src/rust/api/simple.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/coreml_model_config.dart';
@@ -89,7 +91,7 @@ class RealSrSuperResolution {
     }
 
     if (Platform.isIOS || Platform.isMacOS) {
-      return _isCoreMLAvailable;
+      return _isMImageOnnxAvailable;
     }
 
     if (Platform.isWindows || Platform.isLinux) {
@@ -190,6 +192,13 @@ class RealSrSuperResolution {
     return results.every((e) => e);
   }
 
+  static Future<bool> get _isMImageOnnxAvailable async {
+    final root = Directory(p.join(await _modelDirectory, 'mimage_onnx'));
+    final model = await RealSrSettings.loadMImageModel();
+    final file = File(p.join(root.path, model.fileName));
+    return file.existsSync() && await file.length() >= 1024;
+  }
+
   /// 当前平台对应的 7z 压缩包文件名。
   static String? get _assetName {
     if (Platform.isAndroid) return 'realsr-android.7z';
@@ -206,7 +215,8 @@ class RealSrSuperResolution {
   /// - iOS / macOS：`MacOS-iOS.7z`
   static String? get manualDownloadUrl {
     if (Platform.isIOS || Platform.isMacOS) {
-      return '${CoreMLModelConfig.binaryRepoBaseUrl}/${CoreMLModelConfig.archiveName}';
+      final model = MImageOnnxModelConfig.defaultModel;
+      return '${MImageOnnxModelConfig.baseUrl}/${model.fileName}';
     }
     final assetName = _assetName;
     if (assetName == null) return null;
@@ -419,22 +429,21 @@ class RealSrSuperResolution {
     bool force = false,
   }) async {
     if (Platform.isIOS || Platform.isMacOS) {
-      final tempDir = await getTemporaryDirectory();
-      final modelsDir = Directory(p.join(tempDir.path, 'coreml_models'));
-
-      if (force && modelsDir.existsSync()) {
-        await modelsDir.delete(recursive: true);
+      final model = await RealSrSettings.loadMImageModel();
+      final modelsDir = Directory(p.join(await _modelDirectory, 'mimage_onnx'));
+      if (force && modelsDir.existsSync()) await modelsDir.delete(recursive: true);
+      await modelsDir.create(recursive: true);
+      final destination = File(p.join(modelsDir.path, model.fileName));
+      await WindHttp().download(
+        '${MImageOnnxModelConfig.baseUrl}/${model.fileName}',
+        destination.path,
+        onReceiveProgress: (received, total) {
+          if (total > 0) onProgress?.call(received, total);
+        },
+      );
+      if (await destination.length() < 1024) {
+        throw StateError('下载的 mImage ONNX 模型无效（可能是 Git-LFS 指针）');
       }
-
-      // 压缩包里包含两个模型，下载任意一个都会把完整压缩包拉下来。
-      await CoreMLModelLoader.prepareModel(
-        CoreMLModelConfig.defaultVariant.fileName,
-        onProgress: onProgress,
-      );
-      // 确保另一个模型也被解压出来
-      await CoreMLModelLoader.prepareModel(
-        CoreMLModelConfig.families[1].variants.first.fileName,
-      );
       return;
     }
 
@@ -767,7 +776,7 @@ class RealSrSuperResolution {
             tileSize: tileSize,
           );
         } else if (Platform.isIOS || Platform.isMacOS) {
-          await _upscaleCoreML(inputPath: pngInputPath, outputPath: out);
+          await _upscaleMImageOnnx(inputPath: pngInputPath, outputPath: out, tileSize: tileSize);
         } else {
           await _upscaleCli(
             inputPath: pngInputPath,
@@ -863,22 +872,23 @@ class RealSrSuperResolution {
     return path;
   }
 
-  /// iOS / macOS 通过 CoreML 插件超分。
-  static Future<void> _upscaleCoreML({
+  /// iOS / macOS 使用 mImageViewer ONNX；ONNX Runtime 优先 CoreML EP。
+  static Future<void> _upscaleMImageOnnx({
     required String inputPath,
     required String outputPath,
+    required int tileSize,
   }) async {
-    final family = await RealSrSettings.loadCoreMLFamily();
-    final variant = await RealSrSettings.loadCoreMLVariant(family);
-    final modelPath = await CoreMLModelLoader.prepareModel(variant.fileName);
-
-    await CoreMLUpscale.upscale(
+    final model = await RealSrSettings.loadMImageModel();
+    final root = Directory(p.join(await _modelDirectory, 'mimage_onnx'));
+    final modelPath = await MImageOnnxModelConfig.path(root, model);
+    final result = await mimageOnnxUpscale(
       inputPath: inputPath,
       outputPath: outputPath,
       modelPath: modelPath,
-      modelType: 'multiarray',
-      config: variant.config,
+      modelId: model.id,
+      tileSize: tileSize == 0 ? 192 : tileSize,
     );
+    logger.i('mImage ONNX 超分完成: $result');
   }
 
   /// 桌面端通过 Process.run 调用 waifu2x-ncnn-vulkan / realcugan-ncnn-vulkan。

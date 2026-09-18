@@ -28,13 +28,14 @@ pub struct ResampleUniforms {
     pub _pad2: f32,
     /// 缩小路径使用的 mip 等级，由 Rust 侧按 `log2(1/scale)` 算好。
     pub sample_lod: f32,
+    /// 取完 mip 级之后剩下的缩放倍率（见 WGSL 那边同名字段的说明）。
+    pub residual_scale: f32,
     // 补齐到 64 字节。WGSL 会把 uniform 结构体补到 16 的整数倍，
     // 而 Rust 侧不会 —— 少写两个 f32 就会让后面所有字段错位，
     // 表现出来是「参数明明传了却不生效」（实测：sample_lod 被读成 0，
     // 缩小又退回单点采样，锯齿照旧）。下面那条断言就是为了让这种错位
     // 在编译期就炸，而不是等到画面对不上。
     pub _pad3: f32,
-    pub _pad4: f32,
     pub _pad5: f32,
 }
 
@@ -69,6 +70,26 @@ struct CachedSource {
     mip_levels: u32,
     texture: wgpu::Texture,
 }
+
+/// 设备要申请的纹理单边上限。
+///
+/// 抽成一处共用，是因为**测试和 App 必须是同一档限制**：早先测试用默认的 8192、
+/// 而 App 里申请了适配器上限，结果同一张 9504 px 的页在测试里被拒、在 App 里能开。
+/// 这种漂移会让「测过的」和「跑的」变成两件事。
+pub fn requested_texture_dimension(adapter_limit: u32) -> u32 {
+    // wgpu 的 `Limits::default()` 只给 8192，而漫画扫描件常见 8000–10000 px 宽
+    // （手上那本 AVIF 就是 9504）。16384 盖得住任何现实的漫画页，
+    // 同时是要超过适配器就会让 `request_device` 失败的边界。
+    adapter_limit.min(16384)
+}
+
+// 重建核的两个参数（瓣数 `LANCZOS_A`、抽头半径上限 `MAX_LANCZOS_RADIUS`）
+// **唯一定义在 `shaders/gpu_lanczos.wgsl`**。Rust 侧只消费它们的后果：
+// mip 级取 `floor(log2(1/scale))`，于是残余倍率恒在 [0.5, 1)、核宽恒 ≤ 13×13。
+//
+// 不在这里再写一份常量：两处各写一遍必然漂移，而漂移的表现是「测过的」和
+// 「跑的」不是同一件事 —— 这一轮已经因为同样的原因踩过一次（测试设备用默认的
+// 8192 上限、App 申请适配器上限，同一张 9504 的页一边被拒一边能开）。
 
 /// 一个纹理最大能有多少级 mip（完整链）。
 fn full_mip_levels(width: u32, height: u32) -> u32 {
@@ -314,8 +335,8 @@ impl WgpuResampler {
                 _pad1: 0.0,
                 _pad2: 0.0,
                 sample_lod: 0.0,
+                residual_scale: 0.5,
                 _pad3: 0.0,
-                _pad4: 0.0,
                 _pad5: 0.0,
             };
             let uniform_buffer =
@@ -476,6 +497,24 @@ impl WgpuResampler {
         // 现在：`lod = floor(log2(1/scale))` 先把倍率压到 [0.5, 1)，这一步由 mip 链
         // 用面积平均完成（正确的抗锯齿）；剩下的 [0.5, 1) 再交给 mip 采样器插值。
         // 放大（scale ≥ 1）时 lod = 0，走原来的 Lanczos3，画质不变。
+        // 取 `floor(log2(1/scale))`：残余倍率因此恒在 [0.5, 1)，重建核宽度被钉在
+        // `≤ ceil(3/0.5) = 6`（13×13）。
+        //
+        // # 这个数试过改，被实测否掉了，别再来一遍
+        //
+        // 曾经想过「能单级做就单级做」—— 直接在原级上用 `3/scale` 宽的核（最清晰的
+        // 直觉），只在核宽超上限时才降 mip。理由是 mip 那一级的 2× 盒式平均在输出
+        // Nyquist 处有 0.707 的衰减（`cos(π f)`）。方向听着对，实测相反：
+        //
+        // ```text
+        // 9504×6336 → 2940×1608（scale 0.254）    渲染耗时     边缘跳变
+        // 单级宽核（25×25 = 625 抽头）             221.9 ms     215
+        // mip（残余 [0.5,1)，13×13 = 169 抽头）    100.5 ms     220   ← 又快又更锐
+        // ```
+        //
+        // 两个原因：核窄了振铃少、边缘反而立得住；而盒式预滤丢的那点高频本来也在
+        // 输出 Nyquist 附近、堆在 Lanczos 自己的滚降里看不出来。**2.2 倍速度换来
+        // 0.5% 的锐度**（方向还是反的），所以维持在 floor。
         let mip_lod = if scale < 1.0 {
             (1.0 / scale).log2().floor().max(0.0)
         } else {
@@ -487,6 +526,8 @@ impl WgpuResampler {
         // 而且只在第一张图上错，最难查的那种。
         let max_lod = full_mip_levels(src_w, src_h).saturating_sub(1) as f32;
         let sample_lod = mip_lod.min(max_lod);
+        // 取完这一级之后还剩多少倍率 —— 重建核的宽度按它算，不按原始 scale 算。
+        let residual_scale = (scale * (2.0f32).powf(sample_lod)).min(1.0);
 
         // 只有 Anime4K 是特殊路径；其余（放大、缩小）**都走 Lanczos3**，
         // 区别只在于它在哪一级 mip 上做（见 `sample_lod`）。
@@ -527,8 +568,12 @@ impl WgpuResampler {
             },
         );
 
-        // 第 0 级刚写进去，紧接着把下游各级补出来 —— 缩小路径要读它们。
-        self.generate_mipmaps(src_w, src_h);
+        // 第 0 级刚写进去，紧接着把下游各级补出来 —— **但只在真的要读它们时**。
+        // 单级宽核那条路（`sample_lod == 0`）根本不碰 mip，白生成一整条链
+        // 在一张 9504×6336 上要一百多毫秒，是最容易漏掉的一笔纯浪费。
+        if sample_lod > 0.0 {
+            self.generate_mipmaps(src_w, src_h);
+        }
 
         let src_view = src_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -547,8 +592,8 @@ impl WgpuResampler {
             _pad1: 0.0,
             _pad2: 0.0,
             sample_lod,
+            residual_scale,
             _pad3: 0.0,
-            _pad4: 0.0,
             _pad5: 0.0,
         };
 
@@ -757,6 +802,12 @@ pub(crate) mod tests {
         .ok()?;
         let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
             label: Some("test_resampler_device"),
+            required_limits: wgpu::Limits {
+                max_texture_dimension_2d: requested_texture_dimension(
+                    adapter.limits().max_texture_dimension_2d,
+                ),
+                ..wgpu::Limits::default()
+            },
             ..Default::default()
         }))
         .ok()?;
@@ -831,6 +882,103 @@ pub(crate) mod tests {
 #[cfg(test)]
 mod sharpness_tests {
     use super::*;
+
+    /// 诊断：**在用户的真实尺寸上**量质量与耗时（9504×6336 → 2940×1608）。
+    ///
+    /// 小图的结论不能直接外推：核宽、mip 级数、纹理上传量都跟尺寸强相关。
+    /// 这个尺寸就是那本 AVIF 的实际数字（scale 0.254，2x DPR 下的物理目标）。
+    #[test]
+    fn diagnose_real_size_cost() {
+        let (device, queue) = super::tests::init_test_device().expect("无 GPU 适配器");
+        let (sw, sh) = (9504u32, 6336u32);
+        let (tw, th) = (2940u32, 1608u32);
+        // 合成源：竖条纹 + 一条台阶边（只看时间与边缘跳变，图案具体形状不重要）
+        let mut rgba = vec![0u8; sw as usize * sh as usize * 4];
+        for y in 0..sh as usize {
+            for x in 0..sw as usize {
+                let v: u8 = if x < sw as usize / 2 { (x % 251) as u8 } else { 255 - (x % 251) as u8 };
+                let i = (y * sw as usize + x) * 4;
+                rgba[i] = v; rgba[i + 1] = v; rgba[i + 2] = v; rgba[i + 3] = 255;
+            }
+        }
+        // 行跨步是**字节**数：每行 tw 个 BGRA 像素 = tw*4 字节，再按 64 对齐。
+        // （这里一开始写成 `tw` 对齐，比实际行宽小 4 倍 —— 正好被 resample_to_buffer
+        //  新加的跨步校验拦下，没写进越界。）
+        let stride = (tw as usize * 4 + 63) & !63;
+        let mut out = vec![0u8; stride * th as usize];
+        let mut r = WgpuResampler::new_with_format(device, queue, wgpu::TextureFormat::Bgra8Unorm).unwrap();
+        r.resample_to_buffer(&rgba, sw, sh, tw, th, out.as_mut_ptr(), stride, false).unwrap();
+        // 预热一次（首次含纹理创建），再量两次取小
+        let mut best = f64::MAX;
+        for _ in 0..2 {
+            let t = std::time::Instant::now();
+            r.resample_to_buffer(&rgba, sw, sh, tw, th, out.as_mut_ptr(), stride, false).unwrap();
+            best = best.min(t.elapsed().as_secs_f64() * 1000.0);
+        }
+        let y = (th / 2) as usize;
+        let row: Vec<i32> = (0..tw as usize).map(|x| out[y * stride + x * 4] as i32).collect();
+        let mut max_step = 0;
+        for w in row.windows(2) { max_step = max_step.max((w[0] - w[1]).abs()); }
+        println!("真实尺寸 9504x6336 → 2940x1608: 渲染 {best:.1} ms，边缘跳变 {max_step}");
+    }
+
+    /// 诊断：一张图量两个指标 —— **锐度**与**抗锯齿**必须分开量。
+    ///
+    /// 用两个图案是有意的，混在一个图案里量不出来：
+    /// - 台阶边（边落在两个输出像素之间）→ 边缘最大跳变 = 锐度；
+    /// - 周期 4 的细条纹（在 3.16× 之下远高于输出 Nyquist）→ 必须被滤成均匀灰，
+    ///   「偏离中灰的均值」就是没滤干净的锯齿/摩尔纹。
+    ///
+    /// 前者只看滤波器**保住**了多少，后者只看它**滤掉**了多少。一个核只要够窄，
+    /// 前者就好看（假锐），只要够宽后者就好看（糊）；两个数一起看才分得出好坏。
+    #[test]
+    fn diagnose_quality() {
+        let (device, queue) = super::tests::init_test_device().expect("无 GPU 适配器");
+
+        // ① 锐度：64×64 台阶边，边在 x=34（落在输出像素之间）→ 20×20
+        let (sw, sh) = (64u32, 64u32);
+        let mut rgba = vec![0u8; (sw * sh * 4) as usize];
+        for y in 0..sh {
+            for x in 0..sw {
+                let v: u8 = if x < 34 { 0 } else { 255 };
+                let i = ((y * sw + x) * 4) as usize;
+                rgba[i] = v; rgba[i + 1] = v; rgba[i + 2] = v; rgba[i + 3] = 255;
+            }
+        }
+        let (tw, th) = (20u32, 20u32);
+        let stride = 512usize;
+        let mut out = vec![0u8; stride * th as usize];
+        let mut r = WgpuResampler::new_with_format(device.clone(), queue.clone(), wgpu::TextureFormat::Bgra8Unorm).unwrap();
+        r.resample_to_buffer(&rgba, sw, sh, tw, th, out.as_mut_ptr(), stride, false).unwrap();
+        let y = (th / 2) as usize;
+        let row: Vec<i32> = (0..tw as usize).map(|x| out[y * stride + x * 4] as i32).collect();
+        let mut max_step = 0;
+        for w in row.windows(2) { max_step = max_step.max((w[0] - w[1]).abs()); }
+
+        // ② 抗锯齿：256×256 周期 4 细条纹 → 81×81（3.16×）→ 应滤成均匀灰
+        let (sw2, sh2) = (256u32, 256u32);
+        let mut rgba2 = vec![0u8; (sw2 * sh2 * 4) as usize];
+        for y in 0..sh2 {
+            for x in 0..sw2 {
+                let v: u8 = if (x / 2) % 2 == 0 { 0 } else { 255 };
+                let i = ((y * sw2 + x) * 4) as usize;
+                rgba2[i] = v; rgba2[i + 1] = v; rgba2[i + 2] = v; rgba2[i + 3] = 255;
+            }
+        }
+        let (tw2, th2) = (81u32, 81u32);
+        let mut out2 = vec![0u8; stride * th2 as usize];
+        let mut r2 = WgpuResampler::new_with_format(device, queue, wgpu::TextureFormat::Bgra8Unorm).unwrap();
+        r2.resample_to_buffer(&rgba2, sw2, sh2, tw2, th2, out2.as_mut_ptr(), stride, false).unwrap();
+        let mut dev = 0f64;
+        let mut n = 0f64;
+        for y in 8..(th2 as usize - 8) {
+            for x in 8..(tw2 as usize - 8) {
+                dev += (out2[y * stride + x * 4] as f64 - 128.0).abs();
+                n += 1.0;
+            }
+        }
+        println!("锐度(边缘跳变) = {max_step}  |  残留锯齿(偏离中灰) = {:.1}", dev / n);
+    }
 
     /// 诊断用：把阶梯边放在**两个输出像素之间**，量它跨越了几个「半亮」像素。
     ///

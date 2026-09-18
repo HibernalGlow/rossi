@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/page/setting/real_sr/service/android_ncnn_model_config.dart';
 import 'package:zephyr/util/coreml_model_config.dart';
+import 'package:zephyr/page/setting/real_sr/service/mimage_onnx_model_config.dart';
 
 bool get _isDesktop =>
     Platform.isWindows || Platform.isLinux || Platform.isMacOS;
@@ -27,6 +28,7 @@ class RealSrSettings {
   static const _keyDesktopNcnnMode = 'realsr_desktop_ncnn_mode';
   static const _keyDesktopNcnnNoise = 'realsr_desktop_ncnn_noise';
   static const _keyScale = 'realsr_scale';
+  static const _keyMImageModel = 'realsr_mimage_onnx_model';
 
   /// 根据当前运行平台返回推荐的默认并发数。
   ///
@@ -212,14 +214,24 @@ class RealSrSettings {
     await prefs.setInt(_keyScale, value.value);
   }
 
+  static Future<MImageOnnxModel> loadMImageModel() async {
+    final prefs = await SharedPreferences.getInstance();
+    return MImageOnnxModelConfig.byId(prefs.getString(_keyMImageModel)) ??
+        MImageOnnxModelConfig.defaultModel;
+  }
+
+  static Future<void> saveMImageModel(MImageOnnxModel value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyMImageModel, value.id);
+  }
+
   /// 用于超分结果缓存的配置指纹。模型或倍率改变时必须得到不同的文件名，
   /// 否则会继续显示旧模型产物，看起来就像“换模型没有生效”。
   static Future<String> loadCacheKey() async {
     final scale = await loadScale();
     if (Platform.isMacOS || Platform.isIOS) {
-      final family = await loadCoreMLFamily();
-      final variant = await loadCoreMLVariant(family);
-      return '${family.id}_${variant.fileName}_${scale.value}x';
+      final model = await loadMImageModel();
+      return 'mimage_onnx_${model.id}_${model.fileName}';
     }
     if (Platform.isWindows || Platform.isLinux) {
       final mode = await loadDesktopNcnnMode();

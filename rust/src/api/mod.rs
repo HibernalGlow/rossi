@@ -5,6 +5,7 @@ pub mod local;
 pub mod localization;
 pub mod logger;
 pub mod memory;
+pub mod mimage_onnx;
 pub mod qjs;
 pub mod simple;
 pub mod system;

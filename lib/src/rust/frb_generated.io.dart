@@ -10,6 +10,7 @@ import 'api/local.dart';
 import 'api/localization.dart';
 import 'api/logger.dart';
 import 'api/memory.dart';
+import 'api/mimage_onnx.dart';
 import 'api/qjs.dart';
 import 'api/simple.dart';
 import 'api/system.dart';

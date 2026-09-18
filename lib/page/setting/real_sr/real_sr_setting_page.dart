@@ -11,6 +11,7 @@ import 'package:zephyr/page/setting/real_sr/service/android_ncnn_model_config.da
 import 'package:zephyr/page/setting/real_sr/service/desktop_ncnn_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
+import 'package:zephyr/page/setting/real_sr/service/mimage_onnx_model_config.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/coreml_model_config.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
@@ -56,6 +57,7 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
   RealSrScale _scale = RealSrScale.x2;
   CoreMLModelFamily _coreMLFamily = CoreMLModelConfig.defaultFamily;
   CoreMLModelVariant _coreMLVariant = CoreMLModelConfig.defaultVariant;
+  MImageOnnxModel _mImageModel = MImageOnnxModelConfig.defaultModel;
   bool _isAvailable = false;
   bool _downloading = false;
   bool _importing = false;
@@ -90,6 +92,7 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
   Future<void> _loadSettings() async {
     final family = await RealSrSettings.loadCoreMLFamily();
     final variant = await RealSrSettings.loadCoreMLVariant(family);
+    final mImageModel = await RealSrSettings.loadMImageModel();
     final results = await Future.wait([
       RealSrSettings.loadAutoUpscale(),
       RealSrSettings.loadResolutionThreshold(),
@@ -113,6 +116,7 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
       _isAvailable = results[7] as bool;
       _coreMLFamily = family;
       _coreMLVariant = variant;
+      _mImageModel = mImageModel;
       _loading = false;
     });
   }
@@ -167,6 +171,12 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
   Future<void> _setCoreMLVariant(CoreMLModelVariant value) async {
     await RealSrSettings.saveCoreMLVariant(value);
     setState(() => _coreMLVariant = value);
+  }
+
+  Future<void> _setMImageModel(MImageOnnxModel value) async {
+    await RealSrSettings.saveMImageModel(value);
+    setState(() => _mImageModel = value);
+    await _refreshAvailability();
   }
 
   Future<void> _refreshAvailability() async {
@@ -293,42 +303,26 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
       return [
         ListTile(
           leading: const Icon(Icons.speed_outlined),
-          title: Text(t.realSr.model),
-          subtitle: Text(t.realSr.modelSubtitle),
-          trailing: FluentDropdown<CoreMLModelFamily>(
-            value: _coreMLFamily,
-            displayValue: _coreMLFamily.localizedLabel,
+          title: const Text('mImage ONNX 模型'),
+          subtitle: Text('Apple Silicon 使用 CoreML（Neural Engine/GPU），原生 ${_mImageModel.scale}x'),
+          trailing: FluentDropdown<MImageOnnxModel>(
+            value: _mImageModel,
+            displayValue: _mImageModel.label,
             items: {
-              for (final family in CoreMLModelConfig.families)
-                family: family.localizedLabel,
+              for (final model in MImageOnnxModel.values) model: model.label,
             },
-            onChanged: _setCoreMLFamily,
+            onChanged: _setMImageModel,
           ),
         ),
         ListTile(
           leading: const Icon(Icons.healing_outlined),
-          title: Text(t.realSr.noiseLevel),
-          subtitle: Text(t.realSr.noiseLevelSubtitle),
-          trailing: FluentDropdown<CoreMLModelVariant>(
-            value: _coreMLVariant,
-            displayValue: _coreMLVariant.localizedDisplayName,
-            items: {
-              for (final variant in _coreMLFamily.variants)
-                variant: variant.localizedDisplayName,
-            },
-            onChanged: _setCoreMLVariant,
-          ),
+          title: const Text('降噪'),
+          subtitle: Text(_mImageModel.supportsDenoise ? 'Real-CUGAN conservative（模型内置）' : '由 mImage 模型固定，当前模型不暴露额外降噪参数'),
         ),
         ListTile(
           leading: const Icon(Icons.grid_view_outlined),
-          title: Text(t.realSr.blockInfo),
-          subtitle: Text(_coreMLBlockInfo),
-          trailing: Tooltip(
-            triggerMode: TooltipTriggerMode.tap,
-            showDuration: const Duration(seconds: 5),
-            message: t.realSr.blockInfoTooltip,
-            child: const Icon(Icons.help_outline),
-          ),
+          title: const Text('倍率'),
+          subtitle: Text('模型原生 ${_mImageModel.scale}x，不能把 2x 模型伪装成 4x'),
         ),
       ];
     }
@@ -347,7 +341,7 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
       ListTile(
         leading: const Icon(Icons.zoom_out_map_outlined),
         title: const Text('输出倍率'),
-        subtitle: const Text('2x 为单次模型推理；4x 会串联两次 2x 模型'),
+        subtitle: const Text('桌面 NCNN 模型的实际倍率设置'),
         trailing: FluentDropdown<RealSrScale>(
           value: _scale,
           displayValue: _scale.label,
