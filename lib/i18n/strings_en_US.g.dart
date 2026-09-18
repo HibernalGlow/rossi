@@ -229,6 +229,23 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get maskedKeywordsSubtitle => 'Add keywords to filter unwanted content (search only)';
 	@override String get maskedKeywordsEmpty => 'No masked keywords';
 	@override String get maskedKeywordsInputHint => 'Enter new keyword...';
+	@override String get favoriteArtistHighlight => 'Highlight Favorite Artists';
+	@override String get favoriteArtistHighlightSubtitle => 'Highlight comics by preferred artists on cards and detail page';
+	@override String get favoriteArtistManagement => 'Favorite Artists Management';
+	@override String favoriteArtistManagementSubtitle({required Object count}) => '${count} artists added';
+	@override String get favoriteArtistManagementSubtitleEmpty => 'No favorite artists added';
+	@override String get favoriteArtistInputHint => 'Enter artist name...';
+	@override String get favoriteArtistAdd => 'Add';
+	@override String get favoriteArtistBatchImport => 'Batch Import / Edit';
+	@override String get favoriteArtistBatchImportHint => 'Enter one artist per line or comma-separated, supports [circle (artist)] format';
+	@override String favoriteArtistImportSuccess({required Object count}) => 'Updated artists list (${count} total)';
+	@override String get favoriteArtistClear => 'Clear All';
+	@override String get favoriteArtistClearConfirm => 'Are you sure you want to clear all favorite artists?';
+	@override String get favoriteArtistBadge => 'Favorite Artist';
+	@override String get addToFavoriteArtist => 'Add to Favorite Artists';
+	@override String get removeFromFavoriteArtist => 'Remove from Favorite Artists';
+	@override String addedToFavoriteArtist({required Object name}) => 'Added to favorite artists: ${name}';
+	@override String removedFromFavoriteArtist({required Object name}) => 'Removed from favorite artists: ${name}';
 	@override String get chineseConvert => 'Chinese conversion';
 	@override String get chineseConvertSubtitle => 'Convert comic titles, descriptions, chapters and comments';
 	@override String get chineseConvertOff => 'Off';
@@ -292,6 +309,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get cloudFavoritePreferredSubtitle => 'When enabled, the favorite button on the comic info page performs cloud collection, and the original cloud collection menu item switches to local collection';
 	@override String get autoFollowOnCollect => 'Auto-follow on collect';
 	@override String get autoFollowOnCollectSubtitle => 'Automatically add comics to the follow list when favorited';
+	@override String get autoFavoriteOnDownload => 'Auto-favorite on download';
+	@override String get autoFavoriteOnDownloadSubtitle => 'Automatically add comics to favorites when downloading';
 	@override String get leftHandMode => 'Left-hand mode';
 	@override String get leftHandModeSubtitle => 'Move floating action buttons and other controls to the left side';
 	@override String get clickCoverToStartReading => 'Tap cover to start reading';
@@ -611,6 +630,24 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	final TranslationsEnUs _root; // ignore: unused_field
 
 	// Translations
+	@override String get downloadManage => 'Download Manager';
+	@override String get startDownload => 'Start Download';
+	@override String get pauseDownload => 'Pause Download';
+	@override String get resumeDownload => 'Resume Download';
+	@override String get restartDownload => 'Restart Download';
+	@override String get deleteDownload => 'Delete Download';
+	@override String get viewAllTasks => 'View All Tasks';
+	@override String get downloadStatusDownloading => 'Downloading';
+	@override String get downloadStatusPaused => 'Paused';
+	@override String get downloadStatusCompleted => 'Completed';
+	@override String get downloadStatusFailed => 'Failed';
+	@override String get downloadStatusQueued => 'Queued';
+	@override String get confirmDeleteDownloadTitle => 'Delete Download';
+	@override String get confirmDeleteDownload => 'Are you sure you want to delete this comic\'s download task and local files?';
+	@override String get downloadStartedToast => 'Download started for this comic';
+	@override String get autoCollectedToast => 'Added to collection';
+	@override String get readWhileDownloading => 'Download while reading';
+	@override String get readWhileDownloadingSubtitle => 'Automatically save read content to local download directory';
 	@override String get pageMode => 'Page turn mode';
 	@override String get fullscreen => 'Fullscreen';
 	@override String get leftHandMode => 'Left-hand mode';
@@ -1659,6 +1696,23 @@ extension on TranslationsEnUs {
 			'settings.maskedKeywordsSubtitle' => 'Add keywords to filter unwanted content (search only)',
 			'settings.maskedKeywordsEmpty' => 'No masked keywords',
 			'settings.maskedKeywordsInputHint' => 'Enter new keyword...',
+			'settings.favoriteArtistHighlight' => 'Highlight Favorite Artists',
+			'settings.favoriteArtistHighlightSubtitle' => 'Highlight comics by preferred artists on cards and detail page',
+			'settings.favoriteArtistManagement' => 'Favorite Artists Management',
+			'settings.favoriteArtistManagementSubtitle' => ({required Object count}) => '${count} artists added',
+			'settings.favoriteArtistManagementSubtitleEmpty' => 'No favorite artists added',
+			'settings.favoriteArtistInputHint' => 'Enter artist name...',
+			'settings.favoriteArtistAdd' => 'Add',
+			'settings.favoriteArtistBatchImport' => 'Batch Import / Edit',
+			'settings.favoriteArtistBatchImportHint' => 'Enter one artist per line or comma-separated, supports [circle (artist)] format',
+			'settings.favoriteArtistImportSuccess' => ({required Object count}) => 'Updated artists list (${count} total)',
+			'settings.favoriteArtistClear' => 'Clear All',
+			'settings.favoriteArtistClearConfirm' => 'Are you sure you want to clear all favorite artists?',
+			'settings.favoriteArtistBadge' => 'Favorite Artist',
+			'settings.addToFavoriteArtist' => 'Add to Favorite Artists',
+			'settings.removeFromFavoriteArtist' => 'Remove from Favorite Artists',
+			'settings.addedToFavoriteArtist' => ({required Object name}) => 'Added to favorite artists: ${name}',
+			'settings.removedFromFavoriteArtist' => ({required Object name}) => 'Removed from favorite artists: ${name}',
 			'settings.chineseConvert' => 'Chinese conversion',
 			'settings.chineseConvertSubtitle' => 'Convert comic titles, descriptions, chapters and comments',
 			'settings.chineseConvertOff' => 'Off',
@@ -1722,6 +1776,8 @@ extension on TranslationsEnUs {
 			'settings.cloudFavoritePreferredSubtitle' => 'When enabled, the favorite button on the comic info page performs cloud collection, and the original cloud collection menu item switches to local collection',
 			'settings.autoFollowOnCollect' => 'Auto-follow on collect',
 			'settings.autoFollowOnCollectSubtitle' => 'Automatically add comics to the follow list when favorited',
+			'settings.autoFavoriteOnDownload' => 'Auto-favorite on download',
+			'settings.autoFavoriteOnDownloadSubtitle' => 'Automatically add comics to favorites when downloading',
 			'settings.leftHandMode' => 'Left-hand mode',
 			'settings.leftHandModeSubtitle' => 'Move floating action buttons and other controls to the left side',
 			'settings.clickCoverToStartReading' => 'Tap cover to start reading',
@@ -2014,6 +2070,26 @@ extension on TranslationsEnUs {
 			'comicInfo.confirmAdd' => 'Confirm add',
 			'comicInfo.resolveComicIdFailed' => ({required Object type}) => 'Cannot resolve comic ID for reading: ${type}',
 			'comicInfo.resolveEpsCountFailed' => ({required Object type}) => 'Cannot resolve episode count for reading: ${type}',
+			'reader.downloadManage' => 'Download Manager',
+			'reader.startDownload' => 'Start Download',
+			'reader.pauseDownload' => 'Pause Download',
+			'reader.resumeDownload' => 'Resume Download',
+			'reader.restartDownload' => 'Restart Download',
+			'reader.deleteDownload' => 'Delete Download',
+			'reader.viewAllTasks' => 'View All Tasks',
+			'reader.downloadStatusDownloading' => 'Downloading',
+			'reader.downloadStatusPaused' => 'Paused',
+			'reader.downloadStatusCompleted' => 'Completed',
+			'reader.downloadStatusFailed' => 'Failed',
+			'reader.downloadStatusQueued' => 'Queued',
+			'reader.confirmDeleteDownloadTitle' => 'Delete Download',
+			'reader.confirmDeleteDownload' => 'Are you sure you want to delete this comic\'s download task and local files?',
+			'reader.downloadStartedToast' => 'Download started for this comic',
+			'reader.autoCollectedToast' => 'Added to collection',
+			'reader.readWhileDownloading' => 'Download while reading',
+			'reader.readWhileDownloadingSubtitle' => 'Automatically save read content to local download directory',
+			_ => null,
+		} ?? switch (path) {
 			'reader.pageMode' => 'Page turn mode',
 			'reader.fullscreen' => 'Fullscreen',
 			'reader.leftHandMode' => 'Left-hand mode',
@@ -2051,8 +2127,6 @@ extension on TranslationsEnUs {
 			'reader.themeMode' => 'Theme mode',
 			'reader.autoRead' => 'Auto read',
 			'reader.autoReadSubtitle' => 'Automatically scroll the reader',
-			_ => null,
-		} ?? switch (path) {
 			'reader.autoReadHidePauseButton' => 'Hide pause button',
 			'reader.autoReadHidePauseButtonSubtitle' => 'Keep auto-read running without showing the pause/play button',
 			'reader.autoReadSmooth' => 'Smooth scroll',
@@ -2528,6 +2602,8 @@ extension on TranslationsEnUs {
 			'discover.pluginInfoLoadFailed' => ({required Object error}) => 'Failed to load plugin info: ${error}',
 			'discover.pluginCapability' => 'Plugin Capability',
 			'discover.disabled' => 'Disabled',
+			_ => null,
+		} ?? switch (path) {
 			'discover.unnamed' => 'Unnamed',
 			'discover.pluginEnableFailed' => ({required Object error}) => 'Failed to enable plugin: ${error}',
 			'discover.pluginCloseFailed' => ({required Object error}) => 'Failed to disable plugin: ${error}',
@@ -2565,8 +2641,6 @@ extension on TranslationsEnUs {
 			'comicFollow.empty' => 'No followed comics',
 			'comicFollow.emptyHint' => 'Tap the follow button on a comic detail page to add it here',
 			'comicFollow.unfollow' => 'Unfollow',
-			_ => null,
-		} ?? switch (path) {
 			'comicFollow.unfollowConfirm' => ({required Object title}) => 'Stop following "${title}"?',
 			'comicFollow.unfollowed' => 'Unfollowed',
 			'comicFollow.all' => 'All',

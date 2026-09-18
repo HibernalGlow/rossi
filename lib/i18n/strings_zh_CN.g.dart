@@ -473,6 +473,57 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '输入新关键词...'
 	String get maskedKeywordsInputHint => '输入新关键词...';
 
+	/// zh-CN: '喜欢画师高亮'
+	String get favoriteArtistHighlight => '喜欢画师高亮';
+
+	/// zh-CN: '在漫画卡片和详情页醒目标记喜欢的画师'
+	String get favoriteArtistHighlightSubtitle => '在漫画卡片和详情页醒目标记喜欢的画师';
+
+	/// zh-CN: '喜欢画师管理'
+	String get favoriteArtistManagement => '喜欢画师管理';
+
+	/// zh-CN: '已添加 $count 位画师'
+	String favoriteArtistManagementSubtitle({required Object count}) => '已添加 ${count} 位画师';
+
+	/// zh-CN: '暂未添加画师'
+	String get favoriteArtistManagementSubtitleEmpty => '暂未添加画师';
+
+	/// zh-CN: '输入画师名称...'
+	String get favoriteArtistInputHint => '输入画师名称...';
+
+	/// zh-CN: '添加'
+	String get favoriteArtistAdd => '添加';
+
+	/// zh-CN: '批量导入/编辑'
+	String get favoriteArtistBatchImport => '批量导入/编辑';
+
+	/// zh-CN: '每行输入一位画师或逗号分隔，支持 [社团 (画师)] 格式'
+	String get favoriteArtistBatchImportHint => '每行输入一位画师或逗号分隔，支持 [社团 (画师)] 格式';
+
+	/// zh-CN: '已更新画师列表（共 $count 位）'
+	String favoriteArtistImportSuccess({required Object count}) => '已更新画师列表（共 ${count} 位）';
+
+	/// zh-CN: '清空全部'
+	String get favoriteArtistClear => '清空全部';
+
+	/// zh-CN: '确定要清空所有喜欢的画师吗？'
+	String get favoriteArtistClearConfirm => '确定要清空所有喜欢的画师吗？';
+
+	/// zh-CN: '喜欢画师'
+	String get favoriteArtistBadge => '喜欢画师';
+
+	/// zh-CN: '设为喜欢画师'
+	String get addToFavoriteArtist => '设为喜欢画师';
+
+	/// zh-CN: '取消喜欢画师'
+	String get removeFromFavoriteArtist => '取消喜欢画师';
+
+	/// zh-CN: '已添加到喜欢画师: $name'
+	String addedToFavoriteArtist({required Object name}) => '已添加到喜欢画师: ${name}';
+
+	/// zh-CN: '已从喜欢画师移除: $name'
+	String removedFromFavoriteArtist({required Object name}) => '已从喜欢画师移除: ${name}';
+
 	/// zh-CN: '简繁转换'
 	String get chineseConvert => '简繁转换';
 
@@ -661,6 +712,12 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '开启后收藏漫画时将自动加入追更列表'
 	String get autoFollowOnCollectSubtitle => '开启后收藏漫画时将自动加入追更列表';
+
+	/// zh-CN: '下载自动收藏'
+	String get autoFavoriteOnDownload => '下载自动收藏';
+
+	/// zh-CN: '开启后下载漫画时将自动加入本地收藏'
+	String get autoFavoriteOnDownloadSubtitle => '开启后下载漫画时将自动加入本地收藏';
 
 	/// zh-CN: '左手优化'
 	String get leftHandMode => '左手优化';
@@ -1567,6 +1624,60 @@ class Translations$reader$zh_CN {
 	final Translations _root; // ignore: unused_field
 
 	// Translations
+
+	/// zh-CN: '下载管理'
+	String get downloadManage => '下载管理';
+
+	/// zh-CN: '开始下载'
+	String get startDownload => '开始下载';
+
+	/// zh-CN: '暂停下载'
+	String get pauseDownload => '暂停下载';
+
+	/// zh-CN: '继续下载'
+	String get resumeDownload => '继续下载';
+
+	/// zh-CN: '重新下载'
+	String get restartDownload => '重新下载';
+
+	/// zh-CN: '删除下载'
+	String get deleteDownload => '删除下载';
+
+	/// zh-CN: '查看全部下载任务'
+	String get viewAllTasks => '查看全部下载任务';
+
+	/// zh-CN: '正在下载'
+	String get downloadStatusDownloading => '正在下载';
+
+	/// zh-CN: '已暂停'
+	String get downloadStatusPaused => '已暂停';
+
+	/// zh-CN: '已完成'
+	String get downloadStatusCompleted => '已完成';
+
+	/// zh-CN: '下载出错'
+	String get downloadStatusFailed => '下载出错';
+
+	/// zh-CN: '等待中'
+	String get downloadStatusQueued => '等待中';
+
+	/// zh-CN: '删除下载'
+	String get confirmDeleteDownloadTitle => '删除下载';
+
+	/// zh-CN: '确认删除该漫画的下载任务及本地文件吗？'
+	String get confirmDeleteDownload => '确认删除该漫画的下载任务及本地文件吗？';
+
+	/// zh-CN: '已开始下载本漫画'
+	String get downloadStartedToast => '已开始下载本漫画';
+
+	/// zh-CN: '已自动添加至收藏'
+	String get autoCollectedToast => '已自动添加至收藏';
+
+	/// zh-CN: '边看边下载'
+	String get readWhileDownloading => '边看边下载';
+
+	/// zh-CN: '阅读时自动将已看内容保存到本地下载目录'
+	String get readWhileDownloadingSubtitle => '阅读时自动将已看内容保存到本地下载目录';
 
 	/// zh-CN: '翻页模式'
 	String get pageMode => '翻页模式';
@@ -3965,6 +4076,23 @@ extension on Translations {
 			'settings.maskedKeywordsSubtitle' => '添加关键词，过滤不想看到的内容（仅搜索生效）',
 			'settings.maskedKeywordsEmpty' => '暂无屏蔽词',
 			'settings.maskedKeywordsInputHint' => '输入新关键词...',
+			'settings.favoriteArtistHighlight' => '喜欢画师高亮',
+			'settings.favoriteArtistHighlightSubtitle' => '在漫画卡片和详情页醒目标记喜欢的画师',
+			'settings.favoriteArtistManagement' => '喜欢画师管理',
+			'settings.favoriteArtistManagementSubtitle' => ({required Object count}) => '已添加 ${count} 位画师',
+			'settings.favoriteArtistManagementSubtitleEmpty' => '暂未添加画师',
+			'settings.favoriteArtistInputHint' => '输入画师名称...',
+			'settings.favoriteArtistAdd' => '添加',
+			'settings.favoriteArtistBatchImport' => '批量导入/编辑',
+			'settings.favoriteArtistBatchImportHint' => '每行输入一位画师或逗号分隔，支持 [社团 (画师)] 格式',
+			'settings.favoriteArtistImportSuccess' => ({required Object count}) => '已更新画师列表（共 ${count} 位）',
+			'settings.favoriteArtistClear' => '清空全部',
+			'settings.favoriteArtistClearConfirm' => '确定要清空所有喜欢的画师吗？',
+			'settings.favoriteArtistBadge' => '喜欢画师',
+			'settings.addToFavoriteArtist' => '设为喜欢画师',
+			'settings.removeFromFavoriteArtist' => '取消喜欢画师',
+			'settings.addedToFavoriteArtist' => ({required Object name}) => '已添加到喜欢画师: ${name}',
+			'settings.removedFromFavoriteArtist' => ({required Object name}) => '已从喜欢画师移除: ${name}',
 			'settings.chineseConvert' => '简繁转换',
 			'settings.chineseConvertSubtitle' => '将漫画标题、简介、章节、评论等转为简体或繁体',
 			'settings.chineseConvertOff' => '关闭',
@@ -4028,6 +4156,8 @@ extension on Translations {
 			'settings.cloudFavoritePreferredSubtitle' => '开启后漫画信息页的收藏按钮将执行云端收藏，原云端收藏菜单项切换为本地收藏',
 			'settings.autoFollowOnCollect' => '收藏自动追更',
 			'settings.autoFollowOnCollectSubtitle' => '开启后收藏漫画时将自动加入追更列表',
+			'settings.autoFavoriteOnDownload' => '下载自动收藏',
+			'settings.autoFavoriteOnDownloadSubtitle' => '开启后下载漫画时将自动加入本地收藏',
 			'settings.leftHandMode' => '左手优化',
 			'settings.leftHandModeSubtitle' => '开启后将悬浮按钮等操作按钮移到屏幕左侧',
 			'settings.clickCoverToStartReading' => '点击封面开始阅读',
@@ -4321,6 +4451,26 @@ extension on Translations {
 			'comicInfo.confirmAdd' => '确定添加',
 			'comicInfo.resolveComicIdFailed' => ({required Object type}) => '无法解析阅读 comicId: ${type}',
 			'comicInfo.resolveEpsCountFailed' => ({required Object type}) => '无法解析阅读章节数: ${type}',
+			'reader.downloadManage' => '下载管理',
+			'reader.startDownload' => '开始下载',
+			'reader.pauseDownload' => '暂停下载',
+			'reader.resumeDownload' => '继续下载',
+			'reader.restartDownload' => '重新下载',
+			'reader.deleteDownload' => '删除下载',
+			'reader.viewAllTasks' => '查看全部下载任务',
+			'reader.downloadStatusDownloading' => '正在下载',
+			'reader.downloadStatusPaused' => '已暂停',
+			'reader.downloadStatusCompleted' => '已完成',
+			'reader.downloadStatusFailed' => '下载出错',
+			'reader.downloadStatusQueued' => '等待中',
+			'reader.confirmDeleteDownloadTitle' => '删除下载',
+			'reader.confirmDeleteDownload' => '确认删除该漫画的下载任务及本地文件吗？',
+			'reader.downloadStartedToast' => '已开始下载本漫画',
+			'reader.autoCollectedToast' => '已自动添加至收藏',
+			'reader.readWhileDownloading' => '边看边下载',
+			_ => null,
+		} ?? switch (path) {
+			'reader.readWhileDownloadingSubtitle' => '阅读时自动将已看内容保存到本地下载目录',
 			'reader.pageMode' => '翻页模式',
 			'reader.fullscreen' => '全屏模式',
 			'reader.leftHandMode' => '左手模式',
@@ -4357,8 +4507,6 @@ extension on Translations {
 			'reader.landscapeReaderSubtitle' => '阅读时切换为横屏，离开后恢复原来的方向',
 			'reader.themeMode' => '系统模式',
 			'reader.autoRead' => '自动阅读',
-			_ => null,
-		} ?? switch (path) {
 			'reader.autoReadSubtitle' => '开启后自动滚动',
 			'reader.autoReadHidePauseButton' => '隐藏暂停按钮',
 			'reader.autoReadHidePauseButtonSubtitle' => '自动阅读继续运行，但不显示阅读页上的暂停/播放按钮',
@@ -4834,6 +4982,8 @@ extension on Translations {
 			'discover.noPluginForSearch' => '暂无可用插件，无法搜索',
 			'discover.pluginInfoLoadFailed' => ({required Object error}) => '插件信息加载失败: ${error}',
 			'discover.pluginCapability' => '插件能力',
+			_ => null,
+		} ?? switch (path) {
 			'discover.disabled' => '已关闭',
 			'discover.unnamed' => '未命名',
 			'discover.pluginEnableFailed' => ({required Object error}) => '插件启用失败: ${error}',
@@ -4871,8 +5021,6 @@ extension on Translations {
 			'comicFollow.loadFailed' => ({required Object result}) => '加载失败：${result}',
 			'comicFollow.empty' => '暂无追更漫画',
 			'comicFollow.emptyHint' => '在漫画详情页点击追更按钮即可加入',
-			_ => null,
-		} ?? switch (path) {
 			'comicFollow.unfollow' => '取消追更',
 			'comicFollow.unfollowConfirm' => ({required Object title}) => '确定不再追更《${title}》吗？',
 			'comicFollow.unfollowed' => '已取消追更',
