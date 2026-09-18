@@ -20,6 +20,7 @@ import 'package:zephyr/page/comic_read/cubit/reader_state.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
 import 'package:zephyr/page/comic_read/type/chapter_extern.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
+import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/type/enum.dart';
 
 // 自动阅读相关：计时器、暂停/继续、悬浮按钮。
@@ -221,6 +222,7 @@ class _ComicReadPageState extends State<_ComicReadPage>
     if (isLocalComicSource(widget.from, comicId)) {
       unawaited(LocalReadSession.instance.dispose());
     }
+    ReaderSessionCoordinator.instance.detachSession(comicId);
     super.dispose();
   }
 
@@ -248,6 +250,14 @@ class _ComicReadPageState extends State<_ComicReadPage>
           _syncJumpChapterState(order: order);
         }
         // 章节加载/卸载会改变总槽位和条目，触发重建以同步 ReaderCubit.totalSlots。
+        final totalSlots = context.read<ReaderSeamlessCubit>().resolveTotalSlots(
+          context.read<GlobalSettingCubit>().state.readSetting,
+        );
+        final currentSlot = context.read<ReaderCubit>().state.currentSlot;
+        ReaderSessionCoordinator.instance.updateProgress(
+          currentSlot: currentSlot,
+          totalSlots: totalSlots,
+        );
         setState(() {});
       },
       child: BlocBuilder<PageBloc, PageState>(
@@ -311,6 +321,21 @@ class _ComicReadPageState extends State<_ComicReadPage>
                   unawaited(
                     _historyController.handleHistoryScroll(innerContext),
                   );
+
+                  final readerCubit = context.read<ReaderCubit>();
+                  final seamlessCubit = context.read<ReaderSeamlessCubit>();
+                  final totalSlots =
+                      seamlessCubit.resolveTotalSlots(readSetting);
+                  ReaderSessionCoordinator.instance.attachSession(
+                    comicId: comicId,
+                    from: widget.from,
+                    title: epInfo.epName,
+                    epInfo: epInfo,
+                    localSource: LocalReadSession.instance.currentSource,
+                    currentSlot: readerCubit.state.currentSlot,
+                    totalSlots: totalSlots,
+                    jumpToSlot: (slot) => _jumpToGlobalSlot(slot),
+                  );
                 },
               );
           }
@@ -348,6 +373,10 @@ class _ComicReadPageState extends State<_ComicReadPage>
     cubit.updateCurrentSlot(safeTarget);
     cubit.updateSliderChanged(safeTarget.toDouble());
     seamlessCubit.applyCurrentChapterByGlobalSlot(safeTarget, readSetting);
+    ReaderSessionCoordinator.instance.updateProgress(
+      currentSlot: safeTarget,
+      totalSlots: totalSlots,
+    );
 
     final readMode = readSetting.readMode;
     if (isColumnReadMode(readMode)) {

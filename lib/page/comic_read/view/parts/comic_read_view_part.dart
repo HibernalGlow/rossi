@@ -25,6 +25,10 @@ extension _ComicReadViewPart on _ComicReadPageState {
     final cubit = context.read<ReaderCubit>();
     return ComicReadAppBar(
       title: epInfo.epName,
+      from: widget.from,
+      comicId: widget.comicId,
+      type: widget.type,
+      comicInfo: widget.comicInfo,
       isDesktopFullscreen: _lifecycleController.isDesktopFullscreen,
       onToggleFullscreen: _isDesktopPlatform
           ? () => unawaited(_lifecycleController.toggleDesktopFullscreen())
@@ -33,6 +37,9 @@ extension _ComicReadViewPart on _ComicReadPageState {
         cubit.updateCurrentSlot(value);
         cubit.updateSliderChanged(0.0);
       },
+      onLandscapeChanged: _setReaderLandscape,
+      onToggleAutoRead: _toggleAutoReadPaused,
+      isAutoReadPaused: () => _autoReadController.isPaused,
     );
   }
 
@@ -105,6 +112,7 @@ extension _ComicReadViewPart on _ComicReadPageState {
       from: widget.from,
       jumpChapter: _jumpChapter,
       onLandscapeChanged: _setReaderLandscape,
+      onJumpToSlot: _jumpToGlobalSlot,
     );
   }
 }

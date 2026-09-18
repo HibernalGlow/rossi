@@ -1,36 +1,80 @@
 import 'dart:ui';
 
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
-import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
-import 'package:zephyr/page/comments/widgets/title.dart';
-import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
+import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/auto_scroll_quick_button.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_download_button.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_upscale_button.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/reading_mode_capsule.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/secondary_toolbar.dart';
+import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_sheet.dart';
+import 'package:zephyr/service/reader/reader_session_coordinator.dart';
+import 'package:zephyr/type/enum.dart';
+import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
+import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
-import 'package:zephyr/widgets/toast.dart';
 
-class ComicReadAppBar extends StatelessWidget {
+/// NeoView 风格的专业阅读器顶栏 (ReaderViewToolbar)。
+///
+/// 模块化设计：
+/// - [ReadingModeCapsule] & [DoublePageToggle]：阅读模式与单双页胶囊
+/// - [CompactReadingModeButton]：移动窄屏循环切换按钮
+/// - [ReaderUpscaleButton]：AI 超分辨率状态与切换胶囊
+/// - [ReaderDownloadButton]：在线漫画边看边下载快捷入口与状态指示
+/// - [AutoScrollQuickButton]：自动滚屏状态快捷按钮
+/// - [ReaderSecondaryToolbar]：二级展开版式高级工具面板
+class ComicReadAppBar extends StatefulWidget {
   final String title;
+  final String? comicTitle;
   final ValueChanged<int> changePageIndex;
   final bool isDesktopFullscreen;
   final VoidCallback? onToggleFullscreen;
+  final ValueChanged<bool>? onLandscapeChanged;
+  final VoidCallback? onToggleAutoRead;
+  final ValueGetter<bool>? isAutoReadPaused;
+  final String from;
+  final String comicId;
+  final ComicEntryType type;
+  final dynamic comicInfo;
+  final List<UnifiedComicChapterRef>? chapterRefs;
 
   const ComicReadAppBar({
     super.key,
     required this.title,
+    this.comicTitle,
     required this.changePageIndex,
     this.isDesktopFullscreen = false,
     this.onToggleFullscreen,
+    this.onLandscapeChanged,
+    this.onToggleAutoRead,
+    this.isAutoReadPaused,
+    this.from = '',
+    this.comicId = '',
+    this.type = ComicEntryType.normal,
+    this.comicInfo,
+    this.chapterRefs,
   });
+
+  @override
+  State<ComicReadAppBar> createState() => _ComicReadAppBarState();
+}
+
+class _ComicReadAppBarState extends State<ComicReadAppBar> {
+  bool _isSecondaryBarExpanded = false;
 
   @override
   Widget build(BuildContext context) {
     final isMenuVisible = context.select(
       (ReaderCubit cubit) => cubit.state.isMenuVisible,
     );
+    final globalSettingState = context.watch<GlobalSettingCubit>().state;
+    final globalSettingCubit = context.read<GlobalSettingCubit>();
+    final readSetting = globalSettingState.readSetting;
     final colorScheme = context.theme.colorScheme;
-    const appBarRadius = 14.0;
+    const appBarRadius = 16.0;
 
     return Positioned(
       top: 0,
@@ -47,32 +91,57 @@ class ComicReadAppBar extends StatelessWidget {
               bottom: Radius.circular(appBarRadius),
             ),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-              child: AppBar(
-                title: ScrollableTitle(text: title),
-                titleSpacing: 6,
-                actions: [
-                  _buildUpscaleButton(context),
-                  if (onToggleFullscreen != null)
-                    IconButton(
-                      tooltip: isDesktopFullscreen
-                          ? t.reader.exitFullscreen
-                          : t.reader.enterFullscreen,
-                      onPressed: onToggleFullscreen,
-                      icon: Icon(
-                        isDesktopFullscreen
-                            ? Icons.fullscreen_exit_rounded
-                            : Icons.fullscreen_rounded,
-                      ),
+              filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: colorScheme.surface.withValues(alpha: 0.84),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.25),
+                      width: 1.0,
                     ),
-                ],
-                backgroundColor: colorScheme.surface.withValues(alpha: 0.78),
-                surfaceTintColor: Colors.transparent,
-                elevation: isMenuVisible ? 4.0 : 0.0,
-                shadowColor: Colors.black.withValues(alpha: 0.2),
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(
-                    bottom: Radius.circular(appBarRadius),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: SafeArea(
+                  top: true,
+                  bottom: false,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isWide = constraints.maxWidth >= 640;
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildPrimaryToolbar(
+                            context: context,
+                            readSetting: readSetting,
+                            cubit: globalSettingCubit,
+                            isWide: isWide,
+                          ),
+                          AnimatedCrossFade(
+                            duration: const Duration(milliseconds: 220),
+                            crossFadeState: _isSecondaryBarExpanded
+                                ? CrossFadeState.showSecond
+                                : CrossFadeState.showFirst,
+                            firstChild: const SizedBox(
+                              width: double.infinity,
+                              height: 0,
+                            ),
+                            secondChild: ReaderSecondaryToolbar(
+                              readSetting: readSetting,
+                              cubit: globalSettingCubit,
+                              changePageIndex: widget.changePageIndex,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
@@ -83,137 +152,206 @@ class ComicReadAppBar extends StatelessWidget {
     );
   }
 
-  Widget _buildUpscaleButton(BuildContext context) {
-    final session = LocalReadSession.instance;
-    final presenter = session.presenter;
-    if (presenter == null) {
-      return const SizedBox.shrink();
-    }
-    return ListenableBuilder(
-      listenable: presenter,
-      builder: (context, _) {
-        if (!presenter.canPresent) {
-          return const SizedBox.shrink();
-        }
+  /// 顶栏主操作行 (Primary Row)
+  Widget _buildPrimaryToolbar({
+    required BuildContext context,
+    required ReadSettingState readSetting,
+    required GlobalSettingCubit cubit,
+    required bool isWide,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final bookTitle =
+        widget.comicTitle ?? ReaderSessionCoordinator.instance.displayTitle;
 
-        final isEnabled = presenter.isUpscaleEnabled;
-        final isOrig = presenter.isOriginalPreview;
-        final primaryColor = Theme.of(context).colorScheme.primary;
-
-        String tooltip;
-        String label;
-        IconData icon;
-        Color? fgColor;
-        Color bgColor;
-        Color borderColor;
-
-        if (!isEnabled) {
-          tooltip = '点击启用 AI 超分辨率 (实时画质增强)';
-          label = '超分关';
-          icon = Icons.auto_awesome_outlined;
-          fgColor = Colors.grey;
-          bgColor = Theme.of(
-            context,
-          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3);
-          borderColor = Colors.grey.withValues(alpha: 0.3);
-        } else if (isOrig) {
-          tooltip = '当前显示原图 (点击切回 AI 超分，长按关闭超分)';
-          label = '原图';
-          icon = Icons.image_outlined;
-          fgColor = Colors.amber.shade700;
-          bgColor = Colors.amber.withValues(alpha: 0.15);
-          borderColor = Colors.amber.withValues(alpha: 0.5);
-        } else {
-          tooltip = 'AI 超分已启用 (点击对比原图，长按关闭超分)';
-          label = '超分';
-          icon = Icons.auto_awesome;
-          fgColor = primaryColor;
-          bgColor = primaryColor.withValues(alpha: 0.18);
-          borderColor = primaryColor.withValues(alpha: 0.6);
-        }
-
-        return Tooltip(
-          message: tooltip,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onLongPress: () {
-              if (isEnabled) {
-                presenter.setUpscaleEnabled(false);
-                showInfoToast('已关闭 AI 超分');
-              }
-            },
-            child: TextButton.icon(
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                backgroundColor: bgColor,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: SizedBox(
+        height: 48,
+        child: Row(
+          children: [
+            // 1. 返回按钮
+            IconButton(
+              icon: const Icon(Icons.arrow_back_rounded, size: 20),
+              tooltip: t.common.back,
+              onPressed: () => Navigator.maybePop(context),
+              style: IconButton.styleFrom(
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(color: borderColor),
-                ),
-              ),
-              onPressed: () async {
-                if (!isEnabled) {
-                  // 检查模型是否就绪
-                  final available = await RealSrSuperResolution.isAvailable;
-                  if (!context.mounted) return;
-                  if (!available) {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('下载 AI 超分模型'),
-                        content: const Text(
-                          '当前设备尚未下载超分模型资源（约 3.3 MB），是否立即下载并启用？',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(ctx).pop(false),
-                            child: const Text('取消'),
-                          ),
-                          FilledButton(
-                            onPressed: () => Navigator.of(ctx).pop(true),
-                            child: const Text('立即下载'),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirm == true) {
-                      showInfoToast('正在后台下载超分模型...');
-                      try {
-                        await RealSrSuperResolution.downloadModel();
-                        if (context.mounted) {
-                          presenter.setUpscaleEnabled(true);
-                          showInfoToast('超分模型就绪，AI 超分已启用');
-                        }
-                      } catch (e) {
-                        showInfoToast('下载模型失败: $e');
-                      }
-                    }
-                    return;
-                  }
-                  await presenter.setUpscaleEnabled(true);
-                  showInfoToast('AI 超分已启用');
-                } else {
-                  final willBeOrig = !isOrig;
-                  await presenter.setOriginalPreview(willBeOrig);
-                  showInfoToast(willBeOrig ? '已切换为原图对比' : '已切回 AI 超分');
-                }
-              },
-              icon: Icon(icon, color: fgColor, size: 16),
-              label: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: fgColor,
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
             ),
+            const SizedBox(width: 4),
+
+            // 2. 书籍与章节标题
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.title.isEmpty ? t.common.unknown : widget.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  if (bookTitle != null &&
+                      bookTitle.isNotEmpty &&
+                      bookTitle != widget.title) ...[
+                    const SizedBox(height: 1),
+                    Text(
+                      bookTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.8,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            // 3. 版式模式胶囊组 (宽屏展开胶囊组，窄屏提供紧凑循环切换按钮)
+            if (isWide) ...[
+              const SizedBox(width: 12),
+              ReadingModeCapsule(
+                currentMode: readSetting.readMode,
+                onModeChanged: (mode) {
+                  cubit.updateReadSetting((s) => s.copyWith(readMode: mode));
+                  widget.changePageIndex(0);
+                },
+              ),
+              const SizedBox(width: 8),
+              DoublePageToggle(
+                isDoublePage: readSetting.doublePageMode,
+                onToggle: (isDouble) {
+                  cubit.updateReadSetting(
+                    (s) => s.copyWith(doublePageMode: isDouble),
+                  );
+                  widget.changePageIndex(0);
+                },
+                isWide: true,
+              ),
+              const SizedBox(width: 12),
+            ] else ...[
+              const SizedBox(width: 6),
+              CompactReadingModeButton(
+                currentMode: readSetting.readMode,
+                onModeChanged: (mode) {
+                  cubit.updateReadSetting((s) => s.copyWith(readMode: mode));
+                  widget.changePageIndex(0);
+                },
+              ),
+              const SizedBox(width: 4),
+            ],
+
+            // 4. 右侧功能区 (下载、超分、自动阅读、二级工具展开、全屏、设置)
+            if (widget.type != ComicEntryType.download &&
+                widget.type != ComicEntryType.historyAndDownload &&
+                widget.from.isNotEmpty &&
+                !isLocalComicSource(widget.from, widget.comicId)) ...[
+              ReaderDownloadButton(
+                from: widget.from,
+                comicId: widget.comicId,
+                comicTitle: bookTitle ?? widget.title,
+                comicInfo: widget.comicInfo,
+                chapterRefs: widget.chapterRefs,
+              ),
+              const SizedBox(width: 4),
+            ],
+            const ReaderUpscaleButton(),
+            const SizedBox(width: 4),
+            AutoScrollQuickButton(
+              isEnabled: readSetting.autoScroll,
+              isPaused: widget.isAutoReadPaused?.call() ?? false,
+              onToggleAutoScroll: (enabled) {
+                cubit.updateReadSetting((s) => s.copyWith(autoScroll: enabled));
+              },
+              onTogglePause: widget.onToggleAutoRead,
+            ),
+            const SizedBox(width: 4),
+            _buildSecondaryExpandButton(context),
+            if (widget.onToggleFullscreen != null) ...[
+              const SizedBox(width: 2),
+              IconButton(
+                tooltip: widget.isDesktopFullscreen
+                    ? t.reader.exitFullscreen
+                    : t.reader.enterFullscreen,
+                onPressed: widget.onToggleFullscreen,
+                icon: Icon(
+                  widget.isDesktopFullscreen
+                      ? Icons.fullscreen_exit_rounded
+                      : Icons.fullscreen_rounded,
+                  size: 20,
+                ),
+                style: IconButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(width: 2),
+            IconButton(
+              tooltip: t.reader.settings,
+              icon: const Icon(Icons.tune_rounded, size: 20),
+              style: IconButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () => showReaderSettingsSheet(
+                context,
+                changePageIndex: widget.changePageIndex,
+                onLandscapeChanged: widget.onLandscapeChanged,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 二级面板展开/折叠切换按钮
+  Widget _buildSecondaryExpandButton(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: _isSecondaryBarExpanded ? '收起版式工具' : '展开版式工具',
+      child: IconButton(
+        icon: AnimatedRotation(
+          duration: const Duration(milliseconds: 200),
+          turns: _isSecondaryBarExpanded ? 0.5 : 0.0,
+          child: Icon(
+            _isSecondaryBarExpanded
+                ? Icons.expand_less_rounded
+                : Icons.expand_more_rounded,
+            size: 22,
+            color: _isSecondaryBarExpanded
+                ? colorScheme.primary
+                : colorScheme.onSurfaceVariant,
           ),
-        );
-      },
+        ),
+        style: IconButton.styleFrom(
+          backgroundColor: _isSecondaryBarExpanded
+              ? colorScheme.primaryContainer.withValues(alpha: 0.5)
+              : Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+        onPressed: () {
+          setState(() {
+            _isSecondaryBarExpanded = !_isSecondaryBarExpanded;
+          });
+        },
+      ),
     );
   }
 }

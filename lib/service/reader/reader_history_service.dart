@@ -56,8 +56,9 @@ class ReaderHistoryService {
     required dynamic comicInfo,
   }) async {
     final isLocal = isLocalComicSource(source, comicId);
-    final resolvedComicId =
-        isLocal ? normalizeLocalComicPath(comicId) : comicId;
+    final resolvedComicId = isLocal
+        ? normalizeLocalComicPath(comicId)
+        : comicId;
 
     _source = source;
     _comicId = resolvedComicId;

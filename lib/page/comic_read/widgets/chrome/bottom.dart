@@ -15,6 +15,11 @@ import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/config/router/router.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
+import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/bottom_thumbnail_strip.dart';
+import 'package:zephyr/reader/page_source.dart';
+import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 
 class BottomWidget extends StatefulWidget {
   final ComicEntryType type;
@@ -26,6 +31,7 @@ class BottomWidget extends StatefulWidget {
   final String from;
   final JumpChapter jumpChapter;
   final ValueChanged<bool>? onLandscapeChanged;
+  final ValueChanged<int>? onJumpToSlot;
 
   const BottomWidget({
     super.key,
@@ -38,6 +44,7 @@ class BottomWidget extends StatefulWidget {
     required this.from,
     required this.jumpChapter,
     this.onLandscapeChanged,
+    this.onJumpToSlot,
   });
 
   @override
@@ -56,6 +63,7 @@ class _BottomWidgetState extends State<BottomWidget> {
   late ComicEntryType tempType;
   late String comicId;
   List<UnifiedComicChapterRef> chapterRefs = [];
+  bool _showThumbnailStrip = false;
 
   @override
   void initState() {
@@ -72,10 +80,24 @@ class _BottomWidgetState extends State<BottomWidget> {
     chapterRefs = resolveUnifiedComicChapters(widget.comicInfo, widget.from);
   }
 
+  void _jumpToSlot(int index) {
+    if (widget.onJumpToSlot != null) {
+      widget.onJumpToSlot!(index);
+    } else {
+      ReaderSessionCoordinator.instance.jumpTo(index);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isMenuVisible = context.select(
       (ReaderCubit cubit) => cubit.state.isMenuVisible,
+    );
+    final currentSlot = context.select(
+      (ReaderCubit cubit) => cubit.state.currentSlot,
+    );
+    final totalSlots = context.select(
+      (ReaderCubit cubit) => cubit.state.totalSlots,
     );
     final bottomSafeHeight = context.bottomSafeHeight;
     final screenWidth = MediaQuery.sizeOf(context).width;
@@ -86,6 +108,10 @@ class _BottomWidgetState extends State<BottomWidget> {
         .toDouble();
     final isCompactLayout =
         screenWidth >= 600 && MediaQuery.sizeOf(context).height <= 600;
+
+    final coordinator = ReaderSessionCoordinator.instance;
+    final localSource = LocalReadSession.instance.currentSource;
+    final docs = coordinator.docs;
 
     return Positioned(
       bottom: 0,
@@ -103,11 +129,19 @@ class _BottomWidgetState extends State<BottomWidget> {
                 ? _buildCompactControls(
                     maxWidth: bottomMaxWidth,
                     isWideLayout: isWideLayout,
+                    totalSlots: totalSlots,
+                    currentSlot: currentSlot,
+                    localSource: localSource,
+                    docs: docs,
                   )
                 : _buildRegularControls(
                     topMaxWidth: topMaxWidth,
                     bottomMaxWidth: bottomMaxWidth,
                     isWideLayout: isWideLayout,
+                    totalSlots: totalSlots,
+                    currentSlot: currentSlot,
+                    localSource: localSource,
+                    docs: docs,
                   ),
           ),
         ),
@@ -119,10 +153,37 @@ class _BottomWidgetState extends State<BottomWidget> {
     required double topMaxWidth,
     required double bottomMaxWidth,
     required bool isWideLayout,
+    required int totalSlots,
+    required int currentSlot,
+    required PageSource? localSource,
+    required List<Doc> docs,
   }) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (_showThumbnailStrip && totalSlots > 0) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Align(
+              alignment: Alignment.center,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: isWideLayout ? bottomMaxWidth : double.infinity,
+                ),
+                child: BottomThumbnailStrip(
+                  totalPages: totalSlots,
+                  currentSlot: currentSlot,
+                  comicId: comicId,
+                  from: widget.from,
+                  localSource: localSource,
+                  docs: docs,
+                  onSelectPage: _jumpToSlot,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Align(
@@ -131,7 +192,7 @@ class _BottomWidgetState extends State<BottomWidget> {
               constraints: BoxConstraints(
                 maxWidth: isWideLayout ? topMaxWidth : double.infinity,
               ),
-              child: _buildControlButtons(),
+              child: _buildControlButtons(totalSlots: totalSlots),
             ),
           ),
         ),
@@ -155,28 +216,60 @@ class _BottomWidgetState extends State<BottomWidget> {
   Widget _buildCompactControls({
     required double maxWidth,
     required bool isWideLayout,
+    required int totalSlots,
+    required int currentSlot,
+    required PageSource? localSource,
+    required List<Doc> docs,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Align(
-        alignment: Alignment.center,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: isWideLayout ? maxWidth : double.infinity,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (_showThumbnailStrip && totalSlots > 0) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Align(
+              alignment: Alignment.center,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: isWideLayout ? maxWidth : double.infinity,
+                ),
+                child: BottomThumbnailStrip(
+                  totalPages: totalSlots,
+                  currentSlot: currentSlot,
+                  comicId: comicId,
+                  from: widget.from,
+                  localSource: localSource,
+                  docs: docs,
+                  onSelectPage: _jumpToSlot,
+                ),
+              ),
+            ),
           ),
-          child: Row(
-            children: [
-              _buildControlButtons(),
-              const SizedBox(width: 12),
-              widget.sliderWidget,
-            ],
+          const SizedBox(height: 8),
+        ],
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Align(
+            alignment: Alignment.center,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: isWideLayout ? maxWidth : double.infinity,
+              ),
+              child: Row(
+                children: [
+                  _buildControlButtons(totalSlots: totalSlots),
+                  const SizedBox(width: 12),
+                  widget.sliderWidget,
+                ],
+              ),
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 
-  Widget _buildControlButtons() {
+  Widget _buildControlButtons({required int totalSlots}) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -192,6 +285,20 @@ class _BottomWidgetState extends State<BottomWidget> {
           icon: Icons.home_rounded,
           tooltip: t.reader.backToHome,
           onPressed: () => popToRoot(context),
+        ),
+        const SizedBox(width: 10),
+        FloatingActionIconButton(
+          icon: _showThumbnailStrip
+              ? Icons.photo_library_rounded
+              : Icons.photo_library_outlined,
+          tooltip: _showThumbnailStrip ? '收起缩略图' : '展开缩略图',
+          isEnabled: totalSlots > 0,
+          isSelected: _showThumbnailStrip,
+          onPressed: () {
+            setState(() {
+              _showThumbnailStrip = !_showThumbnailStrip;
+            });
+          },
         ),
         const SizedBox(width: 10),
         FloatingActionIconButton(
@@ -428,6 +535,7 @@ class FloatingActionIconButton extends StatelessWidget {
   final IconData icon;
   final String tooltip;
   final bool isEnabled;
+  final bool isSelected;
   final VoidCallback onPressed;
 
   const FloatingActionIconButton({
@@ -435,6 +543,7 @@ class FloatingActionIconButton extends StatelessWidget {
     required this.icon,
     required this.tooltip,
     this.isEnabled = true,
+    this.isSelected = false,
     required this.onPressed,
   });
 
@@ -446,8 +555,12 @@ class FloatingActionIconButton extends StatelessWidget {
       isEnabled: isEnabled,
       onPressed: onPressed,
       icon: icon,
-      foregroundColor: colorScheme.onPrimaryContainer,
-      backgroundColor: colorScheme.primaryContainer.withValues(alpha: 0.76),
+      foregroundColor: isSelected
+          ? colorScheme.onPrimary
+          : colorScheme.onPrimaryContainer,
+      backgroundColor: isSelected
+          ? colorScheme.primary
+          : colorScheme.primaryContainer.withValues(alpha: 0.76),
       disabledBackgroundColor: colorScheme.surfaceContainerHighest.withValues(
         alpha: 0.38,
       ),

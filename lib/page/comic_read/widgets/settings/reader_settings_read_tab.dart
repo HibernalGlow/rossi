@@ -342,6 +342,16 @@ class _PreloadSection extends StatelessWidget {
             );
           },
         ),
+        _SettingsSwitchTile(
+          title: t.reader.readWhileDownloading,
+          subtitle: t.reader.readWhileDownloadingSubtitle,
+          value: readSetting.readWhileDownloading,
+          onChanged: (value) {
+            globalSettingCubit.updateReadSetting(
+              (current) => current.copyWith(readWhileDownloading: value),
+            );
+          },
+        ),
       ],
     );
   }
