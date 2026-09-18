@@ -99,8 +99,10 @@
      于是「加一个新面板 / 新卡片」不需要写迁移，也不会被旧记录挡住。
      「重置布局」= 把记账清空。
    - **判据放在纯 Dart 里跑**（`test/workspace/board_layout_check.dart`，30 条）：
-     本机 `flutter test` 起不来，所以能从 widget 里抽出来的断言都抽出来，
-     `dart run test/workspace/board_layout_check.dart` 直接跑。
+     能从 widget 里抽出来的断言都抽出来，`dart run test/workspace/board_layout_check.dart` 直接跑
+     —— 快、不依赖 Flutter、不用起测试宿主。
+     （当时写的理由是「本机 `flutter test` 起不来」，那个根因判断后来被推翻，见文末「验证状态」；
+     但抽离本身作为快判据仍然成立，故保留。）
    - **面板的两种内容来源（本项目对 neoview 的有意扩展）**：
      `acceptsCards` 为真的面板由卡片注册表填充；为假的面板装**一整张上游原版页面**
      （`page` builder）。于是「上游 0 侵入 + 功能 100% 保留」与
@@ -126,6 +128,42 @@
       详情页之类压在上面时不把用户弹走。
     - **四边栏模式里那条常驻的顶部浮动胶囊一并删除**：它（模式切换 / 当前书名 / 关闭漫画）
       与新顶栏**逐项重复**，留着就是沉浸模式下凭空多一条 chrome。
+
+
+11. **面板里点开的东西开在面板里（同日第四轮）—— 守卫从「只管阅读」泛化成「管所有推入」。**
+
+    「在工作台里点设置」原先会把**整个工作台盖掉**：上游推下一个页面的写法是
+    `context.pushRoute(...)`，它落在**根导航栈**上。neoview 的语义不是这样 ——
+    泳道里的东西开在**这条泳道里**。
+
+    做法（仍然零侵入，`router.dart` 的 guards 一行不变）：
+
+    - **落点记账**（`router/workspace_lane_dispatch.dart`，**纯 Dart**）：
+      两条输入一条输出 ——「**活着的主机**」（每条泳道当前可见的那个面板登记，
+      同泳道后者顶前者；这条不变量是结构性的，不靠调用方自觉：`IndexedStack`
+      会把访问过的面板都留在树里）∩「**最后一次指针交互**」→ `resolveTarget()`。
+      **落点不明时返回 `null`**，调用方必须原样放行全屏推入：把页面开进一个用户
+      看不见的地方（现象是「点了没反应」）**比全屏更糟**。
+    - **桥**（`router/workspace_navigation_bridge.dart`）两条通道：阅读器通道保持原语义
+      （`ComicReadRoute` 一律进中央泳道，**不跟点击位置走**）；面板通道把其余推入
+      交给发起交互那块内容的局部 `Navigator`。
+    - **容器**（`widgets/containers/embedded_upstream_page.dart`）：局部 `Navigator`
+      （页面收在卡片里，返回箭头弹的是这一页而非整个工作台）+ `Listener` 上报指针按下
+      （上游的点击点太散 —— `ListTile.onTap` / 图标按钮 / 长按菜单 ——
+      只有「按下」是它们共同的、绕不过的一步）+ `isVisible` 才登记自己
+      （没有这条，留在树里的隐藏面板就能抢走推入）。
+    - **泛化后的改名**：`WorkspaceReaderBridge` / `WorkspaceReaderGuard` →
+      `WorkspaceNavigationBridge` / `WorkspaceRouteGuard`（旧名只剩「阅读器」一层含义，
+      已经管不住实际职责了）。
+    - **已知残留**：只有 `pushRoute` 被守卫接管，`context.router.pop()` / `maybePop()`
+      仍然作用在根栈上。卡片自己的「返回列表」若走那两个 API，会把整个工作台弹掉。
+      阅读器那侧的退出路径走的是「关闭当前漫画」，不受影响。
+
+    **判据**：`test/workspace/lane_dispatch_check.dart`（31 条，纯 Dart，验落点记账）+
+    `test/workspace/route_guard_test.dart`（5 条 widget test，验页面的矩形与卡片严丝合缝、
+    返回箭头出现在卡片里、没有工作台时照旧全屏）。两者都由
+    `test/workspace/mutation_check.py` 做过**变异验证**：11 个变异体全部被捕获
+    （且区分「判据失败」与「编译错」，后者不算证据）。
 
 
 ## Considered Options
@@ -164,7 +202,20 @@
   - **移动端（最低适配）现在没有常驻出口**：顶栏是 hover 揭示的，触摸屏上唤不出来，
     `Esc` 也用不上。桌面端不受影响（macOS / Windows / Linux 的 `MediaQuery.padding` 为 0，
     撤销 `appBar` 后内容直接顶到窗口顶端）。若日后要管移动端，给非桌面平台保留常驻顶栏即可。
-- **验证状态**：`dart analyze lib/` 全量 0 error / 0 warning。
-  **没有跑真机**——本机 `flutter test` 起不来（`flutter_tester` 的 WebSocket 升级被拦），
-  且泳道的行为（拖拽、Solo、改派）本来就只能在真机上看。所以上面每一条"成立"都是**代码级**的，
-  不是实测的。
+- **验证状态（2026-09-18 更正）**：`dart analyze lib/ test/ integration_test/` 全量 0 issue。
+  本文第 9 / 10 条原先写着「本机 `flutter test` 起不来（`flutter_tester` 的 WebSocket 升级被拦）」，
+  **根因判断是错的**：真正的原因是本机设了沙箱代理
+  （`HTTP_PROXY=http://127.0.0.1:55577`），它劫持了 `flutter_tester` 的 WebSocket 握手。
+  **解掉代理变量后 `flutter test` 完全可用**：
+
+  ```bash
+  env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy flutter test <path>
+  ```
+
+  所以「把断言抽成纯 Dart 脚本」不再是**唯一**手段（它作为「快、不依赖 Flutter」的判据仍然有价值，
+  第 9 条的抽离照旧保留）。导航这类**框架层**行为现在有真跑的判据：
+  `test/workspace/route_guard_test.dart` 在 `flutter_tester` 上实测通过
+  （布局与导航由 `RenderObject` / `Navigator` 决定，与引擎的解码器无关，
+  这与「判解码能力只能用真机引擎」不矛盾）。
+  **仍然没验证的**：拖拽分栏、Solo、跨侧拖动的插入位、悬停 dwell ——
+  这些是交互手感，只能在真机上看；以及本文所有「未做的部分」照旧未做。
