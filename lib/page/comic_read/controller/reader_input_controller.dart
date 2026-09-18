@@ -48,17 +48,18 @@ class ReaderInputController {
   final FocusNode focusNode = FocusNode();
   final Set<int> _activeTouchPointers = <int>{};
 
-  TapDownDetails? _tapDownDetails;
+  /// 最近一次点击的**成对样本**（落点 + 接收它的那个盒子量出来的尺寸）。
+  ///
+  /// 两样必须同时记、同时用（见 [ReaderTapSample]）：分区算的是「落点落在这块面的
+  /// 哪个三分之一里」，把尺寸换到别的坐标系就等于把整条分区平移。早先这两样分别
+  /// 住在两个字段里（落点来自 `onTapDown`、尺寸来自 `LayoutBuilder` 的**每次** build），
+  /// 而「这一刻的落点」只跟「这一块面的尺寸」成对 —— 分开存就允许配出
+  /// 「窗口坐标的落点 × 泳道的尺寸」，那正是工作台里**点哪儿都翻下一页、
+  /// 中间唤不出上下栏、左边点不出上一页**的原因。现在它们被同一个不可变值绑在一起，
+  /// 落点与尺码不可能来自不同的两次时机。
+  ReaderTapSample? _tap;
   TapDownDetails? _doubleTapDownDetails;
   bool _isCtrlPressed = false;
-
-  /// **接收手势的那个盒子**自己量出来的尺寸（也就是阅读区尺寸）。
-  ///
-  /// 点击分区按它算，不按 `MediaQuery.size` —— 后者的含义是「窗口多大」，
-  /// 而工作台把阅读器嵌进泳道时会把它改写成泳道尺寸、独立阅读器时又是窗口尺寸；
-  /// 分区要的是「手指底下这块面多大」。它每次 build 被 `LayoutBuilder` 刷新，
-  /// 是同一个约束下必然相同的纯计算，缓存它没有副作用。
-  Size _tapSurfaceSize = Size.zero;
 
   bool get _isDesktopPlatform =>
       !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
@@ -93,13 +94,18 @@ class ReaderInputController {
         onPointerSignal: _onPointerSignal,
         // `LayoutBuilder` 紧贴 `GestureDetector` 外沿：它拿到的 `constraints.biggest`
         // 就是那个盒子的尺寸，于是与 `onTapDown` 给的 `localPosition` **同一个
-        // 坐标系**。点击分区要的正是这两样东西（见 `ReaderGestureLogic.resolveTapZone`）。
+        // 坐标系**。点击分区要的正是这两样东西，而它们只在这一层能成对拿到 ——
+        // 于是把尺寸**捕获在这个闭包里**、和落点一起做成 [ReaderTapSample]：
+        // 落点来自哪个盒子，尺码就必然是那个盒子的。
         child: LayoutBuilder(
           builder: (context, constraints) {
-            _tapSurfaceSize = constraints.biggest;
+            final surface = constraints.biggest;
             return GestureDetector(
               onTap: _onTap,
-              onTapDown: (details) => _tapDownDetails = details,
+              onTapDown: (details) => _tap = ReaderTapSample(
+                localPosition: details.localPosition,
+                viewportSize: surface,
+              ),
               onDoubleTapDown: isDoubleTapActionEnabled
                   ? (details) => _doubleTapDownDetails = details
                   : null,
@@ -141,18 +147,19 @@ class ReaderInputController {
   Future<void> _onTap() async {
     // 延迟一帧处理，减少单击和双击的手势竞争。
     await Future.delayed(Duration.zero);
-    if (_tapDownDetails == null || !context.mounted) return;
+    final tap = _tap;
+    if (tap == null || !context.mounted) return;
+    _tap = null;
 
     final readSetting = context.read<GlobalSettingCubit>().state.readSetting;
-    // `localPosition` 与 `_tapSurfaceSize` 必须成对传：前者来自 `onTapDown`，
-    // 后者是紧贴 `GestureDetector` 外沿那个 `LayoutBuilder` 的 `constraints.biggest`
-    // （见上面那段的注释）—— 两者在同一个坐标系里，点击分区才分得对。
-    // 拿逻辑/屏幕尺寸去配 `localPosition` 会让左右分区错位（改这个参数当时就是为了它）。
+    // 落点与尺码都取这次点击**自己**那一对（[ReaderTapSample]）：前者相对接收手势的
+    // 那个盒子，后者是那个盒子量出来的尺寸。它们同一个坐标系，分区才分得对；
+    // 换成 `details.globalPosition`（窗口坐标）会让分区整体平移「泳道左边缘」
+    // 那么多，表现为泳道模式下**点哪儿都翻下一页**。
     ReaderGestureLogic.handleTap(
       actionController: actionController,
       context: context,
-      localPosition: _tapDownDetails!.localPosition,
-      viewportSize: _tapSurfaceSize,
+      sample: tap,
       onToggleMenu: readSetting.doubleTapOpenMenu
           ? () {
               final cubit = context.read<ReaderCubit>();
@@ -163,12 +170,11 @@ class ReaderInputController {
           : onToggleMenu,
       onBeforePageTurn: restoreScaleForPageTurnAction,
     );
-    _tapDownDetails = null;
   }
 
   void _onDoubleTap() {
     if (!context.mounted) return;
-    _tapDownDetails = null;
+    _tap = null;
     final readSetting = context.read<GlobalSettingCubit>().state.readSetting;
     if (readSetting.doubleTapZoom) {
       _onDoubleTapZoom();

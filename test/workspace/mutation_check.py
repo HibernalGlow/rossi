@@ -485,6 +485,65 @@ SUITES = [
             ),
         ],
     },
+    # ── 阅读器泳道里的点击分区（「点哪儿都翻下一页」的真凶） ──────────────────
+    #
+    # 这一组是**用户报过的那三个症状**的判据：泳道模式下点击只翻下一页、
+    # 上下栏唤不出来、左边点不出上一页。三件事是同一个 bug ——
+    # 落点用**窗口**坐标、参照的面却是**泳道**尺寸，于是分区整体平移了
+    # 「泳道左边缘」那么多。判据跑三种几何（工作台两种窗口尺寸 + 独立阅读器），
+    # 因为泳道与窗口重合时这个 bug 根本不显形（那种几何下的判据会给假绿）。
+    {
+        "name": "reader_tap_zone（widget test：泳道里的点击分区）",
+        "cmd": ["flutter", "test", "test/comic_read/reader_input_tap_zone_test.dart"],
+        "baseline_marker": "All tests passed",
+        "mutations": [
+            (
+                "M44 落点改回窗口坐标 → 就是用户报的那个 bug（点哪儿都下一页）",
+                "lib/page/comic_read/controller/reader_input_controller.dart",
+                "                localPosition: details.localPosition,\n"
+                "                viewportSize: surface,",
+                "                localPosition: details.globalPosition,\n"
+                "                viewportSize: surface,",
+                False,
+            ),
+            (
+                "M45 分区尺寸算大一倍（落点与尺码不同源，例如 2× 屏上拿了物理像素尺寸）",
+                "lib/page/comic_read/controller/reader_input_controller.dart",
+                "                viewportSize: surface,",
+                "                viewportSize: surface * 2,",
+                False,
+            ),
+            (
+                "M46 退化视口不再兜底（0 尺寸下「右半」恒真 ⇒ 点哪儿都下一页）",
+                "lib/page/comic_read/method/reader_gesture_logic.dart",
+                "    if (!viewportSize.isFinite || viewportSize.isEmpty) {\n"
+                "      return ReaderTapZone.toggleMenu;\n"
+                "    }",
+                "    if (viewportSize.isEmpty && !viewportSize.isFinite) {\n"
+                "      return ReaderTapZone.toggleMenu;\n"
+                "    }",
+                False,
+            ),
+            (
+                "M47 中间那一档只看横向（丢掉纵向边界）→「点上部想唤出顶栏」变成翻页",
+                "lib/page/comic_read/method/reader_gesture_logic.dart",
+                "        localPosition.dx >= thirdWidth &&\n"
+                "        localPosition.dx < thirdWidth * 2 &&\n"
+                "        localPosition.dy >= thirdHeight &&\n"
+                "        localPosition.dy < thirdHeight * 2;",
+                "        localPosition.dx >= thirdWidth &&\n"
+                "        localPosition.dx < thirdWidth * 2;",
+                False,
+            ),
+            (
+                "M48 条漫的「点击翻页」开关判反 ⇒ 条漫下点哪儿都翻页",
+                "lib/page/comic_read/method/reader_gesture_logic.dart",
+                "    if (isWebtoon && !tapPageTurnInWebtoon) return ReaderTapZone.toggleMenu;",
+                "    if (isWebtoon && tapPageTurnInWebtoon) return ReaderTapZone.toggleMenu;",
+                False,
+            ),
+        ],
+    },
 ]
 
 REDUNDANT_NOTE = (
@@ -496,15 +555,24 @@ REDUNDANT_NOTE = (
 )
 
 # 「红了」有强弱之分：**编译不过**也算红，但那证明不了判据抓得住这个错 ——
-# 变异体要是把代码写成语法错，那是在验编译器，不是在验判据。这里把失败类型
-# 分出来，只有「判据失败」才算证据。
-COMPILE_MARKERS = ("error:", "Failed to load", "Compilation failed", "compilation failed")
+# 变异体要是把代码写成语法错或者引用了不存在的东西，那是在验编译器，不是在验判据。
+#
+# **装载/编译阶段必须先判**：`flutter test` 在装载失败时那行也是 `[E]` 结尾
+# （`00:00 +0 -1: loading <path> [E]` 后面才跟 `Failed to load ...`），
+# 先看断言标记就会把一个编译错记成「CAUGHT(判据失败)」—— 假证据比没有证据更糟。
+# 这个洞是 M45 暴露的：那个变异体写的是 `View.of(context).devicePixelRatio`，
+# 而 `View` 上根本没这个成员 ⇒ 它**编译不过**，工装却报了 CAUGHT。
+LOAD_MARKERS = ("Failed to load", "Compilation failed", "compilation failed")
+COMPILE_MARKERS = ("error:", "Error:")
 ASSERT_MARKERS = ("[E]", "Expected:", "Test failed", "FAIL:")
 
 
 def failure_kind(out):
     """→ (kind, 一行摘要)。kind ∈ {test, compile, other}。"""
     lines = out.splitlines()
+    load_lines = [ln.strip() for ln in lines if any(m in ln for m in LOAD_MARKERS)]
+    if load_lines:
+        return "compile", load_lines[0]
     assert_lines = [ln.strip() for ln in lines if any(m in ln for m in ASSERT_MARKERS)]
     compile_lines = [ln.strip() for ln in lines if any(m in ln for m in COMPILE_MARKERS)]
     if assert_lines:
