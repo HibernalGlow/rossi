@@ -620,6 +620,42 @@ mod mac_platform {
         }
     }
 
+    /// 只预取某一页：解码 + 生成当前视口尺寸的预渲染帧，**不碰上屏缓冲区**。
+    ///
+    /// 给阅读器的「邻页 slot」用。它以前是靠自己挂一个 `ImageSurface` 去调 `show`
+    /// 来把下一页提前解好的，但那样会和当前页抢唯一那张上屏纹理（Ping-Pong →
+    /// 红黄闪），于是改成只让当前页 `show`；副作用是邻页没人解，翻页变成现场等
+    /// 400–500 ms。这个入口把「准备」与「上屏」拆开，两者都回到位。
+    ///
+    /// 成功返回 0；失败返回 -1 并写 `err_buf`。失败**不影响画面**（它本来就不上屏），
+    /// 所以调用方不需要为它做降级。
+    #[no_mangle]
+    pub extern "C" fn rossi_gpu_present_prepare(
+        presenter: *mut c_void,
+        index: u32,
+        target_width: u32,
+        target_height: u32,
+        err_buf: *mut u8,
+        err_len: usize,
+    ) -> i32 {
+        let Some(holder) = (unsafe { borrow(presenter) }) else {
+            write_err(err_buf, err_len, "presenter 指针为空");
+            return -1;
+        };
+        let mut guard = lock_slot(&holder.slot);
+        let Slot::Ready(inner) = &mut *guard else {
+            write_err(err_buf, err_len, "呈现器尚未就绪");
+            return -1;
+        };
+        match inner.prepare(index as usize, target_width, target_height) {
+            Ok(()) => 0,
+            Err(e) => {
+                write_err(err_buf, err_len, &format!("{e:#}"));
+                -1
+            }
+        }
+    }
+
     #[no_mangle]
     pub extern "C" fn rossi_gpu_present_show_into_buffer(
         presenter: *mut c_void,

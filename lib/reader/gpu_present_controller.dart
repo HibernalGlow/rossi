@@ -158,7 +158,36 @@ class GpuPresentController extends ChangeNotifier {
   /// 用轮询而不是让 native 侧回调：回调要从后台线程 post 到平台线程再 invoke，
   /// 而这里等的是**一次性**信号，~1 s 窗口里每 120 ms 问一次的代价可以忽略。
   /// 少一条跨线程路径就少一类「析构顺序」的 bug。
+  ///
+  /// # 它必须可以被重新武装（否则整本书都走兜底）
+  ///
+  /// 从前它只会被 `start()` 叫一次，而且一旦置了非 loading 状态就 `return`。
+  /// 这与 [`present`] 里的降级撞在一起就是一个醒不来的死局：
+  ///
+  /// 1. macOS 的 `status` 是**硬编码 ready**（它只查 dylib 加载），所以第一轮
+  ///    轮询就把状态置成 ready；
+  /// 2. 而 Rust 侧的后台线程还在建呈现器（实测 ~150 ms），于是紧接着的第一次
+  ///    `tryInit` 报 loading，把状态**降回 loading**；
+  /// 3. 此时看门狗已经 `return` 了，**再无人把它升回去**。
+  ///
+  /// 后果很隐蔽：`canPresent` 永远是假 → `ImageSurface` 永远走 CPU 兜底 →
+  /// 每页现场解 300–400 ms、而且**完全不碰 native 预取**。
+  /// 现象就是「解码变慢了、没有预加载了、每页都要等」，但看代码怎么都看不出问题。
+  bool _watchdogRunning = false;
+
   Future<void> _awaitReady() async {
+    if (_watchdogRunning) {
+      return;
+    }
+    _watchdogRunning = true;
+    try {
+      await _awaitReadyLoop();
+    } finally {
+      _watchdogRunning = false;
+    }
+  }
+
+  Future<void> _awaitReadyLoop() async {
     if (!GpuPresentBridge.isPlatformSupported) {
       _mutate(() {
         _state = GpuPresentState.unsupported;
@@ -265,11 +294,20 @@ class GpuPresentController extends ChangeNotifier {
         return false;
       }
       if (status.state != GpuPresentState.ready) {
-        // 未就绪就维持现状：兜底路径继续显示，等 `_awaitReady` 那边报信。
+        // 未就绪就维持现状：兜底路径继续显示，等看门狗那边报信。
+        //
+        // 两处细节都不能少：
+        // - **不把 ready 降回 loading**。`tryInit` 报 loading 往往是「刚建完呈现器、
+        //   Rust 后台线程还没收工」的正常竞态（~150 ms）。降级会让 `canPresent` 立刻
+        //   翻假，而 `canPresent` 正是「还会不会再调 [`present`]」的开关。
+        // - **重新武装看门狗**。它是唯一能把状态升回去的东西，而它可能已经退出过。
         _mutate(() {
-          _state = status.state;
+          if (_state != GpuPresentState.ready) {
+            _state = status.state;
+          }
           _error = status.error;
         });
+        unawaited(_awaitReady());
         return false;
       }
 
@@ -370,6 +408,44 @@ class GpuPresentController extends ChangeNotifier {
     }
     try {
       return await _bridge.setPrefetchEnabled(enabled);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 只预取某一页（**不上屏**）。
+  ///
+  /// 给阅读器的邻页 slot 用。它以前靠自己挂 `ImageSurface` 去 `show` 把下一页提前
+  /// 解好，但那会抢走当前页唯一那张纹理（Ping-Pong 拔河 → 红黄闪），于是被改成
+  /// 只显示占位；副作用是下一页退回「翻到它才开始解」，每页都要等 400–500 ms。
+  /// 这个方法把「准备」与「上屏」拆开，两边都能到位。
+  ///
+  /// [source] 与 [present] 一样由调用方给（控制器不拥有页来源）。
+  /// 失败不抛异常也不影响画面：它本来就不上屏。
+  Future<bool> prepareNeighbor({
+    required PageSource source,
+    required int index,
+    required Size physicalSize,
+  }) async {
+    if (_disposed || !GpuPresentBridge.isPlatformSupported) {
+      return false;
+    }
+    // 两侧页数对不上时**不要**去预取：native 侧的页序与页面这一份可能不同，
+    // 预取回来的可能是另一页 —— 那就白白把磁盘和 CPU 花在错的东西上。
+    if (mismatchFor(source) != null) {
+      return false;
+    }
+    final int width = physicalSize.width.round();
+    final int height = physicalSize.height.round();
+    if (index < 0 || index >= source.pageCount || width < 1 || height < 1) {
+      return false;
+    }
+    // native 侧还没被 open 过就没什么可预取的（锚点/页数都还没建立）。
+    if (_pushedPath != source.path) {
+      return false;
+    }
+    try {
+      return await _bridge.prepare(index: index, width: width, height: height);
     } catch (_) {
       return false;
     }

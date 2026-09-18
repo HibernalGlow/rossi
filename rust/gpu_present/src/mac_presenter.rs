@@ -505,9 +505,25 @@ impl MacPresenter {
         }))
         .context("无法获取 Metal / wgpu 图形适配器")?;
 
+        // ── 纹理尺寸上限必须显式要 ──
+        //
+        // wgpu 的 `Limits::default()` 把 `max_texture_dimension_2d` 限在 8192，
+        // 而漫画扫描件常见 8000–10000 px 宽（实测手上这本 AVIF 就是 9504）。
+        // 超过上限时 `create_texture` 会走到 wgpu 的**默认错误处理器**，而它是
+        // `panic!` —— 在 `extern "C"` 里面 panic 的结果是整个 App `abort`。
+        //
+        // 既然 8192 只是保守默认值而不是 Metal 的能力，就直接向适配器要它
+        // 实际支持的上限。这里仍然取 `min(适配器, 16384)`：要超过适配器的值
+        // 会让 `request_device` 直接失败，而 16384 已经盖住任何现实的漫画页。
+        let adapter_limit = adapter.limits().max_texture_dimension_2d;
+        let wanted_texture_dimension = adapter_limit.min(16384);
         let (device, queue) = pollster::block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
                 label: Some("rossi_mac_wgpu_device"),
+                required_limits: wgpu::Limits {
+                    max_texture_dimension_2d: wanted_texture_dimension,
+                    ..wgpu::Limits::default()
+                },
                 ..Default::default()
             },
         ))
@@ -580,6 +596,118 @@ impl MacPresenter {
 
     pub fn generation(&self) -> u64 {
         self.generation
+    }
+
+    /// 只「准备」某一页：解码 + 生成当前视口尺寸的预渲染帧，**不碰上屏缓冲区**。
+    ///
+    /// # 为什么需要它
+    ///
+    /// [`Self::show_into_buffer`] 把「解码」「渲染」「占住那张唯一的上屏纹理」三件事
+    /// 捆在一次调用里，而 `ImageSurface` 是唯一会调它的东西。阅读器为了避免多个 slot
+    /// 抢同一张纹理（Ping-Pong 拔河 → 红黄闪），只让当前页挂 `ImageSurface` ——
+    /// 于是邻页从「已经解好、画在旁边的 slot 里」退化成「翻到它才开始解」，
+    /// 观感就是预加载消失、每页都要等那 400–500 ms。
+    ///
+    /// 这个方法把前两件事单独拿出来给邻页用：照常解码、照常把预渲染帧放进缓存
+    /// （翻过去时 `show` 就能 <1 ms 命中），但**不写用户的 display buffer**，
+    /// 所以不会跟当前页抢纹理。
+    ///
+    /// 锚点**不动**：锚点表达的是「用户在哪」，由 `show` 推进；邻页只负责把自己
+    /// 那一页准备好，顺着锚点继续往前铺的活仍然归后台预取线程。
+    pub fn prepare(&mut self, index: usize, target_width: u32, target_height: u32) -> Result<()> {
+        let source = self.source.clone().ok_or_else(|| anyhow!("尚未打开来源"))?;
+        if index >= self.page_count {
+            return Err(anyhow!("页索引越界: {} >= {}", index, self.page_count));
+        }
+        let target_width = target_width.max(1);
+        let target_height = target_height.max(1);
+
+        // 目标尺寸推进给后台线程，免得它对着一组旧尺寸做预渲染。
+        self.hub.update_dimensions(target_width, target_height);
+
+        // ① 已经为这个尺寸渲染过 → 直接返回。翻回上一页走的就是这条，代价接近 0。
+        {
+            let mut c = self.shared_cache.cache.lock().unwrap_or_else(|p| p.into_inner());
+            if c.get(index, self.source_epoch, target_width, target_height).is_some() {
+                return Ok(());
+            }
+            // ② 已有别的线程在解这一页 → 交给它。重复解会争抢磁盘与 CPU，
+            //    而它解完会自己预渲染（预取线程的阶段 2 就是干这个的）。
+            if c.in_flight == Some(index) {
+                return Ok(());
+            }
+            c.in_flight = Some(index);
+        }
+
+        // ③ 解码（缓存里有原图时只是取一份 Arc）
+        let decoded = {
+            let cached = {
+                let mut c = self.shared_cache.cache.lock().unwrap_or_else(|p| p.into_inner());
+                c.get(index, self.source_epoch, target_width, target_height)
+                    .and_then(|(pixels, _)| pixels)
+            };
+            match cached {
+                Some(p) => Ok(p),
+                None => source.page_pixels(index).map(Arc::new),
+            }
+        };
+
+        let pixels = match decoded {
+            Ok(p) => p,
+            Err(e) => {
+                // 解码失败也必须清掉 in_flight，否则这一页永远没人再试。
+                if let Ok(mut c) = self.shared_cache.cache.lock() {
+                    c.in_flight = None;
+                }
+                return Err(anyhow!("解码第 {} 页失败: {e}", index));
+            }
+        };
+
+        // ④ 渲染进一块临时缓冲（**不碰 dst_ptr**），再放进预渲染缓存
+        let stride = target_width as usize * 4;
+        let mut bgra = vec![0u8; stride * target_height as usize];
+        let rendered = {
+            let mut r = self.resampler.lock().unwrap_or_else(|p| p.into_inner());
+            r.resample_to_buffer(
+                &pixels.rgba,
+                pixels.width,
+                pixels.height,
+                target_width,
+                target_height,
+                bgra.as_mut_ptr(),
+                stride,
+                false,
+            )
+        };
+
+        if let Ok(mut c) = self.shared_cache.cache.lock() {
+            c.in_flight = None;
+            if c.has(index, self.source_epoch) {
+                c.set_pixels(index, self.source_epoch, pixels);
+            } else {
+                c.insert(CachedPage {
+                    index,
+                    epoch: self.source_epoch,
+                    pixels: Some(pixels),
+                    pre_rendered: Vec::new(),
+                });
+            }
+        }
+        rendered?;
+
+        if let Ok(mut c) = self.shared_cache.cache.lock() {
+            c.add_pre_rendered(
+                index,
+                self.source_epoch,
+                PreRenderedFrame {
+                    target_w: target_width,
+                    target_h: target_height,
+                    bgra,
+                    stride,
+                },
+            );
+        }
+        Ok(())
     }
 
     /// 解码并渲染当前页，直接写入 CVPixelBuffer 物理内存。

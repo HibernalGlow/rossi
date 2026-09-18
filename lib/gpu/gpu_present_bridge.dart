@@ -254,6 +254,29 @@ class GpuPresentBridge {
         await channel.invokeMethod<Map<Object?, Object?>>('stats');
     return GpuPresentStats.fromMap(result ?? const <Object?, Object?>{});
   }
+
+  /// 只预取某一页：让 native 侧解码并把当前视口尺寸的预渲染帧放进缓存。
+  ///
+  /// **不上屏**：它不改变正在显示的内容，也不通知引擎取帧。存在的理由是
+  /// 阅读器的邻页 slot —— 它们以前靠自己调 `show` 来把下一页提前解好，
+  /// 但那会抢走当前页唯一那张纹理（Ping-Pong 拔河 → 红黄闪），于是被改成
+  /// 只显示空白占位；副作用是下一页退回「翻到它才开始解」。这个入口把
+  /// 「准备」与「上屏」拆开，两边都能到位。
+  ///
+  /// 返回是否被接受。失败**不需要降级**：它本来就不影响画面。
+  Future<bool> prepare({required int index, required int width, required int height}) async {
+    if (!isPlatformSupported) return false;
+    try {
+      final bool? ok = await channel.invokeMethod<bool>('prepare', <String, Object?>{
+        'index': index,
+        'width': width,
+        'height': height,
+      });
+      return ok ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
 }
 
 /// native 侧的诊断快照。

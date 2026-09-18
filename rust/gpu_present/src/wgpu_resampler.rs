@@ -265,6 +265,22 @@ impl WgpuResampler {
         let src_w = src_w.max(1);
         let src_h = src_h.max(1);
 
+        // ── 源图尺寸必须先自己校验（这一步是在防 Abort）──
+        //
+        // 超上限时 wgpu 的 `create_texture` 会走它的**默认错误处理器**，而那个
+        // 处理器是 `panic!`；panic 穿过 `extern "C"` 的结果是整个 App `abort`。
+        // 换句话说：一张超宽的扫描件本来只应该“这页走 CPU 兜底”，却会把进程带走。
+        // 所以这里先自己算，超了就返回一个普通错误 —— 让 Dart 侧平稳回落。
+        let max_dim = self.device.limits().max_texture_dimension_2d;
+        if src_w > max_dim || src_h > max_dim {
+            return Err(anyhow!(
+                "源图尺寸 {}x{} 超出 GPU 纹理上限 {}（这张页请走 CPU 兜底路径）",
+                src_w,
+                src_h,
+                max_dim
+            ));
+        }
+
         // 计算等比居中 (Letterbox / Contain) 坐标与尺寸
         let scale_x = target_w as f32 / src_w as f32;
         let scale_y = target_h as f32 / src_h as f32;

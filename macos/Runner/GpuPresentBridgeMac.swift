@@ -30,6 +30,7 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
     private typealias FnStatus = @convention(c) (UnsafeMutableRawPointer?, UnsafeMutablePointer<UInt8>?, Int) -> Int32
     private typealias FnOpen = @convention(c) (UnsafeMutableRawPointer?, UnsafePointer<UInt8>?, Int, UnsafeMutablePointer<UInt8>?, Int) -> Int32
     private typealias FnShowIntoBuffer = @convention(c) (UnsafeMutableRawPointer?, UInt32, UnsafeMutablePointer<UInt8>?, Int, UInt32, UInt32, UnsafeMutablePointer<UInt8>?, Int) -> Int32
+    private typealias FnPrepare = @convention(c) (UnsafeMutableRawPointer?, UInt32, UInt32, UInt32, UnsafeMutablePointer<UInt8>?, Int) -> Int32
     private typealias FnResize = @convention(c) (UnsafeMutableRawPointer?, UInt32, UInt32, UnsafeMutablePointer<UInt8>?, Int) -> Int32
     private typealias FnSetPrefetch = @convention(c) (UnsafeMutableRawPointer?, Int32) -> Int32
     private typealias FnGeneration = @convention(c) (UnsafeMutableRawPointer?) -> UInt64
@@ -40,6 +41,7 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
     private var fnStatus: FnStatus?
     private var fnOpen: FnOpen?
     private var fnShowIntoBuffer: FnShowIntoBuffer?
+    private var fnPrepare: FnPrepare?
     private var fnResize: FnResize?
     private var fnSetPrefetch: FnSetPrefetch?
     private var fnGeneration: FnGeneration?
@@ -131,6 +133,7 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
         fnStatus = unsafeBitCast(dlsym(h, "rossi_gpu_present_status"), to: FnStatus?.self)
         fnOpen = unsafeBitCast(dlsym(h, "rossi_gpu_present_open"), to: FnOpen?.self)
         fnShowIntoBuffer = unsafeBitCast(dlsym(h, "rossi_gpu_present_show_into_buffer"), to: FnShowIntoBuffer?.self)
+        fnPrepare = unsafeBitCast(dlsym(h, "rossi_gpu_present_prepare"), to: FnPrepare?.self)
         fnResize = unsafeBitCast(dlsym(h, "rossi_gpu_present_resize"), to: FnResize?.self)
         fnSetPrefetch = unsafeBitCast(dlsym(h, "rossi_gpu_present_set_prefetch"), to: FnSetPrefetch?.self)
         fnGeneration = unsafeBitCast(dlsym(h, "rossi_gpu_present_generation"), to: FnGeneration?.self)
@@ -195,6 +198,16 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
 
         case "stats":
             handleStats(result: result)
+
+        case "prepare":
+            guard let args = call.arguments as? [String: Any],
+                  let index = args["index"] as? Int else {
+                result(FlutterError(code: "bad-arguments", message: "prepare 需要 index", details: nil))
+                return
+            }
+            let width = (args["width"] as? Int) ?? targetWidth
+            let height = (args["height"] as? Int) ?? targetHeight
+            handlePrepare(index: UInt32(index), width: width, height: height, result: result)
 
         default:
             result(FlutterMethodNotImplemented)
@@ -398,6 +411,28 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
                 let msg = String(cString: err)
                 result(FlutterError(code: "show-failed", message: msg.isEmpty ? "呈现失败" : msg, details: nil))
             }
+        }
+    }
+
+    /// 只预取某一页：解码 + 生成当前视口尺寸的预渲染帧，**不碰上屏缓冲区**。
+    ///
+    /// 与 `show` 走同一条工作队列，但**不通知引擎取帧**：它不改变正在显示的内容，
+    /// 所以不调 `textureFrameAvailable`。位置在这里（而不是让 Dart 去 show 一下）
+    /// 就是为了这个区别 —— 邻页 show 会抢走当前页的纹理，那是红黄闪的成因。
+    private func handlePrepare(index: UInt32, width: Int, height: Int, result: @escaping FlutterResult) {
+        guard let pres = presenter, let prepare = fnPrepare else {
+            result(false)
+            return
+        }
+        workerQueue.async { [weak self] in
+            guard let self = self, !self.isDisposed else { return }
+            var err = [UInt8](repeating: 0, count: 512)
+            let rc = prepare(pres, index, UInt32(width), UInt32(height), &err, err.count)
+            if rc != 0 {
+                let msg = String(cString: err)
+                NSLog("[GpuPresentBridgeMac] 预取第 %u 页失败: %@", index, msg)
+            }
+            result(rc == 0)
         }
     }
 
