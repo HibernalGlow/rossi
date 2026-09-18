@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
@@ -6,14 +7,18 @@ import 'package:zephyr/workspace/cubit/workspace_state.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
 import 'package:zephyr/workspace/model/workspace_reader_target.dart';
 import 'package:zephyr/workspace/reader/workspace_reader_bridge.dart';
+import 'package:zephyr/workspace/widgets/chrome/workspace_top_chrome.dart';
 import 'package:zephyr/workspace/widgets/edges/controlled_edge_shell.dart';
 import 'package:zephyr/workspace/widgets/swimlane/swimlane_workspace.dart';
 
 /// 工作台（neoview 式泳道 / 四边栏双呈现）。
 ///
 /// 两条呈现共用同一份「现在在读哪一本」与同一份几何记账，**切模式不重开当前这一本**。
-/// 顶栏只留「返回 + 标题 + 重置布局」这类工作台自己的事 ——
-/// 模式切换属于 Reader 的 chrome，放在阅读器泳道栏头里（见 `SwimlaneWorkspace`）。
+///
+/// **本页没有自己的 AppBar**：泳道模式下每条泳道自带栏头，再压一条工作台顶栏
+/// 就是第二层顶栏（下面还叠着 macOS 窗口标题栏）。工作台级别的动作
+/// （退出 / 重置布局 / 切模式）收在**悬停揭示**的 `WorkspaceTopChrome` 里，
+/// 平时不占高度，鼠标贴到窗口最顶端才淡入；`Esc` 是退出工作台的键盘路径。
 @RoutePage()
 class BreezeWorkspacePage extends StatefulWidget {
   const BreezeWorkspacePage({super.key});
@@ -74,10 +79,20 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
     });
   }
 
+  /// 退出工作台。
+  ///
+  /// 工作台是用 `Navigator.push` 上来的整页，**没有系统返回按钮** ——
+  /// 顶栏一撤，它就是唯一的可见出口（键盘侧由 `Esc` 兜底）。
+  /// 只在「工作台确实是栈顶」时才弹：详情页之类压在上面时不该把用户弹走。
+  void _exitWorkspace() {
+    if (!mounted) return;
+    final route = ModalRoute.of(context);
+    if (route == null || !route.isCurrent) return;
+    Navigator.of(context).maybePop();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return BlocProvider<WorkspaceCubit>.value(
       value: _cubit,
       child: BlocBuilder<WorkspaceCubit, WorkspaceState>(
@@ -85,45 +100,39 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
           final isSwimlane = state.mode == WorkspaceMode.swimlane;
 
           return Scaffold(
-            appBar: AppBar(
-              titleSpacing: 8,
-              title: Row(
-                children: [
-                  Icon(
-                    Icons.dashboard_customize_rounded,
-                    size: 20,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '工作台 (NeoView Workspace)',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+            body: CallbackShortcuts(
+              bindings: {
+                const SingleActivator(LogicalKeyboardKey.escape): _exitWorkspace,
+              },
+              // 有焦点才收得到按键；泳道里的输入框拿到焦点时，
+              // `CallbackShortcuts` 仍会在它们没消费时沿焦点树上冒到这里。
+              child: Focus(
+                autofocus: true,
+                child: Stack(
+                  children: [
+                    // 内容从顶上铺满：没有 appBar，也没有额外的一行内边距。
+                    // SafeArea 只为移动端「最低适配」兜底 —— 桌面端标题栏与内容区
+                    // 本来就分离，`MediaQuery.padding` 是 0，这里不会内缩。
+                    Positioned.fill(
+                      child: SafeArea(
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          child: isSwimlane
+                              ? const SwimlaneWorkspace(
+                                  key: ValueKey('swimlane'),
+                                )
+                              : const ControlledEdgeShell(
+                                  key: ValueKey('edges'),
+                                ),
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    isSwimlane ? '多列泳道' : '沉浸四边栏',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.outline,
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                IconButton(
-                  tooltip: '重置布局（不影响当前正在读的这一本）',
-                  icon: const Icon(Icons.restore_rounded),
-                  onPressed: _cubit.resetLayout,
+
+                    // 工作台顶栏：悬停揭示，默认不可见（不占高度、不吃鼠标）。
+                    WorkspaceTopChrome(onExit: _exitWorkspace),
+                  ],
                 ),
-                const SizedBox(width: 8),
-              ],
-            ),
-            body: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              child: isSwimlane
-                  ? const SwimlaneWorkspace(key: ValueKey('swimlane'))
-                  : const ControlledEdgeShell(key: ValueKey('edges')),
+              ),
             ),
           );
         },

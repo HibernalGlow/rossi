@@ -12,6 +12,7 @@ export 'router/workspace_reader_guard.dart';
 export 'method/open_comic_item.dart';
 export 'widgets/collapsible_card.dart';
 export 'widgets/lane_resizer.dart';
+export 'widgets/chrome/workspace_top_chrome.dart';
 export 'widgets/containers/embedded_bookshelf_lane.dart';
 export 'widgets/containers/embedded_discover_lane.dart';
 export 'widgets/containers/embedded_auxiliary_lane.dart';

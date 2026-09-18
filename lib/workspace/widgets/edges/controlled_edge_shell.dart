@@ -14,6 +14,10 @@ import 'package:zephyr/workspace/widgets/reader/workspace_reader_host.dart';
 /// 所以切模式不会重开当前这一本、不会换页，两个呈现只是同一件事的两种摆法。
 /// 抽屉里的卡片是**真实数据卡片**（ObjectBox / 插件注册表 / 本地目录），
 /// 不是占位图。
+///
+/// **这里不画任何常驻顶栏**：模式切换 / 当前书名 / 关闭漫画都是工作台级别的动作，
+/// 归 `WorkspaceTopChrome`（悬停揭示）—— 否则沉浸模式会在窗口顶部再叠一条常驻胶囊，
+/// 与它重复。
 class ControlledEdgeShell extends StatelessWidget {
   const ControlledEdgeShell({super.key});
 
@@ -25,13 +29,13 @@ class ControlledEdgeShell extends StatelessWidget {
       builder: (context, state) {
         final cubit = context.read<WorkspaceCubit>();
         final layout = state.layout;
-        final theme = Theme.of(context);
-        final target = state.readerTarget;
 
         return Stack(
           children: [
             // 1. 中央满屏阅读器画布
-            Positioned.fill(child: WorkspaceReaderHost(target: target)),
+            Positioned.fill(
+              child: WorkspaceReaderHost(target: state.readerTarget),
+            ),
 
             // 2. 左侧边缘把手
             if (!layout.edgeLeftOpen)
@@ -96,81 +100,6 @@ class ControlledEdgeShell extends StatelessWidget {
                 onClose: () => cubit.toggleEdgeDrawer('right'),
                 panelTabs: const PanelTabStrip(side: WorkspacePanelSide.right),
                 child: const LanePanelHost(side: WorkspacePanelSide.right),
-              ),
-            ),
-
-            // 6. 顶部边缘浮动条（四边栏模式下模式切换的落点）
-            Positioned(
-              top: 12,
-              left: 80,
-              right: 80,
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface.withValues(alpha: 0.9),
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 8,
-                      ),
-                    ],
-                    border: Border.all(
-                      color: theme.colorScheme.outlineVariant.withValues(
-                        alpha: 0.4,
-                      ),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.fullscreen_rounded,
-                        size: 16,
-                        color: theme.colorScheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        target == null
-                            ? '沉浸阅读中 · 边缘模式 (Edges)'
-                            : '正在阅读 · ${target.displayTitle}',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      if (target != null) ...[
-                        const SizedBox(width: 4),
-                        IconButton(
-                          icon: const Icon(Icons.close_rounded, size: 16),
-                          tooltip: '关闭当前漫画 (回到空态)',
-                          visualDensity: VisualDensity.compact,
-                          onPressed: () => cubit.closeReader(),
-                        ),
-                      ],
-                      const SizedBox(width: 8),
-                      InkWell(
-                        onTap: () => cubit.toggleMode(),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          child: Text(
-                            '切回泳道 ➔',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ),
             ),
           ],
