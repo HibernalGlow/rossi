@@ -103,11 +103,23 @@ class WorkspaceStripMetrics {
   /// [availableWidth] 必须是**扣掉条带内边距之后**的宽度。它与
   /// [viewportWidth] 是两个不同的量，不能互相顶替 —— 用视口宽算富余，
   /// 富余就多算一份内边距，`Row` 被撑出容器，界面上多一条黄黑斜纹。
+  ///
+  /// [soloLaneId] 是**独占**（neoview：Reader solo）的那条泳道：它这一档的
+  /// 生效宽度是**整条可用宽**，于是「独占」不再是另一套版式（原先它是
+  /// `Row[折叠轨, Expanded(solo), 折叠轨]` 的独立分支），而是**同一条条带上的
+  /// 一个宽度**。这一点是「显出一条泳道靠移动条带」的前提：只有同一条条带，
+  /// 边缘驻留的**揭示**才有东西可滚 —— 独立分支里的 `Expanded` 根本滚不动，
+  /// 于是揭示无从实现。
+  ///
+  /// **只在该泳道同时也是激活泳道时才传它**（契约：solo 的生效宽度以
+  /// 「Reader 泳道处于激活态」为前提；激活别的泳道会让 Reader 变回常规宽度，
+  /// 但不清除 solo 偏好 —— 重新点回 Reader 时才恢复独占呈现）。
   factory WorkspaceStripMetrics.resolve({
     required WorkspaceLayoutConfig layout,
     required double viewportWidth,
     required double availableWidth,
     required double resizerWidth,
+    String? soloLaneId,
   }) {
     // 1. 每条泳道先按自己的计量单位算宽度
     final widths = <String, double>{};
@@ -116,8 +128,12 @@ class WorkspaceStripMetrics {
       final lane = layout.lanes[laneId];
       if (lane == null) continue;
       final isCollapsed = lane.collapsed;
+      // 独占泳道：撑满可用宽（折叠态优先 —— 折叠是用户更明确的意图）。
+      final isSolo = laneId == soloLaneId && !isCollapsed;
       widths[laneId] = isCollapsed
           ? WorkspaceLayoutConfig.collapsedLaneWidth
+          : isSolo
+          ? availableWidth
           : lane.resolveWidth(viewportWidth);
       collapsed[laneId] = isCollapsed;
     }

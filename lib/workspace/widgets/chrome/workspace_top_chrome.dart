@@ -23,10 +23,22 @@ import 'package:zephyr/workspace/model/workspace_mode.dart';
 ///   不会出现「滑下去就收起来」的抖动。
 /// - 鼠标离开顶栏（往下超过 [barHeight] 或移出窗口）才收起。
 class WorkspaceTopChrome extends StatefulWidget {
-  const WorkspaceTopChrome({super.key, required this.onExit});
+  const WorkspaceTopChrome({
+    super.key,
+    required this.onExit,
+    required this.onResetLayout,
+  });
 
   /// 退出工作台（回到进入前的页面）。
   final VoidCallback onExit;
+
+  /// 重置布局。
+  ///
+  /// 由宿主传入而不是直接调 `cubit.resetLayout`：重置不只是「状态回默认」，
+  /// 还要把**磁盘上的那份快照**一并作废 —— 否则重启之后它会被旧快照覆盖回来，
+  /// 用户看到的是「重置了，但重启又变回去了」。而磁盘那一层在工作台页面上，
+  /// 不在这个顶栏里。
+  final VoidCallback onResetLayout;
 
   /// 顶栏高度 —— 与泳道栏头同高，揭示时正好接管那一行。
   static const double barHeight = 46;
@@ -200,7 +212,7 @@ class _WorkspaceTopChromeState extends State<WorkspaceTopChrome> {
                 icon: const Icon(Icons.restore_rounded, size: 18),
                 tooltip: '重置布局（不影响当前正在读的这一本）',
                 visualDensity: VisualDensity.compact,
-                onPressed: cubit.resetLayout,
+                onPressed: widget.onResetLayout,
               ),
             ],
           ),

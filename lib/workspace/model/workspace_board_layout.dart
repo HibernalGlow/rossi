@@ -290,6 +290,73 @@ class WorkspaceBoardLayout {
     return const CardLayout(panelId: '', visible: true, order: 0);
   }
 
+  Map<String, Object?> toJson() => <String, Object?>{
+    'panels': <String, Object?>{
+      for (final entry in panels.entries)
+        entry.key: <String, Object?>{
+          'visible': entry.value.visible,
+          'order': entry.value.order,
+          'side': entry.value.side.name,
+        },
+    },
+    'cards': <String, Object?>{
+      for (final entry in cards.entries)
+        entry.key: <String, Object?>{
+          'panelId': entry.value.panelId,
+          'visible': entry.value.visible,
+          'order': entry.value.order,
+          'expanded': entry.value.expanded,
+        },
+    },
+  };
+
+  /// 从 JSON 还原**只存改动过项**的记账。
+  ///
+  /// 非法项**整条丢掉**而不是补默认值：这套记账的语义是「空账 = 全用注册表里的
+  /// 默认值」，所以丢掉一条非法项恰好就是「这一项回到默认」，而补一条假的记录
+  /// 反而会把某个面板钉在一个不属于它的位置上。
+  factory WorkspaceBoardLayout.fromJson(Map<String, Object?> json) {
+    final panels = <String, PanelLayout>{};
+    final rawPanels = json['panels'];
+    if (rawPanels is Map) {
+      for (final entry in rawPanels.entries) {
+        final key = entry.key;
+        final value = entry.value;
+        if (key is! String || value is! Map) continue;
+        final visible = value['visible'];
+        final order = value['order'];
+        final side = WorkspacePanelSide.tryParse('${value['side']}');
+        if (visible is! bool || order is! int || side == null) continue;
+        panels[key] = PanelLayout(visible: visible, order: order, side: side);
+      }
+    }
+
+    final cards = <String, CardLayout>{};
+    final rawCards = json['cards'];
+    if (rawCards is Map) {
+      for (final entry in rawCards.entries) {
+        final key = entry.key;
+        final value = entry.value;
+        if (key is! String || value is! Map) continue;
+        final panelId = value['panelId'];
+        final visible = value['visible'];
+        final order = value['order'];
+        final expanded = value['expanded'];
+        if (panelId is! String || visible is! bool || order is! int) continue;
+        cards[key] = CardLayout(
+          panelId: panelId,
+          visible: visible,
+          order: order,
+          expanded: expanded is bool ? expanded : true,
+        );
+      }
+    }
+
+    // 面板 id / 卡片 id 是否还在注册表里由**调用方**决定：本文件是纯记账，
+    // 不该认识注册表（否则「加一个新面板」会牵动这里的解析）。
+    return WorkspaceBoardLayout(panels: panels, cards: cards);
+  }
+
   @override
   String toString() =>
       'WorkspaceBoardLayout(panels: $panels, cards: $cards)';

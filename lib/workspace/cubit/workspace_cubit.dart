@@ -3,14 +3,83 @@ import 'dart:math' as math;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/workspace/cubit/workspace_state.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
+import 'package:zephyr/workspace/model/workspace_interaction_settings.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
+import 'package:zephyr/workspace/model/workspace_layout_snapshot.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
+import 'package:zephyr/workspace/model/workspace_panel_bar.dart';
 import 'package:zephyr/workspace/model/workspace_reader_target.dart';
 import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
 import 'package:zephyr/workspace/registry/workspace_panel_registry.dart';
 
 class WorkspaceCubit extends Cubit<WorkspaceState> {
   WorkspaceCubit() : super(WorkspaceState.initial());
+
+  // ── 激活泳道 ───────────────────────────────────────────────────────────
+
+  /// 把交互交给 [laneId]。
+  ///
+  /// 它是「非激活泳道的第一下点击被吃掉」与「悬停 dwell 聚焦」共同的落点：
+  /// 两种手势都只做这一件事，区别只在**由什么触发**（点击 / 驻留）。
+  ///
+  /// 不存在的泳道 id 直接忽略 —— 激活一条已经被下线 / 改名掉的泳道会让
+  /// 「谁被激活」这个记账指向一个界面上没有的东西，而所有依赖它的判断
+  /// （吞点击、solo 生效宽度）都会静默失准。
+  void activateLane(String laneId) {
+    if (state.activeLaneId == laneId) return;
+    if (!state.layout.lanes.containsKey(laneId)) return;
+    emit(state.copyWith(activeLaneId: () => laneId));
+  }
+
+  /// 悬停聚焦是否启用 / 三个延时（契约要求这三套延时可配且互相独立）。
+  void setInteraction(WorkspaceInteractionSettings settings) {
+    if (state.interaction == settings) return;
+    emit(state.copyWith(interaction: settings));
+  }
+
+  /// 改某条泳道的**面板操作栏**记账（模式 / 停靠边 / 悬浮位置 / 是否限制在泳道内）。
+  void setLanePanelBar(String laneId, PanelBarLayout panelBar) {
+    final lane = state.layout.lanes[laneId];
+    if (lane == null || lane.panelBar == panelBar) return;
+    emit(
+      state.copyWith(
+        layout: state.layout.copyWith(
+          lanes: _replaceLane(laneId, lane.copyWith(panelBar: panelBar)),
+        ),
+      ),
+    );
+  }
+
+  // ── 快照（持久化） ─────────────────────────────────────────────────────
+
+  /// 当前状态的完整快照（「什么该进快照」的口径写在 `WorkspaceLayoutSnapshot` 里）。
+  ///
+  /// 快照里**没有** `readerTarget`：它带着 cubit 与页面参数，
+  /// 「冷启动要不要恢复上次那本」是阅读历史的职责，不是布局的。
+  WorkspaceLayoutSnapshot get snapshot => WorkspaceLayoutSnapshot(
+    mode: state.mode,
+    layout: state.layout,
+    board: state.board,
+    activePanel: state.activePanel,
+    activeLaneId: state.activeLaneId,
+    interaction: state.interaction,
+  );
+
+  /// 用一份快照替换当前布局（启动时读盘、或「重置布局」）。
+  ///
+  /// **不动**正在读的那一本（与 [resetLayout] 同一条纪律）。
+  void restore(WorkspaceLayoutSnapshot snapshot) {
+    emit(
+      state.copyWith(
+        mode: snapshot.mode,
+        layout: snapshot.layout,
+        board: snapshot.board,
+        activePanel: snapshot.activePanel,
+        activeLaneId: () => snapshot.activeLaneId,
+        interaction: snapshot.interaction,
+      ),
+    );
+  }
 
   // ── 模式 ───────────────────────────────────────────────────────────────
 
@@ -32,9 +101,20 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
   // ── 阅读器泳道 ─────────────────────────────────────────────────────────
 
   /// 在阅读器泳道里打开一本（上游推入 `ComicReadRoute` 时也会走到这里）。
+  ///
+  /// 顺带**激活阅读器泳道**：上游的推入可能是用户在左泳道里点出来的，
+  /// 若只把书塞进泳道而不把交互交过去，书就开在一个不在视口里的地方
+  /// （现象是「点了书架里的漫画，什么都没发生」）。
   void openReader(WorkspaceReaderTarget target) {
-    if (state.readerTarget == target) return;
-    emit(state.copyWith(readerTarget: () => target));
+    final changed = state.readerTarget != target;
+    final activate = state.activeLaneId != LaneId.reader;
+    if (!changed && !activate) return;
+    emit(
+      state.copyWith(
+        readerTarget: () => target,
+        activeLaneId: () => LaneId.reader,
+      ),
+    );
   }
 
   /// 关闭当前这一本，阅读器泳道回到空态。
@@ -288,8 +368,13 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
 
   /// 切换泳道独占（Solo）状态。
   ///
-  /// Solo 是**泳道自己的属性**，不是全局工作区状态：进入/退出 Sole 都不改写
+  /// Solo 是**泳道自己的属性**，不是全局工作区状态：进入/退出 Solo 都不改写
   /// 该泳道记录下来的宽度（阅读器回到常规时用的还是它原来的比例）。
+  ///
+  /// 打开 Solo 时**顺带激活这条泳道**：solo 的生效宽度以「这条泳道同时是激活
+  /// 泳道」为前提（见 `WorkspaceState.effectiveSoloLaneId`），不激活的话
+  /// 用户按了独占却什么都没发生。关掉时不反向激活 —— 退出独占的用户
+  /// 想要的是「回到多栏」，不是「跳到别处」。
   void toggleSoloLane(String laneId) {
     final currentSolo = state.layout.soloLaneId;
     final nextSolo = currentSolo == laneId ? null : laneId;
@@ -297,6 +382,9 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
     emit(
       state.copyWith(
         layout: state.layout.copyWith(soloLaneId: () => nextSolo),
+        activeLaneId: nextSolo != null
+            ? () => laneId
+            : null, // 关掉独占不动激活泳道
       ),
     );
   }
@@ -372,12 +460,20 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
   ///
   /// 「重置」= 把布局记账清空 —— 因为空账就是「全部按注册表的默认值」，
   /// 所以重置不需要把默认值再抄一遍，也就不会漏掉后来新加的卡片。
+  ///
+  /// 同时把**激活泳道**与**交互设置**一并复位：这两项都属于「用户的布局偏好」，
+  /// 用户按下「重置布局」时想的是「回到我什么都没调过的样子」，
+  /// 留下一半调过的状态（例如「延时还是我改的那个」）比不重置更难解释。
+  /// 调用方还应当把磁盘上的快照一并清掉（见 `WorkspaceLayoutPersistence.reset`），
+  /// 否则重启之后那次重置会被旧快照覆盖回去。
   void resetLayout() {
     emit(
       state.copyWith(
         layout: WorkspaceLayoutConfig.defaults(),
         board: const WorkspaceBoardLayout(),
         activePanel: const <String, String>{},
+        activeLaneId: () => null,
+        interaction: const WorkspaceInteractionSettings(),
       ),
     );
   }

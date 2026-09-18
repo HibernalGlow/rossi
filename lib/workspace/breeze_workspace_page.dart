@@ -1,12 +1,17 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/cubit/workspace_state.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
 import 'package:zephyr/workspace/model/workspace_reader_target.dart';
 import 'package:zephyr/workspace/router/workspace_navigation_bridge.dart';
+import 'package:zephyr/workspace/service/workspace_layout_store.dart';
 import 'package:zephyr/workspace/widgets/chrome/workspace_top_chrome.dart';
 import 'package:zephyr/workspace/widgets/edges/controlled_edge_shell.dart';
 import 'package:zephyr/workspace/widgets/swimlane/swimlane_workspace.dart';
@@ -19,9 +24,29 @@ import 'package:zephyr/workspace/widgets/swimlane/swimlane_workspace.dart';
 /// 就是第二层顶栏（下面还叠着 macOS 窗口标题栏）。工作台级别的动作
 /// （退出 / 重置布局 / 切模式）收在**悬停揭示**的 `WorkspaceTopChrome` 里，
 /// 平时不占高度，鼠标贴到窗口最顶端才淡入；`Esc` 是退出工作台的键盘路径。
+///
+/// **持久化也在这一层**：布局记账（模式、泳道顺序与宽度、折叠、激活面板与泳道、
+/// 独占偏好、悬停/揭示的开关与延时、面板栏记账、面板与卡片记账）在启动时读盘、
+/// 变化时去抖落盘。什么进快照、什么刻意不进，口径写在 `WorkspaceLayoutSnapshot`。
 @RoutePage()
 class BreezeWorkspacePage extends StatefulWidget {
-  const BreezeWorkspacePage({super.key});
+  const BreezeWorkspacePage({
+    super.key,
+    this.store,
+    this.debugLaneContentBuilder,
+  });
+
+  /// 布局快照的存取口。`null` = 用应用数据目录下的那个文件（正常启动路径）；
+  /// 测试传内存实现，于是「重启回来的是不是同一套布局」可以在测试里验完。
+  final WorkspaceLayoutStore? store;
+
+  /// **判据用**的泳道内容替身，转手交给 `SwimlaneWorkspace`（理由与 [store] 同）。
+  ///
+  /// 这一页自己那点事 —— 启动读盘、变化去抖落盘、重置把磁盘上那份一起作废 ——
+  /// 只有把这一页真的挂起来才验得到；而它的真内容（上游 `BookshelfPage` /
+  /// `ComicReadPage`）要 ObjectBox、图源注册表、应用数据目录，判据里起不来。
+  /// 应用路径**永不**传它。
+  final Widget Function(String laneId)? debugLaneContentBuilder;
 
   /// 本页在导航栈里的名字。
   ///
@@ -39,6 +64,19 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
   /// 只取一次 tear-off 并留住它 —— 注销时必须传**同一个**回调对象。
   late final void Function(WorkspaceReaderTarget target) _openInLane;
 
+  WorkspaceLayoutPersistence? _persistence;
+  StreamSubscription<WorkspaceState>? _stateSubscription;
+
+  /// 正在用读回来的快照替换状态：这一轮**不要再存一遍**（刚读完就写回去
+  /// 是纯浪费，而且在慢盘上会与下一次真实改动抢同一个文件）。
+  ///
+  /// **旗子不能在 `restore()` 之后立刻撤**：`Cubit` 的状态流是
+  /// `StreamController.broadcast()`（不是 `sync: true`），那次 `emit` 的通知
+  /// 要等一个 microtask 才到监听者 —— 而那时旗子已经撤了，于是守卫等于没有，
+  /// 症状是「每次启动都无端写一次盘」。所以把撤旗排到**那次投递之后**：
+  /// `add` 先排队、这里后排队，顺序由 `scheduleMicrotask` 的 FIFO 保证。
+  bool _restoring = false;
+
   @override
   void initState() {
     super.initState();
@@ -48,13 +86,70 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
     // 其余推入由守卫交给「发起交互的那个面板」的局部导航栈
     // （登记随面板自己 attach / detach，见 `EmbeddedUpstreamPage`）。
     WorkspaceNavigationBridge.instance.attachReader(_openInLane);
+    _stateSubscription = _cubit.stream.listen(_handleStateChanged);
+    unawaited(_restoreLayout());
   }
 
   @override
   void dispose() {
+    _stateSubscription?.cancel();
+    // 退出前把压着的改动写掉：拖完立刻关窗口这一下正好会落在去抖窗口里。
+    unawaited(_persistence?.flush() ?? Future<void>.value());
+    _persistence?.dispose();
     WorkspaceNavigationBridge.instance.detachReader(_openInLane);
     _cubit.close();
     super.dispose();
+  }
+
+  // ── 持久化 ─────────────────────────────────────────────────────────────
+
+  Future<void> _restoreLayout() async {
+    try {
+      final store = widget.store ?? WorkspaceLayoutFileStore(await _dataDir());
+      final persistence = WorkspaceLayoutPersistence(store: store);
+      _persistence = persistence;
+      final snapshot = await store.load();
+      if (!mounted || snapshot == null) return;
+      _restoring = true;
+      _cubit.restore(snapshot);
+      // 见 `_restoring` 的说明：必须等那次 `emit` 真的投递到监听者之后再撤旗。
+      scheduleMicrotask(() => _restoring = false);
+    } on Object {
+      // 布局是**可重建**的东西：读盘失败不该挡住工作台打开。
+      // （`WorkspaceLayoutFileStore` 内部已经吞掉了坏文件，这里兜的是
+      //  「拿不到数据目录」这类环境问题。）
+    }
+  }
+
+  /// 应用数据目录。
+  ///
+  /// 与 ObjectBox 的库文件放同一个父目录：布局快照是同一类「应用自己的状态」，
+  /// 放在一起也让「备份 / 清理」只需要认一个地方。
+  Future<Directory> _dataDir() async {
+    final support = await getApplicationSupportDirectory();
+    return Directory('${support.path}${Platform.pathSeparator}zephyr');
+  }
+
+  void _handleStateChanged(WorkspaceState state) {
+    if (_restoring) return;
+    _persistence?.schedule(_cubit.snapshot);
+  }
+
+  /// 重置布局：状态回默认，**磁盘上那份也要作废**。
+  ///
+  /// 只重置状态的话，重启之后旧快照会把它覆盖回来 —— 用户看到的是
+  /// 「重置了，但重启又变回去了」。
+  ///
+  /// 两件事的**顺序**也要紧，而且是反直觉的那一头：`resetLayout()` 那次
+  /// `emit` 的通知是**异步**投递的，它会给去抖器排一次写盘；所以「作废磁盘」
+  /// 必须排在**那之后**（`scheduleMicrotask`）。不然刚清掉的快照会被默认值
+  /// 重新写回去 —— 重启结果虽然一样，但那已经不是「作废」，而是
+  /// 「写了一份默认的」，白落一次盘。
+  void _resetLayout() {
+    _cubit.resetLayout();
+    scheduleMicrotask(
+      () => unawaited(_persistence?.reset() ?? Future<void>.value()),
+    );
   }
 
   /// 守卫把一本漫画交给了泳道，工作台要负责**让用户看得见**。
@@ -120,8 +215,10 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
                         child: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 250),
                           child: isSwimlane
-                              ? const SwimlaneWorkspace(
-                                  key: ValueKey('swimlane'),
+                              ? SwimlaneWorkspace(
+                                  key: const ValueKey('swimlane'),
+                                  debugLaneContentBuilder:
+                                      widget.debugLaneContentBuilder,
                                 )
                               : const ControlledEdgeShell(
                                   key: ValueKey('edges'),
@@ -131,7 +228,10 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
                     ),
 
                     // 工作台顶栏：悬停揭示，默认不可见（不占高度、不吃鼠标）。
-                    WorkspaceTopChrome(onExit: _exitWorkspace),
+                    WorkspaceTopChrome(
+                      onExit: _exitWorkspace,
+                      onResetLayout: _resetLayout,
+                    ),
                   ],
                 ),
               ),

@@ -175,6 +175,215 @@ SUITES = [
             ),
         ],
     },
+    # ── 本轮（泳道运行时 / 插入位 / 持久化 / 驻留） ─────────────────────────
+    #
+    # 这几组盯的是**7 件事**：激活泳道、非激活泳道第一下点击被吃掉、悬停驻留、
+    # 边缘驻留揭示、面板栏的浮动与换边停靠、跨侧拖动的精确插入位、一切持久化。
+    # 其中三组是 widget 判据（跑 `flutter test`），一组是纯 Dart（跑 `dart run`）。
+    #
+    # 纯模型那三个判据文件（`lane_focus_check` / `panel_bar_check` /
+    # `layout_snapshot_check`）**没有**单独列组：它们算的那些函数
+    # （`panelBarFloatingOffset` / 快照 JSON 往返）在下面 B、C 两组里被
+    # 真的走了一遍（镶嵌在 widget 与存盘往返里），再单独列一组是重复计分。
+    {
+        "name": "swimlane_runtime（widget test：激活 / 吃点击 / 驻留揭示）",
+        "cmd": ["flutter", "test", "test/workspace/swimlane_runtime_test.dart"],
+        "baseline_marker": "All tests passed",
+        "mutations": [
+            (
+                "M17 AbsorbPointer 不再吸收 → 第一下点击落到内容上",
+                "lib/workspace/widgets/swimlane/swimlane_workspace.dart",
+                "      absorbing: !isActive,",
+                "      absorbing: false,",
+                False,
+            ),
+            (
+                "M18 吸收范围包住整列（含栏头）→ 非激活泳道的栏头按钮第一下哑掉",
+                "lib/workspace/widgets/swimlane/swimlane_workspace.dart",
+                "        child: _buildLaneDragTarget(context, cubit, laneId, column),",
+                "        child: AbsorbPointer(\n"
+                "          absorbing: !isActive,\n"
+                "          child: _buildLaneDragTarget(context, cubit, laneId, column),\n"
+                "        ),",
+                False,
+            ),
+            (
+                "M19 栏头里的页签条重新参与摆放（撑满约束）→ 栏头溢出",
+                "lib/workspace/widgets/swimlane/swimlane_column.dart",
+                "            PanelTabStrip(side: panelSide!, showHandle: false),",
+                "            PanelTabStrip(\n"
+                "              side: panelSide!,\n"
+                "              bounds: const PanelBarBounds(\n"
+                "                left: 0,\n"
+                "                top: 0,\n"
+                "                width: 400,\n"
+                "                height: 900,\n"
+                "              ),\n"
+                "              laneBounds: const PanelBarBounds(\n"
+                "                left: 0,\n"
+                "                top: 0,\n"
+                "                width: 400,\n"
+                "                height: 900,\n"
+                "              ),\n"
+                "              showHandle: false,\n"
+                "            ),",
+                False,
+            ),
+            (
+                "M20 悬停聚焦对**所有**泳道生效（不只 Reader）",
+                "lib/workspace/widgets/swimlane/swimlane_workspace.dart",
+                "    if (laneId != LaneId.reader) return;",
+                "    if (false) return;",
+                False,
+            ),
+            (
+                "M21 悬停聚焦忽略开关",
+                "lib/workspace/widgets/swimlane/swimlane_workspace.dart",
+                "    if (!state.interaction.hoverFocusEnabled) return;",
+                "    if (false) return;",
+                False,
+            ),
+            (
+                "M22 认了这次边缘揭示却不移动条带",
+                "lib/workspace/widgets/swimlane/swimlane_workspace.dart",
+                "    if (revealSide != null) {\n"
+                "      setState(() => _revealedLaneId = revealSide);\n"
+                "      _applyOffset();\n"
+                "    }",
+                "    if (revealSide != null) {\n      setState(() {});\n    }",
+                False,
+            ),
+            (
+                "M23 揭示再也不收回（瞬态变常驻）",
+                "lib/workspace/widgets/swimlane/swimlane_workspace.dart",
+                "    if (_restoreDwell.takeDue(now) != null) {\n"
+                "      setState(() => _revealedLaneId = null);\n"
+                "      _applyOffset();\n"
+                "    }",
+                "    if (_restoreDwell.takeDue(now) != null) {\n      setState(() {});\n    }",
+                False,
+            ),
+        ],
+    },
+    {
+        "name": "workspace_panels（widget test：插入位 / 面板栏摆放）",
+        "cmd": ["flutter", "test", "test/workspace/workspace_panels_test.dart"],
+        "baseline_marker": "All tests passed",
+        "mutations": [
+            (
+                "M24 跨侧拖入固定追加到末尾（本轮之前的写法）",
+                "lib/workspace/widgets/panels/panel_tab_strip.dart",
+                "      insertIndex: target,",
+                "      insertIndex: siblings.length,",
+                False,
+            ),
+            (
+                "M25 不可移动的页签不做落点（于是掉回「追加」）",
+                "lib/workspace/widgets/panels/panel_tab_strip.dart",
+                "    if (!panel.canMove) return dropBefore;",
+                "    if (!panel.canMove) return button;",
+                False,
+            ),
+            (
+                "M26 同序列换位不扣掉自己那一格",
+                "lib/workspace/widgets/panels/panel_tab_strip.dart",
+                "    final target = currentIndex >= 0 && index > currentIndex\n"
+                "        ? index - 1\n"
+                "        : index;",
+                "    final target = index;",
+                False,
+            ),
+            (
+                "M27 悬浮位置改用 `Align` 语义（子节点左边缘在 p% 处）",
+                "lib/workspace/widgets/panels/panel_bar_positioner.dart",
+                "      offset = Offset(floating.left, floating.top);",
+                "      offset = Offset(\n"
+                "        bounds.width * layout.positionX / 100,\n"
+                "        bounds.height * layout.positionY / 100,\n"
+                "      );",
+                False,
+            ),
+            (
+                "M28 拖动期间不让实时位置优先",
+                "lib/workspace/widgets/panels/panel_bar_positioner.dart",
+                "    if (live != null) {",
+                "    if (live != null && false) {",
+                False,
+            ),
+        ],
+    },
+    {
+        "name": "layout_persistence（widget test：去抖 / 重置 / 页面接线）",
+        "cmd": ["flutter", "test", "test/workspace/layout_persistence_test.dart"],
+        "baseline_marker": "All tests passed",
+        "mutations": [
+            (
+                "M29 还原时撤旗不排到「那次 emit 投递」之后 → 启动无端写一次盘",
+                "lib/workspace/breeze_workspace_page.dart",
+                "      scheduleMicrotask(() => _restoring = false);",
+                "      _restoring = false;",
+                False,
+            ),
+            (
+                "M30 「重置布局」只重置状态，不作废磁盘（重启又变回来）",
+                "lib/workspace/breeze_workspace_page.dart",
+                "    scheduleMicrotask(\n"
+                "      () => unawaited(_persistence?.reset() ?? Future<void>.value()),\n"
+                "    );",
+                "    unawaited(_persistence?.reset() ?? Future<void>.value());",
+                False,
+            ),
+            (
+                "M31 去抖窗口归零（每帧都写盘）",
+                "lib/workspace/service/workspace_layout_store.dart",
+                "    _timer = Timer(debounce, flush);",
+                "    _timer = Timer(Duration.zero, flush);",
+                False,
+            ),
+            (
+                "M32 flush 不判空（没有改动也写一次）",
+                "lib/workspace/service/workspace_layout_store.dart",
+                "    final snapshot = _pending;\n    if (snapshot == null) return;",
+                "    final snapshot = _pending ?? WorkspaceLayoutSnapshot.defaults();",
+                False,
+            ),
+        ],
+    },
+    {
+        "name": "dwell（纯 Dart：驻留到点只触发一次 / 离开只取消自己 / 抑制）",
+        "cmd": ["dart", "run", "test/workspace/dwell_check.dart"],
+        "baseline_marker": "checks passed",
+        "mutations": [
+            (
+                "M33 takeDue 取值后不清待发项 → 每帧都重复触发",
+                "lib/workspace/model/workspace_dwell.dart",
+                "    final id = _pendingId;\n    _pendingId = null;\n    return id;",
+                "    return _pendingId;",
+                False,
+            ),
+            (
+                "M34 leave 无条件取消 → 把别人的计时也抹掉",
+                "lib/workspace/model/workspace_dwell.dart",
+                "    if (_pendingId == id) _pendingId = null;",
+                "    _pendingId = null;",
+                False,
+            ),
+            (
+                "M35 抑制期间照旧触发",
+                "lib/workspace/model/workspace_dwell.dart",
+                "      !_suppressed && _pendingId != null && nowMs >= _deadlineMs;",
+                "      _pendingId != null && nowMs >= _deadlineMs;",
+                False,
+            ),
+            (
+                "M36 换了目标不重新计时（在 A 攒的时间算给 B）",
+                "lib/workspace/model/workspace_dwell.dart",
+                "    if (_pendingId == id) return;\n    _pendingId = id;",
+                "    if (_pendingId != null) return;\n    _pendingId = id;",
+                False,
+            ),
+        ],
+    },
 ]
 
 REDUNDANT_NOTE = (
@@ -307,7 +516,11 @@ def main():
     if bad:
         print(f"变异验证未通过：{len(bad)} 项")
         sys.exit(1)
-    print(f"变异验证通过：{caught} 个变异体被捕获（都是判据失败，不是编译错），1 个已备案的冗余兜底")
+    waived = len([r for r in all_rows if r[3] and r[1].startswith("SURVIVED")])
+    tail = f"，{waived} 个已备案的冗余兜底" if waived else ""
+    print(
+        f"变异验证通过：{caught} 个变异体被捕获（都是判据失败，不是编译错）{tail}"
+    )
 
 
 main()
