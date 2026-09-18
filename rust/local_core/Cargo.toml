@@ -27,6 +27,12 @@ zip = { version = "8.2.0", default-features = false, features = [
 # 该 crate 在 vendor 检出里被其 workspace `exclude`，本身就是独立可用的包。
 # 补丁内容：UCM_CHANGEVOLUMEW 回调不再按固定 2048 长度切片读变长分卷名。
 unrar = { path = "../../vendor/mimageviewer/crates/unrar-patched" }
+# ---- 缩略图目录数据库与编解码（mImageViewer 源码级复用，ADR-0001 / ADR-0005）----
+rusqlite = { version = "0.31", features = ["bundled"] }
+sha2 = "0.10"
+webp = "0.3"
+fast_image_resize = { version = "5", features = ["image"] }
+
 # ---- JXL 后端（编译期可切换，见 src/jxl_backend.rs 的对照表）----
 # 后端一（**App 默认**）：jxl-rs 多线程直连。`jxl` 0.7 = libjxl 官方组织的纯 Rust
 # 解码器（Chrome 145 / Firefox 采用中），BSD-3-Clause，默认 SIMD（avx/avx512/sse42
