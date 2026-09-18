@@ -238,4 +238,10 @@ abstract class PageSource {
   /// **必须幂等**：显示节点切换与页面销毁都会调它，两条路径都可能在
   /// 「已经关了」之后再调一次。
   Future<void> close();
+
+  /// 获取该页在磁盘上的直接文件路径（散图文件夹有效，归档内图片返回 null）。
+  Future<String?> getPageFilePath(int index) => Future.value(null);
+
+  /// 获取该页的原始编码字节（JPEG/PNG/WebP 等）。
+  Future<Uint8List?> getPageBytes(int index) => Future.value(null);
 }

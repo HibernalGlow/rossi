@@ -48,12 +48,18 @@ pub mod folder_source;
     feature = "jxl-oxide"
 ))]
 pub mod jxl_backend;
+pub mod final_pipeline;
 pub mod page_load_scheduler;
 pub mod page_order;
 pub mod perf_sink;
 pub mod prefetch_policy;
 pub mod rar_source;
 pub mod zip_source;
+
+pub use final_pipeline::{
+    AiProcessSizeLimit, FinalAiExecutionOutput, ModelKind,
+    compute_final_pipeline_keep_set, should_process_rect,
+};
 
 use std::fmt;
 use std::path::{Path, PathBuf};

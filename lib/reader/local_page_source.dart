@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:path/path.dart' as p;
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/src/rust/api/local.dart';
 
@@ -134,6 +137,27 @@ class LocalPageSource implements PageSource {
     }
     _closed = true;
     localClose(id: _id);
+  }
+
+  @override
+  Future<String?> getPageFilePath(int index) async {
+    if (index < 0 || index >= _pages.length) return null;
+    final file = File(p.join(_path, _pages[index].name));
+    if (file.existsSync()) {
+      return file.path;
+    }
+    return null;
+  }
+
+  @override
+  Future<Uint8List?> getPageBytes(int index) async {
+    if (_closed || index < 0 || index >= _pages.length) return null;
+    try {
+      final bytes = await localPageBytes(id: _id, index: index);
+      return Uint8List.fromList(bytes);
+    } catch (_) {
+      return null;
+    }
   }
 
   /// FFI 枚举 → 本层枚举。**逐项写出而不是 `default`**：

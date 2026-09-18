@@ -25,3 +25,20 @@ String extractImageExtension(String url) {
   } catch (_) {}
   return 'jpg';
 }
+
+/// 判断是否为本地漫画来源
+bool isLocalComicSource(String from, String comicId) {
+  if (from == 'local' || from == 'local_source') {
+    return true;
+  }
+  final lower = comicId.toLowerCase();
+  return lower.startsWith('/') ||
+      lower.contains(':\\') ||
+      lower.contains(':/') ||
+      lower.endsWith('.zip') ||
+      lower.endsWith('.cbz') ||
+      lower.endsWith('.rar') ||
+      lower.endsWith('.cbr') ||
+      lower.endsWith('.7z') ||
+      lower.endsWith('.tar');
+}
