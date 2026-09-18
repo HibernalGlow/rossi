@@ -16,8 +16,9 @@ import 'package:zephyr/workspace/widgets/reader/workspace_reader_host.dart';
 /// 不是占位图。
 ///
 /// **这里不画任何常驻顶栏**：模式切换 / 当前书名 / 关闭漫画都是工作台级别的动作，
-/// 归 `WorkspaceTopChrome`（悬停揭示）—— 否则沉浸模式会在窗口顶部再叠一条常驻胶囊，
-/// 与它重复。
+/// 归 `WorkspaceTopChrome` —— 否则沉浸模式会在窗口顶部再叠一条常驻胶囊，
+/// 与它重复。（顶栏自己是常驻还是悬停揭示由平台定：触摸屏没有 hover，
+/// 那边它必须常驻，否则用户进得来出不去。）
 class ControlledEdgeShell extends StatelessWidget {
   const ControlledEdgeShell({super.key});
 

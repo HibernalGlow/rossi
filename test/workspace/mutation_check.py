@@ -384,6 +384,107 @@ SUITES = [
             ),
         ],
     },
+    # ── 顶栏两种形态（桌面悬停揭示 / 触摸屏常驻） ───────────────────────────
+    #
+    # 这一组盯的是**触摸屏上的那个出口**：工作台是 `Navigator.push` 上来的整页、
+    # 没有系统返回按钮，桌面端靠「悬停揭示 + Esc」出去，而这两条在触摸屏上
+    # 一条都成立不了。M37 就是用户会报的那个症状本身。
+    #
+    # 「可见」与「吃不吃鼠标」是两个独立机制（`AnimatedOpacity` /
+    # `IgnorePointer`），所以 M41 与 M42 分别打这两处 —— 只验一个的话
+    # 另一个坏掉判据照样绿。
+    {
+        "name": "top_chrome（widget test：桌面揭示 / 触摸屏常驻）",
+        "cmd": ["flutter", "test", "test/workspace/top_chrome_test.dart"],
+        "baseline_marker": "All tests passed",
+        "mutations": [
+            (
+                "M37 平台映射恒为揭示 → 触摸屏上没有出口（就是用户会报的那个）",
+                "lib/workspace/widgets/chrome/workspace_top_chrome.dart",
+                "      case TargetPlatform.android:\n"
+                "      case TargetPlatform.iOS:\n"
+                "      case TargetPlatform.fuchsia:\n"
+                "        return WorkspaceTopChromeMode.persistent;",
+                "      case TargetPlatform.android:\n"
+                "      case TargetPlatform.iOS:\n"
+                "      case TargetPlatform.fuchsia:\n"
+                "        return WorkspaceTopChromeMode.reveal;",
+                False,
+            ),
+            (
+                "M38 常驻顶栏浮在内容上、不给内容让位 → 内容第一行永远看不见",
+                "lib/workspace/breeze_workspace_page.dart",
+                "                          ? Column(\n"
+                "                              children: [\n"
+                "                                WorkspaceTopChrome(\n"
+                "                                  mode: chromeMode,\n"
+                "                                  onExit: _exitWorkspace,\n"
+                "                                  onResetLayout: _resetLayout,\n"
+                "                                ),\n"
+                "                                Expanded(\n"
+                "                                  child: SafeArea(top: false, child: content),\n"
+                "                                ),\n"
+                "                              ],\n"
+                "                            )",
+                "                          ? Stack(\n"
+                "                              children: [\n"
+                "                                Positioned.fill(\n"
+                "                                  child: SafeArea(top: false, child: content),\n"
+                "                                ),\n"
+                "                                Positioned(\n"
+                "                                  top: 0,\n"
+                "                                  left: 0,\n"
+                "                                  right: 0,\n"
+                "                                  child: WorkspaceTopChrome(\n"
+                "                                    mode: chromeMode,\n"
+                "                                    onExit: _exitWorkspace,\n"
+                "                                    onResetLayout: _resetLayout,\n"
+                "                                  ),\n"
+                "                                ),\n"
+                "                              ],\n"
+                "                            )",
+                False,
+            ),
+            (
+                "M39 常驻顶栏不给状态栏让位 → 状态栏那一条露出 Scaffold 底色",
+                "lib/workspace/widgets/chrome/workspace_top_chrome.dart",
+                "    final topInset = floating ? 0.0 : MediaQuery.paddingOf(context).top;",
+                "    final topInset = 0.0;",
+                False,
+            ),
+            (
+                "M40 顶栏不再精确等于那一行高（交出去给内容撑）",
+                "lib/workspace/widgets/chrome/workspace_top_chrome.dart",
+                "    return SizedBox(\n"
+                "      height: barHeight + topInset,\n"
+                "      child: Container(\n",
+                "    return SizedBox(\n"
+                "      child: Container(\n",
+                False,
+            ),
+            (
+                "M41 揭示形态恒可见（浮层一直盖着内容顶部那一行）",
+                "lib/workspace/widgets/chrome/workspace_top_chrome.dart",
+                "                    opacity: _visible ? 1 : 0,",
+                "                    opacity: 1,",
+                False,
+            ),
+            (
+                "M42 揭示形态恒吃鼠标（不可见也拦住内容顶部的点击）",
+                "lib/workspace/widgets/chrome/workspace_top_chrome.dart",
+                "                ignoring: !_visible,",
+                "                ignoring: false,",
+                False,
+            ),
+            (
+                "M43 触发带高度归零 → 鼠标贴到窗口最顶端也唤不出来",
+                "lib/workspace/widgets/chrome/workspace_top_chrome.dart",
+                "  static const double triggerHeight = 10;",
+                "  static const double triggerHeight = 0;",
+                False,
+            ),
+        ],
+    },
 ]
 
 REDUNDANT_NOTE = (

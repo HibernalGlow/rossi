@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -22,8 +23,13 @@ import 'package:zephyr/workspace/widgets/swimlane/swimlane_workspace.dart';
 ///
 /// **本页没有自己的 AppBar**：泳道模式下每条泳道自带栏头，再压一条工作台顶栏
 /// 就是第二层顶栏（下面还叠着 macOS 窗口标题栏）。工作台级别的动作
-/// （退出 / 重置布局 / 切模式）收在**悬停揭示**的 `WorkspaceTopChrome` 里，
-/// 平时不占高度，鼠标贴到窗口最顶端才淡入；`Esc` 是退出工作台的键盘路径。
+/// （退出 / 重置布局 / 切模式）收在 `WorkspaceTopChrome` 里，两种形态：
+///
+/// - **桌面（有指针）**：悬停揭示 —— 平时不占高度，鼠标贴到窗口最顶端才淡入，
+///   `Esc` 是退出工作台的键盘路径；
+/// - **触摸屏（没有指针）**：常驻 —— 揭示式顶栏在那边**唤不出来**，
+///   而工作台是 `Navigator.push` 上来的整页、没有系统返回按钮，
+///   顶栏一撤就**没有可见出口**。所以那边顶栏占一行真实高度、内容从它下面开始。
 ///
 /// **持久化也在这一层**：布局记账（模式、泳道顺序与宽度、折叠、激活面板与泳道、
 /// 独占偏好、悬停/揭示的开关与延时、面板栏记账、面板与卡片记账）在启动时读盘、
@@ -179,14 +185,27 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
   /// 退出工作台。
   ///
   /// 工作台是用 `Navigator.push` 上来的整页，**没有系统返回按钮** ——
-  /// 顶栏一撤，它就是唯一的可见出口（键盘侧由 `Esc` 兜底）。
-  /// 只在「工作台确实是栈顶」时才弹：详情页之类压在上面时不该把用户弹走。
+  /// 顶栏一撤，它就是唯一的可见出口（键盘侧由 `Esc` 兜底，
+  /// Android 侧另有系统返回键）。只在「工作台确实是栈顶」时才弹：
+  /// 详情页之类压在上面时不该把用户弹走。
   void _exitWorkspace() {
     if (!mounted) return;
     final route = ModalRoute.of(context);
     if (route == null || !route.isCurrent) return;
     Navigator.of(context).maybePop();
   }
+
+  /// 顶栏形态 —— **触摸屏上揭示式顶栏等于没有出口**（`MouseRegion` 永远不触发，
+  /// 而工作台是 `Navigator.push` 上来的整页、没有系统返回按钮、`Esc` 也用不上）。
+  /// 所以那边保留**常驻**顶栏：占一行真实高度，内容从它下面开始。
+  ///
+  /// 判据是**平台有没有鼠标指针**（`defaultTargetPlatform`），不是「名字里带不带
+  /// desk」—— 带触摸屏的 Windows 笔记本仍然有指针。用 `defaultTargetPlatform`
+  /// 而不是 `dart:io` 的 `Platform` 还让判据能用 `debugDefaultTargetPlatformOverride`
+  /// 把两种形态都跑一遍。
+  WorkspaceTopChromeMode get _chromeMode => WorkspaceTopChromeMode.forTargetPlatform(
+    defaultTargetPlatform,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -195,6 +214,18 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
       child: BlocBuilder<WorkspaceCubit, WorkspaceState>(
         builder: (context, state) {
           final isSwimlane = state.mode == WorkspaceMode.swimlane;
+          final chromeMode = _chromeMode;
+
+          // 内容从顶上铺满：没有 appBar，也没有额外的一行内边距。
+          final content = AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            child: isSwimlane
+                ? SwimlaneWorkspace(
+                    key: const ValueKey('swimlane'),
+                    debugLaneContentBuilder: widget.debugLaneContentBuilder,
+                  )
+                : const ControlledEdgeShell(key: ValueKey('edges')),
+          );
 
           return Scaffold(
             body: CallbackShortcuts(
@@ -207,31 +238,36 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
                 autofocus: true,
                 child: Stack(
                   children: [
-                    // 内容从顶上铺满：没有 appBar，也没有额外的一行内边距。
-                    // SafeArea 只为移动端「最低适配」兜底 —— 桌面端标题栏与内容区
-                    // 本来就分离，`MediaQuery.padding` 是 0，这里不会内缩。
                     Positioned.fill(
-                      child: SafeArea(
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          child: isSwimlane
-                              ? SwimlaneWorkspace(
-                                  key: const ValueKey('swimlane'),
-                                  debugLaneContentBuilder:
-                                      widget.debugLaneContentBuilder,
-                                )
-                              : const ControlledEdgeShell(
-                                  key: ValueKey('edges'),
+                      child: chromeMode == WorkspaceTopChromeMode.persistent
+                          // 常驻形态：顶栏在**正常流**里，内容从它下面开始 ——
+                          // 这条路上不存在「顶栏盖住内容」那一档（那是揭示形态
+                          // 才有的取舍）。内容因此不再自带顶部安全区：
+                          // 顶栏已经连同状态栏一起把那一截吃掉了。
+                          ? Column(
+                              children: [
+                                WorkspaceTopChrome(
+                                  mode: chromeMode,
+                                  onExit: _exitWorkspace,
+                                  onResetLayout: _resetLayout,
                                 ),
-                        ),
-                      ),
+                                Expanded(
+                                  child: SafeArea(top: false, child: content),
+                                ),
+                              ],
+                            )
+                          // 揭示形态：内容从窗口最顶端开始铺满。
+                          // `SafeArea` 只为移动端兜底（桌面端 `MediaQuery.padding`
+                          // 本来就是 0，这里不会内缩，所以不留空档）。
+                          : SafeArea(child: content),
                     ),
 
-                    // 工作台顶栏：悬停揭示，默认不可见（不占高度、不吃鼠标）。
-                    WorkspaceTopChrome(
-                      onExit: _exitWorkspace,
-                      onResetLayout: _resetLayout,
-                    ),
+                    // 揭示形态的顶栏：叠在内容上层，默认不可见（不占高度、不吃鼠标）。
+                    if (chromeMode == WorkspaceTopChromeMode.reveal)
+                      WorkspaceTopChromeReveal(
+                        onExit: _exitWorkspace,
+                        onResetLayout: _resetLayout,
+                      ),
                   ],
                 ),
               ),
