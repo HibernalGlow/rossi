@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path/path.dart' as p;
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/cubit/string_select.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
@@ -11,6 +12,8 @@ import 'package:zephyr/network/http/plugin/qjs_download_runtime.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/page/comic_info/comic_info.dart';
+import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
+import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry.dart';
 import 'package:zephyr/page/comic_info/json/normal/normal_comic_all_info.dart'
     show ComicInfo;
 import 'package:zephyr/plugin/plugin_registry_service.dart';
@@ -240,6 +243,22 @@ class _InfoColumnState extends State<_InfoColumn> {
       color: context.textColor,
     );
 
+    final globalSetting = context.watch<GlobalSettingCubit>().state;
+    final favoriteSetting = globalSetting.favoriteArtistSetting;
+    final allTags = <String>[
+      widget.comicInfo.creator.name,
+      ...widget.comicInfo.titleMeta.map((m) => m.name),
+      ...widget.comicInfo.metadata.expand((m) => m.value.map((v) => v.name)),
+    ];
+    final matchResult = favoriteSetting.highlightEnabled
+        ? FavoriteArtistMatcher.match(
+            title: widget.comicInfo.title,
+            tags: allTags,
+            favoriteArtists: favoriteSetting.artists,
+          )
+        : null;
+    final isFavoriteArtist = matchResult?.isMatched ?? false;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -264,6 +283,10 @@ class _InfoColumnState extends State<_InfoColumn> {
                 ),
               ),
             ),
+            if (isFavoriteArtist) ...[
+              const SizedBox(width: 8),
+              FavoriteArtistBadge(artistName: matchResult?.matchedArtist),
+            ],
             if (_storageSize != null) ...[
               const SizedBox(width: 8),
               Container(

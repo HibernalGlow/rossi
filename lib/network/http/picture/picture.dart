@@ -9,6 +9,9 @@ import 'package:zephyr/network/http/plugin/qjs_download_runtime.dart';
 import 'package:zephyr/service/download/download_asset_store.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/type/pipe.dart';
+import 'package:zephyr/object_box/objectbox.g.dart';
+import 'package:zephyr/service/download/download_queue_manager.dart';
+import 'package:zephyr/service/download/models/download_task_json.dart';
 import 'package:zephyr/service/download/download_cancel_signal.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 
@@ -179,6 +182,15 @@ Future<String> getCachePicture({
       if (pictureType == PictureType.page && applyRealSr) {
         await RealSrSuperResolution.upscaleAndConvertToWebp(newCacheFilePath);
       }
+      unawaited(
+        _syncToDownloadDirectoryIfEnabled(
+          assetStore: assetStore,
+          sourcePath: newCacheFilePath,
+          pictureType: pictureType,
+          from: resolvedFrom,
+          cartoonId: cartoonId,
+        ),
+      );
       return newCacheFilePath;
     } else {
       throw Exception('图片保存失败');
@@ -195,10 +207,56 @@ Future<String> getCachePicture({
     if (pictureType == PictureType.page && applyRealSr) {
       await RealSrSuperResolution.upscaleAndConvertToWebp(newCacheFilePath);
     }
+    unawaited(
+      _syncToDownloadDirectoryIfEnabled(
+        assetStore: assetStore,
+        sourcePath: newCacheFilePath,
+        pictureType: pictureType,
+        from: resolvedFrom,
+        cartoonId: cartoonId,
+      ),
+    );
     return newCacheFilePath;
   } else {
     throw Exception('图片保存失败');
   }
+}
+
+Future<void> _syncToDownloadDirectoryIfEnabled({
+  required DownloadAssetStore assetStore,
+  required String sourcePath,
+  required PictureType pictureType,
+  required String from,
+  required String cartoonId,
+}) async {
+  if (pictureType != PictureType.page) return;
+  try {
+    final readWhileDownloading = objectbox.userSettingBox
+            .get(1)
+            ?.globalSetting
+            .readSetting
+            .readWhileDownloading ??
+        true;
+    if (!readWhileDownloading) return;
+
+    final taskKey = buildDownloadTaskKey(from, cartoonId);
+    final hasTask = DownloadQueueManager.instance.taskExists(from, cartoonId) ||
+        objectbox.unifiedDownloadBox
+            .query(UnifiedComicDownload_.uniqueKey.equals(taskKey))
+            .build()
+            .findFirst() !=
+        null;
+    if (!hasTask) return;
+
+    final canonicalDownloadPath = await assetStore.canonicalDownloadPath();
+    final downloadFile = File(canonicalDownloadPath);
+    if (!await downloadFile.exists() || await downloadFile.length() <= 0) {
+      await assetStore.copyFileAtomically(
+        sourcePath: sourcePath,
+        finalPath: canonicalDownloadPath,
+      );
+    }
+  } catch (_) {}
 }
 
 /// 在不触发下载的前提下，解析图片已存在的本地路径。
@@ -335,7 +393,7 @@ Future<DownloadPictureResult> downloadPictureResult({
         taskId: qjsTaskGroupKey,
       );
       return DownloadPictureResult(
-        status: DownloadPictureResultStatus.downloaded,
+        status: DownloadPictureResultStatus.existing,
         path: canonicalDownloadPath,
         location: DownloadAssetLocation.canonicalDownload,
       );

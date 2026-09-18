@@ -1,6 +1,10 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
 import 'package:zephyr/widgets/comic_entry/models/models.dart';
+import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
 import 'package:zephyr/widgets/toast.dart';
 
@@ -33,6 +37,20 @@ class ComicEntryWidget extends StatelessWidget {
     const coverWidth = 100.0;
     const coverHeight = 133.0;
     final statText = _buildStatText();
+    final globalSetting = context.watch<GlobalSettingCubit>().state;
+    final favoriteSetting = globalSetting.favoriteArtistSetting;
+    final allTags = <String>[
+      ...comic.metadata.expand((m) => m.value.map((v) => v.toString())),
+      if (comic.subtitle.trim().isNotEmpty) comic.subtitle.trim(),
+    ];
+    final matchResult = favoriteSetting.highlightEnabled
+        ? FavoriteArtistMatcher.match(
+            title: comic.title,
+            tags: allTags,
+            favoriteArtists: favoriteSetting.artists,
+          )
+        : null;
+    final isFavoriteArtist = matchResult?.isMatched ?? false;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -65,7 +83,12 @@ class ComicEntryWidget extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: theme.colorScheme.outlineVariant),
+          border: Border.all(
+            color: isFavoriteArtist
+                ? const Color(0xFFF59E0B)
+                : theme.colorScheme.outlineVariant,
+            width: isFavoriteArtist ? 1.8 : 1.0,
+          ),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -75,15 +98,27 @@ class ComicEntryWidget extends StatelessWidget {
                 topLeft: Radius.circular(12),
                 bottomLeft: Radius.circular(12),
               ),
-              child: CoverWidget(
-                fileServer: comic.cover.url,
-                path: comic.cover.cachePath,
-                id: comic.id,
-                pictureType: pictureType ?? PictureType.cover,
-                from: comic.from,
-                roundedCorner: false,
-                width: coverWidth,
-                height: coverHeight,
+              child: Stack(
+                children: [
+                  CoverWidget(
+                    fileServer: comic.cover.url,
+                    path: comic.cover.cachePath,
+                    id: comic.id,
+                    pictureType: pictureType ?? PictureType.cover,
+                    from: comic.from,
+                    roundedCorner: false,
+                    width: coverWidth,
+                    height: coverHeight,
+                  ),
+                  if (isFavoriteArtist)
+                    Positioned(
+                      top: 4,
+                      left: 4,
+                      child: FavoriteArtistBadge(
+                        artistName: matchResult?.matchedArtist,
+                      ),
+                    ),
+                ],
               ),
             ),
             Expanded(

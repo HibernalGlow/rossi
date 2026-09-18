@@ -26,6 +26,7 @@ abstract class ComicSimplifyEntryInfo with _$ComicSimplifyEntryInfo {
     @JsonKey(name: "pictureType") required PictureType pictureType,
     @JsonKey(name: "source") @Default('') String source,
     @JsonKey(name: "from") required String from,
+    @JsonKey(name: "tags") @Default([]) List<String> tags,
   }) = _ComicSimplifyEntryInfo;
 
   factory ComicSimplifyEntryInfo.fromJson(Map<String, dynamic> json) =>

@@ -1,9 +1,12 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:uuid/uuid.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/type/pipe.dart';
+import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 import 'package:zephyr/main.dart';
@@ -17,6 +20,56 @@ import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_info.da
 import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
 
 const double kComicCardBorderRadius = 5.0;
+
+class FavoriteArtistBadge extends StatelessWidget {
+  final String? artistName;
+
+  const FavoriteArtistBadge({super.key, this.artistName});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFBBF24), // #fbbf24
+        borderRadius: BorderRadius.circular(4),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 3,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            '♥',
+            style: TextStyle(
+              color: Color(0xFFDC2626),
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(width: 3),
+          Text(
+            artistName?.isNotEmpty == true
+                ? artistName!
+                : t.settings.favoriteArtistBadge,
+            style: const TextStyle(
+              color: Color(0xFF451A03), // #451a03
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              height: 1.1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class ComicFixedSizeHorizontalList extends StatelessWidget {
   final List<ComicSimplifyEntryInfo> entries;
@@ -67,6 +120,7 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
                 width: itemWidth,
                 height: itemHeight,
                 child: _buildCoverWithTitle(
+                  context,
                   info,
                   itemWidth,
                   itemHeight,
@@ -83,70 +137,93 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
   }
 
   Widget _buildCoverWithTitle(
+    BuildContext context,
     ComicSimplifyEntryInfo info,
     double width,
     double height,
     Key coverKey,
   ) {
     final circular = roundedCorner ? kComicCardBorderRadius : 0.0;
-    return Stack(
-      children: [
-        // 1. 底层封面图
-        CoverWidget(
-          key: coverKey,
-          fileServer: info.fileServer,
-          path: info.path,
-          id: info.id,
-          pictureType: info.pictureType,
-          from: info.from,
-          roundedCorner: roundedCorner,
-          width: width,
-          height: height,
-        ),
+    final globalSetting = context.watch<GlobalSettingCubit>().state;
+    final favoriteSetting = globalSetting.favoriteArtistSetting;
+    final matchResult = favoriteSetting.highlightEnabled
+        ? FavoriteArtistMatcher.match(
+            title: info.title,
+            tags: info.tags,
+            favoriteArtists: favoriteSetting.artists,
+          )
+        : null;
+    final isFavoriteArtist = matchResult?.isMatched ?? false;
 
-        // 2. 顶部阴影与标题
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withValues(alpha: 0.7),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                stops: const [0.0, 0.7],
-              ),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(circular),
-                bottomRight: Radius.circular(circular),
-              ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(circular),
+      child: Container(
+        foregroundDecoration: isFavoriteArtist
+            ? BoxDecoration(
+                border: Border.all(color: const Color(0xFFF59E0B), width: 2.5),
+                borderRadius: BorderRadius.circular(circular),
+              )
+            : null,
+        child: Stack(
+          children: [
+            // 1. 底层封面图
+            CoverWidget(
+              key: coverKey,
+              fileServer: info.fileServer,
+              path: info.path,
+              id: info.id,
+              pictureType: info.pictureType,
+              from: info.from,
+              roundedCorner: roundedCorner,
+              width: width,
+              height: height,
             ),
-            padding: const EdgeInsets.fromLTRB(5.0, 20.0, 5.0, 5.0),
-            child: Text(
-              info.title.let(convertChineseForDisplay),
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12.0,
-                fontWeight: FontWeight.w500,
-                shadows: [
-                  Shadow(
-                    offset: const Offset(0, 1),
-                    blurRadius: 2,
-                    color: Colors.black.withValues(alpha: 0.5),
+
+            // 2. 顶部阴影与标题
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.7),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: const [0.0, 0.7],
                   ),
-                ],
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(circular),
+                    bottomRight: Radius.circular(circular),
+                  ),
+                ),
+                padding: const EdgeInsets.fromLTRB(5.0, 20.0, 5.0, 5.0),
+                child: Text(
+                  info.title.let(convertChineseForDisplay),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12.0,
+                    fontWeight: FontWeight.w500,
+                    shadows: [
+                      Shadow(
+                        offset: const Offset(0, 1),
+                        blurRadius: 2,
+                        color: Colors.black.withValues(alpha: 0.5),
+                      ),
+                    ],
+                  ),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.start,
+                ),
               ),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.start,
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -267,6 +344,17 @@ class ComicSimplifyEntry extends StatelessWidget {
   ) {
     final circular = roundedCorner ? kComicCardBorderRadius : 0.0;
     final primary = Theme.of(context).colorScheme.primary;
+    final globalSetting = context.watch<GlobalSettingCubit>().state;
+    final favoriteSetting = globalSetting.favoriteArtistSetting;
+    final matchResult = favoriteSetting.highlightEnabled
+        ? FavoriteArtistMatcher.match(
+            title: info.title,
+            tags: info.tags,
+            favoriteArtists: favoriteSetting.artists,
+          )
+        : null;
+    final isFavoriteArtist = matchResult?.isMatched ?? false;
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(circular),
       child: Container(
@@ -275,7 +363,15 @@ class ComicSimplifyEntry extends StatelessWidget {
                 border: Border.all(color: primary, width: 4),
                 borderRadius: BorderRadius.circular(circular),
               )
-            : null,
+            : (isFavoriteArtist
+                  ? BoxDecoration(
+                      border: Border.all(
+                        color: const Color(0xFFF59E0B),
+                        width: 2.5,
+                      ),
+                      borderRadius: BorderRadius.circular(circular),
+                    )
+                  : null),
         child: Stack(
           children: [
             CoverWidget(
@@ -330,6 +426,14 @@ class ComicSimplifyEntry extends StatelessWidget {
                 ),
               ),
             ),
+            if (isFavoriteArtist)
+              Positioned(
+                top: 6,
+                left: 6,
+                child: FavoriteArtistBadge(
+                  artistName: matchResult?.matchedArtist,
+                ),
+              ),
             if (selectionMode)
               Positioned(
                 top: 8,

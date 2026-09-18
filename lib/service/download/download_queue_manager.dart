@@ -14,7 +14,11 @@ import 'package:zephyr/service/download/download_task_repository.dart';
 import 'package:zephyr/service/download/models/download_task_json.dart';
 import 'package:zephyr/service/lifecycle/foreground_task/foreground_task_service.dart';
 
+import 'package:path/path.dart' as p;
+import 'package:zephyr/page/bookshelf/service/comic_link_service.dart';
+import 'package:zephyr/src/rust/api/simple.dart';
 import 'package:zephyr/util/error_filter.dart';
+import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/util/macos_activity.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/toast.dart';
@@ -128,9 +132,10 @@ class DownloadQueueManager {
   List<DownloadTask> _runnableTasks() {
     return _taskRepository
         .getAll(incompleteOnly: true)
-        .where(
-          (task) => _taskRepository.readPayload(task)?.stateCode != 'failed',
-        )
+        .where((task) {
+          final stateCode = _taskRepository.readPayload(task)?.stateCode;
+          return stateCode != 'failed' && stateCode != 'paused';
+        })
         .toList()
       ..sort((a, b) => a.id.compareTo(b.id));
   }
@@ -270,7 +275,19 @@ class DownloadQueueManager {
       _removeAllCompletedTasks();
       logger.d('_processQueue: 任务完成并清理');
     } catch (e, s) {
-      if (_isTaskCancelledOrMarked(taskKey, e)) {
+      final currentDbTaskForPauseCheck = _taskRepository.findByTaskKey(taskKey);
+      final isPaused = currentDbTaskForPauseCheck != null &&
+          _taskRepository.readPayload(currentDbTaskForPauseCheck)?.stateCode ==
+              'paused';
+      if (isPaused) {
+        logger.i('任务已暂停并保留断点: ${task.comicName}');
+        _progressController.add(
+          DownloadProgress(
+            comicName: task.comicName,
+            message: t.reader.downloadStatusPaused,
+          ),
+        );
+      } else if (_isTaskCancelledOrMarked(taskKey, e)) {
         logger.i('任务已取消: ${task.comicName}');
         await _removeCancelledTaskRecord(taskKey);
 
@@ -444,6 +461,205 @@ class DownloadQueueManager {
       isCompleted: false,
     );
     logger.i('已重新排队下载任务: taskId=$taskId, taskKey=${payload.taskKey}');
+  }
+
+  /// 获取指定漫画的下载任务
+  DownloadTask? getTaskByComic(String from, String comicId) {
+    return _taskRepository.findByPayload(from: from, comicId: comicId);
+  }
+
+  /// 实时监听指定漫画的下载任务状态
+  Stream<DownloadTask?> watchTaskByComic(String from, String comicId) {
+    final taskKey = buildDownloadTaskKey(from, comicId);
+    return objectbox.downloadTaskBox
+        .query(DownloadTask_.comicId.equals(comicId))
+        .watch(triggerImmediately: true)
+        .map((query) {
+          final tasks = query.find();
+          final matched = tasks.where(
+            (t) => _taskRepository.readPayload(t)?.taskKey == taskKey,
+          );
+          return matched.isEmpty ? null : matched.first;
+        });
+  }
+
+  /// 暂停指定任务（支持正在运行或正在排队的任务）
+  void pauseTask(String taskKey) {
+    final task = _taskRepository.findByTaskKey(taskKey, incompleteOnly: true);
+    if (task == null) return;
+    final payload = _taskRepository.readPayload(task);
+    if (payload == null) return;
+
+    logger.i('收到暂停请求: taskKey=$taskKey, comicName=${task.comicName}');
+    final isRunning = task.isDownloading || _downloadingTaskKey == taskKey;
+
+    _taskRepository.putPayload(
+      task,
+      payload.copyWith(
+        stateCode: 'paused',
+        phaseCode: 'paused',
+      ),
+      status: t.reader.downloadStatusPaused,
+      isDownloading: false,
+      isCompleted: false,
+    );
+
+    if (isRunning) {
+      triggerDownloadCancelSignal(taskKey);
+      final source = payload.from;
+      if (source.isNotEmpty) {
+        unawaited(cancelTrackedQjsTasks(pluginId: source, taskGroupKey: taskKey));
+      }
+    }
+
+    _progressController.add(
+      DownloadProgress(
+        comicName: task.comicName,
+        message: t.reader.downloadStatusPaused,
+      ),
+    );
+  }
+
+  /// 恢复已暂停的任务
+  void resumeTask(String taskKey) {
+    final task = _taskRepository.findByTaskKey(taskKey, incompleteOnly: true);
+    if (task == null) return;
+    final payload = _taskRepository.readPayload(task);
+    if (payload == null) return;
+
+    _taskRepository.putPayload(
+      task,
+      payload.copyWith(
+        stateCode: 'queued',
+        phaseCode: 'resumed',
+        lastErrorCode: '',
+        lastErrorMessage: '',
+      ),
+      status: t.download.statusWaiting,
+      isDownloading: false,
+      isCompleted: false,
+    );
+
+    logger.i('已恢复已暂停下载任务: taskKey=$taskKey, comicName=${task.comicName}');
+
+    _progressController.add(
+      DownloadProgress(
+        comicName: task.comicName,
+        message: t.download.statusWaiting,
+      ),
+    );
+
+    if (!_isProcessing) {
+      _processQueue();
+    }
+  }
+
+  /// 重新下载指定任务（重置已完成进度从头开始）
+  void restartTask(String taskKey) {
+    final task = _taskRepository.findByTaskKey(taskKey);
+    if (task == null) return;
+    final payload = _taskRepository.readPayload(task);
+    if (payload == null) return;
+
+    if (task.isDownloading || _downloadingTaskKey == taskKey) {
+      triggerDownloadCancelSignal(taskKey);
+      final source = payload.from;
+      if (source.isNotEmpty) {
+        unawaited(cancelTrackedQjsTasks(pluginId: source, taskGroupKey: taskKey));
+      }
+    }
+
+    _taskRepository.putPayload(
+      task,
+      payload.copyWith(
+        stateCode: 'queued',
+        phaseCode: 'restarted',
+        completedChapterKeys: const <String>[],
+        completedChapterCount: 0,
+        currentChapterCompletedImages: 0,
+        currentChapterReusedImages: 0,
+        currentChapterFailedImages: 0,
+        currentChapterTotalImages: 0,
+        currentChapterKey: '',
+        lastErrorCode: '',
+        lastErrorMessage: '',
+      ),
+      status: t.download.statusWaiting,
+      isDownloading: false,
+      isCompleted: false,
+    );
+
+    logger.i('已重置并重新排队下载任务: taskKey=$taskKey, comicName=${task.comicName}');
+
+    _progressController.add(
+      DownloadProgress(
+        comicName: task.comicName,
+        message: t.download.statusWaiting,
+      ),
+    );
+
+    if (!_isProcessing) {
+      _processQueue();
+    }
+  }
+
+  /// 删除指定漫画的下载（包括取消排队/运行任务、清理下载记录与本地文件）
+  Future<void> deleteComicDownload(
+    String from,
+    String comicId, {
+    bool deleteFiles = true,
+  }) async {
+    final taskKey = buildDownloadTaskKey(from, comicId);
+    logger.i('执行删除下载: taskKey=$taskKey, deleteFiles=$deleteFiles');
+
+    // 1. 如果正在下载，先取消打断
+    final currentTask = _taskRepository.findByTaskKey(taskKey);
+    if (currentTask != null &&
+        (currentTask.isDownloading || _downloadingTaskKey == taskKey)) {
+      triggerDownloadCancelSignal(taskKey);
+      final source = _taskRepository.readPayload(currentTask)?.from ?? from;
+      if (source.isNotEmpty) {
+        unawaited(cancelTrackedQjsTasks(pluginId: source, taskGroupKey: taskKey));
+      }
+    }
+
+    // 2. 从 downloadTaskBox 移除
+    if (currentTask != null) {
+      objectbox.downloadTaskBox.remove(currentTask.id);
+    }
+
+    // 3. 清理临时缓存文件
+    try {
+      await cleanupDownloadTaskTemporaryFiles(taskKey);
+    } catch (_) {}
+
+    // 4. 若需要删除本地文件及已下载记录
+    if (deleteFiles) {
+      final downloadedQuery = objectbox.unifiedDownloadBox.query(
+        UnifiedComicDownload_.uniqueKey.equals(taskKey),
+      );
+      final downloaded = downloadedQuery.build().findFirst();
+      if (downloaded != null) {
+        objectbox.unifiedDownloadBox.remove(downloaded.id);
+      }
+      ComicLinkService.removeComicFromAll(taskKey, ComicFolderType.download);
+
+      try {
+        final root = await getDownloadPath();
+        final dirPath = p.join(
+          root,
+          encodePath(path: normalizePluginId(from)),
+          encodePath(path: comicId),
+        );
+        final dir = Directory(dirPath);
+        if (await dir.exists()) {
+          await dir.delete(recursive: true);
+          logger.i('已删除本地下载目录: $dirPath');
+        }
+      } catch (e) {
+        logger.w('删除本地已下载文件失败: $e');
+      }
+    }
   }
 
   /// 重置异常退出时遗留的“下载中”状态。

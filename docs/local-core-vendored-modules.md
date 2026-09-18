@@ -1,16 +1,17 @@
 # 从 mImageViewer 搬进来的模块（溯源与同步）
 
-> 这份文档只讲一件事：`rust/local_core` 里有**两个文件是从 `vendor/mimageviewer` 逐字搬来的**，
+> 这份文档只讲一件事：`rust/local_core` 里有**直接从 `vendor/mimageviewer` 搬来的源码模块**，
 > 上游更新时怎么把它们的能力更新吃进来。
 >
 > 适用前提是你已经知道复用形态是 gitlink + path 依赖（[ADR-0007](adr/0007-mimageviewer-vendor-checkout.md)）。
-> 那两个模块**不能用 path 依赖**，理由见下。
+> 其中的两个策略模块**不能用 path 依赖**，理由见下；文件浏览器使用的源码模块
+> 另列在第 2 节。
 
 ---
 
 ## 1. 为什么是搬源码，而不是 `use`
 
-上游把这两个模块藏得比想象中深：
+上游把这两个策略模块藏得比想象中深：
 
 | 上游路径 | 上游可见性 | 结果 |
 |---|---|---|
@@ -30,6 +31,20 @@
 | `rust/local_core/src/page_load_scheduler.rs` | `src/fs_page_load_scheduler.rs` | `1fd6f863` |
 | `rust/local_core/src/prefetch_policy.rs` | `src/app/prefetch_policy.rs` | `1fd6f863` |
 | `rust/local_core/src/perf_sink.rs` | —— **本地新增**，上游对应物是 `src/perf.rs`（完整 JSONL 性能日志系统） | —— |
+
+文件浏览器还直接使用下面三份 mImageViewer 源码。它们保留上游模块名，
+`file_tree::list_directory` 不再自行复制一套扩展名、隐藏项或平台排序规则：
+
+| 本地 | 上游 | 用途 |
+|---|---|---|
+| `rust/local_core/src/folder_tree.rs` | `src/folder_tree.rs` | 虚拟文件夹、媒体扩展名、归档候选、路径解析、DFS 穿透 |
+| `rust/local_core/src/fs_entry.rs` | `src/fs_entry.rs` | Windows reparse point、隐藏属性、内部 bundle 过滤 |
+| `rust/local_core/src/filename_sort.rs` | `src/filename_sort.rs` | Windows sort key、大小写折叠和自然数字排序 |
+
+这三份源码仍以 mImageViewer 的函数名和测试为准。`activity_gate`、`settings`、
+`archive_converter`、`rar_loader`、`zip_loader` 等文件只是给这些纯函数提供 Rossi
+已有能力的薄适配，不重新实现列表规则；其中 RAR 头部判定继续委托
+`rossi_local_core::rar_source`。
 
 许可：上游 mImageViewer 是 **MIT**，可 vendor，已保留版权与来源声明（每个文件头都写了）。
 

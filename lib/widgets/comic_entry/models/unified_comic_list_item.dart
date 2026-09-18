@@ -78,6 +78,10 @@ abstract class UnifiedComicListItem with _$UnifiedComicListItem {
   ComicSimplifyEntryInfo toSimplifyEntryInfo({
     PictureType pictureType = PictureType.cover,
   }) {
+    final collectedTags = <String>[
+      ...metadata.expand((m) => m.value.map((v) => v.toString())),
+      if (subtitle.trim().isNotEmpty) subtitle.trim(),
+    ];
     return ComicSimplifyEntryInfo(
       title: title,
       id: id,
@@ -86,6 +90,7 @@ abstract class UnifiedComicListItem with _$UnifiedComicListItem {
       pictureType: pictureType,
       source: source.trim(),
       from: from,
+      tags: collectedTags,
     );
   }
 }
