@@ -281,6 +281,12 @@ class _NavigationBarState extends State<NavigationBar> {
                           tooltip: '泳道/四边栏工作台 (NeoView Workspace)',
                           onPressed: () => Navigator.of(context).push(
                             MaterialPageRoute<void>(
+                              // 带上名字：工作台靠它判断「我是不是最上面那一页」，
+                              // 详情页 →「开始阅读」时才知道要不要把自己弹回前台
+                              // （见 BreezeWorkspacePage.routeName）。
+                              settings: const RouteSettings(
+                                name: BreezeWorkspacePage.routeName,
+                              ),
                               builder: (_) => const BreezeWorkspacePage(),
                             ),
                           ),

@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:zephyr/config/router/router.gr.dart';
+import 'package:zephyr/workspace/router/workspace_reader_guard.dart';
 
 @AutoRouterConfig(replaceInRouteName: 'Screen|Page,Route')
 class AppRouter extends RootStackRouter {
@@ -53,8 +54,14 @@ class AppRouter extends RootStackRouter {
     AutoRoute(page: ComicFollowRoute.page),
   ];
 
+  /// 全站仅此一个守卫：[WorkspaceReaderGuard]。
+  ///
+  /// 它只在**工作台挂载期间**生效，把 `ComicReadRoute` 的推入改派进工作台的阅读器泳道，
+  /// 于是「中央泳道 = Reader」这件事不需要改动任何一个上游页面
+  /// （书架 / 发现 / 历史推阅读器的方式一个字都没动）。
+  /// 工作台不在场时它原样放行，全屏阅读器的行为完全不变。
   @override
-  List<AutoRouteGuard> get guards => [];
+  List<AutoRouteGuard> get guards => const [WorkspaceReaderGuard()];
 }
 
 void popToRoot(BuildContext context) {

@@ -1,15 +1,29 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 
-/// 增强版单个泳道容器组件（支持完整复用嵌入子页面、微调宽度、Solo、折叠紧凑轨）
+/// 单个泳道容器：栏头（折叠 / 独占 / 宽度）+ 内容。
+///
+/// **栏头归泳道自己**（neoview 契约）：edge 模式那套「钉边 / 拖动 / 改尺寸」的控件
+/// 在这里一律不出现；[headerActions] 是泳道往自己栏头里塞控件的口子 ——
+/// 阅读器泳道就用它把模式切换放进自己的 chrome，于是 Reader 的动作永远跟着 Reader 走。
 class SwimlaneColumn extends StatelessWidget {
   final String laneId;
   final LaneConfig config;
+
+  /// 本泳道当前的实际宽度（阅读器泳道由视口比例算出，不等于 [LaneConfig.width]）。
+  final double resolvedWidth;
+
   final bool isSolo;
   final VoidCallback onToggleCollapse;
   final VoidCallback onToggleSolo;
-  final ValueChanged<double>? onWidthChange;
   final VoidCallback? onResetWidth;
+
+  /// 覆盖栏头标题（例如阅读器泳道显示当前书名）。
+  final String? titleOverride;
+
+  /// 栏头右侧的附加控件。**必须窄**（图标按钮级别），否则窄栏会挤压标题。
+  final List<Widget> headerActions;
+
   final Widget? child;
   final List<Widget>? cards;
 
@@ -17,11 +31,13 @@ class SwimlaneColumn extends StatelessWidget {
     super.key,
     required this.laneId,
     required this.config,
+    required this.resolvedWidth,
     required this.isSolo,
     required this.onToggleCollapse,
     required this.onToggleSolo,
-    this.onWidthChange,
     this.onResetWidth,
+    this.titleOverride,
+    this.headerActions = const <Widget>[],
     this.child,
     this.cards,
   });
@@ -54,7 +70,9 @@ class SwimlaneColumn extends StatelessWidget {
             decoration: BoxDecoration(
               color: isSolo
                   ? theme.colorScheme.primaryContainer.withValues(alpha: 0.25)
-                  : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                  : theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.35,
+                    ),
               border: Border(
                 bottom: BorderSide(
                   color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
@@ -65,12 +83,13 @@ class SwimlaneColumn extends StatelessWidget {
             child: Row(
               children: [
                 Icon(
-                  _laneIcon(laneId),
+                  laneIcon(laneId),
                   size: 18,
                   color: theme.colorScheme.primary,
                 ),
                 const SizedBox(width: 8),
-                // 泳道标题（双击可重置宽度）
+
+                // 泳道标题（双击重置宽度）
                 Expanded(
                   child: Tooltip(
                     message: '双击重置该栏宽度',
@@ -80,7 +99,7 @@ class SwimlaneColumn extends StatelessWidget {
                         children: [
                           Flexible(
                             child: Text(
-                              config.title,
+                              titleOverride ?? config.title,
                               style: theme.textTheme.titleSmall?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -90,13 +109,17 @@ class SwimlaneColumn extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 1,
+                            ),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                              color: theme.colorScheme.surfaceContainerHighest
+                                  .withValues(alpha: 0.5),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              '${config.width.toInt()}px',
+                              '${resolvedWidth.toInt()}px',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 fontSize: 10,
                                 color: theme.colorScheme.outline,
@@ -108,12 +131,19 @@ class SwimlaneColumn extends StatelessWidget {
                     ),
                   ),
                 ),
+
+                ...headerActions,
+
                 // Solo 独占按钮
                 IconButton(
                   icon: Icon(
-                    isSolo ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+                    isSolo
+                        ? Icons.fullscreen_exit_rounded
+                        : Icons.fullscreen_rounded,
                     size: 20,
-                    color: isSolo ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                    color: isSolo
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
                   ),
                   tooltip: isSolo ? '退出独占 (Exit Solo)' : '独占该栏 (Solo 聚焦)',
                   onPressed: onToggleSolo,
@@ -129,7 +159,7 @@ class SwimlaneColumn extends StatelessWidget {
               ],
             ),
           ),
-          // 泳道内容 Body (优先使用嵌入的原生页面，支持自虚拟化滚动)
+          // 泳道内容 Body
           Expanded(
             child: child ??
                 ListView(
@@ -157,7 +187,11 @@ class SwimlaneColumn extends StatelessWidget {
         children: [
           const SizedBox(height: 10),
           IconButton(
-            icon: Icon(_laneIcon(laneId), size: 18, color: theme.colorScheme.primary),
+            icon: Icon(
+              laneIcon(laneId),
+              size: 18,
+              color: theme.colorScheme.primary,
+            ),
             tooltip: '${config.title} (点击展开泳道)',
             onPressed: onToggleCollapse,
             visualDensity: VisualDensity.compact,
@@ -166,7 +200,7 @@ class SwimlaneColumn extends StatelessWidget {
           RotatedBox(
             quarterTurns: 1,
             child: Text(
-              config.title,
+              titleOverride ?? config.title,
               style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.bold,
@@ -187,7 +221,7 @@ class SwimlaneColumn extends StatelessWidget {
     );
   }
 
-  IconData _laneIcon(String id) {
+  static IconData laneIcon(String id) {
     switch (id) {
       case LaneId.left:
         return Icons.menu_book_rounded;

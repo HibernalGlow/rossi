@@ -1,184 +1,281 @@
-import 'dart:math';
+import 'dart:math' as math;
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/cubit/workspace_state.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
-import 'package:zephyr/workspace/widgets/cards/workspace_reader_lane.dart';
+import 'package:zephyr/workspace/widgets/containers/embedded_auxiliary_lane.dart';
 import 'package:zephyr/workspace/widgets/containers/embedded_bookshelf_lane.dart';
 import 'package:zephyr/workspace/widgets/containers/embedded_discover_lane.dart';
 import 'package:zephyr/workspace/widgets/lane_resizer.dart';
+import 'package:zephyr/workspace/widgets/panels/embedded_panel_lane.dart';
+import 'package:zephyr/workspace/widgets/panels/sources_panel.dart';
+import 'package:zephyr/workspace/widgets/reader/workspace_reader_host.dart';
 import 'package:zephyr/workspace/widgets/swimlane/swimlane_column.dart';
 
-/// 水平泳道工作区容器（中央 Reader 阅读器 + 左侧书架 + 右侧发现与工具）
+/// 水平泳道工作区：**一条平面条带**，左面板 / 阅读器 / 右面板依次排列。
+///
+/// 三条不变量（来自 neoview 的 swimlane 契约）：
+/// 1. 所有泳道共处**一条水平条带**，显出一条泳道靠**移动条带**，泳道之间**永不重叠、
+///    永不浮在别人上面**；
+/// 2. 面板泳道宽度是**绝对像素**、不按窗口宽夹取；阅读器泳道宽度是**视口比例**；
+/// 3. 有富余宽度时富余全部给**阅读器**（中央弹性填充），不够时整条带横向滚动。
 class SwimlaneWorkspace extends StatelessWidget {
   const SwimlaneWorkspace({super.key});
+
+  static const double _resizerWidth = 10.0;
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<WorkspaceCubit, WorkspaceState>(
-      builder: (context, state) {
-        final cubit = context.read<WorkspaceCubit>();
-        final layout = state.layout;
-        final soloLaneId = layout.soloLaneId;
-
-        final leftConfig = layout.lanes[LaneId.left] ??
-            const LaneConfig(width: 380, title: '书架 (Bookshelf)');
-        final readerConfig = layout.lanes[LaneId.reader] ??
-            const LaneConfig(width: 650, title: '阅读器 (Reader)');
-        final rightConfig = layout.lanes[LaneId.right] ??
-            const LaneConfig(width: 350, title: '发现与工具 (Tools)');
-
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final viewportWidth = constraints.maxWidth;
-
-            // 1. 如果处于 Solo 独占状态 (例如 Reader 独占放大)
-            if (soloLaneId != null) {
-              return Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  children: [
-                    if (soloLaneId != LaneId.left)
-                      _buildCollapsedSide(context, cubit, LaneId.left, leftConfig),
-                    if (soloLaneId == LaneId.right)
-                      _buildCollapsedSide(context, cubit, LaneId.reader, readerConfig),
-                    Expanded(
-                      child: _buildLane(context, cubit, state, soloLaneId, isSolo: true),
-                    ),
-                    if (soloLaneId == LaneId.left)
-                      _buildCollapsedSide(context, cubit, LaneId.reader, readerConfig),
-                    if (soloLaneId != LaneId.right)
-                      _buildCollapsedSide(context, cubit, LaneId.right, rightConfig),
-                  ],
-                ),
-              );
-            }
-
-            // 2. 常规多泳道模式
-            final leftW = leftConfig.collapsed
-                ? WorkspaceLayoutConfig.collapsedLaneWidth
-                : leftConfig.width;
-            final rightW = rightConfig.collapsed
-                ? WorkspaceLayoutConfig.collapsedLaneWidth
-                : rightConfig.width;
-            const resizerW = 10.0;
-            final fixedSidesWidth = leftW + rightW + (resizerW * 2) + 24;
-
-            // 弹性计算中央 Reader 泳道宽度
-            final calculatedReaderW = max(readerConfig.minWidth, viewportWidth - fixedSidesWidth);
-            final totalWidthRequired = leftW + calculatedReaderW + rightW + (resizerW * 2) + 16;
-            final needsHorizontalScroll = totalWidthRequired > viewportWidth;
-
-            final content = Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // 1. 左侧泳道 (完整复用 BookshelfPage)
-                SizedBox(
-                  width: leftW,
-                  child: _buildLane(context, cubit, state, LaneId.left),
-                ),
-
-                // 分栏手柄 (左 <-> Reader)
-                if (!leftConfig.collapsed)
-                  LaneResizer(
-                    onDragDelta: (delta) => cubit.updateLaneWidth(LaneId.left, delta),
-                    onDoubleTapReset: () =>
-                        cubit.updateLaneWidth(LaneId.left, 380.0 - leftConfig.width),
-                  ),
-
-                // 2. 中央阅读器泳道 (NeoView 核心 Reader Canvas)
-                SizedBox(
-                  width: needsHorizontalScroll ? readerConfig.width : calculatedReaderW,
-                  child: _buildLane(context, cubit, state, LaneId.reader),
-                ),
-
-                // 分栏手柄 (Reader <-> 右)
-                if (!rightConfig.collapsed)
-                  LaneResizer(
-                    onDragDelta: (delta) => cubit.updateLaneWidth(LaneId.right, -delta),
-                    onDoubleTapReset: () =>
-                        cubit.updateLaneWidth(LaneId.right, 350.0 - rightConfig.width),
-                  ),
-
-                // 3. 右侧泳道 (完整复用 DiscoverPage 与插件市场)
-                SizedBox(
-                  width: rightW,
-                  child: _buildLane(context, cubit, state, LaneId.right),
-                ),
-              ],
-            );
-
-            return Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: needsHorizontalScroll
-                  ? SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: SizedBox(
-                        width: totalWidthRequired,
-                        child: content,
-                      ),
-                    )
-                  : content,
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildCollapsedSide(
-    BuildContext context,
-    WorkspaceCubit cubit,
-    String laneId,
-    LaneConfig config,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-      child: SwimlaneColumn(
-        laneId: laneId,
-        config: config.copyWith(collapsed: true),
-        isSolo: false,
-        onToggleCollapse: () => cubit.toggleLaneCollapsed(laneId),
-        onToggleSolo: () => cubit.toggleSoloLane(laneId),
+      builder: (context, state) => LayoutBuilder(
+        builder: (context, constraints) {
+          final viewportWidth = constraints.maxWidth;
+          final soloLaneId = state.layout.soloLaneId;
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: soloLaneId == null
+                ? _buildStrip(context, state, viewportWidth)
+                : _buildSolo(context, state, viewportWidth, soloLaneId),
+          );
+        },
       ),
     );
   }
 
+  // ── 常规多泳道 ─────────────────────────────────────────────────────────
+
+  Widget _buildStrip(
+    BuildContext context,
+    WorkspaceState state,
+    double viewportWidth,
+  ) {
+    final cubit = context.read<WorkspaceCubit>();
+    final layout = state.layout;
+
+    // 1. 各泳道先按自己的计量单位算宽度
+    final widths = <String, double>{};
+    var total = 0.0;
+    for (final laneId in layout.laneOrder) {
+      final lane = layout.lanes[laneId];
+      if (lane == null) continue;
+      final width = lane.collapsed
+          ? WorkspaceLayoutConfig.collapsedLaneWidth
+          : lane.resolveWidth(viewportWidth);
+      widths[laneId] = width;
+      total += width;
+    }
+
+    final visible = layout.laneOrder
+        .where((id) => widths.containsKey(id) && !layout.lanes[id]!.collapsed)
+        .toList();
+    total += _resizerWidth * math.max(0, visible.length - 1);
+
+    // 2. 富余宽度给阅读器；不够就保持各自存储宽度、整条带横向滚动
+    final spare = viewportWidth - total;
+    if (spare > 0 && visible.contains(LaneId.reader)) {
+      widths[LaneId.reader] = widths[LaneId.reader]! + spare;
+      total = viewportWidth;
+    }
+    final needsScroll = total > viewportWidth + 0.5;
+
+    // 3. 按顺序拼装：泳道 + 相邻泳道之间的分隔条
+    final children = <Widget>[];
+    String? previousLaneId;
+    for (final laneId in layout.laneOrder) {
+      final lane = layout.lanes[laneId];
+      if (lane == null || !widths.containsKey(laneId)) continue;
+
+      final previous = previousLaneId;
+      if (previous != null &&
+          !lane.collapsed &&
+          !layout.lanes[previous]!.collapsed) {
+        children.add(
+          LaneResizer(
+            onDragDelta: (delta) =>
+                cubit.dragLanePair(previous, laneId, delta, viewportWidth),
+            onDoubleTapReset: () => cubit.resetLanePair(previous, laneId),
+          ),
+        );
+      }
+
+      children.add(
+        SizedBox(
+          width: widths[laneId],
+          child: _buildLane(context, state, laneId, viewportWidth),
+        ),
+      );
+      previousLaneId = laneId;
+    }
+
+    final strip = Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: children,
+    );
+
+    if (!needsScroll) return strip;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: SizedBox(width: total, child: strip),
+    );
+  }
+
+  // ── Solo 独占 ─────────────────────────────────────────────────────────
+
+  Widget _buildSolo(
+    BuildContext context,
+    WorkspaceState state,
+    double viewportWidth,
+    String soloLaneId,
+  ) {
+    final children = <Widget>[];
+    for (final laneId in state.layout.laneOrder) {
+      if (laneId == soloLaneId) {
+        children.add(
+          Expanded(
+            child: _buildLane(context, state, laneId, viewportWidth, isSolo: true),
+          ),
+        );
+      } else {
+        children.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: _buildCollapsedRail(context, laneId),
+          ),
+        );
+      }
+    }
+    return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: children);
+  }
+
+  Widget _buildCollapsedRail(BuildContext context, String laneId) {
+    final cubit = context.read<WorkspaceCubit>();
+    final config = context.select(
+      (WorkspaceCubit c) =>
+          c.state.layout.lanes[laneId] ??
+          LaneConfig(width: 380, title: laneId),
+    );
+    return SwimlaneColumn(
+      laneId: laneId,
+      config: config.copyWith(collapsed: true),
+      resolvedWidth: WorkspaceLayoutConfig.collapsedLaneWidth,
+      isSolo: false,
+      onToggleCollapse: () => cubit.toggleLaneCollapsed(laneId),
+      onToggleSolo: () => cubit.toggleSoloLane(laneId),
+    );
+  }
+
+  // ── 单条泳道 ───────────────────────────────────────────────────────────
+
   Widget _buildLane(
     BuildContext context,
-    WorkspaceCubit cubit,
     WorkspaceState state,
-    String laneId, {
+    String laneId,
+    double viewportWidth, {
     bool isSolo = false,
   }) {
+    final cubit = context.read<WorkspaceCubit>();
     final config =
         state.layout.lanes[laneId] ?? LaneConfig(width: 380, title: laneId);
-
-    // 核心泳道内容分配 (左: 书架, 中: 阅读器, 右: 发现/插件)
-    final child = switch (laneId) {
-      LaneId.left => const EmbeddedBookshelfLane(),
-      LaneId.reader => WorkspaceReaderLane(
-          mode: WorkspaceMode.swimlane,
-          onToggleMode: () => cubit.toggleMode(),
-        ),
-      LaneId.right => const EmbeddedDiscoverLane(),
-      _ => const SizedBox.shrink(),
-    };
+    final resolvedWidth = isSolo
+        ? viewportWidth
+        : config.resolveWidth(viewportWidth);
 
     return SwimlaneColumn(
       laneId: laneId,
       config: config,
+      resolvedWidth: resolvedWidth,
       isSolo: isSolo,
+      titleOverride: laneId == LaneId.reader
+          ? state.readerTarget?.displayTitle
+          : null,
+      headerActions: laneId == LaneId.reader
+          ? _readerLaneActions(context, state, cubit)
+          : const <Widget>[],
       onToggleCollapse: () => cubit.toggleLaneCollapsed(laneId),
       onToggleSolo: () => cubit.toggleSoloLane(laneId),
-      onResetWidth: () => cubit.updateLaneWidth(
-        laneId,
-        (laneId == LaneId.left ? 380.0 : laneId == LaneId.right ? 350.0 : 650.0) -
-            config.width,
-      ),
-      child: child,
+      onResetWidth: () => cubit.resetLaneWidth(laneId),
+      child: _buildLaneContent(context, state, laneId, cubit),
     );
+  }
+
+  /// 阅读器泳道栏头的附加控件。
+  ///
+  /// 模式切换**放在这里而不是工作台顶栏**：neoview 的契约是泳道模式下
+  /// Reader 的动作跟着 Reader 泳道走，而不是挂在一个全局工具条上。
+  List<Widget> _readerLaneActions(
+    BuildContext context,
+    WorkspaceState state,
+    WorkspaceCubit cubit,
+  ) {
+    final isSwimlane = state.mode == WorkspaceMode.swimlane;
+    return [
+      IconButton(
+        icon: Icon(
+          isSwimlane ? Icons.fullscreen_rounded : Icons.view_column_rounded,
+          size: 18,
+        ),
+        tooltip: isSwimlane ? '切换为沉浸四边栏 (Edges)' : '切换为多列泳道 (Swimlane)',
+        visualDensity: VisualDensity.compact,
+        onPressed: () => cubit.toggleMode(),
+      ),
+      if (state.readerTarget != null)
+        IconButton(
+          icon: const Icon(Icons.close_rounded, size: 18),
+          tooltip: '关闭当前漫画 (回到空态)',
+          visualDensity: VisualDensity.compact,
+          onPressed: () => cubit.closeReader(),
+        ),
+    ];
+  }
+
+  Widget _buildLaneContent(
+    BuildContext context,
+    WorkspaceState state,
+    String laneId,
+    WorkspaceCubit cubit,
+  ) {
+    switch (laneId) {
+      // 左：完整复用上游 BookshelfPage
+      case LaneId.left:
+        return const EmbeddedBookshelfLane();
+
+      // 中：**阅读器** —— 上游原版 ComicReadPage（空态则为画板）
+      case LaneId.reader:
+        return WorkspaceReaderHost(target: state.readerTarget);
+
+      // 右：面板泳道（发现 / 图源与本地 / 工具），各面板独立记状态
+      case LaneId.right:
+        return EmbeddedPanelLane(
+          activePanelId:
+              state.activePanel[LaneId.right] ?? PanelId.discover,
+          onSelect: (panelId) => cubit.setActivePanel(LaneId.right, panelId),
+          panels: [
+            PanelLaneEntry(
+              id: PanelId.discover,
+              icon: Icons.explore_rounded,
+              tooltip: '发现（上游 DiscoverPage）',
+              builder: (_) => const EmbeddedDiscoverLane(),
+            ),
+            PanelLaneEntry(
+              id: PanelId.sources,
+              icon: Icons.extension_rounded,
+              tooltip: '图源与本地',
+              builder: (_) => const SourcesPanel(),
+            ),
+            PanelLaneEntry(
+              id: PanelId.tools,
+              icon: Icons.tune_rounded,
+              tooltip: '工具与设置（上游 MorePage）',
+              builder: (_) => const EmbeddedAuxiliaryLane(),
+            ),
+          ],
+        );
+
+      default:
+        return const SizedBox.shrink();
+    }
   }
 }
