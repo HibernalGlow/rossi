@@ -1,4 +1,10 @@
-import 'package:flutter/foundation.dart';
+// 本文件**刻意不 import Flutter**（不 import `dart:ui`），与
+// `workspace_board_layout.dart` 同一纪律。原因不是洁癖：条带的宽度分配
+// （`WorkspaceStripMetrics`）只有拿得到这里的 `LaneConfig` 才能被算出来，
+// 而本机 `flutter test` 起不来 —— 判据只能靠 `dart run` 的**纯 Dart VM 脚本**，
+// 它**加载不了** `package:flutter/foundation.dart`（`dart:ui` 缺失）。
+// 所以这里不能用 foundation 的 `@immutable`：加上它，几何判据就永久失明。
+// 代价仅仅是少一个 lint 标注，所有字段本来就是 final。
 
 /// 泳道 ID 常量
 class LaneId {
@@ -19,7 +25,6 @@ class LaneId {
 /// 宽度的计量单位**按泳道性质分开**（neoview 契约）：
 /// - 面板泳道用**绝对像素**，且**不按当前窗口宽夹取** —— 窗口变窄时宁可横向滚动；
 /// - 阅读器泳道用**视口比例**，否则横竖屏切换 / 改窗口大小会把它撑得比工作区还宽。
-@immutable
 class LaneConfig {
   /// 面板泳道的宽度（绝对像素）；阅读器泳道只把它当**标称值**用于展示。
   final double width;
@@ -71,7 +76,6 @@ class LaneConfig {
 }
 
 /// 工作区整体布局配置
-@immutable
 class WorkspaceLayoutConfig {
   /// 折叠状态下的紧凑宽度（neoview 的 `COLLAPSED_WIDTH = 44`）
   static const double collapsedLaneWidth = 44.0;

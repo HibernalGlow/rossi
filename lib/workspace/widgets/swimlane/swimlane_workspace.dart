@@ -7,6 +7,7 @@ import 'package:zephyr/workspace/cubit/workspace_state.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
+import 'package:zephyr/workspace/model/workspace_strip_metrics.dart';
 import 'package:zephyr/workspace/widgets/lane_resizer.dart';
 import 'package:zephyr/workspace/widgets/panels/lane_panel_host.dart';
 import 'package:zephyr/workspace/widgets/panels/panel_tab_strip.dart';
@@ -23,20 +24,38 @@ import 'package:zephyr/workspace/widgets/swimlane/swimlane_column.dart';
 class SwimlaneWorkspace extends StatelessWidget {
   const SwimlaneWorkspace({super.key});
 
-  static const double _resizerWidth = 10.0;
+  /// 条带四周的外边距。
+  ///
+  /// **它是「可用宽度」与「视口宽度」的差**，两者不能混用 ——
+  /// 算富余 / 判断要不要滚动时必须用**扣掉两条边距之后**的宽度。
+  /// 差这 16px 的后果不是"挤一挤"，而是 Row 溢出、Flutter 把右侧 10%
+  /// （`debug_overflow_indicator.dart` 里的 `_indicatorFraction`）涂成
+  /// 黄黑斜纹，看起来像界面上多了一条莫名其妙的黄色装饰。
+  ///
+  /// 取值直接引用 [WorkspaceStripMetrics.defaultPadding]：判据
+  /// （`dart run test/workspace/strip_metrics_check.dart`）加载不了 widget，
+  /// 只有**同一个常量**才能保证两边算的是同一件事。
+  static const double _stripPadding = WorkspaceStripMetrics.defaultPadding;
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<WorkspaceCubit, WorkspaceState>(
       builder: (context, state) => LayoutBuilder(
         builder: (context, constraints) {
+          // 两个宽度各有各的用处，别合并：
+          // - `viewportWidth`：阅读器泳道的**比例**要乘它（乘可用宽会把比例算歪）；
+          // - `availableWidth`：条带实际能摆多宽 = 富余 / 滚动的判断基准。
           final viewportWidth = constraints.maxWidth;
+          final availableWidth = math.max(
+            0.0,
+            viewportWidth - _stripPadding * 2,
+          );
           final soloLaneId = state.layout.soloLaneId;
           return Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(_stripPadding),
             child: soloLaneId == null
-                ? _buildStrip(context, state, viewportWidth)
-                : _buildSolo(context, state, viewportWidth, soloLaneId),
+                ? _buildStrip(context, state, viewportWidth, availableWidth)
+                : _buildSolo(context, state, availableWidth, soloLaneId),
           );
         },
       ),
@@ -49,63 +68,51 @@ class SwimlaneWorkspace extends StatelessWidget {
     BuildContext context,
     WorkspaceState state,
     double viewportWidth,
+    double availableWidth,
   ) {
     final cubit = context.read<WorkspaceCubit>();
-    final layout = state.layout;
 
-    // 1. 各泳道先按自己的计量单位算宽度
-    final widths = <String, double>{};
-    var total = 0.0;
-    for (final laneId in layout.laneOrder) {
-      final lane = layout.lanes[laneId];
-      if (lane == null) continue;
-      final width = lane.collapsed
-          ? WorkspaceLayoutConfig.collapsedLaneWidth
-          : lane.resolveWidth(viewportWidth);
-      widths[laneId] = width;
-      total += width;
-    }
+    // 宽度分配**全部**在 `WorkspaceStripMetrics` 里算（纯 Dart、可被
+    // `dart run test/workspace/strip_metrics_check.dart` 断言）。
+    // 这里只负责把它翻译成 widget —— 之前这套算术在本文件里另写了一份，
+    // 于是「只在界面上悄悄坏掉」而判据看不见。
+    final metrics = WorkspaceStripMetrics.resolve(
+      layout: state.layout,
+      viewportWidth: viewportWidth,
+      availableWidth: availableWidth,
+      resizerWidth: LaneResizer.width,
+    );
 
-    final visible = layout.laneOrder
-        .where((id) => widths.containsKey(id) && !layout.lanes[id]!.collapsed)
-        .toList();
-    total += _resizerWidth * math.max(0, visible.length - 1);
-
-    // 2. 富余宽度给阅读器；不够就保持各自存储宽度、整条带横向滚动
-    final spare = viewportWidth - total;
-    if (spare > 0 && visible.contains(LaneId.reader)) {
-      widths[LaneId.reader] = widths[LaneId.reader]! + spare;
-      total = viewportWidth;
-    }
-    final needsScroll = total > viewportWidth + 0.5;
-
-    // 3. 按顺序拼装：泳道 + 相邻泳道之间的分隔条
     final children = <Widget>[];
-    String? previousLaneId;
-    for (final laneId in layout.laneOrder) {
-      final lane = layout.lanes[laneId];
-      if (lane == null || !widths.containsKey(laneId)) continue;
-
-      final previous = previousLaneId;
-      if (previous != null &&
-          !lane.collapsed &&
-          !layout.lanes[previous]!.collapsed) {
+    for (final slot in metrics.slots) {
+      final laneId = slot.laneId;
+      if (laneId == null) {
+        final before = slot.beforeLaneId!;
+        final after = slot.afterLaneId!;
         children.add(
           LaneResizer(
             onDragDelta: (delta) =>
-                cubit.dragLanePair(previous, laneId, delta, viewportWidth),
-            onDoubleTapReset: () => cubit.resetLanePair(previous, laneId),
+                cubit.dragLanePair(before, after, delta, viewportWidth),
+            onDoubleTapReset: () => cubit.resetLanePair(before, after),
           ),
         );
+        continue;
       }
 
       children.add(
         SizedBox(
-          width: widths[laneId],
-          child: _buildLane(context, state, laneId, viewportWidth),
+          width: slot.width,
+          // 栏头里的「宽度」徽标要显示**实际**宽度：富余分给阅读器之后，
+          // 它比 `LaneConfig.resolveWidth()` 算出来的标称值大（差的就是那份富余）。
+          child: _buildLane(
+            context,
+            state,
+            laneId,
+            viewportWidth,
+            resolvedWidth: slot.width,
+          ),
         ),
       );
-      previousLaneId = laneId;
     }
 
     final strip = Row(
@@ -113,10 +120,10 @@ class SwimlaneWorkspace extends StatelessWidget {
       children: children,
     );
 
-    if (!needsScroll) return strip;
+    if (!metrics.needsScroll) return strip;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: SizedBox(width: total, child: strip),
+      child: SizedBox(width: metrics.contentWidth, child: strip),
     );
   }
 
@@ -125,7 +132,7 @@ class SwimlaneWorkspace extends StatelessWidget {
   Widget _buildSolo(
     BuildContext context,
     WorkspaceState state,
-    double viewportWidth,
+    double availableWidth,
     String soloLaneId,
   ) {
     final children = <Widget>[];
@@ -133,7 +140,13 @@ class SwimlaneWorkspace extends StatelessWidget {
       if (laneId == soloLaneId) {
         children.add(
           Expanded(
-            child: _buildLane(context, state, laneId, viewportWidth, isSolo: true),
+            child: _buildLane(
+              context,
+              state,
+              laneId,
+              availableWidth,
+              isSolo: true,
+            ),
           ),
         );
       } else {
@@ -173,18 +186,19 @@ class SwimlaneWorkspace extends StatelessWidget {
     String laneId,
     double viewportWidth, {
     bool isSolo = false,
+    double? resolvedWidth,
   }) {
     final cubit = context.read<WorkspaceCubit>();
     final config =
         state.layout.lanes[laneId] ?? LaneConfig(width: 380, title: laneId);
-    final resolvedWidth = isSolo
-        ? viewportWidth
-        : config.resolveWidth(viewportWidth);
+    // 条带那边已经算好了**实际摆出来的宽度**（含分给阅读器的富余），直接用；
+    // 没传（Solo 的独占泳道）时才退回标称值 —— 那时候宽度由 `Expanded` 定。
+    final laneWidth = resolvedWidth ?? config.resolveWidth(viewportWidth);
 
     final column = SwimlaneColumn(
       laneId: laneId,
       config: config,
-      resolvedWidth: resolvedWidth,
+      resolvedWidth: laneWidth,
       isSolo: isSolo,
       titleOverride: laneId == LaneId.reader
           ? state.readerTarget?.displayTitle
