@@ -20,6 +20,8 @@ class _ReaderSettingsReadTab extends StatelessWidget {
             onLandscapeChanged: onLandscapeChanged,
           ),
           const SizedBox(height: 18),
+          const _SuperResolutionSection(),
+          const SizedBox(height: 18),
           const _ThemeModeSection(),
           const SizedBox(height: 18),
           const _ReadBackgroundSection(),
@@ -532,6 +534,52 @@ class _ReadExperienceSection extends StatelessWidget {
             },
           ),
       ],
+    );
+  }
+}
+
+class _SuperResolutionSection extends StatelessWidget {
+  const _SuperResolutionSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final session = LocalReadSession.instance;
+    final presenter = session.presenter;
+    if (presenter == null) {
+      return const SizedBox.shrink();
+    }
+
+    return ListenableBuilder(
+      listenable: presenter,
+      builder: (context, _) {
+        if (!presenter.canPresent) {
+          return const SizedBox.shrink();
+        }
+        final isUpscale = presenter.isUpscaleEnabled;
+        final isOriginal = presenter.isOriginalPreview;
+        return _SettingsSection(
+          title: 'AI 超分辨率 (mImageViewer 级联状态机)',
+          children: [
+            _SettingsSwitchTile(
+              title: '启用 AI 超分辨率',
+              subtitle: isUpscale
+                  ? '后台自动异步推理并毫秒级平滑替换当前页画面'
+                  : '未启用：仅显示原始分辨率图像',
+              value: isUpscale,
+              onChanged: (val) => presenter.setUpscaleEnabled(val),
+            ),
+            if (isUpscale)
+              _SettingsSwitchTile(
+                title: '原图对比旁路 (Original Preview)',
+                subtitle: isOriginal
+                    ? '已旁路超分：当前强制显示未经放大的 raw 原图'
+                    : '未旁路：当前正呈现高质量超分辨率增强画面',
+                value: isOriginal,
+                onChanged: (val) => presenter.setOriginalPreview(val),
+              ),
+          ],
+        );
+      },
     );
   }
 }

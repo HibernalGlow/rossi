@@ -685,7 +685,12 @@ class RealSrSuperResolution {
 
   /// 对单张图片做超分放大。
   ///
-  /// 返回是否实际执行了超分；图片格式不支持、模型不可用等跳过场景返回 false。
+  /// 返回 `true` 的完整含义是：**超分引擎跑完且 [outputPath] 上确实留下了非空的
+  /// 产物文件**。图片格式不支持、模型不可用、引擎报错、引擎跑完但没写出文件
+  /// 等情况一律返回 `false`。
+  ///
+  /// 「跑完没报错就算成功」这种宽松返回值会让调用方把"执行过"读成"已产出"，
+  /// 进而把没有超分图的一页报成"替换成功" —— 所以这里的判据必须是产物本身。
   static Future<bool> upscale({
     required String inputPath,
     String? outputPath,
@@ -779,9 +784,23 @@ class RealSrSuperResolution {
         }
       }
 
+      // 引擎「跑完了」不等于「成功了」：它可能退出码非 0 却没被上面的分支抓到、
+      // 也可能写出一个 0 字节的空壳。这里把契约兑现掉 —— 返回 true 必须意味着
+      // **产物在盘上且非空**。否则调用方（超分流水线）会把"跑过一遍"当成
+      // "画面已经换成超分图"，这正是虚报的源头之一。
+      final outFile = File(out);
+      final int outBytes = outFile.existsSync() ? await outFile.length() : 0;
+      if (outBytes <= 0) {
+        logger.w(
+          '超分引擎未产出有效文件: $out'
+          '（${outFile.existsSync() ? '$outBytes 字节' : '文件不存在'}）',
+        );
+        return false;
+      }
+
       final endAt = DateTime.now();
       final duration = endAt.difference(startAt).inMilliseconds;
-      logger.d('Upscaling took ${duration}ms');
+      logger.d('Upscaling took ${duration}ms, wrote $outBytes bytes');
       return true;
     });
   }

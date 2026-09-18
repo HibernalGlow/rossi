@@ -15,6 +15,7 @@ import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dar
 import 'package:zephyr/src/rust/api/simple.dart';
 import 'package:zephyr/src/rust/decode/decode.dart';
 import 'package:zephyr/util/get_path.dart';
+import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 
 export 'package:zephyr/service/download/download_asset_store.dart'
     show normalizeStoredAssetPath;
@@ -33,7 +34,7 @@ Future<String> getCachePicture({
   required String from,
   String url = '',
   String path = '',
-  String cartoonId = '1',
+  String cartoonId = '',
   String chapterId = '',
   String storageChapterId = '',
   PictureType pictureType = PictureType.page,
@@ -42,6 +43,36 @@ Future<String> getCachePicture({
   bool applyRealSr = true,
   bool usePlugin = true,
 }) async {
+  if (isLocalComicSource(from, cartoonId) ||
+      isLocalComicSource(from, url) ||
+      (extern != null && extern['isLocalGpu'] == true)) {
+    final directPath = path.trim();
+    if (directPath.isNotEmpty && File(directPath).existsSync()) {
+      return directPath;
+    }
+    final directUrl = url.trim();
+    if (directUrl.isNotEmpty &&
+        File(directUrl).existsSync() &&
+        !directUrl.endsWith('.zip') &&
+        !directUrl.endsWith('.cbz') &&
+        !directUrl.endsWith('.rar') &&
+        !directUrl.endsWith('.cbr') &&
+        !directUrl.endsWith('.7z') &&
+        !directUrl.endsWith('.tar')) {
+      return directUrl;
+    }
+    final localTarget = cartoonId.isNotEmpty
+        ? cartoonId
+        : (url.isNotEmpty ? url : path);
+    if (localTarget.isNotEmpty) {
+      final cover = await ensureLocalComicCover(localTarget);
+      if (cover != null && File(cover).existsSync()) {
+        return cover;
+      }
+    }
+    return '404';
+  }
+
   final resolvedFrom = normalizePluginId(from);
   if (resolvedFrom.isEmpty) {
     throw StateError('getCachePicture missing pluginId');
@@ -535,6 +566,12 @@ Future<Uint8List> downloadImageWithRetry(
   String qjsTaskGroupKey = '',
   Map<String, dynamic> extern = const <String, dynamic>{},
 }) async {
+  if (isLocalComicSource(source, url)) {
+    throw DownloadPictureNotFoundException(
+      url,
+      StateError('local_source_not_supported:$source'),
+    );
+  }
   var attempts = 0;
   while (true) {
     try {
@@ -615,6 +652,11 @@ Future<Uint8List> downloadImageWithRetry(
       }
       if (e is DownloadPictureEmptyDataException) {
         logger.w('下载图片返回空数据，停止重试: $url');
+        rethrow;
+      }
+      if (e.toString().contains('plugin_not_found') ||
+          e.toString().contains('local_source_not_supported')) {
+        logger.w('插件未安装或本地来源，跳过下载: $e, URL: $url');
         rethrow;
       }
       if (e is DownloadPictureHttpException) {

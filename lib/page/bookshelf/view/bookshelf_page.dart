@@ -455,7 +455,7 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent>
         (plugin) => plugin.isEnabled && !plugin.isDeleted,
       ),
     );
-    return sourceOptions
+    final list = sourceOptions
         .map(
           (plugin) => _FilterSourceOption(
             pluginId: plugin.uuid,
@@ -463,9 +463,19 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent>
           ),
         )
         .toList();
+    list.add(
+      _FilterSourceOption(
+        pluginId: 'local',
+        title: _sourceTitle('local'),
+      ),
+    );
+    return list;
   }
 
   String _sourceTitle(String pluginId) {
+    if (pluginId == 'local') {
+      return '本地漫画';
+    }
     final info = PluginRegistryService.I.getCachedPluginInfo(pluginId);
     final name = info?['name']?.toString().trim() ?? '';
     return name.isNotEmpty ? name : pluginId;
@@ -653,8 +663,11 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent>
         pluginStates.values
             .where((plugin) => plugin.isEnabled && !plugin.isDeleted)
             .map((plugin) => plugin.uuid)
-            .toList()
-          ..sort();
+            .toList();
+    if (!available.contains('local')) {
+      available.add('local');
+    }
+    available.sort();
 
     if (listEquals(_lastAvailableSources, available)) {
       return;

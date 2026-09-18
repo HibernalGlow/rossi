@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/painting.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
@@ -99,6 +100,12 @@ class _ImageDisplayState extends State<ImageDisplay> {
 
   void _resolveImageMeta() {
     final imageProvider = FileImage(File(widget.imagePath));
+
+    // RealSR replaces the cached file in place. FileImage uses the path as
+    // its cache key, so evict the previous decoded frame before resolving;
+    // otherwise a successful upscale can remain invisible until the global
+    // image cache happens to expire it.
+    PaintingBinding.instance.imageCache.evict(imageProvider);
     final newStream = imageProvider.resolve(ImageConfiguration.empty);
 
     final newListener = ImageStreamListener(
@@ -207,6 +214,7 @@ class _ImageDisplayState extends State<ImageDisplay> {
           alignment: widget.imageAlignment,
           child: Image.file(
             File(widget.imagePath),
+            key: ValueKey<String>('reader-image:${widget.imagePath}'),
             width: width,
             fit: isColumn ? BoxFit.fill : BoxFit.contain,
             alignment: widget.imageAlignment,

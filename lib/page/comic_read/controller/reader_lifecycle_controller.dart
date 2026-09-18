@@ -67,7 +67,7 @@ class ReaderLifecycleController {
     if (isDesktopPlatform()) {
       await _restoreDesktopFullscreen();
     }
-    historyController.stop();
+    await historyController.stop();
   }
 
   /// 标记页面已成功 bootstrap 初始阅读状态。

@@ -1,6 +1,7 @@
 import 'package:zephyr/network/http/picture/picture.dart';
 import 'package:zephyr/page/comic_read/widgets/modes/read_mode_utils.dart';
 import 'package:zephyr/type/enum.dart';
+import 'package:zephyr/util/path_util.dart';
 
 /// 负责把当前阅读位置之后的图片提前写入图片缓存。
 ///
@@ -17,6 +18,7 @@ class ReaderImagePrefetchController {
     required int count,
   }) async {
     if (_disposed || count <= 0 || entries.isEmpty) return;
+    if (isLocalComicSource(from, comicId)) return;
 
     for (final entry in entries.take(count)) {
       if (_disposed) return;
@@ -25,7 +27,9 @@ class ReaderImagePrefetchController {
       if (entry.type != ReadModeEntryType.image ||
           doc == null ||
           chapterId == null ||
-          chapterId.isEmpty) {
+          chapterId.isEmpty ||
+          doc.extern['isLocalGpu'] == true ||
+          isLocalComicSource(from, doc.fileServer)) {
         continue;
       }
 

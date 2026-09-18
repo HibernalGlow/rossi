@@ -6,6 +6,7 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/cubit/string_select.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_seamless_cubit.dart';
+import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
 import 'package:zephyr/service/reader/reader_history_service.dart';
 import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
@@ -67,23 +68,27 @@ class ReaderHistoryController {
     );
   }
 
-  void stop() {
+  Future<void> stop() async {
     _statusSubscription?.cancel();
-    _service.stop();
+    await _service.stop();
   }
 
   int getHistoryPageIndex() => _service.lastPageIndex;
 
   /// 章节成功加载后恢复历史阅读位置，仅执行一次。
   Future<void> handleHistoryScroll(BuildContext context) async {
-    var shouldScroll = isHistoryEntry() && !isSkipped;
+    final isLocal = isLocalComicSource(from, comicId);
     final historyIndex = getHistoryPageIndex();
+    var shouldScroll =
+        (isHistoryEntry() || (isLocal && historyIndex > 1)) && !isSkipped;
     if (shouldScroll) {
       shouldScroll &= (historyIndex - 1 != 0);
     }
 
     if (!shouldScroll) {
-      if (isHistoryEntry() || isSkipped) return;
+      if (isHistoryEntry() || (isLocal && historyIndex > 1) || isSkipped) {
+        return;
+      }
       final readSetting = context.read<GlobalSettingCubit>().state.readSetting;
       final seamlessCubit = context.read<ReaderSeamlessCubit>();
       if (!seamlessCubit.isSeamlessEnabled()) {

@@ -36,6 +36,7 @@ import 'package:zephyr/page/discover/view/discover_page.dart';
 import 'package:zephyr/page/more/view/more.dart';
 import 'package:zephyr/page/old_page/old_home/old_home_page.dart';
 import 'package:zephyr/page/old_page/old_ranking/old_ranking_page.dart';
+import 'package:zephyr/workspace/breeze_workspace_page.dart';
 
 @RoutePage()
 class NavigationBar extends StatefulWidget {
@@ -272,6 +273,15 @@ class _NavigationBarState extends State<NavigationBar> {
                           onPressed: () => Navigator.of(context).push(
                             MaterialPageRoute<void>(
                               builder: (_) => const GpuPresentPage(),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.dashboard_customize_outlined),
+                          tooltip: '泳道/四边栏工作台 (NeoView Workspace)',
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const BreezeWorkspacePage(),
                             ),
                           ),
                         ),

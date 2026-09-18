@@ -7,9 +7,11 @@ import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/network/http/picture/picture.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
+import 'package:zephyr/cubit/string_select.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/type/enum.dart';
+import 'package:zephyr/util/path_util.dart';
 
 class ComicEntryWidget extends StatelessWidget {
   const ComicEntryWidget({
@@ -35,6 +37,22 @@ class ComicEntryWidget extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
+        if (isLocalComicSource(comic.from, comic.id)) {
+          context.pushRoute(
+            ComicReadRoute(
+              comicId: comic.id,
+              order: 0,
+              from: 'local',
+              epsNumber: 1,
+              type: type == ComicEntryType.normal
+                  ? ComicEntryType.normal
+                  : ComicEntryType.history,
+              comicInfo: comic.id,
+              stringSelectCubit: StringSelectCubit(),
+            ),
+          );
+          return;
+        }
         context.pushRoute(
           ComicInfoRoute(comicId: comic.id, type: type, from: comic.from),
         );

@@ -46,11 +46,16 @@ UnifiedComicListItem unifiedComicFromUnifiedFavorite(
 }
 
 UnifiedComicListItem unifiedComicFromUnifiedHistory(UnifiedComicHistory comic) {
+  final isLocal = isLocalComicSource(comic.source, comic.comicId);
+  final subtitle = isLocal && comic.pageIndex > 0
+      ? '看到第 ${comic.pageIndex} 页'
+      : comic.chapterTitle;
+
   return UnifiedComicListItem(
     source: comic.source,
     id: comic.comicId,
     title: comic.title,
-    subtitle: comic.chapterTitle,
+    subtitle: subtitle,
     finished: false,
     likesCount: 0,
     viewsCount: _viewCountFromTitleMeta(comic.titleMeta),

@@ -10,6 +10,7 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/util/debouncer.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
+import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 
 part 'reader_settings_gesture_tab.dart';
 part 'reader_settings_info_tab.dart';

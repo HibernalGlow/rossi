@@ -11,6 +11,7 @@ import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/page/comic_info/json/normal/normal_comic_all_info.dart'
     as normal;
 import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
+import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
 import 'package:zephyr/util/worker_isolate.dart';
 
@@ -54,13 +55,23 @@ class ReaderHistoryService {
     required String comicId,
     required dynamic comicInfo,
   }) async {
+    final isLocal = isLocalComicSource(source, comicId);
+    final resolvedComicId =
+        isLocal ? normalizeLocalComicPath(comicId) : comicId;
+
     _source = source;
-    _comicId = comicId;
-    _comicInfo = _resolveNormalComicInfo(comicInfo);
+    _comicId = resolvedComicId;
+    _comicInfo = await _resolveNormalComicInfo(
+      source: source,
+      comicId: resolvedComicId,
+      comicInfo: comicInfo,
+    );
     _isLoading = true;
 
     final query = objectbox.unifiedHistoryBox
-        .query(UnifiedComicHistory_.uniqueKey.equals('$source:$comicId'))
+        .query(
+          UnifiedComicHistory_.uniqueKey.equals('$source:$resolvedComicId'),
+        )
         .build();
     try {
       _history = query.findFirst();
@@ -86,13 +97,18 @@ class ReaderHistoryService {
     });
   }
 
-  /// 立即停止周期性保存。
-  void stop() => _timer?.cancel();
+  /// 立即停止周期性保存，并执行一次退出前的最后历史写入。
+  Future<void> stop() async {
+    _timer?.cancel();
+    _timer = null;
+    await _writeHistory(force: true);
+  }
 
-  Future<void> _writeHistory() async {
+  Future<void> _writeHistory({bool force = false}) async {
     if (_isLoading || _comicInfo == null) return;
     if (_isInserting) return;
-    if (_lastUpdateTime != null &&
+    if (!force &&
+        _lastUpdateTime != null &&
         DateTime.now().difference(_lastUpdateTime!).inMilliseconds < 100) {
       return;
     }
@@ -134,13 +150,49 @@ class ReaderHistoryService {
     }
   }
 
-  normal.ComicInfo _resolveNormalComicInfo(dynamic comicInfo) {
+  Future<normal.ComicInfo> _resolveNormalComicInfo({
+    required String source,
+    required String comicId,
+    required dynamic comicInfo,
+  }) async {
+    if (comicInfo is normal.ComicInfo) {
+      return comicInfo;
+    }
     if (comicInfo is PluginComicDetailSource) {
       return comicInfo.normalInfo.comicInfo;
     }
     if (comicInfo is UnifiedComicDownload) {
       final detail = jsonDecode(comicInfo.detailJson) as Map<String, dynamic>;
       return normal.NormalComicAllInfo.fromJson(detail).comicInfo;
+    }
+
+    if (isLocalComicSource(source, comicId) || comicInfo is String) {
+      final localPath = normalizeLocalComicPath(
+        comicInfo is String && comicInfo.trim().isNotEmpty
+            ? comicInfo
+            : comicId,
+      );
+      final title = p.basenameWithoutExtension(localPath);
+      final coverPath = await ensureLocalComicCover(localPath) ?? '';
+      return normal.ComicInfo(
+        id: localPath,
+        title: title,
+        titleMeta: const [],
+        creator: const normal.Creator(
+          id: 'local',
+          name: '本地',
+          avatar: normal.ComicImage(id: '', url: '', name: ''),
+        ),
+        description: localPath,
+        cover: normal.ComicImage(
+          id: localPath,
+          url: '',
+          name: title,
+          path: coverPath,
+          extern: {'isLocal': true, 'localPath': coverPath},
+        ),
+        metadata: const [],
+      );
     }
 
     final map = _toDynamicMap(comicInfo);

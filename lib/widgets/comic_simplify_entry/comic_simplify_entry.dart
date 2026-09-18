@@ -10,6 +10,8 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/network/http/picture/picture.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/config/router/router.gr.dart';
+import 'package:zephyr/cubit/string_select.dart';
+import 'package:zephyr/util/path_util.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_info.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
@@ -153,6 +155,20 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
     final pluginId = (info.source.trim().isNotEmpty ? info.source : info.from)
         .trim();
     if (pluginId.isEmpty) return;
+    if (isLocalComicSource(pluginId, info.id)) {
+      context.pushRoute(
+        ComicReadRoute(
+          comicId: info.id,
+          order: 0,
+          from: 'local',
+          epsNumber: 1,
+          type: ComicEntryType.history,
+          comicInfo: info.id,
+          stringSelectCubit: StringSelectCubit(),
+        ),
+      );
+      return;
+    }
     context.pushRoute(
       ComicInfoRoute(
         comicId: info.id,
@@ -350,6 +366,31 @@ class ComicSimplifyEntry extends StatelessWidget {
     final pluginId = (info.source.trim().isNotEmpty ? info.source : info.from)
         .trim();
     if (pluginId.isEmpty) return;
+
+    // 本地来源必须绕开详情页 —— 与上方 [ComicFixedSizeHorizontalList] 的同名方法、
+    // 以及 [ComicEntryWidget] 的分支保持一致。
+    //
+    // 本地漫画的 `source` 是 `local`、`id` 是文件路径，它**没有插件**。送进
+    // [ComicInfoRoute] 会被详情页当成「插件 id = local」去问 qjs 运行时，
+    // 得到 `plugin_not_found:local`；这在界面上只会显示成一句「加载失败，请重试。」
+    // （历史上还会被错误处理改写成一句类型转换错误）。本地漫画直接进阅读器。
+    if (isLocalComicSource(pluginId, info.id)) {
+      context.pushRoute(
+        ComicReadRoute(
+          comicId: info.id,
+          order: 0,
+          from: 'local',
+          epsNumber: 1,
+          type: type == ComicEntryType.normal
+              ? ComicEntryType.normal
+              : ComicEntryType.history,
+          comicInfo: info.id,
+          stringSelectCubit: StringSelectCubit(),
+        ),
+      );
+      return;
+    }
+
     context.pushRoute(
       ComicInfoRoute(
         comicId: info.id,
