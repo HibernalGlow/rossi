@@ -1930,8 +1930,9 @@ String sniffImageFormat(Uint8List? bytes) {
   if (bytes == null || bytes.length < 12) return '未知';
   final b = bytes;
   if (b[0] == 0xFF && b[1] == 0xD8 && b[2] == 0xFF) return 'JPEG';
-  if (b[0] == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47)
+  if (b[0] == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47) {
     return 'PNG';
+  }
   if (b[0] == 0x47 && b[1] == 0x49 && b[2] == 0x46) return 'GIF';
   if (b[0] == 0x42 && b[1] == 0x4D) return 'BMP';
   if (b[0] == 0x52 &&
