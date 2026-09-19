@@ -75,11 +75,11 @@ bool operationBindingValidate({required String bindingsJson}) =>
       bindingsJson: bindingsJson,
     );
 
-/// 轮盘的出厂文档（默认轮盘：3 层 · r120 · 内 40 · 每层 8 格），JSON。
+/// 轮盘的出厂文档（默认轮盘：3 层 · r120 · 内 40 · 起始角 -90 · 扫过 360），JSON。
 String operationBindingRadialDefaultConfig() => RustLib.instance.api
     .crateApiOperationBindingOperationBindingRadialDefaultConfig();
 
-/// 这份轮盘文档**读得懂**吗（吃用户设置与用户导入，所以校验要能失败而不是 panic）。
+/// 这份轮盘文档**读得懂且合法**吗（吃用户设置与用户导入，所以校验要能失败而不是 panic）。
 bool operationBindingRadialValidate({required String configJson}) =>
     RustLib.instance.api.crateApiOperationBindingOperationBindingRadialValidate(
       configJson: configJson,
@@ -94,11 +94,11 @@ String operationBindingRadialProblems({required String configJson}) =>
       configJson: configJson,
     );
 
-/// 一个轮盘的全部槽位布局（JSON 数组，字段 `itemId` / `layer` / `sector` /
-/// `innerRadius` / `outerRadius` / `startDeg` / `endDeg` / `midDeg`）。
+/// 一个轮盘显示出来的全部槽位（**含空格**），JSON 数组。
 ///
-/// 外壳**照着这份数字画**，命中判定也读这同一份数字（见 [`operation_binding_radial_slot`]）——
-/// 两边各算一遍算术迟早分叉，表现为「高亮的不是执行的那格」。
+/// 外壳**照着这份数字画**：每格的内外半径、起止角、标签、能不能选，都在里面。
+/// 命中判定读的是同一组数字（见 [`operation_binding_radial_slot`]），所以
+/// 「高亮的一格」与「执行的一格」不可能是两格。
 String operationBindingRadialLayout({
   required String configJson,
   required String menuId,
@@ -107,12 +107,13 @@ String operationBindingRadialLayout({
   menuId: menuId,
 );
 
-/// 落点（相对圆心的偏移）→ 选中的槽，返回**就是那条 `radial` 输入**的
-/// descriptor JSON（`{"device":"radial","menuId":…,"itemId":…}`）。
+/// 落点（相对圆心的偏移）→ 选中的槽，返回 `RadialSlotHit` 的 JSON
+/// （`menuId` / `itemId` / `level` / `index` / `legacyAction` / `moveToMenuId`）。
 ///
-/// 形状与 [`operation_binding_resolve`] 吃的输入完全一致，所以外壳拿到就能直接问引擎
-/// 「这一格是什么动作」，中间不经过任何轮盘专用的判断。
-/// 落在中心空洞或外半径之外返回 `None`（前者=松手取消，后者=已经移出去了）。
+/// 外壳拿 `itemId` 拼出那条 `radial` 输入去问解析器；`legacyAction` 是 neoview 的
+/// 回落（老包里条目自己带动作、而绑定表里没有那一行时用它），`moveToMenuId` 非空
+/// 表示这一格是「跳转轮盘」，松手换轮盘而不是执行动作。
+/// 落在空洞、空格、被禁用的条目或扫过角之外 ⇒ `None`。
 String? operationBindingRadialSlot({
   required String configJson,
   required String menuId,
@@ -125,16 +126,31 @@ String? operationBindingRadialSlot({
   dy: dy,
 );
 
-/// 轮盘的出厂绑定（只有默认轮盘有；新建的空轮盘返回空数组），JSON 数组。
+/// 某个轮盘的出厂槽位绑定（只有默认轮盘有；新轮盘返回空数组），JSON 数组。
 String operationBindingRadialPreset({required String menuId}) => RustLib
     .instance
     .api
     .crateApiOperationBindingOperationBindingRadialPreset(menuId: menuId);
 
-/// 轮盘形状变了之后，剪掉指向**已不存在的槽**的那些绑定，返回留下的绑定（JSON 数组）。
+/// 新建一个轮盘（设置页的「新轮盘」），JSON。
 ///
-/// 剪的是 `input.device == "radial"` 且 `menuId`/`itemId` 已经画不出来的行；
-/// 键盘、点击、滚轮一条都不许动。
+/// id 与名字的生成规则归核心：与 [`operation_binding_radial_default_config`] 同一处，
+/// 免得外壳自己拼一套而与核心 `prune_bindings` 认的 id 分叉。
+String operationBindingRadialNewMenu({required int count}) => RustLib
+    .instance
+    .api
+    .crateApiOperationBindingOperationBindingRadialNewMenu(count: count);
+
+/// 新建一个条目的 id（`item-N`，neoview 的 `uniqueId("item", …)`）。
+String operationBindingRadialNewItemId({required int count}) => RustLib
+    .instance
+    .api
+    .crateApiOperationBindingOperationBindingRadialNewItemId(count: count);
+
+/// 轮盘形状变了之后，剪掉指向**已不存在的条目**的那些绑定，返回留下的绑定（JSON 数组）。
+///
+/// 剪的只有 `input.device == "radial"` 且 `(menuId, itemId)` 已经画不出来的行；
+/// 键盘、鼠标、点击、滚轮一条都不许动。
 String operationBindingRadialPrune({
   required String configJson,
   required String bindingsJson,
@@ -142,12 +158,3 @@ String operationBindingRadialPrune({
   configJson: configJson,
   bindingsJson: bindingsJson,
 );
-
-/// 新建一个轮盘（设置页的「新轮盘」），返回那个轮盘的 JSON。
-///
-/// id 与名字的生成规则归核心：与 [`operation_binding_radial_default_config`] 同一处，
-/// 免得外壳自己拼一套 `menu-7` 而与核心的 `prune_bindings` 认的 id 分叉。
-String operationBindingRadialNewMenu({required int count}) => RustLib
-    .instance
-    .api
-    .crateApiOperationBindingOperationBindingRadialNewMenu(count: count);

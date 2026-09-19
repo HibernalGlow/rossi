@@ -408,6 +408,45 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '主题颜色'
 	String get themeColor => '主题颜色';
 
+	/// zh-CN: '导入 Tweakcn 主题'
+	String get tweakcnTitle => '导入 Tweakcn 主题';
+
+	/// zh-CN: '粘贴 tweakcn 复制的 CSS 变量，或 shadcn registry 的 JSON'
+	String get tweakcnSubtitle => '粘贴 tweakcn 复制的 CSS 变量，或 shadcn registry 的 JSON';
+
+	/// zh-CN: ':root { --background: oklch(1 0 0); --primary: oklch(0.628 0.258 29.2); }'
+	String get tweakcnHint => ':root {\n  --background: oklch(1 0 0);\n  --primary: oklch(0.628 0.258 29.2);\n}';
+
+	/// zh-CN: '导入'
+	String get tweakcnImport => '导入';
+
+	/// zh-CN: '启用导入的主题'
+	String get tweakcnEnabled => '启用导入的主题';
+
+	/// zh-CN: '清除'
+	String get tweakcnClear => '清除';
+
+	/// zh-CN: '还没有导入主题'
+	String get tweakcnNone => '还没有导入主题';
+
+	/// zh-CN: '已导入 $count 个颜色 token · 圆角 $radius'
+	String tweakcnApplied({required Object count, required Object radius}) => '已导入 ${count} 个颜色 token · 圆角 ${radius}';
+
+	/// zh-CN: '沿用默认'
+	String get tweakcnNoRadius => '沿用默认';
+
+	/// zh-CN: '内容为空'
+	String get tweakcnFailedEmpty => '内容为空';
+
+	/// zh-CN: '不是能识别的 JSON'
+	String get tweakcnFailedJson => '不是能识别的 JSON';
+
+	/// zh-CN: '没有解析出任何颜色 token'
+	String get tweakcnFailedNoColors => '没有解析出任何颜色 token';
+
+	/// zh-CN: '以下 token 读不出颜色，已跳过：$keys'
+	String tweakcnSkipped({required Object keys}) => '以下 token 读不出颜色，已跳过：${keys}';
+
 	/// zh-CN: '选择主色，统一应用视觉'
 	String get themeColorSubtitle => '选择主色，统一应用视觉';
 
@@ -1434,6 +1473,24 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '打开设置'
 	String get operationBindingActionOpenSettings => '打开设置';
 
+	/// zh-CN: '放大'
+	String get operationBindingActionZoomIn => '放大';
+
+	/// zh-CN: '缩小'
+	String get operationBindingActionZoomOut => '缩小';
+
+	/// zh-CN: '适应窗口'
+	String get operationBindingActionFitWindow => '适应窗口';
+
+	/// zh-CN: '实际大小'
+	String get operationBindingActionActualSize => '实际大小';
+
+	/// zh-CN: '旋转'
+	String get operationBindingActionRotateClockwise => '旋转';
+
+	/// zh-CN: '旋转180度'
+	String get operationBindingActionRotate180 => '旋转180度';
+
 	/// zh-CN: '绑定的动作'
 	String get operationBindingBoundAction => '绑定的动作';
 
@@ -1590,8 +1647,8 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '外观与几何'
 	String get operationBindingRadialAppearance => '外观与几何';
 
-	/// zh-CN: 'r$radius · 内$inner · $sectors 格'
-	String operationBindingRadialGeometrySummary({required Object radius, required Object inner, required Object sectors}) => 'r${radius} · 内${inner} · ${sectors} 格';
+	/// zh-CN: 'r$radius · 内$inner · $variant'
+	String operationBindingRadialGeometrySummary({required Object radius, required Object inner, required Object variant}) => 'r${radius} · 内${inner} · ${variant}';
 
 	/// zh-CN: '外半径'
 	String get operationBindingRadialRadius => '外半径';
@@ -1640,6 +1697,69 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '新轮盘是空的：槽位需要你一格一格绑'
 	String get operationBindingRadialEmptyWheel => '新轮盘是空的：槽位需要你一格一格绑';
+
+	/// zh-CN: '轮盘'
+	String get operationBindingCategoryRadial => '轮盘';
+
+	/// zh-CN: '类型'
+	String get operationBindingRadialItemKind => '类型';
+
+	/// zh-CN: '执行动作'
+	String get operationBindingRadialKindAction => '执行动作';
+
+	/// zh-CN: '跳转轮盘'
+	String get operationBindingRadialKindMove => '跳转轮盘';
+
+	/// zh-CN: '目标轮盘'
+	String get operationBindingRadialTargetWheel => '目标轮盘';
+
+	/// zh-CN: '显示文字'
+	String get operationBindingRadialLabel => '显示文字';
+
+	/// zh-CN: '槽位'
+	String get operationBindingRadialSlotIndex => '槽位';
+
+	/// zh-CN: '启用这一格'
+	String get operationBindingRadialItemEnabled => '启用这一格';
+
+	/// zh-CN: '前移'
+	String get operationBindingRadialMoveUp => '前移';
+
+	/// zh-CN: '后移'
+	String get operationBindingRadialMoveDown => '后移';
+
+	/// zh-CN: '删除这一格'
+	String get operationBindingRadialDeleteItem => '删除这一格';
+
+	/// zh-CN: '起始角'
+	String get operationBindingRadialStartAngle => '起始角';
+
+	/// zh-CN: '扫过角'
+	String get operationBindingRadialSweepAngle => '扫过角';
+
+	/// zh-CN: '样式'
+	String get operationBindingRadialVariant => '样式';
+
+	/// zh-CN: '扇区'
+	String get operationBindingRadialVariantSlice => '扇区';
+
+	/// zh-CN: '气泡'
+	String get operationBindingRadialVariantBubble => '气泡';
+
+	/// zh-CN: '第 $n 层'
+	String operationBindingRadialLayerN({required Object n}) => '第 ${n} 层';
+
+	/// zh-CN: '选中的槽位'
+	String get operationBindingRadialSelectedSlot => '选中的槽位';
+
+	/// zh-CN: '点轮盘上的一格来选它；空格会画成 +'
+	String get operationBindingRadialPickHint => '点轮盘上的一格来选它；空格会画成 +';
+
+	/// zh-CN: '（空格）'
+	String get operationBindingRadialEmptySlotRow => '（空格）';
+
+	/// zh-CN: '动作'
+	String get operationBindingRadialActionLabel => '动作';
 }
 
 // Path: bookshelf
@@ -2837,6 +2957,15 @@ class Translations$reader$zh_CN {
 
 	/// zh-CN: '松手执行 · 中心或 Esc 取消'
 	String get radialMenuHint => '松手执行 · 中心或 Esc 取消';
+
+	/// zh-CN: '移动以选择'
+	String get radialMenuHintMove => '移动以选择';
+
+	/// zh-CN: '松手执行'
+	String get radialMenuHintRelease => '松手执行';
+
+	/// zh-CN: '松手切换轮盘'
+	String get radialMenuHintSwitch => '松手切换轮盘';
 }
 
 // Path: plugin
@@ -4946,6 +5075,19 @@ extension on Translations {
 			'settings.theme' => '主题模式',
 			'settings.themeSubtitle' => '选择策略，切换明暗主题',
 			'settings.themeColor' => '主题颜色',
+			'settings.tweakcnTitle' => '导入 Tweakcn 主题',
+			'settings.tweakcnSubtitle' => '粘贴 tweakcn 复制的 CSS 变量，或 shadcn registry 的 JSON',
+			'settings.tweakcnHint' => ':root {\n  --background: oklch(1 0 0);\n  --primary: oklch(0.628 0.258 29.2);\n}',
+			'settings.tweakcnImport' => '导入',
+			'settings.tweakcnEnabled' => '启用导入的主题',
+			'settings.tweakcnClear' => '清除',
+			'settings.tweakcnNone' => '还没有导入主题',
+			'settings.tweakcnApplied' => ({required Object count, required Object radius}) => '已导入 ${count} 个颜色 token · 圆角 ${radius}',
+			'settings.tweakcnNoRadius' => '沿用默认',
+			'settings.tweakcnFailedEmpty' => '内容为空',
+			'settings.tweakcnFailedJson' => '不是能识别的 JSON',
+			'settings.tweakcnFailedNoColors' => '没有解析出任何颜色 token',
+			'settings.tweakcnSkipped' => ({required Object keys}) => '以下 token 读不出颜色，已跳过：${keys}',
 			'settings.themeColorSubtitle' => '选择主色，统一应用视觉',
 			'settings.language' => '语言',
 			'settings.languageSubtitle' => '切换应用显示语言',
@@ -5288,6 +5430,12 @@ extension on Translations {
 			'settings.operationBindingActionResetView' => '重置视图',
 			'settings.operationBindingActionToggleBars' => '唤出/收起上下栏',
 			'settings.operationBindingActionOpenSettings' => '打开设置',
+			'settings.operationBindingActionZoomIn' => '放大',
+			'settings.operationBindingActionZoomOut' => '缩小',
+			'settings.operationBindingActionFitWindow' => '适应窗口',
+			'settings.operationBindingActionActualSize' => '实际大小',
+			'settings.operationBindingActionRotateClockwise' => '旋转',
+			'settings.operationBindingActionRotate180' => '旋转180度',
 			'settings.operationBindingBoundAction' => '绑定的动作',
 			'settings.operationBindingDisabledRow' => '已停用（不参与冲突判定）',
 			'settings.operationBindingRemove' => '删除这条绑定',
@@ -5340,7 +5488,9 @@ extension on Translations {
 			'settings.operationBindingRadialHint' => ({required Object layers}) => '已启用 · ${layers} 层 · 点空格添加，点已有槽编辑',
 			'settings.operationBindingRadialHintDisabled' => '已停用 · 阅读时不会唤出轮盘',
 			'settings.operationBindingRadialAppearance' => '外观与几何',
-			'settings.operationBindingRadialGeometrySummary' => ({required Object radius, required Object inner, required Object sectors}) => 'r${radius} · 内${inner} · ${sectors} 格',
+			'settings.operationBindingRadialGeometrySummary' => ({required Object radius, required Object inner, required Object variant}) => 'r${radius} · 内${inner} · ${variant}',
+			_ => null,
+		} ?? switch (path) {
 			'settings.operationBindingRadialRadius' => '外半径',
 			'settings.operationBindingRadialInnerRadius' => '内半径（中心空洞）',
 			'settings.operationBindingRadialSectors' => '每层格数',
@@ -5357,11 +5507,30 @@ extension on Translations {
 			'settings.operationBindingRadialResetDone' => '已重置这个轮盘的出厂槽位',
 			'settings.operationBindingRadialNewName' => ({required Object index}) => '轮盘 ${index}',
 			'settings.operationBindingRadialEmptyWheel' => '新轮盘是空的：槽位需要你一格一格绑',
+			'settings.operationBindingCategoryRadial' => '轮盘',
+			'settings.operationBindingRadialItemKind' => '类型',
+			'settings.operationBindingRadialKindAction' => '执行动作',
+			'settings.operationBindingRadialKindMove' => '跳转轮盘',
+			'settings.operationBindingRadialTargetWheel' => '目标轮盘',
+			'settings.operationBindingRadialLabel' => '显示文字',
+			'settings.operationBindingRadialSlotIndex' => '槽位',
+			'settings.operationBindingRadialItemEnabled' => '启用这一格',
+			'settings.operationBindingRadialMoveUp' => '前移',
+			'settings.operationBindingRadialMoveDown' => '后移',
+			'settings.operationBindingRadialDeleteItem' => '删除这一格',
+			'settings.operationBindingRadialStartAngle' => '起始角',
+			'settings.operationBindingRadialSweepAngle' => '扫过角',
+			'settings.operationBindingRadialVariant' => '样式',
+			'settings.operationBindingRadialVariantSlice' => '扇区',
+			'settings.operationBindingRadialVariantBubble' => '气泡',
+			'settings.operationBindingRadialLayerN' => ({required Object n}) => '第 ${n} 层',
+			'settings.operationBindingRadialSelectedSlot' => '选中的槽位',
+			'settings.operationBindingRadialPickHint' => '点轮盘上的一格来选它；空格会画成 +',
+			'settings.operationBindingRadialEmptySlotRow' => '（空格）',
+			'settings.operationBindingRadialActionLabel' => '动作',
 			'bookshelf.title' => '书架',
 			'bookshelf.favorite' => '收藏',
 			'bookshelf.history' => '历史',
-			_ => null,
-		} ?? switch (path) {
 			'bookshelf.download' => '下载',
 			'bookshelf.filter' => '筛选',
 			'bookshelf.searchList' => '搜索列表',
@@ -5749,6 +5918,9 @@ extension on Translations {
 			'reader.saveImagePermissionDenied' => '保存失败: 请在系统设置中授予相册访问权限',
 			'reader.imageSaveFailedWithError' => ({required Object error}) => '保存失败: ${error}',
 			'reader.radialMenuHint' => '松手执行 · 中心或 Esc 取消',
+			'reader.radialMenuHintMove' => '移动以选择',
+			'reader.radialMenuHintRelease' => '松手执行',
+			'reader.radialMenuHintSwitch' => '松手切换轮盘',
 			'plugin.store' => '插件商店',
 			'plugin.searchHint' => '搜索插件名称或作者...',
 			'plugin.localInstall' => '本地安装',
@@ -5831,6 +6003,8 @@ extension on Translations {
 			'gestureLock.gestureTitle' => '手势解锁',
 			'gestureLock.gestureHint' => '请绘制手势密码',
 			'gestureLock.pinTitle' => '输入 PIN',
+			_ => null,
+		} ?? switch (path) {
 			'gestureLock.pinHint' => '请输入重置 PIN',
 			'gestureLock.atLeast4Points' => '至少连接 4 个点',
 			'gestureLock.confirmGesture' => '请再次绘制以确认',
@@ -5874,8 +6048,6 @@ extension on Translations {
 			'comments.confirm' => '确认',
 			'comments.postSuccess' => '发布成功',
 			'comments.postFailed' => ({required Object error}) => '发布失败: ${error}',
-			_ => null,
-		} ?? switch (path) {
 			'comments.anonymous' => '匿名用户',
 			'cache.title' => '缓存设置',
 			'cache.currentCache' => '当前缓存',

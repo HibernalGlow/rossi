@@ -7,9 +7,9 @@ import '../frb_generated.dart';
 import 'local.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `apply_session_operation`, `attached_store`, `current_store`, `hydrate_view_states_from`, `map_entry`, `pane_inputs`, `pane_sort_order`, `persist_dirty_view_states_into`, `project_pane`, `seed_home_path`, `snapshot_for`, `store_for`, `with_pane`, `with_session`
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `FILE_MANAGER_PANES`, `FILE_MANAGER_SESSIONS`, `FILE_MANAGER_STORE`, `NEXT_FILE_MANAGER_ID`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `deref`, `deref`, `deref`, `deref`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `initialize`, `initialize`, `initialize`, `initialize`
+// These functions are ignored because they are not marked as `pub`: `apply_session_operation`, `attached_store`, `current_store`, `hydrate_view_states_from`, `load_search_history`, `map_entry`, `map_search_outcome`, `now_secs`, `pane_inputs`, `pane_sort_order`, `persist_dirty_view_states_into`, `project_pane`, `search_directory_of`, `seed_home_path`, `snapshot_for`, `store_for`, `with_pane`, `with_session`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `FILE_MANAGER_PANES`, `FILE_MANAGER_SEARCHES`, `FILE_MANAGER_SESSIONS`, `FILE_MANAGER_STORE`, `FileManagerSearchGuard`, `NEXT_FILE_MANAGER_ID`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `deref`, `deref`, `deref`, `deref`, `deref`, `drop`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `initialize`, `initialize`, `initialize`, `initialize`, `initialize`
 
 Future<BigInt> fileManagerCreate({
   String? initialPath,
@@ -225,6 +225,76 @@ Future<FileManagerSnapshot> fileManagerSetSearchQuery({
   id: id,
   query: query,
 );
+
+Future<FileManagerSnapshot> fileManagerSetSearchInPath({
+  required BigInt id,
+  required bool enabled,
+}) => RustLib.instance.api.crateApiFileManagerFileManagerSetSearchInPath(
+  id: id,
+  enabled: enabled,
+);
+
+Future<FileManagerSnapshot> fileManagerSetSearchOrMode({
+  required BigInt id,
+  required bool enabled,
+}) => RustLib.instance.api.crateApiFileManagerFileManagerSetSearchOrMode(
+  id: id,
+  enabled: enabled,
+);
+
+Future<FileManagerSnapshot> fileManagerSetSearchIncludeSubfolders({
+  required BigInt id,
+  required bool enabled,
+}) => RustLib.instance.api
+    .crateApiFileManagerFileManagerSetSearchIncludeSubfolders(
+      id: id,
+      enabled: enabled,
+    );
+
+Future<FileManagerSnapshot> fileManagerSetSearchMaxDepth({
+  required BigInt id,
+  required int depth,
+}) => RustLib.instance.api.crateApiFileManagerFileManagerSetSearchMaxDepth(
+  id: id,
+  depth: depth,
+);
+
+/// 按当前生效的搜索条件跑一次递归搜索。
+///
+/// 遍历**不**在 `with_session` 里跑：那个闭包握着会话的写锁，一次整库扫描会把
+/// 其它卡片动作全部堵住。所以先取一份请求值（根路径 + 设置快照），再在阻塞线程
+/// 上离线遍历。代价是遍历期间用户改设置不生效 —— 那本来就该由下一次搜索回答。
+Future<FileManagerSnapshot> fileManagerSearch({required BigInt id}) =>
+    RustLib.instance.api.crateApiFileManagerFileManagerSearch(id: id);
+
+/// 把当前搜索结果另存成一个页签（NeoView 的「保存搜索到页签」）。
+Future<FileManagerSnapshot> fileManagerSaveSearchAsTab({required BigInt id}) =>
+    RustLib.instance.api.crateApiFileManagerFileManagerSaveSearchAsTab(id: id);
+
+/// 退出搜索结果视图，回到页签自己那一层目录（不清空搜索词）。
+Future<FileManagerSnapshot> fileManagerClearSearch({required BigInt id}) =>
+    RustLib.instance.api.crateApiFileManagerFileManagerClearSearch(id: id);
+
+/// 请求中止本会话正在跑的搜索。没有搜索在跑时是空操作。
+Future<bool> fileManagerCancelSearch({required BigInt id}) =>
+    RustLib.instance.api.crateApiFileManagerFileManagerCancelSearch(id: id);
+
+/// 记一次搜索到历史里，并回给最新的列表（省得 Dart 再问一次）。
+///
+/// 设置库没打开时返回空列表而**不是**报错：历史是辅助信息，一次 SQLite 不可用
+/// 不该让搜索框冒红。真正的搜索早已独立完成。
+Future<List<String>> fileManagerRecordSearchHistory({required String query}) =>
+    RustLib.instance.api.crateApiFileManagerFileManagerRecordSearchHistory(
+      query: query,
+    );
+
+Future<List<String>> fileManagerSearchHistory({required int limit}) => RustLib
+    .instance
+    .api
+    .crateApiFileManagerFileManagerSearchHistory(limit: limit);
+
+Future<int> fileManagerClearSearchHistory() =>
+    RustLib.instance.api.crateApiFileManagerFileManagerClearSearchHistory();
 
 Future<FileManagerSnapshot> fileManagerSetEntryFilter({
   required BigInt id,
@@ -449,6 +519,10 @@ class FileManagerEntry {
   /// 可点击的上下文提示。
   final List<FileManagerChild> childNames;
 
+  /// 搜索结果页签里，这条命中在搜索根之下的目录（`/` 分隔）。普通浏览时为 `None`
+  /// —— 那时父目录就是当前目录，写出来只是噪音。
+  final String? searchDirectory;
+
   const FileManagerEntry({
     required this.path,
     required this.name,
@@ -461,6 +535,7 @@ class FileManagerEntry {
     required this.modifiedSecs,
     required this.hasChildren,
     required this.childNames,
+    this.searchDirectory,
   });
 
   @override
@@ -475,7 +550,8 @@ class FileManagerEntry {
       size.hashCode ^
       modifiedSecs.hashCode ^
       hasChildren.hashCode ^
-      childNames.hashCode;
+      childNames.hashCode ^
+      searchDirectory.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -492,7 +568,8 @@ class FileManagerEntry {
           size == other.size &&
           modifiedSecs == other.modifiedSecs &&
           hasChildren == other.hasChildren &&
-          childNames == other.childNames;
+          childNames == other.childNames &&
+          searchDirectory == other.searchDirectory;
 }
 
 enum FileManagerEntryFilter { all, folders, archives, images, video, audio }
@@ -521,6 +598,35 @@ class FileManagerSnapshot {
   final FileManagerViewMode viewMode;
   final bool showHiddenFiles;
   final String searchQuery;
+
+  /// 名称之外是否连同「相对搜索根的路径」一起匹配。
+  final bool searchInPath;
+
+  /// 多个词元的结合方式（false = AND，true = OR）。
+  final bool searchOrMode;
+
+  /// 递归搜索是否连同子目录。关掉时 `search_max_depth` 不参与。
+  final bool searchIncludeSubfolders;
+
+  /// 递归层数上限（实际生效值再被核心的 `MAX_SEARCH_DEPTH` 夹一次）。
+  final int searchMaxDepth;
+
+  /// 当前页签是不是「搜索结果页签」：列表画的是上一次遍历的命中，而不是目录。
+  final bool searchActive;
+
+  /// 这批命中对应的查询（说明文案与页签标题用）。
+  final String searchResultQuery;
+
+  /// 检视过的条目数（含未命中）。区分「没有」与「还没扫到」。
+  final int searchScanned;
+
+  /// 命中总数，可能因上限截断而大于列表长度。
+  final int searchMatched;
+  final bool searchTruncated;
+  final bool searchCancelled;
+
+  /// 「把当前搜索存成页签」是否可用（需要有结果）。
+  final bool canSaveSearchTab;
   final FileManagerEntryFilter entryFilter;
   final FileManagerSortField sortField;
   final FileManagerSortOrder sortOrder;
@@ -562,6 +668,17 @@ class FileManagerSnapshot {
     required this.viewMode,
     required this.showHiddenFiles,
     required this.searchQuery,
+    required this.searchInPath,
+    required this.searchOrMode,
+    required this.searchIncludeSubfolders,
+    required this.searchMaxDepth,
+    required this.searchActive,
+    required this.searchResultQuery,
+    required this.searchScanned,
+    required this.searchMatched,
+    required this.searchTruncated,
+    required this.searchCancelled,
+    required this.canSaveSearchTab,
     required this.entryFilter,
     required this.sortField,
     required this.sortOrder,
@@ -597,6 +714,17 @@ class FileManagerSnapshot {
       viewMode.hashCode ^
       showHiddenFiles.hashCode ^
       searchQuery.hashCode ^
+      searchInPath.hashCode ^
+      searchOrMode.hashCode ^
+      searchIncludeSubfolders.hashCode ^
+      searchMaxDepth.hashCode ^
+      searchActive.hashCode ^
+      searchResultQuery.hashCode ^
+      searchScanned.hashCode ^
+      searchMatched.hashCode ^
+      searchTruncated.hashCode ^
+      searchCancelled.hashCode ^
+      canSaveSearchTab.hashCode ^
       entryFilter.hashCode ^
       sortField.hashCode ^
       sortOrder.hashCode ^
@@ -634,6 +762,17 @@ class FileManagerSnapshot {
           viewMode == other.viewMode &&
           showHiddenFiles == other.showHiddenFiles &&
           searchQuery == other.searchQuery &&
+          searchInPath == other.searchInPath &&
+          searchOrMode == other.searchOrMode &&
+          searchIncludeSubfolders == other.searchIncludeSubfolders &&
+          searchMaxDepth == other.searchMaxDepth &&
+          searchActive == other.searchActive &&
+          searchResultQuery == other.searchResultQuery &&
+          searchScanned == other.searchScanned &&
+          searchMatched == other.searchMatched &&
+          searchTruncated == other.searchTruncated &&
+          searchCancelled == other.searchCancelled &&
+          canSaveSearchTab == other.canSaveSearchTab &&
           entryFilter == other.entryFilter &&
           sortField == other.sortField &&
           sortOrder == other.sortOrder &&

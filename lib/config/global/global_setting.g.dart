@@ -17,6 +17,8 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
   seedColor: json['seedColor'] == null
       ? const Color(0xFFEF5350)
       : const ColorConverter().fromJson((json['seedColor'] as num).toInt()),
+  tweakcnThemeJson: json['tweakcnThemeJson'] as String? ?? '',
+  tweakcnThemeEnabled: json['tweakcnThemeEnabled'] as bool? ?? false,
   themeInitState: (json['themeInitState'] as num?)?.toInt() ?? 0,
   locale: json['locale'] == null
       ? const Locale('zh', 'CN')
@@ -136,6 +138,8 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'themeMode': _$ThemeModeEnumMap[instance.themeMode]!,
       'isAMOLED': instance.isAMOLED,
       'seedColor': const ColorConverter().toJson(instance.seedColor),
+      'tweakcnThemeJson': instance.tweakcnThemeJson,
+      'tweakcnThemeEnabled': instance.tweakcnThemeEnabled,
       'themeInitState': instance.themeInitState,
       'locale': const LocaleConverter().toJson(instance.locale),
       'localeFollowsSystem': instance.localeFollowsSystem,
@@ -544,6 +548,21 @@ _ReadSettingState _$ReadSettingStateFromJson(Map<String, dynamic> json) =>
       bottomBarPinned: json['bottomBarPinned'] as bool? ?? false,
       showThumbnailStrip: json['showThumbnailStrip'] as bool? ?? false,
       readingDirectionToggle: json['readingDirectionToggle'] as bool? ?? true,
+      readerFitMode:
+          $enumDecodeNullable(_$ReaderFitModeEnumMap, json['readerFitMode']) ??
+          ReaderFitMode.fit,
+      readerAutoRotation:
+          $enumDecodeNullable(
+            _$ReaderAutoRotationEnumMap,
+            json['readerAutoRotation'],
+          ) ??
+          ReaderAutoRotation.none,
+      readerWidePageStretch:
+          $enumDecodeNullable(
+            _$ReaderWidePageStretchEnumMap,
+            json['readerWidePageStretch'],
+          ) ??
+          ReaderWidePageStretch.none,
     );
 
 Map<String, dynamic> _$ReadSettingStateToJson(
@@ -606,6 +625,11 @@ Map<String, dynamic> _$ReadSettingStateToJson(
   'bottomBarPinned': instance.bottomBarPinned,
   'showThumbnailStrip': instance.showThumbnailStrip,
   'readingDirectionToggle': instance.readingDirectionToggle,
+  'readerFitMode': _$ReaderFitModeEnumMap[instance.readerFitMode]!,
+  'readerAutoRotation':
+      _$ReaderAutoRotationEnumMap[instance.readerAutoRotation]!,
+  'readerWidePageStretch':
+      _$ReaderWidePageStretchEnumMap[instance.readerWidePageStretch]!,
 };
 
 const _$ReaderTapPageTurnModeEnumMap = {
@@ -630,6 +654,32 @@ const _$ReaderInfoHorizontalPositionEnumMap = {
   ReaderInfoHorizontalPosition.left: 'left',
   ReaderInfoHorizontalPosition.center: 'center',
   ReaderInfoHorizontalPosition.right: 'right',
+};
+
+const _$ReaderFitModeEnumMap = {
+  ReaderFitMode.fit: 'fit',
+  ReaderFitMode.fill: 'fill',
+  ReaderFitMode.fitWidth: 'fitWidth',
+  ReaderFitMode.fitHeight: 'fitHeight',
+  ReaderFitMode.original: 'original',
+  ReaderFitMode.fitLeft: 'fitLeft',
+  ReaderFitMode.fitRight: 'fitRight',
+};
+
+const _$ReaderAutoRotationEnumMap = {
+  ReaderAutoRotation.none: 'none',
+  ReaderAutoRotation.left: 'left',
+  ReaderAutoRotation.right: 'right',
+  ReaderAutoRotation.horizontalLeft: 'horizontalLeft',
+  ReaderAutoRotation.horizontalRight: 'horizontalRight',
+  ReaderAutoRotation.forcedLeft: 'forcedLeft',
+  ReaderAutoRotation.forcedRight: 'forcedRight',
+};
+
+const _$ReaderWidePageStretchEnumMap = {
+  ReaderWidePageStretch.none: 'none',
+  ReaderWidePageStretch.uniformHeight: 'uniformHeight',
+  ReaderWidePageStretch.uniformWidth: 'uniformWidth',
 };
 
 _BookshelfSettingState _$BookshelfSettingStateFromJson(

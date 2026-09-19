@@ -6,6 +6,8 @@ list(APPEND FLUTTER_PLUGIN_LIST
   desktop_webview_linux
   dynamic_color
   file_selector_linux
+  media_kit_libs_linux
+  media_kit_video
   objectbox_flutter_libs
   open_file_linux
   screen_retriever_linux

@@ -208,6 +208,19 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get theme => 'Theme mode';
 	@override String get themeSubtitle => 'Choose strategy to switch light/dark theme';
 	@override String get themeColor => 'Theme color';
+	@override String get tweakcnTitle => 'Import Tweakcn theme';
+	@override String get tweakcnSubtitle => 'Paste the CSS variables copied from tweakcn, or a shadcn registry JSON';
+	@override String get tweakcnHint => ':root {\n  --background: oklch(1 0 0);\n  --primary: oklch(0.628 0.258 29.2);\n}';
+	@override String get tweakcnImport => 'Import';
+	@override String get tweakcnEnabled => 'Use the imported theme';
+	@override String get tweakcnClear => 'Clear';
+	@override String get tweakcnNone => 'No theme imported yet';
+	@override String tweakcnApplied({required Object count, required Object radius}) => '${count} color tokens imported · radius ${radius}';
+	@override String get tweakcnNoRadius => 'default';
+	@override String get tweakcnFailedEmpty => 'Nothing to import';
+	@override String get tweakcnFailedJson => 'Not recognizable JSON';
+	@override String get tweakcnFailedNoColors => 'No color token could be parsed';
+	@override String tweakcnSkipped({required Object keys}) => 'Skipped tokens with unreadable colors: ${keys}';
 	@override String get themeColorSubtitle => 'Choose primary color for the app';
 	@override String get language => 'Language';
 	@override String get languageSubtitle => 'Change app display language';
@@ -553,6 +566,12 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get operationBindingActionResetView => 'Reset view';
 	@override String get operationBindingActionToggleBars => 'Show or hide the bars';
 	@override String get operationBindingActionOpenSettings => 'Open settings';
+	@override String get operationBindingActionZoomIn => 'Zoom in';
+	@override String get operationBindingActionZoomOut => 'Zoom out';
+	@override String get operationBindingActionFitWindow => 'Fit to window';
+	@override String get operationBindingActionActualSize => 'Actual size';
+	@override String get operationBindingActionRotateClockwise => 'Rotate clockwise';
+	@override String get operationBindingActionRotate180 => 'Rotate 180 degrees';
 	@override String get workspaceLayout => 'Layout';
 	@override String get workspaceLayoutSubtitle => 'Startup view · lane focus & solo · hover reveal zones';
 	@override String get laneAndLayout => 'Lanes & Layout';
@@ -602,7 +621,7 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String operationBindingRadialHint({required Object layers}) => 'On · ${layers} layers · tap an empty slot to add, a filled one to edit';
 	@override String get operationBindingRadialHintDisabled => 'Off · the wheel will not open while reading';
 	@override String get operationBindingRadialAppearance => 'Appearance & geometry';
-	@override String operationBindingRadialGeometrySummary({required Object radius, required Object inner, required Object sectors}) => 'r${radius} · inner ${inner} · ${sectors} sectors';
+	@override String operationBindingRadialGeometrySummary({required Object radius, required Object inner, required Object variant}) => 'r${radius} · inner ${inner} · ${variant}';
 	@override String get operationBindingRadialRadius => 'Outer radius';
 	@override String get operationBindingRadialInnerRadius => 'Inner radius (hole)';
 	@override String get operationBindingRadialSectors => 'Sectors per layer';
@@ -619,6 +638,27 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get operationBindingRadialResetDone => 'Factory slots restored';
 	@override String operationBindingRadialNewName({required Object index}) => 'Wheel ${index}';
 	@override String get operationBindingRadialEmptyWheel => 'A new wheel is empty: bind its slot by slot';
+	@override String get operationBindingCategoryRadial => 'Radial';
+	@override String get operationBindingRadialItemKind => 'Kind';
+	@override String get operationBindingRadialKindAction => 'Run action';
+	@override String get operationBindingRadialKindMove => 'Jump to wheel';
+	@override String get operationBindingRadialTargetWheel => 'Target wheel';
+	@override String get operationBindingRadialLabel => 'Label';
+	@override String get operationBindingRadialSlotIndex => 'Slot';
+	@override String get operationBindingRadialItemEnabled => 'This slot is enabled';
+	@override String get operationBindingRadialMoveUp => 'Move earlier';
+	@override String get operationBindingRadialMoveDown => 'Move later';
+	@override String get operationBindingRadialDeleteItem => 'Delete this slot';
+	@override String get operationBindingRadialStartAngle => 'Start angle';
+	@override String get operationBindingRadialSweepAngle => 'Sweep angle';
+	@override String get operationBindingRadialVariant => 'Style';
+	@override String get operationBindingRadialVariantSlice => 'Slices';
+	@override String get operationBindingRadialVariantBubble => 'Bubbles';
+	@override String operationBindingRadialLayerN({required Object n}) => 'Layer ${n}';
+	@override String get operationBindingRadialSelectedSlot => 'Selected slot';
+	@override String get operationBindingRadialPickHint => 'Tap a sector on the wheel to pick it; empty ones show +';
+	@override String get operationBindingRadialEmptySlotRow => '(empty)';
+	@override String get operationBindingRadialActionLabel => 'Action';
 }
 
 // Path: bookshelf
@@ -1035,6 +1075,9 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get saveImagePermissionDenied => 'Save failed: please grant album access in settings';
 	@override String imageSaveFailedWithError({required Object error}) => 'Save failed: ${error}';
 	@override String get radialMenuHint => 'Release to run · centre or Esc to cancel';
+	@override String get radialMenuHintMove => 'Move to choose';
+	@override String get radialMenuHintRelease => 'Release to run';
+	@override String get radialMenuHintSwitch => 'Release to switch wheel';
 }
 
 // Path: plugin
@@ -1978,6 +2021,19 @@ extension on TranslationsEnUs {
 			'settings.theme' => 'Theme mode',
 			'settings.themeSubtitle' => 'Choose strategy to switch light/dark theme',
 			'settings.themeColor' => 'Theme color',
+			'settings.tweakcnTitle' => 'Import Tweakcn theme',
+			'settings.tweakcnSubtitle' => 'Paste the CSS variables copied from tweakcn, or a shadcn registry JSON',
+			'settings.tweakcnHint' => ':root {\n  --background: oklch(1 0 0);\n  --primary: oklch(0.628 0.258 29.2);\n}',
+			'settings.tweakcnImport' => 'Import',
+			'settings.tweakcnEnabled' => 'Use the imported theme',
+			'settings.tweakcnClear' => 'Clear',
+			'settings.tweakcnNone' => 'No theme imported yet',
+			'settings.tweakcnApplied' => ({required Object count, required Object radius}) => '${count} color tokens imported · radius ${radius}',
+			'settings.tweakcnNoRadius' => 'default',
+			'settings.tweakcnFailedEmpty' => 'Nothing to import',
+			'settings.tweakcnFailedJson' => 'Not recognizable JSON',
+			'settings.tweakcnFailedNoColors' => 'No color token could be parsed',
+			'settings.tweakcnSkipped' => ({required Object keys}) => 'Skipped tokens with unreadable colors: ${keys}',
 			'settings.themeColorSubtitle' => 'Choose primary color for the app',
 			'settings.language' => 'Language',
 			'settings.languageSubtitle' => 'Change app display language',
@@ -2323,6 +2379,12 @@ extension on TranslationsEnUs {
 			'settings.operationBindingActionResetView' => 'Reset view',
 			'settings.operationBindingActionToggleBars' => 'Show or hide the bars',
 			'settings.operationBindingActionOpenSettings' => 'Open settings',
+			'settings.operationBindingActionZoomIn' => 'Zoom in',
+			'settings.operationBindingActionZoomOut' => 'Zoom out',
+			'settings.operationBindingActionFitWindow' => 'Fit to window',
+			'settings.operationBindingActionActualSize' => 'Actual size',
+			'settings.operationBindingActionRotateClockwise' => 'Rotate clockwise',
+			'settings.operationBindingActionRotate180' => 'Rotate 180 degrees',
 			'settings.workspaceLayout' => 'Layout',
 			'settings.workspaceLayoutSubtitle' => 'Startup view · lane focus & solo · hover reveal zones',
 			'settings.laneAndLayout' => 'Lanes & Layout',
@@ -2372,7 +2434,9 @@ extension on TranslationsEnUs {
 			'settings.operationBindingRadialHint' => ({required Object layers}) => 'On · ${layers} layers · tap an empty slot to add, a filled one to edit',
 			'settings.operationBindingRadialHintDisabled' => 'Off · the wheel will not open while reading',
 			'settings.operationBindingRadialAppearance' => 'Appearance & geometry',
-			'settings.operationBindingRadialGeometrySummary' => ({required Object radius, required Object inner, required Object sectors}) => 'r${radius} · inner ${inner} · ${sectors} sectors',
+			'settings.operationBindingRadialGeometrySummary' => ({required Object radius, required Object inner, required Object variant}) => 'r${radius} · inner ${inner} · ${variant}',
+			_ => null,
+		} ?? switch (path) {
 			'settings.operationBindingRadialRadius' => 'Outer radius',
 			'settings.operationBindingRadialInnerRadius' => 'Inner radius (hole)',
 			'settings.operationBindingRadialSectors' => 'Sectors per layer',
@@ -2389,11 +2453,30 @@ extension on TranslationsEnUs {
 			'settings.operationBindingRadialResetDone' => 'Factory slots restored',
 			'settings.operationBindingRadialNewName' => ({required Object index}) => 'Wheel ${index}',
 			'settings.operationBindingRadialEmptyWheel' => 'A new wheel is empty: bind its slot by slot',
+			'settings.operationBindingCategoryRadial' => 'Radial',
+			'settings.operationBindingRadialItemKind' => 'Kind',
+			'settings.operationBindingRadialKindAction' => 'Run action',
+			'settings.operationBindingRadialKindMove' => 'Jump to wheel',
+			'settings.operationBindingRadialTargetWheel' => 'Target wheel',
+			'settings.operationBindingRadialLabel' => 'Label',
+			'settings.operationBindingRadialSlotIndex' => 'Slot',
+			'settings.operationBindingRadialItemEnabled' => 'This slot is enabled',
+			'settings.operationBindingRadialMoveUp' => 'Move earlier',
+			'settings.operationBindingRadialMoveDown' => 'Move later',
+			'settings.operationBindingRadialDeleteItem' => 'Delete this slot',
+			'settings.operationBindingRadialStartAngle' => 'Start angle',
+			'settings.operationBindingRadialSweepAngle' => 'Sweep angle',
+			'settings.operationBindingRadialVariant' => 'Style',
+			'settings.operationBindingRadialVariantSlice' => 'Slices',
+			'settings.operationBindingRadialVariantBubble' => 'Bubbles',
+			'settings.operationBindingRadialLayerN' => ({required Object n}) => 'Layer ${n}',
+			'settings.operationBindingRadialSelectedSlot' => 'Selected slot',
+			'settings.operationBindingRadialPickHint' => 'Tap a sector on the wheel to pick it; empty ones show +',
+			'settings.operationBindingRadialEmptySlotRow' => '(empty)',
+			'settings.operationBindingRadialActionLabel' => 'Action',
 			'bookshelf.title' => 'Bookshelf',
 			'bookshelf.favorite' => 'Favorites',
 			'bookshelf.history' => 'History',
-			_ => null,
-		} ?? switch (path) {
 			'bookshelf.download' => 'Downloads',
 			'bookshelf.filter' => 'Filter',
 			'bookshelf.searchList' => 'Search list',
@@ -2780,6 +2863,9 @@ extension on TranslationsEnUs {
 			'reader.saveImagePermissionDenied' => 'Save failed: please grant album access in settings',
 			'reader.imageSaveFailedWithError' => ({required Object error}) => 'Save failed: ${error}',
 			'reader.radialMenuHint' => 'Release to run · centre or Esc to cancel',
+			'reader.radialMenuHintMove' => 'Move to choose',
+			'reader.radialMenuHintRelease' => 'Release to run',
+			'reader.radialMenuHintSwitch' => 'Release to switch wheel',
 			'plugin.store' => 'Plugin Store',
 			'plugin.searchHint' => 'Search plugin name or author...',
 			'plugin.localInstall' => 'Local install',
@@ -2863,6 +2949,8 @@ extension on TranslationsEnUs {
 			'gestureLock.gestureHint' => 'Draw gesture password',
 			'gestureLock.pinTitle' => 'Enter PIN',
 			'gestureLock.pinHint' => 'Enter reset PIN',
+			_ => null,
+		} ?? switch (path) {
 			'gestureLock.atLeast4Points' => 'Connect at least 4 points',
 			'gestureLock.confirmGesture' => 'Please draw again to confirm',
 			'gestureLock.gestureNotMatch' => 'The two drawings do not match',
@@ -2906,8 +2994,6 @@ extension on TranslationsEnUs {
 			'comments.postSuccess' => 'Posted successfully',
 			'comments.postFailed' => ({required Object error}) => 'Failed to post: ${error}',
 			'comments.anonymous' => 'Anonymous',
-			_ => null,
-		} ?? switch (path) {
 			'cache.title' => 'Cache settings',
 			'cache.currentCache' => 'Current cache',
 			'cache.clearCache' => 'Clear cache',
