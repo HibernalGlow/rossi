@@ -65,7 +65,7 @@
         await delay(500);
         await invoke("create_shortcut", {
           targetPath: exePath,
-          shortcutName: "Breeze",
+          shortcutName: "Rossi",
         });
       }
 
@@ -118,8 +118,8 @@
           />
         </svg>
       </div>
-      <h1>安装 Breeze</h1>
-      <p class="subtitle">欢迎使用 Breeze 安装向导</p>
+      <h1>安装 Rossi</h1>
+      <p class="subtitle">欢迎使用 Rossi 安装向导</p>
     </div>
 
     <div class="installer-form">

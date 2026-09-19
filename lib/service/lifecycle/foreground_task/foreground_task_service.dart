@@ -167,7 +167,7 @@ class ForegroundTaskService {
         await FlutterForegroundTask.startService(
           serviceTypes: [ForegroundServiceTypes.dataSync],
           serviceId: Random().nextInt(1000),
-          notificationTitle: appName,
+          notificationTitle: appDisplayName,
           notificationText: notificationText,
           callback: startCallback,
           notificationButtons: notificationButtons,
@@ -191,7 +191,7 @@ class ForegroundTaskService {
 
   Future<void> _applyDownloadNotification() async {
     await FlutterForegroundTask.updateService(
-      notificationTitle: appName,
+      notificationTitle: appDisplayName,
       notificationText: t.foregroundTask.waitingForTask,
       notificationButtons: [
         NotificationButton(id: 'cancel', text: t.foregroundTask.cancel),
@@ -201,7 +201,7 @@ class ForegroundTaskService {
 
   Future<void> _applyKeepAliveNotification() async {
     await FlutterForegroundTask.updateService(
-      notificationTitle: appName,
+      notificationTitle: appDisplayName,
       notificationText: t.foregroundTask.keepAliveRunning,
       notificationButtons: const <NotificationButton>[],
     );

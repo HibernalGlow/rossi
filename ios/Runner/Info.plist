@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Breeze</string>
+	<string>Rossi</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -37,11 +37,11 @@
 		<true/>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>Breeze requires camera access to scan QR codes or take photos.</string>
+	<string>Rossi requires camera access to scan QR codes or take photos.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>我们需要保存图片到您的相册</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Breeze requires access to the photo library to select and save comic images.</string>
+	<string>Rossi requires access to the photo library to select and save comic images.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

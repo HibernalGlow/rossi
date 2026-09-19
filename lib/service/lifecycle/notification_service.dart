@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:path/path.dart' as p;
 import 'package:permission_guard/permission_guard.dart';
+import 'package:zephyr/config/global/global.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/i18n/strings.g.dart';
@@ -23,7 +24,7 @@ Future<void> initializeNotifications() async {
   );
 
   final initializationSettingsWindows = WindowsInitializationSettings(
-    appName: 'Zephyr',
+    appName: appDisplayName,
     appUserModelId: 'com.zephyr.breeze',
     guid: 'c4fce75a-b087-44bf-ac62-cc52b8e56990',
     iconPath: windowsIconPath,

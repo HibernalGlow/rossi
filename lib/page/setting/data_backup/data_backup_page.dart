@@ -5,6 +5,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path/path.dart' as p;
+import 'package:zephyr/config/global/global.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/service/update/check_update.dart';
@@ -98,7 +99,7 @@ class _DataBackupPageState extends State<DataBackupPage> {
     }
 
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final fileName = 'Breeze-export-$timestamp.zip';
+    final fileName = '$appDisplayName-export-$timestamp.zip';
     late final String zipPath;
 
     // iOS 的 file_selector 未实现 getDirectoryPath，先写到缓存再走系统分享面板

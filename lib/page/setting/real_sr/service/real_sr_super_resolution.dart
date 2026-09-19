@@ -856,7 +856,7 @@ class RealSrSuperResolution {
             final modelPath = await CoreMLModelLoader.prepareModel(
               variant.fileName,
             );
-            SuperResolutionLog.add('Breeze 原生 CoreML 模型=$modelPath');
+            SuperResolutionLog.add('Rossi 原生 CoreML 模型=$modelPath');
             await CoreMLUpscale.upscale(
               inputPath: pngInputPath,
               outputPath: out,

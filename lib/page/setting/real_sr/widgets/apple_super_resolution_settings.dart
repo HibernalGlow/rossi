@@ -130,7 +130,7 @@ class _AppleSuperResolutionSettingsState
           if (_engine == AppleSuperResolutionEngine.mimageOnnx)
             const MImageModelSettings(showLogControls: false)
           else if (_engine == AppleSuperResolutionEngine.breezeCoreML) ...[
-            const Text('Breeze 原生模型'),
+            const Text('Rossi 原生模型'),
             DropdownButton<CoreMLModelFamily>(
               key: const ValueKey('breeze-coreml-model'),
               value: _family,
@@ -169,7 +169,7 @@ class _AppleSuperResolutionSettingsState
               OutlinedButton.icon(
                 onPressed: _downloading ? null : _download,
                 icon: const Icon(Icons.download_outlined),
-                label: const Text('下载 Breeze 原生模型'),
+                label: const Text('下载 Rossi 原生模型'),
               ),
             if (_downloading) LinearProgressIndicator(value: _progress),
           ],

@@ -7,7 +7,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 /// Android 端通过前台服务通知栏报告进度，桌面端通过 Stream 通知 UI。
 abstract class DownloadProgressReporter {
   /// 当前正在下载的漫画名称
-  String comicName = appName;
+  String comicName = appDisplayName;
 
   /// 当前进度消息
   String message = t.foregroundTask.waitingForTask;

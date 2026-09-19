@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:zephyr/config/global/global.dart';
 import 'package:zephyr/platform/desktop/native_window.dart';
 
 /// Material 3 风格的自定义标题栏（仅桌面平台使用）
@@ -98,7 +99,7 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Breeze',
+                      appDisplayName,
                       style: theme.textTheme.titleSmall?.copyWith(
                         color: colorScheme.onSurface,
                         fontWeight: FontWeight.w500,
@@ -110,7 +111,7 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
                   if (isMacOS) const Spacer(),
                   if (isMacOS)
                     Text(
-                      'Breeze',
+                      appDisplayName,
                       style: theme.textTheme.titleSmall?.copyWith(
                         color: colorScheme.onSurface.withValues(alpha: 0.7),
                         fontSize: 13, // macOS 标题通常更小更精致

@@ -255,7 +255,7 @@ class _AboutPageState extends State<AboutPage> {
         ),
         const SizedBox(height: 5),
         const Text(
-          "BREEZE PROJECT",
+          "ROSSI PROJECT",
           style: TextStyle(
             fontSize: 18,
             color: kAccentColor,

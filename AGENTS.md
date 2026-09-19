@@ -143,6 +143,7 @@ page/comic_info/
 - **flutter_rust_bridge**：`lib/src/rust/frb_generated*.dart`、`rust/src/frb_generated.rs`
 - **auto_route**：`lib/util/router/router.gr.dart`
 - **freezed / json_serializable**：各目录下的 `*.freezed.dart`、`*.g.dart`
+- **桌面端应用图标**：`macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_*.png`、`asset/image/app-icon.png`、`asset/image/app_icon.ico`、`windows/runner/resources/app_icon.ico`，均由 `script/build_app_icon.py` 从 `poc/mask-upright.svg` 生成
 
 ---
 
@@ -363,6 +364,7 @@ Android 端已彻底从 JNI + ncnn 共享库方案切换到 **waifu2x CLI** 方�
 | 修改桌面端 RealSR 策略/模型选择 | `lib/util/real_sr/desktop_ncnn_model_config.dart`、`lib/util/real_sr/real_sr_super_resolution.dart`、`lib/page/setting/real_sr/real_sr_setting_page.dart` |
 | 修改 CoreML 超分（iOS/macOS） | `packages/coreml_upscale/`、`lib/debug/coreml_upscale_debug_page.dart`、`asset/coreml_models/`、`script/convert_realcugan_coreml.py` |
 | 导入/导出应用数据 | `lib/page/setting/data_backup/`、`rust/src/api/data_backup.rs` |
+| 修改桌面端应用图标 | `poc/mask-upright.svg`（主图源）、`script/build_app_icon.py`（生成脚本，产物不要手改） |
 | 修改 CI/CD | `.github/workflows/`、`script/` |
 
 ---

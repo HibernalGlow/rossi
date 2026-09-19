@@ -34,7 +34,7 @@ abstract final class SuperResolutionLog {
   }
 
   static String get text => [
-    'Breeze 超分日志（本次运行）',
+    'Rossi 超分日志（本次运行）',
     '系统：${Platform.operatingSystem} ${Platform.operatingSystemVersion}',
     '最近生成图片：${latestOutputPath ?? "尚未生成"}',
     '',

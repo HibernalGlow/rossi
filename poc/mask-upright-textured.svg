@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="448" viewBox="0 0 800 448" role="img" aria-labelledby="title desc">
+  <title id="title">红色面具 · 摆正纹理版</title>
+  <desc id="desc">按参考照片重绘并摆正。以程序化纤维噪声、表面光照及细微边缘着色模拟纸面印刷纹理。背景与眼形透明，不含位图或外部资源。</desc>
+  <defs>
+    <linearGradient id="pigment" x1="35" y1="210" x2="770" y2="230" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9E475B"/>
+      <stop offset="0.55" stop-color="#9F4B60"/>
+      <stop offset="1" stop-color="#A2526C"/>
+    </linearGradient>
+    <!-- baseFrequency 控制纤维粗细；surfaceScale 控制凹凸强度。 -->
+    <filter id="printed-fibers" x="0" y="0" width="800" height="448" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.21 0.31" numOctaves="3" seed="24" result="fibers"/>
+      <feColorMatrix in="fibers" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0" result="height"/>
+      <feDiffuseLighting in="height" surfaceScale="2.2" diffuseConstant="1.04" lighting-color="#ffffff" result="relief">
+        <feDistantLight azimuth="225" elevation="62"/>
+      </feDiffuseLighting>
+      <!-- 同量调节 RGB，使浅色纤维保留原图的柔和色泽。 -->
+      <feComposite in="SourceGraphic" in2="relief" operator="arithmetic" k1="0" k2="1" k3="0.8" k4="-0.735" result="ink"/>
+      <feSpecularLighting in="height" surfaceScale="2.2" specularConstant="0.12" specularExponent="5" lighting-color="#e5c3cf" result="fiber-light">
+        <feDistantLight azimuth="225" elevation="62"/>
+      </feSpecularLighting>
+      <feComposite in="ink" in2="fiber-light" operator="arithmetic" k1="0" k2="1" k3="0.25" k4="0" result="texture"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="1.25" result="interior"/>
+      <feGaussianBlur in="interior" stdDeviation="0.65" result="soft-interior"/>
+      <feComposite in="SourceAlpha" in2="soft-interior" operator="out" result="rim"/>
+      <feFlood flood-color="#762D3F" flood-opacity="0.5" result="rim-color"/>
+      <feComposite in="rim-color" in2="rim" operator="in" result="ink-rim"/>
+      <feComposite in="ink-rim" in2="texture" operator="over" result="finished"/>
+      <feComposite in="finished" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <path fill="url(#pigment)" fill-rule="evenodd" filter="url(#printed-fibers)" d="
+    M 69.89,412.80     C 52.57,402.92 38.15,384.62 33.10,350.38     C 25.84,301.47 46.33,259.52 82.49,228.78     C 108.48,203.59 142.40,185.60 172.80,185.60     L 403.36,185.60     L 496.51,32.00     L 578.98,185.60     L 675.42,32.00     C 711.57,127.45 743.51,205.32 761.88,274.57     C 778.08,326.72 756.63,375.63 730.08,412.80     Z     M 429.13,237.41     L 537.20,323.82     C 534.10,342.39 525.06,355.78 507.11,361.76     C 474.06,373.93 444.97,363.73 428.51,336.24     C 417.77,318.50 416.70,277.09 429.13,237.41     Z     M 591.75,329.47     L 696.56,246.02     C 707.80,274.26 708.70,310.21 693.80,338.80     C 680.41,364.35 655.99,378.17 633.01,372.73     C 615.68,368.42 602.28,351.78 591.75,329.47     Z
+  "/>
+</svg>

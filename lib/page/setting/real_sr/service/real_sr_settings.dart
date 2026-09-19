@@ -11,7 +11,7 @@ bool get _isDesktop =>
     Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
 enum AppleSuperResolutionEngine {
-  breezeCoreML('breeze_coreml', 'Breeze 原生 CoreML'),
+  breezeCoreML('breeze_coreml', 'Rossi 原生 CoreML'),
   mimageOnnx('mimage_onnx', 'mImage ONNX');
 
   const AppleSuperResolutionEngine(this.id, this.label);

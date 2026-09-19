@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:zephyr/config/global/global.dart';
@@ -72,6 +73,41 @@ Future<String> getFilePath() async {
   await _ensureDirExists(path);
   return path;
 }
+
+/// 获取 Rust 侧设置库（`SettingsDb`）的路径。
+///
+/// 名字沿用 mImageViewer 的 `settings.db`：那个 SQLite 后端就是从这里搬过来的
+/// （见 `rust/local_core/src/settings_db.rs` 的头注释），文件管理器的目录级视图状态
+/// 就存在它的 `file_manager_view_states` 表里。
+///
+/// 为什么由 Dart 给路径而不是 Rust 自己猜：Windows 便携版、Android 的 AppSupport 回退
+/// 都是这套目录策略的一部分，Rust 侧不该复制一份。
+Future<String> getSettingsDbPath() async =>
+    p.join(await getDbPath(), 'settings.db');
+
+String? _preparedSettingsDbPath;
+
+/// 在启动期解析并缓存设置库路径（与 ObjectBox 同一次 IO 窗口）。
+///
+/// 为什么不留给用它的那个组件现取：`getDbPath()` 要走 `path_provider` 的平台通道，
+/// 而用它的卡片是在 `initState` 里起会话的 —— 那次通道往返一旦不回来，首屏就一直停在
+/// 加载态（widget 测试的 fake-async 里正是如此）。路径策略是启动期的事，解析一次即可。
+Future<void> prepareSettingsDbPath() async {
+  try {
+    _preparedSettingsDbPath = await getSettingsDbPath();
+  } catch (error) {
+    // 解析失败＝本次运行不记忆目录视图，而不是让依赖它的界面起不来。
+    debugPrint('设置库路径解析失败，本次运行不落盘目录视图：$error');
+  }
+}
+
+/// 启动期解析好的设置库路径；未解析或解析失败时为 `null`（＝这次不记忆）。
+String? get preparedSettingsDbPath => _preparedSettingsDbPath;
+
+/// 测试专用：绕开平台通道直接注入路径。
+@visibleForTesting
+set preparedSettingsDbPathForTests(String? path) =>
+    _preparedSettingsDbPath = path;
 
 /// 获取缓存路径
 Future<String> getCachePath() async {

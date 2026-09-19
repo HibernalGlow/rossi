@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/config/global/global.dart';
 import 'package:zephyr/page/more/more.dart';
 
 @RoutePage()
@@ -36,7 +37,7 @@ class MorePage extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          'Breeze',
+          appDisplayName,
           style: Theme.of(
             context,
           ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),

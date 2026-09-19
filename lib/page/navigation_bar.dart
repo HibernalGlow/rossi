@@ -283,7 +283,7 @@ class _NavigationBarState extends State<NavigationBar> {
                       children: <Widget>[
                         IconButton(
                           icon: const Icon(Icons.folder_open_outlined),
-                          tooltip: '打开本地漫画（Breeze 原版阅读器 + GPU 零拷贝）',
+                          tooltip: '打开本地漫画（Rossi 原版阅读器 + GPU 零拷贝）',
                           onPressed: () async {
                             try {
                               final selected = await showLocalFileTreeSheet(
