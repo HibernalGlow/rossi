@@ -559,18 +559,98 @@ class _ReadExperienceSection extends StatelessWidget {
   }
 }
 
-class _SuperResolutionSection extends StatelessWidget {
+/// 阅读器设置里的「AI 超分辨率」。
+///
+/// **两条来源的控件不是同一套，不能合成一个：**
+///
+/// - **本地归档 / 文件夹**（GPU 呈现会话）：超分的开关是**呈现器**自己的
+///   `GpuPresentController.isUpscaleEnabled`（启动时从持久化的「自动超分」初始化，
+///   见 `_initUpscaleSetting`）。也只有这条有「对比原图」可言 —— 呈现器同时握着
+///   原图与超分图两张纹理。
+/// - **网络来源**（插件漫画）：**没有呈现器**，超分发生在图片文件的下载/缓存层
+///   （`getCachePicture` → `RealSrSuperResolution.upscaleAndConvertToWebp`），
+///   唯一的总闸是全局设置里的「自动超分」。这一路原先在阅读器里**一个控件都没有**，
+///   于是出现「日志明明在超分，开关却哪儿都找不到」。
+///
+/// **超分条件（分辨率阈值）两条路都吃**：呈现器在 `gpu_present_controller.dart`
+/// 调 `shouldUpscale`，文件层在 `upscaleAndConvertToWebp` 里也调它，二者最终都读
+/// `RealSrSettings.loadResolutionThreshold()`。所以它**不分来源**，一直是显示的。
+///
+/// 判「当前是哪条」用 `LocalReadSession`：本地阅读器 `dispose()` 时会连会话一起释放
+/// （`comic_read.dart`），所以**根本没有呈现器**就是网络来源。三种状态分开处理：
+///
+/// | 状态 | 显示什么 |
+/// |---|---|
+/// | 有呈现器且就绪 | 呈现器开关 + 对比原图 |
+/// | **没有呈现器**（网络来源） | 全局「自动超分」开关 |
+/// | 有呈现器但未就绪 | **不给全局开关** —— 那条开关管不到呈现器这条路，放上去等于撒谎 |
+///
+/// 分辨率阈值在前三种状态下都显示（两条执行路都读它）。
+/// 代价是工作台里两条泳道各开一本书（一本地一网络）时会话是共用的，会退化成
+/// 「按先打开的那条算」—— 那是既有全局单例的遗留问题，不在本次范围。
+class _SuperResolutionSection extends StatefulWidget {
   const _SuperResolutionSection();
 
   @override
+  State<_SuperResolutionSection> createState() =>
+      _SuperResolutionSectionState();
+}
+
+class _SuperResolutionSectionState extends State<_SuperResolutionSection> {
+  bool _loading = true;
+  bool _autoUpscale = false;
+  RealSrResolutionThreshold _threshold = RealSrResolutionThreshold.p720;
+  bool _modelReady = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_load());
+  }
+
+  Future<void> _load() async {
+    try {
+      final auto = await RealSrSettings.loadAutoUpscale();
+      final threshold = await RealSrSettings.loadResolutionThreshold();
+      final modelReady = await RealSrSuperResolution.isAvailable;
+      if (!mounted) return;
+      setState(() {
+        _autoUpscale = auto;
+        _threshold = threshold;
+        _modelReady = modelReady;
+        _loading = false;
+      });
+    } catch (_) {
+      // 读设置失败也要落地：否则这块永远停在未加载态，用户看到的是「控件不见了」。
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _setAutoUpscale(bool value) async {
+    // 先动 UI 再落盘：写盘失败也不至于点了没反应。
+    setState(() => _autoUpscale = value);
+    try {
+      await RealSrSettings.saveAutoUpscale(value);
+    } catch (_) {}
+  }
+
+  Future<void> _setThreshold(RealSrResolutionThreshold value) async {
+    setState(() => _threshold = value);
+    try {
+      await RealSrSettings.saveResolutionThreshold(value);
+    } catch (_) {}
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final session = LocalReadSession.instance;
-    final presenter = session.presenter;
+    final presenter = LocalReadSession.instance.presenter;
+    final hasPresenter = presenter != null;
+    final presenterReady = presenter != null && presenter.canPresent;
     final apple = !kIsWeb && (Platform.isMacOS || Platform.isIOS);
-    Widget section() => _SettingsSection(
-      title: 'AI 超分辨率',
-      children: [
-        if (presenter != null && presenter.canPresent) ...[
+
+    Widget section() {
+      final children = <Widget>[
+        if (presenterReady) ...[
           _SettingsSwitchTile(
             title: '启用 AI 超分辨率',
             subtitle: '后台处理当前页，完成后替换画面',
@@ -584,11 +664,34 @@ class _SuperResolutionSection extends StatelessWidget {
               value: presenter.isOriginalPreview,
               onChanged: presenter.setOriginalPreview,
             ),
-        ],
+        ] else if (!hasPresenter && !_loading)
+          // 网络来源：超分只受全局设置驱动，这里给它一个入口。
+          _SettingsSwitchTile(
+            title: t.realSr.autoUpscale,
+            subtitle: _modelReady
+                ? t.realSr.autoUpscaleSubtitleAvailable
+                : t.realSr.autoUpscaleSubtitleUnavailable,
+            value: _autoUpscale,
+            onChanged: _setAutoUpscale,
+          ),
+        if (!_loading)
+          _SettingsDropdownTile<RealSrResolutionThreshold>(
+            title: t.realSr.resolutionThreshold,
+            subtitle: t.realSr.resolutionThresholdSubtitle,
+            value: RealSrSettings.effectiveThreshold(_threshold),
+            values: RealSrSettings.availableThresholds,
+            labelOf: (threshold) => threshold.label,
+            onChanged: _setThreshold,
+          ),
         if (apple) const AppleSuperResolutionSettings(),
-      ],
-    );
-    if (presenter == null) return apple ? section() : const SizedBox.shrink();
+      ];
+
+      if (children.isEmpty) return const SizedBox.shrink();
+      return _SettingsSection(title: 'AI 超分辨率', children: children);
+    }
+
+    // 呈现器在跑时才需要跟着它重建（开关状态由它持有）。
+    if (!presenterReady) return section();
     return ListenableBuilder(
       listenable: presenter,
       builder: (_, _) => section(),

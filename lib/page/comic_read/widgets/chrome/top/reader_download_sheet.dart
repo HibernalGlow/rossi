@@ -9,13 +9,11 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
-import 'package:zephyr/page/comic_info/models/collect_comic.dart';
-import 'package:zephyr/page/download/adapters/download_chapter_adapter.dart';
+import 'package:zephyr/page/download/method/comic_download_entry.dart';
 import 'package:zephyr/service/download/download_queue_manager.dart';
 import 'package:zephyr/service/download/download_task_progress.dart';
 import 'package:zephyr/service/download/models/download_task_json.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
-import 'package:zephyr/util/error_filter.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 /// 弹出阅读器下载管理面板
@@ -43,7 +41,10 @@ Future<void> showReaderDownloadSheet(
   );
 }
 
-/// 快速启动整本漫画的下载任务
+/// 快速启动整本漫画的下载任务。
+///
+/// 实现已收敛到 [startComicDownloadAll]（详情页「下载」按钮单击走同一份），
+/// 这里只保留阅读器侧的参数命名。
 Future<void> startComicDownload({
   required BuildContext context,
   required String from,
@@ -52,63 +53,14 @@ Future<void> startComicDownload({
   dynamic comicInfo,
   List<UnifiedComicChapterRef>? chapterRefs,
 }) async {
-  // 1. 检查点击下载自动收藏
-  await autoFavoriteComicOnDownloadIfEnabled(
-    from: from,
-    comicId: comicId,
-    comicInfo: comicInfo,
+  await startComicDownloadAll(
     context: context,
-  );
-
-  // 2. 解析章节列表
-  List<UnifiedComicChapterRef> resolved = chapterRefs ?? [];
-  if (resolved.isEmpty && comicInfo != null) {
-    resolved = resolveUnifiedComicChapters(comicInfo, from);
-  }
-  if (resolved.isEmpty) {
-    try {
-      final detail = await getComicDetailByPlugin(comicId, from, pluginId: from);
-      resolved = resolveUnifiedComicChapters(detail.source, from);
-    } catch (e) {
-      logger.e('解析章节列表失败: $e');
-    }
-  }
-
-  if (resolved.isEmpty) {
-    showErrorToast(t.error.operationFailed);
-    return;
-  }
-
-  const adapter = DownloadChapterAdapter();
-  final chapters = resolved.map(adapter.fromChapterRef).toList();
-
-  final task = DownloadTaskJson(
     from: from,
     comicId: comicId,
     comicName: comicTitle,
-    chapterRefs: chapters
-        .map(
-          (chapter) => DownloadChapterTaskRef(
-            chapterId: chapter.id,
-            requestId: chapter.effectiveRequestId,
-            storageChapterId: chapter.effectiveStorageId,
-            logicalKey: chapter.id,
-            title: chapter.displayName,
-            order: chapter.order,
-            extern: Map<String, dynamic>.from(chapter.extern),
-          ),
-        )
-        .toList(),
+    comicInfo: comicInfo,
+    chapterRefs: chapterRefs,
   );
-
-  try {
-    await startDownloadTask(task);
-    showSuccessToast(t.reader.downloadStartedToast);
-  } catch (e) {
-    showErrorToast(
-      t.download.taskStartFailed(error: normalizeSearchErrorMessage(e)),
-    );
-  }
 }
 
 class _ReaderDownloadSheet extends StatefulWidget {
@@ -146,10 +98,7 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
         child: Align(
           alignment: Alignment.bottomCenter,
           child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: 760,
-              maxHeight: maxHeight,
-            ),
+            constraints: BoxConstraints(maxWidth: 760, maxHeight: maxHeight),
             child: Material(
               color: colorScheme.surface,
               surfaceTintColor: colorScheme.surfaceTint,
@@ -172,8 +121,11 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
                   final payload = dbTask?.taskInfo;
 
                   // 检查本地已下载记录
-                  final isDownloaded = objectbox.unifiedDownloadBox
-                          .query(UnifiedComicDownload_.uniqueKey.equals(taskKey))
+                  final isDownloaded =
+                      objectbox.unifiedDownloadBox
+                          .query(
+                            UnifiedComicDownload_.uniqueKey.equals(taskKey),
+                          )
                           .build()
                           .findFirst() !=
                       null;
@@ -271,7 +223,8 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
     bool isDownloaded,
   ) {
     final isDownloading = dbTask?.isDownloading ?? false;
-    final stateCode = payload?.stateCode ?? (dbTask == null ? 'none' : 'queued');
+    final stateCode =
+        payload?.stateCode ?? (dbTask == null ? 'none' : 'queued');
     final isPaused = stateCode == 'paused';
     final isFailed = stateCode == 'failed';
     final isCompleted = dbTask?.isCompleted == true || isDownloaded;
@@ -309,7 +262,9 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
     final fraction = payload == null
         ? (isCompleted ? 1.0 : null)
         : downloadTaskPayloadProgressFraction(payload);
-    final progressMsg = payload == null ? '' : downloadTaskPayloadProgressMessage(payload);
+    final progressMsg = payload == null
+        ? ''
+        : downloadTaskPayloadProgressMessage(payload);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -350,10 +305,7 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
             const SizedBox(height: 12),
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: fraction,
-                minHeight: 8,
-              ),
+              child: LinearProgressIndicator(value: fraction, minHeight: 8),
             ),
           ],
           if (progressMsg.isNotEmpty) ...[
@@ -387,7 +339,8 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
     bool isDownloaded,
   ) {
     final isDownloading = dbTask?.isDownloading ?? false;
-    final stateCode = payload?.stateCode ?? (dbTask == null ? 'none' : 'queued');
+    final stateCode =
+        payload?.stateCode ?? (dbTask == null ? 'none' : 'queued');
     final isPaused = stateCode == 'paused';
     final isFailed = stateCode == 'failed';
     final hasTask = dbTask != null;
@@ -486,7 +439,9 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
           subtitle: Text(t.reader.readWhileDownloadingSubtitle),
           value: globalState.readSetting.readWhileDownloading,
           onChanged: (val) {
-            cubit.updateReadSetting((s) => s.copyWith(readWhileDownloading: val));
+            cubit.updateReadSetting(
+              (s) => s.copyWith(readWhileDownloading: val),
+            );
           },
         ),
         SwitchListTile(

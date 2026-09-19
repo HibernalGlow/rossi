@@ -1,6 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
+import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/apple_super_resolution_settings.dart';
+import 'package:zephyr/type/enum.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
@@ -325,12 +329,17 @@ class _SettingsSwitchTile extends StatelessWidget {
   }
 }
 
-class _SettingsDropdownTile extends StatelessWidget {
+class _SettingsDropdownTile<T> extends StatelessWidget {
   final String title;
   final String subtitle;
-  final int value;
-  final List<int> values;
-  final ValueChanged<int> onChanged;
+  final T value;
+  final List<T> values;
+
+  /// 选项文案。默认 `'$value'`，枚举类传 `(v) => v.label` 即可。
+  final String Function(T) labelOf;
+  final ValueChanged<T> onChanged;
+
+  static String _toStringLabel(Object? value) => '$value';
 
   const _SettingsDropdownTile({
     required this.title,
@@ -338,6 +347,7 @@ class _SettingsDropdownTile extends StatelessWidget {
     required this.value,
     required this.values,
     required this.onChanged,
+    this.labelOf = _toStringLabel,
   });
 
   @override
@@ -363,10 +373,10 @@ class _SettingsDropdownTile extends StatelessWidget {
             color: colorScheme.onSurfaceVariant,
           ),
         ),
-        trailing: FluentDropdown<int>(
+        trailing: FluentDropdown<T>(
           value: value,
-          displayValue: value.toString(),
-          items: {for (final option in values) option: option.toString()},
+          displayValue: labelOf(value),
+          items: {for (final option in values) option: labelOf(option)},
           onChanged: onChanged,
         ),
       ),

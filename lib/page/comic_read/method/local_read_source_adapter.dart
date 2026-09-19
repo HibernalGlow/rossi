@@ -11,7 +11,8 @@ import 'package:zephyr/reader/local_page_source.dart';
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/util/get_path.dart';
 
-export 'package:zephyr/util/path_util.dart' show isLocalComicSource;
+export 'package:zephyr/util/path_util.dart'
+    show isLocalComicSource, isLocalPictureRequest;
 
 /// 管理当前活跃的本地 GPU 呈现阅读会话。
 class LocalReadSession {
