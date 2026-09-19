@@ -3,10 +3,9 @@
 // 卡片只负责「长什么样 / 什么时候自动关」，位置、堆叠、进出场由
 // `toast_overlay.dart` 的宿主统一处理。
 
-import 'dart:ui' show ImageFilter;
-
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/util/toast/toast_style.dart';
+import 'package:zephyr/widgets/glass/liquid_glass.dart';
 
 /// 提示条类型。
 ///
@@ -164,37 +163,41 @@ class _ToastCardState extends State<ToastCard>
       ],
     );
 
-    content = Container(
+    // 宽度与最小高度约束对两种材质一视同仁，套在卡片本体外面。
+    content = ConstrainedBox(
       constraints: BoxConstraints(minHeight: 48, maxWidth: spec.maxWidth),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: spec.liquidGlass
-            ? scheme.surface.withValues(alpha: 0.46)
-            : scheme.surfaceContainerHigh,
-        borderRadius: radius,
-        border: Border.all(
-          color: spec.liquidGlass
-              ? scheme.onSurface.withValues(alpha: 0.16)
-              : scheme.outlineVariant.withValues(alpha: 0.5),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(
-              alpha: spec.liquidGlass ? 0.18 : 0.22,
-            ),
-            blurRadius: spec.liquidGlass ? 24 : 14,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
       child: content,
     );
 
     if (spec.liquidGlass) {
-      content = ClipRRect(
+      // 玻璃走全仓统一的液态玻璃材质（提示条属于「浮层卡片」档）。
+      // 不透明度缩进材质里 —— 别用 `Opacity` 包 BackdropFilter，
+      // 那会把已经模糊好的背景再罩一层雾，还会多一次 saveLayer。
+      content = LiquidGlassSurface(
+        thickness: LiquidGlassThickness.regular,
         borderRadius: radius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        opacity: spec.opacity,
+        child: content,
+      );
+    } else {
+      content = Opacity(
+        opacity: spec.opacity,
+        child: Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHigh,
+            borderRadius: radius,
+            border: Border.all(
+              color: scheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.22),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
           child: content,
         ),
       );
@@ -209,7 +212,9 @@ class _ToastCardState extends State<ToastCard>
       );
     }
 
-    return Opacity(opacity: spec.opacity, child: content);
+    // 不透明度已在两种材质分支内各自处理（玻璃缩进材质、实色套 Opacity），
+    // 这里不能再包一层，否则玻璃会变成双层衰减。
+    return content;
   }
 }
 

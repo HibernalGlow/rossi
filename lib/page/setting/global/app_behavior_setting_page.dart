@@ -11,6 +11,7 @@ import 'package:zephyr/service/lifecycle/foreground_task/foreground_task_service
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/gesture_lock.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/workspace/model/workspace_startup.dart';
 
 @RoutePage()
 class AppBehaviorSettingPage extends StatefulWidget {
@@ -81,6 +82,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
             icon: Icons.settings_outlined,
           ),
           _splashPage(state, cubit),
+          // 只在**本机真有工作台入口**的布局给这个开关：手机端导航栏上根本没有
+          // 那个按钮，自动打开无从落地 —— 摆一个点了没反应的开关比不摆更糟
+          // （与下面 `_comicInfoInlineReadButton` 同口径）。
+          if (hasWorkspaceEntry(context)) _startWithWorkspace(state, cubit),
           if (isDesktop) _desktopCloseBehaviorTile(),
           if (Platform.isAndroid) _androidKeepAlive(state, cubit),
           if (Platform.isAndroid) _backPressExit(state, cubit),
@@ -91,6 +96,9 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
           _autoFavoriteOnDownload(state, cubit),
           _leftHandMode(state, cubit),
           _clickCoverToStartReading(state, cubit),
+          // 只在桌面端给这个开关：触摸端只有右下角悬浮按钮一种落点，
+          // 摆一个点了没反应的开关比不摆更糟（与 `_desktopCloseBehaviorTile` 同口径）。
+          if (isDesktop) _comicInfoInlineReadButton(state, cubit),
           const SizedBox(height: 32),
         ],
       ),
@@ -122,6 +130,25 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
           );
         },
       ),
+    );
+  }
+
+  Widget _startWithWorkspace(
+    GlobalSettingState state,
+    GlobalSettingCubit cubit,
+  ) {
+    return SwitchListTile(
+      secondary: const Icon(Icons.dashboard_customize_outlined),
+      title: Text(t.settings.startWithWorkspace),
+      subtitle: Text(t.settings.startWithWorkspaceSubtitle),
+      thumbIcon: kSettingSwitchThumbIcon,
+      value: state.startWithWorkspace,
+      onChanged: (bool value) {
+        cubit.updateState(
+          (current) => current.copyWith(startWithWorkspace: value),
+        );
+        showSuccessToast(t.common.restartToTakeEffect);
+      },
     );
   }
 
@@ -227,6 +254,25 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
       onChanged: (bool value) {
         cubit.updateState(
           (current) => current.copyWith(clickCoverToStartReading: value),
+        );
+        showSuccessToast(t.common.settingSaved);
+      },
+    );
+  }
+
+  Widget _comicInfoInlineReadButton(
+    GlobalSettingState state,
+    GlobalSettingCubit cubit,
+  ) {
+    return SwitchListTile(
+      secondary: const Icon(Icons.menu_book_outlined),
+      title: Text(t.settings.comicInfoInlineReadButton),
+      subtitle: Text(t.settings.comicInfoInlineReadButtonSubtitle),
+      thumbIcon: kSettingSwitchThumbIcon,
+      value: state.comicInfoInlineReadButton,
+      onChanged: (bool value) {
+        cubit.updateState(
+          (current) => current.copyWith(comicInfoInlineReadButton: value),
         );
         showSuccessToast(t.common.settingSaved);
       },

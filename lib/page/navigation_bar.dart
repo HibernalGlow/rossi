@@ -35,6 +35,7 @@ import 'package:zephyr/page/more/view/more.dart';
 import 'package:zephyr/page/old_page/old_home/old_home_page.dart';
 import 'package:zephyr/page/old_page/old_ranking/old_ranking_page.dart';
 import 'package:zephyr/workspace/breeze_workspace_page.dart';
+import 'package:zephyr/workspace/model/workspace_startup.dart';
 
 @RoutePage()
 class NavigationBar extends StatefulWidget {
@@ -60,6 +61,12 @@ class _NavigationBarState extends State<NavigationBar> {
   bool _isInitializingNotifications = false;
   static bool _followUpdateChecked = false;
 
+  /// 「启动直接进工作台」**每个进程只做一次**。
+  ///
+  /// 这一层万一被重建（换语言、换主题都会把整棵树重建），不该再弹一次工作台 ——
+  /// 那时用户多半已经主动从里面退出来过了，再弹就成了关不掉的东西。
+  static bool _workspaceAutoOpenHandled = false;
+
   @override
   void initState() {
     super.initState();
@@ -83,6 +90,9 @@ class _NavigationBarState extends State<NavigationBar> {
     );
     _controller = PersistentTabController(initialIndex: initialIndex);
     _selectedIndex = initialIndex;
+    // 启动落点。开关关着、或本机没有工作台入口时它逐字不动
+    // （见 `resolveStartupLanding`）。
+    _maybeOpenWorkspaceOnStart(globalSetting.startWithWorkspace);
     ForegroundTaskService.instance.init();
 
     initializeNotificationsOnce();
@@ -119,6 +129,39 @@ class _NavigationBarState extends State<NavigationBar> {
     super.dispose();
   }
 
+  /// 打开工作台（泳道 / 四边栏）。两个入口共用：四边栏布局 trailing 上的按钮，
+  /// 以及「启动时直接打开工作台」。
+  void _openWorkspace() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        // 带上名字：工作台靠它判断「我是不是最上面那一页」，
+        // 详情页 →「开始阅读」时才知道要不要把自己弹回前台
+        // （见 BreezeWorkspacePage.routeName）。
+        settings: const RouteSettings(name: BreezeWorkspacePage.routeName),
+        builder: (_) => const BreezeWorkspacePage(),
+      ),
+    );
+  }
+
+  /// 启动后是否**直接**进工作台（判定见 `resolveStartupLanding`）。
+  ///
+  /// 排到首帧之后：工作台是 `Navigator.push` 上来的整页，`initState` 期间这一层
+  /// 还没进 Navigator；而「有没有入口」要看 `MediaQuery`（`isTablet`）——
+  /// 两者都要求先有帧。
+  void _maybeOpenWorkspaceOnStart(bool startWithWorkspace) {
+    if (_workspaceAutoOpenHandled) return;
+    _workspaceAutoOpenHandled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final landing = resolveStartupLanding(
+        startWithWorkspace: startWithWorkspace,
+        workspaceEntryAvailable: hasWorkspaceEntry(context),
+      );
+      if (landing != StartupLanding.workspace) return;
+      _openWorkspace();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final globalSettingState = context.watch<GlobalSettingCubit>().state;
@@ -143,10 +186,9 @@ class _NavigationBarState extends State<NavigationBar> {
       updateInterval: Duration(seconds: 1),
       child: Builder(
         builder: (context) {
-          if (isTablet(context) ||
-              Platform.isWindows ||
-              Platform.isLinux ||
-              Platform.isMacOS) {
+          // 走不走四边栏布局，与「本机有没有工作台入口」是同一条判据 ——
+          // 那个按钮就挂在这一支的 trailing 上（见 `hasWorkspaceEntry`）。
+          if (hasWorkspaceEntry(context)) {
             return _buildTabletLayout(
               pageList: pageList,
               navRailDestinations: navRailDestinations,
@@ -281,17 +323,7 @@ class _NavigationBarState extends State<NavigationBar> {
                         IconButton(
                           icon: const Icon(Icons.dashboard_customize_outlined),
                           tooltip: '泳道/四边栏工作台 (NeoView Workspace)',
-                          onPressed: () => Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              // 带上名字：工作台靠它判断「我是不是最上面那一页」，
-                              // 详情页 →「开始阅读」时才知道要不要把自己弹回前台
-                              // （见 BreezeWorkspacePage.routeName）。
-                              settings: const RouteSettings(
-                                name: BreezeWorkspacePage.routeName,
-                              ),
-                              builder: (_) => const BreezeWorkspacePage(),
-                            ),
-                          ),
+                          onPressed: _openWorkspace,
                         ),
                       ],
                     ),
