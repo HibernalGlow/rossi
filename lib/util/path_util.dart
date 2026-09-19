@@ -81,3 +81,27 @@ bool isLocalComicSource(String from, String comicId) {
       lower.endsWith('.7z') ||
       lower.endsWith('.tar');
 }
+
+/// 图片获取 / 下载是否走「本地分支」（`getCachePicture`、`downloadImageWithRetry` 共用）。
+///
+/// 三条析取，语义各不相同，**都不能丢**：
+///
+/// - `extern['isLocalGpu']`：本地 GPU 呈现会话（归档 / 文件夹漫画已开在呈现器里）。
+///   这类会话的超分由**呈现器**负责，不该再走图片层的网络与超分段。
+/// - `comicId` 是路径 / 归档。
+/// - `url` 是路径 / 归档 —— **网络 URL 在这里必须为假**。
+///
+/// 最后一条是血教训：本地分支在 `getCachePicture` 里是**早返回**，
+/// 位置在网络下载、缓存复用之**前**，也就是在**所有超分调用之前**。
+/// 一旦它被网络请求命中，页面既不会被下载（返回哨兵串 `'404'`），
+/// 也永远到不了超分段 —— 失败会被误读成"超分坏了"。
+bool isLocalPictureRequest({
+  required String from,
+  String cartoonId = '',
+  String url = '',
+  Map<String, dynamic>? extern,
+}) {
+  return extern?['isLocalGpu'] == true ||
+      isLocalComicSource(from, cartoonId) ||
+      isLocalComicSource(from, url);
+}

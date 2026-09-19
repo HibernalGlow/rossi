@@ -6,7 +6,10 @@ import 'package:zephyr/page/comic_info/models/favorite_workflow.dart';
 import 'package:zephyr/page/comic_info/json/normal/normal_comic_all_info.dart';
 import 'package:zephyr/page/comic_info/models/collect_comic.dart';
 import 'package:zephyr/page/comic_follow/cubit/comic_follow_cubit.dart';
+import 'package:zephyr/page/download/method/comic_download_entry.dart';
 import 'package:zephyr/page/download/models/unified_comic_download.dart';
+import 'package:zephyr/object_box/model.dart';
+import 'package:zephyr/service/download/download_queue_manager.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/util/error_filter.dart';
 import 'package:zephyr/config/router/router.gr.dart';
@@ -42,6 +45,9 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
   bool isCollected = false;
   bool isLiked = false;
   bool isCloudCollected = false;
+
+  String? _taskStreamKey;
+  Stream<DownloadTask?>? _taskStream;
 
   @override
   void initState() {
@@ -126,12 +132,15 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
       ),
       collectItem,
       _OperationItemData(
+        kind: _OperationKind.download,
         icon: Icons.cloud_download_outlined,
         text: normalInfo.allowDownload
             ? t.comicInfo.download
             : t.comicInfo.downloadForbidden,
         enabled: normalInfo.allowDownload,
         onTap: _openDownload,
+        onLongPress: _openDownloadChapterPicker,
+        onLongPressTooltip: t.reader.selectChapter,
       ),
     ];
 
@@ -156,7 +165,17 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
                   .map(
                     (item) => SizedBox(
                       width: itemWidth,
-                      child: _OperationCard(item: item, compact: isDesktop),
+                      // 下载卡片要跟着下载状态走（未下载 / 下载中 / 已下载），
+                      // 其余卡片是纯静态项。
+                      child: item.kind == _OperationKind.download
+                          ? _DownloadOperationCard(
+                              item: item,
+                              compact: isDesktop,
+                              from: _downloadSource,
+                              comicId: _downloadComicId,
+                              taskStream: _downloadTaskStream,
+                            )
+                          : _OperationCard(item: item, compact: isDesktop),
                     ),
                   )
                   .toList(),
@@ -165,6 +184,25 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
         },
       ),
     );
+  }
+
+  /// 与下载任务/下载记录一致的 source key。
+  String get _downloadSource => widget.from.trim();
+
+  /// 与下载任务/下载记录一致的 comic key。
+  String get _downloadComicId => comicInfoView.id.toString().trim();
+
+  /// 下载任务状态流按 key 缓存：`build` 里每次新建会让 StreamBuilder 反复重订阅。
+  Stream<DownloadTask?> get _downloadTaskStream {
+    final key = '$_downloadSource|$_downloadComicId';
+    if (_taskStreamKey != key) {
+      _taskStreamKey = key;
+      _taskStream = DownloadQueueManager.instance.watchTaskByComic(
+        _downloadSource,
+        _downloadComicId,
+      );
+    }
+    return _taskStream!;
   }
 
   void _openComments() {
@@ -186,9 +224,45 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
     );
   }
 
-  void _openDownload() {
+  /// 单击「下载」。
+  ///
+  /// 默认直接下载整本；只有这本漫画已有下载记录/任务时才进章节选择页
+  /// （此时点击语义是「管理已有下载」）。想主动挑章节请长按。
+  Future<void> _openDownload() async {
     if (!normalInfo.allowDownload) return;
-    final info = resolveUnifiedDownloadInfo(comicInfo, widget.from);
+
+    final action = resolveComicDownloadEntryAction(
+      hasDownloadRecord: hasComicDownloadRecord(
+        from: _downloadSource,
+        comicId: _downloadComicId,
+      ),
+      hasDownloadTask: hasComicDownloadTask(
+        from: _downloadSource,
+        comicId: _downloadComicId,
+      ),
+    );
+    if (action == ComicDownloadEntryAction.openChapterPicker) {
+      _openDownloadChapterPicker();
+      return;
+    }
+
+    if (!mounted) return;
+    await startComicDownloadAll(
+      context: context,
+      from: _downloadSource,
+      comicId: _downloadComicId,
+      comicName: comicInfoView.title,
+      comicInfo: comicInfo,
+    );
+  }
+
+  /// 长按「下载」：显式进入章节选择页。
+  void _openDownloadChapterPicker() {
+    if (!normalInfo.allowDownload) return;
+    _pushChapterPicker(resolveUnifiedDownloadInfo(comicInfo, widget.from));
+  }
+
+  void _pushChapterPicker(UnifiedComicDownloadInfo info) {
     context.pushRoute(DownloadRoute(downloadInfo: info));
   }
 
@@ -334,22 +408,126 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
   }
 }
 
+enum _OperationKind { generic, download }
+
 class _OperationItemData {
   const _OperationItemData({
     required this.icon,
     required this.text,
+    this.kind = _OperationKind.generic,
     this.onTap,
+    this.onLongPress,
+    this.onLongPressTooltip,
     this.enabled = true,
     this.highlighted = false,
     this.accentColor,
+    this.iconColor,
   });
 
   final IconData icon;
   final String text;
+
+  /// 下载项要额外接下载状态流，单独渲染。
+  final _OperationKind kind;
   final VoidCallback? onTap;
+
+  /// 长按回调；为空时该卡片不响应长按。
+  final VoidCallback? onLongPress;
+
+  /// 长按的悬停提示（桌面端可发现性）。
+  final String? onLongPressTooltip;
   final bool enabled;
   final bool highlighted;
   final Color? accentColor;
+
+  /// 覆盖图标颜色（用于下载状态的语义色）。
+  final Color? iconColor;
+}
+
+/// 下载卡片：跟着下载任务/下载记录切图标与文案，让「点一下会发生什么」可预期。
+class _DownloadOperationCard extends StatelessWidget {
+  const _DownloadOperationCard({
+    required this.item,
+    required this.compact,
+    required this.from,
+    required this.comicId,
+    required this.taskStream,
+  });
+
+  final _OperationItemData item;
+  final bool compact;
+  final String from;
+  final String comicId;
+  final Stream<DownloadTask?> taskStream;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<DownloadTask?>(
+      stream: taskStream,
+      initialData: DownloadQueueManager.instance.getTaskByComic(from, comicId),
+      builder: (context, snapshot) {
+        return _OperationCard(
+          item: _decorate(context, snapshot.data),
+          compact: compact,
+        );
+      },
+    );
+  }
+
+  _OperationItemData _decorate(BuildContext context, DownloadTask? task) {
+    // 不允许下载时保持原样（「禁止下载」）。
+    if (!item.enabled) {
+      return item;
+    }
+
+    final colorScheme = context.theme.colorScheme;
+    final state = resolveComicDownloadVisualState(
+      isDownloading: task?.isDownloading ?? false,
+      isCompleted: task?.isCompleted ?? false,
+      stateCode:
+          task?.taskInfo?.stateCode ?? (task == null ? 'none' : 'queued'),
+      hasRecord: hasComicDownloadRecord(from: from, comicId: comicId),
+    );
+
+    final (IconData icon, String text, Color? iconColor) = switch (state) {
+      ComicDownloadVisualState.downloading => (
+        Icons.downloading_rounded,
+        t.reader.downloadStatusDownloading,
+        colorScheme.primary,
+      ),
+      ComicDownloadVisualState.paused => (
+        Icons.pause_circle_outline_rounded,
+        t.reader.downloadStatusPaused,
+        Colors.orange,
+      ),
+      ComicDownloadVisualState.failed => (
+        Icons.error_outline_rounded,
+        t.reader.downloadStatusFailed,
+        Colors.red,
+      ),
+      ComicDownloadVisualState.completed => (
+        Icons.download_done_rounded,
+        t.reader.downloadManage,
+        Colors.green,
+      ),
+      ComicDownloadVisualState.notDownloaded => (
+        Icons.cloud_download_outlined,
+        t.comicInfo.download,
+        null,
+      ),
+    };
+
+    return _OperationItemData(
+      kind: item.kind,
+      icon: icon,
+      text: text,
+      onTap: item.onTap,
+      onLongPress: item.onLongPress,
+      onLongPressTooltip: item.onLongPressTooltip,
+      enabled: item.enabled,
+      iconColor: iconColor,
+    );
+  }
 }
 
 class _OperationCard extends StatelessWidget {
@@ -370,11 +548,12 @@ class _OperationCard extends StatelessWidget {
         ? accent
         : context.textColor;
 
-    return Material(
+    final card = Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: item.onTap,
+        onLongPress: item.onLongPress,
         child: Ink(
           decoration: BoxDecoration(
             color: background,
@@ -387,7 +566,11 @@ class _OperationCard extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(item.icon, size: compact ? 18 : 20, color: foreground),
+              Icon(
+                item.icon,
+                size: compact ? 18 : 20,
+                color: item.iconColor ?? foreground,
+              ),
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
@@ -405,6 +588,19 @@ class _OperationCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+
+    final tooltip = item.onLongPressTooltip;
+    if (tooltip == null || item.onLongPress == null) {
+      return card;
+    }
+    // triggerMode 必须是 manual：默认的 longPress 触发会在触摸设备上与
+    // 卡片自身的 onLongPress 抢同一个手势，导致长按变成「弹提示」。
+    // 桌面端悬停提示不依赖 triggerMode，仍然正常显示。
+    return Tooltip(
+      message: tooltip,
+      triggerMode: TooltipTriggerMode.manual,
+      child: card,
     );
   }
 }

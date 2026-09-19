@@ -97,4 +97,77 @@ void main() {
       expect(extractImageExtension('no-extension'), 'jpg');
     });
   });
+
+  group('本地分支守卫（图片层：网络请求不得命中本地分支）', () {
+    const wnacgImageUrl =
+        'http://img5.wnimg2.cfd/data/3858/21/0001.webp'
+        '?verify=1789797600-yqTUog0tCMwMdZEOqn0HwA9gDootMI9XHanhUVgz5Wg';
+
+    // 这一条就是"超分是否可达"的根判据：本地分支是早返回，位置在网络下载与
+    // **全部**超分调用之前。网络请求一旦落进本地分支，超分段整段被跳过。
+    test('网络页面请求不进本地分支 ⇒ 网络分支（含超分段）可达', () {
+      expect(
+        isLocalPictureRequest(
+          from: 'wnacg',
+          cartoonId: '385821',
+          url: wnacgImageUrl,
+          extern: const {'priority': 0},
+        ),
+        isFalse,
+      );
+      expect(
+        isLocalPictureRequest(
+          from: 'wnacg',
+          cartoonId: '385821',
+          url: '//img5.wnimg2.cfd/data/3858/21/1.webp',
+        ),
+        isFalse,
+      );
+      // 图片层会把它当 url 传，因此这里也必须为假（否则下载队列直接抛 notFound）。
+      expect(
+        isLocalPictureRequest(from: 'wnacg', url: wnacgImageUrl),
+        isFalse,
+      );
+      // 对照：同一组 from/cartoonId 只把 url 换成归档路径，就必须翻成 true。
+      // 少了这一对，"url 子句被摘掉"也能骗过上面两条（cartoonId 恰好无害）。
+      expect(
+        isLocalPictureRequest(
+          from: 'wnacg',
+          cartoonId: '385821',
+          url: '/comics/a.cbz',
+        ),
+        isTrue,
+      );
+    });
+
+    test('本地 GPU 呈现会话仍进本地分支（超分归呈现器，不走图片层）', () {
+      expect(
+        isLocalPictureRequest(
+          from: 'local',
+          cartoonId: '/comics/a.zip',
+          url: '/comics/a.zip',
+          extern: const {'isLocalGpu': true},
+        ),
+        isTrue,
+      );
+      // isLocalGpu 单独成立即短路，即使 from 是插件 id、url 是网络地址。
+      expect(
+        isLocalPictureRequest(
+          from: 'wnacg',
+          cartoonId: '385821',
+          url: wnacgImageUrl,
+          extern: const {'isLocalGpu': true},
+        ),
+        isTrue,
+      );
+    });
+
+    test('本地路径 / 归档形态仍进本地分支', () {
+      expect(isLocalPictureRequest(from: 'plugin-a', url: '/tmp/a.cbz'), isTrue);
+      expect(
+        isLocalPictureRequest(from: 'plugin-a', cartoonId: 'comics/a.7z'),
+        isTrue,
+      );
+    });
+  });
 }

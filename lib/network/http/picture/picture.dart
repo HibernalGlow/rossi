@@ -46,9 +46,15 @@ Future<String> getCachePicture({
   bool applyRealSr = true,
   bool usePlugin = true,
 }) async {
-  if (isLocalComicSource(from, cartoonId) ||
-      isLocalComicSource(from, url) ||
-      (extern != null && extern['isLocalGpu'] == true)) {
+  // 本地分支是早返回：位置在网络下载、缓存复用与**所有超分调用之前**。
+  // 判据见 `isLocalPictureRequest` —— 网络 URL 在这里必须为假，
+  // 否则页面既拿不到图（返回哨兵串 '404'），也到不了超分段。
+  if (isLocalPictureRequest(
+    from: from,
+    cartoonId: cartoonId,
+    url: url,
+    extern: extern,
+  )) {
     final directPath = path.trim();
     if (directPath.isNotEmpty && File(directPath).existsSync()) {
       return directPath;
@@ -624,7 +630,7 @@ Future<Uint8List> downloadImageWithRetry(
   String qjsTaskGroupKey = '',
   Map<String, dynamic> extern = const <String, dynamic>{},
 }) async {
-  if (isLocalComicSource(source, url)) {
+  if (isLocalPictureRequest(from: source, url: url)) {
     throw DownloadPictureNotFoundException(
       url,
       StateError('local_source_not_supported:$source'),
