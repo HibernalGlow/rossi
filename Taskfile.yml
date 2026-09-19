@@ -1,0 +1,65 @@
+version: '3'
+
+# 快捷启动/构建（go-task）。安装：brew install go-task
+#   task r     发布模式运行应用
+#   task dev   开发热重载循环
+#   task d     显式 debug 运行（带 Observatory/断点）
+#   task b     只打发布包（不运行）
+#   task rust  单独重编 Rust 库（修 FRB content hash 不一致时用）
+#   task a     静态检查 dart analyze lib/
+#
+# 注：r/dev/d/b 都会先跑一次 `task rust`。cargo 增量判断很快（没改 Rust 就是空转），
+# 但能保证「frb 绑定刚重生成、dylib 还是旧的」时不再报 content hash 不一致。
+# 想用 Puro 锁定的 SDK：task r FLUTTER=puro
+
+vars:
+  FLUTTER: flutter
+  # 本机 xcode-select 指向 CommandLineTools，直接用 xcodebuild 会报
+  # "requires Xcode"；这里显式指向 Xcode.app 绕过（无需 sudo）。
+  # 若已 `sudo xcode-select -s /Applications/Xcode.app`，可删掉下面的 env。
+  XCODE_DEVELOPER: /Applications/Xcode.app/Contents/Developer
+
+env:
+  DEVELOPER_DIR: '{{.XCODE_DEVELOPER}}'
+
+tasks:
+  default:
+    desc: 列出所有任务
+    cmds:
+      - task --list
+
+  rust:
+    desc: 重编 Rust 库 windcore（修 FRB content hash 不一致）
+    dir: rust
+    cmds:
+      - cargo build -p windcore --release
+
+  r:
+    desc: 发布模式运行应用（默认 macOS）
+    cmds:
+      - task: rust
+      - '{{.FLUTTER}} run --release -d macos'
+
+  dev:
+    desc: 开发热重载循环（默认 macOS）
+    cmds:
+      - task: rust
+      - '{{.FLUTTER}} run -d macos'
+
+  d:
+    desc: 显式 debug 运行（带 Observatory/断点，默认 macOS）
+    cmds:
+      - task: rust
+      - '{{.FLUTTER}} run --debug -d macos'
+
+  b:
+    desc: 只打发布包，不运行
+    cmds:
+      - task: rust
+      - '{{.FLUTTER}} build macos --release'
+
+  a:
+    desc: 静态检查 dart analyze lib/
+    cmds:
+      - '{{.FLUTTER}} pub get'
+      - dart analyze lib/

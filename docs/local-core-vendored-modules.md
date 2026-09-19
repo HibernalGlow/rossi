@@ -30,7 +30,10 @@
 |---|---|---|
 | `rust/local_core/src/page_load_scheduler.rs` | `src/fs_page_load_scheduler.rs` | `1fd6f863` |
 | `rust/local_core/src/prefetch_policy.rs` | `src/app/prefetch_policy.rs` | `1fd6f863` |
+| `rust/local_core/src/auto_aspect.rs` | `src/auto_aspect.rs` | `1fd6f863` |
+| `rust/local_core/src/page_split.rs` | `src/page_split.rs` | `1fd6f863` |
 | `rust/local_core/src/perf_sink.rs` | —— **本地新增**，上游对应物是 `src/perf.rs`（完整 JSONL 性能日志系统） | —— |
+
 
 文件浏览器还直接使用下面三份 mImageViewer 源码。它们保留上游模块名，
 `file_tree::list_directory` 不再自行复制一套扩展名、隐藏项或平台排序规则：
@@ -38,13 +41,28 @@
 | 本地 | 上游 | 用途 |
 |---|---|---|
 | `rust/local_core/src/folder_tree.rs` | `src/folder_tree.rs` | 虚拟文件夹、媒体扩展名、归档候选、路径解析、DFS 穿透 |
+| `rust/local_core/src/folder_pane.rs` | `src/folder_pane.rs` | 文件树面板状态机、懒展开扫描、RAII 取消、可见行扁平化、游标导航 |
 | `rust/local_core/src/fs_entry.rs` | `src/fs_entry.rs` | Windows reparse point、隐藏属性、内部 bundle 过滤 |
 | `rust/local_core/src/filename_sort.rs` | `src/filename_sort.rs` | Windows sort key、大小写折叠和自然数字排序 |
+| `rust/local_core/src/thumb_loader.rs` | `src/thumb_loader.rs` | 文件夹代表图递归选定、自动缓存键组装与代表图解析 |
 
-这三份源码仍以 mImageViewer 的函数名和测试为准。`activity_gate`、`settings`、
+五份浏览器源码的 pin 均为 `1fd6f863`，也已纳入 `sync_vendored_modules.py`。
+其中 `filename_sort` 只有公开可见性与来源注释差异；另外三份的平台适配见下文。
+
+这四份源码仍以 mImageViewer 的函数名和测试为准。`activity_gate`、`settings`、
 `archive_converter`、`rar_loader`、`zip_loader` 等文件只是给这些纯函数提供 Rossi
 已有能力的薄适配，不重新实现列表规则；其中 RAR 头部判定继续委托
 `rossi_local_core::rar_source`。
+
+2026-09-19 文件浏览平台适配：`folder_tree::path_eq` 保留 Windows 路径比较，
+非 Windows 分支改为区分大小写；`fs_entry::classify_special_dir_entry` 在 Unix
+跟随符号链接目标分类，`directory_visit_key` 在 canonicalize 后保留 Unix 路径大小写。
+上游 DFS 的 `canonical_ancestor_keys` / `directory_descent_creates_cycle` 也使用同一
+平台循环键，避免把 Unix 文件名中的反斜杠或不同大小写路径误认成祖先循环。
+`folder_pane::available_drives` 替换为 `file_tree::get_available_roots()` 获取跨平台挂载卷与主目录，
+`SortOrder` 对齐上游 `FileName` 变体，perf 事件对接 `perf_sink`，单元测试补充 Unix 等价路径用例。
+这些属于平台移植差异，上游升级时须保留；不修改 Catalog 的 `path_key` 数据库键格式。
+文件浏览器当前接通能力与尚缺项见 [功能核对](file-manager-parity.md)。
 
 许可：上游 mImageViewer 是 **MIT**，可 vendor，已保留版权与来源声明（每个文件头都写了）。
 
@@ -74,7 +92,21 @@
 > 所以 `decide_prefetch_allowed` 是**直接可用**的，不是借用。
 > 我们原先手搓的「180 ms 延迟 + 一个布尔」只是它的退化版。
 
-## 4. 刻意偏离（共 7 处）
+**`auto_aspect.rs`**
+
+- 类型 `AutoAspectState` / `AspectDecision`
+- 函数 `fit_score` / `nearest_bucket_to_log_ratio` / `pick_best` / `min_samples_for` / `decide_auto_aspect`
+- 方法 `reset_for_new_generation` / `reset_decision_only`
+- 关联薄适配类型 `settings::ThumbAspect`
+
+**`page_split.rs`（M-09 横长页左右分割）**
+
+- 类型 `PageSlice` / `SplitDirection` / `PresentationStep` / `StepMove`
+- 函数 `presentation_steps` / `landing_step` / `step_forward` / `step_backward`
+- 关联薄适配类型 `settings::SpreadMode` / `rotation::Rotation`
+
+
+## 4. 刻意偏离
 
 每一条都登记在 `script/sync_vendored_modules.py` 的 `PORTS` 里。
 **新增偏离必须同时登记**，否则同步脚本会把它误报成「上游改了」。
@@ -95,6 +127,24 @@
 |---|---|---|
 | 6 | `pub(crate)` → `pub` | 同上 |
 | 7 | 文件末尾新增 `mod tests` | 上游这个文件自己没有测试（纯函数测试散在 `src/app/tests.rs` 里、与 `App` 混放）。搬来其中只用纯函数的那些，作为「搬运等价」的证据 |
+
+### `page_split.rs`
+
+| # | 偏离 | 理由 |
+|---|---|---|
+| 8 | 剥离 `eframe::egui`，本地提供纯 Rust `Pos2` / `Rect`（别名 `NormalizedRect`） | 遵循 **B3** 规范，几何与切分算法为纯逻辑，不引入 UI 框架依赖 |
+| 9 | `crate::rotation_db::Rotation` → `crate::rotation::Rotation` | 上游 rotation 位于独立模块，本地收敛至 `local_core::rotation` |
+| 10 | `crate::displayed_image_transform::inverse_uv` → `crate::rotation::inverse_uv` | 同上 |
+
+### 文件浏览器模块
+
+| 本地差异 | 理由 |
+|---|---|
+| 三份模块的 `pub(crate)` → `pub` | 核心适配层跨模块调用 |
+| `folder_tree::path_eq` 按平台比较，两个 DFS 循环判定调用平台循环键 | 保留 Unix 路径大小写和反斜杠语义 |
+| Unix 符号链接分类与 `directory_visit_key` 分平台 | 可浏览链接，且不会把合法目录误判为循环 |
+| Windows 路径用例加平台门，新增 Unix 用例 | 保留原测试并补上移植回归 |
+| 上游 RAR 样本路径指向 vendor，未 checkout 样本时显式跳过 | 测试数据仍由原仓库管理 |
 
 ## 5. 刻意**没**搬的部分
 
@@ -121,14 +171,14 @@ python script/sync_vendored_modules.py --diff    # 附上游原始 diff
 
 脚本做四件事，退出码 0 = 无需处理、1 = 需要人看：
 
-1. `pin..HEAD` 之间上游有没有提交动过这两个文件；
+1. `pin..HEAD` 之间上游有没有提交动过这五个文件；
 2. **自检**：把 pin 版归一化后与本地比 —— 若仍有代码差异，说明本地有**未登记的偏离**（脚本在替你守规矩）；
 3. 打出「上游这段时间对**代码**的改动」—— 这就是要 apply 的东西（注释差异单列，上游的日文注释常写清语义与理由，值得看）；
 4. 检查**刻意未搬的那一段**上游有没有长出新的函数名（可能是新能力，该搬）。
 
 ### 手工 apply
 
-脚本不会自动改本地文件 —— 这是刻意的：**偏离只有 7 处，但每处都要人判断是否还成立**
+脚本不会自动改本地文件 —— **每处偏离都要判断是否还成立**
 （例如上游若自己把 `pub(crate)` 改成了 `pub`，偏离 1 就该删掉）。
 
 所以流程是：读报告 → 手工编辑本地文件（保持上游的函数名）→ 跑测试：
