@@ -1,6 +1,8 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/cubit/string_select.dart';
 import 'package:zephyr/src/rust/api/file_manager.dart';
@@ -76,6 +78,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
   final _searchController = TextEditingController();
   final _pathController = TextEditingController();
   bool _editingPath = false;
+  bool _searchExpanded = false;
   BigInt? _sessionId;
   FileManagerSnapshot? _snapshot;
   String? _error;
@@ -99,6 +102,13 @@ class _FileManagerCardState extends State<FileManagerCard> {
     super.dispose();
   }
 
+  /// 落盘的主页路径（全局设置）。空串 = 用户还没设过。
+  ///
+  /// 这是「跨重启」的唯一来源：Rust 会话里的 `home_path` 只活在这一次会话里，
+  /// 卡片重建（换布局、收起再展开）或重启应用都会重新问这里要。
+  String get _persistedHomePath =>
+      context.read<GlobalSettingCubit>().state.fileManagerSetting.homePath;
+
   Future<void> _startSession() async {
     if (_busy) return;
     if (_sessionId != null) {
@@ -110,7 +120,10 @@ class _FileManagerCardState extends State<FileManagerCard> {
       _error = null;
     });
     try {
-      final id = await fileManagerCreate();
+      final home = _persistedHomePath;
+      final id = await fileManagerCreate(
+        homePath: home.isEmpty ? null : home,
+      );
       if (_disposed) {
         fileManagerClose(id: id);
         return;
@@ -120,6 +133,26 @@ class _FileManagerCardState extends State<FileManagerCard> {
     } catch (error) {
       _showError(error);
     }
+  }
+
+  /// 把某个目录设为主页：**先写全局设置，再改本次会话**。
+  ///
+  /// 顺序有意义 —— 会话里的值只影响这一次的界面，写盘才是「下次启动还记得」。
+  /// 持久化里可能留着一个已经失效的路径（目录被删 / 移动盘没插），那种情况
+  /// 由 `_startSession` 注入时被 Rust 拒绝，UI 用
+  /// 「`persistedHomePath` 非空但 `snapshot.homePath` 为空」判定失效。
+  Future<void> _setHomePath(String path) async {
+    context.read<GlobalSettingCubit>().updateFileManagerSetting(
+      (current) => current.copyWith(homePath: path),
+    );
+    await _apply((id) => fileManagerSetHomePath(id: id, path: path));
+  }
+
+  Future<void> _clearHomePath() async {
+    context.read<GlobalSettingCubit>().updateFileManagerSetting(
+      (current) => current.copyWith(homePath: ''),
+    );
+    await _apply((id) => fileManagerSetHomePath(id: id, path: null));
   }
 
   Future<void> _reload() async {
@@ -329,7 +362,10 @@ class _FileManagerCardState extends State<FileManagerCard> {
         if (snapshot.directoryColumnsEnabled)
           _buildDirectoryColumns(context, snapshot),
         const SizedBox(height: 6),
-        _buildSearchAndFilter(context, snapshot),
+        if (_searchExpanded || snapshot.searchQuery.isNotEmpty) ...[
+          _buildSearchField(context, snapshot),
+          const SizedBox(height: 6),
+        ],
         _buildRoots(context, snapshot),
         if (_error != null) _buildInlineError(context),
         const SizedBox(height: 6),
@@ -728,10 +764,41 @@ class _FileManagerCardState extends State<FileManagerCard> {
     );
   }
 
-  Widget _buildSearchAndFilter(
-    BuildContext context,
-    FileManagerSnapshot snapshot,
-  ) {
+  /// 可折叠搜索框：由工具栏的搜索键展开；已有生效查询时强制显示。
+  Widget _buildSearchField(BuildContext context, FileManagerSnapshot snapshot) {
+    return TextField(
+      controller: _searchController,
+      enabled: !_busy,
+      autofocus: snapshot.searchQuery.isEmpty,
+      textInputAction: TextInputAction.search,
+      style: Theme.of(context).textTheme.bodySmall,
+      decoration: InputDecoration(
+        isDense: true,
+        hintText: '当前目录名称 · 回车搜索',
+        prefixIcon: const Icon(Icons.search, size: 18),
+        suffixIcon: IconButton(
+          tooltip: '清除搜索并收起',
+          icon: const Icon(Icons.clear, size: 16),
+          onPressed: _busy
+              ? null
+              : () {
+                  _apply((id) => fileManagerSetSearchQuery(id: id, query: ''));
+                  setState(() => _searchExpanded = false);
+                },
+        ),
+        border: const OutlineInputBorder(),
+      ),
+      onSubmitted: (query) =>
+          _apply((id) => fileManagerSetSearchQuery(id: id, query: query)),
+    );
+  }
+
+  /// 工具栏对齐 neoview 文件卡：单行三段 —— 导航掌 / 主工具组 / 更多组。
+  Widget _buildToolbar(BuildContext context, FileManagerSnapshot snapshot) {
+    final theme = Theme.of(context);
+    final activeTab = snapshot.tabs.firstWhere(
+      (tab) => tab.id == snapshot.activeTabId,
+    );
     const filters = {
       FileManagerEntryFilter.all: '全部',
       FileManagerEntryFilter.folders: '文件夹',
@@ -744,280 +811,330 @@ class _FileManagerCardState extends State<FileManagerCard> {
       FileManagerSortField.name: '名称',
       FileManagerSortField.type: '类型',
       FileManagerSortField.size: '大小',
+      FileManagerSortField.date: '修改日期',
+      FileManagerSortField.random: '随机',
     };
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        TextField(
-          controller: _searchController,
-          enabled: !_busy,
-          textInputAction: TextInputAction.search,
-          style: Theme.of(context).textTheme.bodySmall,
-          decoration: InputDecoration(
-            isDense: true,
-            hintText: '当前目录名称 · 回车搜索',
-            prefixIcon: const Icon(Icons.search, size: 18),
-            suffixIcon: IconButton(
-              tooltip: '清除搜索',
-              icon: const Icon(Icons.clear, size: 16),
-              onPressed: _busy
-                  ? null
-                  : () => _apply(
-                      (id) => fileManagerSetSearchQuery(id: id, query: ''),
-                    ),
-            ),
-            border: const OutlineInputBorder(),
-          ),
-          onSubmitted: (query) =>
-              _apply((id) => fileManagerSetSearchQuery(id: id, query: query)),
-        ),
-        Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 4,
-          children: [
-            PopupMenuButton<FileManagerEntryFilter>(
-              tooltip: '筛选文件类型',
-              enabled: !_busy,
-              onSelected: (filter) => _apply(
-                (id) => fileManagerSetEntryFilter(id: id, filter: filter),
-              ),
-              itemBuilder: (_) => [
-                for (final filter in filters.entries)
-                  CheckedPopupMenuItem(
-                    value: filter.key,
-                    checked: filter.key == snapshot.entryFilter,
-                    child: Text(filter.value),
-                  ),
-              ],
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Text('类型：${filters[snapshot.entryFilter]}'),
-              ),
-            ),
-            PopupMenuButton<FileManagerSortField>(
-              tooltip: '排序字段',
-              enabled: !_busy,
-              onSelected: (field) => _apply(
-                (id) => fileManagerSetSort(
-                  id: id,
-                  field: field,
-                  order: snapshot.sortOrder,
-                ),
-              ),
-              itemBuilder: (_) => [
-                for (final field in fields.entries)
-                  CheckedPopupMenuItem(
-                    value: field.key,
-                    checked: field.key == snapshot.sortField,
-                    child: Text(field.value),
-                  ),
-              ],
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Text('排序：${fields[snapshot.sortField]}'),
-              ),
-            ),
-            IconButton(
-              tooltip: snapshot.sortOrder == FileManagerSortOrder.ascending
-                  ? '切换为降序'
-                  : '切换为升序',
-              icon: Icon(
-                snapshot.sortOrder == FileManagerSortOrder.ascending
-                    ? Icons.arrow_upward
-                    : Icons.arrow_downward,
-                size: 16,
-              ),
-              visualDensity: VisualDensity.compact,
-              onPressed: _busy
-                  ? null
-                  : () => _apply(
-                      (id) => fileManagerSetSort(
-                        id: id,
-                        field: snapshot.sortField,
-                        order:
-                            snapshot.sortOrder == FileManagerSortOrder.ascending
-                            ? FileManagerSortOrder.descending
-                            : FileManagerSortOrder.ascending,
-                      ),
-                    ),
-            ),
-            Text(
-              '${snapshot.entries.length} 项',
-              style: Theme.of(context).textTheme.labelSmall,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 
-  Widget _buildToolbar(BuildContext context, FileManagerSnapshot snapshot) {
     Widget action({
       required IconData icon,
       required String tooltip,
       required VoidCallback? onPressed,
+      bool active = false,
     }) {
       return IconButton(
-        icon: Icon(icon, size: 18),
+        icon: Icon(
+          icon,
+          size: 18,
+          color: active ? theme.colorScheme.primary : null,
+        ),
         tooltip: tooltip,
         visualDensity: VisualDensity.compact,
         onPressed: _busy ? null : onPressed,
       );
     }
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          action(
-            icon: Icons.arrow_back_rounded,
-            tooltip: '后退',
-            onPressed:
-                snapshot.tabs
-                    .firstWhere((tab) => tab.id == snapshot.activeTabId)
-                    .canGoBack
-                ? () => _apply((id) => fileManagerGoBack(id: id))
-                : null,
-          ),
-          action(
-            icon: Icons.arrow_forward_rounded,
-            tooltip: '前进',
-            onPressed:
-                snapshot.tabs
-                    .firstWhere((tab) => tab.id == snapshot.activeTabId)
-                    .canGoForward
-                ? () => _apply((id) => fileManagerGoForward(id: id))
-                : null,
-          ),
-          action(
-            icon: Icons.arrow_upward_rounded,
-            tooltip: '上一级',
-            onPressed: snapshot.canGoUp
-                ? () => _apply((id) => fileManagerGoUp(id: id))
-                : null,
-          ),
-          action(
-            icon: Icons.refresh_rounded,
-            tooltip: '刷新',
-            onPressed: () => _apply((id) => fileManagerRefresh(id: id)),
-          ),
-          PopupMenuButton<FileManagerViewMode>(
-            tooltip: '视图模式：${snapshot.viewMode.label}',
-            enabled: !_busy,
-            icon: Icon(snapshot.viewMode.icon, size: 18),
-            onSelected: (mode) => _apply(
-              (id) => fileManagerSetViewMode(id: id, mode: mode),
+    // 主页键：单击跳主页；右键 / 长按把当前目录设为主页。
+    // 说明：IconButton 自带 Tooltip 默认长按触发，会抢走外层长按手势，
+    // 因此这里自建 Tooltip（tap 触发）并把两种手势都留给外层 GestureDetector。
+    Widget homeButton() {
+      final homeTooltip =
+          snapshot.homePath == null
+              ? '主页（未设置 · 右键/长按设为当前目录）'
+              : '主页（右键/长按改为当前目录）';
+      final button = IconButton(
+        icon: Icon(
+          snapshot.isHome ? Icons.home_rounded : Icons.home_outlined,
+          size: 18,
+          color: snapshot.isHome ? theme.colorScheme.primary : null,
+        ),
+        visualDensity: VisualDensity.compact,
+        onPressed: _busy || snapshot.homePath == null
+            ? null
+            : () => _apply((id) => fileManagerGoHome(id: id)),
+      );
+      if (!snapshot.canSetHome) {
+        return Tooltip(message: homeTooltip, child: button);
+      }
+      void setHome() => _apply(
+        (id) => fileManagerSetHomePath(id: id, path: snapshot.activePath),
+      );
+      return GestureDetector(
+        onSecondaryTapUp: (_) => setHome(),
+        onLongPress: setHome,
+        child: Tooltip(
+          message: homeTooltip,
+          triggerMode: TooltipTriggerMode.tap,
+          child: button,
+        ),
+      );
+    }
+
+    // 隐藏滚动条：窄卡片下主工具组横向滚动，但不显示滚动条本身。
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            // —— 导航掌 ——
+            action(
+              icon: Icons.arrow_back_rounded,
+              tooltip: '后退',
+              onPressed: activeTab.canGoBack
+                  ? () => _apply((id) => fileManagerGoBack(id: id))
+                  : null,
             ),
-            itemBuilder: (_) => [
-              for (final mode in FileManagerViewMode.values)
-                CheckedPopupMenuItem(
-                  value: mode,
-                  checked: mode == snapshot.viewMode,
-                  child: Row(
-                    children: [
-                      Icon(mode.icon, size: 16),
-                      const SizedBox(width: 8),
-                      Text(mode.label),
-                    ],
+            action(
+              icon: Icons.arrow_forward_rounded,
+              tooltip: '前进',
+              onPressed: activeTab.canGoForward
+                  ? () => _apply((id) => fileManagerGoForward(id: id))
+                  : null,
+            ),
+            action(
+              icon: Icons.arrow_upward_rounded,
+              tooltip: '上一级',
+              onPressed: snapshot.canGoUp
+                  ? () => _apply((id) => fileManagerGoUp(id: id))
+                  : null,
+            ),
+            homeButton(),
+            action(
+              icon: Icons.refresh_rounded,
+              tooltip: '刷新',
+              onPressed: () => _apply((id) => fileManagerRefresh(id: id)),
+            ),
+
+            // —— 主工具组 ——
+            PopupMenuButton<FileManagerViewMode>(
+              tooltip: '视图模式：${snapshot.viewMode.label}',
+              enabled: !_busy,
+              icon: Icon(snapshot.viewMode.icon, size: 18),
+              onSelected: (mode) =>
+                  _apply((id) => fileManagerSetViewMode(id: id, mode: mode)),
+              itemBuilder: (_) => [
+                for (final mode in FileManagerViewMode.values)
+                  CheckedPopupMenuItem(
+                    value: mode,
+                    checked: mode == snapshot.viewMode,
+                    child: Row(
+                      children: [
+                        Icon(mode.icon, size: 16),
+                        const SizedBox(width: 8),
+                        Text(mode.label),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+            PopupMenuButton<String>(
+              tooltip: '排序：${fields[snapshot.sortField]}',
+              enabled: !_busy,
+              icon: const Icon(Icons.sort_rounded, size: 18),
+              onSelected: (value) {
+                if (value == 'order') {
+                  _apply(
+                    (id) => fileManagerSetSort(
+                      id: id,
+                      field: snapshot.sortField,
+                      order:
+                          snapshot.sortOrder == FileManagerSortOrder.ascending
+                          ? FileManagerSortOrder.descending
+                          : FileManagerSortOrder.ascending,
+                    ),
+                  );
+                  return;
+                }
+                if (value == 'temporary') {
+                  _apply(
+                    (id) => fileManagerSetSortTemporary(
+                      id: id,
+                      enabled: !snapshot.sortTemporary,
+                    ),
+                  );
+                  return;
+                }
+                if (value.startsWith('field:')) {
+                  final name = value.substring('field:'.length);
+                  final field = FileManagerSortField.values.firstWhere(
+                    (field) => field.name == name,
+                  );
+                  _apply(
+                    (id) => fileManagerSetSort(
+                      id: id,
+                      field: field,
+                      order: snapshot.sortOrder,
+                    ),
+                  );
+                }
+              },
+              itemBuilder: (_) => [
+                for (final field in fields.entries)
+                  CheckedPopupMenuItem(
+                    value: 'field:${field.key.name}',
+                    checked: field.key == snapshot.sortField,
+                    child: Text(field.value),
+                  ),
+                const PopupMenuDivider(),
+                PopupMenuItem(
+                  value: 'order',
+                  child: Text(
+                    snapshot.sortOrder == FileManagerSortOrder.ascending
+                        ? '切换为降序'
+                        : '切换为升序',
                   ),
                 ),
-            ],
-          ),
-          PopupMenuButton<String>(
-            tooltip: '文件浏览设置',
-            enabled: !_busy,
-            icon: const Icon(Icons.tune_rounded, size: 18),
-            onSelected: (value) {
-              switch (value) {
-                case 'hidden':
-                  _apply(
-                    (id) => fileManagerSetShowHiddenFiles(
-                      id: id,
-                      enabled: !snapshot.showHiddenFiles,
-                    ),
-                  );
-                case 'directories':
-                  _apply(
-                    (id) => fileManagerSetDirectoriesFirst(
-                      id: id,
-                      enabled: !snapshot.directoriesFirst,
-                    ),
-                  );
-                case 'penetration':
-                  _apply(
-                    (id) => fileManagerSetPenetration(
-                      id: id,
-                      enabled: !snapshot.penetrationEnabled,
-                    ),
-                  );
-                case 'children':
-                  _apply(
-                    (id) => fileManagerSetShowChildNames(
-                      id: id,
-                      enabled: !snapshot.showChildNames,
-                    ),
-                  );
-                case 'mode':
-                  _apply(
-                    (id) => fileManagerSetInternalItemsMode(
-                      id: id,
-                      mode:
-                          snapshot.internalItemsMode ==
-                              FileManagerInternalItemsMode.single
-                          ? FileManagerInternalItemsMode.all
-                          : FileManagerInternalItemsMode.single,
-                    ),
-                  );
-                default:
-                  final depth = int.tryParse(value);
-                  if (depth != null) {
-                    _apply(
-                      (id) => fileManagerSetMaxDepth(id: id, depth: depth),
-                    );
-                  }
-              }
-            },
-            itemBuilder: (context) => [
-              CheckedPopupMenuItem(
-                value: 'hidden',
-                checked: snapshot.showHiddenFiles,
-                child: const Text('显示隐藏文件'),
-              ),
-              CheckedPopupMenuItem(
-                value: 'directories',
-                checked: snapshot.directoriesFirst,
-                child: const Text('文件夹优先'),
-              ),
-              const PopupMenuDivider(),
-              CheckedPopupMenuItem(
-                value: 'penetration',
-                checked: snapshot.penetrationEnabled,
-                child: const Text('穿透模式'),
-              ),
-              CheckedPopupMenuItem(
-                value: 'children',
-                checked: snapshot.showChildNames,
-                child: const Text('显示子文件名'),
-              ),
-              PopupMenuItem(
-                value: 'mode',
-                child: Text(
-                  snapshot.internalItemsMode ==
-                          FileManagerInternalItemsMode.single
-                      ? '子文件：显示一个'
-                      : '子文件：显示全部',
-                ),
-              ),
-              const PopupMenuDivider(),
-              for (final depth in [1, 2, 3, 5, 10, 32])
                 CheckedPopupMenuItem(
-                  value: '$depth',
-                  checked: snapshot.maxDepth == depth,
-                  child: Text(depth == 32 ? '穿透深度：最多 32 层' : '穿透深度：$depth 层'),
+                  value: 'temporary',
+                  checked: snapshot.sortTemporary,
+                  enabled: snapshot.canSortPreference,
+                  child: const Text('临时排序（不记住本目录）'),
                 ),
-            ],
-          ),
-        ],
+              ],
+            ),
+            // 搜索键不参与 _busy 门控：展开/收起只是 UI 状态切换。
+            IconButton(
+              icon: Icon(
+                Icons.search_rounded,
+                size: 18,
+                color: _searchExpanded || snapshot.searchQuery.isNotEmpty
+                    ? theme.colorScheme.primary
+                    : null,
+              ),
+              tooltip: _searchExpanded ? '收起搜索' : '搜索当前目录',
+              visualDensity: VisualDensity.compact,
+              onPressed: () =>
+                  setState(() => _searchExpanded = !_searchExpanded),
+            ),
+            action(
+              icon: Icons.view_week_rounded,
+              tooltip: snapshot.directoryColumnsEnabled ? '关闭目录列' : '目录列',
+              active: snapshot.directoryColumnsEnabled,
+              onPressed: () => _apply(
+                (id) => fileManagerSetDirectoryColumns(
+                  id: id,
+                  enabled: !snapshot.directoryColumnsEnabled,
+                ),
+              ),
+            ),
+            action(
+              icon: Icons.alt_route_rounded,
+              tooltip: snapshot.penetrationEnabled ? '关闭穿透模式' : '穿透模式',
+              active: snapshot.penetrationEnabled,
+              onPressed: () => _apply(
+                (id) => fileManagerSetPenetration(
+                  id: id,
+                  enabled: !snapshot.penetrationEnabled,
+                ),
+              ),
+            ),
+
+            // —— 更多组 ——
+            PopupMenuButton<String>(
+              tooltip: '更多',
+              enabled: !_busy,
+              icon: const Icon(Icons.more_horiz_rounded, size: 18),
+              onSelected: (value) {
+                if (value.startsWith('filter:')) {
+                  final name = value.substring('filter:'.length);
+                  final filter = FileManagerEntryFilter.values.firstWhere(
+                    (filter) => filter.name == name,
+                  );
+                  _apply(
+                    (id) => fileManagerSetEntryFilter(id: id, filter: filter),
+                  );
+                  return;
+                }
+                switch (value) {
+                  case 'hidden':
+                    _apply(
+                      (id) => fileManagerSetShowHiddenFiles(
+                        id: id,
+                        enabled: !snapshot.showHiddenFiles,
+                      ),
+                    );
+                  case 'directories':
+                    _apply(
+                      (id) => fileManagerSetDirectoriesFirst(
+                        id: id,
+                        enabled: !snapshot.directoriesFirst,
+                      ),
+                    );
+                  case 'children':
+                    _apply(
+                      (id) => fileManagerSetShowChildNames(
+                        id: id,
+                        enabled: !snapshot.showChildNames,
+                      ),
+                    );
+                  case 'mode':
+                    _apply(
+                      (id) => fileManagerSetInternalItemsMode(
+                        id: id,
+                        mode:
+                            snapshot.internalItemsMode ==
+                                FileManagerInternalItemsMode.single
+                            ? FileManagerInternalItemsMode.all
+                            : FileManagerInternalItemsMode.single,
+                      ),
+                    );
+                  default:
+                    final depth = int.tryParse(value);
+                    if (depth != null) {
+                      _apply(
+                        (id) => fileManagerSetMaxDepth(id: id, depth: depth),
+                      );
+                    }
+                }
+              },
+              itemBuilder: (context) => [
+                CheckedPopupMenuItem(
+                  value: 'hidden',
+                  checked: snapshot.showHiddenFiles,
+                  child: const Text('显示隐藏文件'),
+                ),
+                CheckedPopupMenuItem(
+                  value: 'directories',
+                  checked: snapshot.directoriesFirst,
+                  child: const Text('文件夹优先'),
+                ),
+                CheckedPopupMenuItem(
+                  value: 'children',
+                  checked: snapshot.showChildNames,
+                  child: const Text('显示子文件名'),
+                ),
+                PopupMenuItem(
+                  value: 'mode',
+                  child: Text(
+                    snapshot.internalItemsMode ==
+                            FileManagerInternalItemsMode.single
+                        ? '子文件：显示一个'
+                        : '子文件：显示全部',
+                  ),
+                ),
+                const PopupMenuDivider(),
+                for (final depth in [1, 2, 3, 5, 10, 32])
+                  CheckedPopupMenuItem(
+                    value: '$depth',
+                    checked: snapshot.maxDepth == depth,
+                    child: Text(depth == 32 ? '穿透深度：最多 32 层' : '穿透深度：$depth 层'),
+                  ),
+                const PopupMenuDivider(),
+                for (final filter in filters.entries)
+                  CheckedPopupMenuItem(
+                    value: 'filter:${filter.key.name}',
+                    checked: filter.key == snapshot.entryFilter,
+                    child: Text('类型：${filter.value}'),
+                  ),
+              ],
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '${snapshot.entries.length} 项',
+              style: theme.textTheme.labelSmall,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1406,7 +1523,10 @@ class _FileManagerCardState extends State<FileManagerCard> {
   }
 
   // --- 4. 详细信息 (Details Table): 表格视图，含名称、类型、大小、修改时间表头，支持点击表头排序 ---
-  Widget _buildDetailsTable(BuildContext context, FileManagerSnapshot snapshot) {
+  Widget _buildDetailsTable(
+    BuildContext context,
+    FileManagerSnapshot snapshot,
+  ) {
     return LayoutBuilder(
       builder: (context, constraints) {
         const minTableWidth = 460.0;
@@ -1487,12 +1607,11 @@ class _FileManagerCardState extends State<FileManagerCard> {
           const SizedBox(width: 4),
           SizedBox(
             width: 110,
-            child: Text(
-              '修改时间',
-              style: theme.textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+            child: _buildSortableHeaderCell(
+              context,
+              snapshot: snapshot,
+              field: FileManagerSortField.date,
+              label: '修改时间',
             ),
           ),
         ],
@@ -1517,8 +1636,9 @@ class _FileManagerCardState extends State<FileManagerCard> {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
         child: Row(
-          mainAxisAlignment:
-              alignRight ? MainAxisAlignment.end : MainAxisAlignment.start,
+          mainAxisAlignment: alignRight
+              ? MainAxisAlignment.end
+              : MainAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             Flexible(
@@ -1811,9 +1931,9 @@ class _FileManagerCardState extends State<FileManagerCard> {
   ) async {
     final order =
         snapshot.sortField == field &&
-                snapshot.sortOrder == FileManagerSortOrder.ascending
-            ? FileManagerSortOrder.descending
-            : FileManagerSortOrder.ascending;
+            snapshot.sortOrder == FileManagerSortOrder.ascending
+        ? FileManagerSortOrder.descending
+        : FileManagerSortOrder.ascending;
     await _apply(
       (id) => fileManagerSetSort(id: id, field: field, order: order),
     );

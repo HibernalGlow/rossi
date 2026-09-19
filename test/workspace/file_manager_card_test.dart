@@ -86,6 +86,11 @@ FileManagerSnapshot _snapshot({
   bool canCreate = true,
   bool canClose = true,
   bool columnsEnabled = false,
+  String? homePath,
+  bool isHome = false,
+  bool canSetHome = true,
+  bool sortTemporary = false,
+  bool canSortPreference = true,
 }) => FileManagerSnapshot(
   sessionId: BigInt.one,
   maxTabs: 8,
@@ -140,6 +145,11 @@ FileManagerSnapshot _snapshot({
   sortField: FileManagerSortField.name,
   sortOrder: FileManagerSortOrder.ascending,
   directoriesFirst: true,
+  homePath: homePath,
+  isHome: isHome,
+  canSetHome: canSetHome,
+  sortTemporary: sortTemporary,
+  canSortPreference: canSortPreference,
 );
 
 Future<void> _pumpCard(WidgetTester tester, {double width = 340}) async {
@@ -189,8 +199,16 @@ void main() {
     }
   }
 
-  testWidgets('搜索提交到 Rust，切换页签后输入框采用 Rust 快照', (tester) async {
+  testWidgets('搜索框默认折叠，展开后提交到 Rust，切换页签后输入框采用 Rust 快照', (tester) async {
     await _pumpCard(tester);
+    // 默认折叠：没有搜索输入框。
+    expect(find.byType(TextField), findsNothing);
+
+    final searchToggle = find.byTooltip('搜索当前目录');
+    await tester.ensureVisible(searchToggle);
+    await tester.tap(searchToggle);
+    await tester.pumpAndSettle();
+
     await tester.enterText(find.byType(TextField), 'book');
     api.snapshot = _snapshot(query: 'book');
     await tester.testTextInput.receiveAction(TextInputAction.search);
@@ -213,6 +231,106 @@ void main() {
     expect(
       tester.widget<TextField>(find.byType(TextField)).controller!.text,
       'from other tab',
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('主页键按 Rust 能力禁用，长按把当前目录设为主页，再点跳主页', (tester) async {
+    api.snapshot = _snapshot(); // homePath = null
+    await _pumpCard(tester);
+    expect(
+      tester
+          .widget<IconButton>(
+            find.widgetWithIcon(IconButton, Icons.home_outlined),
+          )
+          .onPressed,
+      isNull,
+    );
+
+    final home = find.byIcon(Icons.home_outlined);
+    await tester.ensureVisible(home);
+    await tester.longPress(home);
+    await tester.pumpAndSettle();
+    expect(
+      api
+          .callsTo(#crateApiFileManagerFileManagerSetHomePath)
+          .single
+          .namedArguments[#path],
+      '/books',
+    );
+
+    // 卡片内部快照只随 _apply 的返回更新：先换 mock 快照，再刷新拉取。
+    api.snapshot = _snapshot(homePath: '/books');
+    await tester.tap(find.byTooltip('刷新'));
+    await tester.pumpAndSettle();
+    final homeFilled = find.byIcon(Icons.home_outlined);
+    await tester.ensureVisible(homeFilled);
+    await tester.tap(homeFilled);
+    await tester.pumpAndSettle();
+    expect(api.callsTo(#crateApiFileManagerFileManagerGoHome), hasLength(1));
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('排序菜单提供日期与随机字段并可开临时排序', (tester) async {
+    await _pumpCard(tester);
+    final sortButton = find.byTooltip('排序：名称');
+    await tester.ensureVisible(sortButton);
+    await tester.tap(sortButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('修改日期'), findsOneWidget);
+    expect(find.text('随机'), findsOneWidget);
+    expect(find.text('临时排序（不记住本目录）'), findsOneWidget);
+
+    await tester.tap(find.text('随机'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(
+      api
+          .callsTo(#crateApiFileManagerFileManagerSetSort)
+          .single
+          .namedArguments[#field],
+      FileManagerSortField.random,
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('临时排序按当前快照取反后提交', (tester) async {
+    api.snapshot = _snapshot(sortTemporary: true);
+    await _pumpCard(tester);
+    final sortButton = find.byTooltip('排序：名称');
+    await tester.ensureVisible(sortButton);
+    await tester.tap(sortButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('临时排序（不记住本目录）'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(
+      api
+          .callsTo(#crateApiFileManagerFileManagerSetSortTemporary)
+          .single
+          .namedArguments[#enabled],
+      isFalse,
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('类型筛选移入更多菜单并提交到 Rust', (tester) async {
+    await _pumpCard(tester);
+    final more = find.byTooltip('更多');
+    await tester.ensureVisible(more);
+    await tester.tap(more);
+    await tester.pumpAndSettle();
+
+    expect(find.text('类型：全部'), findsOneWidget);
+    expect(find.text('类型：图片'), findsOneWidget);
+
+    await tester.tap(find.text('类型：图片'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(
+      api
+          .callsTo(#crateApiFileManagerFileManagerSetEntryFilter)
+          .single
+          .namedArguments[#filter],
+      FileManagerEntryFilter.images,
     );
     await tester.pumpWidget(const SizedBox.shrink());
   });
@@ -437,6 +555,17 @@ void main() {
           .last
           .namedArguments[#field],
       FileManagerSortField.size,
+    );
+
+    // 点击“修改时间”表头列切换排序
+    await tester.tap(find.text('修改时间').first);
+    await tester.pumpAndSettle();
+    expect(
+      api
+          .callsTo(#crateApiFileManagerFileManagerSetSort)
+          .last
+          .namedArguments[#field],
+      FileManagerSortField.date,
     );
     await tester.pumpWidget(const SizedBox.shrink());
   });
