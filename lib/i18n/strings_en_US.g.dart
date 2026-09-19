@@ -806,8 +806,8 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get milliseconds => 'ms';
 	@override String get percent => '%';
 	@override String get pixels => 'px';
-	@override String get gesture => 'Gesture';
-	@override String get infoBar => 'Info bar';
+	@override String get gesture => 'Gestures & Hover';
+	@override String get infoBar => 'Info Bar';
 	@override String get pauseAutoRead => 'Pause auto read';
 	@override String get resumeAutoRead => 'Resume auto read';
 	@override String imageLoadFailedRetry({required Object error}) => '${error}\nLoad failed, tap to retry';
@@ -2298,8 +2298,8 @@ extension on TranslationsEnUs {
 			'reader.milliseconds' => 'ms',
 			'reader.percent' => '%',
 			'reader.pixels' => 'px',
-			'reader.gesture' => 'Gesture',
-			'reader.infoBar' => 'Info bar',
+			'reader.gesture' => 'Gestures & Hover',
+			'reader.infoBar' => 'Info Bar',
 			'reader.pauseAutoRead' => 'Pause auto read',
 			'reader.resumeAutoRead' => 'Resume auto read',
 			'reader.imageLoadFailedRetry' => ({required Object error}) => '${error}\nLoad failed, tap to retry',

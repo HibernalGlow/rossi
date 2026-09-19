@@ -2153,8 +2153,8 @@ class Translations$reader$zh_CN {
 	/// zh-CN: 'px'
 	String get pixels => 'px';
 
-	/// zh-CN: '手势'
-	String get gesture => '手势';
+	/// zh-CN: '手势与悬停'
+	String get gesture => '手势与悬停';
 
 	/// zh-CN: '信息条'
 	String get infoBar => '信息条';
@@ -4779,7 +4779,7 @@ extension on Translations {
 			'reader.milliseconds' => 'ms',
 			'reader.percent' => '%',
 			'reader.pixels' => 'px',
-			'reader.gesture' => '手势',
+			'reader.gesture' => '手势与悬停',
 			'reader.infoBar' => '信息条',
 			'reader.pauseAutoRead' => '暂停自动阅读',
 			'reader.resumeAutoRead' => '继续自动阅读',
