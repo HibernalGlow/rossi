@@ -15,6 +15,7 @@ import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/cubit/string_select.dart';
 import 'package:zephyr/util/comic/chinese_translation_matcher.dart';
+import 'package:zephyr/util/comic/comic_card_badge_policy.dart';
 import 'package:zephyr/util/path_util.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_download_badge.dart';
@@ -82,7 +83,13 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
   final bool useRandomImageKey;
 
   /// 封面左上角是否显示语言 / 汉化角标。默认开。
+  ///
+  /// 这是**页面级**开关；用户的**总开关**在「设置 → 书架 → 卡片角标」，
+  /// 两者是「与」的关系（见 [ComicCardBadgePolicy]）。
   final bool showTranslationBadge;
+
+  /// 封面右上角是否显示下载角标。默认开。语义同 [showTranslationBadge]。
+  final bool showDownloadAction;
 
   const ComicFixedSizeHorizontalList({
     super.key,
@@ -92,6 +99,7 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
     this.roundedCorner = true,
     this.useRandomImageKey = false,
     this.showTranslationBadge = true,
+    this.showDownloadAction = true,
   });
 
   @override
@@ -154,9 +162,17 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
     final globalSetting = context.watch<GlobalSettingCubit>().state;
     final pluginId = (info.source.trim().isNotEmpty ? info.source : info.from)
         .trim();
+    final badgePolicy = ComicCardBadgePolicy(
+      downloadBadgeEnabled: globalSetting.comicCardSetting.downloadBadgeEnabled,
+      translationBadgeEnabled:
+          globalSetting.comicCardSetting.translationBadgeEnabled,
+    );
     // 本地漫画本来就在盘上，不给下载角标。
-    final showDownloadBadge =
-        pluginId.isNotEmpty && !isLocalComicSource(pluginId, info.id);
+    final showDownloadBadge = badgePolicy.showDownloadBadge(
+      pluginId: pluginId,
+      comicId: info.id,
+      cardEnabled: showDownloadAction,
+    );
     final favoriteSetting = globalSetting.favoriteArtistSetting;
     final matchResult = favoriteSetting.highlightEnabled
         ? FavoriteArtistMatcher.match(
@@ -166,7 +182,10 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
           )
         : null;
     final isFavoriteArtist = matchResult?.isMatched ?? false;
-    final translationMatch = showTranslationBadge
+    final canShowTranslation = badgePolicy.showTranslationBadge(
+      cardEnabled: showTranslationBadge,
+    );
+    final translationMatch = canShowTranslation
         ? ChineseTranslationMatcher.match(title: info.title, tags: info.tags)
         : ChineseTranslationMatch.none;
 
@@ -204,7 +223,7 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
                   size: width < 110 ? 24 : 28,
                 ),
               ),
-            if (showTranslationBadge && translationMatch.hasBadge)
+            if (canShowTranslation && translationMatch.hasBadge)
               Positioned(
                 top: 6,
                 left: 6,
@@ -393,13 +412,19 @@ class ComicSimplifyEntry extends StatelessWidget {
     final primary = Theme.of(context).colorScheme.primary;
     final pluginId = (info.source.trim().isNotEmpty ? info.source : info.from)
         .trim();
-    // 本地漫画本来就在盘上；多选模式下右上角让给勾选圈。
-    final showDownloadBadge =
-        showDownloadAction &&
-        !selectionMode &&
-        pluginId.isNotEmpty &&
-        !isLocalComicSource(pluginId, info.id);
     final globalSetting = context.watch<GlobalSettingCubit>().state;
+    final badgePolicy = ComicCardBadgePolicy(
+      downloadBadgeEnabled: globalSetting.comicCardSetting.downloadBadgeEnabled,
+      translationBadgeEnabled:
+          globalSetting.comicCardSetting.translationBadgeEnabled,
+    );
+    // 本地漫画本来就在盘上；多选模式下右上角让给勾选圈。
+    final showDownloadBadge = badgePolicy.showDownloadBadge(
+      pluginId: pluginId,
+      comicId: info.id,
+      cardEnabled: showDownloadAction,
+      selectionMode: selectionMode,
+    );
     final favoriteSetting = globalSetting.favoriteArtistSetting;
     final matchResult = favoriteSetting.highlightEnabled
         ? FavoriteArtistMatcher.match(
@@ -409,7 +434,10 @@ class ComicSimplifyEntry extends StatelessWidget {
           )
         : null;
     final isFavoriteArtist = matchResult?.isMatched ?? false;
-    final translationMatch = showTranslationBadge
+    final canShowTranslation = badgePolicy.showTranslationBadge(
+      cardEnabled: showTranslationBadge,
+    );
+    final translationMatch = canShowTranslation
         ? ChineseTranslationMatcher.match(title: info.title, tags: info.tags)
         : ChineseTranslationMatch.none;
 

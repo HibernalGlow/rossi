@@ -26,6 +26,7 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
   Widget build(BuildContext context) {
     final cubit = context.watch<GlobalSettingCubit>();
     final state = cubit.state.bookshelfSetting;
+    final cardSetting = cubit.state.comicCardSetting;
 
     return SettingPageShell(
       title: t.settings.bookshelf,
@@ -38,7 +39,7 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
           ),
           _homePageTile(state, cubit),
           const Divider(height: 1, thickness: 0.3),
-          _rememberSortTile(
+          _switchTile(
             icon: Icons.favorite_outline,
             title: t.settings.bookshelfRememberFavoriteSort,
             subtitle: t.settings.bookshelfRememberFavoriteSortSubtitle,
@@ -48,7 +49,7 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
             ),
           ),
           const Divider(height: 1, thickness: 0.3),
-          _rememberSortTile(
+          _switchTile(
             icon: Icons.history_outlined,
             title: t.settings.bookshelfRememberHistorySort,
             subtitle: t.settings.bookshelfRememberHistorySortSubtitle,
@@ -58,13 +59,40 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
             ),
           ),
           const Divider(height: 1, thickness: 0.3),
-          _rememberSortTile(
+          _switchTile(
             icon: Icons.download_outlined,
             title: t.settings.bookshelfRememberDownloadSort,
             subtitle: t.settings.bookshelfRememberDownloadSortSubtitle,
             value: state.rememberDownloadSort,
             onChanged: (value) => cubit.updateBookshelfSetting(
               (current) => current.copyWith(rememberDownloadSort: value),
+            ),
+          ),
+
+          const SizedBox(height: 8),
+          const Divider(height: 1, thickness: 0.3),
+          settingSectionTitle(
+            context,
+            t.settings.cardBadges,
+            icon: Icons.style_outlined,
+          ),
+          _switchTile(
+            icon: Icons.cloud_download_outlined,
+            title: t.settings.cardDownloadBadge,
+            subtitle: t.settings.cardDownloadBadgeSubtitle,
+            value: cardSetting.downloadBadgeEnabled,
+            onChanged: (value) => cubit.updateComicCardSetting(
+              (current) => current.copyWith(downloadBadgeEnabled: value),
+            ),
+          ),
+          const Divider(height: 1, thickness: 0.3),
+          _switchTile(
+            icon: Icons.translate_outlined,
+            title: t.settings.cardTranslationBadge,
+            subtitle: t.settings.cardTranslationBadgeSubtitle,
+            value: cardSetting.translationBadgeEnabled,
+            onChanged: (value) => cubit.updateComicCardSetting(
+              (current) => current.copyWith(translationBadgeEnabled: value),
             ),
           ),
           const SizedBox(height: 32),
@@ -98,7 +126,11 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
     );
   }
 
-  Widget _rememberSortTile({
+  /// 设置页统一的开关行。
+  ///
+  /// 本页所有开关都走这里：翻转即保存 + 弹「已保存」提示，
+  /// 新增开关时不必再抄一遍 toast。
+  Widget _switchTile({
     required IconData icon,
     required String title,
     required String subtitle,
