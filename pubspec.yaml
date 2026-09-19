@@ -7,6 +7,7 @@ environment:
   sdk: ^3.12.0
 
 dependencies:
+  image: ^4.9.2 # 超分输入：后台将原生解码后的 JXL/AVIF 像素编码为 PNG
   # 核心依赖
   flutter:
     sdk: flutter
