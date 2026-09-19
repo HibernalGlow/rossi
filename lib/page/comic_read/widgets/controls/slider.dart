@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
@@ -14,6 +13,7 @@ import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/service/reader/reader_thumbnail_service.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
+import 'package:zephyr/widgets/glass/liquid_glass.dart';
 
 class SliderWidget extends StatefulWidget {
   final ListObserverController observerController;
@@ -26,6 +26,13 @@ class SliderWidget extends StatefulWidget {
   final double Function(BuildContext context, int globalSlot)?
   estimateColumnOffset;
 
+  /// 是否嵌进**别人的**玻璃面板。
+  ///
+  /// `true` 时不套自己的 [LiquidGlassSurface]，只留内容 —— 底部控制栏把
+  /// 缩略图条与进度条并成一块面板（见 `chrome/bottom.dart`）时必须这样，
+  /// 否则玻璃叠玻璃、圆角互相切。
+  final bool embedded;
+
   const SliderWidget({
     super.key,
     required this.observerController,
@@ -36,6 +43,7 @@ class SliderWidget extends StatefulWidget {
     this.isTransitionSlot,
     this.transitionLabel = '',
     this.estimateColumnOffset,
+    this.embedded = false,
   });
 
   @override
@@ -60,28 +68,21 @@ class _SliderWidgetState extends State<SliderWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final content = Container(
+      height: 52,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: _SliderContents(configuration: widget, owner: this),
+    );
+
+    // 已经被父级那块玻璃装着（缩略图条 + 进度条同一面板）时不再自带材质。
+    if (widget.embedded) return Expanded(child: content);
+
     return Expanded(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            height: 52,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              color: context.theme.colorScheme.surfaceContainerHigh.withValues(
-                alpha: 0.9,
-              ),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: context.theme.colorScheme.outlineVariant.withValues(
-                  alpha: 0.35,
-                ),
-              ),
-            ),
-            child: _SliderContents(configuration: widget, owner: this),
-          ),
-        ),
+      // 底部控制条主体：统一玻璃材质（贴在漫画上，走最实的一档）。
+      child: LiquidGlassSurface(
+        thickness: LiquidGlassThickness.thick,
+        radius: 24,
+        child: content,
       ),
     );
   }
@@ -105,60 +106,52 @@ class _SliderWidgetState extends State<SliderWidget> {
             left: 0,
             right: 0,
             child: Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-                  child: Container(
-                    width: 104,
-                    height: 148,
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: context.theme.colorScheme.surfaceContainerHigh
-                          .withValues(alpha: 0.94),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: context.theme.colorScheme.primary
-                            .withValues(alpha: 0.6),
-                        width: 1.5,
+              // 缩略图预览窗走统一玻璃材质；primary 描边是「当前页」的
+              // 功能性高亮，画在玻璃表面保留。
+              child: LiquidGlassSurface(
+                thickness: LiquidGlassThickness.thick,
+                radius: 12,
+                child: Container(
+                  width: 104,
+                  height: 148,
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: context.theme.colorScheme.primary.withValues(
+                        alpha: 0.6,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.35),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+                      width: 1.5,
                     ),
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(6),
-                            child: ReaderThumbnailWidget(
-                              index: slotIndex,
-                              doc: doc,
-                              localSource: coordinator.localSource,
-                              comicId: coordinator.comicId ?? '',
-                              from: coordinator.from ?? '',
-                              fit: BoxFit.cover,
-                            ),
+                  ),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: ReaderThumbnailWidget(
+                            index: slotIndex,
+                            doc: doc,
+                            localSource: coordinator.localSource,
+                            comicId: coordinator.comicId ?? '',
+                            from: coordinator.from ?? '',
+                            fit: BoxFit.cover,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          message.startsWith('#') || message.contains('章')
-                              ? message
-                              : '第 $message 页',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: context.theme.colorScheme.primary,
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        message.startsWith('#') || message.contains('章')
+                            ? message
+                            : '第 $message 页',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: context.theme.colorScheme.primary,
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -171,28 +164,21 @@ class _SliderWidgetState extends State<SliderWidget> {
         return Stack(
           children: [
             Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8.0),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 48.0,
-                      vertical: 24.0,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.theme.colorScheme.surfaceBright.withValues(
-                        alpha: 0.5,
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: RichText(
-                      text: TextSpan(
-                        text: message,
-                        style: TextStyle(
-                          fontSize: fontSize,
-                          color: context.textColor.withValues(alpha: 0.8),
-                        ),
+              // 跳页大字提示：深色漫画上要压得住白字，走最实的一档。
+              child: LiquidGlassSurface(
+                thickness: LiquidGlassThickness.thick,
+                radius: 10,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 48.0,
+                    vertical: 24.0,
+                  ),
+                  child: RichText(
+                    text: TextSpan(
+                      text: message,
+                      style: TextStyle(
+                        fontSize: fontSize,
+                        color: context.textColor.withValues(alpha: 0.8),
                       ),
                     ),
                   ),
@@ -361,25 +347,34 @@ class _SliderContents extends StatelessWidget {
           return MouseRegion(
             onHover: (event) {
               if (localMaxValue <= 0 || constraints.maxWidth <= 0) return;
-              final percent = (event.localPosition.dx / constraints.maxWidth).clamp(0.0, 1.0);
+              final percent = (event.localPosition.dx / constraints.maxWidth)
+                  .clamp(0.0, 1.0);
               final hoverStep = (percent * localMaxValue).round();
               final targetGlobalSlot =
-                  configuration.mapLocalToGlobalSlot?.call(hoverStep) ?? hoverStep;
+                  configuration.mapLocalToGlobalSlot?.call(hoverStep) ??
+                  hoverStep;
               final displayPage = getDisplayPageNumber(
                 slotIndex: hoverStep,
                 enableDoublePage: readSetting.doublePageMode,
                 insertLeadingBlank: insertLeadingBlank,
               );
               final toastMessage =
-                  configuration.isTransitionSlot?.call(targetGlobalSlot) ?? false
+                  configuration.isTransitionSlot?.call(targetGlobalSlot) ??
+                      false
                   ? effectiveTransitionLabel
                   : displayPage.toString();
-              owner._showOverlayToast(toastMessage, slotIndex: targetGlobalSlot);
+              owner._showOverlayToast(
+                toastMessage,
+                slotIndex: targetGlobalSlot,
+              );
               owner._sliderIsRollingTimer?.cancel();
-              owner._sliderIsRollingTimer = Timer(const Duration(milliseconds: 1400), () {
-                owner._overlayEntry?.remove();
-                owner._overlayEntry = null;
-              });
+              owner._sliderIsRollingTimer = Timer(
+                const Duration(milliseconds: 1400),
+                () {
+                  owner._overlayEntry?.remove();
+                  owner._overlayEntry = null;
+                },
+              );
             },
             onExit: (_) {
               owner._sliderIsRollingTimer?.cancel();
@@ -420,10 +415,14 @@ class _SliderContents extends StatelessWidget {
                   insertLeadingBlank: insertLeadingBlank,
                 );
                 final toastMessage =
-                    configuration.isTransitionSlot?.call(targetGlobalSlot) ?? false
+                    configuration.isTransitionSlot?.call(targetGlobalSlot) ??
+                        false
                     ? effectiveTransitionLabel
                     : displayPage.toString();
-                owner._showOverlayToast(toastMessage, slotIndex: targetGlobalSlot);
+                owner._showOverlayToast(
+                  toastMessage,
+                  slotIndex: targetGlobalSlot,
+                );
 
                 owner._sliderIsRollingTimer = Timer(
                   const Duration(milliseconds: 300),
@@ -451,7 +450,9 @@ class _SliderContents extends StatelessWidget {
                           globalSettingState.readSetting,
                         );
                       } else {
-                        configuration.pageController.jumpToPage(targetGlobalSlot);
+                        configuration.pageController.jumpToPage(
+                          targetGlobalSlot,
+                        );
                       }
                     } catch (e) {
                       logger.e(e);

@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
@@ -7,7 +5,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/auto_scroll_quick_button.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_download_button.dart';
-import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_upscale_button.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_upscale_status_chip.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reading_mode_capsule.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/secondary_toolbar.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_sheet.dart';
@@ -16,14 +14,14 @@ import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
 import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/reader_hover_reveal_layer.dart';
-import 'package:zephyr/util/context/context_extensions.dart';
+import 'package:zephyr/widgets/glass/liquid_glass.dart';
 
 /// NeoView 风格的专业阅读器顶栏 (ReaderViewToolbar)。
 ///
 /// 模块化设计：
 /// - [ReadingModeCapsule] & [DoublePageToggle]：阅读模式与单双页胶囊
 /// - [CompactReadingModeButton]：移动窄屏循环切换按钮
-/// - [ReaderUpscaleButton]：AI 超分辨率状态与切换胶囊
+/// - [ReaderUpscaleStatusChip]：当前页超分状态（状态字 + 超分后分辨率 + 超分开关）
 /// - [ReaderDownloadButton]：在线漫画边看边下载快捷入口与状态指示
 /// - [AutoScrollQuickButton]：自动滚屏状态快捷按钮
 /// - [ReaderSecondaryToolbar]：二级展开版式高级工具面板
@@ -75,7 +73,6 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
     final globalSettingState = context.watch<GlobalSettingCubit>().state;
     final globalSettingCubit = context.read<GlobalSettingCubit>();
     final readSetting = globalSettingState.readSetting;
-    final colorScheme = context.theme.colorScheme;
     const appBarRadius = 16.0;
 
     return Positioned(
@@ -91,72 +88,57 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
           child: MouseRegion(
             onEnter: (_) => hoverController?.onEnterTopBar(),
             onExit: (_) => hoverController?.onExitTopBar(),
-            child: ClipRRect(
+            child: LiquidGlassSurface(
+              // 顶栏压在漫画内容上，前景必须永远读得清，走最实的一档；
+              // 贴着屏幕顶，阴影按体量收小。
+              thickness: LiquidGlassThickness.thick,
               borderRadius: const BorderRadius.vertical(
                 bottom: Radius.circular(appBarRadius),
               ),
-              child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: colorScheme.surface.withValues(alpha: 0.84),
-                  border: Border(
-                    bottom: BorderSide(
-                      color: colorScheme.outlineVariant.withValues(alpha: 0.25),
-                      width: 1.0,
-                    ),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: SafeArea(
-                  top: true,
-                  bottom: false,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isWide = constraints.maxWidth >= 640;
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildPrimaryToolbar(
-                            context: context,
+              shadowScale: 0.4,
+              child: SafeArea(
+                top: true,
+                bottom: false,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isWide = constraints.maxWidth >= 640;
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildPrimaryToolbar(
+                          context: context,
+                          readSetting: readSetting,
+                          cubit: globalSettingCubit,
+                          isWide: isWide,
+                          // 芯片要按可用宽度决定写不写分辨率：窄屏硬塞会撑爆这一行。
+                          availableWidth: constraints.maxWidth,
+                        ),
+                        AnimatedCrossFade(
+                          duration: const Duration(milliseconds: 220),
+                          crossFadeState: _isSecondaryBarExpanded
+                              ? CrossFadeState.showSecond
+                              : CrossFadeState.showFirst,
+                          firstChild: const SizedBox(
+                            width: double.infinity,
+                            height: 0,
+                          ),
+                          secondChild: ReaderSecondaryToolbar(
                             readSetting: readSetting,
                             cubit: globalSettingCubit,
-                            isWide: isWide,
+                            changePageIndex: widget.changePageIndex,
                           ),
-                          AnimatedCrossFade(
-                            duration: const Duration(milliseconds: 220),
-                            crossFadeState: _isSecondaryBarExpanded
-                                ? CrossFadeState.showSecond
-                                : CrossFadeState.showFirst,
-                            firstChild: const SizedBox(
-                              width: double.infinity,
-                              height: 0,
-                            ),
-                            secondChild: ReaderSecondaryToolbar(
-                              readSetting: readSetting,
-                              cubit: globalSettingCubit,
-                              changePageIndex: widget.changePageIndex,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   /// 顶栏主操作行 (Primary Row)
   Widget _buildPrimaryToolbar({
@@ -164,6 +146,7 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
     required ReadSettingState readSetting,
     required GlobalSettingCubit cubit,
     required bool isWide,
+    required double availableWidth,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     final bookTitle =
@@ -238,10 +221,13 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
               DoublePageToggle(
                 isDoublePage: readSetting.doublePageMode,
                 onToggle: (isDouble) {
+                  // 不在这里动阅读位置：单/双页换的是「槽位怎么切」，
+                  // 位置由阅读器按「同一张图」重算（见
+                  // `_ComicReadPageState._syncPairingLayoutChange`）。
+                  // 以前这里跟着 `changePageIndex(0)`，等于每次切换都回到第一页。
                   cubit.updateReadSetting(
                     (s) => s.copyWith(doublePageMode: isDouble),
                   );
-                  widget.changePageIndex(0);
                 },
                 isWide: true,
               ),
@@ -272,7 +258,7 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
               ),
               const SizedBox(width: 4),
             ],
-            const ReaderUpscaleButton(),
+            ReaderUpscaleStatusChip(availableWidth: availableWidth),
             const SizedBox(width: 4),
             AutoScrollQuickButton(
               isEnabled: readSetting.autoScroll,

@@ -1,9 +1,11 @@
-import 'dart:ui';
+import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter/material.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/service/reader/reader_thumbnail_service.dart';
+import 'package:zephyr/widgets/glass/liquid_glass.dart';
 
 /// NeoView 风格水平胶卷缩略图条（Thumbnail Strip）。
 ///
@@ -18,6 +20,13 @@ class BottomThumbnailStrip extends StatefulWidget {
   final ValueChanged<int> onSelectPage;
   final double height;
 
+  /// 是否嵌进**别人的**玻璃面板（底部控制栏把缩略图条与进度条并成一块）。
+  ///
+  /// `true` 时本组件**不再自带 [LiquidGlassSurface]**，只铺内容 —— 否则就是
+  /// 「玻璃上再盖一层玻璃」，两层圆角还会互相切出一条缝。独立浮着用时
+  /// （紧凑横屏布局）保持 `false`。
+  final bool embedded;
+
   const BottomThumbnailStrip({
     super.key,
     required this.totalPages,
@@ -28,6 +37,7 @@ class BottomThumbnailStrip extends StatefulWidget {
     this.docs = const <Doc>[],
     required this.onSelectPage,
     this.height = 104,
+    this.embedded = false,
   });
 
   @override
@@ -90,55 +100,50 @@ class _BottomThumbnailStripState extends State<BottomThumbnailStrip> {
 
     final theme = Theme.of(context);
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          height: widget.height,
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHigh.withValues(
-              alpha: 0.88,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
-            ),
-          ),
-          child: ScrollConfiguration(
-            behavior: ScrollConfiguration.of(context).copyWith(
-              dragDevices: {
-                PointerDeviceKind.touch,
-                PointerDeviceKind.mouse,
-                PointerDeviceKind.trackpad,
-              },
-            ),
-            child: ListView.builder(
-              controller: _scrollController,
-              scrollDirection: Axis.horizontal,
-              itemCount: widget.totalPages,
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              itemBuilder: (context, index) {
-                final isActive = index == widget.currentSlot;
-                final doc = index < widget.docs.length
-                    ? widget.docs[index]
-                    : null;
+    final content = Container(
+      height: widget.height,
+      padding: widget.embedded
+          // 嵌进父级面板：横向留出与父级圆角相称的边距，底部少留（下面就是进度条）。
+          ? const EdgeInsets.fromLTRB(8, 8, 8, 2)
+          : const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+      child: ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(
+          dragDevices: {
+            PointerDeviceKind.touch,
+            PointerDeviceKind.mouse,
+            PointerDeviceKind.trackpad,
+          },
+        ),
+        child: ListView.builder(
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          itemCount: widget.totalPages,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          itemBuilder: (context, index) {
+            final isActive = index == widget.currentSlot;
+            final doc = index < widget.docs.length ? widget.docs[index] : null;
 
-                return Padding(
-                  padding: const EdgeInsets.only(right: _tileSpacing),
-                  child: _buildTile(
-                    theme: theme,
-                    index: index,
-                    doc: doc,
-                    isActive: isActive,
-                  ),
-                );
-              },
-            ),
-          ),
+            return Padding(
+              padding: const EdgeInsets.only(right: _tileSpacing),
+              child: _buildTile(
+                theme: theme,
+                index: index,
+                doc: doc,
+                isActive: isActive,
+              ),
+            );
+          },
         ),
       ),
+    );
+
+    if (widget.embedded) return content;
+
+    return LiquidGlassSurface(
+      // 独立浮条：全档位阴影，让它明显悬在漫画之上。
+      thickness: LiquidGlassThickness.thick,
+      radius: 16,
+      child: content,
     );
   }
 
@@ -151,7 +156,7 @@ class _BottomThumbnailStripState extends State<BottomThumbnailStrip> {
     final activeBorderColor = theme.colorScheme.primary;
 
     return Semantics(
-      label: '跳转到第 ${index + 1} 页',
+      label: t.reader.thumbnailStripJumpToPage(page: index + 1),
       selected: isActive,
       child: Material(
         color: Colors.transparent,
@@ -240,7 +245,7 @@ class _BottomThumbnailStripState extends State<BottomThumbnailStrip> {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          '当前',
+                          t.reader.thumbnailStripCurrent,
                           style: TextStyle(
                             fontSize: 8,
                             fontWeight: FontWeight.bold,

@@ -9,6 +9,7 @@ import 'package:zephyr/page/comic_read/cubit/reader_seamless_state.dart';
 import 'package:zephyr/page/comic_read/method/image_size_cache_store.dart';
 import 'package:zephyr/page/comic_read/method/prefetch_image_sizes.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
+import 'package:zephyr/page/comic_read/cubit/reader_state.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/reader_hover_reveal_layer.dart';
 import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
@@ -133,39 +134,53 @@ class _ComicReadSuccessWidgetState extends State<ComicReadSuccessWidget> {
 
               return ReaderHoverScope(
                 controller: _hoverController!,
-                child: BlocListener<ReaderSeamlessCubit, ReaderSeamlessState>(
-                  listenWhen: (previous, current) =>
-                      previous.loadedChapters.length !=
-                      current.loadedChapters.length,
-                  listener: _onSeamlessChaptersChanged,
-                  child: Container(
-                    color: backgroundColor,
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: widget.buildInteractiveViewer(innerContext),
-                        ),
-                        if (enableReaderFilter)
+                child: BlocListener<ReaderCubit, ReaderState>(
+                  // 悬停唤出的「锁」一解除（菜单收起 / 滑块松手），就用指针此刻的
+                  // 实际位置把两侧悬停标记重新对一次账。
+                  //
+                  // 锁着的时候 `_checkScheduleHide*` 故意不排收起定时器（那是对的），
+                  // 可 `setTopHovered(false)` / `setBottomHovered(false)` **也只有
+                  // 那条定时器会调** —— 于是「指针在锁着的时候离开唤出区」这一下会被
+                  // 整个丢掉，标记永久为真，被它 OR 住的那条栏再也收不起来
+                  // （症状：点中间收起菜单，顶栏正常滑走、底栏不动）。补的就是这次
+                  // 对账，见 `ReaderHoverController.syncHoveredWithPointer`。
+                  listenWhen: isHoverRevealLockReleased,
+                  listener: (context, state) =>
+                      _hoverController?.syncHoveredWithPointer(),
+                  child: BlocListener<ReaderSeamlessCubit, ReaderSeamlessState>(
+                    listenWhen: (previous, current) =>
+                        previous.loadedChapters.length !=
+                        current.loadedChapters.length,
+                    listener: _onSeamlessChaptersChanged,
+                    child: Container(
+                      color: backgroundColor,
+                      child: Stack(
+                        children: [
                           Positioned.fill(
-                            child: IgnorePointer(
-                              ignoring: true,
-                              child: Container(
-                                color: Colors.black.withValues(
-                                  alpha: filterOpacityPercent / 100,
+                            child: widget.buildInteractiveViewer(innerContext),
+                          ),
+                          if (enableReaderFilter)
+                            Positioned.fill(
+                              child: IgnorePointer(
+                                ignoring: true,
+                                child: Container(
+                                  color: Colors.black.withValues(
+                                    alpha: filterOpacityPercent / 100,
+                                  ),
                                 ),
                               ),
                             ),
+                          Positioned.fill(
+                            child: ReaderHoverRevealOverlay(
+                              controller: _hoverController!,
+                            ),
                           ),
-                        Positioned.fill(
-                          child: ReaderHoverRevealOverlay(
-                            controller: _hoverController!,
-                          ),
-                        ),
-                        widget.buildPageCount(innerContext),
-                        widget.buildAppBar(innerContext),
-                        widget.buildBottom(innerContext),
-                        widget.buildAutoReadControl(innerContext),
-                      ],
+                          widget.buildPageCount(innerContext),
+                          widget.buildAppBar(innerContext),
+                          widget.buildBottom(innerContext),
+                          widget.buildAutoReadControl(innerContext),
+                        ],
+                      ),
                     ),
                   ),
                 ),

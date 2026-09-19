@@ -4,6 +4,10 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_read/controller/reader_action_controller.dart';
 
 /// 一次点击落在阅读区的哪一档。
+///
+/// [toggleMenu] 只说明「落点落在唤出上下栏的那一档」；**能不能真的唤出**由
+/// [ReaderGestureLogic.handleTap] 按设置里的 `centerTapToggleBars` 决定
+/// （这个开关可以让上下栏只由悬停/双击唤出，单击彻底不碰它）。
 enum ReaderTapZone { previousPage, nextPage, toggleMenu }
 
 /// 一次点击的**成对样本**：落点，加上**接收它的那个盒子**自己量出来的尺寸。
@@ -122,8 +126,14 @@ class ReaderGestureLogic {
     );
 
     switch (zone) {
+      // 「点击中间唤出/收起上下栏」是做成了开关的（设置 → 手势）。关掉后单击落到
+      // 这一档时什么都不做。
+      //
+      // 这里只管**单击**：双击那条路（`doubleTapOpenMenu`）不走 `handleTap`，
+      // 桌面端也还有边缘悬停 —— 所以关掉它不会把用户锁在一个唤不出上下栏的
+      // 阅读器里（顶栏上还有返回键）。
       case ReaderTapZone.toggleMenu:
-        onToggleMenu();
+        if (readSetting.centerTapToggleBars) onToggleMenu();
       case ReaderTapZone.nextPage:
         // 翻页前统一归位缩放（唤出上下栏不动视口）。
         onBeforePageTurn?.call();

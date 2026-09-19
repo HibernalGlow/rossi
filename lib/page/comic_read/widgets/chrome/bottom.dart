@@ -1,9 +1,8 @@
-import 'dart:ui';
-
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/cubit/string_select.dart';
 import 'package:zephyr/page/comic_info/comic_info.dart';
 import 'package:zephyr/page/download/adapters/download_chapter_adapter.dart';
@@ -12,6 +11,7 @@ import 'package:zephyr/page/comic_read/method/jump_chapter.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_sheet.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
+import 'package:zephyr/widgets/glass/liquid_glass.dart';
 import 'package:zephyr/config/router/router.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
@@ -25,7 +25,13 @@ import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 class BottomWidget extends StatefulWidget {
   final ComicEntryType type;
   final dynamic comicInfo;
-  final Widget sliderWidget;
+
+  /// 进度条构造器，参数是「要不要嵌进父级玻璃面板」。
+  ///
+  /// 展开缩略图时两者要并成同一块玻璃（`embedded: true`），播放器不能预先
+  /// 造好一个固定形态的 widget —— 那会让进度条永远自带材质。
+  final Widget Function(bool embedded) sliderBuilder;
+
   final int order;
   final int epsNumber;
   final String comicId;
@@ -38,7 +44,7 @@ class BottomWidget extends StatefulWidget {
     super.key,
     required this.type,
     required this.comicInfo,
-    required this.sliderWidget,
+    required this.sliderBuilder,
     required this.order,
     required this.epsNumber,
     required this.comicId,
@@ -61,10 +67,13 @@ class _BottomWidgetState extends State<BottomWidget> {
 
   final Duration _animationDuration = const Duration(milliseconds: 300); // 动画时长
 
+  /// 缩略图条的展开高度。并进控制栏面板后比独立浮条矮一点，
+  /// 免得「一块面板顶掉半屏漫画」。
+  static const double _fusedStripHeight = 92;
+
   late ComicEntryType tempType;
   late String comicId;
   List<UnifiedComicChapterRef> chapterRefs = [];
-  bool _showThumbnailStrip = false;
 
   @override
   void initState() {
@@ -79,6 +88,16 @@ class _BottomWidgetState extends State<BottomWidget> {
       tempType = ComicEntryType.normal;
     }
     chapterRefs = resolveUnifiedComicChapters(widget.comicInfo, widget.from);
+  }
+
+  /// 缩略图条的显隐住在**全局设置**里，不是本 State。
+  ///
+  /// 本 State 每个阅读 route 一份，换书 / 换章（`router.replace` 换 key）
+  /// 都会重建 —— 放这里就表现为「开新书就重置」。
+  void _setThumbnailStripVisible(bool visible) {
+    context.read<GlobalSettingCubit>().updateReadSetting(
+      (current) => current.copyWith(showThumbnailStrip: visible),
+    );
   }
 
   void _jumpToSlot(int index) {
@@ -100,6 +119,10 @@ class _BottomWidgetState extends State<BottomWidget> {
     );
     final totalSlots = context.select(
       (ReaderCubit cubit) => cubit.state.totalSlots,
+    );
+    // 全局设置：跟随书籍/章节切换、跟随重启，不再被 route 的 State 重置。
+    final showThumbnailStrip = context.select<GlobalSettingCubit, bool>(
+      (cubit) => cubit.state.readSetting.showThumbnailStrip,
     );
     final bottomSafeHeight = context.bottomSafeHeight;
     final screenWidth = MediaQuery.sizeOf(context).width;
@@ -138,6 +161,7 @@ class _BottomWidgetState extends State<BottomWidget> {
                       currentSlot: currentSlot,
                       localSource: localSource,
                       docs: docs,
+                      showThumbnailStrip: showThumbnailStrip,
                     )
                   : _buildRegularControls(
                       topMaxWidth: topMaxWidth,
@@ -147,6 +171,7 @@ class _BottomWidgetState extends State<BottomWidget> {
                       currentSlot: currentSlot,
                       localSource: localSource,
                       docs: docs,
+                      showThumbnailStrip: showThumbnailStrip,
                     ),
             ),
           ),
@@ -163,11 +188,34 @@ class _BottomWidgetState extends State<BottomWidget> {
     required int currentSlot,
     required PageSource? localSource,
     required List<Doc> docs,
+    required bool showThumbnailStrip,
   }) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (_showThumbnailStrip && totalSlots > 0) ...[
+    final showStrip = showThumbnailStrip && totalSlots > 0;
+
+    return AnimatedSize(
+      // 展开/收起时让面板「长出来」，而不是整块跳一下。
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.bottomCenter,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Align(
+              alignment: Alignment.center,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: isWideLayout ? topMaxWidth : double.infinity,
+                ),
+                child: _buildControlButtons(
+                  totalSlots: totalSlots,
+                  showThumbnailStrip: showThumbnailStrip,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Align(
@@ -176,46 +224,44 @@ class _BottomWidgetState extends State<BottomWidget> {
                 constraints: BoxConstraints(
                   maxWidth: isWideLayout ? bottomMaxWidth : double.infinity,
                 ),
-                child: BottomThumbnailStrip(
-                  totalPages: totalSlots,
-                  currentSlot: currentSlot,
-                  comicId: comicId,
-                  from: widget.from,
-                  localSource: localSource,
-                  docs: docs,
-                  onSelectPage: _jumpToSlot,
-                ),
+                child: showStrip
+                    // 缩略图条与进度条同处一块玻璃：不再往控制栏上面
+                    // 另起一栏（那正是用户要消掉的东西）。
+                    ? LiquidGlassSurface(
+                        thickness: LiquidGlassThickness.thick,
+                        radius: 24,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            BottomThumbnailStrip(
+                              embedded: true,
+                              height: _fusedStripHeight,
+                              totalPages: totalSlots,
+                              currentSlot: currentSlot,
+                              comicId: comicId,
+                              from: widget.from,
+                              localSource: localSource,
+                              docs: docs,
+                              onSelectPage: _jumpToSlot,
+                            ),
+                            Divider(
+                              height: 1,
+                              thickness: 1,
+                              indent: 10,
+                              endIndent: 10,
+                              color: context.theme.colorScheme.outlineVariant
+                                  .withValues(alpha: 0.4),
+                            ),
+                            Row(children: [widget.sliderBuilder(true)]),
+                          ],
+                        ),
+                      )
+                    : Row(children: [widget.sliderBuilder(false)]),
               ),
             ),
           ),
-          const SizedBox(height: 10),
         ],
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Align(
-            alignment: Alignment.center,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: isWideLayout ? topMaxWidth : double.infinity,
-              ),
-              child: _buildControlButtons(totalSlots: totalSlots),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Align(
-            alignment: Alignment.center,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: isWideLayout ? bottomMaxWidth : double.infinity,
-              ),
-              child: Row(children: [widget.sliderWidget]),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -226,11 +272,17 @@ class _BottomWidgetState extends State<BottomWidget> {
     required int currentSlot,
     required PageSource? localSource,
     required List<Doc> docs,
+    required bool showThumbnailStrip,
   }) {
+    // 紧凑横屏（宽 ≥600 且高 ≤600）里按钮与进度条被迫同排，玻璃没法只包住
+    // 进度条那一半 —— 强行合并会把按钮也糊进面板。这里让缩略图条保持
+    // 独立浮条，只有显隐状态跟着全局设置走。
+    final showStrip = showThumbnailStrip && totalSlots > 0;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (_showThumbnailStrip && totalSlots > 0) ...[
+        if (showStrip) ...[
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Align(
@@ -263,9 +315,12 @@ class _BottomWidgetState extends State<BottomWidget> {
               ),
               child: Row(
                 children: [
-                  _buildControlButtons(totalSlots: totalSlots),
+                  _buildControlButtons(
+                    totalSlots: totalSlots,
+                    showThumbnailStrip: showThumbnailStrip,
+                  ),
                   const SizedBox(width: 12),
-                  widget.sliderWidget,
+                  widget.sliderBuilder(false),
                 ],
               ),
             ),
@@ -275,7 +330,10 @@ class _BottomWidgetState extends State<BottomWidget> {
     );
   }
 
-  Widget _buildControlButtons({required int totalSlots}) {
+  Widget _buildControlButtons({
+    required int totalSlots,
+    required bool showThumbnailStrip,
+  }) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -294,17 +352,15 @@ class _BottomWidgetState extends State<BottomWidget> {
         ),
         const SizedBox(width: 10),
         FloatingActionIconButton(
-          icon: _showThumbnailStrip
+          icon: showThumbnailStrip
               ? Icons.photo_library_rounded
               : Icons.photo_library_outlined,
-          tooltip: _showThumbnailStrip ? '收起缩略图' : '展开缩略图',
+          tooltip: showThumbnailStrip
+              ? t.reader.thumbnailStripCollapse
+              : t.reader.thumbnailStripExpand,
           isEnabled: totalSlots > 0,
-          isSelected: _showThumbnailStrip,
-          onPressed: () {
-            setState(() {
-              _showThumbnailStrip = !_showThumbnailStrip;
-            });
-          },
+          isSelected: showThumbnailStrip,
+          onPressed: () => _setThumbnailStripVisible(!showThumbnailStrip),
         ),
         const SizedBox(width: 10),
         FloatingActionIconButton(
@@ -597,28 +653,25 @@ class _FrostedCircleIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = context.theme.colorScheme;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(999),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: IconButton(
-          tooltip: tooltip,
-          onPressed: isEnabled ? onPressed : null,
-          style: IconButton.styleFrom(
-            fixedSize: const Size(44, 44),
-            shape: const CircleBorder(),
-            foregroundColor: foregroundColor,
-            backgroundColor: backgroundColor,
-            disabledForegroundColor: colorScheme.onSurface.withValues(
-              alpha: 0.38,
-            ),
-            disabledBackgroundColor: disabledBackgroundColor,
-            side: BorderSide(
-              color: colorScheme.outlineVariant.withValues(alpha: 0.35),
-            ),
+    return LiquidGlassSurface(
+      // 44px 小圆钮：全套面板阴影会重得离谱，按体量收小。
+      thickness: LiquidGlassThickness.thick,
+      radius: 999,
+      shadowScale: 0.3,
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: isEnabled ? onPressed : null,
+        style: IconButton.styleFrom(
+          fixedSize: const Size(44, 44),
+          shape: const CircleBorder(),
+          foregroundColor: foregroundColor,
+          backgroundColor: backgroundColor,
+          disabledForegroundColor: colorScheme.onSurface.withValues(
+            alpha: 0.38,
           ),
-          icon: Icon(icon),
+          disabledBackgroundColor: disabledBackgroundColor,
         ),
+        icon: Icon(icon),
       ),
     );
   }

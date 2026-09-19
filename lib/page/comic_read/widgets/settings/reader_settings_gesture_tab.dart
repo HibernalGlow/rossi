@@ -15,6 +15,8 @@ class _ReaderSettingsGestureTab extends StatelessWidget {
           const SizedBox(height: 18),
           const _TapPageTurnModeSection(),
           const SizedBox(height: 18),
+          const _CenterTapBarSection(),
+          const SizedBox(height: 18),
           const _WebtoonTapPageTurnSection(),
           const SizedBox(height: 18),
           const _DoubleTapSection(),
@@ -85,6 +87,49 @@ class _TapPageTurnModeSection extends StatelessWidget {
               },
             ),
           ],
+        ),
+      ],
+    );
+  }
+}
+
+/// 「点击中间唤出/收起上下栏」——单击与 chrome 显隐之间的绑定，做成了开关。
+///
+/// 关掉它的人要的是「我怎么点都别把上下栏弄出来/弄走」（例如读条漫时手指总会
+/// 落在画面中间）。出口仍在：桌面端边缘悬停、或双击打开操作栏。
+class _CenterTapBarSection extends StatelessWidget {
+  const _CenterTapBarSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final readSetting = context.watch<GlobalSettingCubit>().state.readSetting;
+    final globalSettingCubit = context.read<GlobalSettingCubit>();
+
+    return _SettingsSection(
+      title: t.reader.centerTapBar,
+      children: [
+        _SettingsSwitchTile(
+          title: t.reader.centerTapToggleBars,
+          subtitle: t.reader.centerTapToggleBarsSubtitle,
+          value: readSetting.centerTapToggleBars,
+          onChanged: (value) {
+            globalSettingCubit.updateReadSetting(
+              (current) => current.copyWith(
+                centerTapToggleBars: value,
+                // 关掉之后，触屏上就只剩「双击打开操作栏」一个出口了（桌面端还有
+                // 边缘悬停）。两个双击动作都关着时顺手把这个出口打开，免得用户把
+                // 自己关进一个唤不出上下栏的阅读器里 —— 顶栏上还挂着返回键。
+                // 与「双击缩放 ⇄ 双击打开操作栏」那种互斥时的自动补开是同一套写法，
+                // 而且在「双击操作」那一栏里看得见，不是暗箱。
+                doubleTapOpenMenu:
+                    !value &&
+                        !current.doubleTapOpenMenu &&
+                        !current.doubleTapZoom
+                    ? true
+                    : current.doubleTapOpenMenu,
+              ),
+            );
+          },
         ),
       ],
     );
@@ -238,8 +283,10 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
           _buildNeoViewAreaPreview(context, readSetting),
           _SettingsSwitchTile(
             title: t.reader.hoverRevealTop,
-            subtitle: t.reader.hoverAreaTopHint
-                .replaceAll('{height}', '${readSetting.hoverTriggerAreaTop}'),
+            subtitle: t.reader.hoverAreaTopHint.replaceAll(
+              '{height}',
+              '${readSetting.hoverTriggerAreaTop}',
+            ),
             value: readSetting.hoverRevealTop,
             onChanged: (value) {
               globalSettingCubit.updateReadSetting(
@@ -263,8 +310,10 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
             ),
           _SettingsSwitchTile(
             title: t.reader.hoverRevealBottom,
-            subtitle: t.reader.hoverAreaBottomHint
-                .replaceAll('{height}', '${readSetting.hoverTriggerAreaBottom}'),
+            subtitle: t.reader.hoverAreaBottomHint.replaceAll(
+              '{height}',
+              '${readSetting.hoverTriggerAreaBottom}',
+            ),
             value: readSetting.hoverRevealBottom,
             onChanged: (value) {
               globalSettingCubit.updateReadSetting(
@@ -340,11 +389,7 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.preview_rounded,
-                size: 16,
-                color: primaryColor,
-              ),
+              Icon(Icons.preview_rounded, size: 16, color: primaryColor),
               const SizedBox(width: 6),
               Text(
                 t.reader.hoverAreaPreview,
@@ -377,15 +422,17 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
                       Icon(
                         Icons.menu_book_rounded,
                         size: 30,
-                        color:
-                            colorScheme.onSurfaceVariant.withValues(alpha: 0.25),
+                        color: colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.25,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'NeoView 视口感应交互示意',
                         style: context.theme.textTheme.labelSmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant
-                              .withValues(alpha: 0.5),
+                          color: colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.5,
+                          ),
                         ),
                       ),
                     ],
@@ -404,8 +451,8 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
                       decoration: BoxDecoration(
                         color: readSetting.hoverRevealTop
                             ? (_previewTopHovered
-                                ? primaryColor.withValues(alpha: 0.45)
-                                : primaryColor.withValues(alpha: 0.2))
+                                  ? primaryColor.withValues(alpha: 0.45)
+                                  : primaryColor.withValues(alpha: 0.2))
                             : colorScheme.outlineVariant.withValues(alpha: 0.1),
                         border: Border(
                           bottom: BorderSide(
@@ -413,10 +460,10 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
                                 ? primaryColor.withValues(
                                     alpha: _previewTopHovered ? 0.9 : 0.5,
                                   )
-                                : colorScheme.outlineVariant
-                                    .withValues(alpha: 0.2),
-                            width:
-                                readSetting.hoverShowVisualIndicator ? 2 : 1,
+                                : colorScheme.outlineVariant.withValues(
+                                    alpha: 0.2,
+                                  ),
+                            width: readSetting.hoverShowVisualIndicator ? 2 : 1,
                           ),
                         ),
                       ),
@@ -428,8 +475,9 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
                         style: context.theme.textTheme.labelSmall?.copyWith(
                           color: readSetting.hoverRevealTop
                               ? primaryColor
-                              : colorScheme.onSurfaceVariant
-                                  .withValues(alpha: 0.5),
+                              : colorScheme.onSurfaceVariant.withValues(
+                                  alpha: 0.5,
+                                ),
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
                         ),
@@ -452,8 +500,8 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
                       decoration: BoxDecoration(
                         color: readSetting.hoverRevealBottom
                             ? (_previewBottomHovered
-                                ? primaryColor.withValues(alpha: 0.45)
-                                : primaryColor.withValues(alpha: 0.2))
+                                  ? primaryColor.withValues(alpha: 0.45)
+                                  : primaryColor.withValues(alpha: 0.2))
                             : colorScheme.outlineVariant.withValues(alpha: 0.1),
                         border: Border(
                           top: BorderSide(
@@ -461,10 +509,10 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
                                 ? primaryColor.withValues(
                                     alpha: _previewBottomHovered ? 0.9 : 0.5,
                                   )
-                                : colorScheme.outlineVariant
-                                    .withValues(alpha: 0.2),
-                            width:
-                                readSetting.hoverShowVisualIndicator ? 2 : 1,
+                                : colorScheme.outlineVariant.withValues(
+                                    alpha: 0.2,
+                                  ),
+                            width: readSetting.hoverShowVisualIndicator ? 2 : 1,
                           ),
                         ),
                       ),
@@ -476,8 +524,9 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
                         style: context.theme.textTheme.labelSmall?.copyWith(
                           color: readSetting.hoverRevealBottom
                               ? primaryColor
-                              : colorScheme.onSurfaceVariant
-                                  .withValues(alpha: 0.5),
+                              : colorScheme.onSurfaceVariant.withValues(
+                                  alpha: 0.5,
+                                ),
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
                         ),

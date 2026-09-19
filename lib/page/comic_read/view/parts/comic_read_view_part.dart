@@ -74,7 +74,10 @@ extension _ComicReadViewPart on _ComicReadPageState {
     final readSetting = context.read<GlobalSettingCubit>().state.readSetting;
     final seamlessCubit = context.read<ReaderSeamlessCubit>();
     final seamlessEnabled = seamlessCubit.isSeamlessEnabled();
-    final slider = SliderWidget(
+    // 传构造器而不是造好的 widget：展开缩略图时进度条要**去掉自己的玻璃**
+    // 融进同一块面板（见 `chrome/bottom.dart`），形态由父级决定。
+    Widget buildSlider(bool embedded) => SliderWidget(
+      embedded: embedded,
       observerController: observerController,
       pageController: _pageController,
       getCurrentChapterSlotCount: seamlessEnabled
@@ -113,7 +116,7 @@ extension _ComicReadViewPart on _ComicReadPageState {
     return BottomWidget(
       type: _type,
       comicInfo: comicInfo,
-      sliderWidget: slider,
+      sliderBuilder: (embedded) => buildSlider(embedded),
       order: widget.order,
       epsNumber: widget.epsNumber,
       comicId: comicId,

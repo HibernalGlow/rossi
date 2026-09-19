@@ -223,11 +223,11 @@ void main() {
         await _tapLane(tester, geometry, _left);
         await _tapLane(tester, geometry, _right);
 
-        expect(
-          recorder.events,
-          ['menu', 'prev', 'next'],
-          reason: '正中=唤出上下栏、左半=上一页、右半=下一页；实际 ${recorder.events}',
-        );
+        expect(recorder.events, [
+          'menu',
+          'prev',
+          'next',
+        ], reason: '正中=唤出上下栏、左半=上一页、右半=下一页；实际 ${recorder.events}');
       });
     }
 
@@ -244,7 +244,8 @@ void main() {
       expect(
         recorder.events,
         ['next'],
-        reason: '中心控制区是正中那一格（横竖都在中间那三分之一），不是整条中轴；'
+        reason:
+            '中心控制区是正中那一格（横竖都在中间那三分之一），不是整条中轴；'
             '否则「点上部想唤出顶栏」会变成翻页',
       );
     });
@@ -280,8 +281,55 @@ void main() {
       expect(
         recorder.events,
         ['menu', 'next', 'next'],
-        reason: 'fullScreen 档下左右两侧都是下一页是**契约**（不是 bug）；'
+        reason:
+            'fullScreen 档下左右两侧都是下一页是**契约**（不是 bug）；'
             '但正中那一格必须留给上下栏，否则这一档下用户没有任何唤出 chrome 的出口',
+      );
+    });
+
+    // ── 「点击唤出/收起上下栏」是可以关的（设置 → 手势） ──────────────────────
+    //
+    // 关掉的是**这一档动作**，不是整个分区：左右两半照旧翻页，正中只是什么都不做。
+    testWidgets('关掉「点击唤出上下栏」后：正中不再唤出，左右两半照旧翻页', (tester) async {
+      final recorder = await _pumpReader(
+        tester,
+        _workbench,
+        read: const ReadSettingState(
+          readMode: 1,
+          tapPageTurnMode: ReaderTapPageTurnMode.rightHand,
+          centerTapToggleBars: false,
+        ),
+      );
+
+      await _tapLane(tester, _workbench, _center);
+      await _tapLane(tester, _workbench, _left);
+      await _tapLane(tester, _workbench, _right);
+
+      expect(recorder.events, [
+        'prev',
+        'next',
+      ], reason: '正中那一档被关掉后什么都不做；分区本身没变');
+    });
+
+    // 条漫默认档下「点哪儿都算中间」（`isWebtoon && !tapPageTurnInWebtoon` 那条早退），
+    // 而默认阅读模式就是条漫 —— 这一档要是不跟着关，这个开关在默认设置下等于没做。
+    testWidgets('关掉后条漫「点哪儿都算中间」也一并关掉', (tester) async {
+      final recorder = await _pumpReader(
+        tester,
+        _workbench,
+        read: const ReadSettingState(centerTapToggleBars: false),
+      );
+
+      await _tapLane(tester, _workbench, _left);
+      await _tapLane(tester, _workbench, _center);
+      await _tapLane(tester, _workbench, _right);
+
+      expect(
+        recorder.events,
+        isEmpty,
+        reason:
+            '默认（条漫）模式下用户能按到的每一处都是「中间那一档」，'
+            '只关正中那一格等于这个开关没生效',
       );
     });
   });

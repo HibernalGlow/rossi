@@ -32,12 +32,68 @@ Future<void> showReaderSettingsSheet(
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     builder: (context) {
-      return _ReaderSettingsSheet(
-        changePageIndex: changePageIndex ?? (_) {},
-        onLandscapeChanged: onLandscapeChanged,
+      return _ReaderSettingsSheetEscScope(
+        child: _ReaderSettingsSheet(
+          changePageIndex: changePageIndex ?? (_) {},
+          onLandscapeChanged: onLandscapeChanged,
+        ),
       );
     },
   );
+}
+
+/// 给面板一个自己的 Esc 出口：桌面端按 Esc 即可关闭面板。
+///
+/// 这个处理必须在面板子树内**先行消费**掉 Esc —— 否则按键会沿焦点树
+/// 冒泡到工作台的 `CallbackShortcuts`（见 `breeze_workspace_page`），
+/// 按一下退出的不是面板、而是整个工作台。
+class _ReaderSettingsSheetEscScope extends StatefulWidget {
+  final Widget child;
+
+  const _ReaderSettingsSheetEscScope({required this.child});
+
+  @override
+  State<_ReaderSettingsSheetEscScope> createState() =>
+      _ReaderSettingsSheetEscScopeState();
+}
+
+class _ReaderSettingsSheetEscScopeState
+    extends State<_ReaderSettingsSheetEscScope> {
+  final FocusNode _focusNode = FocusNode(debugLabel: 'reader_settings_sheet');
+  bool _closing = false;
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey != LogicalKeyboardKey.escape) {
+      return KeyEventResult.ignored;
+    }
+    if (!_closing) {
+      _closing = true;
+      // 与 main.dart 的全局 Esc 处理同款顺序：先让焦点失焦，pop 推迟到
+      // 下一帧，让失焦引发的重建在当前帧完成。
+      FocusManager.instance.primaryFocus?.unfocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.of(context).pop();
+      });
+    }
+    return KeyEventResult.handled;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKeyEvent: _handleKeyEvent,
+      child: widget.child,
+    );
+  }
 }
 
 class _ReaderSettingsSheet extends StatelessWidget {
@@ -135,29 +191,44 @@ class _ReaderSettingsHeader extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: colorScheme.outlineVariant,
-                borderRadius: BorderRadius.circular(999),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
               ),
-            ),
-          ),
-          TabBar(
-            dividerColor: Colors.transparent,
-            labelStyle: context.theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-            tabs: [
-              Tab(text: t.reader.settings),
-              Tab(text: t.reader.gesture),
-              Tab(text: t.reader.infoBar),
+              TabBar(
+                dividerColor: Colors.transparent,
+                labelStyle: context.theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+                tabs: [
+                  Tab(text: t.reader.settings),
+                  Tab(text: t.reader.gesture),
+                  Tab(text: t.reader.infoBar),
+                ],
+              ),
             ],
+          ),
+          // 桌面端惯用的显式出口：不依赖拖拽把手或点遮罩。
+          Positioned(
+            right: 0,
+            top: 0,
+            child: IconButton(
+              tooltip: t.common.close,
+              icon: const Icon(Icons.close),
+              visualDensity: VisualDensity.compact,
+              onPressed: () => Navigator.of(context).pop(),
+            ),
           ),
         ],
       ),

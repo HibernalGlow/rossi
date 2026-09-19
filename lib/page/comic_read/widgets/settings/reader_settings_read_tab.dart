@@ -118,10 +118,12 @@ class _ReadModeSection extends StatelessWidget {
           subtitle: t.reader.doublePageSubtitle,
           value: globalSettingState.readSetting.doublePageMode,
           onChanged: (value) {
+            // 单/双页换的是槽位切法，不换「看的是哪张图」：位置由阅读器按同一张
+            // 图重算（`_syncPairingLayoutChange`），不在这里清零 —— 以前这里跟一句
+            // `changePageIndex(0)`，就是「切一下单双页，页数跳回开头」。
             globalSettingCubit.updateReadSetting(
               (current) => current.copyWith(doublePageMode: value),
             );
-            changePageIndex(0);
           },
         ),
         if (globalSettingState.readSetting.doublePageMode &&
@@ -131,10 +133,10 @@ class _ReadModeSection extends StatelessWidget {
             subtitle: t.reader.doublePageSeamlessSubtitle,
             value: globalSettingState.readSetting.doublePageSeamless,
             onChanged: (value) {
+              // 无缝只改两张图之间留不留缝，配对与槽位都不变。
               globalSettingCubit.updateReadSetting(
                 (current) => current.copyWith(doublePageSeamless: value),
               );
-              changePageIndex(0);
             },
           ),
         if (globalSettingState.readSetting.doublePageMode)
@@ -143,10 +145,10 @@ class _ReadModeSection extends StatelessWidget {
             subtitle: t.reader.doublePageLeadingBlankSubtitle,
             value: globalSettingState.readSetting.doublePageLeadingBlank,
             onChanged: (value) {
+              // 首页留白会让每段图片整体错一位（配对变了），同样交给阅读器重算位置。
               globalSettingCubit.updateReadSetting(
                 (current) => current.copyWith(doublePageLeadingBlank: value),
               );
-              changePageIndex(0);
             },
           ),
       ],
@@ -551,6 +553,18 @@ class _ReadExperienceSection extends StatelessWidget {
           onChanged: (value) {
             globalSettingCubit.updateReadSetting(
               (current) => current.copyWith(hoverRevealEnabled: value),
+            );
+          },
+        ),
+        // 和底栏那个相册按钮是同一个开关：开关状态住在全局设置里，
+        // 所以换书 / 换章 / 重启都保持，不会再「开一本新的就收起」。
+        _SettingsSwitchTile(
+          title: t.reader.thumbnailStrip,
+          subtitle: t.reader.thumbnailStripSubtitle,
+          value: readSetting.showThumbnailStrip,
+          onChanged: (value) {
+            globalSettingCubit.updateReadSetting(
+              (current) => current.copyWith(showThumbnailStrip: value),
             );
           },
         ),

@@ -145,10 +145,13 @@ class ReaderLifecycleController {
   }
 
   Future<void> _restoreDesktopFullscreen() async {
-    _desktopFullscreenService.syncFullscreen(false);
-    if (!isDesktopPlatform()) return;
-    if (_isDesktopFullscreen) {
-      await _desktopFullscreenService.setFullscreen(false);
-    }
+    // 只**还自己借的那次**全屏（`ReaderDesktopFullscreenService.appRequestedFullscreen`
+    // 说了算）。这里曾经是「窗口现在全屏 ⇒ 退出时把它退掉」，于是：
+    // 用户自己按 ⌃⌘F 进全屏 → 阅读器换实例（工作台泳道里换书、详情页点开始阅读）
+    // → 旧实例 dispose → 窗口被强行退出全屏。借用才要还，白得的不还。
+    //
+    // 也不再 `syncFullscreen(false)`：那是往全屏通知里塞一本假账（窗口明明还全屏着，
+    // 外壳却把自制标题栏挂回来）。通知的权威输入是窗口的全屏事件，不归阅读器管。
+    await _desktopFullscreenService.releaseRequestedFullscreen();
   }
 }
