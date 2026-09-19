@@ -1,6 +1,10 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:coreml_upscale/coreml_upscale.dart';
+import 'package:zephyr/util/coreml_model_loader.dart';
+import 'package:zephyr/page/setting/real_sr/service/super_resolution_log.dart';
+
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
@@ -23,8 +27,7 @@ import 'package:zephyr/widgets/toast.dart';
 /// Breeze 内置 RealSR / Real-CUGAN / CoreML 超分封装
 ///
 /// - Android：调用 bundled 的 waifu2x-ncnn CLI
-/// - iOS / macOS：下载 mImageViewer 的 ONNX 模型，交给 ONNX Runtime 的
-///   CoreML Execution Provider（Apple Silicon Neural Engine/GPU）执行
+/// - iOS / macOS：Breeze 原生 Swift/CoreML 与 mImage ONNX/CoreML 可切换
 /// - Windows / Linux：从 `deretame/breeze-binary` 下载模型后，
 ///   调用 `getFilePath()/super_resolution/` 下的 waifu2x-ncnn-vulkan
 ///   或 realcugan-ncnn-vulkan
@@ -87,7 +90,7 @@ class RealSrSuperResolution {
     }
 
     if (Platform.isIOS || Platform.isMacOS) {
-      return _isMImageOnnxAvailable;
+      return isAppleProfileAvailable(await RealSrSettings.loadAppleProfile());
     }
 
     if (Platform.isWindows || Platform.isLinux) {
@@ -175,12 +178,20 @@ class RealSrSuperResolution {
     return [];
   }
 
-  static Future<bool> get _isMImageOnnxAvailable async {
+  static Future<bool> isMImageModelAvailable([
+    MImageOnnxModel? targetModel,
+  ]) async {
     final root = Directory(p.join(await _modelDirectory, 'mimage_onnx'));
-    final model = await RealSrSettings.loadMImageModel();
+    final model = targetModel ?? await RealSrSettings.loadMImageModel();
     final file = File(p.join(root.path, model.fileName));
     return file.existsSync() && await file.length() >= 1024;
   }
+
+  static Future<bool> isAppleProfileAvailable(
+    AppleSuperResolutionProfile profile,
+  ) => profile.engine == AppleSuperResolutionEngine.breezeCoreML
+      ? CoreMLModelLoader.isModelAvailable(profile.coremlVariant.fileName)
+      : isMImageModelAvailable(profile.mimageModel);
 
   /// 当前平台对应的 7z 压缩包文件名。
   static String? get _assetName {
@@ -198,7 +209,7 @@ class RealSrSuperResolution {
   /// - iOS / macOS：当前选择的 mImage ONNX 模型文件
   static String? get manualDownloadUrl {
     if (Platform.isIOS || Platform.isMacOS) {
-      final model = MImageOnnxModelConfig.defaultModel;
+      final model = RealSrSettings.currentMImageModel;
       return '${MImageOnnxModelConfig.baseUrl}/${model.fileName}';
     }
     final assetName = _assetName;
@@ -234,6 +245,38 @@ class RealSrSuperResolution {
     } catch (_) {
       return false;
     }
+  }
+
+  /// 导入单个 mImage ONNX 模型文件。
+  static Future<void> importMImageModel(
+    String filePath,
+    MImageOnnxModel model,
+  ) async {
+    final file = File(filePath);
+    if (!file.existsSync()) {
+      throw FileSystemException('模型文件不存在', filePath);
+    }
+    if (p.basename(filePath) != model.fileName) {
+      throw FormatException(
+        '文件名与当前模型不匹配: 期望 ${model.fileName}, 实际 ${p.basename(filePath)}',
+      );
+    }
+    final length = await file.length();
+    if (length < 1024) {
+      throw const FormatException('模型文件损坏或大小异常');
+    }
+
+    final destDir = Directory(p.join(await _modelDirectory, 'mimage_onnx'));
+    await destDir.create(recursive: true);
+    final target = File(p.join(destDir.path, model.fileName));
+    final tempTarget = File(
+      p.join(destDir.path, '${model.fileName}.tmp_${const Uuid().v4()}'),
+    );
+    await file.copy(tempTarget.path);
+    await tempTarget.rename(target.path);
+
+    await RealSrSettings.modelFileChanged(model);
+    _missingModelNotified = false;
   }
 
   /// 导入本地手动下载的 7z 模型压缩包。
@@ -404,27 +447,34 @@ class RealSrSuperResolution {
   ///
   /// [force] 为 true 时，会先删除本地已有模型再重新下载。
   static Future<void> downloadModel({
+    MImageOnnxModel? mImageModel,
     void Function(int received, int total)? onProgress,
     bool force = false,
   }) async {
     if (Platform.isIOS || Platform.isMacOS) {
-      final model = await RealSrSettings.loadMImageModel();
+      final model = mImageModel ?? await RealSrSettings.loadMImageModel();
       final modelsDir = Directory(p.join(await _modelDirectory, 'mimage_onnx'));
-      if (force && modelsDir.existsSync()) {
-        await modelsDir.delete(recursive: true);
-      }
       await modelsDir.create(recursive: true);
       final destination = File(p.join(modelsDir.path, model.fileName));
-      await WindHttp().download(
-        '${MImageOnnxModelConfig.baseUrl}/${model.fileName}',
-        destination.path,
-        onReceiveProgress: (received, total) {
-          if (total > 0) onProgress?.call(received, total);
-        },
-      );
-      if (await destination.length() < 1024) {
-        throw StateError('下载的 mImage ONNX 模型无效（可能是 Git-LFS 指针）');
+      if (!force && await isMImageModelAvailable(model)) return;
+      final pending = File('${destination.path}.download_${const Uuid().v4()}');
+      try {
+        await WindHttp().download(
+          '${MImageOnnxModelConfig.baseUrl}/${model.fileName}',
+          pending.path,
+          onReceiveProgress: (received, total) {
+            if (total > 0) onProgress?.call(received, total);
+          },
+        );
+        if (await pending.length() < 1024) {
+          throw StateError('下载的 mImage ONNX 模型无效（可能是 Git-LFS 指针）');
+        }
+        await pending.rename(destination.path);
+      } finally {
+        if (await pending.exists()) await pending.delete();
       }
+      _missingModelNotified = false;
+      await RealSrSettings.modelFileChanged(model);
       return;
     }
 
@@ -486,13 +536,17 @@ class RealSrSuperResolution {
   ///
   /// - iOS / macOS：删除 `super_resolution/mimage_onnx` 模型目录
   /// - Android / Windows / Linux：删除 `super_resolution` 目录及缓存中的压缩包
-  static Future<void> deleteModel() async {
+  static Future<void> deleteModel([MImageOnnxModel? targetModel]) async {
     if (Platform.isIOS || Platform.isMacOS) {
-      final modelsDir = Directory(p.join(await _modelDirectory, 'mimage_onnx'));
-      if (modelsDir.existsSync()) {
-        await modelsDir.delete(recursive: true);
+      final model = targetModel ?? await RealSrSettings.loadMImageModel();
+      final file = File(
+        p.join(await _modelDirectory, 'mimage_onnx', model.fileName),
+      );
+      if (file.existsSync()) {
+        await file.delete();
       }
       _missingModelNotified = false;
+      await RealSrSettings.modelFileChanged(model);
       return;
     }
 
@@ -691,9 +745,19 @@ class RealSrSuperResolution {
     RealSrNoiseLevel noiseLevel = RealSrNoiseLevel.conservative,
     int tileSize = 0,
     int syncGapMode = 3,
+    AppleSuperResolutionProfile? appleProfile,
+    bool Function()? shouldRun,
   }) async {
-    if (!await isAvailable) {
+    final profile = (Platform.isMacOS || Platform.isIOS)
+        ? appleProfile ?? await RealSrSettings.loadAppleProfile()
+        : null;
+    if (!(profile == null
+        ? await isAvailable
+        : await isAppleProfileAvailable(profile))) {
       logger.d('RealSR 不可用，跳过超分: $inputPath');
+      SuperResolutionLog.add(
+        '模型不可用：${profile?.engine.label ?? executable}，请先在超分设置中下载模型。',
+      );
       return false;
     }
 
@@ -720,6 +784,7 @@ class RealSrSuperResolution {
     }
 
     return _pool.withResource(() async {
+      if (shouldRun != null && !shouldRun()) return false;
       final startAt = DateTime.now();
       logger.d('Upscaling $inputPath to $outputPath');
 
@@ -756,11 +821,30 @@ class RealSrSuperResolution {
             tileSize: tileSize,
           );
         } else if (Platform.isIOS || Platform.isMacOS) {
-          await _upscaleMImageOnnx(
-            inputPath: pngInputPath,
-            outputPath: out,
-            tileSize: tileSize,
+          SuperResolutionLog.add(
+            '开始推理：引擎=${profile!.engine.label}；原生 ${profile.scale}×',
           );
+          if (profile.engine == AppleSuperResolutionEngine.breezeCoreML) {
+            final variant = profile.coremlVariant;
+            final modelPath = await CoreMLModelLoader.prepareModel(
+              variant.fileName,
+            );
+            SuperResolutionLog.add('Breeze 原生 CoreML 模型=$modelPath');
+            await CoreMLUpscale.upscale(
+              inputPath: pngInputPath,
+              outputPath: out,
+              modelPath: modelPath,
+              modelType: 'multiarray',
+              config: Map<String, dynamic>.from(variant.config),
+            );
+          } else {
+            await _upscaleMImageOnnx(
+              inputPath: pngInputPath,
+              outputPath: out,
+              tileSize: tileSize,
+              mImageModel: profile.mimageModel,
+            );
+          }
         } else {
           await _upscaleCli(
             inputPath: pngInputPath,
@@ -796,6 +880,9 @@ class RealSrSuperResolution {
       final endAt = DateTime.now();
       final duration = endAt.difference(startAt).inMilliseconds;
       logger.d('Upscaling took ${duration}ms, wrote $outBytes bytes');
+      SuperResolutionLog.add(
+        '推理完成：${profile?.engine.label ?? executable}；耗时 ${duration}ms；输出 $outBytes 字节\n$out',
+      );
       return true;
     });
   }
@@ -861,8 +948,9 @@ class RealSrSuperResolution {
     required String inputPath,
     required String outputPath,
     required int tileSize,
+    MImageOnnxModel? mImageModel,
   }) async {
-    final model = await RealSrSettings.loadMImageModel();
+    final model = mImageModel ?? await RealSrSettings.loadMImageModel();
     final root = Directory(p.join(await _modelDirectory, 'mimage_onnx'));
     final modelPath = await MImageOnnxModelConfig.path(root, model);
     final result = await mimageOnnxUpscale(
@@ -873,6 +961,7 @@ class RealSrSuperResolution {
       tileSize: tileSize,
     );
     logger.i('mImage ONNX 超分完成: $result');
+    SuperResolutionLog.add('mImage ONNX：$result');
   }
 
   /// 桌面端通过 Process.run 调用 waifu2x-ncnn-vulkan / realcugan-ncnn-vulkan。

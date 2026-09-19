@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/page/setting/real_sr/service/android_ncnn_model_config.dart';
@@ -9,12 +10,95 @@ import 'package:zephyr/page/setting/real_sr/service/mimage_onnx_model_config.dar
 bool get _isDesktop =>
     Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
+enum AppleSuperResolutionEngine {
+  breezeCoreML('breeze_coreml', 'Breeze 原生 CoreML'),
+  mimageOnnx('mimage_onnx', 'mImage ONNX');
+
+  const AppleSuperResolutionEngine(this.id, this.label);
+  final String id;
+  final String label;
+}
+
+/// 一次任务的不可变配置；排队期间切换设置不会改变正在处理的模型。
+class AppleSuperResolutionProfile {
+  const AppleSuperResolutionProfile({
+    required this.engine,
+    required this.mimageModel,
+    required this.coremlVariant,
+    required this.cacheKey,
+  });
+
+  final AppleSuperResolutionEngine engine;
+  final MImageOnnxModel mimageModel;
+  final CoreMLModelVariant coremlVariant;
+  final String cacheKey;
+  int get scale => engine == AppleSuperResolutionEngine.breezeCoreML
+      ? coremlVariant.config['scale'] as int
+      : mimageModel.scale;
+}
+
+class _RealSrSettingsNotifier extends ChangeNotifier {
+  void notify() => notifyListeners();
+}
+
 /// RealSR / Real-CUGAN 超分设置
 ///
 /// 这些配置不进入 ObjectBox 的 [GlobalSettingState]，而是直接存在
 /// SharedPreferences 中，避免把“功能开关”和“全局配置”混在一起。
 class RealSrSettings {
   RealSrSettings._();
+
+  static final _RealSrSettingsNotifier _modelChanges =
+      _RealSrSettingsNotifier();
+  static ChangeNotifier get modelChanges => _modelChanges;
+  static void notifyChanges() => _modelChanges.notify();
+
+  static MImageOnnxModel _currentMImageModel =
+      MImageOnnxModelConfig.defaultModel;
+  static MImageOnnxModel get currentMImageModel => _currentMImageModel;
+
+  static const _keyAppleEngine = 'realsr_apple_engine';
+
+  static Future<AppleSuperResolutionEngine> loadAppleEngine() async {
+    final prefs = await SharedPreferences.getInstance();
+    return AppleSuperResolutionEngine.values.firstWhere(
+      (engine) => engine.id == prefs.getString(_keyAppleEngine),
+      orElse: () => AppleSuperResolutionEngine.mimageOnnx,
+    );
+  }
+
+  static Future<void> saveAppleEngine(AppleSuperResolutionEngine engine) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString(_keyAppleEngine) == engine.id) return;
+    await prefs.setString(_keyAppleEngine, engine.id);
+    notifyChanges();
+  }
+
+  static Future<AppleSuperResolutionProfile> loadAppleProfile() async {
+    final engine = await loadAppleEngine();
+    final model = await loadMImageModel();
+    final family = await loadCoreMLFamily();
+    final variant = await loadCoreMLVariant(family);
+    final prefs = await SharedPreferences.getInstance();
+    final revision = prefs.getInt('realsr_mimage_revision_${model.id}') ?? 0;
+    return AppleSuperResolutionProfile(
+      engine: engine,
+      mimageModel: model,
+      coremlVariant: variant,
+      cacheKey: engine == AppleSuperResolutionEngine.breezeCoreML
+          ? 'breeze_coreml_${variant.fileName}_${variant.config['scale']}x'
+          : 'mimage_onnx_${model.id}_$revision',
+    );
+  }
+
+  static Future<void> modelFileChanged(MImageOnnxModel model) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(
+      'realsr_mimage_revision_${model.id}',
+      DateTime.now().microsecondsSinceEpoch,
+    );
+    notifyChanges();
+  }
 
   static const _keyAutoUpscale = 'realsr_auto_upscale';
   static const _keyResolutionThreshold = 'realsr_resolution_threshold';
@@ -121,6 +205,7 @@ class RealSrSettings {
   static Future<void> saveCoreMLFamily(CoreMLModelFamily value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyCoreMLFamily, value.id);
+    notifyChanges();
   }
 
   /// iOS / macOS 使用的 CoreML 模型变体。
@@ -138,6 +223,7 @@ class RealSrSettings {
   static Future<void> saveCoreMLVariant(CoreMLModelVariant value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyCoreMLVariant, value.fileName);
+    notifyChanges();
   }
 
   /// Android 使用的 NCNN 超分模式，默认效率优先（waifu2x）。
@@ -216,13 +302,18 @@ class RealSrSettings {
 
   static Future<MImageOnnxModel> loadMImageModel() async {
     final prefs = await SharedPreferences.getInstance();
-    return MImageOnnxModelConfig.byId(prefs.getString(_keyMImageModel)) ??
+    final model =
+        MImageOnnxModelConfig.byId(prefs.getString(_keyMImageModel)) ??
         MImageOnnxModelConfig.defaultModel;
+    _currentMImageModel = model;
+    return model;
   }
 
   static Future<void> saveMImageModel(MImageOnnxModel value) async {
+    _currentMImageModel = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyMImageModel, value.id);
+    _modelChanges.notify();
   }
 
   /// 用于超分结果缓存的配置指纹。模型或倍率改变时必须得到不同的文件名，
@@ -230,8 +321,7 @@ class RealSrSettings {
   static Future<String> loadCacheKey() async {
     final scale = await loadScale();
     if (Platform.isMacOS || Platform.isIOS) {
-      final model = await loadMImageModel();
-      return 'mimage_onnx_${model.id}_${model.fileName}';
+      return (await loadAppleProfile()).cacheKey;
     }
     if (Platform.isWindows || Platform.isLinux) {
       final mode = await loadDesktopNcnnMode();
