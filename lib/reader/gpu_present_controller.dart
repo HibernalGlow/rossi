@@ -13,6 +13,7 @@ import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dar
 import 'package:zephyr/page/setting/real_sr/service/super_resolution_log.dart';
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/reader/super_resolution_input.dart';
+import 'package:zephyr/reader/super_resolution_queue.dart';
 
 /// GPU 呈现器的就绪状态与呈现目标 —— 从界面里搬出来的一份小状态机。
 ///
@@ -44,6 +45,7 @@ class GpuPresentController extends ChangeNotifier {
   /// 正常调用点不传它（用默认实现），只有测试需要替换。
   GpuPresentController([this._bridge = const GpuPresentBridge()]) {
     RealSrSettings.modelChanges.addListener(_onModelChanged);
+    RealSrSettings.prefetchChanges.addListener(_onPrefetchChanged);
     unawaited(_initUpscaleSetting());
   }
 
@@ -65,6 +67,7 @@ class GpuPresentController extends ChangeNotifier {
   void _onModelChanged() {
     if (_disposed) return;
     SuperResolutionLog.add('模型配置变化：清除旧增强轨，重新处理当前页。');
+    _enhancementQueue.clear();
     _enhancementEpoch++;
     _modelRefreshPending = true;
     _upscaleAttempts.clear();
@@ -445,7 +448,7 @@ class GpuPresentController extends ChangeNotifier {
         // 只在 `pushed` 里调（= 真的把一页交出去了）而不是每帧：这条路上要问一次
         // 呈现器状态，而 `present` 本身是每帧被调的幂等操作。
         if (_isUpscaleEnabled) {
-          unawaited(_ensureEnhancedForIndex(source, index, width, height));
+          unawaited(_scheduleEnhancements(source, index, width, height));
         }
       }
       return _textureId != null;
@@ -591,7 +594,7 @@ class GpuPresentController extends ChangeNotifier {
           _lastPushedSource != null &&
           index != null) {
         unawaited(
-          _ensureEnhancedForIndex(
+          _scheduleEnhancements(
             _lastPushedSource!,
             index,
             _pushedWidth ?? 0,
@@ -649,7 +652,7 @@ class GpuPresentController extends ChangeNotifier {
         _pushedPath != null &&
         _pushedIndex != null &&
         _lastPushedSource != null) {
-      await _ensureEnhancedForIndex(
+      await _scheduleEnhancements(
         _lastPushedSource!,
         _pushedIndex!,
         _pushedWidth ?? 0,
@@ -682,6 +685,35 @@ class GpuPresentController extends ChangeNotifier {
     );
   }
 
+  final _enhancementQueue = SuperResolutionQueue<(int, int)>();
+  int _scheduleRevision = 0;
+
+  void _onPrefetchChanged() {
+    final source = _lastPushedSource;
+    final index = _pushedIndex;
+    if (source != null && index != null) {
+      unawaited(_scheduleEnhancements(source, index, _pushedWidth ?? 0, _pushedHeight ?? 0));
+    }
+  }
+
+  Future<void> _scheduleEnhancements(PageSource source, int index, int width, int height) async {
+    final revision = ++_scheduleRevision;
+    final epoch = _enhancementEpoch;
+    // 翻页立刻清除待执行的旧预超分，配置读取不占用原图呈现路径。
+    _enhancementQueue.clear();
+    if (!_acceptsEnhancement(epoch)) return;
+    final (forward, back) = await RealSrSettings.loadPrefetch();
+    if (revision != _scheduleRevision || !_acceptsEnhancement(epoch) || _pushedPath != source.path) return;
+    final targets = superResolutionTargets(index, source.pageCount, forward, back);
+    _enhancementQueue.replace([
+      for (final target in targets)
+        ((epoch, target), () async {
+          if (!_acceptsEnhancement(epoch) || _pushedPath != source.path) return;
+          await _ensureEnhancedForIndex(source, target, width, height);
+        }),
+    ]);
+  }
+
   /// 让「第 [index] 页显示成超分图」这件事成真 —— 该注入就注入、该推理就推理。
   ///
   /// # 顺序（每一条都必要）
@@ -712,8 +744,10 @@ class GpuPresentController extends ChangeNotifier {
     File? tempFile;
     File? pendingOutput;
     try {
-      final presenterUses = await _presenterUsesEnhanced(index);
-      if (!_acceptsEnhancement(epoch) || presenterUses != false) return;
+      if (_pushedIndex == index) {
+        final presenterUses = await _presenterUsesEnhanced(index);
+        if (!_acceptsEnhancement(epoch) || presenterUses != false) return;
+      }
       final attempts = _upscaleAttempts[index] ?? 0;
       if (attempts >= _maxUpscaleAttempts) return;
       _upscaleAttempts[index] = attempts + 1;
@@ -732,6 +766,7 @@ class GpuPresentController extends ChangeNotifier {
       if (await File(outPath).exists()) {
         if (!_acceptsEnhancement(epoch)) return;
         logger.i('[Rossi AI] 第 $index 页复用模型 $cacheKey 的超分图: $outPath');
+        if (_pushedIndex != index) return;
         SuperResolutionLog.outputReady(outPath, page: index, model: cacheKey);
         await _applyEnhancedToPresenter(
           index,
@@ -743,6 +778,8 @@ class GpuPresentController extends ChangeNotifier {
         return;
       }
 
+      final prefetch = _pushedIndex != index;
+      if (prefetch) SuperResolutionLog.add('第 ${index + 1} 页：后台预超分开始；$cacheKey');
       String? inputPath = await source.getPageFilePath(index);
       if (!_acceptsEnhancement(epoch)) return;
       if (inputPath == null ||
@@ -784,6 +821,10 @@ class GpuPresentController extends ChangeNotifier {
         return;
       }
       await pendingOutput.rename(outPath);
+      if (_pushedIndex != index) {
+        SuperResolutionLog.outputReady(outPath, page: index, model: cacheKey, prefetched: true);
+        return;
+      }
       SuperResolutionLog.outputReady(outPath, page: index, model: cacheKey);
       if (!_acceptsEnhancement(epoch)) return;
       await _applyEnhancedToPresenter(index, outPath, targetW, targetH, epoch);
@@ -982,6 +1023,8 @@ class GpuPresentController extends ChangeNotifier {
   @override
   void dispose() {
     RealSrSettings.modelChanges.removeListener(_onModelChanged);
+    RealSrSettings.prefetchChanges.removeListener(_onPrefetchChanged);
+    _enhancementQueue.dispose();
     _disposed = true;
     _statsTimer?.cancel();
     _statsTimer = null;

@@ -57,6 +57,23 @@ class RealSrSettings {
       MImageOnnxModelConfig.defaultModel;
   static MImageOnnxModel get currentMImageModel => _currentMImageModel;
 
+  static final prefetchChanges = _RealSrSettingsNotifier();
+
+  static Future<(int, int)> loadPrefetch() async {
+    final prefs = await SharedPreferences.getInstance();
+    return (
+      (prefs.getInt('realsr_prefetch_forward') ?? 2).clamp(0, 5),
+      (prefs.getInt('realsr_prefetch_back') ?? 1).clamp(0, 5),
+    );
+  }
+
+  static Future<void> savePrefetch({required int forward, required int back}) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('realsr_prefetch_forward', forward.clamp(0, 5));
+    await prefs.setInt('realsr_prefetch_back', back.clamp(0, 5));
+    prefetchChanges.notify();
+  }
+
   static const _keyAppleEngine = 'realsr_apple_engine';
 
   static Future<AppleSuperResolutionEngine> loadAppleEngine() async {

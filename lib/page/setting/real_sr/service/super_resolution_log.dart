@@ -51,9 +51,10 @@ abstract final class SuperResolutionLog {
     String path, {
     required int page,
     required String model,
+    bool prefetched = false,
   }) {
     latestOutputPath = path;
-    add('第 ${page + 1} 页：超分文件已就绪；模型=$model\n输出=$path\n等待呈现器确认替换。');
+    add('第 ${page + 1} 页：${prefetched ? '预超分完成，翻到此页时直接复用' : '超分文件已就绪，等待呈现器确认替换'}；模型=$model\n输出=$path');
   }
 
   static Future<void> openOutputFolder() async {

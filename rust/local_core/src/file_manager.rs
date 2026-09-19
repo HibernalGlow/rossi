@@ -27,10 +27,15 @@ pub enum InternalItemsMode {
     All,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ViewMode {
-    List,
-    Grid,
+    #[default]
+    Compact,
+    CoverList,
+    MosaicList,
+    Details,
+    CoverGrid,
+    MosaicGrid,
 }
 
 /// 字段级排序沿用 NeoView 文件卡片的可切换排序模型。名称排序本身仍交给
@@ -81,7 +86,7 @@ impl Default for FileManagerSettings {
             show_child_names: true,
             internal_items_mode: InternalItemsMode::Single,
             max_depth: 3,
-            view_mode: ViewMode::List,
+            view_mode: ViewMode::Compact,
             show_hidden_files: false,
             search_query: String::new(),
             entry_filter: EntryFilter::All,
@@ -96,8 +101,8 @@ impl Default for FileManagerSettings {
 impl FileManagerSettings {
     pub fn apply_favorite_view_state(&mut self, state: &crate::settings::FavoriteViewState) {
         match state.grid_view_mode {
-            crate::settings::GridViewMode::Thumbnail => self.view_mode = ViewMode::Grid,
-            crate::settings::GridViewMode::Details => self.view_mode = ViewMode::List,
+            crate::settings::GridViewMode::Thumbnail => self.view_mode = ViewMode::CoverGrid,
+            crate::settings::GridViewMode::Details => self.view_mode = ViewMode::Details,
         }
         match state.sort_order {
             crate::settings::SortOrder::FileName
@@ -127,8 +132,10 @@ impl FileManagerSettings {
     ) -> crate::settings::FavoriteViewState {
         let mut state = base.clone();
         state.grid_view_mode = match self.view_mode {
-            ViewMode::Grid => crate::settings::GridViewMode::Thumbnail,
-            ViewMode::List => crate::settings::GridViewMode::Details,
+            ViewMode::CoverGrid | ViewMode::MosaicGrid => {
+                crate::settings::GridViewMode::Thumbnail
+            }
+            _ => crate::settings::GridViewMode::Details,
         };
         state.sort_order = match (self.sort_field, self.sort_order) {
             (SortField::Name, SortOrder::Ascending) => crate::settings::SortOrder::NameAsc,
@@ -1546,26 +1553,26 @@ mod tests {
         fs::create_dir_all(&folder_b).unwrap();
 
         let mut state = FileManagerState::new(Some(folder_a.clone())).unwrap();
-        assert_eq!(state.settings().view_mode, ViewMode::List);
+        assert_eq!(state.settings().view_mode, ViewMode::Compact);
         assert_eq!(state.settings().sort_order, SortOrder::Ascending);
 
-        // 在 folder_a 中设置网格和降序
-        state.set_view_mode(ViewMode::Grid);
+        // 在 folder_a 中设置封面网格和降序
+        state.set_view_mode(ViewMode::CoverGrid);
         state.set_sort(SortField::Name, SortOrder::Descending);
 
         // 导航到 sub_a，继承 folder_a 的视图配置
         state.navigate(&sub_a).unwrap();
-        assert_eq!(state.settings().view_mode, ViewMode::Grid);
+        assert_eq!(state.settings().view_mode, ViewMode::CoverGrid);
         assert_eq!(state.settings().sort_order, SortOrder::Descending);
 
-        // 导航到未配置的 folder_b，恢复默认配置（List + Ascending）
+        // 导航到未配置的 folder_b，恢复默认配置（Compact + Ascending）
         state.navigate(&folder_b).unwrap();
-        assert_eq!(state.settings().view_mode, ViewMode::List);
+        assert_eq!(state.settings().view_mode, ViewMode::Compact);
         assert_eq!(state.settings().sort_order, SortOrder::Ascending);
 
-        // 后退回到 sub_a，再次继承并还原 folder_a 的 Grid + Descending
+        // 后退回到 sub_a，再次继承并还原 folder_a 的 CoverGrid + Descending
         assert!(state.go_back());
-        assert_eq!(state.settings().view_mode, ViewMode::Grid);
+        assert_eq!(state.settings().view_mode, ViewMode::CoverGrid);
         assert_eq!(state.settings().sort_order, SortOrder::Descending);
     }
 }

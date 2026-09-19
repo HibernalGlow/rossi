@@ -31,8 +31,12 @@ pub enum FileManagerInternalItemsMode {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileManagerViewMode {
-    List,
-    Grid,
+    Compact,
+    CoverList,
+    MosaicList,
+    Details,
+    CoverGrid,
+    MosaicGrid,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -93,6 +97,7 @@ pub struct FileManagerEntry {
     pub is_video: bool,
     pub is_audio: bool,
     pub size: u64,
+    pub modified_secs: i64,
     pub has_children: bool,
     /// NeoView 的「显示内部条目」投影。它不改变父目录列表，只为 UI 提供一小段
     /// 可点击的上下文提示。
@@ -456,8 +461,12 @@ pub async fn file_manager_set_view_mode(
 ) -> Result<FileManagerSnapshot, Error> {
     with_session(id, move |state| {
         state.set_view_mode(match mode {
-            FileManagerViewMode::List => ViewMode::List,
-            FileManagerViewMode::Grid => ViewMode::Grid,
+            FileManagerViewMode::Compact => ViewMode::Compact,
+            FileManagerViewMode::CoverList => ViewMode::CoverList,
+            FileManagerViewMode::MosaicList => ViewMode::MosaicList,
+            FileManagerViewMode::Details => ViewMode::Details,
+            FileManagerViewMode::CoverGrid => ViewMode::CoverGrid,
+            FileManagerViewMode::MosaicGrid => ViewMode::MosaicGrid,
         });
         snapshot_for(id, state)
     })
@@ -646,8 +655,12 @@ fn snapshot_for(id: u64, state: &mut FileManagerState) -> Result<FileManagerSnap
         },
         max_depth: settings.max_depth as u8,
         view_mode: match settings.view_mode {
-            ViewMode::List => FileManagerViewMode::List,
-            ViewMode::Grid => FileManagerViewMode::Grid,
+            ViewMode::Compact => FileManagerViewMode::Compact,
+            ViewMode::CoverList => FileManagerViewMode::CoverList,
+            ViewMode::MosaicList => FileManagerViewMode::MosaicList,
+            ViewMode::Details => FileManagerViewMode::Details,
+            ViewMode::CoverGrid => FileManagerViewMode::CoverGrid,
+            ViewMode::MosaicGrid => FileManagerViewMode::MosaicGrid,
         },
         show_hidden_files: settings.show_hidden_files,
         search_query: settings.search_query.clone(),
@@ -682,6 +695,7 @@ fn map_entry(entry: CoreEntry) -> FileManagerEntry {
         is_video: entry.node.is_video,
         is_audio: entry.node.is_audio,
         size: entry.node.size,
+        modified_secs: entry.node.modified_secs,
         has_children: entry.node.has_children,
         child_names: entry
             .children

@@ -49,6 +49,8 @@ pub struct FileTreeNode {
     pub is_audio: bool,
     /// 文件大小（字节，目录为 0）。
     pub size: u64,
+    /// 修改时间（秒数时间戳，获取失败为 0）。
+    pub modified_secs: i64,
     /// 是否含有子项（对于目录：如果为空则为 false，有子项为 true）。
     pub has_children: bool,
 }
@@ -223,6 +225,11 @@ pub fn list_directory_with_hidden(
             let has_children = fs::read_dir(&path)
                 .map(|mut r| r.next().is_some())
                 .unwrap_or(false);
+            let metadata = entry.metadata().ok();
+            let modified_secs = metadata
+                .as_ref()
+                .map(crate::ui_helpers::mtime_secs)
+                .unwrap_or(0);
 
             nodes.push(FileTreeNode {
                 path: path.to_string_lossy().to_string(),
@@ -233,6 +240,7 @@ pub fn list_directory_with_hidden(
                 is_video: false,
                 is_audio: false,
                 size: 0,
+                modified_secs,
                 has_children,
             });
         } else if entry_kind.is_file() {
@@ -255,7 +263,12 @@ pub fn list_directory_with_hidden(
             let is_supported_media = is_archive || is_image || is_video || is_audio;
             // 只收录 mImageViewer 已识别的媒体/容器，未知文档不会污染漫画 Reader。
             if is_supported_media {
-                let size = entry.metadata().map(|m| m.len()).unwrap_or(0);
+                let metadata = entry.metadata().ok();
+                let size = metadata.as_ref().map(|m| m.len()).unwrap_or(0);
+                let modified_secs = metadata
+                    .as_ref()
+                    .map(crate::ui_helpers::mtime_secs)
+                    .unwrap_or(0);
                 nodes.push(FileTreeNode {
                     path: path.to_string_lossy().to_string(),
                     name: name_str.to_owned(),
@@ -267,6 +280,7 @@ pub fn list_directory_with_hidden(
                     is_video,
                     is_audio,
                     size,
+                    modified_secs,
                     has_children: false,
                 });
             }
