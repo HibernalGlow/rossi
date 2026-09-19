@@ -16,6 +16,7 @@ import 'package:zephyr/page/download/models/download_chapter.dart';
 import 'package:zephyr/page/download/models/unified_comic_download.dart';
 import 'package:zephyr/service/download/download_cancel_signal.dart';
 import 'package:zephyr/service/download/download_asset_store.dart';
+import 'package:zephyr/service/download/download_metadata_writer.dart';
 import 'package:zephyr/service/download/download_progress_reporter.dart';
 import 'package:zephyr/service/download/download_retry.dart';
 import 'package:zephyr/service/download/download_task_progress.dart';
@@ -407,9 +408,27 @@ Future<void> unifiedDownloadTask(
       ),
     );
     _markTaskCompleted(taskKey);
+    await _writeDownloadMetadataIfNeeded(from: from, comicId: comicId);
   } finally {
     running = false;
     progressTimer?.cancel();
+  }
+}
+
+/// 按开关把元数据 JSON 落在下载目录里。
+///
+/// 放在标记完成**之后**，且失败只记日志：图片与数据库此时都已落盘，
+/// 元数据写不进去不该把一次成功的下载报成失败。
+Future<void> _writeDownloadMetadataIfNeeded({
+  required String from,
+  required String comicId,
+}) async {
+  final setting = objectbox.userSettingBox.get(1)?.globalSetting;
+  if (setting?.writeDownloadMetadataFile != true) return;
+  try {
+    await writeDownloadComicMetadata(buildDownloadTaskKey(from, comicId));
+  } catch (e) {
+    logger.w('写入下载元数据文件失败: from=$from comicId=$comicId, error=$e');
   }
 }
 
