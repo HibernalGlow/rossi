@@ -68,9 +68,14 @@ class ChineseTranslationMatcher {
   ];
 
   /// 生肉：日文原版。
+  ///
+  /// `日本语` 必须单列：繁体 `日本語` 折过来是 `日本语`，
+  /// 而 `日本语` **不包含** `日语`（中间夹了个「本」）——
+  /// 少这一条的话 Bika 的「日本語」标签会静默漏掉。
   static const rawKeywords = <String>[
     '日语',
     '日文',
+    '日本语',
     '生肉',
     '原版',
     'japanese',
