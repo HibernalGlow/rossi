@@ -13,7 +13,7 @@ import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 /// 3. 鼠标离开感应带与控制栏本体后，等待设定的延时（默认 500ms）平滑收起；
 /// 4. 处于手动呼出菜单（`isMenuVisible == true`）或滑块拖拽中（`isSliderRolling == true`）时锁定显示。
 class ReaderHoverController {
-  final BuildContext context;
+  BuildContext _context;
 
   bool _isTopTriggerHovered = false;
   bool _isTopBarHovered = false;
@@ -24,12 +24,18 @@ class ReaderHoverController {
   Timer? _bottomHideTimer;
   bool _isDisposed = false;
 
-  ReaderHoverController(this.context);
+  ReaderHoverController(this._context);
+
+  BuildContext get context => _context;
+
+  void updateContext(BuildContext newContext) {
+    _context = newContext;
+  }
 
   ReadSettingState get _readSetting =>
-      context.read<GlobalSettingCubit>().state.readSetting;
+      _context.read<GlobalSettingCubit>().state.readSetting;
 
-  ReaderCubit get _readerCubit => context.read<ReaderCubit>();
+  ReaderCubit get _readerCubit => _context.read<ReaderCubit>();
 
   bool get _isLockedOpen =>
       _readerCubit.state.isMenuVisible || _readerCubit.state.isSliderRolling;

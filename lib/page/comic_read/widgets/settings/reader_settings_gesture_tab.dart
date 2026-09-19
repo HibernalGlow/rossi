@@ -11,6 +11,8 @@ class _ReaderSettingsGestureTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const _HoverRevealSection(),
+          const SizedBox(height: 18),
           const _TapPageTurnModeSection(),
           const SizedBox(height: 18),
           const _WebtoonTapPageTurnSection(),

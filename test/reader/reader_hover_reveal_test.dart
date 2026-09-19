@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -387,6 +389,79 @@ void main() {
       );
       expect(overlayMouseRegions, findsNothing);
 
+      controller.dispose();
+    });
+
+    testWidgets('Pointer hover over overlay triggers onEnterTopTrigger and onExitTopTrigger', (tester) async {
+      final readerCubit = ReaderCubit();
+      readerCubit.updateMenuVisible(visible: false);
+
+      final settingCubit = _TestGlobalSettingCubit(
+        readSetting: const ReadSettingState(
+          hoverRevealEnabled: true,
+          hoverRevealTop: true,
+          hoverTriggerAreaTop: 50,
+          hoverHideDelayMs: 200,
+        ),
+      );
+
+      late ReaderHoverController controller;
+
+      await tester.pumpWidget(
+        _buildHarness(
+          readerCubit: readerCubit,
+          settingCubit: settingCubit,
+          child: SizedBox(
+            width: 800,
+            height: 600,
+            child: Builder(
+              builder: (context) {
+                controller = ReaderHoverController(context);
+                return ReaderHoverScope(
+                  controller: controller,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: ReaderHoverRevealOverlay(controller: controller),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(readerCubit.state.isTopHovered, isFalse);
+
+      // Move mouse into center first
+      final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await gesture.addPointer(location: const Offset(400, 300));
+      await tester.pump();
+
+      expect(readerCubit.state.isTopHovered, isFalse);
+
+      // Move mouse into top trigger zone (400, 20)
+      await gesture.moveTo(const Offset(400, 20));
+      await tester.pump();
+
+      expect(readerCubit.state.isTopHovered, isTrue);
+      expect(readerCubit.state.showTopAppBar, isTrue);
+
+      // Move mouse out to center (400, 200)
+      await gesture.moveTo(const Offset(400, 200));
+      await tester.pump();
+
+      // Within delay (100ms < 200ms), still hovered
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(readerCubit.state.isTopHovered, isTrue);
+
+      // After delay (150ms > 200ms total), top hover is removed
+      await tester.pump(const Duration(milliseconds: 150));
+      expect(readerCubit.state.isTopHovered, isFalse);
+
+      await gesture.removePointer();
       controller.dispose();
     });
   });

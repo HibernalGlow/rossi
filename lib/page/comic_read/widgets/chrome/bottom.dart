@@ -18,6 +18,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
 import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/bottom_thumbnail_strip.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/reader_hover_reveal_layer.dart';
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 
@@ -90,9 +91,10 @@ class _BottomWidgetState extends State<BottomWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final isMenuVisible = context.select(
-      (ReaderCubit cubit) => cubit.state.isMenuVisible,
+    final showBottomBar = context.select(
+      (ReaderCubit cubit) => cubit.state.showBottomBar,
     );
+    final hoverController = ReaderHoverScope.of(context);
     final currentSlot = context.select(
       (ReaderCubit cubit) => cubit.state.currentSlot,
     );
@@ -118,31 +120,35 @@ class _BottomWidgetState extends State<BottomWidget> {
       left: 0,
       right: 0,
       child: IgnorePointer(
-        ignoring: !isMenuVisible,
+        ignoring: !showBottomBar,
         child: AnimatedSlide(
           duration: _animationDuration,
           curve: Curves.easeOutCubic,
-          offset: isMenuVisible ? Offset.zero : const Offset(0, 1),
-          child: Padding(
-            padding: EdgeInsets.only(bottom: 6 + bottomSafeHeight),
-            child: isCompactLayout
-                ? _buildCompactControls(
-                    maxWidth: bottomMaxWidth,
-                    isWideLayout: isWideLayout,
-                    totalSlots: totalSlots,
-                    currentSlot: currentSlot,
-                    localSource: localSource,
-                    docs: docs,
-                  )
-                : _buildRegularControls(
-                    topMaxWidth: topMaxWidth,
-                    bottomMaxWidth: bottomMaxWidth,
-                    isWideLayout: isWideLayout,
-                    totalSlots: totalSlots,
-                    currentSlot: currentSlot,
-                    localSource: localSource,
-                    docs: docs,
-                  ),
+          offset: showBottomBar ? Offset.zero : const Offset(0, 1),
+          child: MouseRegion(
+            onEnter: (_) => hoverController?.onEnterBottomBar(),
+            onExit: (_) => hoverController?.onExitBottomBar(),
+            child: Padding(
+              padding: EdgeInsets.only(bottom: 6 + bottomSafeHeight),
+              child: isCompactLayout
+                  ? _buildCompactControls(
+                      maxWidth: bottomMaxWidth,
+                      isWideLayout: isWideLayout,
+                      totalSlots: totalSlots,
+                      currentSlot: currentSlot,
+                      localSource: localSource,
+                      docs: docs,
+                    )
+                  : _buildRegularControls(
+                      topMaxWidth: topMaxWidth,
+                      bottomMaxWidth: bottomMaxWidth,
+                      isWideLayout: isWideLayout,
+                      totalSlots: totalSlots,
+                      currentSlot: currentSlot,
+                      localSource: localSource,
+                      docs: docs,
+                    ),
+            ),
           ),
         ),
       ),

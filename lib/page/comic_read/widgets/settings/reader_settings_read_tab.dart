@@ -543,6 +543,17 @@ class _ReadExperienceSection extends StatelessWidget {
               );
             },
           ),
+        _SettingsSwitchTile(
+          title: t.reader.hoverRevealEnabled,
+          subtitle:
+              '${t.reader.hoverRevealEnabledSubtitle}（前往「${t.reader.gesture}」标签可微调感应区与延时）',
+          value: readSetting.hoverRevealEnabled,
+          onChanged: (value) {
+            globalSettingCubit.updateReadSetting(
+              (current) => current.copyWith(hoverRevealEnabled: value),
+            );
+          },
+        ),
       ],
     );
   }

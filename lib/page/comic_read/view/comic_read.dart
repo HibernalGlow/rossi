@@ -20,8 +20,10 @@ import 'package:zephyr/page/comic_read/cubit/reader_state.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
 import 'package:zephyr/page/comic_read/type/chapter_extern.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
+import 'package:zephyr/util/input/reader_input_bridge.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/type/enum.dart';
+import 'package:zephyr/workspace/widgets/reader/workspace_reader_fullscreen_scope.dart';
 
 // 自动阅读相关：计时器、暂停/继续、悬浮按钮。
 part 'parts/comic_read_auto_read_part.dart';
@@ -163,6 +165,9 @@ class _ComicReadPageState extends State<_ComicReadPage>
   late final ReaderLifecycleController _lifecycleController; // 生命周期控制器
   late final ReaderOrientationController _orientationController;
   late final ReaderInputController _inputController; // 输入控制器
+  /// 登记到 [ReaderInputBridge] 的按键处理器。留住**同一个 tear-off**，
+  /// 注销时才能对上（`detach` 用 `identical` 判定）。
+  KeyEventResult Function(KeyEvent event)? _readerKeyDispatch;
   final _imagePrefetchController = ReaderImagePrefetchController();
   NormalComicEpInfo epInfo = NormalComicEpInfo(); // 通用漫画章节信息
   NormalComicEpInfo _initialEpInfo = NormalComicEpInfo();
@@ -196,6 +201,12 @@ class _ComicReadPageState extends State<_ComicReadPage>
     _setVolumeControllerAction();
     _inputController.setActionController(_actionController);
     _inputController.init();
+    // 把**同一个**按键处理器登记到应用级桥：焦点离开阅读器子树时（例如打开阅读
+    // 设置面板，模态路由会把主焦点拿走），由工作台按「阅读器上下文优先」把冒泡上来的
+    // 按键转交回来 —— 否则左右键会落到 WidgetsApp 默认的方向焦点遍历上，表现为
+    // 「按键被设置面板吃掉」。见 `ReaderInputBridge`。
+    _readerKeyDispatch = _inputController.handleKeyEvent;
+    ReaderInputBridge.instance.attach(_readerKeyDispatch!);
     _initVolumeKeyPageTurnSubscription();
 
     WidgetsBinding.instance.addObserver(this);
@@ -213,6 +224,10 @@ class _ComicReadPageState extends State<_ComicReadPage>
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_lifecycleController.dispose());
     _volumeKeyPageTurnSubscription?.cancel();
+    final readerKeyDispatch = _readerKeyDispatch;
+    if (readerKeyDispatch != null) {
+      ReaderInputBridge.instance.detach(readerKeyDispatch);
+    }
     _inputController.dispose();
     _imagePrefetchController.dispose();
     _volumeController.dispose();
@@ -250,9 +265,11 @@ class _ComicReadPageState extends State<_ComicReadPage>
           _syncJumpChapterState(order: order);
         }
         // 章节加载/卸载会改变总槽位和条目，触发重建以同步 ReaderCubit.totalSlots。
-        final totalSlots = context.read<ReaderSeamlessCubit>().resolveTotalSlots(
-          context.read<GlobalSettingCubit>().state.readSetting,
-        );
+        final totalSlots = context
+            .read<ReaderSeamlessCubit>()
+            .resolveTotalSlots(
+              context.read<GlobalSettingCubit>().state.readSetting,
+            );
         final currentSlot = context.read<ReaderCubit>().state.currentSlot;
         ReaderSessionCoordinator.instance.updateProgress(
           currentSlot: currentSlot,
@@ -324,8 +341,9 @@ class _ComicReadPageState extends State<_ComicReadPage>
 
                   final readerCubit = context.read<ReaderCubit>();
                   final seamlessCubit = context.read<ReaderSeamlessCubit>();
-                  final totalSlots =
-                      seamlessCubit.resolveTotalSlots(readSetting);
+                  final totalSlots = seamlessCubit.resolveTotalSlots(
+                    readSetting,
+                  );
                   ReaderSessionCoordinator.instance.attachSession(
                     comicId: comicId,
                     from: widget.from,

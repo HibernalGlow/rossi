@@ -15,6 +15,7 @@ import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
 import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/reader_hover_reveal_layer.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 
 /// NeoView 风格的专业阅读器顶栏 (ReaderViewToolbar)。
@@ -67,9 +68,10 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
 
   @override
   Widget build(BuildContext context) {
-    final isMenuVisible = context.select(
-      (ReaderCubit cubit) => cubit.state.isMenuVisible,
+    final showTopAppBar = context.select(
+      (ReaderCubit cubit) => cubit.state.showTopAppBar,
     );
+    final hoverController = ReaderHoverScope.of(context);
     final globalSettingState = context.watch<GlobalSettingCubit>().state;
     final globalSettingCubit = context.read<GlobalSettingCubit>();
     final readSetting = globalSettingState.readSetting;
@@ -81,16 +83,19 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
       left: 0,
       right: 0,
       child: IgnorePointer(
-        ignoring: !isMenuVisible,
+        ignoring: !showTopAppBar,
         child: AnimatedSlide(
           duration: const Duration(milliseconds: 320),
           curve: Curves.easeOutCubic,
-          offset: isMenuVisible ? Offset.zero : const Offset(0, -1),
-          child: ClipRRect(
-            borderRadius: const BorderRadius.vertical(
-              bottom: Radius.circular(appBarRadius),
-            ),
-            child: BackdropFilter(
+          offset: showTopAppBar ? Offset.zero : const Offset(0, -1),
+          child: MouseRegion(
+            onEnter: (_) => hoverController?.onEnterTopBar(),
+            onExit: (_) => hoverController?.onExitTopBar(),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(appBarRadius),
+              ),
+              child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
               child: DecoratedBox(
                 decoration: BoxDecoration(
@@ -149,8 +154,9 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   /// 顶栏主操作行 (Primary Row)
   Widget _buildPrimaryToolbar({

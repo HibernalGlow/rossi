@@ -10,6 +10,7 @@ import 'package:zephyr/page/comic_read/method/image_size_cache_store.dart';
 import 'package:zephyr/page/comic_read/method/prefetch_image_sizes.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/reader_hover_reveal_layer.dart';
 import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 
@@ -54,6 +55,7 @@ class _ComicReadSuccessWidgetState extends State<ComicReadSuccessWidget> {
   late final List<String> _pageKeys;
   late final Future<Map<int, Size>> _persistedSizeFuture;
   bool _initialPrefetchStarted = false;
+  ReaderHoverController? _hoverController;
 
   @override
   void initState() {
@@ -63,6 +65,12 @@ class _ComicReadSuccessWidgetState extends State<ComicReadSuccessWidget> {
       sourceTag: widget.from,
       pageKeys: _pageKeys,
     ).readIndexedSizes(pageKeys: _pageKeys, count: widget.epInfo.length);
+  }
+
+  @override
+  void dispose() {
+    _hoverController?.dispose();
+    super.dispose();
   }
 
   @override
@@ -120,34 +128,45 @@ class _ComicReadSuccessWidgetState extends State<ComicReadSuccessWidget> {
               cubit.updateTotalSlots(resolvedTotalSlots);
               widget.onReady(innerContext, readSetting, readMode);
 
-              return BlocListener<ReaderSeamlessCubit, ReaderSeamlessState>(
-                listenWhen: (previous, current) =>
-                    previous.loadedChapters.length !=
-                    current.loadedChapters.length,
-                listener: _onSeamlessChaptersChanged,
-                child: Container(
-                  color: backgroundColor,
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: widget.buildInteractiveViewer(innerContext),
-                      ),
-                      if (enableReaderFilter)
+              _hoverController ??= ReaderHoverController(innerContext);
+              _hoverController!.updateContext(innerContext);
+
+              return ReaderHoverScope(
+                controller: _hoverController!,
+                child: BlocListener<ReaderSeamlessCubit, ReaderSeamlessState>(
+                  listenWhen: (previous, current) =>
+                      previous.loadedChapters.length !=
+                      current.loadedChapters.length,
+                  listener: _onSeamlessChaptersChanged,
+                  child: Container(
+                    color: backgroundColor,
+                    child: Stack(
+                      children: [
                         Positioned.fill(
-                          child: IgnorePointer(
-                            ignoring: true,
-                            child: Container(
-                              color: Colors.black.withValues(
-                                alpha: filterOpacityPercent / 100,
+                          child: widget.buildInteractiveViewer(innerContext),
+                        ),
+                        if (enableReaderFilter)
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              ignoring: true,
+                              child: Container(
+                                color: Colors.black.withValues(
+                                  alpha: filterOpacityPercent / 100,
+                                ),
                               ),
                             ),
                           ),
+                        Positioned.fill(
+                          child: ReaderHoverRevealOverlay(
+                            controller: _hoverController!,
+                          ),
                         ),
-                      widget.buildPageCount(innerContext),
-                      widget.buildAppBar(innerContext),
-                      widget.buildBottom(innerContext),
-                      widget.buildAutoReadControl(innerContext),
-                    ],
+                        widget.buildPageCount(innerContext),
+                        widget.buildAppBar(innerContext),
+                        widget.buildBottom(innerContext),
+                        widget.buildAutoReadControl(innerContext),
+                      ],
+                    ),
                   ),
                 ),
               );
