@@ -56,6 +56,10 @@ pub mod folder_pane;
 pub mod folder_tree;
 pub mod fs_entry;
 pub mod rar_loader;
+// 文件管理器的查询语法与文本归一化同样是上游源码，保留 `parse` / `matches` /
+// `decide_partial` / `normalize_for_match` 的原名，升级时可直接对拍。
+pub mod search_norm;
+pub mod search_query;
 pub mod settings;
 pub mod settings_db;
 pub mod susie_loader;
@@ -66,6 +70,7 @@ pub mod zip_loader;
 pub mod final_pipeline;
 #[cfg(any(feature = "jxl-rs-mt", feature = "jxl-rs-1t", feature = "jxl-oxide"))]
 pub mod jxl_backend;
+pub mod operation_binding;
 pub mod page_load_scheduler;
 pub mod page_order;
 pub mod page_split;
@@ -91,7 +96,7 @@ pub use settings::{
     FavoriteViewOverlay, FavoriteViewState, GridDisplayOrder, GridItemDisplayKind, GridViewMode,
     ReadingDirection, ReadingFlow, Settings, SpreadMode, ThumbAspect,
 };
-pub use settings_db::{SettingsDb, resolve_view_state_for_path};
+pub use settings_db::{SettingsDb, resolve_view_state_for_path, view_state_key};
 pub use thumbnail_pipeline::{
     get_cached_book_dimensions, get_or_create_thumbnail, pick_aspect_for_cached_book,
     pick_aspect_from_dimensions,
@@ -105,8 +110,9 @@ use anyhow::{Context, Result};
 pub use decode::{PagePixels, ShellOnlyFormat, decode_rgba, decode_rgba_scaled, probe_size};
 pub use file_manager::{
     EntryFilter, FileManagerChild, FileManagerEntry, FileManagerSettings, FileManagerState,
-    FileManagerTab, InternalItemsMode, MAX_FILE_MANAGER_TABS, MAX_PENETRATION_DEPTH,
-    MAX_RECENTLY_CLOSED_TABS, OpenEntryResult, PenetrationResult, SortField, SortOrder, ViewMode,
+    FileManagerTab, FileManagerViewState, InternalItemsMode, MAX_FILE_MANAGER_TABS,
+    MAX_PENETRATION_DEPTH, MAX_RECENTLY_CLOSED_TABS, OpenEntryResult, PenetrationResult, SortField,
+    SortOrder, ViewMode,
 };
 pub use file_tree::{
     FileTreeNode, RootLocation, get_available_roots, is_comic_archive_path, list_directory,
