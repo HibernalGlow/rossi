@@ -3,6 +3,8 @@ import 'package:zephyr/network/http/picture/picture.dart';
 import 'package:zephyr/type/enum.dart';
 
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/main.dart';
+import 'package:zephyr/service/download/download_cancel_signal.dart';
 import 'package:zephyr/service/download/download_progress_reporter.dart';
 import 'package:zephyr/service/download/download_retry.dart';
 
@@ -63,11 +65,15 @@ class DownloadImageJobsResult {
     required this.completed,
     required this.downloaded,
     required this.reused,
+    this.failed = 0,
+    this.failedJobs = const [],
   });
 
   final int completed;
   final int downloaded;
   final int reused;
+  final int failed;
+  final List<DownloadImageJob> failedJobs;
 }
 
 Future<String> downloadCoverAsset({
@@ -96,6 +102,7 @@ Future<DownloadImageJobsResult> downloadImageJobs({
   required String from,
   required List<DownloadImageJob> jobs,
   int? concurrency,
+  Duration? requestDelay,
   required String qjsRuntimeName,
   required String qjsTaskGroupKey,
   required Future<void> Function() ensureTaskRunning,
@@ -119,31 +126,32 @@ Future<DownloadImageJobsResult> downloadImageJobs({
     );
   }
 
-  final pool = Pool(concurrency ?? 5);
-  final workerCount = concurrency ?? 5;
+  final workerCount = concurrency ?? 3;
+  final pool = Pool(workerCount);
   var progress = 0;
   var downloaded = 0;
   var reused = 0;
   var lastReportedPercent = 0;
   var nextIndex = 0;
-  Object? firstError;
-  StackTrace? firstErrorStackTrace;
+  final failedJobs = <DownloadImageJob>[];
+  Object? firstFatalError;
+  StackTrace? firstFatalStackTrace;
 
   Future<void> runWorker() async {
-    try {
-      while (firstError == null) {
-        await ensureTaskRunning();
-        DownloadImageJob? job;
-        await pool.withResource(() async {
-          if (nextIndex >= jobs.length) {
-            return;
-          }
-          job = jobs[nextIndex];
-          nextIndex += 1;
-        });
-        if (job == null) {
+    while (firstFatalError == null) {
+      await ensureTaskRunning();
+      DownloadImageJob? job;
+      await pool.withResource(() async {
+        if (nextIndex >= jobs.length) {
           return;
         }
+        job = jobs[nextIndex];
+        nextIndex += 1;
+      });
+      if (job == null) {
+        return;
+      }
+      try {
         final result = await _downloadSingleJob(
           from: from,
           job: job!,
@@ -159,6 +167,10 @@ Future<DownloadImageJobsResult> downloadImageJobs({
           reused++;
         } else {
           downloaded++;
+          // 风控节流：网络下载完成后执行设定的等待间隔
+          if (requestDelay != null && requestDelay > Duration.zero) {
+            await Future.delayed(requestDelay);
+          }
         }
         if (onProgress != null) {
           await onProgress(progress, downloaded, reused);
@@ -170,24 +182,83 @@ Future<DownloadImageJobsResult> downloadImageJobs({
             t.download.statusDownloadProgress(percent: currentPercent),
           );
         }
-        await ensureTaskRunning();
+      } catch (error, stackTrace) {
+        // 如果是任务取消，立即向上抛出中断所有协程
+        final errorStr = error.toString();
+        if (errorStr.contains(downloadTaskCancelledMessage) ||
+            errorStr.contains('__QJS_RUNTIME_CANCELLED__')) {
+          firstFatalError ??= error;
+          firstFatalStackTrace ??= stackTrace;
+          return;
+        }
+        // 普通单图下载失败：记录到失败列表，不打断其它并行图片下载
+        failedJobs.add(job!);
+        firstFatalError ??= error;
+        firstFatalStackTrace ??= stackTrace;
       }
-    } catch (error, stackTrace) {
-      firstError ??= error;
-      firstErrorStackTrace ??= stackTrace;
+      await ensureTaskRunning();
     }
   }
 
   final tasks = List.generate(workerCount, (_) => runWorker());
-
   await Future.wait(tasks);
-  if (firstError != null) {
-    Error.throwWithStackTrace(firstError!, firstErrorStackTrace!);
+
+  // 如果遇到主动取消，立即抛出
+  if (firstFatalError != null &&
+      (firstFatalError.toString().contains(downloadTaskCancelledMessage) ||
+          firstFatalError.toString().contains('__QJS_RUNTIME_CANCELLED__'))) {
+    Error.throwWithStackTrace(firstFatalError!, firstFatalStackTrace!);
   }
+
+  // 章节中若有失败项，针对性发起第二次补全重试（带 1 秒退避，串行重试避免风控加剧）
+  final stillFailedJobs = <DownloadImageJob>[];
+  if (failedJobs.isNotEmpty) {
+    logger.w('本章共有 ${failedJobs.length} 张图片初次下载失败，正在启动针对性补全重试...');
+    for (final job in failedJobs) {
+      await ensureTaskRunning();
+      await Future.delayed(const Duration(milliseconds: 500));
+      try {
+        final result = await _downloadSingleJob(
+          from: from,
+          job: job,
+          qjsRuntimeName: qjsRuntimeName,
+          qjsTaskGroupKey: qjsTaskGroupKey,
+          ensureTaskRunning: ensureTaskRunning,
+          shouldRetryUntilSuccess: shouldRetryUntilSuccess,
+          onError: onError,
+          pictureType: PictureType.page,
+        );
+        progress++;
+        if (result.status == DownloadPictureResultStatus.existing) {
+          reused++;
+        } else {
+          downloaded++;
+          if (requestDelay != null && requestDelay > Duration.zero) {
+            await Future.delayed(requestDelay);
+          }
+        }
+        if (onProgress != null) {
+          await onProgress(progress, downloaded, reused);
+        }
+      } catch (e) {
+        stillFailedJobs.add(job);
+      }
+    }
+  }
+
+  if (stillFailedJobs.isNotEmpty) {
+    logger.e('章节补全重试后仍有 ${stillFailedJobs.length} 张图片下载失败');
+    if (firstFatalError != null) {
+      Error.throwWithStackTrace(firstFatalError!, firstFatalStackTrace!);
+    }
+  }
+
   return DownloadImageJobsResult(
     completed: progress,
     downloaded: downloaded,
     reused: reused,
+    failed: stillFailedJobs.length,
+    failedJobs: stillFailedJobs,
   );
 }
 

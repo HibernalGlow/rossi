@@ -48,6 +48,17 @@ Future<void> unifiedDownloadTask(
         false;
   }
 
+  int resolveConcurrency() {
+    final val =
+        objectbox.userSettingBox.get(1)?.globalSetting.downloadConcurrency;
+    return (val != null && val >= 1 && val <= 5) ? val : 3;
+  }
+
+  Duration resolveRequestDelay() {
+    final ms = objectbox.userSettingBox.get(1)?.globalSetting.downloadDelayMs;
+    return Duration(milliseconds: (ms != null && ms >= 0) ? ms : 150);
+  }
+
   Timer? progressTimer;
   bool running = true;
 
@@ -320,7 +331,8 @@ Future<void> unifiedDownloadTask(
         ensureTaskRunning: ensureTaskRunning,
         shouldRetryUntilSuccess: shouldRetryUntilSuccess,
         reporter: reporter,
-        concurrency: 5,
+        concurrency: resolveConcurrency(),
+        requestDelay: resolveRequestDelay(),
         onProgress: (completed, downloaded, reused) async {
           final now = DateTime.now();
           final currentPercent = jobs.isEmpty

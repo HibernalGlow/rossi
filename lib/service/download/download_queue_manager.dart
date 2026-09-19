@@ -10,6 +10,7 @@ import 'package:zephyr/service/download/comic_download_task.dart';
 import 'package:zephyr/service/download/download_cancel_signal.dart';
 import 'package:zephyr/service/download/download_notification_reporter.dart';
 import 'package:zephyr/service/download/download_asset_store.dart';
+import 'package:zephyr/service/download/download_retry.dart';
 import 'package:zephyr/service/download/download_task_repository.dart';
 import 'package:zephyr/service/download/models/download_task_json.dart';
 import 'package:zephyr/service/lifecycle/foreground_task/foreground_task_service.dart';
@@ -59,6 +60,7 @@ class DownloadQueueManager {
   bool _startupResumeWaiting = false;
   bool _failureDialogShowing = false;
   final Set<int> _startupResumeTaskIds = <int>{};
+  final Set<String> _autoRetryingTaskKeys = <String>{};
 
   /// 进度 Stream，供 UI 和前台服务通知监听
   final _progressController = StreamController<DownloadProgress>.broadcast();
@@ -107,6 +109,7 @@ class DownloadQueueManager {
     dbTask.isCompleted = true;
     objectbox.downloadTaskBox.put(dbTask);
     final taskKey = downloadTaskKeyOf(dbTask);
+    _autoRetryingTaskKeys.remove(taskKey);
     triggerDownloadCancelSignal(taskKey);
 
     final source = dbTask.taskInfo?.from;
@@ -133,7 +136,10 @@ class DownloadQueueManager {
     return _taskRepository
         .getAll(incompleteOnly: true)
         .where((task) {
-          final stateCode = _taskRepository.readPayload(task)?.stateCode;
+          final payload = _taskRepository.readPayload(task);
+          final stateCode = payload?.stateCode;
+          final key = payload?.taskKey ?? '';
+          if (_autoRetryingTaskKeys.contains(key)) return false;
           return stateCode != 'failed' && stateCode != 'paused';
         })
         .toList()
@@ -315,6 +321,64 @@ class DownloadQueueManager {
         final currentDbTask = _taskRepository.findByTaskKey(taskKey) ?? dbTask;
         final currentPayload =
             _taskRepository.readPayload(currentDbTask) ?? task;
+
+        final userSetting = objectbox.userSettingBox.get(1)?.globalSetting;
+        final retryForever = userSetting?.retryDownloadUntilSuccess ?? false;
+        final maxAutoRetries = userSetting?.downloadAutoRetryCount ?? 3;
+        final currentAttempt = currentPayload.attempt;
+
+        final errorStr = e.toString().toLowerCase();
+        final isPermanent404 =
+            errorStr.contains('404') || errorStr.contains('not found');
+        final isRateLimit = isRateLimitedError(e);
+        final canAutoRetry =
+            !isPermanent404 && (retryForever || currentAttempt < maxAutoRetries);
+
+        if (canAutoRetry) {
+          final retryDelaySeconds = isRateLimit
+              ? (5 + currentAttempt * 3).clamp(5, 30)
+              : (currentAttempt * 3).clamp(3, 15);
+          final autoRetryMsg = isRateLimit
+              ? t.download.statusThrottling
+              : t.download.statusAutoRetrying(
+                  seconds: retryDelaySeconds,
+                  attempt: currentAttempt,
+                  max: retryForever ? 99 : maxAutoRetries,
+                );
+
+          logger.w(
+            '任务 ${task.comicName} 遇到异常，将在 $retryDelaySeconds 秒后自动重试 ($currentAttempt/${retryForever ? "∞" : maxAutoRetries})',
+            error: e,
+          );
+
+          currentDbTask.isDownloading = false;
+          currentDbTask.status = autoRetryMsg;
+          currentDbTask.taskInfo = currentPayload.copyWith(
+            stateCode: 'queued',
+            phaseCode: 'autoRetrying',
+            lastErrorCode: e.runtimeType.toString(),
+            lastErrorMessage: e.toString(),
+          );
+          objectbox.downloadTaskBox.put(currentDbTask);
+
+          _autoRetryingTaskKeys.add(taskKey);
+
+          _progressController.add(
+            DownloadProgress(
+              comicName: task.comicName,
+              message: autoRetryMsg,
+            ),
+          );
+
+          Timer(Duration(seconds: retryDelaySeconds), () {
+            _autoRetryingTaskKeys.remove(taskKey);
+            if (!_isProcessing) {
+              _processQueue();
+            }
+          });
+          return;
+        }
+
         currentDbTask.isDownloading = false;
         currentDbTask.status = t.download.notificationFailedTitle;
         currentDbTask.taskInfo = currentPayload.copyWith(
@@ -448,6 +512,9 @@ class DownloadQueueManager {
     final payload = _taskRepository.readPayload(task);
     if (payload == null) return;
 
+    final taskKey = payload.taskKey;
+    _autoRetryingTaskKeys.remove(taskKey);
+
     _taskRepository.putPayload(
       task,
       payload.copyWith(
@@ -460,7 +527,10 @@ class DownloadQueueManager {
       isDownloading: false,
       isCompleted: false,
     );
-    logger.i('已重新排队下载任务: taskId=$taskId, taskKey=${payload.taskKey}');
+    logger.i('已重新排队下载任务: taskId=$taskId, taskKey=$taskKey');
+    if (!_isProcessing) {
+      _processQueue();
+    }
   }
 
   /// 获取指定漫画的下载任务
@@ -554,12 +624,17 @@ class DownloadQueueManager {
     }
   }
 
-  /// 重新下载指定任务（重置已完成进度从头开始）
-  void restartTask(String taskKey) {
+  /// 重新下载指定任务
+  ///
+  /// [forceFullRestart] 为 false 时（默认），执行智能增量重试：保留已完成的章节记录与已下载文件，仅重试失败或缺失部分，无需从头重写整个任务；
+  /// [forceFullRestart] 为 true 时，清空章节进度从头重新下载。
+  void restartTask(String taskKey, {bool forceFullRestart = false}) {
     final task = _taskRepository.findByTaskKey(taskKey);
     if (task == null) return;
     final payload = _taskRepository.readPayload(task);
     if (payload == null) return;
+
+    _autoRetryingTaskKeys.remove(taskKey);
 
     if (task.isDownloading || _downloadingTaskKey == taskKey) {
       triggerDownloadCancelSignal(taskKey);
@@ -569,13 +644,20 @@ class DownloadQueueManager {
       }
     }
 
+    final newCompletedKeys = forceFullRestart
+        ? const <String>[]
+        : payload.completedChapterKeys;
+    final newCompletedCount = forceFullRestart
+        ? 0
+        : payload.completedChapterCount;
+
     _taskRepository.putPayload(
       task,
       payload.copyWith(
         stateCode: 'queued',
-        phaseCode: 'restarted',
-        completedChapterKeys: const <String>[],
-        completedChapterCount: 0,
+        phaseCode: forceFullRestart ? 'restarted_full' : 'restarted_smart',
+        completedChapterKeys: newCompletedKeys,
+        completedChapterCount: newCompletedCount,
         currentChapterCompletedImages: 0,
         currentChapterReusedImages: 0,
         currentChapterFailedImages: 0,
@@ -589,7 +671,9 @@ class DownloadQueueManager {
       isCompleted: false,
     );
 
-    logger.i('已重置并重新排队下载任务: taskKey=$taskKey, comicName=${task.comicName}');
+    logger.i(
+      '已重新排队下载任务(forceFullRestart=$forceFullRestart): taskKey=$taskKey, comicName=${task.comicName}',
+    );
 
     _progressController.add(
       DownloadProgress(
@@ -601,6 +685,11 @@ class DownloadQueueManager {
     if (!_isProcessing) {
       _processQueue();
     }
+  }
+
+  /// 仅重试失败部分（不重置进度，继续从失败/缺失处恢复）
+  void retryFailedOnly(String taskKey) {
+    restartTask(taskKey, forceFullRestart: false);
   }
 
   /// 删除指定漫画的下载（包括取消排队/运行任务、清理下载记录与本地文件）
