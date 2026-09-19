@@ -96,6 +96,9 @@ realsr-win/
 realsr-linux/
 realsr-macos/
 
+# 本机 macOS 发布产物（task rel）
+/Breeze-macOS.dmg
+
 # Android NCNN runtime model package (upload to release hosting, do not commit)
 realsr-android.7z
 

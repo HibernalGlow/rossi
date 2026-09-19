@@ -5,15 +5,24 @@ version: '3'
 #   task dev   开发热重载循环
 #   task d     显式 debug 运行（带 Observatory/断点）
 #   task b     只打发布包（不运行）
+#   task rel   出 macOS 发布产物 → Breeze-macOS.dmg（本机唯一能出的平台）
 #   task rust  单独重编 Rust 库（修 FRB content hash 不一致时用）
 #   task a     静态检查 dart analyze lib/
 #
-# 注：r/dev/d/b 都会先跑一次 `task rust`。cargo 增量判断很快（没改 Rust 就是空转），
+# 注：r/dev/d/b/rel 都会先跑一次 `task rust`。cargo 增量判断很快（没改 Rust 就是空转），
 # 但能保证「frb 绑定刚重生成、dylib 还是旧的」时不再报 content hash 不一致。
 # 想用 Puro 锁定的 SDK：task r FLUTTER=puro
+#
+# ⚠️ 本机 WorkBuddy 沙箱里跑不了 `flutter build macos`（xcodebuild 的 SwiftPM 解析要调
+#    sandbox-exec，被 toybox 挡；dangerouslyDisableSandbox 也无效）。rel 请在 Ghostty
+#    等真实终端里跑。纯 Dart 判据（dart analyze / dart test）在沙箱里没问题。
 
 vars:
   FLUTTER: flutter
+  # rel 用：非空才给 `flutter build macos` 加 --dart-define=sentry_dsn=…
+  # 必须放在全局 vars —— go-task 里 task 级 vars 会盖掉 CLI 传参，全局的不会：
+  #   task rel SENTRY_DSN=https://xxx@sentry.io/1
+  SENTRY_DSN: ''
   # 本机 xcode-select 指向 CommandLineTools，直接用 xcodebuild 会报
   # "requires Xcode"；这里显式指向 Xcode.app 绕过（无需 sudo）。
   # 若已 `sudo xcode-select -s /Applications/Xcode.app`，可删掉下面的 env。
@@ -57,6 +66,58 @@ tasks:
     cmds:
       - task: rust
       - '{{.FLUTTER}} build macos --release'
+
+  rel:
+    desc: 出 macOS 发布产物 → Breeze-macOS.dmg（在真实终端跑，沙箱内不行）
+    # 可选覆盖：task rel SENTRY_DSN=https://xxx@sentry.io/1
+    # 符号表上传额外需要仓库根的 sentry.properties（已 gitignore）+ SENTRY_AUTH_TOKEN，
+    # 两者缺任一就自动跳过，不阻塞出包。
+    cmds:
+      - task: rust
+      # 打包脚本与 CI（.github/workflows/release.yml 的 build-macos job）逐参数对齐，
+      # 差异只有一处：CI 会把 macos/Podfile 的 platform 降到 11.0 放宽最低系统要求，
+      # 这里不动 tracked 文件（想一致就自己改 Podfile 再跑）。
+      - |
+        set -euo pipefail
+        command -v create-dmg >/dev/null 2>&1 || {
+          echo "缺少 create-dmg —— brew install create-dmg" >&2
+          exit 1
+        }
+
+        {{.FLUTTER}} build macos --release --split-debug-info=build/symbols{{if .SENTRY_DSN}} --dart-define=sentry_dsn={{.SENTRY_DSN}}{{end}}
+
+        if [ -f sentry.properties ] && [ -n "${SENTRY_AUTH_TOKEN:-}" ]; then
+          dart run sentry_dart_plugin --sentry-define=auth_token="$SENTRY_AUTH_TOKEN"
+        else
+          echo "跳过 Sentry 符号表上传（需 sentry.properties + SENTRY_AUTH_TOKEN）"
+        fi
+
+        # 用 -print -quit 而不是 | head：pipefail 下 head 提前退出会让 find 吃 SIGPIPE
+        APP_PATH=$(find build/macos/Build/Products/Release -maxdepth 1 -name '*.app' -print -quit)
+        [ -n "$APP_PATH" ] || { echo "没找到 .app，构建多半失败了" >&2; exit 1; }
+        APP_NAME=$(basename "$APP_PATH")
+
+        rm -f Breeze-macOS.dmg
+        if ! create-dmg \
+              --volname "Breeze Installer" \
+              --window-pos 200 120 \
+              --window-size 600 400 \
+              --icon-size 100 \
+              --icon "$APP_NAME" 150 190 \
+              --hide-extension "$APP_NAME" \
+              --app-drop-link 450 190 \
+              "Breeze-macOS.dmg" \
+              "$APP_PATH"; then
+          # create-dmg 在挂载/卸载阶段的已知假失败会返回非 0，dmg 其实已经落盘
+          if [ -f Breeze-macOS.dmg ]; then
+            echo "create-dmg 返回非 0，但 DMG 已生成（其已知假失败）" >&2
+          else
+            echo "create-dmg 失败，且没有生成 Breeze-macOS.dmg" >&2
+            exit 1
+          fi
+        fi
+
+        echo "✅ 产物：$(pwd)/Breeze-macOS.dmg"
 
   a:
     desc: 静态检查 dart analyze lib/
