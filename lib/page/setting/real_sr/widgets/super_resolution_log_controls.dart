@@ -16,7 +16,12 @@ class SuperResolutionLogControls extends StatelessWidget {
 
   Future<void> _openFolder(BuildContext context) async {
     try {
-      await SuperResolutionLog.openOutputFolder();
+      final message = await SuperResolutionLog.openOutputFolder();
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      }
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(

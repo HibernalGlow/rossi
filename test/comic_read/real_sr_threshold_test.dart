@@ -1,4 +1,7 @@
+import 'dart:ui' show Size;
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/type/enum.dart';
 
@@ -69,6 +72,42 @@ void main() {
       expect(p1080.maxWidth, 1080);
       expect(p1440.maxWidth, 1440);
       expect(p2160.maxWidth, 2160);
+    });
+  });
+
+  group('knownSize：同一个文件别读两遍', () {
+    // 呈现器的流水线要**先**拿到尺寸（顶栏要显示「超分后是多少」），再判阈值。
+    // 没有这个入口，同一个文件就会被读两遍（`imageSizeOf` 会把整个文件读进来）。
+    // 判据刻意给一个**不存在的路径**：真的去读它必然失败并返回 false，
+    // 于是「给了尺寸就不读文件」这件事在结论里就显出来了。
+    test('给了已知尺寸就不再碰文件，边界仍是「小于才超分」', () async {
+      expect(
+        await RealSrSuperResolution.shouldUpscale(
+          '/不存在/这一页.png',
+          threshold: p720,
+          knownSize: const Size(600, 900),
+        ),
+        isTrue,
+      );
+      expect(
+        await RealSrSuperResolution.shouldUpscale(
+          '/不存在/这一页.png',
+          threshold: p720,
+          knownSize: const Size(720, 1080),
+        ),
+        isFalse,
+        reason: '等于阈值不超分（宽度 < 阈值才是真）',
+      );
+    });
+
+    test('量不出尺寸就不超分（不猜）', () async {
+      expect(
+        await RealSrSuperResolution.shouldUpscale(
+          '/不存在/这一页.png',
+          threshold: p720,
+        ),
+        isFalse,
+      );
     });
   });
 }

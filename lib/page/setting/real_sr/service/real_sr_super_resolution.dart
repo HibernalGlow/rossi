@@ -590,28 +590,44 @@ class RealSrSuperResolution {
     return normalizedExt;
   }
 
-  /// 判断图片是否需要超分：仅当能解析出横向分辨率且小于阈值时返回 true。
-  static Future<bool> shouldUpscale(
-    String inputPath, {
-    RealSrResolutionThreshold? threshold,
-  }) async {
-    logger.d('Checking if $inputPath needs to be upscaled...');
-    final effectiveThreshold =
-        threshold ?? await RealSrSettings.loadResolutionThreshold();
-
+  /// 量一张图的像素尺寸；解析不出来返回 `null`（不抛异常）。
+  ///
+  /// 只做「读头 + 报数」一件事。**判阈值请走 [shouldUpscale]** —— 规则只该有一处；
+  /// 这个入口是给界面用的（顶栏要显示「超分后是多少」），以及给
+  /// [shouldUpscale] 复用的。
+  static Future<ui.Size?> imageSizeOf(String path) async {
     ui.ImmutableBuffer? buffer;
     ui.ImageDescriptor? descriptor;
     try {
-      buffer = await ui.ImmutableBuffer.fromFilePath(inputPath);
+      buffer = await ui.ImmutableBuffer.fromFilePath(path);
       descriptor = await ui.ImageDescriptor.encoded(buffer);
-      return descriptor.width < effectiveThreshold.maxWidth;
+      return ui.Size(descriptor.width.toDouble(), descriptor.height.toDouble());
     } catch (e, s) {
-      logger.w('RealSR 无法解析图片尺寸，跳过超分: $inputPath', error: e, stackTrace: s);
-      return false;
+      logger.w('RealSR 无法解析图片尺寸: $path', error: e, stackTrace: s);
+      return null;
     } finally {
       descriptor?.dispose();
       buffer?.dispose();
     }
+  }
+
+  /// 判断图片是否需要超分：仅当能解析出横向分辨率且小于阈值时返回 true。
+  ///
+  /// [knownSize] 给**已经量过这张图尺寸**的调用方（呈现器的超分流水线要先拿尺寸来
+  /// 显示「超分后多少」）：同一次判断不该让同一个文件被读第二遍。
+  static Future<bool> shouldUpscale(
+    String inputPath, {
+    RealSrResolutionThreshold? threshold,
+    ui.Size? knownSize,
+  }) async {
+    logger.d('Checking if $inputPath needs to be upscaled...');
+    final effectiveThreshold =
+        threshold ?? await RealSrSettings.loadResolutionThreshold();
+    final size = knownSize ?? await imageSizeOf(inputPath);
+    // 量不出尺寸就不超分（沿用旧行为）：对一张不知道多大的图跑几百毫秒推理，
+    // 还不如如实跳过 —— 呈现器会把这一页记成「无需超分」，界面上说得清楚。
+    if (size == null) return false;
+    return size.width < effectiveThreshold.maxWidth;
   }
 
   static bool _missingModelNotified = false;
@@ -671,6 +687,12 @@ class RealSrSuperResolution {
         // 超分成功后输出的是 PNG，再转换为 WebP 以节省空间
         await convertImageToWebp(inputPath: tempOutput, imageType: 'png');
         await File(tempOutput).rename(inputPath);
+        // 引擎产物是那个临时 PNG，且它紧接着就被删掉；**真正的产物是替换后的原图**。
+        // 不在这里改口登记，「打开图片文件夹」会指着那个已经不存在的临时文件。
+        SuperResolutionLog.markOutput(
+          inputPath,
+          note: '已就地替换原图（超分结果写回缓存文件）：$inputPath',
+        );
         UpscaledImageCache.notifyReplaced(inputPath);
       } catch (e, s) {
         logger.w('Android 超分/WebP 转换失败: $inputPath', error: e, stackTrace: s);
@@ -725,6 +747,11 @@ class RealSrSuperResolution {
     } catch (e, s) {
       logger.w('WebP 转换失败，保留超分后的原图: $inputPath', error: e, stackTrace: s);
     }
+    // 非 Android 平台（macOS/iOS 走 CoreML，Windows/Linux 走 ncnn CLI）都是把结果
+    // **就地写回 [inputPath]**，所以这张图的落点就是原图路径本身。不登记的话，
+    // 「打开图片文件夹」只会指向呈现器那条链路的 `rossi_sr_cache`，而日志里说的
+    // 图其实在图缓存（或下载）目录里 —— 位置对不上就是这么来的。
+    SuperResolutionLog.markOutput(inputPath);
     UpscaledImageCache.notifyReplaced(inputPath);
   }
 
@@ -880,6 +907,11 @@ class RealSrSuperResolution {
       final endAt = DateTime.now();
       final duration = endAt.difference(startAt).inMilliseconds;
       logger.d('Upscaling took ${duration}ms, wrote $outBytes bytes');
+      // 产物确实落在 [out] 上了。这里是**所有**超分产出的唯一收口（阅读器呈现链路、
+      // 就地替换图缓存链路、调试页都经过它），所以默认先登记这一次的落点；调用方若
+      // 之后又挪动了文件（阅读器链路会把 `pending_*.png` 改名成 `sr_*.png`），
+      // 再用 `outputReady` / `markOutput` 覆盖成最终落点，别让按钮指着中间产物。
+      SuperResolutionLog.markOutput(out);
       SuperResolutionLog.add(
         '推理完成：${profile?.engine.label ?? executable}；耗时 ${duration}ms；输出 $outBytes 字节\n$out',
       );

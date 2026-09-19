@@ -14,6 +14,7 @@ import 'package:zephyr/page/setting/real_sr/service/super_resolution_log.dart';
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/reader/super_resolution_input.dart';
 import 'package:zephyr/reader/super_resolution_queue.dart';
+import 'package:zephyr/reader/super_resolution_status.dart';
 
 /// GPU 呈现器的就绪状态与呈现目标 —— 从界面里搬出来的一份小状态机。
 ///
@@ -71,6 +72,14 @@ class GpuPresentController extends ChangeNotifier {
     _enhancementEpoch++;
     _modelRefreshPending = true;
     _upscaleAttempts.clear();
+    // 换了模型，旧产物不再代表「这一页的超分图」：阶段回到未落定、尺寸重算
+    // （原图尺寸与模型无关，连「量过」的痕迹一起留着）。
+    _mutate(() {
+      _pagePhases.clear();
+      _pageEnhancedSizes.clear();
+      _enhancedSizeProbed.clear();
+      _pageStatusRevision++;
+    });
     unawaited(_refreshModel());
   }
 
@@ -404,6 +413,8 @@ class GpuPresentController extends ChangeNotifier {
             _pushedSize = null;
             _pushedWidth = null;
             _pushedHeight = null;
+            // 这一份来源用不了，它的记账也没有意义了。
+            _resetPageStatus();
           });
           return false;
         }
@@ -414,6 +425,7 @@ class GpuPresentController extends ChangeNotifier {
           // 换了来源，超分那边的记账全部作废：页号含义都变了。
           _upscaleAttempts.clear();
           _upscaleInProgress.clear();
+          _resetPageStatus();
           // 刚 open，native 侧还没有当前页，强制走一次呈现。
           _pushedIndex = null;
           _pushedSize = null;
@@ -625,6 +637,108 @@ class GpuPresentController extends ChangeNotifier {
 
   PageSource? _lastPushedSource;
 
+  // ── 当前页超分状态的记账（顶栏那枚芯片要看的）──
+  //
+  // 三份表按**页下标**记账，因为「这一页走到哪一步了」是每一页各自的性质：
+  // 预超分让邻页也有状态，翻过去时就不用从「待超分」重新爬一遍。
+  //
+  // 纪律：**只写真的走到的那一步**。不写「我调过 `upscale`」这种推断 ——
+  // 推断出来的状态会在失败时撒谎，而这条流水线最要命的毛病就是虚报
+  // （见 `_applyEnhancedToPresenter` 的注释）。
+
+  /// 每一页的超分阶段。
+  final Map<int, SuperResolutionPagePhase> _pagePhases =
+      <int, SuperResolutionPagePhase>{};
+
+  /// 每一页送进超分的原图尺寸（量出来才写；量不出就没有这一项）。
+  final Map<int, Size> _pageSourceSizes = <int, Size>{};
+
+  /// 每一页超分产物的尺寸。按页记账，换模型 / 换来源时整表作废。
+  final Map<int, Size> _pageEnhancedSizes = <int, Size>{};
+
+  /// 已经**量过**这些页（量出来可能是 `null`）。
+  ///
+  /// 与上面两张表分开记，是因为「没量到」也得记住：文件头读不出来时若不留痕，
+  /// 每次翻到这一页都会再全量读一遍那个文件，日志里也会反复刷同一条警告。
+  final Set<int> _sourceSizeProbed = <int>{};
+  final Set<int> _enhancedSizeProbed = <int>{};
+
+  /// 界面靠这个自增号知道「记账动过」。
+  ///
+  /// 上面三份都是 `Map`，直接放进 [_snapshot] 会按**实例**比较：原地改一格就通知不到
+  /// （症状是芯片卡在旧状态），改成每次浅拷贝又是给将来的自己挖坑（漏拷一处就静默少通知）。
+  /// 一个版本号把这两种坑一起绕过去。
+  int _pageStatusRevision = 0;
+
+  /// 写入一页的阶段。同值不写 —— 免得流水线里的重复打点变成一次界面重建。
+  void _markPhase(int index, SuperResolutionPagePhase phase) {
+    if (_pagePhases[index] == phase) return;
+    _mutate(() {
+      _pagePhases[index] = phase;
+      _pageStatusRevision++;
+    });
+  }
+
+  /// 记下一页的原图尺寸（量到了才记）。
+  void _markSourceSize(int index, Size? size) {
+    if (_sourceSizeProbed.contains(index) && size == null) return;
+    _sourceSizeProbed.add(index);
+    if (size == null || _pageSourceSizes[index] == size) return;
+    _mutate(() {
+      _pageSourceSizes[index] = size;
+      _pageStatusRevision++;
+    });
+  }
+
+  /// 量一次超分产物的尺寸并记账。**每页只量一次** —— 量的是图片头，
+  /// 但 `ImmutableBuffer.fromFilePath` 会把整个文件读进来，重复量等于重复读盘。
+  Future<void> _recordEnhancedSize(int index, String outPath) async {
+    if (_enhancedSizeProbed.contains(index)) return;
+    _enhancedSizeProbed.add(index);
+    final Size? size = await RealSrSuperResolution.imageSizeOf(outPath);
+    if (size == null) return;
+    _mutate(() {
+      _pageEnhancedSizes[index] = size;
+      _pageStatusRevision++;
+    });
+  }
+
+  /// **呈现器正在显示的那一页**的超分状态：状态 + 原图/超分后分辨率。
+  ///
+  /// 只读快照，界面可以直接在 `ListenableBuilder` 里取。取不到当前页（还没推过任何
+  /// 一页）时下标为 `-1`，尺寸都是 `null` —— 不编数字。
+  SuperResolutionPageStatus get currentPageUpscaleStatus =>
+      upscaleStatusForPage(_pushedIndex ?? -1);
+
+  /// 某一页的超分状态。
+  ///
+  /// 界面只用当前页；这个入口多出来是为了「**预超分**跑完的那一页」也能被问到 ——
+  /// 邻页的状态在它被翻到之前，从当前页那个入口一个字都看不到。
+  SuperResolutionPageStatus upscaleStatusForPage(int index) =>
+      resolveSuperResolutionStatus(
+        index: index,
+        // 用**平台能力**而不是 `canPresent`：后者在后台建呈现器的 ~150 ms 里是假，
+        // 那段时间报「不支持」是胡话。
+        platformSupported: GpuPresentBridge.isPlatformSupported,
+        upscaleEnabled: _isUpscaleEnabled,
+        originalPreview: _originalPreview,
+        recorded: _pagePhases[index],
+        sourceSize: _pageSourceSizes[index],
+        enhancedSize: _pageEnhancedSizes[index],
+      );
+
+  /// 记账整体作废：换了来源或换了模型时页号/缓存键的含义都变了。
+  ///
+  /// 必须在 `_mutate` 里调 —— 它要顺带把版本号推一格，界面才知道要重新读。
+  void _resetPageStatus() {
+    _pagePhases.clear();
+    _pageSourceSizes.clear();
+    _pageEnhancedSizes.clear();
+    _sourceSizeProbed.clear();
+    _enhancedSizeProbed.clear();
+    _pageStatusRevision++;
+  }
+
   /// 设置是否开启超分。
   Future<void> setUpscaleEnabled(bool enabled) {
     if (_isUpscaleEnabled == enabled) return Future<void>.value();
@@ -764,6 +878,17 @@ class GpuPresentController extends ChangeNotifier {
       if (cached) await _ensureEnhancedForIndex(source, index, width, height);
       if (!isCurrent()) return;
       if (cached) targets.remove(index);
+      // 「排队中」只打给**真的会被处理**的那些页（已落盘的当前页不在其中），
+      // 且只打给还没落定的页：已经「无需超分 / 失败 / 已超分」的页不该被
+      // 下一次调度按回「排队中」—— 那会让界面上刚说清楚的结论又变得含糊。
+      for (final target in targets) {
+        final SuperResolutionPagePhase? recorded = _pagePhases[target];
+        if (recorded == null ||
+            recorded == SuperResolutionPagePhase.queued ||
+            recorded == SuperResolutionPagePhase.running) {
+          _markPhase(target, SuperResolutionPagePhase.queued);
+        }
+      }
       _enhancementQueue.replace([
         for (final target in targets)
           (
@@ -821,7 +946,18 @@ class GpuPresentController extends ChangeNotifier {
     try {
       if (_pushedIndex == index) {
         final presenterUses = await _presenterUsesEnhanced(index);
-        if (!acceptsWork() || presenterUses != false) return;
+        if (!acceptsWork()) return;
+        if (presenterUses == true) {
+          // 呈现器自己说这一帧来自超分轨 —— 这与 `_applyEnhancedToPresenter` 里那句
+          // 「已超分」是**同一份证据**，只是这一次不用我们动手它就已经换上了
+          // （最常见的情形：预超分时注入过，翻过来直接就是超分图）。
+          // 不记这一笔，芯片就会停在上一步的「已生成」上，把已经发生的事说小。
+          _markPhase(index, SuperResolutionPagePhase.applied);
+          return;
+        }
+        // 判不了（呈现器没就绪 / 上一次呈现已经不是这一页）：不动记账，也不继续，
+        // 等下一次呈现再说。
+        if (presenterUses == null) return;
       }
       final appleProfile = (Platform.isMacOS || Platform.isIOS)
           ? await RealSrSettings.loadAppleProfile()
@@ -837,7 +973,11 @@ class GpuPresentController extends ChangeNotifier {
       );
       if (await File(outPath).exists()) {
         if (!acceptsWork()) return;
+        await _recordEnhancedSize(index, outPath);
+        if (!acceptsWork()) return;
         logger.i('[Rossi AI] 第 $index 页复用模型 $cacheKey 的超分图: $outPath');
+        // 产物在盘上 = 这一页有超分图可用了（至于这一帧用没用上，看下一步）。
+        _markPhase(index, SuperResolutionPagePhase.ready);
         if (_pushedIndex != index) return;
         SuperResolutionLog.outputReady(outPath, page: index, model: cacheKey);
         await _applyEnhancedToPresenter(
@@ -851,7 +991,15 @@ class GpuPresentController extends ChangeNotifier {
       }
 
       final attempts = _upscaleAttempts[index] ?? 0;
-      if (attempts >= _maxUpscaleAttempts) return;
+      if (attempts >= _maxUpscaleAttempts) {
+        // 到顶就停下（不再重跑几百毫秒的推理）。这件事界面上必须说出来，
+        // 否则用户看到的是「一直停在待超分」；但 `skipped`（无需超分）是另一条
+        // 结论，别用「失败」把它盖掉。
+        if (_pagePhases[index] != SuperResolutionPagePhase.skipped) {
+          _markPhase(index, SuperResolutionPagePhase.failed);
+        }
+        return;
+      }
       final prefetch = _pushedIndex != index;
       if (prefetch) {
         SuperResolutionLog.add('第 ${index + 1} 页：后台预超分开始；$cacheKey');
@@ -873,8 +1021,20 @@ class GpuPresentController extends ChangeNotifier {
         inputPath = tempFile.path;
       }
       if (!acceptsWork()) return;
-      if (!await RealSrSuperResolution.shouldUpscale(inputPath)) {
+      // 量一次尺寸，两处用：判阈值（免得同一个文件被读第二遍）与顶栏上显示
+      // 「超分后是多少」。量不出来（拿不到路径、格式认不得）就是没有数字，
+      // 不编一个出来。
+      final inputSize =
+          _pageSourceSizes[index] ??
+          await RealSrSuperResolution.imageSizeOf(inputPath);
+      if (!acceptsWork()) return;
+      _markSourceSize(index, inputSize);
+      if (!await RealSrSuperResolution.shouldUpscale(
+        inputPath,
+        knownSize: inputSize,
+      )) {
         _upscaleAttempts[index] = _maxUpscaleAttempts;
+        _markPhase(index, SuperResolutionPagePhase.skipped);
         SuperResolutionLog.add('第 ${index + 1} 页：达到设置的分辨率阈值或无法解析尺寸，跳过超分。');
         return;
       }
@@ -888,6 +1048,8 @@ class GpuPresentController extends ChangeNotifier {
         '第 ${index + 1} 页：开始推理；模型=$cacheKey\n输入=$inputPath',
       );
       _upscaleAttempts[index] = attempts + 1;
+      // 真开始推理了才说「超分中」—— `upscale` 之前还有好几道早退。
+      _markPhase(index, SuperResolutionPagePhase.running);
       final produced = await RealSrSuperResolution.upscale(
         inputPath: inputPath,
         outputPath: pendingOutput.path,
@@ -899,11 +1061,15 @@ class GpuPresentController extends ChangeNotifier {
         return;
       }
       if (!produced) {
+        _markPhase(index, SuperResolutionPagePhase.failed);
         SuperResolutionLog.add('第 ${index + 1} 页：未产出超分图片，继续显示原图。');
         logger.w('[Rossi AI] 第 $index 页未生成超分图，保留原图');
         return;
       }
       await pendingOutput.rename(outPath);
+      await _recordEnhancedSize(index, outPath);
+      // 产物落盘 = 这一页有超分图了；接下来才谈「有没有换到画面上」。
+      _markPhase(index, SuperResolutionPagePhase.ready);
       if (_pushedIndex != index) {
         SuperResolutionLog.outputReady(
           outPath,
@@ -917,6 +1083,7 @@ class GpuPresentController extends ChangeNotifier {
       if (!_acceptsEnhancement(epoch)) return;
       await _applyEnhancedToPresenter(index, outPath, targetW, targetH, epoch);
     } catch (e, s) {
+      _markPhase(index, SuperResolutionPagePhase.failed);
       SuperResolutionLog.add('第 ${index + 1} 页：超分失败', error: e, stackTrace: s);
       logger.w('[Rossi AI] 第 $index 页超分执行异常', error: e, stackTrace: s);
     } finally {
@@ -1017,6 +1184,8 @@ class GpuPresentController extends ChangeNotifier {
       );
       if (!_acceptsEnhancement(epoch)) return false;
       if (confirmed == true) {
+        // 呈现器自己说这一帧取自超分轨 —— 这句话是「已超分」唯一的依据。
+        _markPhase(index, SuperResolutionPagePhase.applied);
         SuperResolutionLog.add('第 ${index + 1} 页：替换成功，呈现器确认当前画面来自超分图。');
         _upscaleAttempts.remove(index);
         logger.i('[Rossi AI] 第 $index 页超分图已替换上屏（呈现器确认本次呈现取自超分轨）');
@@ -1094,6 +1263,8 @@ class GpuPresentController extends ChangeNotifier {
     _originalPreview,
     _isUpscaleEnabled,
     _presentCount,
+    // 超分记账的版本号：三份 Map 原地改，靠它把「改过」带进快照里。
+    _pageStatusRevision,
   );
 
   /// 改状态并在**真的变了**的时候通知。
