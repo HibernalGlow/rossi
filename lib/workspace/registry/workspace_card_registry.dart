@@ -119,7 +119,7 @@ class WorkspaceCardRegistry {
   late final List<WorkspaceCardDefinition> cards = List.unmodifiable([
     WorkspaceCardDefinition(
       id: favorite,
-      title: '我的收藏',
+      title: '书签',
       icon: Icons.bookmark_added_rounded,
       defaultPanelId: WorkspacePanelId.favorite,
       defaultOrder: 0,

@@ -166,7 +166,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
     );
     final rows = [
       for (final entry in visible)
-        if (entities[entry.key] case final item?) _row(item, _viewMode),
+        if (entities[entry.key] case final item?) _row(item),
     ];
 
     return Column(
@@ -186,11 +186,9 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
         ),
         const SizedBox(height: 6),
         if (widget.isStandalone)
-          Expanded(
-            child: _buildList(context, rows, visible.length, all.isEmpty),
-          )
+          Expanded(child: _buildList(context, rows, all.isEmpty, menuEnabled))
         else
-          _buildList(context, rows, visible.length, all.isEmpty),
+          _buildList(context, rows, all.isEmpty, menuEnabled),
       ],
     );
   }
@@ -198,8 +196,8 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
   Widget _buildList(
     BuildContext context,
     List<LibraryEntry> rows,
-    int matched,
     bool libraryEmpty,
+    bool menuEnabled,
   ) {
     return LibraryEntryList(
       mode: _viewMode,
@@ -208,7 +206,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
       busy: _busy,
       emptyText: libraryEmpty
           ? '还没有书签，去详情页点收藏吧'
-          : matched == 0 && _keyword.trim().isNotEmpty
+          : _keyword.trim().isNotEmpty
           ? '没有匹配的书签'
           : '这个列表里还没有书签',
       onTap: (row) => _open(context, row.source! as UnifiedComicFavorite),
@@ -229,7 +227,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
         () => _sort = _sort.toggled(ShelfSortField.values.byName(key)),
       ),
       wrapRow: (context, row, child) => ShelfEntryContextMenuRegion(
-        enabled: menuEnabledOf(context),
+        enabled: menuEnabled,
         inputBuilder: () => _menuInput(row.source! as UnifiedComicFavorite),
         onAction: (context, action) =>
             _onMenuAction(context, row.source! as UnifiedComicFavorite, action),
@@ -492,7 +490,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
     );
   }
 
-  LibraryEntry _row(UnifiedComicFavorite item, LibraryViewMode mode) {
+  LibraryEntry _row(UnifiedComicFavorite item) {
     final theme = Theme.of(context);
     final cover = unifiedComicFromUnifiedFavorite(item).cover;
     final author = shelfCreatorName(item.creator);
@@ -541,12 +539,6 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
       ),
     );
   }
-
-  bool menuEnabledOf(BuildContext context) => context
-      .watch<GlobalSettingCubit>()
-      .state
-      .bookshelfSetting
-      .shelfCardContextMenu;
 
   void _open(BuildContext context, UnifiedComicFavorite item) {
     // 本地来源与插件来源的分岔在 openComicItem 里统一处理 —— 这里曾经

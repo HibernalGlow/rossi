@@ -203,6 +203,10 @@ void addHistoryEntryToFavorites(UnifiedComicHistory item) {
       schemaVersion: 2,
     ),
   );
+
+  // 与 `collect_comic.dart` 的口径对齐：新收藏要有一条根目录链接。
+  // 少了这一条，它只出现在「全部」里，书签面板的每一个列表都会跳过它。
+  ComicLinkService.addComic(item.uniqueKey, null, ComicFolderType.favorite);
 }
 
 /// 取消收藏：软删 + 摘掉它在所有收藏文件夹里的成员关系 + 清掉跨文件夹链接。

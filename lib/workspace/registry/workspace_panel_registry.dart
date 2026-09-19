@@ -83,7 +83,7 @@ class WorkspacePanelRegistry {
       ),
       WorkspacePanelDefinition(
         id: WorkspacePanelId.favorite,
-        title: '我的收藏',
+        title: '书签',
         icon: Icons.bookmark_added_rounded,
         side: WorkspacePanelSide.left,
         defaultOrder: 1,
