@@ -58,6 +58,9 @@ dependencies:
   shared_preferences: ^2.5.4 # 文件: 键值对存储器
 
   # 文件、媒体与平台能力
+  media_kit: ^1.2.0 # 视频: libmpv 绑定，跨五平台（ADR-0016）
+  media_kit_video: ^2.0.1 # 视频: 画面纹理上屏（不用它的控制条）
+  media_kit_libs_video: ^1.0.7 # 视频: 各平台 libmpv 预编译产物
   path_provider: ^2.1.5 # 文件: 常用目录路径
   path: ^1.9.0 # 文件: 路径处理
   open_file: ^4.0.0 # 文件: 系统打开文件
@@ -91,7 +94,7 @@ dependencies:
   code_assets: ^2.0.0 # FFI: hooks/build.dart 使用的目标平台配置类型
   native_toolchain_rust: ^1.0.4 # FFI: Rust 构建工具
   hooks: ^2.1.0 # FFI: Dart 构建钩子
-  flutter_rust_bridge: ^2.10.0 # FFI: Flutter-Rust 桥接
+  flutter_rust_bridge: 2.12.0 # FFI: Flutter-Rust 桥接
   ffi: ^2.2.0 # FFI: Dart 原生互操作
   sentry_flutter: ^10.0.0-alpha.5 # 监控: 崩溃与异常上报
   vm_service: ^15.0.2 # 监控: 运行时内存监控

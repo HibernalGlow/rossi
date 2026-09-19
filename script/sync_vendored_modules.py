@@ -226,6 +226,26 @@ PORTS = [
             "use crate::perf_sink::PerfValue;",
         ],
     },
+    # 搜索查询语法与归一化：上游这两个文件通体 `pub`、只依赖 std、自带单测，
+    # 因此是**零偏离**的逐字拷贝（只换了文件头的溯源注释，注释差异不参与代码比较）。
+    {
+        "upstream": "src/search_query.rs",
+        "local": "rust/local_core/src/search_query.rs",
+        "pinned_at": "1fd6f863",
+        "upstream_normalize": [],
+        "local_strip": [],
+        "upstream_strip": [],
+        "drop_lines": [],
+    },
+    {
+        "upstream": "src/search_norm.rs",
+        "local": "rust/local_core/src/search_norm.rs",
+        "pinned_at": "1fd6f863",
+        "upstream_normalize": [],
+        "local_strip": [],
+        "upstream_strip": [],
+        "drop_lines": [],
+    },
 ]
 
 

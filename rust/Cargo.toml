@@ -24,7 +24,7 @@ name = "windcore"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-flutter_rust_bridge = "=2.13.0"
+flutter_rust_bridge = "=2.12.0"
 # 本地漫画核心（散图文件夹 / CBZ / CBR 直读，v0.1 判据 A）。
 # 独立 crate：默认构建仍只构建 windcore 本身，但 windcore 现在**在依赖图上**包含它，
 # 因此 Flutter 侧产物会带上 RAR（unrar-patched）与 image 的多格式 feature 集。
