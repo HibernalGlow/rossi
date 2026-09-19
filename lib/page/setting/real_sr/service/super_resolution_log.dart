@@ -11,6 +11,9 @@ abstract final class SuperResolutionLog {
   static String? latestOutputPath;
   static Future<void> _writeQueue = Future<void>.value();
 
+  /// 等待已经记录的日志落盘，再复制缓存或清理临时目录。
+  static Future<void> flush() => _writeQueue;
+
   static Future<Directory> cacheDirectory() async {
     final directory = Directory(
       p.join((await getTemporaryDirectory()).path, 'rossi_sr_cache'),
@@ -54,7 +57,9 @@ abstract final class SuperResolutionLog {
     bool prefetched = false,
   }) {
     latestOutputPath = path;
-    add('第 ${page + 1} 页：${prefetched ? '预超分完成，翻到此页时直接复用' : '超分文件已就绪，等待呈现器确认替换'}；模型=$model\n输出=$path');
+    add(
+      '第 ${page + 1} 页：${prefetched ? '预超分完成，翻到此页时直接复用' : '超分文件已就绪，等待呈现器确认替换'}；模型=$model\n输出=$path',
+    );
   }
 
   static Future<void> openOutputFolder() async {

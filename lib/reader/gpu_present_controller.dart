@@ -616,10 +616,10 @@ class GpuPresentController extends ChangeNotifier {
   /// 正在跑超分流水线的页（防同一页并发跑两遍）。
   final Set<(int, int)> _upscaleInProgress = <(int, int)>{};
 
-  /// 每一页已经尝试过几次（推理 + 注入，失败也计）。上限见 [_maxUpscaleAttempts]。
+  /// 每一页已经尝试过几次推理（失败也计，缓存复用不消耗次数）。上限见 [_maxUpscaleAttempts]。
   final Map<int, int> _upscaleAttempts = <int, int>{};
 
-  /// 同一页最多试几次（推理 + 注入合起来算）。到顶就停下并说明，
+  /// 同一页最多重试几次推理。到顶就停下并说明，
   /// 而不是每翻一页刷一次日志、每次重新跑一遍几百毫秒的推理。
   static const int _maxUpscaleAttempts = 3;
 
@@ -686,32 +686,105 @@ class GpuPresentController extends ChangeNotifier {
   }
 
   final _enhancementQueue = SuperResolutionQueue<(int, int)>();
+  final Set<Future<void>> _enhancementSchedules = {};
   int _scheduleRevision = 0;
+  Set<int> _enhancementTargets = {};
+
+  /// 退出后可等待已开始的调度和推理收尾，避免清理缓存时仍有后台写入。
+  Future<void> get enhancementsIdle async {
+    while (_enhancementSchedules.isNotEmpty) {
+      await Future.wait(_enhancementSchedules.toList());
+    }
+    await _enhancementQueue.idle;
+  }
 
   void _onPrefetchChanged() {
     final source = _lastPushedSource;
     final index = _pushedIndex;
     if (source != null && index != null) {
-      unawaited(_scheduleEnhancements(source, index, _pushedWidth ?? 0, _pushedHeight ?? 0));
+      unawaited(
+        _scheduleEnhancements(
+          source,
+          index,
+          _pushedWidth ?? 0,
+          _pushedHeight ?? 0,
+        ),
+      );
     }
   }
 
-  Future<void> _scheduleEnhancements(PageSource source, int index, int width, int height) async {
+  Future<void> _scheduleEnhancements(
+    PageSource source,
+    int index,
+    int width,
+    int height,
+  ) {
+    final operation = _scheduleEnhancementsSafely(source, index, width, height);
+    _enhancementSchedules.add(operation);
+    return operation.whenComplete(
+      () => _enhancementSchedules.remove(operation),
+    );
+  }
+
+  Future<void> _scheduleEnhancementsSafely(
+    PageSource source,
+    int index,
+    int width,
+    int height,
+  ) async {
     final revision = ++_scheduleRevision;
     final epoch = _enhancementEpoch;
-    // 翻页立刻清除待执行的旧预超分，配置读取不占用原图呈现路径。
-    _enhancementQueue.clear();
-    if (!_acceptsEnhancement(epoch)) return;
-    final (forward, back) = await RealSrSettings.loadPrefetch();
-    if (revision != _scheduleRevision || !_acceptsEnhancement(epoch) || _pushedPath != source.path) return;
-    final targets = superResolutionTargets(index, source.pageCount, forward, back);
-    _enhancementQueue.replace([
-      for (final target in targets)
-        ((epoch, target), () async {
-          if (!_acceptsEnhancement(epoch) || _pushedPath != source.path) return;
-          await _ensureEnhancedForIndex(source, target, width, height);
-        }),
-    ]);
+    bool isCurrent() =>
+        revision == _scheduleRevision &&
+        _acceptsEnhancement(epoch) &&
+        _pushedPath == source.path;
+    try {
+      // 翻页立刻清除待执行的旧预超分，配置读取不占用原图呈现路径。
+      _enhancementQueue.clear();
+      _enhancementTargets = {index};
+      if (!_acceptsEnhancement(epoch)) return;
+      final (forward, back) = await RealSrSettings.loadPrefetch();
+      if (!isCurrent()) return;
+      final targets = superResolutionTargets(
+        index,
+        source.pageCount,
+        forward,
+        back,
+      );
+      _enhancementTargets = targets.toSet();
+      // 已落盘的当前页不排在正在执行的预超分后面：直接恢复增强轨。
+      final cacheKey = await RealSrSettings.loadCacheKey();
+      if (!isCurrent()) return;
+      final cache = await _srCacheDir();
+      if (!isCurrent()) return;
+      final cached = await File(
+        p.join(cache.path, 'sr_${source.path.hashCode}_${index}_$cacheKey.png'),
+      ).exists();
+      if (!isCurrent()) return;
+      if (cached) await _ensureEnhancedForIndex(source, index, width, height);
+      if (!isCurrent()) return;
+      if (cached) targets.remove(index);
+      _enhancementQueue.replace([
+        for (final target in targets)
+          (
+            (epoch, target),
+            () async {
+              if (!_acceptsEnhancement(epoch) || _pushedPath != source.path) {
+                return;
+              }
+              await _ensureEnhancedForIndex(source, target, width, height);
+            },
+          ),
+      ]);
+    } catch (error, stackTrace) {
+      if (isCurrent()) {
+        SuperResolutionLog.add(
+          '第 ${index + 1} 页：预超分调度失败',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
+    }
   }
 
   /// 让「第 [index] 页显示成超分图」这件事成真 —— 该注入就注入、该推理就推理。
@@ -734,7 +807,9 @@ class GpuPresentController extends ChangeNotifier {
     int targetH,
   ) async {
     final epoch = _enhancementEpoch;
-    if (!_acceptsEnhancement(epoch) ||
+    bool acceptsWork() =>
+        _acceptsEnhancement(epoch) && _enhancementTargets.contains(index);
+    if (!acceptsWork() ||
         !GpuPresentBridge.isPlatformSupported ||
         _pushedPath != source.path) {
       return;
@@ -746,25 +821,22 @@ class GpuPresentController extends ChangeNotifier {
     try {
       if (_pushedIndex == index) {
         final presenterUses = await _presenterUsesEnhanced(index);
-        if (!_acceptsEnhancement(epoch) || presenterUses != false) return;
+        if (!acceptsWork() || presenterUses != false) return;
       }
-      final attempts = _upscaleAttempts[index] ?? 0;
-      if (attempts >= _maxUpscaleAttempts) return;
-      _upscaleAttempts[index] = attempts + 1;
-
       final appleProfile = (Platform.isMacOS || Platform.isIOS)
           ? await RealSrSettings.loadAppleProfile()
           : null;
       final cacheKey =
           appleProfile?.cacheKey ?? await RealSrSettings.loadCacheKey();
+      if (!acceptsWork()) return;
       final srCacheDir = await _srCacheDir();
-      if (!_acceptsEnhancement(epoch)) return;
+      if (!acceptsWork()) return;
       final outPath = p.join(
         srCacheDir.path,
         'sr_${source.path.hashCode}_${index}_$cacheKey.png',
       );
       if (await File(outPath).exists()) {
-        if (!_acceptsEnhancement(epoch)) return;
+        if (!acceptsWork()) return;
         logger.i('[Rossi AI] 第 $index 页复用模型 $cacheKey 的超分图: $outPath');
         if (_pushedIndex != index) return;
         SuperResolutionLog.outputReady(outPath, page: index, model: cacheKey);
@@ -778,10 +850,14 @@ class GpuPresentController extends ChangeNotifier {
         return;
       }
 
+      final attempts = _upscaleAttempts[index] ?? 0;
+      if (attempts >= _maxUpscaleAttempts) return;
       final prefetch = _pushedIndex != index;
-      if (prefetch) SuperResolutionLog.add('第 ${index + 1} 页：后台预超分开始；$cacheKey');
+      if (prefetch) {
+        SuperResolutionLog.add('第 ${index + 1} 页：后台预超分开始；$cacheKey');
+      }
       String? inputPath = await source.getPageFilePath(index);
-      if (!_acceptsEnhancement(epoch)) return;
+      if (!acceptsWork()) return;
       if (inputPath == null ||
           !File(inputPath).existsSync() ||
           requiresSuperResolutionDecode(source, index)) {
@@ -796,7 +872,13 @@ class GpuPresentController extends ChangeNotifier {
         await writeSuperResolutionInput(source, index, tempFile);
         inputPath = tempFile.path;
       }
-      if (!_acceptsEnhancement(epoch)) return;
+      if (!acceptsWork()) return;
+      if (!await RealSrSuperResolution.shouldUpscale(inputPath)) {
+        _upscaleAttempts[index] = _maxUpscaleAttempts;
+        SuperResolutionLog.add('第 ${index + 1} 页：达到设置的分辨率阈值或无法解析尺寸，跳过超分。');
+        return;
+      }
+      if (!acceptsWork()) return;
       // 旧任务不能覆盖切换模型后产生的缓存，先写独立文件再发布。
       pendingOutput = File(
         p.join(srCacheDir.path, 'pending_${const Uuid().v4()}.png'),
@@ -805,11 +887,12 @@ class GpuPresentController extends ChangeNotifier {
       SuperResolutionLog.add(
         '第 ${index + 1} 页：开始推理；模型=$cacheKey\n输入=$inputPath',
       );
+      _upscaleAttempts[index] = attempts + 1;
       final produced = await RealSrSuperResolution.upscale(
         inputPath: inputPath,
         outputPath: pendingOutput.path,
         appleProfile: appleProfile,
-        shouldRun: () => _acceptsEnhancement(epoch),
+        shouldRun: acceptsWork,
       );
       if (!_acceptsEnhancement(epoch)) {
         SuperResolutionLog.add('第 ${index + 1} 页：任务已过期或处于原图对比，忽略本次结果。');
@@ -822,7 +905,12 @@ class GpuPresentController extends ChangeNotifier {
       }
       await pendingOutput.rename(outPath);
       if (_pushedIndex != index) {
-        SuperResolutionLog.outputReady(outPath, page: index, model: cacheKey, prefetched: true);
+        SuperResolutionLog.outputReady(
+          outPath,
+          page: index,
+          model: cacheKey,
+          prefetched: true,
+        );
         return;
       }
       SuperResolutionLog.outputReady(outPath, page: index, model: cacheKey);

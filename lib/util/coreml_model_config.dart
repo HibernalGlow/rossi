@@ -7,10 +7,10 @@ import 'package:zephyr/i18n/strings.g.dart';
 /// iOS / macOS CoreML 超分模型配置。
 ///
 /// 模型文件来自 GitHub `deretame/breeze-binary` 的 `MacOS-iOS.7z`，
-/// 目前压缩包里实际只有以下两个变体：
+/// Breeze 压缩包提供以下两个变体：
 /// - waifu2x_photo_noise0_scale2x.mlmodel
 /// - RealCUGAN_2x_no-denoise_block156.mlpackage
-/// 后续上传更多变体后，直接往对应族里追加即可。
+/// Real-ESRGAN x4plus 使用独立的社区 CoreML ZIP，保留原生 4× 倍率。
 class CoreMLModelFamily {
   final String id;
   final String label;
@@ -36,11 +36,13 @@ class CoreMLModelVariant {
   final String displayName;
   final String fileName;
   final Map<String, dynamic> config;
+  final String? downloadUrl;
 
   CoreMLModelVariant({
     required this.displayName,
     required this.fileName,
     required this.config,
+    this.downloadUrl,
   });
 
   /// 用户界面显示的本地化变体名称。
@@ -92,6 +94,28 @@ abstract class CoreMLModelConfig {
             'blockSize': 192,
             'shrinkSize': 18,
             'scale': 2,
+          },
+        ),
+      ],
+    ),
+    CoreMLModelFamily(
+      id: 'realesrgan',
+      label: 'Real-ESRGAN x4plus · 照片/CG',
+      variants: <CoreMLModelVariant>[
+        CoreMLModelVariant(
+          displayName: '模型自带降噪',
+          fileName: 'RealESRGAN-x4plus.mlpackage',
+          downloadUrl:
+              'https://huggingface.co/VincentGOURBIN/RealESRGAN-CoreML/resolve/main/RealESRGAN-x4plus.mlpackage.zip',
+          config: <String, dynamic>{
+            'inputName': 'input',
+            'outputName': 'output',
+            'blockSize': 256,
+            'shrinkSize': 16,
+            // ESRGAN 返回完整输入的 4×，裁掉上下文后再拼接。
+            'outputCrop': 64,
+            'inputBias': 0.0,
+            'scale': 4,
           },
         ),
       ],

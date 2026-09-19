@@ -67,7 +67,10 @@ class RealSrSettings {
     );
   }
 
-  static Future<void> savePrefetch({required int forward, required int back}) async {
+  static Future<void> savePrefetch({
+    required int forward,
+    required int back,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('realsr_prefetch_forward', forward.clamp(0, 5));
     await prefs.setInt('realsr_prefetch_back', back.clamp(0, 5));

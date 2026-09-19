@@ -39,6 +39,7 @@ void main() {
         .setMockMethodCallHandler(channel, (_) async => root.path);
   });
   tearDown(() async {
+    await SuperResolutionLog.flush();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null);
     await root.delete(recursive: true);
@@ -147,6 +148,18 @@ void main() {
       await tester.tap(find.text('Breeze 原生 CoreML').last);
       await _settleFileIO(tester);
       expect(find.text('Real-CUGAN · 质量优先'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('breeze-coreml-model')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Real-ESRGAN x4plus · 照片/CG').last);
+      await _settleFileIO(tester);
+      expect(find.text('倍率：原生 4×（由模型决定）'), findsOneWidget);
+      final esrganProfile = await RealSrSettings.loadAppleProfile();
+      expect(esrganProfile.engine, AppleSuperResolutionEngine.breezeCoreML);
+      expect(esrganProfile.coremlVariant.config['outputCrop'], 64);
+      expect(
+        esrganProfile.cacheKey,
+        contains('RealESRGAN-x4plus.mlpackage_4x'),
+      );
       expect(tester.takeException(), isNull);
     },
   );

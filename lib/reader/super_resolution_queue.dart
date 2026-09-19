@@ -8,6 +8,8 @@ class SuperResolutionQueue<K> {
   Future<void>? _worker;
   bool _disposed = false;
 
+  Future<void> get idle => _worker ?? Future<void>.value();
+
   void replace(List<(K, Future<void> Function())> jobs) {
     if (_disposed) return;
     _pending
@@ -39,7 +41,12 @@ class SuperResolutionQueue<K> {
 }
 
 /// mImage 的前后页预处理顺序：下一页、上一页、下两页、上两页……
-List<int> superResolutionTargets(int current, int count, int forward, int back) {
+List<int> superResolutionTargets(
+  int current,
+  int count,
+  int forward,
+  int back,
+) {
   final result = <int>[current];
   for (var distance = 1; distance <= forward || distance <= back; distance++) {
     if (distance <= forward && current + distance < count) {

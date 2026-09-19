@@ -33,7 +33,9 @@ actor ModelManager {
 
         let fileURL = URL(fileURLWithPath: path)
         let compiledUrl = try await MLModel.compileModel(at: fileURL)
-        let mlModel = try MLModel(contentsOf: compiledUrl)
+        let configuration = MLModelConfiguration()
+        configuration.computeUnits = .all
+        let mlModel = try MLModel(contentsOf: compiledUrl, configuration: configuration)
 
         let model: ImageProcessingModel?
         switch type.lowercased() {

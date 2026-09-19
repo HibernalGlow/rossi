@@ -7,6 +7,7 @@ environment:
   sdk: ^3.12.0
 
 dependencies:
+  archive: ^4.2.0 # 原生 CoreML 模型 ZIP 解压
   image: ^4.9.2 # 超分输入：后台将原生解码后的 JXL/AVIF 像素编码为 PNG
   # 核心依赖
   flutter:

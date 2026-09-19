@@ -24,17 +24,21 @@ class _AppleSuperResolutionSettingsState
   double? _progress;
   String? _error;
   int _generation = 0;
+  int _forward = 2;
+  int _back = 1;
 
   @override
   void initState() {
     super.initState();
     RealSrSettings.modelChanges.addListener(_reload);
+    RealSrSettings.prefetchChanges.addListener(_reload);
     _reload();
   }
 
   @override
   void dispose() {
     RealSrSettings.modelChanges.removeListener(_reload);
+    RealSrSettings.prefetchChanges.removeListener(_reload);
     super.dispose();
   }
 
@@ -42,6 +46,7 @@ class _AppleSuperResolutionSettingsState
     final generation = ++_generation;
     try {
       final engine = await RealSrSettings.loadAppleEngine();
+      final (forward, back) = await RealSrSettings.loadPrefetch();
       final family = await RealSrSettings.loadCoreMLFamily();
       final variant = await RealSrSettings.loadCoreMLVariant(family);
       final available = await CoreMLModelLoader.isModelAvailable(
@@ -50,6 +55,8 @@ class _AppleSuperResolutionSettingsState
       if (!mounted || generation != _generation) return;
       setState(() {
         _engine = engine;
+        _forward = forward;
+        _back = back;
         _family = family;
         _variant = variant;
         _available = available;
@@ -132,11 +139,11 @@ class _AppleSuperResolutionSettingsState
                 for (final family in CoreMLModelConfig.families)
                   DropdownMenuItem(
                     value: family,
-                    child: Text(
-                      family.id == 'waifu2x'
-                          ? 'waifu2x · 速度优先'
-                          : 'Real-CUGAN · 质量优先',
-                    ),
+                    child: Text(switch (family.id) {
+                      'waifu2x' => 'waifu2x · 速度优先',
+                      'realcugan' => 'Real-CUGAN · 质量优先',
+                      _ => family.label,
+                    }),
                   ),
               ],
               onChanged: _downloading
@@ -172,6 +179,65 @@ class _AppleSuperResolutionSettingsState
             _error!,
             style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
+        const SizedBox(height: 12),
+        const Text('预超分（当前页优先）'),
+        Wrap(
+          spacing: 16,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('后续页：'),
+                DropdownButton<int>(
+                  key: const ValueKey('sr-prefetch-forward'),
+                  value: _forward,
+                  items: [
+                    for (var n = 0; n <= 5; n++)
+                      DropdownMenuItem(value: n, child: Text('$n 页')),
+                  ],
+                  onChanged: (n) {
+                    if (n != null) {
+                      _change(
+                        () => RealSrSettings.savePrefetch(
+                          forward: n,
+                          back: _back,
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('之前页：'),
+                DropdownButton<int>(
+                  key: const ValueKey('sr-prefetch-back'),
+                  value: _back,
+                  items: [
+                    for (var n = 0; n <= 5; n++)
+                      DropdownMenuItem(value: n, child: Text('$n 页')),
+                  ],
+                  onChanged: (n) {
+                    if (n != null) {
+                      _change(
+                        () => RealSrSettings.savePrefetch(
+                          forward: _forward,
+                          back: n,
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+        const Text(
+          '一次处理一页，避免争抢内存；都设为 0 可关闭预超分。',
+          style: TextStyle(fontSize: 12),
+        ),
         const SizedBox(height: 12),
         const SuperResolutionLogControls(),
       ],

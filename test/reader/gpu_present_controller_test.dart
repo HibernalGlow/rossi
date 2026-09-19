@@ -10,6 +10,7 @@ import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/mimage_onnx_model_config.dart';
+import 'package:zephyr/page/setting/real_sr/service/super_resolution_log.dart';
 
 class _Source extends PageSource {
   @override
@@ -134,7 +135,10 @@ void main() {
     const pathChannel = MethodChannel('plugins.flutter.io/path_provider');
 
     setUp(() async {
-      SharedPreferences.setMockInitialValues({});
+      SharedPreferences.setMockInitialValues({
+        'realsr_prefetch_forward': 0,
+        'realsr_prefetch_back': 0,
+      });
       cache = await Directory.systemTemp.createTemp('rossi_sr_test_');
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(pathChannel, (call) async => cache.path);
@@ -153,10 +157,47 @@ void main() {
 
     tearDown(() async {
       controller.dispose();
+      await controller.enhancementsIdle;
+      await SuperResolutionLog.flush();
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(pathChannel, null);
       await cache.delete(recursive: true);
     });
+
+    test(
+      'cached prefetch never changes the current frame and remains reusable',
+      () async {
+        final key = await RealSrSettings.loadCacheKey();
+        for (final index in [1, 2]) {
+          await File(
+            '${cache.path}/rossi_sr_cache/sr_${source.path.hashCode}_${index}_$key.png',
+          ).writeAsBytes([2]);
+        }
+        await RealSrSettings.savePrefetch(forward: 1, back: 1);
+        for (var pass = 0; pass < 4; pass++) {
+          await controller.present(
+            source: source,
+            index: 0,
+            physicalSize: viewport,
+          );
+          await controller.enhancementsIdle;
+          expect(bridge.currentIndex, 0);
+          expect(bridge.enhanced, isTrue);
+          expect(bridge.injectedPaths.last, contains('_0_$key'));
+          await controller.present(
+            source: source,
+            index: 1,
+            physicalSize: viewport,
+          );
+          await controller.enhancementsIdle;
+          expect(bridge.currentIndex, 1);
+          expect(bridge.enhanced, isTrue);
+          expect(bridge.injectedPaths.last, contains('_1_$key'));
+        }
+        expect(bridge.injections, 8);
+        expect(bridge.opens, 1, reason: '预超分设置不得重新打开来源');
+      },
+    );
 
     test(
       'enhanced frame notifies listeners after injection and redraw',

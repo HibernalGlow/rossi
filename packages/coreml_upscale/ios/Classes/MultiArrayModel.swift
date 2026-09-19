@@ -9,6 +9,8 @@ class MultiArrayModel: ImageProcessingModel {
     private let blockSize: Int
     private let shrinkSize: Int
     private let scale: Int
+    private let outputCrop: Int
+    private let inputBias: Float
 
     required init(model: MLModel, config: [String: Any]) {
         self.mlmodel = model
@@ -17,6 +19,8 @@ class MultiArrayModel: ImageProcessingModel {
         self.blockSize = (config["blockSize"] as? Int) ?? 256
         self.shrinkSize = (config["shrinkSize"] as? Int) ?? 0
         self.scale = (config["scale"] as? Int) ?? 2
+        self.outputCrop = (config["outputCrop"] as? Int) ?? 0
+        self.inputBias = (config["inputBias"] as? NSNumber)?.floatValue ?? 0.00196078411
         if let customShape = config["shape"] as? [Int] {
             self.shape = customShape.map { NSNumber(value: $0) }
         } else {
@@ -25,6 +29,9 @@ class MultiArrayModel: ImageProcessingModel {
     }
 
     func process(_ image: CGImage) async -> CGImage? {
+        let inputType = mlmodel.modelDescription.inputDescriptionsByName[inputName]?
+            .multiArrayConstraint?.dataType ?? .float32
+        guard inputType == .float32 || inputType == .float16 else { return nil }
         let width = image.width
         let height = image.height
         let channels = 4
@@ -42,11 +49,13 @@ class MultiArrayModel: ImageProcessingModel {
         let outBlockSize = contentBlockSize * outScale
 
         // set up pool of buffers
-        let poolSize = ProcessInfo.processInfo.activeProcessorCount
+        // 输入准备与预测只需双缓冲，不按 CPU 核数预分配。
+        let poolSize = 2
         let blockAndShrink = contentBlockSize + 2 * shrinkSize
         var bufferPool: [MLMultiArray] = (0..<poolSize).compactMap { _ in
-            try? MLMultiArray(shape: shape, dataType: .float32)
+            try? MLMultiArray(shape: shape, dataType: inputType)
         }
+        guard bufferPool.count == poolSize else { return nil }
         let bufferSemaphore = DispatchSemaphore(value: poolSize)
         let bufferPoolLock = NSLock()
 
@@ -71,7 +80,8 @@ class MultiArrayModel: ImageProcessingModel {
         let expanded = image.expandReflect(
             shrinkSize: shrinkSize,
             paddedWidth: paddedWidth,
-            paddedHeight: paddedHeight
+            paddedHeight: paddedHeight,
+            bias: inputBias
         )
 
         // calculate image block rects over the padded canvas
@@ -86,6 +96,7 @@ class MultiArrayModel: ImageProcessingModel {
                     let y = Int(rect.origin.y)
                     let multi = getBuffer()
                     let floatPtr = multi.dataPointer.assumingMemoryBound(to: Float32.self)
+                    let halfPtr = multi.dataPointer.assumingMemoryBound(to: Float16.self)
                     let inChannelStride = multi.strides[1].intValue
                     let inRowStride = multi.strides[2].intValue
                     for yExp in y..<(y + blockAndShrink) {
@@ -97,16 +108,15 @@ class MultiArrayModel: ImageProcessingModel {
                             let inX = xExp - x
                             let base = inY * inRowStride + inX
                             let srcIdx = srcYBase + xExp
-                            // channel 0
-                            floatPtr[base] = Float32(expanded[srcIdx])
-                            // channel 1
-                            floatPtr[base + inChannelStride] = Float32(
-                                expanded[srcIdx + expwidth * expheight]
-                            )
-                            // channel 2
-                            floatPtr[base + inChannelStride * 2] = Float32(
-                                expanded[srcIdx + expwidth * expheight * 2]
-                            )
+                            for channel in 0..<3 {
+                                let value = expanded[srcIdx + expwidth * expheight * channel]
+                                let target = base + inChannelStride * channel
+                                if inputType == .float16 {
+                                    halfPtr[target] = Float16(value)
+                                } else {
+                                    floatPtr[target] = Float32(value)
+                                }
+                            }
                         }
                     }
                     continuation.yield((i, multi))
@@ -115,81 +125,76 @@ class MultiArrayModel: ImageProcessingModel {
             }
         }
 
+        // 限制尚未拼接的预测输出，4× 每块很大，不能无限积压张量。
+        let predictionSlots = PredictionSlots()
+
         // feed image block arrays into the model
-        let predictionStream = AsyncStream<(Int, MLMultiArray)> { [inputName, outputName] continuation in
+        let predictionStream = AsyncStream<(Int, MLMultiArray?)> { [inputName, outputName] continuation in
             Task.detached {
                 for await (i, multi) in multiArrayStream {
-                    var buffer = multi
-                    if let prediction = try? self.mlmodel.prediction(inputName: inputName, outputName: outputName, input: buffer) {
-                        buffer = prediction
-                    } else {
-                        NSLog("CoreMLUpscale: Failed to get output from multiarray model")
-                    }
-                    continuation.yield((i, buffer))
+                    await predictionSlots.acquire()
+                    let prediction = try? self.mlmodel.prediction(inputName: inputName, outputName: outputName, input: multi)
+                    // 失败不能把输入张量冒充输出，否则 2x/4x 拼接会越界。
+                    continuation.yield((i, prediction))
                     returnBuffer(multi)
                 }
                 continuation.finish()
             }
         }
 
-        // helper to send values from [0,1] to [0,255] and clamp
-        func normalizeAccelerate(
-            _ src: UnsafePointer<Float32>, _ dst: UnsafeMutablePointer<UInt8>, count: Int
-        ) {
-            var scale: Float32 = 255
-            var minVal: Float32 = 0
-            var maxVal: Float32 = 255
-            var tempMul = [Float32](repeating: 0, count: count)
-            var tempClip = [Float32](repeating: 0, count: count)
-            // multiply by 255
-            vDSP_vsmul(src, 1, &scale, &tempMul, 1, vDSP_Length(count))
-            // clamp to [0,255]
-            vDSP_vclip(&tempMul, 1, &minVal, &maxVal, &tempClip, 1, vDSP_Length(count))
-            // convert to u8
-            vDSP_vfixu8(&tempClip, 1, dst, 1, vDSP_Length(count))
-        }
-
-        // process final output
-        var imgData: [UInt8] = [UInt8](repeating: 0, count: outWidth * outHeight * channels)
-
-        await withTaskGroup(of: Void.self) { group in
-            for await (i, prediction) in predictionStream {
-                group.addTask {
-                    let rect = rects[i]
-                    let originX = Int(rect.origin.x) * outScale
-                    let originY = Int(rect.origin.y) * outScale
-                    let dataPointer = prediction.dataPointer.assumingMemoryBound(to: Float32.self)
-                    let outChannelStride = prediction.strides[1].intValue
-                    let outRowStride = prediction.strides[2].intValue
-                    for channel in 0..<3 {
-                        // CoreML may pad each row of the output multi-array, so copy
-                        // the tile into a contiguous buffer using the model's strides.
-                        var tempBlock = [Float32](repeating: 0, count: outBlockSize * outBlockSize)
-                        let channelBase = dataPointer.advanced(by: channel * outChannelStride)
-                        for srcY in 0..<outBlockSize {
-                            let srcRow = channelBase.advanced(by: srcY * outRowStride)
-                            let dstRowBase = srcY * outBlockSize
-                            for srcX in 0..<outBlockSize {
-                                tempBlock[dstRowBase + srcX] = srcRow[srcX]
+        // 顺序消费预测，直接逐行写入 RGBA；避免整块复制、每块/通道分配
+        // 多个临时数组，以及任务组并发修改 Swift Array 的数据竞争。
+        var imgData = [UInt8](repeating: 0, count: outWidth * outHeight * channels)
+        var multiplied = [Float32](repeating: 0, count: outBlockSize)
+        var clipped = [Float32](repeating: 0, count: outBlockSize)
+        var multiplier: Float32 = 255
+        var minimum: Float32 = 0
+        var maximum: Float32 = 255
+        var failed = false
+        for await (i, output) in predictionStream {
+            guard let prediction = output,
+                  (prediction.dataType == .float32 || prediction.dataType == .float16),
+                  prediction.shape.count == 4,
+                  prediction.shape[1].intValue >= 3,
+                  prediction.shape[2].intValue >= outBlockSize + 2 * outputCrop,
+                  prediction.shape[3].intValue >= outBlockSize + 2 * outputCrop else {
+                failed = true
+                await predictionSlots.release()
+                continue
+            }
+            let rect = rects[i]
+            let originX = Int(rect.origin.x) * outScale
+            let originY = Int(rect.origin.y) * outScale
+            let data = prediction.dataPointer.assumingMemoryBound(to: Float32.self)
+            let halfData = prediction.dataPointer.assumingMemoryBound(to: Float16.self)
+            let channelStride = prediction.strides[1].intValue
+            let rowStride = prediction.strides[2].intValue
+            let pixelStride = prediction.strides[3].intValue
+            imgData.withUnsafeMutableBufferPointer { destination in
+                for channel in 0..<3 {
+                    for y in 0..<outBlockSize {
+                        let sourceOffset = channel * channelStride + (y + outputCrop) * rowStride + outputCrop * pixelStride
+                        let source = data.advanced(by: sourceOffset)
+                        let target = destination.baseAddress!.advanced(by:
+                            ((originY + y) * outWidth + originX) * channels + channel)
+                        if prediction.dataType == .float16 {
+                            for x in 0..<outBlockSize {
+                                multiplied[x] = Float32(halfData[sourceOffset + x * pixelStride]) * multiplier
                             }
+                        } else {
+                            vDSP_vsmul(source, vDSP_Stride(pixelStride), &multiplier,
+                                       &multiplied, 1, vDSP_Length(outBlockSize))
                         }
-                        var tempBlockU8 = [UInt8](repeating: 0, count: outBlockSize * outBlockSize)
-                        normalizeAccelerate(tempBlock, &tempBlockU8, count: outBlockSize * outBlockSize)
-                        // write to output image buffer
-                        for srcY in 0..<outBlockSize {
-                            for srcX in 0..<outBlockSize {
-                                let destX = originX + srcX
-                                let destY = originY + srcY
-                                let destIndex = (destY * outWidth + destX) * channels + channel
-                                let srcIndex = srcY * outBlockSize + srcX
-                                guard destIndex >= 0, srcIndex >= 0 else { continue }
-                                imgData[destIndex] = tempBlockU8[srcIndex]
-                            }
-                        }
+                        vDSP_vclip(&multiplied, 1, &minimum, &maximum,
+                                   &clipped, 1, vDSP_Length(outBlockSize))
+                        vDSP_vfixu8(&clipped, 1, target, vDSP_Stride(channels),
+                                    vDSP_Length(outBlockSize))
                     }
                 }
             }
+            await predictionSlots.release()
         }
+        if failed { return nil }
 
         // create final cgimage from imgData buffer
         guard
@@ -269,8 +274,7 @@ private extension CGImage {
     // Reflect-pad the source image to the requested padded size and then add
     // a surrounding shrink-size border, also by reflection. This matches the
     // "reflect" padding used by Real-CUGAN / waifu2x style models.
-    func expandReflect(shrinkSize: Int, paddedWidth: Int, paddedHeight: Int) -> [Float] {
-        let clipEta8: Float = 0.00196078411
+    func expandReflect(shrinkSize: Int, paddedWidth: Int, paddedHeight: Int, bias: Float) -> [Float] {
 
         let exwidth = paddedWidth + 2 * shrinkSize
         let exheight = paddedHeight + 2 * shrinkSize
@@ -300,33 +304,14 @@ private extension CGImage {
 
         var arr = [Float](repeating: 0, count: 3 * exwidth * exheight)
 
-        var rArr = [Float](repeating: 0, count: width * height)
-        var gArr = [Float](repeating: 0, count: width * height)
-        var bArr = [Float](repeating: 0, count: width * height)
-
-        u8Array.withUnsafeBufferPointer { buf in
-            guard let src = buf.baseAddress else { return }
-            var scale: Float = 1 / 255
-            var eta = clipEta8
-            // red
-            var tempR = [Float](repeating: 0, count: width * height)
-            var tempR2 = [Float](repeating: 0, count: width * height)
-            vDSP_vfltu8(src, 4, &tempR, 1, vDSP_Length(width * height))
-            vDSP_vsmsa(&tempR, 1, &scale, &eta, &tempR2, 1, vDSP_Length(width * height))
-            rArr = tempR2
-            // green
-            var tempG = [Float](repeating: 0, count: width * height)
-            var tempG2 = [Float](repeating: 0, count: width * height)
-            vDSP_vfltu8(src.advanced(by: 1), 4, &tempG, 1, vDSP_Length(width * height))
-            vDSP_vsmsa(&tempG, 1, &scale, &eta, &tempG2, 1, vDSP_Length(width * height))
-            gArr = tempG2
-            // blue
-            var tempB = [Float](repeating: 0, count: width * height)
-            var tempB2 = [Float](repeating: 0, count: width * height)
-            vDSP_vfltu8(src.advanced(by: 2), 4, &tempB, 1, vDSP_Length(width * height))
-            vDSP_vsmsa(&tempB, 1, &scale, &eta, &tempB2, 1, vDSP_Length(width * height))
-            bArr = tempB2
-        }
+        // 归一化只需 256 个可能值，避免为三个通道分配多份整图浮点数组。
+        let values = (0...255).map { UInt8($0) }
+        var floats = [Float](repeating: 0, count: 256)
+        var normalized = [Float](repeating: 0, count: 256)
+        var scale: Float = 1 / 255
+        var eta = bias
+        vDSP_vfltu8(values, 1, &floats, 1, 256)
+        vDSP_vsmsa(&floats, 1, &scale, &eta, &normalized, 1, 256)
 
         func reflectIndex(_ index: Int, _ length: Int) -> Int {
             if length <= 1 { return 0 }
@@ -342,20 +327,43 @@ private extension CGImage {
             }
         }
 
+        let reflectedX = (0..<exwidth).map { reflectIndex($0 - shrinkSize, width) }
+        let reflectedY = (0..<exheight).map { reflectIndex($0 - shrinkSize, height) }
         for channel in 0..<3 {
-            let srcArr = channel == 0 ? rArr : (channel == 1 ? gArr : bArr)
             let base = channel * exwidth * exheight
             for y in 0..<exheight {
-                let srcY = reflectIndex(y - shrinkSize, height)
+                let srcY = reflectedY[y]
                 let srcRow = srcY * width
                 let dstRowStart = base + y * exwidth
                 for x in 0..<exwidth {
-                    let srcX = reflectIndex(x - shrinkSize, width)
-                    arr[dstRowStart + x] = srcArr[srcRow + srcX]
+                    let srcX = reflectedX[x]
+                    arr[dstRowStart + x] = normalized[Int(u8Array[(srcRow + srcX) * 4 + channel])]
                 }
             }
         }
 
         return arr
+    }
+}
+
+/// 推理可领先拼接最多两块，挂起生产任务而不阻塞 Swift 协作线程。
+private actor PredictionSlots {
+    private var available = 2
+    private var waiting: [CheckedContinuation<Void, Never>] = []
+
+    func acquire() async {
+        if available > 0 {
+            available -= 1
+        } else {
+            await withCheckedContinuation { waiting.append($0) }
+        }
+    }
+
+    func release() {
+        if waiting.isEmpty {
+            available += 1
+        } else {
+            waiting.removeFirst().resume()
+        }
     }
 }
