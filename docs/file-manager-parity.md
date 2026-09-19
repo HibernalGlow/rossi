@@ -12,6 +12,7 @@
 | 内联目录列导航 | Rust 每页签保持开关、投影目录和选中态；只枚举当前路径最后三层，关闭时不枚举 | 可横向滚动的目录列；目录项点击跳转；使用 mImageViewer 适配层的自然排序与隐藏规则；暂不提供悬浮列宿主 |
 | 固定、复制、关闭其他/左侧/右侧、恢复关闭 | 核心维护固定状态、关闭队列及能力标志；批量关闭跳过固定页签 | 页签菜单、恢复菜单；固定仅在当前会话有效 |
 | 各页签搜索、筛选与视图独立 | 设置放在 Rust 的 `FileManagerTab` 中；复制和恢复带上设置及历史 | Dart 只保存快照和输入控件，不自行筛选或排序 |
+| 目录级视图状态跨重启 | `FileManagerState` 维护 `view_states`（键为 `settings_db::view_state_key`）与脏集，改了就交出来；会话层落 `settings.db` 的 `file_manager_view_states` 表，新建会话时 hydrate，命中最长路径前缀就用该目录的偏好 | 由「设置 → 文件管理器 → 浏览视图」的「记住每个目录的视图与排序」开关控制（默认开）；关掉时既不读也不写，已存的行不删 |
 | 名称搜索 | Rust 当前目录内、不区分大小写的名称匹配 | 回车提交；尚不是递归搜索、索引搜索或搜索结果页签 |
 | 类型筛选 | 文件夹、归档、图片、视频、音频 | 类型菜单；基础枚举仍只包含 mImageViewer 识别的媒体与目录 |
 | 排序 | 名称、类型、大小；升降序；文件夹优先 | 排序菜单；名称比较直接使用 mImageViewer `filename_sort::SortNameKey` |
@@ -20,7 +21,7 @@
 | 列表和网格 | Rust 保持模式 | Flutter 布局；网格内长子项列表可滚动 |
 | 归档双击 | 调用 `file_manager_open_archive` 验证并返回来源路径 | 双击一次只发送一个打开动作；单击沿用已有打开行为 |
 | 无效目录操作回滚 | 会话在动作与快照都成功后才提交 | 错误保留当前可操作快照；初始化读取失败重试复用原会话 |
-| 文件树面板状态机 | `FolderPaneState`、懒展开与 RAII 取消扫描、扁平行投影、游标键盘导航、激活路径同步 | 核心状态机就绪（`folder_pane.rs`）；待接 Flutter 虚拟列表与 UI 树组件 |
+| 文件树面板 | `FolderPaneState`、懒展开与 RAII 取消扫描、扁平行投影、游标键盘导航、激活路径同步 | 工具栏「文件树」开关；`file_manager_tree_snapshot` / `_toggle` 两个入口，行点击跳转、箭头展开。**游标键盘导航仍未接**（上游靠每帧驱动，这里改由「每次动作后同步一次 + 有待收时 80ms 后再问一次」驱动）|
 | Material 外壳 | 无业务逻辑 | 卡片及控件统一使用 `material_ui`，卡片自身提供带圆角的 Material |
 
 ## 直接复用的源函数与平台适配
@@ -40,13 +41,13 @@
 
 | 来源范围 | 尚缺的能力 |
 |---|---|
-| Neo 页签与导航 | 页签布局/宽度与跨重启持久化、最近访问页签策略、搜索/EFU 受保护页签、列导航的悬浮宿主/复制路径操作、文件树 UI（Rust 状态机已就绪） |
+| Neo 页签与导航 | 页签布局/宽度与跨重启持久化、最近访问页签策略、搜索/EFU 受保护页签、列导航的悬浮宿主/复制路径操作、文件树的游标键盘导航 |
 | Neo 搜索与排序 | 子目录递归与增量搜索、取消、路径/标签条件与历史、日期/随机/评分等排序、目录专属排序设置 |
 | Neo 穿透 | 内联分支展开、分支数量限制、完整终点类型选择及激活身份跟踪 |
 | Neo 展示 | 封面、横幅、详情、多图/马赛克、缩略图与悬停预览、尺寸/标题换行偏好 |
 | Neo 文件操作 | 多选、键盘操作、剪切/复制/粘贴、移动/重命名/新建/回收站、监听、拖拽、空白区双击返回 |
 | Neo 扩展信息 | 标签、评分、EMM、Clipm 等源功能及对应服务适配 |
-| mImageViewer | 文件树 UI（Rust 状态机已就绪）与 DFS 相邻目录 UI、书签/历史/标签/评分/智能文件夹/全局搜索入口、系统文件操作与拖放 |
+| mImageViewer | DFS 相邻目录 UI、书签/历史/标签/评分/智能文件夹/全局搜索入口、系统文件操作与拖放 |
 | mImageViewer 格式 | 实际归档转换/密码/进度/缓存、完整 PDF/音视频打开流程与各平台依赖 |
 | 移动端 | Android 权限/SAF，iOS Documents/安全作用域访问；不能用桌面根目录枚举代替 |
 
@@ -74,3 +75,69 @@ Widget 测试使用真实文件卡片、应用同款 Material 根和 FRB 替身�
 - 文件卡片、卡片外壳和对应测试的 `dart analyze`：无问题。
 - `python3 script/sync_vendored_modules.py`：五份源码与固定版本的差异均已登记。
 - `cargo build -p windcore --release`：成功，更新本地启动时会加载的动态库。
+
+## 2026-09-19 夜：工具栏对齐（主页 + 五向导航掌）
+
+对照 `Xiranite/src/nodes/neoview/features/panels/cards/folder/FolderToolbar.tsx`
+逐条核对后的收口。**此前「设置主页」并非缺失**：Rust 侧 `FileManagerState.home_path`、
+`file_manager_set_home_path`、卡片的右键/长按手势和测试都在，问题有两个 ——
+它只活在内存会话里（`FILE_MANAGER_SESSIONS` 是 `DashMap`，重启即丢），
+而且桌面上不可发现（Tooltip 走 tap 触发，可按钮在未设主页时是禁用的，点不出提示）。
+
+本次收口：
+
+| 能力 | 实现 | 边界 |
+|---|---|---|
+| 主页持久化 | 全局设置新增 `FileManagerSettingState{homeEnabled, homePath}`（ObjectBox）；`file_manager_create` 新增 `home_path` 形参 + `seed_home_path` 注入收口 | 失效路径（目录被删 / 移动盘没插）由核心的 `set_home_path` 拒绝并静默忽略；UI 用「持久化非空但 `snapshot.homePath` 为空」判定失效 |
+| 主页入口 | 单击（未设过＝把当前目录设为主页）/ 长按 / 右键菜单（回到主页、设为主页、清除主页） | 落盘的是**核心接受后**的路径，不是用户点的那一下 |
+| 主页设置页 | `FileManagerSettingRoute`，含开关、路径展示、失效提示、选择目录、清除 | `file_selector` 的 `getDirectoryPath` 在 iOS 不可用，已兜住异常并提示 |
+| 五向导航掌 | `lib/workspace/widgets/cards/file_manager_navigation_pad.dart`：32px 掌形，四片 `ClipPath` 多边形 + 中心圆刷新 | `ClipPath` 同时裁绘制与命中测试，五个方向互不抢事件；中心圆压在四片之上。形态比原来 5 颗独立按钮省 4/5 宽度 |
+
+仍未接通（沿用上一节的「尚未接通的并集项」）：文件树的游标键盘导航、多选、删除模式（回收站/永久）、
+空白区行为、悬停预览、缩略图重载、内容/缩略图/横幅宽度、标签显示、标题换行、EFU。
+
+2026-09-19 夜本机验证结果：
+
+- `cargo test -p windcore --lib file_manager`：9 项通过（含新增
+  `seed_home_path_ignores_stale_persisted_paths`）。
+- `flutter test test/workspace/file_manager_card_test.dart --reporter expanded`：42 项通过，
+  含导航掌五向派发、主页单击/菜单/开关/会话注入五条新判据。
+- `dart analyze lib/`：无问题。
+- 注意：改动期间有**并发写入方**在同一批文件上工作（`file_manager_card.dart`、
+  本测试文件、`rust/local_core/src/{file_manager,settings_db}.rs`），
+  中间态会出现「lib 编译不过」或「`flutter test` 因 native assets 构建失败而起不来」，
+  那不是本次改动的问题 —— 先确认报错文件不在自己的改动清单里再动手。
+
+## 2026-09-20：文件树接通到卡片
+
+`folder_pane.rs` 的状态机早就搬好了，缺的只有「桥 + 列表」。本次补上：
+
+| 层 | 落点 | 边界 |
+|---|---|---|
+| 会话层 | `rust/src/api/file_manager.rs`：`FILE_MANAGER_PANES`（`Mutex<HashMap>`）+ `with_pane` + `file_manager_tree_snapshot` / `_toggle` | 面板**不**挂在 `FileManagerState` 上：那个结构每次动作前要 `clone` 做事务回滚，而面板揣着 `mpsc::Receiver`。`file_manager_close` 一并回收面板，`Drop` 随即取消在跑的枚举 |
+| 驱动方式 | 每次动作后 `sync_to_active` + `poll_pending` 一次；`has_pending` 为真时 Dart 隔 80ms 再问 | 上游是 egui 每帧驱动，这里没有帧循环。展开/懒扫描/取消/深度上限仍全在核心 |
+| 展开入口 | 核心没有「按路径改展开态」的公开入口，于是 `set_cursor` + 键盘左/右键 | 与方向键操作共用同一套 `user_expanded` / `user_collapsed` 记账，不出现第二套 |
+| 卡片 | 工具栏「文件树」开关 → 200px 高的 `ListTile` 列表；行点击跳转、箭头展开 | 「开树就关列」：两者回答同一个问题，同时开着只会把不高的卡片挤成两半。开关本身是 Dart 的 UI 状态，不像目录列那样进页签设置 |
+| 跟随当前目录 | `build` 里比对 `snapshot.generation`，变了就排一帧去取树 | 改当前目录的入口有七八个（页签/面包屑/导航掌/根目录/双击/外部新页签），逐个埋刷新迟早漏 |
+
+游标键盘导航（`handle_tree_key` 的 Up/Down/Enter）核心具备、UI 未接。
+
+2026-09-20 本机验证结果：
+
+- `cargo test -p windcore --lib file_manager`：10 项通过（新增
+  `pane_follows_the_session_directory_and_projects_only_directories`：会话当前目录 →
+  面板祖先链 → 展开后的行深度，并确认树里只有目录没有文件）。
+  该用例必须 `show_hidden_files = true`，因为 `tempfile` 的目录名是 `.tmpXXXX`，
+  按面板的隐藏项策略本来就不该出现在树里。
+- `dart analyze lib/workspace/widgets/cards/file_manager_card.dart`
+  与 `test/workspace/file_manager_card_test.dart`：无问题。
+- **Widget 测试未跑通**：`flutter test test/workspace/file_manager_card_test.dart`
+  在加载期即失败，报错全在本次改动清单之外
+  （`workspace_layout_setting_page.dart` 的 `Icons.swipe_horizontal_outlined`、
+  `panel_tab_strip.dart` 的 `SingleChildScrollView.shrinkWrap`、
+  `reader_input_controller.dart` 缺 `onOpenRadialMenu` 实参）。
+  新增的 3 条树判据（默认关闭 / 缩进与箭头 / 点行才跳转、开树顺带关列）**尚未执行过**。
+- 另需注意：`flutter_rust_bridge_codegen generate` 是**整 crate** 生效的，本次重跑
+  顺带把并发方尚未生成的 `operation_binding` 轮盘接口写进了
+  `frb_generated.{dart,io,web}.dart` 与 `rust/src/frb_generated.rs`。
+  这不是本次的功能，但会出现在同一份 diff 里。

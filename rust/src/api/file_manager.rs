@@ -3,17 +3,25 @@
 //! 这里是 Flutter 之外的唯一状态入口：页签、导航历史、穿透策略和子文件名投影都由
 //! `rossi_local_core::FileManagerState` 维护。Flutter/桌面边栏只收到不可变快照并转发
 //! 用户动作，因此未来换成 Tauri、egui 或 CLI 时不需要复制一套业务状态机。
+//!
+//! 目录级视图状态（每个目录的视图模式与排序）的落盘也收口在这里：核心只回答
+//! 「哪些目录的偏好变了」（`take_dirty_view_states`），由这一层决定什么时候写进
+//! 设置库。核心因此不需要认识 SQLite，也不需要在单元测试里摆一个数据库。
 
-use std::path::PathBuf;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
 
 use anyhow::{Error, anyhow};
 use dashmap::DashMap;
 use flutter_rust_bridge::frb;
 use lazy_static::lazy_static;
 use rossi_local_core::{
-    EntryFilter, FileManagerEntry as CoreEntry, FileManagerState, InternalItemsMode,
-    OpenEntryResult, SortField, SortOrder, ViewMode,
+    EntryFilter, FileManagerEntry as CoreEntry, FileManagerState, FolderPaneState,
+    FolderPaneTreeKey, InternalItemsMode, OpenEntryResult, SettingsDb, SortField, SortOrder,
+    ViewMode, folder_label, folder_tree::path_eq as pane_path_eq,
+    settings::SortOrder as PaneSortOrder,
 };
 
 use super::local::LocalRootLocation;
@@ -21,6 +29,16 @@ use super::local::LocalRootLocation;
 lazy_static! {
     static ref FILE_MANAGER_SESSIONS: DashMap<u64, FileManagerState> = DashMap::new();
     static ref NEXT_FILE_MANAGER_ID: AtomicU64 = AtomicU64::new(1);
+    /// 已打开的目录视图状态库。同一进程里所有文件管理器卡片共用一个连接；
+    /// 路径变了（换数据目录、测试）就重开。
+    static ref FILE_MANAGER_STORE: Mutex<Option<(PathBuf, Arc<SettingsDb>)>> = Mutex::new(None);
+    /// 文件树面板的状态，与页签会话共用同一个 id。
+    ///
+    /// 有意**不**挂在 `FileManagerState` 上：那个结构每次用户动作前都要 `clone` 一份做
+    /// 事务回滚，而面板里揣着扫描线程的 `mpsc::Receiver`，既不可克隆也不可 `Sync`。
+    /// 面板也不参与事务 —— 它是当前目录的一份投影，读失败顶多少几行，不该让浏览停下。
+    static ref FILE_MANAGER_PANES: Mutex<HashMap<u64, FolderPaneState>> =
+        Mutex::new(HashMap::new());
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -164,6 +182,8 @@ pub struct FileManagerSnapshot {
     pub sort_temporary: bool,
     /// 目录级排序偏好是否可用（`remember_view_state`）。
     pub can_sort_preference: bool,
+    /// 「记住每个目录的视图与排序」总开关的当前值。关闭时本会话不读不写目录偏好。
+    pub remember_view_state: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -171,6 +191,28 @@ pub struct FileManagerActionResult {
     pub snapshot: FileManagerSnapshot,
     /// 非空时表示 UI 应该把该路径交给 Reader；浏览器自身仍停留在原目录。
     pub opened_path: Option<String>,
+}
+
+/// 文件树的一行：核心 `FolderPaneRow` 的字符串投影。
+#[derive(Debug, Clone)]
+pub struct FileManagerTreeRow {
+    pub path: String,
+    pub name: String,
+    pub depth: u32,
+    pub expanded: bool,
+    /// 子目录正在后台枚举：这一行的箭头该转圈。
+    pub loading: bool,
+    /// 「有子目录，或者还没查过」。确认是空目录时 UI 才收起箭头。
+    pub may_have_children: bool,
+    pub is_active: bool,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct FileManagerTreeSnapshot {
+    pub rows: Vec<FileManagerTreeRow>,
+    /// 仍有目录在枚举中。UI 据此决定要不要隔一会儿再问一次。
+    pub has_pending: bool,
 }
 
 /// 把持久化的主页注入新建会话。
@@ -186,17 +228,91 @@ fn seed_home_path(state: &mut FileManagerState, home_path: Option<PathBuf>) {
     state.set_home_path(Some(home));
 }
 
+/// 打开（或复用）目录视图状态库。
+///
+/// 路径由 Dart 侧传入（`getDbPath()` 下的 `settings.db`）：Rust 不该猜 Flutter 的
+/// 目录策略（Windows 便携版、Android 的 AppSupport 回退都不一样）。
+fn store_for(path: &Path) -> Result<Arc<SettingsDb>, Error> {
+    let mut slot = FILE_MANAGER_STORE
+        .lock()
+        .map_err(|_| anyhow!("目录视图状态库的锁已中毒"))?;
+    if let Some((opened, db)) = slot.as_ref()
+        && opened == path
+    {
+        return Ok(Arc::clone(db));
+    }
+    let db = Arc::new(SettingsDb::open(path)?);
+    *slot = Some((path.to_path_buf(), Arc::clone(&db)));
+    Ok(db)
+}
+
+/// 会话要用哪个设置库。没有路径或打不开时返回 `None`，调用方按「不记忆」继续。
+///
+/// 持久化是增量能力：设置库建不起来（目录不可写、磁盘满）不该让文件管理器打不开。
+fn attached_store(db_path: Option<&Path>) -> Option<Arc<SettingsDb>> {
+    let db_path = db_path?;
+    match store_for(db_path) {
+        Ok(db) => Some(db),
+        Err(error) => {
+            tracing::warn!("打开设置库失败，本次会话不记忆目录视图: {error}");
+            None
+        }
+    }
+}
+
+fn current_store() -> Option<Arc<SettingsDb>> {
+    FILE_MANAGER_STORE
+        .lock()
+        .ok()
+        .and_then(|slot| slot.as_ref().map(|(_, db)| Arc::clone(db)))
+}
+
+/// 把盘上的目录视图状态装进会话。当前目录若在表里，会立刻套用它。
+fn hydrate_view_states_from(store: Option<&SettingsDb>, state: &mut FileManagerState) {
+    let Some(store) = store else {
+        return;
+    };
+    match store.load_all_file_manager_view_states() {
+        Ok(states) => state.hydrate_view_states(states),
+        Err(error) => tracing::warn!("读取目录视图状态失败，本次按默认视图打开: {error}"),
+    }
+}
+
+/// 把这一步操作产生的目录偏好写进设置库。
+///
+/// 每次用户动作之后落盘（而不是攒到退出时）：文件浏览器没有稳定的「帧循环」可以
+/// 挂防抖定时器，而这些写都是离散的用户动作触发的，一次最多一行。mImageViewer
+/// 那边需要 500ms 防抖是因为它的视图状态会被逐帧的高频变更反复写。
+fn persist_dirty_view_states_into(store: Option<&SettingsDb>, state: &mut FileManagerState) {
+    let Some(store) = store else {
+        return;
+    };
+    for (key, view_state) in state.take_dirty_view_states() {
+        if let Err(error) = store.set_file_manager_view_state(&key, &view_state) {
+            // 不因为落盘失败回滚用户刚做的切换：内存正本已经生效，
+            // 同一目录的下一次变更会重试。
+            tracing::warn!("写入选项目录视图状态失败 key={key}: {error}");
+        }
+    }
+}
+
 #[frb]
 pub async fn file_manager_create(
     initial_path: Option<String>,
     home_path: Option<String>,
+    settings_db_path: Option<String>,
+    remember_view_state: bool,
 ) -> Result<u64, Error> {
     let path = initial_path.map(PathBuf::from);
     let home = home_path.map(PathBuf::from);
+    let db_path = settings_db_path.map(PathBuf::from);
     rquickjs_playground::global_handle()
         .spawn_blocking(move || {
             let mut state = FileManagerState::new(path)?;
+            state.set_remember_view_state(remember_view_state);
             seed_home_path(&mut state, home);
+            let store = attached_store(db_path.as_deref());
+            hydrate_view_states_from(store.as_deref(), &mut state);
             let id = NEXT_FILE_MANAGER_ID.fetch_add(1, Ordering::Relaxed);
             FILE_MANAGER_SESSIONS.insert(id, state);
             Ok(id)
@@ -605,6 +721,22 @@ pub async fn file_manager_set_sort_temporary(
     .await
 }
 
+/// 「记住每个目录的视图与排序」总开关（对应全局设置里那一项）。
+///
+/// 置为 false 之后本会话既不读也不写目录偏好；已经存下来的行**不删**，
+/// 所以重新打开开关就能恢复，与 mImageViewer 的 `remember_favorite_view_state` 同口径。
+#[frb]
+pub async fn file_manager_set_remember_view_state(
+    id: u64,
+    enabled: bool,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.set_remember_view_state(enabled);
+        snapshot_for(id, state)
+    })
+    .await
+}
+
 #[frb]
 pub async fn file_manager_set_directories_first(
     id: u64,
@@ -619,7 +751,119 @@ pub async fn file_manager_set_directories_first(
 
 #[frb(sync)]
 pub fn file_manager_close(id: u64) -> bool {
+    // 先摘面板：它的 `Drop` 会取消还在跑的目录枚举线程，晚一步就白扫一轮。
+    if let Ok(mut panes) = FILE_MANAGER_PANES.lock() {
+        panes.remove(&id);
+    }
     FILE_MANAGER_SESSIONS.remove(&id).is_some()
+}
+
+// ── 文件树面板 ─────────────────────────────────────────────────────────────
+//
+// 状态机正本在 `rossi_local_core::folder_pane`（逐字搬自 mImageViewer）。这一层只做三件
+// 它自己做不了的事：把会话的当前目录/排序/隐藏项喂给它、把 `PathBuf` 行投影成字符串、
+// 以及在卡片关闭时回收它。树的展开状态、后台扫描与取消全在核心那边。
+
+/// 页签的排序方向 → 面板的排序方式。面板只按名字排，因此升降序就够。
+fn pane_sort_order(order: SortOrder) -> PaneSortOrder {
+    match order {
+        SortOrder::Ascending => PaneSortOrder::NameAsc,
+        SortOrder::Descending => PaneSortOrder::NameDesc,
+    }
+}
+
+/// 面板这一次要对齐到哪个目录、按什么排、要不要隐藏项。
+fn pane_inputs(state: &FileManagerState) -> (PathBuf, PaneSortOrder, bool) {
+    let settings = state.settings();
+    (
+        state.active_path().to_path_buf(),
+        pane_sort_order(settings.sort_order),
+        settings.show_hidden_files,
+    )
+}
+
+/// 在阻塞线程上操作某个会话的面板。
+///
+/// 每次调用都先 `sync_to_active` 再取行：面板原本按帧驱动（egui 每帧调一次），
+/// 这里没有帧循环，于是把「对齐当前目录 + 收一次后台扫描结果」并进每个用户动作里。
+/// `sync_to_active` 只在当前目录、排序或隐藏项策略真的变了之后才重建节点，没变时
+/// 只是一次带 1.5s 节流的盘符刷新。
+async fn with_pane<R, F>(id: u64, operation: F) -> Result<R, Error>
+where
+    R: Send + 'static,
+    F: FnOnce(&mut FolderPaneState, PaneSortOrder) -> Result<R, Error> + Send + 'static,
+{
+    rquickjs_playground::global_handle()
+        .spawn_blocking(move || {
+            // 先读完会话再放掉引用：面板锁和 DashMap 分片锁同时握着就成了锁序问题。
+            let (active, sort_order, show_hidden) = {
+                let state = FILE_MANAGER_SESSIONS
+                    .get(&id)
+                    .ok_or_else(|| anyhow!("文件管理器会话不存在或已关闭: id={id}"))?;
+                pane_inputs(&state)
+            };
+            let mut panes = FILE_MANAGER_PANES
+                .lock()
+                .map_err(|_| anyhow!("文件树面板的锁已中毒"))?;
+            let pane = panes.entry(id).or_default();
+            pane.sync_to_active(Some(active.as_path()), sort_order, show_hidden);
+            pane.poll_pending();
+            operation(pane, sort_order)
+        })
+        .await?
+}
+
+fn project_pane(pane: &FolderPaneState) -> FileManagerTreeSnapshot {
+    FileManagerTreeSnapshot {
+        rows: pane
+            .visible_rows()
+            .into_iter()
+            .map(|row| FileManagerTreeRow {
+                path: row.path.to_string_lossy().into_owned(),
+                name: folder_label(&row.path),
+                depth: row.depth as u32,
+                expanded: row.expanded,
+                loading: row.loading,
+                may_have_children: row.has_children_or_unknown,
+                is_active: row.is_active,
+                error: row.error,
+            })
+            .collect(),
+        has_pending: pane.has_pending(),
+    }
+}
+
+#[frb]
+pub async fn file_manager_tree_snapshot(id: u64) -> Result<FileManagerTreeSnapshot, Error> {
+    with_pane(id, |pane, _| Ok(project_pane(pane))).await
+}
+
+/// 展开/收起某一行。核心没有「按路径直接改展开态」的入口，于是把游标挪过去、
+/// 再走键盘的左/右键 —— 与用户用方向键操作时是同一条路径，展开状态（`user_expanded`
+/// / `user_collapsed`）的记账因此只有一套。
+#[frb]
+pub async fn file_manager_tree_toggle(
+    id: u64,
+    path: String,
+) -> Result<FileManagerTreeSnapshot, Error> {
+    with_pane(id, move |pane, sort_order| {
+        let target = PathBuf::from(path);
+        pane.set_cursor(target.clone());
+        let expanded = pane
+            .visible_rows()
+            .iter()
+            .any(|row| pane_path_eq(&row.path, &target) && row.expanded);
+        pane.handle_tree_key(
+            if expanded {
+                FolderPaneTreeKey::Left
+            } else {
+                FolderPaneTreeKey::Right
+            },
+            sort_order,
+        );
+        Ok(project_pane(pane))
+    })
+    .await
 }
 
 async fn with_session<R, F>(id: u64, operation: F) -> Result<R, Error>
@@ -645,6 +889,8 @@ fn apply_session_operation<R>(
     let mut candidate = state.clone();
     let result = operation(&mut candidate)?;
     *state = candidate;
+    // 快照成功 ⇒ 这一步的目录偏好才算数：失败的操作不该留下半套视图状态。
+    persist_dirty_view_states_into(current_store().as_deref(), state);
     Ok(result)
 }
 
@@ -757,6 +1003,7 @@ fn snapshot_for(id: u64, state: &mut FileManagerState) -> Result<FileManagerSnap
         can_set_home: state.can_set_home(),
         sort_temporary: state.sort_temporary(),
         can_sort_preference: state.can_sort_preference(),
+        remember_view_state: state.remember_view_state(),
     })
 }
 
@@ -814,7 +1061,10 @@ mod tests {
             snapshot_for(9, candidate)
         })
         .unwrap();
-        assert_eq!(snapshot.home_path.as_deref(), Some(home.to_string_lossy().as_ref()));
+        assert_eq!(
+            snapshot.home_path.as_deref(),
+            Some(home.to_string_lossy().as_ref())
+        );
         assert!(!snapshot.is_home);
         assert!(snapshot.can_set_home);
         assert_eq!(snapshot.sort_field, FileManagerSortField::Date);
@@ -860,6 +1110,89 @@ mod tests {
         );
         assert!(state.set_home_path(None));
         assert_eq!(snapshot_for(9, &mut state).unwrap().home_path, None);
+    }
+
+    #[test]
+    fn directory_view_state_survives_a_new_session_through_the_settings_db() {
+        let root = tempfile::tempdir().unwrap();
+        let books = root.path().join("books");
+        let other = root.path().join("other");
+        std::fs::create_dir(&books).unwrap();
+        std::fs::create_dir(&other).unwrap();
+        let db = SettingsDb::open_in_memory().unwrap();
+
+        // 第一个会话：在 books 里切封面网格、只看图片、显示隐藏项。
+        let mut first = FileManagerState::new(Some(books.clone())).unwrap();
+        persist_dirty_view_states_into(Some(&db), &mut first);
+        assert!(
+            db.load_all_file_manager_view_states().unwrap().is_empty(),
+            "新建会话本身不该往库里写任何东西"
+        );
+
+        apply_session_operation(&mut first, |candidate| {
+            candidate.set_view_mode(ViewMode::CoverGrid);
+            candidate.set_entry_filter(EntryFilter::Images);
+            candidate.set_show_hidden_files(true);
+            Ok(())
+        })
+        .unwrap();
+        // 生产路径由 `apply_session_operation` 自动落盘（这里没有安装进程级设置库），
+        // 所以显式落一次，验的是同一套「取脏 → 写库」契约。
+        persist_dirty_view_states_into(Some(&db), &mut first);
+
+        // 第二个会话（模拟重启）：起手是默认视图，hydrate 之后必须还原。
+        let mut second = FileManagerState::new(Some(books.clone())).unwrap();
+        assert_eq!(second.settings().view_mode, ViewMode::Compact);
+        hydrate_view_states_from(Some(&db), &mut second);
+        assert_eq!(second.settings().view_mode, ViewMode::CoverGrid);
+        assert_eq!(second.settings().entry_filter, EntryFilter::Images);
+        assert!(second.settings().show_hidden_files);
+
+        // 没有记忆的目录仍按默认值打开，不会被 books 的偏好串味。
+        second.navigate(&other).unwrap();
+        assert_eq!(second.settings().view_mode, ViewMode::Compact);
+        assert_eq!(second.settings().entry_filter, EntryFilter::All);
+    }
+
+    #[test]
+    fn remember_view_state_off_browses_normally_without_recording() {
+        let root = tempfile::tempdir().unwrap();
+        let db = SettingsDb::open_in_memory().unwrap();
+        let mut state = FileManagerState::new(Some(root.path().into())).unwrap();
+
+        let snapshot = apply_session_operation(&mut state, |candidate| {
+            candidate.set_remember_view_state(false);
+            snapshot_for(9, candidate)
+        })
+        .unwrap();
+        assert!(!snapshot.remember_view_state);
+        // 排序偏好开关跟着关：工具栏的「临时排序」项会因此禁用。
+        assert!(!snapshot.can_sort_preference);
+
+        // 视图照样生效，只是不再产生目录偏好。
+        state.set_view_mode(ViewMode::CoverGrid);
+        state.set_sort(SortField::Size, SortOrder::Descending);
+        persist_dirty_view_states_into(Some(&db), &mut state);
+        assert!(db.load_all_file_manager_view_states().unwrap().is_empty());
+        assert_eq!(state.settings().view_mode, ViewMode::CoverGrid);
+        assert_eq!(state.settings().sort_field, SortField::Size);
+    }
+
+    #[test]
+    fn stores_are_reused_per_path_and_reopened_when_the_path_changes() {
+        let dir = tempfile::tempdir().unwrap();
+        let first_path = dir.path().join("first.db");
+        let second_path = dir.path().join("second.db");
+
+        let first = store_for(&first_path).unwrap();
+        assert!(Arc::ptr_eq(&first, &store_for(&first_path).unwrap()));
+        let second = store_for(&second_path).unwrap();
+        assert!(!Arc::ptr_eq(&first, &second));
+        assert!(current_store().is_some());
+
+        // 别把进程级句柄留给后面的测试。
+        *FILE_MANAGER_STORE.lock().unwrap() = None;
+        assert!(current_store().is_none());
     }
 
     #[test]
@@ -976,5 +1309,66 @@ mod tests {
         assert_eq!(state.generation(), generation);
         assert_eq!(state.active_path(), child);
         assert_eq!(state.active_tab().back.len(), 1);
+    }
+
+    #[test]
+    fn pane_follows_the_session_directory_and_projects_only_directories() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::create_dir(root.path().join("series")).unwrap();
+        std::fs::write(root.path().join("page.png"), b"x").unwrap();
+
+        let mut state = FileManagerState::new(Some(root.path().into())).unwrap();
+        // tempdir 的名字是 `.tmpXXXX`，按面板的隐藏项策略它根本不该出现在树里。
+        // 这里显式允许隐藏项，既让祖先链连得到，也顺带验一遍开关真的传下去了。
+        state.set_show_hidden_files(true);
+        // 一切以会话给出的当前目录为准：核心可能把 tempdir 的 `/var` 规范化成
+        // `/private/var`，拿原始路径去比会假失败。
+        let (active, sort_order, show_hidden) = pane_inputs(&state);
+        assert_eq!(
+            sort_order,
+            PaneSortOrder::NameAsc,
+            "页签的升序要映射成面板的名字升序"
+        );
+        assert!(show_hidden);
+
+        let mut pane = FolderPaneState::default();
+        // 面板只自动展开到当前目录的**祖先**，当前目录自己得点开。
+        pane.sync_to_active(Some(active.as_path()), sort_order, show_hidden);
+        pane.set_cursor(active.clone());
+        pane.handle_tree_key(FolderPaneTreeKey::Right, sort_order);
+
+        // 生产路径上「收一轮后台扫描」发生在下一次 `with_pane` 里；测试自己跑到静。
+        let mut rows = project_pane(&pane);
+        for _ in 0..200 {
+            if !rows.has_pending {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+            pane.poll_pending();
+            rows = project_pane(&pane);
+        }
+        assert!(!rows.has_pending, "目录枚举没能在 2s 内收敛");
+
+        let depth_of = |path: &Path| -> Option<u32> {
+            let key = path.to_string_lossy();
+            rows.rows.iter().find(|row| row.path == *key).map(|row| row.depth)
+        };
+        let active_row = rows
+            .rows
+            .iter()
+            .find(|row| row.path == active.to_string_lossy())
+            .expect("当前目录应该出现在树里");
+        assert!(active_row.is_active, "当前目录那一行要标成激活");
+        assert!(active_row.expanded, "点开的目录该展开在自己的行下面");
+        assert_eq!(
+            depth_of(&active.join("series")),
+            Some(active_row.depth + 1),
+            "子目录的深度由面板给，Dart 不再自己数"
+        );
+        assert_eq!(
+            depth_of(&active.join("page.png")),
+            None,
+            "树只放目录，不放文件"
+        );
     }
 }

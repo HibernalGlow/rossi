@@ -8,8 +8,9 @@
 //! `folder_tree` / `filename_sort`），状态机则把 NeoView 的多页签、穿透和子文件名
 //! 投影收拢到一个可测试的 Rust API 中。
 
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::AtomicBool;
 
 use anyhow::{Result, anyhow};
 
@@ -20,6 +21,14 @@ use crate::file_tree::{FileTreeNode, list_directory_with_hidden};
 pub const MAX_FILE_MANAGER_TABS: usize = 8;
 pub const MAX_RECENTLY_CLOSED_TABS: usize = 16;
 pub const MAX_PENETRATION_DEPTH: usize = 32;
+/// 一次递归搜索最多交出多少条。与 NeoView 的 `SEARCH_RESULT_LIMIT` 同值：
+/// 再多的命中在这一屏里也看不清，而截断可以让遍历提前结束。
+pub const MAX_SEARCH_RESULTS: usize = 512;
+/// 递归搜索的目录深度上限。穿透用 `MAX_PENETRATION_DEPTH` 是有意的单链，
+/// 这里按层展开，取更小的值以免一次键入扫完整棵盘树。
+pub const MAX_SEARCH_DEPTH: usize = 12;
+/// 默认递归深度：`库/分组/本/页` 这种常见结构够用。
+pub const DEFAULT_SEARCH_DEPTH: usize = 6;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InternalItemsMode {
@@ -27,7 +36,7 @@ pub enum InternalItemsMode {
     All,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub enum ViewMode {
     #[default]
     Compact,
@@ -40,7 +49,7 @@ pub enum ViewMode {
 
 /// 字段级排序沿用 NeoView 文件卡片的可切换排序模型。名称排序本身仍交给
 /// mImageViewer 的 `filename_sort`，所以 Windows 与其它平台不会各自出现一套自然排序。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum SortField {
     Name,
     Type,
@@ -52,13 +61,13 @@ pub enum SortField {
     Random,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum SortOrder {
     Ascending,
     Descending,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum EntryFilter {
     All,
     Folders,
@@ -66,6 +75,65 @@ pub enum EntryFilter {
     Images,
     Video,
     Audio,
+}
+
+/// 一个目录「上次怎么看的」的完整快照：目录级视图状态的持久化单元。
+///
+/// **为什么不复用 reader 侧的 `crate::settings::FavoriteViewState`**：那是 viewer 的表示状態
+/// （网格列数、缩略图比例、翻页方向、阅读流），视图口径只有 Thumbnail / Details 两档。
+/// 文件管理器有六种视图模式，经那套映射往返会把「紧凑列表 / 封面列表 / 横幅」全部塌成
+/// 「详细信息」——所以这里要一套自己的、逐字往返的字段。
+///
+/// 字段范围＝「用户会期望按目录记住」的那些：视图模式、排序字段与方向、类型筛选、
+/// 目录优先、显示隐藏项。`shuffle_seed` 跟着排序一起记，否则「随机」在重启后会换一副顺序。
+/// 搜索词、穿透深度、目录列开关**不进**这里：它们描述的是这次浏览动作，不是这个目录的偏好。
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct FileManagerViewState {
+    pub view_mode: ViewMode,
+    pub sort_field: SortField,
+    pub sort_order: SortOrder,
+    pub shuffle_seed: u64,
+    pub entry_filter: EntryFilter,
+    pub directories_first: bool,
+    pub show_hidden_files: bool,
+}
+
+impl FileManagerViewState {
+    pub fn from_settings(settings: &FileManagerSettings) -> Self {
+        Self {
+            view_mode: settings.view_mode,
+            sort_field: settings.sort_field,
+            sort_order: settings.sort_order,
+            shuffle_seed: settings.shuffle_seed,
+            entry_filter: settings.entry_filter,
+            directories_first: settings.directories_first,
+            show_hidden_files: settings.show_hidden_files,
+        }
+    }
+
+    /// 目录视图状态的唯一写入口。
+    ///
+    /// 「临时排序」只应该活在当前画面里，所以置位时把上一次锁定的排序与种子盖回去，
+    /// 避免它在离开目录（`transition_view_state_for_path`）或另一次 capture 时顺带落进目录偏好。
+    pub fn from_settings_keeping_locked_sort(settings: &FileManagerSettings, base: &Self) -> Self {
+        let mut state = Self::from_settings(settings);
+        if settings.sort_temporary {
+            state.sort_field = base.sort_field;
+            state.sort_order = base.sort_order;
+            state.shuffle_seed = base.shuffle_seed;
+        }
+        state
+    }
+
+    pub fn apply_to_settings(&self, settings: &mut FileManagerSettings) {
+        settings.view_mode = self.view_mode;
+        settings.sort_field = self.sort_field;
+        settings.sort_order = self.sort_order;
+        settings.shuffle_seed = self.shuffle_seed;
+        settings.entry_filter = self.entry_filter;
+        settings.directories_first = self.directories_first;
+        settings.show_hidden_files = self.show_hidden_files;
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -77,6 +145,16 @@ pub struct FileManagerSettings {
     pub view_mode: ViewMode,
     pub show_hidden_files: bool,
     pub search_query: String,
+    /// 查询词元在「条目名 + 相对根目录的路径」上匹配，还是只看条目名。
+    /// 当前目录内的条目相对路径为空，因此单层浏览时该开关不改变结果。
+    pub search_in_path: bool,
+    /// 多个 include 词元的结合方式：`false` 为 AND（默认），`true` 为 OR。
+    /// 否定词元（`-词`）在两种模式下都是硬性排除。
+    pub search_or_mode: bool,
+    /// 是否连同子目录一起搜。关掉时只在当前这一层找（`search_max_depth` 被忽略）。
+    pub search_include_subfolders: bool,
+    /// 递归搜索的层数上限，实际生效值再被 [`MAX_SEARCH_DEPTH`] 夹一次。
+    pub search_max_depth: usize,
     pub entry_filter: EntryFilter,
     pub sort_field: SortField,
     pub sort_order: SortOrder,
@@ -99,6 +177,12 @@ impl Default for FileManagerSettings {
             view_mode: ViewMode::Compact,
             show_hidden_files: false,
             search_query: String::new(),
+            search_in_path: true,
+            search_or_mode: false,
+            // 默认只搜当前一层：一次键入就扫整棵树的第一印象太差。要不要连子目录
+            // 一起搜是搜索框上那颗开关的职责（并可被全局设置记住默认值）。
+            search_include_subfolders: false,
+            search_max_depth: DEFAULT_SEARCH_DEPTH,
             entry_filter: EntryFilter::All,
             sort_field: SortField::Name,
             sort_order: SortOrder::Ascending,
@@ -111,50 +195,18 @@ impl Default for FileManagerSettings {
 }
 
 impl FileManagerSettings {
-    pub fn apply_favorite_view_state(&mut self, state: &crate::settings::FavoriteViewState) {
-        match state.grid_view_mode {
-            crate::settings::GridViewMode::Thumbnail => self.view_mode = ViewMode::CoverGrid,
-            crate::settings::GridViewMode::Details => self.view_mode = ViewMode::Details,
-        }
-        match state.sort_order {
-            crate::settings::SortOrder::FileName
-            | crate::settings::SortOrder::NameAsc
-            | crate::settings::SortOrder::Numeric => {
-                self.sort_field = SortField::Name;
-                self.sort_order = SortOrder::Ascending;
-            }
-            crate::settings::SortOrder::NameDesc => {
-                self.sort_field = SortField::Name;
-                self.sort_order = SortOrder::Descending;
-            }
-            crate::settings::SortOrder::DateAsc => {
-                self.sort_field = SortField::Name;
-                self.sort_order = SortOrder::Ascending;
-            }
-            crate::settings::SortOrder::DateDesc => {
-                self.sort_field = SortField::Name;
-                self.sort_order = SortOrder::Descending;
-            }
-        }
-    }
-
-    pub fn to_favorite_view_state(
-        &self,
-        base: &crate::settings::FavoriteViewState,
-    ) -> crate::settings::FavoriteViewState {
-        let mut state = base.clone();
-        state.grid_view_mode = match self.view_mode {
-            ViewMode::CoverGrid | ViewMode::MosaicGrid => {
-                crate::settings::GridViewMode::Thumbnail
-            }
-            _ => crate::settings::GridViewMode::Details,
-        };
-        state.sort_order = match (self.sort_field, self.sort_order) {
-            (SortField::Name, SortOrder::Ascending) => crate::settings::SortOrder::NameAsc,
-            (SortField::Name, SortOrder::Descending) => crate::settings::SortOrder::NameDesc,
-            _ => base.sort_order,
-        };
-        state
+    /// 回到「没有目录偏好」的公共值。
+    ///
+    /// 与 mImageViewer 的 `clear_favorite_view_overlay` 同一分工：切换位置时先干净回退，
+    /// 再套用新位置的 overlay，避免上一个目录的局部修改在无匹配目录上漏出来。
+    pub fn reset_view_fields_to(&mut self, common: &Self) {
+        self.view_mode = common.view_mode;
+        self.sort_field = common.sort_field;
+        self.sort_order = common.sort_order;
+        self.shuffle_seed = common.shuffle_seed;
+        self.entry_filter = common.entry_filter;
+        self.directories_first = common.directories_first;
+        self.show_hidden_files = common.show_hidden_files;
     }
 }
 
@@ -266,7 +318,12 @@ pub struct FileManagerState {
     next_tab_id: u64,
     recently_closed: Vec<FileManagerTab>,
     generation: u64,
-    view_states: std::collections::HashMap<String, crate::settings::FavoriteViewState>,
+    /// 目录 → 该目录的视图与排序。键来自 [`crate::settings_db::view_state_key`]。
+    view_states: std::collections::HashMap<String, FileManagerViewState>,
+    /// 自上次 [`FileManagerState::take_dirty_view_states`] 之后发生变化的目录键。
+    ///
+    /// 核心不认识数据库：它只回答「哪些目录的偏好变了」，由会话层决定什么时候落盘。
+    dirty_view_states: std::collections::BTreeSet<String>,
     remember_view_state: bool,
     /// 用户指定的「主页」。跨页签共享，未设置时导航掌的主页键不可点（与 NeoView 一致）。
     home_path: Option<PathBuf>,
@@ -289,6 +346,7 @@ impl FileManagerState {
             recently_closed: Vec::new(),
             generation: 1,
             view_states: std::collections::HashMap::new(),
+            dirty_view_states: std::collections::BTreeSet::new(),
             remember_view_state: true,
             home_path: None,
         })
@@ -540,56 +598,96 @@ impl FileManagerState {
         let tab = &mut self.tabs[self.active_tab];
         // 1. 如果之前有 active_view_state_id，保存当前活跃修改
         if let Some(id) = tab.active_view_state_id.take() {
-            let base = self.view_states.get(&id).cloned().unwrap_or_else(|| {
-                crate::settings::FavoriteViewState::from_settings(&crate::settings::Settings::default())
-            });
-            let updated = view_state_from_settings(&tab.settings, &base);
-            self.view_states.insert(id, updated);
+            let base = self
+                .view_states
+                .get(&id)
+                .cloned()
+                .unwrap_or_else(|| FileManagerViewState::from_settings(&tab.common_settings));
+            let updated =
+                FileManagerViewState::from_settings_keeping_locked_sort(&tab.settings, &base);
+            if self.view_states.get(&id) != Some(&updated) {
+                self.view_states.insert(id.clone(), updated);
+                self.dirty_view_states.insert(id);
+            }
         }
 
         // 2. 核心规则：切换位置时先干净回退到 common 公共值正本
-        tab.settings.view_mode = tab.common_settings.view_mode;
-        tab.settings.sort_field = tab.common_settings.sort_field;
-        tab.settings.sort_order = tab.common_settings.sort_order;
+        tab.settings.reset_view_fields_to(&tab.common_settings);
 
         // 3. 寻找新路径的最长匹配并套用 overlay
         if let Some((id, state)) =
             crate::settings_db::resolve_view_state_for_path(target_path, &self.view_states)
         {
             tab.active_view_state_id = Some(id);
-            tab.settings.apply_favorite_view_state(&state);
+            state.apply_to_settings(&mut tab.settings);
         }
     }
 
+    /// 把当前目录的视图与排序收进它的视图状态。
+    ///
+    /// 这是目录偏好的**唯一写入口**：只有真的变了才标脏，所以来回切换视图再切回去
+    /// 不会在数据库里产生多余的写。
     fn capture_active_view_state(&mut self) {
         if !self.remember_view_state {
             return;
         }
         let tab = &mut self.tabs[self.active_tab];
-        let path_str = tab.path.to_string_lossy().into_owned();
-        tab.active_view_state_id = Some(path_str.clone());
-        let base = self.view_states.get(&path_str).cloned().unwrap_or_else(|| {
-            crate::settings::FavoriteViewState::from_settings(&crate::settings::Settings::default())
-        });
-        let updated = view_state_from_settings(&tab.settings, &base);
-        self.view_states.insert(path_str, updated);
+        let key = crate::settings_db::view_state_key(&tab.path);
+        tab.active_view_state_id = Some(key.clone());
+        let base = self
+            .view_states
+            .get(&key)
+            .cloned()
+            .unwrap_or_else(|| FileManagerViewState::from_settings(&tab.common_settings));
+        let updated = FileManagerViewState::from_settings_keeping_locked_sort(&tab.settings, &base);
+        if self.view_states.get(&key) == Some(&updated) {
+            return;
+        }
+        self.view_states.insert(key.clone(), updated);
+        self.dirty_view_states.insert(key);
     }
 
     pub fn hydrate_view_states(
         &mut self,
-        states: std::collections::HashMap<String, crate::settings::FavoriteViewState>,
+        states: std::collections::HashMap<String, FileManagerViewState>,
     ) {
         self.view_states = states;
+        // 刚从盘上读回来的不是「待写入的改动」。
+        self.dirty_view_states.clear();
         let current_path = self.active_path().to_path_buf();
         self.transition_view_state_for_path(&current_path);
     }
 
-    pub fn view_states(&self) -> &std::collections::HashMap<String, crate::settings::FavoriteViewState> {
+    pub fn view_states(&self) -> &std::collections::HashMap<String, FileManagerViewState> {
         &self.view_states
     }
 
+    /// 取出并清空「自上次调用后发生过变化」的目录视图状态。
+    ///
+    /// 会话层用它在每次用户动作之后落盘；核心自己不碰数据库。
+    pub fn take_dirty_view_states(&mut self) -> Vec<(String, FileManagerViewState)> {
+        let keys: Vec<String> = self.dirty_view_states.iter().cloned().collect();
+        self.dirty_view_states.clear();
+        keys.into_iter()
+            .filter_map(|key| {
+                self.view_states
+                    .get(&key)
+                    .cloned()
+                    .map(|state| (key, state))
+            })
+            .collect()
+    }
+
     pub fn set_remember_view_state(&mut self, enabled: bool) {
+        if self.remember_view_state == enabled {
+            return;
+        }
         self.remember_view_state = enabled;
+        if !enabled {
+            // 关掉记忆时断开「当前活跃目录」的归属：否则重新打开记忆后，
+            // 第一次 capture 会把关机前的旧值当成这个目录的偏好写回去。
+            self.tabs[self.active_tab].active_view_state_id = None;
+        }
     }
 
     pub fn remember_view_state(&self) -> bool {
@@ -607,6 +705,7 @@ impl FileManagerState {
     pub fn set_show_hidden_files(&mut self, enabled: bool) {
         if self.tabs[self.active_tab].settings.show_hidden_files != enabled {
             self.tabs[self.active_tab].settings.show_hidden_files = enabled;
+            self.capture_active_view_state();
             self.bump_generation();
         }
     }
@@ -619,9 +718,40 @@ impl FileManagerState {
         }
     }
 
+    pub fn set_search_in_path(&mut self, enabled: bool) {
+        if self.tabs[self.active_tab].settings.search_in_path != enabled {
+            self.tabs[self.active_tab].settings.search_in_path = enabled;
+            self.bump_generation();
+        }
+    }
+
+    pub fn set_search_or_mode(&mut self, enabled: bool) {
+        if self.tabs[self.active_tab].settings.search_or_mode != enabled {
+            self.tabs[self.active_tab].settings.search_or_mode = enabled;
+            self.bump_generation();
+        }
+    }
+
+    pub fn set_search_include_subfolders(&mut self, enabled: bool) {
+        if self.tabs[self.active_tab].settings.search_include_subfolders != enabled {
+            self.tabs[self.active_tab].settings.search_include_subfolders = enabled;
+            self.bump_generation();
+        }
+    }
+
+    /// 递归层数。`0` 与「不递归」等价，交给搜索时再被上限夹一次。
+    pub fn set_search_max_depth(&mut self, depth: usize) {
+        let depth = depth.min(MAX_SEARCH_DEPTH);
+        if self.tabs[self.active_tab].settings.search_max_depth != depth {
+            self.tabs[self.active_tab].settings.search_max_depth = depth;
+            self.bump_generation();
+        }
+    }
+
     pub fn set_entry_filter(&mut self, filter: EntryFilter) {
         if self.tabs[self.active_tab].settings.entry_filter != filter {
             self.tabs[self.active_tab].settings.entry_filter = filter;
+            self.capture_active_view_state();
             self.bump_generation();
         }
     }
@@ -647,6 +777,7 @@ impl FileManagerState {
     pub fn set_directories_first(&mut self, enabled: bool) {
         if self.tabs[self.active_tab].settings.directories_first != enabled {
             self.tabs[self.active_tab].settings.directories_first = enabled;
+            self.capture_active_view_state();
             self.bump_generation();
         }
     }
@@ -985,86 +1116,297 @@ impl FileManagerState {
     }
 
     pub fn entries(&self) -> Result<Vec<FileManagerEntry>> {
-        let mut nodes = list_directory_with_hidden(
-            self.active_path(),
-            self.tabs[self.active_tab].settings.show_hidden_files,
-        )?;
-        nodes.retain(|node| self.matches_entry(node));
-        nodes.sort_by(|left, right| self.compare_entries(left, right));
+        let settings = &self.tabs[self.active_tab].settings;
+        // 词元在整份列表上复用，只在解析查询时 lowercase 一次；逐条目再解析会把
+        // O(条目) 变成 O(条目 × 查询长度) 的分配。
+        let tokens = crate::search_query::parse(&settings.search_query);
+        let root = self.active_path();
+        let mut nodes = list_directory_with_hidden(root, settings.show_hidden_files)?;
+        nodes.retain(|node| matches_entry(settings, node, &tokens, root));
+        nodes.sort_by(|left, right| compare_entries(settings, left, right));
         Ok(nodes
             .into_iter()
             .map(|node| {
-                let children = if node.is_dir
-                    && self.tabs[self.active_tab].settings.penetration_enabled
-                    && self.tabs[self.active_tab].settings.show_child_names
-                {
-                    describe_children(Path::new(&node.path), &self.tabs[self.active_tab].settings)
-                } else {
-                    Vec::new()
-                };
+                let children =
+                    if node.is_dir && settings.penetration_enabled && settings.show_child_names {
+                        describe_children(Path::new(&node.path), settings)
+                    } else {
+                        Vec::new()
+                    };
                 FileManagerEntry { node, children }
             })
             .collect())
     }
 
-    fn matches_entry(&self, node: &FileTreeNode) -> bool {
-        let query = self.tabs[self.active_tab]
-            .settings
-            .search_query
-            .to_lowercase();
-        if !query.is_empty() && !node.name.to_lowercase().contains(&query) {
-            return false;
+    /// 把「当前生效的搜索条件」打包成一次可以脱离会话独立执行的请求。
+    ///
+    /// 递归遍历跑在 `spawn_blocking` 的线程上，不能拿着 `DashMap` 会话的借用
+    /// （那会和并发的动作互相等），所以这里交出的是**值**：根路径 + 设置快照。
+    /// 遍历期间用户改了设置，代价只是这一次按旧条件出结果。
+    pub fn search_request(&self) -> FileManagerSearchRequest {
+        FileManagerSearchRequest {
+            root: self.active_path().to_path_buf(),
+            settings: self.tabs[self.active_tab].settings.clone(),
         }
-        match self.tabs[self.active_tab].settings.entry_filter {
-            EntryFilter::All => true,
-            EntryFilter::Folders => node.is_dir,
-            EntryFilter::Archives => node.is_archive,
-            EntryFilter::Images => node.is_image,
-            EntryFilter::Video => node.is_video,
-            EntryFilter::Audio => node.is_audio,
-        }
-    }
-
-    fn compare_entries(&self, left: &FileTreeNode, right: &FileTreeNode) -> std::cmp::Ordering {
-        use std::cmp::Ordering;
-
-        let rank = |node: &FileTreeNode| !node.is_dir;
-        let directories = self.tabs[self.active_tab]
-            .settings
-            .directories_first
-            .then(|| rank(left).cmp(&rank(right)));
-        let field_order = match self.tabs[self.active_tab].settings.sort_field {
-            SortField::Name => natural_name_cmp(&left.name, &right.name),
-            SortField::Type => {
-                extension_cmp(left, right).then_with(|| natural_name_cmp(&left.name, &right.name))
-            }
-            SortField::Size => left
-                .size
-                .cmp(&right.size)
-                .then_with(|| natural_name_cmp(&left.name, &right.name)),
-            SortField::Date => left
-                .modified_secs
-                .cmp(&right.modified_secs)
-                .then_with(|| natural_name_cmp(&left.name, &right.name)),
-            SortField::Random => {
-                let seed = self.tabs[self.active_tab].settings.shuffle_seed;
-                // 名称兜底让比较器保持全序；同一目录内名称唯一，实际不会触发。
-                shuffle_key(seed, &left.name)
-                    .cmp(&shuffle_key(seed, &right.name))
-                    .then_with(|| natural_name_cmp(&left.name, &right.name))
-            }
-        };
-        let order = if self.tabs[self.active_tab].settings.sort_order == SortOrder::Descending {
-            field_order.reverse()
-        } else {
-            field_order
-        };
-        directories.unwrap_or(Ordering::Equal).then(order)
     }
 
     fn bump_generation(&mut self) {
         self.generation = self.generation.wrapping_add(1).max(1);
     }
+}
+
+/// 一条目是否命中当前设置里的查询与类型筛选。
+///
+/// `tokens` 由调用方解析一次后复用（见 [`entries`]）。
+fn matches_entry(
+    settings: &FileManagerSettings,
+    node: &FileTreeNode,
+    tokens: &[crate::search_query::Token],
+    root: &Path,
+) -> bool {
+    if !tokens.is_empty() {
+        let mode = if settings.search_or_mode {
+            crate::search_query::MatchMode::Or
+        } else {
+            crate::search_query::MatchMode::And
+        };
+        let hay = search_hay(node, settings.search_in_path.then_some(root));
+        // 索引期 / 查询期 / 后置过滤必须走同一个归一化函数，否则出假阴性；
+        // 查询期由 `search_query::parse` 内部完成，这里负责 hay 侧。
+        let hay = crate::search_norm::normalize_for_match(&hay);
+        if !crate::search_query::matches_lowercased_with_mode(tokens, &hay, mode) {
+            return false;
+        }
+    }
+    entry_filter_matches(settings.entry_filter, node)
+}
+
+fn entry_filter_matches(filter: EntryFilter, node: &FileTreeNode) -> bool {
+    match filter {
+        EntryFilter::All => true,
+        EntryFilter::Folders => node.is_dir,
+        EntryFilter::Archives => node.is_archive,
+        EntryFilter::Images => node.is_image,
+        EntryFilter::Video => node.is_video,
+        EntryFilter::Audio => node.is_audio,
+    }
+}
+
+fn compare_entries(
+    settings: &FileManagerSettings,
+    left: &FileTreeNode,
+    right: &FileTreeNode,
+) -> std::cmp::Ordering {
+    use std::cmp::Ordering;
+
+    let rank = |node: &FileTreeNode| !node.is_dir;
+    let directories = settings
+        .directories_first
+        .then(|| rank(left).cmp(&rank(right)));
+    let field_order = match settings.sort_field {
+        SortField::Name => natural_name_cmp(&left.name, &right.name),
+        SortField::Type => {
+            extension_cmp(left, right).then_with(|| natural_name_cmp(&left.name, &right.name))
+        }
+        SortField::Size => left
+            .size
+            .cmp(&right.size)
+            .then_with(|| natural_name_cmp(&left.name, &right.name)),
+        SortField::Date => left
+            .modified_secs
+            .cmp(&right.modified_secs)
+            .then_with(|| natural_name_cmp(&left.name, &right.name)),
+        SortField::Random => {
+            // 名称兜底让比较器保持全序；同一目录内名称唯一，实际不会触发。
+            shuffle_key(settings.shuffle_seed, &left.name)
+                .cmp(&shuffle_key(settings.shuffle_seed, &right.name))
+                .then_with(|| natural_name_cmp(&left.name, &right.name))
+        }
+    };
+    let order = if settings.sort_order == SortOrder::Descending {
+        field_order.reverse()
+    } else {
+        field_order
+    };
+    directories.unwrap_or(Ordering::Equal).then(order)
+}
+
+/// 搜索的 hay：条目名，加上（可选）相对搜索根的那段目录。
+///
+/// 只喂**相对**路径，父目录名才不会把它的所有子项都匹配上；分隔符统一成 `/`，
+/// 这样 Windows 的 `春\001.jpg` 用 `春/001` 也能命中。
+fn search_hay_for_name(name: &str, relative_dir: Option<&str>) -> String {
+    match relative_dir {
+        Some(rel) if !rel.is_empty() => format!("{rel}/{name}"),
+        _ => name.to_owned(),
+    }
+}
+
+fn search_hay(node: &FileTreeNode, root: Option<&Path>) -> String {
+    let Some(root) = root else {
+        return node.name.clone();
+    };
+    let relative_dir = Path::new(&node.path)
+        .parent()
+        .and_then(|parent| parent.strip_prefix(root).ok())
+        .filter(|rel| !rel.as_os_str().is_empty())
+        .map(|rel| rel.to_string_lossy().replace('\\', "/"));
+    search_hay_for_name(&node.name, relative_dir.as_deref())
+}
+
+/// 一次递归搜索的输入：搜索根 + 当时生效的设置。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileManagerSearchRequest {
+    pub root: PathBuf,
+    pub settings: FileManagerSettings,
+}
+
+/// 一条命中：条目本身，加上它在搜索根之下的目录（`/` 分隔；根内的条目为空串）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileManagerSearchHit {
+    pub node: FileTreeNode,
+    pub directory: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileManagerSearchOutcome {
+    pub root: PathBuf,
+    pub hits: Vec<FileManagerSearchHit>,
+    /// 检视过的条目数（含未命中的）。用来区分「确实没有」和「还没扫到」。
+    pub scanned: usize,
+    /// 命中总数，可能大于 `hits.len()`（被 [`MAX_SEARCH_RESULTS`] 截断）。
+    pub matched: usize,
+    pub truncated: bool,
+    pub cancelled: bool,
+}
+
+/// 在搜索根（可选地连同子目录）里按名称找条目。
+///
+/// 三处刻意的设计：
+///
+/// 1. **广度优先**。搜索要的是「最近的命中」，深度优先会先钻到某一条分支的
+///    最深处，撞上 [`MAX_SEARCH_RESULTS`] 上限时把同级的其它分支整个丢掉。
+/// 2. **未命中的条目不付 syscall 代价**。`file_name()` 与 `file_type()` 来自目录
+///    枚举本身，先按名字预筛，只有命中项和候选目录才构造完整节点（那才需要
+///    `metadata()`）。整库扫一眼与逐条目 stat 的差距就在这里。
+/// 3. **策略只有一个出口**。隐藏项、内部 bundle、「已识别媒体」的判定全部经由
+///    [`crate::file_tree::node_for_dir_entry`]，所以搜索结果里不会出现列表里根本
+///    不存在条目，反之也不会把列表能看到的漏掉。
+///
+/// `cancel` 在每条目与每目录两处检查；置位后已收集的结果照常交出。
+pub fn search_entries(
+    request: &FileManagerSearchRequest,
+    cancel: &AtomicBool,
+) -> FileManagerSearchOutcome {
+    let settings = &request.settings;
+    let tokens = crate::search_query::parse(&settings.search_query);
+    let mode = if settings.search_or_mode {
+        crate::search_query::MatchMode::Or
+    } else {
+        crate::search_query::MatchMode::And
+    };
+    let max_depth = if settings.search_include_subfolders {
+        settings.search_max_depth.min(MAX_SEARCH_DEPTH)
+    } else {
+        0
+    };
+    let show_hidden = settings.show_hidden_files;
+
+    let mut queue = VecDeque::new();
+    queue.push_back((request.root.clone(), 0usize, String::new()));
+    // 环保护与上游 DFS 同一把键（canonicalize 后按平台决定大小写敏感性）。
+    let mut visited: HashSet<String> = HashSet::new();
+    let mut outcome = FileManagerSearchOutcome {
+        root: request.root.clone(),
+        hits: Vec::new(),
+        scanned: 0,
+        matched: 0,
+        truncated: false,
+        cancelled: false,
+    };
+
+    while let Some((directory, depth, relative)) = queue.pop_front() {
+        if cancel.load(std::sync::atomic::Ordering::Relaxed) {
+            outcome.cancelled = true;
+            break;
+        }
+        if !crate::fs_entry::mark_directory_visited(&directory, &mut visited) {
+            continue;
+        }
+        let Ok(entries) = std::fs::read_dir(&directory) else {
+            // 权限 / 失效目录 / 竞态删除：跳过这一支，不把整次搜索作废。
+            continue;
+        };
+        let descend = depth < max_depth;
+        for entry in entries.flatten() {
+            if cancel.load(std::sync::atomic::Ordering::Relaxed) {
+                outcome.cancelled = true;
+                break;
+            }
+            outcome.scanned += 1;
+            let Ok(file_type) = entry.file_type() else {
+                continue;
+            };
+            let raw_name = entry.file_name();
+            let Some(name) = raw_name.to_str() else {
+                continue;
+            };
+            // 目录即使不命中也要检视（下钻用）；符号链接目录要靠 classify 才认得出来。
+            let candidate_dir = descend && (file_type.is_dir() || file_type.is_symlink());
+            let name_hit = tokens.is_empty()
+                || {
+                    let hay = crate::search_norm::normalize_for_match(&search_hay_for_name(
+                        name,
+                        Some(&relative),
+                    ));
+                    crate::search_query::matches_lowercased_with_mode(&tokens, &hay, mode)
+                };
+            if !name_hit && !candidate_dir {
+                continue;
+            }
+            let Some(node) =
+                crate::file_tree::node_for_dir_entry(&entry, &file_type, show_hidden, false)
+            else {
+                continue;
+            };
+            if candidate_dir && node.is_dir {
+                let child_relative = if relative.is_empty() {
+                    node.name.clone()
+                } else {
+                    format!("{relative}/{}", node.name)
+                };
+                queue.push_back((
+                    Path::new(&node.path).to_path_buf(),
+                    depth + 1,
+                    child_relative,
+                ));
+            }
+            if !name_hit || !entry_filter_matches(settings.entry_filter, &node) {
+                continue;
+            }
+            outcome.matched += 1;
+            if outcome.hits.len() >= MAX_SEARCH_RESULTS {
+                outcome.truncated = true;
+                break;
+            }
+            outcome.hits.push(FileManagerSearchHit {
+                node,
+                directory: relative.clone(),
+            });
+        }
+        if outcome.truncated || outcome.cancelled {
+            break;
+        }
+    }
+
+    outcome.hits.sort_by(|left, right| {
+        // 主序仍是用户的排序字段（与列表同一比较器）；同键时才按「离搜索根更近」，
+        // 例如两个不同目录里的同名 `001.jpg`。
+        compare_entries(settings, &left.node, &right.node)
+            .then_with(|| left.directory.matches('/').count().cmp(&right.directory.matches('/').count()))
+            .then_with(|| left.directory.cmp(&right.directory))
+    });
+    outcome
 }
 
 fn normalize_initial_directory(path: PathBuf) -> Option<PathBuf> {
@@ -1126,21 +1468,6 @@ fn fresh_shuffle_seed() -> u64 {
         // 时间不可用时退回固定种子：顺序不随机仍是合法排序，不能因此 panic。
         .unwrap_or(0x5EED_5EED)
         .max(1)
-}
-
-/// 目录视图状态的唯一写入口。
-///
-/// 「临时排序」只应该活在当前画面里，所以置位时把上一次锁定的排序盖回去，避免它在
-/// 离开目录（`transition_view_state_for_path`）或另一次 capture 时顺带落进目录偏好。
-fn view_state_from_settings(
-    settings: &FileManagerSettings,
-    base: &crate::settings::FavoriteViewState,
-) -> crate::settings::FavoriteViewState {
-    let mut state = settings.to_favorite_view_state(base);
-    if settings.sort_temporary {
-        state.sort_order = base.sort_order;
-    }
-    state
 }
 
 fn extension_cmp(left: &FileTreeNode, right: &FileTreeNode) -> std::cmp::Ordering {
@@ -1561,6 +1888,193 @@ mod tests {
         assert!(names(&state).is_empty());
     }
 
+    #[test]
+    fn search_uses_token_grammar_and_or_mode() {
+        let dir = tempdir().unwrap();
+        touch(&dir.path().join("summer_photo.jpg"));
+        touch(&dir.path().join("summer draft.jpg"));
+        touch(&dir.path().join("autumn.jpg"));
+        let mut state = FileManagerState::new(Some(dir.path().into())).unwrap();
+        let names = |state: &FileManagerState| {
+            state
+                .entries()
+                .unwrap()
+                .into_iter()
+                .map(|entry| entry.node.name)
+                .collect::<Vec<_>>()
+        };
+        // 空格分词：整串子串匹配在这条上必然 0 结果，文件名里的 `_` 也不该挡住。
+        state.set_search_query("summer photo");
+        assert_eq!(names(&state), ["summer_photo.jpg"]);
+        // 否定词元与引号短语。
+        state.set_search_query("summer -draft");
+        assert_eq!(names(&state), ["summer_photo.jpg"]);
+        state.set_search_query(r#""summer draft""#);
+        assert_eq!(names(&state), ["summer draft.jpg"]);
+        // AND 下两个词都必须在；切到 OR 后任命中即保留，并按名称排序。
+        state.set_search_query("photo autumn");
+        assert!(names(&state).is_empty());
+        state.set_search_or_mode(true);
+        assert_eq!(names(&state), ["autumn.jpg", "summer_photo.jpg"]);
+        // 只有否定词元时是「不含它的都留下」。
+        state.set_search_query("-summer");
+        assert_eq!(names(&state), ["autumn.jpg"]);
+    }
+
+    #[test]
+    fn search_in_path_never_lets_the_root_name_match_every_child() {
+        let dir = tempdir().unwrap();
+        let spring = dir.path().join("spring");
+        fs::create_dir(&spring).unwrap();
+        touch(&spring.join("001.jpg"));
+        touch(&spring.join("002.jpg"));
+        let mut state = FileManagerState::new(Some(spring.clone())).unwrap();
+        assert!(state.settings().search_in_path);
+        state.set_search_query("spring");
+        assert!(state.entries().unwrap().is_empty());
+        state.set_search_query("00");
+        assert_eq!(state.entries().unwrap().len(), 2);
+        state.set_search_in_path(false);
+        assert_eq!(state.entries().unwrap().len(), 2);
+    }
+
+    fn search_fixture(root: &Path) {
+        fs::create_dir_all(root.join("春组/本子")).unwrap();
+        fs::create_dir_all(root.join("秋组")).unwrap();
+        touch(&root.join("春组/本子/001.jpg"));
+        touch(&root.join("春组/cover.cbz"));
+        touch(&root.join("秋组/wind.jpg"));
+        // 非媒体：列表本来就不收，搜索也不该凭空造出一条来。
+        touch(&root.join("readme.txt"));
+    }
+
+    #[test]
+    fn recursive_search_descends_and_reports_relative_directory() {
+        let dir = tempdir().unwrap();
+        search_fixture(dir.path());
+        let mut state = FileManagerState::new(Some(dir.path().to_path_buf())).unwrap();
+        state.set_search_query("春");
+        let single = search_entries(&state.search_request(), &AtomicBool::new(false));
+        assert_eq!(single.scanned, 3);
+        assert_eq!(single.matched, 1);
+        assert_eq!(single.hits[0].node.name, "春组");
+        assert_eq!(single.hits[0].directory, "");
+
+        state.set_search_include_subfolders(true);
+        let deep = search_entries(&state.search_request(), &AtomicBool::new(false));
+        assert_eq!(deep.matched, 3);
+        assert_eq!(deep.scanned, 6);
+        // 排序字段仍是主序（名称升序），目录只用来决定命中的归属。
+        let hits = deep
+            .hits
+            .iter()
+            .map(|hit| (hit.directory.as_str(), hit.node.name.as_str()))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            hits,
+            [
+                ("春组/本子", "001.jpg"),
+                ("春组", "cover.cbz"),
+                ("", "春组"),
+            ]
+        );
+        assert!(!deep.truncated);
+    }
+
+    #[test]
+    fn recursive_search_matches_relative_path_tokens_and_respects_depth() {
+        let dir = tempdir().unwrap();
+        search_fixture(dir.path());
+        let mut state = FileManagerState::new(Some(dir.path().to_path_buf())).unwrap();
+        state.set_search_include_subfolders(true);
+        // 「本子 001」跨目录分隔符匹配：词元分别命中相对目录与条目名。
+        state.set_search_query("本子 001");
+        assert_eq!(
+            search_entries(&state.search_request(), &AtomicBool::new(false)).matched,
+            1
+        );
+        state.set_search_in_path(false);
+        assert_eq!(
+            search_entries(&state.search_request(), &AtomicBool::new(false)).matched,
+            0
+        );
+
+        // 深度 1 只多扫一层：春组看得到，春组/本子 看不到。
+        state.set_search_in_path(true);
+        state.set_search_query("001");
+        state.set_search_max_depth(99);
+        let deep = search_entries(&state.search_request(), &AtomicBool::new(false));
+        assert_eq!(deep.hits[0].directory, "春组/本子");
+        state.set_search_max_depth(1);
+        assert_eq!(
+            search_entries(&state.search_request(), &AtomicBool::new(false)).matched,
+            0
+        );
+    }
+
+    #[test]
+    fn recursive_search_honours_hidden_policy_entry_filter_and_cancel() {
+        let dir = tempdir().unwrap();
+        search_fixture(dir.path());
+        touch(&dir.path().join("春组/.secret.cbz"));
+        fs::create_dir(dir.path().join("春组/mimageviewer.meta.miv")).unwrap();
+        touch(&dir.path().join("春组/mimageviewer.meta.miv/ghost.jpg"));
+        let mut state = FileManagerState::new(Some(dir.path().to_path_buf())).unwrap();
+        state.set_search_include_subfolders(true);
+        state.set_search_query("secret ghost");
+        assert_eq!(
+            search_entries(&state.search_request(), &AtomicBool::new(false)).matched,
+            0
+        );
+        state.set_search_query("secret ghost 001 wind cover");
+        state.set_search_or_mode(true);
+        assert_eq!(
+            search_entries(&state.search_request(), &AtomicBool::new(false)).matched,
+            3
+        );
+        state.set_search_or_mode(false);
+        state.set_search_query("");
+        state.set_entry_filter(EntryFilter::Archives);
+        let archives = search_entries(&state.search_request(), &AtomicBool::new(false));
+        assert_eq!(
+            archives
+                .hits
+                .iter()
+                .map(|hit| hit.node.name.as_str())
+                .collect::<Vec<_>>(),
+            ["cover.cbz"]
+        );
+        state.set_show_hidden_files(true);
+        assert_eq!(
+            search_entries(&state.search_request(), &AtomicBool::new(false))
+                .matched,
+            2
+        );
+
+        // 取消：已置位的令牌让遍历一步都不走，但请求本身仍算正常交出。
+        let cancelled = search_entries(&state.search_request(), &AtomicBool::new(true));
+        assert!(cancelled.cancelled);
+        assert!(cancelled.hits.is_empty());
+        assert_eq!(cancelled.scanned, 0);
+    }
+
+    #[test]
+    fn recursive_search_caps_results_at_the_limit_and_flags_truncation() {
+        let dir = tempdir().unwrap();
+        fs::create_dir(dir.path().join("many")).unwrap();
+        for index in 0..=MAX_SEARCH_RESULTS {
+            touch(&dir.path().join("many").join(format!("book-{index:04}.cbz")));
+        }
+        let mut state = FileManagerState::new(Some(dir.path().to_path_buf())).unwrap();
+        state.set_search_query("book");
+        state.set_search_include_subfolders(true);
+        let outcome = search_entries(&state.search_request(), &AtomicBool::new(false));
+        assert_eq!(outcome.hits.len(), MAX_SEARCH_RESULTS);
+        assert!(outcome.truncated);
+        assert!(outcome.matched >= MAX_SEARCH_RESULTS);
+        assert!(!outcome.cancelled);
+    }
+
     #[cfg(unix)]
     #[test]
     fn hidden_policy_is_shared_by_listing_children_and_penetration() {
@@ -1862,16 +2376,13 @@ mod tests {
         fs::create_dir(&books).unwrap();
         fs::create_dir(&other).unwrap();
         let mut state = FileManagerState::new(Some(books.clone())).unwrap();
-        let key = books.to_string_lossy().into_owned();
+        let key = crate::settings_db::view_state_key(&books);
         assert!(!state.sort_temporary());
         assert!(state.can_sort_preference());
 
         // 锁定：降序写进本目录的视图状态。
         state.set_sort(SortField::Name, SortOrder::Descending);
-        assert_eq!(
-            state.view_states()[&key].sort_order,
-            crate::settings::SortOrder::NameDesc
-        );
+        assert_eq!(state.view_states()[&key].sort_order, SortOrder::Descending);
 
         // 临时：画面变升序，但目录偏好仍是降序。
         state.set_sort_temporary(true);
@@ -1881,10 +2392,7 @@ mod tests {
         assert_eq!(state.generation(), generation);
         state.set_sort(SortField::Name, SortOrder::Ascending);
         assert_eq!(state.settings().sort_order, SortOrder::Ascending);
-        assert_eq!(
-            state.view_states()[&key].sort_order,
-            crate::settings::SortOrder::NameDesc
-        );
+        assert_eq!(state.view_states()[&key].sort_order, SortOrder::Descending);
 
         // 离开再回来：恢复的是锁定的降序，临时排序没有漏进偏好。
         state.navigate(&other).unwrap();
@@ -1899,5 +2407,137 @@ mod tests {
         state.navigate(&other).unwrap();
         state.navigate(&books).unwrap();
         assert_eq!(state.settings().sort_order, SortOrder::Ascending);
+    }
+
+    #[test]
+    fn every_view_setting_is_captured_and_round_trips_without_loss() {
+        let dir = tempdir().unwrap();
+        let books = dir.path().join("books");
+        fs::create_dir(&books).unwrap();
+        let mut state = FileManagerState::new(Some(books.clone())).unwrap();
+        let key = crate::settings_db::view_state_key(&books);
+
+        // 六种视图模式里挑三种只存在于文件管理器的：经 reader 那套两档映射往返
+        // 会被塌成「详细信息」，这里必须逐字记住。
+        for mode in [
+            ViewMode::CoverList,
+            ViewMode::MosaicList,
+            ViewMode::MosaicGrid,
+        ] {
+            state.set_view_mode(mode);
+            assert_eq!(state.view_states()[&key].view_mode, mode);
+        }
+        state.set_entry_filter(EntryFilter::Images);
+        assert_eq!(state.view_states()[&key].entry_filter, EntryFilter::Images);
+        state.set_directories_first(false);
+        assert!(!state.view_states()[&key].directories_first);
+        state.set_show_hidden_files(true);
+        assert!(state.view_states()[&key].show_hidden_files);
+
+        // 这些偏好必须能越过 JSON 边界：会话层就是靠它落盘的。
+        let before = state.view_states()[&key].clone();
+        let json = serde_json::to_string(&before).unwrap();
+        let after: FileManagerViewState = serde_json::from_str(&json).unwrap();
+        assert_eq!(before, after);
+
+        // 换个会话把它 hydrate 回来：视图、筛选、隐藏项与目录优先都要还原。
+        let mut restored = FileManagerState::new(Some(books.clone())).unwrap();
+        restored.hydrate_view_states(state.view_states().clone());
+        assert_eq!(restored.settings().view_mode, ViewMode::MosaicGrid);
+        assert_eq!(restored.settings().entry_filter, EntryFilter::Images);
+        assert!(!restored.settings().directories_first);
+        assert!(restored.settings().show_hidden_files);
+    }
+
+    #[test]
+    fn dirty_view_states_only_report_real_changes() {
+        let dir = tempdir().unwrap();
+        let books = dir.path().join("books");
+        let other = dir.path().join("other");
+        fs::create_dir(&books).unwrap();
+        fs::create_dir(&other).unwrap();
+        let mut state = FileManagerState::new(Some(books.clone())).unwrap();
+        let books_key = crate::settings_db::view_state_key(&books);
+        let other_key = crate::settings_db::view_state_key(&other);
+
+        // 新建会话本身没有待写入的改动。
+        assert!(state.take_dirty_view_states().is_empty());
+
+        state.set_view_mode(ViewMode::Details);
+        let dirty = state.take_dirty_view_states();
+        assert_eq!(dirty.len(), 1);
+        assert_eq!(dirty[0].0, books_key);
+        assert_eq!(dirty[0].1.view_mode, ViewMode::Details);
+        // 取出即清空。
+        assert!(state.take_dirty_view_states().is_empty());
+
+        // 同一值重复写入不产生脏记录（否则每次导航都会重写一遍数据库）。
+        state.set_view_mode(ViewMode::Details);
+        assert!(state.take_dirty_view_states().is_empty());
+
+        // 临时排序只活在画面里：改了排序也不该产生待写入的目录偏好。
+        state.set_sort_temporary(true);
+        state.set_sort(SortField::Size, SortOrder::Descending);
+        assert!(state.take_dirty_view_states().is_empty());
+        state.set_sort_temporary(false);
+        let _ = state.take_dirty_view_states();
+
+        // 离开目录时的写回收口：`refresh()` 重掷的种子不经过 capture，
+        // 要等离开这个目录才落进它的偏好。
+        state.set_sort(SortField::Random, SortOrder::Ascending);
+        let _ = state.take_dirty_view_states();
+        state.tabs[state.active_tab].settings.shuffle_seed = 0xBEEF;
+        assert!(state.take_dirty_view_states().is_empty());
+
+        state.navigate(&other).unwrap();
+        let dirty = state.take_dirty_view_states();
+        assert_eq!(dirty.len(), 1, "只应该带回离开的那个目录: {dirty:?}");
+        assert_eq!(dirty[0].0, books_key);
+        assert_eq!(dirty[0].1.shuffle_seed, 0xBEEF);
+        assert_ne!(dirty[0].0, other_key);
+    }
+
+    #[test]
+    fn hydrate_never_marks_rows_dirty_and_remember_off_stops_capture() {
+        let dir = tempdir().unwrap();
+        let books = dir.path().join("books");
+        let other = dir.path().join("other");
+        fs::create_dir(&books).unwrap();
+        fs::create_dir(&other).unwrap();
+        let books_key = crate::settings_db::view_state_key(&books);
+
+        let mut source = FileManagerState::new(Some(books.clone())).unwrap();
+        source.set_view_mode(ViewMode::CoverGrid);
+        let saved = source.view_states().clone();
+
+        // hydrate 进来的数据来自磁盘，不是待写入的改动。
+        let mut restored = FileManagerState::new(Some(books.clone())).unwrap();
+        restored.hydrate_view_states(saved);
+        assert!(restored.take_dirty_view_states().is_empty());
+        assert_eq!(restored.settings().view_mode, ViewMode::CoverGrid);
+
+        // 关掉记忆：视图照样生效，但不再产生目录偏好。
+        restored.set_remember_view_state(false);
+        assert!(!restored.can_sort_preference());
+        restored.set_view_mode(ViewMode::Compact);
+        assert!(restored.take_dirty_view_states().is_empty());
+        assert_eq!(
+            restored.view_states()[&books_key].view_mode,
+            ViewMode::CoverGrid
+        );
+        // 关着的时候换目录也不留下新记录。
+        restored.navigate(&other).unwrap();
+        assert!(restored.take_dirty_view_states().is_empty());
+        assert_eq!(restored.settings().view_mode, ViewMode::Compact);
+
+        // 重新打开：从这一刻起继续记，且不会把关着期间的临时值写回旧目录。
+        restored.set_remember_view_state(true);
+        restored.navigate(&books).unwrap();
+        assert_eq!(restored.settings().view_mode, ViewMode::CoverGrid);
+        restored.set_view_mode(ViewMode::Details);
+        let dirty = restored.take_dirty_view_states();
+        assert_eq!(dirty.len(), 1);
+        assert_eq!(dirty[0].0, books_key);
+        assert_eq!(dirty[0].1.view_mode, ViewMode::Details);
     }
 }

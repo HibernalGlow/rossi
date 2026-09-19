@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -7,44 +9,33 @@ import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/cubit/string_select.dart';
 import 'package:zephyr/src/rust/api/file_manager.dart';
 import 'package:zephyr/type/enum.dart';
+import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
+import 'package:zephyr/workspace/service/file_manager_tab_bridge.dart';
+import 'package:zephyr/workspace/widgets/cards/file_manager_navigation_pad.dart';
 import 'package:zephyr/workspace/widgets/cards/file_manager_thumbnail.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
+import 'package:zephyr/workspace/widgets/library_view/library_view.dart';
+import 'package:zephyr/widgets/fluent_dropdown.dart';
+import 'package:zephyr/widgets/toast.dart';
 
 extension FileManagerViewModeX on FileManagerViewMode {
-  String get label {
-    switch (this) {
-      case FileManagerViewMode.compact:
-        return '紧凑列表';
-      case FileManagerViewMode.coverList:
-        return '封面列表';
-      case FileManagerViewMode.mosaicList:
-        return '横幅';
-      case FileManagerViewMode.details:
-        return '详细信息';
-      case FileManagerViewMode.coverGrid:
-        return '封面网格';
-      case FileManagerViewMode.mosaicGrid:
-        return '自由缩略图';
-    }
-  }
+  /// 文案与图标只有一份，住在 `LibraryViewModeX`：文件管理器与书签/历史面板
+  /// 共用同一套视图模式，工具栏 tooltip 与视图菜单不会长出两种叫法。
+  String get label => fileManagerLibraryMode(this).label;
 
-  IconData get icon {
-    switch (this) {
-      case FileManagerViewMode.compact:
-        return Icons.view_headline_rounded;
-      case FileManagerViewMode.coverList:
-        return Icons.table_rows_rounded;
-      case FileManagerViewMode.mosaicList:
-        return Icons.view_agenda_rounded;
-      case FileManagerViewMode.details:
-        return Icons.table_chart_rounded;
-      case FileManagerViewMode.coverGrid:
-        return Icons.grid_view_rounded;
-      case FileManagerViewMode.mosaicGrid:
-        return Icons.grid_on_rounded;
-    }
-  }
+  IconData get icon => fileManagerLibraryMode(this).icon;
+}
+
+LibraryViewMode fileManagerLibraryMode(FileManagerViewMode mode) {
+  return switch (mode) {
+    FileManagerViewMode.compact => LibraryViewMode.compact,
+    FileManagerViewMode.coverList => LibraryViewMode.coverList,
+    FileManagerViewMode.mosaicList => LibraryViewMode.mosaicList,
+    FileManagerViewMode.details => LibraryViewMode.details,
+    FileManagerViewMode.coverGrid => LibraryViewMode.coverGrid,
+    FileManagerViewMode.mosaicGrid => LibraryViewMode.mosaicGrid,
+  };
 }
 
 /// Rust 驱动的文件浏览卡片。
@@ -75,16 +66,36 @@ class FileManagerCard extends StatefulWidget {
 }
 
 class _FileManagerCardState extends State<FileManagerCard> {
+  /// 增量搜索的防抖窗口。再短会让每敲一个字都发一次桥调用，再长打中文
+  /// （拼音候选要来回改）会感觉没反应。
+  static const _searchDebounceDuration = Duration(milliseconds: 180);
+
   final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
   final _pathController = TextEditingController();
+  final _homeButtonKey = GlobalKey();
   bool _editingPath = false;
   bool _searchExpanded = false;
+  Timer? _searchDebounce;
+
+  /// 最近一次**发给**核心的搜索原文。用来区分「核心把我的输入回显了」和
+  /// 「核心自己改了查询」（切页签、导航会清空）—— 前者不能覆盖输入框里的原始文本。
+  String? _pendingSearchQuery;
+  bool _searchPending = false;
   BigInt? _sessionId;
   FileManagerSnapshot? _snapshot;
   String? _error;
   bool _busy = false;
   int _requestSerial = 0;
   bool _disposed = false;
+
+  /// 文件树面板。展开/懒扫描/游标的正本在 Rust 的 `FolderPaneState` 里，
+  /// 这里只有「开没开」与最近一次投影。
+  bool _treeEnabled = false;
+  FileManagerTreeSnapshot? _tree;
+  BigInt? _treeGeneration;
+  Timer? _treePoll;
+  int _treeSerial = 0;
 
   @override
   void initState() {
@@ -95,7 +106,13 @@ class _FileManagerCardState extends State<FileManagerCard> {
   @override
   void dispose() {
     _disposed = true;
+    _searchDebounce?.cancel();
+    _treePoll?.cancel();
+    // 先摘登记再关会话：反过来的话，两个动作之间有一个窗口期，
+    // 别人正好在这时候请求「新页签」会拿到一个马上要消失的会话。
+    FileManagerTabBridge.instance.detach(this);
     _searchController.dispose();
+    _searchFocus.dispose();
     _pathController.dispose();
     final id = _sessionId;
     if (id != null) fileManagerClose(id: id);
@@ -109,6 +126,36 @@ class _FileManagerCardState extends State<FileManagerCard> {
   String get _persistedHomePath =>
       context.read<GlobalSettingCubit>().state.fileManagerSetting.homePath;
 
+  /// 「记住每个目录的视图与排序」的落盘开关（全局设置）。
+  bool get _persistedRememberViewState => context
+      .read<GlobalSettingCubit>()
+      .state
+      .fileManagerSetting
+      .rememberViewState;
+
+  /// 已经提交给会话的「记忆视图」开关值。
+  ///
+  /// 守卫的意义：同步是发在 build 之后的，判据来自快照；如果这一次提交没有生效
+  /// （比如会话刚好出错），两边会一直不一致 —— 没有这个守卫就是每帧重发一次桥调用。
+  /// 有它以后语义变成「每次用户改动最多补发一次」：要重试得等用户再改。
+  bool? _syncedRememberViewState;
+
+  /// 把全局开关的当前值同步到**活着的会话**上。
+  ///
+  /// 开关有两个入口（设置页、这张卡片），只在新建会话时注入的话，用户在设置里
+  /// 关掉之后会「点了没反应」，要重启才生效。所以每次两者不一致就补一次设置，
+  /// 由会话把新的值回写到快照里。
+  Future<void> _syncRememberViewState(bool remember) async {
+    final id = _sessionId;
+    if (id == null || _disposed || _busy) return;
+    if (_snapshot?.rememberViewState == remember) return;
+    _syncedRememberViewState = remember;
+    await _apply(
+      (session) =>
+          fileManagerSetRememberViewState(id: session, enabled: remember),
+    );
+  }
+
   Future<void> _startSession() async {
     if (_busy) return;
     if (_sessionId != null) {
@@ -121,38 +168,99 @@ class _FileManagerCardState extends State<FileManagerCard> {
     });
     try {
       final home = _persistedHomePath;
+      final remember = _persistedRememberViewState;
       final id = await fileManagerCreate(
         homePath: home.isEmpty ? null : home,
+        // 目录级视图状态的正本在 Rust 的 `settings.db`，路径在启动期就解析好了
+        // （`prepareSettingsDbPath`）；为 null ＝ 本次不记忆，浏览照常。
+        settingsDbPath: preparedSettingsDbPath,
+        rememberViewState: remember,
       );
       if (_disposed) {
         fileManagerClose(id: id);
         return;
       }
+      // 会话已经带着这个值建起来了，别再补发一次。
+      _syncedRememberViewState = remember;
       _sessionId = id;
+      // 会话一就绪就登记进「新页签」通道：别的地方（收藏 / 历史卡片的右键菜单）
+      // 只有从这里才能拿到这个会话。登记的是 `this`，`dispose` 时按同一个对象注销。
+      FileManagerTabBridge.instance.attach(this, _openPathInNewTab);
       await _reload();
     } catch (error) {
       _showError(error);
     }
   }
 
-  /// 把某个目录设为主页：**先写全局设置，再改本次会话**。
+  /// 把某个目录设为主页：**先让核心确认，再落盘**。
   ///
-  /// 顺序有意义 —— 会话里的值只影响这一次的界面，写盘才是「下次启动还记得」。
-  /// 持久化里可能留着一个已经失效的路径（目录被删 / 移动盘没插），那种情况
-  /// 由 `_startSession` 注入时被 Rust 拒绝，UI 用
-  /// 「`persistedHomePath` 非空但 `snapshot.homePath` 为空」判定失效。
+  /// 顺序有意义 —— 核心（`set_home_path`）只接受真实存在的目录，落盘的必须是
+  /// 它真正接受的那个路径。否则全局设置里会留下一个核心拒绝的路径，重启后
+  /// 又被 `_startSession` 静默忽略，表现为「设置页写着有主页、卡片上却按不动」。
+  ///
+  /// 持久化里仍可能留着一个后来失效的路径（目录被删 / 移动盘没插），那种情况
+  /// 由 UI 用「`_persistedHomePath` 非空但 `snapshot.homePath` 为空」判定失效。
   Future<void> _setHomePath(String path) async {
+    final ok = await _apply((id) => fileManagerSetHomePath(id: id, path: path));
+    if (!ok || !mounted) return;
+    final applied = _snapshot?.homePath;
+    if (applied == null) return;
     context.read<GlobalSettingCubit>().updateFileManagerSetting(
-      (current) => current.copyWith(homePath: path),
+      (current) => current.copyWith(homePath: applied),
     );
-    await _apply((id) => fileManagerSetHomePath(id: id, path: path));
+    showSuccessToast(applied, title: '主页已设为', context: context);
   }
 
   Future<void> _clearHomePath() async {
+    final ok = await _apply((id) => fileManagerSetHomePath(id: id, path: null));
+    if (!ok || !mounted || _snapshot?.homePath != null) return;
     context.read<GlobalSettingCubit>().updateFileManagerSetting(
       (current) => current.copyWith(homePath: ''),
     );
-    await _apply((id) => fileManagerSetHomePath(id: id, path: null));
+    showInfoToast('已清除主页', context: context);
+  }
+
+  /// 主页菜单：把「回主页 / 设为主页 / 清除主页」三个动作收在主页键自己身上。
+  ///
+  /// 为什么不直接把右键当「设为主页」：那样「回主页」和「清除主页」在卡片上
+  /// 都没有入口，用户只能去设置页里翻。菜单让三个动作都出现在它们作用的那个按钮上，
+  /// 并且每一项按当前能力置灰（已在主页时不能重复设、没设过时不能清除）。
+  Future<void> _openHomeMenu(FileManagerSnapshot snapshot) async {
+    if (_busy) return;
+    final box = _homeButtonKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final hasHome = snapshot.homePath != null;
+    final selected = await FluentPopupMenu.show<_HomeAction>(
+      context: context,
+      anchor: box.localToGlobal(Offset.zero) & box.size,
+      items: [
+        FluentPopupMenuItem(
+          value: _HomeAction.goHome,
+          enabled: hasHome && !snapshot.isHome,
+          title: const Text('回到主页'),
+        ),
+        FluentPopupMenuItem(
+          value: _HomeAction.setHome,
+          enabled: snapshot.canSetHome,
+          title: const Text('把当前目录设为主页'),
+        ),
+        const FluentPopupMenuItem.divider(),
+        FluentPopupMenuItem(
+          value: _HomeAction.clearHome,
+          enabled: hasHome,
+          title: const Text('清除主页'),
+        ),
+      ],
+    );
+    if (!mounted || selected == null) return;
+    switch (selected) {
+      case _HomeAction.goHome:
+        await _apply((id) => fileManagerGoHome(id: id));
+      case _HomeAction.setHome:
+        await _setHomePath(snapshot.activePath);
+      case _HomeAction.clearHome:
+        await _clearHomePath();
+    }
   }
 
   Future<void> _reload() async {
@@ -174,11 +282,35 @@ class _FileManagerCardState extends State<FileManagerCard> {
     }
   }
 
+  /// 「在文件管理新页签里打开 [path]」落到这张卡片上。
+  ///
+  /// 有意**不走** [_apply]：那个口径里有 `_busy` 与请求序号两道闸，是给
+  /// 「用户在这张卡片上连续点」准备的。这里的调用方在**另一张卡片**上，
+  /// 它既看不见也不该受这里的忙状态影响 —— 尤其 `_busy` 为真时 [_apply] 静默
+  /// 返回 `false`，那会让调用方以为「文件管理面板没起来」，而它明明开着。
+  ///
+  /// 失败时由**这里**弹具体错误（只有这一层知道异常是什么），并回
+  /// [FileManagerTabOpenOutcome.failed] 让调用方别再补一句笼统的失败提示。
+  Future<FileManagerTabOpenOutcome> _openPathInNewTab(String path) async {
+    final id = _sessionId;
+    if (id == null || _disposed) return FileManagerTabOpenOutcome.noSession;
+    try {
+      final snapshot = await fileManagerNewTab(id: id, path: path);
+      if (!mounted || _disposed) return FileManagerTabOpenOutcome.failed;
+      setState(() => _acceptSnapshot(snapshot));
+      return FileManagerTabOpenOutcome.opened;
+    } catch (error) {
+      if (mounted) _showError(error);
+      return FileManagerTabOpenOutcome.failed;
+    }
+  }
+
   Future<bool> _apply(
     Future<FileManagerSnapshot> Function(BigInt id) action,
   ) async {
     final id = _sessionId;
     if (id == null || _busy) return false;
+    _cancelPendingSearch();
     final serial = ++_requestSerial;
     setState(() {
       _busy = true;
@@ -197,6 +329,51 @@ class _FileManagerCardState extends State<FileManagerCard> {
       _showError(error);
       return false;
     }
+  }
+
+  /// 丢掉还没发出的那一次搜索。
+  ///
+  /// 必须是任何显式动作的第一步：防抖里的搜索一旦晚于用户的点击发出，
+  /// 它就会成为「最后发请求的人」，把点击那份快照当成陈旧结果丢掉 ——
+  /// 表现是双击归档后 Reader 没起来。
+  void _cancelPendingSearch() {
+    _searchDebounce?.cancel();
+    _searchDebounce = null;
+  }
+
+  /// 搜索专用的提交通道：**不走 [_apply] 的 `_busy` 门控**。
+  ///
+  /// `_busy` 会同时禁用输入框、列表和整排工具键，那是给「一次动作把目录换掉」
+  /// 准备的。增量搜索每敲一个字都要跑一遍，套用同一道闸就打不了字。
+  /// 陈旧守卫（[_requestSerial]）仍然共用 —— 快照是全量状态，后发优先。
+  Future<void> _submitSearch(String query) async {
+    final id = _sessionId;
+    if (id == null || _disposed) return;
+    _cancelPendingSearch();
+    _pendingSearchQuery = query;
+    final serial = ++_requestSerial;
+    if (!_searchPending) setState(() => _searchPending = true);
+    try {
+      final snapshot = await fileManagerSetSearchQuery(id: id, query: query);
+      if (!mounted || serial != _requestSerial) return;
+      setState(() {
+        _searchPending = false;
+        _acceptSnapshot(snapshot);
+      });
+    } catch (error) {
+      if (!mounted || serial != _requestSerial) return;
+      setState(() => _searchPending = false);
+      _showError(error);
+    }
+  }
+
+  /// 输入即搜：防抖到 [_searchDebounceDuration]，回车走 `_submitSearch` 立即提交。
+  void _scheduleSearch(String query) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      _searchDebounceDuration,
+      () => _submitSearch(query),
+    );
   }
 
   Future<void> _openEntry(
@@ -222,6 +399,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
   ) async {
     final id = _sessionId;
     if (id == null || _busy) return;
+    _cancelPendingSearch();
     final serial = ++_requestSerial;
     setState(() {
       _busy = true;
@@ -289,12 +467,27 @@ class _FileManagerCardState extends State<FileManagerCard> {
 
   void _acceptSnapshot(FileManagerSnapshot snapshot) {
     _snapshot = snapshot;
-    if (_searchController.text != snapshot.searchQuery) {
-      _searchController.value = TextEditingValue(
-        text: snapshot.searchQuery,
-        selection: TextSelection.collapsed(offset: snapshot.searchQuery.length),
-      );
-    }
+    _syncSearchField(snapshot);
+  }
+
+  /// 输入框的文本以「谁最后改了查询」为准，而不是无条件跟随快照。
+  ///
+  /// 核心收到查询会 `trim`。边打边搜时若无条件回显，用户刚敲下的空格会被吃掉，
+  /// 表现为「输入框拒绝空格」。所以只要框还拿着焦点、而核心给出的正是我们刚
+  /// 提交的那一份（去掉首尾空白之后），就不动它。
+  /// 反之 —— 核心自己改了查询（切页签与导航会清空搜索）—— 必须盖回输入框，
+  /// 否则框里留着一个已经不再生效的词。
+  void _syncSearchField(FileManagerSnapshot snapshot) {
+    final server = snapshot.searchQuery;
+    final asked = _pendingSearchQuery;
+    if (_searchFocus.hasFocus && asked != null && server == asked.trim())
+      return;
+    _pendingSearchQuery = null;
+    if (_searchController.text == server) return;
+    _searchController.value = TextEditingValue(
+      text: server,
+      selection: TextSelection.collapsed(offset: server.length),
+    );
   }
 
   void _showError(Object error) {
@@ -309,6 +502,23 @@ class _FileManagerCardState extends State<FileManagerCard> {
   Widget build(BuildContext context) {
     final snapshot = _snapshot;
     final theme = Theme.of(context);
+    // 设置页改开关时这张卡片不会重建，所以在这里对齐一次；排到帧后是因为
+    // 同步本身会 `setState`，在 build 期间发起会撞上「构建期间改状态」。
+    final remember = context.select<GlobalSettingCubit, bool>(
+      (cubit) => cubit.state.fileManagerSetting.rememberViewState,
+    );
+    if (snapshot != null &&
+        !_busy &&
+        _syncedRememberViewState != remember &&
+        snapshot.rememberViewState != remember) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _syncRememberViewState(remember);
+      });
+    }
+    if (snapshot != null) {
+      _followTreeOn(snapshot.generation);
+    }
     if (widget.isStandalone) {
       return Material(
         type: MaterialType.transparency,
@@ -361,6 +571,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
         _buildBreadcrumbs(context, snapshot),
         if (snapshot.directoryColumnsEnabled)
           _buildDirectoryColumns(context, snapshot),
+        if (_treeEnabled) _buildFileTree(context),
         const SizedBox(height: 6),
         if (_searchExpanded || snapshot.searchQuery.isNotEmpty) ...[
           _buildSearchField(context, snapshot),
@@ -628,6 +839,166 @@ class _FileManagerCardState extends State<FileManagerCard> {
     );
   }
 
+  /// 开关文件树。
+  ///
+  /// 打开时顺手关掉目录列：两者回答的是同一个问题（「我在这棵目录树的哪儿」），
+  /// 同时开着只是把本来就不高的卡片挤成两半。
+  Future<void> _setTreeEnabled(bool enabled) async {
+    if (!enabled) {
+      _treePoll?.cancel();
+      setState(() {
+        _treeEnabled = false;
+        _tree = null;
+        _treeGeneration = null;
+      });
+      return;
+    }
+    final snapshot = _snapshot;
+    if (snapshot != null && snapshot.directoryColumnsEnabled) {
+      await _apply(
+        (id) => fileManagerSetDirectoryColumns(id: id, enabled: false),
+      );
+    }
+    if (!mounted) return;
+    setState(() {
+      _treeEnabled = true;
+      // 清掉上一次的对齐记号，让本帧后的 `_followTreeOn` 一定问一次。
+      _treeGeneration = null;
+    });
+  }
+
+  /// 当前目录一变，树就重新对齐一次。
+  ///
+  /// 挂在 `generation` 上而不是逐个导航动作里：改当前目录的入口有七八个
+  /// （页签、面包屑、导航掌、根目录、条目双击、收藏/历史卡片的「新页签打开」），
+  /// 而核心保证每个生效的动作都推进 `generation`。
+  void _followTreeOn(BigInt generation) {
+    if (!_treeEnabled || _treeGeneration == generation) return;
+    _treeGeneration = generation;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _treeEnabled) _loadTree();
+    });
+  }
+
+  Future<void> _loadTree() async {
+    final id = _sessionId;
+    if (id == null || _disposed || !_treeEnabled) return;
+    final serial = ++_treeSerial;
+    try {
+      final tree = await fileManagerTreeSnapshot(id: id);
+      if (!mounted || serial != _treeSerial || !_treeEnabled) return;
+      setState(() => _tree = tree);
+      _scheduleTreePoll(tree);
+    } catch (error) {
+      if (!mounted || serial != _treeSerial) return;
+      setState(() => _tree = null);
+      _showError(error);
+    }
+  }
+
+  Future<void> _toggleTreeNode(String path) async {
+    final id = _sessionId;
+    if (id == null || _disposed || _busy) return;
+    final serial = ++_treeSerial;
+    try {
+      final tree = await fileManagerTreeToggle(id: id, path: path);
+      if (!mounted || serial != _treeSerial || !_treeEnabled) return;
+      setState(() => _tree = tree);
+      _scheduleTreePoll(tree);
+    } catch (error) {
+      if (!mounted || serial != _treeSerial) return;
+      _showError(error);
+    }
+  }
+
+  /// 后台扫描没有帧循环可挂，只能自己隔一会儿再问一次。核心在每次被问时
+  /// 收一轮 `poll_pending`，所以这里只负责「什么时候再问」。
+  void _scheduleTreePoll(FileManagerTreeSnapshot tree) {
+    _treePoll?.cancel();
+    if (!tree.hasPending) return;
+    _treePoll = Timer(const Duration(milliseconds: 80), _loadTree);
+  }
+
+  Widget _buildFileTree(BuildContext context) {
+    final tree = _tree;
+    return SizedBox(
+      height: 200,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(color: Theme.of(context).dividerColor),
+        ),
+        child: tree == null
+            ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+            : tree.rows.isEmpty
+            ? const Center(child: Text('没有可显示的目录'))
+            : ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                itemCount: tree.rows.length,
+                itemBuilder: (context, index) =>
+                    _buildTreeRow(context, tree.rows[index]),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildTreeRow(BuildContext context, FileManagerTreeRow row) {
+    final theme = Theme.of(context);
+    return ListTile(
+      key: ValueKey('file-manager-tree:${row.path}'),
+      dense: true,
+      selected: row.isActive,
+      selectedTileColor: theme.colorScheme.primary.withValues(alpha: 0.08),
+      contentPadding: EdgeInsets.only(left: 4.0 + row.depth * 14, right: 8),
+      leading: SizedBox(
+        width: 24,
+        child: !row.mayHaveChildren
+            ? null
+            : row.loading
+            ? const Center(
+                child: SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+            : IconButton(
+                key: ValueKey('file-manager-tree-toggle:${row.path}'),
+                visualDensity: VisualDensity.compact,
+                style: IconButton.styleFrom(
+                  minimumSize: Size.zero,
+                  padding: EdgeInsets.zero,
+                ),
+                iconSize: 16,
+                tooltip: row.expanded ? '收起' : '展开',
+                onPressed: _busy ? null : () => _toggleTreeNode(row.path),
+                icon: Icon(
+                  row.expanded
+                      ? Icons.expand_more_rounded
+                      : Icons.chevron_right_rounded,
+                ),
+              ),
+      ),
+      title: Text(
+        row.name,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: row.isActive
+            ? const TextStyle(fontWeight: FontWeight.bold)
+            : null,
+      ),
+      trailing: row.error == null
+          ? null
+          : Icon(
+              Icons.error_outline_rounded,
+              size: 14,
+              color: theme.colorScheme.error,
+            ),
+      onTap: _busy
+          ? null
+          : () => _apply((id) => fileManagerNavigate(id: id, path: row.path)),
+    );
+  }
+
   Widget _buildTabs(BuildContext context, FileManagerSnapshot snapshot) {
     final theme = Theme.of(context);
     return SizedBox(
@@ -678,8 +1049,9 @@ class _FileManagerCardState extends State<FileManagerCard> {
               },
             ),
           ),
-          PopupMenuButton<BigInt>(
+          FluentPopupMenuButton<BigInt>(
             tooltip: '恢复已关闭页签',
+            visualDensity: VisualDensity.compact,
             enabled:
                 !_busy &&
                 snapshot.canCreateTab &&
@@ -690,9 +1062,9 @@ class _FileManagerCardState extends State<FileManagerCard> {
             ),
             itemBuilder: (_) => [
               for (final tab in snapshot.recentlyClosed.reversed)
-                PopupMenuItem(
+                FluentPopupMenuItem(
                   value: tab.id,
-                  child: Text(
+                  title: Text(
                     tab.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -715,8 +1087,9 @@ class _FileManagerCardState extends State<FileManagerCard> {
   }
 
   Widget _buildTabMenu(FileManagerSnapshot snapshot, FileManagerTab tab) {
-    return PopupMenuButton<String>(
+    return FluentPopupMenuButton<String>(
       tooltip: '页签操作：${tab.title}',
+      visualDensity: VisualDensity.compact,
       enabled: !_busy,
       icon: Icon(
         tab.pinned ? Icons.push_pin_rounded : Icons.more_vert_rounded,
@@ -733,69 +1106,83 @@ class _FileManagerCardState extends State<FileManagerCard> {
         },
       ),
       itemBuilder: (_) => [
-        PopupMenuItem(value: 'pin', child: Text(tab.pinned ? '取消固定' : '固定页签')),
-        PopupMenuItem(
+        FluentPopupMenuItem(
+          value: 'pin',
+          title: Text(tab.pinned ? '取消固定' : '固定页签'),
+        ),
+        FluentPopupMenuItem(
           value: 'duplicate',
           enabled: snapshot.canCreateTab,
-          child: const Text('复制页签'),
+          title: const Text('复制页签'),
         ),
-        const PopupMenuDivider(),
-        PopupMenuItem(
+        const FluentPopupMenuItem.divider(),
+        FluentPopupMenuItem(
           value: 'close',
           enabled: tab.canClose,
-          child: const Text('关闭页签'),
+          title: const Text('关闭页签'),
         ),
-        PopupMenuItem(
+        FluentPopupMenuItem(
           value: 'others',
           enabled: tab.canCloseOthers,
-          child: const Text('关闭其他页签'),
+          title: const Text('关闭其他页签'),
         ),
-        PopupMenuItem(
+        FluentPopupMenuItem(
           value: 'left',
           enabled: tab.canCloseLeft,
-          child: const Text('关闭左侧页签'),
+          title: const Text('关闭左侧页签'),
         ),
-        PopupMenuItem(
+        FluentPopupMenuItem(
           value: 'right',
           enabled: tab.canCloseRight,
-          child: const Text('关闭右侧页签'),
+          title: const Text('关闭右侧页签'),
         ),
       ],
     );
   }
 
   /// 可折叠搜索框：由工具栏的搜索键展开；已有生效查询时强制显示。
+  ///
+  /// 输入即搜（防抖 [_searchDebounceDuration]），回车只是把这一次提前提交。
+  /// 匹配语法由 Rust 侧的 `search_query` 定义：空格分词求交、`-词` 排除、
+  /// `"带空格"` 当一个词。
   Widget _buildSearchField(BuildContext context, FileManagerSnapshot snapshot) {
     return TextField(
       controller: _searchController,
-      enabled: !_busy,
+      focusNode: _searchFocus,
       autofocus: snapshot.searchQuery.isEmpty,
       textInputAction: TextInputAction.search,
       style: Theme.of(context).textTheme.bodySmall,
       decoration: InputDecoration(
         isDense: true,
-        hintText: '当前目录名称 · 回车搜索',
+        hintText: '名称与路径 · 空格分词 · -排除 · “短语”',
         prefixIcon: const Icon(Icons.search, size: 18),
-        suffixIcon: IconButton(
-          tooltip: '清除搜索并收起',
-          icon: const Icon(Icons.clear, size: 16),
-          onPressed: _busy
-              ? null
-              : () {
-                  _apply((id) => fileManagerSetSearchQuery(id: id, query: ''));
+        suffixIcon: _searchPending
+            ? const Padding(
+                padding: EdgeInsets.all(10),
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : IconButton(
+                tooltip: '清除搜索并收起',
+                icon: const Icon(Icons.clear, size: 16),
+                onPressed: () {
+                  _submitSearch('');
                   setState(() => _searchExpanded = false);
                 },
-        ),
+              ),
         border: const OutlineInputBorder(),
       ),
-      onSubmitted: (query) =>
-          _apply((id) => fileManagerSetSearchQuery(id: id, query: query)),
+      onChanged: _scheduleSearch,
+      onSubmitted: _submitSearch,
     );
   }
 
   /// 工具栏对齐 neoview 文件卡：单行三段 —— 导航掌 / 主工具组 / 更多组。
   Widget _buildToolbar(BuildContext context, FileManagerSnapshot snapshot) {
     final theme = Theme.of(context);
+    // 只订阅本功能自己的开关，别的设置变了不重建这张卡片。
+    final homeEnabled = context.select<GlobalSettingCubit, bool>(
+      (cubit) => cubit.state.fileManagerSetting.homeEnabled,
+    );
     final activeTab = snapshot.tabs.firstWhere(
       (tab) => tab.id == snapshot.activeTabId,
     );
@@ -833,42 +1220,6 @@ class _FileManagerCardState extends State<FileManagerCard> {
       );
     }
 
-    // 主页键：单击跳主页；右键 / 长按把当前目录设为主页。
-    // 说明：IconButton 自带 Tooltip 默认长按触发，会抢走外层长按手势，
-    // 因此这里自建 Tooltip（tap 触发）并把两种手势都留给外层 GestureDetector。
-    Widget homeButton() {
-      final homeTooltip =
-          snapshot.homePath == null
-              ? '主页（未设置 · 右键/长按设为当前目录）'
-              : '主页（右键/长按改为当前目录）';
-      final button = IconButton(
-        icon: Icon(
-          snapshot.isHome ? Icons.home_rounded : Icons.home_outlined,
-          size: 18,
-          color: snapshot.isHome ? theme.colorScheme.primary : null,
-        ),
-        visualDensity: VisualDensity.compact,
-        onPressed: _busy || snapshot.homePath == null
-            ? null
-            : () => _apply((id) => fileManagerGoHome(id: id)),
-      );
-      if (!snapshot.canSetHome) {
-        return Tooltip(message: homeTooltip, child: button);
-      }
-      void setHome() => _apply(
-        (id) => fileManagerSetHomePath(id: id, path: snapshot.activePath),
-      );
-      return GestureDetector(
-        onSecondaryTapUp: (_) => setHome(),
-        onLongPress: setHome,
-        child: Tooltip(
-          message: homeTooltip,
-          triggerMode: TooltipTriggerMode.tap,
-          child: button,
-        ),
-      );
-    }
-
     // 隐藏滚动条：窄卡片下主工具组横向滚动，但不显示滚动条本身。
     return ScrollConfiguration(
       behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
@@ -877,58 +1228,53 @@ class _FileManagerCardState extends State<FileManagerCard> {
         child: Row(
           children: [
             // —— 导航掌 ——
-            action(
-              icon: Icons.arrow_back_rounded,
-              tooltip: '后退',
-              onPressed: activeTab.canGoBack
-                  ? () => _apply((id) => fileManagerGoBack(id: id))
-                  : null,
+            // 五个方向合成一个 32px 的掌形控件（对齐 NeoView 的 FolderNavigationPad），
+            // 而不是五颗 32px 的独立按钮：窄卡片上省掉 4/5 的宽度。
+            FileManagerNavigationPad(
+              busy: _busy,
+              loading: _busy,
+              canGoBack: activeTab.canGoBack,
+              canGoForward: activeTab.canGoForward,
+              canGoUp: snapshot.canGoUp,
+              homeKey: _homeButtonKey,
+              homeEnabled: homeEnabled,
+              hasHome: snapshot.homePath != null,
+              atHome: snapshot.isHome,
+              onNavigateBack: () => _apply((id) => fileManagerGoBack(id: id)),
+              onNavigateForward: () =>
+                  _apply((id) => fileManagerGoForward(id: id)),
+              onNavigateUp: () => _apply((id) => fileManagerGoUp(id: id)),
+              // 设过主页 = 单击回主页；没设过 = 单击把当前目录设为主页，
+              // 这样第一次用的人不必先猜「要长按/右键」。
+              onGoHome: snapshot.homePath != null
+                  ? () => _apply((id) => fileManagerGoHome(id: id))
+                  : () => _setHomePath(snapshot.activePath),
+              onHomeMenu: () => _openHomeMenu(snapshot),
+              onRefresh: () => _apply((id) => fileManagerRefresh(id: id)),
             ),
-            action(
-              icon: Icons.arrow_forward_rounded,
-              tooltip: '前进',
-              onPressed: activeTab.canGoForward
-                  ? () => _apply((id) => fileManagerGoForward(id: id))
-                  : null,
-            ),
-            action(
-              icon: Icons.arrow_upward_rounded,
-              tooltip: '上一级',
-              onPressed: snapshot.canGoUp
-                  ? () => _apply((id) => fileManagerGoUp(id: id))
-                  : null,
-            ),
-            homeButton(),
-            action(
-              icon: Icons.refresh_rounded,
-              tooltip: '刷新',
-              onPressed: () => _apply((id) => fileManagerRefresh(id: id)),
-            ),
+            const SizedBox(width: 2),
 
             // —— 主工具组 ——
-            PopupMenuButton<FileManagerViewMode>(
+            FluentPopupMenuButton<FileManagerViewMode>(
               tooltip: '视图模式：${snapshot.viewMode.label}',
+              visualDensity: VisualDensity.compact,
               enabled: !_busy,
               icon: Icon(snapshot.viewMode.icon, size: 18),
               onSelected: (mode) =>
                   _apply((id) => fileManagerSetViewMode(id: id, mode: mode)),
               itemBuilder: (_) => [
                 for (final mode in FileManagerViewMode.values)
-                  CheckedPopupMenuItem(
+                  FluentPopupMenuItem(
                     value: mode,
-                    checked: mode == snapshot.viewMode,
-                    child: Row(
-                      children: [
-                        Icon(mode.icon, size: 16),
-                        const SizedBox(width: 8),
-                        Text(mode.label),
-                      ],
-                    ),
+                    leading: Icon(mode.icon, size: 16),
+                    selected: mode == snapshot.viewMode,
+                    title: Text(mode.label),
                   ),
               ],
             ),
-            PopupMenuButton<String>(
+            FluentPopupMenuButton<String>(
               tooltip: '排序：${fields[snapshot.sortField]}',
+              visualDensity: VisualDensity.compact,
               enabled: !_busy,
               icon: const Icon(Icons.sort_rounded, size: 18),
               onSelected: (value) {
@@ -970,25 +1316,25 @@ class _FileManagerCardState extends State<FileManagerCard> {
               },
               itemBuilder: (_) => [
                 for (final field in fields.entries)
-                  CheckedPopupMenuItem(
+                  FluentPopupMenuItem(
                     value: 'field:${field.key.name}',
-                    checked: field.key == snapshot.sortField,
-                    child: Text(field.value),
+                    selected: field.key == snapshot.sortField,
+                    title: Text(field.value),
                   ),
-                const PopupMenuDivider(),
-                PopupMenuItem(
+                const FluentPopupMenuItem.divider(),
+                FluentPopupMenuItem(
                   value: 'order',
-                  child: Text(
+                  title: Text(
                     snapshot.sortOrder == FileManagerSortOrder.ascending
                         ? '切换为降序'
                         : '切换为升序',
                   ),
                 ),
-                CheckedPopupMenuItem(
+                FluentPopupMenuItem(
                   value: 'temporary',
-                  checked: snapshot.sortTemporary,
+                  selected: snapshot.sortTemporary,
                   enabled: snapshot.canSortPreference,
-                  child: const Text('临时排序（不记住本目录）'),
+                  title: const Text('临时排序（不记住本目录）'),
                 ),
               ],
             ),
@@ -1018,6 +1364,12 @@ class _FileManagerCardState extends State<FileManagerCard> {
               ),
             ),
             action(
+              icon: Icons.account_tree_outlined,
+              tooltip: _treeEnabled ? '关闭文件树' : '文件树',
+              active: _treeEnabled,
+              onPressed: () => _setTreeEnabled(!_treeEnabled),
+            ),
+            action(
               icon: Icons.alt_route_rounded,
               tooltip: snapshot.penetrationEnabled ? '关闭穿透模式' : '穿透模式',
               active: snapshot.penetrationEnabled,
@@ -1030,8 +1382,9 @@ class _FileManagerCardState extends State<FileManagerCard> {
             ),
 
             // —— 更多组 ——
-            PopupMenuButton<String>(
+            FluentPopupMenuButton<String>(
               tooltip: '更多',
+              visualDensity: VisualDensity.compact,
               enabled: !_busy,
               icon: const Icon(Icons.more_horiz_rounded, size: 18),
               onSelected: (value) {
@@ -1088,43 +1441,43 @@ class _FileManagerCardState extends State<FileManagerCard> {
                 }
               },
               itemBuilder: (context) => [
-                CheckedPopupMenuItem(
+                FluentPopupMenuItem(
                   value: 'hidden',
-                  checked: snapshot.showHiddenFiles,
-                  child: const Text('显示隐藏文件'),
+                  selected: snapshot.showHiddenFiles,
+                  title: const Text('显示隐藏文件'),
                 ),
-                CheckedPopupMenuItem(
+                FluentPopupMenuItem(
                   value: 'directories',
-                  checked: snapshot.directoriesFirst,
-                  child: const Text('文件夹优先'),
+                  selected: snapshot.directoriesFirst,
+                  title: const Text('文件夹优先'),
                 ),
-                CheckedPopupMenuItem(
+                FluentPopupMenuItem(
                   value: 'children',
-                  checked: snapshot.showChildNames,
-                  child: const Text('显示子文件名'),
+                  selected: snapshot.showChildNames,
+                  title: const Text('显示子文件名'),
                 ),
-                PopupMenuItem(
+                FluentPopupMenuItem(
                   value: 'mode',
-                  child: Text(
+                  title: Text(
                     snapshot.internalItemsMode ==
                             FileManagerInternalItemsMode.single
                         ? '子文件：显示一个'
                         : '子文件：显示全部',
                   ),
                 ),
-                const PopupMenuDivider(),
+                const FluentPopupMenuItem.divider(),
                 for (final depth in [1, 2, 3, 5, 10, 32])
-                  CheckedPopupMenuItem(
+                  FluentPopupMenuItem(
                     value: '$depth',
-                    checked: snapshot.maxDepth == depth,
-                    child: Text(depth == 32 ? '穿透深度：最多 32 层' : '穿透深度：$depth 层'),
+                    selected: snapshot.maxDepth == depth,
+                    title: Text(depth == 32 ? '穿透深度：最多 32 层' : '穿透深度：$depth 层'),
                   ),
-                const PopupMenuDivider(),
+                const FluentPopupMenuItem.divider(),
                 for (final filter in filters.entries)
-                  CheckedPopupMenuItem(
+                  FluentPopupMenuItem(
                     value: 'filter:${filter.key.name}',
-                    checked: filter.key == snapshot.entryFilter,
-                    child: Text('类型：${filter.value}'),
+                    selected: filter.key == snapshot.entryFilter,
+                    title: Text('类型：${filter.value}'),
                   ),
               ],
             ),
@@ -1205,724 +1558,168 @@ class _FileManagerCardState extends State<FileManagerCard> {
     );
   }
 
+  /// 视图模式映射。渲染全部走 `LibraryEntryList`，这一层只剩
+  /// 「把 `FileManagerEntry` 说成共享行模型听得懂的话」。
+  static const _thumbModes = {
+    LibraryViewMode.coverList,
+    LibraryViewMode.mosaicList,
+    LibraryViewMode.coverGrid,
+    LibraryViewMode.mosaicGrid,
+  };
+
+  static const _detailsTitleColumn = LibraryColumn(
+    key: 'name',
+    label: '名称',
+    flex: LibraryViewLayout.detailsTitleFlex,
+  );
+
+  static const _detailsColumns = [
+    LibraryColumn(key: 'type', label: '类型', width: 70),
+    LibraryColumn(key: 'size', label: '大小', width: 75, alignRight: true),
+    LibraryColumn(key: 'date', label: '修改时间', width: 110),
+  ];
+
   Widget _buildEntries(BuildContext context, FileManagerSnapshot snapshot) {
-    if (snapshot.entries.isEmpty) {
-      final emptyText = Center(
-        child: Text(
-          snapshot.searchQuery.isNotEmpty ||
-                  snapshot.entryFilter != FileManagerEntryFilter.all
-              ? '没有符合搜索或类型筛选的条目'
-              : '当前目录没有可浏览的漫画或媒体文件',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      );
-      if (widget.isStandalone) {
-        return emptyText;
-      }
-      return SizedBox(height: 170, child: emptyText);
-    }
-
-    final Widget viewWidget = switch (snapshot.viewMode) {
-      FileManagerViewMode.compact => _buildCompactList(context, snapshot),
-      FileManagerViewMode.coverList => _buildCoverList(context, snapshot),
-      FileManagerViewMode.mosaicList => _buildMosaicList(context, snapshot),
-      FileManagerViewMode.details => _buildDetailsTable(context, snapshot),
-      FileManagerViewMode.coverGrid => _buildCoverGrid(context, snapshot),
-      FileManagerViewMode.mosaicGrid => _buildMosaicGrid(context, snapshot),
-    };
-
-    final content = DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: Theme.of(
-            context,
-          ).colorScheme.outlineVariant.withValues(alpha: 0.35),
-        ),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: viewWidget,
-      ),
-    );
-    final list = widget.isStandalone
-        ? content
-        : ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 120, maxHeight: 440),
-            child: content,
-          );
-    return Stack(
-      fit: widget.isStandalone ? StackFit.expand : StackFit.loose,
-      children: [
-        list,
-        if (_busy)
-          const Positioned.fill(
-            child: ColoredBox(
-              color: Color(0x33000000),
-              child: Center(
-                child: SizedBox.square(
-                  dimension: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            ),
-          ),
+    final mode = fileManagerLibraryMode(snapshot.viewMode);
+    final searching =
+        snapshot.searchQuery.isNotEmpty ||
+        snapshot.entryFilter != FileManagerEntryFilter.all;
+    return LibraryEntryList(
+      mode: mode,
+      entries: [
+        for (final entry in snapshot.entries)
+          _libraryEntry(context, entry, mode),
       ],
+      emptyText: searching ? '没有符合搜索或类型筛选的条目' : '当前目录没有可浏览的漫画或媒体文件',
+      enabled: !_busy,
+      busy: _busy,
+      standalone: widget.isStandalone,
+      onTap: (row) => _openEntry(row.source! as FileManagerEntry),
+      canDoubleTap: (row) => (row.source! as FileManagerEntry).isArchive,
+      onDoubleTap: (row) => _openArchive(row.source! as FileManagerEntry),
+      titleColumn: _detailsTitleColumn,
+      columns: _detailsColumns,
+      sortKey: snapshot.sortField.name,
+      sortAscending: snapshot.sortOrder == FileManagerSortOrder.ascending,
+      onSort: (key) =>
+          _toggleSort(snapshot, FileManagerSortField.values.byName(key)),
     );
   }
 
-  // --- 1. 紧凑列表 (Compact List): 单行 ~34px 高度，彩色语义图标 + 紧凑元数据 ---
-  Widget _buildCompactList(BuildContext context, FileManagerSnapshot snapshot) {
-    return ListView.separated(
-      primary: false,
-      itemCount: snapshot.entries.length,
-      separatorBuilder: (_, _) => const Divider(height: 1),
-      itemBuilder: (context, index) =>
-          _buildCompactListEntry(context, snapshot.entries[index]),
-    );
-  }
-
-  Widget _buildCompactListEntry(BuildContext context, FileManagerEntry entry) {
-    final theme = Theme.of(context);
-    return InkWell(
-      onTap: _busy ? null : () => _openEntry(entry),
-      onDoubleTap: entry.isArchive && !_busy ? () => _openArchive(entry) : null,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 34),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        child: Row(
-          children: [
-            _buildSemanticIcon(context, entry, size: 16),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    entry.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                  if (entry.childNames.isNotEmpty)
-                    _buildChildNames(context, entry.childNames),
-                ],
-              ),
-            ),
-            const SizedBox(width: 6),
-            if (entry.isDir)
-              IconButton(
-                icon: const Icon(Icons.folder_open_rounded, size: 16),
-                tooltip: '进入文件夹',
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                onPressed: _busy
-                    ? null
-                    : () => _openEntry(entry, forceEnter: true),
-              )
-            else if (entry.size > BigInt.zero)
-              Text(
-                _formatSize(entry.size),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.outline,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // --- 2. 封面列表 (Cover List): 双行 ~74px 高度，封面方块 + 标题 + 穿透子文件名/日期大小 ---
-  Widget _buildCoverList(BuildContext context, FileManagerSnapshot snapshot) {
-    return ListView.separated(
-      primary: false,
-      itemCount: snapshot.entries.length,
-      separatorBuilder: (_, _) => const Divider(height: 1),
-      itemBuilder: (context, index) =>
-          _buildCoverListEntry(context, snapshot.entries[index]),
-    );
-  }
-
-  Widget _buildCoverListEntry(BuildContext context, FileManagerEntry entry) {
-    final theme = Theme.of(context);
-    final hasSize = !entry.isDir && entry.size > BigInt.zero;
-    final hasDate = entry.modifiedSecs.toInt() > 0;
-    String subtitleText = _formatType(entry);
-    if (hasSize) {
-      subtitleText += ' · ${_formatSize(entry.size)}';
-    }
-    if (hasDate) {
-      subtitleText += ' · ${_formatDate(entry.modifiedSecs.toInt())}';
-    }
-
-    return InkWell(
-      onTap: _busy ? null : () => _openEntry(entry),
-      onDoubleTap: entry.isArchive && !_busy ? () => _openArchive(entry) : null,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            FileManagerThumbnailWidget(
-              entry: entry,
-              width: 44,
-              height: 44,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    entry.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  if (entry.childNames.isNotEmpty)
-                    _buildChildNames(context, entry.childNames)
-                  else
-                    Text(
-                      subtitleText,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.outline,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 6),
-            if (entry.isDir)
-              IconButton(
-                icon: const Icon(Icons.folder_open_rounded, size: 18),
-                tooltip: '进入文件夹',
-                visualDensity: VisualDensity.compact,
-                onPressed: _busy
-                    ? null
-                    : () => _openEntry(entry, forceEnter: true),
-              )
-            else
-              const Padding(
-                padding: EdgeInsets.only(top: 4),
-                child: Icon(Icons.play_circle_outline_rounded, size: 18),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // --- 3. 横幅 (Mosaic List): 宽卡片网格 ~92px 高，左侧宽缩略图横幅 + 右侧元数据 ---
-  Widget _buildMosaicList(BuildContext context, FileManagerSnapshot snapshot) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(6),
-      primary: false,
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 320,
-        mainAxisExtent: 92,
-        crossAxisSpacing: 6,
-        mainAxisSpacing: 6,
-      ),
-      itemCount: snapshot.entries.length,
-      itemBuilder: (context, index) =>
-          _buildMosaicListEntry(context, snapshot.entries[index]),
-    );
-  }
-
-  Widget _buildMosaicListEntry(BuildContext context, FileManagerEntry entry) {
-    final theme = Theme.of(context);
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: _busy ? null : () => _openEntry(entry),
-      onDoubleTap: entry.isArchive && !_busy ? () => _openArchive(entry) : null,
-      child: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.35,
-          ),
-          border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-          ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(
-              width: 88,
-              child: FileManagerThumbnailWidget(
-                entry: entry,
-                width: 88,
-                height: 92,
-                borderRadius: BorderRadius.zero,
-                fit: BoxFit.cover,
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(6),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      entry.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const Spacer(),
-                    if (entry.childNames.isNotEmpty)
-                      Expanded(
-                        child: SingleChildScrollView(
-                          child: _buildChildNames(context, entry.childNames),
-                        ),
-                      )
-                    else
-                      Row(
-                        children: [
-                          _buildSemanticIcon(context, entry, size: 13),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              !entry.isDir && entry.size > BigInt.zero
-                                  ? '${_formatType(entry)} · ${_formatSize(entry.size)}'
-                                  : _formatType(entry),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.outline,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // --- 4. 详细信息 (Details Table): 表格视图，含名称、类型、大小、修改时间表头，支持点击表头排序 ---
-  Widget _buildDetailsTable(
+  LibraryEntry _libraryEntry(
     BuildContext context,
-    FileManagerSnapshot snapshot,
-  ) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const minTableWidth = 460.0;
-        final tableWidth = constraints.maxWidth < minTableWidth
-            ? minTableWidth
-            : constraints.maxWidth;
-
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(
-            width: tableWidth,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildDetailsHeader(context, snapshot),
-                const Divider(height: 1),
-                Expanded(
-                  child: ListView.separated(
-                    primary: false,
-                    itemCount: snapshot.entries.length,
-                    separatorBuilder: (_, _) => const Divider(height: 1),
-                    itemBuilder: (context, index) => _buildDetailsRow(
-                      context,
-                      snapshot,
-                      snapshot.entries[index],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildDetailsHeader(
-    BuildContext context,
-    FileManagerSnapshot snapshot,
-  ) {
-    final theme = Theme.of(context);
-    return Container(
-      height: 32,
-      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 5,
-            child: _buildSortableHeaderCell(
-              context,
-              snapshot: snapshot,
-              field: FileManagerSortField.name,
-              label: '名称',
-            ),
-          ),
-          const SizedBox(width: 4),
-          SizedBox(
-            width: 70,
-            child: _buildSortableHeaderCell(
-              context,
-              snapshot: snapshot,
-              field: FileManagerSortField.type,
-              label: '类型',
-            ),
-          ),
-          const SizedBox(width: 4),
-          SizedBox(
-            width: 75,
-            child: _buildSortableHeaderCell(
-              context,
-              snapshot: snapshot,
-              field: FileManagerSortField.size,
-              label: '大小',
-              alignRight: true,
-            ),
-          ),
-          const SizedBox(width: 4),
-          SizedBox(
-            width: 110,
-            child: _buildSortableHeaderCell(
-              context,
-              snapshot: snapshot,
-              field: FileManagerSortField.date,
-              label: '修改时间',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSortableHeaderCell(
-    BuildContext context, {
-    required FileManagerSnapshot snapshot,
-    required FileManagerSortField field,
-    required String label,
-    bool alignRight = false,
-  }) {
-    final theme = Theme.of(context);
-    final isActive = snapshot.sortField == field;
-    final isAsc = snapshot.sortOrder == FileManagerSortOrder.ascending;
-
-    return InkWell(
-      onTap: _busy ? null : () => _toggleSort(snapshot, field),
-      borderRadius: BorderRadius.circular(4),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-        child: Row(
-          mainAxisAlignment: alignRight
-              ? MainAxisAlignment.end
-              : MainAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: Text(
-                label,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
-                  color: isActive
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-            if (isActive) ...[
-              const SizedBox(width: 2),
-              Icon(
-                isAsc
-                    ? Icons.arrow_upward_rounded
-                    : Icons.arrow_downward_rounded,
-                size: 13,
-                color: theme.colorScheme.primary,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailsRow(
-    BuildContext context,
-    FileManagerSnapshot snapshot,
     FileManagerEntry entry,
+    LibraryViewMode mode,
   ) {
-    final theme = Theme.of(context);
-    return InkWell(
-      onTap: _busy ? null : () => _openEntry(entry),
-      onDoubleTap: entry.isArchive && !_busy ? () => _openArchive(entry) : null,
-      child: Container(
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        alignment: Alignment.centerLeft,
-        child: Row(
-          children: [
-            Expanded(
-              flex: 5,
-              child: Row(
-                children: [
-                  _buildSemanticIcon(context, entry, size: 16),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      entry.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 4),
-            SizedBox(
-              width: 70,
-              child: Text(
-                _formatType(entry),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-            const SizedBox(width: 4),
-            SizedBox(
-              width: 75,
-              child: Text(
-                _formatSize(entry.size),
-                maxLines: 1,
-                textAlign: TextAlign.right,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-            ),
-            const SizedBox(width: 4),
-            SizedBox(
-              width: 110,
-              child: Text(
-                _formatDate(entry.modifiedSecs.toInt()),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.outline,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    final hasSize = !entry.isDir && entry.size > BigInt.zero;
+    return LibraryEntry(
+      key: entry.path,
+      title: entry.name,
+      source: entry,
+      subtitle: _subtitle(entry, mode),
+      metaText: hasSize ? _formatSize(entry.size) : null,
+      media:
+          (
+            context, {
+            required width,
+            required height,
+            required radius,
+            required fit,
+          }) => FileManagerThumbnailWidget(
+            entry: entry,
+            width: width,
+            height: height,
+            borderRadius: radius,
+            fit: fit,
+          ),
+      badge: _semanticIcon(context, entry),
+      thumbModes: _thumbModes,
+      subLines: [for (final child in entry.childNames) _subLine(child)],
+      detailCells: [
+        _formatType(entry),
+        _formatSize(entry.size),
+        _formatDate(entry.modifiedSecs.toInt()),
+      ],
+      overlayText: entry.childNames.isEmpty
+          ? null
+          : '${entry.childNames.length} 项',
+      trailing: _trailing(context, entry, mode),
     );
   }
 
-  // --- 5. 封面网格 (Cover Grid): 竖版 2:3 海报比例封面网格，标题两行 ---
-  Widget _buildCoverGrid(BuildContext context, FileManagerSnapshot snapshot) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(6),
-      primary: false,
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 140,
-        mainAxisExtent: 180,
-        crossAxisSpacing: 6,
-        mainAxisSpacing: 6,
-      ),
-      itemCount: snapshot.entries.length,
-      itemBuilder: (context, index) =>
-          _buildCoverGridEntry(context, snapshot.entries[index]),
+  /// 封面列表的第二行带修改日期，横幅那一行不带 —— 沿用原来两档各自的写法。
+  String _subtitle(FileManagerEntry entry, LibraryViewMode mode) {
+    final type = _formatType(entry);
+    final hasSize = !entry.isDir && entry.size > BigInt.zero;
+    if (mode != LibraryViewMode.coverList) {
+      return hasSize ? '$type · ${_formatSize(entry.size)}' : type;
+    }
+    final buffer = StringBuffer(type);
+    if (hasSize) buffer.write(' · ${_formatSize(entry.size)}');
+    if (entry.modifiedSecs.toInt() > 0) {
+      buffer.write(' · ${_formatDate(entry.modifiedSecs.toInt())}');
+    }
+    return buffer.toString();
+  }
+
+  Widget? _trailing(
+    BuildContext context,
+    FileManagerEntry entry,
+    LibraryViewMode mode,
+  ) {
+    if (mode == LibraryViewMode.compact) {
+      if (!entry.isDir) return null;
+      return IconButton(
+        icon: const Icon(Icons.folder_open_rounded, size: 16),
+        tooltip: '进入文件夹',
+        visualDensity: VisualDensity.compact,
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+        onPressed: _busy ? null : () => _openEntry(entry, forceEnter: true),
+      );
+    }
+    if (mode == LibraryViewMode.coverList) {
+      if (entry.isDir) {
+        return IconButton(
+          icon: const Icon(Icons.folder_open_rounded, size: 18),
+          tooltip: '进入文件夹',
+          visualDensity: VisualDensity.compact,
+          onPressed: _busy ? null : () => _openEntry(entry, forceEnter: true),
+        );
+      }
+      return const Padding(
+        padding: EdgeInsets.only(top: 4),
+        child: Icon(Icons.play_circle_outline_rounded, size: 18),
+      );
+    }
+    return null;
+  }
+
+  LibrarySubLine _subLine(FileManagerChild child) {
+    return LibrarySubLine(
+      label: child.name,
+      icon: child.isDir
+          ? Icons.folder_outlined
+          : Icons.subdirectory_arrow_right,
+      onTap: _busy ? null : () => _openChild(child),
+      onDoubleTap: child.isArchive && !_busy
+          ? () => _openArchiveChild(child)
+          : null,
     );
   }
 
-  Widget _buildCoverGridEntry(BuildContext context, FileManagerEntry entry) {
-    final theme = Theme.of(context);
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: _busy ? null : () => _openEntry(entry),
-      onDoubleTap: entry.isArchive && !_busy ? () => _openArchive(entry) : null,
-      child: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.35,
-          ),
-          border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-          ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  FileManagerThumbnailWidget(
-                    entry: entry,
-                    width: double.infinity,
-                    height: double.infinity,
-                    borderRadius: BorderRadius.zero,
-                    fit: BoxFit.cover,
-                  ),
-                  if (entry.childNames.isNotEmpty)
-                    Positioned(
-                      left: 2,
-                      right: 2,
-                      bottom: 2,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 1,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.65),
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                        child: Text(
-                          '${entry.childNames.length} 项',
-                          maxLines: 1,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(5),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      _buildSemanticIcon(context, entry, size: 12),
-                      const SizedBox(width: 3),
-                      Expanded(
-                        child: Text(
-                          entry.name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (!entry.isDir && entry.size > BigInt.zero)
-                    Text(
-                      _formatSize(entry.size),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.outline,
-                        fontSize: 9,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // --- 6. 自由缩略图 (Mosaic Grid): 1:1 正方形高密度缩略图网格，单行紧凑标题 ---
-  Widget _buildMosaicGrid(BuildContext context, FileManagerSnapshot snapshot) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(6),
-      primary: false,
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 110,
-        mainAxisExtent: 130,
-        crossAxisSpacing: 5,
-        mainAxisSpacing: 5,
-      ),
-      itemCount: snapshot.entries.length,
-      itemBuilder: (context, index) =>
-          _buildMosaicGridEntry(context, snapshot.entries[index]),
-    );
-  }
-
-  Widget _buildMosaicGridEntry(BuildContext context, FileManagerEntry entry) {
-    final theme = Theme.of(context);
-    return InkWell(
-      borderRadius: BorderRadius.circular(7),
-      onTap: _busy ? null : () => _openEntry(entry),
-      onDoubleTap: entry.isArchive && !_busy ? () => _openArchive(entry) : null,
-      child: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.35,
-          ),
-          border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-          ),
-          borderRadius: BorderRadius.circular(7),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: FileManagerThumbnailWidget(
-                entry: entry,
-                width: double.infinity,
-                height: double.infinity,
-                borderRadius: BorderRadius.zero,
-                fit: BoxFit.cover,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-              child: Text(
-                entry.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  /// 语义图标不带尺寸：每档视图要多大由 `LibraryViewLayout.badgeSize` 决定。
+  Widget _semanticIcon(BuildContext context, FileManagerEntry entry) {
+    final colors = Theme.of(context).colorScheme;
+    final (IconData icon, Color color) = switch (entry) {
+      _ when entry.isDir => (Icons.folder_rounded, colors.tertiary),
+      _ when entry.isArchive => (Icons.auto_stories_rounded, colors.primary),
+      _ when entry.isImage => (Icons.image_outlined, colors.secondary),
+      _ when entry.isVideo => (Icons.movie_outlined, colors.secondary),
+      _ when entry.isAudio => (Icons.audio_file_outlined, colors.secondary),
+      _ => (Icons.insert_drive_file_outlined, colors.outline),
+    };
+    return Icon(icon, color: color);
   }
 
   Future<void> _toggleSort(
@@ -1937,36 +1734,6 @@ class _FileManagerCardState extends State<FileManagerCard> {
     await _apply(
       (id) => fileManagerSetSort(id: id, field: field, order: order),
     );
-  }
-
-  Widget _buildSemanticIcon(
-    BuildContext context,
-    FileManagerEntry entry, {
-    double size = 18,
-  }) {
-    final colors = Theme.of(context).colorScheme;
-    IconData icon;
-    Color color;
-    if (entry.isDir) {
-      icon = Icons.folder_rounded;
-      color = colors.tertiary;
-    } else if (entry.isArchive) {
-      icon = Icons.auto_stories_rounded;
-      color = colors.primary;
-    } else if (entry.isImage) {
-      icon = Icons.image_outlined;
-      color = colors.secondary;
-    } else if (entry.isVideo) {
-      icon = Icons.movie_outlined;
-      color = colors.secondary;
-    } else if (entry.isAudio) {
-      icon = Icons.audio_file_outlined;
-      color = colors.secondary;
-    } else {
-      icon = Icons.insert_drive_file_outlined;
-      color = colors.outline;
-    }
-    return Icon(icon, size: size, color: color);
   }
 
   String _formatDate(int secs) {
@@ -2000,47 +1767,6 @@ class _FileManagerCardState extends State<FileManagerCard> {
       return '${entry.name.substring(dot + 1).toUpperCase()} 文件';
     }
     return '文件';
-  }
-
-  Widget _buildChildNames(
-    BuildContext context,
-    List<FileManagerChild> children,
-  ) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final child in children)
-          InkWell(
-            onTap: _busy ? null : () => _openChild(child),
-            onDoubleTap: child.isArchive && !_busy
-                ? () => _openArchiveChild(child)
-                : null,
-            child: Row(
-              children: [
-                Icon(
-                  child.isDir
-                      ? Icons.folder_outlined
-                      : Icons.subdirectory_arrow_right,
-                  size: 12,
-                  color: theme.colorScheme.outline,
-                ),
-                const SizedBox(width: 3),
-                Expanded(
-                  child: Text(
-                    child.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.outline,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
   }
 
   String _formatSize(BigInt bytes) {
@@ -2085,3 +1811,6 @@ class _ErrorState extends StatelessWidget {
     );
   }
 }
+
+/// 主页键长按 / 右键菜单的三个动作。
+enum _HomeAction { goHome, setHome, clearHome }

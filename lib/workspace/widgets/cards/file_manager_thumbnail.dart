@@ -75,7 +75,11 @@ class _FileManagerThumbnailWidgetState
           isDir: widget.entry.isDir,
           isArchive: widget.entry.isArchive,
           isImage: widget.entry.isImage,
-          maxLongSide: (widget.width > widget.height ? widget.width : widget.height) > 120 ? 512 : 320,
+          maxLongSide:
+              (widget.width > widget.height ? widget.width : widget.height) >
+                  120
+              ? 512
+              : 320,
         );
 
     if (!mounted || _loadedPath != path) return;
