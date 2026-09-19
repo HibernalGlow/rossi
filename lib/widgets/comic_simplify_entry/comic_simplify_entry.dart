@@ -14,9 +14,12 @@ import 'package:zephyr/network/http/picture/picture.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/cubit/string_select.dart';
+import 'package:zephyr/util/comic/chinese_translation_matcher.dart';
 import 'package:zephyr/util/path_util.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
+import 'package:zephyr/widgets/comic_simplify_entry/comic_download_badge.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_info.dart';
+import 'package:zephyr/widgets/comic_simplify_entry/comic_translation_badge.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
 
 const double kComicCardBorderRadius = 5.0;
@@ -78,6 +81,9 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
   final bool roundedCorner; // 是否有圆角
   final bool useRandomImageKey;
 
+  /// 封面左上角是否显示语言 / 汉化角标。默认开。
+  final bool showTranslationBadge;
+
   const ComicFixedSizeHorizontalList({
     super.key,
     required this.entries,
@@ -85,6 +91,7 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
     this.itemWidth = 200, // 固定宽度，不随窗口宽高比变化
     this.roundedCorner = true,
     this.useRandomImageKey = false,
+    this.showTranslationBadge = true,
   });
 
   @override
@@ -145,6 +152,11 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
   ) {
     final circular = roundedCorner ? kComicCardBorderRadius : 0.0;
     final globalSetting = context.watch<GlobalSettingCubit>().state;
+    final pluginId = (info.source.trim().isNotEmpty ? info.source : info.from)
+        .trim();
+    // 本地漫画本来就在盘上，不给下载角标。
+    final showDownloadBadge =
+        pluginId.isNotEmpty && !isLocalComicSource(pluginId, info.id);
     final favoriteSetting = globalSetting.favoriteArtistSetting;
     final matchResult = favoriteSetting.highlightEnabled
         ? FavoriteArtistMatcher.match(
@@ -154,6 +166,9 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
           )
         : null;
     final isFavoriteArtist = matchResult?.isMatched ?? false;
+    final translationMatch = showTranslationBadge
+        ? ChineseTranslationMatcher.match(title: info.title, tags: info.tags)
+        : ChineseTranslationMatch.none;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(circular),
@@ -178,6 +193,26 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
               width: width,
               height: height,
             ),
+            if (showDownloadBadge)
+              Positioned(
+                top: 6,
+                right: 6,
+                child: ComicDownloadBadge(
+                  from: pluginId,
+                  comicId: info.id,
+                  title: info.title,
+                  size: width < 110 ? 24 : 28,
+                ),
+              ),
+            if (showTranslationBadge && translationMatch.hasBadge)
+              Positioned(
+                top: 6,
+                left: 6,
+                child: ComicTranslationBadge(
+                  match: translationMatch,
+                  compact: width < 110,
+                ),
+              ),
 
             // 2. 顶部阴影与标题
             Positioned(
@@ -273,6 +308,16 @@ class ComicSimplifyEntry extends StatelessWidget {
   final bool selectionMode;
   final bool topPadding;
   final bool roundedCorner;
+
+  /// 封面右上角是否显示下载角标。默认开：看到喜欢的可以直接下载，
+  /// 不用先点进详情页。本地漫画与多选模式会自动隐藏（见 `_buildCoverWithTitle`）。
+  final bool showDownloadAction;
+
+  /// 封面左上角是否显示语言 / 汉化角标。默认开。
+  ///
+  /// 判定只吃插件给的标签与标题（`ComicSimplifyEntryInfo.tags`），
+  /// 所以插件没给语言线索时**本来就不会显示**（不是坏了）。
+  final bool showTranslationBadge;
   final String? collectionTargetId;
   final String? collectionTargetName;
 
@@ -289,6 +334,8 @@ class ComicSimplifyEntry extends StatelessWidget {
     this.selectionMode = false,
     this.topPadding = true,
     this.roundedCorner = true,
+    this.showDownloadAction = true,
+    this.showTranslationBadge = true,
     this.collectionTargetId,
     this.collectionTargetName,
   });
@@ -344,6 +391,14 @@ class ComicSimplifyEntry extends StatelessWidget {
   ) {
     final circular = roundedCorner ? kComicCardBorderRadius : 0.0;
     final primary = Theme.of(context).colorScheme.primary;
+    final pluginId = (info.source.trim().isNotEmpty ? info.source : info.from)
+        .trim();
+    // 本地漫画本来就在盘上；多选模式下右上角让给勾选圈。
+    final showDownloadBadge =
+        showDownloadAction &&
+        !selectionMode &&
+        pluginId.isNotEmpty &&
+        !isLocalComicSource(pluginId, info.id);
     final globalSetting = context.watch<GlobalSettingCubit>().state;
     final favoriteSetting = globalSetting.favoriteArtistSetting;
     final matchResult = favoriteSetting.highlightEnabled
@@ -354,6 +409,9 @@ class ComicSimplifyEntry extends StatelessWidget {
           )
         : null;
     final isFavoriteArtist = matchResult?.isMatched ?? false;
+    final translationMatch = showTranslationBadge
+        ? ChineseTranslationMatcher.match(title: info.title, tags: info.tags)
+        : ChineseTranslationMatch.none;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(circular),
@@ -426,12 +484,39 @@ class ComicSimplifyEntry extends StatelessWidget {
                 ),
               ),
             ),
-            if (isFavoriteArtist)
+            if (showDownloadBadge)
+              Positioned(
+                top: 6,
+                right: 6,
+                child: ComicDownloadBadge(
+                  from: pluginId,
+                  comicId: info.id,
+                  title: info.title,
+                  size: width < 110 ? 24 : 28,
+                ),
+              ),
+            // 左上角角标族：喜欢画师在上、语言/汉化在下，纵向排开。
+            // 两个都画成独立的 Positioned 会互相盖住（同是 top:6,left:6）。
+            if (isFavoriteArtist || translationMatch.hasBadge)
               Positioned(
                 top: 6,
                 left: 6,
-                child: FavoriteArtistBadge(
-                  artistName: matchResult?.matchedArtist,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isFavoriteArtist)
+                      FavoriteArtistBadge(
+                        artistName: matchResult?.matchedArtist,
+                      ),
+                    if (isFavoriteArtist && translationMatch.hasBadge)
+                      const SizedBox(height: 4),
+                    if (translationMatch.hasBadge)
+                      ComicTranslationBadge(
+                        match: translationMatch,
+                        compact: width < 110,
+                      ),
+                  ],
                 ),
               ),
             if (selectionMode)
