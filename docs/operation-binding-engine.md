@@ -198,7 +198,7 @@ Dart 侧对应一个**薄** `OperationBindingController`：持有 session、把 
 | command（系统固定绑定） | ✅ | ✅ | 用户只配 followUpActions |
 | mouse-gesture（轨迹序列） | ✅ 可解析 | ❌ 不可编辑 | 需独立可行性探针（v0.2+） |
 | gamepad | ✅ 可解析 | ❌ | 同上 |
-| radial（轮盘） | ✅ 可解析 | ❌ | 含菜单编辑器，v0.2+ |
+| radial（轮盘） | ✅ 可解析 | ✅ **已接线**（2026-09-20，见 §12） | 含菜单编辑器 |
 | followUpActions（动作序列 ≤ 8） | ✅ 可解析 | ❌ | v0.2+ |
 | 多套 profile | ❌ 暂不进 schema | ❌ | 未定 |
 
@@ -271,3 +271,47 @@ Dart 侧对应一个**薄** `OperationBindingController`：持有 session、把 
 **未做**：断言「打开设置面板后按右键真的翻页」的 widget 级回归测试 —— 需要挂起工作台
 与一条模态路由、并用假处理器登记进 `ReaderInputBridge`，属可做的下一步（纯 Dart 语义
 已由上面的测试覆盖）。
+
+## 12. 已落地（2026-09-20）：轮盘（radial menu）
+
+用户明确要求「复刻 neo 的轮盘，里面每个操作都绑定系统里的 action」，因此 §8 里
+「radial = v0.2+」这一行被单独放行。形状照 `Xiranite` 的
+`packages/nodes/neoview/src/application/config/ReaderRadialMenuConfig.ts` 与
+`vendor/ray-menu/wc/neoview-ray-menu.ts` 抄，不另立一套。
+
+**核心**（`rust/local_core/src/operation_binding/radial.rs`）：
+
+- 文档只有**形状与条目身份**：`RadialConfig { enabled, layerCount, activeMenuId, menus,
+  radius, innerRadius, variant, startAngle, sweepAngle }`，`RadialMenuDefinition.layers`
+  是「每层一组 `RadialMenuItem { id, label, slotIndex, action?, moveToMenuId?, disabled }`」。
+  上限照 neoview：≤16 个轮盘、1..3 层、每层 ≤64 格（空格不落文档，`MIN_SLOT_COUNT = 8`）。
+- 环带**不是** `(radius-inner)/layers`：第 1 环是 `内半径 → radius`，之后每层往外长
+  `SUBMENU_RADIUS_STEP = 60`（`_getBand` 的算术）。
+- `slot_layout` 一次算出每格的内外半径与起止角，`slot_at` 读同一组数字 ⇒
+  「高亮的一格」与「执行的一格」不可能不同。测试逐格自打自（画出来的中点必须打回自己）。
+- **一处刻意不照抄**：neoview 的 `_getSlotAtPoint` 把偏移用 `normalizeAngle` 折到
+  `[-180,180)`，于是从起始角逆时针那一半算出负索引、被夹回第 0 格 —— 半个轮盘点不准。
+  这里按 `[0,360)` 算，「超出扫过角不算命中」那一条语义保持不变。
+
+**接缝**：条目「干什么」仍然是绑定表里的一条 `device: radial` 绑定，由
+`operation_binding_resolve` 与键盘、点击同一个解析器回答。neoview 自己也是这个形状
+（它把条目上遗留的 `action` 从编辑器里剥掉、物化成绑定行），所以：
+
+- 轮盘不需要同样的判定第二遍，`followUpActions` 与冲突检测自动可用；
+- 出厂预设里 12 个槽位 + 两条唤出绑定（右键按下、`Enter` → `radial.open-default`），
+  全部由 `cargo test` 钉住「绑的动作必须在注册表里且 `implemented`」；
+- 形状变了要剪枝：`radial_prune_bindings` 删掉指向已不存在条目的绑定。
+  但**层数只影响显示**，调小层数不删用户数据。
+
+**外壳**：`lib/service/operation_binding/radial_doc.dart`（纯 JSON 视图，未知字段原样带回）、
+`lib/widgets/radial/radial_wheel_painter.dart`（浮层与预览共用）、
+`lib/page/comic_read/widgets/radial/reader_radial_menu_overlay.dart`（按住拖放 / 键盘方向键 +
+`Space`/`Enter` 确认 / `Esc` 取消 / 中心空洞松手取消 / `moveToMenuId` 换轮盘）、
+`lib/page/setting/operation_binding/radial_binding_editor.dart`（设置页「轮盘」那一档）。
+
+**抬起事件的转交**：Flutter 对进行中的指针复用按下时的命中结果，所以「按下」开出浮层后，
+同一次手势的抬起**到不了**浮层。阅读器在抬起处把它转交给 `ReaderRadialMenu.commitAt`，
+于是「按住拖到某一格松手」才是轮盘该有的手感；纯键盘唤出时指针不参与，浮层自己收事件。
+
+**未做**：`variant = bubble`（气泡）的独立画法 —— 数据照 neoview 收下并原样导出，
+但 neoview 运行时也没把它接进 ray-menu，Rossi 两种画法暂时同一套弧线。

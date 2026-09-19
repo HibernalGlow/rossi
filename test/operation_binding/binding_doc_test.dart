@@ -11,6 +11,11 @@ import 'package:zephyr/service/operation_binding/binding_doc.dart';
 /// 2. **冲突清单读不出来** —— 读成空就等于「冲突阻止保存」这条规则静默失效；
 /// 3. **键名归一化跑偏** —— `code` 写错了那条绑定永远匹配不上，而设置页看起来一切正常。
 void main() {
+  // `keyboardInputJsonOf` 会读 `HardwareKeyboard.instance`，而它要等 binding 初始化
+  // 之后才拿得到按键状态（bare `test()` 不会自动初始化）。不开这个，采集那两条判据
+  // 会以「Binding has not yet been initialized」的形态失败，看着像代码错了。
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('绑定包 JSON 往返', () {
     // 一份「别处带来的」绑定包：含 v0.1 运行时**不产出**的四类 descriptor。
     const imported = '''
@@ -69,7 +74,7 @@ void main() {
       // 写回一律成 `InputBindingsConfig` 的形状（持久化权威形状）。
       expect(parseBindings(encodeBindingsDoc(bindings!)), bindings);
       expect(
-        (jsonDecodeArray(encodeBindingsArray(bindings)) as List).length,
+        jsonDecodeArray(encodeBindingsArray(bindings)).length,
         1,
         reason: '喂给引擎的那一份是裸数组',
       );
@@ -313,7 +318,7 @@ void main() {
       expect(
         keyboardInputJsonOf(
           const KeyDownEvent(
-            physicalKey: PhysicalKeyboardKey.unidentified,
+            physicalKey: PhysicalKeyboardKey(0),
             logicalKey: LogicalKeyboardKey(0x0000FF00FF00FF),
             timeStamp: Duration.zero,
           ),

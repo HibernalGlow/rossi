@@ -97,7 +97,19 @@ pub const DEFAULT_KEY_BINDINGS: [(&str, &str); 17] = [
 
 /// 桌面端的系统级按键（不属于翻页，但改造前 `reader_input_controller.dart` 里写死了
 /// `F11` 全屏）。接管运行时后它也得是**数据**，否则「把 F11 改绑成别的」做不到。
-pub const DEFAULT_SYSTEM_KEY_BINDINGS: [(&str, &str); 1] = [("F11", action::FULLSCREEN)];
+///
+/// `Enter` → 唤出轮盘是 neoview 的出厂绑法之一（另一条是右键按下，见下面的鼠标表）：
+/// 「怎么打开轮盘」与「轮盘里每一格干什么」在 Rossi 里同一套机制 —— 一条输入 →
+/// 一个动作 id，由同一张表解析。
+pub const DEFAULT_SYSTEM_KEY_BINDINGS: [(&str, &str); 2] = [
+    ("F11", action::FULLSCREEN),
+    ("Enter", action::OPEN_RADIAL_MENU),
+];
+
+/// 出厂鼠标绑定。neoview 用**右键按下**（不是点击）开轮盘：按下即开、拖到某一格
+/// 松手即执行 —— 这条路径不该被单击的翻页判定吃掉，所以 `action` 是 `press`。
+pub const DEFAULT_MOUSE_BINDINGS: [(u8, PointerAction, &str); 1] =
+    [(2, PointerAction::Press, action::OPEN_RADIAL_MENU)];
 
 /// 九宫格点击预设 → 绑定表（`context = reader`，全部启用）。
 pub fn tap_preset_bindings(preset: TapPreset) -> Vec<InputBinding> {
@@ -114,14 +126,40 @@ pub fn tap_preset_bindings(preset: TapPreset) -> Vec<InputBinding> {
     ]
 }
 
-/// 键盘预设 → 绑定表（翻页键 + 那一条 `F11` 全屏）。
+/// 出厂按键/鼠标预设 → 绑定表（翻页键 + `F11` 全屏 + `Enter`/右键按下开轮盘）。
 pub fn key_preset_bindings() -> Vec<InputBinding> {
-    DEFAULT_KEY_BINDINGS
+    let mut bindings: Vec<InputBinding> = DEFAULT_KEY_BINDINGS
         .iter()
         .chain(DEFAULT_SYSTEM_KEY_BINDINGS.iter())
         .enumerate()
         .map(|(index, (code, action_id))| key_binding(index, *code, *action_id))
-        .collect()
+        .collect();
+    bindings.extend(DEFAULT_MOUSE_BINDINGS.iter().enumerate().map(
+        |(index, (button, action_kind, action_id))| {
+            mouse_binding(index, *button, *action_kind, *action_id)
+        },
+    ));
+    bindings
+}
+
+fn mouse_binding(
+    index: usize,
+    button: u8,
+    action_kind: PointerAction,
+    action_id: &str,
+) -> InputBinding {
+    InputBinding {
+        id: format!("preset-mouse-{index}-b{button}"),
+        action: action_id.into(),
+        follow_up_actions: Vec::new(),
+        context: InputContext::Reader,
+        enabled: true,
+        ignore_repeat: false,
+        input: InputDescriptor::Mouse {
+            button,
+            action: action_kind,
+        },
+    }
 }
 
 fn key_binding(index: usize, code: &str, action_id: &str) -> InputBinding {

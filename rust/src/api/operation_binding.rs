@@ -103,24 +103,22 @@ pub fn operation_binding_validate(bindings_json: String) -> bool {
 
 // ── 轮盘（radial menu）───────────────────────────────────────────────────────
 //
-// 轮盘的**形状**（几个轮盘 / 几层 / 半径 / 每层几格）走下面这几个口子；
-// 槽位「干什么」不走 —— 它就是一条普通的 `radial` 绑定，落在上面那张绑定表里，
+// 轮盘的**形状**（几个轮盘 / 每层哪些条目 / 半径与角度）走下面这几个口子；
+// 条目「干什么」不走 —— 它就是一条 `device: radial` 的绑定，落在上面那张绑定表里，
 // 由 [`operation_binding_resolve`] 与键盘、点击同一个解析器解析。
 // 所以这里没有 `radial_resolve_slot_action` 之类的函数：那会是判定处的第二份实现。
 
-/// 轮盘文档不合法或读不懂时的回退值 —— 与「一个轮盘都没有」是两件事，
-/// 但运行时两者都只能走同一句话：用出厂那一份，别让用户打不开轮盘。
 fn parse_radial_config(config_json: &str) -> Option<engine::radial::RadialConfig> {
     serde_json::from_str(config_json).ok()
 }
 
-/// 轮盘的出厂文档（默认轮盘：3 层 · r120 · 内 40 · 每层 8 格），JSON。
+/// 轮盘的出厂文档（默认轮盘：3 层 · r120 · 内 40 · 起始角 -90 · 扫过 360），JSON。
 #[frb(sync)]
 pub fn operation_binding_radial_default_config() -> String {
     serde_json::to_string(&engine::radial::default_config()).expect("出厂轮盘必须能序列化")
 }
 
-/// 这份轮盘文档**读得懂**吗（吃用户设置与用户导入，所以校验要能失败而不是 panic）。
+/// 这份轮盘文档**读得懂且合法**吗（吃用户设置与用户导入，所以校验要能失败而不是 panic）。
 #[frb(sync)]
 pub fn operation_binding_radial_validate(config_json: String) -> bool {
     match parse_radial_config(&config_json) {
@@ -142,11 +140,11 @@ pub fn operation_binding_radial_problems(config_json: String) -> String {
     serde_json::to_string(&problems).expect("问题清单必须能序列化")
 }
 
-/// 一个轮盘的全部槽位布局（JSON 数组，字段 `itemId` / `layer` / `sector` /
-/// `innerRadius` / `outerRadius` / `startDeg` / `endDeg` / `midDeg`）。
+/// 一个轮盘显示出来的全部槽位（**含空格**），JSON 数组。
 ///
-/// 外壳**照着这份数字画**，命中判定也读这同一份数字（见 [`operation_binding_radial_slot`]）——
-/// 两边各算一遍算术迟早分叉，表现为「高亮的不是执行的那格」。
+/// 外壳**照着这份数字画**：每格的内外半径、起止角、标签、能不能选，都在里面。
+/// 命中判定读的是同一组数字（见 [`operation_binding_radial_slot`]），所以
+/// 「高亮的一格」与「执行的一格」不可能是两格。
 #[frb(sync)]
 pub fn operation_binding_radial_layout(config_json: String, menu_id: String) -> String {
     let empty = serde_json::to_string(&Vec::<engine::radial::RadialSlotLayout>::new())
@@ -157,15 +155,17 @@ pub fn operation_binding_radial_layout(config_json: String, menu_id: String) -> 
     let Some(menu) = radial_menu(&config, &menu_id) else {
         return empty;
     };
-    serde_json::to_string(&engine::radial::slot_layout(menu)).expect("槽位布局必须能序列化")
+    serde_json::to_string(&engine::radial::slot_layout(&config, menu))
+        .expect("槽位布局必须能序列化")
 }
 
-/// 落点（相对圆心的偏移）→ 选中的槽，返回**就是那条 `radial` 输入**的
-/// descriptor JSON（`{"device":"radial","menuId":…,"itemId":…}`）。
+/// 落点（相对圆心的偏移）→ 选中的槽，返回 `RadialSlotHit` 的 JSON
+/// （`menuId` / `itemId` / `level` / `index` / `legacyAction` / `moveToMenuId`）。
 ///
-/// 形状与 [`operation_binding_resolve`] 吃的输入完全一致，所以外壳拿到就能直接问引擎
-/// 「这一格是什么动作」，中间不经过任何轮盘专用的判断。
-/// 落在中心空洞或外半径之外返回 `None`（前者=松手取消，后者=已经移出去了）。
+/// 外壳拿 `itemId` 拼出那条 `radial` 输入去问解析器；`legacyAction` 是 neoview 的
+/// 回落（老包里条目自己带动作、而绑定表里没有那一行时用它），`moveToMenuId` 非空
+/// 表示这一格是「跳转轮盘」，松手换轮盘而不是执行动作。
+/// 落在空洞、空格、被禁用的条目或扫过角之外 ⇒ `None`。
 #[frb(sync)]
 pub fn operation_binding_radial_slot(
     config_json: String,
@@ -175,22 +175,36 @@ pub fn operation_binding_radial_slot(
 ) -> Option<String> {
     let config = parse_radial_config(&config_json)?;
     let menu = radial_menu(&config, &menu_id)?;
-    let slot = engine::radial::slot_at(menu, dx as f32, dy as f32)?;
-    let item_id = slot.item_id();
-    let input = engine::radial::radial_input(&menu.id, &item_id);
-    Some(serde_json::to_string(&input).expect("轮盘输入必须能序列化"))
+    let hit = engine::radial::slot_at(&config, menu, dx as f32, dy as f32)?;
+    Some(serde_json::to_string(&hit).expect("轮盘命中结果必须能序列化"))
 }
 
-/// 轮盘的出厂绑定（只有默认轮盘有；新建的空轮盘返回空数组），JSON 数组。
+/// 某个轮盘的出厂槽位绑定（只有默认轮盘有；新轮盘返回空数组），JSON 数组。
 #[frb(sync)]
 pub fn operation_binding_radial_preset(menu_id: String) -> String {
     serde_json::to_string(&engine::radial::preset_bindings(&menu_id)).expect("轮盘预设必须能序列化")
 }
 
-/// 轮盘形状变了之后，剪掉指向**已不存在的槽**的那些绑定，返回留下的绑定（JSON 数组）。
+/// 新建一个轮盘（设置页的「新轮盘」），JSON。
 ///
-/// 剪的是 `input.device == "radial"` 且 `menuId`/`itemId` 已经画不出来的行；
-/// 键盘、点击、滚轮一条都不许动。
+/// id 与名字的生成规则归核心：与 [`operation_binding_radial_default_config`] 同一处，
+/// 免得外壳自己拼一套而与核心 `prune_bindings` 认的 id 分叉。
+#[frb(sync)]
+pub fn operation_binding_radial_new_menu(count: i32) -> String {
+    serde_json::to_string(&engine::radial::new_menu(count.max(0) as usize))
+        .expect("新轮盘必须能序列化")
+}
+
+/// 新建一个条目的 id（`item-N`，neoview 的 `uniqueId("item", …)`）。
+#[frb(sync)]
+pub fn operation_binding_radial_new_item_id(count: i32) -> String {
+    engine::radial::new_item_id(count.max(0) as usize)
+}
+
+/// 轮盘形状变了之后，剪掉指向**已不存在的条目**的那些绑定，返回留下的绑定（JSON 数组）。
+///
+/// 剪的只有 `input.device == "radial"` 且 `(menuId, itemId)` 已经画不出来的行；
+/// 键盘、鼠标、点击、滚轮一条都不许动。
 #[frb(sync)]
 pub fn operation_binding_radial_prune(config_json: String, bindings_json: String) -> String {
     let bindings: Vec<engine::InputBinding> =
@@ -203,23 +217,13 @@ pub fn operation_binding_radial_prune(config_json: String, bindings_json: String
     serde_json::to_string(&kept).expect("剪枝后的绑定表必须能序列化")
 }
 
-/// 新建一个轮盘（设置页的「新轮盘」），返回那个轮盘的 JSON。
-///
-/// id 与名字的生成规则归核心：与 [`operation_binding_radial_default_config`] 同一处，
-/// 免得外壳自己拼一套 `menu-7` 而与核心的 `prune_bindings` 认的 id 分叉。
-#[frb(sync)]
-pub fn operation_binding_radial_new_menu(count: i32) -> String {
-    serde_json::to_string(&engine::radial::new_menu(count.max(0) as usize))
-        .expect("新轮盘必须能序列化")
-}
-
 /// 按 id 取轮盘；id 指不到时退回**生效的那个**。
 ///
-/// 运行时传的就是 `activeMenuId`，这一层兜底只在「刚删了轮盘、设置还没落盘」这种
-/// 瞬间窗口里起作用：宁可画出别的轮盘，也不要画出一个空的。
+/// 外壳传的一般就是 `activeMenuId`，这一层兜底只在「刚删了轮盘、设置还没落盘」
+/// 这种瞬间窗口里起作用：宁可画出别的轮盘，也不要画出一个空的。
 fn radial_menu<'a>(
     config: &'a engine::radial::RadialConfig,
     menu_id: &str,
-) -> Option<&'a engine::radial::RadialMenu> {
+) -> Option<&'a engine::radial::RadialMenuDefinition> {
     config.menu(menu_id).or_else(|| config.active_menu())
 }

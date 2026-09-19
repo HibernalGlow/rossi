@@ -55,11 +55,19 @@ abstract final class BindingAction {
   static const toggleControls = 'reader.toggle-controls';
   static const openSettings = 'reader.open-settings';
 
-  /// 唤出轮盘（Rossi 追加的动作，见 `vocabulary.rs` 的注释）。
+  /// 缩放与旋转一族（注册表里早就有，本仓的执行体挂在顶栏那套呈现状态上）。
+  static const zoomIn = 'reader.zoom-in';
+  static const zoomOut = 'reader.zoom-out';
+  static const fitWindow = 'reader.fit-window';
+  static const actualSize = 'reader.actual-size';
+  static const rotateClockwise = 'reader.rotate-clockwise';
+  static const rotate180 = 'reader.rotate-180';
+
+  /// 唤出轮盘（id 照抄 neoview 的注册表条目，见 `vocabulary.rs`）。
   ///
   /// 「轮盘怎么打开」与「轮盘里每一格干什么」走的是同一套：都是绑定表里的一条输入
-  /// → 一个动作 id。差别只在前者的输入是键盘/点击，后者的输入是 `device: radial`。
-  static const openRadialMenu = 'reader.open-radial-menu';
+  /// → 一个动作 id。差别只在前者的输入是键盘/鼠标，后者的输入是 `device: radial`。
+  static const openRadialMenu = 'radial.open-default';
 
   /// 翻页语义的四条（其余翻页动作不算）。
   static const pageTurnFamily = [
@@ -136,6 +144,17 @@ String keyboardInputJson({
   'alt': alt,
   'shift': shift,
   'meta': meta,
+});
+
+/// 一次鼠标/触控笔按下 → descriptor 的 JSON。
+///
+/// `button` 用 W3C `MouseEvent.button` 的口径（0 左 / 1 中 / 2 右），与 neoview 一致；
+/// `Flutter` 的 `PointerDownEvent.buttons` 是位掩码，那层翻译在采集端
+/// （`reader_input_controller.dart`）。`action` 默认 `press`：轮盘要在**按下**就出现。
+String mouseInputJson({required int button, String action = 'press'}) => jsonEncode({
+  'device': InputDevice.mouse,
+  'button': button,
+  'action': action,
 });
 
 /// 一次落在九宫格某一格的点击 → descriptor 的 JSON。
@@ -260,6 +279,10 @@ String describeInput(Map<String, dynamic> input) {
       return modifiers.isEmpty ? code : '${modifiers.join('+')}+$code';
     case InputDevice.area:
       return 'area:${input['area'] ?? '?'}:${input['action'] ?? 'click'}';
+    case InputDevice.mouse:
+      return 'mouse:${input['button'] ?? '?'}:${input['action'] ?? 'click'}';
+    case InputDevice.radial:
+      return 'radial:${input['menuId'] ?? '?'}:${input['itemId'] ?? '?'}';
     default:
       return jsonEncode(input);
   }

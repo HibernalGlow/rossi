@@ -261,13 +261,44 @@ pub mod action {
 
     // ── session ────────────────────────────────────────────────────────────
     pub const OPEN_SETTINGS: &str = "reader.open-settings";
-    /// **Rossi 追加**（neoview 没有这一条）：唤出轮盘（radial menu）。
+    // ── radial（neoview `ReaderInputActions.ts` 的 `radial` 一族）─────────────
+    /// 唤出轮盘。id 与显示名都照抄 neoview 的注册表条目
+    /// `action("radial.open-default", "openRadialMenu.default", "打开轮盘菜单", "radial")`，
+    /// 因为它是**要落进用户绑定包**的东西；neoview 的默认绑法是右键按下 + `Enter`。
     ///
-    /// neoview 的轮盘由**手势运行时**唤起（按住拖动），没有做成可绑定动作；Rossi 的
-    /// 鼠标轨迹手势还没接线（ADR-0015 §8），于是「怎么打开轮盘」需要一个 id 才能
-    /// 进绑定表 —— 用户可以把它绑到任意键盘 / 点击输入上，与轮盘**内部**的槽位
-    /// 完全同一套机制（一个输入 → 一个动作 id）。
-    pub const OPEN_RADIAL_MENU: &str = "reader.open-radial-menu";
+    /// neoview 那条 `radial.confirm` 不接：它的执行体是空实现，确认键由轮盘控件自己的
+    /// keydown 处理（Rossi 同理，见浮层），所以没必要占一个动作 id。
+    pub const OPEN_RADIAL_MENU: &str = "radial.open-default";
+
+    // ── video（ADR-0016 追加；mImageViewer `keymap.rs` 的 `KeyAction::Video*` 面）──
+    // 命名用 `video.` 前缀而不是塞进 `reader.`：`InputContext::Video` 的优先级
+    // 高于 `reader`，前缀一致才能让人一眼看出这条动作在哪个上下文里生效。
+    pub const VIDEO_TOGGLE_PLAY: &str = "video.toggle-play";
+    pub const VIDEO_SEEK_BACKWARD: &str = "video.seek-backward";
+    pub const VIDEO_SEEK_FORWARD: &str = "video.seek-forward";
+    pub const VIDEO_SEEK_MODE_TOGGLE: &str = "video.seek-mode-toggle";
+    pub const VIDEO_FRAME_STEP: &str = "video.frame-step";
+    pub const VIDEO_FRAME_STEP_BACK: &str = "video.frame-step-back";
+    pub const VIDEO_SPEED_UP: &str = "video.speed-up";
+    pub const VIDEO_SPEED_DOWN: &str = "video.speed-down";
+    pub const VIDEO_SPEED_RESET: &str = "video.speed-reset";
+    pub const VIDEO_VOLUME_UP: &str = "video.volume-up";
+    pub const VIDEO_VOLUME_DOWN: &str = "video.volume-down";
+    pub const VIDEO_TOGGLE_MUTE: &str = "video.toggle-mute";
+    pub const VIDEO_CYCLE_LOOP: &str = "video.cycle-loop";
+    pub const VIDEO_AB_LOOP_TAP: &str = "video.ab-loop-tap";
+    pub const VIDEO_AB_LOOP_CLEAR: &str = "video.ab-loop-clear";
+    pub const VIDEO_SCREENSHOT: &str = "video.screenshot";
+    pub const VIDEO_TOGGLE_CONTROLS: &str = "video.toggle-controls";
+    pub const VIDEO_TOGGLE_SUBTITLE: &str = "video.toggle-subtitle";
+    pub const VIDEO_SUBTITLE_DELAY_UP: &str = "video.subtitle-delay-up";
+    pub const VIDEO_SUBTITLE_DELAY_DOWN: &str = "video.subtitle-delay-down";
+    pub const VIDEO_TOGGLE_AUDIO_ONLY: &str = "video.toggle-audio-only";
+    pub const VIDEO_TOGGLE_FULLSCREEN: &str = "video.toggle-fullscreen";
+    /// 上一章 / 下一章（mImageViewer `decoder.rs:1594` 的章节边界才真的能用：
+    /// 光把章节画在进度条上，用户没有跳的入口）。
+    pub const VIDEO_NEXT_CHAPTER: &str = "video.next-chapter";
+    pub const VIDEO_PREVIOUS_CHAPTER: &str = "video.previous-chapter";
 }
 
 /// 动作分类（neoview `READER_INPUT_ACTION_CATEGORIES`）。
@@ -277,6 +308,10 @@ pub enum ActionCategory {
     Zoom,
     View,
     Session,
+    /// 轮盘自身的动作（neoview `radial` 分类）。
+    ///
+    /// 设置页的**槽位**选项会排除这一类：轮盘里再放一个「打开轮盘」是循环。
+    Radial,
 }
 
 impl ActionCategory {
@@ -286,6 +321,7 @@ impl ActionCategory {
             Self::Zoom => "zoom",
             Self::View => "view",
             Self::Session => "session",
+            Self::Radial => "radial",
         }
     }
 
@@ -296,6 +332,7 @@ impl ActionCategory {
             Self::Zoom => "缩放",
             Self::View => "视图",
             Self::Session => "会话",
+            Self::Radial => "轮盘",
         }
     }
 }
@@ -327,7 +364,151 @@ macro_rules! action_def {
 }
 
 /// Rossi 动作注册表（子集，见模块头注释）。
-pub const ACTION_CATALOG: [ActionDefinition; 21] = [
+pub const ACTION_CATALOG: [ActionDefinition; 45] = [
+    action_def!(
+        action::VIDEO_NEXT_CHAPTER,
+        "视频：上一章",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_PREVIOUS_CHAPTER,
+        "视频：下一章",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_TOGGLE_PLAY,
+        "视频：播放/暂停",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_SEEK_BACKWARD,
+        "视频：后退 10 秒",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_SEEK_FORWARD,
+        "视频：前进 10 秒",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_SEEK_MODE_TOGGLE,
+        "视频：快进档",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_FRAME_STEP,
+        "视频：下一帧",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_FRAME_STEP_BACK,
+        "视频：上一帧",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_SPEED_UP,
+        "视频：加速",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_SPEED_DOWN,
+        "视频：减速",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_SPEED_RESET,
+        "视频：恢复常速",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_VOLUME_UP,
+        "视频：音量+",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_VOLUME_DOWN,
+        "视频：音量-",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_TOGGLE_MUTE,
+        "视频：静音",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_CYCLE_LOOP,
+        "视频：循环档",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_AB_LOOP_TAP,
+        "视频：A-B 打点",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_AB_LOOP_CLEAR,
+        "视频：清除 A-B",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_SCREENSHOT,
+        "视频：截图",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_TOGGLE_CONTROLS,
+        "视频：显隐控制条",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_TOGGLE_SUBTITLE,
+        "视频：切字幕轨",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_SUBTITLE_DELAY_UP,
+        "视频：字幕延迟+",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_SUBTITLE_DELAY_DOWN,
+        "视频：字幕延迟-",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_TOGGLE_AUDIO_ONLY,
+        "视频：只听声音",
+        ActionCategory::View,
+        true
+    ),
+    action_def!(
+        action::VIDEO_TOGGLE_FULLSCREEN,
+        "视频：全屏",
+        ActionCategory::View,
+        true
+    ),
     action_def!(
         action::NEXT_PAGE,
         "下一页",
@@ -376,10 +557,10 @@ pub const ACTION_CATALOG: [ActionDefinition; 21] = [
         ActionCategory::Navigation,
         false
     ),
-    action_def!(action::ZOOM_IN, "放大", ActionCategory::Zoom, false),
-    action_def!(action::ZOOM_OUT, "缩小", ActionCategory::Zoom, false),
-    action_def!(action::FIT_WINDOW, "适应窗口", ActionCategory::Zoom, false),
-    action_def!(action::ACTUAL_SIZE, "实际大小", ActionCategory::Zoom, false),
+    action_def!(action::ZOOM_IN, "放大", ActionCategory::Zoom, true),
+    action_def!(action::ZOOM_OUT, "缩小", ActionCategory::Zoom, true),
+    action_def!(action::FIT_WINDOW, "适应窗口", ActionCategory::Zoom, true),
+    action_def!(action::ACTUAL_SIZE, "实际大小", ActionCategory::Zoom, true),
     action_def!(action::FULLSCREEN, "全屏", ActionCategory::View, true),
     action_def!(
         action::TOGGLE_READING_DIRECTION,
@@ -393,13 +574,8 @@ pub const ACTION_CATALOG: [ActionDefinition; 21] = [
         ActionCategory::View,
         true
     ),
-    action_def!(
-        action::ROTATE_CLOCKWISE,
-        "旋转",
-        ActionCategory::View,
-        false
-    ),
-    action_def!(action::ROTATE_180, "旋转180度", ActionCategory::View, false),
+    action_def!(action::ROTATE_CLOCKWISE, "旋转", ActionCategory::View, true),
+    action_def!(action::ROTATE_180, "旋转180度", ActionCategory::View, true),
     action_def!(action::RESET_VIEW, "重置视图", ActionCategory::View, true),
     action_def!(
         action::TOGGLE_CONTROLS,
@@ -415,8 +591,8 @@ pub const ACTION_CATALOG: [ActionDefinition; 21] = [
     ),
     action_def!(
         action::OPEN_RADIAL_MENU,
-        "唤出轮盘",
-        ActionCategory::Session,
+        "打开轮盘菜单",
+        ActionCategory::Radial,
         true
     ),
 ];

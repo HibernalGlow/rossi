@@ -23,7 +23,10 @@ pub mod resolve;
 pub mod vocabulary;
 
 pub use model::{InputBinding, InputBindingsConfig, InputDescriptor};
-pub use radial::{RadialConfig, RadialMenu, RadialSlot, default_config as radial_default_config};
+pub use radial::{
+    DEFAULT_RADIAL_MENU_ID, RadialConfig, RadialMenuDefinition, RadialMenuItem, RadialSlotHit,
+    RadialSlotLayout, default_config as radial_default_config,
+};
 pub use resolve::{InputConflict, PageTurn, conflicts, resolve, resolve_page_turn};
 pub use vocabulary::{
     ActionCatalogEntry, InputContext, ReaderViewArea, ReadingDirection, action,

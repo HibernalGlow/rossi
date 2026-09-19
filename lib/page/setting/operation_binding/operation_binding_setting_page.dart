@@ -697,6 +697,7 @@ class _OperationBindingSettingPageState
     'zoom' => t.settings.operationBindingCategoryZoom,
     'view' => t.settings.operationBindingCategoryView,
     'session' => t.settings.operationBindingCategorySession,
+    'radial' => t.settings.operationBindingCategoryRadial,
     _ => category,
   };
 

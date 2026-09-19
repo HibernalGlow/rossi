@@ -81,7 +81,7 @@ class ReaderInputController {
     onToggleFullscreen: toggleReaderFullscreen,
     onOpenSettings: () => unawaited(showReaderSettingsSheet(context)),
     onResetView: resetViewerTransformIfNeeded,
-    onOpenRadialMenu: openRadialMenuAtCenter,
+    onOpenRadialMenu: openRadialMenu,
     onBeforePageTurn: restoreScaleForPageTurnAction,
   );
 
@@ -95,71 +95,52 @@ class ReaderInputController {
     );
   }
 
-  // ── 轮盘：按住唤出 ──────────────────────────────────────────────────────────
+  // ── 轮盘：一条输入把它开出来 ────────────────────────────────────────────────
 
-  /// 按住多久唤出轮盘。
-  ///
-  /// 这里**不用** `GestureDetector.onLongPress`：那会和 `InteractiveViewer` 的缩放
-  /// 识别器抢手势竞技场，表现为「按住想放大时突然弹出轮盘」。`Listener` 自己计时
-  /// 不参与竞技场，两条路互不干扰 —— 代价是要自己管位移阈值（[kRadialHoldSlop]）。
-  static const int kRadialHoldMilliseconds = 450;
-
-  /// 超过这个位移就认为用户在拖动/缩放，不该开轮盘。
-  static const double kRadialHoldSlop = 14.0;
-
-  Timer? _radialHoldTimer;
-  Offset? _radialHoldFrom;
-
-  /// 最近一次抬起的全局坐标 —— 轮盘浮层要用它决定「松在哪一格」。
-  Offset? _radialReleasePosition;
-
-  /// 这次手势已经用「按住」开出了轮盘：随后的单击不该再被当成翻页点击。
-  bool _radialOpenedByHold = false;
-
-  /// 运行时可用的轮盘文档 JSON（`null` = 轮盘这条通道不走：总开关关着、轮盘自己关着、
+  /// 轮盘文档 JSON（形状）；`null` = 轮盘这条通道不走（总开关关着、轮盘自己关着、
   /// 或文档读不出）。
   String? get _radialConfigJson => OperationBindingStore.runtimeRadialJson(
     context.read<GlobalSettingCubit>().state.operationBindingSetting,
   );
 
-  void _armRadialHold(PointerDownEvent event) {
-    // 只认主键：右键/中键的按下本来就不该开出轮盘（那是另一族输入，将来单独绑）。
-    if (event.buttons != kPrimaryButton) return;
-    if (_radialConfigJson == null || _runtimeBindings == null) return;
-    _radialOpenedByHold = false;
-    _radialHoldFrom = event.position;
-    _radialHoldTimer?.cancel();
-    _radialHoldTimer = Timer(
-      const Duration(milliseconds: kRadialHoldMilliseconds),
-      () {
-        _radialHoldTimer = null;
-        final from = _radialHoldFrom;
-        _radialHoldFrom = null;
-        if (from == null || !context.mounted) return;
-        _radialOpenedByHold = true;
-        showRadialMenu(from);
-      },
-    );
+  /// 最近一次按下的全局坐标 —— 轮盘开在这里（neoview 的 `lastInputPoint` 同一件事）。
+  Offset? _lastPointerGlobal;
+
+  /// 这次按下把轮盘开出来了 ⇒ 它的抬起要转交给浮层。
+  ///
+  /// 需要转交是因为 Flutter 对**进行中的指针**复用按下时的命中结果：浮层是按下之后
+  /// 才插进 Overlay 的，于是同一次手势的抬起事件根本到不了它，只会回到阅读器。
+  bool _radialAwaitingRelease = false;
+
+  /// 一次按下 → 问引擎「这一按是什么动作」→ 派发。
+  ///
+  /// 用 `Listener` 而不是 `GestureDetector.onSecondaryTap`：neoview 的出厂绑法是
+  /// **右键按下**开轮盘（按下即出、拖到某一格松手即执行），而 tap 要等到抬起才成立。
+  /// 走绑定表意味着用户可以把轮盘改绑到中键、某个修饰键组合，或者干脆不绑。
+  void _dispatchPointerPress(PointerDownEvent event) {
+    _radialAwaitingRelease = false;
+    _lastPointerGlobal = event.position;
+    final bindings = _runtimeBindings;
+    if (bindings == null) return;
+    final button = _mouseButtonOf(event.buttons);
+    if (button == null) return;
+    _actionDispatcher.dispatchPointerPress(button: button, bindingsArrayJson: bindings);
+    _radialAwaitingRelease = ReaderRadialMenu.isOpen;
   }
 
-  /// 按住期间的位移检查（同时也是浮层要用的「指针现在在哪」）。
-  void _trackRadialHold(PointerEvent event) {
-    final from = _radialHoldFrom;
-    if (from == null) return;
-    const slop2 = kRadialHoldSlop * kRadialHoldSlop;
-    if ((event.position - from).distanceSquared > slop2) _cancelRadialHold();
-  }
-
-  void _cancelRadialHold() {
-    _radialHoldTimer?.cancel();
-    _radialHoldTimer = null;
-    _radialHoldFrom = null;
+  /// `PointerDownEvent.buttons`（位掩码）→ W3C `MouseEvent.button` 口径
+  /// （0 左 / 1 中 / 2 右）—— 绑定包里的 `button` 用的是后者，与 neoview 一致。
+  int? _mouseButtonOf(int buttons) {
+    if (buttons & kSecondaryButton != 0) return 2;
+    if (buttons & kTertiaryButton != 0) return 1;
+    if (buttons & kPrimaryButton != 0) return 0;
+    return null;
   }
 
   /// 在 [globalCenter]（全局坐标）处开出轮盘。
   ///
-  /// 浮层只拿到**形状**（configJson）与**绑定表**（bindingsArrayJson）：每一格是什么
-  /// 动作由引擎回答，所以「设置页改完不用重启」这条判据在轮盘上同样成立。
+  /// 浮层只拿到**形状**与**绑定表**：每一格是什么动作由引擎回答，所以「设置页改完
+  /// 不用重启」这条判据在轮盘上同样成立。
   void showRadialMenu(Offset globalCenter) {
     if (!context.mounted) return;
     final bindings = _runtimeBindings;
@@ -174,8 +155,20 @@ class ReaderInputController {
     );
   }
 
-  /// 键盘 / 点击绑定的 `reader.open-radial-menu` 走这里：落在阅读区正中。
-  void openRadialMenuAtCenter() {
+  /// 唤出轮盘：知道指针在哪就开在那儿，否则开在阅读区正中。
+  ///
+  /// 两个入口共用它（`radial.open-default` 的执行体）：鼠标按下时指针位置是准的，
+  /// 而键盘（出厂 `Enter`）没有指针参与 —— 那时「正中间」是唯一不让人意外的落点。
+  void openRadialMenu() {
+    final at = _lastPointerGlobal;
+    if (at != null) {
+      showRadialMenu(at);
+      return;
+    }
+    _openRadialMenuAtCenter();
+  }
+
+  void _openRadialMenuAtCenter() {
     final renderObject = context.findRenderObject();
     if (renderObject is! RenderBox || !renderObject.hasSize) return;
     showRadialMenu(
@@ -205,7 +198,6 @@ class ReaderInputController {
   }
 
   void dispose() {
-    _radialHoldTimer?.cancel();
     // 阅读器整棵拆掉时轮盘还开着，会留下一层没人收的遮罩。
     ReaderRadialMenu.dismiss();
     focusNode.dispose();
@@ -224,7 +216,6 @@ class ReaderInputController {
       onKeyEvent: _onKeyEvent,
       child: Listener(
         onPointerDown: _onPointerDown,
-        onPointerMove: _trackRadialHold,
         onPointerUp: _onPointerUpOrCancel,
         onPointerCancel: _onPointerUpOrCancel,
         onPointerSignal: _onPointerSignal,
@@ -312,19 +303,6 @@ class ReaderInputController {
     if (tap == null || !context.mounted) return;
     _tap = null;
 
-    // 这次「单击」其实是按住唤出轮盘之后的那一次**松手**：进行中的指针不会命中刚插入的
-    // 浮层，所以抬起落回这里。转交给浮层，松在哪一格就执行那一格。
-    if (_radialOpenedByHold) {
-      _radialOpenedByHold = false;
-      final release = _radialReleasePosition;
-      if (release != null) {
-        ReaderRadialMenu.commitAt(release, keepOpenOnMiss: true);
-      } else {
-        ReaderRadialMenu.dismiss();
-      }
-      return;
-    }
-
     final readSetting = context.read<GlobalSettingCubit>().state.readSetting;
     // 落点与尺码都取这次点击**自己**那一对（[ReaderTapSample]）：前者相对接收手势的
     // 那个盒子，后者是那个盒子量出来的尺寸。它们同一个坐标系，分区才分得对；
@@ -399,17 +377,18 @@ class ReaderInputController {
   }
 
   void _onPointerDown(PointerDownEvent event) {
-    _armRadialHold(event);
+    _dispatchPointerPress(event);
     if (!_isTouchPointer(event.kind)) return;
     _activeTouchPointers.add(event.pointer);
     _updateMultiTouchScrollLock();
   }
 
   void _onPointerUpOrCancel(PointerEvent event) {
-    // 抬起的位置要留给轮盘浮层：进行中的指针不会命中刚插入的浮层，
-    // 所以「按住拖到某一格再松手」得由这里把坐标转交过去（见 `_onTap` 的轮盘分支）。
-    _radialReleasePosition = event.position;
-    _cancelRadialHold();
+    if (_radialAwaitingRelease) {
+      _radialAwaitingRelease = false;
+      // 松在哪一格就执行哪一格；松在中心空洞里 = 取消（浮层自己判）。
+      ReaderRadialMenu.commitAt(event.position);
+    }
     if (!_isTouchPointer(event.kind)) return;
     _activeTouchPointers.remove(event.pointer);
     _updateMultiTouchScrollLock();

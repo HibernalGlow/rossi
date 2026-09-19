@@ -176,7 +176,8 @@ abstract final class OperationBindingStore {
     return setting.radialJson;
   }
 
-  /// 一个轮盘的全部槽位画法。**外壳照着这份数字画**，命中判定也读它。
+  /// 一个轮盘显示出来的全部槽位（**含空格**）。外壳照着这份数字画，
+  /// 命中判定也读同一份数字（[radialSlotHit]）。
   static List<RadialSlotPaint> radialLayout({
     required String configJson,
     required String menuId,
@@ -184,24 +185,36 @@ abstract final class OperationBindingStore {
     for (final entry in _decodeList(
       operationBindingRadialLayout(configJson: configJson, menuId: menuId),
     ))
-      RadialSlotPaint.fromMap(menuId: menuId, map: entry),
+      RadialSlotPaint.fromMap(map: entry),
   ];
 
-  /// 落点（相对圆心的偏移）→ 选中的槽，返回**就是那条 radial 输入**的 descriptor JSON。
+  /// 落点（相对圆心的偏移）→ 选中的槽；落在空洞、空格、被禁用的条目或扫过角之外
+  /// 都返回 `null`。
   ///
-  /// 拿到就能直接喂给 [resolveAction]：轮盘不经过任何专用的动作判断。
-  /// 落在中心空洞或外半径之外返回 `null`。
-  static String? radialSlotInput({
+  /// 返回里带着 `itemId`，外壳拼出那条 `radial` 输入喂给 [resolveAction] ——
+  /// 轮盘不经过任何专用的动作判断。
+  static RadialSlotHit? radialSlotHit({
     required String configJson,
     required String menuId,
     required double dx,
     required double dy,
-  }) => operationBindingRadialSlot(
-    configJson: configJson,
-    menuId: menuId,
-    dx: dx,
-    dy: dy,
-  );
+  }) {
+    final raw = operationBindingRadialSlot(
+      configJson: configJson,
+      menuId: menuId,
+      dx: dx,
+      dy: dy,
+    );
+    if (raw == null) return null;
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } on FormatException {
+      return null;
+    }
+    if (decoded is! Map) return null;
+    return RadialSlotHit.fromMap(Map<String, dynamic>.from(decoded));
+  }
 
   /// 新建一个轮盘（只有默认轮盘有出厂槽位；新轮盘是空的）。
   static List<Map<String, dynamic>> radialPresetBindings(String menuId) =>
@@ -219,6 +232,10 @@ abstract final class OperationBindingStore {
     if (decoded is! Map) return null;
     return RadialMenuDoc(Map<String, dynamic>.from(decoded));
   }
+
+  /// 新建一个条目的 id（`item-N`）。同上一条理由：id 的生成规则只有一处。
+  static String radialNewItemId(int count) =>
+      operationBindingRadialNewItemId(count: count);
 
   /// 形状变了（减层、改格数、删轮盘）之后，剪掉指向已不存在的槽的绑定。
   static List<Map<String, dynamic>> radialPrune({
@@ -274,47 +291,107 @@ class BindingActionInfo {
   final bool implemented;
 }
 
-/// 一个槽的**画法与命中区**（核心算出来的那一份数字）。
+/// 一个槽的**画法与命中区**（核心算出来的那一份数字，含条目的显示文字）。
 ///
 /// 外壳不许自己再算一遍角度与环带：两处各算一次迟早差半个扇区，而屏幕上看着没错 ——
 /// 表现就是「高亮的格子与松手执行的格子不是同一个」。
 class RadialSlotPaint {
   const RadialSlotPaint({
     required this.menuId,
-    required this.itemId,
-    required this.layer,
-    required this.sector,
+    required this.level,
+    required this.index,
     required this.innerRadius,
     required this.outerRadius,
     required this.startDeg,
     required this.endDeg,
     required this.midDeg,
+    this.itemId,
+    this.label,
+    this.legacyAction,
+    this.moveToMenuId,
+    this.disabled = false,
+    this.selectable = false,
   });
 
-  factory RadialSlotPaint.fromMap({
-    required String menuId,
-    required Map<String, dynamic> map,
-  }) => RadialSlotPaint(
-    menuId: menuId,
-    itemId: map['itemId'] as String? ?? '',
-    layer: (map['layer'] as num? ?? 0).toInt(),
-    sector: (map['sector'] as num? ?? 0).toInt(),
-    innerRadius: (map['innerRadius'] as num? ?? 0).toDouble(),
-    outerRadius: (map['outerRadius'] as num? ?? 0).toDouble(),
-    startDeg: (map['startDeg'] as num? ?? 0).toDouble(),
-    endDeg: (map['endDeg'] as num? ?? 0).toDouble(),
-    midDeg: (map['midDeg'] as num? ?? 0).toDouble(),
-  );
+  factory RadialSlotPaint.fromMap({required Map<String, dynamic> map}) =>
+      RadialSlotPaint(
+        menuId: map['menuId'] as String? ?? '',
+        level: (map['level'] as num? ?? 0).toInt(),
+        index: (map['index'] as num? ?? 0).toInt(),
+        innerRadius: (map['innerRadius'] as num? ?? 0).toDouble(),
+        outerRadius: (map['outerRadius'] as num? ?? 0).toDouble(),
+        startDeg: (map['startDeg'] as num? ?? 0).toDouble(),
+        endDeg: (map['endDeg'] as num? ?? 0).toDouble(),
+        midDeg: (map['midDeg'] as num? ?? 0).toDouble(),
+        itemId: map['itemId'] as String?,
+        label: map['label'] as String?,
+        legacyAction: map['legacyAction'] as String?,
+        moveToMenuId: map['moveToMenuId'] as String?,
+        disabled: map['disabled'] == true,
+        selectable: map['selectable'] == true,
+      );
 
   final String menuId;
-  final String itemId;
-  final int layer;
-  final int sector;
+
+  /// 第几环（1 起）与这一环里的第几格（0 起）。
+  final int level;
+  final int index;
+
+  /// 这一格上的条目；`null` = 空格（画成 `+`）。
+  final String? itemId;
+
+  /// 条目的显示文字（住在文档里，绑动作时由编辑器自动跟随动作名）。
+  final String? label;
+  final String? legacyAction;
+  final String? moveToMenuId;
+  final bool disabled;
+  final bool selectable;
+
   final double innerRadius;
   final double outerRadius;
   final double startDeg;
   final double endDeg;
   final double midDeg;
+
+  bool get isEmpty => itemId == null;
+
+  /// 这一格的身份 —— 拿去拼那条 `radial` 输入。
+  RadialSlotRef? get slot {
+    final id = itemId;
+    return id == null ? null : (menuId: menuId, itemId: id);
+  }
+}
+
+/// 一次落点的命中结果（核心算的）。
+class RadialSlotHit {
+  const RadialSlotHit({
+    required this.menuId,
+    required this.level,
+    required this.index,
+    required this.itemId,
+    this.legacyAction,
+    this.moveToMenuId,
+  });
+
+  factory RadialSlotHit.fromMap(Map<String, dynamic> map) => RadialSlotHit(
+    menuId: map['menuId'] as String? ?? '',
+    level: (map['level'] as num? ?? 0).toInt(),
+    index: (map['index'] as num? ?? 0).toInt(),
+    itemId: map['itemId'] as String? ?? '',
+    legacyAction: map['legacyAction'] as String?,
+    moveToMenuId: map['moveToMenuId'] as String?,
+  );
+
+  final String menuId;
+  final int level;
+  final int index;
+  final String itemId;
+
+  /// 老包里的直连动作：绑定派发不到时回落（neoview 同一顺序）。
+  final String? legacyAction;
+
+  /// 非空 = 这一格是「跳转轮盘」，松手换轮盘而不是执行动作。
+  final String? moveToMenuId;
 
   RadialSlotRef get slot => (menuId: menuId, itemId: itemId);
 }

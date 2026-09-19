@@ -28,6 +28,13 @@ String actionLabel(BindingActionInfo entry) => switch (entry.id) {
   BindingAction.toggleControls => t.settings.operationBindingActionToggleBars,
   BindingAction.openSettings => t.settings.operationBindingActionOpenSettings,
   BindingAction.openRadialMenu => t.settings.operationBindingActionOpenRadial,
+  BindingAction.zoomIn => t.settings.operationBindingActionZoomIn,
+  BindingAction.zoomOut => t.settings.operationBindingActionZoomOut,
+  BindingAction.fitWindow => t.settings.operationBindingActionFitWindow,
+  BindingAction.actualSize => t.settings.operationBindingActionActualSize,
+  BindingAction.rotateClockwise =>
+    t.settings.operationBindingActionRotateClockwise,
+  BindingAction.rotate180 => t.settings.operationBindingActionRotate180,
   _ => entry.label,
 };
 

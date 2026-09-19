@@ -40,9 +40,11 @@ void main() {
     });
 
     test('横向居中但纵向在顶上 ⇒ 仍是翻页，不是上下栏', () {
-      // 中心控制区是**那一格**，不是整条中轴：否则「点上部想唤出顶栏」会变成翻页。
-      expect(area(x: 400, y: 60), TapArea.middleLeft);
+      // 中心控制区是**正中那一格**（横竖都在中间三分之一），不是整条中轴；
+      // 否则「点上部想唤出顶栏」会变成翻页。x=400 在 800 宽里属于右半（`>=` 那一侧）。
+      expect(area(x: 400, y: 60), TapArea.middleRight);
       expect(area(x: 400, y: 760), TapArea.middleRight);
+      expect(area(x: 399, y: 60), TapArea.middleLeft);
     });
 
     test('左右按半屏分（不按三分之一）', () {
@@ -61,6 +63,7 @@ void main() {
             ),
             isWebtoon: false,
             tapPageTurnInWebtoon: false,
+            mode: ReaderTapPageTurnMode.rightHand,
           );
       for (final size in const [
         Size(0, 0),

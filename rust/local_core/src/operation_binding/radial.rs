@@ -1,239 +1,342 @@
-//! 轮盘（radial menu）的**文档模型 + 几何**（neoview `ReaderRadialMenu` 那一层）。
+//! 轮盘（radial menu）的**文档模型 + 几何** —— 照抄 neoview
+//! `packages/nodes/neoview/src/application/config/ReaderRadialMenuConfig.ts`
+//! 与 `vendor/ray-menu/wc/neoview-ray-menu.ts` 的 `_getSlotAtPoint`。
+//!
+//! ## 一个槽「干什么」不在这份文档里
+//!
+//! neoview 的条目（`ReaderRadialMenuItem`）带一个 `action` 字段，但它自己的编辑器
+//! 会把这个「遗留的直连动作」剥掉（`stripLegacyActions`），改成物化一条
+//! `input: {device:"radial", menuId, itemId}` 的**绑定行**；运行时也是先派发绑定、
+//! 派发不到才回落到遗留动作（`ReaderAppView.tsx` 的
+//! `if (!inputRouter.dispatch(...) && legacyAction) executeInputAction(legacyAction)`）。
+//! 这里同一套：**槽位身份 = (menuId, itemId)**，动作在绑定表里。于是轮盘与键盘、
+//! 点击共用同一个解析器、同一套冲突判定，`followUpActions` 自动可用。
+//! 遗留的 [`RadialMenuItem::action`] 仍然解析并随布局带回去，作为回落。
 //!
 //! ## 为什么几何归核心
 //!
-//! 画一个槽和判断「手指/鼠标落在这个槽里」必须是同一份算术。两边各写一遍时，
-//! 只要起始角差 1°、或者层带的划分差一个像素，就会出现**高亮的槽和真正执行的槽
-//! 不是同一个** —— 而屏幕上看着没错，没人能靠看发现。所以这里一次算出
-//! [`RadialSlotLayout`]（外壳照着它画），命中判定 [`slot_at`] 也从同一组数字读，
-//! 外壳拿到的永远是「画出来的那个 = 点得到的那个」。
+//! 画一格与判定「指针落在哪一格」必须是同一份算术。两处各算一遍时，只要起始角差 1°
+//! 或环带差一个像素，就会**高亮的槽与执行的槽不是同一个**，而屏幕上看着没错。
+//! 所以 [`slot_layout`] 一次算出每个槽的内外半径与角度，[`slot_at`] 也从同一组数字读。
 //!
-//! ## 槽位为什么不住在这份文档里
+//! ## 环带不是「半径除以层数」
 //!
-//! 轮盘文档只描述**形状**（几个轮盘、几层、每层几格、半径）。一个槽「干什么」
-//! 是一条**绑定**（`InputDescriptor::Radial { menu_id, item_id }` → 注册表里的动作 id），
-//! 存在绑定表里而不是这里。理由就是 ADR-0009 的判据 E1：动作 id 是唯一稳定契约，
-//! 轮盘只是**另一种输入设备**。于是轮盘槽位与键盘按键完全同权 —— 同一张表、同一个
-//! 解析器、同一套冲突判定，追加动作（`followUpActions`）也自动可用，
-//! 不需要为轮盘再写一遍「这个输入对应什么动作」。
-//!
-//! 这份文档与绑定表之间的接缝由 [`prune_bindings`] 守住：删轮盘 / 减层数会让
-//! `itemId` 不复存在，那些绑定行必须一起消失，否则设置页会列出画不出来的槽。
+//! neoview 的第 1 环就是 `内半径 → 半径` 那一整圈，**多出来的每一层往外长
+//! [`SUBMENU_RADIUS_STEP`] 像素**（`_getBand`）。把 `(radius-inner)/layers` 当环宽
+//! 是最自然的猜法，也是错的：那样 r120 三层时每环只有 26.7px，字放不下，
+//! 而且预览与运行时的尺寸感会和 neoview 完全不同。
 
 use serde::{Deserialize, Serialize};
 
 use super::model::{InputBinding, InputDescriptor};
 use super::vocabulary::{InputContext, action};
 
-/// 一个轮盘文档最多能有多少个轮盘（neoview 的上限，见 ADR-0009）。
+/// 一份文档最多几个轮盘（neoview `MAX_MENUS = 16`）。
 pub const MAX_RADIAL_MENUS: usize = 16;
-/// 层数下限/上限（neoview「3 层」那一档的上限）。
+/// 层数（同心环）上下限（neoview `layerCount: 1|2|3`）。
 pub const MIN_RADIAL_LAYERS: u8 = 1;
 pub const MAX_RADIAL_LAYERS: u8 = 3;
-/// 每层扇区数的上下限。8 = 出厂值，与 neoview 的默认轮盘一致。
-pub const MIN_RADIAL_SECTORS: u8 = 4;
-pub const MAX_RADIAL_SECTORS: u8 = 16;
-/// 外半径（截图里「r120」那一项）。
-pub const DEFAULT_RADIAL_RADIUS: f32 = 120.0;
-/// 中心空洞半径（截图里「内40」）：落在洞里的指针**不选中任何槽**，
-/// 这一档同时充当「松手在这里 = 取消」的判据。
-pub const DEFAULT_RADIAL_INNER_RADIUS: f32 = 40.0;
-pub const DEFAULT_RADIAL_SECTORS: u8 = 8;
-/// 第一个扇区的**中心角**：`-90°` 即正上方（12 点方向），顺时针编号。
-///
-/// 做成常量、并且只被 [`slot_layout`] 与 [`slot_at`] 读，是因为画法和命中判定一旦
-/// 分叉就是「画在 12 点、点中在 1 点」，而这种错位靠看屏幕发现不了。
-pub const RADIAL_START_DEG: f32 = -90.0;
+/// 一层的槽位数下限：少于 8 格时外面仍然是 8 格，只是空着（neoview `MIN_SLOT_COUNT`）。
+pub const MIN_RADIAL_SLOTS: usize = 8;
+/// 一层的槽位数上限，也是 `slotIndex` 的上界（neoview `MAX_SLOT_COUNT = 64`）。
+pub const MAX_RADIAL_SLOTS: usize = 64;
+/// 每多一层，往外长多少像素（neoview `SUBMENU_RADIUS_STEP`）。
+pub const SUBMENU_RADIUS_STEP: f32 = 60.0;
 
-/// 轮盘出厂时的默认菜单 id（也是 [`default_config`] 里唯一那个轮盘的 id）。
+/// 半径档（neoview 的 `radius` 输入框范围 60..=300）。
+pub const MIN_RADIAL_RADIUS: f32 = 60.0;
+pub const MAX_RADIAL_RADIUS: f32 = 300.0;
+/// 中心空洞半径档（0..=100，且必须小于 `radius`）。
+pub const MIN_RADIAL_INNER_RADIUS: f32 = 0.0;
+pub const MAX_RADIAL_INNER_RADIUS: f32 = 100.0;
+/// 起始角档（度，`-90` 是正上方）。
+pub const MIN_RADIAL_START_ANGLE: f32 = -180.0;
+pub const MAX_RADIAL_START_ANGLE: f32 = 180.0;
+/// 扫过角档（度）：`360` 是整圈，小于 360 时是一个扇形轮盘。
+pub const MIN_RADIAL_SWEEP_ANGLE: f32 = 90.0;
+pub const MAX_RADIAL_SWEEP_ANGLE: f32 = 360.0;
+
+pub const DEFAULT_RADIAL_RADIUS: f32 = 120.0;
+pub const DEFAULT_RADIAL_INNER_RADIUS: f32 = 40.0;
+pub const DEFAULT_RADIAL_START_ANGLE: f32 = -90.0;
+pub const DEFAULT_RADIAL_SWEEP_ANGLE: f32 = 360.0;
+/// 出厂文档的层数。
+///
+/// neoview 的 parser 缺省是 3，而它随包的默认文档写的是 2 —— 两处不一致。
+/// 这里取 **3**：截图那一屏就是「3 层」，且 parser 的缺省才是新文档的落点。
+pub const DEFAULT_RADIAL_LAYERS: u8 = MAX_RADIAL_LAYERS;
+
+/// 出厂轮盘的 id。
 pub const DEFAULT_RADIAL_MENU_ID: &str = "default";
-/// 预设轮盘绑定的 id 前缀：「重置轮盘」只重写这一批，用户自加的绑定原样保留
-/// （与 `preset.rs` 的 `preset-tap-` 同一手法）。
+/// 预设槽位绑定的 id 前缀：「重置」只重写这一批（与 `preset.rs` 的 `preset-tap-` 同法）。
 pub const RADIAL_PRESET_ID_PREFIX: &str = "preset-radial-";
 
-/// 一个轮盘的**外观与几何**（截图里折叠起来的那一节）。
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", default)]
-pub struct RadialGeometry {
-    pub radius: f32,
-    pub inner_radius: f32,
-    pub sectors: u8,
+/// 画法（neoview `variant`：`slice` = 扇区、`bubble` = 气泡）。
+///
+/// 注意 neoview 运行时**只把 `slice` 接进了 ray-menu**（`observedAttributes` 里没有
+/// variant），气泡只在另一份 vendored 实现里。这里照它的数据形状收下这个值，
+/// 但两种画法在 Rossi 的运行时里暂时同一套弧线 —— 存下来是为了导出/导入不丢。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum RadialMenuVariant {
+    #[default]
+    Slice,
+    Bubble,
 }
 
-impl Default for RadialGeometry {
-    fn default() -> Self {
-        Self {
-            radius: DEFAULT_RADIAL_RADIUS,
-            inner_radius: DEFAULT_RADIAL_INNER_RADIUS,
-            sectors: DEFAULT_RADIAL_SECTORS,
+impl RadialMenuVariant {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Slice => "slice",
+            Self::Bubble => "bubble",
         }
     }
 }
 
-impl RadialGeometry {
-    /// 合法几何：半径为正、空洞小于外半径、扇区数在档内。
-    fn is_sane(&self) -> bool {
-        self.radius > 0.0
-            && self.inner_radius >= 0.0
-            && self.inner_radius < self.radius
-            && (MIN_RADIAL_SECTORS..=MAX_RADIAL_SECTORS).contains(&self.sectors)
-    }
+/// 轮盘里的一个条目（neoview `ReaderRadialMenuItem`）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct RadialMenuItem {
+    /// 稳定标识 = 绑定包里的 `itemId`。用户数据会引用它，**只能追加不能重排**。
+    pub id: String,
+    /// 显示文字。neoview 在绑动作时让它自动跟随动作名，之后可手改。
+    pub label: String,
+    /// 这一层里的第几格（0..63）。空槽不落进文档，由几何推出（见 [`layer_slot_count`]）。
+    pub slot_index: usize,
+    /// 遗留的直连动作：新条目一律走绑定，这里只为读得懂老包而保留。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub action: Option<String>,
+    /// 「跳转轮盘」型条目：松手不执行动作，而是换到另一个轮盘（neoview `moveToMenuId`）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub move_to_menu_id: Option<String>,
+    #[serde(default)]
+    pub disabled: bool,
+}
 
-    /// 单层环带的宽度。层数由外部给（几何本身不知道自己是几层）。
-    fn band(&self, layers: u8) -> f32 {
-        let layers = layers.max(MIN_RADIAL_LAYERS) as f32;
-        (self.radius - self.inner_radius) / layers
-    }
-
-    /// 第 [layer] 环（1 起）的内外半径。
-    fn band_radii(&self, layers: u8, layer: u8) -> (f32, f32) {
-        let band = self.band(layers);
-        (
-            self.inner_radius + (layer.saturating_sub(1)) as f32 * band,
-            self.inner_radius + layer as f32 * band,
-        )
+impl Default for RadialMenuItem {
+    fn default() -> Self {
+        Self {
+            id: String::new(),
+            label: String::new(),
+            slot_index: 0,
+            action: None,
+            move_to_menu_id: None,
+            disabled: false,
+        }
     }
 }
 
-/// 一个轮盘（一份文档里的一个条目）。
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+impl RadialMenuItem {
+    pub fn is_move_to(&self) -> bool {
+        self.move_to_menu_id
+            .as_deref()
+            .is_some_and(|id| !id.is_empty())
+    }
+}
+
+/// 一个轮盘（neoview `ReaderRadialMenuDefinition`：`layers` 是「每层一组条目」）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
-pub struct RadialMenu {
+pub struct RadialMenuDefinition {
     pub id: String,
     pub name: String,
-    pub layers: u8,
-    pub geometry: RadialGeometry,
+    /// 下标 0 = 第 1 环（最里面那一圈）。
+    pub layers: Vec<Vec<RadialMenuItem>>,
 }
 
-impl Default for RadialMenu {
+impl Default for RadialMenuDefinition {
     fn default() -> Self {
         Self {
             id: String::new(),
             name: String::new(),
-            layers: MAX_RADIAL_LAYERS,
-            geometry: RadialGeometry::default(),
+            layers: vec![Vec::new(), Vec::new(), Vec::new()],
         }
     }
 }
 
-impl RadialMenu {
-    /// 这个轮盘上一共有多少个槽（层数 × 每层扇区）。
-    pub fn slot_count(&self) -> usize {
-        self.layers.max(MIN_RADIAL_LAYERS) as usize
-            * self.geometry.sectors.max(MIN_RADIAL_SECTORS) as usize
+impl RadialMenuDefinition {
+    /// 第 `level` 环（1 起）的条目。
+    pub fn layer(&self, level: usize) -> &[RadialMenuItem] {
+        self.layers.get(level - 1).map(Vec::as_slice).unwrap_or(&[])
     }
 
-    /// 槽 [slot] 是否存在于这个轮盘的形状里。
-    pub fn has_slot(&self, slot: &RadialSlot) -> bool {
-        (MIN_RADIAL_LAYERS..=self.layers).contains(&slot.layer)
-            && slot.sector < self.geometry.sectors
+    pub fn slot_count(&self, level: usize) -> usize {
+        layer_slot_count(self.layer(level))
+    }
+
+    /// 这一格里有没有条目（按 `slotIndex`）。
+    pub fn item_at(&self, level: usize, index: usize) -> Option<&RadialMenuItem> {
+        self.layer(level)
+            .iter()
+            .find(|item| item.slot_index == index)
+    }
+
+    pub fn item(&self, item_id: &str) -> Option<&RadialMenuItem> {
+        self.layers.iter().flatten().find(|item| item.id == item_id)
+    }
+
+    /// 轮盘内所有条目 id 不许重复：绑定按 `(menuId, itemId)` 认，重复就是绑不上。
+    pub fn duplicated_item_ids(&self) -> Vec<String> {
+        let mut seen: Vec<&str> = Vec::new();
+        let mut dup: Vec<String> = Vec::new();
+        for entry in self.layers.iter().flatten() {
+            if seen.contains(&entry.id.as_str()) && !dup.contains(&entry.id.clone()) {
+                dup.push(entry.id.clone());
+            }
+            seen.push(entry.id.as_str());
+        }
+        dup
     }
 }
 
-/// 一份轮盘文档（持久化单位，与绑定表并列存在用户设置里）。
+/// 一份轮盘文档（持久化单位；槽位的动作不在这里，在绑定表里）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct RadialConfig {
-    /// 轮盘总开关。
-    ///
-    /// 默认**开**：结构体新增「启用类」字段必须默认 true，否则导入一份旧配置
-    /// 会把用户没碰过的通道关掉（`preset-and-adjustment` 里 `gamepad_enabled` 的教训）。
+    /// 轮盘总开关。新增的「启用类」字段一律默认开：否则导入旧配置会把用户
+    /// 没碰过的通道关掉。
     pub enabled: bool,
-    /// 当前生效的轮盘 id（设置页的下拉框选中的就是它）。
+    /// 显示几层（同心环数）。
+    pub layer_count: u8,
     pub active_menu_id: String,
-    pub menus: Vec<RadialMenu>,
+    pub menus: Vec<RadialMenuDefinition>,
+    /// 第 1 环的外半径；每多一层往外长 [`SUBMENU_RADIUS_STEP`]。
+    pub radius: f32,
+    pub inner_radius: f32,
+    pub variant: RadialMenuVariant,
+    pub start_angle: f32,
+    pub sweep_angle: f32,
 }
 
 impl Default for RadialConfig {
     fn default() -> Self {
         Self {
             enabled: true,
+            layer_count: DEFAULT_RADIAL_LAYERS,
             active_menu_id: DEFAULT_RADIAL_MENU_ID.into(),
             menus: vec![default_menu()],
+            radius: DEFAULT_RADIAL_RADIUS,
+            inner_radius: DEFAULT_RADIAL_INNER_RADIUS,
+            variant: RadialMenuVariant::default(),
+            start_angle: DEFAULT_RADIAL_START_ANGLE,
+            sweep_angle: DEFAULT_RADIAL_SWEEP_ANGLE,
         }
     }
 }
 
 impl RadialConfig {
-    /// 取某个轮盘（按 id）。找不到返回 `None`。
-    pub fn menu(&self, id: &str) -> Option<&RadialMenu> {
+    pub fn menu(&self, id: &str) -> Option<&RadialMenuDefinition> {
         self.menus.iter().find(|menu| menu.id == id)
     }
 
-    /// 当前生效的那个轮盘：`activeMenuId` 优先，指向已删除的轮盘时退回第一个
-    /// —— 运行时不该因为一次「删了又没改激活项」而整个轮盘打不开。
-    pub fn active_menu(&self) -> Option<&RadialMenu> {
+    /// 生效轮盘：`activeMenuId` 优先，指不到时退回第一个 —— 运行时不该因为
+    /// 一次「删了又没改选中项」而整个轮盘打不开。
+    pub fn active_menu(&self) -> Option<&RadialMenuDefinition> {
         self.menu(&self.active_menu_id)
             .or_else(|| self.menus.first())
     }
-}
 
-/// 一个槽的位置：第 [layer] 环（1 起）、第 [sector] 格（0 起，顺时针）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct RadialSlot {
-    pub layer: u8,
-    pub sector: u8,
-}
-
-impl RadialSlot {
-    /// 槽的稳定标识 = 绑定包里的 `itemId`。
-    ///
-    /// 形状 `l{层}s{格}` 是**要落进用户绑定包**的东西：改了它，用户已有的轮盘绑定
-    /// 全部指向不存在的槽。所以它只能追加、不能重排。
-    pub fn item_id(&self) -> String {
-        format!("l{}s{}", self.layer, self.sector)
+    /// 显示出来的层数（夹进合法档）。
+    pub fn layers(&self) -> usize {
+        (self.layer_count as usize).clamp(MIN_RADIAL_LAYERS as usize, MAX_RADIAL_LAYERS as usize)
     }
 
-    pub fn parse_item_id(raw: &str) -> Option<Self> {
-        let rest = raw.strip_prefix('l')?;
-        let (layer, sector) = rest.split_once('s')?;
-        Some(Self {
-            layer: layer.parse().ok()?,
-            sector: sector.parse().ok()?,
-        })
+    /// 第 `level` 环（1 起）的内外半径 —— 逐条照 neoview `_getBand`。
+    pub fn band(&self, level: usize) -> (f32, f32) {
+        match level {
+            0 | 1 => (self.inner_radius, self.radius),
+            2 => (self.radius, self.radius + SUBMENU_RADIUS_STEP),
+            _ => (
+                self.radius + (level as f32 - 2.0) * SUBMENU_RADIUS_STEP,
+                self.radius + (level as f32 - 1.0) * SUBMENU_RADIUS_STEP,
+            ),
+        }
     }
+
+    /// 整个轮盘的外缘（用来算浮层要占多大、贴边时往哪儿挪）。
+    pub fn outer_radius(&self) -> f32 {
+        self.band(self.layers()).1
+    }
+
+    /// 归一化到 `[0, 360)`（落点相对起始角转过了多少）。
+    fn offset_from(start_angle: f32, angle: f32) -> f32 {
+        (angle - start_angle).rem_euclid(360.0)
+    }
+}
+
+/// 一层的槽位数：至少 [`MIN_RADIAL_SLOTS`] 格，条目排到第几格就至少有几格。
+pub fn layer_slot_count(items: &[RadialMenuItem]) -> usize {
+    let needed = items
+        .iter()
+        .map(|item| item.slot_index + 1)
+        .max()
+        .unwrap_or(0);
+    needed.max(MIN_RADIAL_SLOTS).min(MAX_RADIAL_SLOTS)
 }
 
 /// 一个槽的**画法与命中区**（同一个结构体服务两件事，见模块头）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RadialSlotLayout {
-    pub item_id: String,
-    pub layer: u8,
-    pub sector: u8,
+    pub menu_id: String,
+    /// 第几环（1 起）与这一环里的第几格（0 起）。
+    pub level: usize,
+    pub index: usize,
+    /// 这一格上的条目（空槽为 `None`）。
+    pub item_id: Option<String>,
+    pub label: Option<String>,
+    /// 遗留直连动作（绑定派发不到时回落）。
+    pub legacy_action: Option<String>,
+    /// 「跳转轮盘」型条目的目标轮盘。
+    pub move_to_menu_id: Option<String>,
+    pub disabled: bool,
+    /// 这一格能不能被选中：空槽与 `disabled` 的条目都不行。
+    pub selectable: bool,
     pub inner_radius: f32,
     pub outer_radius: f32,
-    /// 起始角与终止角（度，屏幕坐标系：x 向右、y 向下）。
     pub start_deg: f32,
     pub end_deg: f32,
-    /// 角平分线：文字与图标摆放处。
     pub mid_deg: f32,
 }
 
-/// 算出这个轮盘的**全部**槽位布局（按层、再按格排序）。
-///
-/// 每格的**中心角**落在 `RADIAL_START_DEG + sector * sweep` 上（扇区 0 居中于 12 点），
-/// 所以一格是「以中线为界左右各半格」—— 与手指从圆心往外推的手感一致。
-pub fn slot_layout(menu: &RadialMenu) -> Vec<RadialSlotLayout> {
-    let layers = menu.layers.clamp(MIN_RADIAL_LAYERS, MAX_RADIAL_LAYERS);
-    let sectors = menu
-        .geometry
-        .sectors
-        .clamp(MIN_RADIAL_SECTORS, MAX_RADIAL_SECTORS);
-    let sweep = 360.0 / sectors as f32;
-    let mut out = Vec::with_capacity(layers as usize * sectors as usize);
-    for layer in 1..=layers {
-        let (inner_radius, outer_radius) = menu.geometry.band_radii(layers, layer);
-        for sector in 0..sectors {
-            let mid_deg = RADIAL_START_DEG + sector as f32 * sweep;
+/// 落点选中的槽（命中结果，外壳只拿它去问绑定表）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RadialSlotHit {
+    pub menu_id: String,
+    pub level: usize,
+    pub index: usize,
+    pub item_id: Option<String>,
+    pub legacy_action: Option<String>,
+    pub move_to_menu_id: Option<String>,
+}
+
+/// 算出一个轮盘显示出来的全部槽位（含空格，按环、再按格排序）。
+pub fn slot_layout(config: &RadialConfig, menu: &RadialMenuDefinition) -> Vec<RadialSlotLayout> {
+    let sweep = config.sweep_angle.abs();
+    let mut out = Vec::new();
+    for level in 1..=config.layers() {
+        let items = menu.layer(level);
+        let slots = layer_slot_count(items);
+        let step = sweep / slots as f32;
+        let (inner_radius, outer_radius) = config.band(level);
+        for index in 0..slots {
+            let item = items.iter().find(|entry| entry.slot_index == index);
+            let mid_deg = config.start_angle + index as f32 * step;
             out.push(RadialSlotLayout {
-                item_id: RadialSlot { layer, sector }.item_id(),
-                layer,
-                sector,
+                menu_id: menu.id.clone(),
+                level,
+                index,
+                item_id: item.map(|entry| entry.id.clone()),
+                label: item.map(|entry| entry.label.clone()),
+                legacy_action: item.and_then(|entry| entry.action.clone()),
+                move_to_menu_id: item.and_then(|entry| entry.move_to_menu_id.clone()),
+                disabled: item.is_none_or(|entry| entry.disabled),
+                selectable: item.is_some_and(|entry| !entry.disabled),
                 inner_radius,
                 outer_radius,
-                start_deg: mid_deg - sweep / 2.0,
-                end_deg: mid_deg + sweep / 2.0,
+                start_deg: mid_deg - step / 2.0,
+                end_deg: mid_deg + step / 2.0,
                 mid_deg,
             });
         }
@@ -241,48 +344,59 @@ pub fn slot_layout(menu: &RadialMenu) -> Vec<RadialSlotLayout> {
     out
 }
 
-/// 落点 → 槽（`dx` / `dy` 是相对轮盘**圆心**的偏移，屏幕坐标系）。
+/// 落点 → 槽（`dx` / `dy` 是相对圆心的偏移，屏幕坐标系：x 右、y 下）。
 ///
-/// 落在中心空洞里、或落在外半径之外，返回 `None` —— 前者是「松手取消」，
-/// 后者是「移出去了，别硬塞一个动作给用户」。
-pub fn slot_at(menu: &RadialMenu, dx: f32, dy: f32) -> Option<RadialSlot> {
-    let distance = (dx * dx + dy * dy).sqrt();
-    let geometry = menu.geometry;
-    if distance < geometry.inner_radius || distance > geometry.radius {
-        return None;
-    }
-    let layers = menu.layers.clamp(MIN_RADIAL_LAYERS, MAX_RADIAL_LAYERS);
-    let sectors = menu
-        .geometry
-        .sectors
-        .clamp(MIN_RADIAL_SECTORS, MAX_RADIAL_SECTORS);
-    let band = geometry.band(layers);
-    // 环号由半径决定。**夹**到 [1, layers] 而不是判越界返回 None：刚好压在外半径上
-    // 的那一发（`distance == radius`）在浮点下会算出 `layers + 1`，而它显然属于最外环。
-    let layer =
-        (((distance - geometry.inner_radius) / band).floor() + 1.0).clamp(1.0, layers as f32) as u8;
-    let sweep = 360.0 / sectors as f32;
-    let angle = dy.atan2(dx).to_degrees();
-    // 半格的偏移：中线两侧各算同一格（与 slot_layout 的 start/end 同一口径）。
-    let offset = (angle - RADIAL_START_DEG + sweep / 2.0).rem_euclid(360.0);
-    let sector = ((offset / sweep).floor() as u8).min(sectors - 1);
-    Some(RadialSlot { layer, sector })
-}
-
-/// 这个落点对应的布局条目（外壳高亮时用它取矩形边界，省得再算一遍）。
-pub fn layout_at<'a>(
-    menu: &RadialMenu,
-    layout: &'a [RadialSlotLayout],
+/// 算法逐行照 neoview `_getSlotAtPoint`：先按半径定第几环（**第一层命中即止**），
+/// 再按角度定第几格；落在空洞里、环带缝隙里、或超出 `sweepAngle` 之外都算没选中。
+pub fn slot_at(
+    config: &RadialConfig,
+    menu: &RadialMenuDefinition,
     dx: f32,
     dy: f32,
-) -> Option<&'a RadialSlotLayout> {
-    let slot = slot_at(menu, dx, dy)?;
-    layout
-        .iter()
-        .find(|entry| entry.layer == slot.layer && entry.sector == slot.sector)
+) -> Option<RadialSlotHit> {
+    let distance = (dx * dx + dy * dy).sqrt();
+    let layers = config.layers();
+    let mut level = 0usize;
+    for candidate in 1..=layers {
+        let (inner, outer) = config.band(candidate);
+        if distance >= inner && distance <= outer {
+            level = candidate;
+            break;
+        }
+    }
+    if level == 0 {
+        return None;
+    }
+    let angle = dy.atan2(dx).to_degrees();
+    let sweep = config.sweep_angle.abs();
+    // 角度换算**刻意不照抄 neoview 的 `normalizeAngle`**：它把偏移折到 `[-180, 180)`，
+    // 于是从起始角逆时针那一半的偏移是负数，`floor` 之后被夹回第 0 格 —— 表现为
+    // 「顺时针半圈能用、另外半圈全选中第 0 格」。这里按 `[0, 360)` 算，整圈都能命中；
+    // 「超出扫过角就不算选中」那一条与 neoview 同语义。
+    let offset = RadialConfig::offset_from(config.start_angle, angle);
+    if offset > sweep {
+        return None;
+    }
+    let items = menu.layer(level);
+    let slots = layer_slot_count(items);
+    let index = ((offset / (sweep / slots as f32)).floor() as usize).clamp(0, slots - 1);
+    let item = items.iter().find(|entry| entry.slot_index == index);
+    // 空格与 `disabled` 的条目都不算选中（neoview 的 `selectable:false` 同一语义）。
+    if item.is_none_or(|entry| entry.disabled) {
+        return None;
+    }
+    let entry = item?;
+    Some(RadialSlotHit {
+        menu_id: menu.id.clone(),
+        level,
+        index,
+        item_id: Some(entry.id.clone()),
+        legacy_action: entry.action.clone(),
+        move_to_menu_id: entry.move_to_menu_id.clone(),
+    })
 }
 
-/// 一条轮盘输入 → 引擎认识的 descriptor（外壳只负责报「哪个轮盘的哪个槽」）。
+/// 一条轮盘输入 → 引擎认识的 descriptor（外壳只负责报「哪个轮盘的哪个条目」）。
 pub fn radial_input(menu_id: &str, item_id: &str) -> InputDescriptor {
     InputDescriptor::Radial {
         menu_id: menu_id.into(),
@@ -290,23 +404,75 @@ pub fn radial_input(menu_id: &str, item_id: &str) -> InputDescriptor {
     }
 }
 
-/// 出厂轮盘：3 层、r120、内 40、每层 8 格。
-pub fn default_menu() -> RadialMenu {
-    RadialMenu {
-        id: DEFAULT_RADIAL_MENU_ID.into(),
-        name: "默认轮盘".into(),
-        layers: MAX_RADIAL_LAYERS,
-        geometry: RadialGeometry::default(),
+/// 条目 id 的形状（neoview 的校验：`^[a-zA-Z0-9][a-zA-Z0-9._-]{0,79}$`）。
+///
+/// 它是落进用户绑定包的 `itemId`：形状不合法的那条，老版本读不懂、也永远匹配不上，
+/// 而设置页看着一切正常 —— 所以「合不合法」必须在核心判，不能只当外壳的提示。
+pub fn is_item_id_shape(raw: &str) -> bool {
+    let bytes: Vec<char> = raw.chars().collect();
+    if bytes.is_empty() || bytes.len() > 80 {
+        return false;
+    }
+    bytes[0].is_ascii_alphanumeric()
+        && bytes[1..]
+            .iter()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '_' | '-'))
+}
+
+/// 一个条目 id（neoview `uniqueId("item", …)` → `item-3`）。
+pub fn new_item_id(count: usize) -> String {
+    format!("item-{}", count + 1)
+}
+
+/// 一个轮盘的 id（neoview `uniqueId("menu", …)` → `menu-2`）。
+pub fn new_menu_id(count: usize) -> String {
+    format!("menu-{}", count + 1)
+}
+
+fn item(item_id: &str, label: &str, slot_index: usize) -> RadialMenuItem {
+    RadialMenuItem {
+        id: item_id.into(),
+        label: label.into(),
+        slot_index,
+        ..Default::default()
     }
 }
 
-/// 新建一个轮盘（设置页的「新轮盘」按钮）。
-pub fn new_menu(count: usize) -> RadialMenu {
-    RadialMenu {
-        id: format!("menu-{}", count + 1),
+/// 出厂轮盘：3 层、每层 4 个条目（占 0/2/4/6 格，其余留空 ⇒ 一圈 8 格里空一半，
+/// 与截图那种「有 `+` 的空槽」一致）。
+pub fn default_menu() -> RadialMenuDefinition {
+    RadialMenuDefinition {
+        id: DEFAULT_RADIAL_MENU_ID.into(),
+        name: "默认轮盘".into(),
+        layers: vec![
+            vec![
+                item("radial-next-page", "下一页", 0),
+                item("radial-previous-page", "上一页", 2),
+                item("radial-toggle-controls", "唤出/收起上下栏", 4),
+                item("radial-fullscreen", "全屏", 6),
+            ],
+            vec![
+                item("radial-first-page", "第一页", 0),
+                item("radial-page-right", "向右翻页", 2),
+                item("radial-last-page", "最后一页", 4),
+                item("radial-page-left", "向左翻页", 6),
+            ],
+            vec![
+                item("radial-book-mode", "书籍模式", 0),
+                item("radial-toggle-direction", "阅读方向切换", 2),
+                item("radial-reset-view", "重置视图", 4),
+                item("radial-open-settings", "打开设置", 6),
+            ],
+        ],
+    }
+}
+
+/// 新建一个轮盘（设置页的「新轮盘」）：三层全空。
+pub fn new_menu(count: usize) -> RadialMenuDefinition {
+    RadialMenuDefinition {
+        id: new_menu_id(count),
         name: format!("轮盘 {}", count + 1),
-        layers: MAX_RADIAL_LAYERS,
-        geometry: RadialGeometry::default(),
+        layers: vec![Vec::new(), Vec::new(), Vec::new()],
     }
 }
 
@@ -315,55 +481,47 @@ pub fn default_config() -> RadialConfig {
     RadialConfig::default()
 }
 
-/// 轮盘的出厂绑定（**只有默认轮盘**有；新建的空轮盘故意什么都不绑）。
+/// 出厂槽位绑定（默认轮盘那 12 格 → 注册表里的动作）。
 ///
-/// 布局照 neoview 的手感：内环是最高频的四条（前进 / 退回 / 全屏 / 上下栏），
-/// 中环是翻页族与首尾，外环是低频的视图与设置。绑的都是注册表里 `implemented`
-/// 为真的动作 —— 出厂即失效的槽位比空槽更糟。
+/// 条目在文档里、动作在这里 —— 这正是「轮盘里的每个操作都是系统里的 action」。
+/// 只给默认轮盘生成：用户新建的轮盘是空的，不该被塞一份别人的默认值。
 pub fn preset_bindings(menu_id: &str) -> Vec<InputBinding> {
     if menu_id != DEFAULT_RADIAL_MENU_ID {
         return Vec::new();
     }
-    // (层, 格, 动作)。格 0 = 正上方，顺时针。
-    const SLOTS: [(u8, u8, &str); 12] = [
-        (1, 0, action::NEXT_PAGE),
-        (1, 2, action::PREVIOUS_PAGE),
-        (1, 4, action::TOGGLE_CONTROLS),
-        (1, 6, action::FULLSCREEN),
-        (2, 0, action::FIRST_PAGE),
-        (2, 2, action::PAGE_RIGHT),
-        (2, 4, action::LAST_PAGE),
-        (2, 6, action::PAGE_LEFT),
-        (3, 0, action::TOGGLE_BOOK_MODE),
-        (3, 2, action::TOGGLE_READING_DIRECTION),
-        (3, 4, action::RESET_VIEW),
-        (3, 6, action::OPEN_SETTINGS),
+    // (条目 id, 动作 id)
+    const PAIRS: [(&str, &str); 12] = [
+        ("radial-next-page", action::NEXT_PAGE),
+        ("radial-previous-page", action::PREVIOUS_PAGE),
+        ("radial-toggle-controls", action::TOGGLE_CONTROLS),
+        ("radial-fullscreen", action::FULLSCREEN),
+        ("radial-first-page", action::FIRST_PAGE),
+        ("radial-page-right", action::PAGE_RIGHT),
+        ("radial-last-page", action::LAST_PAGE),
+        ("radial-page-left", action::PAGE_LEFT),
+        ("radial-book-mode", action::TOGGLE_BOOK_MODE),
+        ("radial-toggle-direction", action::TOGGLE_READING_DIRECTION),
+        ("radial-reset-view", action::RESET_VIEW),
+        ("radial-open-settings", action::OPEN_SETTINGS),
     ];
-    SLOTS
+    PAIRS
         .iter()
-        .map(|(layer, sector, action_id)| {
-            let slot = RadialSlot {
-                layer: *layer,
-                sector: *sector,
-            };
-            let item_id = slot.item_id();
-            InputBinding {
-                id: format!("{RADIAL_PRESET_ID_PREFIX}{DEFAULT_RADIAL_MENU_ID}-{item_id}"),
-                action: (*action_id).into(),
-                follow_up_actions: Vec::new(),
-                context: InputContext::Reader,
-                enabled: true,
-                ignore_repeat: false,
-                input: radial_input(DEFAULT_RADIAL_MENU_ID, &item_id),
-            }
+        .map(|(item_id, action_id)| InputBinding {
+            id: format!("{RADIAL_PRESET_ID_PREFIX}{DEFAULT_RADIAL_MENU_ID}-{item_id}"),
+            action: (*action_id).into(),
+            follow_up_actions: Vec::new(),
+            context: InputContext::Reader,
+            enabled: true,
+            ignore_repeat: false,
+            input: radial_input(DEFAULT_RADIAL_MENU_ID, item_id),
         })
         .collect()
 }
 
-/// 校验：返回**人话**的问题清单（空 = 这份文档可用）。
+/// 校验：返回**人话**的问题清单（空 = 可用）。
 ///
-/// 为什么不返回错误码：这份清单要直接显示在设置页上，而「哪里不对」几乎总是
-/// 需要一句上下文才能看懂（「层数越界」不如「轮盘『默认轮盘』的层数 5 超过 3」）。
+/// 不返回错误码是因为这份清单要直接显示在设置页上：「层数越界」不如
+/// 「轮盘『默认轮盘』的层数 5 超过 3」看得懂。
 pub fn validate(config: &RadialConfig) -> Vec<String> {
     let mut problems = Vec::new();
     if config.menus.is_empty() {
@@ -376,34 +534,90 @@ pub fn validate(config: &RadialConfig) -> Vec<String> {
         ));
     }
     let mut ids: Vec<&str> = config.menus.iter().map(|menu| menu.id.as_str()).collect();
-    let unique = {
-        let mut sorted = ids.clone();
-        sorted.sort_unstable();
-        sorted.dedup();
-        sorted.len()
-    };
-    if unique != ids.len() {
+    ids.sort_unstable();
+    let unique_len = ids.len();
+    ids.dedup();
+    if ids.len() != unique_len {
         problems.push("轮盘 id 有重复（绑定会指错轮盘）".into());
     }
-    ids.sort_unstable();
-    if !config.active_menu_id.is_empty() && !ids.contains(&config.active_menu_id.as_str()) {
+    if !config.active_menu_id.is_empty() && config.menu(&config.active_menu_id).is_none() {
         problems.push(format!("生效轮盘 {} 不存在", config.active_menu_id));
+    }
+    if !(MIN_RADIAL_LAYERS..=MAX_RADIAL_LAYERS).contains(&config.layer_count) {
+        problems.push(format!(
+            "层数 {} 不在 {MIN_RADIAL_LAYERS}..={MAX_RADIAL_LAYERS}",
+            config.layer_count
+        ));
+    }
+    if !(MIN_RADIAL_RADIUS..=MAX_RADIAL_RADIUS).contains(&config.radius) {
+        problems.push(format!(
+            "半径 {radius} 不在 {MIN_RADIAL_RADIUS}..={MAX_RADIAL_RADIUS}",
+            radius = config.radius
+        ));
+    }
+    if !(MIN_RADIAL_INNER_RADIUS..=MAX_RADIAL_INNER_RADIUS).contains(&config.inner_radius)
+        || config.inner_radius >= config.radius
+    {
+        problems.push(format!(
+            "内半径 {} 不合法（0..={MAX_RADIAL_INNER_RADIUS} 且要小于半径）",
+            config.inner_radius
+        ));
+    }
+    if !(MIN_RADIAL_START_ANGLE..=MAX_RADIAL_START_ANGLE).contains(&config.start_angle) {
+        problems.push(format!("起始角 {} 不合法", config.start_angle));
+    }
+    let sweep = config.sweep_angle.abs();
+    if !(MIN_RADIAL_SWEEP_ANGLE..=MAX_RADIAL_SWEEP_ANGLE).contains(&sweep) {
+        problems.push(format!("扫过角 {} 不合法", config.sweep_angle));
     }
     for menu in &config.menus {
         if menu.id.is_empty() {
             problems.push("有轮盘的 id 是空的".into());
         }
-        if !(MIN_RADIAL_LAYERS..=MAX_RADIAL_LAYERS).contains(&menu.layers) {
+        if menu.layers.len() > MAX_RADIAL_LAYERS as usize {
             problems.push(format!(
-                "轮盘『{}』的层数 {} 不在 {MIN_RADIAL_LAYERS}..={MAX_RADIAL_LAYERS}",
-                menu.name, menu.layers
+                "轮盘『{}』有 {} 层条目，超过 {MAX_RADIAL_LAYERS}",
+                menu.name,
+                menu.layers.len()
             ));
         }
-        if !menu.geometry.is_sane() {
-            problems.push(format!(
-                "轮盘『{}』的几何不合法（r{} · 内{} · {} 格）",
-                menu.name, menu.geometry.radius, menu.geometry.inner_radius, menu.geometry.sectors
-            ));
+        for dup in menu.duplicated_item_ids() {
+            problems.push(format!("轮盘『{}』里条目 id {dup} 重复", menu.name));
+        }
+        for (level, items) in menu.layers.iter().enumerate() {
+            if items.len() > MAX_RADIAL_SLOTS {
+                problems.push(format!(
+                    "轮盘『{}』第 {} 层有 {} 个条目，超过 {MAX_RADIAL_SLOTS}",
+                    menu.name,
+                    level + 1,
+                    items.len()
+                ));
+            }
+            for entry in items {
+                if !is_item_id_shape(&entry.id) {
+                    problems.push(format!(
+                        "轮盘『{}』的条目 id「{}」形状不合法",
+                        menu.name, entry.id
+                    ));
+                }
+                if entry.slot_index >= MAX_RADIAL_SLOTS {
+                    problems.push(format!(
+                        "轮盘『{}』第 {} 层的条目 {} 槽位 {} 越界",
+                        menu.name,
+                        level + 1,
+                        entry.id,
+                        entry.slot_index
+                    ));
+                }
+                if let Some(target) = entry.move_to_menu_id.as_deref() {
+                    if !target.is_empty() && config.menu(target).is_none() {
+                        problems.push(format!(
+                            "轮盘『{}』的条目 {} 指向不存在的轮盘 {target}",
+                            menu.name, entry.id
+                        ));
+                    }
+                }
+            }
         }
     }
     problems
@@ -414,21 +628,17 @@ pub fn is_valid(config: &RadialConfig) -> bool {
     validate(config).is_empty()
 }
 
-/// 删掉指向**已不存在的槽**的轮盘绑定，返回留下的那些。
+/// 删掉指向**已不存在的条目**的轮盘绑定，返回留下的那些。
 ///
-/// 这是「形状在文档、动作在绑定表」这个分工的必要收口：用户把 3 层改成 2 层、
-/// 或者删掉一个轮盘之后，`l3s0` 这类 `itemId` 就再没有对应的画法了。留着它们
-/// 的表现是「设置页列出一堆画不出来的槽」，所以形状一变就顺手剪一次。
+/// 「形状在文档、动作在绑定表」的收口：删了条目 / 删了轮盘之后，那些 `itemId`
+/// 再没有对应的画法了。留着它们的表现是设置页列出一排点不到的槽位。
 pub fn prune_bindings(config: &RadialConfig, bindings: &[InputBinding]) -> Vec<InputBinding> {
     bindings
         .iter()
         .filter(|binding| match &binding.input {
             InputDescriptor::Radial { menu_id, item_id } => config
                 .menu(menu_id)
-                .and_then(|menu| {
-                    RadialSlot::parse_item_id(item_id).map(|slot| menu.has_slot(&slot))
-                })
-                .unwrap_or(false),
+                .is_some_and(|menu| menu.item(item_id).is_some()),
             _ => true,
         })
         .cloned()
@@ -443,191 +653,261 @@ mod tests {
     use crate::operation_binding::resolve::{conflicts, resolve};
     use crate::operation_binding::vocabulary::{ReaderViewArea, action_definition};
 
-    fn point(menu: &RadialMenu, layer: u8, sector: u8) -> (f32, f32) {
-        let layout = slot_layout(menu);
-        let entry = layout
+    fn item_ids(menu: &RadialMenuDefinition) -> Vec<String> {
+        menu.layers
             .iter()
-            .find(|entry| entry.layer == layer && entry.sector == sector)
-            .expect("这一格应当在布局里");
+            .flatten()
+            .map(|entry| entry.id.clone())
+            .collect()
+    }
+
+    /// 一个槽的正中间那一点（画法给的角平分线 × 环带正中）。
+    fn point_of(entry: &RadialSlotLayout) -> (f32, f32) {
         let radius = (entry.inner_radius + entry.outer_radius) / 2.0;
         let angle = entry.mid_deg.to_radians();
         (angle.cos() * radius, angle.sin() * radius)
     }
 
     #[test]
-    fn default_wheel_is_three_layers_of_eight_sectors() {
-        let menu = default_menu();
-        assert_eq!(menu.layers, 3);
-        assert_eq!(menu.geometry.sectors, 8);
-        assert_eq!(menu.slot_count(), 24);
-        assert_eq!(slot_layout(&menu).len(), 24);
-        assert!(is_valid(&default_config()));
+    fn default_wheel_matches_neoview_numbers() {
+        let config = default_config();
+        assert_eq!(config.radius, 120.0);
+        assert_eq!(config.inner_radius, 40.0);
+        assert_eq!(config.start_angle, -90.0);
+        assert_eq!(config.sweep_angle, 360.0);
+        assert_eq!(config.layer_count, 3);
+        assert!(is_valid(&config), "{:?}", validate(&config));
+        let menu = config.active_menu().unwrap();
+        assert_eq!(menu.layers.len(), 3);
+        assert_eq!(menu.layers[0].len(), 4);
+        assert_eq!(item_ids(menu).len(), 12);
     }
 
     #[test]
-    fn first_sector_is_centered_straight_up_and_numbering_is_clockwise() {
-        let menu = default_menu();
-        let layout = slot_layout(&menu);
-        let first = &layout[0];
-        // 正上方 = 屏幕坐标的 -90°（y 向下）。第一格的中线在 12 点，左右各半格。
-        assert_eq!(first.item_id, "l1s0");
-        assert!((first.mid_deg - RADIAL_START_DEG).abs() < 1e-4);
-        assert!((first.start_deg - (-112.5)).abs() < 1e-4);
-        assert!((first.end_deg - (-67.5)).abs() < 1e-4);
+    fn bands_grow_outward_by_the_submenu_step() {
+        let config = default_config();
+        // 第 1 环 = 空洞→r120；之后每一层往外 60（neoview `_getBand`）。
+        assert_eq!(config.band(1), (40.0, 120.0));
+        assert_eq!(config.band(2), (120.0, 180.0));
+        assert_eq!(config.band(3), (180.0, 240.0));
+        assert_eq!(config.outer_radius(), 240.0);
+        // 只留一层时外缘就是 r120 —— 层数改小，轮盘整体缩回去。
+        let one = RadialConfig {
+            layer_count: 1,
+            ..default_config()
+        };
+        assert_eq!(one.outer_radius(), 120.0);
+    }
+
+    #[test]
+    fn empty_slots_are_implied_by_geometry_not_stored() {
+        let config = default_config();
+        let menu = config.active_menu().unwrap();
+        // 4 个条目排在 0/2/4/6 格 ⇒ 这一层仍是 8 格（MIN_SLOT_COUNT），空着。
+        assert_eq!(menu.slot_count(1), 8);
+        let layout = slot_layout(&config, menu);
+        assert_eq!(layout.len(), 24);
+        let filled: Vec<&RadialSlotLayout> = layout
+            .iter()
+            .filter(|entry| entry.item_id.is_some())
+            .collect();
+        assert_eq!(filled.len(), 12);
         assert!(
-            slot_at(&menu, 0.0, -80.0).unwrap().sector == 0,
-            "12 点方向必须是第 0 格"
+            layout
+                .iter()
+                .any(|entry| entry.index == 1 && entry.item_id.is_none())
         );
-        // 顺时针：3 点方向（角度 0）是第 2 格。
-        assert!(slot_at(&menu, 80.0, 0.0).unwrap().sector == 2);
-        assert!(slot_at(&menu, 0.0, 80.0).unwrap().sector == 4, "6 点方向");
-        assert!(slot_at(&menu, -80.0, 0.0).unwrap().sector == 6, "9 点方向");
+        // 排到第 9 格就把这一层撑到 10 格。
+        let wide = RadialMenuDefinition {
+            layers: vec![vec![item("x", "X", 9)], vec![], vec![]],
+            ..Default::default()
+        };
+        assert_eq!(wide.slot_count(1), 10);
     }
 
     #[test]
     fn hit_test_returns_what_the_layout_painted() {
         // 画出来的每一格，往它的角平分线中点打一发，必须回到同一格。
-        // 这条判据的存在理由就是模块头那句「高亮的槽与执行的槽必须同一个」。
-        let menu = default_menu();
-        for entry in slot_layout(&menu) {
-            let (dx, dy) = point(&menu, entry.layer, entry.sector);
-            let hit = slot_at(&menu, dx, dy)
-                .unwrap_or_else(|| panic!("{} 自己画出来的中点打不中自己", entry.item_id));
-            assert_eq!(hit.item_id(), entry.item_id);
-        }
-    }
-
-    #[test]
-    fn band_boundaries_and_hole_and_outside() {
-        let menu = default_menu();
-        // 内 40 是空洞：落在洞里什么都不选（松手 = 取消）。
-        assert_eq!(slot_at(&menu, 10.0, 0.0), None);
-        assert_eq!(slot_at(&menu, 0.0, -39.0), None);
-        // 外半径之外同样不选。
-        assert_eq!(slot_at(&menu, 121.0, 0.0), None);
-        // 三层的环带边界：r120 内 40 ⇒ 每层宽 (120-40)/3。
-        let band = (120.0 - 40.0) / 3.0;
-        assert_eq!(slot_at(&menu, 40.0 + band - 1.0, 0.0).unwrap().layer, 1);
-        assert_eq!(slot_at(&menu, 40.0 + band + 1.0, 0.0).unwrap().layer, 2);
-        assert_eq!(slot_at(&menu, 119.0, 0.0).unwrap().layer, 3);
-        // 压着外半径这一条边界不许越界。
-        assert_eq!(slot_at(&menu, 120.0, 0.0).unwrap().layer, 3);
-    }
-
-    #[test]
-    fn fewer_layers_reduces_the_rings_not_the_sectors() {
-        let mut menu = default_menu();
-        menu.layers = 1;
-        assert_eq!(menu.slot_count(), 8);
-        assert_eq!(slot_layout(&menu).len(), 8);
-        // 单层时整圈宽度就是 120-40，所以 115 仍属第 1 层。
-        assert_eq!(slot_at(&menu, 0.0, -115.0).unwrap().layer, 1);
-        assert_eq!(slot_at(&menu, 0.0, -115.0).unwrap().sector, 0);
-        // 3 层时那个半径是第 3 层 —— 层数变了，同一落点的归属跟着变，
-        // 而绑定表里的 itemId 不许跟着漂（所以形状改动要配 prune_bindings）。
-        menu.layers = 3;
-        assert_eq!(slot_at(&menu, 0.0, -115.0).unwrap().layer, 3);
-    }
-
-    #[test]
-    fn item_id_round_trips_and_is_stable() {
-        let slot = RadialSlot {
-            layer: 2,
-            sector: 5,
-        };
-        assert_eq!(slot.item_id(), "l2s5");
-        assert_eq!(RadialSlot::parse_item_id("l2s5"), Some(slot));
-        for raw in ["", "s5", "l2", "lXs2", "2s5", "l2x5"] {
-            assert_eq!(
-                RadialSlot::parse_item_id(raw),
-                None,
-                "{raw} 不是合法 itemId"
-            );
-        }
-    }
-
-    #[test]
-    fn every_preset_slot_resolves_through_the_binding_table() {
-        // 「轮盘里的每个操作都是绑定系统里的 action」—— 这条判据就是这个测试：
-        // 预设槽位必须能被**同一个解析器**解析出来，而不是另一条专用路径。
-        let bindings = preset_bindings(DEFAULT_RADIAL_MENU_ID);
-        assert!(!bindings.is_empty());
-        for binding in &bindings {
-            let InputDescriptor::Radial { menu_id, item_id } = &binding.input else {
-                panic!("轮盘预设的 input 必须是 radial：{}", binding.id)
+        let config = default_config();
+        let menu = config.active_menu().unwrap();
+        for entry in slot_layout(&config, menu) {
+            let Some(item_id) = entry.item_id.clone() else {
+                continue;
             };
+            let (dx, dy) = point_of(&entry);
+            let hit = slot_at(&config, menu, dx, dy)
+                .unwrap_or_else(|| panic!("{item_id} 自己画出来的中点打不中"));
+            assert_eq!(hit.level, entry.level);
+            assert_eq!(hit.index, entry.index);
+            assert_eq!(hit.item_id.as_deref(), Some(item_id.as_str()));
+        }
+    }
+
+    #[test]
+    fn hole_empty_slot_and_outside_all_select_nothing() {
+        let config = default_config();
+        let menu = config.active_menu().unwrap();
+        // 中心空洞：松手取消。
+        assert_eq!(slot_at(&config, menu, 10.0, 0.0), None);
+        // 外缘之外。
+        assert_eq!(slot_at(&config, menu, 241.0, 0.0), None);
+        // 第 1 环里的空格（slotIndex 1）：没有条目 ⇒ 不选中，而不是「选中隔壁」。
+        let empty = slot_layout(&config, menu)
+            .into_iter()
+            .find(|entry| entry.level == 1 && entry.index == 1)
+            .unwrap();
+        let (dx, dy) = point_of(&empty);
+        assert_eq!(slot_at(&config, menu, dx, dy), None);
+        // 压在最外缘这一条边界上仍属最外层。
+        let last = slot_layout(&config, menu).pop().unwrap();
+        let (dx, _) = point_of(&last);
+        let edge = (config.outer_radius(), 0.0);
+        assert!(slot_at(&config, menu, edge.0, edge.1).is_some() || dx < 0.0);
+    }
+
+    #[test]
+    fn start_angle_and_sweep_move_the_whole_wheel() {
+        // 起始角 -90 ⇒ 第 0 格居中于 12 点；改成 0 ⇒ 居中于 3 点。
+        let config = default_config();
+        let menu = config.active_menu().unwrap();
+        let first = &slot_layout(&config, menu)[0];
+        assert!((first.mid_deg - (-90.0)).abs() < 1e-4);
+        assert_eq!(first.selectable, true);
+
+        let turned = RadialConfig {
+            start_angle: 0.0,
+            ..default_config()
+        };
+        let laid = slot_layout(&turned, turned.active_menu().unwrap());
+        assert!((laid[0].mid_deg - 0.0).abs() < 1e-4);
+        let (dx, dy) = point_of(&laid[0]);
+        assert_eq!(
+            slot_at(&turned, turned.active_menu().unwrap(), dx, dy)
+                .unwrap()
+                .index,
+            0
+        );
+
+        // 扫过角 90° ⇒ 只有右下那一象限是轮盘，超出扫过角的不算选中。
+        let fan = RadialConfig {
+            start_angle: -45.0,
+            sweep_angle: 90.0,
+            ..default_config()
+        };
+        let fan_menu = fan.active_menu().unwrap();
+        assert_eq!(
+            slot_layout(&fan, fan_menu).len(),
+            8 * 3,
+            "格数不变，只是挤进 90°"
+        );
+        assert!(
+            slot_at(&fan, fan_menu, 80.0, 0.0).is_some(),
+            "0° 在 -45..45 里"
+        );
+        assert_eq!(
+            slot_at(&fan, fan_menu, 0.0, 80.0),
+            None,
+            "90° 已经在扇形之外"
+        );
+    }
+
+    #[test]
+    fn slots_number_clockwise_from_the_start_angle() {
+        let config = default_config();
+        let menu = config.active_menu().unwrap();
+        let at = |angle: f32| {
+            let radius = 80.0;
+            let radian = angle.to_radians();
+            slot_at(&config, menu, radian.cos() * radius, radian.sin() * radius)
+        };
+        assert_eq!(at(-90.0).unwrap().index, 0, "12 点 = 第 0 格");
+        assert_eq!(at(0.0).unwrap().index, 2, "3 点顺时针第 2 格");
+        assert_eq!(at(90.0).unwrap().index, 4, "6 点");
+        assert_eq!(at(180.0).unwrap().index, 6, "9 点");
+    }
+
+    #[test]
+    fn preset_items_all_resolve_through_the_binding_table() {
+        // 「轮盘里的每个操作都是绑定系统里的 action」—— 这条判据就是这个测试：
+        // 预设条目必须由**同一个解析器**解析出动作，而不是走一条轮盘专用路径。
+        let config = default_config();
+        let menu = config.active_menu().unwrap();
+        let bindings = preset_bindings(DEFAULT_RADIAL_MENU_ID);
+        for entry in slot_layout(&config, menu)
+            .iter()
+            .filter(|e| e.item_id.is_some())
+        {
+            let item_id = entry.item_id.clone().unwrap();
             let resolved = resolve(
                 &bindings,
-                &radial_input(menu_id, item_id),
+                &radial_input(DEFAULT_RADIAL_MENU_ID, &item_id),
                 &[InputContext::Reader],
             )
-            .unwrap_or_else(|| panic!("{} 解析不出动作", binding.id));
-            assert_eq!(resolved.action, binding.action);
-        }
-        // 新轮盘是空的：用户从零开始绑，不该被塞一份别人的默认值。
-        assert!(preset_bindings("menu-2").is_empty());
-    }
-
-    #[test]
-    fn preset_actions_all_exist_and_are_implemented() {
-        for binding in preset_bindings(DEFAULT_RADIAL_MENU_ID) {
-            let entry = action_definition(&binding.action)
-                .unwrap_or_else(|| panic!("注册表里没有 {}", binding.action));
+            .unwrap_or_else(|| panic!("{item_id} 解析不出动作"));
+            let definition = action_definition(&resolved.action).unwrap();
+            assert!(definition.implemented, "{item_id} 绑了未实现的动作");
+            // neoview 的槽位动作选项里**排除** `radial.*`：轮盘里再放一个「开轮盘」是循环。
             assert!(
-                entry.implemented,
-                "{} 绑了尚未实现的动作 {}（出厂即失效）",
-                binding.id, binding.action
+                !definition.id.starts_with("radial."),
+                "{item_id} 绑了轮盘自身的动作"
             );
         }
+        assert!(preset_bindings("menu-2").is_empty(), "新轮盘是空的");
     }
 
     #[test]
-    fn preset_slots_fit_the_default_wheel_and_do_not_collide() {
-        let menu = default_menu();
-        for binding in preset_bindings(DEFAULT_RADIAL_MENU_ID) {
+    fn every_preset_item_has_a_binding_and_vice_versa() {
+        // 文档里的条目与绑定行必须一一对上：多出来的绑定行是孤儿（画不出来），
+        // 缺了绑定行的条目是死槽（点了没反应）。
+        let config = default_config();
+        let menu = config.active_menu().unwrap();
+        let bindings = preset_bindings(DEFAULT_RADIAL_MENU_ID);
+        let bound: Vec<&str> = bindings
+            .iter()
+            .filter_map(|binding| match &binding.input {
+                InputDescriptor::Radial { item_id, .. } => Some(item_id.as_str()),
+                _ => None,
+            })
+            .collect();
+        for item_id in item_ids(menu) {
+            assert!(bound.contains(&item_id.as_str()), "{item_id} 没有绑定行");
+        }
+        assert_eq!(bound.len(), menu.layers.iter().map(Vec::len).sum::<usize>());
+    }
+
+    #[test]
+    fn preset_slots_fit_their_layer_and_do_not_collide() {
+        let config = default_config();
+        let menu = config.active_menu().unwrap();
+        let bindings = preset_bindings(DEFAULT_RADIAL_MENU_ID);
+        for binding in &bindings {
             let InputDescriptor::Radial { item_id, .. } = &binding.input else {
                 continue;
             };
-            let slot = RadialSlot::parse_item_id(item_id).unwrap();
-            assert!(menu.has_slot(&slot), "{item_id} 在默认轮盘上画不出来");
+            assert!(menu.item(item_id).is_some(), "{item_id} 在默认轮盘里不存在");
         }
-        assert!(conflicts(&preset_bindings(DEFAULT_RADIAL_MENU_ID)).is_empty());
+        assert!(conflicts(&bindings).is_empty());
     }
 
     #[test]
-    fn radial_slots_are_laid_out_only_where_the_wheel_has_room() {
-        // 每格都得有画法：预设里出现 `l4s*` 这种不存在的槽，设置页就会列出点不到的行。
-        let menu = default_menu();
-        let painted: Vec<String> = slot_layout(&menu).into_iter().map(|e| e.item_id).collect();
-        for binding in preset_bindings(DEFAULT_RADIAL_MENU_ID) {
-            let InputDescriptor::Radial { item_id, .. } = &binding.input else {
-                continue;
-            };
-            assert!(painted.contains(item_id), "{item_id} 没被画出来");
-        }
-    }
-
-    #[test]
-    fn shrinking_the_wheel_prunes_the_orphan_bindings() {
+    fn deleting_an_item_or_layer_prunes_only_its_bindings() {
         let bindings = preset_bindings(DEFAULT_RADIAL_MENU_ID);
         let config = default_config();
         assert_eq!(prune_bindings(&config, &bindings).len(), bindings.len());
 
+        // 把第 3 层清空 ⇒ 那一层的 4 条走，其余留着。
         let mut shrunk = default_config();
-        shrunk.menus[0].layers = 1;
+        shrunk.menus[0].layers[2].clear();
         let kept = prune_bindings(&shrunk, &bindings);
-        // 第 2、3 层那 8 条应当被剪掉，内环 4 条留下。
-        assert_eq!(kept.len(), 4);
-        for binding in &kept {
-            let InputDescriptor::Radial { item_id, .. } = &binding.input else {
-                continue;
-            };
-            assert!(item_id.starts_with("l1s"), "留下了 {item_id}");
-        }
+        assert_eq!(kept.len(), 8);
+        assert!(
+            prune_bindings(&shrunk, &kept).len() == 8,
+            "再剪一次不该更少（幂等）"
+        );
 
-        // 删掉整个轮盘 ⇒ 它的轮盘绑定全清，但键盘/点击那些一条不许动。
+        // 删掉整个轮盘 ⇒ 它的绑定全清，键盘/点击那些一条不许动。
         let emptied = RadialConfig {
-            menus: vec![RadialMenu {
+            menus: vec![RadialMenuDefinition {
                 id: "other".into(),
                 name: "别的".into(),
                 ..Default::default()
@@ -648,32 +928,56 @@ mod tests {
     }
 
     #[test]
-    fn validation_names_the_offending_wheel() {
+    fn validation_names_the_offending_field() {
         let mut config = default_config();
-        config.menus[0].layers = 5;
+        config.layer_count = 5;
         let problems = validate(&config);
-        assert_eq!(problems.len(), 1, "{problems:?}");
-        assert!(
-            problems[0].contains("默认轮盘"),
-            "要说清是哪个轮盘：{}",
-            problems[0]
-        );
+        assert!(problems.iter().any(|p| p.contains("层数")), "{problems:?}");
 
-        config.menus[0].layers = 3;
-        config.menus[0].geometry.inner_radius = 200.0;
-        assert!(!is_valid(&config), "空洞比外半径还大不合法");
+        config.layer_count = 3;
+        config.inner_radius = 200.0;
+        assert!(validate(&config).iter().any(|p| p.contains("内半径")));
 
-        config.menus[0].geometry = RadialGeometry::default();
+        config.inner_radius = 40.0;
+        config.radius = 400.0;
+        assert!(validate(&config).iter().any(|p| p.contains("半径")));
+
+        config.radius = 120.0;
+        config.sweep_angle = 30.0;
+        assert!(validate(&config).iter().any(|p| p.contains("扫过角")));
+
+        config.sweep_angle = 360.0;
         config.active_menu_id = "nope".into();
         assert!(validate(&config).iter().any(|p| p.contains("nope")));
 
         config.active_menu_id = DEFAULT_RADIAL_MENU_ID.into();
-        config.menus.push(RadialMenu {
-            id: DEFAULT_RADIAL_MENU_ID.into(),
-            ..default_menu()
-        });
+        config.menus[0].layers[0].push(item("radial-next-page", "重复", 7));
         assert!(validate(&config).iter().any(|p| p.contains("重复")));
+
+        config.menus[0].layers[0].pop();
+        config.menus[0].layers[0][0].move_to_menu_id = Some("gone".into());
+        assert!(validate(&config).iter().any(|p| p.contains("不存在的轮盘")));
         assert!(is_valid(&default_config()));
+    }
+
+    #[test]
+    fn malformed_item_ids_are_rejected_by_validation() {
+        // 形状不合法的 id 会静默失效（老版本读不懂、绑定永远匹配不上），所以它必须
+        // 过不了校验 —— 而不是只在外壳的一句 assert 里挡一下（release 会被剥掉）。
+        assert!(is_item_id_shape("item-1"));
+        assert!(is_item_id_shape("radial-next-page"));
+        assert!(is_item_id_shape("a"));
+        assert!(is_item_id_shape("x_1-2.3"));
+        for bad in ["", "-bad", ".bad", "a b", "a/b", &"x".repeat(81)] {
+            assert!(!is_item_id_shape(bad), "{bad} 应当被挡下");
+        }
+        let mut config = default_config();
+        config.menus[0].layers[0][0].id = "-nope".into();
+        assert!(
+            validate(&config).iter().any(|p| p.contains("形状不合法")),
+            "{:?}",
+            validate(&config)
+        );
     }
 
     #[test]
@@ -689,130 +993,144 @@ mod tests {
     }
 
     #[test]
-    fn new_menus_get_distinct_ids_and_names() {
-        let first = new_menu(1);
-        let second = new_menu(2);
-        assert_eq!(first.id, "menu-2");
-        assert_eq!(second.id, "menu-3");
-        assert_ne!(first.id, second.id);
-        assert!(is_valid(&RadialConfig {
-            menus: vec![default_menu(), first, second],
-            ..Default::default()
-        }));
+    fn new_menus_and_items_use_neoview_slug_ids() {
+        assert_eq!(new_menu_id(1), "menu-2");
+        assert_eq!(new_item_id(0), "item-1");
+        assert_eq!(new_item_id(41), "item-42");
+        // id 形状要过 neoview 的校验：`^[a-zA-Z0-9][a-zA-Z0-9._-]{0,79}$`。
+        // 手写而不是引一个正则依赖：这是测试里的一次性检查，不值得为此加 crate。
+        fn matches_neoview_id_shape(raw: &str) -> bool {
+            let mut chars = raw.chars();
+            let Some(first) = chars.next() else {
+                return false;
+            };
+            if !(first.is_ascii_alphanumeric()) {
+                return false;
+            }
+            raw.len() <= 80
+                && chars.all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '_' | '-'))
+        }
+        assert!(matches_neoview_id_shape(&new_menu_id(1)));
+        assert!(matches_neoview_id_shape(&new_item_id(3)));
+        for id in item_ids(&default_menu()) {
+            assert!(
+                matches_neoview_id_shape(&id),
+                "出厂条目 id {id} 过不了 neoview 的校验"
+            );
+        }
     }
 
     #[test]
-    fn config_round_trips_through_json_and_keeps_defaults() {
+    fn config_round_trips_and_keeps_unknown_and_missing_fields() {
         let config = default_config();
         let json = serde_json::to_string(&config).unwrap();
         let parsed: RadialConfig = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed, config);
-        // 字段名是落进用户设置的，形状要稳。
         for field in [
             "\"activeMenuId\"",
-            "\"menus\"",
+            "\"layerCount\"",
             "\"innerRadius\"",
-            "\"layers\"",
+            "\"startAngle\"",
+            "\"sweepAngle\"",
+            "\"slotIndex\"",
         ] {
             assert!(json.contains(field), "缺字段 {field}：{json}");
         }
-        // 老配置（只有 menus）也要能读进来，且 enabled 缺省为**开**。
-        let legacy: RadialConfig =
-            serde_json::from_str(r#"{"menus":[{"id":"default","name":"默认轮盘","layers":3}]}"#)
-                .unwrap();
-        assert!(legacy.enabled, "新增的启用类字段必须默认开");
-        assert_eq!(legacy.menus[0].geometry.sectors, DEFAULT_RADIAL_SECTORS);
-        assert_eq!(legacy.active_menu(), legacy.menus.first());
-        assert!(legacy.menu("nope").is_none());
+        // 老包（只有 menus）也要能读进来：启用类字段缺省为**开**。
+        let legacy: RadialConfig = serde_json::from_str(
+            r#"{"menus":[{"id":"default","name":"默认轮盘","layers":[[{"id":"a","label":"A","slotIndex":0}]]}]}"#,
+        )
+        .unwrap();
+        assert!(legacy.enabled);
+        assert_eq!(legacy.radius, DEFAULT_RADIAL_RADIUS);
+        assert_eq!(legacy.active_menu().map(|m| m.id.as_str()), Some("default"));
+        assert_eq!(legacy.active_menu().unwrap().layer(1).len(), 1);
+        // 未知字段忽略而不是崩（导入 neoview 的包时会有）。
+        let future: RadialConfig = serde_json::from_str(
+            r#"{"enabled":true,"layerCount":2,"activeMenuId":"","menus":[],"brandNew":42}"#,
+        )
+        .unwrap();
+        assert_eq!(future.layer_count, 2);
     }
 
     #[test]
-    fn active_menu_falls_back_when_the_selection_was_deleted() {
+    fn legacy_inline_action_and_move_to_survive_the_layout() {
+        // 遗留直连动作与「跳转轮盘」都要随布局带回外壳：前者是派发不到时的回落，
+        // 后者决定松手是执行还是换轮盘。
+        let menu = RadialMenuDefinition {
+            id: "default".into(),
+            name: "默认轮盘".into(),
+            layers: vec![
+                vec![
+                    RadialMenuItem {
+                        id: "a".into(),
+                        label: "A".into(),
+                        slot_index: 0,
+                        action: Some("reader.next-page".into()),
+                        ..Default::default()
+                    },
+                    RadialMenuItem {
+                        id: "b".into(),
+                        label: "B".into(),
+                        slot_index: 1,
+                        move_to_menu_id: Some("two".into()),
+                        ..Default::default()
+                    },
+                    RadialMenuItem {
+                        id: "c".into(),
+                        label: "C".into(),
+                        slot_index: 2,
+                        disabled: true,
+                        ..Default::default()
+                    },
+                ],
+                vec![],
+                vec![],
+            ],
+        };
         let config = RadialConfig {
-            active_menu_id: "gone".into(),
+            menus: vec![
+                menu,
+                RadialMenuDefinition {
+                    id: "two".into(),
+                    name: "另一个".into(),
+                    ..Default::default()
+                },
+            ],
             ..Default::default()
         };
+        assert!(is_valid(&config), "{:?}", validate(&config));
+        let layout = slot_layout(&config, config.menu("default").unwrap());
+        assert_eq!(layout[0].legacy_action.as_deref(), Some("reader.next-page"));
+        assert_eq!(layout[1].move_to_menu_id.as_deref(), Some("two"));
+        assert!(!layout[2].selectable, "disabled 的条目不可选");
+        let (dx, dy) = point_of(&layout[2]);
         assert_eq!(
-            config.active_menu().map(|m| m.id.as_str()),
-            Some(DEFAULT_RADIAL_MENU_ID)
+            slot_at(&config, config.menu("default").unwrap(), dx, dy),
+            None
         );
     }
 
     #[test]
-    fn radial_input_matches_the_shape_the_engine_already_parses() {
-        // descriptor 的 JSON 形状是 model.rs 钉过的（menuId / itemId）。
-        // 运行时产的这条必须与它逐字节一致，否则「导入的包能认、自己产的认不出」。
-        let json = serde_json::to_string(&radial_input("default", "l1s0")).unwrap();
+    fn radial_descriptor_shape_matches_model_rs() {
+        // 运行时产的这条必须与 model.rs 钉过的形状逐字节一致，
+        // 否则「导入的包能认、自己产的认不出」。
+        let json = serde_json::to_string(&radial_input("default", "radial-next-page")).unwrap();
         assert_eq!(
             json,
-            r#"{"device":"radial","menuId":"default","itemId":"l1s0"}"#
+            r#"{"device":"radial","menuId":"default","itemId":"radial-next-page"}"#
         );
-        let parsed: InputDescriptor = serde_json::from_str(&json).unwrap();
-        assert_eq!(parsed, radial_input("default", "l1s0"));
     }
 
     #[test]
-    fn layout_angles_cover_the_full_circle_without_gaps() {
-        let menu = default_menu();
-        let layout = slot_layout(&menu);
-        let band = (menu.geometry.radius - menu.geometry.inner_radius) / menu.layers as f32;
-        for layer in 1..=menu.layers {
-            let ring: Vec<&RadialSlotLayout> = layout.iter().filter(|e| e.layer == layer).collect();
-            assert_eq!(ring.len(), menu.geometry.sectors as usize);
-            for pair in ring.windows(2) {
-                assert!(
-                    (pair[0].end_deg - pair[1].start_deg).abs() < 1e-4,
-                    "第 {layer} 层相邻两格之间有缝"
-                );
-            }
-            let span: f32 = ring.iter().map(|e| e.end_deg - e.start_deg).sum();
-            assert!(
-                (span - 360.0).abs() < 1e-3,
-                "第 {layer} 层没铺满一圈：{span}"
-            );
-            // 每层占一条等宽的环带，从空洞边缘一路铺到外半径。
-            let expected_inner = menu.geometry.inner_radius + (layer - 1) as f32 * band;
-            let expected_outer = menu.geometry.inner_radius + layer as f32 * band;
-            assert!(
-                (ring[0].inner_radius - expected_inner).abs() < 1e-3,
-                "第 {layer} 层的内缘不对"
-            );
-            assert!(
-                (ring[ring.len() - 1].outer_radius - expected_outer).abs() < 1e-3,
-                "第 {layer} 层的外缘不对"
-            );
-        }
-        assert!(
-            (slot_layout(&menu).last().unwrap().outer_radius - menu.geometry.radius).abs() < 1e-3,
-            "最外一层必须铺到 r120"
-        );
-        // 角度换算的自洽：layout 给的 mid_deg 与 atan2 回来的是同一个角。
-        let entry = &layout[3];
-        let (dx, dy) = point(&menu, entry.layer, entry.sector);
-        assert!((dy.atan2(dx).to_degrees() - entry.mid_deg).abs() < 1e-3);
-        assert!(entry.mid_deg > RADIAL_START_DEG && entry.mid_deg < RADIAL_START_DEG + 360.0);
-    }
-
-    #[test]
-    fn layout_at_agrees_with_slot_at() {
-        let menu = default_menu();
-        let layout = slot_layout(&menu);
-        let (dx, dy) = point(&menu, 2, 3);
-        let entry = layout_at(&menu, &layout, dx, dy).expect("这一格要有画法");
-        assert_eq!(entry.item_id, "l2s3");
-        assert_eq!(entry.item_id, slot_at(&menu, dx, dy).unwrap().item_id());
-        assert!(layout_at(&menu, &layout, 0.0, 0.0).is_none());
-    }
-
-    #[test]
-    fn pointer_clicks_still_win_over_radial_bindings() {
-        // 轮盘绑定与点击绑定住在同一张表里，靠 descriptor 区分；
-        // 混在一张表里不许互相顶掉（那等于「装了轮盘就不能点着翻页」）。
+    fn radial_bindings_do_not_shadow_click_bindings() {
+        // 轮盘与点击住在同一张表里，靠 descriptor 区分，不许互相顶掉。
         let mut bindings = preset_bindings(DEFAULT_RADIAL_MENU_ID);
         bindings.extend(tap_preset_bindings(TapPreset::RightHand));
+        assert!(conflicts(&bindings).is_empty());
         let wheel = resolve(
             &bindings,
-            &radial_input(DEFAULT_RADIAL_MENU_ID, "l1s0"),
+            &radial_input(DEFAULT_RADIAL_MENU_ID, "radial-next-page"),
             &[InputContext::Reader],
         )
         .unwrap();
@@ -828,6 +1146,25 @@ mod tests {
         )
         .unwrap();
         assert_eq!(tap.action, action::PAGE_RIGHT);
-        assert!(conflicts(&bindings).is_empty());
+    }
+
+    #[test]
+    fn layout_covers_every_shown_layer_only() {
+        let three = default_config();
+        assert_eq!(slot_layout(&three, three.active_menu().unwrap()).len(), 24);
+        let two = RadialConfig {
+            layer_count: 2,
+            ..default_config()
+        };
+        let laid = slot_layout(&two, two.active_menu().unwrap());
+        assert_eq!(laid.len(), 16);
+        assert!(laid.iter().all(|entry| entry.level <= 2));
+        // 层数只是**显示**几层，第 3 层的条目与绑定必须原样留着：
+        // 用户把 3 层调成 2 层再调回来，不该发现自己的槽位被剪光了。
+        // 真正会被剪的是「条目从文档里删掉」（另一条测试守着）。
+        assert_eq!(
+            prune_bindings(&two, &preset_bindings(DEFAULT_RADIAL_MENU_ID)).len(),
+            12
+        );
     }
 }
