@@ -124,6 +124,9 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     @Default(false) bool backPressExitEnabled,
     @Default(true) bool updateAccelerate,
     @Default(true) bool retryDownloadUntilSuccess,
+    @Default(3) int downloadConcurrency,
+    @Default(150) int downloadDelayMs,
+    @Default(3) int downloadAutoRetryCount,
     @Default(false) bool oldPageRollbackEnabled,
     @Default(false) bool cloudFavoritePreferred,
     @Default(false) bool autoFollowOnCollect,
@@ -279,6 +282,8 @@ abstract class ReadSettingState with _$ReadSettingState {
     @Default(false) bool doublePageMode,
     @Default(false) bool doublePageSeamless,
     @Default(false) bool doublePageLeadingBlank,
+    @Default(false) bool splitLandscapePages,
+    @Default(0) int landscapeSplitDirection,
     @Default(false) bool sidePaddingEnabled,
     @Default(10) int sidePaddingPercent,
     @Default(true) bool volumeKeyPageTurn,
@@ -297,6 +302,13 @@ abstract class ReadSettingState with _$ReadSettingState {
     @Default(12) int pageInfoEdgePadding,
     @Default(82) int pageInfoOpacityPercent,
     @Default(12) int pageInfoFontSize,
+    @Default(true) bool hoverRevealEnabled,
+    @Default(true) bool hoverRevealTop,
+    @Default(true) bool hoverRevealBottom,
+    @Default(32) int hoverTriggerAreaTop,
+    @Default(32) int hoverTriggerAreaBottom,
+    @Default(500) int hoverHideDelayMs,
+    @Default(false) bool hoverShowVisualIndicator,
   }) = _ReadSettingState;
 
   factory ReadSettingState.fromJson(Map<String, dynamic> json) =>

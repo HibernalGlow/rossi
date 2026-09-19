@@ -44,6 +44,10 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
   backPressExitEnabled: json['backPressExitEnabled'] as bool? ?? false,
   updateAccelerate: json['updateAccelerate'] as bool? ?? true,
   retryDownloadUntilSuccess: json['retryDownloadUntilSuccess'] as bool? ?? true,
+  downloadConcurrency: (json['downloadConcurrency'] as num?)?.toInt() ?? 3,
+  downloadDelayMs: (json['downloadDelayMs'] as num?)?.toInt() ?? 150,
+  downloadAutoRetryCount:
+      (json['downloadAutoRetryCount'] as num?)?.toInt() ?? 3,
   oldPageRollbackEnabled: json['oldPageRollbackEnabled'] as bool? ?? false,
   cloudFavoritePreferred: json['cloudFavoritePreferred'] as bool? ?? false,
   autoFollowOnCollect: json['autoFollowOnCollect'] as bool? ?? false,
@@ -122,6 +126,9 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'backPressExitEnabled': instance.backPressExitEnabled,
       'updateAccelerate': instance.updateAccelerate,
       'retryDownloadUntilSuccess': instance.retryDownloadUntilSuccess,
+      'downloadConcurrency': instance.downloadConcurrency,
+      'downloadDelayMs': instance.downloadDelayMs,
+      'downloadAutoRetryCount': instance.downloadAutoRetryCount,
       'oldPageRollbackEnabled': instance.oldPageRollbackEnabled,
       'cloudFavoritePreferred': instance.cloudFavoritePreferred,
       'autoFollowOnCollect': instance.autoFollowOnCollect,
@@ -336,6 +343,9 @@ _ReadSettingState _$ReadSettingStateFromJson(Map<String, dynamic> json) =>
       doublePageMode: json['doublePageMode'] as bool? ?? false,
       doublePageSeamless: json['doublePageSeamless'] as bool? ?? false,
       doublePageLeadingBlank: json['doublePageLeadingBlank'] as bool? ?? false,
+      splitLandscapePages: json['splitLandscapePages'] as bool? ?? false,
+      landscapeSplitDirection:
+          (json['landscapeSplitDirection'] as num?)?.toInt() ?? 0,
       sidePaddingEnabled: json['sidePaddingEnabled'] as bool? ?? false,
       sidePaddingPercent: (json['sidePaddingPercent'] as num?)?.toInt() ?? 10,
       volumeKeyPageTurn: json['volumeKeyPageTurn'] as bool? ?? true,
@@ -364,6 +374,15 @@ _ReadSettingState _$ReadSettingStateFromJson(Map<String, dynamic> json) =>
       pageInfoOpacityPercent:
           (json['pageInfoOpacityPercent'] as num?)?.toInt() ?? 82,
       pageInfoFontSize: (json['pageInfoFontSize'] as num?)?.toInt() ?? 12,
+      hoverRevealEnabled: json['hoverRevealEnabled'] as bool? ?? true,
+      hoverRevealTop: json['hoverRevealTop'] as bool? ?? true,
+      hoverRevealBottom: json['hoverRevealBottom'] as bool? ?? true,
+      hoverTriggerAreaTop: (json['hoverTriggerAreaTop'] as num?)?.toInt() ?? 32,
+      hoverTriggerAreaBottom:
+          (json['hoverTriggerAreaBottom'] as num?)?.toInt() ?? 32,
+      hoverHideDelayMs: (json['hoverHideDelayMs'] as num?)?.toInt() ?? 500,
+      hoverShowVisualIndicator:
+          json['hoverShowVisualIndicator'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$ReadSettingStateToJson(
@@ -393,6 +412,8 @@ Map<String, dynamic> _$ReadSettingStateToJson(
   'doublePageMode': instance.doublePageMode,
   'doublePageSeamless': instance.doublePageSeamless,
   'doublePageLeadingBlank': instance.doublePageLeadingBlank,
+  'splitLandscapePages': instance.splitLandscapePages,
+  'landscapeSplitDirection': instance.landscapeSplitDirection,
   'sidePaddingEnabled': instance.sidePaddingEnabled,
   'sidePaddingPercent': instance.sidePaddingPercent,
   'volumeKeyPageTurn': instance.volumeKeyPageTurn,
@@ -412,6 +433,13 @@ Map<String, dynamic> _$ReadSettingStateToJson(
   'pageInfoEdgePadding': instance.pageInfoEdgePadding,
   'pageInfoOpacityPercent': instance.pageInfoOpacityPercent,
   'pageInfoFontSize': instance.pageInfoFontSize,
+  'hoverRevealEnabled': instance.hoverRevealEnabled,
+  'hoverRevealTop': instance.hoverRevealTop,
+  'hoverRevealBottom': instance.hoverRevealBottom,
+  'hoverTriggerAreaTop': instance.hoverTriggerAreaTop,
+  'hoverTriggerAreaBottom': instance.hoverTriggerAreaBottom,
+  'hoverHideDelayMs': instance.hoverHideDelayMs,
+  'hoverShowVisualIndicator': instance.hoverShowVisualIndicator,
 };
 
 const _$ReaderTapPageTurnModeEnumMap = {
