@@ -3724,6 +3724,21 @@ class Translations$comicEntry$zh_CN {
 
 	/// zh-CN: '删除失败'
 	String get deleteFailed => '删除失败';
+
+	/// zh-CN: '汉化'
+	String get translationBadgeTranslated => '汉化';
+
+	/// zh-CN: '中文'
+	String get translationBadgeChinese => '中文';
+
+	/// zh-CN: '生肉'
+	String get translationBadgeRaw => '生肉';
+
+	/// zh-CN: '$label · 标签命中「$keyword」'
+	String translationTooltipTag({required Object label, required Object keyword}) => '${label} · 标签命中「${keyword}」';
+
+	/// zh-CN: '$label · 标题命中「$keyword」'
+	String translationTooltipTitle({required Object label, required Object keyword}) => '${label} · 标题命中「${keyword}」';
 }
 
 // Path: comicFollow
@@ -5386,6 +5401,11 @@ extension on Translations {
 			'comicEntry.deleteDownload' => '删除下载记录',
 			'comicEntry.deleteDownloadConfirm' => ({required Object title}) => '确定要删除（${title}）的下载记录及文件吗？',
 			'comicEntry.deleteFailed' => '删除失败',
+			'comicEntry.translationBadgeTranslated' => '汉化',
+			'comicEntry.translationBadgeChinese' => '中文',
+			'comicEntry.translationBadgeRaw' => '生肉',
+			'comicEntry.translationTooltipTag' => ({required Object label, required Object keyword}) => '${label} · 标签命中「${keyword}」',
+			'comicEntry.translationTooltipTitle' => ({required Object label, required Object keyword}) => '${label} · 标题命中「${keyword}」',
 			'comicFollow.title' => '追更',
 			'comicFollow.loadFailed' => ({required Object result}) => '加载失败：${result}',
 			'comicFollow.empty' => '暂无追更漫画',

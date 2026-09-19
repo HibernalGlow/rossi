@@ -1426,6 +1426,11 @@ class _Translations$comicEntry$en_US extends Translations$comicEntry$zh_CN {
 	@override String get deleteDownload => 'Delete Download';
 	@override String deleteDownloadConfirm({required Object title}) => 'Delete download record and files for "${title}"?';
 	@override String get deleteFailed => 'Delete failed';
+	@override String get translationBadgeTranslated => 'Translated';
+	@override String get translationBadgeChinese => 'Chinese';
+	@override String get translationBadgeRaw => 'Raw';
+	@override String translationTooltipTag({required Object label, required Object keyword}) => '${label} · matched tag "${keyword}"';
+	@override String translationTooltipTitle({required Object label, required Object keyword}) => '${label} · matched title "${keyword}"';
 }
 
 // Path: comicFollow
@@ -2819,6 +2824,11 @@ extension on TranslationsEnUs {
 			'comicEntry.deleteDownload' => 'Delete Download',
 			'comicEntry.deleteDownloadConfirm' => ({required Object title}) => 'Delete download record and files for "${title}"?',
 			'comicEntry.deleteFailed' => 'Delete failed',
+			'comicEntry.translationBadgeTranslated' => 'Translated',
+			'comicEntry.translationBadgeChinese' => 'Chinese',
+			'comicEntry.translationBadgeRaw' => 'Raw',
+			'comicEntry.translationTooltipTag' => ({required Object label, required Object keyword}) => '${label} · matched tag "${keyword}"',
+			'comicEntry.translationTooltipTitle' => ({required Object label, required Object keyword}) => '${label} · matched title "${keyword}"',
 			'comicFollow.title' => 'Updates',
 			'comicFollow.loadFailed' => ({required Object result}) => 'Load failed: ${result}',
 			'comicFollow.empty' => 'No followed comics',
