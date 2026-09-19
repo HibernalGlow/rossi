@@ -49,7 +49,9 @@ class HistoryShelfCard extends StatefulWidget {
 
 class _HistoryShelfCardState extends State<HistoryShelfCard> {
   static const _kDetailsColumns = [
-    LibraryColumn(key: 'chapter', label: '章节', width: 110),
+    // 「章节」没有对应的排序字段（排序口径见 ShelfSortField），所以表头
+    // 只是标签，不做成能点了没反应的假可点区。
+    LibraryColumn(key: 'chapter', label: '章节', width: 110, sortable: false),
     LibraryColumn(key: 'source', label: '来源', width: 70),
     LibraryColumn(key: 'time', label: '最后阅读', width: 90),
   ];

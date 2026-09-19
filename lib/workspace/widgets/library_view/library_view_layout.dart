@@ -37,6 +37,10 @@ class LibraryThumbGeometry {
 }
 
 /// 详细信息视图的一列。[width] 为空表示按 [flex] 伸展。
+///
+/// [key] 同时是排序键：宿主点表头时把它交回去。[sortable] 为假时表头只是个
+/// 标签，不接点击 —— 有些列（历史的「章节」）根本没有对应的排序字段，
+/// 画成能点的样子会让人点了没反应。
 class LibraryColumn {
   const LibraryColumn({
     required this.key,
@@ -44,6 +48,7 @@ class LibraryColumn {
     this.width,
     this.flex = 1,
     this.alignRight = false,
+    this.sortable = true,
   });
 
   final String key;
@@ -51,6 +56,7 @@ class LibraryColumn {
   final double? width;
   final int flex;
   final bool alignRight;
+  final bool sortable;
 }
 
 /// 六档视图的几何。数值全部来自原先 `file_manager_card.dart` 里那六个

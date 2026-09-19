@@ -236,7 +236,7 @@ class LibraryEntryList extends StatelessWidget {
     final theme = Theme.of(context);
     final isActive = sortKey == column.key;
     final handleSort = onSort;
-    final canTap = enabled && handleSort != null;
+    final canTap = enabled && handleSort != null && column.sortable;
 
     return InkWell(
       onTap: canTap ? () => handleSort(column.key) : null,
