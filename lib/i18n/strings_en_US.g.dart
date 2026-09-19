@@ -265,6 +265,13 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get updateAccelerateSubtitle => 'Use proxy to accelerate GitHub update links';
 	@override String get retryDownloadUntilSuccess => 'Keep retrying failed downloads';
 	@override String get retryDownloadUntilSuccessSubtitle => 'Retry failed downloads until they succeed; stop on 404 or empty data';
+	@override String get downloadSettings => 'Download Settings';
+	@override String get downloadConcurrency => 'Download Concurrency';
+	@override String get downloadConcurrencySubtitle => 'Number of concurrent image download threads; reduce if facing rate limits or captcha';
+	@override String get downloadDelay => 'Image Request Delay';
+	@override String get downloadDelaySubtitle => 'Pacing delay between image requests to prevent rate limiting (429)';
+	@override String get downloadAutoRetryCount => 'Auto Retry Count';
+	@override String get downloadAutoRetryCountSubtitle => 'Max automatic retry attempts when encountering transient network errors';
 	@override String get sync => 'Sync';
 	@override String get syncConfig => 'Sync config';
 	@override String get syncConfigSubtitle => 'Enter page to configure address and auth';
@@ -636,6 +643,27 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get resumeDownload => 'Resume Download';
 	@override String get restartDownload => 'Restart Download';
 	@override String get deleteDownload => 'Delete Download';
+	@override String get retryFailedParts => 'Retry Failed Parts';
+	@override String get retryFailedPartsSubtitle => 'Only redownload incomplete or failed chapters and images';
+	@override String get restartDownloadSmart => 'Incremental (Recommended)';
+	@override String get restartDownloadSmartDesc => 'Check local downloaded files and only download missing or failed images';
+	@override String get restartDownloadFull => 'Full Redownload';
+	@override String get restartDownloadFullDesc => 'Reset all chapters and download everything from scratch';
+	@override String get pickAndExtract => 'Pick & Extract';
+	@override String get pickAndExtractSubtitle => 'Select specific images to export or save';
+	@override String get saveToAlbum => 'Save to Photos';
+	@override String get saveToDirectory => 'Export to Folder';
+	@override String get exportZip => 'Export as ZIP';
+	@override String get downloadSelected => 'Download Selected';
+	@override String get selectAll => 'Select All';
+	@override String get deselectAll => 'Deselect All';
+	@override String get invertSelection => 'Invert Selection';
+	@override String get rangeSelect => 'Range Select';
+	@override String get rangeSelectPrompt => 'Enter page range, e.g. 1-5, 8, 12';
+	@override String selectedCount({required Object selected, required Object total}) => 'Selected ${selected} / ${total} pages';
+	@override String extractingProgress({required Object current, required Object total}) => 'Processing: ${current} / ${total}';
+	@override String get extractSuccess => 'Extraction completed';
+	@override String extractFailed({required Object error}) => 'Extraction failed: ${error}';
 	@override String get viewAllTasks => 'View All Tasks';
 	@override String get downloadStatusDownloading => 'Downloading';
 	@override String get downloadStatusPaused => 'Paused';
@@ -680,6 +708,25 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get doublePageSeamlessSubtitle => 'Give each page half the width, preserve its aspect ratio, and remove the gap between them';
 	@override String get doublePageLeadingBlank => 'Leading blank';
 	@override String get doublePageLeadingBlankSubtitle => 'Insert a blank page at the start of each chapter to shift page pairing';
+	@override String get splitLandscapePages => 'Split landscape pages';
+	@override String get splitLandscapePagesSubtitle => 'Automatically split wide double-page images into left and right halves';
+	@override String get landscapeSplitDirection => 'Split reading order';
+	@override String get splitDirectionAuto => 'Follow reading direction';
+	@override String get splitDirectionLtr => 'Left to right (left first)';
+	@override String get splitDirectionRtl => 'Right to left (right first)';
+	@override String get hoverReveal => 'Hover Reveal';
+	@override String get hoverRevealEnabled => 'Edge Hover Reveal Toolbars';
+	@override String get hoverRevealEnabledSubtitle => 'Automatically show toolbars when mouse moves to top or bottom edge (NeoView style)';
+	@override String get hoverRevealTop => 'Top Edge Reveals Header';
+	@override String get hoverRevealBottom => 'Bottom Edge Reveals Footer';
+	@override String get hoverTriggerAreaTop => 'Top Trigger Area Height';
+	@override String get hoverTriggerAreaBottom => 'Bottom Trigger Area Height';
+	@override String get hoverHideDelay => 'Auto Hide Delay on Leave';
+	@override String get hoverShowVisualIndicator => 'Show Edge Sensing Indicator';
+	@override String get hoverShowVisualIndicatorSubtitle => 'Display a subtle indicator line in the trigger area to preview sensing bounds';
+	@override String get hoverAreaPreview => 'Trigger Area Preview (NeoView style)';
+	@override String get hoverAreaTopHint => 'Top sensing area: {height}px';
+	@override String get hoverAreaBottomHint => 'Bottom sensing area: {height}px';
 	@override String get landscapeReader => 'Landscape reading';
 	@override String get landscapeReaderSubtitle => 'Switch to landscape while reading and restore the previous direction when you leave';
 	@override String get themeMode => 'Theme mode';
@@ -1507,6 +1554,9 @@ class _Translations$download$en_US extends Translations$download$zh_CN {
 	@override String get statusStartDownload => 'Start downloading...';
 	@override String get statusWaiting => 'Waiting';
 	@override String get statusCancelling => 'Cancelling...';
+	@override String statusAutoRetrying({required Object seconds, required Object attempt, required Object max}) => 'Network error, retrying automatically in ${seconds} s (${attempt}/${max})...';
+	@override String get statusThrottling => 'Rate limited by source, cooling down...';
+	@override String get retryFailedParts => 'Retry Failed';
 	@override String toastDownloadComplete({required Object comicName}) => '${comicName} download complete';
 	@override String toastDownloadFailed({required Object comicName, required Object error}) => '${comicName} download failed ${error}';
 	@override String toastTaskAlreadyExists({required Object comicName}) => '${comicName} task already exists';
@@ -1732,6 +1782,13 @@ extension on TranslationsEnUs {
 			'settings.updateAccelerateSubtitle' => 'Use proxy to accelerate GitHub update links',
 			'settings.retryDownloadUntilSuccess' => 'Keep retrying failed downloads',
 			'settings.retryDownloadUntilSuccessSubtitle' => 'Retry failed downloads until they succeed; stop on 404 or empty data',
+			'settings.downloadSettings' => 'Download Settings',
+			'settings.downloadConcurrency' => 'Download Concurrency',
+			'settings.downloadConcurrencySubtitle' => 'Number of concurrent image download threads; reduce if facing rate limits or captcha',
+			'settings.downloadDelay' => 'Image Request Delay',
+			'settings.downloadDelaySubtitle' => 'Pacing delay between image requests to prevent rate limiting (429)',
+			'settings.downloadAutoRetryCount' => 'Auto Retry Count',
+			'settings.downloadAutoRetryCountSubtitle' => 'Max automatic retry attempts when encountering transient network errors',
 			'settings.sync' => 'Sync',
 			'settings.syncConfig' => 'Sync config',
 			'settings.syncConfigSubtitle' => 'Enter page to configure address and auth',
@@ -2076,6 +2133,29 @@ extension on TranslationsEnUs {
 			'reader.resumeDownload' => 'Resume Download',
 			'reader.restartDownload' => 'Restart Download',
 			'reader.deleteDownload' => 'Delete Download',
+			'reader.retryFailedParts' => 'Retry Failed Parts',
+			'reader.retryFailedPartsSubtitle' => 'Only redownload incomplete or failed chapters and images',
+			'reader.restartDownloadSmart' => 'Incremental (Recommended)',
+			'reader.restartDownloadSmartDesc' => 'Check local downloaded files and only download missing or failed images',
+			'reader.restartDownloadFull' => 'Full Redownload',
+			_ => null,
+		} ?? switch (path) {
+			'reader.restartDownloadFullDesc' => 'Reset all chapters and download everything from scratch',
+			'reader.pickAndExtract' => 'Pick & Extract',
+			'reader.pickAndExtractSubtitle' => 'Select specific images to export or save',
+			'reader.saveToAlbum' => 'Save to Photos',
+			'reader.saveToDirectory' => 'Export to Folder',
+			'reader.exportZip' => 'Export as ZIP',
+			'reader.downloadSelected' => 'Download Selected',
+			'reader.selectAll' => 'Select All',
+			'reader.deselectAll' => 'Deselect All',
+			'reader.invertSelection' => 'Invert Selection',
+			'reader.rangeSelect' => 'Range Select',
+			'reader.rangeSelectPrompt' => 'Enter page range, e.g. 1-5, 8, 12',
+			'reader.selectedCount' => ({required Object selected, required Object total}) => 'Selected ${selected} / ${total} pages',
+			'reader.extractingProgress' => ({required Object current, required Object total}) => 'Processing: ${current} / ${total}',
+			'reader.extractSuccess' => 'Extraction completed',
+			'reader.extractFailed' => ({required Object error}) => 'Extraction failed: ${error}',
 			'reader.viewAllTasks' => 'View All Tasks',
 			'reader.downloadStatusDownloading' => 'Downloading',
 			'reader.downloadStatusPaused' => 'Paused',
@@ -2088,8 +2168,6 @@ extension on TranslationsEnUs {
 			'reader.autoCollectedToast' => 'Added to collection',
 			'reader.readWhileDownloading' => 'Download while reading',
 			'reader.readWhileDownloadingSubtitle' => 'Automatically save read content to local download directory',
-			_ => null,
-		} ?? switch (path) {
 			'reader.pageMode' => 'Page turn mode',
 			'reader.fullscreen' => 'Fullscreen',
 			'reader.leftHandMode' => 'Left-hand mode',
@@ -2122,6 +2200,25 @@ extension on TranslationsEnUs {
 			'reader.doublePageSeamlessSubtitle' => 'Give each page half the width, preserve its aspect ratio, and remove the gap between them',
 			'reader.doublePageLeadingBlank' => 'Leading blank',
 			'reader.doublePageLeadingBlankSubtitle' => 'Insert a blank page at the start of each chapter to shift page pairing',
+			'reader.splitLandscapePages' => 'Split landscape pages',
+			'reader.splitLandscapePagesSubtitle' => 'Automatically split wide double-page images into left and right halves',
+			'reader.landscapeSplitDirection' => 'Split reading order',
+			'reader.splitDirectionAuto' => 'Follow reading direction',
+			'reader.splitDirectionLtr' => 'Left to right (left first)',
+			'reader.splitDirectionRtl' => 'Right to left (right first)',
+			'reader.hoverReveal' => 'Hover Reveal',
+			'reader.hoverRevealEnabled' => 'Edge Hover Reveal Toolbars',
+			'reader.hoverRevealEnabledSubtitle' => 'Automatically show toolbars when mouse moves to top or bottom edge (NeoView style)',
+			'reader.hoverRevealTop' => 'Top Edge Reveals Header',
+			'reader.hoverRevealBottom' => 'Bottom Edge Reveals Footer',
+			'reader.hoverTriggerAreaTop' => 'Top Trigger Area Height',
+			'reader.hoverTriggerAreaBottom' => 'Bottom Trigger Area Height',
+			'reader.hoverHideDelay' => 'Auto Hide Delay on Leave',
+			'reader.hoverShowVisualIndicator' => 'Show Edge Sensing Indicator',
+			'reader.hoverShowVisualIndicatorSubtitle' => 'Display a subtle indicator line in the trigger area to preview sensing bounds',
+			'reader.hoverAreaPreview' => 'Trigger Area Preview (NeoView style)',
+			'reader.hoverAreaTopHint' => 'Top sensing area: {height}px',
+			'reader.hoverAreaBottomHint' => 'Bottom sensing area: {height}px',
 			'reader.landscapeReader' => 'Landscape reading',
 			'reader.landscapeReaderSubtitle' => 'Switch to landscape while reading and restore the previous direction when you leave',
 			'reader.themeMode' => 'Theme mode',
@@ -2555,6 +2652,8 @@ extension on TranslationsEnUs {
 			'search.title' => 'Search',
 			'search.searchHint' => 'Search...',
 			'search.selectSource' => 'Select Source',
+			_ => null,
+		} ?? switch (path) {
 			'search.advancedSearchNotSupported' => 'Current plugin does not support advanced search',
 			'search.advancedSearchOptions' => 'Advanced Search Options',
 			'search.notSelected' => 'Not selected',
@@ -2602,8 +2701,6 @@ extension on TranslationsEnUs {
 			'discover.pluginInfoLoadFailed' => ({required Object error}) => 'Failed to load plugin info: ${error}',
 			'discover.pluginCapability' => 'Plugin Capability',
 			'discover.disabled' => 'Disabled',
-			_ => null,
-		} ?? switch (path) {
 			'discover.unnamed' => 'Unnamed',
 			'discover.pluginEnableFailed' => ({required Object error}) => 'Failed to enable plugin: ${error}',
 			'discover.pluginCloseFailed' => ({required Object error}) => 'Failed to disable plugin: ${error}',
@@ -2744,6 +2841,9 @@ extension on TranslationsEnUs {
 			'download.statusStartDownload' => 'Start downloading...',
 			'download.statusWaiting' => 'Waiting',
 			'download.statusCancelling' => 'Cancelling...',
+			'download.statusAutoRetrying' => ({required Object seconds, required Object attempt, required Object max}) => 'Network error, retrying automatically in ${seconds} s (${attempt}/${max})...',
+			'download.statusThrottling' => 'Rate limited by source, cooling down...',
+			'download.retryFailedParts' => 'Retry Failed',
 			'download.toastDownloadComplete' => ({required Object comicName}) => '${comicName} download complete',
 			'download.toastDownloadFailed' => ({required Object comicName, required Object error}) => '${comicName} download failed ${error}',
 			'download.toastTaskAlreadyExists' => ({required Object comicName}) => '${comicName} task already exists',

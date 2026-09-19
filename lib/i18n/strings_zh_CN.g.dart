@@ -581,6 +581,27 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '下载失败时持续重试直到成功；返回 404 或空数据时停止重试'
 	String get retryDownloadUntilSuccessSubtitle => '下载失败时持续重试直到成功；返回 404 或空数据时停止重试';
 
+	/// zh-CN: '下载设置'
+	String get downloadSettings => '下载设置';
+
+	/// zh-CN: '下载并发数'
+	String get downloadConcurrency => '下载并发数';
+
+	/// zh-CN: '同时下载图片的线程数，若经常遇到风控或限流建议设为 2~3'
+	String get downloadConcurrencySubtitle => '同时下载图片的线程数，若经常遇到风控或限流建议设为 2~3';
+
+	/// zh-CN: '单图下载延时'
+	String get downloadDelay => '单图下载延时';
+
+	/// zh-CN: '每次图片请求之间的节流间隔，可有效规避源站风控 (429)'
+	String get downloadDelaySubtitle => '每次图片请求之间的节流间隔，可有效规避源站风控 (429)';
+
+	/// zh-CN: '失败自动重试次数'
+	String get downloadAutoRetryCount => '失败自动重试次数';
+
+	/// zh-CN: '任务遇到网络偶发异常时自动退避重试的上限次数'
+	String get downloadAutoRetryCountSubtitle => '任务遇到网络偶发异常时自动退避重试的上限次数';
+
 	/// zh-CN: '同步'
 	String get sync => '同步';
 
@@ -1643,6 +1664,69 @@ class Translations$reader$zh_CN {
 	/// zh-CN: '删除下载'
 	String get deleteDownload => '删除下载';
 
+	/// zh-CN: '重试失败部分'
+	String get retryFailedParts => '重试失败部分';
+
+	/// zh-CN: '仅重新下载未完成或失败的章节与图片'
+	String get retryFailedPartsSubtitle => '仅重新下载未完成或失败的章节与图片';
+
+	/// zh-CN: '增量补全（推荐）'
+	String get restartDownloadSmart => '增量补全（推荐）';
+
+	/// zh-CN: '检测本地已下载内容，仅下载缺失或失败的图片'
+	String get restartDownloadSmartDesc => '检测本地已下载内容，仅下载缺失或失败的图片';
+
+	/// zh-CN: '全量重下'
+	String get restartDownloadFull => '全量重下';
+
+	/// zh-CN: '重置全部章节进度，从头完整下载'
+	String get restartDownloadFullDesc => '重置全部章节进度，从头完整下载';
+
+	/// zh-CN: '选图提取'
+	String get pickAndExtract => '选图提取';
+
+	/// zh-CN: '挑选特定图片导出或保存'
+	String get pickAndExtractSubtitle => '挑选特定图片导出或保存';
+
+	/// zh-CN: '保存至相册'
+	String get saveToAlbum => '保存至相册';
+
+	/// zh-CN: '导出至文件夹'
+	String get saveToDirectory => '导出至文件夹';
+
+	/// zh-CN: '导出为 ZIP'
+	String get exportZip => '导出为 ZIP';
+
+	/// zh-CN: '下载选中项'
+	String get downloadSelected => '下载选中项';
+
+	/// zh-CN: '全选'
+	String get selectAll => '全选';
+
+	/// zh-CN: '取消全选'
+	String get deselectAll => '取消全选';
+
+	/// zh-CN: '反选'
+	String get invertSelection => '反选';
+
+	/// zh-CN: '范围选择'
+	String get rangeSelect => '范围选择';
+
+	/// zh-CN: '输入页码范围，例如: 1-5, 8, 12'
+	String get rangeSelectPrompt => '输入页码范围，例如: 1-5, 8, 12';
+
+	/// zh-CN: '已选 $selected / $total 页'
+	String selectedCount({required Object selected, required Object total}) => '已选 ${selected} / ${total} 页';
+
+	/// zh-CN: '正在处理中: $current / $total'
+	String extractingProgress({required Object current, required Object total}) => '正在处理中: ${current} / ${total}';
+
+	/// zh-CN: '提取完成'
+	String get extractSuccess => '提取完成';
+
+	/// zh-CN: '提取失败: $error'
+	String extractFailed({required Object error}) => '提取失败: ${error}';
+
 	/// zh-CN: '查看全部下载任务'
 	String get viewAllTasks => '查看全部下载任务';
 
@@ -1774,6 +1858,63 @@ class Translations$reader$zh_CN {
 
 	/// zh-CN: '在每章最前插入一页空白，使配对整体错一位'
 	String get doublePageLeadingBlankSubtitle => '在每章最前插入一页空白，使配对整体错一位';
+
+	/// zh-CN: '横长页左右分割'
+	String get splitLandscapePages => '横长页左右分割';
+
+	/// zh-CN: '自动将跨页横长图切分为左右两半阅读'
+	String get splitLandscapePagesSubtitle => '自动将跨页横长图切分为左右两半阅读';
+
+	/// zh-CN: '分割阅读顺序'
+	String get landscapeSplitDirection => '分割阅读顺序';
+
+	/// zh-CN: '跟随阅读方向'
+	String get splitDirectionAuto => '跟随阅读方向';
+
+	/// zh-CN: '左起（左→右）'
+	String get splitDirectionLtr => '左起（左→右）';
+
+	/// zh-CN: '右起（右→左）'
+	String get splitDirectionRtl => '右起（右→左）';
+
+	/// zh-CN: '悬停唤出'
+	String get hoverReveal => '悬停唤出';
+
+	/// zh-CN: '边缘悬停唤出控制栏'
+	String get hoverRevealEnabled => '边缘悬停唤出控制栏';
+
+	/// zh-CN: '鼠标移至屏幕顶部或底部边缘时自动浮现对应工具栏（参考 NeoView）'
+	String get hoverRevealEnabledSubtitle => '鼠标移至屏幕顶部或底部边缘时自动浮现对应工具栏（参考 NeoView）';
+
+	/// zh-CN: '顶部边缘唤出顶栏'
+	String get hoverRevealTop => '顶部边缘唤出顶栏';
+
+	/// zh-CN: '底部边缘唤出底栏'
+	String get hoverRevealBottom => '底部边缘唤出底栏';
+
+	/// zh-CN: '顶部唤出感应区高度'
+	String get hoverTriggerAreaTop => '顶部唤出感应区高度';
+
+	/// zh-CN: '底部唤出感应区高度'
+	String get hoverTriggerAreaBottom => '底部唤出感应区高度';
+
+	/// zh-CN: '离开后自动收回延时'
+	String get hoverHideDelay => '离开后自动收回延时';
+
+	/// zh-CN: '显示边缘感应提示线'
+	String get hoverShowVisualIndicator => '显示边缘感应提示线';
+
+	/// zh-CN: '在触发区显示微弱的指示线，便于直观感知范围'
+	String get hoverShowVisualIndicatorSubtitle => '在触发区显示微弱的指示线，便于直观感知范围';
+
+	/// zh-CN: '唤出感应区示意（NeoView 风格）'
+	String get hoverAreaPreview => '唤出感应区示意（NeoView 风格）';
+
+	/// zh-CN: '顶部感应区：{height}px'
+	String get hoverAreaTopHint => '顶部感应区：{height}px';
+
+	/// zh-CN: '底部感应区：{height}px'
+	String get hoverAreaBottomHint => '底部感应区：{height}px';
 
 	/// zh-CN: '横屏阅读'
 	String get landscapeReader => '横屏阅读';
@@ -3842,6 +3983,15 @@ class Translations$download$zh_CN {
 	/// zh-CN: '取消中...'
 	String get statusCancelling => '取消中...';
 
+	/// zh-CN: '网络异常，将在 $seconds 秒后自动重试 ($attempt/$max)...'
+	String statusAutoRetrying({required Object seconds, required Object attempt, required Object max}) => '网络异常，将在 ${seconds} 秒后自动重试 (${attempt}/${max})...';
+
+	/// zh-CN: '触发源站风控节流，正在冷却休眠中...'
+	String get statusThrottling => '触发源站风控节流，正在冷却休眠中...';
+
+	/// zh-CN: '重试失败项'
+	String get retryFailedParts => '重试失败项';
+
 	/// zh-CN: '$comicName 下载完成'
 	String toastDownloadComplete({required Object comicName}) => '${comicName} 下载完成';
 
@@ -4112,6 +4262,13 @@ extension on Translations {
 			'settings.updateAccelerateSubtitle' => '开启后优先使用代理加速 GitHub 更新链接',
 			'settings.retryDownloadUntilSuccess' => '下载失败后持续重试',
 			'settings.retryDownloadUntilSuccessSubtitle' => '下载失败时持续重试直到成功；返回 404 或空数据时停止重试',
+			'settings.downloadSettings' => '下载设置',
+			'settings.downloadConcurrency' => '下载并发数',
+			'settings.downloadConcurrencySubtitle' => '同时下载图片的线程数，若经常遇到风控或限流建议设为 2~3',
+			'settings.downloadDelay' => '单图下载延时',
+			'settings.downloadDelaySubtitle' => '每次图片请求之间的节流间隔，可有效规避源站风控 (429)',
+			'settings.downloadAutoRetryCount' => '失败自动重试次数',
+			'settings.downloadAutoRetryCountSubtitle' => '任务遇到网络偶发异常时自动退避重试的上限次数',
 			'settings.sync' => '同步',
 			'settings.syncConfig' => '同步配置',
 			'settings.syncConfigSubtitle' => '进入页面，配置地址与鉴权信息',
@@ -4457,6 +4614,29 @@ extension on Translations {
 			'reader.resumeDownload' => '继续下载',
 			'reader.restartDownload' => '重新下载',
 			'reader.deleteDownload' => '删除下载',
+			'reader.retryFailedParts' => '重试失败部分',
+			'reader.retryFailedPartsSubtitle' => '仅重新下载未完成或失败的章节与图片',
+			'reader.restartDownloadSmart' => '增量补全（推荐）',
+			'reader.restartDownloadSmartDesc' => '检测本地已下载内容，仅下载缺失或失败的图片',
+			_ => null,
+		} ?? switch (path) {
+			'reader.restartDownloadFull' => '全量重下',
+			'reader.restartDownloadFullDesc' => '重置全部章节进度，从头完整下载',
+			'reader.pickAndExtract' => '选图提取',
+			'reader.pickAndExtractSubtitle' => '挑选特定图片导出或保存',
+			'reader.saveToAlbum' => '保存至相册',
+			'reader.saveToDirectory' => '导出至文件夹',
+			'reader.exportZip' => '导出为 ZIP',
+			'reader.downloadSelected' => '下载选中项',
+			'reader.selectAll' => '全选',
+			'reader.deselectAll' => '取消全选',
+			'reader.invertSelection' => '反选',
+			'reader.rangeSelect' => '范围选择',
+			'reader.rangeSelectPrompt' => '输入页码范围，例如: 1-5, 8, 12',
+			'reader.selectedCount' => ({required Object selected, required Object total}) => '已选 ${selected} / ${total} 页',
+			'reader.extractingProgress' => ({required Object current, required Object total}) => '正在处理中: ${current} / ${total}',
+			'reader.extractSuccess' => '提取完成',
+			'reader.extractFailed' => ({required Object error}) => '提取失败: ${error}',
 			'reader.viewAllTasks' => '查看全部下载任务',
 			'reader.downloadStatusDownloading' => '正在下载',
 			'reader.downloadStatusPaused' => '已暂停',
@@ -4468,8 +4648,6 @@ extension on Translations {
 			'reader.downloadStartedToast' => '已开始下载本漫画',
 			'reader.autoCollectedToast' => '已自动添加至收藏',
 			'reader.readWhileDownloading' => '边看边下载',
-			_ => null,
-		} ?? switch (path) {
 			'reader.readWhileDownloadingSubtitle' => '阅读时自动将已看内容保存到本地下载目录',
 			'reader.pageMode' => '翻页模式',
 			'reader.fullscreen' => '全屏模式',
@@ -4503,6 +4681,25 @@ extension on Translations {
 			'reader.doublePageSeamlessSubtitle' => '左右各占一半宽度，按图片比例独立显示并消除中间留白',
 			'reader.doublePageLeadingBlank' => '首页留白',
 			'reader.doublePageLeadingBlankSubtitle' => '在每章最前插入一页空白，使配对整体错一位',
+			'reader.splitLandscapePages' => '横长页左右分割',
+			'reader.splitLandscapePagesSubtitle' => '自动将跨页横长图切分为左右两半阅读',
+			'reader.landscapeSplitDirection' => '分割阅读顺序',
+			'reader.splitDirectionAuto' => '跟随阅读方向',
+			'reader.splitDirectionLtr' => '左起（左→右）',
+			'reader.splitDirectionRtl' => '右起（右→左）',
+			'reader.hoverReveal' => '悬停唤出',
+			'reader.hoverRevealEnabled' => '边缘悬停唤出控制栏',
+			'reader.hoverRevealEnabledSubtitle' => '鼠标移至屏幕顶部或底部边缘时自动浮现对应工具栏（参考 NeoView）',
+			'reader.hoverRevealTop' => '顶部边缘唤出顶栏',
+			'reader.hoverRevealBottom' => '底部边缘唤出底栏',
+			'reader.hoverTriggerAreaTop' => '顶部唤出感应区高度',
+			'reader.hoverTriggerAreaBottom' => '底部唤出感应区高度',
+			'reader.hoverHideDelay' => '离开后自动收回延时',
+			'reader.hoverShowVisualIndicator' => '显示边缘感应提示线',
+			'reader.hoverShowVisualIndicatorSubtitle' => '在触发区显示微弱的指示线，便于直观感知范围',
+			'reader.hoverAreaPreview' => '唤出感应区示意（NeoView 风格）',
+			'reader.hoverAreaTopHint' => '顶部感应区：{height}px',
+			'reader.hoverAreaBottomHint' => '底部感应区：{height}px',
 			'reader.landscapeReader' => '横屏阅读',
 			'reader.landscapeReaderSubtitle' => '阅读时切换为横屏，离开后恢复原来的方向',
 			'reader.themeMode' => '系统模式',
@@ -4935,6 +5132,8 @@ extension on Translations {
 			'more.changelog' => '更新日志',
 			'search.title' => '搜索',
 			'search.searchHint' => '搜索...',
+			_ => null,
+		} ?? switch (path) {
 			'search.selectSource' => '选择漫画源',
 			'search.advancedSearchNotSupported' => '当前插件不支持高级搜索',
 			'search.advancedSearchOptions' => '高级搜索选项',
@@ -4982,8 +5181,6 @@ extension on Translations {
 			'discover.noPluginForSearch' => '暂无可用插件，无法搜索',
 			'discover.pluginInfoLoadFailed' => ({required Object error}) => '插件信息加载失败: ${error}',
 			'discover.pluginCapability' => '插件能力',
-			_ => null,
-		} ?? switch (path) {
 			'discover.disabled' => '已关闭',
 			'discover.unnamed' => '未命名',
 			'discover.pluginEnableFailed' => ({required Object error}) => '插件启用失败: ${error}',
@@ -5125,6 +5322,9 @@ extension on Translations {
 			'download.statusStartDownload' => '开始下载...',
 			'download.statusWaiting' => '等待中',
 			'download.statusCancelling' => '取消中...',
+			'download.statusAutoRetrying' => ({required Object seconds, required Object attempt, required Object max}) => '网络异常，将在 ${seconds} 秒后自动重试 (${attempt}/${max})...',
+			'download.statusThrottling' => '触发源站风控节流，正在冷却休眠中...',
+			'download.retryFailedParts' => '重试失败项',
 			'download.toastDownloadComplete' => ({required Object comicName}) => '${comicName} 下载完成',
 			'download.toastDownloadFailed' => ({required Object comicName, required Object error}) => '${comicName} 下载失败 ${error}',
 			'download.toastTaskAlreadyExists' => ({required Object comicName}) => '${comicName} 任务已存在',
