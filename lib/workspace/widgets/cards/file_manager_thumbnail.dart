@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/service/reader/reader_thumbnail_service.dart';
 import 'package:zephyr/src/rust/api/file_manager.dart';
+import 'package:zephyr/video/service/video_poster_service.dart';
 
 /// 参考 NeoView 与 mImageViewer 设计的文件管理器条目缩略图展示组件。
 ///
@@ -37,7 +38,11 @@ class _FileManagerThumbnailWidgetState
   String? _loadedPath;
 
   bool get _isEligible =>
-      widget.entry.isDir || widget.entry.isArchive || widget.entry.isImage;
+      widget.entry.isDir ||
+      widget.entry.isArchive ||
+      widget.entry.isImage ||
+      // 视频条目也走缩略图路：取帧由 Dart 侧的海报服务负责（B4 不许 ffmpeg 进 core）。
+      widget.entry.isVideo;
 
   @override
   void initState() {
@@ -51,7 +56,8 @@ class _FileManagerThumbnailWidgetState
     if (oldWidget.entry.path != widget.entry.path ||
         oldWidget.entry.isDir != widget.entry.isDir ||
         oldWidget.entry.isArchive != widget.entry.isArchive ||
-        oldWidget.entry.isImage != widget.entry.isImage) {
+        oldWidget.entry.isImage != widget.entry.isImage ||
+        oldWidget.entry.isVideo != widget.entry.isVideo) {
       _loadThumbnail();
     }
   }
@@ -68,6 +74,19 @@ class _FileManagerThumbnailWidgetState
     setState(() {
       _isLoading = true;
     });
+
+    if (widget.entry.isVideo &&
+        !widget.entry.isDir &&
+        !widget.entry.isArchive &&
+        !widget.entry.isImage) {
+      final poster = await VideoPosterService.instance.posterForFile(path);
+      if (!mounted || _loadedPath != path) return;
+      setState(() {
+        _bytes = poster;
+        _isLoading = false;
+      });
+      return;
+    }
 
     final bytes = await ReaderThumbnailService.instance
         .getFileManagerEntryThumbnailBytes(

@@ -31,9 +31,216 @@ class _ReaderSettingsReadTab extends StatelessWidget {
           const _PreloadSection(),
           const SizedBox(height: 18),
           const _ReadExperienceSection(),
+          const SizedBox(height: 18),
+          const _VideoSection(),
         ],
       ),
     );
+  }
+}
+
+/// 视频播放设置。
+///
+/// 存在 `VideoSettingsStore` 而不是 `ReadSettingState`，理由与 `_SuperResolutionSection`
+/// 一模一样（它也自带一个 SharedPreferences 服务）：**这些项不该触发阅读页重建**。
+/// 排版设置一改整本要重排，而「倍速上限」「动图当视频播」只影响播放那条路。
+/// 写盘同样是「先 setState 再 await」——设置界面卡顿比晚 100 ms 落盘难看得多。
+class _VideoSection extends StatefulWidget {
+  const _VideoSection();
+
+  @override
+  State<_VideoSection> createState() => _VideoSectionState();
+}
+
+class _VideoSectionState extends State<_VideoSection> {
+  VideoSettings _settings = const VideoSettings();
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final loaded = await VideoSettingsStore.instance.load();
+    if (!mounted) return;
+    setState(() => _settings = loaded);
+  }
+
+  Future<void> _write(VideoSettings next) async {
+    setState(() => _settings = next);
+    await VideoSettingsStore.instance.save(next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SettingsSection(
+      title: '视频播放',
+      children: [
+        _SettingsSwitchTile(
+          title: '自动播放',
+          subtitle: '翻到视频页就开始播放',
+          value: _settings.autoPlay,
+          onChanged: (value) => _write(_copy(autoPlay: value)),
+        ),
+        _SettingsSwitchTile(
+          title: '硬件解码',
+          subtitle: '关闭可排查花屏与绿屏，代价是 CPU 占用上升',
+          value: _settings.hardwareDecode,
+          onChanged: (value) => _write(_copy(hardwareDecode: value)),
+        ),
+        _SettingsSwitchTile(
+          title: '去隔行',
+          subtitle: '老录像带 / DVD 抓取源有横向梳状纹时打开',
+          value: _settings.deinterlace,
+          onChanged: (value) => _write(_copy(deinterlace: value)),
+        ),
+        _VideoAliasTile(
+          aliases: _settings.extraVideoExtensions,
+          onChanged: (next) => _write(_copy(extraVideoExtensions: next)),
+        ),
+        _SettingsSwitchTile(
+          title: '钉住控制条',
+          subtitle: '控制条常显，不再在播放 3 秒后自动收起',
+          value: _settings.controlsPinned,
+          onChanged: (value) => _write(_copy(controlsPinned: value)),
+        ),
+        _SettingsSwitchTile(
+          title: '动图当视频播',
+          subtitle: '把 GIF / APNG 交给视频控制器，获得暂停、逐帧与进度拖动',
+          value: _settings.animatedVideoEnabled,
+          onChanged: (value) => _write(_copy(animatedVideoEnabled: value)),
+        ),
+        if (_settings.animatedVideoEnabled)
+          _SettingsSliderCard(
+            title: '控制条自动隐藏',
+            value: _settings.autoHideMilliseconds,
+            min: 1000,
+            max: 10000,
+            divisions: 9,
+            suffix: 'ms',
+            onChanged: (value) => _write(_copy(autoHideMilliseconds: value)),
+          ),
+        _SettingsSliderCard(
+          title: '倍速上限',
+          // 倍速按 ×100 存成整数：`_SettingsSliderCard` 只吃 int，
+          // 而倍速是两位小数的量（0.25 / 1.75），换算比改公共控件便宜且不牵连其他设置。
+          value: (_settings.maxRate * 100).round(),
+          min: 100,
+          max: 1600,
+          divisions: 30,
+          suffix: '%',
+          onChanged: (value) => _write(_copy(maxRate: value / 100)),
+        ),
+        _SettingsSliderCard(
+          title: '默认音量',
+          value: _settings.volumePercent,
+          min: 0,
+          max: 130,
+          divisions: 13,
+          suffix: '%',
+          onChanged: (value) => _write(_copy(volumePercent: value)),
+        ),
+      ],
+    );
+  }
+
+  VideoSettings _copy({
+    bool? controlsPinned,
+    bool? hardwareDecode,
+    bool? autoPlay,
+    double? maxRate,
+    int? autoHideMilliseconds,
+    int? volumePercent,
+    bool? animatedVideoEnabled,
+    bool? deinterlace,
+    List<String>? extraVideoExtensions,
+  }) => _settings.copyWith(
+    controlsPinned: controlsPinned,
+    hardwareDecode: hardwareDecode,
+    autoPlay: autoPlay,
+    maxRate: maxRate,
+    autoHideMilliseconds: autoHideMilliseconds,
+    volumePercent: volumePercent,
+    animatedVideoEnabled: animatedVideoEnabled,
+    deinterlace: deinterlace,
+    extraVideoExtensions: extraVideoExtensions,
+  );
+}
+
+/// 自定义视频后缀别名（neoview `MediaSettingsCard.tsx:155-283` 的 format alias 编辑）。
+///
+/// 校验直接复用 `MediaKindOverrides.invalidEntries` —— 「≤128 条 / ≤16 字符 /
+/// 不许与图片档重叠」这三条在上游是同一份规则，写两遍迟早漂移。
+class _VideoAliasTile extends StatelessWidget {
+  const _VideoAliasTile({required this.aliases, required this.onChanged});
+
+  final List<String> aliases;
+  final ValueChanged<List<String>> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: const Text('自定义视频后缀'),
+      subtitle: Text(
+        aliases.isEmpty ? '未设置' : aliases.join('、'),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: const Icon(Icons.edit_outlined),
+      onTap: () => _edit(context),
+    );
+  }
+
+  Future<void> _edit(BuildContext context) async {
+    final controller = TextEditingController(text: aliases.join(', '));
+    final saved = await showDialog<List<String>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('自定义视频后缀'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const Text('逗号分隔，例如：myvid, cbr-video'),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: const InputDecoration(hintText: 'myvid, other'),
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(
+              controller.text
+                  .split(RegExp(r'[,，\s]+'))
+                  .where((e) => e.trim().isNotEmpty)
+                  .map((e) => e.trim().toLowerCase())
+                  .toList(growable: false),
+            ),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    if (saved == null) return;
+    final problems =
+        MediaKindOverrides(extraVideoExtensions: saved).invalidEntries;
+    if (problems.isNotEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(problems.join('；'))),
+        );
+      }
+      return;
+    }
+    onChanged(saved);
   }
 }
 

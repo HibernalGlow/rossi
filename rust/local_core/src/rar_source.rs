@@ -24,7 +24,7 @@ use std::sync::{LazyLock, Mutex};
 use anyhow::{Context, Result, bail};
 
 use crate::entry_name::dedup_entry_name;
-use crate::page_order::{is_image_name, should_ignore_name, sort_natural};
+use crate::page_order::{is_page_name, should_ignore_name, sort_natural};
 use crate::{Locator, PageEntry, UnsupportedSource};
 
 /// 单条目直读上限。超过就说明这大概不是漫画页，宁可报错也不要一次吃掉几 GB 内存。
@@ -280,7 +280,7 @@ pub fn inspect(path: &Path) -> Result<RarInspection> {
         if should_ignore_name(&name) {
             continue;
         }
-        if is_image_name(&name) {
+        if is_page_name(&name) {
             image_count = image_count.saturating_add(1);
             total_uncompressed_bytes = total_uncompressed_bytes.saturating_add(entry.unpacked_size);
         } else if is_nested_archive_name(&name) {
@@ -321,7 +321,7 @@ pub fn enumerate_pages(path: &Path) -> Result<Vec<PageEntry>> {
             continue;
         }
         let name = normalized_entry_name(&entry.filename);
-        if should_ignore_name(&name) || !is_image_name(&name) {
+        if should_ignore_name(&name) || !is_page_name(&name) {
             continue;
         }
         let display = dedup_entry_name(name, &mut seen);
@@ -360,7 +360,7 @@ pub fn read_entry(path: &Path, wanted: &str) -> Result<Vec<u8>> {
         let resolved_name = entry
             .is_file()
             .then(|| {
-                if should_ignore_name(&name) || !is_image_name(&name) {
+                if should_ignore_name(&name) || !is_page_name(&name) {
                     None
                 } else {
                     Some(dedup_entry_name(name.clone(), &mut seen))
@@ -395,7 +395,7 @@ pub fn read_first_image(path: &Path) -> Result<Option<(String, Vec<u8>)>> {
         let display = entry
             .is_file()
             .then(|| {
-                if should_ignore_name(&name) || !is_image_name(&name) {
+                if should_ignore_name(&name) || !is_page_name(&name) {
                     None
                 } else {
                     Some(dedup_entry_name(name.clone(), &mut seen))

@@ -11,7 +11,7 @@ pub fn first_image_entry(path: &Path, cancel: Option<&AtomicBool>) -> Option<Str
             return None;
         }
         let entry = archive.by_index(index).ok()?;
-        if entry.is_file() && crate::page_order::is_image_name(entry.name()) {
+        if entry.is_file() && crate::page_order::is_page_name(entry.name()) {
             return Some(entry.name().to_owned());
         }
     }

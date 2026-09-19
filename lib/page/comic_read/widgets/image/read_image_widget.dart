@@ -13,6 +13,10 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/image_surface.dart';
 import 'package:zephyr/reader/page_source.dart';
+import 'package:zephyr/video/view/active_video_scope.dart';
+import 'package:zephyr/video/service/video_progress_store.dart';
+import 'package:zephyr/workspace/widgets/reader/workspace_reader_fullscreen_scope.dart';
+import 'package:zephyr/video/view/video_page_surface.dart';
 import 'package:zephyr/widgets/picture_bloc/bloc/picture_bloc.dart';
 import 'package:zephyr/widgets/picture_bloc/models/picture_info.dart';
 
@@ -24,6 +28,10 @@ class ReadImageWidget extends StatefulWidget {
   final int? displayNumber;
   final Alignment imageAlignment;
 
+  /// 顶栏缩放/旋转面板算好的「这一页画多大」（未旋转的图片自身尺寸）；
+  /// null 表示呈现层没参与，按老逻辑铺满宽度。
+  final Size? paintSize;
+
   const ReadImageWidget({
     super.key,
     required this.pictureInfo,
@@ -32,6 +40,7 @@ class ReadImageWidget extends StatefulWidget {
     this.cacheIndex,
     this.displayNumber,
     this.imageAlignment = Alignment.center,
+    this.paintSize,
   });
 
   @override
@@ -42,6 +51,77 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
   int get displayIndex => widget.displayNumber ?? widget.index + 1;
   int get cacheIndex => widget.cacheIndex ?? widget.index;
   bool get isColumn => widget.isColumn;
+
+  /// 本地视频页。
+  ///
+  /// 走的是**另一条渲染路**：静态图页是「Rust 解像素 → GPU 纹理」，
+  /// 视频页是「libmpv 解帧 → media_kit 注册的 textureId」。两者共用页序与
+  /// 翻页，但不共用解码 —— 所以在这里提前分叉，不进下面的 GPU 分支。
+  Widget _buildLocalVideoPage() {
+    final source = LocalReadSession.instance.currentSource;
+    if (source == null) {
+      return const ColoredBox(color: Colors.black);
+    }
+    final int localIndex =
+        widget.pictureInfo.extern['localIndex'] as int? ?? widget.index;
+    final String entryName =
+        widget.pictureInfo.extern['videoEntryName'] as String? ??
+            widget.pictureInfo.path;
+    final siblings =
+        (widget.pictureInfo.extern['videoSiblings'] as List<Object?>?)
+                ?.map((e) => '$e')
+                .toList(growable: false) ??
+            const <String>[];
+    final sizeBytes = (widget.pictureInfo.extern['videoSize'] as int?) ?? 0;
+    // 「当前页」的判据与 GPU 那条路同源：用 localIndex 比 currentSlot。
+    // 双页模式下一个槽位会同时挂两页，两页都开播放器就是两条音频；
+    // 非当前页只解码不发声，与纹理独占 Owner 是同一个约束的两种表现。
+    final int currentSlot = context.select(
+      (ReaderCubit c) => c.state.currentSlot,
+    );
+    final bool isActive = localIndex == currentSlot;
+
+    return FutureBuilder<VideoSettings>(
+      future: VideoSettingsStore.instance.load(),
+      builder: (context, snapshot) {
+        final settings = snapshot.data ?? const VideoSettings();
+        return VideoPageSurface(
+          key: ValueKey('${widget.pictureInfo.path}-$localIndex'),
+          target: VideoPageTarget(
+            sourcePath: source.path,
+            entryName: entryName,
+            pageIndex: localIndex,
+            sizeBytes: sizeBytes,
+            siblingEntryNames: siblings,
+            progressKey: videoProgressKey(
+              comicId: widget.pictureInfo.cartoonId,
+              chapterId: widget.pictureInfo.chapterId,
+              pageIndex: localIndex,
+            ),
+            resolveDirectPath: () => source.getPageFilePath(localIndex),
+            readBytes: () => source.getPageBytes(localIndex),
+          ),
+          labels: defaultVideoLabels,
+          active: isActive,
+          settings: VideoPageSettings(
+            autoplay: settings.autoPlay,
+            controlsPinned: settings.controlsPinned,
+            hardwareDecode: settings.hardwareDecode,
+            minRate: settings.minRate,
+            maxRate: settings.maxRate,
+            rateStep: settings.rateStep,
+            autoHideMilliseconds: settings.autoHideMilliseconds,
+            volumePercent: settings.volumePercent,
+            deinterlace: settings.deinterlace,
+            subtitleStyle: settings.subtitleStyle,
+          ),
+          // 全屏按钮走泳道那条路（铺满窗口，不是操作系统全屏）：
+          // 没有 scope 时（独立阅读页）就是 null，按钮不出现效果而不是乱调 API。
+          onFullscreen: ReaderFullscreenScope.maybeOf(context)?.onToggleFullscreen,
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +138,9 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
 
     // 本地漫画 GPU 呈现管线直通
     final bool isLocalGpu = widget.pictureInfo.extern['isLocalGpu'] == true;
+    if (widget.pictureInfo.extern['isVideo'] == true && isLocalGpu) {
+      return _buildLocalVideoPage();
+    }
     if (isLocalGpu) {
       final int localIndex = widget.pictureInfo.extern['localIndex'] as int? ?? widget.index;
       final session = LocalReadSession.instance;
@@ -124,7 +207,10 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
     return BlocProvider(
       create: (context) => PictureBloc()..add(GetPicture(pictureInfoTemp)),
       child: SizedBox(
-        width: context.screenWidth,
+        // 呈现层给了尺寸就照它，别再写死 screenWidth —— 侧边留白开着时
+        // screenWidth 比父容器给的 contentWidth 宽，那是一条溢出红条。
+        width: widget.paintSize?.width ?? context.screenWidth,
+        height: widget.paintSize?.height,
         child: BlocBuilder<PictureBloc, PictureLoadState>(
           builder: (context, state) {
             switch (state.status) {
@@ -148,6 +234,7 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
                       pageSlotIndex: widget.index,
                       sizeCacheIndex: cacheIndex,
                       imageAlignment: widget.imageAlignment,
+                      paintSize: widget.paintSize,
                     ),
                   ),
                 );

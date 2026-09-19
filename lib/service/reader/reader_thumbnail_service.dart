@@ -10,6 +10,8 @@ import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/src/rust/api/local_thumbnail.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/get_path.dart';
+import 'package:zephyr/video/model/video_media_kind.dart';
+import 'package:zephyr/video/service/video_poster_service.dart';
 import 'package:zephyr/widgets/picture_bloc/bloc/picture_bloc.dart';
 import 'package:zephyr/widgets/picture_bloc/models/picture_info.dart';
 
@@ -275,6 +277,39 @@ class _ReaderThumbnailWidgetState extends State<ReaderThumbnailWidget> {
       setState(() {
         _isLoadingLocal = true;
       });
+
+      // 0. 视频页：图像缩略图那条路（SQLite catalog / Image.file）对它必然失败，
+      //    先分流到海报服务。不分流的症状是页列表里每个视频格都是「加载失败」占位。
+      final pages = source.pages;
+      final isVideoPage = widget.index >= 0 &&
+          widget.index < pages.length &&
+          isVideoName(pages[widget.index].name);
+      if (isVideoPage) {
+        final direct = await ReaderThumbnailService.instance
+            .getLocalPageFilePath(source: source, index: widget.index);
+        Uint8List? poster;
+        if (direct != null && File(direct).existsSync()) {
+          poster = await VideoPosterService.instance.posterForFile(direct);
+        } else {
+          final bytes = await source.getPageBytes(widget.index);
+          if (bytes != null && bytes.isNotEmpty) {
+            poster =
+                await VideoPosterService.instance.posterForBytes(
+              identityKey: sha1ish(
+                '${source.path}|${pages[widget.index].name}|${bytes.lengthInBytes}',
+              ),
+              readBytes: () async => bytes,
+            );
+          }
+        }
+        if (!mounted) return;
+        setState(() {
+          _archiveBytes = poster;
+          _localDirectPath = null;
+          _isLoadingLocal = false;
+        });
+        return;
+      }
 
       // 1. 优先使用 mImageViewer SQLite WAL 缓存的 WebP 缩略图
       final bytes = await ReaderThumbnailService.instance

@@ -9,6 +9,7 @@ import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/cubit/workspace_state.dart';
 import 'package:zephyr/util/input/reader_input_bridge.dart';
 import 'package:zephyr/util/input/reader_input_context.dart';
+import 'package:zephyr/video/view/active_video_scope.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
 import 'package:zephyr/workspace/model/workspace_reader_target.dart';
@@ -274,7 +275,15 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
   Set<ReaderInputContext> _activeContextsFor(WorkspaceState state) {
     final activeLaneId = state.activeLaneId;
     if (activeLaneId == null || activeLaneId == LaneId.reader) {
-      return const <ReaderInputContext>{ReaderInputContext.reader};
+      // 阅读器的当前页是一段视频时，`video`（优先级 150）与 `reader`（100）同时在场：
+      // 绑了视频动作的输入归视频，没绑的照旧落回翻页 —— 这正是 neoview 的
+      // context 叠加语义，也是那 24 条 `video.*` 动作唯一的可达路径。
+      return ActiveVideoScope.instance.hasTarget
+          ? const <ReaderInputContext>{
+              ReaderInputContext.reader,
+              ReaderInputContext.video,
+            }
+          : const <ReaderInputContext>{ReaderInputContext.reader};
     }
     return const <ReaderInputContext>{ReaderInputContext.panel};
   }

@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result, bail};
 
 use crate::entry_name::normalize_entry_name;
-use crate::page_order::{is_image_name, should_ignore_name, sort_natural};
+use crate::page_order::{is_page_name, should_ignore_name, sort_natural};
 use crate::{Locator, PageEntry};
 
 /// 平铺阶段的页数上限（见 `MAX_FILES`）。
@@ -77,7 +77,7 @@ fn collect_dir(
         }
 
         if file_type.is_file() {
-            if !is_image_name(name) {
+            if !is_page_name(name) {
                 continue;
             }
             let size = entry.metadata().map(|m| m.len()).unwrap_or(0);

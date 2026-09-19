@@ -125,6 +125,35 @@ pub fn is_image_name(name: &str) -> bool {
     decode_support(name).is_some()
 }
 
+/// 核心**不解**、交给外壳播放的视频扩展名（小写、不含前导点）。
+///
+/// 并集口径见 `lib/video/model/video_media_kind.dart` 的注释：以 neoview 的
+/// `media.ts` 为主，补 mImageViewer `folder_tree.rs` 的 `SUPPORTED_VIDEO_EXTENSIONS`。
+/// 两边必须一致 —— 页序与「这一页是谁」的判定分属两语言，各自一张表迟早漂移。
+pub const VIDEO_EXTENSIONS: &[&str] = &[
+    "3g2", "3gp", "avi", "flv", "m4v", "mkv", "mov", "mp4", "mpeg", "mpg", "nov", "ogg", "ogv",
+    "webm", "wmv",
+];
+
+/// 是否为视频条目。
+pub fn is_video_name(name: &str) -> bool {
+    match extension_lower(name) {
+        // `.nov` 是被改名的 mp4：按真实内容算，与 Dart 侧同一张伪装后缀表。
+        Some(ext) if ext == "nov" => true,
+        Some(ext) => VIDEO_EXTENSIONS.contains(&ext.as_str()),
+        None => false,
+    }
+}
+
+/// 是否**算一页**：图片、或外壳能播的视频。
+///
+/// 这条判断必须是「格式识别」而不是「解码能力」—— ADR-0008 里那条踩坑记录
+/// （枚举阶段把条目滤光 → UI 收到 0 页 → 用户看到「打开 zip 没反应」）
+/// 对视频同样成立：视频不该在页序阶段就消失。
+pub fn is_page_name(name: &str) -> bool {
+    is_image_name(name) || is_video_name(name)
+}
+
 /// 这一页由谁解码。不认识的格式返回 `None`（不算页）。
 pub fn decode_support(name: &str) -> Option<DecodeSupport> {
     let ext = extension_lower(name)?;

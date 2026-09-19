@@ -21,7 +21,7 @@ use anyhow::{Context, Result, bail};
 use zip::ZipArchive;
 
 use crate::entry_name::{dedup_entry_name, normalize_entry_name};
-use crate::page_order::{is_image_name, should_ignore_name, sort_natural};
+use crate::page_order::{is_page_name, should_ignore_name, sort_natural};
 use crate::{Locator, PageEntry};
 
 /// 单条目解压上限，防 zip bomb / 防把显存和内存一次吃掉。
@@ -54,7 +54,7 @@ pub fn enumerate(path: &Path) -> Result<Vec<PageEntry>> {
         let Some(name) = normalize_entry_name(entry.name()) else {
             continue;
         };
-        if should_ignore_name(&name) || !is_image_name(&name) {
+        if should_ignore_name(&name) || !is_page_name(&name) {
             continue;
         }
         // 名字只服务 UI；同名条目在这里被唯一化，避免列表里出现两行一样的名字。
