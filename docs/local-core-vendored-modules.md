@@ -45,8 +45,15 @@
 | `rust/local_core/src/fs_entry.rs` | `src/fs_entry.rs` | Windows reparse point、隐藏属性、内部 bundle 过滤 |
 | `rust/local_core/src/filename_sort.rs` | `src/filename_sort.rs` | Windows sort key、大小写折叠和自然数字排序 |
 | `rust/local_core/src/thumb_loader.rs` | `src/thumb_loader.rs` | 文件夹代表图递归选定、自动缓存键组装与代表图解析 |
+| `rust/local_core/src/search_query.rs` | `src/search_query.rs` | 搜索查询语法：空格分词 AND、`-` 否定、`"..."` 短语、`MatchMode`、`decide_partial` |
+| `rust/local_core/src/search_norm.rs` | `src/search_norm.rs` | 匹配用文本归一化 `normalize_for_match`（查询期 / 后置过滤同一函数）|
 
-五份浏览器源码的 pin 均为 `1fd6f863`，也已纳入 `sync_vendored_modules.py`。
+这两份搜索源码是**零偏离逐字拷贝**：上游本就通体 `pub`、只依赖 `std`、文件内自带单测，
+所以 `PORTS` 里两条规则的四个字段全空（M-15，见 [迁移清单](feature-migration-spec.md)）。
+`search_norm::zip_entry_key` 在 Rossi 侧暂时无人调用 —— 它属于索引层（M-18），
+按「保住上游名字」的原则一并搬入，为将来的索引留接口；`pub` 项不会触发 `dead_code`。
+
+七份浏览器源码的 pin 均为 `1fd6f863`，也已纳入 `sync_vendored_modules.py`。
 其中 `filename_sort` 只有公开可见性与来源注释差异；另外三份的平台适配见下文。
 
 这四份源码仍以 mImageViewer 的函数名和测试为准。`activity_gate`、`settings`、

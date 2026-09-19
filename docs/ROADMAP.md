@@ -16,7 +16,7 @@
 | OCR 翻译 | 最贵的一项（检测+识别+翻译+排版回填）；参考实现是 GPL，**只能读不能抄** |
 | 上色 | 同上，且只在黑白页有意义 |
 | Anime4K | 参考实现 GPL；超分统一以 mImageViewer 的 `ort` 核心为准 |
-| 视频播放 | 推迟，但 `PageSource` **现在就不假设「一页 = 一张静态图」**（占位） |
+| 视频播放 | **已解冻（ADR-0016）**：形态是「一页可以是视频」，引擎用 media_kit / libmpv，功能并集见 `docs/video-playback-spec.md` |
 
 「推迟」= 留占位，不是删掉。任何一项要进范围，先改本节与 ADR-0008，再动手。
 
@@ -227,6 +227,13 @@ Breeze 是 RealSR / waifu2x），跨平台画质必然不一致，不做画质�
 - 页面预览
 - 章节切换
 - 阅读历史
+- 切换提示 Toast（迁移规格 N-17）→ **已采纳（2026-09-20）**：工作台新增「控制面板」，
+  首卡为「切换提示」—— neoview `SwitchToastCard` 的 T3 重建（触发开关 + 书/页模板 + 变量表 + 测试提示），
+  运行时是 `SwitchToastService` 听 `ReaderSessionCoordinator`，模板引擎与上游
+  `renderReaderSwitchToastTemplate` 逐条对照（判据 `test/workspace/switch_toast_test.dart`）。
+  **上游不搬部分的口径**：外观摆位由「设置 → 提示样式」（`ToastSettingState` 九宫格）统一负责，
+  卡片不再重复一套窗口 X/Y 摆位；`enableAction`（按键操作）与 `enableBoundaryToast`（边界翻页）
+  在 Rossi 还没有统一挂点，留待本阶段输入绑定运行时（ADR-0009）补齐后接入。
 - 输入设备适配 → **已提前到 v0.1**，见 ADR-0009 与判据 E（v0.1 只做键盘 / 鼠标 / 滚轮 / 触屏 / 区域；
   手柄 / 轨迹手势 / 轮盘留 schema 占位，运行时推迟到本阶段）
 

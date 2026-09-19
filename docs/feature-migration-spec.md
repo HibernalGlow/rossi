@@ -183,10 +183,16 @@
     `book.zip!cover.jpg` 这类歧义）
 - **可搬性（最好的一档）**：**两者通体 `pub`、`pub(crate)` 零处、外部依赖零个**（只有 `std`），
   且文件内自带 `#[cfg(test)]` 单测 ⇒ 纯 T1，连适配类型都不用写
-- **Rossi 现状**：无。当前 `file_manager.rs` 的 `matches_entry` 是**当前目录内名称子串匹配**——
-  既不递归、也没有查询语法
+- **Rossi 现状**：**已搬**（`rust/local_core/src/search_query.rs` + `search_norm.rs`，
+  零偏离逐字拷贝，已登记 PORTS）。`file_manager.rs` 的 `matches_entry` 与新的
+  `search_entries` 都走 `parse` + `matches_lowercased_with_mode`，hay 侧走
+  `normalize_for_match`。`decide_partial` 暂无消费者（它是为「避免读 XMP」设计的，
+  Rossi 的遍历没有那种分段成本模型），按「保住上游名字」的原则随文件一起搬入
 - **依赖增量**：**无**
 - **准入门槛**：无。这条是「递归搜索」里最便宜、最早能用上的一块
+- **落地补充（2026-09-20）**：M-15 只给词法，递归与页签是同一批做的 ——
+  `search_entries` 广度优先 + 层数/条数上限 + `AtomicBool` 取消，命中写进
+  `FileManagerTab.search`。见 [功能核对](file-manager-parity.md)
 - **价值档**：**A** —— 单一函数就能把「搜索」从子串匹配升级成带语法（否定 / 引号 / 多词 / 部分匹配）
   的查询，且**对当前目录搜索也立即生效**，不必等索引体系
 
@@ -260,6 +266,11 @@
   全走 `rusqlite` ⇒ **换不换全文引擎都不影响这一层**，可独立推进
 - **⚠ 这一条做的是「索引维护」**（增量差分），不是「用户当场搜一次」。若只想要**递归文件名搜索**，
   本地已有的 `folder_tree::walk_dirs_recursive*` **直接可用**，不必引入 `fts_meta`
+- **实测修正（2026-09-20）**：`walk_dirs_recursive` 收集的是**目录**（`Vec<PathBuf>`），
+  拿不到「这一条是不是已识别媒体 / 是否被隐藏策略滤掉」。所以递归搜索没有复用它，
+  而是在 `file_manager::search_entries` 里按层展开、逐条目走
+  `file_tree::node_for_dir_entry`（与整目录列举同一策略出口），环保护复用
+  `fs_entry::mark_directory_visited`。若将来做 M-17，这一层的遍历可以直接换成它
 - **价值档**：**C**（除非确定要做索引式搜索，否则 M-15 + 已有的 `walk_dirs_recursive` 就够）
 
 #### M-18 全文索引搜索体系（本池最重的一条）
@@ -410,7 +421,6 @@ src/nodes/neoview/features/             React UI       ← 只取视觉语言与
 | N-14 | 阅读背景（solid / ambient / aurora / spotlight） | `features/reader/ReaderBackgroundLayer.tsx`、`features/panels/cards/AmbientBackgroundCard.tsx` | 无 |
 | N-15 | 信息悬浮窗（图上叠加书籍 / 图片信息） | `features/info-overlay/ReaderInfoOverlayStore.ts` | 无 |
 | N-16 | 幻灯片自动翻页 | `application/slideshow/ReaderSlideshow.ts`、`features/reader/ReaderSlideshowToolbar.tsx` | 无 |
-| N-17 | 切换提示 Toast（跨书 / 跨目录切换） | `features/switch-toast/ReaderSwitchToastStore.ts` | 无 |
 | N-18 | 阅读进度层可视化 | `features/reader/ReaderProgressLayer.tsx` | 部分（`reader_history_service.dart` 有进度保存） |
 
 **状态与配置层**

@@ -114,7 +114,8 @@ Rossi 实现为**应用内置顶浮窗**（`_pip` 分支）——同一 `VideoCo
 
 | 项 | 上游出处 | 现状 |
 |---|---|---|
-| 波形进度条 | mimage `seek_strip_wave.rs` | 数据结构与降采样已就位（`VideoWaveformStrip.fromPcm`），**缺 PCM 数据源**：接它要在 `local_core` 加音频解码并跑一次 FRB 生成，而 B4 明确不许 ffmpeg 进那一层。这是并集里唯一一条「上游有、这里没有实现体」的功能 |
+| 视频动作的**出厂键位** | mimage `keymap.rs` 的 `KeyAction::Video*` 默认和弦 | 动作已可达（解析现在带 `video` context），但 `preset.rs` 的默认表里**还没有视频那一组**：该文件正被另一路会话改（未提交的重构），我不在他们手上抢着加。今天用户可以在绑定设置页自行绑定这 24 条（注册表里都标着 `implemented: true`）；等那边稳定后补一张 `DEFAULT_VIDEO_KEY_BINDINGS`（空格→播放/暂停、左右→±10 s、`,`/`.`→逐帧、`[`/`]`→倍速、`L`→循环档、`M`→静音、`T`→快进档、`A`/`B`→A-B、`V`→切字幕、`F`→全屏） |
+| 波形进度条 | mimage `seek_strip_wave.rs` | 数据结构与降采样已就位（`VideoWaveformStrip.fromPcm`），**缺 PCM 数据源**：要接它得在 `local_core` 加音频解码并跑一次 FRB 生成，而 B4 明确不许 ffmpeg 进那一层。这是并集里唯一一条「上游有、这里没有实现体」的功能 |
 | 视频文案的 i18n | — | 视频文案目前是 `defaultVideoLabels` 常量表与设置区的中文常量，**没进 slang `reader.*`**（与 `_SuperResolutionSection` 同一先例）。要接时改的是「构造 `VideoLabels` 的那一处」，控件本身不感知 |
 | 真机播放验证 | 判据本身 | **未做，且本机做不了**（没有 Xcode，跑不了 `flutter build macos` / `flutter run`）。需要真机逐项确认：`ab-loop-a/b`、`loop-file=inf`、`frame-step`、`brightness/contrast/saturation`、`sub-*`、`screenshot-to-file`、`hwdec=auto-copy` 三平台表现，以及视频页进出泳道时音频有没有漏关 |
 | 动图当视频播的精简控制条 | neo `ReaderAnimatedImageControlOverlay.tsx:52-101` | 未分叉，运动页复用完整控制条：上游精简是因为浏览器里给 GIF 做倍速/音量语义不成立，而 mpv 这些是真能力，精简反而少给可用项 |
