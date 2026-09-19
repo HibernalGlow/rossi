@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:zephyr/gpu/gpu_present_bridge.dart';
+import 'package:zephyr/page/comic_read/model/page_split.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/page_source.dart';
 
@@ -43,6 +44,7 @@ class ImageSurface extends StatefulWidget {
     required this.index,
     required this.presenter,
     this.onPathChanged,
+    this.slice = PageSlice.full,
   });
 
   /// 已打开的页面来源。
@@ -50,6 +52,9 @@ class ImageSurface extends StatefulWidget {
 
   /// 要显示第几页（0 基）。
   final int index;
+
+  /// 横长页分割切片。
+  final PageSlice slice;
 
   /// GPU 呈现器的就绪状态与呈现目标。由调用方创建并 [GpuPresentController.start]。
   final GpuPresentController presenter;
@@ -433,13 +438,16 @@ class _ImageSurfaceState extends State<ImageSurface> {
       // 纹理铺满整个盒子是**故意**的：页的等比缩放与留边在 Rust 侧的着色器里
       // 完成，所以这张纹理本来就已经是"屏幕上的那一幅"。
       // 这里再套一层 AspectRatio 或 BoxFit 只会引入第二次缩放。
-      return SizedBox(
-        width: constraints.maxWidth,
-        height: constraints.maxHeight,
-        child: Texture(
-          key: ValueKey('tex_${textureId}_$_lastKnownPresentCount'),
-          textureId: textureId,
+      return _wrapSlice(
+        SizedBox(
+          width: constraints.maxWidth,
+          height: constraints.maxHeight,
+          child: Texture(
+            key: ValueKey('tex_${textureId}_$_lastKnownPresentCount'),
+            textureId: textureId,
+          ),
         ),
+        constraints,
       );
     }
 
@@ -454,13 +462,38 @@ class _ImageSurfaceState extends State<ImageSurface> {
     }
     // CPU 路没有着色器，留边只能交给 `BoxFit.contain` —— 用同一个语义
     // （等比缩放 + 留边），这样两条路切换时画面不会跳。
-    return SizedBox(
-      width: constraints.maxWidth,
-      height: constraints.maxHeight,
-      child: RawImage(
-        image: image,
-        fit: BoxFit.contain,
-        filterQuality: FilterQuality.medium,
+    return _wrapSlice(
+      SizedBox(
+        width: constraints.maxWidth,
+        height: constraints.maxHeight,
+        child: RawImage(
+          image: image,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.medium,
+        ),
+      ),
+      constraints,
+    );
+  }
+
+  Widget _wrapSlice(Widget child, BoxConstraints constraints) {
+    if (!widget.slice.isHalf) return child;
+    final w = constraints.maxWidth;
+    final h = constraints.maxHeight;
+    return ClipRect(
+      child: SizedBox(
+        width: w,
+        height: h,
+        child: OverflowBox(
+          minWidth: w * 2,
+          maxWidth: w * 2,
+          minHeight: h,
+          maxHeight: h,
+          alignment: widget.slice == PageSlice.left
+              ? Alignment.centerLeft
+              : Alignment.centerRight,
+          child: child,
+        ),
       ),
     );
   }

@@ -5,11 +5,14 @@ import 'dart:ui' show Size;
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:uuid/uuid.dart';
 import 'package:zephyr/gpu/gpu_present_bridge.dart';
 import 'package:zephyr/main.dart' show logger;
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
+import 'package:zephyr/page/setting/real_sr/service/super_resolution_log.dart';
 import 'package:zephyr/reader/page_source.dart';
+import 'package:zephyr/reader/super_resolution_input.dart';
 
 /// GPU 呈现器的就绪状态与呈现目标 —— 从界面里搬出来的一份小状态机。
 ///
@@ -40,6 +43,7 @@ class GpuPresentController extends ChangeNotifier {
   /// [bridge] 是位置可选参数而不是命名参数：字段私有，而命名参数不能以下划线开头。
   /// 正常调用点不传它（用默认实现），只有测试需要替换。
   GpuPresentController([this._bridge = const GpuPresentBridge()]) {
+    RealSrSettings.modelChanges.addListener(_onModelChanged);
     unawaited(_initUpscaleSetting());
   }
 
@@ -53,6 +57,36 @@ class GpuPresentController extends ChangeNotifier {
   }
 
   final GpuPresentBridge _bridge;
+
+  int _enhancementEpoch = 0;
+  bool _modelRefreshPending = false;
+  bool _openingSource = false;
+
+  void _onModelChanged() {
+    if (_disposed) return;
+    SuperResolutionLog.add('模型配置变化：清除旧增强轨，重新处理当前页。');
+    _enhancementEpoch++;
+    _modelRefreshPending = true;
+    _upscaleAttempts.clear();
+    unawaited(_refreshModel());
+  }
+
+  Future<void> _refreshModel() async {
+    if (_disposed || _syncing || !_modelRefreshPending) return;
+    final source = _lastPushedSource;
+    final index = _pushedIndex;
+    final size = _pushedSize;
+    if (source == null || index == null || size == null) return;
+    await present(source: source, index: index, physicalSize: size);
+  }
+
+  bool _acceptsEnhancement(int epoch) =>
+      !_disposed &&
+      epoch == _enhancementEpoch &&
+      !_modelRefreshPending &&
+      !_openingSource &&
+      _isUpscaleEnabled &&
+      !_originalPreview;
 
   /// 从 [start] 起算，用来量「这一处等了多久才就绪」。
   ///
@@ -294,6 +328,7 @@ class GpuPresentController extends ChangeNotifier {
 
     // ── 已经同步就什么都不做（不然每帧一次 MethodChannel 往返）──
     if (_pushedPath == source.path &&
+        !_modelRefreshPending &&
         _pushedIndex == index &&
         _pushedWidth == width &&
         _pushedHeight == height &&
@@ -339,8 +374,18 @@ class GpuPresentController extends ChangeNotifier {
       });
 
       // ── 来源：两侧各开一份（像素不过桥的代价），所以页数必须对得上 ──
-      if (_pushedPath != source.path) {
-        final int nativeCount = await _bridge.open(source.path);
+      if (_pushedPath != source.path || _modelRefreshPending) {
+        // open 同一路径也会清空 native 增强轨。仅切书或换模型时执行，
+        // 普通翻页继续使用预取缓存，不等待超分。
+        _modelRefreshPending = false;
+        _enhancementEpoch++;
+        final int nativeCount;
+        _openingSource = true;
+        try {
+          nativeCount = await _bridge.open(source.path);
+        } finally {
+          _openingSource = false;
+        }
         if (_disposed) {
           return false;
         }
@@ -411,6 +456,7 @@ class GpuPresentController extends ChangeNotifier {
       return false;
     } finally {
       _syncing = false;
+      if (_modelRefreshPending && pushed) unawaited(_refreshModel());
       roundTrip.stop();
       // 只有真的把页交出去了才记 —— 早退那些调用没有延迟可言。
       if (pushed) {
@@ -515,6 +561,7 @@ class GpuPresentController extends ChangeNotifier {
       return false;
     }
     final bool ok = await _bridge.setOriginalPreview(active: active);
+    SuperResolutionLog.add('原图对比=$active；呈现器接受=$ok');
     if (ok) {
       // 原图旁路只改变 native 侧的选轨标志，不会自动改写已经提交的纹理。
       // 当前页存在时立即重画一次，否则从原图切回超分后画面会一直停在旧帧，
@@ -564,7 +611,7 @@ class GpuPresentController extends ChangeNotifier {
   bool _isUpscaleEnabled = false;
 
   /// 正在跑超分流水线的页（防同一页并发跑两遍）。
-  final Set<int> _upscaleInProgress = <int>{};
+  final Set<(int, int)> _upscaleInProgress = <(int, int)>{};
 
   /// 每一页已经尝试过几次（推理 + 注入，失败也计）。上限见 [_maxUpscaleAttempts]。
   final Map<int, int> _upscaleAttempts = <int, int>{};
@@ -578,6 +625,7 @@ class GpuPresentController extends ChangeNotifier {
   /// 设置是否开启超分。
   Future<void> setUpscaleEnabled(bool enabled) {
     if (_isUpscaleEnabled == enabled) return Future<void>.value();
+    SuperResolutionLog.add('超分开关=$enabled');
     // 保持旧调用点的同步状态语义：UI 不需要 await 才能马上反映开关。
     _mutate(() {
       _isUpscaleEnabled = enabled;
@@ -653,111 +701,106 @@ class GpuPresentController extends ChangeNotifier {
     int targetW,
     int targetH,
   ) async {
-    if (_disposed ||
-        !_isUpscaleEnabled ||
-        _originalPreview ||
-        !GpuPresentBridge.isPlatformSupported) {
+    final epoch = _enhancementEpoch;
+    if (!_acceptsEnhancement(epoch) ||
+        !GpuPresentBridge.isPlatformSupported ||
+        _pushedPath != source.path) {
       return;
     }
-    if (_upscaleInProgress.contains(index)) {
-      return;
-    }
-    // 每次重新呈现都核对原生状态；翻页后增强缓存可能已被淘汰。
-    final bool? presenterUses = await _presenterUsesEnhanced(index);
-    if (_disposed) return;
-    if (_originalPreview) return;
-    if (presenterUses == true) {
-      return;
-    }
-    if (presenterUses == null) {
-      // 判不了（呈现器没就绪，或上一次呈现已经不是这一页）。**不猜**：
-      // 猜"要注入"会白解一张几十 MB 的大图，猜"不用"就会永远停在原图上。
-      // 下一次翻到这一页时会再问一次。
-      return;
-    }
-
-    final int attempts = _upscaleAttempts[index] ?? 0;
-    if (attempts >= _maxUpscaleAttempts) {
-      return;
-    }
-    // 这一次尝试先记账（注入与推理**两段都算**）：到顶就安静停下，
-    // 既不每翻一页刷一次日志，也不每次重跑几百毫秒的推理。
-    _upscaleAttempts[index] = attempts + 1;
-
-    final Directory srCacheDir = await _srCacheDir();
-    if (_disposed) return;
-    final String outPath = p.join(srCacheDir.path, _srFileName(source, index));
-
-    _upscaleInProgress.add(index);
+    final job = (epoch, index);
+    if (!_upscaleInProgress.add(job)) return;
     File? tempFile;
+    File? pendingOutput;
     try {
-      // ② 有产物：只注入。重试也走这里 —— 代价是解码 + 注入，不是几百毫秒的推理。
-      if (File(outPath).existsSync()) {
-        final cachedBytes = await File(outPath).length();
-        final cachedStat = await File(outPath).stat();
-        logger.i(
-          '[Rossi AI] 第 $index 页命中已缓存的超分图，直接注入呈现器: '
-          '$outPath ($cachedBytes bytes, mtime=${cachedStat.modified.toIso8601String()})',
+      final presenterUses = await _presenterUsesEnhanced(index);
+      if (!_acceptsEnhancement(epoch) || presenterUses != false) return;
+      final attempts = _upscaleAttempts[index] ?? 0;
+      if (attempts >= _maxUpscaleAttempts) return;
+      _upscaleAttempts[index] = attempts + 1;
+
+      final appleProfile = (Platform.isMacOS || Platform.isIOS)
+          ? await RealSrSettings.loadAppleProfile()
+          : null;
+      final cacheKey =
+          appleProfile?.cacheKey ?? await RealSrSettings.loadCacheKey();
+      final srCacheDir = await _srCacheDir();
+      if (!_acceptsEnhancement(epoch)) return;
+      final outPath = p.join(
+        srCacheDir.path,
+        'sr_${source.path.hashCode}_${index}_$cacheKey.png',
+      );
+      if (await File(outPath).exists()) {
+        if (!_acceptsEnhancement(epoch)) return;
+        logger.i('[Rossi AI] 第 $index 页复用模型 $cacheKey 的超分图: $outPath');
+        SuperResolutionLog.outputReady(outPath, page: index, model: cacheKey);
+        await _applyEnhancedToPresenter(
+          index,
+          outPath,
+          targetW,
+          targetH,
+          epoch,
         );
-        await _applyEnhancedToPresenter(index, outPath, targetW, targetH);
         return;
       }
 
-      // ③ 没有产物：跑一次推理
       String? inputPath = await source.getPageFilePath(index);
-      if (inputPath == null || !File(inputPath).existsSync()) {
-        final bytes = await source.getPageBytes(index);
-        if (bytes == null || bytes.isEmpty) return;
-
-        tempFile = File(
-          p.join(srCacheDir.path, 'temp_in_${source.path.hashCode}_$index.png'),
+      if (!_acceptsEnhancement(epoch)) return;
+      if (inputPath == null ||
+          !File(inputPath).existsSync() ||
+          requiresSuperResolutionDecode(source, index)) {
+        final extension = superResolutionInputExtension(source, index);
+        SuperResolutionLog.add(
+          '第 ${index + 1} 页：准备输入；来源=${source.path}\n'
+          '原生解码=${requiresSuperResolutionDecode(source, index)}；输入格式=$extension',
         );
-        await tempFile.writeAsBytes(bytes, flush: true);
+        tempFile = File(
+          p.join(srCacheDir.path, 'temp_in_${const Uuid().v4()}$extension'),
+        );
+        await writeSuperResolutionInput(source, index, tempFile);
         inputPath = tempFile.path;
       }
-
-      logger.i('[Rossi AI] 开始对第 $index 页执行超分: $inputPath');
-      final bool produced = await RealSrSuperResolution.upscale(
-        inputPath: inputPath,
-        outputPath: outPath,
+      if (!_acceptsEnhancement(epoch)) return;
+      // 旧任务不能覆盖切换模型后产生的缓存，先写独立文件再发布。
+      pendingOutput = File(
+        p.join(srCacheDir.path, 'pending_${const Uuid().v4()}.png'),
       );
-      if (_disposed) return;
-
-      if (!produced) {
-        logger.w(
-          '[Rossi AI] 第 $index 页超分未产出有效文件（第 ${attempts + 1}/$_maxUpscaleAttempts 次），'
-          '本页保持原图',
-        );
+      logger.i('[Rossi AI] 第 $index 页开始超分，模型=$cacheKey');
+      SuperResolutionLog.add(
+        '第 ${index + 1} 页：开始推理；模型=$cacheKey\n输入=$inputPath',
+      );
+      final produced = await RealSrSuperResolution.upscale(
+        inputPath: inputPath,
+        outputPath: pendingOutput.path,
+        appleProfile: appleProfile,
+        shouldRun: () => _acceptsEnhancement(epoch),
+      );
+      if (!_acceptsEnhancement(epoch)) {
+        SuperResolutionLog.add('第 ${index + 1} 页：任务已过期或处于原图对比，忽略本次结果。');
         return;
       }
-
-      final producedStat = await File(outPath).stat();
-      logger.i(
-        '[Rossi AI] 第 $index 页超分产物已生成: $outPath '
-        '(${producedStat.size} bytes, mtime=${producedStat.modified.toIso8601String()})',
-      );
-
-      // 到这里只能说明「文件生成了」。画面上换没换，由下一步的返回值说了算。
-      await _applyEnhancedToPresenter(index, outPath, targetW, targetH);
+      if (!produced) {
+        SuperResolutionLog.add('第 ${index + 1} 页：未产出超分图片，继续显示原图。');
+        logger.w('[Rossi AI] 第 $index 页未生成超分图，保留原图');
+        return;
+      }
+      await pendingOutput.rename(outPath);
+      SuperResolutionLog.outputReady(outPath, page: index, model: cacheKey);
+      if (!_acceptsEnhancement(epoch)) return;
+      await _applyEnhancedToPresenter(index, outPath, targetW, targetH, epoch);
     } catch (e, s) {
+      SuperResolutionLog.add('第 ${index + 1} 页：超分失败', error: e, stackTrace: s);
       logger.w('[Rossi AI] 第 $index 页超分执行异常', error: e, stackTrace: s);
     } finally {
-      _upscaleInProgress.remove(index);
-      // 中间产物（从归档里解出来的整页字节）不论成败都删：它与页面同量级。
-      if (tempFile != null && tempFile.existsSync()) {
-        try {
-          await tempFile.delete();
-        } catch (_) {}
+      _upscaleInProgress.remove(job);
+      for (final file in [tempFile, pendingOutput]) {
+        if (file != null) {
+          try {
+            if (await file.exists()) await file.delete();
+          } catch (_) {}
+        }
       }
     }
   }
-
-  /// 超分图的落盘位置：`<临时目录>/rossi_sr_cache/sr_<来源哈希>_<页号>.png`。
-  ///
-  /// 路径就是一个函数、不散落在各处，是因为它同时是**「这一页推理过了」的凭据**：
-  /// 盘上有它就不必再跑一遍推理。这一点让"注入失败要能重试"变得很便宜。
-  static String _srFileName(PageSource source, int index) =>
-      'sr_${source.path.hashCode}_$index.png';
 
   Directory? _srCacheDirCache;
 
@@ -805,31 +848,47 @@ class GpuPresentController extends ChangeNotifier {
     String outPath,
     int targetW,
     int targetH,
+    int epoch,
   ) async {
+    if (!_acceptsEnhancement(epoch)) return false;
+    SuperResolutionLog.add('第 ${index + 1} 页：向呈现器注入增强图\n$outPath');
     final bool injected = await setEnhancedImage(
       index,
       outPath,
       width: targetW > 0 ? targetW : null,
       height: targetH > 0 ? targetH : null,
     );
-    if (_disposed) return false;
+    if (!_acceptsEnhancement(epoch)) return false;
     if (!injected) {
+      SuperResolutionLog.add('第 ${index + 1} 页：呈现器拒绝注入，替换失败。');
       logger.w('[Rossi AI] 第 $index 页超分图注入呈现器失败');
       return false;
     }
-    if (_pushedIndex != index) return false;
+    if (_pushedIndex != index) {
+      SuperResolutionLog.add(
+        '第 ${index + 1} 页：已注入缓存，当前正在显示第 ${(_pushedIndex ?? -1) + 1} 页。',
+      );
+      return false;
+    }
 
     // `show` 与 native 预取线程共用一条队列。注入完成后让队列先跑完当前
     // 帧，再核对像素来源；若恰好读到了前一帧的诊断，立即再重画一次。
     for (var pass = 0; pass < 3; pass++) {
+      if (!_acceptsEnhancement(epoch) || _pushedIndex != index) return false;
       await _bridge.show(index);
-      if (_disposed) return false;
+      if (!_acceptsEnhancement(epoch)) return false;
       _mutate(() => _presentCount++);
       if (pass > 0) {
         await Future<void>.delayed(const Duration(milliseconds: 16));
       }
       final bool? confirmed = await _presenterUsesEnhanced(index);
+      SuperResolutionLog.add(
+        '第 ${index + 1} 页：第 ${pass + 1} 次上屏核对；'
+        '使用增强图=$confirmed；原图对比=$_originalPreview；当前页=${(_pushedIndex ?? -1) + 1}',
+      );
+      if (!_acceptsEnhancement(epoch)) return false;
       if (confirmed == true) {
+        SuperResolutionLog.add('第 ${index + 1} 页：替换成功，呈现器确认当前画面来自超分图。');
         _upscaleAttempts.remove(index);
         logger.i('[Rossi AI] 第 $index 页超分图已替换上屏（呈现器确认本次呈现取自超分轨）');
         return true;
@@ -843,6 +902,7 @@ class GpuPresentController extends ChangeNotifier {
       }
     }
     logger.w('[Rossi AI] 第 $index 页注入后仍显示原图，已保留缓存并等待下一次呈现重试');
+    SuperResolutionLog.add('第 ${index + 1} 页：文件已生成，但呈现器仍显示原图，替换失败。');
     return false;
   }
 
@@ -921,6 +981,7 @@ class GpuPresentController extends ChangeNotifier {
 
   @override
   void dispose() {
+    RealSrSettings.modelChanges.removeListener(_onModelChanged);
     _disposed = true;
     _statsTimer?.cancel();
     _statsTimer = null;

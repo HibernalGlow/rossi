@@ -2,7 +2,7 @@ import 'dart:collection';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path/path.dart' as p;
 import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
@@ -83,6 +83,87 @@ class ReaderThumbnailService {
       }
     } catch (_) {
       // 容错处理：由界面呈现错误占位或转兜底
+    }
+    return null;
+  }
+
+  // 文件管理器缩略图在途请求去重
+  final Map<String, Future<Uint8List?>> _fileManagerInFlight = {};
+
+  /// 获取文件管理器条目 (文件夹/单张图片/漫画归档) 的缩略图字节数据。
+  ///
+  /// 遵循 mImageViewer SQLite 目录数据库与纯函数代表图推选逻辑。
+  /// 内置内存 LRU 缓存与在途请求去重，保证列表与网格丝滑滚动。
+  Future<Uint8List?> getFileManagerEntryThumbnailBytes({
+    required String entryPath,
+    required bool isDir,
+    required bool isArchive,
+    required bool isImage,
+    String? sortOrder,
+    int maxDepth = 3,
+    int maxLongSide = 320,
+  }) async {
+    final key = 'fm:$entryPath@$maxLongSide';
+    if (_thumbnailBytesCache.containsKey(key)) {
+      final value = _thumbnailBytesCache.remove(key)!;
+      _thumbnailBytesCache[key] = value;
+      return value;
+    }
+
+    if (_fileManagerInFlight.containsKey(key)) {
+      return _fileManagerInFlight[key];
+    }
+
+    final future = _loadFileManagerEntryThumbnail(
+      key: key,
+      entryPath: entryPath,
+      isDir: isDir,
+      isArchive: isArchive,
+      isImage: isImage,
+      sortOrder: sortOrder,
+      maxDepth: maxDepth,
+      maxLongSide: maxLongSide,
+    );
+    _fileManagerInFlight[key] = future;
+    try {
+      return await future;
+    } finally {
+      _fileManagerInFlight.remove(key);
+    }
+  }
+
+  Future<Uint8List?> _loadFileManagerEntryThumbnail({
+    required String key,
+    required String entryPath,
+    required bool isDir,
+    required bool isArchive,
+    required bool isImage,
+    String? sortOrder,
+    required int maxDepth,
+    required int maxLongSide,
+  }) async {
+    try {
+      final cacheDir = await getCatalogCacheDir();
+      final bytes = await getFileManagerEntryThumbnail(
+        cacheDir: cacheDir,
+        entryPath: entryPath,
+        isDir: isDir,
+        isArchive: isArchive,
+        isImage: isImage,
+        sortOrder: sortOrder,
+        maxDepth: maxDepth,
+        maxLongSide: maxLongSide,
+      );
+
+      if (bytes != null && bytes.isNotEmpty) {
+        if (_thumbnailBytesCache.length >= _maxMemoryCacheEntries) {
+          _thumbnailBytesCache.remove(_thumbnailBytesCache.keys.first);
+        }
+        _thumbnailBytesCache[key] = bytes;
+        return bytes;
+      }
+    } catch (_) {
+      // 容错处理：由界面呈现语义图标占位或兜底
     }
     return null;
   }

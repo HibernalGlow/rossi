@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ReaderState {
 
- int get currentSlot; int get totalSlots; bool get isMenuVisible; double get sliderValue; bool get isSliderRolling; bool get isComicRolling;
+ int get currentSlot; int get totalSlots; bool get isMenuVisible; double get sliderValue; bool get isSliderRolling; bool get isComicRolling; bool get isTopHovered; bool get isBottomHovered;
 /// Create a copy of ReaderState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -27,20 +27,20 @@ $ReaderStateCopyWith<ReaderState> get copyWith => _$ReaderStateCopyWithImpl<Read
 @override
 bool operator ==(Object other) {
   final _this = this as ReaderState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReaderState&&(identical(other.currentSlot, _this.currentSlot) || other.currentSlot == _this.currentSlot)&&(identical(other.totalSlots, _this.totalSlots) || other.totalSlots == _this.totalSlots)&&(identical(other.isMenuVisible, _this.isMenuVisible) || other.isMenuVisible == _this.isMenuVisible)&&(identical(other.sliderValue, _this.sliderValue) || other.sliderValue == _this.sliderValue)&&(identical(other.isSliderRolling, _this.isSliderRolling) || other.isSliderRolling == _this.isSliderRolling)&&(identical(other.isComicRolling, _this.isComicRolling) || other.isComicRolling == _this.isComicRolling));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReaderState&&(identical(other.currentSlot, _this.currentSlot) || other.currentSlot == _this.currentSlot)&&(identical(other.totalSlots, _this.totalSlots) || other.totalSlots == _this.totalSlots)&&(identical(other.isMenuVisible, _this.isMenuVisible) || other.isMenuVisible == _this.isMenuVisible)&&(identical(other.sliderValue, _this.sliderValue) || other.sliderValue == _this.sliderValue)&&(identical(other.isSliderRolling, _this.isSliderRolling) || other.isSliderRolling == _this.isSliderRolling)&&(identical(other.isComicRolling, _this.isComicRolling) || other.isComicRolling == _this.isComicRolling)&&(identical(other.isTopHovered, _this.isTopHovered) || other.isTopHovered == _this.isTopHovered)&&(identical(other.isBottomHovered, _this.isBottomHovered) || other.isBottomHovered == _this.isBottomHovered));
 }
 
 
 @override
 int get hashCode {
   final _this = this as ReaderState;
-  return Object.hash(runtimeType,_this.currentSlot,_this.totalSlots,_this.isMenuVisible,_this.sliderValue,_this.isSliderRolling,_this.isComicRolling);
+  return Object.hash(runtimeType,_this.currentSlot,_this.totalSlots,_this.isMenuVisible,_this.sliderValue,_this.isSliderRolling,_this.isComicRolling,_this.isTopHovered,_this.isBottomHovered);
 }
 
 @override
 String toString() {
   final _this = this as ReaderState;
-  return 'ReaderState(currentSlot: ${_this.currentSlot}, totalSlots: ${_this.totalSlots}, isMenuVisible: ${_this.isMenuVisible}, sliderValue: ${_this.sliderValue}, isSliderRolling: ${_this.isSliderRolling}, isComicRolling: ${_this.isComicRolling})';
+  return 'ReaderState(currentSlot: ${_this.currentSlot}, totalSlots: ${_this.totalSlots}, isMenuVisible: ${_this.isMenuVisible}, sliderValue: ${_this.sliderValue}, isSliderRolling: ${_this.isSliderRolling}, isComicRolling: ${_this.isComicRolling}, isTopHovered: ${_this.isTopHovered}, isBottomHovered: ${_this.isBottomHovered})';
 }
 
 
@@ -51,7 +51,7 @@ abstract mixin class $ReaderStateCopyWith<$Res>  {
   factory $ReaderStateCopyWith(ReaderState value, $Res Function(ReaderState) _then) = _$ReaderStateCopyWithImpl;
 @useResult
 $Res call({
- int currentSlot, int totalSlots, bool isMenuVisible, double sliderValue, bool isSliderRolling, bool isComicRolling
+ int currentSlot, int totalSlots, bool isMenuVisible, double sliderValue, bool isSliderRolling, bool isComicRolling, bool isTopHovered, bool isBottomHovered
 });
 
 
@@ -68,7 +68,7 @@ class _$ReaderStateCopyWithImpl<$Res>
 
 /// Create a copy of ReaderState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? currentSlot = null,Object? totalSlots = null,Object? isMenuVisible = null,Object? sliderValue = null,Object? isSliderRolling = null,Object? isComicRolling = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? currentSlot = null,Object? totalSlots = null,Object? isMenuVisible = null,Object? sliderValue = null,Object? isSliderRolling = null,Object? isComicRolling = null,Object? isTopHovered = null,Object? isBottomHovered = null,}) {
   return _then(ReaderState(
 currentSlot: null == currentSlot ? _self.currentSlot : currentSlot // ignore: cast_nullable_to_non_nullable
 as int,totalSlots: null == totalSlots ? _self.totalSlots : totalSlots // ignore: cast_nullable_to_non_nullable
@@ -76,6 +76,8 @@ as int,isMenuVisible: null == isMenuVisible ? _self.isMenuVisible : isMenuVisibl
 as bool,sliderValue: null == sliderValue ? _self.sliderValue : sliderValue // ignore: cast_nullable_to_non_nullable
 as double,isSliderRolling: null == isSliderRolling ? _self.isSliderRolling : isSliderRolling // ignore: cast_nullable_to_non_nullable
 as bool,isComicRolling: null == isComicRolling ? _self.isComicRolling : isComicRolling // ignore: cast_nullable_to_non_nullable
+as bool,isTopHovered: null == isTopHovered ? _self.isTopHovered : isTopHovered // ignore: cast_nullable_to_non_nullable
+as bool,isBottomHovered: null == isBottomHovered ? _self.isBottomHovered : isBottomHovered // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -161,10 +163,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int currentSlot,  int totalSlots,  bool isMenuVisible,  double sliderValue,  bool isSliderRolling,  bool isComicRolling)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int currentSlot,  int totalSlots,  bool isMenuVisible,  double sliderValue,  bool isSliderRolling,  bool isComicRolling,  bool isTopHovered,  bool isBottomHovered)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReaderState() when $default != null:
-return $default(_that.currentSlot,_that.totalSlots,_that.isMenuVisible,_that.sliderValue,_that.isSliderRolling,_that.isComicRolling);case _:
+return $default(_that.currentSlot,_that.totalSlots,_that.isMenuVisible,_that.sliderValue,_that.isSliderRolling,_that.isComicRolling,_that.isTopHovered,_that.isBottomHovered);case _:
   return orElse();
 
 }
@@ -182,10 +184,10 @@ return $default(_that.currentSlot,_that.totalSlots,_that.isMenuVisible,_that.sli
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int currentSlot,  int totalSlots,  bool isMenuVisible,  double sliderValue,  bool isSliderRolling,  bool isComicRolling)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int currentSlot,  int totalSlots,  bool isMenuVisible,  double sliderValue,  bool isSliderRolling,  bool isComicRolling,  bool isTopHovered,  bool isBottomHovered)  $default,) {final _that = this;
 switch (_that) {
 case _ReaderState():
-return $default(_that.currentSlot,_that.totalSlots,_that.isMenuVisible,_that.sliderValue,_that.isSliderRolling,_that.isComicRolling);case _:
+return $default(_that.currentSlot,_that.totalSlots,_that.isMenuVisible,_that.sliderValue,_that.isSliderRolling,_that.isComicRolling,_that.isTopHovered,_that.isBottomHovered);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -202,10 +204,10 @@ return $default(_that.currentSlot,_that.totalSlots,_that.isMenuVisible,_that.sli
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int currentSlot,  int totalSlots,  bool isMenuVisible,  double sliderValue,  bool isSliderRolling,  bool isComicRolling)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int currentSlot,  int totalSlots,  bool isMenuVisible,  double sliderValue,  bool isSliderRolling,  bool isComicRolling,  bool isTopHovered,  bool isBottomHovered)?  $default,) {final _that = this;
 switch (_that) {
 case _ReaderState() when $default != null:
-return $default(_that.currentSlot,_that.totalSlots,_that.isMenuVisible,_that.sliderValue,_that.isSliderRolling,_that.isComicRolling);case _:
+return $default(_that.currentSlot,_that.totalSlots,_that.isMenuVisible,_that.sliderValue,_that.isSliderRolling,_that.isComicRolling,_that.isTopHovered,_that.isBottomHovered);case _:
   return null;
 
 }
@@ -216,8 +218,8 @@ return $default(_that.currentSlot,_that.totalSlots,_that.isMenuVisible,_that.sli
 /// @nodoc
 
 
-class _ReaderState implements ReaderState {
-  const _ReaderState({this.currentSlot = 0, this.totalSlots = 0, this.isMenuVisible = true, this.sliderValue = 0.0, this.isSliderRolling = false, this.isComicRolling = false});
+class _ReaderState extends ReaderState {
+  const _ReaderState({this.currentSlot = 0, this.totalSlots = 0, this.isMenuVisible = true, this.sliderValue = 0.0, this.isSliderRolling = false, this.isComicRolling = false, this.isTopHovered = false, this.isBottomHovered = false}): super._();
   
 
 @override@JsonKey() final  int currentSlot;
@@ -226,6 +228,8 @@ class _ReaderState implements ReaderState {
 @override@JsonKey() final  double sliderValue;
 @override@JsonKey() final  bool isSliderRolling;
 @override@JsonKey() final  bool isComicRolling;
+@override@JsonKey() final  bool isTopHovered;
+@override@JsonKey() final  bool isBottomHovered;
 
 /// Create a copy of ReaderState
 /// with the given fields replaced by the non-null parameter values.
@@ -237,18 +241,18 @@ _$ReaderStateCopyWith<_ReaderState> get copyWith => __$ReaderStateCopyWithImpl<_
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReaderState&&(identical(other.currentSlot, currentSlot) || other.currentSlot == currentSlot)&&(identical(other.totalSlots, totalSlots) || other.totalSlots == totalSlots)&&(identical(other.isMenuVisible, isMenuVisible) || other.isMenuVisible == isMenuVisible)&&(identical(other.sliderValue, sliderValue) || other.sliderValue == sliderValue)&&(identical(other.isSliderRolling, isSliderRolling) || other.isSliderRolling == isSliderRolling)&&(identical(other.isComicRolling, isComicRolling) || other.isComicRolling == isComicRolling));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReaderState&&(identical(other.currentSlot, currentSlot) || other.currentSlot == currentSlot)&&(identical(other.totalSlots, totalSlots) || other.totalSlots == totalSlots)&&(identical(other.isMenuVisible, isMenuVisible) || other.isMenuVisible == isMenuVisible)&&(identical(other.sliderValue, sliderValue) || other.sliderValue == sliderValue)&&(identical(other.isSliderRolling, isSliderRolling) || other.isSliderRolling == isSliderRolling)&&(identical(other.isComicRolling, isComicRolling) || other.isComicRolling == isComicRolling)&&(identical(other.isTopHovered, isTopHovered) || other.isTopHovered == isTopHovered)&&(identical(other.isBottomHovered, isBottomHovered) || other.isBottomHovered == isBottomHovered));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,currentSlot,totalSlots,isMenuVisible,sliderValue,isSliderRolling,isComicRolling);
+    return Object.hash(runtimeType,currentSlot,totalSlots,isMenuVisible,sliderValue,isSliderRolling,isComicRolling,isTopHovered,isBottomHovered);
 }
 
 @override
 String toString() {
-    return 'ReaderState(currentSlot: $currentSlot, totalSlots: $totalSlots, isMenuVisible: $isMenuVisible, sliderValue: $sliderValue, isSliderRolling: $isSliderRolling, isComicRolling: $isComicRolling)';
+    return 'ReaderState(currentSlot: $currentSlot, totalSlots: $totalSlots, isMenuVisible: $isMenuVisible, sliderValue: $sliderValue, isSliderRolling: $isSliderRolling, isComicRolling: $isComicRolling, isTopHovered: $isTopHovered, isBottomHovered: $isBottomHovered)';
 }
 
 
@@ -259,7 +263,7 @@ abstract mixin class _$ReaderStateCopyWith<$Res> implements $ReaderStateCopyWith
   factory _$ReaderStateCopyWith(_ReaderState value, $Res Function(_ReaderState) _then) = __$ReaderStateCopyWithImpl;
 @override @useResult
 $Res call({
- int currentSlot, int totalSlots, bool isMenuVisible, double sliderValue, bool isSliderRolling, bool isComicRolling
+ int currentSlot, int totalSlots, bool isMenuVisible, double sliderValue, bool isSliderRolling, bool isComicRolling, bool isTopHovered, bool isBottomHovered
 });
 
 
@@ -276,7 +280,7 @@ class __$ReaderStateCopyWithImpl<$Res>
 
 /// Create a copy of ReaderState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? currentSlot = null,Object? totalSlots = null,Object? isMenuVisible = null,Object? sliderValue = null,Object? isSliderRolling = null,Object? isComicRolling = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? currentSlot = null,Object? totalSlots = null,Object? isMenuVisible = null,Object? sliderValue = null,Object? isSliderRolling = null,Object? isComicRolling = null,Object? isTopHovered = null,Object? isBottomHovered = null,}) {
   return _then(_ReaderState(
 currentSlot: null == currentSlot ? _self.currentSlot : currentSlot // ignore: cast_nullable_to_non_nullable
 as int,totalSlots: null == totalSlots ? _self.totalSlots : totalSlots // ignore: cast_nullable_to_non_nullable
@@ -284,6 +288,8 @@ as int,isMenuVisible: null == isMenuVisible ? _self.isMenuVisible : isMenuVisibl
 as bool,sliderValue: null == sliderValue ? _self.sliderValue : sliderValue // ignore: cast_nullable_to_non_nullable
 as double,isSliderRolling: null == isSliderRolling ? _self.isSliderRolling : isSliderRolling // ignore: cast_nullable_to_non_nullable
 as bool,isComicRolling: null == isComicRolling ? _self.isComicRolling : isComicRolling // ignore: cast_nullable_to_non_nullable
+as bool,isTopHovered: null == isTopHovered ? _self.isTopHovered : isTopHovered // ignore: cast_nullable_to_non_nullable
+as bool,isBottomHovered: null == isBottomHovered ? _self.isBottomHovered : isBottomHovered // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }

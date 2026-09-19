@@ -8,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr/gpu/gpu_present_bridge.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/page_source.dart';
+import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
+import 'package:zephyr/page/setting/real_sr/service/mimage_onnx_model_config.dart';
 
 class _Source extends PageSource {
   @override
@@ -43,6 +45,9 @@ class _Bridge extends GpuPresentBridge {
   bool reportsEnhancedTrack = true;
   Completer<void>? injectionGate;
   int showCalls = 0;
+  int opens = 0;
+  Completer<void>? statsGate;
+  final List<String> injectedPaths = [];
 
   @override
   Future<GpuPresentStatus> tryInit({
@@ -52,7 +57,12 @@ class _Bridge extends GpuPresentBridge {
       const GpuPresentStatus(state: GpuPresentState.ready, textureId: 1);
 
   @override
-  Future<int> open(String path) async => 10;
+  Future<int> open(String path) async {
+    opens++;
+    currentIndex = null;
+    enhanced = false;
+    return 10;
+  }
 
   @override
   Future<void> show(int index) async {
@@ -78,7 +88,10 @@ class _Bridge extends GpuPresentBridge {
     int? height,
   }) async {
     injections++;
+    injectedPaths.add(imagePath);
+    final sourceEpoch = opens;
     await injectionGate?.future;
+    if (sourceEpoch != opens) return false;
     enhanced = true;
     return true;
   }
@@ -86,6 +99,7 @@ class _Bridge extends GpuPresentBridge {
   @override
   Future<GpuPresentStats> stats() async {
     checks++;
+    await statsGate?.future;
     return GpuPresentStats.fromMap({
       'ok': true,
       'state': 'ready',
@@ -128,7 +142,7 @@ void main() {
       final srDir = await Directory('${cache.path}/rossi_sr_cache').create();
       // 解码由假 bridge 接管，这里只模拟已落盘的超分产物。
       await File(
-        '${srDir.path}/sr_${source.path.hashCode}_0.png',
+        '${srDir.path}/sr_${source.path.hashCode}_0_${await RealSrSettings.loadCacheKey()}.png',
       ).writeAsBytes([1]);
       bridge = _Bridge();
       controller = GpuPresentController(bridge);
@@ -263,6 +277,86 @@ void main() {
         expect(bridge.injections, 0);
       },
     );
+
+    test(
+      'switching model clears native track and uses that model cache',
+      () async {
+        await controller.present(
+          source: source,
+          index: 0,
+          physicalSize: viewport,
+        );
+        await _until(() => bridge.checks >= 2);
+        final oldPath = bridge.injectedPaths.single;
+        const newKey = 'mimage_onnx_realesr_general_v3_0';
+        await File(
+          '${cache.path}/rossi_sr_cache/sr_${source.path.hashCode}_0_$newKey.png',
+        ).writeAsBytes([2]);
+        await RealSrSettings.saveMImageModel(MImageOnnxModel.general);
+        await _until(() => bridge.opens == 2);
+        await _until(
+          () => bridge.injectedPaths.any((path) => path.contains(newKey)),
+        );
+        expect(bridge.injectedPaths.last, isNot(oldPath));
+        expect(bridge.enhanced, isTrue);
+        final opens = bridge.opens;
+        await controller.present(
+          source: source,
+          index: 0,
+          physicalSize: viewport,
+        );
+        expect(bridge.opens, opens, reason: '普通重建不得重新打开来源');
+      },
+      skip: !Platform.isMacOS,
+    );
+
+    test(
+      'switching engines replaces the track in both directions without mixing caches',
+      () async {
+        await controller.present(
+          source: source,
+          index: 0,
+          physicalSize: viewport,
+        );
+        await _until(() => bridge.checks >= 2);
+        final onnxPath = bridge.injectedPaths.last;
+        const nativeKey =
+            'breeze_coreml_waifu2x_photo_noise0_scale2x.mlmodel_2x';
+        await File(
+          '${cache.path}/rossi_sr_cache/sr_${source.path.hashCode}_0_$nativeKey.png',
+        ).writeAsBytes([3]);
+        await RealSrSettings.saveAppleEngine(
+          AppleSuperResolutionEngine.breezeCoreML,
+        );
+        await _until(() => bridge.injectedPaths.last.contains(nativeKey));
+        expect(bridge.opens, 2);
+        expect(bridge.enhanced, isTrue);
+        await RealSrSettings.saveAppleEngine(
+          AppleSuperResolutionEngine.mimageOnnx,
+        );
+        await _until(() => bridge.injectedPaths.last == onnxPath);
+        expect(bridge.opens, 3);
+        expect(bridge.enhanced, isTrue);
+      },
+      skip: !Platform.isMacOS,
+    );
+
+    test('switching models discards work waiting on old diagnostics', () async {
+      bridge.statsGate = Completer<void>();
+      await controller.present(
+        source: source,
+        index: 0,
+        physicalSize: viewport,
+      );
+      await _until(() => bridge.checks == 1);
+      await controller.setUpscaleEnabled(false);
+      await RealSrSettings.saveMImageModel(MImageOnnxModel.general);
+      await _until(() => bridge.opens == 2);
+      bridge.statsGate!.complete();
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      expect(bridge.injections, 0);
+      expect(bridge.enhanced, isFalse);
+    }, skip: !Platform.isMacOS);
 
     test('unchanged page does not repeatedly query or inject', () async {
       await controller.present(

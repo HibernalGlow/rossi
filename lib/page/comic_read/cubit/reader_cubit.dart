@@ -46,4 +46,19 @@ class ReaderCubit extends Cubit<ReaderState> {
     if (state.isComicRolling == rolling) return;
     emit(state.copyWith(isComicRolling: rolling));
   }
+
+  void setTopHovered(bool hovered) {
+    if (state.isTopHovered == hovered) return;
+    emit(state.copyWith(isTopHovered: hovered));
+  }
+
+  void setBottomHovered(bool hovered) {
+    if (state.isBottomHovered == hovered) return;
+    emit(state.copyWith(isBottomHovered: hovered));
+  }
+
+  void resetHoverState() {
+    if (!state.isTopHovered && !state.isBottomHovered) return;
+    emit(state.copyWith(isTopHovered: false, isBottomHovered: false));
+  }
 }
