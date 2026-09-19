@@ -307,6 +307,8 @@ class _SliderContents extends StatelessWidget {
 
     final insertLeadingBlank =
         readSetting.doublePageMode && readSetting.doublePageLeadingBlank;
+    // 进度条跟着阅读方向镜像：左开（下一页在左）时第 1 页在右端，填充从右往左长。
+    final rightToLeft = isReverseRowReadMode(readSetting.readMode);
     final sliderDisplayPage = getDisplayPageNumber(
       slotIndex: safeSliderValue.round(),
       enableDoublePage: readSetting.doublePageMode,
@@ -347,8 +349,10 @@ class _SliderContents extends StatelessWidget {
           return MouseRegion(
             onHover: (event) {
               if (localMaxValue <= 0 || constraints.maxWidth <= 0) return;
-              final percent = (event.localPosition.dx / constraints.maxWidth)
+              final rawPercent = (event.localPosition.dx / constraints.maxWidth)
                   .clamp(0.0, 1.0);
+              // 镜像之后物理左端对应的是**最大**那一页 —— 悬停取页要按方向翻一次。
+              final percent = rightToLeft ? 1.0 - rawPercent : rawPercent;
               final hoverStep = (percent * localMaxValue).round();
               final targetGlobalSlot =
                   configuration.mapLocalToGlobalSlot?.call(hoverStep) ??
@@ -381,88 +385,95 @@ class _SliderContents extends StatelessWidget {
               owner._overlayEntry?.remove();
               owner._overlayEntry = null;
             },
-            child: Slider(
-              value: safeSliderValue,
-              min: 0,
-              max: localMaxValue,
-              divisions: localMaxValue > 0 ? localMaxValue.toInt() : null,
-              label: sliderLabelText,
-              onChangeStart: (value) {
-                owner._lastHapticStep = value.round();
-              },
-              onChanged: (double newValue) {
-                final clampedLocalValue = newValue.clamp(0.0, localMaxValue);
-                final currentStep = clampedLocalValue.round();
-                final targetGlobalSlot =
-                    configuration.mapLocalToGlobalSlot?.call(currentStep) ??
-                    currentStep;
-                final targetGlobalValue = targetGlobalSlot.toDouble();
-                if (owner._lastHapticStep != currentStep) {
-                  HapticFeedback.selectionClick();
-                  owner._lastHapticStep = currentStep;
-                }
+            // 镜像轨道与命中：Slider 自己认 Directionality（轨道从哪头填、拖拽
+            // 坐标怎么换算都在内部反好），所以这里只换方向，不动 value。
+            child: Directionality(
+              textDirection: rightToLeft
+                  ? TextDirection.rtl
+                  : TextDirection.ltr,
+              child: Slider(
+                value: safeSliderValue,
+                min: 0,
+                max: localMaxValue,
+                divisions: localMaxValue > 0 ? localMaxValue.toInt() : null,
+                label: sliderLabelText,
+                onChangeStart: (value) {
+                  owner._lastHapticStep = value.round();
+                },
+                onChanged: (double newValue) {
+                  final clampedLocalValue = newValue.clamp(0.0, localMaxValue);
+                  final currentStep = clampedLocalValue.round();
+                  final targetGlobalSlot =
+                      configuration.mapLocalToGlobalSlot?.call(currentStep) ??
+                      currentStep;
+                  final targetGlobalValue = targetGlobalSlot.toDouble();
+                  if (owner._lastHapticStep != currentStep) {
+                    HapticFeedback.selectionClick();
+                    owner._lastHapticStep = currentStep;
+                  }
 
-                if (sliderValue != targetGlobalValue) {
-                  cubit.updateSliderChanged(targetGlobalValue);
-                }
+                  if (sliderValue != targetGlobalValue) {
+                    cubit.updateSliderChanged(targetGlobalValue);
+                  }
 
-                cubit.updateIsComicRolling(true);
-                owner._sliderIsRollingTimer?.cancel();
+                  cubit.updateIsComicRolling(true);
+                  owner._sliderIsRollingTimer?.cancel();
 
-                final displayPage = getDisplayPageNumber(
-                  slotIndex: currentStep,
-                  enableDoublePage: readSetting.doublePageMode,
-                  insertLeadingBlank: insertLeadingBlank,
-                );
-                final toastMessage =
-                    configuration.isTransitionSlot?.call(targetGlobalSlot) ??
-                        false
-                    ? effectiveTransitionLabel
-                    : displayPage.toString();
-                owner._showOverlayToast(
-                  toastMessage,
-                  slotIndex: targetGlobalSlot,
-                );
+                  final displayPage = getDisplayPageNumber(
+                    slotIndex: currentStep,
+                    enableDoublePage: readSetting.doublePageMode,
+                    insertLeadingBlank: insertLeadingBlank,
+                  );
+                  final toastMessage =
+                      configuration.isTransitionSlot?.call(targetGlobalSlot) ??
+                          false
+                      ? effectiveTransitionLabel
+                      : displayPage.toString();
+                  owner._showOverlayToast(
+                    toastMessage,
+                    slotIndex: targetGlobalSlot,
+                  );
 
-                owner._sliderIsRollingTimer = Timer(
-                  const Duration(milliseconds: 300),
-                  () {
-                    cubit.updateSliderRolling(true);
-                    cubit.updateIsComicRolling(true);
-                    owner._comicRollingTimer = Timer(
-                      const Duration(milliseconds: 350),
-                      () {
-                        cubit.updateSliderRolling(false);
-                        cubit.updateIsComicRolling(false);
-                        owner._overlayEntry?.remove();
-                        owner._overlayEntry = null;
-                      },
-                    );
+                  owner._sliderIsRollingTimer = Timer(
+                    const Duration(milliseconds: 300),
+                    () {
+                      cubit.updateSliderRolling(true);
+                      cubit.updateIsComicRolling(true);
+                      owner._comicRollingTimer = Timer(
+                        const Duration(milliseconds: 350),
+                        () {
+                          cubit.updateSliderRolling(false);
+                          cubit.updateIsComicRolling(false);
+                          owner._overlayEntry?.remove();
+                          owner._overlayEntry = null;
+                        },
+                      );
 
-                    final globalSettingState = context
-                        .read<GlobalSettingCubit>()
-                        .state;
+                      final globalSettingState = context
+                          .read<GlobalSettingCubit>()
+                          .state;
 
-                    try {
-                      if (globalSettingState.readSetting.readMode == 0) {
-                        owner._jumpColumnWithOffsetThenCorrection(
-                          targetGlobalSlot,
-                          globalSettingState.readSetting,
-                        );
-                      } else {
-                        configuration.pageController.jumpToPage(
-                          targetGlobalSlot,
-                        );
+                      try {
+                        if (globalSettingState.readSetting.readMode == 0) {
+                          owner._jumpColumnWithOffsetThenCorrection(
+                            targetGlobalSlot,
+                            globalSettingState.readSetting,
+                          );
+                        } else {
+                          configuration.pageController.jumpToPage(
+                            targetGlobalSlot,
+                          );
+                        }
+                      } catch (e) {
+                        logger.e(e);
                       }
-                    } catch (e) {
-                      logger.e(e);
-                    }
-                  },
-                );
-              },
-              onChangeEnd: (_) {
-                owner._lastHapticStep = null;
-              },
+                    },
+                  );
+                },
+                onChangeEnd: (_) {
+                  owner._lastHapticStep = null;
+                },
+              ),
             ),
           );
         },

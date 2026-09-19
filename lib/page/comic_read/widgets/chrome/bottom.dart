@@ -18,6 +18,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
 import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/bottom_thumbnail_strip.dart';
+import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/reader_hover_reveal_layer.dart';
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
@@ -110,8 +111,12 @@ class _BottomWidgetState extends State<BottomWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final pinned = context.select(
+      (GlobalSettingCubit c) => c.state.readSetting.bottomBarPinned,
+    );
+    // `pinned` 放进选择器**里面**：只在这个 bool 翻转时重建，不被翻页带着走。
     final showBottomBar = context.select(
-      (ReaderCubit cubit) => cubit.state.showBottomBar,
+      (ReaderCubit cubit) => cubit.state.showBottomBar(pinned: pinned),
     );
     final hoverController = ReaderHoverScope.of(context);
     final currentSlot = context.select(
@@ -123,6 +128,11 @@ class _BottomWidgetState extends State<BottomWidget> {
     // 全局设置：跟随书籍/章节切换、跟随重启，不再被 route 的 State 重置。
     final showThumbnailStrip = context.select<GlobalSettingCubit, bool>(
       (cubit) => cubit.state.readSetting.showThumbnailStrip,
+    );
+    // 底栏的胶卷与进度条跟着阅读方向镜像：左开（下一页在左）时第 1 页贴在右边，
+    // 往左走才是往后翻 —— 与画面上翻页的方向同一套坐标系。
+    final rightToLeft = context.select<GlobalSettingCubit, bool>(
+      (cubit) => isReverseRowReadMode(cubit.state.readSetting.readMode),
     );
     final bottomSafeHeight = context.bottomSafeHeight;
     final screenWidth = MediaQuery.sizeOf(context).width;
@@ -162,6 +172,7 @@ class _BottomWidgetState extends State<BottomWidget> {
                       localSource: localSource,
                       docs: docs,
                       showThumbnailStrip: showThumbnailStrip,
+                      rightToLeft: rightToLeft,
                     )
                   : _buildRegularControls(
                       topMaxWidth: topMaxWidth,
@@ -172,6 +183,7 @@ class _BottomWidgetState extends State<BottomWidget> {
                       localSource: localSource,
                       docs: docs,
                       showThumbnailStrip: showThumbnailStrip,
+                      rightToLeft: rightToLeft,
                     ),
             ),
           ),
@@ -189,6 +201,7 @@ class _BottomWidgetState extends State<BottomWidget> {
     required PageSource? localSource,
     required List<Doc> docs,
     required bool showThumbnailStrip,
+    required bool rightToLeft,
   }) {
     final showStrip = showThumbnailStrip && totalSlots > 0;
 
@@ -243,6 +256,7 @@ class _BottomWidgetState extends State<BottomWidget> {
                               localSource: localSource,
                               docs: docs,
                               onSelectPage: _jumpToSlot,
+                              rightToLeft: rightToLeft,
                             ),
                             Divider(
                               height: 1,
@@ -273,6 +287,7 @@ class _BottomWidgetState extends State<BottomWidget> {
     required PageSource? localSource,
     required List<Doc> docs,
     required bool showThumbnailStrip,
+    required bool rightToLeft,
   }) {
     // 紧凑横屏（宽 ≥600 且高 ≤600）里按钮与进度条被迫同排，玻璃没法只包住
     // 进度条那一半 —— 强行合并会把按钮也糊进面板。这里让缩略图条保持
@@ -299,6 +314,7 @@ class _BottomWidgetState extends State<BottomWidget> {
                   localSource: localSource,
                   docs: docs,
                   onSelectPage: _jumpToSlot,
+                  rightToLeft: rightToLeft,
                 ),
               ),
             ),
@@ -334,6 +350,9 @@ class _BottomWidgetState extends State<BottomWidget> {
     required int totalSlots,
     required bool showThumbnailStrip,
   }) {
+    final bottomPinned = context.select(
+      (GlobalSettingCubit c) => c.state.readSetting.bottomBarPinned,
+    );
     return Row(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -361,6 +380,20 @@ class _BottomWidgetState extends State<BottomWidget> {
           isEnabled: totalSlots > 0,
           isSelected: showThumbnailStrip,
           onPressed: () => _setThumbnailStripVisible(!showThumbnailStrip),
+        ),
+        const SizedBox(width: 10),
+        // 钉住底栏（neo 的 edge `pinned`）：钉住之后这一条不再被「点中间收起」
+        // 或指针离开边缘收走；取消钉住立刻交还给那两套自动收起。
+        FloatingActionIconButton(
+          icon: bottomPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+          tooltip: bottomPinned
+              ? t.reader.unpinBottomBar
+              : t.reader.pinBottomBar,
+          isSelected: bottomPinned,
+          onPressed: () => context.read<GlobalSettingCubit>().updateReadSetting(
+            (current) =>
+                current.copyWith(bottomBarPinned: !current.bottomBarPinned),
+          ),
         ),
         const SizedBox(width: 10),
         FloatingActionIconButton(
