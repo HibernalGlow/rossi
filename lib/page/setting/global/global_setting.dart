@@ -49,6 +49,12 @@ class _GlobalSettingPageState extends State<GlobalSettingPage> {
     return state.locale.toLanguageTag();
   }
 
+  /// 提示时长的简短展示：`0` 是常驻，其余按秒。
+  String _toastDurationLabel(int durationMs) {
+    if (durationMs <= 0) return t.settings.toastDurationPermanent;
+    return '${(durationMs / 1000).toStringAsFixed(1)}s';
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = context.watch<GlobalSettingCubit>().state;
@@ -63,6 +69,15 @@ class _GlobalSettingPageState extends State<GlobalSettingPage> {
             subtitle:
                 '${_languageLabel(state)} · ${_themeLabel(state.themeMode)}',
             onTap: () => _openSubPage(const AppearanceSettingRoute()),
+          ),
+          const Divider(height: 1, thickness: 0.3),
+          settingCategoryTile(
+            icon: Icons.notifications_active_outlined,
+            title: t.settings.toastStyle,
+            subtitle:
+                '${state.toastSetting.position.label} · '
+                '${_toastDurationLabel(state.toastSetting.durationMs)}',
+            onTap: () => _openSubPage(const ToastSettingRoute()),
           ),
           const Divider(height: 1, thickness: 0.3),
           settingCategoryTile(

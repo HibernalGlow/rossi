@@ -99,6 +99,11 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
       : FavoriteArtistSettingState.fromJson(
           json['favoriteArtistSetting'] as Map<String, dynamic>,
         ),
+  toastSetting: json['toastSetting'] == null
+      ? const ToastSettingState()
+      : ToastSettingState.fromJson(
+          json['toastSetting'] as Map<String, dynamic>,
+        ),
 );
 
 Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
@@ -150,6 +155,7 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
           _$ChineseConvertModeEnumMap[instance.chineseConvertMode]!,
       'bookshelfSetting': instance.bookshelfSetting.toJson(),
       'favoriteArtistSetting': instance.favoriteArtistSetting.toJson(),
+      'toastSetting': instance.toastSetting.toJson(),
     };
 
 const _$ThemeModeEnumMap = {
@@ -162,6 +168,51 @@ const _$ChineseConvertModeEnumMap = {
   ChineseConvertMode.off: 'off',
   ChineseConvertMode.simplified: 'simplified',
   ChineseConvertMode.traditional: 'traditional',
+};
+
+_ToastSettingState _$ToastSettingStateFromJson(Map<String, dynamic> json) =>
+    _ToastSettingState(
+      position:
+          $enumDecodeNullable(_$ToastPositionEnumMap, json['position']) ??
+          ToastPosition.topRight,
+      edgePadding: (json['edgePadding'] as num?)?.toInt() ?? 12,
+      durationMs: (json['durationMs'] as num?)?.toInt() ?? 3000,
+      maxWidth: (json['maxWidth'] as num?)?.toInt() ?? 400,
+      opacityPercent: (json['opacityPercent'] as num?)?.toInt() ?? 100,
+      maxVisible: (json['maxVisible'] as num?)?.toInt() ?? 3,
+      animationDurationMs:
+          (json['animationDurationMs'] as num?)?.toInt() ?? 220,
+      liquidGlass: json['liquidGlass'] as bool? ?? false,
+      showProgressBar: json['showProgressBar'] as bool? ?? true,
+      showIcon: json['showIcon'] as bool? ?? true,
+      showCloseButton: json['showCloseButton'] as bool? ?? true,
+    );
+
+Map<String, dynamic> _$ToastSettingStateToJson(_ToastSettingState instance) =>
+    <String, dynamic>{
+      'position': _$ToastPositionEnumMap[instance.position]!,
+      'edgePadding': instance.edgePadding,
+      'durationMs': instance.durationMs,
+      'maxWidth': instance.maxWidth,
+      'opacityPercent': instance.opacityPercent,
+      'maxVisible': instance.maxVisible,
+      'animationDurationMs': instance.animationDurationMs,
+      'liquidGlass': instance.liquidGlass,
+      'showProgressBar': instance.showProgressBar,
+      'showIcon': instance.showIcon,
+      'showCloseButton': instance.showCloseButton,
+    };
+
+const _$ToastPositionEnumMap = {
+  ToastPosition.topLeft: 'topLeft',
+  ToastPosition.topCenter: 'topCenter',
+  ToastPosition.topRight: 'topRight',
+  ToastPosition.middleLeft: 'middleLeft',
+  ToastPosition.center: 'center',
+  ToastPosition.middleRight: 'middleRight',
+  ToastPosition.bottomLeft: 'bottomLeft',
+  ToastPosition.bottomCenter: 'bottomCenter',
+  ToastPosition.bottomRight: 'bottomRight',
 };
 
 _FavoriteArtistSettingState _$FavoriteArtistSettingStateFromJson(

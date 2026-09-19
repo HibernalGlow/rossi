@@ -25,6 +25,47 @@ enum SyncServiceType { none, webdav, s3 }
 /// 代理协议类型。
 enum ProxyType { http, socks5 }
 
+/// 提示条（toast）在屏幕上的停靠位置，九宫格。
+///
+/// 口径参考 neoview 的「提示悬浮窗」：位置可配、可调边距，
+/// 对应关系 [ToastPosition.topLeft] → `Alignment.topLeft` 等。
+enum ToastPosition {
+  topLeft,
+  topCenter,
+  topRight,
+  middleLeft,
+  center,
+  middleRight,
+  bottomLeft,
+  bottomCenter,
+  bottomRight,
+}
+
+extension ToastPositionExtension on ToastPosition {
+  String get label {
+    switch (this) {
+      case ToastPosition.topLeft:
+        return t.settings.toastPositionTopLeft;
+      case ToastPosition.topCenter:
+        return t.settings.toastPositionTopCenter;
+      case ToastPosition.topRight:
+        return t.settings.toastPositionTopRight;
+      case ToastPosition.middleLeft:
+        return t.settings.toastPositionMiddleLeft;
+      case ToastPosition.center:
+        return t.settings.toastPositionCenter;
+      case ToastPosition.middleRight:
+        return t.settings.toastPositionMiddleRight;
+      case ToastPosition.bottomLeft:
+        return t.settings.toastPositionBottomLeft;
+      case ToastPosition.bottomCenter:
+        return t.settings.toastPositionBottomCenter;
+      case ToastPosition.bottomRight:
+        return t.settings.toastPositionBottomRight;
+    }
+  }
+}
+
 extension SyncServiceTypeExtension on SyncServiceType {
   String get label {
     switch (this) {
@@ -98,6 +139,21 @@ GlobalSettingState get globalSetting {
   return objectbox.userSettingBox.get(1)!.globalSetting;
 }
 
+/// 提示条设置的读入口。
+///
+/// 提示（toast）会在**任意时刻**被触发（后台下载完成、同步失败……），
+/// 这些调用点多半拿不到 `BuildContext`/Cubit，所以这里直接从本地库读；
+/// 本地库还没起来（启动早期）或已关闭时回落到默认样式 ——
+/// 绝不让「读设置」本身把提示炸掉。
+ToastSettingState get toastSetting {
+  try {
+    return objectbox.userSettingBox.get(1)?.globalSetting.toastSetting ??
+        const ToastSettingState();
+  } catch (_) {
+    return const ToastSettingState();
+  }
+}
+
 @freezed
 abstract class GlobalSettingState with _$GlobalSettingState {
   const factory GlobalSettingState({
@@ -148,10 +204,42 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     @Default(BookshelfSettingState()) BookshelfSettingState bookshelfSetting,
     @Default(FavoriteArtistSettingState())
     FavoriteArtistSettingState favoriteArtistSetting,
+    @Default(ToastSettingState()) ToastSettingState toastSetting,
   }) = _GlobalSettingState;
 
   factory GlobalSettingState.fromJson(Map<String, dynamic> json) =>
       _$GlobalSettingStateFromJson(json);
+}
+
+/// 提示条（toast）的位置、时长与外观。
+///
+/// 字段口径（对齐 neoview 的 switchToast 配置，落到 Flutter 的九宫格 + 尺寸）：
+/// - [position] / [edgePadding]：停靠位置与距屏幕边缘的安全留白；
+/// - [durationMs]：自动关闭时长，`0` 表示常驻（只能手动关闭）；
+/// - [maxWidth]：卡片最大宽度（手机端还会被屏幕宽度再夹一次）；
+/// - [opacityPercent]：整卡不透明度；
+/// - [maxVisible]：同屏最多堆叠条数，超出时挤掉最旧的一条；
+/// - [animationDurationMs]：进出场动画时长；
+/// - [liquidGlass]：液态玻璃（模糊 + 半透明）背景；
+/// - [showProgressBar] / [showIcon] / [showCloseButton]：进度条、类型图标、关闭按钮。
+@freezed
+abstract class ToastSettingState with _$ToastSettingState {
+  const factory ToastSettingState({
+    @Default(ToastPosition.topRight) ToastPosition position,
+    @Default(12) int edgePadding,
+    @Default(3000) int durationMs,
+    @Default(400) int maxWidth,
+    @Default(100) int opacityPercent,
+    @Default(3) int maxVisible,
+    @Default(220) int animationDurationMs,
+    @Default(false) bool liquidGlass,
+    @Default(true) bool showProgressBar,
+    @Default(true) bool showIcon,
+    @Default(true) bool showCloseButton,
+  }) = _ToastSettingState;
+
+  factory ToastSettingState.fromJson(Map<String, dynamic> json) =>
+      _$ToastSettingStateFromJson(json);
 }
 
 @freezed
@@ -389,6 +477,15 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
     updateState(
       (current) =>
           current.copyWith(bookshelfSetting: updates(current.bookshelfSetting)),
+    );
+  }
+
+  void updateToastSetting(
+    ToastSettingState Function(ToastSettingState current) updates,
+  ) {
+    updateState(
+      (current) =>
+          current.copyWith(toastSetting: updates(current.toastSetting)),
     );
   }
 

@@ -6,7 +6,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
-import 'package:toastification/toastification.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/gpu/gpu_present_page.dart';
@@ -30,7 +29,6 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/network/sync/sync_service.dart';
 import 'package:zephyr/util/debouncer.dart';
 import 'package:zephyr/util/event/event.dart';
-import 'package:zephyr/widgets/dialog.dart';
 import 'package:zephyr/page/bookshelf/bookshelf.dart';
 import 'package:zephyr/page/discover/view/discover_page.dart';
 import 'package:zephyr/page/more/view/more.dart';
@@ -55,7 +53,7 @@ class _NavigationBarState extends State<NavigationBar> {
   DateTime? _lastLoginNavigateAt;
   String? _lastLoginPluginId;
   DateTime? _lastToastShownAt;
-  (ToastType, String?, String, Duration)? _lastToastEvent;
+  (ToastType, String?, String, Duration?)? _lastToastEvent;
   late HideOnScrollSettings hideOnScrollSettings;
 
   static bool _notificationsInitialized = false; // ← 使用静态变量，跨实例共享
@@ -246,8 +244,12 @@ class _NavigationBarState extends State<NavigationBar> {
                           tooltip: '打开本地漫画（Breeze 原版阅读器 + GPU 零拷贝）',
                           onPressed: () async {
                             try {
-                              final selected = await showLocalFileTreeSheet(context: context);
-                              if (selected != null && selected.isNotEmpty && mounted) {
+                              final selected = await showLocalFileTreeSheet(
+                                context: context,
+                              );
+                              if (selected != null &&
+                                  selected.isNotEmpty &&
+                                  mounted) {
                                 context.pushRoute(
                                   ComicReadRoute(
                                     comicId: selected,
@@ -524,54 +526,16 @@ class _NavigationBarState extends State<NavigationBar> {
     _lastToastEvent = toastEvent;
     _lastToastShownAt = now;
 
-    ToastificationType type;
-    switch (event.type) {
-      case ToastType.success:
-        type = ToastificationType.success;
-        break;
-      case ToastType.error:
-        type = ToastificationType.error;
-        break;
-      case ToastType.warning:
-        type = ToastificationType.warning;
-        break;
-      case ToastType.info:
-        type = ToastificationType.info;
-        break;
-    }
-
-    if (event.message.runes.length < 30) {
-      toastification.show(
-        context: context,
-        title: event.title == null ? null : Text(event.title!),
-        description: Text(event.message),
-        type: type,
-        style: ToastificationStyle.flatColored,
-        autoCloseDuration: event.duration,
-        showProgressBar: true,
-      );
-    } else {
-      late String title;
-      if (event.title != null) {
-        title = event.title!;
-      } else {
-        switch (event.type) {
-          case ToastType.success:
-            title = t.common.success;
-            break;
-          case ToastType.error:
-            title = t.common.error;
-            break;
-          case ToastType.warning:
-            title = t.common.warning;
-            break;
-          case ToastType.info:
-            title = t.common.info;
-            break;
-        }
-      }
-      commonDialog(context, title, event.message);
-    }
+    // 一律走 toast：以前「正文 ≥ 30 字就退化成 commonDialog」，
+    // 结果下载完成这种长文件名会弹一个「成功 + 取消/确定」的对话框拦住用户。
+    // 现在长文本由提示条自己换行（见 ToastCard），不再有这条分支。
+    ToastOverlayController.instance.show(
+      context,
+      type: event.type,
+      title: event.title,
+      message: event.message,
+      duration: event.duration,
+    );
   }
 
   void _scheduleFollowUpdateCheck(BuildContext context) {
