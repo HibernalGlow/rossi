@@ -452,6 +452,135 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '开启后预留安全区，避免内容遮挡'
 	String get notchAdaptationSubtitle => '开启后预留安全区，避免内容遮挡';
 
+	/// zh-CN: '提示样式'
+	String get toastStyle => '提示样式';
+
+	/// zh-CN: '设置应用内提示条的位置、时长与大小'
+	String get toastStyleSubtitle => '设置应用内提示条的位置、时长与大小';
+
+	/// zh-CN: '位置与尺寸'
+	String get toastSectionLayout => '位置与尺寸';
+
+	/// zh-CN: '外观与行为'
+	String get toastSectionAppearance => '外观与行为';
+
+	/// zh-CN: '时长与动效'
+	String get toastSectionBehavior => '时长与动效';
+
+	/// zh-CN: '显示效果'
+	String get toastSectionStyle => '显示效果';
+
+	/// zh-CN: '位置'
+	String get toastPosition => '位置';
+
+	/// zh-CN: '提示条停靠在屏幕的哪个角'
+	String get toastPositionSubtitle => '提示条停靠在屏幕的哪个角';
+
+	/// zh-CN: '左上'
+	String get toastPositionTopLeft => '左上';
+
+	/// zh-CN: '顶部居中'
+	String get toastPositionTopCenter => '顶部居中';
+
+	/// zh-CN: '右上'
+	String get toastPositionTopRight => '右上';
+
+	/// zh-CN: '左侧居中'
+	String get toastPositionMiddleLeft => '左侧居中';
+
+	/// zh-CN: '屏幕居中'
+	String get toastPositionCenter => '屏幕居中';
+
+	/// zh-CN: '右侧居中'
+	String get toastPositionMiddleRight => '右侧居中';
+
+	/// zh-CN: '左下'
+	String get toastPositionBottomLeft => '左下';
+
+	/// zh-CN: '底部居中'
+	String get toastPositionBottomCenter => '底部居中';
+
+	/// zh-CN: '右下'
+	String get toastPositionBottomRight => '右下';
+
+	/// zh-CN: '边缘留白'
+	String get toastEdgePadding => '边缘留白';
+
+	/// zh-CN: '提示条与屏幕边缘的距离'
+	String get toastEdgePaddingSubtitle => '提示条与屏幕边缘的距离';
+
+	/// zh-CN: '最大宽度'
+	String get toastMaxWidth => '最大宽度';
+
+	/// zh-CN: '提示条宽度上限，窄屏还会再被屏幕宽度收一次'
+	String get toastMaxWidthSubtitle => '提示条宽度上限，窄屏还会再被屏幕宽度收一次';
+
+	/// zh-CN: '同屏条数'
+	String get toastMaxVisible => '同屏条数';
+
+	/// zh-CN: '屏幕上最多同时堆叠几条，多出来的挤掉最旧的一条'
+	String get toastMaxVisibleSubtitle => '屏幕上最多同时堆叠几条，多出来的挤掉最旧的一条';
+
+	/// zh-CN: '自动关闭时长'
+	String get toastDuration => '自动关闭时长';
+
+	/// zh-CN: '拖到最左边为常驻，只由关闭按钮收起'
+	String get toastDurationSubtitle => '拖到最左边为常驻，只由关闭按钮收起';
+
+	/// zh-CN: '常驻'
+	String get toastDurationPermanent => '常驻';
+
+	/// zh-CN: '不透明度'
+	String get toastOpacity => '不透明度';
+
+	/// zh-CN: '整条提示（含文字）的不透明度'
+	String get toastOpacitySubtitle => '整条提示（含文字）的不透明度';
+
+	/// zh-CN: '进出场动画'
+	String get toastAnimation => '进出场动画';
+
+	/// zh-CN: '提示出现与消失的动画时长'
+	String get toastAnimationSubtitle => '提示出现与消失的动画时长';
+
+	/// zh-CN: '液态玻璃'
+	String get toastLiquidGlass => '液态玻璃';
+
+	/// zh-CN: '开启后提示条使用模糊半透明背景'
+	String get toastLiquidGlassSubtitle => '开启后提示条使用模糊半透明背景';
+
+	/// zh-CN: '显示进度条'
+	String get toastShowProgressBar => '显示进度条';
+
+	/// zh-CN: '在底部显示一条随剩余时间收缩的细线'
+	String get toastShowProgressBarSubtitle => '在底部显示一条随剩余时间收缩的细线';
+
+	/// zh-CN: '显示类型图标'
+	String get toastShowIcon => '显示类型图标';
+
+	/// zh-CN: '在提示条左侧显示成功/错误等图标'
+	String get toastShowIconSubtitle => '在提示条左侧显示成功/错误等图标';
+
+	/// zh-CN: '显示关闭按钮'
+	String get toastShowCloseButton => '显示关闭按钮';
+
+	/// zh-CN: '常驻提示会始终显示关闭按钮'
+	String get toastShowCloseButtonSubtitle => '常驻提示会始终显示关闭按钮';
+
+	/// zh-CN: '显示测试提示'
+	String get toastPreview => '显示测试提示';
+
+	/// zh-CN: '提示样式预览'
+	String get toastPreviewTitle => '提示样式预览';
+
+	/// zh-CN: '这是一条用于预览的提示：长文本会自动换行，不会再被截断、也不会弹成对话框。'
+	String get toastPreviewLongMessage => '这是一条用于预览的提示：长文本会自动换行，不会再被截断、也不会弹成对话框。';
+
+	/// zh-CN: '恢复默认提示样式'
+	String get toastReset => '恢复默认提示样式';
+
+	/// zh-CN: '已恢复默认提示样式'
+	String get toastResetDone => '已恢复默认提示样式';
+
 	/// zh-CN: '内容与网络'
 	String get contentAndNetwork => '内容与网络';
 
@@ -4219,6 +4348,49 @@ extension on Translations {
 			'settings.amoledSubtitle' => '开启后使用纯黑背景，适配 AMOLED',
 			'settings.notchAdaptation' => '异形屏适配',
 			'settings.notchAdaptationSubtitle' => '开启后预留安全区，避免内容遮挡',
+			'settings.toastStyle' => '提示样式',
+			'settings.toastStyleSubtitle' => '设置应用内提示条的位置、时长与大小',
+			'settings.toastSectionLayout' => '位置与尺寸',
+			'settings.toastSectionAppearance' => '外观与行为',
+			'settings.toastSectionBehavior' => '时长与动效',
+			'settings.toastSectionStyle' => '显示效果',
+			'settings.toastPosition' => '位置',
+			'settings.toastPositionSubtitle' => '提示条停靠在屏幕的哪个角',
+			'settings.toastPositionTopLeft' => '左上',
+			'settings.toastPositionTopCenter' => '顶部居中',
+			'settings.toastPositionTopRight' => '右上',
+			'settings.toastPositionMiddleLeft' => '左侧居中',
+			'settings.toastPositionCenter' => '屏幕居中',
+			'settings.toastPositionMiddleRight' => '右侧居中',
+			'settings.toastPositionBottomLeft' => '左下',
+			'settings.toastPositionBottomCenter' => '底部居中',
+			'settings.toastPositionBottomRight' => '右下',
+			'settings.toastEdgePadding' => '边缘留白',
+			'settings.toastEdgePaddingSubtitle' => '提示条与屏幕边缘的距离',
+			'settings.toastMaxWidth' => '最大宽度',
+			'settings.toastMaxWidthSubtitle' => '提示条宽度上限，窄屏还会再被屏幕宽度收一次',
+			'settings.toastMaxVisible' => '同屏条数',
+			'settings.toastMaxVisibleSubtitle' => '屏幕上最多同时堆叠几条，多出来的挤掉最旧的一条',
+			'settings.toastDuration' => '自动关闭时长',
+			'settings.toastDurationSubtitle' => '拖到最左边为常驻，只由关闭按钮收起',
+			'settings.toastDurationPermanent' => '常驻',
+			'settings.toastOpacity' => '不透明度',
+			'settings.toastOpacitySubtitle' => '整条提示（含文字）的不透明度',
+			'settings.toastAnimation' => '进出场动画',
+			'settings.toastAnimationSubtitle' => '提示出现与消失的动画时长',
+			'settings.toastLiquidGlass' => '液态玻璃',
+			'settings.toastLiquidGlassSubtitle' => '开启后提示条使用模糊半透明背景',
+			'settings.toastShowProgressBar' => '显示进度条',
+			'settings.toastShowProgressBarSubtitle' => '在底部显示一条随剩余时间收缩的细线',
+			'settings.toastShowIcon' => '显示类型图标',
+			'settings.toastShowIconSubtitle' => '在提示条左侧显示成功/错误等图标',
+			'settings.toastShowCloseButton' => '显示关闭按钮',
+			'settings.toastShowCloseButtonSubtitle' => '常驻提示会始终显示关闭按钮',
+			'settings.toastPreview' => '显示测试提示',
+			'settings.toastPreviewTitle' => '提示样式预览',
+			'settings.toastPreviewLongMessage' => '这是一条用于预览的提示：长文本会自动换行，不会再被截断、也不会弹成对话框。',
+			'settings.toastReset' => '恢复默认提示样式',
+			'settings.toastResetDone' => '已恢复默认提示样式',
 			'settings.contentAndNetwork' => '内容与网络',
 			'settings.content' => '内容',
 			'settings.network' => '网络',
@@ -4575,6 +4747,8 @@ extension on Translations {
 			'comicInfo.startRead' => '开始阅读',
 			'comicInfo.continueRead' => '继续阅读',
 			'comicInfo.lastRead' => '上次读到',
+			_ => null,
+		} ?? switch (path) {
 			'comicInfo.chapters' => '章节',
 			'comicInfo.related' => '相关推荐',
 			'comicInfo.description' => '简介',
@@ -4618,8 +4792,6 @@ extension on Translations {
 			'reader.retryFailedPartsSubtitle' => '仅重新下载未完成或失败的章节与图片',
 			'reader.restartDownloadSmart' => '增量补全（推荐）',
 			'reader.restartDownloadSmartDesc' => '检测本地已下载内容，仅下载缺失或失败的图片',
-			_ => null,
-		} ?? switch (path) {
 			'reader.restartDownloadFull' => '全量重下',
 			'reader.restartDownloadFullDesc' => '重置全部章节进度，从头完整下载',
 			'reader.pickAndExtract' => '选图提取',
@@ -5089,6 +5261,8 @@ extension on Translations {
 			'about.disclaimerItem1Content' => '本项目为开源软件，由本人独立开发并维护。项目以"原样"形式提供，开发者不对项目的功能完整性、稳定性、安全性或适用性作出任何明示或暗示的担保。',
 			'about.disclaimerItem2Title' => '2. 责任限制',
 			'about.disclaimerItem2Content' => '开发者对因使用、修改或分发本项目（包括但不限于直接使用、二次开发或集成至其他项目）而导致的任何直接、间接、特殊、附带或后果性损害不承担任何责任。这些损害可能包括但不限于数据丢失、设备损坏、业务中断、利润损失或其他经济损失。',
+			_ => null,
+		} ?? switch (path) {
 			'about.disclaimerItem3Title' => '3. 用户责任',
 			'about.disclaimerItem3Content' => '用户在使用本项目时，应自行评估其适用性并承担所有风险。用户须确保其使用行为符合所在国家或地区的法律法规及道德规范。开发者不对用户因违反法律法规或不当使用本项目而导致的任何后果负责。',
 			'about.disclaimerItem4Title' => '4. 第三方依赖与资源',
@@ -5132,8 +5306,6 @@ extension on Translations {
 			'more.changelog' => '更新日志',
 			'search.title' => '搜索',
 			'search.searchHint' => '搜索...',
-			_ => null,
-		} ?? switch (path) {
 			'search.selectSource' => '选择漫画源',
 			'search.advancedSearchNotSupported' => '当前插件不支持高级搜索',
 			'search.advancedSearchOptions' => '高级搜索选项',
