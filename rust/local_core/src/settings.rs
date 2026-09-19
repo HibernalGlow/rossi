@@ -465,12 +465,7 @@ pub enum GridItemDisplayKind {
 }
 
 impl GridItemDisplayKind {
-    pub const ALL: [Self; 4] = [
-        Self::Folder,
-        Self::Archive,
-        Self::Image,
-        Self::VideoAudio,
-    ];
+    pub const ALL: [Self; 4] = [Self::Folder, Self::Archive, Self::Image, Self::VideoAudio];
 
     pub fn default_row(self) -> usize {
         match self {
@@ -660,7 +655,10 @@ mod tests {
         assert!(!restored_settings.thumb_aspect_auto);
         assert_eq!(restored_settings.sort_order, SortOrder::Numeric);
         assert_eq!(restored_settings.default_spread_mode, SpreadMode::RtlCover);
-        assert_eq!(restored_settings.default_reading_flow, ReadingFlow::Vertical);
+        assert_eq!(
+            restored_settings.default_reading_flow,
+            ReadingFlow::Vertical
+        );
     }
 
     #[test]
@@ -704,4 +702,3 @@ mod tests {
         assert_eq!(loaded.row_for(GridItemDisplayKind::Image), 3);
     }
 }
-

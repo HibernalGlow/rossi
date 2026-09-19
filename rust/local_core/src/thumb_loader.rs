@@ -68,12 +68,7 @@ pub fn resolve_folder_thumb_image(
     sort: crate::settings::SortOrder,
     remaining_depth: u32,
 ) -> Option<FolderThumbResolution> {
-    resolve_folder_thumb_image_inner(
-        folder,
-        sort,
-        remaining_depth,
-        remaining_depth,
-    )
+    resolve_folder_thumb_image_inner(folder, sort, remaining_depth, remaining_depth)
 }
 
 pub fn resolve_folder_thumb_image_inner(
@@ -133,12 +128,9 @@ pub fn resolve_folder_thumb_image_inner(
             .map(|(path, mtime, _)| (path, mtime))
             .collect();
         for (sub, _) in &subdirs {
-            if let Some(img) = resolve_folder_thumb_image_inner(
-                sub,
-                sort,
-                remaining_depth - 1,
-                configured_depth,
-            ) {
+            if let Some(img) =
+                resolve_folder_thumb_image_inner(sub, sort, remaining_depth - 1, configured_depth)
+            {
                 return Some(img);
             }
         }
@@ -206,12 +198,7 @@ mod tests {
         std::fs::write(&expected, b"not decoded").unwrap();
         std::fs::write(tmp.path().join("00表紙2.jpg"), b"not decoded").unwrap();
 
-        let picked = resolve_folder_thumb_image_inner(
-            tmp.path(),
-            SortOrder::default(),
-            0,
-            0,
-        );
+        let picked = resolve_folder_thumb_image_inner(tmp.path(), SortOrder::default(), 0, 0);
 
         assert_eq!(resolved_image_path(picked), Some(expected));
     }

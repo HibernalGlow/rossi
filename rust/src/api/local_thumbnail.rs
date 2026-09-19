@@ -79,4 +79,3 @@ pub fn get_file_manager_entry_thumbnail(
         max_long_side,
     )
 }
-
