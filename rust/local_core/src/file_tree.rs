@@ -173,6 +173,16 @@ pub fn get_available_roots() -> Vec<RootLocation> {
 /// 内置扩展名和归档类型都直接调用 `vendor/mimageviewer/src` 的函数。Rossi 只把
 /// 结果投影成自己的跨 UI DTO。
 pub fn list_directory(dir_path: &Path) -> Result<Vec<FileTreeNode>> {
+    list_directory_with_hidden(dir_path, false)
+}
+
+/// List a directory with the same mImageViewer classification and sorting
+/// rules, optionally retaining user-hidden entries.  OS/system entries and
+/// Rossi/mImageViewer metadata bundles remain hidden in both modes.
+pub fn list_directory_with_hidden(
+    dir_path: &Path,
+    show_hidden_files: bool,
+) -> Result<Vec<FileTreeNode>> {
     if !dir_path.is_dir() {
         return Err(anyhow::anyhow!("路径不是有效目录: {}", dir_path.display()));
     }
@@ -196,7 +206,7 @@ pub fn list_directory(dir_path: &Path) -> Result<Vec<FileTreeNode>> {
         let raw_name = entry.file_name();
         // mImageViewer 的 bundle / Windows 属性 / Unix 隐藏项规则必须在这里统一执行。
         if crate::fs_entry::is_internal_app_entry_name(&raw_name)
-            || crate::fs_entry::should_hide_fs_entry(&entry, false)
+            || crate::fs_entry::should_hide_fs_entry(&entry, show_hidden_files)
         {
             continue;
         }

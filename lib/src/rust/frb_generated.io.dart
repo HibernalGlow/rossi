@@ -161,10 +161,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   FileManagerActionResult dco_decode_file_manager_action_result(dynamic raw);
 
   @protected
+  FileManagerBreadcrumb dco_decode_file_manager_breadcrumb(dynamic raw);
+
+  @protected
   FileManagerChild dco_decode_file_manager_child(dynamic raw);
 
   @protected
+  FileManagerDirectoryChoice dco_decode_file_manager_directory_choice(
+    dynamic raw,
+  );
+
+  @protected
+  FileManagerDirectoryColumn dco_decode_file_manager_directory_column(
+    dynamic raw,
+  );
+
+  @protected
   FileManagerEntry dco_decode_file_manager_entry(dynamic raw);
+
+  @protected
+  FileManagerEntryFilter dco_decode_file_manager_entry_filter(dynamic raw);
 
   @protected
   FileManagerInternalItemsMode dco_decode_file_manager_internal_items_mode(
@@ -173,6 +189,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   FileManagerSnapshot dco_decode_file_manager_snapshot(dynamic raw);
+
+  @protected
+  FileManagerSortField dco_decode_file_manager_sort_field(dynamic raw);
+
+  @protected
+  FileManagerSortOrder dco_decode_file_manager_sort_order(dynamic raw);
 
   @protected
   FileManagerTab dco_decode_file_manager_tab(dynamic raw);
@@ -199,7 +221,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<String> dco_decode_list_String(dynamic raw);
 
   @protected
+  List<FileManagerBreadcrumb> dco_decode_list_file_manager_breadcrumb(
+    dynamic raw,
+  );
+
+  @protected
   List<FileManagerChild> dco_decode_list_file_manager_child(dynamic raw);
+
+  @protected
+  List<FileManagerDirectoryChoice>
+  dco_decode_list_file_manager_directory_choice(dynamic raw);
+
+  @protected
+  List<FileManagerDirectoryColumn>
+  dco_decode_list_file_manager_directory_column(dynamic raw);
 
   @protected
   List<FileManagerEntry> dco_decode_list_file_manager_entry(dynamic raw);
@@ -513,10 +548,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  FileManagerBreadcrumb sse_decode_file_manager_breadcrumb(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   FileManagerChild sse_decode_file_manager_child(SseDeserializer deserializer);
 
   @protected
+  FileManagerDirectoryChoice sse_decode_file_manager_directory_choice(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileManagerDirectoryColumn sse_decode_file_manager_directory_column(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   FileManagerEntry sse_decode_file_manager_entry(SseDeserializer deserializer);
+
+  @protected
+  FileManagerEntryFilter sse_decode_file_manager_entry_filter(
+    SseDeserializer deserializer,
+  );
 
   @protected
   FileManagerInternalItemsMode sse_decode_file_manager_internal_items_mode(
@@ -525,6 +580,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   FileManagerSnapshot sse_decode_file_manager_snapshot(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileManagerSortField sse_decode_file_manager_sort_field(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileManagerSortOrder sse_decode_file_manager_sort_order(
     SseDeserializer deserializer,
   );
 
@@ -557,9 +622,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<String> sse_decode_list_String(SseDeserializer deserializer);
 
   @protected
+  List<FileManagerBreadcrumb> sse_decode_list_file_manager_breadcrumb(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<FileManagerChild> sse_decode_list_file_manager_child(
     SseDeserializer deserializer,
   );
+
+  @protected
+  List<FileManagerDirectoryChoice>
+  sse_decode_list_file_manager_directory_choice(SseDeserializer deserializer);
+
+  @protected
+  List<FileManagerDirectoryColumn>
+  sse_decode_list_file_manager_directory_column(SseDeserializer deserializer);
 
   @protected
   List<FileManagerEntry> sse_decode_list_file_manager_entry(
@@ -963,14 +1041,38 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_file_manager_breadcrumb(
+    FileManagerBreadcrumb self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_file_manager_child(
     FileManagerChild self,
     SseSerializer serializer,
   );
 
   @protected
+  void sse_encode_file_manager_directory_choice(
+    FileManagerDirectoryChoice self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_manager_directory_column(
+    FileManagerDirectoryColumn self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_file_manager_entry(
     FileManagerEntry self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_manager_entry_filter(
+    FileManagerEntryFilter self,
     SseSerializer serializer,
   );
 
@@ -983,6 +1085,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_file_manager_snapshot(
     FileManagerSnapshot self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_manager_sort_field(
+    FileManagerSortField self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_manager_sort_order(
+    FileManagerSortOrder self,
     SseSerializer serializer,
   );
 
@@ -1020,8 +1134,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_file_manager_breadcrumb(
+    List<FileManagerBreadcrumb> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_file_manager_child(
     List<FileManagerChild> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_file_manager_directory_choice(
+    List<FileManagerDirectoryChoice> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_file_manager_directory_column(
+    List<FileManagerDirectoryColumn> self,
     SseSerializer serializer,
   );
 

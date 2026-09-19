@@ -408,7 +408,7 @@ fn canonical_ancestor_keys(current: &Path) -> Vec<String> {
         return Vec::new();
     };
     real.ancestors()
-        .map(crate::path_key::normalize_keep_drive)
+        .map(crate::fs_entry::directory_visit_key)
         .collect()
 }
 
@@ -424,7 +424,7 @@ fn directory_descent_creates_cycle(current_ancestor_keys: &[String], child: &Pat
     let Ok(child_real) = std::fs::canonicalize(child) else {
         return false;
     };
-    let child_key = crate::path_key::normalize_keep_drive(&child_real);
+    let child_key = crate::fs_entry::directory_visit_key(&child_real);
     current_ancestor_keys.iter().any(|k| k == &child_key)
 }
 
@@ -759,9 +759,16 @@ pub fn sorted_subdirs(path: &Path, opts: FolderTreeOptions) -> Vec<PathBuf> {
     keyed_dirs.into_iter().map(|(p, _, _)| p).collect()
 }
 
-/// Windows のファイルシステムは大文字小文字を区別しないため小文字化して比較。
+/// 保留上游 Windows 比较规则；Unix 不折叠大小写或反斜杠。
 pub fn path_eq(a: &Path, b: &Path) -> bool {
-    a.to_string_lossy().to_lowercase() == b.to_string_lossy().to_lowercase()
+    #[cfg(windows)]
+    {
+        crate::path_key::eq_keep_drive(a, b)
+    }
+    #[cfg(not(windows))]
+    {
+        a == b
+    }
 }
 
 /// `resolve_openable_path_detailed` が返した「開けるパス」の実体種別。
@@ -862,11 +869,19 @@ mod tests {
         assert!(path_eq(Path::new("C:/foo/bar"), Path::new("C:/foo/bar")));
     }
 
+    #[cfg(windows)]
     #[test]
     fn path_eq_case_insensitive() {
         // Windows 想定: 大文字小文字を無視する
         assert!(path_eq(Path::new("C:/Foo/Bar"), Path::new("c:/foo/bar")));
         assert!(path_eq(Path::new("D:/IMG.JPG"), Path::new("d:/img.jpg")));
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn unix_paths_preserve_case_and_backslashes() {
+        assert!(!path_eq(Path::new("/books/A"), Path::new("/books/a")));
+        assert!(!path_eq(Path::new(r"/books/a\b"), Path::new("/books/a/b")));
     }
 
     #[test]

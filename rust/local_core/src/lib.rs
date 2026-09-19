@@ -49,13 +49,17 @@ pub mod folder_source;
 // be diffed and applied without reimplementing the platform rules in Rossi.
 pub mod activity_gate;
 pub mod archive_converter;
+pub mod auto_aspect;
 pub mod books;
 pub mod filename_sort;
+pub mod folder_pane;
 pub mod folder_tree;
 pub mod fs_entry;
 pub mod rar_loader;
 pub mod settings;
+pub mod settings_db;
 pub mod susie_loader;
+pub mod thumb_loader;
 pub mod ui_helpers;
 pub mod zip_loader;
 // JXL 后端选择层：只在至少开了一个后端 feature 时编译（见 jxl_backend.rs 头注释）。
@@ -64,19 +68,34 @@ pub mod final_pipeline;
 pub mod jxl_backend;
 pub mod page_load_scheduler;
 pub mod page_order;
+pub mod page_split;
 pub mod path_key;
 pub mod perf_sink;
 pub mod prefetch_policy;
 pub mod rar_source;
+pub mod rotation;
 pub mod thumbnail_pipeline;
 pub mod zip_source;
 
+pub use auto_aspect::{
+    AspectDecision, AutoAspectState, decide_auto_aspect, fit_score, min_samples_for, pick_best,
+};
 pub use catalog::{CatalogDb, THUMB_LONG_SIDE, encode_thumb_webp};
 pub use final_pipeline::{
     AiProcessSizeLimit, FinalAiExecutionOutput, ModelKind, compute_final_pipeline_keep_set,
     should_process_rect,
 };
-pub use thumbnail_pipeline::{get_cached_book_dimensions, get_or_create_thumbnail};
+pub use page_split::{NormalizedRect, PageSlice, PresentationStep, SplitDirection, StepMove};
+pub use rotation::Rotation;
+pub use settings::{
+    FavoriteViewOverlay, FavoriteViewState, GridDisplayOrder, GridItemDisplayKind, GridViewMode,
+    ReadingDirection, ReadingFlow, Settings, SpreadMode, ThumbAspect,
+};
+pub use settings_db::{SettingsDb, resolve_view_state_for_path};
+pub use thumbnail_pipeline::{
+    get_cached_book_dimensions, get_or_create_thumbnail, pick_aspect_for_cached_book,
+    pick_aspect_from_dimensions,
+};
 
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -85,12 +104,17 @@ use anyhow::{Context, Result};
 
 pub use decode::{PagePixels, ShellOnlyFormat, decode_rgba, decode_rgba_scaled, probe_size};
 pub use file_manager::{
-    FileManagerChild, FileManagerEntry, FileManagerSettings, FileManagerState, FileManagerTab,
-    InternalItemsMode, MAX_FILE_MANAGER_TABS, MAX_PENETRATION_DEPTH, OpenEntryResult,
-    PenetrationResult, ViewMode,
+    EntryFilter, FileManagerChild, FileManagerEntry, FileManagerSettings, FileManagerState,
+    FileManagerTab, InternalItemsMode, MAX_FILE_MANAGER_TABS, MAX_PENETRATION_DEPTH,
+    MAX_RECENTLY_CLOSED_TABS, OpenEntryResult, PenetrationResult, SortField, SortOrder, ViewMode,
 };
 pub use file_tree::{
     FileTreeNode, RootLocation, get_available_roots, is_comic_archive_path, list_directory,
+    list_directory_with_hidden,
+};
+pub use folder_pane::{
+    FolderPaneCommand, FolderPaneNode, FolderPaneRow, FolderPaneScanPending, FolderPaneState,
+    FolderPaneTreeKey, active_filesystem_folder, drive_label, folder_label, scan_real_subfolders,
 };
 pub use page_load_scheduler::{
     FS_PAGE_LOAD_HIGH_RESERVED_PERMITS, FS_PAGE_LOAD_TOTAL_PERMITS, FsPageLoadContract,

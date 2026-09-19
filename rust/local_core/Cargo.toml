@@ -32,6 +32,8 @@ rusqlite = { version = "0.31", features = ["bundled"] }
 sha2 = "0.10"
 webp = "0.3"
 fast_image_resize = { version = "5", features = ["image"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
 # ---- JXL 后端（编译期可切换，见 src/jxl_backend.rs 的对照表）----
 # 后端一（**App 默认**）：jxl-rs 多线程直连。`jxl` 0.7 = libjxl 官方组织的纯 Rust
@@ -66,6 +68,7 @@ jpegxl-rs = { version = "0.15", optional = true, default-features = false, featu
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.58", features = [
     "Win32_Foundation",
+    "Win32_Globalization",
     "Win32_Storage_FileSystem",
 ] }
 

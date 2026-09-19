@@ -121,13 +121,32 @@ fn classify_special_dir_entry(entry: &DirEntry, file_type: &FileType) -> DirEntr
 }
 
 #[cfg(not(windows))]
-fn classify_special_dir_entry(_entry: &DirEntry, _file_type: &FileType) -> DirEntryKind {
+fn classify_special_dir_entry(entry: &DirEntry, file_type: &FileType) -> DirEntryKind {
+    // 上游只处理 Windows reparse point；Unix 链接在此跟随目标分类。
+    // 递归遍历仍由 directory_visit_key 的 canonicalize 保护循环。
+    if file_type.is_symlink() {
+        if let Ok(metadata) = std::fs::metadata(entry.path()) {
+            if metadata.is_dir() {
+                return DirEntryKind::ReparseDirectory;
+            }
+            if metadata.is_file() {
+                return DirEntryKind::File;
+            }
+        }
+    }
     DirEntryKind::Other
 }
 
 pub fn directory_visit_key(path: &Path) -> String {
     let resolved = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
-    crate::path_key::normalize_keep_drive(&resolved)
+    #[cfg(windows)]
+    {
+        crate::path_key::normalize_keep_drive(&resolved)
+    }
+    #[cfg(not(windows))]
+    {
+        resolved.to_string_lossy().into_owned()
+    }
 }
 
 pub fn mark_directory_visited(path: &Path, visited: &mut HashSet<String>) -> bool {

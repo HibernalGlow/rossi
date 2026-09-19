@@ -33,3 +33,35 @@ Future<Map<String, (int, int)>> getCachedBookPageDimensions({
   cacheDir: cacheDir,
   bookPath: bookPath,
 );
+
+/// 获取整本书已缓存页面的推荐自动缩略图比例标签（如 "16:9", "1:1", "2:3" 等）。
+Future<String?> getCachedBookAutoAspect({
+  required String cacheDir,
+  required String bookPath,
+}) => RustLib.instance.api.crateApiLocalThumbnailGetCachedBookAutoAspect(
+  cacheDir: cacheDir,
+  bookPath: bookPath,
+);
+
+/// 获取或生成文件管理器条目 (文件夹、单张图片或漫画归档) 的缩略图。
+///
+/// 遵循 mImageViewer SQLite CatalogDb 与代表图推选逻辑。
+Future<Uint8List?> getFileManagerEntryThumbnail({
+  required String cacheDir,
+  required String entryPath,
+  required bool isDir,
+  required bool isArchive,
+  required bool isImage,
+  String? sortOrder,
+  int? maxDepth,
+  int? maxLongSide,
+}) => RustLib.instance.api.crateApiLocalThumbnailGetFileManagerEntryThumbnail(
+  cacheDir: cacheDir,
+  entryPath: entryPath,
+  isDir: isDir,
+  isArchive: isArchive,
+  isImage: isImage,
+  sortOrder: sortOrder,
+  maxDepth: maxDepth,
+  maxLongSide: maxLongSide,
+);

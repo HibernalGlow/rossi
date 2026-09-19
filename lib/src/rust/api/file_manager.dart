@@ -7,9 +7,9 @@ import '../frb_generated.dart';
 import 'local.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `map_entry`, `snapshot_for`, `with_session`
+// These functions are ignored because they are not marked as `pub`: `apply_session_operation`, `map_entry`, `snapshot_for`, `with_session`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `FILE_MANAGER_SESSIONS`, `NEXT_FILE_MANAGER_ID`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `deref`, `deref`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `initialize`, `initialize`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `deref`, `deref`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `initialize`, `initialize`
 
 Future<BigInt> fileManagerCreate({String? initialPath}) => RustLib.instance.api
     .crateApiFileManagerFileManagerCreate(initialPath: initialPath);
@@ -26,6 +26,22 @@ Future<FileManagerSnapshot> fileManagerNavigate({
 }) => RustLib.instance.api.crateApiFileManagerFileManagerNavigate(
   id: id,
   path: path,
+);
+
+Future<FileManagerSnapshot> fileManagerNavigateText({
+  required BigInt id,
+  required String text,
+}) => RustLib.instance.api.crateApiFileManagerFileManagerNavigateText(
+  id: id,
+  text: text,
+);
+
+Future<FileManagerSnapshot> fileManagerSetDirectoryColumns({
+  required BigInt id,
+  required bool enabled,
+}) => RustLib.instance.api.crateApiFileManagerFileManagerSetDirectoryColumns(
+  id: id,
+  enabled: enabled,
 );
 
 Future<FileManagerSnapshot> fileManagerGoBack({required BigInt id}) =>
@@ -57,6 +73,54 @@ Future<FileManagerSnapshot> fileManagerCloseTab({
   required BigInt id,
   required BigInt tabId,
 }) => RustLib.instance.api.crateApiFileManagerFileManagerCloseTab(
+  id: id,
+  tabId: tabId,
+);
+
+Future<FileManagerSnapshot> fileManagerDuplicateTab({
+  required BigInt id,
+  required BigInt tabId,
+}) => RustLib.instance.api.crateApiFileManagerFileManagerDuplicateTab(
+  id: id,
+  tabId: tabId,
+);
+
+Future<FileManagerSnapshot> fileManagerToggleTabPinned({
+  required BigInt id,
+  required BigInt tabId,
+}) => RustLib.instance.api.crateApiFileManagerFileManagerToggleTabPinned(
+  id: id,
+  tabId: tabId,
+);
+
+Future<FileManagerSnapshot> fileManagerCloseOtherTabs({
+  required BigInt id,
+  required BigInt tabId,
+}) => RustLib.instance.api.crateApiFileManagerFileManagerCloseOtherTabs(
+  id: id,
+  tabId: tabId,
+);
+
+Future<FileManagerSnapshot> fileManagerCloseTabsLeft({
+  required BigInt id,
+  required BigInt tabId,
+}) => RustLib.instance.api.crateApiFileManagerFileManagerCloseTabsLeft(
+  id: id,
+  tabId: tabId,
+);
+
+Future<FileManagerSnapshot> fileManagerCloseTabsRight({
+  required BigInt id,
+  required BigInt tabId,
+}) => RustLib.instance.api.crateApiFileManagerFileManagerCloseTabsRight(
+  id: id,
+  tabId: tabId,
+);
+
+Future<FileManagerSnapshot> fileManagerReopenClosedTab({
+  required BigInt id,
+  required BigInt tabId,
+}) => RustLib.instance.api.crateApiFileManagerFileManagerReopenClosedTab(
   id: id,
   tabId: tabId,
 );
@@ -124,6 +188,48 @@ Future<FileManagerSnapshot> fileManagerSetViewMode({
   mode: mode,
 );
 
+Future<FileManagerSnapshot> fileManagerSetShowHiddenFiles({
+  required BigInt id,
+  required bool enabled,
+}) => RustLib.instance.api.crateApiFileManagerFileManagerSetShowHiddenFiles(
+  id: id,
+  enabled: enabled,
+);
+
+Future<FileManagerSnapshot> fileManagerSetSearchQuery({
+  required BigInt id,
+  required String query,
+}) => RustLib.instance.api.crateApiFileManagerFileManagerSetSearchQuery(
+  id: id,
+  query: query,
+);
+
+Future<FileManagerSnapshot> fileManagerSetEntryFilter({
+  required BigInt id,
+  required FileManagerEntryFilter filter,
+}) => RustLib.instance.api.crateApiFileManagerFileManagerSetEntryFilter(
+  id: id,
+  filter: filter,
+);
+
+Future<FileManagerSnapshot> fileManagerSetSort({
+  required BigInt id,
+  required FileManagerSortField field,
+  required FileManagerSortOrder order,
+}) => RustLib.instance.api.crateApiFileManagerFileManagerSetSort(
+  id: id,
+  field: field,
+  order: order,
+);
+
+Future<FileManagerSnapshot> fileManagerSetDirectoriesFirst({
+  required BigInt id,
+  required bool enabled,
+}) => RustLib.instance.api.crateApiFileManagerFileManagerSetDirectoriesFirst(
+  id: id,
+  enabled: enabled,
+);
+
 bool fileManagerClose({required BigInt id}) =>
     RustLib.instance.api.crateApiFileManagerFileManagerClose(id: id);
 
@@ -145,6 +251,34 @@ class FileManagerActionResult {
           runtimeType == other.runtimeType &&
           snapshot == other.snapshot &&
           openedPath == other.openedPath;
+}
+
+class FileManagerBreadcrumb {
+  final String path;
+  final String name;
+  final bool isRoot;
+  final bool isCurrent;
+
+  const FileManagerBreadcrumb({
+    required this.path,
+    required this.name,
+    required this.isRoot,
+    required this.isCurrent,
+  });
+
+  @override
+  int get hashCode =>
+      path.hashCode ^ name.hashCode ^ isRoot.hashCode ^ isCurrent.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is FileManagerBreadcrumb &&
+          runtimeType == other.runtimeType &&
+          path == other.path &&
+          name == other.name &&
+          isRoot == other.isRoot &&
+          isCurrent == other.isCurrent;
 }
 
 class FileManagerChild {
@@ -188,6 +322,58 @@ class FileManagerChild {
           isImage == other.isImage &&
           isVideo == other.isVideo &&
           isAudio == other.isAudio;
+}
+
+class FileManagerDirectoryChoice {
+  final String path;
+  final String name;
+  final bool selected;
+
+  const FileManagerDirectoryChoice({
+    required this.path,
+    required this.name,
+    required this.selected,
+  });
+
+  @override
+  int get hashCode => path.hashCode ^ name.hashCode ^ selected.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is FileManagerDirectoryChoice &&
+          runtimeType == other.runtimeType &&
+          path == other.path &&
+          name == other.name &&
+          selected == other.selected;
+}
+
+class FileManagerDirectoryColumn {
+  final String path;
+  final String name;
+  final List<FileManagerDirectoryChoice> entries;
+  final String? error;
+
+  const FileManagerDirectoryColumn({
+    required this.path,
+    required this.name,
+    required this.entries,
+    this.error,
+  });
+
+  @override
+  int get hashCode =>
+      path.hashCode ^ name.hashCode ^ entries.hashCode ^ error.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is FileManagerDirectoryColumn &&
+          runtimeType == other.runtimeType &&
+          path == other.path &&
+          name == other.name &&
+          entries == other.entries &&
+          error == other.error;
 }
 
 class FileManagerEntry {
@@ -248,14 +434,23 @@ class FileManagerEntry {
           childNames == other.childNames;
 }
 
+enum FileManagerEntryFilter { all, folders, archives, images, video, audio }
+
 enum FileManagerInternalItemsMode { single, all }
 
 class FileManagerSnapshot {
   final BigInt sessionId;
+  final int maxTabs;
+  final bool canCreateTab;
   final BigInt generation;
   final BigInt activeTabId;
   final String activePath;
+  final bool canGoUp;
+  final List<FileManagerBreadcrumb> breadcrumbs;
+  final bool directoryColumnsEnabled;
+  final List<FileManagerDirectoryColumn> directoryColumns;
   final List<FileManagerTab> tabs;
+  final List<FileManagerTab> recentlyClosed;
   final List<FileManagerEntry> entries;
   final List<LocalRootLocation> roots;
   final bool penetrationEnabled;
@@ -263,13 +458,26 @@ class FileManagerSnapshot {
   final FileManagerInternalItemsMode internalItemsMode;
   final int maxDepth;
   final FileManagerViewMode viewMode;
+  final bool showHiddenFiles;
+  final String searchQuery;
+  final FileManagerEntryFilter entryFilter;
+  final FileManagerSortField sortField;
+  final FileManagerSortOrder sortOrder;
+  final bool directoriesFirst;
 
   const FileManagerSnapshot({
     required this.sessionId,
+    required this.maxTabs,
+    required this.canCreateTab,
     required this.generation,
     required this.activeTabId,
     required this.activePath,
+    required this.canGoUp,
+    required this.breadcrumbs,
+    required this.directoryColumnsEnabled,
+    required this.directoryColumns,
     required this.tabs,
+    required this.recentlyClosed,
     required this.entries,
     required this.roots,
     required this.penetrationEnabled,
@@ -277,22 +485,41 @@ class FileManagerSnapshot {
     required this.internalItemsMode,
     required this.maxDepth,
     required this.viewMode,
+    required this.showHiddenFiles,
+    required this.searchQuery,
+    required this.entryFilter,
+    required this.sortField,
+    required this.sortOrder,
+    required this.directoriesFirst,
   });
 
   @override
   int get hashCode =>
       sessionId.hashCode ^
+      maxTabs.hashCode ^
+      canCreateTab.hashCode ^
       generation.hashCode ^
       activeTabId.hashCode ^
       activePath.hashCode ^
+      canGoUp.hashCode ^
+      breadcrumbs.hashCode ^
+      directoryColumnsEnabled.hashCode ^
+      directoryColumns.hashCode ^
       tabs.hashCode ^
+      recentlyClosed.hashCode ^
       entries.hashCode ^
       roots.hashCode ^
       penetrationEnabled.hashCode ^
       showChildNames.hashCode ^
       internalItemsMode.hashCode ^
       maxDepth.hashCode ^
-      viewMode.hashCode;
+      viewMode.hashCode ^
+      showHiddenFiles.hashCode ^
+      searchQuery.hashCode ^
+      entryFilter.hashCode ^
+      sortField.hashCode ^
+      sortOrder.hashCode ^
+      directoriesFirst.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -300,18 +527,35 @@ class FileManagerSnapshot {
       other is FileManagerSnapshot &&
           runtimeType == other.runtimeType &&
           sessionId == other.sessionId &&
+          maxTabs == other.maxTabs &&
+          canCreateTab == other.canCreateTab &&
           generation == other.generation &&
           activeTabId == other.activeTabId &&
           activePath == other.activePath &&
+          canGoUp == other.canGoUp &&
+          breadcrumbs == other.breadcrumbs &&
+          directoryColumnsEnabled == other.directoryColumnsEnabled &&
+          directoryColumns == other.directoryColumns &&
           tabs == other.tabs &&
+          recentlyClosed == other.recentlyClosed &&
           entries == other.entries &&
           roots == other.roots &&
           penetrationEnabled == other.penetrationEnabled &&
           showChildNames == other.showChildNames &&
           internalItemsMode == other.internalItemsMode &&
           maxDepth == other.maxDepth &&
-          viewMode == other.viewMode;
+          viewMode == other.viewMode &&
+          showHiddenFiles == other.showHiddenFiles &&
+          searchQuery == other.searchQuery &&
+          entryFilter == other.entryFilter &&
+          sortField == other.sortField &&
+          sortOrder == other.sortOrder &&
+          directoriesFirst == other.directoriesFirst;
 }
+
+enum FileManagerSortField { name, type, size }
+
+enum FileManagerSortOrder { ascending, descending }
 
 class FileManagerTab {
   final BigInt id;
@@ -319,6 +563,11 @@ class FileManagerTab {
   final String path;
   final bool canGoBack;
   final bool canGoForward;
+  final bool pinned;
+  final bool canClose;
+  final bool canCloseOthers;
+  final bool canCloseLeft;
+  final bool canCloseRight;
 
   const FileManagerTab({
     required this.id,
@@ -326,6 +575,11 @@ class FileManagerTab {
     required this.path,
     required this.canGoBack,
     required this.canGoForward,
+    required this.pinned,
+    required this.canClose,
+    required this.canCloseOthers,
+    required this.canCloseLeft,
+    required this.canCloseRight,
   });
 
   @override
@@ -334,7 +588,12 @@ class FileManagerTab {
       title.hashCode ^
       path.hashCode ^
       canGoBack.hashCode ^
-      canGoForward.hashCode;
+      canGoForward.hashCode ^
+      pinned.hashCode ^
+      canClose.hashCode ^
+      canCloseOthers.hashCode ^
+      canCloseLeft.hashCode ^
+      canCloseRight.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -345,7 +604,12 @@ class FileManagerTab {
           title == other.title &&
           path == other.path &&
           canGoBack == other.canGoBack &&
-          canGoForward == other.canGoForward;
+          canGoForward == other.canGoForward &&
+          pinned == other.pinned &&
+          canClose == other.canClose &&
+          canCloseOthers == other.canCloseOthers &&
+          canCloseLeft == other.canCloseLeft &&
+          canCloseRight == other.canCloseRight;
 }
 
 enum FileManagerViewMode { list, grid }

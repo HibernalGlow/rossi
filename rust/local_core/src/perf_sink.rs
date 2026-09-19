@@ -23,6 +23,8 @@ pub enum PerfValue {
     U64(u64),
     F64(f64),
     Str(&'static str),
+    Bool(bool),
+    String(String),
 }
 
 impl From<usize> for PerfValue {
@@ -49,6 +51,18 @@ impl From<&'static str> for PerfValue {
     }
 }
 
+impl From<bool> for PerfValue {
+    fn from(value: bool) -> Self {
+        Self::Bool(value)
+    }
+}
+
+impl From<String> for PerfValue {
+    fn from(value: String) -> Self {
+        Self::String(value)
+    }
+}
+
 impl PerfValue {
     /// 给日志用。刻意不实现 `Display` —— 这是埋点载荷，不是面向用户的值。
     pub fn as_text(&self) -> String {
@@ -57,6 +71,8 @@ impl PerfValue {
             Self::U64(v) => v.to_string(),
             Self::F64(v) => format!("{v:.3}"),
             Self::Str(v) => (*v).to_string(),
+            Self::Bool(v) => v.to_string(),
+            Self::String(v) => v.clone(),
         }
     }
 }

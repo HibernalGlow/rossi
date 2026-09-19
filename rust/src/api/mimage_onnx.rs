@@ -133,7 +133,7 @@ pub async fn mimage_onnx_upscale(
             image::open(&input_path).with_context(|| format!("decode input: {input_path}"))?;
         let rgb = input.to_rgb8();
         let (iw, ih) = rgb.dimensions();
-        let session_key = format!("{model_path}:{}", meta.len());
+        let session_key = format!("{model_path}:{}:{:?}", meta.len(), meta.modified()?);
         let mut builder = Session::builder()
             .map_err(|e| anyhow!("session builder: {e:?}"))?
             .with_optimization_level(ort::session::builder::GraphOptimizationLevel::Level3)
@@ -145,6 +145,9 @@ pub async fn mimage_onnx_upscale(
             .lock()
             .map_err(|_| anyhow!("mImage ONNX session cache poisoned"))?;
         let session_created = if !sessions.contains_key(&session_key) {
+            // 本地重新导入同名模型后释放旧 session，避免反复安装积累内存。
+            let prefix = format!("{model_path}:");
+            sessions.retain(|key, _| !key.starts_with(&prefix));
             let session = builder
                 .commit_from_file(&model_path)
                 .map_err(|e| anyhow!("load model with CoreML: {e:?}"))?;

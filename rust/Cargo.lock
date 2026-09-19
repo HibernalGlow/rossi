@@ -4443,6 +4443,8 @@ dependencies = [
  "jxl-oxide",
  "rayon",
  "rusqlite",
+ "serde",
+ "serde_json",
  "sha2",
  "tempfile",
  "unrar",

@@ -4,8 +4,8 @@
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum NaturalChunk {
-    Text(String),
     Num(u64),
+    Text(String),
 }
 
 fn natural_digit_value(ch: char) -> Option<u32> {
@@ -50,4 +50,27 @@ pub fn natural_sort_key(name: &str) -> Vec<NaturalChunk> {
         }
     }
     chunks
+}
+
+/// `std::fs::Metadata` から mtime を UNIX epoch 秒として返す。取得失敗時は 0。
+pub fn mtime_secs(meta: &std::fs::Metadata) -> i64 {
+    meta.modified()
+        .ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map_or(0, |d| d.as_secs() as i64)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_numbers_precede_letters() {
+        let num_key = natural_sort_key("1BACKUP");
+        let text_key = natural_sort_key("BaiduNetdiskDownload");
+        assert!(
+            num_key < text_key,
+            "Numbers must precede letters in natural sort: {num_key:?} should be less than {text_key:?}"
+        );
+    }
 }

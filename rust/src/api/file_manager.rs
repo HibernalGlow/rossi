@@ -12,7 +12,8 @@ use dashmap::DashMap;
 use flutter_rust_bridge::frb;
 use lazy_static::lazy_static;
 use rossi_local_core::{
-    FileManagerEntry as CoreEntry, FileManagerState, InternalItemsMode, OpenEntryResult, ViewMode,
+    EntryFilter, FileManagerEntry as CoreEntry, FileManagerState, InternalItemsMode,
+    OpenEntryResult, SortField, SortOrder, ViewMode,
 };
 
 use super::local::LocalRootLocation;
@@ -34,6 +35,29 @@ pub enum FileManagerViewMode {
     Grid,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FileManagerSortField {
+    Name,
+    Type,
+    Size,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FileManagerSortOrder {
+    Ascending,
+    Descending,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FileManagerEntryFilter {
+    All,
+    Folders,
+    Archives,
+    Images,
+    Video,
+    Audio,
+}
+
 #[derive(Debug, Clone)]
 pub struct FileManagerTab {
     pub id: u64,
@@ -41,6 +65,11 @@ pub struct FileManagerTab {
     pub path: String,
     pub can_go_back: bool,
     pub can_go_forward: bool,
+    pub pinned: bool,
+    pub can_close: bool,
+    pub can_close_others: bool,
+    pub can_close_left: bool,
+    pub can_close_right: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -71,12 +100,42 @@ pub struct FileManagerEntry {
 }
 
 #[derive(Debug, Clone)]
+pub struct FileManagerBreadcrumb {
+    pub path: String,
+    pub name: String,
+    pub is_root: bool,
+    pub is_current: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct FileManagerDirectoryChoice {
+    pub path: String,
+    pub name: String,
+    pub selected: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct FileManagerDirectoryColumn {
+    pub path: String,
+    pub name: String,
+    pub entries: Vec<FileManagerDirectoryChoice>,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone)]
 pub struct FileManagerSnapshot {
     pub session_id: u64,
+    pub max_tabs: u8,
+    pub can_create_tab: bool,
     pub generation: u64,
     pub active_tab_id: u64,
     pub active_path: String,
+    pub can_go_up: bool,
+    pub breadcrumbs: Vec<FileManagerBreadcrumb>,
+    pub directory_columns_enabled: bool,
+    pub directory_columns: Vec<FileManagerDirectoryColumn>,
     pub tabs: Vec<FileManagerTab>,
+    pub recently_closed: Vec<FileManagerTab>,
     pub entries: Vec<FileManagerEntry>,
     pub roots: Vec<LocalRootLocation>,
     pub penetration_enabled: bool,
@@ -84,6 +143,12 @@ pub struct FileManagerSnapshot {
     pub internal_items_mode: FileManagerInternalItemsMode,
     pub max_depth: u8,
     pub view_mode: FileManagerViewMode,
+    pub show_hidden_files: bool,
+    pub search_query: String,
+    pub entry_filter: FileManagerEntryFilter,
+    pub sort_field: FileManagerSortField,
+    pub sort_order: FileManagerSortOrder,
+    pub directories_first: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -124,6 +189,30 @@ pub async fn file_manager_refresh(id: u64) -> Result<FileManagerSnapshot, Error>
 pub async fn file_manager_navigate(id: u64, path: String) -> Result<FileManagerSnapshot, Error> {
     with_session(id, move |state| {
         state.navigate(PathBuf::from(path))?;
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+#[frb]
+pub async fn file_manager_navigate_text(
+    id: u64,
+    text: String,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.navigate_text(&text)?;
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+#[frb]
+pub async fn file_manager_set_directory_columns(
+    id: u64,
+    enabled: bool,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.set_directory_columns_enabled(enabled);
         snapshot_for(id, state)
     })
     .await
@@ -185,6 +274,86 @@ pub async fn file_manager_close_tab(id: u64, tab_id: u64) -> Result<FileManagerS
         if !state.close_tab(tab_id) {
             return Err(anyhow!("最后一个页签不能关闭，或页签不存在: {tab_id}"));
         }
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+#[frb]
+pub async fn file_manager_duplicate_tab(
+    id: u64,
+    tab_id: u64,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.duplicate_tab(tab_id)?;
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+#[frb]
+pub async fn file_manager_toggle_tab_pinned(
+    id: u64,
+    tab_id: u64,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        if !state.toggle_tab_pinned(tab_id) {
+            return Err(anyhow!("页签不存在: {tab_id}"));
+        }
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+#[frb]
+pub async fn file_manager_close_other_tabs(
+    id: u64,
+    tab_id: u64,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        if !state.close_other_tabs(tab_id) {
+            return Err(anyhow!("没有可关闭的其它页签，或页签不存在: {tab_id}"));
+        }
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+#[frb]
+pub async fn file_manager_close_tabs_left(
+    id: u64,
+    tab_id: u64,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        if !state.close_tabs_left(tab_id) {
+            return Err(anyhow!("左侧没有可关闭的页签，或页签不存在: {tab_id}"));
+        }
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+#[frb]
+pub async fn file_manager_close_tabs_right(
+    id: u64,
+    tab_id: u64,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        if !state.close_tabs_right(tab_id) {
+            return Err(anyhow!("右侧没有可关闭的页签，或页签不存在: {tab_id}"));
+        }
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+#[frb]
+pub async fn file_manager_reopen_closed_tab(
+    id: u64,
+    tab_id: u64,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.reopen_closed_tab(tab_id)?;
         snapshot_for(id, state)
     })
     .await
@@ -295,6 +464,84 @@ pub async fn file_manager_set_view_mode(
     .await
 }
 
+#[frb]
+pub async fn file_manager_set_show_hidden_files(
+    id: u64,
+    enabled: bool,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.set_show_hidden_files(enabled);
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+#[frb]
+pub async fn file_manager_set_search_query(
+    id: u64,
+    query: String,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.set_search_query(query);
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+#[frb]
+pub async fn file_manager_set_entry_filter(
+    id: u64,
+    filter: FileManagerEntryFilter,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.set_entry_filter(match filter {
+            FileManagerEntryFilter::All => EntryFilter::All,
+            FileManagerEntryFilter::Folders => EntryFilter::Folders,
+            FileManagerEntryFilter::Archives => EntryFilter::Archives,
+            FileManagerEntryFilter::Images => EntryFilter::Images,
+            FileManagerEntryFilter::Video => EntryFilter::Video,
+            FileManagerEntryFilter::Audio => EntryFilter::Audio,
+        });
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+#[frb]
+pub async fn file_manager_set_sort(
+    id: u64,
+    field: FileManagerSortField,
+    order: FileManagerSortOrder,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.set_sort(
+            match field {
+                FileManagerSortField::Name => SortField::Name,
+                FileManagerSortField::Type => SortField::Type,
+                FileManagerSortField::Size => SortField::Size,
+            },
+            match order {
+                FileManagerSortOrder::Ascending => SortOrder::Ascending,
+                FileManagerSortOrder::Descending => SortOrder::Descending,
+            },
+        );
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+#[frb]
+pub async fn file_manager_set_directories_first(
+    id: u64,
+    enabled: bool,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.set_directories_first(enabled);
+        snapshot_for(id, state)
+    })
+    .await
+}
+
 #[frb(sync)]
 pub fn file_manager_close(id: u64) -> bool {
     FILE_MANAGER_SESSIONS.remove(&id).is_some()
@@ -310,24 +557,38 @@ where
             let mut state = FILE_MANAGER_SESSIONS
                 .get_mut(&id)
                 .ok_or_else(|| anyhow!("文件管理器会话不存在或已关闭: id={id}"))?;
-            operation(&mut state)
+            // 更新和快照作为一次事务：目录读取失败时不提交半完成的导航或页签操作。
+            apply_session_operation(&mut state, operation)
         })
         .await?
 }
 
+fn apply_session_operation<R>(
+    state: &mut FileManagerState,
+    operation: impl FnOnce(&mut FileManagerState) -> Result<R, Error>,
+) -> Result<R, Error> {
+    let mut candidate = state.clone();
+    let result = operation(&mut candidate)?;
+    *state = candidate;
+    Ok(result)
+}
+
 fn snapshot_for(id: u64, state: &mut FileManagerState) -> Result<FileManagerSnapshot, Error> {
     let entries = state.entries()?.into_iter().map(map_entry).collect();
-    let tabs = state
-        .tabs()
-        .iter()
-        .map(|tab| FileManagerTab {
-            id: tab.id,
-            title: tab.title(),
-            path: tab.path.to_string_lossy().into_owned(),
-            can_go_back: tab.can_go_back(),
-            can_go_forward: tab.can_go_forward(),
-        })
-        .collect();
+    let map_tab = |tab: &rossi_local_core::FileManagerTab| FileManagerTab {
+        id: tab.id,
+        title: tab.title(),
+        path: tab.path.to_string_lossy().into_owned(),
+        can_go_back: tab.can_go_back(),
+        can_go_forward: tab.can_go_forward(),
+        pinned: tab.pinned,
+        can_close: state.can_close_tab(tab.id),
+        can_close_others: state.can_close_other_tabs(tab.id),
+        can_close_left: state.can_close_tabs_on_side(tab.id, true),
+        can_close_right: state.can_close_tabs_on_side(tab.id, false),
+    };
+    let tabs = state.tabs().iter().map(map_tab).collect();
+    let recently_closed = state.recently_closed().iter().map(map_tab).collect();
     let roots = rossi_local_core::get_available_roots()
         .into_iter()
         .map(|root| LocalRootLocation {
@@ -338,10 +599,43 @@ fn snapshot_for(id: u64, state: &mut FileManagerState) -> Result<FileManagerSnap
     let settings = state.settings();
     Ok(FileManagerSnapshot {
         session_id: id,
+        max_tabs: rossi_local_core::MAX_FILE_MANAGER_TABS as u8,
+        can_create_tab: state.can_create_tab(),
         generation: state.generation(),
         active_tab_id: state.active_tab_id(),
         active_path: state.active_path().to_string_lossy().into_owned(),
+        can_go_up: state.can_go_up(),
+        breadcrumbs: state
+            .breadcrumbs()
+            .into_iter()
+            .map(|part| FileManagerBreadcrumb {
+                path: part.path.to_string_lossy().into_owned(),
+                name: part.name,
+                is_root: part.is_root,
+                is_current: part.is_current,
+            })
+            .collect(),
+        directory_columns_enabled: settings.directory_columns_enabled,
+        directory_columns: state
+            .directory_columns()
+            .into_iter()
+            .map(|column| FileManagerDirectoryColumn {
+                path: column.path.to_string_lossy().into_owned(),
+                name: column.name,
+                error: column.error,
+                entries: column
+                    .entries
+                    .into_iter()
+                    .map(|entry| FileManagerDirectoryChoice {
+                        path: entry.path.to_string_lossy().into_owned(),
+                        name: entry.name,
+                        selected: entry.selected,
+                    })
+                    .collect(),
+            })
+            .collect(),
         tabs,
+        recently_closed,
         entries,
         roots,
         penetration_enabled: settings.penetration_enabled,
@@ -355,6 +649,26 @@ fn snapshot_for(id: u64, state: &mut FileManagerState) -> Result<FileManagerSnap
             ViewMode::List => FileManagerViewMode::List,
             ViewMode::Grid => FileManagerViewMode::Grid,
         },
+        show_hidden_files: settings.show_hidden_files,
+        search_query: settings.search_query.clone(),
+        entry_filter: match settings.entry_filter {
+            EntryFilter::All => FileManagerEntryFilter::All,
+            EntryFilter::Folders => FileManagerEntryFilter::Folders,
+            EntryFilter::Archives => FileManagerEntryFilter::Archives,
+            EntryFilter::Images => FileManagerEntryFilter::Images,
+            EntryFilter::Video => FileManagerEntryFilter::Video,
+            EntryFilter::Audio => FileManagerEntryFilter::Audio,
+        },
+        sort_field: match settings.sort_field {
+            SortField::Name => FileManagerSortField::Name,
+            SortField::Type => FileManagerSortField::Type,
+            SortField::Size => FileManagerSortField::Size,
+        },
+        sort_order: match settings.sort_order {
+            SortOrder::Ascending => FileManagerSortOrder::Ascending,
+            SortOrder::Descending => FileManagerSortOrder::Descending,
+        },
+        directories_first: settings.directories_first,
     })
 }
 
@@ -382,5 +696,91 @@ fn map_entry(entry: CoreEntry) -> FileManagerEntry {
                 is_audio: child.is_audio,
             })
             .collect(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn failed_snapshot_rolls_back_tab_activation() {
+        let root = tempfile::tempdir().unwrap();
+        let gone = root.path().join("gone");
+        std::fs::create_dir(&gone).unwrap();
+        let mut state = FileManagerState::new(Some(root.path().into())).unwrap();
+        let stale_tab = state.new_tab(Some(gone.clone())).unwrap();
+        state.activate_tab(1);
+        std::fs::remove_dir(&gone).unwrap();
+        let generation = state.generation();
+        let result = apply_session_operation(&mut state, |candidate| {
+            candidate.activate_tab(stale_tab);
+            snapshot_for(9, candidate)
+        });
+        assert!(result.is_err());
+        assert_eq!(state.active_tab_id(), 1);
+        assert_eq!(state.generation(), generation);
+        assert_eq!(snapshot_for(9, &mut state).unwrap().tabs.len(), 2);
+    }
+
+    #[test]
+    fn snapshot_exposes_core_capabilities_and_commits_sort_settings() {
+        let root = tempfile::tempdir().unwrap();
+        let mut state = FileManagerState::new(Some(root.path().into())).unwrap();
+        let snapshot = apply_session_operation(&mut state, |candidate| {
+            candidate.set_sort(SortField::Size, SortOrder::Descending);
+            snapshot_for(9, candidate)
+        })
+        .unwrap();
+        assert_eq!(snapshot.sort_field, FileManagerSortField::Size);
+        assert_eq!(snapshot.sort_order, FileManagerSortOrder::Descending);
+        assert_eq!(state.settings().sort_field, SortField::Size);
+        assert_eq!(
+            snapshot.max_tabs as usize,
+            rossi_local_core::MAX_FILE_MANAGER_TABS
+        );
+        assert!(snapshot.can_create_tab);
+        assert!(!snapshot.tabs[0].can_close);
+        assert!(!snapshot.tabs[0].can_close_others);
+        assert!(!snapshot.tabs[0].can_close_left);
+        assert!(!snapshot.tabs[0].can_close_right);
+    }
+
+    #[test]
+    fn snapshot_projects_navigation_and_failed_edit_does_not_commit() {
+        let root = tempfile::tempdir().unwrap();
+        let child = root.path().join("child");
+        std::fs::create_dir(&child).unwrap();
+        let mut state = FileManagerState::new(Some(root.path().into())).unwrap();
+        let snapshot = apply_session_operation(&mut state, |candidate| {
+            candidate.set_directory_columns_enabled(true);
+            candidate.navigate_text("child")?;
+            snapshot_for(9, candidate)
+        })
+        .unwrap();
+        assert_eq!(
+            snapshot.breadcrumbs.last().unwrap().path,
+            child.to_string_lossy()
+        );
+        assert!(snapshot.breadcrumbs.last().unwrap().is_current);
+        assert!(snapshot.can_go_up);
+        assert!(snapshot.directory_columns_enabled);
+        assert!(snapshot.directory_columns.iter().any(|column| {
+            column
+                .entries
+                .iter()
+                .any(|entry| entry.name == "child" && entry.selected)
+        }));
+        let generation = snapshot.generation;
+        assert!(
+            apply_session_operation(&mut state, |candidate| {
+                candidate.navigate_text("does not exist")?;
+                snapshot_for(9, candidate)
+            })
+            .is_err()
+        );
+        assert_eq!(state.generation(), generation);
+        assert_eq!(state.active_path(), child);
+        assert_eq!(state.active_tab().back.len(), 1);
     }
 }
