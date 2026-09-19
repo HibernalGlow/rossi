@@ -79,6 +79,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$notification$zh_CN notification = Translations$notification$zh_CN.internal(_root);
 	late final Translations$update$zh_CN update = Translations$update$zh_CN.internal(_root);
 	late final Translations$dialog$zh_CN dialog = Translations$dialog$zh_CN.internal(_root);
+	late final Translations$shelfMenu$zh_CN shelfMenu = Translations$shelfMenu$zh_CN.internal(_root);
 }
 
 // Path: common
@@ -623,6 +624,15 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '按标签识别「汉化 / 中文 / 生肉」并标记在封面左上角'
 	String get cardTranslationBadgeSubtitle => '按标签识别「汉化 / 中文 / 生肉」并标记在封面左上角';
 
+	/// zh-CN: '卡片交互'
+	String get cardInteraction => '卡片交互';
+
+	/// zh-CN: '收藏 / 历史卡片右键菜单'
+	String get shelfCardContextMenu => '收藏 / 历史卡片右键菜单';
+
+	/// zh-CN: '右键条目弹出操作菜单（触摸端长按）；含打开、在文件管理新页签打开、复制标题与链接、收藏、移除'
+	String get shelfCardContextMenuSubtitle => '右键条目弹出操作菜单（触摸端长按）；含打开、在文件管理新页签打开、复制标题与链接、收藏、移除';
+
 	/// zh-CN: '喜欢画师管理'
 	String get favoriteArtistManagement => '喜欢画师管理';
 
@@ -833,11 +843,8 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '选择启动页，打开应用直达目标'
 	String get splashPageSubtitle => '选择启动页，打开应用直达目标';
 
-	/// zh-CN: '启动时直接打开工作台'
-	String get startWithWorkspace => '启动时直接打开工作台';
-
-	/// zh-CN: '打开应用后直接进入泳道 / 四边栏工作台（仅平板与桌面端可用）'
-	String get startWithWorkspaceSubtitle => '打开应用后直接进入泳道 / 四边栏工作台（仅平板与桌面端可用）';
+	/// zh-CN: '工作台'
+	String get startWithWorkspace => '工作台';
 
 	/// zh-CN: '关闭行为'
 	String get desktopCloseBehavior => '关闭行为';
@@ -1201,6 +1208,60 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '未设置'
 	String get notSet => '未设置';
+
+	/// zh-CN: '文件管理器'
+	String get fileManager => '文件管理器';
+
+	/// zh-CN: '本地文件浏览的主页、工具栏与视图记忆'
+	String get fileManagerSubtitle => '本地文件浏览的主页、工具栏与视图记忆';
+
+	/// zh-CN: '主页'
+	String get fileManagerSectionHome => '主页';
+
+	/// zh-CN: '启用主页键'
+	String get fileManagerHomeEnabled => '启用主页键';
+
+	/// zh-CN: '关闭后文件管理器工具栏不再显示主页键'
+	String get fileManagerHomeEnabledSubtitle => '关闭后文件管理器工具栏不再显示主页键';
+
+	/// zh-CN: '主页目录'
+	String get fileManagerHomePath => '主页目录';
+
+	/// zh-CN: '主页键跳到哪个目录'
+	String get fileManagerHomePathSubtitle => '主页键跳到哪个目录';
+
+	/// zh-CN: '未设置'
+	String get fileManagerHomePathEmpty => '未设置';
+
+	/// zh-CN: '选择目录'
+	String get fileManagerHomePathPick => '选择目录';
+
+	/// zh-CN: '清除主页'
+	String get fileManagerHomePathClear => '清除主页';
+
+	/// zh-CN: '已清除主页'
+	String get fileManagerHomePathCleared => '已清除主页';
+
+	/// zh-CN: '该目录已不存在，请重新选择'
+	String get fileManagerHomePathStale => '该目录已不存在，请重新选择';
+
+	/// zh-CN: '当前平台不支持选择目录'
+	String get fileManagerHomePathUnsupported => '当前平台不支持选择目录';
+
+	/// zh-CN: '工具栏'
+	String get fileManagerSectionToolbar => '工具栏';
+
+	/// zh-CN: '浏览视图'
+	String get fileManagerSectionView => '浏览视图';
+
+	/// zh-CN: '记住每个目录的视图与排序'
+	String get fileManagerRememberViewState => '记住每个目录的视图与排序';
+
+	/// zh-CN: '每个目录各自记住视图、排序与筛选；关闭后浏览照常，只是不再记忆'
+	String get fileManagerRememberViewStateSubtitle => '每个目录各自记住视图、排序与筛选；关闭后浏览照常，只是不再记忆';
+
+	/// zh-CN: '主页已更新'
+	String get fileManagerHomePathSet => '主页已更新';
 }
 
 // Path: bookshelf
@@ -1996,6 +2057,21 @@ class Translations$reader$zh_CN {
 
 	/// zh-CN: '单页式（从右到左）'
 	String get singlePageRtl => '单页式（从右到左）';
+
+	/// zh-CN: '阅读方向'
+	String get readingDirectionToggle => '阅读方向';
+
+	/// zh-CN: '当前从左到右（点按切换为从右到左）'
+	String get readingDirectionToggleLtr => '当前从左到右（点按切换为从右到左）';
+
+	/// zh-CN: '当前从右到左（点按切换为从左到右）'
+	String get readingDirectionToggleRtl => '当前从右到左（点按切换为从左到右）';
+
+	/// zh-CN: '条漫模式没有左右翻页方向'
+	String get readingDirectionToggleDisabled => '条漫模式没有左右翻页方向';
+
+	/// zh-CN: '顶栏显示阅读方向切换'
+	String get readingDirectionToggleSetting => '顶栏显示阅读方向切换';
 
 	/// zh-CN: '双页阅读'
 	String get doublePage => '双页阅读';
@@ -4296,6 +4372,78 @@ class Translations$dialog$zh_CN {
 	String get rememberChoice => '记住我的选择';
 }
 
+// Path: shelfMenu
+class Translations$shelfMenu$zh_CN {
+	Translations$shelfMenu$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '打开'
+	String get open => '打开';
+
+	/// zh-CN: '继续阅读'
+	String get resumeReading => '继续阅读';
+
+	/// zh-CN: '在文件管理新页签打开'
+	String get openInFileManagerTab => '在文件管理新页签打开';
+
+	/// zh-CN: '复制标题'
+	String get copyTitle => '复制标题';
+
+	/// zh-CN: '复制链接'
+	String get copyLink => '复制链接';
+
+	/// zh-CN: '收藏'
+	String get addFavorite => '收藏';
+
+	/// zh-CN: '已在收藏中'
+	String get alreadyFavorite => '已在收藏中';
+
+	/// zh-CN: '取消收藏'
+	String get removeFavorite => '取消收藏';
+
+	/// zh-CN: '从历史记录移除'
+	String get removeHistory => '从历史记录移除';
+
+	/// zh-CN: '已复制标题「$title」'
+	String copiedTitle({required Object title}) => '已复制标题「${title}」';
+
+	/// zh-CN: '已复制链接「$link」'
+	String copiedLink({required Object link}) => '已复制链接「${link}」';
+
+	/// zh-CN: '已在文件管理新页签打开'
+	String get fileManagerTabOpened => '已在文件管理新页签打开';
+
+	/// zh-CN: '文件管理面板还没准备好，稍后再试'
+	String get fileManagerTabUnavailable => '文件管理面板还没准备好，稍后再试';
+
+	/// zh-CN: '这条漫画没有本地目录，无法在文件管理里打开'
+	String get fileManagerTabNoLocalPath => '这条漫画没有本地目录，无法在文件管理里打开';
+
+	/// zh-CN: '已收藏「$title」'
+	String favoriteAdded({required Object title}) => '已收藏「${title}」';
+
+	/// zh-CN: '已取消收藏「$title」'
+	String favoriteRemoved({required Object title}) => '已取消收藏「${title}」';
+
+	/// zh-CN: '已从历史记录移除「$title」'
+	String historyRemoved({required Object title}) => '已从历史记录移除「${title}」';
+
+	/// zh-CN: '取消收藏？'
+	String get removeFavoriteConfirmTitle => '取消收藏？';
+
+	/// zh-CN: '「$title」将从收藏库移除，源文件与阅读记录不受影响。'
+	String removeFavoriteConfirmBody({required Object title}) => '「${title}」将从收藏库移除，源文件与阅读记录不受影响。';
+
+	/// zh-CN: '移除历史记录？'
+	String get removeHistoryConfirmTitle => '移除历史记录？';
+
+	/// zh-CN: '「$title」将从阅读历史中移除，源文件不会被删除。'
+	String removeHistoryConfirmBody({required Object title}) => '「${title}」将从阅读历史中移除，源文件不会被删除。';
+}
+
 /// The flat map containing all translations for locale <zh-CN>.
 /// Only for edge cases! For simple maps, use the map function of this library.
 ///
@@ -4474,6 +4622,9 @@ extension on Translations {
 			'settings.cardDownloadBadgeSubtitle' => '封面右上角显示下载按钮，点一下直接下载整本',
 			'settings.cardTranslationBadge' => '语言角标',
 			'settings.cardTranslationBadgeSubtitle' => '按标签识别「汉化 / 中文 / 生肉」并标记在封面左上角',
+			'settings.cardInteraction' => '卡片交互',
+			'settings.shelfCardContextMenu' => '收藏 / 历史卡片右键菜单',
+			'settings.shelfCardContextMenuSubtitle' => '右键条目弹出操作菜单（触摸端长按）；含打开、在文件管理新页签打开、复制标题与链接、收藏、移除',
 			'settings.favoriteArtistManagement' => '喜欢画师管理',
 			'settings.favoriteArtistManagementSubtitle' => ({required Object count}) => '已添加 ${count} 位画师',
 			'settings.favoriteArtistManagementSubtitleEmpty' => '暂未添加画师',
@@ -4544,8 +4695,7 @@ extension on Translations {
 			'settings.appBehavior' => '应用行为',
 			'settings.splashPage' => '开屏页',
 			'settings.splashPageSubtitle' => '选择启动页，打开应用直达目标',
-			'settings.startWithWorkspace' => '启动时直接打开工作台',
-			'settings.startWithWorkspaceSubtitle' => '打开应用后直接进入泳道 / 四边栏工作台（仅平板与桌面端可用）',
+			'settings.startWithWorkspace' => '工作台',
 			'settings.desktopCloseBehavior' => '关闭行为',
 			'settings.desktopCloseBehaviorSubtitle' => '选择点击关闭按钮时的行为',
 			'settings.desktopCloseAsk' => '询问',
@@ -4667,6 +4817,24 @@ extension on Translations {
 			'settings.debugMode' => '调试模式',
 			'settings.debugAddress' => '调试地址',
 			'settings.notSet' => '未设置',
+			'settings.fileManager' => '文件管理器',
+			'settings.fileManagerSubtitle' => '本地文件浏览的主页、工具栏与视图记忆',
+			'settings.fileManagerSectionHome' => '主页',
+			'settings.fileManagerHomeEnabled' => '启用主页键',
+			'settings.fileManagerHomeEnabledSubtitle' => '关闭后文件管理器工具栏不再显示主页键',
+			'settings.fileManagerHomePath' => '主页目录',
+			'settings.fileManagerHomePathSubtitle' => '主页键跳到哪个目录',
+			'settings.fileManagerHomePathEmpty' => '未设置',
+			'settings.fileManagerHomePathPick' => '选择目录',
+			'settings.fileManagerHomePathClear' => '清除主页',
+			'settings.fileManagerHomePathCleared' => '已清除主页',
+			'settings.fileManagerHomePathStale' => '该目录已不存在，请重新选择',
+			'settings.fileManagerHomePathUnsupported' => '当前平台不支持选择目录',
+			'settings.fileManagerSectionToolbar' => '工具栏',
+			'settings.fileManagerSectionView' => '浏览视图',
+			'settings.fileManagerRememberViewState' => '记住每个目录的视图与排序',
+			'settings.fileManagerRememberViewStateSubtitle' => '每个目录各自记住视图、排序与筛选；关闭后浏览照常，只是不再记忆',
+			'settings.fileManagerHomePathSet' => '主页已更新',
 			'bookshelf.title' => '书架',
 			'bookshelf.favorite' => '收藏',
 			'bookshelf.history' => '历史',
@@ -4796,6 +4964,8 @@ extension on Translations {
 			'comicInfo.downloadForbidden' => '禁止下载',
 			'comicInfo.addedToCollection' => '已添加收藏',
 			'comicInfo.removedFromCollection' => '已取消收藏',
+			_ => null,
+		} ?? switch (path) {
 			'comicInfo.confirmUncollectTitle' => '确认取消收藏',
 			'comicInfo.confirmUncollectContent' => '此项操作会删除该漫画在所有文件夹的记录，是否确认删除？',
 			'comicInfo.commentForbidden' => '该漫画禁止评论',
@@ -4816,8 +4986,6 @@ extension on Translations {
 			'comicInfo.preview' => '预览',
 			'comicInfo.episodeCount' => ({required Object count}) => '${count} 话',
 			'comicInfo.episodeFallback' => ({required Object index}) => '${index}',
-			_ => null,
-		} ?? switch (path) {
 			'comicInfo.episodeLabel' => ({required Object index}) => '${index}',
 			'comicInfo.author' => '作者',
 			'comicInfo.tags' => '标签',
@@ -4925,6 +5093,11 @@ extension on Translations {
 			'reader.webtoon' => '条漫',
 			'reader.singlePageLtr' => '单页式（从左到右）',
 			'reader.singlePageRtl' => '单页式（从右到左）',
+			'reader.readingDirectionToggle' => '阅读方向',
+			'reader.readingDirectionToggleLtr' => '当前从左到右（点按切换为从右到左）',
+			'reader.readingDirectionToggleRtl' => '当前从右到左（点按切换为从左到右）',
+			'reader.readingDirectionToggleDisabled' => '条漫模式没有左右翻页方向',
+			'reader.readingDirectionToggleSetting' => '顶栏显示阅读方向切换',
 			'reader.doublePage' => '双页阅读',
 			'reader.doublePageSubtitle' => '在当前阅读模式中启用双页并排',
 			'reader.doublePageSeamless' => '双页无缝',
@@ -5305,6 +5478,8 @@ extension on Translations {
 			'realSr.modeEfficiency' => '效率优先',
 			'realSr.modeQuality' => '质量优先',
 			'realSr.noiseConservative' => '保守',
+			_ => null,
+		} ?? switch (path) {
 			'realSr.noise0' => '无降噪',
 			'realSr.noise1' => '降噪 1',
 			'realSr.noise2' => '降噪 2',
@@ -5330,8 +5505,6 @@ extension on Translations {
 			'about.version' => ({required Object version}) => '版本号: ${version}',
 			'about.loading' => '加载中...',
 			'about.fetchFailed' => '获取失败',
-			_ => null,
-		} ?? switch (path) {
 			'about.networkError' => '网络错误',
 			'about.projectAddress' => '项目地址',
 			'about.projectAddressDesc' => '喜欢这个项目吗？点个star支持一下吧！',
@@ -5612,6 +5785,27 @@ extension on Translations {
 			'update.unknownArch' => '未知',
 			'dialog.hideOrClose' => '隐藏到托盘或关闭程序',
 			'dialog.rememberChoice' => '记住我的选择',
+			'shelfMenu.open' => '打开',
+			'shelfMenu.resumeReading' => '继续阅读',
+			'shelfMenu.openInFileManagerTab' => '在文件管理新页签打开',
+			'shelfMenu.copyTitle' => '复制标题',
+			'shelfMenu.copyLink' => '复制链接',
+			'shelfMenu.addFavorite' => '收藏',
+			'shelfMenu.alreadyFavorite' => '已在收藏中',
+			'shelfMenu.removeFavorite' => '取消收藏',
+			'shelfMenu.removeHistory' => '从历史记录移除',
+			'shelfMenu.copiedTitle' => ({required Object title}) => '已复制标题「${title}」',
+			'shelfMenu.copiedLink' => ({required Object link}) => '已复制链接「${link}」',
+			'shelfMenu.fileManagerTabOpened' => '已在文件管理新页签打开',
+			'shelfMenu.fileManagerTabUnavailable' => '文件管理面板还没准备好，稍后再试',
+			'shelfMenu.fileManagerTabNoLocalPath' => '这条漫画没有本地目录，无法在文件管理里打开',
+			'shelfMenu.favoriteAdded' => ({required Object title}) => '已收藏「${title}」',
+			'shelfMenu.favoriteRemoved' => ({required Object title}) => '已取消收藏「${title}」',
+			'shelfMenu.historyRemoved' => ({required Object title}) => '已从历史记录移除「${title}」',
+			'shelfMenu.removeFavoriteConfirmTitle' => '取消收藏？',
+			'shelfMenu.removeFavoriteConfirmBody' => ({required Object title}) => '「${title}」将从收藏库移除，源文件与阅读记录不受影响。',
+			'shelfMenu.removeHistoryConfirmTitle' => '移除历史记录？',
+			'shelfMenu.removeHistoryConfirmBody' => ({required Object title}) => '「${title}」将从阅读历史中移除，源文件不会被删除。',
 			_ => null,
 		};
 	}

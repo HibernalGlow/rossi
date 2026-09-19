@@ -74,6 +74,7 @@ class TranslationsEnUs extends Translations with BaseTranslations<AppLocale, Tra
 	@override late final _Translations$notification$en_US notification = _Translations$notification$en_US._(_root);
 	@override late final _Translations$update$en_US update = _Translations$update$en_US._(_root);
 	@override late final _Translations$dialog$en_US dialog = _Translations$dialog$en_US._(_root);
+	@override late final _Translations$shelfMenu$en_US shelfMenu = _Translations$shelfMenu$en_US._(_root);
 }
 
 // Path: common
@@ -279,6 +280,9 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get cardDownloadBadgeSubtitle => 'Show a download button on the top-right of covers; tap it to download the whole comic';
 	@override String get cardTranslationBadge => 'Language Badge';
 	@override String get cardTranslationBadgeSubtitle => 'Detect translated / Chinese / raw from tags and mark the top-left of covers';
+	@override String get cardInteraction => 'Card Interaction';
+	@override String get shelfCardContextMenu => 'Context Menu on Favorite / History Cards';
+	@override String get shelfCardContextMenuSubtitle => 'Right-click an entry (long-press on touch) for open, open in a new file manager tab, copy, favorite and remove';
 	@override String get favoriteArtistManagement => 'Favorite Artists Management';
 	@override String favoriteArtistManagementSubtitle({required Object count}) => '${count} artists added';
 	@override String get favoriteArtistManagementSubtitleEmpty => 'No favorite artists added';
@@ -349,8 +353,7 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get appBehavior => 'App behavior';
 	@override String get splashPage => 'Startup page';
 	@override String get splashPageSubtitle => 'Choose startup page to open directly';
-	@override String get startWithWorkspace => 'Open workspace on startup';
-	@override String get startWithWorkspaceSubtitle => 'Go straight into the swimlane / four-edge workspace when the app opens (tablet and desktop only)';
+	@override String get startWithWorkspace => 'Workspace';
 	@override String get desktopCloseBehavior => 'Close behavior';
 	@override String get desktopCloseBehaviorSubtitle => 'Choose behavior when clicking close button';
 	@override String get desktopCloseAsk => 'Ask';
@@ -472,6 +475,24 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get debugMode => 'Debug mode';
 	@override String get debugAddress => 'Debug address';
 	@override String get notSet => 'Not set';
+	@override String get fileManager => 'File manager';
+	@override String get fileManagerSubtitle => 'Home folder, toolbar and view memory for local browsing';
+	@override String get fileManagerSectionHome => 'Home';
+	@override String get fileManagerHomeEnabled => 'Enable home button';
+	@override String get fileManagerHomeEnabledSubtitle => 'When off, the file manager toolbar hides the home button';
+	@override String get fileManagerHomePath => 'Home folder';
+	@override String get fileManagerHomePathSubtitle => 'Where the home button jumps to';
+	@override String get fileManagerHomePathEmpty => 'Not set';
+	@override String get fileManagerHomePathPick => 'Choose folder';
+	@override String get fileManagerHomePathClear => 'Clear home';
+	@override String get fileManagerHomePathCleared => 'Home cleared';
+	@override String get fileManagerHomePathStale => 'That folder no longer exists, pick another one';
+	@override String get fileManagerHomePathUnsupported => 'Choosing a folder is not supported on this platform';
+	@override String get fileManagerSectionToolbar => 'Toolbar';
+	@override String get fileManagerSectionView => 'Browsing view';
+	@override String get fileManagerRememberViewState => 'Remember view and sort per folder';
+	@override String get fileManagerRememberViewStateSubtitle => 'Each folder keeps its own view mode, sort and filter. When off, browsing works as usual but nothing is remembered';
+	@override String get fileManagerHomePathSet => 'Home updated';
 }
 
 // Path: bookshelf
@@ -754,6 +775,11 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get webtoon => 'Webtoon';
 	@override String get singlePageLtr => 'Single page (LTR)';
 	@override String get singlePageRtl => 'Single page (RTL)';
+	@override String get readingDirectionToggle => 'Reading direction';
+	@override String get readingDirectionToggleLtr => 'Currently left-to-right (tap to switch to right-to-left)';
+	@override String get readingDirectionToggleRtl => 'Currently right-to-left (tap to switch to left-to-right)';
+	@override String get readingDirectionToggleDisabled => 'Webtoon mode has no horizontal reading direction';
+	@override String get readingDirectionToggleSetting => 'Show reading direction toggle in top bar';
 	@override String get doublePage => 'Double page';
 	@override String get doublePageSubtitle => 'Enable double-page spread in current reading mode';
 	@override String get doublePageSeamless => 'Seamless double page';
@@ -1684,6 +1710,36 @@ class _Translations$dialog$en_US extends Translations$dialog$zh_CN {
 	@override String get rememberChoice => 'Remember my choice';
 }
 
+// Path: shelfMenu
+class _Translations$shelfMenu$en_US extends Translations$shelfMenu$zh_CN {
+	_Translations$shelfMenu$en_US._(TranslationsEnUs root) : this._root = root, super.internal(root);
+
+	final TranslationsEnUs _root; // ignore: unused_field
+
+	// Translations
+	@override String get open => 'Open';
+	@override String get resumeReading => 'Resume reading';
+	@override String get openInFileManagerTab => 'Open in a new file manager tab';
+	@override String get copyTitle => 'Copy title';
+	@override String get copyLink => 'Copy link';
+	@override String get addFavorite => 'Add to favorites';
+	@override String get alreadyFavorite => 'Already in favorites';
+	@override String get removeFavorite => 'Remove from favorites';
+	@override String get removeHistory => 'Remove from history';
+	@override String copiedTitle({required Object title}) => 'Copied title “${title}”';
+	@override String copiedLink({required Object link}) => 'Copied link “${link}”';
+	@override String get fileManagerTabOpened => 'Opened in a new file manager tab';
+	@override String get fileManagerTabUnavailable => 'The file manager panel is not ready yet, try again in a moment';
+	@override String get fileManagerTabNoLocalPath => 'This comic has no local folder, so it cannot be opened in the file manager';
+	@override String favoriteAdded({required Object title}) => 'Added “${title}” to favorites';
+	@override String favoriteRemoved({required Object title}) => 'Removed “${title}” from favorites';
+	@override String historyRemoved({required Object title}) => 'Removed “${title}” from history';
+	@override String get removeFavoriteConfirmTitle => 'Remove from favorites?';
+	@override String removeFavoriteConfirmBody({required Object title}) => '“${title}” will be removed from your favorites. The files and the reading history are untouched.';
+	@override String get removeHistoryConfirmTitle => 'Remove from history?';
+	@override String removeHistoryConfirmBody({required Object title}) => '“${title}” will be removed from your reading history. The files will not be deleted.';
+}
+
 /// The flat map containing all translations for locale <en-US>.
 /// Only for edge cases! For simple maps, use the map function of this library.
 ///
@@ -1862,6 +1918,9 @@ extension on TranslationsEnUs {
 			'settings.cardDownloadBadgeSubtitle' => 'Show a download button on the top-right of covers; tap it to download the whole comic',
 			'settings.cardTranslationBadge' => 'Language Badge',
 			'settings.cardTranslationBadgeSubtitle' => 'Detect translated / Chinese / raw from tags and mark the top-left of covers',
+			'settings.cardInteraction' => 'Card Interaction',
+			'settings.shelfCardContextMenu' => 'Context Menu on Favorite / History Cards',
+			'settings.shelfCardContextMenuSubtitle' => 'Right-click an entry (long-press on touch) for open, open in a new file manager tab, copy, favorite and remove',
 			'settings.favoriteArtistManagement' => 'Favorite Artists Management',
 			'settings.favoriteArtistManagementSubtitle' => ({required Object count}) => '${count} artists added',
 			'settings.favoriteArtistManagementSubtitleEmpty' => 'No favorite artists added',
@@ -1932,8 +1991,7 @@ extension on TranslationsEnUs {
 			'settings.appBehavior' => 'App behavior',
 			'settings.splashPage' => 'Startup page',
 			'settings.splashPageSubtitle' => 'Choose startup page to open directly',
-			'settings.startWithWorkspace' => 'Open workspace on startup',
-			'settings.startWithWorkspaceSubtitle' => 'Go straight into the swimlane / four-edge workspace when the app opens (tablet and desktop only)',
+			'settings.startWithWorkspace' => 'Workspace',
 			'settings.desktopCloseBehavior' => 'Close behavior',
 			'settings.desktopCloseBehaviorSubtitle' => 'Choose behavior when clicking close button',
 			'settings.desktopCloseAsk' => 'Ask',
@@ -2055,6 +2113,24 @@ extension on TranslationsEnUs {
 			'settings.debugMode' => 'Debug mode',
 			'settings.debugAddress' => 'Debug address',
 			'settings.notSet' => 'Not set',
+			'settings.fileManager' => 'File manager',
+			'settings.fileManagerSubtitle' => 'Home folder, toolbar and view memory for local browsing',
+			'settings.fileManagerSectionHome' => 'Home',
+			'settings.fileManagerHomeEnabled' => 'Enable home button',
+			'settings.fileManagerHomeEnabledSubtitle' => 'When off, the file manager toolbar hides the home button',
+			'settings.fileManagerHomePath' => 'Home folder',
+			'settings.fileManagerHomePathSubtitle' => 'Where the home button jumps to',
+			'settings.fileManagerHomePathEmpty' => 'Not set',
+			'settings.fileManagerHomePathPick' => 'Choose folder',
+			'settings.fileManagerHomePathClear' => 'Clear home',
+			'settings.fileManagerHomePathCleared' => 'Home cleared',
+			'settings.fileManagerHomePathStale' => 'That folder no longer exists, pick another one',
+			'settings.fileManagerHomePathUnsupported' => 'Choosing a folder is not supported on this platform',
+			'settings.fileManagerSectionToolbar' => 'Toolbar',
+			'settings.fileManagerSectionView' => 'Browsing view',
+			'settings.fileManagerRememberViewState' => 'Remember view and sort per folder',
+			'settings.fileManagerRememberViewStateSubtitle' => 'Each folder keeps its own view mode, sort and filter. When off, browsing works as usual but nothing is remembered',
+			'settings.fileManagerHomePathSet' => 'Home updated',
 			'bookshelf.title' => 'Bookshelf',
 			'bookshelf.favorite' => 'Favorites',
 			'bookshelf.history' => 'History',
@@ -2184,6 +2260,8 @@ extension on TranslationsEnUs {
 			'comicInfo.addedToCollection' => 'Added to collection',
 			'comicInfo.removedFromCollection' => 'Removed from collection',
 			'comicInfo.confirmUncollectTitle' => 'Remove collection',
+			_ => null,
+		} ?? switch (path) {
 			'comicInfo.confirmUncollectContent' => 'This will delete the comic from all folders. Continue?',
 			'comicInfo.commentForbidden' => 'Comments are disabled for this comic',
 			'comicInfo.commentForbiddenTitle' => 'Comments disabled',
@@ -2204,8 +2282,6 @@ extension on TranslationsEnUs {
 			'comicInfo.episodeCount' => ({required Object count}) => '${count} Episodes',
 			'comicInfo.episodeFallback' => ({required Object index}) => '${index}',
 			'comicInfo.episodeLabel' => ({required Object index}) => '${index}',
-			_ => null,
-		} ?? switch (path) {
 			'comicInfo.author' => 'Author',
 			'comicInfo.tags' => 'Tags',
 			'comicInfo.works' => 'Works',
@@ -2312,6 +2388,11 @@ extension on TranslationsEnUs {
 			'reader.webtoon' => 'Webtoon',
 			'reader.singlePageLtr' => 'Single page (LTR)',
 			'reader.singlePageRtl' => 'Single page (RTL)',
+			'reader.readingDirectionToggle' => 'Reading direction',
+			'reader.readingDirectionToggleLtr' => 'Currently left-to-right (tap to switch to right-to-left)',
+			'reader.readingDirectionToggleRtl' => 'Currently right-to-left (tap to switch to left-to-right)',
+			'reader.readingDirectionToggleDisabled' => 'Webtoon mode has no horizontal reading direction',
+			'reader.readingDirectionToggleSetting' => 'Show reading direction toggle in top bar',
 			'reader.doublePage' => 'Double page',
 			'reader.doublePageSubtitle' => 'Enable double-page spread in current reading mode',
 			'reader.doublePageSeamless' => 'Seamless double page',
@@ -2693,6 +2774,8 @@ extension on TranslationsEnUs {
 			'realSr.modeQuality' => 'Quality priority',
 			'realSr.noiseConservative' => 'Conservative',
 			'realSr.noise0' => 'No denoise',
+			_ => null,
+		} ?? switch (path) {
 			'realSr.noise1' => 'Denoise 1',
 			'realSr.noise2' => 'Denoise 2',
 			'realSr.noise3' => 'Denoise 3',
@@ -2718,8 +2801,6 @@ extension on TranslationsEnUs {
 			'about.loading' => 'Loading...',
 			'about.fetchFailed' => 'Failed to load',
 			'about.networkError' => 'Network error',
-			_ => null,
-		} ?? switch (path) {
 			'about.projectAddress' => 'Project',
 			'about.projectAddressDesc' => 'Like this project? Give it a star on GitHub!',
 			'about.projectLink' => 'Go to GitHub repo (deretame/Breeze) ⭐',
@@ -2999,6 +3080,27 @@ extension on TranslationsEnUs {
 			'update.unknownArch' => 'Unknown',
 			'dialog.hideOrClose' => 'Hide to tray or close app',
 			'dialog.rememberChoice' => 'Remember my choice',
+			'shelfMenu.open' => 'Open',
+			'shelfMenu.resumeReading' => 'Resume reading',
+			'shelfMenu.openInFileManagerTab' => 'Open in a new file manager tab',
+			'shelfMenu.copyTitle' => 'Copy title',
+			'shelfMenu.copyLink' => 'Copy link',
+			'shelfMenu.addFavorite' => 'Add to favorites',
+			'shelfMenu.alreadyFavorite' => 'Already in favorites',
+			'shelfMenu.removeFavorite' => 'Remove from favorites',
+			'shelfMenu.removeHistory' => 'Remove from history',
+			'shelfMenu.copiedTitle' => ({required Object title}) => 'Copied title “${title}”',
+			'shelfMenu.copiedLink' => ({required Object link}) => 'Copied link “${link}”',
+			'shelfMenu.fileManagerTabOpened' => 'Opened in a new file manager tab',
+			'shelfMenu.fileManagerTabUnavailable' => 'The file manager panel is not ready yet, try again in a moment',
+			'shelfMenu.fileManagerTabNoLocalPath' => 'This comic has no local folder, so it cannot be opened in the file manager',
+			'shelfMenu.favoriteAdded' => ({required Object title}) => 'Added “${title}” to favorites',
+			'shelfMenu.favoriteRemoved' => ({required Object title}) => 'Removed “${title}” from favorites',
+			'shelfMenu.historyRemoved' => ({required Object title}) => 'Removed “${title}” from history',
+			'shelfMenu.removeFavoriteConfirmTitle' => 'Remove from favorites?',
+			'shelfMenu.removeFavoriteConfirmBody' => ({required Object title}) => '“${title}” will be removed from your favorites. The files and the reading history are untouched.',
+			'shelfMenu.removeHistoryConfirmTitle' => 'Remove from history?',
+			'shelfMenu.removeHistoryConfirmBody' => ({required Object title}) => '“${title}” will be removed from your reading history. The files will not be deleted.',
 			_ => null,
 		};
 	}
