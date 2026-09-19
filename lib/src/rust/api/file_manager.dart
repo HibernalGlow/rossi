@@ -7,12 +7,15 @@ import '../frb_generated.dart';
 import 'local.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `apply_session_operation`, `map_entry`, `snapshot_for`, `with_session`
+// These functions are ignored because they are not marked as `pub`: `apply_session_operation`, `map_entry`, `seed_home_path`, `snapshot_for`, `with_session`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `FILE_MANAGER_SESSIONS`, `NEXT_FILE_MANAGER_ID`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `deref`, `deref`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `initialize`, `initialize`
 
-Future<BigInt> fileManagerCreate({String? initialPath}) => RustLib.instance.api
-    .crateApiFileManagerFileManagerCreate(initialPath: initialPath);
+Future<BigInt> fileManagerCreate({String? initialPath, String? homePath}) =>
+    RustLib.instance.api.crateApiFileManagerFileManagerCreate(
+      initialPath: initialPath,
+      homePath: homePath,
+    );
 
 Future<FileManagerSnapshot> fileManagerSnapshot({required BigInt id}) =>
     RustLib.instance.api.crateApiFileManagerFileManagerSnapshot(id: id);
@@ -52,6 +55,19 @@ Future<FileManagerSnapshot> fileManagerGoForward({required BigInt id}) =>
 
 Future<FileManagerSnapshot> fileManagerGoUp({required BigInt id}) =>
     RustLib.instance.api.crateApiFileManagerFileManagerGoUp(id: id);
+
+/// 跳回用户指定的主页。主页就是普通目录，因此同样进入页签的后退栈。
+Future<FileManagerSnapshot> fileManagerGoHome({required BigInt id}) =>
+    RustLib.instance.api.crateApiFileManagerFileManagerGoHome(id: id);
+
+/// 写入主页（`None` 清除）。核心只接受存在的目录，非法路径保持原值。
+Future<FileManagerSnapshot> fileManagerSetHomePath({
+  required BigInt id,
+  String? path,
+}) => RustLib.instance.api.crateApiFileManagerFileManagerSetHomePath(
+  id: id,
+  path: path,
+);
 
 Future<FileManagerSnapshot> fileManagerNewTab({
   required BigInt id,
@@ -220,6 +236,15 @@ Future<FileManagerSnapshot> fileManagerSetSort({
   id: id,
   field: field,
   order: order,
+);
+
+/// 工具栏的「锁定当前目录排序／取消临时排序」。
+Future<FileManagerSnapshot> fileManagerSetSortTemporary({
+  required BigInt id,
+  required bool enabled,
+}) => RustLib.instance.api.crateApiFileManagerFileManagerSetSortTemporary(
+  id: id,
+  enabled: enabled,
 );
 
 Future<FileManagerSnapshot> fileManagerSetDirectoriesFirst({
@@ -469,6 +494,17 @@ class FileManagerSnapshot {
   final FileManagerSortOrder sortOrder;
   final bool directoriesFirst;
 
+  /// 用户指定的主页；`None` 时工具栏的主页键应禁用。
+  final String? homePath;
+  final bool isHome;
+  final bool canSetHome;
+
+  /// 「临时排序」：排序变更不写回当前目录的视图状态。
+  final bool sortTemporary;
+
+  /// 目录级排序偏好是否可用（`remember_view_state`）。
+  final bool canSortPreference;
+
   const FileManagerSnapshot({
     required this.sessionId,
     required this.maxTabs,
@@ -495,6 +531,11 @@ class FileManagerSnapshot {
     required this.sortField,
     required this.sortOrder,
     required this.directoriesFirst,
+    this.homePath,
+    required this.isHome,
+    required this.canSetHome,
+    required this.sortTemporary,
+    required this.canSortPreference,
   });
 
   @override
@@ -523,7 +564,12 @@ class FileManagerSnapshot {
       entryFilter.hashCode ^
       sortField.hashCode ^
       sortOrder.hashCode ^
-      directoriesFirst.hashCode;
+      directoriesFirst.hashCode ^
+      homePath.hashCode ^
+      isHome.hashCode ^
+      canSetHome.hashCode ^
+      sortTemporary.hashCode ^
+      canSortPreference.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -554,10 +600,15 @@ class FileManagerSnapshot {
           entryFilter == other.entryFilter &&
           sortField == other.sortField &&
           sortOrder == other.sortOrder &&
-          directoriesFirst == other.directoriesFirst;
+          directoriesFirst == other.directoriesFirst &&
+          homePath == other.homePath &&
+          isHome == other.isHome &&
+          canSetHome == other.canSetHome &&
+          sortTemporary == other.sortTemporary &&
+          canSortPreference == other.canSortPreference;
 }
 
-enum FileManagerSortField { name, type, size }
+enum FileManagerSortField { name, type, size, date, random }
 
 enum FileManagerSortOrder { ascending, descending }
 

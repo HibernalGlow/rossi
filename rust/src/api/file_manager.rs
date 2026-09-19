@@ -44,6 +44,8 @@ pub enum FileManagerSortField {
     Name,
     Type,
     Size,
+    Date,
+    Random,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -154,6 +156,14 @@ pub struct FileManagerSnapshot {
     pub sort_field: FileManagerSortField,
     pub sort_order: FileManagerSortOrder,
     pub directories_first: bool,
+    /// 用户指定的主页；`None` 时工具栏的主页键应禁用。
+    pub home_path: Option<String>,
+    pub is_home: bool,
+    pub can_set_home: bool,
+    /// 「临时排序」：排序变更不写回当前目录的视图状态。
+    pub sort_temporary: bool,
+    /// 目录级排序偏好是否可用（`remember_view_state`）。
+    pub can_sort_preference: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -163,12 +173,30 @@ pub struct FileManagerActionResult {
     pub opened_path: Option<String>,
 }
 
+/// 把持久化的主页注入新建会话。
+///
+/// 主页是全局设置里的一个路径，可能指向已被删除或拔出的卷。核心的
+/// `set_home_path` 只接受真实存在的目录，因此失效路径在这里被静默忽略：
+/// 会话保持「未设主页」，UI 用「持久化值非空但 `snapshot.home_path` 为空」
+/// 判定主页失效并提示用户重新选择，而不是把一个不存在的目录塞进导航。
+fn seed_home_path(state: &mut FileManagerState, home_path: Option<PathBuf>) {
+    let Some(home) = home_path else {
+        return;
+    };
+    state.set_home_path(Some(home));
+}
+
 #[frb]
-pub async fn file_manager_create(initial_path: Option<String>) -> Result<u64, Error> {
+pub async fn file_manager_create(
+    initial_path: Option<String>,
+    home_path: Option<String>,
+) -> Result<u64, Error> {
     let path = initial_path.map(PathBuf::from);
+    let home = home_path.map(PathBuf::from);
     rquickjs_playground::global_handle()
         .spawn_blocking(move || {
-            let state = FileManagerState::new(path)?;
+            let mut state = FileManagerState::new(path)?;
+            seed_home_path(&mut state, home);
             let id = NEXT_FILE_MANAGER_ID.fetch_add(1, Ordering::Relaxed);
             FILE_MANAGER_SESSIONS.insert(id, state);
             Ok(id)
@@ -245,6 +273,29 @@ pub async fn file_manager_go_forward(id: u64) -> Result<FileManagerSnapshot, Err
 pub async fn file_manager_go_up(id: u64) -> Result<FileManagerSnapshot, Error> {
     with_session(id, move |state| {
         state.go_up();
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+/// 跳回用户指定的主页。主页就是普通目录，因此同样进入页签的后退栈。
+#[frb]
+pub async fn file_manager_go_home(id: u64) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.go_home();
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+/// 写入主页（`None` 清除）。核心只接受存在的目录，非法路径保持原值。
+#[frb]
+pub async fn file_manager_set_home_path(
+    id: u64,
+    path: Option<String>,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.set_home_path(path.map(PathBuf::from));
         snapshot_for(id, state)
     })
     .await
@@ -528,12 +579,27 @@ pub async fn file_manager_set_sort(
                 FileManagerSortField::Name => SortField::Name,
                 FileManagerSortField::Type => SortField::Type,
                 FileManagerSortField::Size => SortField::Size,
+                FileManagerSortField::Date => SortField::Date,
+                FileManagerSortField::Random => SortField::Random,
             },
             match order {
                 FileManagerSortOrder::Ascending => SortOrder::Ascending,
                 FileManagerSortOrder::Descending => SortOrder::Descending,
             },
         );
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+/// 工具栏的「锁定当前目录排序／取消临时排序」。
+#[frb]
+pub async fn file_manager_set_sort_temporary(
+    id: u64,
+    enabled: bool,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.set_sort_temporary(enabled);
         snapshot_for(id, state)
     })
     .await
@@ -676,12 +742,21 @@ fn snapshot_for(id: u64, state: &mut FileManagerState) -> Result<FileManagerSnap
             SortField::Name => FileManagerSortField::Name,
             SortField::Type => FileManagerSortField::Type,
             SortField::Size => FileManagerSortField::Size,
+            SortField::Date => FileManagerSortField::Date,
+            SortField::Random => FileManagerSortField::Random,
         },
         sort_order: match settings.sort_order {
             SortOrder::Ascending => FileManagerSortOrder::Ascending,
             SortOrder::Descending => FileManagerSortOrder::Descending,
         },
         directories_first: settings.directories_first,
+        home_path: state
+            .home_path()
+            .map(|path| path.to_string_lossy().into_owned()),
+        is_home: state.is_home(),
+        can_set_home: state.can_set_home(),
+        sort_temporary: state.sort_temporary(),
+        can_sort_preference: state.can_sort_preference(),
     })
 }
 
@@ -716,6 +791,111 @@ fn map_entry(entry: CoreEntry) -> FileManagerEntry {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn snapshot_projects_home_pad_sort_lock_and_new_sort_fields() {
+        let root = tempfile::tempdir().unwrap();
+        let home = root.path().join("home");
+        std::fs::create_dir(&home).unwrap();
+        let mut state = FileManagerState::new(Some(root.path().into())).unwrap();
+
+        // 未设主页：主页键不可用，也不允许「设为主页」写成空操作。
+        let snapshot = snapshot_for(9, &mut state).unwrap();
+        assert_eq!(snapshot.home_path, None);
+        assert!(!snapshot.is_home);
+        assert!(snapshot.can_set_home);
+        assert!(!snapshot.sort_temporary);
+        assert!(snapshot.can_sort_preference);
+
+        let snapshot = apply_session_operation(&mut state, |candidate| {
+            candidate.set_home_path(Some(home.clone()));
+            candidate.set_sort(SortField::Date, SortOrder::Descending);
+            candidate.set_sort_temporary(true);
+            snapshot_for(9, candidate)
+        })
+        .unwrap();
+        assert_eq!(snapshot.home_path.as_deref(), Some(home.to_string_lossy().as_ref()));
+        assert!(!snapshot.is_home);
+        assert!(snapshot.can_set_home);
+        assert_eq!(snapshot.sort_field, FileManagerSortField::Date);
+        assert_eq!(snapshot.sort_order, FileManagerSortOrder::Descending);
+        assert!(snapshot.sort_temporary);
+
+        let snapshot = apply_session_operation(&mut state, |candidate| {
+            candidate.go_home();
+            snapshot_for(9, candidate)
+        })
+        .unwrap();
+        assert!(snapshot.is_home);
+        assert!(!snapshot.can_set_home);
+        assert_eq!(snapshot.active_path, home.to_string_lossy());
+        assert!(snapshot.tabs[0].can_go_back);
+
+        // 随机排序经快照往返后仍是 Random，不会被悄悄降级成名称序。
+        let snapshot = apply_session_operation(&mut state, |candidate| {
+            candidate.set_sort_temporary(false);
+            candidate.set_sort(SortField::Random, SortOrder::Ascending);
+            snapshot_for(9, candidate)
+        })
+        .unwrap();
+        assert_eq!(snapshot.sort_field, FileManagerSortField::Random);
+        assert!(!snapshot.sort_temporary);
+        assert!(!state.settings().sort_temporary);
+    }
+
+    #[test]
+    fn set_home_path_rejects_missing_directories_and_clear_is_a_noop_on_empty() {
+        let root = tempfile::tempdir().unwrap();
+        let mut state = FileManagerState::new(Some(root.path().into())).unwrap();
+        let generation = state.generation();
+        assert!(!state.set_home_path(Some(root.path().join("missing"))));
+        assert!(!state.set_home_path(None));
+        assert_eq!(state.generation(), generation);
+        assert_eq!(snapshot_for(9, &mut state).unwrap().home_path, None);
+
+        assert!(state.set_home_path(Some(root.path().to_path_buf())));
+        assert_eq!(
+            snapshot_for(9, &mut state).unwrap().home_path.as_deref(),
+            Some(root.path().to_string_lossy().as_ref())
+        );
+        assert!(state.set_home_path(None));
+        assert_eq!(snapshot_for(9, &mut state).unwrap().home_path, None);
+    }
+
+    #[test]
+    fn seed_home_path_ignores_stale_persisted_paths() {
+        let root = tempfile::tempdir().unwrap();
+        let home = root.path().join("home");
+        std::fs::create_dir(&home).unwrap();
+
+        // 未持久化主页：会话保持「未设主页」，主页键仍然可点。
+        let mut state = FileManagerState::new(Some(root.path().into())).unwrap();
+        seed_home_path(&mut state, None);
+        assert_eq!(snapshot_for(9, &mut state).unwrap().home_path, None);
+
+        // 持久化路径已失效（目录被删）：同样保持未设，而不是写入一个不存在的目录。
+        let mut state = FileManagerState::new(Some(root.path().into())).unwrap();
+        seed_home_path(&mut state, Some(root.path().join("gone")));
+        let snapshot = snapshot_for(9, &mut state).unwrap();
+        assert_eq!(snapshot.home_path, None);
+        assert!(snapshot.can_set_home);
+        assert!(!state.go_home());
+
+        // 有效路径：注入后主页键可用，且跳转进入后退栈。
+        let mut state = FileManagerState::new(Some(root.path().into())).unwrap();
+        seed_home_path(&mut state, Some(home.clone()));
+        let snapshot = snapshot_for(9, &mut state).unwrap();
+        assert_eq!(
+            snapshot.home_path.as_deref(),
+            Some(home.to_string_lossy().as_ref())
+        );
+        assert!(!snapshot.is_home);
+        assert!(snapshot.can_set_home);
+        assert!(state.go_home());
+        let snapshot = snapshot_for(9, &mut state).unwrap();
+        assert!(snapshot.is_home);
+        assert!(!snapshot.can_set_home);
+    }
 
     #[test]
     fn failed_snapshot_rolls_back_tab_activation() {

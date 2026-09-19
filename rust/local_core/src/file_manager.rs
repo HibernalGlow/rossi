@@ -45,6 +45,11 @@ pub enum SortField {
     Name,
     Type,
     Size,
+    /// 修改时间。目录的 `modified_secs` 同样参与比较，不做目录/文件特殊处理。
+    Date,
+    /// 稳定洗牌。顺序由 `FileManagerSettings::shuffle_seed` 决定，同一目录在
+    /// 两次快照之间不会因为重新求值而跳动；重新洗牌只发生在切到该字段或刷新时。
+    Random,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -77,6 +82,11 @@ pub struct FileManagerSettings {
     pub sort_order: SortOrder,
     pub directories_first: bool,
     pub directory_columns_enabled: bool,
+    /// 「临时排序」：置位时排序变更只影响当前画面，不写回当前目录的视图状态。
+    /// 关闭时会把当前排序固化成该目录的偏好（工具栏的「锁定当前目录排序」）。
+    pub sort_temporary: bool,
+    /// `SortField::Random` 的洗牌种子。0 表示尚未洗过牌。
+    pub shuffle_seed: u64,
 }
 
 impl Default for FileManagerSettings {
@@ -94,6 +104,8 @@ impl Default for FileManagerSettings {
             sort_order: SortOrder::Ascending,
             directories_first: true,
             directory_columns_enabled: false,
+            sort_temporary: false,
+            shuffle_seed: 0,
         }
     }
 }
@@ -256,6 +268,8 @@ pub struct FileManagerState {
     generation: u64,
     view_states: std::collections::HashMap<String, crate::settings::FavoriteViewState>,
     remember_view_state: bool,
+    /// 用户指定的「主页」。跨页签共享，未设置时导航掌的主页键不可点（与 NeoView 一致）。
+    home_path: Option<PathBuf>,
 }
 
 impl FileManagerState {
@@ -276,6 +290,7 @@ impl FileManagerState {
             generation: 1,
             view_states: std::collections::HashMap::new(),
             remember_view_state: true,
+            home_path: None,
         })
     }
 
@@ -335,6 +350,71 @@ impl FileManagerState {
         self.active_path().parent().is_some_and(|parent| {
             !parent.as_os_str().is_empty() && !same_path(parent, self.active_path())
         })
+    }
+
+    /// 导航掌的主页键。未设置主页时为 `None`，UI 据此禁用，而不是自己再记一份路径。
+    pub fn home_path(&self) -> Option<&Path> {
+        self.home_path.as_deref()
+    }
+
+    pub fn is_home(&self) -> bool {
+        self.home_path
+            .as_deref()
+            .is_some_and(|home| same_path(home, self.active_path()))
+    }
+
+    /// 已经站在主页上时不再提供「设为主页」，否则右键菜单会写出一条空操作。
+    pub fn can_set_home(&self) -> bool {
+        self.home_path
+            .as_deref()
+            .is_none_or(|home| !same_path(home, self.active_path()))
+    }
+
+    /// 主页只接受真实存在的目录；传 `None` 表示清除。非法路径保持原值不变。
+    pub fn set_home_path(&mut self, path: Option<PathBuf>) -> bool {
+        let next = match path {
+            Some(path) if path.is_dir() => Some(path),
+            Some(_) => return false,
+            None => None,
+        };
+        if self.home_path == next {
+            return false;
+        }
+        self.home_path = next;
+        self.bump_generation();
+        true
+    }
+
+    /// 主页跳转同样走 `navigate`，因此会进入后退栈。
+    pub fn go_home(&mut self) -> bool {
+        let Some(home) = self.home_path.clone() else {
+            return false;
+        };
+        if same_path(&home, self.active_path()) {
+            return false;
+        }
+        self.navigate(home).is_ok()
+    }
+
+    pub fn sort_temporary(&self) -> bool {
+        self.settings().sort_temporary
+    }
+
+    /// 目录级排序偏好只有在 `remember_view_state` 打开时才存在。
+    pub fn can_sort_preference(&self) -> bool {
+        self.remember_view_state
+    }
+
+    /// 关闭「临时排序」＝把当前排序锁进本目录的视图状态。
+    pub fn set_sort_temporary(&mut self, enabled: bool) {
+        if self.tabs[self.active_tab].settings.sort_temporary == enabled {
+            return;
+        }
+        self.tabs[self.active_tab].settings.sort_temporary = enabled;
+        if !enabled {
+            self.capture_active_view_state();
+        }
+        self.bump_generation();
     }
 
     /// 使用本机 Path 组件，不把 Unix 文件名中的反斜杠当分隔符，也不拆开 Windows UNC 根。
@@ -463,7 +543,7 @@ impl FileManagerState {
             let base = self.view_states.get(&id).cloned().unwrap_or_else(|| {
                 crate::settings::FavoriteViewState::from_settings(&crate::settings::Settings::default())
             });
-            let updated = tab.settings.to_favorite_view_state(&base);
+            let updated = view_state_from_settings(&tab.settings, &base);
             self.view_states.insert(id, updated);
         }
 
@@ -491,7 +571,7 @@ impl FileManagerState {
         let base = self.view_states.get(&path_str).cloned().unwrap_or_else(|| {
             crate::settings::FavoriteViewState::from_settings(&crate::settings::Settings::default())
         });
-        let updated = tab.settings.to_favorite_view_state(&base);
+        let updated = view_state_from_settings(&tab.settings, &base);
         self.view_states.insert(path_str, updated);
     }
 
@@ -547,14 +627,21 @@ impl FileManagerState {
     }
 
     pub fn set_sort(&mut self, field: SortField, order: SortOrder) {
-        if self.tabs[self.active_tab].settings.sort_field != field
-            || self.tabs[self.active_tab].settings.sort_order != order
-        {
-            self.tabs[self.active_tab].settings.sort_field = field;
-            self.tabs[self.active_tab].settings.sort_order = order;
-            self.capture_active_view_state();
-            self.bump_generation();
+        let tab = &mut self.tabs[self.active_tab];
+        if tab.settings.sort_field == field && tab.settings.sort_order == order {
+            return;
         }
+        // 只有「切进随机」才重掷种子：在随机字段上反复切换升降序若也重掷，
+        // 同一目录会因为换方向而整体换一次顺序，看起来像刷新。
+        if field == SortField::Random && tab.settings.sort_field != SortField::Random {
+            tab.settings.shuffle_seed = fresh_shuffle_seed();
+        }
+        tab.settings.sort_field = field;
+        tab.settings.sort_order = order;
+        if !self.tabs[self.active_tab].settings.sort_temporary {
+            self.capture_active_view_state();
+        }
+        self.bump_generation();
     }
 
     pub fn set_directories_first(&mut self, enabled: bool) {
@@ -636,6 +723,10 @@ impl FileManagerState {
     }
 
     pub fn refresh(&mut self) {
+        // 随机排序下刷新应当给出新的洗牌，否则「刷新」看不到任何变化。
+        if self.tabs[self.active_tab].settings.sort_field == SortField::Random {
+            self.tabs[self.active_tab].settings.shuffle_seed = fresh_shuffle_seed();
+        }
         self.bump_generation();
     }
 
@@ -951,6 +1042,17 @@ impl FileManagerState {
                 .size
                 .cmp(&right.size)
                 .then_with(|| natural_name_cmp(&left.name, &right.name)),
+            SortField::Date => left
+                .modified_secs
+                .cmp(&right.modified_secs)
+                .then_with(|| natural_name_cmp(&left.name, &right.name)),
+            SortField::Random => {
+                let seed = self.tabs[self.active_tab].settings.shuffle_seed;
+                // 名称兜底让比较器保持全序；同一目录内名称唯一，实际不会触发。
+                shuffle_key(seed, &left.name)
+                    .cmp(&shuffle_key(seed, &right.name))
+                    .then_with(|| natural_name_cmp(&left.name, &right.name))
+            }
         };
         let order = if self.tabs[self.active_tab].settings.sort_order == SortOrder::Descending {
             field_order.reverse()
@@ -997,6 +1099,48 @@ fn same_path(a: &Path, b: &Path) -> bool {
 fn natural_name_cmp(left: &str, right: &str) -> std::cmp::Ordering {
     crate::filename_sort::SortNameKey::with_natural(left)
         .compare_natural(&crate::filename_sort::SortNameKey::with_natural(right))
+}
+
+/// splitmix64 终混。只用于把种子与名称摊平，不承担任何密码学职责。
+fn mix64(mut value: u64) -> u64 {
+    value = value.wrapping_add(0x9E37_79B9_7F4A_7C15);
+    value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    value = (value ^ (value >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    value ^ (value >> 31)
+}
+
+/// 每个名称在给定种子下得到固定的洗牌键，所以同一目录的快照之间顺序不会跳动。
+fn shuffle_key(seed: u64, name: &str) -> u64 {
+    let mut hash = 0xCBF2_9CE4_8422_2325u64;
+    for byte in name.as_bytes() {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x0000_0100_0000_01B3);
+    }
+    mix64(seed ^ mix64(hash))
+}
+
+fn fresh_shuffle_seed() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|elapsed| elapsed.as_nanos() as u64)
+        // 时间不可用时退回固定种子：顺序不随机仍是合法排序，不能因此 panic。
+        .unwrap_or(0x5EED_5EED)
+        .max(1)
+}
+
+/// 目录视图状态的唯一写入口。
+///
+/// 「临时排序」只应该活在当前画面里，所以置位时把上一次锁定的排序盖回去，避免它在
+/// 离开目录（`transition_view_state_for_path`）或另一次 capture 时顺带落进目录偏好。
+fn view_state_from_settings(
+    settings: &FileManagerSettings,
+    base: &crate::settings::FavoriteViewState,
+) -> crate::settings::FavoriteViewState {
+    let mut state = settings.to_favorite_view_state(base);
+    if settings.sort_temporary {
+        state.sort_order = base.sort_order;
+    }
+    state
 }
 
 fn extension_cmp(left: &FileTreeNode, right: &FileTreeNode) -> std::cmp::Ordering {
@@ -1574,5 +1718,186 @@ mod tests {
         assert!(state.go_back());
         assert_eq!(state.settings().view_mode, ViewMode::CoverGrid);
         assert_eq!(state.settings().sort_order, SortOrder::Descending);
+    }
+
+    fn entry_names(state: &FileManagerState) -> Vec<String> {
+        state
+            .entries()
+            .unwrap()
+            .into_iter()
+            .map(|entry| entry.node.name)
+            .collect()
+    }
+
+    fn set_mtime(path: &Path, secs: u64) {
+        let file = fs::File::options().write(true).open(path).unwrap();
+        file.set_modified(std::time::UNIX_EPOCH + std::time::Duration::from_secs(secs))
+            .unwrap();
+    }
+
+    #[test]
+    fn home_pad_target_is_settable_and_enters_the_back_stack() {
+        let dir = tempdir().unwrap();
+        let books = dir.path().join("books");
+        let other = dir.path().join("other");
+        fs::create_dir(&books).unwrap();
+        fs::create_dir(&other).unwrap();
+        let mut state = FileManagerState::new(Some(other.clone())).unwrap();
+
+        // 未设置主页：主页键不可跳转，但允许右键写入一个主页。
+        assert!(state.home_path().is_none());
+        assert!(!state.is_home());
+        assert!(state.can_set_home());
+        assert!(!state.go_home());
+
+        assert!(state.set_home_path(Some(books.clone())));
+        assert_eq!(state.home_path(), Some(books.as_path()));
+        assert!(state.can_set_home());
+        assert!(!state.is_home());
+        // 同一值重复写入是空操作。
+        let generation = state.generation();
+        assert!(!state.set_home_path(Some(books.clone())));
+        assert_eq!(state.generation(), generation);
+
+        assert!(state.go_home());
+        assert!(state.is_home());
+        assert!(!state.can_set_home());
+        assert!(same_path(state.active_path(), &books));
+        assert!(state.generation() > generation);
+        // 主页跳转进入后退栈，后退回到原目录。
+        assert!(state.go_back());
+        assert!(same_path(state.active_path(), &other));
+
+        // 已在主页上再点一次不产生历史、也不推进 generation。
+        assert!(state.go_home());
+        let generation = state.generation();
+        assert!(!state.go_home());
+        assert_eq!(state.generation(), generation);
+        assert!(same_path(state.active_path(), &books));
+
+        // 不存在的目录不能成为主页；清除后主页键重新不可用。
+        assert!(!state.set_home_path(Some(dir.path().join("missing"))));
+        assert!(state.is_home());
+        assert!(state.set_home_path(None));
+        assert!(state.home_path().is_none());
+        assert!(!state.go_home());
+    }
+
+    #[test]
+    fn date_sort_uses_mtime_and_random_sort_is_stable_between_snapshots() {
+        let dir = tempdir().unwrap();
+        for (name, mtime) in [("a.cbz", 30u64), ("b.cbz", 10), ("c.cbz", 20)] {
+            let path = dir.path().join(name);
+            touch(&path);
+            set_mtime(&path, mtime);
+        }
+        let mut state = FileManagerState::new(Some(dir.path().into())).unwrap();
+
+        state.set_sort(SortField::Date, SortOrder::Ascending);
+        assert_eq!(entry_names(&state), ["b.cbz", "c.cbz", "a.cbz"]);
+        state.set_sort(SortField::Date, SortOrder::Descending);
+        assert_eq!(entry_names(&state), ["a.cbz", "c.cbz", "b.cbz"]);
+
+        let by_name = {
+            state.set_sort(SortField::Name, SortOrder::Ascending);
+            entry_names(&state)
+        };
+        assert_eq!(by_name, ["a.cbz", "b.cbz", "c.cbz"]);
+
+        // 切进随机：重新掷种子，并且同一快照序列内顺序不跳动。
+        state.set_sort(SortField::Random, SortOrder::Ascending);
+        let seed = state.settings().shuffle_seed;
+        assert_ne!(seed, 0);
+        let shuffled = entry_names(&state);
+        assert_eq!(shuffled, entry_names(&state));
+        let mut permutation = shuffled.clone();
+        permutation.sort();
+        assert_eq!(permutation, by_name);
+
+        // 在随机字段上只换方向不重掷种子，顺序就是同一个洗牌的倒序。
+        state.set_sort(SortField::Random, SortOrder::Descending);
+        assert_eq!(state.settings().shuffle_seed, seed);
+        let mut reversed = entry_names(&state);
+        reversed.reverse();
+        assert_eq!(reversed, shuffled);
+
+        // 刷新才重新洗牌。
+        state.set_sort(SortField::Random, SortOrder::Ascending);
+        assert_eq!(entry_names(&state), shuffled);
+        state.refresh();
+        assert_ne!(state.settings().shuffle_seed, seed);
+        let mut reshuffled = entry_names(&state);
+        reshuffled.sort();
+        assert_eq!(reshuffled, by_name);
+    }
+
+    #[test]
+    fn fixed_shuffle_seed_does_not_degenerate_into_name_order() {
+        // 洗牌键必须是名称的函数，且真的会打乱名称序，否则「随机」只是换个说法。
+        assert_eq!(shuffle_key(7, "a.cbz"), shuffle_key(7, "a.cbz"));
+        assert_ne!(shuffle_key(7, "a.cbz"), shuffle_key(8, "a.cbz"));
+        assert_ne!(shuffle_key(7, "a.cbz"), shuffle_key(7, "b.cbz"));
+
+        let dir = tempdir().unwrap();
+        for name in ["a.cbz", "b.cbz", "c.cbz", "d.cbz", "e.cbz"] {
+            touch(&dir.path().join(name));
+        }
+        let mut state = FileManagerState::new(Some(dir.path().into())).unwrap();
+        state.set_sort(SortField::Name, SortOrder::Ascending);
+        let by_name = entry_names(&state);
+        state.set_sort(SortField::Random, SortOrder::Ascending);
+        state.tabs[state.active_tab].settings.shuffle_seed = 0x1234_5678;
+        let fixed = entry_names(&state);
+        let mut permutation = fixed.clone();
+        permutation.sort();
+        assert_eq!(permutation, by_name);
+        assert_ne!(fixed, by_name);
+    }
+
+    #[test]
+    fn temporary_sort_keeps_the_locked_directory_sort() {
+        let dir = tempdir().unwrap();
+        let books = dir.path().join("books");
+        let other = dir.path().join("other");
+        fs::create_dir(&books).unwrap();
+        fs::create_dir(&other).unwrap();
+        let mut state = FileManagerState::new(Some(books.clone())).unwrap();
+        let key = books.to_string_lossy().into_owned();
+        assert!(!state.sort_temporary());
+        assert!(state.can_sort_preference());
+
+        // 锁定：降序写进本目录的视图状态。
+        state.set_sort(SortField::Name, SortOrder::Descending);
+        assert_eq!(
+            state.view_states()[&key].sort_order,
+            crate::settings::SortOrder::NameDesc
+        );
+
+        // 临时：画面变升序，但目录偏好仍是降序。
+        state.set_sort_temporary(true);
+        assert!(state.sort_temporary());
+        let generation = state.generation();
+        state.set_sort_temporary(true);
+        assert_eq!(state.generation(), generation);
+        state.set_sort(SortField::Name, SortOrder::Ascending);
+        assert_eq!(state.settings().sort_order, SortOrder::Ascending);
+        assert_eq!(
+            state.view_states()[&key].sort_order,
+            crate::settings::SortOrder::NameDesc
+        );
+
+        // 离开再回来：恢复的是锁定的降序，临时排序没有漏进偏好。
+        state.navigate(&other).unwrap();
+        assert_eq!(state.settings().sort_order, SortOrder::Ascending);
+        state.navigate(&books).unwrap();
+        assert_eq!(state.settings().sort_order, SortOrder::Descending);
+
+        // 关闭临时排序＝把当前排序锁定下来。
+        state.set_sort_temporary(false);
+        assert!(!state.sort_temporary());
+        state.set_sort(SortField::Name, SortOrder::Ascending);
+        state.navigate(&other).unwrap();
+        state.navigate(&books).unwrap();
+        assert_eq!(state.settings().sort_order, SortOrder::Ascending);
     }
 }
