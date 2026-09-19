@@ -149,8 +149,9 @@ class ReaderHoverController {
   /// `true` 上，谁也不会再把它算回来。
   ///
   /// 后果不对称、看起来像「只有一半的 chrome 坏了」：可见性是
-  /// `showTopAppBar = isMenuVisible || isTopHovered` /
-  /// `showBottomBar = isMenuVisible || isBottomHovered`，被残留标记 OR 住的那一条
+  /// `showTopAppBar = pinned || isMenuVisible || isTopHovered` /
+  /// `showBottomBar = pinned || isMenuVisible || isBottomHovered`（`pinned` 是用户
+  /// 显式钉住，与这里的残留标记是两回事），被残留标记 OR 住的那一条
   /// **再也收不起来** —— 点中间收菜单时，没被标记过的那条正常滑走，另一条不动。
   ///
   /// 锁解除的时机由 `ComicReadSuccessWidget` 里的 `BlocListener` 送过来：那是唯一
@@ -218,6 +219,45 @@ class ReaderHoverScope extends InheritedWidget {
       controller != oldWidget.controller;
 }
 
+/// 一块唤出区的**百分比**矩形（相对阅读器可视区，0..100）。
+///
+/// 用 record 而不是直接收 `WorkspaceRevealZone`：阅读器不该 import 工作台。
+/// 方向反过来才是宿主包住内容 —— 谁要覆盖几何，谁把这个递进来。
+typedef ReaderHoverTriggerRect = ({
+  double x,
+  double y,
+  double width,
+  double height,
+});
+
+/// 让**宿主**覆盖底部唤出带几何的窄口子。
+///
+/// 工作台有自己的「悬停唤出区」画布（设置 → 布局），阅读器住在泳道里时，
+/// 底栏的唤出带该由那块画布说了算；宿主不在场（从书架全屏读）时这里为 `null`，
+/// 仍然走阅读器自己的「唤出感应区高度」。
+///
+/// **只管底部**：顶部的唤出带在工作台里归顶栏（那条边已经有主了），
+/// 两处都接会让同一个物理区域有两个主人。
+class ReaderHoverTriggerScope extends InheritedWidget {
+  const ReaderHoverTriggerScope({
+    super.key,
+    this.bottomRect,
+    required super.child,
+  });
+
+  final ReaderHoverTriggerRect? bottomRect;
+
+  static ReaderHoverTriggerRect? bottomRectOf(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<ReaderHoverTriggerScope>()
+        ?.bottomRect;
+  }
+
+  @override
+  bool updateShouldNotify(covariant ReaderHoverTriggerScope oldWidget) =>
+      bottomRect != oldWidget.bottomRect;
+}
+
 /// 边缘悬停唤出感应层组件。
 ///
 /// 放置在主 Stack 中漫画图层之上、控制栏图层之下，使用 [HitTestBehavior.translucent]
@@ -238,10 +278,12 @@ class ReaderHoverRevealOverlay extends StatelessWidget {
     }
 
     final showTopAppBar = context.select(
-      (ReaderCubit c) => c.state.showTopAppBar,
+      (ReaderCubit c) =>
+          c.state.showTopAppBar(pinned: readSetting.topBarPinned),
     );
     final showBottomBar = context.select(
-      (ReaderCubit c) => c.state.showBottomBar,
+      (ReaderCubit c) =>
+          c.state.showBottomBar(pinned: readSetting.bottomBarPinned),
     );
 
     final double topAreaHeight = readSetting.hoverTriggerAreaTop
@@ -284,28 +326,58 @@ class ReaderHoverRevealOverlay extends StatelessWidget {
 
         // 底部唤出感应带
         if (readSetting.hoverRevealBottom)
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: bottomAreaHeight,
-            child: MouseRegion(
-              hitTestBehavior: HitTestBehavior.translucent,
-              onEnter: (_) => controller.onEnterBottomTrigger(),
-              onExit: (_) => controller.onExitBottomTrigger(),
-              child: (readSetting.hoverShowVisualIndicator && !showBottomBar)
-                  ? Align(
-                      alignment: Alignment.topCenter,
-                      child: Container(
-                        height: 2,
-                        margin: const EdgeInsets.symmetric(horizontal: 24),
-                        decoration: BoxDecoration(
-                          color: colorScheme.primary.withValues(alpha: 0.35),
-                          borderRadius: BorderRadius.circular(1),
-                        ),
+          Positioned.fill(
+            // 「设置 → 布局」画过下唤出区时按那块矩形摆（百分比 → 像素要在这里
+            // 才知道可视区尺寸），没画过就仍是改造前的「整条底边 + 固定高度」。
+            child: LayoutBuilder(
+              builder: (context, box) {
+                final rect = ReaderHoverTriggerScope.bottomRectOf(context);
+                final band = MouseRegion(
+                  hitTestBehavior: HitTestBehavior.translucent,
+                  onEnter: (_) => controller.onEnterBottomTrigger(),
+                  onExit: (_) => controller.onExitBottomTrigger(),
+                  child:
+                      (readSetting.hoverShowVisualIndicator && !showBottomBar)
+                      ? Align(
+                          alignment: Alignment.topCenter,
+                          child: Container(
+                            height: 2,
+                            margin: const EdgeInsets.symmetric(horizontal: 24),
+                            decoration: BoxDecoration(
+                              color: colorScheme.primary.withValues(
+                                alpha: 0.35,
+                              ),
+                              borderRadius: BorderRadius.circular(1),
+                            ),
+                          ),
+                        )
+                      : const SizedBox.expand(),
+                );
+                if (rect == null) {
+                  return Stack(
+                    children: [
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: bottomAreaHeight,
+                        child: band,
                       ),
-                    )
-                  : const SizedBox.expand(),
+                    ],
+                  );
+                }
+                return Stack(
+                  children: [
+                    Positioned(
+                      left: rect.x / 100 * box.maxWidth,
+                      top: rect.y / 100 * box.maxHeight,
+                      width: rect.width / 100 * box.maxWidth,
+                      height: rect.height / 100 * box.maxHeight,
+                      child: band,
+                    ),
+                  ],
+                );
+              },
             ),
           ),
       ],

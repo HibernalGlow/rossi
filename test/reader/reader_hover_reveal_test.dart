@@ -42,23 +42,23 @@ void main() {
           isTopHovered: false,
           isBottomHovered: false,
         );
-        expect(state1.showTopAppBar, isFalse);
-        expect(state1.showBottomBar, isFalse);
+        expect(state1.showTopAppBar(pinned: false), isFalse);
+        expect(state1.showBottomBar(pinned: false), isFalse);
 
         // Top hovered only
         final stateTop = state1.copyWith(isTopHovered: true);
-        expect(stateTop.showTopAppBar, isTrue);
-        expect(stateTop.showBottomBar, isFalse);
+        expect(stateTop.showTopAppBar(pinned: false), isTrue);
+        expect(stateTop.showBottomBar(pinned: false), isFalse);
 
         // Bottom hovered only
         final stateBottom = state1.copyWith(isBottomHovered: true);
-        expect(stateBottom.showTopAppBar, isFalse);
-        expect(stateBottom.showBottomBar, isTrue);
+        expect(stateBottom.showTopAppBar(pinned: false), isFalse);
+        expect(stateBottom.showBottomBar(pinned: false), isTrue);
 
         // Menu visible overrides both
         final stateMenu = state1.copyWith(isMenuVisible: true);
-        expect(stateMenu.showTopAppBar, isTrue);
-        expect(stateMenu.showBottomBar, isTrue);
+        expect(stateMenu.showTopAppBar(pinned: false), isTrue);
+        expect(stateMenu.showBottomBar(pinned: false), isTrue);
       },
     );
 
@@ -110,12 +110,12 @@ void main() {
       );
 
       expect(readerCubit.state.isTopHovered, isFalse);
-      expect(readerCubit.state.showTopAppBar, isFalse);
+      expect(readerCubit.state.showTopAppBar(pinned: false), isFalse);
 
       // 1. Mouse enters top trigger
       controller.onEnterTopTrigger();
       expect(readerCubit.state.isTopHovered, isTrue);
-      expect(readerCubit.state.showTopAppBar, isTrue);
+      expect(readerCubit.state.showTopAppBar(pinned: false), isTrue);
 
       // 2. Mouse moves from trigger to top bar
       controller.onEnterTopBar();
@@ -131,7 +131,7 @@ void main() {
       // After delay expires, it should be false
       await tester.pump(const Duration(milliseconds: 150));
       expect(readerCubit.state.isTopHovered, isFalse);
-      expect(readerCubit.state.showTopAppBar, isFalse);
+      expect(readerCubit.state.showTopAppBar(pinned: false), isFalse);
 
       controller.dispose();
     });
@@ -215,7 +215,7 @@ void main() {
 
       controller.onEnterBottomTrigger();
       expect(readerCubit.state.isBottomHovered, isTrue);
-      expect(readerCubit.state.showBottomBar, isTrue);
+      expect(readerCubit.state.showBottomBar(pinned: false), isTrue);
 
       controller.onExitBottomTrigger();
       await tester.pump(const Duration(milliseconds: 100));
@@ -223,7 +223,7 @@ void main() {
 
       await tester.pump(const Duration(milliseconds: 150));
       expect(readerCubit.state.isBottomHovered, isFalse);
-      expect(readerCubit.state.showBottomBar, isFalse);
+      expect(readerCubit.state.showBottomBar(pinned: false), isFalse);
 
       controller.dispose();
     });
@@ -301,7 +301,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 200));
 
         // showTopAppBar stays true because isMenuVisible is true
-        expect(readerCubit.state.showTopAppBar, isTrue);
+        expect(readerCubit.state.showTopAppBar(pinned: false), isTrue);
 
         controller.dispose();
       },
@@ -313,8 +313,8 @@ void main() {
   // 「点一下 read 中间换出顶栏和底栏之后，再点一下就只有顶栏会消失，底栏不消失」
   //
   // 不是两条栏各写了一半，而是**悬停标记被永久留在 true 上**：
-  // `showTopAppBar = isMenuVisible || isTopHovered`、
-  // `showBottomBar = isMenuVisible || isBottomHovered`，被 OR 住的那一条收不起来。
+  // `showTopAppBar = pinned || isMenuVisible || isTopHovered`、
+  // `showBottomBar = pinned || isMenuVisible || isBottomHovered`，被 OR 住的那一条收不起来。
   //
   // 标记残留的来路：`_checkScheduleHide*` 在锁（`isMenuVisible` / `isSliderRolling`）
   // 期间**故意**不排收起定时器，而 `setTopHovered(false)` 只有那条定时器会调 ——
@@ -382,7 +382,7 @@ void main() {
 
       // 1. 指针进底部唤出区 ⇒ 底栏滑出来
       controller.onEnterBottomTrigger();
-      expect(readerCubit.state.showBottomBar, isTrue);
+      expect(readerCubit.state.showBottomBar(pinned: false), isTrue);
 
       // 2. 指针离开唤出区，而**这一刻菜单正展开着**（用户刚在中间点了一下）
       readerCubit.updateMenuVisible(visible: true);
@@ -401,7 +401,7 @@ void main() {
 
       expect(readerCubit.state.isBottomHovered, isFalse);
       expect(
-        readerCubit.state.showBottomBar,
+        readerCubit.state.showBottomBar(pinned: false),
         isFalse,
         reason:
             '底栏不跟着顶栏一起滑走，就是用户报的那个 bug：'
@@ -450,9 +450,13 @@ void main() {
       controller.syncHoveredWithPointer();
 
       expect(readerCubit.state.isTopHovered, isFalse);
-      expect(readerCubit.state.showTopAppBar, isFalse, reason: '顶栏指针已经走了');
       expect(
-        readerCubit.state.showBottomBar,
+        readerCubit.state.showTopAppBar(pinned: false),
+        isFalse,
+        reason: '顶栏指针已经走了',
+      );
+      expect(
+        readerCubit.state.showBottomBar(pinned: false),
         isTrue,
         reason: '指针还压在底栏上 ⇒ 不许把栏从手底下抽走',
       );
@@ -622,7 +626,7 @@ void main() {
         await tester.pump();
 
         expect(readerCubit.state.isTopHovered, isTrue);
-        expect(readerCubit.state.showTopAppBar, isTrue);
+        expect(readerCubit.state.showTopAppBar(pinned: false), isTrue);
 
         // Move mouse out to center (400, 200)
         await gesture.moveTo(const Offset(400, 200));
@@ -640,5 +644,146 @@ void main() {
         controller.dispose();
       },
     );
+  });
+
+  // 钉住（pinned）的判据。口径照 neo 的 edge `pinned`：`readerEdgeInteraction`
+  // （`lockMode == locked-open || pinned ⇒ fixed-open`）与
+  // `ReaderShellControlStore.setPinned`（钉住即 `open = true`，取消钉住回到 auto）。
+  //
+  // Rossi 把那一份状态拆成了两半：`pinned` 住在 `ReadSettingState`（要跨书、跨重启
+  // 保持），`isMenuVisible` / `isTopHovered` 住在 `ReaderState`（一次阅读的生命周期）。
+  // 判据因此收口在 `showTopAppBar(pinned:)` / `showBottomBar(pinned:)` 这一处，
+  // 而不是让每个调用点自己 OR —— 自己 OR 就会有人漏掉一项。
+  group('钉住上下栏（pinned）', () {
+    test('钉住优先于菜单与悬停：菜单收起、指针离开也照样画出来', () {
+      const hidden = ReaderState(
+        isMenuVisible: false,
+        isTopHovered: false,
+        isBottomHovered: false,
+      );
+
+      expect(hidden.showTopAppBar(pinned: true), isTrue);
+      expect(hidden.showBottomBar(pinned: true), isTrue);
+    });
+
+    test('两条栏各钉各的：钉住顶栏不会把底栏一起带出来', () {
+      const hidden = ReaderState(isMenuVisible: false);
+
+      expect(hidden.showTopAppBar(pinned: true), isTrue, reason: '钉住的那一条常开');
+      expect(
+        hidden.showBottomBar(pinned: false),
+        isFalse,
+        reason: '没钉住的那一条仍然归悬停与点击管',
+      );
+    });
+
+    test('钉住之后点中间收起菜单，钉住的那一条不受影响', () {
+      final cubit = ReaderCubit()..updateMenuVisible(visible: true);
+
+      expect(cubit.state.showTopAppBar(pinned: true), isTrue);
+
+      // 用户点中间收起 chrome —— neo 里这一步对钉住的边是 no-op（`requestOpen`
+      // 直接 return current），落到这里就是 `pinned` 排在 OR 最前面。
+      cubit.updateMenuVisible(visible: false);
+
+      expect(cubit.state.showTopAppBar(pinned: true), isTrue);
+      expect(
+        cubit.state.showBottomBar(pinned: false),
+        isFalse,
+        reason: '没钉住的底栏照旧跟着菜单收起',
+      );
+    });
+
+    test('取消钉住 = 交还给悬停与点击：指针一走栏就收', () {
+      final cubit = ReaderCubit()..updateMenuVisible(visible: false);
+      cubit.setTopHovered(true);
+
+      expect(cubit.state.showTopAppBar(pinned: false), isTrue);
+
+      cubit.setTopHovered(false);
+      expect(
+        cubit.state.showTopAppBar(pinned: false),
+        isFalse,
+        reason: '取消钉住后不再常开（neo 的 setPinned(edge, false) ⇒ open=false）',
+      );
+    });
+
+    testWidgets('钉住顶栏后顶部那条感应提示线不再画（栏已经在屏幕上了）', (tester) async {
+      final readerCubit = ReaderCubit()..updateMenuVisible(visible: false);
+      final settingCubit = _TestGlobalSettingCubit(
+        readSetting: const ReadSettingState(
+          hoverRevealEnabled: true,
+          hoverRevealTop: true,
+          hoverRevealBottom: true,
+          hoverShowVisualIndicator: true,
+          topBarPinned: true,
+        ),
+      );
+
+      late ReaderHoverController controller;
+
+      await tester.pumpWidget(
+        _buildHarness(
+          readerCubit: readerCubit,
+          settingCubit: settingCubit,
+          child: Builder(
+            builder: (context) {
+              controller = ReaderHoverController(context);
+              return Stack(
+                children: [ReaderHoverRevealOverlay(controller: controller)],
+              );
+            },
+          ),
+        ),
+      );
+
+      // 感应提示线只在「该栏此刻不可见」时画，一条栏一个 `Align`。
+      final indicators = find.descendant(
+        of: find.byType(ReaderHoverRevealOverlay),
+        matching: find.byType(Align),
+      );
+      expect(indicators, findsOneWidget, reason: '顶栏钉住 ⇒ 顶部那条提示线没了，只剩底栏那条');
+
+      controller.dispose();
+    });
+
+    testWidgets('对照：谁都没钉时上下各一条感应提示线', (tester) async {
+      final readerCubit = ReaderCubit()..updateMenuVisible(visible: false);
+      final settingCubit = _TestGlobalSettingCubit(
+        readSetting: const ReadSettingState(
+          hoverRevealEnabled: true,
+          hoverRevealTop: true,
+          hoverRevealBottom: true,
+          hoverShowVisualIndicator: true,
+        ),
+      );
+
+      late ReaderHoverController controller;
+
+      await tester.pumpWidget(
+        _buildHarness(
+          readerCubit: readerCubit,
+          settingCubit: settingCubit,
+          child: Builder(
+            builder: (context) {
+              controller = ReaderHoverController(context);
+              return Stack(
+                children: [ReaderHoverRevealOverlay(controller: controller)],
+              );
+            },
+          ),
+        ),
+      );
+
+      expect(
+        find.descendant(
+          of: find.byType(ReaderHoverRevealOverlay),
+          matching: find.byType(Align),
+        ),
+        findsNWidgets(2),
+      );
+
+      controller.dispose();
+    });
   });
 }

@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/cubit/workspace_state.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
+import 'package:zephyr/workspace/model/workspace_reveal_zones.dart';
 
 /// 工作台顶栏的**两种形态** —— 区别不在长相，在**它占不占地方**。
 ///
@@ -233,20 +234,28 @@ class WorkspaceTopChrome extends StatelessWidget {
 /// 两种形态各自决定怎么摆它。
 ///
 /// 揭示规则（两段 hover，互不打架）：
-/// - 触发带 = 窗口最顶端 [WorkspaceTopChrome.triggerHeight] 像素，**垫在顶栏下层**。
+/// - 触发带 = 「设置 → 布局」里画的那块**上唤出区**（视口百分比矩形），**垫在顶栏下层**。
 ///   于是顶栏不可见时鼠标能穿到它、可见时被顶栏接住 —— 顶栏自己也是
 ///   [MouseRegion]，鼠标从触发带滑到顶栏上时 `_barHover` 立刻接管，
 ///   不会出现「滑下去就收起来」的抖动。
+///   没给唤出区时退回改造前的形态：整条顶边、固定 [WorkspaceTopChrome.triggerHeight] 像素。
 /// - 鼠标离开顶栏（往下超过 [WorkspaceTopChrome.barHeight] 或移出窗口）才收起。
 class WorkspaceTopChromeReveal extends StatefulWidget {
   const WorkspaceTopChromeReveal({
     super.key,
     required this.onExit,
     required this.onResetLayout,
+    this.triggerZone,
   });
 
   final VoidCallback onExit;
   final VoidCallback onResetLayout;
+
+  /// 上唤出区（视口宽 / 高的百分比）。
+  ///
+  /// 换算基准是**窗口**而不是这一行的可用宽：触发带要贴在窗口顶边上，
+  /// 而它所在的那个 `Positioned` 本身就横跨整个窗口。
+  final WorkspaceRevealZone? triggerZone;
 
   @override
   State<WorkspaceTopChromeReveal> createState() =>
@@ -261,20 +270,37 @@ class _WorkspaceTopChromeRevealState extends State<WorkspaceTopChromeReveal> {
 
   @override
   Widget build(BuildContext context) {
+    final zone = widget.triggerZone;
+    final window = MediaQuery.sizeOf(context);
+    final px = zone?.toPixels(
+      viewportWidth: window.width,
+      viewportHeight: window.height,
+    );
+    final bandHeight = px?.height ?? WorkspaceTopChrome.triggerHeight;
+    final bandTop = px?.top ?? 0.0;
+    // 唤出区可以画得比顶栏那一行还高（比如整块上半屏）。这一行的容器必须
+    // 跟着长高，否则 `Stack` 会把越界的那截裁掉，而裁剪掉的部分**连指针都收不到**
+    // —— 界面上表现为「画布上框了上面一半，实际只有贴顶那 10px 有效」。
+    final rowHeight = bandTop + bandHeight > WorkspaceTopChrome.barHeight
+        ? bandTop + bandHeight
+        : WorkspaceTopChrome.barHeight;
+
     return Positioned(
       top: 0,
       left: 0,
       right: 0,
       child: SizedBox(
-        height: WorkspaceTopChrome.barHeight,
+        height: rowHeight,
         child: Stack(
+          clipBehavior: Clip.none,
           children: [
             // 触发带（下层）：顶栏不可见时鼠标穿到这里召唤它。
             Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: WorkspaceTopChrome.triggerHeight,
+              top: bandTop,
+              left: px?.left ?? 0,
+              right: px == null ? 0 : null,
+              width: px?.width,
+              height: bandHeight,
               child: MouseRegion(
                 onEnter: (_) => setState(() => _triggerHover = true),
                 onExit: (_) => setState(() => _triggerHover = false),
@@ -283,7 +309,11 @@ class _WorkspaceTopChromeRevealState extends State<WorkspaceTopChromeReveal> {
             ),
 
             // 顶栏本体（上层）：不可见时不吃鼠标事件。
-            Positioned.fill(
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: WorkspaceTopChrome.barHeight,
               child: IgnorePointer(
                 ignoring: !_visible,
                 child: MouseRegion(
