@@ -111,7 +111,9 @@ class _PanelTabStripState extends State<PanelTabStrip> {
     final panels = registry.panelsForSide(widget.side, board);
     final hidden = registry
         .hiddenPanels(board)
-        .where((p) => registry.effectivePanelLayout(p, board).side == widget.side)
+        .where(
+          (p) => registry.effectivePanelLayout(p, board).side == widget.side,
+        )
         .toList();
 
     if (panels.isEmpty && hidden.isEmpty) return const SizedBox.shrink();
@@ -130,7 +132,10 @@ class _PanelTabStripState extends State<PanelTabStrip> {
     final children = <Widget>[
       if (widget.showHandle) ...[
         _buildHandle(context, theme, cubit),
-        SizedBox(width: widget.vertical ? 0 : 2, height: widget.vertical ? 2 : 0),
+        SizedBox(
+          width: widget.vertical ? 0 : 2,
+          height: widget.vertical ? 2 : 0,
+        ),
       ],
       Flexible(
         child: SingleChildScrollView(
@@ -242,7 +247,8 @@ class _PanelTabStripState extends State<PanelTabStrip> {
         onPanUpdate: _handlePanUpdate,
         onPanEnd: _handlePanEnd,
         onPanCancel: _handlePanCancel,
-        onSecondaryTapUp: (details) => _openSettingsMenu(context, details, cubit),
+        onSecondaryTapUp: (details) =>
+            _openSettingsMenu(context, details, cubit),
         child: Tooltip(
           message: '面板栏（拖动换边或转悬浮，右键设置）',
           waitDuration: const Duration(milliseconds: 500),
@@ -344,7 +350,8 @@ class _PanelTabStripState extends State<PanelTabStrip> {
     final lane = cubit.state.layout.lanes[widget.side.laneId];
     if (lane == null) return;
     final bar = lane.panelBar;
-    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
     if (overlay == null) return;
 
     final action = await showMenu<_PanelBarAction>(
@@ -417,8 +424,7 @@ class _PanelTabStripState extends State<PanelTabStrip> {
         Icon(icon, size: 16),
         const SizedBox(width: 8),
         Expanded(child: Text(label, style: const TextStyle(fontSize: 12))),
-        if (checked)
-          const Icon(Icons.check_rounded, size: 15),
+        if (checked) const Icon(Icons.check_rounded, size: 15),
       ],
     );
   }
@@ -660,10 +666,14 @@ enum _PanelBarActionKind { toggleMode, toggleConstrained, dock }
 class _PanelBarAction {
   const _PanelBarAction._(this.kind, this.dock);
 
-  static const _PanelBarAction toggleMode =
-      _PanelBarAction._(_PanelBarActionKind.toggleMode, null);
-  static const _PanelBarAction toggleConstrained =
-      _PanelBarAction._(_PanelBarActionKind.toggleConstrained, null);
+  static const _PanelBarAction toggleMode = _PanelBarAction._(
+    _PanelBarActionKind.toggleMode,
+    null,
+  );
+  static const _PanelBarAction toggleConstrained = _PanelBarAction._(
+    _PanelBarActionKind.toggleConstrained,
+    null,
+  );
 
   static _PanelBarAction dockTo(PanelBarDock dock) =>
       _PanelBarAction._(_PanelBarActionKind.dock, dock);

@@ -17,6 +17,7 @@ class FavoriteShelfCard extends StatefulWidget {
   final VoidCallback? onMoveUp;
   final VoidCallback? onMoveDown;
   final VoidCallback? onHide;
+  final bool isStandalone;
 
   const FavoriteShelfCard({
     super.key,
@@ -25,6 +26,7 @@ class FavoriteShelfCard extends StatefulWidget {
     this.onMoveUp,
     this.onMoveDown,
     this.onHide,
+    this.isStandalone = false,
   });
 
   @override
@@ -64,6 +66,108 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
 
         // 根据文件夹过滤
         final filteredItems = _filterByFolder(allItems, _selectedFolderKey);
+
+        if (widget.isStandalone) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 顶部信息条
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 6,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.bookmark_added_rounded,
+                        size: 18,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '我的收藏',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '$totalCount 本',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onPrimaryContainer,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // 收藏分类选择轨
+                if (_folders.length > 1) ...[
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _folders.map((folder) {
+                        final selected = folder.key == _selectedFolderKey;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6.0),
+                          child: ChoiceChip(
+                            label: Text(folder.name),
+                            selected: selected,
+                            onSelected: (_) {
+                              setState(() => _selectedFolderKey = folder.key);
+                            },
+                            visualDensity: VisualDensity.compact,
+                            labelStyle: TextStyle(
+                              fontSize: 12,
+                              color: selected
+                                  ? theme.colorScheme.onPrimary
+                                  : theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                ],
+                const Divider(height: 1),
+                Expanded(
+                  child: filteredItems.isEmpty
+                      ? Center(
+                          child: Text(
+                            '暂无收藏漫画',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.outline,
+                            ),
+                          ),
+                        )
+                      : ListView.separated(
+                          itemCount: filteredItems.length,
+                          separatorBuilder: (context, index) =>
+                              const Divider(height: 1, indent: 46),
+                          itemBuilder: (context, index) {
+                            final item = filteredItems[index];
+                            return _buildFavoriteTile(context, item);
+                          },
+                        ),
+                ),
+              ],
+            ),
+          );
+        }
 
         return CollapsibleCard(
           cardId: 'favorite',
@@ -128,7 +232,9 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
                   child: Center(
                     child: Text(
                       '暂无收藏漫画',
-                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.outline,
+                      ),
                     ),
                   ),
                 )
@@ -136,8 +242,11 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
                 ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: filteredItems.length > 20 ? 20 : filteredItems.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1, indent: 46),
+                  itemCount: filteredItems.length > 20
+                      ? 20
+                      : filteredItems.length,
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1, indent: 46),
                   itemBuilder: (context, index) {
                     final item = filteredItems[index];
                     return _buildFavoriteTile(context, item);
@@ -205,9 +314,13 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 1,
+                        ),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.6),
+                          color: theme.colorScheme.secondaryContainer
+                              .withValues(alpha: 0.6),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(

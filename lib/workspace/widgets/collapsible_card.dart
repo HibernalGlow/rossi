@@ -44,79 +44,86 @@ class CollapsibleCard extends StatelessWidget {
     final theme = Theme.of(context);
     final borderColor = theme.colorScheme.outlineVariant.withValues(alpha: 0.5);
 
-    return Container(
-      margin: margin ?? const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
+    // 卡片可直接挂在泳道/抽屉里，由自身提供与应用同库的 Material。
+    // 用 Material 绘制背景并裁剪，保证标题栏和内容的墨水反馈也在圆角内。
+    return Padding(
+      padding:
+          margin ?? const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      child: Material(
         color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: borderColor, width: 1),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Header
-          InkWell(
-            onTap: onToggle,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              child: Row(
-                children: [
-                  Icon(
-                    icon,
-                    size: 18,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: borderColor),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header
+            InkWell(
+              onTap: onToggle,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                child: Row(
+                  children: [
+                    Icon(icon, size: 18, color: theme.colorScheme.primary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.2,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  if (trailing != null) ...[
-                    trailing!,
-                    const SizedBox(width: 6),
+                    if (trailing != null) ...[
+                      trailing!,
+                      const SizedBox(width: 6),
+                    ],
+                    if (onMoveUp != null ||
+                        onMoveDown != null ||
+                        onHide != null)
+                      _buildTrackMenu(context),
+                    AnimatedRotation(
+                      turns: isExpanded ? 0.5 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOutCubic,
+                      child: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 20,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                   ],
-                  if (onMoveUp != null || onMoveDown != null || onHide != null)
-                    _buildTrackMenu(context),
-                  AnimatedRotation(
-                    turns: isExpanded ? 0.5 : 0.0,
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOutCubic,
-                    child: Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      size: 20,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-          // Content
-          AnimatedCrossFade(
-            firstChild: const SizedBox.shrink(),
-            secondChild: Padding(
-              padding: contentPadding ??
-                  const EdgeInsets.only(left: 12, right: 12, bottom: 12),
-              child: child,
+            // Content
+            AnimatedCrossFade(
+              firstChild: const SizedBox.shrink(),
+              secondChild: Padding(
+                padding:
+                    contentPadding ??
+                    const EdgeInsets.only(left: 12, right: 12, bottom: 12),
+                child: child,
+              ),
+              crossFadeState: isExpanded
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
+              duration: const Duration(milliseconds: 200),
+              firstCurve: Curves.easeOutQuad,
+              secondCurve: Curves.easeOutQuad,
+              sizeCurve: Curves.easeInOutCubic,
             ),
-            crossFadeState: isExpanded
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 200),
-            firstCurve: Curves.easeOutQuad,
-            secondCurve: Curves.easeOutQuad,
-            sizeCurve: Curves.easeInOutCubic,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -143,7 +150,10 @@ class CollapsibleCard extends StatelessWidget {
         PopupMenuItem<String>(
           value: 'up',
           enabled: onMoveUp != null,
-          child: const _TrackMenuItem(icon: Icons.arrow_upward_rounded, label: '上移'),
+          child: const _TrackMenuItem(
+            icon: Icons.arrow_upward_rounded,
+            label: '上移',
+          ),
         ),
         PopupMenuItem<String>(
           value: 'down',
@@ -189,7 +199,11 @@ class _TrackMenuItem extends StatelessWidget {
     final theme = Theme.of(context);
     return Row(
       children: [
-        Icon(icon, size: 16, color: color ?? theme.colorScheme.onSurfaceVariant),
+        Icon(
+          icon,
+          size: 16,
+          color: color ?? theme.colorScheme.onSurfaceVariant,
+        ),
         const SizedBox(width: 8),
         Text(
           label,

@@ -48,10 +48,8 @@ void main() {
 
 // ── 脚手架 ────────────────────────────────────────────────────────────────
 
-double _available(double viewportWidth) => math.max(
-  0.0,
-  viewportWidth - WorkspaceStripMetrics.defaultPadding * 2,
-);
+double _available(double viewportWidth) =>
+    math.max(0.0, viewportWidth - WorkspaceStripMetrics.defaultPadding * 2);
 
 WorkspaceStripMetrics _resolve(
   double viewportWidth, {
@@ -108,10 +106,8 @@ double _legacyRowWidth(WorkspaceLayoutConfig layout, double viewportWidth) {
   final visibleCount = layout.laneOrder
       .where((id) => layout.lanes[id] != null && !layout.lanes[id]!.collapsed)
       .length;
-  total += WorkspaceStripMetrics.defaultResizerWidth * math.max(
-    0,
-    visibleCount - 1,
-  );
+  total +=
+      WorkspaceStripMetrics.defaultResizerWidth * math.max(0, visibleCount - 1);
 
   final spare = viewportWidth - total; // ← bug：这里用的是视口宽
   if (spare > 0 && layout.lanes[LaneId.reader]?.collapsed == false) {
@@ -174,10 +170,7 @@ void _theExactSixteenPixels() {
   );
 
   final m = _resolve(vw);
-  check(
-    '新算式在同一窗口下不溢出',
-    !m.needsScroll && m.contentWidth <= available + _eps,
-  );
+  check('新算式在同一窗口下不溢出', !m.needsScroll && m.contentWidth <= available + _eps);
 }
 
 /// 面板泳道是**绝对像素**：窗口变宽变窄都不夹取。
@@ -191,7 +184,10 @@ void _panelLanesAreAbsolute() {
   check('窗口 2400 时右泳道仍是 360', _laneWidth(wide, LaneId.right) == 360.0);
 
   // 阅读器是比例：1625×0.5=812.5 / 2400×0.5=1200，都被夹在 [400, 2000] 内
-  check('窗口 2400 时阅读器标称 1200 + 富余 424', _laneWidth(wide, LaneId.reader) == 1624.0);
+  check(
+    '窗口 2400 时阅读器标称 1200 + 富余 424',
+    _laneWidth(wide, LaneId.reader) == 1624.0,
+  );
   _invariants('窗口 1200', narrow, _available(1200));
   _invariants('窗口 2400', wide, _available(2400));
 }
@@ -288,11 +284,15 @@ void _collapsedEdgeLaneKeepsTheRemainingHandle() {
 void _resizerSlotsCarryTheirPair() {
   final m = _resolve(1625.0);
   final shape = m.slots.map((s) => s.laneId ?? '|').join(',');
-  check('槽位顺序 = left,|,reader,|,right', shape == 'left,|,reader,|,right', shape);
+  check(
+    '槽位顺序 = left,|,reader,|,right',
+    shape == 'left,|,reader,|,right',
+    shape,
+  );
 
-  final pairs = _resizers(m)
-      .map((s) => '${s.beforeLaneId}→${s.afterLaneId}')
-      .toList();
+  final pairs = _resizers(
+    m,
+  ).map((s) => '${s.beforeLaneId}→${s.afterLaneId}').toList();
   check(
     '两个手柄分别配对 left→reader 与 reader→right',
     pairs.join(' , ') == 'left→reader , reader→right',

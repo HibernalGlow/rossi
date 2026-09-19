@@ -50,7 +50,8 @@ void main() {
     expect(
       tester.getRect(find.byType(_LaneTargetPage)),
       boxA,
-      reason: '页面的矩形必须与卡片 A 严丝合缝 —— 尺寸和位置都对得上，'
+      reason:
+          '页面的矩形必须与卡片 A 严丝合缝 —— 尺寸和位置都对得上，'
           '才是「开在这块卡片里」而不是「铺满整个应用」',
     );
     expect(
@@ -112,7 +113,10 @@ void main() {
 
     await tester.tap(find.text(_openLabelA));
     await tester.pumpAndSettle();
-    expect(tester.getRect(find.byType(_LaneTargetPage)), tester.getRect(find.byKey(_boxAKey)));
+    expect(
+      tester.getRect(find.byType(_LaneTargetPage)),
+      tester.getRect(find.byKey(_boxAKey)),
+    );
 
     // 回到卡片 A 的原内容（局部栈 pop），再去点 B。
     await tester.pageBack();
@@ -165,7 +169,9 @@ class _TestRouter extends RootStackRouter {
       ),
       initial: true,
     ),
-    AutoRoute(page: PageInfo(_targetName, builder: (_) => const _LaneTargetPage())),
+    AutoRoute(
+      page: PageInfo(_targetName, builder: (_) => const _LaneTargetPage()),
+    ),
   ];
 
   /// 被测对象：全站唯一的那个守卫。
@@ -186,7 +192,9 @@ Future<void> _pumpHost(WidgetTester tester, {bool boxAVisible = true}) async {
   // 判据于是变成「全屏」而测试还以为在验卡片。卸载一次再挂，登记必然重做。
   await tester.pumpWidget(const SizedBox.shrink());
   await tester.pumpWidget(
-    MaterialApp.router(routerConfig: _TestRouter(boxAVisible: boxAVisible).config()),
+    MaterialApp.router(
+      routerConfig: _TestRouter(boxAVisible: boxAVisible).config(),
+    ),
   );
   await tester.pumpAndSettle();
 }
@@ -266,9 +274,8 @@ class _FakeUpstreamPage extends StatelessWidget {
           TextButton(
             // 上游的写法：`context.pushRoute(XxxRoute())`，这里用等价的
             // `context.router.push(PageRouteInfo(...))`，不必生成路由类。
-            onPressed: () => context.router.push(
-              const PageRouteInfo<void>(_targetName),
-            ),
+            onPressed: () =>
+                context.router.push(const PageRouteInfo<void>(_targetName)),
             child: Text(label),
           ),
         ],

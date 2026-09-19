@@ -90,7 +90,10 @@ class WorkspaceInteractionSettings {
         fallback.edgeRevealRestoreDelayMs,
       ),
       readerPeekWidth: json['readerPeekWidth'] is num
-          ? (json['readerPeekWidth']! as num).toDouble().clamp(0, 400).toDouble()
+          ? (json['readerPeekWidth']! as num)
+                .toDouble()
+                .clamp(0, 400)
+                .toDouble()
           : fallback.readerPeekWidth,
     );
   }

@@ -97,11 +97,7 @@ void _cutLaneMovesJustEnough() {
 /// 比视口宽的泳道：对齐**最近的**那条边（移动更少），而不是硬对齐左边。
 void _widerThanViewportAlignsNearestEdge() {
   final layout = _layout(rightWidth: 620);
-  final g = _geometry(
-    viewportWidth: 600,
-    availableWidth: 600,
-    layout: layout,
-  );
+  final g = _geometry(viewportWidth: 600, availableWidth: 600, layout: layout);
   // left 0..380，reader 390..790，right 800..1420；右泳道 620 > 视口 600。
   check('构造前提：右泳道比视口宽', g.width[LaneId.right]! > 600);
 
@@ -192,10 +188,7 @@ void _revealBringsAdjacentLaneIntoView() {
     soloLaneId: LaneId.reader,
   );
   // left 0..380，reader 390..990，right 1000..1360；上限 = 1360-600 = 760。
-  final revealRight = g.revealOffset(
-    laneId: LaneId.right,
-    viewportWidth: 600,
-  );
+  final revealRight = g.revealOffset(laneId: LaneId.right, viewportWidth: 600);
   check('揭示右泳道 → 滚到 760', revealRight == 760.0, '$revealRight');
   check(
     '揭示后右泳道完整可见',
@@ -264,11 +257,7 @@ void _unknownLaneLeavesOffsetAlone() {
   final g = _geometry(viewportWidth: 1000, availableWidth: 1000);
   check(
     '未知泳道的 focus 保持原偏移',
-    g.focusOffset(
-          laneId: 'nope',
-          viewportWidth: 1000,
-          currentOffset: 120,
-        ) ==
+    g.focusOffset(laneId: 'nope', viewportWidth: 1000, currentOffset: 120) ==
         120.0,
   );
   check(

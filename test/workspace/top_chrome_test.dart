@@ -332,18 +332,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200)); // 淡入
 
     // ③ 这一下必须真的落到退出按钮上（与 ① 成对：不是「反正都点不到」）。
-    expect(
-      _revealOpacity(tester),
-      1,
-      reason: '召唤出来之后就得是看得见的',
-    );
+    expect(_revealOpacity(tester), 1, reason: '召唤出来之后就得是看得见的');
     await tester.tap(_exitButton);
     await tester.pumpAndSettle();
-    expect(
-      exits,
-      1,
-      reason: '召唤出来之后它就得是能点的 —— 否则桌面端也没有出口（只剩 Esc）',
-    );
+    expect(exits, 1, reason: '召唤出来之后它就得是能点的 —— 否则桌面端也没有出口（只剩 Esc）');
   });
 }
 
@@ -362,7 +354,9 @@ class _Launcher extends StatelessWidget {
             MaterialPageRoute<void>(
               // 名字要给：工作台靠它判断「我是不是栈顶」，`_handleOpenInLane`
               // 的 `popUntil` 也按它匹配。
-              settings: const RouteSettings(name: BreezeWorkspacePage.routeName),
+              settings: const RouteSettings(
+                name: BreezeWorkspacePage.routeName,
+              ),
               builder: (_) => BreezeWorkspacePage(
                 store: store,
                 debugLaneContentBuilder: _probeContent,

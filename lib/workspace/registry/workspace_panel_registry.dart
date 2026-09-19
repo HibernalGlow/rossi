@@ -66,62 +66,113 @@ class WorkspacePanelRegistry {
 
   static final WorkspacePanelRegistry I = WorkspacePanelRegistry._();
 
-  late final List<WorkspacePanelDefinition> panels =
-      List.unmodifiable(<WorkspacePanelDefinition>[
-        // ── 左泳道 ────────────────────────────────────────────────────────
-        WorkspacePanelDefinition(
-          id: WorkspacePanelId.bookshelf,
-          title: '书架（上游原版）',
-          icon: Icons.menu_book_rounded,
-          side: WorkspacePanelSide.left,
-          defaultOrder: 0,
-          exclusive: true,
-          canMove: false,
-          canHide: false,
-          acceptsCards: false,
-          page: (_) => const EmbeddedBookshelfLane(),
-        ),
-        WorkspacePanelDefinition(
-          id: WorkspacePanelId.shelf,
-          title: '书架卡片',
-          icon: Icons.dashboard_customize_rounded,
-          side: WorkspacePanelSide.left,
-          defaultOrder: 1,
-        ),
+  late final List<WorkspacePanelDefinition> panels = List.unmodifiable(
+    <WorkspacePanelDefinition>[
+      // ── 左泳道 ────────────────────────────────────────────────────────
+      WorkspacePanelDefinition(
+        id: WorkspacePanelId.bookshelf,
+        title: '书架（上游原版）',
+        icon: Icons.menu_book_rounded,
+        side: WorkspacePanelSide.left,
+        defaultOrder: 0,
+        exclusive: true,
+        canMove: false,
+        canHide: false,
+        acceptsCards: false,
+        page: (_) => const EmbeddedBookshelfLane(),
+      ),
+      WorkspacePanelDefinition(
+        id: WorkspacePanelId.favorite,
+        title: '我的收藏',
+        icon: Icons.bookmark_added_rounded,
+        side: WorkspacePanelSide.left,
+        defaultOrder: 1,
+        exclusive: true,
+      ),
+      WorkspacePanelDefinition(
+        id: WorkspacePanelId.history,
+        title: '阅读历史',
+        icon: Icons.history_rounded,
+        side: WorkspacePanelSide.left,
+        defaultOrder: 2,
+        exclusive: true,
+      ),
+      WorkspacePanelDefinition(
+        id: WorkspacePanelId.download,
+        title: '下载与离线',
+        icon: Icons.download_done_rounded,
+        side: WorkspacePanelSide.left,
+        defaultOrder: 3,
+        exclusive: true,
+      ),
+      WorkspacePanelDefinition(
+        id: WorkspacePanelId.shelf,
+        title: '书架聚合卡片',
+        icon: Icons.dashboard_customize_rounded,
+        side: WorkspacePanelSide.left,
+        defaultOrder: 4,
+        defaultVisible: false,
+      ),
 
-        // ── 右泳道 ────────────────────────────────────────────────────────
-        WorkspacePanelDefinition(
-          id: WorkspacePanelId.discover,
-          title: '发现（上游原版）',
-          icon: Icons.explore_rounded,
-          side: WorkspacePanelSide.right,
-          defaultOrder: 0,
-          exclusive: true,
-          canMove: false,
-          canHide: false,
-          acceptsCards: false,
-          page: (_) => const EmbeddedDiscoverLane(),
-        ),
-        WorkspacePanelDefinition(
-          id: WorkspacePanelId.sources,
-          title: '图源与本地',
-          icon: Icons.extension_rounded,
-          side: WorkspacePanelSide.right,
-          defaultOrder: 1,
-        ),
-        WorkspacePanelDefinition(
-          id: WorkspacePanelId.tools,
-          title: '工具与设置（上游原版）',
-          icon: Icons.tune_rounded,
-          side: WorkspacePanelSide.right,
-          defaultOrder: 2,
-          exclusive: true,
-          canMove: false,
-          canHide: false,
-          acceptsCards: false,
-          page: (_) => const EmbeddedAuxiliaryLane(),
-        ),
-      ]);
+      // ── 右泳道 ────────────────────────────────────────────────────────
+      WorkspacePanelDefinition(
+        id: WorkspacePanelId.discover,
+        title: '发现（上游原版）',
+        icon: Icons.explore_rounded,
+        side: WorkspacePanelSide.right,
+        defaultOrder: 0,
+        exclusive: true,
+        canMove: false,
+        canHide: false,
+        acceptsCards: false,
+        page: (_) => const EmbeddedDiscoverLane(),
+      ),
+      WorkspacePanelDefinition(
+        id: WorkspacePanelId.fileManager,
+        title: '文件管理',
+        icon: Icons.folder_copy_rounded,
+        side: WorkspacePanelSide.right,
+        defaultOrder: 1,
+        exclusive: true,
+      ),
+      WorkspacePanelDefinition(
+        id: WorkspacePanelId.pageList,
+        title: '页面导航',
+        icon: Icons.view_carousel_rounded,
+        side: WorkspacePanelSide.right,
+        defaultOrder: 2,
+        exclusive: true,
+      ),
+      WorkspacePanelDefinition(
+        id: WorkspacePanelId.plugins,
+        title: '图源扩展',
+        icon: Icons.extension_rounded,
+        side: WorkspacePanelSide.right,
+        defaultOrder: 3,
+        exclusive: true,
+      ),
+      WorkspacePanelDefinition(
+        id: WorkspacePanelId.sources,
+        title: '图源本地聚合',
+        icon: Icons.auto_awesome_motion_rounded,
+        side: WorkspacePanelSide.right,
+        defaultOrder: 4,
+        defaultVisible: false,
+      ),
+      WorkspacePanelDefinition(
+        id: WorkspacePanelId.tools,
+        title: '工具与设置（上游原版）',
+        icon: Icons.tune_rounded,
+        side: WorkspacePanelSide.right,
+        defaultOrder: 5,
+        exclusive: true,
+        canMove: false,
+        canHide: false,
+        acceptsCards: false,
+        page: (_) => const EmbeddedAuxiliaryLane(),
+      ),
+    ],
+  );
 
   WorkspacePanelDefinition? find(String panelId) {
     for (final panel in panels) {
@@ -142,7 +193,8 @@ class WorkspacePanelRegistry {
     for (final panel in panels) {
       final effective = effectivePanelLayout(panel, board);
       if (effective.side != side || !effective.visible) continue;
-      if (panel.acceptsCards && registry.cardsForPanel(panel.id, board).isEmpty) {
+      if (panel.acceptsCards &&
+          registry.cardsForPanel(panel.id, board).isEmpty) {
         continue;
       }
       visible.add(panel.id);

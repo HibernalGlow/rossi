@@ -25,6 +25,9 @@ class WorkspaceCardChrome {
   final VoidCallback? onMoveDown;
   final VoidCallback? onHide;
 
+  /// 是否为独占面板模式（卡片占满整个面板，不渲染折叠外壳与固定高度限制）
+  final bool standalone;
+
   const WorkspaceCardChrome({
     required this.expanded,
     required this.onToggle,
@@ -33,6 +36,7 @@ class WorkspaceCardChrome {
     this.onMoveUp,
     this.onMoveDown,
     this.onHide,
+    this.standalone = false,
   });
 }
 
@@ -91,7 +95,7 @@ class WorkspaceCardRegistry {
       id: favorite,
       title: '我的收藏',
       icon: Icons.bookmark_added_rounded,
-      defaultPanelId: WorkspacePanelId.shelf,
+      defaultPanelId: WorkspacePanelId.favorite,
       defaultOrder: 0,
       builder: (context, chrome) => FavoriteShelfCard(
         isExpanded: chrome.expanded,
@@ -99,41 +103,44 @@ class WorkspaceCardRegistry {
         onMoveUp: chrome.onMoveUp,
         onMoveDown: chrome.onMoveDown,
         onHide: chrome.onHide,
+        isStandalone: chrome.standalone,
       ),
     ),
     WorkspaceCardDefinition(
       id: history,
       title: '阅读历史',
       icon: Icons.history_rounded,
-      defaultPanelId: WorkspacePanelId.shelf,
-      defaultOrder: 1,
+      defaultPanelId: WorkspacePanelId.history,
+      defaultOrder: 0,
       builder: (context, chrome) => HistoryShelfCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
         onMoveUp: chrome.onMoveUp,
         onMoveDown: chrome.onMoveDown,
         onHide: chrome.onHide,
+        isStandalone: chrome.standalone,
       ),
     ),
     WorkspaceCardDefinition(
       id: download,
       title: '下载与离线',
       icon: Icons.download_done_rounded,
-      defaultPanelId: WorkspacePanelId.shelf,
-      defaultOrder: 2,
+      defaultPanelId: WorkspacePanelId.download,
+      defaultOrder: 0,
       builder: (context, chrome) => DownloadShelfCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
         onMoveUp: chrome.onMoveUp,
         onMoveDown: chrome.onMoveDown,
         onHide: chrome.onHide,
+        isStandalone: chrome.standalone,
       ),
     ),
     WorkspaceCardDefinition(
       id: plugins,
       title: '图源与扩展',
       icon: Icons.extension_rounded,
-      defaultPanelId: WorkspacePanelId.sources,
+      defaultPanelId: WorkspacePanelId.plugins,
       defaultOrder: 0,
       builder: (context, chrome) => DiscoverPluginsCard(
         isExpanded: chrome.expanded,
@@ -141,34 +148,37 @@ class WorkspaceCardRegistry {
         onMoveUp: chrome.onMoveUp,
         onMoveDown: chrome.onMoveDown,
         onHide: chrome.onHide,
+        isStandalone: chrome.standalone,
       ),
     ),
     WorkspaceCardDefinition(
       id: localFolder,
       title: '本地漫画',
       icon: Icons.folder_copy_rounded,
-      defaultPanelId: WorkspacePanelId.sources,
-      defaultOrder: 1,
+      defaultPanelId: WorkspacePanelId.fileManager,
+      defaultOrder: 0,
       builder: (context, chrome) => FileManagerCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
         onMoveUp: chrome.onMoveUp,
         onMoveDown: chrome.onMoveDown,
         onHide: chrome.onHide,
+        isStandalone: chrome.standalone,
       ),
     ),
     WorkspaceCardDefinition(
       id: pageList,
       title: '页面导航',
       icon: Icons.view_carousel_rounded,
-      defaultPanelId: WorkspacePanelId.sources,
-      defaultOrder: 2,
+      defaultPanelId: WorkspacePanelId.pageList,
+      defaultOrder: 0,
       builder: (context, chrome) => PageListCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
         onMoveUp: chrome.onMoveUp,
         onMoveDown: chrome.onMoveDown,
         onHide: chrome.onHide,
+        isStandalone: chrome.standalone,
       ),
     ),
   ]);

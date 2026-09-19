@@ -51,32 +51,52 @@ void _defaultsAreHeaderMounted() {
 }
 
 void _dockDirections() {
-  check('顶/底是横向排布', PanelBarDock.top.isHorizontal && PanelBarDock.bottom.isHorizontal);
-  check('左/右是纵向排布', !PanelBarDock.left.isHorizontal && !PanelBarDock.right.isHorizontal);
+  check(
+    '顶/底是横向排布',
+    PanelBarDock.top.isHorizontal && PanelBarDock.bottom.isHorizontal,
+  );
+  check(
+    '左/右是纵向排布',
+    !PanelBarDock.left.isHorizontal && !PanelBarDock.right.isHorizontal,
+  );
 }
 
 /// 靠边够近才吸附；阈值边界**含**该值。
 void _dockCandidatePicksNearestEdgeWithinThreshold() {
   const lane = PanelBarBounds(left: 0, top: 0, width: 400, height: 300);
 
-  check('左上角附近 → 左（离左 10 比离上 150 近）',
-      panelBarDockCandidate(lane: lane, x: 10, y: 150) == PanelBarDock.left);
-  check('右侧 → 右',
-      panelBarDockCandidate(lane: lane, x: 390, y: 150) == PanelBarDock.right);
-  check('顶部中间 → 顶',
-      panelBarDockCandidate(lane: lane, x: 200, y: 5) == PanelBarDock.top);
-  check('底部中间 → 底',
-      panelBarDockCandidate(lane: lane, x: 200, y: 295) == PanelBarDock.bottom);
-  check('正好在阈值上（64）算吸附',
-      panelBarDockCandidate(lane: lane, x: 64, y: 150) == PanelBarDock.left);
-  check('超出阈值 1px（65）就不吸附',
-      panelBarDockCandidate(lane: lane, x: 65, y: 150) == null);
+  check(
+    '左上角附近 → 左（离左 10 比离上 150 近）',
+    panelBarDockCandidate(lane: lane, x: 10, y: 150) == PanelBarDock.left,
+  );
+  check(
+    '右侧 → 右',
+    panelBarDockCandidate(lane: lane, x: 390, y: 150) == PanelBarDock.right,
+  );
+  check(
+    '顶部中间 → 顶',
+    panelBarDockCandidate(lane: lane, x: 200, y: 5) == PanelBarDock.top,
+  );
+  check(
+    '底部中间 → 底',
+    panelBarDockCandidate(lane: lane, x: 200, y: 295) == PanelBarDock.bottom,
+  );
+  check(
+    '正好在阈值上（64）算吸附',
+    panelBarDockCandidate(lane: lane, x: 64, y: 150) == PanelBarDock.left,
+  );
+  check(
+    '超出阈值 1px（65）就不吸附',
+    panelBarDockCandidate(lane: lane, x: 65, y: 150) == null,
+  );
 
   // 四边等距时结果必须是**确定的**（取枚举顺序里第一个）。
   // 若排序不稳，同一次拖动在不同帧里会吸到不同的边，面板栏会抖。
   const square = PanelBarBounds(left: 0, top: 0, width: 100, height: 100);
-  check('四边等距（50,50）稳定地给出 left',
-      panelBarDockCandidate(lane: square, x: 50, y: 50) == PanelBarDock.left);
+  check(
+    '四边等距（50,50）稳定地给出 left',
+    panelBarDockCandidate(lane: square, x: 50, y: 50) == PanelBarDock.left,
+  );
 }
 
 /// 泳道正中 / 泳道外 → 不吸附（`null` = 转成**悬浮**）。
@@ -85,18 +105,26 @@ void _dockCandidatePicksNearestEdgeWithinThreshold() {
 /// 面板栏会被永远吸在某条边上。
 void _dockCandidateRefusesFarAndOutside() {
   const lane = PanelBarBounds(left: 0, top: 0, width: 400, height: 300);
-  check('泳道正中：离四边都 > 阈值 → 不吸附（转悬浮）',
-      panelBarDockCandidate(lane: lane, x: 200, y: 150) == null);
-  check('泳道外（左）→ 不吸附',
-      panelBarDockCandidate(lane: lane, x: -5, y: 150) == null);
-  check('泳道外（下）→ 不吸附',
-      panelBarDockCandidate(lane: lane, x: 200, y: 400) == null);
+  check(
+    '泳道正中：离四边都 > 阈值 → 不吸附（转悬浮）',
+    panelBarDockCandidate(lane: lane, x: 200, y: 150) == null,
+  );
+  check(
+    '泳道外（左）→ 不吸附',
+    panelBarDockCandidate(lane: lane, x: -5, y: 150) == null,
+  );
+  check(
+    '泳道外（下）→ 不吸附',
+    panelBarDockCandidate(lane: lane, x: 200, y: 400) == null,
+  );
 
   // 阈值可调：把它放大到 200，正中也会被吸到**最近的那条边**。
   // 400×300 的泳道正中离上边 150、离左右各 200 —— 最近的是上边，不是左边。
-  check('阈值放大后正中吸到最近的上边',
-      panelBarDockCandidate(lane: lane, x: 200, y: 150, threshold: 200) ==
-          PanelBarDock.top);
+  check(
+    '阈值放大后正中吸到最近的上边',
+    panelBarDockCandidate(lane: lane, x: 200, y: 150, threshold: 200) ==
+        PanelBarDock.top,
+  );
 }
 
 /// 悬浮位置：按中心点百分比摆放，并且**夹进容器**（越界会被裁掉一半）。
@@ -110,8 +138,11 @@ void _floatingOffsetCentersAndClamps() {
     barWidth: 100,
     barHeight: 40,
   );
-  check('50%/50% → 左上角 (150,130)',
-      centered.left == 150.0 && centered.top == 130.0, '$centered');
+  check(
+    '50%/50% → 左上角 (150,130)',
+    centered.left == 150.0 && centered.top == 130.0,
+    '$centered',
+  );
 
   final topLeft = panelBarFloatingOffset(
     bounds: bounds,
@@ -120,8 +151,11 @@ void _floatingOffsetCentersAndClamps() {
     barWidth: 100,
     barHeight: 40,
   );
-  check('0%/0% 被夹到 (0,0)（不是负数）',
-      topLeft.left == 0.0 && topLeft.top == 0.0, '$topLeft');
+  check(
+    '0%/0% 被夹到 (0,0)（不是负数）',
+    topLeft.left == 0.0 && topLeft.top == 0.0,
+    '$topLeft',
+  );
 
   final bottomRight = panelBarFloatingOffset(
     bounds: bounds,
@@ -130,8 +164,11 @@ void _floatingOffsetCentersAndClamps() {
     barWidth: 100,
     barHeight: 40,
   );
-  check('100%/100% 被夹到右下角内 (300,260)',
-      bottomRight.left == 300.0 && bottomRight.top == 260.0, '$bottomRight');
+  check(
+    '100%/100% 被夹到右下角内 (300,260)',
+    bottomRight.left == 300.0 && bottomRight.top == 260.0,
+    '$bottomRight',
+  );
 
   // 容器比面板栏还小：夹取不能反过来把 left 推到负数。
   const tiny = PanelBarBounds(left: 10, top: 20, width: 40, height: 30);
@@ -142,8 +179,11 @@ void _floatingOffsetCentersAndClamps() {
     barWidth: 100,
     barHeight: 40,
   );
-  check('容器比面板栏小 → 退回容器左上角，不出现负偏移',
-      overflow.left == 10.0 && overflow.top == 20.0, '$overflow');
+  check(
+    '容器比面板栏小 → 退回容器左上角，不出现负偏移',
+    overflow.left == 10.0 && overflow.top == 20.0,
+    '$overflow',
+  );
 }
 
 /// 松手时「像素 → 百分比」要能反算回来（否则悬浮一次就漂一点）。
@@ -156,8 +196,11 @@ void _percentRoundTrip() {
     barWidth: 100,
     barHeight: 40,
   );
-  check('(150,130) 反算回 50%/50%',
-      percent.x == 50.0 && percent.y == 50.0, '$percent');
+  check(
+    '(150,130) 反算回 50%/50%',
+    percent.x == 50.0 && percent.y == 50.0,
+    '$percent',
+  );
 
   final back = panelBarFloatingOffset(
     bounds: bounds,
@@ -166,8 +209,7 @@ void _percentRoundTrip() {
     barWidth: 100,
     barHeight: 40,
   );
-  check('再算回去还是 (150,130)',
-      back.left == 150.0 && back.top == 130.0, '$back');
+  check('再算回去还是 (150,130)', back.left == 150.0 && back.top == 130.0, '$back');
 
   const degenerate = PanelBarBounds(left: 0, top: 0, width: 0, height: 0);
   final zero = panelBarPercentFromOffset(
@@ -201,9 +243,11 @@ void _jsonRoundTrip() {
     'mode': 'floating',
     'dock': 'top',
   });
-  check('悬浮 + top 原样保留（不是非法组合）',
-      floatingTop.mode == PanelBarMode.floating &&
-          floatingTop.dock == PanelBarDock.top);
+  check(
+    '悬浮 + top 原样保留（不是非法组合）',
+    floatingTop.mode == PanelBarMode.floating &&
+        floatingTop.dock == PanelBarDock.top,
+  );
 }
 
 /// 缺项 / 非法项**只影响它自己**。

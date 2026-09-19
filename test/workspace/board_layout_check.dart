@@ -111,10 +111,7 @@ void _cardMove() {
 void _cardTieBreak() {
   // 次序必须是**全序**：order 相同按 id 字典序，否则同一份配置在不同构建里
   // 会排出不同的轨，图标位置莫名其妙地漂。
-  final ordered = sortByOrder(
-    const ['b', 'a', 'c'],
-    (id) => id == 'c' ? 0 : 1,
-  );
+  final ordered = sortByOrder(const ['b', 'a', 'c'], (id) => id == 'c' ? 0 : 1);
   check('order 小者在前', ordered.first == 'c');
   check('order 相同时按 id 字典序', ordered[1] == 'a' && ordered[2] == 'b');
 }

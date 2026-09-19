@@ -15,6 +15,7 @@ class DownloadShelfCard extends StatelessWidget {
   final VoidCallback? onMoveUp;
   final VoidCallback? onMoveDown;
   final VoidCallback? onHide;
+  final bool isStandalone;
 
   const DownloadShelfCard({
     super.key,
@@ -23,6 +24,7 @@ class DownloadShelfCard extends StatelessWidget {
     this.onMoveUp,
     this.onMoveDown,
     this.onHide,
+    this.isStandalone = false,
   });
 
   @override
@@ -33,9 +35,180 @@ class DownloadShelfCard extends StatelessWidget {
     final downloadedCount = objectbox.unifiedDownloadBox.count();
 
     // 监听正在下载/排队中的任务
-    final queryBuilder = objectbox.downloadTaskBox
-        .query()
-        .order(DownloadTask_.id, flags: Order.descending);
+    final queryBuilder = objectbox.downloadTaskBox.query().order(
+      DownloadTask_.id,
+      flags: Order.descending,
+    );
+
+    final streamWidget = StreamBuilder<List<DownloadTask>>(
+      stream: queryBuilder.watch(triggerImmediately: true).map((q) => q.find()),
+      builder: (context, snapshot) {
+        final tasks = snapshot.data ?? [];
+        final activeTasks = tasks.where((t) => t.isDownloading).toList();
+        final pendingTasks = tasks
+            .where((t) => !t.isCompleted && !t.isDownloading)
+            .toList();
+
+        if (isStandalone) {
+          final taskList = tasks.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24.0),
+                    child: Text(
+                      '暂无下载任务',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.outline,
+                      ),
+                    ),
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: tasks.length,
+                  itemBuilder: (context, index) =>
+                      _buildActiveTaskItem(context, tasks[index]),
+                );
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 概览统计条
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildStatItem(
+                      context,
+                      '已离线漫画',
+                      '$downloadedCount 本',
+                      Icons.inventory_2_outlined,
+                    ),
+                    Container(
+                      height: 24,
+                      width: 1,
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.3,
+                      ),
+                    ),
+                    _buildStatItem(
+                      context,
+                      '进行中任务',
+                      '${activeTasks.length + pendingTasks.length} 个',
+                      Icons.downloading_rounded,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Row(
+                  children: [
+                    Text(
+                      '下载任务列表',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: () =>
+                          context.pushRoute(const DownloadTaskRoute()),
+                      icon: const Icon(Icons.open_in_new_rounded, size: 14),
+                      label: const Text('全部管理'),
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+              Expanded(child: taskList),
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 概览统计条
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildStatItem(
+                    context,
+                    '已离线漫画',
+                    '$downloadedCount 本',
+                    Icons.inventory_2_outlined,
+                  ),
+                  Container(
+                    height: 24,
+                    width: 1,
+                    color: theme.colorScheme.outlineVariant.withValues(
+                      alpha: 0.3,
+                    ),
+                  ),
+                  _buildStatItem(
+                    context,
+                    '进行中任务',
+                    '${activeTasks.length + pendingTasks.length} 个',
+                    Icons.downloading_rounded,
+                  ),
+                ],
+              ),
+            ),
+
+            if (activeTasks.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(
+                '正在下载',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 6),
+              ...activeTasks
+                  .take(3)
+                  .map((task) => _buildActiveTaskItem(context, task)),
+            ] else if (tasks.isEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                child: Center(
+                  child: Text(
+                    '暂无下载任务',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.outline,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+
+    if (isStandalone) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: streamWidget,
+      );
+    }
 
     return CollapsibleCard(
       cardId: 'download',
@@ -55,60 +228,16 @@ class DownloadShelfCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         ),
       ),
-      child: StreamBuilder<List<DownloadTask>>(
-        stream: queryBuilder.watch(triggerImmediately: true).map((q) => q.find()),
-        builder: (context, snapshot) {
-          final tasks = snapshot.data ?? [];
-          final activeTasks = tasks.where((t) => t.isDownloading).toList();
-          final pendingTasks = tasks.where((t) => !t.isCompleted && !t.isDownloading).toList();
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 概览统计条
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildStatItem(context, '已离线漫画', '$downloadedCount 本', Icons.inventory_2_outlined),
-                    Container(height: 24, width: 1, color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
-                    _buildStatItem(context, '进行中任务', '${activeTasks.length + pendingTasks.length} 个', Icons.downloading_rounded),
-                  ],
-                ),
-              ),
-
-              if (activeTasks.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Text(
-                  '正在下载',
-                  style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 6),
-                ...activeTasks.take(3).map((task) => _buildActiveTaskItem(context, task)),
-              ] else if (tasks.isEmpty) ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: Center(
-                    child: Text(
-                      '暂无下载任务',
-                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          );
-        },
-      ),
+      child: streamWidget,
     );
   }
 
-  Widget _buildStatItem(BuildContext context, String label, String value, IconData icon) {
+  Widget _buildStatItem(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+  ) {
     final theme = Theme.of(context);
     return Row(
       children: [
@@ -117,8 +246,19 @@ class DownloadShelfCard extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline, fontSize: 10)),
-            Text(value, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.outline,
+                fontSize: 10,
+              ),
+            ),
+            Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
       ],
@@ -136,7 +276,9 @@ class DownloadShelfCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.colorScheme.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,13 +289,17 @@ class DownloadShelfCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     task.comicName,
-                    style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Text(
-                  task.status.isNotEmpty ? task.status : (isDownloading ? '下载中' : '等待中'),
+                  task.status.isNotEmpty
+                      ? task.status
+                      : (isDownloading ? '下载中' : '等待中'),
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.primary,
                     fontWeight: FontWeight.bold,
@@ -164,9 +310,7 @@ class DownloadShelfCard extends StatelessWidget {
             const SizedBox(height: 6),
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
-              child: const LinearProgressIndicator(
-                minHeight: 4,
-              ),
+              child: const LinearProgressIndicator(minHeight: 4),
             ),
           ],
         ),

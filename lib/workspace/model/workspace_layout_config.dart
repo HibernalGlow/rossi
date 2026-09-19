@@ -117,7 +117,9 @@ class LaneConfig {
       collapsed: json['collapsed'] is bool
           ? json['collapsed']! as bool
           : fallback.collapsed,
-      title: json['title'] is String ? json['title']! as String : fallback.title,
+      title: json['title'] is String
+          ? json['title']! as String
+          : fallback.title,
       panelBar: json['panelBar'] is Map
           ? PanelBarLayout.fromJson(
               (json['panelBar']! as Map).cast<String, Object?>(),
@@ -262,8 +264,7 @@ class WorkspaceLayoutConfig {
         ? rawSolo
         : null;
 
-    bool flag(String key) =>
-        json[key] is bool ? json[key]! as bool : false;
+    bool flag(String key) => json[key] is bool ? json[key]! as bool : false;
 
     return WorkspaceLayoutConfig(
       laneOrder: laneOrder,

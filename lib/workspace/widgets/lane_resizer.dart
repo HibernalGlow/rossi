@@ -66,7 +66,9 @@ class _LaneResizerState extends State<LaneResizer> {
                 boxShadow: active
                     ? [
                         BoxShadow(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.3,
+                          ),
                           blurRadius: 4,
                         ),
                       ]

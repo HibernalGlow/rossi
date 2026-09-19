@@ -162,7 +162,8 @@ void main() {
     expect(
       _contentTaps,
       isEmpty,
-      reason: '契约：`That click is consumed by the workspace and must not reach '
+      reason:
+          '契约：`That click is consumed by the workspace and must not reach '
           'Reader area bindings, page navigation, video controls, or the radial menu`',
     );
   });
@@ -181,7 +182,8 @@ void main() {
     expect(
       _contentTaps,
       <String>[LaneId.right],
-      reason: '吃掉只该发生**一次**：激活之后内容必须照常收到点击，'
+      reason:
+          '吃掉只该发生**一次**：激活之后内容必须照常收到点击，'
           '否则用户每点两下才生效一下',
     );
     expect(cubit.state.activeLaneId, LaneId.right);
@@ -205,7 +207,8 @@ void main() {
     expect(
       cubit.state.layout.lanes[LaneId.right]!.collapsed,
       isTrue,
-      reason: '栏头的折叠按钮是这条泳道**自己的**控件，第一下就该生效 —— '
+      reason:
+          '栏头的折叠按钮是这条泳道**自己的**控件，第一下就该生效 —— '
           'UserModel 按了「折叠」而什么都没发生，比「先激活了泳道」难解释得多',
     );
     expect(
@@ -264,11 +267,7 @@ void main() {
 
     await _waitDwell(tester, cubit.state.interaction.hoverFocusDelayMs);
 
-    expect(
-      cubit.state.activeLaneId,
-      isNull,
-      reason: '面板泳道不吃悬停聚焦：它只认 Reader',
-    );
+    expect(cubit.state.activeLaneId, isNull, reason: '面板泳道不吃悬停聚焦：它只认 Reader');
   });
 
   testWidgets('悬停聚焦关掉之后，停多久都不激活', (tester) async {
@@ -301,12 +300,17 @@ void main() {
     cubit.toggleSoloLane(LaneId.reader);
     await tester.pumpAndSettle();
 
-    expect(cubit.state.layout.soloLaneId, LaneId.reader, reason: '前置：Reader 独占');
+    expect(
+      cubit.state.layout.soloLaneId,
+      LaneId.reader,
+      reason: '前置：Reader 独占',
+    );
     expect(cubit.state.activeLaneId, LaneId.reader, reason: '前置：Reader 激活');
     expect(
       tester.getCenter(_probe(LaneId.left)).dx,
       lessThan(0),
-      reason: '前置：独占让 Reader 占满可用宽，左泳道被挤出视口 —— '
+      reason:
+          '前置：独占让 Reader 占满可用宽，左泳道被挤出视口 —— '
           'reveal 这条能力（「显出一条泳道靠移动条带」）只在有得滚的时候才谈得上',
     );
 
@@ -357,7 +361,8 @@ void main() {
     expect(
       tester.getCenter(_probe(LaneId.left)).dx,
       lessThan(0),
-      reason: '揭示是**瞬态**的：指针不在旁边了，它就该消失，'
+      reason:
+          '揭示是**瞬态**的：指针不在旁边了，它就该消失，'
           '否则「上次它自己动过」会变成一个用户没法关掉的状态',
     );
     expect(cubit.state.activeLaneId, LaneId.reader);

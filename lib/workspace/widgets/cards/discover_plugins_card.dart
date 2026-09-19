@@ -16,6 +16,7 @@ class DiscoverPluginsCard extends StatelessWidget {
   final VoidCallback? onMoveUp;
   final VoidCallback? onMoveDown;
   final VoidCallback? onHide;
+  final bool isStandalone;
 
   const DiscoverPluginsCard({
     super.key,
@@ -24,13 +25,95 @@ class DiscoverPluginsCard extends StatelessWidget {
     this.onMoveUp,
     this.onMoveDown,
     this.onHide,
+    this.isStandalone = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final pluginStates = context.watch<PluginRegistryCubit>().state;
-    final enabledPlugins = pluginStates.values.where((p) => p.isEnabled).toList();
+    final enabledPlugins = pluginStates.values
+        .where((p) => p.isEnabled)
+        .toList();
+
+    if (isStandalone) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 顶部信息操作栏
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.extension_rounded,
+                    size: 18,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '图源与扩展',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.search_rounded, size: 18),
+                    tooltip: '跨图源聚合搜索',
+                    onPressed: () {
+                      context.pushRoute(
+                        SearchRoute(
+                          searchState: SearchStates.initial(),
+                          aggregateMode: true,
+                        ),
+                      );
+                    },
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  TextButton.icon(
+                    onPressed: () =>
+                        context.pushRoute(const PluginStoreRoute()),
+                    icon: const Icon(Icons.storefront_rounded, size: 14),
+                    label: const Text('市场'),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: enabledPlugins.isEmpty
+                  ? Center(
+                      child: Text(
+                        '暂无启用的插件',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.outline,
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
+                      itemCount: enabledPlugins.length,
+                      separatorBuilder: (context, index) =>
+                          const Divider(height: 1, indent: 44),
+                      itemBuilder: (context, index) {
+                        final plugin = enabledPlugins[index];
+                        return _buildPluginItem(context, plugin);
+                      },
+                    ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return CollapsibleCard(
       cardId: 'discover_plugins',
@@ -77,7 +160,9 @@ class DiscoverPluginsCard extends StatelessWidget {
               child: Center(
                 child: Text(
                   '暂无启用的插件',
-                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.outline,
+                  ),
                 ),
               ),
             )
@@ -86,7 +171,8 @@ class DiscoverPluginsCard extends StatelessWidget {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: enabledPlugins.length,
-              separatorBuilder: (context, index) => const Divider(height: 1, indent: 44),
+              separatorBuilder: (context, index) =>
+                  const Divider(height: 1, indent: 44),
               itemBuilder: (context, index) {
                 final plugin = enabledPlugins[index];
                 return _buildPluginItem(context, plugin);
@@ -119,7 +205,9 @@ class DiscoverPluginsCard extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 16,
-              backgroundColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+              backgroundColor: theme.colorScheme.primaryContainer.withValues(
+                alpha: 0.6,
+              ),
               child: Icon(
                 _pluginIcon(plugin.uuid),
                 size: 18,
@@ -143,7 +231,9 @@ class DiscoverPluginsCard extends StatelessWidget {
                   Text(
                     '${plugin.version.isEmpty ? "内置" : "v${plugin.version}"} · ${isReady ? "已就绪" : "正在加载"}',
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: isReady ? theme.colorScheme.outline : Colors.orange,
+                      color: isReady
+                          ? theme.colorScheme.outline
+                          : Colors.orange,
                     ),
                   ),
                 ],

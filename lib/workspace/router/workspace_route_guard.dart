@@ -50,7 +50,9 @@ class WorkspaceRouteGuard extends AutoRouteGuard {
 
     // 2. 其余：落进发起交互的那个面板的局部导航栈。
     //    没落点时不接管 —— pushInLane 返回 false，下面照常放行。
-    if (bridge.pushInLane((context) => buildLanePage(match, router).createRoute(context))) {
+    if (bridge.pushInLane(
+      (context) => buildLanePage(match, router).createRoute(context),
+    )) {
       resolver.next(false);
       return;
     }

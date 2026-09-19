@@ -84,8 +84,7 @@ WorkspaceLayoutSnapshot _customSnapshot() => WorkspaceLayoutSnapshot(
 );
 
 /// 泳道内容的轻量替身 —— 页面的持久化接线与泳道内容无关，别让真内容挡路。
-Widget _probeContent(String laneId) =>
-    Center(child: Text('content-$laneId'));
+Widget _probeContent(String laneId) => Center(child: Text('content-$laneId'));
 
 Future<void> _pumpPage(
   WidgetTester tester, {
@@ -128,16 +127,10 @@ void main() {
 
     // 模拟「一边拖分隔条一边变状态」：三次改动都落在去抖窗口内。
     for (var i = 1; i <= 3; i++) {
-      persistence.schedule(
-        _customSnapshot().copyWithLeftWidth(300 + i * 10.0),
-      );
+      persistence.schedule(_customSnapshot().copyWithLeftWidth(300 + i * 10.0));
       await tester.pump(const Duration(milliseconds: 100));
     }
-    expect(
-      store.writes,
-      0,
-      reason: '三次改动都还在去抖窗口（420ms）内，一次盘都不该写',
-    );
+    expect(store.writes, 0, reason: '三次改动都还在去抖窗口（420ms）内，一次盘都不该写');
 
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pump();
@@ -169,7 +162,8 @@ void main() {
     expect(
       store.writes,
       1,
-      reason: '没有压着的改动时 flush 应当什么都不做：它会被无条件调用，'
+      reason:
+          '没有压着的改动时 flush 应当什么都不做：它会被无条件调用，'
           '白写一次盘在慢盘上是一次可感的卡顿',
     );
   });
@@ -237,7 +231,8 @@ void main() {
     expect(
       store.writes,
       before,
-      reason: '刚读回来的东西不该被立刻原样写回去：纯浪费，而且在慢盘上会与'
+      reason:
+          '刚读回来的东西不该被立刻原样写回去：纯浪费，而且在慢盘上会与'
           '下一次真实改动抢同一个文件',
     );
   });
@@ -248,11 +243,7 @@ void main() {
     await _pumpPage(tester, store: store);
 
     expect(find.text(_defaultLeftTitle), findsOneWidget);
-    expect(
-      store.writes,
-      0,
-      reason: '什么都没改 —— 启动不该产生一次写盘（没有存过 ≠ 需要存一份默认的）',
-    );
+    expect(store.writes, 0, reason: '什么都没改 —— 启动不该产生一次写盘（没有存过 ≠ 需要存一份默认的）');
   });
 
   testWidgets('界面上改一下：去抖之后落盘，存的是改后的那一份', (tester) async {
@@ -270,11 +261,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(
-      store.writes,
-      before,
-      reason: '还没过去抖窗口，不该已经写盘（拖分隔条时每帧都在变）',
-    );
+    expect(store.writes, before, reason: '还没过去抖窗口，不该已经写盘（拖分隔条时每帧都在变）');
 
     await tester.pump(const Duration(milliseconds: 600));
     await tester.pump();
@@ -315,7 +302,8 @@ void main() {
     expect(
       await store.load(),
       isNull,
-      reason: '只重置内存状态的话，重启之后旧快照会把它覆盖回来 —— '
+      reason:
+          '只重置内存状态的话，重启之后旧快照会把它覆盖回来 —— '
           '用户看到的是「重置了，但重启又变回来了」',
     );
     expect(

@@ -16,6 +16,7 @@ class HistoryShelfCard extends StatelessWidget {
   final VoidCallback? onMoveUp;
   final VoidCallback? onMoveDown;
   final VoidCallback? onHide;
+  final bool isStandalone;
 
   const HistoryShelfCard({
     super.key,
@@ -24,6 +25,7 @@ class HistoryShelfCard extends StatelessWidget {
     this.onMoveUp,
     this.onMoveDown,
     this.onHide,
+    this.isStandalone = false,
   });
 
   @override
@@ -39,6 +41,78 @@ class HistoryShelfCard extends StatelessWidget {
       stream: queryBuilder.watch(triggerImmediately: true).map((q) => q.find()),
       builder: (context, snapshot) {
         final items = snapshot.data ?? [];
+
+        if (isStandalone) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 顶部信息条
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 6,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.history_rounded,
+                        size: 18,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '阅读历史',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '${items.length} 条',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: items.isEmpty
+                      ? Center(
+                          child: Text(
+                            '暂无阅读历史',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.outline,
+                            ),
+                          ),
+                        )
+                      : ListView.separated(
+                          itemCount: items.length,
+                          separatorBuilder: (context, index) =>
+                              const Divider(height: 1, indent: 46),
+                          itemBuilder: (context, index) {
+                            final item = items[index];
+                            return _buildHistoryTile(context, item);
+                          },
+                        ),
+                ),
+              ],
+            ),
+          );
+        }
 
         return CollapsibleCard(
           cardId: 'history',
@@ -57,7 +131,9 @@ class HistoryShelfCard extends StatelessWidget {
             ),
             child: Text(
               '${items.length} 条',
-              style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           child: items.isEmpty
@@ -66,7 +142,9 @@ class HistoryShelfCard extends StatelessWidget {
                   child: Center(
                     child: Text(
                       '暂无阅读历史',
-                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.outline,
+                      ),
                     ),
                   ),
                 )
@@ -74,7 +152,8 @@ class HistoryShelfCard extends StatelessWidget {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: items.length > 15 ? 15 : items.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1, indent: 46),
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1, indent: 46),
                   itemBuilder: (context, index) {
                     final item = items[index];
                     return _buildHistoryTile(context, item);
@@ -136,7 +215,11 @@ class HistoryShelfCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Row(
                     children: [
-                      Icon(Icons.bookmark_outline_rounded, size: 12, color: theme.colorScheme.primary),
+                      Icon(
+                        Icons.bookmark_outline_rounded,
+                        size: 12,
+                        color: theme.colorScheme.primary,
+                      ),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(

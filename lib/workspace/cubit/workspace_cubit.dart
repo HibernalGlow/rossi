@@ -199,7 +199,10 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
   void setCardExpanded(String cardId, bool expanded) {
     final card = WorkspaceCardRegistry.I.find(cardId);
     if (card == null) return;
-    final effective = WorkspaceCardRegistry.I.effectiveLayout(card, state.board);
+    final effective = WorkspaceCardRegistry.I.effectiveLayout(
+      card,
+      state.board,
+    );
     emit(
       state.copyWith(
         board: state.board.setCardExpanded(
@@ -216,7 +219,10 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
   void setCardVisible(String cardId, bool visible) {
     final card = WorkspaceCardRegistry.I.find(cardId);
     if (card == null) return;
-    final effective = WorkspaceCardRegistry.I.effectiveLayout(card, state.board);
+    final effective = WorkspaceCardRegistry.I.effectiveLayout(
+      card,
+      state.board,
+    );
     emit(
       state.copyWith(
         board: state.board.setCardVisible(
@@ -382,9 +388,7 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
     emit(
       state.copyWith(
         layout: state.layout.copyWith(soloLaneId: () => nextSolo),
-        activeLaneId: nextSolo != null
-            ? () => laneId
-            : null, // 关掉独占不动激活泳道
+        activeLaneId: nextSolo != null ? () => laneId : null, // 关掉独占不动激活泳道
       ),
     );
   }

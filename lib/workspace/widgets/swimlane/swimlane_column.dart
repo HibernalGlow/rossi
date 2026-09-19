@@ -101,7 +101,8 @@ class SwimlaneColumn extends StatelessWidget {
               _buildHeader(context, theme, titleMounted),
               // 泳道内容 Body
               Expanded(
-                child: child ??
+                child:
+                    child ??
                     ListView(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       children: cards ?? const [],
@@ -116,7 +117,10 @@ class SwimlaneColumn extends StatelessWidget {
 
         // 面板栏浮在内容之上（它自己去哪条边由记账决定）。
         return Stack(
-          children: [Positioned.fill(child: body), bar],
+          children: [
+            Positioned.fill(child: body),
+            bar,
+          ],
         );
       },
     );

@@ -55,32 +55,45 @@ class LocalFolderCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Icon(Icons.bolt_rounded, size: 18, color: theme.colorScheme.primary),
+                    Icon(
+                      Icons.bolt_rounded,
+                      size: 18,
+                      color: theme.colorScheme.primary,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'GPU 零拷贝直通引擎',
-                      style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 6),
                 Text(
                   '支持 zip, cbz, 文件夹、PDF 及图片打包归档。Rust 侧快速解压并直入 D3D12/Metal 合成链。',
-                  style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.outline,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: () => _openLocalPicker(context),
-                    icon: const Icon(Icons.drive_folder_upload_rounded, size: 16),
+                    icon: const Icon(
+                      Icons.drive_folder_upload_rounded,
+                      size: 16,
+                    ),
                     label: const Text('从本地磁盘选择漫画文件夹'),
                   ),
                 ),

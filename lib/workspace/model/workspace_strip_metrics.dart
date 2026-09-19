@@ -200,9 +200,7 @@ class WorkspaceStripMetrics {
           ),
         );
       }
-      slots.add(
-        WorkspaceStripSlot.lane(laneId, width, collapsed: isCollapsed),
-      );
+      slots.add(WorkspaceStripSlot.lane(laneId, width, collapsed: isCollapsed));
       previous = laneId;
     }
 

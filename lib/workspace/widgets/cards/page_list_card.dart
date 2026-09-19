@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/service/reader/reader_thumbnail_service.dart';
@@ -17,6 +17,7 @@ class PageListCard extends StatefulWidget {
   final VoidCallback? onMoveUp;
   final VoidCallback? onMoveDown;
   final VoidCallback? onHide;
+  final bool isStandalone;
 
   const PageListCard({
     super.key,
@@ -25,6 +26,7 @@ class PageListCard extends StatefulWidget {
     this.onMoveUp,
     this.onMoveDown,
     this.onHide,
+    this.isStandalone = false,
   });
 
   @override
@@ -133,6 +135,19 @@ class _PageListCardState extends State<PageListCard> {
         final totalPages = coordinator.totalSlots;
         final currentSlot = coordinator.currentSlot;
 
+        if (widget.isStandalone) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: hasSession
+                ? _buildActiveContent(
+                    coordinator: coordinator,
+                    currentSlot: currentSlot,
+                    totalSlots: totalPages,
+                  )
+                : _buildEmptyContent(),
+          );
+        }
+
         return CollapsibleCard(
           cardId: WorkspaceCardRegistry.pageList,
           title: '页面导航 (${hasSession ? "$totalPages P" : "空闲"})',
@@ -167,26 +182,30 @@ class _PageListCardState extends State<PageListCard> {
 
   Widget _buildEmptyContent() {
     final theme = Theme.of(context);
+    final emptyWidget = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.auto_stories_outlined,
+          size: 38,
+          color: theme.colorScheme.outline.withValues(alpha: 0.6),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          '打开书本后显示页面导航',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.outline,
+          ),
+        ),
+      ],
+    );
+    if (widget.isStandalone) {
+      return Center(child: emptyWidget);
+    }
     return Container(
       height: 180,
       alignment: Alignment.center,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.auto_stories_outlined,
-            size: 38,
-            color: theme.colorScheme.outline.withValues(alpha: 0.6),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            '打开书本后显示页面导航',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.outline,
-            ),
-          ),
-        ],
-      ),
+      child: emptyWidget,
     );
   }
 
@@ -212,160 +231,171 @@ class _PageListCardState extends State<PageListCard> {
       }
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 顶部工具栏：搜索框、跟随阅读进度、模式切换
-        Row(
-          children: [
-            Expanded(
-              child: SizedBox(
-                height: 32,
-                child: TextField(
-                  controller: _searchController,
-                  style: const TextStyle(fontSize: 12),
-                  decoration: InputDecoration(
-                    hintText: '搜索页码或文件名...',
-                    hintStyle: TextStyle(
-                      fontSize: 11,
-                      color: theme.colorScheme.outline,
-                    ),
-                    prefixIcon: const Icon(Icons.search, size: 16),
-                    contentPadding: EdgeInsets.zero,
-                    filled: true,
-                    fillColor: theme.colorScheme.surfaceContainerHighest
-                        .withValues(alpha: 0.4),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
+    final listWidget = Material(
+      color: theme.colorScheme.surfaceContainerLowest,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
+        ),
+      ),
+      child: filteredIndices.isEmpty
+          ? Center(
+              child: Text(
+                '没有匹配的页面',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: theme.colorScheme.outline,
                 ),
               ),
+            )
+          : _buildContentByMode(
+              coordinator: coordinator,
+              filteredIndices: filteredIndices,
+              currentSlot: currentSlot,
+              docs: docs,
             ),
-            const SizedBox(width: 6),
-            // 跟随进度按钮
-            IconButton(
-              iconSize: 18,
-              visualDensity: VisualDensity.compact,
-              tooltip: _followProgress ? '正在跟随阅读进度' : '已暂停跟随阅读进度',
-              style: IconButton.styleFrom(
-                backgroundColor: _followProgress
-                    ? theme.colorScheme.primary.withValues(alpha: 0.15)
-                    : null,
-                foregroundColor: _followProgress
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.outline,
-              ),
-              onPressed: () {
-                setState(() {
-                  _followProgress = !_followProgress;
-                });
-              },
-              icon: const Icon(Icons.gps_fixed_rounded),
-            ),
-            // 模式切换
-            IconButton(
-              iconSize: 18,
-              visualDensity: VisualDensity.compact,
-              tooltip: '视图模式',
-              onPressed: _cycleViewMode,
-              icon: Icon(_getViewModeIcon()),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
+    );
 
-        // 页面主体列表/网格（高度自适应，最大不超过 460）
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 440, minHeight: 180),
-          child: Container(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
-              ),
-            ),
-            child: filteredIndices.isEmpty
-                ? Center(
-                    child: Text(
-                      '没有匹配的页面',
-                      style: TextStyle(
-                        fontSize: 12,
+    return Material(
+      type: MaterialType.transparency,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 顶部工具栏：搜索框、跟随阅读进度、模式切换
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 32,
+                  child: TextField(
+                    controller: _searchController,
+                    style: const TextStyle(fontSize: 12),
+                    decoration: InputDecoration(
+                      hintText: '搜索页码或文件名...',
+                      hintStyle: TextStyle(
+                        fontSize: 11,
                         color: theme.colorScheme.outline,
                       ),
+                      prefixIcon: const Icon(Icons.search, size: 16),
+                      contentPadding: EdgeInsets.zero,
+                      filled: true,
+                      fillColor: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.4),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
-                  )
-                : _buildContentByMode(
-                    coordinator: coordinator,
-                    filteredIndices: filteredIndices,
-                    currentSlot: currentSlot,
-                    docs: docs,
                   ),
-          ),
-        ),
-
-        const SizedBox(height: 8),
-        // 底部快捷跳转栏
-        Row(
-          children: [
-            Expanded(
-              child: SliderTheme(
-                data: SliderTheme.of(context).copyWith(
-                  trackHeight: 4,
-                  thumbShape: const RoundSliderThumbShape(
-                    enabledThumbRadius: 6,
-                  ),
-                  overlayShape: const RoundSliderOverlayShape(
-                    overlayRadius: 10,
-                  ),
-                ),
-                child: Slider(
-                  value: currentSlot.toDouble().clamp(
-                    0.0,
-                    (totalSlots - 1).clamp(0, 999999).toDouble(),
-                  ),
-                  min: 0,
-                  max: (totalSlots - 1).clamp(0, 999999).toDouble(),
-                  onChanged: (value) {
-                    coordinator.jumpTo(value.round());
-                  },
                 ),
               ),
-            ),
-            const SizedBox(width: 4),
-            SizedBox(
-              width: 52,
-              height: 28,
-              child: TextField(
-                controller: _jumpPageController,
-                keyboardType: TextInputType.number,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 11),
-                decoration: InputDecoration(
-                  hintText: '页码',
-                  hintStyle: const TextStyle(fontSize: 10),
-                  contentPadding: EdgeInsets.zero,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                onSubmitted: (_) => _jumpToPageInput(),
-              ),
-            ),
-            const SizedBox(width: 4),
-            FilledButton.tonal(
-              onPressed: _jumpToPageInput,
-              style: FilledButton.styleFrom(
+              const SizedBox(width: 6),
+              // 跟随进度按钮
+              IconButton(
+                iconSize: 18,
                 visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+                tooltip: _followProgress ? '正在跟随阅读进度' : '已暂停跟随阅读进度',
+                style: IconButton.styleFrom(
+                  backgroundColor: _followProgress
+                      ? theme.colorScheme.primary.withValues(alpha: 0.15)
+                      : null,
+                  foregroundColor: _followProgress
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.outline,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _followProgress = !_followProgress;
+                  });
+                },
+                icon: const Icon(Icons.gps_fixed_rounded),
               ),
-              child: const Text('跳转', style: TextStyle(fontSize: 11)),
-            ),
-          ],
-        ),
-      ],
+              // 模式切换
+              IconButton(
+                iconSize: 18,
+                visualDensity: VisualDensity.compact,
+                tooltip: '视图模式',
+                onPressed: _cycleViewMode,
+                icon: Icon(_getViewModeIcon()),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // 页面主体列表/网格（独占模式下撑满高度，聚合模式下最大 440）
+          widget.isStandalone
+              ? Expanded(child: listWidget)
+              : ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxHeight: 440,
+                    minHeight: 180,
+                  ),
+                  child: listWidget,
+                ),
+
+          const SizedBox(height: 8),
+          // 底部快捷跳转栏
+          Row(
+            children: [
+              Expanded(
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 4,
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 6,
+                    ),
+                    overlayShape: const RoundSliderOverlayShape(
+                      overlayRadius: 10,
+                    ),
+                  ),
+                  child: Slider(
+                    value: currentSlot.toDouble().clamp(
+                      0.0,
+                      (totalSlots - 1).clamp(0, 999999).toDouble(),
+                    ),
+                    min: 0,
+                    max: (totalSlots - 1).clamp(0, 999999).toDouble(),
+                    onChanged: (value) {
+                      coordinator.jumpTo(value.round());
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              SizedBox(
+                width: 52,
+                height: 28,
+                child: TextField(
+                  controller: _jumpPageController,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 11),
+                  decoration: InputDecoration(
+                    hintText: '页码',
+                    hintStyle: const TextStyle(fontSize: 10),
+                    contentPadding: EdgeInsets.zero,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  onSubmitted: (_) => _jumpToPageInput(),
+                ),
+              ),
+              const SizedBox(width: 4),
+              FilledButton.tonal(
+                onPressed: _jumpToPageInput,
+                style: FilledButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                child: const Text('跳转', style: TextStyle(fontSize: 11)),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -476,91 +506,94 @@ class _PageListCardState extends State<PageListCard> {
   }) {
     final theme = Theme.of(context);
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(6),
-      onTap: () => coordinator.jumpTo(pageIndex),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: isActive
-                ? theme.colorScheme.primary
-                : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-            width: isActive ? 2.0 : 1.0,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: () => coordinator.jumpTo(pageIndex),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: isActive
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+              width: isActive ? 2.0 : 1.0,
+            ),
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.35),
+                      blurRadius: 6,
+                    ),
+                  ]
+                : null,
           ),
-          boxShadow: isActive
-              ? [
-                  BoxShadow(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.35),
-                    blurRadius: 6,
-                  ),
-                ]
-              : null,
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(5),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              ReaderThumbnailWidget(
-                index: pageIndex,
-                doc: doc,
-                localSource: coordinator.localSource,
-                comicId: coordinator.comicId ?? '',
-                from: coordinator.from ?? '',
-                fit: BoxFit.cover,
-              ),
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 2,
-                  ),
-                  color: Colors.black.withValues(alpha: 0.72),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '#${pageIndex + 1}',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: isActive
-                              ? FontWeight.bold
-                              : FontWeight.w500,
-                          color: isActive
-                              ? theme.colorScheme.primaryContainer
-                              : Colors.white,
-                          fontFeatures: const [FontFeature.tabularFigures()],
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(5),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ReaderThumbnailWidget(
+                  index: pageIndex,
+                  doc: doc,
+                  localSource: coordinator.localSource,
+                  comicId: coordinator.comicId ?? '',
+                  from: coordinator.from ?? '',
+                  fit: BoxFit.cover,
+                ),
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
+                    color: Colors.black.withValues(alpha: 0.72),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '#${pageIndex + 1}',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: isActive
+                                ? FontWeight.bold
+                                : FontWeight.w500,
+                            color: isActive
+                                ? theme.colorScheme.primaryContainer
+                                : Colors.white,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
                         ),
-                      ),
-                      if (isActive)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 3,
-                            vertical: 0.5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary,
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                          child: Text(
-                            '当前',
-                            style: TextStyle(
-                              fontSize: 8,
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onPrimary,
+                        if (isActive)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 3,
+                              vertical: 0.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: Text(
+                              '当前',
+                              style: TextStyle(
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.onPrimary,
+                              ),
                             ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -645,47 +678,50 @@ class _PageListCardState extends State<PageListCard> {
     final theme = Theme.of(context);
     final name = doc?.originalName ?? '页面 ${pageIndex + 1}';
 
-    return InkWell(
-      onTap: () => coordinator.jumpTo(pageIndex),
-      borderRadius: BorderRadius.circular(4),
-      child: Container(
-        height: 32,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        color: isActive
-            ? theme.colorScheme.primary.withValues(alpha: 0.12)
-            : Colors.transparent,
-        child: Row(
-          children: [
-            Text(
-              '#${pageIndex + 1}',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: isActive
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.outline,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => coordinator.jumpTo(pageIndex),
+        borderRadius: BorderRadius.circular(4),
+        child: Container(
+          height: 32,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          color: isActive
+              ? theme.colorScheme.primary.withValues(alpha: 0.12)
+              : Colors.transparent,
+          child: Row(
+            children: [
+              Text(
+                '#${pageIndex + 1}',
                 style: TextStyle(
                   fontSize: 11,
-                  color: isActive ? theme.colorScheme.primary : null,
+                  fontWeight: FontWeight.bold,
+                  color: isActive
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.outline,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
-            ),
-            if (isActive)
-              Icon(
-                Icons.check_circle_rounded,
-                size: 14,
-                color: theme.colorScheme.primary,
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isActive ? theme.colorScheme.primary : null,
+                  ),
+                ),
               ),
-          ],
+              if (isActive)
+                Icon(
+                  Icons.check_circle_rounded,
+                  size: 14,
+                  color: theme.colorScheme.primary,
+                ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
+import 'package:zephyr/workspace/registry/workspace_panel_registry.dart';
 
 /// 一个面板的**卡片列表**。
 ///
@@ -36,6 +37,24 @@ class PanelCardList extends StatelessWidget {
 
     if (cards.isEmpty) {
       return _buildEmpty(context);
+    }
+
+    final panelDef = WorkspacePanelRegistry.I.find(panelId);
+    if (panelDef?.exclusive == true && cards.length == 1) {
+      final card = cards.first;
+      final layout = registry.effectiveLayout(card, board);
+      final chrome = WorkspaceCardChrome(
+        expanded: layout.expanded,
+        onToggle: () => onSetExpanded(card.id, !layout.expanded),
+        index: 0,
+        count: 1,
+        onHide: card.canHide ? () => onHideCard(card.id) : null,
+        standalone: true,
+      );
+      return KeyedSubtree(
+        key: ValueKey<String>('card:$panelId:${card.id}'),
+        child: card.builder(context, chrome),
+      );
     }
 
     return ListView.builder(

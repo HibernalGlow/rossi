@@ -149,7 +149,10 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
   }
 
   /// 当前该停在哪：揭示优先于激活泳道。
-  double _targetOffset(WorkspaceState state, WorkspaceLaneFocusGeometry geometry) {
+  double _targetOffset(
+    WorkspaceState state,
+    WorkspaceLaneFocusGeometry geometry,
+  ) {
     final revealed = _revealedLaneId;
     if (revealed != null && revealed != state.activeLaneId) {
       return geometry.revealOffset(
@@ -191,7 +194,9 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
   }
 
   void _stopTickerIfIdle() {
-    if (_hoverDwell.isPending || _edgeDwell.isPending || _restoreDwell.isPending) {
+    if (_hoverDwell.isPending ||
+        _edgeDwell.isPending ||
+        _restoreDwell.isPending) {
       return;
     }
     _ticker?.cancel();
@@ -403,7 +408,12 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
                     clipBehavior: Clip.none,
                     children: [
                       Positioned.fill(
-                        child: _buildStrip(context, state, viewportWidth, metrics),
+                        child: _buildStrip(
+                          context,
+                          state,
+                          viewportWidth,
+                          metrics,
+                        ),
                       ),
                       // 不限制在本泳道内的悬浮面板栏浮在**工作台**这一层：
                       // 它必须能越出泳道边界，而泳道自己的 `Stack` 是裁剪的

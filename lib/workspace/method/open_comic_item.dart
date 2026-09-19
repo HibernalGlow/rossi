@@ -39,7 +39,5 @@ void openComicItem(
     return;
   }
 
-  context.pushRoute(
-    ComicInfoRoute(comicId: comicId, from: from, type: type),
-  );
+  context.pushRoute(ComicInfoRoute(comicId: comicId, from: from, type: type));
 }

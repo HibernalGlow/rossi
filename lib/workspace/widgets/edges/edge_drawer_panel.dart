@@ -44,8 +44,12 @@ class EdgeDrawerPanel extends StatelessWidget {
           ),
         ],
         border: Border(
-          right: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4)),
-          left: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4)),
+          right: BorderSide(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+          ),
+          left: BorderSide(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+          ),
         ),
       ),
       child: Column(
@@ -57,7 +61,9 @@ class EdgeDrawerPanel extends StatelessWidget {
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
-                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.3,
+                  ),
                 ),
               ),
             ),
@@ -68,7 +74,9 @@ class EdgeDrawerPanel extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
-                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

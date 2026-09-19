@@ -41,11 +41,7 @@ class PanelLayout {
     required this.side,
   });
 
-  PanelLayout copyWith({
-    bool? visible,
-    int? order,
-    WorkspacePanelSide? side,
-  }) {
+  PanelLayout copyWith({bool? visible, int? order, WorkspacePanelSide? side}) {
     return PanelLayout(
       visible: visible ?? this.visible,
       order: order ?? this.order,
@@ -64,7 +60,8 @@ class PanelLayout {
   int get hashCode => Object.hash(visible, order, side);
 
   @override
-  String toString() => 'PanelLayout(visible: $visible, order: $order, side: ${side.name})';
+  String toString() =>
+      'PanelLayout(visible: $visible, order: $order, side: ${side.name})';
 }
 
 /// 单张卡片的布局覆盖项。
@@ -249,7 +246,11 @@ class WorkspaceBoardLayout {
     for (var i = 0; i < ordered.length; i++) {
       final id = ordered[i];
       final existing = updated[id] ?? fallbackFor(id);
-      updated[id] = existing.copyWith(order: i, panelId: panelId, visible: true);
+      updated[id] = existing.copyWith(
+        order: i,
+        panelId: panelId,
+        visible: true,
+      );
     }
     return WorkspaceBoardLayout(panels: panels, cards: updated);
   }
@@ -358,14 +359,16 @@ class WorkspaceBoardLayout {
   }
 
   @override
-  String toString() =>
-      'WorkspaceBoardLayout(panels: $panels, cards: $cards)';
+  String toString() => 'WorkspaceBoardLayout(panels: $panels, cards: $cards)';
 }
 
 /// 按 [orderOf] 给 id 排序；[orderOf] 相同则按 id 字典序 ——
 /// **顺序必须是全序**，否则同一份配置在不同构建里会排出不同的轨，
 /// 图标的相对位置就会莫名其妙地漂。
-List<String> sortByOrder(Iterable<String> ids, int Function(String id) orderOf) {
+List<String> sortByOrder(
+  Iterable<String> ids,
+  int Function(String id) orderOf,
+) {
   final list = List<String>.from(ids);
   list.sort((a, b) {
     final byOrder = orderOf(a).compareTo(orderOf(b));

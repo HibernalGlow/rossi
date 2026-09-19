@@ -44,7 +44,9 @@ class WorkspaceLaneFocusGeometry {
   });
 
   /// 从**同一条** [metrics] 派生坐标 —— 顺序与宽度只有一个出处。
-  factory WorkspaceLaneFocusGeometry.fromMetrics(WorkspaceStripMetrics metrics) {
+  factory WorkspaceLaneFocusGeometry.fromMetrics(
+    WorkspaceStripMetrics metrics,
+  ) {
     final starts = <String, double>{};
     final widths = <String, double>{};
     var cursor = 0.0;

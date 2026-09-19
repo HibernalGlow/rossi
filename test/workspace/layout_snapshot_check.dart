@@ -80,10 +80,7 @@ void _defaultsRoundTrip() {
   final defaults = WorkspaceLayoutSnapshot.defaults();
   final restored = _throughDisk(defaults);
   check('默认快照能读回来', restored != null);
-  check(
-    '默认快照逐项往返无损',
-    _sameJson(restored!.toJson(), defaults.toJson()),
-  );
+  check('默认快照逐项往返无损', _sameJson(restored!.toJson(), defaults.toJson()));
   check('默认模式是泳道', restored.mode == WorkspaceMode.swimlane);
   check('默认没有激活泳道', restored.activeLaneId == null);
 }
@@ -175,13 +172,19 @@ void _fullCustomStateRoundTrip() {
         restored.layout.lanes[LaneId.reader]!.panelBar.constrained,
   );
   check('solo 偏好保住了', restored.layout.soloLaneId == LaneId.reader);
-  check('四边栏抽屉状态保住了', restored.layout.edgeLeftOpen && !restored.layout.edgeRightOpen);
+  check(
+    '四边栏抽屉状态保住了',
+    restored.layout.edgeLeftOpen && !restored.layout.edgeRightOpen,
+  );
   check('激活面板保住了', restored.activePanel['right'] == 'tools');
   check('激活泳道保住了', restored.activeLaneId == LaneId.reader);
   check('悬停聚焦开关保住了', !restored.interaction.hoverFocusEnabled);
-  check('三个延时保住了', restored.interaction.hoverFocusDelayMs == 250 &&
-      restored.interaction.edgeRevealDelayMs == 150 &&
-      restored.interaction.edgeRevealRestoreDelayMs == 900);
+  check(
+    '三个延时保住了',
+    restored.interaction.hoverFocusDelayMs == 250 &&
+        restored.interaction.edgeRevealDelayMs == 150 &&
+        restored.interaction.edgeRevealRestoreDelayMs == 900,
+  );
   check('Reader 窄缝宽保住了', restored.interaction.readerPeekWidth == 72);
   check('被收起的面板保住了', restored.board.panelLayout('shelf')!.visible == false);
   check(
@@ -286,10 +289,7 @@ void _badLaneFieldFallsBackWithoutLosingTheRestOfThatLane() {
 
   final right = snapshot.layout.lanes[LaneId.right]!;
   check('右泳道的合法宽度保住了', right.width == 512);
-  check(
-    '非法面板栏退回默认面板栏',
-    right.panelBar == const PanelBarLayout(),
-  );
+  check('非法面板栏退回默认面板栏', right.panelBar == const PanelBarLayout());
 }
 
 /// 指向不存在的泳道 / 空面板 id 的「激活面板」记录丢掉。
@@ -323,9 +323,18 @@ void _badInteractionFieldsFallBackPerField() {
     },
   });
 
-  check('非布尔开关退回默认', snapshot.interaction.hoverFocusEnabled == fallback.hoverFocusEnabled);
-  check('0 延时退回默认（0 会横跳）', snapshot.interaction.hoverFocusDelayMs == fallback.hoverFocusDelayMs);
-  check('负延时退回默认', snapshot.interaction.edgeRevealDelayMs == fallback.edgeRevealDelayMs);
+  check(
+    '非布尔开关退回默认',
+    snapshot.interaction.hoverFocusEnabled == fallback.hoverFocusEnabled,
+  );
+  check(
+    '0 延时退回默认（0 会横跳）',
+    snapshot.interaction.hoverFocusDelayMs == fallback.hoverFocusDelayMs,
+  );
+  check(
+    '负延时退回默认',
+    snapshot.interaction.edgeRevealDelayMs == fallback.edgeRevealDelayMs,
+  );
   check('合法的延时保住', snapshot.interaction.edgeRevealRestoreDelayMs == 640);
   check('越界的缝宽被夹到 400', snapshot.interaction.readerPeekWidth == 400);
 }
@@ -336,9 +345,21 @@ void _badBoardEntriesAreDroppedAndGoodOnesKept() {
     'version': 1,
     'board': <String, Object?>{
       'panels': <String, Object?>{
-        'shelf': <String, Object?>{'visible': false, 'order': 1, 'side': 'left'},
-        'tools': <String, Object?>{'visible': 'no', 'order': 2, 'side': 'right'},
-        'sources': <String, Object?>{'visible': true, 'order': 0, 'side': 'diagonal'},
+        'shelf': <String, Object?>{
+          'visible': false,
+          'order': 1,
+          'side': 'left',
+        },
+        'tools': <String, Object?>{
+          'visible': 'no',
+          'order': 2,
+          'side': 'right',
+        },
+        'sources': <String, Object?>{
+          'visible': true,
+          'order': 0,
+          'side': 'diagonal',
+        },
       },
       'cards': <String, Object?>{
         'history_shelf': <String, Object?>{
@@ -358,7 +379,10 @@ void _badBoardEntriesAreDroppedAndGoodOnesKept() {
     '合法卡片项留住（expanded 缺省补 true）',
     snapshot.board.cardLayout('history_shelf')!.expanded,
   );
-  check('panelId 非字符串的卡片项丢掉', snapshot.board.cardLayout('download_shelf') == null);
+  check(
+    'panelId 非字符串的卡片项丢掉',
+    snapshot.board.cardLayout('download_shelf') == null,
+  );
 }
 
 /// **瞬态项不在快照里**（契约：`Transient edge reveal and live scroll offset
@@ -366,23 +390,23 @@ void _badBoardEntriesAreDroppedAndGoodOnesKept() {
 /// （看起来很方便），这里会红。
 void _transientThingsAreNotInTheSnapshot() {
   final json = WorkspaceLayoutSnapshot.defaults().toJson();
-  check('没有实时滚动偏移', !json.containsKey('scrollOffset') && !json.containsKey('stripOffset'));
+  check(
+    '没有实时滚动偏移',
+    !json.containsKey('scrollOffset') && !json.containsKey('stripOffset'),
+  );
   check('没有瞬态边缘揭示', !json.containsKey('revealedLaneId'));
   check('没有当前在读的那一本', !json.containsKey('readerTarget'));
   check(
     '顶层键就是约定的那几个',
-    _sameJson(
-      json.keys.toList()..sort(),
-      const [
-        'activeLaneId',
-        'activePanel',
-        'board',
-        'interaction',
-        'layout',
-        'mode',
-        'version',
-      ],
-    ),
+    _sameJson(json.keys.toList()..sort(), const [
+      'activeLaneId',
+      'activePanel',
+      'board',
+      'interaction',
+      'layout',
+      'mode',
+      'version',
+    ]),
     '${json.keys.toList()}',
   );
 }

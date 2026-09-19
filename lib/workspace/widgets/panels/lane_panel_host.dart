@@ -102,8 +102,7 @@ class _LanePanelHostState extends State<LanePanelHost> {
           // 非独占面板才画标题行（独占面板的内容自带 chrome）。
           // 标题行留在导航栈**外面**：它是这块面板自己的 chrome，
           // 不该被推进来的页面盖住（用户还得靠它换面板 / 恢复卡片）。
-          if (!panel.exclusive)
-            PanelHeaderBar(panelId: panel.id, board: board),
+          if (!panel.exclusive) PanelHeaderBar(panelId: panel.id, board: board),
           Expanded(
             child: EmbeddedUpstreamPage(
               host: WorkspaceLaneHost(widget.side.laneId, panel.id),

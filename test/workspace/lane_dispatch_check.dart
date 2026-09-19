@@ -58,17 +58,24 @@ void main() {
 void _hostIdentity() {
   check('同面板不同泳道不是同一个主机', _leftShelfSameName != _rightShelfSameName);
   check('同泳道不同面板不是同一个主机', _leftBookshelf != _leftShelf);
-  check('值相等算同一个主机', _leftBookshelf == const WorkspaceLaneHost('left', 'bookshelf'));
+  check(
+    '值相等算同一个主机',
+    _leftBookshelf == const WorkspaceLaneHost('left', 'bookshelf'),
+  );
   check(
     'hashCode 与相等性一致',
-    _leftBookshelf.hashCode == const WorkspaceLaneHost('left', 'bookshelf').hashCode,
+    _leftBookshelf.hashCode ==
+        const WorkspaceLaneHost('left', 'bookshelf').hashCode,
   );
   check(
     '同名不同泳道的 hashCode 也分开（否则会互相顶掉）',
     _leftShelfSameName.hashCode != _rightShelfSameName.hashCode,
   );
   check('可读标识带泳道前缀', _rightTools.debugKey == 'right/tools');
-  check('同名不同泳道的标识不同', _leftShelfSameName.debugKey != _rightShelfSameName.debugKey);
+  check(
+    '同名不同泳道的标识不同',
+    _leftShelfSameName.debugKey != _rightShelfSameName.debugKey,
+  );
 }
 
 /// 没人在泳道里点过 → 不接管（调用方应当原样放行全屏推入）。

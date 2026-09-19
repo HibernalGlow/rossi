@@ -30,7 +30,8 @@ import 'package:zephyr/workspace/router/workspace_lane_dispatch.dart';
 class WorkspaceNavigationBridge {
   WorkspaceNavigationBridge._();
 
-  static final WorkspaceNavigationBridge instance = WorkspaceNavigationBridge._();
+  static final WorkspaceNavigationBridge instance =
+      WorkspaceNavigationBridge._();
 
   // ── 阅读器通道 ─────────────────────────────────────────────────────────
 

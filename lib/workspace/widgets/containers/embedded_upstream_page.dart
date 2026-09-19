@@ -58,7 +58,8 @@ class _EmbeddedUpstreamPageState extends State<EmbeddedUpstreamPage> {
   @override
   void didUpdateWidget(EmbeddedUpstreamPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.host == oldWidget.host && widget.isVisible == oldWidget.isVisible) {
+    if (widget.host == oldWidget.host &&
+        widget.isVisible == oldWidget.isVisible) {
       return;
     }
     // 换泳道 / 换可见性：先退掉旧的登记（注销是**只认自己**的，

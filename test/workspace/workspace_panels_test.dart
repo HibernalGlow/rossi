@@ -115,41 +115,42 @@ void main() {
 
   testWidgets('跨侧拖动落在光标底下那个位置，不是永远追加到末尾', (tester) async {
     final cubit = await _pumpStrips(tester);
-    expect(
-      _idsOn(cubit, WorkspacePanelSide.right),
-      <String>[
-        WorkspacePanelId.discover,
-        WorkspacePanelId.sources,
-        WorkspacePanelId.tools,
-      ],
-      reason: '前置：右泳道的默认次序',
-    );
+    expect(_idsOn(cubit, WorkspacePanelSide.right), <String>[
+      WorkspacePanelId.discover,
+      WorkspacePanelId.fileManager,
+      WorkspacePanelId.pageList,
+      WorkspacePanelId.plugins,
+      WorkspacePanelId.tools,
+    ], reason: '前置：右泳道的默认次序');
 
-    // 左泳道的「书架卡片」拖到右泳道「图源与本地」那个页签上 = 插到它**前面**。
+    // 左泳道的「下载」拖到右泳道「文件管理」那个页签上 = 插到它**前面**。
     await _dragTabOnto(
       tester,
-      panelId: WorkspacePanelId.shelf,
-      ontoPanelId: WorkspacePanelId.sources,
+      panelId: WorkspacePanelId.download,
+      ontoPanelId: WorkspacePanelId.fileManager,
     );
 
     expect(
       _idsOn(cubit, WorkspacePanelSide.right),
       <String>[
         WorkspacePanelId.discover,
-        WorkspacePanelId.shelf,
-        WorkspacePanelId.sources,
+        WorkspacePanelId.download,
+        WorkspacePanelId.fileManager,
+        WorkspacePanelId.pageList,
+        WorkspacePanelId.plugins,
         WorkspacePanelId.tools,
       ],
-      reason: '契约：拖到哪儿就落在哪儿。早先版本把跨侧拖入固定写成 '
+      reason:
+          '契约：拖到哪儿就落在哪儿。早先版本把跨侧拖入固定写成 '
           '`insertIndex: siblings.length`（永远追加），'
           '于是无论往哪儿放，面板都跑到最后一位 —— '
           '「插在「工具」前面」与「排在「工具」后面」在结果上是两件不同的事',
     );
-    expect(
-      _idsOn(cubit, WorkspacePanelSide.left),
-      <String>[WorkspacePanelId.bookshelf],
-      reason: '搬走了就真的从原来那侧消失（成员关系只有一处可改）',
-    );
+    expect(_idsOn(cubit, WorkspacePanelSide.left), <String>[
+      WorkspacePanelId.bookshelf,
+      WorkspacePanelId.favorite,
+      WorkspacePanelId.history,
+    ], reason: '搬走了就真的从原来那侧消失（成员关系只有一处可改）');
   });
 
   testWidgets('不可移动的页签也是落点：插到它前面，而不是掉回「追加」', (tester) async {
@@ -159,7 +160,7 @@ void main() {
     // 但「插到它前面」是一个合法的落点。
     await _dragTabOnto(
       tester,
-      panelId: WorkspacePanelId.shelf,
+      panelId: WorkspacePanelId.download,
       ontoPanelId: WorkspacePanelId.tools,
     );
 
@@ -167,11 +168,14 @@ void main() {
       _idsOn(cubit, WorkspacePanelSide.right),
       <String>[
         WorkspacePanelId.discover,
-        WorkspacePanelId.sources,
-        WorkspacePanelId.shelf,
+        WorkspacePanelId.fileManager,
+        WorkspacePanelId.pageList,
+        WorkspacePanelId.plugins,
+        WorkspacePanelId.download,
         WorkspacePanelId.tools,
       ],
-      reason: '「不能移动」只说明它不能被拖走，**不**说明别的东西不能插到它前面。'
+      reason:
+          '「不能移动」只说明它不能被拖走，**不**说明别的东西不能插到它前面。'
           '把这两件事混起来的话，5 个面板里有 3 个（书架 / 发现 / 工具）'
           '会落在拖放系统之外 —— 往它们身上拖一律掉回「追加到末尾」，'
           '而那正是这次要修掉的那个症状',
@@ -181,29 +185,33 @@ void main() {
   testWidgets('轨内换位：拖到左边那个位置就真的插到那儿', (tester) async {
     final cubit = await _pumpStrips(tester);
 
-    // 「图源与本地」是右泳道第 1 位，「发现（上游原版）」是第 0 位 ——
+    // 「文件管理」是右泳道第 1 位，「发现（上游原版）」是第 0 位 ——
     // 拖到它身上 = 插到它前面。
     await _dragTabOnto(
       tester,
-      panelId: WorkspacePanelId.sources,
+      panelId: WorkspacePanelId.fileManager,
       ontoPanelId: WorkspacePanelId.discover,
     );
 
     expect(
       cubit.state.activePanel[WorkspacePanelSide.right.laneId],
-      WorkspacePanelId.sources,
-      reason: '先证明这一拖**真的被接住了**：落点接受之后会把面板切成当前面板。'
+      WorkspacePanelId.fileManager,
+      reason:
+          '先证明这一拖**真的被接住了**：落点接受之后会把面板切成当前面板。'
           '只看「次序对不对」是不够的 —— 整个手势什么都没发生时，'
           '「次序没变」和「次序按预期变了」一样容易蒙对',
     );
     expect(
       _idsOn(cubit, WorkspacePanelSide.right),
       <String>[
-        WorkspacePanelId.sources,
+        WorkspacePanelId.fileManager,
         WorkspacePanelId.discover,
+        WorkspacePanelId.pageList,
+        WorkspacePanelId.plugins,
         WorkspacePanelId.tools,
       ],
-      reason: '轨内换位必须真的能动。早先 `_shouldAcceptAt` 写的是 '
+      reason:
+          '轨内换位必须真的能动。早先 `_shouldAcceptAt` 写的是 '
           '`draggedId != _dragging`，而被拖的那个页签的 id **就是** `_dragging` —— '
           '于是每个落点都把「本条自己正在拖」这一支拒掉，整条轨内换位不可达',
     );
@@ -212,28 +220,32 @@ void main() {
   testWidgets('轨内换位：拖到自己右侧紧邻的那个位置 = 次序不变', (tester) async {
     final cubit = await _pumpStrips(tester);
 
-    // 「图源与本地」是右泳道第 1 位，「工具」是第 2 位 ——
-    // 「插到工具前面」而它本来就紧挨在工具前面，所以结果应当是原地不动。
+    // 「文件管理」是右泳道第 1 位，「页面导航」是第 2 位 ——
+    // 「插到页面导航前面」而它本来就紧挨在页面导航前面，所以结果应当是原地不动。
     await _dragTabOnto(
       tester,
-      panelId: WorkspacePanelId.sources,
-      ontoPanelId: WorkspacePanelId.tools,
+      panelId: WorkspacePanelId.fileManager,
+      ontoPanelId: WorkspacePanelId.pageList,
     );
 
     expect(
       cubit.state.activePanel[WorkspacePanelSide.right.laneId],
-      WorkspacePanelId.sources,
-      reason: '先证明这一拖**真的被接住了**（落点接受后会把面板切成当前面板）——'
+      WorkspacePanelId.fileManager,
+      reason:
+          '先证明这一拖**真的被接住了**（落点接受后会把面板切成当前面板）——'
           '否则下面那条「次序不变」在「什么都没发生」时也会通过（变异体 M26 就是这么漏掉的）',
     );
     expect(
       _idsOn(cubit, WorkspacePanelSide.right),
       <String>[
         WorkspacePanelId.discover,
-        WorkspacePanelId.sources,
+        WorkspacePanelId.fileManager,
+        WorkspacePanelId.pageList,
+        WorkspacePanelId.plugins,
         WorkspacePanelId.tools,
       ],
-      reason: '同一序列里换位要把**自己那一格**扣掉（拖动时自己还在序列里，'
+      reason:
+          '同一序列里换位要把**自己那一格**扣掉（拖动时自己还在序列里，'
           '不扣就偏一格）。不扣的话它会原地后移一位跑到末尾，'
           '用户看到的是「轻轻拖了一下，它自己跳到后面去了」',
     );
@@ -286,7 +298,8 @@ void main() {
     expect(
       center,
       const Offset(200, 450),
-      reason: '契约（neoview 的 barStyle）：`left: p%` 配合 `translate(-50%, -50%)` '
+      reason:
+          '契约（neoview 的 barStyle）：`left: p%` 配合 `translate(-50%, -50%)` '
           '⇒ 浮层的**中心**落在容器的 p% 处。25% → 200、75% → 450。'
           '换成 `Align` 会算成 (175, 435)：`Align` 是「把子节点的左边缘从容器左边 '
           '扫到右边」，两者只在 50% 处重合，在 10% / 90% 处差半个浮层宽',
@@ -299,7 +312,8 @@ void main() {
     expect(
       reported,
       topLeft,
-      reason: 'onPositioned 报的必须是**摆出来的**那个位置：拖动起点就是它。'
+      reason:
+          'onPositioned 报的必须是**摆出来的**那个位置：拖动起点就是它。'
           '报成按公式复算的近似值，表现是「一开始拖它就跳一下」',
     );
   });
@@ -343,7 +357,8 @@ void main() {
     expect(
       tester.getRect(find.byKey(barKey)).topLeft - containerRect.topLeft,
       live,
-      reason: '拖动期间浮层跟的是**光标**，不是任何一条规则算出来的位置；'
+      reason:
+          '拖动期间浮层跟的是**光标**，不是任何一条规则算出来的位置；'
           '让规则赢的表现是「拖到一半它自己弹回边上」',
     );
   });

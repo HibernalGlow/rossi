@@ -203,9 +203,8 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
   /// desk」—— 带触摸屏的 Windows 笔记本仍然有指针。用 `defaultTargetPlatform`
   /// 而不是 `dart:io` 的 `Platform` 还让判据能用 `debugDefaultTargetPlatformOverride`
   /// 把两种形态都跑一遍。
-  WorkspaceTopChromeMode get _chromeMode => WorkspaceTopChromeMode.forTargetPlatform(
-    defaultTargetPlatform,
-  );
+  WorkspaceTopChromeMode get _chromeMode =>
+      WorkspaceTopChromeMode.forTargetPlatform(defaultTargetPlatform);
 
   @override
   Widget build(BuildContext context) {
@@ -230,7 +229,8 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
           return Scaffold(
             body: CallbackShortcuts(
               bindings: {
-                const SingleActivator(LogicalKeyboardKey.escape): _exitWorkspace,
+                const SingleActivator(LogicalKeyboardKey.escape):
+                    _exitWorkspace,
               },
               // 有焦点才收得到按键；泳道里的输入框拿到焦点时，
               // `CallbackShortcuts` 仍会在它们没消费时沿焦点树上冒到这里。
