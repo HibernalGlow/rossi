@@ -137,6 +137,64 @@ SUITES = [
                 "    _attach();",
                 False,
             ),
+            (
+                "M49 回退接线不接管 —— **就是用户报的那个 bug**"
+                "（面板里点返回 → 退出整个泳道）",
+                "lib/workspace/router/workspace_back_interception.dart",
+                "  Future<bool> maybePop<T extends Object?>([T? result]) async {\n"
+                "    if (WorkspaceNavigationBridge.instance.handleBackInLane(result)) {\n"
+                "      return true;\n"
+                "    }",
+                "  Future<bool> maybePop<T extends Object?>([T? result]) async {\n"
+                "    if (false) {\n"
+                "      return true;\n"
+                "    }",
+                False,
+            ),
+            (
+                "M50 接管不看「工作台是不是根栈顶」→ 把压在上面的对话框一起误伤",
+                "lib/workspace/router/workspace_navigation_bridge.dart",
+                "    if (!workspaceIsOnTop) return false;",
+                "    if (false) return false;",
+                False,
+            ),
+            (
+                "M51 面板里没得更退也吞掉 → `Esc` / 鼠标侧键出不去了",
+                "lib/workspace/router/workspace_navigation_bridge.dart",
+                "    if (!navigator.canPop()) return false;",
+                "    if (false) return false;",
+                False,
+            ),
+            (
+                "M52 谎报接管却不真退（页面留在原地）",
+                "lib/workspace/router/workspace_navigation_bridge.dart",
+                "    navigator.pop(result);\n    return true;",
+                "    return true;",
+                False,
+            ),
+            (
+                "M53 `AppRouter` 少一个 `with`（接缝没挂上生产路由）",
+                "lib/config/router/router.dart",
+                "class AppRouter extends RootStackRouter with WorkspaceBackInterceptor {",
+                "class AppRouter extends RootStackRouter {",
+                False,
+            ),
+            (
+                "M54 阅读器泳道不登记落点（回退按旧面板的落点算 → 退错对象）",
+                "lib/workspace/router/workspace_navigation_bridge.dart",
+                "  void attachLaneContent(WorkspaceLaneHost host) {\n"
+                "    WorkspaceLaneDispatch.instance.registerHost(host);\n  }",
+                "  void attachLaneContent(WorkspaceLaneHost host) {}",
+                False,
+            ),
+            (
+                "M55 注销落点不生效（空画布抢走真面板的落点）",
+                "lib/workspace/router/workspace_navigation_bridge.dart",
+                "  void detachLaneContent(WorkspaceLaneHost host) {\n"
+                "    WorkspaceLaneDispatch.instance.unregisterHost(host);\n  }",
+                "  void detachLaneContent(WorkspaceLaneHost host) {}",
+                False,
+            ),
         ],
     },
     {

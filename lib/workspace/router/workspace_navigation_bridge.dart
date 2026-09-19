@@ -15,7 +15,7 @@ import 'package:zephyr/workspace/router/workspace_lane_dispatch.dart';
 /// 文件、也不给上游新增一条跳转就失效的前提下做到这件事，只能在**导航这一层**接住：
 /// 根路由的守卫（`WorkspaceRouteGuard`）把推入改派到这里，由工作台决定开在哪儿。
 ///
-/// # 两条通道
+/// # 三条通道
 ///
 /// 1. **阅读器通道**（[openReaderInLane]）：`ComicReadRoute` 一律改派进**中央泳道**
 ///    ——「中央泳道 = Reader」是工作台的第一条契约，它不跟着点击位置走；
@@ -23,6 +23,11 @@ import 'package:zephyr/workspace/router/workspace_lane_dispatch.dart';
 ///    局部 `Navigator` 里（落点由纯记账 [WorkspaceLaneDispatch] 决定）。
 ///    落点不明时返回 `false`，调用方**原样放行全屏** ——
 ///    宁可全屏，也不要把页面开进一个用户看不见的地方。
+/// 3. **回退通道**（[handleBackInLane]）：**与推入对称的那一半**。守卫管得住
+///    `context.pushRoute(...)`，却管不住 `context.pop()` / `context.maybePop()`
+///    —— 后两者走的是 `AutoRouter.of(context)`，就近的 `StackRouterScope` 是
+///    **根路由**，于是面板里的一下「返回」弹掉的是根栈顶页 = 整个工作台。
+///    这里把根路由的 `pop` / `maybePop` 接过来，退**落点面板里**那一页。
 ///
 /// # 没有工作台时
 ///
@@ -96,6 +101,22 @@ class WorkspaceNavigationBridge {
     WorkspaceLaneDispatch.instance.noteInteraction(host);
   }
 
+  /// 一块**有内容、但没有自己的局部导航栈**的泳道内容成为落点。
+  ///
+  /// 目前只有阅读器泳道用它。它和 [attachLaneHost] 的差别只有一半：
+  /// **登记落点，不上报导航器** —— 阅读器泳道里没有「推入开在这块内容里」这件需求
+  /// （那边只有一条上游页面），但它**必须参与落点记账**：用户在阅读器里按下指针之后，
+  /// 落点要跟过来。不跟过来的话，阅读器里的一下「返回」会按上一次在**面板**里的
+  /// 落点算，退掉那块面板里的一页 —— 退错了对象。
+  void attachLaneContent(WorkspaceLaneHost host) {
+    WorkspaceLaneDispatch.instance.registerHost(host);
+  }
+
+  /// 那块内容不再是当前那一个（空画布 / 被卸载）时注销。只注销自己登记的那一个。
+  void detachLaneContent(WorkspaceLaneHost host) {
+    WorkspaceLaneDispatch.instance.unregisterHost(host);
+  }
+
   /// 把守卫拦下的一次推入放进「发起交互的那个面板」。
   ///
   /// [routeBuilder] 只在**已经确定落点**之后才被调用 —— 守卫那边因此不必
@@ -111,6 +132,60 @@ class WorkspaceNavigationBridge {
     if (navigator == null || context == null) return false;
 
     navigator.push(routeBuilder(context));
+    return true;
+  }
+
+  // ── 回退通道 ───────────────────────────────────────────────────────────
+
+  /// 工作台那一整页自己的 [ModalRoute]（挂载时登记）。
+  ModalRoute<dynamic>? _workspaceRoute;
+
+  /// 工作台那一页**是不是根栈顶**。
+  ///
+  /// 判据用 `ModalRoute.isCurrent`（与 `BreezeWorkspacePage._exitWorkspace`
+  /// 同一个判据），而不是「工作台挂载了没有」：对话框、`showDialog` 出来的那一层、
+  /// 以及「落点不明时宁可全屏」推上来的整页，都可能正压在工作台上面 ——
+  /// 那时候 `context.pop()` 想弹的是**它们**，工作台不该抢。
+  bool get workspaceIsOnTop {
+    final route = _workspaceRoute;
+    return route != null && route.isCurrent;
+  }
+
+  /// 工作台挂载时登记自己那一页。
+  void attachWorkspaceRoute(ModalRoute<dynamic> route) {
+    _workspaceRoute = route;
+  }
+
+  /// 工作台卸载时注销。只注销自己登记的那一个。
+  void detachWorkspaceRoute(ModalRoute<dynamic> route) {
+    if (identical(_workspaceRoute, route)) {
+      _workspaceRoute = null;
+    }
+  }
+
+  /// 根路由收到一次 `pop` / `maybePop` 时先问这里：**这是泳道里的一下「返回」吗。**
+  ///
+  /// 返回 `true` = 已经由泳道处理掉了，调用方**不要再动根栈**；
+  /// 返回 `false` = 没接管（工作台不在、工作台被压在别的页下面、落点不明、
+  /// 或者面板里已经没得更退），调用方原样走根栈 —— 逐级退到最后退出工作台，
+  /// 这条出口必须留着（`Esc` 与鼠标侧键走的也是这里）。
+  ///
+  /// 「点开的东西退得回原处」与「推入开在哪儿」共用同一份落点记账：用户在哪儿
+  /// 按下指针，就是哪儿（[WorkspaceLaneDispatch]）。点返回按钮那一下本身就是按下，
+  /// 所以落点必然是被点的那块面板 —— 不需要另造一套判据。
+  bool handleBackInLane([Object? result]) {
+    if (!workspaceIsOnTop) return false;
+
+    final host = WorkspaceLaneDispatch.instance.resolveTarget();
+    if (host == null) return false;
+
+    final navigator = _laneNavigators[host]?.currentState;
+    if (navigator == null) return false;
+
+    // 面板里只有摊在屏幕上的那一页 ⇒ 没得更退，把这次返回还给根栈。
+    if (!navigator.canPop()) return false;
+
+    navigator.pop(result);
     return true;
   }
 }

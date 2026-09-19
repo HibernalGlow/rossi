@@ -9,6 +9,42 @@ import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
 import 'package:zephyr/workspace/widgets/cards/file_manager_thumbnail.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 
+extension FileManagerViewModeX on FileManagerViewMode {
+  String get label {
+    switch (this) {
+      case FileManagerViewMode.compact:
+        return '紧凑列表';
+      case FileManagerViewMode.coverList:
+        return '封面列表';
+      case FileManagerViewMode.mosaicList:
+        return '横幅';
+      case FileManagerViewMode.details:
+        return '详细信息';
+      case FileManagerViewMode.coverGrid:
+        return '封面网格';
+      case FileManagerViewMode.mosaicGrid:
+        return '自由缩略图';
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case FileManagerViewMode.compact:
+        return Icons.view_headline_rounded;
+      case FileManagerViewMode.coverList:
+        return Icons.table_rows_rounded;
+      case FileManagerViewMode.mosaicList:
+        return Icons.view_agenda_rounded;
+      case FileManagerViewMode.details:
+        return Icons.table_chart_rounded;
+      case FileManagerViewMode.coverGrid:
+        return Icons.grid_view_rounded;
+      case FileManagerViewMode.mosaicGrid:
+        return Icons.grid_on_rounded;
+    }
+  }
+}
+
 /// Rust 驱动的文件浏览卡片。
 ///
 /// 卡片不保存路径、页签、历史或穿透结果；这些状态都来自
@@ -197,6 +233,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
       isVideo: child.isVideo,
       isAudio: child.isAudio,
       size: BigInt.zero,
+      modifiedSecs: 0,
       hasChildren: false,
       childNames: const [],
     );
@@ -864,27 +901,27 @@ class _FileManagerCardState extends State<FileManagerCard> {
             tooltip: '刷新',
             onPressed: () => _apply((id) => fileManagerRefresh(id: id)),
           ),
-          IconButton(
-            iconSize: 18,
-            visualDensity: VisualDensity.compact,
-            tooltip: snapshot.viewMode == FileManagerViewMode.list
-                ? '网格视图'
-                : '列表视图',
-            onPressed: _busy
-                ? null
-                : () => _apply(
-                    (id) => fileManagerSetViewMode(
-                      id: id,
-                      mode: snapshot.viewMode == FileManagerViewMode.list
-                          ? FileManagerViewMode.grid
-                          : FileManagerViewMode.list,
-                    ),
-                  ),
-            icon: Icon(
-              snapshot.viewMode == FileManagerViewMode.list
-                  ? Icons.grid_view_rounded
-                  : Icons.view_list_rounded,
+          PopupMenuButton<FileManagerViewMode>(
+            tooltip: '视图模式：${snapshot.viewMode.label}',
+            enabled: !_busy,
+            icon: Icon(snapshot.viewMode.icon, size: 18),
+            onSelected: (mode) => _apply(
+              (id) => fileManagerSetViewMode(id: id, mode: mode),
             ),
+            itemBuilder: (_) => [
+              for (final mode in FileManagerViewMode.values)
+                CheckedPopupMenuItem(
+                  value: mode,
+                  checked: mode == snapshot.viewMode,
+                  child: Row(
+                    children: [
+                      Icon(mode.icon, size: 16),
+                      const SizedBox(width: 8),
+                      Text(mode.label),
+                    ],
+                  ),
+                ),
+            ],
           ),
           PopupMenuButton<String>(
             tooltip: '文件浏览设置',
@@ -1067,6 +1104,16 @@ class _FileManagerCardState extends State<FileManagerCard> {
       }
       return SizedBox(height: 170, child: emptyText);
     }
+
+    final Widget viewWidget = switch (snapshot.viewMode) {
+      FileManagerViewMode.compact => _buildCompactList(context, snapshot),
+      FileManagerViewMode.coverList => _buildCoverList(context, snapshot),
+      FileManagerViewMode.mosaicList => _buildMosaicList(context, snapshot),
+      FileManagerViewMode.details => _buildDetailsTable(context, snapshot),
+      FileManagerViewMode.coverGrid => _buildCoverGrid(context, snapshot),
+      FileManagerViewMode.mosaicGrid => _buildMosaicGrid(context, snapshot),
+    };
+
     final content = DecoratedBox(
       decoration: BoxDecoration(
         border: Border.all(
@@ -1076,27 +1123,10 @@ class _FileManagerCardState extends State<FileManagerCard> {
         ),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: snapshot.viewMode == FileManagerViewMode.grid
-          ? GridView.builder(
-              padding: const EdgeInsets.all(6),
-              primary: false,
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 180,
-                mainAxisExtent: 104,
-                crossAxisSpacing: 6,
-                mainAxisSpacing: 6,
-              ),
-              itemCount: snapshot.entries.length,
-              itemBuilder: (context, index) =>
-                  _buildGridEntry(context, snapshot.entries[index]),
-            )
-          : ListView.separated(
-              primary: false,
-              itemCount: snapshot.entries.length,
-              separatorBuilder: (_, _) => const Divider(height: 1),
-              itemBuilder: (context, index) =>
-                  _buildListEntry(context, snapshot.entries[index]),
-            ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: viewWidget,
+      ),
     );
     final list = widget.isStandalone
         ? content
@@ -1124,34 +1154,141 @@ class _FileManagerCardState extends State<FileManagerCard> {
     );
   }
 
-  Widget _buildListEntry(BuildContext context, FileManagerEntry entry) {
+  // --- 1. 紧凑列表 (Compact List): 单行 ~34px 高度，彩色语义图标 + 紧凑元数据 ---
+  Widget _buildCompactList(BuildContext context, FileManagerSnapshot snapshot) {
+    return ListView.separated(
+      primary: false,
+      itemCount: snapshot.entries.length,
+      separatorBuilder: (_, _) => const Divider(height: 1),
+      itemBuilder: (context, index) =>
+          _buildCompactListEntry(context, snapshot.entries[index]),
+    );
+  }
+
+  Widget _buildCompactListEntry(BuildContext context, FileManagerEntry entry) {
     final theme = Theme.of(context);
     return InkWell(
       onTap: _busy ? null : () => _openEntry(entry),
       onDoubleTap: entry.isArchive && !_busy ? () => _openArchive(entry) : null,
-      child: ListTile(
-        dense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
-        leading: FileManagerThumbnailWidget(
-          entry: entry,
-          width: 36,
-          height: 36,
-          borderRadius: BorderRadius.circular(6),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 34),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        child: Row(
+          children: [
+            _buildSemanticIcon(context, entry, size: 16),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    entry.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  if (entry.childNames.isNotEmpty)
+                    _buildChildNames(context, entry.childNames),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            if (entry.isDir)
+              IconButton(
+                icon: const Icon(Icons.folder_open_rounded, size: 16),
+                tooltip: '进入文件夹',
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                onPressed: _busy
+                    ? null
+                    : () => _openEntry(entry, forceEnter: true),
+              )
+            else if (entry.size > BigInt.zero)
+              Text(
+                _formatSize(entry.size),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.outline,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+          ],
         ),
-        title: Text(entry.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-        subtitle: entry.childNames.isEmpty
-            ? (entry.isArchive ||
-                      entry.isImage ||
-                      entry.isVideo ||
-                      entry.isAudio
-                  ? Text(
-                      _formatSize(entry.size),
-                      style: theme.textTheme.labelSmall,
-                    )
-                  : null)
-            : _buildChildNames(context, entry.childNames),
-        trailing: entry.isDir
-            ? IconButton(
+      ),
+    );
+  }
+
+  // --- 2. 封面列表 (Cover List): 双行 ~74px 高度，封面方块 + 标题 + 穿透子文件名/日期大小 ---
+  Widget _buildCoverList(BuildContext context, FileManagerSnapshot snapshot) {
+    return ListView.separated(
+      primary: false,
+      itemCount: snapshot.entries.length,
+      separatorBuilder: (_, _) => const Divider(height: 1),
+      itemBuilder: (context, index) =>
+          _buildCoverListEntry(context, snapshot.entries[index]),
+    );
+  }
+
+  Widget _buildCoverListEntry(BuildContext context, FileManagerEntry entry) {
+    final theme = Theme.of(context);
+    final hasSize = !entry.isDir && entry.size > BigInt.zero;
+    final hasDate = entry.modifiedSecs.toInt() > 0;
+    String subtitleText = _formatType(entry);
+    if (hasSize) {
+      subtitleText += ' · ${_formatSize(entry.size)}';
+    }
+    if (hasDate) {
+      subtitleText += ' · ${_formatDate(entry.modifiedSecs.toInt())}';
+    }
+
+    return InkWell(
+      onTap: _busy ? null : () => _openEntry(entry),
+      onDoubleTap: entry.isArchive && !_busy ? () => _openArchive(entry) : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            FileManagerThumbnailWidget(
+              entry: entry,
+              width: 44,
+              height: 44,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    entry.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  if (entry.childNames.isNotEmpty)
+                    _buildChildNames(context, entry.childNames)
+                  else
+                    Text(
+                      subtitleText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.outline,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            if (entry.isDir)
+              IconButton(
                 icon: const Icon(Icons.folder_open_rounded, size: 18),
                 tooltip: '进入文件夹',
                 visualDensity: VisualDensity.compact,
@@ -1159,55 +1296,440 @@ class _FileManagerCardState extends State<FileManagerCard> {
                     ? null
                     : () => _openEntry(entry, forceEnter: true),
               )
-            : const Icon(Icons.play_circle_outline_rounded, size: 18),
+            else
+              const Padding(
+                padding: EdgeInsets.only(top: 4),
+                child: Icon(Icons.play_circle_outline_rounded, size: 18),
+              ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildGridEntry(BuildContext context, FileManagerEntry entry) {
+  // --- 3. 横幅 (Mosaic List): 宽卡片网格 ~92px 高，左侧宽缩略图横幅 + 右侧元数据 ---
+  Widget _buildMosaicList(BuildContext context, FileManagerSnapshot snapshot) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(6),
+      primary: false,
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 320,
+        mainAxisExtent: 92,
+        crossAxisSpacing: 6,
+        mainAxisSpacing: 6,
+      ),
+      itemCount: snapshot.entries.length,
+      itemBuilder: (context, index) =>
+          _buildMosaicListEntry(context, snapshot.entries[index]),
+    );
+  }
+
+  Widget _buildMosaicListEntry(BuildContext context, FileManagerEntry entry) {
     final theme = Theme.of(context);
     return InkWell(
-      borderRadius: BorderRadius.circular(7),
+      borderRadius: BorderRadius.circular(8),
       onTap: _busy ? null : () => _openEntry(entry),
       onDoubleTap: entry.isArchive && !_busy ? () => _openArchive(entry) : null,
       child: Container(
-        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: theme.colorScheme.surfaceContainerHighest.withValues(
             alpha: 0.35,
           ),
-          borderRadius: BorderRadius.circular(7),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
+          borderRadius: BorderRadius.circular(8),
         ),
+        clipBehavior: Clip.antiAlias,
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            FileManagerThumbnailWidget(
-              entry: entry,
-              width: 38,
-              height: 38,
-              borderRadius: BorderRadius.circular(6),
+            SizedBox(
+              width: 88,
+              child: FileManagerThumbnailWidget(
+                entry: entry,
+                width: 88,
+                height: 92,
+                borderRadius: BorderRadius.zero,
+                fit: BoxFit.cover,
+              ),
             ),
-            const SizedBox(width: 7),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    entry.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (entry.childNames.isNotEmpty) ...[
-                    const SizedBox(height: 3),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: _buildChildNames(context, entry.childNames),
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ] else if (!entry.isDir)
+                    const Spacer(),
+                    if (entry.childNames.isNotEmpty)
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: _buildChildNames(context, entry.childNames),
+                        ),
+                      )
+                    else
+                      Row(
+                        children: [
+                          _buildSemanticIcon(context, entry, size: 13),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              !entry.isDir && entry.size > BigInt.zero
+                                  ? '${_formatType(entry)} · ${_formatSize(entry.size)}'
+                                  : _formatType(entry),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.outline,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- 4. 详细信息 (Details Table): 表格视图，含名称、类型、大小、修改时间表头，支持点击表头排序 ---
+  Widget _buildDetailsTable(BuildContext context, FileManagerSnapshot snapshot) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const minTableWidth = 460.0;
+        final tableWidth = constraints.maxWidth < minTableWidth
+            ? minTableWidth
+            : constraints.maxWidth;
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: tableWidth,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildDetailsHeader(context, snapshot),
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView.separated(
+                    primary: false,
+                    itemCount: snapshot.entries.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (context, index) => _buildDetailsRow(
+                      context,
+                      snapshot,
+                      snapshot.entries[index],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailsHeader(
+    BuildContext context,
+    FileManagerSnapshot snapshot,
+  ) {
+    final theme = Theme.of(context);
+    return Container(
+      height: 32,
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 5,
+            child: _buildSortableHeaderCell(
+              context,
+              snapshot: snapshot,
+              field: FileManagerSortField.name,
+              label: '名称',
+            ),
+          ),
+          const SizedBox(width: 4),
+          SizedBox(
+            width: 70,
+            child: _buildSortableHeaderCell(
+              context,
+              snapshot: snapshot,
+              field: FileManagerSortField.type,
+              label: '类型',
+            ),
+          ),
+          const SizedBox(width: 4),
+          SizedBox(
+            width: 75,
+            child: _buildSortableHeaderCell(
+              context,
+              snapshot: snapshot,
+              field: FileManagerSortField.size,
+              label: '大小',
+              alignRight: true,
+            ),
+          ),
+          const SizedBox(width: 4),
+          SizedBox(
+            width: 110,
+            child: Text(
+              '修改时间',
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSortableHeaderCell(
+    BuildContext context, {
+    required FileManagerSnapshot snapshot,
+    required FileManagerSortField field,
+    required String label,
+    bool alignRight = false,
+  }) {
+    final theme = Theme.of(context);
+    final isActive = snapshot.sortField == field;
+    final isAsc = snapshot.sortOrder == FileManagerSortOrder.ascending;
+
+    return InkWell(
+      onTap: _busy ? null : () => _toggleSort(snapshot, field),
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+        child: Row(
+          mainAxisAlignment:
+              alignRight ? MainAxisAlignment.end : MainAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
+                  color: isActive
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            if (isActive) ...[
+              const SizedBox(width: 2),
+              Icon(
+                isAsc
+                    ? Icons.arrow_upward_rounded
+                    : Icons.arrow_downward_rounded,
+                size: 13,
+                color: theme.colorScheme.primary,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailsRow(
+    BuildContext context,
+    FileManagerSnapshot snapshot,
+    FileManagerEntry entry,
+  ) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: _busy ? null : () => _openEntry(entry),
+      onDoubleTap: entry.isArchive && !_busy ? () => _openArchive(entry) : null,
+      child: Container(
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        alignment: Alignment.centerLeft,
+        child: Row(
+          children: [
+            Expanded(
+              flex: 5,
+              child: Row(
+                children: [
+                  _buildSemanticIcon(context, entry, size: 16),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      entry.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 4),
+            SizedBox(
+              width: 70,
+              child: Text(
+                _formatType(entry),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            SizedBox(
+              width: 75,
+              child: Text(
+                _formatSize(entry.size),
+                maxLines: 1,
+                textAlign: TextAlign.right,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            SizedBox(
+              width: 110,
+              child: Text(
+                _formatDate(entry.modifiedSecs.toInt()),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.outline,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- 5. 封面网格 (Cover Grid): 竖版 2:3 海报比例封面网格，标题两行 ---
+  Widget _buildCoverGrid(BuildContext context, FileManagerSnapshot snapshot) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(6),
+      primary: false,
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 140,
+        mainAxisExtent: 180,
+        crossAxisSpacing: 6,
+        mainAxisSpacing: 6,
+      ),
+      itemCount: snapshot.entries.length,
+      itemBuilder: (context, index) =>
+          _buildCoverGridEntry(context, snapshot.entries[index]),
+    );
+  }
+
+  Widget _buildCoverGridEntry(BuildContext context, FileManagerEntry entry) {
+    final theme = Theme.of(context);
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: _busy ? null : () => _openEntry(entry),
+      onDoubleTap: entry.isArchive && !_busy ? () => _openArchive(entry) : null,
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.35,
+          ),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  FileManagerThumbnailWidget(
+                    entry: entry,
+                    width: double.infinity,
+                    height: double.infinity,
+                    borderRadius: BorderRadius.zero,
+                    fit: BoxFit.cover,
+                  ),
+                  if (entry.childNames.isNotEmpty)
+                    Positioned(
+                      left: 2,
+                      right: 2,
+                      bottom: 2,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.65),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: Text(
+                          '${entry.childNames.length} 项',
+                          maxLines: 1,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(5),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      _buildSemanticIcon(context, entry, size: 12),
+                      const SizedBox(width: 3),
+                      Expanded(
+                        child: Text(
+                          entry.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (!entry.isDir && entry.size > BigInt.zero)
                     Text(
                       _formatSize(entry.size),
-                      style: theme.textTheme.labelSmall,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.outline,
+                        fontSize: 9,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
                     ),
                 ],
               ),
@@ -1216,6 +1738,148 @@ class _FileManagerCardState extends State<FileManagerCard> {
         ),
       ),
     );
+  }
+
+  // --- 6. 自由缩略图 (Mosaic Grid): 1:1 正方形高密度缩略图网格，单行紧凑标题 ---
+  Widget _buildMosaicGrid(BuildContext context, FileManagerSnapshot snapshot) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(6),
+      primary: false,
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 110,
+        mainAxisExtent: 130,
+        crossAxisSpacing: 5,
+        mainAxisSpacing: 5,
+      ),
+      itemCount: snapshot.entries.length,
+      itemBuilder: (context, index) =>
+          _buildMosaicGridEntry(context, snapshot.entries[index]),
+    );
+  }
+
+  Widget _buildMosaicGridEntry(BuildContext context, FileManagerEntry entry) {
+    final theme = Theme.of(context);
+    return InkWell(
+      borderRadius: BorderRadius.circular(7),
+      onTap: _busy ? null : () => _openEntry(entry),
+      onDoubleTap: entry.isArchive && !_busy ? () => _openArchive(entry) : null,
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.35,
+          ),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
+          borderRadius: BorderRadius.circular(7),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: FileManagerThumbnailWidget(
+                entry: entry,
+                width: double.infinity,
+                height: double.infinity,
+                borderRadius: BorderRadius.zero,
+                fit: BoxFit.cover,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+              child: Text(
+                entry.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _toggleSort(
+    FileManagerSnapshot snapshot,
+    FileManagerSortField field,
+  ) async {
+    final order =
+        snapshot.sortField == field &&
+                snapshot.sortOrder == FileManagerSortOrder.ascending
+            ? FileManagerSortOrder.descending
+            : FileManagerSortOrder.ascending;
+    await _apply(
+      (id) => fileManagerSetSort(id: id, field: field, order: order),
+    );
+  }
+
+  Widget _buildSemanticIcon(
+    BuildContext context,
+    FileManagerEntry entry, {
+    double size = 18,
+  }) {
+    final colors = Theme.of(context).colorScheme;
+    IconData icon;
+    Color color;
+    if (entry.isDir) {
+      icon = Icons.folder_rounded;
+      color = colors.tertiary;
+    } else if (entry.isArchive) {
+      icon = Icons.auto_stories_rounded;
+      color = colors.primary;
+    } else if (entry.isImage) {
+      icon = Icons.image_outlined;
+      color = colors.secondary;
+    } else if (entry.isVideo) {
+      icon = Icons.movie_outlined;
+      color = colors.secondary;
+    } else if (entry.isAudio) {
+      icon = Icons.audio_file_outlined;
+      color = colors.secondary;
+    } else {
+      icon = Icons.insert_drive_file_outlined;
+      color = colors.outline;
+    }
+    return Icon(icon, size: size, color: color);
+  }
+
+  String _formatDate(int secs) {
+    if (secs <= 0) return '';
+    final dt = DateTime.fromMillisecondsSinceEpoch(secs * 1000);
+    final year = dt.year.toString();
+    final month = dt.month.toString().padLeft(2, '0');
+    final day = dt.day.toString().padLeft(2, '0');
+    final hour = dt.hour.toString().padLeft(2, '0');
+    final min = dt.minute.toString().padLeft(2, '0');
+    return '$year/$month/$day $hour:$min';
+  }
+
+  String _formatType(FileManagerEntry entry) {
+    if (entry.isDir) return '文件夹';
+    final lower = entry.name.toLowerCase();
+    if (entry.isArchive) {
+      if (lower.endsWith('.zip')) return 'ZIP 归档';
+      if (lower.endsWith('.cbz')) return 'CBZ 归档';
+      if (lower.endsWith('.rar')) return 'RAR 归档';
+      if (lower.endsWith('.cbr')) return 'CBR 归档';
+      if (lower.endsWith('.7z')) return '7Z 归档';
+      if (lower.endsWith('.tar') || lower.endsWith('.tar.gz')) return 'TAR 归档';
+      return '压缩归档';
+    }
+    if (entry.isImage) return '图片';
+    if (entry.isVideo) return '视频';
+    if (entry.isAudio) return '音频';
+    final dot = entry.name.lastIndexOf('.');
+    if (dot != -1 && dot < entry.name.length - 1) {
+      return '${entry.name.substring(dot + 1).toUpperCase()} 文件';
+    }
+    return '文件';
   }
 
   Widget _buildChildNames(

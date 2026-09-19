@@ -155,9 +155,27 @@
     - **泛化后的改名**：`WorkspaceReaderBridge` / `WorkspaceReaderGuard` →
       `WorkspaceNavigationBridge` / `WorkspaceRouteGuard`（旧名只剩「阅读器」一层含义，
       已经管不住实际职责了）。
-    - **已知残留**：只有 `pushRoute` 被守卫接管，`context.router.pop()` / `maybePop()`
-      仍然作用在根栈上。卡片自己的「返回列表」若走那两个 API，会把整个工作台弹掉。
-      阅读器那侧的退出路径走的是「关闭当前漫画」，不受影响。
+    - **已知残留（2026-09-19 已修，见下）**：那时只有 `pushRoute` 被守卫接管，
+      `context.router.pop()` / `maybePop()` 仍然作用在根栈上。卡片自己的「返回列表」
+      若走那两个 API，会把整个工作台弹掉。阅读器那侧的退出路径走的是
+      「关闭当前漫画」，不受影响。
+    - **2026-09-19 补上「回退」那一半**（用户报：「在插件的界面点击返回以后，
+      它会直接退出整个泳道，返回到主页面」）。症状与上面那条残留逐字吻合 ——
+      插件界面（图源卡片点进去的那个搜索页）顶部返回箭头是上游**自己画的**
+      `IconButton(onPressed: () => context.maybePop())`，它走
+      `AutoRouter.of(context)`，就近的 `StackRouterScope` 是**根路由**
+      （面板里那条局部 `Navigator` 上方没有自己的 scope）⇒ 弹掉的是根栈顶页 =
+      整个工作台。修法：给根路由加一个 mixin `WorkspaceBackInterceptor`
+      （`lib/workspace/router/workspace_back_interception.dart`），把
+      `pop` / `maybePop` 先交给 `WorkspaceNavigationBridge.handleBackInLane` ——
+      与推入**共用同一份落点记账**（点返回按钮那一下本身就是指针按下，
+      所以落点必然是被点的那块面板，不需要另造判据）。
+      三条边界写在那儿：**工作台必须是根栈顶**（压在它上面的对话框/整页不抢）、
+      **落点面板里得真有的可退**（没得更退就还回根栈 = 退出工作台，
+      `Esc` 与鼠标侧键走的也是这条路，这条出口不能丢）、**其余逐字放行**。
+      判据：`test/workspace/route_guard_test.dart` 新增 4 条（插件界面返回、
+      对话框不被误伤、没得更退时仍退出工作台、生产路由真挂了接线），
+      并进 `mutation_check.py` 的 `route_guard` 组（M49–M53）。
 
     **判据**：`test/workspace/lane_dispatch_check.dart`（31 条，纯 Dart，验落点记账）+
     `test/workspace/route_guard_test.dart`（5 条 widget test，验页面的矩形与卡片严丝合缝、

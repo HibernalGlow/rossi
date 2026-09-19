@@ -36,6 +36,11 @@ class WorkspaceState {
   /// 交互延时与开关（悬停聚焦 / 边缘揭示 / 揭示恢复 / Reader 窄缝宽）。
   final WorkspaceInteractionSettings interaction;
 
+  /// 是否处于阅读器铺满窗口全屏状态。
+  ///
+  /// 在 solo 聚焦基础上去掉顶栏、内边距与边框，使阅读器自身铺满整个工作台窗口。
+  final bool isReaderFullscreen;
+
   const WorkspaceState({
     required this.mode,
     required this.layout,
@@ -44,6 +49,7 @@ class WorkspaceState {
     this.activePanel = const <String, String>{},
     this.activeLaneId,
     this.interaction = const WorkspaceInteractionSettings(),
+    this.isReaderFullscreen = false,
   });
 
   factory WorkspaceState.initial() {
@@ -62,9 +68,11 @@ class WorkspaceState {
   /// 「激活」。把这条判断放在**一个地方**（这里），是因为条带宽度分配与
   /// 滚动落点都要问同一个问题；两处各写一遍必然会在某个边界上分叉。
   String? get effectiveSoloLaneId =>
-      layout.soloLaneId != null && layout.soloLaneId == activeLaneId
-      ? layout.soloLaneId
-      : null;
+      isReaderFullscreen
+          ? LaneId.reader
+          : (layout.soloLaneId != null && layout.soloLaneId == activeLaneId
+              ? layout.soloLaneId
+              : null);
 
   WorkspaceState copyWith({
     WorkspaceMode? mode,
@@ -74,6 +82,7 @@ class WorkspaceState {
     Map<String, String>? activePanel,
     String? Function()? activeLaneId,
     WorkspaceInteractionSettings? interaction,
+    bool? isReaderFullscreen,
   }) {
     return WorkspaceState(
       mode: mode ?? this.mode,
@@ -83,6 +92,7 @@ class WorkspaceState {
       activePanel: activePanel ?? this.activePanel,
       activeLaneId: activeLaneId != null ? activeLaneId() : this.activeLaneId,
       interaction: interaction ?? this.interaction,
+      isReaderFullscreen: isReaderFullscreen ?? this.isReaderFullscreen,
     );
   }
 }

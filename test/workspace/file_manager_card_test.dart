@@ -64,6 +64,7 @@ FileManagerEntry _entry(
   isVideo: false,
   isAudio: false,
   size: BigInt.from(1024),
+  modifiedSecs: 1700000000,
   hasChildren: directory,
   childNames: List.generate(
     children,
@@ -80,7 +81,7 @@ FileManagerEntry _entry(
 );
 
 FileManagerSnapshot _snapshot({
-  FileManagerViewMode viewMode = FileManagerViewMode.list,
+  FileManagerViewMode viewMode = FileManagerViewMode.coverList,
   String query = '',
   bool canCreate = true,
   bool canClose = true,
@@ -386,6 +387,57 @@ void main() {
     expect(find.byType(FileManagerThumbnailWidget), findsWidgets);
     expect(find.byIcon(Icons.auto_stories_rounded), findsOneWidget);
     expect(find.byIcon(Icons.folder_rounded), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('工具栏包含 NeoView 风格视图模式菜单并支持切换', (tester) async {
+    await _pumpCard(tester);
+    final menuButton = find.byTooltip('视图模式：封面列表');
+    expect(menuButton, findsOneWidget);
+
+    await tester.tap(menuButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('紧凑列表'), findsOneWidget);
+    expect(find.text('封面列表'), findsOneWidget);
+    expect(find.text('横幅'), findsOneWidget);
+    expect(find.text('详细信息'), findsOneWidget);
+    expect(find.text('封面网格'), findsOneWidget);
+    expect(find.text('自由缩略图'), findsOneWidget);
+
+    await tester.tap(find.text('详细信息'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    expect(
+      api
+          .callsTo(#crateApiFileManagerFileManagerSetViewMode)
+          .single
+          .namedArguments[#mode],
+      FileManagerViewMode.details,
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('详细信息视图渲染表头并支持点击表头字段排序', (tester) async {
+    api.snapshot = _snapshot(viewMode: FileManagerViewMode.details);
+    await _pumpCard(tester, width: 700);
+
+    expect(find.text('名称'), findsWidgets);
+    expect(find.text('类型'), findsWidgets);
+    expect(find.text('大小'), findsWidgets);
+    expect(find.text('修改时间'), findsWidgets);
+
+    // 点击“大小”表头列切换排序
+    await tester.tap(find.text('大小').first);
+    await tester.pumpAndSettle();
+
+    expect(
+      api
+          .callsTo(#crateApiFileManagerFileManagerSetSort)
+          .last
+          .namedArguments[#field],
+      FileManagerSortField.size,
+    );
     await tester.pumpWidget(const SizedBox.shrink());
   });
 }

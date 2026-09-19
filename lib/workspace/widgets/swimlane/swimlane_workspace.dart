@@ -372,15 +372,18 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
             // - `viewportWidth`：阅读器泳道的**比例**要乘它（乘可用宽会把比例算歪）；
             // - `availableWidth`：条带实际能摆多宽 = 富余 / 滚动的判断基准。
             final viewportWidth = constraints.maxWidth;
+            final stripPadding = state.isReaderFullscreen
+                ? 0.0
+                : SwimlaneWorkspace._stripPadding;
             final availableWidth = math.max(
               0.0,
-              viewportWidth - SwimlaneWorkspace._stripPadding * 2,
+              viewportWidth - stripPadding * 2,
             );
             _viewportWidth = viewportWidth;
             _availableWidth = availableWidth;
             _availableHeight = math.max(
               0.0,
-              constraints.maxHeight - SwimlaneWorkspace._stripPadding * 2,
+              constraints.maxHeight - stripPadding * 2,
             );
 
             final metrics = WorkspaceStripMetrics.resolve(
@@ -401,9 +404,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
                 onPointerUp: (_) => _handlePointerUp(),
                 onPointerCancel: (_) => _handlePointerUp(),
                 child: Padding(
-                  padding: const EdgeInsets.all(
-                    SwimlaneWorkspace._stripPadding,
-                  ),
+                  padding: EdgeInsets.all(stripPadding),
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
@@ -467,6 +468,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
             viewportWidth,
             resolvedWidth: slot.width,
             isActive: activeLaneId == laneId,
+            isFullscreen: state.isReaderFullscreen && laneId == LaneId.reader,
           ),
         ),
       );
@@ -494,6 +496,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
     double viewportWidth, {
     required bool isActive,
     double? resolvedWidth,
+    bool isFullscreen = false,
   }) {
     final cubit = context.read<WorkspaceCubit>();
     final config =
@@ -505,6 +508,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
       config: config,
       resolvedWidth: laneWidth,
       isSolo: state.effectiveSoloLaneId == laneId,
+      isFullscreen: isFullscreen,
       isActive: isActive,
       titleOverride: laneId == LaneId.reader
           ? state.readerTarget?.displayTitle
@@ -609,7 +613,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
     return [
       IconButton(
         icon: Icon(
-          isSwimlane ? Icons.fullscreen_rounded : Icons.view_column_rounded,
+          isSwimlane ? Icons.dock_rounded : Icons.view_column_rounded,
           size: 18,
         ),
         tooltip: isSwimlane ? '切换为沉浸四边栏 (Edges)' : '切换为多列泳道 (Swimlane)',

@@ -18,6 +18,7 @@ class SwimlaneColumn extends StatelessWidget {
   final double resolvedWidth;
 
   final bool isSolo;
+  final bool isFullscreen;
 
   /// 是不是当前**激活**的那条泳道。
   ///
@@ -52,6 +53,7 @@ class SwimlaneColumn extends StatelessWidget {
     required this.config,
     required this.resolvedWidth,
     required this.isSolo,
+    this.isFullscreen = false,
     required this.isActive,
     required this.onToggleCollapse,
     required this.onToggleSolo,
@@ -87,18 +89,24 @@ class SwimlaneColumn extends StatelessWidget {
         final body = Container(
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isActive
-                  ? theme.colorScheme.primary.withValues(alpha: 0.55)
-                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
-              width: isActive ? 1.5 : 1,
-            ),
+            borderRadius: isFullscreen
+                ? BorderRadius.zero
+                : BorderRadius.circular(12),
+            border: isFullscreen
+                ? null
+                : Border.all(
+                    color: isActive
+                        ? theme.colorScheme.primary.withValues(alpha: 0.55)
+                        : theme.colorScheme.outlineVariant.withValues(
+                            alpha: 0.35,
+                          ),
+                    width: isActive ? 1.5 : 1,
+                  ),
           ),
           clipBehavior: Clip.antiAlias,
           child: Column(
             children: [
-              _buildHeader(context, theme, titleMounted),
+              if (!isFullscreen) _buildHeader(context, theme, titleMounted),
               // 泳道内容 Body
               Expanded(
                 child:
@@ -251,7 +259,9 @@ class SwimlaneColumn extends StatelessWidget {
           // Solo 独占按钮
           IconButton(
             icon: Icon(
-              isSolo ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+              isSolo
+                  ? Icons.center_focus_strong_rounded
+                  : Icons.center_focus_weak_rounded,
               size: 20,
               color: isSolo
                   ? theme.colorScheme.primary

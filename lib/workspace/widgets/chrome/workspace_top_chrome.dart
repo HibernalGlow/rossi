@@ -206,7 +206,7 @@ class WorkspaceTopChrome extends StatelessWidget {
             ),
           IconButton(
             icon: Icon(
-              isSwimlane ? Icons.fullscreen_rounded : Icons.view_column_rounded,
+              isSwimlane ? Icons.dock_rounded : Icons.view_column_rounded,
               size: 18,
             ),
             tooltip: isSwimlane ? '切换为沉浸四边栏' : '切换为多列泳道',

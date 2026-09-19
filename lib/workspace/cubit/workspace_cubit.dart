@@ -90,12 +90,12 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
     final nextMode = state.mode == WorkspaceMode.swimlane
         ? WorkspaceMode.edges
         : WorkspaceMode.swimlane;
-    emit(state.copyWith(mode: nextMode));
+    emit(state.copyWith(mode: nextMode, isReaderFullscreen: false));
   }
 
   void setMode(WorkspaceMode mode) {
     if (state.mode == mode) return;
-    emit(state.copyWith(mode: mode));
+    emit(state.copyWith(mode: mode, isReaderFullscreen: false));
   }
 
   // ── 阅读器泳道 ─────────────────────────────────────────────────────────
@@ -120,7 +120,48 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
   /// 关闭当前这一本，阅读器泳道回到空态。
   void closeReader() {
     if (state.readerTarget == null) return;
-    emit(state.copyWith(readerTarget: () => null));
+    emit(
+      state.copyWith(
+        readerTarget: () => null,
+        isReaderFullscreen: false,
+      ),
+    );
+  }
+
+  /// 切换阅读器铺满窗口全屏状态。
+  ///
+  /// 在 solo 聚焦基础上去掉顶栏、内边距与边框，使阅读器自身铺满当前窗口。
+  void toggleReaderFullscreen() {
+    if (state.readerTarget == null) return;
+    setReaderFullscreen(!state.isReaderFullscreen);
+  }
+
+  /// 进入 / 退出阅读器铺满窗口全屏。
+  void setReaderFullscreen(bool fullscreen) {
+    if (state.isReaderFullscreen == fullscreen) return;
+    if (fullscreen) {
+      emit(
+        state.copyWith(
+          isReaderFullscreen: true,
+          activeLaneId: () => LaneId.reader,
+          layout: state.layout.copyWith(soloLaneId: () => LaneId.reader),
+        ),
+      );
+    } else {
+      emit(
+        state.copyWith(
+          isReaderFullscreen: false,
+          layout: state.layout.copyWith(soloLaneId: () => null),
+        ),
+      );
+    }
+  }
+
+  /// 退出阅读器铺满窗口全屏（供 Esc / 快捷键等触发）。
+  void exitReaderFullscreen() {
+    if (state.isReaderFullscreen) {
+      setReaderFullscreen(false);
+    }
   }
 
   // ── 面板泳道 ───────────────────────────────────────────────────────────
@@ -389,6 +430,7 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
       state.copyWith(
         layout: state.layout.copyWith(soloLaneId: () => nextSolo),
         activeLaneId: nextSolo != null ? () => laneId : null, // 关掉独占不动激活泳道
+        isReaderFullscreen: false,
       ),
     );
   }
@@ -478,6 +520,7 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
         activePanel: const <String, String>{},
         activeLaneId: () => null,
         interaction: const WorkspaceInteractionSettings(),
+        isReaderFullscreen: false,
       ),
     );
   }

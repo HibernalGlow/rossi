@@ -9,6 +9,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/cubit/workspace_state.dart';
+import 'package:zephyr/util/input/reader_input_bridge.dart';
+import 'package:zephyr/util/input/reader_input_context.dart';
+import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
 import 'package:zephyr/workspace/model/workspace_reader_target.dart';
 import 'package:zephyr/workspace/router/workspace_navigation_bridge.dart';
@@ -73,6 +76,12 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
   WorkspaceLayoutPersistence? _persistence;
   StreamSubscription<WorkspaceState>? _stateSubscription;
 
+  /// 本页自己的路由对象（`didChangeDependencies` 里登记，`dispose` 里注销）。
+  ///
+  /// 根路由要靠它判断「现在最上面那一页是不是工作台」：面板里的一下「返回」只有
+  /// 在那一刻才该由泳道接管（见 `WorkspaceNavigationBridge.handleBackInLane`）。
+  ModalRoute<dynamic>? _workspaceRoute;
+
   /// 正在用读回来的快照替换状态：这一轮**不要再存一遍**（刚读完就写回去
   /// 是纯浪费，而且在慢盘上会与下一次真实改动抢同一个文件）。
   ///
@@ -97,7 +106,22 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 登记「我这一页」。重复登记同一个对象是幂等的。
+    final route = ModalRoute.of(context);
+    if (route != null) {
+      _workspaceRoute = route;
+      WorkspaceNavigationBridge.instance.attachWorkspaceRoute(route);
+    }
+  }
+
+  @override
   void dispose() {
+    final route = _workspaceRoute;
+    if (route != null) {
+      WorkspaceNavigationBridge.instance.detachWorkspaceRoute(route);
+    }
     _stateSubscription?.cancel();
     // 退出前把压着的改动写掉：拖完立刻关窗口这一下正好会落在去抖窗口里。
     unawaited(_persistence?.flush() ?? Future<void>.value());
@@ -182,7 +206,7 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
     });
   }
 
-  /// 退出工作台。
+  /// 退出工作台（若阅读器处于全屏铺满状态则优先退出全屏）。
   ///
   /// 工作台是用 `Navigator.push` 上来的整页，**没有系统返回按钮** ——
   /// 顶栏一撤，它就是唯一的可见出口（键盘侧由 `Esc` 兜底，
@@ -190,6 +214,10 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
   /// 详情页之类压在上面时不该把用户弹走。
   void _exitWorkspace() {
     if (!mounted) return;
+    if (_cubit.state.isReaderFullscreen) {
+      _cubit.exitReaderFullscreen();
+      return;
+    }
     final route = ModalRoute.of(context);
     if (route == null || !route.isCurrent) return;
     Navigator.of(context).maybePop();
@@ -205,6 +233,58 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
   /// 把两种形态都跑一遍。
   WorkspaceTopChromeMode get _chromeMode =>
       WorkspaceTopChromeMode.forTargetPlatform(defaultTargetPlatform);
+
+  /// **阅读器 context 优先**（用户 2026-09-19 定；对应 ADR-0015 的 context 优先级）。
+  ///
+  /// 阅读器的按键处理挂在它自己子树的 `Focus` 上，而打开阅读设置面板时
+  /// `showModalBottomSheet` 会推入一条模态路由、把主焦点从阅读器子树拿走 ——
+  /// 按键于是落到 `WidgetsApp` 默认的 `DirectionalFocusIntent`（方向焦点遍历）上，
+  /// 表现为「左右键被设置面板吃掉、翻不动页」。
+  ///
+  /// 工作台这条 `Focus` 是那些模态路由的**祖先**：按键没被消费时会顺着焦点树冒到这里。
+  /// 在这里把它转交给活跃阅读器，阅读器的键于是**不依赖焦点落在哪**。
+  /// 又因为本 `Focus` 位于 `WidgetsApp` 默认快捷键的**后代**位置，
+  /// 它会先于默认的 `DirectionalFocusIntent` 被咨询 —— 这正是能压过它的原因。
+  ///
+  /// 例外只有一条：**焦点在可编辑控件里时不抢** —— 方向键在输入框里是光标移动，
+  /// 而文本编辑快捷键在焦点树上比这里更靠上（`DefaultTextEditingShortcuts`），
+  /// 不豁免就会把光标移动吃掉。
+  KeyEventResult _handleReaderFirstKeyEvent(
+    KeyEvent event,
+    WorkspaceState state,
+  ) {
+    final bridge = ReaderInputBridge.instance;
+    if (!bridge.hasHandler) return KeyEventResult.ignored;
+    // Dart 侧只做 adapter：报告「真实活跃的 context」，判定交给桥（将来是核心，ADR-0015）。
+    bridge.setActiveContexts(_activeContextsFor(state));
+    if (_isTextInputFocused()) return KeyEventResult.ignored;
+    return bridge.dispatch(event);
+  }
+
+  /// **context adapter（Dart 侧）**：把工作台的真实状态翻译成 neoview 的 context 词汇。
+  ///
+  /// - 阅读器泳道在场（或尚无泳道被激活）→ `reader`；
+  /// - 其它泳道被激活 → 那块内容按 `panel` 计，阅读器让位（不抢它的方向键）。
+  ///
+  /// **刻意不把「阅读器自己打开了设置面板」记成 `modal`**：那是阅读器自己的 UI，
+  /// 不引入任何与 `reader` 竞争的绑定，于是左右键仍由 `reader` context 解析 ——
+  /// 这正是它不该被设置面板抢走的原因；而真正的对话框（将来的 `modal`）若也绑了同一输入，
+  /// 才会按 neoview 的优先级赢过 `reader`。
+  Set<ReaderInputContext> _activeContextsFor(WorkspaceState state) {
+    final activeLaneId = state.activeLaneId;
+    if (activeLaneId == null || activeLaneId == LaneId.reader) {
+      return const <ReaderInputContext>{ReaderInputContext.reader};
+    }
+    return const <ReaderInputContext>{ReaderInputContext.panel};
+  }
+
+  /// 主焦点是否落在可编辑文本里（`TextField` / `TextFormField` 等）。
+  bool _isTextInputFocused() {
+    final focusContext = FocusManager.instance.primaryFocus?.context;
+    if (focusContext == null) return false;
+    return focusContext.widget is EditableText ||
+        focusContext.findAncestorWidgetOfExactType<EditableText>() != null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -236,10 +316,13 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
               // `CallbackShortcuts` 仍会在它们没消费时沿焦点树上冒到这里。
               child: Focus(
                 autofocus: true,
+                onKeyEvent: (_, event) =>
+                    _handleReaderFirstKeyEvent(event, state),
                 child: Stack(
                   children: [
                     Positioned.fill(
-                      child: chromeMode == WorkspaceTopChromeMode.persistent
+                      child: chromeMode == WorkspaceTopChromeMode.persistent &&
+                              !state.isReaderFullscreen
                           // 常驻形态：顶栏在**正常流**里，内容从它下面开始 ——
                           // 这条路上不存在「顶栏盖住内容」那一档（那是揭示形态
                           // 才有的取舍）。内容因此不再自带顶部安全区：
@@ -256,14 +339,16 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
                                 ),
                               ],
                             )
-                          // 揭示形态：内容从窗口最顶端开始铺满。
+                          // 揭示形态或全屏：内容从窗口最顶端开始铺满。
                           // `SafeArea` 只为移动端兜底（桌面端 `MediaQuery.padding`
                           // 本来就是 0，这里不会内缩，所以不留空档）。
-                          : SafeArea(child: content),
+                          : SafeArea(top: !state.isReaderFullscreen, child: content),
                     ),
 
                     // 揭示形态的顶栏：叠在内容上层，默认不可见（不占高度、不吃鼠标）。
-                    if (chromeMode == WorkspaceTopChromeMode.reveal)
+                    // 全屏铺满时隐藏顶栏，避免划过顶边时弹出遮挡。
+                    if (chromeMode == WorkspaceTopChromeMode.reveal &&
+                        !state.isReaderFullscreen)
                       WorkspaceTopChromeReveal(
                         onExit: _exitWorkspace,
                         onResetLayout: _resetLayout,
