@@ -274,6 +274,11 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get maskedKeywordsInputHint => 'Enter new keyword...';
 	@override String get favoriteArtistHighlight => 'Highlight Favorite Artists';
 	@override String get favoriteArtistHighlightSubtitle => 'Highlight comics by preferred artists on cards and detail page';
+	@override String get cardBadges => 'Card Badges';
+	@override String get cardDownloadBadge => 'Download Badge';
+	@override String get cardDownloadBadgeSubtitle => 'Show a download button on the top-right of covers; tap it to download the whole comic';
+	@override String get cardTranslationBadge => 'Language Badge';
+	@override String get cardTranslationBadgeSubtitle => 'Detect translated / Chinese / raw from tags and mark the top-left of covers';
 	@override String get favoriteArtistManagement => 'Favorite Artists Management';
 	@override String favoriteArtistManagementSubtitle({required Object count}) => '${count} artists added';
 	@override String get favoriteArtistManagementSubtitleEmpty => 'No favorite artists added';
@@ -344,6 +349,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get appBehavior => 'App behavior';
 	@override String get splashPage => 'Startup page';
 	@override String get splashPageSubtitle => 'Choose startup page to open directly';
+	@override String get startWithWorkspace => 'Open workspace on startup';
+	@override String get startWithWorkspaceSubtitle => 'Go straight into the swimlane / four-edge workspace when the app opens (tablet and desktop only)';
 	@override String get desktopCloseBehavior => 'Close behavior';
 	@override String get desktopCloseBehaviorSubtitle => 'Choose behavior when clicking close button';
 	@override String get desktopCloseAsk => 'Ask';
@@ -365,6 +372,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get leftHandModeSubtitle => 'Move floating action buttons and other controls to the left side';
 	@override String get clickCoverToStartReading => 'Tap cover to start reading';
 	@override String get clickCoverToStartReadingSubtitle => 'Tap the cover on the comic info page to start reading directly';
+	@override String get comicInfoInlineReadButton => 'Read button in comic info page';
+	@override String get comicInfoInlineReadButtonSubtitle => 'On desktop, put a read button next to Download in the action row and drop the floating read button at the bottom-right';
 	@override String get androidKeepAlive => 'Keep alive';
 	@override String get androidKeepAliveSubtitle => 'Use a foreground service to keep the app running in the background; shows a persistent notification';
 	@override String get backPressExit => 'Exit on back';
@@ -760,6 +769,12 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get hoverReveal => 'Hover Reveal';
 	@override String get hoverRevealEnabled => 'Edge Hover Reveal Toolbars';
 	@override String get hoverRevealEnabledSubtitle => 'Automatically show toolbars when mouse moves to top or bottom edge (NeoView style)';
+	@override String get thumbnailStrip => 'Bottom thumbnail strip';
+	@override String get thumbnailStripSubtitle => 'Expand per-page thumbnails in the control bar, fused with the progress bar; stays on across books, chapters and restarts';
+	@override String get thumbnailStripExpand => 'Show thumbnails';
+	@override String get thumbnailStripCollapse => 'Hide thumbnails';
+	@override String get thumbnailStripCurrent => 'Now';
+	@override String thumbnailStripJumpToPage({required Object page}) => 'Jump to page ${page}';
 	@override String get hoverRevealTop => 'Top Edge Reveals Header';
 	@override String get hoverRevealBottom => 'Bottom Edge Reveals Footer';
 	@override String get hoverTriggerAreaTop => 'Top Trigger Area Height';
@@ -842,6 +857,9 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get doubleTapZoomSubtitle => 'Double-tap image to toggle zoom';
 	@override String get doubleTapOpenMenu => 'Double-tap to open menu';
 	@override String get doubleTapOpenMenuSubtitle => 'Double-tap page to open menu (exclusive with zoom)';
+	@override String get centerTapBar => 'Tap to reveal bars';
+	@override String get centerTapToggleBars => 'Tap center to toggle top/bottom bars';
+	@override String get centerTapToggleBarsSubtitle => 'When off, tapping the reader no longer shows or hides the top/bottom bars (in webtoon mode this covers tap-anywhere too). Reveal them with edge hover on desktop or a double tap instead.';
 	@override String get volumeKeyPageTurn => 'Volume key page turn';
 	@override String get enableVolumeKeyPageTurn => 'Enable volume key page turn';
 	@override String get volumeKeyPageTurnSubtitle => 'Use volume keys to turn pages/scroll';
@@ -1839,6 +1857,11 @@ extension on TranslationsEnUs {
 			'settings.maskedKeywordsInputHint' => 'Enter new keyword...',
 			'settings.favoriteArtistHighlight' => 'Highlight Favorite Artists',
 			'settings.favoriteArtistHighlightSubtitle' => 'Highlight comics by preferred artists on cards and detail page',
+			'settings.cardBadges' => 'Card Badges',
+			'settings.cardDownloadBadge' => 'Download Badge',
+			'settings.cardDownloadBadgeSubtitle' => 'Show a download button on the top-right of covers; tap it to download the whole comic',
+			'settings.cardTranslationBadge' => 'Language Badge',
+			'settings.cardTranslationBadgeSubtitle' => 'Detect translated / Chinese / raw from tags and mark the top-left of covers',
 			'settings.favoriteArtistManagement' => 'Favorite Artists Management',
 			'settings.favoriteArtistManagementSubtitle' => ({required Object count}) => '${count} artists added',
 			'settings.favoriteArtistManagementSubtitleEmpty' => 'No favorite artists added',
@@ -1909,6 +1932,8 @@ extension on TranslationsEnUs {
 			'settings.appBehavior' => 'App behavior',
 			'settings.splashPage' => 'Startup page',
 			'settings.splashPageSubtitle' => 'Choose startup page to open directly',
+			'settings.startWithWorkspace' => 'Open workspace on startup',
+			'settings.startWithWorkspaceSubtitle' => 'Go straight into the swimlane / four-edge workspace when the app opens (tablet and desktop only)',
 			'settings.desktopCloseBehavior' => 'Close behavior',
 			'settings.desktopCloseBehaviorSubtitle' => 'Choose behavior when clicking close button',
 			'settings.desktopCloseAsk' => 'Ask',
@@ -1930,6 +1955,8 @@ extension on TranslationsEnUs {
 			'settings.leftHandModeSubtitle' => 'Move floating action buttons and other controls to the left side',
 			'settings.clickCoverToStartReading' => 'Tap cover to start reading',
 			'settings.clickCoverToStartReadingSubtitle' => 'Tap the cover on the comic info page to start reading directly',
+			'settings.comicInfoInlineReadButton' => 'Read button in comic info page',
+			'settings.comicInfoInlineReadButtonSubtitle' => 'On desktop, put a read button next to Download in the action row and drop the floating read button at the bottom-right',
 			'settings.androidKeepAlive' => 'Keep alive',
 			'settings.androidKeepAliveSubtitle' => 'Use a foreground service to keep the app running in the background; shows a persistent notification',
 			'settings.backPressExit' => 'Exit on back',
@@ -2177,6 +2204,8 @@ extension on TranslationsEnUs {
 			'comicInfo.episodeCount' => ({required Object count}) => '${count} Episodes',
 			'comicInfo.episodeFallback' => ({required Object index}) => '${index}',
 			'comicInfo.episodeLabel' => ({required Object index}) => '${index}',
+			_ => null,
+		} ?? switch (path) {
 			'comicInfo.author' => 'Author',
 			'comicInfo.tags' => 'Tags',
 			'comicInfo.works' => 'Works',
@@ -2186,8 +2215,6 @@ extension on TranslationsEnUs {
 			'comicInfo.continueRead' => 'Continue reading',
 			'comicInfo.lastRead' => 'Last read',
 			'comicInfo.chapters' => 'Chapters',
-			_ => null,
-		} ?? switch (path) {
 			'comicInfo.related' => 'Related',
 			'comicInfo.description' => 'Description',
 			'comicInfo.collapse' => 'Collapse',
@@ -2300,6 +2327,12 @@ extension on TranslationsEnUs {
 			'reader.hoverReveal' => 'Hover Reveal',
 			'reader.hoverRevealEnabled' => 'Edge Hover Reveal Toolbars',
 			'reader.hoverRevealEnabledSubtitle' => 'Automatically show toolbars when mouse moves to top or bottom edge (NeoView style)',
+			'reader.thumbnailStrip' => 'Bottom thumbnail strip',
+			'reader.thumbnailStripSubtitle' => 'Expand per-page thumbnails in the control bar, fused with the progress bar; stays on across books, chapters and restarts',
+			'reader.thumbnailStripExpand' => 'Show thumbnails',
+			'reader.thumbnailStripCollapse' => 'Hide thumbnails',
+			'reader.thumbnailStripCurrent' => 'Now',
+			'reader.thumbnailStripJumpToPage' => ({required Object page}) => 'Jump to page ${page}',
 			'reader.hoverRevealTop' => 'Top Edge Reveals Header',
 			'reader.hoverRevealBottom' => 'Bottom Edge Reveals Footer',
 			'reader.hoverTriggerAreaTop' => 'Top Trigger Area Height',
@@ -2382,6 +2415,9 @@ extension on TranslationsEnUs {
 			'reader.doubleTapZoomSubtitle' => 'Double-tap image to toggle zoom',
 			'reader.doubleTapOpenMenu' => 'Double-tap to open menu',
 			'reader.doubleTapOpenMenuSubtitle' => 'Double-tap page to open menu (exclusive with zoom)',
+			'reader.centerTapBar' => 'Tap to reveal bars',
+			'reader.centerTapToggleBars' => 'Tap center to toggle top/bottom bars',
+			'reader.centerTapToggleBarsSubtitle' => 'When off, tapping the reader no longer shows or hides the top/bottom bars (in webtoon mode this covers tap-anywhere too). Reveal them with edge hover on desktop or a double tap instead.',
 			'reader.volumeKeyPageTurn' => 'Volume key page turn',
 			'reader.enableVolumeKeyPageTurn' => 'Enable volume key page turn',
 			'reader.volumeKeyPageTurnSubtitle' => 'Use volume keys to turn pages/scroll',
@@ -2682,6 +2718,8 @@ extension on TranslationsEnUs {
 			'about.loading' => 'Loading...',
 			'about.fetchFailed' => 'Failed to load',
 			'about.networkError' => 'Network error',
+			_ => null,
+		} ?? switch (path) {
 			'about.projectAddress' => 'Project',
 			'about.projectAddressDesc' => 'Like this project? Give it a star on GitHub!',
 			'about.projectLink' => 'Go to GitHub repo (deretame/Breeze) ⭐',
@@ -2700,8 +2738,6 @@ extension on TranslationsEnUs {
 			'about.disclaimerItem2Title' => '2. Limitation of Liability',
 			'about.disclaimerItem2Content' => 'The developer shall not be liable for any direct, indirect, special, incidental, or consequential damages arising from use, modification, or distribution of this project (including but not limited to direct use, secondary development, or integration into other projects). These damages may include but are not limited to data loss, device damage, business interruption, lost profits, or other economic losses.',
 			'about.disclaimerItem3Title' => '3. User Responsibility',
-			_ => null,
-		} ?? switch (path) {
 			'about.disclaimerItem3Content' => 'Users should evaluate suitability and assume all risks when using this project. Users must ensure their use complies with applicable laws, regulations, and ethical standards. The developer is not responsible for consequences resulting from violations of laws or misuse.',
 			'about.disclaimerItem4Title' => '4. Third-Party Dependencies and Resources',
 			'about.disclaimerItem4Content' => 'This project may depend on or reference third-party libraries, tools, services, or other resources. The developer is not responsible for the content, functionality, security, or legality of these third-party resources. Users should evaluate and assume risks themselves.',

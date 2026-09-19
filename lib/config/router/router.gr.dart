@@ -294,7 +294,7 @@ class ComicFollowRoute extends _i47.PageRouteInfo<void> {
 /// [_i11.ComicInfoPage]
 class ComicInfoRoute extends _i47.PageRouteInfo<ComicInfoRouteArgs> {
   ComicInfoRoute({
-    _i50.Key? key,
+    _i48.Key? key,
     required String comicId,
     required String from,
     required _i51.ComicEntryType type,
@@ -346,7 +346,7 @@ class ComicInfoRouteArgs {
     this.collectionTargetName,
   });
 
-  final _i50.Key? key;
+  final _i48.Key? key;
 
   final String comicId;
 

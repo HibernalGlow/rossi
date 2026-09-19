@@ -676,6 +676,7 @@ Map<String, Map<String, dynamic>> _extractSyncableSettingsBlocks(
       'autoFollowOnCollect': json['autoFollowOnCollect'],
       'leftHandModeEnabled': json['leftHandModeEnabled'],
       'clickCoverToStartReading': json['clickCoverToStartReading'],
+      'comicInfoInlineReadButton': json['comicInfoInlineReadButton'],
       'bookshelfSetting': json['bookshelfSetting'],
     },
     _readerBlockName: _toJsonMap(json['readSetting']),

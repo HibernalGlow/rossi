@@ -608,6 +608,21 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '在漫画卡片和详情页醒目标记喜欢的画师'
 	String get favoriteArtistHighlightSubtitle => '在漫画卡片和详情页醒目标记喜欢的画师';
 
+	/// zh-CN: '卡片角标'
+	String get cardBadges => '卡片角标';
+
+	/// zh-CN: '下载角标'
+	String get cardDownloadBadge => '下载角标';
+
+	/// zh-CN: '封面右上角显示下载按钮，点一下直接下载整本'
+	String get cardDownloadBadgeSubtitle => '封面右上角显示下载按钮，点一下直接下载整本';
+
+	/// zh-CN: '语言角标'
+	String get cardTranslationBadge => '语言角标';
+
+	/// zh-CN: '按标签识别「汉化 / 中文 / 生肉」并标记在封面左上角'
+	String get cardTranslationBadgeSubtitle => '按标签识别「汉化 / 中文 / 生肉」并标记在封面左上角';
+
 	/// zh-CN: '喜欢画师管理'
 	String get favoriteArtistManagement => '喜欢画师管理';
 
@@ -818,6 +833,12 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '选择启动页，打开应用直达目标'
 	String get splashPageSubtitle => '选择启动页，打开应用直达目标';
 
+	/// zh-CN: '启动时直接打开工作台'
+	String get startWithWorkspace => '启动时直接打开工作台';
+
+	/// zh-CN: '打开应用后直接进入泳道 / 四边栏工作台（仅平板与桌面端可用）'
+	String get startWithWorkspaceSubtitle => '打开应用后直接进入泳道 / 四边栏工作台（仅平板与桌面端可用）';
+
 	/// zh-CN: '关闭行为'
 	String get desktopCloseBehavior => '关闭行为';
 
@@ -880,6 +901,12 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '在漫画详情页点击封面直接开始阅读'
 	String get clickCoverToStartReadingSubtitle => '在漫画详情页点击封面直接开始阅读';
+
+	/// zh-CN: '详情页内置阅读按钮'
+	String get comicInfoInlineReadButton => '详情页内置阅读按钮';
+
+	/// zh-CN: '桌面端在操作行里「下载」旁边放一个阅读按钮，并撤掉右下角的悬浮按钮'
+	String get comicInfoInlineReadButtonSubtitle => '桌面端在操作行里「下载」旁边放一个阅读按钮，并撤掉右下角的悬浮按钮';
 
 	/// zh-CN: '后台保活'
 	String get androidKeepAlive => '后台保活';
@@ -2015,6 +2042,24 @@ class Translations$reader$zh_CN {
 	/// zh-CN: '鼠标移至屏幕顶部或底部边缘时自动浮现对应工具栏（参考 NeoView）'
 	String get hoverRevealEnabledSubtitle => '鼠标移至屏幕顶部或底部边缘时自动浮现对应工具栏（参考 NeoView）';
 
+	/// zh-CN: '底部缩略图条'
+	String get thumbnailStrip => '底部缩略图条';
+
+	/// zh-CN: '在控制栏展开每页缩略图，与进度条并成同一块面板；换书、换章、重启后保持'
+	String get thumbnailStripSubtitle => '在控制栏展开每页缩略图，与进度条并成同一块面板；换书、换章、重启后保持';
+
+	/// zh-CN: '展开缩略图'
+	String get thumbnailStripExpand => '展开缩略图';
+
+	/// zh-CN: '收起缩略图'
+	String get thumbnailStripCollapse => '收起缩略图';
+
+	/// zh-CN: '当前'
+	String get thumbnailStripCurrent => '当前';
+
+	/// zh-CN: '跳转到第 $page 页'
+	String thumbnailStripJumpToPage({required Object page}) => '跳转到第 ${page} 页';
+
 	/// zh-CN: '顶部边缘唤出顶栏'
 	String get hoverRevealTop => '顶部边缘唤出顶栏';
 
@@ -2260,6 +2305,15 @@ class Translations$reader$zh_CN {
 
 	/// zh-CN: '双击页面打开操作栏（与双击缩放互斥）'
 	String get doubleTapOpenMenuSubtitle => '双击页面打开操作栏（与双击缩放互斥）';
+
+	/// zh-CN: '点击唤出上下栏'
+	String get centerTapBar => '点击唤出上下栏';
+
+	/// zh-CN: '点击中间唤出/收起上下栏'
+	String get centerTapToggleBars => '点击中间唤出/收起上下栏';
+
+	/// zh-CN: '关闭后单击阅读区不再显隐上下栏（条漫模式下「点哪儿都算中间」也一并关闭），改用桌面端边缘悬停或双击打开操作栏唤出'
+	String get centerTapToggleBarsSubtitle => '关闭后单击阅读区不再显隐上下栏（条漫模式下「点哪儿都算中间」也一并关闭），改用桌面端边缘悬停或双击打开操作栏唤出';
 
 	/// zh-CN: '音量键翻页'
 	String get volumeKeyPageTurn => '音量键翻页';
@@ -4415,6 +4469,11 @@ extension on Translations {
 			'settings.maskedKeywordsInputHint' => '输入新关键词...',
 			'settings.favoriteArtistHighlight' => '喜欢画师高亮',
 			'settings.favoriteArtistHighlightSubtitle' => '在漫画卡片和详情页醒目标记喜欢的画师',
+			'settings.cardBadges' => '卡片角标',
+			'settings.cardDownloadBadge' => '下载角标',
+			'settings.cardDownloadBadgeSubtitle' => '封面右上角显示下载按钮，点一下直接下载整本',
+			'settings.cardTranslationBadge' => '语言角标',
+			'settings.cardTranslationBadgeSubtitle' => '按标签识别「汉化 / 中文 / 生肉」并标记在封面左上角',
 			'settings.favoriteArtistManagement' => '喜欢画师管理',
 			'settings.favoriteArtistManagementSubtitle' => ({required Object count}) => '已添加 ${count} 位画师',
 			'settings.favoriteArtistManagementSubtitleEmpty' => '暂未添加画师',
@@ -4485,6 +4544,8 @@ extension on Translations {
 			'settings.appBehavior' => '应用行为',
 			'settings.splashPage' => '开屏页',
 			'settings.splashPageSubtitle' => '选择启动页，打开应用直达目标',
+			'settings.startWithWorkspace' => '启动时直接打开工作台',
+			'settings.startWithWorkspaceSubtitle' => '打开应用后直接进入泳道 / 四边栏工作台（仅平板与桌面端可用）',
 			'settings.desktopCloseBehavior' => '关闭行为',
 			'settings.desktopCloseBehaviorSubtitle' => '选择点击关闭按钮时的行为',
 			'settings.desktopCloseAsk' => '询问',
@@ -4506,6 +4567,8 @@ extension on Translations {
 			'settings.leftHandModeSubtitle' => '开启后将悬浮按钮等操作按钮移到屏幕左侧',
 			'settings.clickCoverToStartReading' => '点击封面开始阅读',
 			'settings.clickCoverToStartReadingSubtitle' => '在漫画详情页点击封面直接开始阅读',
+			'settings.comicInfoInlineReadButton' => '详情页内置阅读按钮',
+			'settings.comicInfoInlineReadButtonSubtitle' => '桌面端在操作行里「下载」旁边放一个阅读按钮，并撤掉右下角的悬浮按钮',
 			'settings.androidKeepAlive' => '后台保活',
 			'settings.androidKeepAliveSubtitle' => '开启后通过前台服务尽量保持应用在后台运行，会显示常驻通知',
 			'settings.backPressExit' => '返回键退出',
@@ -4753,6 +4816,8 @@ extension on Translations {
 			'comicInfo.preview' => '预览',
 			'comicInfo.episodeCount' => ({required Object count}) => '${count} 话',
 			'comicInfo.episodeFallback' => ({required Object index}) => '${index}',
+			_ => null,
+		} ?? switch (path) {
 			'comicInfo.episodeLabel' => ({required Object index}) => '${index}',
 			'comicInfo.author' => '作者',
 			'comicInfo.tags' => '标签',
@@ -4762,8 +4827,6 @@ extension on Translations {
 			'comicInfo.startRead' => '开始阅读',
 			'comicInfo.continueRead' => '继续阅读',
 			'comicInfo.lastRead' => '上次读到',
-			_ => null,
-		} ?? switch (path) {
 			'comicInfo.chapters' => '章节',
 			'comicInfo.related' => '相关推荐',
 			'comicInfo.description' => '简介',
@@ -4877,6 +4940,12 @@ extension on Translations {
 			'reader.hoverReveal' => '悬停唤出',
 			'reader.hoverRevealEnabled' => '边缘悬停唤出控制栏',
 			'reader.hoverRevealEnabledSubtitle' => '鼠标移至屏幕顶部或底部边缘时自动浮现对应工具栏（参考 NeoView）',
+			'reader.thumbnailStrip' => '底部缩略图条',
+			'reader.thumbnailStripSubtitle' => '在控制栏展开每页缩略图，与进度条并成同一块面板；换书、换章、重启后保持',
+			'reader.thumbnailStripExpand' => '展开缩略图',
+			'reader.thumbnailStripCollapse' => '收起缩略图',
+			'reader.thumbnailStripCurrent' => '当前',
+			'reader.thumbnailStripJumpToPage' => ({required Object page}) => '跳转到第 ${page} 页',
 			'reader.hoverRevealTop' => '顶部边缘唤出顶栏',
 			'reader.hoverRevealBottom' => '底部边缘唤出底栏',
 			'reader.hoverTriggerAreaTop' => '顶部唤出感应区高度',
@@ -4959,6 +5028,9 @@ extension on Translations {
 			'reader.doubleTapZoomSubtitle' => '双击图片可在缩放和还原之间切换',
 			'reader.doubleTapOpenMenu' => '双击打开操作栏',
 			'reader.doubleTapOpenMenuSubtitle' => '双击页面打开操作栏（与双击缩放互斥）',
+			'reader.centerTapBar' => '点击唤出上下栏',
+			'reader.centerTapToggleBars' => '点击中间唤出/收起上下栏',
+			'reader.centerTapToggleBarsSubtitle' => '关闭后单击阅读区不再显隐上下栏（条漫模式下「点哪儿都算中间」也一并关闭），改用桌面端边缘悬停或双击打开操作栏唤出',
 			'reader.volumeKeyPageTurn' => '音量键翻页',
 			'reader.enableVolumeKeyPageTurn' => '启用音量键翻页',
 			'reader.volumeKeyPageTurnSubtitle' => '开启后可用音量键上下翻页/滑动',
@@ -5258,6 +5330,8 @@ extension on Translations {
 			'about.version' => ({required Object version}) => '版本号: ${version}',
 			'about.loading' => '加载中...',
 			'about.fetchFailed' => '获取失败',
+			_ => null,
+		} ?? switch (path) {
 			'about.networkError' => '网络错误',
 			'about.projectAddress' => '项目地址',
 			'about.projectAddressDesc' => '喜欢这个项目吗？点个star支持一下吧！',
@@ -5276,8 +5350,6 @@ extension on Translations {
 			'about.disclaimerItem1Content' => '本项目为开源软件，由本人独立开发并维护。项目以"原样"形式提供，开发者不对项目的功能完整性、稳定性、安全性或适用性作出任何明示或暗示的担保。',
 			'about.disclaimerItem2Title' => '2. 责任限制',
 			'about.disclaimerItem2Content' => '开发者对因使用、修改或分发本项目（包括但不限于直接使用、二次开发或集成至其他项目）而导致的任何直接、间接、特殊、附带或后果性损害不承担任何责任。这些损害可能包括但不限于数据丢失、设备损坏、业务中断、利润损失或其他经济损失。',
-			_ => null,
-		} ?? switch (path) {
 			'about.disclaimerItem3Title' => '3. 用户责任',
 			'about.disclaimerItem3Content' => '用户在使用本项目时，应自行评估其适用性并承担所有风险。用户须确保其使用行为符合所在国家或地区的法律法规及道德规范。开发者不对用户因违反法律法规或不当使用本项目而导致的任何后果负责。',
 			'about.disclaimerItem4Title' => '4. 第三方依赖与资源',

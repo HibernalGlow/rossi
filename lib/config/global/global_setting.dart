@@ -189,6 +189,13 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     @Default(false) bool autoFavoriteOnDownload,
     @Default(false) bool leftHandModeEnabled,
     @Default(false) bool clickCoverToStartReading,
+    // 详情页「阅读」入口：桌面端放进操作行（「下载」旁边），并撤掉右下角的悬浮按钮。
+    // 触摸端不受这个开关影响 —— 那边只有悬浮按钮一种落点。
+    @Default(true) bool comicInfoInlineReadButton,
+    // 启动后是否直接进工作台（泳道 / 四边栏）。默认关 = 改造前的行为（落在导航栏）。
+    // 只在**真有工作台入口**的布局（平板 / 桌面四边栏）落地，手机端忽略 ——
+    // 判定收在 `lib/workspace/model/workspace_startup.dart`。
+    @Default(false) bool startWithWorkspace,
     @Default([]) List<String> searchHistory,
     @Default(ProxySettingState()) ProxySettingState proxySetting,
     @Default(1280.0) double windowWidth,
@@ -204,6 +211,7 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     @Default(BookshelfSettingState()) BookshelfSettingState bookshelfSetting,
     @Default(FavoriteArtistSettingState())
     FavoriteArtistSettingState favoriteArtistSetting,
+    @Default(ComicCardSettingState()) ComicCardSettingState comicCardSetting,
     @Default(ToastSettingState()) ToastSettingState toastSetting,
   }) = _GlobalSettingState;
 
@@ -251,6 +259,35 @@ abstract class FavoriteArtistSettingState with _$FavoriteArtistSettingState {
 
   factory FavoriteArtistSettingState.fromJson(Map<String, dynamic> json) =>
       _$FavoriteArtistSettingStateFromJson(json);
+}
+
+/// 漫画卡片上的封面角标显示开关。
+///
+/// 约定：**新加的卡片角标一律要在这里有一个开关**，默认开，
+/// 用户随时能在「设置 → 书架 → 卡片角标」关掉（见 `.workbuddy/memory/MEMORY.md`）。
+/// 组件自身的 `showXxx` 参数是**给具体页面**用的（某页不想要角标），
+/// 这里是**给用户**用的总开关，两者是「与」的关系。
+@freezed
+abstract class ComicCardSettingState with _$ComicCardSettingState {
+  const factory ComicCardSettingState({
+    @Default(true) bool downloadBadgeEnabled,
+    @Default(true) bool translationBadgeEnabled,
+  }) = _ComicCardSettingState;
+
+  factory ComicCardSettingState.fromJson(Map<String, dynamic> json) =>
+      _$ComicCardSettingStateFromJson(json);
+}
+
+/// 角标开关的读入口（非 widget 上下文也能读）。
+///
+/// 同 [toastSetting]：读设置这件事本身不能把调用方炸掉。
+ComicCardSettingState get comicCardSetting {
+  try {
+    return objectbox.userSettingBox.get(1)?.globalSetting.comicCardSetting ??
+        const ComicCardSettingState();
+  } catch (_) {
+    return const ComicCardSettingState();
+  }
 }
 
 @freezed
@@ -397,6 +434,18 @@ abstract class ReadSettingState with _$ReadSettingState {
     @Default(32) int hoverTriggerAreaBottom,
     @Default(500) int hoverHideDelayMs,
     @Default(false) bool hoverShowVisualIndicator,
+    // 「点击阅读区唤出/收起上下栏」。关掉后单击不再显隐上下栏 —— 只能靠桌面端
+    // 边缘悬停、或（若开着）双击打开操作栏唤出；条漫模式下「点哪儿都算中间」
+    // 的那一条也一并关掉。
+    // 默认 true = 改造前的行为，没进过设置页的用户零感知。
+    @Default(true) bool centerTapToggleBars,
+    // 底部缩略图条是否展开（与进度条同处一块玻璃面板）。
+    //
+    // **必须住在全局设置里，不能放阅读页的 State**：阅读页每个 route 一份
+    // `_BottomWidgetState`，换书（`router.replace` 会换 key 重建整棵子树）、
+    // 甚至同一本换章都会重建，开关会被「重置」回默认值。放这里则跟其他阅读
+    // 设置一样持久化、跨书跨重启保持。
+    @Default(false) bool showThumbnailStrip,
   }) = _ReadSettingState;
 
   factory ReadSettingState.fromJson(Map<String, dynamic> json) =>
@@ -486,6 +535,15 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
     updateState(
       (current) =>
           current.copyWith(toastSetting: updates(current.toastSetting)),
+    );
+  }
+
+  void updateComicCardSetting(
+    ComicCardSettingState Function(ComicCardSettingState current) updates,
+  ) {
+    updateState(
+      (current) =>
+          current.copyWith(comicCardSetting: updates(current.comicCardSetting)),
     );
   }
 

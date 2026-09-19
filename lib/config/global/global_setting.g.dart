@@ -54,6 +54,8 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
   autoFavoriteOnDownload: json['autoFavoriteOnDownload'] as bool? ?? false,
   leftHandModeEnabled: json['leftHandModeEnabled'] as bool? ?? false,
   clickCoverToStartReading: json['clickCoverToStartReading'] as bool? ?? false,
+  comicInfoInlineReadButton: json['comicInfoInlineReadButton'] as bool? ?? true,
+  startWithWorkspace: json['startWithWorkspace'] as bool? ?? false,
   searchHistory:
       (json['searchHistory'] as List<dynamic>?)
           ?.map((e) => e as String)
@@ -99,6 +101,11 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
       : FavoriteArtistSettingState.fromJson(
           json['favoriteArtistSetting'] as Map<String, dynamic>,
         ),
+  comicCardSetting: json['comicCardSetting'] == null
+      ? const ComicCardSettingState()
+      : ComicCardSettingState.fromJson(
+          json['comicCardSetting'] as Map<String, dynamic>,
+        ),
   toastSetting: json['toastSetting'] == null
       ? const ToastSettingState()
       : ToastSettingState.fromJson(
@@ -140,6 +147,8 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'autoFavoriteOnDownload': instance.autoFavoriteOnDownload,
       'leftHandModeEnabled': instance.leftHandModeEnabled,
       'clickCoverToStartReading': instance.clickCoverToStartReading,
+      'comicInfoInlineReadButton': instance.comicInfoInlineReadButton,
+      'startWithWorkspace': instance.startWithWorkspace,
       'searchHistory': instance.searchHistory,
       'proxySetting': instance.proxySetting.toJson(),
       'windowWidth': instance.windowWidth,
@@ -155,6 +164,7 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
           _$ChineseConvertModeEnumMap[instance.chineseConvertMode]!,
       'bookshelfSetting': instance.bookshelfSetting.toJson(),
       'favoriteArtistSetting': instance.favoriteArtistSetting.toJson(),
+      'comicCardSetting': instance.comicCardSetting.toJson(),
       'toastSetting': instance.toastSetting.toJson(),
     };
 
@@ -229,6 +239,20 @@ Map<String, dynamic> _$FavoriteArtistSettingStateToJson(
 ) => <String, dynamic>{
   'highlightEnabled': instance.highlightEnabled,
   'artists': instance.artists,
+};
+
+_ComicCardSettingState _$ComicCardSettingStateFromJson(
+  Map<String, dynamic> json,
+) => _ComicCardSettingState(
+  downloadBadgeEnabled: json['downloadBadgeEnabled'] as bool? ?? true,
+  translationBadgeEnabled: json['translationBadgeEnabled'] as bool? ?? true,
+);
+
+Map<String, dynamic> _$ComicCardSettingStateToJson(
+  _ComicCardSettingState instance,
+) => <String, dynamic>{
+  'downloadBadgeEnabled': instance.downloadBadgeEnabled,
+  'translationBadgeEnabled': instance.translationBadgeEnabled,
 };
 
 _CacheSettingState _$CacheSettingStateFromJson(Map<String, dynamic> json) =>
@@ -434,6 +458,8 @@ _ReadSettingState _$ReadSettingStateFromJson(Map<String, dynamic> json) =>
       hoverHideDelayMs: (json['hoverHideDelayMs'] as num?)?.toInt() ?? 500,
       hoverShowVisualIndicator:
           json['hoverShowVisualIndicator'] as bool? ?? false,
+      centerTapToggleBars: json['centerTapToggleBars'] as bool? ?? true,
+      showThumbnailStrip: json['showThumbnailStrip'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$ReadSettingStateToJson(
@@ -491,6 +517,8 @@ Map<String, dynamic> _$ReadSettingStateToJson(
   'hoverTriggerAreaBottom': instance.hoverTriggerAreaBottom,
   'hoverHideDelayMs': instance.hoverHideDelayMs,
   'hoverShowVisualIndicator': instance.hoverShowVisualIndicator,
+  'centerTapToggleBars': instance.centerTapToggleBars,
+  'showThumbnailStrip': instance.showThumbnailStrip,
 };
 
 const _$ReaderTapPageTurnModeEnumMap = {
