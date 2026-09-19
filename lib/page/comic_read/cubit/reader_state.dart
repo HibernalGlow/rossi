@@ -17,6 +17,12 @@ abstract class ReaderState with _$ReaderState {
     @Default(false) bool isBottomHovered, // 底栏是否悬停唤出
   }) = _ReaderState;
 
-  bool get showTopAppBar => isMenuVisible || isTopHovered;
-  bool get showBottomBar => isMenuVisible || isBottomHovered;
+  /// 顶栏要不要画出来。`pinned`（用户按了钉住）排在最前：钉住之后，点中间收起
+  /// 菜单、指针离开边缘都收不走它 —— 口径照 neo 的 `readerEdgeInteraction`
+  /// （`locked-open || pinned ⇒ fixed-open`，且 `requestOpen` 对钉住的边是 no-op）。
+  bool showTopAppBar({required bool pinned}) =>
+      pinned || isMenuVisible || isTopHovered;
+
+  bool showBottomBar({required bool pinned}) =>
+      pinned || isMenuVisible || isBottomHovered;
 }

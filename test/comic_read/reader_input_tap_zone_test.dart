@@ -343,11 +343,13 @@ void main() {
       bool isWebtoon = false,
       bool tapPageTurnInWebtoon = false,
       ReaderTapPageTurnMode mode = ReaderTapPageTurnMode.rightHand,
+      bool rightToLeft = false,
     }) => ReaderGestureLogic.resolveTapZone(
       sample: ReaderTapSample(localPosition: at, viewportSize: viewport),
       isWebtoon: isWebtoon,
       tapPageTurnInWebtoon: tapPageTurnInWebtoon,
       mode: mode,
+      rightToLeft: rightToLeft,
     );
 
     // 对照：正常尺寸下这一档就是「正中唤出 / 左半上一页」，守卫不吃正常路径。
@@ -398,6 +400,154 @@ void main() {
           tapPageTurnInWebtoon: true,
         ),
         ReaderTapZone.toggleMenu,
+      );
+    });
+  });
+
+  // ── 「左开点右边还是下一页」—— 本组判据盯的 bug ──────────────────────────
+  //
+  // 旧实现把「右半 = 下一页」写死在分区里，分区不认识阅读方向。左开
+  // （readMode=2）的**下一页在画面左边**，于是点右边（拇指常驻侧）得到的是
+  // 「上一页才该有的动作」—— 书翻不动/翻反了。
+  //
+  // 修法与 Rust 引擎同构：分区先给**空间动作**（右半=page-right，左手模式镜像），
+  // 方向在解析时解释 —— page-right 在右开=下一页、左开=上一页。
+  group('阅读方向 × 点击分区（左开修复）', () {
+    const normal = Size(800, 800);
+
+    ReaderTapZone zone({
+      required Offset at,
+      required Size viewport,
+      ReaderTapPageTurnMode mode = ReaderTapPageTurnMode.rightHand,
+      bool rightToLeft = false,
+    }) => ReaderGestureLogic.resolveTapZone(
+      sample: ReaderTapSample(localPosition: at, viewportSize: viewport),
+      isWebtoon: false,
+      tapPageTurnInWebtoon: false,
+      mode: mode,
+      rightToLeft: rightToLeft,
+    );
+
+    test('右手预设 × 左开：点右边=上一页、点左边=下一页', () {
+      expect(
+        zone(at: _right, viewport: normal, rightToLeft: true),
+        ReaderTapZone.previousPage,
+        reason: '左开的下一页在左边 —— 点右边是往回翻',
+      );
+      expect(
+        zone(at: _left, viewport: normal, rightToLeft: true),
+        ReaderTapZone.nextPage,
+      );
+    });
+
+    test('右手预设 × 右开：点右边=下一页、点左边=上一页（原契约不变）', () {
+      expect(zone(at: _right, viewport: normal), ReaderTapZone.nextPage);
+      expect(zone(at: _left, viewport: normal), ReaderTapZone.previousPage);
+    });
+
+    test('左手预设 × 右开：前进热区在左（拇指侧）', () {
+      expect(
+        zone(
+          at: _left,
+          viewport: normal,
+          mode: ReaderTapPageTurnMode.leftHand,
+          rightToLeft: false,
+        ),
+        ReaderTapZone.nextPage,
+      );
+      expect(
+        zone(
+          at: _right,
+          viewport: normal,
+          mode: ReaderTapPageTurnMode.leftHand,
+          rightToLeft: false,
+        ),
+        ReaderTapZone.previousPage,
+      );
+    });
+
+    test('左手预设 × 左开：前进热区整片镜像到右边', () {
+      expect(
+        zone(
+          at: _right,
+          viewport: normal,
+          mode: ReaderTapPageTurnMode.leftHand,
+          rightToLeft: true,
+        ),
+        ReaderTapZone.nextPage,
+        reason: '左手档是右手档的镜像：左开下右手档前进在左，左手档就落在右边',
+      );
+      expect(
+        zone(
+          at: _left,
+          viewport: normal,
+          mode: ReaderTapPageTurnMode.leftHand,
+          rightToLeft: true,
+        ),
+        ReaderTapZone.previousPage,
+      );
+    });
+
+    test('fullScreen 档是语义动作：两种方向下左右两半都是下一页', () {
+      for (final rightToLeft in [false, true]) {
+        expect(
+          zone(
+            at: _left,
+            viewport: normal,
+            mode: ReaderTapPageTurnMode.fullScreen,
+            rightToLeft: rightToLeft,
+          ),
+          ReaderTapZone.nextPage,
+        );
+        expect(
+          zone(
+            at: _right,
+            viewport: normal,
+            mode: ReaderTapPageTurnMode.fullScreen,
+            rightToLeft: rightToLeft,
+          ),
+          ReaderTapZone.nextPage,
+        );
+      }
+    });
+
+    test('正中那一格不随方向变：始终唤出上下栏', () {
+      expect(zone(at: _center, viewport: normal, rightToLeft: true),
+          ReaderTapZone.toggleMenu);
+    });
+
+    test('空间动作的语义解析与 Rust 引擎同构（isNext = isPageRight != rightToLeft）', () {
+      // 与 rust/local_core/src/operation_binding/resolve.rs 的 resolve_page_turn 对齐。
+      expect(
+        ReaderGestureLogic.spatialPageTurnIsNext(
+          isPageRight: true,
+          rightToLeft: false,
+        ),
+        isTrue,
+        reason: '右开：向右翻 = 下一页',
+      );
+      expect(
+        ReaderGestureLogic.spatialPageTurnIsNext(
+          isPageRight: true,
+          rightToLeft: true,
+        ),
+        isFalse,
+        reason: '左开：向右翻 = 上一页',
+      );
+      expect(
+        ReaderGestureLogic.spatialPageTurnIsNext(
+          isPageRight: false,
+          rightToLeft: true,
+        ),
+        isTrue,
+        reason: '左开：向左翻 = 下一页',
+      );
+      expect(
+        ReaderGestureLogic.spatialPageTurnIsNext(
+          isPageRight: false,
+          rightToLeft: false,
+        ),
+        isFalse,
       );
     });
   });

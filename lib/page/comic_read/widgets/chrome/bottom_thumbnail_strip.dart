@@ -20,6 +20,12 @@ class BottomThumbnailStrip extends StatefulWidget {
   final ValueChanged<int> onSelectPage;
   final double height;
 
+  /// 是否**从右往左**排 —— 跟着阅读方向走（左开时下页在左，第 1 页贴在右边）。
+  ///
+  /// 只影响这一条胶卷的排布与命中，不影响槽位含义：`index` 仍是全局槽位，
+  /// 与 [currentSlot]、[onSelectPage] 同一套编号。
+  final bool rightToLeft;
+
   /// 是否嵌进**别人的**玻璃面板（底部控制栏把缩略图条与进度条并成一块）。
   ///
   /// `true` 时本组件**不再自带 [LiquidGlassSurface]**，只铺内容 —— 否则就是
@@ -37,6 +43,7 @@ class BottomThumbnailStrip extends StatefulWidget {
     this.docs = const <Doc>[],
     required this.onSelectPage,
     this.height = 104,
+    this.rightToLeft = false,
     this.embedded = false,
   });
 
@@ -64,6 +71,14 @@ class _BottomThumbnailStripState extends State<BottomThumbnailStrip> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.currentSlot != widget.currentSlot) {
       _scrollToSlot(widget.currentSlot, animate: true);
+    }
+    if (oldWidget.rightToLeft != widget.rightToLeft) {
+      // 换向等于整条胶卷镜像，同一个槽位对应的偏移完全变了。等这一帧排布
+      // 完成后再归位 —— 在 build 里直接跳，量到的还是旧方向的 viewport。
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _scrollToSlot(widget.currentSlot, animate: false);
+      });
     }
   }
 
@@ -100,12 +115,11 @@ class _BottomThumbnailStripState extends State<BottomThumbnailStrip> {
 
     final theme = Theme.of(context);
 
-    final content = Container(
-      height: widget.height,
-      padding: widget.embedded
-          // 嵌进父级面板：横向留出与父级圆角相称的边距，底部少留（下面就是进度条）。
-          ? const EdgeInsets.fromLTRB(8, 8, 8, 2)
-          : const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+    // 换向走 Directionality 而不是 ListView(reverse:)：除了把整条胶卷镜像过来，
+    // 它还会把格子里的 EdgeInsetsDirectional / PositionedDirectional 一起翻过去，
+    // 于是「页往哪边走」和「角标在哪一角」都跟着阅读方向同构。
+    final reel = Directionality(
+      textDirection: widget.rightToLeft ? TextDirection.rtl : TextDirection.ltr,
       child: ScrollConfiguration(
         behavior: ScrollConfiguration.of(context).copyWith(
           dragDevices: {
@@ -124,7 +138,7 @@ class _BottomThumbnailStripState extends State<BottomThumbnailStrip> {
             final doc = index < widget.docs.length ? widget.docs[index] : null;
 
             return Padding(
-              padding: const EdgeInsets.only(right: _tileSpacing),
+              padding: const EdgeInsetsDirectional.only(end: _tileSpacing),
               child: _buildTile(
                 theme: theme,
                 index: index,
@@ -135,6 +149,15 @@ class _BottomThumbnailStripState extends State<BottomThumbnailStrip> {
           },
         ),
       ),
+    );
+
+    final content = Container(
+      height: widget.height,
+      padding: widget.embedded
+          // 嵌进父级面板：横向留出与父级圆角相称的边距，底部少留（下面就是进度条）。
+          ? const EdgeInsets.fromLTRB(8, 8, 8, 2)
+          : const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+      child: reel,
     );
 
     if (widget.embedded) return content;
@@ -232,9 +255,9 @@ class _BottomThumbnailStripState extends State<BottomThumbnailStrip> {
                     ),
                   ),
                   if (isActive)
-                    Positioned(
+                    PositionedDirectional(
                       top: 3,
-                      right: 3,
+                      end: 3,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 4,

@@ -8,6 +8,7 @@ import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_download_button
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_upscale_status_chip.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reading_mode_capsule.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/secondary_toolbar.dart';
+import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_sheet.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/type/enum.dart';
@@ -66,13 +67,17 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
 
   @override
   Widget build(BuildContext context) {
-    final showTopAppBar = context.select(
-      (ReaderCubit cubit) => cubit.state.showTopAppBar,
-    );
-    final hoverController = ReaderHoverScope.of(context);
     final globalSettingState = context.watch<GlobalSettingCubit>().state;
     final globalSettingCubit = context.read<GlobalSettingCubit>();
     final readSetting = globalSettingState.readSetting;
+    // 顶栏可见性：**钉住 > 菜单 > 悬停**。`pinned` 写在选择器**里面**而不是选择器
+    // 外面 OR：这样仍然只在「这一个 bool 翻转」时重建，不会退化成翻一页重建一次顶栏。
+    final showTopAppBar = context.select(
+      (ReaderCubit cubit) => cubit.state.showTopAppBar(
+        pinned: readSetting.topBarPinned,
+      ),
+    );
+    final hoverController = ReaderHoverScope.of(context);
     const appBarRadius = 16.0;
 
     return Positioned(
@@ -231,14 +236,33 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
                 },
                 isWide: true,
               ),
+              // 阅读方向（右开 ⇄ 左开，即下一页在右还是在左）。只在横翻模式下可用；
+              // **不动阅读位置** —— 两个方向同属 RowModeWidget，槽位含义不变，
+              // 只是翻页语义反过来（左开下「下一页」在左边）。
+              if (readSetting.readingDirectionToggle) ...[
+                const SizedBox(width: 8),
+                ReadingDirectionToggle(
+                  currentMode: readSetting.readMode,
+                  onModeChanged: (mode) {
+                    cubit.updateReadSetting((s) => s.copyWith(readMode: mode));
+                  },
+                ),
+              ],
               const SizedBox(width: 12),
             ] else ...[
               const SizedBox(width: 6),
               CompactReadingModeButton(
                 currentMode: readSetting.readMode,
                 onModeChanged: (mode) {
+                  final previousMode = readSetting.readMode;
                   cubit.updateReadSetting((s) => s.copyWith(readMode: mode));
-                  widget.changePageIndex(0);
+                  // 窄屏没有那颗方向按钮，这颗循环按钮要顺手把方向也切了，
+                  // 所以它**只在跨条漫时**归位：右开⇄左开清零等于「切个方向
+                  // 跳回第一页」（宽屏那条路同一个道理）。
+                  if ((previousMode == kReadModeColumn) !=
+                      (mode == kReadModeColumn)) {
+                    widget.changePageIndex(0);
+                  }
                 },
               ),
               const SizedBox(width: 4),
@@ -290,6 +314,29 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
                 ),
               ),
             ],
+            const SizedBox(width: 2),
+            // 钉住顶栏（neo 的 edge `pinned`）：钉住之后这一条不再被「点中间收起」
+            // 或指针离开边缘收走；取消钉住立刻交还给那两套自动收起。
+            IconButton(
+              tooltip: readSetting.topBarPinned
+                  ? t.reader.unpinTopBar
+                  : t.reader.pinTopBar,
+              color: readSetting.topBarPinned ? colorScheme.primary : null,
+              icon: Icon(
+                readSetting.topBarPinned
+                    ? Icons.push_pin_rounded
+                    : Icons.push_pin_outlined,
+                size: 20,
+              ),
+              style: IconButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () => cubit.updateReadSetting(
+                (s) => s.copyWith(topBarPinned: !s.topBarPinned),
+              ),
+            ),
             const SizedBox(width: 2),
             IconButton(
               tooltip: t.reader.settings,

@@ -2,8 +2,18 @@ import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
 
+/// 阅读模式：条漫（竖向连续滚动，没有左右翻页方向可言）。
 const int kReadModeColumn = 0;
+
+/// 阅读模式：横翻单页，**下一页在右边**（`PageView` 不反转）。
+///
+/// 界面文案叫「右开」—— 向左翻是上一页。常量名按**阅读顺序**取（left-to-right），
+/// 与「左开/右开」这两个字的方向词**不是同一个坐标系**，别拿名字反推行为。
 const int kReadModeRowLtr = 1;
+
+/// 阅读模式：横翻单页，**下一页在左边**（`PageView(reverse: true)`，漫画排版）。
+///
+/// 界面文案叫「左开」—— 点左半边就是下一页。见 [isReverseRowReadMode]。
 const int kReadModeRowRtl = 2;
 
 /// 阅读器通用动画时长。

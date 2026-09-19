@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
@@ -11,10 +12,26 @@ class FluentPopupMenuItem<T> {
     required this.title,
     this.trailing,
     this.enabled = true,
-  });
+    this.selected = false,
+  }) : isDivider = false;
+
+  /// 一条分隔线：只把菜单切成几段，不可点、不返回值。
+  const FluentPopupMenuItem.divider()
+    : value = null,
+      isDivider = true,
+      leading = null,
+      title = const SizedBox.shrink(),
+      trailing = null,
+      enabled = false,
+      selected = false;
 
   /// The value returned when this item is selected.
-  final T value;
+  ///
+  /// 分隔线没有值 —— 它不会被选中。
+  final T? value;
+
+  /// Whether this entry is just a divider.
+  final bool isDivider;
 
   /// Optional widget displayed at the start of the item (typically an icon).
   final Widget? leading;
@@ -27,32 +44,40 @@ class FluentPopupMenuItem<T> {
 
   /// Whether the item can be selected.
   final bool enabled;
+
+  /// 这一项是不是「当前生效的那个值」。
+  ///
+  /// 单选（视图模式、穿透深度）与开关（显示隐藏文件）都靠它打勾：没有 [leading]
+  /// 时勾占住开头那一格，有图标就把勾挪到末尾 —— 与 [FluentDropdown] 同一套画法。
+  final bool selected;
 }
 
 /// Internal representation of a menu entry, used by the shared overlay.
 class _MenuEntry<T> {
   const _MenuEntry({
-    required this.value,
-    this.leading,
     required this.title,
+    this.value,
+    this.leading,
     this.trailing,
     this.enabled = true,
     this.isSelected = false,
+    this.isDivider = false,
   });
 
-  final T value;
+  final T? value;
   final Widget? leading;
   final Widget title;
   final Widget? trailing;
   final bool enabled;
   final bool isSelected;
+  final bool isDivider;
 }
 
 /// A button that displays a fluent-styled popup menu when tapped.
 ///
 /// This is intended as a drop-in replacement for [PopupMenuButton] with the
-/// same visual style as [FluentDropdown], but without any selected-value
-/// highlighting inside the menu.
+/// same visual style as [FluentDropdown]: 圆角面板、悬停高亮，选中项打勾
+/// （[FluentPopupMenuItem.selected]），分组用 [FluentPopupMenuItem.divider]。
 class FluentPopupMenuButton<T> extends StatefulWidget {
   const FluentPopupMenuButton({
     super.key,
@@ -62,6 +87,7 @@ class FluentPopupMenuButton<T> extends StatefulWidget {
     this.icon,
     this.tooltip,
     this.enabled = true,
+    this.visualDensity,
   });
 
   /// Called to build the list of menu items when the menu is opened.
@@ -84,143 +110,125 @@ class FluentPopupMenuButton<T> extends StatefulWidget {
   /// Whether the button can be pressed.
   final bool enabled;
 
+  /// 触发键的密度。工具栏里别的键是 `VisualDensity.compact` 时传同一个值，
+  /// 否则默认 48 的按钮会把整行顶高。
+  final VisualDensity? visualDensity;
+
   @override
   State<FluentPopupMenuButton<T>> createState() =>
       _FluentPopupMenuButtonState<T>();
 }
 
-class _FluentPopupMenuButtonState<T> extends State<FluentPopupMenuButton<T>>
-    with SingleTickerProviderStateMixin {
-  final LayerLink _layerLink = LayerLink();
-  OverlayEntry? _overlayEntry;
-  bool _isOpen = false;
+/// 触发按钮共用的一套「开一次菜单」：这里只负责插入/跟踪/移除，
+/// 摆位与动画全部交给 [_MenuSurface]。
+///
+/// 用抽象成员而不是 `on State` 拿到 `context`/`setState`：`on State` 会被推成
+/// `State<StatefulWidget>`，和 `State<FluentDropdown<T>>` 冲掉泛型实参。
+///
+/// 坑：`OverlayEntry.remove()` 会同步触发菜单的 `dispose()`，而它的 `dispose()`
+/// 里也会回调 `onClosed` 走回这条路径，所以必须先摘掉引用再 remove，否则二次移除。
+mixin _FluentMenuTrigger<T> {
+  BuildContext get context;
+  bool get mounted;
+  void setState(VoidCallback fn);
 
-  late final AnimationController _controller;
-  late final Animation<double> _scaleAnimation;
-  late final Animation<double> _opacityAnimation;
+  final GlobalKey<_MenuSurfaceState<T>> _surfaceKey =
+      GlobalKey<_MenuSurfaceState<T>>();
+  OverlayEntry? _overlayEntry;
+  bool _menuOpen = false;
+
+  /// 菜单是否开着（`FluentDropdown` 用它转箭头）。
+  bool get menuIsOpen => _menuOpen;
+
+  /// 打开菜单时构造菜单项。
+  List<_MenuEntry<T>> buildMenuEntries();
+
+  /// 用户选了一项，在关闭动画播完之后回调。
+  void onMenuSelected(T value);
+
+  void toggleMenu() {
+    if (!mounted) return;
+    if (_menuOpen) {
+      _surfaceKey.currentState?.close();
+    } else {
+      _openMenu();
+    }
+  }
+
+  /// 在宿主 `dispose()` 里调用：菜单还开着就被摘掉时把 OverlayEntry 收干净。
+  void detachMenu() {
+    final entry = _overlayEntry;
+    _overlayEntry = null;
+    entry?.remove();
+  }
+
+  void _openMenu() {
+    final entries = buildMenuEntries();
+    final renderBox = context.findRenderObject() as RenderBox;
+    _overlayEntry = _insertMenu<T>(
+      context: context,
+      key: _surfaceKey,
+      anchor: renderBox.localToGlobal(Offset.zero) & renderBox.size,
+      entries: entries,
+      menuWidth: _calculatePopupMenuWidth(
+        context,
+        renderBox.size.width,
+        entries,
+      ),
+      onSelected: onMenuSelected,
+      onClosed: _handleMenuClosed,
+    );
+    setState(() => _menuOpen = true);
+  }
+
+  void _handleMenuClosed() {
+    detachMenu();
+    if (mounted) setState(() => _menuOpen = false);
+  }
+}
+
+class _FluentPopupMenuButtonState<T> extends State<FluentPopupMenuButton<T>>
+    with _FluentMenuTrigger<T> {
+  @override
+  List<_MenuEntry<T>> buildMenuEntries() => widget
+      .itemBuilder(context)
+      .map(
+        (item) => _MenuEntry<T>(
+          value: item.value,
+          leading: item.leading,
+          title: item.title,
+          trailing: item.trailing,
+          enabled: item.enabled,
+          isSelected: item.selected,
+          isDivider: item.isDivider,
+        ),
+      )
+      .toList();
 
   @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 220),
-      vsync: this,
-    );
-    _scaleAnimation = Tween<double>(
-      begin: 0.92,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
-    _opacityAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-  }
+  void onMenuSelected(T value) => widget.onSelected?.call(value);
 
   @override
   void dispose() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-    _controller.stop();
-    _controller.dispose();
+    detachMenu();
     super.dispose();
   }
 
-  void _toggle() {
-    if (!mounted) return;
-    if (_isOpen) {
-      _close();
-    } else {
-      _open();
-    }
-  }
-
-  void _open() {
-    final items = widget.itemBuilder(context);
-    final entries = items
-        .map(
-          (item) => _MenuEntry<T>(
-            value: item.value,
-            leading: item.leading,
-            title: item.title,
-            trailing: item.trailing,
-            enabled: item.enabled,
-          ),
-        )
-        .toList();
-
-    final renderBox = context.findRenderObject() as RenderBox;
-    final size = renderBox.size;
-    final position = renderBox.localToGlobal(Offset.zero);
-    final screenSize = MediaQuery.sizeOf(context);
-    final safePadding = MediaQuery.paddingOf(context);
-
-    final fitsBelow =
-        position.dy + size.height + 8 + 200 <
-        screenSize.height - safePadding.bottom;
-    final fitsRight = position.dx + 220 <= screenSize.width - safePadding.right;
-    final menuWidth = _calculateMenuWidth(context, size.width, entries);
-
-    _overlayEntry = OverlayEntry(
-      builder: (context) => _MenuOverlay<T>(
-        layerLink: _layerLink,
-        triggerSize: size,
-        menuWidth: menuWidth,
-        entries: entries,
-        alignRight: !fitsRight,
-        alignTop: !fitsBelow,
-        onSelected: (value) {
-          _close(onComplete: () => widget.onSelected?.call(value));
-        },
-        onDismiss: _close,
-        scaleAnimation: _scaleAnimation,
-        opacityAnimation: _opacityAnimation,
-      ),
-    );
-
-    Overlay.of(context).insert(_overlayEntry!);
-    _controller.forward();
-    setState(() => _isOpen = true);
-  }
-
-  void _close({VoidCallback? onComplete}) {
-    if (!_isOpen || !mounted) return;
-    _isOpen = false;
-    _controller.reverse().then((_) {
-      if (!mounted) {
-        onComplete?.call();
-        return;
-      }
-      _overlayEntry?.remove();
-      _overlayEntry = null;
-      setState(() {});
-      onComplete?.call();
-    });
-  }
-
-  double _calculateMenuWidth(
-    BuildContext context,
-    double triggerWidth,
-    List<_MenuEntry<T>> entries,
-  ) => _calculatePopupMenuWidth(context, triggerWidth, entries);
-
   @override
   Widget build(BuildContext context) {
-    Widget trigger;
     if (widget.child != null) {
-      trigger = InkWell(
-        onTap: widget.enabled ? _toggle : null,
+      return InkWell(
+        onTap: widget.enabled ? toggleMenu : null,
         borderRadius: BorderRadius.circular(8),
         child: widget.child,
       );
-    } else {
-      trigger = IconButton(
-        icon: widget.icon ?? const Icon(Icons.more_vert),
-        tooltip: widget.tooltip,
-        onPressed: widget.enabled ? _toggle : null,
-      );
     }
-
-    return CompositedTransformTarget(link: _layerLink, child: trigger);
+    return IconButton(
+      icon: widget.icon ?? const Icon(Icons.more_vert),
+      tooltip: widget.tooltip,
+      visualDensity: widget.visualDensity,
+      onPressed: widget.enabled ? toggleMenu : null,
+    );
   }
 }
 
@@ -255,135 +263,25 @@ class FluentDropdown<T> extends StatefulWidget {
 }
 
 class _FluentDropdownState<T> extends State<FluentDropdown<T>>
-    with SingleTickerProviderStateMixin {
-  final LayerLink _layerLink = LayerLink();
-  OverlayEntry? _overlayEntry;
-  bool _isOpen = false;
-
-  // 坑：AnimationController 必须在 initState() 里立刻创建，不能懒加载。
-  // 因为 OverlayEntry 的回调可能在 widget 已经被 deactivated 之后触发，
-  // 如果这时第一次访问 _controller 才去创建，会尝试读取 TickerMode / MediaQuery
-  // 等 InheritedWidget 祖先，触发 "Looking up a deactivated widget's ancestor is unsafe"。
-  // 另外 _close / _closeImmediately 里要先判断 mounted，避免 deactivated 后操作 overlay。
-  late final AnimationController _controller;
-  late final Animation<double> _scaleAnimation;
-  late final Animation<double> _opacityAnimation;
+    with _FluentMenuTrigger<T> {
+  @override
+  List<_MenuEntry<T>> buildMenuEntries() => widget.items.entries
+      .map(
+        (entry) => _MenuEntry<T>(
+          value: entry.key,
+          title: Text(entry.value),
+          isSelected: entry.key == widget.value,
+        ),
+      )
+      .toList();
 
   @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 220),
-      vsync: this,
-    );
-    _scaleAnimation = Tween<double>(
-      begin: 0.92,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
-    _opacityAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-  }
+  void onMenuSelected(T value) => widget.onChanged?.call(value);
 
   @override
   void dispose() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-    _controller.stop();
-    _controller.dispose();
+    detachMenu();
     super.dispose();
-  }
-
-  void _toggle() {
-    if (!mounted) return;
-    if (_isOpen) {
-      _close();
-    } else {
-      _open();
-    }
-  }
-
-  void _open() {
-    final entries = widget.items.entries.map((entry) {
-      return _MenuEntry<T>(
-        value: entry.key,
-        title: Text(entry.value),
-        isSelected: entry.key == widget.value,
-      );
-    }).toList();
-
-    final renderBox = context.findRenderObject() as RenderBox;
-    final size = renderBox.size;
-    final position = renderBox.localToGlobal(Offset.zero);
-    final screenSize = MediaQuery.sizeOf(context);
-    final safePadding = MediaQuery.paddingOf(context);
-
-    final fitsBelow =
-        position.dy + size.height + 8 + 200 <
-        screenSize.height - safePadding.bottom;
-    final fitsRight = position.dx + 220 <= screenSize.width - safePadding.right;
-    final menuWidth = _calculateMenuWidth(context, size.width);
-
-    _overlayEntry = OverlayEntry(
-      builder: (context) => _MenuOverlay<T>(
-        layerLink: _layerLink,
-        triggerSize: size,
-        menuWidth: menuWidth,
-        entries: entries,
-        alignRight: !fitsRight,
-        alignTop: !fitsBelow,
-        onSelected: (value) {
-          _close(onComplete: () => widget.onChanged?.call(value));
-        },
-        onDismiss: _close,
-        scaleAnimation: _scaleAnimation,
-        opacityAnimation: _opacityAnimation,
-      ),
-    );
-
-    Overlay.of(context).insert(_overlayEntry!);
-    _controller.forward();
-    setState(() => _isOpen = true);
-  }
-
-  void _close({VoidCallback? onComplete}) {
-    if (!_isOpen || !mounted) return;
-    // 立即把状态置为关闭，避免关闭过程中重复触发 _toggle/_close。
-    _isOpen = false;
-    _controller.reverse().then((_) {
-      // 动画期间 widget 可能被 deactivate/dispose，所以这里必须判断 mounted。
-      // onComplete（即 onChanged）仍要调用：用户已经做出了选择，
-      // 即使本 widget 被移除，通知父级更新状态也是安全的（不访问 context）。
-      if (!mounted) {
-        onComplete?.call();
-        return;
-      }
-      _overlayEntry?.remove();
-      _overlayEntry = null;
-      setState(() {});
-      onComplete?.call();
-    });
-  }
-
-  double _calculateMenuWidth(BuildContext context, double triggerWidth) {
-    final textStyle =
-        Theme.of(context).textTheme.bodyMedium ??
-        DefaultTextStyle.of(context).style;
-    var maxItemWidth = 0.0;
-    for (final label in widget.items.values) {
-      final painter = TextPainter(
-        text: TextSpan(text: label, style: textStyle),
-        textDirection: Directionality.of(context),
-      )..layout();
-      if (painter.width > maxItemWidth) {
-        maxItemWidth = painter.width;
-      }
-    }
-
-    // 18 (checkmark) + 16 (spacing) + 24 (item horizontal padding) + 16 (menu padding)
-    final contentWidth = maxItemWidth + 18 + 16 + 24 + 16;
-    return contentWidth.clamp(triggerWidth, 340.0);
   }
 
   @override
@@ -393,45 +291,42 @@ class _FluentDropdownState<T> extends State<FluentDropdown<T>>
 
     final textStyle = Theme.of(context).textTheme.bodyMedium;
 
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: GestureDetector(
-        onTap: widget.onChanged == null ? null : _toggle,
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 180),
-          padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: colorScheme.outline.withValues(alpha: 0.35),
+    return GestureDetector(
+      onTap: widget.onChanged == null ? null : toggleMenu,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 180),
+        padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: colorScheme.outline.withValues(alpha: 0.35),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                widget.displayValue,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textStyle?.copyWith(
+                  color: textColor.withValues(alpha: 0.9),
+                ),
+              ),
             ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Flexible(
-                child: Text(
-                  widget.displayValue,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: textStyle?.copyWith(
-                    color: textColor.withValues(alpha: 0.9),
-                  ),
-                ),
+            const SizedBox(width: 8),
+            AnimatedRotation(
+              turns: menuIsOpen ? 0.5 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: Icon(
+                Icons.keyboard_arrow_down,
+                size: 18,
+                color: textColor.withValues(alpha: 0.5),
               ),
-              const SizedBox(width: 8),
-              AnimatedRotation(
-                turns: _isOpen ? 0.5 : 0,
-                duration: const Duration(milliseconds: 200),
-                child: Icon(
-                  Icons.keyboard_arrow_down,
-                  size: 18,
-                  color: textColor.withValues(alpha: 0.5),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -470,7 +365,11 @@ double _calculatePopupMenuWidth<T>(
   // 24 (item horizontal padding) + 16 (menu padding) + trailing slot。
   // 额外 +8 作为文本测量缓冲，防止因字体渲染差异导致折行。
   final hasLeading = entries.any((e) => e.leading != null);
-  final trailingWidth = entries.any((e) => e.trailing != null) ? 28.0 : 0.0;
+  // 选中项有图标时勾画在末尾（见 `_MenuPanel`），所以那一栏也得留宽度。
+  final needsTrailingSlot = entries.any(
+    (e) => e.trailing != null || (e.isSelected && e.leading != null),
+  );
+  final trailingWidth = needsTrailingSlot ? 28.0 : 0.0;
   final contentWidth =
       maxTextWidth + (hasLeading ? 24 : 18) + 12 + 24 + 16 + trailingWidth + 8;
   return contentWidth.clamp(triggerWidth, 340.0);
@@ -534,11 +433,16 @@ class _HoverableMenuItemState extends State<_HoverableMenuItem> {
 class _MenuPanel<T> extends StatelessWidget {
   const _MenuPanel({
     required this.menuWidth,
+    required this.maxHeight,
     required this.entries,
     required this.onSelected,
   });
 
   final double menuWidth;
+
+  /// 面板能长多高 —— 由 `_MenuSurface` 按「菜单顶部到可绘制区底边」算出来，
+  /// 所以长菜单在够高的窗口里不必滚动，放不下才滚。
+  final double maxHeight;
   final List<_MenuEntry<T>> entries;
   final ValueChanged<T> onSelected;
 
@@ -551,7 +455,7 @@ class _MenuPanel<T> extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: Container(
         width: menuWidth,
-        constraints: const BoxConstraints(maxHeight: 320),
+        constraints: BoxConstraints(maxHeight: maxHeight),
         decoration: BoxDecoration(
           color: colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
@@ -574,11 +478,22 @@ class _MenuPanel<T> extends StatelessWidget {
             itemCount: entries.length,
             itemBuilder: (context, index) {
               final entry = entries[index];
-              final showCheckmark = entry.isSelected;
+              if (entry.isDivider) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 4),
+                  child: Divider(height: 1, thickness: 1),
+                );
+              }
+              final showLeadingCheck =
+                  entry.isSelected && entry.leading == null;
+              final showTrailingCheck =
+                  entry.isSelected && entry.leading != null;
               return _HoverableMenuItem(
-                isSelected: showCheckmark,
+                isSelected: entry.isSelected,
                 enabled: entry.enabled,
-                onTap: entry.enabled ? () => onSelected(entry.value) : null,
+                onTap: entry.enabled && entry.value != null
+                    ? () => onSelected(entry.value as T)
+                    : null,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -600,7 +515,7 @@ class _MenuPanel<T> extends StatelessWidget {
                             child: child,
                           );
                         },
-                        child: showCheckmark
+                        child: showLeadingCheck
                             ? Icon(
                                 Icons.check,
                                 key: const ValueKey('check'),
@@ -620,7 +535,7 @@ class _MenuPanel<T> extends StatelessWidget {
                         child: entry.title,
                       ),
                     ),
-                    if (entry.trailing != null) ...[
+                    if (entry.trailing != null || showTrailingCheck) ...[
                       const SizedBox(width: 12),
                       IconTheme(
                         data: IconTheme.of(context).copyWith(
@@ -628,7 +543,13 @@ class _MenuPanel<T> extends StatelessWidget {
                               ? colorScheme.onSurface
                               : colorScheme.onSurface.withValues(alpha: 0.38),
                         ),
-                        child: entry.trailing!,
+                        child:
+                            entry.trailing ??
+                            Icon(
+                              Icons.check,
+                              size: 18,
+                              color: colorScheme.primary,
+                            ),
                       ),
                     ],
                   ],
@@ -642,63 +563,246 @@ class _MenuPanel<T> extends StatelessWidget {
   }
 }
 
-class _MenuOverlay<T> extends StatelessWidget {
-  const _MenuOverlay({
-    required this.layerLink,
-    required this.triggerSize,
+/// 菜单与锚点之间的缝隙。
+const double _kMenuGap = 6;
+
+/// 菜单离可绘制区边缘至少留多少，避免贴死圆角/系统 inset。
+const double _kMenuEdgeMargin = 8;
+
+/// 单项高度：`_HoverableMenuItem` 的上下 padding 10+10 与 24 高的图标行。
+const double _kMenuItemHeight = 44;
+
+/// `_MenuPanel` 的上下内边距合计（面板里是 `EdgeInsets.all(8)`）。
+const double _kMenuPanelPadding = 16;
+
+/// 一条分隔线占的高度：`Divider(height: 1)` 加上下各 4。
+const double _kMenuDividerHeight = 9;
+
+/// 菜单的自然高度（内容全展开）。摆位按它算，不按某个固定上限估 ——
+/// 15 项的菜单实际要 700 高，按 320 判断会以为「下面放得下」，于是画到屏幕外；
+/// 反过来短菜单也不会被撑高。放不下时才由 `_MenuPanel` 的 `maxHeight` 夹住并滚动。
+Size _menuNaturalSize(double width, List<_MenuEntry<Object?>> entries) => Size(
+  width,
+  _kMenuPanelPadding +
+      entries.fold<double>(
+        0,
+        (height, entry) =>
+            height + (entry.isDivider ? _kMenuDividerHeight : _kMenuItemHeight),
+      ),
+);
+
+/// 菜单该被钳进的那个框（全局坐标）：**它实际插入的 Overlay 的绘制范围**，
+/// 而不是窗口尺寸。泳道里的局部 Navigator 会把最近的 Overlay 裁在面板内
+/// （见 `EmbeddedUpstreamPage`），拿窗口尺寸判断就会「算得下却画不出来」。
+Rect _overlayBounds(BuildContext context) {
+  final box = Overlay.of(context).context.findRenderObject() as RenderBox?;
+  final padding = MediaQuery.paddingOf(context);
+  final rect = box == null
+      ? Offset.zero & MediaQuery.sizeOf(context)
+      : box.localToGlobal(Offset.zero) & box.size;
+  return Rect.fromLTRB(
+    rect.left + padding.left,
+    rect.top + padding.top,
+    rect.right - padding.right,
+    rect.bottom - padding.bottom,
+  );
+}
+
+/// 把菜单摆进 [bounds]：默认贴着锚点下沿、左对齐；放不下就朝上翻 / 朝左翻，
+/// 最后再用夹取兜底（锚点本身就在边缘外时，翻转也救不了，只能夹回来）。
+_MenuPlacement _placeMenu({
+  required Rect anchor,
+  required Size menuSize,
+  required Rect bounds,
+}) {
+  final minDx = bounds.left + _kMenuEdgeMargin;
+  final minDy = bounds.top + _kMenuEdgeMargin;
+  final maxDx = math.max(
+    minDx,
+    bounds.right - _kMenuEdgeMargin - menuSize.width,
+  );
+  final maxDy = math.max(
+    minDy,
+    bounds.bottom - _kMenuEdgeMargin - menuSize.height,
+  );
+
+  final openUp =
+      anchor.bottom + _kMenuGap + menuSize.height >
+          bounds.bottom - _kMenuEdgeMargin &&
+      anchor.top - _kMenuGap - menuSize.height >= minDy;
+  final openLeft =
+      anchor.left + menuSize.width > bounds.right - _kMenuEdgeMargin;
+
+  final dy = openUp
+      ? anchor.top - _kMenuGap - menuSize.height
+      : anchor.bottom + _kMenuGap;
+  final dx = openLeft ? anchor.right - menuSize.width : anchor.left;
+
+  return _MenuPlacement(
+    offset: Offset(dx.clamp(minDx, maxDx), dy.clamp(minDy, maxDy)),
+    // 缩放动画从靠锚点的那个角长出来。
+    scaleAlignment: Alignment(openLeft ? 1 : -1, openUp ? 1 : -1),
+  );
+}
+
+class _MenuPlacement {
+  const _MenuPlacement({required this.offset, required this.scaleAlignment});
+
+  final Offset offset;
+  final Alignment scaleAlignment;
+}
+
+/// 把菜单插进**根** Overlay。
+///
+/// 必须是根：菜单是一次性 flyout，该浮在整个窗口上；插进「最近的」Overlay 就会被
+/// 泳道的裁剪切掉一截（推入的页面和 bottom sheet 收在面板里才是对的，
+/// 那个由 `EmbeddedUpstreamPage` 的局部 Navigator 负责）。
+OverlayEntry _insertMenu<T>({
+  required BuildContext context,
+  required Rect anchor,
+  required double menuWidth,
+  required List<_MenuEntry<T>> entries,
+  required ValueChanged<T> onSelected,
+  required VoidCallback onClosed,
+  GlobalKey<_MenuSurfaceState<T>>? key,
+}) {
+  final entry = OverlayEntry(
+    builder: (_) => _MenuSurface<T>(
+      key: key,
+      anchor: anchor,
+      menuWidth: menuWidth,
+      entries: entries,
+      onSelected: onSelected,
+      onClosed: onClosed,
+    ),
+  );
+  Overlay.of(context, rootOverlay: true).insert(entry);
+  return entry;
+}
+
+/// 菜单本体：自己持有开合动画，按锚点 + Overlay 范围摆位，点空白处关闭。
+class _MenuSurface<T> extends StatefulWidget {
+  const _MenuSurface({
+    super.key,
+    required this.anchor,
     required this.menuWidth,
     required this.entries,
-    required this.alignRight,
-    required this.alignTop,
     required this.onSelected,
-    required this.onDismiss,
-    required this.scaleAnimation,
-    required this.opacityAnimation,
+    required this.onClosed,
   });
 
-  final LayerLink layerLink;
-  final Size triggerSize;
+  /// 触发点（或右键位置）的全局矩形。
+  final Rect anchor;
   final double menuWidth;
   final List<_MenuEntry<T>> entries;
-  final bool alignRight;
-  final bool alignTop;
   final ValueChanged<T> onSelected;
-  final VoidCallback onDismiss;
-  final Animation<double> scaleAnimation;
-  final Animation<double> opacityAnimation;
+
+  /// 关闭动画播完（或被直接移除）后回调，宿主在这里移除 OverlayEntry。
+  final VoidCallback onClosed;
+
+  @override
+  State<_MenuSurface<T>> createState() => _MenuSurfaceState<T>();
+}
+
+class _MenuSurfaceState<T> extends State<_MenuSurface<T>>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scaleAnimation;
+  late final Animation<double> _opacityAnimation;
+  bool _closing = false;
+  bool _closedReported = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 220),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 0.92,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    _opacityAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    // 被宿主直接移除时（例如右键另一个项目顶掉了旧菜单）没有关闭动画，
+    // 但宿主的 await 仍然要落地，所以这里也要报一次。
+    _reportClosed();
+    super.dispose();
+  }
+
+  /// 宿主用来关掉菜单的入口（再次点触发按钮时走这里）。
+  void close({VoidCallback? afterClosed}) {
+    if (_closing) {
+      afterClosed?.call();
+      return;
+    }
+    _closing = true;
+    _controller
+        .reverse()
+        .then((_) {
+          if (!mounted) return;
+          afterClosed?.call();
+          _reportClosed();
+        })
+        .catchError((_) {
+          // 动画被打断（控制器已 dispose）：仍然把状态报出去。
+          if (!mounted) return;
+          afterClosed?.call();
+          _reportClosed();
+        });
+  }
+
+  void _reportClosed() {
+    if (_closedReported) return;
+    _closedReported = true;
+    widget.onClosed();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final bounds = _overlayBounds(context);
+    final placement = _placeMenu(
+      anchor: widget.anchor,
+      menuSize: _menuNaturalSize(widget.menuWidth, widget.entries),
+      bounds: bounds,
+    );
+    // 面板最多长到「自己的顶边到可绘制区底边」：摆位已经把顶边夹进可视区，
+    // 所以这里天然不会画出屏幕，只是放不下时改为滚动。
+    final maxHeight = math.max(
+      0.0,
+      bounds.bottom - _kMenuEdgeMargin - placement.offset.dy,
+    );
+
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onTap: onDismiss,
+      onTap: close,
+      onLongPress: close,
+      onSecondaryTapDown: (_) => close(),
       child: Stack(
         children: [
-          CompositedTransformFollower(
-            link: layerLink,
-            showWhenUnlinked: false,
-            offset: alignTop
-                ? Offset(alignRight ? 0 : 0, -6)
-                : Offset(alignRight ? 0 : 0, triggerSize.height + 6),
-            targetAnchor: alignTop
-                ? (alignRight ? Alignment.bottomRight : Alignment.bottomLeft)
-                : (alignRight ? Alignment.topRight : Alignment.topLeft),
-            followerAnchor: alignTop
-                ? (alignRight ? Alignment.bottomRight : Alignment.bottomLeft)
-                : (alignRight ? Alignment.topRight : Alignment.topLeft),
+          Positioned(
+            left: placement.offset.dx,
+            top: placement.offset.dy,
             child: FadeTransition(
-              opacity: opacityAnimation,
+              opacity: _opacityAnimation,
               child: ScaleTransition(
-                alignment: alignTop
-                    ? (alignRight
-                          ? Alignment.bottomRight
-                          : Alignment.bottomLeft)
-                    : (alignRight ? Alignment.topRight : Alignment.topLeft),
-                scale: scaleAnimation,
+                alignment: placement.scaleAlignment,
+                scale: _scaleAnimation,
                 child: _MenuPanel(
-                  menuWidth: menuWidth,
-                  entries: entries,
-                  onSelected: onSelected,
+                  menuWidth: widget.menuWidth,
+                  maxHeight: maxHeight,
+                  entries: widget.entries,
+                  onSelected: (value) =>
+                      close(afterClosed: () => widget.onSelected(value)),
                 ),
               ),
             ),
@@ -730,10 +834,6 @@ class FluentPopupMenu {
     _disposeCurrent?.call();
     _disposeCurrent = null;
 
-    final overlayState = Overlay.of(context);
-    final completer = Completer<T?>();
-    final closedCompleter = Completer<void>();
-
     final entries = items
         .map(
           (item) => _MenuEntry<T>(
@@ -742,190 +842,52 @@ class FluentPopupMenu {
             title: item.title,
             trailing: item.trailing,
             enabled: item.enabled,
+            isSelected: item.selected,
+            isDivider: item.isDivider,
           ),
         )
         .toList();
 
-    late OverlayEntry entry;
-    entry = OverlayEntry(
-      builder: (overlayContext) => _PositionedMenuOverlay<T>(
-        entries: entries,
-        anchor: anchor,
-        onSelected: (value) {
-          if (!completer.isCompleted) completer.complete(value);
-          onSelected?.call(value);
-        },
-        onDismiss: () {
-          if (!completer.isCompleted) completer.complete(null);
-        },
-        onClosed: () {
-          if (!closedCompleter.isCompleted) closedCompleter.complete();
-        },
-      ),
+    final completer = Completer<T?>();
+    final closedCompleter = Completer<void>();
+
+    final entry = _insertMenu<T>(
+      context: context,
+      anchor: anchor,
+      menuWidth: _calculatePopupMenuWidth(context, anchor.width, entries),
+      entries: entries,
+      onSelected: (value) {
+        if (!completer.isCompleted) completer.complete(value);
+        onSelected?.call(value);
+      },
+      onClosed: () {
+        // 只报一次关闭、没有选择 ⇒ 用户点空白把它关掉了。
+        if (!completer.isCompleted) completer.complete(null);
+        if (!closedCompleter.isCompleted) closedCompleter.complete();
+      },
     );
 
     var removed = false;
+    void removeEntry() {
+      if (removed) return;
+      removed = true;
+      entry.remove();
+    }
+
     late final VoidCallback disposeCurrent;
     disposeCurrent = () {
       if (!completer.isCompleted) completer.complete(null);
       if (!closedCompleter.isCompleted) closedCompleter.complete();
-      if (!removed) {
-        removed = true;
-        entry.remove();
-      }
+      removeEntry();
     };
     _disposeCurrent = disposeCurrent;
 
-    overlayState.insert(entry);
     final result = await completer.future;
     await closedCompleter.future;
     if (_disposeCurrent == disposeCurrent) {
       _disposeCurrent = null;
     }
-    if (!removed) {
-      removed = true;
-      entry.remove();
-    }
+    removeEntry();
     return result;
-  }
-}
-
-class _PositionedMenuOverlay<T> extends StatefulWidget {
-  const _PositionedMenuOverlay({
-    required this.entries,
-    required this.anchor,
-    required this.onSelected,
-    required this.onDismiss,
-    required this.onClosed,
-  });
-
-  final List<_MenuEntry<T>> entries;
-  final Rect anchor;
-  final ValueChanged<T> onSelected;
-  final VoidCallback onDismiss;
-  final VoidCallback onClosed;
-
-  @override
-  State<_PositionedMenuOverlay<T>> createState() =>
-      _PositionedMenuOverlayState<T>();
-}
-
-class _PositionedMenuOverlayState<T> extends State<_PositionedMenuOverlay<T>>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _scaleAnimation;
-  late final Animation<double> _opacityAnimation;
-  bool _closedReported = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 220),
-      vsync: this,
-    );
-    _scaleAnimation = Tween<double>(
-      begin: 0.92,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
-    _opacityAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _close({VoidCallback? onComplete}) {
-    _controller
-        .reverse()
-        .then((_) {
-          if (mounted) setState(() {});
-          onComplete?.call();
-          if (!_closedReported) {
-            _closedReported = true;
-            widget.onClosed();
-          }
-        })
-        .catchError((_) {
-          // 动画被中断（例如新菜单直接替换了当前菜单）。
-          if (!_closedReported) {
-            _closedReported = true;
-            widget.onClosed();
-          }
-        });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final screenSize = MediaQuery.sizeOf(context);
-    final safePadding = MediaQuery.paddingOf(context);
-    final menuWidth = _calculatePopupMenuWidth(
-      context,
-      widget.anchor.width,
-      widget.entries,
-    );
-
-    final fitsBelow =
-        widget.anchor.bottom + 8 + 200 < screenSize.height - safePadding.bottom;
-    final fitsRight =
-        widget.anchor.left + menuWidth <= screenSize.width - safePadding.right;
-    final alignTop = !fitsBelow;
-    final alignRight = !fitsRight;
-
-    final dx = alignRight
-        ? widget.anchor.right - menuWidth
-        : widget.anchor.left;
-    final dy = alignTop ? widget.anchor.top - 6 : widget.anchor.bottom + 6;
-
-    final alignment = alignTop
-        ? (alignRight ? Alignment.bottomRight : Alignment.bottomLeft)
-        : (alignRight ? Alignment.topRight : Alignment.topLeft);
-
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onTap: () => _close(onComplete: widget.onDismiss),
-      onLongPress: () => _close(onComplete: widget.onDismiss),
-      onSecondaryTapDown: (_) => _close(onComplete: widget.onDismiss),
-      child: Stack(
-        children: [
-          Positioned(
-            left: dx.clamp(
-              safePadding.left,
-              (screenSize.width - safePadding.right - menuWidth).clamp(
-                safePadding.left,
-                double.infinity,
-              ),
-            ),
-            top: dy.clamp(
-              safePadding.top,
-              (screenSize.height - safePadding.bottom - 200).clamp(
-                safePadding.top,
-                double.infinity,
-              ),
-            ),
-            child: FadeTransition(
-              opacity: _opacityAnimation,
-              child: ScaleTransition(
-                alignment: alignment,
-                scale: _scaleAnimation,
-                child: _MenuPanel(
-                  menuWidth: menuWidth,
-                  entries: widget.entries,
-                  onSelected: (value) {
-                    _close(onComplete: () => widget.onSelected(value));
-                  },
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

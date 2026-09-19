@@ -74,29 +74,39 @@ class _ReadModeSection extends StatelessWidget {
               },
             ),
             _SettingsChoiceChip(
-              title: t.reader.singlePageLtr,
+              title: t.reader.readingDirectionRightOpen,
               selected: globalSettingState.readSetting.readMode == 1,
               onTap: () {
-                if (globalSettingState.readSetting.readMode == 1) {
+                final previousMode = globalSettingState.readSetting.readMode;
+                if (previousMode == 1) {
                   return;
                 }
                 globalSettingCubit.updateReadSetting(
                   (current) => current.copyWith(readMode: 1),
                 );
-                changePageIndex(0);
+                // 右开 ⇄ 左开（1↔2）同属 RowModeWidget，槽位含义不变，
+                // 不清零位置 —— 以前这里跟着 `changePageIndex(0)`，等于
+                // 切个方向就跳回第一页。只有条漫↔横向（0↔1/2）是重建式
+                // 切换，需要归位。
+                if (previousMode == 0) {
+                  changePageIndex(0);
+                }
               },
             ),
             _SettingsChoiceChip(
-              title: t.reader.singlePageRtl,
+              title: t.reader.readingDirectionLeftOpen,
               selected: globalSettingState.readSetting.readMode == 2,
               onTap: () {
-                if (globalSettingState.readSetting.readMode == 2) {
+                final previousMode = globalSettingState.readSetting.readMode;
+                if (previousMode == 2) {
                   return;
                 }
                 globalSettingCubit.updateReadSetting(
                   (current) => current.copyWith(readMode: 2),
                 );
-                changePageIndex(0);
+                if (previousMode == 0) {
+                  changePageIndex(0);
+                }
               },
             ),
           ],
@@ -151,6 +161,16 @@ class _ReadModeSection extends StatelessWidget {
               );
             },
           ),
+        _SettingsSwitchTile(
+          title: t.reader.readingDirectionToggleSetting,
+          subtitle: t.reader.readingDirectionToggle,
+          value: globalSettingState.readSetting.readingDirectionToggle,
+          onChanged: (value) {
+            globalSettingCubit.updateReadSetting(
+              (current) => current.copyWith(readingDirectionToggle: value),
+            );
+          },
+        ),
       ],
     );
   }

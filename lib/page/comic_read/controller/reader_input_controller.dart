@@ -8,10 +8,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_read/controller/reader_action_controller.dart';
+import 'package:zephyr/page/comic_read/controller/reader_action_dispatcher.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/method/key.dart';
 import 'package:zephyr/page/comic_read/method/reader_gesture_logic.dart';
 import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
+import 'package:zephyr/page/comic_read/widgets/radial/reader_radial_menu_overlay.dart';
+import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_sheet.dart';
+import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_fullscreen_scope.dart';
 
 /// 阅读器输入控制器。
@@ -65,6 +69,133 @@ class ReaderInputController {
   bool get _isDesktopPlatform =>
       !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
 
+  /// 动作派发器（绑定表解析出的 action id → 本仓的执行体）。
+  ///
+  /// 懒建：它要握着 [actionController]，而后者是 `setActionController` 之后才有的。
+  /// 第一次有输入进来时必然已经设好了。
+  ReaderActionDispatcher? _dispatcher;
+  ReaderActionDispatcher get _actionDispatcher => _dispatcher ??= ReaderActionDispatcher(
+    context: context,
+    actions: actionController,
+    onToggleMenu: onToggleMenu,
+    onToggleFullscreen: toggleReaderFullscreen,
+    onOpenSettings: () => unawaited(showReaderSettingsSheet(context)),
+    onResetView: resetViewerTransformIfNeeded,
+    onOpenRadialMenu: openRadialMenuAtCenter,
+    onBeforePageTurn: restoreScaleForPageTurnAction,
+  );
+
+  /// 当前可用的绑定表（裸数组 JSON）。`null` = 不走绑定表：
+  /// 开关关着，或者表还没播种 / 被导坏 —— 那种情况下回退到改造前的硬编码判断，
+  /// 而不是「什么都不做」。
+  String? get _runtimeBindings {
+    final setting = context.read<GlobalSettingCubit>().state;
+    return OperationBindingStore.runtimeBindingsJson(
+      setting.operationBindingSetting,
+    );
+  }
+
+  // ── 轮盘：按住唤出 ──────────────────────────────────────────────────────────
+
+  /// 按住多久唤出轮盘。
+  ///
+  /// 这里**不用** `GestureDetector.onLongPress`：那会和 `InteractiveViewer` 的缩放
+  /// 识别器抢手势竞技场，表现为「按住想放大时突然弹出轮盘」。`Listener` 自己计时
+  /// 不参与竞技场，两条路互不干扰 —— 代价是要自己管位移阈值（[kRadialHoldSlop]）。
+  static const int kRadialHoldMilliseconds = 450;
+
+  /// 超过这个位移就认为用户在拖动/缩放，不该开轮盘。
+  static const double kRadialHoldSlop = 14.0;
+
+  Timer? _radialHoldTimer;
+  Offset? _radialHoldFrom;
+
+  /// 最近一次抬起的全局坐标 —— 轮盘浮层要用它决定「松在哪一格」。
+  Offset? _radialReleasePosition;
+
+  /// 这次手势已经用「按住」开出了轮盘：随后的单击不该再被当成翻页点击。
+  bool _radialOpenedByHold = false;
+
+  /// 运行时可用的轮盘文档 JSON（`null` = 轮盘这条通道不走：总开关关着、轮盘自己关着、
+  /// 或文档读不出）。
+  String? get _radialConfigJson => OperationBindingStore.runtimeRadialJson(
+    context.read<GlobalSettingCubit>().state.operationBindingSetting,
+  );
+
+  void _armRadialHold(PointerDownEvent event) {
+    // 只认主键：右键/中键的按下本来就不该开出轮盘（那是另一族输入，将来单独绑）。
+    if (event.buttons != kPrimaryButton) return;
+    if (_radialConfigJson == null || _runtimeBindings == null) return;
+    _radialOpenedByHold = false;
+    _radialHoldFrom = event.position;
+    _radialHoldTimer?.cancel();
+    _radialHoldTimer = Timer(
+      const Duration(milliseconds: kRadialHoldMilliseconds),
+      () {
+        _radialHoldTimer = null;
+        final from = _radialHoldFrom;
+        _radialHoldFrom = null;
+        if (from == null || !context.mounted) return;
+        _radialOpenedByHold = true;
+        showRadialMenu(from);
+      },
+    );
+  }
+
+  /// 按住期间的位移检查（同时也是浮层要用的「指针现在在哪」）。
+  void _trackRadialHold(PointerEvent event) {
+    final from = _radialHoldFrom;
+    if (from == null) return;
+    const slop2 = kRadialHoldSlop * kRadialHoldSlop;
+    if ((event.position - from).distanceSquared > slop2) _cancelRadialHold();
+  }
+
+  void _cancelRadialHold() {
+    _radialHoldTimer?.cancel();
+    _radialHoldTimer = null;
+    _radialHoldFrom = null;
+  }
+
+  /// 在 [globalCenter]（全局坐标）处开出轮盘。
+  ///
+  /// 浮层只拿到**形状**（configJson）与**绑定表**（bindingsArrayJson）：每一格是什么
+  /// 动作由引擎回答，所以「设置页改完不用重启」这条判据在轮盘上同样成立。
+  void showRadialMenu(Offset globalCenter) {
+    if (!context.mounted) return;
+    final bindings = _runtimeBindings;
+    final config = _radialConfigJson;
+    if (bindings == null || config == null) return;
+    ReaderRadialMenu.show(
+      context,
+      globalCenter: globalCenter,
+      configJson: config,
+      bindingsArrayJson: bindings,
+      dispatcher: _actionDispatcher,
+    );
+  }
+
+  /// 键盘 / 点击绑定的 `reader.open-radial-menu` 走这里：落在阅读区正中。
+  void openRadialMenuAtCenter() {
+    final renderObject = context.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) return;
+    showRadialMenu(
+      renderObject.localToGlobal(renderObject.size.center(Offset.zero)),
+    );
+  }
+
+  /// 阅读器全屏切换：工作台泳道里交给宿主，独立阅读器自己切。
+  ///
+  /// 按键（F11）与 `reader.fullscreen` 动作共用这一处 —— 两条路必须落同一个实现，
+  /// 否则「同一个动作按来源有两种结果」会在某个布局下诡异地不一致。
+  Future<void> toggleReaderFullscreen() async {
+    final fullscreenScope = ReaderFullscreenScope.maybeOf(context);
+    if (fullscreenScope != null) {
+      fullscreenScope.onToggleFullscreen();
+      return;
+    }
+    await _onToggleDesktopFullscreen();
+  }
+
   void setActionController(ReaderActionController controller) {
     actionController = controller;
   }
@@ -74,6 +205,9 @@ class ReaderInputController {
   }
 
   void dispose() {
+    _radialHoldTimer?.cancel();
+    // 阅读器整棵拆掉时轮盘还开着，会留下一层没人收的遮罩。
+    ReaderRadialMenu.dismiss();
     focusNode.dispose();
   }
 
@@ -90,6 +224,7 @@ class ReaderInputController {
       onKeyEvent: _onKeyEvent,
       child: Listener(
         onPointerDown: _onPointerDown,
+        onPointerMove: _trackRadialHold,
         onPointerUp: _onPointerUpOrCancel,
         onPointerCancel: _onPointerUpOrCancel,
         onPointerSignal: _onPointerSignal,
@@ -144,16 +279,26 @@ class ReaderInputController {
   /// 它有两个入口，逻辑**只有这一处**：① 挂在本子树的 `Focus` 上
   /// （见 [buildInteractiveViewer]）；② 经 `ReaderInputBridge` 登记给工作台 ——
   /// 当焦点离开阅读器子树时（例如打开阅读设置面板，模态路由会把主焦点拿走），
-  /// 由工作台把冒泡上来的按键转交到这里。于是「左右键被设置面板吃掉」不再发生，
-  /// 而键位判断仍集中在 `key.dart`。
+  /// 由工作台把冒泡上来的按键转交到这里。于是「左右键被设置面板吃掉」不再发生。
+  ///
+  /// 「这个键是什么动作」的判断有两份，按开关切换：绑定表在位时是 **Rust 引擎**
+  /// （`operation_binding`，改绑定不重新编译即生效）；表不可用时是 `key.dart` 里
+  /// 改造前的硬编码名单。两份**不叠加**：表在位时没人认的键一律放行，
+  /// 不回落名单 —— 回落等于「把一条绑定删掉它还在生效」。
   KeyEventResult handleKeyEvent(KeyEvent event) {
-    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.f11) {
-      final fullscreenScope = ReaderFullscreenScope.maybeOf(context);
-      if (fullscreenScope != null) {
-        fullscreenScope.onToggleFullscreen();
-      } else {
-        unawaited(_onToggleDesktopFullscreen());
+    final bindings = _runtimeBindings;
+    if (bindings != null) {
+      // 只处理按下与长按重复：抬起/修饰键独立事件不该触发动作（与旧名单同一口径）。
+      if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+        return KeyEventResult.ignored;
       }
+      return _actionDispatcher.dispatchKeyEvent(event, bindings)
+          ? KeyEventResult.handled
+          : KeyEventResult.ignored;
+    }
+
+    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.f11) {
+      unawaited(toggleReaderFullscreen());
       return KeyEventResult.handled;
     }
     final handled = handleGlobalKeyEvent(event, actionController);
@@ -167,6 +312,19 @@ class ReaderInputController {
     if (tap == null || !context.mounted) return;
     _tap = null;
 
+    // 这次「单击」其实是按住唤出轮盘之后的那一次**松手**：进行中的指针不会命中刚插入的
+    // 浮层，所以抬起落回这里。转交给浮层，松在哪一格就执行那一格。
+    if (_radialOpenedByHold) {
+      _radialOpenedByHold = false;
+      final release = _radialReleasePosition;
+      if (release != null) {
+        ReaderRadialMenu.commitAt(release, keepOpenOnMiss: true);
+      } else {
+        ReaderRadialMenu.dismiss();
+      }
+      return;
+    }
+
     final readSetting = context.read<GlobalSettingCubit>().state.readSetting;
     // 落点与尺码都取这次点击**自己**那一对（[ReaderTapSample]）：前者相对接收手势的
     // 那个盒子，后者是那个盒子量出来的尺寸。它们同一个坐标系，分区才分得对；
@@ -176,6 +334,8 @@ class ReaderInputController {
       actionController: actionController,
       context: context,
       sample: tap,
+      dispatcher: _actionDispatcher,
+      bindingsArrayJson: _runtimeBindings,
       onToggleMenu: readSetting.doubleTapOpenMenu
           ? () {
               final cubit = context.read<ReaderCubit>();
@@ -239,12 +399,17 @@ class ReaderInputController {
   }
 
   void _onPointerDown(PointerDownEvent event) {
+    _armRadialHold(event);
     if (!_isTouchPointer(event.kind)) return;
     _activeTouchPointers.add(event.pointer);
     _updateMultiTouchScrollLock();
   }
 
   void _onPointerUpOrCancel(PointerEvent event) {
+    // 抬起的位置要留给轮盘浮层：进行中的指针不会命中刚插入的浮层，
+    // 所以「按住拖到某一格再松手」得由这里把坐标转交过去（见 `_onTap` 的轮盘分支）。
+    _radialReleasePosition = event.position;
+    _cancelRadialHold();
     if (!_isTouchPointer(event.kind)) return;
     _activeTouchPointers.remove(event.pointer);
     _updateMultiTouchScrollLock();

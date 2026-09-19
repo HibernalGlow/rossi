@@ -74,6 +74,65 @@ class ReaderActionController {
     }
   }
 
+  // ================= 1.5 空间翻页动作（左右键 / 九宫格点击共用） =================
+  //
+  // `reader.page-right` / `reader.page-left`：说的是「画面往哪边翻」，
+  // 是不是前进由阅读方向决定（左开 readMode=2 时向右是退回）。
+  // 语义与 Rust 引擎 `operation_binding::resolve::resolve_page_turn` 同构；
+  // 条漫（readMode=0，竖向）没有左右，退化为语义动作（与改造前一致）。
+
+  /// 画面往右翻（右开=下一页，左开=上一页，条漫=下一页）。
+  void onSpatialPageRight() => _turnSpatial(isPageRight: true);
+
+  /// 画面往左翻（右开=上一页，左开=下一页，条漫=上一页）。
+  void onSpatialPageLeft() => _turnSpatial(isPageRight: false);
+
+  void _turnSpatial({required bool isPageRight}) {
+    final mode = _readMode;
+    if (mode == 0) {
+      isNextPageTurn(isPageRight: isPageRight, rightToLeft: false)
+          ? onPageActionNext()
+          : onPageActionPrev();
+      return;
+    }
+    _turnPage(
+      isNext: isNextPageTurn(
+        isPageRight: isPageRight,
+        rightToLeft: mode == 2,
+      ),
+    );
+  }
+
+  static bool isNextPageTurn({
+    required bool isPageRight,
+    required bool rightToLeft,
+  }) {
+    return isPageRight != rightToLeft;
+  }
+
+  // ================= 1.6 首尾页（绑定表里的 `reader.first-page` / `last-page`） =================
+
+  void onGoToFirstPage() => _goToEnd(next: false);
+
+  void onGoToLastPage() => _goToEnd(next: true);
+
+  /// 条漫（竖向）与横翻的「第几页」根本不是同一个载体：前者是 `ScrollController`
+  /// 的滚动极值，后者是 `PageController` 的槽位。所以两边各跳各的，不存在一份
+  /// 「通用实现」能把两种版式都盖住。
+  void _goToEnd({required bool next}) {
+    if (_readMode == 0) {
+      if (!scrollController.hasClients) return;
+      final position = scrollController.position;
+      scrollController.jumpTo(
+        next ? position.maxScrollExtent : position.minScrollExtent,
+      );
+      return;
+    }
+    final totalSlots = _totalSlots;
+    if (totalSlots <= 0 || !pageController.hasClients) return;
+    pageController.jumpToPage(next ? totalSlots - 1 : 0);
+  }
+
   // ================= 2. 音量键/点击专用逻辑 (手机体验) =================
   // 特点：竖向模式下按固定比例滚动，避免依赖漫画项分页定位。
 
