@@ -20,8 +20,19 @@ import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_layout_snapshot.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
 import 'package:zephyr/workspace/model/workspace_panel_bar.dart';
+import 'package:zephyr/workspace/model/workspace_reveal_zones.dart';
 
 int _passed = 0;
+
+/// 一份**刻意不对称**的唤出区：四条边各不相同、且带 0.1 的小数。
+///
+/// 对称的值（左右同宽、整数）会让「右泳道读成了左泳道」这类错位静默通过。
+const WorkspaceRevealZones _richZones = WorkspaceRevealZones(
+  left: WorkspaceRevealZone(x: 0, y: 12.5, width: 3, height: 70),
+  right: WorkspaceRevealZone(x: 97, y: 12.5, width: 3, height: 70),
+  top: WorkspaceRevealZone(x: 20, y: 0, width: 60, height: 2.5),
+  bottom: WorkspaceRevealZone(x: 20, y: 97.5, width: 60, height: 2.5),
+);
 
 void check(String label, bool condition, [String? detail]) {
   if (!condition) {
@@ -151,6 +162,10 @@ void _fullCustomStateRoundTrip() {
       edgeRevealDelayMs: 150,
       edgeRevealRestoreDelayMs: 900,
       readerPeekWidth: 72,
+      autoSoloOnFocus: true,
+      showLaneNavigatorInSolo: true,
+      manualScrollEnabled: false,
+      revealZones: _richZones,
     ),
   );
 
@@ -186,6 +201,17 @@ void _fullCustomStateRoundTrip() {
         restored.interaction.edgeRevealRestoreDelayMs == 900,
   );
   check('Reader 窄缝宽保住了', restored.interaction.readerPeekWidth == 72);
+  check('自动独占开关保住了', restored.interaction.autoSoloOnFocus);
+  check('独占时显示切换栏保住了', restored.interaction.showLaneNavigatorInSolo);
+  check(
+    '「允许手动横向滚动」关掉这件事保住了',
+    !restored.interaction.manualScrollEnabled,
+  );
+  check(
+    '四条唤出区整体保住（含 0.1 的百分比精度）',
+    restored.interaction.revealZones == _richZones,
+    '${restored.interaction.revealZones.toJson()}',
+  );
   check('被收起的面板保住了', restored.board.panelLayout('shelf')!.visible == false);
   check(
     '卡片换过面板 + 折叠态保住了',
@@ -320,6 +346,9 @@ void _badInteractionFieldsFallBackPerField() {
       'edgeRevealDelayMs': -5,
       'edgeRevealRestoreDelayMs': 640,
       'readerPeekWidth': 9999,
+      'autoSoloOnFocus': 'yes',
+      'showLaneNavigatorInSolo': true,
+      'revealZones': '不是对象',
     },
   });
 
@@ -337,6 +366,20 @@ void _badInteractionFieldsFallBackPerField() {
   );
   check('合法的延时保住', snapshot.interaction.edgeRevealRestoreDelayMs == 640);
   check('越界的缝宽被夹到 400', snapshot.interaction.readerPeekWidth == 400);
+  check(
+    '非布尔的自动独占退回默认（关）',
+    !snapshot.interaction.autoSoloOnFocus,
+  );
+  check('合法的切换栏「开」保住', snapshot.interaction.showLaneNavigatorInSolo);
+  check(
+    '缺项的「允许手动滚动」退回默认（开 —— 保持改造前的手感）',
+    snapshot.interaction.manualScrollEnabled,
+  );
+  check(
+    '唤出区整块不是对象时回默认，且不牵连别的项',
+    snapshot.interaction.revealZones == WorkspaceRevealZones.defaults &&
+        snapshot.interaction.edgeRevealRestoreDelayMs == 640,
+  );
 }
 
 /// 记账里非法的项丢掉、合法的留住。

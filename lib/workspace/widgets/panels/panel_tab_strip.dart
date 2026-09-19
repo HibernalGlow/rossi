@@ -138,11 +138,18 @@ class _PanelTabStripState extends State<PanelTabStrip> {
         ),
       ],
       Flexible(
-        child: SingleChildScrollView(
+        // 用 `ListView` 而不是 `SingleChildScrollView`：只有前者能 `shrinkWrap`。
+        // **内联**（挂进栏头 / 抽屉，`bounds == null`）时必须按内容取宽 ——
+        // 视口默认**撑满**给它的主轴宽度，于是 2 个页签也要掉 260px，
+        // 而栏头那一行总共只有 340–380px：页签条把预算吃光，
+        // 栏头再多加一颗按钮就顶出黄黑斜纹。
+        // 自己摆放（钉边 / 悬浮）那一档不收缩：那里的宽度是摆位算出来的，
+        // 撑满才是想要的（拖动时落点要铺满整根轨）。
+        child: ListView(
           scrollDirection: widget.vertical ? Axis.vertical : Axis.horizontal,
-          child: widget.vertical
-              ? Column(mainAxisSize: MainAxisSize.min, children: tabs)
-              : Row(mainAxisSize: MainAxisSize.min, children: tabs),
+          primary: false,
+          shrinkWrap: widget.bounds == null,
+          children: tabs,
         ),
       ),
       if (hidden.isNotEmpty) _buildHiddenMenu(theme, hidden, cubit),

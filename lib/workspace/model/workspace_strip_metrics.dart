@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 
 // 本文件**刻意不 import Flutter**（不 import `dart:ui`），见
@@ -120,22 +122,54 @@ class WorkspaceStripMetrics {
     required double availableWidth,
     required double resizerWidth,
     String? soloLaneId,
+    bool showLaneNavigatorInSolo = false,
   }) {
     // 1. 每条泳道先按自己的计量单位算宽度
     final widths = <String, double>{};
     final collapsed = <String, bool>{};
+    // 「独占时显示泳道切换栏」= 其余泳道**一律**收成紧凑轨，
+    // 于是那几条轨本身就是切换栏（点一条就把交互交给它）。
+    final solo = soloLaneId;
+    // 独占那条自己被折叠时不摆切换栏：与下面「折叠态优先」同一条取舍 ——
+    // 用户把它折叠是更明确的意图，此时没有任何一条泳道在独占视口。
+    final railForOthers =
+        solo != null && showLaneNavigatorInSolo && layout.lanes[solo]?.collapsed != true;
     for (final laneId in layout.laneOrder) {
       final lane = layout.lanes[laneId];
       if (lane == null) continue;
-      final isCollapsed = lane.collapsed;
-      // 独占泳道：撑满可用宽（折叠态优先 —— 折叠是用户更明确的意图）。
-      final isSolo = laneId == soloLaneId && !isCollapsed;
+      final isSolo = laneId == solo;
+      // 折叠态优先 —— 折叠是用户更明确的意图（自己就被折叠的泳道，
+      // 切换栏里它长得一模一样，不需要再判一次）。
+      final isCollapsed = lane.collapsed || (railForOthers && !isSolo);
       widths[laneId] = isCollapsed
           ? WorkspaceLayoutConfig.collapsedLaneWidth
           : isSolo
           ? availableWidth
           : lane.resolveWidth(viewportWidth);
       collapsed[laneId] = isCollapsed;
+    }
+
+    // 1a. 紧凑轨的宽度**从独占那条身上扣**，不是加在总宽之外。
+    //
+    // 直接让独占吃满 `availableWidth`、再在旁边摆几条 44px 的轨，条带总宽
+    // 就超出可用宽一个轨宽 ⇒ [needsScroll] 为真 ⇒ 那几条轨正好被推出视口。
+    // 也就是说「显示切换栏」的结果是**什么都看不见**，比不开这个开关更糟。
+    if (railForOthers) {
+      final soloWidth = widths[solo];
+      if (soloWidth != null) {
+        var railTotal = 0.0;
+        for (final entry in widths.entries) {
+          if (entry.key == solo) continue;
+          railTotal += entry.value;
+        }
+        // 窗口窄到放不下「一条独占 + 两条轨」时，轨仍然占位（可滚），
+        // 独占那条留一个轨宽的下限，别算成 0 或负数 ——
+        // 零宽泳道会让里面的 `Column` 直接拿到非法约束。
+        widths[solo] = math.max(
+          WorkspaceLayoutConfig.collapsedLaneWidth,
+          soloWidth - railTotal,
+        );
+      }
     }
 
     // 1b. 手柄数**必须按「画手柄的那条规则」来数**，不能按「可见泳道数 − 1」。

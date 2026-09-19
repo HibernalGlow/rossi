@@ -71,9 +71,18 @@ Future<WorkspaceCubit> _pumpStrips(WidgetTester tester) async {
               children: [
                 // 两侧都按「内联」搭（`bounds` 留空）：摆放规则另有专门用例，
                 // 这里只关心拖动落点，别把两件事混在一个失败里。
-                PanelTabStrip(side: WorkspacePanelSide.left),
+                // SizedBox 给的是**交叉轴**约束：页签条现在用横向 `ListView`
+                // （`shrinkWrap` 只收主轴宽度），裸挂在 min Column 里
+                // 高度无界会直接炸 `performLayout`。36 与真实栏头行高同量级。
+                SizedBox(
+                  height: 36,
+                  child: PanelTabStrip(side: WorkspacePanelSide.left),
+                ),
                 SizedBox(height: 48),
-                PanelTabStrip(side: WorkspacePanelSide.right),
+                SizedBox(
+                  height: 36,
+                  child: PanelTabStrip(side: WorkspacePanelSide.right),
+                ),
               ],
             ),
           ),
@@ -121,6 +130,8 @@ void main() {
       WorkspacePanelId.pageList,
       WorkspacePanelId.plugins,
       WorkspacePanelId.tools,
+      // 控制面板（N-17 首卡「切换提示」）排在右泳道末尾（`defaultOrder: 6`）。
+      WorkspacePanelId.control,
     ], reason: '前置：右泳道的默认次序');
 
     // 左泳道的「下载」拖到右泳道「文件管理」那个页签上 = 插到它**前面**。
@@ -139,6 +150,7 @@ void main() {
         WorkspacePanelId.pageList,
         WorkspacePanelId.plugins,
         WorkspacePanelId.tools,
+        WorkspacePanelId.control,
       ],
       reason:
           '契约：拖到哪儿就落在哪儿。早先版本把跨侧拖入固定写成 '
@@ -150,6 +162,8 @@ void main() {
       WorkspacePanelId.bookshelf,
       WorkspacePanelId.favorite,
       WorkspacePanelId.history,
+      // 洞察排在左泳道最后（`defaultOrder: 5`），它有四张卡 ⇒ 会上证。
+      WorkspacePanelId.insights,
     ], reason: '搬走了就真的从原来那侧消失（成员关系只有一处可改）');
   });
 
@@ -173,6 +187,7 @@ void main() {
         WorkspacePanelId.plugins,
         WorkspacePanelId.download,
         WorkspacePanelId.tools,
+        WorkspacePanelId.control,
       ],
       reason:
           '「不能移动」只说明它不能被拖走，**不**说明别的东西不能插到它前面。'
@@ -209,6 +224,7 @@ void main() {
         WorkspacePanelId.pageList,
         WorkspacePanelId.plugins,
         WorkspacePanelId.tools,
+        WorkspacePanelId.control,
       ],
       reason:
           '轨内换位必须真的能动。早先 `_shouldAcceptAt` 写的是 '
@@ -243,6 +259,7 @@ void main() {
         WorkspacePanelId.pageList,
         WorkspacePanelId.plugins,
         WorkspacePanelId.tools,
+        WorkspacePanelId.control,
       ],
       reason:
           '同一序列里换位要把**自己那一格**扣掉（拖动时自己还在序列里，'

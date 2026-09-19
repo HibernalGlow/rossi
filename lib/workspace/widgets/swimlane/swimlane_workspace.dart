@@ -530,6 +530,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
       laneId: laneId,
       config: config,
       resolvedWidth: laneWidth,
+      viewportWidth: viewportWidth,
       isSolo: state.effectiveSoloLaneId == laneId,
       isFullscreen: isFullscreen,
       isActive: isActive,

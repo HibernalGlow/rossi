@@ -18,6 +18,10 @@ class SwimlaneColumn extends StatelessWidget {
   /// 本泳道当前的实际宽度（阅读器泳道由视口比例算出，不等于 [LaneConfig.width]）。
   final double resolvedWidth;
 
+  /// 工作台视口宽：宽度输入框要把「用户输入的像素」换算回阅读器泳道的比例，
+  /// 而这个数只有条带那一层知道（`SwimlaneWorkspace` 的 LayoutBuilder）。
+  final double viewportWidth;
+
   final bool isSolo;
   final bool isFullscreen;
 
@@ -61,6 +65,7 @@ class SwimlaneColumn extends StatelessWidget {
     required this.laneId,
     required this.config,
     required this.resolvedWidth,
+    required this.viewportWidth,
     required this.isSolo,
     this.isFullscreen = false,
     this.isRail = false,
@@ -116,7 +121,8 @@ class SwimlaneColumn extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           child: Column(
             children: [
-              if (!isFullscreen) _buildHeader(context, theme, titleMounted),
+              if (!isFullscreen)
+                _buildHeader(context, theme, titleMounted, constraints.maxWidth),
               // 泳道内容 Body
               Expanded(
                 child:
@@ -178,10 +184,15 @@ class SwimlaneColumn extends StatelessWidget {
 
   // ── 栏头 ───────────────────────────────────────────────────────────────
 
+  /// 栏头。
+  ///
+  /// [laneWidth] 是这条泳道此刻的宽度：页签条能占多少要从它算，见
+  /// [_panelStripBudget]。
   Widget _buildHeader(
     BuildContext context,
     ThemeData theme,
     bool titleMounted,
+    double laneWidth,
   ) {
     return Container(
       height: 46,
@@ -254,15 +265,23 @@ class SwimlaneColumn extends StatelessWidget {
           //
           // **刻意不传 `bounds` / `laneBounds`**：它们是「自己摆放自己」用的，
           // 而 `PanelBarPositioner` 是 LayoutBuilder + CustomSingleChildLayout，
-          // 会**撑满**给它的约束 —— 页签条于是恒定占满 `maxWidth`（260），
-          // 一个 380px 的泳道栏头会溢出 80 多像素（黄黑斜纹）。
-          // 它在这里是**内联**在栏头 Row 里由 Row 摆放的（`bounds == null`
-          // 正是 `PanelTabStrip` 为「不参与摆放」留的那一档），而且
-          // `showHandle: false` 意味着它此刻根本没有拖动把手 ——
+          // 会**撑满**给它的约束。它在这里是**内联**在栏头 Row 里由 Row 摆放的
+          // （`bounds == null` 正是 `PanelTabStrip` 为「不参与摆放」留的那一档），
+          // 而且 `showHandle: false` 意味着它此刻根本没有拖动把手 ——
           // 传进去只会把版式撑坏。
+          //
+          // 但「不撑满」不等于「按内容取宽」：页签条里面是个横向滚动视口，
+          // 视口在主轴上**总是铺满**给它的宽度，所以它照样要掉整条
+          // `maxWidth`（默认 260）。栏头一共只有 340–380px，260 一占就剩不下
+          // 标题与右侧那几颗按钮了（黄黑斜纹）。因此这里传的是**算出来的**
+          // 预算，而不是那个 260 默认值 —— 见 [_panelStripBudget]。
           if (titleMounted && panelSide != null) ...[
             const SizedBox(width: 4),
-            PanelTabStrip(side: panelSide!, showHandle: false),
+            PanelTabStrip(
+              side: panelSide!,
+              showHandle: false,
+              maxWidth: _panelStripBudget(laneWidth),
+            ),
             const SizedBox(width: 4),
           ],
 
@@ -288,11 +307,12 @@ class SwimlaneColumn extends StatelessWidget {
             onPressed: onToggleCollapse,
             visualDensity: VisualDensity.compact,
           ),
-          // 这条泳道其余的动作（重置宽度 / 次序 / 面板栏摆放）。
+          // 这条泳道其余的动作（独占 / 宽度 / 面板栏摆放 / 折叠）。
           // 默认形态下面板栏就挂在这一行里、没有拖动把手，
           // 所以「把它挪走」只有这个菜单做得到 —— 见 `LaneMoreMenu`。
           LaneMoreMenu(
             laneId: laneId,
+            viewportWidth: viewportWidth,
             panelSide: panelSide,
             onToggleCollapse: onToggleCollapse,
             onToggleSolo: onToggleSolo,
@@ -301,6 +321,29 @@ class SwimlaneColumn extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// 挂进栏头的面板页签条**最多**能占多宽。
+  ///
+  /// 栏头是一行 `Row`，标题那边是 `Expanded`：非弹性子节点先摆，剩下的才给标题。
+  /// 于是只要「把手 + 页签条 + 三颗按钮」加起来超过泳道宽，标题就会被挤成负的
+  /// ——`Expanded` 拿到 0 之后仍然溢出（黄黑斜纹）。这里把右侧那几项的开销
+  /// 明算出来，页签条只能拿余量，标题就永远还有地方。
+  ///
+  /// 各项的宽度：
+  /// - 栏头左右内边距 10 + 10；
+  /// - 把手图标 18 + 与标题之间 4；
+  /// - 页签条两侧留白 4 + 4；
+  /// - 独占与折叠是 `IconButton(visualDensity: compact)` ⇒ **44dp** 见方
+  ///   （`48 + density(-1) * 4`，不是 40）；「更多」那颗是 24（见 `LaneMoreMenu`）；
+  /// - 标题至少留 44：宽度徽标本身就要 40 上下，标题文本是 `Flexible`，
+  ///   可以省略到 0，但徽标不能没有。
+  ///
+  /// 上限仍是页签条自己的 260（`PanelTabStrip.maxWidth` 的默认值）：
+  /// 泳道再宽也不该让一条页签条横着吃掉半栏。
+  double _panelStripBudget(double laneWidth) {
+    const double chrome = 10 + 10 + 18 + 4 + 4 + 4 + 44 + 44 + 24 + 44;
+    return (laneWidth - chrome).clamp(0.0, 260.0);
   }
 
   /// 栏头最左侧的泳道把手。

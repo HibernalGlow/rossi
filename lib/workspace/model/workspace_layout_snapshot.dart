@@ -62,6 +62,32 @@ class WorkspaceLayoutSnapshot {
     layout: WorkspaceLayoutConfig.defaults(),
   );
 
+  /// 换呈现模式，其余记账原样保留。
+  WorkspaceLayoutSnapshot copyWithMode(WorkspaceMode mode) {
+    return WorkspaceLayoutSnapshot(
+      mode: mode,
+      layout: layout,
+      board: board,
+      activePanel: activePanel,
+      activeLaneId: activeLaneId,
+      interaction: interaction,
+    );
+  }
+
+  /// 换交互与唤出区，其余记账原样保留。
+  WorkspaceLayoutSnapshot copyWithInteraction(
+    WorkspaceInteractionSettings interaction,
+  ) {
+    return WorkspaceLayoutSnapshot(
+      mode: mode,
+      layout: layout,
+      board: board,
+      activePanel: activePanel,
+      activeLaneId: activeLaneId,
+      interaction: interaction,
+    );
+  }
+
   Map<String, Object?> toJson() => <String, Object?>{
     'version': currentVersion,
     'mode': mode.name,

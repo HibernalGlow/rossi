@@ -43,6 +43,9 @@ void main() {
   _collapsedEdgeLaneKeepsTheRemainingHandle();
   _resizerSlotsCarryTheirPair();
   _missingReaderLaneLeavesSlack();
+  _soloWithNavigatorRailKeepsStripFitting();
+  _soloWithoutNavigatorRailPushesLanesOff();
+  _collapsedSoloLaneDoesNotRailOthers();
   print('strip_metrics_check: $_passed checks passed');
 }
 
@@ -54,11 +57,15 @@ double _available(double viewportWidth) =>
 WorkspaceStripMetrics _resolve(
   double viewportWidth, {
   WorkspaceLayoutConfig? layout,
+  String? soloLaneId,
+  bool showLaneNavigatorInSolo = false,
 }) => WorkspaceStripMetrics.resolve(
   layout: layout ?? WorkspaceLayoutConfig.defaults(),
   viewportWidth: viewportWidth,
   availableWidth: _available(viewportWidth),
   resizerWidth: WorkspaceStripMetrics.defaultResizerWidth,
+  soloLaneId: soloLaneId,
+  showLaneNavigatorInSolo: showLaneNavigatorInSolo,
 );
 
 double? _laneWidth(WorkspaceStripMetrics m, String laneId) {
@@ -313,3 +320,64 @@ void _missingReaderLaneLeavesSlack() {
   check('两条面板泳道之间仍有一个手柄', _resizers(m).single.beforeLaneId == LaneId.left);
   _invariants('无阅读器泳道', m, _available(1625.0));
 }
+
+// ── 独占 + 泳道切换栏（「设置 → 布局」里的那个开关）─────────────────────────
+
+/// 打开切换栏：其余泳道收成紧凑轨，而轨的宽度**从独占那条身上扣**。
+///
+/// 这条判据钉的是那个反直觉的顺序：轨加在旁边（而不是从 Reader 身上扣）
+/// 会让条带总宽超出可用宽一个轨宽 ⇒ `needsScroll` 为真 ⇒ 那几条轨
+/// 正好被推出视口 ——「显示切换栏」的结果是什么都看不见。
+void _soloWithNavigatorRailKeepsStripFitting() {
+  const rail = WorkspaceLayoutConfig.collapsedLaneWidth;
+  final available = _available(1625.0);
+  final m = _resolve(
+    1625.0,
+    soloLaneId: LaneId.reader,
+    showLaneNavigatorInSolo: true,
+  );
+
+  check('切换栏：左泳道收成紧凑轨', _laneWidth(m, LaneId.left) == rail);
+  check('切换栏：右泳道收成紧凑轨', _laneWidth(m, LaneId.right) == rail);
+  check(
+    '切换栏：Reader 吃掉扣掉两条轨之后剩下的宽度',
+    _laneWidth(m, LaneId.reader) == available - rail * 2,
+    '${_laneWidth(m, LaneId.reader)} vs ${available - rail * 2}',
+  );
+  check('切换栏：不滚动', !m.needsScroll);
+  // 轨旁边不画手柄（与「折叠泳道旁边不放手柄」同一条规则），
+  // 于是拖宽度的手柄在这里应当**全部消失**。
+  check('切换栏：紧凑轨之间不再有拖宽度手柄', _resizers(m).isEmpty);
+  _invariants('独占 + 切换栏', m, available);
+}
+
+/// 关掉切换栏 = 独占就是字面的「只剩一条」：其余泳道保持常规宽并被推出视口，
+/// 只能靠左右唤出区调回来。
+void _soloWithoutNavigatorRailPushesLanesOff() {
+  final m = _resolve(1625.0, soloLaneId: LaneId.reader);
+
+  check('不显示切换栏：左泳道仍是常规宽', _laneWidth(m, LaneId.left) == 380.0);
+  check('不显示切换栏：条带要滚（其余泳道在视口外）', m.needsScroll);
+  _invariants('独占 + 不显示切换栏', m, _available(1625.0));
+}
+
+/// 独占那条泳道**自己**被折叠时不摆切换栏 —— 折叠是更明确的意图，
+/// 此时没有任何一条泳道在独占视口，把其余泳道挤成轨没有对应的收益。
+void _collapsedSoloLaneDoesNotRailOthers() {
+  final defaults = WorkspaceLayoutConfig.defaults();
+  final layout = defaults.copyWith(
+    lanes: Map<String, LaneConfig>.from(defaults.lanes)
+      ..update(LaneId.reader, (lane) => lane.copyWith(collapsed: true)),
+  );
+  final m = _resolve(
+    1625.0,
+    layout: layout,
+    soloLaneId: LaneId.reader,
+    showLaneNavigatorInSolo: true,
+  );
+
+  check('独占者自己被折叠时，左泳道不被挤成轨', _laneWidth(m, LaneId.left) == 380.0);
+  check('独占者自己被折叠时，右泳道不被挤成轨', _laneWidth(m, LaneId.right) == 360.0);
+  _invariants('折叠的独占者 + 切换栏', m, _available(1625.0));
+}
+

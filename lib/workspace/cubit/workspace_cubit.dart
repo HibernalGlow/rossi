@@ -385,6 +385,23 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
     emit(state.copyWith(layout: state.layout.copyWith(lanes: updated)));
   }
 
+  /// 把某条泳道的宽度写成一个**绝对值**（栏头「更多」菜单里的宽度输入框）。
+  ///
+  /// 与 [dragLanePair] 的区别：那条是「两条之间挪距离」，两侧都得让得动，
+  /// 于是它要拿邻居的 min/max 一起夹；这一条只改**自己**，只夹到自己记录的
+  /// min/max —— 结果可能把条带撑出横向滚动，那正是用户要的
+  /// （面板泳道的宽度**不按当前窗口宽夹取**，见 `LaneConfig` 顶部的说明）。
+  ///
+  /// [viewportWidth] 与 [dragLanePair] 同一个含义：阅读器泳道记的是视口比例，
+  /// 只有拿到视口宽才能把「用户输入的像素」换算回比例。
+  void setLaneWidth(String laneId, double px, double viewportWidth) {
+    final lane = state.layout.lanes[laneId];
+    if (lane == null) return;
+    final width = px.clamp(lane.minWidth, lane.maxWidth).toDouble();
+    final updated = _replaceLane(laneId, _withWidth(lane, width, viewportWidth));
+    emit(state.copyWith(layout: state.layout.copyWith(lanes: updated)));
+  }
+
   /// 双击栏顶标题：把该泳道恢复到推荐宽度。
   void resetLaneWidth(String laneId) {
     final recommended = WorkspaceLayoutConfig.defaults().lanes[laneId];
