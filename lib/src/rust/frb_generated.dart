@@ -5208,8 +5208,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   FileManagerEntry dco_decode_file_manager_entry(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 10)
-      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
     return FileManagerEntry(
       path: dco_decode_String(arr[0]),
       name: dco_decode_String(arr[1]),
@@ -5219,8 +5219,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       isVideo: dco_decode_bool(arr[5]),
       isAudio: dco_decode_bool(arr[6]),
       size: dco_decode_u_64(arr[7]),
-      hasChildren: dco_decode_bool(arr[8]),
-      childNames: dco_decode_list_file_manager_child(arr[9]),
+      modifiedSecs: dco_decode_i_64(arr[8]),
+      hasChildren: dco_decode_bool(arr[9]),
+      childNames: dco_decode_list_file_manager_child(arr[10]),
     );
   }
 
@@ -5346,6 +5347,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   int dco_decode_i_32(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
+  }
+
+  @protected
+  PlatformInt64 dco_decode_i_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dcoDecodeI64(raw);
   }
 
   @protected
@@ -6259,6 +6266,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_isVideo = sse_decode_bool(deserializer);
     var var_isAudio = sse_decode_bool(deserializer);
     var var_size = sse_decode_u_64(deserializer);
+    var var_modifiedSecs = sse_decode_i_64(deserializer);
     var var_hasChildren = sse_decode_bool(deserializer);
     var var_childNames = sse_decode_list_file_manager_child(deserializer);
     return FileManagerEntry(
@@ -6270,6 +6278,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       isVideo: var_isVideo,
       isAudio: var_isAudio,
       size: var_size,
+      modifiedSecs: var_modifiedSecs,
       hasChildren: var_hasChildren,
       childNames: var_childNames,
     );
@@ -6453,6 +6462,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   int sse_decode_i_32(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getInt32();
+  }
+
+  @protected
+  PlatformInt64 sse_decode_i_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getPlatformInt64();
   }
 
   @protected
@@ -7589,6 +7604,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self.isVideo, serializer);
     sse_encode_bool(self.isAudio, serializer);
     sse_encode_u_64(self.size, serializer);
+    sse_encode_i_64(self.modifiedSecs, serializer);
     sse_encode_bool(self.hasChildren, serializer);
     sse_encode_list_file_manager_child(self.childNames, serializer);
   }
@@ -7723,6 +7739,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_i_32(int self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putInt32(self);
+  }
+
+  @protected
+  void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putPlatformInt64(self);
   }
 
   @protected

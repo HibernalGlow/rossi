@@ -5129,6 +5129,7 @@ impl SseDecode for crate::api::file_manager::FileManagerEntry {
         let mut var_isVideo = <bool>::sse_decode(deserializer);
         let mut var_isAudio = <bool>::sse_decode(deserializer);
         let mut var_size = <u64>::sse_decode(deserializer);
+        let mut var_modifiedSecs = <i64>::sse_decode(deserializer);
         let mut var_hasChildren = <bool>::sse_decode(deserializer);
         let mut var_childNames =
             <Vec<crate::api::file_manager::FileManagerChild>>::sse_decode(deserializer);
@@ -5141,6 +5142,7 @@ impl SseDecode for crate::api::file_manager::FileManagerEntry {
             is_video: var_isVideo,
             is_audio: var_isAudio,
             size: var_size,
+            modified_secs: var_modifiedSecs,
             has_children: var_hasChildren,
             child_names: var_childNames,
         };
@@ -5304,8 +5306,12 @@ impl SseDecode for crate::api::file_manager::FileManagerViewMode {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::api::file_manager::FileManagerViewMode::List,
-            1 => crate::api::file_manager::FileManagerViewMode::Grid,
+            0 => crate::api::file_manager::FileManagerViewMode::Compact,
+            1 => crate::api::file_manager::FileManagerViewMode::CoverList,
+            2 => crate::api::file_manager::FileManagerViewMode::MosaicList,
+            3 => crate::api::file_manager::FileManagerViewMode::Details,
+            4 => crate::api::file_manager::FileManagerViewMode::CoverGrid,
+            5 => crate::api::file_manager::FileManagerViewMode::MosaicGrid,
             _ => unreachable!("Invalid variant for FileManagerViewMode: {}", inner),
         };
     }
@@ -5354,6 +5360,13 @@ impl SseDecode for i32 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         deserializer.cursor.read_i32::<NativeEndian>().unwrap()
+    }
+}
+
+impl SseDecode for i64 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_i64::<NativeEndian>().unwrap()
     }
 }
 
@@ -6777,6 +6790,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::file_manager::FileManagerEntr
             self.is_video.into_into_dart().into_dart(),
             self.is_audio.into_into_dart().into_dart(),
             self.size.into_into_dart().into_dart(),
+            self.modified_secs.into_into_dart().into_dart(),
             self.has_children.into_into_dart().into_dart(),
             self.child_names.into_into_dart().into_dart(),
         ]
@@ -6960,8 +6974,12 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::file_manager::FileManagerTab>
 impl flutter_rust_bridge::IntoDart for crate::api::file_manager::FileManagerViewMode {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
-            Self::List => 0.into_dart(),
-            Self::Grid => 1.into_dart(),
+            Self::Compact => 0.into_dart(),
+            Self::CoverList => 1.into_dart(),
+            Self::MosaicList => 2.into_dart(),
+            Self::Details => 3.into_dart(),
+            Self::CoverGrid => 4.into_dart(),
+            Self::MosaicGrid => 5.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -7738,6 +7756,7 @@ impl SseEncode for crate::api::file_manager::FileManagerEntry {
         <bool>::sse_encode(self.is_video, serializer);
         <bool>::sse_encode(self.is_audio, serializer);
         <u64>::sse_encode(self.size, serializer);
+        <i64>::sse_encode(self.modified_secs, serializer);
         <bool>::sse_encode(self.has_children, serializer);
         <Vec<crate::api::file_manager::FileManagerChild>>::sse_encode(self.child_names, serializer);
     }
@@ -7879,8 +7898,12 @@ impl SseEncode for crate::api::file_manager::FileManagerViewMode {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::api::file_manager::FileManagerViewMode::List => 0,
-                crate::api::file_manager::FileManagerViewMode::Grid => 1,
+                crate::api::file_manager::FileManagerViewMode::Compact => 0,
+                crate::api::file_manager::FileManagerViewMode::CoverList => 1,
+                crate::api::file_manager::FileManagerViewMode::MosaicList => 2,
+                crate::api::file_manager::FileManagerViewMode::Details => 3,
+                crate::api::file_manager::FileManagerViewMode::CoverGrid => 4,
+                crate::api::file_manager::FileManagerViewMode::MosaicGrid => 5,
                 _ => {
                     unimplemented!("");
                 }
@@ -7920,6 +7943,13 @@ impl SseEncode for i32 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         serializer.cursor.write_i32::<NativeEndian>(self).unwrap();
+    }
+}
+
+impl SseEncode for i64 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_i64::<NativeEndian>(self).unwrap();
     }
 }
 

@@ -385,6 +385,7 @@ class FileManagerEntry {
   final bool isVideo;
   final bool isAudio;
   final BigInt size;
+  final PlatformInt64 modifiedSecs;
   final bool hasChildren;
 
   /// NeoView 的「显示内部条目」投影。它不改变父目录列表，只为 UI 提供一小段
@@ -400,6 +401,7 @@ class FileManagerEntry {
     required this.isVideo,
     required this.isAudio,
     required this.size,
+    required this.modifiedSecs,
     required this.hasChildren,
     required this.childNames,
   });
@@ -414,6 +416,7 @@ class FileManagerEntry {
       isVideo.hashCode ^
       isAudio.hashCode ^
       size.hashCode ^
+      modifiedSecs.hashCode ^
       hasChildren.hashCode ^
       childNames.hashCode;
 
@@ -430,6 +433,7 @@ class FileManagerEntry {
           isVideo == other.isVideo &&
           isAudio == other.isAudio &&
           size == other.size &&
+          modifiedSecs == other.modifiedSecs &&
           hasChildren == other.hasChildren &&
           childNames == other.childNames;
 }
@@ -612,4 +616,11 @@ class FileManagerTab {
           canCloseRight == other.canCloseRight;
 }
 
-enum FileManagerViewMode { list, grid }
+enum FileManagerViewMode {
+  compact,
+  coverList,
+  mosaicList,
+  details,
+  coverGrid,
+  mosaicGrid,
+}
