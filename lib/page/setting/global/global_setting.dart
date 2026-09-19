@@ -68,7 +68,8 @@ class _GlobalSettingPageState extends State<GlobalSettingPage> {
           settingCategoryTile(
             icon: Icons.menu_book_outlined,
             title: t.reader.settings,
-            subtitle: '${t.reader.readingMode} · ${t.reader.doubleTapAction}',
+            subtitle:
+                '${t.reader.readingMode} · ${t.reader.hoverReveal} · ${t.reader.doubleTapAction}',
             onTap: () => showReaderSettingsSheet(context),
           ),
           const Divider(height: 1, thickness: 0.3),

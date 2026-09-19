@@ -1,10 +1,11 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:zephyr/config/router/router.gr.dart';
+import 'package:zephyr/workspace/router/workspace_back_interception.dart';
 import 'package:zephyr/workspace/router/workspace_route_guard.dart';
 
 @AutoRouterConfig(replaceInRouteName: 'Screen|Page,Route')
-class AppRouter extends RootStackRouter {
+class AppRouter extends RootStackRouter with WorkspaceBackInterceptor {
   @override
   RouteType get defaultRouteType =>
       RouteType.material(enablePredictiveBackGesture: false);
@@ -63,6 +64,11 @@ class AppRouter extends RootStackRouter {
   ///   开的是一块卡片，而不是盖住整个应用。
   ///
   /// 工作台不在场时它逐字放行，全屏推入的行为完全不变。
+  ///
+  /// 另有一条**不由守卫承担**的接线：[WorkspaceBackInterceptor]（mixin）——
+  /// 守卫拦推入，它拦**回退**（`context.pop()` / `context.maybePop()` 走的是
+  /// `AutoRouter.of(context)`，根本不过守卫）。两者合起来才是「泳道里的东西
+  /// 开在泳道里、也退在泳道里」。
   @override
   List<AutoRouteGuard> get guards => const [WorkspaceRouteGuard()];
 }
