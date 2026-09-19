@@ -7,6 +7,7 @@ import 'package:scrollview_observer/scrollview_observer.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_read/controller/reader_volume_controller.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
+import 'package:zephyr/page/comic_read/cubit/reader_presentation_cubit.dart';
 import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
 import 'package:zephyr/page/comic_read/widgets/modes/read_mode_slot_builder.dart';
 import 'package:zephyr/page/comic_read/widgets/modes/read_mode_transition_style.dart';
@@ -91,6 +92,13 @@ class _ColumnModeWidgetState extends State<ColumnModeWidget> {
           enableSidePadding: sidePaddingEnabled,
           sidePaddingPercent: sidePaddingPercent,
         );
+        // 条漫里视口高度只喂给 `fit-height` 那一档；其余模式的固定轴是宽度。
+        final viewportHeight = constraints.maxHeight > 0
+            ? constraints.maxHeight
+            : MediaQuery.of(context).size.height;
+        final presentation = context.select(
+          (ReaderPresentationCubit c) => c.state,
+        );
         final viewportShortEdge = math.min(
           contentWidth,
           MediaQuery.of(context).size.height,
@@ -127,6 +135,8 @@ class _ColumnModeWidgetState extends State<ColumnModeWidget> {
             axis: ReadModeAxis.column,
             containerWidth: containerWidth,
             contentWidth: contentWidth,
+            viewportHeight: viewportHeight,
+            presentation: presentation,
             backgroundColor: backgroundColor,
             isRtl: widget.isRtl,
             comicId: widget.comicId,

@@ -12,16 +12,27 @@ class ImageSizeState {
   final double defaultWidth;
   final double defaultHeight;
 
+  /// 图片**原始像素**尺寸（`index` → 未缩放的 px 尺寸）。
+  ///
+  /// 与 [sizeCache] 分开存，因为 `sizeCache` 记的是「上次按某个宽度铺出来的显示尺寸」，
+  /// 只有宽高比是可信的；`reader.original`（原始大小）要的是绝对像素，比例给不出。
+  /// 刻意**不落盘**：它只在当前这一章有意义。
+  final Map<int, Size> intrinsicCache;
+
   ImageSizeState({
     required this.sizeCache,
     required this.resolvedIndices,
     required this.defaultWidth,
     required this.defaultHeight,
+    this.intrinsicCache = const {},
   });
 
   Size getSizeValue(int index) {
     return sizeCache[index] ?? Size(defaultWidth, defaultHeight);
   }
+
+  /// 该页的原始像素尺寸；还没解出来时为 null。
+  Size? getIntrinsic(int index) => intrinsicCache[index];
 }
 
 class ImageSizeCubit extends Cubit<ImageSizeState> {
@@ -134,10 +145,27 @@ class ImageSizeCubit extends Cubit<ImageSizeState> {
           resolvedIndices: newResolved,
           defaultWidth: state.defaultWidth,
           defaultHeight: state.defaultHeight,
+          intrinsicCache: state.intrinsicCache,
         ),
       );
       _markDirtyAndScheduleSave();
     }
+  }
+
+  /// 记下图片的原始像素尺寸（`reader.original` 用）。不触发落盘。
+  void updateIntrinsicSize(int index, Size intrinsic) {
+    if (state.intrinsicCache[index] == intrinsic) return;
+    final newIntrinsic = Map<int, Size>.from(state.intrinsicCache);
+    newIntrinsic[index] = intrinsic;
+    emit(
+      ImageSizeState(
+        sizeCache: state.sizeCache,
+        resolvedIndices: state.resolvedIndices,
+        defaultWidth: state.defaultWidth,
+        defaultHeight: state.defaultHeight,
+        intrinsicCache: newIntrinsic,
+      ),
+    );
   }
 
   Future<void> _hydrateFromDisk() async {
@@ -170,6 +198,7 @@ class ImageSizeCubit extends Cubit<ImageSizeState> {
             resolvedIndices: newResolved,
             defaultWidth: state.defaultWidth,
             defaultHeight: state.defaultHeight,
+            intrinsicCache: state.intrinsicCache,
           ),
         );
       }

@@ -3,11 +3,15 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
+import 'package:zephyr/page/comic_read/cubit/reader_presentation_cubit.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/auto_scroll_quick_button.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_download_button.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_layout_panel.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_rotate_panel.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_upscale_status_chip.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_zoom_panel.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reading_mode_capsule.dart';
-import 'package:zephyr/page/comic_read/widgets/chrome/top/secondary_toolbar.dart';
 import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_sheet.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
@@ -19,13 +23,19 @@ import 'package:zephyr/widgets/glass/liquid_glass.dart';
 
 /// NeoView 风格的专业阅读器顶栏 (ReaderViewToolbar)。
 ///
-/// 模块化设计：
+/// 两行结构照 neoview 的 `ReaderViewToolbar.tsx`：
+/// - **主行**：返回 / 书名 / 缩放入口 / 版式组（条漫·单双页·方向）/ 旋转入口 /
+///   版式工具入口 / 下载 / 超分 / 自动滚屏 / 全屏 / 钉住 / 设置。
+///   缩放那颗的图标跟着当前缩放模式换，不点开也看得见现在怎么铺。
+/// - **展开区**：一次只挂一块面板（[ReaderZoomPanel] / [ReaderRotatePanel] /
+///   [ReaderLayoutPanel]），互斥，再点一次收起。
+///
+/// 其余子件：
 /// - [ReadingModeCapsule] & [DoublePageToggle]：阅读模式与单双页胶囊
 /// - [CompactReadingModeButton]：移动窄屏循环切换按钮
 /// - [ReaderUpscaleStatusChip]：当前页超分状态（状态字 + 超分后分辨率 + 超分开关）
 /// - [ReaderDownloadButton]：在线漫画边看边下载快捷入口与状态指示
 /// - [AutoScrollQuickButton]：自动滚屏状态快捷按钮
-/// - [ReaderSecondaryToolbar]：二级展开版式高级工具面板
 class ComicReadAppBar extends StatefulWidget {
   final String title;
   final String? comicTitle;
@@ -63,7 +73,39 @@ class ComicReadAppBar extends StatefulWidget {
 }
 
 class _ComicReadAppBarState extends State<ComicReadAppBar> {
-  bool _isSecondaryBarExpanded = false;
+  /// 当前展开的那一块二级面板；null = 收起。
+  ///
+  /// 与 neoview 同一口径：**互斥**，点第二颗会把第一颗关掉，而不是叠两层。
+  ReaderToolbarPanel? _expandedPanel;
+
+  Widget _buildExpandedPanel() => switch (_expandedPanel) {
+    ReaderToolbarPanel.zoom => const ReaderZoomPanel(
+      key: ValueKey(ReaderToolbarPanel.zoom),
+    ),
+    ReaderToolbarPanel.rotate => const ReaderRotatePanel(
+      key: ValueKey(ReaderToolbarPanel.rotate),
+    ),
+    ReaderToolbarPanel.layout => const ReaderLayoutPanel(
+      key: ValueKey(ReaderToolbarPanel.layout),
+    ),
+    null => const SizedBox(width: double.infinity, height: 0),
+  };
+
+  /// 主行上一颗「展开某块面板」的按钮：再点一次收起（与 neoview 同一手感）。
+  Widget _buildPanelButton({
+    required ReaderToolbarPanel panel,
+    required IconData icon,
+    required String tooltip,
+  }) {
+    return ReaderToolbarIconButton(
+      icon: icon,
+      tooltip: tooltip,
+      selected: _expandedPanel == panel,
+      onPressed: () => setState(() {
+        _expandedPanel = _expandedPanel == panel ? null : panel;
+      }),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,9 +115,8 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
     // 顶栏可见性：**钉住 > 菜单 > 悬停**。`pinned` 写在选择器**里面**而不是选择器
     // 外面 OR：这样仍然只在「这一个 bool 翻转」时重建，不会退化成翻一页重建一次顶栏。
     final showTopAppBar = context.select(
-      (ReaderCubit cubit) => cubit.state.showTopAppBar(
-        pinned: readSetting.topBarPinned,
-      ),
+      (ReaderCubit cubit) =>
+          cubit.state.showTopAppBar(pinned: readSetting.topBarPinned),
     );
     final hoverController = ReaderHoverScope.of(context);
     const appBarRadius = 16.0;
@@ -118,20 +159,12 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
                           // 芯片要按可用宽度决定写不写分辨率：窄屏硬塞会撑爆这一行。
                           availableWidth: constraints.maxWidth,
                         ),
-                        AnimatedCrossFade(
+                        // 展开区一次只挂一个面板（neo 的 `ExpandedPanel` 同一互斥口径）。
+                        AnimatedSize(
                           duration: const Duration(milliseconds: 220),
-                          crossFadeState: _isSecondaryBarExpanded
-                              ? CrossFadeState.showSecond
-                              : CrossFadeState.showFirst,
-                          firstChild: const SizedBox(
-                            width: double.infinity,
-                            height: 0,
-                          ),
-                          secondChild: ReaderSecondaryToolbar(
-                            readSetting: readSetting,
-                            cubit: globalSettingCubit,
-                            changePageIndex: widget.changePageIndex,
-                          ),
+                          curve: Curves.easeOutCubic,
+                          alignment: Alignment.topCenter,
+                          child: _buildExpandedPanel(),
                         ),
                       ],
                     );
@@ -154,6 +187,11 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
     required double availableWidth,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
+    // 主行那颗缩放按钮要跟着当前档位换图标，所以在这里 select 一次；
+    // 放在 select 里而不是整份 presentation 上，拖滑条时就不会重建主行。
+    final fitMode = context.select(
+      (ReaderPresentationCubit c) => c.state.fitMode,
+    );
     final bookTitle =
         widget.comicTitle ?? ReaderSessionCoordinator.instance.displayTitle;
 
@@ -215,6 +253,14 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
             // 3. 版式模式胶囊组 (宽屏展开胶囊组，窄屏提供紧凑循环切换按钮)
             if (isWide) ...[
               const SizedBox(width: 12),
+              // 缩放面板入口。图标跟着当前缩放模式换 —— neoview 主行那颗同一做法：
+              // 一眼看得见现在是怎么铺的，不用点开面板。
+              _buildPanelButton(
+                panel: ReaderToolbarPanel.zoom,
+                icon: kReaderFitModeIcons[fitMode]!,
+                tooltip: '缩放模式：${kReaderFitModeLabels[fitMode]!}（点击展开缩放设置）',
+              ),
+              const SizedBox(width: 8),
               ReadingModeCapsule(
                 currentMode: readSetting.readMode,
                 onModeChanged: (mode) {
@@ -248,6 +294,20 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
                   },
                 ),
               ],
+              const SizedBox(width: 8),
+              // 旋转与版式两块面板的入口。排在方向之后，与 neoview 主行的
+              // 「版式组 → 方向 → 旋转」次序一致；版式是本仓自有一项，
+              // 挂在旋转后面当最后一颗。
+              _buildPanelButton(
+                panel: ReaderToolbarPanel.rotate,
+                icon: Icons.rotate_right_rounded,
+                tooltip: '旋转设置（点击展开旋转面板）',
+              ),
+              _buildPanelButton(
+                panel: ReaderToolbarPanel.layout,
+                icon: Icons.dashboard_customize_outlined,
+                tooltip: '版式工具（点击展开版式面板）',
+              ),
               const SizedBox(width: 12),
             ] else ...[
               const SizedBox(width: 6),
@@ -292,8 +352,6 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
               },
               onTogglePause: widget.onToggleAutoRead,
             ),
-            const SizedBox(width: 4),
-            _buildSecondaryExpandButton(context),
             if (widget.onToggleFullscreen != null) ...[
               const SizedBox(width: 2),
               IconButton(
@@ -354,42 +412,6 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  /// 二级面板展开/折叠切换按钮
-  Widget _buildSecondaryExpandButton(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Tooltip(
-      message: _isSecondaryBarExpanded ? '收起版式工具' : '展开版式工具',
-      child: IconButton(
-        icon: AnimatedRotation(
-          duration: const Duration(milliseconds: 200),
-          turns: _isSecondaryBarExpanded ? 0.5 : 0.0,
-          child: Icon(
-            _isSecondaryBarExpanded
-                ? Icons.expand_less_rounded
-                : Icons.expand_more_rounded,
-            size: 22,
-            color: _isSecondaryBarExpanded
-                ? colorScheme.primary
-                : colorScheme.onSurfaceVariant,
-          ),
-        ),
-        style: IconButton.styleFrom(
-          backgroundColor: _isSecondaryBarExpanded
-              ? colorScheme.primaryContainer.withValues(alpha: 0.5)
-              : Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-        onPressed: () {
-          setState(() {
-            _isSecondaryBarExpanded = !_isSecondaryBarExpanded;
-          });
-        },
       ),
     );
   }

@@ -16,6 +16,12 @@ class ImageDisplay extends StatefulWidget {
   final int sizeCacheIndex;
   final Alignment imageAlignment;
 
+  /// 顶栏缩放/旋转面板算出来的**这一页该画多大**（未旋转的图片自身尺寸）。
+  ///
+  /// null = 还没有可信尺寸（图片没解出来 / 呈现层没参与），退回改造前的铺排：
+  /// 给满宽度、让 `Image` 自己 contain。第一帧因此与今天完全一致。
+  final Size? paintSize;
+
   const ImageDisplay({
     super.key,
     required this.imagePath,
@@ -23,6 +29,7 @@ class ImageDisplay extends StatefulWidget {
     required this.pageSlotIndex,
     required this.sizeCacheIndex,
     this.imageAlignment = Alignment.center,
+    this.paintSize,
   });
 
   @override
@@ -127,6 +134,13 @@ class _ImageDisplayState extends State<ImageDisplay> {
         _rawHeight = imageInfo.image.height.toDouble();
 
         if (context.mounted) {
+          // 原始像素尺寸要单独报给 cubit：`reader.original`（原始大小）要的是绝对
+          // 像素，而下面 `_updateCubitSize` 记的是「按某个宽度铺出来的显示尺寸」，
+          // 那里只有宽高比可信。
+          context.read<ImageSizeCubit>().updateIntrinsicSize(
+            widget.sizeCacheIndex,
+            Size(_rawWidth!, _rawHeight!),
+          );
           final renderBox = context.findRenderObject() as RenderBox?;
           if (renderBox != null && renderBox.hasSize) {
             _updateCubitSize(renderBox.size.width);
@@ -214,9 +228,13 @@ class _ImageDisplayState extends State<ImageDisplay> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = constraints.maxWidth;
+        // 呈现层给了明确尺寸就照它画；没给才退回「占满可用宽度」这一套老逻辑。
+        final paintSize = widget.paintSize;
+        final width = paintSize?.width ?? constraints.maxWidth;
 
-        if (_rawWidth != null) {
+        if (_rawWidth != null && paintSize == null) {
+          // 有 paintSize 时**不**回写尺寸缓存：那时 width 是缩放后的显示尺寸，
+          // 拖一下滑条就把宽高比缓存洗一遍，下一本书的首帧比例就错了。
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _updateCubitSize(width);
           });
@@ -229,7 +247,12 @@ class _ImageDisplayState extends State<ImageDisplay> {
             // 同路径覆盖后必须重建 ImageState，单独清理缓存不会切换旧图片流。
             key: ValueKey((widget.imagePath, _imageRevision)),
             width: width,
-            fit: isColumn ? BoxFit.fill : BoxFit.contain,
+            height: paintSize?.height,
+            fit: paintSize != null
+                ? BoxFit.fill
+                : isColumn
+                ? BoxFit.fill
+                : BoxFit.contain,
             alignment: widget.imageAlignment,
             gaplessPlayback: true,
             frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {

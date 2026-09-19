@@ -6,6 +6,7 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/page/comic_read/controller/reader_volume_controller.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
+import 'package:zephyr/page/comic_read/cubit/reader_presentation_cubit.dart';
 import 'package:zephyr/page/comic_read/method/jump_chapter.dart';
 import 'package:zephyr/page/comic_read/widgets/dialogs/button_dialog.dart';
 import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
@@ -68,6 +69,10 @@ class _RowModeWidgetState extends State<RowModeWidget> {
     final globalSettingState = context.watch<GlobalSettingCubit>().state;
     final readMode = globalSettingState.readSetting.readMode;
     final readSetting = globalSettingState.readSetting;
+    // 顶栏缩放/旋转面板的那一份状态：一个 route 一份，换书即归零。
+    final presentation = context.select(
+      (ReaderPresentationCubit c) => c.state,
+    );
     final isDoublePage = readSetting.doublePageMode;
     final doublePageSlots = isDoublePage
         ? buildReadModeDoublePageSlots(
@@ -194,6 +199,8 @@ class _RowModeWidgetState extends State<RowModeWidget> {
                   axis: ReadModeAxis.row,
                   containerWidth: pageWidth,
                   contentWidth: contentWidth,
+                  viewportHeight: constraints.maxHeight,
+                  presentation: presentation,
                   backgroundColor: backgroundColor,
                   isRtl: isReverseRowReadMode(readMode),
                   comicId: widget.comicId,

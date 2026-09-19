@@ -296,6 +296,10 @@ class ReaderSeamlessCubit extends Cubit<ReaderSeamlessState> {
   ///
   /// 用于在历史恢复、滑动条跳转等场景中先做粗略同步偏移，
   /// 再由 observerController.jumpTo 做精确修正，减弱视觉跳变。
+  ///
+  /// 必须按**槽位**累加，而不是按条目：双页下每张图只占半宽、两张并排算一行，
+  /// 按条目全宽累加会比实际高一倍以上 —— 粗略跳转先冲过头，`jumpTo` 的精确
+  /// 修正又够不着（目标根本还没建出来），表现为「跳过去停在不该停的地方」。
   double estimateColumnHeightBeforeGlobalSlot(
     int targetGlobalSlot,
     ReadSettingState readSetting,
@@ -307,40 +311,52 @@ class ReaderSeamlessCubit extends Cubit<ReaderSeamlessState> {
     final entries = buildColumnEntries(readSetting);
     if (entries.isEmpty) return 0.0;
 
-    final slotEntries = _resolveDisplaySlotEntries(
-      targetSlot: targetGlobalSlot,
+    final enableDoublePage = readSetting.doublePageMode;
+    final panelWidth = enableDoublePage ? contentWidth / 2 : contentWidth;
+
+    double entryHeight(int entryIndex) {
+      final entry = entries[entryIndex];
+      if (entry.type == ReadModeEntryType.transition) return contentWidth;
+
+      final size = imageSizeCubit.state.getSizeValue(
+        resolveStableSizeCacheIndex(
+          chapterOrder: entry.chapterOrder,
+          localPageIndex: entry.chapterPageIndex ?? 0,
+        ),
+      );
+      if (size.width <= 0 || size.height <= 0) {
+        final defaultWidth = imageSizeCubit.state.defaultWidth;
+        if (defaultWidth <= 0) return imageSizeCubit.state.defaultHeight;
+        return imageSizeCubit.state.defaultHeight * (panelWidth / defaultWidth);
+      }
+      return size.height * (panelWidth / size.width);
+    }
+
+    var totalHeight = 0.0;
+    var slotCount = 0;
+    _forEachDisplaySlot(
       entryCount: entries.length,
-      enableDoublePage: readSetting.doublePageMode,
+      enableDoublePage: enableDoublePage,
       insertLeadingBlank: _insertLeadingBlank(readSetting),
       isTransitionAt: (entryIndex) =>
           entries[entryIndex].type == ReadModeEntryType.transition,
+      onSlot: (slotIndex, primaryEntryIndex, secondaryEntryIndex) {
+        slotCount = slotIndex + 1;
+        if (slotIndex >= targetGlobalSlot) return;
+
+        // 双页一行的高度取左右两张里更高的那张（与 `_buildColumnDoublePageImage`
+        // 的 rowHeight 同规则）。
+        var slotHeight = entryHeight(primaryEntryIndex);
+        if (secondaryEntryIndex != null) {
+          final secondaryHeight = entryHeight(secondaryEntryIndex);
+          if (secondaryHeight > slotHeight) slotHeight = secondaryHeight;
+        }
+        totalHeight += slotHeight;
+      },
     );
-    if (slotEntries == null) return 0.0;
 
-    final targetEntryIndex = slotEntries.$1;
-    if (targetEntryIndex <= 0) return 0.0;
-
-    var totalHeight = 0.0;
-    for (var i = 0; i < targetEntryIndex; i++) {
-      final entry = entries[i];
-      if (entry.type == ReadModeEntryType.transition) {
-        totalHeight += contentWidth;
-        continue;
-      }
-
-      final localPageIndex = entry.chapterPageIndex ?? 0;
-      final cacheIndex = resolveStableSizeCacheIndex(
-        chapterOrder: entry.chapterOrder,
-        localPageIndex: localPageIndex,
-      );
-      final size = imageSizeCubit.state.getSizeValue(cacheIndex);
-
-      if (size.width > 0 && size.height > 0) {
-        totalHeight += size.height * (contentWidth / size.width);
-      } else {
-        totalHeight += imageSizeCubit.state.defaultHeight;
-      }
-    }
+    // 目标槽位不存在（越界）时不猜，交给 observerController 自己兜。
+    if (targetGlobalSlot >= slotCount) return 0.0;
     return totalHeight;
   }
 

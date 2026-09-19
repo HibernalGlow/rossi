@@ -4,8 +4,11 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_read/controller/reader_action_controller.dart';
+import 'package:zephyr/page/comic_read/cubit/reader_presentation_cubit.dart';
+import 'package:zephyr/page/comic_read/model/reader_presentation.dart';
 import 'package:zephyr/service/operation_binding/binding_doc.dart';
 import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
+import 'package:zephyr/util/input/reader_input_bridge.dart';
 import 'package:zephyr/video/controller/video_action_dispatch.dart';
 
 /// 把引擎解析出的 **action id 落到执行体**（ADR-0015 §5 的第 ③ 件事）。
@@ -16,8 +19,8 @@ import 'package:zephyr/video/controller/video_action_dispatch.dart';
 /// 机械、可枚举。
 ///
 /// 动作 id 的清单与「哪些已实现」归注册表（Rust `ACTION_CATALOG`）。这里没实现的
-/// （放大缩小、旋转、下一个书籍）一律 no-op：设置页把它们标灰，导入的表里出现也
-/// 不会误触发什么。
+/// （上一个 / 下一个书籍）一律 no-op：设置页把它们标灰，导入的表里出现也不会
+/// 误触发什么。
 class ReaderActionDispatcher {
   ReaderActionDispatcher({
     required this.context,
@@ -63,6 +66,19 @@ class ReaderActionDispatcher {
     );
   }
 
+  /// 采集一次按下（鼠标键 / 触控笔）→ 解析 → 派发。返回 `false` = 没人认这一按。
+  ///
+  /// 与点击分区那条路**分开**是有意的：`area` 说的是「落在画面哪一格」，而轮盘的
+  /// 唤出只看「按了哪个键」，与位置无关（neoview 的出厂绑法就是右键按下）。
+  bool dispatchPointerPress({
+    required int button,
+    required String bindingsArrayJson,
+  }) => _dispatchInput(
+    mouseInputJson(button: button),
+    bindingsArrayJson,
+    fromKeyboard: false,
+  );
+
   /// 采集一次落在某格的点击 → 解析 → 派发。
   bool dispatchTapArea({
     required String area,
@@ -81,6 +97,12 @@ class ReaderActionDispatcher {
     final actionId = OperationBindingStore.resolveAction(
       bindingsArrayJson: bindingsArrayJson,
       inputJson: inputJson,
+      // 用**当下真实的 context 集合**，不能用写死的 `readerContexts`：
+      // 那样 `video.*` 那 24 条动作在解析阶段就永远不会命中（它们的 context 是
+      // `video`，优先级 150 高于 `reader` 的 100），注册表里再全也只是摆设。
+      contexts: ReaderInputBridge.instance.activeContexts
+          .map((context) => context.name)
+          .toList(growable: false),
     );
     if (actionId == null) return false;
     return dispatch(actionId, fromKeyboard: fromKeyboard);
@@ -154,7 +176,39 @@ class ReaderActionDispatcher {
         return true;
 
       case BindingAction.resetView:
+        // 两件事一起做：清掉顶栏那一份呈现状态（缩放模式 / 手动倍率 / 旋转 /
+        // 宽页策略），再清掉手势层那份自由变换（双指放大、双击放大）。
+        // 只清后者是改造前的行为 —— 顶栏面板当时还不存在。
+        context.read<ReaderPresentationCubit>().resetView();
         onResetView();
+        return true;
+
+      // ── 缩放与旋转 ──────────────────────────────────────────────────────
+      // 语义逐条照 neoview 的 `ReaderInputActionExecutor`：倍率是 fit 之上的乘数，
+      // 换模式一律把倍率打回 100%。
+      case BindingAction.zoomIn:
+        context.read<ReaderPresentationCubit>().stepScale(1);
+        return true;
+      case BindingAction.zoomOut:
+        context.read<ReaderPresentationCubit>().stepScale(-1);
+        return true;
+      case BindingAction.fitWindow:
+        context.read<ReaderPresentationCubit>().setFitMode(
+          ReaderFitMode.fit,
+        );
+        onResetView();
+        return true;
+      case BindingAction.actualSize:
+        context.read<ReaderPresentationCubit>().setFitMode(
+          ReaderFitMode.original,
+        );
+        onResetView();
+        return true;
+      case BindingAction.rotateClockwise:
+        context.read<ReaderPresentationCubit>().rotate(1);
+        return true;
+      case BindingAction.rotate180:
+        context.read<ReaderPresentationCubit>().rotate(2);
         return true;
 
       case BindingAction.toggleControls:

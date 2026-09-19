@@ -12,6 +12,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/comic_read.dart';
 import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
+import 'package:zephyr/page/comic_read/cubit/reader_presentation_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_seamless_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_seamless_state.dart';
 import 'package:zephyr/page/comic_read/controller/reader_image_prefetch_controller.dart';
@@ -19,6 +20,7 @@ import 'package:zephyr/page/comic_read/controller/reader_orientation_controller.
 import 'package:zephyr/page/comic_read/cubit/reader_state.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
 import 'package:zephyr/page/comic_read/type/chapter_extern.dart';
+import 'package:zephyr/page/comic_read/widgets/modes/read_mode_utils.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/util/input/reader_input_bridge.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
@@ -90,6 +92,13 @@ class ComicReadPage extends StatelessWidget {
         ),
         BlocProvider.value(value: stringSelectCubit),
         BlocProvider(create: (_) => ReaderCubit()),
+        // 顶栏缩放/旋转面板的会话状态：一个 route 一份，换书换章即归零
+        // （手动缩放与手动旋转刻意不落盘，见 `ReaderPresentationCubit`）。
+        BlocProvider(
+          create: (context) => ReaderPresentationCubit(
+            settings: context.read<GlobalSettingCubit>(),
+          ),
+        ),
         BlocProvider(
           create: (_) => ReaderSeamlessCubit(
             comicId: comicId,
@@ -179,6 +188,15 @@ class _ComicReadPageState extends State<_ComicReadPage>
   StreamSubscription<bool>? _volumeKeyPageTurnSubscription;
   bool _isScrollLockedByMultiTouch = false;
   bool _isUserScrollActive = false; // 用户是否正在拖拽/惯性滚动列表
+
+  /// 上一次参与过「槽位配对」的版式设置（单/双页、首页留白）。
+  ///
+  /// 这两个开关不改图片**是哪一张**，改的是**槽位怎么切**：第 10 个槽位在单页下
+  /// 是第 11 张图，双页下是第 21 张图。切换后如果只是把设置写下去，`currentSlot`
+  /// 就指着另一张图了；而以前的处理更粗暴 —— 直接 `changePageIndex(0)` 把槽位清零，
+  /// 于是「切一下单双页，页数跳回开头」。这里缓存一份，用「变了没有」来判断要不要
+  /// 把位置按同一张图重算（见 [_syncPairingLayoutChange]）。
+  ReadSettingState? _lastPairingSetting;
 
   bool get _isHistory =>
       _type == ComicEntryType.history ||
@@ -328,6 +346,10 @@ class _ComicReadPageState extends State<_ComicReadPage>
                 buildBottom: (innerContext) => _bottomWidget(innerContext),
                 buildAutoReadControl: (_) => _autoReadControlWidget(),
                 onReady: (innerContext, readSetting, readMode) {
+                  // 单/双页、首页留白刚被切换过：把位置按「同一张图」对齐，
+                  // 别让它停在旧槽位号上（那是「页数跳回开头」的另一半原因，
+                  // 另一半见 chrome 里那些被删掉的 `changePageIndex(0)`）。
+                  _syncPairingLayoutChange(readSetting);
                   _syncAutoRead(readSetting: readSetting, readMode: readMode);
                   _prefetchImagesAroundSlot(
                     context.read<ReaderCubit>().state.currentSlot,
@@ -375,6 +397,44 @@ class _ComicReadPageState extends State<_ComicReadPage>
     // 统一走这里触发刷新，避免在异步回调中误调用 setState。
     if (!mounted) return;
     setState(fn);
+  }
+
+  /// 版式配对（单/双页、首页留白）变化后，把阅读位置对齐到**同一张图**。
+  ///
+  /// 调用点在 `ComicReadSuccessWidget.onReady` —— 每次设置变化都会走一遍，
+  /// 但只有配对真的变了才动手，否则每次重建（新章节拼进来、主题切换…）
+  /// 都会把位置重算一遍。
+  ///
+  /// 重算出来不能就地跳：此刻还在 build 阶段，[ReaderCubit.updateCurrentSlot]
+  /// 会带着一票 `context.select(currentSlot)` 的监听者在 build 里 markNeedsBuild。
+  /// 所以排到 postFrame —— 那时新配对的列表 / PageView 已经带着新的槽位数
+  /// 建好了，跳过去才落得准。
+  void _syncPairingLayoutChange(ReadSettingState readSetting) {
+    final previous = _lastPairingSetting;
+    _lastPairingSetting = readSetting;
+    if (previous == null) return;
+    if (previous.doublePageMode == readSetting.doublePageMode &&
+        previous.doublePageLeadingBlank == readSetting.doublePageLeadingBlank) {
+      return;
+    }
+
+    final seamlessCubit = context.read<ReaderSeamlessCubit>();
+    final entries = isColumnReadMode(readSetting.readMode)
+        ? seamlessCubit.buildColumnEntries(readSetting)
+        : seamlessCubit.buildRowEntries(readSetting);
+    final targetSlot = remapReadModeSlotIndexForPairingChange(
+      entries: entries,
+      slotIndex: context.read<ReaderCubit>().state.currentSlot,
+      wasDoublePage: previous.doublePageMode,
+      wasLeadingBlank: previous.doublePageLeadingBlank,
+      useDoublePage: readSetting.doublePageMode,
+      useLeadingBlank: readSetting.doublePageLeadingBlank,
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_jumpToGlobalSlot(targetSlot));
+    });
   }
 
   Future<void> _jumpToGlobalSlot(
