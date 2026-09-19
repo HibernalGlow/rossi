@@ -146,6 +146,85 @@ void main() {
     });
   });
 
+  group('开屏页下拉（工作台并进了那一条）', () {
+    test('哨兵不占标签页编号空间', () {
+      expect(splashWorkspaceOption, lessThan(0));
+    });
+
+    test('开关开 + 有入口：下拉显示「工作台」', () {
+      expect(
+        resolveSplashDropdownValue(
+          startWithWorkspace: true,
+          workspaceEntryAvailable: true,
+          welcomePageNum: 2,
+        ),
+        splashWorkspaceOption,
+      );
+    });
+
+    test('开关关：下拉显示原来那个标签页', () {
+      expect(
+        resolveSplashDropdownValue(
+          startWithWorkspace: false,
+          workspaceEntryAvailable: true,
+          welcomePageNum: 2,
+        ),
+        2,
+      );
+    });
+
+    test('没有入口：开关开着也显示标签页（手机端显示了也落不了地）', () {
+      expect(
+        resolveSplashDropdownValue(
+          startWithWorkspace: true,
+          workspaceEntryAvailable: false,
+          welcomePageNum: 2,
+        ),
+        2,
+      );
+    });
+
+    test('选「工作台」：打开开关，且不动退出后的落回标签页', () {
+      final next = resolveSplashSelection(
+        selected: splashWorkspaceOption,
+        currentWelcomePageNum: 2,
+      );
+      expect(next.startWithWorkspace, isTrue);
+      expect(next.welcomePageNum, 2);
+    });
+
+    test('选某个标签页：关掉开关并记下这个编号', () {
+      final next = resolveSplashSelection(selected: 1, currentWelcomePageNum: 2);
+      expect(next.startWithWorkspace, isFalse);
+      expect(next.welcomePageNum, 1);
+    });
+
+    test('往返一致：选完之后再读回来还是同一项', () {
+      for (final startWithWorkspace in [true, false]) {
+        for (final welcomePageNum in [0, 1, 2]) {
+          final selected = resolveSplashDropdownValue(
+            startWithWorkspace: startWithWorkspace,
+            workspaceEntryAvailable: true,
+            welcomePageNum: welcomePageNum,
+          );
+          final next = resolveSplashSelection(
+            selected: selected,
+            currentWelcomePageNum: welcomePageNum,
+          );
+          expect(
+            resolveSplashDropdownValue(
+              startWithWorkspace: next.startWithWorkspace,
+              workspaceEntryAvailable: true,
+              welcomePageNum: next.welcomePageNum,
+            ),
+            selected,
+            reason: 'start=$startWithWorkspace page=$welcomePageNum',
+          );
+        }
+      }
+    });
+  });
+
   group('设置字段', () {
     test('默认关 —— 没进过设置页的用户启动落点不变', () {
       expect(const GlobalSettingState().startWithWorkspace, isFalse);

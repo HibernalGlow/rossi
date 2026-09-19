@@ -28,7 +28,23 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
   void activateLane(String laneId) {
     if (state.activeLaneId == laneId) return;
     if (!state.layout.lanes.containsKey(laneId)) return;
-    emit(state.copyWith(activeLaneId: () => laneId));
+    // 「Reader 聚焦时自动独占」：把交互交给 Reader 时顺带把独占也给它。
+    //
+    // 只在**这一条**路径上加，且激活别的泳道时**不清除**独占偏好 ——
+    // 与契约一致（`激活别的泳道会让 Reader 变回常规宽度，但不清除 solo 偏好`）：
+    // 退出独占要么是用户自己按的，要么是偏好关了的，不该由「点了左栏」代劳。
+    final soloReader =
+        state.interaction.autoSoloOnFocus &&
+        laneId == LaneId.reader &&
+        state.layout.soloLaneId != LaneId.reader;
+    emit(
+      state.copyWith(
+        activeLaneId: () => laneId,
+        layout: soloReader
+            ? state.layout.copyWith(soloLaneId: () => LaneId.reader)
+            : null,
+      ),
+    );
   }
 
   /// 悬停聚焦是否启用 / 三个延时（契约要求这三套延时可配且互相独立）。
@@ -124,9 +140,21 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
       state.copyWith(
         readerTarget: () => null,
         isReaderFullscreen: false,
+        infoPanelPinned: false,
       ),
     );
   }
+
+  // ── 信息面板（叠加在阅读器视口右缘） ────────────────────────────────────
+
+  /// 钉住 / 取消钉住叠加信息面板（mimage 的「锁定」语义：
+  /// 钉住 = 常开；没钉住时只由右缘悬停临时揭示）。
+  void setInfoPanelPinned(bool pinned) {
+    if (state.infoPanelPinned == pinned) return;
+    emit(state.copyWith(infoPanelPinned: pinned));
+  }
+
+  void toggleInfoPanel() => setInfoPanelPinned(!state.infoPanelPinned);
 
   /// 切换阅读器铺满窗口全屏状态。
   ///
@@ -521,6 +549,7 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
         activeLaneId: () => null,
         interaction: const WorkspaceInteractionSettings(),
         isReaderFullscreen: false,
+        infoPanelPinned: false,
       ),
     );
   }

@@ -21,6 +21,9 @@ class WorkspacePanelId {
   /// 左泳道：书架卡片（收藏 / 历史 / 下载）
   static const String shelf = 'shelf';
 
+  /// 左泳道：洞察（近 7 日趋势 / 连续阅读 / 阅读热力 / 来源拆分）
+  static const String insights = 'insights';
+
   /// 右泳道：完整复用上游 `DiscoverPage`
   static const String discover = 'discover';
 
@@ -33,9 +36,20 @@ class WorkspacePanelId {
   /// 右泳道独立面板：图源与扩展
   static const String plugins = 'plugins';
 
+  /// 右泳道：控制面板（neoview 的 `panel("control", …, "right")` 同款落点，
+  /// 收「切换提示」这类**读改设置**的功能卡片）
+  static const String control = 'control';
+
   /// 右泳道：图源与本地卡片
   static const String sources = 'sources';
 
   /// 右泳道：完整复用上游 `MorePage`
   static const String tools = 'tools';
+
+  /// **叠加**在阅读器视口右缘的信息面板（mimage 式）。
+  ///
+  /// 它不住在任何一条泳道的页签轨上，因此**不注册进面板注册表** ——
+  /// 但它仍然是一个面板 id：信息卡片（书籍 / 图像 / 存储 / 时间 / 预加载）
+  /// 的归属、展开、次序、隐藏全部按这张面板记账。
+  static const String info = 'info';
 }

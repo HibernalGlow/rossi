@@ -12,6 +12,7 @@ import 'package:zephyr/workspace/model/workspace_lane_focus.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
 import 'package:zephyr/workspace/model/workspace_panel_bar.dart';
+import 'package:zephyr/workspace/model/workspace_reveal_zones.dart';
 import 'package:zephyr/workspace/model/workspace_strip_metrics.dart';
 import 'package:zephyr/workspace/widgets/lane_resizer.dart';
 import 'package:zephyr/workspace/widgets/panels/lane_panel_host.dart';
@@ -63,12 +64,6 @@ class SwimlaneWorkspace extends StatefulWidget {
   /// 只有**同一个常量**才能保证两边算的是同一件事。
   static const double _stripPadding = WorkspaceStripMetrics.defaultPadding;
 
-  /// 视口左右两侧的**边缘揭示触发带**宽度。
-  ///
-  /// 指针进到这条带里才开始为「揭示相邻泳道」计时。它必须**明显地窄**：
-  /// 太宽的话用户在 Reader 正常翻页时就会不断触发揭示，画面自己动起来。
-  static const double edgeRevealZone = 28;
-
   /// 让滑条 / 轨道动起来的时长。
   static const Duration _scrollDuration = Duration(milliseconds: 220);
 
@@ -112,6 +107,13 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
   double _viewportWidth = 0;
   double _availableWidth = 0;
   double _availableHeight = 0;
+
+  /// [MouseRegion] 自己的高度 —— 唤出区的 `y` / `height` 百分比是**相对它**算的。
+  ///
+  /// 不能拿 [_availableHeight] 顶替：那个值已经扣掉了条带内边距，而指针坐标
+  /// 是相对整个 `MouseRegion` 的（内边距不吃指针）。两者混用会让唤出区
+  /// 在竖直方向上整体偏小一圈，表现为「按画布上的位置摆了却命中不了」。
+  double _viewportHeight = 0;
   WorkspaceLaneFocusGeometry? _geometry;
 
   @override
@@ -281,12 +283,19 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
     }
 
     final x = event.localPosition.dx;
-    String? candidate;
-    if (x <= SwimlaneWorkspace.edgeRevealZone) {
-      candidate = LaneId.left;
-    } else if (x >= _viewportWidth - SwimlaneWorkspace.edgeRevealZone) {
-      candidate = LaneId.right;
-    }
+    final y = event.localPosition.dy;
+    // 命中判定交给**唤出区自己**（「设置 → 布局」里画的那几块）：
+    // 指针落在左右哪一块里，就为揭示那一条泳道开始计时。
+    // 上下两条边不归这里 —— 它们管的是顶栏与阅读器底栏的悬停唤出。
+    final hit = state.interaction.revealZones.edgeAt(
+      xPercent: _percentOf(x, _viewportWidth),
+      yPercent: _percentOf(y, _viewportHeight),
+    );
+    String? candidate = switch (hit) {
+      RevealEdge.left => LaneId.left,
+      RevealEdge.right => LaneId.right,
+      _ => null,
+    };
     if (candidate != null && !state.layout.lanes.containsKey(candidate)) {
       candidate = null;
     }
@@ -381,6 +390,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
             );
             _viewportWidth = viewportWidth;
             _availableWidth = availableWidth;
+            _viewportHeight = constraints.maxHeight;
             _availableHeight = math.max(
               0.0,
               constraints.maxHeight - stripPadding * 2,
@@ -393,6 +403,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
               resizerWidth: LaneResizer.width,
               // solo 的生效宽度以「它同时是激活泳道」为前提。
               soloLaneId: state.effectiveSoloLaneId,
+              showLaneNavigatorInSolo: state.interaction.showLaneNavigatorInSolo,
             );
             final geometry = WorkspaceLaneFocusGeometry.fromMetrics(metrics);
             _geometry = geometry;
@@ -468,6 +479,10 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
             viewportWidth,
             resolvedWidth: slot.width,
             isActive: activeLaneId == laneId,
+            // 这条泳道**按紧凑轨来画**（自己折叠，或独占泳道旁边的切换栏）。
+            // 用槽位的结果而不是 `config.collapsed`：后者只记用户折叠了谁，
+            // 不知道「这一档它被挤到 44px 了」。
+            isRail: slot.collapsed,
             isFullscreen: state.isReaderFullscreen && laneId == LaneId.reader,
           ),
         ),
@@ -481,10 +496,17 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
 
     // 条带这一层的横向滚动**受控**：偏移由几何算出（`_applyOffset`），
     // 用户的拖动只用于「他自己想看别处」的场合。
+    //
+    // 「允许手动横向滚动」关掉时只拒**用户伸手**这一条路径（拖动与滚轮都走
+    // `isScrollingEnabled` 这个闸），边界回弹与程序化 `animateTo` 一律照旧 ——
+    // 用 `NeverScrollableScrollPhysics` 顶替会把后面那条也一起废掉，
+    // 于是「激活左泳道」不再把条带滚过去，表现为「点了没反应」。
     return SingleChildScrollView(
       controller: _scroll,
       scrollDirection: Axis.horizontal,
-      physics: const ClampingScrollPhysics(),
+      physics: state.interaction.manualScrollEnabled
+          ? const ClampingScrollPhysics()
+          : const _ProgrammaticScrollPhysics(),
       child: SizedBox(width: metrics.contentWidth, child: strip),
     );
   }
@@ -496,6 +518,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
     double viewportWidth, {
     required bool isActive,
     double? resolvedWidth,
+    bool isRail = false,
     bool isFullscreen = false,
   }) {
     final cubit = context.read<WorkspaceCubit>();
@@ -510,6 +533,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
       isSolo: state.effectiveSoloLaneId == laneId,
       isFullscreen: isFullscreen,
       isActive: isActive,
+      isRail: isRail,
       titleOverride: laneId == LaneId.reader
           ? state.readerTarget?.displayTitle
           : null,
@@ -523,7 +547,12 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
         LaneId.right => WorkspacePanelSide.right,
         _ => null,
       },
-      onToggleCollapse: () => cubit.toggleLaneCollapsed(laneId),
+      // 切换栏里的那几条轨：点它是「把交互交给这条泳道」（Reader 的独占随即让位），
+      // **不是**折叠 —— 它本来就没被用户折叠，去 toggle 会把「显示切换栏」
+      // 变成「把这条泳道永久折起来」，与用户点它时想要的正好相反。
+      onToggleCollapse: isRail && !config.collapsed
+          ? () => cubit.activateLane(laneId)
+          : () => cubit.toggleLaneCollapsed(laneId),
       onToggleSolo: () => cubit.toggleSoloLane(laneId),
       onResetWidth: () => cubit.resetLaneWidth(laneId),
       child: _buildAbsorbingContent(context, state, laneId, cubit, isActive),
@@ -620,6 +649,21 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
         visualDensity: VisualDensity.compact,
         onPressed: () => cubit.toggleMode(),
       ),
+      if (state.readerTarget != null)
+        IconButton(
+          icon: Icon(
+            state.infoPanelPinned
+                ? Icons.info_rounded
+                : Icons.info_outline_rounded,
+            size: 18,
+          ),
+          color: state.infoPanelPinned
+              ? Theme.of(context).colorScheme.primary
+              : null,
+          tooltip: '信息面板（叠加在阅读器右缘）',
+          visualDensity: VisualDensity.compact,
+          onPressed: () => cubit.toggleInfoPanel(),
+        ),
       if (state.readerTarget != null)
         IconButton(
           icon: const Icon(Icons.close_rounded, size: 18),
@@ -732,5 +776,31 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
       );
     }
     return bars;
+  }
+}
+
+/// 像素坐标 → 唤出区用的百分比（0..100）。
+///
+/// 尺寸非正时返回 0 而不是除一下：`LayoutBuilder` 在第一次布局前会给到 0 宽，
+/// 而 0 恰好落在左唤出区里 —— 但那会儿 `_viewportWidth <= 0` 的守卫
+/// 已经把整条判定短路掉了。
+double _percentOf(double value, double total) =>
+    total <= 0 ? 0 : value / total * 100;
+
+/// 「只让程序滚，不让人滚」的滚动物理。
+///
+/// 与 [ClampingScrollPhysics] 只差一个闸口：`isScrollingEnabled` 为假时
+/// `Scrollable` 不会挂上拖动识别器，滚轮的 `handlePointerSignalEvent` 也提前返回，
+/// 而边界回弹、惯性、`animateTo` 全部原样继承 ——
+/// 这正是「允许手动横向滚动」要的语义（见 `_buildStrip`）。
+class _ProgrammaticScrollPhysics extends ClampingScrollPhysics {
+  const _ProgrammaticScrollPhysics({super.parent});
+
+  @override
+  bool shouldAcceptUserOffset(ScrollMetrics position) => false;
+
+  @override
+  _ProgrammaticScrollPhysics applyTo(ScrollPhysics? ancestor) {
+    return _ProgrammaticScrollPhysics(parent: buildParent(ancestor));
   }
 }

@@ -7,6 +7,16 @@ import 'package:zephyr/workspace/widgets/cards/favorite_shelf_card.dart';
 import 'package:zephyr/workspace/widgets/cards/history_shelf_card.dart';
 import 'package:zephyr/workspace/widgets/cards/file_manager_card.dart';
 import 'package:zephyr/workspace/widgets/cards/page_list_card.dart';
+import 'package:zephyr/workspace/widgets/cards/book_information_card.dart';
+import 'package:zephyr/workspace/widgets/cards/image_information_card.dart';
+import 'package:zephyr/workspace/widgets/cards/storage_information_card.dart';
+import 'package:zephyr/workspace/widgets/cards/time_information_card.dart';
+import 'package:zephyr/workspace/widgets/cards/preload_status_card.dart';
+import 'package:zephyr/workspace/widgets/cards/switch_toast_card.dart';
+import 'package:zephyr/workspace/widgets/cards/daily_trend_card.dart';
+import 'package:zephyr/workspace/widgets/cards/reading_streak_card.dart';
+import 'package:zephyr/workspace/widgets/cards/reading_heatmap_card.dart';
+import 'package:zephyr/workspace/widgets/cards/source_breakdown_card.dart';
 
 /// 卡片外壳交给卡片自己的那点上下文。
 ///
@@ -89,6 +99,22 @@ class WorkspaceCardRegistry {
   static const String plugins = 'plugins';
   static const String localFolder = 'local_folder';
   static const String pageList = 'page_list';
+
+  /// 控制面板（N-17）：切换提示
+  static const String switchToast = 'switch_toast';
+
+  /// 信息面板（叠加）五张卡 —— 与 neoview `info` 面板的同名卡片一一对应。
+  static const String bookInformation = 'book_information';
+  static const String imageInformation = 'image_information';
+  static const String storageInformation = 'storage_information';
+  static const String timeInformation = 'time_information';
+  static const String preloadStatus = 'preload_status';
+
+  /// 洞察面板四张卡 —— 与 neoview `insights` 面板的同名卡片一一对应。
+  static const String dailyTrend = 'daily_trend';
+  static const String readingStreak = 'reading_streak';
+  static const String readingHeatmap = 'reading_heatmap';
+  static const String sourceBreakdown = 'source_breakdown';
 
   late final List<WorkspaceCardDefinition> cards = List.unmodifiable([
     WorkspaceCardDefinition(
@@ -179,6 +205,161 @@ class WorkspaceCardRegistry {
         onMoveDown: chrome.onMoveDown,
         onHide: chrome.onHide,
         isStandalone: chrome.standalone,
+      ),
+    ),
+    // ── 信息面板（叠加在阅读器视口右缘，mimage 式） ──────────────────────
+    // 面板本身不在面板注册表里（它不住在泳道页签轨上），
+    // 但卡片的归属 / 展开 / 次序 / 隐藏仍按 `WorkspacePanelId.info` 记账。
+    WorkspaceCardDefinition(
+      id: bookInformation,
+      title: '书籍信息',
+      icon: Icons.menu_book_rounded,
+      defaultPanelId: WorkspacePanelId.info,
+      defaultOrder: 0,
+      // 信息面板的固定主体：收掉它面板就空了，Neo 同款纪律（canHide: false）。
+      canHide: false,
+      builder: (context, chrome) => BookInformationCard(
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
+        isStandalone: chrome.standalone,
+      ),
+    ),
+    WorkspaceCardDefinition(
+      id: imageInformation,
+      title: '图像信息',
+      icon: Icons.image_rounded,
+      defaultPanelId: WorkspacePanelId.info,
+      defaultOrder: 1,
+      builder: (context, chrome) => ImageInformationCard(
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
+        isStandalone: chrome.standalone,
+      ),
+    ),
+    WorkspaceCardDefinition(
+      id: storageInformation,
+      title: '存储信息',
+      icon: Icons.sd_storage_rounded,
+      defaultPanelId: WorkspacePanelId.info,
+      defaultOrder: 2,
+      builder: (context, chrome) => StorageInformationCard(
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
+        isStandalone: chrome.standalone,
+      ),
+    ),
+    WorkspaceCardDefinition(
+      id: timeInformation,
+      title: '时间信息',
+      icon: Icons.schedule_rounded,
+      defaultPanelId: WorkspacePanelId.info,
+      defaultOrder: 3,
+      builder: (context, chrome) => TimeInformationCard(
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
+        isStandalone: chrome.standalone,
+      ),
+    ),
+    WorkspaceCardDefinition(
+      id: preloadStatus,
+      title: '预加载状态',
+      icon: Icons.bolt_rounded,
+      defaultPanelId: WorkspacePanelId.info,
+      defaultOrder: 4,
+      builder: (context, chrome) => PreloadStatusCard(
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
+        isStandalone: chrome.standalone,
+      ),
+    ),
+    WorkspaceCardDefinition(
+      id: switchToast,
+      title: '切换提示',
+      icon: Icons.notifications_active_rounded,
+      defaultPanelId: WorkspacePanelId.control,
+      defaultOrder: 0,
+      builder: (context, chrome) => SwitchToastCard(
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
+        isStandalone: chrome.standalone,
+      ),
+    ),
+    // ── 洞察 ──────────────────────────────────────────────────────────────
+    // 四张卡都只在**有历史**时才有内容，所以窗口为空时各自画一行提示而不是空板。
+    // 归属刻意不散到 favorite / history 那些独占面板里：洞察是「读历史的另一双眼睛」，
+    // 与 neoview 一样独立成一张面板，用户想拆再拖。
+    WorkspaceCardDefinition(
+      id: dailyTrend,
+      title: '近 7 日阅读趋势',
+      icon: Icons.trending_up_rounded,
+      defaultPanelId: WorkspacePanelId.insights,
+      defaultOrder: 0,
+      builder: (context, chrome) => DailyTrendCard(
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
+      ),
+    ),
+    WorkspaceCardDefinition(
+      id: readingStreak,
+      title: '连续阅读',
+      icon: Icons.local_fire_department_rounded,
+      defaultPanelId: WorkspacePanelId.insights,
+      defaultOrder: 1,
+      builder: (context, chrome) => ReadingStreakCard(
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
+      ),
+    ),
+    WorkspaceCardDefinition(
+      id: readingHeatmap,
+      title: '阅读热力',
+      icon: Icons.calendar_month_rounded,
+      defaultPanelId: WorkspacePanelId.insights,
+      defaultOrder: 2,
+      builder: (context, chrome) => ReadingHeatmapCard(
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
+      ),
+    ),
+    WorkspaceCardDefinition(
+      id: sourceBreakdown,
+      title: '来源拆分',
+      icon: Icons.pie_chart_outline_rounded,
+      defaultPanelId: WorkspacePanelId.insights,
+      defaultOrder: 3,
+      builder: (context, chrome) => SourceBreakdownCard(
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
       ),
     ),
   ]);

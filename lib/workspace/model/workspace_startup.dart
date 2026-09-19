@@ -46,3 +46,33 @@ bool isWorkspaceDesktopPlatform(TargetPlatform platform) =>
 /// 否则会出现「设置里开着、导航栏上却没入口」这类各说各话。
 bool hasWorkspaceEntry(BuildContext context) =>
     isTablet(context) || isWorkspaceDesktopPlatform(defaultTargetPlatform);
+
+/// 开屏页下拉里「工作台」那一项的值。
+///
+/// 标签页占 `0..n-1`，所以工作台用 `-1` 这个哨兵 —— 它不占标签页的编号空间，
+/// 也不会与 `welcomePageNum` 的既有取值（含云端同步来的旧值）撞车。
+/// 下拉的键用**编号**而不是显示名：用显示名当键时，改一次文案就会把选中项对丢。
+const int splashWorkspaceOption = -1;
+
+/// 开屏页下拉**当前该显示哪一项**。
+///
+/// 本机没有工作台入口（手机）时即使字段是 `true` 也显示标签页：那边导航栏上
+/// 根本没有工作台按钮，显示成「工作台」会让人以为下次启动会进去，而实际不会。
+int resolveSplashDropdownValue({
+  required bool startWithWorkspace,
+  required bool workspaceEntryAvailable,
+  required int welcomePageNum,
+}) => (startWithWorkspace && workspaceEntryAvailable)
+    ? splashWorkspaceOption
+    : welcomePageNum;
+
+/// 用户在下拉里选了 [selected] 之后，两个字段各该变成什么。
+///
+/// 选「工作台」时**不动** [currentWelcomePageNum]：那个值是退出工作台之后落回的
+/// 标签页，来回切几次不该把它弄丢。
+({bool startWithWorkspace, int welcomePageNum}) resolveSplashSelection({
+  required int selected,
+  required int currentWelcomePageNum,
+}) => selected == splashWorkspaceOption
+    ? (startWithWorkspace: true, welcomePageNum: currentWelcomePageNum)
+    : (startWithWorkspace: false, welcomePageNum: selected);

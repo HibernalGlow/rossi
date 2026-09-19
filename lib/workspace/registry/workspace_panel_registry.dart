@@ -113,6 +113,15 @@ class WorkspacePanelRegistry {
         defaultOrder: 4,
         defaultVisible: false,
       ),
+      // neoview 的 `insights` 面板在**右**泳道；Rossi 放左边，因为它统计的东西
+      // 全部来自左泳道那张「阅读历史」—— 洞察与它的原始数据隔一条泳道最难读。
+      WorkspacePanelDefinition(
+        id: WorkspacePanelId.insights,
+        title: '阅读洞察',
+        icon: Icons.insights_rounded,
+        side: WorkspacePanelSide.left,
+        defaultOrder: 5,
+      ),
 
       // ── 右泳道 ────────────────────────────────────────────────────────
       WorkspacePanelDefinition(
@@ -170,6 +179,16 @@ class WorkspacePanelRegistry {
         canHide: false,
         acceptsCards: false,
         page: (_) => const EmbeddedAuxiliaryLane(),
+      ),
+      // neoview `panel("control", "控制", "right")` 的同款落点：收「读改设置」
+      // 类功能卡片（第一张是 N-17 切换提示）。卡片面板规则照旧 ——
+      // 一张卡都没有时不上图标轨（见 panelsForSide）。
+      WorkspacePanelDefinition(
+        id: WorkspacePanelId.control,
+        title: '控制面板',
+        icon: Icons.dashboard_rounded,
+        side: WorkspacePanelSide.right,
+        defaultOrder: 6,
       ),
     ],
   );

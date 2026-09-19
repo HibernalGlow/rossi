@@ -2,7 +2,21 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:path_provider/path_provider.dart';
 import 'package:zephyr/workspace/model/workspace_layout_snapshot.dart';
+
+/// 布局快照所在的**应用数据目录**。
+///
+/// 与 ObjectBox 的库文件放同一个父目录：布局快照是同一类「应用自己的状态」，
+/// 放在一起也让「备份 / 清理」只需要认一个地方。
+///
+/// 它是**唯一一处**知道这个路径的地方 —— 工作台页面与「设置 → 布局」都要读写
+/// 同一份快照，各自算一遍路径迟早会分叉（一个写到 `<support>/zephyr`、
+/// 另一个写到 `<support>`，现象是「设置里改了，重启回到旧布局」）。
+Future<Directory> workspaceLayoutDirectory() async {
+  final support = await getApplicationSupportDirectory();
+  return Directory('${support.path}${Platform.pathSeparator}zephyr');
+}
 
 /// 工作台布局的**存取口**。
 ///

@@ -1,5 +1,6 @@
 // 本文件**刻意不 import Flutter**：它要能被 JSON 往返（持久化判据）与
 // `dart run` 直接断言。见 `workspace_layout_config.dart` 顶部的同一说明。
+import 'package:zephyr/workspace/model/workspace_reveal_zones.dart';
 
 /// 工作台的**交互延时与开关** —— 与几何分开记账（neoview：`Reader hover-focus
 /// behavior and delays` 用独立的 canonical 组）。
@@ -36,12 +37,44 @@ class WorkspaceInteractionSettings {
   /// 契约对它的措辞是 `keeps a narrow portion of Reader visible where possible`。
   final double readerPeekWidth;
 
+  /// Reader 被**聚焦**时是否顺带进入独占（neoview `readerSoloOnFocus`）。
+  ///
+  /// 默认关 —— 这一项与 neoview 的默认值**刻意不同**：本项目的独占此前只能
+  /// 手动点栏头的「独占该栏」，默认打开会让「点一下 Reader」这个动作
+  /// 附带一个把其余泳道推出视口的后果，对老用户是凭空多出来的手感。
+  final bool autoSoloOnFocus;
+
+  /// Reader 独占时，其余泳道是否收成**紧凑轨**留在条带里
+  /// （neoview `showLaneNavigatorInReaderSolo`）。
+  ///
+  /// 关掉时独占就是字面意思的「只剩一条」：其余泳道被推出视口，只能靠
+  /// 左右唤出区调回来。打开时它们各留 `WorkspaceLayoutConfig.collapsedLaneWidth`
+  /// 的宽度，等于一条常驻的泳道切换栏。
+  final bool showLaneNavigatorInSolo;
+
+  /// 是否允许用户**手动横向拖动**整条泳道条带。
+  ///
+  /// 默认开，同样是**保持改造前的行为**（条带此前一直可滚）。关掉之后
+  /// 条带仍然会按激活 / 揭示自己滚到该看的位置 —— 这个开关管的是
+  /// 「用户自己伸手拖」这一条路径，不是滚动本身。
+  final bool manualScrollEnabled;
+
+  /// 四条边的悬停唤出区（neoview `edgeRevealZones`）。
+  ///
+  /// 左右两条决定「指针停在离边缘多远的地方」开始为揭示计时；
+  /// 上下两条决定顶栏与阅读器底栏的唤出带摆在哪儿。
+  final WorkspaceRevealZones revealZones;
+
   const WorkspaceInteractionSettings({
     this.hoverFocusEnabled = true,
     this.hoverFocusDelayMs = 420,
     this.edgeRevealDelayMs = 320,
     this.edgeRevealRestoreDelayMs = 600,
     this.readerPeekWidth = 56,
+    this.autoSoloOnFocus = false,
+    this.showLaneNavigatorInSolo = false,
+    this.manualScrollEnabled = true,
+    this.revealZones = WorkspaceRevealZones.defaults,
   });
 
   WorkspaceInteractionSettings copyWith({
@@ -50,6 +83,10 @@ class WorkspaceInteractionSettings {
     int? edgeRevealDelayMs,
     int? edgeRevealRestoreDelayMs,
     double? readerPeekWidth,
+    bool? autoSoloOnFocus,
+    bool? showLaneNavigatorInSolo,
+    bool? manualScrollEnabled,
+    WorkspaceRevealZones? revealZones,
   }) {
     return WorkspaceInteractionSettings(
       hoverFocusEnabled: hoverFocusEnabled ?? this.hoverFocusEnabled,
@@ -58,6 +95,11 @@ class WorkspaceInteractionSettings {
       edgeRevealRestoreDelayMs:
           edgeRevealRestoreDelayMs ?? this.edgeRevealRestoreDelayMs,
       readerPeekWidth: readerPeekWidth ?? this.readerPeekWidth,
+      autoSoloOnFocus: autoSoloOnFocus ?? this.autoSoloOnFocus,
+      showLaneNavigatorInSolo:
+          showLaneNavigatorInSolo ?? this.showLaneNavigatorInSolo,
+      manualScrollEnabled: manualScrollEnabled ?? this.manualScrollEnabled,
+      revealZones: revealZones ?? this.revealZones,
     );
   }
 
@@ -67,6 +109,10 @@ class WorkspaceInteractionSettings {
     'edgeRevealDelayMs': edgeRevealDelayMs,
     'edgeRevealRestoreDelayMs': edgeRevealRestoreDelayMs,
     'readerPeekWidth': readerPeekWidth,
+    'autoSoloOnFocus': autoSoloOnFocus,
+    'showLaneNavigatorInSolo': showLaneNavigatorInSolo,
+    'manualScrollEnabled': manualScrollEnabled,
+    'revealZones': revealZones.toJson(),
   };
 
   /// 从 JSON 还原；**任何一项缺失或非法都退回该项的默认值**，绝不抛异常、
@@ -95,6 +141,16 @@ class WorkspaceInteractionSettings {
                 .clamp(0, 400)
                 .toDouble()
           : fallback.readerPeekWidth,
+      autoSoloOnFocus: json['autoSoloOnFocus'] is bool
+          ? json['autoSoloOnFocus']! as bool
+          : fallback.autoSoloOnFocus,
+      showLaneNavigatorInSolo: json['showLaneNavigatorInSolo'] is bool
+          ? json['showLaneNavigatorInSolo']! as bool
+          : fallback.showLaneNavigatorInSolo,
+      manualScrollEnabled: json['manualScrollEnabled'] is bool
+          ? json['manualScrollEnabled']! as bool
+          : fallback.manualScrollEnabled,
+      revealZones: WorkspaceRevealZones.fromJson(json['revealZones']),
     );
   }
 
@@ -112,7 +168,11 @@ class WorkspaceInteractionSettings {
       other.hoverFocusDelayMs == hoverFocusDelayMs &&
       other.edgeRevealDelayMs == edgeRevealDelayMs &&
       other.edgeRevealRestoreDelayMs == edgeRevealRestoreDelayMs &&
-      other.readerPeekWidth == readerPeekWidth;
+      other.readerPeekWidth == readerPeekWidth &&
+      other.autoSoloOnFocus == autoSoloOnFocus &&
+      other.showLaneNavigatorInSolo == showLaneNavigatorInSolo &&
+      other.manualScrollEnabled == manualScrollEnabled &&
+      other.revealZones == revealZones;
 
   @override
   int get hashCode => Object.hash(
@@ -121,5 +181,9 @@ class WorkspaceInteractionSettings {
     edgeRevealDelayMs,
     edgeRevealRestoreDelayMs,
     readerPeekWidth,
+    autoSoloOnFocus,
+    showLaneNavigatorInSolo,
+    manualScrollEnabled,
+    revealZones,
   );
 }

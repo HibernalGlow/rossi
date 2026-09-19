@@ -4,8 +4,9 @@ import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_panel_bar.dart';
 import 'package:zephyr/workspace/widgets/panels/panel_bar_positioner.dart';
 import 'package:zephyr/workspace/widgets/panels/panel_tab_strip.dart';
+import 'package:zephyr/workspace/widgets/swimlane/lane_more_menu.dart';
 
-/// 单个泳道容器：栏头（折叠 / 独占 / 宽度）+ 内容。
+/// 单个泳道容器：栏头（折叠 / 独占 / 宽度 / 更多）+ 内容。
 ///
 /// **栏头归泳道自己**（neoview 契约）：edge 模式那套「钉边 / 拖动 / 改尺寸」的控件
 /// 在这里一律不出现；[headerActions] 是泳道往自己栏头里塞控件的口子 ——
@@ -19,6 +20,14 @@ class SwimlaneColumn extends StatelessWidget {
 
   final bool isSolo;
   final bool isFullscreen;
+
+  /// 这一档**按紧凑轨来画**（44px 那条只留图标与标题的窄栏）。
+  ///
+  /// 它比 `config.collapsed` 更宽：除了用户自己折叠的泳道，还包括「Reader 独占时
+  /// 显示泳道切换栏」把其余泳道挤成轨的情形 —— 宽度是条带算出来的，
+  /// 这里必须照同一个结果画，否则 44px 的盒子里塞进整块面板内容，
+  /// 界面上就是一条黄黑斜纹而不是切换栏。
+  final bool isRail;
 
   /// 是不是当前**激活**的那条泳道。
   ///
@@ -54,6 +63,7 @@ class SwimlaneColumn extends StatelessWidget {
     required this.resolvedWidth,
     required this.isSolo,
     this.isFullscreen = false,
+    this.isRail = false,
     required this.isActive,
     required this.onToggleCollapse,
     required this.onToggleSolo,
@@ -70,7 +80,7 @@ class SwimlaneColumn extends StatelessWidget {
     final theme = Theme.of(context);
 
     // 折叠状态（紧凑 44dp 轨）
-    if (config.collapsed && !isSolo) {
+    if ((config.collapsed || isRail) && !isSolo) {
       return _buildCollapsedRail(context, theme);
     }
 
@@ -277,6 +287,16 @@ class SwimlaneColumn extends StatelessWidget {
             tooltip: '折叠为紧凑条 (Collapse)',
             onPressed: onToggleCollapse,
             visualDensity: VisualDensity.compact,
+          ),
+          // 这条泳道其余的动作（重置宽度 / 次序 / 面板栏摆放）。
+          // 默认形态下面板栏就挂在这一行里、没有拖动把手，
+          // 所以「把它挪走」只有这个菜单做得到 —— 见 `LaneMoreMenu`。
+          LaneMoreMenu(
+            laneId: laneId,
+            panelSide: panelSide,
+            onToggleCollapse: onToggleCollapse,
+            onToggleSolo: onToggleSolo,
+            onResetWidth: onResetWidth,
           ),
         ],
       ),

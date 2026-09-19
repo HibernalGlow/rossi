@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/comic_read/view/comic_read.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/reader_hover_reveal_layer.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/cubit/workspace_state.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
@@ -9,6 +10,7 @@ import 'package:zephyr/workspace/router/workspace_lane_dispatch.dart';
 import 'package:zephyr/workspace/router/workspace_navigation_bridge.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_empty_canvas.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_fullscreen_scope.dart';
+import 'package:zephyr/workspace/widgets/panels/info_panel_overlay.dart';
 
 /// **阅读器泳道的真正内容**：上游原版 `ComicReadPage`，一个字都没改。
 ///
@@ -107,13 +109,17 @@ class _WorkspaceReaderHostState extends State<WorkspaceReaderHost> {
             behavior: HitTestBehavior.translucent,
             onPointerDown: (_) =>
                 WorkspaceNavigationBridge.instance.noteLaneInteraction(_host),
-            child: Navigator(
-              key: ValueKey<String>(
-                'reader-navigator:${current.identityKey}',
-              ),
-              onGenerateRoute: (settings) => MaterialPageRoute<void>(
-                settings: settings,
-                builder: (_) => _buildReader(context, current),
+            child: InfoPanelOverlay(
+              // mimage 式**叠加**信息面板：浮在阅读器视口右缘之上，
+              // 不占条带宽度。挂在泳道宿主这一层，于是四边栏模式白得一摸一样。
+              child: Navigator(
+                key: ValueKey<String>(
+                  'reader-navigator:${current.identityKey}',
+                ),
+                onGenerateRoute: (settings) => MaterialPageRoute<void>(
+                  settings: settings,
+                  builder: (_) => _buildReader(context, current),
+                ),
               ),
             ),
           ),
@@ -126,25 +132,39 @@ class _WorkspaceReaderHostState extends State<WorkspaceReaderHost> {
     return BlocBuilder<WorkspaceCubit, WorkspaceState>(
       bloc: hostContext.read<WorkspaceCubit>(),
       buildWhen: (prev, curr) =>
-          prev.isReaderFullscreen != curr.isReaderFullscreen,
+          prev.isReaderFullscreen != curr.isReaderFullscreen ||
+          prev.interaction.revealZones.bottom !=
+              curr.interaction.revealZones.bottom,
       builder: (context, state) {
         final cubit = hostContext.read<WorkspaceCubit>();
-        return ReaderFullscreenScope(
-          isFullscreen: state.isReaderFullscreen,
-          onToggleFullscreen: cubit.toggleReaderFullscreen,
-          child: ComicReadPage(
-            comicId: current.comicId,
-            order: current.order,
-            chapterId: current.chapterId,
-            requestId: current.requestId,
-            storageChapterId: current.storageChapterId,
-            logicalKey: current.logicalKey,
-            chapterExtern: current.chapterExtern,
-            epsNumber: current.epsNumber,
-            from: current.from,
-            stringSelectCubit: current.stringSelectCubit,
-            type: current.type,
-            comicInfo: current.comicInfo,
+        final bottom = state.interaction.revealZones.bottom;
+        return ReaderHoverTriggerScope(
+          // 下唤出区由「设置 → 布局」那块画布管：阅读器住在泳道里，
+          // 它的底栏就是工作台的底边。阅读器自己的「唤出感应区高度」
+          // 在那时不再参与（两处都说话时只有这里说的是「画出来的那一块」）。
+          bottomRect: (
+            x: bottom.x,
+            y: bottom.y,
+            width: bottom.width,
+            height: bottom.height,
+          ),
+          child: ReaderFullscreenScope(
+            isFullscreen: state.isReaderFullscreen,
+            onToggleFullscreen: cubit.toggleReaderFullscreen,
+            child: ComicReadPage(
+              comicId: current.comicId,
+              order: current.order,
+              chapterId: current.chapterId,
+              requestId: current.requestId,
+              storageChapterId: current.storageChapterId,
+              logicalKey: current.logicalKey,
+              chapterExtern: current.chapterExtern,
+              epsNumber: current.epsNumber,
+              from: current.from,
+              stringSelectCubit: current.stringSelectCubit,
+              type: current.type,
+              comicInfo: current.comicInfo,
+            ),
           ),
         );
       },

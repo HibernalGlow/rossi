@@ -1,12 +1,10 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/cubit/workspace_state.dart';
 import 'package:zephyr/util/input/reader_input_bridge.dart';
@@ -15,6 +13,7 @@ import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
 import 'package:zephyr/workspace/model/workspace_reader_target.dart';
 import 'package:zephyr/workspace/router/workspace_navigation_bridge.dart';
+import 'package:zephyr/workspace/service/workspace_layout_bridge.dart';
 import 'package:zephyr/workspace/service/workspace_layout_store.dart';
 import 'package:zephyr/workspace/widgets/chrome/workspace_top_chrome.dart';
 import 'package:zephyr/workspace/widgets/edges/controlled_edge_shell.dart';
@@ -101,6 +100,9 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
     // 其余推入由守卫交给「发起交互的那个面板」的局部导航栈
     // （登记随面板自己 attach / detach，见 `EmbeddedUpstreamPage`）。
     WorkspaceNavigationBridge.instance.attachReader(_openInLane);
+    // 「设置 → 布局」在工作台在场时改的是**这份活的**状态（直接写盘会被下面的
+    // 去抖落盘覆盖回去），登记与注销见 `WorkspaceLayoutBridge`。
+    WorkspaceLayoutBridge.instance.attach(_cubit);
     _stateSubscription = _cubit.stream.listen(_handleStateChanged);
     unawaited(_restoreLayout());
   }
@@ -123,6 +125,7 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
       WorkspaceNavigationBridge.instance.detachWorkspaceRoute(route);
     }
     _stateSubscription?.cancel();
+    WorkspaceLayoutBridge.instance.detach(_cubit);
     // 退出前把压着的改动写掉：拖完立刻关窗口这一下正好会落在去抖窗口里。
     unawaited(_persistence?.flush() ?? Future<void>.value());
     _persistence?.dispose();
@@ -135,7 +138,8 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
 
   Future<void> _restoreLayout() async {
     try {
-      final store = widget.store ?? WorkspaceLayoutFileStore(await _dataDir());
+      final store = widget.store ??
+          WorkspaceLayoutFileStore(await workspaceLayoutDirectory());
       final persistence = WorkspaceLayoutPersistence(store: store);
       _persistence = persistence;
       final snapshot = await store.load();
@@ -149,15 +153,6 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
       // （`WorkspaceLayoutFileStore` 内部已经吞掉了坏文件，这里兜的是
       //  「拿不到数据目录」这类环境问题。）
     }
-  }
-
-  /// 应用数据目录。
-  ///
-  /// 与 ObjectBox 的库文件放同一个父目录：布局快照是同一类「应用自己的状态」，
-  /// 放在一起也让「备份 / 清理」只需要认一个地方。
-  Future<Directory> _dataDir() async {
-    final support = await getApplicationSupportDirectory();
-    return Directory('${support.path}${Platform.pathSeparator}zephyr');
   }
 
   void _handleStateChanged(WorkspaceState state) {
@@ -216,6 +211,12 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
     if (!mounted) return;
     if (_cubit.state.isReaderFullscreen) {
       _cubit.exitReaderFullscreen();
+      return;
+    }
+    // 信息面板钉住时 `Esc` 先收面板（mimage 同款次序：面板在内容之上，
+    // 第一下 `Esc` 该撤最上面那层，而不是连人带板退出工作台）。
+    if (_cubit.state.infoPanelPinned) {
+      _cubit.setInfoPanelPinned(false);
       return;
     }
     final route = ModalRoute.of(context);
@@ -352,6 +353,7 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
                       WorkspaceTopChromeReveal(
                         onExit: _exitWorkspace,
                         onResetLayout: _resetLayout,
+                        triggerZone: state.interaction.revealZones.top,
                       ),
                   ],
                 ),

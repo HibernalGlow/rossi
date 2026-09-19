@@ -1,14 +1,29 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/type/enum.dart';
+import 'package:zephyr/util/text/chinese_convert.dart';
+import 'package:zephyr/widgets/comic_entry/models/models.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
+import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/workspace/method/open_comic_item.dart';
+import 'package:zephyr/workspace/method/shelf_entry_actions.dart';
+import 'package:zephyr/workspace/model/shelf_entry_menu_spec.dart';
+import 'package:zephyr/workspace/model/shelf_library_query.dart';
+import 'package:zephyr/workspace/widgets/cards/shelf_entry_context_menu.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
+import 'package:zephyr/workspace/widgets/library_view/library_view.dart';
+import 'package:zephyr/workspace/widgets/library_view/shelf_list_toolbar.dart';
 
-/// 真实阅读历史卡片（读取本地 ObjectBox 数据库，支持一键继续阅读）
-class HistoryShelfCard extends StatelessWidget {
+/// 阅读历史面板。视图部分与书签面板、文件管理器共用一套（`library_view`）。
+///
+/// 与书签面板的差别只在数据：历史带章节与页码，排序的「时间」是最后阅读，
+/// 另外它没有书签列表那一轨。
+class HistoryShelfCard extends StatefulWidget {
   final bool isExpanded;
   final VoidCallback onToggle;
 
@@ -29,10 +44,45 @@ class HistoryShelfCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  State<HistoryShelfCard> createState() => _HistoryShelfCardState();
+}
 
-    // 监听 ObjectBox 变化流
+class _HistoryShelfCardState extends State<HistoryShelfCard> {
+  static const _kDetailsColumns = [
+    LibraryColumn(key: 'chapter', label: '章节', width: 110),
+    LibraryColumn(key: 'source', label: '来源', width: 70),
+    LibraryColumn(key: 'time', label: '最后阅读', width: 90),
+  ];
+
+  final _searchController = TextEditingController();
+  LibraryViewMode _viewMode = LibraryViewMode.coverList;
+  ShelfSort _sort = const ShelfSort(field: ShelfSortField.time);
+  String _keyword = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  /// 繁简同搜，口径与书签面板一致。
+  String _normalize(String text) {
+    final lower = text.trim().toLowerCase();
+    if (lower.isEmpty) return '';
+    return t2s(lower);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // 条目的右键（触摸端长按）菜单。开关在「设置 → 书架 → 卡片交互」，
+    // 默认开；关掉时连手势都不挂（见 ShelfEntryContextMenuRegion.enabled）。
+    // 用 watch 而不是 read：在设置页把它关掉后切回来，卡片当场就该没反应。
+    final menuEnabled = context
+        .watch<GlobalSettingCubit>()
+        .state
+        .bookshelfSetting
+        .shelfCardContextMenu;
+
     final queryBuilder = objectbox.unifiedHistoryBox
         .query(UnifiedComicHistory_.deleted.equals(false))
         .order(UnifiedComicHistory_.lastReadAt, flags: Order.descending);
@@ -40,235 +90,243 @@ class HistoryShelfCard extends StatelessWidget {
     return StreamBuilder<List<UnifiedComicHistory>>(
       stream: queryBuilder.watch(triggerImmediately: true).map((q) => q.find()),
       builder: (context, snapshot) {
-        final items = snapshot.data ?? [];
-
-        if (isStandalone) {
+        final body = _buildBody(
+          context,
+          snapshot.data ?? const [],
+          menuEnabled,
+        );
+        if (widget.isStandalone) {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // 顶部信息条
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 6,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.history_rounded,
-                        size: 18,
-                        color: theme.colorScheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '阅读历史',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '${items.length} 条',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1),
-                Expanded(
-                  child: items.isEmpty
-                      ? Center(
-                          child: Text(
-                            '暂无阅读历史',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.outline,
-                            ),
-                          ),
-                        )
-                      : ListView.separated(
-                          itemCount: items.length,
-                          separatorBuilder: (context, index) =>
-                              const Divider(height: 1, indent: 46),
-                          itemBuilder: (context, index) {
-                            final item = items[index];
-                            return _buildHistoryTile(context, item);
-                          },
-                        ),
-                ),
-              ],
-            ),
+            child: body,
           );
         }
-
         return CollapsibleCard(
           cardId: 'history',
           title: '阅读历史 (History)',
           icon: Icons.history_rounded,
-          isExpanded: isExpanded,
-          onToggle: onToggle,
-          onMoveUp: onMoveUp,
-          onMoveDown: onMoveDown,
-          onHide: onHide,
-          trailing: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              '${items.length} 条',
-              style: theme.textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          child: items.isEmpty
-              ? Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24.0),
-                  child: Center(
-                    child: Text(
-                      '暂无阅读历史',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.outline,
-                      ),
-                    ),
-                  ),
-                )
-              : ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: items.length > 15 ? 15 : items.length,
-                  separatorBuilder: (context, index) =>
-                      const Divider(height: 1, indent: 46),
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return _buildHistoryTile(context, item);
-                  },
-                ),
+          isExpanded: widget.isExpanded,
+          onToggle: widget.onToggle,
+          onMoveUp: widget.onMoveUp,
+          onMoveDown: widget.onMoveDown,
+          onHide: widget.onHide,
+          child: body,
         );
       },
     );
   }
 
-  Widget _buildHistoryTile(BuildContext context, UnifiedComicHistory item) {
-    final theme = Theme.of(context);
+  Widget _buildBody(
+    BuildContext context,
+    List<UnifiedComicHistory> all,
+    bool menuEnabled,
+  ) {
+    final entities = <String, UnifiedComicHistory>{
+      for (final item in all) item.uniqueKey: item,
+    };
+    final visible = searchAndSortShelf(
+      [for (final item in all) _searchable(item)],
+      keyword: _keyword,
+      sort: _sort,
+      normalize: _normalize,
+    );
+    final rows = [
+      for (final entry in visible)
+        if (entities[entry.key] case final item?) _row(item),
+    ];
 
-    final progressText = item.chapterTitle.isNotEmpty
-        ? '${item.chapterTitle} · P.${item.pageIndex + 1}'
-        : '第 ${item.pageIndex + 1} 页';
-
-    final timeAgo = _formatTimeAgo(item.lastReadAt);
-
-    return InkWell(
-      onTap: () => _open(context, item),
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 4.0),
-        child: Row(
-          children: [
-            // 封面缩略图
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: SizedBox(
-                width: 38,
-                height: 50,
-                child: CoverWidget(
-                  fileServer: '',
-                  path: item.cover,
-                  id: item.comicId,
-                  pictureType: PictureType.cover,
-                  from: item.source,
-                  width: 38,
-                  height: 50,
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            // 历史进度
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.title,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.bookmark_outline_rounded,
-                        size: 12,
-                        color: theme.colorScheme.primary,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          progressText,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    timeAgo,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.outline,
-                      fontSize: 10,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.play_circle_outline_rounded, size: 22),
-              color: theme.colorScheme.primary,
-              tooltip: '继续阅读',
-              onPressed: () => _open(context, item),
-            ),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ShelfListToolbar(
+          viewMode: _viewMode,
+          onViewMode: (mode) => setState(() => _viewMode = mode),
+          sort: _sort,
+          onSort: (sort) => setState(() => _sort = sort),
+          searchController: _searchController,
+          onKeywordChanged: (value) => setState(() => _keyword = value),
+          count: rows.length,
         ),
+        const SizedBox(height: 6),
+        if (widget.isStandalone)
+          Expanded(child: _buildList(context, rows, menuEnabled))
+        else
+          _buildList(context, rows, menuEnabled),
+      ],
+    );
+  }
+
+  Widget _buildList(
+    BuildContext context,
+    List<LibraryEntry> rows,
+    bool menuEnabled,
+  ) {
+    return LibraryEntryList(
+      mode: _viewMode,
+      entries: rows,
+      standalone: widget.isStandalone,
+      emptyText: rows.isEmpty && _keyword.trim().isNotEmpty
+          ? '没有匹配的阅读记录'
+          : '暂无阅读历史',
+      onTap: (row) => _open(context, row.source! as UnifiedComicHistory),
+      titleColumn: const LibraryColumn(
+        key: 'title',
+        label: '标题',
+        flex: LibraryViewLayout.detailsTitleFlex,
+      ),
+      columns: _kDetailsColumns,
+      sortKey: switch (_sort.field) {
+        ShelfSortField.title => 'title',
+        ShelfSortField.author => 'author',
+        ShelfSortField.source => 'source',
+        ShelfSortField.time => 'time',
+      },
+      sortAscending: _sort.ascending,
+      onSort: (key) => setState(
+        () => _sort = _sort.toggled(ShelfSortField.values.byName(key)),
+      ),
+      wrapRow: (context, row, child) => ShelfEntryContextMenuRegion(
+        enabled: menuEnabled,
+        inputBuilder: () => _menuInput(row.source! as UnifiedComicHistory),
+        onAction: (context, action) =>
+            _onMenuAction(context, row.source! as UnifiedComicHistory, action),
+        child: child,
       ),
     );
   }
 
-  /// 打开历史条目。本地来源与插件来源的分岔在 [openComicItem] 里统一处理 ——
-  /// 这里曾经无条件推详情页，本地漫画会被当成「插件 id = local」而加载失败。
+  ShelfSearchable _searchable(UnifiedComicHistory item) {
+    final author = shelfCreatorName(item.creator);
+    return ShelfSearchable(
+      key: item.uniqueKey,
+      title: item.title,
+      author: author,
+      source: item.source,
+      time: item.lastReadAt,
+      haystack: shelfHaystack(
+        comicId: item.comicId,
+        title: item.title,
+        description: item.description,
+        creator: item.creator,
+        titleMeta: item.titleMeta,
+        metadata: item.metadata,
+      ),
+    );
+  }
+
+  LibraryEntry _row(UnifiedComicHistory item) {
+    final theme = Theme.of(context);
+    final cover = unifiedComicFromUnifiedHistory(item).cover;
+    final source = item.source.toUpperCase();
+    final time = formatShelfTime(item.lastReadAt);
+    return LibraryEntry(
+      key: item.uniqueKey,
+      title: item.title,
+      source: item,
+      subtitle: _progressText(item),
+      tertiary: time,
+      metaText: time,
+      media:
+          (
+            context, {
+            required width,
+            required height,
+            required radius,
+            required fit,
+          }) => ClipRRect(
+            borderRadius: radius,
+            child: CoverWidget(
+              fileServer: cover.url,
+              path: cover.cachePath,
+              id: item.comicId,
+              pictureType: PictureType.cover,
+              from: item.source,
+              roundedCorner: false,
+              width: width,
+              height: height,
+            ),
+          ),
+      badge: Icon(
+        Icons.menu_book_rounded,
+        color: theme.colorScheme.primary,
+      ),
+      thumbModes: LibraryViewMode.values.toSet(),
+      detailCells: [
+        item.chapterTitle.isEmpty ? '—' : item.chapterTitle,
+        source,
+        time,
+      ],
+      trailing: IconButton(
+        icon: const Icon(Icons.play_circle_outline_rounded, size: 22),
+        color: theme.colorScheme.primary,
+        tooltip: '继续阅读',
+        visualDensity: VisualDensity.compact,
+        onPressed: () => _open(context, item),
+      ),
+    );
+  }
+
+  String _progressText(UnifiedComicHistory item) {
+    final page = 'P.${item.pageIndex + 1}';
+    return item.chapterTitle.isEmpty
+        ? '${item.source.toUpperCase()} · 第 ${item.pageIndex + 1} 页'
+        : '${item.chapterTitle} · $page';
+  }
+
   void _open(BuildContext context, UnifiedComicHistory item) {
+    // 本地来源与插件来源的分岔在 openComicItem 里统一处理 —— 这里曾经
+    // 无条件推详情页，本地漫画会被当成「插件 id = local」而加载失败。
     openComicItem(context, comicId: item.comicId, from: item.source);
   }
 
-  String _formatTimeAgo(DateTime time) {
-    final diff = DateTime.now().difference(time);
-    if (diff.inMinutes < 1) return '刚刚';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} 分钟前';
-    if (diff.inHours < 24) return '${diff.inHours} 小时前';
-    if (diff.inDays < 7) return '${diff.inDays} 天前';
-    return '${time.month}月${time.day}日';
+  ShelfEntryMenuInput _menuInput(UnifiedComicHistory item) {
+    return ShelfEntryMenuInput(
+      kind: ShelfEntryKind.history,
+      canOpenInFileManagerTab: resolveFileManagerTabPath(item.comicId) != null,
+      isFavorite: isShelfEntryFavorite(item.uniqueKey),
+    );
+  }
+
+  void _onMenuAction(
+    BuildContext context,
+    UnifiedComicHistory item,
+    ShelfEntryAction action,
+  ) {
+    switch (action) {
+      case ShelfEntryAction.open:
+        _open(context, item);
+      case ShelfEntryAction.openInFileManagerTab:
+        openShelfEntryInFileManagerTab(context, comicId: item.comicId);
+      case ShelfEntryAction.copyTitle:
+        copyShelfEntryTitle(context, title: item.title);
+      case ShelfEntryAction.copyLink:
+        copyShelfEntryLink(context, source: item.source, comicId: item.comicId);
+      case ShelfEntryAction.toggleFavorite:
+        // 菜单里这一项在「已收藏」时是灰的，走到这里就一定是「还没收藏」。
+        // 还是再查一次：菜单弹出与用户点下之间隔着一次数据库写入不是不可能。
+        if (isShelfEntryFavorite(item.uniqueKey)) return;
+        addHistoryEntryToFavorites(item);
+        showSuccessToast(
+          t.shelfMenu.favoriteAdded(title: item.title),
+          context: context,
+        );
+      case ShelfEntryAction.remove:
+        _remove(context, item);
+    }
+  }
+
+  /// 「从历史记录移除」：破坏性 ⇒ 先问一句，再落库，最后才提示成功。
+  Future<void> _remove(BuildContext context, UnifiedComicHistory item) async {
+    final confirmed = await confirmShelfEntryRemoval(
+      context,
+      kind: ShelfEntryKind.history,
+      title: item.title,
+    );
+    if (!confirmed || !context.mounted) return;
+    removeShelfEntryFromHistory(item.uniqueKey);
+    showSuccessToast(
+      t.shelfMenu.historyRemoved(title: item.title),
+      context: context,
+    );
   }
 }
