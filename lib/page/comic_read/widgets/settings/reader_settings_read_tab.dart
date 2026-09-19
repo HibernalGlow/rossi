@@ -555,41 +555,32 @@ class _SuperResolutionSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final session = LocalReadSession.instance;
     final presenter = session.presenter;
-    if (presenter == null) {
-      return const SizedBox.shrink();
-    }
-
+    final apple = !kIsWeb && (Platform.isMacOS || Platform.isIOS);
+    Widget section() => _SettingsSection(
+      title: 'AI 超分辨率',
+      children: [
+        if (presenter != null && presenter.canPresent) ...[
+          _SettingsSwitchTile(
+            title: '启用 AI 超分辨率',
+            subtitle: '后台处理当前页，完成后替换画面',
+            value: presenter.isUpscaleEnabled,
+            onChanged: presenter.setUpscaleEnabled,
+          ),
+          if (presenter.isUpscaleEnabled)
+            _SettingsSwitchTile(
+              title: '对比原图',
+              subtitle: '临时查看原图，关闭后恢复超分图',
+              value: presenter.isOriginalPreview,
+              onChanged: presenter.setOriginalPreview,
+            ),
+        ],
+        if (apple) const AppleSuperResolutionSettings(),
+      ],
+    );
+    if (presenter == null) return apple ? section() : const SizedBox.shrink();
     return ListenableBuilder(
       listenable: presenter,
-      builder: (context, _) {
-        if (!presenter.canPresent) {
-          return const SizedBox.shrink();
-        }
-        final isUpscale = presenter.isUpscaleEnabled;
-        final isOriginal = presenter.isOriginalPreview;
-        return _SettingsSection(
-          title: 'AI 超分辨率 (mImageViewer 级联状态机)',
-          children: [
-            _SettingsSwitchTile(
-              title: '启用 AI 超分辨率',
-              subtitle: isUpscale
-                  ? '后台自动异步推理并毫秒级平滑替换当前页画面'
-                  : '未启用：仅显示原始分辨率图像',
-              value: isUpscale,
-              onChanged: (val) => presenter.setUpscaleEnabled(val),
-            ),
-            if (isUpscale)
-              _SettingsSwitchTile(
-                title: '原图对比旁路 (Original Preview)',
-                subtitle: isOriginal
-                    ? '已旁路超分：当前强制显示未经放大的 raw 原图'
-                    : '未旁路：当前正呈现高质量超分辨率增强画面',
-                value: isOriginal,
-                onChanged: (val) => presenter.setOriginalPreview(val),
-              ),
-          ],
-        );
-      },
+      builder: (_, _) => section(),
     );
   }
 }

@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:zephyr/page/setting/real_sr/widgets/apple_super_resolution_settings.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';

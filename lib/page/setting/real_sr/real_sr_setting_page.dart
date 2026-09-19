@@ -11,7 +11,7 @@ import 'package:zephyr/page/setting/real_sr/service/android_ncnn_model_config.da
 import 'package:zephyr/page/setting/real_sr/service/desktop_ncnn_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
-import 'package:zephyr/page/setting/real_sr/service/mimage_onnx_model_config.dart';
+import 'package:zephyr/page/setting/real_sr/widgets/apple_super_resolution_settings.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
@@ -54,7 +54,6 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
   AndroidNcnnMode _desktopNcnnMode = DesktopNcnnModelConfig.defaultMode;
   AndroidNcnnNoise _desktopNcnnNoise = DesktopNcnnModelConfig.defaultNoise;
   RealSrScale _scale = RealSrScale.x2;
-  MImageOnnxModel _mImageModel = MImageOnnxModelConfig.defaultModel;
   bool _isAvailable = false;
   bool _downloading = false;
   bool _importing = false;
@@ -83,11 +82,17 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
   @override
   void initState() {
     super.initState();
+    RealSrSettings.modelChanges.addListener(_refreshAvailability);
     _loadSettings();
   }
 
+  @override
+  void dispose() {
+    RealSrSettings.modelChanges.removeListener(_refreshAvailability);
+    super.dispose();
+  }
+
   Future<void> _loadSettings() async {
-    final mImageModel = await RealSrSettings.loadMImageModel();
     final results = await Future.wait([
       RealSrSettings.loadAutoUpscale(),
       RealSrSettings.loadResolutionThreshold(),
@@ -109,7 +114,6 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
       _desktopNcnnNoise = results[5] as AndroidNcnnNoise;
       _scale = results[6] as RealSrScale;
       _isAvailable = results[7] as bool;
-      _mImageModel = mImageModel;
       _loading = false;
     });
   }
@@ -147,12 +151,6 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
   Future<void> _setScale(RealSrScale value) async {
     await RealSrSettings.saveScale(value);
     setState(() => _scale = value);
-  }
-
-  Future<void> _setMImageModel(MImageOnnxModel value) async {
-    await RealSrSettings.saveMImageModel(value);
-    setState(() => _mImageModel = value);
-    await _refreshAvailability();
   }
 
   Future<void> _refreshAvailability() async {
@@ -265,37 +263,7 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
 
   List<Widget> _buildModelItems() {
     if (_usesCoreML) {
-      return [
-        ListTile(
-          leading: const Icon(Icons.speed_outlined),
-          title: const Text('mImage ONNX 模型'),
-          subtitle: Text(
-            'Apple Silicon 使用 CoreML（Neural Engine/GPU），原生 ${_mImageModel.scale}x',
-          ),
-          trailing: FluentDropdown<MImageOnnxModel>(
-            value: _mImageModel,
-            displayValue: _mImageModel.label,
-            items: {
-              for (final model in MImageOnnxModel.values) model: model.label,
-            },
-            onChanged: _setMImageModel,
-          ),
-        ),
-        ListTile(
-          leading: const Icon(Icons.healing_outlined),
-          title: const Text('降噪'),
-          subtitle: Text(
-            _mImageModel.supportsDenoise
-                ? 'Real-CUGAN conservative（模型内置）'
-                : '由 mImage 模型固定，当前模型不暴露额外降噪参数',
-          ),
-        ),
-        ListTile(
-          leading: const Icon(Icons.grid_view_outlined),
-          title: const Text('倍率'),
-          subtitle: Text('模型原生 ${_mImageModel.scale}x，不能把 2x 模型伪装成 4x'),
-        ),
-      ];
+      return const [AppleSuperResolutionSettings()];
     }
 
     if (Platform.isAndroid) {
@@ -536,10 +504,12 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
 
                 const SizedBox(height: 8),
                 const Divider(height: 1, thickness: 0.3),
-                settingSectionTitle(context, t.realSr.modelManagementSection),
-                _buildModelManagementTile(),
-                _buildManualDownloadTile(),
-                _buildImportModelTile(),
+                if (!_usesCoreML) ...[
+                  settingSectionTitle(context, t.realSr.modelManagementSection),
+                  _buildModelManagementTile(),
+                  _buildManualDownloadTile(),
+                  _buildImportModelTile(),
+                ],
                 const SizedBox(height: 32),
               ],
             ),
