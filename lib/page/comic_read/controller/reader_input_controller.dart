@@ -12,6 +12,7 @@ import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/method/key.dart';
 import 'package:zephyr/page/comic_read/method/reader_gesture_logic.dart';
 import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
+import 'package:zephyr/workspace/widgets/reader/workspace_reader_fullscreen_scope.dart';
 
 /// 阅读器输入控制器。
 ///
@@ -135,9 +136,24 @@ class ReaderInputController {
     );
   }
 
-  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) =>
+      handleKeyEvent(event);
+
+  /// 阅读器的按键处理入口。
+  ///
+  /// 它有两个入口，逻辑**只有这一处**：① 挂在本子树的 `Focus` 上
+  /// （见 [buildInteractiveViewer]）；② 经 `ReaderInputBridge` 登记给工作台 ——
+  /// 当焦点离开阅读器子树时（例如打开阅读设置面板，模态路由会把主焦点拿走），
+  /// 由工作台把冒泡上来的按键转交到这里。于是「左右键被设置面板吃掉」不再发生，
+  /// 而键位判断仍集中在 `key.dart`。
+  KeyEventResult handleKeyEvent(KeyEvent event) {
     if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.f11) {
-      unawaited(_onToggleDesktopFullscreen());
+      final fullscreenScope = ReaderFullscreenScope.maybeOf(context);
+      if (fullscreenScope != null) {
+        fullscreenScope.onToggleFullscreen();
+      } else {
+        unawaited(_onToggleDesktopFullscreen());
+      }
       return KeyEventResult.handled;
     }
     final handled = handleGlobalKeyEvent(event, actionController);
