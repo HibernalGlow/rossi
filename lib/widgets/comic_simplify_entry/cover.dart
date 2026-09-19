@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zephyr/config/global/theme_shape.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 
@@ -63,7 +64,12 @@ class CoverWidget extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.grey[200],
                     borderRadius: BorderRadius.circular(
-                      roundedCorner ? kComicCardBorderRadius : 0.0,
+                      roundedCorner
+                          ? themeRadius(
+                              context,
+                              fallback: kComicCardBorderRadius,
+                            )
+                          : 0.0,
                     ),
                   ),
                   child: Center(

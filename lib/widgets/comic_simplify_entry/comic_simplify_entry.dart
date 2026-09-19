@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/config/global/theme_shape.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:uuid/uuid.dart';
 import 'package:zephyr/type/enum.dart';
@@ -158,7 +159,9 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
     double height,
     Key coverKey,
   ) {
-    final circular = roundedCorner ? kComicCardBorderRadius : 0.0;
+    final circular = roundedCorner
+        ? themeRadius(context, fallback: kComicCardBorderRadius)
+        : 0.0;
     final globalSetting = context.watch<GlobalSettingCubit>().state;
     final pluginId = (info.source.trim().isNotEmpty ? info.source : info.from)
         .trim();
@@ -408,7 +411,9 @@ class ComicSimplifyEntry extends StatelessWidget {
     double width,
     double height,
   ) {
-    final circular = roundedCorner ? kComicCardBorderRadius : 0.0;
+    final circular = roundedCorner
+        ? themeRadius(context, fallback: kComicCardBorderRadius)
+        : 0.0;
     final primary = Theme.of(context).colorScheme.primary;
     final pluginId = (info.source.trim().isNotEmpty ? info.source : info.from)
         .trim();

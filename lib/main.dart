@@ -23,6 +23,8 @@ import 'package:window_manager/window_manager.dart';
 import 'package:worker_manager/worker_manager.dart';
 import 'package:zephyr/config/global/global.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/config/global/theme_shape.dart';
+import 'package:zephyr/util/theme/tweakcn_theme.dart';
 import 'package:zephyr/config/router/router.dart';
 import 'package:zephyr/cubit/plugin_registry_cubit.dart';
 import 'package:zephyr/gpu/page_turn_probe.dart';
@@ -130,16 +132,18 @@ class MyAlwaysLogFilter extends LogFilter {
 /// 是按**当前工作目录**解析的，于是加载的是仓库里那份旧库、而不是 App 包里那份新的。
 /// 修法是 `cd rust && cargo build -p windcore --release` 重新生成它。
 /// 但真正要修的是「黑屏且零线索」这件事本身。
-Future<void> _writeBootLog(String stage, [Object? error, StackTrace? stack]) async {
+Future<void> _writeBootLog(
+  String stage, [
+  Object? error,
+  StackTrace? stack,
+]) async {
   try {
     final String text = error == null
         ? '${DateTime.now().toIso8601String()} [$stage]\n'
         : '${DateTime.now().toIso8601String()} [$stage] $error\n$stack\n\n';
-    await File('/tmp/breeze_boot.log').writeAsString(
-      text,
-      mode: FileMode.append,
-      flush: true,
-    );
+    await File(
+      '/tmp/breeze_boot.log',
+    ).writeAsString(text, mode: FileMode.append, flush: true);
   } catch (_) {
     // 连日志都写不出去时不再往上抛。
   }
@@ -165,8 +169,11 @@ void _runBootFailureApp(String stage, Object error, StackTrace stack) {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  const Icon(Icons.error_outline,
-                      color: Color(0xFFFF6B6B), size: 44),
+                  const Icon(
+                    Icons.error_outline,
+                    color: Color(0xFFFF6B6B),
+                    size: 44,
+                  ),
                   const SizedBox(height: 16),
                   const Text(
                     '应用启动失败',
@@ -179,17 +186,26 @@ void _runBootFailureApp(String stage, Object error, StackTrace stack) {
                   const SizedBox(height: 6),
                   SelectableText(
                     '阶段: $stage',
-                    style: const TextStyle(color: Color(0xFF8B949E), fontSize: 12),
+                    style: const TextStyle(
+                      color: Color(0xFF8B949E),
+                      fontSize: 12,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   SelectableText(
                     '$error',
-                    style: const TextStyle(color: Color(0xFFFF9C6B), fontSize: 13),
+                    style: const TextStyle(
+                      color: Color(0xFFFF9C6B),
+                      fontSize: 13,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   SelectableText(
                     '$stack',
-                    style: const TextStyle(color: Color(0xFF6E7681), fontSize: 10),
+                    style: const TextStyle(
+                      color: Color(0xFF6E7681),
+                      fontSize: 10,
+                    ),
                   ),
                 ],
               ),
@@ -889,6 +905,26 @@ class _MyAppState extends State<MyApp>
                 );
               }
 
+              // 导入的 tweakcn / shadcn 主题：只把**它给了值**的槽位盖上去，
+              // 其余仍走上面的 fromSeed / 动态取色。整套换掉 ColorScheme 不可行 ——
+              // 全仓组件读的是 M3 角色名，而 shadcn 只有二十来个扁平 token。
+              final tweakcn = globalSettingState.tweakcnThemeEnabled
+                  ? TweakcnTheme.decode(globalSettingState.tweakcnThemeJson)
+                  : null;
+              if (tweakcn != null) {
+                lightColorScheme = tweakcn.apply(
+                  lightColorScheme,
+                  Brightness.light,
+                );
+                darkColorScheme = tweakcn.apply(
+                  darkColorScheme,
+                  Brightness.dark,
+                );
+              }
+              // `--radius` 走 ThemeShapeScope 下去，玻璃与卡片自己按档位取；
+              // 主题没给就是接进来之前的 16。
+              final themeShapeRadius = tweakcn?.radius ?? kDefaultPanelRadius;
+
               final isLinuxDesktop = !kIsWeb && Platform.isLinux;
               const linuxFontFamily = 'Noto Sans CJK SC';
               const linuxFontFamilyFallback = <String>[
@@ -953,7 +989,13 @@ class _MyAppState extends State<MyApp>
                   // 第三方依赖仍有 legacy Material widget，需要这个桥接层提供旧主题
                   // 与本地化上下文；待依赖迁移后可移除。
                   // ignore: deprecated_member_use
-                  return MaterialUiCompatibilityBridge(child: content);
+                  return MaterialUiCompatibilityBridge(
+                    // 主题形状放在最外层：玻璃 / 卡片在任意深度都能读到同一个基准圆角。
+                    child: ThemeShapeScope(
+                      radius: themeShapeRadius,
+                      child: content,
+                    ),
+                  );
                 },
                 locale: TranslationProvider.of(context).flutterLocale,
                 title: appDisplayName,

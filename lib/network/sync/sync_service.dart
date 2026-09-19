@@ -655,6 +655,8 @@ Map<String, Map<String, dynamic>> _extractSyncableSettingsBlocks(
       'themeMode': json['themeMode'],
       'isAMOLED': json['isAMOLED'],
       'seedColor': json['seedColor'],
+      'tweakcnThemeJson': json['tweakcnThemeJson'],
+      'tweakcnThemeEnabled': json['tweakcnThemeEnabled'],
       'locale': json['locale'],
       'localeFollowsSystem': json['localeFollowsSystem'],
       'welcomePageNum': json['welcomePageNum'],
@@ -671,6 +673,7 @@ Map<String, Map<String, dynamic>> _extractSyncableSettingsBlocks(
       'downloadDelayMs': json['downloadDelayMs'],
       'downloadAutoRetryCount': json['downloadAutoRetryCount'],
       'autoFavoriteOnDownload': json['autoFavoriteOnDownload'],
+      'writeDownloadMetadataFile': json['writeDownloadMetadataFile'],
       'oldPageRollbackEnabled': json['oldPageRollbackEnabled'],
       'cloudFavoritePreferred': json['cloudFavoritePreferred'],
       'autoFollowOnCollect': json['autoFollowOnCollect'],
@@ -1526,4 +1529,3 @@ GlobalSettingState applySyncableBlockDataForTest(
   };
   return _applySyncableBlocksToState(localState, blocks);
 }
-

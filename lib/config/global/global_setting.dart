@@ -162,6 +162,12 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     @Default(ThemeMode.system) ThemeMode themeMode,
     @Default(true) bool isAMOLED,
     @ColorConverter() @Default(Color(0xFFEF5350)) Color seedColor,
+    // 导入的 tweakcn / shadcn 主题：`TweakcnTheme.encode()` 的 JSON 串，空串 = 未导入。
+    // 存**解析后的 token 表**而不是原始 CSS：解析只在导入那一次发生，
+    // 每次主题重建只是 jsonDecode，且同步 / 导出时人能直接读懂。
+    @Default('') String tweakcnThemeJson,
+    // 导入的主题是否生效。与 [tweakcnThemeJson] 分开，是为了「先导入存着、随时开关」。
+    @Default(false) bool tweakcnThemeEnabled,
     @Default(0) int themeInitState,
     @LocaleConverter() @Default(Locale('zh', 'CN')) Locale locale,
     @Default(true) bool localeFollowsSystem,
@@ -220,7 +226,8 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     @Default(ToastSettingState()) ToastSettingState toastSetting,
     @Default(SwitchToastSettingState())
     SwitchToastSettingState switchToastSetting,
-    @Default(FileManagerSettingState()) FileManagerSettingState fileManagerSetting,
+    @Default(FileManagerSettingState())
+    FileManagerSettingState fileManagerSetting,
     @Default(OperationBindingSettingState())
     OperationBindingSettingState operationBindingSetting,
   }) = _GlobalSettingState;
@@ -334,7 +341,9 @@ abstract class SwitchToastSettingState with _$SwitchToastSettingState {
     /// 模板变量为 `{{book.*}}` / `{{page.*}}`，语义与上游
     /// `renderReaderSwitchToastTemplate` 逐条对照（见
     /// `lib/util/toast/switch_toast_template.dart`）。
-    @Default('已切换到 {{book.displayName}}（第 {{book.currentPageDisplay}} / {{book.totalPages}} 页）')
+    @Default(
+      '已切换到 {{book.displayName}}（第 {{book.currentPageDisplay}} / {{book.totalPages}} 页）',
+    )
     String bookTitleTemplate,
     @Default('路径：{{book.path}}') String bookDescriptionTemplate,
     @Default('第 {{page.indexDisplay}} / {{book.totalPages}} 页')
@@ -586,10 +595,6 @@ abstract class ReadSettingState with _$ReadSettingState {
     // 这里先按不回归既有观感取值，想要 neo 那一档在顶栏面板里点一下就有。
     @Default(ReaderWidePageStretch.none)
     ReaderWidePageStretch readerWidePageStretch,
-    // 横向页视为单页：宽页不再与下一页配成一对，独占一帧。
-    @Default(false) bool doublePageTreatWideAsSingle,
-    // 尾页独立显示 —— 与 `doublePageLeadingBlank` 同一套做法，只是补在末尾。
-    @Default(false) bool doublePageTrailingBlank,
   }) = _ReadSettingState;
 
   factory ReadSettingState.fromJson(Map<String, dynamic> json) =>
@@ -715,9 +720,7 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
   }
 
   void updateOperationBindingSetting(
-    OperationBindingSettingState Function(
-      OperationBindingSettingState current
-    )
+    OperationBindingSettingState Function(OperationBindingSettingState current)
     updates,
   ) {
     updateState(

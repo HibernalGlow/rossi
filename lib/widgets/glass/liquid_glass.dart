@@ -23,6 +23,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/config/global/theme_shape.dart';
 
 /// 材质权重。
 ///
@@ -200,7 +201,7 @@ class LiquidGlassSurface extends StatelessWidget {
     required this.child,
     this.thickness = LiquidGlassThickness.regular,
     this.borderRadius,
-    this.radius = 16,
+    this.radius,
     this.lightAngle = LiquidGlassDefaults.lightAngle,
     this.opacity = 1.0,
     this.enabled = true,
@@ -216,8 +217,9 @@ class LiquidGlassSurface extends StatelessWidget {
   /// 显式圆角；不传则用 [radius] 生成四角等值圆角。
   final BorderRadius? borderRadius;
 
-  /// [borderRadius] 的简写。
-  final double radius;
+  /// [borderRadius] 的简写。null = 跟主题的面板基准圆角
+  /// （导入的 tweakcn 主题给了 `--radius` 时就是那个值，否则 16）。
+  final double? radius;
 
   /// 光照角（度），见 [LiquidGlassDefaults.lightAngle]。
   final double lightAngle;
@@ -240,7 +242,8 @@ class LiquidGlassSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final media = MediaQuery.maybeOf(context);
-    final shape = borderRadius ?? BorderRadius.circular(radius);
+    final shape =
+        borderRadius ?? BorderRadius.circular(radius ?? themeRadius(context));
     final degrade =
         !enabled ||
         (media?.highContrast ?? false) ||
