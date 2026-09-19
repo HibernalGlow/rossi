@@ -144,6 +144,36 @@ class RealSrSettings {
     return 1;
   }
 
+  /// 给定平台形态时可选的阈值档位。纯函数，[isDesktop] 显式传入是为了能在
+  /// 任意平台上验证**移动分支**（桌面机器只能跑到桌面那一支）。
+  static List<RealSrResolutionThreshold> availableThresholdsFor({
+    required bool isDesktop,
+  }) => isDesktop
+      ? RealSrResolutionThreshold.values
+      : const [
+          RealSrResolutionThreshold.p540,
+          RealSrResolutionThreshold.p720,
+          RealSrResolutionThreshold.p1080,
+        ];
+
+  /// 当前平台可选的阈值档位。
+  static List<RealSrResolutionThreshold> get availableThresholds =>
+      availableThresholdsFor(isDesktop: _isDesktop);
+
+  /// 把存储值夹进本平台上限，与 [loadResolutionThreshold] 的夹取规则同源。
+  ///
+  /// 设置页与阅读器面板**必须**用同一个结果：两处各算一遍的话，
+  /// 迟早会出现「下拉显示 1080、写回的却是 2160」这种看起来没生效的怪象。
+  static RealSrResolutionThreshold effectiveThreshold(
+    RealSrResolutionThreshold stored, {
+    bool? isDesktop,
+  }) {
+    final available = availableThresholdsFor(
+      isDesktop: isDesktop ?? _isDesktop,
+    );
+    return available.contains(stored) ? stored : available.last;
+  }
+
   static Future<bool> loadAutoUpscale() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_keyAutoUpscale) ?? false;

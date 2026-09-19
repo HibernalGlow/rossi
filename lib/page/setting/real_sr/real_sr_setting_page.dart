@@ -61,23 +61,13 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
 
   bool get _usesCoreML => Platform.isIOS || Platform.isMacOS;
 
-  List<RealSrResolutionThreshold> get _availableThresholds {
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      return RealSrResolutionThreshold.values;
-    }
-    return const [
-      RealSrResolutionThreshold.p540,
-      RealSrResolutionThreshold.p720,
-      RealSrResolutionThreshold.p1080,
-    ];
-  }
+  // 可用档位与夹取规则统一由 RealSrSettings 提供 —— 阅读器面板用同一份，
+  // 两处各写一遍就会漂移（见 effectiveThreshold 的注释）。
+  List<RealSrResolutionThreshold> get _availableThresholds =>
+      RealSrSettings.availableThresholds;
 
-  RealSrResolutionThreshold get _effectiveThreshold {
-    if (_availableThresholds.contains(_resolutionThreshold)) {
-      return _resolutionThreshold;
-    }
-    return RealSrResolutionThreshold.p1080;
-  }
+  RealSrResolutionThreshold get _effectiveThreshold =>
+      RealSrSettings.effectiveThreshold(_resolutionThreshold);
 
   @override
   void initState() {
