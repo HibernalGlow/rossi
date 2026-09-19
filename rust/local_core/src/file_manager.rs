@@ -260,7 +260,30 @@ pub struct FileManagerTab {
     pub settings: FileManagerSettings,
     pub common_settings: FileManagerSettings,
     pub active_view_state_id: Option<String>,
+    /// 搜索结果列表。非空时这个页签画的就是这份命中，而不是 `path` 那一层
+    /// （NeoView 的 `virtual://search` 页签）。
+    ///
+    /// 命中存在核心里而不是 UI 里，为的是让**列表只有一个真本**：换布局、重建卡片
+    /// 或别的页签切回来，看到的仍是同一份结果；陈旧判定也才能用会话的 generation。
+    pub search: Option<FileManagerSearchListing>,
 }
+
+/// 一次搜索落在页签上的结果。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileManagerSearchListing {
+    /// 搜索根。结果里的条目都在这下面，页签的 `path` 也停在这里。
+    pub root: PathBuf,
+    /// 这批命中对应的查询，用于说明与「重新搜索」。
+    pub query: String,
+    pub entries: Vec<FileManagerEntry>,
+    pub scanned: usize,
+    pub matched: usize,
+    pub truncated: bool,
+    pub cancelled: bool,
+}
+
+/// 页签标题里最多露出多少个搜索词。再长就该去输入框里看，而不是把页签条撑开。
+const SEARCH_TITLE_QUERY_CHARS: usize = 24;
 
 impl FileManagerTab {
     fn new(id: u64, path: PathBuf) -> Self {
@@ -273,10 +296,25 @@ impl FileManagerTab {
             settings: FileManagerSettings::default(),
             common_settings: FileManagerSettings::default(),
             active_view_state_id: None,
+            search: None,
         }
     }
 
     pub fn title(&self) -> String {
+        if let Some(search) = &self.search {
+            // NeoView 的 `searchTabTitle`：有词就露词，没词（纯条件筛选）叫「搜索结果」。
+            let query = search.query.trim();
+            if query.is_empty() {
+                return "搜索结果".to_string();
+            }
+            let short: String = query.chars().take(SEARCH_TITLE_QUERY_CHARS).collect();
+            let needs_ellipsis = query.chars().count() > SEARCH_TITLE_QUERY_CHARS;
+            return if needs_ellipsis {
+                format!("搜索: {short}…")
+            } else {
+                format!("搜索: {short}")
+            };
+        }
         self.path
             .file_name()
             .and_then(|name| name.to_str())
@@ -714,6 +752,10 @@ impl FileManagerState {
         let query = query.into().trim().to_owned();
         if self.tabs[self.active_tab].settings.search_query != query {
             self.tabs[self.active_tab].settings.search_query = query;
+            // 词都清空了，上一批命中就不该继续占着这个页签。
+            if self.tabs[self.active_tab].settings.search_query.is_empty() {
+                self.tabs[self.active_tab].search = None;
+            }
             self.bump_generation();
         }
     }
@@ -733,8 +775,14 @@ impl FileManagerState {
     }
 
     pub fn set_search_include_subfolders(&mut self, enabled: bool) {
-        if self.tabs[self.active_tab].settings.search_include_subfolders != enabled {
-            self.tabs[self.active_tab].settings.search_include_subfolders = enabled;
+        if self.tabs[self.active_tab]
+            .settings
+            .search_include_subfolders
+            != enabled
+        {
+            self.tabs[self.active_tab]
+                .settings
+                .search_include_subfolders = enabled;
             self.bump_generation();
         }
     }
@@ -809,6 +857,9 @@ impl FileManagerState {
         tab.back.push(previous);
         tab.forward.clear();
         tab.settings.search_query.clear();
+        // 导航即离开搜索结果：命中列表属于「上一次搜索的那个根」，跟着新目录走
+        // 会让人以为搜遍全盘只有一本。
+        tab.search = None;
         let current_path = self.tabs[self.active_tab].path.clone();
         self.transition_view_state_for_path(&current_path);
         self.bump_generation();
@@ -823,6 +874,9 @@ impl FileManagerState {
         let current = std::mem::replace(&mut tab.path, previous);
         tab.forward.push(current);
         tab.settings.search_query.clear();
+        // 导航即离开搜索结果：命中列表属于「上一次搜索的那个根」，跟着新目录走
+        // 会让人以为搜遍全盘只有一本。
+        tab.search = None;
         let current_path = self.tabs[self.active_tab].path.clone();
         self.transition_view_state_for_path(&current_path);
         self.bump_generation();
@@ -837,6 +891,9 @@ impl FileManagerState {
         let current = std::mem::replace(&mut tab.path, next);
         tab.back.push(current);
         tab.settings.search_query.clear();
+        // 导航即离开搜索结果：命中列表属于「上一次搜索的那个根」，跟着新目录走
+        // 会让人以为搜遍全盘只有一本。
+        tab.search = None;
         let current_path = self.tabs[self.active_tab].path.clone();
         self.transition_view_state_for_path(&current_path);
         self.bump_generation();
@@ -1117,6 +1174,11 @@ impl FileManagerState {
 
     pub fn entries(&self) -> Result<Vec<FileManagerEntry>> {
         let settings = &self.tabs[self.active_tab].settings;
+        // 搜索结果页签：列表就是上一次遍历交出的命中，不再枚举当前目录。
+        // 「列表只有一份真本」是这里的目的 —— UI 不再自己揣一份结果数组。
+        if let Some(search) = &self.tabs[self.active_tab].search {
+            return Ok(search.entries.clone());
+        }
         // 词元在整份列表上复用，只在解析查询时 lowercase 一次；逐条目再解析会把
         // O(条目) 变成 O(条目 × 查询长度) 的分配。
         let tokens = crate::search_query::parse(&settings.search_query);
@@ -1148,6 +1210,44 @@ impl FileManagerState {
             root: self.active_path().to_path_buf(),
             settings: self.tabs[self.active_tab].settings.clone(),
         }
+    }
+
+    /// 把一次遍历的结果交给当前页签，于是它就是「搜索结果页签」。
+    pub fn set_search_listing(&mut self, listing: FileManagerSearchListing) {
+        self.tabs[self.active_tab].search = Some(listing);
+        self.bump_generation();
+    }
+
+    /// 退出搜索结果视图，回到页签自己那一层目录。
+    pub fn clear_search_listing(&mut self) {
+        if self.tabs[self.active_tab].search.take().is_some() {
+            self.bump_generation();
+        }
+    }
+
+    /// 把当前搜索结果另存成一个页签（保留查询、条件与命中），并切到它。
+    pub fn save_search_as_tab(&mut self) -> Result<u64> {
+        if self.tabs.len() >= MAX_FILE_MANAGER_TABS {
+            return Err(anyhow!("页签数量已达到上限 ({MAX_FILE_MANAGER_TABS})"));
+        }
+        let source = &self.tabs[self.active_tab];
+        if source.search.is_none() {
+            return Err(anyhow!("当前页签没有可保存的搜索结果"));
+        }
+        let id = self.next_tab_id;
+        self.next_tab_id = self.next_tab_id.saturating_add(1);
+        let mut copy = source.clone();
+        copy.id = id;
+        copy.pinned = false;
+        self.tabs.push(copy);
+        self.active_tab = self.tabs.len() - 1;
+        self.bump_generation();
+        Ok(id)
+    }
+
+    /// 当前页签的搜索结果摘要，用于快照投影与「能不能存成页签」。
+    pub fn search_listing(&self) -> Option<&FileManagerSearchListing> {
+        self.tabs[self.active_tab].search.as_ref()
     }
 
     fn bump_generation(&mut self) {
@@ -1261,17 +1361,15 @@ pub struct FileManagerSearchRequest {
     pub settings: FileManagerSettings,
 }
 
-/// 一条命中：条目本身，加上它在搜索根之下的目录（`/` 分隔；根内的条目为空串）。
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FileManagerSearchHit {
-    pub node: FileTreeNode,
-    pub directory: String,
-}
-
+/// 一条命中就是目录列表里那种条目，不另加「相对目录」字段：那段信息已经完整地
+/// 包含在 `path` 里，展示时由 UI 投影层用搜索根算出来（同一事实不留两份）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileManagerSearchOutcome {
     pub root: PathBuf,
-    pub hits: Vec<FileManagerSearchHit>,
+    /// 这一次结果对应的查询原文（回声）。UI 用它与 `generation` 一起把迟到的
+    /// 旧结果丢掉 —— 遍历跑在别的线程上，返回时用户可能已经改了词。
+    pub query: String,
+    pub hits: Vec<FileTreeNode>,
     /// 检视过的条目数（含未命中的）。用来区分「确实没有」和「还没扫到」。
     pub scanned: usize,
     /// 命中总数，可能大于 `hits.len()`（被 [`MAX_SEARCH_RESULTS`] 截断）。
@@ -1311,6 +1409,8 @@ pub fn search_entries(
         0
     };
     let show_hidden = settings.show_hidden_files;
+    // 与列表同一口径：关掉路径匹配后，相对目录不参与命中，只看条目名。
+    let in_path = settings.search_in_path;
 
     let mut queue = VecDeque::new();
     queue.push_back((request.root.clone(), 0usize, String::new()));
@@ -1318,12 +1418,18 @@ pub fn search_entries(
     let mut visited: HashSet<String> = HashSet::new();
     let mut outcome = FileManagerSearchOutcome {
         root: request.root.clone(),
+        query: settings.search_query.clone(),
         hits: Vec::new(),
         scanned: 0,
         matched: 0,
         truncated: false,
         cancelled: false,
     };
+    // 空查询**不是**「全量列出」。少了这道闸，一次误触（或一个忘了判空的调用方）
+    // 就会把整棵目录树扫一遍再交出前 512 条 —— 那不是搜索结果，是磁盘遍历。
+    if tokens.is_empty() {
+        return outcome;
+    }
 
     while let Some((directory, depth, relative)) = queue.pop_front() {
         if cancel.load(std::sync::atomic::Ordering::Relaxed) {
@@ -1353,14 +1459,14 @@ pub fn search_entries(
             };
             // 目录即使不命中也要检视（下钻用）；符号链接目录要靠 classify 才认得出来。
             let candidate_dir = descend && (file_type.is_dir() || file_type.is_symlink());
-            let name_hit = tokens.is_empty()
-                || {
-                    let hay = crate::search_norm::normalize_for_match(&search_hay_for_name(
-                        name,
-                        Some(&relative),
-                    ));
-                    crate::search_query::matches_lowercased_with_mode(&tokens, &hay, mode)
-                };
+            // 词元非空由上面的早退保证：空查询根本不进这里。
+            let name_hit = {
+                let hay = crate::search_norm::normalize_for_match(&search_hay_for_name(
+                    name,
+                    in_path.then_some(relative.as_str()),
+                ));
+                crate::search_query::matches_lowercased_with_mode(&tokens, &hay, mode)
+            };
             if !name_hit && !candidate_dir {
                 continue;
             }
@@ -1389,22 +1495,25 @@ pub fn search_entries(
                 outcome.truncated = true;
                 break;
             }
-            outcome.hits.push(FileManagerSearchHit {
-                node,
-                directory: relative.clone(),
-            });
+            outcome.hits.push(node);
         }
         if outcome.truncated || outcome.cancelled {
             break;
         }
     }
 
+    // 主序仍是用户的排序字段（与列表同一比较器）；同键时按「离搜索根更近」，
+    // 例如两个不同目录里的同名 `001.jpg` —— 浅层的那本先出现。
+    let depth_of = |node: &FileTreeNode| {
+        Path::new(&node.path)
+            .parent()
+            .and_then(|parent| parent.strip_prefix(&outcome.root).ok())
+            .map_or(0, |rel| rel.iter().count())
+    };
     outcome.hits.sort_by(|left, right| {
-        // 主序仍是用户的排序字段（与列表同一比较器）；同键时才按「离搜索根更近」，
-        // 例如两个不同目录里的同名 `001.jpg`。
-        compare_entries(settings, &left.node, &right.node)
-            .then_with(|| left.directory.matches('/').count().cmp(&right.directory.matches('/').count()))
-            .then_with(|| left.directory.cmp(&right.directory))
+        compare_entries(settings, left, right)
+            .then_with(|| depth_of(left).cmp(&depth_of(right)))
+            .then_with(|| left.path.cmp(&right.path))
     });
     outcome
 }
@@ -1957,25 +2066,39 @@ mod tests {
         let single = search_entries(&state.search_request(), &AtomicBool::new(false));
         assert_eq!(single.scanned, 3);
         assert_eq!(single.matched, 1);
-        assert_eq!(single.hits[0].node.name, "春组");
-        assert_eq!(single.hits[0].directory, "");
+        assert_eq!(single.hits[0].name, "春组");
+        assert_eq!(
+            single.hits[0].path,
+            dir.path().join("春组").to_string_lossy()
+        );
 
         state.set_search_include_subfolders(true);
         let deep = search_entries(&state.search_request(), &AtomicBool::new(false));
-        assert_eq!(deep.matched, 3);
-        assert_eq!(deep.scanned, 6);
-        // 排序字段仍是主序（名称升序），目录只用来决定命中的归属。
-        let hits = deep
+        assert_eq!(deep.scanned, 7);
+        // 命中 4 条：`春组` 本身，以及相对路径里带着 `春` 的三条
+        //（`春组/本子`、`春组/cover.cbz`、`春组/本子/001.jpg`）。
+        assert_eq!(deep.matched, 4);
+        // 相对目录不再单独带字段，用 path 相对搜索根算出来即可。
+        let mut hits = deep
             .hits
             .iter()
-            .map(|hit| (hit.directory.as_str(), hit.node.name.as_str()))
+            .map(|node| {
+                let relative = Path::new(&node.path)
+                    .parent()
+                    .and_then(|parent| parent.strip_prefix(dir.path()).ok())
+                    .map(|rel| rel.to_string_lossy().replace('\\', "/"))
+                    .unwrap_or_default();
+                (relative, node.name.clone())
+            })
             .collect::<Vec<_>>();
+        hits.sort_unstable();
         assert_eq!(
             hits,
             [
-                ("春组/本子", "001.jpg"),
-                ("春组", "cover.cbz"),
-                ("", "春组"),
+                (String::new(), "春组".to_string()),
+                ("春组".to_string(), "cover.cbz".to_string()),
+                ("春组".to_string(), "本子".to_string()),
+                ("春组/本子".to_string(), "001.jpg".to_string()),
             ]
         );
         assert!(!deep.truncated);
@@ -2004,7 +2127,7 @@ mod tests {
         state.set_search_query("001");
         state.set_search_max_depth(99);
         let deep = search_entries(&state.search_request(), &AtomicBool::new(false));
-        assert_eq!(deep.hits[0].directory, "春组/本子");
+        assert!(deep.hits[0].path.ends_with("春组/本子/001.jpg"));
         state.set_search_max_depth(1);
         assert_eq!(
             search_entries(&state.search_request(), &AtomicBool::new(false)).matched,
@@ -2033,21 +2156,25 @@ mod tests {
             3
         );
         state.set_search_or_mode(false);
+        // 空查询不是「全量列出」：递归搜索直接早退，一个条目都不检视。
         state.set_search_query("");
+        let idle = search_entries(&state.search_request(), &AtomicBool::new(false));
+        assert!(idle.hits.is_empty());
+        assert_eq!(idle.scanned, 0);
+        state.set_search_query("cbz");
         state.set_entry_filter(EntryFilter::Archives);
         let archives = search_entries(&state.search_request(), &AtomicBool::new(false));
         assert_eq!(
             archives
                 .hits
                 .iter()
-                .map(|hit| hit.node.name.as_str())
+                .map(|node| node.name.as_str())
                 .collect::<Vec<_>>(),
             ["cover.cbz"]
         );
         state.set_show_hidden_files(true);
         assert_eq!(
-            search_entries(&state.search_request(), &AtomicBool::new(false))
-                .matched,
+            search_entries(&state.search_request(), &AtomicBool::new(false)).matched,
             2
         );
 

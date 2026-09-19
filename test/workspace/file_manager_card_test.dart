@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -43,17 +45,38 @@ class _FileManagerApi implements RustLibApi {
   final calls = <Invocation>[];
   Object? snapshotError;
 
+  /// 搜索历史的替身。记一次就把那个词挪到最前 —— 与 SQLite 那侧「按最近使用」
+  /// 的口径一致，这样卡片只负责显示，不必自己模拟去重。
+  final List<String> history = [];
+
+  /// 非空时，`setSearchQuery` 的回复挂在这个 Completer 上。用来造一个「请求还在
+  /// 飞行中」的时刻 —— 增量搜索的关键判据（输入框不能因此禁打）只能在那一刻测。
+  Completer<FileManagerSnapshot>? searchReply;
+
   @override
   dynamic noSuchMethod(Invocation invocation) {
     calls.add(invocation);
     switch (invocation.memberName) {
       case #crateApiFileManagerFileManagerCreate:
         return Future.value(BigInt.one);
+      case #crateApiFileManagerFileManagerSetSearchQuery:
+        final gate = searchReply;
+        return gate == null ? Future.value(snapshot) : gate.future;
       case #crateApiFileManagerFileManagerClose:
         return true;
       case #crateApiFileManagerFileManagerTreeSnapshot:
       case #crateApiFileManagerFileManagerTreeToggle:
         return Future.value(tree);
+      case #crateApiFileManagerFileManagerSearchHistory:
+        return Future.value(List<String>.from(history));
+      case #crateApiFileManagerFileManagerRecordSearchHistory:
+        final query = invocation.namedArguments[#query] as String;
+        history.remove(query);
+        history.insert(0, query);
+        return Future.value(List<String>.from(history));
+      case #crateApiFileManagerFileManagerClearSearchHistory:
+        history.clear();
+        return Future.value(0);
       case #crateApiFileManagerFileManagerOpenEntry:
       case #crateApiFileManagerFileManagerOpenArchive:
         return Future.value(FileManagerActionResult(snapshot: snapshot));
@@ -135,6 +158,7 @@ FileManagerEntry _entry(
   String name, {
   bool directory = false,
   int children = 0,
+  String? searchDirectory,
 }) => FileManagerEntry(
   path: '/books/$name',
   name: name,
@@ -146,6 +170,7 @@ FileManagerEntry _entry(
   size: BigInt.from(1024),
   modifiedSecs: 1700000000,
   hasChildren: directory,
+  searchDirectory: searchDirectory,
   childNames: List.generate(
     children,
     (i) => FileManagerChild(
@@ -174,6 +199,8 @@ FileManagerSnapshot _snapshot({
   bool sortTemporary = false,
   bool canSortPreference = true,
   bool rememberViewState = true,
+  bool subfolders = false,
+  bool searchActive = false,
 }) => FileManagerSnapshot(
   sessionId: BigInt.one,
   maxTabs: 8,
@@ -218,10 +245,16 @@ FileManagerSnapshot _snapshot({
     _tab(2, 'pictures'),
   ],
   recentlyClosed: [_tab(3, 'closed')],
-  entries: [
-    _entry('book.cbz'),
-    _entry('series with a long name', directory: true, children: 8),
-  ],
+  entries: searchActive
+      ? [
+          // 搜索结果页签：同名条目只有靠相对目录才分得开。
+          _entry('001.jpg', searchDirectory: '春组/本子'),
+          _entry('cover.cbz', searchDirectory: '春组'),
+        ]
+      : [
+          _entry('book.cbz'),
+          _entry('series with a long name', directory: true, children: 8),
+        ],
   roots: const [LocalRootLocation(label: '主目录', path: '/home')],
   penetrationEnabled: true,
   showChildNames: true,
@@ -230,6 +263,17 @@ FileManagerSnapshot _snapshot({
   viewMode: viewMode,
   showHiddenFiles: false,
   searchQuery: query,
+  searchInPath: true,
+  searchOrMode: false,
+  searchIncludeSubfolders: subfolders,
+  searchMaxDepth: 6,
+  searchActive: searchActive,
+  searchResultQuery: searchActive ? query : '',
+  searchScanned: searchActive ? 120 : 0,
+  searchMatched: searchActive ? 2 : 0,
+  searchTruncated: false,
+  searchCancelled: false,
+  canSaveSearchTab: searchActive,
   entryFilter: FileManagerEntryFilter.all,
   sortField: FileManagerSortField.name,
   sortOrder: FileManagerSortOrder.ascending,
@@ -329,7 +373,14 @@ void main() {
     // 启动期才解析的路径，测试里默认按「还没解析出来」起跑；需要它的用例自己注入。
     preparedSettingsDbPathForTests = null;
   });
-  tearDown(RustLib.dispose);
+  // FRB 2.12 的 `RustLib.dispose()` 只关端口管理器，**不**清 `_EntrypointState`，
+  // 所以下一个用例的 `initMock` 会撞「Should not initialize flutter_rust_bridge twice」，
+  // 整个文件只有第一个用例能跑。`resetState()` 是它留给测试的出口。
+  tearDown(() {
+    RustLib.dispose();
+    // ignore: invalid_use_of_internal_member
+    RustLib.instance.resetState();
+  });
 
   for (final width in [260.0, 340.0, 700.0]) {
     for (final mode in FileManagerViewMode.values) {
@@ -355,7 +406,7 @@ void main() {
     // 默认折叠：没有搜索输入框。
     expect(find.byType(TextField), findsNothing);
 
-    final searchToggle = find.byTooltip('搜索当前目录');
+    final searchToggle = find.byTooltip('搜索（空格分词，-排除）');
     await tester.ensureVisible(searchToggle);
     await tester.tap(searchToggle);
     await tester.pumpAndSettle();
@@ -383,6 +434,163 @@ void main() {
       tester.widget<TextField>(find.byType(TextField)).controller!.text,
       'from other tab',
     );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('输入即搜：不等回车，跨过防抖窗口就提交，提交期间输入框仍可打字', (tester) async {
+    await _pumpCard(tester);
+    await tester.tap(find.byTooltip('搜索（空格分词，-排除）'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), '春 日 -草稿');
+    // 防抖窗口内还没发出去 —— 连续敲字不会每个字符打一次桥。
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(api.callsTo(#crateApiFileManagerFileManagerSetSearchQuery), isEmpty);
+
+    // 让这一次提交挂在飞行中，才测得到「请求期间输入框不能失效」。
+    final gate = Completer<FileManagerSnapshot>();
+    api.searchReply = gate;
+    await tester.pump(const Duration(milliseconds: 200));
+    final calls = api.callsTo(#crateApiFileManagerFileManagerSetSearchQuery);
+    expect(calls, hasLength(1));
+    expect(calls.single.namedArguments[#query], '春 日 -草稿');
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).enabled,
+      isNot(isFalse),
+    );
+
+    // 飞行中继续改词：防抖会再发一次，后发的那一次说话。
+    await tester.enterText(find.byType(TextField), '春 日 -草稿 修');
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(
+      api.callsTo(#crateApiFileManagerFileManagerSetSearchQuery).length,
+      2,
+    );
+    api.searchReply = null;
+    gate.complete(_snapshot(query: '春 日 -草稿 修'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      '春 日 -草稿 修',
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('搜索时敲进去的空格不会被核心回显吃掉', (tester) async {
+    await _pumpCard(tester);
+    await tester.tap(find.byTooltip('搜索（空格分词，-排除）'));
+    await tester.pumpAndSettle();
+
+    // 核心会把查询 trim 掉，快照里回来的是「春日」；框里必须还是用户打的那一份。
+    api.snapshot = _snapshot(query: '春日');
+    await tester.enterText(find.byType(TextField), '春日 ');
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      '春日 ',
+    );
+
+    // 但核心自己改了查询（切页签、导航会清空）时必须盖回来，
+    // 否则框里留着一个已经不再生效的词。
+    api.snapshot = _snapshot();
+    await tester.tap(find.byTooltip('新建页签'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      isEmpty,
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('含子目录开关提交条件并触发一次递归搜索', (tester) async {
+    await _pumpCard(tester);
+    await tester.tap(find.byTooltip('搜索（空格分词，-排除）'));
+    await tester.pumpAndSettle();
+
+    api.snapshot = _snapshot(query: '春', subfolders: true);
+    await tester.tap(find.text('含子目录'));
+    await tester.pumpAndSettle();
+
+    expect(
+      api
+          .callsTo(#crateApiFileManagerFileManagerSetSearchIncludeSubfolders)
+          .single
+          .namedArguments[#enabled],
+      isTrue,
+    );
+    // 条件一变就跑一次遍历；结果由 Rust 写进页签，卡片不再有第二份列表。
+    expect(
+      api.callsTo(#crateApiFileManagerFileManagerSearch),
+      hasLength(1),
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('搜索结果页签：命中带相对目录，提供回到目录与存为页签', (tester) async {
+    // 查询非空时搜索行本来就在（不必先展开），这一条测的是结果态的画法和出口。
+    // 选项行是横向滚动的，宽一点才不用为每个芯片单独滚动。
+    api.snapshot = _snapshot(query: '春', subfolders: true, searchActive: true);
+    await _pumpCard(tester, width: 700);
+    await tester.pumpAndSettle();
+
+    // 副标题最前面带上「哪本子目录」，同名条目才分得开。
+    expect(find.textContaining('春组/本子'), findsOneWidget);
+    expect(find.text('命中 2 · 已看 120'), findsOneWidget);
+
+    for (final label in ['存为页签', '回到目录']) {
+      final chip = find.text(label);
+      expect(chip, findsOneWidget);
+      await tester.ensureVisible(chip);
+      await tester.pumpAndSettle();
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+    }
+    expect(api.callsTo(#crateApiFileManagerFileManagerSaveSearchAsTab), hasLength(1));
+    expect(api.callsTo(#crateApiFileManagerFileManagerClearSearch), hasLength(1));
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('还没下查询时搜索行显示历史，点一下就再搜一次', (tester) async {
+    api.history.addAll(['旧词', '更旧的词']);
+    await _pumpCard(tester);
+    await tester.tap(find.byTooltip('搜索（空格分词，-排除）'));
+    await tester.pumpAndSettle();
+    expect(find.text('旧词'), findsOneWidget);
+    expect(find.text('更旧的词'), findsOneWidget);
+
+    await tester.tap(find.text('旧词'));
+    await tester.pumpAndSettle();
+    expect(
+      api
+          .callsTo(#crateApiFileManagerFileManagerSetSearchQuery)
+          .single
+          .namedArguments[#query],
+      '旧词',
+    );
+    // 点历史词是「主动定下的搜索」，所以要进历史；防抖那一路不进。
+    expect(
+      api.callsTo(#crateApiFileManagerFileManagerRecordSearchHistory),
+      hasLength(1),
+    );
+
+    await tester.tap(find.text('清空历史'));
+    await tester.pumpAndSettle();
+    expect(api.callsTo(#crateApiFileManagerFileManagerClearSearchHistory), hasLength(1));
+    await tester.pumpAndSettle();
+    expect(find.text('旧词'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('防抖那一路不写搜索历史', (tester) async {
+    await _pumpCard(tester);
+    await tester.tap(find.byTooltip('搜索（空格分词，-排除）'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '随手打词');
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pumpAndSettle();
+    expect(api.callsTo(#crateApiFileManagerFileManagerSetSearchQuery), hasLength(1));
+    expect(api.callsTo(#crateApiFileManagerFileManagerRecordSearchHistory), isEmpty);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

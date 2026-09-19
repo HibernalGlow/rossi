@@ -9,6 +9,8 @@
 //! 3. 路径前缀最长匹配（继承上级位置视图状态）；
 //! 4. `file_manager_view_states` 表，以 `(path_key, state_json)` 格式持久化**文件管理器**
 //!    每个目录的视图与排序（见 [`crate::file_manager::FileManagerViewState`]）。
+//! 5. `file_manager_search_history` 表，文件管理器的最近搜索词（按最近使用裁剪到
+//!    [`MAX_SEARCH_HISTORY`] 条；条数与 NeoView 的 `SEARCH_HISTORY_LIMIT` 同值）。
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -19,6 +21,9 @@ use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::file_manager::FileManagerViewState;
 use crate::settings::{FavoriteViewState, Settings};
+
+/// 文件管理器搜索历史保留多少条。
+pub const MAX_SEARCH_HISTORY: usize = 20;
 
 pub struct SettingsDb {
     conn: Mutex<Connection>,
@@ -285,6 +290,64 @@ impl SettingsDb {
         }
         Ok(deleted)
     }
+
+    // ── 文件管理器搜索历史 (file_manager_search_history) ──────────────
+
+    /// 记一次搜索：同一词元只留一行，累加使用次数并把时间戳推到最新。
+    ///
+    /// 写入即裁剪到 [`MAX_SEARCH_HISTORY`] 条（按最近使用）。裁剪放在这里而不是
+    /// 调用方，是因为「记了却不裁」不会报错，只会让下拉列表在几周后变成一屏垃圾。
+    pub fn record_file_manager_search(&self, query: &str, now_secs: i64) -> Result<()> {
+        let query = query.trim();
+        if query.is_empty() {
+            return Ok(());
+        }
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO file_manager_search_history (query, used_count, last_used_secs)
+             VALUES (?1, 1, ?2)
+             ON CONFLICT(query) DO UPDATE SET
+                used_count = used_count + 1,
+                last_used_secs = excluded.last_used_secs",
+            params![query, now_secs],
+        )
+        .context("写入 file_manager_search_history 失败")?;
+        conn.execute(
+            "DELETE FROM file_manager_search_history WHERE query NOT IN (
+                SELECT query FROM file_manager_search_history
+                ORDER BY last_used_secs DESC, used_count DESC, query ASC
+                LIMIT ?1
+             )",
+            params![MAX_SEARCH_HISTORY as i64],
+        )
+        .context("裁剪 file_manager_search_history 失败")?;
+        Ok(())
+    }
+
+    /// 最近的搜索词，按「最近使用」倒序。上限交给调用方（用于只显示前几条）。
+    pub fn load_file_manager_search_history(&self, limit: u32) -> Result<Vec<String>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn
+            .prepare(
+                "SELECT query FROM file_manager_search_history
+                 ORDER BY last_used_secs DESC, used_count DESC, query ASC
+                 LIMIT ?1",
+            )
+            .context("准备查询 file_manager_search_history 失败")?;
+        let rows = stmt
+            .query_map(params![limit as i64], |row| row.get::<_, String>(0))
+            .context("查询 file_manager_search_history 失败")?;
+        Ok(rows.flatten().collect())
+    }
+
+    /// 清空全部搜索历史，返回删掉的条数。
+    pub fn clear_file_manager_search_history(&self) -> Result<usize> {
+        let conn = self.conn.lock().unwrap();
+        let affected = conn
+            .execute("DELETE FROM file_manager_search_history", [])
+            .context("清空 file_manager_search_history 失败")?;
+        Ok(affected)
+    }
 }
 
 /// 目录视图状态表的键：只统一分隔符与末尾分隔符，**保留大小写**。
@@ -364,6 +427,11 @@ fn init_schema(conn: &Connection) -> Result<()> {
          CREATE TABLE IF NOT EXISTS file_manager_view_states (
             path_key TEXT PRIMARY KEY,
             state_json TEXT NOT NULL
+         );
+         CREATE TABLE IF NOT EXISTS file_manager_search_history (
+            query TEXT PRIMARY KEY,
+            used_count INTEGER NOT NULL,
+            last_used_secs INTEGER NOT NULL
          );",
     )
     .context("初始化设置数据库 schema 失败")?;
@@ -560,5 +628,44 @@ mod tests {
 
         assert_eq!(db.clear_file_manager_view_states().unwrap(), 1);
         assert!(db.load_all_file_manager_view_states().unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_file_manager_search_history_dedupes_orders_and_trims() {
+        let db = SettingsDb::open_in_memory().unwrap();
+        assert!(db.load_file_manager_search_history(20).unwrap().is_empty());
+
+        db.record_file_manager_search("春组", 100).unwrap();
+        db.record_file_manager_search("  春日  ", 110).unwrap();
+        // 同一个词再来一次：不新增行，只把时间推到最新。
+        db.record_file_manager_search("春组", 120).unwrap();
+        assert_eq!(
+            db.load_file_manager_search_history(20).unwrap(),
+            ["春组", "春日"],
+        );
+
+        // 空白词与纯空白不进历史（每次退格都会提交一次，不能全留下）。
+        db.record_file_manager_search("   ", 130).unwrap();
+        assert_eq!(db.load_file_manager_search_history(20).unwrap().len(), 2);
+
+        // 超出上限：按最近使用裁掉最旧的那几条。
+        for index in 0..(MAX_SEARCH_HISTORY as i64 + 5) {
+            db.record_file_manager_search(&format!("q{index}"), 200 + index)
+                .unwrap();
+        }
+        let all = db
+            .load_file_manager_search_history(MAX_SEARCH_HISTORY as u32 + 10)
+            .unwrap();
+        assert_eq!(all.len(), MAX_SEARCH_HISTORY);
+        assert_eq!(all.first().map(String::as_str), Some("q24"));
+        assert!(!all.contains(&"q0".to_string()));
+        // 早先记的两条也已经被挤出（时间戳比 200+ 旧）。
+        assert!(!all.contains(&"春组".to_string()));
+
+        assert_eq!(
+            db.clear_file_manager_search_history().unwrap(),
+            MAX_SEARCH_HISTORY
+        );
+        assert!(db.load_file_manager_search_history(20).unwrap().is_empty());
     }
 }

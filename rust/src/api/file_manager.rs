@@ -10,7 +10,7 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use anyhow::{Error, anyhow};
@@ -39,6 +39,11 @@ lazy_static! {
     /// 面板也不参与事务 —— 它是当前目录的一份投影，读失败顶多少几行，不该让浏览停下。
     static ref FILE_MANAGER_PANES: Mutex<HashMap<u64, FolderPaneState>> =
         Mutex::new(HashMap::new());
+    /// 每个会话**当前**那一次递归搜索的取消旗子。
+    ///
+    /// 只放旗子不放结果：结果走正常的返回值交回 Dart。新搜索直接替换旗子，
+    /// 上一次那一路遍历就会在下一个个目/目录处停下。
+    static ref FILE_MANAGER_SEARCHES: DashMap<u64, Arc<AtomicBool>> = DashMap::new();
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -122,6 +127,9 @@ pub struct FileManagerEntry {
     /// NeoView 的「显示内部条目」投影。它不改变父目录列表，只为 UI 提供一小段
     /// 可点击的上下文提示。
     pub child_names: Vec<FileManagerChild>,
+    /// 搜索结果页签里，这条命中在搜索根之下的目录（`/` 分隔）。普通浏览时为 `None`
+    /// —— 那时父目录就是当前目录，写出来只是噪音。
+    pub search_directory: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -170,6 +178,26 @@ pub struct FileManagerSnapshot {
     pub view_mode: FileManagerViewMode,
     pub show_hidden_files: bool,
     pub search_query: String,
+    /// 名称之外是否连同「相对搜索根的路径」一起匹配。
+    pub search_in_path: bool,
+    /// 多个词元的结合方式（false = AND，true = OR）。
+    pub search_or_mode: bool,
+    /// 递归搜索是否连同子目录。关掉时 `search_max_depth` 不参与。
+    pub search_include_subfolders: bool,
+    /// 递归层数上限（实际生效值再被核心的 `MAX_SEARCH_DEPTH` 夹一次）。
+    pub search_max_depth: u8,
+    /// 当前页签是不是「搜索结果页签」：列表画的是上一次遍历的命中，而不是目录。
+    pub search_active: bool,
+    /// 这批命中对应的查询（说明文案与页签标题用）。
+    pub search_result_query: String,
+    /// 检视过的条目数（含未命中）。区分「没有」与「还没扫到」。
+    pub search_scanned: u32,
+    /// 命中总数，可能因上限截断而大于列表长度。
+    pub search_matched: u32,
+    pub search_truncated: bool,
+    pub search_cancelled: bool,
+    /// 「把当前搜索存成页签」是否可用（需要有结果）。
+    pub can_save_search_tab: bool,
     pub entry_filter: FileManagerEntryFilter,
     pub sort_field: FileManagerSortField,
     pub sort_order: FileManagerSortOrder,
@@ -191,6 +219,18 @@ pub struct FileManagerActionResult {
     pub snapshot: FileManagerSnapshot,
     /// 非空时表示 UI 应该把该路径交给 Reader；浏览器自身仍停留在原目录。
     pub opened_path: Option<String>,
+}
+
+/// 工具函数：把一条命中投影成列表条目时，顺带算出它在搜索根之下的目录。
+///
+/// 放在这一层而不是核心里：核心管的是「这条命中属于哪个根」，而「显示成
+/// `春组/本子` 还是留空」是给这一屏的写法。同名条目只有靠这段才分得开。
+fn search_directory_of(path: &Path, root: &Path) -> Option<String> {
+    let relative = path.parent()?.strip_prefix(root).ok()?;
+    if relative.as_os_str().is_empty() {
+        return None;
+    }
+    Some(relative.to_string_lossy().replace('\\', "/"))
 }
 
 /// 文件树的一行：核心 `FolderPaneRow` 的字符串投影。
@@ -665,6 +705,210 @@ pub async fn file_manager_set_search_query(
 }
 
 #[frb]
+pub async fn file_manager_set_search_in_path(
+    id: u64,
+    enabled: bool,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.set_search_in_path(enabled);
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+#[frb]
+pub async fn file_manager_set_search_or_mode(
+    id: u64,
+    enabled: bool,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.set_search_or_mode(enabled);
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+#[frb]
+pub async fn file_manager_set_search_include_subfolders(
+    id: u64,
+    enabled: bool,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.set_search_include_subfolders(enabled);
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+#[frb]
+pub async fn file_manager_set_search_max_depth(
+    id: u64,
+    depth: u8,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.set_search_max_depth(depth as usize);
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+/// 递归搜索的取消守卫。
+///
+/// 放进 `Drop` 而不是写在正常返回路径上，为的是覆盖**非正常**那条：Dart 侧
+/// 丢掉这个 Future（卡片被销毁、页面切走）时，遍历还在阻塞线程上跑，没有这个
+/// 守卫它会一路扫到底。正常完成时置位无害 —— 那时遍历已经结束了。
+struct FileManagerSearchGuard {
+    id: u64,
+    cancel: Arc<AtomicBool>,
+}
+
+impl Drop for FileManagerSearchGuard {
+    fn drop(&mut self) {
+        self.cancel.store(true, Ordering::Relaxed);
+        // 只摘自己这颗旗子：期间用户可能又搜了一次，旗子已经换成新的了。
+        FILE_MANAGER_SEARCHES.remove_if(&self.id, |_, flag| Arc::ptr_eq(flag, &self.cancel));
+    }
+}
+
+/// 按当前生效的搜索条件跑一次递归搜索。
+///
+/// 遍历**不**在 `with_session` 里跑：那个闭包握着会话的写锁，一次整库扫描会把
+/// 其它卡片动作全部堵住。所以先取一份请求值（根路径 + 设置快照），再在阻塞线程
+/// 上离线遍历。代价是遍历期间用户改设置不生效 —— 那本来就该由下一次搜索回答。
+#[frb]
+pub async fn file_manager_search(id: u64) -> Result<FileManagerSnapshot, Error> {
+    let request = with_session(id, move |state| Ok(state.search_request())).await?;
+    let cancel = Arc::new(AtomicBool::new(false));
+    // 新搜索直接作废上一次还在跑的那一次：同一张卡片只有最新的结果有意义。
+    FILE_MANAGER_SEARCHES.insert(id, cancel.clone());
+    let guard = FileManagerSearchGuard {
+        id,
+        cancel: cancel.clone(),
+    };
+    let expected = request.clone();
+    let outcome = rquickjs_playground::global_handle()
+        .spawn_blocking(move || rossi_local_core::file_manager::search_entries(&request, &cancel))
+        .await?;
+    let listing = map_search_outcome(outcome);
+    drop(guard);
+    with_session(id, move |state| {
+        // 回声判定放在写入这一刻：遍历跑在别的线程上，期间用户可能已经改了词、
+        // 切了页签或换了筛选条件。条件已经不是这一次的了就直接丢掉，让更新的那一次
+        // 去写（它必然排在后面）。
+        if state.search_request() == expected {
+            state.set_search_listing(listing);
+        }
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+/// 把当前搜索结果另存成一个页签（NeoView 的「保存搜索到页签」）。
+#[frb]
+pub async fn file_manager_save_search_as_tab(id: u64) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.save_search_as_tab()?;
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+/// 退出搜索结果视图，回到页签自己那一层目录（不清空搜索词）。
+#[frb]
+pub async fn file_manager_clear_search(id: u64) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.clear_search_listing();
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+/// 请求中止本会话正在跑的搜索。没有搜索在跑时是空操作。
+#[frb]
+pub async fn file_manager_cancel_search(id: u64) -> Result<bool, Error> {
+    let Some(flag) = FILE_MANAGER_SEARCHES.get(&id).map(|entry| entry.clone()) else {
+        return Ok(false);
+    };
+    flag.store(true, Ordering::Relaxed);
+    Ok(true)
+}
+
+/// 记一次搜索到历史里，并回给最新的列表（省得 Dart 再问一次）。
+///
+/// 设置库没打开时返回空列表而**不是**报错：历史是辅助信息，一次 SQLite 不可用
+/// 不该让搜索框冒红。真正的搜索早已独立完成。
+#[frb]
+pub async fn file_manager_record_search_history(query: String) -> Result<Vec<String>, Error> {
+    let trimmed = query.trim().to_owned();
+    let Some(store) = current_store() else {
+        return Ok(Vec::new());
+    };
+    if trimmed.is_empty() {
+        return load_search_history(store.as_ref(), SEARCH_HISTORY_DEFAULT_LIMIT);
+    }
+    store
+        .record_file_manager_search(&trimmed, now_secs())
+        .map_err(Error::from)?;
+    load_search_history(store.as_ref(), SEARCH_HISTORY_DEFAULT_LIMIT)
+}
+
+#[frb]
+pub async fn file_manager_search_history(limit: u8) -> Result<Vec<String>, Error> {
+    let Some(store) = current_store() else {
+        return Ok(Vec::new());
+    };
+    load_search_history(store.as_ref(), limit.max(1))
+}
+
+#[frb]
+pub async fn file_manager_clear_search_history() -> Result<u32, Error> {
+    let Some(store) = current_store() else {
+        return Ok(0);
+    };
+    Ok(store
+        .clear_file_manager_search_history()
+        .map_err(Error::from)? as u32)
+}
+
+const SEARCH_HISTORY_DEFAULT_LIMIT: u8 = 8;
+
+fn load_search_history(store: &SettingsDb, limit: u8) -> Result<Vec<String>, Error> {
+    Ok(store.load_file_manager_search_history(limit as u32)?)
+}
+
+fn now_secs() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|elapsed| elapsed.as_secs() as i64)
+        .unwrap_or(0)
+}
+
+/// 把核心的一次遍历结果变成页签上的搜索列表。
+///
+/// 命中不带子文件名投影：那需要逐条目录再读一次盘，而结果页要的是「哪些条目命中了」，
+/// 不是每本的完整上下文。
+fn map_search_outcome(
+    outcome: rossi_local_core::file_manager::FileManagerSearchOutcome,
+) -> rossi_local_core::file_manager::FileManagerSearchListing {
+    rossi_local_core::file_manager::FileManagerSearchListing {
+        root: outcome.root,
+        query: outcome.query,
+        entries: outcome
+            .hits
+            .into_iter()
+            .map(|node| CoreEntry {
+                node,
+                children: Vec::new(),
+            })
+            .collect(),
+        scanned: outcome.scanned,
+        matched: outcome.matched,
+        truncated: outcome.truncated,
+        cancelled: outcome.cancelled,
+    }
+}
+
+#[frb]
 pub async fn file_manager_set_entry_filter(
     id: u64,
     filter: FileManagerEntryFilter,
@@ -895,7 +1139,19 @@ fn apply_session_operation<R>(
 }
 
 fn snapshot_for(id: u64, state: &mut FileManagerState) -> Result<FileManagerSnapshot, Error> {
-    let entries = state.entries()?.into_iter().map(map_entry).collect();
+    // 搜索结果页签的条目要带上「它在搜索根之下的哪个目录」，同名条目只靠这段区分。
+    let search_root = state.search_listing().map(|listing| listing.root.clone());
+    let entries = state
+        .entries()?
+        .into_iter()
+        .map(map_entry)
+        .map(|mut entry| {
+            if let Some(root) = &search_root {
+                entry.search_directory = search_directory_of(Path::new(&entry.path), root);
+            }
+            entry
+        })
+        .collect();
     let map_tab = |tab: &rossi_local_core::FileManagerTab| FileManagerTab {
         id: tab.id,
         title: tab.title(),
@@ -976,6 +1232,20 @@ fn snapshot_for(id: u64, state: &mut FileManagerState) -> Result<FileManagerSnap
         },
         show_hidden_files: settings.show_hidden_files,
         search_query: settings.search_query.clone(),
+        search_in_path: settings.search_in_path,
+        search_or_mode: settings.search_or_mode,
+        search_include_subfolders: settings.search_include_subfolders,
+        search_max_depth: settings.search_max_depth as u8,
+        search_active: state.search_listing().is_some(),
+        search_result_query: state
+            .search_listing()
+            .map(|listing| listing.query.clone())
+            .unwrap_or_default(),
+        search_scanned: state.search_listing().map_or(0, |l| l.scanned as u32),
+        search_matched: state.search_listing().map_or(0, |l| l.matched as u32),
+        search_truncated: state.search_listing().is_some_and(|l| l.truncated),
+        search_cancelled: state.search_listing().is_some_and(|l| l.cancelled),
+        can_save_search_tab: state.search_listing().is_some(),
         entry_filter: match settings.entry_filter {
             EntryFilter::All => FileManagerEntryFilter::All,
             EntryFilter::Folders => FileManagerEntryFilter::Folders,
@@ -1032,6 +1302,7 @@ fn map_entry(entry: CoreEntry) -> FileManagerEntry {
                 is_audio: child.is_audio,
             })
             .collect(),
+        search_directory: None,
     }
 }
 
@@ -1351,7 +1622,10 @@ mod tests {
 
         let depth_of = |path: &Path| -> Option<u32> {
             let key = path.to_string_lossy();
-            rows.rows.iter().find(|row| row.path == *key).map(|row| row.depth)
+            rows.rows
+                .iter()
+                .find(|row| row.path == *key)
+                .map(|row| row.depth)
         };
         let active_row = rows
             .rows

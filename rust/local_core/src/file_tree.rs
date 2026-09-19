@@ -178,6 +178,99 @@ pub fn list_directory(dir_path: &Path) -> Result<Vec<FileTreeNode>> {
     list_directory_with_hidden(dir_path, false)
 }
 
+/// 把单个 `DirEntry` 投影成 `FileTreeNode`，并就地执行 mImageViewer 的隐藏项、
+/// AppleDouble、内部 bundle 与「已识别媒体」策略。
+///
+/// 整目录列举与递归搜索**必须**走这一个函数：前者要画列表，后者要交出结果页签，
+/// 两边各写一套扩展名判定的话，搜索结果里就会出现列表里根本不存在（或反过来被
+/// 隐藏规则滤掉）的条目。
+///
+/// `probe_children` 关掉时目录的 `has_children` 一律为 `false`。列表需要它来画展开
+/// 箭头；递归搜索只为**命中**的那几条构造节点，为扫过的每个目录多开一次 `read_dir`
+/// 会让整趟遍历慢一倍。
+pub fn node_for_dir_entry(
+    entry: &fs::DirEntry,
+    file_type: &fs::FileType,
+    show_hidden_files: bool,
+    probe_children: bool,
+) -> Option<FileTreeNode> {
+    let raw_name = entry.file_name();
+    // mImageViewer 的 bundle / Windows 属性 / Unix 隐藏项规则必须在这里统一执行。
+    if crate::fs_entry::is_internal_app_entry_name(&raw_name)
+        || crate::fs_entry::should_hide_fs_entry(entry, show_hidden_files)
+    {
+        return None;
+    }
+    let name_str = raw_name.to_str()?;
+    let path = entry.path();
+    let entry_kind = crate::fs_entry::classify_dir_entry(entry, file_type);
+    if entry_kind.is_directory() {
+        // 检查子目录是否非空（轻量探测一条即可）
+        let has_children = probe_children
+            && fs::read_dir(&path)
+                .map(|mut r| r.next().is_some())
+                .unwrap_or(false);
+        let metadata = entry.metadata().ok();
+        let modified_secs = metadata
+            .as_ref()
+            .map(crate::ui_helpers::mtime_secs)
+            .unwrap_or(0);
+        return Some(FileTreeNode {
+            path: path.to_string_lossy().to_string(),
+            name: name_str.to_owned(),
+            is_dir: true,
+            is_archive: false,
+            is_image: false,
+            is_video: false,
+            is_audio: false,
+            size: 0,
+            modified_secs,
+            has_children,
+        });
+    }
+    if !entry_kind.is_file() || crate::folder_tree::is_apple_double(&path) {
+        return None;
+    }
+    let extension = path
+        .extension()
+        .and_then(|value| value.to_str())
+        .map(|value| value.to_ascii_lowercase())
+        .unwrap_or_default();
+    let is_archive = is_virtual_folder(&path) || is_convertible_archive_path(&path);
+    let is_image = is_recognized_image_ext(&extension);
+    let is_video = SUPPORTED_VIDEO_EXTENSIONS.contains(&extension.as_str());
+    let is_audio = crate::folder_tree::is_audio_ext(&extension);
+
+    // mImageViewer 将视频和音频也视为可浏览媒体。Rossi 当前 Reader 仍只接收
+    // 图片/漫画来源，因此它们暂时以普通文件 DTO 返回，避免把目录中的合法
+    // 媒体静默丢失；UI 可据扩展名继续显示并在后续接入对应 Reader。
+    let is_supported_media = is_archive || is_image || is_video || is_audio;
+    // 只收录 mImageViewer 已识别的媒体/容器，未知文档不会污染漫画 Reader。
+    if !is_supported_media {
+        return None;
+    }
+    let metadata = entry.metadata().ok();
+    let size = metadata.as_ref().map(|m| m.len()).unwrap_or(0);
+    let modified_secs = metadata
+        .as_ref()
+        .map(crate::ui_helpers::mtime_secs)
+        .unwrap_or(0);
+    Some(FileTreeNode {
+        path: path.to_string_lossy().to_string(),
+        name: name_str.to_owned(),
+        is_dir: false,
+        is_archive,
+        // FileManagerEntry 当前的协议只区分图片与容器；视频/音频在
+        // `is_image=false` 下仍会保留并由 Flutter 显示通用文件图标。
+        is_image,
+        is_video,
+        is_audio,
+        size,
+        modified_secs,
+        has_children: false,
+    })
+}
+
 /// List a directory with the same mImageViewer classification and sorting
 /// rules, optionally retaining user-hidden entries.  OS/system entries and
 /// Rossi/mImageViewer metadata bundles remain hidden in both modes.
@@ -205,86 +298,10 @@ pub fn list_directory_with_hidden(
             Err(_) => continue,
         };
 
-        let raw_name = entry.file_name();
-        // mImageViewer 的 bundle / Windows 属性 / Unix 隐藏项规则必须在这里统一执行。
-        if crate::fs_entry::is_internal_app_entry_name(&raw_name)
-            || crate::fs_entry::should_hide_fs_entry(&entry, show_hidden_files)
-        {
-            continue;
-        }
-        let Some(name_str) = raw_name.to_str() else {
+        let Some(node) = node_for_dir_entry(&entry, &file_type, show_hidden_files, true) else {
             continue;
         };
-
-        let path = entry.path();
-        let entry_kind = crate::fs_entry::classify_dir_entry(&entry, &file_type);
-        let is_dir = entry_kind.is_directory();
-
-        if is_dir {
-            // 检查子目录是否非空（轻量探测一条即可）
-            let has_children = fs::read_dir(&path)
-                .map(|mut r| r.next().is_some())
-                .unwrap_or(false);
-            let metadata = entry.metadata().ok();
-            let modified_secs = metadata
-                .as_ref()
-                .map(crate::ui_helpers::mtime_secs)
-                .unwrap_or(0);
-
-            nodes.push(FileTreeNode {
-                path: path.to_string_lossy().to_string(),
-                name: name_str.to_owned(),
-                is_dir: true,
-                is_archive: false,
-                is_image: false,
-                is_video: false,
-                is_audio: false,
-                size: 0,
-                modified_secs,
-                has_children,
-            });
-        } else if entry_kind.is_file() {
-            if crate::folder_tree::is_apple_double(&path) {
-                continue;
-            }
-            let extension = path
-                .extension()
-                .and_then(|value| value.to_str())
-                .map(|value| value.to_ascii_lowercase())
-                .unwrap_or_default();
-            let is_archive = is_virtual_folder(&path) || is_convertible_archive_path(&path);
-            let is_image = is_recognized_image_ext(&extension);
-            let is_video = SUPPORTED_VIDEO_EXTENSIONS.contains(&extension.as_str());
-            let is_audio = crate::folder_tree::is_audio_ext(&extension);
-
-            // mImageViewer 将视频和音频也视为可浏览媒体。Rossi 当前 Reader 仍只接收
-            // 图片/漫画来源，因此它们暂时以普通文件 DTO 返回，避免把目录中的合法
-            // 媒体静默丢失；UI 可据扩展名继续显示并在后续接入对应 Reader。
-            let is_supported_media = is_archive || is_image || is_video || is_audio;
-            // 只收录 mImageViewer 已识别的媒体/容器，未知文档不会污染漫画 Reader。
-            if is_supported_media {
-                let metadata = entry.metadata().ok();
-                let size = metadata.as_ref().map(|m| m.len()).unwrap_or(0);
-                let modified_secs = metadata
-                    .as_ref()
-                    .map(crate::ui_helpers::mtime_secs)
-                    .unwrap_or(0);
-                nodes.push(FileTreeNode {
-                    path: path.to_string_lossy().to_string(),
-                    name: name_str.to_owned(),
-                    is_dir: false,
-                    is_archive,
-                    // FileManagerEntry 当前的协议只区分图片与容器；视频/音频在
-                    // `is_image=false` 下仍会保留并由 Flutter 显示通用文件图标。
-                    is_image,
-                    is_video,
-                    is_audio,
-                    size,
-                    modified_secs,
-                    has_children: false,
-                });
-            }
-        }
+        nodes.push(node);
     }
 
     // 排序策略保持 mImageViewer 的 FileNameSortKey：文件夹排在前面，漫画归档次之，

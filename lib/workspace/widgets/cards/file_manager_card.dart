@@ -82,6 +82,20 @@ class _FileManagerCardState extends State<FileManagerCard> {
   /// 「核心自己改了查询」（切页签、导航会清空）—— 前者不能覆盖输入框里的原始文本。
   String? _pendingSearchQuery;
   bool _searchPending = false;
+
+  /// 这一次搜索是否仍在遍历中。结果本身**不在**这里 —— 命中由 Rust 写进页签，
+  /// 快照的 `entries` 就是它，UI 不另存一份（否则换布局重建卡片就会丢结果，
+  /// 且列表出现两个真本）。
+  bool _searchRunning = false;
+  int _searchSerial = 0;
+
+  /// 上一次为「搜索条件签名」跑过遍历的签名，见 [_searchSignatureOf]。
+  String _searchSignature = '';
+
+  /// 最近搜索词。正本在 `settings.db`，这里只是这一屏的缓存。
+  List<String> _searchHistory = const [];
+  bool _searchHistoryLoaded = false;
+  static const _searchHistoryLimit = 8;
   BigInt? _sessionId;
   FileManagerSnapshot? _snapshot;
   String? _error;
@@ -346,7 +360,9 @@ class _FileManagerCardState extends State<FileManagerCard> {
   /// `_busy` 会同时禁用输入框、列表和整排工具键，那是给「一次动作把目录换掉」
   /// 准备的。增量搜索每敲一个字都要跑一遍，套用同一道闸就打不了字。
   /// 陈旧守卫（[_requestSerial]）仍然共用 —— 快照是全量状态，后发优先。
-  Future<void> _submitSearch(String query) async {
+  /// [commit] 为真表示这是用户**主动**定下的搜索（回车、点历史词），才进历史；
+  /// 防抖那一路只是边打边看，进历史会让下拉变成前缀垃圾堆。
+  Future<void> _submitSearch(String query, {bool commit = false}) async {
     final id = _sessionId;
     if (id == null || _disposed) return;
     _cancelPendingSearch();
@@ -360,10 +376,50 @@ class _FileManagerCardState extends State<FileManagerCard> {
         _searchPending = false;
         _acceptSnapshot(snapshot);
       });
+      if (commit && query.trim().isNotEmpty) {
+        await _recordSearchHistory(query);
+      }
     } catch (error) {
       if (!mounted || serial != _requestSerial) return;
       setState(() => _searchPending = false);
       _showError(error);
+    }
+  }
+
+  Future<void> _recordSearchHistory(String query) async {
+    try {
+      final history = await fileManagerRecordSearchHistory(query: query);
+      if (!mounted || history.isEmpty) return;
+      setState(() {
+        _searchHistory = history;
+        _searchHistoryLoaded = true;
+      });
+    } catch (_) {
+      // 历史是辅助信息：写不进去（SQLite 被占、路径没解析出来）不该让刚出结果的
+      // 搜索冒一个红条，更不该把已经拿到的命中丢掉。
+    }
+  }
+
+  Future<void> _loadSearchHistory() async {
+    if (_searchHistoryLoaded || _disposed) return;
+    _searchHistoryLoaded = true;
+    try {
+      final history = await fileManagerSearchHistory(limit: _searchHistoryLimit);
+      if (!mounted || history.isEmpty) return;
+      setState(() => _searchHistory = history);
+    } catch (_) {
+      // 同上：读不到就当这次没有历史。
+    }
+  }
+
+  Future<void> _clearSearchHistory() async {
+    try {
+      await fileManagerClearSearchHistory();
+      if (!mounted) return;
+      setState(() => _searchHistory = const []);
+      showInfoToast('已清空搜索历史', context: context);
+    } catch (error) {
+      if (mounted) _showError(error);
     }
   }
 
@@ -374,6 +430,81 @@ class _FileManagerCardState extends State<FileManagerCard> {
       _searchDebounceDuration,
       () => _submitSearch(query),
     );
+  }
+
+  /// 「递归搜索模式」：只在**确实有查询**且**开了含子目录**时成立。
+  ///
+  /// 只搜当前一层时不需要另一套结果列表 —— 那一层的过滤已经由 Rust 的 `entries`
+  /// 做完并带着子文件名/穿透投影，另起一份只会让两种视图各说各话。
+  bool _isRecursiveSearch(FileManagerSnapshot snapshot) =>
+      snapshot.searchQuery.isNotEmpty && snapshot.searchIncludeSubfolders;
+
+  /// 会让一次递归搜索作废的条件集合。
+  ///
+  /// 逐项去挂触发点（类型筛选、排序、隐藏项、层数……）一定会漏，改成「条件变了
+  /// 就跑一次」：签名一致时什么都不发，用户连续敲字也只在他真正改动的时刻重扫。
+  String _searchSignatureOf(FileManagerSnapshot snapshot) {
+    return [
+      snapshot.activePath,
+      snapshot.activeTabId,
+      snapshot.searchQuery,
+      snapshot.searchIncludeSubfolders,
+      snapshot.searchMaxDepth,
+      snapshot.searchInPath,
+      snapshot.searchOrMode,
+      snapshot.entryFilter.name,
+      snapshot.sortField.name,
+      snapshot.sortOrder.name,
+      snapshot.directoriesFirst,
+      snapshot.showHiddenFiles,
+    ].join('\x1F');
+  }
+
+  /// 跑一次搜索。返回的是**快照**：命中由 Rust 写进当前页签，卡片只负责画它。
+  ///
+  /// 不参与 [_requestSerial]：那个序号管的是「别用旧快照盖掉新目录」，而遍历不改
+  /// 目录。它用自己的序号，配合 [_searchSignature] 决定这一次还要不要画出来。
+  Future<void> _runSearch(FileManagerSnapshot snapshot) async {
+    final id = _sessionId;
+    if (id == null || _disposed) return;
+    final serial = ++_searchSerial;
+    setState(() => _searchRunning = true);
+    try {
+      final next = await fileManagerSearch(id: id);
+      if (!mounted || serial != _searchSerial) return;
+      // 遍历期间用户可能已经改了词或切走：条件签名一变，这批结果就不是现在要看的了。
+      if (_searchSignatureOf(next) != _searchSignature) {
+        setState(() => _searchRunning = false);
+        return;
+      }
+      setState(() {
+        _searchRunning = false;
+        _acceptSnapshot(next);
+      });
+    } catch (error) {
+      if (!mounted || serial != _searchSerial) return;
+      setState(() => _searchRunning = false);
+      _showError(error);
+    }
+  }
+
+  Future<void> _cancelSearch() async {
+    final id = _sessionId;
+    if (id == null) return;
+    // 只发中止请求：剩下的交给 `_runSearch` 那条 future，它会带着
+    // `cancelled` 标记正常返回，界面据此说明结果是部分扫过的。
+    await fileManagerCancelSearch(id: id);
+  }
+
+  /// 搜索行上的动作（条件开关、存为页签、回到目录）。
+  ///
+  /// 先丢掉还在排队的那一次键入：这些动作是用户**决定**下来的，不能让一个
+  /// 晚到的防抖请求把它们的结果当成陈旧数据丢掉。
+  Future<void> _applySearchAction(
+    Future<FileManagerSnapshot> Function(BigInt id) action,
+  ) async {
+    _cancelPendingSearch();
+    await _apply(action);
   }
 
   Future<void> _openEntry(
@@ -468,6 +599,22 @@ class _FileManagerCardState extends State<FileManagerCard> {
   void _acceptSnapshot(FileManagerSnapshot snapshot) {
     _snapshot = snapshot;
     _syncSearchField(snapshot);
+    final signature = _searchSignatureOf(snapshot);
+    if (signature == _searchSignature) return;
+    _searchSignature = signature;
+    if (!_isRecursiveSearch(snapshot)) {
+      // 条件已不成立：把还在跑的遍历也停下，否则它的结果会落在一屏无关的画面上。
+      if (_searchRunning) {
+        fileManagerCancelSearch(id: snapshot.sessionId);
+      }
+      return;
+    }
+    // 搜索条件的正本全在快照里，所以「变了就跑一次」覆盖到了查询、层数、类型
+    // 筛选、排序、隐藏项与切页签，不需要在每个控件后面各挂一次。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _searchSignature != signature) return;
+      _runSearch(snapshot);
+    });
   }
 
   /// 输入框的文本以「谁最后改了查询」为准，而不是无条件跟随快照。
@@ -480,8 +627,9 @@ class _FileManagerCardState extends State<FileManagerCard> {
   void _syncSearchField(FileManagerSnapshot snapshot) {
     final server = snapshot.searchQuery;
     final asked = _pendingSearchQuery;
-    if (_searchFocus.hasFocus && asked != null && server == asked.trim())
+    if (_searchFocus.hasFocus && asked != null && server == asked.trim()) {
       return;
+    }
     _pendingSearchQuery = null;
     if (_searchController.text == server) return;
     _searchController.value = TextEditingValue(
@@ -575,6 +723,8 @@ class _FileManagerCardState extends State<FileManagerCard> {
         const SizedBox(height: 6),
         if (_searchExpanded || snapshot.searchQuery.isNotEmpty) ...[
           _buildSearchField(context, snapshot),
+          const SizedBox(height: 4),
+          _buildSearchOptions(context, snapshot),
           const SizedBox(height: 6),
         ],
         _buildRoots(context, snapshot),
@@ -1156,7 +1306,13 @@ class _FileManagerCardState extends State<FileManagerCard> {
         isDense: true,
         hintText: '名称与路径 · 空格分词 · -排除 · “短语”',
         prefixIcon: const Icon(Icons.search, size: 18),
-        suffixIcon: _searchPending
+        suffixIcon: _searchRunning
+            ? IconButton(
+                tooltip: '中止递归搜索（保留已找到的结果）',
+                icon: const Icon(Icons.stop_rounded, size: 16),
+                onPressed: _cancelSearch,
+              )
+            : _searchPending
             ? const Padding(
                 padding: EdgeInsets.all(10),
                 child: CircularProgressIndicator(strokeWidth: 2),
@@ -1173,6 +1329,119 @@ class _FileManagerCardState extends State<FileManagerCard> {
       ),
       onChanged: _scheduleSearch,
       onSubmitted: _submitSearch,
+    );
+  }
+
+  /// 搜索选项行：递归开关 + 命中统计。窄卡片下横向滚动，与工具栏同一策略。
+  Widget _buildSearchOptions(BuildContext context, FileManagerSnapshot snapshot) {
+    final theme = Theme.of(context);
+    final searching = snapshot.searchQuery.isNotEmpty;
+    // 统计读的是快照：命中的正本在页签里，重建卡片也还在。
+    final status = !searching || !snapshot.searchIncludeSubfolders
+        ? null
+        : _searchRunning
+        ? '正在递归搜索…'
+        : snapshot.searchActive
+        ? [
+            '命中 ${snapshot.searchMatched}',
+            '已看 ${snapshot.searchScanned}',
+            if (snapshot.searchTruncated) '已达上限',
+            if (snapshot.searchCancelled) '已中止',
+          ].join(' · ')
+        : null;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          // 还没下查询时，这一行先当历史下拉用；一旦开始打字就让位给条件开关，
+          // 否则边打边看会被一排旧词挤掉。
+          if (snapshot.searchQuery.isEmpty && _searchHistory.isNotEmpty) ...[
+            for (final history in _searchHistory) ...[
+              ChoiceChip(
+                label: Text(history),
+                tooltip: '再搜一次「$history」',
+                selected: false,
+                visualDensity: VisualDensity.compact,
+                onSelected: (_) => _submitSearch(history, commit: true),
+              ),
+              const SizedBox(width: 6),
+            ],
+            ChoiceChip(
+              label: const Text('清空历史'),
+              selected: false,
+              visualDensity: VisualDensity.compact,
+              onSelected: (_) => _clearSearchHistory(),
+            ),
+            const SizedBox(width: 6),
+          ],
+          ChoiceChip(
+            label: const Text('含子目录'),
+            tooltip: '向下递归搜索，层数上限由 Rust 侧夹紧',
+            selected: snapshot.searchIncludeSubfolders,
+            visualDensity: VisualDensity.compact,
+            onSelected: (enabled) => _applySearchAction(
+              (id) =>
+                  fileManagerSetSearchIncludeSubfolders(id: id, enabled: enabled),
+            ),
+          ),
+          const SizedBox(width: 6),
+          ChoiceChip(
+            label: const Text('匹配路径'),
+            tooltip: '除条目名外，连同它在搜索根之下的相对路径一起匹配',
+            selected: snapshot.searchInPath,
+            visualDensity: VisualDensity.compact,
+            onSelected: (enabled) =>
+                _applySearchAction(
+                  (id) => fileManagerSetSearchInPath(id: id, enabled: enabled),
+                ),
+          ),
+          const SizedBox(width: 6),
+          ChoiceChip(
+            label: const Text('任一词元'),
+            tooltip: '多个词元之间取并集（默认全部都要命中）',
+            selected: snapshot.searchOrMode,
+            visualDensity: VisualDensity.compact,
+            onSelected: (enabled) =>
+                _applySearchAction(
+                  (id) => fileManagerSetSearchOrMode(id: id, enabled: enabled),
+                ),
+          ),
+          if (status != null) ...[
+            const SizedBox(width: 8),
+            Text(
+              status,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+          // 结果模式下这一屏画的不是目录：给一条明确的原路返回，以及 NeoView 的
+          // 「保存搜索到页签」—— 把这次搜索留在一个受保护的页签里反复看。
+          if (snapshot.searchActive) ...[
+            const SizedBox(width: 6),
+            ChoiceChip(
+              label: const Text('回到目录'),
+              tooltip: '退出搜索结果，回到这个页签自己的目录',
+              selected: false,
+              visualDensity: VisualDensity.compact,
+              onSelected: (_) =>
+                  _applySearchAction((id) => fileManagerClearSearch(id: id)),
+            ),
+          ],
+          if (snapshot.canSaveSearchTab) ...[
+            const SizedBox(width: 6),
+            ChoiceChip(
+              label: const Text('存为页签'),
+              tooltip: '把这次搜索结果另存一个页签',
+              selected: false,
+              visualDensity: VisualDensity.compact,
+              onSelected: (_) => _applySearchAction(
+                (id) => fileManagerSaveSearchAsTab(id: id),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -1347,10 +1616,12 @@ class _FileManagerCardState extends State<FileManagerCard> {
                     ? theme.colorScheme.primary
                     : null,
               ),
-              tooltip: _searchExpanded ? '收起搜索' : '搜索当前目录',
+              tooltip: _searchExpanded ? '收起搜索' : '搜索（空格分词，-排除）',
               visualDensity: VisualDensity.compact,
-              onPressed: () =>
-                  setState(() => _searchExpanded = !_searchExpanded),
+              onPressed: () {
+                setState(() => _searchExpanded = !_searchExpanded);
+                if (_searchExpanded) _loadSearchHistory();
+              },
             ),
             action(
               icon: Icons.view_week_rounded,
@@ -1584,13 +1855,19 @@ class _FileManagerCardState extends State<FileManagerCard> {
     final searching =
         snapshot.searchQuery.isNotEmpty ||
         snapshot.entryFilter != FileManagerEntryFilter.all;
+    // `snapshot.entries` 就是该画的东西：普通浏览时是当前目录，搜索结果页签时
+    // 是命中列表。这一层不需要知道这两种情况的存在。
+    final query = snapshot.searchQuery;
     return LibraryEntryList(
       mode: mode,
       entries: [
-        for (final entry in snapshot.entries)
-          _libraryEntry(context, entry, mode),
+        for (final entry in snapshot.entries) _libraryEntry(context, entry, mode),
       ],
-      emptyText: searching ? '没有符合搜索或类型筛选的条目' : '当前目录没有可浏览的漫画或媒体文件',
+      emptyText: snapshot.searchActive && query.isNotEmpty
+          ? '子目录里没有匹配「$query」的条目'
+          : searching
+          ? '没有符合搜索或类型筛选的条目'
+          : '当前目录没有可浏览的漫画或媒体文件',
       enabled: !_busy,
       busy: _busy,
       standalone: widget.isStandalone,
@@ -1648,13 +1925,22 @@ class _FileManagerCardState extends State<FileManagerCard> {
   }
 
   /// 封面列表的第二行带修改日期，横幅那一行不带 —— 沿用原来两档各自的写法。
+  ///
+  /// 搜索结果里的同名条目只能靠**来自哪个子目录**区分，所以那段相对路径排在
+  /// 副标题最前面；普通浏览时它是 null，不会出现。
   String _subtitle(FileManagerEntry entry, LibraryViewMode mode) {
     final type = _formatType(entry);
     final hasSize = !entry.isDir && entry.size > BigInt.zero;
-    if (mode != LibraryViewMode.coverList) {
-      return hasSize ? '$type · ${_formatSize(entry.size)}' : type;
+    final searchDirectory = entry.searchDirectory;
+    final buffer = StringBuffer();
+    if (searchDirectory != null && searchDirectory.isNotEmpty) {
+      buffer.write('$searchDirectory · ');
     }
-    final buffer = StringBuffer(type);
+    if (mode != LibraryViewMode.coverList) {
+      buffer.write(hasSize ? '$type · ${_formatSize(entry.size)}' : type);
+      return buffer.toString();
+    }
+    buffer.write(type);
     if (hasSize) buffer.write(' · ${_formatSize(entry.size)}');
     if (entry.modifiedSecs.toInt() > 0) {
       buffer.write(' · ${_formatDate(entry.modifiedSecs.toInt())}');
