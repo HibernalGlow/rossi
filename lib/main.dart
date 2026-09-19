@@ -37,6 +37,8 @@ import 'package:zephyr/page/comic_follow/cubit/comic_follow_cubit.dart';
 import 'package:zephyr/platform/desktop/native_window.dart';
 import 'package:zephyr/platform/desktop/system_tray.dart';
 import 'package:zephyr/platform/desktop/window_logic.dart';
+import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
+import 'package:zephyr/service/reader/switch_toast_service.dart';
 import 'package:zephyr/service/startup_database_snapshot_service.dart';
 import 'package:zephyr/src/rust/api/qjs.dart';
 import 'package:zephyr/src/rust/api/simple.dart';
@@ -414,6 +416,9 @@ Future<(GlobalSettingCubit, PluginRegistryCubit)> _initServices() async {
   }
 
   objectbox = await ObjectBox.create();
+  // 设置库（Rust `SettingsDb`）的路径也在启动期定好：用它的是工作台里的文件浏览卡片，
+  // 卡片在 initState 里就要路径，不该在那里现走一次 path_provider。
+  await prepareSettingsDbPath();
   final setting = objectbox.userSettingBox.get(1);
   if (setting == null) {
     objectbox.userSettingBox.put(UserSetting());
@@ -421,6 +426,13 @@ Future<(GlobalSettingCubit, PluginRegistryCubit)> _initServices() async {
 
   final globalSettingCubit = GlobalSettingCubit();
   await globalSettingCubit.initBox();
+  // 操作绑定的出厂表在**这里**播种（不在 cubit 的 fromJson 里）：默认值是引擎生成的
+  // 数据（ADR-0015），而引擎要等 `initRustLib()` 才能问 —— 这一行就是那个时机。
+  // 播种失败/表为空时运行时会自动回退到改造前的硬编码分区，阅读器不会因此失灵。
+  OperationBindingStore.seedIfNeeded(globalSettingCubit);
+  // 「切换提示」运行时（N-17）：只登记一个总线监听，弹不弹、弹什么都在事件时
+  // 现读设置，所以放启动期零成本；objectbox 已在上面就绪，读设置是安全的。
+  SwitchToastService.instance.start();
   setHttpRequestsBlocked(
     blocked: globalSettingCubit.state.blockRustHttpRequests,
   );
@@ -944,7 +956,7 @@ class _MyAppState extends State<MyApp>
                   return MaterialUiCompatibilityBridge(child: content);
                 },
                 locale: TranslationProvider.of(context).flutterLocale,
-                title: appName,
+                title: appDisplayName,
                 themeMode: globalSettingState.themeMode,
                 supportedLocales: AppLocaleUtils.supportedLocales,
                 localizationsDelegates: GlobalMaterialLocalizations.delegates,

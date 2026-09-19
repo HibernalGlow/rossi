@@ -42,8 +42,8 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 
 	// Translations
 
-	/// zh-CN: 'Breeze'
-	String get appName => 'Breeze';
+	/// zh-CN: 'Rossi'
+	String get appName => 'Rossi';
 
 	late final Translations$common$zh_CN common = Translations$common$zh_CN.internal(_root);
 	late final Translations$error$zh_CN error = Translations$error$zh_CN.internal(_root);
@@ -897,6 +897,12 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '开启后下载漫画时将自动加入本地收藏'
 	String get autoFavoriteOnDownloadSubtitle => '开启后下载漫画时将自动加入本地收藏';
 
+	/// zh-CN: '下载写入元数据文件'
+	String get writeDownloadMetadataFile => '下载写入元数据文件';
+
+	/// zh-CN: '下载完成后在漫画目录写入 original_comic_info.json 与 processed_comic_info.json，便于其他工具识别与再次导入'
+	String get writeDownloadMetadataFileSubtitle => '下载完成后在漫画目录写入 original_comic_info.json 与 processed_comic_info.json，便于其他工具识别与再次导入';
+
 	/// zh-CN: '左手优化'
 	String get leftHandMode => '左手优化';
 
@@ -1194,8 +1200,8 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '关于应用'
 	String get aboutApp => '关于应用';
 
-	/// zh-CN: '关于 Breeze 的详细信息'
-	String get aboutAppSubtitle => '关于 Breeze 的详细信息';
+	/// zh-CN: '关于 Rossi 的详细信息'
+	String get aboutAppSubtitle => '关于 Rossi 的详细信息';
 
 	/// zh-CN: '插件管理'
 	String get pluginManagement => '插件管理';
@@ -1262,6 +1268,378 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '主页已更新'
 	String get fileManagerHomePathSet => '主页已更新';
+
+	/// zh-CN: '操作绑定'
+	String get operationBinding => '操作绑定';
+
+	/// zh-CN: '按键、点击分区与绑定包'
+	String get operationBindingEntrySubtitle => '按键、点击分区与绑定包';
+
+	/// zh-CN: '按键与点击对应哪个动作，由这张表决定。保存即刻生效，不需要重启。'
+	String get operationBindingSubtitle => '按键与点击对应哪个动作，由这张表决定。保存即刻生效，不需要重启。';
+
+	/// zh-CN: '生效方式'
+	String get operationBindingSectionSwitch => '生效方式';
+
+	/// zh-CN: '用绑定表解析按键与点击'
+	String get operationBindingRuntime => '用绑定表解析按键与点击';
+
+	/// zh-CN: '关掉后回到内置的固定键位（方向键、WASD、小键盘与 F11），下面的编辑不影响阅读。'
+	String get operationBindingRuntimeSubtitle => '关掉后回到内置的固定键位（方向键、WASD、小键盘与 F11），下面的编辑不影响阅读。';
+
+	/// zh-CN: '键盘'
+	String get operationBindingSectionKeyboard => '键盘';
+
+	/// zh-CN: '点击分区'
+	String get operationBindingSectionTap => '点击分区';
+
+	/// zh-CN: '阅读区只分「左半 / 正中 / 右半」三档：上下两排与中排同一动作。'
+	String get operationBindingTapSubtitle => '阅读区只分「左半 / 正中 / 右半」三档：上下两排与中排同一动作。';
+
+	/// zh-CN: '左半屏'
+	String get operationBindingAreaMiddleLeft => '左半屏';
+
+	/// zh-CN: '正中'
+	String get operationBindingAreaMiddleCenter => '正中';
+
+	/// zh-CN: '右半屏'
+	String get operationBindingAreaMiddleRight => '右半屏';
+
+	/// zh-CN: '未绑定'
+	String get operationBindingUnbound => '未绑定';
+
+	/// zh-CN: '绑定包'
+	String get operationBindingSectionBundle => '绑定包';
+
+	/// zh-CN: '导入 JSON'
+	String get operationBindingImport => '导入 JSON';
+
+	/// zh-CN: '粘贴一份绑定包（带 bindings 字段的对象、或裸数组都吃得下）。手柄 / 轮盘 / 轨迹手势那几类本仓还不能编辑，但会原样保留。'
+	String get operationBindingImportSubtitle => '粘贴一份绑定包（带 bindings 字段的对象、或裸数组都吃得下）。手柄 / 轮盘 / 轨迹手势那几类本仓还不能编辑，但会原样保留。';
+
+	/// zh-CN: '载入'
+	String get operationBindingImportConfirm => '载入';
+
+	/// zh-CN: '已载入 $count 条绑定，保存后生效'
+	String operationBindingImportLoaded({required Object count}) => '已载入 ${count} 条绑定，保存后生效';
+
+	/// zh-CN: '导出 JSON'
+	String get operationBindingExport => '导出 JSON';
+
+	/// zh-CN: '复制当前正在编辑的整张表。'
+	String get operationBindingExportSubtitle => '复制当前正在编辑的整张表。';
+
+	/// zh-CN: '复制'
+	String get operationBindingCopy => '复制';
+
+	/// zh-CN: '绑定表已复制到剪贴板'
+	String get operationBindingCopied => '绑定表已复制到剪贴板';
+
+	/// zh-CN: '保存前会先做校验与冲突检查；导入的内容只有按下保存才会写入。'
+	String get operationBindingJsonHint => '保存前会先做校验与冲突检查；导入的内容只有按下保存才会写入。';
+
+	/// zh-CN: '保存'
+	String get operationBindingSave => '保存';
+
+	/// zh-CN: '绑定表已保存，即刻生效'
+	String get operationBindingSaved => '绑定表已保存，即刻生效';
+
+	/// zh-CN: '放弃修改'
+	String get operationBindingDiscard => '放弃修改';
+
+	/// zh-CN: '已放弃未保存的修改'
+	String get operationBindingDiscarded => '已放弃未保存的修改';
+
+	/// zh-CN: '有未保存的修改。'
+	String get operationBindingDirtyHint => '有未保存的修改。';
+
+	/// zh-CN: '恢复出厂预设'
+	String get operationBindingRestoreFactory => '恢复出厂预设';
+
+	/// zh-CN: '用出厂的键盘与点击预设整张替换（用户自己加的绑定也会被替换掉）。'
+	String get operationBindingRestoreFactorySubtitle => '用出厂的键盘与点击预设整张替换（用户自己加的绑定也会被替换掉）。';
+
+	/// zh-CN: '添加按键'
+	String get operationBindingAddKey => '添加按键';
+
+	/// zh-CN: '未绑定按键'
+	String get operationBindingNoKeys => '未绑定按键';
+
+	/// zh-CN: '本仓还没有这个动作的执行体'
+	String get operationBindingUnimplemented => '本仓还没有这个动作的执行体';
+
+	/// zh-CN: '按下要绑定的键'
+	String get operationBindingRecordTitle => '按下要绑定的键';
+
+	/// zh-CN: '同时按住 Ctrl / Alt / Shift / Win 可以绑定组合键；按 Esc 取消。'
+	String get operationBindingRecordHint => '同时按住 Ctrl / Alt / Shift / Win 可以绑定组合键；按 Esc 取消。';
+
+	/// zh-CN: '「$label」没有平台无关的键名，无法绑定'
+	String operationBindingRecordUnsupported({required Object label}) => '「${label}」没有平台无关的键名，无法绑定';
+
+	/// zh-CN: '存在冲突的绑定'
+	String get operationBindingConflictTitle => '存在冲突的绑定';
+
+	/// zh-CN: '同一个输入只能有一条生效绑定。请删掉或停用其中一条，再保存。'
+	String get operationBindingConflictBody => '同一个输入只能有一条生效绑定。请删掉或停用其中一条，再保存。';
+
+	/// zh-CN: '这份绑定表读不懂，已拒绝保存'
+	String get operationBindingInvalidTable => '这份绑定表读不懂，已拒绝保存';
+
+	/// zh-CN: '导航'
+	String get operationBindingCategoryNavigation => '导航';
+
+	/// zh-CN: '缩放'
+	String get operationBindingCategoryZoom => '缩放';
+
+	/// zh-CN: '视图'
+	String get operationBindingCategoryView => '视图';
+
+	/// zh-CN: '会话'
+	String get operationBindingCategorySession => '会话';
+
+	/// zh-CN: '下一页'
+	String get operationBindingActionNextPage => '下一页';
+
+	/// zh-CN: '上一页'
+	String get operationBindingActionPreviousPage => '上一页';
+
+	/// zh-CN: '第一页'
+	String get operationBindingActionFirstPage => '第一页';
+
+	/// zh-CN: '最后一页'
+	String get operationBindingActionLastPage => '最后一页';
+
+	/// zh-CN: '向左翻页'
+	String get operationBindingActionPageLeft => '向左翻页';
+
+	/// zh-CN: '向右翻页'
+	String get operationBindingActionPageRight => '向右翻页';
+
+	/// zh-CN: '全屏'
+	String get operationBindingActionFullscreen => '全屏';
+
+	/// zh-CN: '阅读方向切换'
+	String get operationBindingActionToggleDirection => '阅读方向切换';
+
+	/// zh-CN: '书籍模式'
+	String get operationBindingActionBookMode => '书籍模式';
+
+	/// zh-CN: '重置视图'
+	String get operationBindingActionResetView => '重置视图';
+
+	/// zh-CN: '唤出/收起上下栏'
+	String get operationBindingActionToggleBars => '唤出/收起上下栏';
+
+	/// zh-CN: '打开设置'
+	String get operationBindingActionOpenSettings => '打开设置';
+
+	/// zh-CN: '绑定的动作'
+	String get operationBindingBoundAction => '绑定的动作';
+
+	/// zh-CN: '已停用（不参与冲突判定）'
+	String get operationBindingDisabledRow => '已停用（不参与冲突判定）';
+
+	/// zh-CN: '删除这条绑定'
+	String get operationBindingRemove => '删除这条绑定';
+
+	/// zh-CN: '布局'
+	String get workspaceLayout => '布局';
+
+	/// zh-CN: '默认启动视图 · 泳道焦点与独占 · 悬停唤出区'
+	String get workspaceLayoutSubtitle => '默认启动视图 · 泳道焦点与独占 · 悬停唤出区';
+
+	/// zh-CN: '泳道与布局'
+	String get laneAndLayout => '泳道与布局';
+
+	/// zh-CN: '默认启动视图'
+	String get defaultStartupView => '默认启动视图';
+
+	/// zh-CN: '四边栏'
+	String get startupViewEdges => '四边栏';
+
+	/// zh-CN: '泳道'
+	String get startupViewSwimlane => '泳道';
+
+	/// zh-CN: '下次打开工作台时走哪条呈现。两种呈现共用同一份记账，切换不会重开当前这一本。'
+	String get startupViewHint => '下次打开工作台时走哪条呈现。两种呈现共用同一份记账，切换不会重开当前这一本。';
+
+	/// zh-CN: '泳道焦点与独占'
+	String get laneFocusSolo => '泳道焦点与独占';
+
+	/// zh-CN: '控制主泳道独占、切换栏和边缘调阅的响应时机。'
+	String get laneFocusSoloSubtitle => '控制主泳道独占、切换栏和边缘调阅的响应时机。';
+
+	/// zh-CN: 'Reader 聚焦时自动独占'
+	String get readerSoloOnFocus => 'Reader 聚焦时自动独占';
+
+	/// zh-CN: '把交互交给 Reader 时顺带独占整条可用宽，不必再点一次栏头的独占按钮。'
+	String get readerSoloOnFocusSubtitle => '把交互交给 Reader 时顺带独占整条可用宽，不必再点一次栏头的独占按钮。';
+
+	/// zh-CN: 'Reader 独占时显示泳道切换栏'
+	String get showLaneNavigatorInSolo => 'Reader 独占时显示泳道切换栏';
+
+	/// zh-CN: '其余泳道收成紧凑轨留在条带里，点一条就把交互交给它；关掉则只剩 Reader，靠左右唤出区调回别的泳道。'
+	String get showLaneNavigatorInSoloSubtitle => '其余泳道收成紧凑轨留在条带里，点一条就把交互交给它；关掉则只剩 Reader，靠左右唤出区调回别的泳道。';
+
+	/// zh-CN: '允许手动横向滚动'
+	String get manualScrollEnabled => '允许手动横向滚动';
+
+	/// zh-CN: '关掉之后条带仍会按激活与揭示自己滚到该看的位置，只是不再响应自己伸手的拖动与滚轮。'
+	String get manualScrollEnabledSubtitle => '关掉之后条带仍会按激活与揭示自己滚到该看的位置，只是不再响应自己伸手的拖动与滚轮。';
+
+	/// zh-CN: '左右泳道展开延迟'
+	String get edgeRevealDelay => '左右泳道展开延迟';
+
+	/// zh-CN: 'Reader 悬停重新聚焦延迟'
+	String get readerHoverFocusDelay => 'Reader 悬停重新聚焦延迟';
+
+	/// zh-CN: '启用 Reader 悬停重新聚焦'
+	String get readerHoverFocusEnable => '启用 Reader 悬停重新聚焦';
+
+	/// zh-CN: '驻留多久才触发，单位毫秒。三套延时各自独立，改一个不会连带改坏另一个。'
+	String get delayRangeHint => '驻留多久才触发，单位毫秒。三套延时各自独立，改一个不会连带改坏另一个。';
+
+	/// zh-CN: '悬停唤出区'
+	String get hoverRevealZones => '悬停唤出区';
+
+	/// zh-CN: '在画布上拖出矩形，决定指针停在哪儿会把对应内容调出来。'
+	String get hoverRevealZonesSubtitle => '在画布上拖出矩形，决定指针停在哪儿会把对应内容调出来。';
+
+	/// zh-CN: '左右两条管泳道揭示，上管工作台顶栏，下管阅读器底栏。拖拽画框，选中后拖四角微调。'
+	String get hoverRevealZonesHint => '左右两条管泳道揭示，上管工作台顶栏，下管阅读器底栏。拖拽画框，选中后拖四角微调。';
+
+	/// zh-CN: '左侧'
+	String get revealEdgeLeft => '左侧';
+
+	/// zh-CN: '右侧'
+	String get revealEdgeRight => '右侧';
+
+	/// zh-CN: '上栏'
+	String get revealEdgeTop => '上栏';
+
+	/// zh-CN: '下栏'
+	String get revealEdgeBottom => '下栏';
+
+	/// zh-CN: '左右联动'
+	String get revealLinkHorizontal => '左右联动';
+
+	/// zh-CN: '上下联动'
+	String get revealLinkVertical => '上下联动';
+
+	/// zh-CN: '重置悬停唤出区'
+	String get revealReset => '重置悬停唤出区';
+
+	/// zh-CN: 'X'
+	String get revealFieldX => 'X';
+
+	/// zh-CN: 'Y'
+	String get revealFieldY => 'Y';
+
+	/// zh-CN: '宽'
+	String get revealFieldWidth => '宽';
+
+	/// zh-CN: '高'
+	String get revealFieldHeight => '高';
+
+	/// zh-CN: '已恢复出厂唤出区'
+	String get revealZoneResetDone => '已恢复出厂唤出区';
+
+	/// zh-CN: '快捷键'
+	String get operationBindingTabKeyboard => '快捷键';
+
+	/// zh-CN: '轮盘'
+	String get operationBindingTabRadial => '轮盘';
+
+	/// zh-CN: '唤出轮盘'
+	String get operationBindingActionOpenRadial => '唤出轮盘';
+
+	/// zh-CN: '启用轮盘'
+	String get operationBindingRadialEnable => '启用轮盘';
+
+	/// zh-CN: '关掉之后轮盘不再响应，槽位绑定原样保留'
+	String get operationBindingRadialEnableSubtitle => '关掉之后轮盘不再响应，槽位绑定原样保留';
+
+	/// zh-CN: '默认轮盘'
+	String get operationBindingRadialActiveWheel => '默认轮盘';
+
+	/// zh-CN: '$count 层'
+	String operationBindingRadialLayerUnit({required Object count}) => '${count} 层';
+
+	/// zh-CN: '新轮盘'
+	String get operationBindingRadialNew => '新轮盘';
+
+	/// zh-CN: '删除轮盘'
+	String get operationBindingRadialDelete => '删除轮盘';
+
+	/// zh-CN: '预览'
+	String get operationBindingRadialPreview => '预览';
+
+	/// zh-CN: '重置槽位'
+	String get operationBindingRadialReset => '重置槽位';
+
+	/// zh-CN: '只重写这个轮盘的出厂槽位，你自绑的其它输入不动'
+	String get operationBindingRadialResetSubtitle => '只重写这个轮盘的出厂槽位，你自绑的其它输入不动';
+
+	/// zh-CN: '已启用 · $layers 层 · 点空格添加，点已有槽编辑'
+	String operationBindingRadialHint({required Object layers}) => '已启用 · ${layers} 层 · 点空格添加，点已有槽编辑';
+
+	/// zh-CN: '已停用 · 阅读时不会唤出轮盘'
+	String get operationBindingRadialHintDisabled => '已停用 · 阅读时不会唤出轮盘';
+
+	/// zh-CN: '外观与几何'
+	String get operationBindingRadialAppearance => '外观与几何';
+
+	/// zh-CN: 'r$radius · 内$inner · $sectors 格'
+	String operationBindingRadialGeometrySummary({required Object radius, required Object inner, required Object sectors}) => 'r${radius} · 内${inner} · ${sectors} 格';
+
+	/// zh-CN: '外半径'
+	String get operationBindingRadialRadius => '外半径';
+
+	/// zh-CN: '内半径（中心空洞）'
+	String get operationBindingRadialInnerRadius => '内半径（中心空洞）';
+
+	/// zh-CN: '每层格数'
+	String get operationBindingRadialSectors => '每层格数';
+
+	/// zh-CN: '槽位'
+	String get operationBindingRadialSlots => '槽位';
+
+	/// zh-CN: '点击轮盘空槽或已有槽'
+	String get operationBindingRadialSlotsSubtitle => '点击轮盘空槽或已有槽';
+
+	/// zh-CN: '轮盘名'
+	String get operationBindingRadialName => '轮盘名';
+
+	/// zh-CN: '第 $layer 层 · 第 $sector 格'
+	String operationBindingRadialSlotLabel({required Object layer, required Object sector}) => '第 ${layer} 层 · 第 ${sector} 格';
+
+	/// zh-CN: '空槽'
+	String get operationBindingRadialEmptySlot => '空槽';
+
+	/// zh-CN: '解绑这一格'
+	String get operationBindingRadialUnbindSlot => '解绑这一格';
+
+	/// zh-CN: '最多 $max 个轮盘'
+	String operationBindingRadialMaxMenus({required Object max}) => '最多 ${max} 个轮盘';
+
+	/// zh-CN: '删除轮盘「$name」？它的槽位绑定会一并移除。'
+	String operationBindingRadialDeleteConfirm({required Object name}) => '删除轮盘「${name}」？它的槽位绑定会一并移除。';
+
+	/// zh-CN: '至少要留一个轮盘'
+	String get operationBindingRadialDeleteLast => '至少要留一个轮盘';
+
+	/// zh-CN: '轮盘配置不合法，已拒绝保存'
+	String get operationBindingRadialInvalid => '轮盘配置不合法，已拒绝保存';
+
+	/// zh-CN: '已重置这个轮盘的出厂槽位'
+	String get operationBindingRadialResetDone => '已重置这个轮盘的出厂槽位';
+
+	/// zh-CN: '轮盘 $index'
+	String operationBindingRadialNewName({required Object index}) => '轮盘 ${index}';
+
+	/// zh-CN: '新轮盘是空的：槽位需要你一格一格绑'
+	String get operationBindingRadialEmptyWheel => '新轮盘是空的：槽位需要你一格一格绑';
 }
 
 // Path: bookshelf
@@ -2052,20 +2430,23 @@ class Translations$reader$zh_CN {
 	/// zh-CN: '条漫'
 	String get webtoon => '条漫';
 
-	/// zh-CN: '单页式（从左到右）'
-	String get singlePageLtr => '单页式（从左到右）';
+	/// zh-CN: '单页式（横向翻页）'
+	String get singlePageRow => '单页式（横向翻页）';
 
-	/// zh-CN: '单页式（从右到左）'
-	String get singlePageRtl => '单页式（从右到左）';
+	/// zh-CN: '左开模式 · 下一页在左'
+	String get readingDirectionLeftOpen => '左开模式 · 下一页在左';
+
+	/// zh-CN: '右开模式 · 下一页在右'
+	String get readingDirectionRightOpen => '右开模式 · 下一页在右';
 
 	/// zh-CN: '阅读方向'
 	String get readingDirectionToggle => '阅读方向';
 
-	/// zh-CN: '当前从左到右（点按切换为从右到左）'
-	String get readingDirectionToggleLtr => '当前从左到右（点按切换为从右到左）';
+	/// zh-CN: '当前左开（下一页在左）· 点按切换为右开'
+	String get readingDirectionToggleLeftOpen => '当前左开（下一页在左）· 点按切换为右开';
 
-	/// zh-CN: '当前从右到左（点按切换为从左到右）'
-	String get readingDirectionToggleRtl => '当前从右到左（点按切换为从左到右）';
+	/// zh-CN: '当前右开（下一页在右）· 点按切换为左开'
+	String get readingDirectionToggleRightOpen => '当前右开（下一页在右）· 点按切换为左开';
 
 	/// zh-CN: '条漫模式没有左右翻页方向'
 	String get readingDirectionToggleDisabled => '条漫模式没有左右翻页方向';
@@ -2165,6 +2546,18 @@ class Translations$reader$zh_CN {
 
 	/// zh-CN: '底部感应区：{height}px'
 	String get hoverAreaBottomHint => '底部感应区：{height}px';
+
+	/// zh-CN: '钉住顶栏（不再自动收起）'
+	String get pinTopBar => '钉住顶栏（不再自动收起）';
+
+	/// zh-CN: '取消钉住顶栏'
+	String get unpinTopBar => '取消钉住顶栏';
+
+	/// zh-CN: '钉住底栏（不再自动收起）'
+	String get pinBottomBar => '钉住底栏（不再自动收起）';
+
+	/// zh-CN: '取消钉住底栏'
+	String get unpinBottomBar => '取消钉住底栏';
 
 	/// zh-CN: '横屏阅读'
 	String get landscapeReader => '横屏阅读';
@@ -2441,6 +2834,9 @@ class Translations$reader$zh_CN {
 
 	/// zh-CN: '保存失败: $error'
 	String imageSaveFailedWithError({required Object error}) => '保存失败: ${error}';
+
+	/// zh-CN: '松手执行 · 中心或 Esc 取消'
+	String get radialMenuHint => '松手执行 · 中心或 Esc 取消';
 }
 
 // Path: plugin
@@ -4452,7 +4848,7 @@ class Translations$shelfMenu$zh_CN {
 extension on Translations {
 	dynamic _flatMapFunction(String path) {
 		return switch (path) {
-			'appName' => 'Breeze',
+			'appName' => 'Rossi',
 			'common.ok' => '确定',
 			'common.cancel' => '取消',
 			'common.save' => '保存',
@@ -4713,6 +5109,8 @@ extension on Translations {
 			'settings.autoFollowOnCollectSubtitle' => '开启后收藏漫画时将自动加入追更列表',
 			'settings.autoFavoriteOnDownload' => '下载自动收藏',
 			'settings.autoFavoriteOnDownloadSubtitle' => '开启后下载漫画时将自动加入本地收藏',
+			'settings.writeDownloadMetadataFile' => '下载写入元数据文件',
+			'settings.writeDownloadMetadataFileSubtitle' => '下载完成后在漫画目录写入 original_comic_info.json 与 processed_comic_info.json，便于其他工具识别与再次导入',
 			'settings.leftHandMode' => '左手优化',
 			'settings.leftHandModeSubtitle' => '开启后将悬浮按钮等操作按钮移到屏幕左侧',
 			'settings.clickCoverToStartReading' => '点击封面开始阅读',
@@ -4812,7 +5210,7 @@ extension on Translations {
 			'settings.changelog' => '更新日志',
 			'settings.changelogSubtitle' => '查看各个版本的更新记录',
 			'settings.aboutApp' => '关于应用',
-			'settings.aboutAppSubtitle' => '关于 Breeze 的详细信息',
+			'settings.aboutAppSubtitle' => '关于 Rossi 的详细信息',
 			'settings.pluginManagement' => '插件管理',
 			'settings.debugMode' => '调试模式',
 			'settings.debugAddress' => '调试地址',
@@ -4835,9 +5233,135 @@ extension on Translations {
 			'settings.fileManagerRememberViewState' => '记住每个目录的视图与排序',
 			'settings.fileManagerRememberViewStateSubtitle' => '每个目录各自记住视图、排序与筛选；关闭后浏览照常，只是不再记忆',
 			'settings.fileManagerHomePathSet' => '主页已更新',
+			'settings.operationBinding' => '操作绑定',
+			'settings.operationBindingEntrySubtitle' => '按键、点击分区与绑定包',
+			'settings.operationBindingSubtitle' => '按键与点击对应哪个动作，由这张表决定。保存即刻生效，不需要重启。',
+			'settings.operationBindingSectionSwitch' => '生效方式',
+			'settings.operationBindingRuntime' => '用绑定表解析按键与点击',
+			'settings.operationBindingRuntimeSubtitle' => '关掉后回到内置的固定键位（方向键、WASD、小键盘与 F11），下面的编辑不影响阅读。',
+			'settings.operationBindingSectionKeyboard' => '键盘',
+			'settings.operationBindingSectionTap' => '点击分区',
+			'settings.operationBindingTapSubtitle' => '阅读区只分「左半 / 正中 / 右半」三档：上下两排与中排同一动作。',
+			'settings.operationBindingAreaMiddleLeft' => '左半屏',
+			'settings.operationBindingAreaMiddleCenter' => '正中',
+			'settings.operationBindingAreaMiddleRight' => '右半屏',
+			'settings.operationBindingUnbound' => '未绑定',
+			'settings.operationBindingSectionBundle' => '绑定包',
+			'settings.operationBindingImport' => '导入 JSON',
+			'settings.operationBindingImportSubtitle' => '粘贴一份绑定包（带 bindings 字段的对象、或裸数组都吃得下）。手柄 / 轮盘 / 轨迹手势那几类本仓还不能编辑，但会原样保留。',
+			'settings.operationBindingImportConfirm' => '载入',
+			'settings.operationBindingImportLoaded' => ({required Object count}) => '已载入 ${count} 条绑定，保存后生效',
+			'settings.operationBindingExport' => '导出 JSON',
+			'settings.operationBindingExportSubtitle' => '复制当前正在编辑的整张表。',
+			'settings.operationBindingCopy' => '复制',
+			'settings.operationBindingCopied' => '绑定表已复制到剪贴板',
+			'settings.operationBindingJsonHint' => '保存前会先做校验与冲突检查；导入的内容只有按下保存才会写入。',
+			'settings.operationBindingSave' => '保存',
+			'settings.operationBindingSaved' => '绑定表已保存，即刻生效',
+			'settings.operationBindingDiscard' => '放弃修改',
+			'settings.operationBindingDiscarded' => '已放弃未保存的修改',
+			'settings.operationBindingDirtyHint' => '有未保存的修改。',
+			'settings.operationBindingRestoreFactory' => '恢复出厂预设',
+			'settings.operationBindingRestoreFactorySubtitle' => '用出厂的键盘与点击预设整张替换（用户自己加的绑定也会被替换掉）。',
+			'settings.operationBindingAddKey' => '添加按键',
+			'settings.operationBindingNoKeys' => '未绑定按键',
+			'settings.operationBindingUnimplemented' => '本仓还没有这个动作的执行体',
+			'settings.operationBindingRecordTitle' => '按下要绑定的键',
+			'settings.operationBindingRecordHint' => '同时按住 Ctrl / Alt / Shift / Win 可以绑定组合键；按 Esc 取消。',
+			'settings.operationBindingRecordUnsupported' => ({required Object label}) => '「${label}」没有平台无关的键名，无法绑定',
+			'settings.operationBindingConflictTitle' => '存在冲突的绑定',
+			'settings.operationBindingConflictBody' => '同一个输入只能有一条生效绑定。请删掉或停用其中一条，再保存。',
+			'settings.operationBindingInvalidTable' => '这份绑定表读不懂，已拒绝保存',
+			'settings.operationBindingCategoryNavigation' => '导航',
+			'settings.operationBindingCategoryZoom' => '缩放',
+			'settings.operationBindingCategoryView' => '视图',
+			'settings.operationBindingCategorySession' => '会话',
+			'settings.operationBindingActionNextPage' => '下一页',
+			'settings.operationBindingActionPreviousPage' => '上一页',
+			'settings.operationBindingActionFirstPage' => '第一页',
+			'settings.operationBindingActionLastPage' => '最后一页',
+			'settings.operationBindingActionPageLeft' => '向左翻页',
+			'settings.operationBindingActionPageRight' => '向右翻页',
+			'settings.operationBindingActionFullscreen' => '全屏',
+			'settings.operationBindingActionToggleDirection' => '阅读方向切换',
+			'settings.operationBindingActionBookMode' => '书籍模式',
+			'settings.operationBindingActionResetView' => '重置视图',
+			'settings.operationBindingActionToggleBars' => '唤出/收起上下栏',
+			'settings.operationBindingActionOpenSettings' => '打开设置',
+			'settings.operationBindingBoundAction' => '绑定的动作',
+			'settings.operationBindingDisabledRow' => '已停用（不参与冲突判定）',
+			'settings.operationBindingRemove' => '删除这条绑定',
+			'settings.workspaceLayout' => '布局',
+			'settings.workspaceLayoutSubtitle' => '默认启动视图 · 泳道焦点与独占 · 悬停唤出区',
+			'settings.laneAndLayout' => '泳道与布局',
+			'settings.defaultStartupView' => '默认启动视图',
+			'settings.startupViewEdges' => '四边栏',
+			'settings.startupViewSwimlane' => '泳道',
+			'settings.startupViewHint' => '下次打开工作台时走哪条呈现。两种呈现共用同一份记账，切换不会重开当前这一本。',
+			'settings.laneFocusSolo' => '泳道焦点与独占',
+			'settings.laneFocusSoloSubtitle' => '控制主泳道独占、切换栏和边缘调阅的响应时机。',
+			'settings.readerSoloOnFocus' => 'Reader 聚焦时自动独占',
+			'settings.readerSoloOnFocusSubtitle' => '把交互交给 Reader 时顺带独占整条可用宽，不必再点一次栏头的独占按钮。',
+			'settings.showLaneNavigatorInSolo' => 'Reader 独占时显示泳道切换栏',
+			'settings.showLaneNavigatorInSoloSubtitle' => '其余泳道收成紧凑轨留在条带里，点一条就把交互交给它；关掉则只剩 Reader，靠左右唤出区调回别的泳道。',
+			'settings.manualScrollEnabled' => '允许手动横向滚动',
+			'settings.manualScrollEnabledSubtitle' => '关掉之后条带仍会按激活与揭示自己滚到该看的位置，只是不再响应自己伸手的拖动与滚轮。',
+			'settings.edgeRevealDelay' => '左右泳道展开延迟',
+			'settings.readerHoverFocusDelay' => 'Reader 悬停重新聚焦延迟',
+			'settings.readerHoverFocusEnable' => '启用 Reader 悬停重新聚焦',
+			'settings.delayRangeHint' => '驻留多久才触发，单位毫秒。三套延时各自独立，改一个不会连带改坏另一个。',
+			'settings.hoverRevealZones' => '悬停唤出区',
+			'settings.hoverRevealZonesSubtitle' => '在画布上拖出矩形，决定指针停在哪儿会把对应内容调出来。',
+			'settings.hoverRevealZonesHint' => '左右两条管泳道揭示，上管工作台顶栏，下管阅读器底栏。拖拽画框，选中后拖四角微调。',
+			'settings.revealEdgeLeft' => '左侧',
+			'settings.revealEdgeRight' => '右侧',
+			'settings.revealEdgeTop' => '上栏',
+			'settings.revealEdgeBottom' => '下栏',
+			'settings.revealLinkHorizontal' => '左右联动',
+			'settings.revealLinkVertical' => '上下联动',
+			'settings.revealReset' => '重置悬停唤出区',
+			'settings.revealFieldX' => 'X',
+			'settings.revealFieldY' => 'Y',
+			'settings.revealFieldWidth' => '宽',
+			'settings.revealFieldHeight' => '高',
+			'settings.revealZoneResetDone' => '已恢复出厂唤出区',
+			'settings.operationBindingTabKeyboard' => '快捷键',
+			'settings.operationBindingTabRadial' => '轮盘',
+			'settings.operationBindingActionOpenRadial' => '唤出轮盘',
+			'settings.operationBindingRadialEnable' => '启用轮盘',
+			'settings.operationBindingRadialEnableSubtitle' => '关掉之后轮盘不再响应，槽位绑定原样保留',
+			'settings.operationBindingRadialActiveWheel' => '默认轮盘',
+			'settings.operationBindingRadialLayerUnit' => ({required Object count}) => '${count} 层',
+			'settings.operationBindingRadialNew' => '新轮盘',
+			'settings.operationBindingRadialDelete' => '删除轮盘',
+			'settings.operationBindingRadialPreview' => '预览',
+			'settings.operationBindingRadialReset' => '重置槽位',
+			'settings.operationBindingRadialResetSubtitle' => '只重写这个轮盘的出厂槽位，你自绑的其它输入不动',
+			'settings.operationBindingRadialHint' => ({required Object layers}) => '已启用 · ${layers} 层 · 点空格添加，点已有槽编辑',
+			'settings.operationBindingRadialHintDisabled' => '已停用 · 阅读时不会唤出轮盘',
+			'settings.operationBindingRadialAppearance' => '外观与几何',
+			'settings.operationBindingRadialGeometrySummary' => ({required Object radius, required Object inner, required Object sectors}) => 'r${radius} · 内${inner} · ${sectors} 格',
+			'settings.operationBindingRadialRadius' => '外半径',
+			'settings.operationBindingRadialInnerRadius' => '内半径（中心空洞）',
+			'settings.operationBindingRadialSectors' => '每层格数',
+			'settings.operationBindingRadialSlots' => '槽位',
+			'settings.operationBindingRadialSlotsSubtitle' => '点击轮盘空槽或已有槽',
+			'settings.operationBindingRadialName' => '轮盘名',
+			'settings.operationBindingRadialSlotLabel' => ({required Object layer, required Object sector}) => '第 ${layer} 层 · 第 ${sector} 格',
+			'settings.operationBindingRadialEmptySlot' => '空槽',
+			'settings.operationBindingRadialUnbindSlot' => '解绑这一格',
+			'settings.operationBindingRadialMaxMenus' => ({required Object max}) => '最多 ${max} 个轮盘',
+			'settings.operationBindingRadialDeleteConfirm' => ({required Object name}) => '删除轮盘「${name}」？它的槽位绑定会一并移除。',
+			'settings.operationBindingRadialDeleteLast' => '至少要留一个轮盘',
+			'settings.operationBindingRadialInvalid' => '轮盘配置不合法，已拒绝保存',
+			'settings.operationBindingRadialResetDone' => '已重置这个轮盘的出厂槽位',
+			'settings.operationBindingRadialNewName' => ({required Object index}) => '轮盘 ${index}',
+			'settings.operationBindingRadialEmptyWheel' => '新轮盘是空的：槽位需要你一格一格绑',
 			'bookshelf.title' => '书架',
 			'bookshelf.favorite' => '收藏',
 			'bookshelf.history' => '历史',
+			_ => null,
+		} ?? switch (path) {
 			'bookshelf.download' => '下载',
 			'bookshelf.filter' => '筛选',
 			'bookshelf.searchList' => '搜索列表',
@@ -4964,8 +5488,6 @@ extension on Translations {
 			'comicInfo.downloadForbidden' => '禁止下载',
 			'comicInfo.addedToCollection' => '已添加收藏',
 			'comicInfo.removedFromCollection' => '已取消收藏',
-			_ => null,
-		} ?? switch (path) {
 			'comicInfo.confirmUncollectTitle' => '确认取消收藏',
 			'comicInfo.confirmUncollectContent' => '此项操作会删除该漫画在所有文件夹的记录，是否确认删除？',
 			'comicInfo.commentForbidden' => '该漫画禁止评论',
@@ -5091,11 +5613,12 @@ extension on Translations {
 			'reader.readingDirectionRtl' => '从右到左',
 			'reader.readingDirectionVertical' => '从上到下',
 			'reader.webtoon' => '条漫',
-			'reader.singlePageLtr' => '单页式（从左到右）',
-			'reader.singlePageRtl' => '单页式（从右到左）',
+			'reader.singlePageRow' => '单页式（横向翻页）',
+			'reader.readingDirectionLeftOpen' => '左开模式 · 下一页在左',
+			'reader.readingDirectionRightOpen' => '右开模式 · 下一页在右',
 			'reader.readingDirectionToggle' => '阅读方向',
-			'reader.readingDirectionToggleLtr' => '当前从左到右（点按切换为从右到左）',
-			'reader.readingDirectionToggleRtl' => '当前从右到左（点按切换为从左到右）',
+			'reader.readingDirectionToggleLeftOpen' => '当前左开（下一页在左）· 点按切换为右开',
+			'reader.readingDirectionToggleRightOpen' => '当前右开（下一页在右）· 点按切换为左开',
 			'reader.readingDirectionToggleDisabled' => '条漫模式没有左右翻页方向',
 			'reader.readingDirectionToggleSetting' => '顶栏显示阅读方向切换',
 			'reader.doublePage' => '双页阅读',
@@ -5129,6 +5652,10 @@ extension on Translations {
 			'reader.hoverAreaPreview' => '唤出感应区示意（NeoView 风格）',
 			'reader.hoverAreaTopHint' => '顶部感应区：{height}px',
 			'reader.hoverAreaBottomHint' => '底部感应区：{height}px',
+			'reader.pinTopBar' => '钉住顶栏（不再自动收起）',
+			'reader.unpinTopBar' => '取消钉住顶栏',
+			'reader.pinBottomBar' => '钉住底栏（不再自动收起）',
+			'reader.unpinBottomBar' => '取消钉住底栏',
 			'reader.landscapeReader' => '横屏阅读',
 			'reader.landscapeReaderSubtitle' => '阅读时切换为横屏，离开后恢复原来的方向',
 			'reader.themeMode' => '系统模式',
@@ -5221,6 +5748,7 @@ extension on Translations {
 			'reader.imageSaveFailed' => '图片保存失败！',
 			'reader.saveImagePermissionDenied' => '保存失败: 请在系统设置中授予相册访问权限',
 			'reader.imageSaveFailedWithError' => ({required Object error}) => '保存失败: ${error}',
+			'reader.radialMenuHint' => '松手执行 · 中心或 Esc 取消',
 			'plugin.store' => '插件商店',
 			'plugin.searchHint' => '搜索插件名称或作者...',
 			'plugin.localInstall' => '本地安装',
@@ -5346,6 +5874,8 @@ extension on Translations {
 			'comments.confirm' => '确认',
 			'comments.postSuccess' => '发布成功',
 			'comments.postFailed' => ({required Object error}) => '发布失败: ${error}',
+			_ => null,
+		} ?? switch (path) {
 			'comments.anonymous' => '匿名用户',
 			'cache.title' => '缓存设置',
 			'cache.currentCache' => '当前缓存',
@@ -5478,8 +6008,6 @@ extension on Translations {
 			'realSr.modeEfficiency' => '效率优先',
 			'realSr.modeQuality' => '质量优先',
 			'realSr.noiseConservative' => '保守',
-			_ => null,
-		} ?? switch (path) {
 			'realSr.noise0' => '无降噪',
 			'realSr.noise1' => '降噪 1',
 			'realSr.noise2' => '降噪 2',

@@ -8,6 +8,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_sheet.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
+import 'package:zephyr/workspace/model/workspace_startup.dart';
 
 @RoutePage()
 class GlobalSettingPage extends StatefulWidget {
@@ -81,11 +82,39 @@ class _GlobalSettingPageState extends State<GlobalSettingPage> {
           ),
           const Divider(height: 1, thickness: 0.3),
           settingCategoryTile(
+            icon: Icons.folder_special_outlined,
+            title: t.settings.fileManager,
+            subtitle: state.fileManagerSetting.homePath.isEmpty
+                ? t.settings.fileManagerHomePathEmpty
+                : state.fileManagerSetting.homePath,
+            onTap: () => _openSubPage(const FileManagerSettingRoute()),
+          ),
+          const Divider(height: 1, thickness: 0.3),
+          settingCategoryTile(
             icon: Icons.menu_book_outlined,
             title: t.reader.settings,
             subtitle:
                 '${t.reader.readingMode} · ${t.reader.hoverReveal} · ${t.reader.doubleTapAction}',
             onTap: () => showReaderSettingsSheet(context),
+          ),
+          // 整页讲的是**工作台**（泳道 / 四边栏 / 唤出区）。本机没有工作台入口时
+          // 不摆这一项 —— 与 `startWithWorkspace` 同一条纪律：不给点了没反应的
+          // 入口（那边连泳道都开不出来）。
+          if (hasWorkspaceEntry(context)) ...[
+            const Divider(height: 1, thickness: 0.3),
+            settingCategoryTile(
+              icon: Icons.view_column_outlined,
+              title: t.settings.workspaceLayout,
+              subtitle: t.settings.workspaceLayoutSubtitle,
+              onTap: () => _openSubPage(const WorkspaceLayoutSettingRoute()),
+            ),
+          ],
+          const Divider(height: 1, thickness: 0.3),
+          settingCategoryTile(
+            icon: Icons.sports_esports_outlined,
+            title: t.settings.operationBinding,
+            subtitle: t.settings.operationBindingEntrySubtitle,
+            onTap: () => _openSubPage(const OperationBindingSettingRoute()),
           ),
           const Divider(height: 1, thickness: 0.3),
           settingCategoryTile(

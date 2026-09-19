@@ -95,6 +95,23 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
               (current) => current.copyWith(translationBadgeEnabled: value),
             ),
           ),
+
+          const SizedBox(height: 8),
+          const Divider(height: 1, thickness: 0.3),
+          settingSectionTitle(
+            context,
+            t.settings.cardInteraction,
+            icon: Icons.touch_app_outlined,
+          ),
+          _switchTile(
+            icon: Icons.menu_open_rounded,
+            title: t.settings.shelfCardContextMenu,
+            subtitle: t.settings.shelfCardContextMenuSubtitle,
+            value: state.shelfCardContextMenu,
+            onChanged: (value) => cubit.updateBookshelfSetting(
+              (current) => current.copyWith(shelfCardContextMenu: value),
+            ),
+          ),
           const SizedBox(height: 32),
         ],
       ),

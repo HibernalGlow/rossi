@@ -37,23 +37,6 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     return [t.navigation.bookshelf, t.navigation.discover, t.navigation.more];
   }
 
-  Map<String, int> _splashPageMap(bool oldPageRollbackEnabled) {
-    if (oldPageRollbackEnabled) {
-      return {
-        t.navigation.home: 0,
-        t.navigation.rank: 1,
-        t.navigation.bookshelf: 2,
-        t.navigation.discover: 3,
-        t.navigation.more: 4,
-      };
-    }
-    return {
-      t.navigation.bookshelf: 0,
-      t.navigation.discover: 1,
-      t.navigation.more: 2,
-    };
-  }
-
   @override
   void initState() {
     super.initState();
@@ -81,11 +64,9 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
             t.settings.appBehavior,
             icon: Icons.settings_outlined,
           ),
+          // 「启动直接打开工作台」并进了这一条的下拉（见 `_splashPage`），
+          // 不再单开一栏 —— 两者本来就是同一件事：启动落到哪儿。
           _splashPage(state, cubit),
-          // 只在**本机真有工作台入口**的布局给这个开关：手机端导航栏上根本没有
-          // 那个按钮，自动打开无从落地 —— 摆一个点了没反应的开关比不摆更糟
-          // （与下面 `_comicInfoInlineReadButton` 同口径）。
-          if (hasWorkspaceEntry(context)) _startWithWorkspace(state, cubit),
           if (isDesktop) _desktopCloseBehaviorTile(),
           if (Platform.isAndroid) _androidKeepAlive(state, cubit),
           if (Platform.isAndroid) _backPressExit(state, cubit),
@@ -94,6 +75,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
           _cloudFavoritePreferred(state, cubit),
           _autoFollowOnCollect(state, cubit),
           _autoFavoriteOnDownload(state, cubit),
+          _writeDownloadMetadataFile(state, cubit),
           _leftHandMode(state, cubit),
           _clickCoverToStartReading(state, cubit),
           // 只在桌面端给这个开关：触摸端只有右下角悬浮按钮一种落点，
@@ -107,48 +89,51 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
 
   Widget _splashPage(GlobalSettingState state, GlobalSettingCubit cubit) {
     final splashPageList = _splashPageList(state.oldPageRollbackEnabled);
-    final splashPage = _splashPageMap(state.oldPageRollbackEnabled);
-    final selectedIndex = splashPageList.isEmpty
+    // 本机有没有工作台入口。手机（既不是平板宽度、也不是桌面）没有 —— 那边导航栏
+    // 上根本没有工作台按钮，下拉里也就摆这一项：摆了也落不了地。
+    final workspaceOptionAvailable = hasWorkspaceEntry(context);
+    // 老版回滚开关会让选项表在 3 项 / 5 项之间变，旧值可能越界，读之前先夹一次。
+    final clampedWelcomePageNum = splashPageList.isEmpty
         ? 0
         : state.welcomePageNum.clamp(0, splashPageList.length - 1);
 
-    final splashPageItems = {for (final page in splashPageList) page: page};
+    // 键用**标签页编号**（工作台是 `splashWorkspaceOption` 哨兵），不用显示名：
+    // 拿显示名当键的话，改一次文案就把选中项对丢了。
+    final items = <int, String>{
+      for (var index = 0; index < splashPageList.length; index++)
+        index: splashPageList[index],
+      if (workspaceOptionAvailable)
+        splashWorkspaceOption: t.settings.startWithWorkspace,
+    };
+    final selected = resolveSplashDropdownValue(
+      startWithWorkspace: state.startWithWorkspace,
+      workspaceEntryAvailable: workspaceOptionAvailable,
+      welcomePageNum: clampedWelcomePageNum,
+    );
 
     return ListTile(
       leading: const Icon(Icons.rocket_launch_outlined),
       title: Text(t.settings.splashPage),
       subtitle: Text(t.settings.splashPageSubtitle),
-      trailing: FluentDropdown<String>(
-        value: splashPageList[selectedIndex],
-        displayValue: splashPageList[selectedIndex],
-        items: splashPageItems,
-        onChanged: (String value) {
-          if (value == splashPageList[selectedIndex]) return;
-          showSuccessToast(t.common.restartToTakeEffect);
-          cubit.updateState(
-            (current) => current.copyWith(welcomePageNum: splashPage[value]!),
+      trailing: FluentDropdown<int>(
+        value: selected,
+        displayValue: items[selected] ?? items.values.first,
+        items: items,
+        onChanged: (int value) {
+          if (value == selected) return;
+          final next = resolveSplashSelection(
+            selected: value,
+            currentWelcomePageNum: state.welcomePageNum,
           );
+          cubit.updateState(
+            (current) => current.copyWith(
+              startWithWorkspace: next.startWithWorkspace,
+              welcomePageNum: next.welcomePageNum,
+            ),
+          );
+          showSuccessToast(t.common.restartToTakeEffect);
         },
       ),
-    );
-  }
-
-  Widget _startWithWorkspace(
-    GlobalSettingState state,
-    GlobalSettingCubit cubit,
-  ) {
-    return SwitchListTile(
-      secondary: const Icon(Icons.dashboard_customize_outlined),
-      title: Text(t.settings.startWithWorkspace),
-      subtitle: Text(t.settings.startWithWorkspaceSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
-      value: state.startWithWorkspace,
-      onChanged: (bool value) {
-        cubit.updateState(
-          (current) => current.copyWith(startWithWorkspace: value),
-        );
-        showSuccessToast(t.common.restartToTakeEffect);
-      },
     );
   }
 
@@ -219,6 +204,25 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
       onChanged: (bool value) {
         cubit.updateState(
           (current) => current.copyWith(autoFavoriteOnDownload: value),
+        );
+        showSuccessToast(t.common.settingSaved);
+      },
+    );
+  }
+
+  Widget _writeDownloadMetadataFile(
+    GlobalSettingState state,
+    GlobalSettingCubit cubit,
+  ) {
+    return SwitchListTile(
+      secondary: const Icon(Icons.description_outlined),
+      title: Text(t.settings.writeDownloadMetadataFile),
+      subtitle: Text(t.settings.writeDownloadMetadataFileSubtitle),
+      thumbIcon: kSettingSwitchThumbIcon,
+      value: state.writeDownloadMetadataFile,
+      onChanged: (bool value) {
+        cubit.updateState(
+          (current) => current.copyWith(writeDownloadMetadataFile: value),
         );
         showSuccessToast(t.common.settingSaved);
       },

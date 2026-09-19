@@ -29,6 +29,8 @@ class AppRouter extends RootStackRouter with WorkspaceBackInterceptor {
     AutoRoute(page: GlobalSettingRoute.page),
     AutoRoute(page: AppearanceSettingRoute.page),
     AutoRoute(page: ToastSettingRoute.page),
+    AutoRoute(page: WorkspaceLayoutSettingRoute.page),
+    AutoRoute(page: FileManagerSettingRoute.page),
     AutoRoute(page: ContentNetworkSettingRoute.page),
     AutoRoute(page: FavoriteArtistSettingRoute.page),
     AutoRoute(page: SyncSettingRoute.page),
@@ -53,6 +55,7 @@ class AppRouter extends RootStackRouter with WorkspaceBackInterceptor {
     AutoRoute(page: CacheSettingRoute.page),
     AutoRoute(page: RealSrSettingRoute.page),
     AutoRoute(page: BookshelfSettingRoute.page),
+    AutoRoute(page: OperationBindingSettingRoute.page),
     AutoRoute(page: DataBackupRoute.page),
     AutoRoute(page: ComicFollowRoute.page),
   ];

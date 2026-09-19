@@ -52,6 +52,8 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
   cloudFavoritePreferred: json['cloudFavoritePreferred'] as bool? ?? false,
   autoFollowOnCollect: json['autoFollowOnCollect'] as bool? ?? false,
   autoFavoriteOnDownload: json['autoFavoriteOnDownload'] as bool? ?? false,
+  writeDownloadMetadataFile:
+      json['writeDownloadMetadataFile'] as bool? ?? false,
   leftHandModeEnabled: json['leftHandModeEnabled'] as bool? ?? false,
   clickCoverToStartReading: json['clickCoverToStartReading'] as bool? ?? false,
   comicInfoInlineReadButton: json['comicInfoInlineReadButton'] as bool? ?? true,
@@ -111,6 +113,21 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
       : ToastSettingState.fromJson(
           json['toastSetting'] as Map<String, dynamic>,
         ),
+  switchToastSetting: json['switchToastSetting'] == null
+      ? const SwitchToastSettingState()
+      : SwitchToastSettingState.fromJson(
+          json['switchToastSetting'] as Map<String, dynamic>,
+        ),
+  fileManagerSetting: json['fileManagerSetting'] == null
+      ? const FileManagerSettingState()
+      : FileManagerSettingState.fromJson(
+          json['fileManagerSetting'] as Map<String, dynamic>,
+        ),
+  operationBindingSetting: json['operationBindingSetting'] == null
+      ? const OperationBindingSettingState()
+      : OperationBindingSettingState.fromJson(
+          json['operationBindingSetting'] as Map<String, dynamic>,
+        ),
 );
 
 Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
@@ -145,6 +162,7 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'cloudFavoritePreferred': instance.cloudFavoritePreferred,
       'autoFollowOnCollect': instance.autoFollowOnCollect,
       'autoFavoriteOnDownload': instance.autoFavoriteOnDownload,
+      'writeDownloadMetadataFile': instance.writeDownloadMetadataFile,
       'leftHandModeEnabled': instance.leftHandModeEnabled,
       'clickCoverToStartReading': instance.clickCoverToStartReading,
       'comicInfoInlineReadButton': instance.comicInfoInlineReadButton,
@@ -166,6 +184,9 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'favoriteArtistSetting': instance.favoriteArtistSetting.toJson(),
       'comicCardSetting': instance.comicCardSetting.toJson(),
       'toastSetting': instance.toastSetting.toJson(),
+      'switchToastSetting': instance.switchToastSetting.toJson(),
+      'fileManagerSetting': instance.fileManagerSetting.toJson(),
+      'operationBindingSetting': instance.operationBindingSetting.toJson(),
     };
 
 const _$ThemeModeEnumMap = {
@@ -178,6 +199,38 @@ const _$ChineseConvertModeEnumMap = {
   ChineseConvertMode.off: 'off',
   ChineseConvertMode.simplified: 'simplified',
   ChineseConvertMode.traditional: 'traditional',
+};
+
+_FileManagerSettingState _$FileManagerSettingStateFromJson(
+  Map<String, dynamic> json,
+) => _FileManagerSettingState(
+  homeEnabled: json['homeEnabled'] as bool? ?? true,
+  homePath: json['homePath'] as String? ?? '',
+  rememberViewState: json['rememberViewState'] as bool? ?? true,
+);
+
+Map<String, dynamic> _$FileManagerSettingStateToJson(
+  _FileManagerSettingState instance,
+) => <String, dynamic>{
+  'homeEnabled': instance.homeEnabled,
+  'homePath': instance.homePath,
+  'rememberViewState': instance.rememberViewState,
+};
+
+_OperationBindingSettingState _$OperationBindingSettingStateFromJson(
+  Map<String, dynamic> json,
+) => _OperationBindingSettingState(
+  bindingsRuntime: json['bindingsRuntime'] as bool? ?? true,
+  bindingsJson: json['bindingsJson'] as String? ?? '',
+  radialJson: json['radialJson'] as String? ?? '',
+);
+
+Map<String, dynamic> _$OperationBindingSettingStateToJson(
+  _OperationBindingSettingState instance,
+) => <String, dynamic>{
+  'bindingsRuntime': instance.bindingsRuntime,
+  'bindingsJson': instance.bindingsJson,
+  'radialJson': instance.radialJson,
 };
 
 _ToastSettingState _$ToastSettingStateFromJson(Map<String, dynamic> json) =>
@@ -223,6 +276,34 @@ const _$ToastPositionEnumMap = {
   ToastPosition.bottomLeft: 'bottomLeft',
   ToastPosition.bottomCenter: 'bottomCenter',
   ToastPosition.bottomRight: 'bottomRight',
+};
+
+_SwitchToastSettingState _$SwitchToastSettingStateFromJson(
+  Map<String, dynamic> json,
+) => _SwitchToastSettingState(
+  enableBook: json['enableBook'] as bool? ?? false,
+  enablePage: json['enablePage'] as bool? ?? false,
+  bookTitleTemplate:
+      json['bookTitleTemplate'] as String? ??
+      '已切换到 {{book.displayName}}（第 {{book.currentPageDisplay}} / {{book.totalPages}} 页）',
+  bookDescriptionTemplate:
+      json['bookDescriptionTemplate'] as String? ?? '路径：{{book.path}}',
+  pageTitleTemplate:
+      json['pageTitleTemplate'] as String? ??
+      '第 {{page.indexDisplay}} / {{book.totalPages}} 页',
+  pageDescriptionTemplate:
+      json['pageDescriptionTemplate'] as String? ?? '{{page.name}}',
+);
+
+Map<String, dynamic> _$SwitchToastSettingStateToJson(
+  _SwitchToastSettingState instance,
+) => <String, dynamic>{
+  'enableBook': instance.enableBook,
+  'enablePage': instance.enablePage,
+  'bookTitleTemplate': instance.bookTitleTemplate,
+  'bookDescriptionTemplate': instance.bookDescriptionTemplate,
+  'pageTitleTemplate': instance.pageTitleTemplate,
+  'pageDescriptionTemplate': instance.pageDescriptionTemplate,
 };
 
 _FavoriteArtistSettingState _$FavoriteArtistSettingStateFromJson(
@@ -459,7 +540,10 @@ _ReadSettingState _$ReadSettingStateFromJson(Map<String, dynamic> json) =>
       hoverShowVisualIndicator:
           json['hoverShowVisualIndicator'] as bool? ?? false,
       centerTapToggleBars: json['centerTapToggleBars'] as bool? ?? true,
+      topBarPinned: json['topBarPinned'] as bool? ?? false,
+      bottomBarPinned: json['bottomBarPinned'] as bool? ?? false,
       showThumbnailStrip: json['showThumbnailStrip'] as bool? ?? false,
+      readingDirectionToggle: json['readingDirectionToggle'] as bool? ?? true,
     );
 
 Map<String, dynamic> _$ReadSettingStateToJson(
@@ -518,7 +602,10 @@ Map<String, dynamic> _$ReadSettingStateToJson(
   'hoverHideDelayMs': instance.hoverHideDelayMs,
   'hoverShowVisualIndicator': instance.hoverShowVisualIndicator,
   'centerTapToggleBars': instance.centerTapToggleBars,
+  'topBarPinned': instance.topBarPinned,
+  'bottomBarPinned': instance.bottomBarPinned,
   'showThumbnailStrip': instance.showThumbnailStrip,
+  'readingDirectionToggle': instance.readingDirectionToggle,
 };
 
 const _$ReaderTapPageTurnModeEnumMap = {
@@ -555,6 +642,7 @@ _BookshelfSettingState _$BookshelfSettingStateFromJson(
   historySort: json['historySort'] as String? ?? 'dd',
   rememberDownloadSort: json['rememberDownloadSort'] as bool? ?? false,
   downloadSort: json['downloadSort'] as String? ?? 'dd',
+  shelfCardContextMenu: json['shelfCardContextMenu'] as bool? ?? true,
 );
 
 Map<String, dynamic> _$BookshelfSettingStateToJson(
@@ -567,4 +655,5 @@ Map<String, dynamic> _$BookshelfSettingStateToJson(
   'historySort': instance.historySort,
   'rememberDownloadSort': instance.rememberDownloadSort,
   'downloadSort': instance.downloadSort,
+  'shelfCardContextMenu': instance.shelfCardContextMenu,
 };

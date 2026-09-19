@@ -39,7 +39,7 @@ class TranslationsEnUs extends Translations with BaseTranslations<AppLocale, Tra
 	TranslationsEnUs $copyWith({TranslationMetadata<AppLocale, Translations>? meta}) => TranslationsEnUs(meta: meta ?? this.$meta);
 
 	// Translations
-	@override String get appName => 'Breeze';
+	@override String get appName => 'Rossi';
 	@override late final _Translations$common$en_US common = _Translations$common$en_US._(_root);
 	@override late final _Translations$error$en_US error = _Translations$error$en_US._(_root);
 	@override late final _Translations$navigation$en_US navigation = _Translations$navigation$en_US._(_root);
@@ -371,6 +371,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get autoFollowOnCollectSubtitle => 'Automatically add comics to the follow list when favorited';
 	@override String get autoFavoriteOnDownload => 'Auto-favorite on download';
 	@override String get autoFavoriteOnDownloadSubtitle => 'Automatically add comics to favorites when downloading';
+	@override String get writeDownloadMetadataFile => 'Write metadata file on download';
+	@override String get writeDownloadMetadataFileSubtitle => 'After a download finishes, write original_comic_info.json and processed_comic_info.json into the comic folder so other tools can read or re-import it';
 	@override String get leftHandMode => 'Left-hand mode';
 	@override String get leftHandModeSubtitle => 'Move floating action buttons and other controls to the left side';
 	@override String get clickCoverToStartReading => 'Tap cover to start reading';
@@ -470,7 +472,7 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get changelog => 'Changelog';
 	@override String get changelogSubtitle => 'View update records for each version';
 	@override String get aboutApp => 'About app';
-	@override String get aboutAppSubtitle => 'Detailed information about Breeze';
+	@override String get aboutAppSubtitle => 'Detailed information about Rossi';
 	@override String get pluginManagement => 'Plugin management';
 	@override String get debugMode => 'Debug mode';
 	@override String get debugAddress => 'Debug address';
@@ -493,6 +495,130 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get fileManagerRememberViewState => 'Remember view and sort per folder';
 	@override String get fileManagerRememberViewStateSubtitle => 'Each folder keeps its own view mode, sort and filter. When off, browsing works as usual but nothing is remembered';
 	@override String get fileManagerHomePathSet => 'Home updated';
+	@override String get operationBinding => 'Operation bindings';
+	@override String get operationBindingEntrySubtitle => 'Keys, tap zones and binding bundles';
+	@override String get operationBindingSubtitle => 'This table decides which action a key or a click triggers. Saving takes effect immediately, no restart needed.';
+	@override String get operationBindingSectionSwitch => 'How bindings apply';
+	@override String get operationBindingRuntime => 'Resolve keys and taps through the binding table';
+	@override String get operationBindingRuntimeSubtitle => 'When off, the reader falls back to the built-in fixed keys (arrows, WASD, numpad and F11), and the edits below do not affect reading.';
+	@override String get operationBindingSectionKeyboard => 'Keyboard';
+	@override String get operationBindingSectionTap => 'Tap zones';
+	@override String get operationBindingTapSubtitle => 'The reader only tells three zones apart: left half, center cell, right half. The top and bottom rows behave like the middle one.';
+	@override String get operationBindingAreaMiddleLeft => 'Left half';
+	@override String get operationBindingAreaMiddleCenter => 'Center';
+	@override String get operationBindingAreaMiddleRight => 'Right half';
+	@override String get operationBindingBoundAction => 'Bound action';
+	@override String get operationBindingUnbound => 'Unbound';
+	@override String get operationBindingSectionBundle => 'Binding bundle';
+	@override String get operationBindingImport => 'Import JSON';
+	@override String get operationBindingImportSubtitle => 'Paste a binding bundle — both an object with a bindings field and a bare array are accepted. Gamepad, radial and mouse-gesture rows cannot be edited here yet, but they are kept as-is.';
+	@override String get operationBindingImportConfirm => 'Load';
+	@override String operationBindingImportLoaded({required Object count}) => 'Loaded ${count} bindings — save to apply them';
+	@override String get operationBindingExport => 'Export JSON';
+	@override String get operationBindingExportSubtitle => 'Copy the whole table you are editing.';
+	@override String get operationBindingCopy => 'Copy';
+	@override String get operationBindingCopied => 'Binding table copied to clipboard';
+	@override String get operationBindingJsonHint => 'Validation and conflict checks run before saving. Imported text is written only once you press Save.';
+	@override String get operationBindingSave => 'Save';
+	@override String get operationBindingSaved => 'Binding table saved — effective immediately';
+	@override String get operationBindingDiscard => 'Discard';
+	@override String get operationBindingDiscarded => 'Unsaved changes discarded';
+	@override String get operationBindingDirtyHint => 'You have unsaved changes.';
+	@override String get operationBindingRestoreFactory => 'Restore factory presets';
+	@override String get operationBindingRestoreFactorySubtitle => 'Replace the whole table with the factory keyboard and tap presets. Bindings you added yourself are replaced too.';
+	@override String get operationBindingAddKey => 'Add key';
+	@override String get operationBindingNoKeys => 'No keys bound';
+	@override String get operationBindingDisabledRow => 'Disabled (does not count as a conflict)';
+	@override String get operationBindingRemove => 'Delete this binding';
+	@override String get operationBindingUnimplemented => 'This action has no executor in this build yet';
+	@override String get operationBindingRecordTitle => 'Press the key to bind';
+	@override String get operationBindingRecordHint => 'Hold Ctrl / Alt / Shift / Win to bind a chord. Press Esc to cancel.';
+	@override String operationBindingRecordUnsupported({required Object label}) => 'No platform-neutral key name for ${label}, so it cannot be bound';
+	@override String get operationBindingConflictTitle => 'Conflicting bindings';
+	@override String get operationBindingConflictBody => 'One input may have only one enabled binding. Remove or disable one of them, then save again.';
+	@override String get operationBindingInvalidTable => 'This binding table could not be parsed, so the save was refused';
+	@override String get operationBindingCategoryNavigation => 'Navigation';
+	@override String get operationBindingCategoryZoom => 'Zoom';
+	@override String get operationBindingCategoryView => 'View';
+	@override String get operationBindingCategorySession => 'Session';
+	@override String get operationBindingActionNextPage => 'Next page';
+	@override String get operationBindingActionPreviousPage => 'Previous page';
+	@override String get operationBindingActionFirstPage => 'First page';
+	@override String get operationBindingActionLastPage => 'Last page';
+	@override String get operationBindingActionPageLeft => 'Page left';
+	@override String get operationBindingActionPageRight => 'Page right';
+	@override String get operationBindingActionFullscreen => 'Fullscreen';
+	@override String get operationBindingActionToggleDirection => 'Toggle reading direction';
+	@override String get operationBindingActionBookMode => 'Book mode';
+	@override String get operationBindingActionResetView => 'Reset view';
+	@override String get operationBindingActionToggleBars => 'Show or hide the bars';
+	@override String get operationBindingActionOpenSettings => 'Open settings';
+	@override String get workspaceLayout => 'Layout';
+	@override String get workspaceLayoutSubtitle => 'Startup view · lane focus & solo · hover reveal zones';
+	@override String get laneAndLayout => 'Lanes & Layout';
+	@override String get defaultStartupView => 'Default startup view';
+	@override String get startupViewEdges => 'Four edges';
+	@override String get startupViewSwimlane => 'Swimlane';
+	@override String get startupViewHint => 'Which presentation the workspace opens with. Both share one set of records, so switching never reopens the current book.';
+	@override String get laneFocusSolo => 'Lane focus & solo';
+	@override String get laneFocusSoloSubtitle => 'Controls when the main lane takes over, the switcher rail and edge reveal respond.';
+	@override String get readerSoloOnFocus => 'Auto-solo Reader on focus';
+	@override String get readerSoloOnFocusSubtitle => 'Handing interaction to Reader also lets it take the full available width, without clicking the solo button again.';
+	@override String get showLaneNavigatorInSolo => 'Show lane switcher while Reader is solo';
+	@override String get showLaneNavigatorInSoloSubtitle => 'Other lanes stay in the strip as compact rails you can click; turn it off and only Reader remains, with other lanes brought back by the side reveal zones.';
+	@override String get manualScrollEnabled => 'Allow manual horizontal scroll';
+	@override String get manualScrollEnabledSubtitle => 'When off the strip still scrolls itself to the active or revealed lane; only your own drags and the wheel are ignored.';
+	@override String get edgeRevealDelay => 'Side lane reveal delay';
+	@override String get readerHoverFocusDelay => 'Reader hover refocus delay';
+	@override String get readerHoverFocusEnable => 'Enable Reader hover refocus';
+	@override String get delayRangeHint => 'Dwell time in milliseconds before it fires. The three delays are independent — changing one never drags another along.';
+	@override String get hoverRevealZones => 'Hover reveal zones';
+	@override String get hoverRevealZonesSubtitle => 'Drag rectangles on the canvas to decide where the pointer brings content up.';
+	@override String get hoverRevealZonesHint => 'Left and right drive lane reveal, top drives the workspace chrome, bottom drives the reader\'s bottom bar. Drag to draw, then drag the corners to fine-tune.';
+	@override String get revealEdgeLeft => 'Left';
+	@override String get revealEdgeRight => 'Right';
+	@override String get revealEdgeTop => 'Top';
+	@override String get revealEdgeBottom => 'Bottom';
+	@override String get revealLinkHorizontal => 'Link L/R';
+	@override String get revealLinkVertical => 'Link T/B';
+	@override String get revealReset => 'Reset reveal zones';
+	@override String get revealFieldX => 'X';
+	@override String get revealFieldY => 'Y';
+	@override String get revealFieldWidth => 'W';
+	@override String get revealFieldHeight => 'H';
+	@override String get revealZoneResetDone => 'Reveal zones restored to defaults';
+	@override String get operationBindingTabKeyboard => 'Shortcuts';
+	@override String get operationBindingTabRadial => 'Radial menu';
+	@override String get operationBindingActionOpenRadial => 'Open radial menu';
+	@override String get operationBindingRadialEnable => 'Enable radial menu';
+	@override String get operationBindingRadialEnableSubtitle => 'When off the wheel never opens; slot bindings are kept';
+	@override String get operationBindingRadialActiveWheel => 'Default wheel';
+	@override String operationBindingRadialLayerUnit({required Object count}) => '${count} layers';
+	@override String get operationBindingRadialNew => 'New wheel';
+	@override String get operationBindingRadialDelete => 'Delete wheel';
+	@override String get operationBindingRadialPreview => 'Preview';
+	@override String get operationBindingRadialReset => 'Reset slots';
+	@override String get operationBindingRadialResetSubtitle => 'Rewrites only this wheel\'s factory slots; your own bindings stay';
+	@override String operationBindingRadialHint({required Object layers}) => 'On · ${layers} layers · tap an empty slot to add, a filled one to edit';
+	@override String get operationBindingRadialHintDisabled => 'Off · the wheel will not open while reading';
+	@override String get operationBindingRadialAppearance => 'Appearance & geometry';
+	@override String operationBindingRadialGeometrySummary({required Object radius, required Object inner, required Object sectors}) => 'r${radius} · inner ${inner} · ${sectors} sectors';
+	@override String get operationBindingRadialRadius => 'Outer radius';
+	@override String get operationBindingRadialInnerRadius => 'Inner radius (hole)';
+	@override String get operationBindingRadialSectors => 'Sectors per layer';
+	@override String get operationBindingRadialSlots => 'Slots';
+	@override String get operationBindingRadialSlotsSubtitle => 'Tap an empty or filled slot on the wheel';
+	@override String get operationBindingRadialName => 'Wheel name';
+	@override String operationBindingRadialSlotLabel({required Object layer, required Object sector}) => 'Layer ${layer} · slot ${sector}';
+	@override String get operationBindingRadialEmptySlot => 'Empty slot';
+	@override String get operationBindingRadialUnbindSlot => 'Unbind this slot';
+	@override String operationBindingRadialMaxMenus({required Object max}) => 'Up to ${max} wheels';
+	@override String operationBindingRadialDeleteConfirm({required Object name}) => 'Delete wheel "${name}"? Its slot bindings are removed too.';
+	@override String get operationBindingRadialDeleteLast => 'At least one wheel must stay';
+	@override String get operationBindingRadialInvalid => 'The wheel layout is invalid, saving was refused';
+	@override String get operationBindingRadialResetDone => 'Factory slots restored';
+	@override String operationBindingRadialNewName({required Object index}) => 'Wheel ${index}';
+	@override String get operationBindingRadialEmptyWheel => 'A new wheel is empty: bind its slot by slot';
 }
 
 // Path: bookshelf
@@ -773,11 +899,12 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get readingDirectionRtl => 'Right to left';
 	@override String get readingDirectionVertical => 'Top to bottom';
 	@override String get webtoon => 'Webtoon';
-	@override String get singlePageLtr => 'Single page (LTR)';
-	@override String get singlePageRtl => 'Single page (RTL)';
+	@override String get singlePageRow => 'Single page (horizontal)';
+	@override String get readingDirectionLeftOpen => 'Left-opening · next page on the left';
+	@override String get readingDirectionRightOpen => 'Right-opening · next page on the right';
 	@override String get readingDirectionToggle => 'Reading direction';
-	@override String get readingDirectionToggleLtr => 'Currently left-to-right (tap to switch to right-to-left)';
-	@override String get readingDirectionToggleRtl => 'Currently right-to-left (tap to switch to left-to-right)';
+	@override String get readingDirectionToggleLeftOpen => 'Left-opening now (next page on the left) · tap for right-opening';
+	@override String get readingDirectionToggleRightOpen => 'Right-opening now (next page on the right) · tap for left-opening';
 	@override String get readingDirectionToggleDisabled => 'Webtoon mode has no horizontal reading direction';
 	@override String get readingDirectionToggleSetting => 'Show reading direction toggle in top bar';
 	@override String get doublePage => 'Double page';
@@ -811,6 +938,10 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get hoverAreaPreview => 'Trigger Area Preview (NeoView style)';
 	@override String get hoverAreaTopHint => 'Top sensing area: {height}px';
 	@override String get hoverAreaBottomHint => 'Bottom sensing area: {height}px';
+	@override String get pinTopBar => 'Pin the top bar (stops auto-hide)';
+	@override String get unpinTopBar => 'Unpin the top bar';
+	@override String get pinBottomBar => 'Pin the bottom bar (stops auto-hide)';
+	@override String get unpinBottomBar => 'Unpin the bottom bar';
 	@override String get landscapeReader => 'Landscape reading';
 	@override String get landscapeReaderSubtitle => 'Switch to landscape while reading and restore the previous direction when you leave';
 	@override String get themeMode => 'Theme mode';
@@ -903,6 +1034,7 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get imageSaveFailed => 'Image save failed';
 	@override String get saveImagePermissionDenied => 'Save failed: please grant album access in settings';
 	@override String imageSaveFailedWithError({required Object error}) => 'Save failed: ${error}';
+	@override String get radialMenuHint => 'Release to run · centre or Esc to cancel';
 }
 
 // Path: plugin
@@ -1748,7 +1880,7 @@ class _Translations$shelfMenu$en_US extends Translations$shelfMenu$zh_CN {
 extension on TranslationsEnUs {
 	dynamic _flatMapFunction(String path) {
 		return switch (path) {
-			'appName' => 'Breeze',
+			'appName' => 'Rossi',
 			'common.ok' => 'OK',
 			'common.cancel' => 'Cancel',
 			'common.save' => 'Save',
@@ -2009,6 +2141,8 @@ extension on TranslationsEnUs {
 			'settings.autoFollowOnCollectSubtitle' => 'Automatically add comics to the follow list when favorited',
 			'settings.autoFavoriteOnDownload' => 'Auto-favorite on download',
 			'settings.autoFavoriteOnDownloadSubtitle' => 'Automatically add comics to favorites when downloading',
+			'settings.writeDownloadMetadataFile' => 'Write metadata file on download',
+			'settings.writeDownloadMetadataFileSubtitle' => 'After a download finishes, write original_comic_info.json and processed_comic_info.json into the comic folder so other tools can read or re-import it',
 			'settings.leftHandMode' => 'Left-hand mode',
 			'settings.leftHandModeSubtitle' => 'Move floating action buttons and other controls to the left side',
 			'settings.clickCoverToStartReading' => 'Tap cover to start reading',
@@ -2108,7 +2242,7 @@ extension on TranslationsEnUs {
 			'settings.changelog' => 'Changelog',
 			'settings.changelogSubtitle' => 'View update records for each version',
 			'settings.aboutApp' => 'About app',
-			'settings.aboutAppSubtitle' => 'Detailed information about Breeze',
+			'settings.aboutAppSubtitle' => 'Detailed information about Rossi',
 			'settings.pluginManagement' => 'Plugin management',
 			'settings.debugMode' => 'Debug mode',
 			'settings.debugAddress' => 'Debug address',
@@ -2131,9 +2265,135 @@ extension on TranslationsEnUs {
 			'settings.fileManagerRememberViewState' => 'Remember view and sort per folder',
 			'settings.fileManagerRememberViewStateSubtitle' => 'Each folder keeps its own view mode, sort and filter. When off, browsing works as usual but nothing is remembered',
 			'settings.fileManagerHomePathSet' => 'Home updated',
+			'settings.operationBinding' => 'Operation bindings',
+			'settings.operationBindingEntrySubtitle' => 'Keys, tap zones and binding bundles',
+			'settings.operationBindingSubtitle' => 'This table decides which action a key or a click triggers. Saving takes effect immediately, no restart needed.',
+			'settings.operationBindingSectionSwitch' => 'How bindings apply',
+			'settings.operationBindingRuntime' => 'Resolve keys and taps through the binding table',
+			'settings.operationBindingRuntimeSubtitle' => 'When off, the reader falls back to the built-in fixed keys (arrows, WASD, numpad and F11), and the edits below do not affect reading.',
+			'settings.operationBindingSectionKeyboard' => 'Keyboard',
+			'settings.operationBindingSectionTap' => 'Tap zones',
+			'settings.operationBindingTapSubtitle' => 'The reader only tells three zones apart: left half, center cell, right half. The top and bottom rows behave like the middle one.',
+			'settings.operationBindingAreaMiddleLeft' => 'Left half',
+			'settings.operationBindingAreaMiddleCenter' => 'Center',
+			'settings.operationBindingAreaMiddleRight' => 'Right half',
+			'settings.operationBindingBoundAction' => 'Bound action',
+			'settings.operationBindingUnbound' => 'Unbound',
+			'settings.operationBindingSectionBundle' => 'Binding bundle',
+			'settings.operationBindingImport' => 'Import JSON',
+			'settings.operationBindingImportSubtitle' => 'Paste a binding bundle — both an object with a bindings field and a bare array are accepted. Gamepad, radial and mouse-gesture rows cannot be edited here yet, but they are kept as-is.',
+			'settings.operationBindingImportConfirm' => 'Load',
+			'settings.operationBindingImportLoaded' => ({required Object count}) => 'Loaded ${count} bindings — save to apply them',
+			'settings.operationBindingExport' => 'Export JSON',
+			'settings.operationBindingExportSubtitle' => 'Copy the whole table you are editing.',
+			'settings.operationBindingCopy' => 'Copy',
+			'settings.operationBindingCopied' => 'Binding table copied to clipboard',
+			'settings.operationBindingJsonHint' => 'Validation and conflict checks run before saving. Imported text is written only once you press Save.',
+			'settings.operationBindingSave' => 'Save',
+			'settings.operationBindingSaved' => 'Binding table saved — effective immediately',
+			'settings.operationBindingDiscard' => 'Discard',
+			'settings.operationBindingDiscarded' => 'Unsaved changes discarded',
+			'settings.operationBindingDirtyHint' => 'You have unsaved changes.',
+			'settings.operationBindingRestoreFactory' => 'Restore factory presets',
+			'settings.operationBindingRestoreFactorySubtitle' => 'Replace the whole table with the factory keyboard and tap presets. Bindings you added yourself are replaced too.',
+			'settings.operationBindingAddKey' => 'Add key',
+			'settings.operationBindingNoKeys' => 'No keys bound',
+			'settings.operationBindingDisabledRow' => 'Disabled (does not count as a conflict)',
+			'settings.operationBindingRemove' => 'Delete this binding',
+			'settings.operationBindingUnimplemented' => 'This action has no executor in this build yet',
+			'settings.operationBindingRecordTitle' => 'Press the key to bind',
+			'settings.operationBindingRecordHint' => 'Hold Ctrl / Alt / Shift / Win to bind a chord. Press Esc to cancel.',
+			'settings.operationBindingRecordUnsupported' => ({required Object label}) => 'No platform-neutral key name for ${label}, so it cannot be bound',
+			'settings.operationBindingConflictTitle' => 'Conflicting bindings',
+			'settings.operationBindingConflictBody' => 'One input may have only one enabled binding. Remove or disable one of them, then save again.',
+			'settings.operationBindingInvalidTable' => 'This binding table could not be parsed, so the save was refused',
+			'settings.operationBindingCategoryNavigation' => 'Navigation',
+			'settings.operationBindingCategoryZoom' => 'Zoom',
+			'settings.operationBindingCategoryView' => 'View',
+			'settings.operationBindingCategorySession' => 'Session',
+			'settings.operationBindingActionNextPage' => 'Next page',
+			'settings.operationBindingActionPreviousPage' => 'Previous page',
+			'settings.operationBindingActionFirstPage' => 'First page',
+			'settings.operationBindingActionLastPage' => 'Last page',
+			'settings.operationBindingActionPageLeft' => 'Page left',
+			'settings.operationBindingActionPageRight' => 'Page right',
+			'settings.operationBindingActionFullscreen' => 'Fullscreen',
+			'settings.operationBindingActionToggleDirection' => 'Toggle reading direction',
+			'settings.operationBindingActionBookMode' => 'Book mode',
+			'settings.operationBindingActionResetView' => 'Reset view',
+			'settings.operationBindingActionToggleBars' => 'Show or hide the bars',
+			'settings.operationBindingActionOpenSettings' => 'Open settings',
+			'settings.workspaceLayout' => 'Layout',
+			'settings.workspaceLayoutSubtitle' => 'Startup view · lane focus & solo · hover reveal zones',
+			'settings.laneAndLayout' => 'Lanes & Layout',
+			'settings.defaultStartupView' => 'Default startup view',
+			'settings.startupViewEdges' => 'Four edges',
+			'settings.startupViewSwimlane' => 'Swimlane',
+			'settings.startupViewHint' => 'Which presentation the workspace opens with. Both share one set of records, so switching never reopens the current book.',
+			'settings.laneFocusSolo' => 'Lane focus & solo',
+			'settings.laneFocusSoloSubtitle' => 'Controls when the main lane takes over, the switcher rail and edge reveal respond.',
+			'settings.readerSoloOnFocus' => 'Auto-solo Reader on focus',
+			'settings.readerSoloOnFocusSubtitle' => 'Handing interaction to Reader also lets it take the full available width, without clicking the solo button again.',
+			'settings.showLaneNavigatorInSolo' => 'Show lane switcher while Reader is solo',
+			'settings.showLaneNavigatorInSoloSubtitle' => 'Other lanes stay in the strip as compact rails you can click; turn it off and only Reader remains, with other lanes brought back by the side reveal zones.',
+			'settings.manualScrollEnabled' => 'Allow manual horizontal scroll',
+			'settings.manualScrollEnabledSubtitle' => 'When off the strip still scrolls itself to the active or revealed lane; only your own drags and the wheel are ignored.',
+			'settings.edgeRevealDelay' => 'Side lane reveal delay',
+			'settings.readerHoverFocusDelay' => 'Reader hover refocus delay',
+			'settings.readerHoverFocusEnable' => 'Enable Reader hover refocus',
+			'settings.delayRangeHint' => 'Dwell time in milliseconds before it fires. The three delays are independent — changing one never drags another along.',
+			'settings.hoverRevealZones' => 'Hover reveal zones',
+			'settings.hoverRevealZonesSubtitle' => 'Drag rectangles on the canvas to decide where the pointer brings content up.',
+			'settings.hoverRevealZonesHint' => 'Left and right drive lane reveal, top drives the workspace chrome, bottom drives the reader\'s bottom bar. Drag to draw, then drag the corners to fine-tune.',
+			'settings.revealEdgeLeft' => 'Left',
+			'settings.revealEdgeRight' => 'Right',
+			'settings.revealEdgeTop' => 'Top',
+			'settings.revealEdgeBottom' => 'Bottom',
+			'settings.revealLinkHorizontal' => 'Link L/R',
+			'settings.revealLinkVertical' => 'Link T/B',
+			'settings.revealReset' => 'Reset reveal zones',
+			'settings.revealFieldX' => 'X',
+			'settings.revealFieldY' => 'Y',
+			'settings.revealFieldWidth' => 'W',
+			'settings.revealFieldHeight' => 'H',
+			'settings.revealZoneResetDone' => 'Reveal zones restored to defaults',
+			'settings.operationBindingTabKeyboard' => 'Shortcuts',
+			'settings.operationBindingTabRadial' => 'Radial menu',
+			'settings.operationBindingActionOpenRadial' => 'Open radial menu',
+			'settings.operationBindingRadialEnable' => 'Enable radial menu',
+			'settings.operationBindingRadialEnableSubtitle' => 'When off the wheel never opens; slot bindings are kept',
+			'settings.operationBindingRadialActiveWheel' => 'Default wheel',
+			'settings.operationBindingRadialLayerUnit' => ({required Object count}) => '${count} layers',
+			'settings.operationBindingRadialNew' => 'New wheel',
+			'settings.operationBindingRadialDelete' => 'Delete wheel',
+			'settings.operationBindingRadialPreview' => 'Preview',
+			'settings.operationBindingRadialReset' => 'Reset slots',
+			'settings.operationBindingRadialResetSubtitle' => 'Rewrites only this wheel\'s factory slots; your own bindings stay',
+			'settings.operationBindingRadialHint' => ({required Object layers}) => 'On · ${layers} layers · tap an empty slot to add, a filled one to edit',
+			'settings.operationBindingRadialHintDisabled' => 'Off · the wheel will not open while reading',
+			'settings.operationBindingRadialAppearance' => 'Appearance & geometry',
+			'settings.operationBindingRadialGeometrySummary' => ({required Object radius, required Object inner, required Object sectors}) => 'r${radius} · inner ${inner} · ${sectors} sectors',
+			'settings.operationBindingRadialRadius' => 'Outer radius',
+			'settings.operationBindingRadialInnerRadius' => 'Inner radius (hole)',
+			'settings.operationBindingRadialSectors' => 'Sectors per layer',
+			'settings.operationBindingRadialSlots' => 'Slots',
+			'settings.operationBindingRadialSlotsSubtitle' => 'Tap an empty or filled slot on the wheel',
+			'settings.operationBindingRadialName' => 'Wheel name',
+			'settings.operationBindingRadialSlotLabel' => ({required Object layer, required Object sector}) => 'Layer ${layer} · slot ${sector}',
+			'settings.operationBindingRadialEmptySlot' => 'Empty slot',
+			'settings.operationBindingRadialUnbindSlot' => 'Unbind this slot',
+			'settings.operationBindingRadialMaxMenus' => ({required Object max}) => 'Up to ${max} wheels',
+			'settings.operationBindingRadialDeleteConfirm' => ({required Object name}) => 'Delete wheel "${name}"? Its slot bindings are removed too.',
+			'settings.operationBindingRadialDeleteLast' => 'At least one wheel must stay',
+			'settings.operationBindingRadialInvalid' => 'The wheel layout is invalid, saving was refused',
+			'settings.operationBindingRadialResetDone' => 'Factory slots restored',
+			'settings.operationBindingRadialNewName' => ({required Object index}) => 'Wheel ${index}',
+			'settings.operationBindingRadialEmptyWheel' => 'A new wheel is empty: bind its slot by slot',
 			'bookshelf.title' => 'Bookshelf',
 			'bookshelf.favorite' => 'Favorites',
 			'bookshelf.history' => 'History',
+			_ => null,
+		} ?? switch (path) {
 			'bookshelf.download' => 'Downloads',
 			'bookshelf.filter' => 'Filter',
 			'bookshelf.searchList' => 'Search list',
@@ -2260,8 +2520,6 @@ extension on TranslationsEnUs {
 			'comicInfo.addedToCollection' => 'Added to collection',
 			'comicInfo.removedFromCollection' => 'Removed from collection',
 			'comicInfo.confirmUncollectTitle' => 'Remove collection',
-			_ => null,
-		} ?? switch (path) {
 			'comicInfo.confirmUncollectContent' => 'This will delete the comic from all folders. Continue?',
 			'comicInfo.commentForbidden' => 'Comments are disabled for this comic',
 			'comicInfo.commentForbiddenTitle' => 'Comments disabled',
@@ -2386,11 +2644,12 @@ extension on TranslationsEnUs {
 			'reader.readingDirectionRtl' => 'Right to left',
 			'reader.readingDirectionVertical' => 'Top to bottom',
 			'reader.webtoon' => 'Webtoon',
-			'reader.singlePageLtr' => 'Single page (LTR)',
-			'reader.singlePageRtl' => 'Single page (RTL)',
+			'reader.singlePageRow' => 'Single page (horizontal)',
+			'reader.readingDirectionLeftOpen' => 'Left-opening · next page on the left',
+			'reader.readingDirectionRightOpen' => 'Right-opening · next page on the right',
 			'reader.readingDirectionToggle' => 'Reading direction',
-			'reader.readingDirectionToggleLtr' => 'Currently left-to-right (tap to switch to right-to-left)',
-			'reader.readingDirectionToggleRtl' => 'Currently right-to-left (tap to switch to left-to-right)',
+			'reader.readingDirectionToggleLeftOpen' => 'Left-opening now (next page on the left) · tap for right-opening',
+			'reader.readingDirectionToggleRightOpen' => 'Right-opening now (next page on the right) · tap for left-opening',
 			'reader.readingDirectionToggleDisabled' => 'Webtoon mode has no horizontal reading direction',
 			'reader.readingDirectionToggleSetting' => 'Show reading direction toggle in top bar',
 			'reader.doublePage' => 'Double page',
@@ -2424,6 +2683,10 @@ extension on TranslationsEnUs {
 			'reader.hoverAreaPreview' => 'Trigger Area Preview (NeoView style)',
 			'reader.hoverAreaTopHint' => 'Top sensing area: {height}px',
 			'reader.hoverAreaBottomHint' => 'Bottom sensing area: {height}px',
+			'reader.pinTopBar' => 'Pin the top bar (stops auto-hide)',
+			'reader.unpinTopBar' => 'Unpin the top bar',
+			'reader.pinBottomBar' => 'Pin the bottom bar (stops auto-hide)',
+			'reader.unpinBottomBar' => 'Unpin the bottom bar',
 			'reader.landscapeReader' => 'Landscape reading',
 			'reader.landscapeReaderSubtitle' => 'Switch to landscape while reading and restore the previous direction when you leave',
 			'reader.themeMode' => 'Theme mode',
@@ -2516,6 +2779,7 @@ extension on TranslationsEnUs {
 			'reader.imageSaveFailed' => 'Image save failed',
 			'reader.saveImagePermissionDenied' => 'Save failed: please grant album access in settings',
 			'reader.imageSaveFailedWithError' => ({required Object error}) => 'Save failed: ${error}',
+			'reader.radialMenuHint' => 'Release to run · centre or Esc to cancel',
 			'plugin.store' => 'Plugin Store',
 			'plugin.searchHint' => 'Search plugin name or author...',
 			'plugin.localInstall' => 'Local install',
@@ -2642,6 +2906,8 @@ extension on TranslationsEnUs {
 			'comments.postSuccess' => 'Posted successfully',
 			'comments.postFailed' => ({required Object error}) => 'Failed to post: ${error}',
 			'comments.anonymous' => 'Anonymous',
+			_ => null,
+		} ?? switch (path) {
 			'cache.title' => 'Cache settings',
 			'cache.currentCache' => 'Current cache',
 			'cache.clearCache' => 'Clear cache',
@@ -2774,8 +3040,6 @@ extension on TranslationsEnUs {
 			'realSr.modeQuality' => 'Quality priority',
 			'realSr.noiseConservative' => 'Conservative',
 			'realSr.noise0' => 'No denoise',
-			_ => null,
-		} ?? switch (path) {
 			'realSr.noise1' => 'Denoise 1',
 			'realSr.noise2' => 'Denoise 2',
 			'realSr.noise3' => 'Denoise 3',
