@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/main.dart';
@@ -371,6 +372,7 @@ Map<String, dynamic> _buildSettingsPayload(
   globalSettingJson.remove('customExportPath');
   globalSettingJson.remove('appLockSetting');
   globalSettingJson.remove('cacheSetting');
+  globalSettingJson.remove('favoriteArtistSetting');
 
   final pluginBlock = snapshot.blocks[_pluginsBlockName];
   final pluginConfigs = pluginBlock == null
@@ -654,7 +656,9 @@ Map<String, Map<String, dynamic>> _extractSyncableSettingsBlocks(
       'isAMOLED': json['isAMOLED'],
       'seedColor': json['seedColor'],
       'locale': json['locale'],
+      'localeFollowsSystem': json['localeFollowsSystem'],
       'welcomePageNum': json['welcomePageNum'],
+      'chineseConvertMode': json['chineseConvertMode'],
     },
     _libraryBlockName: <String, dynamic>{
       'maskedKeywords': json['maskedKeywords'],
@@ -663,6 +667,16 @@ Map<String, Map<String, dynamic>> _extractSyncableSettingsBlocks(
       'updateAccelerate': json['updateAccelerate'],
       'retryDownloadUntilSuccess': json['retryDownloadUntilSuccess'],
       'searchHistory': json['searchHistory'],
+      'downloadConcurrency': json['downloadConcurrency'],
+      'downloadDelayMs': json['downloadDelayMs'],
+      'downloadAutoRetryCount': json['downloadAutoRetryCount'],
+      'autoFavoriteOnDownload': json['autoFavoriteOnDownload'],
+      'oldPageRollbackEnabled': json['oldPageRollbackEnabled'],
+      'cloudFavoritePreferred': json['cloudFavoritePreferred'],
+      'autoFollowOnCollect': json['autoFollowOnCollect'],
+      'leftHandModeEnabled': json['leftHandModeEnabled'],
+      'clickCoverToStartReading': json['clickCoverToStartReading'],
+      'bookshelfSetting': json['bookshelfSetting'],
     },
     _readerBlockName: _toJsonMap(json['readSetting']),
   };
@@ -741,6 +755,7 @@ GlobalSettingState _applySyncableBlocksToState(
 
   // 同步设置时，以下本地/安全相关配置保持本地值不变：
   // - 自定义导出路径、开屏密码/PIN、缓存管理配置：已从上传负载中移除；
+  // - 收藏作者名单：属于本地私有偏好，不参与多端云同步；
   // - 同步配置本身、调试日志开关/地址：仍可能出现在旧版或未来的云端块中，
   //   这里显式跳过覆盖，确保本地值不被同步下来的内容修改。
   final merged = GlobalSettingState.fromJson(json);
@@ -752,6 +767,7 @@ GlobalSettingState _applySyncableBlocksToState(
     enableMemoryDebug: localState.enableMemoryDebug,
     blockRustHttpRequests: localState.blockRustHttpRequests,
     logAddress: localState.logAddress,
+    favoriteArtistSetting: localState.favoriteArtistSetting,
   );
 }
 
@@ -1488,3 +1504,25 @@ class _RemoteSettingsData {
   final List<int> bytes;
   final int timestamp;
 }
+
+@visibleForTesting
+Map<String, Map<String, dynamic>> extractSyncableSettingsBlocksForTest(
+  GlobalSettingState state,
+) => _extractSyncableSettingsBlocks(state);
+
+@visibleForTesting
+GlobalSettingState applySyncableBlockDataForTest(
+  GlobalSettingState localState,
+  Map<String, Map<String, dynamic>> blocksData,
+) {
+  final blocks = {
+    for (final entry in blocksData.entries)
+      entry.key: _SettingsBlockPayload(
+        name: entry.key,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+        data: entry.value,
+      ),
+  };
+  return _applySyncableBlocksToState(localState, blocks);
+}
+
