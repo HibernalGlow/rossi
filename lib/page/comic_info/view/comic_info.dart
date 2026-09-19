@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:open_file/open_file.dart';
@@ -15,6 +16,7 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/page/comic_follow/cubit/comic_follow_cubit.dart';
 import 'package:zephyr/page/comic_info/comic_info.dart';
 import 'package:zephyr/page/comic_info/json/normal/normal_comic_all_info.dart';
+import 'package:zephyr/page/comic_info/models/read_entry_placement.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/type/pipe.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
@@ -135,10 +137,15 @@ class _ComicInfoState extends State<_ComicInfo>
   Widget build(BuildContext context) {
     super.build(context);
     // 开启「优先云端收藏」后，页面收藏按钮与菜单项的本地/云端收藏行为互换
-    final cloudFavoritePreferred = context
-        .watch<GlobalSettingCubit>()
-        .state
-        .cloudFavoritePreferred;
+    final globalSetting = context.watch<GlobalSettingCubit>().state;
+    final cloudFavoritePreferred = globalSetting.cloudFavoritePreferred;
+    // 「阅读」入口只落一处：桌面端落进操作行（下载旁边），触摸端落右下角悬浮按钮。
+    final readEntryPlacement = resolveComicInfoReadEntryPlacement(
+      platform: defaultTargetPlatform,
+      inlineReadEntryEnabled: globalSetting.comicInfoInlineReadButton,
+    );
+    final showInlineReadEntry =
+        readEntryPlacement == ComicInfoReadEntryPlacement.inlineCard;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -296,7 +303,10 @@ class _ComicInfoState extends State<_ComicInfo>
                 widget.from,
                 chapters: state.allInfo!.eps,
               );
-              return _infoView(state.allInfo!);
+              return _infoView(
+                state.allInfo!,
+                showInlineReadEntry: showInlineReadEntry,
+              );
           }
         },
       ),
@@ -304,18 +314,14 @@ class _ComicInfoState extends State<_ComicInfo>
           context.watch<GlobalSettingCubit>().state.leftHandModeEnabled
           ? FloatingActionButtonLocation.startFloat
           : FloatingActionButtonLocation.endFloat,
-      floatingActionButton: _loadingComplete
+      // 桌面上入口已经贴在操作行里（下载旁边），这里就撤掉 —— 两个入口并存会让人
+      // 以为它们是两件事。触摸端（或开关关掉）仍旧是这颗悬浮按钮。
+      floatingActionButton: (_loadingComplete && !showInlineReadEntry)
           ? BlocBuilder<StringSelectCubit, String>(
               builder: (context, stringSelectDate) {
                 return _ReadActionButton(
                   hasHistory: stringSelectDate.isNotEmpty,
-                  onPressed: () => goToComicRead(
-                    context,
-                    _comicId,
-                    widget.type,
-                    comicInfoDyn,
-                    widget.from,
-                  ),
+                  onPressed: () => _startReading(widget.type),
                 );
               },
             )
@@ -323,7 +329,19 @@ class _ComicInfoState extends State<_ComicInfo>
     );
   }
 
-  Widget _infoView(NormalComicAllInfo normalComicAllInfo) {
+  /// 进阅读器：悬浮按钮与操作行里的「阅读」卡片共用的**唯一**一处入口。
+  ///
+  /// 参数口径与那颗悬浮按钮原本的写法（以及封面/「继续阅读」两处点击）一致：
+  /// 传 `_comicId`（解析后的 id）。类型上悬浮按钮用 [widget.type]、封面点击用
+  /// `_type` —— 两者原本就不同，这里不顺手改口径，只保证「同一类入口同一份参数」。
+  void _startReading(ComicEntryType entryType) {
+    goToComicRead(context, _comicId, entryType, comicInfoDyn, widget.from);
+  }
+
+  Widget _infoView(
+    NormalComicAllInfo normalComicAllInfo, {
+    required bool showInlineReadEntry,
+  }) {
     final comicInfo = normalComicAllInfo.comicInfo;
     _title = comicInfo.title;
     final clickCoverToStartReading = context
@@ -383,22 +401,10 @@ class _ComicInfoState extends State<_ComicInfo>
                           from: widget.from,
                           type: _type,
                           onCoverTap: clickCoverToStartReading
-                              ? () => goToComicRead(
-                                  context,
-                                  _comicId,
-                                  _type,
-                                  comicInfoDyn,
-                                  widget.from,
-                                )
+                              ? () => _startReading(_type)
                               : null,
                           onContinueRead: hasHistory
-                              ? () => goToComicRead(
-                                  context,
-                                  _comicId,
-                                  _type,
-                                  comicInfoDyn,
-                                  widget.from,
-                                )
+                              ? () => _startReading(_type)
                               : null,
                         ),
                         _buildDivider(context),
@@ -408,6 +414,12 @@ class _ComicInfoState extends State<_ComicInfo>
                           collectionTargetId: widget.collectionTargetId,
                           collectionTargetName: widget.collectionTargetName,
                           comicInfo: comicInfoDyn,
+                          hasHistory: hasHistory,
+                          // 桌面端：贴上「下载」旁边的那张阅读卡片；
+                          // 触摸端为空（悬浮按钮才是它的落点）。
+                          onRead: showInlineReadEntry
+                              ? () => _startReading(widget.type)
+                              : null,
                         ),
                         if (comicInfo.metadata.isNotEmpty ||
                             comicInfo.description.trim().isNotEmpty) ...[

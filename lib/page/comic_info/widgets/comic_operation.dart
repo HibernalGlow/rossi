@@ -25,6 +25,15 @@ class ComicOperationWidget extends StatefulWidget {
   final String? collectionTargetName;
   final dynamic comicInfo;
 
+  /// 这本书有没有阅读历史（决定页内阅读入口写着「继续阅读」还是「开始阅读」）。
+  final bool hasHistory;
+
+  /// 页内「阅读」入口（桌面端贴在「下载」旁边）。
+  ///
+  /// **为空即不显示** —— 触摸端走右下角的悬浮按钮，那才是它的落点；
+  /// 落点由 [resolveComicInfoReadEntryPlacement] 判定，两个入口不并存。
+  final VoidCallback? onRead;
+
   const ComicOperationWidget({
     super.key,
     required this.normalInfo,
@@ -32,6 +41,8 @@ class ComicOperationWidget extends StatefulWidget {
     this.collectionTargetId,
     this.collectionTargetName,
     required this.comicInfo,
+    this.hasHistory = false,
+    this.onRead,
   });
 
   @override
@@ -131,6 +142,18 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
         onTap: _openComments,
       ),
       collectItem,
+      // 桌面端的阅读入口：和「下载」并排，而不是叠在右下角（见
+      // `read_entry_placement.dart`）。触摸端 onRead 为空，这一项不出现。
+      if (widget.onRead != null)
+        _OperationItemData(
+          icon: widget.hasHistory
+              ? Icons.history_rounded
+              : Icons.menu_book_rounded,
+          text: widget.hasHistory
+              ? t.comicInfo.continueRead
+              : t.comicInfo.startRead,
+          onTap: widget.onRead,
+        ),
       _OperationItemData(
         kind: _OperationKind.download,
         icon: Icons.cloud_download_outlined,
