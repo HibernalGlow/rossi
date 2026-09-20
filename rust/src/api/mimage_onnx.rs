@@ -66,6 +66,19 @@ fn compute_tiles(img_w: u32, img_h: u32, tile_size: u32) -> Vec<TileRect> {
     tiles
 }
 
+/// 日志里报的后端名，必须与 `init_ort` 实际注册的 EP 一致。
+///
+/// 原来这里写死 `ONNXRuntime(CoreML+CPU)`，于是 Windows 上那行日志说自己在用
+/// CoreML —— 而这行日志是用户判断「GPU 到底用上没有」的唯一依据，说错比不说更糟。
+/// Windows 分支带了 `error_on_failure()`，所以这行能打出来就说明 DirectML 注册成功
+/// （个别算子仍可能被 ORT 放回 CPU 跑，与 Apple 那侧同样的口径）。
+#[cfg(any(target_os = "macos", target_os = "ios"))]
+const ONNX_BACKEND: &str = "ONNXRuntime(CoreML+CPU)";
+#[cfg(target_os = "windows")]
+const ONNX_BACKEND: &str = "ONNXRuntime(DirectML+CPU)";
+#[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
+const ONNX_BACKEND: &str = "ONNXRuntime(CPU)";
+
 fn init_ort() -> Result<()> {
     ORT_READY
         .get_or_init(|| {
@@ -83,9 +96,7 @@ fn init_ort() -> Result<()> {
             // 错误经 `mimage_onnx_upscale` 透到 Dart 侧弹 toast —— 不允许静默退回 CPU。
             let result = ort::init()
                 .with_name("rossi-mimage-onnx")
-                .with_execution_providers([
-                    ep::DirectML::default().build().error_on_failure()
-                ])
+                .with_execution_providers([ep::DirectML::default().build().error_on_failure()])
                 .commit();
             #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
             let result = ort::init().with_name("rossi-mimage-onnx").commit();
@@ -318,7 +329,7 @@ pub async fn mimage_onnx_upscale(
         out.save(&output_path)
             .with_context(|| format!("write output: {output_path}"))?;
         Ok(format!(
-            "model={model_id} backend=ONNXRuntime(CoreML+CPU) scale={final_scale}x input={iw}x{ih} output={}x{} model_bytes={} tile={} (requested_tile={tile_size}) session={} tiles={tile_count} decode_ms={decode_ms} session_ms={session_ms} prepare_ms={} inference_ms={} merge_ms={} encode_ms={} total_ms={}",
+            "model={model_id} backend={ONNX_BACKEND} scale={final_scale}x input={iw}x{ih} output={}x{} model_bytes={} tile={} (requested_tile={tile_size}) session={} tiles={tile_count} decode_ms={decode_ms} session_ms={session_ms} prepare_ms={} inference_ms={} merge_ms={} encode_ms={} total_ms={}",
             out.width(),
             out.height(),
             meta.len(),

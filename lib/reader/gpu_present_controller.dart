@@ -444,11 +444,12 @@ class GpuPresentController extends ChangeNotifier {
         }
         if (nativeCount != source.pageCount) {
           // 前提（两侧跑同一份枚举代码）失效了。只记账不动手，见 [mismatchFor]。
+          final message =
+              '两侧页数不一致：页面来源 ${source.pageCount} 页，'
+              '呈现器 $nativeCount 页。已回落 CPU 兜底路径。';
           _mutate(() {
             _mismatchSource = source;
-            _mismatchMessage =
-                '两侧页数不一致：页面来源 ${source.pageCount} 页，'
-                '呈现器 $nativeCount 页。已回落 CPU 兜底路径。';
+            _mismatchMessage = message;
             _pushedPath = null;
             _pushedIndex = null;
             _pushedSize = null;
@@ -457,6 +458,10 @@ class GpuPresentController extends ChangeNotifier {
             // 这一份来源用不了，它的记账也没有意义了。
             _resetPageStatus();
           });
+          // 这条一旦成立，`_pushedIndex` 会一直是 null，于是每一页的超分产物都被判成
+          // 「预取完成、翻页再复用」，注入永远不发生 —— 之前这里只记 UI 文案、
+          // 不进超分日志，所以画面没换而日志看着一切正常。
+          SuperResolutionLog.add('第 ${index + 1} 页：$message');
           return false;
         }
         _mutate(() {
@@ -993,6 +998,22 @@ class GpuPresentController extends ChangeNotifier {
   /// 2. **已经有产物**（`rossi_sr_cache` 里那张 PNG）→ 只注入，不重跑推理；
   /// 3. **没有产物** → 跑推理，再注入。
   ///
+  /// 上一次记过的「超分前置条件不满足」原因，用来去重。
+  ///
+  /// 这类闸每次调度都会对好几页命中，全打会把日志刷满；可是一条都不打，
+  /// 「超分图没换上屏」就成了无从判断的黑箱 —— 所以按原因去重，只在原因变化时记。
+  String? _lastEnhancementBailReason;
+
+  void _logEnhancementBail(int index, bool taskValid) {
+    final reason =
+        '任务有效=$taskValid；平台支持=${GpuPresentBridge.isPlatformSupported}；'
+        '已推页=${_pushedIndex ?? "无"}；模型刷新中=$_modelRefreshPending；'
+        '原图对比=$_originalPreview；开关=$_isUpscaleEnabled';
+    if (reason == _lastEnhancementBailReason) return;
+    _lastEnhancementBailReason = reason;
+    SuperResolutionLog.add('第 ${index + 1} 页：超分前置条件不满足，跳过。$reason');
+  }
+
   /// 只在**真的把一页推出去之后**调（`present` 里 `pushed == true` 那一段），
   /// 所以这里的跨语言往返是"每次翻页一次"，不是"每帧一次"。
   Future<void> _ensureEnhancedForIndex(
@@ -1007,6 +1028,7 @@ class GpuPresentController extends ChangeNotifier {
     if (!acceptsWork() ||
         !GpuPresentBridge.isPlatformSupported ||
         _pushedPath != source.path) {
+      _logEnhancementBail(index, acceptsWork());
       return;
     }
     final job = (epoch, index);
@@ -1216,7 +1238,16 @@ class GpuPresentController extends ChangeNotifier {
     int targetH,
     int epoch,
   ) async {
-    if (!_acceptsEnhancement(epoch)) return false;
+    if (!_acceptsEnhancement(epoch)) {
+      // 这里原来是静默返回 false：产物在盘上、日志却连一行注入记录都没有，
+      // 看起来就像"根本没打算换"。
+      SuperResolutionLog.add(
+        '第 ${index + 1} 页：任务已过期或处于原图对比，不注入。'
+        '开关=$_isUpscaleEnabled；原图对比=$_originalPreview；'
+        '模型刷新中=$_modelRefreshPending',
+      );
+      return false;
+    }
     SuperResolutionLog.add('第 ${index + 1} 页：向呈现器注入增强图\n$outPath');
     final bool injected = await setEnhancedImage(
       index,
