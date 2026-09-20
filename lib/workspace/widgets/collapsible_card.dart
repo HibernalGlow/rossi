@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/config/global/theme_shape.dart';
 
 /// 通用可折叠卡片组件外壳（支持泳道与边栏中 100% 复用）
 ///
@@ -42,7 +43,8 @@ class CollapsibleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final borderColor = theme.colorScheme.outlineVariant.withValues(alpha: 0.5);
+    // MD3 的 filled 卡片靠**容器色**分层，不描边、不投影；圆角跟主题的形状档走。
+    final radius = themeRadius(context, fallback: 12);
 
     // 卡片可直接挂在泳道/抽屉里，由自身提供与应用同库的 Material。
     // 用 Material 绘制背景并裁剪，保证标题栏和内容的墨水反馈也在圆角内。
@@ -50,10 +52,9 @@ class CollapsibleCard extends StatelessWidget {
       padding:
           margin ?? const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       child: Material(
-        color: theme.colorScheme.surfaceContainerLow,
+        color: theme.colorScheme.surfaceContainerHigh,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: BorderSide(color: borderColor),
+          borderRadius: BorderRadius.circular(radius),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -65,27 +66,28 @@ class CollapsibleCard extends StatelessWidget {
               onTap: onToggle,
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
+                  horizontal: 12,
                   vertical: 10,
                 ),
                 child: Row(
                   children: [
-                    Icon(icon, size: 18, color: theme.colorScheme.primary),
+                    Icon(
+                      icon,
+                      size: 18,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         title,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.2,
-                        ),
+                        style: theme.textTheme.titleSmall,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     if (trailing != null) ...[
                       trailing!,
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 8),
                     ],
                     if (onMoveUp != null ||
                         onMoveDown != null ||
@@ -111,7 +113,7 @@ class CollapsibleCard extends StatelessWidget {
               secondChild: Padding(
                 padding:
                     contentPadding ??
-                    const EdgeInsets.only(left: 12, right: 12, bottom: 12),
+                    const EdgeInsets.fromLTRB(12, 0, 12, 12),
                 child: child,
               ),
               crossFadeState: isExpanded
@@ -175,13 +177,14 @@ class CollapsibleCard extends StatelessWidget {
           ),
         ],
       ],
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-        child: Icon(
-          Icons.more_vert_rounded,
-          size: 16,
-          color: theme.colorScheme.outline,
-        ),
+      // 走 PopupMenuButton 的 IconButton 形态：自带 32px 命中区与墨水反馈，
+      // 而不是一个裸 Icon 贴在标题栏里（自定义 child 会丢掉这些）。
+      icon: const Icon(Icons.more_vert_rounded),
+      iconSize: 18,
+      padding: EdgeInsets.zero,
+      style: IconButton.styleFrom(
+        foregroundColor: theme.colorScheme.onSurfaceVariant,
+        minimumSize: const Size(32, 32),
       ),
     );
   }
@@ -199,18 +202,12 @@ class _TrackMenuItem extends StatelessWidget {
     final theme = Theme.of(context);
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 16,
-          color: color ?? theme.colorScheme.onSurfaceVariant,
-        ),
-        const SizedBox(width: 8),
+        Icon(icon, size: 18, color: color ?? theme.colorScheme.onSurfaceVariant),
+        const SizedBox(width: 10),
         Text(
           label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: color,
-            fontSize: 12,
-          ),
+          // MD3 菜单项正文是 labelLarge（14），不是压小的 12。
+          style: theme.textTheme.labelLarge?.copyWith(color: color),
         ),
       ],
     );

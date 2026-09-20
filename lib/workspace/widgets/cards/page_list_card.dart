@@ -4,6 +4,7 @@ import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/service/reader/reader_thumbnail_service.dart';
 import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
+import 'package:zephyr/workspace/widgets/cards/info_card_kit.dart';
 
 enum PageListViewMode { thumbnails, details, list }
 
@@ -158,15 +159,7 @@ class _PageListCardState extends State<PageListCard> {
           onMoveDown: widget.onMoveDown,
           onHide: widget.onHide,
           trailing: hasSession
-              ? Text(
-                  '${currentSlot + 1} / $totalPages',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                )
+              ? InfoCardCounter('${currentSlot + 1} / $totalPages')
               : null,
           child: hasSession
               ? _buildActiveContent(

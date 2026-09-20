@@ -29,42 +29,64 @@ class InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final style = theme.textTheme.bodySmall?.copyWith(
-      fontSize: 11.5,
-      fontWeight: emphasis ? FontWeight.w600 : null,
-      color: emphasis ? theme.colorScheme.primary : null,
-      fontFeatures: const [FontFeature.tabularFigures()],
-    );
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2.5),
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 76,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 1),
-              child: Text(
-                label,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontSize: 11,
-                  color: theme.colorScheme.outline,
-                ),
+            child: Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ),
           Expanded(
+            // 用 SelectionArea 包 Text 而不是 SelectableText：后者会按 maxLines
+            // 预留整块高度，于是一行键值占了四行，面板被撑得七零八落。
             child:
                 valueWidget ??
-                SelectableText(
-                  value ?? '—',
-                  style: style,
-                  maxLines: 4,
-                  // 路径与 ID 宁可换行也不要省略号 —— 截掉一半的抄不出来。
-                  textAlign: TextAlign.start,
+                SelectionArea(
+                  child: Text(
+                    value ?? '—',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface,
+                      fontWeight: emphasis ? FontWeight.w500 : null,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                    maxLines: 4,
+                    // 路径与 ID 宁可换行也不要省略号 —— 截掉一半的抄不出来。
+                  ),
                 ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 卡片标题行右侧的计数 / 状态。
+///
+/// MD3 里这类次要信息走 `labelSmall` + `onSurfaceVariant`，主色留给真正可点的东西；
+/// [emphasize] 只给「当前处于某种状态」这类需要一眼看到的词（如 GPU 就绪）。
+class InfoCardCounter extends StatelessWidget {
+  const InfoCardCounter(this.text, {super.key, this.emphasize = false});
+
+  final String text;
+  final bool emphasize;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Text(
+      text,
+      style: theme.textTheme.labelSmall?.copyWith(
+        color: emphasize
+            ? theme.colorScheme.primary
+            : theme.colorScheme.onSurfaceVariant,
+        fontFeatures: const [FontFeature.tabularFigures()],
       ),
     );
   }
@@ -84,13 +106,13 @@ class InfoEmpty extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: theme.colorScheme.outline),
+          Icon(icon, size: 16, color: theme.colorScheme.onSurfaceVariant),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               text,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.outline,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ),

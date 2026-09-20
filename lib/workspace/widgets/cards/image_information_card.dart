@@ -52,17 +52,7 @@ class ImageInformationCard extends StatelessWidget {
           onMoveUp: onMoveUp,
           onMoveDown: onMoveDown,
           onHide: onHide,
-          trailing: hasSession
-              ? Text(
-                  '#${slot + 1}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                )
-              : null,
+          trailing: hasSession ? InfoCardCounter('#${slot + 1}') : null,
           child: hasSession
               ? _buildRows(coordinator, presenter, slot)
               : const InfoEmpty(

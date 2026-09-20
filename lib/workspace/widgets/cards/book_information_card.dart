@@ -52,15 +52,7 @@ class BookInformationCard extends StatelessWidget {
           onMoveDown: onMoveDown,
           onHide: onHide,
           trailing: hasSession
-              ? Text(
-                  '${current + 1} / $total',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                )
+              ? InfoCardCounter('${current + 1} / $total')
               : null,
           child: hasSession
               ? _buildRows(coordinator, target)

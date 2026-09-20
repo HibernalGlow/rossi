@@ -53,15 +53,9 @@ class PreloadStatusCard extends StatelessWidget {
           onMoveDown: onMoveDown,
           onHide: onHide,
           trailing: presenter != null && hasSession
-              ? Text(
+              ? InfoCardCounter(
                   presenter.canPresent ? 'GPU 就绪' : 'GPU 建链中',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: presenter.canPresent
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.outline,
-                  ),
+                  emphasize: presenter.canPresent,
                 )
               : null,
           child: !hasSession
