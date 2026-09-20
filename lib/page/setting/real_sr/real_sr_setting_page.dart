@@ -11,7 +11,7 @@ import 'package:zephyr/page/setting/real_sr/service/android_ncnn_model_config.da
 import 'package:zephyr/page/setting/real_sr/service/desktop_ncnn_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
-import 'package:zephyr/page/setting/real_sr/widgets/apple_super_resolution_settings.dart';
+import 'package:zephyr/page/setting/real_sr/widgets/super_resolution_engine_settings.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
@@ -55,11 +55,18 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
   AndroidNcnnNoise _desktopNcnnNoise = DesktopNcnnModelConfig.defaultNoise;
   RealSrScale _scale = RealSrScale.x2;
   bool _isAvailable = false;
+  SuperResolutionEngine _engine = defaultEngine;
   bool _downloading = false;
   bool _importing = false;
   double _downloadProgress = 0;
 
-  bool get _usesCoreML => Platform.isIOS || Platform.isMacOS;
+  /// 「桌面 NCNN 专属」的那几块（分块大小、模型管理）要不要画。
+  ///
+  /// Apple 没有 NCNN 这条引擎，永远不画；Windows / Linux 只在选中桌面 NCNN 时画 ——
+  /// 切到 mImage ONNX 之后，模型的下载/导入由 ONNX 面板自己管，这里再摆一份就会
+  /// 出现「按了下载却去拉 7z」的错路。
+  bool get _showsDesktopNcnnBlocks =>
+      supportsDesktopNcnn && _engine != SuperResolutionEngine.mimageOnnx;
 
   // 可用档位与夹取规则统一由 RealSrSettings 提供 —— 阅读器面板用同一份，
   // 两处各写一遍就会漂移（见 effectiveThreshold 的注释）。
@@ -92,6 +99,7 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
       RealSrSettings.loadDesktopNcnnNoise(),
       RealSrSettings.loadScale(),
       RealSrSuperResolution.isAvailable,
+      RealSrSettings.loadEngine(),
     ]);
 
     if (!mounted) return;
@@ -104,6 +112,7 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
       _desktopNcnnNoise = results[5] as AndroidNcnnNoise;
       _scale = results[6] as RealSrScale;
       _isAvailable = results[7] as bool;
+      _engine = results[8] as SuperResolutionEngine;
       _loading = false;
     });
   }
@@ -143,9 +152,18 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
     setState(() => _scale = value);
   }
 
+  /// 切引擎会走 `modelChanges` 通知到这里：可用性与「该画哪几块」都随引擎变，
+  /// 所以两处一起刷。
   Future<void> _refreshAvailability() async {
-    final available = await RealSrSuperResolution.isAvailable;
-    if (mounted) setState(() => _isAvailable = available);
+    final results = await Future.wait([
+      RealSrSuperResolution.isAvailable,
+      RealSrSettings.loadEngine(),
+    ]);
+    if (!mounted) return;
+    setState(() {
+      _isAvailable = results[0] as bool;
+      _engine = results[1] as SuperResolutionEngine;
+    });
   }
 
   Future<void> _downloadModel() async {
@@ -252,8 +270,8 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
   }
 
   List<Widget> _buildModelItems() {
-    if (_usesCoreML) {
-      return const [AppleSuperResolutionSettings()];
+    if (supportsCoreML) {
+      return const [SuperResolutionEngineSettings()];
     }
 
     if (Platform.isAndroid) {
@@ -266,7 +284,14 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
       ];
     }
 
+    // Windows / Linux：选了 mImage ONNX 就只留引擎面板（它自带模型的下载与导入），
+    // 下面那批 NCNN 档位不再摆出来，避免「按了下载却去拉 7z」。
+    if (_engine == SuperResolutionEngine.mimageOnnx) {
+      return const [SuperResolutionEngineSettings()];
+    }
+
     return [
+      const SuperResolutionEngineSettings(),
       ListTile(
         leading: const Icon(Icons.zoom_out_map_outlined),
         title: const Text('输出倍率'),
@@ -464,7 +489,7 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
                     );
                   },
                 ),
-                if (!_usesCoreML)
+                if (_showsDesktopNcnnBlocks)
                   Builder(
                     builder: (context) {
                       final effective = _tileSizeOptions.contains(_tileSize)
@@ -494,7 +519,7 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
 
                 const SizedBox(height: 8),
                 const Divider(height: 1, thickness: 0.3),
-                if (!_usesCoreML) ...[
+                if (_showsDesktopNcnnBlocks) ...[
                   settingSectionTitle(context, t.realSr.modelManagementSection),
                   _buildModelManagementTile(),
                   _buildManualDownloadTile(),

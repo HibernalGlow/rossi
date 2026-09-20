@@ -77,7 +77,17 @@ fn init_ort() -> Result<()> {
                     .build()
                     .error_on_failure()])
                 .commit();
-            #[cfg(not(any(target_os = "macos", target_os = "ios")))]
+            #[cfg(target_os = "windows")]
+            // DirectML 是唯一被允许的 EP：`error_on_failure()` 让注册失败在**建 session 时**
+            // 报错（`init().commit()` 本身只把配置塞进全局 OnceLock，不会因 EP 不可用而失败），
+            // 错误经 `mimage_onnx_upscale` 透到 Dart 侧弹 toast —— 不允许静默退回 CPU。
+            let result = ort::init()
+                .with_name("rossi-mimage-onnx")
+                .with_execution_providers([
+                    ep::DirectML::default().build().error_on_failure()
+                ])
+                .commit();
+            #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
             let result = ort::init().with_name("rossi-mimage-onnx").commit();
             if result {
                 Ok(())
@@ -153,7 +163,7 @@ pub async fn mimage_onnx_upscale(
                 .map_err(|e| anyhow!("session threads: {e:?}"))?;
             let session = builder
                 .commit_from_file(&model_path)
-                .map_err(|e| anyhow!("load model with CoreML: {e:?}"))?;
+                .map_err(|e| anyhow!("load model with ONNX Runtime: {e:?}"))?;
             sessions.insert(session_key.clone(), session);
             true
         } else {

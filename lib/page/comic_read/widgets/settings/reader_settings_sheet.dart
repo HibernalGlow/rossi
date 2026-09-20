@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
-import 'package:zephyr/page/setting/real_sr/widgets/apple_super_resolution_settings.dart';
+import 'package:zephyr/page/setting/real_sr/widgets/super_resolution_engine_settings.dart';
 import 'package:zephyr/type/enum.dart';
 
 import 'package:flutter/foundation.dart';

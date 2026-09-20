@@ -558,14 +558,14 @@ void main() {
         await File(
           '${cache.path}/rossi_sr_cache/sr_${source.path.hashCode}_0_$nativeKey.png',
         ).writeAsBytes([3]);
-        await RealSrSettings.saveAppleEngine(
-          AppleSuperResolutionEngine.breezeCoreML,
+        await RealSrSettings.saveEngine(
+          SuperResolutionEngine.breezeCoreML,
         );
         await _until(() => bridge.injectedPaths.last.contains(nativeKey));
         expect(bridge.opens, 2);
         expect(bridge.enhanced, isTrue);
-        await RealSrSettings.saveAppleEngine(
-          AppleSuperResolutionEngine.mimageOnnx,
+        await RealSrSettings.saveEngine(
+          SuperResolutionEngine.mimageOnnx,
         );
         await _until(() => bridge.injectedPaths.last == onnxPath);
         expect(bridge.opens, 3);

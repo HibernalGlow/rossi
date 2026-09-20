@@ -138,7 +138,7 @@ class _MImageModelSettingsState extends State<MImageModelSettings> {
                 : '降噪：由模型固定，不支持单独调节强度',
           ),
           const SizedBox(height: 6),
-          const Text('运行时：CoreML · Apple Neural Engine / GPU'),
+          Text('运行时：$mImageRuntimeLabel'),
           const SizedBox(height: 12),
           Text(
             _available ? '当前模型已安装' : '当前模型未安装，下载或导入后才能使用',

@@ -138,18 +138,31 @@ ort = { version = "2.0.0-rc.12", default-features = false, features = [
     "tls-rustls",
 ] }
 
-# `ort` 按目标拆成上面/下面两段，是因为 ort-sys 用**精确等于**当前特性集的预编译包：
-# x86_64-pc-windows-msvc 只有 directml / webgpu / cuda13… 而没有含 coreml 的条目，
-# 特性集带上 coreml 就匹配不到任何发行，此时 build script 只打一行
-# `looking for prebuilt binaries matching feature set: coreml` 的 debug 日志就返回，
+# `ort` 按目标拆成三段、且三段 cfg 互斥，因为 ort-sys 选预编译发行包的条件是
+# 「特性集与该发行**精确相等**」：
+#   - aarch64-apple-darwin / ios：只有含 coreml 的条目
+#   - x86_64-pc-windows-msvc：只有 directml / webgpu / cuda13… ，没有含 coreml 的
+#   - 其余（linux / android）：没有 directml，特性集必须留空
+# 特性集匹配不上时 build script 只打一行
+# `looking for prebuilt binaries matching feature set: …` 的 debug 日志就返回，
 # 不报错；真症状推迟到链接期 —— `LNK2019: unresolved external symbol OrtGetApiBase`。
-# 两段 cfg 互斥（`cfg(...)` / `cfg(not(...))`），这样每个目标只命中其中一段。
-# 两侧已分别实测：Apple 走 `feature set: coreml` 并链接 CoreML framework，
-# Windows 走 `feature set: (no features)` 命中 directml 发行。
-[target.'cfg(not(any(target_os = "ios", target_os = "macos")))'.dependencies]
+# 三段各自实测过：Apple `feature set: coreml` 并链接 CoreML framework，
+# Windows `(no features)` 命中 directml 发行，加 directml 后与之精确相等。
+# 三段的 cfg 两两互斥，Windows 那段单独列出来：合并语义未经验证，不赌。
+[target.'cfg(not(any(target_os = "ios", target_os = "macos", target_os = "windows")))'.dependencies]
 ort = { version = "2.0.0-rc.12", default-features = false, features = [
     "std",
     "ndarray",
+    "download-binaries",
+    "tls-rustls",
+] }
+
+# Windows 走 DirectML EP（GPU）。发行包本来就是 directml 那条，特性集写上它才算精确匹配。
+[target.'cfg(target_os = "windows")'.dependencies]
+ort = { version = "2.0.0-rc.12", default-features = false, features = [
+    "std",
+    "ndarray",
+    "directml",
     "download-binaries",
     "tls-rustls",
 ] }

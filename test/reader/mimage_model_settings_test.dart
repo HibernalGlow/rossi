@@ -11,7 +11,7 @@ import 'package:zephyr/page/setting/real_sr/service/mimage_onnx_model_config.dar
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/mimage_model_settings.dart';
-import 'package:zephyr/page/setting/real_sr/widgets/apple_super_resolution_settings.dart';
+import 'package:zephyr/page/setting/real_sr/widgets/super_resolution_engine_settings.dart';
 import 'package:zephyr/util/coreml_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/super_resolution_log_controls.dart';
 import 'package:zephyr/page/setting/real_sr/service/super_resolution_log.dart';
@@ -121,7 +121,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: SingleChildScrollView(child: AppleSuperResolutionSettings()),
+            body: SingleChildScrollView(child: SuperResolutionEngineSettings()),
           ),
         ),
       );
@@ -153,8 +153,8 @@ void main() {
       await tester.tap(find.text('Real-ESRGAN x4plus · 照片/CG').last);
       await _settleFileIO(tester);
       expect(find.text('倍率：原生 4×（由模型决定）'), findsOneWidget);
-      final esrganProfile = await RealSrSettings.loadAppleProfile();
-      expect(esrganProfile.engine, AppleSuperResolutionEngine.breezeCoreML);
+      final esrganProfile = await RealSrSettings.loadProfile();
+      expect(esrganProfile.engine, SuperResolutionEngine.breezeCoreML);
       expect(esrganProfile.coremlVariant.config['outputCrop'], 64);
       expect(
         esrganProfile.cacheKey,
@@ -171,14 +171,14 @@ void main() {
       final models = await CoreMLModelConfig.modelsDirectory;
       await models.create(recursive: true);
       await File('${models.path}/${variant.fileName}').writeAsBytes([1]);
-      await RealSrSettings.saveAppleEngine(
-        AppleSuperResolutionEngine.breezeCoreML,
+      await RealSrSettings.saveEngine(
+        SuperResolutionEngine.breezeCoreML,
       );
       expect(await RealSrSuperResolution.isAvailable, isTrue);
-      final profile = await RealSrSettings.loadAppleProfile();
+      final profile = await RealSrSettings.loadProfile();
       final nativeKey = profile.cacheKey;
-      await RealSrSettings.saveAppleEngine(
-        AppleSuperResolutionEngine.mimageOnnx,
+      await RealSrSettings.saveEngine(
+        SuperResolutionEngine.mimageOnnx,
       );
       expect(await RealSrSettings.loadCacheKey(), isNot(nativeKey));
       expect(await RealSrSuperResolution.isAvailable, isFalse);
@@ -203,7 +203,7 @@ void main() {
         await RealSrSuperResolution.upscale(
           inputPath: input.path,
           outputPath: out,
-          appleProfile: profile,
+          engineProfile: profile,
         ),
         isTrue,
       );
@@ -211,11 +211,11 @@ void main() {
       expect(arguments!['config']['scale'], 2);
       expect(arguments!['config']['blockSize'], 156);
       expect(
-        await RealSrSettings.loadAppleEngine(),
-        AppleSuperResolutionEngine.mimageOnnx,
+        await RealSrSettings.loadEngine(),
+        SuperResolutionEngine.mimageOnnx,
       );
-      await RealSrSettings.saveAppleEngine(
-        AppleSuperResolutionEngine.breezeCoreML,
+      await RealSrSettings.saveEngine(
+        SuperResolutionEngine.breezeCoreML,
       );
       expect(await RealSrSettings.loadCacheKey(), nativeKey);
     },

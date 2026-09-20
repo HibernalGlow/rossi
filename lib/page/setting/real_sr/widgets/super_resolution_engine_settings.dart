@@ -6,17 +6,17 @@ import 'package:zephyr/util/coreml_model_config.dart';
 import 'package:zephyr/util/coreml_model_loader.dart';
 
 /// 阅读器与全局设置共用；两个引擎各自保留模型选择。
-class AppleSuperResolutionSettings extends StatefulWidget {
-  const AppleSuperResolutionSettings({super.key});
+class SuperResolutionEngineSettings extends StatefulWidget {
+  const SuperResolutionEngineSettings({super.key});
 
   @override
-  State<AppleSuperResolutionSettings> createState() =>
-      _AppleSuperResolutionSettingsState();
+  State<SuperResolutionEngineSettings> createState() =>
+      _SuperResolutionEngineSettingsState();
 }
 
-class _AppleSuperResolutionSettingsState
-    extends State<AppleSuperResolutionSettings> {
-  AppleSuperResolutionEngine? _engine;
+class _SuperResolutionEngineSettingsState
+    extends State<SuperResolutionEngineSettings> {
+  SuperResolutionEngine? _engine;
   CoreMLModelFamily _family = CoreMLModelConfig.defaultFamily;
   CoreMLModelVariant _variant = CoreMLModelConfig.defaultVariant;
   bool _available = false;
@@ -45,13 +45,15 @@ class _AppleSuperResolutionSettingsState
   Future<void> _reload() async {
     final generation = ++_generation;
     try {
-      final engine = await RealSrSettings.loadAppleEngine();
+      final engine = await RealSrSettings.loadEngine();
       final (forward, back) = await RealSrSettings.loadPrefetch();
       final family = await RealSrSettings.loadCoreMLFamily();
       final variant = await RealSrSettings.loadCoreMLVariant(family);
-      final available = await CoreMLModelLoader.isModelAvailable(
-        variant.fileName,
-      );
+      // coreml_upscale 那颗插件在非 Apple 平台根本没注册，问它就是
+      // MissingPluginException —— 只有本平台真有 CoreML 引擎时才去问。
+      final available = supportsCoreML
+          ? await CoreMLModelLoader.isModelAvailable(variant.fileName)
+          : false;
       if (!mounted || generation != _generation) return;
       setState(() {
         _engine = engine;
@@ -111,25 +113,25 @@ class _AppleSuperResolutionSettingsState
         if (_engine == null && _error == null)
           const LinearProgressIndicator()
         else ...[
-          DropdownButton<AppleSuperResolutionEngine>(
+          DropdownButton<SuperResolutionEngine>(
             key: const ValueKey('apple-sr-engine'),
             value: _engine,
             isExpanded: true,
             items: [
-              for (final engine in AppleSuperResolutionEngine.values)
+              for (final engine in availableEngines)
                 DropdownMenuItem(value: engine, child: Text(engine.label)),
             ],
             onChanged: (engine) {
               if (engine != null) {
-                _change(() => RealSrSettings.saveAppleEngine(engine));
+                _change(() => RealSrSettings.saveEngine(engine));
               }
             },
           ),
           const Text('切换后当前页自动重新处理，两套模型选择分别保留。'),
           const SizedBox(height: 12),
-          if (_engine == AppleSuperResolutionEngine.mimageOnnx)
+          if (_engine == SuperResolutionEngine.mimageOnnx)
             const MImageModelSettings(showLogControls: false)
-          else if (_engine == AppleSuperResolutionEngine.breezeCoreML) ...[
+          else if (_engine == SuperResolutionEngine.breezeCoreML) ...[
             const Text('Rossi 原生模型'),
             DropdownButton<CoreMLModelFamily>(
               key: const ValueKey('breeze-coreml-model'),
@@ -172,7 +174,15 @@ class _AppleSuperResolutionSettingsState
                 label: const Text('下载 Rossi 原生模型'),
               ),
             if (_downloading) LinearProgressIndicator(value: _progress),
-          ],
+          ]
+          else if (_engine == SuperResolutionEngine.desktopNcnn)
+            // NCNN 的档位不在这里重复一份：并发/分块/模式/倍率仍由「图片超分」
+            // 设置页那几块负责，这里只说明当前走的是哪条路。
+            const Text(
+              '调用 waifu2x / Real-CUGAN 的 ncnn-vulkan 可执行文件；'
+              '模式、倍率、并发与分块在「图片超分」设置页下方调整。',
+              style: TextStyle(fontSize: 12),
+            ),
         ],
         if (_error != null)
           Text(

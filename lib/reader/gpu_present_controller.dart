@@ -1029,11 +1029,11 @@ class GpuPresentController extends ChangeNotifier {
         // 等下一次呈现再说。
         if (presenterUses == null) return;
       }
-      final appleProfile = (Platform.isMacOS || Platform.isIOS)
-          ? await RealSrSettings.loadAppleProfile()
+      final engineProfile = hasSuperResolutionEngineChoice
+          ? await RealSrSettings.loadProfile()
           : null;
       final cacheKey =
-          appleProfile?.cacheKey ?? await RealSrSettings.loadCacheKey();
+          engineProfile?.cacheKey ?? await RealSrSettings.loadCacheKey();
       if (!acceptsWork()) return;
       final srCacheDir = await _srCacheDir();
       if (!acceptsWork()) return;
@@ -1123,7 +1123,7 @@ class GpuPresentController extends ChangeNotifier {
       final produced = await RealSrSuperResolution.upscale(
         inputPath: inputPath,
         outputPath: pendingOutput.path,
-        appleProfile: appleProfile,
+        engineProfile: engineProfile,
         shouldRun: acceptsWork,
       );
       if (!_acceptsEnhancement(epoch)) {

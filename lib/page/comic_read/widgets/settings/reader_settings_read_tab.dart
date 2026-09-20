@@ -914,7 +914,9 @@ class _SuperResolutionSectionState extends State<_SuperResolutionSection> {
     final presenter = LocalReadSession.instance.presenter;
     final hasPresenter = presenter != null;
     final presenterReady = presenter != null && presenter.canPresent;
-    final apple = !kIsWeb && (Platform.isMacOS || Platform.isIOS);
+    // 引擎选择器按「本平台有没有得选」决定，不按平台名字：Windows / Linux 现在
+    // 也有两条引擎（桌面 NCNN 与 mImage ONNX）。
+    final hasEngineChoice = hasSuperResolutionEngineChoice;
 
     Widget section() {
       final children = <Widget>[
@@ -951,7 +953,7 @@ class _SuperResolutionSectionState extends State<_SuperResolutionSection> {
             labelOf: (threshold) => threshold.label,
             onChanged: _setThreshold,
           ),
-        if (apple) const AppleSuperResolutionSettings(),
+        if (hasEngineChoice) const SuperResolutionEngineSettings(),
       ];
 
       if (children.isEmpty) return const SizedBox.shrink();

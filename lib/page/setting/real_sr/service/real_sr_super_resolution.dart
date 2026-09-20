@@ -71,9 +71,9 @@ class RealSrSuperResolution {
 
   /// 当前设备是否支持内置超分（包含模型/可执行文件是否已就绪）。
   ///
-  /// - Android：arm64-v8a 且 NCNN 模型已下载并解压
-  /// - iOS / macOS：当前选择的 mImage ONNX 模型已下载
-  /// - Windows / Linux：存在对应平台的 realcugan-ncnn-vulkan 可执行文件
+  /// - Android：arm64-v8a 且 NCNN 模型已下载并解压（内置 CLI，没有引擎选择）
+  /// - 其余平台：按**当前选中的引擎**判据 —— CoreML 看原生模型、mImage ONNX 看
+  ///   `.onnx` 文件、桌面 NCNN 看对应可执行文件是否在位
   static Future<bool> get isAvailable async {
     if (Platform.isAndroid) {
       try {
@@ -89,15 +89,8 @@ class RealSrSuperResolution {
       }
     }
 
-    if (Platform.isIOS || Platform.isMacOS) {
-      return isAppleProfileAvailable(await RealSrSettings.loadAppleProfile());
-    }
-
-    if (Platform.isWindows || Platform.isLinux) {
-      final modelRoot = await _modelDirectory;
-      final mode = await RealSrSettings.loadDesktopNcnnMode();
-      final exeName = DesktopNcnnModelConfig.executableNameFor(mode);
-      return File(p.join(modelRoot, exeName)).existsSync();
+    if (hasSuperResolutionEngineChoice) {
+      return isProfileAvailable(await RealSrSettings.loadProfile());
     }
 
     return false;
@@ -187,11 +180,37 @@ class RealSrSuperResolution {
     return file.existsSync() && await file.length() >= 1024;
   }
 
-  static Future<bool> isAppleProfileAvailable(
-    AppleSuperResolutionProfile profile,
-  ) => profile.engine == AppleSuperResolutionEngine.breezeCoreML
-      ? CoreMLModelLoader.isModelAvailable(profile.coremlVariant.fileName)
-      : isMImageModelAvailable(profile.mimageModel);
+  static Future<bool> isProfileAvailable(
+    SuperResolutionProfile profile,
+  ) => switch (profile.engine) {
+    SuperResolutionEngine.breezeCoreML => CoreMLModelLoader.isModelAvailable(
+      profile.coremlVariant.fileName,
+    ),
+    SuperResolutionEngine.mimageOnnx => isMImageModelAvailable(
+      profile.mimageModel,
+    ),
+    SuperResolutionEngine.desktopNcnn => _isDesktopNcnnAvailable(),
+  };
+
+  /// 桌面 NCNN 路线的就绪判据：所选模式对应的可执行文件在位。
+  static Future<bool> _isDesktopNcnnAvailable() async {
+    final modelRoot = await _modelDirectory;
+    final mode = await RealSrSettings.loadDesktopNcnnMode();
+    final exeName = DesktopNcnnModelConfig.executableNameFor(mode);
+    return File(p.join(modelRoot, exeName)).existsSync();
+  }
+
+  /// 当前选择是否需要「一个 `.onnx` 模型文件」而不是桌面 NCNN 的 7z 包。
+  ///
+  /// 判据是**引擎**而不是平台：Windows / Linux 现在两种都有。异步路径一律走这个
+  /// （真的去读引擎设置）；同步 getter 只能吃 [RealSrSettings.currentEngine] 快照。
+  static Future<bool> get _usesOnnxModel async =>
+      supportsMImageOnnx &&
+      await RealSrSettings.loadEngine() == SuperResolutionEngine.mimageOnnx;
+
+  static bool get _usesOnnxModelFromSnapshot =>
+      supportsMImageOnnx &&
+      RealSrSettings.currentEngine == SuperResolutionEngine.mimageOnnx;
 
   /// 当前平台对应的 7z 压缩包文件名。
   static String? get _assetName {
@@ -203,12 +222,11 @@ class RealSrSuperResolution {
 
   /// 当前平台手动下载模型的直链（可在浏览器中打开）。
   ///
+  /// - mImage ONNX 引擎：当前选择的模型文件（`.onnx`）
   /// - Android：`realsr-android.7z`
-  /// - Windows：`realsr-win.7z`
-  /// - Linux：`realsr-linux.7z`
-  /// - iOS / macOS：当前选择的 mImage ONNX 模型文件
+  /// - Windows / Linux 的桌面 NCNN 引擎：对应平台的 7z
   static String? get manualDownloadUrl {
-    if (Platform.isIOS || Platform.isMacOS) {
+    if (_usesOnnxModelFromSnapshot) {
       final model = RealSrSettings.currentMImageModel;
       return '${MImageOnnxModelConfig.baseUrl}/${model.fileName}';
     }
@@ -304,10 +322,10 @@ class RealSrSuperResolution {
 
       final missing = await _missingModelFiles(tempDir);
       if (missing != null) {
-        throw FormatException('压缩包内容不符合当前平台要求: $missing');
+        throw FormatException('压缩包内容不符合当前引擎要求: $missing');
       }
 
-      if (Platform.isIOS || Platform.isMacOS) {
+      if (await _usesOnnxModel) {
         final model = await RealSrSettings.loadMImageModel();
         File? imported;
         for (final entity in Directory(
@@ -356,8 +374,22 @@ class RealSrSuperResolution {
     }
   }
 
-  /// 检查解压后的内容是否满足当前平台需求，返回缺失内容描述；null 表示通过。
+  /// 检查解压后的内容是否满足当前**引擎**需求，返回缺失内容描述；null 表示通过。
   static Future<String?> _missingModelFiles(Directory extractedRoot) async {
+    // ONNX 判在最前：Windows / Linux 上两条引擎共用这个导入入口，按平台判的话
+    // 选了 mImage ONNX 的用户会被要求交出 ncnn 可执行文件，反过来也一样。
+    if (await _usesOnnxModel) {
+      final model = await RealSrSettings.loadMImageModel();
+      final path = p.join(extractedRoot.path, model.fileName);
+      if (File(path).existsSync()) return null;
+      for (final entity in extractedRoot.listSync(recursive: true)) {
+        if (entity is File && p.basename(entity.path) == model.fileName) {
+          return null;
+        }
+      }
+      return '缺少 mImage ONNX 模型 ${model.fileName}';
+    }
+
     if (Platform.isAndroid) {
       final variant = AndroidNcnnModelConfig.variantFor(
         mode: AndroidNcnnModelConfig.defaultMode,
@@ -398,18 +430,6 @@ class RealSrSuperResolution {
       return null;
     }
 
-    if (Platform.isIOS || Platform.isMacOS) {
-      final model = await RealSrSettings.loadMImageModel();
-      final path = p.join(extractedRoot.path, model.fileName);
-      if (File(path).existsSync()) return null;
-      for (final entity in extractedRoot.listSync(recursive: true)) {
-        if (entity is File && p.basename(entity.path) == model.fileName) {
-          return null;
-        }
-      }
-      return '缺少 mImage ONNX 模型 ${model.fileName}';
-    }
-
     return '当前平台不支持手动导入超分模型';
   }
 
@@ -441,9 +461,8 @@ class RealSrSuperResolution {
 
   /// 下载并解压当前平台需要的超分模型。
   ///
-  /// - Android：下载 `realsr-android.7z` 并解压 NCNN 模型。
-  /// - iOS / macOS：直接下载当前选择的 mImage ONNX 模型。
-  /// - Windows / Linux：下载对应平台的 realcugan-ncnn-vulkan 压缩包。
+  /// - mImage ONNX 引擎：直接下载当前选择的 `.onnx` 模型文件
+  /// - Android / 桌面 NCNN 引擎：下载对应平台的 7z 压缩包
   ///
   /// [force] 为 true 时，会先删除本地已有模型再重新下载。
   static Future<void> downloadModel({
@@ -451,7 +470,7 @@ class RealSrSuperResolution {
     void Function(int received, int total)? onProgress,
     bool force = false,
   }) async {
-    if (Platform.isIOS || Platform.isMacOS) {
+    if (await _usesOnnxModel) {
       final model = mImageModel ?? await RealSrSettings.loadMImageModel();
       final modelsDir = Directory(p.join(await _modelDirectory, 'mimage_onnx'));
       await modelsDir.create(recursive: true);
@@ -534,10 +553,11 @@ class RealSrSuperResolution {
 
   /// 删除当前平台已下载的超分模型。
   ///
-  /// - iOS / macOS：删除 `super_resolution/mimage_onnx` 模型目录
-  /// - Android / Windows / Linux：删除 `super_resolution` 目录及缓存中的压缩包
+  /// - mImage ONNX 引擎：只删那一个 `.onnx` 文件（Windows/Linux 上 NCNN 的可执行文件
+  ///   与模型目录就在同一个 `super_resolution/` 里，整目录删会把另一条引擎一起废掉）
+  /// - Android / 桌面 NCNN 引擎：删除 `super_resolution` 目录及缓存中的压缩包
   static Future<void> deleteModel([MImageOnnxModel? targetModel]) async {
-    if (Platform.isIOS || Platform.isMacOS) {
+    if (await _usesOnnxModel) {
       final model = targetModel ?? await RealSrSettings.loadMImageModel();
       final file = File(
         p.join(await _modelDirectory, 'mimage_onnx', model.fileName),
@@ -772,15 +792,15 @@ class RealSrSuperResolution {
     RealSrNoiseLevel noiseLevel = RealSrNoiseLevel.conservative,
     int tileSize = 0,
     int syncGapMode = 3,
-    AppleSuperResolutionProfile? appleProfile,
+    SuperResolutionProfile? engineProfile,
     bool Function()? shouldRun,
   }) async {
-    final profile = (Platform.isMacOS || Platform.isIOS)
-        ? appleProfile ?? await RealSrSettings.loadAppleProfile()
+    final profile = hasSuperResolutionEngineChoice
+        ? engineProfile ?? await RealSrSettings.loadProfile()
         : null;
     if (!(profile == null
         ? await isAvailable
-        : await isAppleProfileAvailable(profile))) {
+        : await isProfileAvailable(profile))) {
       logger.d('RealSR 不可用，跳过超分: $inputPath');
       SuperResolutionLog.add(
         '模型不可用：${profile?.engine.label ?? executable}，请先在超分设置中下载模型。',
@@ -847,11 +867,12 @@ class RealSrSuperResolution {
             variant: variant,
             tileSize: tileSize,
           );
-        } else if (Platform.isIOS || Platform.isMacOS) {
+        } else if (profile != null &&
+            profile.engine != SuperResolutionEngine.desktopNcnn) {
           SuperResolutionLog.add(
-            '开始推理：引擎=${profile!.engine.label}；原生 ${profile.scale}×',
+            '开始推理：引擎=${profile.engine.label}；原生 ${profile.scale}×',
           );
-          if (profile.engine == AppleSuperResolutionEngine.breezeCoreML) {
+          if (profile.engine == SuperResolutionEngine.breezeCoreML) {
             final variant = profile.coremlVariant;
             final modelPath = await CoreMLModelLoader.prepareModel(
               variant.fileName,
@@ -873,6 +894,8 @@ class RealSrSuperResolution {
             );
           }
         } else {
+          // 桌面 NCNN 引擎（Windows / Linux 的默认档），以及没有引擎概念的平台上
+          // 的兜底 —— 与改动前 Windows/Linux 走的同一条路。
           await _upscaleCli(
             inputPath: pngInputPath,
             outputPath: out,
@@ -975,7 +998,15 @@ class RealSrSuperResolution {
     return path;
   }
 
-  /// iOS / macOS 使用 mImageViewer ONNX；ONNX Runtime 优先 CoreML EP。
+  /// mImage ONNX 推理：Apple 走 CoreML EP，Windows 走 DirectML EP，其余平台是
+  /// ONNX Runtime 默认的 CPU EP（Rust 侧 `init_ort` 按目标注册，见
+  /// `rust/src/api/mimage_onnx.rs`）。
+  ///
+  /// Windows 上 DirectML 注册失败会**直接抛错而不是退回 CPU**（Rust 侧加了
+  /// `error_on_failure()`）：用户选的是 GPU 引擎，悄悄用 CPU 跑的表现是「慢得像
+  /// 没开超分」而看不出原因，所以这里把失败如实弹出来，再原样抛给调用方。
+  static bool _onnxErrorNotified = false;
+
   static Future<void> _upscaleMImageOnnx({
     required String inputPath,
     required String outputPath,
@@ -985,15 +1016,26 @@ class RealSrSuperResolution {
     final model = mImageModel ?? await RealSrSettings.loadMImageModel();
     final root = Directory(p.join(await _modelDirectory, 'mimage_onnx'));
     final modelPath = await MImageOnnxModelConfig.path(root, model);
-    final result = await mimageOnnxUpscale(
-      inputPath: inputPath,
-      outputPath: outputPath,
-      modelPath: modelPath,
-      modelId: model.id,
-      tileSize: tileSize,
-    );
-    logger.i('mImage ONNX 超分完成: $result');
-    SuperResolutionLog.add('mImage ONNX：$result');
+    try {
+      final result = await mimageOnnxUpscale(
+        inputPath: inputPath,
+        outputPath: outputPath,
+        modelPath: modelPath,
+        modelId: model.id,
+        tileSize: tileSize,
+      );
+      _onnxErrorNotified = false;
+      logger.i('mImage ONNX 超分完成: $result');
+      SuperResolutionLog.add('mImage ONNX：$result');
+    } catch (e) {
+      SuperResolutionLog.add('mImage ONNX 推理失败：$e');
+      logger.w('mImage ONNX 推理失败', error: e);
+      if (!_onnxErrorNotified) {
+        _onnxErrorNotified = true;
+        showErrorToast('mImage ONNX 推理失败：$e');
+      }
+      rethrow;
+    }
   }
 
   /// 桌面端通过 Process.run 调用 waifu2x-ncnn-vulkan / realcugan-ncnn-vulkan。

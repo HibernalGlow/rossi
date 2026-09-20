@@ -10,31 +10,91 @@ import 'package:zephyr/page/setting/real_sr/service/mimage_onnx_model_config.dar
 bool get _isDesktop =>
     Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
-enum AppleSuperResolutionEngine {
-  breezeCoreML('breeze_coreml', 'Rossi 原生 CoreML'),
-  mimageOnnx('mimage_onnx', 'mImage ONNX');
+/// 有「超分引擎」这颗选择器的平台（Android 用内置 CLI，不参与选择）。
+bool get hasSuperResolutionEngineChoice =>
+    !kIsWeb &&
+    (Platform.isWindows ||
+        Platform.isLinux ||
+        Platform.isMacOS ||
+        Platform.isIOS);
 
-  const AppleSuperResolutionEngine(this.id, this.label);
+/// 能跑 Breeze 原生 CoreML 引擎的平台。
+bool get supportsCoreML => !kIsWeb && (Platform.isMacOS || Platform.isIOS);
+
+/// 能跑 mImage ONNX 引擎的平台。Rust 侧 `init_ort` 对 Apple 注册 CoreML EP、
+/// 对 Windows 注册 DirectML EP（**注册失败即报错，不退回 CPU**），
+/// 其余平台留默认 EP。
+bool get supportsMImageOnnx =>
+    !kIsWeb &&
+    (Platform.isWindows ||
+        Platform.isLinux ||
+        Platform.isMacOS ||
+        Platform.isIOS);
+
+/// 桌面 NCNN（waifu2x / Real-CUGAN 可执行文件）这条路的平台。
+bool get supportsDesktopNcnn => !kIsWeb && (Platform.isWindows || Platform.isLinux);
+
+/// mImage ONNX 引擎在本平台的**实际**运行时，供设置页如实显示。
+///
+/// 必须与 `rust/src/api/mimage_onnx.rs` 里 `init_ort` 按目标注册的 EP 一致：
+/// Apple 是 CoreML EP，Windows 是 DirectML EP（且注册失败即报错、不退回 CPU），
+/// 其余平台没有注册任何 EP，就是 ONNX Runtime 自带的 CPU EP。
+String get mImageRuntimeLabel {
+  if (supportsCoreML) return 'CoreML · Apple Neural Engine / GPU';
+  if (Platform.isWindows) return 'DirectML · DirectX 12 GPU';
+  return 'ONNX Runtime · CPU';
+}
+
+enum SuperResolutionEngine {
+  breezeCoreML('breeze_coreml', 'Rossi 原生 CoreML'),
+  mimageOnnx('mimage_onnx', 'mImage ONNX'),
+  desktopNcnn('desktop_ncnn', '桌面 NCNN（waifu2x / Real-CUGAN）');
+
+  const SuperResolutionEngine(this.id, this.label);
   final String id;
   final String label;
 }
 
+/// 本平台可选的引擎，顺序即下拉顺序。
+List<SuperResolutionEngine> get availableEngines => [
+  if (supportsCoreML) SuperResolutionEngine.breezeCoreML,
+  if (supportsMImageOnnx) SuperResolutionEngine.mimageOnnx,
+  if (supportsDesktopNcnn) SuperResolutionEngine.desktopNcnn,
+];
+
+/// 未设置时的默认引擎。
+///
+/// Windows / Linux 保持 **桌面 NCNN**：那是这次改动之前唯一的路线，默认值改了
+/// 就等于替所有桌面用户换引擎（ONNX 在非 Apple 上此前从未跑过）。
+SuperResolutionEngine get defaultEngine =>
+    supportsDesktopNcnn
+        ? SuperResolutionEngine.desktopNcnn
+        : SuperResolutionEngine.mimageOnnx;
+
 /// 一次任务的不可变配置；排队期间切换设置不会改变正在处理的模型。
-class AppleSuperResolutionProfile {
-  const AppleSuperResolutionProfile({
+class SuperResolutionProfile {
+  const SuperResolutionProfile({
     required this.engine,
     required this.mimageModel,
     required this.coremlVariant,
     required this.cacheKey,
+    this.desktopScale = 2,
   });
 
-  final AppleSuperResolutionEngine engine;
+  final SuperResolutionEngine engine;
   final MImageOnnxModel mimageModel;
   final CoreMLModelVariant coremlVariant;
   final String cacheKey;
-  int get scale => engine == AppleSuperResolutionEngine.breezeCoreML
-      ? coremlVariant.config['scale'] as int
-      : mimageModel.scale;
+
+  /// 桌面 NCNN 的倍率；只有 engine 是 desktopNcnn 时有意义。
+  final int desktopScale;
+
+  int get scale => switch (engine) {
+    SuperResolutionEngine.breezeCoreML =>
+      coremlVariant.config['scale'] as int,
+    SuperResolutionEngine.mimageOnnx => mimageModel.scale,
+    SuperResolutionEngine.desktopNcnn => desktopScale,
+  };
 }
 
 class _RealSrSettingsNotifier extends ChangeNotifier {
@@ -57,6 +117,12 @@ class RealSrSettings {
       MImageOnnxModelConfig.defaultModel;
   static MImageOnnxModel get currentMImageModel => _currentMImageModel;
 
+  /// 引擎的同步快照。`manualDownloadUrl` 这类**同步** getter 要按引擎决定给哪个
+  /// 下载链接，而读 SharedPreferences 是异步的，所以留一份和
+  /// [currentMImageModel] 同类的缓存；首次 [loadEngine]/[saveEngine] 之前是平台默认值。
+  static SuperResolutionEngine _currentEngine = defaultEngine;
+  static SuperResolutionEngine get currentEngine => _currentEngine;
+
   static final prefetchChanges = _RealSrSettingsNotifier();
 
   static Future<(int, int)> loadPrefetch() async {
@@ -77,38 +143,69 @@ class RealSrSettings {
     prefetchChanges.notify();
   }
 
-  static const _keyAppleEngine = 'realsr_apple_engine';
+  // 存储键沿用 `realsr_apple_engine`：改名会让老用户的引擎选择回到默认值。
+  static const _keyEngine = 'realsr_apple_engine';
 
-  static Future<AppleSuperResolutionEngine> loadAppleEngine() async {
+  /// 读引擎，并把存量值夹到本平台可用的那一档。
+  ///
+  /// 例如在 Windows 上读到 `breeze_coreml`（从 Mac 同步来的设置）会落到默认引擎，
+  /// 而不是让上层拿着一个本平台跑不了的引擎去分派。
+  static Future<SuperResolutionEngine> loadEngine() async {
     final prefs = await SharedPreferences.getInstance();
-    return AppleSuperResolutionEngine.values.firstWhere(
-      (engine) => engine.id == prefs.getString(_keyAppleEngine),
-      orElse: () => AppleSuperResolutionEngine.mimageOnnx,
+    final stored = SuperResolutionEngine.values.firstWhere(
+      (engine) => engine.id == prefs.getString(_keyEngine),
+      orElse: () => defaultEngine,
     );
+    final available = availableEngines;
+    final engine = available.contains(stored) ? stored : defaultEngine;
+    _currentEngine = engine;
+    return engine;
   }
 
-  static Future<void> saveAppleEngine(AppleSuperResolutionEngine engine) async {
+  static Future<void> saveEngine(SuperResolutionEngine engine) async {
+    _currentEngine = engine;
     final prefs = await SharedPreferences.getInstance();
-    if (prefs.getString(_keyAppleEngine) == engine.id) return;
-    await prefs.setString(_keyAppleEngine, engine.id);
+    if (prefs.getString(_keyEngine) == engine.id) return;
+    await prefs.setString(_keyEngine, engine.id);
     notifyChanges();
   }
 
-  static Future<AppleSuperResolutionProfile> loadAppleProfile() async {
-    final engine = await loadAppleEngine();
+  static Future<SuperResolutionProfile> loadProfile() async {
+    final engine = await loadEngine();
     final model = await loadMImageModel();
     final family = await loadCoreMLFamily();
     final variant = await loadCoreMLVariant(family);
     final prefs = await SharedPreferences.getInstance();
     final revision = prefs.getInt('realsr_mimage_revision_${model.id}') ?? 0;
-    return AppleSuperResolutionProfile(
+    final desktopScale = await loadScale();
+    return SuperResolutionProfile(
       engine: engine,
       mimageModel: model,
       coremlVariant: variant,
-      cacheKey: engine == AppleSuperResolutionEngine.breezeCoreML
-          ? 'breeze_coreml_${variant.fileName}_${variant.config['scale']}x'
-          : 'mimage_onnx_${model.id}_$revision',
+      desktopScale: desktopScale.value,
+      cacheKey: await _cacheKeyFor(engine, variant, model, revision),
     );
+  }
+
+  /// 引擎 → 缓存指纹。**指纹格式必须与改动前逐字节一致**，否则老用户已生成的
+  /// `sr_*_<key>.png` 超分缓存会整体作废、被重新推理一遍。
+  static Future<String> _cacheKeyFor(
+    SuperResolutionEngine engine,
+    CoreMLModelVariant variant,
+    MImageOnnxModel model,
+    int revision,
+  ) async {
+    switch (engine) {
+      case SuperResolutionEngine.breezeCoreML:
+        return 'breeze_coreml_${variant.fileName}_${variant.config['scale']}x';
+      case SuperResolutionEngine.mimageOnnx:
+        return 'mimage_onnx_${model.id}_$revision';
+      case SuperResolutionEngine.desktopNcnn:
+        final mode = await loadDesktopNcnnMode();
+        final noise = await loadDesktopNcnnNoise();
+        final scale = await loadScale();
+        return '${mode.name}_noise${noise.noise}_${scale.value}x';
+    }
   }
 
   static Future<void> modelFileChanged(MImageOnnxModel model) async {
@@ -368,18 +465,17 @@ class RealSrSettings {
 
   /// 用于超分结果缓存的配置指纹。模型或倍率改变时必须得到不同的文件名，
   /// 否则会继续显示旧模型产物，看起来就像“换模型没有生效”。
+  ///
+  /// 指纹一律由**引擎**决定而不是平台决定：Windows/Linux 现在两种引擎都有，
+  /// 按平台分叉会让 `loadProfile().cacheKey` 与这里算出两个值。
   static Future<String> loadCacheKey() async {
-    final scale = await loadScale();
-    if (Platform.isMacOS || Platform.isIOS) {
-      return (await loadAppleProfile()).cacheKey;
+    if (hasSuperResolutionEngineChoice) {
+      return (await loadProfile()).cacheKey;
     }
-    if (Platform.isWindows || Platform.isLinux) {
-      final mode = await loadDesktopNcnnMode();
-      final noise = await loadDesktopNcnnNoise();
-      return '${mode.name}_noise${noise.noise}_${scale.value}x';
-    }
+    // Android：内置 waifu2x CLI，没有引擎选择，指纹仍由 NCNN 模式/降噪/倍率决定。
     final mode = await loadAndroidNcnnMode();
     final noise = await loadAndroidNcnnNoise();
+    final scale = await loadScale();
     return '${mode.name}_noise${noise.noise}_${scale.value}x';
   }
 }
