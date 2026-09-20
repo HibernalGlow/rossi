@@ -72,7 +72,13 @@ WorkspaceLayoutSnapshot _customSnapshot() => WorkspaceLayoutSnapshot(
         title: _defaultReaderTitle,
       ),
       LaneId.right: LaneConfig(
-        width: 400,
+        // 460 而不是 400：栏头窄的时候**面板图标优先**，右边那几颗按钮会被整个
+        // 让位掉（顺序见 `SwimlaneColumn._fitHeader`），而下面那条判据要按得到
+        // 「折叠」这颗。右泳道有七个页签，400 那一档刚好容不下折叠按钮 ——
+        // 判据就会报「找不到图标」，而那是在验让位而不是在验落盘。
+        // 再宽就不行了：左 400 + 阅读器 300 + 右 + 两根分隔条要留在 1184 以内，
+        // 越过那条线整条带开始滚，右侧栏头直接落到视口外（见上面那段注释）。
+        width: 460,
         minWidth: 300,
         maxWidth: 600,
         title: _restoredRightTitle,

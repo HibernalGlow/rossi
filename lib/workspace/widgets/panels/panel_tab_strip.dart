@@ -82,6 +82,76 @@ class PanelTabStrip extends StatefulWidget {
   /// 拖动判定为「真的拖了」的最小位移（防误触：手抖一下不该换停靠边）。
   static const double dragSlop = 4.0;
 
+  // ── 版式常量 ─────────────────────────────────────────────────────────────
+  //
+  // 这几颗数**不只**是本文件画图用的：栏头要按「这条页签条实际要占多宽」决定
+  // 右边那几颗按钮让不让位（见 `titleMountedWidth` 与 `SwimlaneColumn._fitHeader`）。
+  // 于是画图与算账必须读同一份数 —— 各写一套的结局是栏头按一份旧账留位置，
+  // 最后一个图标被齐根裁掉。
+
+  /// 页签左右各 1.5 的内边距。
+  static const double tabHPadding = 1.5;
+
+  /// 插缝自身的宽（拖动时亮成 2.5，那 1px 不记账）。
+  static const double dropSlotWidth = 1.5;
+
+  /// 插缝左右各 1 的外边距。
+  static const double dropSlotHMargin = 1.0;
+
+  /// 底板左右各 2 的内边距。
+  static const double stripHPadding = 2.0;
+
+  /// 「已收起」入口：左右内边距、图标宽、图标与计数之间的缝、每个数字的宽。
+  static const double hiddenHPadding = 4.0;
+  static const double hiddenIconWidth = 14.0;
+  static const double hiddenIconGap = 3.0;
+  static const double hiddenDigitWidth = 7.0;
+
+  /// 一个页签连着它前面那道插缝要占的宽。
+  static double get tabStride =>
+      tabSize + tabHPadding * 2 + dropSlotWidth + dropSlotHMargin * 2;
+
+  /// 末尾那道「追加到末尾」的插缝。
+  static double get trailingSlotWidth => dropSlotWidth + dropSlotHMargin * 2;
+
+  /// 「已收起」那颗入口的宽（数字位数跟着收起的个数走）。
+  static double hiddenMenuWidth(int hiddenCount) =>
+      hiddenHPadding * 2 +
+      hiddenIconWidth +
+      hiddenIconGap +
+      hiddenDigitWidth * '$hiddenCount'.length;
+
+  /// **挂进栏头**（`pinned + dock: top`，本项目默认形态）这一档按内容取宽实际要占多宽。
+  ///
+  /// 内联时这条页签条是 `shrinkWrap` 的：给它一个上限，它只占自己要的那一段。
+  /// 所以「还剩多少给标题、右边那几颗按钮要不要让位」必须拿**这个数**去算；
+  /// 反过来先给标题预留一块、剩下的封顶给它，窄泳道上就会把图标裁掉。
+  ///
+  /// 问的是与 `build` 同一份记账（注册表 + 这一侧的隐藏项），所以「这一档到底
+  /// 有没有页签条」两处是同一个答案：`panels.isEmpty && hidden.isEmpty` 时
+  /// `build` 直接 `SizedBox.shrink()`，这里也返回 0。
+  static double titleMountedWidth(
+    WorkspacePanelSide side,
+    WorkspaceBoardLayout board,
+  ) {
+    final registry = WorkspacePanelRegistry.I;
+    final tabs = registry.panelsForSide(side, board).length;
+    final hidden = registry
+        .hiddenPanels(board)
+        .where((p) => registry.effectivePanelLayout(p, board).side == side)
+        .length;
+    if (tabs == 0 && hidden == 0) return 0;
+
+    final width =
+        stripHPadding * 2 +
+        tabStride * tabs +
+        trailingSlotWidth +
+        (hidden > 0 ? hiddenMenuWidth(hidden) : 0);
+    // 向上取整：栏头拿它判「装不装得下」，宁可提前一档让位，
+    // 也不要差半个像素把最后一个图标裁掉。
+    return width.ceilToDouble();
+  }
+
   @override
   State<PanelTabStrip> createState() => _PanelTabStripState();
 }
@@ -185,7 +255,10 @@ class _PanelTabStripState extends State<PanelTabStrip> {
         builder: (context, candidate, rejected) {
           final body = AnimatedContainer(
             duration: const Duration(milliseconds: 120),
-            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+            padding: const EdgeInsets.symmetric(
+              horizontal: PanelTabStrip.stripHPadding,
+              vertical: 2,
+            ),
             decoration: BoxDecoration(
               color: _foreignHover
                   ? theme.colorScheme.primary.withValues(alpha: 0.18)
@@ -266,7 +339,7 @@ class _PanelTabStripState extends State<PanelTabStrip> {
                   ? Icons.drag_indicator_rounded
                   : Icons.drag_handle_rounded,
               size: 15,
-              color: theme.colorScheme.outline,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -462,9 +535,14 @@ class _PanelTabStripState extends State<PanelTabStrip> {
         final highlight = active || candidate.isNotEmpty;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 100),
-          width: widget.vertical ? 16 : (highlight ? 2.5 : 1.5),
+          width: widget.vertical
+              ? 16
+              : (highlight ? 2.5 : PanelTabStrip.dropSlotWidth),
           height: widget.vertical ? (highlight ? 2.5 : 1.5) : 16,
-          margin: const EdgeInsets.symmetric(horizontal: 1, vertical: 1),
+          margin: const EdgeInsets.symmetric(
+            horizontal: PanelTabStrip.dropSlotHMargin,
+            vertical: 1,
+          ),
           decoration: BoxDecoration(
             color: highlight
                 ? theme.colorScheme.primary
@@ -543,7 +621,10 @@ class _PanelTabStripState extends State<PanelTabStrip> {
       message: tooltip,
       waitDuration: const Duration(milliseconds: 450),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 1.5, vertical: 2),
+        padding: const EdgeInsets.symmetric(
+          horizontal: PanelTabStrip.tabHPadding,
+          vertical: 2,
+        ),
         child: Material(
           color: active ? theme.colorScheme.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
@@ -624,27 +705,29 @@ class _PanelTabStripState extends State<PanelTabStrip> {
               children: [
                 Icon(panel.icon, size: 16, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
-                Text(panel.title, style: const TextStyle(fontSize: 12)),
+                Text(panel.title, style: theme.textTheme.bodySmall),
               ],
             ),
           ),
       ],
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        padding: const EdgeInsets.symmetric(
+          horizontal: PanelTabStrip.hiddenHPadding,
+          vertical: 6,
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               Icons.visibility_off_rounded,
-              size: 14,
-              color: theme.colorScheme.outline,
+              size: PanelTabStrip.hiddenIconWidth,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
-            const SizedBox(width: 3),
+            const SizedBox(width: PanelTabStrip.hiddenIconGap),
             Text(
               '${hidden.length}',
               style: theme.textTheme.labelSmall?.copyWith(
-                fontSize: 10,
-                color: theme.colorScheme.outline,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ],

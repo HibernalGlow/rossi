@@ -345,12 +345,11 @@ class _LaneMenuRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(label, style: const TextStyle(fontSize: 12)),
+              Text(label, style: theme.textTheme.bodySmall),
               if (hint != null)
                 Text(
                   hint!,
                   style: theme.textTheme.labelSmall?.copyWith(
-                    fontSize: 10,
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -465,7 +464,7 @@ class _LaneWidthFieldState extends State<_LaneWidthField> {
           color: theme.colorScheme.onSurfaceVariant,
         ),
         const SizedBox(width: 8),
-        const Text('常规宽度', style: TextStyle(fontSize: 12)),
+        Text('常规宽度', style: theme.textTheme.bodySmall),
         const Spacer(),
         SizedBox(
           width: 62,
@@ -475,7 +474,7 @@ class _LaneWidthFieldState extends State<_LaneWidthField> {
             focusNode: _focusNode,
             keyboardType: TextInputType.number,
             textAlign: TextAlign.right,
-            style: const TextStyle(fontSize: 12),
+            style: theme.textTheme.bodySmall,
             decoration: const InputDecoration(
               isDense: true,
               contentPadding: EdgeInsets.symmetric(
@@ -498,7 +497,6 @@ class _LaneWidthFieldState extends State<_LaneWidthField> {
         Text(
           '${min.round()}–${max.round()}',
           style: theme.textTheme.labelSmall?.copyWith(
-            fontSize: 10,
             color: theme.colorScheme.onSurfaceVariant,
           ),
         ),

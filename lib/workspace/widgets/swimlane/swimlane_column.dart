@@ -1,4 +1,6 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_panel_bar.dart';
@@ -9,8 +11,8 @@ import 'package:zephyr/workspace/widgets/swimlane/lane_more_menu.dart';
 /// 单个泳道容器：栏头（折叠 / 独占 / 宽度 / 更多）+ 内容。
 ///
 /// **栏头与紧凑轨都可以右键**，打开的就是那颗「更多」按钮的同一份菜单 ——
-/// 栏头是一行 `Row` 且被泳道裁掉溢出，按钮完全可能被挤得看不见，
-/// 那时「改回宽度 / 换停靠边 / 退出独占」不能一起没有入口。见 [_laneMenu]。
+/// 栏头窄的时候那几颗按钮是**故意让位**的（面板图标优先，见 [_fitHeader]），
+/// 而「改回宽度 / 换停靠边 / 退出独占」不能跟着一起没有入口。见 [_laneMenu]。
 ///
 /// **栏头归泳道自己**（neoview 契约）：edge 模式那套「钉边 / 拖动 / 改尺寸」的控件
 /// 在这里一律不出现；[headerActions] 是泳道往自己栏头里塞控件的口子 ——
@@ -51,7 +53,8 @@ class SwimlaneColumn extends StatelessWidget {
   /// 覆盖栏头标题（例如阅读器泳道显示当前书名）。
   final String? titleOverride;
 
-  /// 栏头右侧的附加控件。**必须窄**（图标按钮级别），否则窄栏会挤压标题。
+  /// 栏头右侧的附加控件。**必须窄**（图标按钮级别）：[_fitHeader] 就是按
+  /// 一颗 40 算它们要占多少，塞一条宽东西进去，让位判断会算错。
   final List<Widget> headerActions;
 
   /// 这条泳道承载哪一侧的面板；`null` = 没有面板（阅读器泳道）。
@@ -239,14 +242,15 @@ class SwimlaneColumn extends StatelessWidget {
 
   /// 栏头。
   ///
-  /// [laneWidth] 是这条泳道此刻的宽度：页签条能占多少要从它算，见
-  /// [_panelStripBudget]。
+  /// [laneWidth] 是这条泳道此刻的宽度：谁在、谁让位要从它算，见 [_fitHeader]。
   Widget _buildHeader(
     BuildContext context,
     ThemeData theme,
     bool titleMounted,
     double laneWidth,
   ) {
+    final fit = _fitHeader(context, titleMounted, laneWidth);
+
     return Container(
       height: 46,
       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -270,6 +274,10 @@ class SwimlaneColumn extends StatelessWidget {
           const SizedBox(width: 4),
 
           // 泳道标题（双击重置宽度）
+          //
+          // 标题文本本身是 `Flexible`（省略号），所以栏头一挤它先缩水，不用判什么；
+          // 徽标却是**硬**的 —— 留 0 宽它照样要 62.5，于是整行溢出（黄黑斜纹）。
+          // 因此这一颗由 [_fitHeader] 决定画不画。
           Expanded(
             child: Tooltip(
               message: '双击重置该栏宽度　·　右键打开该泳道的菜单',
@@ -287,25 +295,37 @@ class SwimlaneColumn extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 5,
-                        vertical: 1,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        '${resolvedWidth.toInt()}px',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          fontSize: 10,
-                          color: theme.colorScheme.onSurfaceVariant,
+                    if (fit.showBadge) ...[
+                      const SizedBox(width: 6),
+                      // 宽度徽标是**定宽**的：栏头的让位判断要的是硬数，
+                      // 而这一颗的宽跟着字号与字体走（`labelSmall` + 项目自带字体，
+                      // 数字差不多一个字一个全角宽）。早先按「实测 62.5」记一笔，
+                      // 字体口径一换就少算了 5px，表现为 440px 的泳道整行溢出。
+                      // 定宽之后剩下的只是「四位数会不会省略号」，而那不再影响版式。
+                      SizedBox(
+                        width: _LaneChrome.badgeInner,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHighest
+                                .withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '${resolvedWidth.toInt()}px',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -323,75 +343,119 @@ class SwimlaneColumn extends StatelessWidget {
           // 而且 `showHandle: false` 意味着它此刻根本没有拖动把手 ——
           // 传进去只会把版式撑坏。
           //
-          // 但「不撑满」不等于「按内容取宽」：页签条里面是个横向滚动视口，
-          // 视口在主轴上**总是铺满**给它的宽度，所以它照样要掉整条
-          // `maxWidth`（默认 260）。栏头一共只有 340–380px，260 一占就剩不下
-          // 标题与右侧那几颗按钮了（黄黑斜纹）。因此这里传的是**算出来的**
-          // 预算，而不是那个 260 默认值 —— 见 [_panelStripBudget]。
+          // 「不参与摆放」不等于「按内容取宽」：视口在主轴上**总是铺满**给它的宽度，
+          // 所以这里传的 `maxWidth` 就是它**实际能占**的那一段 ——
+          // 由 [_fitHeader] 按「面板图标必须完整」算出来，而不是一个凭空的封顶值。
           if (titleMounted && panelSide != null) ...[
             const SizedBox(width: 4),
             PanelTabStrip(
               side: panelSide!,
               showHandle: false,
-              maxWidth: _panelStripBudget(laneWidth),
+              maxWidth: fit.stripMaxWidth,
             ),
             const SizedBox(width: 4),
           ],
 
           // Solo 独占按钮
-          IconButton(
-            icon: Icon(
-              isSolo
-                  ? Icons.center_focus_strong_rounded
-                  : Icons.center_focus_weak_rounded,
-              size: 20,
-              color: isSolo
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurfaceVariant,
+          if (fit.showSolo)
+            IconButton(
+              icon: Icon(
+                isSolo
+                    ? Icons.center_focus_strong_rounded
+                    : Icons.center_focus_weak_rounded,
+                size: 20,
+                color: isSolo
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
+              tooltip: isSolo ? '退出独占 (Exit Solo)' : '独占该栏 (Solo 聚焦)',
+              onPressed: onToggleSolo,
+              visualDensity: VisualDensity.compact,
             ),
-            tooltip: isSolo ? '退出独占 (Exit Solo)' : '独占该栏 (Solo 聚焦)',
-            onPressed: onToggleSolo,
-            visualDensity: VisualDensity.compact,
-          ),
           // 折叠泳道按钮
-          IconButton(
-            icon: const Icon(Icons.vertical_align_center_rounded, size: 18),
-            tooltip: '折叠为紧凑条 (Collapse)',
-            onPressed: onToggleCollapse,
-            visualDensity: VisualDensity.compact,
-          ),
+          if (fit.showCollapse)
+            IconButton(
+              icon: const Icon(Icons.vertical_align_center_rounded, size: 18),
+              tooltip: '折叠为紧凑条 (Collapse)',
+              onPressed: onToggleCollapse,
+              visualDensity: VisualDensity.compact,
+            ),
           // 这条泳道其余的动作（独占 / 宽度 / 面板栏摆放 / 折叠）。
           // 默认形态下面板栏就挂在这一行里、没有拖动把手，
           // 所以「把它挪走」只有这个菜单做得到 —— 见 `LaneMenu`。
-          LaneMoreMenu(menu: _laneMenu()),
+          //
+          // 它是三颗按钮里最后让位的那一颗（独占与折叠都在这份菜单里，
+          // 而菜单本身还有右键栏头这一条退路，见 [_withLaneContextMenu]）。
+          if (fit.showMore) LaneMoreMenu(menu: _laneMenu()),
         ],
       ),
     );
   }
 
-  /// 挂进栏头的面板页签条**最多**能占多宽。
+  /// 栏头这一行此刻**谁在、谁让位**。
   ///
-  /// 栏头是一行 `Row`，标题那边是 `Expanded`：非弹性子节点先摆，剩下的才给标题。
-  /// 于是只要「把手 + 页签条 + 三颗按钮」加起来超过泳道宽，标题就会被挤成负的
-  /// ——`Expanded` 拿到 0 之后仍然溢出（黄黑斜纹）。这里把右侧那几项的开销
-  /// 明算出来，页签条只能拿余量，标题就永远还有地方。
+  /// 让位顺序（用户 2026-09-20 的口径）：**面板图标必须完整显示**，所以页签条先拿
+  /// 走它实际要占的那一段；剩下的按「更多 → 折叠 → 独占 → 宽度徽标 → 标题文本」
+  /// 分，越靠后的越先没有。标题文本是 `Flexible`，压力先到它身上（省略号），
+  /// 这一档不需要判据；徽标是硬的，所以要单独判。三颗按钮让出去不等于失去功能 ——
+  /// 那几件事全在右键栏头弹出的同一份菜单里（见 `LaneMenu`、[_withLaneContextMenu]）。
   ///
-  /// 各项的宽度是**量出来的**（400px 泳道：栏头 `Row` 实得 375）：
-  /// - 泳道边框 + 栏头左右内边距 22；
-  /// - 把手图标 18，与标题之间 4；
-  /// - 页签条两侧留白 4 + 4；
-  /// - 独占与折叠各 40（`IconButton(visualDensity: compact)` 实测就是 40 见方）；
-  /// - 「更多」24（见 `LaneMoreMenu`）；
-  /// - 标题至少留 75：宽度徽标实测 62.5（四位数还要宽一点）加与标题之间的 6。
-  ///   标题文本本身是 `Flexible`，可以省略到 0，但徽标不能没有 —— 少算这一项
-  ///   就是「标题被挤到 50、徽标要 68.5、于是斜纹 19px」那个症状。
+  /// 只有连「把手 + 页签条」都塞不下时，才让页签条自己滚（它本来就是滚动视口）——
+  /// 那是最后一档，不是默认档。早先版本恰好相反：先给标题预留 75，剩下的封顶给
+  /// 页签条，于是 389px 的泳道上只剩 158，而五个图标加「已收起」入口要 210 上下，
+  /// 最后一个图标被齐根裁掉 —— 就是这次要修的东西。
   ///
-  /// 上限仍是页签条自己的 260（`PanelTabStrip.maxWidth` 的默认值）：泳道再宽也不该
-  /// 让一条页签条横着吃掉半栏。**装不下就滚**：它本来就是滚动视口，而 6 个面板要
-  /// 200 上下，400px 的泳道只给得起 160 出头。
-  double _panelStripBudget(double laneWidth) {
-    const double chrome = 22 + 18 + 4 + 4 + 4 + 40 + 40 + 24 + 75;
-    return (laneWidth - chrome).clamp(0.0, 260.0);
+  /// `stripMaxWidth` 取「页签条要的 + 此刻还没被拿走的余量」：`shrinkWrap` 的视口
+  /// 只会占到自己要的那一段，多给的那点永远不会真被占掉；而它**小于**需求量时
+  /// （最后一档）非弹性那几项的总和正好等于整行可用宽，`Expanded` 拿到 0 而不是
+  /// 负数 —— 负数就是黄黑斜纹。
+  _LaneHeaderFit _fitHeader(
+    BuildContext context,
+    bool titleMounted,
+    double laneWidth,
+  ) {
+    final side = panelSide;
+    final stripNeed = titleMounted && side != null
+        ? PanelTabStrip.titleMountedWidth(
+            side,
+            context.select<WorkspaceCubit, WorkspaceBoardLayout>(
+              (c) => c.state.board,
+            ),
+          )
+        : 0.0;
+
+    // 标题、徽标、页签条与右侧那几颗按钮能分的总量。
+    // `headerActions` 按这个字段的契约（图标按钮级别）一颗算 40：今天只有阅读器
+    // 泳道往里塞东西，而它没有页签条，所以这一项不影响面板泳道的那笔账。
+    var rest =
+        laneWidth -
+        _LaneChrome.borderAndPadding(isActive) -
+        _LaneChrome.handle -
+        _LaneChrome.iconButton * headerActions.length;
+
+    if (stripNeed > 0) rest -= _LaneChrome.stripGaps + stripNeed;
+
+    // 越晚让位的越先要 —— 所以「更多」排在最前面领位置。
+    final showMore = rest >= _LaneChrome.moreButton;
+    if (showMore) rest -= _LaneChrome.moreButton;
+    final showCollapse = rest >= _LaneChrome.collapseButton;
+    if (showCollapse) rest -= _LaneChrome.collapseButton;
+    final showSolo = rest >= _LaneChrome.soloButton;
+    if (showSolo) rest -= _LaneChrome.soloButton;
+
+    final showBadge = rest >= _LaneChrome.badge;
+    if (showBadge) rest -= _LaneChrome.badge;
+
+    return _LaneHeaderFit(
+      stripMaxWidth: (stripNeed + (rest < 0 ? rest : 0)).clamp(
+        0.0,
+        double.infinity,
+      ),
+      showBadge: showBadge,
+      showSolo: showSolo,
+      showCollapse: showCollapse,
+      showMore: showMore,
+    );
   }
 
   /// 栏头最左侧的泳道把手。
@@ -515,4 +579,60 @@ class SwimlaneColumn extends StatelessWidget {
         return Icons.view_column_rounded;
     }
   }
+}
+
+/// 栏头那一行各项的**实测**宽度（在 400px 泳道上量的，用于 [_fitHeader] 的让位判断）。
+///
+/// 只有 `borderAndPadding` 与 `handle` 是本文件画出来的（`Container` 的 10+10 内边距、
+/// 泳道 1+1 边框、18 的图标与它后面那道 4）；`iconButton` 是
+/// `IconButton(visualDensity: compact)` 的实际尺寸，`moreButton` 见 `LaneMoreMenu`，
+/// `badge` 是宽度徽标连着它与标题之间的 6。改这几处版式都要回来核这几个数。
+class _LaneChrome {
+  const _LaneChrome._();
+
+  /// 泳道边框 + 栏头左右内边距 10+10。
+  ///
+  /// 边框按**是不是激活那条**算：`Border.all(width: isActive ? 1.5 : 1)`，
+  /// 于是激活那条的可用宽少 1px。少算这一格正好是「440px 的泳道溢出 1px」，
+  /// 而溢出在判据里是异常、在界面上是斜纹。
+  static double borderAndPadding(bool isActive) => 20 + (isActive ? 3 : 2);
+
+  /// 泳道图标（= 重排把手）与它后面那道留白。
+  static const double handle = 18 + 4;
+
+  /// 页签条左右各 4 的留白。
+  static const double stripGaps = 4 + 4;
+
+  /// 一颗 `IconButton(visualDensity: compact)`。
+  static const double iconButton = 40;
+
+  static const double soloButton = iconButton;
+  static const double collapseButton = iconButton;
+
+  /// 「更多」：4+4 内边距 + 16 的图标（见 `LaneMoreMenu`）。
+  static const double moreButton = 24;
+
+  /// 宽度徽标：它是**定宽**的（`badgeInner`，见 `_buildHeader` 里那段说明），
+  /// 所以这笔账是死的 —— 加上它与标题之间那道 6。
+  static const double badgeInner = 72;
+  static const double badge = badgeInner + 6;
+}
+
+/// [_fitHeader] 的结果：此刻栏头右侧哪几项还在。
+class _LaneHeaderFit {
+  const _LaneHeaderFit({
+    required this.stripMaxWidth,
+    required this.showBadge,
+    required this.showSolo,
+    required this.showCollapse,
+    required this.showMore,
+  });
+
+  /// 挂进栏头那条页签条的上限宽（它按内容取宽，所以这是**上限**不是预留）。
+  final double stripMaxWidth;
+
+  final bool showBadge;
+  final bool showSolo;
+  final bool showCollapse;
+  final bool showMore;
 }
