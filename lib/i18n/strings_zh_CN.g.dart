@@ -81,6 +81,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$dialog$zh_CN dialog = Translations$dialog$zh_CN.internal(_root);
 	late final Translations$shelfMenu$zh_CN shelfMenu = Translations$shelfMenu$zh_CN.internal(_root);
 	late final Translations$video$zh_CN video = Translations$video$zh_CN.internal(_root);
+	late final Translations$bindingEditor$zh_CN bindingEditor = Translations$bindingEditor$zh_CN.internal(_root);
 }
 
 // Path: common
@@ -1294,6 +1295,12 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '当前平台不支持选择目录'
 	String get fileManagerHomePathUnsupported => '当前平台不支持选择目录';
 
+	/// zh-CN: '启动时默认打开主页'
+	String get fileManagerOpenHomeOnStart => '启动时默认打开主页';
+
+	/// zh-CN: '文件管理器打开时直接落在主页目录；该目录已不存在时回退到就近还在的目录'
+	String get fileManagerOpenHomeOnStartSubtitle => '文件管理器打开时直接落在主页目录；该目录已不存在时回退到就近还在的目录';
+
 	/// zh-CN: '工具栏'
 	String get fileManagerSectionToolbar => '工具栏';
 
@@ -1354,8 +1361,8 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '导入 JSON'
 	String get operationBindingImport => '导入 JSON';
 
-	/// zh-CN: '粘贴一份绑定包（带 bindings 字段的对象、或裸数组都吃得下）。手柄 / 轮盘 / 轨迹手势那几类本仓还不能编辑，但会原样保留。'
-	String get operationBindingImportSubtitle => '粘贴一份绑定包（带 bindings 字段的对象、或裸数组都吃得下）。手柄 / 轮盘 / 轨迹手势那几类本仓还不能编辑，但会原样保留。';
+	/// zh-CN: '导入绑定包，支持 bindings 对象或数组；保留全部输入类型、上下文和后续动作。'
+	String get operationBindingImportSubtitle => '导入绑定包，支持 bindings 对象或数组；保留全部输入类型、上下文和后续动作。';
 
 	/// zh-CN: '载入'
 	String get operationBindingImportConfirm => '载入';
@@ -1396,8 +1403,8 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '恢复出厂预设'
 	String get operationBindingRestoreFactory => '恢复出厂预设';
 
-	/// zh-CN: '用出厂的键盘与点击预设整张替换（用户自己加的绑定也会被替换掉）。'
-	String get operationBindingRestoreFactorySubtitle => '用出厂的键盘与点击预设整张替换（用户自己加的绑定也会被替换掉）。';
+	/// zh-CN: '恢复 Neo 默认的九宫格、滚轮、键盘和鼠标绑定，并重置轮盘。现有自定义绑定将被替换。'
+	String get operationBindingRestoreFactorySubtitle => '恢复 Neo 默认的九宫格、滚轮、键盘和鼠标绑定，并重置轮盘。现有自定义绑定将被替换。';
 
 	/// zh-CN: '添加按键'
 	String get operationBindingAddKey => '添加按键';
@@ -1611,6 +1618,12 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '唤出轮盘'
 	String get operationBindingActionOpenRadial => '唤出轮盘';
+
+	/// zh-CN: '确认轮盘选项'
+	String get operationBindingActionConfirmRadial => '确认轮盘选项';
+
+	/// zh-CN: '切换书库'
+	String get operationBindingActionToggleLibrary => '切换书库';
 
 	/// zh-CN: '启用轮盘'
 	String get operationBindingRadialEnable => '启用轮盘';
@@ -5192,6 +5205,318 @@ class Translations$video$zh_CN {
 	String get rotation => '旋转';
 }
 
+// Path: bindingEditor
+class Translations$bindingEditor$zh_CN {
+	Translations$bindingEditor$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '翻页'
+	String get groupNavigation => '翻页';
+
+	/// zh-CN: '画面'
+	String get groupView => '画面';
+
+	/// zh-CN: '界面'
+	String get groupInterface => '界面';
+
+	/// zh-CN: '播放'
+	String get videoPlayback => '播放';
+
+	/// zh-CN: '声音'
+	String get videoAudio => '声音';
+
+	/// zh-CN: '画面与字幕'
+	String get videoDisplay => '画面与字幕';
+
+	/// zh-CN: '全部'
+	String get allActions => '全部';
+
+	/// zh-CN: '已绑定'
+	String get boundOnly => '已绑定';
+
+	/// zh-CN: '未绑定'
+	String get unassigned => '未绑定';
+
+	/// zh-CN: '空格'
+	String get spaceKey => '空格';
+
+	/// zh-CN: '搜索全部动作或按键'
+	String get searchAll => '搜索全部动作或按键';
+
+	/// zh-CN: '已停用'
+	String get disabled => '已停用';
+
+	/// zh-CN: '另有 $count 条绑定'
+	String moreBindings({required Object count}) => '另有 ${count} 条绑定';
+
+	/// zh-CN: '搜索动作、分类、上下文或输入'
+	String get search => '搜索动作、分类、上下文或输入';
+
+	/// zh-CN: '全部分类'
+	String get allCategories => '全部分类';
+
+	/// zh-CN: '全部上下文'
+	String get allContexts => '全部上下文';
+
+	/// zh-CN: '没有匹配的动作'
+	String get noResults => '没有匹配的动作';
+
+	/// zh-CN: '添加绑定'
+	String get addBinding => '添加绑定';
+
+	/// zh-CN: '暂无绑定，添加一种输入开始配置'
+	String get noBindings => '暂无绑定，添加一种输入开始配置';
+
+	/// zh-CN: '输入设备'
+	String get device => '输入设备';
+
+	/// zh-CN: '上下文'
+	String get context => '上下文';
+
+	/// zh-CN: '忽略重复输入'
+	String get ignoreRepeat => '忽略重复输入';
+
+	/// zh-CN: '后续动作'
+	String get followUps => '后续动作';
+
+	/// zh-CN: '添加'
+	String get add => '添加';
+
+	/// zh-CN: '复制到'
+	String get copyTo => '复制到';
+
+	/// zh-CN: '绑定冲突'
+	String get conflict => '绑定冲突';
+
+	/// zh-CN: '同一上下文内的输入重复，请修改或停用其中一条。修正后自动保存。'
+	String get conflictHint => '同一上下文内的输入重复，请修改或停用其中一条。修正后自动保存。';
+
+	/// zh-CN: '已自动保存'
+	String get saved => '已自动保存';
+
+	/// zh-CN: '等待保存'
+	String get pending => '等待保存';
+
+	/// zh-CN: '配置未保存，请检查输入内容'
+	String get invalid => '配置未保存，请检查输入内容';
+
+	/// zh-CN: '录制'
+	String get record => '录制';
+
+	/// zh-CN: '在此区域操作，确认后应用录制结果。Esc 可取消；点击下方取消按钮可以录入 Esc。'
+	String get recordHint => '在此区域操作，确认后应用录制结果。Esc 可取消；点击下方取消按钮可以录入 Esc。';
+
+	/// zh-CN: '等待输入…'
+	String get recordWaiting => '等待输入…';
+
+	/// zh-CN: '键盘代码'
+	String get keyCode => '键盘代码';
+
+	/// zh-CN: '触发方式'
+	String get trigger => '触发方式';
+
+	/// zh-CN: '按下'
+	String get down => '按下';
+
+	/// zh-CN: '长按'
+	String get hold => '长按';
+
+	/// zh-CN: '释放时触发'
+	String get instant => '释放时触发';
+
+	/// zh-CN: '单击'
+	String get click => '单击';
+
+	/// zh-CN: '双击'
+	String get doubleClick => '双击';
+
+	/// zh-CN: '按下'
+	String get press => '按下';
+
+	/// zh-CN: '长按时长（毫秒）'
+	String get duration => '长按时长（毫秒）';
+
+	/// zh-CN: '移动容差（像素）'
+	String get tolerance => '移动容差（像素）';
+
+	/// zh-CN: '鼠标按钮'
+	String get button => '鼠标按钮';
+
+	/// zh-CN: '左键'
+	String get leftButton => '左键';
+
+	/// zh-CN: '中键'
+	String get middleButton => '中键';
+
+	/// zh-CN: '右键'
+	String get rightButton => '右键';
+
+	/// zh-CN: '后退键'
+	String get backButton => '后退键';
+
+	/// zh-CN: '前进键'
+	String get forwardButton => '前进键';
+
+	/// zh-CN: '向上'
+	String get up => '向上';
+
+	/// zh-CN: '向下'
+	String get downDirection => '向下';
+
+	/// zh-CN: '向左'
+	String get left => '向左';
+
+	/// zh-CN: '向右'
+	String get right => '向右';
+
+	/// zh-CN: '左滑'
+	String get swipeLeft => '左滑';
+
+	/// zh-CN: '右滑'
+	String get swipeRight => '右滑';
+
+	/// zh-CN: '上滑'
+	String get swipeUp => '上滑';
+
+	/// zh-CN: '下滑'
+	String get swipeDown => '下滑';
+
+	/// zh-CN: '点击'
+	String get tap => '点击';
+
+	/// zh-CN: '长按'
+	String get longPress => '长按';
+
+	/// zh-CN: '手指数'
+	String get fingers => '手指数';
+
+	/// zh-CN: '触控手势'
+	String get gesture => '触控手势';
+
+	/// zh-CN: '轨迹方向序列'
+	String get directions => '轨迹方向序列';
+
+	/// zh-CN: '移除最后方向'
+	String get undoDirection => '移除最后方向';
+
+	/// zh-CN: '手柄按钮编号'
+	String get gamepadButton => '手柄按钮编号';
+
+	/// zh-CN: '手柄配置可编辑和导入导出；当前平台尚未接入手柄事件。'
+	String get gamepadHint => '手柄配置可编辑和导入导出；当前平台尚未接入手柄事件。';
+
+	/// zh-CN: '此输入由轮盘或系统命令管理'
+	String get managedInput => '此输入由轮盘或系统命令管理';
+
+	/// zh-CN: '九宫格区域'
+	String get area => '九宫格区域';
+
+	/// zh-CN: '左上'
+	String get topLeft => '左上';
+
+	/// zh-CN: '中上'
+	String get topCenter => '中上';
+
+	/// zh-CN: '右上'
+	String get topRight => '右上';
+
+	/// zh-CN: '左中'
+	String get middleLeft => '左中';
+
+	/// zh-CN: '中心'
+	String get middleCenter => '中心';
+
+	/// zh-CN: '右中'
+	String get middleRight => '右中';
+
+	/// zh-CN: '左下'
+	String get bottomLeft => '左下';
+
+	/// zh-CN: '中下'
+	String get bottomCenter => '中下';
+
+	/// zh-CN: '右下'
+	String get bottomRight => '右下';
+
+	/// zh-CN: '键盘'
+	String get keyboard => '键盘';
+
+	/// zh-CN: '鼠标'
+	String get mouse => '鼠标';
+
+	/// zh-CN: '鼠标轨迹'
+	String get mouseGesture => '鼠标轨迹';
+
+	/// zh-CN: '滚轮'
+	String get wheel => '滚轮';
+
+	/// zh-CN: '触控'
+	String get touch => '触控';
+
+	/// zh-CN: '手柄'
+	String get gamepad => '手柄';
+
+	/// zh-CN: '轮盘'
+	String get radial => '轮盘';
+
+	/// zh-CN: '系统命令'
+	String get command => '系统命令';
+
+	/// zh-CN: '全局'
+	String get global => '全局';
+
+	/// zh-CN: '阅读器'
+	String get reader => '阅读器';
+
+	/// zh-CN: '视频'
+	String get video => '视频';
+
+	/// zh-CN: '面板'
+	String get panel => '面板';
+
+	/// zh-CN: '界面栏'
+	String get shell => '界面栏';
+
+	/// zh-CN: '编辑器'
+	String get editor => '编辑器';
+
+	/// zh-CN: '对话框'
+	String get modal => '对话框';
+
+	/// zh-CN: '上移'
+	String get moveUp => '上移';
+
+	/// zh-CN: '下移'
+	String get moveDown => '下移';
+
+	/// zh-CN: '收起绑定'
+	String get collapse => '收起绑定';
+
+	/// zh-CN: '展开绑定'
+	String get expand => '展开绑定';
+
+	/// zh-CN: '动作'
+	String get actions => '动作';
+
+	/// zh-CN: '动作列表'
+	String get actionList => '动作列表';
+
+	/// zh-CN: '绑定详情'
+	String get bindingDetails => '绑定详情';
+
+	/// zh-CN: '绑定'
+	String get bindings => '绑定';
+
+	/// zh-CN: '恢复默认'
+	String get restore => '恢复默认';
+
+	/// zh-CN: '清除筛选'
+	String get resetFilters => '清除筛选';
+}
+
 /// The flat map containing all translations for locale <zh-CN>.
 /// Only for edge cases! For simple maps, use the map function of this library.
 ///
@@ -5593,6 +5918,8 @@ extension on Translations {
 			'settings.fileManagerHomePathCleared' => '已清除主页',
 			'settings.fileManagerHomePathStale' => '该目录已不存在，请重新选择',
 			'settings.fileManagerHomePathUnsupported' => '当前平台不支持选择目录',
+			'settings.fileManagerOpenHomeOnStart' => '启动时默认打开主页',
+			'settings.fileManagerOpenHomeOnStartSubtitle' => '文件管理器打开时直接落在主页目录；该目录已不存在时回退到就近还在的目录',
 			'settings.fileManagerSectionToolbar' => '工具栏',
 			'settings.fileManagerSectionView' => '浏览视图',
 			'settings.fileManagerRememberViewState' => '记住每个目录的视图与排序',
@@ -5613,7 +5940,7 @@ extension on Translations {
 			'settings.operationBindingUnbound' => '未绑定',
 			'settings.operationBindingSectionBundle' => '绑定包',
 			'settings.operationBindingImport' => '导入 JSON',
-			'settings.operationBindingImportSubtitle' => '粘贴一份绑定包（带 bindings 字段的对象、或裸数组都吃得下）。手柄 / 轮盘 / 轨迹手势那几类本仓还不能编辑，但会原样保留。',
+			'settings.operationBindingImportSubtitle' => '导入绑定包，支持 bindings 对象或数组；保留全部输入类型、上下文和后续动作。',
 			'settings.operationBindingImportConfirm' => '载入',
 			'settings.operationBindingImportLoaded' => ({required Object count}) => '已载入 ${count} 条绑定，保存后生效',
 			'settings.operationBindingExport' => '导出 JSON',
@@ -5627,7 +5954,7 @@ extension on Translations {
 			'settings.operationBindingDiscarded' => '已放弃未保存的修改',
 			'settings.operationBindingDirtyHint' => '有未保存的修改。',
 			'settings.operationBindingRestoreFactory' => '恢复出厂预设',
-			'settings.operationBindingRestoreFactorySubtitle' => '用出厂的键盘与点击预设整张替换（用户自己加的绑定也会被替换掉）。',
+			'settings.operationBindingRestoreFactorySubtitle' => '恢复 Neo 默认的九宫格、滚轮、键盘和鼠标绑定，并重置轮盘。现有自定义绑定将被替换。',
 			'settings.operationBindingAddKey' => '添加按键',
 			'settings.operationBindingNoKeys' => '未绑定按键',
 			'settings.operationBindingUnimplemented' => '本仓还没有这个动作的执行体',
@@ -5699,6 +6026,8 @@ extension on Translations {
 			'settings.operationBindingTabKeyboard' => '快捷键',
 			'settings.operationBindingTabRadial' => '轮盘',
 			'settings.operationBindingActionOpenRadial' => '唤出轮盘',
+			'settings.operationBindingActionConfirmRadial' => '确认轮盘选项',
+			'settings.operationBindingActionToggleLibrary' => '切换书库',
 			'settings.operationBindingRadialEnable' => '启用轮盘',
 			'settings.operationBindingRadialEnableSubtitle' => '关掉之后轮盘不再响应，槽位绑定原样保留',
 			'settings.operationBindingRadialActiveWheel' => '默认轮盘',
@@ -5708,12 +6037,12 @@ extension on Translations {
 			'settings.operationBindingRadialPreview' => '预览',
 			'settings.operationBindingRadialReset' => '重置槽位',
 			'settings.operationBindingRadialResetSubtitle' => '只重写这个轮盘的出厂槽位，你自绑的其它输入不动',
+			_ => null,
+		} ?? switch (path) {
 			'settings.operationBindingRadialHint' => ({required Object layers}) => '已启用 · ${layers} 层 · 点空格添加，点已有槽编辑',
 			'settings.operationBindingRadialHintDisabled' => '已停用 · 阅读时不会唤出轮盘',
 			'settings.operationBindingRadialAppearance' => '外观与几何',
 			'settings.operationBindingRadialGeometrySummary' => ({required Object radius, required Object inner, required Object variant}) => 'r${radius} · 内${inner} · ${variant}',
-			_ => null,
-		} ?? switch (path) {
 			'settings.operationBindingRadialRadius' => '外半径',
 			'settings.operationBindingRadialInnerRadius' => '内半径（中心空洞）',
 			'settings.operationBindingRadialSectors' => '每层格数',
@@ -6222,12 +6551,12 @@ extension on Translations {
 			'plugin.updateFailed' => ({required Object error}) => '更新失败: ${error}',
 			'plugin.uuidMismatch' => '插件 id 不一致，无法安装',
 			'plugin.currentVersion' => ({required Object version}) => '当前版本 ${version}',
+			_ => null,
+		} ?? switch (path) {
 			'plugin.alreadyLatest' => '已是最新版本',
 			'gestureLock.gestureTitle' => '手势解锁',
 			'gestureLock.gestureHint' => '请绘制手势密码',
 			'gestureLock.pinTitle' => '输入 PIN',
-			_ => null,
-		} ?? switch (path) {
 			'gestureLock.pinHint' => '请输入重置 PIN',
 			'gestureLock.atLeast4Points' => '至少连接 4 个点',
 			'gestureLock.confirmGesture' => '请再次绘制以确认',
@@ -6736,12 +7065,12 @@ extension on Translations {
 			'video.loop' => '循环：接下一页',
 			'video.loopSingle' => '循环：本页重复',
 			'video.loopOff' => '循环：关闭',
+			_ => null,
+		} ?? switch (path) {
 			'video.speed' => '倍速',
 			'video.volume' => '音量',
 			'video.muted' => '已静音',
 			'video.subtitles' => '字幕',
-			_ => null,
-		} ?? switch (path) {
 			'video.subtitleOff' => '关闭字幕',
 			'video.audio' => '音轨',
 			'video.audioOff' => '关闭音轨',
@@ -6802,6 +7131,107 @@ extension on Translations {
 			'video.animatedKeywords' => '动画化关键字',
 			'video.animatedKeywordsHint' => '逗号分隔，例如：[#dyna], [#动]',
 			'video.rotation' => '旋转',
+			'bindingEditor.groupNavigation' => '翻页',
+			'bindingEditor.groupView' => '画面',
+			'bindingEditor.groupInterface' => '界面',
+			'bindingEditor.videoPlayback' => '播放',
+			'bindingEditor.videoAudio' => '声音',
+			'bindingEditor.videoDisplay' => '画面与字幕',
+			'bindingEditor.allActions' => '全部',
+			'bindingEditor.boundOnly' => '已绑定',
+			'bindingEditor.unassigned' => '未绑定',
+			'bindingEditor.spaceKey' => '空格',
+			'bindingEditor.searchAll' => '搜索全部动作或按键',
+			'bindingEditor.disabled' => '已停用',
+			'bindingEditor.moreBindings' => ({required Object count}) => '另有 ${count} 条绑定',
+			'bindingEditor.search' => '搜索动作、分类、上下文或输入',
+			'bindingEditor.allCategories' => '全部分类',
+			'bindingEditor.allContexts' => '全部上下文',
+			'bindingEditor.noResults' => '没有匹配的动作',
+			'bindingEditor.addBinding' => '添加绑定',
+			'bindingEditor.noBindings' => '暂无绑定，添加一种输入开始配置',
+			'bindingEditor.device' => '输入设备',
+			'bindingEditor.context' => '上下文',
+			'bindingEditor.ignoreRepeat' => '忽略重复输入',
+			'bindingEditor.followUps' => '后续动作',
+			'bindingEditor.add' => '添加',
+			'bindingEditor.copyTo' => '复制到',
+			'bindingEditor.conflict' => '绑定冲突',
+			'bindingEditor.conflictHint' => '同一上下文内的输入重复，请修改或停用其中一条。修正后自动保存。',
+			'bindingEditor.saved' => '已自动保存',
+			'bindingEditor.pending' => '等待保存',
+			'bindingEditor.invalid' => '配置未保存，请检查输入内容',
+			'bindingEditor.record' => '录制',
+			'bindingEditor.recordHint' => '在此区域操作，确认后应用录制结果。Esc 可取消；点击下方取消按钮可以录入 Esc。',
+			'bindingEditor.recordWaiting' => '等待输入…',
+			'bindingEditor.keyCode' => '键盘代码',
+			'bindingEditor.trigger' => '触发方式',
+			'bindingEditor.down' => '按下',
+			'bindingEditor.hold' => '长按',
+			'bindingEditor.instant' => '释放时触发',
+			'bindingEditor.click' => '单击',
+			'bindingEditor.doubleClick' => '双击',
+			'bindingEditor.press' => '按下',
+			'bindingEditor.duration' => '长按时长（毫秒）',
+			'bindingEditor.tolerance' => '移动容差（像素）',
+			'bindingEditor.button' => '鼠标按钮',
+			'bindingEditor.leftButton' => '左键',
+			'bindingEditor.middleButton' => '中键',
+			'bindingEditor.rightButton' => '右键',
+			'bindingEditor.backButton' => '后退键',
+			'bindingEditor.forwardButton' => '前进键',
+			'bindingEditor.up' => '向上',
+			'bindingEditor.downDirection' => '向下',
+			'bindingEditor.left' => '向左',
+			'bindingEditor.right' => '向右',
+			'bindingEditor.swipeLeft' => '左滑',
+			'bindingEditor.swipeRight' => '右滑',
+			'bindingEditor.swipeUp' => '上滑',
+			'bindingEditor.swipeDown' => '下滑',
+			'bindingEditor.tap' => '点击',
+			'bindingEditor.longPress' => '长按',
+			'bindingEditor.fingers' => '手指数',
+			'bindingEditor.gesture' => '触控手势',
+			'bindingEditor.directions' => '轨迹方向序列',
+			'bindingEditor.undoDirection' => '移除最后方向',
+			'bindingEditor.gamepadButton' => '手柄按钮编号',
+			'bindingEditor.gamepadHint' => '手柄配置可编辑和导入导出；当前平台尚未接入手柄事件。',
+			'bindingEditor.managedInput' => '此输入由轮盘或系统命令管理',
+			'bindingEditor.area' => '九宫格区域',
+			'bindingEditor.topLeft' => '左上',
+			'bindingEditor.topCenter' => '中上',
+			'bindingEditor.topRight' => '右上',
+			'bindingEditor.middleLeft' => '左中',
+			'bindingEditor.middleCenter' => '中心',
+			'bindingEditor.middleRight' => '右中',
+			'bindingEditor.bottomLeft' => '左下',
+			'bindingEditor.bottomCenter' => '中下',
+			'bindingEditor.bottomRight' => '右下',
+			'bindingEditor.keyboard' => '键盘',
+			'bindingEditor.mouse' => '鼠标',
+			'bindingEditor.mouseGesture' => '鼠标轨迹',
+			'bindingEditor.wheel' => '滚轮',
+			'bindingEditor.touch' => '触控',
+			'bindingEditor.gamepad' => '手柄',
+			'bindingEditor.radial' => '轮盘',
+			'bindingEditor.command' => '系统命令',
+			'bindingEditor.global' => '全局',
+			'bindingEditor.reader' => '阅读器',
+			'bindingEditor.video' => '视频',
+			'bindingEditor.panel' => '面板',
+			'bindingEditor.shell' => '界面栏',
+			'bindingEditor.editor' => '编辑器',
+			'bindingEditor.modal' => '对话框',
+			'bindingEditor.moveUp' => '上移',
+			'bindingEditor.moveDown' => '下移',
+			'bindingEditor.collapse' => '收起绑定',
+			'bindingEditor.expand' => '展开绑定',
+			'bindingEditor.actions' => '动作',
+			'bindingEditor.actionList' => '动作列表',
+			'bindingEditor.bindingDetails' => '绑定详情',
+			'bindingEditor.bindings' => '绑定',
+			'bindingEditor.restore' => '恢复默认',
+			'bindingEditor.resetFilters' => '清除筛选',
 			_ => null,
 		};
 	}

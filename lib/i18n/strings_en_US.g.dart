@@ -76,6 +76,7 @@ class TranslationsEnUs extends Translations with BaseTranslations<AppLocale, Tra
 	@override late final _Translations$dialog$en_US dialog = _Translations$dialog$en_US._(_root);
 	@override late final _Translations$shelfMenu$en_US shelfMenu = _Translations$shelfMenu$en_US._(_root);
 	@override late final _Translations$video$en_US video = _Translations$video$en_US._(_root);
+	@override late final _Translations$bindingEditor$en_US bindingEditor = _Translations$bindingEditor$en_US._(_root);
 }
 
 // Path: common
@@ -504,6 +505,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get fileManagerHomePathCleared => 'Home cleared';
 	@override String get fileManagerHomePathStale => 'That folder no longer exists, pick another one';
 	@override String get fileManagerHomePathUnsupported => 'Choosing a folder is not supported on this platform';
+	@override String get fileManagerOpenHomeOnStart => 'Open the home folder on start';
+	@override String get fileManagerOpenHomeOnStartSubtitle => 'The file manager starts in the home folder. Falls back to the nearest folder that still exists when that path is gone';
 	@override String get fileManagerSectionToolbar => 'Toolbar';
 	@override String get fileManagerSectionView => 'Browsing view';
 	@override String get fileManagerRememberViewState => 'Remember view and sort per folder';
@@ -525,7 +528,7 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get operationBindingUnbound => 'Unbound';
 	@override String get operationBindingSectionBundle => 'Binding bundle';
 	@override String get operationBindingImport => 'Import JSON';
-	@override String get operationBindingImportSubtitle => 'Paste a binding bundle — both an object with a bindings field and a bare array are accepted. Gamepad, radial and mouse-gesture rows cannot be edited here yet, but they are kept as-is.';
+	@override String get operationBindingImportSubtitle => 'Import a bindings object or array, preserving every input type, context and action sequence.';
 	@override String get operationBindingImportConfirm => 'Load';
 	@override String operationBindingImportLoaded({required Object count}) => 'Loaded ${count} bindings — save to apply them';
 	@override String get operationBindingExport => 'Export JSON';
@@ -539,7 +542,7 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get operationBindingDiscarded => 'Unsaved changes discarded';
 	@override String get operationBindingDirtyHint => 'You have unsaved changes.';
 	@override String get operationBindingRestoreFactory => 'Restore factory presets';
-	@override String get operationBindingRestoreFactorySubtitle => 'Replace the whole table with the factory keyboard and tap presets. Bindings you added yourself are replaced too.';
+	@override String get operationBindingRestoreFactorySubtitle => 'Restore Neo\'s default grid, wheel, keyboard and mouse bindings, and reset the radial menu. Existing custom bindings will be replaced.';
 	@override String get operationBindingAddKey => 'Add key';
 	@override String get operationBindingNoKeys => 'No keys bound';
 	@override String get operationBindingDisabledRow => 'Disabled (does not count as a conflict)';
@@ -610,6 +613,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get operationBindingTabKeyboard => 'Shortcuts';
 	@override String get operationBindingTabRadial => 'Radial menu';
 	@override String get operationBindingActionOpenRadial => 'Open radial menu';
+	@override String get operationBindingActionConfirmRadial => 'Confirm radial selection';
+	@override String get operationBindingActionToggleLibrary => 'Toggle library';
 	@override String get operationBindingRadialEnable => 'Enable radial menu';
 	@override String get operationBindingRadialEnableSubtitle => 'When off the wheel never opens; slot bindings are kept';
 	@override String get operationBindingRadialActiveWheel => 'Default wheel';
@@ -1996,6 +2001,116 @@ class _Translations$video$en_US extends Translations$video$zh_CN {
 	@override String get rotation => 'Rotation';
 }
 
+// Path: bindingEditor
+class _Translations$bindingEditor$en_US extends Translations$bindingEditor$zh_CN {
+	_Translations$bindingEditor$en_US._(TranslationsEnUs root) : this._root = root, super.internal(root);
+
+	final TranslationsEnUs _root; // ignore: unused_field
+
+	// Translations
+	@override String get groupNavigation => 'Pages';
+	@override String get groupView => 'View';
+	@override String get groupInterface => 'Interface';
+	@override String get videoPlayback => 'Playback';
+	@override String get videoAudio => 'Audio';
+	@override String get videoDisplay => 'Picture & subtitles';
+	@override String get allActions => 'All';
+	@override String get boundOnly => 'Assigned';
+	@override String get unassigned => 'Unassigned';
+	@override String get spaceKey => 'Space';
+	@override String get searchAll => 'Search all actions or keys';
+	@override String get disabled => 'Disabled';
+	@override String moreBindings({required Object count}) => '${count} more bindings';
+	@override String get search => 'Search actions, categories, contexts or inputs';
+	@override String get allCategories => 'All categories';
+	@override String get allContexts => 'All contexts';
+	@override String get noResults => 'No matching actions';
+	@override String get addBinding => 'Add binding';
+	@override String get noBindings => 'No bindings. Add an input to get started.';
+	@override String get device => 'Input device';
+	@override String get context => 'Context';
+	@override String get ignoreRepeat => 'Ignore repeated input';
+	@override String get followUps => 'Follow-up actions';
+	@override String get add => 'Add';
+	@override String get copyTo => 'Copy to';
+	@override String get conflict => 'Binding conflict';
+	@override String get conflictHint => 'An input is repeated in the same context. Change or disable one binding to resume autosave.';
+	@override String get saved => 'Saved automatically';
+	@override String get pending => 'Waiting to save';
+	@override String get invalid => 'Not saved. Check the input settings.';
+	@override String get record => 'Record';
+	@override String get recordHint => 'Use this area, then confirm the captured input. Escape cancels; use the cancel button to bind Escape manually.';
+	@override String get recordWaiting => 'Waiting for input…';
+	@override String get keyCode => 'Keyboard code';
+	@override String get trigger => 'Trigger';
+	@override String get down => 'Key down';
+	@override String get hold => 'Hold';
+	@override String get instant => 'On release';
+	@override String get click => 'Click';
+	@override String get doubleClick => 'Double click';
+	@override String get press => 'Press';
+	@override String get duration => 'Hold duration (ms)';
+	@override String get tolerance => 'Movement tolerance (px)';
+	@override String get button => 'Mouse button';
+	@override String get leftButton => 'Left button';
+	@override String get middleButton => 'Middle button';
+	@override String get rightButton => 'Right button';
+	@override String get backButton => 'Back button';
+	@override String get forwardButton => 'Forward button';
+	@override String get up => 'Up';
+	@override String get downDirection => 'Down';
+	@override String get left => 'Left';
+	@override String get right => 'Right';
+	@override String get swipeLeft => 'Swipe left';
+	@override String get swipeRight => 'Swipe right';
+	@override String get swipeUp => 'Swipe up';
+	@override String get swipeDown => 'Swipe down';
+	@override String get tap => 'Tap';
+	@override String get longPress => 'Long press';
+	@override String get fingers => 'Fingers';
+	@override String get gesture => 'Touch gesture';
+	@override String get directions => 'Gesture direction sequence';
+	@override String get undoDirection => 'Remove last direction';
+	@override String get gamepadButton => 'Gamepad button number';
+	@override String get gamepadHint => 'Gamepad bindings can be edited and transferred; gamepad events are not connected on this platform yet.';
+	@override String get managedInput => 'This input is managed by its radial menu or system command';
+	@override String get area => 'View area';
+	@override String get topLeft => 'Top left';
+	@override String get topCenter => 'Top center';
+	@override String get topRight => 'Top right';
+	@override String get middleLeft => 'Middle left';
+	@override String get middleCenter => 'Center';
+	@override String get middleRight => 'Middle right';
+	@override String get bottomLeft => 'Bottom left';
+	@override String get bottomCenter => 'Bottom center';
+	@override String get bottomRight => 'Bottom right';
+	@override String get keyboard => 'Keyboard';
+	@override String get mouse => 'Mouse';
+	@override String get mouseGesture => 'Mouse gesture';
+	@override String get wheel => 'Wheel';
+	@override String get touch => 'Touch';
+	@override String get gamepad => 'Gamepad';
+	@override String get radial => 'Radial';
+	@override String get command => 'Command';
+	@override String get global => 'Global';
+	@override String get reader => 'Reader';
+	@override String get video => 'Video';
+	@override String get panel => 'Panel';
+	@override String get shell => 'Shell';
+	@override String get editor => 'Editor';
+	@override String get modal => 'Dialog';
+	@override String get moveUp => 'Move up';
+	@override String get moveDown => 'Move down';
+	@override String get collapse => 'Collapse binding';
+	@override String get expand => 'Expand binding';
+	@override String get actions => 'Actions';
+	@override String get actionList => 'Actions';
+	@override String get bindingDetails => 'Bindings';
+	@override String get bindings => 'Bindings';
+	@override String get restore => 'Restore defaults';
+	@override String get resetFilters => 'Clear filters';
+}
+
 /// The flat map containing all translations for locale <en-US>.
 /// Only for edge cases! For simple maps, use the map function of this library.
 ///
@@ -2397,6 +2512,8 @@ extension on TranslationsEnUs {
 			'settings.fileManagerHomePathCleared' => 'Home cleared',
 			'settings.fileManagerHomePathStale' => 'That folder no longer exists, pick another one',
 			'settings.fileManagerHomePathUnsupported' => 'Choosing a folder is not supported on this platform',
+			'settings.fileManagerOpenHomeOnStart' => 'Open the home folder on start',
+			'settings.fileManagerOpenHomeOnStartSubtitle' => 'The file manager starts in the home folder. Falls back to the nearest folder that still exists when that path is gone',
 			'settings.fileManagerSectionToolbar' => 'Toolbar',
 			'settings.fileManagerSectionView' => 'Browsing view',
 			'settings.fileManagerRememberViewState' => 'Remember view and sort per folder',
@@ -2418,7 +2535,7 @@ extension on TranslationsEnUs {
 			'settings.operationBindingUnbound' => 'Unbound',
 			'settings.operationBindingSectionBundle' => 'Binding bundle',
 			'settings.operationBindingImport' => 'Import JSON',
-			'settings.operationBindingImportSubtitle' => 'Paste a binding bundle — both an object with a bindings field and a bare array are accepted. Gamepad, radial and mouse-gesture rows cannot be edited here yet, but they are kept as-is.',
+			'settings.operationBindingImportSubtitle' => 'Import a bindings object or array, preserving every input type, context and action sequence.',
 			'settings.operationBindingImportConfirm' => 'Load',
 			'settings.operationBindingImportLoaded' => ({required Object count}) => 'Loaded ${count} bindings — save to apply them',
 			'settings.operationBindingExport' => 'Export JSON',
@@ -2432,7 +2549,7 @@ extension on TranslationsEnUs {
 			'settings.operationBindingDiscarded' => 'Unsaved changes discarded',
 			'settings.operationBindingDirtyHint' => 'You have unsaved changes.',
 			'settings.operationBindingRestoreFactory' => 'Restore factory presets',
-			'settings.operationBindingRestoreFactorySubtitle' => 'Replace the whole table with the factory keyboard and tap presets. Bindings you added yourself are replaced too.',
+			'settings.operationBindingRestoreFactorySubtitle' => 'Restore Neo\'s default grid, wheel, keyboard and mouse bindings, and reset the radial menu. Existing custom bindings will be replaced.',
 			'settings.operationBindingAddKey' => 'Add key',
 			'settings.operationBindingNoKeys' => 'No keys bound',
 			'settings.operationBindingDisabledRow' => 'Disabled (does not count as a conflict)',
@@ -2503,6 +2620,8 @@ extension on TranslationsEnUs {
 			'settings.operationBindingTabKeyboard' => 'Shortcuts',
 			'settings.operationBindingTabRadial' => 'Radial menu',
 			'settings.operationBindingActionOpenRadial' => 'Open radial menu',
+			'settings.operationBindingActionConfirmRadial' => 'Confirm radial selection',
+			'settings.operationBindingActionToggleLibrary' => 'Toggle library',
 			'settings.operationBindingRadialEnable' => 'Enable radial menu',
 			'settings.operationBindingRadialEnableSubtitle' => 'When off the wheel never opens; slot bindings are kept',
 			'settings.operationBindingRadialActiveWheel' => 'Default wheel',
@@ -2512,12 +2631,12 @@ extension on TranslationsEnUs {
 			'settings.operationBindingRadialPreview' => 'Preview',
 			'settings.operationBindingRadialReset' => 'Reset slots',
 			'settings.operationBindingRadialResetSubtitle' => 'Rewrites only this wheel\'s factory slots; your own bindings stay',
+			_ => null,
+		} ?? switch (path) {
 			'settings.operationBindingRadialHint' => ({required Object layers}) => 'On · ${layers} layers · tap an empty slot to add, a filled one to edit',
 			'settings.operationBindingRadialHintDisabled' => 'Off · the wheel will not open while reading',
 			'settings.operationBindingRadialAppearance' => 'Appearance & geometry',
 			'settings.operationBindingRadialGeometrySummary' => ({required Object radius, required Object inner, required Object variant}) => 'r${radius} · inner ${inner} · ${variant}',
-			_ => null,
-		} ?? switch (path) {
 			'settings.operationBindingRadialRadius' => 'Outer radius',
 			'settings.operationBindingRadialInnerRadius' => 'Inner radius (hole)',
 			'settings.operationBindingRadialSectors' => 'Sectors per layer',
@@ -3026,12 +3145,12 @@ extension on TranslationsEnUs {
 			'plugin.uuidMismatch' => 'Plugin id mismatch, install rejected',
 			'plugin.currentVersion' => ({required Object version}) => 'Current version ${version}',
 			'plugin.alreadyLatest' => 'Already up to date',
+			_ => null,
+		} ?? switch (path) {
 			'gestureLock.gestureTitle' => 'Gesture unlock',
 			'gestureLock.gestureHint' => 'Draw gesture password',
 			'gestureLock.pinTitle' => 'Enter PIN',
 			'gestureLock.pinHint' => 'Enter reset PIN',
-			_ => null,
-		} ?? switch (path) {
 			'gestureLock.atLeast4Points' => 'Connect at least 4 points',
 			'gestureLock.confirmGesture' => 'Please draw again to confirm',
 			'gestureLock.gestureNotMatch' => 'The two drawings do not match',
@@ -3540,12 +3659,12 @@ extension on TranslationsEnUs {
 			'video.loopSingle' => 'Loop: repeat page',
 			'video.loopOff' => 'Loop: off',
 			'video.speed' => 'Speed',
+			_ => null,
+		} ?? switch (path) {
 			'video.volume' => 'Volume',
 			'video.muted' => 'Muted',
 			'video.subtitles' => 'Subtitles',
 			'video.subtitleOff' => 'No subtitles',
-			_ => null,
-		} ?? switch (path) {
 			'video.audio' => 'Audio track',
 			'video.audioOff' => 'Mute track',
 			'video.filters' => 'Filters',
@@ -3605,6 +3724,107 @@ extension on TranslationsEnUs {
 			'video.animatedKeywords' => 'Motion keywords',
 			'video.animatedKeywordsHint' => 'Comma separated, e.g. [#dyna], [#motion]',
 			'video.rotation' => 'Rotation',
+			'bindingEditor.groupNavigation' => 'Pages',
+			'bindingEditor.groupView' => 'View',
+			'bindingEditor.groupInterface' => 'Interface',
+			'bindingEditor.videoPlayback' => 'Playback',
+			'bindingEditor.videoAudio' => 'Audio',
+			'bindingEditor.videoDisplay' => 'Picture & subtitles',
+			'bindingEditor.allActions' => 'All',
+			'bindingEditor.boundOnly' => 'Assigned',
+			'bindingEditor.unassigned' => 'Unassigned',
+			'bindingEditor.spaceKey' => 'Space',
+			'bindingEditor.searchAll' => 'Search all actions or keys',
+			'bindingEditor.disabled' => 'Disabled',
+			'bindingEditor.moreBindings' => ({required Object count}) => '${count} more bindings',
+			'bindingEditor.search' => 'Search actions, categories, contexts or inputs',
+			'bindingEditor.allCategories' => 'All categories',
+			'bindingEditor.allContexts' => 'All contexts',
+			'bindingEditor.noResults' => 'No matching actions',
+			'bindingEditor.addBinding' => 'Add binding',
+			'bindingEditor.noBindings' => 'No bindings. Add an input to get started.',
+			'bindingEditor.device' => 'Input device',
+			'bindingEditor.context' => 'Context',
+			'bindingEditor.ignoreRepeat' => 'Ignore repeated input',
+			'bindingEditor.followUps' => 'Follow-up actions',
+			'bindingEditor.add' => 'Add',
+			'bindingEditor.copyTo' => 'Copy to',
+			'bindingEditor.conflict' => 'Binding conflict',
+			'bindingEditor.conflictHint' => 'An input is repeated in the same context. Change or disable one binding to resume autosave.',
+			'bindingEditor.saved' => 'Saved automatically',
+			'bindingEditor.pending' => 'Waiting to save',
+			'bindingEditor.invalid' => 'Not saved. Check the input settings.',
+			'bindingEditor.record' => 'Record',
+			'bindingEditor.recordHint' => 'Use this area, then confirm the captured input. Escape cancels; use the cancel button to bind Escape manually.',
+			'bindingEditor.recordWaiting' => 'Waiting for input…',
+			'bindingEditor.keyCode' => 'Keyboard code',
+			'bindingEditor.trigger' => 'Trigger',
+			'bindingEditor.down' => 'Key down',
+			'bindingEditor.hold' => 'Hold',
+			'bindingEditor.instant' => 'On release',
+			'bindingEditor.click' => 'Click',
+			'bindingEditor.doubleClick' => 'Double click',
+			'bindingEditor.press' => 'Press',
+			'bindingEditor.duration' => 'Hold duration (ms)',
+			'bindingEditor.tolerance' => 'Movement tolerance (px)',
+			'bindingEditor.button' => 'Mouse button',
+			'bindingEditor.leftButton' => 'Left button',
+			'bindingEditor.middleButton' => 'Middle button',
+			'bindingEditor.rightButton' => 'Right button',
+			'bindingEditor.backButton' => 'Back button',
+			'bindingEditor.forwardButton' => 'Forward button',
+			'bindingEditor.up' => 'Up',
+			'bindingEditor.downDirection' => 'Down',
+			'bindingEditor.left' => 'Left',
+			'bindingEditor.right' => 'Right',
+			'bindingEditor.swipeLeft' => 'Swipe left',
+			'bindingEditor.swipeRight' => 'Swipe right',
+			'bindingEditor.swipeUp' => 'Swipe up',
+			'bindingEditor.swipeDown' => 'Swipe down',
+			'bindingEditor.tap' => 'Tap',
+			'bindingEditor.longPress' => 'Long press',
+			'bindingEditor.fingers' => 'Fingers',
+			'bindingEditor.gesture' => 'Touch gesture',
+			'bindingEditor.directions' => 'Gesture direction sequence',
+			'bindingEditor.undoDirection' => 'Remove last direction',
+			'bindingEditor.gamepadButton' => 'Gamepad button number',
+			'bindingEditor.gamepadHint' => 'Gamepad bindings can be edited and transferred; gamepad events are not connected on this platform yet.',
+			'bindingEditor.managedInput' => 'This input is managed by its radial menu or system command',
+			'bindingEditor.area' => 'View area',
+			'bindingEditor.topLeft' => 'Top left',
+			'bindingEditor.topCenter' => 'Top center',
+			'bindingEditor.topRight' => 'Top right',
+			'bindingEditor.middleLeft' => 'Middle left',
+			'bindingEditor.middleCenter' => 'Center',
+			'bindingEditor.middleRight' => 'Middle right',
+			'bindingEditor.bottomLeft' => 'Bottom left',
+			'bindingEditor.bottomCenter' => 'Bottom center',
+			'bindingEditor.bottomRight' => 'Bottom right',
+			'bindingEditor.keyboard' => 'Keyboard',
+			'bindingEditor.mouse' => 'Mouse',
+			'bindingEditor.mouseGesture' => 'Mouse gesture',
+			'bindingEditor.wheel' => 'Wheel',
+			'bindingEditor.touch' => 'Touch',
+			'bindingEditor.gamepad' => 'Gamepad',
+			'bindingEditor.radial' => 'Radial',
+			'bindingEditor.command' => 'Command',
+			'bindingEditor.global' => 'Global',
+			'bindingEditor.reader' => 'Reader',
+			'bindingEditor.video' => 'Video',
+			'bindingEditor.panel' => 'Panel',
+			'bindingEditor.shell' => 'Shell',
+			'bindingEditor.editor' => 'Editor',
+			'bindingEditor.modal' => 'Dialog',
+			'bindingEditor.moveUp' => 'Move up',
+			'bindingEditor.moveDown' => 'Move down',
+			'bindingEditor.collapse' => 'Collapse binding',
+			'bindingEditor.expand' => 'Expand binding',
+			'bindingEditor.actions' => 'Actions',
+			'bindingEditor.actionList' => 'Actions',
+			'bindingEditor.bindingDetails' => 'Bindings',
+			'bindingEditor.bindings' => 'Bindings',
+			'bindingEditor.restore' => 'Restore defaults',
+			'bindingEditor.resetFilters' => 'Clear filters',
 			_ => null,
 		};
 	}
