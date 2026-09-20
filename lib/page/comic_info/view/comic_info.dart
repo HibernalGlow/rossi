@@ -17,6 +17,7 @@ import 'package:zephyr/page/comic_follow/cubit/comic_follow_cubit.dart';
 import 'package:zephyr/page/comic_info/comic_info.dart';
 import 'package:zephyr/page/comic_info/json/normal/normal_comic_all_info.dart';
 import 'package:zephyr/page/comic_info/models/read_entry_placement.dart';
+import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/type/pipe.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
@@ -150,13 +151,30 @@ class _ComicInfoState extends State<_ComicInfo>
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          // 住在发现页的标签里时，这颗「返回」关的是**当前这条标签**。
+          // context.pop() 走的是根路由：那一下弹掉的是压着详情页的那一页，
+          // 在工作台里就是整个工作台。
+          onPressed: () {
+            final tabs = DiscoverTabScope.maybeOf(context);
+            if (tabs != null) {
+              tabs.closeCurrentTab();
+              return;
+            }
+            context.pop();
+          },
         ),
         actions: [
           const SizedBox(width: 50),
           IconButton(
             icon: const Icon(Icons.home),
-            onPressed: () => popToRoot(context),
+            onPressed: () {
+              final tabs = DiscoverTabScope.maybeOf(context);
+              if (tabs != null) {
+                tabs.goHome();
+                return;
+              }
+              popToRoot(context);
+            },
           ),
           Expanded(child: Container()),
           BlocSelector<ComicFollowCubit, ComicFollowState, bool>(
@@ -267,7 +285,14 @@ class _ComicInfoState extends State<_ComicInfo>
                       ),
                       SizedBox(height: 10),
                       ElevatedButton(
-                        onPressed: () => context.pop(),
+                        onPressed: () {
+                          final tabs = DiscoverTabScope.maybeOf(context);
+                          if (tabs != null) {
+                            tabs.closeCurrentTab();
+                            return;
+                          }
+                          context.pop();
+                        },
                         child: Text(t.comicInfo.back),
                       ),
                     ],

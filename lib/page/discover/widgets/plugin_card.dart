@@ -111,6 +111,10 @@ class PluginCard extends StatelessWidget {
     final title = pluginName.isNotEmpty
         ? pluginName
         : (creatorName.isNotEmpty ? creatorName : t.discover.pluginCapability);
+
+    // 生成图标上的那截字只认真名字：拿不到名字时宁可是一个「?」，
+    // 也不要「插件能力」缩写成的「插件」——那枚图标会在每张卡上长得一样。
+    final displayName = pluginName.isNotEmpty ? pluginName : creatorName;
     final iconUrl =
         info['iconUrl']?.toString().trim() ??
         creator['coverUrl']?.toString().trim() ??
@@ -119,10 +123,9 @@ class PluginCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: PluginIcon(
         url: iconUrl,
-        placeholder: ColoredBox(
-          color: colorScheme.surfaceContainerHighest,
-          child: const Center(child: Icon(Icons.extension_outlined)),
-        ),
+        // 没有 iconUrl（或还没取到）时按插件名生成一枚：不少图源压根没有图标，
+        // 一排拼图占位图等于没有信息，而这里要靠图标区分插件。
+        placeholder: GeneratedPluginIcon(seed: pluginUuid, name: displayName),
       ),
     );
 

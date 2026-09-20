@@ -125,6 +125,11 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
       : FileManagerSettingState.fromJson(
           json['fileManagerSetting'] as Map<String, dynamic>,
         ),
+  discoverSetting: json['discoverSetting'] == null
+      ? const DiscoverSettingState()
+      : DiscoverSettingState.fromJson(
+          json['discoverSetting'] as Map<String, dynamic>,
+        ),
   operationBindingSetting: json['operationBindingSetting'] == null
       ? const OperationBindingSettingState()
       : OperationBindingSettingState.fromJson(
@@ -190,6 +195,7 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'toastSetting': instance.toastSetting.toJson(),
       'switchToastSetting': instance.switchToastSetting.toJson(),
       'fileManagerSetting': instance.fileManagerSetting.toJson(),
+      'discoverSetting': instance.discoverSetting.toJson(),
       'operationBindingSetting': instance.operationBindingSetting.toJson(),
     };
 
@@ -223,6 +229,20 @@ Map<String, dynamic> _$FileManagerSettingStateToJson(
   'openHomeOnStart': instance.openHomeOnStart,
   'rememberViewState': instance.rememberViewState,
   'fileOperations': instance.fileOperations,
+};
+
+_DiscoverSettingState _$DiscoverSettingStateFromJson(
+  Map<String, dynamic> json,
+) => _DiscoverSettingState(
+  tabIconEnabled: json['tabIconEnabled'] as bool? ?? true,
+  tabPluginShortEnabled: json['tabPluginShortEnabled'] as bool? ?? true,
+);
+
+Map<String, dynamic> _$DiscoverSettingStateToJson(
+  _DiscoverSettingState instance,
+) => <String, dynamic>{
+  'tabIconEnabled': instance.tabIconEnabled,
+  'tabPluginShortEnabled': instance.tabPluginShortEnabled,
 };
 
 _OperationBindingSettingState _$OperationBindingSettingStateFromJson(

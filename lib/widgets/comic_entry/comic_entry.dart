@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
 import 'package:zephyr/widgets/comic_entry/models/models.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry.dart';
@@ -68,6 +69,17 @@ class ComicEntryWidget extends StatelessWidget {
               comicInfo: comic.id,
               stringSelectCubit: StringSelectCubit(),
             ),
+          );
+          return;
+        }
+        // 发现页的标签体系里：详情开成**一条标签**，而不是压住标签条的一页。
+        // 书架、工作台别的泳道里 `maybeOf` 返回 null，行为逐字不变。
+        final tabs = DiscoverTabScope.maybeOf(context);
+        if (tabs != null) {
+          tabs.openComicInfo(
+            comicId: comic.id,
+            from: comic.from,
+            title: comic.title,
           );
           return;
         }

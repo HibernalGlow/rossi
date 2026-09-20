@@ -228,6 +228,7 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     SwitchToastSettingState switchToastSetting,
     @Default(FileManagerSettingState())
     FileManagerSettingState fileManagerSetting,
+    @Default(DiscoverSettingState()) DiscoverSettingState discoverSetting,
     @Default(OperationBindingSettingState())
     OperationBindingSettingState operationBindingSetting,
   }) = _GlobalSettingState;
@@ -267,6 +268,25 @@ abstract class FileManagerSettingState with _$FileManagerSettingState {
 
   factory FileManagerSettingState.fromJson(Map<String, dynamic> json) =>
       _$FileManagerSettingStateFromJson(json);
+}
+
+/// 发现页**标签条**的显示口径。
+///
+/// 为什么放全局而不是 `DiscoverTabCubit` 的 State：标签条在发现页活着的时候才画得出来，
+/// 而用户调完这两颗想看的效果是「以后每次都是这样」—— 关掉应用再开不该弹回去。
+///
+/// - [tabIconEnabled]：标签上画不画插件图标。关掉之后只剩文字，窄泳道里能多塞一条标签。
+/// - [tabPluginShortEnabled]：标签上画不画插件名缩写（「绅士 · 排行」里那截「绅士」）。
+///   两个都关掉就只剩功能名 —— 那时同一功能的多个标签只能靠序号分辨。
+@freezed
+abstract class DiscoverSettingState with _$DiscoverSettingState {
+  const factory DiscoverSettingState({
+    @Default(true) bool tabIconEnabled,
+    @Default(true) bool tabPluginShortEnabled,
+  }) = _DiscoverSettingState;
+
+  factory DiscoverSettingState.fromJson(Map<String, dynamic> json) =>
+      _$DiscoverSettingStateFromJson(json);
 }
 
 /// 操作绑定（ADR-0015）的持久化。
@@ -735,6 +755,16 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
     updateState(
       (current) => current.copyWith(
         fileManagerSetting: updates(current.fileManagerSetting),
+      ),
+    );
+  }
+
+  void updateDiscoverSetting(
+    DiscoverSettingState Function(DiscoverSettingState current) updates,
+  ) {
+    updateState(
+      (current) => current.copyWith(
+        discoverSetting: updates(current.discoverSetting),
       ),
     );
   }

@@ -10,6 +10,7 @@ import 'package:zephyr/cubit/plugin_registry_cubit.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/network/http/plugin/unified_comic_plugin.dart';
+import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:zephyr/page/plugin_settings/cubit/plugin_settings_cubit.dart';
 import 'package:zephyr/page/plugin_settings/method/plugin_settings_web_login.dart';
 import 'package:zephyr/page/plugin_settings/widgets/plugin_settings_content.dart';
@@ -259,7 +260,14 @@ class _PluginSettingsPageViewState extends State<_PluginSettingsPageView> {
     }
 
     showErrorToast(t.plugin.switchingToExternalBrowser);
-    unawaited(context.router.maybePop());
+    // 在发现页的标签里时关的是这条标签。`context.router.maybePop()` 走的是根路由，
+    // 而根路由上没有「这一页」—— 工作台在场时它弹掉的是整个工作台。
+    final tabs = DiscoverTabScope.maybeOf(context);
+    if (tabs != null) {
+      tabs.closeCurrentTab();
+    } else {
+      unawaited(context.router.maybePop());
+    }
 
     final session = await ExternalChromiumLoginSession.start(
       openUrl: config.openUrl,

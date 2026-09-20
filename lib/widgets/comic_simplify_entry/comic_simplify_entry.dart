@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/global/theme_shape.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:uuid/uuid.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/type/pipe.dart';
@@ -301,6 +302,13 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
           stringSelectCubit: StringSelectCubit(),
         ),
       );
+      return;
+    }
+    // 发现页的标签体系里：详情开成**一条标签**，而不是压住标签条的一页。
+    // 其余场合（书架、收藏、历史……）`maybeOf` 返回 null，行为逐字不变。
+    final tabs = DiscoverTabScope.maybeOf(context);
+    if (tabs != null) {
+      tabs.openComicInfo(comicId: info.id, from: pluginId, title: info.title);
       return;
     }
     context.pushRoute(
@@ -609,6 +617,20 @@ class ComicSimplifyEntry extends StatelessWidget {
           comicInfo: info.id,
           stringSelectCubit: StringSelectCubit(),
         ),
+      );
+      return;
+    }
+
+    // 发现页的标签体系里：详情开成**一条标签**（收藏目标一并带过去，
+    // 详情页那颗「收进合集」的按钮才不会失联）。
+    final tabs = DiscoverTabScope.maybeOf(context);
+    if (tabs != null) {
+      tabs.openComicInfo(
+        comicId: info.id,
+        from: pluginId,
+        title: info.title,
+        collectionTargetId: collectionTargetId,
+        collectionTargetName: collectionTargetName,
       );
       return;
     }
