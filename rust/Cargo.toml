@@ -104,13 +104,7 @@ ciborium = "0.2.2"
 xxhash-rust = { version = "0.8.15", features = ["xxh3"] }
 # mImageViewer 同款 ONNX 推理。macOS/iOS 优先 CoreML（Apple Silicon
 # Neural Engine + GPU），其他平台回退到 ONNX Runtime CPU。
-ort = { version = "2.0.0-rc.12", default-features = false, features = [
-    "std",
-    "ndarray",
-    "coreml",
-    "download-binaries",
-    "tls-rustls",
-] }
+# `coreml` 的按目标拆分见下方两个 `[target.*]` 段。
 ndarray = "0.17"
 
 [dev-dependencies]
@@ -136,6 +130,29 @@ rustls-platform-verifier = "0.7.0"
 
 [target.'cfg(any(target_os = "ios", target_os = "macos"))'.dependencies]
 oslog = "0.2.0"
+ort = { version = "2.0.0-rc.12", default-features = false, features = [
+    "std",
+    "ndarray",
+    "coreml",
+    "download-binaries",
+    "tls-rustls",
+] }
+
+# `ort` 按目标拆成上面/下面两段，是因为 ort-sys 用**精确等于**当前特性集的预编译包：
+# x86_64-pc-windows-msvc 只有 directml / webgpu / cuda13… 而没有含 coreml 的条目，
+# 特性集带上 coreml 就匹配不到任何发行，此时 build script 只打一行
+# `looking for prebuilt binaries matching feature set: coreml` 的 debug 日志就返回，
+# 不报错；真症状推迟到链接期 —— `LNK2019: unresolved external symbol OrtGetApiBase`。
+# 两段 cfg 互斥（`cfg(...)` / `cfg(not(...))`），这样每个目标只命中其中一段。
+# 两侧已分别实测：Apple 走 `feature set: coreml` 并链接 CoreML framework，
+# Windows 走 `feature set: (no features)` 命中 directml 发行。
+[target.'cfg(not(any(target_os = "ios", target_os = "macos")))'.dependencies]
+ort = { version = "2.0.0-rc.12", default-features = false, features = [
+    "std",
+    "ndarray",
+    "download-binaries",
+    "tls-rustls",
+] }
 
 [build-dependencies]
 ureq = "3.3.0"
