@@ -17,6 +17,8 @@ const List<String> _mustNotSync = <String>[
   'enableMemoryDebug',
   'blockRustHttpRequests',
   'logAddress',
+  // 本机的调试观感（黄黑溢出条纹画不画），不是跨端偏好。
+  'showLayoutOverflowStripes',
   'syncSetting',
   'themeInitState',
   'needCleanCache',
@@ -176,6 +178,11 @@ void main() {
       // 载荷形状：块里装的是**顶层键 → 值**
       expect(blocks['shell']!.containsKey('startWithWorkspace'), isTrue);
       expect(blocks['shell']!.containsKey('backPressExitEnabled'), isTrue);
+      // 桌面端「透明标题栏」也是平台专属开关，跟外壳这一块一起走。
+      expect(
+        blocks['shell']!.containsKey('transparentDesktopTitleBar'),
+        isTrue,
+      );
       expect(blocks['toast']!.containsKey('toastSetting'), isTrue);
       expect(blocks['toast']!.containsKey('switchToastSetting'), isTrue);
       expect(
@@ -266,6 +273,8 @@ void main() {
           'forceEnableImpeller': true,
           'androidKeepAliveEnabled': true,
           'backPressExitEnabled': true,
+          'transparentDesktopTitleBar': true,
+          'transparentTitleBarFused': true,
         },
       });
 
@@ -273,6 +282,8 @@ void main() {
       expect(merged.forceEnableImpeller, isTrue);
       expect(merged.androidKeepAliveEnabled, isTrue);
       expect(merged.backPressExitEnabled, isTrue);
+      expect(merged.transparentDesktopTitleBar, isTrue);
+      expect(merged.transparentTitleBarFused, isTrue);
     });
 
     test('提示条位置与切换提示块往返', () {
@@ -347,6 +358,7 @@ void main() {
         customExportPath: '/tmp/export',
         enableMemoryDebug: true,
         logAddress: 'http://127.0.0.1:9999',
+        showLayoutOverflowStripes: false,
         favoriteArtistSetting: FavoriteArtistSettingState(
           artists: ['Secret'],
         ),

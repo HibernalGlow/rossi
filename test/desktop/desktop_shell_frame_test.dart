@@ -28,10 +28,16 @@ const _contentKey = ValueKey('shell-content');
 /// 标题栏高度（`custom_title_bar.dart` 里写死的 40）。
 const _titleBarHeight = 40.0;
 
-Future<void> _pumpShell(WidgetTester tester) async {
+Future<void> _pumpShell(
+  WidgetTester tester, {
+  bool transparentTitleBar = false,
+  bool titleBarFused = false,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       home: DesktopShellFrame(
+        transparentTitleBar: transparentTitleBar,
+        titleBarFused: titleBarFused,
         child: Container(key: _contentKey, color: const Color(0xFF123456)),
       ),
     ),
@@ -41,6 +47,23 @@ Future<void> _pumpShell(WidgetTester tester) async {
 
 double _contentTop(WidgetTester tester) =>
     tester.getRect(find.byKey(_contentKey)).top;
+
+/// 标题栏那一层「材质」的底色。
+///
+/// 取 `CustomTitleBar` 里最外层那个 `Container`（`find.descendant` 是前序遍历，
+/// 第一个就是它）—— 透明档要验的是**这一层不画底色**，
+/// 而不是「按钮的 hover 底色变没变」。
+Color? _titleBarColor(WidgetTester tester) {
+  final container = tester.widget<Container>(
+    find
+        .descendant(
+          of: find.byType(CustomTitleBar),
+          matching: find.byType(Container),
+        )
+        .first,
+  );
+  return container.color;
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -100,9 +123,7 @@ void main() {
     expect(_contentTop(tester), _titleBarHeight, reason: '非全屏时标题栏要回来');
   });
 
-  testWidgets('应用自己请求的全屏同样让位（阅读器里的全屏按钮走的是 syncFullscreen）', (
-    tester,
-  ) async {
+  testWidgets('应用自己请求的全屏同样让位（阅读器里的全屏按钮走的是 syncFullscreen）', (tester) async {
     await _pumpShell(tester);
 
     service.syncFullscreen(true);
@@ -110,5 +131,122 @@ void main() {
 
     expect(find.byType(CustomTitleBar), findsNothing);
     expect(_contentTop(tester), 0);
+  });
+
+  group('透明标题栏开关', () {
+    test('摆放判定的真值表：全屏优先，透明档再分独立行 / 融合浮层', () {
+      expect(
+        resolveDesktopTitleBarPlacement(
+          isFullscreen: false,
+          transparent: false,
+        ),
+        DesktopTitleBarPlacement.reserved,
+        reason: '开关关着 = 改造前那一行（实色独立行）',
+      );
+      expect(
+        resolveDesktopTitleBarPlacement(
+          isFullscreen: false,
+          transparent: false,
+          fused: true,
+        ),
+        DesktopTitleBarPlacement.reserved,
+        reason: 'fused 是透明档的子选项：开关关着时是死数据，不许改变摆放',
+      );
+      expect(
+        resolveDesktopTitleBarPlacement(
+          isFullscreen: false,
+          transparent: true,
+          fused: false,
+        ),
+        DesktopTitleBarPlacement.reserved,
+        reason: '独立行（默认档）= 仍占一行，只是栏不画底色',
+      );
+      expect(
+        resolveDesktopTitleBarPlacement(
+          isFullscreen: false,
+          transparent: true,
+          fused: true,
+        ),
+        DesktopTitleBarPlacement.overlay,
+        reason: '融合浮层 = 不占位、浮在内容上',
+      );
+      expect(
+        resolveDesktopTitleBarPlacement(
+          isFullscreen: true,
+          transparent: true,
+          fused: true,
+        ),
+        DesktopTitleBarPlacement.hidden,
+        reason: '全屏优先于一切：任何档位下那一行都整条让位',
+      );
+    });
+
+    testWidgets('透明 + 独立行（默认）：栏仍占 40px、内容从它下面开始，且不画底色', (tester) async {
+      await _pumpShell(tester, transparentTitleBar: true);
+
+      expect(
+        _contentTop(tester),
+        _titleBarHeight,
+        reason: '独立行不改摆放：内容还是顶在标题栏之下',
+      );
+      expect(find.byType(CustomTitleBar), findsOneWidget);
+      expect(
+        _titleBarColor(tester),
+        Colors.transparent,
+        reason: '这一层不许画底色 —— 页面背景要从它底下连上来',
+      );
+    });
+
+    testWidgets('透明 + 融合浮层：那 40px 让给内容，标题栏浮在上面、不画底色', (tester) async {
+      await _pumpShell(
+        tester,
+        transparentTitleBar: true,
+        titleBarFused: true,
+      );
+
+      // 「不占位」必须看矩形：只看 `findsOneWidget` 不能区分占位与浮层。
+      expect(_contentTop(tester), 0, reason: '内容顶到窗口顶部（独立行这里是 40）');
+      expect(
+        find.byType(CustomTitleBar),
+        findsOneWidget,
+        reason: '透明 ≠ 不建：应用名与窗口按钮还要挂在那儿',
+      );
+      expect(
+        tester.getRect(find.byType(CustomTitleBar)).height,
+        _titleBarHeight,
+        reason: '浮层自己还是那 40px 高，只是不再占内容的位置',
+      );
+      expect(
+        _titleBarColor(tester),
+        Colors.transparent,
+        reason: '这一层不许再画底色，否则「透明」名不副实',
+      );
+    });
+
+    testWidgets('开关关着时底色照旧是主题 surface（与透明档成对断言）', (tester) async {
+      await _pumpShell(tester);
+
+      expect(_contentTop(tester), _titleBarHeight, reason: '前置：占着那一行');
+      expect(
+        _titleBarColor(tester),
+        isNot(Colors.transparent),
+        reason: '关着的时候必须还有底色 —— 否则「开了才透明」这个结论不成立',
+      );
+    });
+
+    testWidgets('透明（融合浮层）+ 窗口全屏：整条不建，内容仍然顶到 y=0', (tester) async {
+      await _pumpShell(tester, transparentTitleBar: true, titleBarFused: true);
+      expect(find.byType(CustomTitleBar), findsOneWidget, reason: '前置：它在');
+
+      service.onWindowEnterFullScreen();
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byType(CustomTitleBar),
+        findsNothing,
+        reason: '任何档位下全屏都是整条让位',
+      );
+      expect(_contentTop(tester), 0);
+    });
   });
 }

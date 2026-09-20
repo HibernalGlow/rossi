@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/i18n_helper.dart';
@@ -11,6 +14,12 @@ import 'package:zephyr/page/setting/global/widgets.dart';
 import 'package:zephyr/page/theme_color/theme_color.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
+
+/// 桌面三平台。自制标题栏只在这三个平台上有（见 `main.dart` 里
+/// `DesktopShellFrame` 的挂载条件），所以这一项也只在这三个平台上出现 ——
+/// 手机上摆一颗按了没反应的开关比不摆更糟。
+bool get _isDesktopPlatform =>
+    !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
 
 @RoutePage()
 class AppearanceSettingPage extends StatelessWidget {
@@ -42,6 +51,11 @@ class AppearanceSettingPage extends StatelessWidget {
           const TweakcnImportCard(),
           _comicReadTopContainer(state, cubit),
           _isAMOLED(state, cubit),
+          // 桌面专属：那一条 40px 的自制标题栏改成透明浮层。
+          if (_isDesktopPlatform) _transparentDesktopTitleBar(state, cubit),
+          // 摆放方式只在开关打开时才需要回答 —— 关着时摆出来只会让人犹豫。
+          if (_isDesktopPlatform && state.transparentDesktopTitleBar)
+            _transparentTitleBarMode(state, cubit),
           _fontSettings(context),
           const SizedBox(height: 32),
         ],
@@ -148,6 +162,61 @@ class AppearanceSettingPage extends StatelessWidget {
       onChanged: (bool value) {
         cubit.updateState((current) => current.copyWith(isAMOLED: value));
       },
+    );
+  }
+
+  /// 桌面端自制标题栏：开 = 不占位、浮在内容上（透明）；关 = 原来的实色一行。
+  Widget _transparentDesktopTitleBar(
+    GlobalSettingState state,
+    GlobalSettingCubit cubit,
+  ) {
+    return SwitchListTile(
+      secondary: const Icon(Icons.web_asset_outlined),
+      title: Text(t.settings.transparentDesktopTitleBar),
+      subtitle: Text(t.settings.transparentDesktopTitleBarSubtitle),
+      thumbIcon: kSettingSwitchThumbIcon,
+      value: state.transparentDesktopTitleBar,
+      onChanged: (bool value) {
+        cubit.updateState(
+          (current) => current.copyWith(transparentDesktopTitleBar: value),
+        );
+      },
+    );
+  }
+
+  /// 透明档的摆放方式：独立行（默认）/ 融合浮层。缩进挂在开关下面，
+  /// 归属关系一眼可见；两个 Radio 共享同一个 groupValue。
+  Widget _transparentTitleBarMode(
+    GlobalSettingState state,
+    GlobalSettingCubit cubit,
+  ) {
+    void select(bool fused) {
+      cubit.updateState(
+        (current) => current.copyWith(transparentTitleBarFused: fused),
+      );
+    }
+
+    // RadioGroup 管组值与回调（3.35 起 RadioListTile 自带的两个参数已废弃）。
+    return Padding(
+      padding: const EdgeInsets.only(left: 16),
+      child: RadioGroup<bool>(
+        groupValue: state.transparentTitleBarFused,
+        onChanged: (value) => select(value ?? false),
+        child: Column(
+          children: [
+            RadioListTile<bool>(
+              title: Text(t.settings.transparentTitleBarRow),
+              subtitle: Text(t.settings.transparentTitleBarRowSubtitle),
+              value: false,
+            ),
+            RadioListTile<bool>(
+              title: Text(t.settings.transparentTitleBarOverlay),
+              subtitle: Text(t.settings.transparentTitleBarOverlaySubtitle),
+              value: true,
+            ),
+          ],
+        ),
+      ),
     );
   }
 

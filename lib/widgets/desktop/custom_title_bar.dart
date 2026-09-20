@@ -6,8 +6,16 @@ import 'package:zephyr/config/global/global.dart';
 import 'package:zephyr/platform/desktop/native_window.dart';
 
 /// Material 3 风格的自定义标题栏（仅桌面平台使用）
+///
+/// [transparent] 打开时**整条不带底色**（`Colors.transparent`），
+/// 由 `DesktopShellFrame` 把它当浮层叠在内容之上 —— 这就是「透明标题栏」。
+/// 前景色仍是主题的 `onSurface*`，所以浅色主题下浮在浅色画面上会不易看清，
+/// 这一条代价写在设置项副标题里。
 class CustomTitleBar extends StatefulWidget {
-  const CustomTitleBar({super.key});
+  const CustomTitleBar({super.key, this.transparent = false});
+
+  /// 不画底色（浮在内容上的那一档）。
+  final bool transparent;
 
   @override
   State<CustomTitleBar> createState() => _CustomTitleBarState();
@@ -75,7 +83,8 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
 
     return Container(
       height: 40,
-      color: colorScheme.surface,
+      // 透明档 = 不画底色，内容从底下透出来。
+      color: widget.transparent ? Colors.transparent : colorScheme.surface,
       child: Row(
         children: [
           // --- macOS 专属占位 ---

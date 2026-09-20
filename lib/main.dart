@@ -49,6 +49,7 @@ import 'package:zephyr/util/debouncer.dart';
 import 'package:zephyr/util/error_filter.dart';
 import 'package:zephyr/util/font/font_profile.dart';
 import 'package:zephyr/util/get_path.dart';
+import 'package:zephyr/util/layout/layout_overflow_guard.dart';
 import 'package:zephyr/util/manage_cache.dart';
 import 'package:zephyr/util/rust_loader.dart';
 import 'package:zephyr/widgets/desktop/desktop_shell_frame.dart';
@@ -221,6 +222,9 @@ Future<void> main(List<String> args) async {
   // 框架级错误也落盘：默认的 `presentError` 只往控制台写，而这里没有控制台，
   // 于是「平台视图创建失败」这类错误会彻底消失，表现仍然是一片黑。
   FlutterError.onError = (FlutterErrorDetails details) {
+    // 「黄黑溢出斜纹」开关关掉时，溢出类错误整条不上报。
+    // 口径与适用范围见 `lib/util/layout/layout_overflow_guard.dart` 顶部。
+    if (!shouldReportFlutterError(details)) return;
     FlutterError.presentError(details);
     unawaited(
       _writeBootLog(
@@ -274,6 +278,7 @@ Future<void> main(List<String> args) async {
     if (kDebugMode || sentryDsn.isEmpty) {
       // 捕获 Flutter 框架层错误（如 Widget 构建中的异常）
       FlutterError.onError = (FlutterErrorDetails details) {
+        if (!shouldReportFlutterError(details)) return;
         logger.e(
           "Flutter Framework Error",
           error: details.exception,
@@ -986,7 +991,14 @@ class _MyAppState extends State<MyApp>
                       Platform.isMacOS) {
                     // 自制标题栏 + 内容。窗口全屏时标题栏整条让位 ——
                     // 判据是窗口自己的全屏事件，见 DesktopShellFrame。
-                    content = DesktopShellFrame(child: content);
+                    // 透明开关打开后摆放再分两档：独立行（默认）/ 融合浮层。
+                    content = DesktopShellFrame(
+                      transparentTitleBar:
+                          globalSettingState.transparentDesktopTitleBar,
+                      titleBarFused:
+                          globalSettingState.transparentTitleBarFused,
+                      child: content,
+                    );
                   }
                   // 第三方依赖仍有 legacy Material widget，需要这个桥接层提供旧主题
                   // 与本地化上下文；待依赖迁移后可移除。

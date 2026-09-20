@@ -22,8 +22,8 @@
 |----|------|------|
 | `appearance` | 主题（dynamicColor / themeMode / AMOLED / seedColor / tweakcn）、语言与地区、开屏页、简繁转换 | `GlobalSettingState` 顶层字段 |
 | `library` | 屏蔽词、图源选择、下载（并发 / 延时 / 重试 / 元数据）、追更与收藏联动、书架设置、**漫画卡片设置**、发现页标签条 | 同上 |
-| `reader` | 整个 `readSetting`（阅读模式、翻页、预载、双页、E-Ink、进度条、悬停揭示…） | `readSetting` 子对象 |
-| `shell` | 启动落点（`startWithWorkspace`）、Impeller 强制、Android 保活 / 返回键退出 | 顶层字段 |
+| `reader` | 整个 `readSetting`（阅读模式、翻页、预载、双页、E-Ink、进度条、悬停揭示、**顶栏材质与蒙层不透明度**…） | `readSetting` 子对象 |
+| `shell` | 启动落点（`startWithWorkspace`）、Impeller 强制、Android 保活 / 返回键退出、**桌面端透明标题栏** | 顶层字段 |
 | `toast` | 提示条（位置 / 时长 / 尺寸 / 透明度 / 玻璃）与切换提示 | 顶层字段 |
 | `fileManager` | 文件管理器卡片：主页键、启动落主页、记住视图状态、**写操作总开关** | `fileManagerSetting` 子对象（**不含 `homePath`**） |
 | `operationBinding` | 操作绑定表、轮盘形状、绑定总开关（ADR-0015） | `operationBindingSetting` 子对象 |
@@ -63,7 +63,7 @@
 | `appLockSetting`（开屏密码 / PIN） | 安全 |
 | `favoriteArtistSetting` | 本地私有偏好（用户明确要求不出本机） |
 | `cacheSetting`、`needCleanCache` | 缓存是本机的 |
-| `enableMemoryDebug`、`blockRustHttpRequests`、`logAddress` | 调试开关 |
+| `enableMemoryDebug`、`blockRustHttpRequests`、`logAddress`、`showLayoutOverflowStripes` | 调试开关（最后一条是「黄黑溢出条纹画不画」：本机的调试观感，不是跨端偏好） |
 | `syncSetting` 自身 | 否则会把「对方的 WebDAV 地址与凭据」写到自己头上，两台设备互相顶 |
 | `themeInitState`、`compatibleVersion` | 内部记账，不是偏好 |
 | 实时滚动偏移、瞬态边缘揭示、当前在读的那一本 | 见 `WorkspaceLayoutSnapshot` 的「什么刻意不进」 |

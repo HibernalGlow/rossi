@@ -90,6 +90,12 @@ const Map<String, List<String>> _settingsBlockKeys = <String, List<String>>{
     'forceEnableImpeller',
     'androidKeepAliveEnabled',
     'backPressExitEnabled',
+    // 桌面端「透明标题栏」。同样是平台专属：手机端根本没这条栏，
+    // 同步过去不会有效果，但两台桌面之间是有意义的。
+    'transparentDesktopTitleBar',
+    // 透明档的摆放方式（独立行 / 融合浮层），只在开关打开时被读到，
+    // 但它是用户偏好不是本机事实 —— 跟主开关一起走，不然两台机器会分裂。
+    'transparentTitleBarFused',
   ],
   _toastBlockName: <String>['toastSetting', 'switchToastSetting'],
   _fileManagerBlockName: <String>['fileManagerSetting'],
@@ -1063,6 +1069,10 @@ GlobalSettingState _applySyncableBlocksToState(
     enableMemoryDebug: localState.enableMemoryDebug,
     blockRustHttpRequests: localState.blockRustHttpRequests,
     logAddress: localState.logAddress,
+    // 「黄黑溢出斜纹」也归这一档：它是本机的调试观感，不是跨端偏好
+    // （它不在 `_settingsBlockKeys` 里，本来就同步不出去；这里显式写回是为了
+    // 不依赖「块里恰好没这个键」这种巧合 —— 同上一条 `homePath` 的理由）。
+    showLayoutOverflowStripes: localState.showLayoutOverflowStripes,
     favoriteArtistSetting: localState.favoriteArtistSetting,
     // 文件管理器那块只有 `homePath` 不同步（见 `_settingsBlockKeys`）。
     // 这里**显式**按本位写回，而不是依赖上面那次逐键覆盖的巧合 ——
