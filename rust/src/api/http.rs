@@ -326,6 +326,7 @@ fn create_reqwest_client(options: &HttpClientOptions) -> Result<ClientWithMiddle
             )),
             follow_redirects: options.follow_redirects,
             user_agent: options.user_agent.clone(),
+            http1_only: false,
         },
     )
     .map_err(|e| anyhow!("failed to create http client: {e:#}"))

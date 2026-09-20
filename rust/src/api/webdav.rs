@@ -431,6 +431,7 @@ fn build_client(host: &str, username: &str, password: &str) -> Result<WebDavClie
             connect_timeout: Some(Duration::from_secs(10)),
             follow_redirects: Some(true),
             user_agent: None,
+            http1_only: false,
         },
     )
     .map_err(|e| {

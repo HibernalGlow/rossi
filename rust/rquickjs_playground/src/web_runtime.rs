@@ -551,6 +551,9 @@ fn timer_req_event_pool() -> &'static Mutex<HashMap<u64, PendingAbortTask>> {
 const HTTP_MAX_IN_FLIGHT: usize = 256;
 const FS_MAX_IN_FLIGHT: usize = 128;
 const HTTP_FORMDATA_BODY_HEADER: &str = "x-rquickjs-host-body-formdata-v1";
+/// 插件侧要求本次请求强制走 HTTP/1.1（宿主消费掉该头，不会发给源站）。
+/// 域名前置一类能力需要它：h2 只用 `:authority`，手工 `Host` 头不会上线。
+const HTTP_HTTP1_ONLY_HEADER: &str = "x-rquickjs-host-http1-only-v1";
 const BRIDGE_MAX_PENDING: usize = 4096;
 const FS_MAX_PENDING: usize = 4096;
 const TIMER_MAX_PENDING: usize = 8192;

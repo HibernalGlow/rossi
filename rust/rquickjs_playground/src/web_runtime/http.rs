@@ -289,11 +289,24 @@ fn worker_http_config() -> HttpClientConfig {
     })
 }
 
-fn http_client() -> AnyResult<ClientWithMiddleware> {
+fn http_client_with(options: BuildHttpClientOptions) -> AnyResult<ClientWithMiddleware> {
     let state = http_client_state_cell()
         .lock()
         .map_err(|_| anyhow!(crate::tr!("http-client-state-lock-is-poisoned")))?;
-    build_http_client(&state.config)
+    build_http_client_ex(&state.config, options)
+}
+
+/// 从已解析的请求头里读一个宿主内部开关（大小写不敏感）。
+fn header_flag(headers_value: &Value, name: &str) -> bool {
+    let Value::Object(obj) = headers_value else {
+        return false;
+    };
+    for (key, value) in obj.iter() {
+        if key.eq_ignore_ascii_case(name) {
+            return value.as_str().is_some_and(|v| header_truthy(v));
+        }
+    }
+    false
 }
 
 fn normalize_http_proxy_url(raw: &str) -> String {
@@ -312,7 +325,7 @@ fn normalize_socks5_proxy_url(raw: &str) -> String {
     format!("socks5h://{value}")
 }
 
-/// 创建 `reqwest::Client` 时的额外选项（超时 / 直连 / 重定向 / UA）。
+/// 创建 `reqwest::Client` 时的额外选项（超时 / 直连 / 重定向 / UA / HTTP 版本）。
 #[derive(Debug, Clone, Default)]
 pub struct BuildHttpClientOptions {
     pub no_proxy: bool,
@@ -320,6 +333,9 @@ pub struct BuildHttpClientOptions {
     pub connect_timeout: Option<Duration>,
     pub follow_redirects: Option<bool>,
     pub user_agent: Option<String>,
+    /// 只允许 HTTP/1.1。h2 下 hyper 不会把手工 `Host` 头发出去（只用 URI 推出的
+    /// `:authority`），所以「连 IP + Host 写回域名」这类请求必须走 h1。
+    pub http1_only: bool,
 }
 
 /// 按当前/指定全局配置创建 `reqwest::Client`。
@@ -333,6 +349,9 @@ pub fn build_http_client_ex(
     options: BuildHttpClientOptions,
 ) -> AnyResult<ClientWithMiddleware> {
     let mut builder = Client::builder().timeout(options.timeout.unwrap_or(Duration::from_secs(30)));
+    if options.http1_only {
+        builder = builder.http1_only();
+    }
     if let Some(connect_timeout) = options.connect_timeout {
         builder = builder.connect_timeout(connect_timeout);
     }
@@ -510,7 +529,11 @@ async fn http_request_inner_async(
     let mut headers_map = Map::new();
     let headers_value: Value = serde_json::from_str(&headers_json)
         .context(crate::tr!("failed-to-parse-http-headers-json"))?;
-    let client = http_client()?;
+    let http1_only = header_flag(&headers_value, HTTP_HTTP1_ONLY_HEADER);
+    let client = http_client_with(BuildHttpClientOptions {
+        http1_only,
+        ..BuildHttpClientOptions::default()
+    })?;
     let mut formdata_body = false;
     let mut plain_headers: Vec<(String, String)> = Vec::new();
 
@@ -521,6 +544,9 @@ async fn http_request_inner_async(
             if let Some(v) = value.as_str() {
                 if key.eq_ignore_ascii_case(HTTP_FORMDATA_BODY_HEADER) {
                     formdata_body = header_truthy(v);
+                    continue;
+                }
+                if key.eq_ignore_ascii_case(HTTP_HTTP1_ONLY_HEADER) {
                     continue;
                 }
                 plain_headers.push((key, v.to_string()));
