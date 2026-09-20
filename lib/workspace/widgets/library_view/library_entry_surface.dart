@@ -43,13 +43,25 @@ class LibraryEntrySurface extends StatelessWidget {
   // ── 槽位 ──────────────────────────────────────────────────────────────────
 
   /// 缩略图槽：尺寸由布局给，内容由数据源给。该模式不画缩略图时为 null。
-  Widget? _media(BuildContext context, {double? width, double? height}) {
+  ///
+  /// 宽高必须是**有限值**。`CoverWidget` 会拿它算 `(width * dpr * 1.2).round()`，
+  /// 传无限进去就是整块红色「Unsupported operation: Infinity or NaN toInt」；
+  /// `FileManagerThumbnailWidget` 容忍无限，所以文件管理器一侧看不出问题。
+  Widget? _media(
+    BuildContext context, {
+    required double width,
+    required double height,
+  }) {
     final media = entry.media;
     if (media == null || !entry.wantsThumb(mode)) return null;
     final geo = LibraryViewLayout.thumb(mode);
-    final w = width ?? geo.size?.width ?? double.infinity;
-    final h = height ?? geo.size?.height ?? double.infinity;
-    return media(context, width: w, height: h, radius: geo.radius, fit: geo.fit);
+    return media(
+      context,
+      width: width,
+      height: height,
+      radius: geo.radius,
+      fit: geo.fit,
+    );
   }
 
   /// 语义图标。数据源给多大无所谓，这里按当前档位重画一遍尺寸 ——
@@ -66,7 +78,12 @@ class LibraryEntrySurface extends StatelessWidget {
 
   /// 紧凑列表与详细信息行首的图标：有缩略图就用缩略图，否则退化到语义图标。
   Widget? _leading(BuildContext context) {
-    return _media(context) ?? _badge();
+    final size = LibraryViewLayout.thumb(mode).size;
+    if (size != null) {
+      final thumb = _media(context, width: size.width, height: size.height);
+      if (thumb != null) return thumb;
+    }
+    return _badge();
   }
 
   /// 格子里没有缩略图时居中放一个语义图标。尺寸口径照
@@ -89,7 +106,7 @@ class LibraryEntrySurface extends StatelessWidget {
             onDoubleTap: line.onDoubleTap,
             child: Row(
               children: [
-                Icon(line.icon, size: 12, color: theme.colorScheme.outline),
+                Icon(line.icon, size: 12, color: theme.colorScheme.onSurfaceVariant),
                 const SizedBox(width: 3),
                 Expanded(
                   child: Text(
@@ -97,7 +114,7 @@ class LibraryEntrySurface extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.outline,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -116,7 +133,7 @@ class LibraryEntrySurface extends StatelessWidget {
     return Text(
       text,
       style: theme.textTheme.labelSmall?.copyWith(
-        color: theme.colorScheme.outline,
+        color: theme.colorScheme.onSurfaceVariant,
         fontSize: fontSize,
         fontFeatures: const [FontFeature.tabularFigures()],
       ),
@@ -213,7 +230,7 @@ class LibraryEntrySurface extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.outline,
+                        color: theme.colorScheme.onSurfaceVariant,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
@@ -293,7 +310,7 @@ class LibraryEntrySurface extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.outline,
+                                color: theme.colorScheme.onSurfaceVariant,
                                 fontSize: 10,
                               ),
                             ),
@@ -352,7 +369,7 @@ class LibraryEntrySurface extends StatelessWidget {
                       ? TextAlign.right
                       : TextAlign.left,
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.outline,
+                    color: theme.colorScheme.onSurfaceVariant,
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
@@ -482,11 +499,31 @@ class LibraryEntrySurface extends StatelessWidget {
     );
   }
 
-  /// 网格档：缩略图吃掉整个格子剩下的地方。
+  /// 网格档：缩略图吃掉整个格子剩下的地方。格子多大只有布局时才知道，
+  /// 所以这里用 LayoutBuilder 把真实宽高交给数据源，而不是传无限过去。
   Widget _cellMedia(BuildContext context) {
-    return _media(context) ??
-        _centeredBadge(52);
+    final media = entry.media;
+    final geo = LibraryViewLayout.thumb(mode);
+    if (media == null || !entry.wantsThumb(mode)) {
+      return _centeredBadge(_cellFallbackSide);
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) => media(
+        context,
+        width: _finite(constraints.maxWidth, _cellFallbackSide),
+        height: _finite(constraints.maxHeight, _cellFallbackSide),
+        radius: geo.radius,
+        fit: geo.fit,
+      ),
+    );
   }
+
+  /// 父级给的是无界约束时兜一个常用值：宁可缩略图尺寸保守，
+  /// 也不要整块渲染成红色异常。
+  static double _finite(double value, double fallback) =>
+      value.isFinite ? value : fallback;
+
+  static const double _cellFallbackSide = 120;
 }
 
 /// 宿主下发的详细信息数据列。表头与行读同一份定义，列宽与对齐才不会走偏。

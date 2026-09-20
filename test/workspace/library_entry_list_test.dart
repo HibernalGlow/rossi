@@ -60,21 +60,29 @@ const _columns = [
   LibraryColumn(key: 'time', label: '时间', width: 90),
 ];
 
+/// [settle] 为假时只推一帧 —— 忙遮罩里的 `CircularProgressIndicator` 是
+/// 无限动画，`pumpAndSettle` 收不住尾。
 Future<void> _pump(
   WidgetTester tester,
   Widget child, {
   double width = 340,
   double height = 500,
+  bool settle = true,
 }) async {
   tester.view.physicalSize = Size(width, height);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     MaterialApp(
-      home: SizedBox(width: width, height: height, child: child),
+      // `Material` 是必须的：行用的是 `InkWell`，它要求最近的 LookupBoundary
+      // 之内有 Material。真实宿主（文件管理器卡片自己带圆角 Material，
+      // 书签/历史卡片住在泳道面板里）都提供，测试这里补上同样的一层。
+      home: Material(
+        child: SizedBox(width: width, height: height, child: child),
+      ),
     ),
   );
-  await tester.pumpAndSettle();
+  settle ? await tester.pumpAndSettle() : await tester.pump();
 }
 
 void main() {
@@ -121,10 +129,61 @@ void main() {
     );
   });
 
+  testWidgets('缩略图槽永远拿得到有限尺寸', (tester) async {
+    // `CoverWidget` 会拿宽高算 `(width * dpr * 1.2).round()`，无限值会
+    // 直接抛「Unsupported operation: Infinity or NaN toInt」，在界面上
+    // 变成一整片红色异常块。网格两档的格子尺寸只有布局时才知道，
+    // 所以必须由宿主用 LayoutBuilder 把真实宽高交出去，而不是传 infinity。
+    for (final mode in LibraryViewMode.values) {
+      final received = <String>[];
+      await _pump(
+        tester,
+        LibraryEntryList(
+          mode: mode,
+          entries: [
+            LibraryEntry(
+              key: 'k0',
+              title: '标题0',
+              media:
+                  (
+                    context, {
+                    required width,
+                    required height,
+                    required radius,
+                    required fit,
+                  }) {
+                    received.add('$width x $height');
+                    return _Marker('k0');
+                  },
+              thumbModes: LibraryViewMode.values.toSet(),
+            ),
+          ],
+          onTap: (_) {},
+        ),
+      );
+      expect(
+        received,
+        isNotEmpty,
+        reason: '$mode 这一档根本没画缩略图，测了个空',
+      );
+      for (final size in received) {
+        final parts = size.split(' x ');
+        for (final value in parts) {
+          expect(
+            double.parse(value).isFinite,
+            isTrue,
+            reason: '$mode 给缩略图槽传了非有限尺寸：$size',
+          );
+        }
+      }
+    }
+  });
+
   testWidgets('详细信息表头点击把列 key 交出去', (tester) async {
     String? sorted;
     await _pump(
       tester,
+      width: 520,
       LibraryEntryList(
         mode: LibraryViewMode.details,
         entries: _entries(),
@@ -145,6 +204,33 @@ void main() {
 
     // 当前排序列带方向箭头，别的列不带 —— 用户靠它认出现在排的是哪一列。
     expect(find.byIcon(Icons.arrow_upward_rounded), findsOneWidget);
+  });
+
+  testWidgets('sortable=false 的列表头不接排序', (tester) async {
+    // 历史面板的「章节」没有对应的排序字段。画成能点的样子只会让人
+    // 点一下什么都没发生。
+    String? sorted;
+    await _pump(
+      tester,
+      width: 520,
+      LibraryEntryList(
+        mode: LibraryViewMode.details,
+        entries: _entries(),
+        onTap: (_) {},
+        columns: const [
+          LibraryColumn(key: 'chapter', label: '章节', width: 90, sortable: false),
+          LibraryColumn(key: 'source', label: '来源', width: 70),
+        ],
+        onSort: (key) => sorted = key,
+      ),
+    );
+    await tester.tap(find.text('章节'));
+    await tester.pumpAndSettle();
+    expect(sorted, isNull);
+
+    await tester.tap(find.text('来源'));
+    await tester.pumpAndSettle();
+    expect(sorted, 'source');
   });
 
   testWidgets('enabled=false 时行不接点击', (tester) async {
@@ -213,6 +299,7 @@ void main() {
         onTap: (_) {},
         busy: true,
       ),
+      settle: false,
     );
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
