@@ -28,6 +28,9 @@ String actionLabel(BindingActionInfo entry) => switch (entry.id) {
   BindingAction.toggleControls => t.settings.operationBindingActionToggleBars,
   BindingAction.openSettings => t.settings.operationBindingActionOpenSettings,
   BindingAction.openRadialMenu => t.settings.operationBindingActionOpenRadial,
+  BindingAction.confirmRadialMenu =>
+    t.settings.operationBindingActionConfirmRadial,
+  'reader.toggle-library' => t.settings.operationBindingActionToggleLibrary,
   BindingAction.zoomIn => t.settings.operationBindingActionZoomIn,
   BindingAction.zoomOut => t.settings.operationBindingActionZoomOut,
   BindingAction.fitWindow => t.settings.operationBindingActionFitWindow,

@@ -10,10 +10,16 @@ const WidgetStateProperty<Icon> kSettingSwitchThumbIcon =
 
 /// 设置页统一外壳：AppBar + 居中限宽内容区。
 class SettingPageShell extends StatelessWidget {
-  const SettingPageShell({super.key, required this.title, required this.child});
+  const SettingPageShell({
+    super.key,
+    required this.title,
+    required this.child,
+    this.maxWidth = 768,
+  });
 
   final String title;
   final Widget child;
+  final double maxWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +35,7 @@ class SettingPageShell extends StatelessWidget {
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 768),
+          constraints: BoxConstraints(maxWidth: maxWidth),
           child: child,
         ),
       ),

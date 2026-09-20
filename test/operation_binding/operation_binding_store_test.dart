@@ -12,6 +12,7 @@ import 'package:zephyr/src/rust/frb_generated.dart';
 /// 这类「两个形状都像 JSON 数组、校验规则却不同」的错，只有把边界本身钉住才拦得住。
 class _FakeApi implements RustLibApi {
   final calls = <Invocation>[];
+  String? upgraded;
 
   static const catalogJson =
       '[{"id":"reader.next-page","label":"下一页","category":"navigation",'
@@ -40,6 +41,10 @@ class _FakeApi implements RustLibApi {
         return catalogJson;
       case #crateApiOperationBindingOperationBindingKeyPreset:
         return keyPresetJson;
+      case #crateApiOperationBindingOperationBindingFactoryPreset:
+        return keyPresetJson;
+      case #crateApiOperationBindingOperationBindingUpgradeDefaults:
+        return upgraded;
       case #crateApiOperationBindingOperationBindingTapPreset:
         return tapPresetJson;
       case #crateApiOperationBindingOperationBindingRadialPreset:
@@ -52,6 +57,25 @@ class _FakeApi implements RustLibApi {
         return '[]';
     }
     throw UnsupportedError('这个引擎调用没被替身覆盖：${invocation.memberName}');
+  }
+}
+
+class _MemorySettings extends GlobalSettingCubit {
+  _MemorySettings(OperationBindingSettingState settings) {
+    emit(state.copyWith(operationBindingSetting: settings));
+  }
+
+  int saves = 0;
+  @override
+  void updateOperationBindingSetting(
+    OperationBindingSettingState Function(OperationBindingSettingState) update,
+  ) {
+    saves++;
+    emit(
+      state.copyWith(
+        operationBindingSetting: update(state.operationBindingSetting),
+      ),
+    );
   }
 }
 
@@ -85,45 +109,27 @@ void main() {
     expect(catalog[1].categoryLabel, '缩放');
   });
 
-  test('出厂表是合法绑定表：每条都有 input.device，且键盘与点击预设都在里面', () {
-    final doc = OperationBindingStore.factoryBindingsJson(
-      tapMode: ReaderTapPageTurnMode.rightHand,
-    );
+  test('默认表直接使用核心的 Neo 完整预设，不叠加旧三分区', () {
+    final doc = OperationBindingStore.factoryBindingsJson();
     final bindings = parseBindings(doc);
 
     expect(bindings, isNotNull);
     expect(bindings!.map((binding) => binding['action']), [
       'reader.page-right',
-      'reader.page-right',
     ]);
     for (final binding in bindings) {
-      expect((binding['input'] as Map)['device'], isNotNull,
-          reason: '${binding['id']} 少了 input');
+      expect(
+        (binding['input'] as Map)['device'],
+        isNotNull,
+        reason: '${binding['id']} 少了 input',
+      );
     }
-    // 左右手预设选的是引擎那一侧的名字，不是 Dart 造的。
-    final tapCall = api.calls
-        .where(
-          (call) =>
-              call.memberName ==
-              #crateApiOperationBindingOperationBindingTapPreset,
-        )
-        .first;
-    expect(tapCall.namedArguments[#preset], 'right-hand');
+    expect(api.calls.map((call) => call.memberName), [
+      #crateApiOperationBindingOperationBindingFactoryPreset,
+    ]);
   });
 
-  test('leftHand 用 left-hand 预设播种；总开关关掉时运行时不查表', () {
-    OperationBindingStore.factoryBindingsJson(
-      tapMode: ReaderTapPageTurnMode.leftHand,
-    );
-    final tapCall = api.calls
-        .where(
-          (call) =>
-              call.memberName ==
-              #crateApiOperationBindingOperationBindingTapPreset,
-        )
-        .first;
-    expect(tapCall.namedArguments[#preset], 'left-hand');
-
+  test('总开关关掉或未播种时运行时不查表', () {
     final seeded = OperationBindingSettingState(
       bindingsJson: OperationBindingStore.factoryBindingsJson(),
     );
@@ -142,5 +148,64 @@ void main() {
       isNull,
       reason: '还没播种（空表）同样回退，而不是什么都不做',
     );
+  });
+
+  test('首次播种默认表；已存在的轮盘文档及运行时开关保留', () async {
+    const radial = '{"enabled":false,"activeMenuId":"custom","menus":[]}';
+    final cubit = _MemorySettings(
+      const OperationBindingSettingState(
+        bindingsRuntime: false,
+        radialJson: radial,
+      ),
+    );
+    addTearDown(cubit.close);
+    OperationBindingStore.seedIfNeeded(cubit);
+    expect(cubit.saves, 1);
+    expect(
+      parseBindings(cubit.state.operationBindingSetting.bindingsJson),
+      parseBindings(_FakeApi.keyPresetJson),
+    );
+    expect(cubit.state.operationBindingSetting.radialJson, radial);
+    expect(cubit.state.operationBindingSetting.bindingsRuntime, false);
+    OperationBindingStore.seedIfNeeded(cubit);
+    expect(cubit.saves, 1);
+  });
+
+  test('旧默认配置升级落盘；核心判为自定义时逐字保留', () {
+    const radial = '{"enabled":true,"menus":[]}';
+    final cubit = _MemorySettings(
+      const OperationBindingSettingState(
+        bindingsJson: _FakeApi.tapPresetJson,
+        radialJson: radial,
+      ),
+    );
+    addTearDown(cubit.close);
+    OperationBindingStore.seedIfNeeded(cubit);
+    expect(cubit.saves, 0);
+    expect(
+      cubit.state.operationBindingSetting.bindingsJson,
+      _FakeApi.tapPresetJson,
+    );
+    api.upgraded = _FakeApi.keyPresetJson;
+    OperationBindingStore.seedIfNeeded(cubit);
+    expect(cubit.saves, 1);
+    expect(
+      parseBindings(cubit.state.operationBindingSetting.bindingsJson),
+      parseBindings(_FakeApi.keyPresetJson),
+    );
+    expect(cubit.state.operationBindingSetting.radialJson, radial);
+  });
+
+  test('用户主动清空的绑定表不重新播种', () {
+    final cubit = _MemorySettings(
+      const OperationBindingSettingState(
+        bindingsJson: '{"bindings":[]}',
+        radialJson: '{"enabled":true,"menus":[]}',
+      ),
+    );
+    addTearDown(cubit.close);
+    OperationBindingStore.seedIfNeeded(cubit);
+    expect(cubit.saves, 0);
+    expect(cubit.state.operationBindingSetting.bindingsJson, '{"bindings":[]}');
   });
 }

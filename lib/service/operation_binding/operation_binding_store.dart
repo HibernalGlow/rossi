@@ -19,30 +19,26 @@ abstract final class OperationBindingStore {
   /// v0.1 只有阅读器接线（工作台/设置面板的输入仍走各自的路），所以活跃集合就一个。
   static const List<String> readerContexts = ['reader'];
 
-  /// 出厂绑定表（键盘预设 + 九宫格点击预设 + 默认轮盘的槽位）→ 持久化形状。
-  static String factoryBindingsJson({
-    ReaderTapPageTurnMode tapMode = ReaderTapPageTurnMode.rightHand,
-  }) {
-    final bindings = <Map<String, dynamic>>[
-      ..._decodeArray(operationBindingKeyPreset()),
-      ..._decodeArray(operationBindingTapPreset(preset: tapPresetOf(tapMode))),
-      // 轮盘那几条也是**绑定**，不是轮盘文档的字段：槽位与按键同一张表、同一个解析器。
-      ...radialPresetBindings(kRadialDefaultMenuId),
-    ];
-    return encodeBindingsDoc(bindings);
-  }
+  static String? areaAtPoint({
+    required double x,
+    required double y,
+    required double width,
+    required double height,
+  }) => operationBindingAreaAtPoint(x: x, y: y, width: width, height: height);
 
-  /// 左右手 / 全屏档 → 引擎的点击预设名。
-  ///
-  /// `fullScreen` 不是一个「哪一格绑什么」的问题（整屏都是前进），所以取右手预设当底 ——
-  /// 这一档在运行时**不查表**（见 `ReaderGestureLogic.handleTap` 的 fullScreen 分支）。
+  /// Neo 默认九宫格、滚轮、键盘、鼠标及默认轮盘槽位。
+  /// 默认值由核心统一提供，与旧版左右手点击模式独立。
+  static String factoryBindingsJson() =>
+      encodeBindingsDoc(_decodeArray(operationBindingFactoryPreset()));
+
+  /// 旧版左右手 / 全屏档对应的兼容预设名；Neo 默认表不按此设置改写。
   static String tapPresetOf(ReaderTapPageTurnMode mode) => switch (mode) {
     ReaderTapPageTurnMode.leftHand => 'left-hand',
-    ReaderTapPageTurnMode.rightHand || ReaderTapPageTurnMode.fullScreen =>
-      'right-hand',
+    ReaderTapPageTurnMode.rightHand ||
+    ReaderTapPageTurnMode.fullScreen => 'right-hand',
   };
 
-  /// 首次启动播种：表还是空的就用出厂值填上。
+  /// 首次启动播种；完整未修改的旧出厂输入表自动升级，自定义输入表保留。
   ///
   /// 在 `RustLib.init()` 之后调用（`GlobalSettingCubit.initBox`），因为出厂预设由
   /// Rust 侧生成 —— 「默认值是数据，不是 Dart 里的 if」（ADR-0015）。
@@ -51,16 +47,32 @@ abstract final class OperationBindingStore {
   /// 绑定 JSON 把轮盘文档留了下来），一起重置等于顺手清掉另一份的用户数据。
   static void seedIfNeeded(GlobalSettingCubit cubit) {
     final setting = cubit.state.operationBindingSetting;
-    final needsBindings = parseBindings(setting.bindingsJson) == null;
+    final existing = parseBindings(setting.bindingsJson);
+    final upgraded = existing == null
+        ? null
+        : operationBindingUpgradeDefaults(
+            bindingsJson: encodeBindingsArray(existing),
+          );
     final needsRadial = parseRadialDoc(setting.radialJson) == null;
-    if (!needsBindings && !needsRadial) return;
+    String? nextBindings;
+    if (existing == null) {
+      nextBindings = factoryBindingsJson();
+    } else if (upgraded != null) {
+      final rows = _decodeArray(upgraded);
+      // 轮盘加入之前的旧默认表没有槽位；首次创建轮盘文档时补齐槽位绑定。
+      // 已有合法轮盘文档时，即便用户删光了槽位绑定也保持原状。
+      if (needsRadial &&
+          !rows.any(
+            (row) => (row['input'] as Map)['device'] == InputDevice.radial,
+          )) {
+        rows.addAll(radialPresetBindings(kRadialDefaultMenuId));
+      }
+      nextBindings = encodeBindingsDoc(rows);
+    }
+    if (nextBindings == null && !needsRadial) return;
     cubit.updateOperationBindingSetting(
       (current) => current.copyWith(
-        bindingsJson: needsBindings
-            ? factoryBindingsJson(
-                tapMode: cubit.state.readSetting.tapPageTurnMode,
-              )
-            : current.bindingsJson,
+        bindingsJson: nextBindings ?? current.bindingsJson,
         radialJson: needsRadial ? radialFactoryJson() : current.radialJson,
       ),
     );
@@ -98,6 +110,21 @@ abstract final class OperationBindingStore {
     contexts: contexts,
   );
 
+  /// 仍由核心决定命中哪一行，外壳只读取执行与采集所需的字段。
+  static Map<String, dynamic>? resolveBinding({
+    required String bindingsArrayJson,
+    required String inputJson,
+    List<String> contexts = readerContexts,
+  }) {
+    final json = operationBindingResolveBinding(
+      bindingsJson: bindingsArrayJson,
+      inputJson: inputJson,
+      contexts: contexts,
+    );
+    if (json == null) return null;
+    return Map<String, dynamic>.from(jsonDecode(json) as Map);
+  }
+
   /// 把一条翻页动作按阅读方向解释成 `"next"` / `"previous"`（不是翻页动作返回 null）。
   ///
   /// **阅读方向只有这一个生效处**：UI 层任何地方都不许出现「左开时向右是上一页」这种判断。
@@ -122,9 +149,7 @@ abstract final class OperationBindingStore {
 
   /// 这份表能不能用（导入的第一道关）。
   static bool isValid(List<Map<String, dynamic>> bindings) =>
-      operationBindingValidate(
-        bindingsJson: encodeBindingsArray(bindings),
-      );
+      operationBindingValidate(bindingsJson: encodeBindingsArray(bindings));
 
   /// 动作注册表（设置页的选项清单，schema 与显示名都取自 Rust）。
   ///

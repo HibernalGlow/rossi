@@ -44,6 +44,8 @@ abstract final class TapArea {
 abstract final class BindingAction {
   static const nextPage = 'reader.next-page';
   static const previousPage = 'reader.previous-page';
+  static const nextBook = 'reader.next-book';
+  static const previousBook = 'reader.previous-book';
   static const firstPage = 'reader.first-page';
   static const lastPage = 'reader.last-page';
   static const pageLeft = 'reader.page-left';
@@ -68,14 +70,10 @@ abstract final class BindingAction {
   /// 「轮盘怎么打开」与「轮盘里每一格干什么」走的是同一套：都是绑定表里的一条输入
   /// → 一个动作 id。差别只在前者的输入是键盘/鼠标，后者的输入是 `device: radial`。
   static const openRadialMenu = 'radial.open-default';
+  static const confirmRadialMenu = 'radial.confirm';
 
   /// 翻页语义的四条（其余翻页动作不算）。
-  static const pageTurnFamily = [
-    nextPage,
-    previousPage,
-    pageLeft,
-    pageRight,
-  ];
+  static const pageTurnFamily = [nextPage, previousPage, pageLeft, pageRight];
 }
 
 /// 预设行的 id 前缀（`preset.rs` 里生成的那批）。
@@ -151,11 +149,12 @@ String keyboardInputJson({
 /// `button` 用 W3C `MouseEvent.button` 的口径（0 左 / 1 中 / 2 右），与 neoview 一致；
 /// `Flutter` 的 `PointerDownEvent.buttons` 是位掩码，那层翻译在采集端
 /// （`reader_input_controller.dart`）。`action` 默认 `press`：轮盘要在**按下**就出现。
-String mouseInputJson({required int button, String action = 'press'}) => jsonEncode({
-  'device': InputDevice.mouse,
-  'button': button,
-  'action': action,
-});
+String mouseInputJson({required int button, String action = 'press'}) =>
+    jsonEncode({
+      'device': InputDevice.mouse,
+      'button': button,
+      'action': action,
+    });
 
 /// 一次落在九宫格某一格的点击 → descriptor 的 JSON。
 String areaInputJson({
@@ -190,8 +189,84 @@ Map<String, dynamic> buildBinding({
 
 /// 新绑定的 id：动作名 + 微秒，够让用户在冲突清单里认出「是哪一条」。
 String newBindingId(String actionId) {
-  final slug = actionId.split('.').last.replaceAll(RegExp(r'[^A-Za-z0-9-]'), '-');
+  final slug = actionId
+      .split('.')
+      .last
+      .replaceAll(RegExp(r'[^A-Za-z0-9-]'), '-');
   return 'user-$slug-${DateTime.now().microsecondsSinceEpoch}';
+}
+
+/// 编辑器新增输入的初值，与 Neo 的设备选择器一致。轮盘 / 命令由各自入口管理。
+Map<String, dynamic> defaultBindingInput(String device) => switch (device) {
+  InputDevice.keyboard => {'device': device, 'code': 'KeyN'},
+  InputDevice.mouse => {'device': device, 'button': 3, 'action': 'click'},
+  InputDevice.mouseGesture => {
+    'device': device,
+    'button': 2,
+    'directions': ['left'],
+    'trigger': 'instant',
+  },
+  InputDevice.wheel => {'device': device, 'direction': 'down'},
+  InputDevice.touch => {
+    'device': device,
+    'gesture': 'swipe-left',
+    'fingers': 1,
+  },
+  InputDevice.gamepad => {'device': device, 'button': 5},
+  InputDevice.area => {
+    'device': device,
+    'area': 'middle-center',
+    'button': 0,
+    'action': 'click',
+  },
+  _ => throw ArgumentError.value(device, 'device'),
+};
+
+String defaultBindingContext(String action) {
+  if (action.startsWith('video.')) return 'video';
+  if (action.startsWith('shell.') || action.startsWith('workspace.')) {
+    return 'shell';
+  }
+  if (action.startsWith('file.') || action == BindingAction.openSettings) {
+    return 'global';
+  }
+  return 'reader';
+}
+
+/// 只替换目标行，扩展字段随工作副本保留。
+List<Map<String, dynamic>> updateBindingRow(
+  List<Map<String, dynamic>> bindings,
+  Map<String, dynamic> row,
+) => [
+  for (final current in bindings)
+    if (current['id'] == row['id']) row else current,
+];
+
+Map<String, dynamic> copyBindingToContext(
+  Map<String, dynamic> row,
+  String context,
+) => {
+  ...Map<String, dynamic>.from(jsonDecode(jsonEncode(row)) as Map),
+  'id': newBindingId(row['action'] as String),
+  'context': context,
+};
+
+/// 按主动作、后续动作的顺序执行；被忽略的重复输入仍算已消费。
+bool dispatchBindingActions(
+  Map<String, dynamic> binding, {
+  bool isRepeat = false,
+  required bool Function(String action) execute,
+}) {
+  if (isRepeat && binding['ignoreRepeat'] == true) return true;
+  var handled = false;
+  for (final action in [
+    binding['action'] as String,
+    ...List<String>.from(binding['followUpActions'] as List? ?? []),
+  ]) {
+    final result = execute(action);
+    handled = handled || result;
+  }
+  return handled;
 }
 
 /// 用 `rows` 替换掉所有 id 以 [prefix] 开头的行，其余原样保留（顺序：其余在前）。
@@ -427,4 +502,3 @@ const Map<String, String> _punctuationCodes = {
   ']': 'BracketRight',
   '`': 'Backquote',
 };
-
