@@ -41,13 +41,6 @@ class WorkspaceState {
   /// 在 solo 聚焦基础上去掉顶栏、内边距与边框，使阅读器自身铺满整个工作台窗口。
   final bool isReaderFullscreen;
 
-  /// 叠加信息面板是否被**钉住**（mimage 的「锁定」）。
-  ///
-  /// 钉住 = 常开；没钉住时面板只由右缘悬停临时揭示。
-  /// 刻意**不进快照**：面板里全是当次阅读会话的实时数据，
-  /// 冷启动恢复一个「关于不存在的一本书」的面板没有意义。
-  final bool infoPanelPinned;
-
   const WorkspaceState({
     required this.mode,
     required this.layout,
@@ -57,7 +50,6 @@ class WorkspaceState {
     this.activeLaneId,
     this.interaction = const WorkspaceInteractionSettings(),
     this.isReaderFullscreen = false,
-    this.infoPanelPinned = false,
   });
 
   factory WorkspaceState.initial() {
@@ -91,7 +83,6 @@ class WorkspaceState {
     String? Function()? activeLaneId,
     WorkspaceInteractionSettings? interaction,
     bool? isReaderFullscreen,
-    bool? infoPanelPinned,
   }) {
     return WorkspaceState(
       mode: mode ?? this.mode,
@@ -102,7 +93,6 @@ class WorkspaceState {
       activeLaneId: activeLaneId != null ? activeLaneId() : this.activeLaneId,
       interaction: interaction ?? this.interaction,
       isReaderFullscreen: isReaderFullscreen ?? this.isReaderFullscreen,
-      infoPanelPinned: infoPanelPinned ?? this.infoPanelPinned,
     );
   }
 }

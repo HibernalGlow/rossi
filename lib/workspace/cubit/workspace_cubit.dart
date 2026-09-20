@@ -140,21 +140,9 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
       state.copyWith(
         readerTarget: () => null,
         isReaderFullscreen: false,
-        infoPanelPinned: false,
       ),
     );
   }
-
-  // ── 信息面板（叠加在阅读器视口右缘） ────────────────────────────────────
-
-  /// 钉住 / 取消钉住叠加信息面板（mimage 的「锁定」语义：
-  /// 钉住 = 常开；没钉住时只由右缘悬停临时揭示）。
-  void setInfoPanelPinned(bool pinned) {
-    if (state.infoPanelPinned == pinned) return;
-    emit(state.copyWith(infoPanelPinned: pinned));
-  }
-
-  void toggleInfoPanel() => setInfoPanelPinned(!state.infoPanelPinned);
 
   /// 切换阅读器铺满窗口全屏状态。
   ///
@@ -566,7 +554,6 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
         activeLaneId: () => null,
         interaction: const WorkspaceInteractionSettings(),
         isReaderFullscreen: false,
-        infoPanelPinned: false,
       ),
     );
   }

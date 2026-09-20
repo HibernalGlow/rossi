@@ -125,12 +125,14 @@ void main() {
   testWidgets('跨侧拖动落在光标底下那个位置，不是永远追加到末尾', (tester) async {
     final cubit = await _pumpStrips(tester);
     expect(_idsOn(cubit, WorkspacePanelSide.right), <String>[
+      // 信息面板（neoview 同款）排在右泳道最前（`defaultOrder: 0`）。
+      WorkspacePanelId.info,
       WorkspacePanelId.discover,
       WorkspacePanelId.fileManager,
       WorkspacePanelId.pageList,
       WorkspacePanelId.plugins,
       WorkspacePanelId.tools,
-      // 控制面板（N-17 首卡「切换提示」）排在右泳道末尾（`defaultOrder: 6`）。
+      // 控制面板（N-17 首卡「切换提示」）排在右泳道末尾（`defaultOrder: 7`）。
       WorkspacePanelId.control,
     ], reason: '前置：右泳道的默认次序');
 
@@ -144,6 +146,7 @@ void main() {
     expect(
       _idsOn(cubit, WorkspacePanelSide.right),
       <String>[
+        WorkspacePanelId.info,
         WorkspacePanelId.discover,
         WorkspacePanelId.download,
         WorkspacePanelId.fileManager,
@@ -181,6 +184,7 @@ void main() {
     expect(
       _idsOn(cubit, WorkspacePanelSide.right),
       <String>[
+        WorkspacePanelId.info,
         WorkspacePanelId.discover,
         WorkspacePanelId.fileManager,
         WorkspacePanelId.pageList,
@@ -200,7 +204,7 @@ void main() {
   testWidgets('轨内换位：拖到左边那个位置就真的插到那儿', (tester) async {
     final cubit = await _pumpStrips(tester);
 
-    // 「文件管理」是右泳道第 1 位，「发现（上游原版）」是第 0 位 ——
+    // 「文件管理」在「发现（上游原版）」右边一格 ——
     // 拖到它身上 = 插到它前面。
     await _dragTabOnto(
       tester,
@@ -219,6 +223,7 @@ void main() {
     expect(
       _idsOn(cubit, WorkspacePanelSide.right),
       <String>[
+        WorkspacePanelId.info,
         WorkspacePanelId.fileManager,
         WorkspacePanelId.discover,
         WorkspacePanelId.pageList,
@@ -236,8 +241,8 @@ void main() {
   testWidgets('轨内换位：拖到自己右侧紧邻的那个位置 = 次序不变', (tester) async {
     final cubit = await _pumpStrips(tester);
 
-    // 「文件管理」是右泳道第 1 位，「页面导航」是第 2 位 ——
-    // 「插到页面导航前面」而它本来就紧挨在页面导航前面，所以结果应当是原地不动。
+    // 「文件管理」本来就紧挨在「页面导航」前面 ——
+    // 「插到页面导航前面」而它本来就在那个位置，所以结果应当是原地不动。
     await _dragTabOnto(
       tester,
       panelId: WorkspacePanelId.fileManager,
@@ -254,6 +259,7 @@ void main() {
     expect(
       _idsOn(cubit, WorkspacePanelSide.right),
       <String>[
+        WorkspacePanelId.info,
         WorkspacePanelId.discover,
         WorkspacePanelId.fileManager,
         WorkspacePanelId.pageList,

@@ -207,9 +207,8 @@ class WorkspaceCardRegistry {
         isStandalone: chrome.standalone,
       ),
     ),
-    // ── 信息面板（叠加在阅读器视口右缘，mimage 式） ──────────────────────
-    // 面板本身不在面板注册表里（它不住在泳道页签轨上），
-    // 但卡片的归属 / 展开 / 次序 / 隐藏仍按 `WorkspacePanelId.info` 记账。
+    // ── 信息面板（右栏停靠页签，neoview `panel("info")` 同款） ────────────
+    // 卡片面板规则照旧：归属 / 展开 / 次序 / 隐藏都按 `WorkspacePanelId.info` 记账。
     WorkspaceCardDefinition(
       id: bookInformation,
       title: '书籍信息',

@@ -124,12 +124,22 @@ class WorkspacePanelRegistry {
       ),
 
       // ── 右泳道 ────────────────────────────────────────────────────────
+      // 与 neoview 一样，「信息」是右栏页签轨上的**第一**面板
+      // （`panel("info", "信息", "right", true, 0)`）；卡片面板规则照旧 ——
+      // 一张卡都没有时不上图标轨（见 panelsForSide）。
+      WorkspacePanelDefinition(
+        id: WorkspacePanelId.info,
+        title: '信息',
+        icon: Icons.info_outline_rounded,
+        side: WorkspacePanelSide.right,
+        defaultOrder: 0,
+      ),
       WorkspacePanelDefinition(
         id: WorkspacePanelId.discover,
         title: '发现（上游原版）',
         icon: Icons.explore_rounded,
         side: WorkspacePanelSide.right,
-        defaultOrder: 0,
+        defaultOrder: 1,
         exclusive: true,
         canMove: false,
         canHide: false,
@@ -141,7 +151,7 @@ class WorkspacePanelRegistry {
         title: '文件管理',
         icon: Icons.folder_copy_rounded,
         side: WorkspacePanelSide.right,
-        defaultOrder: 1,
+        defaultOrder: 2,
         exclusive: true,
       ),
       WorkspacePanelDefinition(
@@ -149,7 +159,7 @@ class WorkspacePanelRegistry {
         title: '页面导航',
         icon: Icons.view_carousel_rounded,
         side: WorkspacePanelSide.right,
-        defaultOrder: 2,
+        defaultOrder: 3,
         exclusive: true,
       ),
       WorkspacePanelDefinition(
@@ -157,7 +167,7 @@ class WorkspacePanelRegistry {
         title: '图源扩展',
         icon: Icons.extension_rounded,
         side: WorkspacePanelSide.right,
-        defaultOrder: 3,
+        defaultOrder: 4,
         exclusive: true,
       ),
       WorkspacePanelDefinition(
@@ -165,7 +175,7 @@ class WorkspacePanelRegistry {
         title: '图源本地聚合',
         icon: Icons.auto_awesome_motion_rounded,
         side: WorkspacePanelSide.right,
-        defaultOrder: 4,
+        defaultOrder: 5,
         defaultVisible: false,
       ),
       WorkspacePanelDefinition(
@@ -173,7 +183,7 @@ class WorkspacePanelRegistry {
         title: '工具与设置（上游原版）',
         icon: Icons.tune_rounded,
         side: WorkspacePanelSide.right,
-        defaultOrder: 5,
+        defaultOrder: 6,
         exclusive: true,
         canMove: false,
         canHide: false,
@@ -188,7 +198,7 @@ class WorkspacePanelRegistry {
         title: '控制面板',
         icon: Icons.dashboard_rounded,
         side: WorkspacePanelSide.right,
-        defaultOrder: 6,
+        defaultOrder: 7,
       ),
     ],
   );

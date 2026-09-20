@@ -10,7 +10,6 @@ import 'package:zephyr/workspace/router/workspace_lane_dispatch.dart';
 import 'package:zephyr/workspace/router/workspace_navigation_bridge.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_empty_canvas.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_fullscreen_scope.dart';
-import 'package:zephyr/workspace/widgets/panels/info_panel_overlay.dart';
 
 /// **阅读器泳道的真正内容**：上游原版 `ComicReadPage`，一个字都没改。
 ///
@@ -109,17 +108,13 @@ class _WorkspaceReaderHostState extends State<WorkspaceReaderHost> {
             behavior: HitTestBehavior.translucent,
             onPointerDown: (_) =>
                 WorkspaceNavigationBridge.instance.noteLaneInteraction(_host),
-            child: InfoPanelOverlay(
-              // mimage 式**叠加**信息面板：浮在阅读器视口右缘之上，
-              // 不占条带宽度。挂在泳道宿主这一层，于是四边栏模式白得一摸一样。
-              child: Navigator(
-                key: ValueKey<String>(
-                  'reader-navigator:${current.identityKey}',
-                ),
-                onGenerateRoute: (settings) => MaterialPageRoute<void>(
-                  settings: settings,
-                  builder: (_) => _buildReader(context, current),
-                ),
+            child: Navigator(
+              key: ValueKey<String>(
+                'reader-navigator:${current.identityKey}',
+              ),
+              onGenerateRoute: (settings) => MaterialPageRoute<void>(
+                settings: settings,
+                builder: (_) => _buildReader(context, current),
               ),
             ),
           ),

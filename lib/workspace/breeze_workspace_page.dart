@@ -214,12 +214,6 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
       _cubit.exitReaderFullscreen();
       return;
     }
-    // 信息面板钉住时 `Esc` 先收面板（mimage 同款次序：面板在内容之上，
-    // 第一下 `Esc` 该撤最上面那层，而不是连人带板退出工作台）。
-    if (_cubit.state.infoPanelPinned) {
-      _cubit.setInfoPanelPinned(false);
-      return;
-    }
     final route = ModalRoute.of(context);
     if (route == null || !route.isCurrent) return;
     Navigator.of(context).maybePop();

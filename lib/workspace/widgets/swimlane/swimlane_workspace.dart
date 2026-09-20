@@ -652,21 +652,6 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
       ),
       if (state.readerTarget != null)
         IconButton(
-          icon: Icon(
-            state.infoPanelPinned
-                ? Icons.info_rounded
-                : Icons.info_outline_rounded,
-            size: 18,
-          ),
-          color: state.infoPanelPinned
-              ? Theme.of(context).colorScheme.primary
-              : null,
-          tooltip: '信息面板（叠加在阅读器右缘）',
-          visualDensity: VisualDensity.compact,
-          onPressed: () => cubit.toggleInfoPanel(),
-        ),
-      if (state.readerTarget != null)
-        IconButton(
           icon: const Icon(Icons.close_rounded, size: 18),
           tooltip: '关闭当前漫画 (回到空态)',
           visualDensity: VisualDensity.compact,
