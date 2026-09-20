@@ -266,9 +266,9 @@ pub mod action {
     /// `action("radial.open-default", "openRadialMenu.default", "打开轮盘菜单", "radial")`，
     /// 因为它是**要落进用户绑定包**的东西；neoview 的默认绑法是右键按下 + `Enter`。
     ///
-    /// neoview 那条 `radial.confirm` 不接：它的执行体是空实现，确认键由轮盘控件自己的
-    /// keydown 处理（Rossi 同理，见浮层），所以没必要占一个动作 id。
     pub const OPEN_RADIAL_MENU: &str = "radial.open-default";
+    pub const CONFIRM_RADIAL_MENU: &str = "radial.confirm";
+    pub const TOGGLE_LIBRARY: &str = "reader.toggle-library";
 
     // ── video（ADR-0016 追加；mImageViewer `keymap.rs` 的 `KeyAction::Video*` 面）──
     // 命名用 `video.` 前缀而不是塞进 `reader.`：`InputContext::Video` 的优先级
@@ -364,7 +364,19 @@ macro_rules! action_def {
 }
 
 /// Rossi 动作注册表（子集，见模块头注释）。
-pub const ACTION_CATALOG: [ActionDefinition; 45] = [
+pub const ACTION_CATALOG: [ActionDefinition; 47] = [
+    action_def!(
+        action::CONFIRM_RADIAL_MENU,
+        "确认轮盘选项",
+        ActionCategory::Radial,
+        true
+    ),
+    action_def!(
+        action::TOGGLE_LIBRARY,
+        "切换书库",
+        ActionCategory::View,
+        false
+    ),
     action_def!(
         action::VIDEO_NEXT_CHAPTER,
         "视频：上一章",
@@ -549,13 +561,13 @@ pub const ACTION_CATALOG: [ActionDefinition; 45] = [
         action::NEXT_BOOK,
         "下一个书籍",
         ActionCategory::Navigation,
-        false
+        true
     ),
     action_def!(
         action::PREVIOUS_BOOK,
         "上一个书籍",
         ActionCategory::Navigation,
-        false
+        true
     ),
     action_def!(action::ZOOM_IN, "放大", ActionCategory::Zoom, true),
     action_def!(action::ZOOM_OUT, "缩小", ActionCategory::Zoom, true),

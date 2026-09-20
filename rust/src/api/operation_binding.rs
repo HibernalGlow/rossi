@@ -39,6 +39,34 @@ pub fn operation_binding_resolve(
     engine::resolve(&bindings, &input, &contexts).map(|binding| binding.action.clone())
 }
 
+/// 返回完整的命中绑定，供外壳执行动作序列及处理重复 / 长按。
+/// 原始行随结果返回，保留 durationMs 等平台采集参数和扩展字段。
+#[frb(sync)]
+pub fn operation_binding_resolve_binding(
+    bindings_json: String,
+    input_json: String,
+    contexts: Vec<String>,
+) -> Option<String> {
+    let bindings: Vec<engine::InputBinding> = serde_json::from_str(&bindings_json).ok()?;
+    let input: engine::InputDescriptor = serde_json::from_str(&input_json).ok()?;
+    let contexts = contexts
+        .iter()
+        .filter_map(|raw| engine::InputContext::parse(raw))
+        .collect::<Vec<_>>();
+    let matched = engine::resolve(&bindings, &input, &contexts)?;
+    let rows: Vec<serde_json::Value> = serde_json::from_str(&bindings_json).ok()?;
+    rows.into_iter()
+        .find(|row| row["id"].as_str() == Some(matched.id.as_str()))
+        .and_then(|row| serde_json::to_string(&row).ok())
+}
+
+/// 采集端的局部落点 → 九宫格；分区几何仍由核心唯一实现。
+#[frb(sync)]
+pub fn operation_binding_area_at_point(x: f64, y: f64, width: f64, height: f64) -> Option<String> {
+    engine::resolve::reader_view_area_at_point(x, y, width, height)
+        .map(|area| area.as_str().to_owned())
+}
+
 /// 把一条翻页动作解释成翻页语义：`"next"` / `"previous"`；不是翻页动作返回 `None`。
 ///
 /// 这是**阅读方向唯一生效的地方**：`reader.page-right` 在右开（readMode≠2）下是
@@ -64,7 +92,7 @@ pub fn operation_binding_conflicts(bindings_json: String) -> String {
     serde_json::to_string(&engine::conflicts(&bindings)).expect("冲突清单必须能序列化")
 }
 
-/// 出厂预设：九宫格点击绑定表（`right-hand` / `left-hand`），JSON 数组。
+/// 兼容旧版：九宫格点击绑定表（`right-hand` / `left-hand`），JSON 数组。
 ///
 /// 预设绑的是**空间动作**（`reader.page-right` / `reader.page-left`），
 /// 阅读方向在 [`operation_binding_resolve_page_turn`] 里解释 —— 方向换挡
@@ -77,10 +105,24 @@ pub fn operation_binding_tap_preset(preset: String) -> Result<String, anyhow::Er
         .context("预设绑定表必须能序列化")
 }
 
-/// 出厂预设：键盘绑定表（左右方向键绑空间动作、空格绑语义前进），JSON 数组。
+/// 兼容旧版：键盘绑定表（用于识别和迁移旧默认值），JSON 数组。
 #[frb(sync)]
 pub fn operation_binding_key_preset() -> String {
     serde_json::to_string(&engine::preset::key_preset_bindings()).expect("键盘预设必须能序列化")
+}
+
+/// Neo 默认九宫格、滚轮、键盘、鼠标绑定，以及本仓默认轮盘槽位。
+#[frb(sync)]
+pub fn operation_binding_factory_preset() -> String {
+    serde_json::to_string(&engine::factory::bindings()).expect("默认绑定必须能序列化")
+}
+
+/// 未改动的旧默认输入表升级到 Neo 默认值；自定义配置返回 None，轮盘行原样保留。
+#[frb(sync)]
+pub fn operation_binding_upgrade_defaults(bindings_json: String) -> Option<String> {
+    let rows: Vec<serde_json::Value> = serde_json::from_str(&bindings_json).ok()?;
+    engine::factory::upgrade_legacy_defaults(&rows)
+        .and_then(|upgraded| serde_json::to_string(&upgraded).ok())
 }
 
 /// 动作注册表（`id` / `label` / `category` / `categoryLabel` / `implemented`），JSON 数组。
@@ -98,7 +140,8 @@ pub fn operation_binding_action_catalog() -> String {
 /// 让 Rust 侧 panic —— 每次点击都跨一次桥，崩在这里等于阅读器整体打不开。
 #[frb(sync)]
 pub fn operation_binding_validate(bindings_json: String) -> bool {
-    serde_json::from_str::<Vec<engine::InputBinding>>(&bindings_json).is_ok()
+    serde_json::from_str::<Vec<engine::InputBinding>>(&bindings_json)
+        .is_ok_and(|bindings| engine::model::bindings_are_valid(&bindings))
 }
 
 // ── 轮盘（radial menu）───────────────────────────────────────────────────────

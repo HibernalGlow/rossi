@@ -168,6 +168,36 @@ impl InputBinding {
     }
 }
 
+/// 编辑 / 导入时的完整性检查。主动作计入 Neo 的八步上限。
+pub fn bindings_are_valid(bindings: &[InputBinding]) -> bool {
+    let mut ids = std::collections::HashSet::new();
+    bindings.iter().all(|binding| {
+        !binding.id.trim().is_empty()
+            && ids.insert(&binding.id)
+            && !binding.action.trim().is_empty()
+            && binding.follow_up_actions.len() < MAX_ACTION_SEQUENCE_LENGTH
+            && binding
+                .follow_up_actions
+                .iter()
+                .all(|action| !action.trim().is_empty())
+            && match &binding.input {
+                InputDescriptor::Keyboard { code, .. } => !code.trim().is_empty(),
+                InputDescriptor::Mouse { button, .. } => *button < 8,
+                InputDescriptor::MouseGesture {
+                    button, directions, ..
+                } => *button < 8 && !directions.is_empty() && directions.len() <= 16,
+                InputDescriptor::Touch { fingers, .. } => (1..=3).contains(fingers),
+                InputDescriptor::Gamepad { button } => *button < 32,
+                InputDescriptor::Area { button, .. } => *button < 3,
+                InputDescriptor::Radial { menu_id, item_id } => {
+                    !menu_id.is_empty() && !item_id.is_empty()
+                }
+                InputDescriptor::Command { command } => !command.trim().is_empty(),
+                InputDescriptor::Wheel { .. } => true,
+            }
+    })
+}
+
 /// 绑定包（导出 = 直接写这个结构的 JSON，见 ADR-0015 §7）。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InputBindingsConfig {
@@ -183,6 +213,36 @@ impl InputBindingsConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn editor_rejects_duplicate_ids_and_more_than_seven_follow_ups() {
+        let mut row: InputBinding = serde_json::from_str(
+            r#"{"id":"custom","action":"reader.next-page","context":"reader","enabled":true,
+            "input":{"device":"keyboard","code":"KeyN"}}"#,
+        )
+        .unwrap();
+        row.follow_up_actions = vec!["reader.zoom-in".into(); 7];
+        assert!(bindings_are_valid(&[row.clone()]));
+        assert!(!bindings_are_valid(&[row.clone(), row.clone()]));
+        row.follow_up_actions.push("reader.zoom-out".into());
+        assert!(!bindings_are_valid(&[row]));
+    }
+
+    #[test]
+    fn editor_rejects_invalid_device_parameters() {
+        for input in [
+            r#"{"device":"touch","gesture":"swipe-left","fingers":0}"#,
+            r#"{"device":"touch","gesture":"swipe-left","fingers":4}"#,
+            r#"{"device":"mouse-gesture","button":2,"directions":[],"trigger":"instant"}"#,
+            r#"{"device":"keyboard","code":" "}"#,
+            r#"{"device":"gamepad","button":32}"#,
+        ] {
+            let row: InputBinding = serde_json::from_str(&format!(
+                r#"{{"id":"custom","action":"reader.next-page","context":"reader","enabled":true,"input":{input}}}"#
+            )).unwrap();
+            assert!(!bindings_are_valid(&[row]), "{input}");
+        }
+    }
 
     #[test]
     fn descriptor_json_shape_matches_neoview() {

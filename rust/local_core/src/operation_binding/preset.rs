@@ -1,4 +1,5 @@
-//! 出厂预设（neoview `DEFAULT_READER_INPUT_BINDINGS` 的结构 + Rossi 现状的行为）。
+//! 旧版兼容预设（Rossi 三分区及历史键位），供旧配置识别和显式左右手重置使用。
+//! 当前出厂默认值见 [`super::factory`]，此表保留原内容以识别未改动的旧配置。
 //!
 //! 设计立场：**预设是「数据」，不是「代码里的 if」**。九宫格与键盘的默认值在这里
 //! 列成一张绑定表，运行时（Dart 侧）只问解析器「这个输入是什么动作」，从不自己
@@ -174,6 +175,27 @@ pub fn key_preset_bindings() -> Vec<InputBinding> {
         },
     ));
     bindings
+}
+
+/// 已发布过的完整键位表，用于保守迁移。不能把任意「默认表的子集」当作旧版本，
+/// 因为缺行也可能是用户主动删除。历史版本分别是 5a93758c、cb10be51、50a5fc4b。
+pub fn legacy_key_preset_versions() -> Vec<Vec<InputBinding>> {
+    let mut versions = vec![key_preset_bindings()];
+    for with_radial in [false, true] {
+        let mut bindings: Vec<_> = DEFAULT_KEY_BINDINGS[..17]
+            .iter()
+            .chain(DEFAULT_SYSTEM_KEY_BINDINGS[..if with_radial { 2 } else { 1 }].iter())
+            .enumerate()
+            .map(|(index, (code, action))| key_binding(index, code, action))
+            .collect();
+        if with_radial {
+            bindings.extend(DEFAULT_MOUSE_BINDINGS.iter().enumerate().map(
+                |(index, (button, kind, action))| mouse_binding(index, *button, *kind, action),
+            ));
+        }
+        versions.push(bindings);
+    }
+    versions
 }
 
 /// 视频档按键绑定：与 [`key_binding`] 只差 `context` 一项。
