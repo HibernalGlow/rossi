@@ -1090,10 +1090,13 @@ class _DescriptionCardState extends State<_DescriptionCard> {
             ),
           ),
           const SizedBox(height: 10),
-          SelectableText(
-            widget.description,
-            style: descriptionStyle,
-            maxLines: _expanded ? null : 5,
+          SelectionArea(
+            child: Text(
+              widget.description,
+              style: descriptionStyle,
+              maxLines: _expanded ? null : 5,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           if (widget.description.length > 90) ...[
             const SizedBox(height: 10),
