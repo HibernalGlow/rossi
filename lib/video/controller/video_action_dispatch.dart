@@ -10,8 +10,11 @@ import 'package:zephyr/video/service/video_poster_service.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
 
 /// 视频动作 id —— 与 `vocabulary.rs` 的 `action::VIDEO_*` 逐条同名。
+///
+/// 命名照 neoview：`video.play-pause` 与 `video.toggle-speed` 是上游的写法。
+/// 动作 id 与绑定表是要落进用户配置的东西，名字与上游分叉，将来两边的绑定包对不上。
 class BindingVideoAction {
-  static const String togglePlay = 'video.toggle-play';
+  static const String playPause = 'video.play-pause';
   static const String seekBackward = 'video.seek-backward';
   static const String seekForward = 'video.seek-forward';
   static const String seekModeToggle = 'video.seek-mode-toggle';
@@ -19,7 +22,7 @@ class BindingVideoAction {
   static const String frameStepBack = 'video.frame-step-back';
   static const String speedUp = 'video.speed-up';
   static const String speedDown = 'video.speed-down';
-  static const String speedReset = 'video.speed-reset';
+  static const String toggleSpeed = 'video.toggle-speed';
   static const String volumeUp = 'video.volume-up';
   static const String volumeDown = 'video.volume-down';
   static const String toggleMute = 'video.toggle-mute';
@@ -39,7 +42,7 @@ class BindingVideoAction {
 
 /// 已知的视频动作全集。设置页与校验用（不是第二份注册表 —— 注册表在 Rust）。
 const List<String> kVideoActionIds = <String>[
-  BindingVideoAction.togglePlay,
+  BindingVideoAction.playPause,
   BindingVideoAction.seekBackward,
   BindingVideoAction.seekForward,
   BindingVideoAction.seekModeToggle,
@@ -47,7 +50,7 @@ const List<String> kVideoActionIds = <String>[
   BindingVideoAction.frameStepBack,
   BindingVideoAction.speedUp,
   BindingVideoAction.speedDown,
-  BindingVideoAction.speedReset,
+  BindingVideoAction.toggleSpeed,
   BindingVideoAction.volumeUp,
   BindingVideoAction.volumeDown,
   BindingVideoAction.toggleMute,
@@ -98,14 +101,14 @@ bool dispatchVideoAction(String actionId) {
   final scope = ActiveVideoScope.instance;
   final controller = scope.controller;
   if (!kVideoActionIds.contains(actionId)) return false;
-  // 没有活动视频页时**吃掉**这条 id：让翻页 / 全屏那些阅读器动作继续走自己的分支
-  // 是错的吗？不是 —— 但我们不能让它落到 `default: return false` 之后又被
-  // 当作「未实现」提示给用户。这里按「动作可用但没有目标」静默返回。
-  if (controller == null) return true;
+  // 没有活动视频页时**不吃**这条输入：视频动作的 context 只有在当前页是视频时
+  // 才会进活跃集合，但上游把倍速三键挂在 `global` 一档 —— 全局绑定了却没有目标时
+  // 返回 true 就等于「按了没反应」，按键被凭空吞掉。
+  if (controller == null) return false;
   final transport = controller.transport;
 
   switch (actionId) {
-    case BindingVideoAction.togglePlay:
+    case BindingVideoAction.playPause:
       unawaitedSeek(controller.togglePlay());
     case BindingVideoAction.seekBackward:
       unawaitedSeek(controller.seekBackward());
@@ -129,8 +132,9 @@ bool dispatchVideoAction(String actionId) {
           controller.snapshot.playbackRate - controller.snapshot.playbackRateStep,
         ),
       );
-    case BindingVideoAction.speedReset:
-      unawaitedSeek(controller.setPlaybackRate(1.0));
+    case BindingVideoAction.toggleSpeed:
+      // 上游的 `video.toggle-speed`：1x ⇄ 上一个用过的倍速，不是「回到 1x」。
+      unawaitedSeek(controller.toggleSpeed());
     case BindingVideoAction.volumeUp:
       unawaitedSeek(controller.setVolume(controller.snapshot.volume + 0.05));
     case BindingVideoAction.volumeDown:
@@ -175,6 +179,13 @@ bool dispatchVideoAction(String actionId) {
 }
 
 Duration _subtitleDelay = Duration.zero;
+
+/// 换一条视频时起播前清零。延迟与轮切下标都是**这一条视频**的状态：
+/// 挂在模块上会让「上一本调的 -0.5 s」跟着下一本走，而用户从没为它设过什么。
+void resetVideoSubtitleActionState() {
+  _subtitleDelay = Duration.zero;
+  _subtitleIndex = -1;
+}
 
 void _shiftSubtitleDelay(VideoTransport? transport, double seconds) {
   _subtitleDelay += Duration(milliseconds: (seconds * 1000).round());

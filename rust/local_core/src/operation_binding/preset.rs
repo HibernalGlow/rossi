@@ -72,7 +72,7 @@ impl TapPreset {
 /// 绑定表一旦接管运行时就是**唯一**的判定处（回退到 Dart 里那份硬编码名单，等于
 /// 「删掉一条绑定它还在生效」，判据 E2「改绑定不重新编译即生效」当场作废）。
 /// 所以小键盘 2/4/6/8、WASD、上下方向键、F11 都得在这里，一条都不能少。
-pub const DEFAULT_KEY_BINDINGS: [(&str, &str); 17] = [
+pub const DEFAULT_KEY_BINDINGS: [(&str, &str); 20] = [
     // 空间族：左右两个方向（含小键盘与 WASD 的左右）。
     ("ArrowRight", action::PAGE_RIGHT),
     ("ArrowLeft", action::PAGE_LEFT),
@@ -93,6 +93,12 @@ pub const DEFAULT_KEY_BINDINGS: [(&str, &str); 17] = [
     // 首尾跳转。
     ("Home", action::FIRST_PAGE),
     ("End", action::LAST_PAGE),
+    // 缩放族。三条出厂绑法逐条照 neoview 的 `DEFAULT_READER_INPUT_BINDINGS`
+    // （`Equal` / `Minus` / `Digit0`）—— 动作登记了却没有默认键，等于设置页里
+    // 解了灰、用户还是不知道该按哪个键。
+    ("Equal", action::ZOOM_IN),
+    ("Minus", action::ZOOM_OUT),
+    ("Digit0", action::RESET_VIEW),
 ];
 
 /// 桌面端的系统级按键（不属于翻页，但改造前 `reader_input_controller.dart` 里写死了
@@ -126,7 +132,29 @@ pub fn tap_preset_bindings(preset: TapPreset) -> Vec<InputBinding> {
     ]
 }
 
-/// 出厂按键/鼠标预设 → 绑定表（翻页键 + `F11` 全屏 + `Enter`/右键按下开轮盘）。
+/// 视频出厂键位（`context = video`，优先级 150 > `reader` 的 100）。
+///
+/// **逐条照抄 neoview `READER_FACTORY_INPUT_BINDINGS` 里
+/// `// video (legacy videoPlayer context → video)` 那一段的键盘部分**
+/// （`packages/nodes/neoview/src/domain/input/ReaderInputBindings.ts`）。
+/// 上游还有两类没搬过来，理由不同：
+/// - 三条 `area` 点击（中格播放/暂停、左格 −10 s、右格 +10 s）在 Rossi 由
+///   `VideoPageSurface._tapZones` 直接实现（对应上游 `PageVideo.tsx` 那一处），
+///   再进一遍绑定表就是双触发；
+/// - 上游把 `KeyC`/`KeyX`/`KeyZ`（加速 / 减速 / 切换倍速）挂在 **`global`**。
+///   Rossi 先把它们留在 `video` 档：全局吃掉这三个键而当前没有活动视频时，
+///   用户看到的是「按了没反应」，那比「视频里没有这两个键」更糟。
+pub const DEFAULT_VIDEO_KEY_BINDINGS: [(&str, &str); 7] = [
+    ("ArrowRight", action::VIDEO_SEEK_FORWARD),
+    ("ArrowLeft", action::VIDEO_SEEK_BACKWARD),
+    ("MediaTrackNext", action::VIDEO_SEEK_FORWARD),
+    ("MediaTrackPrevious", action::VIDEO_SEEK_BACKWARD),
+    ("KeyC", action::VIDEO_SPEED_UP),
+    ("KeyX", action::VIDEO_SPEED_DOWN),
+    ("KeyZ", action::VIDEO_TOGGLE_SPEED),
+];
+
+/// 出厂按键/鼠标预设 → 绑定表（翻页键 + `F11` 全屏 + `Enter`/右键按下开轮盘 + 视频档）。
 pub fn key_preset_bindings() -> Vec<InputBinding> {
     let mut bindings: Vec<InputBinding> = DEFAULT_KEY_BINDINGS
         .iter()
@@ -134,12 +162,38 @@ pub fn key_preset_bindings() -> Vec<InputBinding> {
         .enumerate()
         .map(|(index, (code, action_id))| key_binding(index, *code, *action_id))
         .collect();
+    bindings.extend(
+        DEFAULT_VIDEO_KEY_BINDINGS
+            .iter()
+            .enumerate()
+            .map(|(index, (code, action_id))| video_key_binding(index, *code, *action_id)),
+    );
     bindings.extend(DEFAULT_MOUSE_BINDINGS.iter().enumerate().map(
         |(index, (button, action_kind, action_id))| {
             mouse_binding(index, *button, *action_kind, *action_id)
         },
     ));
     bindings
+}
+
+/// 视频档按键绑定：与 [`key_binding`] 只差 `context` 一项。
+fn video_key_binding(index: usize, code: &str, action_id: &str) -> InputBinding {
+    InputBinding {
+        id: format!("preset-video-key-{index}-{code}"),
+        action: action_id.into(),
+        follow_up_actions: Vec::new(),
+        context: InputContext::Video,
+        enabled: true,
+        ignore_repeat: false,
+        input: InputDescriptor::Keyboard {
+            code: code.into(),
+            trigger: KeyTrigger::Down,
+            ctrl: false,
+            alt: false,
+            shift: false,
+            meta: false,
+        },
+    }
 }
 
 fn mouse_binding(
@@ -209,6 +263,64 @@ mod tests {
             area,
             button: 0,
             action: PointerAction::Click,
+        }
+    }
+
+    #[test]
+    fn video_context_wins_over_reader_on_the_same_key() {
+        let bindings = key_preset_bindings();
+        let keyboard = |code: &str| InputDescriptor::Keyboard {
+            code: code.into(),
+            trigger: KeyTrigger::Down,
+            ctrl: false,
+            alt: false,
+            shift: false,
+            meta: false,
+        };
+
+        // 静图页：右箭头还是「向右翻页」。
+        assert_eq!(
+            resolve(&bindings, &keyboard("ArrowRight"), &[InputContext::Reader])
+                .expect("reader 档右箭头有绑定")
+                .action,
+            action::PAGE_RIGHT
+        );
+
+        // 视频页：同一个键改成 +10 秒。这就是 `video` = 150 高于 `reader` = 100 的全部意义。
+        assert_eq!(
+            resolve(
+                &bindings,
+                &keyboard("ArrowRight"),
+                &[InputContext::Reader, InputContext::Video],
+            )
+            .expect("视频在场时右箭头必须归视频")
+            .action,
+            action::VIDEO_SEEK_FORWARD
+        );
+
+        // 视频专属键在没有视频时**没有解**（不能既绑了键又让静图页的输入被吃掉）。
+        assert!(resolve(&bindings, &keyboard("KeyX"), &[InputContext::Reader]).is_none());
+        assert_eq!(
+            resolve(&bindings, &keyboard("KeyX"), &[InputContext::Video])
+                .expect("视频档 KeyX 有绑定")
+                .action,
+            action::VIDEO_SPEED_DOWN
+        );
+
+        // 缩放族三条出厂键（逐条照 neoview 的默认表）。注册表把它们标成已实现，
+        // 但「已实现」要能被**默认按键**证明端到端可达 —— 否则解了灰也没人知道按哪个。
+        for (code, expected) in [
+            ("Equal", action::ZOOM_IN),
+            ("Minus", action::ZOOM_OUT),
+            ("Digit0", action::RESET_VIEW),
+        ] {
+            assert_eq!(
+                resolve(&bindings, &keyboard(code), &[InputContext::Reader])
+                    .expect("缩放族默认键必须有解")
+                    .action,
+                expected,
+                "{code} 应当解到 {expected}"
+            );
         }
     }
 
@@ -361,13 +473,17 @@ mod tests {
     fn key_preset_covers_every_key_the_legacy_reader_knew() {
         // 绑定表接管运行时之后就是**唯一**判定处：这里少一个键，那个键就当场失效。
         // 名单 = 改造前 `lib/page/comic_read/method/key.dart` 认的全集 + F11。
-        let codes: Vec<String> = key_preset_bindings()
+        let keys: Vec<(&'static str, String)> = key_preset_bindings()
             .into_iter()
-            .filter_map(|binding| match binding.input {
-                InputDescriptor::Keyboard { code, .. } => Some(code),
-                _ => None,
+            .filter_map(|binding| {
+                let context = binding.context.as_str();
+                match binding.input {
+                    InputDescriptor::Keyboard { code, .. } => Some((context, code)),
+                    _ => None,
+                }
             })
             .collect();
+        let codes: Vec<String> = keys.iter().map(|(_, code)| code.clone()).collect();
         for expected in [
             "ArrowRight",
             "ArrowLeft",
@@ -393,11 +509,16 @@ mod tests {
                 "预设里少了 {expected}"
             );
         }
-        let unique: std::collections::HashSet<&String> = codes.iter().collect();
+        // 冲突口径 = **(context, 输入)**，不是「输入」本身。
+        // neoview 的 `readerInputConflictKey` 就是 `${context}:${descriptorKey}`：
+        // `video` 档把 ArrowRight 再绑一次是**设计**（视频页里右箭头是 +10 秒），
+        // 只按裸键名去重会把这种合法的跨档覆盖判成冲突。
+        let unique: std::collections::HashSet<(&str, &str)> =
+            keys.iter().map(|(c, code)| (*c, code.as_str())).collect();
         assert_eq!(
             unique.len(),
-            codes.len(),
-            "同一个键不许出现两次（那必然是冲突）"
+            keys.len(),
+            "同一个 context 里同一个键不许出现两次（那才是冲突）"
         );
     }
 

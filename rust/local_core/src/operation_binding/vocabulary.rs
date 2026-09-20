@@ -273,7 +273,7 @@ pub mod action {
     // ── video（ADR-0016 追加；mImageViewer `keymap.rs` 的 `KeyAction::Video*` 面）──
     // 命名用 `video.` 前缀而不是塞进 `reader.`：`InputContext::Video` 的优先级
     // 高于 `reader`，前缀一致才能让人一眼看出这条动作在哪个上下文里生效。
-    pub const VIDEO_TOGGLE_PLAY: &str = "video.toggle-play";
+    pub const VIDEO_PLAY_PAUSE: &str = "video.play-pause";
     pub const VIDEO_SEEK_BACKWARD: &str = "video.seek-backward";
     pub const VIDEO_SEEK_FORWARD: &str = "video.seek-forward";
     pub const VIDEO_SEEK_MODE_TOGGLE: &str = "video.seek-mode-toggle";
@@ -281,7 +281,7 @@ pub mod action {
     pub const VIDEO_FRAME_STEP_BACK: &str = "video.frame-step-back";
     pub const VIDEO_SPEED_UP: &str = "video.speed-up";
     pub const VIDEO_SPEED_DOWN: &str = "video.speed-down";
-    pub const VIDEO_SPEED_RESET: &str = "video.speed-reset";
+    pub const VIDEO_TOGGLE_SPEED: &str = "video.toggle-speed";
     pub const VIDEO_VOLUME_UP: &str = "video.volume-up";
     pub const VIDEO_VOLUME_DOWN: &str = "video.volume-down";
     pub const VIDEO_TOGGLE_MUTE: &str = "video.toggle-mute";
@@ -378,7 +378,7 @@ pub const ACTION_CATALOG: [ActionDefinition; 45] = [
         true
     ),
     action_def!(
-        action::VIDEO_TOGGLE_PLAY,
+        action::VIDEO_PLAY_PAUSE,
         "视频：播放/暂停",
         ActionCategory::View,
         true
@@ -426,8 +426,8 @@ pub const ACTION_CATALOG: [ActionDefinition; 45] = [
         true
     ),
     action_def!(
-        action::VIDEO_SPEED_RESET,
-        "视频：恢复常速",
+        action::VIDEO_TOGGLE_SPEED,
+        "视频：切换倍速",
         ActionCategory::View,
         true
     ),
