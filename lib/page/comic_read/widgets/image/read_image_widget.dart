@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_read/comic_read.dart';
+import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
@@ -101,7 +102,7 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
             resolveDirectPath: () => source.getPageFilePath(localIndex),
             readBytes: () => source.getPageBytes(localIndex),
           ),
-          labels: defaultVideoLabels,
+          labels: videoLabels(),
           active: isActive,
           settings: VideoPageSettings(
             autoplay: settings.autoPlay,
@@ -179,6 +180,9 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
                       source: source,
                       index: localIndex,
                       presenter: presenter,
+                      onIntrinsicSize: (size) => context
+                          .read<ImageSizeCubit>()
+                          .updateIntrinsicSize(cacheIndex, size),
                     )
                   else
                     placeholder(

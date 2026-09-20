@@ -19,7 +19,9 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/video/controller/reader_video_controller.dart';
+import 'package:zephyr/video/controller/video_action_dispatch.dart';
 import 'package:zephyr/video/controller/video_transport.dart';
 import 'package:zephyr/video/service/video_frame_preview.dart';
 import 'package:zephyr/video/subtitle/video_subtitle.dart';
@@ -340,13 +342,45 @@ Comment: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,不该出现
       );
       expect(vtt, contains('前半,后半'));
     });
+
+    test('.sub（MicroDVD）按帧号换算，竖线是换行', () {
+      final vtt = convertSubtitlesToWebVtt(
+        '#V2.00\n{24}{48}你好\n{72}{96}第一行|第二行\n',
+        format: 'sub',
+        fps: 24,
+      );
+      // 24/24 = 1.0 s，48/24 = 2.0 s
+      expect(vtt, contains('00:00:01.000 --> 00:00:02.000'));
+      expect(vtt, contains('你好'));
+      expect(vtt, contains('第一行\n第二行'));
+      expect(vtt, isNot(contains('#V2.00')));
+    });
+
+    test('.sub 里一条都没有时不产出可用字幕（宁可不挂）', () {
+      final vtt = convertSubtitlesToWebVtt(
+        '#V2.00\n这一行根本不合格式\n',
+        format: 'sub',
+      );
+      expect(vtt.contains('-->'), isFalse);
+    });
+
+    test('.sub 的帧号倒挂时跳过该条', () {
+      final vtt = convertSubtitlesToWebVtt(
+        '{100}{50}倒挂\n{10}{20}正常\n',
+        format: 'sub',
+        fps: 10,
+      );
+      expect(vtt, isNot(contains('倒挂')));
+      expect(vtt, contains('正常'));
+    });
+
   });
 
   group('抽帧缓存（mimage thumbnail.rs 的容差最近帧）', () {
     test('键量化到 0.5 秒，鼠标蹭同一片区域命中同一格', () {
       expect(
-        VideoFrameCache.quantizeNanos(const Duration(milliseconds: 1200)),
-        VideoFrameCache.quantizeNanos(const Duration(milliseconds: 1400)),
+        VideoFrameCache.quantizeMicros(const Duration(milliseconds: 1200)),
+        VideoFrameCache.quantizeMicros(const Duration(milliseconds: 1400)),
       );
     });
 
@@ -515,11 +549,287 @@ Comment: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,不该出现
     });
   });
 
+  group('注册表跨语言一致性', () {
+    /// 动作 id 在 Rust 注册表与 Dart 执行体两边各有一份字面量，漂移的症状不是编译失败，
+    /// 而是「设置页里能看到这条动作、绑了键却永远什么都不发生」。这次改名
+    /// （`video.toggle-play` → `video.play-pause` 等）正是靠这条断言兜住的。
+    test('Dart 侧的 video 动作 id 必须逐条出现在 Rust 注册表里', () {
+      final vocab = File(
+        'rust/local_core/src/operation_binding/vocabulary.rs',
+      ).readAsStringSync();
+      expect(kVideoActionIds.toSet().length, kVideoActionIds.length,
+          reason: 'Dart 侧不许重复登记');
+      for (final id in kVideoActionIds) {
+        expect(id.startsWith('video.'), isTrue, reason: '前缀要跟 context 一致');
+        expect(
+          vocab,
+          contains('"$id"'),
+          reason: 'Rust 注册表里没有这条：设置页列不出来，或列出来了但解析不到执行体',
+        );
+      }
+    });
+
+    test('注册表里的每条 video 动作在 Dart 都有登记（双向）', () {
+      final vocab = File(
+        'rust/local_core/src/operation_binding/vocabulary.rs',
+      ).readAsStringSync();
+      final registered = RegExp(r'"(video\.[a-z-]+)"')
+          .allMatches(vocab)
+          .map((m) => m.group(1)!)
+          .toSet();
+      expect(
+        registered.difference(kVideoActionIds.toSet()),
+        isEmpty,
+        reason: 'Rust 登记了、Dart 不认：这条动作会被静默吞掉',
+      );
+      expect(registered.length, kVideoActionIds.length);
+    });
+  });
+
+
+  group('视频文案的 i18n', () {
+    // 用异步的 build()：en 的翻译库是懒加载的（生成码里 build() 会先
+    // `await l_en_US.loadLibrary()`），buildSync() 在没加载过的进程里会炸。
+    test('中英两套都有完整覆盖，且不是同一份中文兜底', () async {
+      final zh = await AppLocale.zhCn.build();
+      final en = await AppLocale.enUs.build();
+      final zhLabels = <String, String>{
+        'play': zh.video.play,
+        'pause': zh.video.pause,
+        'seekMode': zh.video.seekMode,
+        'hwDecode': zh.video.hwDecode,
+        'animatedVideo': zh.video.animatedVideo,
+      };
+      final enLabels = <String, String>{
+        'play': en.video.play,
+        'pause': en.video.pause,
+        'seekMode': en.video.seekMode,
+        'hwDecode': en.video.hwDecode,
+        'animatedVideo': en.video.animatedVideo,
+      };
+      for (final entry in enLabels.entries) {
+        expect(entry.value.trim().isNotEmpty, isTrue, reason: '${entry.key} 缺英文');
+        expect(
+          entry.value == zhLabels[entry.key],
+          isFalse,
+          reason: '${entry.key} 英文与中文相同：多半是没翻，只是把中文复制过去',
+        );
+      }
+      expect(zh.video.muted.contains('静音'), isTrue);
+    });
+  });
+
   group('SAR 归一化（mimage normalize_sar）', () {
     test('非法值退回 1:1，合法值约分', () {
       expect(VideoMetadata.normalizeSar(0, 0), (1, 1));
       expect(VideoMetadata.normalizeSar(-3, 4), (1, 1));
       expect(VideoMetadata.normalizeSar(1920, 1080), (16, 9));
+    });
+  });
+
+  group('动作派发：每条注册过的视频动作都要接到执行器', () {
+    // 判据表按 id 给；**表里没有这条 id 就失败**。理由是这类缺陷的形状：
+    // 注册表里加了动作、派发器却走进 default 分支 —— 用户看到的是「按了没反应」，
+    // 而键还被吃掉（跨语言那组测试只核对 id 集合对不对，问不出有没有执行器）。
+    final judges =
+      <String, void Function(_FakeTransport, ReaderVideoController, bool)>{
+      // 控制器按当前相位选 play/pause（不是无条件 playOrPause），
+      // 所以这里认「四条里任一」而不是钉某一条。
+      BindingVideoAction.playPause: (t, c, n) => expect(
+        t.commands.any(
+          (x) => x == 'play' || x == 'pause' || x == 'toggle' || x.startsWith('playing='),
+        ),
+        isTrue,
+      ),
+      BindingVideoAction.seekBackward: (t, c, n) =>
+          expect(t.commands, contains('rel=-10s')),
+      BindingVideoAction.seekForward: (t, c, n) =>
+          expect(t.commands, contains('rel=10s')),
+      BindingVideoAction.seekModeToggle: (t, c, n) =>
+          expect(c.snapshot.seekMode, isTrue),
+      BindingVideoAction.frameStep: (t, c, n) =>
+          expect(t.commands, contains('frame=1')),
+      BindingVideoAction.frameStepBack: (t, c, n) =>
+          expect(t.commands, contains('frame=-1')),
+      BindingVideoAction.speedUp: (t, c, n) =>
+          expect(t.commands, contains('rate=1.25')),
+      BindingVideoAction.speedDown: (t, c, n) =>
+          expect(t.commands, contains('rate=0.75')),
+      BindingVideoAction.toggleSpeed: (t, c, n) => expect(
+        t.commands.where((x) => x.startsWith('rate=')),
+        isNotEmpty,
+      ),
+      BindingVideoAction.volumeUp: (t, c, n) =>
+          expect(t.commands.any((x) => x.startsWith('vol=')), isTrue),
+      BindingVideoAction.volumeDown: (t, c, n) =>
+          expect(t.commands.any((x) => x.startsWith('vol=')), isTrue),
+      BindingVideoAction.toggleMute: (t, c, n) =>
+          expect(t.commands.any((x) => x.startsWith('mute=')), isTrue),
+      BindingVideoAction.cycleLoop: (t, c, n) =>
+          expect(c.snapshot.loopMode, ReaderVideoLoopMode.single),
+      // 第一跳只把 A 记在控制器里（B 要等位置往前走），所以这里认「快照通知过」；
+      // 三段语义本身在状态机那组测试里逐条钉过，这里是「接没接到执行器」。
+      BindingVideoAction.abLoopTap: (t, c, n) =>
+          expect(n, isTrue, reason: '打点要刷新快照'),
+      BindingVideoAction.abLoopClear: (t, c, n) =>
+          expect(t.commands, contains('ab=off')),
+      BindingVideoAction.toggleSubtitle: (t, c, n) =>
+          expect(t.commands, contains('subTrack=1')),
+      BindingVideoAction.subtitleDelayUp: (t, c, n) =>
+          expect(t.commands, contains('subDelay=250ms')),
+      BindingVideoAction.subtitleDelayDown: (t, c, n) =>
+          expect(t.commands, contains('subDelay=-250ms')),
+      BindingVideoAction.toggleAudioOnly: (t, c, n) =>
+          expect(t.commands, contains('video=false')),
+      BindingVideoAction.nextChapter: (t, c, n) =>
+          expect(t.commands, contains('chapter=1')),
+      BindingVideoAction.previousChapter: (t, c, n) =>
+          expect(t.commands, contains('chapter=-1')),
+      // 这两条的效果长在页面上，派发器把它们广播给页面执行 —— 收到就算接到。
+      BindingVideoAction.toggleControls: (t, c, n) {},
+      BindingVideoAction.toggleFullscreen: (t, c, n) {},
+      // 截图要往应用目录落盘（那条路径由 App 侧给出，纯测试到不了），
+      // 所以这里只保证派发不抛、且不吃键；真正的落盘由 mpv 探针 ③ 覆盖。
+      BindingVideoAction.screenshot: (t, c, n) {},
+    };
+
+    // 下面这条只是集合检查；单独写一条是为了让「漏了判据」在失败报告里显眼。
+    test('每条 id 都有判据（漏了就是在注册表里挂了个没人执行的动作）', () {
+      expect(
+        kVideoActionIds.where((id) => !judges.containsKey(id)).toList(),
+        isEmpty,
+      );
+      expect(judges.length, kVideoActionIds.length);
+    });
+
+    test('逐条派发：接到执行器，且没有活动视频时一条都不吃', () async {
+      final scope = ActiveVideoScope.instance;
+      for (final id in kVideoActionIds) {
+        final transport = _FakeTransport(
+          duration: const Duration(seconds: 120),
+          chapters: const <VideoChapter>[
+            VideoChapter(index: 0, title: 'a', at: Duration.zero),
+            VideoChapter(index: 1, title: 'b', at: Duration(seconds: 60)),
+          ],
+        )..subs = const <VideoMediaTrack>[
+            VideoMediaTrack(id: '1', title: 'zh'),
+            VideoMediaTrack(id: '2', title: 'en'),
+          ];
+        final controller = ReaderVideoController(
+          host: _NullHost(),
+          progressKey: 'k',
+          transport: transport,
+        );
+        await controller.attach(transport);
+        var notified = false;
+        controller.addListener(() => notified = true);
+        // 每条动作都在「刚起播」的干净状态下派发：延迟与轮切下标是片内状态。
+        resetVideoSubtitleActionState();
+        scope.claim(controller);
+        final ui = <String>[];
+        final sub = scope.uiActions.listen(ui.add);
+        // 截图那条内部是 unawaited 的异步落盘，测试 VM 里没有应用目录：
+        // 用独立 zone 兜住，免得把无关的插件缺失算成派发的失败。
+        var handled = false;
+        runZonedGuarded(() {
+          handled = dispatchVideoAction(id);
+        }, (e, s) {});
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+        expect(handled, isTrue, reason: '$id 该被视频侧吃掉');
+        judges[id]!(transport, controller, notified);
+        if (id == BindingVideoAction.toggleControls ||
+            id == BindingVideoAction.toggleFullscreen) {
+          expect(ui, contains(id), reason: '$id 该广播给页面');
+        }
+        // 释放之后再派一次：没有目标时必须把键交回去，而不是凭空吞掉。
+        scope.release(controller);
+        expect(dispatchVideoAction(id), isFalse, reason: '$id 不该在无目标时吃键');
+        await sub.cancel();
+        controller.dispose();
+      }
+    }, timeout: const Timeout(Duration(minutes: 2)));
+
+    test('暂停态按 ±10 s / 逐帧，时间标签要立刻跟着走（真机上位置流这时不发）', () async {
+      final transport = _FakeTransport(duration: const Duration(seconds: 120));
+      final controller = ReaderVideoController(
+        host: _NullHost(),
+        progressKey: 'k',
+        transport: transport,
+      );
+      await controller.attach(transport);
+      // 这个假实现**从不发**位置事件 —— 正是暂停态的真形状：只等事件，标签就不动。
+      await controller.seekRelative(const Duration(seconds: 10));
+      expect(controller.snapshot.currentTime, const Duration(seconds: 10));
+      await controller.seekRelative(const Duration(seconds: -30));
+      expect(
+        controller.snapshot.currentTime,
+        Duration.zero,
+        reason: '越过起点要贴到 0（clampedToStart）',
+      );
+      await controller.seekRelative(const Duration(seconds: 500));
+      expect(
+        controller.snapshot.currentTime,
+        const Duration(seconds: 120),
+        reason: '越过终点要贴到末尾（clampedToEnd）',
+      );
+
+      // 逐帧：有帧率时按 1/fps 回填，不等引擎回报。
+      final fps = _FakeTransport(
+        duration: const Duration(seconds: 120),
+      )..fpsForStep = 25.0;
+      final stepped = ReaderVideoController(
+        host: _NullHost(),
+        progressKey: 'k',
+        transport: fps,
+      );
+      await stepped.attach(fps);
+      await stepped.seek(const Duration(seconds: 10));
+      await stepped.stepFrame(1);
+      expect(
+        stepped.snapshot.currentTime.inMilliseconds,
+        closeTo(10040, 60),
+        reason: '25 fps 下走一帧该到 10.04 s',
+      );
+      await stepped.stepFrame(-1);
+      expect(
+        stepped.snapshot.currentTime.inMilliseconds,
+        closeTo(10000, 60),
+        reason: '退一帧要回得来',
+      );
+      stepped.dispose();
+      controller.dispose();
+    });
+
+    test('字幕延迟不跨片残留（换一本从 0 开始）', () async {
+      final transport = _FakeTransport(duration: const Duration(seconds: 100));
+      final controller = ReaderVideoController(
+        host: _NullHost(),
+        progressKey: 'k',
+        transport: transport,
+      );
+      await controller.attach(transport);
+      ActiveVideoScope.instance.claim(controller);
+      addTearDown(() {
+        ActiveVideoScope.instance.release(controller);
+        controller.dispose();
+      });
+      resetVideoSubtitleActionState();
+
+      dispatchVideoAction(BindingVideoAction.subtitleDelayUp);
+      dispatchVideoAction(BindingVideoAction.subtitleDelayUp);
+      await Future<void>.delayed(Duration.zero);
+      expect(transport.commands, contains('subDelay=500ms'));
+
+      // 模拟换片起播：VideoPageSurface._start 里就是这么调的。
+      resetVideoSubtitleActionState();
+      dispatchVideoAction(BindingVideoAction.subtitleDelayUp);
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        transport.commands.last,
+        'subDelay=250ms',
+        reason: '上一本调出来的延迟不该跟到这一本',
+      );
     });
   });
 
@@ -621,17 +931,24 @@ class _FakeTransport implements VideoTransport {
   @override
   Stream<VideoEnginePhase> get phaseStream => _phase.stream;
 
+  /// 逐帧回填要按 1/fps 算，所以 metadata 里得能给出帧率。
+  double? fpsForStep;
   @override
-  VideoMetadata get metadata =>
-      VideoMetadata(duration: duration, chapters: chapters);
+  VideoMetadata get metadata => VideoMetadata(
+    duration: duration,
+    chapters: chapters,
+    frameRate: fpsForStep,
+  );
   @override
-  Duration get position => Duration.zero;
+  Duration get position => _pos;
   @override
   bool get isSeeking => false;
   @override
   String? get failureReason => null;
+  /// 可写：动作派发那条测试要有「容器里已经有两条字幕」的可观察条件。
+  List<VideoMediaTrack> subs = const <VideoMediaTrack>[];
   @override
-  List<VideoMediaTrack> get subtitleTracks => const <VideoMediaTrack>[];
+  List<VideoMediaTrack> get subtitleTracks => subs;
   @override
   List<VideoMediaTrack> get audioTracks => const <VideoMediaTrack>[];
 
@@ -647,13 +964,30 @@ class _FakeTransport implements VideoTransport {
   Future<void> playOrPause() async => commands.add('toggle');
   @override
   Future<void> setPlaying(bool playing) async => commands.add('playing=$playing');
+  /// 真位置：会跟着 seek 走，且按端点夹住 —— 「越界返回哪种 outcome」
+  /// 是 mimage 边界规则的要点，只会返回 applied 的假实现验不出这些分支。
+  Duration _pos = Duration.zero;
   @override
-  Future<void> seek(Duration to) async => commands.add('seek=${to.inSeconds}s');
+  Future<void> seek(Duration to) async {
+    _pos = to;
+    commands.add('seek=${to.inSeconds}s');
+  }
+
   @override
   Future<void> seekPaused(Duration to) async => seek(to);
   @override
   Future<RelativeSeekOutcome> seekRelative(Duration delta) async {
     commands.add('rel=${delta.inSeconds}s');
+    final next = _pos + delta;
+    if (next < Duration.zero) {
+      _pos = Duration.zero;
+      return RelativeSeekOutcome.clampedToStart;
+    }
+    if (next > duration) {
+      _pos = duration;
+      return RelativeSeekOutcome.clampedToEnd;
+    }
+    _pos = next;
     return RelativeSeekOutcome.applied;
   }
 
@@ -683,15 +1017,18 @@ class _FakeTransport implements VideoTransport {
   @override
   Future<void> setSubtitleStyle(VideoSubtitleStyle style) async {}
   @override
-  Future<void> setSubtitleDelay(Duration delay) async {}
+  Future<void> setSubtitleDelay(Duration delay) async =>
+      commands.add('subDelay=${delay.inMilliseconds}ms');
   @override
-  Future<void> selectSubtitleTrack(String? id) async {}
+  Future<void> selectSubtitleTrack(String? id) async =>
+      commands.add('subTrack=$id');
   @override
   Future<void> selectAudioTrack(String? id) async {}
   @override
   Future<void> addSubtitleFile(String path) async {}
   @override
-  Future<void> setVideoEnabled(bool enabled) async {}
+  Future<void> setVideoEnabled(bool enabled) async =>
+      commands.add('video=$enabled');
   /// 可写：预览提供器要在「播放中」时故意不去抢位置，测试要能切换它。
   @override
   bool isPlaying = false;

@@ -14,6 +14,7 @@ import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/video/model/animated_video_mode.dart';
 import 'package:zephyr/video/model/video_media_kind.dart';
 import 'package:zephyr/video/service/video_poster_service.dart';
+import 'package:zephyr/video/service/video_waveform_service.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
 
 export 'package:zephyr/util/path_util.dart'
@@ -55,6 +56,11 @@ class LocalReadSession {
     _currentSource = null;
     _presenter?.dispose();
     _presenter = null;
+    // 视频侧的两份缓存跟着会话一起收：海报服务里挂着一个 mpv 实例
+    // （它只有 60 s 空闲定时器兜底），波形列的键是**物化后的临时路径**，
+    // 退出阅读后那些路径必然失效，留着条目只是占着 24 格名额。
+    await VideoPosterService.instance.shutdown();
+    VideoWaveformService.instance.clearCache();
   }
 }
 

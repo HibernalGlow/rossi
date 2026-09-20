@@ -80,6 +80,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$update$zh_CN update = Translations$update$zh_CN.internal(_root);
 	late final Translations$dialog$zh_CN dialog = Translations$dialog$zh_CN.internal(_root);
 	late final Translations$shelfMenu$zh_CN shelfMenu = Translations$shelfMenu$zh_CN.internal(_root);
+	late final Translations$video$zh_CN video = Translations$video$zh_CN.internal(_root);
 }
 
 // Path: common
@@ -4969,6 +4970,228 @@ class Translations$shelfMenu$zh_CN {
 	String removeHistoryConfirmBody({required Object title}) => '「${title}」将从阅读历史中移除，源文件不会被删除。';
 }
 
+// Path: video
+class Translations$video$zh_CN {
+	Translations$video$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '播放'
+	String get play => '播放';
+
+	/// zh-CN: '暂停'
+	String get pause => '暂停';
+
+	/// zh-CN: '后退 10 秒'
+	String get backward => '后退 10 秒';
+
+	/// zh-CN: '前进 10 秒'
+	String get forward => '前进 10 秒';
+
+	/// zh-CN: '循环：接下一页'
+	String get loop => '循环：接下一页';
+
+	/// zh-CN: '循环：本页重复'
+	String get loopSingle => '循环：本页重复';
+
+	/// zh-CN: '循环：关闭'
+	String get loopOff => '循环：关闭';
+
+	/// zh-CN: '倍速'
+	String get speed => '倍速';
+
+	/// zh-CN: '音量'
+	String get volume => '音量';
+
+	/// zh-CN: '已静音'
+	String get muted => '已静音';
+
+	/// zh-CN: '字幕'
+	String get subtitles => '字幕';
+
+	/// zh-CN: '关闭字幕'
+	String get subtitleOff => '关闭字幕';
+
+	/// zh-CN: '音轨'
+	String get audio => '音轨';
+
+	/// zh-CN: '关闭音轨'
+	String get audioOff => '关闭音轨';
+
+	/// zh-CN: '滤镜'
+	String get filters => '滤镜';
+
+	/// zh-CN: '重置滤镜'
+	String get resetFilters => '重置滤镜';
+
+	/// zh-CN: '亮度'
+	String get brightness => '亮度';
+
+	/// zh-CN: '对比度'
+	String get contrast => '对比度';
+
+	/// zh-CN: '饱和度'
+	String get saturation => '饱和度';
+
+	/// zh-CN: 'A-B 循环'
+	String get abLoop => 'A-B 循环';
+
+	/// zh-CN: '清除 A-B'
+	String get abClear => '清除 A-B';
+
+	/// zh-CN: '截图'
+	String get screenshot => '截图';
+
+	/// zh-CN: '只听声音'
+	String get audioOnly => '只听声音';
+
+	/// zh-CN: '快进档（翻页改成跳转）'
+	String get seekMode => '快进档（翻页改成跳转）';
+
+	/// zh-CN: '全屏'
+	String get fullscreen => '全屏';
+
+	/// zh-CN: '钉住控制条'
+	String get pin => '钉住控制条';
+
+	/// zh-CN: '信息'
+	String get info => '信息';
+
+	/// zh-CN: '下一帧'
+	String get frameStepForward => '下一帧';
+
+	/// zh-CN: '上一帧'
+	String get frameStepBackward => '上一帧';
+
+	/// zh-CN: '画中画'
+	String get pip => '画中画';
+
+	/// zh-CN: '视频播放'
+	String get settingsSection => '视频播放';
+
+	/// zh-CN: '自动播放'
+	String get autoPlay => '自动播放';
+
+	/// zh-CN: '翻到视频页就开始播放'
+	String get autoPlayDesc => '翻到视频页就开始播放';
+
+	/// zh-CN: '硬件解码'
+	String get hwDecode => '硬件解码';
+
+	/// zh-CN: '关闭可排查花屏与绿屏，代价是 CPU 占用上升'
+	String get hwDecodeDesc => '关闭可排查花屏与绿屏，代价是 CPU 占用上升';
+
+	/// zh-CN: '去隔行'
+	String get deinterlace => '去隔行';
+
+	/// zh-CN: '老录像带 / DVD 抓取源有横向梳状纹时打开'
+	String get deinterlaceDesc => '老录像带 / DVD 抓取源有横向梳状纹时打开';
+
+	/// zh-CN: '控制条常显，不再在播放几秒后自动收起'
+	String get pinDesc => '控制条常显，不再在播放几秒后自动收起';
+
+	/// zh-CN: '动图当视频播'
+	String get animatedVideo => '动图当视频播';
+
+	/// zh-CN: '把 GIF / APNG 交给视频控制器，获得暂停、逐帧与进度拖动'
+	String get animatedVideoDesc => '把 GIF / APNG 交给视频控制器，获得暂停、逐帧与进度拖动';
+
+	/// zh-CN: '控制条自动隐藏'
+	String get autoHide => '控制条自动隐藏';
+
+	/// zh-CN: '倍速上限'
+	String get maxRate => '倍速上限';
+
+	/// zh-CN: '默认音量'
+	String get defaultVolume => '默认音量';
+
+	/// zh-CN: '自定义视频后缀'
+	String get aliases => '自定义视频后缀';
+
+	/// zh-CN: '未设置'
+	String get aliasesEmpty => '未设置';
+
+	/// zh-CN: '逗号分隔，例如：myvid, cbr-video'
+	String get aliasesHint => '逗号分隔，例如：myvid, cbr-video';
+
+	/// zh-CN: '输入后按逗号分隔；小写、最多 128 条、每条最长 16 字符'
+	String get aliasesDialogHint => '输入后按逗号分隔；小写、最多 128 条、每条最长 16 字符';
+
+	/// zh-CN: '字号'
+	String get subSize => '字号';
+
+	/// zh-CN: '底色'
+	String get subBg => '底色';
+
+	/// zh-CN: '底部位置'
+	String get subBottom => '底部位置';
+
+	/// zh-CN: '大号黄色'
+	String get subLargeYellow => '大号黄色';
+
+	/// zh-CN: '重置'
+	String get reset => '重置';
+
+	/// zh-CN: '时长'
+	String get duration => '时长';
+
+	/// zh-CN: '当前'
+	String get position => '当前';
+
+	/// zh-CN: '尺寸'
+	String get size => '尺寸';
+
+	/// zh-CN: '显示宽高比'
+	String get dar => '显示宽高比';
+
+	/// zh-CN: '帧率'
+	String get fps => '帧率';
+
+	/// zh-CN: '码率'
+	String get bitrate => '码率';
+
+	/// zh-CN: '视频编码'
+	String get videoCodec => '视频编码';
+
+	/// zh-CN: '音频编码'
+	String get audioCodec => '音频编码';
+
+	/// zh-CN: '音画漂移'
+	String get avDrift => '音画漂移';
+
+	/// zh-CN: '循环'
+	String get loopMode => '循环';
+
+	/// zh-CN: '倍速'
+	String get playbackRate => '倍速';
+
+	/// zh-CN: 'A-B'
+	String get abRange => 'A-B';
+
+	/// zh-CN: '外挂字幕'
+	String get sidecarSubtitles => '外挂字幕';
+
+	/// zh-CN: '—'
+	String get notAvailable => '—';
+
+	/// zh-CN: '这个视频条目取不到字节'
+	String get noBytes => '这个视频条目取不到字节';
+
+	/// zh-CN: '这一页播不了'
+	String get cannotPlay => '这一页播不了';
+
+	/// zh-CN: '动画化关键字'
+	String get animatedKeywords => '动画化关键字';
+
+	/// zh-CN: '逗号分隔，例如：[#dyna], [#动]'
+	String get animatedKeywordsHint => '逗号分隔，例如：[#dyna], [#动]';
+
+	/// zh-CN: '旋转'
+	String get rotation => '旋转';
+}
+
 /// The flat map containing all translations for locale <zh-CN>.
 /// Only for edge cases! For simple maps, use the map function of this library.
 ///
@@ -6506,6 +6729,79 @@ extension on Translations {
 			'shelfMenu.removeFavoriteConfirmBody' => ({required Object title}) => '「${title}」将从收藏库移除，源文件与阅读记录不受影响。',
 			'shelfMenu.removeHistoryConfirmTitle' => '移除历史记录？',
 			'shelfMenu.removeHistoryConfirmBody' => ({required Object title}) => '「${title}」将从阅读历史中移除，源文件不会被删除。',
+			'video.play' => '播放',
+			'video.pause' => '暂停',
+			'video.backward' => '后退 10 秒',
+			'video.forward' => '前进 10 秒',
+			'video.loop' => '循环：接下一页',
+			'video.loopSingle' => '循环：本页重复',
+			'video.loopOff' => '循环：关闭',
+			'video.speed' => '倍速',
+			'video.volume' => '音量',
+			'video.muted' => '已静音',
+			'video.subtitles' => '字幕',
+			_ => null,
+		} ?? switch (path) {
+			'video.subtitleOff' => '关闭字幕',
+			'video.audio' => '音轨',
+			'video.audioOff' => '关闭音轨',
+			'video.filters' => '滤镜',
+			'video.resetFilters' => '重置滤镜',
+			'video.brightness' => '亮度',
+			'video.contrast' => '对比度',
+			'video.saturation' => '饱和度',
+			'video.abLoop' => 'A-B 循环',
+			'video.abClear' => '清除 A-B',
+			'video.screenshot' => '截图',
+			'video.audioOnly' => '只听声音',
+			'video.seekMode' => '快进档（翻页改成跳转）',
+			'video.fullscreen' => '全屏',
+			'video.pin' => '钉住控制条',
+			'video.info' => '信息',
+			'video.frameStepForward' => '下一帧',
+			'video.frameStepBackward' => '上一帧',
+			'video.pip' => '画中画',
+			'video.settingsSection' => '视频播放',
+			'video.autoPlay' => '自动播放',
+			'video.autoPlayDesc' => '翻到视频页就开始播放',
+			'video.hwDecode' => '硬件解码',
+			'video.hwDecodeDesc' => '关闭可排查花屏与绿屏，代价是 CPU 占用上升',
+			'video.deinterlace' => '去隔行',
+			'video.deinterlaceDesc' => '老录像带 / DVD 抓取源有横向梳状纹时打开',
+			'video.pinDesc' => '控制条常显，不再在播放几秒后自动收起',
+			'video.animatedVideo' => '动图当视频播',
+			'video.animatedVideoDesc' => '把 GIF / APNG 交给视频控制器，获得暂停、逐帧与进度拖动',
+			'video.autoHide' => '控制条自动隐藏',
+			'video.maxRate' => '倍速上限',
+			'video.defaultVolume' => '默认音量',
+			'video.aliases' => '自定义视频后缀',
+			'video.aliasesEmpty' => '未设置',
+			'video.aliasesHint' => '逗号分隔，例如：myvid, cbr-video',
+			'video.aliasesDialogHint' => '输入后按逗号分隔；小写、最多 128 条、每条最长 16 字符',
+			'video.subSize' => '字号',
+			'video.subBg' => '底色',
+			'video.subBottom' => '底部位置',
+			'video.subLargeYellow' => '大号黄色',
+			'video.reset' => '重置',
+			'video.duration' => '时长',
+			'video.position' => '当前',
+			'video.size' => '尺寸',
+			'video.dar' => '显示宽高比',
+			'video.fps' => '帧率',
+			'video.bitrate' => '码率',
+			'video.videoCodec' => '视频编码',
+			'video.audioCodec' => '音频编码',
+			'video.avDrift' => '音画漂移',
+			'video.loopMode' => '循环',
+			'video.playbackRate' => '倍速',
+			'video.abRange' => 'A-B',
+			'video.sidecarSubtitles' => '外挂字幕',
+			'video.notAvailable' => '—',
+			'video.noBytes' => '这个视频条目取不到字节',
+			'video.cannotPlay' => '这一页播不了',
+			'video.animatedKeywords' => '动画化关键字',
+			'video.animatedKeywordsHint' => '逗号分隔，例如：[#dyna], [#动]',
+			'video.rotation' => '旋转',
 			_ => null,
 		};
 	}

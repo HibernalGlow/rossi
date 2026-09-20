@@ -264,6 +264,62 @@ mod tests {
         assert_eq!(extension_lower("no_dot"), None);
     }
 
+    /// 「一页可以是视频」这个判定就落在这两个函数上（验收 A1/E4 的根），
+    /// 所以逐条钉住。特别注意**视频不许算图片页**：错判成 true 会让视频页被
+    /// 送去解像素，症状是翻到那一页直接报解码失败。
+    #[test]
+    fn video_names_are_pages_but_not_image_pages() {
+        for name in [
+            "1.mp4", "1.MKV", "a/b.webm", "clip.mov", "x.m4v", "y.ogv", "z.flv", "w.3gp",
+        ] {
+            assert!(is_video_name(name), "{name} 该算视频条目");
+            assert!(is_page_name(name), "{name} 该算一页");
+            assert!(
+                !is_image_name(name),
+                "{name} 不该算图片页 —— 那会让它进像素解码那条路"
+            );
+        }
+        // `.nov` 是被改名的 mp4：与 Dart 侧同一张伪装后缀表，在页序阶段就算页。
+        assert!(is_video_name("cover.nov"));
+        assert!(is_page_name("cover.nov"));
+        // 不认识的既不是页也不是视频：列出来只会在翻到它时失败。
+        for name in ["1.cr2", "1.txt", "no_dot", "1.zip", "1.rar"] {
+            assert!(!is_video_name(name), "{name}");
+            assert!(!is_page_name(name), "{name}");
+        }
+    }
+
+    /// 两语言两张表的**漂移守卫**：页序在 Rust 判、「这一页是谁」在 Dart 判，
+    /// 各自一张表迟早错开 —— 症状是某一页 Rust 算它存在、Dart 说它不是视频，
+    /// 于是既不播也不出图。表头注释已经写了「两边必须一致」，这条把它变成断言。
+    #[test]
+    fn video_extension_table_matches_the_dart_side() {
+        let dart = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../lib/video/model/video_media_kind.dart");
+        let text = std::fs::read_to_string(&dart)
+            .unwrap_or_else(|e| panic!("读不到 {}：{e}", dart.display()));
+        let start = text
+            .find("const Set<String> videoExtensions")
+            .expect("Dart 侧的 videoExtensions 声明被改名了");
+        let end = text[start..]
+            .find('}')
+            .map(|i| start + i)
+            .expect("videoExtensions 没有收尾的大括号");
+        let body = &text[start..end];
+        let dart_exts: std::collections::BTreeSet<String> = body
+            .split('\'')
+            .filter(|s| !s.is_empty() && s.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit()))
+            .map(str::to_string)
+            .collect();
+        let rust_exts: std::collections::BTreeSet<String> =
+            VIDEO_EXTENSIONS.iter().map(|s| s.to_string()).collect();
+        assert_eq!(
+            rust_exts, dart_exts,
+            "Rust 的 VIDEO_EXTENSIONS 与 Dart 的 videoExtensions 不一致"
+        );
+        assert!(rust_exts.len() >= 15, "表短得不像话：{rust_exts:?}");
+    }
+
     #[test]
     fn only_decodable_extensions_count_as_pages() {
         for name in [

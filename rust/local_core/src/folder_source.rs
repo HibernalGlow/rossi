@@ -120,6 +120,7 @@ pub fn read_page(root: &Path, rel: &str) -> Result<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::page_order::{is_image_name, is_page_name, is_video_name};
     use std::fs;
 
     fn write(path: &Path, bytes: &[u8]) {
@@ -127,6 +128,30 @@ mod tests {
             fs::create_dir_all(parent).unwrap();
         }
         fs::write(path, bytes).unwrap();
+    }
+
+    /// 混着视频的文件夹：**视频必须占一页**（验收 A1/E4 的判定层）。
+    /// 漏了这一条的两种症状都很难查：页序里没有它 → 用户以为书少了页；
+    /// 或者反过来把它当图片 → 翻到那页报解码失败。
+    #[test]
+    fn mixed_folder_counts_video_as_a_page_in_order() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        write(&root.join("001.jpg"), b"x");
+        write(&root.join("002.mp4"), b"x");
+        write(&root.join("003.webm"), b"x");
+        write(&root.join("readme.txt"), b"x");
+
+        let pages = enumerate(root).unwrap();
+        let names: Vec<&str> = pages.iter().map(|p| p.name.as_str()).collect();
+        assert_eq!(names, vec!["001.jpg", "002.mp4", "003.webm"]);
+
+        // 「这一页是谁」由谓词回答，两档不能重叠：视频算页、但不算图片页。
+        let video = &pages[1];
+        assert!(is_video_name(&video.name), "{}", video.name);
+        assert!(!is_image_name(&video.name), "{} 不该算图片页", video.name);
+        assert!(is_page_name(&video.name));
+        assert!(is_image_name(pages[0].name.as_str()));
     }
 
     #[test]

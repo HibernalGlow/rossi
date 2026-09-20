@@ -11,6 +11,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/video/controller/reader_video_controller.dart';
 import 'package:zephyr/video/controller/video_transport.dart';
 import 'package:zephyr/video/model/video_media_kind.dart';
@@ -232,35 +233,36 @@ class VideoSettings {
   }
 }
 
-/// 控制条文案。
+/// 控制条文案：从 slang 取（`t.video.*`），中英文各 67 条。
 ///
-/// 先落成一份 Dart 常量表而不是 slang 键：视频 UI 有约二十条 tooltip，
-/// 逐条进 `reader.*` 命名空间会与阅读设置页的键混在一起，且要求先跑代码生成。
-/// 需要接进 i18n 时，把这张表换成 `context.t.readerVideo.*` 即可 ——
-/// 换的是**构造 `VideoLabels` 的地方**，控件本身不感知。
-const VideoLabels defaultVideoLabels = VideoLabels(
-  play: '播放',
-  pause: '暂停',
-  backward: '后退 10 秒',
-  forward: '前进 10 秒',
-  loop: '循环：接下一页',
-  loopSingle: '循环：本页重复',
-  loopOff: '循环：关闭',
-  speed: '倍速',
-  volume: '音量',
-  subtitles: '字幕',
-  subtitleOff: '关闭字幕',
-  filters: '滤镜',
-  resetFilters: '重置滤镜',
-  abLoop: 'A–B 循环',
-  abClear: '清除 A–B',
-  screenshot: '截图',
-  audioOnly: '只听声音',
-  seekMode: '快进档（翻页改成跳转）',
-  fullscreen: '全屏',
-  pin: '钉住控制条',
-  info: '信息',
-  frameStepForward: '下一帧',
-  frameStepBackward: '上一帧',
-  pip: '画中画',
+/// 做成函数而不是常量：常量会在**编译期**冻结成创建它时的那份语言，
+/// 而语言可以在运行时切换（`SystemLocaleService`）。构造点只有一处
+/// （`ReadImageWidget` 建 `VideoPageSurface` 时），所以每次建页取一次就够。
+VideoLabels videoLabels() => VideoLabels(
+  play: t.video.play,
+  pause: t.video.pause,
+  backward: t.video.backward,
+  forward: t.video.forward,
+  loop: t.video.loop,
+  loopSingle: t.video.loopSingle,
+  loopOff: t.video.loopOff,
+  speed: t.video.speed,
+  volume: t.video.volume,
+  subtitles: t.video.subtitles,
+  subtitleOff: t.video.subtitleOff,
+  filters: t.video.filters,
+  resetFilters: t.video.resetFilters,
+  abLoop: t.video.abLoop,
+  abClear: t.video.abClear,
+  screenshot: t.video.screenshot,
+  audioOnly: t.video.audioOnly,
+  seekMode: t.video.seekMode,
+  fullscreen: t.video.fullscreen,
+  pin: t.video.pin,
+  info: t.video.info,
+  frameStepForward: t.video.frameStepForward,
+  frameStepBackward: t.video.frameStepBackward,
+  pip: t.video.pip,
+  audio: t.video.audio,
+  audioOff: t.video.audioOff,
 );

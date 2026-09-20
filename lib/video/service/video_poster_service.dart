@@ -48,7 +48,7 @@ class VideoPosterService {
       <String, Future<Uint8List?>>{};
 
   Player? _player;
-  bool _busy = false;
+  Future<void> _tail = Future<void>.value();
   Timer? _idleDispose;
   int _serial = 0;
 
@@ -153,23 +153,26 @@ class VideoPosterService {
     return bytes;
   });
 
-  Future<Uint8List?> _serialize(Future<Uint8List?> Function() work) async {
-    while (_busy) {
-      await Future<void>.delayed(const Duration(milliseconds: 40));
-    }
-    _busy = true;
-    try {
-      return await work();
-    } finally {
-      _busy = false;
-      _idleDispose?.cancel();
-      // 空闲 60 s 再把 mpv 实例放掉：滚动列表是 bursts，逐张创建/销毁最浪费。
-      _idleDispose = Timer(const Duration(seconds: 60), () async {
-        final player = _player;
-        _player = null;
-        await player?.dispose();
-      });
-    }
+  /// 串行尾指针：新任务挂在最后一个后面跑。
+  ///
+  /// 之前是 `while (_busy) await delay(40ms)` —— 那既是空转轮询，又会让
+  /// 排队的第 N 个请求各自从头醒一遍；队列尾巴一次性交接才是这里要的语义。
+  Future<Uint8List?> _serialize(Future<Uint8List?> Function() work) {
+    final next = _tail.then((_) => work());
+    // 尾指针不能被上游的异常打断，否则一次失败会让后面全部排队任务永远不跑。
+    _tail = next.then<void>((_) {}, onError: (_) {});
+    unawaited(next.whenComplete(_armIdleDispose));
+    return next;
+  }
+
+  /// 空闲 60 s 再把 mpv 实例放掉：滚动列表是一批一批来的，逐张创建/销毁最浪费。
+  void _armIdleDispose() {
+    _idleDispose?.cancel();
+    _idleDispose = Timer(const Duration(seconds: 60), () async {
+      final player = _player;
+      _player = null;
+      await player?.dispose();
+    });
   }
 
   Future<Uint8List?> _captureBytes(String videoPath) async {
@@ -181,6 +184,13 @@ class VideoPosterService {
       ),
     );
     try {
+      // media_kit 起来就带 `--vid=no`（只有 `VideoController` 附着时才改回 auto），
+      // 而海报这条路上根本没有渲染面。不自己把视频轨打开的话：`videoParams` 永远不来、
+      // 截图永远 null，且整条链一声不响 —— 表现就是「视频卡片从来没有缩略图」。
+      final native = player.platform;
+      if (native is NativePlayer) {
+        await native.setProperty('vid', 'auto');
+      }
       await player.open(Media(_uri(videoPath)), play: false);
       // 等时长出现再定位：很多容器 `duration` 比第一帧晚到，
       // 直接 seek 到 500 ms 在时长未知的情况下会被吞掉。

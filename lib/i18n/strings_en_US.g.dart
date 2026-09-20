@@ -75,6 +75,7 @@ class TranslationsEnUs extends Translations with BaseTranslations<AppLocale, Tra
 	@override late final _Translations$update$en_US update = _Translations$update$en_US._(_root);
 	@override late final _Translations$dialog$en_US dialog = _Translations$dialog$en_US._(_root);
 	@override late final _Translations$shelfMenu$en_US shelfMenu = _Translations$shelfMenu$en_US._(_root);
+	@override late final _Translations$video$en_US video = _Translations$video$en_US._(_root);
 }
 
 // Path: common
@@ -1915,6 +1916,86 @@ class _Translations$shelfMenu$en_US extends Translations$shelfMenu$zh_CN {
 	@override String removeHistoryConfirmBody({required Object title}) => '“${title}” will be removed from your reading history. The files will not be deleted.';
 }
 
+// Path: video
+class _Translations$video$en_US extends Translations$video$zh_CN {
+	_Translations$video$en_US._(TranslationsEnUs root) : this._root = root, super.internal(root);
+
+	final TranslationsEnUs _root; // ignore: unused_field
+
+	// Translations
+	@override String get play => 'Play';
+	@override String get pause => 'Pause';
+	@override String get backward => 'Back 10 s';
+	@override String get forward => 'Forward 10 s';
+	@override String get loop => 'Loop: next page';
+	@override String get loopSingle => 'Loop: repeat page';
+	@override String get loopOff => 'Loop: off';
+	@override String get speed => 'Speed';
+	@override String get volume => 'Volume';
+	@override String get muted => 'Muted';
+	@override String get subtitles => 'Subtitles';
+	@override String get subtitleOff => 'No subtitles';
+	@override String get audio => 'Audio track';
+	@override String get audioOff => 'Mute track';
+	@override String get filters => 'Filters';
+	@override String get resetFilters => 'Reset filters';
+	@override String get brightness => 'Brightness';
+	@override String get contrast => 'Contrast';
+	@override String get saturation => 'Saturation';
+	@override String get abLoop => 'A-B loop';
+	@override String get abClear => 'Clear A-B';
+	@override String get screenshot => 'Screenshot';
+	@override String get audioOnly => 'Audio only';
+	@override String get seekMode => 'Seek mode (page turns seek)';
+	@override String get fullscreen => 'Fullscreen';
+	@override String get pin => 'Pin controls';
+	@override String get info => 'Info';
+	@override String get frameStepForward => 'Next frame';
+	@override String get frameStepBackward => 'Previous frame';
+	@override String get pip => 'Picture in picture';
+	@override String get settingsSection => 'Video playback';
+	@override String get autoPlay => 'Auto play';
+	@override String get autoPlayDesc => 'Start playing when a video page is reached';
+	@override String get hwDecode => 'Hardware decoding';
+	@override String get hwDecodeDesc => 'Turn off to work around green/torn frames, at the cost of CPU';
+	@override String get deinterlace => 'Deinterlace';
+	@override String get deinterlaceDesc => 'Enable for interlaced DVD / tape sources with combing';
+	@override String get pinDesc => 'Keep the control bar visible instead of hiding it after a few seconds';
+	@override String get animatedVideo => 'Play animated images as video';
+	@override String get animatedVideoDesc => 'Hand GIF / APNG to the video controller for pause, frame stepping and scrubbing';
+	@override String get autoHide => 'Auto-hide controls';
+	@override String get maxRate => 'Max playback rate';
+	@override String get defaultVolume => 'Default volume';
+	@override String get aliases => 'Custom video extensions';
+	@override String get aliasesEmpty => 'None';
+	@override String get aliasesHint => 'Comma separated, e.g. myvid, cbr-video';
+	@override String get aliasesDialogHint => 'Lowercase, at most 128 entries, at most 16 characters each';
+	@override String get subSize => 'Font size';
+	@override String get subBg => 'Background';
+	@override String get subBottom => 'Bottom offset';
+	@override String get subLargeYellow => 'Large yellow';
+	@override String get reset => 'Reset';
+	@override String get duration => 'Duration';
+	@override String get position => 'Position';
+	@override String get size => 'Size';
+	@override String get dar => 'Display aspect';
+	@override String get fps => 'Frame rate';
+	@override String get bitrate => 'Bitrate';
+	@override String get videoCodec => 'Video codec';
+	@override String get audioCodec => 'Audio codec';
+	@override String get avDrift => 'A/V drift';
+	@override String get loopMode => 'Loop';
+	@override String get playbackRate => 'Rate';
+	@override String get abRange => 'A-B';
+	@override String get sidecarSubtitles => 'External subtitles';
+	@override String get notAvailable => '—';
+	@override String get noBytes => 'No bytes available for this video page';
+	@override String get cannotPlay => 'This page cannot be played';
+	@override String get animatedKeywords => 'Motion keywords';
+	@override String get animatedKeywordsHint => 'Comma separated, e.g. [#dyna], [#motion]';
+	@override String get rotation => 'Rotation';
+}
+
 /// The flat map containing all translations for locale <en-US>.
 /// Only for edge cases! For simple maps, use the map function of this library.
 ///
@@ -3451,6 +3532,79 @@ extension on TranslationsEnUs {
 			'shelfMenu.removeFavoriteConfirmBody' => ({required Object title}) => '“${title}” will be removed from your favorites. The files and the reading history are untouched.',
 			'shelfMenu.removeHistoryConfirmTitle' => 'Remove from history?',
 			'shelfMenu.removeHistoryConfirmBody' => ({required Object title}) => '“${title}” will be removed from your reading history. The files will not be deleted.',
+			'video.play' => 'Play',
+			'video.pause' => 'Pause',
+			'video.backward' => 'Back 10 s',
+			'video.forward' => 'Forward 10 s',
+			'video.loop' => 'Loop: next page',
+			'video.loopSingle' => 'Loop: repeat page',
+			'video.loopOff' => 'Loop: off',
+			'video.speed' => 'Speed',
+			'video.volume' => 'Volume',
+			'video.muted' => 'Muted',
+			'video.subtitles' => 'Subtitles',
+			'video.subtitleOff' => 'No subtitles',
+			_ => null,
+		} ?? switch (path) {
+			'video.audio' => 'Audio track',
+			'video.audioOff' => 'Mute track',
+			'video.filters' => 'Filters',
+			'video.resetFilters' => 'Reset filters',
+			'video.brightness' => 'Brightness',
+			'video.contrast' => 'Contrast',
+			'video.saturation' => 'Saturation',
+			'video.abLoop' => 'A-B loop',
+			'video.abClear' => 'Clear A-B',
+			'video.screenshot' => 'Screenshot',
+			'video.audioOnly' => 'Audio only',
+			'video.seekMode' => 'Seek mode (page turns seek)',
+			'video.fullscreen' => 'Fullscreen',
+			'video.pin' => 'Pin controls',
+			'video.info' => 'Info',
+			'video.frameStepForward' => 'Next frame',
+			'video.frameStepBackward' => 'Previous frame',
+			'video.pip' => 'Picture in picture',
+			'video.settingsSection' => 'Video playback',
+			'video.autoPlay' => 'Auto play',
+			'video.autoPlayDesc' => 'Start playing when a video page is reached',
+			'video.hwDecode' => 'Hardware decoding',
+			'video.hwDecodeDesc' => 'Turn off to work around green/torn frames, at the cost of CPU',
+			'video.deinterlace' => 'Deinterlace',
+			'video.deinterlaceDesc' => 'Enable for interlaced DVD / tape sources with combing',
+			'video.pinDesc' => 'Keep the control bar visible instead of hiding it after a few seconds',
+			'video.animatedVideo' => 'Play animated images as video',
+			'video.animatedVideoDesc' => 'Hand GIF / APNG to the video controller for pause, frame stepping and scrubbing',
+			'video.autoHide' => 'Auto-hide controls',
+			'video.maxRate' => 'Max playback rate',
+			'video.defaultVolume' => 'Default volume',
+			'video.aliases' => 'Custom video extensions',
+			'video.aliasesEmpty' => 'None',
+			'video.aliasesHint' => 'Comma separated, e.g. myvid, cbr-video',
+			'video.aliasesDialogHint' => 'Lowercase, at most 128 entries, at most 16 characters each',
+			'video.subSize' => 'Font size',
+			'video.subBg' => 'Background',
+			'video.subBottom' => 'Bottom offset',
+			'video.subLargeYellow' => 'Large yellow',
+			'video.reset' => 'Reset',
+			'video.duration' => 'Duration',
+			'video.position' => 'Position',
+			'video.size' => 'Size',
+			'video.dar' => 'Display aspect',
+			'video.fps' => 'Frame rate',
+			'video.bitrate' => 'Bitrate',
+			'video.videoCodec' => 'Video codec',
+			'video.audioCodec' => 'Audio codec',
+			'video.avDrift' => 'A/V drift',
+			'video.loopMode' => 'Loop',
+			'video.playbackRate' => 'Rate',
+			'video.abRange' => 'A-B',
+			'video.sidecarSubtitles' => 'External subtitles',
+			'video.notAvailable' => '—',
+			'video.noBytes' => 'No bytes available for this video page',
+			'video.cannotPlay' => 'This page cannot be played',
+			'video.animatedKeywords' => 'Motion keywords',
+			'video.animatedKeywordsHint' => 'Comma separated, e.g. [#dyna], [#motion]',
+			'video.rotation' => 'Rotation',
 			_ => null,
 		};
 	}

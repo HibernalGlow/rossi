@@ -75,45 +75,58 @@ class _VideoSectionState extends State<_VideoSection> {
   @override
   Widget build(BuildContext context) {
     return _SettingsSection(
-      title: '视频播放',
+      title: t.video.settingsSection,
       children: [
         _SettingsSwitchTile(
-          title: '自动播放',
-          subtitle: '翻到视频页就开始播放',
+          title: t.video.autoPlay,
+          subtitle: t.video.autoPlayDesc,
           value: _settings.autoPlay,
           onChanged: (value) => _write(_copy(autoPlay: value)),
         ),
         _SettingsSwitchTile(
-          title: '硬件解码',
-          subtitle: '关闭可排查花屏与绿屏，代价是 CPU 占用上升',
+          title: t.video.hwDecode,
+          subtitle: t.video.hwDecodeDesc,
           value: _settings.hardwareDecode,
           onChanged: (value) => _write(_copy(hardwareDecode: value)),
         ),
         _SettingsSwitchTile(
-          title: '去隔行',
-          subtitle: '老录像带 / DVD 抓取源有横向梳状纹时打开',
+          title: t.video.deinterlace,
+          subtitle: t.video.deinterlaceDesc,
           value: _settings.deinterlace,
           onChanged: (value) => _write(_copy(deinterlace: value)),
         ),
-        _VideoAliasTile(
-          aliases: _settings.extraVideoExtensions,
+        _VideoListTile(
+          title: t.video.aliases,
+          hint: t.video.aliasesHint,
+          dialogHint: t.video.aliasesDialogHint,
+          values: _settings.extraVideoExtensions,
+          validate: (next) =>
+              MediaKindOverrides(extraVideoExtensions: next).invalidEntries,
           onChanged: (next) => _write(_copy(extraVideoExtensions: next)),
         ),
+        if (_settings.animatedVideoEnabled)
+          _VideoListTile(
+            title: t.video.animatedKeywords,
+            hint: t.video.animatedKeywordsHint,
+            dialogHint: t.video.aliasesDialogHint,
+            values: _settings.animatedVideoKeywords,
+            onChanged: (next) => _write(_copy(animatedVideoKeywords: next)),
+          ),
         _SettingsSwitchTile(
-          title: '钉住控制条',
-          subtitle: '控制条常显，不再在播放 3 秒后自动收起',
+          title: t.video.pin,
+          subtitle: t.video.pinDesc,
           value: _settings.controlsPinned,
           onChanged: (value) => _write(_copy(controlsPinned: value)),
         ),
         _SettingsSwitchTile(
-          title: '动图当视频播',
-          subtitle: '把 GIF / APNG 交给视频控制器，获得暂停、逐帧与进度拖动',
+          title: t.video.animatedVideo,
+          subtitle: t.video.animatedVideoDesc,
           value: _settings.animatedVideoEnabled,
           onChanged: (value) => _write(_copy(animatedVideoEnabled: value)),
         ),
         if (_settings.animatedVideoEnabled)
           _SettingsSliderCard(
-            title: '控制条自动隐藏',
+            title: t.video.autoHide,
             value: _settings.autoHideMilliseconds,
             min: 1000,
             max: 10000,
@@ -122,7 +135,7 @@ class _VideoSectionState extends State<_VideoSection> {
             onChanged: (value) => _write(_copy(autoHideMilliseconds: value)),
           ),
         _SettingsSliderCard(
-          title: '倍速上限',
+          title: t.video.maxRate,
           // 倍速按 ×100 存成整数：`_SettingsSliderCard` 只吃 int，
           // 而倍速是两位小数的量（0.25 / 1.75），换算比改公共控件便宜且不牵连其他设置。
           value: (_settings.maxRate * 100).round(),
@@ -133,7 +146,7 @@ class _VideoSectionState extends State<_VideoSection> {
           onChanged: (value) => _write(_copy(maxRate: value / 100)),
         ),
         _SettingsSliderCard(
-          title: '默认音量',
+          title: t.video.defaultVolume,
           value: _settings.volumePercent,
           min: 0,
           max: 130,
@@ -155,6 +168,7 @@ class _VideoSectionState extends State<_VideoSection> {
     bool? animatedVideoEnabled,
     bool? deinterlace,
     List<String>? extraVideoExtensions,
+    List<String>? animatedVideoKeywords,
   }) => _settings.copyWith(
     controlsPinned: controlsPinned,
     hardwareDecode: hardwareDecode,
@@ -165,6 +179,7 @@ class _VideoSectionState extends State<_VideoSection> {
     animatedVideoEnabled: animatedVideoEnabled,
     deinterlace: deinterlace,
     extraVideoExtensions: extraVideoExtensions,
+    animatedVideoKeywords: animatedVideoKeywords,
   );
 }
 
@@ -172,19 +187,32 @@ class _VideoSectionState extends State<_VideoSection> {
 ///
 /// 校验直接复用 `MediaKindOverrides.invalidEntries` —— 「≤128 条 / ≤16 字符 /
 /// 不许与图片档重叠」这三条在上游是同一份规则，写两遍迟早漂移。
-class _VideoAliasTile extends StatelessWidget {
-  const _VideoAliasTile({required this.aliases, required this.onChanged});
+class _VideoListTile extends StatelessWidget {
+  const _VideoListTile({
+    required this.title,
+    required this.hint,
+    required this.dialogHint,
+    required this.values,
+    required this.onChanged,
+    this.validate,
+  });
 
-  final List<String> aliases;
+  final String title;
+  final String hint;
+  final String dialogHint;
+  final List<String> values;
   final ValueChanged<List<String>> onChanged;
+
+  /// 校验器：别名有「不许与图片后缀重叠」这类硬规则，关键字没有。
+  final List<String> Function(List<String>)? validate;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      title: const Text('自定义视频后缀'),
+      title: Text(title),
       subtitle: Text(
-        aliases.isEmpty ? '未设置' : aliases.join('、'),
+        values.isEmpty ? t.video.aliasesEmpty : values.join('、'),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
@@ -194,27 +222,27 @@ class _VideoAliasTile extends StatelessWidget {
   }
 
   Future<void> _edit(BuildContext context) async {
-    final controller = TextEditingController(text: aliases.join(', '));
+    final controller = TextEditingController(text: values.join(', '));
     final saved = await showDialog<List<String>>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('自定义视频后缀'),
+        title: Text(title),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            const Text('逗号分隔，例如：myvid, cbr-video'),
+            Text(t.video.aliasesHint),
             TextField(
               controller: controller,
               autofocus: true,
-              decoration: const InputDecoration(hintText: 'myvid, other'),
+              decoration: InputDecoration(hintText: dialogHint),
             ),
           ],
         ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('取消'),
+            child: Text(t.common.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(
@@ -224,14 +252,13 @@ class _VideoAliasTile extends StatelessWidget {
                   .map((e) => e.trim().toLowerCase())
                   .toList(growable: false),
             ),
-            child: const Text('保存'),
+            child: Text(t.common.save),
           ),
         ],
       ),
     );
     if (saved == null) return;
-    final problems =
-        MediaKindOverrides(extraVideoExtensions: saved).invalidEntries;
+    final problems = validate?.call(saved) ?? const <String>[];
     if (problems.isNotEmpty) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

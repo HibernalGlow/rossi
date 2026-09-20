@@ -10,6 +10,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/video/controller/reader_video_controller.dart';
 import 'package:zephyr/video/subtitle/video_subtitle.dart';
 import 'package:zephyr/video/view/video_control_overlay.dart';
@@ -64,7 +65,7 @@ class _VideoInfoSheetState extends State<_VideoInfoSheet> {
   }
 
   String _orDash(String? value) =>
-      (value == null || value.isEmpty) ? '—' : value;
+      (value == null || value.isEmpty) ? t.video.notAvailable : value;
 
   @override
   Widget build(BuildContext context) {
@@ -85,45 +86,50 @@ class _VideoInfoSheetState extends State<_VideoInfoSheet> {
               ),
             ),
             const Divider(height: 1),
-            _row('时长', formatVideoTime(snapshot.duration)),
-            _row('当前', formatVideoTime(snapshot.currentTime)),
+            _row(t.video.duration, formatVideoTime(snapshot.duration)),
+            _row(t.video.position, formatVideoTime(snapshot.currentTime)),
             _row(
-              '尺寸',
+              t.video.size,
               metadata == null || metadata.width == 0
-                  ? '—'
+                  ? t.video.notAvailable
                   : '${metadata.width}×${metadata.height}',
             ),
+            if ((metadata?.rotate ?? 0) != 0)
+              _row(t.video.rotation, '${metadata!.rotate}°'),
             _row(
-              '显示宽高比',
+              t.video.dar,
               metadata == null
-                  ? '—'
+                  ? t.video.notAvailable
                   : '${metadata.normalizedSar.$1}:${metadata.normalizedSar.$2}',
             ),
             _row(
-              '帧率',
+              t.video.fps,
               metadata?.frameRate == null
-                  ? '—'
+                  ? t.video.notAvailable
                   : metadata!.frameRate!.toStringAsFixed(3),
             ),
-            _row('码率', metadata?.bitrateKbps == null ? '—' : '${metadata!.bitrateKbps} kbps'),
-            _row('视频编码', _orDash(metadata?.videoCodec)),
-            _row('音频编码', _orDash(metadata?.audioCodec)),
+            _row(t.video.bitrate, metadata?.bitrateKbps == null ? '—' : '${metadata!.bitrateKbps} kbps'),
+            _row(t.video.videoCodec, _orDash(metadata?.videoCodec)),
+            _row(t.video.audioCodec, _orDash(metadata?.audioCodec)),
             _row(
-              '音画漂移',
+              t.video.avDrift,
               _drift == null ? '—' : '${_drift!.toStringAsFixed(1)} ms',
             ),
-            _row('循环', widget.controller.snapshot.loopMode.name),
-            _row('倍速', '${snapshot.playbackRate}x'),
+            _row(t.video.loopMode, widget.controller.snapshot.loopMode.name),
+            _row(t.video.playbackRate, '${snapshot.playbackRate}x'),
             if (snapshot.abLoop != null)
               _row(
-                'A–B',
+                t.video.abRange,
                 '${formatVideoTime(snapshot.abLoop!.a)} – '
                 '${formatVideoTime(snapshot.abLoop!.b)}',
               ),
             if (widget.sidecars.isNotEmpty) ...<Widget>[
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
-                child: Text('外挂字幕', style: TextStyle(fontWeight: FontWeight.bold)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: Text(
+                  t.video.sidecarSubtitles,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
               for (final sidecar in widget.sidecars)
                 _row(sidecar.label, sidecar.format.toUpperCase()),

@@ -48,7 +48,6 @@ class ReaderVideoSnapshot {
     required this.seekMode,
     required this.active,
     this.phase = VideoEnginePhase.idle,
-    this.buffered,
     this.abLoop,
     this.audioOnly = false,
     this.failureReason,
@@ -86,7 +85,6 @@ class ReaderVideoSnapshot {
   final bool seekMode;
   final bool active;
   final VideoEnginePhase phase;
-  final Duration? buffered;
   final VideoAbLoop? abLoop;
   final bool audioOnly;
   final String? failureReason;
@@ -110,7 +108,6 @@ class ReaderVideoSnapshot {
     bool? seekMode,
     bool? active,
     VideoEnginePhase? phase,
-    Duration? buffered,
     VideoAbLoop? abLoop,
     bool clearAbLoop = false,
     bool? audioOnly,
@@ -129,7 +126,6 @@ class ReaderVideoSnapshot {
     seekMode: seekMode ?? this.seekMode,
     active: active ?? this.active,
     phase: phase ?? this.phase,
-    buffered: buffered ?? this.buffered,
     abLoop: clearAbLoop ? null : (abLoop ?? this.abLoop),
     audioOnly: audioOnly ?? this.audioOnly,
     failureReason: failureReason ?? this.failureReason,
@@ -358,12 +354,20 @@ class ReaderVideoController extends ChangeNotifier {
 
   @override
   void dispose() {
-    detach();
+    _disposed = true;
+    // 仍然要收尾（取消订阅、把进度写出去），但此后不再通知界面。
+    unawaited(detach());
     super.dispose();
   }
 
+  /// 释放之后一律不再通知：[detach] 是异步的（要等订阅 cancel），而 [dispose]
+  /// 不能等 —— 不挡住尾巴上那一次 `_update` 的话，每次离开视频页都会把
+  /// `notifyListeners()` 打在已释放的 notifier 上（debug 下就是
+  /// "A ReaderVideoController was used after being disposed"）。
+  bool _disposed = false;
+
   void _update(ReaderVideoSnapshot next) {
-    if (next == _snapshot) return;
+    if (_disposed || next == _snapshot) return;
     _snapshot = next;
     notifyListeners();
   }
@@ -459,8 +463,30 @@ class ReaderVideoController extends ChangeNotifier {
     final t = _transport;
     if (t == null) return false;
     _endedFired = false;
-    await t.seekRelative(delta);
+    final outcome = await t.seekRelative(delta);
+    // 时间标签必须跟着键走：暂停态里位置流是不发的（探针里量到过 —— 定位之后
+    // `player.state.position` 仍是 0），只等事件的话按 ±10 s 屏幕上数字纹丝不动。
+    _update(_snapshot.copyWith(currentTime: _afterRelativeSeek(delta, outcome)));
     return true;
+  }
+
+  Duration _afterRelativeSeek(Duration delta, RelativeSeekOutcome outcome) {
+    switch (outcome) {
+      case RelativeSeekOutcome.clampedToStart:
+        return Duration.zero;
+      case RelativeSeekOutcome.clampedToEnd:
+        return _snapshot.duration;
+      case RelativeSeekOutcome.applied:
+        return _clampToRange(_snapshot.currentTime + delta);
+      case RelativeSeekOutcome.noMedia:
+        // 时长都不知道的时候，别把标签改成一个猜出来的数。
+        return _snapshot.currentTime;
+    }
+  }
+
+  Duration _clampToRange(Duration at) {
+    if (at < Duration.zero) return Duration.zero;
+    return at > _snapshot.duration ? _snapshot.duration : at;
   }
 
   /// 快退 10 s（neo 点左半屏 / 默认绑定）。
@@ -472,7 +498,20 @@ class ReaderVideoController extends ChangeNotifier {
   Future<bool> stepFrame(int direction) async {
     final t = _transport;
     if (t == null) return false;
-    await t.stepFrame(direction < 0 ? -1 : 1);
+    final step = direction < 0 ? -1 : 1;
+    await t.stepFrame(step);
+    // 一帧多长只有帧率知道；还没解出帧率时退回引擎报的位置。
+    final fps = t.metadata.frameRate;
+    if (fps == null || fps <= 0) {
+      _update(_snapshot.copyWith(currentTime: _clampToRange(t.position)));
+    } else {
+      final oneFrame = Duration(microseconds: (1000000 / fps).round());
+      _update(
+        _snapshot.copyWith(
+          currentTime: _clampToRange(_snapshot.currentTime + oneFrame * step),
+        ),
+      );
+    }
     return true;
   }
 
@@ -555,35 +594,41 @@ class ReaderVideoController extends ChangeNotifier {
   void toggleSeekMode() =>
       _update(_snapshot.copyWith(seekMode: !_snapshot.seekMode));
 
-  void setSeekMode(bool enabled) => _update(_snapshot.copyWith(seekMode: enabled));
-
   // ── A–B 循环（mimage `loop_target_secs` / neo overlay A-B）──
 
   Duration? _pointA;
 
+  /// 「已标记 A」是控制器状态的一部分，但区间没闭合之前它不进快照
+  /// （快照里的 `abLoop` 只放闭好的区间）。所以凡是动 `_pointA` 就必须**无条件**通知：
+  /// 暂停态打点没有位置流可搭车，走 `_update` 的等值短路会一次都不刷新，
+  /// 界面上那颗 A 按钮就不亮（`video_control_overlay.dart` 读的是 `markedPointA`）。
+  void _setPendingA(Duration? at, {bool clearRange = false}) {
+    _pointA = at;
+    if (clearRange) _snapshot = _snapshot.copyWith(clearAbLoop: true);
+    if (!_disposed) notifyListeners();
+  }
+
   /// 三态：设 A → 设 B（不成区间则清掉）→ 清空。
   void tapAbLoop() {
     final now = _snapshot.currentTime;
-    if (_pointA == null) {
-      _pointA = now;
-      _update(_snapshot.copyWith(clearAbLoop: true));
+    final a = _pointA;
+    if (a == null) {
+      _setPendingA(now, clearRange: true);
       return;
     }
-    if (now <= _pointA!) {
-      _pointA = null;
-      _update(_snapshot.copyWith(clearAbLoop: true));
+    if (now <= a) {
+      _setPendingA(null, clearRange: true);
       _transport?.setAbLoop(null);
       return;
     }
-    final range = VideoAbLoop(a: _pointA!, b: now);
-    _pointA = null;
+    final range = VideoAbLoop(a: a, b: now);
+    _setPendingA(null);
     _update(_snapshot.copyWith(abLoop: range));
     _transport?.setAbLoop(range);
   }
 
   void clearAbLoop() {
-    _pointA = null;
-    _update(_snapshot.copyWith(clearAbLoop: true));
+    _setPendingA(null, clearRange: true);
     _transport?.setAbLoop(null);
   }
 
@@ -604,8 +649,6 @@ class ReaderVideoController extends ChangeNotifier {
     await t.setFilter(filter);
     return true;
   }
-
-  Future<bool> resetFilter() => setFilter(VideoFilterState.neutral);
 
   Future<String?> screenshot(String path) async =>
       await _transport?.screenshot(path);

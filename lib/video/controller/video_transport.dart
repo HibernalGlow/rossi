@@ -51,6 +51,7 @@ class VideoMetadata {
     this.chapters = const <VideoChapter>[],
     this.sarNum = 1,
     this.sarDen = 1,
+    this.rotate,
   });
 
   static const VideoMetadata unknown = VideoMetadata(duration: Duration.zero);
@@ -69,6 +70,11 @@ class VideoMetadata {
   /// 这里留着是为了信息卡能解释「为什么 1920×1080 看着不像 16:9」。
   final int sarNum;
   final int sarDen;
+
+  /// 容器里带的显示转置角度（mimage `display_metadata.rs` 那份 3x3 显示矩阵的等效信息）。
+  /// mpv 的 autorotate 已经把它应用到画面上，这里要的是**让人知道发生过转置** ——
+  /// 手机拍的视频尤其容易撞上，信息卡上「尺寸」与画面看起来不一致时就是它。
+  final int? rotate;
 
   /// 归一化 SAR。0/0 一类的非法值退回 1:1。
   (int, int) get normalizedSar => normalizeSar(sarNum, sarDen);

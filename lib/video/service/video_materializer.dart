@@ -50,13 +50,7 @@ class VideoMaterializer {
   final Map<String, _CachedEntry> _entries = <String, _CachedEntry>{};
   final Map<String, Future<MaterializedVideo>> _inFlight =
       <String, Future<MaterializedVideo>>{};
-  String? _rootOverride;
-
-  /// 测试注入用：不写系统临时目录。
-  set rootForTest(String path) => _rootOverride = path;
-
   Future<String> _root() async {
-    if (_rootOverride != null) return _rootOverride!;
     final base = await getTemporaryDirectory();
     final dir = Directory(p.join(base.path, 'rossi-video-cache'));
     if (!await dir.exists()) await dir.create(recursive: true);
@@ -189,8 +183,6 @@ class VideoMaterializer {
     }
   }
 
-  int get cachedBytes => _entries.values.fold(0, (sum, e) => sum + e.bytes);
-  int get cachedItems => _entries.length;
 }
 
 class _CachedEntry {

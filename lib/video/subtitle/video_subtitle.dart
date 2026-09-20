@@ -5,6 +5,7 @@
 /// 但 vtt 轨要能被「自定义字幕层」渲染，而且转换本身要能测）。
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
@@ -154,16 +155,83 @@ String _assToVttText(String text) => text
 /// 已经是 VTT 的原样返回（只补表头）。SRT 的 `-->` 用逗号分隔毫秒，
 /// ASS 要从 `Dialogue:` 行里按逗号切字段 —— 两者都是**逐行状态机**，
 /// 不做「整篇正则替换」，因为字幕文本里出现 `[]`、`{}`、数字行都很常见。
-String convertSubtitlesToWebVtt(String source, {required String format}) {
+String convertSubtitlesToWebVtt(
+  String source, {
+  required String format,
+  double fps = 23.976,
+}) {
   if (format == 'vtt') {
     return source.trimLeft().startsWith('WEBVTT')
         ? source
         : 'WEBVTT\n\n$source';
   }
+  if (format == 'sub') {
+    // MicroDVD：帧号而不是时间戳，且**没有 fps 字段**（`#V2.00` 只是签名行）。
+    return _convertMicroDvd(source, fps: fps);
+  }
   if (format == 'ass' || format == 'ssa') {
     return _convertAss(source);
   }
   return _convertSrt(source);
+}
+
+/// MicroDVD（`.sub`）→ WebVTT。
+///
+/// 为什么非要转：`.sub` 在 `subtitleExtensions` 里是**声明过的能力**，而 mpv 对
+/// MicroDVD 没有可靠支持 —— 不转的话症状是「字幕文件找到了、挂上了、但什么都不显示」，
+/// 比直接不认这个后缀更难查。帧→秒靠调用方给的 fps（默认 23.976，MicroDVD 常见值）。
+String _convertMicroDvd(String source, {required double fps}) {
+  final rate = fps <= 0 ? 23.976 : fps;
+  final out = StringBuffer('WEBVTT\n\n');
+  final cue = RegExp(r'^\{(\d+)\}\{(\d+)\}(.*)$');
+  for (final raw in source.replaceAll('\r\n', '\n').split('\n')) {
+    final line = raw.trim();
+    if (line.isEmpty || line.startsWith('#')) continue;
+    final match = cue.firstMatch(line);
+    if (match == null) continue;
+    final startFrames = int.tryParse(match.group(1)!) ?? 0;
+    final endFrames = int.tryParse(match.group(2)!) ?? 0;
+    if (endFrames <= startFrames) continue;
+    var text = match.group(3) ?? '';
+    // 定位/样式前缀（`{10,10}`、`{c}` 一类）留在正文里会原样显示，剥掉。
+    text = text.replaceFirst(RegExp(r'^\{[^}]*\}'), '');
+    // MicroDVD 的换行是 `|`。
+    text = text.split('|').map((s) => s.trim()).join('\n');
+    if (text.trim().isEmpty) continue;
+    final start = Duration(milliseconds: (startFrames * 1000 / rate).round());
+    final end = Duration(milliseconds: (endFrames * 1000 / rate).round());
+    out
+      ..write('${_vttTimestamp(start)} --> ${_vttTimestamp(end)}\n')
+      ..write('${text.trim()}\n\n');
+  }
+  return out.toString();
+}
+
+/// 需要转换的字幕落成一个引擎吃得下的文件，返回要交给 `sub-add` 的路径。
+///
+/// 只改「mpv 解不动的那一档」：srt / ass / ssa / vtt 原样交给引擎，
+/// 因为 mpv 自己渲染时 `sub-scale` / `sub-color` / `sub-pos` 这些样式还有效，
+/// 绕道转换反而丢掉样式控制。
+Future<String?> convertSubtitleFileForEngine(
+  String path, {
+  required String format,
+  double fps = 23.976,
+}) async {
+  if (format != 'sub') return path;
+  try {
+    final source = await File(path).readAsString();
+    final vtt = convertSubtitlesToWebVtt(source, format: format, fps: fps);
+    if (!vtt.contains('-->')) return null; // 一家都解不出来：不如不挂
+    final dir = Directory.systemTemp.createTempSync('rossi-sub');
+    final target = File('${dir.path}/${p.basenameWithoutExtension(path)}.vtt');
+    await target.writeAsBytes(
+      utf8.encode(vtt),
+      flush: true,
+    );
+    return target.path;
+  } catch (_) {
+    return null;
+  }
 }
 
 String _convertSrt(String source) {
@@ -215,23 +283,4 @@ String _convertAss(String source) {
       ..write('$cleaned\n\n');
   }
   return out.toString();
-}
-
-/// 字幕样式（neo 的字号 0.5–3 em、底色 0–100%、底部 0–30%）→ 一条 VTT `::::cue`。
-String buildVttCueStyleCss({
-  double sizeEm = 1.0,
-  String colorHex = 'ffffff',
-  int backgroundOpacityPercent = 70,
-  int bottomPercent = 5,
-}) {
-  final size = sizeEm.clamp(0.5, 3.0);
-  final bg = backgroundOpacityPercent.clamp(0, 100) / 100.0;
-  final color = colorHex.replaceAll('#', '');
-  return '::::cue\n'
-      '{\n'
-      '  font-size: ${size.toStringAsFixed(2)}em;\n'
-      '  color: #$color;\n'
-      '  background-color: rgba(0,0,0,${bg.toStringAsFixed(2)});\n'
-      '  vertical-align: bottom;\n'
-      '}\n';
 }
