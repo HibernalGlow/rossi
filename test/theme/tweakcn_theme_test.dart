@@ -421,4 +421,79 @@ void main() {
       expect(const TweakcnTheme().apply(base, Brightness.light), base);
     });
   });
+
+  group('TweakcnThemeLibrary（多主题库）', () {
+    TweakcnTheme themeOf(String hex) =>
+        parseTweakcnTheme(':root { --background: $hex; }').theme!;
+
+    test('空串 / 坏串 / 没有项的库都读成空库', () {
+      expect(TweakcnThemeLibrary.decode('').isEmpty, isTrue);
+      expect(TweakcnThemeLibrary.decode('not json').isEmpty, isTrue);
+      expect(TweakcnThemeLibrary.decode('{"entries":[]}').isEmpty, isTrue);
+    });
+
+    test('旧的单槽格式读成库里一项，并且就是生效项', () {
+      final legacy = themeOf('#16a34a').encode();
+      final library = TweakcnThemeLibrary.decode(legacy);
+      expect(library.entries.length, 1);
+      expect(library.activeId, TweakcnThemeLibrary.legacyEntryId);
+      expect(library.activeTheme!.light['background'], const Color(0xFF16A34A));
+    });
+
+    test('追加即生效，绕一圈存储名字 / 圆角 / 颜色都不丢', () {
+      final library = const TweakcnThemeLibrary()
+          .withTheme(themeOf('#ffffff'), name: '白', id: 'a')
+          .withTheme(themeOf('#000000'), name: '黑', id: 'b');
+      expect(library.activeId, 'b');
+      expect(library.entries.map((e) => e.name), ['白', '黑']);
+
+      final restored = TweakcnThemeLibrary.decode(library.encode());
+      expect(restored.activeId, 'b');
+      expect(restored.entries.length, 2);
+      expect(
+        restored.activeTheme!.light['background'],
+        const Color(0xFF000000),
+      );
+    });
+
+    test('挑没听过的 id 不改库；删掉生效项清空选中而不是自动换一个', () {
+      final library = const TweakcnThemeLibrary()
+          .withTheme(themeOf('#ffffff'), id: 'a')
+          .withTheme(themeOf('#000000'), id: 'b');
+
+      expect(library.activated('nope').activeId, 'b');
+      expect(library.activated('a').activeId, 'a');
+      // 名字留空时退到 registry 的 name（这里没有）→ 再退到 id，不会是空串。
+      expect(library.entries.first.name, 'a');
+
+      final removedActive = library.removed('b');
+      expect(removedActive.activeId, isEmpty);
+      expect(removedActive.activeTheme, isNull);
+      expect(removedActive.entries.map((e) => e.id), ['a']);
+      expect(library.removed('a').activeId, 'b');
+    });
+
+    test('activeId 指向不存在的项时，读回来回落到第一项', () {
+      const broken =
+          '{"entries":[{"id":"x","light":{"background":"#ffffffff"}}],"activeId":"gone"}';
+      final library = TweakcnThemeLibrary.decode(broken);
+      expect(library.activeId, 'x');
+      expect(library.activeTheme!.light['background'], const Color(0xFFFFFFFF));
+    });
+
+    test('默认名带时间，列表里能排出导入顺序', () {
+      final name = defaultTweakcnThemeName(DateTime(2026, 9, 20, 7, 5, 0));
+      expect(name, contains('2026-09-20'));
+      expect(name, contains('07:05'));
+    });
+
+    test('tokenCount 取两套的并集', () {
+      final half = parseTweakcnTheme(
+        ':root { --background: #ffffff; --primary: #000000; }\n'
+        '.dark { --background: #000000; --muted: #111111; }',
+      ).theme!;
+      // background 两套都有，只算一次。
+      expect(half.tokenCount, 3);
+    });
+  });
 }

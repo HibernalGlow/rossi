@@ -8,6 +8,7 @@ import 'package:zephyr/i18n/system_locale_service.dart';
 import 'package:zephyr/page/font_setting/view/font_setting_page.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/page/setting/global/widgets.dart';
+import 'package:zephyr/page/theme_color/theme_color.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
 
@@ -36,6 +37,9 @@ class AppearanceSettingPage extends StatelessWidget {
           // 现在这页还承载「导入 tweakcn 主题」，而导入的 token 是**覆盖**在
           // 动态色 / fromSeed 之上的，两者可以共存 —— 入口不该再被动态色挡掉。
           changeThemeColor(context),
+          // 导入入口放在这一屏：它和「主题颜色 / 动态取色」是同一层的决定，
+          // 藏在子页里没人找得到（用户实测就是在这一屏找的）。
+          const TweakcnImportCard(),
           _comicReadTopContainer(state, cubit),
           _isAMOLED(state, cubit),
           _fontSettings(context),

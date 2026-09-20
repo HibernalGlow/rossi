@@ -109,9 +109,11 @@
     "tweakcnSubtitle": "粘贴 tweakcn 复制的 CSS 变量，或 shadcn registry 的 JSON",
     "tweakcnHint": ":root {\n  --background: oklch(1 0 0);\n  --primary: oklch(0.628 0.258 29.2);\n}",
     "tweakcnImport": "导入",
+    "tweakcnNameField": "主题名（可留空）",
+    "tweakcnPickHint": "点一行即切为当前主题",
+    "tweakcnEntryMeta": "$count 个 token · 圆角 $radius",
+    "tweakcnDelete": "删除该主题",
     "tweakcnEnabled": "启用导入的主题",
-    "tweakcnClear": "清除",
-    "tweakcnNone": "还没有导入主题",
     "tweakcnApplied": "已导入 $count 个颜色 token · 圆角 $radius",
     "tweakcnNoRadius": "沿用默认",
     "tweakcnFailedEmpty": "内容为空",
@@ -1387,7 +1389,13 @@
     "unnamed": "未命名",
     "pluginEnableFailed": "插件启用失败: $error",
     "pluginCloseFailed": "插件关闭失败: $error",
-    "pluginDebugLoadFailed": "插件调试加载失败，已回退数据库: $error"
+    "pluginDebugLoadFailed": "插件调试加载失败，已回退数据库: $error",
+    "closeTab": "关闭标签",
+    "tabDisplay": "标签显示",
+    "tabShowIcon": "显示插件图标",
+    "tabShowPluginShort": "显示插件名缩写",
+    "webPage": "网页",
+    "comicDetail": "详情"
   },
   "searchResult": {
     "enterPageNumber": "输入页数",

@@ -43,7 +43,6 @@ class _ThemeColorPageState extends State<ThemeColorPage> {
                 _setThemeColor(color);
               },
             ),
-            const TweakcnImportCard(),
             // 颜色块网格
             Padding(
               padding: const EdgeInsets.all(16.0),

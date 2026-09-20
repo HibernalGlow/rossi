@@ -109,9 +109,11 @@
     "tweakcnSubtitle": "Paste the CSS variables copied from tweakcn, or a shadcn registry JSON",
     "tweakcnHint": ":root {\n  --background: oklch(1 0 0);\n  --primary: oklch(0.628 0.258 29.2);\n}",
     "tweakcnImport": "Import",
+    "tweakcnNameField": "Theme name (optional)",
+    "tweakcnPickHint": "Tap a row to make it current",
+    "tweakcnEntryMeta": "$count tokens · radius $radius",
+    "tweakcnDelete": "Delete this theme",
     "tweakcnEnabled": "Use the imported theme",
-    "tweakcnClear": "Clear",
-    "tweakcnNone": "No theme imported yet",
     "tweakcnApplied": "$count color tokens imported · radius $radius",
     "tweakcnNoRadius": "default",
     "tweakcnFailedEmpty": "Nothing to import",
@@ -1386,7 +1388,13 @@
     "unnamed": "Unnamed",
     "pluginEnableFailed": "Failed to enable plugin: $error",
     "pluginCloseFailed": "Failed to disable plugin: $error",
-    "pluginDebugLoadFailed": "Plugin debug load failed, reverted to database: $error"
+    "pluginDebugLoadFailed": "Plugin debug load failed, reverted to database: $error",
+    "closeTab": "Close tab",
+    "tabDisplay": "Tab display",
+    "tabShowIcon": "Show plugin icon",
+    "tabShowPluginShort": "Show plugin short name",
+    "webPage": "Web page",
+    "comicDetail": "Details"
   },
   "searchResult": {
     "enterPageNumber": "Enter page number",

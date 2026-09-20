@@ -422,14 +422,20 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '导入'
 	String get tweakcnImport => '导入';
 
+	/// zh-CN: '主题名（可留空）'
+	String get tweakcnNameField => '主题名（可留空）';
+
+	/// zh-CN: '点一行即切为当前主题'
+	String get tweakcnPickHint => '点一行即切为当前主题';
+
+	/// zh-CN: '$count 个 token · 圆角 $radius'
+	String tweakcnEntryMeta({required Object count, required Object radius}) => '${count} 个 token · 圆角 ${radius}';
+
+	/// zh-CN: '删除该主题'
+	String get tweakcnDelete => '删除该主题';
+
 	/// zh-CN: '启用导入的主题'
 	String get tweakcnEnabled => '启用导入的主题';
-
-	/// zh-CN: '清除'
-	String get tweakcnClear => '清除';
-
-	/// zh-CN: '还没有导入主题'
-	String get tweakcnNone => '还没有导入主题';
 
 	/// zh-CN: '已导入 $count 个颜色 token · 圆角 $radius'
 	String tweakcnApplied({required Object count, required Object radius}) => '已导入 ${count} 个颜色 token · 圆角 ${radius}';
@@ -4306,6 +4312,24 @@ class Translations$discover$zh_CN {
 
 	/// zh-CN: '插件调试加载失败，已回退数据库: $error'
 	String pluginDebugLoadFailed({required Object error}) => '插件调试加载失败，已回退数据库: ${error}';
+
+	/// zh-CN: '关闭标签'
+	String get closeTab => '关闭标签';
+
+	/// zh-CN: '标签显示'
+	String get tabDisplay => '标签显示';
+
+	/// zh-CN: '显示插件图标'
+	String get tabShowIcon => '显示插件图标';
+
+	/// zh-CN: '显示插件名缩写'
+	String get tabShowPluginShort => '显示插件名缩写';
+
+	/// zh-CN: '网页'
+	String get webPage => '网页';
+
+	/// zh-CN: '详情'
+	String get comicDetail => '详情';
 }
 
 // Path: searchResult
@@ -5651,9 +5675,11 @@ extension on Translations {
 			'settings.tweakcnSubtitle' => '粘贴 tweakcn 复制的 CSS 变量，或 shadcn registry 的 JSON',
 			'settings.tweakcnHint' => ':root {\n  --background: oklch(1 0 0);\n  --primary: oklch(0.628 0.258 29.2);\n}',
 			'settings.tweakcnImport' => '导入',
+			'settings.tweakcnNameField' => '主题名（可留空）',
+			'settings.tweakcnPickHint' => '点一行即切为当前主题',
+			'settings.tweakcnEntryMeta' => ({required Object count, required Object radius}) => '${count} 个 token · 圆角 ${radius}',
+			'settings.tweakcnDelete' => '删除该主题',
 			'settings.tweakcnEnabled' => '启用导入的主题',
-			'settings.tweakcnClear' => '清除',
-			'settings.tweakcnNone' => '还没有导入主题',
 			'settings.tweakcnApplied' => ({required Object count, required Object radius}) => '已导入 ${count} 个颜色 token · 圆角 ${radius}',
 			'settings.tweakcnNoRadius' => '沿用默认',
 			'settings.tweakcnFailedEmpty' => '内容为空',
@@ -6059,10 +6085,10 @@ extension on Translations {
 			'settings.operationBindingRadialEnable' => '启用轮盘',
 			'settings.operationBindingRadialEnableSubtitle' => '关掉之后轮盘不再响应，槽位绑定原样保留',
 			'settings.operationBindingRadialActiveWheel' => '默认轮盘',
-			'settings.operationBindingRadialLayerUnit' => ({required Object count}) => '${count} 层',
-			'settings.operationBindingRadialNew' => '新轮盘',
 			_ => null,
 		} ?? switch (path) {
+			'settings.operationBindingRadialLayerUnit' => ({required Object count}) => '${count} 层',
+			'settings.operationBindingRadialNew' => '新轮盘',
 			'settings.operationBindingRadialDelete' => '删除轮盘',
 			'settings.operationBindingRadialPreview' => '预览',
 			'settings.operationBindingRadialReset' => '重置槽位',
@@ -6573,10 +6599,10 @@ extension on Translations {
 			'plugin.syncSubtitle' => '通过 npm / updateUrl 检查并更新插件',
 			'plugin.syncing' => '正在同步插件...',
 			'plugin.syncSuccess' => '同步成功',
-			'plugin.syncFailed' => ({required Object error}) => '同步失败: ${error}',
-			'plugin.updateSubtitle' => '通过网络 URL 或本地文件手动重装当前插件',
 			_ => null,
 		} ?? switch (path) {
+			'plugin.syncFailed' => ({required Object error}) => '同步失败: ${error}',
+			'plugin.updateSubtitle' => '通过网络 URL 或本地文件手动重装当前插件',
 			'plugin.updateFromNetwork' => '从网络安装',
 			'plugin.updateFromLocal' => '从本地安装',
 			'plugin.updateChooseSource' => '选择安装方式',
@@ -6902,6 +6928,12 @@ extension on Translations {
 			'discover.pluginEnableFailed' => ({required Object error}) => '插件启用失败: ${error}',
 			'discover.pluginCloseFailed' => ({required Object error}) => '插件关闭失败: ${error}',
 			'discover.pluginDebugLoadFailed' => ({required Object error}) => '插件调试加载失败，已回退数据库: ${error}',
+			'discover.closeTab' => '关闭标签',
+			'discover.tabDisplay' => '标签显示',
+			'discover.tabShowIcon' => '显示插件图标',
+			'discover.tabShowPluginShort' => '显示插件名缩写',
+			'discover.webPage' => '网页',
+			'discover.comicDetail' => '详情',
 			'searchResult.enterPageNumber' => '输入页数',
 			'searchResult.pleaseEnterNumber' => '请输入数字',
 			'searchResult.returnToTop' => '返回顶部',
@@ -7081,6 +7113,8 @@ extension on Translations {
 			'shelfMenu.copiedTitle' => ({required Object title}) => '已复制标题「${title}」',
 			'shelfMenu.copiedLink' => ({required Object link}) => '已复制链接「${link}」',
 			'shelfMenu.fileManagerTabOpened' => '已在文件管理新页签打开',
+			_ => null,
+		} ?? switch (path) {
 			'shelfMenu.fileManagerTabUnavailable' => '文件管理面板还没准备好，稍后再试',
 			'shelfMenu.fileManagerTabNoLocalPath' => '这条漫画没有本地目录，无法在文件管理里打开',
 			'shelfMenu.favoriteAdded' => ({required Object title}) => '已收藏「${title}」',
@@ -7089,8 +7123,6 @@ extension on Translations {
 			'shelfMenu.removeFavoriteConfirmTitle' => '取消收藏？',
 			'shelfMenu.removeFavoriteConfirmBody' => ({required Object title}) => '「${title}」将从收藏库移除，源文件与阅读记录不受影响。',
 			'shelfMenu.removeHistoryConfirmTitle' => '移除历史记录？',
-			_ => null,
-		} ?? switch (path) {
 			'shelfMenu.removeHistoryConfirmBody' => ({required Object title}) => '「${title}」将从阅读历史中移除，源文件不会被删除。',
 			'video.play' => '播放',
 			'video.pause' => '暂停',

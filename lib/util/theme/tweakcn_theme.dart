@@ -20,6 +20,7 @@
 // 让既有调用点继续拿得到正确的层级差，且不引入任何种子色残留。
 
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:ui' show Brightness, Color;
 
 import 'package:flutter/foundation.dart' show immutable;
@@ -165,6 +166,9 @@ class TweakcnTheme {
   final Map<String, Color> dark;
 
   bool get isEmpty => light.isEmpty && dark.isEmpty;
+
+  /// 两套亮度里的 token 取并集的个数 —— 只给了半套时不该显示成「一半没有」。
+  int get tokenCount => {...light.keys, ...dark.keys}.length;
 
   /// 只给了半套时，另一套亮度沿用这一套（比回落到种子色更符合直觉）。
   Map<String, Color> tokensOrFallback(Brightness brightness) {
@@ -389,6 +393,205 @@ surfaceLadder(Color background, Color muted, Brightness brightness) {
     highest: mixClamped(background, muted, steps.$5),
   );
 }
+
+// ---------------------------------------------------------------------------
+// 多主题库
+// ---------------------------------------------------------------------------
+
+/// 库里的一个已保存主题。
+///
+/// [name] 单独存、不复用 `TweakcnTheme.name`：registry JSON 自带 `name`，
+/// 但粘贴 CSS 时没有任何地方能给出名字，得让用户填或按时间生成 —— 那是**库层**
+/// 的概念，不该污染主题本身。
+@immutable
+class TweakcnThemeEntry {
+  const TweakcnThemeEntry({
+    required this.id,
+    required this.name,
+    required this.theme,
+  });
+
+  final String id;
+  final String name;
+  final TweakcnTheme theme;
+
+  String encode() {
+    final body = jsonDecode(theme.encode()) as Map<String, Object?>;
+    return jsonEncode({'id': id, 'name': name, ...body});
+  }
+
+  static TweakcnThemeEntry? decode(String raw) {
+    final Object? json;
+    try {
+      json = jsonDecode(raw);
+    } on FormatException {
+      return null;
+    }
+    if (json is! Map) return null;
+    final theme = TweakcnTheme(
+      radius: (json['radius'] as num?)?.toDouble(),
+      light: _colorMap(json['light']),
+      dark: _colorMap(json['dark']),
+    );
+    if (theme.isEmpty) return null;
+    final id = (json['id'] as String?) ?? '';
+    final storedName = (json['name'] as String?)?.trim() ?? '';
+    return TweakcnThemeEntry(
+      id: id,
+      name: storedName.isEmpty ? id : storedName,
+      theme: theme,
+    );
+  }
+}
+
+/// 已导入主题的库 + 当前生效的那一个。
+///
+/// 持久化仍只占 `GlobalSettingState.tweakcnThemeJson` **一个字符串字段**：
+/// 换的是内容形状（单对象 → `{entries, activeId}`），所以不必加字段、
+/// 不必重跑代码生成，同步的 appearance 块也照旧。
+@immutable
+class TweakcnThemeLibrary {
+  const TweakcnThemeLibrary({this.entries = const [], this.activeId = ''});
+
+  final List<TweakcnThemeEntry> entries;
+
+  /// 生效项的 id；空串 = 库里没选中。与 `tweakcnThemeEnabled` 是两件事：
+  /// 这个管「选哪个」，那个管「要不要用导入的主题」。
+  final String activeId;
+
+  bool get isEmpty => entries.isEmpty;
+
+  TweakcnThemeEntry? get active {
+    for (final entry in entries) {
+      if (entry.id == activeId) return entry;
+    }
+    return null;
+  }
+
+  TweakcnTheme? get activeTheme => active?.theme;
+
+  /// 追加一项并立刻设为生效（导入后当场可见，不用再去点一次）。
+  ///
+  /// [id] 留空则自动生成 —— 测试里传固定值，避免依赖时钟。
+  TweakcnThemeLibrary withTheme(
+    TweakcnTheme theme, {
+    String name = '',
+    String id = '',
+  }) {
+    final newId = id.isEmpty ? newTweakcnThemeId() : id;
+    final trimmed = name.trim();
+    // 名字总要有：registry 给了就用 registry 的，否则用调用方填的，
+    // 再否则退到 id —— 列表里出现一行空白名字没法点、也没法删对。
+    final entryName = trimmed.isNotEmpty
+        ? trimmed
+        : theme.name.isNotEmpty
+        ? theme.name
+        : newId;
+    return TweakcnThemeLibrary(
+      entries: [
+        ...entries,
+        TweakcnThemeEntry(id: newId, name: entryName, theme: theme),
+      ],
+      activeId: newId,
+    );
+  }
+
+  TweakcnThemeLibrary activated(String id) => entries.any((e) => e.id == id)
+      ? TweakcnThemeLibrary(entries: entries, activeId: id)
+      : this;
+
+  /// 删除一项。删的正好是生效项时清空 `activeId`，而不是自动挑一个 ——
+  /// 「删掉当前主题」却悄悄换成另一个，是最容易让人误判的行为。
+  TweakcnThemeLibrary removed(String id) {
+    final kept = entries.where((e) => e.id != id).toList();
+    return TweakcnThemeLibrary(
+      entries: kept,
+      activeId: activeId == id ? '' : activeId,
+    );
+  }
+
+  String encode() => jsonEncode({
+    'entries': [for (final e in entries) jsonDecode(e.encode())],
+    'activeId': activeId,
+  });
+
+  /// 读库；**兼容三种形状**：
+  /// - 新格式 `{"entries":[…],"activeId":"…"}`；
+  /// - 旧格式：字段里直接存单个主题对象（单槽时代）→ 当成库里唯一一项；
+  /// - 空串 / 读不出任何项 → 空库。
+  ///
+  /// 带一层「最后一次输入 → 结果」的记忆：`main.dart` 的主题构建挂在字体配置的
+  /// AnimatedBuilder 上，动画每一帧都会重算 ColorScheme，而这个串几乎从不变。
+  static TweakcnThemeLibrary decode(String raw) {
+    if (raw == _cachedRaw) return _cachedLibrary;
+    final library = _decodeUncached(raw);
+    _cachedRaw = raw;
+    _cachedLibrary = library;
+    return library;
+  }
+
+  static String? _cachedRaw;
+  static TweakcnThemeLibrary _cachedLibrary = const TweakcnThemeLibrary();
+
+  static TweakcnThemeLibrary _decodeUncached(String raw) {
+    final text = raw.trim();
+    if (text.isEmpty) return const TweakcnThemeLibrary();
+    final Object? json;
+    try {
+      json = jsonDecode(text);
+    } on FormatException {
+      return const TweakcnThemeLibrary();
+    }
+    if (json is! Map) return const TweakcnThemeLibrary();
+
+    if (json['entries'] is List) {
+      final entries = <TweakcnThemeEntry>[];
+      for (final item in json['entries'] as List) {
+        final entry = item is String
+            ? TweakcnThemeEntry.decode(item)
+            : (item is Map ? TweakcnThemeEntry.decode(jsonEncode(item)) : null);
+        if (entry != null) entries.add(entry);
+      }
+      var activeId = (json['activeId'] as String?) ?? '';
+      if (!entries.any((e) => e.id == activeId)) {
+        activeId = entries.isEmpty ? '' : entries.first.id;
+      }
+      return TweakcnThemeLibrary(entries: entries, activeId: activeId);
+    }
+
+    // 单槽时代的形状。
+    final legacy = TweakcnTheme.decode(text);
+    if (legacy == null) return const TweakcnThemeLibrary();
+    return TweakcnThemeLibrary(
+      entries: [
+        TweakcnThemeEntry(id: legacyEntryId, name: legacy.name, theme: legacy),
+      ],
+      activeId: legacyEntryId,
+    );
+  }
+
+  /// 旧数据迁移进来时用的固定 id（不会与自动生成的 `t…` 撞上）。
+  static const String legacyEntryId = 'legacy';
+}
+
+/// 生成一个库内唯一 id：时间戳（36 进制）+ 随机尾巴。
+///
+/// 单人设备够用；真正的去重靠 [TweakcnThemeLibrary.withTheme] 只在追加时生成，
+/// 不给调用方传重复 id 的机会。
+String newTweakcnThemeId() {
+  final stamp = DateTime.now().microsecondsSinceEpoch.toRadixString(36);
+  final jitter = _idRandom.nextInt(1 << 20).toRadixString(36).padLeft(4, '0');
+  return 't$stamp$jitter';
+}
+
+final math.Random _idRandom = math.Random();
+
+/// CSS 粘贴给不出主题名时的默认名：带时间戳比「未命名 / 未命名(2)」好认，
+/// 列表一长就能靠名字排出导入顺序。
+String defaultTweakcnThemeName(DateTime at) =>
+    '主题 ${at.year}-${_two(at.month)}-${_two(at.day)} ${_two(at.hour)}:${_two(at.minute)}';
+
+String _two(int v) => v.toString().padLeft(2, '0');
 
 // ---------------------------------------------------------------------------
 // 导入文本 → TweakcnTheme

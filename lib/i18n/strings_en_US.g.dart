@@ -214,9 +214,11 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get tweakcnSubtitle => 'Paste the CSS variables copied from tweakcn, or a shadcn registry JSON';
 	@override String get tweakcnHint => ':root {\n  --background: oklch(1 0 0);\n  --primary: oklch(0.628 0.258 29.2);\n}';
 	@override String get tweakcnImport => 'Import';
+	@override String get tweakcnNameField => 'Theme name (optional)';
+	@override String get tweakcnPickHint => 'Tap a row to make it current';
+	@override String tweakcnEntryMeta({required Object count, required Object radius}) => '${count} tokens · radius ${radius}';
+	@override String get tweakcnDelete => 'Delete this theme';
 	@override String get tweakcnEnabled => 'Use the imported theme';
-	@override String get tweakcnClear => 'Clear';
-	@override String get tweakcnNone => 'No theme imported yet';
 	@override String tweakcnApplied({required Object count, required Object radius}) => '${count} color tokens imported · radius ${radius}';
 	@override String get tweakcnNoRadius => 'default';
 	@override String get tweakcnFailedEmpty => 'Nothing to import';
@@ -1604,6 +1606,12 @@ class _Translations$discover$en_US extends Translations$discover$zh_CN {
 	@override String pluginEnableFailed({required Object error}) => 'Failed to enable plugin: ${error}';
 	@override String pluginCloseFailed({required Object error}) => 'Failed to disable plugin: ${error}';
 	@override String pluginDebugLoadFailed({required Object error}) => 'Plugin debug load failed, reverted to database: ${error}';
+	@override String get closeTab => 'Close tab';
+	@override String get tabDisplay => 'Tab display';
+	@override String get tabShowIcon => 'Show plugin icon';
+	@override String get tabShowPluginShort => 'Show plugin short name';
+	@override String get webPage => 'Web page';
+	@override String get comicDetail => 'Details';
 }
 
 // Path: searchResult
@@ -2229,9 +2237,11 @@ extension on TranslationsEnUs {
 			'settings.tweakcnSubtitle' => 'Paste the CSS variables copied from tweakcn, or a shadcn registry JSON',
 			'settings.tweakcnHint' => ':root {\n  --background: oklch(1 0 0);\n  --primary: oklch(0.628 0.258 29.2);\n}',
 			'settings.tweakcnImport' => 'Import',
+			'settings.tweakcnNameField' => 'Theme name (optional)',
+			'settings.tweakcnPickHint' => 'Tap a row to make it current',
+			'settings.tweakcnEntryMeta' => ({required Object count, required Object radius}) => '${count} tokens · radius ${radius}',
+			'settings.tweakcnDelete' => 'Delete this theme',
 			'settings.tweakcnEnabled' => 'Use the imported theme',
-			'settings.tweakcnClear' => 'Clear',
-			'settings.tweakcnNone' => 'No theme imported yet',
 			'settings.tweakcnApplied' => ({required Object count, required Object radius}) => '${count} color tokens imported · radius ${radius}',
 			'settings.tweakcnNoRadius' => 'default',
 			'settings.tweakcnFailedEmpty' => 'Nothing to import',
@@ -2637,10 +2647,10 @@ extension on TranslationsEnUs {
 			'settings.operationBindingRadialEnable' => 'Enable radial menu',
 			'settings.operationBindingRadialEnableSubtitle' => 'When off the wheel never opens; slot bindings are kept',
 			'settings.operationBindingRadialActiveWheel' => 'Default wheel',
-			'settings.operationBindingRadialLayerUnit' => ({required Object count}) => '${count} layers',
-			'settings.operationBindingRadialNew' => 'New wheel',
 			_ => null,
 		} ?? switch (path) {
+			'settings.operationBindingRadialLayerUnit' => ({required Object count}) => '${count} layers',
+			'settings.operationBindingRadialNew' => 'New wheel',
 			'settings.operationBindingRadialDelete' => 'Delete wheel',
 			'settings.operationBindingRadialPreview' => 'Preview',
 			'settings.operationBindingRadialReset' => 'Reset slots',
@@ -3151,10 +3161,10 @@ extension on TranslationsEnUs {
 			'plugin.syncing' => 'Syncing plugin...',
 			'plugin.syncSuccess' => 'Sync successful',
 			'plugin.syncFailed' => ({required Object error}) => 'Sync failed: ${error}',
-			'plugin.updateSubtitle' => 'Manually reinstall this plugin from a network URL or local file',
-			'plugin.updateFromNetwork' => 'Install from network',
 			_ => null,
 		} ?? switch (path) {
+			'plugin.updateSubtitle' => 'Manually reinstall this plugin from a network URL or local file',
+			'plugin.updateFromNetwork' => 'Install from network',
 			'plugin.updateFromLocal' => 'Install from local',
 			'plugin.updateChooseSource' => 'Choose install method',
 			'plugin.updating' => 'Updating plugin...',
@@ -3479,6 +3489,12 @@ extension on TranslationsEnUs {
 			'discover.pluginEnableFailed' => ({required Object error}) => 'Failed to enable plugin: ${error}',
 			'discover.pluginCloseFailed' => ({required Object error}) => 'Failed to disable plugin: ${error}',
 			'discover.pluginDebugLoadFailed' => ({required Object error}) => 'Plugin debug load failed, reverted to database: ${error}',
+			'discover.closeTab' => 'Close tab',
+			'discover.tabDisplay' => 'Tab display',
+			'discover.tabShowIcon' => 'Show plugin icon',
+			'discover.tabShowPluginShort' => 'Show plugin short name',
+			'discover.webPage' => 'Web page',
+			'discover.comicDetail' => 'Details',
 			'searchResult.enterPageNumber' => 'Enter page number',
 			'searchResult.pleaseEnterNumber' => 'Please enter a number',
 			'searchResult.returnToTop' => 'Return to top',
@@ -3659,6 +3675,8 @@ extension on TranslationsEnUs {
 			'shelfMenu.copiedLink' => ({required Object link}) => 'Copied link “${link}”',
 			'shelfMenu.fileManagerTabOpened' => 'Opened in a new file manager tab',
 			'shelfMenu.fileManagerTabUnavailable' => 'The file manager panel is not ready yet, try again in a moment',
+			_ => null,
+		} ?? switch (path) {
 			'shelfMenu.fileManagerTabNoLocalPath' => 'This comic has no local folder, so it cannot be opened in the file manager',
 			'shelfMenu.favoriteAdded' => ({required Object title}) => 'Added “${title}” to favorites',
 			'shelfMenu.favoriteRemoved' => ({required Object title}) => 'Removed “${title}” from favorites',
@@ -3667,8 +3685,6 @@ extension on TranslationsEnUs {
 			'shelfMenu.removeFavoriteConfirmBody' => ({required Object title}) => '“${title}” will be removed from your favorites. The files and the reading history are untouched.',
 			'shelfMenu.removeHistoryConfirmTitle' => 'Remove from history?',
 			'shelfMenu.removeHistoryConfirmBody' => ({required Object title}) => '“${title}” will be removed from your reading history. The files will not be deleted.',
-			_ => null,
-		} ?? switch (path) {
 			'video.play' => 'Play',
 			'video.pause' => 'Pause',
 			'video.backward' => 'Back 10 s',
