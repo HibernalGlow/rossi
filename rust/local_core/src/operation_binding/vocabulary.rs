@@ -666,19 +666,19 @@ pub const ACTION_CATALOG: [ActionDefinition; 60] = [
         action::COMIC_INFO_BACK,
         "返回",
         ActionCategory::ComicInfo,
-        false
+        true
     ),
     action_def!(
         action::COMIC_INFO_HOME,
         "回到首页",
         ActionCategory::ComicInfo,
-        false
+        true
     ),
     action_def!(
         action::COMIC_INFO_READ,
         "开始或继续阅读",
         ActionCategory::ComicInfo,
-        false
+        true
     ),
     action_def!(
         action::COMIC_INFO_COLLECT,
@@ -956,6 +956,23 @@ mod tests {
             ACTION_CATALOG
                 .iter()
                 .any(|e| e.category != ActionCategory::ComicInfo && e.implemented),
+        );
+
+        // 这一族的 `implemented` 逐条翻，且**只有**已经渲染到 rail 上的那三条能是 true
+        // （判据是端到端可达，不是 switch 里有分支）。加一条执行端就在这里加一个名字。
+        let wired: Vec<&str> = family
+            .iter()
+            .filter(|entry| entry.implemented)
+            .map(|entry| entry.id)
+            .collect();
+        assert_eq!(
+            wired,
+            vec![
+                action::COMIC_INFO_BACK,
+                action::COMIC_INFO_HOME,
+                action::COMIC_INFO_READ,
+            ],
+            "详情页动作接执行端要同时改这里：设置页拿 implemented 决定显示「已支持」"
         );
     }
 }

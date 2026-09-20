@@ -1,6 +1,6 @@
 # 详情页操作栏（桌面左右 rail + 移动端底部条）
 
-> 状态：**车道 A 已落地（🟡 Rust 测试过、未实机），B–J 未开工**。2026-09-21 的三个决定见 §7.1，A 的落地记录见 §7.5。
+> 状态：**车道 A / B / C-1 / E / F 已落地（🟡 自动化测试过、未实机），C-2 / G / H / I / J 未开工**。2026-09-21 的三个决定见 §7.1，落地记录见 §7.5（A）与 §7.6（B/C-1/E/F）。
 > 2026-09-21 用户提出：「进入漫画当前要想要返回之前的界面，只能点左上角的返回，然后开始阅读也是只能点击特定的按键，操作不太方便，而且鼠标跨度很大。」
 
 ## 0. 状态图例
@@ -146,6 +146,28 @@
 
 **FRB 不用重跑**：`operationBindingActionCatalog()` 签名没变（返回 JSON 串），追加条目只是数据 —— §2 那句「动完必须重跑代码生成」对**车道 A 这一半**是过强的，实测不成立。车道 B 剩下的实际工作只有「确认这 13 条过桥后 Dart 读得出」+ 要不要补 i18n 译文（`action_labels.dart:41` 的 `_ => entry.label` 会兜底成注册表中文，英文界面露中文；但这一族目前只在 H 的候选清单里出现，等 H 一起做）。
 
+## 7.6 车道 B / C-1 / E / F 已落地（2026-09-21，同一晚）
+
+**B（过桥）**：`test/operation_binding/comic_info_catalog_bridge_test.dart` —— 真起 `RustLib.init()`（不是 `initMock`），逐字逐序比对那 13 个 id、比对 `implemented` 的分布、并断言 `readerBindableCatalog()` 看不到这一族而阅读器那几条仍在。跑之前要 `cd rust && cargo build --release -p windcore`（`frb_generated.dart:93` 的 `ioDirectory: 'rust/target/release/'` 就是加载点，那条测试顺带是 hash 一致性的守门人）。
+
+**C-1（执行端）**：`lib/page/comic_info/action/`
+- `comic_info_action_entry.dart` —— `ComicInfoActionEntry`（带注册表 `actionId` 的渲染+执行数据）与 `ComicInfoActionIds`（13 个 id 的 Dart 侧镜像，正确性由上面那条过桥测试钉）
+- `comic_info_action_scope.dart` —— `ComicInfoActionScope`（3 个能力）+ **一处** `dispatchComicInfoAction` 的 `switch`，未接的 id 返回 `false`，调用方不许静默吞
+
+**为什么不叫 `ComicInfoActionItem`**：那个名字已被插件 JSON 的一条动态动作占了（`json/normal/normal_comic_all_info.dart:38`，`{name, onTap, extern}`，走 `models/comic_info_action.dart`）。同名会让人把「标签点下去开搜索」读成「rail 上那颗」。
+
+**C-1 只接了 3 条，是刻意的收窄**：口径 2 定的默认清单里，右 rail 那 6 颗有 5 颗（收藏/下载/点赞/评论/磁力）的状态挂在 `ComicOperationWidget` 自己的 `setState` 上，要等 C-2 把状态提到 Cubit。中途我一度把关注/章节倒序/导出也写进接口，但它们**不在口径 2 的默认清单里**、rail 上没人渲染它们，等于三棵死分支，已收回（`wiredComicInfoActions` 现在只有 3 条）。**`implemented` 的判据是「端到端可达」**：注册表里只把 `back` / `home` / `read` 翻成 `true`，Rust 用例与 Dart 过桥测试各钉一份这个名单，接一条同时改两处。
+
+**E + F（渲染与挂载）**：
+- `widgets/comic_info_action_rail.dart` —— 不持状态、不判断「这条该干什么」，点击一律走 `dispatchComicInfoAction`
+- `comic_info.dart` 的 `_ComicInfoState implements ComicInfoActionScope`；`body` 包一层 `_withActionRails(child:)`
+- 判据按**口径 4**：`comicInfoPlatformHasPointer(defaultTargetPlatform)` ⇒ 画左右 rail，触摸端原样返回（底部条是车道 G，还没做）
+- 默认左 = 返回 / 回首页，右 = 阅读。`_loadingComplete` 之前阅读那颗**不出现**（与那颗悬浮按钮同口径），而不是画一颗点不动的
+- rail 顶对齐（`CrossAxisAlignment.start`）：默认 center 会把「返回」甩到屏幕中段，那不是手放的位置
+- 文案没造新 i18n 键：`t.reader.backToHome` 复用现成的，「章节倒序」没有现成键所以干脆不端上 rail —— 造键要重跑 slang，那是全仓共享的生成物
+
+**验证状态**：`cargo test -p rossi_local_core --lib operation_binding::vocabulary` 6 passed；`test/comic_info/comic_info_action_rail_test.dart` 4 条 + 过桥 3 条全绿；`dart analyze`（我这 4 个文件）No issues。🟡 **未实机** —— rail 长什么样、让不让位、宽窗口下吃不吃正文宽度，都还得你在真窗口里看（§8 的 D1–D7）。
+
 ## 8. 验收清单（交付时逐条报编号 + 状态，缺哪条说哪条）
 
 桌面端
@@ -194,3 +216,4 @@
 - `test/reader/page_split_test.dart` 在 **HEAD 上就是红的**：它引用的 `buildReadModeSinglePageSlots` 与 `ReadModeSlotItem.slice` 在 HEAD 的 `lib/` 里同样不存在（该测试最后由 `fda895ca` 2026-09-19 改动，签名后来变了）。所以 `flutter test` 里这几条失败**不是**并发改动弄坏的，也不是 ObjectBox 环境假红，是真的存量债。本方案不动它。
 - `poc/texture-bridge/**` 有整片 `package:flutter/material.dart` 找不到的错误：那个 POC 是独立工程，不在根 `pubspec.yaml` 的解析范围内，属正常噪声。
 - 两条下划线开头的探针测试仍在仓库里（`test/workspace/_lane_wheel_probe_test.dart`、`test/comic_read/_wheel_probe_test.dart`），刻意保留还是待清不由本方案判断。
+- **`test/operation_binding/operation_binding_store_test.dart` 3 条 + `radial_binding_editor_test.dart` 1 条已红**（2026-09-21）。做过归因实验：把 `operation_binding_store.dart` 与 `operation_binding_setting_page.dart` 退回**车道 A 之前**那个提交（`e2e0c304^`）再跑，失败一模一样 ⇒ 与本方案无关。**最可能的成因**是那 3 条都在测「播种 / 升级出厂绑定表」，而 `rust/local_core/src/operation_binding/factory.rs`（+149/−3）与 `neo_defaults.json` 当时正被另一会话改着；`flutter test` 加载的是 `rust/target/release/libwindcore.dylib`，我为了跑过桥判据重建过一次，于是把他们没写完的 Rust 一起编进了测试用的那份库。**推论**：在这棵树上看到 `operation_binding` 的播种类判据变红，先怀疑库里有别人的在飞改动，不要怀疑注册表。

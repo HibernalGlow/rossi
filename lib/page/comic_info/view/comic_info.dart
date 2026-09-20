@@ -15,8 +15,11 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/page/comic_follow/cubit/comic_follow_cubit.dart';
 import 'package:zephyr/page/comic_info/comic_info.dart';
+import 'package:zephyr/page/comic_info/action/comic_info_action_entry.dart';
+import 'package:zephyr/page/comic_info/action/comic_info_action_scope.dart';
 import 'package:zephyr/page/comic_info/json/normal/normal_comic_all_info.dart';
 import 'package:zephyr/page/comic_info/models/read_entry_placement.dart';
+import 'package:zephyr/page/comic_info/widgets/comic_info_action_rail.dart';
 import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/type/pipe.dart';
@@ -104,7 +107,8 @@ class _ComicInfo extends StatefulWidget {
 }
 
 class _ComicInfoState extends State<_ComicInfo>
-    with AutomaticKeepAliveClientMixin {
+    with AutomaticKeepAliveClientMixin
+    implements ComicInfoActionScope {
   ComicEntryType get type => widget.type;
 
   @override
@@ -260,7 +264,8 @@ class _ComicInfoState extends State<_ComicInfo>
           ),
         ],
       ),
-      body: BlocBuilder<GetComicInfoBloc, GetComicInfoState>(
+      body: _withActionRails(
+        child: BlocBuilder<GetComicInfoBloc, GetComicInfoState>(
         builder: (context, state) {
           switch (state.status) {
             case GetComicInfoStatus.initial:
@@ -325,6 +330,7 @@ class _ComicInfoState extends State<_ComicInfo>
           }
         },
       ),
+      ),
       floatingActionButtonLocation:
           context.watch<GlobalSettingCubit>().state.leftHandModeEnabled
           ? FloatingActionButtonLocation.startFloat
@@ -351,6 +357,96 @@ class _ComicInfoState extends State<_ComicInfo>
   /// `_type` —— 两者原本就不同，这里不顺手改口径，只保证「同一类入口同一份参数」。
   void _startReading(ComicEntryType entryType) {
     goToComicRead(context, _comicId, entryType, comicInfoDyn, widget.from);
+  }
+
+  // ── 详情页操作栏（车道 C-1 / E / F，见 `docs/comic-info-action-rail.md`）──────
+  //
+  // 这一屏的「有哪些动作」只在这份清单里写一次；rail 按 id 挑自己那几条。
+  // 带状态的 6 条（收藏 / 点赞 / 评论 / 下载 / 挑章节 / 磁力）还没进来 —— 它们的状态
+  // 挂在 `ComicOperationWidget` 自己的 `setState` 上，等 C-2 把状态提出来之后再并入，
+  // 那时操作行改成读这份清单，才真正做到「一份清单、三处渲染」。
+
+  @override
+  List<ComicInfoActionEntry> comicInfoActionItems() {
+    final hasHistory = context.watch<StringSelectCubit>().state.isNotEmpty;
+    return [
+      ComicInfoActionEntry(
+        actionId: ComicInfoActionIds.back,
+        icon: Icons.arrow_back,
+        label: t.comicInfo.back,
+        onTap: () => actionBack(context),
+      ),
+      ComicInfoActionEntry(
+        actionId: ComicInfoActionIds.home,
+        // 「返回首页」这条文案 reader 段里已有，不为了 rail 再造一个新键
+        // （造键要重跑 slang，那是全仓共享的生成物）。
+        icon: Icons.home_outlined,
+        label: t.reader.backToHome,
+        onTap: () => actionHome(context),
+      ),
+      // 没加载完就没有「这本书」，阅读那颗**不出现**（与那颗悬浮按钮同一口径），
+      // 而不是画一颗永远点不动的。
+      if (_loadingComplete)
+        ComicInfoActionEntry(
+          actionId: ComicInfoActionIds.read,
+          icon: hasHistory ? Icons.history_rounded : Icons.menu_book_rounded,
+          label: hasHistory ? t.comicInfo.continueRead : t.comicInfo.startRead,
+          onTap: () => actionRead(context),
+        ),
+    ];
+  }
+
+  @override
+  void actionBack(BuildContext context) =>
+      // 与左上角那颗箭头**同一条**行为：住在标签里时关的是那条标签。
+      popTabOrClose(context, otherwise: () => context.pop());
+
+  @override
+  void actionHome(BuildContext context) {
+    final tabs = DiscoverTabScope.maybeOf(context);
+    if (tabs != null) {
+      tabs.goHome();
+      return;
+    }
+    popToRoot(context);
+  }
+
+  @override
+  void actionRead(BuildContext context) => _startReading(widget.type);
+
+  /// 有指针 ⇒ 正文两侧各一条 rail；触摸端原样返回（底部条是车道 G）。
+  ///
+  /// 判据用指针而不是视口宽度（口径 4）：带触摸屏的 Windows 笔记本仍然有指针，
+  /// 「该不该省鼠标的路」取决于手上是什么，不取决于窗口多宽。
+  Widget _withActionRails({required Widget child}) {
+    if (!comicInfoPlatformHasPointer(defaultTargetPlatform)) {
+      return child;
+    }
+    final items = comicInfoActionItems();
+    List<ComicInfoActionEntry> pick(List<String> ids) => [
+      for (final id in ids)
+        for (final item in items)
+          if (item.actionId == id) item,
+    ];
+
+    return Row(
+      // rail 顶对齐：默认 center 会让「返回」落在屏幕中段，那不是手放的位置。
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ComicInfoActionRail(
+          scope: this,
+          items: pick(const [
+            ComicInfoActionIds.back,
+            ComicInfoActionIds.home,
+          ]),
+        ),
+        Expanded(child: child),
+        ComicInfoActionRail(
+          scope: this,
+          items: pick(const [ComicInfoActionIds.read]),
+        ),
+      ],
+    );
   }
 
   Widget _infoView(
