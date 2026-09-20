@@ -82,7 +82,7 @@ class LocalFolderCard extends StatelessWidget {
                 Text(
                   '支持 zip, cbz, 文件夹、PDF 及图片打包归档。Rust 侧快速解压并直入 D3D12/Metal 合成链。',
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.outline,
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 10),

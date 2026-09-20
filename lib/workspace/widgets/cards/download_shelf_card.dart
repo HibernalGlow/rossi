@@ -57,7 +57,7 @@ class DownloadShelfCard extends StatelessWidget {
                     child: Text(
                       '暂无下载任务',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.outline,
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -192,7 +192,7 @@ class DownloadShelfCard extends StatelessWidget {
                   child: Text(
                     '暂无下载任务',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.outline,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -249,8 +249,7 @@ class DownloadShelfCard extends StatelessWidget {
             Text(
               label,
               style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.outline,
-                fontSize: 10,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
             Text(

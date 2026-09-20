@@ -175,8 +175,7 @@ class WorkspaceTopChrome extends StatelessWidget {
             child: Text(
               isSwimlane ? '多列泳道' : '沉浸四边栏',
               style: theme.textTheme.labelSmall?.copyWith(
-                fontSize: 10,
-                color: theme.colorScheme.outline,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ),

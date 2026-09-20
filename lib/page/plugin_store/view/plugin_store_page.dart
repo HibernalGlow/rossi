@@ -202,7 +202,7 @@ class _PluginStorePageContentState extends State<_PluginStorePageContent> {
               t.plugin.noCloudPlugins,
               style: Theme.of(
                 context,
-              ).textTheme.bodySmall?.copyWith(color: colorScheme.outline),
+              ).textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
             ),
           )
         else if (displayPlugins.isEmpty)
@@ -212,7 +212,7 @@ class _PluginStorePageContentState extends State<_PluginStorePageContent> {
               t.plugin.noMatchingPlugins,
               style: Theme.of(
                 context,
-              ).textTheme.bodySmall?.copyWith(color: colorScheme.outline),
+              ).textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
             ),
           )
         else

@@ -66,7 +66,7 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
                 '位置与外观在「设置 → 提示样式」里调整。',
                 style: TextStyle(
                   fontSize: 11,
-                  color: Theme.of(context).colorScheme.outline,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -328,7 +328,7 @@ class _DraftFieldState extends State<_DraftField> {
       children: [
         Text(
           widget.label,
-          style: TextStyle(fontSize: 10, color: theme.colorScheme.outline),
+          style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 2),
         Focus(
@@ -350,7 +350,7 @@ class _DraftFieldState extends State<_DraftField> {
               hintText: widget.placeholder,
               hintStyle: TextStyle(
                 fontSize: 10,
-                color: theme.colorScheme.outline,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 8,

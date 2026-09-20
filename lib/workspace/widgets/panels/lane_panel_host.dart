@@ -133,7 +133,7 @@ class _LanePanelHostState extends State<LanePanelHost> {
           '这条泳道里的面板都被收起了 ——\n用顶栏页签条右侧的入口恢复一个。',
           textAlign: TextAlign.center,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.outline,
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
       ),
@@ -198,7 +198,7 @@ class PanelHeaderBar extends StatelessWidget {
                           color: theme.colorScheme.primary,
                         ),
                         const SizedBox(width: 8),
-                        Text(card.title, style: const TextStyle(fontSize: 12)),
+                        Text(card.title, style: theme.textTheme.bodySmall),
                       ],
                     ),
                   ),
@@ -210,14 +210,13 @@ class PanelHeaderBar extends StatelessWidget {
                     Icon(
                       Icons.visibility_off_rounded,
                       size: 13,
-                      color: theme.colorScheme.outline,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 3),
                     Text(
                       '${hidden.length}',
                       style: theme.textTheme.labelSmall?.copyWith(
-                        fontSize: 10,
-                        color: theme.colorScheme.outline,
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],

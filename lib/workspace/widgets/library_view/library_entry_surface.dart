@@ -311,7 +311,6 @@ class LibraryEntrySurface extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant,
-                                fontSize: 10,
                               ),
                             ),
                           ),
@@ -450,7 +449,6 @@ class LibraryEntrySurface extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.labelSmall?.copyWith(
                             fontWeight: FontWeight.w600,
-                            fontSize: 11,
                           ),
                         ),
                       ),
@@ -488,7 +486,6 @@ class LibraryEntrySurface extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.labelSmall?.copyWith(
-                  fontSize: 10,
                   fontWeight: FontWeight.w500,
                 ),
               ),

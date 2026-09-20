@@ -104,7 +104,7 @@ class _Content extends StatelessWidget {
                             day.label,
                             textAlign: TextAlign.center,
                             style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.outline,
+                              color: theme.colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],

@@ -43,7 +43,7 @@ class _HistoryWidgetState extends State<HistoryWidget> {
                 IconButton(
                   icon: const Icon(Icons.delete_outline, size: 20),
                   tooltip: t.search.clearHistory,
-                  color: colorScheme.outline,
+                  color: colorScheme.onSurfaceVariant,
                   onPressed: _resetHistory,
                 ),
               ],

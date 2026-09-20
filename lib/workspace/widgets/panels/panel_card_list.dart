@@ -93,13 +93,13 @@ class PanelCardList extends StatelessWidget {
             Icon(
               Icons.dashboard_customize_outlined,
               size: 30,
-              color: theme.colorScheme.outline.withValues(alpha: 0.6),
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
             ),
             const SizedBox(height: 10),
             Text(
               '这个面板里的卡片都被收起来了',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.outline,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
             ),

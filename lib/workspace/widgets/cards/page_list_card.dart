@@ -181,13 +181,13 @@ class _PageListCardState extends State<PageListCard> {
         Icon(
           Icons.auto_stories_outlined,
           size: 38,
-          color: theme.colorScheme.outline.withValues(alpha: 0.6),
+          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
         ),
         const SizedBox(height: 10),
         Text(
           '打开书本后显示页面导航',
           style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.outline,
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
       ],
@@ -239,7 +239,7 @@ class _PageListCardState extends State<PageListCard> {
                 '没有匹配的页面',
                 style: TextStyle(
                   fontSize: 12,
-                  color: theme.colorScheme.outline,
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
             )
@@ -269,7 +269,7 @@ class _PageListCardState extends State<PageListCard> {
                       hintText: '搜索页码或文件名...',
                       hintStyle: TextStyle(
                         fontSize: 11,
-                        color: theme.colorScheme.outline,
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                       prefixIcon: const Icon(Icons.search, size: 16),
                       contentPadding: EdgeInsets.zero,
@@ -296,7 +296,7 @@ class _PageListCardState extends State<PageListCard> {
                       : null,
                   foregroundColor: _followProgress
                       ? theme.colorScheme.primary
-                      : theme.colorScheme.outline,
+                      : theme.colorScheme.onSurfaceVariant,
                 ),
                 onPressed: () {
                   setState(() {
@@ -686,12 +686,10 @@ class _PageListCardState extends State<PageListCard> {
             children: [
               Text(
                 '#${pageIndex + 1}',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
+                style: theme.textTheme.labelSmall?.copyWith(
                   color: isActive
                       ? theme.colorScheme.primary
-                      : theme.colorScheme.outline,
+                      : theme.colorScheme.onSurfaceVariant,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
@@ -701,9 +699,10 @@ class _PageListCardState extends State<PageListCard> {
                   name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isActive ? theme.colorScheme.primary : null,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: isActive
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurface,
                   ),
                 ),
               ),

@@ -187,9 +187,8 @@ class _ToastCardState extends State<ToastCard>
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHigh,
             borderRadius: radius,
-            border: Border.all(
-              color: scheme.outlineVariant.withValues(alpha: 0.5),
-            ),
+            // MD3 的 elevated 面靠容器色 + 投影分层，不再叠一圈描边
+            //（玻璃那条分支由 LiquidGlassSurface 自己给边缘）。
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.22),

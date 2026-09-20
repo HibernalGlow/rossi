@@ -96,7 +96,7 @@ class DiscoverPluginsCard extends StatelessWidget {
                       child: Text(
                         '暂无启用的插件',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.outline,
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                     )
@@ -161,7 +161,7 @@ class DiscoverPluginsCard extends StatelessWidget {
                 child: Text(
                   '暂无启用的插件',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.outline,
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -231,9 +231,11 @@ class DiscoverPluginsCard extends StatelessWidget {
                   Text(
                     '${plugin.version.isEmpty ? "内置" : "v${plugin.version}"} · ${isReady ? "已就绪" : "正在加载"}',
                     style: theme.textTheme.labelSmall?.copyWith(
+                      // 「正在加载」用 tertiary 而不是硬编码橙色：
+                      // 调色板里没有 #FF9800 这个值，深色模式下它几乎刺眼。
                       color: isReady
-                          ? theme.colorScheme.outline
-                          : Colors.orange,
+                          ? theme.colorScheme.onSurfaceVariant
+                          : theme.colorScheme.tertiary,
                     ),
                   ),
                 ],
@@ -241,7 +243,7 @@ class DiscoverPluginsCard extends StatelessWidget {
             ),
             IconButton(
               icon: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-              color: theme.colorScheme.outline,
+              color: theme.colorScheme.onSurfaceVariant,
               onPressed: () {
                 context.pushRoute(
                   SearchRoute(

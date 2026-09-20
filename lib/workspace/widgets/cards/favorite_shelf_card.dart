@@ -278,7 +278,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
           Icon(
             Icons.bookmark_added_rounded,
             size: 16,
-            color: theme.colorScheme.outline,
+            color: theme.colorScheme.onSurfaceVariant,
           ),
       ],
     );
@@ -532,7 +532,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
       detailCells: [author.isEmpty ? '—' : author, source, time],
       trailing: IconButton(
         icon: const Icon(Icons.arrow_forward_ios_rounded, size: 13),
-        color: theme.colorScheme.outline,
+        color: theme.colorScheme.onSurfaceVariant,
         tooltip: '打开',
         visualDensity: VisualDensity.compact,
         onPressed: () => _open(context, item),

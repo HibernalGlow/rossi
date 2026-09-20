@@ -70,7 +70,7 @@ class _Content extends StatelessWidget {
             Text(
               '${summary.total} 条',
               style: theme.textTheme.labelMedium?.copyWith(
-                color: theme.colorScheme.outline,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -95,7 +95,7 @@ class _Content extends StatelessWidget {
                     Text(
                       '${item.count} (${item.percent}%)',
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.outline,
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],

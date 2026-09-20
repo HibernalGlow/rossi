@@ -106,7 +106,7 @@ class _HistoryInsightsWindowState extends State<HistoryInsightsWindow> {
           Text(
             widget.loadingLabel,
             style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.outline,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -122,7 +122,7 @@ class _HistoryInsightsWindowState extends State<HistoryInsightsWindow> {
         child: Text(
           '暂无历史访问记录',
           style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.outline,
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
       ),

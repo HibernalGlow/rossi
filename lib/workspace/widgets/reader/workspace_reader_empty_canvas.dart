@@ -84,7 +84,7 @@ class _WorkspaceReaderEmptyCanvasState
                     '在左侧书架或右侧发现里点开任意一本，都会读在这条泳道里；'
                     '点栏顶的独占按钮可让它瞬间撑满视口。',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.outline,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                     textAlign: TextAlign.center,
                   ),

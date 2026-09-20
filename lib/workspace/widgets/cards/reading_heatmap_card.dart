@@ -122,7 +122,7 @@ class _HourRow extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: theme.textTheme.labelSmall?.copyWith(
                   fontSize: 8,
-                  color: theme.colorScheme.outline,
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -156,7 +156,7 @@ class _HeatRow extends StatelessWidget {
               weekdayLabels[weekday],
               style: theme.textTheme.labelSmall?.copyWith(
                 fontSize: 9,
-                color: theme.colorScheme.outline,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ),

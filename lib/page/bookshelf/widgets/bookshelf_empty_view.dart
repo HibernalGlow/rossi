@@ -28,12 +28,12 @@ class BookshelfEmptyView extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(icon, size: 72, color: theme.colorScheme.outline),
+                    Icon(icon, size: 72, color: theme.colorScheme.onSurfaceVariant),
                     const SizedBox(height: 16),
                     Text(
                       title.isEmpty ? t.comicList.nothingHere : title,
                       style: theme.textTheme.titleMedium?.copyWith(
-                        color: theme.colorScheme.outline,
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                     if (onRefresh != null) ...[

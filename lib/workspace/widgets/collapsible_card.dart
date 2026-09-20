@@ -202,7 +202,11 @@ class _TrackMenuItem extends StatelessWidget {
     final theme = Theme.of(context);
     return Row(
       children: [
-        Icon(icon, size: 18, color: color ?? theme.colorScheme.onSurfaceVariant),
+        Icon(
+          icon,
+          size: 18,
+          color: color ?? theme.colorScheme.onSurfaceVariant,
+        ),
         const SizedBox(width: 10),
         Text(
           label,
