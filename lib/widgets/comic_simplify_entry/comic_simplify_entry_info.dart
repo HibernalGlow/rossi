@@ -27,6 +27,9 @@ abstract class ComicSimplifyEntryInfo with _$ComicSimplifyEntryInfo {
     @JsonKey(name: "source") @Default('') String source,
     @JsonKey(name: "from") required String from,
     @JsonKey(name: "tags") @Default([]) List<String> tags,
+    // 喜欢画师匹配要按命名空间分桶后再比，`tags` 是压平的（语言角标那类判定用它）。
+    @JsonKey(name: "artistTags") @Default([]) List<String> artistTags,
+    @JsonKey(name: "circleTags") @Default([]) List<String> circleTags,
   }) = _ComicSimplifyEntryInfo;
 
   factory ComicSimplifyEntryInfo.fromJson(Map<String, dynamic> json) =>

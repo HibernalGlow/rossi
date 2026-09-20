@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:zephyr/type/enum.dart';
+import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
 import 'package:zephyr/util/json/json_value.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_info.dart';
 
@@ -75,6 +76,19 @@ abstract class UnifiedComicListItem with _$UnifiedComicListItem {
 
   String get updatedAtText => updatedAt.trim();
 
+  /// 喜欢画师匹配要的两个桶（画师命名空间 / 社团命名空间）。
+  FavoriteArtistBuckets get favoriteArtistBuckets {
+    final buckets = FavoriteArtistBuckets();
+    for (final item in metadata) {
+      buckets.addGroup(
+        type: item.type,
+        name: item.name,
+        values: item.value.map((v) => v.toString()),
+      );
+    }
+    return buckets;
+  }
+
   ComicSimplifyEntryInfo toSimplifyEntryInfo({
     PictureType pictureType = PictureType.cover,
   }) {
@@ -82,6 +96,9 @@ abstract class UnifiedComicListItem with _$UnifiedComicListItem {
       ...metadata.expand((m) => m.value.map((v) => v.toString())),
       if (subtitle.trim().isNotEmpty) subtitle.trim(),
     ];
+    // 压平的 `tags` 里分不清画师与上传者（e-hentai 插件给的正是 category + uploader），
+    // 所以喜欢画师匹配另走两个桶，命名空间判定只认 `FavoriteArtistBuckets`。
+    final buckets = favoriteArtistBuckets;
     return ComicSimplifyEntryInfo(
       title: title,
       id: id,
@@ -91,6 +108,8 @@ abstract class UnifiedComicListItem with _$UnifiedComicListItem {
       source: source.trim(),
       from: from,
       tags: collectedTags,
+      artistTags: buckets.artistTags,
+      circleTags: buckets.circleTags,
     );
   }
 }

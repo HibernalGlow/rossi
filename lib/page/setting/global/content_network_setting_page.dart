@@ -52,6 +52,31 @@ class ContentNetworkSettingPage extends StatelessWidget {
               cubit.toggleHighlightFavoriteArtists(value);
             },
           ),
+          ListTile(
+            leading: const Icon(Icons.sell, color: Color(0xFFF59E0B)),
+            title: Text(t.settings.favoriteTagManagement),
+            subtitle: Text(
+              state.favoriteTagSetting.tags.isEmpty
+                  ? t.settings.favoriteTagManagementSubtitleEmpty
+                  : t.settings.favoriteTagManagementSubtitle(
+                      count: state.favoriteTagSetting.tags.length,
+                    ),
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              context.pushRoute(const FavoriteTagSettingRoute());
+            },
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.highlight_outlined),
+            title: Text(t.settings.favoriteTagHighlight),
+            subtitle: Text(t.settings.favoriteTagHighlightSubtitle),
+            thumbIcon: kSettingSwitchThumbIcon,
+            value: state.favoriteTagSetting.highlightEnabled,
+            onChanged: (value) {
+              cubit.toggleHighlightFavoriteTags(value);
+            },
+          ),
           _chineseConvertMode(state, cubit),
 
           const SizedBox(height: 8),

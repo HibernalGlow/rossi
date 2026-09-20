@@ -3,10 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
+import 'package:zephyr/util/comic/comic_card_badge_policy.dart';
 import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
+import 'package:zephyr/util/comic/favorite_tag_matcher.dart';
 import 'package:zephyr/widgets/comic_entry/models/models.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
+import 'package:zephyr/widgets/comic_simplify_entry/favorite_tag_badge.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 import 'package:zephyr/main.dart';
@@ -40,18 +43,41 @@ class ComicEntryWidget extends StatelessWidget {
     final statText = _buildStatText();
     final globalSetting = context.watch<GlobalSettingCubit>().state;
     final favoriteSetting = globalSetting.favoriteArtistSetting;
-    final allTags = <String>[
-      ...comic.metadata.expand((m) => m.value.map((v) => v.toString())),
-      if (comic.subtitle.trim().isNotEmpty) comic.subtitle.trim(),
-    ];
+    final buckets = comic.favoriteArtistBuckets;
     final matchResult = favoriteSetting.highlightEnabled
         ? FavoriteArtistMatcher.match(
             title: comic.title,
-            tags: allTags,
+            artistTags: buckets.artistTags,
+            circleTags: buckets.circleTags,
             favoriteArtists: favoriteSetting.artists,
+            circleMode: favoriteSetting.circleMode,
           )
         : null;
     final isFavoriteArtist = matchResult?.isMatched ?? false;
+    // 与封面卡片共用同一对闸门（书架 → 卡片角标、内容 → 收藏 tag 高亮），
+    // 判断本身交给 `ComicCardBadgePolicy`，免得行与卡片两处各写一份而漂移。
+    final favoriteTagSetting = globalSetting.favoriteTagSetting;
+    // 与卡片那边 `ComicSimplifyEntryInfo.tags` 同一份口径（压平的所有分桶值 +
+    // 副标题），否则同一本在列表里高亮、在网格里不高亮。
+    final tagCandidates = <String>[
+      for (final group in comic.metadata)
+        ...group.value.map((v) => v.toString()),
+      if (comic.subtitle.trim().isNotEmpty) comic.subtitle.trim(),
+    ];
+    final tagMatchResult =
+        ComicCardBadgePolicy(
+          favoriteTagBadgeEnabled:
+              globalSetting.comicCardSetting.favoriteTagBadgeEnabled,
+        ).showFavoriteTagBadge(
+          highlightEnabled: favoriteTagSetting.highlightEnabled,
+        )
+        ? FavoriteTagMatcher.match(
+            tags: tagCandidates,
+            title: comic.title,
+            favoriteTags: favoriteTagSetting.tags,
+          )
+        : FavoriteTagMatchResult.notMatched;
+    final isFavoriteTag = tagMatchResult.isMatched;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -96,10 +122,10 @@ class ComicEntryWidget extends StatelessWidget {
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isFavoriteArtist
+            color: (isFavoriteArtist || isFavoriteTag)
                 ? const Color(0xFFF59E0B)
                 : theme.colorScheme.outlineVariant,
-            width: isFavoriteArtist ? 1.8 : 1.0,
+            width: (isFavoriteArtist || isFavoriteTag) ? 1.8 : 1.0,
           ),
         ),
         child: Row(
@@ -122,12 +148,23 @@ class ComicEntryWidget extends StatelessWidget {
                     width: coverWidth,
                     height: coverHeight,
                   ),
-                  if (isFavoriteArtist)
+                  if (isFavoriteArtist || isFavoriteTag)
                     Positioned(
                       top: 4,
                       left: 4,
-                      child: FavoriteArtistBadge(
-                        artistName: matchResult?.matchedArtist,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isFavoriteArtist)
+                            FavoriteArtistBadge(
+                              artistName: matchResult?.matchedName,
+                            ),
+                          if (isFavoriteTag) ...[
+                            if (isFavoriteArtist) const SizedBox(height: 4),
+                            FavoriteTagBadge(tagName: tagMatchResult.label),
+                          ],
+                        ],
                       ),
                     ),
                 ],

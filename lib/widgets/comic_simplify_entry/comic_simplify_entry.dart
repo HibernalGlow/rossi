@@ -19,6 +19,7 @@ import 'package:zephyr/cubit/string_select.dart';
 import 'package:zephyr/util/comic/chinese_translation_matcher.dart';
 import 'package:zephyr/util/comic/comic_card_badge_policy.dart';
 import 'package:zephyr/util/comic/comic_quick_read.dart';
+import 'package:zephyr/util/comic/favorite_tag_matcher.dart';
 import 'package:zephyr/util/path_util.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_download_badge.dart';
@@ -26,8 +27,32 @@ import 'package:zephyr/widgets/comic_simplify_entry/comic_read_button.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_info.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_translation_badge.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
+import 'package:zephyr/widgets/comic_simplify_entry/favorite_tag_badge.dart';
 
 const double kComicCardBorderRadius = 5.0;
+
+/// 这张卡是否命中收藏 tag（边框与角标共用同一个判断）。
+///
+/// 抽成函数是因为网格卡与横滑卡两份 `build` 必须给出**完全一样**的结论，
+/// 两边各写一遍迟早会漂（横滑卡此前就漏过多选态那道闸门）。
+FavoriteTagMatchResult _favoriteTagMatch(
+  GlobalSettingState globalSetting,
+  ComicCardBadgePolicy badgePolicy,
+  ComicSimplifyEntryInfo info,
+) {
+  final setting = globalSetting.favoriteTagSetting;
+  if (!badgePolicy.showFavoriteTagBadge(
+    highlightEnabled: setting.highlightEnabled,
+  )) {
+    return FavoriteTagMatchResult.notMatched;
+  }
+  if (setting.tags.isEmpty) return FavoriteTagMatchResult.notMatched;
+  return FavoriteTagMatcher.match(
+    tags: info.tags,
+    title: info.title,
+    favoriteTags: setting.tags,
+  );
+}
 
 class FavoriteArtistBadge extends StatelessWidget {
   final String? artistName;
@@ -177,6 +202,8 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
       translationBadgeEnabled:
           globalSetting.comicCardSetting.translationBadgeEnabled,
       readButtonEnabled: globalSetting.comicCardSetting.readButtonEnabled,
+      favoriteTagBadgeEnabled:
+          globalSetting.comicCardSetting.favoriteTagBadgeEnabled,
     );
     // 本地漫画本来就在盘上，不给下载角标。
     final showDownloadBadge = badgePolicy.showDownloadBadge(
@@ -194,11 +221,18 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
     final matchResult = favoriteSetting.highlightEnabled
         ? FavoriteArtistMatcher.match(
             title: info.title,
-            tags: info.tags,
+            artistTags: info.artistTags,
+            circleTags: info.circleTags,
             favoriteArtists: favoriteSetting.artists,
+            circleMode: favoriteSetting.circleMode,
           )
         : null;
     final isFavoriteArtist = matchResult?.isMatched ?? false;
+    final isFavoriteTag = _favoriteTagMatch(
+      globalSetting,
+      badgePolicy,
+      info,
+    ).isMatched;
     final canShowTranslation = badgePolicy.showTranslationBadge(
       cardEnabled: showTranslationBadge,
     );
@@ -209,7 +243,7 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(circular),
       child: Container(
-        foregroundDecoration: isFavoriteArtist
+        foregroundDecoration: (isFavoriteArtist || isFavoriteTag)
             ? BoxDecoration(
                 border: Border.all(color: const Color(0xFFF59E0B), width: 2.5),
                 borderRadius: BorderRadius.circular(circular),
@@ -462,6 +496,8 @@ class ComicSimplifyEntry extends StatelessWidget {
       translationBadgeEnabled:
           globalSetting.comicCardSetting.translationBadgeEnabled,
       readButtonEnabled: globalSetting.comicCardSetting.readButtonEnabled,
+      favoriteTagBadgeEnabled:
+          globalSetting.comicCardSetting.favoriteTagBadgeEnabled,
     );
     // 本地漫画本来就在盘上；多选模式下右上角让给勾选圈。
     final showDownloadBadge = badgePolicy.showDownloadBadge(
@@ -480,11 +516,15 @@ class ComicSimplifyEntry extends StatelessWidget {
     final matchResult = favoriteSetting.highlightEnabled
         ? FavoriteArtistMatcher.match(
             title: info.title,
-            tags: info.tags,
+            artistTags: info.artistTags,
+            circleTags: info.circleTags,
             favoriteArtists: favoriteSetting.artists,
+            circleMode: favoriteSetting.circleMode,
           )
         : null;
     final isFavoriteArtist = matchResult?.isMatched ?? false;
+    final tagMatchResult = _favoriteTagMatch(globalSetting, badgePolicy, info);
+    final isFavoriteTag = tagMatchResult.isMatched;
     final canShowTranslation = badgePolicy.showTranslationBadge(
       cardEnabled: showTranslationBadge,
     );
@@ -500,7 +540,7 @@ class ComicSimplifyEntry extends StatelessWidget {
                 border: Border.all(color: primary, width: 4),
                 borderRadius: BorderRadius.circular(circular),
               )
-            : (isFavoriteArtist
+            : ((isFavoriteArtist || isFavoriteTag)
                   ? BoxDecoration(
                       border: Border.all(
                         color: const Color(0xFFF59E0B),
@@ -574,9 +614,9 @@ class ComicSimplifyEntry extends StatelessWidget {
                   size: width < 110 ? 24 : 28,
                 ),
               ),
-            // 左上角角标族：喜欢画师在上、语言/汉化在下，纵向排开。
-            // 两个都画成独立的 Positioned 会互相盖住（同是 top:6,left:6）。
-            if (isFavoriteArtist || translationMatch.hasBadge)
+            // 左上角角标族：喜欢画师、收藏 tag、语言/汉化，纵向排开。
+            // 都画成独立的 Positioned 会互相盖住（同是 top:6,left:6）。
+            if (isFavoriteArtist || isFavoriteTag || translationMatch.hasBadge)
               Positioned(
                 top: 6,
                 left: 6,
@@ -586,15 +626,20 @@ class ComicSimplifyEntry extends StatelessWidget {
                   children: [
                     if (isFavoriteArtist)
                       FavoriteArtistBadge(
-                        artistName: matchResult?.matchedArtist,
+                        artistName: matchResult?.matchedName,
                       ),
-                    if (isFavoriteArtist && translationMatch.hasBadge)
-                      const SizedBox(height: 4),
-                    if (translationMatch.hasBadge)
+                    if (isFavoriteTag) ...[
+                      if (isFavoriteArtist) const SizedBox(height: 4),
+                      FavoriteTagBadge(tagName: tagMatchResult.label),
+                    ],
+                    if (translationMatch.hasBadge) ...[
+                      if (isFavoriteArtist || isFavoriteTag)
+                        const SizedBox(height: 4),
                       ComicTranslationBadge(
                         match: translationMatch,
                         compact: width < 110,
                       ),
+                    ],
                   ],
                 ),
               ),

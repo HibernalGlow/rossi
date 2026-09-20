@@ -8,6 +8,7 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
+import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 @RoutePage()
@@ -23,6 +24,15 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
   final TextEditingController _addController = TextEditingController();
   final TextEditingController _filterController = TextEditingController();
   String _filterKeyword = '';
+
+  /// 社团名那一档的三档文案；`fallbackOnly` 是默认，也是「社团名最容易撞上汉化组」时的安全档。
+  Map<FavoriteArtistCircleMode, String> get _circleModeLabels => {
+    FavoriteArtistCircleMode.off: t.settings.favoriteArtistCircleOff,
+    FavoriteArtistCircleMode.fallbackOnly:
+        t.settings.favoriteArtistCircleFallback,
+    FavoriteArtistCircleMode.independent:
+        t.settings.favoriteArtistCircleIndependent,
+  };
 
   @override
   void dispose() {
@@ -94,21 +104,13 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
     );
 
     if (result != null && context.mounted) {
-      final lines = result.split(RegExp(r'[\r\n,]+'));
-      final parsed = <String>[];
-      for (final line in lines) {
-        final trimmed = line.trim();
-        if (trimmed.isEmpty) continue;
-        // 尝试解析 [circle (artist)] 提取画师
-        final candidates = FavoriteArtistMatcher.extractArtistCandidates(
-          trimmed,
-        );
-        if (candidates.isNotEmpty) {
-          parsed.add(candidates.first);
-        } else {
-          parsed.add(trimmed);
-        }
-      }
+      // 原文照存：`[社团 (画师)]` 里两个名字都要参与匹配，
+      // 在这里压成画师名就等于把社团名丢了。
+      final parsed = result
+          .split(RegExp(r'[\r\n,]+'))
+          .map((line) => line.trim())
+          .where((line) => line.isNotEmpty)
+          .toList();
       context.read<GlobalSettingCubit>().setFavoriteArtists(parsed);
       showSuccessToast(
         t.settings.favoriteArtistImportSuccess(count: parsed.length),
@@ -147,14 +149,7 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
       for (final line in lines) {
         final trimmed = line.replaceFirst(RegExp(r'^\s*[-*•]\s*'), '').trim();
         if (trimmed.isEmpty) continue;
-        final candidates = FavoriteArtistMatcher.extractArtistCandidates(
-          trimmed,
-        );
-        if (candidates.isNotEmpty) {
-          parsed.add(candidates.first);
-        } else {
-          parsed.add(trimmed);
-        }
+        parsed.add(trimmed);
       }
 
       if (context.mounted) {
@@ -238,6 +233,23 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
             },
           ),
           const SizedBox(height: 12),
+          ListTile(
+            leading: const Icon(
+              Icons.groups_outlined,
+              color: Color(0xFFF59E0B),
+            ),
+            title: Text(t.settings.favoriteArtistCircleMode),
+            subtitle: Text(t.settings.favoriteArtistCircleModeSubtitle),
+            trailing: FluentDropdown<FavoriteArtistCircleMode>(
+              value: setting.circleMode,
+              displayValue: _circleModeLabels[setting.circleMode]!,
+              items: _circleModeLabels,
+              onChanged: (value) {
+                if (value == setting.circleMode) return;
+                cubit.setFavoriteArtistCircleMode(value);
+              },
+            ),
+          ),
           const Divider(height: 1, thickness: 0.3),
           const SizedBox(height: 16),
 

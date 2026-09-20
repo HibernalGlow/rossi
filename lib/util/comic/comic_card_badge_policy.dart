@@ -20,6 +20,7 @@ class ComicCardBadgePolicy {
     this.downloadBadgeEnabled = true,
     this.translationBadgeEnabled = true,
     this.readButtonEnabled = true,
+    this.favoriteTagBadgeEnabled = true,
   });
 
   /// 用户的「下载角标」总开关。
@@ -30,6 +31,9 @@ class ComicCardBadgePolicy {
 
   /// 用户的「直接阅读按钮」总开关（封面正中）。
   final bool readButtonEnabled;
+
+  /// 用户的「收藏 tag 角标」总开关（封面左上角）。
+  final bool favoriteTagBadgeEnabled;
 
   /// 下载角标是否显示（右上角）。
   ///
@@ -56,6 +60,17 @@ class ComicCardBadgePolicy {
   /// `ChineseTranslationMatcher.match`，省掉每张卡片的词表扫描。
   bool showTranslationBadge({bool cardEnabled = true}) {
     return translationBadgeEnabled && cardEnabled;
+  }
+
+  /// 收藏 tag 的封面角标是否显示（左上角，语言角标之上）。
+  ///
+  /// 同样兼任「要不要跑匹配」的闸门。这里把用户那两把开关（书架 → 卡片角标、
+  /// 设置 → 内容 → 收藏 tag 高亮）合成一次判断，调用方就不会只查到一半。
+  bool showFavoriteTagBadge({
+    bool highlightEnabled = true,
+    bool cardEnabled = true,
+  }) {
+    return favoriteTagBadgeEnabled && highlightEnabled && cardEnabled;
   }
 
   /// 封面正中的「直接阅读」按钮是否显示。

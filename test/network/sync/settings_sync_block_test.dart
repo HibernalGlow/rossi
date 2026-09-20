@@ -39,8 +39,7 @@ void _expectNoLocalOnlyKeys(Map<String, Map<String, dynamic>> blocks) {
       expect(
         blockEntry.value.containsKey(key),
         isFalse,
-        reason:
-            '$key 不该出现在同步块 ${blockEntry.key} 里（本机事实 / 安全 / 瞬态）',
+        reason: '$key 不该出现在同步块 ${blockEntry.key} 里（本机事实 / 安全 / 瞬态）',
       );
     }
   }
@@ -120,48 +119,51 @@ void main() {
       },
     );
 
-    test('applies remote sync blocks while preserving local favoriteArtistSetting', () {
-      const localState = GlobalSettingState(
-        downloadConcurrency: 2,
-        downloadDelayMs: 100,
-        chineseConvertMode: ChineseConvertMode.off,
-        favoriteArtistSetting: FavoriteArtistSettingState(
-          highlightEnabled: true,
-          artists: ['MySecretArtist'],
-        ),
-      );
+    test(
+      'applies remote sync blocks while preserving local favoriteArtistSetting',
+      () {
+        const localState = GlobalSettingState(
+          downloadConcurrency: 2,
+          downloadDelayMs: 100,
+          chineseConvertMode: ChineseConvertMode.off,
+          favoriteArtistSetting: FavoriteArtistSettingState(
+            highlightEnabled: true,
+            artists: ['MySecretArtist'],
+          ),
+        );
 
-      final remoteBlocks = <String, Map<String, dynamic>>{
-        'appearance': {
-          'dynamicColor': false,
-          'themeMode': 'dark',
-          'chineseConvertMode': 'simplified',
-          'localeFollowsSystem': false,
-        },
-        'library': {
-          'downloadConcurrency': 6,
-          'downloadDelayMs': 300,
-          'autoFavoriteOnDownload': true,
-          'leftHandModeEnabled': true,
-        },
-        'reader': {'readWhileDownloading': false},
-      };
+        final remoteBlocks = <String, Map<String, dynamic>>{
+          'appearance': {
+            'dynamicColor': false,
+            'themeMode': 'dark',
+            'chineseConvertMode': 'simplified',
+            'localeFollowsSystem': false,
+          },
+          'library': {
+            'downloadConcurrency': 6,
+            'downloadDelayMs': 300,
+            'autoFavoriteOnDownload': true,
+            'leftHandModeEnabled': true,
+          },
+          'reader': {'readWhileDownloading': false},
+        };
 
-      final merged = applySyncableBlockDataForTest(localState, remoteBlocks);
+        final merged = applySyncableBlockDataForTest(localState, remoteBlocks);
 
-      // 远端新设置成功生效
-      expect(merged.downloadConcurrency, 6);
-      expect(merged.downloadDelayMs, 300);
-      expect(merged.autoFavoriteOnDownload, isTrue);
-      expect(merged.leftHandModeEnabled, isTrue);
-      expect(merged.chineseConvertMode, ChineseConvertMode.simplified);
-      expect(merged.localeFollowsSystem, isFalse);
-      expect(merged.readSetting.readWhileDownloading, isFalse);
+        // 远端新设置成功生效
+        expect(merged.downloadConcurrency, 6);
+        expect(merged.downloadDelayMs, 300);
+        expect(merged.autoFavoriteOnDownload, isTrue);
+        expect(merged.leftHandModeEnabled, isTrue);
+        expect(merged.chineseConvertMode, ChineseConvertMode.simplified);
+        expect(merged.localeFollowsSystem, isFalse);
+        expect(merged.readSetting.readWhileDownloading, isFalse);
 
-      // 本地私有的收藏作者名单不受任何影响，原样保留
-      expect(merged.favoriteArtistSetting.artists, ['MySecretArtist']);
-      expect(merged.favoriteArtistSetting.highlightEnabled, isTrue);
-    });
+        // 本地私有的收藏作者名单不受任何影响，原样保留
+        expect(merged.favoriteArtistSetting.artists, ['MySecretArtist']);
+        expect(merged.favoriteArtistSetting.highlightEnabled, isTrue);
+      },
+    );
   });
 
   group('同步块表的覆盖范围', () {
@@ -194,11 +196,51 @@ void main() {
       expect(blocks['library']!.containsKey('comicCardSetting'), isTrue);
     });
 
+    test('收藏 tag（含别名）走 library 块，下载时覆盖本机那份', () {
+      // 与画师名单相反：tag 集是跨端偏好，用户明确要求同步。
+      const state = GlobalSettingState(
+        favoriteTagSetting: FavoriteTagSettingState(
+          highlightEnabled: true,
+          tags: [
+            FavoriteTag(name: 'school_lolita', aliases: ['学校萝莉']),
+          ],
+        ),
+      );
+
+      final payload =
+          extractSyncableSettingsBlocksForTest(
+                state,
+              )['library']!['favoriteTagSetting']
+              as Map;
+      expect(payload['highlightEnabled'], isTrue);
+      final entries = payload['tags'] as List;
+      expect((entries.single as Map)['name'], 'school_lolita');
+      expect((entries.single as Map)['aliases'], ['学校萝莉']);
+
+      const localState = GlobalSettingState(
+        favoriteTagSetting: FavoriteTagSettingState(tags: []),
+      );
+      final merged = applySyncableBlockDataForTest(localState, {
+        'library': {'favoriteTagSetting': payload},
+      });
+
+      final applied = merged.favoriteTagSetting.tags.single;
+      expect(applied.name, 'school_lolita');
+      expect(applied.aliases, ['学校萝莉']);
+      // 同一次合并里画师名单照旧原样保留（本机私有）
+      expect(
+        merged.favoriteArtistSetting.artists,
+        const GlobalSettingState().favoriteArtistSetting.artists,
+      );
+    });
+
     test('文件管理器块不带 homePath（本机绝对路径）', () {
       final blocks = extractSyncableSettingsBlocksForTest(
-        const GlobalSettingState(fileManagerSetting: FileManagerSettingState(
-          homePath: '/Users/someone/Comics',
-        )),
+        const GlobalSettingState(
+          fileManagerSetting: FileManagerSettingState(
+            homePath: '/Users/someone/Comics',
+          ),
+        ),
       );
 
       final fileManager = blocks['fileManager']!;
@@ -244,9 +286,11 @@ void main() {
 
     test('操作绑定与轮盘整串往返', () {
       const localState = GlobalSettingState();
-      const bindingsJson = '[{"input":{"device":"key","code":"ArrowLeft"},'
+      const bindingsJson =
+          '[{"input":{"device":"key","code":"ArrowLeft"},'
           '"action":"page.prev","preset":"default"}]';
-      const radialJson = '{"menus":[{"id":"menu-1","levels":2}],"enabled":true}';
+      const radialJson =
+          '{"menus":[{"id":"menu-1","levels":2}],"enabled":true}';
 
       final merged = applySyncableBlockDataForTest(localState, {
         'operationBinding': {
@@ -359,9 +403,7 @@ void main() {
         enableMemoryDebug: true,
         logAddress: 'http://127.0.0.1:9999',
         showLayoutOverflowStripes: false,
-        favoriteArtistSetting: FavoriteArtistSettingState(
-          artists: ['Secret'],
-        ),
+        favoriteArtistSetting: FavoriteArtistSettingState(artists: ['Secret']),
       );
 
       _expectNoLocalOnlyKeys(extractSyncableSettingsBlocksForTest(state));
@@ -419,8 +461,7 @@ void main() {
           nowMs: nowMs,
         ),
         0,
-        reason:
-            '刷新成 now 会让「本机就是出厂值」这个判断每轮失效，云端布局永远进不来',
+        reason: '刷新成 now 会让「本机就是出厂值」这个判断每轮失效，云端布局永远进不来',
       );
     });
 
@@ -458,7 +499,10 @@ void main() {
       // 布局的落点是 `workspace_layout.json`（见 `WorkspaceSyncCodec`），
       // 不该有任何一项被当成 GlobalSettingState 的字段吸收。
       expect(merged.downloadConcurrency, 3);
-      expect(merged.toastSetting.position, const GlobalSettingState().toastSetting.position);
+      expect(
+        merged.toastSetting.position,
+        const GlobalSettingState().toastSetting.position,
+      );
       expect(merged.startWithWorkspace, isFalse);
     });
   });

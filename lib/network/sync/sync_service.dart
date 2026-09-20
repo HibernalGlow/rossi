@@ -80,6 +80,8 @@ const Map<String, List<String>> _settingsBlockKeys = <String, List<String>>{
     'bookshelfSetting',
     'comicCardSetting',
     'discoverSetting',
+    // 收藏 tag（含别名）与画师名单不同，是**跨端偏好**：换设备继续要同一份标签集。
+    'favoriteTagSetting',
   ],
   _shellBlockName: <String>[
     // 启动落点。手机端没有工作台入口时会自己忽略（`resolveStartupLanding`），

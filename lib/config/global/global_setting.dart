@@ -10,8 +10,10 @@ import 'package:zephyr/i18n/i18n_helper.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/page/comic_read/model/reader_presentation.dart';
+import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
 import 'package:zephyr/util/json/converter.dart';
 import 'package:zephyr/util/layout/layout_overflow_guard.dart';
+import 'package:zephyr/util/text/tag_text.dart';
 
 part 'global_setting.freezed.dart';
 part 'global_setting.g.dart';
@@ -302,6 +304,8 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     @Default(BookshelfSettingState()) BookshelfSettingState bookshelfSetting,
     @Default(FavoriteArtistSettingState())
     FavoriteArtistSettingState favoriteArtistSetting,
+    @Default(FavoriteTagSettingState())
+    FavoriteTagSettingState favoriteTagSetting,
     @Default(ComicCardSettingState()) ComicCardSettingState comicCardSetting,
     @Default(ToastSettingState()) ToastSettingState toastSetting,
     @Default(SwitchToastSettingState())
@@ -509,10 +513,106 @@ abstract class FavoriteArtistSettingState with _$FavoriteArtistSettingState {
   const factory FavoriteArtistSettingState({
     @Default(true) bool highlightEnabled,
     @Default([]) List<String> artists,
+    // 社团名算不算命中。默认 fallbackOnly：只有这条本子拿不出画师证据时才认社团，
+    // 因为社团名最容易撞上汉化组与活动名。口径见 `FavoriteArtistCircleMode`。
+    @Default(FavoriteArtistCircleMode.fallbackOnly)
+    FavoriteArtistCircleMode circleMode,
   }) = _FavoriteArtistSettingState;
 
   factory FavoriteArtistSettingState.fromJson(Map<String, dynamic> json) =>
       _$FavoriteArtistSettingStateFromJson(json);
+}
+
+/// 一条收藏的 tag。
+///
+/// [name] 是给用户看的本名（也是高亮徽标上写的那个词），[aliases] 是同一个 tag
+/// 在各个图源里的其它写法。别名必须是显式登记的：匹配只做归一化后的整串相等
+/// （见 `TagText.normalize`），刻意不做子串兜底 —— `lolita` 命中 `school_lolita`
+/// 那种放宽在画师上尚可、在 tag 上会把列表刷成一片琥珀色。
+///
+/// 为什么需要别名：同一含义在不同网站拼法不同（`school_lolita` / `School Lolita` /
+/// `学校萝莉`），插件给回的原始串对不上就没有高亮。归一化已经吃掉了大小写、
+/// 全半角和 `_`／空格这三类差异，剩下的是真正的不同词，只能由用户登记。
+@freezed
+abstract class FavoriteTag with _$FavoriteTag {
+  const factory FavoriteTag({
+    @Default('') String name,
+    @Default([]) List<String> aliases,
+  }) = _FavoriteTag;
+
+  factory FavoriteTag.fromJson(Map<String, dynamic> json) =>
+      _$FavoriteTagFromJson(json);
+}
+
+@freezed
+abstract class FavoriteTagSettingState with _$FavoriteTagSettingState {
+  const factory FavoriteTagSettingState({
+    @Default(true) bool highlightEnabled,
+    @Default([]) List<FavoriteTag> tags,
+  }) = _FavoriteTagSettingState;
+
+  factory FavoriteTagSettingState.fromJson(Map<String, dynamic> json) =>
+      _$FavoriteTagSettingStateFromJson(json);
+}
+
+/// 归一化键 → 条目，用于收藏 tag 的去重与定位。
+///
+/// 比较一律走 [TagText.normalize]：添加、删除、批量导入与匹配必须同一个口径，
+/// 否则「列表里看着是两条、匹配时算成一条」这类裂缝就会出现（喜欢画师那份就留了
+/// 这个裂缝，见 `FavoriteArtistMatcher.normalizeArtist` 与 `addFavoriteArtist`）。
+int? _indexOfFavoriteTag(List<FavoriteTag> tags, String key) {
+  if (key.isEmpty) return null;
+  for (var i = 0; i < tags.length; i++) {
+    final tag = tags[i];
+    if (TagText.normalize(tag.name) == key) return i;
+    if (tag.aliases.any((a) => TagText.normalize(a) == key)) return i;
+  }
+  return null;
+}
+
+/// 洗一条别名列表：去空白、按归一化键去重、丢掉与本名同形的那条。
+List<String> _cleanTagAliases(
+  Iterable<String> aliases, {
+  required String nameKey,
+}) {
+  final seen = <String>{};
+  final cleaned = <String>[];
+  for (final alias in aliases) {
+    final trimmed = alias.trim();
+    if (trimmed.isEmpty) continue;
+    final key = TagText.normalize(trimmed);
+    // 归一化后与本名相同的别名是纯噪声（匹配本来就等价），留着只会让列表变长。
+    if (key.isEmpty || key == nameKey) continue;
+    if (seen.add(key)) cleaned.add(trimmed);
+  }
+  return cleaned;
+}
+
+/// 整表规整：同名（归一化后）条目合并成一条，后来的那条只并进它的别名，空名条目丢弃。
+List<FavoriteTag> _dedupeFavoriteTags(Iterable<FavoriteTag> input) {
+  final byKey = <String, FavoriteTag>{};
+  final order = <String>[];
+  for (final tag in input) {
+    final name = tag.name.trim();
+    final key = TagText.normalize(name);
+    if (name.isEmpty || key.isEmpty) continue;
+    final existing = byKey[key];
+    if (existing == null) {
+      byKey[key] = FavoriteTag(
+        name: name,
+        aliases: _cleanTagAliases(tag.aliases, nameKey: key),
+      );
+      order.add(key);
+      continue;
+    }
+    byKey[key] = existing.copyWith(
+      aliases: _cleanTagAliases([
+        ...existing.aliases,
+        ...tag.aliases,
+      ], nameKey: key),
+    );
+  }
+  return [for (final key in order) byKey[key]!];
 }
 
 /// 漫画卡片上的封面角标显示开关。
@@ -529,6 +629,9 @@ abstract class ComicCardSettingState with _$ComicCardSettingState {
 
     /// 封面正中间的「直接阅读」按钮。关掉后点封面仍然只进详情页。
     @Default(true) bool readButtonEnabled,
+
+    /// 封面左上角的「收藏 tag」角标。
+    @Default(true) bool favoriteTagBadgeEnabled,
   }) = _ComicCardSettingState;
 
   factory ComicCardSettingState.fromJson(Map<String, dynamic> json) =>
@@ -898,9 +1001,8 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
     DiscoverSettingState Function(DiscoverSettingState current) updates,
   ) {
     updateState(
-      (current) => current.copyWith(
-        discoverSetting: updates(current.discoverSetting),
-      ),
+      (current) =>
+          current.copyWith(discoverSetting: updates(current.discoverSetting)),
     );
   }
 
@@ -930,8 +1032,11 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
     final trimmed = artist.trim();
     if (trimmed.isEmpty) return;
     updateFavoriteArtistSetting((current) {
+      // 去重口径与匹配同一个（剥括号 + 小写），否则 `[X]` 与 `X` 会存成两条，
+      // 列表里看着重复、徽标却只亮一次。
+      final key = FavoriteArtistMatcher.normalizeArtist(trimmed);
       if (current.artists.any(
-        (a) => a.trim().toLowerCase() == trimmed.toLowerCase(),
+        (a) => FavoriteArtistMatcher.normalizeArtist(a) == key,
       )) {
         return current;
       }
@@ -940,11 +1045,11 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
   }
 
   void removeFavoriteArtist(String artist) {
-    final trimmed = artist.trim().toLowerCase();
+    final key = FavoriteArtistMatcher.normalizeArtist(artist);
     updateFavoriteArtistSetting((current) {
       return current.copyWith(
         artists: current.artists
-            .where((a) => a.trim().toLowerCase() != trimmed)
+            .where((a) => FavoriteArtistMatcher.normalizeArtist(a) != key)
             .toList(),
       );
     });
@@ -955,7 +1060,8 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
     final unique = <String>[];
     for (final a in artists) {
       final t = a.trim();
-      if (t.isNotEmpty && seen.add(t.toLowerCase())) {
+      final key = FavoriteArtistMatcher.normalizeArtist(t);
+      if (t.isNotEmpty && key.isNotEmpty && seen.add(key)) {
         unique.add(t);
       }
     }
@@ -964,6 +1070,111 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
 
   void toggleHighlightFavoriteArtists(bool enabled) {
     updateFavoriteArtistSetting(
+      (current) => current.copyWith(highlightEnabled: enabled),
+    );
+  }
+
+  void setFavoriteArtistCircleMode(FavoriteArtistCircleMode mode) {
+    updateFavoriteArtistSetting(
+      (current) => current.copyWith(circleMode: mode),
+    );
+  }
+
+  void updateFavoriteTagSetting(
+    FavoriteTagSettingState Function(FavoriteTagSettingState current) updates,
+  ) {
+    updateState(
+      (current) => current.copyWith(
+        favoriteTagSetting: updates(current.favoriteTagSetting),
+      ),
+    );
+  }
+
+  /// 收藏一个 tag。[raw] 与已有条目的本名或别名归一化后相同时不重复添加。
+  ///
+  /// 详情页胶囊长按与设置页输入框都走这里，所以「长按第二次不该出现两条同名」。
+  void addFavoriteTag(String raw) {
+    final name = raw.trim();
+    final key = TagText.normalize(name);
+    if (key.isEmpty) return;
+    updateFavoriteTagSetting((current) {
+      if (_indexOfFavoriteTag(current.tags, key) != null) return current;
+      return current.copyWith(
+        tags: [
+          ...current.tags,
+          FavoriteTag(name: name),
+        ],
+      );
+    });
+  }
+
+  /// 取消收藏：[raw] 对上某条的本名或任一别名，就删掉那一条。
+  void removeFavoriteTag(String raw) {
+    final key = TagText.normalize(raw);
+    if (key.isEmpty) return;
+    updateFavoriteTagSetting((current) {
+      final index = _indexOfFavoriteTag(current.tags, key);
+      if (index == null) return current;
+      final next = [...current.tags]..removeAt(index);
+      return current.copyWith(tags: next);
+    });
+  }
+
+  /// 整表替换（批量导入、清空、编辑别名后回写都走这里）。
+  void setFavoriteTags(List<FavoriteTag> tags) {
+    updateFavoriteTagSetting(
+      (current) => current.copyWith(tags: _dedupeFavoriteTags(tags)),
+    );
+  }
+
+  /// 给某条收藏加一个别名。[raw] 定位条目（本名或别名均可）。
+  void addFavoriteTagAlias(String raw, String alias) {
+    final key = TagText.normalize(raw);
+    final aliasText = alias.trim();
+    if (key.isEmpty || aliasText.isEmpty) return;
+    updateFavoriteTagSetting((current) {
+      final index = _indexOfFavoriteTag(current.tags, key);
+      if (index == null) return current;
+      final tag = current.tags[index];
+      final nameKey = TagText.normalize(tag.name);
+      final aliasKey = TagText.normalize(aliasText);
+      // 与本名同形的别名是噪声（归一化后本来就等价），与别的条目撞号则会把
+      // 两条收藏并成一个命中，两处都要挡掉。
+      if (aliasKey.isEmpty || aliasKey == nameKey) return current;
+      if (aliasKey != key &&
+          _indexOfFavoriteTag(current.tags, aliasKey) != null) {
+        return current;
+      }
+      final cleaned = _cleanTagAliases([
+        ...tag.aliases,
+        aliasText,
+      ], nameKey: nameKey);
+      final next = [...current.tags];
+      next[index] = tag.copyWith(aliases: cleaned);
+      return current.copyWith(tags: next);
+    });
+  }
+
+  void removeFavoriteTagAlias(String raw, String alias) {
+    final key = TagText.normalize(raw);
+    final aliasKey = TagText.normalize(alias);
+    if (key.isEmpty || aliasKey.isEmpty) return;
+    updateFavoriteTagSetting((current) {
+      final index = _indexOfFavoriteTag(current.tags, key);
+      if (index == null) return current;
+      final tag = current.tags[index];
+      final next = [...current.tags];
+      next[index] = tag.copyWith(
+        aliases: tag.aliases
+            .where((a) => TagText.normalize(a) != aliasKey)
+            .toList(),
+      );
+      return current.copyWith(tags: next);
+    });
+  }
+
+  void toggleHighlightFavoriteTags(bool enabled) {
+    updateFavoriteTagSetting(
       (current) => current.copyWith(highlightEnabled: enabled),
     );
   }
@@ -1043,9 +1254,7 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
   /// 绘制路径每帧都要读它，不能去查数据库（`initBox` / `_persistAndEmit` /
   /// `applySyncedState` 三条 emit 路径都得过一遍，否则云同步回来的值不生效）。
   void _applyLayoutOverflowGuard(GlobalSettingState state) {
-    setLayoutOverflowStripesEnabled(
-      enabled: state.showLayoutOverflowStripes,
-    );
+    setLayoutOverflowStripesEnabled(enabled: state.showLayoutOverflowStripes);
   }
 
   GlobalSettingState _preserveCompatibleVersion(

@@ -9,6 +9,7 @@ import 'package:zephyr/page/comic_info/models/comic_info_action.dart';
 import 'package:zephyr/platform/desktop/window_logic.dart';
 import 'package:zephyr/type/pipe.dart';
 import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
+import 'package:zephyr/util/comic/favorite_tag_matcher.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/util/layout/quiet_flex.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
@@ -47,6 +48,12 @@ class _AllChipWidgetState extends State<AllChipWidget> {
     final processedTitle = processText(title).let(convertChineseForDisplay);
     final globalSetting = context.watch<GlobalSettingCubit>().state;
     final favoriteSetting = globalSetting.favoriteArtistSetting;
+    final favoriteTagSetting = globalSetting.favoriteTagSetting;
+    // 一整组胶囊共用同一张别名索引：每颗胶囊各建一次的话，一页几十个 tag 就要
+    // 把收藏列表扫几十遍。
+    final tagIndex = favoriteTagSetting.highlightEnabled
+        ? FavoriteTagMatcher.buildAliasIndex(favoriteTagSetting.tags)
+        : const <String, FavoriteTag>{};
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,19 +71,30 @@ class _AllChipWidgetState extends State<AllChipWidget> {
                 spacing: 10,
                 runSpacing: runSpacings,
                 children: items.map((item) {
-                  final norm = FavoriteArtistMatcher.normalizeArtist(item.name);
-                  final isFavorite = favoriteSetting.highlightEnabled &&
-                      favoriteSetting.artists.any(
-                        (a) =>
-                            FavoriteArtistMatcher.normalizeArtist(a) == norm,
+                  final isFavorite =
+                      favoriteSetting.highlightEnabled &&
+                      FavoriteArtistMatcher.chipIsFavorite(
+                        label: item.name,
+                        namespaceType: widget.metadata.type,
+                        namespaceName: widget.metadata.name,
+                        favoriteArtists: favoriteSetting.artists,
+                        circleMode: favoriteSetting.circleMode,
                       );
+                  final isFavoriteTag = FavoriteTagMatcher.hitInIndex(
+                    tagIndex,
+                    item.name,
+                  );
                   return AllChipItem(
-                    label: processText(
-                      item.name,
-                    ).let(convertChineseForDisplay),
+                    label: processText(item.name).let(convertChineseForDisplay),
                     isFavorite: isFavorite,
+                    isFavoriteTag: isFavoriteTag,
                     onTap: () => _onTap(item),
-                    onLongPress: () => _showChipMenu(context, item, isFavorite),
+                    onLongPress: () => _showChipMenu(
+                      context,
+                      item,
+                      isFavoriteArtist: isFavorite,
+                      isFavoriteTag: isFavoriteTag,
+                    ),
                   );
                 }).toList(),
               ),
@@ -89,9 +107,10 @@ class _AllChipWidgetState extends State<AllChipWidget> {
 
   void _showChipMenu(
     BuildContext context,
-    ComicInfoActionItem item,
-    bool isFavorite,
-  ) {
+    ComicInfoActionItem item, {
+    required bool isFavoriteArtist,
+    required bool isFavoriteTag,
+  }) {
     final rawName = item.name.trim();
     showModalBottomSheet(
       context: context,
@@ -104,11 +123,11 @@ class _AllChipWidgetState extends State<AllChipWidget> {
           children: [
             ListTile(
               leading: Icon(
-                isFavorite ? Icons.favorite_border : Icons.favorite,
+                isFavoriteArtist ? Icons.favorite_border : Icons.favorite,
                 color: const Color(0xFFDC2626),
               ),
               title: Text(
-                isFavorite
+                isFavoriteArtist
                     ? t.settings.removeFromFavoriteArtist
                     : t.settings.addToFavoriteArtist,
               ),
@@ -116,7 +135,7 @@ class _AllChipWidgetState extends State<AllChipWidget> {
               onTap: () {
                 Navigator.pop(sheetContext);
                 final cubit = context.read<GlobalSettingCubit>();
-                if (isFavorite) {
+                if (isFavoriteArtist) {
                   cubit.removeFavoriteArtist(rawName);
                   showInfoToast(
                     t.settings.removedFromFavoriteArtist(name: rawName),
@@ -126,6 +145,31 @@ class _AllChipWidgetState extends State<AllChipWidget> {
                   showSuccessToast(
                     t.settings.addedToFavoriteArtist(name: rawName),
                   );
+                }
+              },
+            ),
+            // 收藏 tag 与收藏画师是两件事：同一颗胶囊可以同时是「喜欢的画师」
+            // 和「收藏的 tag」，所以两颗菜单项各自独立开关，互不覆盖。
+            ListTile(
+              leading: Icon(
+                isFavoriteTag ? Icons.sell_outlined : Icons.sell,
+                color: const Color(0xFFF59E0B),
+              ),
+              title: Text(
+                isFavoriteTag
+                    ? t.settings.removeFromFavoriteTag
+                    : t.settings.addToFavoriteTag,
+              ),
+              subtitle: Text(rawName),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                final cubit = context.read<GlobalSettingCubit>();
+                if (isFavoriteTag) {
+                  cubit.removeFavoriteTag(rawName);
+                  showInfoToast(t.settings.favoriteTagRemoved(name: rawName));
+                } else {
+                  cubit.addFavoriteTag(rawName);
+                  showSuccessToast(t.settings.favoriteTagAdded(name: rawName));
                 }
               },
             ),
@@ -207,6 +251,9 @@ class _LabelChip extends StatelessWidget {
 class AllChipItem extends StatefulWidget {
   final String label;
   final bool isFavorite;
+
+  /// 命中收藏 tag：与 [isFavorite]（喜欢画师）同一套琥珀色，靠前面的 `#` 区分。
+  final bool isFavoriteTag;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
 
@@ -214,6 +261,7 @@ class AllChipItem extends StatefulWidget {
     super.key,
     required this.label,
     this.isFavorite = false,
+    this.isFavoriteTag = false,
     required this.onTap,
     required this.onLongPress,
   });
@@ -230,18 +278,23 @@ class _AllChipItemState extends State<AllChipItem> {
     final primary = context.theme.colorScheme.primary;
     final background = context.backgroundColor;
     final isDark = context.theme.brightness == Brightness.dark;
+    // 画师与 tag 共用同一套琥珀色，只在前面那颗符号上分家。
+    final highlighted = widget.isFavorite || widget.isFavoriteTag;
+    final mark = widget.isFavorite
+        ? '♥ '
+        : (widget.isFavoriteTag ? '# ' : null);
 
-    final borderColor = widget.isFavorite
+    final borderColor = highlighted
         ? const Color(0xFFF59E0B)
         : primary.withValues(alpha: _hovering ? 0.9 : 0.55);
 
-    final chipBackground = widget.isFavorite
+    final chipBackground = highlighted
         ? (isDark
-            ? const Color(0xFF78350F).withValues(alpha: 0.35)
-            : const Color(0xFFFEF3C7))
+              ? const Color(0xFF78350F).withValues(alpha: 0.35)
+              : const Color(0xFFFEF3C7))
         : (_hovering ? primary.withValues(alpha: 0.08) : background);
 
-    final textColor = widget.isFavorite
+    final textColor = highlighted
         ? (isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E))
         : primary;
 
@@ -267,20 +320,18 @@ class _AllChipItemState extends State<AllChipItem> {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: borderColor,
-                width: widget.isFavorite ? 1.5 : 1.0,
+                width: highlighted ? 1.5 : 1.0,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: widget.isFavorite
+                  color: highlighted
                       ? const Color(0xFFF59E0B).withValues(alpha: 0.25)
                       : context.textColor.withValues(
                           alpha: _hovering ? 0.28 : 0.18,
                         ),
-                  blurRadius: widget.isFavorite ? 6 : (_hovering ? 10 : 6),
+                  blurRadius: highlighted ? 6 : (_hovering ? 10 : 6),
                   offset: const Offset(0, 2),
-                  spreadRadius: widget.isFavorite
-                      ? 0.5
-                      : (_hovering ? 0.5 : 0),
+                  spreadRadius: highlighted ? 0.5 : (_hovering ? 0.5 : 0),
                 ),
               ],
             ),
@@ -288,16 +339,17 @@ class _AllChipItemState extends State<AllChipItem> {
             child: QuietRow(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (widget.isFavorite) ...[
-                  const Text(
-                    '♥ ',
+                if (mark != null)
+                  Text(
+                    mark,
                     style: TextStyle(
-                      color: Color(0xFFDC2626),
+                      color: widget.isFavorite
+                          ? const Color(0xFFDC2626)
+                          : const Color(0xFFB45309),
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                ],
                 // Flexible 是这里的**关键**：QuietRow/Row 给非弹性子节点的是
                 // **无界**主轴约束，裸 Text 会按原文长度排版（种子标题能到 600+ px），
                 // 于是 Row 自己溢出（截图那条 RIGHT OVERFLOWED BY 294 就是这么来的）。
@@ -315,7 +367,7 @@ class _AllChipItemState extends State<AllChipItem> {
                     style: TextStyle(
                       fontSize: 12,
                       color: textColor,
-                      fontWeight: widget.isFavorite
+                      fontWeight: highlighted
                           ? FontWeight.w700
                           : FontWeight.normal,
                     ),
