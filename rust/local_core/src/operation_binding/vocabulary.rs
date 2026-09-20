@@ -14,6 +14,12 @@
 //! 视频、轮盘、幻灯片、手柄、轨迹手势、文件命令等条目等对应运行时落地时再**追加**。
 //! 「schema 一次做全」的意思是**不许改名、不许改值**，不是不许追加 —— 追加不会让
 //! 已发出去的绑定包失效，改名会。
+//!
+//! **一处例外**：`comic-info.*`（详情页操作栏）是在执行端之前整族登记的一族，全部
+//! `implemented: false`。理由是那一屏的按钮清单要**只有这一份权威** —— 外壳自己列
+//! 一份「有哪些按钮」，加动作时两处必分叉（同 ADR-0015 收注册表进核心的动机）。
+//! 代价是这一族的 id 从登记那一刻起就**不能再改名**，所以命名按 `video.` 那条规矩
+//! 走独立前缀，且未接执行的条目由 `implemented` 标灰、由阅读器绑定表按分类整族排除。
 
 use std::fmt;
 
@@ -299,6 +305,42 @@ pub mod action {
     /// 光把章节画在进度条上，用户没有跳的入口）。
     pub const VIDEO_NEXT_CHAPTER: &str = "video.next-chapter";
     pub const VIDEO_PREVIOUS_CHAPTER: &str = "video.previous-chapter";
+
+    // ── comic-info（Rossi 追加：详情页操作栏，见 `docs/comic-info-action-rail.md`）──
+    //
+    // 前缀用 `comic-info.` 而不是塞进 `reader.`：同 `video.` 那条理由，前缀要能看出
+    // 这一族在哪个界面生效。这一族**只有清单，还没有执行端**（车道 C 才接），所以
+    // 全部 `implemented: false`；阅读器的绑定表编辑器按 `category` 把它们整族排除，
+    // 否则会出现「绑得上、按下去什么都不发生」的键。
+    //
+    // 文案与页面既有措辞对齐（`t.comicInfo.*`）：状态化的显示文字（开始/继续、
+    // 收藏/已收藏）由外壳按当前状态挑，注册表里只放中性名。
+    /// 返回上一页（住在发现页标签里时关的是那条标签）。
+    pub const COMIC_INFO_BACK: &str = "comic-info.back";
+    /// 回到首页 / 工作台根。
+    pub const COMIC_INFO_HOME: &str = "comic-info.home";
+    /// 开始或继续阅读（有历史就是「继续」，注册表不区分）。
+    pub const COMIC_INFO_READ: &str = "comic-info.read";
+    /// 收藏或取消收藏（本地与云端由 `cloudFavoritePreferred` 决定，同一颗）。
+    pub const COMIC_INFO_COLLECT: &str = "comic-info.collect";
+    /// 关注或取消关注上传者。
+    pub const COMIC_INFO_FOLLOW: &str = "comic-info.follow";
+    /// 点赞（远程写操作，受 `allowLike` 约束）。
+    pub const COMIC_INFO_LIKE: &str = "comic-info.like";
+    /// 打开评论区。
+    pub const COMIC_INFO_COMMENTS: &str = "comic-info.comments";
+    /// 下载整本。
+    pub const COMIC_INFO_DOWNLOAD: &str = "comic-info.download";
+    /// 下载：挑章节（详情页现在是长按下载那颗，见 `comic_operation.dart`）。
+    pub const COMIC_INFO_DOWNLOAD_CHAPTERS: &str = "comic-info.download-chapters";
+    /// 复制磁力链接（插件没给磁力时整颗不渲染）。
+    pub const COMIC_INFO_COPY_MAGNET: &str = "comic-info.copy-magnet";
+    /// 章节列表正序 ⇄ 倒序。
+    pub const COMIC_INFO_TOGGLE_CHAPTER_ORDER: &str = "comic-info.toggle-chapter-order";
+    /// 导出本条漫画的信息。
+    pub const COMIC_INFO_EXPORT: &str = "comic-info.export";
+    /// 详情页的「更多」弹层。
+    pub const COMIC_INFO_MORE: &str = "comic-info.more";
 }
 
 /// 动作分类（neoview `READER_INPUT_ACTION_CATEGORIES`）。
@@ -312,6 +354,12 @@ pub enum ActionCategory {
     ///
     /// 设置页的**槽位**选项会排除这一类：轮盘里再放一个「打开轮盘」是循环。
     Radial,
+    /// 详情页那一族（**Rossi 追加**，neoview 没有详情页）。
+    ///
+    /// 阅读器的绑定表编辑器整族排除：这一族的执行端在详情页，而 v0.1 没有
+    /// `comic-info` 这个 `InputContext`，列进去等于给用户一排绑得上、按下去
+    /// 什么都不发生的键（见 `OperationBindingStore.readerBindableCatalog`）。
+    ComicInfo,
 }
 
 impl ActionCategory {
@@ -322,6 +370,7 @@ impl ActionCategory {
             Self::View => "view",
             Self::Session => "session",
             Self::Radial => "radial",
+            Self::ComicInfo => "comic-info",
         }
     }
 
@@ -333,6 +382,7 @@ impl ActionCategory {
             Self::View => "视图",
             Self::Session => "会话",
             Self::Radial => "轮盘",
+            Self::ComicInfo => "详情页",
         }
     }
 }
@@ -364,7 +414,7 @@ macro_rules! action_def {
 }
 
 /// Rossi 动作注册表（子集，见模块头注释）。
-pub const ACTION_CATALOG: [ActionDefinition; 47] = [
+pub const ACTION_CATALOG: [ActionDefinition; 60] = [
     action_def!(
         action::CONFIRM_RADIAL_MENU,
         "确认轮盘选项",
@@ -607,6 +657,89 @@ pub const ACTION_CATALOG: [ActionDefinition; 47] = [
         ActionCategory::Radial,
         true
     ),
+    // ── comic-info（详情页操作栏）─────────────────────────────────────────────
+    //
+    // 全部 `implemented: false` 是刻意的：这一族先把**清单**定下来，外壳（rail 与
+    // 移动端底部条）才有唯一的动作来源，不用在 Dart 里抄一份「有哪些按钮」。
+    // 执行端逐条接上时把对应条目翻成 `true`，未接的自动置灰。
+    action_def!(
+        action::COMIC_INFO_BACK,
+        "返回",
+        ActionCategory::ComicInfo,
+        false
+    ),
+    action_def!(
+        action::COMIC_INFO_HOME,
+        "回到首页",
+        ActionCategory::ComicInfo,
+        false
+    ),
+    action_def!(
+        action::COMIC_INFO_READ,
+        "开始或继续阅读",
+        ActionCategory::ComicInfo,
+        false
+    ),
+    action_def!(
+        action::COMIC_INFO_COLLECT,
+        "收藏",
+        ActionCategory::ComicInfo,
+        false
+    ),
+    action_def!(
+        action::COMIC_INFO_FOLLOW,
+        "关注",
+        ActionCategory::ComicInfo,
+        false
+    ),
+    action_def!(
+        action::COMIC_INFO_LIKE,
+        "点赞",
+        ActionCategory::ComicInfo,
+        false
+    ),
+    action_def!(
+        action::COMIC_INFO_COMMENTS,
+        "查看评论",
+        ActionCategory::ComicInfo,
+        false
+    ),
+    action_def!(
+        action::COMIC_INFO_DOWNLOAD,
+        "下载",
+        ActionCategory::ComicInfo,
+        false
+    ),
+    action_def!(
+        action::COMIC_INFO_DOWNLOAD_CHAPTERS,
+        "下载：选择章节",
+        ActionCategory::ComicInfo,
+        false
+    ),
+    action_def!(
+        action::COMIC_INFO_COPY_MAGNET,
+        "复制磁力链接",
+        ActionCategory::ComicInfo,
+        false
+    ),
+    action_def!(
+        action::COMIC_INFO_TOGGLE_CHAPTER_ORDER,
+        "章节正序/倒序",
+        ActionCategory::ComicInfo,
+        false
+    ),
+    action_def!(
+        action::COMIC_INFO_EXPORT,
+        "导出",
+        ActionCategory::ComicInfo,
+        false
+    ),
+    action_def!(
+        action::COMIC_INFO_MORE,
+        "更多操作",
+        ActionCategory::ComicInfo,
+        false
+    ),
 ];
 
 /// 动作 id 是否在注册表里（**判据 E1**：id 稳定且唯一）。
@@ -793,5 +926,36 @@ mod tests {
         ] {
             assert!(json.contains(field), "导出字段缺失 {field}：{json}");
         }
+    }
+
+    #[test]
+    fn comic_info_family_is_registered_with_stable_names() {
+        // 详情页那一族是「清单先于执行端」的例外（见模块头），所以它的 id 与分类名
+        // 从登记那一刻起就是**对外契约**：外壳按 `comic-info` 这个分类名把整族挡在
+        // 阅读器绑定表外面，改这个字符串等于把 13 条没接执行的条目放进绑定表。
+        assert_eq!(ActionCategory::ComicInfo.as_str(), "comic-info");
+        assert_eq!(ActionCategory::ComicInfo.label(), "详情页");
+
+        let family: Vec<&ActionDefinition> = ACTION_CATALOG
+            .iter()
+            .filter(|entry| entry.category == ActionCategory::ComicInfo)
+            .collect();
+        assert_eq!(family.len(), 13, "comic-info 一族的条目数变了");
+        for entry in &family {
+            assert!(
+                entry.id.starts_with("comic-info."),
+                "这一族必须用独立前缀，不许塞进 reader.：{}",
+                entry.id
+            );
+            assert!(!entry.label.is_empty());
+            assert_eq!(action_definition(entry.id).map(|e| e.id), Some(entry.id));
+        }
+
+        // 阅读器仍然至少有一条可执行动作（这一族整族被排除后，绑定表不能变空）。
+        assert!(
+            ACTION_CATALOG
+                .iter()
+                .any(|e| e.category != ActionCategory::ComicInfo && e.implemented),
+        );
     }
 }

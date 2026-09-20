@@ -65,7 +65,7 @@ class _OperationBindingSettingPageState
     _radialDoc =
         parseRadialDoc(state.operationBindingSetting.radialJson) ??
         parseRadialDoc(OperationBindingStore.radialFactoryJson())!;
-    _catalog = OperationBindingStore.actionCatalog();
+    _catalog = OperationBindingStore.readerBindableCatalog();
     _refreshValidation();
   }
 

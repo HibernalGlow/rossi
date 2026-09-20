@@ -1,6 +1,6 @@
 # 详情页操作栏（桌面左右 rail + 移动端底部条）
 
-> 状态：**方案，未开工**。所有条目都是 ⬜。
+> 状态：**车道 A 已落地（🟡 Rust 测试过、未实机），B–J 未开工**。2026-09-21 的三个决定见 §7.1，A 的落地记录见 §7.5。
 > 2026-09-21 用户提出：「进入漫画当前要想要返回之前的界面，只能点左上角的返回，然后开始阅读也是只能点击特定的按键，操作不太方便，而且鼠标跨度很大。」
 
 ## 0. 状态图例
@@ -34,13 +34,13 @@
 
 **建议的切法**：A 先做（rail 能落地、能自定义、能置灰），B 单独一条车道。理由是 B 一开就要回答两个新问题——详情页按 `Esc` 是什么、`comicInfo` 算不算 `isolates_global`（`vocabulary.rs:81` 那条断言有测试在守，`:678`）——而这两个问题跟「鼠标跨度大」这个原始痛点无关。
 
-⚠️ 两条都躲不开 Rust：A 要改 catalog，且 `actionCatalog()` 是 FRB 生成的（`lib/src/rust/api/operation_binding.dart`），所以动完必须重跑代码生成。**没有纯 Dart 的注册表方案**。
+⚠️ 两条都要动 Rust：A 改 `ACTION_CATALOG`，B 加 `InputContext` 变体。**没有纯 Dart 的注册表方案**（清单权威在 Rust，Dart 抄一份就是第二份真相）。但**车道 A 不需要重跑 FRB** —— `operationBindingActionCatalog()` 返回的是 JSON 串，追加条目不改签名，实测只重编 crate 就够（见 §7.5）；真正需要重跑生成的是 B（动 enum）。
 
 ## 3. 车道与顺序
 
 | 车道 | 内容 | 判定 | 依赖 | 落点 |
 |------|------|------|------|------|
-| A | Rust：新增 `ActionCategory::ComicInfo` + `comic-info.*` 条目（未接线的一律 `implemented: false` 占位） | 需核心改 | — | `vocabulary.rs`（追加，不改既有条目：改 id 会让已发出去的绑定包失效，见该文件 `:15` 注释） |
+| A 🟡 | **已落地**：Rust 新增 `ActionCategory::ComicInfo` + 13 条 `comic-info.*`（全部 `implemented: false` 占位）+ 阅读器绑定表整族排除。详见 §7.5 | 需核心改 | — | `vocabulary.rs`（追加，不改既有条目：改 id 会让已发出去的绑定包失效，见该文件 `:15` 注释） |
 | B | FRB 重生成 + Dart 出入口按 context/分类过滤 | 需宿主小改 | A | 生成物 + `operation_binding_store.dart` |
 | C | 执行体：详情页动作全部**有状态**，需要一个 scope 对象 | 需宿主大改 | A,B | 新文件 `lib/page/comic_info/action/comic_info_action_dispatcher.dart`，对照 `lib/page/comic_read/controller/reader_action_dispatcher.dart:139` 的 `switch (actionId)` 形状 |
 | D | 配置存储：左右两条 rail 的 id 序列 + 开关 | 需宿主小改 | A | `GlobalSetting` 新子对象 + **同步范围归属**（§7.3） |
@@ -111,14 +111,40 @@
 | 出厂绑定表里预先塞 `comic-info.*` 行 | 车道 B 未通前塞进去等于给用户一张点了没反应的表 |
 | rail 条目的图标自定义 | 范围外。图标先跟注册表条目走，需要改名再单列 |
 
-## 7. 待决策（我不替你定）
+## 7. 决策
 
-1. **车道顺序**是否按 §3 的最小闭环走（先跑通不可自定义的默认 rail）。
-2. **左右 rail 的默认内容**：建议 左=返回、首页；右=开始阅读、收藏、下载、点赞、评论、磁力。也可以反过来，或只留右侧一条（左 rail 默认空）。
-3. **配置同步归属**：`docs/settings-sync-scope.md` 的块表里建议挂到 `shell` 块（它就是 UI 外壳偏好）。注意两条反例口径——工作台把「布局快照」明确排除在同步外，而 `favoriteArtistSetting` 是用户点名不出本机。rail 的条目序列属于偏好还是属于本机布局？
-4. **塌缩阈值**：复用 `comic_operation.dart:186` 的 `>= 900`，还是 `comic_info.dart` 那处 960，还是新开一个具名常量。**建议新开一个常量**并在两处留注释，别再增加第四套字面量。
-5. **发现页标签内嵌时**是否画 rail：那时顶部已有一行标签 chrome，底部可能压着标签条。
-6. **触摸端底部条上的下载**：长按选章节这个语义在底部条上还保不保（长按在移动端是常见的菜单入口，但底部条空间紧）。
+### 7.1 已拍（2026-09-21，用户「拍完 §7 的三个决定再开车道 A」）
+
+| # | 议题 | 决定 | 依据 |
+|---|------|------|------|
+| 2 | 左右 rail 默认内容 | 左 = 返回、回首页；右 = 阅读、收藏、下载、点赞、评论、磁力（6 颗）。注册表一次登记 **13 条**（另含关注、选章节下载、章节倒序、导出、更多），让车道 H 的候选清单是全集 | 痛点只有两颗，默认摆 6 颗是加速层不是搬家；其余 5 条只登记不上默认轨，免得 rail 变长 |
+| 3 | rail 配置进不进同步 | **进 `shell` 块** | 判例是 `e08c948e feat(desktop): 透明标题栏三态并纳入同步` —— 同为「桌面 UI 外壳偏好」。与「工作台布局快照不同步」不矛盾：那边排除的是**瞬态**偏移与边缘揭示，rail 的 id 序列是用户手工排的持久偏好；`favoriteArtistSetting` 那种「点名不出本机」的例外不适用 |
+| 4 | 用哪套响应式判据 | **主分支不用宽度**，用本页已有的指针判据 `comicInfoPlatformHasPointer`（`read_entry_placement.dart:25`，其注释已声明口径与 `WorkspaceTopChromeMode.forTargetPlatform` 一致）：有指针 ⇒ 左右 rail，无指针 ⇒ 底部条。宽度**只**决定一个新问题：rail 上画不画文字（新增一个具名常量） | 「rail 还是底栏」本质是输入设备问题不是视口宽度问题；这样 `comic_operation.dart:186` 的 900 与 `comic_info.dart:1187` 的 960 两处都不动，也不引入第四套字面量判据 |
+
+车道顺序按 §3 的最小闭环走（A → B → C → E → F 先跑通默认 rail，再 D → H 补自定义，最后 G 收尾移动端）。
+
+### 7.2 仍未拍
+
+1. **发现页标签内嵌时**是否画 rail：那时顶部已有一行标签 chrome，底部可能压着标签条。
+2. **触摸端底部条上的下载**：长按选章节这个语义在底部条上还保不保（长按在移动端是常见的菜单入口，但底部条空间紧）。
+
+## 7.5 车道 A 已落地（2026-09-21）
+
+`rust/local_core/src/operation_binding/vocabulary.rs`：
+
+- 新增 `ActionCategory::ComicInfo`（`as_str() == "comic-info"`，显示名「详情页」）
+- `mod action` 追加 13 个 `comic-info.*` id 常量，`ACTION_CATALOG` **47 → 60**，全部 `implemented: false`
+- 新用例 `comic_info_family_is_registered_with_stable_names`：钉住条目数、独立前缀、`comic-info` 这个**过滤键字符串**，并断言「排除这一族之后阅读器仍有可执行动作」
+
+`lib/service/operation_binding/operation_binding_store.dart` 与 `.../operation_binding_setting_page.dart:68`：
+
+- 新增 `OperationBindingStore.readerBindableCatalog()` 与 `comicInfoCategory` 常量，按分类**整族排除** `comic-info`；阅读器绑定页改用它
+- 为什么这步不能省：实测 `binding_action_presentation.dart:31` 的 `bindingActionGroup` 对未知分类一路 fallthrough 到 `BindingActionGroup.view`、`bindingActionIcon` 落到 `Icons.touch_app_outlined` —— 不排除的话 13 条**没有执行端**的条目会伪装成「视图」组里的阅读器动作（正是「登记了就得端到端可达」那条的反面）。`radial_binding_editor.dart:68` 因为已经过滤 `implemented`，本来就不会显示它们
+- **车道 H 注意**：详情页自己的候选清单要另取全量 `actionCatalog()`（或按 `comicInfoCategory` **只**取这一族），别误用 `readerBindableCatalog()`
+
+**验证状态**：Rust 侧 `cargo test -p rossi_local_core --lib` **423 passed / 0 failed**（含既有的 id 唯一性、导出形状、context 优先级三条断言）；两个 Dart 文件 `dart analyze` No issues。🟡 未实机。
+
+**FRB 不用重跑**：`operationBindingActionCatalog()` 签名没变（返回 JSON 串），追加条目只是数据 —— §2 那句「动完必须重跑代码生成」对**车道 A 这一半**是过强的，实测不成立。车道 B 剩下的实际工作只有「确认这 13 条过桥后 Dart 读得出」+ 要不要补 i18n 译文（`action_labels.dart:41` 的 `_ => entry.label` 会兜底成注册表中文，英文界面露中文；但这一族目前只在 H 的候选清单里出现，等 H 一起做）。
 
 ## 8. 验收清单（交付时逐条报编号 + 状态，缺哪条说哪条）
 

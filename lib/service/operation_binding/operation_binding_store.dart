@@ -181,6 +181,21 @@ abstract final class OperationBindingStore {
       ),
   ];
 
+  /// 详情页那一族动作的分类名（与 Rust `ActionCategory::ComicInfo::as_str()` 一致）。
+  ///
+  /// 写常量而不是散在 UI 里的字面量：这个字符串是**过滤键**，和核心改了对齐就断。
+  static const String comicInfoCategory = 'comic-info';
+
+  /// **阅读器**绑定表可列的动作清单。
+  ///
+  /// 排除 `comic-info` 整族：它们的执行端在详情页，而 v0.1 没有 `comic-info` 这个
+  /// `InputContext`（[readerContexts]），列进去等于给用户一排「绑得上、按下去什么都不
+  /// 发生」的键 —— 而且它们全是 `implemented: false`，还会在编辑器里占一排灰项。
+  /// 等详情页接上 context（车道 B）后，这里改成按 context 过滤，而不是加第二个名单。
+  static List<BindingActionInfo> readerBindableCatalog() => actionCatalog()
+      .where((entry) => entry.category != comicInfoCategory)
+      .toList();
+
   // ── 轮盘（radial）──────────────────────────────────────────────────────────
   //
   // 这里**没有**「这个槽是什么动作」的那一问：槽位就是一条 `device: radial` 的绑定，
