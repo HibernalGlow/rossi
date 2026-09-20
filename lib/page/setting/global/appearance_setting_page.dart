@@ -32,7 +32,10 @@ class AppearanceSettingPage extends StatelessWidget {
           _languageTile(context, state, cubit),
           _systemTheme(state, cubit),
           _dynamicColor(state, cubit),
-          if (!state.dynamicColor) changeThemeColor(context),
+          // 以前只在关掉动态取色时才给这一项（种子色在动态色下没意义）。
+          // 现在这页还承载「导入 tweakcn 主题」，而导入的 token 是**覆盖**在
+          // 动态色 / fromSeed 之上的，两者可以共存 —— 入口不该再被动态色挡掉。
+          changeThemeColor(context),
           _comicReadTopContainer(state, cubit),
           _isAMOLED(state, cubit),
           _fontSettings(context),
