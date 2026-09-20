@@ -41,6 +41,7 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
   enableMemoryDebug: json['enableMemoryDebug'] as bool? ?? false,
   blockRustHttpRequests: json['blockRustHttpRequests'] as bool? ?? false,
   logAddress: json['logAddress'] as String? ?? '',
+  showLayoutOverflowStripes: json['showLayoutOverflowStripes'] as bool? ?? true,
   forceEnableImpeller: json['forceEnableImpeller'] as bool? ?? false,
   androidKeepAliveEnabled: json['androidKeepAliveEnabled'] as bool? ?? false,
   backPressExitEnabled: json['backPressExitEnabled'] as bool? ?? false,
@@ -60,6 +61,9 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
   clickCoverToStartReading: json['clickCoverToStartReading'] as bool? ?? false,
   comicInfoInlineReadButton: json['comicInfoInlineReadButton'] as bool? ?? true,
   startWithWorkspace: json['startWithWorkspace'] as bool? ?? false,
+  transparentDesktopTitleBar:
+      json['transparentDesktopTitleBar'] as bool? ?? false,
+  transparentTitleBarFused: json['transparentTitleBarFused'] as bool? ?? false,
   searchHistory:
       (json['searchHistory'] as List<dynamic>?)
           ?.map((e) => e as String)
@@ -159,6 +163,7 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'enableMemoryDebug': instance.enableMemoryDebug,
       'blockRustHttpRequests': instance.blockRustHttpRequests,
       'logAddress': instance.logAddress,
+      'showLayoutOverflowStripes': instance.showLayoutOverflowStripes,
       'forceEnableImpeller': instance.forceEnableImpeller,
       'androidKeepAliveEnabled': instance.androidKeepAliveEnabled,
       'backPressExitEnabled': instance.backPressExitEnabled,
@@ -176,6 +181,8 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'clickCoverToStartReading': instance.clickCoverToStartReading,
       'comicInfoInlineReadButton': instance.comicInfoInlineReadButton,
       'startWithWorkspace': instance.startWithWorkspace,
+      'transparentDesktopTitleBar': instance.transparentDesktopTitleBar,
+      'transparentTitleBarFused': instance.transparentTitleBarFused,
       'searchHistory': instance.searchHistory,
       'proxySetting': instance.proxySetting.toJson(),
       'windowWidth': instance.windowWidth,
@@ -236,6 +243,9 @@ _DiscoverSettingState _$DiscoverSettingStateFromJson(
 ) => _DiscoverSettingState(
   tabIconEnabled: json['tabIconEnabled'] as bool? ?? true,
   tabPluginShortEnabled: json['tabPluginShortEnabled'] as bool? ?? true,
+  tabSide:
+      $enumDecodeNullable(_$DiscoverTabBarSideEnumMap, json['tabSide']) ??
+      DiscoverTabBarSide.top,
 );
 
 Map<String, dynamic> _$DiscoverSettingStateToJson(
@@ -243,6 +253,13 @@ Map<String, dynamic> _$DiscoverSettingStateToJson(
 ) => <String, dynamic>{
   'tabIconEnabled': instance.tabIconEnabled,
   'tabPluginShortEnabled': instance.tabPluginShortEnabled,
+  'tabSide': _$DiscoverTabBarSideEnumMap[instance.tabSide]!,
+};
+
+const _$DiscoverTabBarSideEnumMap = {
+  DiscoverTabBarSide.top: 'top',
+  DiscoverTabBarSide.left: 'left',
+  DiscoverTabBarSide.right: 'right',
 };
 
 _OperationBindingSettingState _$OperationBindingSettingStateFromJson(
@@ -355,6 +372,7 @@ _ComicCardSettingState _$ComicCardSettingStateFromJson(
 ) => _ComicCardSettingState(
   downloadBadgeEnabled: json['downloadBadgeEnabled'] as bool? ?? true,
   translationBadgeEnabled: json['translationBadgeEnabled'] as bool? ?? true,
+  readButtonEnabled: json['readButtonEnabled'] as bool? ?? true,
 );
 
 Map<String, dynamic> _$ComicCardSettingStateToJson(
@@ -362,6 +380,7 @@ Map<String, dynamic> _$ComicCardSettingStateToJson(
 ) => <String, dynamic>{
   'downloadBadgeEnabled': instance.downloadBadgeEnabled,
   'translationBadgeEnabled': instance.translationBadgeEnabled,
+  'readButtonEnabled': instance.readButtonEnabled,
 };
 
 _CacheSettingState _$CacheSettingStateFromJson(Map<String, dynamic> json) =>
@@ -503,8 +522,12 @@ _ReadSettingState _$ReadSettingStateFromJson(Map<String, dynamic> json) =>
           $enumDecodeNullable(
             _$ReaderBackgroundModeEnumMap,
             json['readerBackgroundMode'],
+            unknownValue: ReaderBackgroundMode.auto,
           ) ??
           ReaderBackgroundMode.auto,
+      readerAmbientDimPercent:
+          (json['readerAmbientDimPercent'] as num?)?.toInt() ??
+          readerAmbientDimPercentDefault,
       readFilterEnabled: json['readFilterEnabled'] as bool? ?? true,
       readFilterOpacityPercent:
           (json['readFilterOpacityPercent'] as num?)?.toInt() ?? 50,
@@ -573,6 +596,9 @@ _ReadSettingState _$ReadSettingStateFromJson(Map<String, dynamic> json) =>
       topBarPinned: json['topBarPinned'] as bool? ?? false,
       bottomBarPinned: json['bottomBarPinned'] as bool? ?? false,
       showThumbnailStrip: json['showThumbnailStrip'] as bool? ?? false,
+      transparentTopBar: json['transparentTopBar'] as bool? ?? false,
+      topBarScrimOpacityPercent:
+          (json['topBarScrimOpacityPercent'] as num?)?.toInt() ?? 85,
       readingDirectionToggle: json['readingDirectionToggle'] as bool? ?? true,
       readerFitMode:
           $enumDecodeNullable(_$ReaderFitModeEnumMap, json['readerFitMode']) ??
@@ -601,6 +627,7 @@ Map<String, dynamic> _$ReadSettingStateToJson(
   'tapPageTurnInWebtoon': instance.tapPageTurnInWebtoon,
   'readerBackgroundMode':
       _$ReaderBackgroundModeEnumMap[instance.readerBackgroundMode]!,
+  'readerAmbientDimPercent': instance.readerAmbientDimPercent,
   'readFilterEnabled': instance.readFilterEnabled,
   'readFilterOpacityPercent': instance.readFilterOpacityPercent,
   'einkOptimization': instance.einkOptimization,
@@ -652,6 +679,8 @@ Map<String, dynamic> _$ReadSettingStateToJson(
   'topBarPinned': instance.topBarPinned,
   'bottomBarPinned': instance.bottomBarPinned,
   'showThumbnailStrip': instance.showThumbnailStrip,
+  'transparentTopBar': instance.transparentTopBar,
+  'topBarScrimOpacityPercent': instance.topBarScrimOpacityPercent,
   'readingDirectionToggle': instance.readingDirectionToggle,
   'readerFitMode': _$ReaderFitModeEnumMap[instance.readerFitMode]!,
   'readerAutoRotation':
@@ -671,6 +700,8 @@ const _$ReaderBackgroundModeEnumMap = {
   ReaderBackgroundMode.black: 'black',
   ReaderBackgroundMode.white: 'white',
   ReaderBackgroundMode.grey: 'grey',
+  ReaderBackgroundMode.adaptive: 'adaptive',
+  ReaderBackgroundMode.adaptiveEdge: 'adaptiveEdge',
 };
 
 const _$ReaderInfoVerticalPositionEnumMap = {

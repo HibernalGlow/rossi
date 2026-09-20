@@ -2,6 +2,8 @@
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+// `JsonKey`（下面 `readerBackgroundMode` 上的跨版本降级要用）由 freezed_annotation
+// 一并重导出，不必单独 import json_annotation。
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:zephyr/config/global/color_theme_types.dart';
 import 'package:zephyr/i18n/i18n_helper.dart';
@@ -9,6 +11,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/page/comic_read/model/reader_presentation.dart';
 import 'package:zephyr/util/json/converter.dart';
+import 'package:zephyr/util/layout/layout_overflow_guard.dart';
 
 part 'global_setting.freezed.dart';
 part 'global_setting.g.dart';
@@ -17,7 +20,15 @@ enum ReaderInfoVerticalPosition { top, bottom }
 
 enum ReaderInfoHorizontalPosition { left, center, right }
 
-enum ReaderBackgroundMode { auto, black, white, grey }
+/// 阅读背景档位。
+///
+/// `auto` 是「跟随主题明暗」，`adaptive` / `adaptiveEdge` 是「从当前画面取色」——
+/// 两者不是一回事，所以 `adaptive` **不能**复用 `auto` 这个名字。
+///
+/// 后两档只在**本地漫画（GPU 上屏那条路）**生效：取色要的是已经解出来的页面像素，
+/// 而那批像素只在呈现器里。在线漫画回落成 `auto` 的底色，见
+/// [ReadSettingStateBackgroundColor.resolveReaderBackgroundColor]。
+enum ReaderBackgroundMode { auto, black, white, grey, adaptive, adaptiveEdge }
 
 enum ReaderTapPageTurnMode { fullScreen, leftHand, rightHand }
 
@@ -113,9 +124,22 @@ const Color readerBackgroundWhite = Colors.white;
 const Color readerBackgroundGrey = Color(0xFF2D2D2D);
 
 extension ReadSettingStateBackgroundColor on ReadSettingState {
+  /// **静态**底色。
+  ///
+  /// 自适应档位返回的是**兜底**底色而不是取色结果，这是刻意的：
+  /// 取色是一条异步链路（翻页 → 呈现 → 探针 → 插值），它到得比首帧晚。
+  /// 把动态色并进这个函数，就等于让"取色到了"变成一次
+  /// `readSetting` 变化 —— 而所有 `context.select(readSetting)` 的地方
+  /// （含整棵阅读子树）都会跟着重建。动态色只走
+  /// `ReaderAmbientBackground` 那一层，见那里的说明。
   Color resolveReaderBackgroundColor(Brightness brightness) {
     switch (readerBackgroundMode) {
       case ReaderBackgroundMode.auto:
+      // 自适应档位的兜底底色与 `auto` 同值：取色还没到、或这一本是在线漫画
+      // （取色那条路不适用）时，看到的应当是一个**用户预期内的**颜色 ——
+      // 跟随主题明暗就是那个颜色，而不是一块没来由的灰。
+      case ReaderBackgroundMode.adaptive:
+      case ReaderBackgroundMode.adaptiveEdge:
         return brightness == Brightness.dark
             ? readerBackgroundBlack
             : readerBackgroundWhite;
@@ -133,6 +157,45 @@ extension ReadSettingStateBackgroundColor on ReadSettingState {
     return backgroundColor.computeLuminance() < 0.5
         ? Colors.white
         : Colors.black;
+  }
+
+  /// 当前档位是不是「从当前画面取色」那一类。
+  ///
+  /// 抽成纯函数而不是在调用点写 `mode == adaptive || mode == adaptiveEdge`：
+  /// 调用点有两处（呈现链路决定要不要去读探针、背景层决定要不要用调色板），
+  /// 而**这两处必须同时为真**功能才成立 —— 分开写就会出现
+  /// 「读了探针但背景层不理」这种白花钱的组合。
+  bool get readerAmbientEnabled =>
+      readerBackgroundMode == ReaderBackgroundMode.adaptive ||
+      readerBackgroundMode == ReaderBackgroundMode.adaptiveEdge;
+
+  /// 取色后铺成「边缘渐变」还是「单色」。
+  bool get readerAmbientEdge =>
+      readerBackgroundMode == ReaderBackgroundMode.adaptiveEdge;
+}
+
+/// 自适应背景的**压暗程度**允许范围与默认值。
+///
+/// 默认 45（= 保留 55% 亮度）取自参考实现的实测档位：neoview 的
+/// `ReaderBackgroundLayer.css` 用的是 `brightness(0.48)`（流光溢彩）与
+/// `brightness(0.56)`（自动匹配）。取色来自页面**边沿**，而漫画页的边沿常常就是
+/// 白纸 —— 不压暗的话，白底漫画在暗环境里就是一块刺眼的光斑。
+const int readerAmbientDimPercentMin = 0;
+const int readerAmbientDimPercentMax = 85;
+const int readerAmbientDimPercentDefault = 45;
+
+/// 阅读设置的读入口（**不依赖 `BuildContext`**）。
+///
+/// 与 [toastSetting] 同一口径：调用点（呈现链路在翻页后决定要不要去读探针）
+/// 拿不到 Cubit，而这里读的只是一份内存里的本地库快照。
+/// 本地库还没起来（启动早期）或已关闭时回落到默认值 ——
+/// 绝不让「读设置」本身把取色链路炸掉。
+ReadSettingState get readSettingSnapshot {
+  try {
+    return objectbox.userSettingBox.get(1)?.globalSetting.readSetting ??
+        const ReadSettingState();
+  } catch (_) {
+    return const ReadSettingState();
   }
 }
 
@@ -182,6 +245,10 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     @Default(false) bool enableMemoryDebug,
     @Default(false) bool blockRustHttpRequests,
     @Default('') String logAddress,
+    // 布局溢出时那条「黄黑斜纹」画不画。默认开 ＝ Flutter 原生行为（改造前的行为）。
+    // 关掉只覆盖**我们自己造的 Flex** 与错误上报 —— 框架没有全局开关，
+    // 口径与适用范围见 `lib/util/layout/layout_overflow_guard.dart` 顶部。
+    @Default(true) bool showLayoutOverflowStripes,
     @Default(false) bool forceEnableImpeller,
     @Default(false) bool androidKeepAliveEnabled,
     @Default(false) bool backPressExitEnabled,
@@ -207,6 +274,19 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     // 只在**真有工作台入口**的布局（平板 / 桌面四边栏）落地，手机端忽略 ——
     // 判定收在 `lib/workspace/model/workspace_startup.dart`。
     @Default(false) bool startWithWorkspace,
+    // 桌面端自制标题栏（`lib/widgets/desktop/custom_title_bar.dart`）改不改成
+    // **透明浮层**：不再占那 40px，内容顶到窗口顶部，标题栏只把应用名与窗口按钮
+    // 浮在画面上。口径照 JHenTai 桌面端的 `TitleBarStyle.hidden` + 透明窗口背景。
+    //
+    // 默认关 = 改造前的样子（一条 40px 的实色栏占在内容之上），没进过设置页的
+    // 用户零感知。桌面三平台之外不读它（手机端根本没有这条栏）。
+    // 摆放判定收在 `resolveDesktopTitleBarPlacement`，判据不用起整个 app。
+    @Default(false) bool transparentDesktopTitleBar,
+    // 透明标题栏的**摆放方式**：false = 独立行（栏仍占一行、只是不带底色，
+    // 与页面背景连成一体，JHenTai 桌面端自制标题栏就是这一档），true =
+    // 融合浮层（内容顶到窗口顶部，栏浮在画面上）。默认独立行。
+    // 只在 transparentDesktopTitleBar 打开时才被读到；关着时它是死数据。
+    @Default(false) bool transparentTitleBarFused,
     @Default([]) List<String> searchHistory,
     @Default(ProxySettingState()) ProxySettingState proxySetting,
     @Default(1280.0) double windowWidth,
@@ -270,19 +350,42 @@ abstract class FileManagerSettingState with _$FileManagerSettingState {
       _$FileManagerSettingStateFromJson(json);
 }
 
+/// 发现页标签条摆在哪一条边上。
+///
+/// 与 `plat` 的 `TabBarSide` 一一对应，但**不在这里 import 那个包**：
+/// 设置模型是持久层，不该被一个 UI 依赖拖着走（哪天换掉那个包，
+/// 用户存的值不该跟着变成一串读不出来的整数）。
+enum DiscoverTabBarSide {
+  /// 横向：标签条就是发现页顶栏那一行。
+  top('横向（顶栏）'),
+
+  /// 竖向：标签轨在内容左边。
+  left('竖向（左侧）'),
+
+  /// 竖向：标签轨在内容右边。
+  right('竖向（右侧）');
+
+  const DiscoverTabBarSide(this.label);
+
+  /// 设置项上的中文名（这个枚举只有三个值，不值得走 i18n 词条）。
+  final String label;
+}
+
 /// 发现页**标签条**的显示口径。
 ///
-/// 为什么放全局而不是 `DiscoverTabCubit` 的 State：标签条在发现页活着的时候才画得出来，
-/// 而用户调完这两颗想看的效果是「以后每次都是这样」—— 关掉应用再开不该弹回去。
+/// 为什么放全局而不是页面的 State：标签条在发现页活着的时候才画得出来，
+/// 而用户调完这几颗想看的效果是「以后每次都是这样」—— 关掉应用再开不该弹回去。
 ///
-/// - [tabIconEnabled]：标签上画不画插件图标。关掉之后只剩文字，窄泳道里能多塞一条标签。
+/// - [tabIconEnabled]：标签上画不画插件图标。关掉之后只剩文字，窄轨上能多塞几条。
 /// - [tabPluginShortEnabled]：标签上画不画插件名缩写（「绅士 · 排行」里那截「绅士」）。
 ///   两个都关掉就只剩功能名 —— 那时同一功能的多个标签只能靠序号分辨。
+/// - [tabSide]：标签条的朝向与靠边（见 [DiscoverTabBarSide]）。
 @freezed
 abstract class DiscoverSettingState with _$DiscoverSettingState {
   const factory DiscoverSettingState({
     @Default(true) bool tabIconEnabled,
     @Default(true) bool tabPluginShortEnabled,
+    @Default(DiscoverTabBarSide.top) DiscoverTabBarSide tabSide,
   }) = _DiscoverSettingState;
 
   factory DiscoverSettingState.fromJson(Map<String, dynamic> json) =>
@@ -423,6 +526,9 @@ abstract class ComicCardSettingState with _$ComicCardSettingState {
   const factory ComicCardSettingState({
     @Default(true) bool downloadBadgeEnabled,
     @Default(true) bool translationBadgeEnabled,
+
+    /// 封面正中间的「直接阅读」按钮。关掉后点封面仍然只进详情页。
+    @Default(true) bool readButtonEnabled,
   }) = _ComicCardSettingState;
 
   factory ComicCardSettingState.fromJson(Map<String, dynamic> json) =>
@@ -539,8 +645,19 @@ abstract class ReadSettingState with _$ReadSettingState {
     @Default(ReaderTapPageTurnMode.rightHand)
     ReaderTapPageTurnMode tapPageTurnMode,
     @Default(false) bool tapPageTurnInWebtoon,
+    // 跨版本同步的**降级**约束，不是可选的讲究：这一份 JSON 是云同步 `reader` 块的
+    // 整个载荷，而 `$enumDecode` 碰到不认识的枚举名会**抛异常**（不是忽略该字段）。
+    // 一个老客户端同步到 `adaptive` 之后，那台设备**所有**阅读设置都读不出来。
+    // `unknownEnumValue` 让它降级成 `auto` —— 与老客户端自己的能力相符，
+    // 它下次上传也只是把这个值写成 `auto`，不会把新值写坏。
+    @JsonKey(unknownEnumValue: ReaderBackgroundMode.auto)
     @Default(ReaderBackgroundMode.auto)
     ReaderBackgroundMode readerBackgroundMode,
+    // 自适应背景的压暗程度（0..85）。默认值见 [readerAmbientDimPercentDefault]。
+    //
+    // **必须住在全局设置里**：阅读页每个 route 一份 State，换书、换章都会重建，
+    // 这个值得跨书、跨重启保持（与 `showThumbnailStrip` 同一条口径）。
+    @Default(readerAmbientDimPercentDefault) int readerAmbientDimPercent,
     @Default(true) bool readFilterEnabled,
     @Default(50) int readFilterOpacityPercent,
     @Default(false) bool einkOptimization,
@@ -615,6 +732,22 @@ abstract class ReadSettingState with _$ReadSettingState {
     // 甚至同一本换章都会重建，开关会被「重置」回默认值。放这里则跟其他阅读
     // 设置一样持久化、跨书跨重启保持。
     @Default(false) bool showThumbnailStrip,
+    // 顶栏「透明」档：跳过液态玻璃，改为一层半透明蒙层铺在画面上
+    // （口径照 JHenTai 阅读页的 `readPageMenuColor = black 85%`），
+    // 画面从顶栏底下透出来，顶栏不再是一块「材质」。
+    //
+    // 默认关 = 改造前的观感（最实的一档玻璃）。蒙层颜色取主题的 `surface`，
+    // 于是**文字与图标一个都不用改色**（onSurface 对 surface 的对比度天然成立）；
+    // 不透明度见 [topBarScrimOpacityPercent]。
+    //
+    // 与 `topBarPinned` / `showThumbnailStrip` 同样必须住在全局设置里：
+    // 换书、换章都会重建阅读页那棵子树，住在页面 State 里会被重置。
+    @Default(false) bool transparentTopBar,
+    // 透明档下蒙层的不透明度（%）。0 = 完全透明 —— 顶栏只剩文字浮在画面上。
+    // 只在 [transparentTopBar] 打开时有意义；默认 85 与 JHenTai 同一档
+    // （可读性优先，想要真透明就往下拖）。读的时候一律再夹一次，
+    // 因为这个值可能来自云端同步或旧版本。
+    @Default(85) int topBarScrimOpacityPercent,
     // 顶栏「阅读方向」切换按钮（左开 ⇄ 右开）。
     //
     // 只在横翻模式（readMode 1/2）下可用：单击切换方向，**不动阅读位置**
@@ -670,7 +803,9 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
   late final Color _defaultSeedColor = colorThemeList[6].color;
 
   Future<void> initBox() async {
-    emit(objectbox.userSettingBox.get(1)!.globalSetting);
+    final persisted = objectbox.userSettingBox.get(1)!.globalSetting;
+    _applyLayoutOverflowGuard(persisted);
+    emit(persisted);
   }
 
   GlobalSettingState get defaults =>
@@ -892,13 +1027,25 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
       ),
     );
     _updateDataBase(persistedState);
+    _applyLayoutOverflowGuard(persistedState);
     emit(persistedState);
   }
 
   void applySyncedState(GlobalSettingState value) {
     final normalized = _preserveCompatibleVersion(value, state);
     _updateDataBase(normalized);
+    _applyLayoutOverflowGuard(normalized);
     emit(normalized);
+  }
+
+  /// 把「黄黑溢出斜纹」开关同步到全局标志上。
+  ///
+  /// 绘制路径每帧都要读它，不能去查数据库（`initBox` / `_persistAndEmit` /
+  /// `applySyncedState` 三条 emit 路径都得过一遍，否则云同步回来的值不生效）。
+  void _applyLayoutOverflowGuard(GlobalSettingState state) {
+    setLayoutOverflowStripesEnabled(
+      enabled: state.showLayoutOverflowStripes,
+    );
   }
 
   GlobalSettingState _preserveCompatibleVersion(

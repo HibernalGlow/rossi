@@ -241,6 +241,12 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get amoledSubtitle => 'Use pure black background for AMOLED screens';
 	@override String get notchAdaptation => 'Notch adaptation';
 	@override String get notchAdaptationSubtitle => 'Reserve safe area to avoid content being obscured';
+	@override String get transparentDesktopTitleBar => 'Transparent title bar';
+	@override String get transparentDesktopTitleBarSubtitle => 'The title bar no longer paints a background and blends into the page (text and window buttons may be hard to read on light content). Desktop only';
+	@override String get transparentTitleBarRow => 'Separate row';
+	@override String get transparentTitleBarRowSubtitle => 'The bar keeps its own row with no background; content starts below it (default)';
+	@override String get transparentTitleBarOverlay => 'Fused overlay';
+	@override String get transparentTitleBarOverlaySubtitle => 'Content extends to the window top and the bar floats over it';
 	@override String get toastStyle => 'Toast style';
 	@override String get toastStyleSubtitle => 'Position, duration and size of in-app toasts';
 	@override String get toastSectionLayout => 'Position & size';
@@ -298,6 +304,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get cardDownloadBadgeSubtitle => 'Show a download button on the top-right of covers; tap it to download the whole comic';
 	@override String get cardTranslationBadge => 'Language Badge';
 	@override String get cardTranslationBadgeSubtitle => 'Detect translated / Chinese / raw from tags and mark the top-left of covers';
+	@override String get cardReadButton => 'Read Button';
+	@override String get cardReadButtonSubtitle => 'Show a read button in the middle of covers; tap it to start reading right away (resumes if there is progress) without opening the detail page';
 	@override String get cardInteraction => 'Card Interaction';
 	@override String get shelfCardContextMenu => 'Context Menu on Favorite / History Cards';
 	@override String get shelfCardContextMenuSubtitle => 'Right-click an entry (long-press on touch) for open, open in a new file manager tab, copy, favorite and remove';
@@ -436,6 +444,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get memoryDebugSubtitle => 'Show memory usage on interface';
 	@override String get blockRustHttpRequests => 'Block Rust HTTP requests';
 	@override String get blockRustHttpRequestsSubtitle => 'All Rust HTTP requests fail immediately without being sent';
+	@override String get showLayoutOverflowStripes => 'Show layout overflow stripes';
+	@override String get showLayoutOverflowStripesSubtitle => 'When off, the yellow-black stripes and the overflow error reports are suppressed for our own layouts. Flutter has no global switch: other widgets only lose the stripes in a profile build';
 	@override String get forceEnableImpeller => 'Force enable Impeller';
 	@override String get forceEnableImpellerSubtitle => 'Android experimental rendering backend';
 	@override String get colorPreview => 'Color preview';
@@ -976,6 +986,9 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get hoverRevealEnabledSubtitle => 'Automatically show toolbars when mouse moves to top or bottom edge (NeoView style)';
 	@override String get thumbnailStrip => 'Bottom thumbnail strip';
 	@override String get thumbnailStripSubtitle => 'Expand per-page thumbnails in the control bar, fused with the progress bar; stays on across books, chapters and restarts';
+	@override String get transparentTopBar => 'Transparent top bar';
+	@override String get transparentTopBarSubtitle => 'Drop the glass material for a translucent scrim so the page shows through (JHenTai style)';
+	@override String get transparentTopBarOpacity => 'Top bar scrim opacity';
 	@override String get thumbnailStripExpand => 'Show thumbnails';
 	@override String get thumbnailStripCollapse => 'Hide thumbnails';
 	@override String get thumbnailStripCurrent => 'Now';
@@ -1016,6 +1029,10 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get black => 'Black';
 	@override String get white => 'White';
 	@override String get grey => 'Grey';
+	@override String get adaptive => 'Adaptive';
+	@override String get adaptiveEdge => 'Edge gradient';
+	@override String get ambientDim => 'Background dimming';
+	@override String get ambientDimSubtitle => 'Dim the colour sampled from the page before using it as the backdrop; higher is easier on the eyes. Local comics only';
 	@override String get readingExperience => 'Reading experience';
 	@override String get disableAnimation => 'Disable page animation';
 	@override String get disableAnimationSubtitle => 'Disable full-page turn animation';
@@ -1672,6 +1689,8 @@ class _Translations$comicEntry$en_US extends Translations$comicEntry$zh_CN {
 	@override String get translationBadgeRaw => 'Raw';
 	@override String translationTooltipTag({required Object label, required Object keyword}) => '${label} · matched tag "${keyword}"';
 	@override String translationTooltipTitle({required Object label, required Object keyword}) => '${label} · matched title "${keyword}"';
+	@override String get resumeRead => 'Resume reading';
+	@override String get readFailed => 'Could not start reading. Please try again later.';
 }
 
 // Path: comicFollow
@@ -2264,6 +2283,12 @@ extension on TranslationsEnUs {
 			'settings.amoledSubtitle' => 'Use pure black background for AMOLED screens',
 			'settings.notchAdaptation' => 'Notch adaptation',
 			'settings.notchAdaptationSubtitle' => 'Reserve safe area to avoid content being obscured',
+			'settings.transparentDesktopTitleBar' => 'Transparent title bar',
+			'settings.transparentDesktopTitleBarSubtitle' => 'The title bar no longer paints a background and blends into the page (text and window buttons may be hard to read on light content). Desktop only',
+			'settings.transparentTitleBarRow' => 'Separate row',
+			'settings.transparentTitleBarRowSubtitle' => 'The bar keeps its own row with no background; content starts below it (default)',
+			'settings.transparentTitleBarOverlay' => 'Fused overlay',
+			'settings.transparentTitleBarOverlaySubtitle' => 'Content extends to the window top and the bar floats over it',
 			'settings.toastStyle' => 'Toast style',
 			'settings.toastStyleSubtitle' => 'Position, duration and size of in-app toasts',
 			'settings.toastSectionLayout' => 'Position & size',
@@ -2321,6 +2346,8 @@ extension on TranslationsEnUs {
 			'settings.cardDownloadBadgeSubtitle' => 'Show a download button on the top-right of covers; tap it to download the whole comic',
 			'settings.cardTranslationBadge' => 'Language Badge',
 			'settings.cardTranslationBadgeSubtitle' => 'Detect translated / Chinese / raw from tags and mark the top-left of covers',
+			'settings.cardReadButton' => 'Read Button',
+			'settings.cardReadButtonSubtitle' => 'Show a read button in the middle of covers; tap it to start reading right away (resumes if there is progress) without opening the detail page',
 			'settings.cardInteraction' => 'Card Interaction',
 			'settings.shelfCardContextMenu' => 'Context Menu on Favorite / History Cards',
 			'settings.shelfCardContextMenuSubtitle' => 'Right-click an entry (long-press on touch) for open, open in a new file manager tab, copy, favorite and remove',
@@ -2459,6 +2486,8 @@ extension on TranslationsEnUs {
 			'settings.memoryDebugSubtitle' => 'Show memory usage on interface',
 			'settings.blockRustHttpRequests' => 'Block Rust HTTP requests',
 			'settings.blockRustHttpRequestsSubtitle' => 'All Rust HTTP requests fail immediately without being sent',
+			'settings.showLayoutOverflowStripes' => 'Show layout overflow stripes',
+			'settings.showLayoutOverflowStripesSubtitle' => 'When off, the yellow-black stripes and the overflow error reports are suppressed for our own layouts. Flutter has no global switch: other widgets only lose the stripes in a profile build',
 			'settings.forceEnableImpeller' => 'Force enable Impeller',
 			'settings.forceEnableImpellerSubtitle' => 'Android experimental rendering backend',
 			'settings.colorPreview' => 'Color preview',
@@ -2637,6 +2666,8 @@ extension on TranslationsEnUs {
 			'settings.revealFieldX' => 'X',
 			'settings.revealFieldY' => 'Y',
 			'settings.revealFieldWidth' => 'W',
+			_ => null,
+		} ?? switch (path) {
 			'settings.revealFieldHeight' => 'H',
 			'settings.revealZoneResetDone' => 'Reveal zones restored to defaults',
 			'settings.operationBindingTabKeyboard' => 'Shortcuts',
@@ -2647,8 +2678,6 @@ extension on TranslationsEnUs {
 			'settings.operationBindingRadialEnable' => 'Enable radial menu',
 			'settings.operationBindingRadialEnableSubtitle' => 'When off the wheel never opens; slot bindings are kept',
 			'settings.operationBindingRadialActiveWheel' => 'Default wheel',
-			_ => null,
-		} ?? switch (path) {
 			'settings.operationBindingRadialLayerUnit' => ({required Object count}) => '${count} layers',
 			'settings.operationBindingRadialNew' => 'New wheel',
 			'settings.operationBindingRadialDelete' => 'Delete wheel',
@@ -2974,6 +3003,9 @@ extension on TranslationsEnUs {
 			'reader.hoverRevealEnabledSubtitle' => 'Automatically show toolbars when mouse moves to top or bottom edge (NeoView style)',
 			'reader.thumbnailStrip' => 'Bottom thumbnail strip',
 			'reader.thumbnailStripSubtitle' => 'Expand per-page thumbnails in the control bar, fused with the progress bar; stays on across books, chapters and restarts',
+			'reader.transparentTopBar' => 'Transparent top bar',
+			'reader.transparentTopBarSubtitle' => 'Drop the glass material for a translucent scrim so the page shows through (JHenTai style)',
+			'reader.transparentTopBarOpacity' => 'Top bar scrim opacity',
 			'reader.thumbnailStripExpand' => 'Show thumbnails',
 			'reader.thumbnailStripCollapse' => 'Hide thumbnails',
 			'reader.thumbnailStripCurrent' => 'Now',
@@ -3014,6 +3046,10 @@ extension on TranslationsEnUs {
 			'reader.black' => 'Black',
 			'reader.white' => 'White',
 			'reader.grey' => 'Grey',
+			'reader.adaptive' => 'Adaptive',
+			'reader.adaptiveEdge' => 'Edge gradient',
+			'reader.ambientDim' => 'Background dimming',
+			'reader.ambientDimSubtitle' => 'Dim the colour sampled from the page before using it as the backdrop; higher is easier on the eyes. Local comics only',
 			'reader.readingExperience' => 'Reading experience',
 			'reader.disableAnimation' => 'Disable page animation',
 			'reader.disableAnimationSubtitle' => 'Disable full-page turn animation',
@@ -3144,6 +3180,8 @@ extension on TranslationsEnUs {
 			'plugin.cloudDownloadFailed' => ({required Object error}) => 'Cloud download failed: ${error}',
 			'plugin.networkDownloadFailed' => ({required Object error}) => 'Network plugin download failed: ${error}',
 			'plugin.cloudVersion' => ({required Object version}) => 'Cloud ${version}',
+			_ => null,
+		} ?? switch (path) {
 			'plugin.localVersion' => ({required Object version}) => 'Local ${version}',
 			'plugin.loginTitle' => ({required Object name}) => '${name} Login',
 			'plugin.cookieSynced' => 'Login cookie synced',
@@ -3161,8 +3199,6 @@ extension on TranslationsEnUs {
 			'plugin.syncing' => 'Syncing plugin...',
 			'plugin.syncSuccess' => 'Sync successful',
 			'plugin.syncFailed' => ({required Object error}) => 'Sync failed: ${error}',
-			_ => null,
-		} ?? switch (path) {
 			'plugin.updateSubtitle' => 'Manually reinstall this plugin from a network URL or local file',
 			'plugin.updateFromNetwork' => 'Install from network',
 			'plugin.updateFromLocal' => 'Install from local',
@@ -3528,6 +3564,8 @@ extension on TranslationsEnUs {
 			'comicEntry.translationBadgeRaw' => 'Raw',
 			'comicEntry.translationTooltipTag' => ({required Object label, required Object keyword}) => '${label} · matched tag "${keyword}"',
 			'comicEntry.translationTooltipTitle' => ({required Object label, required Object keyword}) => '${label} · matched title "${keyword}"',
+			'comicEntry.resumeRead' => 'Resume reading',
+			'comicEntry.readFailed' => 'Could not start reading. Please try again later.',
 			'comicFollow.title' => 'Updates',
 			'comicFollow.loadFailed' => ({required Object result}) => 'Load failed: ${result}',
 			'comicFollow.empty' => 'No followed comics',
@@ -3656,6 +3694,8 @@ extension on TranslationsEnUs {
 			'notification.macPermissionRequired' => 'Please enable notification permission in system settings',
 			'update.newVersion' => 'New version available',
 			'update.goToGitHub' => 'Go to GitHub',
+			_ => null,
+		} ?? switch (path) {
 			'update.downloadInstall' => 'Download & install',
 			'update.apkDownloadFailed' => 'Download failed, please try again later',
 			'update.installPermissionRequired' => 'Please grant install app permission',
@@ -3675,8 +3715,6 @@ extension on TranslationsEnUs {
 			'shelfMenu.copiedLink' => ({required Object link}) => 'Copied link “${link}”',
 			'shelfMenu.fileManagerTabOpened' => 'Opened in a new file manager tab',
 			'shelfMenu.fileManagerTabUnavailable' => 'The file manager panel is not ready yet, try again in a moment',
-			_ => null,
-		} ?? switch (path) {
 			'shelfMenu.fileManagerTabNoLocalPath' => 'This comic has no local folder, so it cannot be opened in the file manager',
 			'shelfMenu.favoriteAdded' => ({required Object title}) => 'Added “${title}” to favorites',
 			'shelfMenu.favoriteRemoved' => ({required Object title}) => 'Removed “${title}” from favorites',

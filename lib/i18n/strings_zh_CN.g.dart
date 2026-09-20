@@ -503,6 +503,24 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '开启后预留安全区，避免内容遮挡'
 	String get notchAdaptationSubtitle => '开启后预留安全区，避免内容遮挡';
 
+	/// zh-CN: '透明标题栏'
+	String get transparentDesktopTitleBar => '透明标题栏';
+
+	/// zh-CN: '标题栏不再画底色，与页面背景连成一体（文字与窗口按钮可能因画面颜色而不易看清）；仅桌面端'
+	String get transparentDesktopTitleBarSubtitle => '标题栏不再画底色，与页面背景连成一体（文字与窗口按钮可能因画面颜色而不易看清）；仅桌面端';
+
+	/// zh-CN: '独立行'
+	String get transparentTitleBarRow => '独立行';
+
+	/// zh-CN: '标题栏仍占一行，只是不带底色；内容从它下面开始（默认）'
+	String get transparentTitleBarRowSubtitle => '标题栏仍占一行，只是不带底色；内容从它下面开始（默认）';
+
+	/// zh-CN: '融合浮层'
+	String get transparentTitleBarOverlay => '融合浮层';
+
+	/// zh-CN: '内容顶到窗口顶部，标题栏浮在画面之上'
+	String get transparentTitleBarOverlaySubtitle => '内容顶到窗口顶部，标题栏浮在画面之上';
+
 	/// zh-CN: '提示样式'
 	String get toastStyle => '提示样式';
 
@@ -673,6 +691,12 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '按标签识别「汉化 / 中文 / 生肉」并标记在封面左上角'
 	String get cardTranslationBadgeSubtitle => '按标签识别「汉化 / 中文 / 生肉」并标记在封面左上角';
+
+	/// zh-CN: '阅读按钮'
+	String get cardReadButton => '阅读按钮';
+
+	/// zh-CN: '封面正中显示阅读按钮，点一下直接起读（有进度就续读），不必先进详情页'
+	String get cardReadButtonSubtitle => '封面正中显示阅读按钮，点一下直接起读（有进度就续读），不必先进详情页';
 
 	/// zh-CN: '卡片交互'
 	String get cardInteraction => '卡片交互';
@@ -1087,6 +1111,12 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '开启后 Rust 端所有 HTTP 请求都会直接失败，不会发送到网络'
 	String get blockRustHttpRequestsSubtitle => '开启后 Rust 端所有 HTTP 请求都会直接失败，不会发送到网络';
+
+	/// zh-CN: '显示布局溢出条纹'
+	String get showLayoutOverflowStripes => '显示布局溢出条纹';
+
+	/// zh-CN: '关闭后不画黄黑斜纹、也不上报溢出错误；只覆盖本项目的布局，Flutter 自带控件要 profile 构建才看不到条纹'
+	String get showLayoutOverflowStripesSubtitle => '关闭后不画黄黑斜纹、也不上报溢出错误；只覆盖本项目的布局，Flutter 自带控件要 profile 构建才看不到条纹';
 
 	/// zh-CN: '强制启用 Impeller'
 	String get forceEnableImpeller => '强制启用 Impeller';
@@ -2657,6 +2687,15 @@ class Translations$reader$zh_CN {
 	/// zh-CN: '在控制栏展开每页缩略图，与进度条并成同一块面板；换书、换章、重启后保持'
 	String get thumbnailStripSubtitle => '在控制栏展开每页缩略图，与进度条并成同一块面板；换书、换章、重启后保持';
 
+	/// zh-CN: '透明顶栏'
+	String get transparentTopBar => '透明顶栏';
+
+	/// zh-CN: '顶栏不再用玻璃材质，改为一层半透明蒙层，画面从底下透出来（参考 JHenTai）'
+	String get transparentTopBarSubtitle => '顶栏不再用玻璃材质，改为一层半透明蒙层，画面从底下透出来（参考 JHenTai）';
+
+	/// zh-CN: '顶栏蒙层不透明度'
+	String get transparentTopBarOpacity => '顶栏蒙层不透明度';
+
 	/// zh-CN: '展开缩略图'
 	String get thumbnailStripExpand => '展开缩略图';
 
@@ -2776,6 +2815,18 @@ class Translations$reader$zh_CN {
 
 	/// zh-CN: '灰色'
 	String get grey => '灰色';
+
+	/// zh-CN: '自适应取色'
+	String get adaptive => '自适应取色';
+
+	/// zh-CN: '边缘渐变'
+	String get adaptiveEdge => '边缘渐变';
+
+	/// zh-CN: '背景压暗'
+	String get ambientDim => '背景压暗';
+
+	/// zh-CN: '把取自画面的颜色压暗后再铺成背景，越大越不刺眼；仅在本地漫画生效'
+	String get ambientDimSubtitle => '把取自画面的颜色压暗后再铺成背景，越大越不刺眼；仅在本地漫画生效';
 
 	/// zh-CN: '阅读体验'
 	String get readingExperience => '阅读体验';
@@ -4456,6 +4507,12 @@ class Translations$comicEntry$zh_CN {
 
 	/// zh-CN: '$label · 标题命中「$keyword」'
 	String translationTooltipTitle({required Object label, required Object keyword}) => '${label} · 标题命中「${keyword}」';
+
+	/// zh-CN: '继续阅读'
+	String get resumeRead => '继续阅读';
+
+	/// zh-CN: '无法开始阅读，请稍后重试'
+	String get readFailed => '无法开始阅读，请稍后重试';
 }
 
 // Path: comicFollow
@@ -5702,6 +5759,12 @@ extension on Translations {
 			'settings.amoledSubtitle' => '开启后使用纯黑背景，适配 AMOLED',
 			'settings.notchAdaptation' => '异形屏适配',
 			'settings.notchAdaptationSubtitle' => '开启后预留安全区，避免内容遮挡',
+			'settings.transparentDesktopTitleBar' => '透明标题栏',
+			'settings.transparentDesktopTitleBarSubtitle' => '标题栏不再画底色，与页面背景连成一体（文字与窗口按钮可能因画面颜色而不易看清）；仅桌面端',
+			'settings.transparentTitleBarRow' => '独立行',
+			'settings.transparentTitleBarRowSubtitle' => '标题栏仍占一行，只是不带底色；内容从它下面开始（默认）',
+			'settings.transparentTitleBarOverlay' => '融合浮层',
+			'settings.transparentTitleBarOverlaySubtitle' => '内容顶到窗口顶部，标题栏浮在画面之上',
 			'settings.toastStyle' => '提示样式',
 			'settings.toastStyleSubtitle' => '设置应用内提示条的位置、时长与大小',
 			'settings.toastSectionLayout' => '位置与尺寸',
@@ -5759,6 +5822,8 @@ extension on Translations {
 			'settings.cardDownloadBadgeSubtitle' => '封面右上角显示下载按钮，点一下直接下载整本',
 			'settings.cardTranslationBadge' => '语言角标',
 			'settings.cardTranslationBadgeSubtitle' => '按标签识别「汉化 / 中文 / 生肉」并标记在封面左上角',
+			'settings.cardReadButton' => '阅读按钮',
+			'settings.cardReadButtonSubtitle' => '封面正中显示阅读按钮，点一下直接起读（有进度就续读），不必先进详情页',
 			'settings.cardInteraction' => '卡片交互',
 			'settings.shelfCardContextMenu' => '收藏 / 历史卡片右键菜单',
 			'settings.shelfCardContextMenuSubtitle' => '右键条目弹出操作菜单（触摸端长按）；含打开、在文件管理新页签打开、复制标题与链接、收藏、移除',
@@ -5897,6 +5962,8 @@ extension on Translations {
 			'settings.memoryDebugSubtitle' => '开启后在界面显示内存占用信息',
 			'settings.blockRustHttpRequests' => '拦截 Rust HTTP 请求',
 			'settings.blockRustHttpRequestsSubtitle' => '开启后 Rust 端所有 HTTP 请求都会直接失败，不会发送到网络',
+			'settings.showLayoutOverflowStripes' => '显示布局溢出条纹',
+			'settings.showLayoutOverflowStripesSubtitle' => '关闭后不画黄黑斜纹、也不上报溢出错误；只覆盖本项目的布局，Flutter 自带控件要 profile 构建才看不到条纹',
 			'settings.forceEnableImpeller' => '强制启用 Impeller',
 			'settings.forceEnableImpellerSubtitle' => 'Android 实验性渲染后端',
 			'settings.colorPreview' => '整点颜色看看',
@@ -6075,6 +6142,8 @@ extension on Translations {
 			'settings.revealFieldX' => 'X',
 			'settings.revealFieldY' => 'Y',
 			'settings.revealFieldWidth' => '宽',
+			_ => null,
+		} ?? switch (path) {
 			'settings.revealFieldHeight' => '高',
 			'settings.revealZoneResetDone' => '已恢复出厂唤出区',
 			'settings.operationBindingTabKeyboard' => '快捷键',
@@ -6085,8 +6154,6 @@ extension on Translations {
 			'settings.operationBindingRadialEnable' => '启用轮盘',
 			'settings.operationBindingRadialEnableSubtitle' => '关掉之后轮盘不再响应，槽位绑定原样保留',
 			'settings.operationBindingRadialActiveWheel' => '默认轮盘',
-			_ => null,
-		} ?? switch (path) {
 			'settings.operationBindingRadialLayerUnit' => ({required Object count}) => '${count} 层',
 			'settings.operationBindingRadialNew' => '新轮盘',
 			'settings.operationBindingRadialDelete' => '删除轮盘',
@@ -6413,6 +6480,9 @@ extension on Translations {
 			'reader.hoverRevealEnabledSubtitle' => '鼠标移至屏幕顶部或底部边缘时自动浮现对应工具栏（参考 NeoView）',
 			'reader.thumbnailStrip' => '底部缩略图条',
 			'reader.thumbnailStripSubtitle' => '在控制栏展开每页缩略图，与进度条并成同一块面板；换书、换章、重启后保持',
+			'reader.transparentTopBar' => '透明顶栏',
+			'reader.transparentTopBarSubtitle' => '顶栏不再用玻璃材质，改为一层半透明蒙层，画面从底下透出来（参考 JHenTai）',
+			'reader.transparentTopBarOpacity' => '顶栏蒙层不透明度',
 			'reader.thumbnailStripExpand' => '展开缩略图',
 			'reader.thumbnailStripCollapse' => '收起缩略图',
 			'reader.thumbnailStripCurrent' => '当前',
@@ -6453,6 +6523,10 @@ extension on Translations {
 			'reader.black' => '黑色',
 			'reader.white' => '白色',
 			'reader.grey' => '灰色',
+			'reader.adaptive' => '自适应取色',
+			'reader.adaptiveEdge' => '边缘渐变',
+			'reader.ambientDim' => '背景压暗',
+			'reader.ambientDimSubtitle' => '把取自画面的颜色压暗后再铺成背景，越大越不刺眼；仅在本地漫画生效',
 			'reader.readingExperience' => '阅读体验',
 			'reader.disableAnimation' => '关闭翻页动画',
 			'reader.disableAnimationSubtitle' => '关闭整页翻页动画，小幅滚动动画不受影响',
@@ -6582,6 +6656,8 @@ extension on Translations {
 			'plugin.installingFromNetwork' => '正在下载网络插件...',
 			'plugin.cloudDownloadFailed' => ({required Object error}) => '云端下载失败: ${error}',
 			'plugin.networkDownloadFailed' => ({required Object error}) => '网络下载插件失败: ${error}',
+			_ => null,
+		} ?? switch (path) {
 			'plugin.cloudVersion' => ({required Object version}) => '云端 ${version}',
 			'plugin.localVersion' => ({required Object version}) => '本地 ${version}',
 			'plugin.loginTitle' => ({required Object name}) => '${name} 登录',
@@ -6599,8 +6675,6 @@ extension on Translations {
 			'plugin.syncSubtitle' => '通过 npm / updateUrl 检查并更新插件',
 			'plugin.syncing' => '正在同步插件...',
 			'plugin.syncSuccess' => '同步成功',
-			_ => null,
-		} ?? switch (path) {
 			'plugin.syncFailed' => ({required Object error}) => '同步失败: ${error}',
 			'plugin.updateSubtitle' => '通过网络 URL 或本地文件手动重装当前插件',
 			'plugin.updateFromNetwork' => '从网络安装',
@@ -6967,6 +7041,8 @@ extension on Translations {
 			'comicEntry.translationBadgeRaw' => '生肉',
 			'comicEntry.translationTooltipTag' => ({required Object label, required Object keyword}) => '${label} · 标签命中「${keyword}」',
 			'comicEntry.translationTooltipTitle' => ({required Object label, required Object keyword}) => '${label} · 标题命中「${keyword}」',
+			'comicEntry.resumeRead' => '继续阅读',
+			'comicEntry.readFailed' => '无法开始阅读，请稍后重试',
 			'comicFollow.title' => '追更',
 			'comicFollow.loadFailed' => ({required Object result}) => '加载失败：${result}',
 			'comicFollow.empty' => '暂无追更漫画',
@@ -7094,6 +7170,8 @@ extension on Translations {
 			'notification.permissionRequired' => '请开启通知权限',
 			'notification.macPermissionRequired' => '请在系统设置中开启通知权限',
 			'update.newVersion' => '发现新版本',
+			_ => null,
+		} ?? switch (path) {
 			'update.goToGitHub' => '前往GitHub',
 			'update.downloadInstall' => '下载安装',
 			'update.apkDownloadFailed' => '下载失败，请稍后再试！',
@@ -7113,8 +7191,6 @@ extension on Translations {
 			'shelfMenu.copiedTitle' => ({required Object title}) => '已复制标题「${title}」',
 			'shelfMenu.copiedLink' => ({required Object link}) => '已复制链接「${link}」',
 			'shelfMenu.fileManagerTabOpened' => '已在文件管理新页签打开',
-			_ => null,
-		} ?? switch (path) {
 			'shelfMenu.fileManagerTabUnavailable' => '文件管理面板还没准备好，稍后再试',
 			'shelfMenu.fileManagerTabNoLocalPath' => '这条漫画没有本地目录，无法在文件管理里打开',
 			'shelfMenu.favoriteAdded' => ({required Object title}) => '已收藏「${title}」',
