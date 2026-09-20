@@ -34,6 +34,32 @@ webp = "0.3"
 fast_image_resize = { version = "5", features = ["image"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# ---- 波形峰值（视频进度条上的那条声音轮廓）----
+# 口径来自 mImageViewer 的 `video/seek_strip_wave.rs`，但**不搬它的机器**：
+# 那份实现 3656 行，绑 `music_core::TimelineAnalysis`、wgpu 波形纹理与 SQLite tile 缓存。
+# 这里只要它的三个常量与「按 (路径,size,mtime) 认身份 + 窗口解码」的形状。
+#
+# 许可：symphonia 是 MPL-2.0（**文件级** copyleft），不是 GPL，因此不触 ADR-0008 的
+# 「任何 GPL 源码不得进入本仓库」。而且它是纯 Rust —— 这正是 B4 允许它进 `local_core`
+# 而不许 ffmpeg 进来的原因：没有外部二进制、没有 C 头解析、不拖垮交叉编译。
+#
+# **钉在 0.5**：0.6 把整套 API 重做了（`GenericAudioBufferRef`、`u24/i24` 样本类型、
+# `next_packet() -> Result<Option<Packet>>`、probe 入口改名），而本文件只用到
+# 「解一段窗口 → 按格取 RMS」这一条最朴素的通路。选版本而不是跟着上游重写一遍，
+# 是为了把改动面留给视频功能本身。
+symphonia = { version = "0.5.4", default-features = false, features = [
+    "isomp4",
+    "mkv",
+    "ogg",
+    "vorbis",
+    "mp3",
+    "mpa",
+    "aac",
+    "flac",
+    "wav",
+    "pcm",
+    "adpcm",
+] }
 
 # ---- JXL 后端（编译期可切换，见 src/jxl_backend.rs 的对照表）----
 # 后端一（**App 默认**）：jxl-rs 多线程直连。`jxl` 0.7 = libjxl 官方组织的纯 Rust

@@ -20,6 +20,25 @@ Future<List<LocalPageInfo>> localSourcePages({required BigInt id}) =>
 Future<Uint8List> localPageBytes({required BigInt id, required int index}) =>
     RustLib.instance.api.crateApiLocalLocalPageBytes(id: id, index: index);
 
+/// 视频进度条背后的**波形峰值列**（mImageViewer `seek_strip_wave.rs` 的等效面）。
+///
+/// 传的是**已落到磁盘的路径**（文件夹来源的原路径，或 `VideoMaterializer` 物化出来的
+/// 临时文件），不是页会话 id —— 波形要按整条文件解码，与「哪一页」无关。
+///
+/// 返回空数组 = 没有音轨或容器不认识；UI 据此**不画波形条**，不当错误弹提示。
+/// 解码是 CPU 密集 + 可能几秒，所以走 `spawn_blocking`（与 `local_page_bytes` 同一条路）。
+Future<Float32List> localVideoWavePeaks({
+  required String path,
+  required double start,
+  required double end,
+  required double binSecs,
+}) => RustLib.instance.api.crateApiLocalLocalVideoWavePeaks(
+  path: path,
+  start: start,
+  end: end,
+  binSecs: binSecs,
+);
+
 /// 取一页的**解码后像素**。
 ///
 /// 和 [`local_page_bytes`] 的分工必须说清，否则很容易用错：
@@ -421,7 +440,7 @@ class LocalRejection {
 
 /// 被**主动拒绝**的原因类别。UI 按类别给不同提示与下一步动作。
 enum LocalRejectionKind {
-  /// 扩展名不在 v0.1 范围内（7z / PDF / 视频……）。
+  /// 不支持的来源格式（7z / PDF 等）。
   unknownFormat,
 
   /// 固实 RAR：读第 N 页要解压前 N-1 页。
@@ -497,7 +516,7 @@ class LocalSourceInfo {
 
 /// 来源类型。与 `rossi_local_core::SourceKind` 一一对应（单独声明是为了不受
 /// 依赖里的类型改动直接影响 Dart 侧的枚举名）。
-enum LocalSourceKind { folder, zip, rar }
+enum LocalSourceKind { folder, zip, rar, mediaFile }
 
 /// `open_local_source` 的返回值：要么拿到 `source`，要么拿到 `rejection`，不会两者都有。
 class LocalSourceOpenResult {

@@ -82,6 +82,8 @@ pub mod rotation;
 pub mod thumbnail_pipeline;
 pub mod zip_source;
 
+pub mod wave_peaks;
+
 pub use auto_aspect::{
     AspectDecision, AutoAspectState, decide_auto_aspect, fit_score, min_samples_for, pick_best,
 };
@@ -97,6 +99,8 @@ pub use settings::{
     ReadingDirection, ReadingFlow, Settings, SpreadMode, ThumbAspect,
 };
 pub use settings_db::{SettingsDb, resolve_view_state_for_path, view_state_key};
+pub use wave_peaks::{COARSE_BIN_SECS, MIN_BIN_SECS, PRE_ROLL_SECS, wave_peaks};
+
 pub use thumbnail_pipeline::{
     get_cached_book_dimensions, get_or_create_thumbnail, pick_aspect_for_cached_book,
     pick_aspect_from_dimensions,
@@ -144,6 +148,8 @@ pub enum SourceKind {
     Folder,
     Zip,
     Rar,
+    /// 单张图片或单个视频，来源身份保留文件本身的路径。
+    MediaFile,
 }
 
 impl SourceKind {
@@ -152,6 +158,7 @@ impl SourceKind {
             Self::Folder => "folder",
             Self::Zip => "zip",
             Self::Rar => "rar",
+            Self::MediaFile => "media-file",
         }
     }
 }
@@ -169,6 +176,8 @@ pub enum Locator {
     ZipIndex(usize),
     /// 归档内条目名（已规范化、去重）。
     RarEntryName(String),
+    /// 来源路径本身就是这一页。
+    MediaFile,
 }
 
 /// 页序列里的一项。
@@ -187,7 +196,7 @@ pub struct PageEntry {
 /// （「这本是固实压缩的 RAR，v0.1 打不开」和「这文件损坏了」不是一回事）。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum UnsupportedSource {
-    /// 扩展名不在 v0.1 范围内（7z / PDF / 视频……）。
+    /// 不支持的来源格式（7z / PDF 等）。
     UnknownFormat(String),
     /// 固实 RAR：读第 N 页要解压前 N-1 页，代价随页数平方增长。
     RarSolid,
@@ -201,7 +210,7 @@ impl fmt::Display for UnsupportedSource {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::UnknownFormat(ext) => {
-                write!(f, "v0.1 只支持散图文件夹 / CBZ / CBR，不支持 .{ext}")
+                write!(f, "只支持图片 / 视频文件、文件夹及 CBZ / CBR，不支持 .{ext}")
             }
             Self::RarSolid => write!(f, "这是固实（solid）压缩的 RAR，v0.1 不支持直读"),
             Self::RarNestedArchive => write!(f, "归档里含嵌套归档，v0.1 不展开"),
@@ -223,7 +232,7 @@ pub struct LocalSource {
 }
 
 impl LocalSource {
-    /// 按路径打开：目录、`.zip`/`.cbz`、`.rar`/`.cbr`。
+    /// 按路径打开：目录、单个图片/视频、`.zip`/`.cbz`、`.rar`/`.cbr`。
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         let root = path.as_ref().to_path_buf();
         let meta =
@@ -235,6 +244,20 @@ impl LocalSource {
                 root,
                 kind: SourceKind::Folder,
                 pages,
+            });
+        }
+
+        let name = root.file_name().and_then(|name| name.to_str());
+        if meta.is_file() && name.is_some_and(page_order::is_page_name) {
+            let page = PageEntry {
+                name: name.unwrap().to_owned(),
+                size: meta.len(),
+                locator: Locator::MediaFile,
+            };
+            return Ok(Self {
+                root,
+                kind: SourceKind::MediaFile,
+                pages: vec![page],
             });
         }
 
@@ -292,6 +315,7 @@ impl LocalSource {
             Locator::FolderPath(rel) => folder_source::read_page(&self.root, rel),
             Locator::ZipIndex(index) => zip_source::read_entry(&self.root, *index),
             Locator::RarEntryName(name) => rar_source::read_entry(&self.root, name),
+            Locator::MediaFile => std::fs::read(&self.root).map_err(Into::into),
         }
         .with_context(|| format!("读取第 {} 页失败: {}", index + 1, page.name))
     }
@@ -373,6 +397,20 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let error = LocalSource::open(dir.path().join("nope.cbz")).unwrap_err();
         assert!(error.to_string().contains("nope.cbz"), "{error}");
+    }
+
+    #[test]
+    fn single_image_keeps_its_identity_and_decodes() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("page.png");
+        image::RgbaImage::new(3, 2).save(&path).unwrap();
+        let source = LocalSource::open(&path).unwrap();
+        assert_eq!(source.kind(), SourceKind::MediaFile);
+        assert_eq!(source.root(), path);
+        assert_eq!(source.len(), 1);
+        assert_eq!(source.pages()[0].name, "page.png");
+        let pixels = source.page_pixels(0).unwrap();
+        assert_eq!((pixels.width, pixels.height), (3, 2));
     }
 
     #[test]

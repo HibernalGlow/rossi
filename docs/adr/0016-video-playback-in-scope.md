@@ -32,8 +32,13 @@ ADR-0008 把 v0.1 冻结线定为「本地漫画 → 归档直读 → 解码 →
 ## 边界怎么改
 
 - **B4 依赖树不变**：`ffmpeg` / `mpv` **不进 `local_core`**。引擎在 Dart 侧（media_kit 自带
-  native 产物），`local_core` 只多做一件事——**承认视频条目是一页**（`is_page_name`），
-  以及按需提供该条目的字节（既有 `page_bytes`）。
+  native 产物），`local_core` 多做两件事：
+  1. **承认视频条目是一页**（`page_order.rs` 的 `is_page_name`），并按需提供该条目的字节（既有 `page_bytes`）；
+  2. **波形取峰值**（`wave_peaks.rs`）—— 这条是后补的：mimage 的波形走 FFmpeg，B4 不许，
+     所以用**纯 Rust 的 symphonia（MPL-2.0，非 GPL）**解 PCM。它不引入外部二进制、不解析 C 头，
+     因此不触 B4 想防的那件事（编译时间与交叉编译链路）。它确实让 `local_core` 多了一个
+     解码器族，这是明知代价接受的结果 —— 备选是「并集里少一条功能」。
+  两处都**不改变已暴露类型的形状**地过桥：`localVideoWavePeaks` 是本次唯一新增的 `#[frb]` 函数。
 - **许可不变**：`local_core` 仍不引入 GPL 源码。media_kit 是 MIT；它链入的 mpv 是 LGPL/GPL
   可选构建，由 media_kit 的预编译产物提供，不进入本仓库源码树。
 - **FRB 生成物不动**：本 ADR 的所有 Rust 改动都**不改变已暴露类型的形状**（不加字段、

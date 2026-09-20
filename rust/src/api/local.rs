@@ -71,6 +71,7 @@ pub enum LocalSourceKind {
     Folder,
     Zip,
     Rar,
+    MediaFile,
 }
 
 impl From<SourceKind> for LocalSourceKind {
@@ -79,6 +80,7 @@ impl From<SourceKind> for LocalSourceKind {
             SourceKind::Folder => Self::Folder,
             SourceKind::Zip => Self::Zip,
             SourceKind::Rar => Self::Rar,
+            SourceKind::MediaFile => Self::MediaFile,
         }
     }
 }
@@ -86,7 +88,7 @@ impl From<SourceKind> for LocalSourceKind {
 /// 被**主动拒绝**的原因类别。UI 按类别给不同提示与下一步动作。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LocalRejectionKind {
-    /// 扩展名不在 v0.1 范围内（7z / PDF / 视频……）。
+    /// 不支持的来源格式（7z / PDF 等）。
     UnknownFormat,
     /// 固实 RAR：读第 N 页要解压前 N-1 页。
     RarSolid,
@@ -236,6 +238,31 @@ pub async fn local_page_bytes(id: u64, index: u32) -> Result<Vec<u8>, Error> {
     rquickjs_playground::global_handle()
         .spawn_blocking(move || source.page_bytes(index as usize))
         .await?
+}
+
+/// 视频进度条背后的**波形峰值列**（mImageViewer `seek_strip_wave.rs` 的等效面）。
+///
+/// 传的是**已落到磁盘的路径**（文件夹来源的原路径，或 `VideoMaterializer` 物化出来的
+/// 临时文件），不是页会话 id —— 波形要按整条文件解码，与「哪一页」无关。
+///
+/// 返回空数组 = 没有音轨或容器不认识；UI 据此**不画波形条**，不当错误弹提示。
+/// 解码是 CPU 密集 + 可能几秒，所以走 `spawn_blocking`（与 `local_page_bytes` 同一条路）。
+#[frb]
+pub async fn local_video_wave_peaks(
+    path: String,
+    start: f64,
+    end: f64,
+    bin_secs: f64,
+) -> Result<Vec<f32>, Error> {
+    rquickjs_playground::global_handle()
+        .spawn_blocking(move || rossi_local_core::wave_peaks::wave_peaks(
+            std::path::Path::new(&path),
+            start,
+            end,
+            bin_secs,
+        ))
+        .await?
+        .map_err(Error::from)
 }
 
 /// 这次页加载的**优先级**。语义来自 mImageViewer 的 `FsPageLoadPriority`。
