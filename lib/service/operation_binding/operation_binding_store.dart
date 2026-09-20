@@ -68,6 +68,20 @@ abstract final class OperationBindingStore {
         rows.addAll(radialPresetBindings(kRadialDefaultMenuId));
       }
       nextBindings = encodeBindingsDoc(rows);
+    } else {
+      // 用户已有自定义配置但历史表完全缺少滚轮绑定时，自动补全出厂滚轮行，
+      // 避免老用户在滚轮引入后因未重置出厂而完全无法使用滚轮。
+      final rows = List<Map<String, dynamic>>.from(existing);
+      if (!rows.any(
+        (row) => (row['input'] as Map)['device'] == InputDevice.wheel,
+      )) {
+        final factoryRows = _decodeArray(operationBindingFactoryPreset());
+        final wheelRows = factoryRows.where(
+          (row) => (row['input'] as Map)['device'] == InputDevice.wheel,
+        );
+        rows.addAll(wheelRows);
+        nextBindings = encodeBindingsDoc(rows);
+      }
     }
     if (nextBindings == null && !needsRadial) return;
     cubit.updateOperationBindingSetting(

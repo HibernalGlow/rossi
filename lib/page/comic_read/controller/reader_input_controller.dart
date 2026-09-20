@@ -200,6 +200,16 @@ class ReaderInputController {
     );
   }
 
+  /// 轮盘开着时，**唤出那次手势**的后续事件转交给浮层。
+  ///
+  /// 转交成功就不再让阅读器的手势采集器看见这一拖 —— 否则松手还会被当成滑动/点击。
+  /// 阅读器看得见这根指针的每一次 move/up/cancel：Flutter 对进行中的指针复用按下时的
+  /// 命中结果，而按下那一刻浮层还没插进 Overlay，所以那次手势整段都回到阅读器。
+  bool _forwardToRadialMenu(PointerEvent event) {
+    final opening = _radialOpeningPointer;
+    return opening != null && ReaderRadialMenu.forwardPointer(event, opening);
+  }
+
   /// 阅读器全屏切换：工作台泳道里交给宿主，独立阅读器自己切。
   ///
   /// 按键（F11）与 `reader.fullscreen` 动作共用这一处 —— 两条路必须落同一个实现，
@@ -256,7 +266,9 @@ class ReaderInputController {
       child: Listener(
         onPointerDown: _onPointerDown,
         onPointerMove: (event) {
-          if (ReaderRadialMenu.isOpen) {
+          if (_forwardToRadialMenu(event)) {
+            _pointerBindings.cancel();
+          } else if (ReaderRadialMenu.isOpen) {
             _pointerBindings.cancel();
           } else {
             _pointerBindings.move(event);
@@ -271,6 +283,9 @@ class ReaderInputController {
         // 落点来自哪个盒子，尺码就必然是那个盒子的。
         child: BindingPointerSignalRegion(
           onPointerSignal: _onPointerSignal,
+          onPointerPanZoomStart: _onPointerPanZoomStart,
+          onPointerPanZoomUpdate: _onPointerPanZoomUpdate,
+          onPointerPanZoomEnd: _onPointerPanZoomEnd,
           child: LayoutBuilder(
             builder: (context, constraints) {
               final surface = constraints.biggest;
@@ -510,9 +525,11 @@ class ReaderInputController {
   }
 
   void _onPointerUpOrCancel(PointerEvent event) {
+    // 先转交再清：轮盘要用这个「唤出指针」认出这次抬起是不是它那一根。
+    final forwarded = _forwardToRadialMenu(event);
     _radialOpeningPointer = null;
-    if (event is PointerCancelEvent || ReaderRadialMenu.isOpen) {
-      // 轮盘用自己的 PieCanvas 消费抬起，避免同时触发阅读器 click 绑定。
+    if (event is PointerCancelEvent || forwarded || ReaderRadialMenu.isOpen) {
+      // 轮盘接住了这次抬起，避免同时触发阅读器 click 绑定。
       _pointerBindings.cancel();
     } else if (event is PointerUpEvent) {
       _pointerBindings.up(event);
@@ -529,32 +546,83 @@ class ReaderInputController {
         kind == PointerDeviceKind.invertedStylus;
   }
 
+  double _trackpadPanAccumulator = 0;
+  DateTime? _lastTrackpadWheelTime;
+
+  bool _dispatchWheelDelta(double dy, {PointerSignalEvent? signalEvent}) {
+    if (!_isDesktopPlatform || dy == 0) return false;
+    final bindings = _runtimeBindings;
+    if (bindings == null) return false;
+    final input = bindingWheelInput(dy);
+    // 滚轮由命中测试送到阅读区，不依赖键盘焦点。右侧设置页可能把桥的上下文
+    // 留在 panel；复用它会使 reader 绑定失配，必须按当前内容采集本次上下文。
+    final contexts = [
+      'reader',
+      if (ActiveVideoScope.instance.hasTarget) 'video',
+    ];
+    if (_actionDispatcher.resolveInput(input, bindings, contexts: contexts) ==
+        null) {
+      return false;
+    }
+    final before = transformationController.value.clone();
+    void execute() {
+      transformationController.value = before;
+      _actionDispatcher.dispatchInput(
+        jsonEncode(input),
+        bindings,
+        fromKeyboard: false,
+        contexts: contexts,
+      );
+    }
+
+    if (signalEvent != null) {
+      // InteractiveViewer 直接处理缩放信号；消费绑定输入时复原它的本次变换。
+      GestureBinding.instance.pointerSignalResolver.register(signalEvent, (_) {
+        execute();
+      });
+    } else {
+      execute();
+    }
+    return true;
+  }
+
+  void _onPointerPanZoomStart(PointerPanZoomStartEvent event) {
+    _trackpadPanAccumulator = 0;
+    _lastTrackpadWheelTime = null;
+  }
+
+  void _onPointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
+    if (!_isDesktopPlatform) return;
+    final dy = event.panDelta.dy;
+    if (dy == 0) return;
+    if ((_trackpadPanAccumulator > 0 && dy < 0) ||
+        (_trackpadPanAccumulator < 0 && dy > 0)) {
+      _trackpadPanAccumulator = 0;
+    }
+    _trackpadPanAccumulator += dy;
+    // 触控板滑动累计超过 24px 时触发一次滚轮动作并步进防抖
+    if (_trackpadPanAccumulator.abs() >= 24) {
+      final now = DateTime.now();
+      if (_lastTrackpadWheelTime == null ||
+          now.difference(_lastTrackpadWheelTime!).inMilliseconds >= 120) {
+        final consumed = _dispatchWheelDelta(_trackpadPanAccumulator);
+        if (consumed) {
+          _lastTrackpadWheelTime = now;
+        }
+      }
+      _trackpadPanAccumulator = 0;
+    }
+  }
+
+  void _onPointerPanZoomEnd(PointerPanZoomEndEvent event) {
+    _trackpadPanAccumulator = 0;
+    _lastTrackpadWheelTime = null;
+  }
+
   void _onPointerSignal(PointerSignalEvent event) {
     if (event is! PointerScrollEvent || !_isDesktopPlatform) return;
-    final bindings = _runtimeBindings;
-    if (bindings != null && event.scrollDelta.dy != 0) {
-      final input = bindingWheelInput(event.scrollDelta.dy);
-      // 滚轮由命中测试送到阅读区，不依赖键盘焦点。右侧设置页可能把桥的上下文
-      // 留在 panel；复用它会使 reader 绑定失配，必须按当前内容采集本次上下文。
-      final contexts = [
-        'reader',
-        if (ActiveVideoScope.instance.hasTarget) 'video',
-      ];
-      if (_actionDispatcher.resolveInput(input, bindings, contexts: contexts) !=
-          null) {
-        // InteractiveViewer 直接处理缩放信号；消费绑定输入时复原它的本次变换。
-        final before = transformationController.value.clone();
-        GestureBinding.instance.pointerSignalResolver.register(event, (_) {
-          transformationController.value = before;
-          _actionDispatcher.dispatchInput(
-            jsonEncode(input),
-            bindings,
-            fromKeyboard: false,
-            contexts: contexts,
-          );
-        });
-        return;
-      }
+    if (_dispatchWheelDelta(event.scrollDelta.dy, signalEvent: event)) {
+      return;
     }
 
     final newCtrlPressed =
@@ -572,7 +640,7 @@ class ReaderInputController {
 
     // 绑定表在位时，未命中的输入留给 Scrollable / 缩放；不再执行旧翻页规则。
     // 否则删除、停用或改绑滚轮之后，它仍会绕过配置翻页。
-    if (bindings != null) return;
+    if (_runtimeBindings != null) return;
 
     final readMode = context
         .read<GlobalSettingCubit>()

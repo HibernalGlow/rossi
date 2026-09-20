@@ -1,6 +1,7 @@
 // 阅读轮盘：flutter_ray_menu 管理多层显示与指针命中，条目继续经过统一动作绑定解析器。
 
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_ray_menu/flutter_ray_menu.dart';
 import 'package:zephyr/i18n/strings.g.dart';
@@ -53,6 +54,17 @@ abstract final class ReaderRadialMenu {
     return true;
   }
 
+  /// 把**唤出那次手势**的后续事件（move/up/cancel）转交给浮层，返回是否由轮盘接住。
+  ///
+  /// 为什么不只靠组件自己的 `openingPointer` 全局路由：那条路由要等浮层**挂载之后**
+  /// 才注册，而浮层是在按下的那一刻插进 Overlay 的 —— 按下与抬起挨得越近，越可能整条
+  /// 手势都发生在挂载之前，那次抬起就永远收不到（表现为「拖到某一格松手没反应」）。
+  /// 阅读器本来就在按下时那条命中路径上（Flutter 对进行中的指针复用按下时的命中结果），
+  /// 它也看得见这根指针的每一次 move/up/cancel，所以由它转交是确定的。
+  /// 两条路都送到时组件只确认一次，不会把动作执行两遍。
+  static bool forwardPointer(PointerEvent event, int pointer) =>
+      _current?.forwardPointer(event, pointer) ?? false;
+
   static void dismiss() {
     final entry = _entry;
     _entry = null;
@@ -93,6 +105,9 @@ class _ReaderRadialMenuViewState extends State<_ReaderRadialMenuView> {
   late List<RadialSlotPaint> _slots;
   late List<RayMenuRing> _rings;
 
+  /// 唤出那次手势在指针上移动过没有（见 [forwardPointer]）。
+  var _openingMoved = false;
+
   @override
   void initState() {
     super.initState();
@@ -123,6 +138,24 @@ class _ReaderRadialMenuViewState extends State<_ReaderRadialMenuView> {
       menuId: _menuId,
     );
     _rings = readerRayRings(_slots);
+  }
+
+  /// 转交唤出指针的后续事件；返回是否由本浮层接住（见 [ReaderRadialMenu.forwardPointer]）。
+  bool forwardPointer(PointerEvent event, int pointer) {
+    if (pointer != widget.openingPointer) return false;
+    if (event is PointerMoveEvent &&
+        (event.position - widget.globalCenter).distance >= kTouchSlop) {
+      _openingMoved = true;
+    }
+    if (event is PointerUpEvent && !_openingMoved) {
+      // 按下就松、中间没动过：那是「把轮盘开出来」而不是「想取消」，不执行也不关。
+      return true;
+    }
+    if (event is PointerUpEvent || event is PointerCancelEvent) {
+      _openingMoved = false;
+    }
+    _controller.handlePointerEvent(event);
+    return true;
   }
 
   void _commit(RadialSlotPaint slot) {

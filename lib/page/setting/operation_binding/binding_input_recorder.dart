@@ -32,6 +32,7 @@ class _BindingInputRecorderState extends State<BindingInputRecorder> {
   Duration? _pressedAt;
   int _button = 0;
   int _fingers = 0;
+  double _panZoomDyAccumulator = 0;
   Map<String, dynamic>? _captured;
   String get _device => widget.input['device'] as String;
 
@@ -47,14 +48,14 @@ class _BindingInputRecorderState extends State<BindingInputRecorder> {
       Navigator.of(context).pop();
       return KeyEventResult.handled;
     }
-    if (_device != InputDevice.keyboard || isBindingModifier(event.logicalKey)) {
+    if (isBindingModifier(event.logicalKey)) {
       return KeyEventResult.handled;
     }
     final json = keyboardInputJsonOf(event);
     if (json != null) {
       setState(
         () => _captured = {
-          ...widget.input,
+          'device': InputDevice.keyboard,
           ...Map<String, dynamic>.from(jsonDecode(json) as Map),
           'trigger': widget.input['trigger'] ?? 'down',
         },
@@ -81,7 +82,7 @@ class _BindingInputRecorderState extends State<BindingInputRecorder> {
   void _move(PointerMoveEvent event) {
     if (!_starts.containsKey(event.pointer)) return;
     _ends[event.pointer] = event.localPosition;
-    if (_device == InputDevice.mouseGesture && _last != null) {
+    if (_last != null) {
       final delta = event.localPosition - _last!;
       if (delta.distance >= 16) {
         final direction = bindingDirection(delta);
@@ -99,19 +100,17 @@ class _BindingInputRecorderState extends State<BindingInputRecorder> {
     final elapsed =
         (event.timeStamp - (_pressedAt ?? event.timeStamp)).inMilliseconds;
     Map<String, dynamic>? result;
-    if (_device == InputDevice.mouse) {
-      result = {...widget.input, 'button': _button};
-    } else if (_device == InputDevice.mouseGesture && _directions.isNotEmpty) {
+    if (_directions.isNotEmpty) {
       result = {
-        ...widget.input,
+        'device': InputDevice.mouseGesture,
         'button': _button,
         'directions': [..._directions],
+        'trigger': widget.input['trigger'] ?? 'instant',
       };
-    } else if (_device == InputDevice.touch &&
-        event.kind == PointerDeviceKind.touch) {
+    } else if (event.kind == PointerDeviceKind.touch) {
       final delta = event.localPosition - start;
       result = {
-        ...widget.input,
+        'device': InputDevice.touch,
         'fingers': _fingers.clamp(1, 3),
         'gesture': delta.distance >= 40
             ? 'swipe-${bindingDirection(delta)}'
@@ -119,63 +118,89 @@ class _BindingInputRecorderState extends State<BindingInputRecorder> {
             ? 'long-press'
             : 'tap',
       };
+    } else {
+      result = {
+        'device': InputDevice.mouse,
+        'button': _button,
+        'action': widget.input['action'] ?? 'click',
+      };
     }
-    if (result != null) setState(() => _captured = result);
+    setState(() => _captured = result);
+  }
+
+  void _onScroll(PointerScrollEvent event) {
+    if (event.scrollDelta.dy != 0) {
+      setState(() => _captured = bindingWheelInput(event.scrollDelta.dy));
+    }
+  }
+
+  void _onPanZoomUpdate(PointerPanZoomUpdateEvent event) {
+    _panZoomDyAccumulator += event.panDelta.dy;
+    if (_panZoomDyAccumulator.abs() >= 10) {
+      setState(() => _captured = bindingWheelInput(_panZoomDyAccumulator));
+      _panZoomDyAccumulator = 0;
+    }
+  }
+
+  void _onPanZoomEnd(PointerPanZoomEndEvent event) {
+    _panZoomDyAccumulator = 0;
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: Text('${t.bindingEditor.record} · ${bindingDeviceLabels[_device]}'),
-    content: SizedBox(
-      width: 500,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(t.bindingEditor.recordHint),
-          const SizedBox(height: 16),
-          Focus(
-            focusNode: _focus,
-            autofocus: true,
-            onKeyEvent: _key,
-            child: Listener(
-              behavior: HitTestBehavior.opaque,
-              onPointerDown: _down,
-              onPointerMove: _move,
-              onPointerUp: _up,
-              onPointerCancel: (_) {
-                _starts.clear();
-                _ends.clear();
-              },
-              onPointerSignal: (event) {
-                if (_device == InputDevice.wheel &&
-                    event is PointerScrollEvent &&
-                    event.scrollDelta.dy != 0) {
-                  setState(
-                    () => _captured = bindingWheelInput(event.scrollDelta.dy),
-                  );
-                }
-              },
-              child: Container(
-                height: 180,
-                alignment: Alignment.center,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
+  Widget build(BuildContext context) {
+    final activeDevice = _captured?['device'] as String? ?? _device;
+    return AlertDialog(
+      title: Text(
+        '${t.bindingEditor.record} · ${bindingDeviceLabels[activeDevice] ?? activeDevice}',
+      ),
+      content: SizedBox(
+        width: 500,
+        child: Focus(
+          focusNode: _focus,
+          autofocus: true,
+          onKeyEvent: _key,
+          child: Listener(
+            behavior: HitTestBehavior.opaque,
+            onPointerDown: _down,
+            onPointerMove: _move,
+            onPointerUp: _up,
+            onPointerCancel: (_) {
+              _starts.clear();
+              _ends.clear();
+            },
+            onPointerSignal: (event) {
+              if (event is PointerScrollEvent) {
+                _onScroll(event);
+              }
+            },
+            onPointerPanZoomUpdate: _onPanZoomUpdate,
+            onPointerPanZoomEnd: _onPanZoomEnd,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(t.bindingEditor.recordHint),
+                const SizedBox(height: 16),
+                Container(
+                  height: 180,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    _captured == null
+                        ? t.bindingEditor.recordWaiting
+                        : bindingInputSummary(_captured!),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-                child: Text(
-                  _captured == null
-                      ? t.bindingEditor.recordWaiting
-                      : bindingInputSummary(_captured!),
-                  textAlign: TextAlign.center,
-                ),
-              ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
-    ),
-    actions: [
+      actions: [
       TextButton(
         onPressed: () => Navigator.of(context).pop(),
         child: Text(t.common.cancel),
@@ -188,4 +213,5 @@ class _BindingInputRecorderState extends State<BindingInputRecorder> {
       ),
     ],
   );
+  }
 }

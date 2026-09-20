@@ -302,24 +302,35 @@ Dart 侧对应一个**薄** `OperationBindingController`：持有 session、把 
 - 形状变了要剪枝：`radial_prune_bindings` 删掉指向已不存在条目的绑定。
   但**层数只影响显示**，调小层数不删用户数据。
 
-**外壳**：`lib/widgets/radial/radial_pie_menu.dart` 封装 `PieCanvas` / `PieMenu`，
-供阅读浮层与设置页交互预览共用。每层分为最多八个动作一页，通过「更多」或上下键切换；
-左右键选择、确认键按绑定表解析、`Esc` 取消，`moveToMenuId` 切换轮盘。
-停用与空槽不进入运行菜单，设置页用可点击的槽位列表编辑并添加条目。
+**外壳**：`lib/widgets/radial/reader_ray_menu_adapter.dart` 把本仓的
+`RadialMenuDefinition` 映射成 `packages/flutter_ray_menu` 的条目模型（id / 标签 / 槽号 /
+启用），供阅读浮层与设置页交互预览共用。多层同心环一次全部显示，半径按可用空间缩放、
+中心限制在画布内；左右键在格间移动、确认键按绑定表解析、`Esc` 取消，`moveToMenuId`
+切换轮盘、空槽不进运行菜单。停用与空槽不进入运行菜单，设置页用可点击的槽位列表编辑。
+`RayMenuGeometry` 是值语义（有 `==`）—— 宿主在 `build` 里现造一份也不会被当成
+「形状变了」，否则每次重建都会清掉当前高亮。
 
-**进行中的指针**：Flutter 对进行中的指针复用按下时的命中路径，因此阅读器传入
-唤出菜单的 pointer id，浮层只把这根指针后续的 move/up/cancel 转发到 `PieCanvas`
-的渲染命中路径；不重新路由全局事件，也不计算轮盘扇区。后续点击由组件自然接收。
-阅读器同时取消这次手势的其他绑定，避免松手再触发翻页。
+**进行中的指针**：Flutter 对进行中的指针复用按下时的命中路径，所以「按下即开」的
+浮层拿不到这根指针后续的 move/up/cancel。两条路都接着，且只确认一次：
+阅读器（`ReaderRadialMenu.forwardPointer`）把唤出那次的 move/up/cancel 转交进浮层
+（它本来就在那条命中路径上）；组件自己也用 `openingPointer` 注册全局路由，但那要在
+浮层挂载之后才生效 —— 按下与抬起挨得极近时会漏。浮层对同一根指针只确认第一个抬起
+（`RayMenuState._confirmed`），两条路都送到也不会把动作执行两遍。
+手感照 neoview：按住拖动高亮跟随、**在某一格上松手就执行那一格**、松在中心空洞里 =
+取消、按下就松（没动过）不执行也不关、**轮盘开着时再按一次右键 = 关掉（且不执行指针下
+那一格）**。阅读器同时取消这次手势的其他绑定，避免松手再触发翻页。
 
 **配置兼容**：保留旧 `variant` / `sweepAngle` 等字段用于往返导入导出；
-当前外观固定为 pie_menu 的圆形按钮，不再显示不生效的扇区/气泡、扫过角选项。
-多层按页展示，半径按可用空间缩放、中心限制在画布内；屏幕阅读器模式提供动作列表。
+`bubble` 之外当前外观固定为扇区，半径按可用空间缩放、中心限制在画布内；
+屏幕阅读器模式提供动作列表。
 编辑器自身提供透明 `Material`，可直接嵌入设置宿主，避免开关报 `No Material widget found`。
 
-**验证**：`radial_pie_menu_test.dart` 覆盖窄屏边缘、悬停/点击一致、多层分页和可访问模式；
-`radial_menu_binding_test.dart` 覆盖右键拖放、轮盘跳转及可改绑的键盘确认；
-`radial_binding_editor_test.dart` 覆盖无 Material 宿主、开关、槽位选择及交互预览。
+**验证**：`packages/flutter_ray_menu/test/ray_menu_pointer_test.dart` 覆盖指针链的
+全部口径（拖动松手即执行 / 中心空洞取消 / 按下即松不关 / 再次点击执行 / 再次右键关掉 /
+两条路都送只确认一次），三种来路各跑一遍且**不依赖原生库**（这个包能单独跑测试，
+正是独立成包的理由）；`radial_menu_binding_test.dart` 覆盖右键拖放、顺手点击、取消、
+再次右键退出、轮盘跳转及可改绑的键盘确认；`radial_binding_editor_test.dart`
+覆盖无 Material 宿主、开关、槽位选择及交互预览。
 
 ## 13. 完整操作绑定编辑器（2026-09）
 

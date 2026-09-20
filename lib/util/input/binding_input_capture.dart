@@ -8,9 +8,15 @@ class BindingPointerSignalRegion extends StatelessWidget {
   const BindingPointerSignalRegion({
     super.key,
     required this.onPointerSignal,
+    this.onPointerPanZoomStart,
+    this.onPointerPanZoomUpdate,
+    this.onPointerPanZoomEnd,
     required this.child,
   });
   final void Function(PointerSignalEvent) onPointerSignal;
+  final void Function(PointerPanZoomStartEvent)? onPointerPanZoomStart;
+  final void Function(PointerPanZoomUpdateEvent)? onPointerPanZoomUpdate;
+  final void Function(PointerPanZoomEndEvent)? onPointerPanZoomEnd;
   final Widget child;
 
   @override
@@ -22,6 +28,9 @@ class BindingPointerSignalRegion extends StatelessWidget {
         child: Listener(
           behavior: HitTestBehavior.translucent,
           onPointerSignal: onPointerSignal,
+          onPointerPanZoomStart: onPointerPanZoomStart,
+          onPointerPanZoomUpdate: onPointerPanZoomUpdate,
+          onPointerPanZoomEnd: onPointerPanZoomEnd,
           child: const SizedBox.expand(),
         ),
       ),
