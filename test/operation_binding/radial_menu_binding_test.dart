@@ -55,7 +55,7 @@ class _Api implements RustLibApi {
 }
 
 void main() {
-  for (final mode in ['drag', 'submenu', 'click', 'cancel']) {
+  for (final mode in ['drag', 'submenu', 'click', 'cancel', 'dismiss']) {
     final submenu = mode == 'submenu';
     testWidgets('右键轮盘完整指针链：$mode', (tester) async {
       RustLib.initMock(api: _Api(submenu: submenu));
@@ -117,7 +117,7 @@ void main() {
         expect(ReaderRadialMenu.isOpen, isTrue);
         expect(executed, 0);
         await tester.tapAt(
-          tester.getCenter(find.byKey(const ValueKey('radial:settings'))),
+          tester.getCenter(find.byKey(const ValueKey('ray-item:settings'))),
         );
         await tester.pumpAndSettle();
         expect(executed, 1);
@@ -133,8 +133,30 @@ void main() {
         expect(tester.takeException(), isNull);
         return;
       }
+      if (mode == 'dismiss') {
+        // 按下就松（没动过）= 只是把轮盘开出来，不该关也不该执行。
+        await mouse.up();
+        await tester.pumpAndSettle();
+        expect(ReaderRadialMenu.isOpen, isTrue);
+        expect(executed, 0);
+        // 再按一次右键 = 关掉；哪怕落在某一格上，也只关不执行。
+        final again = await tester.startGesture(
+          tester.getCenter(find.byKey(const ValueKey('ray-item:settings'))),
+          kind: PointerDeviceKind.mouse,
+          buttons: kSecondaryMouseButton,
+        );
+        await tester.pumpAndSettle();
+        await again.up();
+        await tester.pumpAndSettle();
+        expect(ReaderRadialMenu.isOpen, isFalse, reason: '再次右键应当退出轮盘');
+        expect(executed, 0);
+        expect(tester.takeException(), isNull);
+        return;
+      }
+      // 键由组件给（`reader_ray_menu_adapter` 建的条目 id 原样进 `ray-item:`），
+      // 不是核心的 `radial:<menuId>:<itemId>` 那种绑定标识符。
       final target = find.byKey(
-        ValueKey(submenu ? 'radial:link' : 'radial:settings'),
+        ValueKey(submenu ? 'ray-item:link' : 'ray-item:settings'),
       );
       await mouse.moveTo(tester.getCenter(target));
       await tester.pumpAndSettle();
@@ -144,7 +166,7 @@ void main() {
       if (submenu) {
         expect(executed, 0);
         expect(ReaderRadialMenu.isOpen, isTrue);
-        final next = find.byKey(const ValueKey('radial:settings'));
+        final next = find.byKey(const ValueKey('ray-item:settings'));
         expect(next, findsOneWidget);
         await tester.tapAt(tester.getCenter(next));
         await tester.pumpAndSettle();
@@ -219,7 +241,7 @@ void main() {
     await tester.pump();
     expect(find.byType(RayMenu), findsOneWidget);
     final selected = tester.widget<Semantics>(
-      find.byKey(const ValueKey('radial:settings')),
+      find.byKey(const ValueKey('ray-item:settings')),
     );
     expect(selected.properties.selected, isTrue);
     await tester.sendKeyEvent(LogicalKeyboardKey.space);
