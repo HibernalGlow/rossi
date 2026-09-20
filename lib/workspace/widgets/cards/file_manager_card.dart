@@ -74,6 +74,15 @@ class _FileManagerCardState extends State<FileManagerCard> {
   final _searchFocus = FocusNode();
   final _pathController = TextEditingController();
   final _homeButtonKey = GlobalKey();
+
+  /// 面包屑的横向位置。路径放不下时滚到**末尾**（最深那层可见），放得下就停在开头 ——
+  /// 用 `reverse` 达不到这个区别，它会把短路径也顶到右边，看着像整条右对齐。
+  /// 目录列那一行同一个毛病，用同一套画法。
+  final _breadcrumbScroll = ScrollController();
+  final _directoryColumnScroll = ScrollController();
+  String? _breadcrumbRevealedPath;
+  String? _columnsRevealedPath;
+
   bool _editingPath = false;
   bool _searchExpanded = false;
   Timer? _searchDebounce;
@@ -128,6 +137,8 @@ class _FileManagerCardState extends State<FileManagerCard> {
     _searchController.dispose();
     _searchFocus.dispose();
     _pathController.dispose();
+    _breadcrumbScroll.dispose();
+    _directoryColumnScroll.dispose();
     final id = _sessionId;
     if (id != null) fileManagerClose(id: id);
     super.dispose();
@@ -146,6 +157,20 @@ class _FileManagerCardState extends State<FileManagerCard> {
       .state
       .fileManagerSetting
       .rememberViewState;
+
+  /// 新建会话该落在哪个目录，`null` = 交给核心选默认目录。
+  ///
+  /// 「启动时默认打开主页」是一条**用户主动要**的行为，而主页键开着与否是他对
+  /// 「主页」这一节的总表态 —— 关掉主页键后还偷偷把启动落点挪到主页目录，
+  /// 就成了一个没处解释的第三条路径，所以这里与主页键同源。
+  /// 失效路径不必在这里挡：核心的 `resolve_openable_path` 认不出目录时会向上找到
+  /// 最近的、还在的父目录（一个都没有才落到默认目录），
+  /// 于是「主页目录被删了」表现为「停在它原来的位置」，而不是开卡即报错。
+  String? get _startPath {
+    final setting = context.read<GlobalSettingCubit>().state.fileManagerSetting;
+    if (!setting.openHomeOnStart || !setting.homeEnabled) return null;
+    return setting.homePath.isEmpty ? null : setting.homePath;
+  }
 
   /// 已经提交给会话的「记忆视图」开关值。
   ///
@@ -184,6 +209,9 @@ class _FileManagerCardState extends State<FileManagerCard> {
       final home = _persistedHomePath;
       final remember = _persistedRememberViewState;
       final id = await fileManagerCreate(
+        // 「启动时默认打开主页」：开着时首个页签直接落在主页目录，
+        // 关掉 / 没设主页时不传这个参数（判据见 [_startPath]）。
+        initialPath: _startPath,
         homePath: home.isEmpty ? null : home,
         // 目录级视图状态的正本在 Rust 的 `settings.db`，路径在启动期就解析好了
         // （`prepareSettingsDbPath`）；为 null ＝ 本次不记忆，浏览照常。
@@ -404,7 +432,9 @@ class _FileManagerCardState extends State<FileManagerCard> {
     if (_searchHistoryLoaded || _disposed) return;
     _searchHistoryLoaded = true;
     try {
-      final history = await fileManagerSearchHistory(limit: _searchHistoryLimit);
+      final history = await fileManagerSearchHistory(
+        limit: _searchHistoryLimit,
+      );
       if (!mounted || history.isEmpty) return;
       setState(() => _searchHistory = history);
     } catch (_) {
@@ -713,8 +743,12 @@ class _FileManagerCardState extends State<FileManagerCard> {
     final controls = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildTabs(context, snapshot),
-        const SizedBox(height: 6),
+        // 只有一个页签时整行没有信息量（对齐 neo 的 tabs-single-hidden）：
+        // 新建与恢复改由面包屑的「路径操作」菜单承担，见 [_buildPathActionsMenu]。
+        if (snapshot.tabs.length > 1) ...[
+          _buildTabs(context, snapshot),
+          const SizedBox(height: 6),
+        ],
         _buildToolbar(context, snapshot),
         _buildBreadcrumbs(context, snapshot),
         if (snapshot.directoryColumnsEnabled)
@@ -779,6 +813,17 @@ class _FileManagerCardState extends State<FileManagerCard> {
     if (accepted && mounted) setState(() => _editingPath = false);
   }
 
+  /// 把一条横向滚动的行停在「开头，除非放不下才滚到末尾」。
+  ///
+  /// 帧后是因为要等布局完成才知道 `maxScrollExtent` 是多少；内容放得下时它是 0，
+  /// 于是这一句等价于「保持左对齐」。
+  void _revealTail(ScrollController controller) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !controller.hasClients) return;
+      controller.jumpTo(controller.position.maxScrollExtent);
+    });
+  }
+
   Widget _buildBreadcrumbs(BuildContext context, FileManagerSnapshot snapshot) {
     if (_editingPath) {
       return CallbackShortcuts(
@@ -821,67 +866,126 @@ class _FileManagerCardState extends State<FileManagerCard> {
         ),
       );
     }
+    if (_breadcrumbRevealedPath != snapshot.activePath) {
+      _breadcrumbRevealedPath = snapshot.activePath;
+      _revealTail(_breadcrumbScroll);
+    }
     return Row(
       children: [
         Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            reverse: true,
-            child: Row(
-              children: [
-                for (final part in snapshot.breadcrumbs) ...[
-                  if (!part.isRoot) const Icon(Icons.chevron_right, size: 14),
-                  Tooltip(
-                    message: part.path,
-                    child: TextButton(
-                      key: ValueKey('file-manager-breadcrumb:${part.path}'),
-                      onPressed: _busy
-                          ? null
-                          : part.isCurrent
-                          ? () => _editPath(snapshot)
-                          : () => _apply(
-                              (id) =>
-                                  fileManagerNavigate(id: id, path: part.path),
-                            ),
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 160),
-                        child: Text(
-                          part.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+          child: ScrollConfiguration(
+            behavior: ScrollConfiguration.of(
+              context,
+            ).copyWith(scrollbars: false),
+            child: SingleChildScrollView(
+              key: const ValueKey('file-manager-breadcrumb-scroll'),
+              controller: _breadcrumbScroll,
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final part in snapshot.breadcrumbs) ...[
+                    if (!part.isRoot) const Icon(Icons.chevron_right, size: 14),
+                    Tooltip(
+                      message: part.path,
+                      child: TextButton(
+                        key: ValueKey('file-manager-breadcrumb:${part.path}'),
+                        onPressed: _busy
+                            ? null
+                            : part.isCurrent
+                            ? () => _editPath(snapshot)
+                            : () => _apply(
+                                (id) => fileManagerNavigate(
+                                  id: id,
+                                  path: part.path,
+                                ),
+                              ),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 160),
+                          child: Text(
+                            part.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
-        IconButton(
-          tooltip: '编辑目录路径',
-          visualDensity: VisualDensity.compact,
-          onPressed: _busy ? null : () => _editPath(snapshot),
-          icon: const Icon(Icons.edit_outlined, size: 16),
+        _buildPathActionsMenu(
+          context,
+          snapshot,
+          showTabActions: snapshot.tabs.length <= 1,
         ),
-        IconButton(
-          tooltip: snapshot.directoryColumnsEnabled ? '收起目录列导航' : '展开目录列导航',
-          visualDensity: VisualDensity.compact,
-          onPressed: _busy
-              ? null
-              : () => _apply(
-                  (id) => fileManagerSetDirectoryColumns(
-                    id: id,
-                    enabled: !snapshot.directoryColumnsEnabled,
-                  ),
-                ),
-          icon: Icon(
-            Icons.view_column_outlined,
-            size: 18,
-            color: snapshot.directoryColumnsEnabled
-                ? Theme.of(context).colorScheme.primary
-                : null,
+      ],
+    );
+  }
+
+  /// 面包屑行尾唯一的那颗键：路径与（页签行收起时的）页签动作都收在这里，
+  /// 对齐 neo 的「路径操作」菜单。
+  ///
+  /// 「目录列」的开关只有这一处 —— 工具栏上曾经也有一颗，同一件事就有了两个入口。
+  /// [showTabActions] 为真表示页签行被收掉了（单页签），这时新建与恢复已关闭页签
+  /// 也搬进这颗菜单，否则它们就没有入口。
+  Widget _buildPathActionsMenu(
+    BuildContext context,
+    FileManagerSnapshot snapshot, {
+    required bool showTabActions,
+  }) {
+    final withTabActions = showTabActions && snapshot.canCreateTab;
+    return FluentPopupMenuButton<String>(
+      tooltip: '路径操作',
+      visualDensity: VisualDensity.compact,
+      enabled: !_busy,
+      icon: const Icon(Icons.more_horiz_rounded, size: 18),
+      onSelected: (value) {
+        if (value.startsWith('reopen:')) {
+          final tabId = BigInt.tryParse(value.substring('reopen:'.length));
+          if (tabId == null) return;
+          _apply((id) => fileManagerReopenClosedTab(id: id, tabId: tabId));
+          return;
+        }
+        switch (value) {
+          case 'new-tab':
+            _apply((id) => fileManagerNewTab(id: id));
+          case 'columns':
+            _apply(
+              (id) => fileManagerSetDirectoryColumns(
+                id: id,
+                enabled: !snapshot.directoryColumnsEnabled,
+              ),
+            );
+          case 'edit':
+            _editPath(snapshot);
+        }
+      },
+      itemBuilder: (_) => [
+        if (withTabActions) ...[
+          const FluentPopupMenuItem(
+            value: 'new-tab',
+            leading: Icon(Icons.add_rounded, size: 16),
+            title: Text('新建页签'),
           ),
+          for (final tab in snapshot.recentlyClosed.reversed)
+            FluentPopupMenuItem(
+              value: 'reopen:${tab.id}',
+              leading: const Icon(Icons.history_rounded, size: 16),
+              title: Text('恢复页签：${tab.title}'),
+            ),
+          const FluentPopupMenuItem.divider(),
+        ],
+        FluentPopupMenuItem(
+          value: 'columns',
+          leading: const Icon(Icons.view_column_outlined, size: 16),
+          title: Text(snapshot.directoryColumnsEnabled ? '收起目录列' : '展开目录列'),
+        ),
+        const FluentPopupMenuItem(
+          value: 'edit',
+          leading: Icon(Icons.edit_outlined, size: 16),
+          title: Text('编辑路径'),
         ),
       ],
     );
@@ -894,11 +998,15 @@ class _FileManagerCardState extends State<FileManagerCard> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = (constraints.maxWidth / 2).clamp(150.0, 240.0);
+        if (_columnsRevealedPath != snapshot.activePath) {
+          _columnsRevealedPath = snapshot.activePath;
+          _revealTail(_directoryColumnScroll);
+        }
         return SizedBox(
           height: 200,
           child: SingleChildScrollView(
+            controller: _directoryColumnScroll,
             scrollDirection: Axis.horizontal,
-            reverse: true,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -1333,7 +1441,10 @@ class _FileManagerCardState extends State<FileManagerCard> {
   }
 
   /// 搜索选项行：递归开关 + 命中统计。窄卡片下横向滚动，与工具栏同一策略。
-  Widget _buildSearchOptions(BuildContext context, FileManagerSnapshot snapshot) {
+  Widget _buildSearchOptions(
+    BuildContext context,
+    FileManagerSnapshot snapshot,
+  ) {
     final theme = Theme.of(context);
     final searching = snapshot.searchQuery.isNotEmpty;
     // 统计读的是快照：命中的正本在页签里，重建卡片也还在。
@@ -1380,8 +1491,10 @@ class _FileManagerCardState extends State<FileManagerCard> {
             selected: snapshot.searchIncludeSubfolders,
             visualDensity: VisualDensity.compact,
             onSelected: (enabled) => _applySearchAction(
-              (id) =>
-                  fileManagerSetSearchIncludeSubfolders(id: id, enabled: enabled),
+              (id) => fileManagerSetSearchIncludeSubfolders(
+                id: id,
+                enabled: enabled,
+              ),
             ),
           ),
           const SizedBox(width: 6),
@@ -1390,10 +1503,9 @@ class _FileManagerCardState extends State<FileManagerCard> {
             tooltip: '除条目名外，连同它在搜索根之下的相对路径一起匹配',
             selected: snapshot.searchInPath,
             visualDensity: VisualDensity.compact,
-            onSelected: (enabled) =>
-                _applySearchAction(
-                  (id) => fileManagerSetSearchInPath(id: id, enabled: enabled),
-                ),
+            onSelected: (enabled) => _applySearchAction(
+              (id) => fileManagerSetSearchInPath(id: id, enabled: enabled),
+            ),
           ),
           const SizedBox(width: 6),
           ChoiceChip(
@@ -1401,10 +1513,9 @@ class _FileManagerCardState extends State<FileManagerCard> {
             tooltip: '多个词元之间取并集（默认全部都要命中）',
             selected: snapshot.searchOrMode,
             visualDensity: VisualDensity.compact,
-            onSelected: (enabled) =>
-                _applySearchAction(
-                  (id) => fileManagerSetSearchOrMode(id: id, enabled: enabled),
-                ),
+            onSelected: (enabled) => _applySearchAction(
+              (id) => fileManagerSetSearchOrMode(id: id, enabled: enabled),
+            ),
           ),
           if (status != null) ...[
             const SizedBox(width: 8),
@@ -1622,17 +1733,6 @@ class _FileManagerCardState extends State<FileManagerCard> {
                 setState(() => _searchExpanded = !_searchExpanded);
                 if (_searchExpanded) _loadSearchHistory();
               },
-            ),
-            action(
-              icon: Icons.view_week_rounded,
-              tooltip: snapshot.directoryColumnsEnabled ? '关闭目录列' : '目录列',
-              active: snapshot.directoryColumnsEnabled,
-              onPressed: () => _apply(
-                (id) => fileManagerSetDirectoryColumns(
-                  id: id,
-                  enabled: !snapshot.directoryColumnsEnabled,
-                ),
-              ),
             ),
             action(
               icon: Icons.account_tree_outlined,
@@ -1861,7 +1961,8 @@ class _FileManagerCardState extends State<FileManagerCard> {
     return LibraryEntryList(
       mode: mode,
       entries: [
-        for (final entry in snapshot.entries) _libraryEntry(context, entry, mode),
+        for (final entry in snapshot.entries)
+          _libraryEntry(context, entry, mode),
       ],
       emptyText: snapshot.searchActive && query.isNotEmpty
           ? '子目录里没有匹配「$query」的条目'

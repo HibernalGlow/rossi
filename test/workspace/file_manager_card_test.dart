@@ -201,6 +201,7 @@ FileManagerSnapshot _snapshot({
   bool rememberViewState = true,
   bool subfolders = false,
   bool searchActive = false,
+  int tabCount = 2,
 }) => FileManagerSnapshot(
   sessionId: BigInt.one,
   maxTabs: 8,
@@ -242,7 +243,7 @@ FileManagerSnapshot _snapshot({
       canGoBack: canGoBack,
       canGoForward: canGoForward,
     ),
-    _tab(2, 'pictures'),
+    if (tabCount > 1) _tab(2, 'pictures'),
   ],
   recentlyClosed: [_tab(3, 'closed')],
   entries: searchActive
@@ -520,10 +521,7 @@ void main() {
       isTrue,
     );
     // 条件一变就跑一次遍历；结果由 Rust 写进页签，卡片不再有第二份列表。
-    expect(
-      api.callsTo(#crateApiFileManagerFileManagerSearch),
-      hasLength(1),
-    );
+    expect(api.callsTo(#crateApiFileManagerFileManagerSearch), hasLength(1));
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
@@ -546,8 +544,14 @@ void main() {
       await tester.tap(chip);
       await tester.pumpAndSettle();
     }
-    expect(api.callsTo(#crateApiFileManagerFileManagerSaveSearchAsTab), hasLength(1));
-    expect(api.callsTo(#crateApiFileManagerFileManagerClearSearch), hasLength(1));
+    expect(
+      api.callsTo(#crateApiFileManagerFileManagerSaveSearchAsTab),
+      hasLength(1),
+    );
+    expect(
+      api.callsTo(#crateApiFileManagerFileManagerClearSearch),
+      hasLength(1),
+    );
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
@@ -576,7 +580,10 @@ void main() {
 
     await tester.tap(find.text('清空历史'));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerFileManagerClearSearchHistory), hasLength(1));
+    expect(
+      api.callsTo(#crateApiFileManagerFileManagerClearSearchHistory),
+      hasLength(1),
+    );
     await tester.pumpAndSettle();
     expect(find.text('旧词'), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
@@ -589,8 +596,14 @@ void main() {
     await tester.enterText(find.byType(TextField), '随手打词');
     await tester.pump(const Duration(milliseconds: 200));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerFileManagerSetSearchQuery), hasLength(1));
-    expect(api.callsTo(#crateApiFileManagerFileManagerRecordSearchHistory), isEmpty);
+    expect(
+      api.callsTo(#crateApiFileManagerFileManagerSetSearchQuery),
+      hasLength(1),
+    );
+    expect(
+      api.callsTo(#crateApiFileManagerFileManagerRecordSearchHistory),
+      isEmpty,
+    );
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
@@ -715,6 +728,73 @@ void main() {
           .callsTo(#crateApiFileManagerFileManagerCreate)
           .single
           .namedArguments[#homePath],
+      isNull,
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('开了「启动时默认打开主页」后会话直接落在主页目录', (tester) async {
+    settings = _TestGlobalSettingCubit(
+      fileManagerSetting: const FileManagerSettingState(
+        homePath: '/home',
+        openHomeOnStart: true,
+      ),
+    );
+    await _pumpCard(tester, settings: settings);
+    expect(
+      api
+          .callsTo(#crateApiFileManagerFileManagerCreate)
+          .single
+          .namedArguments[#initialPath],
+      '/home',
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('开关默认关着：不传 initialPath，由核心选默认目录', (tester) async {
+    settings = _TestGlobalSettingCubit(
+      fileManagerSetting: const FileManagerSettingState(homePath: '/home'),
+    );
+    await _pumpCard(tester, settings: settings);
+    expect(
+      api
+          .callsTo(#crateApiFileManagerFileManagerCreate)
+          .single
+          .namedArguments[#initialPath],
+      isNull,
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('主页键关掉后启动落点跟着失效，不出现「主页没了却还往里跳」', (tester) async {
+    settings = _TestGlobalSettingCubit(
+      fileManagerSetting: const FileManagerSettingState(
+        homeEnabled: false,
+        homePath: '/home',
+        openHomeOnStart: true,
+      ),
+    );
+    await _pumpCard(tester, settings: settings);
+    expect(
+      api
+          .callsTo(#crateApiFileManagerFileManagerCreate)
+          .single
+          .namedArguments[#initialPath],
+      isNull,
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('开着开关但还没设主页时不传 initialPath', (tester) async {
+    settings = _TestGlobalSettingCubit(
+      fileManagerSetting: const FileManagerSettingState(openHomeOnStart: true),
+    );
+    await _pumpCard(tester, settings: settings);
+    expect(
+      api
+          .callsTo(#crateApiFileManagerFileManagerCreate)
+          .single
+          .namedArguments[#initialPath],
       isNull,
     );
     await tester.pumpWidget(const SizedBox.shrink());
@@ -958,7 +1038,9 @@ void main() {
           .namedArguments[#path],
       '/books/series',
     );
-    await tester.tap(find.byTooltip('编辑目录路径'));
+    await tester.tap(find.byTooltip('路径操作'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('编辑路径'));
     await tester.pumpAndSettle();
     final editor = find.byKey(const ValueKey('file-manager-path-input'));
     await tester.enterText(editor, '  "../书籍"  ');
@@ -1169,6 +1251,60 @@ void main() {
     expect(
       find.byKey(const ValueKey('file-manager-tree:/books')),
       findsOneWidget,
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('目录列只有一颗开关，藏在面包屑的路径操作菜单里', (tester) async {
+    await _pumpCard(tester);
+    // 工具栏上那颗（view_week）与行尾的编辑键都并进了这一颗菜单。
+    expect(find.byIcon(Icons.view_week_rounded), findsNothing);
+    expect(find.byTooltip('编辑目录路径'), findsNothing);
+
+    await tester.tap(find.byTooltip('路径操作'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('展开目录列'));
+    await tester.pumpAndSettle();
+    expect(
+      api
+          .callsTo(#crateApiFileManagerFileManagerSetDirectoryColumns)
+          .single
+          .namedArguments[#enabled],
+      isTrue,
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('单页签时收起整行页签，新建与恢复搬到路径操作菜单', (tester) async {
+    api.snapshot = _snapshot(tabCount: 1);
+    await _pumpCard(tester);
+    expect(find.byType(InputChip), findsNothing);
+    expect(find.byTooltip('新建页签'), findsNothing);
+    expect(find.byTooltip('恢复已关闭页签'), findsNothing);
+
+    await tester.tap(find.byTooltip('路径操作'));
+    await tester.pumpAndSettle();
+    expect(find.text('新建页签'), findsOneWidget);
+    await tester.tap(find.text('恢复页签：closed'));
+    await tester.pumpAndSettle();
+    expect(
+      api
+          .callsTo(#crateApiFileManagerFileManagerReopenClosedTab)
+          .single
+          .namedArguments[#tabId],
+      BigInt.from(3),
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('面包屑左对齐：放得下的路径不顶到行尾', (tester) async {
+    await _pumpCard(tester, width: 260);
+    final scroll = find.byKey(const ValueKey('file-manager-breadcrumb-scroll'));
+    expect(
+      tester
+          .getTopLeft(find.byKey(const ValueKey('file-manager-breadcrumb:/')))
+          .dx,
+      closeTo(tester.getTopLeft(scroll).dx, 1),
     );
     await tester.pumpWidget(const SizedBox.shrink());
   });

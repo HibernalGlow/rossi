@@ -210,6 +210,7 @@ _FileManagerSettingState _$FileManagerSettingStateFromJson(
 ) => _FileManagerSettingState(
   homeEnabled: json['homeEnabled'] as bool? ?? true,
   homePath: json['homePath'] as String? ?? '',
+  openHomeOnStart: json['openHomeOnStart'] as bool? ?? false,
   rememberViewState: json['rememberViewState'] as bool? ?? true,
 );
 
@@ -218,6 +219,7 @@ Map<String, dynamic> _$FileManagerSettingStateToJson(
 ) => <String, dynamic>{
   'homeEnabled': instance.homeEnabled,
   'homePath': instance.homePath,
+  'openHomeOnStart': instance.openHomeOnStart,
   'rememberViewState': instance.rememberViewState,
 };
 

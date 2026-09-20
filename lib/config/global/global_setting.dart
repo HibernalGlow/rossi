@@ -245,6 +245,9 @@ abstract class GlobalSettingState with _$GlobalSettingState {
 /// - [homeEnabled]：工具栏是否显示主页键。默认开。
 /// - [homePath]：主页目录，空串表示未设置。真正的校验在 Rust 侧
 ///   （`FileManagerState::set_home_path` 只接受存在的目录），这里只保存用户的选择。
+/// - [openHomeOnStart]：新建会话时是否直接落在主页目录。默认关 = 落在系统默认目录。
+///   与 [homeEnabled] 同样只在主页键开着时生效 —— 那一节整体关掉后，
+///   启动落点不该偷偷跟着走。
 /// - [rememberViewState]：记住每个目录的视图与排序（写进 `settings.db` 的
 ///   `file_manager_view_states` 表）。默认开；关掉之后浏览照常，只是不再读写目录偏好。
 @freezed
@@ -252,6 +255,7 @@ abstract class FileManagerSettingState with _$FileManagerSettingState {
   const factory FileManagerSettingState({
     @Default(true) bool homeEnabled,
     @Default('') String homePath,
+    @Default(false) bool openHomeOnStart,
     @Default(true) bool rememberViewState,
   }) = _FileManagerSettingState;
 

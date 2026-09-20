@@ -106,6 +106,31 @@ class FileManagerSettingPage extends StatelessWidget {
                   child: Text(t.settings.fileManagerHomePathPick),
                 ),
               ),
+              // 只有设过主页才摆这一条：没主页时它没有任何可生效的值，
+              // 摆一个开不动的开关比不摆更糟（与「清除主页」同口径）。
+              if (homePath.isNotEmpty)
+                SwitchListTile(
+                  secondary: const Icon(Icons.rocket_launch_outlined),
+                  title: Text(t.settings.fileManagerOpenHomeOnStart),
+                  subtitle: Text(t.settings.fileManagerOpenHomeOnStartSubtitle),
+                  thumbIcon: kSettingSwitchThumbIcon,
+                  value: setting.openHomeOnStart,
+                  // 主页键关掉 ⇒ 这条开不动：`material_ui` 的 SwitchListTile 由
+                  // `onChanged == null` 自己推导禁用，它没有 `enabled` 形参。
+                  onChanged: setting.homeEnabled
+                      ? (value) {
+                          cubit.updateFileManagerSetting(
+                            (current) =>
+                                current.copyWith(openHomeOnStart: value),
+                          );
+                          // 只管新建的会话：活着的会话不该被设置页偷偷搬走目录。
+                          showSuccessToast(
+                            t.common.restartToTakeEffect,
+                            context: context,
+                          );
+                        }
+                      : null,
+                ),
               if (homePath.isNotEmpty)
                 ListTile(
                   enabled: setting.homeEnabled,

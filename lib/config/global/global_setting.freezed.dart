@@ -679,7 +679,7 @@ $OperationBindingSettingStateCopyWith<$Res> get operationBindingSetting {
 /// @nodoc
 mixin _$FileManagerSettingState {
 
- bool get homeEnabled; String get homePath; bool get rememberViewState;
+ bool get homeEnabled; String get homePath; bool get openHomeOnStart; bool get rememberViewState;
 /// Create a copy of FileManagerSettingState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -693,20 +693,20 @@ $FileManagerSettingStateCopyWith<FileManagerSettingState> get copyWith => _$File
 @override
 bool operator ==(Object other) {
   final _this = this as FileManagerSettingState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileManagerSettingState&&(identical(other.homeEnabled, _this.homeEnabled) || other.homeEnabled == _this.homeEnabled)&&(identical(other.homePath, _this.homePath) || other.homePath == _this.homePath)&&(identical(other.rememberViewState, _this.rememberViewState) || other.rememberViewState == _this.rememberViewState));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileManagerSettingState&&(identical(other.homeEnabled, _this.homeEnabled) || other.homeEnabled == _this.homeEnabled)&&(identical(other.homePath, _this.homePath) || other.homePath == _this.homePath)&&(identical(other.openHomeOnStart, _this.openHomeOnStart) || other.openHomeOnStart == _this.openHomeOnStart)&&(identical(other.rememberViewState, _this.rememberViewState) || other.rememberViewState == _this.rememberViewState));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as FileManagerSettingState;
-  return Object.hash(runtimeType,_this.homeEnabled,_this.homePath,_this.rememberViewState);
+  return Object.hash(runtimeType,_this.homeEnabled,_this.homePath,_this.openHomeOnStart,_this.rememberViewState);
 }
 
 @override
 String toString() {
   final _this = this as FileManagerSettingState;
-  return 'FileManagerSettingState(homeEnabled: ${_this.homeEnabled}, homePath: ${_this.homePath}, rememberViewState: ${_this.rememberViewState})';
+  return 'FileManagerSettingState(homeEnabled: ${_this.homeEnabled}, homePath: ${_this.homePath}, openHomeOnStart: ${_this.openHomeOnStart}, rememberViewState: ${_this.rememberViewState})';
 }
 
 
@@ -717,7 +717,7 @@ abstract mixin class $FileManagerSettingStateCopyWith<$Res>  {
   factory $FileManagerSettingStateCopyWith(FileManagerSettingState value, $Res Function(FileManagerSettingState) _then) = _$FileManagerSettingStateCopyWithImpl;
 @useResult
 $Res call({
- bool homeEnabled, String homePath, bool rememberViewState
+ bool homeEnabled, String homePath, bool openHomeOnStart, bool rememberViewState
 });
 
 
@@ -734,11 +734,12 @@ class _$FileManagerSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of FileManagerSettingState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? homeEnabled = null,Object? homePath = null,Object? rememberViewState = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? homeEnabled = null,Object? homePath = null,Object? openHomeOnStart = null,Object? rememberViewState = null,}) {
   return _then(FileManagerSettingState(
 homeEnabled: null == homeEnabled ? _self.homeEnabled : homeEnabled // ignore: cast_nullable_to_non_nullable
 as bool,homePath: null == homePath ? _self.homePath : homePath // ignore: cast_nullable_to_non_nullable
-as String,rememberViewState: null == rememberViewState ? _self.rememberViewState : rememberViewState // ignore: cast_nullable_to_non_nullable
+as String,openHomeOnStart: null == openHomeOnStart ? _self.openHomeOnStart : openHomeOnStart // ignore: cast_nullable_to_non_nullable
+as bool,rememberViewState: null == rememberViewState ? _self.rememberViewState : rememberViewState // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -824,10 +825,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool homeEnabled,  String homePath,  bool rememberViewState)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool homeEnabled,  String homePath,  bool openHomeOnStart,  bool rememberViewState)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _FileManagerSettingState() when $default != null:
-return $default(_that.homeEnabled,_that.homePath,_that.rememberViewState);case _:
+return $default(_that.homeEnabled,_that.homePath,_that.openHomeOnStart,_that.rememberViewState);case _:
   return orElse();
 
 }
@@ -845,10 +846,10 @@ return $default(_that.homeEnabled,_that.homePath,_that.rememberViewState);case _
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool homeEnabled,  String homePath,  bool rememberViewState)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool homeEnabled,  String homePath,  bool openHomeOnStart,  bool rememberViewState)  $default,) {final _that = this;
 switch (_that) {
 case _FileManagerSettingState():
-return $default(_that.homeEnabled,_that.homePath,_that.rememberViewState);case _:
+return $default(_that.homeEnabled,_that.homePath,_that.openHomeOnStart,_that.rememberViewState);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -865,10 +866,10 @@ return $default(_that.homeEnabled,_that.homePath,_that.rememberViewState);case _
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool homeEnabled,  String homePath,  bool rememberViewState)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool homeEnabled,  String homePath,  bool openHomeOnStart,  bool rememberViewState)?  $default,) {final _that = this;
 switch (_that) {
 case _FileManagerSettingState() when $default != null:
-return $default(_that.homeEnabled,_that.homePath,_that.rememberViewState);case _:
+return $default(_that.homeEnabled,_that.homePath,_that.openHomeOnStart,_that.rememberViewState);case _:
   return null;
 
 }
@@ -880,11 +881,12 @@ return $default(_that.homeEnabled,_that.homePath,_that.rememberViewState);case _
 @JsonSerializable()
 
 class _FileManagerSettingState implements FileManagerSettingState {
-  const _FileManagerSettingState({this.homeEnabled = true, this.homePath = '', this.rememberViewState = true});
+  const _FileManagerSettingState({this.homeEnabled = true, this.homePath = '', this.openHomeOnStart = false, this.rememberViewState = true});
   factory _FileManagerSettingState.fromJson(Map<String, dynamic> json) => _$FileManagerSettingStateFromJson(json);
 
 @override@JsonKey() final  bool homeEnabled;
 @override@JsonKey() final  String homePath;
+@override@JsonKey() final  bool openHomeOnStart;
 @override@JsonKey() final  bool rememberViewState;
 
 /// Create a copy of FileManagerSettingState
@@ -900,18 +902,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _FileManagerSettingState&&(identical(other.homeEnabled, homeEnabled) || other.homeEnabled == homeEnabled)&&(identical(other.homePath, homePath) || other.homePath == homePath)&&(identical(other.rememberViewState, rememberViewState) || other.rememberViewState == rememberViewState));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _FileManagerSettingState&&(identical(other.homeEnabled, homeEnabled) || other.homeEnabled == homeEnabled)&&(identical(other.homePath, homePath) || other.homePath == homePath)&&(identical(other.openHomeOnStart, openHomeOnStart) || other.openHomeOnStart == openHomeOnStart)&&(identical(other.rememberViewState, rememberViewState) || other.rememberViewState == rememberViewState));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,homeEnabled,homePath,rememberViewState);
+    return Object.hash(runtimeType,homeEnabled,homePath,openHomeOnStart,rememberViewState);
 }
 
 @override
 String toString() {
-    return 'FileManagerSettingState(homeEnabled: $homeEnabled, homePath: $homePath, rememberViewState: $rememberViewState)';
+    return 'FileManagerSettingState(homeEnabled: $homeEnabled, homePath: $homePath, openHomeOnStart: $openHomeOnStart, rememberViewState: $rememberViewState)';
 }
 
 
@@ -922,7 +924,7 @@ abstract mixin class _$FileManagerSettingStateCopyWith<$Res> implements $FileMan
   factory _$FileManagerSettingStateCopyWith(_FileManagerSettingState value, $Res Function(_FileManagerSettingState) _then) = __$FileManagerSettingStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool homeEnabled, String homePath, bool rememberViewState
+ bool homeEnabled, String homePath, bool openHomeOnStart, bool rememberViewState
 });
 
 
@@ -939,11 +941,12 @@ class __$FileManagerSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of FileManagerSettingState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? homeEnabled = null,Object? homePath = null,Object? rememberViewState = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? homeEnabled = null,Object? homePath = null,Object? openHomeOnStart = null,Object? rememberViewState = null,}) {
   return _then(_FileManagerSettingState(
 homeEnabled: null == homeEnabled ? _self.homeEnabled : homeEnabled // ignore: cast_nullable_to_non_nullable
 as bool,homePath: null == homePath ? _self.homePath : homePath // ignore: cast_nullable_to_non_nullable
-as String,rememberViewState: null == rememberViewState ? _self.rememberViewState : rememberViewState // ignore: cast_nullable_to_non_nullable
+as String,openHomeOnStart: null == openHomeOnStart ? _self.openHomeOnStart : openHomeOnStart // ignore: cast_nullable_to_non_nullable
+as bool,rememberViewState: null == rememberViewState ? _self.rememberViewState : rememberViewState // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
