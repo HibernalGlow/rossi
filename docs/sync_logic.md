@@ -1,6 +1,10 @@
 # Breeze 漫画数据同步逻辑
 
 > 对应代码：`lib/network/sync/comic_sync_core.dart`
+>
+> 本文只讲**漫画数据**那一条链路。设置 / 布局 / 操作绑定与插件配置走的是另一套
+> 「块」机制（`lib/network/sync/sync_service.dart`），范围与「显式不同步什么」
+> 见 **`docs/settings-sync-scope.md`**。
 
 ## 1. 同步范围
 

@@ -38,17 +38,37 @@ class WorkspaceLayoutBridge {
   }
 
   /// 当前布局：活的 cubit 优先，其次磁盘，都没有则出厂值。
-  Future<WorkspaceLayoutSnapshot> read() async {
+  ///
+  /// 给**要拿一份值来渲染 / 改**的调用方（设置页）。它与 [readIfAvailable] 的关系是
+  /// `read() == readIfAvailable() ?? 出厂值` —— 「怎么读」只有 [readIfAvailable] 一份。
+  ///
+  /// 「都没有则出厂值」这个兜底**不能**给同步用：那边必须区分「用户的布局就是
+  /// 出厂值」与「这次没读到」（见 [readIfAvailable]）。
+  Future<WorkspaceLayoutSnapshot> read() async =>
+      await readIfAvailable() ?? WorkspaceLayoutSnapshot.defaults();
+
+  /// 与 [read] 相同，但**读不到就返回 `null`**（不兜出厂值）。
+  ///
+  /// 存在的理由是同步：云同步必须分清两件事 ——
+  ///
+  /// - 「用户的布局**就是**出厂值」（真的没改过）⇒ 让云端说了算；
+  /// - 「这次**没读到**」（本机还没存过布局，或拿不到数据目录 / 读盘失败）
+  ///   ⇒ **整块不带**。把出厂值当成「本机布局」传上去，会把另一台设备上真正
+  ///   那套精心摆好的布局冲掉，而原因只是一次读盘失败 —— 用户看不到任何提示。
+  ///
+  /// 顺带一个小好处：新装设备（本机还没有布局文件）第一次同步就直接采纳云端
+  /// 那套布局，而不是先上传一份出厂值。
+  Future<WorkspaceLayoutSnapshot?> readIfAvailable() async {
     final live = _cubit;
     if (live != null) return live.snapshot;
     try {
       final store = WorkspaceLayoutFileStore(await workspaceLayoutDirectory());
-      return await store.load() ?? WorkspaceLayoutSnapshot.defaults();
+      return await store.load();
     } on Object {
-      // 拿不到数据目录（或读盘失败）时仍然给得出出厂值：设置页要能打开、
-      // 要能改，只是这次改完存不下去 —— 与工作台「布局是可重建的东西，
-      // 为它挡住启动不值得」的口径一致。
-      return WorkspaceLayoutSnapshot.defaults();
+      // 拿不到数据目录（或读盘失败）：见上。设置页那条路会退到出厂值 ——
+      // 它要能打开、要能改，只是这次改完存不下去，与工作台「布局是可重建的
+      // 东西，为它挡住启动不值得」的口径一致。
+      return null;
     }
   }
 
@@ -79,6 +99,33 @@ class WorkspaceLayoutBridge {
       await store.save(next);
     } on Object {
       // 存不下去不炸设置页：见 [read] 里同一条理由。
+    }
+  }
+
+  /// 用一份**整份**快照替换布局（云同步下载用）。
+  ///
+  /// 与 [write] 的区别不是「改几项」而是「谁说了算」：[write] 是设置页在改，
+  /// 用户要的是「就改这一项、别的别动」；这里是云端那份赢了，语义是
+  /// **整份采纳**（调用方已经把「本机独有的字段」按本位保留好了 ——
+  /// 见 `WorkspaceSyncCodec.decode`，它接一份本机基线再覆盖）。
+  ///
+  /// 工作台在场时走活的 cubit：绝不能直接写盘 —— cubit 下一次去抖落盘会把
+  /// 它覆盖回去，现象是「同步下载说成功了，界面纹丝不动、一秒后连文件也回去了」。
+  /// 而且这次 `restore` 会经工作台自己的持久化监听落盘，不需要这里再写一次。
+  Future<void> apply(WorkspaceLayoutSnapshot snapshot) async {
+    final live = _cubit;
+    if (live != null) {
+      live.restore(snapshot);
+      return;
+    }
+
+    try {
+      final store = WorkspaceLayoutFileStore(await workspaceLayoutDirectory());
+      await store.save(snapshot);
+    } on Object {
+      // 存不下去不炸同步流程：见 [read] 里同一条理由。注意这里**吞掉的**是
+      // 「拿不到数据目录」这类环境问题 —— 本次同步的其余部分（设置、插件）
+      // 已经落地，不该因为布局写不进去而让整轮同步报错。
     }
   }
 }
