@@ -35,6 +35,18 @@ import 'package:zephyr/util/theme/tweakcn_color.dart';
 /// 默认面板圆角（px）的权威定义在 `lib/config/global/theme_shape.dart`：
 /// 那里是消费方（玻璃 / 卡片）读值的地方，本文件只负责把 `--radius` 换算成 px。
 
+/// 一套能自洽渲染的最小 token 集。缺任何一个，[TweakcnTheme.apply] 就得自己补值，
+/// 补出来的不一定难看，但**用户看不出来它是补的** —— 所以导入回执要列出来。
+const List<String> kTweakcnRequiredTokens = [
+  'background',
+  'foreground',
+  'primary',
+  'secondary',
+  'muted',
+  'border',
+  'destructive',
+];
+
 /// tweakcn token 名 → 归一化（去掉 `--`、去掉 Tailwind v4 的 `color-` 前缀、小写）。
 String normalizeTokenName(String raw) {
   var name = raw.trim().toLowerCase();
@@ -43,20 +55,66 @@ String normalizeTokenName(String raw) {
   return name;
 }
 
-/// `0.625rem` / `10px` / `10` → 逻辑像素；读不出单位则 null。
+/// CSS `<length>` → 逻辑像素。
+///
+/// 数字语法照 CSS：允许前导 `+`、`.5` 这种省略整数位、以及 `1e-2` 指数；
+/// 单位只认 `px` / `rem` / `em` / `pt`（`em` 与 `rem` 同读 —— 主题文件没有
+/// 可继承的字号，根字号是唯一合理解读），大小写不敏感（CSS 的标识符如此）。
 double? parseLengthToPx(String raw) {
-  final text = raw.trim().toLowerCase();
-  if (text.isEmpty) return null;
-  final match = RegExp(r'^(-?\d*\.?\d+)\s*([a-z]*)$').firstMatch(text);
+  final match = _lengthPattern.firstMatch(raw.trim());
   if (match == null) return null;
   final value = double.tryParse(match.group(1)!);
   if (value == null) return null;
-  return switch (match.group(2)!) {
-    'rem' || 'em' => value * 16,
+  return switch (match.group(2)?.toLowerCase() ?? '') {
+    'rem' || 'em' => value * _rootFontSizePx,
     'px' || '' => value,
     'pt' => value * 96 / 72,
     _ => null,
   };
+}
+
+/// tweakcn 的 `rem` 就是按浏览器默认的 16px 排的。
+const double _rootFontSizePx = 16;
+
+const _cssNumber = r'[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?';
+
+final RegExp _lengthPattern = RegExp(
+  // 数字必须**单独成组**：内层那些 (?:…) 都是非捕获的，不包这一层的话
+  // group(1) 会是单位，`double.tryParse('rem')` 直接把每个值都判成 null。
+  '^($_cssNumber)\\s*(px|rem|em|pt)?\$',
+  caseSensitive: false,
+);
+
+/// 整块删掉 `@theme … { … }`（Tailwind v4 的 `@theme inline`）。
+///
+/// 那种块里全是 `--color-background: var(--background)` 的**转发**，没有值。
+/// 与其让解析器逐个读成「读不出颜色」再报 `skipped`（用户看到的是一堆噪音），
+/// 不如在扫描前整块剪掉 —— 真正的值一定在 `:root` / `.dark` 里。
+String stripAtThemeBlocks(String css) {
+  final out = StringBuffer();
+  var cursor = 0;
+  while (true) {
+    final at = css.indexOf('@theme', cursor);
+    if (at == -1) {
+      out.write(css.substring(cursor));
+      break;
+    }
+    final open = css.indexOf('{', at);
+    if (open == -1) {
+      // @theme 后面没有块（被截断的粘贴）：原样保留后半段。
+      out.write(css.substring(cursor));
+      break;
+    }
+    out.write(css.substring(cursor, at));
+    var depth = 0;
+    var i = open;
+    for (; i < css.length; i++) {
+      if (css[i] == '{') depth++;
+      if (css[i] == '}' && --depth == 0) break;
+    }
+    cursor = i + 1;
+  }
+  return out.toString();
 }
 
 /// 一次导入的结果：要么拿到主题，要么拿到一个失败原因。
@@ -113,6 +171,19 @@ class TweakcnTheme {
     final primary = brightness == Brightness.dark ? dark : light;
     if (primary.isNotEmpty) return primary;
     return brightness == Brightness.dark ? light : dark;
+  }
+
+  /// 这套主题**没给**、只能由 [apply] 自己补出来的必需角色对应的 token 名。
+  ///
+  /// 为什么要单独报出来：补值是静默的（缺 `--border` 就用 `--input`，缺
+  /// `--secondary` 就顺着 primary 走），用户看不出卡片描边为什么没了。
+  /// 导入回执里列一条，比事后被问「为什么不像」好查。
+  List<String> missingRequiredTokens(Brightness brightness) {
+    final tokens = tokensOrFallback(brightness);
+    return [
+      for (final key in kTweakcnRequiredTokens)
+        if (!tokens.containsKey(key)) key,
+    ];
   }
 
   // --- 存储形式：`{"name":…,"radius":…,"light":{"background":"#ffffffff"}}` ---
@@ -222,7 +293,14 @@ class TweakcnTheme {
       scheme = scheme.copyWith(surfaceTint: t('ring'));
     }
 
-    final secondary = t('secondary');
+    final secondary =
+        t('secondary') ??
+        // `--secondary` 缺失时**别留 fromSeed 的次级色** —— 那是按种子色（多半
+        // 还是出厂的红）派生的，和导入主题毫无关系。退到 shadcn 里语义最近的
+        // 中性灰，再退到导入的 primary（与 flutter_tweakcn_generator 同口径）。
+        t('accent') ??
+        t('muted') ??
+        primary;
     if (secondary != null) {
       scheme = scheme.copyWith(
         secondary: secondary,
@@ -260,6 +338,9 @@ class TweakcnTheme {
     }
 
     if (border != null) {
+      // 方向与 flutter_tweakcn_generator 相反（它 border→outline、input→outlineVariant）。
+      // 这里跟着本仓的用法走：hairline 描边（玻璃降级边框、卡片分隔线）读的都是
+      // `outlineVariant`，而 `--border` 正是 shadcn 里那根 hairline。
       scheme = scheme.copyWith(outlineVariant: border, outline: input);
     }
     // `card` / `popover` 在这里**故意不单独落地**：shadcn 的这两个值通常与
@@ -338,7 +419,9 @@ TweakcnImportResult parseTweakcnTheme(String input) {
     light.addAll(parsed.light);
     dark.addAll(parsed.dark);
   } else {
-    final cleaned = text.replaceAll(RegExp(r'/\*[\s\S]*?\*/'), ' ');
+    final cleaned = stripAtThemeBlocks(
+      text.replaceAll(RegExp(r'/\*[\s\S]*?\*/'), ' '),
+    );
     _parseRegion(cleaned, 0, cleaned.length, const [], light, dark);
   }
 

@@ -142,6 +142,19 @@ class _TweakcnImportCardState extends State<TweakcnImportCard> {
                 ),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
+              // 补值是静默的（缺 `--border` 就拿 `--input` 顶上去），不列出来的话
+              // 用户只会觉得「描边怎么没了」而查不到原因。
+              if (_substituted(theme).isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  t.settings.tweakcnFallbackRoles(
+                    roles: _substituted(theme).join(', '),
+                  ),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
               _TokenSwatches(
                 theme: theme,
@@ -172,6 +185,18 @@ class _TweakcnImportCardState extends State<TweakcnImportCard> {
   /// 两套亮度里的 token 取并集 —— 只给了半套时不该显示成「一半没有」。
   int _tokenCount(TweakcnTheme theme) =>
       {...theme.light.keys, ...theme.dark.keys}.length;
+
+  /// 深浅两套里缺的必需角色取并集，按 [kTweakcnRequiredTokens] 的顺序。
+  List<String> _substituted(TweakcnTheme theme) {
+    final missing = {
+      ...theme.missingRequiredTokens(Brightness.light),
+      ...theme.missingRequiredTokens(Brightness.dark),
+    };
+    return [
+      for (final key in kTweakcnRequiredTokens)
+        if (missing.contains(key)) key, //
+    ];
+  }
 }
 
 /// 关键 token 的色卡：导入完一眼能看出「哪几个真的生效了」。

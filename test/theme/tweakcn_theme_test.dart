@@ -110,9 +110,13 @@ void main() {
       expect(mixClamped(white, black, 1.5), const Color(0xFF000000));
     });
 
-    test('深底配白字、浅底配黑字', () {
+    test('深底配白字、浅底配黑字，交叉点是 WCAG 的 0.179', () {
       expect(contrastOn(const Color(0xFF0A0A0A)), const Color(0xFFFFFFFF));
       expect(contrastOn(const Color(0xFFFFFFFF)), const Color(0xFF0A0A0A));
+      // 中灰 #808080 亮度约 .216，黑字对比度更高；按保守的 .45 阈值会错配白字。
+      expect(contrastOn(const Color(0xFF808080)), const Color(0xFF0A0A0A));
+      // 再暗一档（#606060 亮度约 .114）就该翻成白字
+      expect(contrastOn(const Color(0xFF606060)), const Color(0xFFFFFFFF));
     });
   });
 
@@ -123,6 +127,15 @@ void main() {
       expect(parseLengthToPx('8'), 8);
       expect(parseLengthToPx(''), isNull);
       expect(parseLengthToPx('abc'), isNull);
+    });
+
+    test('CSS 数字语法的边角：前导 + / 省略整数位 / 指数 / 大写单位', () {
+      expect(parseLengthToPx('+0.5rem'), closeTo(8, 1e-9));
+      expect(parseLengthToPx('.5rem'), closeTo(8, 1e-9));
+      expect(parseLengthToPx('1e1px'), 10);
+      expect(parseLengthToPx('0.625REM'), closeTo(10, 1e-9));
+      expect(parseLengthToPx('10px !important'), isNull);
+      expect(parseLengthToPx('50%'), isNull);
     });
 
     test('剥掉 -- 与 Tailwind v4 的 color- 前缀', () {
@@ -181,7 +194,7 @@ void main() {
       expect(wrapped.light.containsKey('muted'), isFalse);
     });
 
-    test('Tailwind v4 的 @theme inline 转发块被跳过、并如实报 skipped', () {
+    test('Tailwind v4 的 @theme 转发块整块剪掉，不产生 skipped 噪音', () {
       final result = parseTweakcnTheme('''
 @theme inline {
   --color-background: var(--background);
@@ -192,11 +205,20 @@ void main() {
 ''');
       expect(result.theme!.light['background'], const Color(0xFFFFFFFF));
       expect(result.theme!.light.containsKey('foreground'), isFalse);
-      // 转发掉的 token 要如实报出来；`:root` 里真给了值的那个不算
-      expect(result.skipped, contains('foreground'));
-      expect(result.skipped, isNot(contains('background')));
-      // radius-sm 不是颜色，也不该进 skipped
-      expect(result.skipped, isNot(contains('radius-sm')));
+      // 转发的东西根本不进解析，所以回执里不该冒出「foreground 读不出颜色」这种噪音。
+      expect(result.skipped, isEmpty);
+    });
+
+    test('@theme 嵌套 braces 也要整块剪干净（不能只剪到第一个 }）', () {
+      final result = parseTweakcnTheme('''
+@theme inline {
+  --color-background: var(--background);
+  @media (width >= 40rem) { --breakpoint-md: 40rem; }
+}
+.dark { --background: #000000; }
+''');
+      expect(result.theme!.dark['background'], const Color(0xFF000000));
+      expect(result.theme!.light, isEmpty);
     });
 
     test('只给半套时，另一套亮度沿用这一套', () {
@@ -305,6 +327,39 @@ void main() {
     test('种子色的 tertiary 不残留：跟着 secondary 走', () {
       expect(scheme.tertiary, scheme.secondary);
       expect(scheme.tertiaryContainer, const Color(0xFFE4E4E7));
+    });
+
+    test('缺 --secondary 时不退回种子色，顺到中性灰 / primary', () {
+      // shadcn 的 secondary 本来就是灰，主题没给时用 fromSeed 那套按出厂红派生的
+      // 次级色，等于在导入主题里塞进一坨无关的颜色。
+      final noSecondary = parseTweakcnTheme(
+        ':root { --background: #ffffff; --primary: #16a34a; --muted: #f4f4f5; }',
+      ).theme!;
+      final viaMuted = noSecondary.apply(base, Brightness.light);
+      expect(viaMuted.secondary, const Color(0xFFF4F4F5));
+      expect(viaMuted.secondary, isNot(base.secondary));
+
+      final bare = parseTweakcnTheme(
+        ':root { --background: #ffffff; --primary: #16a34a; }',
+      ).theme!;
+      expect(
+        bare.apply(base, Brightness.light).secondary,
+        const Color(0xFF16A34A),
+      );
+    });
+
+    test('主题没给的必需角色要列出来（补值是静默的）', () {
+      final bare = parseTweakcnTheme(
+        ':root { --background: #ffffff; --primary: #16a34a; }',
+      ).theme!;
+      expect(bare.missingRequiredTokens(Brightness.light), [
+        'foreground',
+        'secondary',
+        'muted',
+        'border',
+        'destructive',
+      ]);
+      expect(theme.missingRequiredTokens(Brightness.light), isEmpty);
     });
 
     test('surface 色阶由中性向量外推，浅→深单调且不掺种子色', () {

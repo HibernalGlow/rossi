@@ -125,9 +125,13 @@ Color quantize8(Color c) {
 /// shadcn 的 token 表里 `*-foreground` 与底色是成对给的，但用户手改或只粘贴
 /// 半套 CSS 时会缺；缺了就自己算，而不是留着 `fromSeed` 的前景 —— 那会出现
 /// 「浅灰底 + 浅灰字」这种读不得的组合。
-Color contrastOn(Color background) => background.computeLuminance() < 0.45
-    ? const Color(0xFFFFFFFF)
-    : const Color(0xFF0A0A0A);
+///
+/// 阈值取 **0.179**：那是 WCAG 相对亮度上「黑字与白字对比度相等」的交叉点
+/// （`computeLuminance()` 用的就是这条公式），所以它不是审美选择而是最优解的分界。
+/// 中灰 `#808080`（亮度约 .216）在这里配**黑字**；按 0.45 那种保守阈值会错配白字。
+Color contrastOn(Color background) => background.computeLuminance() > 0.179
+    ? const Color(0xFF0A0A0A)
+    : const Color(0xFFFFFFFF);
 
 // ---------------------------------------------------------------------------
 // 参数串拆解
