@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/src/rust/api/file_manager.dart';
+import 'package:zephyr/src/rust/api/file_ops.dart';
 import 'package:zephyr/src/rust/api/local.dart';
 import 'package:zephyr/src/rust/frb_generated.dart';
 import 'package:zephyr/util/get_path.dart';
@@ -38,6 +39,15 @@ class _TestGlobalSettingCubit extends GlobalSettingCubit {
 // library as main.dart and no Scaffold/Material supplied by its host.
 class _FileManagerApi implements RustLibApi {
   FileManagerSnapshot snapshot = _snapshot();
+
+  /// 文件操作那一份会话快照（选中集合 / 剪贴板 / 撤销栈，见 ADR-0017）。
+  ///
+  /// 它与 [snapshot] 是**两张不同的表**：管理器快照管列表与页签，这一份管
+  /// 「选了谁、剪贴板里是什么、能不能撤销」。所以下面必须给 file_ops 那一族
+  /// 桥函数单开分支 —— 它们落进 default 的话会拿一个 `FileManagerSnapshot`
+  /// 去顶 `FileOpsSnapshot` / `FileOpsReport` / `bool`，炸出来的是一句
+  /// 很难看懂的 `type 'Future<FileManagerSnapshot>' is not a subtype of ...`。
+  FileOpsSnapshot ops = _opsSnapshot();
 
   /// 文件树的投影。`hasPending` 固定为 false：真实的懒扫描靠 UI 隔一会儿再问一次，
   /// 测试里若让它一直「有待收」会让 `pumpAndSettle` 转不完。
@@ -82,7 +92,45 @@ class _FileManagerApi implements RustLibApi {
         return Future.value(FileManagerActionResult(snapshot: snapshot));
       case #crateApiLocalThumbnailGetFileManagerEntryThumbnail:
         return Future.value(null);
+
+      // ── 文件操作（ADR-0017）──────────────────────────────────────────────
+      // 只改选中集合 / 剪贴板的那几个，回的都是同一份 `ops`。
+      case #crateApiFileOpsFileOpsSnapshot:
+      case #crateApiFileOpsFileOpsSelectSingle:
+      case #crateApiFileOpsFileOpsSelectToggle:
+      case #crateApiFileOpsFileOpsSelectChain:
+      case #crateApiFileOpsFileOpsSelectAll:
+      case #crateApiFileOpsFileOpsInvertSelection:
+      case #crateApiFileOpsFileOpsClearSelection:
+      case #crateApiFileOpsFileOpsCopyToClipboard:
+      case #crateApiFileOpsFileOpsClearClipboard:
+        return Future.value(ops);
+      // 真的落盘的那几个，回一份回执（回执里带着刷新后的快照）。
+      case #crateApiFileOpsFileOpsPaste:
+      case #crateApiFileOpsFileOpsTrashSelection:
+      case #crateApiFileOpsFileOpsDeleteSelection:
+      case #crateApiFileOpsFileOpsRenameEntry:
+      case #crateApiFileOpsFileOpsCreateDirectory:
+      case #crateApiFileOpsFileOpsUndo:
+        return Future.value(_opsReport(ops));
+      // 返回 bool 的三个：回收站能不能撤销、打断当前批、以及关会话。
+      case #crateApiFileOpsFileOpsTrashRestoreSupported:
+        return Future.value(ops.trashRestoreSupported);
+      case #crateApiFileOpsFileOpsCancel:
+      case #crateApiFileOpsFileOpsClose:
+        return Future.value(true);
+
       default:
+        // 兜底：没列出来的 file_ops 桥调用直接炸在明处。
+        //
+        // 不这么做的话它会掉进下面那句 `Future.value(snapshot)`，变成一个
+        // 「类型不符」的怪错误 —— 报错点指向、错的却是别的东西（`fileOpsClose`
+        // 曾在 `dispose` 里报出 `Future<FileManagerSnapshot>` 不是 `Future<bool>`）。
+        // 新增文件操作时想要的是「判据告诉我桩没跟上」，不是考古。
+        final name = invocation.memberName.toString();
+        if (name.contains('crateApiFileOps')) {
+          throw UnimplementedError('测试桩还没有覆盖这个文件操作桥调用：$name');
+        }
         return snapshotError == null
             ? Future.value(snapshot)
             : Future<FileManagerSnapshot>.error(snapshotError!);
@@ -285,6 +333,59 @@ FileManagerSnapshot _snapshot({
   sortTemporary: sortTemporary,
   canSortPreference: canSortPreference,
   rememberViewState: rememberViewState,
+);
+
+/// 文件操作那一份会话快照的替身（选中集合 / 剪贴板 / 撤销栈）。
+///
+/// `generation` 与 [_snapshot] 取同一个值不是随手写的：卡片只在「管理器快照的
+/// 版本号变了」时才回头问这一份（见 `_acceptSnapshot`），两个数一样时它只在建
+/// 会话那一次问，测试里不会凭空多出一串待收的问询。
+FileOpsSnapshot _opsSnapshot({
+  int total = 2,
+  int selectedCount = 0,
+  List<String> selectedPaths = const [],
+  bool selectionHasDirectory = false,
+  bool canPaste = false,
+  FileOpsClipboardMode? clipboardMode,
+  int clipboardCount = 0,
+  bool canUndo = false,
+  int undoCount = 0,
+  bool trashRestoreSupported = true,
+}) => FileOpsSnapshot(
+  sessionId: BigInt.one,
+  generation: BigInt.one,
+  total: total,
+  selectedCount: selectedCount,
+  allSelected: selectedCount > 0 && selectedCount == total,
+  selectedPaths: selectedPaths,
+  selectionHasDirectory: selectionHasDirectory,
+  canPaste: canPaste,
+  clipboardMode: clipboardMode,
+  clipboardCount: clipboardCount,
+  canUndo: canUndo,
+  undoCount: undoCount,
+  trashRestoreSupported: trashRestoreSupported,
+);
+
+/// 一次文件操作的回执替身。默认「什么都没做」：判据要的是卡片**收到回执之后**
+/// 怎么刷新，而不是替身自己编一份结果。
+FileOpsReport _opsReport(
+  FileOpsSnapshot snapshot, {
+  String kind = 'copy',
+  int succeeded = 0,
+  int failed = 0,
+  int undoable = 0,
+  String summary = '',
+  List<FileOpsItemResult> items = const [],
+}) => FileOpsReport(
+  kind: kind,
+  succeeded: succeeded,
+  failed: failed,
+  cancelled: 0,
+  undoable: undoable,
+  summary: summary,
+  items: items,
+  snapshot: snapshot,
 );
 
 /// 主页不再是独立的 IconButton，而是导航掌里的一片多边形热区。

@@ -176,6 +176,23 @@ class FileManagerSettingPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
+          SettingSectionCard(
+            title: t.settings.fileManagerSectionFileOps,
+            icon: Icons.drive_file_move_outlined,
+            children: [
+              SwitchListTile(
+                secondary: const Icon(Icons.delete_sweep_outlined),
+                title: Text(t.settings.fileManagerFileOperations),
+                subtitle: Text(t.settings.fileManagerFileOperationsSubtitle),
+                thumbIcon: kSettingSwitchThumbIcon,
+                value: setting.fileOperations,
+                onChanged: (value) => cubit.updateFileManagerSetting(
+                  (current) => current.copyWith(fileOperations: value),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Text(

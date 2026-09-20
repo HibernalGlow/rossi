@@ -512,6 +512,9 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get fileManagerSectionView => 'Browsing view';
 	@override String get fileManagerRememberViewState => 'Remember view and sort per folder';
 	@override String get fileManagerRememberViewStateSubtitle => 'Each folder keeps its own view mode, sort and filter. When off, browsing works as usual but nothing is remembered';
+	@override String get fileManagerSectionFileOps => 'File operations';
+	@override String get fileManagerFileOperations => 'Allow modifying files';
+	@override String get fileManagerFileOperationsSubtitle => 'Copy, move, rename, create and delete. When off, the context menu, multi-select and the action bar all disappear and the file manager goes back to read-only';
 	@override String get fileManagerHomePathSet => 'Home updated';
 	@override String get operationBinding => 'Operation bindings';
 	@override String get operationBindingEntrySubtitle => 'Keys, tap zones and binding bundles';
@@ -2524,6 +2527,9 @@ extension on TranslationsEnUs {
 			'settings.fileManagerSectionView' => 'Browsing view',
 			'settings.fileManagerRememberViewState' => 'Remember view and sort per folder',
 			'settings.fileManagerRememberViewStateSubtitle' => 'Each folder keeps its own view mode, sort and filter. When off, browsing works as usual but nothing is remembered',
+			'settings.fileManagerSectionFileOps' => 'File operations',
+			'settings.fileManagerFileOperations' => 'Allow modifying files',
+			'settings.fileManagerFileOperationsSubtitle' => 'Copy, move, rename, create and delete. When off, the context menu, multi-select and the action bar all disappear and the file manager goes back to read-only',
 			'settings.fileManagerHomePathSet' => 'Home updated',
 			'settings.operationBinding' => 'Operation bindings',
 			'settings.operationBindingEntrySubtitle' => 'Keys, tap zones and binding bundles',
@@ -2633,11 +2639,11 @@ extension on TranslationsEnUs {
 			'settings.operationBindingRadialActiveWheel' => 'Default wheel',
 			'settings.operationBindingRadialLayerUnit' => ({required Object count}) => '${count} layers',
 			'settings.operationBindingRadialNew' => 'New wheel',
+			_ => null,
+		} ?? switch (path) {
 			'settings.operationBindingRadialDelete' => 'Delete wheel',
 			'settings.operationBindingRadialPreview' => 'Preview',
 			'settings.operationBindingRadialReset' => 'Reset slots',
-			_ => null,
-		} ?? switch (path) {
 			'settings.operationBindingRadialResetSubtitle' => 'Rewrites only this wheel\'s factory slots; your own bindings stay',
 			'settings.operationBindingRadialHint' => ({required Object layers}) => 'On · ${layers} layers · tap an empty slot to add, a filled one to edit',
 			'settings.operationBindingRadialHintDisabled' => 'Off · the wheel will not open while reading',
@@ -3147,11 +3153,11 @@ extension on TranslationsEnUs {
 			'plugin.syncFailed' => ({required Object error}) => 'Sync failed: ${error}',
 			'plugin.updateSubtitle' => 'Manually reinstall this plugin from a network URL or local file',
 			'plugin.updateFromNetwork' => 'Install from network',
+			_ => null,
+		} ?? switch (path) {
 			'plugin.updateFromLocal' => 'Install from local',
 			'plugin.updateChooseSource' => 'Choose install method',
 			'plugin.updating' => 'Updating plugin...',
-			_ => null,
-		} ?? switch (path) {
 			'plugin.updateSuccess' => 'Update successful',
 			'plugin.updateFailed' => ({required Object error}) => 'Update failed: ${error}',
 			'plugin.uuidMismatch' => 'Plugin id mismatch, install rejected',
@@ -3661,11 +3667,11 @@ extension on TranslationsEnUs {
 			'shelfMenu.removeFavoriteConfirmBody' => ({required Object title}) => '“${title}” will be removed from your favorites. The files and the reading history are untouched.',
 			'shelfMenu.removeHistoryConfirmTitle' => 'Remove from history?',
 			'shelfMenu.removeHistoryConfirmBody' => ({required Object title}) => '“${title}” will be removed from your reading history. The files will not be deleted.',
+			_ => null,
+		} ?? switch (path) {
 			'video.play' => 'Play',
 			'video.pause' => 'Pause',
 			'video.backward' => 'Back 10 s',
-			_ => null,
-		} ?? switch (path) {
 			'video.forward' => 'Forward 10 s',
 			'video.loop' => 'Loop: next page',
 			'video.loopSingle' => 'Loop: repeat page',

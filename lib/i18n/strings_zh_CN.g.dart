@@ -1316,6 +1316,15 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '每个目录各自记住视图、排序与筛选；关闭后浏览照常，只是不再记忆'
 	String get fileManagerRememberViewStateSubtitle => '每个目录各自记住视图、排序与筛选；关闭后浏览照常，只是不再记忆';
 
+	/// zh-CN: '文件操作'
+	String get fileManagerSectionFileOps => '文件操作';
+
+	/// zh-CN: '允许修改文件'
+	String get fileManagerFileOperations => '允许修改文件';
+
+	/// zh-CN: '复制、移动、重命名、新建与删除。关闭后右键菜单、多选与操作条都会消失，文件管理器回到只看不改'
+	String get fileManagerFileOperationsSubtitle => '复制、移动、重命名、新建与删除。关闭后右键菜单、多选与操作条都会消失，文件管理器回到只看不改';
+
 	/// zh-CN: '主页已更新'
 	String get fileManagerHomePathSet => '主页已更新';
 
@@ -5940,6 +5949,9 @@ extension on Translations {
 			'settings.fileManagerSectionView' => '浏览视图',
 			'settings.fileManagerRememberViewState' => '记住每个目录的视图与排序',
 			'settings.fileManagerRememberViewStateSubtitle' => '每个目录各自记住视图、排序与筛选；关闭后浏览照常，只是不再记忆',
+			'settings.fileManagerSectionFileOps' => '文件操作',
+			'settings.fileManagerFileOperations' => '允许修改文件',
+			'settings.fileManagerFileOperationsSubtitle' => '复制、移动、重命名、新建与删除。关闭后右键菜单、多选与操作条都会消失，文件管理器回到只看不改',
 			'settings.fileManagerHomePathSet' => '主页已更新',
 			'settings.operationBinding' => '操作绑定',
 			'settings.operationBindingEntrySubtitle' => '按键、点击分区与绑定包',
@@ -6049,11 +6061,11 @@ extension on Translations {
 			'settings.operationBindingRadialActiveWheel' => '默认轮盘',
 			'settings.operationBindingRadialLayerUnit' => ({required Object count}) => '${count} 层',
 			'settings.operationBindingRadialNew' => '新轮盘',
+			_ => null,
+		} ?? switch (path) {
 			'settings.operationBindingRadialDelete' => '删除轮盘',
 			'settings.operationBindingRadialPreview' => '预览',
 			'settings.operationBindingRadialReset' => '重置槽位',
-			_ => null,
-		} ?? switch (path) {
 			'settings.operationBindingRadialResetSubtitle' => '只重写这个轮盘的出厂槽位，你自绑的其它输入不动',
 			'settings.operationBindingRadialHint' => ({required Object layers}) => '已启用 · ${layers} 层 · 点空格添加，点已有槽编辑',
 			'settings.operationBindingRadialHintDisabled' => '已停用 · 阅读时不会唤出轮盘',
@@ -6563,11 +6575,11 @@ extension on Translations {
 			'plugin.syncSuccess' => '同步成功',
 			'plugin.syncFailed' => ({required Object error}) => '同步失败: ${error}',
 			'plugin.updateSubtitle' => '通过网络 URL 或本地文件手动重装当前插件',
+			_ => null,
+		} ?? switch (path) {
 			'plugin.updateFromNetwork' => '从网络安装',
 			'plugin.updateFromLocal' => '从本地安装',
 			'plugin.updateChooseSource' => '选择安装方式',
-			_ => null,
-		} ?? switch (path) {
 			'plugin.updating' => '正在更新插件...',
 			'plugin.updateSuccess' => '更新成功',
 			'plugin.updateFailed' => ({required Object error}) => '更新失败: ${error}',
@@ -7077,11 +7089,11 @@ extension on Translations {
 			'shelfMenu.removeFavoriteConfirmTitle' => '取消收藏？',
 			'shelfMenu.removeFavoriteConfirmBody' => ({required Object title}) => '「${title}」将从收藏库移除，源文件与阅读记录不受影响。',
 			'shelfMenu.removeHistoryConfirmTitle' => '移除历史记录？',
+			_ => null,
+		} ?? switch (path) {
 			'shelfMenu.removeHistoryConfirmBody' => ({required Object title}) => '「${title}」将从阅读历史中移除，源文件不会被删除。',
 			'video.play' => '播放',
 			'video.pause' => '暂停',
-			_ => null,
-		} ?? switch (path) {
 			'video.backward' => '后退 10 秒',
 			'video.forward' => '前进 10 秒',
 			'video.loop' => '循环：接下一页',
