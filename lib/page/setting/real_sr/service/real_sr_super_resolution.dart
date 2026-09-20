@@ -17,6 +17,7 @@ import 'package:zephyr/page/setting/real_sr/service/desktop_ncnn_model_config.da
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/upscaled_image_cache.dart';
 import 'package:zephyr/page/setting/real_sr/service/mimage_onnx_model_config.dart';
+import 'package:zephyr/page/setting/real_sr/service/super_resolution_policy_service.dart';
 import 'package:zephyr/src/rust/api/image.dart';
 import 'package:zephyr/src/rust/api/mimage_onnx.dart';
 import 'package:zephyr/src/rust/api/simple.dart';
@@ -631,7 +632,7 @@ class RealSrSuperResolution {
     }
   }
 
-  /// 判断图片是否需要超分：仅当能解析出横向分辨率且小于阈值时返回 true。
+  /// 判断图片是否需要超分：支持固定分辨率阈值与 neo 条件超分系统裁决。
   ///
   /// [knownSize] 给**已经量过这张图尺寸**的调用方（呈现器的超分流水线要先拿尺寸来
   /// 显示「超分后多少」）：同一次判断不该让同一个文件被读第二遍。
@@ -639,15 +640,68 @@ class RealSrSuperResolution {
     String inputPath, {
     RealSrResolutionThreshold? threshold,
     ui.Size? knownSize,
+    String? bookPath,
+    String? innerPath,
+    SuperResolutionPolicyTrigger trigger = SuperResolutionPolicyTrigger.auto,
+    Map<String, dynamic>? metadata,
   }) async {
     logger.d('Checking if $inputPath needs to be upscaled...');
-    final effectiveThreshold =
-        threshold ?? await RealSrSettings.loadResolutionThreshold();
+    // 若显式指定了 threshold，说明调用方期望强制使用特定固定阈值（如测试用例或强制回落）
+    if (threshold != null) {
+      final size = knownSize ?? await imageSizeOf(inputPath);
+      if (size == null) return false;
+      return size.width < threshold.maxWidth;
+    }
+
+    final isConditional = await RealSrSettings.loadConditionalEnabled();
+    if (isConditional) {
+      final decision = await decidePolicy(
+        inputPath: inputPath,
+        knownSize: knownSize,
+        bookPath: bookPath,
+        innerPath: innerPath,
+        trigger: trigger,
+        metadata: metadata,
+      );
+      return decision.shouldRun;
+    }
+
+    final effectiveThreshold = await RealSrSettings.loadResolutionThreshold();
     final size = knownSize ?? await imageSizeOf(inputPath);
-    // 量不出尺寸就不超分（沿用旧行为）：对一张不知道多大的图跑几百毫秒推理，
-    // 还不如如实跳过 —— 呈现器会把这一页记成「无需超分」，界面上说得清楚。
+    // 量不出尺寸就不超分（沿用旧行为）
     if (size == null) return false;
     return size.width < effectiveThreshold.maxWidth;
+  }
+
+  /// 使用条件超分策略（移植自 neo / Xiranite）裁决是否需要对指定图片执行超分
+  static Future<SuperResolutionPolicyDecision> decidePolicy({
+    required String inputPath,
+    ui.Size? knownSize,
+    String? bookPath,
+    String? innerPath,
+    SuperResolutionPolicyTrigger trigger = SuperResolutionPolicyTrigger.auto,
+    Map<String, dynamic>? metadata,
+    SuperResolutionPolicyPreferences? policyPreferences,
+  }) async {
+    final size = knownSize ?? await imageSizeOf(inputPath);
+    if (size == null) {
+      return const SuperResolutionPolicyDecision(
+        kind: 'skip',
+        reason: 'unresolved-image-size',
+      );
+    }
+    final prefs =
+        policyPreferences ?? await RealSrSettings.loadPolicyPreferences();
+    final input = SuperResolutionPolicyInput(
+      trigger: trigger,
+      width: size.width,
+      height: size.height,
+      bookPath: bookPath ?? inputPath,
+      imagePath: inputPath,
+      innerPath: innerPath,
+      metadata: metadata,
+    );
+    return SuperResolutionPolicyService(prefs).decide(input);
   }
 
   static bool _missingModelNotified = false;

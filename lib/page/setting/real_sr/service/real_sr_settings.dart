@@ -6,6 +6,8 @@ import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/page/setting/real_sr/service/android_ncnn_model_config.dart';
 import 'package:zephyr/util/coreml_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/service/mimage_onnx_model_config.dart';
+import 'package:zephyr/page/setting/real_sr/model/super_resolution_condition.dart';
+import 'package:zephyr/page/setting/real_sr/service/super_resolution_policy_service.dart';
 
 bool get _isDesktop =>
     Platform.isWindows || Platform.isLinux || Platform.isMacOS;
@@ -230,6 +232,10 @@ class RealSrSettings {
   static const _keyDesktopNcnnNoise = 'realsr_desktop_ncnn_noise';
   static const _keyScale = 'realsr_scale';
   static const _keyMImageModel = 'realsr_mimage_onnx_model';
+  static const _keyConditionalEnabled = 'realsr_conditional_enabled';
+  static const _keyConditionalMinWidth = 'realsr_conditional_min_width';
+  static const _keyConditionalMinHeight = 'realsr_conditional_min_height';
+  static const _keyConditions = 'realsr_conditions_json';
 
   /// 根据当前运行平台返回推荐的默认并发数。
   ///
@@ -477,5 +483,109 @@ class RealSrSettings {
     final noise = await loadAndroidNcnnNoise();
     final scale = await loadScale();
     return '${mode.name}_noise${noise.noise}_${scale.value}x';
+  }
+
+  static Future<bool> loadConditionalEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyConditionalEnabled) ?? false;
+  }
+
+  static Future<void> saveConditionalEnabled(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyConditionalEnabled, value);
+    notifyChanges();
+  }
+
+  static Future<(int?, int?)> loadConditionalMinDimensions() async {
+    final prefs = await SharedPreferences.getInstance();
+    return (
+      prefs.getInt(_keyConditionalMinWidth),
+      prefs.getInt(_keyConditionalMinHeight),
+    );
+  }
+
+  static Future<void> saveConditionalMinDimensions({
+    int? minWidth,
+    int? minHeight,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (minWidth == null) {
+      await prefs.remove(_keyConditionalMinWidth);
+    } else {
+      await prefs.setInt(_keyConditionalMinWidth, minWidth);
+    }
+    if (minHeight == null) {
+      await prefs.remove(_keyConditionalMinHeight);
+    } else {
+      await prefs.setInt(_keyConditionalMinHeight, minHeight);
+    }
+    notifyChanges();
+  }
+
+  static Future<List<SuperResolutionCondition>> loadConditions() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString(_keyConditions);
+    return SuperResolutionCondition.decodeList(jsonStr);
+  }
+
+  static Future<void> saveConditions(
+    List<SuperResolutionCondition> conditions,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = SuperResolutionCondition.encodeList(conditions);
+    await prefs.setString(_keyConditions, jsonStr);
+    notifyChanges();
+  }
+
+  /// 载入完整的条件策略偏好对象
+  static Future<SuperResolutionPolicyPreferences> loadPolicyPreferences() async {
+    final autoUpscale = await loadAutoUpscale();
+    final prefetch = await loadPrefetch();
+    final preUpscaleEnabled = prefetch.$1 > 0;
+    final conditionalEnabled = await loadConditionalEnabled();
+    final minDimensions = await loadConditionalMinDimensions();
+    final conditions = await loadConditions();
+    final scale = await loadScale();
+    final tileSize = await loadTileSize();
+    final noise = await loadNoiseLevel();
+
+    String? defaultModelId;
+    if (hasSuperResolutionEngineChoice) {
+      final engine = await loadEngine();
+      switch (engine) {
+        case SuperResolutionEngine.breezeCoreML:
+          final family = await loadCoreMLFamily();
+          final variant = await loadCoreMLVariant(family);
+          defaultModelId = variant.fileName;
+          break;
+        case SuperResolutionEngine.mimageOnnx:
+          final model = await loadMImageModel();
+          defaultModelId = model.id;
+          break;
+        case SuperResolutionEngine.desktopNcnn:
+          final mode = await loadDesktopNcnnMode();
+          defaultModelId = mode.name;
+          break;
+      }
+    } else if (Platform.isAndroid) {
+      final mode = await loadAndroidNcnnMode();
+      defaultModelId = mode.name;
+    }
+
+    return SuperResolutionPolicyPreferences(
+      autoUpscaleEnabled: autoUpscale,
+      preUpscaleEnabled: preUpscaleEnabled,
+      conditionalEnabled: conditionalEnabled,
+      conditionalMinWidth: minDimensions.$1,
+      conditionalMinHeight: minDimensions.$2,
+      conditions: conditions,
+      defaultModelId: defaultModelId ?? 'default',
+      defaultScale: scale.value,
+      defaultNoise: noise.value,
+      defaultTileSize: tileSize,
+      defaultTileEnabled: tileSize > 0,
+      defaultTta: false,
+      defaultGpuId: '0',
+    );
   }
 }
