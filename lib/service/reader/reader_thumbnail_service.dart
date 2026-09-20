@@ -102,10 +102,12 @@ class ReaderThumbnailService {
     required bool isArchive,
     required bool isImage,
     String? sortOrder,
-    int maxDepth = 3,
+    int maxDepth = 8,
     int maxLongSide = 320,
   }) async {
-    final key = 'fm:$entryPath@$maxLongSide';
+    final key =
+        'fm:$entryPath@$maxLongSide:$isDir:$isArchive:$isImage'
+        ':${sortOrder ?? 'FileName'}:$maxDepth';
     if (_thumbnailBytesCache.containsKey(key)) {
       final value = _thumbnailBytesCache.remove(key)!;
       _thumbnailBytesCache[key] = value;

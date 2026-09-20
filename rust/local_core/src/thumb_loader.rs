@@ -3,14 +3,16 @@
 //
 // Vendored from mImageViewer `src/thumb_loader.rs` at commit 1fd6f863.
 // Preserves upstream function, constant, and type names.
+// Rossi 适配：归档候选、失败回退、多子项代表图、元数据过滤与有界循环保护。
 
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 pub const CACHE_KEY_ZIP: &str = "zipthumb:";
 pub const CACHE_KEY_PDF: &str = "pdfthumb:";
 pub const CACHE_KEY_ARCHIVE: &str = "archivethumb:";
 pub const CACHE_KEY_FOLDER: &str = "folderthumb:";
-pub const FOLDER_THUMB_AUTO_ALGO_VERSION: u32 = 2;
+pub const FOLDER_THUMB_AUTO_ALGO_VERSION: u32 = 3;
 pub const CACHE_KEY_PIN_SUFFIX: &str = "#pin:";
 
 /// フォルダ代表サムネの自動選定用 cache key を組み立てる。
@@ -57,12 +59,14 @@ pub fn folder_thumb_auto_cache_key_for_path(
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FolderThumbResolution {
     Image(PathBuf),
+    Archive(PathBuf),
 }
 
 /// フォルダ内をスキャンして代表画像を返す。
 /// `sort` で指定されたソート順でフォルダブロックと画像ブロックをそれぞれ並べ、
 /// サムネイル一覧に近い順序 (フォルダ → 画像) で最初に見つかった画像を選ぶ。
 /// サブフォルダ再帰は最大 `remaining_depth` 階層。
+/// Rossi 适配还会返回 LocalSource 可直接读取的归档候选。
 pub fn resolve_folder_thumb_image(
     folder: &Path,
     sort: crate::settings::SortOrder,
@@ -75,8 +79,51 @@ pub fn resolve_folder_thumb_image_inner(
     folder: &Path,
     sort: crate::settings::SortOrder,
     remaining_depth: u32,
-    configured_depth: u32,
+    _configured_depth: u32,
 ) -> Option<FolderThumbResolution> {
+    resolve_folder_thumb_images(folder, sort, remaining_depth, 1, |source| {
+        Some(source.clone())
+    })
+    .pop()
+}
+
+/// 按上游的「目录块 → 文件块」顺序惰性取图；加载失败时继续找下一个候选。
+/// 每个直接子目录最多贡献一张代表图，成功数量达到上限便停止遍历。
+/// 单次最多访问 256 个目录、尝试 128 个文件，递归硬上限为 32 层。
+pub(crate) fn resolve_folder_thumb_images<T>(
+    folder: &Path,
+    sort: crate::settings::SortOrder,
+    remaining_depth: u32,
+    limit: usize,
+    mut load: impl FnMut(&FolderThumbResolution) -> Option<T>,
+) -> Vec<T> {
+    let mut search = FolderThumbSearch {
+        visited: HashSet::new(),
+        attempts_left: 128,
+    };
+    collect_folder_thumbs(
+        folder,
+        sort,
+        remaining_depth.min(32),
+        limit,
+        &mut search,
+        &mut load,
+    )
+}
+
+struct FolderThumbSearch {
+    visited: HashSet<String>,
+    attempts_left: usize,
+}
+
+fn collect_folder_thumbs<T>(
+    folder: &Path,
+    sort: crate::settings::SortOrder,
+    remaining_depth: u32,
+    limit: usize,
+    search: &mut FolderThumbSearch,
+    load: &mut impl FnMut(&FolderThumbResolution) -> Option<T>,
+) -> Vec<T> {
     fn mtime_for_sort(entry: &std::fs::DirEntry, sort: crate::settings::SortOrder) -> i64 {
         match sort {
             crate::settings::SortOrder::DateAsc | crate::settings::SortOrder::DateDesc => entry
@@ -87,11 +134,27 @@ pub fn resolve_folder_thumb_image_inner(
         }
     }
 
-    let entries = std::fs::read_dir(folder).ok()?;
-    let mut images: Vec<(PathBuf, i64)> = Vec::new();
+    let mut result = Vec::new();
+    if limit == 0
+        || search.attempts_left == 0
+        || search.visited.len() >= 256
+        || !crate::fs_entry::mark_directory_visited(folder, &mut search.visited)
+    {
+        return result;
+    }
+    let Ok(entries) = std::fs::read_dir(folder) else {
+        return result;
+    };
+    let mut files: Vec<(PathBuf, i64)> = Vec::new();
     let mut subdirs: Vec<(PathBuf, i64)> = Vec::new();
 
     for entry in entries.flatten() {
+        if crate::fs_entry::is_internal_app_entry_name(&entry.file_name())
+            || crate::fs_entry::should_hide_fs_entry(&entry, true)
+            || crate::folder_tree::is_apple_double(&entry.path())
+        {
+            continue;
+        }
         let Ok(ft) = entry.file_type() else {
             continue;
         };
@@ -102,9 +165,12 @@ pub fn resolve_folder_thumb_image_inner(
             subdirs.push((p, mtime));
         } else if kind.is_file() {
             if let Some(ext) = p.extension().and_then(|e| e.to_str()) {
-                if crate::folder_tree::is_recognized_image_ext(&ext.to_ascii_lowercase()) {
+                let ext = ext.to_ascii_lowercase();
+                if crate::folder_tree::is_recognized_image_ext(&ext)
+                    || is_readable_archive_ext(&ext)
+                {
                     let mtime = mtime_for_sort(&entry, sort);
-                    images.push((p, mtime));
+                    files.push((p, mtime));
                 }
             }
         }
@@ -128,16 +194,22 @@ pub fn resolve_folder_thumb_image_inner(
             .map(|(path, mtime, _)| (path, mtime))
             .collect();
         for (sub, _) in &subdirs {
-            if let Some(img) =
-                resolve_folder_thumb_image_inner(sub, sort, remaining_depth - 1, configured_depth)
-            {
-                return Some(img);
+            result.extend(collect_folder_thumbs(
+                sub,
+                sort,
+                remaining_depth - 1,
+                1,
+                search,
+                load,
+            ));
+            if result.len() >= limit || search.attempts_left == 0 {
+                return result;
             }
         }
     }
 
-    if !images.is_empty() {
-        let mut keyed_images: Vec<_> = images
+    if !files.is_empty() {
+        let mut keyed_files: Vec<_> = files
             .into_iter()
             .map(|(path, mtime)| {
                 let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
@@ -145,18 +217,33 @@ pub fn resolve_folder_thumb_image_inner(
                 (path, mtime, key)
             })
             .collect();
-        keyed_images
+        keyed_files
             .sort_by(|(_, a_mt, ak), (_, b_mt, bk)| sort.compare_name_keys(ak, *a_mt, bk, *b_mt));
-        images = keyed_images
-            .into_iter()
-            .map(|(path, mtime, _)| (path, mtime))
-            .collect();
-        return Some(FolderThumbResolution::Image(
-            images.into_iter().next().unwrap().0,
-        ));
+        for (path, _, _) in keyed_files {
+            if search.attempts_left == 0 {
+                break;
+            }
+            search.attempts_left -= 1;
+            let ext = path.extension().and_then(|ext| ext.to_str()).unwrap_or("");
+            let candidate = if is_readable_archive_ext(&ext.to_ascii_lowercase()) {
+                FolderThumbResolution::Archive(path)
+            } else {
+                FolderThumbResolution::Image(path)
+            };
+            if let Some(image) = load(&candidate) {
+                result.push(image);
+                if result.len() >= limit {
+                    break;
+                }
+            }
+        }
     }
 
-    None
+    result
+}
+
+fn is_readable_archive_ext(ext: &str) -> bool {
+    crate::folder_tree::is_zip_extension(ext) || matches!(ext, "rar" | "cbr")
 }
 
 #[cfg(test)]
@@ -168,7 +255,7 @@ mod tests {
     fn resolved_image_path(res: Option<FolderThumbResolution>) -> Option<PathBuf> {
         match res {
             Some(FolderThumbResolution::Image(p)) => Some(p),
-            None => None,
+            _ => None,
         }
     }
 
@@ -248,5 +335,34 @@ mod tests {
         let picked = resolve_folder_thumb_image(tmp.path(), SortOrder::Numeric, 0);
 
         assert_eq!(resolved_image_path(picked), Some(expected));
+    }
+
+    #[test]
+    fn folder_thumb_failure_scan_is_bounded() {
+        let tmp = TempDir::new().unwrap();
+        for index in 0..200 {
+            std::fs::write(tmp.path().join(format!("{index}.png")), b"broken").unwrap();
+        }
+        let mut attempts = 0;
+        let images = resolve_folder_thumb_images(tmp.path(), SortOrder::Numeric, 8, 4, |_| {
+            attempts += 1;
+            None::<()>
+        });
+        assert!(images.is_empty());
+        assert_eq!(attempts, 128);
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn folder_thumb_does_not_revisit_symlink_ancestors() {
+        let tmp = TempDir::new().unwrap();
+        std::os::unix::fs::symlink(tmp.path(), tmp.path().join("00-loop")).unwrap();
+        let cover = tmp.path().join("cover.png");
+        std::fs::write(&cover, b"candidate").unwrap();
+        let images =
+            resolve_folder_thumb_images(tmp.path(), SortOrder::Numeric, u32::MAX, 4, |candidate| {
+                Some(candidate.clone())
+            });
+        assert_eq!(images, vec![FolderThumbResolution::Image(cover)]);
     }
 }
