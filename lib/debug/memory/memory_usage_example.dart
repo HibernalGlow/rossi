@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/config/global/global.dart';
 import 'package:zephyr/main.dart';
 
 import 'package:zephyr/widgets/memory_monitor_widget.dart';
@@ -98,7 +99,10 @@ class MyAppWithMemoryMonitoring extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MemoryMonitorWidget(
-      child: MaterialApp(title: 'Zephyr', home: const MemoryUsageExample()),
+      child: MaterialApp(
+        title: appDisplayName,
+        home: const MemoryUsageExample(),
+      ),
     );
   }
 }
