@@ -576,7 +576,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
       if (openedPath != null && mounted && serial == _requestSerial) {
         // Keep the card busy while the reader route is on top. This makes the
         // second pointer-up of a double-click unable to enqueue another route.
-        await _openReader(openedPath);
+        await _openReader(openedPath, result.bookNavigationJson);
       }
       if (!mounted || serial != _requestSerial) return;
       setState(() => _busy = false);
@@ -611,7 +611,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
     );
   }
 
-  Future<void> _openReader(String path) async {
+  Future<void> _openReader(String path, String? navigationJson) async {
     if (!mounted) return;
     await context.pushRoute(
       ComicReadRoute(
@@ -621,6 +621,9 @@ class _FileManagerCardState extends State<FileManagerCard> {
         epsNumber: 1,
         type: ComicEntryType.normal,
         comicInfo: path,
+        chapterExtern: {
+          if (navigationJson != null) 'localBookNavigation': navigationJson,
+        },
         stringSelectCubit: StringSelectCubit(),
       ),
     );
