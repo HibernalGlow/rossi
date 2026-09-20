@@ -212,6 +212,7 @@ _FileManagerSettingState _$FileManagerSettingStateFromJson(
   homePath: json['homePath'] as String? ?? '',
   openHomeOnStart: json['openHomeOnStart'] as bool? ?? false,
   rememberViewState: json['rememberViewState'] as bool? ?? true,
+  fileOperations: json['fileOperations'] as bool? ?? true,
 );
 
 Map<String, dynamic> _$FileManagerSettingStateToJson(
@@ -221,6 +222,7 @@ Map<String, dynamic> _$FileManagerSettingStateToJson(
   'homePath': instance.homePath,
   'openHomeOnStart': instance.openHomeOnStart,
   'rememberViewState': instance.rememberViewState,
+  'fileOperations': instance.fileOperations,
 };
 
 _OperationBindingSettingState _$OperationBindingSettingStateFromJson(
@@ -536,6 +538,8 @@ _ReadSettingState _$ReadSettingStateFromJson(Map<String, dynamic> json) =>
       pageInfoOpacityPercent:
           (json['pageInfoOpacityPercent'] as num?)?.toInt() ?? 82,
       pageInfoFontSize: (json['pageInfoFontSize'] as num?)?.toInt() ?? 12,
+      showBottomProgressBar: json['showBottomProgressBar'] as bool? ?? false,
+      bottomProgressBarGlow: json['bottomProgressBarGlow'] as bool? ?? true,
       hoverRevealEnabled: json['hoverRevealEnabled'] as bool? ?? true,
       hoverRevealTop: json['hoverRevealTop'] as bool? ?? true,
       hoverRevealBottom: json['hoverRevealBottom'] as bool? ?? true,
@@ -615,6 +619,8 @@ Map<String, dynamic> _$ReadSettingStateToJson(
   'pageInfoEdgePadding': instance.pageInfoEdgePadding,
   'pageInfoOpacityPercent': instance.pageInfoOpacityPercent,
   'pageInfoFontSize': instance.pageInfoFontSize,
+  'showBottomProgressBar': instance.showBottomProgressBar,
+  'bottomProgressBarGlow': instance.bottomProgressBarGlow,
   'hoverRevealEnabled': instance.hoverRevealEnabled,
   'hoverRevealTop': instance.hoverRevealTop,
   'hoverRevealBottom': instance.hoverRevealBottom,

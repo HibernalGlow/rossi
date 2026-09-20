@@ -14,8 +14,49 @@ class _ReaderSettingsInfoTab extends StatelessWidget {
           _PageInfoPlacementSection(),
           SizedBox(height: 18),
           _PageInfoAppearanceSection(),
+          SizedBox(height: 18),
+          _BottomProgressBarSection(),
         ],
       ),
+    );
+  }
+}
+
+/// 底边常驻进度条 —— 与上面三节管的那颗信息胶囊**互不影响**。
+class _BottomProgressBarSection extends StatelessWidget {
+  const _BottomProgressBarSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final globalSettingState = context.watch<GlobalSettingCubit>().state;
+    final globalSettingCubit = context.read<GlobalSettingCubit>();
+    final readSetting = globalSettingState.readSetting;
+
+    return _SettingsSection(
+      title: t.reader.bottomProgressBar,
+      children: [
+        _SettingsSwitchTile(
+          title: t.reader.bottomProgressBar,
+          subtitle: t.reader.bottomProgressBarSubtitle,
+          value: readSetting.showBottomProgressBar,
+          onChanged: (value) {
+            globalSettingCubit.updateReadSetting(
+              (current) => current.copyWith(showBottomProgressBar: value),
+            );
+          },
+        ),
+        if (readSetting.showBottomProgressBar)
+          _SettingsSwitchTile(
+            title: t.reader.bottomProgressBarGlow,
+            subtitle: t.reader.bottomProgressBarGlowSubtitle,
+            value: readSetting.bottomProgressBarGlow,
+            onChanged: (value) {
+              globalSettingCubit.updateReadSetting(
+                (current) => current.copyWith(bottomProgressBarGlow: value),
+              );
+            },
+          ),
+      ],
     );
   }
 }

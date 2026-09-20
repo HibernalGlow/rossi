@@ -70,6 +70,24 @@ extension _ComicReadViewPart on _ComicReadPageState {
     );
   }
 
+  /// 视口底边的常驻翻页进度条。
+  ///
+  /// 章内页码口径与 [_pageCountWidget] **同源**（同一个本章起始槽位、同一个本章
+  /// 页数），两颗各自有开关、同时开着时读数一致。
+  Widget _readerProgressBarWidget() {
+    final seamlessCubit = context.read<ReaderSeamlessCubit>();
+    final seamlessEnabled = seamlessCubit.isSeamlessEnabled();
+    return ReaderProgressBarWidget(
+      epPages: epInfo.epPages,
+      getCurrentChapterStartSlot: seamlessEnabled
+          ? () => seamlessCubit.currentChapterStartSlot
+          : null,
+      getCurrentChapterSlotCount: seamlessEnabled
+          ? () => seamlessCubit.effectiveCurrentChapterSlotCount()
+          : null,
+    );
+  }
+
   Widget _bottomWidget(BuildContext innerContext) {
     final readSetting = context.read<GlobalSettingCubit>().state.readSetting;
     final seamlessCubit = context.read<ReaderSeamlessCubit>();

@@ -223,6 +223,7 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get tweakcnFailedJson => 'Not recognizable JSON';
 	@override String get tweakcnFailedNoColors => 'No color token could be parsed';
 	@override String tweakcnSkipped({required Object keys}) => 'Skipped tokens with unreadable colors: ${keys}';
+	@override String tweakcnFallbackRoles({required Object roles}) => 'Required tokens the theme omits, values substituted: ${roles}';
 	@override String get themeColorSubtitle => 'Choose primary color for the app';
 	@override String get language => 'Language';
 	@override String get languageSubtitle => 'Change app display language';
@@ -1033,6 +1034,10 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get fontSize => 'Font size';
 	@override String get allHiddenNotice => 'All hidden, info bar will be completely hidden';
 	@override String get edgePaddingDisabled => 'Edge padding has no effect when horizontally centered';
+	@override String get bottomProgressBar => 'Bottom progress bar';
+	@override String get bottomProgressBarSubtitle => 'Draw a thin always-on bar at the bottom edge of the page. It stays while the top/bottom bars are hidden, and is independent of the info pill';
+	@override String get bottomProgressBarGlow => 'Progress bar glow';
+	@override String get bottomProgressBarGlowSubtitle => 'Add a halo to the part already read';
 	@override String get settings => 'Reader settings';
 	@override String get previousChapter => 'Previous chapter';
 	@override String get nextChapter => 'Next chapter';
@@ -2230,6 +2235,7 @@ extension on TranslationsEnUs {
 			'settings.tweakcnFailedJson' => 'Not recognizable JSON',
 			'settings.tweakcnFailedNoColors' => 'No color token could be parsed',
 			'settings.tweakcnSkipped' => ({required Object keys}) => 'Skipped tokens with unreadable colors: ${keys}',
+			'settings.tweakcnFallbackRoles' => ({required Object roles}) => 'Required tokens the theme omits, values substituted: ${roles}',
 			'settings.themeColorSubtitle' => 'Choose primary color for the app',
 			'settings.language' => 'Language',
 			'settings.languageSubtitle' => 'Change app display language',
@@ -2630,9 +2636,9 @@ extension on TranslationsEnUs {
 			'settings.operationBindingRadialDelete' => 'Delete wheel',
 			'settings.operationBindingRadialPreview' => 'Preview',
 			'settings.operationBindingRadialReset' => 'Reset slots',
-			'settings.operationBindingRadialResetSubtitle' => 'Rewrites only this wheel\'s factory slots; your own bindings stay',
 			_ => null,
 		} ?? switch (path) {
+			'settings.operationBindingRadialResetSubtitle' => 'Rewrites only this wheel\'s factory slots; your own bindings stay',
 			'settings.operationBindingRadialHint' => ({required Object layers}) => 'On · ${layers} layers · tap an empty slot to add, a filled one to edit',
 			'settings.operationBindingRadialHintDisabled' => 'Off · the wheel will not open while reading',
 			'settings.operationBindingRadialAppearance' => 'Appearance & geometry',
@@ -3015,6 +3021,10 @@ extension on TranslationsEnUs {
 			'reader.fontSize' => 'Font size',
 			'reader.allHiddenNotice' => 'All hidden, info bar will be completely hidden',
 			'reader.edgePaddingDisabled' => 'Edge padding has no effect when horizontally centered',
+			'reader.bottomProgressBar' => 'Bottom progress bar',
+			'reader.bottomProgressBarSubtitle' => 'Draw a thin always-on bar at the bottom edge of the page. It stays while the top/bottom bars are hidden, and is independent of the info pill',
+			'reader.bottomProgressBarGlow' => 'Progress bar glow',
+			'reader.bottomProgressBarGlowSubtitle' => 'Add a halo to the part already read',
 			'reader.settings' => 'Reader settings',
 			'reader.previousChapter' => 'Previous chapter',
 			'reader.nextChapter' => 'Next chapter',
@@ -3140,13 +3150,13 @@ extension on TranslationsEnUs {
 			'plugin.updateFromLocal' => 'Install from local',
 			'plugin.updateChooseSource' => 'Choose install method',
 			'plugin.updating' => 'Updating plugin...',
+			_ => null,
+		} ?? switch (path) {
 			'plugin.updateSuccess' => 'Update successful',
 			'plugin.updateFailed' => ({required Object error}) => 'Update failed: ${error}',
 			'plugin.uuidMismatch' => 'Plugin id mismatch, install rejected',
 			'plugin.currentVersion' => ({required Object version}) => 'Current version ${version}',
 			'plugin.alreadyLatest' => 'Already up to date',
-			_ => null,
-		} ?? switch (path) {
 			'gestureLock.gestureTitle' => 'Gesture unlock',
 			'gestureLock.gestureHint' => 'Draw gesture password',
 			'gestureLock.pinTitle' => 'Enter PIN',
@@ -3654,13 +3664,13 @@ extension on TranslationsEnUs {
 			'video.play' => 'Play',
 			'video.pause' => 'Pause',
 			'video.backward' => 'Back 10 s',
+			_ => null,
+		} ?? switch (path) {
 			'video.forward' => 'Forward 10 s',
 			'video.loop' => 'Loop: next page',
 			'video.loopSingle' => 'Loop: repeat page',
 			'video.loopOff' => 'Loop: off',
 			'video.speed' => 'Speed',
-			_ => null,
-		} ?? switch (path) {
 			'video.volume' => 'Volume',
 			'video.muted' => 'Muted',
 			'video.subtitles' => 'Subtitles',

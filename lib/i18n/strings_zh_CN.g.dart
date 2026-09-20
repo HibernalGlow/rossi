@@ -449,6 +449,9 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '以下 token 读不出颜色，已跳过：$keys'
 	String tweakcnSkipped({required Object keys}) => '以下 token 读不出颜色，已跳过：${keys}';
 
+	/// zh-CN: '主题没给这些必需 token，已自动补值：$roles'
+	String tweakcnFallbackRoles({required Object roles}) => '主题没给这些必需 token，已自动补值：${roles}';
+
 	/// zh-CN: '选择主色，统一应用视觉'
 	String get themeColorSubtitle => '选择主色，统一应用视觉';
 
@@ -2827,6 +2830,18 @@ class Translations$reader$zh_CN {
 
 	/// zh-CN: '横向在中间时，边缘间距不会生效。'
 	String get edgePaddingDisabled => '横向在中间时，边缘间距不会生效。';
+
+	/// zh-CN: '底部进度条'
+	String get bottomProgressBar => '底部进度条';
+
+	/// zh-CN: '在画面底边画一条常驻细条表示翻页进度。它不随上下栏收起，与左下角信息条各开各的、互不影响'
+	String get bottomProgressBarSubtitle => '在画面底边画一条常驻细条表示翻页进度。它不随上下栏收起，与左下角信息条各开各的、互不影响';
+
+	/// zh-CN: '进度条荧光'
+	String get bottomProgressBarGlow => '进度条荧光';
+
+	/// zh-CN: '给已经走过的这一段加一圈光晕'
+	String get bottomProgressBarGlowSubtitle => '给已经走过的这一段加一圈光晕';
 
 	/// zh-CN: '阅读设置'
 	String get settings => '阅读设置';
@@ -5636,6 +5651,7 @@ extension on Translations {
 			'settings.tweakcnFailedJson' => '不是能识别的 JSON',
 			'settings.tweakcnFailedNoColors' => '没有解析出任何颜色 token',
 			'settings.tweakcnSkipped' => ({required Object keys}) => '以下 token 读不出颜色，已跳过：${keys}',
+			'settings.tweakcnFallbackRoles' => ({required Object roles}) => '主题没给这些必需 token，已自动补值：${roles}',
 			'settings.themeColorSubtitle' => '选择主色，统一应用视觉',
 			'settings.language' => '语言',
 			'settings.languageSubtitle' => '切换应用显示语言',
@@ -6036,9 +6052,9 @@ extension on Translations {
 			'settings.operationBindingRadialDelete' => '删除轮盘',
 			'settings.operationBindingRadialPreview' => '预览',
 			'settings.operationBindingRadialReset' => '重置槽位',
-			'settings.operationBindingRadialResetSubtitle' => '只重写这个轮盘的出厂槽位，你自绑的其它输入不动',
 			_ => null,
 		} ?? switch (path) {
+			'settings.operationBindingRadialResetSubtitle' => '只重写这个轮盘的出厂槽位，你自绑的其它输入不动',
 			'settings.operationBindingRadialHint' => ({required Object layers}) => '已启用 · ${layers} 层 · 点空格添加，点已有槽编辑',
 			'settings.operationBindingRadialHintDisabled' => '已停用 · 阅读时不会唤出轮盘',
 			'settings.operationBindingRadialAppearance' => '外观与几何',
@@ -6422,6 +6438,10 @@ extension on Translations {
 			'reader.fontSize' => '字体大小',
 			'reader.allHiddenNotice' => '当前已全部关闭，阅读页中的信息条会完全隐藏。',
 			'reader.edgePaddingDisabled' => '横向在中间时，边缘间距不会生效。',
+			'reader.bottomProgressBar' => '底部进度条',
+			'reader.bottomProgressBarSubtitle' => '在画面底边画一条常驻细条表示翻页进度。它不随上下栏收起，与左下角信息条各开各的、互不影响',
+			'reader.bottomProgressBarGlow' => '进度条荧光',
+			'reader.bottomProgressBarGlowSubtitle' => '给已经走过的这一段加一圈光晕',
 			'reader.settings' => '阅读设置',
 			'reader.previousChapter' => '上一章',
 			'reader.nextChapter' => '下一章',
@@ -6546,13 +6566,13 @@ extension on Translations {
 			'plugin.updateFromNetwork' => '从网络安装',
 			'plugin.updateFromLocal' => '从本地安装',
 			'plugin.updateChooseSource' => '选择安装方式',
+			_ => null,
+		} ?? switch (path) {
 			'plugin.updating' => '正在更新插件...',
 			'plugin.updateSuccess' => '更新成功',
 			'plugin.updateFailed' => ({required Object error}) => '更新失败: ${error}',
 			'plugin.uuidMismatch' => '插件 id 不一致，无法安装',
 			'plugin.currentVersion' => ({required Object version}) => '当前版本 ${version}',
-			_ => null,
-		} ?? switch (path) {
 			'plugin.alreadyLatest' => '已是最新版本',
 			'gestureLock.gestureTitle' => '手势解锁',
 			'gestureLock.gestureHint' => '请绘制手势密码',
@@ -7060,13 +7080,13 @@ extension on Translations {
 			'shelfMenu.removeHistoryConfirmBody' => ({required Object title}) => '「${title}」将从阅读历史中移除，源文件不会被删除。',
 			'video.play' => '播放',
 			'video.pause' => '暂停',
+			_ => null,
+		} ?? switch (path) {
 			'video.backward' => '后退 10 秒',
 			'video.forward' => '前进 10 秒',
 			'video.loop' => '循环：接下一页',
 			'video.loopSingle' => '循环：本页重复',
 			'video.loopOff' => '循环：关闭',
-			_ => null,
-		} ?? switch (path) {
 			'video.speed' => '倍速',
 			'video.volume' => '音量',
 			'video.muted' => '已静音',

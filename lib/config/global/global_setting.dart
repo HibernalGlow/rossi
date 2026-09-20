@@ -250,6 +250,11 @@ abstract class GlobalSettingState with _$GlobalSettingState {
 ///   启动落点不该偷偷跟着走。
 /// - [rememberViewState]：记住每个目录的视图与排序（写进 `settings.db` 的
 ///   `file_manager_view_states` 表）。默认开；关掉之后浏览照常，只是不再读写目录偏好。
+/// - [fileOperations]：**写操作的总开关**（复制 / 移动 / 重命名 / 新建 / 删除）。
+///   默认开；关掉之后文件浏览器回到「只看不改」—— 没有右键菜单、没有多选、
+///   没有操作条。之所以给它一个总开关而不是逐个动作给：这一层第一次具备了
+///   **修改用户磁盘**的能力，而这类能力的方向应该是「默认给了，但随时能整个收回去」，
+///   不是「一样一样地关」（那样关到一半是最糟的状态）。
 @freezed
 abstract class FileManagerSettingState with _$FileManagerSettingState {
   const factory FileManagerSettingState({
@@ -257,6 +262,7 @@ abstract class FileManagerSettingState with _$FileManagerSettingState {
     @Default('') String homePath,
     @Default(false) bool openHomeOnStart,
     @Default(true) bool rememberViewState,
+    @Default(true) bool fileOperations,
   }) = _FileManagerSettingState;
 
   factory FileManagerSettingState.fromJson(Map<String, dynamic> json) =>
@@ -552,6 +558,16 @@ abstract class ReadSettingState with _$ReadSettingState {
     @Default(12) int pageInfoEdgePadding,
     @Default(82) int pageInfoOpacityPercent,
     @Default(12) int pageInfoFontSize,
+    // 视口底边那颗常驻进度条（neo `ReaderProgressLayer` 的「翻页进度」那一轨）：
+    // 3 逻辑像素高的全宽细条，压在漫画上，**不随上下栏收起**、也不可拖动。
+    //
+    // 与上面那颗信息胶囊**各管各的开关**（照 neo 的 `pageInfoVisible` /
+    // `progressBarVisible` 两颗独立 toggle）：谁也不覆盖谁，可以同开、同关。
+    // 默认关 —— 这条横条压在画面上，是看得见的改动，没进设置页的人不该被改观感。
+    @Default(false) bool showBottomProgressBar,
+    // 进度条填充端的一圈荧光（neo 的 `progressBarGlow`）。只在横条开着时有意义，
+    // 所以默认开不会给没启用横条的用户带来任何变化。
+    @Default(true) bool bottomProgressBarGlow,
     @Default(true) bool hoverRevealEnabled,
     @Default(true) bool hoverRevealTop,
     @Default(true) bool hoverRevealBottom,
