@@ -59,8 +59,7 @@ class ReaderUpscaleStatusChip extends StatelessWidget {
 
   Widget _buildChip(BuildContext context, GpuPresentController presenter) {
     final colorScheme = Theme.of(context).colorScheme;
-    final SuperResolutionPageStatus status =
-        presenter.currentPageUpscaleStatus;
+    final SuperResolutionPageStatus status = presenter.currentPageUpscaleStatus;
     final bool enabled = presenter.isUpscaleEnabled;
     final String? sizeText = superResolutionSizeText(status, availableWidth);
 
@@ -208,9 +207,7 @@ class ReaderUpscaleStatusChip extends StatelessWidget {
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('下载 AI 超分模型'),
-          content: const Text(
-            '当前设备尚未下载 mImage ONNX 超分模型（约 5.4 MB），是否立即下载并启用？',
-          ),
+          content: const Text('当前设备尚未下载 mImage ONNX 超分模型（约 5.4 MB），是否立即下载并启用？'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),

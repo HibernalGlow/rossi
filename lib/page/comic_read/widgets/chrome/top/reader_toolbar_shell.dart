@@ -17,9 +17,9 @@ class ReaderToolbarSeparator extends StatelessWidget {
       width: 1,
       height: 20,
       margin: const EdgeInsets.symmetric(horizontal: 6),
-      color: Theme.of(context).colorScheme.outlineVariant.withValues(
-        alpha: 0.45,
-      ),
+      color: Theme.of(
+        context,
+      ).colorScheme.outlineVariant.withValues(alpha: 0.45),
     );
   }
 }

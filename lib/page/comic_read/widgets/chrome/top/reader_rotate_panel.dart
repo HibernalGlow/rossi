@@ -14,9 +14,7 @@ class ReaderRotatePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final presentation = context.select(
-      (ReaderPresentationCubit c) => c.state,
-    );
+    final presentation = context.select((ReaderPresentationCubit c) => c.state);
     final cubit = context.read<ReaderPresentationCubit>();
 
     return ReaderToolbarPanelRow(

@@ -39,9 +39,7 @@ class ReaderLayoutPanel extends StatelessWidget {
           children: [
             _Toggle(
               icon: Icons.motion_photos_on_rounded,
-              tooltip: readSetting.noAnimation
-                  ? '当前已关闭翻页动画'
-                  : '当前已开启平滑翻页动画',
+              tooltip: readSetting.noAnimation ? '当前已关闭翻页动画' : '当前已开启平滑翻页动画',
               selected: !readSetting.noAnimation,
               onTap: () => context.read<GlobalSettingCubit>().updateReadSetting(
                 (s) => s.copyWith(noAnimation: !s.noAnimation),
@@ -58,9 +56,7 @@ class ReaderLayoutPanel extends StatelessWidget {
               tooltip: '阅读器两侧是否保留适度安全边距',
               selected: readSetting.sidePaddingEnabled,
               onTap: () => context.read<GlobalSettingCubit>().updateReadSetting(
-                (s) => s.copyWith(
-                  sidePaddingEnabled: !s.sidePaddingEnabled,
-                ),
+                (s) => s.copyWith(sidePaddingEnabled: !s.sidePaddingEnabled),
               ),
             ),
             const _SidePaddingStepper(),
@@ -148,16 +144,14 @@ class _SidePaddingStepper extends StatelessWidget {
       label: '$percent%',
       enabled: enabled,
       onDecrement: () => context.read<GlobalSettingCubit>().updateReadSetting(
-        (s) => s.copyWith(sidePaddingPercent: (s.sidePaddingPercent - 2).clamp(
-          0,
-          30,
-        )),
+        (s) => s.copyWith(
+          sidePaddingPercent: (s.sidePaddingPercent - 2).clamp(0, 30),
+        ),
       ),
       onIncrement: () => context.read<GlobalSettingCubit>().updateReadSetting(
-        (s) => s.copyWith(sidePaddingPercent: (s.sidePaddingPercent + 2).clamp(
-          0,
-          30,
-        )),
+        (s) => s.copyWith(
+          sidePaddingPercent: (s.sidePaddingPercent + 2).clamp(0, 30),
+        ),
       ),
     );
   }
@@ -189,32 +183,30 @@ class _AutoScrollSpeedControl extends StatelessWidget {
         _Stepper(
           label: '',
           enabled: true,
-          onDecrement: () => context.read<GlobalSettingCubit>()
-              .updateReadSetting((s) {
+          onDecrement: () =>
+              context.read<GlobalSettingCubit>().updateReadSetting((s) {
                 if (isColumn) {
                   return s.copyWith(
-                    autoScrollColumnIntervalMs: (s.autoScrollColumnIntervalMs +
-                            200)
-                        .clamp(400, 5000),
+                    autoScrollColumnIntervalMs:
+                        (s.autoScrollColumnIntervalMs + 200).clamp(400, 5000),
                   );
                 }
                 return s.copyWith(
-                  autoScrollPageIntervalMs:
-                      (s.autoScrollPageIntervalMs + 500).clamp(1000, 10000),
+                  autoScrollPageIntervalMs: (s.autoScrollPageIntervalMs + 500)
+                      .clamp(1000, 10000),
                 );
               }),
-          onIncrement: () => context.read<GlobalSettingCubit>()
-              .updateReadSetting((s) {
+          onIncrement: () =>
+              context.read<GlobalSettingCubit>().updateReadSetting((s) {
                 if (isColumn) {
                   return s.copyWith(
-                    autoScrollColumnIntervalMs: (s.autoScrollColumnIntervalMs -
-                            200)
-                        .clamp(400, 5000),
+                    autoScrollColumnIntervalMs:
+                        (s.autoScrollColumnIntervalMs - 200).clamp(400, 5000),
                   );
                 }
                 return s.copyWith(
-                  autoScrollPageIntervalMs:
-                      (s.autoScrollPageIntervalMs - 500).clamp(1000, 10000),
+                  autoScrollPageIntervalMs: (s.autoScrollPageIntervalMs - 500)
+                      .clamp(1000, 10000),
                 );
               }),
         ),
@@ -248,10 +240,7 @@ class _Stepper extends StatelessWidget {
         if (label.isNotEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 2),
-            child: Text(
-              label,
-              style: TextStyle(fontSize: 11.5, color: tint),
-            ),
+            child: Text(label, style: TextStyle(fontSize: 11.5, color: tint)),
           ),
         _stepButton(Icons.remove_rounded, enabled ? onDecrement : null, tint),
         _stepButton(Icons.add_rounded, enabled ? onIncrement : null, tint),
@@ -259,16 +248,13 @@ class _Stepper extends StatelessWidget {
     );
   }
 
-  static Widget _stepButton(
-    IconData icon,
-    VoidCallback? onTap,
-    Color color,
-  ) => InkWell(
-    borderRadius: BorderRadius.circular(999),
-    onTap: onTap,
-    child: Padding(
-      padding: const EdgeInsets.all(4),
-      child: Icon(icon, size: 15, color: color),
-    ),
-  );
+  static Widget _stepButton(IconData icon, VoidCallback? onTap, Color color) =>
+      InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Icon(icon, size: 15, color: color),
+        ),
+      );
 }

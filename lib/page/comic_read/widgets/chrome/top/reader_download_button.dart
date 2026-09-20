@@ -40,10 +40,12 @@ class ReaderDownloadButton extends StatelessWidget {
         final dbTask = snapshot.data;
         final payload = dbTask?.taskInfo;
         final isDownloading = dbTask?.isDownloading ?? false;
-        final stateCode = payload?.stateCode ?? (dbTask == null ? 'none' : 'queued');
+        final stateCode =
+            payload?.stateCode ?? (dbTask == null ? 'none' : 'queued');
         final isPaused = stateCode == 'paused';
         final isFailed = stateCode == 'failed';
-        final isDownloaded = objectbox.unifiedDownloadBox
+        final isDownloaded =
+            objectbox.unifiedDownloadBox
                 .query(UnifiedComicDownload_.uniqueKey.equals(taskKey))
                 .build()
                 .findFirst() !=
@@ -142,11 +144,7 @@ class ReaderDownloadButton extends StatelessWidget {
                         ),
                       ),
                     ),
-                  Icon(
-                    iconData,
-                    size: 20,
-                    color: iconColor,
-                  ),
+                  Icon(iconData, size: 20, color: iconColor),
                 ],
               ),
             ),

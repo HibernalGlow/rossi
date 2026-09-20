@@ -39,9 +39,7 @@ class ReaderZoomPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final presentation = context.select(
-      (ReaderPresentationCubit c) => c.state,
-    );
+    final presentation = context.select((ReaderPresentationCubit c) => c.state);
     final readSetting = context.select(
       (GlobalSettingCubit c) => c.state.readSetting,
     );
@@ -61,9 +59,8 @@ class ReaderZoomPanel extends StatelessWidget {
                 icon: kReaderFitModeIcons[mode]!,
                 tooltip: kReaderFitModeLabels[mode]!,
                 selected: presentation.fitMode == mode,
-                onPressed: () => context
-                    .read<ReaderPresentationCubit>()
-                    .setFitMode(mode),
+                onPressed: () =>
+                    context.read<ReaderPresentationCubit>().setFitMode(mode),
               ),
           ],
         ),
@@ -77,11 +74,10 @@ class ReaderZoomPanel extends StatelessWidget {
                   ? '自动分割横向页：开'
                   : '自动分割横向页：关',
               selected: readSetting.splitLandscapePages,
-              onPressed: () => context.read<GlobalSettingCubit>()
-                  .updateReadSetting(
-                    (s) => s.copyWith(
-                      splitLandscapePages: !s.splitLandscapePages,
-                    ),
+              onPressed: () =>
+                  context.read<GlobalSettingCubit>().updateReadSetting(
+                    (s) =>
+                        s.copyWith(splitLandscapePages: !s.splitLandscapePages),
                   ),
             ),
           ],
@@ -96,8 +92,8 @@ class ReaderZoomPanel extends StatelessWidget {
                   ? '首页独立显示：开'
                   : '首页独立显示：关',
               selected: readSetting.doublePageLeadingBlank,
-              onPressed: () => context.read<GlobalSettingCubit>()
-                  .updateReadSetting(
+              onPressed: () =>
+                  context.read<GlobalSettingCubit>().updateReadSetting(
                     (s) => s.copyWith(
                       doublePageLeadingBlank: !s.doublePageLeadingBlank,
                     ),
@@ -230,8 +226,7 @@ class _ZoomPercentageControlState extends State<_ZoomPercentageControl> {
       message: '短按重置为 100%；按住可输入百分比',
       child: InkWell(
         borderRadius: BorderRadius.circular(999),
-        onTap: () =>
-            context.read<ReaderPresentationCubit>().resetManualScale(),
+        onTap: () => context.read<ReaderPresentationCubit>().resetManualScale(),
         onLongPress: _startEditing,
         child: Container(
           constraints: const BoxConstraints(minWidth: 56),
@@ -285,12 +280,8 @@ class _ManualZoomControlState extends State<_ManualZoomControl> {
           child: SliderTheme(
             data: SliderTheme.of(context).copyWith(
               trackHeight: 3,
-              thumbShape: const RoundSliderThumbShape(
-                enabledThumbRadius: 6,
-              ),
-              overlayShape: const RoundSliderOverlayShape(
-                overlayRadius: 12,
-              ),
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
               activeTrackColor: colorScheme.primary,
               inactiveTrackColor: colorScheme.primary.withValues(alpha: 0.22),
               thumbColor: colorScheme.primary,
