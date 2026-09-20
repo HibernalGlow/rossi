@@ -149,7 +149,7 @@ class PageSourceRejected extends PageSourceOpen {
 /// 分类的意义在于下一步动作不同：「这本是固实 RAR，v0.1 打不开」和
 /// 「路径不存在」对用户是两件事，不该共用一句提示。
 enum PageSourceRejectionKind {
-  /// 扩展名不在 v0.1 范围内（7z / PDF / 视频……）。
+  /// 不支持的来源格式（7z / PDF 等）。
   unknownFormat,
 
   /// 固实（solid）RAR：读第 N 页要解压前 N-1 页。

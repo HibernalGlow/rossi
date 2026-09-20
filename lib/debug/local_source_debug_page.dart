@@ -1865,7 +1865,7 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
     final (icon, hint) = switch (r.kind) {
       LocalRejectionKind.unknownFormat => (
         Icons.help_outline,
-        'v0.1 只认散图文件夹 / CBZ / CBR。7z、PDF、视频都在这条线之外。',
+        '支持图片 / 视频文件、文件夹及 CBZ / CBR；暂不支持 7z、PDF。',
       ),
       LocalRejectionKind.rarSolid => (
         Icons.compress,
@@ -1919,6 +1919,7 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
     LocalSourceKind.folder => '散图文件夹',
     LocalSourceKind.zip => 'ZIP 归档',
     LocalSourceKind.rar => 'RAR 归档',
+    LocalSourceKind.mediaFile => '图片 / 视频文件',
   };
 }
 

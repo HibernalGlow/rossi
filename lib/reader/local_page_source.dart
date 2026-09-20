@@ -4,7 +4,7 @@ import 'package:path/path.dart' as p;
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/src/rust/api/local.dart';
 
-/// 本地来源（散图文件夹 / CBZ / CBR）在 [PageSource] 上的实现。
+/// 本地来源（图片/视频文件、文件夹、CBZ / CBR）在 [PageSource] 上的实现。
 ///
 /// # 它同时是**会话的唯一持有者**
 ///
@@ -24,10 +24,11 @@ class LocalPageSource implements PageSource {
   /// 位置参数而不是命名参数：字段是私有的，而**命名参数不能以下划线开头**，
   /// 于是「命名 + 私有字段」只能退化成初始化列表赋值（会被 lint 判为多余）。
   /// 这个构造函数本来也只有内部调用点，不值得为它换一套字段命名。
-  LocalPageSource._(this._id, this._path, this._pages);
+  LocalPageSource._(this._id, this._path, this._kind, this._pages);
 
   final BigInt _id;
   final String _path;
+  final LocalSourceKind _kind;
   final List<PageRef> _pages;
 
   bool _closed = false;
@@ -67,9 +68,10 @@ class LocalPageSource implements PageSource {
       return PageSourceRejected(
         kind: PageSourceRejectionKind.empty,
         message: switch (info.kind) {
-          LocalSourceKind.folder => '这个文件夹里没有可显示的图片',
-          LocalSourceKind.zip => '这个压缩包里没有可显示的图片',
-          LocalSourceKind.rar => '这个压缩包里没有可显示的图片',
+          LocalSourceKind.folder => '这个文件夹里没有可显示的图片或视频',
+          LocalSourceKind.zip => '这个压缩包里没有可显示的图片或视频',
+          LocalSourceKind.rar => '这个压缩包里没有可显示的图片或视频',
+          LocalSourceKind.mediaFile => '这个文件没有可显示的页面',
         },
       );
     }
@@ -78,7 +80,9 @@ class LocalPageSource implements PageSource {
       for (final LocalPageInfo page in pages)
         PageRef(index: page.index, name: page.name, size: page.size),
     ];
-    return PageSourceOpened(LocalPageSource._(info.id, info.path, refs));
+    return PageSourceOpened(
+      LocalPageSource._(info.id, info.path, info.kind, refs),
+    );
   }
 
   @override
@@ -141,8 +145,13 @@ class LocalPageSource implements PageSource {
 
   @override
   Future<String?> getPageFilePath(int index) async {
-    if (index < 0 || index >= _pages.length) return null;
-    final file = File(p.join(_path, _pages[index].name));
+    if (_closed || index < 0 || index >= _pages.length) return null;
+    final file = switch (_kind) {
+      LocalSourceKind.mediaFile => File(_path),
+      LocalSourceKind.folder => File(p.join(_path, _pages[index].name)),
+      LocalSourceKind.zip || LocalSourceKind.rar => null,
+    };
+    if (file == null) return null;
     if (file.existsSync()) {
       return file.path;
     }
