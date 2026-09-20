@@ -20,6 +20,9 @@ class RayMenuController extends ChangeNotifier {
 
   /// Forward an existing pointer when the host owns pointer routing.
   /// Prefer [RayMenu.openingPointer] for overlays opened during pointer-down.
+  ///
+  /// 宿主转交与 [RayMenu.openingPointer] 的全局路由可以同时存在：一次抬起被两条路
+  /// 都送到时只会确认一次，动作不会执行两遍。
   void handlePointerEvent(PointerEvent event) => _state?._handlePointer(event);
 
   void _attach(RayMenuState state) {
@@ -42,6 +45,18 @@ class RayMenuController extends ChangeNotifier {
 ///
 /// All rings are visible by default. Selection is controlled: [onSelected]
 /// decides whether to remove the menu or replace [rings] for a menu jump.
+///
+/// ## 指针手感（与 neoview 同一口径）
+///
+/// - **按下即开**：轮盘在指针按下的那一刻就被插进 Overlay，所以它的整个生命周期里
+///   「按下」只可能是**新的一次**按下（唤出那一次在它挂载之前就发生了）。
+/// - 按住拖动：高亮跟着指针走；**在某一格上松手就执行那一格**；松在中心空洞里 = 取消。
+/// - 按下就松、中间没动过：那是「开出来」而不是「想取消」，**不执行也不关**。
+/// - 轮盘开着时**再按一次右键 = 关掉**。
+/// - 唤出那次手势的 move/up/cancel 有两条来路：本组件用 [RayMenu.openingPointer]
+///   注册的全局路由，以及宿主用 [RayMenuController.handlePointerEvent] 的转交。
+///   宿主在按下时的命中路径上（阅读器就是这样），比全局路由更稳 —— 全局路由要等
+///   本组件挂载之后才注册，按下与抬起挨得极近时那一次抬起会漏掉。
 class RayMenu extends StatefulWidget {
   const RayMenu({
     super.key,
@@ -112,6 +127,12 @@ class RayMenuState extends State<RayMenu> with SingleTickerProviderStateMixin {
   Timer? _hold;
   int? _openingPointer;
   int? _activePointer;
+
+  /// 这次手势是否已经「用掉」（确认过、取消过，或判定为「按下即松」）。
+  ///
+  /// 抬起可能从两条路进来 —— 组件的全局路由与宿主转交（
+  /// [RayMenuController.handlePointerEvent]）—— 没有这个闩，同一个动作会执行两遍。
+  var _confirmed = false;
   Offset? _openingPosition;
   var _openingMoved = false;
   var _expanded = false;
@@ -178,6 +199,9 @@ class RayMenuState extends State<RayMenu> with SingleTickerProviderStateMixin {
   }
 
   void _unrouteOpeningPointer() {
+    // 只有登记过才撤：`dispose` 与「抬起」都会走到这里，第二次撤会撞上
+    // `PointerRouter.removeGlobalRoute` 的断言（它要求路由还在表里）。
+    if (_openingPointer == null) return;
     GestureBinding.instance.pointerRouter.removeGlobalRoute(
       _routeOpeningPointer,
     );
@@ -193,8 +217,10 @@ class RayMenuState extends State<RayMenu> with SingleTickerProviderStateMixin {
     }
     if (event is PointerUpEvent && !_openingMoved) {
       // A quick right-click opens the menu, even if edge fitting shifted it.
+      // 这根指针这次手势就此结束：宿主转交进来同一个抬起时不该再确认一遍。
       _hold?.cancel();
       _activePointer = null;
+      _confirmed = true;
       _unrouteOpeningPointer();
       return;
     }
@@ -206,15 +232,32 @@ class RayMenuState extends State<RayMenu> with SingleTickerProviderStateMixin {
   void _handlePointer(PointerEvent event) {
     if (!mounted) return;
     if (event is PointerDownEvent) {
-      if (_activePointer != null) return;
+      // 新的一次按下 = 「这一轮交互现在归这根指针」。同 id 要能重新接管：上一轮
+      // 有可能整段都没被我们看见（抬起早于浮层挂载），那时 `_activePointer` 会一直
+      // 挂着一根已经不存在的指针，把后面所有输入都挡掉。不同 id 的多指按下忽略。
+      if (_activePointer != null && _activePointer != event.pointer) return;
       _activePointer = event.pointer;
+      // 「再按一次右键」= 关掉它。宿主只把**新的**按下送到这里（唤出那一次按下是
+      // 浮层挂载之前发生的，到不了浮层），所以这里看到的按下一定是「再来一次」。
+      // 已经用掉的这次手势不能再确认，否则会在关掉之后又执行一次指针下的那一格。
+      if (event.buttons & kSecondaryButton != 0) {
+        _confirmed = true;
+        widget.onDismiss();
+        return;
+      }
+      _confirmed = false;
       _startHold();
     } else if (event is! PointerHoverEvent && event.pointer != _activePointer) {
-      return;
+      // 没有认领过的指针也要接下：宿主拥有指针路由时会用
+      // [RayMenuController.handlePointerEvent] 把唤出那次手势转交进来，而那条路
+      // 不一定带 `openingPointer`。丢掉它 = 「拖到某一格松手什么也不发生」。
+      if (_activePointer != null) return;
+      _activePointer = event.pointer;
     }
     if (event is PointerCancelEvent) {
       _hold?.cancel();
       _activePointer = null;
+      _confirmed = true;
       widget.onDismiss();
       return;
     }
@@ -236,6 +279,10 @@ class RayMenuState extends State<RayMenu> with SingleTickerProviderStateMixin {
     if (event is PointerUpEvent) {
       _hold?.cancel();
       _activePointer = null;
+      // 同一次手势的抬起只确认一次：全局路由与宿主转交是两条并行的路，
+      // 都送到这里时不能把同一个动作执行两遍。
+      if (_confirmed) return;
+      _confirmed = true;
       _confirm();
     }
   }

@@ -33,6 +33,34 @@ class RayMenuGeometry {
   final double gap;
   final double ringGap;
   final RayMenuVariant variant;
+
+  /// 值语义：宿主常在 `build` 里现造一份几何（`readerRayGeometry(doc)` 那样），
+  /// 没有 `==` 时 [RayMenuState.didUpdateWidget] 会把每次重建都当成「形状变了」，
+  /// 于是重建布局、清掉当前高亮 —— 表现为拖动时高亮一闪一闪。
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RayMenuGeometry &&
+          other.radius == radius &&
+          other.innerRadius == innerRadius &&
+          other.ringWidth == ringWidth &&
+          other.startAngle == startAngle &&
+          other.sweepAngle == sweepAngle &&
+          other.gap == gap &&
+          other.ringGap == ringGap &&
+          other.variant == variant;
+
+  @override
+  int get hashCode => Object.hash(
+    radius,
+    innerRadius,
+    ringWidth,
+    startAngle,
+    sweepAngle,
+    gap,
+    ringGap,
+    variant,
+  );
 }
 
 class RayMenuSlot {
