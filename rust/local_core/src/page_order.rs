@@ -308,7 +308,11 @@ mod tests {
         let body = &text[start..end];
         let dart_exts: std::collections::BTreeSet<String> = body
             .split('\'')
-            .filter(|s| !s.is_empty() && s.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit()))
+            .filter(|s| {
+                !s.is_empty()
+                    && s.chars()
+                        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
+            })
             .map(str::to_string)
             .collect();
         let rust_exts: std::collections::BTreeSet<String> =

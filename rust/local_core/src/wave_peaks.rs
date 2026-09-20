@@ -44,19 +44,13 @@ pub const PRE_ROLL_SECS: f64 = 0.75;
 ///
 /// 失败（容器不认识 / 没有音轨）返回 `Err`，由 UI 退化成「不画波形条」——
 /// 这条功能整条都是装饰，绝不该让一个视频播不了。
-pub fn wave_peaks(
-    path: &Path,
-    start: f64,
-    end: f64,
-    bin_secs: f64,
-) -> Result<Vec<f32>> {
+pub fn wave_peaks(path: &Path, start: f64, end: f64, bin_secs: f64) -> Result<Vec<f32>> {
     let bin = bin_secs.max(MIN_BIN_SECS);
     let start = start.max(0.0);
     let end = if end > start + bin { end } else { start + bin };
     let pre_start = (start - PRE_ROLL_SECS).max(0.0);
 
-    let file =
-        std::fs::File::open(path).with_context(|| format!("打不开 {}", path.display()))?;
+    let file = std::fs::File::open(path).with_context(|| format!("打不开 {}", path.display()))?;
     let mss = MediaSourceStream::new(Box::new(file), Default::default());
 
     let mut hint = Hint::new();
@@ -312,8 +306,7 @@ mod tests {
         for index in 0..frames {
             let t = index as f64 / rate as f64;
             let amp = if t < seconds / 2.0 { 0.6 } else { 0.05 };
-            let sample =
-                (amp * (2.0 * std::f64::consts::PI * 220.0 * t).sin() * 32767.0) as i16;
+            let sample = (amp * (2.0 * std::f64::consts::PI * 220.0 * t).sin() * 32767.0) as i16;
             data.extend_from_slice(&sample.to_le_bytes());
         }
         let mut bytes: Vec<u8> = Vec::new();
