@@ -66,18 +66,19 @@
 
 **页面结构**
 - `lib/page/comic_info/view/comic_info.dart:37` `ComicInfoPage`（`@RoutePage`, Stateless）→ `MultiBlocProvider:58` → `_ComicInfo`，build 在 `:138`
-- `:150` `Scaffold`，`:151` 普通 `AppBar`（不是 SliverAppBar）；body 是 `:414` `CustomScrollView`，首个 sliver `ComicPreviewSliver`（`:533`）
-- `:572` `_constrainedSliver` 把内容居中限宽 1120 —— **rail 可以站在这 1120 之外的余量里**，宽窗口下不吃正文宽度
+- `:150` `Scaffold`，`:151` 普通 `AppBar`（不是 SliverAppBar）；body 是 `:404` `CustomScrollView`，首个 sliver `ComicPreviewSliver`（`:523`）
+- `:562` `_constrainedSliver` 把内容居中限宽 1120 —— **rail 可以站在这 1120 之外的余量里**，宽窗口下不吃正文宽度
 - 该页可内嵌为发现页标签：`lib/page/discover/service/discover_router.dart:321`、`:341`
 
 **返回 / 顶栏那几颗**（全是本页自绘，不走共享顶栏）
 - 返回 `comic_info.dart:152-158`，走 `popTabOrClose(context, otherwise: context.pop)` —— 住在标签里时关**当前标签**，直接 `context.pop()` 会弹掉压着详情页的那一整页
-- 首页 `:162`（同样先问 `DiscoverTabScope.maybeOf`）、关注 `:177`、更多菜单 `FluentPopupMenuButton`
+- 首页 `:162-172`（同样先问 `DiscoverTabScope.maybeOf`）、关注 `:174-189`、更多菜单 `FluentPopupMenuButton:190`
 - `WorkspaceTopChrome`（`lib/workspace/widgets/chrome/workspace_top_chrome.dart:62`）**只服务工作台**，详情页与它无关
 
 **动作全集**（rail 要照搬的就是这些）
 - 操作行清单：`lib/page/comic_info/widgets/comic_operation.dart:132-180` —— 点赞 `:134`、评论 `:141`、收藏 `:147`（本地 `:123` / 云端 `:117` 二选一）、阅读卡 `:150-159`（仅 `widget.onRead != null` 时出现）、下载 `:160-170`（**带长按选章节** `onLongPress: _openDownloadChapterPicker`）、磁力复制 `:173-179`（`magnet.isEmpty` 时整项不渲染）
-- 页内私有方法：`_startReading:362`、`_toggleFollow:757`、`_toggleFollowFromMenu:780`、`_handleExport:696`、`_toggleOrder:755`
+- 页内私有方法：`_startReading:352`、`_handleExport:686`、`_toggleOrder:745`、`_toggleFollow:747`、`_toggleFollowFromMenu:770`
+- 触摸端「阅读」那颗悬浮按钮：`floatingActionButton:334`（`floatingActionButtonLocation:328`），内嵌 `:1187` 另有一处 `>= 960` 阈值
 - 可用性来自状态：`allowLike` / `allowComments` / `allowDownload` / `isCollected` / `hasHistory` / `isLiked`
 
 **rail / 底部条的先例**
@@ -151,13 +152,16 @@
 
 ## 9. 开工前必读：并发风险
 
-`git status` 当前 **82 个文件未提交（+4973 / −3130）**，其中正好包括本方案的落点：
+`git status` 当时 **82 个文件未提交（+4973 / −3130）**，覆盖本方案的全部落点。01:42 复验时那批已被**另一会话自己提交掉了**：`1b400912..HEAD` 共 14 个提交、97 文件 / +11006 / −3045，含 `feat(debug): 可关的布局溢出斜纹与 QuietRow`、`feat(comic_info): 磁力链接复制入口`、`feat(binding): 滚轮输入按实测设备录入`、`refactor(discover): 标签落到 plat 的标签组`。
 
-`lib/page/comic_info/view/comic_info.dart`、`widgets/comic_operation.dart`、`widgets/comic_preview.dart`、`lib/config/global/global_setting.dart`（含 `.freezed.dart` / `.g.dart`）、`lib/network/sync/sync_service.dart`、`docs/settings-sync-scope.md`、`lib/i18n/en_US.i18n.json` + `zh_CN.i18n.json` + 三份 `strings_*.g.dart`、`lib/page/discover/*`。
+仓库**从头到尾没有过冲突状态**：无 `MERGE_HEAD` / rebase / 未合并路径，`git diff --diff-filter=U` 与 `git ls-files -u` 都空，`main` 对 `origin/main` 只是本地领先（无远端分叉），`flutter analyze lib` 为 No issues。**教训：没核对过 `git ls-files -u` 之前，不要把「脏」说成「冲突」。** 上面那句「必冲突」按字面读是错的，原文留在 §9 历史里当提醒。
 
-车道 D（设置块 + 同步范围）与车道 I（i18n）和这批改动**必冲突**。开工前先确认这批在途改动落地或提交；否则先把上面的行号当近似值，动手前对目标文件重跑一次 `git diff --stat`。
+本节行号已按 14 个提交落地后的树重定（`comic_info.dart` 里 `_startReading` 及其以下整体前移 10 行）。但**另一会话还在提交**（`36692730` 落在 01:42:29，比我最后一次 mtime 检查只晚 20 秒 —— mtime 静默检测看不见 `git commit`），开工前必须重跑：
 
-> 2026-09-21 实测订正：这批不是冲突，是**另一件事正在写**（`comic_read_button.dart` / `comic_quick_read.dart` / 各 `search_bar.dart` / `library_entry*` = 卡片直接阅读按钮，见 `docs/cover-read-button-acceptance.md`）。仓库当时**没有任何冲突状态**（无 `MERGE_HEAD`/rebase/未合并路径，`main` 与 `origin/main` 为 0/0），`flutter analyze lib` 也是 No issues。上面「必冲突」的判断按字面读是错的，留在这里当提醒：**没核对过 `git ls-files -u` 之前不要把「脏」说成「冲突」。**
+- `git log -1 --format='%h %cd'` + `git diff --stat 1b400912..HEAD` 确认有没有又落了新东西；
+- 对目标文件重跑 `git diff --stat`，行号当近似值用。
+
+**当前在途的那件事本方案不要去碰**：「卡片/封面直接阅读按钮」= `lib/widgets/comic_simplify_entry/comic_read_button.dart`、`lib/util/comic/comic_quick_read.dart`、`comic_simplify_entry.dart`、`library_entry*`、`favorite_shelf_card.dart`、`history_shelf_card.dart`、`comic_follow_page.dart`、`all_chip.dart`、`go_to_comic_read.dart`、`comic_card_badge_policy.dart` + 各自测试，验收在 `docs/cover-read-button-acceptance.md`。车道 F 与 G 要改 `comic_info.dart` 的 `floatingActionButton:` 那一段 —— **等它落地再动**，否则两边改同一处。
 
 ## 10. 顺手记下的既有债（与本方案无关，别去追）
 
