@@ -6,9 +6,15 @@
 ///
 /// 繁简转换（`t2s`）走 Rust，纯 Dart 侧碰不到，所以归一化函数由调用方注入：
 /// 卡片传 `t2s`，判据传默认的小写化。
+///
+/// 唯一引进来的应用侧依赖是 [isLocalComicSource]（`util/path_util.dart`，只吃
+/// `package:path`）——「这条记录是不是本地的」必须与 `openComicItem` 点开时用的
+/// 是同一个判据，否则行上写着「本地」、点下去却进了详情页。
 library;
 
 import 'dart:convert';
+
+import 'package:zephyr/util/path_util.dart';
 
 /// 可排序的字段。四个字段都是「条目自己有的东西」，不需要问图源。
 enum ShelfSortField { title, author, source, time }
@@ -99,6 +105,68 @@ String shelfCreatorName(String raw) {
   } catch (_) {}
   return trimmed;
 }
+
+/// 本地漫画在行上的来源标记。库里存的 `source` 是 `local` 或整条路径，照插件
+/// 那一套大写会显示成「LOCAL」甚至一长串 `/storage/emulated/0/…`。
+const String kShelfLocalSourceLabel = '本地';
+
+/// 归档后缀。本地漫画的章节名常常就是它自己的文件名，判「有没有重复书名」时
+/// 要先剥掉再比（`cp.zip` 与标题 `cp` 是同一个东西）。
+const List<String> _kArchiveExtensions = [
+  '.zip',
+  '.cbz',
+  '.cbr',
+  '.rar',
+  '.7z',
+  '.tar',
+];
+
+/// 把「这一本叫什么」压成一个可以相等比较的串：去尾部分隔符、取最后一段路径、
+/// 剥掉归档后缀、小写。
+String _shelfNameKey(String value) {
+  var text = value.trim();
+  if (text.isEmpty) return '';
+  while (text.endsWith('/') || text.endsWith('\\')) {
+    text = text.substring(0, text.length - 1);
+  }
+  final slash = text.lastIndexOf('/');
+  final backslash = text.lastIndexOf('\\');
+  final cut = slash > backslash ? slash : backslash;
+  if (cut >= 0) text = text.substring(cut + 1);
+  final lower = text.toLowerCase();
+  for (final ext in _kArchiveExtensions) {
+    if (lower.endsWith(ext) && lower.length > ext.length) {
+      return lower.substring(0, lower.length - ext.length);
+    }
+  }
+  return lower;
+}
+
+/// 要显示在标题下面的章节名；没有可说的信息时返回空串。
+///
+/// 本地漫画的「章节」就是它自己那个文件或目录（`cp.zip` 这一本的章节名就是
+/// `cp.zip`），标题行已经是同一个名字，第二行再写一遍纯属占地方。插件给的
+/// 章节名（`全1话 (37P)`）与书名不同，照原样留。
+String shelfChapterLabel({
+  required String title,
+  required String chapterTitle,
+}) {
+  final chapter = chapterTitle.trim();
+  if (chapter.isEmpty) return '';
+  final key = _shelfNameKey(chapter);
+  if (key.isEmpty || key == _shelfNameKey(title)) return '';
+  return chapter;
+}
+
+/// 来源标记：本地 ⇒ [kShelfLocalSourceLabel]，插件 ⇒ 插件 id 大写。
+String shelfSourceLabel({required String source, required String comicId}) {
+  if (isLocalComicSource(source, comicId)) return kShelfLocalSourceLabel;
+  return source.trim().toUpperCase();
+}
+
+/// 用 ` · ` 拼一行元信息，丢掉空段 —— 章节名判重之后不能留下孤零零的「 · 」。
+String joinShelfMeta(Iterable<String> parts) =>
+    parts.where((part) => part.trim().isNotEmpty).join(' · ');
 
 /// 搜索要扫的那一坨文本。口径照抄书架那边：id、标题、简介、作者、
 /// 标题元数据、标签元数据全都在内。

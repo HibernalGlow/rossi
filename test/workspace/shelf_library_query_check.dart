@@ -9,7 +9,10 @@
 //   2. **并列项的顺序必须稳定** —— 排序取负的时候容易把 key 兜底也一起取负，
 //      那样每次 ObjectBox 流推一遍，同名条目的顺序就自己换位置；
 //   3. **未分类 ≠ 全部**：空集与 null 是两种意思；
-//   4. **点同一字段翻转方向，换字段回到默认降序**。
+//   4. **点同一字段翻转方向，换字段回到默认降序**；
+//   5. **第二行不重复第一行** —— 本地漫画的「章节名」就是它自己的文件名
+//      （`cp.zip` 那一本的章节就叫 `cp.zip`），丢掉这一段之后剩下的段之间
+//      也不能留下孤零零的「 · 」。
 //
 // 没有 package:test 依赖（跟 `shelf_entry_menu_check.dart` 同一套路）。
 //
@@ -59,6 +62,9 @@ void main() {
   _searchThenSortPipeline();
   _creatorComesInTwoShapes();
   _haystackCoversEveryField();
+  _sourceLabelSaysLocalNotAPath();
+  _chapterDoesNotRepeatTheBookName();
+  _metaLineDropsEmptyParts();
 
   print('shelf_library_query_check: $_passed checks passed');
 }
@@ -209,4 +215,68 @@ void _searchThenSortPipeline() {
     sort: const ShelfSort(field: ShelfSortField.title, ascending: true),
   );
   check('全量按标题升序', _keys(byTitle).join() == 'bca');
+}
+
+void _sourceLabelSaysLocalNotAPath() {
+  check(
+    '插件来源就是插件 id 大写',
+    shelfSourceLabel(source: 'jm', comicId: '123456') == 'JM',
+  );
+  check(
+    '本地归档不显示成 LOCAL',
+    shelfSourceLabel(source: 'local', comicId: '/sdcard/cp.zip') == '本地',
+  );
+  check(
+    'source 存成整条路径也算本地',
+    shelfSourceLabel(source: '', comicId: r'D:\books\cp.zip') == '本地',
+  );
+  check(
+    '网络地址不算本地',
+    shelfSourceLabel(source: 'bika', comicId: 'https://x/1') == 'BIKA',
+  );
+}
+
+void _chapterDoesNotRepeatTheBookName() {
+  check(
+    '本地归档：章节名 = 文件名 ⇒ 不显示',
+    shelfChapterLabel(title: 'cp', chapterTitle: 'cp.zip') == '',
+  );
+  check(
+    '本地目录：章节名 = 目录名（无后缀）⇒ 不显示',
+    shelfChapterLabel(title: 'pages', chapterTitle: 'pages') == '',
+  );
+  check(
+    '章节名存成整条路径也算重复',
+    shelfChapterLabel(title: 'cp', chapterTitle: '/sdcard/Download/cp.zip') ==
+        '',
+  );
+  check(
+    '大小写与后缀写法不同仍是同一个名字',
+    shelfChapterLabel(title: 'CP', chapterTitle: 'cp.ZIP') == '',
+  );
+  check(
+    '插件给的章节名照原样留',
+    shelfChapterLabel(title: '航海王', chapterTitle: '全1话 (37P)') ==
+        '全1话 (37P)',
+  );
+  check(
+    '本地漫画里的真章节（子目录名）要留',
+    shelfChapterLabel(title: '某本', chapterTitle: '第3话') == '第3话',
+  );
+  check(
+    '没有章节 ⇒ 空串',
+    shelfChapterLabel(title: 'x', chapterTitle: '   ') == '',
+  );
+}
+
+void _metaLineDropsEmptyParts() {
+  check(
+    '丢掉重复章节后不留空段',
+    joinShelfMeta(['本地', '', 'P.3']) == '本地 · P.3',
+  );
+  check(
+    '照旧拼三段',
+    joinShelfMeta(['JM', '全1话 (37P)', 'P.14']) == 'JM · 全1话 (37P) · P.14',
+  );
+  check('全空 ⇒ 空串', joinShelfMeta(['', '  ']).isEmpty);
 }

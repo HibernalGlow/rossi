@@ -494,13 +494,13 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
     final theme = Theme.of(context);
     final cover = unifiedComicFromUnifiedFavorite(item).cover;
     final author = shelfCreatorName(item.creator);
-    final source = item.source.toUpperCase();
+    final source = shelfSourceLabel(source: item.source, comicId: item.comicId);
     final time = formatShelfTime(item.updatedAt);
     return LibraryEntry(
       key: item.uniqueKey,
       title: item.title,
       source: item,
-      subtitle: author.isEmpty ? '$source · $time' : '$source · $author',
+      subtitle: joinShelfMeta([source, author.isEmpty ? time : author]),
       tertiary: time,
       metaText: source,
       media:

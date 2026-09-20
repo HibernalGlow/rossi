@@ -219,13 +219,17 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
   LibraryEntry _row(UnifiedComicHistory item) {
     final theme = Theme.of(context);
     final cover = unifiedComicFromUnifiedHistory(item).cover;
-    final source = item.source.toUpperCase();
+    final source = shelfSourceLabel(source: item.source, comicId: item.comicId);
+    final chapter = shelfChapterLabel(
+      title: item.title,
+      chapterTitle: item.chapterTitle,
+    );
     final time = formatShelfTime(item.lastReadAt);
     return LibraryEntry(
       key: item.uniqueKey,
       title: item.title,
       source: item,
-      subtitle: _progressText(item),
+      subtitle: joinShelfMeta([source, chapter, 'P.${item.pageIndex + 1}']),
       tertiary: time,
       metaText: time,
       media:
@@ -253,11 +257,7 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
         color: theme.colorScheme.primary,
       ),
       thumbModes: LibraryViewMode.values.toSet(),
-      detailCells: [
-        item.chapterTitle.isEmpty ? '—' : item.chapterTitle,
-        source,
-        time,
-      ],
+      detailCells: [chapter.isEmpty ? '—' : chapter, source, time],
       trailing: IconButton(
         icon: const Icon(Icons.play_circle_outline_rounded, size: 22),
         color: theme.colorScheme.primary,
@@ -266,13 +266,6 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
         onPressed: () => _open(context, item),
       ),
     );
-  }
-
-  String _progressText(UnifiedComicHistory item) {
-    final page = 'P.${item.pageIndex + 1}';
-    return item.chapterTitle.isEmpty
-        ? '${item.source.toUpperCase()} · 第 ${item.pageIndex + 1} 页'
-        : '${item.chapterTitle} · $page';
   }
 
   void _open(BuildContext context, UnifiedComicHistory item) {
