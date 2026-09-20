@@ -64,24 +64,24 @@ use std::time::{Duration, Instant};
 
 use crate::enhance;
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 // 预取的**准入判决与目标次序都取自本地核心**，不在这边另立一套。
 // 那两条策略是从 mImageViewer 搬来的纯函数（`rossi_local_core::prefetch_policy`），
 // 而 Rossi 这边「滚动」= 翻页、「可见区待完成」= 当前页还没出图 —— 语义完全对上。
 // 自己手搓一份「延迟 + 一个布尔」只会得到它的退化版，而且迟早两边不一致。
 use rossi_local_core::{
-    LocalSource, PagePixels, PrefetchDecision, decide_prefetch_allowed,
-    interleaved_prefetch_positions,
+    decide_prefetch_allowed, interleaved_prefetch_positions, LocalSource, PagePixels,
+    PrefetchDecision,
 };
 
 use wgpu::hal::api::Dx12;
 // `Interface` 必须在作用域内，否则 `ID3D12Resource::cast()` 找不到方法。
+use windows::core::{Interface, PCWSTR};
 use windows::Win32::Foundation::{CloseHandle, GENERIC_ALL, HANDLE, WAIT_OBJECT_0};
 use windows::Win32::Graphics::Direct3D12::*;
 use windows::Win32::Graphics::Dxgi::Common::*;
 use windows::Win32::Graphics::Dxgi::IDXGIAdapter3;
 use windows::Win32::System::Threading::{CreateEventW, WaitForSingleObject};
-use windows::core::{Interface, PCWSTR};
 
 /// 呈现目标格式。
 ///

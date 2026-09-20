@@ -19,8 +19,8 @@
 //! 「画面还是原图、证据说用了超分图」的**假证据** —— 那时日志说成功、画面没换，
 //! 而所有断言都是绿的。
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 use rossi_local_core::PagePixels;
 
