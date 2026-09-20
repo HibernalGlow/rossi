@@ -33,6 +33,10 @@ Widget buildReadModeImage({
       ? entry.doc!.storageChapterId
       : entry.chapterId!;
 
+  // 视频自行管理画面。静态 GPU 图片与普通图片共用真实尺寸算出的缩放/旋转框。
+  final isVideo = entry.doc!.extern['isVideo'] == true;
+  final effectivePlaced = isVideo ? null : placed;
+
   final image = ReadImageWidget(
     key: ValueKey((
       entry.chapterId,
@@ -54,20 +58,20 @@ Widget buildReadModeImage({
     cacheIndex: cacheIndex,
     displayNumber: displayNumber,
     isColumn: isColumn,
-    imageAlignment: imageAlignment,
-    paintSize: placed?.paintSize,
+    imageAlignment: isVideo ? Alignment.center : imageAlignment,
+    paintSize: effectivePlaced?.paintSize,
   );
 
-  if (placed == null) return image;
+  if (effectivePlaced == null) return image;
 
   // 占位盒按**旋转后**的尺寸给，图片本身画在旋转前的尺寸上 —— 两者只差一次宽高交换。
   // 旋转放在这一层而不是 `ImageDisplay` 里，是因为本地 GPU 管线那条分支（`ImageSurface`）
-  // 走的是完全不同的绘制路径，只有包在这一层才能一起转起来。
+  // 走的是完全不同的绘制路径，放在外层才能让两条路径一起旋转。
   return SizedBox(
-    width: placed.boxSize.width,
-    height: placed.boxSize.height,
-    child: placed.quarterTurns == 0
+    width: effectivePlaced.boxSize.width,
+    height: effectivePlaced.boxSize.height,
+    child: effectivePlaced.quarterTurns == 0
         ? image
-        : RotatedBox(quarterTurns: placed.quarterTurns, child: image),
+        : RotatedBox(quarterTurns: effectivePlaced.quarterTurns, child: image),
   );
 }

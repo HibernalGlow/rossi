@@ -67,12 +67,12 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
         widget.pictureInfo.extern['localIndex'] as int? ?? widget.index;
     final String entryName =
         widget.pictureInfo.extern['videoEntryName'] as String? ??
-            widget.pictureInfo.path;
+        widget.pictureInfo.path;
     final siblings =
         (widget.pictureInfo.extern['videoSiblings'] as List<Object?>?)
-                ?.map((e) => '$e')
-                .toList(growable: false) ??
-            const <String>[];
+            ?.map((e) => '$e')
+            .toList(growable: false) ??
+        const <String>[];
     final sizeBytes = (widget.pictureInfo.extern['videoSize'] as int?) ?? 0;
     // 「当前页」的判据与 GPU 那条路同源：用 localIndex 比 currentSlot。
     // 双页模式下一个槽位会同时挂两页，两页都开播放器就是两条音频；
@@ -118,7 +118,9 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
           ),
           // 全屏按钮走泳道那条路（铺满窗口，不是操作系统全屏）：
           // 没有 scope 时（独立阅读页）就是 null，按钮不出现效果而不是乱调 API。
-          onFullscreen: ReaderFullscreenScope.maybeOf(context)?.onToggleFullscreen,
+          onFullscreen: ReaderFullscreenScope.maybeOf(
+            context,
+          )?.onToggleFullscreen,
         );
       },
     );
@@ -143,7 +145,8 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
       return _buildLocalVideoPage();
     }
     if (isLocalGpu) {
-      final int localIndex = widget.pictureInfo.extern['localIndex'] as int? ?? widget.index;
+      final int localIndex =
+          widget.pictureInfo.extern['localIndex'] as int? ?? widget.index;
       final session = LocalReadSession.instance;
       final source = session.currentSource;
       final presenter = session.getOrCreatePresenter();
@@ -356,7 +359,9 @@ class _NeighborPrefetchState extends State<_NeighborPrefetch> {
             '${physicalSize.width.round()}x${physicalSize.height.round()}';
         final bool alreadyRequested =
             _requestedIndex == widget.index && _requestedSize == sizeKey;
-        if (!alreadyRequested && physicalSize.width >= 1 && physicalSize.height >= 1) {
+        if (!alreadyRequested &&
+            physicalSize.width >= 1 &&
+            physicalSize.height >= 1) {
           _requestedIndex = widget.index;
           _requestedSize = sizeKey;
           // 不能在 build 里 await：下一帧再发。

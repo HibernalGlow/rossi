@@ -16,6 +16,28 @@ import 'package:zephyr/reader/super_resolution_input.dart';
 import 'package:zephyr/reader/super_resolution_queue.dart';
 import 'package:zephyr/reader/super_resolution_status.dart';
 
+/// 一次完成呈现的身份与画布尺寸；共享纹理 id 本身不能证明里面是哪一页。
+@immutable
+class GpuPresentedFrame {
+  const GpuPresentedFrame({
+    required this.source,
+    required this.index,
+    required this.physicalSize,
+    required this.textureId,
+  });
+
+  final PageSource source;
+  final int index;
+  final Size physicalSize;
+  final int textureId;
+
+  bool matches(PageSource source, int index, Size physicalSize) =>
+      identical(this.source, source) &&
+      this.index == index &&
+      this.physicalSize.width.round() == physicalSize.width.round() &&
+      this.physicalSize.height.round() == physicalSize.height.round();
+}
+
 /// GPU 呈现器的就绪状态与呈现目标 —— 从界面里搬出来的一份小状态机。
 ///
 /// # 它管什么
@@ -109,6 +131,11 @@ class GpuPresentController extends ChangeNotifier {
   Timer? _statsTimer;
   bool _disposed = false;
   bool _syncing = false;
+  GpuPresentedFrame? _presentedFrame;
+
+  /// 只在 show 完成后有效；重新打开/调整尺寸/翻页期间没有可复用的完成帧。
+  GpuPresentedFrame? get presentedFrame => _presentedFrame;
+  bool get isPresenting => _syncing;
 
   GpuPresentState _state = GpuPresentState.loading;
   String _error = '';
@@ -127,6 +154,9 @@ class GpuPresentController extends ChangeNotifier {
   Size? _pushedSize;
   int? _pushedWidth;
   int? _pushedHeight;
+
+  /// init 成功时的画布尺寸。与最后成功 show 的尺寸分开，失败重试时不能混用。
+  (int, int)? _initializedSize;
 
   /// 页数对不上的是**哪一个来源**（按实例身份，不按路径）。
   ///
@@ -339,54 +369,65 @@ class GpuPresentController extends ChangeNotifier {
     }
 
     // ── 已经同步就什么都不做（不然每帧一次 MethodChannel 往返）──
-    if (_pushedPath == source.path &&
+    if (identical(_lastPushedSource, source) &&
+        _pushedPath == source.path &&
         !_modelRefreshPending &&
         _pushedIndex == index &&
         _pushedWidth == width &&
         _pushedHeight == height &&
-        _mismatchSource == null) {
+        _mismatchSource == null &&
+        _presentedFrame != null) {
       return _textureId != null;
     }
 
-    _syncing = true;
+    _mutate(() {
+      _syncing = true;
+      _presentedFrame = null;
+    });
     // 从"决定干活"到"页真的交出去了"的整段，就是翻页的那一刻延迟。
     final Stopwatch roundTrip = Stopwatch()..start();
     bool pushed = false;
     try {
-      final GpuPresentStatus status = await _bridge.tryInit(
-        width: width,
-        height: height,
-      );
-      if (_disposed) {
-        return false;
-      }
-      if (status.state != GpuPresentState.ready) {
-        // 未就绪就维持现状：兜底路径继续显示，等看门狗那边报信。
-        //
-        // 两处细节都不能少：
-        // - **不把 ready 降回 loading**。`tryInit` 报 loading 往往是「刚建完呈现器、
-        //   Rust 后台线程还没收工」的正常竞态（~150 ms）。降级会让 `canPresent` 立刻
-        //   翻假，而 `canPresent` 正是「还会不会再调 [`present`]」的开关。
-        // - **重新武装看门狗**。它是唯一能把状态升回去的东西，而它可能已经退出过。
-        _mutate(() {
-          if (_state != GpuPresentState.ready) {
-            _state = status.state;
-          }
-          _error = status.error;
-        });
-        unawaited(_awaitReady());
-        return false;
-      }
+      if (_initializedSize != (width, height) ||
+          _textureId == null ||
+          !canPresent) {
+        final GpuPresentStatus status = await _bridge.tryInit(
+          width: width,
+          height: height,
+        );
+        if (_disposed) return false;
+        if (status.state != GpuPresentState.ready) {
+          _initializedSize = null;
+          // 未就绪就维持现状：兜底路径继续显示，等看门狗那边报信。
+          //
+          // 两处细节都不能少：
+          // - **不把 ready 降回 loading**。`tryInit` 报 loading 往往是「刚建完呈现器、
+          //   Rust 后台线程还没收工」的正常竞态（~150 ms）。降级会让 `canPresent` 立刻
+          //   翻假，而 `canPresent` 正是「还会不会再调 [`present`]」的开关。
+          // - **重新武装看门狗**。它是唯一能把状态升回去的东西，而它可能已经退出过。
+          _mutate(() {
+            if (_state != GpuPresentState.ready) {
+              _state = status.state;
+            }
+            _error = status.error;
+          });
+          unawaited(_awaitReady());
+          return false;
+        }
 
-      _mutate(() {
-        _textureId = status.textureId;
-        _state = GpuPresentState.ready;
-        _error = '';
-        _readyAfterMs ??= _since.elapsedMilliseconds;
-      });
+        _initializedSize = (width, height);
+        _mutate(() {
+          _textureId = status.textureId;
+          _state = GpuPresentState.ready;
+          _error = '';
+          _readyAfterMs ??= _since.elapsedMilliseconds;
+        });
+      }
 
       // ── 来源：两侧各开一份（像素不过桥的代价），所以页数必须对得上 ──
-      if (_pushedPath != source.path || _modelRefreshPending) {
+      if (!identical(_lastPushedSource, source) ||
+          _pushedPath != source.path ||
+          _modelRefreshPending) {
         // open 同一路径也会清空 native 增强轨。仅切书或换模型时执行，
         // 普通翻页继续使用预取缓存，不等待超分。
         _modelRefreshPending = false;
@@ -434,51 +475,42 @@ class GpuPresentController extends ChangeNotifier {
         });
       }
 
-      final bool samePage = _pushedIndex == index;
-      final bool sizeChanged =
-          _pushedWidth == null ||
-          _pushedHeight == null ||
-          (width - _pushedWidth!).abs() > 2 ||
-          (height - _pushedHeight!).abs() > 2;
-
-      if (!samePage || sizeChanged) {
-        await _bridge.show(index);
-        if (_disposed) {
-          return false;
-        }
-        pushed = true;
-        _mutate(() {
-          _pushedIndex = index;
-          _pushedSize = physicalSize;
-          _pushedWidth = width;
-          _pushedHeight = height;
-        });
+      // 未命中完成帧缓存就必须 show，包括只差 1 px 的尺寸变化和失败后的重试。
+      await _bridge.show(index);
+      if (_disposed) return false;
+      pushed = true;
+      roundTrip.stop();
+      _mutate(() {
+        _pushedIndex = index;
+        _pushedSize = physicalSize;
+        _pushedWidth = width;
+        _pushedHeight = height;
         _lastPushedSource = source;
+        _presentedFrame = GpuPresentedFrame(
+          source: source,
+          index: index,
+          physicalSize: Size(width.toDouble(), height.toDouble()),
+          textureId: _textureId!,
+        );
+        _lastPresentMs = roundTrip.elapsedMilliseconds;
+        _lastPresentIndex = index;
+        _presentCount++;
+      });
 
-        // 成功上屏（原图已零延迟展示）后，若开启了超分，异步把这一页换成超分图。
-        //
-        // 只在 `pushed` 里调（= 真的把一页交出去了）而不是每帧：这条路上要问一次
-        // 呈现器状态，而 `present` 本身是每帧被调的幂等操作。
-        if (_isUpscaleEnabled) {
-          unawaited(_scheduleEnhancements(source, index, width, height));
-        }
+      if (_isUpscaleEnabled) {
+        unawaited(_scheduleEnhancements(source, index, width, height));
       }
       return _textureId != null;
     } catch (error) {
+      // native 出错后重新确认目标，不能沿用可能已失效的 init 缓存。
+      _initializedSize = null;
       if (!_disposed) {
         _mutate(() => _error = '呈现失败: $error');
       }
       return false;
     } finally {
-      _syncing = false;
+      _mutate(() => _syncing = false);
       if (_modelRefreshPending && pushed) unawaited(_refreshModel());
-      roundTrip.stop();
-      // 只有真的把页交出去了才记 —— 早退那些调用没有延迟可言。
-      if (pushed) {
-        _lastPresentMs = roundTrip.elapsedMilliseconds;
-        _lastPresentIndex = index;
-        _presentCount++;
-      }
     }
   }
 
@@ -488,6 +520,47 @@ class GpuPresentController extends ChangeNotifier {
   /// 这一次** —— 页号会重复（连翻绕回第一页、反复点同一页），所以单靠"页号对得上"
   /// 会把上一轮的延迟算到这一轮头上。量具用这个计数判断"这一轮到底交了没有"。
   int get presentCount => _presentCount;
+
+  /// 超分替换和原图对比也会覆写共享纹理，必须与翻页/调整画布共用上屏锁。
+  Future<bool> _redrawCurrentPage(int index) async {
+    if (_disposed ||
+        _syncing ||
+        _pushedIndex != index ||
+        _presentedFrame == null) {
+      return false;
+    }
+    _mutate(() => _syncing = true);
+    try {
+      await _bridge.show(index);
+      if (_disposed) return false;
+      _mutate(() => _presentCount++);
+      return true;
+    } finally {
+      _mutate(() => _syncing = false);
+      if (_modelRefreshPending) unawaited(_refreshModel());
+    }
+  }
+
+  /// 已呈现页的原始尺寸，用于布局；不依赖是否开启超分，也不重新解码图片。
+  Future<Size?> sourceSizeFor(PageSource source, int index) async {
+    if (_disposed || !identical(_lastPushedSource, source)) return null;
+    final cached = _pageSourceSizes[index];
+    if (cached != null) return cached;
+    try {
+      final stats = await _bridge.stats();
+      if (_disposed || !identical(_lastPushedSource, source)) return null;
+      // macOS 和 Windows 的页下标字段名称不同。
+      final pageIndex = stats['currentIndex'] ?? stats['pageIndex'];
+      final width = stats.probeInt('sourceWidth');
+      final height = stats.probeInt('sourceHeight');
+      if (pageIndex != index || width <= 0 || height <= 0) return null;
+      final size = Size(width.toDouble(), height.toDouble());
+      _markSourceSize(index, size);
+      return size;
+    } catch (_) {
+      return null;
+    }
+  }
 
   /// 开关 native 侧的后台预取。
   ///
@@ -583,19 +656,16 @@ class GpuPresentController extends ChangeNotifier {
       // 直到用户再次翻页才会看到正确的轨道。
       final int? index = _pushedIndex;
       final bool wasOriginal = _originalPreview;
-      var redrawn = false;
       if (index != null && _textureId != null) {
         try {
-          await _bridge.show(index);
+          await _redrawCurrentPage(index);
           if (_disposed) return false;
-          redrawn = true;
         } catch (_) {
           // 旁路状态本身已经切换成功；下一次正常 present 会补画当前页。
         }
       }
       _mutate(() {
         _originalPreview = active;
-        if (redrawn) _presentCount++;
       });
 
       // 原图对比期间不做增强；切回后用现有缓存或继续未完成的推理补当前页。
@@ -1171,9 +1241,8 @@ class GpuPresentController extends ChangeNotifier {
     // 帧，再核对像素来源；若恰好读到了前一帧的诊断，立即再重画一次。
     for (var pass = 0; pass < 3; pass++) {
       if (!_acceptsEnhancement(epoch) || _pushedIndex != index) return false;
-      await _bridge.show(index);
+      if (!await _redrawCurrentPage(index)) return false;
       if (!_acceptsEnhancement(epoch)) return false;
-      _mutate(() => _presentCount++);
       if (pass > 0) {
         await Future<void>.delayed(const Duration(milliseconds: 16));
       }
@@ -1263,6 +1332,8 @@ class GpuPresentController extends ChangeNotifier {
     _originalPreview,
     _isUpscaleEnabled,
     _presentCount,
+    _presentedFrame,
+    _syncing,
     // 超分记账的版本号：三份 Map 原地改，靠它把「改过」带进快照里。
     _pageStatusRevision,
   );

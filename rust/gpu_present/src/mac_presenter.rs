@@ -25,9 +25,8 @@ use rossi_local_core::{
     compute_final_pipeline_keep_set, interleaved_prefetch_positions, LocalSource, PagePixels,
 };
 
-/// 留白背景色：BGRA 字节顺序对应 0xFF05050A（Rossi 深黑底色）。
-/// 小端序内存排布：B=0x0A, G=0x05, R=0x05, A=0xFF。
-pub const BACKGROUND_BGRA: [u8; 4] = [0x0A, 0x05, 0x05, 0xFF];
+/// 图片外透明，由 Flutter 绘制阅读器背景；预渲染帧补边也遵守同一约定。
+pub const BACKGROUND_BGRA: [u8; 4] = [0, 0, 0, 0];
 
 const PREFETCH_CAPACITY: usize = 16; // 视口预渲染帧保留 16 页（约 80 MB 内存，对齐 mImageViewer）
 const MAX_RAW_PIXELS_COUNT: usize = 3; // 240 MB 的全尺寸原图只保留最近 3 页，防内存溢出
@@ -48,7 +47,8 @@ pub struct PresentTimings {
 pub struct PreRenderedFrame {
     pub target_w: u32,
     pub target_h: u32,
-    pub bgra: Vec<u8>,
+    // 缓存命中只增加引用计数；不能在持缓存锁时深拷贝整张视口。
+    pub bgra: Arc<Vec<u8>>,
     pub stride: usize,
 }
 
@@ -59,6 +59,8 @@ pub struct PreRenderedFrame {
 struct CachedPage {
     index: usize,
     epoch: u64,
+    // 原图像素可被淘汰，但布局仍需要这页的宽高，不能沿用上一页的统计值。
+    source_size: Option<(u32, u32)>,
     raw_pixels: Option<Arc<PagePixels>>,
     enhanced_pixels: Option<Arc<PagePixels>>,
     pre_rendered_raw: Vec<PreRenderedFrame>,
@@ -70,6 +72,7 @@ impl CachedPage {
         Self {
             index,
             epoch,
+            source_size: pixels.as_ref().map(|p| (p.source_width, p.source_height)),
             raw_pixels: pixels,
             enhanced_pixels: None,
             pre_rendered_raw: Vec::new(),
@@ -277,6 +280,7 @@ impl PageCache {
             .position(|e| e.index == page.index && e.epoch == page.epoch)
         {
             if let Some(mut prev) = self.entries.remove(at) {
+                page.source_size = page.source_size.or(prev.source_size);
                 if page.enhanced_pixels.is_none() {
                     page.enhanced_pixels = prev.enhanced_pixels.take();
                 }
@@ -382,6 +386,7 @@ impl PageCache {
             .iter_mut()
             .find(|e| e.index == index && e.epoch == epoch)
         {
+            entry.source_size = Some((pixels.source_width, pixels.source_height));
             entry.raw_pixels = Some(pixels);
         }
     }
@@ -616,7 +621,7 @@ fn prefetch_worker_loop(
                                 pre_rendered.push(PreRenderedFrame {
                                     target_w: view.target_width,
                                     target_h: view.target_height,
-                                    bgra,
+                                    bgra: Arc::new(bgra),
                                     stride,
                                 });
                             }
@@ -681,7 +686,7 @@ fn prefetch_worker_loop(
                             let frame = PreRenderedFrame {
                                 target_w: view.target_width,
                                 target_h: view.target_height,
-                                bgra,
+                                bgra: Arc::new(bgra),
                                 stride,
                             };
                             if enhanced {
@@ -969,7 +974,7 @@ impl MacPresenter {
                 PreRenderedFrame {
                     target_w: target_width,
                     target_h: target_height,
-                    bgra,
+                    bgra: Arc::new(bgra),
                     stride,
                 },
             );
@@ -1145,7 +1150,7 @@ impl MacPresenter {
                     let frame = PreRenderedFrame {
                         target_w: target_width,
                         target_h: target_height,
-                        bgra,
+                        bgra: Arc::new(bgra),
                         stride,
                     };
                     if rendered_enhanced {
@@ -1160,6 +1165,17 @@ impl MacPresenter {
             self.last_source_height = p.source_height;
             self.last_decoded_width = p.width;
             self.last_decoded_height = p.height;
+        } else {
+            // 只命中预渲染帧时原图可能已释放，尺寸元数据仍须属于当前页。
+            let size = self.shared_cache.cache.lock().ok().and_then(|c| {
+                c.entries
+                    .iter()
+                    .find(|e| e.index == index && e.epoch == self.source_epoch)
+                    .and_then(|e| e.source_size)
+            });
+            (self.last_source_width, self.last_source_height) = size.unwrap_or_default();
+            self.last_decoded_width = 0;
+            self.last_decoded_height = 0;
         }
         let render_ms = t_render.elapsed().as_secs_f64() * 1000.0;
         self.last_prerender_hit = prerender_hit;
@@ -1259,7 +1275,7 @@ impl MacPresenter {
                     PreRenderedFrame {
                         target_w: target_width,
                         target_h: target_height,
-                        bgra,
+                        bgra: Arc::new(bgra),
                         stride,
                     },
                 );
@@ -1455,7 +1471,7 @@ mod tests {
         )
         .expect("GPU 重采样失败");
 
-        let bg = BACKGROUND_BGRA;
+        let bg = [0, 0, 0, 0];
         // y=0 行是上留白
         assert_eq!(&buffer[0..4], &bg);
 
@@ -1469,7 +1485,7 @@ mod tests {
         let frame = PreRenderedFrame {
             target_w: 10,
             target_h: 10,
-            bgra: vec![123u8; 10 * 10 * 4],
+            bgra: Arc::new(vec![123u8; 10 * 10 * 4]),
             stride: 40,
         };
 
@@ -1492,7 +1508,7 @@ mod tests {
         // 前 10 行应当完全匹配
         assert_eq!(&dst[0..400], &frame.bgra);
         // 第 11 行应当填充背景色
-        let bg = BACKGROUND_BGRA;
+        let bg = [0, 0, 0, 0];
         assert_eq!(&dst[400..404], &bg);
     }
 
@@ -1592,7 +1608,7 @@ mod tests {
             PreRenderedFrame {
                 target_w: 100,
                 target_h: 100,
-                bgra: vec![0u8; 100 * 4 * 100],
+                bgra: Arc::new(vec![0u8; 100 * 4 * 100]),
                 stride: 400,
             },
         );
@@ -1656,7 +1672,7 @@ mod tests {
         page.add_raw_frame(PreRenderedFrame {
             target_w: 100,
             target_h: 100,
-            bgra: vec![1; 100 * 100 * 4],
+            bgra: Arc::new(vec![1; 100 * 100 * 4]),
             stride: 400,
         });
         cache.insert(page);
@@ -1717,7 +1733,7 @@ mod tests {
             PreRenderedFrame {
                 target_w: 100,
                 target_h: 100,
-                bgra: vec![0u8; 400 * 100],
+                bgra: Arc::new(vec![0u8; 400 * 100]),
                 stride: 400,
             },
         );
@@ -1764,6 +1780,7 @@ mod tests {
 
         // 打开来源
         presenter.open(&temp_dir).expect("打开来源失败");
+        presenter.set_prefetch(false);
 
         // 1. 第一次 show：上屏原图（红色）
         let mut dst = vec![0u8; 100 * 4 * 100];
@@ -1783,6 +1800,27 @@ mod tests {
             presenter.stats_json().contains("\"usedEnhanced\":0"),
             "原图呈现时 usedEnhanced 应为 0，实际: {}",
             presenter.stats_json()
+        );
+
+        // 原图像素已释放、仅命中预渲染帧时，仍须上报当前页的原始尺寸。
+        {
+            let mut cache = presenter.shared_cache.cache.lock().unwrap();
+            cache
+                .entries
+                .iter_mut()
+                .find(|e| e.index == 0)
+                .unwrap()
+                .raw_pixels = None;
+        }
+        presenter.last_source_width = 1200;
+        presenter.last_source_height = 600;
+        presenter
+            .show_into_buffer(0, dst.as_mut_ptr(), 100 * 4, 100, 100)
+            .unwrap();
+        assert!(presenter.last_prerender_hit);
+        assert_eq!(
+            (presenter.last_source_width, presenter.last_source_height),
+            (4, 4)
         );
 
         // 2. 模拟超分 Worker 生成了绿色超分大图并注入

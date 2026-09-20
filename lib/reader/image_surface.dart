@@ -44,6 +44,7 @@ class ImageSurface extends StatefulWidget {
     required this.index,
     required this.presenter,
     this.onPathChanged,
+    this.onIntrinsicSize,
     this.slice = PageSlice.full,
   });
 
@@ -61,6 +62,9 @@ class ImageSurface extends StatefulWidget {
 
   /// 通路变化时的通知。界面用它显示「现在走的是哪条路」。
   final ValueChanged<ImageSurfacePath>? onPathChanged;
+
+  /// 原始像素尺寸，供阅读器按真实宽高比计算缩放和旋转。
+  final ValueChanged<Size>? onIntrinsicSize;
 
   @override
   State<ImageSurface> createState() => _ImageSurfaceState();
@@ -93,16 +97,16 @@ class _ImageSurfaceState extends State<ImageSurface> {
   ImageSurfacePath _path = ImageSurfacePath.cpu;
   ImageSurfacePath? _reportedPath;
 
-  /// [_cpuImage] 现在装的是**上一页**的图（新页还在解）。它只用于顶住那几帧，
-  /// 不能当成「这一页已就绪」—— 所以 `(source, index, width)` 那套严格比对
-  /// 完全不看这个标志。
-  bool _staleCpuImage = false;
-
   Size? _physicalSize;
+  (PageSource, int)? _sizeRequest;
+  (PageSource, int, Size)? _reportedSize;
 
   GpuPresentState? _lastKnownState;
   int? _lastKnownTextureId;
   int _lastKnownPresentCount = 0;
+  bool _lastKnownPresenting = false;
+  bool _syncing = false;
+  (GpuPresentController, PageSource, int, Size)? _failedGpuRequest;
 
   @override
   void initState() {
@@ -110,18 +114,8 @@ class _ImageSurfaceState extends State<ImageSurface> {
     _lastKnownState = widget.presenter.state;
     _lastKnownTextureId = widget.presenter.textureId;
     _lastKnownPresentCount = widget.presenter.presentCount;
+    _lastKnownPresenting = widget.presenter.isPresenting;
     widget.presenter.addListener(_onPresenterChanged);
-    // 起始通路：呈现器已就绪、纹理也注册了就直接从 GPU 路起步。
-    //
-    // 这一步专门用来消掉翻页时那一瞬的**漏底色**：本节点是随 slot 新建的，
-    // 若从 cpu 路起步，在 `_sync` 那一串跨语言往返完成之前页面区域里什么都没有，
-    // 漏出来的是外层背景（阅读器根 Scaffold 在浅色主题下就是白的），表现就是
-    // 翻页闪白。而那张共享纹理里**本来就有画面**（上一页），先把它画上，
-    // 视觉上就是无缝换页，等 `_sync` 推完新页再换掉即可。
-    if (widget.presenter.canPresent && widget.presenter.textureId != null) {
-      _path = ImageSurfacePath.gpu;
-      _reportedPath = ImageSurfacePath.gpu;
-    }
   }
 
   @override
@@ -131,6 +125,8 @@ class _ImageSurfaceState extends State<ImageSurface> {
       oldWidget.presenter.removeListener(_onPresenterChanged);
       _lastKnownState = widget.presenter.state;
       _lastKnownTextureId = widget.presenter.textureId;
+      _lastKnownPresentCount = widget.presenter.presentCount;
+      _lastKnownPresenting = widget.presenter.isPresenting;
       widget.presenter.addListener(_onPresenterChanged);
     }
     if (!identical(oldWidget.source, widget.source) ||
@@ -141,11 +137,7 @@ class _ImageSurfaceState extends State<ImageSurface> {
       _failedSource = null;
       _failedIndex = null;
       _failureMessage = null;
-      // 但**已解好的位图先留着**（不 `_releaseCpuImage`）：它是上一页的面孔，
-      // 而新一页要等一次解码。把它擦掉，中间那几帧就只剩外层背景色可看 ——
-      // 那就是闪白。留着它就是「旧图 → 新图」，而不是「旧图 → 白 → 新图」。
-      // 旧图会在新图就位时或被 dispose 时释放。
-      _staleCpuImage = true;
+      _releaseCpuImage();
     }
   }
 
@@ -165,46 +157,47 @@ class _ImageSurfaceState extends State<ImageSurface> {
     final GpuPresentState newState = widget.presenter.state;
     final int? newTex = widget.presenter.textureId;
     final int newCount = widget.presenter.presentCount;
-    // 呈现器状态、纹理或者上屏帧计数变了均触发重绘，保证原子替换毫秒级刷新
+    final bool presenting = widget.presenter.isPresenting;
+    final bool finishedPresenting = _lastKnownPresenting && !presenting;
     if (newState != _lastKnownState ||
         newTex != _lastKnownTextureId ||
-        newCount != _lastKnownPresentCount) {
-      final bool stateOrTextureChanged =
-          newState != _lastKnownState || newTex != _lastKnownTextureId;
+        newCount != _lastKnownPresentCount ||
+        presenting != _lastKnownPresenting) {
+      if (newState != _lastKnownState || newTex != _lastKnownTextureId) {
+        _failedGpuRequest = null;
+      }
       _lastKnownState = newState;
       _lastKnownTextureId = newTex;
       _lastKnownPresentCount = newCount;
+      _lastKnownPresenting = presenting;
       setState(() {});
-      final Size? size = _physicalSize;
-      if (size != null && stateOrTextureChanged) {
-        unawaited(_sync(size));
+      if (finishedPresenting) {
+        // 等待旧节点上屏的最新页直接接棒，省去 build → 下一帧回调的等待。
+        // 用微任务退出控制器通知栈，尺寸/页码仍由 _sync 再次核对。
+        scheduleMicrotask(() {
+          final size = _physicalSize;
+          if (mounted && size != null) unawaited(_sync(size));
+        });
       }
     }
   }
 
-  /// 每帧布局后调一次：把「来源 / 页码 / 目标尺寸」推给 native 侧，
-  /// 或者在还没就绪（或这一份来源不可用）时把兜底位图准备好。
-  ///
-  /// # 顺序：先推、后决定走哪条路
-  ///
-  /// 「纹理注册了没有」只有 [GpuPresentController.present] 能回答（`init` 是在
-  /// 那里面调的）。所以不能先判「有没有纹理」再决定推不推 —— 那是个环，
-  /// 结果是永远停在兜底路、native 侧一次都没被调过。
-  /// 正确的顺序是：**就绪就推；推成功才切 GPU**。
-  ///
-  /// 于是一次 `_sync` 里可能出现三种结局，它们对界面的含义完全不同：
-  /// - 推成功 → 走 GPU；
-  /// - 推不成功但**纹理还在、来源也没问题** → 留在 GPU 不动。这多半是上一次推
-  ///   还在飞（同一帧里 `build` 与 [GpuPresentController] 的通知都会调到这里）。
-  ///   此时拆掉 GPU 路去解一张兜底位图，会在拖窗口时闪一下 —— 那正是要避免的；
-  /// - 其余 → 走 CPU 兜底。
+  /// 把目标推给 native；完成后的来源、页码和尺寸必须仍是当前请求。
+  /// mimage 的旧帧有独立纹理和布局；这里的共享纹理会被覆盖，不能作为旧帧占位。
   Future<void> _sync(Size physicalSize) async {
-    if (!mounted) {
+    if (!mounted || _physicalSize != physicalSize || _syncing) {
       return;
     }
-    _physicalSize = physicalSize;
     final PageSource source = widget.source;
     final int index = widget.index;
+    final presenter = widget.presenter;
+    final request = (presenter, source, index, physicalSize);
+    bool isCurrent() =>
+        mounted &&
+        identical(widget.presenter, presenter) &&
+        identical(widget.source, source) &&
+        widget.index == index &&
+        _physicalSize == physicalSize;
 
     if (_indexOutOfRange) {
       // 父层算错了下标。**不要去取页**：越界请求会返回一条与真实原因无关的
@@ -213,14 +206,26 @@ class _ImageSurfaceState extends State<ImageSurface> {
       return;
     }
 
-    if (widget.presenter.canPresent &&
-        widget.presenter.mismatchFor(source) == null) {
-      final bool ready = await widget.presenter.present(
-        source: source,
-        index: index,
-        physicalSize: physicalSize,
-      );
-      if (!mounted) {
+    if (presenter.canPresent &&
+        presenter.mismatchFor(source) == null &&
+        _failedGpuRequest != request) {
+      // 另一节点的旧请求仍在飞。完成通知会重建当前节点并补推最新目标。
+      if (presenter.isPresenting) return;
+      _syncing = true;
+      final bool ready;
+      try {
+        ready = await presenter.present(
+          source: source,
+          index: index,
+          physicalSize: physicalSize,
+        );
+      } finally {
+        _syncing = false;
+      }
+      if (!isCurrent()) {
+        // 布局/页码已变化，直接补推最后的目标；过期结果不会挂回显示树。
+        final latestSize = _physicalSize;
+        if (mounted && latestSize != null) unawaited(_sync(latestSize));
         return;
       }
       if (ready) {
@@ -230,16 +235,11 @@ class _ImageSurfaceState extends State<ImageSurface> {
         // （`_releaseCpuImage` 只管已经解出来的那张，管不到在飞的）。
         _loadToken++;
         _releaseCpuImage();
+        unawaited(_reportGpuSize(source, index));
         return;
       }
-      // 推不成功时**重新问一次**：`present` 自己也可能刚记下一个"两侧对不上"，
-      // 那必须回落兜底 —— 拿一张可能属于另一份来源的纹理当画面，
-      // 表现就是「页码和画面对不上」。
-      if (widget.presenter.textureId != null &&
-          widget.presenter.mismatchFor(source) == null) {
-        _switchTo(ImageSurfacePath.gpu);
-        return;
-      }
+      if (presenter.isPresenting) return;
+      _failedGpuRequest = request;
     }
 
     _switchTo(ImageSurfacePath.cpu);
@@ -249,6 +249,34 @@ class _ImageSurfaceState extends State<ImageSurface> {
   /// 父层给的页码超出了这个来源的范围。
   bool get _indexOutOfRange =>
       widget.index < 0 || widget.index >= widget.source.pageCount;
+
+  Future<void> _reportGpuSize(PageSource source, int index) async {
+    if (widget.onIntrinsicSize == null ||
+        _sizeRequest == (source, index) ||
+        (_reportedSize?.$1 == source && _reportedSize?.$2 == index)) {
+      return;
+    }
+    _sizeRequest = (source, index);
+    try {
+      final size = await widget.presenter.sourceSizeFor(source, index);
+      if (size != null) _reportSize(source, index, size);
+    } finally {
+      if (_sizeRequest == (source, index)) _sizeRequest = null;
+    }
+  }
+
+  void _reportSize(PageSource source, int index, Size size) {
+    if (!mounted ||
+        !identical(widget.source, source) ||
+        widget.index != index ||
+        size.width <= 0 ||
+        size.height <= 0 ||
+        _reportedSize == (source, index, size)) {
+      return;
+    }
+    _reportedSize = (source, index, size);
+    widget.onIntrinsicSize?.call(size);
+  }
 
   // ───────────────────────── 兜底路 ─────────────────────────
 
@@ -334,8 +362,12 @@ class _ImageSurfaceState extends State<ImageSurface> {
             _loadedIndex = index;
             _loadedWidth = targetWidth;
             _failureMessage = null;
-            // 新图就位，刚才那张就只是历史了。
-            _staleCpuImage = false;
+          });
+          _reportSize(source, index, switch (content) {
+            RasterPageContent(:final sourceWidth, :final sourceHeight) => Size(
+              sourceWidth.toDouble(),
+              sourceHeight.toDouble(),
+            ),
           });
           // 先换再释放：反过来会让这一帧的绘制拿到一个已 dispose 的位图。
           if (stale != null && !identical(stale, image)) {
@@ -389,7 +421,6 @@ class _ImageSurfaceState extends State<ImageSurface> {
     _loadedSource = null;
     _loadedIndex = null;
     _loadedWidth = null;
-    _staleCpuImage = false;
     WidgetsBinding.instance.addPostFrameCallback((_) => doomed.dispose());
   }
 
@@ -418,22 +449,24 @@ class _ImageSurfaceState extends State<ImageSurface> {
           constraints.maxWidth * devicePixelRatio,
           constraints.maxHeight * devicePixelRatio,
         );
+        _physicalSize = physicalSize;
         if (physicalSize.width >= 1 && physicalSize.height >= 1) {
           // 不能在 build 里直接 await：下一帧再安排。
           WidgetsBinding.instance.addPostFrameCallback((_) {
             unawaited(_sync(physicalSize));
           });
         }
-        return _buildContent(constraints);
+        return _buildContent(constraints, physicalSize);
       },
     );
   }
 
-  Widget _buildContent(BoxConstraints constraints) {
+  Widget _buildContent(BoxConstraints constraints, Size physicalSize) {
     if (_path == ImageSurfacePath.gpu) {
-      final int? textureId = widget.presenter.textureId;
-      if (textureId == null) {
-        return _hint('呈现目标还没建好…');
+      final frame = widget.presenter.presentedFrame;
+      if (frame == null ||
+          !frame.matches(widget.source, widget.index, physicalSize)) {
+        return const SizedBox.expand();
       }
       // 纹理铺满整个盒子是**故意**的：页的等比缩放与留边在 Rust 侧的着色器里
       // 完成，所以这张纹理本来就已经是"屏幕上的那一幅"。
@@ -442,10 +475,7 @@ class _ImageSurfaceState extends State<ImageSurface> {
         SizedBox(
           width: constraints.maxWidth,
           height: constraints.maxHeight,
-          child: Texture(
-            key: ValueKey('tex_${textureId}_$_lastKnownPresentCount'),
-            textureId: textureId,
-          ),
+          child: Texture(textureId: frame.textureId),
         ),
         constraints,
       );
@@ -453,11 +483,12 @@ class _ImageSurfaceState extends State<ImageSurface> {
 
     final ui.Image? image = _cpuImage;
     if (image == null) {
-      return _hint(_cpuHint());
-    }
-    // 顶住那一帧的旧图，在「这一页已经失败」时必须让位给失败提示 —— 否则用户会
-    // 一直看着上一页，而这一页其实永远解不出来，那个错误就永远看不到。
-    if (_staleCpuImage && _failureMessage != null) {
+      if (!_indexOutOfRange &&
+          _failureMessage == null &&
+          widget.presenter.canPresent &&
+          widget.presenter.mismatchFor(widget.source) == null) {
+        return const SizedBox.expand();
+      }
       return _hint(_cpuHint());
     }
     // CPU 路没有着色器，留边只能交给 `BoxFit.contain` —— 用同一个语义

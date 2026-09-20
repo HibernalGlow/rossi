@@ -3,7 +3,7 @@
 //! 统一承载：
 //! 1. 毫秒级 GPU Lanczos3 / 双线性等比缩放（取代 CPU `fast_image_resize`）；
 //! 2. 毫秒级 GPU Anime4K / 边缘锐化实时滤镜；
-//! 3. 视口 Letterbox 居中对齐与深黑留白填充（ClearColor）；
+//! 3. 视口 Letterbox 居中对齐，图片外透明以透出阅读器背景；
 //! 4. RGBA8 -> BGRA8 硬件格式无开销自动转换。
 
 use anyhow::{anyhow, Result};
@@ -639,13 +639,7 @@ impl WgpuResampler {
                     resolve_target: None,
                     depth_slice: None,
                     ops: wgpu::Operations {
-                        // 初始填充深黑底色 0xFF05050A
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 5.0 / 255.0,
-                            g: 5.0 / 255.0,
-                            b: 10.0 / 255.0,
-                            a: 1.0,
-                        }),
+                        load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
                         store: wgpu::StoreOp::Store,
                     },
                 })],
@@ -744,10 +738,6 @@ impl WgpuResampler {
             let padded_stride = target.padded_bytes_per_row as usize;
 
             unsafe {
-                // 深黑底色 0xFF05050A (BGRA little-endian: B=0x0A G=0x05 R=0x05 A=0xFF)
-                // 的单像素 4 字节表示，用于安全填充行尾 Padding。
-                const BG_PIXEL: [u8; 4] = [0x0A, 0x05, 0x05, 0xFF];
-
                 for y in 0..target_h as usize {
                     let src_row = &mapped[y * padded_stride..y * padded_stride + row_bytes];
                     let dst_row = dst_ptr.add(y * dst_stride);
@@ -756,28 +746,11 @@ impl WgpuResampler {
                     // ── 行跨步 Padding 安全填充（对齐 mimageviewer Stride Safety）──
                     // macOS CVPixelBuffer 常要求 64 字节行对齐，dst_stride > row_bytes
                     // 时行尾会有未写入的 Padding。Metal 双线性采样器在边缘可能渗入
-                    // 这些未初始化的脏显存，表现为红黄绿假彩色块。逐像素填充深黑底色。
+                    // 这些未初始化的脏显存，表现为红黄绿假彩色块。统一清零为透明。
                     if dst_stride > row_bytes {
                         let pad_start = dst_row.add(row_bytes);
                         let pad_len = dst_stride - row_bytes;
-                        // 按 4 字节（单像素）填充
-                        let full_pixels = pad_len / 4;
-                        for p in 0..full_pixels {
-                            std::ptr::copy_nonoverlapping(
-                                BG_PIXEL.as_ptr(),
-                                pad_start.add(p * 4),
-                                4,
-                            );
-                        }
-                        // 不足一个完整像素的尾部字节也填充
-                        let remainder = pad_len % 4;
-                        if remainder > 0 {
-                            std::ptr::copy_nonoverlapping(
-                                BG_PIXEL.as_ptr(),
-                                pad_start.add(full_pixels * 4),
-                                remainder,
-                            );
-                        }
+                        std::ptr::write_bytes(pad_start, 0, pad_len);
                     }
                 }
             }
@@ -791,6 +764,53 @@ impl WgpuResampler {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+
+    #[test]
+    fn letterbox_is_transparent_without_erasing_black_image_pixels() {
+        let (device, queue) = init_test_device().expect("回归测试需要 GPU 设备");
+        let mut resampler = WgpuResampler::new(device, queue).unwrap();
+        let stride = 64;
+        // 横图、竖图、等比例图；同时覆盖放大、缩小与 Anime4K。
+        for (width, height) in [(4, 2), (2, 4), (16, 8), (8, 16), (8, 8)] {
+            for anime4k in [false, true] {
+                let rgba = [0, 0, 0, 255].repeat((width * height) as usize);
+                let mut out = vec![123u8; stride * 8];
+                resampler
+                    .resample_to_buffer(
+                        &rgba,
+                        width,
+                        height,
+                        8,
+                        8,
+                        out.as_mut_ptr(),
+                        stride,
+                        anime4k,
+                    )
+                    .unwrap();
+                for y in 0..8 {
+                    for x in 0..8 {
+                        let inside = if width > height {
+                            (2..6).contains(&y)
+                        } else if height > width {
+                            (2..6).contains(&x)
+                        } else {
+                            true
+                        };
+                        let expected = if inside { [0, 0, 0, 255] } else { [0; 4] };
+                        let offset = y * stride + x * 4;
+                        assert_eq!(
+                            &out[offset..offset + 4],
+                            &expected,
+                            "{width}x{height}, Anime4K={anime4k}, ({x},{y})"
+                        );
+                    }
+                    assert!(out[y * stride + 32..(y + 1) * stride]
+                        .iter()
+                        .all(|v| *v == 0));
+                }
+            }
+        }
+    }
 
     pub(super) fn init_test_device() -> Option<(Arc<wgpu::Device>, Arc<wgpu::Queue>)> {
         let instance = wgpu::Instance::default();

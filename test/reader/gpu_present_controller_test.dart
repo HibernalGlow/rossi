@@ -51,16 +51,22 @@ class _Bridge extends GpuPresentBridge {
   bool reportsEnhancedTrack = true;
   Completer<void>? injectionGate;
   int showCalls = 0;
+  int initCalls = 0;
+  Completer<void>? showGate;
+  bool failShow = false;
   int opens = 0;
   Completer<void>? statsGate;
+  bool windowsPageIndex = false;
   final List<String> injectedPaths = [];
 
   @override
   Future<GpuPresentStatus> tryInit({
     required int width,
     required int height,
-  }) async =>
-      const GpuPresentStatus(state: GpuPresentState.ready, textureId: 1);
+  }) async {
+    initCalls++;
+    return const GpuPresentStatus(state: GpuPresentState.ready, textureId: 1);
+  }
 
   @override
   Future<int> open(String path) async {
@@ -73,6 +79,8 @@ class _Bridge extends GpuPresentBridge {
   @override
   Future<void> show(int index) async {
     showCalls++;
+    await showGate?.future;
+    if (failShow) throw StateError('show failed');
     if (currentIndex != index) {
       // 模拟离开保留集后原生侧淘汰增强图。
       enhanced = false;
@@ -110,7 +118,12 @@ class _Bridge extends GpuPresentBridge {
       'ok': true,
       'state': 'ready',
       'probe': jsonEncode({
-        'currentIndex': currentIndex,
+        if (windowsPageIndex)
+          'pageIndex': currentIndex
+        else
+          'currentIndex': currentIndex,
+        'sourceWidth': 1200,
+        'sourceHeight': 600,
         if (reportsEnhancedTrack)
           'usedEnhanced': enhanced && !originalPreview ? 1 : 0,
       }),
@@ -167,6 +180,180 @@ void main() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(pathChannel, null);
       await cache.delete(recursive: true);
+    });
+
+    for (final windows in [false, true]) {
+      test('原始尺寸不依赖超分，拒绝过期页和其他来源（Windows=$windows）', () async {
+        controller.setUpscaleEnabled(false);
+        bridge.windowsPageIndex = windows;
+        await controller.present(
+          source: source,
+          index: 0,
+          physicalSize: viewport,
+        );
+        expect(await controller.sourceSizeFor(source, 1), isNull);
+        expect(await controller.sourceSizeFor(_Source(), 0), isNull);
+        expect(
+          await controller.sourceSizeFor(source, 0),
+          const Size(1200, 600),
+        );
+        final checks = bridge.checks;
+        expect(
+          await controller.sourceSizeFor(source, 0),
+          const Size(1200, 600),
+        );
+        expect(bridge.checks, checks, reason: '布局重建不应重复读取原生统计');
+      });
+    }
+
+    test('完成帧同时提交页码、画布、计数；渲染期间不复用旧帧', () async {
+      controller.setUpscaleEnabled(false);
+      await controller.present(
+        source: source,
+        index: 0,
+        physicalSize: viewport,
+      );
+      expect(controller.presentedFrame!.matches(source, 0, viewport), isTrue);
+      expect(
+        controller.presentedFrame!.matches(_Source(), 0, viewport),
+        isFalse,
+      );
+      final gate = Completer<void>();
+      bridge.showGate = gate;
+      final pending = controller.present(
+        source: source,
+        index: 1,
+        physicalSize: const Size(300, 600),
+      );
+      expect(controller.isPresenting, isTrue);
+      expect(controller.presentedFrame, isNull);
+      expect(controller.presentCount, 1);
+      final observed = <(int, int)>[];
+      controller.addListener(() {
+        final frame = controller.presentedFrame;
+        if (frame != null) observed.add((controller.presentCount, frame.index));
+      });
+      gate.complete();
+      expect(await pending, isTrue);
+      expect(observed, isNotEmpty);
+      expect(observed.every((frame) => frame == (2, 1)), isTrue);
+      expect(controller.isPresenting, isFalse);
+      expect(controller.presentedFrame!.physicalSize, const Size(300, 600));
+    });
+
+    test('同一物理画布翻页不重复初始化呈现目标', () async {
+      controller.setUpscaleEnabled(false);
+      await controller.present(
+        source: source,
+        index: 0,
+        physicalSize: viewport,
+      );
+      await controller.present(
+        source: source,
+        index: 1,
+        physicalSize: viewport,
+      );
+      expect(bridge.initCalls, 1);
+      expect(bridge.showCalls, 2);
+    });
+
+    test('1 px 尺寸变化会重绘，失败后的同页重试也必须重新 show', () async {
+      controller.setUpscaleEnabled(false);
+      await controller.present(
+        source: source,
+        index: 0,
+        physicalSize: viewport,
+      );
+      const resized = Size(801, 600);
+      await controller.present(source: source, index: 0, physicalSize: resized);
+      expect(bridge.showCalls, 2);
+      expect(controller.presentedFrame!.physicalSize, resized);
+      bridge.failShow = true;
+      expect(
+        await controller.present(
+          source: source,
+          index: 1,
+          physicalSize: resized,
+        ),
+        isFalse,
+      );
+      expect(controller.presentedFrame, isNull);
+      bridge.failShow = false;
+      expect(
+        await controller.present(
+          source: source,
+          index: 0,
+          physicalSize: resized,
+        ),
+        isTrue,
+      );
+      expect(bridge.showCalls, 4);
+      expect(controller.presentedFrame!.index, 0);
+    });
+
+    test('切页期间迟到的超分只能注入缓存，不能把旧页重新上屏', () async {
+      final injection = Completer<void>();
+      bridge.injectionGate = injection;
+      await controller.present(
+        source: source,
+        index: 0,
+        physicalSize: viewport,
+      );
+      await _until(() => bridge.injections == 1);
+
+      final nextFrame = Completer<void>();
+      bridge.showGate = nextFrame;
+      final turning = controller.present(
+        source: source,
+        index: 1,
+        physicalSize: const Size(300, 600),
+      );
+      await _until(() => bridge.showCalls == 2);
+      injection.complete();
+      await controller.enhancementsIdle;
+      expect(bridge.showCalls, 2, reason: '旧页超分不能插入新页的 show 后面');
+      expect(controller.presentedFrame, isNull);
+      nextFrame.complete();
+      await turning;
+      expect(controller.presentedFrame!.index, 1);
+      expect(bridge.currentIndex, 1);
+    });
+
+    test('超分重绘在飞时翻页等待完成，不与同一纹理并发写入', () async {
+      final injection = Completer<void>();
+      bridge.injectionGate = injection;
+      await controller.present(
+        source: source,
+        index: 0,
+        physicalSize: viewport,
+      );
+      await _until(() => bridge.injections == 1);
+      final redraw = Completer<void>();
+      bridge.showGate = redraw;
+      injection.complete();
+      await _until(() => bridge.showCalls == 2);
+      expect(controller.isPresenting, isTrue);
+      expect(
+        await controller.present(
+          source: source,
+          index: 1,
+          physicalSize: viewport,
+        ),
+        isFalse,
+      );
+      expect(bridge.showCalls, 2);
+      redraw.complete();
+      await controller.enhancementsIdle;
+      expect(controller.isPresenting, isFalse);
+      expect(
+        await controller.present(
+          source: source,
+          index: 1,
+          physicalSize: viewport,
+        ),
+        isTrue,
+      );
+      expect(controller.presentedFrame!.index, 1);
     });
 
     test(
@@ -610,11 +797,7 @@ void main() {
       // 旧记录还在，它就是上一本书留下的「超分失败」。
       await RealSrSettings.savePrefetch(forward: 0, back: 0);
       final other = _Source()..pathOverride = '/test/other.cbz';
-      await controller.present(
-        source: other,
-        index: 0,
-        physicalSize: viewport,
-      );
+      await controller.present(source: other, index: 0, physicalSize: viewport);
       await controller.enhancementsIdle;
 
       expect(

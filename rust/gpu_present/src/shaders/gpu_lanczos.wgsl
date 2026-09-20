@@ -51,8 +51,8 @@ const LANCZOS_SUPPORT: f32 = 3.0;
 /// 同时把最坏情况的开销写明白：半径 6 → 13×13 = 169 抽/像素。
 const MAX_LANCZOS_RADIUS: i32 = 8;
 
-// 深黑留白背景色: 0xFF05050A (BGRA: B=0x0A, G=0x05, R=0x05, A=0xFF)
-const BG_COLOR: vec4<f32> = vec4<f32>(5.0 / 255.0, 5.0 / 255.0, 10.0 / 255.0, 1.0);
+// 图片外保持透明，由 Flutter 阅读器统一绘制背景。
+const BG_COLOR: vec4<f32> = vec4<f32>(0.0);
 
 @vertex
 fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {

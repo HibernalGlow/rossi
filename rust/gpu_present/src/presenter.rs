@@ -131,7 +131,7 @@ const PREFETCH_POLL: Duration = Duration::from_millis(50);
 
 /// 全屏三角形 + letterbox 采样。
 ///
-/// 输出 alpha 一律写 1.0，**不采样页纹理的 alpha**。原因：Flutter 合成按
+/// 图片内的 alpha 写 1.0，图片外透明；**不采样页纹理的 alpha**。原因：Flutter 合成按
 /// 预乘 alpha 处理，而解码出来的 RGBA 不是预乘的；漫画页又都是不透明的。
 /// 与其在这一层做一次预乘（多一遍每像素乘法，且对 JPEG 毫无意义），
 /// 不如把 alpha 钉死 —— 以后真要支持带透明的图（PNG 分镜）再单独加一条路径。
@@ -168,8 +168,8 @@ fn vs_main(@builtin(vertex_index) idx: u32) -> VsOut {
 
 @fragment
 fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
-  // 画布底色：阅读器里页外的区域。近黑而不是纯黑，免得和"没渲染"混淆。
-  let background = vec4<f32>(0.02, 0.02, 0.03, 1.0);
+  // 图片外透明，统一透出 Flutter 阅读器背景。
+  let background = vec4<f32>(0.0);
 
   let local = in.pos.xy - params.rect.zw;
   if (local.x < 0.0 || local.y < 0.0 || local.x >= params.rect.x || local.y >= params.rect.y) {
@@ -1202,12 +1202,7 @@ impl Presenter {
                         view: &target.view,
                         resolve_target: None,
                         ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(wgpu::Color {
-                                r: 0.02,
-                                g: 0.02,
-                                b: 0.03,
-                                a: 1.0,
-                            }),
+                            load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
                             store: wgpu::StoreOp::Store,
                         },
                         depth_slice: None,
@@ -1667,7 +1662,7 @@ impl Drop for Presenter {
 /// 三处写的是同一个颜色，改一处就要改三处 —— 这是这个设计里最容易腐化的地方，
 /// 所以它只作为 **UNORM8 下的比较基准** 出现在这里（探针用），
 /// 真正的来源是着色器常量。
-pub const BACKGROUND_RGBA8: [u8; 4] = [5, 5, 8, 255];
+pub const BACKGROUND_RGBA8: [u8; 4] = [0, 0, 0, 0];
 
 /// 判定"这个像素就是底色"的容差。
 ///
@@ -1705,13 +1700,14 @@ impl Readback {
 
     /// 这个像素是不是画布底色。
     pub fn is_background(&self, x: u32, y: u32) -> bool {
-        let [b, g, r, _] = self.pixel(x, y);
+        let [b, g, r, a] = self.pixel(x, y);
         (r as i32 - BACKGROUND_RGBA8[0] as i32).abs() <= BACKGROUND_TOLERANCE
             && (g as i32 - BACKGROUND_RGBA8[1] as i32).abs() <= BACKGROUND_TOLERANCE
             && (b as i32 - BACKGROUND_RGBA8[2] as i32).abs() <= BACKGROUND_TOLERANCE
+            && (a as i32 - BACKGROUND_RGBA8[3] as i32).abs() <= BACKGROUND_TOLERANCE
     }
 
-    /// 底色像素占比。letterbox 的上下（或左右）黑边就体现在这个数上。
+    /// 透明像素占比。letterbox 的上下（或左右）留白就体现在这个数上。
     pub fn background_ratio(&self) -> f64 {
         let mut count = 0u64;
         for y in 0..self.height {

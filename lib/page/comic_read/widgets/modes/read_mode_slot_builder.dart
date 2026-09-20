@@ -182,15 +182,23 @@ Widget _buildRowFrame({
         ),
     ],
     builder: (context, sizes) {
-      final frame = _frameOf(
-        sizes: sizes,
-        contentWidth: contentWidth,
-        viewportHeight: viewportHeight,
-        presentation: presentation,
+      // 本地 GPU 页由 native 解码，未知尺寸时不能把 1:1.2 的占位比例当真。
+      // 先让 GPU 在整个视口内等比显示，真实尺寸上报后再交给帧模型。
+      final awaitingLocalSize = items.indexed.any(
+        (item) =>
+            item.$2.entry.doc?.extern['isLocalGpu'] == true &&
+            sizes[item.$1].intrinsic == null,
       );
+      final frame = awaitingLocalSize
+          ? null
+          : _frameOf(
+              sizes: sizes,
+              contentWidth: contentWidth,
+              viewportHeight: viewportHeight,
+              presentation: presentation,
+            );
       // 帧里少了一页就意味着「这一帧里谁占哪儿」和条目顺序对不上了 —— 与其错配，
-      // 整帧退回改造前的铺排。正常情况下 `getSizeValue` 永远给得出兜底尺寸，
-      // 走不到这条。
+      // 整帧退回按视口铺排；本地图片等待真实尺寸时也使用这条路径。
       if (frame == null || frame.pages.length != items.length) {
         return _legacyRowSlot(
           context: context,
@@ -208,30 +216,62 @@ Widget _buildRowFrame({
       }
 
       // RTL（左开）下两张图左右互换，与改造前同一处理。
-      var order = [
-        for (var i = 0; i < items.length; i++) i,
-      ];
+      var order = [for (var i = 0; i < items.length; i++) i];
       if (isRtl) order = order.reversed.toList();
 
-      final pages = <Widget>[];
-      for (final i in order) {
-        final page = _page(
-          context: context,
-          item: items[i],
-          placed: frame.pages[i],
-          slotIndex: slotIndex,
-          cacheIndex: cacheIndices[i],
-          comicId: comicId,
-          from: from,
-          presentation: presentation,
-        );
-        pages.add(
-          seamless
-              ? page
-              : SizedBox(
-                  width: contentWidth / items.length,
-                  child: Center(child: page),
-                ),
+      // 每页摆在哪**全部自己算死** —— 帧模型已经把尺寸算出来了，摆放就不该再交给
+      // 会自己做主的布局原语。这里踩过两个坑，都记在这儿免得回改：
+      // - `UnconstrainedBox` 带 `DebugOverflowIndicatorMixin`：子节点比容器高就画
+      //   黄黑条纹（实机报的「BOTTOM OVERFLOWED BY 78 PIXELS」是它画的，不是布局
+      //   坏了 78 像素）。
+      // - `OverflowBox` 不报警，但它给子节点的约束是 **unconstrained**，`Row` 因此
+      //   拿着无界约束参与命中测试，报 "Cannot hit test a render box with no size"。
+      //
+      // 所以用 `Stack` + `Positioned`：每个子节点都有确定的宽高（点击、双击缩放、
+      // 手势全都落在实在的尺寸上），超出视口的部分由外层 `ClipRect` 裁掉 —— 与
+      // neoview 的 `overflow: hidden` 等价，且不牵动任何「溢出即报警」的原语。
+      final frameSize = frame.size;
+      final alignment = presentation.fitMode.alignment;
+      final panelWidth = contentWidth / items.length;
+      final stripWidth = seamless ? frameSize.width : contentWidth;
+      final stripX = switch (alignment) {
+        Alignment.centerLeft => 0.0,
+        Alignment.centerRight => containerWidth - stripWidth,
+        _ => (containerWidth - stripWidth) / 2,
+      };
+      final stripY = (viewportHeight - frameSize.height) / 2;
+
+      final placedPages = <Widget>[];
+      var cursorX = 0.0;
+      for (var slot = 0; slot < order.length; slot++) {
+        final index = order[slot];
+        final placedPage = frame.pages[index];
+        final box = placedPage.boxSize;
+        // 无缝：两张紧挨着排（游标一路累加）；非无缝：各自在自己的半宽格里居中。
+        final double left;
+        if (seamless) {
+          left = stripX + cursorX;
+          cursorX += box.width;
+        } else {
+          left = stripX + slot * panelWidth + (panelWidth - box.width) / 2;
+        }
+        placedPages.add(
+          Positioned(
+            left: left,
+            top: stripY + (frameSize.height - box.height) / 2,
+            width: box.width,
+            height: box.height,
+            child: _page(
+              context: context,
+              item: items[index],
+              placed: placedPage,
+              slotIndex: slotIndex,
+              cacheIndex: cacheIndices[index],
+              comicId: comicId,
+              from: from,
+              presentation: presentation,
+            ),
+          ),
         );
       }
 
@@ -239,18 +279,8 @@ Widget _buildRowFrame({
         color: backgroundColor,
         width: containerWidth,
         height: viewportHeight,
-        // 帧可以比视口宽（适应宽度遇上横页、或手动放大之后）—— 这一层必须
-        // **先按自身尺寸排开、再被视口裁掉**。直接放在受限的 Row 里会画出
-        // 黄黑溢出条纹；`UnconstrainedBox` 给回 neoview 那种「帧按自己大小
-        // 摆、容器 overflow: hidden」的行为，`alignment` 同时负责 fit-left/right。
         child: ClipRect(
-          child: UnconstrainedBox(
-            alignment: presentation.fitMode.alignment,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: pages,
-            ),
-          ),
+          child: Stack(clipBehavior: Clip.none, children: placedPages),
         ),
       );
     },
@@ -416,15 +446,11 @@ Widget _buildColumnSingleImage({
   final cacheIndex = _resolveImageCacheIndex(entry, item.entryIndex);
 
   return BlocSelector<ImageSizeCubit, ImageSizeState, (Size, Size?)>(
-    selector: (state) => (
-      state.getSizeValue(cacheIndex),
-      state.getIntrinsic(cacheIndex),
-    ),
+    selector: (state) =>
+        (state.getSizeValue(cacheIndex), state.getIntrinsic(cacheIndex)),
     builder: (context, sizes) {
       final frame = _frameOf(
-        sizes: [
-          (cached: sizes.$1, intrinsic: sizes.$2),
-        ],
+        sizes: [(cached: sizes.$1, intrinsic: sizes.$2)],
         contentWidth: contentWidth,
         viewportHeight: viewportHeight,
         presentation: presentation,
@@ -434,7 +460,8 @@ Widget _buildColumnSingleImage({
 
       // 长条滚动下「列表项多高」必须等于「这一节画多高」，否则节与节重叠。
       // 呈现层没参与时退回改造前那套按宽高比推的高度。
-      final finalHeight = placed?.boxSize.height ??
+      final finalHeight =
+          placed?.boxSize.height ??
           _resolveDisplayHeight(
             cachedSize: sizes.$1,
             targetWidth: contentWidth,
