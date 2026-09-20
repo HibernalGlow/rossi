@@ -241,9 +241,7 @@ pub fn node_for_dir_entry(
     let is_video = SUPPORTED_VIDEO_EXTENSIONS.contains(&extension.as_str());
     let is_audio = crate::folder_tree::is_audio_ext(&extension);
 
-    // mImageViewer 将视频和音频也视为可浏览媒体。Rossi 当前 Reader 仍只接收
-    // 图片/漫画来源，因此它们暂时以普通文件 DTO 返回，避免把目录中的合法
-    // 媒体静默丢失；UI 可据扩展名继续显示并在后续接入对应 Reader。
+    // 图片、视频与容器可交给 Reader；音频保留在列表中供浏览。
     let is_supported_media = is_archive || is_image || is_video || is_audio;
     // 只收录 mImageViewer 已识别的媒体/容器，未知文档不会污染漫画 Reader。
     if !is_supported_media {
@@ -260,8 +258,6 @@ pub fn node_for_dir_entry(
         name: name_str.to_owned(),
         is_dir: false,
         is_archive,
-        // FileManagerEntry 当前的协议只区分图片与容器；视频/音频在
-        // `is_image=false` 下仍会保留并由 Flutter 显示通用文件图标。
         is_image,
         is_video,
         is_audio,

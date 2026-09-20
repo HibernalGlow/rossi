@@ -78,7 +78,8 @@ pub const SUPPORTED_EXTENSIONS: &[&str] = &[
     "dng", "cr2", "cr3", "nef", "nrw", "arw", "srf", "sr2", "raf", "orf", "rw2", "pef", "ptx",
     "rwl", "iiq",
 ];
-pub const SUPPORTED_VIDEO_EXTENSIONS: &[&str] = &["mpg", "mpeg", "mp4", "avi", "mov", "mkv", "wmv"];
+// 文件列表、目录穿透与阅读器页序共用同一份视频格式表。
+pub const SUPPORTED_VIDEO_EXTENSIONS: &[&str] = crate::page_order::VIDEO_EXTENSIONS;
 
 /// 標準サポートする音声拡張子 (フルスクリーン音楽ビューで再生する)。
 /// FFmpeg (LGPL build) がデコードできる主要なコンテナに絞る
