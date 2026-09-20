@@ -84,6 +84,9 @@ class VideoFrameCache {
 class _SingleSlotScheduler {
   bool _busy = false;
   Duration? _pending;
+  Completer<void>? _idle;
+
+  Future<void> get idle => _idle?.future ?? Future<void>.value();
 
   Future<void> request(Duration at, Future<void> Function(Duration) work) async {
     if (_busy) {
@@ -91,15 +94,23 @@ class _SingleSlotScheduler {
       return;
     }
     _busy = true;
-    await work(at);
-    _busy = false;
-    final next = _pending;
-    _pending = null;
-    if (next != null) await request(next, work);
+    _idle = Completer<void>();
+    try {
+      Duration? next = at;
+      while (next != null) {
+        await work(next);
+        next = _pending;
+        _pending = null;
+      }
+    } finally {
+      _pending = null;
+      _busy = false;
+      _idle!.complete();
+    }
   }
 }
 
-/// 缩略帧提供者：用一个**后台播放器**截图，而不是把 FFmpeg 拉进依赖树（B4）。
+/// 缩略帧提供者：暂停时借用当前播放器取帧，播放中只返回已有缓存。
 class VideoFramePreviewProvider {
   VideoFramePreviewProvider({
     required this.transport,
@@ -116,38 +127,47 @@ class VideoFramePreviewProvider {
   final String? cacheDirOverride;
 
   final _SingleSlotScheduler _scheduler = _SingleSlotScheduler();
-  String? _dir;
+  Future<Directory>? _directory;
+  bool _disposed = false;
   int _seq = 0;
 
-  Future<String> _cacheDir() async {
-    if (cacheDirOverride != null) return cacheDirOverride!;
-    if (_dir != null) return _dir!;
-    if (_dir != null) return _dir!;
-    final base = await getTemporaryDirectory();
-    final dir = Directory(p.join(base.path, 'rossi-video-previews'));
-    if (!await dir.exists()) await dir.create(recursive: true);
-    return _dir = dir.path;
+  Future<Directory> _createCacheDir() async {
+    final base = cacheDirOverride == null
+        ? await getTemporaryDirectory()
+        : Directory(cacheDirOverride!);
+    await base.create(recursive: true);
+    // 每页独占一个子目录，退出页面不能清掉其它泳道的预览帧。
+    return base.createTemp('rossi-video-previews-');
   }
 
   /// 请求某一时刻的缩略帧。命中缓存直接回；未命中则排队解帧，
   /// 未命中且正在忙时**这次调用返回 null**（调用方显示占位），因为
   /// 「等一个正在解的旧位置」比「立刻给用户一个空白」更糟。
   Future<VideoFramePreview?> request(Duration at) async {
+    if (_disposed) return null;
     final hit = cache.nearest(target: at);
     if (hit != null) return hit;
-    final dir = await _cacheDir();
-    final path = p.join(dir, 'f${_seq++}.jpg');
+    if (transport.isPlaying) return null;
+    final Directory dir;
+    try {
+      dir = await (_directory ??= _createCacheDir());
+    } on FileSystemException {
+      return null;
+    }
+    if (_disposed) return null;
     unawaited(
       _scheduler.request(at, (target) async {
-        // 预览要的是**鼠标所指那一刻**的画面，而 `screenshot` 截的是当前解码位置。
-        // 不先定位就会得到「无论划到哪儿都是现在这一帧」——上游 neoview 用
-        // 一个隐藏的 `<video>` 元素做这件事，mimage 单开一个 worker；
-        // 这里没有第二台解码器，所以只在**已暂停**时借用当前播放器定位
-        // （正是拖动选帧的时刻），播放中不抢用户正在看的位置。
-        if (!transport.isPlaying) await transport.seekPaused(target);
-        final shot = await transport.screenshot(path);
-        if (shot == null) return;
-        cache.put(target, shot);
+        if (_disposed || transport.isPlaying) return;
+        try {
+          await transport.seekPaused(target);
+          if (_disposed || transport.isPlaying) return;
+          final path = p.join(dir.path, 'f${_seq++}.jpg');
+          final shot = await transport.screenshot(path);
+          if (shot == null || _disposed) return;
+          cache.put(target, shot);
+        } catch (_) {
+          // 预览失败只显示占位，不能中断播放或卡死后续抽帧任务。
+        }
       }),
     );
     return null;
@@ -157,11 +177,13 @@ class VideoFramePreviewProvider {
   VideoFramePreview? peek(Duration at) => cache.nearest(target: at);
 
   Future<void> dispose() async {
+    _disposed = true;
     cache.clear();
-    final dir = _dir;
-    if (dir == null) return;
+    await _scheduler.idle;
+    final directory = _directory;
+    if (directory == null) return;
     try {
-      await Directory(dir).delete(recursive: true);
+      await (await directory).delete(recursive: true);
     } on FileSystemException {
       // 目录已被系统回收。
     }

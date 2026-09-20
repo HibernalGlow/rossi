@@ -108,7 +108,12 @@ class _VideoInfoSheetState extends State<_VideoInfoSheet> {
                   ? t.video.notAvailable
                   : metadata!.frameRate!.toStringAsFixed(3),
             ),
-            _row(t.video.bitrate, metadata?.bitrateKbps == null ? '—' : '${metadata!.bitrateKbps} kbps'),
+            _row(
+              t.video.bitrate,
+              metadata?.bitrateKbps == null
+                  ? '—'
+                  : '${metadata!.bitrateKbps} kbps',
+            ),
             _row(t.video.videoCodec, _orDash(metadata?.videoCodec)),
             _row(t.video.audioCodec, _orDash(metadata?.audioCodec)),
             _row(
@@ -145,7 +150,15 @@ class _VideoInfoSheetState extends State<_VideoInfoSheet> {
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
     child: Row(
       children: <Widget>[
-        SizedBox(width: 110, child: Text(label, style: const TextStyle(color: Colors.grey))),
+        SizedBox(
+          width: 110,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
         Expanded(child: Text(value)),
       ],
     ),

@@ -9,6 +9,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
@@ -19,6 +20,7 @@ class MpvKeys {
   static const hwdec = 'hwdec';
   static const deinterlace = 'deinterlace';
   static const video = 'video';
+
   /// 「有没有画面」在 mpv 里要靠**轨**开关：`video=no` 只是关显示，
   /// 写回 `video=yes` 并不会把已经关掉的轨选回来（实测：暂停与播放中 `vid` 都还是 no）。
   static const vid = 'vid';
@@ -42,29 +44,42 @@ class MpvKeys {
 const Set<String> _pseudoTrackIds = <String>{'auto', 'no'};
 
 class MpvVideoTransport implements VideoTransport {
-  MpvVideoTransport({Player? player}) : _player = player ?? Player() {
+  MpvVideoTransport({Player? player, bool hardwareDecode = true})
+    : _ownsPlayer = player == null,
+      _player = player ?? Player(),
+      _hwdec = hardwareDecode ? _defaultHwdec : 'no' {
     _native = _player.platform is NativePlayer
         ? _player.platform as NativePlayer
         : null;
   }
 
   final Player _player;
+  final bool _ownsPlayer;
+  bool _closed = false;
+  Future<void>? _closing;
+  int _openGeneration = 0;
   NativePlayer? _native;
   VideoController? _videoController;
 
-  final StreamController<bool> _playingCtrl = StreamController<bool>.broadcast();
+  final StreamController<bool> _playingCtrl =
+      StreamController<bool>.broadcast();
   final StreamController<Duration> _positionCtrl =
       StreamController<Duration>.broadcast();
   final StreamController<Duration> _durationCtrl =
       StreamController<Duration>.broadcast();
-  final StreamController<bool> _completedCtrl = StreamController<bool>.broadcast();
+  final StreamController<bool> _completedCtrl =
+      StreamController<bool>.broadcast();
   final StreamController<VideoEnginePhase> _phaseCtrl =
       StreamController<VideoEnginePhase>.broadcast();
 
-  final List<StreamSubscription<dynamic>> _subs = <StreamSubscription<dynamic>>[];
+  final List<StreamSubscription<dynamic>> _subs =
+      <StreamSubscription<dynamic>>[];
   VideoMetadata _metadata = VideoMetadata.unknown;
   List<VideoMediaTrack> _subtitleTracks = <VideoMediaTrack>[];
   List<VideoMediaTrack> _audioTracks = <VideoMediaTrack>[];
+
+  /// 轨道列表与选择单独通知界面，不依赖播放位置触发菜单刷新。
+  final ValueNotifier<int> tracksRevision = ValueNotifier(0);
   VideoEnginePhase _phase = VideoEnginePhase.idle;
   bool _seeking = false;
   Timer? _seekClear;
@@ -74,16 +89,11 @@ class MpvVideoTransport implements VideoTransport {
   String? _openUri;
   VideoOpenOptions _options = const VideoOpenOptions();
 
-  /// 当前该发给 mpv 的 `hwdec` 值。控制器创建时机不确定（在 build 里），
-  /// 所以单独留一份给 [videoController] 用。
-  String _hwdec = 'auto-copy';
+  /// 与 media_kit 的平台默认值一致，优先直接使用硬件帧，避免强制回读 CPU。
+  static String get _defaultHwdec => Platform.isAndroid ? 'auto-safe' : 'auto';
+  String _hwdec;
 
-  /// media_kit 的 `Video` 组件要这个控制器；Rossi 不用它的控制条。
-  ///
-  /// 必须把 `hwdec` 一起传进去：`NativeVideoController.create` 附着时会写自己那套默认值
-  /// （`hwdec ?? 'auto'`、`vo ?? 'libmpv'`，见 media_kit_video 的 native_video_controller/real.dart），
-  /// 而它在时间上**晚于** [open] 里那次 `_set(hwdec)` —— 不传的话用户关了硬解也会被
-  /// 覆盖回 `auto`，症状是设置页那条开关按了没反应。
+  /// 创建输出时就传入硬解设置；open 等输出就绪后再确认设置，避免初始化覆盖。
   VideoController get videoController => _videoController ??= VideoController(
     _player,
     configuration: VideoControllerConfiguration(hwdec: _hwdec),
@@ -118,7 +128,7 @@ class MpvVideoTransport implements VideoTransport {
   List<VideoMediaTrack> get audioTracks => _audioTracks;
 
   void _setPhase(VideoEnginePhase next) {
-    if (_phase == next) return;
+    if (_closed || _phase == next) return;
     _phase = next;
     if (!_phaseCtrl.isClosed) _phaseCtrl.add(next);
   }
@@ -128,15 +138,26 @@ class MpvVideoTransport implements VideoTransport {
     String uri, {
     VideoOpenOptions options = const VideoOpenOptions(),
   }) async {
+    if (_closed) throw StateError('Video transport is closed');
+    final generation = ++_openGeneration;
+    _signalStartup();
     _failure = null;
     _openUri = uri;
     _options = options;
     _retryPending = true;
-    _failedLatch = Completer<void>();
+    _startupLatch = Completer<void>();
     _setPhase(VideoEnginePhase.opening);
     _subscribe();
 
+    // 在 loadfile 前确定解码方式；控制器初始化也会设置 hwdec，需先等它完成。
+    // 这样既不会起播后重建解码器，也不会覆盖用户关闭硬解的选择。
+    _hwdec = options.hardwareDecode ? _defaultHwdec : 'no';
     try {
+      final video = _videoController;
+      if (video != null) await video.platform.future;
+      if (_closed || generation != _openGeneration) return;
+      await _set(MpvKeys.hwdec, _hwdec);
+      await _set(MpvKeys.deinterlace, options.deinterlace ? 'yes' : 'no');
       await _player.open(Media(uri), play: options.autoplay);
     } catch (e) {
       _failure = e.toString();
@@ -144,11 +165,7 @@ class MpvVideoTransport implements VideoTransport {
       return;
     }
 
-    // 硬解 / 去隔行在 mpv 里可以运行时改（mimage 是构造参数），
-    // 放在 open 之后发是为了让「设置页拨一下立刻生效」成立。
-    _hwdec = options.hardwareDecode ? 'auto-copy' : 'no';
-    await _set(MpvKeys.hwdec, _hwdec);
-    await _set(MpvKeys.deinterlace, options.deinterlace ? 'yes' : 'no');
+    if (_closed || generation != _openGeneration || _failure != null) return;
     await setVolume(options.volume);
     await setMuted(options.muted);
     await setRate(options.rate);
@@ -156,7 +173,7 @@ class MpvVideoTransport implements VideoTransport {
     final resume = options.resumeAt;
     if (resume != null && resume > Duration.zero) await seek(resume);
     _setPhase(VideoEnginePhase.prerolling);
-    unawaited(_awaitFirstFrame());
+    unawaited(_awaitFirstFrame(generation));
   }
 
   /// 「解出第一帧」= mimage 的 preroll 闩。
@@ -164,22 +181,17 @@ class MpvVideoTransport implements VideoTransport {
   /// mpv 侧没有一个叫 ready 的属性，所以等**任何一条能证明画面已经动起来的流**：
   /// 视频参数出现、时长非零、或位置开始前进。错误与超时同样算「有结论」——
   /// 三条都不来就必须落到 failed，否则 UI 会永远转圈。
-  Future<void> _awaitFirstFrame({bool allowRetry = true}) async {
+  Future<void> _awaitFirstFrame(
+    int generation, {
+    bool allowRetry = true,
+  }) async {
+    bool current() => !_closed && generation == _openGeneration;
+    if (!current()) return;
     try {
-      await Future.any<void>(<Future<void>>[
-        () async {
-          await _player.stream.videoParams
-              .firstWhere((p) => (p.w ?? 0) > 0 || (p.dw ?? 0) > 0);
-        }(),
-        () async {
-          await _player.stream.duration.firstWhere((d) => d > Duration.zero);
-        }(),
-        () async {
-          await _player.stream.position.firstWhere((d) => d > Duration.zero);
-        }(),
-        _failedLatch.future,
-      ]).timeout(_prerollTimeout);
+      // 复用常驻订阅的就绪信号，避免 Future.any 留下未获胜的 firstWhere 订阅。
+      await _startupLatch.future.timeout(_prerollTimeout);
     } on TimeoutException {
+      if (!current()) return;
       // 实测：同一进程里已经起过别的 mpv 实例时，**第一次** load 偶尔什么都不上报
       // （时长、视频参数、位置一个都不来），而紧接着重开一次总是立刻成功。
       // 探针 5 次里撞到 2 次。真机每翻到一页视频就新建一个 Player，正好是这个形状，
@@ -191,16 +203,16 @@ class MpvVideoTransport implements VideoTransport {
         } catch (_) {
           // 重开失败就由下面那次等待给出结论。
         }
-        await _awaitFirstFrame(allowRetry: false);
+        await _awaitFirstFrame(generation, allowRetry: false);
         return;
       }
       _failure ??= '超时：没有解出第一帧';
       _setPhase(VideoEnginePhase.failed);
       return;
     }
-    if (_phase == VideoEnginePhase.failed) return;
+    if (!current() || _phase == VideoEnginePhase.failed) return;
     await _refreshMetadata();
-    _setPhase(VideoEnginePhase.ready);
+    if (current()) _setPhase(VideoEnginePhase.ready);
   }
 
   /// 只有第一次 preroll 超时才值得重开一次；重开那次再超时就是真失败。
@@ -212,8 +224,12 @@ class MpvVideoTransport implements VideoTransport {
   /// 起播证据的最长等待。比任何正常的解码都宽，只为兜住「什么都不会来」这一种。
   static const Duration _prerollTimeout = Duration(seconds: 20);
 
-  /// 错误监听用来叫醒 [_awaitFirstFrame]；每次 [open] 换一个新的闩。
-  Completer<void> _failedLatch = Completer<void>();
+  /// 首帧证据、错误或关闭叫醒 [_awaitFirstFrame]；每次 open 换一个新的闩。
+  Completer<void> _startupLatch = Completer<void>();
+
+  void _signalStartup() {
+    if (!_startupLatch.isCompleted) _startupLatch.complete();
+  }
 
   void _subscribe() {
     if (_subs.isNotEmpty) return;
@@ -221,80 +237,100 @@ class MpvVideoTransport implements VideoTransport {
     // found" / 容器不认识这类错误是在 open 的 await 期间发的，而 media_kit 的
     // error 是普通广播流 —— 晚一帧订阅就永远等不到，相位会卡在 prerolling，
     // UI 于是给一个转个不停的圈，而不是文档承诺的「退化成不画波形条」。
-    _subs.add(_player.stream.error.listen((e) {
-      if (e.isEmpty) return;
-      _failure = e;
-      _setPhase(VideoEnginePhase.failed);
-      if (!_failedLatch.isCompleted) _failedLatch.complete();
-    }));
+    _subs.add(
+      _player.stream.error.listen((e) {
+        if (e.isEmpty) return;
+        // 截图是附加操作：没有可截取的帧或写图失败不代表媒体播放失败。
+        if (e.startsWith('Error writing screenshot') ||
+            e.startsWith('Taking screenshot failed')) {
+          return;
+        }
+        _failure = e;
+        _setPhase(VideoEnginePhase.failed);
+        if (!_startupLatch.isCompleted) _startupLatch.complete();
+      }),
+    );
     _subs.add(_player.stream.playing.listen((v) => _playingCtrl.add(v)));
-    _subs.add(_player.stream.position.listen((v) {
-      _positionCtrl.add(v);
-      if (_seeking) {
-        // mpv 没有「正在 seek」这个属性。位置一恢复前进就说明 seek 落帧了，
-        // 于是用「seek 后置位 + 位置推进后清位」近似 mimage 的 `is_seeking`。
-        _seekClear?.cancel();
-        _seekClear = Timer(const Duration(milliseconds: 120), () {
-          _seeking = false;
-        });
-      }
-    }));
-    _subs.add(_player.stream.duration.listen((v) {
-      _durationCtrl.add(v);
-      _metadata = _copyMeta(duration: v);
-    }));
+    _subs.add(
+      _player.stream.position.listen((v) {
+        _positionCtrl.add(v);
+        if (v > Duration.zero) _signalStartup();
+        if (_seeking) {
+          // mpv 没有「正在 seek」这个属性。位置一恢复前进就说明 seek 落帧了，
+          // 于是用「seek 后置位 + 位置推进后清位」近似 mimage 的 `is_seeking`。
+          _seekClear?.cancel();
+          _seekClear = Timer(const Duration(milliseconds: 120), () {
+            _seeking = false;
+          });
+        }
+      }),
+    );
+    _subs.add(
+      _player.stream.duration.listen((v) {
+        _durationCtrl.add(v);
+        if (v > Duration.zero) _signalStartup();
+        _metadata = _copyMeta(duration: v);
+      }),
+    );
     _subs.add(_player.stream.completed.listen(_completedCtrl.add));
-    _subs.add(_player.stream.tracks.listen((tracks) {
-      // `auto` / `no` 不是轨，是 media_kit 为「自动选 / 关闭」造的伪项
-      // （mpv 自己的 track-list 里没有）。当轨列出来的话，弹层里就是两条点不动的假轨。
-      _subtitleTracks = tracks.subtitle
-          .where((t) => !_pseudoTrackIds.contains(t.id))
-          .map(
-            (t) => VideoMediaTrack(
-              id: t.id,
-              title: t.title ?? t.language ?? t.id,
-              language: t.language,
-              // media_kit 用 uri / data 两个标记表示「外挂进来的字幕」。
-              external: t.uri || t.data,
-              selected: _player.state.track.subtitle.id == t.id,
-            ),
-          )
-          .toList(growable: false);
-      _audioTracks = tracks.audio
-          .where((t) => !_pseudoTrackIds.contains(t.id))
-          .map(
-            (t) => VideoMediaTrack(
-              id: t.id,
-              title: t.title ?? t.language ?? t.id,
-              language: t.language,
-              selected: _player.state.track.audio.id == t.id,
-            ),
-          )
-          .toList(growable: false);
-    }));
-    _subs.add(_player.stream.videoParams.listen((p) {
-      final w = p.w ?? 0;
-      final h = p.h ?? 0;
-      if (w == 0 || h == 0) return;
-      // mpv 给的是像素宽高比 par（浮点），信息卡要的是 mimage 那对 sar 整数：
-      // 用 1000 为分母取近似再约分，误差 < 0.1%，够解释「为什么不是 16:9」。
-      final par = p.par ?? 1.0;
-      final sar = VideoMetadata.normalizeSar(
-        (par * 1000).round(),
-        1000,
-      );
-      _metadata = _copyMeta(
-        width: w,
-        height: h,
-        sarNum: sar.$1,
-        sarDen: sar.$2,
-        rotate: p.rotate?.round(),
-      );
-    }));
-    _subs.add(_player.stream.audioBitrate.listen((b) {
-      if (b == null) return;
-      _metadata = _copyMeta(bitrateKbps: b.round());
-    }));
+    _subs.add(_player.stream.tracks.listen((tracks) => _refreshTracks()));
+    _subs.add(_player.stream.track.listen((track) => _refreshTracks()));
+    _subs.add(
+      _player.stream.videoParams.listen((p) {
+        final w = p.w ?? 0;
+        final h = p.h ?? 0;
+        if (w == 0 || h == 0) return;
+        _signalStartup();
+        // mpv 给的是像素宽高比 par（浮点），用分母 1000 近似再约分。
+        final par = p.par ?? 1.0;
+        final sar = VideoMetadata.normalizeSar((par * 1000).round(), 1000);
+        _metadata = _copyMeta(
+          width: w,
+          height: h,
+          sarNum: sar.$1,
+          sarDen: sar.$2,
+          rotate: p.rotate?.round(),
+        );
+      }),
+    );
+    _subs.add(
+      _player.stream.audioBitrate.listen((b) {
+        if (b == null) return;
+        _metadata = _copyMeta(bitrateKbps: b.round());
+      }),
+    );
+  }
+
+  void _refreshTracks() {
+    if (_closed) return;
+    final tracks = _player.state.tracks;
+    // `auto` / `no` 不是轨，是 media_kit 为「自动选 / 关闭」造的伪项
+    // （mpv 自己的 track-list 里没有）。当轨列出来的话，弹层里就是两条点不动的假轨。
+    _subtitleTracks = tracks.subtitle
+        .where((t) => !_pseudoTrackIds.contains(t.id))
+        .map(
+          (t) => VideoMediaTrack(
+            id: t.id,
+            title: t.title ?? t.language ?? t.id,
+            language: t.language,
+            // media_kit 用 uri / data 两个标记表示「外挂进来的字幕」。
+            external: t.uri || t.data,
+            selected: _player.state.track.subtitle.id == t.id,
+          ),
+        )
+        .toList(growable: false);
+    _audioTracks = tracks.audio
+        .where((t) => !_pseudoTrackIds.contains(t.id))
+        .map(
+          (t) => VideoMediaTrack(
+            id: t.id,
+            title: t.title ?? t.language ?? t.id,
+            language: t.language,
+            selected: _player.state.track.audio.id == t.id,
+          ),
+        )
+        .toList(growable: false);
+    tracksRevision.value++;
   }
 
   VideoMetadata _copyMeta({
@@ -369,7 +405,8 @@ class MpvVideoTransport implements VideoTransport {
             title: title,
             // JSON 里是 double 秒：取整会把每个章节起点往前悄悄挪最多 0.9 s。
             at: Duration(
-              milliseconds: (((time as num?)?.toDouble() ?? 0.0) * 1000).round(),
+              milliseconds: (((time as num?)?.toDouble() ?? 0.0) * 1000)
+                  .round(),
             ),
           ),
         );
@@ -496,33 +533,43 @@ class MpvVideoTransport implements VideoTransport {
 
   @override
   Future<void> setFilter(VideoFilterState filter) async {
-    // neo 的 UI 是 0–200%（100 = 原样），mpv 的属性是 0–100（50 = 原样），所以除以 2。
-    await _set(MpvKeys.brightness, (filter.brightness / 2).toStringAsFixed(1));
-    await _set(MpvKeys.contrast, (filter.contrast / 2).toStringAsFixed(1));
-    await _set(MpvKeys.saturation, (filter.saturation / 2).toStringAsFixed(1));
+    // UI 的 0–200%（100 = 原样）对应 mpv 的 -100–100（0 = 原样）。
+    await _set(
+      MpvKeys.brightness,
+      (filter.brightness - 100).clamp(-100, 100).toString(),
+    );
+    await _set(
+      MpvKeys.contrast,
+      (filter.contrast - 100).clamp(-100, 100).toString(),
+    );
+    await _set(
+      MpvKeys.saturation,
+      (filter.saturation - 100).clamp(-100, 100).toString(),
+    );
   }
 
   @override
   Future<void> setSubtitleStyle(VideoSubtitleStyle style) async {
     await _set(MpvKeys.subScale, style.sizeEm.toStringAsFixed(2));
-    await _set(MpvKeys.subPos, style.bottomPercent.toString());
-    await _set(MpvKeys.subColor, _mpvAssColor(style.colorHex, 0));
+    // sub-pos 从顶部计算：100 在底部，UI 则表示离底部的距离。
+    await _set(
+      MpvKeys.subPos,
+      (100 - style.bottomPercent.clamp(0, 100)).toString(),
+    );
+    await _set(MpvKeys.subColor, _mpvColor(style.colorHex, 100));
     await _set(
       MpvKeys.subBackColor,
-      _mpvAssColor('000000', style.backgroundOpacityPercent),
+      _mpvColor('000000', style.backgroundOpacityPercent),
     );
     await _set(MpvKeys.subVisible, 'yes');
   }
 
-  /// mpv/ASS 的颜色是 `&HBBGGRRAA`（尾缀是「透明量」，不是 alpha 前缀）。
-  String _mpvAssColor(String hex, int opacityPercent) {
-    final clean = hex.replaceAll('#', '');
-    if (clean.length < 6) return '&Hffffff&';
-    final r = clean.substring(0, 2);
-    final g = clean.substring(2, 4);
-    final b = clean.substring(4, 6);
-    final alpha = (255 - (opacityPercent.clamp(0, 100) * 255 / 100)).round();
-    return '&H$b$g$r${alpha.toRadixString(16).padLeft(2, '0')}&';
+  /// mpv 颜色属性接受 #AARRGGBB，alpha=ff 为不透明；不接受 ASS 的 &H 格式。
+  String _mpvColor(String hex, int opacityPercent) {
+    final clean = hex.trim().replaceFirst(RegExp(r'^#'), '');
+    final rgb = RegExp(r'^[0-9a-fA-F]{6}$').hasMatch(clean) ? clean : 'ffffff';
+    final alpha = (opacityPercent.clamp(0, 100) * 255 / 100).round();
+    return '#${alpha.toRadixString(16).padLeft(2, '0')}$rgb';
   }
 
   @override
@@ -573,13 +620,21 @@ class MpvVideoTransport implements VideoTransport {
 
   @override
   Future<String?> screenshot(String path) async {
-    await _cmd(<String>['screenshot-to-file', path, 'video']);
-    // mpv 异步落盘，稍等一下再报路径，否则调用方拿去显示会读到半个文件。
-    for (var i = 0; i < 12; i++) {
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-      if (await File(path).exists()) return path;
+    try {
+      // 取帧、编码由 media_kit 完成，文件由 Dart 写入。mpv 的写文件错误会进入
+      // 播放错误流；这里把存储失败留在截图操作里，并确保返回时文件已经写完。
+      final format = path.toLowerCase().endsWith('.png')
+          ? 'image/png'
+          : 'image/jpeg';
+      final bytes = await _player.screenshot(format: format);
+      if (bytes == null || bytes.isEmpty) return null;
+      final file = File(path);
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(bytes, flush: true);
+      return path;
+    } catch (_) {
+      return null;
     }
-    return null;
   }
 
   @override
@@ -589,14 +644,32 @@ class MpvVideoTransport implements VideoTransport {
   }
 
   @override
-  Future<void> close() async {
+  Future<void> close() => _closing ??= _close();
+
+  Future<void> _close() async {
+    _closed = true;
+    ++_openGeneration;
+    _signalStartup();
     for (final sub in _subs) {
       await sub.cancel();
     }
     _subs.clear();
+    tracksRevision.dispose();
     _seekClear?.cancel();
     try {
       await _player.stop();
     } catch (_) {}
+    try {
+      // VideoController 的原生纹理只在 Player.dispose 时释放；stop 会保留它。
+      if (_ownsPlayer) await _player.dispose();
+    } finally {
+      await Future.wait<void>([
+        _playingCtrl.close(),
+        _positionCtrl.close(),
+        _durationCtrl.close(),
+        _completedCtrl.close(),
+        _phaseCtrl.close(),
+      ]);
+    }
   }
 }

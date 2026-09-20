@@ -288,6 +288,7 @@ class ReaderVideoController extends ChangeNotifier {
   /// 挂上播放器并开始转发事件（neo 的 `register`）。
   Future<void> attach(VideoTransport transport) async {
     await detach();
+    if (_disposed) return;
     _transport = transport;
     _endedFired = false;
     // 先用 transport 的当前值打一份底：**流只投递未来的事件**，而页面完全可能在

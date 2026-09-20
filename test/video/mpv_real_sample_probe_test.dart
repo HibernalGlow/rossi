@@ -4,7 +4,7 @@
 /// - 章节：AVI 装不了章节，而 `chapter-list` 的毫秒精度、`add chapter` 的跳转
 ///   都是 mimage/neo 共有的一条功能；
 /// - 真解码器路径：h264 的 `video-codec`、关键帧结构下的**精确定位**、
-///   `hwdec=auto-copy` 在 macOS 上到底有没有走 VideoToolbox；
+///   `hwdec=auto` 在 macOS 上到底有没有走 VideoToolbox；
 /// - 波形：symphonia 解 aac-in-mp4 / aac-in-mkv 是声明过的能力（Cargo 里开了
 ///   `isompv`/`mkv`/`aac`），但 WAV 测不到它。
 ///
@@ -205,15 +205,15 @@ void main() {
       'yes',
     );
     // 硬解只能验到「请求值落到了引擎」：libmpv 里没有渲染面时 vo=null，
-    // `current-hwdec` 是空的（真机上才谈得上「到底走没走 VideoToolbox」= 验收 D8）。
+    // `hwdec-current` 是空的（真机上才谈得上「到底走没走 VideoToolbox」= 验收 D8）。
     // 但这一条不是废话 —— 它同时守住「设置页的硬解开关会不会被 media_kit 覆盖回 auto」。
     expect(
       await _untilValue(
         () => native.getProperty('hwdec'),
-        (v) => v == 'auto-copy',
-        what: 'hwdec=auto-copy 落在引擎上',
+        (v) => v == (Platform.isAndroid ? 'auto-safe' : 'auto'),
+        what: 'hwdec=auto 落在引擎上',
       ),
-      'auto-copy',
+      Platform.isAndroid ? 'auto-safe' : 'auto',
     );
 
     // 关键流下的精确定位：3.0 s 要落在 ±150 ms（h264 默认 GOP 比 rawvideo 苛刻）。

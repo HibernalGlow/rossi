@@ -452,6 +452,74 @@ Future<VideoEnginePhase> _openAndAwait(
 
 
 void main() {
+  test('默认视频样式保持原色，字幕颜色和透明度被 mpv 接受', () async {
+    final lib = _loadableLibmpv();
+    if (lib == null) {
+      markTestSkipped('系统里没有可加载的 libmpv');
+      return;
+    }
+    MediaKit.ensureInitialized(libmpv: lib);
+    final player = Player();
+    final transport = MpvVideoTransport(player: player);
+    final errors = <String>[];
+    final phases = <VideoEnginePhase>[];
+    final errorSub = player.stream.error.listen(errors.add);
+    final phaseSub = transport.phaseStream.listen(phases.add);
+    final media = File(_writeWav());
+    final native = player.platform as NativePlayer;
+    Future<void> expectProperty(String key, String expected) async {
+      expect(
+        await _until(
+          () async => (await native.getProperty(key)).toLowerCase(),
+          (value) => value == expected,
+          what: '$key=$expected',
+        ),
+        expected,
+      );
+    }
+
+    try {
+      expect(await _openAndAwait(transport, media.path), VideoEnginePhase.ready);
+      await transport.setFilter(VideoFilterState.neutral);
+      for (final key in ['brightness', 'contrast', 'saturation']) {
+        expect(double.parse(await native.getProperty(key)), 0);
+      }
+      await transport.setSubtitleStyle(const VideoSubtitleStyle());
+      await expectProperty('sub-color', '#ffffffff');
+      await expectProperty('sub-back-color', '#b3000000');
+      expect(double.parse(await native.getProperty('sub-pos')), 95);
+
+      await transport.setSubtitleStyle(
+        const VideoSubtitleStyle(
+          colorHex: '#12a4f0',
+          backgroundOpacityPercent: 0,
+        ),
+      );
+      await expectProperty('sub-color', '#ff12a4f0');
+      await expectProperty('sub-back-color', '#00000000');
+      await transport.setSubtitleStyle(
+        const VideoSubtitleStyle(
+          colorHex: 'invalid',
+          backgroundOpacityPercent: 100,
+        ),
+      );
+      await expectProperty('sub-color', '#ffffffff');
+      await expectProperty('sub-back-color', '#ff000000');
+      // 错误来自异步日志流，等事件送达后再确认不会把画面切到失败页。
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      expect(errors, isEmpty);
+      expect(phases, isNot(contains(VideoEnginePhase.failed)));
+    } finally {
+      await errorSub.cancel();
+      await phaseSub.cancel();
+      await transport.close();
+      await transport.close(); // 幂等关闭；借用的 Player 仍由调用方释放。
+      expect((player.platform as NativePlayer).disposed, isFalse);
+      await player.dispose();
+      await media.parent.delete(recursive: true);
+    }
+  });
+
   test('出厂那台 mpv 认得我写的每一个名字', () {
     final names = _mpvNamesInUse();
     // 名单本身为空 = 源码解析失效，这时候"全过"是假的通过。
@@ -595,22 +663,22 @@ void main() {
     await transport.setFilter(
       const VideoFilterState(brightness: 150, contrast: 100, saturation: 60),
     );
-    // neo 的 0–200%（100 = 原样）映射到 mpv 的 0–100（50 = 原样）。
+    // UI 的 100% 对应 mpv 的 0，降低饱和度必须落到负值。
     expect(
       await _until(
         () async => double.tryParse(await property('brightness')),
-        (v) => v != null && (v - 75).abs() <= 1.0,
-        what: 'brightness ÷2 映射',
+        (v) => v != null && (v - 50).abs() <= 1.0,
+        what: 'brightness 150% 对应 +50',
       ),
-      closeTo(75, 1.0),
+      closeTo(50, 1.0),
     );
     expect(
       await _until(
         () async => double.tryParse(await property('saturation')),
-        (v) => v != null && (v - 30).abs() <= 1.0,
-        what: 'saturation ÷2 映射',
+        (v) => v != null && (v + 40).abs() <= 1.0,
+        what: 'saturation 60% 对应 -40',
       ),
-      closeTo(30, 1.0),
+      closeTo(-40, 1.0),
     );
 
     await transport.setSubtitleStyle(
@@ -627,10 +695,10 @@ void main() {
     expect(
       await _until(
         () async => double.tryParse(await property('sub-pos')),
-        (v) => v != null && (v - 12).abs() <= 0.01,
-        what: 'sub-pos 生效',
+        (v) => v != null && (v - 88).abs() <= 0.01,
+        what: '字幕离底部 12% 对应 sub-pos=88',
       ),
-      closeTo(12, 0.01),
+      closeTo(88, 0.01),
     );
 
     await transport.setVideoEnabled(false);

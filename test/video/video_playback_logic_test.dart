@@ -30,6 +30,14 @@ import 'package:zephyr/video/model/video_media_kind.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
 
 void main() {
+  test('加载尚未挂接时退出，不重新订阅播放器或恢复进度定时器', () async {
+    final controller = ReaderVideoController(host: _NullHost(), progressKey: 'k');
+    final attaching = controller.attach(_FakeTransport());
+    controller.dispose();
+    await attaching;
+    expect(controller.transport, isNull);
+  });
+
   group('媒体身份判定（neo media.ts）', () {
     test('常规后缀分档正确', () {
       expect(mediaKindOf('page01.jpg'), RossiMediaKind.image);
@@ -450,6 +458,9 @@ Comment: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,不该出现
       await provider.request(const Duration(seconds: 12));
       await Future<void>.delayed(const Duration(milliseconds: 50));
       expect(transport.commands, isNot(contains('seek=12s')));
+      expect(transport.commands, isNot(contains('shot')));
+      await provider.dispose();
+      await Directory(provider.cacheDirOverride!).delete(recursive: true);
     });
   });
 

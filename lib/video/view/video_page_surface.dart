@@ -145,14 +145,19 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
   MpvVideoTransport? _transport;
   ReaderVideoController? _controller;
   VideoFramePreviewProvider? _preview;
-  final ValueNotifier<bool> _panelsOpen = ValueNotifier<bool>(false);
+  final VideoPanelController _panelsOpen = VideoPanelController();
+  final ValueNotifier<(ReaderVideoSnapshot, Duration?)> _controlsState =
+      ValueNotifier((ReaderVideoSnapshot.empty, null));
 
-  bool _starting = false;
+  int _generation = 0;
+  Future<void>? _startup;
   String? _error;
   bool _controlsVisible = true;
   bool _pinned = false;
   bool _pip = false;
   Timer? _hideTimer;
+  bool _observedPlaying = false;
+  final Object _infoPanel = Object();
   VideoFilterState _filter = VideoFilterState.neutral;
   VideoSubtitleStyle _subtitleStyle = const VideoSubtitleStyle();
 
@@ -197,8 +202,11 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
     super.initState();
     _pinned = widget.settings.controlsPinned;
     _subtitleStyle = widget.settings.subtitleStyle;
+    _panelsOpen.addListener(_onPanelsChanged);
     MediaKit.ensureInitialized();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _start());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _resetForNewTarget();
+    });
   }
 
   @override
@@ -206,9 +214,16 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.target.entryName != widget.target.entryName ||
         oldWidget.target.sourcePath != widget.target.sourcePath) {
-      // 换页 = 换源。播放器**复用**（省一次 mpv 实例化），但控制器里的
-      // 位置/时长必须清零，否则进度条会在旧时长上画新的位置。
+      // 换源先收完旧会话，再启动最新目标，避免旧的异步加载回写或继续占用解码器。
       _resetForNewTarget();
+    }
+    if (oldWidget.settings.controlsPinned != widget.settings.controlsPinned) {
+      _pinned = widget.settings.controlsPinned;
+      _revealControls();
+    }
+    if (oldWidget.settings.autoHideMilliseconds !=
+        widget.settings.autoHideMilliseconds) {
+      _armHideTimer();
     }
     if (oldWidget.active && !widget.active) {
       // 从「当前页」掉下去：暂停并补写一次进度。让它继续出声是明确的错误 ——
@@ -220,11 +235,20 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
     if (!oldWidget.active && widget.active) _claimActive();
   }
 
-  Future<void> _start() async {
-    if (_starting) return;
-    _starting = true;
+  bool _isCurrent(int generation) => mounted && generation == _generation;
+
+  Future<void> _start(int generation) async {
+    if (!_isCurrent(generation)) return;
+    final target = widget.target;
+    final settings = widget.settings;
     resetVideoSubtitleActionState();
-    final transport = _transport ?? MpvVideoTransport();
+    // build 与 dispose 必须持有同一个播放器，否则页面永远停在初始加载态。
+    final transport = _transport = MpvVideoTransport(
+      hardwareDecode: settings.hardwareDecode,
+    );
+    transport.tracksRevision.addListener(_onTracksChanged);
+    // 先建立视频输出，open 会等初始化完成再加载媒体和设置解码选项。
+    transport.videoController;
     final controller = ReaderVideoController(
       host: this,
       progressKey: widget.target.progressKey,
@@ -236,6 +260,8 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
       ),
     );
     _controller = controller;
+    _observedPlaying = controller.snapshot.playing;
+    controller.addListener(_onPlaybackChanged);
     _preview = VideoFramePreviewProvider(transport: transport);
     _uiSub ??= ActiveVideoScope.instance.uiActions.listen(_onUiAction);
     // 只有当前页才登记为「活动视频」：邻居页也挂着，先登记的那个会抢走按键归属。
@@ -243,44 +269,53 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
     setState(() {});
 
     try {
-      final resolved = await _resolvePlayablePath();
+      final resolved = await _resolvePlayablePath(target);
+      if (!_isCurrent(generation)) return;
       if (resolved == null) {
         if (mounted) setState(() => _error = t.video.noBytes);
         return;
       }
       _materializedPath = resolved;
       await controller.attach(transport);
+      if (!_isCurrent(generation)) return;
 
-      final saved = await widget.progressStore?.load(widget.target.progressKey);
+      final saved = await (widget.progressStore ?? _sharedProgressStore).load(
+        target.progressKey,
+      );
+      if (!_isCurrent(generation)) return;
       await transport.open(
         'file://${Uri.file(resolved).path}',
         options: VideoOpenOptions(
           autoplay:
-              widget.settings.autoplay && widget.active && saved?.isFinished != true,
+              widget.settings.autoplay &&
+              widget.active &&
+              saved?.isFinished != true,
           resumeAt: saved?.resumeAt,
           hardwareDecode: widget.settings.hardwareDecode,
           deinterlace: widget.settings.deinterlace,
           volume: widget.settings.volumePercent,
         ),
       );
+      if (!_isCurrent(generation)) return;
+      if (!widget.active) await transport.pause();
       // 快照里的音量要跟实际一致：只把音量交给引擎、不回报给控制器，
       // 界面就会显示 100% 而听上去是 40%。
       await controller.setVolume(widget.settings.volumePercent / 100);
       await transport.setFilter(_filter);
       await transport.setSubtitleStyle(_subtitleStyle);
-      await _attachSidecarSubtitles(resolved);
-      _loadWaveform(resolved);
+      if (!_isCurrent(generation)) return;
+      await _attachSidecarSubtitles(resolved, generation);
+      if (!_isCurrent(generation)) return;
+      unawaited(_loadWaveform(resolved));
       _armHideTimer();
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
-    } finally {
-      _starting = false;
+      if (_isCurrent(generation)) setState(() => _error = e.toString());
     }
   }
 
   /// 归档 → 物化到临时区；文件夹 → 原路径直接用。
-  Future<String?> _resolvePlayablePath() async {
-    final direct = await widget.target.resolveDirectPath();
+  Future<String?> _resolvePlayablePath(VideoPageTarget target) async {
+    final direct = await target.resolveDirectPath();
     if (direct != null) {
       _isArchive = false;
       return File(direct).existsSync() ? direct : null;
@@ -288,11 +323,11 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
     _isArchive = true;
     final materializer = widget.materializer ?? _sharedMaterializer;
     final file = await materializer.materialize(
-      sourcePath: widget.target.sourcePath,
-      pageIndex: widget.target.pageIndex,
-      entryName: widget.target.entryName,
-      entrySize: widget.target.sizeBytes,
-      readBytes: () async => (await widget.target.readBytes()) ?? Uint8List(0),
+      sourcePath: target.sourcePath,
+      pageIndex: target.pageIndex,
+      entryName: target.entryName,
+      entrySize: target.sizeBytes,
+      readBytes: () async => (await target.readBytes()) ?? Uint8List(0),
     );
     return file.filePath;
   }
@@ -302,7 +337,10 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
   static final VideoMaterializer _sharedMaterializer = VideoMaterializer();
 
   /// 外挂字幕：同目录/同归档里同名的 srt/ass 直接挂上，第一条自动选中。
-  Future<void> _attachSidecarSubtitles(String playablePath) async {
+  Future<void> _attachSidecarSubtitles(
+    String playablePath,
+    int generation,
+  ) async {
     final candidates = <SubtitleCandidate>[];
     if (_isArchive) {
       candidates.addAll(
@@ -321,7 +359,7 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
     } else {
       candidates.addAll(await discoverSidecarSubtitles(playablePath));
     }
-    if (!mounted) return;
+    if (!_isCurrent(generation)) return;
     setState(() => _sidecarSubtitles = candidates);
     if (candidates.isEmpty) return;
     final first = candidates.first;
@@ -335,11 +373,11 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
     final landed = first.path.startsWith('archive:')
         ? await _materializeSidecar(first.path)
         : first.path;
-    if (landed == null) return;
+    if (landed == null || !_isCurrent(generation)) return;
     final ready = await _prepareSubtitle(landed, first.format);
-    if (ready == null) return;
+    if (ready == null || !_isCurrent(generation)) return;
     await transport.addSubtitleFile(ready);
-    if (mounted) setState(() {});
+    if (_isCurrent(generation)) setState(() {});
   }
 
   String? _activeSidecarId;
@@ -398,10 +436,7 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
         ? await _materializeSidecar(marker)
         : marker;
     if (real == null) return;
-    final ready = await _prepareSubtitle(
-      real,
-      _sidecarAt(id)?.format ?? 'srt',
-    );
+    final ready = await _prepareSubtitle(real, _sidecarAt(id)?.format ?? 'srt');
     if (ready == null) return;
     _activeSidecarId = id;
     await transport.addSubtitleFile(ready);
@@ -437,12 +472,31 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
   }
 
   void _resetForNewTarget() {
-    _controller?.detach();
+    final generation = ++_generation;
+    final previousStartup = _startup;
+    final previousTransport = _transport;
+    previousTransport?.tracksRevision.removeListener(_onTracksChanged);
+    final previewClosed = _preview?.dispose();
+    _hideTimer?.cancel();
+    _releaseInactive();
+    _controller?.removeListener(_onPlaybackChanged);
+    _controller?.dispose();
     _controller = null;
+    _controlsVisible = true;
+    _transport = null;
+    _preview = null;
     _error = null;
     _materializedPath = null;
     _sidecarSubtitles = const <SubtitleCandidate>[];
-    unawaited(_start());
+    _activeSidecarId = null;
+    _waveform = VideoWaveformStrip.empty;
+    _startup = () async {
+      // 旧的 open / 截图结束后才销毁原生纹理，不让它们访问已经释放的 mpv。
+      await previousStartup;
+      await previewClosed;
+      await previousTransport?.close();
+      if (_isCurrent(generation)) await _start(generation);
+    }();
   }
 
   // ── ReaderVideoHost ───────────────────────────────────────────────────
@@ -470,16 +524,51 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
 
   // ── 控制条显隐（neo：播放中 3 s 后收起，暂停/钉住/弹层开着时常显）──
 
+  void _onPlaybackChanged() {
+    final controller = _controller;
+    if (controller != null) {
+      // 高频位置通知只交给进度条和时钟，整排菜单只在操作状态改变时重建。
+      _controlsState.value = (
+        controller.snapshot.copyWith(currentTime: Duration.zero),
+        controller.markedPointA,
+      );
+    }
+    final playing = _controller?.snapshot.playing ?? false;
+    if (_observedPlaying == playing) return;
+    _observedPlaying = playing;
+    // 只响应播放/暂停切换，进度事件不能不断续期隐藏计时。
+    _revealControls();
+  }
+
+  void _onPanelsChanged() => _revealControls();
+
+  void _onTracksChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _togglePin() {
+    setState(() => _pinned = !_pinned);
+    // 取消固定、关弹层、恢复播放都必须重新计时，不能依赖下一次鼠标移动。
+    _revealControls();
+    unawaited(_persistPinned(_pinned));
+  }
+
   void _armHideTimer() {
     _hideTimer?.cancel();
-    final controller = _controller;
-    if (controller == null) return;
-    if (!_controlsVisible) return;
+    if (!mounted ||
+        !_controlsVisible ||
+        _pinned ||
+        _panelsOpen.value ||
+        _controller?.snapshot.playing != true) {
+      return;
+    }
     _hideTimer = Timer(
       Duration(milliseconds: widget.settings.autoHideMilliseconds),
       () {
-        final snapshot = controller.snapshot;
-        if (snapshot.playing && !_pinned && !_panelsOpen.value) {
+        if (!mounted) return;
+        if (_controller?.snapshot.playing == true &&
+            !_pinned &&
+            !_panelsOpen.value) {
           setState(() => _controlsVisible = false);
         }
       },
@@ -487,6 +576,7 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
   }
 
   void _revealControls() {
+    if (!mounted) return;
     if (_controlsVisible) {
       _armHideTimer();
       return;
@@ -497,15 +587,26 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
 
   @override
   void dispose() {
+    ++_generation;
     _hideTimer?.cancel();
+    _panelsOpen.removeListener(_onPanelsChanged);
     _panelsOpen.dispose();
+    _controlsState.dispose();
     _activation.dispose();
     unawaited(_uiSub?.cancel());
     final controller = _controller;
     _releaseInactive();
+    controller?.removeListener(_onPlaybackChanged);
     controller?.dispose();
-    unawaited(_transport?.close());
-    unawaited(_preview?.dispose());
+    final startup = _startup;
+    final transport = _transport;
+    transport?.tracksRevision.removeListener(_onTracksChanged);
+    final previewClosed = _preview?.dispose();
+    unawaited(() async {
+      await startup;
+      await previewClosed;
+      await transport?.close();
+    }());
     super.dispose();
   }
 
@@ -517,6 +618,22 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
   Future<void> _persistSubtitleStyle(VideoSubtitleStyle style) async {
     final store = VideoSettingsStore.instance;
     await store.save((await store.load()).copyWith(subtitleStyle: style));
+  }
+
+  Future<void> _showInfo() async {
+    final controller = _controller;
+    if (controller == null) return;
+    _panelsOpen.setOpen(_infoPanel, true);
+    try {
+      await showVideoInfoSheet(
+        context,
+        controller: controller,
+        labels: widget.labels,
+        sidecars: _sidecarSubtitles,
+      );
+    } finally {
+      _panelsOpen.setOpen(_infoPanel, false);
+    }
   }
 
   Future<void> _screenshot() async {
@@ -537,58 +654,59 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
   Widget _tapZones(Widget child) => Focus(
     focusNode: _activation,
     child: LayoutBuilder(
-    builder: (context, constraints) {
-      final width = constraints.maxWidth;
-      return Stack(
-        fit: StackFit.expand,
-        children: <Widget>[
-          child,
-          Positioned(
-            left: 0,
-            width: width * 0.25,
-            top: 0,
-            bottom: 0,
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: () {
-                if (_activateOnly()) return;
-                _controller?.seekBackward();
-                _revealControls();
-              },
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        return Stack(
+          fit: StackFit.expand,
+          children: <Widget>[
+            child,
+            Positioned(
+              left: 0,
+              width: width * 0.25,
+              top: 0,
+              bottom: 0,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () {
+                  if (_activateOnly()) return;
+                  _controller?.seekBackward();
+                  _revealControls();
+                },
+              ),
             ),
-          ),
-          Positioned(
-            right: 0,
-            width: width * 0.25,
-            top: 0,
-            bottom: 0,
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: () {
-                if (_activateOnly()) return;
-                _controller?.seekForward();
-                _revealControls();
-              },
+            Positioned(
+              right: 0,
+              width: width * 0.25,
+              top: 0,
+              bottom: 0,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () {
+                  if (_activateOnly()) return;
+                  _controller?.seekForward();
+                  _revealControls();
+                },
+              ),
             ),
-          ),
-          Positioned(
-            left: width * 0.25,
-            right: width * 0.25,
-            top: 0,
-            bottom: 0,
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: () {
-                if (_activateOnly()) return;
-                _controller?.togglePlay();
-                _revealControls();
-              },
+            Positioned(
+              left: width * 0.25,
+              right: width * 0.25,
+              top: 0,
+              bottom: 0,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () {
+                  if (_activateOnly()) return;
+                  _controller?.togglePlay();
+                  _revealControls();
+                },
+              ),
             ),
-          ),
-        ],
-      );
-    },
-  ));
+          ],
+        );
+      },
+    ),
+  );
 
   /// 未激活时吃掉这一次点击，只把焦点拿过来。返回 true = 已消费。
   bool _activateOnly() {
@@ -597,6 +715,47 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
     widget.onActiveChanged?.call(true);
     _revealControls();
     return true;
+  }
+
+  Widget _videoBody(MpvVideoTransport transport) {
+    final video = RepaintBoundary(
+      child: Video(
+        controller: transport.videoController,
+        fit: widget.fit,
+        controls: NoVideoControls,
+      ),
+    );
+    if (!_pip) return _tapZones(video);
+    return Align(
+      alignment: Alignment.bottomRight,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: SizedBox(
+          width: 320,
+          height: 180,
+          child: Material(
+            elevation: 12,
+            color: Colors.black,
+            child: Stack(
+              children: <Widget>[
+                Positioned.fill(child: video),
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: IconButton.filledTonal(
+                    tooltip: MaterialLocalizations.of(
+                      context,
+                    ).closeButtonTooltip,
+                    icon: const Icon(Icons.close),
+                    onPressed: () => setState(() => _pip = false),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -625,126 +784,99 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
       );
     }
 
-    return ColoredBox(
-      color: Colors.black,
-      child: MouseRegion(
-        onHover: (_) => _revealControls(),
-        child: ListenableBuilder(
-          listenable: controller,
-          builder: (context, _) {
-            final snapshot = controller.snapshot;
-            final showControls =
-                _controlsVisible || !_pinned && !snapshot.playing || _pinned;
-            final video = Video(
-              controller: transport.videoController,
-              fit: widget.fit,
-              controls: NoVideoControls,
-            );
-            return Stack(
-              fit: StackFit.expand,
-              children: <Widget>[
-                if (!_pip) _tapZones(video) else const SizedBox.shrink(),
-                if (snapshot.phase == VideoEnginePhase.prerolling &&
-                    snapshot.duration <= Duration.zero)
-                  const Center(child: CircularProgressIndicator()),
-                if (snapshot.phase == VideoEnginePhase.failed)
-                  ColoredBox(
-                    color: Colors.black,
-                    child: Center(
-                      child: Text(
-                        snapshot.failureReason ?? t.video.cannotPlay,
-                        style: const TextStyle(color: Colors.white70),
+    return Listener(
+      onPointerDown: (_) => _revealControls(),
+      child: ColoredBox(
+        color: Colors.black,
+        child: MouseRegion(
+          onHover: (_) => _revealControls(),
+          child: ListenableBuilder(
+            listenable: _controlsState,
+            // 位置更新不重建画面、按钮与菜单，只刷新控制条里的进度和时间。
+            child: _videoBody(transport),
+            builder: (context, videoBody) {
+              final snapshot = controller.snapshot;
+              final showControls =
+                  _controlsVisible ||
+                  !snapshot.playing ||
+                  _pinned ||
+                  _panelsOpen.value;
+              return Stack(
+                fit: StackFit.expand,
+                children: <Widget>[
+                  if (!_pip) videoBody!,
+                  if (snapshot.phase == VideoEnginePhase.prerolling &&
+                      snapshot.duration <= Duration.zero)
+                    const Center(child: CircularProgressIndicator()),
+                  if (snapshot.phase == VideoEnginePhase.failed)
+                    ColoredBox(
+                      color: Colors.black,
+                      child: Center(
+                        child: Text(
+                          snapshot.failureReason ?? t.video.cannotPlay,
+                          style: const TextStyle(color: Colors.white70),
+                        ),
                       ),
                     ),
-                  ),
-                if (showControls)
                   Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: DecoratedBox(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: <Color>[
-                            Color(0xE6000000),
-                            Color(0xA6000000),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                      child: VideoControlOverlay(
-                        snapshot: snapshot,
-                        controller: controller,
-                        labels: widget.labels,
-                        pinned: _pinned,
-                        panelsOpen: _panelsOpen,
-                        framePreview: _preview,
-                        filter: _filter,
-                        subtitleStyle: _subtitleStyle,
-                        onFilterChanged: (next) {
-                          setState(() => _filter = next);
-                          transport.setFilter(next);
-                        },
-                        onSubtitleStyleChanged: (next) {
-                          setState(() => _subtitleStyle = next);
-                          transport.setSubtitleStyle(next);
-                          // 字号/颜色/位置是「读下一本也想保持」的偏好，上游同样持久化。
-                          unawaited(_persistSubtitleStyle(next));
-                        },
-                        onTogglePin: () {
-                          setState(() => _pinned = !_pinned);
-                          // 图钉要跨书、跨重启保持（上游同样是持久化的），
-                          // 否则桌面端每次重开都要重新钉一次，这条功能等于没做。
-                          unawaited(_persistPinned(_pinned));
-                        },
-                        onScreenshot: _screenshot,
-                        onFullscreen: widget.onFullscreen,
-                        onTogglePip: () => setState(() => _pip = !_pip),
-                        onOpenInfo: () => showVideoInfoSheet(
-                          context,
-                          controller: controller,
-                          labels: widget.labels,
-                          sidecars: _sidecarSubtitles,
-                        ),
-                        extraSubtitleTracks: _subtitleOptions,
-                        onSubtitleSelected: _chooseSubtitle,
-                        waveform: _waveform,
-                      ),
-                    ),
-                  ),
-                if (_pip)
-                  Align(
-                    alignment: Alignment.bottomRight,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: SizedBox(
-                        width: 320,
-                        height: 180,
-                        child: Material(
-                          elevation: 12,
-                          color: Colors.black,
-                          child: Stack(
-                            children: <Widget>[
-                              Positioned.fill(child: video),
-                              Positioned(
-                                right: 0,
-                                top: 0,
-                                child: IconButton(
-                                  icon: const Icon(Icons.close, color: Colors.white),
-                                  onPressed: () => setState(() => _pip = false),
-                                ),
+                    left: 12,
+                    right: 12,
+                    bottom: 12,
+                    child: IgnorePointer(
+                      ignoring: !showControls,
+                      child: ExcludeFocus(
+                        excluding: !showControls,
+                        child: AnimatedOpacity(
+                          key: const ValueKey('video-controls-visibility'),
+                          opacity: showControls ? 1 : 0,
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOutCubic,
+                          child: Align(
+                            alignment: Alignment.bottomCenter,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 1080),
+                              child: VideoControlOverlay(
+                                snapshot: snapshot,
+                                progressUpdates: showControls,
+                                controlUpdates: _controlsState,
+                                controller: controller,
+                                labels: widget.labels,
+                                pinned: _pinned,
+                                panelsOpen: _panelsOpen,
+                                framePreview: _preview,
+                                filter: _filter,
+                                subtitleStyle: _subtitleStyle,
+                                onFilterChanged: (next) {
+                                  setState(() => _filter = next);
+                                  transport.setFilter(next);
+                                },
+                                onSubtitleStyleChanged: (next) {
+                                  setState(() => _subtitleStyle = next);
+                                  transport.setSubtitleStyle(next);
+                                  // 字号/颜色/位置是「读下一本也想保持」的偏好，上游同样持久化。
+                                  unawaited(_persistSubtitleStyle(next));
+                                },
+                                onTogglePin: _togglePin,
+                                onScreenshot: _screenshot,
+                                onFullscreen: widget.onFullscreen,
+                                onTogglePip: () => setState(() => _pip = !_pip),
+                                onOpenInfo: _showInfo,
+                                extraSubtitleTracks: _subtitleOptions,
+                                onSubtitleSelected: _chooseSubtitle,
+                                waveform: _waveform,
                               ),
-                            ],
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-              ],
-            );
-          },
+
+                  if (_pip) videoBody!,
+                ],
+              );
+            },
+          ),
         ),
       ),
     );

@@ -1,5 +1,5 @@
-/// 视频控制条 —— 布局、显隐节奏与弹层内容照 neoview
-/// `features/video/ReaderVideoControlOverlay.tsx:44-359`。
+/// 视频控制条：MD3 主题颜色、标准按钮/滑杆与 MenuAnchor 弹层。
+/// 播放交互语义参考 neoview `features/video/ReaderVideoControlOverlay.tsx`。
 ///
 /// 借过来的三条硬规则（都是上游踩过之后定下来的）：
 /// 1. **自动隐藏 3 s，但暂停或钉住时常显** —— 暂停时收起等于把进度条藏起来，
@@ -120,9 +120,7 @@ class _TrackPanel extends StatelessWidget {
               ListTile(
                 dense: true,
                 title: Text(track.title),
-                subtitle: track.language == null
-                    ? null
-                    : Text(track.language!),
+                subtitle: track.language == null ? null : Text(track.language!),
                 leading: Icon(
                   track.id == selectedId
                       ? Icons.radio_button_checked
@@ -139,6 +137,31 @@ class _TrackPanel extends StatelessWidget {
 
 /// 倍速档：neo 的滑杆区间 + 0.5/1/1.5/2 预设。
 const List<double> kPlaybackRatePresets = <double>[0.5, 1.0, 1.5, 2.0];
+
+/// 多个菜单共享可见性：关闭其中一个不能把其它仍打开的菜单算作已关闭。
+class VideoPanelController extends ValueNotifier<bool> {
+  VideoPanelController() : super(false);
+
+  final Set<Object> _owners = <Object>{};
+  bool _disposed = false;
+
+  void setOpen(Object owner, bool open) {
+    if (_disposed) return;
+    if (open) {
+      _owners.add(owner);
+    } else {
+      _owners.remove(owner);
+    }
+    value = _owners.isNotEmpty;
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _owners.clear();
+    super.dispose();
+  }
+}
 
 class VideoControlOverlay extends StatelessWidget {
   const VideoControlOverlay({
@@ -162,6 +185,8 @@ class VideoControlOverlay extends StatelessWidget {
     this.onSubtitleSelected,
     this.extraSubtitleTracks = const <VideoMediaTrack>[],
     this.audioOnlyAvailable = true,
+    this.progressUpdates = true,
+    this.controlUpdates,
   });
 
   final ReaderVideoSnapshot snapshot;
@@ -171,7 +196,7 @@ class VideoControlOverlay extends StatelessWidget {
   final bool pinned;
 
   /// 任一弹层开着 —— 控制条的自动隐藏要让路给它（neo `shown = visible || anyPanelOpen`）。
-  final ValueNotifier<bool> panelsOpen;
+  final VideoPanelController panelsOpen;
 
   /// 声音轮廓（mimage 的 seek strip wave）。空则进度条后面什么都不画。
   final VideoWaveformStrip waveform;
@@ -190,6 +215,12 @@ class VideoControlOverlay extends StatelessWidget {
   final List<VideoMediaTrack> extraSubtitleTracks;
   final bool audioOnlyAvailable;
 
+  /// 隐藏时停止进度 UI 订阅，视频纹理继续独立播放。
+  final bool progressUpdates;
+
+  /// 非进度状态的通知，打开倍速/音量面板时也不随位置反复刷新。
+  final Listenable? controlUpdates;
+
   @override
   Widget build(BuildContext context) {
     final transport = controller.transport;
@@ -206,188 +237,331 @@ class VideoControlOverlay extends StatelessWidget {
     };
     final loop = loops[snapshot.loopMode]!;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        _ScrubBar(
-          snapshot: snapshot,
-          controller: controller,
-          framePreview: framePreview,
-          waveform: waveform,
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    Widget menuAction(
+      IconData icon,
+      String label,
+      VoidCallback? action, {
+      bool selected = false,
+    }) => MenuItemButton(
+      leadingIcon: Icon(icon),
+      trailingIcon: selected ? const Icon(Icons.check, size: 20) : null,
+      onPressed: action,
+      child: Text(label),
+    );
+
+    return Theme(
+      data: theme.copyWith(
+        sliderTheme: theme.sliderTheme.copyWith(
+          trackHeight: 8,
+          trackShape: const GappedSliderTrackShape(),
+          thumbShape: const HandleThumbShape(),
+          thumbSize: const WidgetStatePropertyAll(Size(4, 28)),
+          trackGap: 4,
+          activeTrackColor: colors.primary,
+          inactiveTrackColor: colors.secondaryContainer,
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-          child: Wrap(
-            spacing: 6,
-            runSpacing: 4,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            alignment: WrapAlignment.start,
+      ),
+      child: Material(
+        key: const ValueKey('video-controls-surface'),
+        color: colors.surfaceContainerHigh,
+        elevation: 3,
+        shadowColor: colors.shadow.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(24),
+        textStyle: theme.textTheme.bodyMedium!.copyWith(
+          color: colors.onSurface,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              _IconButton(
-                icon: snapshot.playing ? Icons.pause : Icons.play_arrow,
-                tooltip: snapshot.playing ? labels.pause : labels.play,
-                onPressed: () => controller.togglePlay(),
-              ),
-              _IconButton(
-                icon: Icons.replay_10,
-                tooltip: labels.backward,
-                onPressed: () => controller.seekBackward(),
-              ),
-              _IconButton(
-                icon: Icons.forward_10,
-                tooltip: labels.forward,
-                onPressed: () => controller.seekForward(),
-              ),
-              _IconButton(
-                icon: Icons.skip_previous,
-                tooltip: labels.frameStepBackward,
-                onPressed: () => controller.stepFrame(-1),
-              ),
-              _IconButton(
-                icon: Icons.skip_next,
-                tooltip: labels.frameStepForward,
-                onPressed: () => controller.stepFrame(1),
-              ),
-              _IconButton(
-                icon: loop.$1,
-                tooltip: loop.$2,
-                active: snapshot.loopMode != ReaderVideoLoopMode.none,
-                onPressed: controller.cycleLoopMode,
-              ),
-              _TextButton(
-                label: '${_rateText(snapshot.playbackRate)}x',
-                tooltip: labels.speed,
-                active: snapshot.playbackRate != 1.0,
-                panelsOpen: panelsOpen,
-                builder: (context) => _RatePanel(
-                  snapshot: snapshot,
-                  controller: controller,
-                  labels: labels,
-                ),
-              ),
-              _TextButton(
-                label: snapshot.muted ? t.video.muted : '${(snapshot.volume * 100).round()}%',
-                tooltip: labels.volume,
-                active: snapshot.muted,
-                panelsOpen: panelsOpen,
-                builder: (context) => _VolumePanel(controller: controller),
-              ),
-              _TextButton(
-                label: labels.subtitles,
-                tooltip: labels.subtitles,
-                active: tracks.any((t) => t.selected),
-                panelsOpen: panelsOpen,
-                builder: (context) => _SubtitlePanel(
-                  tracks: tracks,
-                  labels: labels,
-                  style: subtitleStyle ?? const VideoSubtitleStyle(),
-                  onStyleChanged: onSubtitleStyleChanged,
-                  onSelected: (id) {
-                    // 有宿主回调时**只走回调**：外挂轨要先落盘再 sub-add，
-                    // 直接叫 transport.selectSubtitleTrack 会把文件路径当轨道号。
-                    final chosen = onSubtitleSelected;
-                    if (chosen != null) {
-                      chosen(id);
-                    } else {
-                      controller.transport?.selectSubtitleTrack(id);
-                    }
-                  },
-                ),
-              ),
-              // 音轨（mimage `set_audio_track`）：接口早就在 transport 上，
-              // 但没有面板就等于「登记了却没实现」。多音轨片源（中日双语、评论音轨）
-              // 全靠这一条。
-              if (audioTracks.length > 1)
-                _TextButton(
-                  label: labels.audio,
-                  tooltip: labels.audio,
-                  active: audioTracks.any((t) => t.selected),
-                  panelsOpen: panelsOpen,
-                  builder: (context) => _TrackPanel(
-                    tracks: audioTracks,
-                    offLabel: labels.audioOff,
-                    onSelected: (id) => transport?.selectAudioTrack(id),
+              _PositionBuilder(
+                controller: controller,
+                initialSnapshot: snapshot,
+                enabled: progressUpdates,
+                builder: (context, current) => RepaintBoundary(
+                  child: _ScrubBar(
+                    snapshot: current,
+                    controller: controller,
+                    framePreview: framePreview,
+                    waveform: waveform,
                   ),
                 ),
-              if (filterState != null && onFilterChanged != null)
-                _TextButton(
-                  label: labels.filters,
-                  tooltip: labels.filters,
-                  active: !filterState.isDefault,
-                  panelsOpen: panelsOpen,
-                  builder: (context) => _FilterPanel(
-                    filter: filterState,
-                    labels: labels,
-                    onChanged: onFilterChanged!,
+              ),
+              Wrap(
+                spacing: 4,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: <Widget>[
+                  IconButton.filled(
+                    tooltip: snapshot.playing ? labels.pause : labels.play,
+                    icon: Icon(
+                      snapshot.playing
+                          ? Icons.pause_rounded
+                          : Icons.play_arrow_rounded,
+                    ),
+                    onPressed: () => controller.togglePlay(),
                   ),
-                ),
-              _IconButton(
-                icon: Icons.low_priority,
-                tooltip: labels.abLoop,
-                active: snapshot.abLoop != null || controller.markedPointA != null,
-                onPressed: controller.tapAbLoop,
-              ),
-              if (snapshot.abLoop != null)
-                _IconButton(
-                  icon: Icons.clear,
-                  tooltip: labels.abClear,
-                  onPressed: controller.clearAbLoop,
-                ),
-              _IconButton(
-                icon: Icons.photo_camera_outlined,
-                tooltip: labels.screenshot,
-                onPressed: onScreenshot == null ? null : () => onScreenshot!(),
-              ),
-              _IconButton(
-                icon: snapshot.seekMode ? Icons.fast_forward : Icons.my_location,
-                tooltip: labels.seekMode,
-                active: snapshot.seekMode,
-                onPressed: controller.toggleSeekMode,
-              ),
-              if (audioOnlyAvailable)
-                _IconButton(
-                  icon: snapshot.audioOnly ? Icons.music_note : Icons.videocam,
-                  tooltip: labels.audioOnly,
-                  active: snapshot.audioOnly,
-                  onPressed: () => controller.setAudioOnly(!snapshot.audioOnly),
-                ),
-              _IconButton(
-                icon: Icons.picture_in_picture_alt,
-                tooltip: labels.pip,
-                onPressed: onTogglePip,
-              ),
-              _IconButton(
-                icon: Icons.fullscreen,
-                tooltip: labels.fullscreen,
-                onPressed: onFullscreen,
-              ),
-              _IconButton(
-                icon: pinned ? Icons.push_pin : Icons.push_pin_outlined,
-                tooltip: labels.pin,
-                active: pinned,
-                onPressed: onTogglePin,
-              ),
-              _IconButton(
-                icon: Icons.info_outline,
-                tooltip: labels.info,
-                onPressed: onOpenInfo,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                '${formatVideoTime(snapshot.currentTime)} / '
-                '${formatVideoTime(snapshot.duration)}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.white,
-                  fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
-                ),
+                  _IconButton(
+                    icon: Icons.replay_10_rounded,
+                    tooltip: labels.backward,
+                    onPressed: () => controller.seekBackward(),
+                  ),
+                  _IconButton(
+                    icon: Icons.forward_10_rounded,
+                    tooltip: labels.forward,
+                    onPressed: () => controller.seekForward(),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: _PositionBuilder(
+                      controller: controller,
+                      initialSnapshot: snapshot,
+                      enabled: progressUpdates,
+                      interval: const Duration(seconds: 1),
+                      builder: (context, current) => RepaintBoundary(
+                        child: Text(
+                          '${formatVideoTime(current.currentTime)} / ${formatVideoTime(current.duration)}',
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: colors.onSurfaceVariant,
+                            fontFeatures: const <FontFeature>[
+                              FontFeature.tabularFigures(),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  _TextButton(
+                    label: '${_rateText(snapshot.playbackRate)}×',
+                    tooltip: labels.speed,
+                    active: snapshot.playbackRate != 1.0,
+                    panelsOpen: panelsOpen,
+                    builder: (context) => ListenableBuilder(
+                      listenable: controlUpdates ?? controller,
+                      builder: (context, _) => _RatePanel(
+                        snapshot: controller.snapshot,
+                        controller: controller,
+                        labels: labels,
+                      ),
+                    ),
+                  ),
+                  _TextButton(
+                    label: snapshot.muted
+                        ? t.video.muted
+                        : '${(snapshot.volume * 100).round()}%',
+                    tooltip: labels.volume,
+                    active: snapshot.muted,
+                    panelsOpen: panelsOpen,
+                    builder: (context) => ListenableBuilder(
+                      listenable: controlUpdates ?? controller,
+                      builder: (context, _) =>
+                          _VolumePanel(controller: controller),
+                    ),
+                  ),
+                  _TextButton(
+                    label: labels.subtitles,
+                    tooltip: labels.subtitles,
+                    active: tracks.any((track) => track.selected),
+                    panelsOpen: panelsOpen,
+                    builder: (context) => _SubtitlePanel(
+                      tracks: tracks,
+                      labels: labels,
+                      style: subtitleStyle ?? const VideoSubtitleStyle(),
+                      onStyleChanged: onSubtitleStyleChanged,
+                      onSelected: (id) {
+                        final chosen = onSubtitleSelected;
+                        if (chosen != null) {
+                          chosen(id);
+                        } else {
+                          controller.transport?.selectSubtitleTrack(id);
+                        }
+                      },
+                    ),
+                  ),
+                  if (audioTracks.length > 1)
+                    _TextButton(
+                      label: labels.audio,
+                      tooltip: labels.audio,
+                      panelsOpen: panelsOpen,
+                      builder: (context) => _TrackPanel(
+                        tracks: audioTracks,
+                        offLabel: labels.audioOff,
+                        onSelected: (id) => transport?.selectAudioTrack(id),
+                      ),
+                    ),
+                  if (filterState != null && onFilterChanged != null)
+                    _TextButton(
+                      label: labels.filters,
+                      tooltip: labels.filters,
+                      active: !filterState.isDefault,
+                      panelsOpen: panelsOpen,
+                      builder: (context) => _FilterPanel(
+                        filter: filterState,
+                        labels: labels,
+                        onChanged: onFilterChanged!,
+                      ),
+                    ),
+                  _IconButton(
+                    icon: Icons.fullscreen_rounded,
+                    tooltip: labels.fullscreen,
+                    onPressed: onFullscreen,
+                  ),
+                  _IconButton(
+                    buttonKey: const ValueKey('video-pin-controls'),
+                    icon: Icons.push_pin_outlined,
+                    selectedIcon: Icons.push_pin_rounded,
+                    tooltip: pinned ? t.reader.unpinBottomBar : labels.pin,
+                    active: pinned,
+                    onPressed: onTogglePin,
+                  ),
+                  _TextButton(
+                    label: t.common.more,
+                    tooltip: t.common.more,
+                    icon: Icons.more_horiz_rounded,
+                    panelsOpen: panelsOpen,
+                    builder: (context) => Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
+                        menuAction(
+                          Icons.skip_previous_rounded,
+                          labels.frameStepBackward,
+                          () => controller.stepFrame(-1),
+                        ),
+                        menuAction(
+                          Icons.skip_next_rounded,
+                          labels.frameStepForward,
+                          () => controller.stepFrame(1),
+                        ),
+                        menuAction(
+                          loop.$1,
+                          loop.$2,
+                          controller.cycleLoopMode,
+                          selected:
+                              snapshot.loopMode != ReaderVideoLoopMode.none,
+                        ),
+                        menuAction(
+                          Icons.repeat_rounded,
+                          labels.abLoop,
+                          controller.tapAbLoop,
+                          selected:
+                              snapshot.abLoop != null ||
+                              controller.markedPointA != null,
+                        ),
+                        if (snapshot.abLoop != null ||
+                            controller.markedPointA != null)
+                          menuAction(
+                            Icons.clear,
+                            labels.abClear,
+                            controller.clearAbLoop,
+                          ),
+                        const Divider(),
+                        menuAction(
+                          Icons.photo_camera_outlined,
+                          labels.screenshot,
+                          onScreenshot == null ? null : () => onScreenshot!(),
+                        ),
+                        menuAction(
+                          Icons.fast_forward_rounded,
+                          labels.seekMode,
+                          controller.toggleSeekMode,
+                          selected: snapshot.seekMode,
+                        ),
+                        if (audioOnlyAvailable)
+                          menuAction(
+                            Icons.music_note_rounded,
+                            labels.audioOnly,
+                            () => controller.setAudioOnly(!snapshot.audioOnly),
+                            selected: snapshot.audioOnly,
+                          ),
+                        menuAction(
+                          Icons.picture_in_picture_alt_rounded,
+                          labels.pip,
+                          onTogglePip,
+                        ),
+                        menuAction(
+                          Icons.info_outline_rounded,
+                          labels.info,
+                          onOpenInfo,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
-      ],
+      ),
     );
   }
+}
+
+/// 播放时进度最多 10 Hz、时钟最多 1 Hz；暂停定位与操作状态改变立即更新。
+/// 只在可见时订阅，避免隐藏的 MD3 Slider 动画继续占用 UI 帧。
+class _PositionBuilder extends StatefulWidget {
+  const _PositionBuilder({
+    required this.controller,
+    required this.initialSnapshot,
+    required this.enabled,
+    required this.builder,
+    this.interval = const Duration(milliseconds: 100),
+  });
+
+  final ReaderVideoController controller;
+  final ReaderVideoSnapshot initialSnapshot;
+  final bool enabled;
+  final Duration interval;
+  final Widget Function(BuildContext, ReaderVideoSnapshot) builder;
+
+  @override
+  State<_PositionBuilder> createState() => _PositionBuilderState();
+}
+
+class _PositionBuilderState extends State<_PositionBuilder> {
+  late ReaderVideoSnapshot _snapshot = widget.initialSnapshot;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.enabled) widget.controller.addListener(_update);
+  }
+
+  @override
+  void didUpdateWidget(_PositionBuilder oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller ||
+        oldWidget.enabled != widget.enabled) {
+      if (oldWidget.enabled) oldWidget.controller.removeListener(_update);
+      if (widget.enabled) widget.controller.addListener(_update);
+    }
+    _snapshot = widget.initialSnapshot;
+  }
+
+  void _update() {
+    final next = widget.controller.snapshot;
+    final step = widget.interval.inMicroseconds;
+    if (next.playing &&
+        _snapshot.playing &&
+        next.duration == _snapshot.duration &&
+        next.currentTime.inMicroseconds ~/ step ==
+            _snapshot.currentTime.inMicroseconds ~/ step) {
+      return;
+    }
+    setState(() => _snapshot = next);
+  }
+
+  @override
+  void dispose() {
+    if (widget.enabled) widget.controller.removeListener(_update);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context, _snapshot);
 }
 
 /// 拖动条：进度 + 已缓冲 + 章节刻度 + A–B 区间 + 悬停帧预览。
@@ -423,7 +597,11 @@ class _ScrubBarState extends State<_ScrubBar> {
   void _onHover(PointerEvent event, Size size) {
     final duration = widget.snapshot.duration;
     if (duration <= Duration.zero) return;
-    final fraction = (event.position.dx / size.width).clamp(0.0, 1.0);
+    final fraction =
+        ((event.localPosition.dx - 12) / math.max(1, size.width - 24)).clamp(
+          0.0,
+          1.0,
+        );
     final at = duration * fraction;
     // 已经解出来的帧立刻显示：去抖窗口里先亮一个转圈，划过缓存区时会闪个不停。
     final cached = widget.framePreview?.peek(at);
@@ -449,54 +627,49 @@ class _ScrubBarState extends State<_ScrubBar> {
         : const <VideoChapter>[];
 
     return MouseRegion(
+      key: const ValueKey('video-progress-bar'),
       onHover: (e) {
         final box = context.findRenderObject() as RenderBox?;
         if (box != null) _onHover(e, box.size);
       },
-      onExit: (_) => setState(() {
-        _hoverAt = null;
-        _previewFrame = null;
-      }),
+      onExit: (_) {
+        _previewDebounce?.cancel();
+        setState(() {
+          _hoverAt = null;
+          _previewFrame = null;
+        });
+      },
       child: LayoutBuilder(
         builder: (context, constraints) {
           final width = constraints.maxWidth.isFinite
               ? constraints.maxWidth
               : 320.0;
-          void seekAt(double dx) =>
-              widget.controller.seekFraction((dx / width).clamp(0.0, 1.0));
-          return GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTapDown: (d) => seekAt(d.localPosition.dx),
-            onHorizontalDragUpdate: (d) => seekAt(d.localPosition.dx),
-            child: SizedBox(
-              height: 30,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: <Widget>[
+          return SizedBox(
+            height: 40,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: <Widget>[
+                Positioned.fill(
+                  child: _ProgressBar(
+                    snapshot: snapshot,
+                    chapters: chapters,
+                    waveform: widget.waveform,
+                    onChanged: widget.controller.seekFraction,
+                  ),
+                ),
+                if (_hoverAt != null && snapshot.duration > Duration.zero)
                   Positioned(
-                    left: 12,
-                    right: 12,
-                    top: 13,
-                    child: _ProgressBar(
-                      snapshot: snapshot,
-                      chapters: chapters,
-                      abLoopColor: Colors.amberAccent,
-                      waveform: widget.waveform,
+                    left: (_hoverLocal!.dx - 80).clamp(
+                      0.0,
+                      math.max(0, width - 160),
+                    ),
+                    bottom: 36,
+                    child: _FramePreviewBubble(
+                      at: _hoverAt!,
+                      frame: _previewFrame,
                     ),
                   ),
-                  if (_hoverAt != null && snapshot.duration > Duration.zero)
-                    Positioned(
-                      // 预览气泡夹在 ±80 px 内（neo 的同一条约束），
-                      // 否则拖到两端时气泡会被裁掉一半。
-                      left: ((_hoverLocal!.dx - 80).clamp(0.0, width - 160)),
-                      bottom: 26,
-                      child: _FramePreviewBubble(
-                        at: _hoverAt!,
-                        frame: _previewFrame,
-                      ),
-                    ),
-                ],
-              ),
+              ],
             ),
           );
         },
@@ -505,95 +678,81 @@ class _ScrubBarState extends State<_ScrubBar> {
   }
 }
 
-/// 进度轨道：底槽 + 已播 + A–B 区间 + 章节刻度 + 滑块圆点。
+/// 使用 MD3 Slider 提供拖动、键盘操作和进度语义，波形与章节仅作底纹。
 class _ProgressBar extends StatelessWidget {
   const _ProgressBar({
     required this.snapshot,
     required this.chapters,
-    required this.abLoopColor,
+    required this.onChanged,
     this.waveform = VideoWaveformStrip.empty,
   });
 
   final ReaderVideoSnapshot snapshot;
   final List<VideoChapter> chapters;
-  final Color abLoopColor;
+  final ValueChanged<double> onChanged;
   final VideoWaveformStrip waveform;
 
   @override
   Widget build(BuildContext context) {
-    final durationMs = snapshot.duration.inMilliseconds == 0
-        ? 1
-        : snapshot.duration.inMilliseconds;
-    final progress = snapshot.progress;
-    final ab = snapshot.abLoop;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        double x(Duration at) => (at.inMilliseconds / durationMs) * width;
-        return SizedBox(
-          height: 12,
-          child: Stack(
-            alignment: Alignment.centerLeft,
-            clipBehavior: Clip.none,
-            children: <Widget>[
-              // 声音轮廓垫在最下面（mimage 的 seek strip wave）：它只是底纹，
-              // 没有音轨或解码失败时整条不画，不占位也不报错。
-              if (!waveform.isEmpty)
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _WaveformPainter(waveform),
-                  ),
-                ),
-              Container(
-                height: 4,
-                decoration: BoxDecoration(
-                  color: waveform.isEmpty
-                      ? Colors.white24
-                      : Colors.white.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              if (ab != null)
-                Positioned(
-                  left: x(ab.a).clamp(0, width),
-                  width: (x(ab.b) - x(ab.a)).clamp(0, width),
-                  child: Container(
-                    height: 4,
-                    color: abLoopColor.withValues(alpha: 0.5),
-                  ),
-                ),
-              FractionallySizedBox(
-                widthFactor: progress,
-                alignment: Alignment.centerLeft,
-                child: Container(
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              for (final chapter in chapters)
-                if (chapter.at > Duration.zero)
-                  Positioned(
-                    left: x(chapter.at).clamp(0, width),
-                    child: Container(width: 2, height: 12, color: Colors.white38),
-                  ),
-              Positioned(
-                left: (progress * width - 5).clamp(-5, width - 5),
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ],
+    final colors = Theme.of(context).colorScheme;
+    final durationMs = math.max(1, snapshot.duration.inMilliseconds);
+    return Stack(
+      alignment: Alignment.center,
+      children: <Widget>[
+        Positioned.fill(
+          left: 12,
+          right: 12,
+          top: 8,
+          bottom: 8,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              double x(Duration at) =>
+                  (at.inMilliseconds / durationMs * width).clamp(0, width);
+              final ab = snapshot.abLoop;
+              return Stack(
+                children: <Widget>[
+                  if (!waveform.isEmpty)
+                    Positioned.fill(
+                      child: CustomPaint(
+                        painter: _WaveformPainter(
+                          waveform,
+                          colors.onSurfaceVariant.withValues(alpha: 0.24),
+                        ),
+                      ),
+                    ),
+                  if (ab != null)
+                    Positioned(
+                      left: x(ab.a),
+                      width: math.max(0, x(ab.b) - x(ab.a)),
+                      top: 0,
+                      bottom: 0,
+                      child: ColoredBox(color: colors.tertiaryContainer),
+                    ),
+                  for (final chapter in chapters)
+                    if (chapter.at > Duration.zero)
+                      Positioned(
+                        left: x(chapter.at),
+                        top: 0,
+                        bottom: 0,
+                        child: ColoredBox(
+                          color: colors.outlineVariant,
+                          child: const SizedBox(width: 2),
+                        ),
+                      ),
+                ],
+              );
+            },
           ),
-        );
-      },
+        ),
+        Slider(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          value: snapshot.progress,
+          onChanged: snapshot.duration > Duration.zero ? onChanged : null,
+          semanticFormatterCallback: (value) =>
+              formatVideoTime(snapshot.duration * value),
+        ),
+      ],
     );
   }
 }
@@ -603,15 +762,16 @@ class _ProgressBar extends StatelessWidget {
 /// 刻意不用 `ui.Path` 描轮廓 —— 180 根竖条在 300 px 宽度上读起来才像 mimage
 /// 那种「响度柱」，折线在小尺寸上会糊成一团。
 class _WaveformPainter extends CustomPainter {
-  const _WaveformPainter(this.strip);
+  const _WaveformPainter(this.strip, this.color);
 
   final VideoWaveformStrip strip;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
     final samples = strip.samples;
     if (samples.isEmpty || size.width <= 0) return;
-    final paint = Paint()..color = Colors.white.withValues(alpha: 0.28);
+    final paint = Paint()..color = color;
     final slot = size.width / samples.length;
     // 柱子至少 1 px 宽，否则 180 格在窄栏里会画成一条灰带。
     final barWidth = math.max(1.0, slot * 0.62);
@@ -628,11 +788,13 @@ class _WaveformPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_WaveformPainter old) => old.strip != strip;
+  bool shouldRepaint(_WaveformPainter old) =>
+      old.strip != strip || old.color != color;
 }
 
-String _rateText(double rate) =>
-    rate == rate.roundToDouble() ? rate.toStringAsFixed(0) : rate.toStringAsFixed(2);
+String _rateText(double rate) => rate == rate.roundToDouble()
+    ? rate.toStringAsFixed(0)
+    : rate.toStringAsFixed(2);
 
 class _FramePreviewBubble extends StatelessWidget {
   const _FramePreviewBubble({required this.at, required this.frame});
@@ -642,46 +804,43 @@ class _FramePreviewBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Container(
-          width: 160,
-          height: 90,
-          decoration: BoxDecoration(
-            color: Colors.black,
-            border: Border.all(color: Colors.white24),
-            borderRadius: BorderRadius.circular(4),
-            image: frame == null
-                ? null
-                : DecorationImage(
-                    image: FileImage(File(frame!.filePath)),
-                    fit: BoxFit.contain,
-                  ),
+    final colors = Theme.of(context).colorScheme;
+    return Material(
+      color: colors.surfaceContainerHighest,
+      elevation: 3,
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          if (frame != null)
+            Image.file(
+              File(frame!.filePath),
+              width: 160,
+              height: 90,
+              fit: BoxFit.contain,
+            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Text(
+              formatVideoTime(at),
+              style: Theme.of(
+                context,
+              ).textTheme.labelMedium?.copyWith(color: colors.onSurface),
+            ),
           ),
-          child: frame == null
-              ? const Center(
-                  child: SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                )
-              : null,
-        ),
-        const SizedBox(height: 2),
-        Text(
-          formatVideoTime(at),
-          style: const TextStyle(fontSize: 11, color: Colors.white),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
 class _RatePanel extends StatelessWidget {
-  const _RatePanel({required this.snapshot, required this.controller, required this.labels});
+  const _RatePanel({
+    required this.snapshot,
+    required this.controller,
+    required this.labels,
+  });
 
   final ReaderVideoSnapshot snapshot;
   final ReaderVideoController controller;
@@ -700,7 +859,12 @@ class _RatePanel extends StatelessWidget {
             Slider(
               min: snapshot.minimumPlaybackRate,
               max: snapshot.maximumPlaybackRate,
-              divisions: ((snapshot.maximumPlaybackRate - snapshot.minimumPlaybackRate) / snapshot.playbackRateStep).round().clamp(1, 200),
+              divisions:
+                  ((snapshot.maximumPlaybackRate -
+                              snapshot.minimumPlaybackRate) /
+                          snapshot.playbackRateStep)
+                      .round()
+                      .clamp(1, 200),
               value: snapshot.playbackRate.clamp(
                 snapshot.minimumPlaybackRate,
                 snapshot.maximumPlaybackRate,
@@ -792,7 +956,9 @@ class _SubtitlePanel extends StatelessWidget {
               dense: true,
               title: Text(labels.subtitleOff),
               leading: Icon(
-                selectedId == null ? Icons.radio_button_checked : Icons.radio_button_off,
+                selectedId == null
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_off,
               ),
               onTap: () => onSelected(null),
             ),
@@ -869,7 +1035,8 @@ class _SubtitlePanel extends StatelessWidget {
                         VideoSubtitleStyle(
                           sizeEm: style.sizeEm,
                           colorHex: color,
-                          backgroundOpacityPercent: style.backgroundOpacityPercent,
+                          backgroundOpacityPercent:
+                              style.backgroundOpacityPercent,
                           bottomPercent: style.bottomPercent,
                         ),
                       ),
@@ -888,7 +1055,8 @@ class _SubtitlePanel extends StatelessWidget {
                     child: Text(t.video.subLargeYellow),
                   ),
                   TextButton(
-                    onPressed: () => onStyleChanged!(const VideoSubtitleStyle()),
+                    onPressed: () =>
+                        onStyleChanged!(const VideoSubtitleStyle()),
                     child: Text(t.video.reset),
                   ),
                 ],
@@ -915,15 +1083,27 @@ class _ColorDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final parsed = int.tryParse(hex, radix: 16) ?? 0xFFFFFF;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 22,
-        height: 22,
-        decoration: BoxDecoration(
-          color: Color(0xFF000000 | parsed),
-          shape: BoxShape.circle,
-          border: Border.all(color: selected ? Colors.white : Colors.white24, width: 2),
+    final color = Color(0xFF000000 | parsed);
+    final colors = Theme.of(context).colorScheme;
+    return IconButton(
+      tooltip: '#$hex',
+      isSelected: selected,
+      onPressed: onTap,
+      style: IconButton.styleFrom(
+        side: BorderSide(
+          color: selected ? colors.primary : colors.outlineVariant,
+        ),
+      ),
+      icon: CircleAvatar(radius: 12, backgroundColor: color),
+      selectedIcon: CircleAvatar(
+        radius: 12,
+        backgroundColor: color,
+        child: Icon(
+          Icons.check,
+          size: 18,
+          color: ThemeData.estimateBrightnessForColor(color) == Brightness.light
+              ? Colors.black
+              : Colors.white,
         ),
       ),
     );
@@ -931,7 +1111,11 @@ class _ColorDot extends StatelessWidget {
 }
 
 class _FilterPanel extends StatelessWidget {
-  const _FilterPanel({required this.filter, required this.labels, required this.onChanged});
+  const _FilterPanel({
+    required this.filter,
+    required this.labels,
+    required this.onChanged,
+  });
 
   final VideoFilterState filter;
   final VideoLabels labels;
@@ -941,13 +1125,14 @@ class _FilterPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     // 0–200%：100 = 原样。上限 200 而不是 100 是 neo 的口径 ——
     // 「增强」需要往上一半的空间，往下只需要一半。
-    Widget row(String label, int value, void Function(int) set) => _LabeledSlider(
-      label: label,
-      value: value.toDouble(),
-      min: 0,
-      max: 200,
-      onChanged: (v) => set(v.round()),
-    );
+    Widget row(String label, int value, void Function(int) set) =>
+        _LabeledSlider(
+          label: label,
+          value: value.toDouble(),
+          min: 0,
+          max: 200,
+          onChanged: (v) => set(v.round()),
+        );
     return Padding(
       padding: const EdgeInsets.all(12),
       child: SizedBox(
@@ -956,9 +1141,21 @@ class _FilterPanel extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            row(t.video.brightness, filter.brightness, (v) => onChanged(filter.copyWith(brightness: v))),
-            row(t.video.contrast, filter.contrast, (v) => onChanged(filter.copyWith(contrast: v))),
-            row(t.video.saturation, filter.saturation, (v) => onChanged(filter.copyWith(saturation: v))),
+            row(
+              t.video.brightness,
+              filter.brightness,
+              (v) => onChanged(filter.copyWith(brightness: v)),
+            ),
+            row(
+              t.video.contrast,
+              filter.contrast,
+              (v) => onChanged(filter.copyWith(contrast: v)),
+            ),
+            row(
+              t.video.saturation,
+              filter.saturation,
+              (v) => onChanged(filter.copyWith(saturation: v)),
+            ),
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton(
@@ -994,7 +1191,27 @@ class _LabeledSlider extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text('$label ${value.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+              ),
+              Text(
+                value == value.roundToDouble()
+                    ? '${value.round()}'
+                    : value.toStringAsFixed(2),
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
         Slider(
           value: value.clamp(min, max),
           min: min,
@@ -1012,28 +1229,34 @@ class _IconButton extends StatelessWidget {
     required this.tooltip,
     required this.onPressed,
     this.active = false,
+    this.selectedIcon,
+    this.buttonKey,
   });
 
   final IconData icon;
+  final IconData? selectedIcon;
   final String tooltip;
   final VoidCallback? onPressed;
   final bool active;
+  final Key? buttonKey;
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(6),
-        child: Ink(
-          color: active ? Colors.white24 : Colors.transparent,
-          child: Padding(
-            padding: const EdgeInsets.all(6),
-            child: Icon(icon, size: 20, color: Colors.white),
-          ),
-        ),
-      ),
+    if (selectedIcon != null) {
+      return IconButton.filledTonal(
+        key: buttonKey,
+        tooltip: tooltip,
+        isSelected: active,
+        icon: Icon(icon),
+        selectedIcon: Icon(selectedIcon),
+        onPressed: onPressed,
+      );
+    }
+    return IconButton(
+      key: buttonKey,
+      tooltip: tooltip,
+      icon: Icon(icon),
+      onPressed: onPressed,
     );
   }
 }
@@ -1045,83 +1268,112 @@ class _TextButton extends StatefulWidget {
     required this.builder,
     required this.panelsOpen,
     this.active = false,
+    this.icon,
   });
 
   final String label;
   final String tooltip;
   final WidgetBuilder builder;
-  final ValueNotifier<bool> panelsOpen;
+  final VideoPanelController panelsOpen;
   final bool active;
+  final IconData? icon;
 
   @override
   State<_TextButton> createState() => _TextButtonState();
 }
 
 class _TextButtonState extends State<_TextButton> {
-  bool _open = false;
+  final MenuController _menu = MenuController();
+  final FocusNode _focus = FocusNode();
 
   @override
   void dispose() {
-    // 被销毁时还开着的话要把计数减回去，否则控制条会永久停在「常显」。
-    if (_open) _report(false);
+    // 菜单随页面销毁时不保证触发 onClose；延后通知，避开 widget 树的销毁阶段。
+    final panels = widget.panelsOpen;
+    scheduleMicrotask(() => panels.setOpen(this, false));
+    _focus.dispose();
     super.dispose();
-  }
-
-  void _report(bool open) {
-    widget.panelsOpen.value = open;
-  }
-
-  void _setOpen(bool open) {
-    if (_open == open) return;
-    _open = open;
-    _report(open);
-    if (mounted) setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: <Widget>[
-        Tooltip(
-          message: widget.tooltip,
-          child: InkWell(
-            onTap: () => _setOpen(!_open),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              child: Text(
-                widget.label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: widget.active ? Colors.amberAccent : Colors.white,
-                ),
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return MenuAnchor(
+      controller: _menu,
+      childFocusNode: _focus,
+      consumeOutsideTap: true,
+      onOpen: () => widget.panelsOpen.setOpen(this, true),
+      onClose: () => widget.panelsOpen.setOpen(this, false),
+      style: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(colors.surfaceContainer),
+        surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+        elevation: const WidgetStatePropertyAll(3),
+        padding: const WidgetStatePropertyAll(EdgeInsets.all(8)),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+      ),
+      menuChildren: <Widget>[
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: math.min(
+              328,
+              math.max(0, MediaQuery.sizeOf(context).width - 32),
+            ),
+            maxHeight: MediaQuery.sizeOf(context).height * 0.7,
+          ),
+          child: SingleChildScrollView(
+            primary: false,
+            child: DefaultTextStyle(
+              style: theme.textTheme.bodyMedium!.copyWith(
+                color: colors.onSurface,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    child: Text(
+                      widget.tooltip,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: colors.onSurface,
+                      ),
+                    ),
+                  ),
+                  Builder(builder: widget.builder),
+                ],
               ),
             ),
           ),
         ),
-        if (_open) ...<Widget>[
-          // 点弹层外面要能关掉：盖一层透明全屏手势层。
-          Positioned(
-            left: 0,
-            top: 0,
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: () => _setOpen(false),
-              child: const SizedBox.shrink(),
-            ),
-          ),
-          Positioned(
-            bottom: 34,
-            left: 0,
-            child: Material(
-              elevation: 8,
-              color: const Color(0xE6000000),
-              borderRadius: BorderRadius.circular(8),
-              child: Builder(builder: widget.builder),
-            ),
-          ),
-        ],
       ],
+      builder: (context, menu, _) {
+        void toggle() => menu.isOpen ? menu.close() : menu.open();
+        if (widget.icon != null) {
+          return IconButton(
+            focusNode: _focus,
+            tooltip: widget.tooltip,
+            icon: Icon(widget.icon),
+            onPressed: toggle,
+          );
+        }
+        return TextButton(
+          focusNode: _focus,
+          onPressed: toggle,
+          style: TextButton.styleFrom(
+            foregroundColor: widget.active || menu.isOpen
+                ? colors.onSecondaryContainer
+                : colors.onSurfaceVariant,
+            backgroundColor: widget.active || menu.isOpen
+                ? colors.secondaryContainer
+                : Colors.transparent,
+            minimumSize: const Size(48, 40),
+          ),
+          child: Tooltip(message: widget.tooltip, child: Text(widget.label)),
+        );
+      },
     );
   }
 }
