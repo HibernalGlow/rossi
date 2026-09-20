@@ -19,11 +19,12 @@ use std::sync::{Arc, Condvar, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
+use crate::ambient::{sample_edge_palette, AmbientPalette};
 use crate::enhance;
 use crate::wgpu_resampler::WgpuResampler;
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 use rossi_local_core::{
-    LocalSource, PagePixels, compute_final_pipeline_keep_set, interleaved_prefetch_positions,
+    compute_final_pipeline_keep_set, interleaved_prefetch_positions, LocalSource, PagePixels,
 };
 
 /// 图片外透明，由 Flutter 绘制阅读器背景；预渲染帧补边也遵守同一约定。
@@ -66,6 +67,20 @@ struct CachedPage {
     enhanced_pixels: Option<Arc<PagePixels>>,
     pre_rendered_raw: Vec<PreRenderedFrame>,
     pre_rendered_enhanced: Vec<PreRenderedFrame>,
+
+    /// 阅读背景「自适应取色」的调色板，**随原图像素一起算好存在这里**。
+    ///
+    /// # 为什么要存在页缓存里，而不是每次呈现时现算
+    ///
+    /// 现算一次也几乎不花钱（见 `ambient` 模块：采样量与图片尺寸无关，几十个字节），
+    /// 但「每次翻页算一次」和「每页算一次」是两种量级 —— 前者在**翻页关键路径**上，
+    /// 后者在预取线程上。这里选后者：插页缓存的就是预取线程。
+    ///
+    /// # 为什么不跟随超分轨重算
+    ///
+    /// 超分只改锐度与尺寸，不改颜色分布。拿超分图重采一遍是纯粹的浪费 ——
+    /// 而且它落在 Dart 注入超分图那条路上，那条路已经在做几十 MB 的搬运了。
+    palette: Option<AmbientPalette>,
 }
 
 impl CachedPage {
@@ -74,6 +89,8 @@ impl CachedPage {
             index,
             epoch,
             source_size: pixels.as_ref().map(|p| (p.source_width, p.source_height)),
+            // 采样点就在这里：像素已经在手上，取色是**顺手**做的，不是另开一趟活。
+            palette: pixels.as_deref().map(sample_edge_palette),
             raw_pixels: pixels,
             enhanced_pixels: None,
             pre_rendered_raw: Vec::new(),
@@ -255,6 +272,18 @@ impl PageCache {
             .any(|e| e.index == index && e.epoch == epoch)
     }
 
+    /// 读某一页已采好的调色板。
+    ///
+    /// **只读**：不动 LRU 顺序，也不碰任何计数 —— 与 `get` / `get_raw` 是两回事。
+    /// 它是**诊断/呈现的旁路**，不该因为被读了一次就把某一页挪到队尾，
+    /// 那会让真正的预取淘汰顺序被读取行为带偏。
+    fn palette_for(&self, index: usize, epoch: u64) -> Option<AmbientPalette> {
+        self.entries
+            .iter()
+            .find(|e| e.index == index && e.epoch == epoch)
+            .and_then(|e| e.palette.clone())
+    }
+
     /// 插入页面（按 `(index, epoch)` 去重：重复时替换旧条目并移到 LRU 尾部）。
     ///
     /// # 它写的是「原图轨」，但**不能顺手把「超分轨」抹掉**
@@ -288,6 +317,13 @@ impl PageCache {
                 }
                 if page.pre_rendered_enhanced.is_empty() {
                     page.pre_rendered_enhanced = std::mem::take(&mut prev.pre_rendered_enhanced);
+                }
+                // 调色板只由原图像素决定，而重插的条目常常是「只带预渲染帧、没带像素」
+                // （`add_pre_rendered_enhanced` / `set_enhanced_pixels` 那条路）。
+                // 不搬的话，已经被采过的那一页会在重插之后变成"没有背景色"——
+                // 界面上表现为背景在翻页时闪回默认底色。
+                if page.palette.is_none() {
+                    page.palette = prev.palette.take();
                 }
             }
         }
@@ -388,6 +424,12 @@ impl PageCache {
             .iter_mut()
             .find(|e| e.index == index && e.epoch == epoch)
         {
+            // 先补采再搬所有权：`raw_pixels` 那一行会把 `pixels` 移走。
+            // 这里补的是「条目先被预渲染帧建出来、像素后到」的那条路
+            // （`add_pre_rendered` → 预取线程回填），不补就等于这一页永远没有背景色。
+            if entry.palette.is_none() {
+                entry.palette = Some(sample_edge_palette(&pixels));
+            }
             entry.source_size = Some((pixels.source_width, pixels.source_height));
             entry.raw_pixels = Some(pixels);
         }
@@ -741,6 +783,21 @@ pub struct MacPresenter {
     last_decoded_width: u32,
     last_decoded_height: u32,
 
+    /// 最近一次 `show_into_buffer` 那一页的调色板（阅读背景「自适应取色」用）。
+    ///
+    /// # 它必须跟着 `current_index` 一起报
+    ///
+    /// Dart 侧读到它之后要**先核对 `currentIndex` 就是它刚 `show` 的那一页**，
+    /// 否则翻页竞态下会把上一页的背景色配到这一页的画面上 —— 而那看起来
+    /// 不像竞态，像"取色不准"，事后极难查。
+    ///
+    /// # 它不参与任何判定
+    ///
+    /// 纯报给界面的一路数据：不选轨、不影响任何呈现分支、不进
+    /// `last_used_enhanced` 那类"证据"字段。取不到就是 `null`，
+    /// Dart 侧当作"这一页没有自适应背景"，继续用静态底色。
+    last_ambient: Option<AmbientPalette>,
+
     init_ms: f64,
     presents: u64,
     last: PresentTimings,
@@ -819,6 +876,7 @@ impl MacPresenter {
             last_source_height: 0,
             last_decoded_width: 0,
             last_decoded_height: 0,
+            last_ambient: None,
             init_ms: t0.elapsed().as_secs_f64() * 1000.0,
             presents: 0,
             last: PresentTimings::default(),
@@ -836,6 +894,8 @@ impl MacPresenter {
         self.source_path = Some(path.to_path_buf());
         self.page_count = count;
         self.current_index = None;
+        // 换了来源，页号的含义就变了：上一本书那一页的调色板不能留给这一本用。
+        self.last_ambient = None;
 
         if let Ok(mut c) = self.shared_cache.cache.lock() {
             c.entries.clear();
@@ -1187,8 +1247,37 @@ impl MacPresenter {
         // 只发一条"已触发替换"的日志、无从核对，就是虚报的温床。
         self.last_used_enhanced = used_enhanced;
 
+        // 阅读背景「自适应取色」的调色板。
+        //
+        // 它读的是页缓存里**已经采好的**那一份 —— 采样在插页缓存时完成，
+        // 而插页缓存的是预取线程。所以这里是一次纯读取，翻页关键路径上
+        // 不新增任何采样开销，这也是「不额外解码」这条承诺在呈现侧的落点。
+        //
+        // 与 `self.current_index` 紧挨着写：Dart 侧要用 `currentIndex` 核对
+        // 「这配色属于我刚 show 的那一页」。两者若差一拍，那条判据就形同虚设。
+        //
+        // 缓存里没有（这一页还没采过 / 原图像素已被淘汰且没留下调色板）就是
+        // `None`：界面继续用静态底色，**不编一个颜色出来**。
+        self.last_ambient = self
+            .shared_cache
+            .cache
+            .lock()
+            .ok()
+            .and_then(|c| c.palette_for(index, self.source_epoch));
+
+        // 探针里这一页的取色落地情况。带在既有日志里：用户报「背景没变化」时，
+        // 这一行就能直接分辨是「呈现器没采到」（ambient=none）还是
+        // 「采到了但上层没用」（ambient=#rrggbb）。
+        let ambient_desc = match self.last_ambient.as_ref() {
+            Some(p) => format!(
+                "#{:02x}{:02x}{:02x}",
+                p.average[0], p.average[1], p.average[2]
+            ),
+            None => "none".to_string(),
+        };
+
         eprintln!(
-            "[Rossi GPU] show_into_buffer: index={}, prerender_hit={}, decode_hit={}, bypass_enhanced={}, used_enhanced={}, source={}x{}, decoded={}x{}",
+            "[Rossi GPU] show_into_buffer: index={}, prerender_hit={}, decode_hit={}, bypass_enhanced={}, used_enhanced={}, source={}x{}, decoded={}x{}, ambient={}",
             index,
             prerender_hit,
             decode_hit,
@@ -1198,6 +1287,7 @@ impl MacPresenter {
             self.last_source_height,
             self.last_decoded_width,
             self.last_decoded_height,
+            ambient_desc,
         );
 
         self.current_index = Some(index);
@@ -1344,6 +1434,7 @@ impl MacPresenter {
               \"sourceHeight\":{},\
               \"decodedWidth\":{},\
               \"decodedHeight\":{},\
+              \"ambient\":{},\
               \"initMs\":{:.2},\
               \"decodeMs\":{:.2},\
               \"renderMs\":{:.2},\
@@ -1365,6 +1456,12 @@ impl MacPresenter {
             self.last_source_height,
             self.last_decoded_width,
             self.last_decoded_height,
+            // 没有就是字面量 `null`：Dart 侧把「这一页没采到」与「采到了一个黑」
+            // 分开 —— 前者回落静态底色，后者是一份真实结论。
+            self.last_ambient
+                .as_ref()
+                .map(AmbientPalette::to_probe_json)
+                .unwrap_or_else(|| "null".to_string()),
             self.init_ms,
             self.last.decode_ms,
             self.last.render_ms,
@@ -1437,6 +1534,13 @@ mod tests {
         assert!(stats.contains("\"width\":800"));
         assert!(stats.contains("\"height\":600"));
         assert!(stats.contains("\"prerenderHit\":0"));
+        // 还没上屏过：字面 `null`，Dart 侧据此回落静态底色。
+        // **不能**缺字段、也不能编一个黑色出来 —— 对界面来说
+        // 「这一页没采到」与「采到了一个黑」是两件事。
+        assert!(
+            stats.contains("\"ambient\":null"),
+            "未呈现时 ambient 必须是字面 null，实际: {stats}"
+        );
     }
 
     #[test]
@@ -1876,5 +1980,94 @@ mod tests {
         );
 
         let _ = std::fs::remove_dir_all(&temp_dir);
+    }
+
+    /// 回归：**探针里的配色必须属于刚 show 的那一页**。
+    ///
+    /// Dart 侧决定背景色读的就是「`ambient` + `currentIndex`」这一对。两者差一拍
+    /// （配色是上一页的、索引是这一页的）时，观感是「翻页后背景还留着上一页的颜色」
+    /// —— 那看起来只是"取色慢半拍"，不会有人去查，所以这里逐页核对。
+    ///
+    /// 顺带守住两条承诺：
+    /// 1. 未上屏 / 换书之后是**字面 `null`**，不是编出来的黑；
+    /// 2. 缓存未命中（现场解码）那条路也必须有配色，否则就成了
+    ///    「只有被预取过的那几页才有背景色」。
+    #[test]
+    fn test_ambient_palette_follows_the_shown_page() {
+        let mut presenter = MacPresenter::new(100, 100).expect("初始化 MacPresenter 失败");
+        let temp_dir = std::env::temp_dir().join("test_rossi_ambient_folder");
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        std::fs::create_dir_all(&temp_dir).expect("创建测试文件夹失败");
+
+        // 页 0 红、页 1 蓝：颜色不同才分得清「探针报的是哪一页的」
+        for (name, color) in [
+            ("000.png", [255u8, 0, 0, 255]),
+            ("001.png", [0u8, 0, 255, 255]),
+        ] {
+            let mut img = image::RgbaImage::new(4, 4);
+            for pixel in img.pixels_mut() {
+                *pixel = image::Rgba(color);
+            }
+            img.save(temp_dir.join(name)).expect("保存测试页失败");
+        }
+
+        presenter.open(&temp_dir).expect("打开来源失败");
+        presenter.set_prefetch(false);
+
+        assert!(
+            presenter.stats_json().contains("\"ambient\":null"),
+            "打开来源但还没上屏时 ambient 应当是 null，实际: {}",
+            presenter.stats_json()
+        );
+
+        let mut dst = vec![0u8; 100 * 4 * 100];
+
+        // 第 0 页：首次上屏，缓存未命中 → 现场解码 → 配色必须当场就有。
+        presenter
+            .show_into_buffer(0, dst.as_mut_ptr(), 100 * 4, 100, 100)
+            .expect("呈现第 0 页失败");
+        let stats0 = presenter.stats_json();
+        assert!(
+            stats0.contains("\"currentIndex\":0"),
+            "第 0 页应当报 currentIndex=0，实际: {stats0}"
+        );
+        assert!(
+            stats0.contains("\"ambient\":{\"average\":\"#ff0000\""),
+            "第 0 页是红的，探针里的代表色必须也是红的，实际: {stats0}"
+        );
+
+        // 第 1 页：换页之后配色必须跟着换，且索引与配色来自**同一次**统计。
+        presenter
+            .show_into_buffer(1, dst.as_mut_ptr(), 100 * 4, 100, 100)
+            .expect("呈现第 1 页失败");
+        let stats1 = presenter.stats_json();
+        assert!(
+            stats1.contains("\"currentIndex\":1"),
+            "第 1 页应当报 currentIndex=1，实际: {stats1}"
+        );
+        assert!(
+            stats1.contains("\"ambient\":{\"average\":\"#0000ff\""),
+            "翻到蓝页之后配色必须跟着换，实际: {stats1}"
+        );
+
+        // 换书：同一个呈现器 open 另一个来源，上一本的配色不能留下来。
+        let other_dir = std::env::temp_dir().join("test_rossi_ambient_folder_other");
+        let _ = std::fs::remove_dir_all(&other_dir);
+        std::fs::create_dir_all(&other_dir).expect("创建第二个测试文件夹失败");
+        let mut img = image::RgbaImage::new(4, 4);
+        for pixel in img.pixels_mut() {
+            *pixel = image::Rgba([0, 255, 0, 255]);
+        }
+        img.save(other_dir.join("000.png")).expect("保存测试页失败");
+
+        presenter.open(&other_dir).expect("换来源失败");
+        assert!(
+            presenter.stats_json().contains("\"ambient\":null"),
+            "换了书之后不该还报上一本的配色，实际: {}",
+            presenter.stats_json()
+        );
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        let _ = std::fs::remove_dir_all(&other_dir);
     }
 }

@@ -13,6 +13,7 @@ import 'package:zephyr/page/comic_read/cubit/reader_state.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/reader_hover_reveal_layer.dart';
 import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
+import 'package:zephyr/reader/reader_ambient_background.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 
 class ComicReadSuccessWidget extends StatefulWidget {
@@ -155,9 +156,28 @@ class _ComicReadSuccessWidgetState extends State<ComicReadSuccessWidget> {
                         current.loadedChapters.length,
                     listener: _onSeamlessChaptersChanged,
                     child: Container(
+                      // 这一层静态底色**保留**，它是自适应背景的兜底：
+                      // 取色还没到 / 这一页没采到 / 不是本地漫画（取色那条路不适用）时，
+                      // 露出来的就是它。自适应颜色只叠在它上面、在页面之下。
                       color: backgroundColor,
                       child: Stack(
                         children: [
+                          // 阅读背景的**最底层**。它被 `RepaintBoundary` 圈住、
+                          // 且只监听一个独立的调色板通知 —— 每次取色到达只重绘它自己，
+                          // 上面那棵阅读子树（`InteractiveViewer` 与所有页面节点）
+                          // 一次都不重建。这正是「不能影响阅读」在界面侧的落点。
+                          Positioned.fill(
+                            child: ReaderAmbientBackground(
+                              baseColor: backgroundColor,
+                              palette: ReaderAmbientStore.instance.palette,
+                              enabled: readSetting.readerAmbientEnabled,
+                              edgeMode: readSetting.readerAmbientEdge,
+                              dimPercent: readSetting.readerAmbientDimPercent,
+                              // 全局关了动画就直切：那 300 ms 的插值也是开销，
+                              // 既然用户已经表态不要动画，就一起省掉。
+                              animate: !readSetting.noAnimation,
+                            ),
+                          ),
                           Positioned.fill(
                             child: widget.buildInteractiveViewer(innerContext),
                           ),

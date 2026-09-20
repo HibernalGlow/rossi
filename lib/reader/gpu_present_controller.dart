@@ -6,11 +6,15 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/gpu/gpu_present_bridge.dart';
 import 'package:zephyr/main.dart' show logger;
+import 'package:zephyr/reader/ambient_palette.dart';
+import 'package:zephyr/reader/reader_ambient_background.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 import 'package:zephyr/page/setting/real_sr/service/super_resolution_log.dart';
+import 'package:zephyr/page/setting/real_sr/service/super_resolution_policy_service.dart';
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/reader/super_resolution_input.dart';
 import 'package:zephyr/reader/super_resolution_queue.dart';
@@ -478,6 +482,10 @@ class GpuPresentController extends ChangeNotifier {
           _pushedWidth = null;
           _pushedHeight = null;
         });
+        // 换了来源，上一本那一页的配色不能留给这一本用：页号的含义都变了，
+        // 而且新书首页的取色要等它自己那次 `present` 回来。
+        // 不在这里清，换书后的头几帧会是上一本的背景色。
+        ReaderAmbientStore.instance.clear();
       }
 
       // 未命中完成帧缓存就必须 show，包括只差 1 px 的尺寸变化和失败后的重试。
@@ -502,6 +510,12 @@ class GpuPresentController extends ChangeNotifier {
         _presentCount++;
       });
 
+      // 阅读背景的取色。放在**这一页真的交出去之后**，而且下面那次探针读取
+      // 刻意不 await：它不该把 `present` 的往返时间拖长 —— 那个数正是翻页延迟。
+      if (readSettingSnapshot.readerAmbientEnabled) {
+        unawaited(_refreshAmbientPalette(index));
+      }
+
       if (_isUpscaleEnabled) {
         unawaited(_scheduleEnhancements(source, index, width, height));
       }
@@ -516,6 +530,50 @@ class GpuPresentController extends ChangeNotifier {
     } finally {
       _mutate(() => _syncing = false);
       if (_modelRefreshPending && pushed) unawaited(_refreshModel());
+    }
+  }
+
+  /// 取一次阅读背景的调色板并发布到 [ReaderAmbientStore]。
+  ///
+  /// # 为什么频率是「一次翻页一次」
+  ///
+  /// 探针（`stats`）是**唯一**能看到呈现器内部状态的入口，取它不是免费的
+  /// （一次跨语言往返）。放在这里意味着它的频率跟着翻页走，而不是跟着帧走 ——
+  /// 与超分那条流水线同一条纪律：**每次翻页一次，不是每帧一次**。
+  ///
+  /// # 关掉功能就完全不调它
+  ///
+  /// 采样本身在 Rust 侧已经随解码做掉了（成本与图片尺寸无关，也不在翻页关键路径上，
+  /// 见 `ambient` 模块），但**这次跨语言往返是可以省的** ——
+  /// 于是"关掉这个功能"省下的是一趟真实的往返，而不是"算了不用"。
+  ///
+  /// # 必须核对 `currentIndex`
+  ///
+  /// 探针里的颜色属于**呈现器当前那一页**，而我们期望的是刚 `show` 的**这一页**。
+  /// 连翻时两者会错开一拍，直接用就会把上一页的配色配到这一页的画面上 ——
+  /// 那个现象看起来不像竞态，像"取色不准"，事后极难查。
+  ///
+  /// 核对不过就**什么都不发布**：背景层继续用上一份并自己插值过去，
+  /// 那比发一份错的要好。
+  ///
+  /// 返回的 `null`（Rust 侧报 `null` = 这一页没采到）也是**照发**的：
+  /// "这一页没有自适应颜色"是一个真实结论，界面要按它退回静态底色，
+  /// 而不是停在上一页的颜色上。
+  Future<void> _refreshAmbientPalette(int index) async {
+    if (_disposed || !GpuPresentBridge.isPlatformSupported) {
+      return;
+    }
+    try {
+      final GpuPresentStats stats = await _bridge.stats();
+      if (_disposed || stats.probeInt('currentIndex') != index) {
+        return;
+      }
+      ReaderAmbientStore.instance.publish(
+        ReaderAmbientPalette.fromProbe(stats.probe['ambient']),
+      );
+    } catch (_) {
+      // 取色失败不该影响阅读：它只是背景的观感。真正要紧的失败
+      // 已经在 `state` / `error` / `mismatchFor` 里报了。
     }
   }
 
@@ -1121,14 +1179,36 @@ class GpuPresentController extends ChangeNotifier {
           await RealSrSuperResolution.imageSizeOf(inputPath);
       if (!acceptsWork()) return;
       _markSourceSize(index, inputSize);
-      if (!await RealSrSuperResolution.shouldUpscale(
-        inputPath,
-        knownSize: inputSize,
-      )) {
-        _upscaleAttempts[index] = _maxUpscaleAttempts;
-        _markPhase(index, SuperResolutionPagePhase.skipped);
-        SuperResolutionLog.add('第 ${index + 1} 页：达到设置的分辨率阈值或无法解析尺寸，跳过超分。');
-        return;
+      final isConditional = await RealSrSettings.loadConditionalEnabled();
+      if (isConditional) {
+        final trigger = prefetch
+            ? SuperResolutionPolicyTrigger.preload
+            : SuperResolutionPolicyTrigger.auto;
+        final decision = await RealSrSuperResolution.decidePolicy(
+          inputPath: inputPath,
+          knownSize: inputSize,
+          bookPath: source.path,
+          trigger: trigger,
+        );
+        if (!decision.shouldRun) {
+          _upscaleAttempts[index] = _maxUpscaleAttempts;
+          _markPhase(index, SuperResolutionPagePhase.skipped);
+          final desc = decision.conditionName != null
+              ? '命中条件 [${decision.conditionName}]（${decision.reason}）'
+              : '原因：${decision.reason}';
+          SuperResolutionLog.add('第 ${index + 1} 页：条件超分判定跳过；$desc');
+          return;
+        }
+      } else {
+        if (!await RealSrSuperResolution.shouldUpscale(
+          inputPath,
+          knownSize: inputSize,
+        )) {
+          _upscaleAttempts[index] = _maxUpscaleAttempts;
+          _markPhase(index, SuperResolutionPagePhase.skipped);
+          SuperResolutionLog.add('第 ${index + 1} 页：达到设置的分辨率阈值或无法解析尺寸，跳过超分。');
+          return;
+        }
       }
       if (!acceptsWork()) return;
       // 旧任务不能覆盖切换模型后产生的缓存，先写独立文件再发布。
@@ -1386,6 +1466,8 @@ class GpuPresentController extends ChangeNotifier {
     RealSrSettings.modelChanges.removeListener(_onModelChanged);
     RealSrSettings.prefetchChanges.removeListener(_onPrefetchChanged);
     _enhancementQueue.dispose();
+    // 离开阅读器：背景层不该继续挂着一份属于这本书的颜色。
+    ReaderAmbientStore.instance.clear();
     _disposed = true;
     _statsTimer?.cancel();
     _statsTimer = null;

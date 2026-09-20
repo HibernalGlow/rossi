@@ -41,7 +41,7 @@ mod enhance;
 mod presenter;
 
 #[cfg(target_os = "windows")]
-pub use presenter::{BACKGROUND_RGBA8, PresentTimings, Presenter};
+pub use presenter::{PresentTimings, Presenter, BACKGROUND_RGBA8};
 
 #[cfg(all(target_os = "windows", feature = "probe"))]
 pub use presenter::Readback;
@@ -51,12 +51,12 @@ pub use presenter::Readback;
 #[cfg(target_os = "windows")]
 mod platform {
     use std::ffi::c_void;
-    use std::panic::{AssertUnwindSafe, catch_unwind};
+    use std::panic::{catch_unwind, AssertUnwindSafe};
     use std::sync::{Arc, Mutex, MutexGuard};
     use std::thread::JoinHandle;
 
-    use super::Presenter;
     use super::presenter::escape;
+    use super::Presenter;
     use windows::Win32::Foundation::HANDLE;
 
     /// 呈现器创建的状态码。与 C++ 侧 `rossi_gpu_present_status` 的返回值一一对应。
@@ -573,6 +573,13 @@ pub use platform::*;
 
 pub mod wgpu_resampler;
 
+/// 阅读背景「自适应取色」的采样器（从已解码像素里顺手采边色）。
+///
+/// 与 `wgpu_resampler` 同样不带平台 cfg，但要跟 `rossi_local_core` 走：
+/// 它吃的是 `PagePixels`，而那份依赖在 wasm32 上不存在。
+#[cfg(not(target_arch = "wasm32"))]
+pub mod ambient;
+
 #[cfg(target_os = "macos")]
 mod mac_presenter;
 
@@ -582,7 +589,7 @@ pub use mac_presenter::MacPresenter;
 #[cfg(target_os = "macos")]
 mod mac_platform {
     use std::ffi::c_void;
-    use std::panic::{AssertUnwindSafe, catch_unwind};
+    use std::panic::{catch_unwind, AssertUnwindSafe};
     use std::path::Path;
     use std::sync::{Arc, Mutex, MutexGuard};
     use std::thread::JoinHandle;
