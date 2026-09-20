@@ -73,7 +73,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   const bool is_probe_run =
       ::GetEnvironmentVariableW(L"ROSSI_PAGE_TURN_LOG", nullptr, 0) > 0;
   if (!is_probe_run) {
-    HWND hwnd = ::FindWindow(L"FLUTTER_RUNNER_WIN32_WINDOW", L"zephyr");
+    HWND hwnd = ::FindWindow(L"FLUTTER_RUNNER_WIN32_WINDOW", L"Rossi");
     if (hwnd != NULL) {
       RestoreExistingWindow(hwnd);
       return EXIT_FAILURE;
@@ -98,7 +98,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  if (!window.Create(L"zephyr", origin, size)) {
+  if (!window.Create(L"Rossi", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);
