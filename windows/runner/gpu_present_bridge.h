@@ -131,6 +131,12 @@ class GpuPresentBridge {
   // 开关后台预取。**可选符号**：它在 `LoadSymbols` 的存在性检查之外 ——
   // 少了它只是没有运行时开关（预取仍按默认开跑），不该因此把整条 GPU 路判死。
   using SetPrefetchFn = int32_t (*)(void* presenter, int32_t enabled);
+  // 注入一页的超分图。target_* 只为与 mac 的签名对齐而传，Windows 侧不读
+  // （每帧在 GPU 上重采样，没有预渲染视口帧）。
+  using SetEnhancedImageFn = int32_t (*)(void* presenter, uint32_t index, const uint8_t* path,
+                                        size_t path_len, uint32_t target_width,
+                                        uint32_t target_height, uint8_t* err_buf, size_t err_len);
+  using SetOriginalPreviewFn = int32_t (*)(void* presenter, int32_t active);
   // 查后台创建进度。它是唯一一个"不要求呈现器已就绪"的入口 —— 正相反，
   // 它存在的全部意义就是回答"就绪了没有"，所以在未就绪时它必须能调。
   using StatusFn = int32_t (*)(void* presenter, uint8_t* err_buf, size_t err_len);
@@ -243,6 +249,9 @@ class GpuPresentBridge {
   StatsFn stats_ = nullptr;
   StatusFn status_ = nullptr;
   SetPrefetchFn set_prefetch_ = nullptr;
+  // 可选符号：缺它只是没有超分替换/原图对比，不该把整条 GPU 路判死。
+  SetEnhancedImageFn set_enhanced_image_ = nullptr;
+  SetOriginalPreviewFn set_original_preview_ = nullptr;
 
   int64_t texture_id_ = -1;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> channel_;

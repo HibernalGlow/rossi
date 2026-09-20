@@ -6,7 +6,7 @@
 //! 3. 视口 Letterbox 居中对齐，图片外透明以透出阅读器背景；
 //! 4. RGBA8 -> BGRA8 硬件格式无开销自动转换。
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
 
@@ -804,9 +804,11 @@ pub(crate) mod tests {
                             "{width}x{height}, Anime4K={anime4k}, ({x},{y})"
                         );
                     }
-                    assert!(out[y * stride + 32..(y + 1) * stride]
-                        .iter()
-                        .all(|v| *v == 0));
+                    assert!(
+                        out[y * stride + 32..(y + 1) * stride]
+                            .iter()
+                            .all(|v| *v == 0)
+                    );
                 }
             }
         }

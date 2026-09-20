@@ -55,30 +55,33 @@
 //! 3. **档位变了整批作废**（缓存记 `epoch`）—— 拖动窗口会改解码档位，
 //!    旧档位的结果既不合观感也不再省时间。
 
+use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
-use anyhow::{anyhow, Context, Result};
+use crate::enhance;
+
+use anyhow::{Context, Result, anyhow};
 // 预取的**准入判决与目标次序都取自本地核心**，不在这边另立一套。
 // 那两条策略是从 mImageViewer 搬来的纯函数（`rossi_local_core::prefetch_policy`），
 // 而 Rossi 这边「滚动」= 翻页、「可见区待完成」= 当前页还没出图 —— 语义完全对上。
 // 自己手搓一份「延迟 + 一个布尔」只会得到它的退化版，而且迟早两边不一致。
 use rossi_local_core::{
-    decide_prefetch_allowed, interleaved_prefetch_positions, LocalSource, PagePixels,
-    PrefetchDecision,
+    LocalSource, PagePixels, PrefetchDecision, decide_prefetch_allowed,
+    interleaved_prefetch_positions,
 };
 
 use wgpu::hal::api::Dx12;
 // `Interface` 必须在作用域内，否则 `ID3D12Resource::cast()` 找不到方法。
-use windows::core::{Interface, PCWSTR};
 use windows::Win32::Foundation::{CloseHandle, GENERIC_ALL, HANDLE, WAIT_OBJECT_0};
 use windows::Win32::Graphics::Direct3D12::*;
 use windows::Win32::Graphics::Dxgi::Common::*;
 use windows::Win32::Graphics::Dxgi::IDXGIAdapter3;
 use windows::Win32::System::Threading::{CreateEventW, WaitForSingleObject};
+use windows::core::{Interface, PCWSTR};
 
 /// 呈现目标格式。
 ///
@@ -408,6 +411,18 @@ pub struct Presenter {
     /// —— "这一页为什么快"和"这一页为什么慢"的答案往往就差这一个布尔。
     last_cache_hit: bool,
 
+    // ── 超分增强轨 ──
+    /// AI 超分产物，按 `(index, epoch)` 存。选轨规则与证据口径都取自 `enhance`，
+    /// 与 mac 侧同源 —— 理由见该模块注释里的「假证据」一段。
+    enhanced: enhance::EnhancedStore,
+    /// 「原图对比」旁路：置位期间增强轨不参显，但**不删除**，关掉要能立刻换回去。
+    original_preview: enhance::Bypass,
+    /// 本次呈现实际用了哪一轨，作为 `usedEnhanced` 报给 Dart 核对。
+    last_used_enhanced: bool,
+    /// 每页**原图**的像素尺寸。增强图是 4× 的，它的 `source_width` 是放大后的值，
+    /// 拿它喂布局会让页被放大四倍，所以布局一律用这里记着的原图尺寸。
+    raw_source_sizes: HashMap<usize, (u32, u32)>,
+
     // ── 诊断 ──
     adapter_name: String,
     adapter_matched: bool,
@@ -673,6 +688,10 @@ impl Presenter {
             hub,
             prefetch_thread: None,
             last_cache_hit: false,
+            enhanced: enhance::EnhancedStore::default(),
+            original_preview: enhance::Bypass::new(),
+            last_used_enhanced: false,
+            raw_source_sizes: HashMap::new(),
             adapter_name,
             adapter_matched,
             adapter_luid,
@@ -912,6 +931,11 @@ impl Presenter {
         if let Ok(mut cache) = self.cache.lock() {
             cache.drop_range(epoch);
         }
+        // 增强轨跟着来源一起作废：留着的话，打开第二本书的第 3 页会沿用第一本书
+        // 第 3 页的超分图 —— 页号相同而内容毫无关系。
+        self.enhanced.retain_epoch(epoch);
+        self.raw_source_sizes.clear();
+        self.last_used_enhanced = false;
         self.hub.cv.notify_all();
         Ok(count)
     }
@@ -974,22 +998,43 @@ impl Presenter {
         // 锁 `shared`，而预取线程是 `shared` 解锁后去锁 `cache` —— 目前不会死，
         // 但那只是因为它恰好没有把两者嵌起来，不该指望这个巧合。
         let epoch = self.current_epoch();
-        let cached = self
-            .cache
-            .lock()
-            .ok()
-            .and_then(|mut c| c.take(index, hint, epoch));
-        let cache_hit = cached.is_some();
-        let pixels = match cached {
-            Some(pixels) => pixels,
-            None => {
-                if let Ok(mut c) = self.cache.lock() {
-                    c.misses += 1;
+
+        // ── 0) 增强轨优先 ──
+        //
+        // 有这一页的超分图、且不在「原图对比」，就直接用它。**不动解码缓存**：
+        // `take` 会把原图那一份摘走，那样关掉对比时就得重新解码一遍。
+        let use_enhanced = self
+            .original_preview
+            .prefers_enhanced(self.enhanced.has(index, epoch));
+        // 判定与下面 `stats_json` 报的 `usedEnhanced` 是同一次取值，不是两处各算。
+        self.last_used_enhanced = use_enhanced;
+
+        let (pixels, cache_hit) = if use_enhanced {
+            (
+                self.enhanced
+                    .get(index, epoch)
+                    .ok_or_else(|| anyhow!("增强图刚查到却取不到: 第 {} 页", index + 1))?,
+                false,
+            )
+        } else {
+            let cached = self
+                .cache
+                .lock()
+                .ok()
+                .and_then(|mut c| c.take(index, hint, epoch));
+            let hit = cached.is_some();
+            let raw = match cached {
+                Some(pixels) => pixels,
+                None => {
+                    if let Ok(mut c) = self.cache.lock() {
+                        c.misses += 1;
+                    }
+                    source
+                        .page_pixels_scaled(index, Some(hint))
+                        .with_context(|| format!("第 {} 页解码失败", index + 1))?
                 }
-                source
-                    .page_pixels_scaled(index, Some(hint))
-                    .with_context(|| format!("第 {} 页解码失败", index + 1))?
-            }
+            };
+            (Arc::new(raw), hit)
         };
         // 命中时这里读到的是"从缓存取走"的耗时（微秒级），不是解码耗时 ——
         // 这正是要报出来的东西：`cacheHit` 会一起进 stats，两者一起看才不会误读。
@@ -998,8 +1043,25 @@ impl Presenter {
 
         self.decoded_width = pixels.width;
         self.decoded_height = pixels.height;
-        self.decoded_source_width = pixels.source_width;
-        self.decoded_source_height = pixels.source_height;
+        self.decoded_width = pixels.width;
+        self.decoded_height = pixels.height;
+        if use_enhanced {
+            // 布局要的是**原图**尺寸。增强图是 4×，它的 `source_*` 就是放大后的值，
+            // 拿它喂 `sourceSizeFor` 会让页被放大四倍 —— 所以一律取记着的原图尺寸；
+            // 这一页从没按原图走过时（先注入后呈现）才退回自身尺寸。
+            let (sw, sh) = self
+                .raw_source_sizes
+                .get(&index)
+                .copied()
+                .unwrap_or((pixels.source_width, pixels.source_height));
+            self.decoded_source_width = sw;
+            self.decoded_source_height = sh;
+        } else {
+            self.decoded_source_width = pixels.source_width;
+            self.decoded_source_height = pixels.source_height;
+            self.raw_source_sizes
+                .insert(index, (pixels.source_width, pixels.source_height));
+        }
 
         if pixels.width == 0 || pixels.height == 0 {
             return Err(anyhow!("解码结果是 0×0"));
@@ -1032,6 +1094,35 @@ impl Presenter {
         // 提前交锚点，等于告诉预取线程"可以开始抢核了"，而呈现线程还没画完。
         self.publish_show_end();
         Ok(timings)
+    }
+
+    /// 注入一页的超分产物。
+    ///
+    /// Windows 每帧都在 GPU 上重采样，所以这里只存像素 —— 不像 mac 侧还要顺手
+    /// 预渲染一张视口帧。新注入的图要等下一次 `show(index)` 才会上屏，
+    /// Dart 侧注入完就会触发一次重绘。
+    pub fn set_enhanced_pixels(&mut self, index: usize, pixels: Arc<PagePixels>) -> Result<()> {
+        let epoch = self.current_epoch();
+        self.enhanced.put(index, epoch, pixels.clone());
+        eprintln!(
+            "[Rossi GPU] set_enhanced_pixels: index={}, epoch={}, {}x{}, enhancedPages={}, enhancedBytes={}",
+            index,
+            epoch,
+            pixels.width,
+            pixels.height,
+            self.enhanced.len(),
+            self.enhanced.bytes()
+        );
+        Ok(())
+    }
+
+    /// 开关「原图对比」旁路：置位期间画面回到原图，增强图**保留**。
+    pub fn set_original_preview(&mut self, active: bool) {
+        self.original_preview.set(active);
+    }
+
+    pub fn is_original_preview(&self) -> bool {
+        self.original_preview.active()
     }
 
     /// 呈现线程：宣告"正在翻到第 `index` 页，而且它还没出图"。
@@ -1446,7 +1537,15 @@ impl Presenter {
                 "\"generation\":{},",
                 "\"handle\":{},",
                 "\"pageCount\":{},",
+                // `pageIndex` 与 `currentIndex` 同值并存：mac 侧历史上只发
+                // `currentIndex`，Windows 只发 `pageIndex`，而 Dart 的
+                // `_presenterUsesEnhanced` 只读 `currentIndex` —— 于是 Windows 上
+                // 永远"无法核对"替换是否生效。补齐 `currentIndex` 修掉这个漂移。
                 "\"pageIndex\":{},",
+                "\"currentIndex\":{},",
+                "\"usedEnhanced\":{},",
+                "\"enhancedPages\":{},",
+                "\"enhancedInjected\":{},",
                 "\"decodedWidth\":{},",
                 "\"decodedHeight\":{},",
                 "\"sourceWidth\":{},",
@@ -1486,6 +1585,10 @@ impl Presenter {
             self.handle().0 as usize,
             self.page_count(),
             self.page_index.map(|i| i as i64).unwrap_or(-1),
+            self.page_index.map(|i| i as i64).unwrap_or(-1),
+            enhance::used_enhanced_flag(self.last_used_enhanced),
+            self.enhanced.len(),
+            self.enhanced.injected(),
             self.decoded_width,
             self.decoded_height,
             self.decoded_source_width,

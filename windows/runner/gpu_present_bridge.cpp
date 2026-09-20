@@ -351,6 +351,12 @@ bool GpuPresentBridge::LoadSymbols() {
   // 预取照样按默认开关跑。为一个可选控制把整条 GPU 路判死是不划算的。
   set_prefetch_ =
       reinterpret_cast<SetPrefetchFn>(::GetProcAddress(library_, "rossi_gpu_present_set_prefetch"));
+  // 同样是可选符号：缺它只意味着没有超分替换/原图对比，整条 GPU 上屏照样能跑。
+  // 但两个方法在分发时会如实报 unsupported，而不是回一个假的 true。
+  set_enhanced_image_ = reinterpret_cast<SetEnhancedImageFn>(
+      ::GetProcAddress(library_, "rossi_gpu_present_set_enhanced_image"));
+  set_original_preview_ = reinterpret_cast<SetOriginalPreviewFn>(
+      ::GetProcAddress(library_, "rossi_gpu_present_set_original_preview"));
 #pragma warning(pop)
 
   if (create_ == nullptr || destroy_ == nullptr || handle_ == nullptr ||
@@ -1007,6 +1013,77 @@ void GpuPresentBridge::HandleMethodCall(
     }
     std::lock_guard<std::mutex> guard(mutex_);
     result->Success(flutter::EncodableValue(set_prefetch_(presenter_, enabled ? 1 : 0) == 0));
+    return;
+  }
+
+  // 注入一页的超分图。读盘与解码在 Rust 侧的锁外做，这里只负责把路径递过去。
+  if (method == "setEnhancedImage") {
+    if (!ok_) {
+      result->Error("unavailable", error_);
+      return;
+    }
+    int64_t index = -1;
+    int64_t width = 0;
+    int64_t height = 0;
+    std::string path;
+    const auto* arguments = call.arguments();
+    if (const auto* map = arguments != nullptr ? std::get_if<flutter::EncodableMap>(arguments)
+                                              : nullptr) {
+      TryGetInt(*map, "index", &index);
+      TryGetString(*map, "path", &path);
+      TryGetInt(*map, "width", &width);
+      TryGetInt(*map, "height", &height);
+    }
+    if (index < 0 || path.empty()) {
+      result->Error("bad-arguments", "setEnhancedImage 需要 index 和 path");
+      return;
+    }
+    if (set_enhanced_image_ == nullptr) {
+      // 老 DLL。老实说"做不到" —— 回一个 true 会让上层以为画面已经换成超分图，
+      // 而那正是这个 bug 一直以来的表现形式。
+      result->Error("unsupported", "这个 rossi_gpu_present.dll 没有 set_enhanced_image 导出");
+      return;
+    }
+    std::lock_guard<std::mutex> guard(mutex_);
+    if (QueryStateLocked(nullptr) != kGpuStateReady) {
+      result->Error("not-ready", "呈现器尚未就绪，此刻应走兜底路径");
+      return;
+    }
+    std::vector<uint8_t> err(1024, 0);
+    const int32_t rc = set_enhanced_image_(
+        presenter_, static_cast<uint32_t>(index),
+        reinterpret_cast<const uint8_t*>(path.data()), path.size(),
+        static_cast<uint32_t>(width > 0 ? width : 0),
+        static_cast<uint32_t>(height > 0 ? height : 0), err.data(),
+        static_cast<size_t>(err.size()));
+    if (rc != 0) {
+      result->Error("set-enhanced-failed", reinterpret_cast<const char*>(err.data()));
+      return;
+    }
+    result->Success(flutter::EncodableValue(true));
+    return;
+  }
+
+  // 开关「原图对比」旁路。未就绪时不报错：那时它本来就无事可做。
+  if (method == "setOriginalPreview") {
+    bool active = false;
+    const auto* arguments = call.arguments();
+    if (const auto* map = arguments != nullptr ? std::get_if<flutter::EncodableMap>(arguments)
+                                              : nullptr) {
+      const auto it = map->find(flutter::EncodableValue("active"));
+      if (it != map->end()) {
+        if (const auto* value = std::get_if<bool>(&it->second)) {
+          active = *value;
+        }
+      }
+    }
+    if (set_original_preview_ == nullptr) {
+      result->Error("unsupported", "这个 rossi_gpu_present.dll 没有 set_original_preview 导出");
+      return;
+    }
+    std::lock_guard<std::mutex> guard(mutex_);
+    result->Success(
+        flutter::EncodableValue(set_original_preview_(presenter_, active ? 1 : 0) == 0));
     return;
   }
 

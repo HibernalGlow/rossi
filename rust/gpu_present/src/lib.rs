@@ -33,11 +33,15 @@
 //!
 //! 符号名一律以 `rossi_gpu_present_` 开头，方便 C++ 侧 `GetProcAddress` 时对齐。
 
+/// 超分增强轨的公共部分（选轨规则 / 旁路 / 证据字段名）。**不带 cfg**：
+/// mac 与 Windows 两份呈现器都从这里取同一套规则，见模块注释里的理由。
+mod enhance;
+
 #[cfg(target_os = "windows")]
 mod presenter;
 
 #[cfg(target_os = "windows")]
-pub use presenter::{PresentTimings, Presenter, BACKGROUND_RGBA8};
+pub use presenter::{BACKGROUND_RGBA8, PresentTimings, Presenter};
 
 #[cfg(all(target_os = "windows", feature = "probe"))]
 pub use presenter::Readback;
@@ -47,12 +51,12 @@ pub use presenter::Readback;
 #[cfg(target_os = "windows")]
 mod platform {
     use std::ffi::c_void;
-    use std::panic::{catch_unwind, AssertUnwindSafe};
+    use std::panic::{AssertUnwindSafe, catch_unwind};
     use std::sync::{Arc, Mutex, MutexGuard};
     use std::thread::JoinHandle;
 
-    use super::presenter::escape;
     use super::Presenter;
+    use super::presenter::escape;
     use windows::Win32::Foundation::HANDLE;
 
     /// 呈现器创建的状态码。与 C++ 侧 `rossi_gpu_present_status` 的返回值一一对应。
@@ -464,6 +468,99 @@ mod platform {
         count as i32
     }
 
+    /// 注入一页的超分图。**读盘与解码放在锁外**，只有「装进增强轨」这一步持锁：
+    /// `lock_slot` 是整条上屏路的总闸，把几百毫秒的解码放进去会连同 `show` 与
+    /// `stats` 一起冻住（mac 侧同一个坑，纪律也写在那边）。
+    ///
+    /// `target_width` / `target_height` 只为与 mac 的签名对齐而保留，Windows 不读：
+    /// 这条路径每帧都在 GPU 上重采样，没有「预渲染视口帧」可建。
+    #[no_mangle]
+    pub extern "C" fn rossi_gpu_present_set_enhanced_image(
+        presenter: *mut c_void,
+        index: u32,
+        path_utf8: *const u8,
+        path_len: usize,
+        _target_width: u32,
+        _target_height: u32,
+        err_buf: *mut u8,
+        err_len: usize,
+    ) -> i32 {
+        let Some(holder) = (unsafe { borrow(presenter) }) else {
+            write_err(err_buf, err_len, "presenter 指针为空");
+            return -1;
+        };
+        if path_utf8.is_null() || path_len == 0 {
+            write_err(err_buf, err_len, "path 为空");
+            return -1;
+        }
+        let Ok(path_str) =
+            std::str::from_utf8(unsafe { std::slice::from_raw_parts(path_utf8, path_len) })
+        else {
+            write_err(err_buf, err_len, "path 不是合法的 UTF-8");
+            return -1;
+        };
+
+        // ── ① 锁外：读盘 + 解码 ──
+        let pixels = match std::fs::read(path_str) {
+            Ok(bytes) => match rossi_local_core::decode::decode_rgba(&bytes) {
+                Ok(pixels) => {
+                    eprintln!(
+                        "[Rossi GPU] set_enhanced_image: index={}, path={}, file_bytes={}, decoded={}x{}, source={}x{}",
+                        index,
+                        path_str,
+                        bytes.len(),
+                        pixels.width,
+                        pixels.height,
+                        pixels.source_width,
+                        pixels.source_height,
+                    );
+                    Arc::new(pixels)
+                }
+                Err(e) => {
+                    write_err(err_buf, err_len, &format!("解码超分图失败: {e:#}"));
+                    return -1;
+                }
+            },
+            Err(e) => {
+                write_err(err_buf, err_len, &format!("读取超分图失败: {e}"));
+                return -1;
+            }
+        };
+
+        // ── ② 持锁：装进增强轨 ──
+        let mut guard = lock_slot(&holder.slot);
+        let Slot::Ready(inner) = &mut *guard else {
+            write_err(err_buf, err_len, "呈现器尚未就绪");
+            return -1;
+        };
+        match inner.set_enhanced_pixels(index as usize, pixels) {
+            Ok(()) => 0,
+            Err(e) => {
+                write_err(err_buf, err_len, &format!("{e:#}"));
+                -1
+            }
+        }
+    }
+
+    /// 开关原图对比旁路：`active != 0` 强制走原图轨，0 则按增强轨优先。
+    /// 旁路期间增强图**保留**，关掉要能立刻换回去。
+    #[no_mangle]
+    pub extern "C" fn rossi_gpu_present_set_original_preview(
+        presenter: *mut c_void,
+        active: i32,
+    ) -> i32 {
+        let Some(holder) = (unsafe { borrow(presenter) }) else {
+            return -1;
+        };
+        let mut guard = lock_slot(&holder.slot);
+        if let Slot::Ready(inner) = &mut *guard {
+            inner.set_original_preview(active != 0);
+            0
+        } else {
+            -1
+        }
+    }
+
     /// 句柄类型在本 crate 之外的等价物 —— C ABI 直接用 `void*`。
     #[allow(dead_code)]
     fn _assert_handle_layout(handle: HANDLE) -> *mut c_void {
@@ -485,7 +582,7 @@ pub use mac_presenter::MacPresenter;
 #[cfg(target_os = "macos")]
 mod mac_platform {
     use std::ffi::c_void;
-    use std::panic::{catch_unwind, AssertUnwindSafe};
+    use std::panic::{AssertUnwindSafe, catch_unwind};
     use std::path::Path;
     use std::sync::{Arc, Mutex, MutexGuard};
     use std::thread::JoinHandle;

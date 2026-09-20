@@ -19,10 +19,11 @@ use std::sync::{Arc, Condvar, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
+use crate::enhance;
 use crate::wgpu_resampler::WgpuResampler;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use rossi_local_core::{
-    compute_final_pipeline_keep_set, interleaved_prefetch_positions, LocalSource, PagePixels,
+    LocalSource, PagePixels, compute_final_pipeline_keep_set, interleaved_prefetch_positions,
 };
 
 /// 图片外透明，由 Flutter 绘制阅读器背景；预渲染帧补边也遵守同一约定。
@@ -134,7 +135,8 @@ impl CachedPage {
     /// —— 各自写一遍，将来规则一改（比如加"只在放大倍率够时才用超分图"）就会出现
     /// 「画面是原图、证据说超分」的假证据，那正是这个 bug 的原形。
     fn prefers_enhanced(&self, bypass_enhanced: bool) -> bool {
-        !bypass_enhanced && self.enhanced_pixels.is_some()
+        // 规则本身在 `enhance` 里，与 Windows 侧、与 `stats` 报出的证据同源。
+        enhance::prefers_enhanced(self.enhanced_pixels.is_some(), bypass_enhanced)
     }
 
     /// 级联解析像素（对齐 mImageViewer 原版逻辑）：
@@ -728,8 +730,9 @@ pub struct MacPresenter {
     /// 表现（日志说成功、画面还是原图）。见 `stats_json` 的 `usedEnhanced`。
     last_used_enhanced: bool,
 
-    /// 原图预览对比旁路标志（对齐 mImageViewer fs_display_bypasses_final_pipeline 原版机制）
-    original_preview_active: AtomicBool,
+    /// 原图预览对比旁路（对齐 mImageViewer fs_display_bypasses_final_pipeline 原版机制）。
+    /// 类型来自 `enhance` —— Windows 侧共用同一份语义。
+    original_preview: enhance::Bypass,
 
     resampler: Arc<Mutex<WgpuResampler>>,
 
@@ -810,7 +813,7 @@ impl MacPresenter {
             last_cache_hit: false,
             last_prerender_hit: false,
             last_used_enhanced: false,
-            original_preview_active: AtomicBool::new(false),
+            original_preview: enhance::Bypass::new(),
             resampler,
             last_source_width: 0,
             last_source_height: 0,
@@ -1226,13 +1229,12 @@ impl MacPresenter {
 
     /// 开关原图对比旁路（对齐 mImageViewer fs_display_bypasses_final_pipeline 原版机制）
     pub fn set_original_preview(&self, active: bool) {
-        self.original_preview_active
-            .store(active, Ordering::Relaxed);
+        self.original_preview.set(active);
     }
 
     /// 查询当前是否处于原图对比旁路状态
     pub fn is_original_preview(&self) -> bool {
-        self.original_preview_active.load(Ordering::Relaxed)
+        self.original_preview.active()
     }
 
     /// 注入异步超分完成的像素并预渲染进缓存（对齐 mImageViewer FinalComposite 机制）
@@ -1506,7 +1508,7 @@ mod tests {
         }
 
         // 前 10 行应当完全匹配
-        assert_eq!(&dst[0..400], &frame.bgra);
+        assert_eq!(&dst[0..400], &frame.bgra[0..400]);
         // 第 11 行应当填充背景色
         let bg = [0, 0, 0, 0];
         assert_eq!(&dst[400..404], &bg);
