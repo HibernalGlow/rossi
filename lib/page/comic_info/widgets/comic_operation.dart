@@ -1,10 +1,12 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_info/models/favorite_workflow.dart';
 import 'package:zephyr/page/comic_info/json/normal/normal_comic_all_info.dart';
 import 'package:zephyr/page/comic_info/models/collect_comic.dart';
+import 'package:zephyr/page/comic_info/models/comic_magnet.dart';
 import 'package:zephyr/page/comic_follow/cubit/comic_follow_cubit.dart';
 import 'package:zephyr/page/download/method/comic_download_entry.dart';
 import 'package:zephyr/page/download/models/unified_comic_download.dart';
@@ -126,6 +128,7 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
             enabled: true,
             onTap: _toggleLocalFavorite,
           );
+    final magnet = comicMagnetOf(normalInfo);
     final actions = [
       _OperationItemData(
         icon: isLiked ? Icons.favorite : Icons.favorite_border,
@@ -165,6 +168,15 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
         onLongPress: _openDownloadChapterPicker,
         onLongPressTooltip: t.reader.selectChapter,
       ),
+      // 磁力一键复制：只有插件在 comicInfo.extern 里给了 magnet 才出现，
+      // 没有磁力的图源这里恒为空、这一项整个不渲染。
+      if (magnet.isNotEmpty)
+        _OperationItemData(
+          icon: Icons.copy_all_rounded,
+          text: t.common.copy,
+          enabled: true,
+          onTap: _copyMagnet,
+        ),
     ];
 
     return SizedBox(
@@ -206,6 +218,21 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
           );
         },
       ),
+    );
+  }
+
+  Future<void> _copyMagnet() async {
+    final magnet = comicMagnetOf(normalInfo);
+    if (magnet.isEmpty) {
+      return;
+    }
+    await Clipboard.setData(ClipboardData(text: magnet));
+    if (!mounted) {
+      return;
+    }
+    showSuccessToast(
+      t.comicInfo.copiedToClipboard(name: magnet),
+      context: context,
     );
   }
 

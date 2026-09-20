@@ -1,10 +1,13 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/router/router.gr.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_list/models/comic_list_scene.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
 import 'package:zephyr/page/search_result/bloc/search_bloc.dart';
 import 'package:zephyr/util/json/json_value.dart';
+import 'package:zephyr/widgets/toast.dart';
 
 Future<void> handleComicInfoAction(
   BuildContext context,
@@ -15,6 +18,22 @@ Future<void> handleComicInfoAction(
   final payload = asJsonMap(action['payload']);
 
   if (type.isEmpty || type == 'none') {
+    return;
+  }
+
+  if (type == 'copyText') {
+    final text = payload['text']?.toString() ?? '';
+    if (text.isEmpty) {
+      return;
+    }
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!context.mounted) {
+      return;
+    }
+    showSuccessToast(
+      t.comicInfo.copiedToClipboard(name: text),
+      context: context,
+    );
     return;
   }
 

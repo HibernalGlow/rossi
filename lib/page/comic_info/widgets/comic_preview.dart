@@ -1,23 +1,35 @@
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_info/bloc/comic_preview_bloc.dart';
+import 'package:zephyr/page/comic_info/bloc/get_comic_info_bloc.dart';
+import 'package:zephyr/page/comic_info/models/comic_magnet.dart';
 import 'package:zephyr/page/search_result/widgets/bottom_loader.dart';
 import 'package:zephyr/page/comic_info/models/unified_plugin_preview.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/widgets/picture_bloc/bloc/picture_bloc.dart';
 import 'package:zephyr/widgets/picture_bloc/models/picture_info.dart';
+import 'package:zephyr/widgets/toast.dart';
 
 class ComicPreviewSliver extends StatelessWidget {
   const ComicPreviewSliver({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // 磁力是画廊级的，只挂在第一张封面（预览的「封面」）上。
+    // 下载详情等场景没有 GetComicInfoBloc，取不到就整颗按钮不出现。
+    final hasComicInfoBloc = context
+        .findAncestorWidgetOfExactType<BlocProvider<GetComicInfoBloc>>() !=
+        null;
+    final magnet = hasComicInfoBloc
+        ? comicMagnetOf(BlocProvider.of<GetComicInfoBloc>(context).state.allInfo)
+        : '';
     return BlocBuilder<ComicPreviewBloc, ComicPreviewState>(
       builder: (context, state) {
         if (state.status == ComicPreviewStatus.failure && state.items.isEmpty) {
@@ -57,6 +69,7 @@ class ComicPreviewSliver extends StatelessWidget {
                       item: state.items[index],
                       comicId: context.read<ComicPreviewBloc>().comicId,
                       from: context.read<ComicPreviewBloc>().from,
+                      magnet: index == 0 ? magnet : '',
                     ),
                     childCount: state.items.length,
                   ),
@@ -143,11 +156,15 @@ class _ComicPreviewTile extends StatelessWidget {
     required this.item,
     required this.comicId,
     required this.from,
+    this.magnet = '',
   });
 
   final UnifiedPluginPreviewItem item;
   final String comicId;
   final String from;
+
+  /// 非空时在这张封面上叠一颗「复制磁力」按钮。
+  final String magnet;
 
   @override
   Widget build(BuildContext context) {
@@ -175,13 +192,45 @@ class _ComicPreviewTile extends StatelessWidget {
                 onTap: () => context.pushRoute(
                   FullRouteImageRoute(imagePath: state.imagePath!),
                 ),
-                child: _tileBackground(
-                  context,
-                  Image.file(
-                    File(state.imagePath!),
-                    fit: BoxFit.contain,
-                    cacheWidth: 360,
-                  ),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _tileBackground(
+                      context,
+                      Image.file(
+                        File(state.imagePath!),
+                        fit: BoxFit.contain,
+                        cacheWidth: 360,
+                      ),
+                    ),
+                    if (magnet.isNotEmpty)
+                      Positioned(
+                        right: 4,
+                        bottom: 4,
+                        child: Tooltip(
+                          message: t.common.copy,
+                          child: Material(
+                            color: context.theme.colorScheme.inverseSurface,
+                            shape: const CircleBorder(),
+                            child: InkWell(
+                              customBorder: const CircleBorder(),
+                              onTap: _copyMagnet,
+                              child: Padding(
+                                padding: const EdgeInsets.all(6),
+                                child: Icon(
+                                  Icons.copy_all_rounded,
+                                  size: 16,
+                                  color: context
+                                      .theme
+                                      .colorScheme
+                                      .onInverseSurface,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               );
             case PictureLoadStatus.failure:
@@ -204,5 +253,10 @@ class _ComicPreviewTile extends StatelessWidget {
       ),
       child: Center(child: child),
     );
+  }
+
+  Future<void> _copyMagnet() async {
+    await Clipboard.setData(ClipboardData(text: magnet));
+    showSuccessToast(t.comicInfo.copiedToClipboard(name: magnet));
   }
 }
