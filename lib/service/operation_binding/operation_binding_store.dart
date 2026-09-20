@@ -127,8 +127,12 @@ abstract final class OperationBindingStore {
       );
 
   /// 动作注册表（设置页的选项清单，schema 与显示名都取自 Rust）。
+  ///
+  /// 走 [_decodeList] 而不是 [_decodeArray]：注册表的行是 `{id,label,category,…}`，
+  /// **没有** `input` 字段，而绑定表那条校验恰恰要求每条都有 `input.device`。
+  /// 用错那个函数等于「清单永远读不出来」，而且抛的是 Bad state —— 设置页一进来就红屏。
   static List<BindingActionInfo> actionCatalog() => [
-    for (final entry in _decodeArray(operationBindingActionCatalog()))
+    for (final entry in _decodeList(operationBindingActionCatalog()))
       BindingActionInfo(
         id: entry['id'] as String? ?? '',
         label: entry['label'] as String? ?? '',
