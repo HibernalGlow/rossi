@@ -909,7 +909,9 @@ class _MyAppState extends State<MyApp>
               // 其余仍走上面的 fromSeed / 动态取色。整套换掉 ColorScheme 不可行 ——
               // 全仓组件读的是 M3 角色名，而 shadcn 只有二十来个扁平 token。
               final tweakcn = globalSettingState.tweakcnThemeEnabled
-                  ? TweakcnTheme.decode(globalSettingState.tweakcnThemeJson)
+                  ? TweakcnThemeLibrary.decode(
+                      globalSettingState.tweakcnThemeJson,
+                    ).activeTheme
                   : null;
               if (tweakcn != null) {
                 lightColorScheme = tweakcn.apply(
