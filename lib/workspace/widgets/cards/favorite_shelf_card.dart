@@ -14,6 +14,7 @@ import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/page/bookshelf/service/comic_folder_service.dart';
 import 'package:zephyr/type/enum.dart';
+import 'package:zephyr/util/comic/comic_quick_read.dart';
 import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/util/permission.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
@@ -530,6 +531,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
       // 书签一共就几百条，每一档都值得画封面；文件管理器不这么想。
       thumbModes: LibraryViewMode.values.toSet(),
       detailCells: [author.isEmpty ? '—' : author, source, time],
+      onRead: () => _read(item),
       trailing: IconButton(
         icon: const Icon(Icons.arrow_forward_ios_rounded, size: 13),
         color: theme.colorScheme.onSurfaceVariant,
@@ -539,6 +541,10 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
       ),
     );
   }
+
+  /// 封面那颗「直接阅读」：不进详情页，直接起读（语义见 [startComicQuickRead]）。
+  Future<void> _read(UnifiedComicFavorite item) =>
+      startComicQuickRead(context, comicId: item.comicId, from: item.source);
 
   void _open(BuildContext context, UnifiedComicFavorite item) {
     // 本地来源与插件来源的分岔在 openComicItem 里统一处理 —— 这里曾经

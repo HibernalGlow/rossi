@@ -124,17 +124,87 @@ void main() {
     });
   });
 
+  group('阅读按钮（封面正中）', () {
+    test('默认开着', () {
+      expect(
+        const ComicCardBadgePolicy().showReadButton(
+          pluginId: _plugin,
+          comicId: _comicId,
+        ),
+        isTrue,
+      );
+    });
+
+    test('用户关掉总开关后不再显示', () {
+      expect(
+        const ComicCardBadgePolicy(
+          readButtonEnabled: false,
+        ).showReadButton(pluginId: _plugin, comicId: _comicId),
+        isFalse,
+      );
+    });
+
+    test('两道开关是「与」：页面级开关关掉也不显示', () {
+      expect(
+        const ComicCardBadgePolicy().showReadButton(
+          pluginId: _plugin,
+          comicId: _comicId,
+          cardEnabled: false,
+        ),
+        isFalse,
+      );
+    });
+
+    test('多选模式下不画（中间那颗会误触起读）', () {
+      expect(
+        const ComicCardBadgePolicy().showReadButton(
+          pluginId: _plugin,
+          comicId: _comicId,
+          selectionMode: true,
+        ),
+        isFalse,
+      );
+    });
+
+    test('与下载角标相反：本地漫画一定要画，它才是这条路径最划算的一本', () {
+      const policy = ComicCardBadgePolicy();
+      expect(policy.showDownloadBadge(pluginId: 'local', comicId: '/a/b'), isFalse);
+      expect(policy.showReadButton(pluginId: 'local', comicId: '/a/b'), isTrue);
+      expect(
+        policy.showReadButton(pluginId: _plugin, comicId: '/Users/me/x.cbz'),
+        isTrue,
+      );
+    });
+
+    test('缺 id 时不画（起读两头都对不上号）', () {
+      const policy = ComicCardBadgePolicy();
+      expect(policy.showReadButton(pluginId: '  ', comicId: _comicId), isFalse);
+      expect(policy.showReadButton(pluginId: _plugin, comicId: ' '), isFalse);
+    });
+
+    test('关掉阅读按钮不影响另外两个角标', () {
+      const policy = ComicCardBadgePolicy(readButtonEnabled: false);
+      expect(
+        policy.showDownloadBadge(pluginId: _plugin, comicId: _comicId),
+        isTrue,
+      );
+      expect(policy.showTranslationBadge(), isTrue);
+    });
+  });
+
   group('设置的默认值与向后兼容', () {
     test('新装默认全开（不改变既有观感）', () {
       const state = ComicCardSettingState();
       expect(state.downloadBadgeEnabled, isTrue);
       expect(state.translationBadgeEnabled, isTrue);
+      expect(state.readButtonEnabled, isTrue);
     });
 
-    test('老配置文件（json 里没有这两个键）回落到全开', () {
+    test('老配置文件（json 里没有这些键）回落到全开', () {
       final state = ComicCardSettingState.fromJson(const <String, dynamic>{});
       expect(state.downloadBadgeEnabled, isTrue);
       expect(state.translationBadgeEnabled, isTrue);
+      expect(state.readButtonEnabled, isTrue);
     });
 
     test('关掉的偏好存得下、读得回', () {

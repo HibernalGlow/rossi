@@ -3,12 +3,15 @@ import 'dart:convert';
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/page/comic_follow/cubit/comic_follow_cubit.dart';
 import 'package:zephyr/type/enum.dart';
+import 'package:zephyr/util/comic/comic_quick_read.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/widgets/comic_entry/models/models.dart';
+import 'package:zephyr/widgets/comic_simplify_entry/comic_read_button.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/error_view.dart';
@@ -344,6 +347,25 @@ class _ComicFollowPageContent extends StatelessWidget {
   }
 }
 
+/// 追更页两种条目（列表 / 网格）共用的封面「直接阅读」叠层。
+///
+/// 走的是与卡片族同一套口径：用户的总开关（设置 → 书架 → 卡片角标 → 阅读按钮）
+/// 关掉就不画，起读入口也是同一个 `startComicQuickRead`（有进度就续读）。
+/// 圆圈直径不写死，交给 `ComicReadButton` 按封面盒子短边算 —— 列表那档是
+/// 100x133、网格那档随格子大小，两处都不该各挑一个数。
+Widget? _comicFollowReadOverlay(BuildContext context, ComicFollow follow) {
+  if (!comicCardSetting.readButtonEnabled) return null;
+  return Positioned.fill(
+    child: ComicReadButton(
+      onTap: () => startComicQuickRead(
+        context,
+        comicId: follow.comicId,
+        from: follow.source,
+      ),
+    ),
+  );
+}
+
 class _ComicFollowListItem extends StatelessWidget {
   const _ComicFollowListItem({
     super.key,
@@ -409,7 +431,13 @@ class _ComicFollowListItem extends StatelessWidget {
                     ? Radius.zero
                     : const Radius.circular(12),
               ),
-              child: _buildCover(coverWidth, coverHeight),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _buildCover(coverWidth, coverHeight),
+                  ?_comicFollowReadOverlay(context, follow),
+                ],
+              ),
             ),
             Expanded(
               child: Padding(
@@ -666,6 +694,7 @@ class _ComicFollowGridItem extends StatelessWidget {
                     _buildCover(),
                     if (hasUnreadUpdate)
                       Positioned(top: 8, right: 8, child: _UpdateBadge()),
+                    ?_comicFollowReadOverlay(context, follow),
                   ],
                 ),
               ),

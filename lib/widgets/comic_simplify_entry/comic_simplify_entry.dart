@@ -18,9 +18,11 @@ import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/cubit/string_select.dart';
 import 'package:zephyr/util/comic/chinese_translation_matcher.dart';
 import 'package:zephyr/util/comic/comic_card_badge_policy.dart';
+import 'package:zephyr/util/comic/comic_quick_read.dart';
 import 'package:zephyr/util/path_util.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_download_badge.dart';
+import 'package:zephyr/widgets/comic_simplify_entry/comic_read_button.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_info.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_translation_badge.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
@@ -93,6 +95,9 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
   /// 封面右上角是否显示下载角标。默认开。语义同 [showTranslationBadge]。
   final bool showDownloadAction;
 
+  /// 封面正中是否显示「直接阅读」按钮。默认开。语义同 [showTranslationBadge]。
+  final bool showReadAction;
+
   const ComicFixedSizeHorizontalList({
     super.key,
     required this.entries,
@@ -102,6 +107,7 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
     this.useRandomImageKey = false,
     this.showTranslationBadge = true,
     this.showDownloadAction = true,
+    this.showReadAction = true,
   });
 
   @override
@@ -170,12 +176,19 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
       downloadBadgeEnabled: globalSetting.comicCardSetting.downloadBadgeEnabled,
       translationBadgeEnabled:
           globalSetting.comicCardSetting.translationBadgeEnabled,
+      readButtonEnabled: globalSetting.comicCardSetting.readButtonEnabled,
     );
     // 本地漫画本来就在盘上，不给下载角标。
     final showDownloadBadge = badgePolicy.showDownloadBadge(
       pluginId: pluginId,
       comicId: info.id,
       cardEnabled: showDownloadAction,
+    );
+    // 横滑卡没有多选态，但同一份策略要过同样的三道闸门（见 ComicCardBadgePolicy）。
+    final showReadButton = badgePolicy.showReadButton(
+      pluginId: pluginId,
+      comicId: info.id,
+      cardEnabled: showReadAction,
     );
     final favoriteSetting = globalSetting.favoriteArtistSetting;
     final matchResult = favoriteSetting.highlightEnabled
@@ -279,6 +292,19 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
                 ),
               ),
             ),
+
+            // 3. 正中那颗「直接阅读」：压在标题渐变之上才看得清。
+            if (showReadButton)
+              Positioned.fill(
+                child: ComicReadButton(
+                  onTap: () => startComicQuickRead(
+                    context,
+                    comicId: info.id,
+                    from: pluginId,
+                  ),
+                  size: comicReadButtonSize(width),
+                ),
+              ),
           ],
         ),
       ),
@@ -348,6 +374,10 @@ class ComicSimplifyEntry extends StatelessWidget {
   /// 判定只吃插件给的标签与标题（`ComicSimplifyEntryInfo.tags`），
   /// 所以插件没给语言线索时**本来就不会显示**（不是坏了）。
   final bool showTranslationBadge;
+
+  /// 封面正中是否显示「直接阅读」按钮。默认开：下载过 / 本地有的书，
+  /// 点封面进详情页只是多一步。多选模式下自动隐藏（同 [showDownloadAction] 的让位规矩）。
+  final bool showReadAction;
   final String? collectionTargetId;
   final String? collectionTargetName;
 
@@ -366,6 +396,7 @@ class ComicSimplifyEntry extends StatelessWidget {
     this.roundedCorner = true,
     this.showDownloadAction = true,
     this.showTranslationBadge = true,
+    this.showReadAction = true,
     this.collectionTargetId,
     this.collectionTargetName,
   });
@@ -430,12 +461,19 @@ class ComicSimplifyEntry extends StatelessWidget {
       downloadBadgeEnabled: globalSetting.comicCardSetting.downloadBadgeEnabled,
       translationBadgeEnabled:
           globalSetting.comicCardSetting.translationBadgeEnabled,
+      readButtonEnabled: globalSetting.comicCardSetting.readButtonEnabled,
     );
     // 本地漫画本来就在盘上；多选模式下右上角让给勾选圈。
     final showDownloadBadge = badgePolicy.showDownloadBadge(
       pluginId: pluginId,
       comicId: info.id,
       cardEnabled: showDownloadAction,
+      selectionMode: selectionMode,
+    );
+    final showReadButton = badgePolicy.showReadButton(
+      pluginId: pluginId,
+      comicId: info.id,
+      cardEnabled: showReadAction,
       selectionMode: selectionMode,
     );
     final favoriteSetting = globalSetting.favoriteArtistSetting;
@@ -558,6 +596,18 @@ class ComicSimplifyEntry extends StatelessWidget {
                         compact: width < 110,
                       ),
                   ],
+                ),
+              ),
+            // 正中那颗「直接阅读」：压在标题渐变之上才看得清。
+            if (showReadButton)
+              Positioned.fill(
+                child: ComicReadButton(
+                  onTap: () => startComicQuickRead(
+                    context,
+                    comicId: info.id,
+                    from: pluginId,
+                  ),
+                  size: comicReadButtonSize(width),
                 ),
               ),
             if (selectionMode)

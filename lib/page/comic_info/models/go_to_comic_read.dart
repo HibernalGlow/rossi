@@ -15,6 +15,12 @@ import 'package:zephyr/config/router/router.gr.dart' show ComicReadRoute;
 
 import 'package:zephyr/page/comic_info/models/read_launch_adapter.dart';
 
+/// 从详情页的「开始阅读」进阅读器。
+///
+/// 「有没有读过」在这里是问 [StringSelectCubit] —— 详情页就是从那套选择态里
+/// 拿到当前章节的，所以它非空即代表「带着进度进来」。
+/// 封面卡上的「直接阅读」按钮没有这个 Cubit，走 [pushComicReadRoute]，
+/// 并把「有没有读过」按 ObjectBox 的历史记录来回答。
 void goToComicRead(
   BuildContext context,
   String comicId,
@@ -22,16 +28,39 @@ void goToComicRead(
   dynamic allInfo,
   String from,
 ) {
-  final isDownload =
-      type == ComicEntryType.download ||
-      type == ComicEntryType.historyAndDownload;
+  pushComicReadRoute(
+    context,
+    allInfo: allInfo,
+    comicId: comicId,
+    from: from,
+    isDownload:
+        type == ComicEntryType.download ||
+        type == ComicEntryType.historyAndDownload,
+    hasHistory: context.read<StringSelectCubit>().state.isNotEmpty,
+    stringSelectCubit: context.read<StringSelectCubit>(),
+  );
+}
+
+/// 起读的唯一解析口径：章节目录、续读章节、eps 数、路由参数都在这里算一次。
+///
+/// [allInfo] 可以是插件详情（`PluginComicDetailSource`）或下载记录
+/// （`UnifiedComicDownload`），两者的章节解析都由
+/// [resolveUnifiedComicChapters] 负责，所以两条路的续读语义完全一致。
+void pushComicReadRoute(
+  BuildContext context, {
+  required dynamic allInfo,
+  required String comicId,
+  required String from,
+  required bool isDownload,
+  required bool hasHistory,
+  required StringSelectCubit stringSelectCubit,
+}) {
   final epsCount = resolveReadEpsCount(allInfo, from, isDownload: isDownload);
   final resolvedComicId = resolveReadComicId(
     allInfo,
     from,
     isDownload: isDownload,
   );
-  final hasHistory = context.read<StringSelectCubit>().state.isNotEmpty;
   final history = objectbox.unifiedHistoryBox
       .query(UnifiedComicHistory_.uniqueKey.equals('$from:$comicId'))
       .build()
@@ -60,7 +89,7 @@ void goToComicRead(
       from: from,
       type: typeVal,
       comicInfo: allInfo,
-      stringSelectCubit: context.read<StringSelectCubit>(),
+      stringSelectCubit: stringSelectCubit,
     ),
   );
 }

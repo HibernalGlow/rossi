@@ -95,6 +95,16 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
               (current) => current.copyWith(translationBadgeEnabled: value),
             ),
           ),
+          const Divider(height: 1, thickness: 0.3),
+          _switchTile(
+            icon: Icons.play_circle_outline_rounded,
+            title: t.settings.cardReadButton,
+            subtitle: t.settings.cardReadButtonSubtitle,
+            value: cardSetting.readButtonEnabled,
+            onChanged: (value) => cubit.updateComicCardSetting(
+              (current) => current.copyWith(readButtonEnabled: value),
+            ),
+          ),
 
           const SizedBox(height: 8),
           const Divider(height: 1, thickness: 0.3),

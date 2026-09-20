@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/widgets/comic_simplify_entry/comic_read_button.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_entry.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view_layout.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view_mode.dart';
@@ -62,6 +64,19 @@ class LibraryEntrySurface extends StatelessWidget {
       radius: geo.radius,
       fit: geo.fit,
     );
+  }
+
+  /// 封面档的「直接阅读」叠层（必须放进 Stack 里，所以返回的是 Positioned）。
+  ///
+  /// 三道闸门：数据源给了 [LibraryEntry.onRead]（目录、图片这类没有「阅读」可言的东西
+  /// 不给）、用户的卡片总开关（设置 → 书架 → 卡片角标）、以及格子短边够不够 ——
+  /// 最后那道由 `ComicReadButton` 自己把关，所以 coverList 那一档 44x44 的封面槽
+  /// 自动不画，不必在这里再记一份尺寸。
+  Widget? _readOverlay() {
+    final onRead = entry.onRead;
+    if (onRead == null) return null;
+    if (!comicCardSetting.readButtonEnabled) return null;
+    return Positioned.fill(child: ComicReadButton(onTap: onRead));
   }
 
   /// 语义图标。数据源给多大无所谓，这里按当前档位重画一遍尺寸 ——
@@ -274,9 +289,14 @@ class LibraryEntrySurface extends StatelessWidget {
           children: [
             SizedBox(
               width: size.width,
-              child:
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
                   _media(context, width: size.width, height: size.height) ??
-                  _centeredBadge(size.width),
+                      _centeredBadge(size.width),
+                  ?_readOverlay(),
+                ],
+              ),
             ),
             Expanded(
               child: Padding(
@@ -427,6 +447,7 @@ class LibraryEntrySurface extends StatelessWidget {
                         ),
                       ),
                     ),
+                  ?_readOverlay(),
                 ],
               ),
             ),
@@ -477,7 +498,12 @@ class LibraryEntrySurface extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(child: _cellMedia(context)),
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [_cellMedia(context), ?_readOverlay()],
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
               child: Text(

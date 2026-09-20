@@ -6,6 +6,7 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/type/enum.dart';
+import 'package:zephyr/util/comic/comic_quick_read.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/widgets/comic_entry/models/models.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
@@ -258,15 +259,22 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
       ),
       thumbModes: LibraryViewMode.values.toSet(),
       detailCells: [chapter.isEmpty ? '—' : chapter, source, time],
+      onRead: () => _read(item),
       trailing: IconButton(
         icon: const Icon(Icons.play_circle_outline_rounded, size: 22),
         color: theme.colorScheme.primary,
-        tooltip: '继续阅读',
+        tooltip: t.comicEntry.resumeRead,
         visualDensity: VisualDensity.compact,
-        onPressed: () => _open(context, item),
+        // 这颗图标一直写的是「继续阅读」，但历史上它走 _open —— 插件来源其实
+        // 跳的是详情页。封面按钮既然把「直接起读」做出来了，这里就接上真的。
+        onPressed: () => _read(item),
       ),
     );
   }
+
+  /// 直接起读，不进详情页（语义见 [startComicQuickRead]）。
+  Future<void> _read(UnifiedComicHistory item) =>
+      startComicQuickRead(context, comicId: item.comicId, from: item.source);
 
   void _open(BuildContext context, UnifiedComicHistory item) {
     // 本地来源与插件来源的分岔在 openComicItem 里统一处理 —— 这里曾经

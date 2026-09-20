@@ -19,6 +19,7 @@ class ComicCardBadgePolicy {
   const ComicCardBadgePolicy({
     this.downloadBadgeEnabled = true,
     this.translationBadgeEnabled = true,
+    this.readButtonEnabled = true,
   });
 
   /// 用户的「下载角标」总开关。
@@ -26,6 +27,9 @@ class ComicCardBadgePolicy {
 
   /// 用户的「语言角标」（汉化 / 中文 / 生肉）总开关。
   final bool translationBadgeEnabled;
+
+  /// 用户的「直接阅读按钮」总开关（封面正中）。
+  final bool readButtonEnabled;
 
   /// 下载角标是否显示（右上角）。
   ///
@@ -52,5 +56,23 @@ class ComicCardBadgePolicy {
   /// `ChineseTranslationMatcher.match`，省掉每张卡片的词表扫描。
   bool showTranslationBadge({bool cardEnabled = true}) {
     return translationBadgeEnabled && cardEnabled;
+  }
+
+  /// 封面正中的「直接阅读」按钮是否显示。
+  ///
+  /// 与下载角标相反，**本地漫画一定要画** —— 它就在盘上，是这条路径最划算的一种。
+  /// 多选模式下不画：那时整张卡是让给勾选的，中间再扣一颗按钮会误触起读。
+  bool showReadButton({
+    required String pluginId,
+    required String comicId,
+    bool cardEnabled = true,
+    bool selectionMode = false,
+  }) {
+    if (!readButtonEnabled || !cardEnabled || selectionMode) {
+      return false;
+    }
+    if (pluginId.trim().isEmpty) return false;
+    if (comicId.trim().isEmpty) return false;
+    return true;
   }
 }

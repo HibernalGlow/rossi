@@ -55,6 +55,7 @@ class LibraryEntry {
     this.detailCells = const [],
     this.overlayText,
     this.trailing,
+    this.onRead,
     this.source,
   });
 
@@ -94,6 +95,12 @@ class LibraryEntry {
   final String? overlayText;
 
   final Widget? trailing;
+
+  /// 封面「直接阅读」按钮的动作：不进详情，直接起读。
+  ///
+  /// 为 null 就不画那颗按钮 —— 目录、图片、压缩包以外这些东西没有「阅读」可言，
+  /// 数据源自己裁决。Future 结束前按钮转圈，所以远程回源那一次有反馈。
+  final Future<void> Function()? onRead;
 
   bool wantsThumb(LibraryViewMode mode) =>
       media != null && thumbModes.contains(mode);
