@@ -502,8 +502,9 @@ fn times_ms(metadata: &fs::Metadata) -> (i64, i64) {
     #[cfg(windows)]
     {
         use std::os::windows::fs::MetadataExt;
-        let mtime = metadata.last_write_time() / 10_000 - 11_644_473_600_000;
-        let ctime = metadata.creation_time() / 10_000 - 11_644_473_600_000;
+        // 先转 i64 再做减法：文件系统不支持时间时 FILETIME 为 0，按 u64 减常量会下溢。
+        let mtime = metadata.last_write_time() as i64 / 10_000 - 11_644_473_600_000;
+        let ctime = metadata.creation_time() as i64 / 10_000 - 11_644_473_600_000;
         (mtime, ctime)
     }
     #[cfg(not(any(unix, windows)))]
