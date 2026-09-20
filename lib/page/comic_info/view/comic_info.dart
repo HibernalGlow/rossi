@@ -154,14 +154,8 @@ class _ComicInfoState extends State<_ComicInfo>
           // 住在发现页的标签里时，这颗「返回」关的是**当前这条标签**。
           // context.pop() 走的是根路由：那一下弹掉的是压着详情页的那一页，
           // 在工作台里就是整个工作台。
-          onPressed: () {
-            final tabs = DiscoverTabScope.maybeOf(context);
-            if (tabs != null) {
-              tabs.closeCurrentTab();
-              return;
-            }
-            context.pop();
-          },
+          onPressed: () =>
+              popTabOrClose(context, otherwise: () => context.pop()),
         ),
         actions: [
           const SizedBox(width: 50),
@@ -285,14 +279,10 @@ class _ComicInfoState extends State<_ComicInfo>
                       ),
                       SizedBox(height: 10),
                       ElevatedButton(
-                        onPressed: () {
-                          final tabs = DiscoverTabScope.maybeOf(context);
-                          if (tabs != null) {
-                            tabs.closeCurrentTab();
-                            return;
-                          }
-                          context.pop();
-                        },
+                        onPressed: () => popTabOrClose(
+                          context,
+                          otherwise: () => context.pop(),
+                        ),
                         child: Text(t.comicInfo.back),
                       ),
                     ],

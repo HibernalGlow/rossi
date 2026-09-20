@@ -5,11 +5,10 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/discover/cubit/discover_cubit.dart';
-import 'package:zephyr/page/discover/cubit/discover_tab_cubit.dart';
 import 'package:zephyr/page/discover/service/discover_router.dart';
-import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
+import 'package:zephyr/page/discover/service/discover_tabs.dart';
 import 'package:zephyr/page/discover/view/plugin_order_dialog.dart';
-import 'package:zephyr/page/discover/widgets/discover_tab_strip.dart';
+import 'package:zephyr/page/discover/widgets/discover_plat_view.dart';
 import 'package:zephyr/page/discover/widgets/plugin_card.dart';
 import 'package:zephyr/page/plugin_settings/view/plugin_settings_page.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
@@ -25,122 +24,86 @@ class DiscoverPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => DiscoverCubit()..load(),
-      child: const _DiscoverTabs(),
+      child: const _DiscoverTabsHost(),
     );
   }
 }
 
-/// 发现页的标签体系：首页那一条是插件列表，其余每条装一个上游原版页面。
-class _DiscoverTabs extends StatelessWidget {
-  const _DiscoverTabs();
-
-  static const String _homeId = 'discover-home';
+/// 持有那一组标签的生命周期。
+///
+/// `PlatController` 是个 `ChangeNotifier`，但它**不是** InheritedWidget 那一类
+/// 可以随树重建而重算的东西：标签开在哪、哪条是当前，是活的会话状态，
+/// 所以这里用 StatefulWidget 建一次、拆一次。
+class _DiscoverTabsHost extends StatefulWidget {
+  const _DiscoverTabsHost();
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => DiscoverTabCubit(
-        homeTab: DiscoverTab(
-          id: _homeId,
-          label: t.discover.title,
-          source: '',
-          pluginName: '',
-          iconUrl: '',
-          closable: false,
-          icon: Icons.explore,
-          content: (context) => const _PluginHome(),
-        ),
-      ),
-      child: const _DiscoverScaffold(),
-    );
-  }
+  State<_DiscoverTabsHost> createState() => _DiscoverTabsHostState();
 }
 
-class _DiscoverScaffold extends StatelessWidget {
-  const _DiscoverScaffold();
+class _DiscoverTabsHostState extends State<_DiscoverTabsHost> {
+  late final DiscoverTabs _tabs = DiscoverTabs(
+    side: context.read<GlobalSettingCubit>().state.discoverSetting.tabSide,
+    home: DiscoverLeafSpec(
+      label: t.discover.title,
+      source: '',
+      pluginName: '',
+      iconUrl: '',
+      icon: Icons.explore,
+      content: (context) => _PluginHome(tabs: _tabs),
+    ),
+  );
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final tabs = context.read<DiscoverTabCubit>();
-    final state = context.watch<DiscoverTabCubit>().state;
-    final onHome = state.activeId == state.tabs.first.id;
+    final setting = context.watch<GlobalSettingCubit>().state.discoverSetting;
 
-    return Scaffold(
-      appBar: _topBar(context, tabs, state),
-      resizeToAvoidBottomInset: false,
-      body: IndexedStack(
-        index: state.activeIndex,
-        children: [
-          for (final tab in state.tabs)
-            KeyedSubtree(
-              key: ValueKey(tab.id),
-              child: DiscoverTabScope(
-                actions: _TabActions(tabs: tabs, tabId: tab.id),
-                child: tab.content(context),
-              ),
-            ),
-        ],
-      ),
-      floatingActionButtonLocation:
-          context.watch<GlobalSettingCubit>().state.leftHandModeEnabled
-          ? FloatingActionButtonLocation.startFloat
-          : FloatingActionButtonLocation.endFloat,
-      floatingActionButton: onHome
-          ? FloatingActionButton(
-              tooltip: t.discover.search,
-              onPressed: () => _search(context, tabs),
-              child: const Icon(Icons.search),
-            )
-          : null,
-    );
-  }
-
-  /// 顶栏那一行**就是**标签条：首页那条标签顶掉了原来的「发现」标题，
-  /// 不再另起一行（两行会割裂，用户 2026-09-20 的口径）。
-  ///
-  /// 只有一条标签时标题位让回「发现」两个字 —— 那时没有可切的东西。
-  /// 非首页时这一行仍然在：它是切回去与关标签的唯一出口；
-  /// 标签内容自己的 AppBar 落在它下面一行（浏览器：标签栏 + 页面工具栏）。
-  AppBar _topBar(
-    BuildContext context,
-    DiscoverTabCubit tabs,
-    DiscoverTabState state,
-  ) {
-    final onHome = state.activeId == state.tabs.first.id;
-    return AppBar(
-      // 标签条自己带左右留白，只留一窄条，比 AppBar 默认的 16 紧一点。
-      titleSpacing: state.showsStrip ? 8 : null,
-      title: state.showsStrip
-          ? DiscoverTabStrip(state: state)
-          : Text(t.discover.title),
-      actions: [
-        // 「自定义插件顺序」改的是首页那张列表，只在首页摆出来。
-        if (onHome)
-          IconButton(
-            tooltip: t.discover.customOrder,
-            icon: const Icon(Icons.reorder),
-            onPressed: () => showPluginOrderDialog(context),
+    return ListenableBuilder(
+      listenable: _tabs.controller,
+      builder: (context, _) => Scaffold(
+        // 顶栏那一行交给标签条了（用户口径：另起一行会割裂），所以这里
+        // 没有 AppBar；状态栏的内边距由 SafeArea 收在标签条上面。
+        resizeToAvoidBottomInset: false,
+        body: SafeArea(
+          bottom: false,
+          child: DiscoverPlatView(
+            tabs: _tabs,
+            setting: setting,
+            onSearch: () => _openAggregateSearch(context),
+            onCustomizeOrder: () => showPluginOrderDialog(context),
           ),
-        IconButton(
-          tooltip: t.discover.search,
-          icon: const Icon(Icons.search),
-          onPressed: () => _search(context, tabs),
         ),
-        const SizedBox(width: 8),
-      ],
+        floatingActionButtonLocation:
+            context.watch<GlobalSettingCubit>().state.leftHandModeEnabled
+            ? FloatingActionButtonLocation.startFloat
+            : FloatingActionButtonLocation.endFloat,
+        floatingActionButton: _tabs.onHome
+            ? FloatingActionButton(
+                tooltip: t.discover.search,
+                onPressed: () => _openAggregateSearch(context),
+                child: const Icon(Icons.search),
+              )
+            : null,
+      ),
     );
   }
 
-  /// 顶栏与悬浮按钮上那颗「搜索」：跨全部插件的聚合搜索，不隶属某一个插件，
-  /// 所以标签不带插件来源（图标走 [DiscoverTab.icon]）。
-  void _search(BuildContext context, DiscoverTabCubit tabs) {
+  /// 跨全部插件的聚合搜索。它不隶属某一个插件，所以标签不带插件来源，
+  /// 图标走 [DiscoverLeafSpec.icon]。
+  void _openAggregateSearch(BuildContext context) {
     final source = context.read<DiscoverCubit>().currentFrom;
     if (source.isEmpty) {
       showErrorToast(t.discover.noPluginForSearch);
       return;
     }
     final searchState = SearchStates.initial().copyWith(from: source);
-    tabs.open(
+    _tabs.open(
       label: t.discover.search,
       source: '',
       icon: Icons.search,
@@ -153,10 +116,12 @@ class _DiscoverScaffold extends StatelessWidget {
 /// 首页标签的内容：插件商店入口 + 每张插件卡。
 ///
 /// 单独一个 widget 是为了拿到一个挂在两个 cubit 之下的 element context ——
-/// 标签的 `content` 构建器由 [_DiscoverScaffold] 的 context 调用，
-/// 把那个 context 存进 widget 字段里是另一种味道，不如让子节点用自己的。
+/// 标签的 `content` 构建器由标签宿主调用，把那个 context 存进 widget 字段里
+/// 是另一种味道，不如让子节点用自己的。
 class _PluginHome extends StatelessWidget {
-  const _PluginHome();
+  const _PluginHome({required this.tabs});
+
+  final DiscoverTabs tabs;
 
   @override
   Widget build(BuildContext context) {
@@ -211,7 +176,7 @@ class _PluginHome extends StatelessWidget {
     DiscoverState state,
   ) {
     final cubit = context.read<DiscoverCubit>();
-    final tabs = context.read<DiscoverTabCubit>();
+    final tabs = this.tabs;
     final infoState =
         state.infoStates[plugin.uuid] ??
         const DiscoverPluginInfoState(loading: true);
@@ -241,11 +206,7 @@ class _PluginHome extends StatelessWidget {
     );
   }
 
-  void _openPluginSearch(
-    BuildContext context,
-    DiscoverTabCubit tabs,
-    String from,
-  ) {
+  void _openPluginSearch(BuildContext context, DiscoverTabs tabs, String from) {
     final source = from.trim();
     if (source.isEmpty) {
       showErrorToast(t.error.missingPluginSource(action: t.discover.search));
@@ -260,7 +221,7 @@ class _PluginHome extends StatelessWidget {
     );
   }
 
-  void _openPluginSettings(DiscoverTabCubit tabs, String uuid, String title) {
+  void _openPluginSettings(DiscoverTabs tabs, String uuid, String title) {
     tabs.open(
       label: t.discover.settings,
       source: uuid,
@@ -327,46 +288,4 @@ class _PluginHome extends StatelessWidget {
       ),
     );
   }
-}
-
-/// 递给标签内容的那份把手（见 [DiscoverTabScope]）。
-class _TabActions implements DiscoverTabActions {
-  const _TabActions({required this.tabs, required this.tabId});
-
-  final DiscoverTabCubit tabs;
-  final String tabId;
-
-  @override
-  void openComicInfo({
-    required String comicId,
-    required String from,
-    required String title,
-    String? collectionTargetId,
-    String? collectionTargetName,
-  }) {
-    DiscoverRouter.openComicInfoTab(
-      tabs,
-      comicId: comicId,
-      from: from,
-      title: title,
-      collectionTargetId: collectionTargetId,
-      collectionTargetName: collectionTargetName,
-    );
-  }
-
-  @override
-  void openPage({
-    required String label,
-    required String source,
-    required WidgetBuilder content,
-    IconData? icon,
-  }) {
-    tabs.open(label: label, source: source, content: content, icon: icon);
-  }
-
-  @override
-  void closeCurrentTab() => tabs.closeTab(tabId);
-
-  @override
-  void goHome() => tabs.activateHome();
 }

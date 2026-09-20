@@ -3,7 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/comic_info/view/comic_info.dart';
 import 'package:zephyr/page/comic_list/models/comic_list_scene.dart';
 import 'package:zephyr/page/comic_list/view/comic_list_page.dart';
-import 'package:zephyr/page/discover/cubit/discover_tab_cubit.dart';
+import 'package:zephyr/page/discover/service/discover_tabs.dart';
 import 'package:zephyr/page/plugin_function/view/plugin_function_page.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
 import 'package:zephyr/page/search_result/bloc/search_bloc.dart';
@@ -21,7 +21,7 @@ import 'package:zephyr/page/discover/view/plugin_function_dialog.dart';
 ///
 /// 把插件返回的 action 协议转换为具体页面跳转，与 UI 解耦，方便集中维护。
 ///
-/// 两种落点，由调用方给不给 [DiscoverTabCubit] 决定：
+/// 两种落点，由调用方给不给 [DiscoverTabs] 决定：
 /// - 给了 ⇒ 开成**一条标签**（发现页现在的形态）；
 /// - 没给 ⇒ 照旧 `context.pushRoute` 推一整页。
 /// 保留后一条不是因为还有别人在用它（没有），而是因为
@@ -33,7 +33,7 @@ class DiscoverRouter {
     BuildContext context, {
     required Map<String, dynamic> action,
     required String currentFrom,
-    DiscoverTabCubit? tabs,
+    DiscoverTabs? tabs,
   }) async {
     final type = action['type']?.toString() ?? '';
 
@@ -96,7 +96,7 @@ class DiscoverRouter {
   static Future<void> _openSearch(
     BuildContext context,
     Map<String, dynamic> payload, {
-    DiscoverTabCubit? tabs,
+    DiscoverTabs? tabs,
   }) async {
     final source = _sourceFromString(payload['source']?.toString());
     final extern = _normalizeOpenSearchExtern(payload);
@@ -132,7 +132,7 @@ class DiscoverRouter {
   static Future<void> _openWeb(
     BuildContext context,
     Map<String, dynamic> payload, {
-    DiscoverTabCubit? tabs,
+    DiscoverTabs? tabs,
   }) async {
     final title = payload['title']?.toString() ?? '';
     final url = payload['url']?.toString() ?? '';
@@ -158,7 +158,7 @@ class DiscoverRouter {
     BuildContext context,
     Map<String, dynamic> payload, {
     required String currentFrom,
-    DiscoverTabCubit? tabs,
+    DiscoverTabs? tabs,
   }) async {
     final source = _sourceFromString(payload['source']?.toString());
     if (source.isEmpty) {
@@ -230,7 +230,7 @@ class DiscoverRouter {
     BuildContext context,
     Map<String, dynamic> payload, {
     required String currentFrom,
-    DiscoverTabCubit? tabs,
+    DiscoverTabs? tabs,
   }) async {
     final parsed = _sourceFromString(payload['source']?.toString());
     final source = parsed.isEmpty ? currentFrom : parsed;
@@ -272,7 +272,7 @@ class DiscoverRouter {
   static Future<void> _openComicList(
     BuildContext context,
     Map<String, dynamic> payload, {
-    DiscoverTabCubit? tabs,
+    DiscoverTabs? tabs,
   }) async {
     final scene = ComicListScene.fromMap(asJsonMap(payload['scene']));
 
@@ -293,7 +293,7 @@ class DiscoverRouter {
   static Future<void> _openComicInfo(
     BuildContext context,
     Map<String, dynamic> payload, {
-    DiscoverTabCubit? tabs,
+    DiscoverTabs? tabs,
   }) async {
     final comicId = payload['comicId']?.toString().trim() ?? '';
     if (comicId.isEmpty) {
@@ -328,7 +328,7 @@ class DiscoverRouter {
 
   /// 开一条漫画详情标签。发现页的标签体系与漫画卡片共用这一个口子。
   static void openComicInfoTab(
-    DiscoverTabCubit tabs, {
+    DiscoverTabs tabs, {
     required String comicId,
     required String from,
     required String title,

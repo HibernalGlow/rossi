@@ -1443,6 +1443,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.15.0"
+  plat:
+    dependency: "direct main"
+    description:
+      name: plat
+      sha256: b508d4ac94d02e3187291a933b67725a41d6cb251f12c868606d7f9be24abf48
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.1"
   platform:
     dependency: transitive
     description:

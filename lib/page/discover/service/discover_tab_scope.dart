@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:zephyr/page/search/cubit/search_cubit.dart';
 
 /// 发现页发给**标签内容**的把手：「你现在住在一个标签里，要开东西请开成标签」。
 ///
@@ -8,7 +9,7 @@ import 'package:flutter/widgets.dart';
 ///
 /// 为什么让卡片显式问一句，而不是在根路由上拦推入：拦要回答「这次推入是谁发起的」，
 /// 而一次按下会同时命中泳道面板与标签两层监听，谁赢取决于派发顺序 ——
-/// 那是个不该依赖的东西（见 `DiscoverTabCubit` 的「为什么不自己管导航」）。
+/// 那是个不该依赖的东西（见 `DiscoverTabs` 的类注释）。
 class DiscoverTabScope extends InheritedWidget {
   const DiscoverTabScope({
     super.key,
@@ -45,6 +46,14 @@ abstract class DiscoverTabActions {
     String? collectionTargetName,
   });
 
+  /// 「回到这一屏的搜索输入页」。
+  ///
+  /// 结果页那颗伪装的搜索框干的就是这件事：不在标签里时它读根路由栈决定
+  /// 「弹回去」还是「换一页」；在标签里时那两件事都不成立（根栈上只有导航栏，
+  /// `stack.length > 1` 直接落空，`replaceRoute` 会去换掉根路由）。
+  /// 所以这里开一条搜索标签。
+  void openSearchInput(SearchStates state, {required bool aggregateMode});
+
   /// 详情页里那颗「返回」：住在这套标签体系里时它关的是**当前这条标签**。
   void closeCurrentTab();
 
@@ -63,4 +72,18 @@ abstract class DiscoverTabActions {
 
   /// 详情页里那颗「主页」：切回首页标签，而不是把根路由栈弹到底。
   void goHome();
+}
+
+/// 标签里 ⇒ 关掉当前这条标签；不在标签里 ⇒ 走 [otherwise]（原样的路由弹栈）。
+///
+/// 每个「这一屏的返回」都写这一行，是为了让**漏接**这件事在 review 里看得见：
+/// 这些页面（搜索、结果、聚合结果、详情、插件设置）都能同时出现在标签里和
+/// 根路由上，只在一处做判断等于在别处忘了做。
+void popTabOrClose(BuildContext context, {required VoidCallback otherwise}) {
+  final tabs = DiscoverTabScope.maybeOf(context);
+  if (tabs == null) {
+    otherwise();
+    return;
+  }
+  tabs.closeCurrentTab();
 }

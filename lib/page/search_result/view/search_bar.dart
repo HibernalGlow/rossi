@@ -7,6 +7,7 @@ import 'package:zephyr/page/search/cubit/search_cubit.dart';
 import 'package:zephyr/page/search_result/bloc/search_bloc.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:zephyr/widgets/multi_choice_list_dialog.dart';
 import 'package:zephyr/widgets/toast.dart';
 
@@ -33,13 +34,24 @@ class SearchResultBar extends StatelessWidget implements PreferredSizeWidget {
             // 左侧返回按钮
             IconButton(
               icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.maybePop(),
+              onPressed: () =>
+                  popTabOrClose(context, otherwise: () => context.maybePop()),
             ),
 
             // 中间伪装的搜索框 (点击返回上一页)
             Expanded(
               child: GestureDetector(
                 onTap: () {
+                  // 在发现页的标签里：根栈上只有导航栏，「弹回去」与「换一页」两件事都不成立，
+                  // 所以开一条搜索标签。
+                  final tabs = DiscoverTabScope.maybeOf(context);
+                  if (tabs != null) {
+                    tabs.openSearchInput(
+                      searchEvent.searchStates,
+                      aggregateMode: false,
+                    );
+                    return;
+                  }
                   final stack = context.router.stack;
 
                   if (stack.length > 1) {

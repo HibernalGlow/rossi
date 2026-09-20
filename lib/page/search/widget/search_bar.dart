@@ -8,6 +8,7 @@ import 'package:zephyr/page/search/method/on_search.dart';
 import 'package:zephyr/page/search/widget/source_select_dialog.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:zephyr/widgets/multi_choice_list_dialog.dart';
 import 'package:zephyr/widgets/toast.dart';
 
@@ -99,7 +100,8 @@ class _SearchBarState extends State<SearchBar> {
           children: [
             IconButton(
               icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.maybePop(),
+              onPressed: () =>
+                  popTabOrClose(context, otherwise: () => context.maybePop()),
             ),
             Expanded(
               child: Container(

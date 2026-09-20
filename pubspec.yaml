@@ -103,6 +103,7 @@ dependencies:
   worker_manager: ^7.2.9 # 并发: 全局 Isolate 任务池管理
   coreml_upscale: # MacOS/iOS 超分
     path: packages/coreml_upscale
+  plat: ^0.1.1
 
 dev_dependencies:
   # 测试与规范

@@ -16,6 +16,7 @@ import 'package:zephyr/widgets/section_header.dart';
 
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/search_aggregate/cubit/search_aggregate_cubit.dart';
+import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 
 @RoutePage()
 class SearchAggregateResultPage extends StatelessWidget
@@ -156,6 +157,14 @@ class _SearchBarTrigger extends StatelessWidget {
           Expanded(
             child: GestureDetector(
               onTap: () {
+                final tabs = DiscoverTabScope.maybeOf(context);
+                if (tabs != null) {
+                  tabs.openSearchInput(
+                    context.read<SearchCubit>().state,
+                    aggregateMode: true,
+                  );
+                  return;
+                }
                 final stack = context.router.stack;
                 if (stack.length > 1 &&
                     stack[stack.length - 2].name == SearchRoute.name) {
