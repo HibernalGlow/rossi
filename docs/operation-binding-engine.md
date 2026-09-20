@@ -274,10 +274,9 @@ Dart 侧对应一个**薄** `OperationBindingController`：持有 session、把 
 
 ## 12. 已落地（2026-09-20）：轮盘（radial menu）
 
-用户明确要求「复刻 neo 的轮盘，里面每个操作都绑定系统里的 action」，因此 §8 里
-「radial = v0.2+」这一行被单独放行。形状照 `Xiranite` 的
-`packages/nodes/neoview/src/application/config/ReaderRadialMenuConfig.ts` 与
-`vendor/ray-menu/wc/neoview-ray-menu.ts` 抄，不另立一套。
+轮盘条目使用统一动作绑定表；文档继续兼容 neoview 的菜单、分层、槽位与未知字段。
+显示与鼠标选择使用 [flutter-pie-menu](https://github.com/rasitayaz/flutter-pie-menu)
+（`pie_menu 3.8.3`），不再维护自绘扇区和第二套 UI 命中算法。
 
 **核心**（`rust/local_core/src/operation_binding/radial.rs`）：
 
@@ -287,8 +286,8 @@ Dart 侧对应一个**薄** `OperationBindingController`：持有 session、把 
   上限照 neoview：≤16 个轮盘、1..3 层、每层 ≤64 格（空格不落文档，`MIN_SLOT_COUNT = 8`）。
 - 环带**不是** `(radius-inner)/layers`：第 1 环是 `内半径 → radius`，之后每层往外长
   `SUBMENU_RADIUS_STEP = 60`（`_getBand` 的算术）。
-- `slot_layout` 一次算出每格的内外半径与起止角，`slot_at` 读同一组数字 ⇒
-  「高亮的一格」与「执行的一格」不可能不同。测试逐格自打自（画出来的中点必须打回自己）。
+- `slot_layout` 提供条目身份、标签、启用状态和层序；旧 `slot_at` 几何 API 保留兼容，
+  当前 Flutter 轮盘由 `pie_menu` 统一完成布局、悬停和指针选择。
 - **一处刻意不照抄**：neoview 的 `_getSlotAtPoint` 把偏移用 `normalizeAngle` 折到
   `[-180,180)`，于是从起始角逆时针那一半算出负索引、被夹回第 0 格 —— 半个轮盘点不准。
   这里按 `[0,360)` 算，「超出扫过角不算命中」那一条语义保持不变。
@@ -303,15 +302,101 @@ Dart 侧对应一个**薄** `OperationBindingController`：持有 session、把 
 - 形状变了要剪枝：`radial_prune_bindings` 删掉指向已不存在条目的绑定。
   但**层数只影响显示**，调小层数不删用户数据。
 
-**外壳**：`lib/service/operation_binding/radial_doc.dart`（纯 JSON 视图，未知字段原样带回）、
-`lib/widgets/radial/radial_wheel_painter.dart`（浮层与预览共用）、
-`lib/page/comic_read/widgets/radial/reader_radial_menu_overlay.dart`（按住拖放 / 键盘方向键 +
-`Space`/`Enter` 确认 / `Esc` 取消 / 中心空洞松手取消 / `moveToMenuId` 换轮盘）、
-`lib/page/setting/operation_binding/radial_binding_editor.dart`（设置页「轮盘」那一档）。
+**外壳**：`lib/widgets/radial/radial_pie_menu.dart` 封装 `PieCanvas` / `PieMenu`，
+供阅读浮层与设置页交互预览共用。每层分为最多八个动作一页，通过「更多」或上下键切换；
+左右键选择、确认键按绑定表解析、`Esc` 取消，`moveToMenuId` 切换轮盘。
+停用与空槽不进入运行菜单，设置页用可点击的槽位列表编辑并添加条目。
 
-**抬起事件的转交**：Flutter 对进行中的指针复用按下时的命中结果，所以「按下」开出浮层后，
-同一次手势的抬起**到不了**浮层。阅读器在抬起处把它转交给 `ReaderRadialMenu.commitAt`，
-于是「按住拖到某一格松手」才是轮盘该有的手感；纯键盘唤出时指针不参与，浮层自己收事件。
+**进行中的指针**：Flutter 对进行中的指针复用按下时的命中路径，因此阅读器传入
+唤出菜单的 pointer id，浮层只把这根指针后续的 move/up/cancel 转发到 `PieCanvas`
+的渲染命中路径；不重新路由全局事件，也不计算轮盘扇区。后续点击由组件自然接收。
+阅读器同时取消这次手势的其他绑定，避免松手再触发翻页。
 
-**未做**：`variant = bubble`（气泡）的独立画法 —— 数据照 neoview 收下并原样导出，
-但 neoview 运行时也没把它接进 ray-menu，Rossi 两种画法暂时同一套弧线。
+**配置兼容**：保留旧 `variant` / `sweepAngle` 等字段用于往返导入导出；
+当前外观固定为 pie_menu 的圆形按钮，不再显示不生效的扇区/气泡、扫过角选项。
+多层按页展示，半径按可用空间缩放、中心限制在画布内；屏幕阅读器模式提供动作列表。
+编辑器自身提供透明 `Material`，可直接嵌入设置宿主，避免开关报 `No Material widget found`。
+
+**验证**：`radial_pie_menu_test.dart` 覆盖窄屏边缘、悬停/点击一致、多层分页和可访问模式；
+`radial_menu_binding_test.dart` 覆盖右键拖放、轮盘跳转及可改绑的键盘确认；
+`radial_binding_editor_test.dart` 覆盖无 Material 宿主、开关、槽位选择及交互预览。
+
+## 13. 完整操作绑定编辑器（2026-09）
+
+设置页按 Neo 的 `InputBindingsSettingsCard` / `BindingActionSequenceEditor`
+补齐动作中心编辑：桌面使用独立滚动的动作列表与绑定详情，窄窗口使用 MD3
+「动作列表 / 绑定详情」页签。默认进入翻页分类；用图标胶囊切换翻页、画面、视频、
+界面、轮盘或全部动作，视频再分播放、声音、画面与字幕。分组仅属于展示层，不改核心
+category。每个动作带语义图标，最多展示两枚紧凑输入标签，其余收为 +N；悬停或辅助
+功能读取完整输入、上下文与停用状态。搜索跨分类查动作或按键，筛选菜单支持已绑定和
+上下文筛选。页签切换保留滚动位置，恢复默认后返回动作列表。
+视觉遵循 Material Design 3：SearchBar、圆角 ChoiceChip、DropdownMenu 与色调表面层级，
+继续使用应用当前主题的 ColorScheme。
+
+绑定默认显示单行摘要，一次仅展开一条，新增条目自动展开；复制到上下文收进菜单。
+每条绑定可以展开、启停、删除、修改上下文、忽略重复输入，并设置最多七个后续动作
+（连同主动作共八步，支持调整顺序）。复制到其他上下文会生成独立 id，并完整保留
+输入、开关和动作序列。键盘、鼠标、鼠标轨迹、滚轮、触控和九宫格都有专用表单；
+键盘 / 鼠标 / 轨迹 / 滚轮 / 触控可在隔离的录制区域采集。轮盘与系统命令的输入标识
+继续由对应入口管理，避免编辑器制造失去目标的槽位。
+
+修改经过 220 ms 防抖后自动校验和保存；同上下文输入冲突会显示在具体绑定上，
+工作副本保留，运行时继续使用最后一份合法配置。解除冲突后自动保存。
+编辑器保持稳定的 Widget 标识，添加绑定导致冲突提示出现或消失时，不重建编辑器，
+保留选中的动作、详情页签、输入焦点和滚动位置。
+导入也走同一条校验路径。离开时仍有未保存草稿，会先尝试保存，再提供放弃草稿确认。
+
+运行时通过 `operation_binding_resolve_binding` 获取核心选中的完整行，执行主动作及
+后续动作，并处理 `ignoreRepeat`。长按定时器读取该行的 `durationMs` 和
+`moveTolerancePx`；指针取消和阅读器销毁会取消定时器。九宫格坐标由核心的
+`reader_view_area_at_point` 计算，经 FRB 暴露，Dart 不重写几何规则。
+鼠标、触控的采集与动作派发均使用同一解析器；轮盘选项也执行完整动作序列。
+
+滚轮的上下文取命中的阅读区（`reader`，当前页为视频时加 `video`），不沿用键盘桥
+上次留下的 `panel` 上下文，也不改写键盘焦点。绑定表启用时未匹配的滚轮交回原生
+滚动 / 缩放，不再回退到旧翻页规则；停用或删除绑定后不会继续偷偷翻页。
+`test/comic_read/reader_wheel_binding_test.dart` 用真实阅读器与滚动控件覆盖面板切换、
+上下滚轮、条漫、Ctrl 修饰键、停用和未绑定事件。
+
+平台边界：手柄可编辑按钮编号、导入导出，但当前 Flutter 外壳尚无手柄事件接入，
+表单会直接说明。动作是否已有执行体仍以核心注册表的 `implemented` 为准。
+上下文表示应用当前真实的输入环境，不会仅因为创建了绑定就激活对应面板或视频。
+
+验证入口：`test/operation_binding/` 覆盖表单、自动保存 / 冲突、录制组合键、窄屏布局、
+指针手势 / 长按 / 取消、动作序列。核心的 `operation_binding` 测试覆盖上下文隔离、
+九宫格、冲突、导入参数和八步上限。
+
+## 14. Neo 默认配置
+
+默认配置来自 Xiranite 的 `ReaderInputBindings.ts` 中
+`DEFAULT_READER_INPUT_BINDINGS`，九宫格、滚轮、键盘、鼠标共 35 条原样保留
+id、动作与上下文，数据存于核心 `operation_binding/neo_defaults.json`。
+轮盘槽位继续匹配 Rossi 的默认轮盘文档。首次初始化和「恢复默认」统一使用
+`operation_binding_factory_preset`，不再拼接旧键盘和左右手三分区表。
+
+| 输入 | Neo 默认动作 |
+| --- | --- |
+| A / 左方向键、左中格、滚轮下滚 | 向左翻页 |
+| D / 右方向键、右中 / 左下 / 右下格、滚轮上滚 | 向右翻页 |
+| W / 上方向键、上中格 | 上一本书 |
+| S / 下方向键、下中格 | 下一本书 |
+| = / - / 0 | 放大 / 缩小 / 重置视图 |
+| F11 / L / R | 全屏 / 切换书库 / 切换阅读方向 |
+| 鼠标右键按下 / Enter | 打开轮盘；轮盘打开后 Enter 确认 |
+| Space | 确认轮盘选项 |
+
+左上、右上、正中格在阅读器默认不绑定；视频上下文为中排三格设置
+后退、播放暂停、前进。视频快捷键也保留 Neo 的上下文定义。
+区域单击等待 Flutter 手势竞争结果，视频自身的点击控件不会与外层区域重复触发。
+轮盘打开时主动获取键盘焦点，关闭后恢复阅读器焦点，确认键按绑定表解析。
+空白格不再回退到旧三分区逻辑。旧版翻页键（如 PageDown、Home、小键盘）不额外
+加入 Neo 默认表，仍可通过编辑器自行绑定。
+
+默认表中的「上一本书 / 下一本书」已经接入本地 Reader：打开时保存穿透游标与目录
+排序，切换时沿 Neo 的分支遍历继续寻找书籍，完成后替换当前阅读目标。单张图片仍
+视为页而不会跨书切换；到达边界时给出提示。「切换书库」仍是待接入动作。
+
+启动时仅自动升级完整、未改动的旧默认输入表。改键、禁用、删行、追加动作、
+额外字段或主动清空都视为自定义，不覆盖；轮盘行原始 JSON、轮盘文档及运行时
+总开关独立保留。升级可重复执行而不反复写入。自定义表通过设置页「恢复默认」
+确认后切换到 Neo 默认配置。

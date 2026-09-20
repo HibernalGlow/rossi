@@ -1,23 +1,6 @@
-// 「操作绑定 → 轮盘」编辑器（照 neoview `RadialMenuSettingsEditor` 那一屏）。
-//
-// ## 为什么它不自己存东西
-//
-// 编辑器**不持有任何权威**：形状（几个轮盘 / 每层哪些条目 / 半径与角度）从核心的
-// 轮盘文档读、改完写回工作副本；条目「干什么」是绑定表里的一条 `radial` 绑定，
-// 下拉选项来自核心注册表。所以这里既没有「有哪些动作」的第二份名单，也没有第二套
-// 角度算术 —— 预览用的 painter 与运行时浮层是同一个（`lib/widgets/radial/`）。
-//
-// ## 交互照 neoview
-//
-// 点轮盘上的空格 → 就地造一个条目并绑到默认动作（`DEFAULT_NEW_ITEM_ACTION`）；
-// 点已有条目 → 选中它，下面的检视器改名字 / 改槽位 / 停用 / 前移后移 / 删除。
-// 动作下拉**排除 `radial.*`**：轮盘里再放一个「打开轮盘」是循环。
-// 改形状会顺手剪掉指向已不存在条目的绑定，那一步在核心做
-// （`radial_prune_bindings`）——「哪些条目还存在」正是核心的算术。
+// 轮盘文档与动作绑定编辑；交互预览使用独立 flutter_ray_menu。
 
-import 'dart:math' as math;
-
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/service/operation_binding/action_labels.dart';
@@ -25,7 +8,8 @@ import 'package:zephyr/service/operation_binding/binding_doc.dart';
 import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
 import 'package:zephyr/service/operation_binding/radial_doc.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
-import 'package:zephyr/widgets/radial/radial_wheel_painter.dart';
+import 'package:flutter_ray_menu/flutter_ray_menu.dart';
+import 'package:zephyr/widgets/radial/reader_ray_menu_adapter.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 /// 点空格时新建条目默认绑的动作（neoview `DEFAULT_NEW_ITEM_ACTION`）。
@@ -206,60 +190,19 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
     final id = OperationBindingStore.radialNewItemId(_doc.itemCount);
     final created = RadialItemDoc.create(
       id: id,
-      label: _actionItems[kRadialDefaultNewItemAction] ?? kRadialDefaultNewItemAction,
+      label:
+          _actionItems[kRadialDefaultNewItemAction] ??
+          kRadialDefaultNewItemAction,
       slotIndex: slot.index,
     );
     setState(() => _selectedItemId = id);
     widget.onChanged(
       _doc.withMenuReplaced(menu.withItem(created, level: slot.level)),
-      bindSlot(widget.bindings, (menuId: menu.id, itemId: id), kRadialDefaultNewItemAction),
+      bindSlot(widget.bindings, (
+        menuId: menu.id,
+        itemId: id,
+      ), kRadialDefaultNewItemAction),
     );
-  }
-
-  /// 落点 → 那一格（核心算，编辑器只转达）。
-  RadialSlotPaint? _slotAt(Size box, Offset local, List<RadialSlotPaint> layout) {
-    final menu = _menu;
-    if (menu == null) return null;
-    final scale = radialFitScale(box: box, radius: _doc.radius);
-    final hit = OperationBindingStore.radialSlotHit(
-      configJson: _doc.encode(),
-      menuId: menu.id,
-      // 命中判定读的是**未缩放**的几何，所以先把画布坐标换算回逻辑半径。
-      dx: (local.dx - box.width / 2) / scale,
-      dy: (local.dy - box.height / 2) / scale,
-    );
-    // 空格也要能选中（那正是「点空格添加」的入口），所以按 level/index 回到布局里找。
-    if (hit == null) {
-      return _emptySlotAt(box, local, layout, scale);
-    }
-    return layout
-        .where((slot) => slot.level == hit.level && slot.index == hit.index)
-        .firstOrNull;
-  }
-
-  /// 命中返回 `null` 有两种：真的在空洞/外半径之外，或者那一格是**空的**
-  /// （核心不把空槽算作命中，因为空槽没有可执行的动作）。编辑器要区分出来 ——
-  /// 空槽正是「点空格添加」的入口。
-  RadialSlotPaint? _emptySlotAt(
-    Size box,
-    Offset local,
-    List<RadialSlotPaint> layout,
-    double scale,
-  ) {
-    final menu = _menu;
-    if (menu == null) return null;
-    final dx = (local.dx - box.width / 2) / scale;
-    final dy = (local.dy - box.height / 2) / scale;
-    final distance = math.sqrt(dx * dx + dy * dy);
-    final angle = math.atan2(dy, dx) * 180.0 / math.pi;
-    for (final slot in layout) {
-      if (!slot.isEmpty) continue;
-      if (distance < slot.innerRadius || distance > slot.outerRadius) continue;
-      // 与核心同一口径：落点相对这一格中线偏了多少，半个扇区以内才算这一格。
-      final offset = (angle - slot.midDeg + 180.0) % 360.0 - 180.0;
-      if (offset.abs() <= (slot.endDeg - slot.startDeg) / 2.0) return slot;
-    }
-    return null;
   }
 
   // ── 检视器：改一个条目 ────────────────────────────────────────────────────
@@ -280,14 +223,15 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
     // 「下一页」改成「全屏」不该留下一行「下一页」）。
     final followsAction =
         item.label.isEmpty || item.label == _actionItems[previous ?? ''];
-    _emitMenu(
-      followsAction
-          ? menu.withItemReplaced(
-              item.copyWith(label: _actionItems[actionId] ?? actionId),
-            )
-          : menu,
+    final updatedMenu = followsAction
+        ? menu.withItemReplaced(
+            item.copyWith(label: _actionItems[actionId] ?? actionId),
+          )
+        : menu;
+    widget.onChanged(
+      _doc.withMenuReplaced(updatedMenu),
+      bindSlot(widget.bindings, slot, actionId),
     );
-    widget.onChanged(_doc, bindSlot(widget.bindings, slot, actionId));
   }
 
   void _patchItem(RadialItemDoc Function(RadialItemDoc) patch) {
@@ -310,7 +254,9 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
     final menu = _menu;
     final item = _selected;
     if (menu == null || item == null) return;
-    final level = menu.layers.indexWhere((layer) => layer.any((e) => e.id == item.id)) + 1;
+    final level =
+        menu.layers.indexWhere((layer) => layer.any((e) => e.id == item.id)) +
+        1;
     if (level <= 0) return;
     final siblings = List<RadialItemDoc>.from(menu.layer(level))
       ..sort((a, b) => a.slotIndex.compareTo(b.slotIndex));
@@ -338,34 +284,35 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
     _emit(_doc.withMenuReplaced(menu.copyWith(name: name)));
   }
 
-  void _setVariant(String value) => _emit(_doc.copyWith(variant: value));
-
   @override
   Widget build(BuildContext context) {
     final menu = _menu;
     final layout = _layout;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _headerRow(menu),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
-          child: Text(
-            _doc.enabled
-                ? t.settings.operationBindingRadialHint(
-                    layers: _doc.layerCount,
-                  )
-                : t.settings.operationBindingRadialHintDisabled,
-            style: Theme.of(context).textTheme.bodySmall,
+    return Material(
+      type: MaterialType.transparency,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _headerRow(menu),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+            child: Text(
+              _doc.enabled
+                  ? t.settings.operationBindingRadialHint(
+                      layers: _doc.layerCount,
+                    )
+                  : t.settings.operationBindingRadialHintDisabled,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        _wheelBox(menu, layout),
-        const SizedBox(height: 8),
-        _appearanceCard(),
-        const SizedBox(height: 12),
-        _inspectorCard(menu),
-      ],
+          const SizedBox(height: 8),
+          _wheelBox(menu, layout),
+          const SizedBox(height: 8),
+          _appearanceCard(),
+          const SizedBox(height: 12),
+          _inspectorCard(menu),
+        ],
+      ),
     );
   }
 
@@ -392,7 +339,9 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
         SizedBox(
           width: 150,
           child: FluentDropdown<String>(
-            value: menus.containsKey(_doc.activeMenuId) ? _doc.activeMenuId : '',
+            value: menus.containsKey(_doc.activeMenuId)
+                ? _doc.activeMenuId
+                : '',
             displayValue: menu?.name ?? '',
             items: menus,
             onChanged: _selectMenu,
@@ -407,7 +356,9 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
             ),
             items: {
               for (var option = 1; option <= 3; option++)
-                '$option': t.settings.operationBindingRadialLayerUnit(count: option),
+                '$option': t.settings.operationBindingRadialLayerUnit(
+                  count: option,
+                ),
             },
             onChanged: _setLayerCount,
           ),
@@ -441,33 +392,26 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
     );
   }
 
-  /// 轮盘本体：与运行时浮层同一个 painter；点一格选中它，点空格就地添加。
+  /// 编辑与阅读使用相同的多层轮盘，空槽可以直接添加条目。
   Widget _wheelBox(RadialMenuDoc? menu, List<RadialSlotPaint> layout) {
-    if (menu == null || layout.isEmpty) return const SizedBox(height: 120);
+    if (menu == null) return const SizedBox.shrink();
     return SizedBox(
-      height: 460,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final box = constraints.biggest;
-          final scale = radialFitScale(box: box, radius: _doc.radius);
-          return GestureDetector(
-            onTapDown: (details) {
-              final slot = _slotAt(box, details.localPosition, layout);
-              _onWheelTap(slot);
-            },
-            child: CustomPaint(
-              size: box,
-              painter: RadialWheelPainter(
-                slots: layout,
-                colors: Theme.of(context).colorScheme,
-                hoveredItem: _selectedItemId,
-                scale: scale,
-                centerLabel: menu.name,
-                textScaleFactor: MediaQuery.textScalerOf(context).scale(1),
-              ),
-            ),
-          );
-        },
+      height: 480,
+      child: RayMenu(
+        rings: readerRayRings(layout, editing: true),
+        geometry: readerRayGeometry(_doc),
+        style: readerRayStyle(context, embedded: true),
+        centerLabel: menu.name,
+        cancelLabel: t.common.cancel,
+        keyboardEnabled: false,
+        onSelected: (item) =>
+            _onWheelTap(layout.firstWhere((slot) => slot.itemId == item.id)),
+        onEmptySelected: (ring, index) => _onWheelTap(
+          layout.firstWhere(
+            (slot) => slot.level == ring + 1 && slot.index == index,
+          ),
+        ),
+        onDismiss: () {},
       ),
     );
   }
@@ -480,11 +424,7 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
         ListTile(
           title: Text(t.settings.operationBindingRadialAppearance),
           subtitle: Text(
-            t.settings.operationBindingRadialGeometrySummary(
-              radius: _doc.radius.round(),
-              inner: _doc.innerRadius.round(),
-              variant: t.settings.operationBindingRadialVariantSlice,
-            ),
+            '${t.settings.operationBindingRadialRadius}: ${_doc.radius.round()}',
           ),
           trailing: Icon(_geometryOpen ? Icons.expand_less : Icons.expand_more),
           onTap: () => setState(() => _geometryOpen = !_geometryOpen),
@@ -524,15 +464,14 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
               width: 160,
               child: FluentDropdown<String>(
                 value: _doc.variant,
-                displayValue: switch (_doc.variant) {
-                  'bubble' => t.settings.operationBindingRadialVariantBubble,
-                  _ => t.settings.operationBindingRadialVariantSlice,
-                },
+                displayValue: _doc.variant == 'bubble'
+                    ? t.settings.operationBindingRadialVariantBubble
+                    : t.settings.operationBindingRadialVariantSlice,
                 items: {
                   'slice': t.settings.operationBindingRadialVariantSlice,
                   'bubble': t.settings.operationBindingRadialVariantBubble,
                 },
-                onChanged: _setVariant,
+                onChanged: (value) => _emit(_doc.copyWith(variant: value)),
               ),
             ),
           ),
@@ -590,7 +529,11 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
           ListTile(
             title: Text(
               t.settings.operationBindingRadialSlotLabel(
-                layer: menu!.layers.indexWhere((layer) => layer.any((e) => e.id == item.id)) + 1,
+                layer:
+                    menu!.layers.indexWhere(
+                      (layer) => layer.any((e) => e.id == item.id),
+                    ) +
+                    1,
                 sector: item.slotIndex + 1,
               ),
             ),
@@ -624,7 +567,9 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
               trailing: SizedBox(
                 width: 180,
                 child: FluentDropdown<String>(
-                  value: others.containsKey(item.moveToMenuId) ? item.moveToMenuId! : '',
+                  value: others.containsKey(item.moveToMenuId)
+                      ? item.moveToMenuId!
+                      : '',
                   displayValue: others[item.moveToMenuId] ?? '',
                   items: others,
                   onChanged: (value) => _patchItem(
@@ -639,7 +584,9 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
               trailing: SizedBox(
                 width: 220,
                 child: FluentDropdown<String>(
-                  value: _actionItems.containsKey(boundAction) ? boundAction! : '',
+                  value: _actionItems.containsKey(boundAction)
+                      ? boundAction!
+                      : '',
                   displayValue: _actionItems[boundAction ?? ''] ?? '',
                   items: _actionItems,
                   onChanged: _bindSelected,
@@ -652,7 +599,8 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
               width: 220,
               child: TextField(
                 controller: TextEditingController(text: item.label),
-                onSubmitted: (value) => _patchItem((entry) => entry.copyWith(label: value)),
+                onSubmitted: (value) =>
+                    _patchItem((entry) => entry.copyWith(label: value)),
                 decoration: const InputDecoration(border: OutlineInputBorder()),
               ),
             ),
@@ -662,9 +610,8 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
             trailing: Switch(
               thumbIcon: kSettingSwitchThumbIcon,
               value: !item.disabled,
-              onChanged: (value) => _patchItem(
-                (entry) => entry.copyWith(disabled: !value),
-              ),
+              onChanged: (value) =>
+                  _patchItem((entry) => entry.copyWith(disabled: !value)),
             ),
           ),
           ListTile(
@@ -697,7 +644,7 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
   }
 }
 
-/// 「预览」对话框：把当前形状原样画大一遍（与编辑器、运行时同一 painter）。
+/// 交互预览与阅读器使用同一组件；选择仅关闭预览，不执行业务动作。
 class RadialWheelPreviewDialog extends StatelessWidget {
   const RadialWheelPreviewDialog({super.key, required this.doc});
 
@@ -710,43 +657,26 @@ class RadialWheelPreviewDialog extends StatelessWidget {
       configJson: doc.encode(),
       menuId: menu?.id ?? '',
     );
+    void close() => Navigator.of(context).pop();
     return AlertDialog(
       title: Text(t.settings.operationBindingRadialPreview),
       content: SizedBox(
         width: 460,
         height: 460,
-        child: menu == null
-            ? const SizedBox.shrink()
-            : LayoutBuilder(
-                builder: (context, constraints) => CustomPaint(
-                  size: constraints.biggest,
-                  painter: RadialWheelPainter(
-                    slots: layout,
-                    colors: Theme.of(context).colorScheme,
-                    scale: radialFitScale(
-                      box: constraints.biggest,
-                      radius: _widestRadius(layout),
-                      maxDiameter: 460,
-                    ),
-                    centerLabel: menu.name,
-                  ),
-                ),
-              ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(t.common.confirm),
+        child: RayMenu(
+          rings: readerRayRings(layout),
+          geometry: readerRayGeometry(doc),
+          style: readerRayStyle(context, embedded: true),
+          centerLabel: menu?.name ?? '',
+          cancelLabel: t.common.cancel,
+          onSelected: (_) => close(),
+          onDismiss: close,
         ),
-      ],
+      ),
+      actions: [TextButton(onPressed: close, child: Text(t.common.confirm))],
     );
   }
 }
-
-double _widestRadius(List<RadialSlotPaint> layout) => layout.fold<double>(
-  0,
-  (max, slot) => slot.outerRadius > max ? slot.outerRadius : max,
-);
 
 /// 轮盘名：只在**提交**（回车 / 完成编辑）时写回，避免每敲一个字就重建一次轮盘。
 class _NameTile extends StatefulWidget {

@@ -686,6 +686,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.8"
+  flutter_ray_menu:
+    dependency: "direct main"
+    description:
+      path: "packages/flutter_ray_menu"
+      relative: true
+    source: path
+    version: "0.1.0"
   flutter_rust_bridge:
     dependency: "direct main"
     description:

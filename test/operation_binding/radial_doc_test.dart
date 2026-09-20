@@ -10,14 +10,11 @@
 // 预设的唯一权威，这里重复断言一遍只会造成两处同时改才能过的冗余。
 
 import 'dart:convert';
-import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr/service/operation_binding/binding_doc.dart';
 import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
 import 'package:zephyr/service/operation_binding/radial_doc.dart';
-import 'package:zephyr/widgets/radial/radial_wheel_painter.dart';
 
 /// 一份带「未知字段」的轮盘文档：`toUser` / `toRow` 是本层不认识的键，
 /// 判据是它们必须活着回到 JSON 里。
@@ -49,9 +46,8 @@ const _sampleDoc = '''
   ]
 }''';
 
-/// 核心给默认轮盘算出的布局，这里手抄一份**只用来喂 painter**：
-/// 断言的是「画法不崩、缩放合理」，几何本身由 Rust 的测试守着。
-List<RadialSlotPaint> _layoutForPainting() {
+/// 核心槽位适配数据，用来验证空槽和绑定身份。
+List<RadialSlotPaint> _sampleSlots() {
   const sweep = 360.0 / 8;
   return [
     for (var level = 1; level <= 3; level++)
@@ -94,13 +90,16 @@ void main() {
     test('改一个字段不许洗掉别的字段（未知键原样留着）', () {
       final doc = parseRadialDoc(_sampleDoc)!;
       final menu = doc.menus.single;
-      final next = doc.copyWith(
-        layerCount: 2,
-        variant: 'bubble',
-      ).withMenuReplaced(menu.copyWith(name: '改名了'));
+      final next = doc
+          .copyWith(layerCount: 2, variant: 'bubble')
+          .withMenuReplaced(menu.copyWith(name: '改名了'));
       final decoded = jsonDecode(next.encode()) as Map<String, dynamic>;
       expect(decoded['toUser'], 'keep-me', reason: '文档级的未知键要留着');
-      expect((decoded['menus'] as List).first['toRow'], 'keep-too', reason: '轮盘级的也一样');
+      expect(
+        (decoded['menus'] as List).first['toRow'],
+        'keep-too',
+        reason: '轮盘级的也一样',
+      );
       expect(decoded['layerCount'], 2);
       expect(decoded['variant'], 'bubble');
       expect(decoded['enabled'], isTrue, reason: '没碰过的开关不该被写没了');
@@ -135,7 +134,12 @@ void main() {
         'name': '默认轮盘',
         'layers': [
           [
-            {'id': 'a', 'label': 'A', 'slotIndex': 0, 'action': 'reader.next-page'},
+            {
+              'id': 'a',
+              'label': 'A',
+              'slotIndex': 0,
+              'action': 'reader.next-page',
+            },
             {'id': 'b', 'label': 'B', 'slotIndex': 1, 'moveToMenuId': 'two'},
             {'id': 'c', 'label': 'C', 'slotIndex': 2, 'disabled': true},
             {'id': 'd', 'label': 'D', 'slotIndex': 3, 'moveToMenuId': ''},
@@ -151,10 +155,24 @@ void main() {
     });
 
     test('加条目 / 换槽位后仍按槽位排序，删条目不留残行', () {
-      var menu = RadialMenuDoc({'id': 'default', 'name': '默认轮盘', 'layers': [[]]});
-      menu = menu.withItem(RadialItemDoc.create(id: 'item-1', label: '一', slotIndex: 4), level: 1);
-      menu = menu.withItem(RadialItemDoc.create(id: 'item-2', label: '二', slotIndex: 1), level: 1);
-      expect(menu.layer(1).map((item) => item.slotIndex), isNot([4, 1]), reason: '写回要按槽位排好');
+      var menu = RadialMenuDoc({
+        'id': 'default',
+        'name': '默认轮盘',
+        'layers': [[]],
+      });
+      menu = menu.withItem(
+        RadialItemDoc.create(id: 'item-1', label: '一', slotIndex: 4),
+        level: 1,
+      );
+      menu = menu.withItem(
+        RadialItemDoc.create(id: 'item-2', label: '二', slotIndex: 1),
+        level: 1,
+      );
+      expect(
+        menu.layer(1).map((item) => item.slotIndex),
+        isNot([4, 1]),
+        reason: '写回要按槽位排好',
+      );
       expect(menu.layer(1).map((item) => item.slotIndex), [1, 4]);
       menu = menu.withItemReplaced(menu.item('item-1')!.copyWith(slotIndex: 0));
       expect(menu.layer(1).map((item) => item.slotIndex), [0, 1]);
@@ -181,18 +199,20 @@ void main() {
       // 核心产的是 `{"device":"radial","menuId":…,"itemId":…}`（model.rs 钉过）。
       // 这里差一个字母，那条绑定就永远匹配不上，而两边看着都正常。
       expect(
-        jsonDecode(radialInputJson(menuId: 'default', itemId: 'radial-next-page')),
-        {
-          'device': 'radial',
-          'menuId': 'default',
-          'itemId': 'radial-next-page',
-        },
+        jsonDecode(
+          radialInputJson(menuId: 'default', itemId: 'radial-next-page'),
+        ),
+        {'device': 'radial', 'menuId': 'default', 'itemId': 'radial-next-page'},
       );
     });
 
     test('同一格只留一条：改写而不是追加，且保住原 id', () {
       final slot = (menuId: 'default', itemId: 'radial-next-page');
-      var bindings = bindSlot(<Map<String, dynamic>>[], slot, 'reader.next-page');
+      var bindings = bindSlot(
+        <Map<String, dynamic>>[],
+        slot,
+        'reader.next-page',
+      );
       expect(bindings.length, 1);
       expect(actionForSlot(bindings, slot), 'reader.next-page');
 
@@ -208,17 +228,18 @@ void main() {
     });
 
     test('新行的 context 是 reader，input 是 radial，且默认启用', () {
-      final row = bindSlot(
-        <Map<String, dynamic>>[],
-        (menuId: 'default', itemId: 'item-1'),
-        'reader.zoom-in',
-      ).single;
+      final row = bindSlot(<Map<String, dynamic>>[], (
+        menuId: 'default',
+        itemId: 'item-1',
+      ), 'reader.zoom-in').single;
       expect(row['context'], 'reader');
       expect(row['enabled'], isTrue);
       expect((row['input'] as Map)['device'], InputDevice.radial);
       expect((row['input'] as Map)['itemId'], 'item-1');
-      expect(describeInput(Map<String, dynamic>.from(row['input'] as Map)),
-          'radial:default:item-1');
+      expect(
+        describeInput(Map<String, dynamic>.from(row['input'] as Map)),
+        'radial:default:item-1',
+      );
     });
 
     test('解绑一条不影响别的轮盘的同名条目', () {
@@ -240,7 +261,13 @@ void main() {
       expect(next.map((row) => row['id']), ['b']);
       expect(radialBindingsForMenu(next, 'two').length, 1);
       expect(slotOfBinding(bindings.first), (menuId: 'default', itemId: 'x'));
-      expect(slotOfBinding({'id': 'k', 'input': {'device': 'keyboard'}}), isNull);
+      expect(
+        slotOfBinding({
+          'id': 'k',
+          'input': {'device': 'keyboard'},
+        }),
+        isNull,
+      );
     });
 
     test('重置只重写这个轮盘的预设行，用户自绑的一条不动', () {
@@ -248,7 +275,10 @@ void main() {
         id: 'user-radial-1',
         action: 'reader.zoom-in',
         context: 'reader',
-        inputJson: radialInputJson(menuId: 'default', itemId: 'radial-next-page'),
+        inputJson: radialInputJson(
+          menuId: 'default',
+          itemId: 'radial-next-page',
+        ),
       );
       final otherWheel = buildBinding(
         id: 'preset-radial-two-l1s0',
@@ -261,7 +291,10 @@ void main() {
           id: 'preset-radial-default-radial-fullscreen',
           action: 'reader.fullscreen',
           context: 'reader',
-          inputJson: radialInputJson(menuId: 'default', itemId: 'radial-fullscreen'),
+          inputJson: radialInputJson(
+            menuId: 'default',
+            itemId: 'radial-fullscreen',
+          ),
         ),
       ];
       final next = resetRadialPresetSlots([user, otherWheel], 'default', rows);
@@ -277,40 +310,9 @@ void main() {
     });
   });
 
-  group('画法（与运行时共用同一个 painter）', () {
-    test('三层八格的轮盘画得出来，缩放比不会溢出盒子', () {
-      final layout = _layoutForPainting();
-      expect(layout.length, 24);
-      // 第 3 层外缘 = r120 + 2*60 = 240 ⇒ 直径 480，比盒子大 ⇒ 必须缩到装得下。
-      final scale = radialFitScale(box: const Size(460, 460), radius: 240);
-      expect(scale, lessThan(1.0));
-      final painter = RadialWheelPainter(
-        slots: layout,
-        colors: ColorScheme.fromSeed(seedColor: Colors.teal),
-        hoveredItem: 'radial-next-page',
-        scale: scale,
-        centerLabel: '松手执行',
-      );
-      final recorder = ui.PictureRecorder();
-      painter.paint(Canvas(recorder), const Size(460, 460));
-      expect(recorder.endRecording(), isNotNull);
-      expect(painter.naturalRadius, 240);
-      expect(painter.paintedRadius, closeTo(240 * scale, 1e-6));
-      expect(painter.paintedHoleRadius, closeTo(40 * scale, 1e-6));
-      expect(
-        painter.paintedRadius * 2,
-        lessThanOrEqualTo(460.0),
-        reason: '缩放后必须装进盒子',
-      );
-      expect(
-        radialFitScale(box: const Size(900, 900), radius: 120),
-        1.0,
-        reason: '装得下就不放大',
-      );
-    });
-
+  group('槽位身份', () {
     test('空槽没有 itemId，因此不会被高亮成选中', () {
-      final layout = _layoutForPainting();
+      final layout = _sampleSlots();
       final empty = layout.firstWhere((RadialSlotPaint slot) => slot.isEmpty);
       expect(empty.slot, isNull);
       expect(empty.selectable, isFalse);
