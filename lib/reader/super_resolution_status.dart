@@ -184,6 +184,17 @@ const double superResolutionSizeMinWidth = 760;
 /// 再宽一点才写「原图 → 超分后」的双向写法（多占 ~60 逻辑像素）。
 const double superResolutionDeltaMinWidth = 900;
 
+/// 顶栏宽度至少这么大，才在芯片上写**状态文字**（否则只留图标 + 开关）。
+///
+/// 这条比 [superResolutionSizeMinWidth] 低一档，但同样是硬账：窄档主行要把
+/// 返回 / 版式 / 下载 / 滚屏 / 设置 / 更多 都摆下，芯片再写三个字书名就没了。
+/// 状态没丢 —— 它在图标上，也在 tooltip 里。
+const double superResolutionLabelMinWidth = 620;
+
+/// 芯片上要不要写状态文字。
+bool superResolutionShowsLabel(double availableWidth) =>
+    availableWidth >= superResolutionLabelMinWidth;
+
 /// 芯片上那串分辨率文字。
 ///
 /// - 够宽（≥ [superResolutionDeltaMinWidth]）且两边尺寸都知道：`1200×1800 → 2400×3600`；

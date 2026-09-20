@@ -84,7 +84,8 @@ class ReaderLayoutPanel extends StatelessWidget {
   }
 }
 
-/// 面板里的一颗图标开关（与主行那颗同一外观，只是语义上是「开/关」而非「展开」）。
+/// 面板里的一颗图标开关（与主行那颗同一份几何与状态层，
+/// 只是语义上是「开/关」而非「展开」）。
 class _Toggle extends StatelessWidget {
   final IconData icon;
   final String tooltip;
@@ -100,30 +101,11 @@ class _Toggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(999),
-        onTap: onTap,
-        child: Container(
-          width: 30,
-          height: 30,
-          decoration: BoxDecoration(
-            color: selected
-                ? colorScheme.primaryContainer.withValues(alpha: 0.8)
-                : Colors.transparent,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            icon,
-            size: 17,
-            color: selected
-                ? colorScheme.onPrimaryContainer
-                : colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ),
+    return ReaderToolbarIconButton(
+      icon: icon,
+      tooltip: tooltip,
+      selected: selected,
+      onPressed: onTap,
     );
   }
 }
@@ -165,6 +147,7 @@ class _AutoScrollSpeedControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final isColumn = readSetting.readMode == 0;
     final intervalMs = isColumn
         ? readSetting.autoScrollColumnIntervalMs
@@ -177,7 +160,7 @@ class _AutoScrollSpeedControl extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Text(
             '间隔 ${(intervalMs / 1000).toStringAsFixed(1)}s',
-            style: const TextStyle(fontSize: 11.5),
+            style: theme.textTheme.labelSmall,
           ),
         ),
         _Stepper(
@@ -230,17 +213,21 @@ class _Stepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final tint = enabled
         ? colorScheme.onSurfaceVariant
-        : colorScheme.onSurfaceVariant.withValues(alpha: 0.35);
+        : colorScheme.onSurfaceVariant.withValues(alpha: 0.38);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         if (label.isNotEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 2),
-            child: Text(label, style: TextStyle(fontSize: 11.5, color: tint)),
+            child: Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(color: tint),
+            ),
           ),
         _stepButton(Icons.remove_rounded, enabled ? onDecrement : null, tint),
         _stepButton(Icons.add_rounded, enabled ? onIncrement : null, tint),

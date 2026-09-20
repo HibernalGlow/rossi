@@ -180,7 +180,8 @@ class _ZoomPercentageControlState extends State<_ZoomPercentageControl> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     if (_editing) {
       return CallbackShortcuts(
         bindings: {
@@ -198,7 +199,7 @@ class _ZoomPercentageControlState extends State<_ZoomPercentageControl> {
               controller: _controller,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12),
+              style: theme.textTheme.labelMedium,
               onSubmitted: (_) => _commit(),
               decoration: InputDecoration(
                 counterText: '',
@@ -208,11 +209,15 @@ class _ZoomPercentageControlState extends State<_ZoomPercentageControl> {
                   vertical: 7,
                 ),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(
+                    ReaderToolbarMetrics.fullRadius,
+                  ),
                   borderSide: BorderSide(color: colorScheme.primary),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(
+                    ReaderToolbarMetrics.fullRadius,
+                  ),
                   borderSide: BorderSide(color: colorScheme.primary, width: 2),
                 ),
               ),
@@ -225,22 +230,23 @@ class _ZoomPercentageControlState extends State<_ZoomPercentageControl> {
     return Tooltip(
       message: '短按重置为 100%；按住可输入百分比',
       child: InkWell(
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(ReaderToolbarMetrics.fullRadius),
         onTap: () => context.read<ReaderPresentationCubit>().resetManualScale(),
         onLongPress: _startEditing,
         child: Container(
           constraints: const BoxConstraints(minWidth: 56),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: colorScheme.outlineVariant),
+            borderRadius: BorderRadius.circular(
+              ReaderToolbarMetrics.fullRadius,
+            ),
+            border: Border.all(color: colorScheme.outline),
           ),
           child: Text(
             '$_percent%',
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 12,
-              fontFeatures: [FontFeature.tabularFigures()],
+            style: theme.textTheme.labelMedium?.copyWith(
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
         ),
@@ -271,7 +277,8 @@ class _ManualZoomControlState extends State<_ManualZoomControl> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return ReaderToolbarPill(
       emphasized: true,
       children: [
@@ -283,7 +290,8 @@ class _ManualZoomControlState extends State<_ManualZoomControl> {
               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
               overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
               activeTrackColor: colorScheme.primary,
-              inactiveTrackColor: colorScheme.primary.withValues(alpha: 0.22),
+              // MD3 的未填充轨道取一个真实角色，而不是把主色调淡。
+              inactiveTrackColor: colorScheme.secondaryContainer,
               thumbColor: colorScheme.primary,
               showValueIndicator: ShowValueIndicator.never,
             ),
@@ -307,9 +315,8 @@ class _ManualZoomControlState extends State<_ManualZoomControl> {
           child: Text(
             '${_percent.round()}%',
             textAlign: TextAlign.right,
-            style: const TextStyle(
-              fontSize: 11.5,
-              fontFeatures: [FontFeature.tabularFigures()],
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
         ),
@@ -326,30 +333,32 @@ class _ResetViewButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Tooltip(
       message: '重置缩放、旋转与宽页策略（保留单双页与阅读方向）',
       child: InkWell(
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(ReaderToolbarMetrics.fullRadius),
         onTap: presentation.isDefault
             ? null
             : () => context.read<ReaderPresentationCubit>().resetView(),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: BorderRadius.circular(
+              ReaderToolbarMetrics.fullRadius,
+            ),
             border: Border.all(
               color: presentation.isDefault
-                  ? colorScheme.outlineVariant.withValues(alpha: 0.5)
-                  : colorScheme.primary.withValues(alpha: 0.6),
+                  ? colorScheme.outlineVariant
+                  : colorScheme.outline,
             ),
           ),
           child: Text(
             '重置视图',
-            style: TextStyle(
-              fontSize: 12,
+            style: theme.textTheme.labelMedium?.copyWith(
               color: presentation.isDefault
-                  ? colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
+                  ? colorScheme.onSurfaceVariant.withValues(alpha: 0.38)
                   : colorScheme.onSurface,
             ),
           ),

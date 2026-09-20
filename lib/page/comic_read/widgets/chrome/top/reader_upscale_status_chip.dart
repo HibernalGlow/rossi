@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
 import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
@@ -22,11 +23,12 @@ import 'package:zephyr/widgets/toast.dart';
 /// 现在**开关是看得见的控件**，手势只保留一件事：点主体切「对比原图」。
 /// 长按不再是「关闭超分」—— 那件事现在由开关承担，留着只会让人误触。
 ///
-/// # 为什么窄屏不写分辨率
+/// # 为什么窄屏不写文字
 ///
 /// 顶栏其他控件的固定宽度之和已经占掉六百多逻辑像素，再硬塞十多字的分辨率，
-/// `Row` 就会溢出（黄黑斜纹）。所以分辨率文字在
-/// [superResolutionSizeMinWidth] 以上才出现，**窄屏仍然能在 tooltip 里看到它**。
+/// `Row` 就会溢出（黄黑斜纹）。所以**状态字**在
+/// [superResolutionLabelMinWidth] 以上才写、分辨率文字在
+/// [superResolutionSizeMinWidth] 以上才写，**窄屏仍然能在 tooltip 里看到两者**。
 /// 判据在 `super_resolution_status.dart` 里，是纯函数，有单测钉着。
 ///
 /// 网络来源（插件漫画）没有呈现器 —— 那条路的超分在文件下载层发生，没有「当前页」
@@ -58,76 +60,72 @@ class ReaderUpscaleStatusChip extends StatelessWidget {
   }
 
   Widget _buildChip(BuildContext context, GpuPresentController presenter) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final SuperResolutionPageStatus status = presenter.currentPageUpscaleStatus;
     final bool enabled = presenter.isUpscaleEnabled;
     final String? sizeText = superResolutionSizeText(status, availableWidth);
+    final bool showLabel = superResolutionShowsLabel(availableWidth);
 
-    // 配色只有四档，宁可少也不要花：**失败**必须一眼看出来（红），
-    // **有超分产物**才配强调色（蓝/主题色），**正在跑**用中性偏亮，
-    // 其余（关着、不支持、无需超分）一律压暗 —— 顶栏是压在漫画上的，
-    // 花哨的芯片会跟画面抢注意力。
+    // 三档容器角色，宁可少也不要花：**失败**必须一眼看出来（errorContainer），
+    // **有超分产物 / 正在跑**才配强调（secondaryContainer），其余一律中性实色。
+    // 这里一个 `withValues` 都没有 —— MD3 的 container 角色本就是拿来直接用的。
     final bool hasResult = superResolutionPhaseHasEnhancedResult(status.phase);
     final bool busy = superResolutionPhaseIsBusy(status.phase);
-    final Color fgColor = switch (status.phase) {
-      SuperResolutionPagePhase.failed => colorScheme.error,
-      _ when hasResult => colorScheme.primary,
-      _ when busy => colorScheme.primary,
-      _ => colorScheme.onSurfaceVariant,
-    };
-    final Color bgColor = switch (status.phase) {
-      SuperResolutionPagePhase.failed => colorScheme.error.withValues(
-        alpha: 0.12,
+    final (Color bg, Color fg) = switch (status.phase) {
+      SuperResolutionPagePhase.failed => (
+        colorScheme.errorContainer,
+        colorScheme.onErrorContainer,
       ),
-      _ when hasResult || busy => colorScheme.primary.withValues(alpha: 0.16),
-      _ => colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+      _ when hasResult || busy => (
+        colorScheme.secondaryContainer,
+        colorScheme.onSecondaryContainer,
+      ),
+      _ => (colorScheme.surfaceContainerHigh, colorScheme.onSurfaceVariant),
     };
-    final Color borderColor = fgColor.withValues(alpha: hasResult ? 0.5 : 0.3);
 
     return Tooltip(
       message: superResolutionTooltip(status),
       child: Container(
-        padding: const EdgeInsets.only(left: 8, right: 2),
+        height: ReaderToolbarMetrics.chipHeight,
+        padding: const EdgeInsets.only(left: 10, right: 2),
         decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: borderColor),
+          color: bg,
+          borderRadius: BorderRadius.circular(ReaderToolbarMetrics.fullRadius),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             // 主体：状态 + 分辨率。点它只做一件事 —— 对比原图（开着时）。
             InkWell(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(
+                ReaderToolbarMetrics.fullRadius,
+              ),
               onTap: () => _onBodyTap(context, presenter, status, enabled),
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 2,
-                  vertical: 4.5,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 2),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildLeading(context, status.phase, fgColor),
-                    const SizedBox(width: 4),
-                    Text(
-                      superResolutionPhaseLabel(status.phase),
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.bold,
-                        color: fgColor,
+                    _buildLeading(context, status.phase, fg),
+                    if (showLabel) ...[
+                      const SizedBox(width: 4),
+                      Text(
+                        superResolutionPhaseLabel(status.phase),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: fg,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
+                    ],
                     if (sizeText != null) ...[
                       const SizedBox(width: 5),
+                      // 分辨率是**事实**，弱一档：状态字才是主角。
                       Text(
                         sizeText,
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w500,
-                          // 分辨率是**事实**，用弱一档的颜色：状态字才是主角，
-                          // 但两者都要在漫画上读得清。
-                          color: fgColor.withValues(alpha: 0.85),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: fg.withValues(alpha: 0.85),
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
                     ],
@@ -155,10 +153,10 @@ class ReaderUpscaleStatusChip extends StatelessWidget {
   ) {
     if (phase == SuperResolutionPagePhase.running) {
       return SizedBox(
-        width: 13,
-        height: 13,
+        width: ReaderToolbarMetrics.chipIconSize,
+        height: ReaderToolbarMetrics.chipIconSize,
         child: CircularProgressIndicator(
-          strokeWidth: 1.6,
+          strokeWidth: 1.8,
           valueColor: AlwaysStoppedAnimation<Color>(color),
         ),
       );

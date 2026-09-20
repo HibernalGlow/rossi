@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/super_resolution_engine_settings.dart';
+import 'package:zephyr/page/setting/real_sr/widgets/upscale_conditions_card.dart';
 import 'package:zephyr/type/enum.dart';
 
 import 'package:flutter/foundation.dart';
@@ -14,9 +15,9 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/video/model/video_media_kind.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
-import 'package:zephyr/main.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/util/debouncer.dart';
+import 'package:zephyr/util/reader/reader_top_bar_style.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 
@@ -153,10 +154,10 @@ class _ReaderSettingsCard extends StatelessWidget {
     final colorScheme = context.theme.colorScheme;
 
     return Material(
-      color: colorScheme.surface.withValues(alpha: 0.96),
-      elevation: 16,
-      shadowColor: Colors.black.withValues(alpha: 0.24),
-      borderRadius: BorderRadius.circular(24),
+      color: colorScheme.surfaceContainerLow,
+      elevation: 6,
+      shadowColor: Colors.black.withValues(alpha: 0.2),
+      borderRadius: BorderRadius.circular(28),
       clipBehavior: Clip.antiAlias,
       child: DefaultTabController(
         length: 3,
@@ -164,7 +165,6 @@ class _ReaderSettingsCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const _ReaderSettingsHeader(),
-            const SizedBox(height: 8),
             Expanded(
               child: TabBarView(
                 children: [
@@ -191,49 +191,57 @@ class _ReaderSettingsHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = context.theme.colorScheme;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: Stack(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Center(
+          child: Container(
+            width: 36,
+            height: 4,
+            margin: const EdgeInsets.only(top: 10, bottom: 6),
+            decoration: BoxDecoration(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.8),
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 12, 6),
+          child: Row(
             children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: colorScheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(999),
+              Expanded(
+                child: TabBar(
+                  dividerColor: Colors.transparent,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  labelStyle: context.theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
+                  unselectedLabelStyle:
+                      context.theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                  tabs: [
+                    Tab(text: t.reader.settings),
+                    Tab(text: t.reader.gesture),
+                    Tab(text: t.reader.infoBar),
+                  ],
                 ),
               ),
-              TabBar(
-                dividerColor: Colors.transparent,
-                labelStyle: context.theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
+              const SizedBox(width: 8),
+              IconButton(
+                tooltip: t.common.close,
+                icon: const Icon(Icons.close, size: 20),
+                style: IconButton.styleFrom(
+                  backgroundColor:
+                      colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                  visualDensity: VisualDensity.compact,
                 ),
-                tabs: [
-                  Tab(text: t.reader.settings),
-                  Tab(text: t.reader.gesture),
-                  Tab(text: t.reader.infoBar),
-                ],
+                onPressed: () => Navigator.of(context).pop(),
               ),
             ],
           ),
-          // 桌面端惯用的显式出口：不依赖拖拽把手或点遮罩。
-          Positioned(
-            right: 0,
-            top: 0,
-            child: IconButton(
-              tooltip: t.common.close,
-              icon: const Icon(Icons.close),
-              visualDensity: VisualDensity.compact,
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -249,19 +257,33 @@ class _SettingsNoticeCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: colorScheme.secondaryContainer.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
+        color: colorScheme.secondaryContainer.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.6),
+          color: colorScheme.outlineVariant.withValues(alpha: 0.4),
         ),
       ),
-      child: Text(
-        text,
-        style: context.theme.textTheme.bodySmall?.copyWith(
-          color: colorScheme.onSecondaryContainer,
-        ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            size: 18,
+            color: colorScheme.onSecondaryContainer,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: context.theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSecondaryContainer,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -275,7 +297,7 @@ class _SettingsTabContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
       child: child,
     );
   }
@@ -283,22 +305,41 @@ class _SettingsTabContent extends StatelessWidget {
 
 class _SettingsSection extends StatelessWidget {
   final String title;
+  final IconData? icon;
   final List<Widget> children;
 
-  const _SettingsSection({required this.title, required this.children});
+  const _SettingsSection({
+    required this.title,
+    this.icon,
+    required this.children,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.theme.colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: context.theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w700,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 14, 4, 8),
+          child: Row(
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 16, color: colorScheme.primary),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                title,
+                style: context.theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: colorScheme.primary,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 10),
         for (int i = 0; i < children.length; i++) ...[
           children[i],
           if (i != children.length - 1) const SizedBox(height: 10),
@@ -308,63 +349,137 @@ class _SettingsSection extends StatelessWidget {
   }
 }
 
-class _SettingsChoiceChip extends StatelessWidget {
-  final String title;
-  final bool selected;
-  final VoidCallback onTap;
+/// MD3 分组卡片容器：将相关的多个设置项统一收纳在一个容器中，
+/// 内部自动以微弱分割线隔开，消除碎片小盒子感。
+class _SettingsCardGroup extends StatelessWidget {
+  final List<Widget> children;
 
-  const _SettingsChoiceChip({
-    required this.title,
+  const _SettingsCardGroup({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = context.theme.colorScheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.45),
+          width: 1,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (int i = 0; i < children.length; i++) ...[
+            children[i],
+            if (i < children.length - 1 &&
+                children[i] is! _SettingsAnimatedCollapse &&
+                children[i + 1] is! _SettingsAnimatedCollapse)
+              Divider(
+                height: 1,
+                thickness: 1,
+                indent: 16,
+                endIndent: 16,
+                color: colorScheme.outlineVariant.withValues(alpha: 0.25),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// MD3 分段选择器封装
+class _SettingsSegmentedTile<T> extends StatelessWidget {
+  final T selected;
+  final List<ButtonSegment<T>> segments;
+  final ValueChanged<T> onSelectionChanged;
+
+  const _SettingsSegmentedTile({
     required this.selected,
-    required this.onTap,
+    required this.segments,
+    required this.onSelectionChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: SegmentedButton<T>(
+        showSelectedIcon: false,
+        segments: segments,
+        selected: {selected},
+        onSelectionChanged: (selection) {
+          if (selection.isNotEmpty) {
+            HapticFeedback.selectionClick();
+            onSelectionChanged(selection.first);
+          }
+        },
+        style: ButtonStyle(
+          visualDensity: VisualDensity.compact,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 平滑展开与收起容器
+class _SettingsAnimatedCollapse extends StatelessWidget {
+  final bool isExpanded;
+  final Widget child;
+  final bool showDivider;
+
+  const _SettingsAnimatedCollapse({
+    required this.isExpanded,
+    required this.child,
+    this.showDivider = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.theme.colorScheme;
 
-    return ChoiceChip(
-      label: Text(title),
-      selected: selected,
-      showCheckmark: false,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      visualDensity: VisualDensity.compact,
-      backgroundColor: colorScheme.surfaceContainerHighest.withValues(
-        alpha: 0.45,
-      ),
-      selectedColor: colorScheme.primaryContainer.withValues(alpha: 0.92),
-      side: BorderSide(
-        color: selected
-            ? colorScheme.primary
-            : colorScheme.outlineVariant.withValues(alpha: 0.7),
-        width: selected ? 1.4 : 1,
-      ),
-      labelStyle: context.theme.textTheme.bodyMedium?.copyWith(
-        fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-        color: selected
-            ? colorScheme.onPrimaryContainer
-            : colorScheme.onSurface,
-      ),
-      onSelected: (_) => onTap(),
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeInOutCubic,
+      alignment: Alignment.topCenter,
+      child: isExpanded
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (showDivider)
+                  Divider(
+                    height: 1,
+                    thickness: 1,
+                    indent: 16,
+                    endIndent: 16,
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.25),
+                  ),
+                child,
+              ],
+            )
+          : const SizedBox.shrink(),
     );
   }
 }
 
 class _SettingsSwitchTile extends StatelessWidget {
-  static const WidgetStateProperty<Icon> _thumbIcon =
-      WidgetStateProperty<Icon>.fromMap(<WidgetStatesConstraint, Icon>{
-        WidgetState.selected: Icon(Icons.check),
-        WidgetState.any: Icon(Icons.close),
-      });
-
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
 
   const _SettingsSwitchTile({
     required this.title,
-    required this.subtitle,
+    this.subtitle,
     required this.value,
     required this.onChanged,
   });
@@ -373,42 +488,41 @@ class _SettingsSwitchTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = context.theme.colorScheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.7),
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      title: Text(
+        title,
+        style: context.theme.textTheme.bodyMedium?.copyWith(
+          fontWeight: FontWeight.w500,
         ),
       ),
-      child: ListTile(
-        dense: true,
-        visualDensity: VisualDensity.compact,
-        contentPadding: const EdgeInsets.only(left: 12, right: 8),
-        title: Text(title),
-        subtitle: Text(
-          subtitle,
-          style: context.theme.textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-        trailing: Switch.adaptive(
-          thumbIcon: _thumbIcon,
-          value: value,
-          onChanged: onChanged,
-        ),
+      subtitle: subtitle != null && subtitle!.isNotEmpty
+          ? Text(
+              subtitle!,
+              style: context.theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            )
+          : null,
+      trailing: Switch.adaptive(
+        value: value,
+        onChanged: onChanged,
       ),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onChanged(!value);
+      },
     );
   }
 }
 
 class _SettingsDropdownTile<T> extends StatelessWidget {
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final T value;
   final List<T> values;
-
-  /// 选项文案。默认 `'$value'`，枚举类传 `(v) => v.label` 即可。
   final String Function(T) labelOf;
   final ValueChanged<T> onChanged;
 
@@ -416,7 +530,7 @@ class _SettingsDropdownTile<T> extends StatelessWidget {
 
   const _SettingsDropdownTile({
     required this.title,
-    required this.subtitle,
+    this.subtitle,
     required this.value,
     required this.values,
     required this.onChanged,
@@ -427,26 +541,34 @@ class _SettingsDropdownTile<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = context.theme.colorScheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.7),
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      title: Text(
+        title,
+        style: context.theme.textTheme.bodyMedium?.copyWith(
+          fontWeight: FontWeight.w500,
         ),
       ),
-      child: ListTile(
-        dense: true,
-        visualDensity: VisualDensity.compact,
-        contentPadding: const EdgeInsets.only(left: 12, right: 8),
-        title: Text(title),
-        subtitle: Text(
-          subtitle,
-          style: context.theme.textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
+      subtitle: subtitle != null && subtitle!.isNotEmpty
+          ? Text(
+              subtitle!,
+              style: context.theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            )
+          : null,
+      trailing: Container(
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
           ),
         ),
-        trailing: FluentDropdown<T>(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        child: FluentDropdown<T>(
           value: value,
           displayValue: labelOf(value),
           items: {for (final option in values) option: labelOf(option)},
@@ -482,49 +604,67 @@ class _SettingsSliderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = context.theme.colorScheme;
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(
-          alpha: enabled ? 0.45 : 0.28,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.7),
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text(title, style: context.theme.textTheme.bodyMedium),
-              const Spacer(),
-              Text(
-                '$value $suffix',
-                style: context.theme.textTheme.bodyMedium?.copyWith(
+              Expanded(
+                child: Text(
+                  title,
+                  style: context.theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: enabled
+                        ? null
+                        : colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                decoration: BoxDecoration(
                   color: enabled
-                      ? colorScheme.onSurface
-                      : colorScheme.onSurfaceVariant,
+                      ? colorScheme.secondaryContainer
+                      : colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '$value $suffix',
+                  style: context.theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: enabled
+                        ? colorScheme.onSecondaryContainer
+                        : colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ],
           ),
-          Slider(
-            min: min.toDouble(),
-            max: max.toDouble(),
-            divisions: divisions,
-            value: value.clamp(min, max).toDouble(),
-            label: '$value$suffix',
-            onChanged: !enabled
-                ? null
-                : (newValue) {
-                    final nextValue = newValue.round().clamp(min, max);
-                    if (nextValue != value) {
-                      HapticFeedback.selectionClick();
-                      onChanged(nextValue);
-                    }
-                  },
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 4,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+            ),
+            child: Slider(
+              min: min.toDouble(),
+              max: max.toDouble(),
+              divisions: divisions,
+              value: value.clamp(min, max).toDouble(),
+              label: '$value$suffix',
+              onChanged: !enabled
+                  ? null
+                  : (newValue) {
+                      final nextValue = newValue.round().clamp(min, max);
+                      if (nextValue != value) {
+                        HapticFeedback.selectionClick();
+                        onChanged(nextValue);
+                      }
+                    },
+            ),
           ),
         ],
       ),

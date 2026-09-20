@@ -11,17 +11,15 @@ class _ReaderSettingsGestureTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _HoverRevealSection(),
-          const SizedBox(height: 18),
           const _TapPageTurnModeSection(),
-          const SizedBox(height: 18),
-          const _CenterTapBarSection(),
-          const SizedBox(height: 18),
-          const _WebtoonTapPageTurnSection(),
-          const SizedBox(height: 18),
-          const _DoubleTapSection(),
-          if (isAndroidPhone) const SizedBox(height: 18),
-          if (isAndroidPhone) const _VolumeKeyPageTurnSection(),
+          const SizedBox(height: 14),
+          const _TapBehaviorSection(),
+          const SizedBox(height: 14),
+          const _HoverRevealSection(),
+          if (isAndroidPhone) ...[
+            const SizedBox(height: 14),
+            const _VolumeKeyPageTurnSection(),
+          ],
         ],
       ),
     );
@@ -39,95 +37,31 @@ class _TapPageTurnModeSection extends StatelessWidget {
 
     return _SettingsSection(
       title: t.reader.pageMode,
+      icon: Icons.touch_app_outlined,
       children: [
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            _SettingsChoiceChip(
-              title: t.reader.fullscreen,
-              selected: mode == ReaderTapPageTurnMode.fullScreen,
-              onTap: () {
-                if (mode == ReaderTapPageTurnMode.fullScreen) {
-                  return;
-                }
-                globalSettingCubit.updateReadSetting(
-                  (current) => current.copyWith(
-                    tapPageTurnMode: ReaderTapPageTurnMode.fullScreen,
-                  ),
-                );
-              },
+        _SettingsSegmentedTile<ReaderTapPageTurnMode>(
+          selected: mode,
+          segments: [
+            ButtonSegment<ReaderTapPageTurnMode>(
+              value: ReaderTapPageTurnMode.fullScreen,
+              icon: const Icon(Icons.fullscreen_rounded, size: 18),
+              label: Text(t.reader.fullscreen),
             ),
-            _SettingsChoiceChip(
-              title: t.reader.leftHandMode,
-              selected: mode == ReaderTapPageTurnMode.leftHand,
-              onTap: () {
-                if (mode == ReaderTapPageTurnMode.leftHand) {
-                  return;
-                }
-                globalSettingCubit.updateReadSetting(
-                  (current) => current.copyWith(
-                    tapPageTurnMode: ReaderTapPageTurnMode.leftHand,
-                  ),
-                );
-              },
+            ButtonSegment<ReaderTapPageTurnMode>(
+              value: ReaderTapPageTurnMode.leftHand,
+              icon: const Icon(Icons.front_hand_outlined, size: 18),
+              label: Text(t.reader.leftHandMode),
             ),
-            _SettingsChoiceChip(
-              title: t.reader.rightHandMode,
-              selected: mode == ReaderTapPageTurnMode.rightHand,
-              onTap: () {
-                if (mode == ReaderTapPageTurnMode.rightHand) {
-                  return;
-                }
-                globalSettingCubit.updateReadSetting(
-                  (current) => current.copyWith(
-                    tapPageTurnMode: ReaderTapPageTurnMode.rightHand,
-                  ),
-                );
-              },
+            ButtonSegment<ReaderTapPageTurnMode>(
+              value: ReaderTapPageTurnMode.rightHand,
+              icon: const Icon(Icons.pan_tool_outlined, size: 18),
+              label: Text(t.reader.rightHandMode),
             ),
           ],
-        ),
-      ],
-    );
-  }
-}
-
-/// 「点击中间唤出/收起上下栏」——单击与 chrome 显隐之间的绑定，做成了开关。
-///
-/// 关掉它的人要的是「我怎么点都别把上下栏弄出来/弄走」（例如读条漫时手指总会
-/// 落在画面中间）。出口仍在：桌面端边缘悬停、或双击打开操作栏。
-class _CenterTapBarSection extends StatelessWidget {
-  const _CenterTapBarSection();
-
-  @override
-  Widget build(BuildContext context) {
-    final readSetting = context.watch<GlobalSettingCubit>().state.readSetting;
-    final globalSettingCubit = context.read<GlobalSettingCubit>();
-
-    return _SettingsSection(
-      title: t.reader.centerTapBar,
-      children: [
-        _SettingsSwitchTile(
-          title: t.reader.centerTapToggleBars,
-          subtitle: t.reader.centerTapToggleBarsSubtitle,
-          value: readSetting.centerTapToggleBars,
-          onChanged: (value) {
+          onSelectionChanged: (nextMode) {
+            if (mode == nextMode) return;
             globalSettingCubit.updateReadSetting(
-              (current) => current.copyWith(
-                centerTapToggleBars: value,
-                // 关掉之后，触屏上就只剩「双击打开操作栏」一个出口了（桌面端还有
-                // 边缘悬停）。两个双击动作都关着时顺手把这个出口打开，免得用户把
-                // 自己关进一个唤不出上下栏的阅读器里 —— 顶栏上还挂着返回键。
-                // 与「双击缩放 ⇄ 双击打开操作栏」那种互斥时的自动补开是同一套写法，
-                // 而且在「双击操作」那一栏里看得见，不是暗箱。
-                doubleTapOpenMenu:
-                    !value &&
-                        !current.doubleTapOpenMenu &&
-                        !current.doubleTapZoom
-                    ? true
-                    : current.doubleTapOpenMenu,
-              ),
+              (current) => current.copyWith(tapPageTurnMode: nextMode),
             );
           },
         ),
@@ -136,34 +70,9 @@ class _CenterTapBarSection extends StatelessWidget {
   }
 }
 
-class _WebtoonTapPageTurnSection extends StatelessWidget {
-  const _WebtoonTapPageTurnSection();
-
-  @override
-  Widget build(BuildContext context) {
-    final readSetting = context.watch<GlobalSettingCubit>().state.readSetting;
-    final globalSettingCubit = context.read<GlobalSettingCubit>();
-
-    return _SettingsSection(
-      title: t.reader.webtoonTapPageTurn,
-      children: [
-        _SettingsSwitchTile(
-          title: t.reader.enableWebtoonTapPageTurn,
-          subtitle: t.reader.webtoonTapPageTurnSubtitle,
-          value: readSetting.tapPageTurnInWebtoon,
-          onChanged: (value) {
-            globalSettingCubit.updateReadSetting(
-              (current) => current.copyWith(tapPageTurnInWebtoon: value),
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _DoubleTapSection extends StatelessWidget {
-  const _DoubleTapSection();
+/// 集中收纳点击与双击行为设置项
+class _TapBehaviorSection extends StatelessWidget {
+  const _TapBehaviorSection();
 
   @override
   Widget build(BuildContext context) {
@@ -172,33 +81,67 @@ class _DoubleTapSection extends StatelessWidget {
     final readSetting = globalSettingState.readSetting;
 
     return _SettingsSection(
-      title: t.reader.doubleTapAction,
+      title: '点击与双击手势',
+      icon: Icons.gesture_outlined,
       children: [
-        _SettingsSwitchTile(
-          title: t.reader.doubleTapZoom,
-          subtitle: t.reader.doubleTapZoomSubtitle,
-          value: readSetting.doubleTapZoom,
-          onChanged: (value) {
-            globalSettingCubit.updateReadSetting(
-              (current) => current.copyWith(
-                doubleTapZoom: value,
-                doubleTapOpenMenu: value ? false : current.doubleTapOpenMenu,
-              ),
-            );
-          },
-        ),
-        _SettingsSwitchTile(
-          title: t.reader.doubleTapOpenMenu,
-          subtitle: t.reader.doubleTapOpenMenuSubtitle,
-          value: readSetting.doubleTapOpenMenu,
-          onChanged: (value) {
-            globalSettingCubit.updateReadSetting(
-              (current) => current.copyWith(
-                doubleTapOpenMenu: value,
-                doubleTapZoom: value ? false : current.doubleTapZoom,
-              ),
-            );
-          },
+        _SettingsCardGroup(
+          children: [
+            _SettingsSwitchTile(
+              title: t.reader.centerTapToggleBars,
+              subtitle: t.reader.centerTapToggleBarsSubtitle,
+              value: readSetting.centerTapToggleBars,
+              onChanged: (value) {
+                globalSettingCubit.updateReadSetting(
+                  (current) => current.copyWith(
+                    centerTapToggleBars: value,
+                    doubleTapOpenMenu:
+                        !value &&
+                            !current.doubleTapOpenMenu &&
+                            !current.doubleTapZoom
+                        ? true
+                        : current.doubleTapOpenMenu,
+                  ),
+                );
+              },
+            ),
+            _SettingsSwitchTile(
+              title: t.reader.enableWebtoonTapPageTurn,
+              subtitle: t.reader.webtoonTapPageTurnSubtitle,
+              value: readSetting.tapPageTurnInWebtoon,
+              onChanged: (value) {
+                globalSettingCubit.updateReadSetting(
+                  (current) => current.copyWith(tapPageTurnInWebtoon: value),
+                );
+              },
+            ),
+            _SettingsSwitchTile(
+              title: t.reader.doubleTapZoom,
+              subtitle: t.reader.doubleTapZoomSubtitle,
+              value: readSetting.doubleTapZoom,
+              onChanged: (value) {
+                globalSettingCubit.updateReadSetting(
+                  (current) => current.copyWith(
+                    doubleTapZoom: value,
+                    doubleTapOpenMenu:
+                        value ? false : current.doubleTapOpenMenu,
+                  ),
+                );
+              },
+            ),
+            _SettingsSwitchTile(
+              title: t.reader.doubleTapOpenMenu,
+              subtitle: t.reader.doubleTapOpenMenuSubtitle,
+              value: readSetting.doubleTapOpenMenu,
+              onChanged: (value) {
+                globalSettingCubit.updateReadSetting(
+                  (current) => current.copyWith(
+                    doubleTapOpenMenu: value,
+                    doubleTapZoom: value ? false : current.doubleTapZoom,
+                  ),
+                );
+              },
+            ),
+          ],
         ),
       ],
     );
@@ -216,33 +159,44 @@ class _VolumeKeyPageTurnSection extends StatelessWidget {
 
     return _SettingsSection(
       title: t.reader.volumeKeyPageTurn,
+      icon: Icons.volume_up_outlined,
       children: [
-        _SettingsSwitchTile(
-          title: t.reader.enableVolumeKeyPageTurn,
-          subtitle: t.reader.volumeKeyPageTurnSubtitle,
-          value: readSetting.volumeKeyPageTurn,
-          onChanged: (value) {
-            globalSettingCubit.updateReadSetting(
-              (current) => current.copyWith(volumeKeyPageTurn: value),
-            );
-          },
+        _SettingsCardGroup(
+          children: [
+            _SettingsSwitchTile(
+              title: t.reader.enableVolumeKeyPageTurn,
+              subtitle: t.reader.volumeKeyPageTurnSubtitle,
+              value: readSetting.volumeKeyPageTurn,
+              onChanged: (value) {
+                globalSettingCubit.updateReadSetting(
+                  (current) => current.copyWith(volumeKeyPageTurn: value),
+                );
+              },
+            ),
+            _SettingsAnimatedCollapse(
+              isExpanded: readSetting.volumeKeyPageTurn,
+              child: _SettingsSliderCard(
+                title: t.reader.webtoonScrollDistance,
+                value: readSetting.volumeKeyPageTurnDistancePercent.clamp(
+                  10,
+                  100,
+                ),
+                min: 10,
+                max: 100,
+                divisions: 90,
+                suffix: t.reader.screenHeightPercent,
+                onChanged: (value) {
+                  final percent = value.clamp(10, 100);
+                  globalSettingCubit.updateReadSetting(
+                    (current) => current.copyWith(
+                      volumeKeyPageTurnDistancePercent: percent,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
-        if (readSetting.volumeKeyPageTurn)
-          _SettingsSliderCard(
-            title: t.reader.webtoonScrollDistance,
-            value: readSetting.volumeKeyPageTurnDistancePercent.clamp(10, 100),
-            min: 10,
-            max: 100,
-            divisions: 90,
-            suffix: t.reader.screenHeightPercent,
-            onChanged: (value) {
-              final percent = value.clamp(10, 100);
-              globalSettingCubit.updateReadSetting(
-                (current) =>
-                    current.copyWith(volumeKeyPageTurnDistancePercent: percent),
-              );
-            },
-          ),
       ],
     );
   }
@@ -268,97 +222,120 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
 
     return _SettingsSection(
       title: t.reader.hoverReveal,
+      icon: Icons.mouse_outlined,
       children: [
-        _SettingsSwitchTile(
-          title: t.reader.hoverRevealEnabled,
-          subtitle: t.reader.hoverRevealEnabledSubtitle,
-          value: isEnabled,
-          onChanged: (value) {
-            globalSettingCubit.updateReadSetting(
-              (current) => current.copyWith(hoverRevealEnabled: value),
-            );
-          },
+        _SettingsCardGroup(
+          children: [
+            _SettingsSwitchTile(
+              title: t.reader.hoverRevealEnabled,
+              subtitle: t.reader.hoverRevealEnabledSubtitle,
+              value: isEnabled,
+              onChanged: (value) {
+                globalSettingCubit.updateReadSetting(
+                  (current) => current.copyWith(hoverRevealEnabled: value),
+                );
+              },
+            ),
+            _SettingsAnimatedCollapse(
+              isExpanded: isEnabled,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: _buildNeoViewAreaPreview(context, readSetting),
+                  ),
+                  _SettingsSwitchTile(
+                    title: t.reader.hoverRevealTop,
+                    subtitle: t.reader.hoverAreaTopHint.replaceAll(
+                      '{height}',
+                      '${readSetting.hoverTriggerAreaTop}',
+                    ),
+                    value: readSetting.hoverRevealTop,
+                    onChanged: (value) {
+                      globalSettingCubit.updateReadSetting(
+                        (current) => current.copyWith(hoverRevealTop: value),
+                      );
+                    },
+                  ),
+                  _SettingsAnimatedCollapse(
+                    isExpanded: readSetting.hoverRevealTop,
+                    child: _SettingsSliderCard(
+                      title: t.reader.hoverTriggerAreaTop,
+                      value: readSetting.hoverTriggerAreaTop.clamp(10, 120),
+                      min: 10,
+                      max: 120,
+                      divisions: 110,
+                      suffix: 'px',
+                      onChanged: (value) {
+                        globalSettingCubit.updateReadSetting(
+                          (current) =>
+                              current.copyWith(hoverTriggerAreaTop: value),
+                        );
+                      },
+                    ),
+                  ),
+                  _SettingsSwitchTile(
+                    title: t.reader.hoverRevealBottom,
+                    subtitle: t.reader.hoverAreaBottomHint.replaceAll(
+                      '{height}',
+                      '${readSetting.hoverTriggerAreaBottom}',
+                    ),
+                    value: readSetting.hoverRevealBottom,
+                    onChanged: (value) {
+                      globalSettingCubit.updateReadSetting(
+                        (current) =>
+                            current.copyWith(hoverRevealBottom: value),
+                      );
+                    },
+                  ),
+                  _SettingsAnimatedCollapse(
+                    isExpanded: readSetting.hoverRevealBottom,
+                    child: _SettingsSliderCard(
+                      title: t.reader.hoverTriggerAreaBottom,
+                      value: readSetting.hoverTriggerAreaBottom.clamp(10, 120),
+                      min: 10,
+                      max: 120,
+                      divisions: 110,
+                      suffix: 'px',
+                      onChanged: (value) {
+                        globalSettingCubit.updateReadSetting(
+                          (current) =>
+                              current.copyWith(hoverTriggerAreaBottom: value),
+                        );
+                      },
+                    ),
+                  ),
+                  _SettingsSliderCard(
+                    title: t.reader.hoverHideDelay,
+                    value: readSetting.hoverHideDelayMs.clamp(100, 2000),
+                    min: 100,
+                    max: 2000,
+                    divisions: 19,
+                    suffix: 'ms',
+                    onChanged: (value) {
+                      globalSettingCubit.updateReadSetting(
+                        (current) => current.copyWith(hoverHideDelayMs: value),
+                      );
+                    },
+                  ),
+                  _SettingsSwitchTile(
+                    title: t.reader.hoverShowVisualIndicator,
+                    subtitle: t.reader.hoverShowVisualIndicatorSubtitle,
+                    value: readSetting.hoverShowVisualIndicator,
+                    onChanged: (value) {
+                      globalSettingCubit.updateReadSetting(
+                        (current) => current.copyWith(
+                          hoverShowVisualIndicator: value,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        if (isEnabled) ...[
-          _buildNeoViewAreaPreview(context, readSetting),
-          _SettingsSwitchTile(
-            title: t.reader.hoverRevealTop,
-            subtitle: t.reader.hoverAreaTopHint.replaceAll(
-              '{height}',
-              '${readSetting.hoverTriggerAreaTop}',
-            ),
-            value: readSetting.hoverRevealTop,
-            onChanged: (value) {
-              globalSettingCubit.updateReadSetting(
-                (current) => current.copyWith(hoverRevealTop: value),
-              );
-            },
-          ),
-          if (readSetting.hoverRevealTop)
-            _SettingsSliderCard(
-              title: t.reader.hoverTriggerAreaTop,
-              value: readSetting.hoverTriggerAreaTop.clamp(10, 120),
-              min: 10,
-              max: 120,
-              divisions: 110,
-              suffix: 'px',
-              onChanged: (value) {
-                globalSettingCubit.updateReadSetting(
-                  (current) => current.copyWith(hoverTriggerAreaTop: value),
-                );
-              },
-            ),
-          _SettingsSwitchTile(
-            title: t.reader.hoverRevealBottom,
-            subtitle: t.reader.hoverAreaBottomHint.replaceAll(
-              '{height}',
-              '${readSetting.hoverTriggerAreaBottom}',
-            ),
-            value: readSetting.hoverRevealBottom,
-            onChanged: (value) {
-              globalSettingCubit.updateReadSetting(
-                (current) => current.copyWith(hoverRevealBottom: value),
-              );
-            },
-          ),
-          if (readSetting.hoverRevealBottom)
-            _SettingsSliderCard(
-              title: t.reader.hoverTriggerAreaBottom,
-              value: readSetting.hoverTriggerAreaBottom.clamp(10, 120),
-              min: 10,
-              max: 120,
-              divisions: 110,
-              suffix: 'px',
-              onChanged: (value) {
-                globalSettingCubit.updateReadSetting(
-                  (current) => current.copyWith(hoverTriggerAreaBottom: value),
-                );
-              },
-            ),
-          _SettingsSliderCard(
-            title: t.reader.hoverHideDelay,
-            value: readSetting.hoverHideDelayMs.clamp(100, 2000),
-            min: 100,
-            max: 2000,
-            divisions: 19,
-            suffix: 'ms',
-            onChanged: (value) {
-              globalSettingCubit.updateReadSetting(
-                (current) => current.copyWith(hoverHideDelayMs: value),
-              );
-            },
-          ),
-          _SettingsSwitchTile(
-            title: t.reader.hoverShowVisualIndicator,
-            subtitle: t.reader.hoverShowVisualIndicatorSubtitle,
-            value: readSetting.hoverShowVisualIndicator,
-            onChanged: (value) {
-              globalSettingCubit.updateReadSetting(
-                (current) => current.copyWith(hoverShowVisualIndicator: value),
-              );
-            },
-          ),
-        ],
       ],
     );
   }
