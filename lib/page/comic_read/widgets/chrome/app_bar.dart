@@ -194,6 +194,10 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
     );
     final bookTitle =
         widget.comicTitle ?? ReaderSessionCoordinator.instance.displayTitle;
+    // neo 那五颗占位按钮要再多占 150px：主行是一颗都不折行的 `Row`，
+    // 窄窗下会把书名挤成 0 然后溢出黄条。所以只在够宽的窗口上摆全，
+    // 与 neo 的 `flex-wrap` 差一条（那边换行，这边不折行）。
+    final showNeoPlaceholders = availableWidth >= 900;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -253,6 +257,16 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
             // 3. 版式模式胶囊组 (宽屏展开胶囊组，窄屏提供紧凑循环切换按钮)
             if (isWide) ...[
               const SizedBox(width: 12),
+              // 主行的这一串按 neoview `ReaderViewToolbar.tsx` 的 A1→A10 顺序排：
+              // 排序 ┃ 缩放  分隔 ┈ 全景 · 横纵 · 单双页 · 方向 · 旋转 ·
+              // 悬停滚动 · 幻灯片 · 放大镜。本仓没有对应能力的那几颗是占位。
+              if (showNeoPlaceholders) ...[
+                const ReaderToolbarComingSoonButton(
+                  icon: Icons.sort_rounded,
+                  name: '页面排序',
+                ),
+                const SizedBox(width: 4),
+              ],
               // 缩放面板入口。图标跟着当前缩放模式换 —— neoview 主行那颗同一做法：
               // 一眼看得见现在是怎么铺的，不用点开面板。
               _buildPanelButton(
@@ -260,7 +274,14 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
                 icon: kReaderFitModeIcons[fitMode]!,
                 tooltip: '缩放模式：${kReaderFitModeLabels[fitMode]!}（点击展开缩放设置）',
               ),
-              const SizedBox(width: 8),
+              const ReaderToolbarSeparator(),
+              if (showNeoPlaceholders) ...[
+                const ReaderToolbarComingSoonButton(
+                  icon: Icons.panorama_wide_angle_rounded,
+                  name: '全景模式',
+                ),
+                const SizedBox(width: 4),
+              ],
               ReadingModeCapsule(
                 currentMode: readSetting.readMode,
                 onModeChanged: (mode) {
@@ -303,6 +324,23 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
                 icon: Icons.rotate_right_rounded,
                 tooltip: '旋转设置（点击展开旋转面板）',
               ),
+              if (showNeoPlaceholders) ...[
+                const SizedBox(width: 4),
+                const ReaderToolbarComingSoonButton(
+                  icon: Icons.mouse_rounded,
+                  name: '悬停滚动',
+                ),
+                const ReaderToolbarComingSoonButton(
+                  icon: Icons.slideshow_rounded,
+                  name: '幻灯片',
+                ),
+                const ReaderToolbarComingSoonButton(
+                  icon: Icons.zoom_in_map_rounded,
+                  name: '放大镜',
+                ),
+                const SizedBox(width: 4),
+              ],
+              // 版式是本仓自有一项，挂在最后。
               _buildPanelButton(
                 panel: ReaderToolbarPanel.layout,
                 icon: Icons.dashboard_customize_outlined,

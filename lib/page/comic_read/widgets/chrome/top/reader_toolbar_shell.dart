@@ -122,6 +122,38 @@ class ReaderToolbarIconButton extends StatelessWidget {
   }
 }
 
+/// neo 主行上有、本仓还没有对应能力的那几颗。
+///
+/// 保留占位是**刻意的**：顶栏的形状与 neo 对齐，将来做出一块就点亮一块，
+/// 不用重排列。但它不能是静默失效的一颗 —— 点了要给一句话，否则人只会
+/// 以为是自己点歪了。
+class ReaderToolbarComingSoonButton extends StatelessWidget {
+  final IconData icon;
+  final String name;
+
+  const ReaderToolbarComingSoonButton({
+    super.key,
+    required this.icon,
+    required this.name,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ReaderToolbarIconButton(
+      icon: icon,
+      tooltip: '$name（本仓尚未实现）',
+      onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$name 还没接进本仓的阅读器'),
+          behavior: SnackBarBehavior.floating,
+          width: 280,
+          duration: const Duration(milliseconds: 1800),
+        ),
+      ),
+    );
+  }
+}
+
 /// 展开区的一行面板（neo 的 `data-reader-toolbar-row="expanded"`：
 /// 顶边一条分隔线 + 居中换行排布的控件）。
 class ReaderToolbarPanelRow extends StatelessWidget {
