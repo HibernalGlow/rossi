@@ -51,16 +51,22 @@ class LocalReadSession {
   }
 
   /// 释放资源
-  Future<void> dispose() async {
-    await _currentSource?.close();
+  Future<void> dispose({String? expectedPath}) async {
+    if (expectedPath != null && _currentSource?.path != expectedPath) return;
+    final source = _currentSource;
+    final presenter = _presenter;
     _currentSource = null;
-    _presenter?.dispose();
     _presenter = null;
+    // 先摘走旧引用，再异步释放；换书期间不能把新来源/新纹理一并清掉。
+    presenter?.dispose();
+    final closingSource = source?.close();
     // 视频侧的两份缓存跟着会话一起收：海报服务里挂着一个 mpv 实例
     // （它只有 60 s 空闲定时器兜底），波形列的键是**物化后的临时路径**，
     // 退出阅读后那些路径必然失效，留着条目只是占着 24 格名额。
-    await VideoPosterService.instance.shutdown();
+    final closingPosters = VideoPosterService.instance.shutdown();
     VideoWaveformService.instance.clearCache();
+    await closingSource;
+    await closingPosters;
   }
 }
 
@@ -90,11 +96,11 @@ Future<NormalComicEpInfo> getLocalComicEpInfo(String path) async {
         final pageRef = source.pages[i];
         final bool isVideo =
             mediaKindOf(pageRef.name) == RossiMediaKind.video ||
-                shouldOpenAnimatedImageAsVideo(
-                  pageRef.name,
-                  enabled: videoSettings.animatedVideoEnabled,
-                  keywords: videoSettings.animatedVideoKeywords,
-                );
+            shouldOpenAnimatedImageAsVideo(
+              pageRef.name,
+              enabled: videoSettings.animatedVideoEnabled,
+              keywords: videoSettings.animatedVideoKeywords,
+            );
         docs.add(
           Doc(
             originalName: pageRef.name,

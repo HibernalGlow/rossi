@@ -20,6 +20,7 @@ class ReaderImagePrefetchController {
     if (_disposed || count <= 0 || entries.isEmpty) return;
     if (isLocalComicSource(from, comicId)) return;
 
+    final pending = <({ReadModeEntry entry, String key})>[];
     for (final entry in entries.take(count)) {
       if (_disposed) return;
       final doc = entry.doc;
@@ -43,26 +44,45 @@ class ReaderImagePrefetchController {
         chapterId: resolvedChapterId,
         path: doc.path,
       );
-      if (!_requestedKeys.add(key)) continue;
-
-      try {
-        final cachedPath = await getCachePicture(
-          from: from,
-          url: doc.fileServer,
-          path: doc.path,
-          cartoonId: comicId,
-          chapterId: chapterId,
-          storageChapterId: storageChapterId,
-          pictureType: PictureType.page,
-          extern: doc.extern,
-        );
-        if (cachedPath == '404') {
-          _requestedKeys.remove(key);
-        }
-      } catch (_) {
-        _requestedKeys.remove(key);
+      if (_requestedKeys.add(key)) {
+        pending.add((entry: entry, key: key));
       }
     }
+
+    // 预取以前逐页 await：当前页、下一页、下下页会形成串行下载，用户翻得快时
+    // 下一页往往还没落盘。开一个小的固定并发窗口，让网络/磁盘与解码重叠；
+    // 不使用 Future.wait 全量并发，避免一次翻页把连接数和内存都打满。
+    final int workerCount = pending.length < 3 ? pending.length : 3;
+    var next = 0;
+    Future<void> worker() async {
+      while (!_disposed) {
+        if (next >= pending.length) return;
+        final item = pending[next++];
+        final entry = item.entry;
+        final doc = entry.doc!;
+        final chapterId = entry.chapterId!;
+        final storageChapterId = doc.storageChapterId.trim();
+        try {
+          final cachedPath = await getCachePicture(
+            from: from,
+            url: doc.fileServer,
+            path: doc.path,
+            cartoonId: comicId,
+            chapterId: chapterId,
+            storageChapterId: storageChapterId,
+            pictureType: PictureType.page,
+            extern: doc.extern,
+          );
+          if (cachedPath == '404') _requestedKeys.remove(item.key);
+        } catch (_) {
+          _requestedKeys.remove(item.key);
+        }
+      }
+    }
+
+    await Future.wait(<Future<void>>[
+      for (var i = 0; i < workerCount; i++) worker(),
+    ]);
   }
 
   void dispose() {

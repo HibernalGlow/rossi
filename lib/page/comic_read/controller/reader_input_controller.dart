@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -16,6 +17,10 @@ import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
 import 'package:zephyr/page/comic_read/widgets/radial/reader_radial_menu_overlay.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_sheet.dart';
 import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
+import 'package:zephyr/service/operation_binding/binding_doc.dart';
+import 'package:zephyr/util/input/binding_input_capture.dart';
+import 'package:zephyr/util/input/binding_pointer_tracker.dart';
+import 'package:zephyr/video/view/active_video_scope.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_fullscreen_scope.dart';
 
 /// 阅读器输入控制器。
@@ -35,6 +40,7 @@ class ReaderInputController {
     required this.onUpdateScrollLock,
     required this.buildColumnMode,
     required this.buildRowMode,
+    this.onSwitchBook,
   });
 
   final BuildContext context;
@@ -43,6 +49,7 @@ class ReaderInputController {
   final PageController pageController;
   final TransformationController transformationController;
   final VoidCallback onToggleMenu;
+  final Future<void> Function(bool forward)? onSwitchBook;
   final Future<void> Function() _onToggleDesktopFullscreen;
   final VoidCallback onRefreshState;
   final bool Function() isScrollLockedByMultiTouch;
@@ -65,6 +72,7 @@ class ReaderInputController {
   ReaderTapSample? _tap;
   TapDownDetails? _doubleTapDownDetails;
   bool _isCtrlPressed = false;
+  bool _customTouchDrag = false;
 
   bool get _isDesktopPlatform =>
       !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
@@ -74,16 +82,19 @@ class ReaderInputController {
   /// 懒建：它要握着 [actionController]，而后者是 `setActionController` 之后才有的。
   /// 第一次有输入进来时必然已经设好了。
   ReaderActionDispatcher? _dispatcher;
-  ReaderActionDispatcher get _actionDispatcher => _dispatcher ??= ReaderActionDispatcher(
-    context: context,
-    actions: actionController,
-    onToggleMenu: onToggleMenu,
-    onToggleFullscreen: toggleReaderFullscreen,
-    onOpenSettings: () => unawaited(showReaderSettingsSheet(context)),
-    onResetView: resetViewerTransformIfNeeded,
-    onOpenRadialMenu: openRadialMenu,
-    onBeforePageTurn: restoreScaleForPageTurnAction,
-  );
+  ReaderActionDispatcher get _actionDispatcher =>
+      _dispatcher ??= ReaderActionDispatcher(
+        context: context,
+        actions: actionController,
+        onToggleMenu: onToggleMenu,
+        onToggleFullscreen: toggleReaderFullscreen,
+        onOpenSettings: () => unawaited(showReaderSettingsSheet(context)),
+        onResetView: resetViewerTransformIfNeeded,
+        onOpenRadialMenu: openRadialMenu,
+        onConfirmRadialMenu: ReaderRadialMenu.confirm,
+        onBeforePageTurn: restoreScaleForPageTurnAction,
+        onSwitchBook: onSwitchBook,
+      );
 
   /// 当前可用的绑定表（裸数组 JSON）。`null` = 不走绑定表：
   /// 开关关着，或者表还没播种 / 被导坏 —— 那种情况下回退到改造前的硬编码判断，
@@ -92,6 +103,38 @@ class ReaderInputController {
     final setting = context.read<GlobalSettingCubit>().state;
     return OperationBindingStore.runtimeBindingsJson(
       setting.operationBindingSetting,
+    );
+  }
+
+  final _keyHolds = <PhysicalKeyboardKey, Timer>{};
+  Size _inputSize = Size.zero;
+  late final _pointerBindings = BindingPointerTracker(
+    deferAreaClicks: true,
+    lookup: (input) {
+      final bindings = _runtimeBindings;
+      return bindings == null
+          ? null
+          : _actionDispatcher.resolveInput(input, bindings);
+    },
+    dispatch: (input) {
+      if (!context.mounted) return false;
+      final bindings = _runtimeBindings;
+      return bindings != null &&
+          _actionDispatcher.dispatchInput(
+            jsonEncode(input),
+            bindings,
+            fromKeyboard: false,
+          );
+    },
+  );
+
+  String? _areaAt(Offset point) {
+    if (_runtimeBindings == null) return null;
+    return OperationBindingStore.areaAtPoint(
+      x: point.dx,
+      y: point.dy,
+      width: _inputSize.width,
+      height: _inputSize.height,
     );
   }
 
@@ -110,33 +153,13 @@ class ReaderInputController {
   ///
   /// 需要转交是因为 Flutter 对**进行中的指针**复用按下时的命中结果：浮层是按下之后
   /// 才插进 Overlay 的，于是同一次手势的抬起事件根本到不了它，只会回到阅读器。
-  bool _radialAwaitingRelease = false;
+  int? _radialOpeningPointer;
 
   /// 一次按下 → 问引擎「这一按是什么动作」→ 派发。
   ///
   /// 用 `Listener` 而不是 `GestureDetector.onSecondaryTap`：neoview 的出厂绑法是
   /// **右键按下**开轮盘（按下即出、拖到某一格松手即执行），而 tap 要等到抬起才成立。
   /// 走绑定表意味着用户可以把轮盘改绑到中键、某个修饰键组合，或者干脆不绑。
-  void _dispatchPointerPress(PointerDownEvent event) {
-    _radialAwaitingRelease = false;
-    _lastPointerGlobal = event.position;
-    final bindings = _runtimeBindings;
-    if (bindings == null) return;
-    final button = _mouseButtonOf(event.buttons);
-    if (button == null) return;
-    _actionDispatcher.dispatchPointerPress(button: button, bindingsArrayJson: bindings);
-    _radialAwaitingRelease = ReaderRadialMenu.isOpen;
-  }
-
-  /// `PointerDownEvent.buttons`（位掩码）→ W3C `MouseEvent.button` 口径
-  /// （0 左 / 1 中 / 2 右）—— 绑定包里的 `button` 用的是后者，与 neoview 一致。
-  int? _mouseButtonOf(int buttons) {
-    if (buttons & kSecondaryButton != 0) return 2;
-    if (buttons & kTertiaryButton != 0) return 1;
-    if (buttons & kPrimaryButton != 0) return 0;
-    return null;
-  }
-
   /// 在 [globalCenter]（全局坐标）处开出轮盘。
   ///
   /// 浮层只拿到**形状**与**绑定表**：每一格是什么动作由引擎回答，所以「设置页改完
@@ -152,6 +175,7 @@ class ReaderInputController {
       configJson: config,
       bindingsArrayJson: bindings,
       dispatcher: _actionDispatcher,
+      openingPointer: _radialOpeningPointer,
     );
   }
 
@@ -200,6 +224,12 @@ class ReaderInputController {
   void dispose() {
     // 阅读器整棵拆掉时轮盘还开着，会留下一层没人收的遮罩。
     ReaderRadialMenu.dismiss();
+    for (final timer in _keyHolds.values) {
+      timer.cancel();
+    }
+    _keyHolds.clear();
+    _pointerBindings.dispose();
+    transformationController.removeListener(_onTransformationChanged);
     focusNode.dispose();
   }
 
@@ -208,7 +238,16 @@ class ReaderInputController {
     final globalSettingState = context.watch<GlobalSettingCubit>().state;
     final readSetting = globalSettingState.readSetting;
     final isDoubleTapActionEnabled =
-        readSetting.doubleTapZoom || readSetting.doubleTapOpenMenu;
+        readSetting.doubleTapZoom ||
+        readSetting.doubleTapOpenMenu ||
+        (parseBindings(
+              globalSettingState.operationBindingSetting.bindingsJson,
+            )?.any(
+              (row) =>
+                  row['enabled'] == true &&
+                  (row['input'] as Map)['action'] == 'double-click',
+            ) ??
+            false);
 
     return Focus(
       focusNode: focusNode,
@@ -216,47 +255,57 @@ class ReaderInputController {
       onKeyEvent: _onKeyEvent,
       child: Listener(
         onPointerDown: _onPointerDown,
+        onPointerMove: (event) {
+          if (ReaderRadialMenu.isOpen) {
+            _pointerBindings.cancel();
+          } else {
+            _pointerBindings.move(event);
+          }
+        },
         onPointerUp: _onPointerUpOrCancel,
         onPointerCancel: _onPointerUpOrCancel,
-        onPointerSignal: _onPointerSignal,
         // `LayoutBuilder` 紧贴 `GestureDetector` 外沿：它拿到的 `constraints.biggest`
         // 就是那个盒子的尺寸，于是与 `onTapDown` 给的 `localPosition` **同一个
         // 坐标系**。点击分区要的正是这两样东西，而它们只在这一层能成对拿到 ——
         // 于是把尺寸**捕获在这个闭包里**、和落点一起做成 [ReaderTapSample]：
         // 落点来自哪个盒子，尺码就必然是那个盒子的。
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final surface = constraints.biggest;
-            return GestureDetector(
-              onTap: _onTap,
-              onTapDown: (details) => _tap = ReaderTapSample(
-                localPosition: details.localPosition,
-                viewportSize: surface,
-              ),
-              onDoubleTapDown: isDoubleTapActionEnabled
-                  ? (details) => _doubleTapDownDetails = details
-                  : null,
-              onDoubleTap: isDoubleTapActionEnabled ? _onDoubleTap : null,
-              child: InteractiveViewer(
-                transformationController: transformationController,
-                boundaryMargin: EdgeInsets.zero,
-                minScale: kMinReaderScale,
-                maxScale: kMaxReaderScale,
-                scaleEnabled:
-                    !_isDesktopPlatform ||
-                    _isCtrlPressed ||
-                    _activeTouchPointers.length >= 2 ||
-                    transformationController.value.getMaxScaleOnAxis() >
-                        kScaleLockThreshold,
-                interactionEndFrictionCoefficient: kReaderPanFriction,
-                onInteractionUpdate: (_) => _updateMultiTouchScrollLock(),
-                onInteractionEnd: (_) => _updateMultiTouchScrollLock(),
-                child: isColumnReadMode(readSetting.readMode)
-                    ? buildColumnMode(readSetting.doublePageMode)
-                    : buildRowMode(),
-              ),
-            );
-          },
+        child: BindingPointerSignalRegion(
+          onPointerSignal: _onPointerSignal,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final surface = constraints.biggest;
+              _inputSize = surface;
+              return GestureDetector(
+                onTap: _onTap,
+                onTapDown: (details) => _tap = ReaderTapSample(
+                  localPosition: details.localPosition,
+                  viewportSize: surface,
+                ),
+                onDoubleTapDown: isDoubleTapActionEnabled
+                    ? (details) => _doubleTapDownDetails = details
+                    : null,
+                onDoubleTap: isDoubleTapActionEnabled ? _onDoubleTap : null,
+                child: InteractiveViewer(
+                  transformationController: transformationController,
+                  boundaryMargin: EdgeInsets.zero,
+                  minScale: kMinReaderScale,
+                  maxScale: kMaxReaderScale,
+                  scaleEnabled:
+                      !_isDesktopPlatform ||
+                      _isCtrlPressed ||
+                      _activeTouchPointers.length >= 2 ||
+                      transformationController.value.getMaxScaleOnAxis() >
+                          kScaleLockThreshold,
+                  interactionEndFrictionCoefficient: kReaderPanFriction,
+                  onInteractionUpdate: (_) => _updateMultiTouchScrollLock(),
+                  onInteractionEnd: (_) => _updateMultiTouchScrollLock(),
+                  child: isColumnReadMode(readSetting.readMode)
+                      ? buildColumnMode(readSetting.doublePageMode)
+                      : buildRowMode(),
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -278,7 +327,52 @@ class ReaderInputController {
   /// 不回落名单 —— 回落等于「把一条绑定删掉它还在生效」。
   KeyEventResult handleKeyEvent(KeyEvent event) {
     final bindings = _runtimeBindings;
+    if (event is KeyUpEvent) {
+      _keyHolds.remove(event.physicalKey)?.cancel();
+      return KeyEventResult.ignored;
+    }
     if (bindings != null) {
+      if (event is KeyDownEvent) {
+        final json = keyboardInputJsonOf(event);
+        if (json != null) {
+          final holdInput = {
+            ...Map<String, dynamic>.from(jsonDecode(json) as Map),
+            'trigger': 'hold',
+          };
+          final hold = _actionDispatcher.resolveInput(holdInput, bindings);
+          if (hold != null) {
+            final input = hold['input'] as Map;
+            _keyHolds[event.physicalKey]?.cancel();
+            _keyHolds[event.physicalKey] = Timer(
+              Duration(
+                milliseconds: (input['durationMs'] as num? ?? 450)
+                    .toInt()
+                    .clamp(100, 5000),
+              ),
+              () {
+                if (!context.mounted ||
+                    !HardwareKeyboard.instance.physicalKeysPressed.contains(
+                      event.physicalKey,
+                    )) {
+                  return;
+                }
+                final current = _runtimeBindings;
+                if (current != null) {
+                  _actionDispatcher.dispatchInput(
+                    jsonEncode(holdInput),
+                    current,
+                    fromKeyboard: true,
+                  );
+                }
+              },
+            );
+            return KeyEventResult.handled;
+          }
+        }
+      }
+      if (event is KeyRepeatEvent && _keyHolds.containsKey(event.physicalKey)) {
+        return KeyEventResult.handled;
+      }
       // 只处理按下与长按重复：抬起/修饰键独立事件不该触发动作（与旧名单同一口径）。
       if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
         return KeyEventResult.ignored;
@@ -301,6 +395,22 @@ class ReaderInputController {
     await Future.delayed(Duration.zero);
     final tap = _tap;
     if (tap == null || !context.mounted) return;
+    final bindings = _runtimeBindings;
+    if (bindings != null) {
+      // 手势竞争胜出后，执行指针采集器记录的真实格子。视频子控件赢得点击时
+      // 不会走到这里，避免它自己的暂停/跳转与外层重复触发。未绑定格子也到此结束，
+      // 不能再回退到旧三分区，否则 Neo 留空的左上格会被当成左中格翻页。
+      _tap = null;
+      final input = _pointerBindings.deferredAreaClick;
+      if (!_pointerBindings.claimed && input != null) {
+        _actionDispatcher.dispatchInput(
+          jsonEncode(input),
+          bindings,
+          fromKeyboard: false,
+        );
+      }
+      return;
+    }
     _tap = null;
 
     final readSetting = context.read<GlobalSettingCubit>().state.readSetting;
@@ -329,6 +439,7 @@ class ReaderInputController {
   void _onDoubleTap() {
     if (!context.mounted) return;
     _tap = null;
+    if (_runtimeBindings != null && _pointerBindings.claimed) return;
     final readSetting = context.read<GlobalSettingCubit>().state.readSetting;
     if (readSetting.doubleTapZoom) {
       _onDoubleTapZoom();
@@ -377,20 +488,38 @@ class ReaderInputController {
   }
 
   void _onPointerDown(PointerDownEvent event) {
-    _dispatchPointerPress(event);
+    _radialOpeningPointer = event.pointer;
+    _lastPointerGlobal = event.position;
+    _pointerBindings.down(event, _areaAt(event.localPosition));
+
     if (!_isTouchPointer(event.kind)) return;
     _activeTouchPointers.add(event.pointer);
+    final bindings = _runtimeBindings;
+    _customTouchDrag =
+        bindings != null &&
+        ['left', 'right', 'up', 'down'].any(
+          (direction) =>
+              _actionDispatcher.resolveInput({
+                'device': 'touch',
+                'gesture': 'swipe-$direction',
+                'fingers': _activeTouchPointers.length,
+              }, bindings) !=
+              null,
+        );
     _updateMultiTouchScrollLock();
   }
 
   void _onPointerUpOrCancel(PointerEvent event) {
-    if (_radialAwaitingRelease) {
-      _radialAwaitingRelease = false;
-      // 松在哪一格就执行哪一格；松在中心空洞里 = 取消（浮层自己判）。
-      ReaderRadialMenu.commitAt(event.position);
+    _radialOpeningPointer = null;
+    if (event is PointerCancelEvent || ReaderRadialMenu.isOpen) {
+      // 轮盘用自己的 PieCanvas 消费抬起，避免同时触发阅读器 click 绑定。
+      _pointerBindings.cancel();
+    } else if (event is PointerUpEvent) {
+      _pointerBindings.up(event);
     }
     if (!_isTouchPointer(event.kind)) return;
     _activeTouchPointers.remove(event.pointer);
+    if (_activeTouchPointers.isEmpty) _customTouchDrag = false;
     _updateMultiTouchScrollLock();
   }
 
@@ -402,6 +531,31 @@ class ReaderInputController {
 
   void _onPointerSignal(PointerSignalEvent event) {
     if (event is! PointerScrollEvent || !_isDesktopPlatform) return;
+    final bindings = _runtimeBindings;
+    if (bindings != null && event.scrollDelta.dy != 0) {
+      final input = bindingWheelInput(event.scrollDelta.dy);
+      // 滚轮由命中测试送到阅读区，不依赖键盘焦点。右侧设置页可能把桥的上下文
+      // 留在 panel；复用它会使 reader 绑定失配，必须按当前内容采集本次上下文。
+      final contexts = [
+        'reader',
+        if (ActiveVideoScope.instance.hasTarget) 'video',
+      ];
+      if (_actionDispatcher.resolveInput(input, bindings, contexts: contexts) !=
+          null) {
+        // InteractiveViewer 直接处理缩放信号；消费绑定输入时复原它的本次变换。
+        final before = transformationController.value.clone();
+        GestureBinding.instance.pointerSignalResolver.register(event, (_) {
+          transformationController.value = before;
+          _actionDispatcher.dispatchInput(
+            jsonEncode(input),
+            bindings,
+            fromKeyboard: false,
+            contexts: contexts,
+          );
+        });
+        return;
+      }
+    }
 
     final newCtrlPressed =
         HardwareKeyboard.instance.logicalKeysPressed.contains(
@@ -415,6 +569,10 @@ class ReaderInputController {
       _isCtrlPressed = newCtrlPressed;
       onRefreshState();
     }
+
+    // 绑定表在位时，未命中的输入留给 Scrollable / 缩放；不再执行旧翻页规则。
+    // 否则删除、停用或改绑滚轮之后，它仍会绕过配置翻页。
+    if (bindings != null) return;
 
     final readMode = context
         .read<GlobalSettingCubit>()
@@ -438,7 +596,9 @@ class ReaderInputController {
   void _updateMultiTouchScrollLock() {
     final currentScale = transformationController.value.getMaxScaleOnAxis();
     final shouldLock =
-        _activeTouchPointers.length >= 2 || currentScale > kScaleLockThreshold;
+        _customTouchDrag ||
+        _activeTouchPointers.length >= 2 ||
+        currentScale > kScaleLockThreshold;
     if (isScrollLockedByMultiTouch() == shouldLock || !context.mounted) return;
     onUpdateScrollLock(shouldLock);
   }

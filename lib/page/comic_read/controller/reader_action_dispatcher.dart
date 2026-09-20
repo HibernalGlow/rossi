@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter/services.dart' show KeyRepeatEvent;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_read/controller/reader_action_controller.dart';
@@ -18,9 +20,8 @@ import 'package:zephyr/video/controller/video_action_dispatch.dart';
 /// 只回答「这个动作 id 在本仓怎么执行」。将来换 Tauri / egui 时要重写的就是这一个文件，
 /// 机械、可枚举。
 ///
-/// 动作 id 的清单与「哪些已实现」归注册表（Rust `ACTION_CATALOG`）。这里没实现的
-/// （上一个 / 下一个书籍）一律 no-op：设置页把它们标灰，导入的表里出现也不会
-/// 误触发什么。
+/// 动作 id 的清单与「哪些已实现」归注册表（Rust `ACTION_CATALOG`）。未实现的动作
+/// 仍然安全地 no-op；本地阅读的上下本动作会把请求交给当前会话的导航器。
 class ReaderActionDispatcher {
   ReaderActionDispatcher({
     required this.context,
@@ -30,7 +31,9 @@ class ReaderActionDispatcher {
     required this.onOpenSettings,
     required this.onResetView,
     required this.onOpenRadialMenu,
+    required this.onConfirmRadialMenu,
     this.onBeforePageTurn,
+    this.onSwitchBook,
   });
 
   final BuildContext context;
@@ -43,12 +46,14 @@ class ReaderActionDispatcher {
   /// 唤出轮盘。执行体在阅读器那边（浮层要挂在阅读器的 Overlay 上、要落在指针当前位置），
   /// 这里只负责「这个动作 id 在本仓就是开轮盘」。
   final VoidCallback onOpenRadialMenu;
+  final bool Function() onConfirmRadialMenu;
 
   /// 翻页前先归位缩放。只有**点击**路径要在外层补这一刀：横翻时 `_turnPage` 自己会先问
   /// `onBeforeTurnPage`（两条路都覆盖到了），但条漫的百分比滚动绕不过那条钩子 ——
   /// 改造前的点击路径因此在外面多调了一次。键盘的竖向小幅滚动是「平滑微调」，
   /// 本来就不该被归位打断，所以它不补。
   final VoidCallback? onBeforePageTurn;
+  final Future<void> Function(bool forward)? onSwitchBook;
 
   ReadSettingState get _readSetting =>
       context.read<GlobalSettingCubit>().state.readSetting;
@@ -59,10 +64,11 @@ class ReaderActionDispatcher {
   bool dispatchKeyEvent(KeyEvent event, String bindingsArrayJson) {
     final inputJson = keyboardInputJsonOf(event);
     if (inputJson == null) return false;
-    return _dispatchInput(
+    return dispatchInput(
       inputJson,
       bindingsArrayJson,
       fromKeyboard: true,
+      isRepeat: event is KeyRepeatEvent,
     );
   }
 
@@ -73,7 +79,7 @@ class ReaderActionDispatcher {
   bool dispatchPointerPress({
     required int button,
     required String bindingsArrayJson,
-  }) => _dispatchInput(
+  }) => dispatchInput(
     mouseInputJson(button: button),
     bindingsArrayJson,
     fromKeyboard: false,
@@ -83,29 +89,52 @@ class ReaderActionDispatcher {
   bool dispatchTapArea({
     required String area,
     required String bindingsArrayJson,
-  }) => _dispatchInput(
+  }) => dispatchInput(
     areaInputJson(area: area),
     bindingsArrayJson,
     fromKeyboard: false,
   );
 
-  bool _dispatchInput(
+  Map<String, dynamic>? resolveInput(
+    Map<String, dynamic> input,
+    String bindingsArrayJson, {
+    List<String>? contexts,
+  }) => OperationBindingStore.resolveBinding(
+    bindingsArrayJson: bindingsArrayJson,
+    inputJson: jsonEncode(input),
+    contexts:
+        contexts ??
+        ReaderInputBridge.instance.activeContexts
+            .map((context) => context.name)
+            .toList(growable: false),
+  );
+
+  bool dispatchInput(
     String inputJson,
     String bindingsArrayJson, {
     required bool fromKeyboard,
+    bool isRepeat = false,
+    List<String>? contexts,
   }) {
-    final actionId = OperationBindingStore.resolveAction(
+    final binding = OperationBindingStore.resolveBinding(
       bindingsArrayJson: bindingsArrayJson,
       inputJson: inputJson,
       // 用**当下真实的 context 集合**，不能用写死的 `readerContexts`：
       // 那样 `video.*` 那 24 条动作在解析阶段就永远不会命中（它们的 context 是
       // `video`，优先级 150 高于 `reader` 的 100），注册表里再全也只是摆设。
-      contexts: ReaderInputBridge.instance.activeContexts
-          .map((context) => context.name)
-          .toList(growable: false),
+      // 指针入口提供命中区域的上下文，键盘入口使用工作台报告的焦点上下文。
+      contexts:
+          contexts ??
+          ReaderInputBridge.instance.activeContexts
+              .map((context) => context.name)
+              .toList(growable: false),
     );
-    if (actionId == null) return false;
-    return dispatch(actionId, fromKeyboard: fromKeyboard);
+    if (binding == null) return false;
+    return dispatchBindingActions(
+      binding,
+      isRepeat: isRepeat,
+      execute: (action) => dispatch(action, fromKeyboard: fromKeyboard),
+    );
   }
 
   /// 派发一条已解析的动作。返回 `false` = 本仓还没有这一条的执行体（或它被设置关着）。
@@ -118,6 +147,13 @@ class ReaderActionDispatcher {
     if (remapPageTurnToSeekWhenSeekMode(actionId)) return true;
 
     switch (actionId) {
+      case BindingAction.nextBook:
+      case BindingAction.previousBook:
+        final switchBook = onSwitchBook;
+        if (switchBook == null) return false;
+        unawaited(switchBook(actionId == BindingAction.nextBook));
+        return true;
+
       case BindingAction.pageLeft:
       case BindingAction.pageRight:
         // 空间动作：**方向在这里交给引擎解释**（左右开下「往右翻」是前进还是退回
@@ -171,7 +207,8 @@ class ReaderActionDispatcher {
 
       case BindingAction.toggleBookMode:
         context.read<GlobalSettingCubit>().updateReadSetting(
-          (current) => current.copyWith(doublePageMode: !current.doublePageMode),
+          (current) =>
+              current.copyWith(doublePageMode: !current.doublePageMode),
         );
         return true;
 
@@ -193,9 +230,7 @@ class ReaderActionDispatcher {
         context.read<ReaderPresentationCubit>().stepScale(-1);
         return true;
       case BindingAction.fitWindow:
-        context.read<ReaderPresentationCubit>().setFitMode(
-          ReaderFitMode.fit,
-        );
+        context.read<ReaderPresentationCubit>().setFitMode(ReaderFitMode.fit);
         onResetView();
         return true;
       case BindingAction.actualSize:
@@ -227,6 +262,9 @@ class ReaderActionDispatcher {
         // 差别只在前者的输入是键盘/点击，后者的输入是 `device: radial`。
         onOpenRadialMenu();
         return true;
+
+      case BindingAction.confirmRadialMenu:
+        return onConfirmRadialMenu();
 
       default:
         return false;

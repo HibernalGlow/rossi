@@ -1131,6 +1131,7 @@ impl FileManagerState {
                 .to_ascii_lowercase();
             if !crate::file_tree::is_comic_archive_path(path)
                 && !crate::folder_tree::is_recognized_image_ext(&extension)
+                && !crate::page_order::is_video_name(&path.to_string_lossy())
             {
                 return Err(anyhow!("当前 Reader 暂不支持直接打开 {}", path.display()));
             }
@@ -1292,7 +1293,7 @@ fn entry_filter_matches(filter: EntryFilter, node: &FileTreeNode) -> bool {
     }
 }
 
-fn compare_entries(
+pub(crate) fn compare_entries(
     settings: &FileManagerSettings,
     left: &FileTreeNode,
     right: &FileTreeNode,
@@ -1622,6 +1623,11 @@ fn resolve_penetration_inner(
         .filter(|entry| entry.is_image || entry.is_video || entry.is_audio)
         .collect();
 
+    // Neo 的混合媒体目录：两张以上散图作为一本，子目录留给上下本遍历。
+    if !directories.is_empty() && media.len() >= 2 {
+        return PenetrationResult::Terminal(path.to_path_buf());
+    }
+
     // 唯一归档允许和封面图共存；多个候选或归档与子目录混合时必须让用户选择。
     if directories.is_empty() && archives.len() == 1 {
         return PenetrationResult::Terminal(PathBuf::from(&archives[0].path));
@@ -1710,6 +1716,56 @@ mod tests {
 
     fn touch(path: &Path) {
         fs::write(path, b"x").unwrap();
+    }
+
+    #[test]
+    fn video_entries_open_as_the_selected_media_file() {
+        let dir = tempdir().unwrap();
+        touch(&dir.path().join("000-cover.jpg"));
+        for ext in crate::page_order::VIDEO_EXTENSIONS {
+            touch(&dir.path().join(format!("视频 2.{}", ext.to_uppercase())));
+        }
+        let mut state = FileManagerState::new(Some(dir.path().into())).unwrap();
+        state.set_entry_filter(EntryFilter::Video);
+        let entries = state.entries().unwrap();
+        assert_eq!(entries.len(), crate::page_order::VIDEO_EXTENSIONS.len());
+        for entry in entries {
+            let entry = entry.node;
+            assert!(entry.is_video, "{}", entry.name);
+            let OpenEntryResult::Opened(path) = state.open_entry(&entry.path, false).unwrap()
+            else {
+                panic!("点击视频应该打开 Reader");
+            };
+            assert_eq!(path, Path::new(&entry.path));
+            assert_eq!(state.active_path(), dir.path());
+
+            // 不能只放行文件管理器：交给 Reader 的路径也必须能真正打开。
+            let source = crate::LocalSource::open(&path).unwrap();
+            assert_eq!(source.kind(), crate::SourceKind::MediaFile);
+            assert_eq!(source.root(), path);
+            assert_eq!(source.len(), 1);
+            assert_eq!(source.pages()[0].name, entry.name);
+            assert_eq!(source.total_bytes(), 1);
+            assert_eq!(source.page_bytes(0).unwrap(), b"x");
+            assert!(source.page_bytes(1).is_err());
+        }
+    }
+
+    #[test]
+    fn open_entry_still_rejects_unsupported_or_missing_files() {
+        let dir = tempdir().unwrap();
+        let mut state = FileManagerState::new(Some(dir.path().into())).unwrap();
+        for name in ["readme.txt", "song.mp3"] {
+            let path = dir.path().join(name);
+            touch(&path);
+            assert!(state.open_entry(&path, false).is_err());
+        }
+        assert!(
+            state
+                .open_entry(dir.path().join("missing.mp4"), false)
+                .is_err()
+        );
+        assert_eq!(state.active_path(), dir.path());
     }
 
     #[test]

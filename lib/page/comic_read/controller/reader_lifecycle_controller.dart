@@ -45,6 +45,9 @@ class ReaderLifecycleController {
 
   bool _hasBootstrappedReadState = false;
   bool _isDesktopFullscreen = false;
+  bool _switchingBook = false;
+
+  void preserveFullscreenOnBookSwitch() => _switchingBook = true;
 
   bool get hasBootstrappedReadState => _hasBootstrappedReadState;
   bool get isDesktopFullscreen => _isDesktopFullscreen;
@@ -64,7 +67,7 @@ class ReaderLifecycleController {
     autoReadController.dispose();
     systemUiController.dispose();
     await systemUiController.restoreSystemBars();
-    if (isDesktopPlatform()) {
+    if (isDesktopPlatform() && !_switchingBook) {
       await _restoreDesktopFullscreen();
     }
     await historyController.stop();

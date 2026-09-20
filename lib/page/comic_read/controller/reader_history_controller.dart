@@ -43,6 +43,7 @@ class ReaderHistoryController {
   final _service = ReaderHistoryService.instance;
   StreamSubscription<String>? _statusSubscription;
   bool isSkipped = false;
+  bool _stopped = false;
 
   Future<void> init() async {
     await _service.loadHistory(
@@ -69,6 +70,8 @@ class ReaderHistoryController {
   }
 
   Future<void> stop() async {
+    if (_stopped) return;
+    _stopped = true;
     _statusSubscription?.cancel();
     await _service.stop();
   }

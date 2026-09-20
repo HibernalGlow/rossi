@@ -27,7 +27,13 @@ use rossi_local_core::{
 use super::local::LocalRootLocation;
 
 lazy_static! {
-    static ref FILE_MANAGER_SESSIONS: DashMap<u64, FileManagerState> = DashMap::new();
+    /// 每个文件管理器卡片一个会话。
+    ///
+    /// `pub(crate)`：文件操作的桥（`api::file_ops`）要用同一份真本 ——
+    /// 选中集合是按**列表下标**表达的，而下标只在某一个 generation 的某一份
+    /// `entries()` 上有意义。让文件操作自己再列一遍目录就等于让两边的列表
+    /// 有各自的时序，选中项会指到别的条目上。
+    pub(crate) static ref FILE_MANAGER_SESSIONS: DashMap<u64, FileManagerState> = DashMap::new();
     static ref NEXT_FILE_MANAGER_ID: AtomicU64 = AtomicU64::new(1);
     /// 已打开的目录视图状态库。同一进程里所有文件管理器卡片共用一个连接；
     /// 路径变了（换数据目录、测试）就重开。
@@ -219,6 +225,8 @@ pub struct FileManagerActionResult {
     pub snapshot: FileManagerSnapshot,
     /// 非空时表示 UI 应该把该路径交给 Reader；浏览器自身仍停留在原目录。
     pub opened_path: Option<String>,
+    /// 核心拥有的上下本游标；UI 只需随阅读目标透传。
+    pub book_navigation_json: Option<String>,
 }
 
 /// 工具函数：把一条命中投影成列表条目时，顺带算出它在搜索根之下的目录。
@@ -578,13 +586,26 @@ pub async fn file_manager_open_entry(
     force_enter: bool,
 ) -> Result<FileManagerActionResult, Error> {
     with_session(id, move |state| {
-        let opened_path = match state.open_entry(PathBuf::from(path), force_enter)? {
+        let activated = PathBuf::from(path);
+        let opened_path = match state.open_entry(&activated, force_enter)? {
             OpenEntryResult::Entered(_) => None,
             OpenEntryResult::Opened(path) => Some(path.to_string_lossy().into_owned()),
         };
+        let book_navigation_json = opened_path
+            .as_ref()
+            .map(|source| {
+                rossi_local_core::book_navigation::BookNavigation::from_browser(
+                    state,
+                    &activated,
+                    Path::new(source),
+                )
+                .and_then(|navigation| Ok(serde_json::to_string(&navigation)?))
+            })
+            .transpose()?;
         Ok(FileManagerActionResult {
             snapshot: snapshot_for(id, state)?,
             opened_path,
+            book_navigation_json,
         })
     })
     .await
@@ -605,12 +626,52 @@ pub async fn file_manager_open_archive(
             .open_archive(PathBuf::from(path))?
             .to_string_lossy()
             .into_owned();
+        let navigation = rossi_local_core::book_navigation::BookNavigation::from_browser(
+            state,
+            Path::new(&opened_path),
+            Path::new(&opened_path),
+        )?;
         Ok(FileManagerActionResult {
             snapshot: snapshot_for(id, state)?,
             opened_path: Some(opened_path),
+            book_navigation_json: Some(serde_json::to_string(&navigation)?),
         })
     })
     .await
+}
+
+#[derive(Debug, Clone)]
+pub struct LocalBookNavigationTarget {
+    pub path: String,
+    pub navigation_json: String,
+}
+
+/// 按打开时的列表与目录栈查找上下本；不依赖仍在挂载的文件管理器。
+#[frb]
+pub async fn local_book_adjacent(
+    path: String,
+    navigation_json: Option<String>,
+    forward: bool,
+) -> Result<Option<LocalBookNavigationTarget>, Error> {
+    rquickjs_playground::global_handle()
+        .spawn_blocking(move || {
+            use rossi_local_core::book_navigation::BookNavigation;
+            let source = Path::new(&path);
+            let navigation = match navigation_json {
+                Some(json) => serde_json::from_str::<BookNavigation>(&json)?,
+                None => BookNavigation::standalone(source),
+            };
+            navigation
+                .adjacent(source, forward)?
+                .map(|next| {
+                    Ok(LocalBookNavigationTarget {
+                        path: next.source().to_string_lossy().into_owned(),
+                        navigation_json: serde_json::to_string(&next)?,
+                    })
+                })
+                .transpose()
+        })
+        .await?
 }
 
 #[frb]
@@ -1110,7 +1171,7 @@ pub async fn file_manager_tree_toggle(
     .await
 }
 
-async fn with_session<R, F>(id: u64, operation: F) -> Result<R, Error>
+pub(crate) async fn with_session<R, F>(id: u64, operation: F) -> Result<R, Error>
 where
     R: Send + 'static,
     F: FnOnce(&mut FileManagerState) -> Result<R, Error> + Send + 'static,

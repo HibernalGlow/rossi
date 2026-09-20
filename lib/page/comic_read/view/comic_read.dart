@@ -24,6 +24,11 @@ import 'package:zephyr/page/comic_read/widgets/modes/read_mode_utils.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/util/input/reader_input_bridge.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
+import 'package:zephyr/service/reader/local_book_navigation_controller.dart';
+import 'package:zephyr/config/router/router.gr.dart';
+import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/workspace/model/workspace_reader_target.dart';
+import 'package:zephyr/workspace/router/workspace_navigation_bridge.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_fullscreen_scope.dart';
 
@@ -174,6 +179,8 @@ class _ComicReadPageState extends State<_ComicReadPage>
   late final ReaderLifecycleController _lifecycleController; // 生命周期控制器
   late final ReaderOrientationController _orientationController;
   late final ReaderInputController _inputController; // 输入控制器
+  LocalBookNavigationController? _bookNavigation;
+
   /// 登记到 [ReaderInputBridge] 的按键处理器。留住**同一个 tear-off**，
   /// 注销时才能对上（`detach` 用 `identical` 判定）。
   KeyEventResult Function(KeyEvent event)? _readerKeyDispatch;
@@ -214,6 +221,7 @@ class _ComicReadPageState extends State<_ComicReadPage>
     _initVolumeController();
     _initLifecycleController();
     _orientationController = ReaderOrientationController();
+    _initBookNavigation();
     _initInputController();
     _initActionController();
     _setVolumeControllerAction();
@@ -247,13 +255,14 @@ class _ComicReadPageState extends State<_ComicReadPage>
       ReaderInputBridge.instance.detach(readerKeyDispatch);
     }
     _inputController.dispose();
+    _bookNavigation?.dispose();
     _imagePrefetchController.dispose();
     _volumeController.dispose();
     _pageController.dispose();
     _transformationController.dispose();
     unawaited(_orientationController.restorePortrait());
     if (isLocalComicSource(widget.from, comicId)) {
-      unawaited(LocalReadSession.instance.dispose());
+      unawaited(LocalReadSession.instance.dispose(expectedPath: comicId));
     }
     ReaderSessionCoordinator.instance.detachSession(comicId);
     super.dispose();
@@ -342,6 +351,7 @@ class _ComicReadPageState extends State<_ComicReadPage>
                 buildInteractiveViewer: (_) =>
                     _inputController.buildInteractiveViewer(),
                 buildPageCount: (_) => _pageCountWidget(),
+                buildProgressBar: (_) => _readerProgressBarWidget(),
                 buildAppBar: (_) => _comicReadAppBar(),
                 buildBottom: (innerContext) => _bottomWidget(innerContext),
                 buildAutoReadControl: (_) => _autoReadControlWidget(),

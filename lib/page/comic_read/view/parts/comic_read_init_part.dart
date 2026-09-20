@@ -1,6 +1,53 @@
 part of '../comic_read.dart';
 
 extension _ComicReadInitPart on _ComicReadPageState {
+  void _initBookNavigation() {
+    if (!isLocalComicSource(widget.from, comicId)) return;
+    _bookNavigation = LocalBookNavigationController(
+      path: comicId,
+      navigationJson:
+          widget.chapterExtern[LocalBookNavigationController.contextKey]
+              as String?,
+      notify: (message) => showInfoToast(message),
+      open: (target) async {
+        // 在旧页面卸载前保存进度；旧 controller 的 stop 是幂等的。
+        await _historyController.stop();
+        if (!mounted) return;
+        final extern = <String, dynamic>{
+          LocalBookNavigationController.contextKey: target.navigationJson,
+        };
+        _lifecycleController.preserveFullscreenOnBookSwitch();
+        final selection = StringSelectCubit();
+        if (WorkspaceNavigationBridge.instance.openReaderInLane(
+          WorkspaceReaderTarget(
+            comicId: target.path,
+            from: widget.from,
+            comicInfo: target.path,
+            chapterExtern: extern,
+            stringSelectCubit: selection,
+          ),
+        )) {
+          return;
+        }
+        // 独立阅读页面替换当前路由，连续换书不会堆积返回栈。
+        unawaited(
+          context.router.replace(
+            ComicReadRoute(
+              comicId: target.path,
+              order: 0,
+              epsNumber: 1,
+              from: widget.from,
+              type: ComicEntryType.normal,
+              comicInfo: target.path,
+              chapterExtern: extern,
+              stringSelectCubit: selection,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   bool get _isDesktopPlatform =>
       !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
 
@@ -12,6 +59,7 @@ extension _ComicReadInitPart on _ComicReadPageState {
       pageController: _pageController,
       transformationController: _transformationController,
       onToggleMenu: _toggleVisibility,
+      onSwitchBook: _bookNavigation?.switchBook,
       onToggleDesktopFullscreen: _lifecycleController.toggleDesktopFullscreen,
       onRefreshState: () => _refreshState(() {}),
       isScrollLockedByMultiTouch: () => _isScrollLockedByMultiTouch,
