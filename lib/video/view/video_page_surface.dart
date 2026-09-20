@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
+import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/video/controller/mpv_video_transport.dart';
 import 'package:zephyr/video/controller/reader_video_controller.dart';
 import 'package:zephyr/video/controller/video_action_dispatch.dart';
@@ -24,6 +25,7 @@ import 'package:zephyr/video/controller/video_transport.dart';
 import 'package:zephyr/video/service/video_frame_preview.dart';
 import 'package:zephyr/video/service/video_materializer.dart';
 import 'package:zephyr/video/service/video_poster_service.dart';
+import 'package:zephyr/video/service/video_waveform_service.dart';
 import 'package:zephyr/video/service/video_progress_store.dart';
 import 'package:zephyr/video/subtitle/video_subtitle.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
@@ -221,6 +223,7 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
   Future<void> _start() async {
     if (_starting) return;
     _starting = true;
+    resetVideoSubtitleActionState();
     final transport = _transport ?? MpvVideoTransport();
     final controller = ReaderVideoController(
       host: this,
@@ -242,7 +245,7 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
     try {
       final resolved = await _resolvePlayablePath();
       if (resolved == null) {
-        if (mounted) setState(() => _error = '这个视频条目取不到字节');
+        if (mounted) setState(() => _error = t.video.noBytes);
         return;
       }
       _materializedPath = resolved;
@@ -266,6 +269,7 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
       await transport.setFilter(_filter);
       await transport.setSubtitleStyle(_subtitleStyle);
       await _attachSidecarSubtitles(resolved);
+      _loadWaveform(resolved);
       _armHideTimer();
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
@@ -326,17 +330,40 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
     // 只有一条字幕时自动挂上（neoview 也是首条自动选），并把选中态记下来，
     // 否则弹层里看不出「现在挂的是外挂轨还是容器内轨」。
     _activeSidecarId = 'file:${first.path}';
-    if (first.path.startsWith('archive:')) {
-      // 归档内的字幕要先落盘才能喂给 mpv：字幕条目本身很小，直接写字节。
-      final local = await _materializeSidecar(first.path);
-      if (local != null) await transport.addSubtitleFile(local);
-    } else {
-      await transport.addSubtitleFile(first.path);
-    }
+    // 归档内的字幕要先落盘才能喂给 mpv（字幕条目本身很小，直接写字节）；
+    // `.sub`（MicroDVD）还要再过一道转换，mpv 解不动那一档。
+    final landed = first.path.startsWith('archive:')
+        ? await _materializeSidecar(first.path)
+        : first.path;
+    if (landed == null) return;
+    final ready = await _prepareSubtitle(landed, first.format);
+    if (ready == null) return;
+    await transport.addSubtitleFile(ready);
     if (mounted) setState(() {});
   }
 
   String? _activeSidecarId;
+
+  VideoWaveformStrip _waveform = VideoWaveformStrip.empty;
+
+  /// 波形条是装饰：解码在核心侧异步跑，回来时页面可能已经翻页了，所以要判 mounted
+  /// 与路径未变。失败就是「不画」，不报错、不挡播放。
+  Future<void> _loadWaveform(String path) async {
+    final controller = _controller;
+    if (controller == null) return;
+    var duration = controller.snapshot.duration;
+    if (duration <= Duration.zero) {
+      // 时长可能还没回来（mpv 的 duration 事件比 open 晚）。等一下，最多 2 s。
+      for (var i = 0; i < 20 && duration <= Duration.zero; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        duration = controller.snapshot.duration;
+      }
+    }
+    if (duration <= Duration.zero) return;
+    final strip = await VideoWaveformService.instance.stripFor(path, duration);
+    if (!mounted || _materializedPath != path || strip.isEmpty) return;
+    setState(() => _waveform = strip);
+  }
 
   /// 外挂字幕在弹层里长成一条普通轨道，id 前缀 `file:` 表示「要先落盘再挂」。
   List<VideoMediaTrack> get _subtitleOptions => <VideoMediaTrack>[
@@ -371,9 +398,25 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
         ? await _materializeSidecar(marker)
         : marker;
     if (real == null) return;
+    final ready = await _prepareSubtitle(
+      real,
+      _sidecarAt(id)?.format ?? 'srt',
+    );
+    if (ready == null) return;
     _activeSidecarId = id;
-    await transport.addSubtitleFile(real);
+    await transport.addSubtitleFile(ready);
     if (mounted) setState(() {});
+  }
+
+  /// 交给引擎前的准备：只转换 mpv 解不动的那一档（MicroDVD），其余原样。
+  Future<String?> _prepareSubtitle(String path, String format) =>
+      convertSubtitleFileForEngine(path, format: format);
+
+  SubtitleCandidate? _sidecarAt(String id) {
+    for (final candidate in _sidecarSubtitles) {
+      if ('file:${candidate.path}' == id) return candidate;
+    }
+    return null;
   }
 
   Future<String?> _materializeSidecar(String archiveMarker) async {
@@ -609,7 +652,7 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
                     color: Colors.black,
                     child: Center(
                       child: Text(
-                        snapshot.failureReason ?? '这一页播不了',
+                        snapshot.failureReason ?? t.video.cannotPlay,
                         style: const TextStyle(color: Colors.white70),
                       ),
                     ),
@@ -667,6 +710,7 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
                         ),
                         extraSubtitleTracks: _subtitleOptions,
                         onSubtitleSelected: _chooseSubtitle,
+                        waveform: _waveform,
                       ),
                     ),
                   ),

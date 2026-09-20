@@ -1,7 +1,7 @@
 /// 拖动条上的缩略帧与波形 —— mImageViewer `src/video/seek_strip*.rs` 的等效实现。
 ///
 /// 借的是它两个设计，而不是它的解码器：
-/// 1. **容差最近帧**（`thumbnail.rs`）：缓存按整纳秒 PTS 键放在有序表里，
+/// 1. **容差最近帧**（`thumbnail.rs`）：缓存按整数 PTS 键放在有序表里，
 ///    取「最近一个不超过目标的帧」，容差是**每次请求**的参数而不是全局值 ——
 ///    于是「鼠标悬停要快（容忍旧帧）」和「落点要准（宁可等）」共用一份缓存。
 /// 2. **单槽位调度**（neoview `VideoProcessScheduler.ts:9-17`）：同一时刻只跑一个抽帧任务，
@@ -24,29 +24,30 @@ class VideoFramePreview {
   final String filePath;
 }
 
-/// 有序帧缓存 + 容差查找。键是**整数纳秒**，与 mimage 同口径
-/// （浮点秒做键会因为量化差异而查不中，表现为「明明有帧却重新解」）。
+/// 有序帧缓存 + 容差查找。键是**整数微秒**（`Duration.inMicroseconds` ——
+/// Dart 的时间精度就是 µs，上游 mimage 用的是 ns，别照抄那个单位），
+/// 与 mimage 同口径（浮点秒做键会因为量化差异而查不中，表现为「明明有帧却重新解」）。
 class VideoFrameCache {
   VideoFrameCache({this.maxEntries = 100});
 
   /// neoview `ReaderVideoPlayerUtils.ts` 的 100 条 LRU；mimage 的量化容差也落在这个量级。
   final int maxEntries;
-  final SplayTreeMap<int, VideoFramePreview> _byNanos =
+  final SplayTreeMap<int, VideoFramePreview> _byMicros =
       SplayTreeMap<int, VideoFramePreview>();
 
-  int get length => _byNanos.length;
+  int get length => _byMicros.length;
 
   /// 量化到 0.5 s（neo 的帧缓存键），避免鼠标蹭同一片区域就重复解帧。
-  static int quantizeNanos(Duration at) =>
+  static int quantizeMicros(Duration at) =>
       (at.inMicroseconds ~/ 500000) * 500000;
 
   void put(Duration at, String filePath) {
-    final key = quantizeNanos(at);
-    _byNanos[key] = VideoFramePreview(at: at, filePath: filePath);
-    while (_byNanos.length > maxEntries) {
+    final key = quantizeMicros(at);
+    _byMicros[key] = VideoFramePreview(at: at, filePath: filePath);
+    while (_byMicros.length > maxEntries) {
       // 丢最老的（BTreeMap 的第一项）。上游同样是「最旧优先淘汰」，
       // 因为进度条的访问模式是局部滑动，不是随机跳。
-      _byNanos.remove(_byNanos.firstKey());
+      _byMicros.remove(_byMicros.firstKey());
     }
   }
 
@@ -56,27 +57,27 @@ class VideoFrameCache {
     required Duration target,
     Duration tolerance = const Duration(milliseconds: 1500),
   }) {
-    if (_byNanos.isEmpty) return null;
-    final key = quantizeNanos(target);
+    if (_byMicros.isEmpty) return null;
+    final key = quantizeMicros(target);
     // 精确命中优先：拖动条落点常常正好就是缓存里那一格，
     // 这时不该退到「上一格」去（画面会差半秒，而半秒在慢速镜头下看得出来）。
-    final exact = _byNanos[key];
+    final exact = _byMicros[key];
     if (exact != null && (target - exact.at).abs() <= tolerance) return exact;
-    final pastKey = _byNanos.lastKeyBefore(key);
+    final pastKey = _byMicros.lastKeyBefore(key);
     if (pastKey != null) {
-      final past = _byNanos[pastKey];
+      final past = _byMicros[pastKey];
       if (past != null && target - past.at <= tolerance) return past;
     }
-    final futureKey = _byNanos.firstKeyAfter(key);
+    final futureKey = _byMicros.firstKeyAfter(key);
     if (futureKey != null) {
-      final future = _byNanos[futureKey];
+      final future = _byMicros[futureKey];
       if (future != null && future.at - target <= tolerance) return future;
     }
     // 两端都超容差时不给帧（宁可不显示，也不显示一个差了好几秒的画面）。
     return null;
   }
 
-  void clear() => _byNanos.clear();
+  void clear() => _byMicros.clear();
 }
 
 /// 单槽位抽帧调度器。
@@ -167,72 +168,27 @@ class VideoFramePreviewProvider {
   }
 }
 
-/// 波形条采样（mImageViewer `seek_strip_wave.rs`）。
+/// 波形条的一整条列 —— 一格一个 0–1 的 RMS 值。
 ///
-/// Rossi 侧不做解码：波形只用于「有声音的条目」在进度条上画出密度的起伏，
-/// 数据来源是**已经缓存的抽帧结果的亮度**这条路走不通，所以这里退而求其次 ——
-/// 由上层喂入 PCM 幅值（未来接 `local_core` 的音频解码时改一行来源即可）。
+/// 只保留「一列 + 它代表多久」这两个事实：取样、降采样、按窗口取区间这些
+/// 都曾经在这里，但整条列一次算完后 UI 直接用，留着的分支就是没人走的死路。
 class VideoWaveformStrip {
-  const VideoWaveformStrip({required this.samples, required this.duration});
-
-  final List<double> samples;
-  final Duration duration;
+  const VideoWaveformStrip({
+    required this.samples,
+    required this.duration,
+    this.binSecs = 0.1,
+  });
 
   static const VideoWaveformStrip empty = VideoWaveformStrip(
     samples: <double>[],
     duration: Duration.zero,
   );
 
+  final List<double> samples;
+  final Duration duration;
+
+  /// 每格宽度（秒）：让「一格代表多久」由数据带着走，而不是由格数反推。
+  final double binSecs;
+
   bool get isEmpty => samples.isEmpty;
-
-  /// 归一化到 0–1，并降采样到 [bins] 个柱。
-  factory VideoWaveformStrip.fromPcm({
-    required List<double> pcm,
-    required Duration duration,
-    int bins = 180,
-  }) {
-    if (pcm.isEmpty) return empty;
-    final per = (pcm.length / bins).ceil();
-    final out = <double>[];
-    var max = 0.0;
-    for (var b = 0; b < bins; b++) {
-      var sum = 0.0;
-      final start = b * per;
-      final end = (start + per).clamp(0, pcm.length);
-      for (var i = start; i < end; i++) {
-        final v = pcm[i].abs();
-        if (v > max) max = v;
-        sum += v * v;
-      }
-      if (start >= pcm.length) break;
-      out.add(per == 0 ? 0 : (sum / (end - start)).sqrt());
-    }
-    final norm = max == 0 ? 1.0 : max;
-    return VideoWaveformStrip(
-      samples: out.map((v) => (v / norm).clamp(0.0, 1.0)).toList(growable: false),
-      duration: duration,
-    );
-  }
-
-  /// 给定时间窗，返回落在其中的柱下标区间。
-  (int, int) binsFor({required Duration from, required Duration to}) {
-    if (samples.isEmpty || duration <= Duration.zero) return (0, 0);
-    final scale = samples.length / duration.inMilliseconds;
-    final a = (from.inMilliseconds * scale).floor().clamp(0, samples.length);
-    final b = (to.inMilliseconds * scale).floor().clamp(0, samples.length);
-    return a <= b ? (a, b) : (b, a);
-  }
-}
-
-extension on double {
-  double sqrt() => _sqrt(this);
-}
-
-double _sqrt(double v) {
-  if (v <= 0) return 0;
-  var x = v;
-  for (var i = 0; i < 24; i++) {
-    x = 0.5 * (x + v / x);
-  }
-  return x;
 }

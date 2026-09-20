@@ -10,6 +10,9 @@ library;
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
+
+import 'package:zephyr/i18n/strings.g.dart';
 
 import 'package:flutter/material.dart';
 
@@ -46,7 +49,8 @@ class VideoLabels {
     required this.frameStepForward,
     required this.frameStepBackward,
     required this.pip,
-    this.subPresets = const <String>['无', '默认'],
+    this.audio = '音轨',
+    this.audioOff = '关闭音轨',
   });
 
   final String play;
@@ -73,7 +77,64 @@ class VideoLabels {
   final String frameStepForward;
   final String frameStepBackward;
   final String pip;
-  final List<String> subPresets;
+
+  /// 音轨面板文案（多音轨片源用得上，见 `_TrackPanel`）。
+  final String audio;
+  final String audioOff;
+}
+
+/// 轨道选择面板（字幕与音轨共用）：`null` = 关闭这条输出。
+class _TrackPanel extends StatelessWidget {
+  const _TrackPanel({
+    required this.tracks,
+    required this.offLabel,
+    required this.onSelected,
+  });
+
+  final List<VideoMediaTrack> tracks;
+  final String offLabel;
+  final ValueChanged<String?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedId = tracks.where((t) => t.selected).firstOrNull?.id;
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: SizedBox(
+        width: 240,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            ListTile(
+              dense: true,
+              title: Text(offLabel),
+              leading: Icon(
+                selectedId == null
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_off,
+              ),
+              onTap: () => onSelected(null),
+            ),
+            for (final track in tracks)
+              ListTile(
+                dense: true,
+                title: Text(track.title),
+                subtitle: track.language == null
+                    ? null
+                    : Text(track.language!),
+                leading: Icon(
+                  track.id == selectedId
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_off,
+                ),
+                onTap: () => onSelected(track.id),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// 倍速档：neo 的滑杆区间 + 0.5/1/1.5/2 预设。
@@ -88,6 +149,7 @@ class VideoControlOverlay extends StatelessWidget {
     required this.onTogglePin,
     required this.pinned,
     required this.panelsOpen,
+    this.waveform = VideoWaveformStrip.empty,
     this.framePreview,
     this.filter,
     this.onFilterChanged,
@@ -110,6 +172,9 @@ class VideoControlOverlay extends StatelessWidget {
 
   /// 任一弹层开着 —— 控制条的自动隐藏要让路给它（neo `shown = visible || anyPanelOpen`）。
   final ValueNotifier<bool> panelsOpen;
+
+  /// 声音轮廓（mimage 的 seek strip wave）。空则进度条后面什么都不画。
+  final VideoWaveformStrip waveform;
   final VideoFramePreviewProvider? framePreview;
   final VideoFilterState? filter;
   final ValueChanged<VideoFilterState>? onFilterChanged;
@@ -132,6 +197,7 @@ class VideoControlOverlay extends StatelessWidget {
     // 外挂字幕（同目录 / 同归档里的 srt/ass）也要能在同一个弹层里选：
     // neoview 的字幕弹层列的就是「服务端匹配到的轨 + 容器内轨」。
     final tracks = <VideoMediaTrack>[...engineTracks, ...extraSubtitleTracks];
+    final audioTracks = transport?.audioTracks ?? const <VideoMediaTrack>[];
     final filterState = filter;
     final loops = <ReaderVideoLoopMode, (IconData, String)>{
       ReaderVideoLoopMode.list: (Icons.repeat, labels.loop),
@@ -143,7 +209,12 @@ class VideoControlOverlay extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        _ScrubBar(snapshot: snapshot, controller: controller, framePreview: framePreview),
+        _ScrubBar(
+          snapshot: snapshot,
+          controller: controller,
+          framePreview: framePreview,
+          waveform: waveform,
+        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
           child: Wrap(
@@ -195,7 +266,7 @@ class VideoControlOverlay extends StatelessWidget {
                 ),
               ),
               _TextButton(
-                label: snapshot.muted ? '静音' : '${(snapshot.volume * 100).round()}%',
+                label: snapshot.muted ? t.video.muted : '${(snapshot.volume * 100).round()}%',
                 tooltip: labels.volume,
                 active: snapshot.muted,
                 panelsOpen: panelsOpen,
@@ -223,6 +294,21 @@ class VideoControlOverlay extends StatelessWidget {
                   },
                 ),
               ),
+              // 音轨（mimage `set_audio_track`）：接口早就在 transport 上，
+              // 但没有面板就等于「登记了却没实现」。多音轨片源（中日双语、评论音轨）
+              // 全靠这一条。
+              if (audioTracks.length > 1)
+                _TextButton(
+                  label: labels.audio,
+                  tooltip: labels.audio,
+                  active: audioTracks.any((t) => t.selected),
+                  panelsOpen: panelsOpen,
+                  builder: (context) => _TrackPanel(
+                    tracks: audioTracks,
+                    offLabel: labels.audioOff,
+                    onSelected: (id) => transport?.selectAudioTrack(id),
+                  ),
+                ),
               if (filterState != null && onFilterChanged != null)
                 _TextButton(
                   label: labels.filters,
@@ -310,11 +396,13 @@ class _ScrubBar extends StatefulWidget {
     required this.snapshot,
     required this.controller,
     this.framePreview,
+    this.waveform = VideoWaveformStrip.empty,
   });
 
   final ReaderVideoSnapshot snapshot;
   final ReaderVideoController controller;
   final VideoFramePreviewProvider? framePreview;
+  final VideoWaveformStrip waveform;
 
   @override
   State<_ScrubBar> createState() => _ScrubBarState();
@@ -337,9 +425,12 @@ class _ScrubBarState extends State<_ScrubBar> {
     if (duration <= Duration.zero) return;
     final fraction = (event.position.dx / size.width).clamp(0.0, 1.0);
     final at = duration * fraction;
+    // 已经解出来的帧立刻显示：去抖窗口里先亮一个转圈，划过缓存区时会闪个不停。
+    final cached = widget.framePreview?.peek(at);
     setState(() {
       _hoverAt = at;
       _hoverLocal = event.localPosition;
+      if (cached != null) _previewFrame = cached;
     });
     _previewDebounce?.cancel();
     // 120 ms 去抖：鼠标划过整条时间轴不该触发二十次解帧。
@@ -390,6 +481,7 @@ class _ScrubBarState extends State<_ScrubBar> {
                       snapshot: snapshot,
                       chapters: chapters,
                       abLoopColor: Colors.amberAccent,
+                      waveform: widget.waveform,
                     ),
                   ),
                   if (_hoverAt != null && snapshot.duration > Duration.zero)
@@ -419,11 +511,13 @@ class _ProgressBar extends StatelessWidget {
     required this.snapshot,
     required this.chapters,
     required this.abLoopColor,
+    this.waveform = VideoWaveformStrip.empty,
   });
 
   final ReaderVideoSnapshot snapshot;
   final List<VideoChapter> chapters;
   final Color abLoopColor;
+  final VideoWaveformStrip waveform;
 
   @override
   Widget build(BuildContext context) {
@@ -442,10 +536,20 @@ class _ProgressBar extends StatelessWidget {
             alignment: Alignment.centerLeft,
             clipBehavior: Clip.none,
             children: <Widget>[
+              // 声音轮廓垫在最下面（mimage 的 seek strip wave）：它只是底纹，
+              // 没有音轨或解码失败时整条不画，不占位也不报错。
+              if (!waveform.isEmpty)
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _WaveformPainter(waveform),
+                  ),
+                ),
               Container(
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white24,
+                  color: waveform.isEmpty
+                      ? Colors.white24
+                      : Colors.white.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -492,6 +596,39 @@ class _ProgressBar extends StatelessWidget {
       },
     );
   }
+}
+
+/// 波形条绘制：一格一根竖条，居中对称。
+///
+/// 刻意不用 `ui.Path` 描轮廓 —— 180 根竖条在 300 px 宽度上读起来才像 mimage
+/// 那种「响度柱」，折线在小尺寸上会糊成一团。
+class _WaveformPainter extends CustomPainter {
+  const _WaveformPainter(this.strip);
+
+  final VideoWaveformStrip strip;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final samples = strip.samples;
+    if (samples.isEmpty || size.width <= 0) return;
+    final paint = Paint()..color = Colors.white.withValues(alpha: 0.28);
+    final slot = size.width / samples.length;
+    // 柱子至少 1 px 宽，否则 180 格在窄栏里会画成一条灰带。
+    final barWidth = math.max(1.0, slot * 0.62);
+    final midY = size.height / 2;
+    for (var i = 0; i < samples.length; i++) {
+      final amplitude = samples[i].clamp(0.04, 1.0);
+      final half = amplitude * (size.height / 2);
+      final left = i * slot + (slot - barWidth) / 2;
+      canvas.drawRect(
+        Rect.fromLTWH(left, midY - half, barWidth, half * 2),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_WaveformPainter old) => old.strip != strip;
 }
 
 String _rateText(double rate) =>
@@ -674,7 +811,7 @@ class _SubtitlePanel extends StatelessWidget {
             if (onStyleChanged != null) ...<Widget>[
               const Divider(height: 16),
               _LabeledSlider(
-                label: '字号',
+                label: t.video.subSize,
                 value: style.sizeEm,
                 min: 0.5,
                 max: 3,
@@ -688,7 +825,7 @@ class _SubtitlePanel extends StatelessWidget {
                 ),
               ),
               _LabeledSlider(
-                label: '底色',
+                label: t.video.subBg,
                 value: style.backgroundOpacityPercent.toDouble(),
                 min: 0,
                 max: 100,
@@ -702,7 +839,7 @@ class _SubtitlePanel extends StatelessWidget {
                 ),
               ),
               _LabeledSlider(
-                label: '底部位置',
+                label: t.video.subBottom,
                 value: style.bottomPercent.toDouble(),
                 min: 0,
                 max: 30,
@@ -748,11 +885,11 @@ class _SubtitlePanel extends StatelessWidget {
                         bottomPercent: 5,
                       ),
                     ),
-                    child: const Text('大号黄色'),
+                    child: Text(t.video.subLargeYellow),
                   ),
                   TextButton(
                     onPressed: () => onStyleChanged!(const VideoSubtitleStyle()),
-                    child: const Text('重置'),
+                    child: Text(t.video.reset),
                   ),
                 ],
               ),
@@ -819,9 +956,9 @@ class _FilterPanel extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            row('亮度', filter.brightness, (v) => onChanged(filter.copyWith(brightness: v))),
-            row('对比度', filter.contrast, (v) => onChanged(filter.copyWith(contrast: v))),
-            row('饱和度', filter.saturation, (v) => onChanged(filter.copyWith(saturation: v))),
+            row(t.video.brightness, filter.brightness, (v) => onChanged(filter.copyWith(brightness: v))),
+            row(t.video.contrast, filter.contrast, (v) => onChanged(filter.copyWith(contrast: v))),
+            row(t.video.saturation, filter.saturation, (v) => onChanged(filter.copyWith(saturation: v))),
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton(
