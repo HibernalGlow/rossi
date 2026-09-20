@@ -14,6 +14,10 @@
 > 已知事实口径见 [`file-manager-parity.md`](file-manager-parity.md)（文件管理器并集核对）与
 > [`local-core-vendored-modules.md`](local-core-vendored-modules.md)（已搬模块的溯源与同步）。
 > 本文不重复它们，只写**尚未迁移**的部分。
+>
+> **只对照 mImageViewer 的差额核对（2026-09-20，含本文件若干条现状的更正）见
+> [`mimageviewer-gap-audit.md`](mimageviewer-gap-audit.md)。** 两者分工：那份是「看一眼就差多少」，
+> 本文是逐条候选的编号池。
 
 ---
 
@@ -421,7 +425,7 @@ src/nodes/neoview/features/             React UI       ← 只取视觉语言与
 | N-14 | 阅读背景（solid / ambient / aurora / spotlight） | `features/reader/ReaderBackgroundLayer.tsx`、`features/panels/cards/AmbientBackgroundCard.tsx` | 无 |
 | N-15 | 信息悬浮窗（图上叠加书籍 / 图片信息） | `features/info-overlay/ReaderInfoOverlayStore.ts` | 无 |
 | N-16 | 幻灯片自动翻页 | `application/slideshow/ReaderSlideshow.ts`、`features/reader/ReaderSlideshowToolbar.tsx` | 无 |
-| N-18 | 阅读进度层可视化 | `features/reader/ReaderProgressLayer.tsx` | 部分（`reader_history_service.dart` 有进度保存） |
+| N-18 | 阅读进度层可视化 | `features/reader/ReaderProgressLayer.tsx` | **翻页进度那一轨已落地**（`overlay/reader_progress_bar.dart`，与左下角信息条各自独立开关）；**超分覆盖那一轨未做** —— 上游要整本的 `upscaledPages / coverageTotal` 快照，本仓只有 `GpuPresentController.currentPageUpscaleStatus` 这「当前页」一档状态，没有按本统计的来源 |
 
 **状态与配置层**
 
