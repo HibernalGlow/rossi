@@ -4,6 +4,7 @@ import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_panel_bar.dart';
+import 'package:zephyr/workspace/router/workspace_navigation_bridge.dart';
 
 /// 「常规宽度」输入框的判据锚点。
 ///
@@ -12,13 +13,22 @@ import 'package:zephyr/workspace/model/workspace_panel_bar.dart';
 /// 决定它找不找得到。
 const Key laneWidthFieldKey = ValueKey<String>('lane-width-field');
 
-/// 泳道栏头的「更多」菜单：这条泳道动作的完整清单。
+/// 一条泳道「更多」菜单的**内容与分派**：这条泳道动作的完整清单。
 ///
 /// 项集对齐 neoview 的 `ReaderLaneMoreMenu`
 /// （`src/nodes/neoview/features/workspace/ReaderSwimlaneWorkspace.tsx`）：
-/// 独占 → 常规宽度 / 恢复默认宽度 → 操作栏（面板栏）→ 折叠。
+/// 独占 → 常规宽度 / 恢复默认宽度 → 操作栏（面板栏）→ 折叠 → **工作台那一节**。
 /// **唯独少了参考里的「窗口控件」那一节**（归属泳道 / 用顶部标题栏 / 收起按钮）——
 /// 用户明确要求先不做。
+///
+/// 最后那一节（顶栏开关 + 退出工作台）不是从参考搬来的，是**可达性**逼出来的：
+/// 工作台顶栏默认不画（`WorkspaceInteractionSettings.showTopChrome`），
+/// 于是「退出工作台」在鼠标侧只剩这里一个入口。
+///
+/// 它是一个值对象而不是 widget，因为这份菜单有**两个入口**：栏头那颗
+/// [`LaneMoreMenu`] 按钮（左键），以及右键栏头的任意一处。后者要的正是
+/// 「按钮被挤掉 / 看不见时也能改回来」那条退路，所以两条路必须是同一份项集
+/// 与同一套分派，不能各写一遍。
 ///
 /// ## 为什么面板栏那一节要搬进这里
 ///
@@ -34,15 +44,15 @@ const Key laneWidthFieldKey = ValueKey<String>('lane-width-field');
 /// `effectiveSoloLaneId` 还要求「同时是激活泳道」。用它做标签的话，一条
 /// 「solo 记着但当前没生效」的泳道会显示「独占该栏」，按下去却是**关掉**它 ——
 /// 标签必须与 `toggleSoloLane` 实际要做的那件事一致。
-class LaneMoreMenu extends StatelessWidget {
-  const LaneMoreMenu({
-    super.key,
+class LaneMenu {
+  const LaneMenu({
     required this.laneId,
     required this.viewportWidth,
     required this.onToggleCollapse,
     required this.onToggleSolo,
     this.onResetWidth,
     this.panelSide,
+    this.showsAsRail = false,
   });
 
   final String laneId;
@@ -61,27 +71,37 @@ class LaneMoreMenu extends StatelessWidget {
   /// 有面板的泳道才有面板栏那一节（阅读器泳道没有）。
   final WorkspacePanelSide? panelSide;
 
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      tooltip: '该泳道 (More)',
-      itemBuilder: (context) => _buildItems(context),
-      onSelected: (value) => _apply(context, value),
-      child: Padding(
-        // 刻意不用 `IconButton`：栏头那一行的预算已经很紧（见
-        // `SwimlaneColumn._buildHeader` 里给页签条算宽的那段），
-        // 这颗按钮只值 24px —— 与 `PanelTabStrip` 的「已收起」入口同一档。
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-        child: Icon(
-          Icons.more_vert_rounded,
-          size: 16,
-          color: Theme.of(context).colorScheme.outline,
-        ),
+  /// 这条泳道此刻**是不是按紧凑轨画的**。
+  ///
+  /// 「折叠 / 展开」那一项的标签读的是**用户看见的形态**，不是 `collapsed` 这条
+  /// 记账：Reader 独占时的切换栏会把其余泳道挤成 44px 的轨，可它们并没有被谁折叠，
+  /// 而且宿主在那一档把 `onToggleCollapse` 换成了「激活这条泳道」
+  /// （见 `SwimlaneWorkspace._buildLane`）。对着一条轨写「折叠为紧凑条」、
+  /// 按下去却是展开，标签就成了假话 —— 只有画它的那一层知道此刻是哪一种。
+  final bool showsAsRail;
+
+  /// 在**全局坐标** [position] 处弹出这份菜单（右键栏头那条路）。
+  Future<void> show(BuildContext context, Offset position) async {
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
+    if (overlay == null) return;
+    final items = buildItems(context);
+    // `showMenu` 不接受空列表（路由里 assert），泳道刚被摘掉时就是这样。
+    if (items.isEmpty) return;
+
+    final value = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        position & const Size(1, 1),
+        Offset.zero & overlay.size,
       ),
+      items: items,
     );
+    if (value == null || !context.mounted) return;
+    apply(context, value);
   }
 
-  List<PopupMenuEntry<String>> _buildItems(BuildContext context) {
+  List<PopupMenuEntry<String>> buildItems(BuildContext context) {
     final cubit = context.read<WorkspaceCubit>();
     final state = cubit.state;
     final lane = state.layout.lanes[laneId];
@@ -89,6 +109,8 @@ class LaneMoreMenu extends StatelessWidget {
 
     final solo = state.layout.soloLaneId == laneId;
     final bar = lane.panelBar;
+    final collapsed = lane.collapsed || showsAsRail;
+    final chrome = state.interaction.showTopChrome;
 
     return [
       _item(
@@ -101,7 +123,20 @@ class LaneMoreMenu extends StatelessWidget {
       ),
       const PopupMenuDivider(),
       // 宽度这一项点下去**不能**收起菜单（里面住着输入框）。
-      _StaticMenuItem(child: _LaneWidthField(laneId: laneId, viewportWidth: viewportWidth)),
+      //
+      // `BlocProvider.value` 不是多余的：菜单项被挂进 `Overlay` 那条路由，
+      // 而 `Overlay` 在页面的 `BlocProvider<WorkspaceCubit>` **之上** ——
+      // 从输入框自己的 context 往上找是找不到的（`itemBuilder` 收的是按钮的
+      // context，所以列表本身建得出来，只有项内部的查找会炸）。
+      _StaticMenuItem(
+        child: BlocProvider<WorkspaceCubit>.value(
+          value: cubit,
+          child: _LaneWidthField(
+            laneId: laneId,
+            viewportWidth: viewportWidth,
+          ),
+        ),
+      ),
       _item(
         value: 'reset',
         icon: Icons.replay_rounded,
@@ -142,13 +177,35 @@ class LaneMoreMenu extends StatelessWidget {
       _item(
         value: 'collapse',
         icon: Icons.vertical_align_center_rounded,
-        label: lane.collapsed ? '展开泳道' : '折叠为紧凑条',
-        checked: lane.collapsed,
+        label: collapsed ? '展开泳道' : '折叠为紧凑条',
+        checked: collapsed,
+      ),
+      // ── 工作台级的那一节 ────────────────────────────────────────────────
+      //
+      // 顶栏默认不画（`WorkspaceInteractionSettings.showTopChrome`），于是「退出」
+      // 与「把顶栏叫回来」这两件事在界面上只剩这里。它们出现在**每一条**泳道的
+      // 菜单里，而不是只在哪一条：独占与折叠都会让别的栏头从视口里消失，
+      // 出口不该跟着一起消失。
+      const PopupMenuDivider(),
+      _item(
+        value: 'topChrome',
+        icon: chrome
+            ? Icons.visibility_off_outlined
+            : Icons.visibility_outlined,
+        label: chrome ? '隐藏工作台顶栏' : '显示工作台顶栏',
+        checked: chrome,
+        hint: '顶栏 = 退出 / 书名 / 切模式 / 重置布局那一行',
+      ),
+      _item(
+        value: 'exit',
+        icon: Icons.arrow_back_rounded,
+        label: '退出工作台',
+        hint: '与 Esc、系统返回键同一条路',
       ),
     ];
   }
 
-  void _apply(BuildContext context, String value) {
+  void apply(BuildContext context, String value) {
     final cubit = context.read<WorkspaceCubit>();
     final lane = cubit.state.layout.lanes[laneId];
     if (lane == null) return;
@@ -189,6 +246,15 @@ class LaneMoreMenu extends StatelessWidget {
         // 「默认」取的是**本项目**的默认（钉在顶部 = 挂进栏头），不是参考里那个
         // 悬浮默认值 —— 见 `PanelBarDock.defaultDock` 的说明。
         cubit.setLanePanelBar(laneId, const PanelBarLayout());
+      case 'topChrome':
+        final interaction = cubit.state.interaction;
+        cubit.setInteraction(
+          interaction.copyWith(showTopChrome: !interaction.showTopChrome),
+        );
+      case 'exit':
+        // 走桥而不是在这里 `Navigator.maybePop()`：退出这一步在页面上还捎带
+        // 「先退全屏」与「不是栈顶就不动」两条判断，抄一份就有两处会漂移。
+        WorkspaceNavigationBridge.instance.exitWorkspace();
     }
   }
 
@@ -225,6 +291,33 @@ class LaneMoreMenu extends StatelessWidget {
   };
 }
 
+/// 栏头那颗「更多」按钮：[LaneMenu] 的左键入口。
+class LaneMoreMenu extends StatelessWidget {
+  const LaneMoreMenu({super.key, required this.menu});
+
+  final LaneMenu menu;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      tooltip: '该泳道 (More)',
+      itemBuilder: menu.buildItems,
+      onSelected: (value) => menu.apply(context, value),
+      child: Padding(
+        // 刻意不用 `IconButton`：栏头那一行的预算已经很紧（见
+        // `SwimlaneColumn._buildHeader` 里给页签条算宽的那段），
+        // 这颗按钮只值 24px —— 与 `PanelTabStrip` 的「已收起」入口同一档。
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        child: Icon(
+          Icons.more_vert_rounded,
+          size: 16,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
 class _LaneMenuRow extends StatelessWidget {
   const _LaneMenuRow({
     required this.icon,
@@ -258,7 +351,7 @@ class _LaneMenuRow extends StatelessWidget {
                   hint!,
                   style: theme.textTheme.labelSmall?.copyWith(
                     fontSize: 10,
-                    color: theme.colorScheme.outline,
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
             ],
@@ -406,7 +499,7 @@ class _LaneWidthFieldState extends State<_LaneWidthField> {
           '${min.round()}–${max.round()}',
           style: theme.textTheme.labelSmall?.copyWith(
             fontSize: 10,
-            color: theme.colorScheme.outline,
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
       ],

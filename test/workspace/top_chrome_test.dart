@@ -1,4 +1,5 @@
-// 工作台顶栏**两种形态**的判据：桌面悬停揭示 / 触摸屏常驻。
+// 工作台顶栏的判据：**默认不画**那一档，以及画出来时的两种形态
+// （桌面悬停揭示 / 触摸屏常驻）。
 //
 //   env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy \
 //     flutter test test/workspace/top_chrome_test.dart
@@ -7,10 +8,15 @@
 //   握手，症状是 `Unable to connect to flutter_tester process:
 //   Invalid WebSocket upgrade request`。这与被测代码无关。）
 //
-// 要回答的问题：**触摸屏上那个出口到底在不在、够不够得着。**
+// 要回答的问题从头到尾只有一个：**出口在不在、够不够得着。**
 // 背景：工作台是 `Navigator.push` 上来的整页，**没有系统返回按钮** ——
 // 桌面端靠「顶栏悬停揭示 + `Esc`」出去，而这两条在触摸屏上一条都成立不了
-// （`MouseRegion` 永远不触发）。所以非桌面平台必须保留**常驻**顶栏。
+// （`MouseRegion` 永远不触发）。所以：
+//
+// - 顶栏**画**的时候，非桌面平台必须是**常驻**那一档（第 1 节）；
+// - 顶栏**默认不画**（`interaction.showTopChrome`，用户 2026-09-20 定的默认值），
+//   于是出口改由泳道「更多」菜单里那颗「退出工作台」提供（第 4 节）——
+//   那颗按钮按下去必须**真的把这一页弹掉**，而不只是「在菜单里看得见」。
 //
 // 形态由 `defaultTargetPlatform` 决定，判据用 `testWidgets` 的
 // `variant: TargetPlatformVariant.only(...)` 把它设好（框架自己的机制，
@@ -44,8 +50,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/workspace/breeze_workspace_page.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
+import 'package:zephyr/workspace/model/workspace_interaction_settings.dart';
+import 'package:zephyr/workspace/model/workspace_layout_config.dart';
+import 'package:zephyr/workspace/model/workspace_layout_snapshot.dart';
+import 'package:zephyr/workspace/model/workspace_mode.dart';
 import 'package:zephyr/workspace/service/workspace_layout_store.dart';
 import 'package:zephyr/workspace/widgets/chrome/workspace_top_chrome.dart';
+import 'package:zephyr/workspace/widgets/swimlane/swimlane_column.dart';
 import 'package:zephyr/workspace/widgets/swimlane/swimlane_workspace.dart';
 
 // ── 夹具 ────────────────────────────────────────────────────────────────────
@@ -77,6 +88,9 @@ Future<void> _openWorkspace(
   required TargetPlatform declaredPlatform,
   required WorkspaceLayoutStore store,
   FakeViewPadding padding = const FakeViewPadding(),
+  WorkspaceInteractionSettings interaction = const WorkspaceInteractionSettings(
+    showTopChrome: true,
+  ),
 }) async {
   // 见文件头第 3 条：忘了写 `variant` 时这一条先红 —— 否则判据会静默
   // 退回宿主平台，看着照样绿。
@@ -86,6 +100,16 @@ Future<void> _openWorkspace(
     reason:
         '调用方声明的是 $declaredPlatform，实际跑的是 $defaultTargetPlatform —— '
         '`variant: TargetPlatformVariant.only(...)` 写漏了',
+  );
+
+  // 顶栏**默认不画**，而这一组判据验的就是「画出来那两种形态」，所以先把开关
+  // 打开再进门。想验默认那一档，显式传 `showTopChrome: false`。
+  await store.save(
+    WorkspaceLayoutSnapshot(
+      mode: WorkspaceMode.swimlane,
+      layout: WorkspaceLayoutConfig.defaults(),
+      interaction: interaction,
+    ),
   );
 
   tester.view.physicalSize = _windowSize;
@@ -104,6 +128,21 @@ Future<void> _openWorkspace(
 Finder get _bar => find.byType(WorkspaceTopChrome);
 Finder get _content => find.byType(SwimlaneWorkspace);
 Finder get _exitButton => find.byIcon(Icons.arrow_back_rounded);
+
+/// 默认出厂布局里左泳道的标题（`WorkspaceLayoutConfig.defaults()`）。
+const String _shelfLaneTitle = '书架 (Bookshelf)';
+
+/// 某条泳道栏头的「更多」按钮。
+///
+/// 限定在那条泳道的子树里：三条泳道各有一颗同样的图标，不限定就是一句
+/// 「找到了好几个，不知道点的是谁」。
+Finder _laneMoreButton(String title) => find.descendant(
+  of: find.ancestor(
+    of: find.text(title),
+    matching: find.byType(SwimlaneColumn),
+  ),
+  matching: find.byIcon(Icons.more_vert_rounded),
+);
 
 /// 顶栏与内容各自的矩形 —— 两种形态的全部差别都在这里。
 ({Rect bar, Rect content}) _rects(WidgetTester tester) =>
@@ -337,6 +376,103 @@ void main() {
     await tester.pumpAndSettle();
     expect(exits, 1, reason: '召唤出来之后它就得是能点的 —— 否则桌面端也没有出口（只剩 Esc）');
   });
+
+  // ── 4：默认那一档 —— 顶栏根本不画 ───────────────────────────────────────
+
+  testWidgets('默认：桌面连揭示浮层都不挂，鼠标贴到顶端也唤不出东西', (tester) async {
+    await _openWorkspace(
+      tester,
+      declaredPlatform: _desktop,
+      store: WorkspaceLayoutMemoryStore(),
+      interaction: const WorkspaceInteractionSettings(),
+    );
+
+    expect(_bar, findsNothing);
+    expect(
+      find.byType(WorkspaceTopChromeReveal),
+      findsNothing,
+      reason:
+          '关掉的是**整条**顶栏，不是把它调透明：只把 `AnimatedOpacity` 归零的话，'
+          '鼠标贴到顶端仍然会唤出一层看不见却吃鼠标的东西',
+    );
+    expect(tester.getRect(_content).top, 0);
+  }, variant: TargetPlatformVariant.only(_desktop));
+
+  testWidgets('默认：触摸屏同样不画，但状态栏那一截要还给内容', (tester) async {
+    await _openWorkspace(
+      tester,
+      declaredPlatform: _touch,
+      store: WorkspaceLayoutMemoryStore(),
+      padding: const FakeViewPadding(top: _statusBar),
+      interaction: const WorkspaceInteractionSettings(),
+    );
+
+    expect(_bar, findsNothing);
+    expect(
+      tester.getRect(_content).top,
+      _statusBar,
+      reason:
+          '常驻顶栏本来连带把状态栏那一截吃掉；它不画了就必须由 `SafeArea` 补回来，'
+          '否则内容的第一行钻到状态栏底下',
+    );
+  }, variant: TargetPlatformVariant.only(_touch));
+
+  testWidgets('默认：出口在泳道「更多」菜单里，按一下这一页真的被弹掉', (tester) async {
+    await _openWorkspace(
+      tester,
+      declaredPlatform: _touch,
+      store: WorkspaceLayoutMemoryStore(),
+      interaction: const WorkspaceInteractionSettings(),
+    );
+
+    expect(_bar, findsNothing, reason: '前置：顶栏不画 ⇒ 这一条是触摸屏上鼠标侧唯一的出口');
+
+    await tester.tap(_laneMoreButton(_shelfLaneTitle));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('退出工作台'),
+      findsOneWidget,
+      reason: '菜单里没这一项，就等于「顶栏关掉」这个开关把用户关在里面',
+    );
+
+    await tester.tap(find.text('退出工作台'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byType(BreezeWorkspacePage),
+      findsNothing,
+      reason: '判据是路由真的被弹掉，不是那颗项在菜单里看得见',
+    );
+    expect(find.text('打开工作台'), findsOneWidget);
+  }, variant: TargetPlatformVariant.only(_touch));
+
+  testWidgets('菜单里那颗开关能把顶栏叫回来（端到端，不是只改账）', (tester) async {
+    await _openWorkspace(
+      tester,
+      declaredPlatform: _desktop,
+      store: WorkspaceLayoutMemoryStore(),
+      interaction: const WorkspaceInteractionSettings(),
+    );
+    expect(
+      find.byType(WorkspaceTopChromeReveal),
+      findsNothing,
+      reason: '前置：默认不画',
+    );
+
+    await tester.tap(_laneMoreButton(_shelfLaneTitle));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('显示工作台顶栏'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byType(WorkspaceTopChromeReveal),
+      findsOneWidget,
+      reason:
+          '登记了的动作必须真的通到执行者：这一条打的是「只改了 `interaction`、'
+          '页面却按旧值摆」那一类漏（见 `registered-feature-must-reach-executor`）',
+    );
+    expect(_bar, findsOneWidget);
+  }, variant: TargetPlatformVariant.only(_desktop));
 }
 
 /// 发起进入工作台的那一页。

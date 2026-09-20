@@ -8,6 +8,10 @@ import 'package:zephyr/workspace/widgets/swimlane/lane_more_menu.dart';
 
 /// 单个泳道容器：栏头（折叠 / 独占 / 宽度 / 更多）+ 内容。
 ///
+/// **栏头与紧凑轨都可以右键**，打开的就是那颗「更多」按钮的同一份菜单 ——
+/// 栏头是一行 `Row` 且被泳道裁掉溢出，按钮完全可能被挤得看不见，
+/// 那时「改回宽度 / 换停靠边 / 退出独占」不能一起没有入口。见 [_laneMenu]。
+///
 /// **栏头归泳道自己**（neoview 契约）：edge 模式那套「钉边 / 拖动 / 改尺寸」的控件
 /// 在这里一律不出现；[headerActions] 是泳道往自己栏头里塞控件的口子 ——
 /// 阅读器泳道就用它把模式切换放进自己的 chrome，于是 Reader 的动作永远跟着 Reader 走。
@@ -85,8 +89,11 @@ class SwimlaneColumn extends StatelessWidget {
     final theme = Theme.of(context);
 
     // 折叠状态（紧凑 44dp 轨）
-    if ((config.collapsed || isRail) && !isSolo) {
-      return _buildCollapsedRail(context, theme);
+    //
+    // 这一档**没有**那颗「更多」按钮（44px 塞不下），所以右键这条轨就是改宽度 /
+    // 独占 / 面板栏摆放的唯一入口 —— 折叠态下也要能把泳道改回来。
+    if (_showsAsRail) {
+      return _withLaneContextMenu(context, _buildCollapsedRail(context, theme));
     }
 
     final barLayout = config.panelBar;
@@ -121,8 +128,18 @@ class SwimlaneColumn extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           child: Column(
             children: [
+              // 栏头整行都是「更多」菜单的右键目标：这一行被泳道裁剪，按钮
+              // 一旦挤不出去就没有入口，而改宽度 / 换停靠边只有这里做得到。
               if (!isFullscreen)
-                _buildHeader(context, theme, titleMounted, constraints.maxWidth),
+                _withLaneContextMenu(
+                  context,
+                  _buildHeader(
+                    context,
+                    theme,
+                    titleMounted,
+                    constraints.maxWidth,
+                  ),
+                ),
               // 泳道内容 Body
               Expanded(
                 child:
@@ -184,6 +201,42 @@ class SwimlaneColumn extends StatelessWidget {
 
   // ── 栏头 ───────────────────────────────────────────────────────────────
 
+  /// 这一档**是不是按紧凑轨画的**（`build()` 选轨用的就是它）。
+  ///
+  /// 单独抽出来是因为「更多」菜单里那一项的标签要照**画出来的样子**写，
+  /// 而不是照 `config.collapsed` 那条记账 —— 见 `LaneMenu.showsAsRail`。
+  bool get _showsAsRail => (config.collapsed || isRail) && !isSolo;
+
+  /// 这条泳道的「更多」菜单内容。
+  ///
+  /// 栏头那颗按钮与**右键栏头**用的是同一份 —— 右键那条路是给「按钮被挤到看不见」
+  /// 留的退路，两边项集不一致就失去了意义。
+  LaneMenu _laneMenu() {
+    return LaneMenu(
+      laneId: laneId,
+      viewportWidth: viewportWidth,
+      panelSide: panelSide,
+      showsAsRail: _showsAsRail,
+      onToggleCollapse: onToggleCollapse,
+      onToggleSolo: onToggleSolo,
+      onResetWidth: onResetWidth,
+    );
+  }
+
+  /// 把 [child] 包成「右键即打开本泳道更多菜单」的区域。
+  ///
+  /// 只挂右键：左键那几件事（双击标题重置宽度、按住把手重排、按钮本身）各有自己的
+  /// 识别器，都在这个 `GestureDetector` 的内侧，谁离指针更近谁赢。页签条的页签
+  /// 自己也吃右键，所以右键页签仍然是「那个面板」的菜单，不是这条泳道的。
+  Widget _withLaneContextMenu(BuildContext context, Widget child) {
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onSecondaryTapUp: (details) =>
+          _laneMenu().show(context, details.globalPosition),
+      child: child,
+    );
+  }
+
   /// 栏头。
   ///
   /// [laneWidth] 是这条泳道此刻的宽度：页签条能占多少要从它算，见
@@ -219,7 +272,7 @@ class SwimlaneColumn extends StatelessWidget {
           // 泳道标题（双击重置宽度）
           Expanded(
             child: Tooltip(
-              message: '双击重置该栏宽度',
+              message: '双击重置该栏宽度　·　右键打开该泳道的菜单',
               child: InkWell(
                 onDoubleTap: onResetWidth,
                 child: Row(
@@ -249,7 +302,7 @@ class SwimlaneColumn extends StatelessWidget {
                         '${resolvedWidth.toInt()}px',
                         style: theme.textTheme.labelSmall?.copyWith(
                           fontSize: 10,
-                          color: theme.colorScheme.outline,
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -309,15 +362,8 @@ class SwimlaneColumn extends StatelessWidget {
           ),
           // 这条泳道其余的动作（独占 / 宽度 / 面板栏摆放 / 折叠）。
           // 默认形态下面板栏就挂在这一行里、没有拖动把手，
-          // 所以「把它挪走」只有这个菜单做得到 —— 见 `LaneMoreMenu`。
-          LaneMoreMenu(
-            laneId: laneId,
-            viewportWidth: viewportWidth,
-            panelSide: panelSide,
-            onToggleCollapse: onToggleCollapse,
-            onToggleSolo: onToggleSolo,
-            onResetWidth: onResetWidth,
-          ),
+          // 所以「把它挪走」只有这个菜单做得到 —— 见 `LaneMenu`。
+          LaneMoreMenu(menu: _laneMenu()),
         ],
       ),
     );
@@ -330,19 +376,21 @@ class SwimlaneColumn extends StatelessWidget {
   /// ——`Expanded` 拿到 0 之后仍然溢出（黄黑斜纹）。这里把右侧那几项的开销
   /// 明算出来，页签条只能拿余量，标题就永远还有地方。
   ///
-  /// 各项的宽度：
-  /// - 栏头左右内边距 10 + 10；
-  /// - 把手图标 18 + 与标题之间 4；
+  /// 各项的宽度是**量出来的**（400px 泳道：栏头 `Row` 实得 375）：
+  /// - 泳道边框 + 栏头左右内边距 22；
+  /// - 把手图标 18，与标题之间 4；
   /// - 页签条两侧留白 4 + 4；
-  /// - 独占与折叠是 `IconButton(visualDensity: compact)` ⇒ **44dp** 见方
-  ///   （`48 + density(-1) * 4`，不是 40）；「更多」那颗是 24（见 `LaneMoreMenu`）；
-  /// - 标题至少留 44：宽度徽标本身就要 40 上下，标题文本是 `Flexible`，
-  ///   可以省略到 0，但徽标不能没有。
+  /// - 独占与折叠各 40（`IconButton(visualDensity: compact)` 实测就是 40 见方）；
+  /// - 「更多」24（见 `LaneMoreMenu`）；
+  /// - 标题至少留 75：宽度徽标实测 62.5（四位数还要宽一点）加与标题之间的 6。
+  ///   标题文本本身是 `Flexible`，可以省略到 0，但徽标不能没有 —— 少算这一项
+  ///   就是「标题被挤到 50、徽标要 68.5、于是斜纹 19px」那个症状。
   ///
-  /// 上限仍是页签条自己的 260（`PanelTabStrip.maxWidth` 的默认值）：
-  /// 泳道再宽也不该让一条页签条横着吃掉半栏。
+  /// 上限仍是页签条自己的 260（`PanelTabStrip.maxWidth` 的默认值）：泳道再宽也不该
+  /// 让一条页签条横着吃掉半栏。**装不下就滚**：它本来就是滚动视口，而 6 个面板要
+  /// 200 上下，400px 的泳道只给得起 160 出头。
   double _panelStripBudget(double laneWidth) {
-    const double chrome = 10 + 10 + 18 + 4 + 4 + 4 + 44 + 44 + 24 + 44;
+    const double chrome = 22 + 18 + 4 + 4 + 4 + 40 + 40 + 24 + 75;
     return (laneWidth - chrome).clamp(0.0, 260.0);
   }
 

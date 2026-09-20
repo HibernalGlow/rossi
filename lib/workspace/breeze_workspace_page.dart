@@ -34,6 +34,11 @@ import 'package:zephyr/workspace/widgets/swimlane/swimlane_workspace.dart';
 ///   而工作台是 `Navigator.push` 上来的整页、没有系统返回按钮，
 ///   顶栏一撤就**没有可见出口**。所以那边顶栏占一行真实高度、内容从它下面开始。
 ///
+/// **两种形态都只在 `interaction.showTopChrome` 打开时才有**，而它默认是**关**的：
+/// 泳道模式下顶栏是叠在栏头之上的第二层，于是那一行的动作改由泳道「更多」菜单
+/// 提供出口（`LaneMenu` 的「退出工作台」）。剩下的两条出口是 `Esc` 与
+/// 触摸屏的系统返回键 —— 见 `WorkspaceInteractionSettings.showTopChrome`。
+///
 /// **持久化也在这一层**：布局记账（模式、泳道顺序与宽度、折叠、激活面板与泳道、
 /// 独占偏好、悬停/揭示的开关与延时、面板栏记账、面板与卡片记账）在启动时读盘、
 /// 变化时去抖落盘。什么进快照、什么刻意不进，口径写在 `WorkspaceLayoutSnapshot`。
@@ -73,6 +78,9 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
   /// 只取一次 tear-off 并留住它 —— 注销时必须传**同一个**回调对象。
   late final void Function(WorkspaceReaderTarget target) _openInLane;
 
+  /// 同上，给出口通道用（`attachWorkspaceExit` / `detachWorkspaceExit`）。
+  late final VoidCallback _exitTearOff;
+
   WorkspaceLayoutPersistence? _persistence;
   StreamSubscription<WorkspaceState>? _stateSubscription;
 
@@ -97,10 +105,14 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
     super.initState();
     _cubit = WorkspaceCubit();
     _openInLane = _handleOpenInLane;
+    _exitTearOff = _exitWorkspace;
     // 工作台在场期间，上游页面推入的 ComicReadRoute 一律改派进阅读器泳道；
     // 其余推入由守卫交给「发起交互的那个面板」的局部导航栈
     // （登记随面板自己 attach / detach，见 `EmbeddedUpstreamPage`）。
     WorkspaceNavigationBridge.instance.attachReader(_openInLane);
+    // 顶栏默认不画 ⇒ 泳道「更多」菜单里那颗「退出工作台」是鼠标侧唯一的出口，
+    // 它经由这条通道回到本页面 `_exitWorkspace` 那两条判断上。
+    WorkspaceNavigationBridge.instance.attachWorkspaceExit(_exitTearOff);
     // 「设置 → 布局」在工作台在场时改的是**这份活的**状态（直接写盘会被下面的
     // 去抖落盘覆盖回去），登记与注销见 `WorkspaceLayoutBridge`。
     WorkspaceLayoutBridge.instance.attach(_cubit);
@@ -127,6 +139,7 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
     }
     _stateSubscription?.cancel();
     WorkspaceLayoutBridge.instance.detach(_cubit);
+    WorkspaceNavigationBridge.instance.detachWorkspaceExit(_exitTearOff);
     // 退出前把压着的改动写掉：拖完立刻关窗口这一下正好会落在去抖窗口里。
     unawaited(_persistence?.flush() ?? Future<void>.value());
     _persistence?.dispose();
@@ -298,6 +311,11 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
         builder: (context, state) {
           final isSwimlane = state.mode == WorkspaceMode.swimlane;
           final chromeMode = _chromeMode;
+          // 顶栏到底画不画。**默认不画**（`showTopChrome` 的默认值），全屏铺满时
+          // 也一律不画 —— 这两档原先各写一个 `!state.isReaderFullscreen`，合成一个
+          // 值是为了让「此刻顶栏在不在」只有一处真相。
+          final chromeVisible =
+              state.interaction.showTopChrome && !state.isReaderFullscreen;
 
           // 内容从顶上铺满：没有 appBar，也没有额外的一行内边距。
           final content = AnimatedSwitcher(
@@ -326,7 +344,7 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
                   children: [
                     Positioned.fill(
                       child: chromeMode == WorkspaceTopChromeMode.persistent &&
-                              !state.isReaderFullscreen
+                              chromeVisible
                           // 常驻形态：顶栏在**正常流**里，内容从它下面开始 ——
                           // 这条路上不存在「顶栏盖住内容」那一档（那是揭示形态
                           // 才有的取舍）。内容因此不再自带顶部安全区：
@@ -343,16 +361,17 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
                                 ),
                               ],
                             )
-                          // 揭示形态或全屏：内容从窗口最顶端开始铺满。
-                          // `SafeArea` 只为移动端兜底（桌面端 `MediaQuery.padding`
-                          // 本来就是 0，这里不会内缩，所以不留空档）。
+                          // 顶栏这一轮**不在**（揭示形态 / 全屏铺满 / 开关关着）：
+                          // 内容从窗口最顶端开始铺满。`SafeArea` 只为移动端兜底
+                          // （桌面端 `MediaQuery.padding` 本来就是 0，这里不会内缩，
+                          // 所以不留空档）—— 顶栏被关掉时状态栏那一截正是靠它让出来的。
                           : SafeArea(top: !state.isReaderFullscreen, child: content),
                     ),
 
                     // 揭示形态的顶栏：叠在内容上层，默认不可见（不占高度、不吃鼠标）。
                     // 全屏铺满时隐藏顶栏，避免划过顶边时弹出遮挡。
                     if (chromeMode == WorkspaceTopChromeMode.reveal &&
-                        !state.isReaderFullscreen)
+                        chromeVisible)
                       WorkspaceTopChromeReveal(
                         onExit: _exitWorkspace,
                         onResetLayout: _resetLayout,

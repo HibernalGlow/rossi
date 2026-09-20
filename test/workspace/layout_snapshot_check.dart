@@ -165,6 +165,7 @@ void _fullCustomStateRoundTrip() {
       autoSoloOnFocus: true,
       showLaneNavigatorInSolo: true,
       manualScrollEnabled: false,
+      showTopChrome: true,
       revealZones: _richZones,
     ),
   );
@@ -206,6 +207,10 @@ void _fullCustomStateRoundTrip() {
   check(
     '「允许手动横向滚动」关掉这件事保住了',
     !restored.interaction.manualScrollEnabled,
+  );
+  check(
+    '「顶栏画出来」这件事保住了（出厂默认是不画）',
+    restored.interaction.showTopChrome,
   );
   check(
     '四条唤出区整体保住（含 0.1 的百分比精度）',
@@ -374,6 +379,10 @@ void _badInteractionFieldsFallBackPerField() {
   check(
     '缺项的「允许手动滚动」退回默认（开 —— 保持改造前的手感）',
     snapshot.interaction.manualScrollEnabled,
+  );
+  check(
+    '缺项的「顶栏」退回默认（关）—— 老快照里没有这个键，升级之后顶栏就是不画',
+    !snapshot.interaction.showTopChrome,
   );
   check(
     '唤出区整块不是对象时回默认，且不牵连别的项',

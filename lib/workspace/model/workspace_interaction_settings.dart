@@ -59,6 +59,19 @@ class WorkspaceInteractionSettings {
   /// 「用户自己伸手拖」这一条路径，不是滚动本身。
   final bool manualScrollEnabled;
 
+  /// 工作台**顶栏**画不画（`WorkspaceTopChrome`：退出 / 当前书名 / 切模式 / 重置布局）。
+  ///
+  /// 默认**关**。理由是那条顶栏在泳道模式下是**第二层顶栏**：每条泳道自带栏头，
+  /// 桌面端上面还叠着 macOS / Windows 的窗口标题栏，而它自己只多给一颗返回键。
+  ///
+  /// 关掉之后出口剩三条，所以这一项才敢默认关：
+  /// - 泳道「更多」菜单里的「退出工作台」（三条泳道都有，右键栏头同一条路）；
+  /// - `Esc`（`BreezeWorkspacePage` 的 `CallbackShortcuts`）；
+  /// - 触摸屏的系统返回键 / 侧滑。
+  ///
+  /// **代价要认**：沉浸四边栏模式没有泳道栏头，于是那边只剩 `Esc` 与系统返回键。
+  final bool showTopChrome;
+
   /// 四条边的悬停唤出区（neoview `edgeRevealZones`）。
   ///
   /// 左右两条决定「指针停在离边缘多远的地方」开始为揭示计时；
@@ -74,6 +87,7 @@ class WorkspaceInteractionSettings {
     this.autoSoloOnFocus = false,
     this.showLaneNavigatorInSolo = false,
     this.manualScrollEnabled = true,
+    this.showTopChrome = false,
     this.revealZones = WorkspaceRevealZones.defaults,
   });
 
@@ -86,6 +100,7 @@ class WorkspaceInteractionSettings {
     bool? autoSoloOnFocus,
     bool? showLaneNavigatorInSolo,
     bool? manualScrollEnabled,
+    bool? showTopChrome,
     WorkspaceRevealZones? revealZones,
   }) {
     return WorkspaceInteractionSettings(
@@ -99,6 +114,7 @@ class WorkspaceInteractionSettings {
       showLaneNavigatorInSolo:
           showLaneNavigatorInSolo ?? this.showLaneNavigatorInSolo,
       manualScrollEnabled: manualScrollEnabled ?? this.manualScrollEnabled,
+      showTopChrome: showTopChrome ?? this.showTopChrome,
       revealZones: revealZones ?? this.revealZones,
     );
   }
@@ -112,6 +128,7 @@ class WorkspaceInteractionSettings {
     'autoSoloOnFocus': autoSoloOnFocus,
     'showLaneNavigatorInSolo': showLaneNavigatorInSolo,
     'manualScrollEnabled': manualScrollEnabled,
+    'showTopChrome': showTopChrome,
     'revealZones': revealZones.toJson(),
   };
 
@@ -150,6 +167,9 @@ class WorkspaceInteractionSettings {
       manualScrollEnabled: json['manualScrollEnabled'] is bool
           ? json['manualScrollEnabled']! as bool
           : fallback.manualScrollEnabled,
+      showTopChrome: json['showTopChrome'] is bool
+          ? json['showTopChrome']! as bool
+          : fallback.showTopChrome,
       revealZones: WorkspaceRevealZones.fromJson(json['revealZones']),
     );
   }
@@ -172,6 +192,7 @@ class WorkspaceInteractionSettings {
       other.autoSoloOnFocus == autoSoloOnFocus &&
       other.showLaneNavigatorInSolo == showLaneNavigatorInSolo &&
       other.manualScrollEnabled == manualScrollEnabled &&
+      other.showTopChrome == showTopChrome &&
       other.revealZones == revealZones;
 
   @override
@@ -184,6 +205,7 @@ class WorkspaceInteractionSettings {
     autoSoloOnFocus,
     showLaneNavigatorInSolo,
     manualScrollEnabled,
+    showTopChrome,
     revealZones,
   );
 }

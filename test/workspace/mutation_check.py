@@ -442,17 +442,21 @@ SUITES = [
             ),
         ],
     },
-    # ── 顶栏两种形态（桌面悬停揭示 / 触摸屏常驻） ───────────────────────────
+    # ── 工作台顶栏：默认不画那一档 + 画出来时的两种形态 ──────────────────────
     #
-    # 这一组盯的是**触摸屏上的那个出口**：工作台是 `Navigator.push` 上来的整页、
-    # 没有系统返回按钮，桌面端靠「悬停揭示 + Esc」出去，而这两条在触摸屏上
-    # 一条都成立不了。M37 就是用户会报的那个症状本身。
+    # 这一组盯的是**出口**：工作台是 `Navigator.push` 上来的整页、没有系统返回按钮，
+    # 桌面端靠「悬停揭示 + Esc」出去，而这两条在触摸屏上一条都成立不了。
+    # M37 就是用户会报的那个症状本身。
     #
     # 「可见」与「吃不吃鼠标」是两个独立机制（`AnimatedOpacity` /
     # `IgnorePointer`），所以 M41 与 M42 分别打这两处 —— 只验一个的话
     # 另一个坏掉判据照样绿。
+    #
+    # 顶栏默认**不画**（`interaction.showTopChrome` = false）之后，出口搬到了
+    # 泳道「更多」菜单，于是 M56–M58 打的是新押上去的那三处：画不画只看一个布尔、
+    # 菜单里那颗「退出」得真的接回页面、那颗开关得真的落账。
     {
-        "name": "top_chrome（widget test：桌面揭示 / 触摸屏常驻）",
+        "name": "top_chrome（widget test：默认不画 / 桌面揭示 / 触摸屏常驻）",
         "cmd": ["flutter", "test", "test/workspace/top_chrome_test.dart"],
         "baseline_marker": "All tests passed",
         "mutations": [
@@ -539,6 +543,32 @@ SUITES = [
                 "lib/workspace/widgets/chrome/workspace_top_chrome.dart",
                 "  static const double triggerHeight = 10;",
                 "  static const double triggerHeight = 0;",
+                False,
+            ),
+            # 顶栏**默认不画**那一档（`interaction.showTopChrome`）：画不画只看这一处
+            # 布尔，而出口全押在泳道菜单那两颗上 —— 三颗各打一刀。
+            (
+                "M56 顶栏开关被忽略（恒画）→ 默认那一档根本没生效",
+                "lib/workspace/breeze_workspace_page.dart",
+                "          final chromeVisible =\n"
+                "              state.interaction.showTopChrome && !state.isReaderFullscreen;",
+                "          final chromeVisible = !state.isReaderFullscreen;",
+                False,
+            ),
+            (
+                "M57 菜单里那颗「退出工作台」接错了线（关漫画而不是退出）",
+                "lib/workspace/widgets/swimlane/lane_more_menu.dart",
+                "        WorkspaceNavigationBridge.instance.exitWorkspace();",
+                "        cubit.closeReader();",
+                False,
+            ),
+            (
+                "M58 那颗顶栏开关只翻标签不落账（按下去什么都没改）",
+                "lib/workspace/widgets/swimlane/lane_more_menu.dart",
+                "        cubit.setInteraction(\n"
+                "          interaction.copyWith(showTopChrome: !interaction.showTopChrome),\n"
+                "        );",
+                "        cubit.setInteraction(interaction);",
                 False,
             ),
         ],

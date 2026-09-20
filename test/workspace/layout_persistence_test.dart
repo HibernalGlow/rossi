@@ -80,7 +80,13 @@ WorkspaceLayoutSnapshot _customSnapshot() => WorkspaceLayoutSnapshot(
     },
   ),
   activeLaneId: LaneId.right,
-  interaction: const WorkspaceInteractionSettings(edgeRevealDelayMs: 111),
+  // `showTopChrome: true`：最后一例是从**顶栏**按「重置布局」的，而顶栏默认不画
+  // （`WorkspaceInteractionSettings.showTopChrome`）—— 那一档本身由
+  // `top_chrome_test.dart` 第 4 节管，这里只要按钮在。
+  interaction: const WorkspaceInteractionSettings(
+    edgeRevealDelayMs: 111,
+    showTopChrome: true,
+  ),
 );
 
 /// 泳道内容的轻量替身 —— 页面的持久化接线与泳道内容无关，别让真内容挡路。

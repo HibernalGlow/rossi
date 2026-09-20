@@ -29,6 +29,9 @@ import 'package:zephyr/workspace/router/workspace_lane_dispatch.dart';
 ///    **根路由**，于是面板里的一下「返回」弹掉的是根栈顶页 = 整个工作台。
 ///    这里把根路由的 `pop` / `maybePop` 接过来，退**落点面板里**那一页。
 ///
+/// 另有一条**出口通道**（[exitWorkspace]）：工作台顶栏默认不画之后，
+/// 泳道「更多」菜单里那颗「退出工作台」走的正是它。
+///
 /// # 没有工作台时
 ///
 /// [isAttached] 为假时守卫**逐字放行**，行为与改造前完全一致（全屏推入）。
@@ -188,6 +191,32 @@ class WorkspaceNavigationBridge {
     navigator.pop(result);
     return true;
   }
+
+  // ── 出口通道 ───────────────────────────────────────────────────────────
+
+  VoidCallback? _exitWorkspace;
+
+  /// 工作台挂载时登记「退出工作台」这一件事**页面自己怎么做**。
+  ///
+  /// 为什么不在泳道菜单里直接 `Navigator.maybePop()`：退出这一步在页面上还捎带
+  /// 两条判断 —— 阅读器正全屏铺满时先退全屏、工作台不是栈顶时什么都不做。
+  /// 抄一份到菜单里就有两个地方会各自漂移，而症状是「有时候按返回什么也不会发生」。
+  void attachWorkspaceExit(VoidCallback exit) {
+    _exitWorkspace = exit;
+  }
+
+  /// 工作台卸载时注销。只注销自己登记的那一个（同 [detachReader]）。
+  void detachWorkspaceExit(VoidCallback exit) {
+    if (identical(_exitWorkspace, exit)) {
+      _exitWorkspace = null;
+    }
+  }
+
+  /// 请工作台退出（泳道「更多」菜单里那颗「退出工作台」）。
+  ///
+  /// 没有工作台在场时是**空操作**而不是抛：菜单项在页面已经拆掉的同一帧里
+  /// 被点到的概率不为零，那时用户看到的应当是「什么都没发生」，不是红屏。
+  void exitWorkspace() => _exitWorkspace?.call();
 }
 
 /// 把一个被守卫拦下的 `RouteMatch` 造成**可以被任意 `Navigator` 渲染**的 `Page`。
