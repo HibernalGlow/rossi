@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$GlobalSettingState {
 
- bool get dynamicColor; ThemeMode get themeMode; bool get isAMOLED;@ColorConverter() Color get seedColor; String get tweakcnThemeJson; bool get tweakcnThemeEnabled; int get themeInitState;@LocaleConverter() Locale get locale; bool get localeFollowsSystem; int get welcomePageNum; SyncSettingState get syncSetting; List<String> get maskedKeywords; bool get socks5ProxyEnabled; String get socks5Proxy; bool get needCleanCache; int get comicChoice; bool get disableBika; bool get enableMemoryDebug; bool get blockRustHttpRequests; String get logAddress; bool get showLayoutOverflowStripes; bool get forceEnableImpeller; bool get androidKeepAliveEnabled; bool get backPressExitEnabled; bool get updateAccelerate; bool get retryDownloadUntilSuccess; int get downloadConcurrency; int get downloadDelayMs; int get downloadAutoRetryCount; bool get oldPageRollbackEnabled; bool get cloudFavoritePreferred; bool get autoFollowOnCollect; bool get autoFavoriteOnDownload; bool get writeDownloadMetadataFile; bool get leftHandModeEnabled; bool get clickCoverToStartReading; bool get comicInfoInlineReadButton; bool get startWithWorkspace; bool get transparentDesktopTitleBar; bool get transparentTitleBarFused; List<String> get searchHistory; ProxySettingState get proxySetting; double get windowWidth; double get windowHeight; double get windowX; double get windowY; ReadSettingState get readSetting; String get customExportPath; AppLockSettingState get appLockSetting; String get compatibleVersion; CacheSettingState get cacheSetting; ChineseConvertMode get chineseConvertMode; BookshelfSettingState get bookshelfSetting; FavoriteArtistSettingState get favoriteArtistSetting; ComicCardSettingState get comicCardSetting; ToastSettingState get toastSetting; SwitchToastSettingState get switchToastSetting; FileManagerSettingState get fileManagerSetting; DiscoverSettingState get discoverSetting; OperationBindingSettingState get operationBindingSetting;
+ bool get dynamicColor; ThemeMode get themeMode; bool get isAMOLED;@ColorConverter() Color get seedColor; String get tweakcnThemeJson; bool get tweakcnThemeEnabled; int get themeInitState;@LocaleConverter() Locale get locale; bool get localeFollowsSystem; int get welcomePageNum; SyncSettingState get syncSetting; List<String> get maskedKeywords; bool get socks5ProxyEnabled; String get socks5Proxy; bool get needCleanCache; int get comicChoice; bool get disableBika; bool get enableMemoryDebug; bool get blockRustHttpRequests; String get logAddress; bool get showLayoutOverflowStripes; bool get forceEnableImpeller; bool get androidKeepAliveEnabled; bool get backPressExitEnabled; bool get updateAccelerate; bool get retryDownloadUntilSuccess; int get downloadConcurrency; int get downloadDelayMs; int get downloadAutoRetryCount; bool get oldPageRollbackEnabled; bool get cloudFavoritePreferred; bool get autoFollowOnCollect; bool get autoFavoriteOnDownload; bool get writeDownloadMetadataFile; bool get leftHandModeEnabled; bool get clickCoverToStartReading; bool get comicInfoInlineReadButton; bool get startWithWorkspace; bool get transparentDesktopTitleBar; bool get transparentTitleBarFused; List<String> get searchHistory; ProxySettingState get proxySetting; double get windowWidth; double get windowHeight; double get windowX; double get windowY; ReadSettingState get readSetting; String get customExportPath; AppLockSettingState get appLockSetting; String get compatibleVersion; CacheSettingState get cacheSetting; ChineseConvertMode get chineseConvertMode; BookshelfSettingState get bookshelfSetting; FavoriteArtistSettingState get favoriteArtistSetting; FavoriteTagSettingState get favoriteTagSetting; ComicCardSettingState get comicCardSetting; ToastSettingState get toastSetting; SwitchToastSettingState get switchToastSetting; FileManagerSettingState get fileManagerSetting; DiscoverSettingState get discoverSetting; OperationBindingSettingState get operationBindingSetting;
 /// Create a copy of GlobalSettingState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,20 +30,20 @@ $GlobalSettingStateCopyWith<GlobalSettingState> get copyWith => _$GlobalSettingS
 @override
 bool operator ==(Object other) {
   final _this = this as GlobalSettingState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is GlobalSettingState&&(identical(other.dynamicColor, _this.dynamicColor) || other.dynamicColor == _this.dynamicColor)&&(identical(other.themeMode, _this.themeMode) || other.themeMode == _this.themeMode)&&(identical(other.isAMOLED, _this.isAMOLED) || other.isAMOLED == _this.isAMOLED)&&(identical(other.seedColor, _this.seedColor) || other.seedColor == _this.seedColor)&&(identical(other.tweakcnThemeJson, _this.tweakcnThemeJson) || other.tweakcnThemeJson == _this.tweakcnThemeJson)&&(identical(other.tweakcnThemeEnabled, _this.tweakcnThemeEnabled) || other.tweakcnThemeEnabled == _this.tweakcnThemeEnabled)&&(identical(other.themeInitState, _this.themeInitState) || other.themeInitState == _this.themeInitState)&&(identical(other.locale, _this.locale) || other.locale == _this.locale)&&(identical(other.localeFollowsSystem, _this.localeFollowsSystem) || other.localeFollowsSystem == _this.localeFollowsSystem)&&(identical(other.welcomePageNum, _this.welcomePageNum) || other.welcomePageNum == _this.welcomePageNum)&&(identical(other.syncSetting, _this.syncSetting) || other.syncSetting == _this.syncSetting)&&const DeepCollectionEquality().equals(other.maskedKeywords, _this.maskedKeywords)&&(identical(other.socks5ProxyEnabled, _this.socks5ProxyEnabled) || other.socks5ProxyEnabled == _this.socks5ProxyEnabled)&&(identical(other.socks5Proxy, _this.socks5Proxy) || other.socks5Proxy == _this.socks5Proxy)&&(identical(other.needCleanCache, _this.needCleanCache) || other.needCleanCache == _this.needCleanCache)&&(identical(other.comicChoice, _this.comicChoice) || other.comicChoice == _this.comicChoice)&&(identical(other.disableBika, _this.disableBika) || other.disableBika == _this.disableBika)&&(identical(other.enableMemoryDebug, _this.enableMemoryDebug) || other.enableMemoryDebug == _this.enableMemoryDebug)&&(identical(other.blockRustHttpRequests, _this.blockRustHttpRequests) || other.blockRustHttpRequests == _this.blockRustHttpRequests)&&(identical(other.logAddress, _this.logAddress) || other.logAddress == _this.logAddress)&&(identical(other.showLayoutOverflowStripes, _this.showLayoutOverflowStripes) || other.showLayoutOverflowStripes == _this.showLayoutOverflowStripes)&&(identical(other.forceEnableImpeller, _this.forceEnableImpeller) || other.forceEnableImpeller == _this.forceEnableImpeller)&&(identical(other.androidKeepAliveEnabled, _this.androidKeepAliveEnabled) || other.androidKeepAliveEnabled == _this.androidKeepAliveEnabled)&&(identical(other.backPressExitEnabled, _this.backPressExitEnabled) || other.backPressExitEnabled == _this.backPressExitEnabled)&&(identical(other.updateAccelerate, _this.updateAccelerate) || other.updateAccelerate == _this.updateAccelerate)&&(identical(other.retryDownloadUntilSuccess, _this.retryDownloadUntilSuccess) || other.retryDownloadUntilSuccess == _this.retryDownloadUntilSuccess)&&(identical(other.downloadConcurrency, _this.downloadConcurrency) || other.downloadConcurrency == _this.downloadConcurrency)&&(identical(other.downloadDelayMs, _this.downloadDelayMs) || other.downloadDelayMs == _this.downloadDelayMs)&&(identical(other.downloadAutoRetryCount, _this.downloadAutoRetryCount) || other.downloadAutoRetryCount == _this.downloadAutoRetryCount)&&(identical(other.oldPageRollbackEnabled, _this.oldPageRollbackEnabled) || other.oldPageRollbackEnabled == _this.oldPageRollbackEnabled)&&(identical(other.cloudFavoritePreferred, _this.cloudFavoritePreferred) || other.cloudFavoritePreferred == _this.cloudFavoritePreferred)&&(identical(other.autoFollowOnCollect, _this.autoFollowOnCollect) || other.autoFollowOnCollect == _this.autoFollowOnCollect)&&(identical(other.autoFavoriteOnDownload, _this.autoFavoriteOnDownload) || other.autoFavoriteOnDownload == _this.autoFavoriteOnDownload)&&(identical(other.writeDownloadMetadataFile, _this.writeDownloadMetadataFile) || other.writeDownloadMetadataFile == _this.writeDownloadMetadataFile)&&(identical(other.leftHandModeEnabled, _this.leftHandModeEnabled) || other.leftHandModeEnabled == _this.leftHandModeEnabled)&&(identical(other.clickCoverToStartReading, _this.clickCoverToStartReading) || other.clickCoverToStartReading == _this.clickCoverToStartReading)&&(identical(other.comicInfoInlineReadButton, _this.comicInfoInlineReadButton) || other.comicInfoInlineReadButton == _this.comicInfoInlineReadButton)&&(identical(other.startWithWorkspace, _this.startWithWorkspace) || other.startWithWorkspace == _this.startWithWorkspace)&&(identical(other.transparentDesktopTitleBar, _this.transparentDesktopTitleBar) || other.transparentDesktopTitleBar == _this.transparentDesktopTitleBar)&&(identical(other.transparentTitleBarFused, _this.transparentTitleBarFused) || other.transparentTitleBarFused == _this.transparentTitleBarFused)&&const DeepCollectionEquality().equals(other.searchHistory, _this.searchHistory)&&(identical(other.proxySetting, _this.proxySetting) || other.proxySetting == _this.proxySetting)&&(identical(other.windowWidth, _this.windowWidth) || other.windowWidth == _this.windowWidth)&&(identical(other.windowHeight, _this.windowHeight) || other.windowHeight == _this.windowHeight)&&(identical(other.windowX, _this.windowX) || other.windowX == _this.windowX)&&(identical(other.windowY, _this.windowY) || other.windowY == _this.windowY)&&(identical(other.readSetting, _this.readSetting) || other.readSetting == _this.readSetting)&&(identical(other.customExportPath, _this.customExportPath) || other.customExportPath == _this.customExportPath)&&(identical(other.appLockSetting, _this.appLockSetting) || other.appLockSetting == _this.appLockSetting)&&(identical(other.compatibleVersion, _this.compatibleVersion) || other.compatibleVersion == _this.compatibleVersion)&&(identical(other.cacheSetting, _this.cacheSetting) || other.cacheSetting == _this.cacheSetting)&&(identical(other.chineseConvertMode, _this.chineseConvertMode) || other.chineseConvertMode == _this.chineseConvertMode)&&(identical(other.bookshelfSetting, _this.bookshelfSetting) || other.bookshelfSetting == _this.bookshelfSetting)&&(identical(other.favoriteArtistSetting, _this.favoriteArtistSetting) || other.favoriteArtistSetting == _this.favoriteArtistSetting)&&(identical(other.comicCardSetting, _this.comicCardSetting) || other.comicCardSetting == _this.comicCardSetting)&&(identical(other.toastSetting, _this.toastSetting) || other.toastSetting == _this.toastSetting)&&(identical(other.switchToastSetting, _this.switchToastSetting) || other.switchToastSetting == _this.switchToastSetting)&&(identical(other.fileManagerSetting, _this.fileManagerSetting) || other.fileManagerSetting == _this.fileManagerSetting)&&(identical(other.discoverSetting, _this.discoverSetting) || other.discoverSetting == _this.discoverSetting)&&(identical(other.operationBindingSetting, _this.operationBindingSetting) || other.operationBindingSetting == _this.operationBindingSetting));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is GlobalSettingState&&(identical(other.dynamicColor, _this.dynamicColor) || other.dynamicColor == _this.dynamicColor)&&(identical(other.themeMode, _this.themeMode) || other.themeMode == _this.themeMode)&&(identical(other.isAMOLED, _this.isAMOLED) || other.isAMOLED == _this.isAMOLED)&&(identical(other.seedColor, _this.seedColor) || other.seedColor == _this.seedColor)&&(identical(other.tweakcnThemeJson, _this.tweakcnThemeJson) || other.tweakcnThemeJson == _this.tweakcnThemeJson)&&(identical(other.tweakcnThemeEnabled, _this.tweakcnThemeEnabled) || other.tweakcnThemeEnabled == _this.tweakcnThemeEnabled)&&(identical(other.themeInitState, _this.themeInitState) || other.themeInitState == _this.themeInitState)&&(identical(other.locale, _this.locale) || other.locale == _this.locale)&&(identical(other.localeFollowsSystem, _this.localeFollowsSystem) || other.localeFollowsSystem == _this.localeFollowsSystem)&&(identical(other.welcomePageNum, _this.welcomePageNum) || other.welcomePageNum == _this.welcomePageNum)&&(identical(other.syncSetting, _this.syncSetting) || other.syncSetting == _this.syncSetting)&&const DeepCollectionEquality().equals(other.maskedKeywords, _this.maskedKeywords)&&(identical(other.socks5ProxyEnabled, _this.socks5ProxyEnabled) || other.socks5ProxyEnabled == _this.socks5ProxyEnabled)&&(identical(other.socks5Proxy, _this.socks5Proxy) || other.socks5Proxy == _this.socks5Proxy)&&(identical(other.needCleanCache, _this.needCleanCache) || other.needCleanCache == _this.needCleanCache)&&(identical(other.comicChoice, _this.comicChoice) || other.comicChoice == _this.comicChoice)&&(identical(other.disableBika, _this.disableBika) || other.disableBika == _this.disableBika)&&(identical(other.enableMemoryDebug, _this.enableMemoryDebug) || other.enableMemoryDebug == _this.enableMemoryDebug)&&(identical(other.blockRustHttpRequests, _this.blockRustHttpRequests) || other.blockRustHttpRequests == _this.blockRustHttpRequests)&&(identical(other.logAddress, _this.logAddress) || other.logAddress == _this.logAddress)&&(identical(other.showLayoutOverflowStripes, _this.showLayoutOverflowStripes) || other.showLayoutOverflowStripes == _this.showLayoutOverflowStripes)&&(identical(other.forceEnableImpeller, _this.forceEnableImpeller) || other.forceEnableImpeller == _this.forceEnableImpeller)&&(identical(other.androidKeepAliveEnabled, _this.androidKeepAliveEnabled) || other.androidKeepAliveEnabled == _this.androidKeepAliveEnabled)&&(identical(other.backPressExitEnabled, _this.backPressExitEnabled) || other.backPressExitEnabled == _this.backPressExitEnabled)&&(identical(other.updateAccelerate, _this.updateAccelerate) || other.updateAccelerate == _this.updateAccelerate)&&(identical(other.retryDownloadUntilSuccess, _this.retryDownloadUntilSuccess) || other.retryDownloadUntilSuccess == _this.retryDownloadUntilSuccess)&&(identical(other.downloadConcurrency, _this.downloadConcurrency) || other.downloadConcurrency == _this.downloadConcurrency)&&(identical(other.downloadDelayMs, _this.downloadDelayMs) || other.downloadDelayMs == _this.downloadDelayMs)&&(identical(other.downloadAutoRetryCount, _this.downloadAutoRetryCount) || other.downloadAutoRetryCount == _this.downloadAutoRetryCount)&&(identical(other.oldPageRollbackEnabled, _this.oldPageRollbackEnabled) || other.oldPageRollbackEnabled == _this.oldPageRollbackEnabled)&&(identical(other.cloudFavoritePreferred, _this.cloudFavoritePreferred) || other.cloudFavoritePreferred == _this.cloudFavoritePreferred)&&(identical(other.autoFollowOnCollect, _this.autoFollowOnCollect) || other.autoFollowOnCollect == _this.autoFollowOnCollect)&&(identical(other.autoFavoriteOnDownload, _this.autoFavoriteOnDownload) || other.autoFavoriteOnDownload == _this.autoFavoriteOnDownload)&&(identical(other.writeDownloadMetadataFile, _this.writeDownloadMetadataFile) || other.writeDownloadMetadataFile == _this.writeDownloadMetadataFile)&&(identical(other.leftHandModeEnabled, _this.leftHandModeEnabled) || other.leftHandModeEnabled == _this.leftHandModeEnabled)&&(identical(other.clickCoverToStartReading, _this.clickCoverToStartReading) || other.clickCoverToStartReading == _this.clickCoverToStartReading)&&(identical(other.comicInfoInlineReadButton, _this.comicInfoInlineReadButton) || other.comicInfoInlineReadButton == _this.comicInfoInlineReadButton)&&(identical(other.startWithWorkspace, _this.startWithWorkspace) || other.startWithWorkspace == _this.startWithWorkspace)&&(identical(other.transparentDesktopTitleBar, _this.transparentDesktopTitleBar) || other.transparentDesktopTitleBar == _this.transparentDesktopTitleBar)&&(identical(other.transparentTitleBarFused, _this.transparentTitleBarFused) || other.transparentTitleBarFused == _this.transparentTitleBarFused)&&const DeepCollectionEquality().equals(other.searchHistory, _this.searchHistory)&&(identical(other.proxySetting, _this.proxySetting) || other.proxySetting == _this.proxySetting)&&(identical(other.windowWidth, _this.windowWidth) || other.windowWidth == _this.windowWidth)&&(identical(other.windowHeight, _this.windowHeight) || other.windowHeight == _this.windowHeight)&&(identical(other.windowX, _this.windowX) || other.windowX == _this.windowX)&&(identical(other.windowY, _this.windowY) || other.windowY == _this.windowY)&&(identical(other.readSetting, _this.readSetting) || other.readSetting == _this.readSetting)&&(identical(other.customExportPath, _this.customExportPath) || other.customExportPath == _this.customExportPath)&&(identical(other.appLockSetting, _this.appLockSetting) || other.appLockSetting == _this.appLockSetting)&&(identical(other.compatibleVersion, _this.compatibleVersion) || other.compatibleVersion == _this.compatibleVersion)&&(identical(other.cacheSetting, _this.cacheSetting) || other.cacheSetting == _this.cacheSetting)&&(identical(other.chineseConvertMode, _this.chineseConvertMode) || other.chineseConvertMode == _this.chineseConvertMode)&&(identical(other.bookshelfSetting, _this.bookshelfSetting) || other.bookshelfSetting == _this.bookshelfSetting)&&(identical(other.favoriteArtistSetting, _this.favoriteArtistSetting) || other.favoriteArtistSetting == _this.favoriteArtistSetting)&&(identical(other.favoriteTagSetting, _this.favoriteTagSetting) || other.favoriteTagSetting == _this.favoriteTagSetting)&&(identical(other.comicCardSetting, _this.comicCardSetting) || other.comicCardSetting == _this.comicCardSetting)&&(identical(other.toastSetting, _this.toastSetting) || other.toastSetting == _this.toastSetting)&&(identical(other.switchToastSetting, _this.switchToastSetting) || other.switchToastSetting == _this.switchToastSetting)&&(identical(other.fileManagerSetting, _this.fileManagerSetting) || other.fileManagerSetting == _this.fileManagerSetting)&&(identical(other.discoverSetting, _this.discoverSetting) || other.discoverSetting == _this.discoverSetting)&&(identical(other.operationBindingSetting, _this.operationBindingSetting) || other.operationBindingSetting == _this.operationBindingSetting));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as GlobalSettingState;
-  return Object.hashAll([runtimeType,_this.dynamicColor,_this.themeMode,_this.isAMOLED,_this.seedColor,_this.tweakcnThemeJson,_this.tweakcnThemeEnabled,_this.themeInitState,_this.locale,_this.localeFollowsSystem,_this.welcomePageNum,_this.syncSetting,const DeepCollectionEquality().hash(_this.maskedKeywords),_this.socks5ProxyEnabled,_this.socks5Proxy,_this.needCleanCache,_this.comicChoice,_this.disableBika,_this.enableMemoryDebug,_this.blockRustHttpRequests,_this.logAddress,_this.showLayoutOverflowStripes,_this.forceEnableImpeller,_this.androidKeepAliveEnabled,_this.backPressExitEnabled,_this.updateAccelerate,_this.retryDownloadUntilSuccess,_this.downloadConcurrency,_this.downloadDelayMs,_this.downloadAutoRetryCount,_this.oldPageRollbackEnabled,_this.cloudFavoritePreferred,_this.autoFollowOnCollect,_this.autoFavoriteOnDownload,_this.writeDownloadMetadataFile,_this.leftHandModeEnabled,_this.clickCoverToStartReading,_this.comicInfoInlineReadButton,_this.startWithWorkspace,_this.transparentDesktopTitleBar,_this.transparentTitleBarFused,const DeepCollectionEquality().hash(_this.searchHistory),_this.proxySetting,_this.windowWidth,_this.windowHeight,_this.windowX,_this.windowY,_this.readSetting,_this.customExportPath,_this.appLockSetting,_this.compatibleVersion,_this.cacheSetting,_this.chineseConvertMode,_this.bookshelfSetting,_this.favoriteArtistSetting,_this.comicCardSetting,_this.toastSetting,_this.switchToastSetting,_this.fileManagerSetting,_this.discoverSetting,_this.operationBindingSetting]);
+  return Object.hashAll([runtimeType,_this.dynamicColor,_this.themeMode,_this.isAMOLED,_this.seedColor,_this.tweakcnThemeJson,_this.tweakcnThemeEnabled,_this.themeInitState,_this.locale,_this.localeFollowsSystem,_this.welcomePageNum,_this.syncSetting,const DeepCollectionEquality().hash(_this.maskedKeywords),_this.socks5ProxyEnabled,_this.socks5Proxy,_this.needCleanCache,_this.comicChoice,_this.disableBika,_this.enableMemoryDebug,_this.blockRustHttpRequests,_this.logAddress,_this.showLayoutOverflowStripes,_this.forceEnableImpeller,_this.androidKeepAliveEnabled,_this.backPressExitEnabled,_this.updateAccelerate,_this.retryDownloadUntilSuccess,_this.downloadConcurrency,_this.downloadDelayMs,_this.downloadAutoRetryCount,_this.oldPageRollbackEnabled,_this.cloudFavoritePreferred,_this.autoFollowOnCollect,_this.autoFavoriteOnDownload,_this.writeDownloadMetadataFile,_this.leftHandModeEnabled,_this.clickCoverToStartReading,_this.comicInfoInlineReadButton,_this.startWithWorkspace,_this.transparentDesktopTitleBar,_this.transparentTitleBarFused,const DeepCollectionEquality().hash(_this.searchHistory),_this.proxySetting,_this.windowWidth,_this.windowHeight,_this.windowX,_this.windowY,_this.readSetting,_this.customExportPath,_this.appLockSetting,_this.compatibleVersion,_this.cacheSetting,_this.chineseConvertMode,_this.bookshelfSetting,_this.favoriteArtistSetting,_this.favoriteTagSetting,_this.comicCardSetting,_this.toastSetting,_this.switchToastSetting,_this.fileManagerSetting,_this.discoverSetting,_this.operationBindingSetting]);
 }
 
 @override
 String toString() {
   final _this = this as GlobalSettingState;
-  return 'GlobalSettingState(dynamicColor: ${_this.dynamicColor}, themeMode: ${_this.themeMode}, isAMOLED: ${_this.isAMOLED}, seedColor: ${_this.seedColor}, tweakcnThemeJson: ${_this.tweakcnThemeJson}, tweakcnThemeEnabled: ${_this.tweakcnThemeEnabled}, themeInitState: ${_this.themeInitState}, locale: ${_this.locale}, localeFollowsSystem: ${_this.localeFollowsSystem}, welcomePageNum: ${_this.welcomePageNum}, syncSetting: ${_this.syncSetting}, maskedKeywords: ${_this.maskedKeywords}, socks5ProxyEnabled: ${_this.socks5ProxyEnabled}, socks5Proxy: ${_this.socks5Proxy}, needCleanCache: ${_this.needCleanCache}, comicChoice: ${_this.comicChoice}, disableBika: ${_this.disableBika}, enableMemoryDebug: ${_this.enableMemoryDebug}, blockRustHttpRequests: ${_this.blockRustHttpRequests}, logAddress: ${_this.logAddress}, showLayoutOverflowStripes: ${_this.showLayoutOverflowStripes}, forceEnableImpeller: ${_this.forceEnableImpeller}, androidKeepAliveEnabled: ${_this.androidKeepAliveEnabled}, backPressExitEnabled: ${_this.backPressExitEnabled}, updateAccelerate: ${_this.updateAccelerate}, retryDownloadUntilSuccess: ${_this.retryDownloadUntilSuccess}, downloadConcurrency: ${_this.downloadConcurrency}, downloadDelayMs: ${_this.downloadDelayMs}, downloadAutoRetryCount: ${_this.downloadAutoRetryCount}, oldPageRollbackEnabled: ${_this.oldPageRollbackEnabled}, cloudFavoritePreferred: ${_this.cloudFavoritePreferred}, autoFollowOnCollect: ${_this.autoFollowOnCollect}, autoFavoriteOnDownload: ${_this.autoFavoriteOnDownload}, writeDownloadMetadataFile: ${_this.writeDownloadMetadataFile}, leftHandModeEnabled: ${_this.leftHandModeEnabled}, clickCoverToStartReading: ${_this.clickCoverToStartReading}, comicInfoInlineReadButton: ${_this.comicInfoInlineReadButton}, startWithWorkspace: ${_this.startWithWorkspace}, transparentDesktopTitleBar: ${_this.transparentDesktopTitleBar}, transparentTitleBarFused: ${_this.transparentTitleBarFused}, searchHistory: ${_this.searchHistory}, proxySetting: ${_this.proxySetting}, windowWidth: ${_this.windowWidth}, windowHeight: ${_this.windowHeight}, windowX: ${_this.windowX}, windowY: ${_this.windowY}, readSetting: ${_this.readSetting}, customExportPath: ${_this.customExportPath}, appLockSetting: ${_this.appLockSetting}, compatibleVersion: ${_this.compatibleVersion}, cacheSetting: ${_this.cacheSetting}, chineseConvertMode: ${_this.chineseConvertMode}, bookshelfSetting: ${_this.bookshelfSetting}, favoriteArtistSetting: ${_this.favoriteArtistSetting}, comicCardSetting: ${_this.comicCardSetting}, toastSetting: ${_this.toastSetting}, switchToastSetting: ${_this.switchToastSetting}, fileManagerSetting: ${_this.fileManagerSetting}, discoverSetting: ${_this.discoverSetting}, operationBindingSetting: ${_this.operationBindingSetting})';
+  return 'GlobalSettingState(dynamicColor: ${_this.dynamicColor}, themeMode: ${_this.themeMode}, isAMOLED: ${_this.isAMOLED}, seedColor: ${_this.seedColor}, tweakcnThemeJson: ${_this.tweakcnThemeJson}, tweakcnThemeEnabled: ${_this.tweakcnThemeEnabled}, themeInitState: ${_this.themeInitState}, locale: ${_this.locale}, localeFollowsSystem: ${_this.localeFollowsSystem}, welcomePageNum: ${_this.welcomePageNum}, syncSetting: ${_this.syncSetting}, maskedKeywords: ${_this.maskedKeywords}, socks5ProxyEnabled: ${_this.socks5ProxyEnabled}, socks5Proxy: ${_this.socks5Proxy}, needCleanCache: ${_this.needCleanCache}, comicChoice: ${_this.comicChoice}, disableBika: ${_this.disableBika}, enableMemoryDebug: ${_this.enableMemoryDebug}, blockRustHttpRequests: ${_this.blockRustHttpRequests}, logAddress: ${_this.logAddress}, showLayoutOverflowStripes: ${_this.showLayoutOverflowStripes}, forceEnableImpeller: ${_this.forceEnableImpeller}, androidKeepAliveEnabled: ${_this.androidKeepAliveEnabled}, backPressExitEnabled: ${_this.backPressExitEnabled}, updateAccelerate: ${_this.updateAccelerate}, retryDownloadUntilSuccess: ${_this.retryDownloadUntilSuccess}, downloadConcurrency: ${_this.downloadConcurrency}, downloadDelayMs: ${_this.downloadDelayMs}, downloadAutoRetryCount: ${_this.downloadAutoRetryCount}, oldPageRollbackEnabled: ${_this.oldPageRollbackEnabled}, cloudFavoritePreferred: ${_this.cloudFavoritePreferred}, autoFollowOnCollect: ${_this.autoFollowOnCollect}, autoFavoriteOnDownload: ${_this.autoFavoriteOnDownload}, writeDownloadMetadataFile: ${_this.writeDownloadMetadataFile}, leftHandModeEnabled: ${_this.leftHandModeEnabled}, clickCoverToStartReading: ${_this.clickCoverToStartReading}, comicInfoInlineReadButton: ${_this.comicInfoInlineReadButton}, startWithWorkspace: ${_this.startWithWorkspace}, transparentDesktopTitleBar: ${_this.transparentDesktopTitleBar}, transparentTitleBarFused: ${_this.transparentTitleBarFused}, searchHistory: ${_this.searchHistory}, proxySetting: ${_this.proxySetting}, windowWidth: ${_this.windowWidth}, windowHeight: ${_this.windowHeight}, windowX: ${_this.windowX}, windowY: ${_this.windowY}, readSetting: ${_this.readSetting}, customExportPath: ${_this.customExportPath}, appLockSetting: ${_this.appLockSetting}, compatibleVersion: ${_this.compatibleVersion}, cacheSetting: ${_this.cacheSetting}, chineseConvertMode: ${_this.chineseConvertMode}, bookshelfSetting: ${_this.bookshelfSetting}, favoriteArtistSetting: ${_this.favoriteArtistSetting}, favoriteTagSetting: ${_this.favoriteTagSetting}, comicCardSetting: ${_this.comicCardSetting}, toastSetting: ${_this.toastSetting}, switchToastSetting: ${_this.switchToastSetting}, fileManagerSetting: ${_this.fileManagerSetting}, discoverSetting: ${_this.discoverSetting}, operationBindingSetting: ${_this.operationBindingSetting})';
 }
 
 
@@ -54,11 +54,11 @@ abstract mixin class $GlobalSettingStateCopyWith<$Res>  {
   factory $GlobalSettingStateCopyWith(GlobalSettingState value, $Res Function(GlobalSettingState) _then) = _$GlobalSettingStateCopyWithImpl;
 @useResult
 $Res call({
- bool dynamicColor, ThemeMode themeMode, bool isAMOLED,@ColorConverter() Color seedColor, String tweakcnThemeJson, bool tweakcnThemeEnabled, int themeInitState,@LocaleConverter() Locale locale, bool localeFollowsSystem, int welcomePageNum, SyncSettingState syncSetting, List<String> maskedKeywords, bool socks5ProxyEnabled, String socks5Proxy, bool needCleanCache, int comicChoice, bool disableBika, bool enableMemoryDebug, bool blockRustHttpRequests, String logAddress, bool showLayoutOverflowStripes, bool forceEnableImpeller, bool androidKeepAliveEnabled, bool backPressExitEnabled, bool updateAccelerate, bool retryDownloadUntilSuccess, int downloadConcurrency, int downloadDelayMs, int downloadAutoRetryCount, bool oldPageRollbackEnabled, bool cloudFavoritePreferred, bool autoFollowOnCollect, bool autoFavoriteOnDownload, bool writeDownloadMetadataFile, bool leftHandModeEnabled, bool clickCoverToStartReading, bool comicInfoInlineReadButton, bool startWithWorkspace, bool transparentDesktopTitleBar, bool transparentTitleBarFused, List<String> searchHistory, ProxySettingState proxySetting, double windowWidth, double windowHeight, double windowX, double windowY, ReadSettingState readSetting, String customExportPath, AppLockSettingState appLockSetting, String compatibleVersion, CacheSettingState cacheSetting, ChineseConvertMode chineseConvertMode, BookshelfSettingState bookshelfSetting, FavoriteArtistSettingState favoriteArtistSetting, ComicCardSettingState comicCardSetting, ToastSettingState toastSetting, SwitchToastSettingState switchToastSetting, FileManagerSettingState fileManagerSetting, DiscoverSettingState discoverSetting, OperationBindingSettingState operationBindingSetting
+ bool dynamicColor, ThemeMode themeMode, bool isAMOLED,@ColorConverter() Color seedColor, String tweakcnThemeJson, bool tweakcnThemeEnabled, int themeInitState,@LocaleConverter() Locale locale, bool localeFollowsSystem, int welcomePageNum, SyncSettingState syncSetting, List<String> maskedKeywords, bool socks5ProxyEnabled, String socks5Proxy, bool needCleanCache, int comicChoice, bool disableBika, bool enableMemoryDebug, bool blockRustHttpRequests, String logAddress, bool showLayoutOverflowStripes, bool forceEnableImpeller, bool androidKeepAliveEnabled, bool backPressExitEnabled, bool updateAccelerate, bool retryDownloadUntilSuccess, int downloadConcurrency, int downloadDelayMs, int downloadAutoRetryCount, bool oldPageRollbackEnabled, bool cloudFavoritePreferred, bool autoFollowOnCollect, bool autoFavoriteOnDownload, bool writeDownloadMetadataFile, bool leftHandModeEnabled, bool clickCoverToStartReading, bool comicInfoInlineReadButton, bool startWithWorkspace, bool transparentDesktopTitleBar, bool transparentTitleBarFused, List<String> searchHistory, ProxySettingState proxySetting, double windowWidth, double windowHeight, double windowX, double windowY, ReadSettingState readSetting, String customExportPath, AppLockSettingState appLockSetting, String compatibleVersion, CacheSettingState cacheSetting, ChineseConvertMode chineseConvertMode, BookshelfSettingState bookshelfSetting, FavoriteArtistSettingState favoriteArtistSetting, FavoriteTagSettingState favoriteTagSetting, ComicCardSettingState comicCardSetting, ToastSettingState toastSetting, SwitchToastSettingState switchToastSetting, FileManagerSettingState fileManagerSetting, DiscoverSettingState discoverSetting, OperationBindingSettingState operationBindingSetting
 });
 
 
-$SyncSettingStateCopyWith<$Res> get syncSetting;$ProxySettingStateCopyWith<$Res> get proxySetting;$ReadSettingStateCopyWith<$Res> get readSetting;$AppLockSettingStateCopyWith<$Res> get appLockSetting;$CacheSettingStateCopyWith<$Res> get cacheSetting;$BookshelfSettingStateCopyWith<$Res> get bookshelfSetting;$FavoriteArtistSettingStateCopyWith<$Res> get favoriteArtistSetting;$ComicCardSettingStateCopyWith<$Res> get comicCardSetting;$ToastSettingStateCopyWith<$Res> get toastSetting;$SwitchToastSettingStateCopyWith<$Res> get switchToastSetting;$FileManagerSettingStateCopyWith<$Res> get fileManagerSetting;$DiscoverSettingStateCopyWith<$Res> get discoverSetting;$OperationBindingSettingStateCopyWith<$Res> get operationBindingSetting;
+$SyncSettingStateCopyWith<$Res> get syncSetting;$ProxySettingStateCopyWith<$Res> get proxySetting;$ReadSettingStateCopyWith<$Res> get readSetting;$AppLockSettingStateCopyWith<$Res> get appLockSetting;$CacheSettingStateCopyWith<$Res> get cacheSetting;$BookshelfSettingStateCopyWith<$Res> get bookshelfSetting;$FavoriteArtistSettingStateCopyWith<$Res> get favoriteArtistSetting;$FavoriteTagSettingStateCopyWith<$Res> get favoriteTagSetting;$ComicCardSettingStateCopyWith<$Res> get comicCardSetting;$ToastSettingStateCopyWith<$Res> get toastSetting;$SwitchToastSettingStateCopyWith<$Res> get switchToastSetting;$FileManagerSettingStateCopyWith<$Res> get fileManagerSetting;$DiscoverSettingStateCopyWith<$Res> get discoverSetting;$OperationBindingSettingStateCopyWith<$Res> get operationBindingSetting;
 
 }
 /// @nodoc
@@ -71,7 +71,7 @@ class _$GlobalSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of GlobalSettingState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? dynamicColor = null,Object? themeMode = null,Object? isAMOLED = null,Object? seedColor = null,Object? tweakcnThemeJson = null,Object? tweakcnThemeEnabled = null,Object? themeInitState = null,Object? locale = null,Object? localeFollowsSystem = null,Object? welcomePageNum = null,Object? syncSetting = null,Object? maskedKeywords = null,Object? socks5ProxyEnabled = null,Object? socks5Proxy = null,Object? needCleanCache = null,Object? comicChoice = null,Object? disableBika = null,Object? enableMemoryDebug = null,Object? blockRustHttpRequests = null,Object? logAddress = null,Object? showLayoutOverflowStripes = null,Object? forceEnableImpeller = null,Object? androidKeepAliveEnabled = null,Object? backPressExitEnabled = null,Object? updateAccelerate = null,Object? retryDownloadUntilSuccess = null,Object? downloadConcurrency = null,Object? downloadDelayMs = null,Object? downloadAutoRetryCount = null,Object? oldPageRollbackEnabled = null,Object? cloudFavoritePreferred = null,Object? autoFollowOnCollect = null,Object? autoFavoriteOnDownload = null,Object? writeDownloadMetadataFile = null,Object? leftHandModeEnabled = null,Object? clickCoverToStartReading = null,Object? comicInfoInlineReadButton = null,Object? startWithWorkspace = null,Object? transparentDesktopTitleBar = null,Object? transparentTitleBarFused = null,Object? searchHistory = null,Object? proxySetting = null,Object? windowWidth = null,Object? windowHeight = null,Object? windowX = null,Object? windowY = null,Object? readSetting = null,Object? customExportPath = null,Object? appLockSetting = null,Object? compatibleVersion = null,Object? cacheSetting = null,Object? chineseConvertMode = null,Object? bookshelfSetting = null,Object? favoriteArtistSetting = null,Object? comicCardSetting = null,Object? toastSetting = null,Object? switchToastSetting = null,Object? fileManagerSetting = null,Object? discoverSetting = null,Object? operationBindingSetting = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? dynamicColor = null,Object? themeMode = null,Object? isAMOLED = null,Object? seedColor = null,Object? tweakcnThemeJson = null,Object? tweakcnThemeEnabled = null,Object? themeInitState = null,Object? locale = null,Object? localeFollowsSystem = null,Object? welcomePageNum = null,Object? syncSetting = null,Object? maskedKeywords = null,Object? socks5ProxyEnabled = null,Object? socks5Proxy = null,Object? needCleanCache = null,Object? comicChoice = null,Object? disableBika = null,Object? enableMemoryDebug = null,Object? blockRustHttpRequests = null,Object? logAddress = null,Object? showLayoutOverflowStripes = null,Object? forceEnableImpeller = null,Object? androidKeepAliveEnabled = null,Object? backPressExitEnabled = null,Object? updateAccelerate = null,Object? retryDownloadUntilSuccess = null,Object? downloadConcurrency = null,Object? downloadDelayMs = null,Object? downloadAutoRetryCount = null,Object? oldPageRollbackEnabled = null,Object? cloudFavoritePreferred = null,Object? autoFollowOnCollect = null,Object? autoFavoriteOnDownload = null,Object? writeDownloadMetadataFile = null,Object? leftHandModeEnabled = null,Object? clickCoverToStartReading = null,Object? comicInfoInlineReadButton = null,Object? startWithWorkspace = null,Object? transparentDesktopTitleBar = null,Object? transparentTitleBarFused = null,Object? searchHistory = null,Object? proxySetting = null,Object? windowWidth = null,Object? windowHeight = null,Object? windowX = null,Object? windowY = null,Object? readSetting = null,Object? customExportPath = null,Object? appLockSetting = null,Object? compatibleVersion = null,Object? cacheSetting = null,Object? chineseConvertMode = null,Object? bookshelfSetting = null,Object? favoriteArtistSetting = null,Object? favoriteTagSetting = null,Object? comicCardSetting = null,Object? toastSetting = null,Object? switchToastSetting = null,Object? fileManagerSetting = null,Object? discoverSetting = null,Object? operationBindingSetting = null,}) {
   return _then(GlobalSettingState(
 dynamicColor: null == dynamicColor ? _self.dynamicColor : dynamicColor // ignore: cast_nullable_to_non_nullable
 as bool,themeMode: null == themeMode ? _self.themeMode : themeMode // ignore: cast_nullable_to_non_nullable
@@ -127,7 +127,8 @@ as String,cacheSetting: null == cacheSetting ? _self.cacheSetting : cacheSetting
 as CacheSettingState,chineseConvertMode: null == chineseConvertMode ? _self.chineseConvertMode : chineseConvertMode // ignore: cast_nullable_to_non_nullable
 as ChineseConvertMode,bookshelfSetting: null == bookshelfSetting ? _self.bookshelfSetting : bookshelfSetting // ignore: cast_nullable_to_non_nullable
 as BookshelfSettingState,favoriteArtistSetting: null == favoriteArtistSetting ? _self.favoriteArtistSetting : favoriteArtistSetting // ignore: cast_nullable_to_non_nullable
-as FavoriteArtistSettingState,comicCardSetting: null == comicCardSetting ? _self.comicCardSetting : comicCardSetting // ignore: cast_nullable_to_non_nullable
+as FavoriteArtistSettingState,favoriteTagSetting: null == favoriteTagSetting ? _self.favoriteTagSetting : favoriteTagSetting // ignore: cast_nullable_to_non_nullable
+as FavoriteTagSettingState,comicCardSetting: null == comicCardSetting ? _self.comicCardSetting : comicCardSetting // ignore: cast_nullable_to_non_nullable
 as ComicCardSettingState,toastSetting: null == toastSetting ? _self.toastSetting : toastSetting // ignore: cast_nullable_to_non_nullable
 as ToastSettingState,switchToastSetting: null == switchToastSetting ? _self.switchToastSetting : switchToastSetting // ignore: cast_nullable_to_non_nullable
 as SwitchToastSettingState,fileManagerSetting: null == fileManagerSetting ? _self.fileManagerSetting : fileManagerSetting // ignore: cast_nullable_to_non_nullable
@@ -198,6 +199,15 @@ $FavoriteArtistSettingStateCopyWith<$Res> get favoriteArtistSetting {
   
   return $FavoriteArtistSettingStateCopyWith<$Res>(_self.favoriteArtistSetting, (value) {
     return _then(_self.copyWith(favoriteArtistSetting: value));
+  });
+}/// Create a copy of GlobalSettingState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$FavoriteTagSettingStateCopyWith<$Res> get favoriteTagSetting {
+  
+  return $FavoriteTagSettingStateCopyWith<$Res>(_self.favoriteTagSetting, (value) {
+    return _then(_self.copyWith(favoriteTagSetting: value));
   });
 }/// Create a copy of GlobalSettingState
 /// with the given fields replaced by the non-null parameter values.
@@ -335,10 +345,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool dynamicColor,  ThemeMode themeMode,  bool isAMOLED, @ColorConverter()  Color seedColor,  String tweakcnThemeJson,  bool tweakcnThemeEnabled,  int themeInitState, @LocaleConverter()  Locale locale,  bool localeFollowsSystem,  int welcomePageNum,  SyncSettingState syncSetting,  List<String> maskedKeywords,  bool socks5ProxyEnabled,  String socks5Proxy,  bool needCleanCache,  int comicChoice,  bool disableBika,  bool enableMemoryDebug,  bool blockRustHttpRequests,  String logAddress,  bool showLayoutOverflowStripes,  bool forceEnableImpeller,  bool androidKeepAliveEnabled,  bool backPressExitEnabled,  bool updateAccelerate,  bool retryDownloadUntilSuccess,  int downloadConcurrency,  int downloadDelayMs,  int downloadAutoRetryCount,  bool oldPageRollbackEnabled,  bool cloudFavoritePreferred,  bool autoFollowOnCollect,  bool autoFavoriteOnDownload,  bool writeDownloadMetadataFile,  bool leftHandModeEnabled,  bool clickCoverToStartReading,  bool comicInfoInlineReadButton,  bool startWithWorkspace,  bool transparentDesktopTitleBar,  bool transparentTitleBarFused,  List<String> searchHistory,  ProxySettingState proxySetting,  double windowWidth,  double windowHeight,  double windowX,  double windowY,  ReadSettingState readSetting,  String customExportPath,  AppLockSettingState appLockSetting,  String compatibleVersion,  CacheSettingState cacheSetting,  ChineseConvertMode chineseConvertMode,  BookshelfSettingState bookshelfSetting,  FavoriteArtistSettingState favoriteArtistSetting,  ComicCardSettingState comicCardSetting,  ToastSettingState toastSetting,  SwitchToastSettingState switchToastSetting,  FileManagerSettingState fileManagerSetting,  DiscoverSettingState discoverSetting,  OperationBindingSettingState operationBindingSetting)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool dynamicColor,  ThemeMode themeMode,  bool isAMOLED, @ColorConverter()  Color seedColor,  String tweakcnThemeJson,  bool tweakcnThemeEnabled,  int themeInitState, @LocaleConverter()  Locale locale,  bool localeFollowsSystem,  int welcomePageNum,  SyncSettingState syncSetting,  List<String> maskedKeywords,  bool socks5ProxyEnabled,  String socks5Proxy,  bool needCleanCache,  int comicChoice,  bool disableBika,  bool enableMemoryDebug,  bool blockRustHttpRequests,  String logAddress,  bool showLayoutOverflowStripes,  bool forceEnableImpeller,  bool androidKeepAliveEnabled,  bool backPressExitEnabled,  bool updateAccelerate,  bool retryDownloadUntilSuccess,  int downloadConcurrency,  int downloadDelayMs,  int downloadAutoRetryCount,  bool oldPageRollbackEnabled,  bool cloudFavoritePreferred,  bool autoFollowOnCollect,  bool autoFavoriteOnDownload,  bool writeDownloadMetadataFile,  bool leftHandModeEnabled,  bool clickCoverToStartReading,  bool comicInfoInlineReadButton,  bool startWithWorkspace,  bool transparentDesktopTitleBar,  bool transparentTitleBarFused,  List<String> searchHistory,  ProxySettingState proxySetting,  double windowWidth,  double windowHeight,  double windowX,  double windowY,  ReadSettingState readSetting,  String customExportPath,  AppLockSettingState appLockSetting,  String compatibleVersion,  CacheSettingState cacheSetting,  ChineseConvertMode chineseConvertMode,  BookshelfSettingState bookshelfSetting,  FavoriteArtistSettingState favoriteArtistSetting,  FavoriteTagSettingState favoriteTagSetting,  ComicCardSettingState comicCardSetting,  ToastSettingState toastSetting,  SwitchToastSettingState switchToastSetting,  FileManagerSettingState fileManagerSetting,  DiscoverSettingState discoverSetting,  OperationBindingSettingState operationBindingSetting)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _GlobalSettingState() when $default != null:
-return $default(_that.dynamicColor,_that.themeMode,_that.isAMOLED,_that.seedColor,_that.tweakcnThemeJson,_that.tweakcnThemeEnabled,_that.themeInitState,_that.locale,_that.localeFollowsSystem,_that.welcomePageNum,_that.syncSetting,_that.maskedKeywords,_that.socks5ProxyEnabled,_that.socks5Proxy,_that.needCleanCache,_that.comicChoice,_that.disableBika,_that.enableMemoryDebug,_that.blockRustHttpRequests,_that.logAddress,_that.showLayoutOverflowStripes,_that.forceEnableImpeller,_that.androidKeepAliveEnabled,_that.backPressExitEnabled,_that.updateAccelerate,_that.retryDownloadUntilSuccess,_that.downloadConcurrency,_that.downloadDelayMs,_that.downloadAutoRetryCount,_that.oldPageRollbackEnabled,_that.cloudFavoritePreferred,_that.autoFollowOnCollect,_that.autoFavoriteOnDownload,_that.writeDownloadMetadataFile,_that.leftHandModeEnabled,_that.clickCoverToStartReading,_that.comicInfoInlineReadButton,_that.startWithWorkspace,_that.transparentDesktopTitleBar,_that.transparentTitleBarFused,_that.searchHistory,_that.proxySetting,_that.windowWidth,_that.windowHeight,_that.windowX,_that.windowY,_that.readSetting,_that.customExportPath,_that.appLockSetting,_that.compatibleVersion,_that.cacheSetting,_that.chineseConvertMode,_that.bookshelfSetting,_that.favoriteArtistSetting,_that.comicCardSetting,_that.toastSetting,_that.switchToastSetting,_that.fileManagerSetting,_that.discoverSetting,_that.operationBindingSetting);case _:
+return $default(_that.dynamicColor,_that.themeMode,_that.isAMOLED,_that.seedColor,_that.tweakcnThemeJson,_that.tweakcnThemeEnabled,_that.themeInitState,_that.locale,_that.localeFollowsSystem,_that.welcomePageNum,_that.syncSetting,_that.maskedKeywords,_that.socks5ProxyEnabled,_that.socks5Proxy,_that.needCleanCache,_that.comicChoice,_that.disableBika,_that.enableMemoryDebug,_that.blockRustHttpRequests,_that.logAddress,_that.showLayoutOverflowStripes,_that.forceEnableImpeller,_that.androidKeepAliveEnabled,_that.backPressExitEnabled,_that.updateAccelerate,_that.retryDownloadUntilSuccess,_that.downloadConcurrency,_that.downloadDelayMs,_that.downloadAutoRetryCount,_that.oldPageRollbackEnabled,_that.cloudFavoritePreferred,_that.autoFollowOnCollect,_that.autoFavoriteOnDownload,_that.writeDownloadMetadataFile,_that.leftHandModeEnabled,_that.clickCoverToStartReading,_that.comicInfoInlineReadButton,_that.startWithWorkspace,_that.transparentDesktopTitleBar,_that.transparentTitleBarFused,_that.searchHistory,_that.proxySetting,_that.windowWidth,_that.windowHeight,_that.windowX,_that.windowY,_that.readSetting,_that.customExportPath,_that.appLockSetting,_that.compatibleVersion,_that.cacheSetting,_that.chineseConvertMode,_that.bookshelfSetting,_that.favoriteArtistSetting,_that.favoriteTagSetting,_that.comicCardSetting,_that.toastSetting,_that.switchToastSetting,_that.fileManagerSetting,_that.discoverSetting,_that.operationBindingSetting);case _:
   return orElse();
 
 }
@@ -356,10 +366,10 @@ return $default(_that.dynamicColor,_that.themeMode,_that.isAMOLED,_that.seedColo
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool dynamicColor,  ThemeMode themeMode,  bool isAMOLED, @ColorConverter()  Color seedColor,  String tweakcnThemeJson,  bool tweakcnThemeEnabled,  int themeInitState, @LocaleConverter()  Locale locale,  bool localeFollowsSystem,  int welcomePageNum,  SyncSettingState syncSetting,  List<String> maskedKeywords,  bool socks5ProxyEnabled,  String socks5Proxy,  bool needCleanCache,  int comicChoice,  bool disableBika,  bool enableMemoryDebug,  bool blockRustHttpRequests,  String logAddress,  bool showLayoutOverflowStripes,  bool forceEnableImpeller,  bool androidKeepAliveEnabled,  bool backPressExitEnabled,  bool updateAccelerate,  bool retryDownloadUntilSuccess,  int downloadConcurrency,  int downloadDelayMs,  int downloadAutoRetryCount,  bool oldPageRollbackEnabled,  bool cloudFavoritePreferred,  bool autoFollowOnCollect,  bool autoFavoriteOnDownload,  bool writeDownloadMetadataFile,  bool leftHandModeEnabled,  bool clickCoverToStartReading,  bool comicInfoInlineReadButton,  bool startWithWorkspace,  bool transparentDesktopTitleBar,  bool transparentTitleBarFused,  List<String> searchHistory,  ProxySettingState proxySetting,  double windowWidth,  double windowHeight,  double windowX,  double windowY,  ReadSettingState readSetting,  String customExportPath,  AppLockSettingState appLockSetting,  String compatibleVersion,  CacheSettingState cacheSetting,  ChineseConvertMode chineseConvertMode,  BookshelfSettingState bookshelfSetting,  FavoriteArtistSettingState favoriteArtistSetting,  ComicCardSettingState comicCardSetting,  ToastSettingState toastSetting,  SwitchToastSettingState switchToastSetting,  FileManagerSettingState fileManagerSetting,  DiscoverSettingState discoverSetting,  OperationBindingSettingState operationBindingSetting)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool dynamicColor,  ThemeMode themeMode,  bool isAMOLED, @ColorConverter()  Color seedColor,  String tweakcnThemeJson,  bool tweakcnThemeEnabled,  int themeInitState, @LocaleConverter()  Locale locale,  bool localeFollowsSystem,  int welcomePageNum,  SyncSettingState syncSetting,  List<String> maskedKeywords,  bool socks5ProxyEnabled,  String socks5Proxy,  bool needCleanCache,  int comicChoice,  bool disableBika,  bool enableMemoryDebug,  bool blockRustHttpRequests,  String logAddress,  bool showLayoutOverflowStripes,  bool forceEnableImpeller,  bool androidKeepAliveEnabled,  bool backPressExitEnabled,  bool updateAccelerate,  bool retryDownloadUntilSuccess,  int downloadConcurrency,  int downloadDelayMs,  int downloadAutoRetryCount,  bool oldPageRollbackEnabled,  bool cloudFavoritePreferred,  bool autoFollowOnCollect,  bool autoFavoriteOnDownload,  bool writeDownloadMetadataFile,  bool leftHandModeEnabled,  bool clickCoverToStartReading,  bool comicInfoInlineReadButton,  bool startWithWorkspace,  bool transparentDesktopTitleBar,  bool transparentTitleBarFused,  List<String> searchHistory,  ProxySettingState proxySetting,  double windowWidth,  double windowHeight,  double windowX,  double windowY,  ReadSettingState readSetting,  String customExportPath,  AppLockSettingState appLockSetting,  String compatibleVersion,  CacheSettingState cacheSetting,  ChineseConvertMode chineseConvertMode,  BookshelfSettingState bookshelfSetting,  FavoriteArtistSettingState favoriteArtistSetting,  FavoriteTagSettingState favoriteTagSetting,  ComicCardSettingState comicCardSetting,  ToastSettingState toastSetting,  SwitchToastSettingState switchToastSetting,  FileManagerSettingState fileManagerSetting,  DiscoverSettingState discoverSetting,  OperationBindingSettingState operationBindingSetting)  $default,) {final _that = this;
 switch (_that) {
 case _GlobalSettingState():
-return $default(_that.dynamicColor,_that.themeMode,_that.isAMOLED,_that.seedColor,_that.tweakcnThemeJson,_that.tweakcnThemeEnabled,_that.themeInitState,_that.locale,_that.localeFollowsSystem,_that.welcomePageNum,_that.syncSetting,_that.maskedKeywords,_that.socks5ProxyEnabled,_that.socks5Proxy,_that.needCleanCache,_that.comicChoice,_that.disableBika,_that.enableMemoryDebug,_that.blockRustHttpRequests,_that.logAddress,_that.showLayoutOverflowStripes,_that.forceEnableImpeller,_that.androidKeepAliveEnabled,_that.backPressExitEnabled,_that.updateAccelerate,_that.retryDownloadUntilSuccess,_that.downloadConcurrency,_that.downloadDelayMs,_that.downloadAutoRetryCount,_that.oldPageRollbackEnabled,_that.cloudFavoritePreferred,_that.autoFollowOnCollect,_that.autoFavoriteOnDownload,_that.writeDownloadMetadataFile,_that.leftHandModeEnabled,_that.clickCoverToStartReading,_that.comicInfoInlineReadButton,_that.startWithWorkspace,_that.transparentDesktopTitleBar,_that.transparentTitleBarFused,_that.searchHistory,_that.proxySetting,_that.windowWidth,_that.windowHeight,_that.windowX,_that.windowY,_that.readSetting,_that.customExportPath,_that.appLockSetting,_that.compatibleVersion,_that.cacheSetting,_that.chineseConvertMode,_that.bookshelfSetting,_that.favoriteArtistSetting,_that.comicCardSetting,_that.toastSetting,_that.switchToastSetting,_that.fileManagerSetting,_that.discoverSetting,_that.operationBindingSetting);case _:
+return $default(_that.dynamicColor,_that.themeMode,_that.isAMOLED,_that.seedColor,_that.tweakcnThemeJson,_that.tweakcnThemeEnabled,_that.themeInitState,_that.locale,_that.localeFollowsSystem,_that.welcomePageNum,_that.syncSetting,_that.maskedKeywords,_that.socks5ProxyEnabled,_that.socks5Proxy,_that.needCleanCache,_that.comicChoice,_that.disableBika,_that.enableMemoryDebug,_that.blockRustHttpRequests,_that.logAddress,_that.showLayoutOverflowStripes,_that.forceEnableImpeller,_that.androidKeepAliveEnabled,_that.backPressExitEnabled,_that.updateAccelerate,_that.retryDownloadUntilSuccess,_that.downloadConcurrency,_that.downloadDelayMs,_that.downloadAutoRetryCount,_that.oldPageRollbackEnabled,_that.cloudFavoritePreferred,_that.autoFollowOnCollect,_that.autoFavoriteOnDownload,_that.writeDownloadMetadataFile,_that.leftHandModeEnabled,_that.clickCoverToStartReading,_that.comicInfoInlineReadButton,_that.startWithWorkspace,_that.transparentDesktopTitleBar,_that.transparentTitleBarFused,_that.searchHistory,_that.proxySetting,_that.windowWidth,_that.windowHeight,_that.windowX,_that.windowY,_that.readSetting,_that.customExportPath,_that.appLockSetting,_that.compatibleVersion,_that.cacheSetting,_that.chineseConvertMode,_that.bookshelfSetting,_that.favoriteArtistSetting,_that.favoriteTagSetting,_that.comicCardSetting,_that.toastSetting,_that.switchToastSetting,_that.fileManagerSetting,_that.discoverSetting,_that.operationBindingSetting);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -376,10 +386,10 @@ return $default(_that.dynamicColor,_that.themeMode,_that.isAMOLED,_that.seedColo
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool dynamicColor,  ThemeMode themeMode,  bool isAMOLED, @ColorConverter()  Color seedColor,  String tweakcnThemeJson,  bool tweakcnThemeEnabled,  int themeInitState, @LocaleConverter()  Locale locale,  bool localeFollowsSystem,  int welcomePageNum,  SyncSettingState syncSetting,  List<String> maskedKeywords,  bool socks5ProxyEnabled,  String socks5Proxy,  bool needCleanCache,  int comicChoice,  bool disableBika,  bool enableMemoryDebug,  bool blockRustHttpRequests,  String logAddress,  bool showLayoutOverflowStripes,  bool forceEnableImpeller,  bool androidKeepAliveEnabled,  bool backPressExitEnabled,  bool updateAccelerate,  bool retryDownloadUntilSuccess,  int downloadConcurrency,  int downloadDelayMs,  int downloadAutoRetryCount,  bool oldPageRollbackEnabled,  bool cloudFavoritePreferred,  bool autoFollowOnCollect,  bool autoFavoriteOnDownload,  bool writeDownloadMetadataFile,  bool leftHandModeEnabled,  bool clickCoverToStartReading,  bool comicInfoInlineReadButton,  bool startWithWorkspace,  bool transparentDesktopTitleBar,  bool transparentTitleBarFused,  List<String> searchHistory,  ProxySettingState proxySetting,  double windowWidth,  double windowHeight,  double windowX,  double windowY,  ReadSettingState readSetting,  String customExportPath,  AppLockSettingState appLockSetting,  String compatibleVersion,  CacheSettingState cacheSetting,  ChineseConvertMode chineseConvertMode,  BookshelfSettingState bookshelfSetting,  FavoriteArtistSettingState favoriteArtistSetting,  ComicCardSettingState comicCardSetting,  ToastSettingState toastSetting,  SwitchToastSettingState switchToastSetting,  FileManagerSettingState fileManagerSetting,  DiscoverSettingState discoverSetting,  OperationBindingSettingState operationBindingSetting)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool dynamicColor,  ThemeMode themeMode,  bool isAMOLED, @ColorConverter()  Color seedColor,  String tweakcnThemeJson,  bool tweakcnThemeEnabled,  int themeInitState, @LocaleConverter()  Locale locale,  bool localeFollowsSystem,  int welcomePageNum,  SyncSettingState syncSetting,  List<String> maskedKeywords,  bool socks5ProxyEnabled,  String socks5Proxy,  bool needCleanCache,  int comicChoice,  bool disableBika,  bool enableMemoryDebug,  bool blockRustHttpRequests,  String logAddress,  bool showLayoutOverflowStripes,  bool forceEnableImpeller,  bool androidKeepAliveEnabled,  bool backPressExitEnabled,  bool updateAccelerate,  bool retryDownloadUntilSuccess,  int downloadConcurrency,  int downloadDelayMs,  int downloadAutoRetryCount,  bool oldPageRollbackEnabled,  bool cloudFavoritePreferred,  bool autoFollowOnCollect,  bool autoFavoriteOnDownload,  bool writeDownloadMetadataFile,  bool leftHandModeEnabled,  bool clickCoverToStartReading,  bool comicInfoInlineReadButton,  bool startWithWorkspace,  bool transparentDesktopTitleBar,  bool transparentTitleBarFused,  List<String> searchHistory,  ProxySettingState proxySetting,  double windowWidth,  double windowHeight,  double windowX,  double windowY,  ReadSettingState readSetting,  String customExportPath,  AppLockSettingState appLockSetting,  String compatibleVersion,  CacheSettingState cacheSetting,  ChineseConvertMode chineseConvertMode,  BookshelfSettingState bookshelfSetting,  FavoriteArtistSettingState favoriteArtistSetting,  FavoriteTagSettingState favoriteTagSetting,  ComicCardSettingState comicCardSetting,  ToastSettingState toastSetting,  SwitchToastSettingState switchToastSetting,  FileManagerSettingState fileManagerSetting,  DiscoverSettingState discoverSetting,  OperationBindingSettingState operationBindingSetting)?  $default,) {final _that = this;
 switch (_that) {
 case _GlobalSettingState() when $default != null:
-return $default(_that.dynamicColor,_that.themeMode,_that.isAMOLED,_that.seedColor,_that.tweakcnThemeJson,_that.tweakcnThemeEnabled,_that.themeInitState,_that.locale,_that.localeFollowsSystem,_that.welcomePageNum,_that.syncSetting,_that.maskedKeywords,_that.socks5ProxyEnabled,_that.socks5Proxy,_that.needCleanCache,_that.comicChoice,_that.disableBika,_that.enableMemoryDebug,_that.blockRustHttpRequests,_that.logAddress,_that.showLayoutOverflowStripes,_that.forceEnableImpeller,_that.androidKeepAliveEnabled,_that.backPressExitEnabled,_that.updateAccelerate,_that.retryDownloadUntilSuccess,_that.downloadConcurrency,_that.downloadDelayMs,_that.downloadAutoRetryCount,_that.oldPageRollbackEnabled,_that.cloudFavoritePreferred,_that.autoFollowOnCollect,_that.autoFavoriteOnDownload,_that.writeDownloadMetadataFile,_that.leftHandModeEnabled,_that.clickCoverToStartReading,_that.comicInfoInlineReadButton,_that.startWithWorkspace,_that.transparentDesktopTitleBar,_that.transparentTitleBarFused,_that.searchHistory,_that.proxySetting,_that.windowWidth,_that.windowHeight,_that.windowX,_that.windowY,_that.readSetting,_that.customExportPath,_that.appLockSetting,_that.compatibleVersion,_that.cacheSetting,_that.chineseConvertMode,_that.bookshelfSetting,_that.favoriteArtistSetting,_that.comicCardSetting,_that.toastSetting,_that.switchToastSetting,_that.fileManagerSetting,_that.discoverSetting,_that.operationBindingSetting);case _:
+return $default(_that.dynamicColor,_that.themeMode,_that.isAMOLED,_that.seedColor,_that.tweakcnThemeJson,_that.tweakcnThemeEnabled,_that.themeInitState,_that.locale,_that.localeFollowsSystem,_that.welcomePageNum,_that.syncSetting,_that.maskedKeywords,_that.socks5ProxyEnabled,_that.socks5Proxy,_that.needCleanCache,_that.comicChoice,_that.disableBika,_that.enableMemoryDebug,_that.blockRustHttpRequests,_that.logAddress,_that.showLayoutOverflowStripes,_that.forceEnableImpeller,_that.androidKeepAliveEnabled,_that.backPressExitEnabled,_that.updateAccelerate,_that.retryDownloadUntilSuccess,_that.downloadConcurrency,_that.downloadDelayMs,_that.downloadAutoRetryCount,_that.oldPageRollbackEnabled,_that.cloudFavoritePreferred,_that.autoFollowOnCollect,_that.autoFavoriteOnDownload,_that.writeDownloadMetadataFile,_that.leftHandModeEnabled,_that.clickCoverToStartReading,_that.comicInfoInlineReadButton,_that.startWithWorkspace,_that.transparentDesktopTitleBar,_that.transparentTitleBarFused,_that.searchHistory,_that.proxySetting,_that.windowWidth,_that.windowHeight,_that.windowX,_that.windowY,_that.readSetting,_that.customExportPath,_that.appLockSetting,_that.compatibleVersion,_that.cacheSetting,_that.chineseConvertMode,_that.bookshelfSetting,_that.favoriteArtistSetting,_that.favoriteTagSetting,_that.comicCardSetting,_that.toastSetting,_that.switchToastSetting,_that.fileManagerSetting,_that.discoverSetting,_that.operationBindingSetting);case _:
   return null;
 
 }
@@ -391,7 +401,7 @@ return $default(_that.dynamicColor,_that.themeMode,_that.isAMOLED,_that.seedColo
 @JsonSerializable()
 
 class _GlobalSettingState implements GlobalSettingState {
-  const _GlobalSettingState({this.dynamicColor = true, this.themeMode = ThemeMode.system, this.isAMOLED = true, @ColorConverter() this.seedColor = const Color(0xFFEF5350), this.tweakcnThemeJson = '', this.tweakcnThemeEnabled = false, this.themeInitState = 0, @LocaleConverter() this.locale = const Locale('zh', 'CN'), this.localeFollowsSystem = true, this.welcomePageNum = 0, this.syncSetting = const SyncSettingState(),  List<String> maskedKeywords = const [], this.socks5ProxyEnabled = true, this.socks5Proxy = '', this.needCleanCache = false, this.comicChoice = 1, this.disableBika = false, this.enableMemoryDebug = false, this.blockRustHttpRequests = false, this.logAddress = '', this.showLayoutOverflowStripes = true, this.forceEnableImpeller = false, this.androidKeepAliveEnabled = false, this.backPressExitEnabled = false, this.updateAccelerate = true, this.retryDownloadUntilSuccess = true, this.downloadConcurrency = 3, this.downloadDelayMs = 150, this.downloadAutoRetryCount = 3, this.oldPageRollbackEnabled = false, this.cloudFavoritePreferred = false, this.autoFollowOnCollect = false, this.autoFavoriteOnDownload = false, this.writeDownloadMetadataFile = false, this.leftHandModeEnabled = false, this.clickCoverToStartReading = false, this.comicInfoInlineReadButton = true, this.startWithWorkspace = false, this.transparentDesktopTitleBar = false, this.transparentTitleBarFused = false,  List<String> searchHistory = const [], this.proxySetting = const ProxySettingState(), this.windowWidth = 1280.0, this.windowHeight = 720.0, this.windowX = 0, this.windowY = 0, this.readSetting = const ReadSettingState(), this.customExportPath = '', this.appLockSetting = const AppLockSettingState(), this.compatibleVersion = "", this.cacheSetting = const CacheSettingState(), this.chineseConvertMode = ChineseConvertMode.off, this.bookshelfSetting = const BookshelfSettingState(), this.favoriteArtistSetting = const FavoriteArtistSettingState(), this.comicCardSetting = const ComicCardSettingState(), this.toastSetting = const ToastSettingState(), this.switchToastSetting = const SwitchToastSettingState(), this.fileManagerSetting = const FileManagerSettingState(), this.discoverSetting = const DiscoverSettingState(), this.operationBindingSetting = const OperationBindingSettingState()}): _maskedKeywords = maskedKeywords,_searchHistory = searchHistory;
+  const _GlobalSettingState({this.dynamicColor = true, this.themeMode = ThemeMode.system, this.isAMOLED = true, @ColorConverter() this.seedColor = const Color(0xFFEF5350), this.tweakcnThemeJson = '', this.tweakcnThemeEnabled = false, this.themeInitState = 0, @LocaleConverter() this.locale = const Locale('zh', 'CN'), this.localeFollowsSystem = true, this.welcomePageNum = 0, this.syncSetting = const SyncSettingState(),  List<String> maskedKeywords = const [], this.socks5ProxyEnabled = true, this.socks5Proxy = '', this.needCleanCache = false, this.comicChoice = 1, this.disableBika = false, this.enableMemoryDebug = false, this.blockRustHttpRequests = false, this.logAddress = '', this.showLayoutOverflowStripes = true, this.forceEnableImpeller = false, this.androidKeepAliveEnabled = false, this.backPressExitEnabled = false, this.updateAccelerate = true, this.retryDownloadUntilSuccess = true, this.downloadConcurrency = 3, this.downloadDelayMs = 150, this.downloadAutoRetryCount = 3, this.oldPageRollbackEnabled = false, this.cloudFavoritePreferred = false, this.autoFollowOnCollect = false, this.autoFavoriteOnDownload = false, this.writeDownloadMetadataFile = false, this.leftHandModeEnabled = false, this.clickCoverToStartReading = false, this.comicInfoInlineReadButton = true, this.startWithWorkspace = false, this.transparentDesktopTitleBar = false, this.transparentTitleBarFused = false,  List<String> searchHistory = const [], this.proxySetting = const ProxySettingState(), this.windowWidth = 1280.0, this.windowHeight = 720.0, this.windowX = 0, this.windowY = 0, this.readSetting = const ReadSettingState(), this.customExportPath = '', this.appLockSetting = const AppLockSettingState(), this.compatibleVersion = "", this.cacheSetting = const CacheSettingState(), this.chineseConvertMode = ChineseConvertMode.off, this.bookshelfSetting = const BookshelfSettingState(), this.favoriteArtistSetting = const FavoriteArtistSettingState(), this.favoriteTagSetting = const FavoriteTagSettingState(), this.comicCardSetting = const ComicCardSettingState(), this.toastSetting = const ToastSettingState(), this.switchToastSetting = const SwitchToastSettingState(), this.fileManagerSetting = const FileManagerSettingState(), this.discoverSetting = const DiscoverSettingState(), this.operationBindingSetting = const OperationBindingSettingState()}): _maskedKeywords = maskedKeywords,_searchHistory = searchHistory;
   factory _GlobalSettingState.fromJson(Map<String, dynamic> json) => _$GlobalSettingStateFromJson(json);
 
 @override@JsonKey() final  bool dynamicColor;
@@ -460,6 +470,7 @@ class _GlobalSettingState implements GlobalSettingState {
 @override@JsonKey() final  ChineseConvertMode chineseConvertMode;
 @override@JsonKey() final  BookshelfSettingState bookshelfSetting;
 @override@JsonKey() final  FavoriteArtistSettingState favoriteArtistSetting;
+@override@JsonKey() final  FavoriteTagSettingState favoriteTagSetting;
 @override@JsonKey() final  ComicCardSettingState comicCardSetting;
 @override@JsonKey() final  ToastSettingState toastSetting;
 @override@JsonKey() final  SwitchToastSettingState switchToastSetting;
@@ -480,18 +491,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _GlobalSettingState&&(identical(other.dynamicColor, dynamicColor) || other.dynamicColor == dynamicColor)&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&(identical(other.isAMOLED, isAMOLED) || other.isAMOLED == isAMOLED)&&(identical(other.seedColor, seedColor) || other.seedColor == seedColor)&&(identical(other.tweakcnThemeJson, tweakcnThemeJson) || other.tweakcnThemeJson == tweakcnThemeJson)&&(identical(other.tweakcnThemeEnabled, tweakcnThemeEnabled) || other.tweakcnThemeEnabled == tweakcnThemeEnabled)&&(identical(other.themeInitState, themeInitState) || other.themeInitState == themeInitState)&&(identical(other.locale, locale) || other.locale == locale)&&(identical(other.localeFollowsSystem, localeFollowsSystem) || other.localeFollowsSystem == localeFollowsSystem)&&(identical(other.welcomePageNum, welcomePageNum) || other.welcomePageNum == welcomePageNum)&&(identical(other.syncSetting, syncSetting) || other.syncSetting == syncSetting)&&const DeepCollectionEquality().equals(other.maskedKeywords, _maskedKeywords)&&(identical(other.socks5ProxyEnabled, socks5ProxyEnabled) || other.socks5ProxyEnabled == socks5ProxyEnabled)&&(identical(other.socks5Proxy, socks5Proxy) || other.socks5Proxy == socks5Proxy)&&(identical(other.needCleanCache, needCleanCache) || other.needCleanCache == needCleanCache)&&(identical(other.comicChoice, comicChoice) || other.comicChoice == comicChoice)&&(identical(other.disableBika, disableBika) || other.disableBika == disableBika)&&(identical(other.enableMemoryDebug, enableMemoryDebug) || other.enableMemoryDebug == enableMemoryDebug)&&(identical(other.blockRustHttpRequests, blockRustHttpRequests) || other.blockRustHttpRequests == blockRustHttpRequests)&&(identical(other.logAddress, logAddress) || other.logAddress == logAddress)&&(identical(other.showLayoutOverflowStripes, showLayoutOverflowStripes) || other.showLayoutOverflowStripes == showLayoutOverflowStripes)&&(identical(other.forceEnableImpeller, forceEnableImpeller) || other.forceEnableImpeller == forceEnableImpeller)&&(identical(other.androidKeepAliveEnabled, androidKeepAliveEnabled) || other.androidKeepAliveEnabled == androidKeepAliveEnabled)&&(identical(other.backPressExitEnabled, backPressExitEnabled) || other.backPressExitEnabled == backPressExitEnabled)&&(identical(other.updateAccelerate, updateAccelerate) || other.updateAccelerate == updateAccelerate)&&(identical(other.retryDownloadUntilSuccess, retryDownloadUntilSuccess) || other.retryDownloadUntilSuccess == retryDownloadUntilSuccess)&&(identical(other.downloadConcurrency, downloadConcurrency) || other.downloadConcurrency == downloadConcurrency)&&(identical(other.downloadDelayMs, downloadDelayMs) || other.downloadDelayMs == downloadDelayMs)&&(identical(other.downloadAutoRetryCount, downloadAutoRetryCount) || other.downloadAutoRetryCount == downloadAutoRetryCount)&&(identical(other.oldPageRollbackEnabled, oldPageRollbackEnabled) || other.oldPageRollbackEnabled == oldPageRollbackEnabled)&&(identical(other.cloudFavoritePreferred, cloudFavoritePreferred) || other.cloudFavoritePreferred == cloudFavoritePreferred)&&(identical(other.autoFollowOnCollect, autoFollowOnCollect) || other.autoFollowOnCollect == autoFollowOnCollect)&&(identical(other.autoFavoriteOnDownload, autoFavoriteOnDownload) || other.autoFavoriteOnDownload == autoFavoriteOnDownload)&&(identical(other.writeDownloadMetadataFile, writeDownloadMetadataFile) || other.writeDownloadMetadataFile == writeDownloadMetadataFile)&&(identical(other.leftHandModeEnabled, leftHandModeEnabled) || other.leftHandModeEnabled == leftHandModeEnabled)&&(identical(other.clickCoverToStartReading, clickCoverToStartReading) || other.clickCoverToStartReading == clickCoverToStartReading)&&(identical(other.comicInfoInlineReadButton, comicInfoInlineReadButton) || other.comicInfoInlineReadButton == comicInfoInlineReadButton)&&(identical(other.startWithWorkspace, startWithWorkspace) || other.startWithWorkspace == startWithWorkspace)&&(identical(other.transparentDesktopTitleBar, transparentDesktopTitleBar) || other.transparentDesktopTitleBar == transparentDesktopTitleBar)&&(identical(other.transparentTitleBarFused, transparentTitleBarFused) || other.transparentTitleBarFused == transparentTitleBarFused)&&const DeepCollectionEquality().equals(other.searchHistory, _searchHistory)&&(identical(other.proxySetting, proxySetting) || other.proxySetting == proxySetting)&&(identical(other.windowWidth, windowWidth) || other.windowWidth == windowWidth)&&(identical(other.windowHeight, windowHeight) || other.windowHeight == windowHeight)&&(identical(other.windowX, windowX) || other.windowX == windowX)&&(identical(other.windowY, windowY) || other.windowY == windowY)&&(identical(other.readSetting, readSetting) || other.readSetting == readSetting)&&(identical(other.customExportPath, customExportPath) || other.customExportPath == customExportPath)&&(identical(other.appLockSetting, appLockSetting) || other.appLockSetting == appLockSetting)&&(identical(other.compatibleVersion, compatibleVersion) || other.compatibleVersion == compatibleVersion)&&(identical(other.cacheSetting, cacheSetting) || other.cacheSetting == cacheSetting)&&(identical(other.chineseConvertMode, chineseConvertMode) || other.chineseConvertMode == chineseConvertMode)&&(identical(other.bookshelfSetting, bookshelfSetting) || other.bookshelfSetting == bookshelfSetting)&&(identical(other.favoriteArtistSetting, favoriteArtistSetting) || other.favoriteArtistSetting == favoriteArtistSetting)&&(identical(other.comicCardSetting, comicCardSetting) || other.comicCardSetting == comicCardSetting)&&(identical(other.toastSetting, toastSetting) || other.toastSetting == toastSetting)&&(identical(other.switchToastSetting, switchToastSetting) || other.switchToastSetting == switchToastSetting)&&(identical(other.fileManagerSetting, fileManagerSetting) || other.fileManagerSetting == fileManagerSetting)&&(identical(other.discoverSetting, discoverSetting) || other.discoverSetting == discoverSetting)&&(identical(other.operationBindingSetting, operationBindingSetting) || other.operationBindingSetting == operationBindingSetting));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _GlobalSettingState&&(identical(other.dynamicColor, dynamicColor) || other.dynamicColor == dynamicColor)&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&(identical(other.isAMOLED, isAMOLED) || other.isAMOLED == isAMOLED)&&(identical(other.seedColor, seedColor) || other.seedColor == seedColor)&&(identical(other.tweakcnThemeJson, tweakcnThemeJson) || other.tweakcnThemeJson == tweakcnThemeJson)&&(identical(other.tweakcnThemeEnabled, tweakcnThemeEnabled) || other.tweakcnThemeEnabled == tweakcnThemeEnabled)&&(identical(other.themeInitState, themeInitState) || other.themeInitState == themeInitState)&&(identical(other.locale, locale) || other.locale == locale)&&(identical(other.localeFollowsSystem, localeFollowsSystem) || other.localeFollowsSystem == localeFollowsSystem)&&(identical(other.welcomePageNum, welcomePageNum) || other.welcomePageNum == welcomePageNum)&&(identical(other.syncSetting, syncSetting) || other.syncSetting == syncSetting)&&const DeepCollectionEquality().equals(other.maskedKeywords, _maskedKeywords)&&(identical(other.socks5ProxyEnabled, socks5ProxyEnabled) || other.socks5ProxyEnabled == socks5ProxyEnabled)&&(identical(other.socks5Proxy, socks5Proxy) || other.socks5Proxy == socks5Proxy)&&(identical(other.needCleanCache, needCleanCache) || other.needCleanCache == needCleanCache)&&(identical(other.comicChoice, comicChoice) || other.comicChoice == comicChoice)&&(identical(other.disableBika, disableBika) || other.disableBika == disableBika)&&(identical(other.enableMemoryDebug, enableMemoryDebug) || other.enableMemoryDebug == enableMemoryDebug)&&(identical(other.blockRustHttpRequests, blockRustHttpRequests) || other.blockRustHttpRequests == blockRustHttpRequests)&&(identical(other.logAddress, logAddress) || other.logAddress == logAddress)&&(identical(other.showLayoutOverflowStripes, showLayoutOverflowStripes) || other.showLayoutOverflowStripes == showLayoutOverflowStripes)&&(identical(other.forceEnableImpeller, forceEnableImpeller) || other.forceEnableImpeller == forceEnableImpeller)&&(identical(other.androidKeepAliveEnabled, androidKeepAliveEnabled) || other.androidKeepAliveEnabled == androidKeepAliveEnabled)&&(identical(other.backPressExitEnabled, backPressExitEnabled) || other.backPressExitEnabled == backPressExitEnabled)&&(identical(other.updateAccelerate, updateAccelerate) || other.updateAccelerate == updateAccelerate)&&(identical(other.retryDownloadUntilSuccess, retryDownloadUntilSuccess) || other.retryDownloadUntilSuccess == retryDownloadUntilSuccess)&&(identical(other.downloadConcurrency, downloadConcurrency) || other.downloadConcurrency == downloadConcurrency)&&(identical(other.downloadDelayMs, downloadDelayMs) || other.downloadDelayMs == downloadDelayMs)&&(identical(other.downloadAutoRetryCount, downloadAutoRetryCount) || other.downloadAutoRetryCount == downloadAutoRetryCount)&&(identical(other.oldPageRollbackEnabled, oldPageRollbackEnabled) || other.oldPageRollbackEnabled == oldPageRollbackEnabled)&&(identical(other.cloudFavoritePreferred, cloudFavoritePreferred) || other.cloudFavoritePreferred == cloudFavoritePreferred)&&(identical(other.autoFollowOnCollect, autoFollowOnCollect) || other.autoFollowOnCollect == autoFollowOnCollect)&&(identical(other.autoFavoriteOnDownload, autoFavoriteOnDownload) || other.autoFavoriteOnDownload == autoFavoriteOnDownload)&&(identical(other.writeDownloadMetadataFile, writeDownloadMetadataFile) || other.writeDownloadMetadataFile == writeDownloadMetadataFile)&&(identical(other.leftHandModeEnabled, leftHandModeEnabled) || other.leftHandModeEnabled == leftHandModeEnabled)&&(identical(other.clickCoverToStartReading, clickCoverToStartReading) || other.clickCoverToStartReading == clickCoverToStartReading)&&(identical(other.comicInfoInlineReadButton, comicInfoInlineReadButton) || other.comicInfoInlineReadButton == comicInfoInlineReadButton)&&(identical(other.startWithWorkspace, startWithWorkspace) || other.startWithWorkspace == startWithWorkspace)&&(identical(other.transparentDesktopTitleBar, transparentDesktopTitleBar) || other.transparentDesktopTitleBar == transparentDesktopTitleBar)&&(identical(other.transparentTitleBarFused, transparentTitleBarFused) || other.transparentTitleBarFused == transparentTitleBarFused)&&const DeepCollectionEquality().equals(other.searchHistory, _searchHistory)&&(identical(other.proxySetting, proxySetting) || other.proxySetting == proxySetting)&&(identical(other.windowWidth, windowWidth) || other.windowWidth == windowWidth)&&(identical(other.windowHeight, windowHeight) || other.windowHeight == windowHeight)&&(identical(other.windowX, windowX) || other.windowX == windowX)&&(identical(other.windowY, windowY) || other.windowY == windowY)&&(identical(other.readSetting, readSetting) || other.readSetting == readSetting)&&(identical(other.customExportPath, customExportPath) || other.customExportPath == customExportPath)&&(identical(other.appLockSetting, appLockSetting) || other.appLockSetting == appLockSetting)&&(identical(other.compatibleVersion, compatibleVersion) || other.compatibleVersion == compatibleVersion)&&(identical(other.cacheSetting, cacheSetting) || other.cacheSetting == cacheSetting)&&(identical(other.chineseConvertMode, chineseConvertMode) || other.chineseConvertMode == chineseConvertMode)&&(identical(other.bookshelfSetting, bookshelfSetting) || other.bookshelfSetting == bookshelfSetting)&&(identical(other.favoriteArtistSetting, favoriteArtistSetting) || other.favoriteArtistSetting == favoriteArtistSetting)&&(identical(other.favoriteTagSetting, favoriteTagSetting) || other.favoriteTagSetting == favoriteTagSetting)&&(identical(other.comicCardSetting, comicCardSetting) || other.comicCardSetting == comicCardSetting)&&(identical(other.toastSetting, toastSetting) || other.toastSetting == toastSetting)&&(identical(other.switchToastSetting, switchToastSetting) || other.switchToastSetting == switchToastSetting)&&(identical(other.fileManagerSetting, fileManagerSetting) || other.fileManagerSetting == fileManagerSetting)&&(identical(other.discoverSetting, discoverSetting) || other.discoverSetting == discoverSetting)&&(identical(other.operationBindingSetting, operationBindingSetting) || other.operationBindingSetting == operationBindingSetting));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hashAll([runtimeType,dynamicColor,themeMode,isAMOLED,seedColor,tweakcnThemeJson,tweakcnThemeEnabled,themeInitState,locale,localeFollowsSystem,welcomePageNum,syncSetting,const DeepCollectionEquality().hash(_maskedKeywords),socks5ProxyEnabled,socks5Proxy,needCleanCache,comicChoice,disableBika,enableMemoryDebug,blockRustHttpRequests,logAddress,showLayoutOverflowStripes,forceEnableImpeller,androidKeepAliveEnabled,backPressExitEnabled,updateAccelerate,retryDownloadUntilSuccess,downloadConcurrency,downloadDelayMs,downloadAutoRetryCount,oldPageRollbackEnabled,cloudFavoritePreferred,autoFollowOnCollect,autoFavoriteOnDownload,writeDownloadMetadataFile,leftHandModeEnabled,clickCoverToStartReading,comicInfoInlineReadButton,startWithWorkspace,transparentDesktopTitleBar,transparentTitleBarFused,const DeepCollectionEquality().hash(_searchHistory),proxySetting,windowWidth,windowHeight,windowX,windowY,readSetting,customExportPath,appLockSetting,compatibleVersion,cacheSetting,chineseConvertMode,bookshelfSetting,favoriteArtistSetting,comicCardSetting,toastSetting,switchToastSetting,fileManagerSetting,discoverSetting,operationBindingSetting]);
+    return Object.hashAll([runtimeType,dynamicColor,themeMode,isAMOLED,seedColor,tweakcnThemeJson,tweakcnThemeEnabled,themeInitState,locale,localeFollowsSystem,welcomePageNum,syncSetting,const DeepCollectionEquality().hash(_maskedKeywords),socks5ProxyEnabled,socks5Proxy,needCleanCache,comicChoice,disableBika,enableMemoryDebug,blockRustHttpRequests,logAddress,showLayoutOverflowStripes,forceEnableImpeller,androidKeepAliveEnabled,backPressExitEnabled,updateAccelerate,retryDownloadUntilSuccess,downloadConcurrency,downloadDelayMs,downloadAutoRetryCount,oldPageRollbackEnabled,cloudFavoritePreferred,autoFollowOnCollect,autoFavoriteOnDownload,writeDownloadMetadataFile,leftHandModeEnabled,clickCoverToStartReading,comicInfoInlineReadButton,startWithWorkspace,transparentDesktopTitleBar,transparentTitleBarFused,const DeepCollectionEquality().hash(_searchHistory),proxySetting,windowWidth,windowHeight,windowX,windowY,readSetting,customExportPath,appLockSetting,compatibleVersion,cacheSetting,chineseConvertMode,bookshelfSetting,favoriteArtistSetting,favoriteTagSetting,comicCardSetting,toastSetting,switchToastSetting,fileManagerSetting,discoverSetting,operationBindingSetting]);
 }
 
 @override
 String toString() {
-    return 'GlobalSettingState(dynamicColor: $dynamicColor, themeMode: $themeMode, isAMOLED: $isAMOLED, seedColor: $seedColor, tweakcnThemeJson: $tweakcnThemeJson, tweakcnThemeEnabled: $tweakcnThemeEnabled, themeInitState: $themeInitState, locale: $locale, localeFollowsSystem: $localeFollowsSystem, welcomePageNum: $welcomePageNum, syncSetting: $syncSetting, maskedKeywords: $maskedKeywords, socks5ProxyEnabled: $socks5ProxyEnabled, socks5Proxy: $socks5Proxy, needCleanCache: $needCleanCache, comicChoice: $comicChoice, disableBika: $disableBika, enableMemoryDebug: $enableMemoryDebug, blockRustHttpRequests: $blockRustHttpRequests, logAddress: $logAddress, showLayoutOverflowStripes: $showLayoutOverflowStripes, forceEnableImpeller: $forceEnableImpeller, androidKeepAliveEnabled: $androidKeepAliveEnabled, backPressExitEnabled: $backPressExitEnabled, updateAccelerate: $updateAccelerate, retryDownloadUntilSuccess: $retryDownloadUntilSuccess, downloadConcurrency: $downloadConcurrency, downloadDelayMs: $downloadDelayMs, downloadAutoRetryCount: $downloadAutoRetryCount, oldPageRollbackEnabled: $oldPageRollbackEnabled, cloudFavoritePreferred: $cloudFavoritePreferred, autoFollowOnCollect: $autoFollowOnCollect, autoFavoriteOnDownload: $autoFavoriteOnDownload, writeDownloadMetadataFile: $writeDownloadMetadataFile, leftHandModeEnabled: $leftHandModeEnabled, clickCoverToStartReading: $clickCoverToStartReading, comicInfoInlineReadButton: $comicInfoInlineReadButton, startWithWorkspace: $startWithWorkspace, transparentDesktopTitleBar: $transparentDesktopTitleBar, transparentTitleBarFused: $transparentTitleBarFused, searchHistory: $searchHistory, proxySetting: $proxySetting, windowWidth: $windowWidth, windowHeight: $windowHeight, windowX: $windowX, windowY: $windowY, readSetting: $readSetting, customExportPath: $customExportPath, appLockSetting: $appLockSetting, compatibleVersion: $compatibleVersion, cacheSetting: $cacheSetting, chineseConvertMode: $chineseConvertMode, bookshelfSetting: $bookshelfSetting, favoriteArtistSetting: $favoriteArtistSetting, comicCardSetting: $comicCardSetting, toastSetting: $toastSetting, switchToastSetting: $switchToastSetting, fileManagerSetting: $fileManagerSetting, discoverSetting: $discoverSetting, operationBindingSetting: $operationBindingSetting)';
+    return 'GlobalSettingState(dynamicColor: $dynamicColor, themeMode: $themeMode, isAMOLED: $isAMOLED, seedColor: $seedColor, tweakcnThemeJson: $tweakcnThemeJson, tweakcnThemeEnabled: $tweakcnThemeEnabled, themeInitState: $themeInitState, locale: $locale, localeFollowsSystem: $localeFollowsSystem, welcomePageNum: $welcomePageNum, syncSetting: $syncSetting, maskedKeywords: $maskedKeywords, socks5ProxyEnabled: $socks5ProxyEnabled, socks5Proxy: $socks5Proxy, needCleanCache: $needCleanCache, comicChoice: $comicChoice, disableBika: $disableBika, enableMemoryDebug: $enableMemoryDebug, blockRustHttpRequests: $blockRustHttpRequests, logAddress: $logAddress, showLayoutOverflowStripes: $showLayoutOverflowStripes, forceEnableImpeller: $forceEnableImpeller, androidKeepAliveEnabled: $androidKeepAliveEnabled, backPressExitEnabled: $backPressExitEnabled, updateAccelerate: $updateAccelerate, retryDownloadUntilSuccess: $retryDownloadUntilSuccess, downloadConcurrency: $downloadConcurrency, downloadDelayMs: $downloadDelayMs, downloadAutoRetryCount: $downloadAutoRetryCount, oldPageRollbackEnabled: $oldPageRollbackEnabled, cloudFavoritePreferred: $cloudFavoritePreferred, autoFollowOnCollect: $autoFollowOnCollect, autoFavoriteOnDownload: $autoFavoriteOnDownload, writeDownloadMetadataFile: $writeDownloadMetadataFile, leftHandModeEnabled: $leftHandModeEnabled, clickCoverToStartReading: $clickCoverToStartReading, comicInfoInlineReadButton: $comicInfoInlineReadButton, startWithWorkspace: $startWithWorkspace, transparentDesktopTitleBar: $transparentDesktopTitleBar, transparentTitleBarFused: $transparentTitleBarFused, searchHistory: $searchHistory, proxySetting: $proxySetting, windowWidth: $windowWidth, windowHeight: $windowHeight, windowX: $windowX, windowY: $windowY, readSetting: $readSetting, customExportPath: $customExportPath, appLockSetting: $appLockSetting, compatibleVersion: $compatibleVersion, cacheSetting: $cacheSetting, chineseConvertMode: $chineseConvertMode, bookshelfSetting: $bookshelfSetting, favoriteArtistSetting: $favoriteArtistSetting, favoriteTagSetting: $favoriteTagSetting, comicCardSetting: $comicCardSetting, toastSetting: $toastSetting, switchToastSetting: $switchToastSetting, fileManagerSetting: $fileManagerSetting, discoverSetting: $discoverSetting, operationBindingSetting: $operationBindingSetting)';
 }
 
 
@@ -502,11 +513,11 @@ abstract mixin class _$GlobalSettingStateCopyWith<$Res> implements $GlobalSettin
   factory _$GlobalSettingStateCopyWith(_GlobalSettingState value, $Res Function(_GlobalSettingState) _then) = __$GlobalSettingStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool dynamicColor, ThemeMode themeMode, bool isAMOLED,@ColorConverter() Color seedColor, String tweakcnThemeJson, bool tweakcnThemeEnabled, int themeInitState,@LocaleConverter() Locale locale, bool localeFollowsSystem, int welcomePageNum, SyncSettingState syncSetting, List<String> maskedKeywords, bool socks5ProxyEnabled, String socks5Proxy, bool needCleanCache, int comicChoice, bool disableBika, bool enableMemoryDebug, bool blockRustHttpRequests, String logAddress, bool showLayoutOverflowStripes, bool forceEnableImpeller, bool androidKeepAliveEnabled, bool backPressExitEnabled, bool updateAccelerate, bool retryDownloadUntilSuccess, int downloadConcurrency, int downloadDelayMs, int downloadAutoRetryCount, bool oldPageRollbackEnabled, bool cloudFavoritePreferred, bool autoFollowOnCollect, bool autoFavoriteOnDownload, bool writeDownloadMetadataFile, bool leftHandModeEnabled, bool clickCoverToStartReading, bool comicInfoInlineReadButton, bool startWithWorkspace, bool transparentDesktopTitleBar, bool transparentTitleBarFused, List<String> searchHistory, ProxySettingState proxySetting, double windowWidth, double windowHeight, double windowX, double windowY, ReadSettingState readSetting, String customExportPath, AppLockSettingState appLockSetting, String compatibleVersion, CacheSettingState cacheSetting, ChineseConvertMode chineseConvertMode, BookshelfSettingState bookshelfSetting, FavoriteArtistSettingState favoriteArtistSetting, ComicCardSettingState comicCardSetting, ToastSettingState toastSetting, SwitchToastSettingState switchToastSetting, FileManagerSettingState fileManagerSetting, DiscoverSettingState discoverSetting, OperationBindingSettingState operationBindingSetting
+ bool dynamicColor, ThemeMode themeMode, bool isAMOLED,@ColorConverter() Color seedColor, String tweakcnThemeJson, bool tweakcnThemeEnabled, int themeInitState,@LocaleConverter() Locale locale, bool localeFollowsSystem, int welcomePageNum, SyncSettingState syncSetting, List<String> maskedKeywords, bool socks5ProxyEnabled, String socks5Proxy, bool needCleanCache, int comicChoice, bool disableBika, bool enableMemoryDebug, bool blockRustHttpRequests, String logAddress, bool showLayoutOverflowStripes, bool forceEnableImpeller, bool androidKeepAliveEnabled, bool backPressExitEnabled, bool updateAccelerate, bool retryDownloadUntilSuccess, int downloadConcurrency, int downloadDelayMs, int downloadAutoRetryCount, bool oldPageRollbackEnabled, bool cloudFavoritePreferred, bool autoFollowOnCollect, bool autoFavoriteOnDownload, bool writeDownloadMetadataFile, bool leftHandModeEnabled, bool clickCoverToStartReading, bool comicInfoInlineReadButton, bool startWithWorkspace, bool transparentDesktopTitleBar, bool transparentTitleBarFused, List<String> searchHistory, ProxySettingState proxySetting, double windowWidth, double windowHeight, double windowX, double windowY, ReadSettingState readSetting, String customExportPath, AppLockSettingState appLockSetting, String compatibleVersion, CacheSettingState cacheSetting, ChineseConvertMode chineseConvertMode, BookshelfSettingState bookshelfSetting, FavoriteArtistSettingState favoriteArtistSetting, FavoriteTagSettingState favoriteTagSetting, ComicCardSettingState comicCardSetting, ToastSettingState toastSetting, SwitchToastSettingState switchToastSetting, FileManagerSettingState fileManagerSetting, DiscoverSettingState discoverSetting, OperationBindingSettingState operationBindingSetting
 });
 
 
-@override $SyncSettingStateCopyWith<$Res> get syncSetting;@override $ProxySettingStateCopyWith<$Res> get proxySetting;@override $ReadSettingStateCopyWith<$Res> get readSetting;@override $AppLockSettingStateCopyWith<$Res> get appLockSetting;@override $CacheSettingStateCopyWith<$Res> get cacheSetting;@override $BookshelfSettingStateCopyWith<$Res> get bookshelfSetting;@override $FavoriteArtistSettingStateCopyWith<$Res> get favoriteArtistSetting;@override $ComicCardSettingStateCopyWith<$Res> get comicCardSetting;@override $ToastSettingStateCopyWith<$Res> get toastSetting;@override $SwitchToastSettingStateCopyWith<$Res> get switchToastSetting;@override $FileManagerSettingStateCopyWith<$Res> get fileManagerSetting;@override $DiscoverSettingStateCopyWith<$Res> get discoverSetting;@override $OperationBindingSettingStateCopyWith<$Res> get operationBindingSetting;
+@override $SyncSettingStateCopyWith<$Res> get syncSetting;@override $ProxySettingStateCopyWith<$Res> get proxySetting;@override $ReadSettingStateCopyWith<$Res> get readSetting;@override $AppLockSettingStateCopyWith<$Res> get appLockSetting;@override $CacheSettingStateCopyWith<$Res> get cacheSetting;@override $BookshelfSettingStateCopyWith<$Res> get bookshelfSetting;@override $FavoriteArtistSettingStateCopyWith<$Res> get favoriteArtistSetting;@override $FavoriteTagSettingStateCopyWith<$Res> get favoriteTagSetting;@override $ComicCardSettingStateCopyWith<$Res> get comicCardSetting;@override $ToastSettingStateCopyWith<$Res> get toastSetting;@override $SwitchToastSettingStateCopyWith<$Res> get switchToastSetting;@override $FileManagerSettingStateCopyWith<$Res> get fileManagerSetting;@override $DiscoverSettingStateCopyWith<$Res> get discoverSetting;@override $OperationBindingSettingStateCopyWith<$Res> get operationBindingSetting;
 
 }
 /// @nodoc
@@ -519,7 +530,7 @@ class __$GlobalSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of GlobalSettingState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? dynamicColor = null,Object? themeMode = null,Object? isAMOLED = null,Object? seedColor = null,Object? tweakcnThemeJson = null,Object? tweakcnThemeEnabled = null,Object? themeInitState = null,Object? locale = null,Object? localeFollowsSystem = null,Object? welcomePageNum = null,Object? syncSetting = null,Object? maskedKeywords = null,Object? socks5ProxyEnabled = null,Object? socks5Proxy = null,Object? needCleanCache = null,Object? comicChoice = null,Object? disableBika = null,Object? enableMemoryDebug = null,Object? blockRustHttpRequests = null,Object? logAddress = null,Object? showLayoutOverflowStripes = null,Object? forceEnableImpeller = null,Object? androidKeepAliveEnabled = null,Object? backPressExitEnabled = null,Object? updateAccelerate = null,Object? retryDownloadUntilSuccess = null,Object? downloadConcurrency = null,Object? downloadDelayMs = null,Object? downloadAutoRetryCount = null,Object? oldPageRollbackEnabled = null,Object? cloudFavoritePreferred = null,Object? autoFollowOnCollect = null,Object? autoFavoriteOnDownload = null,Object? writeDownloadMetadataFile = null,Object? leftHandModeEnabled = null,Object? clickCoverToStartReading = null,Object? comicInfoInlineReadButton = null,Object? startWithWorkspace = null,Object? transparentDesktopTitleBar = null,Object? transparentTitleBarFused = null,Object? searchHistory = null,Object? proxySetting = null,Object? windowWidth = null,Object? windowHeight = null,Object? windowX = null,Object? windowY = null,Object? readSetting = null,Object? customExportPath = null,Object? appLockSetting = null,Object? compatibleVersion = null,Object? cacheSetting = null,Object? chineseConvertMode = null,Object? bookshelfSetting = null,Object? favoriteArtistSetting = null,Object? comicCardSetting = null,Object? toastSetting = null,Object? switchToastSetting = null,Object? fileManagerSetting = null,Object? discoverSetting = null,Object? operationBindingSetting = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? dynamicColor = null,Object? themeMode = null,Object? isAMOLED = null,Object? seedColor = null,Object? tweakcnThemeJson = null,Object? tweakcnThemeEnabled = null,Object? themeInitState = null,Object? locale = null,Object? localeFollowsSystem = null,Object? welcomePageNum = null,Object? syncSetting = null,Object? maskedKeywords = null,Object? socks5ProxyEnabled = null,Object? socks5Proxy = null,Object? needCleanCache = null,Object? comicChoice = null,Object? disableBika = null,Object? enableMemoryDebug = null,Object? blockRustHttpRequests = null,Object? logAddress = null,Object? showLayoutOverflowStripes = null,Object? forceEnableImpeller = null,Object? androidKeepAliveEnabled = null,Object? backPressExitEnabled = null,Object? updateAccelerate = null,Object? retryDownloadUntilSuccess = null,Object? downloadConcurrency = null,Object? downloadDelayMs = null,Object? downloadAutoRetryCount = null,Object? oldPageRollbackEnabled = null,Object? cloudFavoritePreferred = null,Object? autoFollowOnCollect = null,Object? autoFavoriteOnDownload = null,Object? writeDownloadMetadataFile = null,Object? leftHandModeEnabled = null,Object? clickCoverToStartReading = null,Object? comicInfoInlineReadButton = null,Object? startWithWorkspace = null,Object? transparentDesktopTitleBar = null,Object? transparentTitleBarFused = null,Object? searchHistory = null,Object? proxySetting = null,Object? windowWidth = null,Object? windowHeight = null,Object? windowX = null,Object? windowY = null,Object? readSetting = null,Object? customExportPath = null,Object? appLockSetting = null,Object? compatibleVersion = null,Object? cacheSetting = null,Object? chineseConvertMode = null,Object? bookshelfSetting = null,Object? favoriteArtistSetting = null,Object? favoriteTagSetting = null,Object? comicCardSetting = null,Object? toastSetting = null,Object? switchToastSetting = null,Object? fileManagerSetting = null,Object? discoverSetting = null,Object? operationBindingSetting = null,}) {
   return _then(_GlobalSettingState(
 dynamicColor: null == dynamicColor ? _self.dynamicColor : dynamicColor // ignore: cast_nullable_to_non_nullable
 as bool,themeMode: null == themeMode ? _self.themeMode : themeMode // ignore: cast_nullable_to_non_nullable
@@ -575,7 +586,8 @@ as String,cacheSetting: null == cacheSetting ? _self.cacheSetting : cacheSetting
 as CacheSettingState,chineseConvertMode: null == chineseConvertMode ? _self.chineseConvertMode : chineseConvertMode // ignore: cast_nullable_to_non_nullable
 as ChineseConvertMode,bookshelfSetting: null == bookshelfSetting ? _self.bookshelfSetting : bookshelfSetting // ignore: cast_nullable_to_non_nullable
 as BookshelfSettingState,favoriteArtistSetting: null == favoriteArtistSetting ? _self.favoriteArtistSetting : favoriteArtistSetting // ignore: cast_nullable_to_non_nullable
-as FavoriteArtistSettingState,comicCardSetting: null == comicCardSetting ? _self.comicCardSetting : comicCardSetting // ignore: cast_nullable_to_non_nullable
+as FavoriteArtistSettingState,favoriteTagSetting: null == favoriteTagSetting ? _self.favoriteTagSetting : favoriteTagSetting // ignore: cast_nullable_to_non_nullable
+as FavoriteTagSettingState,comicCardSetting: null == comicCardSetting ? _self.comicCardSetting : comicCardSetting // ignore: cast_nullable_to_non_nullable
 as ComicCardSettingState,toastSetting: null == toastSetting ? _self.toastSetting : toastSetting // ignore: cast_nullable_to_non_nullable
 as ToastSettingState,switchToastSetting: null == switchToastSetting ? _self.switchToastSetting : switchToastSetting // ignore: cast_nullable_to_non_nullable
 as SwitchToastSettingState,fileManagerSetting: null == fileManagerSetting ? _self.fileManagerSetting : fileManagerSetting // ignore: cast_nullable_to_non_nullable
@@ -647,6 +659,15 @@ $FavoriteArtistSettingStateCopyWith<$Res> get favoriteArtistSetting {
   
   return $FavoriteArtistSettingStateCopyWith<$Res>(_self.favoriteArtistSetting, (value) {
     return _then(_self.copyWith(favoriteArtistSetting: value));
+  });
+}/// Create a copy of GlobalSettingState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$FavoriteTagSettingStateCopyWith<$Res> get favoriteTagSetting {
+  
+  return $FavoriteTagSettingStateCopyWith<$Res>(_self.favoriteTagSetting, (value) {
+    return _then(_self.copyWith(favoriteTagSetting: value));
   });
 }/// Create a copy of GlobalSettingState
 /// with the given fields replaced by the non-null parameter values.
@@ -2158,7 +2179,7 @@ as String,
 /// @nodoc
 mixin _$FavoriteArtistSettingState {
 
- bool get highlightEnabled; List<String> get artists;
+ bool get highlightEnabled; List<String> get artists; FavoriteArtistCircleMode get circleMode;
 /// Create a copy of FavoriteArtistSettingState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2172,20 +2193,20 @@ $FavoriteArtistSettingStateCopyWith<FavoriteArtistSettingState> get copyWith => 
 @override
 bool operator ==(Object other) {
   final _this = this as FavoriteArtistSettingState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FavoriteArtistSettingState&&(identical(other.highlightEnabled, _this.highlightEnabled) || other.highlightEnabled == _this.highlightEnabled)&&const DeepCollectionEquality().equals(other.artists, _this.artists));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FavoriteArtistSettingState&&(identical(other.highlightEnabled, _this.highlightEnabled) || other.highlightEnabled == _this.highlightEnabled)&&const DeepCollectionEquality().equals(other.artists, _this.artists)&&(identical(other.circleMode, _this.circleMode) || other.circleMode == _this.circleMode));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as FavoriteArtistSettingState;
-  return Object.hash(runtimeType,_this.highlightEnabled,const DeepCollectionEquality().hash(_this.artists));
+  return Object.hash(runtimeType,_this.highlightEnabled,const DeepCollectionEquality().hash(_this.artists),_this.circleMode);
 }
 
 @override
 String toString() {
   final _this = this as FavoriteArtistSettingState;
-  return 'FavoriteArtistSettingState(highlightEnabled: ${_this.highlightEnabled}, artists: ${_this.artists})';
+  return 'FavoriteArtistSettingState(highlightEnabled: ${_this.highlightEnabled}, artists: ${_this.artists}, circleMode: ${_this.circleMode})';
 }
 
 
@@ -2196,7 +2217,7 @@ abstract mixin class $FavoriteArtistSettingStateCopyWith<$Res>  {
   factory $FavoriteArtistSettingStateCopyWith(FavoriteArtistSettingState value, $Res Function(FavoriteArtistSettingState) _then) = _$FavoriteArtistSettingStateCopyWithImpl;
 @useResult
 $Res call({
- bool highlightEnabled, List<String> artists
+ bool highlightEnabled, List<String> artists, FavoriteArtistCircleMode circleMode
 });
 
 
@@ -2213,11 +2234,12 @@ class _$FavoriteArtistSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of FavoriteArtistSettingState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? highlightEnabled = null,Object? artists = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? highlightEnabled = null,Object? artists = null,Object? circleMode = null,}) {
   return _then(FavoriteArtistSettingState(
 highlightEnabled: null == highlightEnabled ? _self.highlightEnabled : highlightEnabled // ignore: cast_nullable_to_non_nullable
 as bool,artists: null == artists ? _self.artists : artists // ignore: cast_nullable_to_non_nullable
-as List<String>,
+as List<String>,circleMode: null == circleMode ? _self.circleMode : circleMode // ignore: cast_nullable_to_non_nullable
+as FavoriteArtistCircleMode,
   ));
 }
 
@@ -2302,10 +2324,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool highlightEnabled,  List<String> artists)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool highlightEnabled,  List<String> artists,  FavoriteArtistCircleMode circleMode)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _FavoriteArtistSettingState() when $default != null:
-return $default(_that.highlightEnabled,_that.artists);case _:
+return $default(_that.highlightEnabled,_that.artists,_that.circleMode);case _:
   return orElse();
 
 }
@@ -2323,10 +2345,10 @@ return $default(_that.highlightEnabled,_that.artists);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool highlightEnabled,  List<String> artists)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool highlightEnabled,  List<String> artists,  FavoriteArtistCircleMode circleMode)  $default,) {final _that = this;
 switch (_that) {
 case _FavoriteArtistSettingState():
-return $default(_that.highlightEnabled,_that.artists);case _:
+return $default(_that.highlightEnabled,_that.artists,_that.circleMode);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -2343,10 +2365,10 @@ return $default(_that.highlightEnabled,_that.artists);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool highlightEnabled,  List<String> artists)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool highlightEnabled,  List<String> artists,  FavoriteArtistCircleMode circleMode)?  $default,) {final _that = this;
 switch (_that) {
 case _FavoriteArtistSettingState() when $default != null:
-return $default(_that.highlightEnabled,_that.artists);case _:
+return $default(_that.highlightEnabled,_that.artists,_that.circleMode);case _:
   return null;
 
 }
@@ -2358,7 +2380,7 @@ return $default(_that.highlightEnabled,_that.artists);case _:
 @JsonSerializable()
 
 class _FavoriteArtistSettingState implements FavoriteArtistSettingState {
-  const _FavoriteArtistSettingState({this.highlightEnabled = true,  List<String> artists = const []}): _artists = artists;
+  const _FavoriteArtistSettingState({this.highlightEnabled = true,  List<String> artists = const [], this.circleMode = FavoriteArtistCircleMode.fallbackOnly}): _artists = artists;
   factory _FavoriteArtistSettingState.fromJson(Map<String, dynamic> json) => _$FavoriteArtistSettingStateFromJson(json);
 
 @override@JsonKey() final  bool highlightEnabled;
@@ -2369,6 +2391,7 @@ class _FavoriteArtistSettingState implements FavoriteArtistSettingState {
   return EqualUnmodifiableListView(_artists);
 }
 
+@override@JsonKey() final  FavoriteArtistCircleMode circleMode;
 
 /// Create a copy of FavoriteArtistSettingState
 /// with the given fields replaced by the non-null parameter values.
@@ -2383,18 +2406,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _FavoriteArtistSettingState&&(identical(other.highlightEnabled, highlightEnabled) || other.highlightEnabled == highlightEnabled)&&const DeepCollectionEquality().equals(other.artists, _artists));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _FavoriteArtistSettingState&&(identical(other.highlightEnabled, highlightEnabled) || other.highlightEnabled == highlightEnabled)&&const DeepCollectionEquality().equals(other.artists, _artists)&&(identical(other.circleMode, circleMode) || other.circleMode == circleMode));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,highlightEnabled,const DeepCollectionEquality().hash(_artists));
+    return Object.hash(runtimeType,highlightEnabled,const DeepCollectionEquality().hash(_artists),circleMode);
 }
 
 @override
 String toString() {
-    return 'FavoriteArtistSettingState(highlightEnabled: $highlightEnabled, artists: $artists)';
+    return 'FavoriteArtistSettingState(highlightEnabled: $highlightEnabled, artists: $artists, circleMode: $circleMode)';
 }
 
 
@@ -2405,7 +2428,7 @@ abstract mixin class _$FavoriteArtistSettingStateCopyWith<$Res> implements $Favo
   factory _$FavoriteArtistSettingStateCopyWith(_FavoriteArtistSettingState value, $Res Function(_FavoriteArtistSettingState) _then) = __$FavoriteArtistSettingStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool highlightEnabled, List<String> artists
+ bool highlightEnabled, List<String> artists, FavoriteArtistCircleMode circleMode
 });
 
 
@@ -2422,11 +2445,570 @@ class __$FavoriteArtistSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of FavoriteArtistSettingState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? highlightEnabled = null,Object? artists = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? highlightEnabled = null,Object? artists = null,Object? circleMode = null,}) {
   return _then(_FavoriteArtistSettingState(
 highlightEnabled: null == highlightEnabled ? _self.highlightEnabled : highlightEnabled // ignore: cast_nullable_to_non_nullable
 as bool,artists: null == artists ? _self._artists : artists // ignore: cast_nullable_to_non_nullable
+as List<String>,circleMode: null == circleMode ? _self.circleMode : circleMode // ignore: cast_nullable_to_non_nullable
+as FavoriteArtistCircleMode,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$FavoriteTag {
+
+ String get name; List<String> get aliases;
+/// Create a copy of FavoriteTag
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$FavoriteTagCopyWith<FavoriteTag> get copyWith => _$FavoriteTagCopyWithImpl<FavoriteTag>(this as FavoriteTag, _$identity);
+
+  /// Serializes this FavoriteTag to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  final _this = this as FavoriteTag;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FavoriteTag&&(identical(other.name, _this.name) || other.name == _this.name)&&const DeepCollectionEquality().equals(other.aliases, _this.aliases));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+  final _this = this as FavoriteTag;
+  return Object.hash(runtimeType,_this.name,const DeepCollectionEquality().hash(_this.aliases));
+}
+
+@override
+String toString() {
+  final _this = this as FavoriteTag;
+  return 'FavoriteTag(name: ${_this.name}, aliases: ${_this.aliases})';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $FavoriteTagCopyWith<$Res>  {
+  factory $FavoriteTagCopyWith(FavoriteTag value, $Res Function(FavoriteTag) _then) = _$FavoriteTagCopyWithImpl;
+@useResult
+$Res call({
+ String name, List<String> aliases
+});
+
+
+
+
+}
+/// @nodoc
+class _$FavoriteTagCopyWithImpl<$Res>
+    implements $FavoriteTagCopyWith<$Res> {
+  _$FavoriteTagCopyWithImpl(this._self, this._then);
+
+  final FavoriteTag _self;
+  final $Res Function(FavoriteTag) _then;
+
+/// Create a copy of FavoriteTag
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? aliases = null,}) {
+  return _then(FavoriteTag(
+name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,aliases: null == aliases ? _self.aliases : aliases // ignore: cast_nullable_to_non_nullable
 as List<String>,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [FavoriteTag].
+extension FavoriteTagPatterns on FavoriteTag {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _FavoriteTag value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _FavoriteTag() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _FavoriteTag value)  $default,){
+final _that = this;
+switch (_that) {
+case _FavoriteTag():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _FavoriteTag value)?  $default,){
+final _that = this;
+switch (_that) {
+case _FavoriteTag() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  List<String> aliases)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _FavoriteTag() when $default != null:
+return $default(_that.name,_that.aliases);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  List<String> aliases)  $default,) {final _that = this;
+switch (_that) {
+case _FavoriteTag():
+return $default(_that.name,_that.aliases);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  List<String> aliases)?  $default,) {final _that = this;
+switch (_that) {
+case _FavoriteTag() when $default != null:
+return $default(_that.name,_that.aliases);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _FavoriteTag implements FavoriteTag {
+  const _FavoriteTag({this.name = '',  List<String> aliases = const []}): _aliases = aliases;
+  factory _FavoriteTag.fromJson(Map<String, dynamic> json) => _$FavoriteTagFromJson(json);
+
+@override@JsonKey() final  String name;
+ final  List<String> _aliases;
+@override@JsonKey() List<String> get aliases {
+  if (_aliases is EqualUnmodifiableListView) return _aliases;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_aliases);
+}
+
+
+/// Create a copy of FavoriteTag
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$FavoriteTagCopyWith<_FavoriteTag> get copyWith => __$FavoriteTagCopyWithImpl<_FavoriteTag>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$FavoriteTagToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _FavoriteTag&&(identical(other.name, name) || other.name == name)&&const DeepCollectionEquality().equals(other.aliases, _aliases));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+    return Object.hash(runtimeType,name,const DeepCollectionEquality().hash(_aliases));
+}
+
+@override
+String toString() {
+    return 'FavoriteTag(name: $name, aliases: $aliases)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$FavoriteTagCopyWith<$Res> implements $FavoriteTagCopyWith<$Res> {
+  factory _$FavoriteTagCopyWith(_FavoriteTag value, $Res Function(_FavoriteTag) _then) = __$FavoriteTagCopyWithImpl;
+@override @useResult
+$Res call({
+ String name, List<String> aliases
+});
+
+
+
+
+}
+/// @nodoc
+class __$FavoriteTagCopyWithImpl<$Res>
+    implements _$FavoriteTagCopyWith<$Res> {
+  __$FavoriteTagCopyWithImpl(this._self, this._then);
+
+  final _FavoriteTag _self;
+  final $Res Function(_FavoriteTag) _then;
+
+/// Create a copy of FavoriteTag
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? aliases = null,}) {
+  return _then(_FavoriteTag(
+name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,aliases: null == aliases ? _self._aliases : aliases // ignore: cast_nullable_to_non_nullable
+as List<String>,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$FavoriteTagSettingState {
+
+ bool get highlightEnabled; List<FavoriteTag> get tags;
+/// Create a copy of FavoriteTagSettingState
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$FavoriteTagSettingStateCopyWith<FavoriteTagSettingState> get copyWith => _$FavoriteTagSettingStateCopyWithImpl<FavoriteTagSettingState>(this as FavoriteTagSettingState, _$identity);
+
+  /// Serializes this FavoriteTagSettingState to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  final _this = this as FavoriteTagSettingState;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FavoriteTagSettingState&&(identical(other.highlightEnabled, _this.highlightEnabled) || other.highlightEnabled == _this.highlightEnabled)&&const DeepCollectionEquality().equals(other.tags, _this.tags));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+  final _this = this as FavoriteTagSettingState;
+  return Object.hash(runtimeType,_this.highlightEnabled,const DeepCollectionEquality().hash(_this.tags));
+}
+
+@override
+String toString() {
+  final _this = this as FavoriteTagSettingState;
+  return 'FavoriteTagSettingState(highlightEnabled: ${_this.highlightEnabled}, tags: ${_this.tags})';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $FavoriteTagSettingStateCopyWith<$Res>  {
+  factory $FavoriteTagSettingStateCopyWith(FavoriteTagSettingState value, $Res Function(FavoriteTagSettingState) _then) = _$FavoriteTagSettingStateCopyWithImpl;
+@useResult
+$Res call({
+ bool highlightEnabled, List<FavoriteTag> tags
+});
+
+
+
+
+}
+/// @nodoc
+class _$FavoriteTagSettingStateCopyWithImpl<$Res>
+    implements $FavoriteTagSettingStateCopyWith<$Res> {
+  _$FavoriteTagSettingStateCopyWithImpl(this._self, this._then);
+
+  final FavoriteTagSettingState _self;
+  final $Res Function(FavoriteTagSettingState) _then;
+
+/// Create a copy of FavoriteTagSettingState
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? highlightEnabled = null,Object? tags = null,}) {
+  return _then(FavoriteTagSettingState(
+highlightEnabled: null == highlightEnabled ? _self.highlightEnabled : highlightEnabled // ignore: cast_nullable_to_non_nullable
+as bool,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
+as List<FavoriteTag>,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [FavoriteTagSettingState].
+extension FavoriteTagSettingStatePatterns on FavoriteTagSettingState {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _FavoriteTagSettingState value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _FavoriteTagSettingState() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _FavoriteTagSettingState value)  $default,){
+final _that = this;
+switch (_that) {
+case _FavoriteTagSettingState():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _FavoriteTagSettingState value)?  $default,){
+final _that = this;
+switch (_that) {
+case _FavoriteTagSettingState() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool highlightEnabled,  List<FavoriteTag> tags)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _FavoriteTagSettingState() when $default != null:
+return $default(_that.highlightEnabled,_that.tags);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool highlightEnabled,  List<FavoriteTag> tags)  $default,) {final _that = this;
+switch (_that) {
+case _FavoriteTagSettingState():
+return $default(_that.highlightEnabled,_that.tags);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool highlightEnabled,  List<FavoriteTag> tags)?  $default,) {final _that = this;
+switch (_that) {
+case _FavoriteTagSettingState() when $default != null:
+return $default(_that.highlightEnabled,_that.tags);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _FavoriteTagSettingState implements FavoriteTagSettingState {
+  const _FavoriteTagSettingState({this.highlightEnabled = true,  List<FavoriteTag> tags = const []}): _tags = tags;
+  factory _FavoriteTagSettingState.fromJson(Map<String, dynamic> json) => _$FavoriteTagSettingStateFromJson(json);
+
+@override@JsonKey() final  bool highlightEnabled;
+ final  List<FavoriteTag> _tags;
+@override@JsonKey() List<FavoriteTag> get tags {
+  if (_tags is EqualUnmodifiableListView) return _tags;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_tags);
+}
+
+
+/// Create a copy of FavoriteTagSettingState
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$FavoriteTagSettingStateCopyWith<_FavoriteTagSettingState> get copyWith => __$FavoriteTagSettingStateCopyWithImpl<_FavoriteTagSettingState>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$FavoriteTagSettingStateToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _FavoriteTagSettingState&&(identical(other.highlightEnabled, highlightEnabled) || other.highlightEnabled == highlightEnabled)&&const DeepCollectionEquality().equals(other.tags, _tags));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+    return Object.hash(runtimeType,highlightEnabled,const DeepCollectionEquality().hash(_tags));
+}
+
+@override
+String toString() {
+    return 'FavoriteTagSettingState(highlightEnabled: $highlightEnabled, tags: $tags)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$FavoriteTagSettingStateCopyWith<$Res> implements $FavoriteTagSettingStateCopyWith<$Res> {
+  factory _$FavoriteTagSettingStateCopyWith(_FavoriteTagSettingState value, $Res Function(_FavoriteTagSettingState) _then) = __$FavoriteTagSettingStateCopyWithImpl;
+@override @useResult
+$Res call({
+ bool highlightEnabled, List<FavoriteTag> tags
+});
+
+
+
+
+}
+/// @nodoc
+class __$FavoriteTagSettingStateCopyWithImpl<$Res>
+    implements _$FavoriteTagSettingStateCopyWith<$Res> {
+  __$FavoriteTagSettingStateCopyWithImpl(this._self, this._then);
+
+  final _FavoriteTagSettingState _self;
+  final $Res Function(_FavoriteTagSettingState) _then;
+
+/// Create a copy of FavoriteTagSettingState
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? highlightEnabled = null,Object? tags = null,}) {
+  return _then(_FavoriteTagSettingState(
+highlightEnabled: null == highlightEnabled ? _self.highlightEnabled : highlightEnabled // ignore: cast_nullable_to_non_nullable
+as bool,tags: null == tags ? _self._tags : tags // ignore: cast_nullable_to_non_nullable
+as List<FavoriteTag>,
   ));
 }
 
@@ -2438,7 +3020,8 @@ as List<String>,
 mixin _$ComicCardSettingState {
 
  bool get downloadBadgeEnabled; bool get translationBadgeEnabled;/// 封面正中间的「直接阅读」按钮。关掉后点封面仍然只进详情页。
- bool get readButtonEnabled;
+ bool get readButtonEnabled;/// 封面左上角的「收藏 tag」角标。
+ bool get favoriteTagBadgeEnabled;
 /// Create a copy of ComicCardSettingState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2452,20 +3035,20 @@ $ComicCardSettingStateCopyWith<ComicCardSettingState> get copyWith => _$ComicCar
 @override
 bool operator ==(Object other) {
   final _this = this as ComicCardSettingState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ComicCardSettingState&&(identical(other.downloadBadgeEnabled, _this.downloadBadgeEnabled) || other.downloadBadgeEnabled == _this.downloadBadgeEnabled)&&(identical(other.translationBadgeEnabled, _this.translationBadgeEnabled) || other.translationBadgeEnabled == _this.translationBadgeEnabled)&&(identical(other.readButtonEnabled, _this.readButtonEnabled) || other.readButtonEnabled == _this.readButtonEnabled));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ComicCardSettingState&&(identical(other.downloadBadgeEnabled, _this.downloadBadgeEnabled) || other.downloadBadgeEnabled == _this.downloadBadgeEnabled)&&(identical(other.translationBadgeEnabled, _this.translationBadgeEnabled) || other.translationBadgeEnabled == _this.translationBadgeEnabled)&&(identical(other.readButtonEnabled, _this.readButtonEnabled) || other.readButtonEnabled == _this.readButtonEnabled)&&(identical(other.favoriteTagBadgeEnabled, _this.favoriteTagBadgeEnabled) || other.favoriteTagBadgeEnabled == _this.favoriteTagBadgeEnabled));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as ComicCardSettingState;
-  return Object.hash(runtimeType,_this.downloadBadgeEnabled,_this.translationBadgeEnabled,_this.readButtonEnabled);
+  return Object.hash(runtimeType,_this.downloadBadgeEnabled,_this.translationBadgeEnabled,_this.readButtonEnabled,_this.favoriteTagBadgeEnabled);
 }
 
 @override
 String toString() {
   final _this = this as ComicCardSettingState;
-  return 'ComicCardSettingState(downloadBadgeEnabled: ${_this.downloadBadgeEnabled}, translationBadgeEnabled: ${_this.translationBadgeEnabled}, readButtonEnabled: ${_this.readButtonEnabled})';
+  return 'ComicCardSettingState(downloadBadgeEnabled: ${_this.downloadBadgeEnabled}, translationBadgeEnabled: ${_this.translationBadgeEnabled}, readButtonEnabled: ${_this.readButtonEnabled}, favoriteTagBadgeEnabled: ${_this.favoriteTagBadgeEnabled})';
 }
 
 
@@ -2476,7 +3059,7 @@ abstract mixin class $ComicCardSettingStateCopyWith<$Res>  {
   factory $ComicCardSettingStateCopyWith(ComicCardSettingState value, $Res Function(ComicCardSettingState) _then) = _$ComicCardSettingStateCopyWithImpl;
 @useResult
 $Res call({
- bool downloadBadgeEnabled, bool translationBadgeEnabled, bool readButtonEnabled
+ bool downloadBadgeEnabled, bool translationBadgeEnabled, bool readButtonEnabled, bool favoriteTagBadgeEnabled
 });
 
 
@@ -2493,11 +3076,12 @@ class _$ComicCardSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of ComicCardSettingState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? downloadBadgeEnabled = null,Object? translationBadgeEnabled = null,Object? readButtonEnabled = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? downloadBadgeEnabled = null,Object? translationBadgeEnabled = null,Object? readButtonEnabled = null,Object? favoriteTagBadgeEnabled = null,}) {
   return _then(ComicCardSettingState(
 downloadBadgeEnabled: null == downloadBadgeEnabled ? _self.downloadBadgeEnabled : downloadBadgeEnabled // ignore: cast_nullable_to_non_nullable
 as bool,translationBadgeEnabled: null == translationBadgeEnabled ? _self.translationBadgeEnabled : translationBadgeEnabled // ignore: cast_nullable_to_non_nullable
 as bool,readButtonEnabled: null == readButtonEnabled ? _self.readButtonEnabled : readButtonEnabled // ignore: cast_nullable_to_non_nullable
+as bool,favoriteTagBadgeEnabled: null == favoriteTagBadgeEnabled ? _self.favoriteTagBadgeEnabled : favoriteTagBadgeEnabled // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -2583,10 +3167,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool downloadBadgeEnabled,  bool translationBadgeEnabled,  bool readButtonEnabled)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool downloadBadgeEnabled,  bool translationBadgeEnabled,  bool readButtonEnabled,  bool favoriteTagBadgeEnabled)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ComicCardSettingState() when $default != null:
-return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.readButtonEnabled);case _:
+return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.readButtonEnabled,_that.favoriteTagBadgeEnabled);case _:
   return orElse();
 
 }
@@ -2604,10 +3188,10 @@ return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.r
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool downloadBadgeEnabled,  bool translationBadgeEnabled,  bool readButtonEnabled)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool downloadBadgeEnabled,  bool translationBadgeEnabled,  bool readButtonEnabled,  bool favoriteTagBadgeEnabled)  $default,) {final _that = this;
 switch (_that) {
 case _ComicCardSettingState():
-return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.readButtonEnabled);case _:
+return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.readButtonEnabled,_that.favoriteTagBadgeEnabled);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -2624,10 +3208,10 @@ return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.r
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool downloadBadgeEnabled,  bool translationBadgeEnabled,  bool readButtonEnabled)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool downloadBadgeEnabled,  bool translationBadgeEnabled,  bool readButtonEnabled,  bool favoriteTagBadgeEnabled)?  $default,) {final _that = this;
 switch (_that) {
 case _ComicCardSettingState() when $default != null:
-return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.readButtonEnabled);case _:
+return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.readButtonEnabled,_that.favoriteTagBadgeEnabled);case _:
   return null;
 
 }
@@ -2639,13 +3223,15 @@ return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.r
 @JsonSerializable()
 
 class _ComicCardSettingState implements ComicCardSettingState {
-  const _ComicCardSettingState({this.downloadBadgeEnabled = true, this.translationBadgeEnabled = true, this.readButtonEnabled = true});
+  const _ComicCardSettingState({this.downloadBadgeEnabled = true, this.translationBadgeEnabled = true, this.readButtonEnabled = true, this.favoriteTagBadgeEnabled = true});
   factory _ComicCardSettingState.fromJson(Map<String, dynamic> json) => _$ComicCardSettingStateFromJson(json);
 
 @override@JsonKey() final  bool downloadBadgeEnabled;
 @override@JsonKey() final  bool translationBadgeEnabled;
 /// 封面正中间的「直接阅读」按钮。关掉后点封面仍然只进详情页。
 @override@JsonKey() final  bool readButtonEnabled;
+/// 封面左上角的「收藏 tag」角标。
+@override@JsonKey() final  bool favoriteTagBadgeEnabled;
 
 /// Create a copy of ComicCardSettingState
 /// with the given fields replaced by the non-null parameter values.
@@ -2660,18 +3246,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ComicCardSettingState&&(identical(other.downloadBadgeEnabled, downloadBadgeEnabled) || other.downloadBadgeEnabled == downloadBadgeEnabled)&&(identical(other.translationBadgeEnabled, translationBadgeEnabled) || other.translationBadgeEnabled == translationBadgeEnabled)&&(identical(other.readButtonEnabled, readButtonEnabled) || other.readButtonEnabled == readButtonEnabled));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ComicCardSettingState&&(identical(other.downloadBadgeEnabled, downloadBadgeEnabled) || other.downloadBadgeEnabled == downloadBadgeEnabled)&&(identical(other.translationBadgeEnabled, translationBadgeEnabled) || other.translationBadgeEnabled == translationBadgeEnabled)&&(identical(other.readButtonEnabled, readButtonEnabled) || other.readButtonEnabled == readButtonEnabled)&&(identical(other.favoriteTagBadgeEnabled, favoriteTagBadgeEnabled) || other.favoriteTagBadgeEnabled == favoriteTagBadgeEnabled));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,downloadBadgeEnabled,translationBadgeEnabled,readButtonEnabled);
+    return Object.hash(runtimeType,downloadBadgeEnabled,translationBadgeEnabled,readButtonEnabled,favoriteTagBadgeEnabled);
 }
 
 @override
 String toString() {
-    return 'ComicCardSettingState(downloadBadgeEnabled: $downloadBadgeEnabled, translationBadgeEnabled: $translationBadgeEnabled, readButtonEnabled: $readButtonEnabled)';
+    return 'ComicCardSettingState(downloadBadgeEnabled: $downloadBadgeEnabled, translationBadgeEnabled: $translationBadgeEnabled, readButtonEnabled: $readButtonEnabled, favoriteTagBadgeEnabled: $favoriteTagBadgeEnabled)';
 }
 
 
@@ -2682,7 +3268,7 @@ abstract mixin class _$ComicCardSettingStateCopyWith<$Res> implements $ComicCard
   factory _$ComicCardSettingStateCopyWith(_ComicCardSettingState value, $Res Function(_ComicCardSettingState) _then) = __$ComicCardSettingStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool downloadBadgeEnabled, bool translationBadgeEnabled, bool readButtonEnabled
+ bool downloadBadgeEnabled, bool translationBadgeEnabled, bool readButtonEnabled, bool favoriteTagBadgeEnabled
 });
 
 
@@ -2699,11 +3285,12 @@ class __$ComicCardSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of ComicCardSettingState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? downloadBadgeEnabled = null,Object? translationBadgeEnabled = null,Object? readButtonEnabled = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? downloadBadgeEnabled = null,Object? translationBadgeEnabled = null,Object? readButtonEnabled = null,Object? favoriteTagBadgeEnabled = null,}) {
   return _then(_ComicCardSettingState(
 downloadBadgeEnabled: null == downloadBadgeEnabled ? _self.downloadBadgeEnabled : downloadBadgeEnabled // ignore: cast_nullable_to_non_nullable
 as bool,translationBadgeEnabled: null == translationBadgeEnabled ? _self.translationBadgeEnabled : translationBadgeEnabled // ignore: cast_nullable_to_non_nullable
 as bool,readButtonEnabled: null == readButtonEnabled ? _self.readButtonEnabled : readButtonEnabled // ignore: cast_nullable_to_non_nullable
+as bool,favoriteTagBadgeEnabled: null == favoriteTagBadgeEnabled ? _self.favoriteTagBadgeEnabled : favoriteTagBadgeEnabled // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }

@@ -315,15 +315,50 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get favoriteArtistInputHint => 'Enter artist name...';
 	@override String get favoriteArtistAdd => 'Add';
 	@override String get favoriteArtistBatchImport => 'Batch Import / Edit';
-	@override String get favoriteArtistBatchImportHint => 'Enter one artist per line or comma-separated, supports [circle (artist)] format';
+	@override String get favoriteArtistBatchImportHint => 'One artist per line or comma-separated; [circle (artist)] entries are kept verbatim and both names take part in matching';
 	@override String favoriteArtistImportSuccess({required Object count}) => 'Updated artists list (${count} total)';
 	@override String get favoriteArtistClear => 'Clear All';
 	@override String get favoriteArtistClearConfirm => 'Are you sure you want to clear all favorite artists?';
+	@override String get favoriteArtistCircleMode => 'Circle Name Matching';
+	@override String get favoriteArtistCircleModeSubtitle => 'Whether a circle name in the title or tags counts as a hit';
+	@override String get favoriteArtistCircleOff => 'Ignore circles';
+	@override String get favoriteArtistCircleFallback => 'Only without artist';
+	@override String get favoriteArtistCircleIndependent => 'Independent (artist first)';
 	@override String get favoriteArtistBadge => 'Favorite Artist';
 	@override String get addToFavoriteArtist => 'Add to Favorite Artists';
 	@override String get removeFromFavoriteArtist => 'Remove from Favorite Artists';
 	@override String addedToFavoriteArtist({required Object name}) => 'Added to favorite artists: ${name}';
 	@override String removedFromFavoriteArtist({required Object name}) => 'Removed from favorite artists: ${name}';
+	@override String get favoriteTagHighlight => 'Highlight Favorite Tags';
+	@override String get favoriteTagHighlightSubtitle => 'Mark favorite tags prominently on comic cards and the detail page';
+	@override String get favoriteTagManagement => 'Favorite Tags Management';
+	@override String favoriteTagManagementSubtitle({required Object count}) => '${count} tags added';
+	@override String get favoriteTagManagementSubtitleEmpty => 'No favorite tags added';
+	@override String get favoriteTagInputHint => 'Enter tag name...';
+	@override String get favoriteTagAdd => 'Favorite';
+	@override String get favoriteTagSearchHint => 'Search tags...';
+	@override String get favoriteTagNotFound => 'No matching tags';
+	@override String get favoriteTagBatchImport => 'Batch Import / Edit';
+	@override String get favoriteTagBatchImportHint => 'One tag per line; separate aliases with | to match how each site spells it, e.g. school_lolita | 学校萝莉 | School Lolita';
+	@override String favoriteTagImportSuccess({required Object count}) => 'Updated favorite tags (${count} total)';
+	@override String get favoriteTagClear => 'Clear All';
+	@override String get favoriteTagClearConfirm => 'Are you sure you want to clear all favorite tags?';
+	@override String get favoriteTagBadge => 'Favorite Tag';
+	@override String get favoriteTagAliasSection => 'Aliases';
+	@override String get favoriteTagAliasEmpty => 'No aliases set';
+	@override String get favoriteTagAliasAdd => 'Add alias';
+	@override String get favoriteTagAliasInputHint => 'How this tag is written on some site...';
+	@override String get favoriteTagAliasHint => 'Aliases cover the different spellings each source uses for one tag. Case, full-width/half-width and underscore vs space are normalized automatically, so no alias is needed for those.';
+	@override String favoriteTagAdded({required Object name}) => 'Favorited tag: ${name}';
+	@override String favoriteTagRemoved({required Object name}) => 'Removed favorite tag: ${name}';
+	@override String favoriteTagAlreadyAdded({required Object name}) => 'Already favorited: ${name}';
+	@override String favoriteTagAliasAdded({required Object name}) => 'Alias added: ${name}';
+	@override String favoriteTagAliasRemoved({required Object name}) => 'Alias removed: ${name}';
+	@override String get favoriteTagAliasDuplicate => 'This alias already exists';
+	@override String get addToFavoriteTag => 'Favorite this tag';
+	@override String get removeFromFavoriteTag => 'Unfavorite this tag';
+	@override String get cardFavoriteTagBadge => 'Favorite Tag Badge';
+	@override String get cardFavoriteTagBadgeSubtitle => 'Show a badge on the top-left of covers that match a favorite tag';
 	@override String get chineseConvert => 'Chinese conversion';
 	@override String get chineseConvertSubtitle => 'Convert comic titles, descriptions, chapters and comments';
 	@override String get chineseConvertOff => 'Off';
@@ -2357,15 +2392,50 @@ extension on TranslationsEnUs {
 			'settings.favoriteArtistInputHint' => 'Enter artist name...',
 			'settings.favoriteArtistAdd' => 'Add',
 			'settings.favoriteArtistBatchImport' => 'Batch Import / Edit',
-			'settings.favoriteArtistBatchImportHint' => 'Enter one artist per line or comma-separated, supports [circle (artist)] format',
+			'settings.favoriteArtistBatchImportHint' => 'One artist per line or comma-separated; [circle (artist)] entries are kept verbatim and both names take part in matching',
 			'settings.favoriteArtistImportSuccess' => ({required Object count}) => 'Updated artists list (${count} total)',
 			'settings.favoriteArtistClear' => 'Clear All',
 			'settings.favoriteArtistClearConfirm' => 'Are you sure you want to clear all favorite artists?',
+			'settings.favoriteArtistCircleMode' => 'Circle Name Matching',
+			'settings.favoriteArtistCircleModeSubtitle' => 'Whether a circle name in the title or tags counts as a hit',
+			'settings.favoriteArtistCircleOff' => 'Ignore circles',
+			'settings.favoriteArtistCircleFallback' => 'Only without artist',
+			'settings.favoriteArtistCircleIndependent' => 'Independent (artist first)',
 			'settings.favoriteArtistBadge' => 'Favorite Artist',
 			'settings.addToFavoriteArtist' => 'Add to Favorite Artists',
 			'settings.removeFromFavoriteArtist' => 'Remove from Favorite Artists',
 			'settings.addedToFavoriteArtist' => ({required Object name}) => 'Added to favorite artists: ${name}',
 			'settings.removedFromFavoriteArtist' => ({required Object name}) => 'Removed from favorite artists: ${name}',
+			'settings.favoriteTagHighlight' => 'Highlight Favorite Tags',
+			'settings.favoriteTagHighlightSubtitle' => 'Mark favorite tags prominently on comic cards and the detail page',
+			'settings.favoriteTagManagement' => 'Favorite Tags Management',
+			'settings.favoriteTagManagementSubtitle' => ({required Object count}) => '${count} tags added',
+			'settings.favoriteTagManagementSubtitleEmpty' => 'No favorite tags added',
+			'settings.favoriteTagInputHint' => 'Enter tag name...',
+			'settings.favoriteTagAdd' => 'Favorite',
+			'settings.favoriteTagSearchHint' => 'Search tags...',
+			'settings.favoriteTagNotFound' => 'No matching tags',
+			'settings.favoriteTagBatchImport' => 'Batch Import / Edit',
+			'settings.favoriteTagBatchImportHint' => 'One tag per line; separate aliases with | to match how each site spells it, e.g. school_lolita | 学校萝莉 | School Lolita',
+			'settings.favoriteTagImportSuccess' => ({required Object count}) => 'Updated favorite tags (${count} total)',
+			'settings.favoriteTagClear' => 'Clear All',
+			'settings.favoriteTagClearConfirm' => 'Are you sure you want to clear all favorite tags?',
+			'settings.favoriteTagBadge' => 'Favorite Tag',
+			'settings.favoriteTagAliasSection' => 'Aliases',
+			'settings.favoriteTagAliasEmpty' => 'No aliases set',
+			'settings.favoriteTagAliasAdd' => 'Add alias',
+			'settings.favoriteTagAliasInputHint' => 'How this tag is written on some site...',
+			'settings.favoriteTagAliasHint' => 'Aliases cover the different spellings each source uses for one tag. Case, full-width/half-width and underscore vs space are normalized automatically, so no alias is needed for those.',
+			'settings.favoriteTagAdded' => ({required Object name}) => 'Favorited tag: ${name}',
+			'settings.favoriteTagRemoved' => ({required Object name}) => 'Removed favorite tag: ${name}',
+			'settings.favoriteTagAlreadyAdded' => ({required Object name}) => 'Already favorited: ${name}',
+			'settings.favoriteTagAliasAdded' => ({required Object name}) => 'Alias added: ${name}',
+			'settings.favoriteTagAliasRemoved' => ({required Object name}) => 'Alias removed: ${name}',
+			'settings.favoriteTagAliasDuplicate' => 'This alias already exists',
+			'settings.addToFavoriteTag' => 'Favorite this tag',
+			'settings.removeFromFavoriteTag' => 'Unfavorite this tag',
+			'settings.cardFavoriteTagBadge' => 'Favorite Tag Badge',
+			'settings.cardFavoriteTagBadgeSubtitle' => 'Show a badge on the top-left of covers that match a favorite tag',
 			'settings.chineseConvert' => 'Chinese conversion',
 			'settings.chineseConvertSubtitle' => 'Convert comic titles, descriptions, chapters and comments',
 			'settings.chineseConvertOff' => 'Off',
@@ -2631,6 +2701,8 @@ extension on TranslationsEnUs {
 			'settings.operationBindingActionZoomIn' => 'Zoom in',
 			'settings.operationBindingActionZoomOut' => 'Zoom out',
 			'settings.operationBindingActionFitWindow' => 'Fit to window',
+			_ => null,
+		} ?? switch (path) {
 			'settings.operationBindingActionActualSize' => 'Actual size',
 			'settings.operationBindingActionRotateClockwise' => 'Rotate clockwise',
 			'settings.operationBindingActionRotate180' => 'Rotate 180 degrees',
@@ -2666,8 +2738,6 @@ extension on TranslationsEnUs {
 			'settings.revealFieldX' => 'X',
 			'settings.revealFieldY' => 'Y',
 			'settings.revealFieldWidth' => 'W',
-			_ => null,
-		} ?? switch (path) {
 			'settings.revealFieldHeight' => 'H',
 			'settings.revealZoneResetDone' => 'Reveal zones restored to defaults',
 			'settings.operationBindingTabKeyboard' => 'Shortcuts',
@@ -3145,6 +3215,8 @@ extension on TranslationsEnUs {
 			'plugin.urlCannotBeEmpty' => 'URL cannot be empty',
 			'plugin.startInstall' => 'Start install',
 			'plugin.pluginSettingsTitle' => ({required Object name}) => '${name} settings',
+			_ => null,
+		} ?? switch (path) {
 			'plugin.debugConfigUpdated' => 'Plugin debug config updated',
 			'plugin.deletePlugin' => 'Delete plugin',
 			'plugin.confirmDeletePlugin' => 'Delete this plugin? This will delete plugin and related data.',
@@ -3180,8 +3252,6 @@ extension on TranslationsEnUs {
 			'plugin.cloudDownloadFailed' => ({required Object error}) => 'Cloud download failed: ${error}',
 			'plugin.networkDownloadFailed' => ({required Object error}) => 'Network plugin download failed: ${error}',
 			'plugin.cloudVersion' => ({required Object version}) => 'Cloud ${version}',
-			_ => null,
-		} ?? switch (path) {
 			'plugin.localVersion' => ({required Object version}) => 'Local ${version}',
 			'plugin.loginTitle' => ({required Object name}) => '${name} Login',
 			'plugin.cookieSynced' => 'Login cookie synced',
@@ -3659,6 +3729,8 @@ extension on TranslationsEnUs {
 			'download.cancelTaskConfirm' => ({required Object comicName}) => 'Cancel download of ${comicName}?',
 			'download.paused' => 'Paused',
 			'download.completed' => 'Completed',
+			_ => null,
+		} ?? switch (path) {
 			'download.failed' => 'Failed',
 			'download.startAll' => 'Start all',
 			'download.pauseAll' => 'Pause all',
@@ -3694,8 +3766,6 @@ extension on TranslationsEnUs {
 			'notification.macPermissionRequired' => 'Please enable notification permission in system settings',
 			'update.newVersion' => 'New version available',
 			'update.goToGitHub' => 'Go to GitHub',
-			_ => null,
-		} ?? switch (path) {
 			'update.downloadInstall' => 'Download & install',
 			'update.apkDownloadFailed' => 'Download failed, please try again later',
 			'update.installPermissionRequired' => 'Please grant install app permission',

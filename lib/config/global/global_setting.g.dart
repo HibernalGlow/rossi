@@ -109,6 +109,11 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
       : FavoriteArtistSettingState.fromJson(
           json['favoriteArtistSetting'] as Map<String, dynamic>,
         ),
+  favoriteTagSetting: json['favoriteTagSetting'] == null
+      ? const FavoriteTagSettingState()
+      : FavoriteTagSettingState.fromJson(
+          json['favoriteTagSetting'] as Map<String, dynamic>,
+        ),
   comicCardSetting: json['comicCardSetting'] == null
       ? const ComicCardSettingState()
       : ComicCardSettingState.fromJson(
@@ -198,6 +203,7 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
           _$ChineseConvertModeEnumMap[instance.chineseConvertMode]!,
       'bookshelfSetting': instance.bookshelfSetting.toJson(),
       'favoriteArtistSetting': instance.favoriteArtistSetting.toJson(),
+      'favoriteTagSetting': instance.favoriteTagSetting.toJson(),
       'comicCardSetting': instance.comicCardSetting.toJson(),
       'toastSetting': instance.toastSetting.toJson(),
       'switchToastSetting': instance.switchToastSetting.toJson(),
@@ -358,6 +364,12 @@ _FavoriteArtistSettingState _$FavoriteArtistSettingStateFromJson(
   artists:
       (json['artists'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const [],
+  circleMode:
+      $enumDecodeNullable(
+        _$FavoriteArtistCircleModeEnumMap,
+        json['circleMode'],
+      ) ??
+      FavoriteArtistCircleMode.fallbackOnly,
 );
 
 Map<String, dynamic> _$FavoriteArtistSettingStateToJson(
@@ -365,6 +377,41 @@ Map<String, dynamic> _$FavoriteArtistSettingStateToJson(
 ) => <String, dynamic>{
   'highlightEnabled': instance.highlightEnabled,
   'artists': instance.artists,
+  'circleMode': _$FavoriteArtistCircleModeEnumMap[instance.circleMode]!,
+};
+
+const _$FavoriteArtistCircleModeEnumMap = {
+  FavoriteArtistCircleMode.off: 'off',
+  FavoriteArtistCircleMode.fallbackOnly: 'fallbackOnly',
+  FavoriteArtistCircleMode.independent: 'independent',
+};
+
+_FavoriteTag _$FavoriteTagFromJson(Map<String, dynamic> json) => _FavoriteTag(
+  name: json['name'] as String? ?? '',
+  aliases:
+      (json['aliases'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const [],
+);
+
+Map<String, dynamic> _$FavoriteTagToJson(_FavoriteTag instance) =>
+    <String, dynamic>{'name': instance.name, 'aliases': instance.aliases};
+
+_FavoriteTagSettingState _$FavoriteTagSettingStateFromJson(
+  Map<String, dynamic> json,
+) => _FavoriteTagSettingState(
+  highlightEnabled: json['highlightEnabled'] as bool? ?? true,
+  tags:
+      (json['tags'] as List<dynamic>?)
+          ?.map((e) => FavoriteTag.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+);
+
+Map<String, dynamic> _$FavoriteTagSettingStateToJson(
+  _FavoriteTagSettingState instance,
+) => <String, dynamic>{
+  'highlightEnabled': instance.highlightEnabled,
+  'tags': instance.tags.map((e) => e.toJson()).toList(),
 };
 
 _ComicCardSettingState _$ComicCardSettingStateFromJson(
@@ -373,6 +420,7 @@ _ComicCardSettingState _$ComicCardSettingStateFromJson(
   downloadBadgeEnabled: json['downloadBadgeEnabled'] as bool? ?? true,
   translationBadgeEnabled: json['translationBadgeEnabled'] as bool? ?? true,
   readButtonEnabled: json['readButtonEnabled'] as bool? ?? true,
+  favoriteTagBadgeEnabled: json['favoriteTagBadgeEnabled'] as bool? ?? true,
 );
 
 Map<String, dynamic> _$ComicCardSettingStateToJson(
@@ -381,6 +429,7 @@ Map<String, dynamic> _$ComicCardSettingStateToJson(
   'downloadBadgeEnabled': instance.downloadBadgeEnabled,
   'translationBadgeEnabled': instance.translationBadgeEnabled,
   'readButtonEnabled': instance.readButtonEnabled,
+  'favoriteTagBadgeEnabled': instance.favoriteTagBadgeEnabled,
 };
 
 _CacheSettingState _$CacheSettingStateFromJson(Map<String, dynamic> json) =>

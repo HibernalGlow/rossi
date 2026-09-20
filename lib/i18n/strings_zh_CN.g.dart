@@ -725,8 +725,8 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '批量导入/编辑'
 	String get favoriteArtistBatchImport => '批量导入/编辑';
 
-	/// zh-CN: '每行输入一位画师或逗号分隔，支持 [社团 (画师)] 格式'
-	String get favoriteArtistBatchImportHint => '每行输入一位画师或逗号分隔，支持 [社团 (画师)] 格式';
+	/// zh-CN: '每行输入一位画师或逗号分隔；[社团 (画师)] 会原样保留，两个名字都参与匹配'
+	String get favoriteArtistBatchImportHint => '每行输入一位画师或逗号分隔；[社团 (画师)] 会原样保留，两个名字都参与匹配';
 
 	/// zh-CN: '已更新画师列表（共 $count 位）'
 	String favoriteArtistImportSuccess({required Object count}) => '已更新画师列表（共 ${count} 位）';
@@ -736,6 +736,21 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '确定要清空所有喜欢的画师吗？'
 	String get favoriteArtistClearConfirm => '确定要清空所有喜欢的画师吗？';
+
+	/// zh-CN: '社团名匹配'
+	String get favoriteArtistCircleMode => '社团名匹配';
+
+	/// zh-CN: '标题或标签里的社团名算不算命中喜欢画师'
+	String get favoriteArtistCircleModeSubtitle => '标题或标签里的社团名算不算命中喜欢画师';
+
+	/// zh-CN: '不认社团名'
+	String get favoriteArtistCircleOff => '不认社团名';
+
+	/// zh-CN: '仅在没有画师名时'
+	String get favoriteArtistCircleFallback => '仅在没有画师名时';
+
+	/// zh-CN: '独立命中（画师优先）'
+	String get favoriteArtistCircleIndependent => '独立命中（画师优先）';
 
 	/// zh-CN: '喜欢画师'
 	String get favoriteArtistBadge => '喜欢画师';
@@ -751,6 +766,96 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '已从喜欢画师移除: $name'
 	String removedFromFavoriteArtist({required Object name}) => '已从喜欢画师移除: ${name}';
+
+	/// zh-CN: '收藏 tag 高亮'
+	String get favoriteTagHighlight => '收藏 tag 高亮';
+
+	/// zh-CN: '在漫画卡片和详情页醒目标记收藏的 tag'
+	String get favoriteTagHighlightSubtitle => '在漫画卡片和详情页醒目标记收藏的 tag';
+
+	/// zh-CN: '收藏 tag 管理'
+	String get favoriteTagManagement => '收藏 tag 管理';
+
+	/// zh-CN: '已添加 $count 个 tag'
+	String favoriteTagManagementSubtitle({required Object count}) => '已添加 ${count} 个 tag';
+
+	/// zh-CN: '暂未添加 tag'
+	String get favoriteTagManagementSubtitleEmpty => '暂未添加 tag';
+
+	/// zh-CN: '输入 tag 名称...'
+	String get favoriteTagInputHint => '输入 tag 名称...';
+
+	/// zh-CN: '收藏'
+	String get favoriteTagAdd => '收藏';
+
+	/// zh-CN: '搜索 tag...'
+	String get favoriteTagSearchHint => '搜索 tag...';
+
+	/// zh-CN: '未找到匹配的 tag'
+	String get favoriteTagNotFound => '未找到匹配的 tag';
+
+	/// zh-CN: '批量导入/编辑'
+	String get favoriteTagBatchImport => '批量导入/编辑';
+
+	/// zh-CN: '每行一个 tag；别名用 | 分隔，用于适配各站点的写法，例如 school_lolita | 学校萝莉 | School Lolita'
+	String get favoriteTagBatchImportHint => '每行一个 tag；别名用 | 分隔，用于适配各站点的写法，例如 school_lolita | 学校萝莉 | School Lolita';
+
+	/// zh-CN: '已更新收藏 tag（共 $count 个）'
+	String favoriteTagImportSuccess({required Object count}) => '已更新收藏 tag（共 ${count} 个）';
+
+	/// zh-CN: '清空全部'
+	String get favoriteTagClear => '清空全部';
+
+	/// zh-CN: '确定要清空所有收藏 tag 吗？'
+	String get favoriteTagClearConfirm => '确定要清空所有收藏 tag 吗？';
+
+	/// zh-CN: '收藏 Tag'
+	String get favoriteTagBadge => '收藏 Tag';
+
+	/// zh-CN: '别名'
+	String get favoriteTagAliasSection => '别名';
+
+	/// zh-CN: '未设置别名'
+	String get favoriteTagAliasEmpty => '未设置别名';
+
+	/// zh-CN: '添加别名'
+	String get favoriteTagAliasAdd => '添加别名';
+
+	/// zh-CN: '该 tag 在某个站点里的写法...'
+	String get favoriteTagAliasInputHint => '该 tag 在某个站点里的写法...';
+
+	/// zh-CN: '别名用于适配不同图源对同一个 tag 的不同拼法；大小写、全半角和下划线的差异已经自动归一，不必再登记。'
+	String get favoriteTagAliasHint => '别名用于适配不同图源对同一个 tag 的不同拼法；大小写、全半角和下划线的差异已经自动归一，不必再登记。';
+
+	/// zh-CN: '已收藏 tag: $name'
+	String favoriteTagAdded({required Object name}) => '已收藏 tag: ${name}';
+
+	/// zh-CN: '已取消收藏 tag: $name'
+	String favoriteTagRemoved({required Object name}) => '已取消收藏 tag: ${name}';
+
+	/// zh-CN: '已经收藏过这个 tag: $name'
+	String favoriteTagAlreadyAdded({required Object name}) => '已经收藏过这个 tag: ${name}';
+
+	/// zh-CN: '已添加别名: $name'
+	String favoriteTagAliasAdded({required Object name}) => '已添加别名: ${name}';
+
+	/// zh-CN: '已移除别名: $name'
+	String favoriteTagAliasRemoved({required Object name}) => '已移除别名: ${name}';
+
+	/// zh-CN: '这个别名已经存在了'
+	String get favoriteTagAliasDuplicate => '这个别名已经存在了';
+
+	/// zh-CN: '收藏此 tag'
+	String get addToFavoriteTag => '收藏此 tag';
+
+	/// zh-CN: '取消收藏此 tag'
+	String get removeFromFavoriteTag => '取消收藏此 tag';
+
+	/// zh-CN: '收藏 tag 角标'
+	String get cardFavoriteTagBadge => '收藏 tag 角标';
+
+	/// zh-CN: '命中收藏 tag 时在封面左上角显示角标'
+	String get cardFavoriteTagBadgeSubtitle => '命中收藏 tag 时在封面左上角显示角标';
 
 	/// zh-CN: '简繁转换'
 	String get chineseConvert => '简繁转换';
@@ -5833,15 +5938,50 @@ extension on Translations {
 			'settings.favoriteArtistInputHint' => '输入画师名称...',
 			'settings.favoriteArtistAdd' => '添加',
 			'settings.favoriteArtistBatchImport' => '批量导入/编辑',
-			'settings.favoriteArtistBatchImportHint' => '每行输入一位画师或逗号分隔，支持 [社团 (画师)] 格式',
+			'settings.favoriteArtistBatchImportHint' => '每行输入一位画师或逗号分隔；[社团 (画师)] 会原样保留，两个名字都参与匹配',
 			'settings.favoriteArtistImportSuccess' => ({required Object count}) => '已更新画师列表（共 ${count} 位）',
 			'settings.favoriteArtistClear' => '清空全部',
 			'settings.favoriteArtistClearConfirm' => '确定要清空所有喜欢的画师吗？',
+			'settings.favoriteArtistCircleMode' => '社团名匹配',
+			'settings.favoriteArtistCircleModeSubtitle' => '标题或标签里的社团名算不算命中喜欢画师',
+			'settings.favoriteArtistCircleOff' => '不认社团名',
+			'settings.favoriteArtistCircleFallback' => '仅在没有画师名时',
+			'settings.favoriteArtistCircleIndependent' => '独立命中（画师优先）',
 			'settings.favoriteArtistBadge' => '喜欢画师',
 			'settings.addToFavoriteArtist' => '设为喜欢画师',
 			'settings.removeFromFavoriteArtist' => '取消喜欢画师',
 			'settings.addedToFavoriteArtist' => ({required Object name}) => '已添加到喜欢画师: ${name}',
 			'settings.removedFromFavoriteArtist' => ({required Object name}) => '已从喜欢画师移除: ${name}',
+			'settings.favoriteTagHighlight' => '收藏 tag 高亮',
+			'settings.favoriteTagHighlightSubtitle' => '在漫画卡片和详情页醒目标记收藏的 tag',
+			'settings.favoriteTagManagement' => '收藏 tag 管理',
+			'settings.favoriteTagManagementSubtitle' => ({required Object count}) => '已添加 ${count} 个 tag',
+			'settings.favoriteTagManagementSubtitleEmpty' => '暂未添加 tag',
+			'settings.favoriteTagInputHint' => '输入 tag 名称...',
+			'settings.favoriteTagAdd' => '收藏',
+			'settings.favoriteTagSearchHint' => '搜索 tag...',
+			'settings.favoriteTagNotFound' => '未找到匹配的 tag',
+			'settings.favoriteTagBatchImport' => '批量导入/编辑',
+			'settings.favoriteTagBatchImportHint' => '每行一个 tag；别名用 | 分隔，用于适配各站点的写法，例如 school_lolita | 学校萝莉 | School Lolita',
+			'settings.favoriteTagImportSuccess' => ({required Object count}) => '已更新收藏 tag（共 ${count} 个）',
+			'settings.favoriteTagClear' => '清空全部',
+			'settings.favoriteTagClearConfirm' => '确定要清空所有收藏 tag 吗？',
+			'settings.favoriteTagBadge' => '收藏 Tag',
+			'settings.favoriteTagAliasSection' => '别名',
+			'settings.favoriteTagAliasEmpty' => '未设置别名',
+			'settings.favoriteTagAliasAdd' => '添加别名',
+			'settings.favoriteTagAliasInputHint' => '该 tag 在某个站点里的写法...',
+			'settings.favoriteTagAliasHint' => '别名用于适配不同图源对同一个 tag 的不同拼法；大小写、全半角和下划线的差异已经自动归一，不必再登记。',
+			'settings.favoriteTagAdded' => ({required Object name}) => '已收藏 tag: ${name}',
+			'settings.favoriteTagRemoved' => ({required Object name}) => '已取消收藏 tag: ${name}',
+			'settings.favoriteTagAlreadyAdded' => ({required Object name}) => '已经收藏过这个 tag: ${name}',
+			'settings.favoriteTagAliasAdded' => ({required Object name}) => '已添加别名: ${name}',
+			'settings.favoriteTagAliasRemoved' => ({required Object name}) => '已移除别名: ${name}',
+			'settings.favoriteTagAliasDuplicate' => '这个别名已经存在了',
+			'settings.addToFavoriteTag' => '收藏此 tag',
+			'settings.removeFromFavoriteTag' => '取消收藏此 tag',
+			'settings.cardFavoriteTagBadge' => '收藏 tag 角标',
+			'settings.cardFavoriteTagBadgeSubtitle' => '命中收藏 tag 时在封面左上角显示角标',
 			'settings.chineseConvert' => '简繁转换',
 			'settings.chineseConvertSubtitle' => '将漫画标题、简介、章节、评论等转为简体或繁体',
 			'settings.chineseConvertOff' => '关闭',
@@ -6107,6 +6247,8 @@ extension on Translations {
 			'settings.operationBindingActionActualSize' => '实际大小',
 			'settings.operationBindingActionRotateClockwise' => '旋转',
 			'settings.operationBindingActionRotate180' => '旋转180度',
+			_ => null,
+		} ?? switch (path) {
 			'settings.operationBindingBoundAction' => '绑定的动作',
 			'settings.operationBindingDisabledRow' => '已停用（不参与冲突判定）',
 			'settings.operationBindingRemove' => '删除这条绑定',
@@ -6142,8 +6284,6 @@ extension on Translations {
 			'settings.revealFieldX' => 'X',
 			'settings.revealFieldY' => 'Y',
 			'settings.revealFieldWidth' => '宽',
-			_ => null,
-		} ?? switch (path) {
 			'settings.revealFieldHeight' => '高',
 			'settings.revealZoneResetDone' => '已恢复出厂唤出区',
 			'settings.operationBindingTabKeyboard' => '快捷键',
@@ -6621,6 +6761,8 @@ extension on Translations {
 			'plugin.addFromNetwork' => '从网络添加插件',
 			'plugin.urlCannotBeEmpty' => 'URL 不能为空',
 			'plugin.startInstall' => '开始安装',
+			_ => null,
+		} ?? switch (path) {
 			'plugin.pluginSettingsTitle' => ({required Object name}) => '${name} 设置',
 			'plugin.debugConfigUpdated' => '插件调试配置已更新',
 			'plugin.deletePlugin' => '删除插件',
@@ -6656,8 +6798,6 @@ extension on Translations {
 			'plugin.installingFromNetwork' => '正在下载网络插件...',
 			'plugin.cloudDownloadFailed' => ({required Object error}) => '云端下载失败: ${error}',
 			'plugin.networkDownloadFailed' => ({required Object error}) => '网络下载插件失败: ${error}',
-			_ => null,
-		} ?? switch (path) {
 			'plugin.cloudVersion' => ({required Object version}) => '云端 ${version}',
 			'plugin.localVersion' => ({required Object version}) => '本地 ${version}',
 			'plugin.loginTitle' => ({required Object name}) => '${name} 登录',
@@ -7135,6 +7275,8 @@ extension on Translations {
 			'download.cancelTask' => '取消任务',
 			'download.cancelTaskConfirm' => ({required Object comicName}) => '确定要取消下载 ${comicName} 吗？',
 			'download.paused' => '已暂停',
+			_ => null,
+		} ?? switch (path) {
 			'download.completed' => '已完成',
 			'download.failed' => '失败',
 			'download.startAll' => '全部开始',
@@ -7170,8 +7312,6 @@ extension on Translations {
 			'notification.permissionRequired' => '请开启通知权限',
 			'notification.macPermissionRequired' => '请在系统设置中开启通知权限',
 			'update.newVersion' => '发现新版本',
-			_ => null,
-		} ?? switch (path) {
 			'update.goToGitHub' => '前往GitHub',
 			'update.downloadInstall' => '下载安装',
 			'update.apkDownloadFailed' => '下载失败，请稍后再试！',
