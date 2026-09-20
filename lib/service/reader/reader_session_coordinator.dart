@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
 import 'package:zephyr/reader/page_source.dart';
@@ -37,6 +38,32 @@ class ReaderSessionCoordinator extends ChangeNotifier {
   /// 当前章节所含有的所有页面列表条目
   List<Doc> get docs => _epInfo?.docs ?? const <Doc>[];
 
+  bool _notifyScheduled = false;
+
+  /// 发一次「会话变了」的通知，但**绝不在 build 阶段发**。
+  ///
+  /// 这个中枢是全局单例，登记会话的时机在阅读器 `build` 里（`comic_read.dart` 的
+  /// 尺寸回调那一处），于是 `notifyListeners()` 会打到「正在 build 的下游」上，
+  /// 实测一次开书刷出 14 条 `setState() or markNeedsBuild() called during build`
+  /// （11 个 `ListenableBuilder` + 3 个工作区信息卡）。
+  ///
+  /// 只把**通知**推到本帧之后；**状态本身照常同步写**，因为同一帧里就有代码直接读
+  /// [comicId] / [docs] / [displayTitle]（顶栏书名那颗就是），把写入一起推迟会
+  /// 读到上一本书的值。同一帧内多次调用合并成一次通知。
+  void _notifySafely() {
+    if (SchedulerBinding.instance.schedulerPhase !=
+        SchedulerPhase.persistentCallbacks) {
+      notifyListeners();
+      return;
+    }
+    if (_notifyScheduled) return;
+    _notifyScheduled = true;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _notifyScheduled = false;
+      notifyListeners();
+    });
+  }
+
   /// 关联并登记当前阅读会话
   void attachSession({
     required String comicId,
@@ -56,7 +83,7 @@ class ReaderSessionCoordinator extends ChangeNotifier {
     _currentSlot = currentSlot;
     _totalSlots = totalSlots;
     _jumpToSlot = jumpToSlot;
-    notifyListeners();
+    _notifySafely();
   }
 
   /// 更新阅读进度（当前槽位与总槽位）
@@ -64,13 +91,13 @@ class ReaderSessionCoordinator extends ChangeNotifier {
     if (_currentSlot == currentSlot && _totalSlots == totalSlots) return;
     _currentSlot = currentSlot;
     _totalSlots = totalSlots;
-    notifyListeners();
+    _notifySafely();
   }
 
   /// 更新章节信息
   void updateEpInfo(NormalComicEpInfo epInfo) {
     _epInfo = epInfo;
-    notifyListeners();
+    _notifySafely();
   }
 
   /// 请求阅读器跳转到目标槽位
@@ -92,7 +119,7 @@ class ReaderSessionCoordinator extends ChangeNotifier {
       _currentSlot = 0;
       _totalSlots = 0;
       _jumpToSlot = null;
-      notifyListeners();
+      _notifySafely();
     }
   }
 }
