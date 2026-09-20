@@ -60,6 +60,7 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
           _logAddress(state, cubit),
           _enableMemoryDebug(state, cubit),
           _blockRustHttpRequests(state, cubit),
+          _showLayoutOverflowStripes(state, cubit),
           if (defaultTargetPlatform == TargetPlatform.android)
             _forceEnableImpeller(state, cubit),
           if (kDebugMode) ...[
@@ -199,6 +200,34 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
         setHttpRequestsBlocked(blocked: value);
         cubit.updateState(
           (current) => current.copyWith(blockRustHttpRequests: value),
+        );
+      },
+    );
+  }
+
+  /// 「黄黑溢出斜纹」总开关。
+  ///
+  /// 默认开 ＝ Flutter 原生行为。关掉后：本项目自绘的布局不再画条纹
+  /// （`QuietRow` / `QuietColumn`，见 `lib/util/layout/quiet_flex.dart`），
+  /// 并且全局不再上报「overflowed by … pixels」这类错误（控制台不刷屏）。
+  ///
+  /// **不放进 `kDebugMode`**：这一项在 release 下本来就无事可做（assert 关掉了），
+  /// 但把它藏起来只会让人以为开关没生效 —— 描述里写清楚，比藏起来好。
+  Widget _showLayoutOverflowStripes(
+    GlobalSettingState state,
+    GlobalSettingCubit cubit,
+  ) {
+    return SwitchListTile(
+      secondary: const Icon(Icons.warning_amber_outlined),
+      title: Text(t.settings.showLayoutOverflowStripes),
+      subtitle: Text(t.settings.showLayoutOverflowStripesSubtitle),
+      thumbIcon: kSettingSwitchThumbIcon,
+      value: state.showLayoutOverflowStripes,
+      onChanged: (bool value) {
+        // 落盘 + 写全局标志都在 cubit 里（`_persistAndEmit`），
+        // 与 `blockRustHttpRequests` 一个路子，别在页面里再写一遍。
+        cubit.updateState(
+          (current) => current.copyWith(showLayoutOverflowStripes: value),
         );
       },
     );
