@@ -35,10 +35,10 @@ use lazy_static::lazy_static;
 use rossi_local_core::file_ops::{
     ClipboardMode, ConflictPolicy, DirectoryClipboard, DirectorySelectionModel, FileMutation,
     FileOperationBatchResult, FileUndoReceipt, SystemTrashBackend, TrashBackend,
-    chain_directory_selection, create_directory_selection,
-    invert_directory_selection, rebase_directory_selection, replace_directory_selection_path,
-    run_batch, select_all_directory_entries, select_directory_single, toggle_directory_selection,
-    undo_batch, validate_paste,
+    chain_directory_selection, create_directory_selection, invert_directory_selection,
+    rebase_directory_selection, replace_directory_selection_path, run_batch,
+    select_all_directory_entries, select_directory_single, toggle_directory_selection, undo_batch,
+    validate_paste,
 };
 
 use super::file_manager::FILE_MANAGER_SESSIONS;
@@ -182,9 +182,7 @@ fn with_ops<R>(id: u64, operation: impl FnOnce(&mut FileOpsSession) -> R) -> Res
     let mut sessions = FILE_OPS_SESSIONS
         .lock()
         .map_err(|_| anyhow!("文件操作会话的锁已中毒"))?;
-    let session = sessions
-        .entry(id)
-        .or_insert_with(|| FileOpsSession::new(0));
+    let session = sessions.entry(id).or_insert_with(|| FileOpsSession::new(0));
     Ok(operation(session))
 }
 
@@ -421,8 +419,12 @@ pub async fn file_ops_select_toggle(
         .spawn_blocking(move || {
             let generation = read_listing(id)?.generation;
             with_ops(id, |session| {
-                session.selection =
-                    toggle_directory_selection(&session.selection, generation, &path, index as usize);
+                session.selection = toggle_directory_selection(
+                    &session.selection,
+                    generation,
+                    &path,
+                    index as usize,
+                );
             })?;
             snapshot_for(id)
         })
@@ -518,7 +520,11 @@ pub async fn file_ops_copy_to_clipboard(id: u64, cut: bool) -> Result<FileOpsSna
                     .map(PathBuf::from)
                     .collect::<Vec<_>>();
                 session.clipboard = DirectoryClipboard::new(
-                    if cut { ClipboardMode::Move } else { ClipboardMode::Copy },
+                    if cut {
+                        ClipboardMode::Move
+                    } else {
+                        ClipboardMode::Copy
+                    },
                     sources,
                     listing.generation,
                 );
@@ -541,10 +547,7 @@ pub async fn file_ops_clear_clipboard(id: u64) -> Result<FileOpsSnapshot, Error>
 /// 粘贴。[destination] 为空 = 粘到当前目录；给了路径 = 粘到**那一项**里
 /// （右键菜单的「粘贴到这一项」走这条，落点就是被右键的那个文件夹）。
 #[frb]
-pub async fn file_ops_paste(
-    id: u64,
-    destination: Option<String>,
-) -> Result<FileOpsReport, Error> {
+pub async fn file_ops_paste(id: u64, destination: Option<String>) -> Result<FileOpsReport, Error> {
     rquickjs_playground::global_handle()
         .spawn_blocking(move || {
             let listing = read_listing(id)?;

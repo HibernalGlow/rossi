@@ -255,12 +255,14 @@ pub async fn local_video_wave_peaks(
     bin_secs: f64,
 ) -> Result<Vec<f32>, Error> {
     rquickjs_playground::global_handle()
-        .spawn_blocking(move || rossi_local_core::wave_peaks::wave_peaks(
-            std::path::Path::new(&path),
-            start,
-            end,
-            bin_secs,
-        ))
+        .spawn_blocking(move || {
+            rossi_local_core::wave_peaks::wave_peaks(
+                std::path::Path::new(&path),
+                start,
+                end,
+                bin_secs,
+            )
+        })
         .await?
         .map_err(Error::from)
 }
