@@ -12,6 +12,7 @@ import 'package:zephyr/page/setting/real_sr/service/desktop_ncnn_model_config.da
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/super_resolution_engine_settings.dart';
+import 'package:zephyr/page/setting/real_sr/widgets/upscale_conditions_card.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
@@ -463,6 +464,11 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
                     },
                     onChanged: _setResolutionThreshold,
                   ),
+                ),
+                const SizedBox(height: 12),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: UpscaleConditionsCard(),
                 ),
 
                 const SizedBox(height: 8),

@@ -7,7 +7,12 @@ import 'package:zephyr/util/coreml_model_loader.dart';
 
 /// 阅读器与全局设置共用；两个引擎各自保留模型选择。
 class SuperResolutionEngineSettings extends StatefulWidget {
-  const SuperResolutionEngineSettings({super.key});
+  final bool isReaderCompact;
+
+  const SuperResolutionEngineSettings({
+    super.key,
+    this.isReaderCompact = false,
+  });
 
   @override
   State<SuperResolutionEngineSettings> createState() =>
@@ -49,8 +54,6 @@ class _SuperResolutionEngineSettingsState
       final (forward, back) = await RealSrSettings.loadPrefetch();
       final family = await RealSrSettings.loadCoreMLFamily();
       final variant = await RealSrSettings.loadCoreMLVariant(family);
-      // coreml_upscale 那颗插件在非 Apple 平台根本没注册，问它就是
-      // MissingPluginException —— 只有本平台真有 CoreML 引擎时才去问。
       final available = supportsCoreML
           ? await CoreMLModelLoader.isModelAvailable(variant.fileName)
           : false;
@@ -104,153 +107,335 @@ class _SuperResolutionEngineSettingsState
   }
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.all(12),
-    child: Column(
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    final engineCard = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<SuperResolutionEngine>(
+          key: const ValueKey('apple-sr-engine'),
+          value: _engine,
+          isExpanded: true,
+          icon: const Icon(Icons.keyboard_arrow_down_rounded),
+          items: [
+            for (final engine in availableEngines)
+              DropdownMenuItem(
+                value: engine,
+                child: Text(
+                  engine.label,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ),
+          ],
+          onChanged: (engine) {
+            if (engine != null) {
+              _change(() => RealSrSettings.saveEngine(engine));
+            }
+          },
+        ),
+      ),
+    );
+
+    final advancedSection = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('超分引擎', style: Theme.of(context).textTheme.titleSmall),
-        if (_engine == null && _error == null)
-          const LinearProgressIndicator()
-        else ...[
-          DropdownButton<SuperResolutionEngine>(
-            key: const ValueKey('apple-sr-engine'),
-            value: _engine,
-            isExpanded: true,
-            items: [
-              for (final engine in availableEngines)
-                DropdownMenuItem(value: engine, child: Text(engine.label)),
-            ],
-            onChanged: (engine) {
-              if (engine != null) {
-                _change(() => RealSrSettings.saveEngine(engine));
-              }
-            },
+        Text(
+          '预超分（当前页优先）',
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            fontWeight: FontWeight.w600,
           ),
-          const Text('切换后当前页自动重新处理，两套模型选择分别保留。'),
-          const SizedBox(height: 12),
-          if (_engine == SuperResolutionEngine.mimageOnnx)
-            const MImageModelSettings(showLogControls: false)
-          else if (_engine == SuperResolutionEngine.breezeCoreML) ...[
-            const Text('Rossi 原生模型'),
-            DropdownButton<CoreMLModelFamily>(
-              key: const ValueKey('breeze-coreml-model'),
-              value: _family,
-              isExpanded: true,
-              items: [
-                for (final family in CoreMLModelConfig.families)
-                  DropdownMenuItem(
-                    value: family,
-                    child: Text(switch (family.id) {
-                      'waifu2x' => 'waifu2x · 速度优先',
-                      'realcugan' => 'Real-CUGAN · 质量优先',
-                      _ => family.label,
-                    }),
-                  ),
-              ],
-              onChanged: _downloading
-                  ? null
-                  : (family) {
-                      if (family != null) {
-                        _change(() => RealSrSettings.saveCoreMLFamily(family));
-                      }
-                    },
-            ),
-            Text('倍率：原生 ${_variant.config['scale']}×（由模型决定）'),
-            const SizedBox(height: 6),
-            Text('降噪：${_variant.localizedDisplayName}'),
-            const SizedBox(height: 6),
-            const Text('Swift 直接调用 Apple CoreML，复用已加载模型。'),
-            const SizedBox(height: 8),
-            Text(_available ? '当前模型已安装' : '下载原生模型后即可使用'),
-            SelectableText(
-              _variant.fileName,
-              style: const TextStyle(fontSize: 12),
-            ),
-            if (!_available)
-              OutlinedButton.icon(
-                onPressed: _downloading ? null : _download,
-                icon: const Icon(Icons.download_outlined),
-                label: const Text('下载 Rossi 原生模型'),
-              ),
-            if (_downloading) LinearProgressIndicator(value: _progress),
-          ]
-          else if (_engine == SuperResolutionEngine.desktopNcnn)
-            // NCNN 的档位不在这里重复一份：并发/分块/模式/倍率仍由「图片超分」
-            // 设置页那几块负责，这里只说明当前走的是哪条路。
-            const Text(
-              '调用 waifu2x / Real-CUGAN 的 ncnn-vulkan 可执行文件；'
-              '模式、倍率、并发与分块在「图片超分」设置页下方调整。',
-              style: TextStyle(fontSize: 12),
-            ),
-        ],
-        if (_error != null)
-          Text(
-            _error!,
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
-          ),
-        const SizedBox(height: 12),
-        const Text('预超分（当前页优先）'),
+        ),
+        const SizedBox(height: 6),
         Wrap(
           spacing: 16,
+          runSpacing: 8,
           children: [
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('后续页：'),
-                DropdownButton<int>(
-                  key: const ValueKey('sr-prefetch-forward'),
-                  value: _forward,
-                  items: [
-                    for (var n = 0; n <= 5; n++)
-                      DropdownMenuItem(value: n, child: Text('$n 页')),
-                  ],
-                  onChanged: (n) {
-                    if (n != null) {
-                      _change(
-                        () => RealSrSettings.savePrefetch(
-                          forward: n,
-                          back: _back,
-                        ),
-                      );
-                    }
-                  },
+                const Text('后续页：', style: TextStyle(fontSize: 13)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      key: const ValueKey('sr-prefetch-forward'),
+                      value: _forward,
+                      isDense: true,
+                      items: [
+                        for (var n = 0; n <= 5; n++)
+                          DropdownMenuItem(value: n, child: Text('$n 页')),
+                      ],
+                      onChanged: (n) {
+                        if (n != null) {
+                          _change(
+                            () => RealSrSettings.savePrefetch(
+                              forward: n,
+                              back: _back,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
                 ),
               ],
             ),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('之前页：'),
-                DropdownButton<int>(
-                  key: const ValueKey('sr-prefetch-back'),
-                  value: _back,
-                  items: [
-                    for (var n = 0; n <= 5; n++)
-                      DropdownMenuItem(value: n, child: Text('$n 页')),
-                  ],
-                  onChanged: (n) {
-                    if (n != null) {
-                      _change(
-                        () => RealSrSettings.savePrefetch(
-                          forward: _forward,
-                          back: n,
-                        ),
-                      );
-                    }
-                  },
+                const Text('之前页：', style: TextStyle(fontSize: 13)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      key: const ValueKey('sr-prefetch-back'),
+                      value: _back,
+                      isDense: true,
+                      items: [
+                        for (var n = 0; n <= 5; n++)
+                          DropdownMenuItem(value: n, child: Text('$n 页')),
+                      ],
+                      onChanged: (n) {
+                        if (n != null) {
+                          _change(
+                            () => RealSrSettings.savePrefetch(
+                              forward: _forward,
+                              back: n,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
                 ),
               ],
             ),
           ],
         ),
-        const Text(
+        const SizedBox(height: 4),
+        Text(
           '一次处理一页，避免争抢内存；都设为 0 可关闭预超分。',
-          style: TextStyle(fontSize: 12),
+          style: TextStyle(
+            fontSize: 11,
+            color: colorScheme.onSurfaceVariant,
+          ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         const SuperResolutionLogControls(),
       ],
-    ),
-  );
+    );
+
+    return Padding(
+      padding: EdgeInsets.all(widget.isReaderCompact ? 0 : 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!widget.isReaderCompact) ...[
+            Text('超分引擎', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+          ],
+          if (_engine == null && _error == null)
+            const LinearProgressIndicator()
+          else ...[
+            engineCard,
+            const SizedBox(height: 6),
+            Text(
+              '切换后当前页自动重新处理，两套模型选择分别保留。',
+              style: TextStyle(
+                fontSize: 12,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (_engine == SuperResolutionEngine.mimageOnnx)
+              const MImageModelSettings(showLogControls: false)
+            else if (_engine == SuperResolutionEngine.breezeCoreML) ...[
+              Text(
+                'Rossi 原生模型',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                  ),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<CoreMLModelFamily>(
+                    key: const ValueKey('breeze-coreml-model'),
+                    value: _family,
+                    isExpanded: true,
+                    icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                    items: [
+                      for (final family in CoreMLModelConfig.families)
+                        DropdownMenuItem(
+                          value: family,
+                          child: Text(
+                            switch (family.id) {
+                              'waifu2x' => 'waifu2x · 速度优先',
+                              'realcugan' => 'Real-CUGAN · 质量优先',
+                              _ => family.label,
+                            },
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                    ],
+                    onChanged: _downloading
+                        ? null
+                        : (family) {
+                            if (family != null) {
+                              _change(() => RealSrSettings.saveCoreMLFamily(family));
+                            }
+                          },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: colorScheme.secondaryContainer.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '原生 ${_variant.config['scale']}×',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSecondaryContainer,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _variant.localizedDisplayName,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: _available
+                          ? Colors.green.withValues(alpha: 0.15)
+                          : colorScheme.errorContainer.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _available ? '已安装' : '未安装',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: _available ? Colors.green : colorScheme.error,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Swift 直接调用 Apple CoreML，复用已加载模型。',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              if (!_available) ...[
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: _downloading ? null : _download,
+                  icon: const Icon(Icons.download_outlined, size: 18),
+                  label: const Text('下载 Rossi 原生模型'),
+                  style: OutlinedButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
+              if (_downloading) ...[
+                const SizedBox(height: 8),
+                LinearProgressIndicator(value: _progress),
+              ],
+            ] else if (_engine == SuperResolutionEngine.desktopNcnn)
+              Text(
+                '调用 waifu2x / Real-CUGAN 的 ncnn-vulkan 可执行文件；'
+                '模式、倍率、并发与分块在「图片超分」设置页下方调整。',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+          ],
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _error!,
+              style: TextStyle(color: colorScheme.error),
+            ),
+          ],
+          const SizedBox(height: 12),
+          if (widget.isReaderCompact)
+            Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                dense: true,
+                title: Text(
+                  '高级超分选项 (预超分 / 日志)',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                children: [
+                  advancedSection,
+                ],
+              ),
+            )
+          else
+            advancedSection,
+        ],
+      ),
+    );
+  }
 }
