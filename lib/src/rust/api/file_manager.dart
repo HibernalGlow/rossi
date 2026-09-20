@@ -9,7 +9,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `apply_session_operation`, `attached_store`, `current_store`, `hydrate_view_states_from`, `load_search_history`, `map_entry`, `map_search_outcome`, `now_secs`, `pane_inputs`, `pane_sort_order`, `persist_dirty_view_states_into`, `project_pane`, `search_directory_of`, `seed_home_path`, `snapshot_for`, `store_for`, `with_pane`, `with_session`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `FILE_MANAGER_PANES`, `FILE_MANAGER_SEARCHES`, `FILE_MANAGER_SESSIONS`, `FILE_MANAGER_STORE`, `FileManagerSearchGuard`, `NEXT_FILE_MANAGER_ID`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `deref`, `deref`, `deref`, `deref`, `deref`, `drop`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `initialize`, `initialize`, `initialize`, `initialize`, `initialize`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `deref`, `deref`, `deref`, `deref`, `deref`, `drop`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `initialize`, `initialize`, `initialize`, `initialize`, `initialize`
 
 Future<BigInt> fileManagerCreate({
   String? initialPath,
@@ -168,6 +168,17 @@ Future<FileManagerActionResult> fileManagerOpenArchive({
 }) => RustLib.instance.api.crateApiFileManagerFileManagerOpenArchive(
   id: id,
   path: path,
+);
+
+/// 按打开时的列表与目录栈查找上下本；不依赖仍在挂载的文件管理器。
+Future<LocalBookNavigationTarget?> localBookAdjacent({
+  required String path,
+  String? navigationJson,
+  required bool forward,
+}) => RustLib.instance.api.crateApiFileManagerLocalBookAdjacent(
+  path: path,
+  navigationJson: navigationJson,
+  forward: forward,
 );
 
 Future<FileManagerSnapshot> fileManagerSetPenetration({
@@ -366,10 +377,18 @@ class FileManagerActionResult {
   /// 非空时表示 UI 应该把该路径交给 Reader；浏览器自身仍停留在原目录。
   final String? openedPath;
 
-  const FileManagerActionResult({required this.snapshot, this.openedPath});
+  /// 核心拥有的上下本游标；UI 只需随阅读目标透传。
+  final String? bookNavigationJson;
+
+  const FileManagerActionResult({
+    required this.snapshot,
+    this.openedPath,
+    this.bookNavigationJson,
+  });
 
   @override
-  int get hashCode => snapshot.hashCode ^ openedPath.hashCode;
+  int get hashCode =>
+      snapshot.hashCode ^ openedPath.hashCode ^ bookNavigationJson.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -377,7 +396,8 @@ class FileManagerActionResult {
       other is FileManagerActionResult &&
           runtimeType == other.runtimeType &&
           snapshot == other.snapshot &&
-          openedPath == other.openedPath;
+          openedPath == other.openedPath &&
+          bookNavigationJson == other.bookNavigationJson;
 }
 
 class FileManagerBreadcrumb {
@@ -923,4 +943,25 @@ enum FileManagerViewMode {
   details,
   coverGrid,
   mosaicGrid,
+}
+
+class LocalBookNavigationTarget {
+  final String path;
+  final String navigationJson;
+
+  const LocalBookNavigationTarget({
+    required this.path,
+    required this.navigationJson,
+  });
+
+  @override
+  int get hashCode => path.hashCode ^ navigationJson.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LocalBookNavigationTarget &&
+          runtimeType == other.runtimeType &&
+          path == other.path &&
+          navigationJson == other.navigationJson;
 }

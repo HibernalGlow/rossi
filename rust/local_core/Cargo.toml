@@ -34,6 +34,19 @@ webp = "0.3"
 fast_image_resize = { version = "5", features = ["image"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# ---- 回收站（`src/file_ops/execute.rs` 的删除侧）----
+# MIT，纯跨平台封装：macOS 走 `NSFileManager` / Finder、Windows 走 `IFileOperation`、
+# Linux 走 Freedesktop 规范。它替代的是 mImageViewer `delete_worker.rs` 里
+# **函数体内那 21 处 Windows API**（顶部 `use` 只有 std，只看文件头会得出相反结论）。
+#
+# 选它而不是自己写 cfg 分支：回收站是唯一不能用 `std::fs` 表达的删除语义，
+# 三个平台的正确实现（macOS 的 `.DS_Store`/`Put Back`、Windows 的 `IFileOperation`
+# 标志位、Freedesktop 的 `.trashinfo` 写出）各有各的坑，重写一遍只会重踩。
+#
+# **注意它的能力边界**：`list` / `restore_all` / `purge_all` 只在 Windows 与
+# Freedesktop 上存在（crate 里 `os_limited` 模块的 cfg）—— **macOS 没有程序化恢复**。
+# 所以「撤销删除」是运行时能力查询，不是常量，见 `execute::TrashBackend::supports_restore`。
+trash = "5"
 # ---- 波形峰值（视频进度条上的那条声音轮廓）----
 # 口径来自 mImageViewer 的 `video/seek_strip_wave.rs`，但**不搬它的机器**：
 # 那份实现 3656 行，绑 `music_core::TimelineAnalysis`、wgpu 波形纹理与 SQLite tile 缓存。

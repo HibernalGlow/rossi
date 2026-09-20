@@ -8,6 +8,7 @@
 
 import 'api/data_backup.dart';
 import 'api/file_manager.dart';
+import 'api/file_ops.dart';
 import 'api/http.dart';
 import 'api/image.dart';
 import 'api/local.dart';
@@ -118,10 +119,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   FetchInit dco_decode_box_autoadd_fetch_init(dynamic raw);
 
   @protected
+  FileOpsClipboardMode dco_decode_box_autoadd_file_ops_clipboard_mode(
+    dynamic raw,
+  );
+
+  @protected
   HttpClientOptions dco_decode_box_autoadd_http_client_options(dynamic raw);
 
   @protected
   ImageInfo dco_decode_box_autoadd_image_info(dynamic raw);
+
+  @protected
+  LocalBookNavigationTarget dco_decode_box_autoadd_local_book_navigation_target(
+    dynamic raw,
+  );
 
   @protected
   LocalDecodeFailure dco_decode_box_autoadd_local_decode_failure(dynamic raw);
@@ -218,6 +229,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   FileManagerViewMode dco_decode_file_manager_view_mode(dynamic raw);
 
   @protected
+  FileOpsClipboardMode dco_decode_file_ops_clipboard_mode(dynamic raw);
+
+  @protected
+  FileOpsItemResult dco_decode_file_ops_item_result(dynamic raw);
+
+  @protected
+  FileOpsItemStatus dco_decode_file_ops_item_status(dynamic raw);
+
+  @protected
+  FileOpsReport dco_decode_file_ops_report(dynamic raw);
+
+  @protected
+  FileOpsSnapshot dco_decode_file_ops_snapshot(dynamic raw);
+
+  @protected
   HttpClientOptions dco_decode_http_client_options(dynamic raw);
 
   @protected
@@ -264,6 +290,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<FileManagerTreeRow> dco_decode_list_file_manager_tree_row(dynamic raw);
 
   @protected
+  List<FileOpsItemResult> dco_decode_list_file_ops_item_result(dynamic raw);
+
+  @protected
   List<LocalFileTreeNode> dco_decode_list_local_file_tree_node(dynamic raw);
 
   @protected
@@ -294,6 +323,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<TaggedAllocation> dco_decode_list_tagged_allocation(dynamic raw);
+
+  @protected
+  LocalBookNavigationTarget dco_decode_local_book_navigation_target(
+    dynamic raw,
+  );
 
   @protected
   LocalDecodeFailure dco_decode_local_decode_failure(dynamic raw);
@@ -361,9 +395,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   FetchInit? dco_decode_opt_box_autoadd_fetch_init(dynamic raw);
 
   @protected
+  FileOpsClipboardMode? dco_decode_opt_box_autoadd_file_ops_clipboard_mode(
+    dynamic raw,
+  );
+
+  @protected
   HttpClientOptions? dco_decode_opt_box_autoadd_http_client_options(
     dynamic raw,
   );
+
+  @protected
+  LocalBookNavigationTarget?
+  dco_decode_opt_box_autoadd_local_book_navigation_target(dynamic raw);
 
   @protected
   LocalDecodeFailure? dco_decode_opt_box_autoadd_local_decode_failure(
@@ -514,12 +557,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   FetchInit sse_decode_box_autoadd_fetch_init(SseDeserializer deserializer);
 
   @protected
+  FileOpsClipboardMode sse_decode_box_autoadd_file_ops_clipboard_mode(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   HttpClientOptions sse_decode_box_autoadd_http_client_options(
     SseDeserializer deserializer,
   );
 
   @protected
   ImageInfo sse_decode_box_autoadd_image_info(SseDeserializer deserializer);
+
+  @protected
+  LocalBookNavigationTarget sse_decode_box_autoadd_local_book_navigation_target(
+    SseDeserializer deserializer,
+  );
 
   @protected
   LocalDecodeFailure sse_decode_box_autoadd_local_decode_failure(
@@ -642,6 +695,27 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  FileOpsClipboardMode sse_decode_file_ops_clipboard_mode(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOpsItemResult sse_decode_file_ops_item_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOpsItemStatus sse_decode_file_ops_item_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOpsReport sse_decode_file_ops_report(SseDeserializer deserializer);
+
+  @protected
+  FileOpsSnapshot sse_decode_file_ops_snapshot(SseDeserializer deserializer);
+
+  @protected
   HttpClientOptions sse_decode_http_client_options(
     SseDeserializer deserializer,
   );
@@ -698,6 +772,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<FileOpsItemResult> sse_decode_list_file_ops_item_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<LocalFileTreeNode> sse_decode_list_local_file_tree_node(
     SseDeserializer deserializer,
   );
@@ -736,6 +815,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<TaggedAllocation> sse_decode_list_tagged_allocation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LocalBookNavigationTarget sse_decode_local_book_navigation_target(
     SseDeserializer deserializer,
   );
 
@@ -831,7 +915,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  FileOpsClipboardMode? sse_decode_opt_box_autoadd_file_ops_clipboard_mode(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   HttpClientOptions? sse_decode_opt_box_autoadd_http_client_options(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LocalBookNavigationTarget?
+  sse_decode_opt_box_autoadd_local_book_navigation_target(
     SseDeserializer deserializer,
   );
 
@@ -1020,6 +1115,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_file_ops_clipboard_mode(
+    FileOpsClipboardMode self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_http_client_options(
     HttpClientOptions self,
     SseSerializer serializer,
@@ -1028,6 +1129,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_image_info(
     ImageInfo self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_local_book_navigation_target(
+    LocalBookNavigationTarget self,
     SseSerializer serializer,
   );
 
@@ -1182,6 +1289,33 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_file_ops_clipboard_mode(
+    FileOpsClipboardMode self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_ops_item_result(
+    FileOpsItemResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_ops_item_status(
+    FileOpsItemStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_ops_report(FileOpsReport self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_file_ops_snapshot(
+    FileOpsSnapshot self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_http_client_options(
     HttpClientOptions self,
     SseSerializer serializer,
@@ -1248,6 +1382,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_file_ops_item_result(
+    List<FileOpsItemResult> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_local_file_tree_node(
     List<LocalFileTreeNode> self,
     SseSerializer serializer,
@@ -1301,6 +1441,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_tagged_allocation(
     List<TaggedAllocation> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_local_book_navigation_target(
+    LocalBookNavigationTarget self,
     SseSerializer serializer,
   );
 
@@ -1422,8 +1568,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_file_ops_clipboard_mode(
+    FileOpsClipboardMode? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_http_client_options(
     HttpClientOptions? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_local_book_navigation_target(
+    LocalBookNavigationTarget? self,
     SseSerializer serializer,
   );
 

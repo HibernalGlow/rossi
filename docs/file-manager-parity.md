@@ -48,7 +48,7 @@
 | Neo 搜索与排序 | 标签条件（`#tag` 语法在 Rust 里能解析，但 Rossi 没有标签库可判）、索引式搜索（M-18）、评分/日期等排序来源、目录专属排序设置 |
 | Neo 穿透 | 内联分支展开、分支数量限制、完整终点类型选择及激活身份跟踪 |
 | Neo 展示 | 封面、横幅、详情、多图/马赛克、缩略图与悬停预览、尺寸/标题换行偏好 |
-| Neo 文件操作 | 多选、键盘操作、剪切/复制/粘贴、移动/重命名/新建/回收站、监听、拖拽、空白区双击返回 |
+| Neo 文件操作 | 键盘操作、目录监听（外部变化自动刷新）、拖拽、空白区双击返回。~~多选、剪切/复制/粘贴、移动/重命名/新建/回收站~~ **已于 2026-09-20 接通，见下节** |
 | Neo 扩展信息 | 标签、评分、EMM、Clipm 等源功能及对应服务适配 |
 | mImageViewer | DFS 相邻目录 UI、书签/历史/标签/评分/智能文件夹/全局搜索入口、系统文件操作与拖放 |
 | mImageViewer 格式 | 实际归档转换/密码/进度/缓存、完整 PDF/音视频打开流程与各平台依赖 |
@@ -96,8 +96,9 @@ Widget 测试使用真实文件卡片、应用同款 Material 根和 FRB 替身�
 | 主页设置页 | `FileManagerSettingRoute`，含开关、路径展示、失效提示、选择目录、清除 | `file_selector` 的 `getDirectoryPath` 在 iOS 不可用，已兜住异常并提示 |
 | 五向导航掌 | `lib/workspace/widgets/cards/file_manager_navigation_pad.dart`：32px 掌形，四片 `ClipPath` 多边形 + 中心圆刷新 | `ClipPath` 同时裁绘制与命中测试，五个方向互不抢事件；中心圆压在四片之上。形态比原来 5 颗独立按钮省 4/5 宽度 |
 
-仍未接通（沿用上一节的「尚未接通的并集项」）：文件树的游标键盘导航、多选、删除模式（回收站/永久）、
-空白区行为、悬停预览、缩略图重载、内容/缩略图/横幅宽度、标签显示、标题换行、EFU。
+仍未接通（沿用上一节的「尚未接通的并集项」）：文件树的游标键盘导航、
+空白区行为、悬停预览、缩略图重载、内容/缩略图/横幅宽度、标签显示、标题换行、EFU、
+目录监听、拖拽。（**多选与删除模式已于 2026-09-20 接通**，见下节。）
 
 2026-09-19 夜本机验证结果：
 
@@ -197,3 +198,47 @@ Widget 测试使用真实文件卡片、应用同款 Material 根和 FRB 替身�
 - 递归搜索的**真实盘表现没有验证**：这台机器没有 Xcode，Flutter UI 跑不起来，
   以上都是单元与 Widget 层结论。深度上限、512 条截断与「无命中时扫到上限才停」
   的耗时感受需要在目标平台上按一个大库实测。
+
+## 2026-09-20：文件操作与多选接通（ADR-0017）
+
+差异核对里那块「**写不出去**」——`local_core` 生产代码一处用户路径写操作都没有——本次补齐。
+上游 `delete_worker.rs` / `cut_clipboard.rs` / `shell_file_ops.rs` **一份都没搬**：
+三份的 `use` 头只有 `std`，函数体内却分别有 21 / 11 / 14 处 Windows API（`IFileOperation`、
+`hwnd: Option<isize>`），按 ADR-0011 的教训，这是 T4（平台等效重写）不是 T1（原文搬）。
+
+| 层 | 落点 | 边界 |
+|---|---|---|
+| 选中模型 | `rust/local_core/src/file_ops/selection.rs` | T3，逐行翻译 neoview `DirectorySelection.ts`。`generation` 直接取文件管理器的 `generation()` —— 选中按**列表下标**表达，下标只在某一份 `entries()` 上有意义。全选态下 `ranges` 的含义与未全选时**相反**（那一段是「被取消的」） |
+| 执行层 | `.../file_ops/execute.rs` | T4。回收站走 `trash` crate 5（MIT，纯 Rust，内部按平台分流）；其余走 `std::fs`。默认冲突策略 `Fail`（撞名 `EEXIST`），另给 `Overwrite` / `KeepBoth`。逐条结果 + `cancelled` + 聚合摘要，**一条失败后其余停下** |
+| 剪贴板 | `.../file_ops/clipboard.rs` | T3，对齐 neoview `FolderClipboard`。两步式：`cut` 粘完清空、`copy` 保留；拒绝「把目录粘进自己的子孙」 |
+| FRB 桥 | `rust/src/api/file_ops.rs` | 会话状态（选中/剪贴板/撤销栈，上限 50）与文件管理器共用同一个 `id`；`file_manager_close` 与 `file_ops_close` 成对调用 |
+| 纯规格 | `lib/workspace/model/file_manager_entry_menu_spec.dart` | **零 import** 的纯 Dart：菜单有哪些项、哪一项置灰、要不要二次确认、点一下算哪种手势。判据 `dart run test/workspace/file_manager_entry_menu_check.dart`（**145 条**） |
+| 交互 | `lib/workspace/widgets/cards/file_manager_entry_context_menu.dart` | MD3：`MenuAnchor` + `MenuItemButton` + `md3MenuStyle()`（`surfaceContainer` / 2dp / 4dp 圆角 / 纵向 8dp）。仓里既有的 `shelf_entry_context_menu.dart` 仍是 M2 的 `showMenu`，**没动** |
+| 问与说 | `lib/workspace/method/file_manager_actions.dart` | 对话框（重命名 / 新建 / 不可撤销删除的确认）、系统剪贴板、提示条文案 |
+| 总开关 | `fileManagerSetting.fileOperations`（默认开） | 关掉后没有右键菜单、没有多选、没有操作条。两个入口：卡片「更多」菜单 + 设置页「文件操作」节 |
+
+三条刻意的决定（细节与理由见 ADR-0017）：
+
+1. **确认策略是两个布尔**（`destructive` 要确认 / `dangerous` 上色），与
+   `flutter-list-entry-context-menu` 技能的唯一偏离。回收站的保护是**撤销通道**不是确认框，
+   并成一个布尔就会要么每次删都弹框、要么永久删除少了确认。
+2. **`paste` / `createFolder` 的落点是被右键的那个目录**，所以两处桥各加了一个可选落点参数。
+   原先只认「当前目录」——照原样接起来就是菜单在说谎。
+3. **打开了「写」这一层，但没做 crash-safe**：批量中途崩溃会停在半路（撤销日志随进程丢失）。
+   G-03（`book_fs_journal.rs` 的 forward/rollback 自证）仍是独立候选，
+   **不能因为 G-30 落地就把它划掉**。
+
+本机验证结果：
+
+- `cargo test -p rossi_local_core`：**422 项通过**（改动前的基线是 379，新增 43 项：
+  选中 17、执行 23、剪贴板 8，含一条**真的往系统回收站删了一次**再自己收尾的判据）。
+- `cargo check -p rossi_local_core -p windcore`：0 error、0 warning。
+- `dart analyze lib/`：无问题。
+- 菜单规格判据：`file_manager_entry_menu_check: 145 checks passed`。
+- `flutter pub run build_runner build` / `flutter pub run slang` 均已重跑，生成物与源码同快照。
+- **没有在真机上点过**：这台机器的 Flutter UI 跑不起来（沙箱里 `dart`/`flutter` 不在 PATH，
+  且 macOS 侧构建要 Xcode）。菜单观感、右键时序、多选手感都还没有人眼确认，
+  要按 ADR-0017 的判据在目标平台上过一遍。
+- `flutter test test/workspace/file_manager_card_test.dart` **本次没跑**：
+  `dart run` / `flutter test` 会先触发 native asset hook 去编 windcore（几分钟），
+  而该测试文件里本来就有 3 项 FileTree 判据是红的（见上一节）。

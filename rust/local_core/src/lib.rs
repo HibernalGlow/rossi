@@ -37,11 +37,13 @@
 //! 预取的**执行**（谁来解、解完存哪、淘汰谁）仍然在 Reader 层 —— 那是「谁拥有 `pixels`」
 //! 的问题，不是判决问题。判据 D 的依据不变。
 
+pub mod book_navigation;
 pub mod catalog;
 pub mod decode;
 pub mod entry_name;
 pub mod fast_resize;
 pub mod file_manager;
+pub mod file_ops;
 pub mod file_tree;
 pub mod folder_source;
 // The file browser reuses the original mImageViewer Rust sources directly.  These
@@ -210,7 +212,10 @@ impl fmt::Display for UnsupportedSource {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::UnknownFormat(ext) => {
-                write!(f, "只支持图片 / 视频文件、文件夹及 CBZ / CBR，不支持 .{ext}")
+                write!(
+                    f,
+                    "只支持图片 / 视频文件、文件夹及 CBZ / CBR，不支持 .{ext}"
+                )
             }
             Self::RarSolid => write!(f, "这是固实（solid）压缩的 RAR，v0.1 不支持直读"),
             Self::RarNestedArchive => write!(f, "归档里含嵌套归档，v0.1 不展开"),

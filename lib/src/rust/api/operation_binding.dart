@@ -22,6 +22,32 @@ String? operationBindingResolve({
   contexts: contexts,
 );
 
+/// 返回完整的命中绑定，供外壳执行动作序列及处理重复 / 长按。
+/// 原始行随结果返回，保留 durationMs 等平台采集参数和扩展字段。
+String? operationBindingResolveBinding({
+  required String bindingsJson,
+  required String inputJson,
+  required List<String> contexts,
+}) =>
+    RustLib.instance.api.crateApiOperationBindingOperationBindingResolveBinding(
+      bindingsJson: bindingsJson,
+      inputJson: inputJson,
+      contexts: contexts,
+    );
+
+/// 采集端的局部落点 → 九宫格；分区几何仍由核心唯一实现。
+String? operationBindingAreaAtPoint({
+  required double x,
+  required double y,
+  required double width,
+  required double height,
+}) => RustLib.instance.api.crateApiOperationBindingOperationBindingAreaAtPoint(
+  x: x,
+  y: y,
+  width: width,
+  height: height,
+);
+
 /// 把一条翻页动作解释成翻页语义：`"next"` / `"previous"`；不是翻页动作返回 `None`。
 ///
 /// 这是**阅读方向唯一生效的地方**：`reader.page-right` 在右开（readMode≠2）下是
@@ -45,7 +71,7 @@ String operationBindingConflicts({required String bindingsJson}) =>
       bindingsJson: bindingsJson,
     );
 
-/// 出厂预设：九宫格点击绑定表（`right-hand` / `left-hand`），JSON 数组。
+/// 兼容旧版：九宫格点击绑定表（`right-hand` / `left-hand`），JSON 数组。
 ///
 /// 预设绑的是**空间动作**（`reader.page-right` / `reader.page-left`），
 /// 阅读方向在 [`operation_binding_resolve_page_turn`] 里解释 —— 方向换挡
@@ -55,9 +81,20 @@ String operationBindingTapPreset({required String preset}) => RustLib
     .api
     .crateApiOperationBindingOperationBindingTapPreset(preset: preset);
 
-/// 出厂预设：键盘绑定表（左右方向键绑空间动作、空格绑语义前进），JSON 数组。
+/// 兼容旧版：键盘绑定表（用于识别和迁移旧默认值），JSON 数组。
 String operationBindingKeyPreset() =>
     RustLib.instance.api.crateApiOperationBindingOperationBindingKeyPreset();
+
+/// Neo 默认九宫格、滚轮、键盘、鼠标绑定，以及本仓默认轮盘槽位。
+String operationBindingFactoryPreset() => RustLib.instance.api
+    .crateApiOperationBindingOperationBindingFactoryPreset();
+
+/// 未改动的旧默认输入表升级到 Neo 默认值；自定义配置返回 None，轮盘行原样保留。
+String? operationBindingUpgradeDefaults({required String bindingsJson}) =>
+    RustLib.instance.api
+        .crateApiOperationBindingOperationBindingUpgradeDefaults(
+          bindingsJson: bindingsJson,
+        );
 
 /// 动作注册表（`id` / `label` / `category` / `categoryLabel` / `implemented`），JSON 数组。
 ///

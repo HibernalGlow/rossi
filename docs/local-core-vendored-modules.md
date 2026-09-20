@@ -54,6 +54,21 @@
 按「保住上游名字」的原则一并搬入，为将来的索引留接口；`pub` 项不会触发 `dead_code`。
 
 七份浏览器源码的 pin 均为 `1fd6f863`，也已纳入 `sync_vendored_modules.py`。
+
+### 2.1 `file_ops`：**刻意不登记 PORTS** 的一块（ADR-0017）
+
+| 本地 | 上游 | 为什么不在 PORTS 里 |
+|---|---|---|
+| `rust/local_core/src/file_ops/{selection,execute,clipboard}.rs` | `delete_worker.rs` / `cut_clipboard.rs` / `shell_file_ops.rs`（**一份都没搬**） | `PORTS` 的语义是「本地这份 = 上游那份的改写，逐行可比」。这三份上游文件**一行都不能搬**（函数体内 21 / 11 / 14 处 Windows API），本地三份是 **T4 平台等效重写**：写进 `PORTS` 只会得到一份毫无意义的 diff，并把「上游改这三个文件」误报成需要人处理的偏离 |
+
+`file_ops` 的**形状**参考上游（`FileMutation` / `FileOperationResult` 的字段划分）、
+**契约**参考 neoview（`packages/file-operations/src/types.ts`、`DirectorySelection.ts`），
+但代码是本地写的。因此：
+
+- 上游改 `delete_worker.rs` 等三份时，`sync_vendored_modules.py` **不会**报警 —— 这是对的，
+  因为它没有可以「同步」的东西；
+- 反过来，**这三份仍然留在 `vendor/` 里**作为形状参考，别因为「已落地」就把它们删掉。
+
 其中 `filename_sort` 只有公开可见性与来源注释差异；另外三份的平台适配见下文。
 
 这四份源码仍以 mImageViewer 的函数名和测试为准。`activity_gate`、`settings`、

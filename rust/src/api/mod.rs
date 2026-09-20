@@ -1,5 +1,6 @@
 pub mod data_backup;
 pub mod file_manager;
+pub mod file_ops;
 pub mod http;
 pub mod image;
 pub mod local;
