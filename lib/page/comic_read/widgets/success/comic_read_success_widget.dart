@@ -22,6 +22,7 @@ class ComicReadSuccessWidget extends StatefulWidget {
   final int chapterOrder;
   final WidgetBuilder buildInteractiveViewer;
   final WidgetBuilder buildPageCount;
+  final WidgetBuilder buildProgressBar;
   final WidgetBuilder buildAppBar;
   final WidgetBuilder buildBottom;
   final WidgetBuilder buildAutoReadControl;
@@ -41,6 +42,7 @@ class ComicReadSuccessWidget extends StatefulWidget {
     required this.chapterOrder,
     required this.buildInteractiveViewer,
     required this.buildPageCount,
+    required this.buildProgressBar,
     required this.buildAppBar,
     required this.buildBottom,
     required this.buildAutoReadControl,
@@ -175,6 +177,7 @@ class _ComicReadSuccessWidgetState extends State<ComicReadSuccessWidget> {
                               controller: _hoverController!,
                             ),
                           ),
+                          widget.buildProgressBar(innerContext),
                           widget.buildPageCount(innerContext),
                           widget.buildAppBar(innerContext),
                           widget.buildBottom(innerContext),

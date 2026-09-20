@@ -10,5 +10,6 @@ export 'package:zephyr/page/comic_read/widgets/modes/column_mode.dart';
 export 'package:zephyr/page/comic_read/widgets/modes/row_mode.dart';
 export 'package:zephyr/page/comic_read/widgets/navigation/vertical_pull_navigator.dart';
 export 'package:zephyr/page/comic_read/widgets/overlay/page_count.dart';
+export 'package:zephyr/page/comic_read/widgets/overlay/reader_progress_bar.dart';
 export 'package:zephyr/page/comic_read/widgets/settings/reader_settings_sheet.dart';
 export 'package:zephyr/page/comic_read/widgets/success/success.dart';
