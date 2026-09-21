@@ -35,6 +35,25 @@ class DiscoverPlatView extends StatelessWidget {
   /// 横向档一条标签最多占多宽。超出的字走省略号，全名在 tooltip 里。
   static const double _chipMaxWidth = 180;
 
+  /// 竖向轨的厚度（= 一条标签可用的全部宽度）。
+  ///
+  /// 不能贪宽：这一档是**从内容区里扣出来的**。发现页住在泳道里时整页常常只有
+  /// 320~500 宽，轨给到 152 之后剩下的宽度连标签内容自己的工具栏都摆不下
+  /// （实测 `SearchPage` 那条搜索栏要 ~160，被压到 152 就报 RenderFlex overflowed，
+  /// 而布局异常会跳过 MouseTracker 的复位标志 → 每帧刷断言直到卡死）。
+  static const double _railThickness = 120;
+
+  /// 竖排一条标签里**不是标签名**的那部分：前导图标 + 两道间距 + 关闭钮 + 标签内边距。
+  static const double _railChromeWidth = 72;
+
+  /// 竖排标签名的上限。
+  ///
+  /// 必须自己算：竖排时 `PlatTabStrip` 给每条标签的是**无界**宽度，
+  /// `PlatTabChip` 于是 `mainAxisSize.min` 按内容取宽 —— 标签名一长就把整条轨撑破
+  /// （实测溢出 8px，报 RenderFlex overflowed，而布局异常会把 MouseTracker 的
+  /// 复位标志跳过去，表现就是每帧刷断言直到界面卡死）。
+  static const double _railLabelMaxWidth = _railThickness - _railChromeWidth;
+
   bool get _vertical => tabs.vertical;
 
   @override
@@ -43,7 +62,7 @@ class DiscoverPlatView extends StatelessWidget {
       data: PlatThemeData(
         tabBar: PlatTabBarTheme(
           // 竖向轨要窄：它是列表的边，不该吃掉内容的三分之一。
-          size: _vertical ? 152 : 40,
+          size: _vertical ? _railThickness : 40,
           fit: TabStripFit.scrollable,
           spacing: 2,
         ),
@@ -120,12 +139,12 @@ class DiscoverPlatView extends StatelessWidget {
         // tooltip 用**全名**：标签上截的是缩写，窄轨上那截字到底属于哪个插件，
         // 得有个地方能看全。
         message: joinTabLabel(shortName: leaf.pluginName, label: leaf.label),
-        child: _vertical
-            ? text
-            : ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: _chipMaxWidth),
-                child: text,
-              ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: _vertical ? _railLabelMaxWidth : _chipMaxWidth,
+          ),
+          child: text,
+        ),
       ),
       // 首页那条是 locked 的，plat 自己会把关闭按钮藏掉。
       trailing: const PlatTabCloseButton(),
