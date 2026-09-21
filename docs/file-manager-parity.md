@@ -94,7 +94,8 @@ Widget 测试使用真实文件卡片、应用同款 Material 根和 FRB 替身�
 | 主页持久化 | 全局设置新增 `FileManagerSettingState{homeEnabled, homePath}`（ObjectBox）；`file_manager_create` 新增 `home_path` 形参 + `seed_home_path` 注入收口 | 失效路径（目录被删 / 移动盘没插）由核心的 `set_home_path` 拒绝并静默忽略；UI 用「持久化非空但 `snapshot.homePath` 为空」判定失效 |
 | 主页入口 | 单击（未设过＝把当前目录设为主页）/ 长按 / 右键菜单（回到主页、设为主页、清除主页） | 落盘的是**核心接受后**的路径，不是用户点的那一下 |
 | 主页设置页 | `FileManagerSettingRoute`，含开关、路径展示、失效提示、选择目录、清除 | `file_selector` 的 `getDirectoryPath` 在 iOS 不可用，已兜住异常并提示 |
-| 五向导航掌 | `lib/workspace/widgets/cards/file_manager_navigation_pad.dart`：32px 掌形，四片 `ClipPath` 多边形 + 中心圆刷新 | `ClipPath` 同时裁绘制与命中测试，五个方向互不抢事件；中心圆压在四片之上。形态比原来 5 颗独立按钮省 4/5 宽度 |
+| 导航（五向） | `file_manager_toolbar.dart` 的 `FileManagerNavigation` 按卡片宽度二选一：≥550 摊开成后退/前进/上一级/主页/刷新五颗标准键，否则收成 `file_manager_navigation_pad.dart` 的 40px 掌形（四片 `ClipPath` 多边形 + 中心圆刷新） | `ClipPath` 同时裁绘制与命中测试，五个方向互不抢事件；中心圆压在四片之上。两种画法共用同一批动作与同一份 tooltip 文案，主页那颗的长按/右键菜单在两种形态下都可达 |
+| 工具栏 MD3 口径 | 整行只有 `FileManagerToolbarMetrics` 一份几何：图标钮 40 见方、图标 20、组内间距 4、组间一条 `outlineVariant` 竖线；选中态 `secondaryContainer`，禁用 `onSurfaceVariant` 38% | 三颗菜单触发键（视图/排序/更多）走 `FluentPopupMenuButton.style` 传进去的同一份 `ButtonStyle`，不再各自写 `size: 18` + `visualDensity: compact` |
 
 仍未接通（沿用上一节的「尚未接通的并集项」）：文件树的游标键盘导航、
 空白区行为、悬停预览、缩略图重载、内容/缩略图/横幅宽度、标签显示、标题换行、EFU、

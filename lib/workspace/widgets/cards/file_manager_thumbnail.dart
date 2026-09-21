@@ -181,7 +181,7 @@ class _FileManagerThumbnailWidgetState
 
   Color _entryColor(BuildContext context, FileManagerEntry entry) {
     final colors = Theme.of(context).colorScheme;
-    if (entry.isDir) return colors.tertiary;
+    if (entry.isDir) return colors.primary;
     if (entry.isArchive) return colors.primary;
     if (entry.isImage) return colors.secondary;
     if (entry.isVideo || entry.isAudio) return colors.secondary;

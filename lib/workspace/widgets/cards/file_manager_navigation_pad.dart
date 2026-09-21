@@ -1,14 +1,19 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/workspace/widgets/cards/file_manager_toolbar.dart';
 
-/// 文件管理器的五向导航掌（对齐 NeoView 的 `FolderNavigationPad`）。
+/// 文件管理器的五向导航掌（**窄卡片上的收起形态**，对齐 NeoView 的 `FolderNavigationPad`）。
 ///
-/// 形状是一个 32×32 的圆角方块，内部按五个**多边形热区**切分：
-/// 左＝后退、右＝前进、上＝上一级、下＝主页、中心圆＝刷新。
+/// 宽卡片不画它 —— 宽度够的时候摊开成五颗标准图标钮，见 `file_manager_toolbar.dart`
+/// 的 [FileManagerNavigation]，两者按
+/// [FileManagerToolbarMetrics.expandedNavigationMinWidth] 二选一。
+///
+/// 形状是一个 40×40 的圆角方块（与摊开形态同一条高度带），内部按五个**多边形热区**
+/// 切分：左＝后退、右＝前进、上＝上一级、下＝主页、中心圆＝刷新。
 /// 热区和可见装饰是两套东西 —— 角落的箭头 / 底部的横杠 / 中心的圆点
 /// 只是「这里可以点」的提示，真正吃事件的是被 `ClipPath` 裁过的透明按钮。
 ///
-/// 为什么用多边形而不是五个方块按钮：
-/// 1. 五个方块按钮在窄卡片上要占 5 个 32px 的宽度，掌形只占 1 个；
+/// 为什么窄卡片用多边形而不是五颗方块按钮：
+/// 1. 五颗标准键要占 5 个 40px 的宽度，掌形只占 1 个；
 /// 2. 中心键被四边包住，手指落点自然收敛到中心，不容易误触。
 ///
 /// 主页键（下区）在 NeoToolbar 里是「单击回主页、右键设为主页」，
@@ -64,22 +69,26 @@ class FileManagerNavigationPad extends StatelessWidget {
   final VoidCallback onHomeMenu;
   final VoidCallback onRefresh;
 
-  static const double _size = 32;
+  /// 与工具栏其余控件同一个高度带（40 见方），否则一行里会并排两种边长。
+  static const double _size = FileManagerToolbarMetrics.buttonSize;
+  static const double _radius = 12;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final idle = scheme.onSurfaceVariant;
+    final disabled = idle.withValues(alpha: 0.38);
 
     return SizedBox(
       width: _size,
       height: _size,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: scheme.outlineVariant, width: 0.5),
+          // MD3 的容器角色本就是给「一层叠一层」用的，取实色：不再自己调一档透明度，
+          // 也不描 0.5 的头发丝边 —— 那一圈在深色主题下比控件本身还显眼。
+          color: scheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(_radius),
         ),
         child: Stack(
           children: [
@@ -126,17 +135,15 @@ class FileManagerNavigationPad extends StatelessWidget {
               child: Tooltip(
                 message: '刷新',
                 child: Material(
-                  color: scheme.surface,
-                  shape: CircleBorder(
-                    side: BorderSide(width: 0.5, color: scheme.outlineVariant),
-                  ),
+                  color: scheme.surfaceContainerHighest,
+                  shape: const CircleBorder(),
                   child: InkWell(
                     customBorder: const CircleBorder(),
                     onTap: busy ? null : onRefresh,
                     child: const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: Icon(Icons.refresh_rounded, size: 9),
+                      width: 18,
+                      height: 18,
+                      child: Icon(Icons.refresh_rounded, size: 11),
                     ),
                   ),
                 ),
@@ -148,49 +155,43 @@ class FileManagerNavigationPad extends StatelessWidget {
                 children: [
                   _hint(
                     alignment: Alignment.centerLeft,
-                    inset: 2,
+                    inset: 3,
                     child: Icon(
                       Icons.chevron_left_rounded,
-                      size: 8,
-                      color: canGoBack && !busy
-                          ? idle
-                          : idle.withValues(alpha: 0.25),
+                      size: 10,
+                      color: canGoBack && !busy ? idle : disabled,
                     ),
                   ),
                   _hint(
                     alignment: Alignment.centerRight,
-                    inset: 2,
+                    inset: 3,
                     child: Icon(
                       Icons.chevron_right_rounded,
-                      size: 8,
-                      color: canGoForward && !busy
-                          ? idle
-                          : idle.withValues(alpha: 0.25),
+                      size: 10,
+                      color: canGoForward && !busy ? idle : disabled,
                     ),
                   ),
                   _hint(
                     alignment: Alignment.topCenter,
-                    inset: 2,
+                    inset: 3,
                     child: Icon(
                       Icons.expand_less_rounded,
-                      size: 8,
-                      color: canGoUp && !busy
-                          ? idle
-                          : idle.withValues(alpha: 0.25),
+                      size: 10,
+                      color: canGoUp && !busy ? idle : disabled,
                     ),
                   ),
-                  // 底部横杠 = 主页。已站在主页上时用反色，表示「你就是这一档」。
+                  // 底部横杠 = 主页。已站在主页上时用选中态的前景，表示「你就是这一档」。
                   if (homeEnabled)
                     _hint(
                       alignment: Alignment.bottomCenter,
-                      inset: 4,
+                      inset: 5,
                       child: Container(
-                        width: 8,
+                        width: 10,
                         height: 2,
                         decoration: BoxDecoration(
                           color: atHome
-                              ? scheme.onPrimary
-                              : idle.withValues(alpha: busy ? 0.25 : 1),
+                              ? scheme.onSecondaryContainer
+                              : idle.withValues(alpha: busy ? 0.38 : 1),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -222,8 +223,9 @@ class FileManagerNavigationPad extends StatelessWidget {
       child: ClipPath(
         clipper: _PolygonClipper(points),
         child: Material(
+          // MD3 的图标开关选中态：secondaryContainer 实色，不拿 primary 当装饰。
           color: active
-              ? Theme.of(context).colorScheme.primary
+              ? Theme.of(context).colorScheme.secondaryContainer
               : Colors.transparent,
           child: Tooltip(
             message: tooltip,

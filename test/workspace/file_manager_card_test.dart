@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -740,6 +741,102 @@ void main() {
 
     await _tapHomeRegion(tester);
     expect(api.callsTo(#crateApiFileManagerFileManagerGoHome), hasLength(1));
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('卡片够宽时导航摊开成五颗标准键，掌形不画', (tester) async {
+    api.snapshot = _snapshot(
+      canGoBack: true,
+      canGoForward: true,
+      homePath: '/home',
+    );
+    await _pumpCard(tester, width: 700);
+
+    expect(find.byType(FileManagerNavigationPad), findsNothing);
+    // 动作与掌形一一对应，tooltip 文案也是同一份 —— 换画法不换语义。
+    for (final tip in ['后退', '前进', '上一级', '刷新']) {
+      expect(find.byTooltip(tip), findsOneWidget, reason: tip);
+    }
+    expect(_homeRegion(), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('摊开形态各自派发对应动作，主页那颗右键也弹菜单', (tester) async {
+    api.snapshot = _snapshot(
+      canGoBack: true,
+      canGoForward: true,
+      homePath: '/home',
+    );
+    await _pumpCard(tester, width: 700);
+
+    await tester.tap(find.byTooltip('后退'));
+    await tester.pumpAndSettle();
+    expect(api.callsTo(#crateApiFileManagerFileManagerGoBack), hasLength(1));
+
+    await tester.tap(find.byTooltip('前进'));
+    await tester.pumpAndSettle();
+    expect(api.callsTo(#crateApiFileManagerFileManagerGoForward), hasLength(1));
+
+    await tester.tap(find.byTooltip('上一级'));
+    await tester.pumpAndSettle();
+    expect(api.callsTo(#crateApiFileManagerFileManagerGoUp), hasLength(1));
+
+    await tester.tap(find.byTooltip('刷新'));
+    await tester.pumpAndSettle();
+    expect(api.callsTo(#crateApiFileManagerFileManagerRefresh), hasLength(1));
+    expect(api.callsTo(#crateApiFileManagerFileManagerGoHome), isEmpty);
+
+    await _tapHomeRegion(tester);
+    expect(api.callsTo(#crateApiFileManagerFileManagerGoHome), hasLength(1));
+
+    // 右键入口挂在按钮外层：桌面端不必先长按。
+    await tester.tapAt(_homeRegionPoint(tester), buttons: kSecondaryButton);
+    await tester.pumpAndSettle();
+    expect(find.text('回到主页'), findsOneWidget);
+    expect(find.text('把当前目录设为主页'), findsOneWidget);
+    expect(find.text('清除主页'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('工具栏整行只有一个几何档：图标钮 40 见方', (tester) async {
+    api.snapshot = _snapshot(
+      canGoBack: true,
+      canGoForward: true,
+      homePath: '/home',
+    );
+    await _pumpCard(tester, width: 700);
+
+    // 40 是 MD3 图标按钮的规范边长；写死数字而不是引常量，否则改坏常量测不出来。
+    const md3Button = Size(40, 40);
+    for (final tip in [
+      '后退',
+      '刷新',
+      '视图模式：封面列表',
+      '排序：名称',
+      '搜索（空格分词，-排除）',
+      '文件树',
+      '关闭穿透模式',
+      '更多',
+    ]) {
+      expect(tester.getRect(find.byTooltip(tip)).size, md3Button, reason: tip);
+    }
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('收起形态的掌与摊开时同高，整行只有一个高度带', (tester) async {
+    api.snapshot = _snapshot(
+      canGoBack: true,
+      canGoForward: true,
+      homePath: '/home',
+    );
+    await _pumpCard(tester, width: 340);
+
+    expect(find.byType(FileManagerNavigationPad), findsOneWidget);
+    expect(
+      tester.getRect(find.byType(FileManagerNavigationPad)).size,
+      const Size(40, 40),
+    );
+    expect(tester.getRect(find.byTooltip('更多')).size, const Size(40, 40));
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

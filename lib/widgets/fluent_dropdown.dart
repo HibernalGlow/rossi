@@ -88,6 +88,7 @@ class FluentPopupMenuButton<T> extends StatefulWidget {
     this.tooltip,
     this.enabled = true,
     this.visualDensity,
+    this.style,
   });
 
   /// Called to build the list of menu items when the menu is opened.
@@ -113,6 +114,11 @@ class FluentPopupMenuButton<T> extends StatefulWidget {
   /// 触发键的密度。工具栏里别的键是 `VisualDensity.compact` 时传同一个值，
   /// 否则默认 48 的按钮会把整行顶高。
   final VisualDensity? visualDensity;
+
+  /// 触发键的样式。它和同一行里的 `IconButton` 共用一份 MD3 度量时传进去
+  /// （见 `workspace/widgets/cards/file_manager_toolbar.dart` 的
+  /// `FileManagerToolbarIconButton.style`），否则这一颗会退回 48 的缺省档。
+  final ButtonStyle? style;
 
   @override
   State<FluentPopupMenuButton<T>> createState() =>
@@ -227,6 +233,7 @@ class _FluentPopupMenuButtonState<T> extends State<FluentPopupMenuButton<T>>
       icon: widget.icon ?? const Icon(Icons.more_vert),
       tooltip: widget.tooltip,
       visualDensity: widget.visualDensity,
+      style: widget.style,
       onPressed: widget.enabled ? toggleMenu : null,
     );
   }
