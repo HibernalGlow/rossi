@@ -189,7 +189,8 @@ void main() {
     final reader = key.currentState!;
     expect(reader.pages.page, 3.0);
 
-    // 触控板双指滑动向下 (panDelta.dy = 30 > 24 步进阈值)
+    // 触控板双指滑动向下 (panDelta.dy = 30 > 24 步进阈值)。
+    // 出厂滚轮行是语义族：下滚 = 下一页，不随左右开翻转（见 `neo_defaults.json` 那条例外）。
     await tester.sendEventToBinding(
       const PointerPanZoomStartEvent(
         position: Offset(300, 300),
@@ -206,7 +207,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(reader.pages.page, 2.0);
+    expect(reader.pages.page, 4.0);
 
     // 触控板双指滑动向上 (panDelta.dy = -30)
     await tester.sendEventToBinding(

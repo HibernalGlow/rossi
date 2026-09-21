@@ -38,7 +38,8 @@ abstract final class OperationBindingStore {
     ReaderTapPageTurnMode.fullScreen => 'right-hand',
   };
 
-  /// 首次启动播种；完整未修改的旧出厂输入表自动升级，自定义输入表保留。
+  /// 首次启动播种；完整未修改的旧出厂输入表自动升级。自定义表里**只有还留着旧口径的
+  /// 出厂滚轮行**会被换成语义动作（判据与 id 全在 Rust `factory.rs`），其余自定义行保留。
   ///
   /// 在 `RustLib.init()` 之后调用（`GlobalSettingCubit.initBox`），因为出厂预设由
   /// Rust 侧生成 —— 「默认值是数据，不是 Dart 里的 if」（ADR-0015）。
@@ -76,11 +77,14 @@ abstract final class OperationBindingStore {
         (row) => (row['input'] as Map)['device'] == InputDevice.wheel,
       )) {
         final factoryRows = _decodeArray(operationBindingFactoryPreset());
-        final wheelRows = factoryRows.where(
-          (row) => (row['input'] as Map)['device'] == InputDevice.wheel,
-        );
-        rows.addAll(wheelRows);
-        nextBindings = encodeBindingsDoc(rows);
+        final wheelRows = factoryRows
+            .where((row) => (row['input'] as Map)['device'] == InputDevice.wheel)
+            .toList();
+        // 出厂表里没有滚轮行时不落这一笔 —— 重写一遍同样的 JSON 只是白脏一次配置。
+        if (wheelRows.isNotEmpty) {
+          rows.addAll(wheelRows);
+          nextBindings = encodeBindingsDoc(rows);
+        }
       }
     }
     if (nextBindings == null && !needsRadial) return;

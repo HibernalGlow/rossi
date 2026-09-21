@@ -117,11 +117,12 @@ pub fn operation_binding_factory_preset() -> String {
     serde_json::to_string(&engine::factory::bindings()).expect("默认绑定必须能序列化")
 }
 
-/// 未改动的旧默认输入表升级到 Neo 默认值；自定义配置返回 None，轮盘行原样保留。
+/// 未改动的旧默认输入表升级到 Neo 默认值；自定义配置里**只有还留着旧口径的出厂滚轮行**
+/// 会被换成语义动作（下滚=下一页），其余原样保留，轮盘行不动。没有可演进项时返回 None。
 #[frb(sync)]
 pub fn operation_binding_upgrade_defaults(bindings_json: String) -> Option<String> {
     let rows: Vec<serde_json::Value> = serde_json::from_str(&bindings_json).ok()?;
-    engine::factory::upgrade_legacy_defaults(&rows)
+    engine::factory::upgrade_defaults(&rows)
         .and_then(|upgraded| serde_json::to_string(&upgraded).ok())
 }
 
