@@ -402,7 +402,7 @@ return $default(_that.dynamicColor,_that.themeMode,_that.isAMOLED,_that.seedColo
 @JsonSerializable()
 
 class _GlobalSettingState implements GlobalSettingState {
-  const _GlobalSettingState({this.dynamicColor = true, this.themeMode = ThemeMode.system, this.isAMOLED = true, @ColorConverter() this.seedColor = const Color(0xFFEF5350), this.tweakcnThemeJson = '', this.tweakcnThemeEnabled = false, this.themeInitState = 0, @LocaleConverter() this.locale = const Locale('zh', 'CN'), this.localeFollowsSystem = true, this.welcomePageNum = 0, this.syncSetting = const SyncSettingState(),  List<String> maskedKeywords = const [], this.socks5ProxyEnabled = true, this.socks5Proxy = '', this.needCleanCache = false, this.comicChoice = 1, this.disableBika = false, this.enableMemoryDebug = false, this.blockRustHttpRequests = false, this.logAddress = '', this.showLayoutOverflowStripes = true, this.forceEnableImpeller = false, this.androidKeepAliveEnabled = false, this.backPressExitEnabled = false, this.updateAccelerate = true, this.retryDownloadUntilSuccess = true, this.downloadConcurrency = 3, this.downloadDelayMs = 150, this.downloadAutoRetryCount = 3, this.oldPageRollbackEnabled = false, this.cloudFavoritePreferred = false, this.autoFollowOnCollect = false, this.autoFavoriteOnDownload = false, this.writeDownloadMetadataFile = false, this.leftHandModeEnabled = false, this.clickCoverToStartReading = false, this.comicInfoInlineReadButton = true, this.comicInfoRailLiquidGlass = true, this.startWithWorkspace = false, this.transparentDesktopTitleBar = false, this.transparentTitleBarFused = false,  List<String> searchHistory = const [], this.proxySetting = const ProxySettingState(), this.windowWidth = 1280.0, this.windowHeight = 720.0, this.windowX = 0, this.windowY = 0, this.readSetting = const ReadSettingState(), this.customExportPath = '', this.appLockSetting = const AppLockSettingState(), this.compatibleVersion = "", this.cacheSetting = const CacheSettingState(), this.chineseConvertMode = ChineseConvertMode.off, this.bookshelfSetting = const BookshelfSettingState(), this.favoriteArtistSetting = const FavoriteArtistSettingState(), this.favoriteTagSetting = const FavoriteTagSettingState(), this.comicCardSetting = const ComicCardSettingState(), this.toastSetting = const ToastSettingState(), this.switchToastSetting = const SwitchToastSettingState(), this.fileManagerSetting = const FileManagerSettingState(), this.discoverSetting = const DiscoverSettingState(), this.operationBindingSetting = const OperationBindingSettingState()}): _maskedKeywords = maskedKeywords,_searchHistory = searchHistory;
+  const _GlobalSettingState({this.dynamicColor = true, this.themeMode = ThemeMode.system, this.isAMOLED = true, @ColorConverter() this.seedColor = const Color(0xFF9C4B5E), this.tweakcnThemeJson = '', this.tweakcnThemeEnabled = false, this.themeInitState = 0, @LocaleConverter() this.locale = const Locale('zh', 'CN'), this.localeFollowsSystem = true, this.welcomePageNum = 0, this.syncSetting = const SyncSettingState(),  List<String> maskedKeywords = const [], this.socks5ProxyEnabled = true, this.socks5Proxy = '', this.needCleanCache = false, this.comicChoice = 1, this.disableBika = false, this.enableMemoryDebug = false, this.blockRustHttpRequests = false, this.logAddress = '', this.showLayoutOverflowStripes = true, this.forceEnableImpeller = false, this.androidKeepAliveEnabled = false, this.backPressExitEnabled = false, this.updateAccelerate = true, this.retryDownloadUntilSuccess = true, this.downloadConcurrency = 3, this.downloadDelayMs = 150, this.downloadAutoRetryCount = 3, this.oldPageRollbackEnabled = false, this.cloudFavoritePreferred = false, this.autoFollowOnCollect = false, this.autoFavoriteOnDownload = false, this.writeDownloadMetadataFile = false, this.leftHandModeEnabled = false, this.clickCoverToStartReading = false, this.comicInfoInlineReadButton = true, this.comicInfoRailLiquidGlass = true, this.startWithWorkspace = false, this.transparentDesktopTitleBar = false, this.transparentTitleBarFused = false,  List<String> searchHistory = const [], this.proxySetting = const ProxySettingState(), this.windowWidth = 1280.0, this.windowHeight = 720.0, this.windowX = 0, this.windowY = 0, this.readSetting = const ReadSettingState(), this.customExportPath = '', this.appLockSetting = const AppLockSettingState(), this.compatibleVersion = "", this.cacheSetting = const CacheSettingState(), this.chineseConvertMode = ChineseConvertMode.off, this.bookshelfSetting = const BookshelfSettingState(), this.favoriteArtistSetting = const FavoriteArtistSettingState(), this.favoriteTagSetting = const FavoriteTagSettingState(), this.comicCardSetting = const ComicCardSettingState(), this.toastSetting = const ToastSettingState(), this.switchToastSetting = const SwitchToastSettingState(), this.fileManagerSetting = const FileManagerSettingState(), this.discoverSetting = const DiscoverSettingState(), this.operationBindingSetting = const OperationBindingSettingState()}): _maskedKeywords = maskedKeywords,_searchHistory = searchHistory;
   factory _GlobalSettingState.fromJson(Map<String, dynamic> json) => _$GlobalSettingStateFromJson(json);
 
 @override@JsonKey() final  bool dynamicColor;
@@ -1015,7 +1015,8 @@ as bool,
 /// @nodoc
 mixin _$DiscoverSettingState {
 
- bool get tabIconEnabled; bool get tabPluginShortEnabled; DiscoverTabBarSide get tabSide;
+ bool get tabIconEnabled; bool get tabPluginShortEnabled; DiscoverTabBarSide get tabSide;/// 竖向轨的厚度（像素）。拖动轨内侧那条边即改这个值。
+ double get tabRailWidth;
 /// Create a copy of DiscoverSettingState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1029,20 +1030,20 @@ $DiscoverSettingStateCopyWith<DiscoverSettingState> get copyWith => _$DiscoverSe
 @override
 bool operator ==(Object other) {
   final _this = this as DiscoverSettingState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DiscoverSettingState&&(identical(other.tabIconEnabled, _this.tabIconEnabled) || other.tabIconEnabled == _this.tabIconEnabled)&&(identical(other.tabPluginShortEnabled, _this.tabPluginShortEnabled) || other.tabPluginShortEnabled == _this.tabPluginShortEnabled)&&(identical(other.tabSide, _this.tabSide) || other.tabSide == _this.tabSide));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DiscoverSettingState&&(identical(other.tabIconEnabled, _this.tabIconEnabled) || other.tabIconEnabled == _this.tabIconEnabled)&&(identical(other.tabPluginShortEnabled, _this.tabPluginShortEnabled) || other.tabPluginShortEnabled == _this.tabPluginShortEnabled)&&(identical(other.tabSide, _this.tabSide) || other.tabSide == _this.tabSide)&&(identical(other.tabRailWidth, _this.tabRailWidth) || other.tabRailWidth == _this.tabRailWidth));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as DiscoverSettingState;
-  return Object.hash(runtimeType,_this.tabIconEnabled,_this.tabPluginShortEnabled,_this.tabSide);
+  return Object.hash(runtimeType,_this.tabIconEnabled,_this.tabPluginShortEnabled,_this.tabSide,_this.tabRailWidth);
 }
 
 @override
 String toString() {
   final _this = this as DiscoverSettingState;
-  return 'DiscoverSettingState(tabIconEnabled: ${_this.tabIconEnabled}, tabPluginShortEnabled: ${_this.tabPluginShortEnabled}, tabSide: ${_this.tabSide})';
+  return 'DiscoverSettingState(tabIconEnabled: ${_this.tabIconEnabled}, tabPluginShortEnabled: ${_this.tabPluginShortEnabled}, tabSide: ${_this.tabSide}, tabRailWidth: ${_this.tabRailWidth})';
 }
 
 
@@ -1053,7 +1054,7 @@ abstract mixin class $DiscoverSettingStateCopyWith<$Res>  {
   factory $DiscoverSettingStateCopyWith(DiscoverSettingState value, $Res Function(DiscoverSettingState) _then) = _$DiscoverSettingStateCopyWithImpl;
 @useResult
 $Res call({
- bool tabIconEnabled, bool tabPluginShortEnabled, DiscoverTabBarSide tabSide
+ bool tabIconEnabled, bool tabPluginShortEnabled, DiscoverTabBarSide tabSide, double tabRailWidth
 });
 
 
@@ -1070,12 +1071,13 @@ class _$DiscoverSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of DiscoverSettingState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? tabIconEnabled = null,Object? tabPluginShortEnabled = null,Object? tabSide = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? tabIconEnabled = null,Object? tabPluginShortEnabled = null,Object? tabSide = null,Object? tabRailWidth = null,}) {
   return _then(DiscoverSettingState(
 tabIconEnabled: null == tabIconEnabled ? _self.tabIconEnabled : tabIconEnabled // ignore: cast_nullable_to_non_nullable
 as bool,tabPluginShortEnabled: null == tabPluginShortEnabled ? _self.tabPluginShortEnabled : tabPluginShortEnabled // ignore: cast_nullable_to_non_nullable
 as bool,tabSide: null == tabSide ? _self.tabSide : tabSide // ignore: cast_nullable_to_non_nullable
-as DiscoverTabBarSide,
+as DiscoverTabBarSide,tabRailWidth: null == tabRailWidth ? _self.tabRailWidth : tabRailWidth // ignore: cast_nullable_to_non_nullable
+as double,
   ));
 }
 
@@ -1160,10 +1162,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool tabIconEnabled,  bool tabPluginShortEnabled,  DiscoverTabBarSide tabSide)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool tabIconEnabled,  bool tabPluginShortEnabled,  DiscoverTabBarSide tabSide,  double tabRailWidth)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DiscoverSettingState() when $default != null:
-return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide);case _:
+return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide,_that.tabRailWidth);case _:
   return orElse();
 
 }
@@ -1181,10 +1183,10 @@ return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide);
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool tabIconEnabled,  bool tabPluginShortEnabled,  DiscoverTabBarSide tabSide)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool tabIconEnabled,  bool tabPluginShortEnabled,  DiscoverTabBarSide tabSide,  double tabRailWidth)  $default,) {final _that = this;
 switch (_that) {
 case _DiscoverSettingState():
-return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide);case _:
+return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide,_that.tabRailWidth);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1201,10 +1203,10 @@ return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide);
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool tabIconEnabled,  bool tabPluginShortEnabled,  DiscoverTabBarSide tabSide)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool tabIconEnabled,  bool tabPluginShortEnabled,  DiscoverTabBarSide tabSide,  double tabRailWidth)?  $default,) {final _that = this;
 switch (_that) {
 case _DiscoverSettingState() when $default != null:
-return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide);case _:
+return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide,_that.tabRailWidth);case _:
   return null;
 
 }
@@ -1216,12 +1218,14 @@ return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide);
 @JsonSerializable()
 
 class _DiscoverSettingState implements DiscoverSettingState {
-  const _DiscoverSettingState({this.tabIconEnabled = true, this.tabPluginShortEnabled = true, this.tabSide = DiscoverTabBarSide.top});
+  const _DiscoverSettingState({this.tabIconEnabled = true, this.tabPluginShortEnabled = true, this.tabSide = DiscoverTabBarSide.top, this.tabRailWidth = 132.0});
   factory _DiscoverSettingState.fromJson(Map<String, dynamic> json) => _$DiscoverSettingStateFromJson(json);
 
 @override@JsonKey() final  bool tabIconEnabled;
 @override@JsonKey() final  bool tabPluginShortEnabled;
 @override@JsonKey() final  DiscoverTabBarSide tabSide;
+/// 竖向轨的厚度（像素）。拖动轨内侧那条边即改这个值。
+@override@JsonKey() final  double tabRailWidth;
 
 /// Create a copy of DiscoverSettingState
 /// with the given fields replaced by the non-null parameter values.
@@ -1236,18 +1240,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _DiscoverSettingState&&(identical(other.tabIconEnabled, tabIconEnabled) || other.tabIconEnabled == tabIconEnabled)&&(identical(other.tabPluginShortEnabled, tabPluginShortEnabled) || other.tabPluginShortEnabled == tabPluginShortEnabled)&&(identical(other.tabSide, tabSide) || other.tabSide == tabSide));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _DiscoverSettingState&&(identical(other.tabIconEnabled, tabIconEnabled) || other.tabIconEnabled == tabIconEnabled)&&(identical(other.tabPluginShortEnabled, tabPluginShortEnabled) || other.tabPluginShortEnabled == tabPluginShortEnabled)&&(identical(other.tabSide, tabSide) || other.tabSide == tabSide)&&(identical(other.tabRailWidth, tabRailWidth) || other.tabRailWidth == tabRailWidth));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,tabIconEnabled,tabPluginShortEnabled,tabSide);
+    return Object.hash(runtimeType,tabIconEnabled,tabPluginShortEnabled,tabSide,tabRailWidth);
 }
 
 @override
 String toString() {
-    return 'DiscoverSettingState(tabIconEnabled: $tabIconEnabled, tabPluginShortEnabled: $tabPluginShortEnabled, tabSide: $tabSide)';
+    return 'DiscoverSettingState(tabIconEnabled: $tabIconEnabled, tabPluginShortEnabled: $tabPluginShortEnabled, tabSide: $tabSide, tabRailWidth: $tabRailWidth)';
 }
 
 
@@ -1258,7 +1262,7 @@ abstract mixin class _$DiscoverSettingStateCopyWith<$Res> implements $DiscoverSe
   factory _$DiscoverSettingStateCopyWith(_DiscoverSettingState value, $Res Function(_DiscoverSettingState) _then) = __$DiscoverSettingStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool tabIconEnabled, bool tabPluginShortEnabled, DiscoverTabBarSide tabSide
+ bool tabIconEnabled, bool tabPluginShortEnabled, DiscoverTabBarSide tabSide, double tabRailWidth
 });
 
 
@@ -1275,12 +1279,13 @@ class __$DiscoverSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of DiscoverSettingState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? tabIconEnabled = null,Object? tabPluginShortEnabled = null,Object? tabSide = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? tabIconEnabled = null,Object? tabPluginShortEnabled = null,Object? tabSide = null,Object? tabRailWidth = null,}) {
   return _then(_DiscoverSettingState(
 tabIconEnabled: null == tabIconEnabled ? _self.tabIconEnabled : tabIconEnabled // ignore: cast_nullable_to_non_nullable
 as bool,tabPluginShortEnabled: null == tabPluginShortEnabled ? _self.tabPluginShortEnabled : tabPluginShortEnabled // ignore: cast_nullable_to_non_nullable
 as bool,tabSide: null == tabSide ? _self.tabSide : tabSide // ignore: cast_nullable_to_non_nullable
-as DiscoverTabBarSide,
+as DiscoverTabBarSide,tabRailWidth: null == tabRailWidth ? _self.tabRailWidth : tabRailWidth // ignore: cast_nullable_to_non_nullable
+as double,
   ));
 }
 

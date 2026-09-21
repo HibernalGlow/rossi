@@ -5,7 +5,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 // `JsonKey`（下面 `readerBackgroundMode` 上的跨版本降级要用）由 freezed_annotation
 // 一并重导出，不必单独 import json_annotation。
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:zephyr/config/global/color_theme_types.dart';
 import 'package:zephyr/i18n/i18n_helper.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
@@ -226,7 +225,8 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     @Default(true) bool dynamicColor,
     @Default(ThemeMode.system) ThemeMode themeMode,
     @Default(true) bool isAMOLED,
-    @ColorConverter() @Default(Color(0xFFEF5350)) Color seedColor,
+    // 取自应用图标的面具色（poc/mask-upright.svg 的 fill）。
+    @ColorConverter() @Default(Color(0xFF9C4B5E)) Color seedColor,
     // 导入的 tweakcn / shadcn 主题：`TweakcnTheme.encode()` 的 JSON 串，空串 = 未导入。
     // 存**解析后的 token 表**而不是原始 CSS：解析只在导入那一次发生，
     // 每次主题重建只是 jsonDecode，且同步 / 导出时人能直接读懂。
@@ -390,12 +390,17 @@ enum DiscoverTabBarSide {
 /// - [tabPluginShortEnabled]：标签上画不画插件名缩写（「绅士 · 排行」里那截「绅士」）。
 ///   两个都关掉就只剩功能名 —— 那时同一功能的多个标签只能靠序号分辨。
 /// - [tabSide]：标签条的朝向与靠边（见 [DiscoverTabBarSide]）。
+/// - [tabRailWidth]：竖向轨的厚度。轨从内容区里扣宽度，所以它是个用户可调的取舍
+///   （见 `DiscoverPlatView` 的拖拽把手），不是一个我们自己拍死的常量。
 @freezed
 abstract class DiscoverSettingState with _$DiscoverSettingState {
   const factory DiscoverSettingState({
     @Default(true) bool tabIconEnabled,
     @Default(true) bool tabPluginShortEnabled,
     @Default(DiscoverTabBarSide.top) DiscoverTabBarSide tabSide,
+
+    /// 竖向轨的厚度（像素）。拖动轨内侧那条边即改这个值。
+    @Default(132.0) double tabRailWidth,
   }) = _DiscoverSettingState;
 
   factory DiscoverSettingState.fromJson(Map<String, dynamic> json) =>
@@ -908,8 +913,6 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
 
   // 用于获取 freezed 中定义的默认值的便捷实例
   static const _defaults = GlobalSettingState();
-  // colorThemeList[6].color 是动态的，不能在 const 中，单独处理
-  late final Color _defaultSeedColor = colorThemeList[6].color;
 
   Future<void> initBox() async {
     final persisted = objectbox.userSettingBox.get(1)!.globalSetting;
@@ -917,8 +920,7 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
     emit(persisted);
   }
 
-  GlobalSettingState get defaults =>
-      _defaults.copyWith(seedColor: _defaultSeedColor);
+  GlobalSettingState get defaults => _defaults;
 
   void updateALl(GlobalSettingState state) {
     _persistAndEmit(state);

@@ -15,7 +15,7 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
       ThemeMode.system,
   isAMOLED: json['isAMOLED'] as bool? ?? true,
   seedColor: json['seedColor'] == null
-      ? const Color(0xFFEF5350)
+      ? const Color(0xFF9C4B5E)
       : const ColorConverter().fromJson((json['seedColor'] as num).toInt()),
   tweakcnThemeJson: json['tweakcnThemeJson'] as String? ?? '',
   tweakcnThemeEnabled: json['tweakcnThemeEnabled'] as bool? ?? false,
@@ -254,6 +254,7 @@ _DiscoverSettingState _$DiscoverSettingStateFromJson(
   tabSide:
       $enumDecodeNullable(_$DiscoverTabBarSideEnumMap, json['tabSide']) ??
       DiscoverTabBarSide.top,
+  tabRailWidth: (json['tabRailWidth'] as num?)?.toDouble() ?? 132.0,
 );
 
 Map<String, dynamic> _$DiscoverSettingStateToJson(
@@ -262,6 +263,7 @@ Map<String, dynamic> _$DiscoverSettingStateToJson(
   'tabIconEnabled': instance.tabIconEnabled,
   'tabPluginShortEnabled': instance.tabPluginShortEnabled,
   'tabSide': _$DiscoverTabBarSideEnumMap[instance.tabSide]!,
+  'tabRailWidth': instance.tabRailWidth,
 };
 
 const _$DiscoverTabBarSideEnumMap = {
