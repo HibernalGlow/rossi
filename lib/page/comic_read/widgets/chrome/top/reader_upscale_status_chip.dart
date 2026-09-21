@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
 import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
+import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/super_resolution_status.dart';
@@ -46,7 +47,10 @@ class ReaderUpscaleStatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final GpuPresentController? presenter = LocalReadSession.instance.presenter;
     if (presenter == null) {
-      return const SizedBox.shrink();
+      // 在线图源没有呈现器 —— 超分在取图/解码层发生，没有「当前页」可言。
+      // 但按用户的口径「超分的显示与开关留在第一行」，这里仍然给一颗绑到
+      // 总闸（`RealSrSettings.autoUpscale`）的简版芯片，而不是整块不画。
+      return ReaderOnlineUpscaleChip(availableWidth: availableWidth);
     }
     return ListenableBuilder(
       listenable: presenter,
@@ -153,8 +157,8 @@ class ReaderUpscaleStatusChip extends StatelessWidget {
   ) {
     if (phase == SuperResolutionPagePhase.running) {
       return SizedBox(
-        width: ReaderToolbarMetrics.chipIconSize,
-        height: ReaderToolbarMetrics.chipIconSize,
+        width: ReaderToolbarMetrics.iconSize,
+        height: ReaderToolbarMetrics.iconSize,
         child: CircularProgressIndicator(
           strokeWidth: 1.8,
           valueColor: AlwaysStoppedAnimation<Color>(color),
@@ -198,38 +202,7 @@ class ReaderUpscaleStatusChip extends StatelessWidget {
     BuildContext context,
     GpuPresentController presenter,
   ) async {
-    final bool available = await RealSrSuperResolution.isAvailable;
-    if (!context.mounted) return;
-    if (!available) {
-      final bool? confirm = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('下载 AI 超分模型'),
-          content: const Text('当前设备尚未下载 mImage ONNX 超分模型（约 5.4 MB），是否立即下载并启用？'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('立即下载'),
-            ),
-          ],
-        ),
-      );
-      if (confirm != true) return;
-      showInfoToast('正在后台下载超分模型...');
-      try {
-        await RealSrSuperResolution.downloadModel();
-        if (!context.mounted) return;
-        await presenter.setUpscaleEnabled(true);
-        showInfoToast('超分模型就绪，AI 超分已启用');
-      } catch (e) {
-        showInfoToast('下载模型失败: $e');
-      }
-      return;
-    }
+    if (!await ensureSuperResolutionModel(context)) return;
     await presenter.setUpscaleEnabled(true);
     showInfoToast('AI 超分已启用');
   }
@@ -262,6 +235,132 @@ class _UpscaleSwitch extends StatelessWidget {
           value: value,
           onChanged: onChanged,
           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      ),
+    );
+  }
+}
+
+/// 让超分模型就绪：已下载直接返回 true；没下载则**先问一句再下**。
+///
+/// 抽出来是因为顶栏那两条路（本地呈现器的开关 / 在线图源的总闸开关）都得
+/// 先过这一关 —— 同一件事不该有两种交互。
+Future<bool> ensureSuperResolutionModel(BuildContext context) async {
+  if (await RealSrSuperResolution.isAvailable) return true;
+  // 上面那一次 await 之后再用 context：窗口可能已经拆了。
+  if (!context.mounted) return false;
+  final bool? confirm = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('下载 AI 超分模型'),
+      content: const Text('当前设备尚未下载 mImage ONNX 超分模型（约 5.4 MB），是否立即下载并启用？'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: const Text('立即下载'),
+        ),
+      ],
+    ),
+  );
+  if (confirm != true) return false;
+  showInfoToast('正在后台下载超分模型...');
+  try {
+    await RealSrSuperResolution.downloadModel();
+    return true;
+  } catch (e) {
+    showInfoToast('下载模型失败: $e');
+    return false;
+  }
+}
+
+/// 在线图源的超分芯片：**总闸的开关 + 开着没有**，没有逐页状态。
+///
+/// 与本地那颗同外形同高度（40 的芯片档），开着 = `secondaryContainer`，
+/// 关着 = `surfaceContainerHigh`；文字仍然按 [superResolutionShowsLabel] 让位。
+/// 状态之所以只有「开/关」：在线那条路的超分发生在取图/解码层，
+/// 呈现器不在场，问不出「这一页跑到哪一步」。
+class ReaderOnlineUpscaleChip extends StatefulWidget {
+  const ReaderOnlineUpscaleChip({
+    super.key,
+    this.availableWidth = double.infinity,
+  });
+
+  final double availableWidth;
+
+  @override
+  State<ReaderOnlineUpscaleChip> createState() =>
+      _ReaderOnlineUpscaleChipState();
+}
+
+class _ReaderOnlineUpscaleChipState extends State<ReaderOnlineUpscaleChip> {
+  /// null = 还在读设置（这一帧不画，免得开关先弹一下再翻）。
+  bool? _autoUpscale;
+
+  @override
+  void initState() {
+    super.initState();
+    RealSrSettings.loadAutoUpscale()
+        .then((value) {
+          if (mounted) setState(() => _autoUpscale = value);
+        })
+        .catchError((Object _) {
+          if (mounted) setState(() => _autoUpscale = false);
+        });
+  }
+
+  Future<void> _toggle(bool value) async {
+    if (value && !await ensureSuperResolutionModel(context)) return;
+    await RealSrSettings.saveAutoUpscale(value);
+    if (!mounted) return;
+    setState(() => _autoUpscale = value);
+    showInfoToast(value ? '已开启自动超分（后续页面在取图层处理）' : '已关闭自动超分');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final bool? value = _autoUpscale;
+    if (value == null) return const SizedBox.shrink();
+
+    final bool showLabel = superResolutionShowsLabel(widget.availableWidth);
+    final (Color bg, Color fg) = value
+        ? (colorScheme.secondaryContainer, colorScheme.onSecondaryContainer)
+        : (colorScheme.surfaceContainerHigh, colorScheme.onSurfaceVariant);
+
+    return Tooltip(
+      message: '在线图源：超分在取图/解码层发生，这颗是总闸',
+      child: Container(
+        height: ReaderToolbarMetrics.chipHeight,
+        padding: const EdgeInsets.only(left: 10, right: 2),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(ReaderToolbarMetrics.fullRadius),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.auto_awesome_rounded,
+              size: ReaderToolbarMetrics.iconSize,
+              color: fg,
+            ),
+            if (showLabel) ...[
+              const SizedBox(width: 4),
+              Text(
+                '超分',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: fg,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+            _UpscaleSwitch(value: value, onChanged: _toggle),
+          ],
         ),
       ),
     );
