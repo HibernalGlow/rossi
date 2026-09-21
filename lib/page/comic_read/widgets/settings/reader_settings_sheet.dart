@@ -24,6 +24,10 @@ import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 part 'reader_settings_gesture_tab.dart';
 part 'reader_settings_info_tab.dart';
 part 'reader_settings_read_tab.dart';
+part 'parts/reader_settings_video_part.dart';
+part 'parts/reader_settings_super_resolution_part.dart';
+
+
 
 Future<void> showReaderSettingsSheet(
   BuildContext context, {
