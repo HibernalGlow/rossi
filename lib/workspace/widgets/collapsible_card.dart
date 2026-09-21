@@ -1,6 +1,14 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/theme_shape.dart';
 
+/// M3 的动效缓动档。这个版本的 `material_ui` / Flutter 都没有导出
+/// `MaterialCurves`（`Curves` 上也没有 `emphasized*` / `standard*`），
+/// 所以按规范给的 cubic-bezier 自己声明，避免继续用 M2 的裸 easeOut*。
+/// 规范里 emphasized 与 standard 是同一条曲线，差异只在各自的 decelerate /
+/// accelerate 变体，因此这里不复制出两个同名常量。
+const Curve _m3Standard = Cubic(0.2, 0.0, 0.0, 1.0);
+const Curve _m3EmphasizedDecelerate = Cubic(0.05, 0.7, 0.1, 1.0);
+
 /// 通用可折叠卡片组件外壳（支持泳道与边栏中 100% 复用）
 ///
 /// 轨道上关于「位置」的三个动作 —— 上移 / 下移 / 收起 —— 都由宿主
@@ -96,7 +104,8 @@ class CollapsibleCard extends StatelessWidget {
                     AnimatedRotation(
                       turns: isExpanded ? 0.5 : 0.0,
                       duration: const Duration(milliseconds: 200),
-                      curve: Curves.easeOutCubic,
+                      // MD3 动效档位：会停下来的变换走 decelerate，不用裸的 easeOutCubic。
+                      curve: _m3EmphasizedDecelerate,
                       child: Icon(
                         Icons.keyboard_arrow_down_rounded,
                         size: 20,
@@ -120,9 +129,10 @@ class CollapsibleCard extends StatelessWidget {
                   ? CrossFadeState.showSecond
                   : CrossFadeState.showFirst,
               duration: const Duration(milliseconds: 200),
-              firstCurve: Curves.easeOutQuad,
-              secondCurve: Curves.easeOutQuad,
-              sizeCurve: Curves.easeInOutCubic,
+              // 淡入淡出走 standard，容器尺寸变化走 emphasized —— M3 的分工。
+              firstCurve: _m3Standard,
+              secondCurve: _m3Standard,
+              sizeCurve: _m3Standard,
             ),
           ],
         ),
@@ -170,7 +180,7 @@ class CollapsibleCard extends StatelessWidget {
           PopupMenuItem<String>(
             value: 'hide',
             child: _TrackMenuItem(
-              icon: Icons.visibility_off_outlined,
+              icon: Icons.visibility_off_rounded,
               label: '从该面板收起',
               color: theme.colorScheme.error,
             ),
@@ -184,6 +194,9 @@ class CollapsibleCard extends StatelessWidget {
       padding: EdgeInsets.zero,
       style: IconButton.styleFrom(
         foregroundColor: theme.colorScheme.onSurfaceVariant,
+        // 不关掉 padded 命中区的话这颗钮会顶到 48 高，把整条标题栏撑成 68；
+        // 密集面板里的图标钮按桌面档收在 32。
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         minimumSize: const Size(32, 32),
       ),
     );

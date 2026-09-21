@@ -91,7 +91,7 @@ class PanelCardList extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.dashboard_customize_outlined,
+              Icons.dashboard_customize_rounded,
               size: 30,
               color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
             ),

@@ -60,7 +60,7 @@ class PreloadStatusCard extends StatelessWidget {
               : null,
           child: !hasSession
               ? const InfoEmpty(
-                  icon: Icons.bolt_outlined,
+                  icon: Icons.bolt_rounded,
                   text: '打开书本后显示呈现与预取状态',
                 )
               : _buildRows(coordinator, presenter),

@@ -291,11 +291,12 @@ class _PageListCardState extends State<PageListCard> {
                 visualDensity: VisualDensity.compact,
                 tooltip: _followProgress ? '正在跟随阅读进度' : '已暂停跟随阅读进度',
                 style: IconButton.styleFrom(
+                  // MD3 的「按下/选中」图标钮：secondaryContainer 底 + onSecondaryContainer 图。
                   backgroundColor: _followProgress
-                      ? theme.colorScheme.primary.withValues(alpha: 0.15)
+                      ? theme.colorScheme.secondaryContainer
                       : null,
                   foregroundColor: _followProgress
-                      ? theme.colorScheme.primary
+                      ? theme.colorScheme.onSecondaryContainer
                       : theme.colorScheme.onSurfaceVariant,
                 ),
                 onPressed: () {
@@ -680,7 +681,7 @@ class _PageListCardState extends State<PageListCard> {
           height: 32,
           padding: const EdgeInsets.symmetric(horizontal: 8),
           color: isActive
-              ? theme.colorScheme.primary.withValues(alpha: 0.12)
+              ? theme.colorScheme.secondaryContainer
               : Colors.transparent,
           child: Row(
             children: [
@@ -688,7 +689,7 @@ class _PageListCardState extends State<PageListCard> {
                 '#${pageIndex + 1}',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: isActive
-                      ? theme.colorScheme.primary
+                      ? theme.colorScheme.onSecondaryContainer
                       : theme.colorScheme.onSurfaceVariant,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
@@ -701,7 +702,7 @@ class _PageListCardState extends State<PageListCard> {
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: isActive
-                        ? theme.colorScheme.primary
+                        ? theme.colorScheme.onSecondaryContainer
                         : theme.colorScheme.onSurface,
                   ),
                 ),
@@ -710,7 +711,7 @@ class _PageListCardState extends State<PageListCard> {
                 Icon(
                   Icons.check_circle_rounded,
                   size: 14,
-                  color: theme.colorScheme.primary,
+                  color: theme.colorScheme.onSecondaryContainer,
                 ),
             ],
           ),

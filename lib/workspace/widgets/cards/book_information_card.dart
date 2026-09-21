@@ -57,7 +57,7 @@ class BookInformationCard extends StatelessWidget {
           child: hasSession
               ? _buildRows(coordinator, target)
               : const InfoEmpty(
-                  icon: Icons.auto_stories_outlined,
+                  icon: Icons.auto_stories_rounded,
                   text: '打开一本书后显示书籍信息',
                 ),
         );

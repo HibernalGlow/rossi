@@ -56,7 +56,7 @@ class ImageInformationCard extends StatelessWidget {
           child: hasSession
               ? _buildRows(coordinator, presenter, slot)
               : const InfoEmpty(
-                  icon: Icons.image_outlined,
+                  icon: Icons.image_rounded,
                   text: '打开书本后显示当前页信息',
                 ),
         );

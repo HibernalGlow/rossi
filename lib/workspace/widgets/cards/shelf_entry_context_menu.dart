@@ -137,14 +137,15 @@ class _MenuRow extends StatelessWidget {
       children: [
         Icon(
           shelfEntryActionIcon(spec.action, kind: kind),
-          size: 17,
+          size: 18,
           color: color,
         ),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
             label,
-            style: TextStyle(fontSize: 13, color: color),
+            // MD3 菜单项正文是 labelLarge（14/500），与卡片位置菜单同一口径。
+            style: theme.textTheme.labelLarge?.copyWith(color: color),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

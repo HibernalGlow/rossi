@@ -146,7 +146,7 @@ class _TimeInformationCardState extends State<TimeInformationCard> {
                 )
               : facts?.rootPath == null
               ? const InfoEmpty(
-                  icon: Icons.cloud_outlined,
+                  icon: Icons.cloud_rounded,
                   text: '在线图源没有本地文件时间',
                 )
               : Column(
