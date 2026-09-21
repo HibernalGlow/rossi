@@ -1,0 +1,6 @@
+# 本包刻意把 analyzer 钉在 ^10.2.0：analyzer 13 换了 AST 形态
+# （ClassDeclaration.name -> namePart、members -> body），而这里只需要「按 offset 区间
+# 逐字节切片」，旧访问器足够且稳定。因此这些 deprecation 是有意保留的。
+analyzer:
+  errors:
+    deprecated_member_use: ignore

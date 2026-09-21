@@ -1,0 +1,8 @@
+name: ast_split
+description: AST 驱动的大文件拆分与等价性审计工具（非应用代码，不参与 Flutter 构建）
+publish_to: none
+environment:
+  sdk: ^3.9.0
+dependencies:
+  analyzer: ^10.2.0
+  path: ^1.9.0
