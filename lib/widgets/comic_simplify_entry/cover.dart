@@ -92,6 +92,11 @@ class CoverWidget extends StatelessWidget {
                           FileImage(File(state.imagePath!)),
                           width: decodeWidth < 1 ? 1 : decodeWidth,
                           height: decodeHeight < 1 ? 1 : decodeHeight,
+                          // ResizeImage 默认 exact：位图被解成槽位的宽高，
+                          // 比例不合时**图本身先被拉扁**，下面 BoxFit.cover 裁的
+                          // 就是这张变形位图。fit 保比例塞进同一个盒子，
+                          // 把「填满并裁切」留给 cover —— 与文件管理器的缩略图一致。
+                          policy: ResizeImagePolicy.fit,
                         ),
                         onError: (error, stackTrace) {
                           logger.d(
