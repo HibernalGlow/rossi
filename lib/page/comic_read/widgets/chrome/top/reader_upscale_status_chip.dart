@@ -300,17 +300,49 @@ class _ReaderOnlineUpscaleChipState extends State<ReaderOnlineUpscaleChip> {
   /// null = 还在读设置（这一帧不画，免得开关先弹一下再翻）。
   bool? _autoUpscale;
 
+  /// 悬停要说清的另外两件事：模型、生效阈值。它们只能从设置里读 ——
+  /// 在线这一路没有呈现器，问不出「这一页跑到哪一步」。
+  bool _modelReady = false;
+  String _thresholdLabel = '';
+
   @override
   void initState() {
     super.initState();
-    RealSrSettings.loadAutoUpscale()
-        .then((value) {
-          if (mounted) setState(() => _autoUpscale = value);
-        })
-        .catchError((Object _) {
-          if (mounted) setState(() => _autoUpscale = false);
-        });
+    _load();
   }
+
+  Future<void> _load() async {
+    // **先只读 SharedPreferences**：这颗芯片不该等 Rust 那一趟可用性检查才肯出现
+    // —— 那条调用在测试里根本不返回，等于「超分显示又没了」；在真机上它也要跨一次 FFI。
+    var auto = false;
+    try {
+      auto = await RealSrSettings.loadAutoUpscale();
+    } catch (_) {
+      // 读不到就按「关着」画：芯片不该把顶栏炸掉。
+    }
+    if (mounted) setState(() => _autoUpscale = auto);
+
+    // 悬停信息随后补。读不到就少写那两行，不影响芯片本身。
+    try {
+      final ready = await RealSrSuperResolution.isAvailable;
+      final threshold = RealSrSettings.effectiveThreshold(
+        await RealSrSettings.loadResolutionThreshold(),
+      ).label;
+      if (mounted) {
+        setState(() {
+          _modelReady = ready;
+          _thresholdLabel = threshold;
+        });
+      }
+    } catch (_) {}
+  }
+
+  String get _tooltip => [
+    '在线图源：超分在取图/解码层发生，这颗是总闸（没有逐页状态）',
+    '总闸：${_autoUpscale == true ? '已开启' : '未开启'}',
+    '模型：${_modelReady ? '已下载' : '未下载（开启时会先问一句）'}',
+    if (_thresholdLabel.isNotEmpty) '生效阈值：$_thresholdLabel',
+  ].join('\n');
 
   Future<void> _toggle(bool value) async {
     if (value && !await ensureSuperResolutionModel(context)) return;
@@ -333,10 +365,10 @@ class _ReaderOnlineUpscaleChipState extends State<ReaderOnlineUpscaleChip> {
         : (colorScheme.surfaceContainerHigh, colorScheme.onSurfaceVariant);
 
     return Tooltip(
-      message: '在线图源：超分在取图/解码层发生，这颗是总闸',
+      message: _tooltip,
       child: Container(
         height: ReaderToolbarMetrics.chipHeight,
-        padding: const EdgeInsets.only(left: 10, right: 2),
+        padding: const EdgeInsets.only(left: 10, right: 4),
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(ReaderToolbarMetrics.fullRadius),
@@ -359,6 +391,8 @@ class _ReaderOnlineUpscaleChipState extends State<ReaderOnlineUpscaleChip> {
                 ),
               ),
             ],
+            // 开关与前面的内容之间留一口呼吸：挤在一起时看着像两个控件叠了。
+            const SizedBox(width: 6),
             _UpscaleSwitch(value: value, onChanged: _toggle),
           ],
         ),
