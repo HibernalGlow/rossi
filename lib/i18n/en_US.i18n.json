@@ -335,6 +335,8 @@
     "clickCoverToStartReadingSubtitle": "Tap the cover on the comic info page to start reading directly",
     "comicInfoInlineReadButton": "Read button in comic info page",
     "comicInfoInlineReadButtonSubtitle": "On desktop, put a read button next to Download in the action row and drop the floating read button at the bottom-right",
+    "comicInfoRailLiquidGlass": "Liquid glass for the action rail",
+    "comicInfoRailLiquidGlassSubtitle": "Render the floating capsules on the left and right of the comic info page with liquid glass; turn off for an opaque surface with an outline",
     "androidKeepAlive": "Keep alive",
     "androidKeepAliveSubtitle": "Use a foreground service to keep the app running in the background; shows a persistent notification",
     "backPressExit": "Exit on back",

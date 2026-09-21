@@ -77,6 +77,9 @@ const Map<String, List<String>> _settingsBlockKeys = <String, List<String>>{
     'leftHandModeEnabled',
     'clickCoverToStartReading',
     'comicInfoInlineReadButton',
+    // 详情页那颗悬浮胶囊的材质。跟着同屏的 `comicInfoInlineReadButton` 走 library 块，
+    // 不另立一块：两条都是「详情页怎么摆」的偏好，分开放只会让同步范围更难读。
+    'comicInfoRailLiquidGlass',
     'bookshelfSetting',
     'comicCardSetting',
     'discoverSetting',

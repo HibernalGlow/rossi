@@ -118,7 +118,7 @@
 | # | 议题 | 决定 | 依据 |
 |---|------|------|------|
 | 2 | 左右 rail 默认内容 | 左 = 返回、回首页；右 = 阅读、收藏、下载、点赞、评论、磁力（6 颗）。注册表一次登记 **13 条**（另含关注、选章节下载、章节倒序、导出、更多），让车道 H 的候选清单是全集 | 痛点只有两颗，默认摆 6 颗是加速层不是搬家；其余 5 条只登记不上默认轨，免得 rail 变长 |
-| 3 | rail 配置进不进同步 | **进 `shell` 块** | 判例是 `e08c948e feat(desktop): 透明标题栏三态并纳入同步` —— 同为「桌面 UI 外壳偏好」。与「工作台布局快照不同步」不矛盾：那边排除的是**瞬态**偏移与边缘揭示，rail 的 id 序列是用户手工排的持久偏好；`favoriteArtistSetting` 那种「点名不出本机」的例外不适用 |
+| 3 | rail 配置进不进同步 | **进同步**，块归 `library`（不是 `shell`） | 落地时查实的：同屏那条详情页开关 `comicInfoInlineReadButton` 就在 **`library`** 块（`sync_service.dart:79`），rail 的配置与它是同一族「详情页怎么摆」的偏好，跟着走。我原先引 `e08c948e`（桌面端透明标题栏进 `shell`）当判例是**引错了对象** —— 那是应用级外壳，不是某一屏的内容布局。「进不进同步」这个结论没变：与「工作台布局快照不同步」不冲突，那边挡的是瞬态偏移与边缘揭示；`favoriteArtistSetting` 那种点名不出本机的例外不适用 |
 | 4 | 用哪套响应式判据 | **主分支不用宽度**，用本页已有的指针判据 `comicInfoPlatformHasPointer`（`read_entry_placement.dart:25`，其注释已声明口径与 `WorkspaceTopChromeMode.forTargetPlatform` 一致）：有指针 ⇒ 左右 rail，无指针 ⇒ 底部条。宽度**只**决定一个新问题：rail 上画不画文字（新增一个具名常量） | 「rail 还是底栏」本质是输入设备问题不是视口宽度问题；这样 `comic_operation.dart:186` 的 900 与 `comic_info.dart:1187` 的 960 两处都不动，也不引入第四套字面量判据 |
 
 车道顺序按 §3 的最小闭环走（A → B → C → E → F 先跑通默认 rail，再 D → H 补自定义，最后 G 收尾移动端）。
@@ -170,6 +170,27 @@
 - 回归判据：`test/comic_info/comic_info_action_rail_test.dart` 里「胶囊按内容多高就多高，不铺满一列」那条会量 rail 自己的尺寸（两颗 ⇒ 高 <140、宽 <60）。**Row 版本当场红**，所以它专门钉这件事
 
 **验证状态**：`cargo test -p rossi_local_core --lib operation_binding::vocabulary` 6 passed；`test/comic_info/comic_info_action_rail_test.dart` 4 条 + 过桥 3 条全绿；`dart analyze`（我这 4 个文件）No issues。🟡 **未实机** —— rail 长什么样、让不让位、宽窗口下吃不吃正文宽度，都还得你在真窗口里看（§8 的 D1–D7）。
+
+## 7.7 实机第二、三轮：几何修正 + 液态玻璃（2026-09-21）
+
+第一版胶囊（`Stack` + `Positioned(right: 8, child: Center(child: rail))`）实机截图里**右边那颗被裁在窗口外**。根因不是边距给小了，是**约束**：
+
+- `Positioned` 只给 `left`/`right` **之一**时，子节点在该轴上拿到的是**松约束**（`maxWidth` = 整个 Stack 宽）；
+- 而 `Align`/`Center` 在没有 `widthFactor`/`heightFactor` 时会把自己撑到 `constraints.biggest`。
+- 两者合起来 ⇒ `Center` 铺满整宽，胶囊落在它该落的地方之外的位置，水平边距形同不存在。
+
+**修法**：`Positioned` 的子节点外面套 `SizedBox(width: ComicInfoActionRail.maxWidth)`，`Align` 在紧约束里只做垂直居中。挂载从页面里抽成了独立的 `ComicInfoActionOverlay` —— **几何必须可测**，写在页面 state 里就只能靠眼睛看。测试在 500×600 视口里钉：两颗都完整在窗口内、左那颗 `left == 8`、右那颗 `right == 492`、宽度恰为 `maxWidth`、垂直居中，以及**正文 `ColoredBox` 仍是 500 宽**（悬浮不占布局）。这套断言在旧写法上会当场红。
+
+顺带被测试抓出来的第二个错：`maxWidth` 我按「40 + 4×2 + 描边 1×2 = 50」算，实际渲染是 **48** —— `StadiumBorder` 的 `BorderSide` 画在形状内部，**不参与布局**。
+
+**液态玻璃（可开关）**：`GlobalSetting.comicInfoRailLiquidGlass`（默认 `true`）。
+- 材质走仓库现成的 `LiquidGlassSurface`（`lib/widgets/glass/liquid_glass.dart`），档位 `regular`（卡片/弹窗档），不是阅读器顶栏那档 `thick` —— 顶栏横贯整屏要压得住内容，胶囊只盖住正文一小条边
+- **`Material` 两档都留着**：它是 `IconButton` 水波纹的宿主。玻璃档把它涂成 `Colors.transparent`、描边去掉（玻璃自带边缘高光），否则玻璃被自己那层实底盖掉
+- 默认开与 `ToastSettingState.liquidGlass`（默认关）**刻意不一致**：提示条那条要保住改造前的观感，rail 是新控件没有旧观感要保，且用户点名要
+- 开关落在设置 → 行为 → 详情页那一段，与 `comicInfoInlineReadButton` 并排、同样 `if (isDesktop)`；同步归 `library` 块（见 §7.1 第 3 条的订正）
+- 生成物按过滤重生：`build_runner --build-filter` 只出 `global_setting.freezed.dart` / `.g.dart`，`flutter pub run slang` 当时两份 `.i18n.json` 是干净的所以只扫进我这两个键
+
+**验证状态**：`test/comic_info/comic_info_action_rail_test.dart` 8 条 + `settings_sync_block_test` 19 条全绿；`flutter analyze lib`（整树）No issues。🟡 玻璃观感、被裁那颗是否真的回来了，仍要实机看（§8 的 V1'/V5'/V7 + 新增 V8「玻璃开关来回切两次」）。
 
 ## 8. 验收清单（交付时逐条报编号 + 状态，缺哪条说哪条）
 

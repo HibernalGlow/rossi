@@ -272,6 +272,12 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     // 详情页「阅读」入口：桌面端放进操作行（「下载」旁边），并撤掉右下角的悬浮按钮。
     // 触摸端不受这个开关影响 —— 那边只有悬浮按钮一种落点。
     @Default(true) bool comicInfoInlineReadButton,
+    // 详情页左右那颗悬浮胶囊用液态玻璃还是实底（`surfaceContainerHigh`）。
+    //
+    // **默认开**，与 `ToastSettingState.liquidGlass`（默认关）不一致，理由是刻意的：
+    // 提示条那条要保住改造前的观感，而 rail 是新控件、没有旧观感可保护，且用户
+    // 2026-09-21 点名要玻璃。关掉仍然能看清本体（实底 + 描边 + elevation）。
+    @Default(true) bool comicInfoRailLiquidGlass,
     // 启动后是否直接进工作台（泳道 / 四边栏）。默认关 = 改造前的行为（落在导航栏）。
     // 只在**真有工作台入口**的布局（平板 / 桌面四边栏）落地，手机端忽略 ——
     // 判定收在 `lib/workspace/model/workspace_startup.dart`。

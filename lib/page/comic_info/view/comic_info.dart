@@ -266,70 +266,70 @@ class _ComicInfoState extends State<_ComicInfo>
       ),
       body: _withActionRails(
         child: BlocBuilder<GetComicInfoBloc, GetComicInfoState>(
-        builder: (context, state) {
-          switch (state.status) {
-            case GetComicInfoStatus.initial:
-              _cloudFavoriteStateOverridden = false;
-              return Center(child: CircularProgressIndicator());
-            case GetComicInfoStatus.failure:
-              if (state.result.contains("under review") &&
-                  state.result.contains("1014")) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        t.comicInfo.discontinued,
-                        style: const TextStyle(fontSize: 20),
-                      ),
-                      SizedBox(height: 10),
-                      ElevatedButton(
-                        onPressed: () => popTabOrClose(
-                          context,
-                          otherwise: () => context.pop(),
+          builder: (context, state) {
+            switch (state.status) {
+              case GetComicInfoStatus.initial:
+                _cloudFavoriteStateOverridden = false;
+                return Center(child: CircularProgressIndicator());
+              case GetComicInfoStatus.failure:
+                if (state.result.contains("under review") &&
+                    state.result.contains("1014")) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          t.comicInfo.discontinued,
+                          style: const TextStyle(fontSize: 20),
                         ),
-                        child: Text(t.comicInfo.back),
-                      ),
-                    ],
-                  ),
-                );
-              }
-              return ErrorView(
-                errorMessage: t.comicInfo.loadFailedWithError(
-                  error: state.result.toString(),
-                ),
-                onRetry: () {
-                  context.read<GetComicInfoBloc>().add(
-                    GetComicInfoEvent(
-                      comicId: _comicId,
-                      from: widget.from,
-                      type: _type,
-                      extern: widget.extern,
+                        SizedBox(height: 10),
+                        ElevatedButton(
+                          onPressed: () => popTabOrClose(
+                            context,
+                            otherwise: () => context.pop(),
+                          ),
+                          child: Text(t.comicInfo.back),
+                        ),
+                      ],
                     ),
                   );
-                },
-              );
-            case GetComicInfoStatus.success:
-              comicInfoDyn = state.comicInfo;
-              _currentInfo = state.allInfo;
-              _comicId = state.comicId ?? _comicId;
-              if (!_cloudFavoriteStateOverridden) {
-                _isCloudCollected = state.allInfo?.isFavourite ?? false;
-              }
-              _syncLocalCollectStatus(state.allInfo!);
-              initHistory(
-                context,
-                _comicId,
-                widget.from,
-                chapters: state.allInfo!.eps,
-              );
-              return _infoView(
-                state.allInfo!,
-                showInlineReadEntry: showInlineReadEntry,
-              );
-          }
-        },
-      ),
+                }
+                return ErrorView(
+                  errorMessage: t.comicInfo.loadFailedWithError(
+                    error: state.result.toString(),
+                  ),
+                  onRetry: () {
+                    context.read<GetComicInfoBloc>().add(
+                      GetComicInfoEvent(
+                        comicId: _comicId,
+                        from: widget.from,
+                        type: _type,
+                        extern: widget.extern,
+                      ),
+                    );
+                  },
+                );
+              case GetComicInfoStatus.success:
+                comicInfoDyn = state.comicInfo;
+                _currentInfo = state.allInfo;
+                _comicId = state.comicId ?? _comicId;
+                if (!_cloudFavoriteStateOverridden) {
+                  _isCloudCollected = state.allInfo?.isFavourite ?? false;
+                }
+                _syncLocalCollectStatus(state.allInfo!);
+                initHistory(
+                  context,
+                  _comicId,
+                  widget.from,
+                  chapters: state.allInfo!.eps,
+                );
+                return _infoView(
+                  state.allInfo!,
+                  showInlineReadEntry: showInlineReadEntry,
+                );
+            }
+          },
+        ),
       ),
       floatingActionButtonLocation:
           context.watch<GlobalSettingCubit>().state.leftHandModeEnabled
@@ -419,9 +419,8 @@ class _ComicInfoState extends State<_ComicInfo>
   /// 判据用指针而不是视口宽度（口径 4）：带触摸屏的 Windows 笔记本仍然有指针，
   /// 「该不该省鼠标的路」取决于手上是什么，不取决于窗口多宽。
   ///
-  /// 用 `Stack` + `Positioned` 而不是 `Row`：第一版用 Row 占了两列 52px，实机截图里
-  /// 漫画正文被挤窄 104px、而那一列除了顶上两颗整截是空的。悬浮 = **不占布局宽度**，
-  /// 正文该多宽还多宽。
+  /// 几何不在这里算 —— 交给 [ComicInfoActionOverlay]，那样那份 `Positioned` 的落点
+  /// 才测得到（第一版写在这里，右边那颗被裁到窗口外没被发现）。
   Widget _withActionRails({required Widget child}) {
     if (!comicInfoPlatformHasPointer(defaultTargetPlatform)) {
       return child;
@@ -433,36 +432,12 @@ class _ComicInfoState extends State<_ComicInfo>
           if (item.actionId == id) item,
     ];
 
-    return Stack(
-      children: [
-        Positioned.fill(child: child),
-        Positioned(
-          // 垂直居中贴边：手/鼠标停在屏幕边上就能点，且上下都不挡正文标题与封面。
-          left: 8,
-          top: 0,
-          bottom: 0,
-          child: Center(
-            child: ComicInfoActionRail(
-              scope: this,
-              items: pick(const [
-                ComicInfoActionIds.back,
-                ComicInfoActionIds.home,
-              ]),
-            ),
-          ),
-        ),
-        Positioned(
-          right: 8,
-          top: 0,
-          bottom: 0,
-          child: Center(
-            child: ComicInfoActionRail(
-              scope: this,
-              items: pick(const [ComicInfoActionIds.read]),
-            ),
-          ),
-        ),
-      ],
+    return ComicInfoActionOverlay(
+      scope: this,
+      glass: context.watch<GlobalSettingCubit>().state.comicInfoRailLiquidGlass,
+      leftItems: pick(const [ComicInfoActionIds.back, ComicInfoActionIds.home]),
+      rightItems: pick(const [ComicInfoActionIds.read]),
+      child: child,
     );
   }
 

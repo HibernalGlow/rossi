@@ -21,7 +21,7 @@
 | 块 | 内容 | 落点 |
 |----|------|------|
 | `appearance` | 主题（dynamicColor / themeMode / AMOLED / seedColor / tweakcn）、语言与地区、开屏页、简繁转换 | `GlobalSettingState` 顶层字段 |
-| `library` | 屏蔽词、图源选择、下载（并发 / 延时 / 重试 / 元数据）、追更与收藏联动、书架设置、**漫画卡片设置**、发现页标签条、**收藏 tag（含别名）** | 同上 |
+| `library` | 屏蔽词、图源选择、下载（并发 / 延时 / 重试 / 元数据）、追更与收藏联动、书架设置、**漫画卡片设置**、发现页标签条、**收藏 tag（含别名）**、详情页阅读入口落点与操作栏材质 | 同上 |
 | `reader` | 整个 `readSetting`（阅读模式、翻页、预载、双页、E-Ink、进度条、悬停揭示、**顶栏材质与蒙层不透明度**…） | `readSetting` 子对象 |
 | `shell` | 启动落点（`startWithWorkspace`）、Impeller 强制、Android 保活 / 返回键退出、**桌面端透明标题栏** | 顶层字段 |
 | `toast` | 提示条（位置 / 时长 / 尺寸 / 透明度 / 玻璃）与切换提示 | 顶层字段 |

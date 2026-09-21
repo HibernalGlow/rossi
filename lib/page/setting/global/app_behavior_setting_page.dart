@@ -81,6 +81,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
           // 只在桌面端给这个开关：触摸端只有右下角悬浮按钮一种落点，
           // 摆一个点了没反应的开关比不摆更糟（与 `_desktopCloseBehaviorTile` 同口径）。
           if (isDesktop) _comicInfoInlineReadButton(state, cubit),
+          if (isDesktop) _comicInfoRailLiquidGlass(state, cubit),
           const SizedBox(height: 32),
         ],
       ),
@@ -277,6 +278,27 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
       onChanged: (bool value) {
         cubit.updateState(
           (current) => current.copyWith(comicInfoInlineReadButton: value),
+        );
+        showSuccessToast(t.common.settingSaved);
+      },
+    );
+  }
+
+  /// 详情页左右那颗悬浮胶囊的材质。只在桌面出现 —— rail 本身的判据是「有没有指针」
+  /// （`comicInfoPlatformHasPointer`），手机端根本没有这颗控件，摆个开关比不摆更糟。
+  Widget _comicInfoRailLiquidGlass(
+    GlobalSettingState state,
+    GlobalSettingCubit cubit,
+  ) {
+    return SwitchListTile(
+      secondary: const Icon(Icons.blur_on_outlined),
+      title: Text(t.settings.comicInfoRailLiquidGlass),
+      subtitle: Text(t.settings.comicInfoRailLiquidGlassSubtitle),
+      thumbIcon: kSettingSwitchThumbIcon,
+      value: state.comicInfoRailLiquidGlass,
+      onChanged: (bool value) {
+        cubit.updateState(
+          (current) => current.copyWith(comicInfoRailLiquidGlass: value),
         );
         showSuccessToast(t.common.settingSaved);
       },

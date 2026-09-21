@@ -50,10 +50,13 @@ class ComicInfoActionRail extends StatelessWidget {
   /// 条目之间的间距。
   static const double gap = 2;
 
-  /// 胶囊的占宽（40 + 左右内边距 4×2 + 描边 1×2）。
+  /// 胶囊的占宽（按钮 40 + 左右内边距 4×2）。
+  ///
+  /// 描边**不加宽**：`StadiumBorder` 的 `BorderSide` 画在形状内部，不参与布局
+  /// （这条是测试当场抓出来的：按 50 算会让外层定宽比胶囊宽 2px）。
   ///
   /// 外层要按这个值给 `Positioned` **定宽**，见 [ComicInfoActionOverlay] 的注释。
-  static const double maxWidth = buttonSize + paddingH * 2 + 2;
+  static const double maxWidth = buttonSize + paddingH * 2;
 
   static double get pillRadius => buttonSize / 2 + paddingV;
 
@@ -161,7 +164,10 @@ class ComicInfoActionOverlay extends StatelessWidget {
     );
   }
 
-  Widget _side({required bool left, required List<ComicInfoActionEntry> items}) {
+  Widget _side({
+    required bool left,
+    required List<ComicInfoActionEntry> items,
+  }) {
     return Positioned(
       left: left ? edgeInset : null,
       right: left ? null : edgeInset,
@@ -171,11 +177,7 @@ class ComicInfoActionOverlay extends StatelessWidget {
         width: ComicInfoActionRail.maxWidth,
         child: Align(
           alignment: left ? Alignment.centerLeft : Alignment.centerRight,
-          child: ComicInfoActionRail(
-            scope: scope,
-            items: items,
-            glass: glass,
-          ),
+          child: ComicInfoActionRail(scope: scope, items: items, glass: glass),
         ),
       ),
     );
