@@ -426,6 +426,8 @@
     "colorBrown": "棕色",
     "colorGrey": "灰色",
     "colorBlueGrey": "蓝灰色",
+    "colorMaskRed": "面具红",
+    "colorPresets": "预设颜色",
     "coremlDebug": "CoreML 超分调试",
     "coremlDebugSubtitle": "使用绝对路径模型测试 CoreML 超分",
     "aboutAndMore": "关于与更多",
@@ -1850,5 +1852,12 @@
     "bindings": "绑定",
     "restore": "恢复默认",
     "resetFilters": "清除筛选"
+  },
+  "plat": {
+    "openAbove": "在上方打开",
+    "openBelow": "在下方打开",
+    "openLeft": "在左侧打开",
+    "openRight": "在右侧打开",
+    "closeTab": "关闭标签"
   }
 }

@@ -162,6 +162,33 @@ Future<void> _pumpTuneMenuHost(WidgetTester tester, DiscoverTabs tabs) async {
   await tester.pumpAndSettle();
 }
 
+/// 带身份的叶子：State 对象被销毁重建 = 「重挂」，也就是用户说的「重载」。
+class _LeafStateProbe extends StatefulWidget {
+  const _LeafStateProbe();
+
+  @override
+  State<_LeafStateProbe> createState() => _LeafStateProbeState();
+}
+
+class _LeafStateProbeState extends State<_LeafStateProbe> {
+  static final List<_LeafStateProbeState> live = <_LeafStateProbeState>[];
+
+  @override
+  void initState() {
+    super.initState();
+    live.add(this);
+  }
+
+  @override
+  void dispose() {
+    live.remove(this);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox(width: 40, height: 40);
+}
+
 void main() {
   testWidgets('只有一条标签时画得出来，且不抛', (tester) async {
     final tabs = _tabs();
@@ -472,6 +499,108 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: '切到「${side.label}」之后抛了');
     }
+    tabs.dispose();
+  });
+
+  testWidgets('切朝向**不重挂**标签内容（叶子 State 还是同一个）', (tester) async {
+    final tabs = _tabs();
+    tabs.open(
+      label: '排行',
+      source: 'p1',
+      content: (c) => const _LeafStateProbe(),
+    );
+    await _pump(tester, tabs, surface: const Size(900, 600), centered: false);
+    await tester.pumpAndSettle();
+    expect(_LeafStateProbeState.live, hasLength(1));
+    final before = _LeafStateProbeState.live.single;
+
+    for (final side in [
+      DiscoverTabBarSide.left,
+      DiscoverTabBarSide.right,
+      DiscoverTabBarSide.top,
+    ]) {
+      tabs.setSide(side);
+      await tester.pumpAndSettle();
+      expect(
+        _LeafStateProbeState.live,
+        hasLength(1),
+        reason: '切到 ${side.label} 之后叶子被重挂了（重建 = 用户说的重载）',
+      );
+      expect(
+        identical(_LeafStateProbeState.live.single, before),
+        isTrue,
+        reason: '切到 ${side.label} 之后叶子换了 State 实例',
+      );
+    }
+    tabs.dispose();
+  });
+
+  testWidgets('拖轨内侧那条边：轨变宽，松手落进设置', (tester) async {
+    final cubit = _MemSettingCubit();
+    // 偏好与树要**一致**：只设树的话，窄页面钳制会把树推回横向，
+    // 界面停在 Offstage 里，把手根本不在可命中树里。
+    cubit.updateDiscoverSetting(
+      (current) => current.copyWith(tabSide: DiscoverTabBarSide.left),
+    );
+    final tabs = _tabs();
+    tabs.open(
+      label: '排行',
+      source: 'p1',
+      content: (c) => const _LeafStateProbe(),
+    );
+    tabs.setSide(DiscoverTabBarSide.left);
+    await tester.pumpWidget(
+      MaterialApp(
+        supportedLocales: AppLocaleUtils.supportedLocales,
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        home: BlocProvider<GlobalSettingCubit>(
+          create: (_) => cubit,
+          child: Scaffold(
+            body: SizedBox(
+              width: 900,
+              height: 600,
+              child: DiscoverPlatView(
+                tabs: tabs,
+                setting: cubit.state.discoverSetting,
+                onSearch: () {},
+                onCustomizeOrder: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final startWidth = cubit.state.discoverSetting.tabRailWidth;
+
+    await tester.drag(
+      find.byKey(DiscoverPlatView.railHandleKey),
+      const Offset(40, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(
+      cubit.state.discoverSetting.tabRailWidth,
+      greaterThan(startWidth),
+      reason: '拖完没落进设置',
+    );
+
+    // 往回死命拖：必须停在实测地板上，且那一帧不抛。
+    // 地板之下标签的固定开销（图标 + 间距 + 关闭钮）摆不下，会抛 RenderFlex
+    // 溢出 —— 而那是设备更新相里的异常，会把 MouseTracker 的复位标志跳过去。
+    for (var i = 0; i < 6; i++) {
+      await tester.drag(
+        find.byKey(DiscoverPlatView.railHandleKey),
+        const Offset(-200, 0),
+      );
+      await tester.pumpAndSettle();
+    }
+    expect(tester.takeException(), isNull, reason: '拖到地板时溢出过');
+    expect(
+      cubit.state.discoverSetting.tabRailWidth,
+      DiscoverPlatView.railMinWidth,
+      reason: '没停在地板上',
+    );
     tabs.dispose();
   });
 }

@@ -8,6 +8,8 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/discover/service/discover_router.dart';
 import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:zephyr/page/discover/service/discover_tabs.dart';
+import 'package:zephyr/widgets/plat/rossi_plat_tab_menu.dart';
+import 'package:zephyr/widgets/plat/rossi_plat_theme.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
 import 'package:zephyr/page/search/view/search_page.dart';
 import 'package:zephyr/widgets/plugin_icon.dart';
@@ -31,28 +33,41 @@ class DiscoverPlatView extends StatefulWidget {
   final VoidCallback onSearch;
   final VoidCallback onCustomizeOrder;
 
-  /// 竖向轨的厚度（= 一条标签可用的全部宽度）。
-  ///
-  /// 不能贪宽：这一档是**从内容区里扣出来的**。发现页住在泳道里时整页常常只有
-  /// 320~500 宽，轨给到 152 之后剩下的宽度连标签内容自己的工具栏都摆不下
-  /// （实测 `SearchPage` 那条搜索栏要 ~160，被压到 152 就报 RenderFlex overflowed，
-  /// 而布局异常会跳过 MouseTracker 的复位标志 → 每帧刷断言直到卡死）。
-  static const double _railThickness = 200;
+  /// 竖向轨厚度的可拖范围与兜底默认值（真正的值存在设置里）。
+  /// 地板是量出来的，不是拍的：一条标签里**不是文字**的那部分（前导图标 +
+  /// 两道间距 + 关闭钮 + 轨内边距）实测要 54 + 8 = 62 —— 轨厚 60 时 RenderFlex
+  /// 溢 2px、61 溢 1px、62 起干净。再窄就会在设备更新相里抛布局异常，
+  /// 那正是「每帧刷 `!_debugDuringDeviceUpdate` 直到卡死」的引信。
+  static const double railMinWidth = 64;
+  static const double railMaxWidth = 260;
 
-  /// 竖向轨要能从内容区里扣走的**最小整页宽度**。
+  /// 横向档一条标签的上限（常量，不按朝向现算 —— 见 `_buildChip`）。
+  static const double chipMaxWidth = 220;
+
+  /// 内容区不能被压到比这更窄。
   ///
-  /// 实测：轨厚 120 时，整页 320 宽会把标签内容自己的搜索栏压到 24 宽并报
-  /// `RenderFlex overflowed`，400 起才干净（判据见
-  /// `test/discover/discover_page_real_test.dart` 的窄宽度那几条）。
-  /// 布局异常会跳过 `MouseTracker` 的复位标志 —— 那正是「每帧刷
-  /// `!_debugDuringDeviceUpdate` 直到卡死」的成因，所以宁可不转。
-  static const double railMinPageWidth = 480;
+  /// 量出来的：轨厚 120 时整页 320 会把 `SearchPage` 的搜索栏压到 24 宽并报
+  /// `RenderFlex overflowed`；留 280 给内容就干净。轨宽因此是「整页宽度 − 这个数」
+  /// 的上限，用户拖也拖不过去。
+  static const double contentMinWidth = 280;
+
+  /// 把手本身的宽度（轨内侧那条边）。
+  static const double _handleWidth = 6;
+
+  /// 把手在树上的名字（判据要拖它）。
+  static const Key railHandleKey = ValueKey<String>('discover-rail-handle');
 
   @override
   State<DiscoverPlatView> createState() => _DiscoverPlatViewState();
 }
 
 class _DiscoverPlatViewState extends State<DiscoverPlatView> {
+  /// 拖动中的轨厚；`null` = 没在拖（读设置里的值）。
+  double? _dragWidth;
+
+  /// 这一片现在多大（右键分屏要拿它判断「切一半还摆得下吗」）。
+  Size? _pageSize;
+
   @override
   void initState() {
     super.initState();
@@ -93,15 +108,18 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        _pageSize = constraints.biggest;
         final effective = _effectiveSide(constraints.maxWidth);
-        if (effective != tabs.tabSide) {
-          _applySideSoon(context, effective);
-          // 朝向要变的那一帧**先空着**：拿旧朝向硬画新宽度会把标签内容压到
-          // 布局溢出（实测窄页面里搜索栏被挤成 24 宽）。空一帧无害，
-          // 抛一帧换来之后每帧一条断言直到界面卡死。
-          return const SizedBox.shrink();
-        }
-        return _view(context);
+        // 朝向要变的那一帧**不布局**：拿旧朝向硬画新宽度会把标签内容压到布局
+        // 溢出（实测窄页面里搜索栏被挤成 24 宽、竖轨里标签被挤成 24 宽），
+        // 而那一帧的异常就是 MouseTracker 不复位的引信。
+        //
+        // 包装必须是**恒在**的：`Offstage` 换进换出等于给子树换了个祖先，
+        // element 无法复用，标签内容会整棵重挂 —— 那正是用户说的
+        // 「热切换触发页签重载」。所以这里只切标志位，绝不换包装。
+        final transitioning = effective != tabs.tabSide;
+        if (transitioning) _applySideSoon(context, effective);
+        return Offstage(offstage: transitioning, child: _view(context));
       },
     );
   }
@@ -110,10 +128,39 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
   DiscoverTabBarSide _effectiveSide(double pageWidth) {
     final preferred = setting.tabSide;
     if (preferred == DiscoverTabBarSide.top) return preferred;
-    if (!pageWidth.isFinite || pageWidth < DiscoverPlatView.railMinPageWidth) {
+    if (!pageWidth.isFinite ||
+        pageWidth < _railWidth + DiscoverPlatView.contentMinWidth) {
       return DiscoverTabBarSide.top;
     }
     return preferred;
+  }
+
+  /// 当前轨厚：拖动中先用本地值（不写盘），松手才落设置。
+  double get _railWidth =>
+      _dragWidth ??
+      widget.setting.tabRailWidth.clamp(
+        DiscoverPlatView.railMinWidth,
+        DiscoverPlatView.railMaxWidth,
+      );
+
+  void _dragRail(double dx, bool railOnLeft) {
+    // 往内容方向拖是「变窄」还是「变宽」取决于轨在哪一边。
+    final next = (_railWidth + (railOnLeft ? dx : -dx)).clamp(
+      DiscoverPlatView.railMinWidth,
+      DiscoverPlatView.railMaxWidth,
+    );
+    if (next == _dragWidth) return;
+    setState(() => _dragWidth = next);
+  }
+
+  void _commitRailWidth() {
+    final width = _dragWidth;
+    if (width == null) return;
+    _dragWidth = null;
+    context.read<GlobalSettingCubit>().updateDiscoverSetting(
+      (current) => current.copyWith(tabRailWidth: width),
+    );
+    if (mounted) setState(() {});
   }
 
   /// 改树排到帧尾：build 期间动 controller 等于在构建过程中改状态。
@@ -127,37 +174,74 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
     });
   }
 
+  /// 条/轨本身占掉之后，标签内容那一格还剩多大。
+  Size? get _paneSize {
+    final page = _pageSize;
+    if (page == null) return null;
+    return _vertical
+        ? Size(page.width - _railWidth, page.height)
+        : Size(page.width, page.height - _barThickness);
+  }
+
+  static const double _barThickness = 40;
+
   Widget _view(BuildContext context) {
-    return PlatTheme(
-      data: PlatThemeData(
-        tabBar: PlatTabBarTheme(
-          // 竖向轨要窄：它是列表的边，不该吃掉内容的三分之一。
-          size: _vertical ? DiscoverPlatView._railThickness : 40,
-          fit: TabStripFit.scrollable,
-          spacing: 2,
-          // Material 的 TabBar 默认给 16 的左右标签内边距；竖轨一共才 120 厚，
-          // 那 32 就是「标签名明明没超长、Row 却溢出」的来源。
-          labelPadding: EdgeInsets.symmetric(horizontal: 4),
+    return RossiPlatTheme(
+      // 竖向轨要窄：它是列表的边，不该吃掉内容的三分之一。
+      barThickness: _vertical ? _railWidth : _barThickness,
+      vertical: _vertical,
+      child: Stack(
+        children: [
+          Positioned.fill(child: _platView(context)),
+          if (_vertical) _railHandle(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _platView(BuildContext context) {
+    return PlatView(
+      controller: tabs.controller,
+      // 不在挂载时抢键盘焦点：焦点一抢走，Cmd/Ctrl + Z 这类键就先被 plat 的
+      // 标签命令看见（见 [_leafShortcuts]）。让用户点进这一片再生效。
+      autofocus: false,
+      leafBuilder: _buildLeaf,
+      tabBar: (context, group) => PlatTabBar(
+        tabBuilder: _buildChip,
+        trailing: _BarActions(
+          vertical: _vertical,
+          onHome: tabs.onHome,
+          onSearch: onSearch,
+          onCustomizeOrder: onCustomizeOrder,
+          tabs: tabs,
         ),
       ),
-      child: PlatView(
-        // 换朝向时整棵重建一次。plat 在运行时改 `side` 之后不会重算标签拿到的
-        // 约束（竖轨上仍按无界宽度排字），实测会留一条 20px 的 RenderFlex 溢出；
-        // 而朝向是用户主动切的，重挂一次比留着布局异常划算。
-        key: ValueKey<Object?>(tabs.side),
-        controller: tabs.controller,
-        // 不在挂载时抢键盘焦点：焦点一抢走，Cmd/Ctrl + Z 这类键就先被 plat 的
-        // 标签命令看见（见 [_leafShortcuts]）。让用户点进这一片再生效。
-        autofocus: false,
-        leafBuilder: _buildLeaf,
-        tabBar: (context, group) => PlatTabBar(
-          tabBuilder: _buildChip,
-          trailing: _BarActions(
-            vertical: _vertical,
-            onHome: tabs.onHome,
-            onSearch: onSearch,
-            onCustomizeOrder: onCustomizeOrder,
-            tabs: tabs,
+    );
+  }
+
+  /// 轨内侧那条可拖的边：改的是「轨从内容区扣走多少」，所以它得贴着内容那一侧。
+  Widget _railHandle(BuildContext context) {
+    final railOnLeft = tabs.side == TabBarSide.left;
+    const handle = DiscoverPlatView._handleWidth;
+    return Positioned(
+      key: DiscoverPlatView.railHandleKey,
+      top: 0,
+      bottom: 0,
+      left: railOnLeft ? _railWidth - handle : null,
+      right: railOnLeft ? null : _railWidth - handle,
+      width: handle,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.resizeColumn,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onHorizontalDragUpdate: (details) =>
+              _dragRail(details.delta.dx, railOnLeft),
+          onHorizontalDragEnd: (_) => _commitRailWidth(),
+          child: Center(
+            child: Container(
+              width: 2,
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
           ),
         ),
       ),
@@ -210,19 +294,36 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
     );
     final text = Text(label, maxLines: 1, overflow: TextOverflow.ellipsis);
 
-    return PlatTabChip(
-      leading: setting.tabIconEnabled ? _chipLeading(context, leaf) : null,
-      // 这里**不放 Tooltip**：它是这条标签条里唯一会在 hover 回调里往 Overlay
-      // 插东西的东西，而「hover 时改命中树」正是 `!_debugDuringDeviceUpdate`
-      // 那条断言唯一需要的燃料（上游 flutter/flutter#107063 至今没修，
-      // 我们的判据又复现不出来 —— 那就先把这层燃料抽掉）。
-      // 标签**不设上限**：竖轨里 plat 给每条标签的是「轨厚 − 内边距」这一有界宽度
-      // （实测 120 的轨给 112），横向那条轨则是无界、按内容取宽后整条可滚。
-      // 之前按朝向现算一个上限塞进去，朝向是切出来的而 chip 不会重建，
-      // 于是旧档的上限留在新布局里 —— 竖轨上溢出 20px，就是实机卡死的燃料。
-      label: text,
-      // 首页那条是 locked 的，plat 自己会把关闭按钮藏掉。
-      trailing: const PlatTabCloseButton(),
+    // 横向档一条标签的上限。**是个常量，不按朝向现算**：
+    // 先前按「轨厚 − 开销」现算，而朝向是切出来的、chip 不重建，旧档的上限
+    // 会留在新布局里（竖轨溢出 20px 那次就是这么来的）。
+    // 竖轨里 plat 给每条标签的是「轨厚 − 内边距」这一有界宽度，比这个数小，
+    // 所以这一层在竖向是空操作，只把横向那条长标题（日文全名能到 60 字）掐住。
+    final labelWidget = ConstrainedBox(
+      constraints: const BoxConstraints(
+        maxWidth: DiscoverPlatView.chipMaxWidth,
+      ),
+      child: text,
+    );
+
+    return RossiPlatTabMenuRegion(
+      controller: tabs.controller,
+      tabId: tab.snapshot.id,
+      // 复制 = 「在这一侧再开一条同内容的」；locked 的那条（首页）不给拆。
+      duplicable: !tab.snapshot.locked,
+      duplicateTab: () => tabs.duplicateTabOf(tab.snapshot.id),
+      onClose: tab.snapshot.locked ? null : () => tabs.close(tab.snapshot.id),
+      // 切一半之后每格还剩多宽/多高，决定四个方向里哪些点了会炸。
+      paneSize: _paneSize,
+      child: PlatTabChip(
+        leading: setting.tabIconEnabled ? _chipLeading(context, leaf) : null,
+        // 这里**不放 Tooltip**：它是这条标签条里唯一会在 hover 回调里往 Overlay
+        // 插东西的东西，而「hover 时改命中树」正是 `!_debugDuringDeviceUpdate`
+        // 那条断言唯一需要的燃料（上游 flutter/flutter#107063 至今没修）。
+        label: labelWidget,
+        // 首页那条是 locked 的，plat 自己会把关闭按钮藏掉。
+        trailing: const PlatTabCloseButton(),
+      ),
     );
   }
 

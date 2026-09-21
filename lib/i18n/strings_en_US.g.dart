@@ -77,6 +77,7 @@ class TranslationsEnUs extends Translations with BaseTranslations<AppLocale, Tra
 	@override late final _Translations$shelfMenu$en_US shelfMenu = _Translations$shelfMenu$en_US._(_root);
 	@override late final _Translations$video$en_US video = _Translations$video$en_US._(_root);
 	@override late final _Translations$bindingEditor$en_US bindingEditor = _Translations$bindingEditor$en_US._(_root);
+	@override late final _Translations$plat$en_US plat = _Translations$plat$en_US._(_root);
 }
 
 // Path: common
@@ -531,6 +532,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get colorBrown => 'Brown';
 	@override String get colorGrey => 'Grey';
 	@override String get colorBlueGrey => 'Blue grey';
+	@override String get colorMaskRed => 'Mask red';
+	@override String get colorPresets => 'Preset colors';
 	@override String get coremlDebug => 'CoreML upscale debug';
 	@override String get coremlDebugSubtitle => 'Test CoreML upscale with absolute path model';
 	@override String get aboutAndMore => 'About & More';
@@ -2187,6 +2190,20 @@ class _Translations$bindingEditor$en_US extends Translations$bindingEditor$zh_CN
 	@override String get resetFilters => 'Clear filters';
 }
 
+// Path: plat
+class _Translations$plat$en_US extends Translations$plat$zh_CN {
+	_Translations$plat$en_US._(TranslationsEnUs root) : this._root = root, super.internal(root);
+
+	final TranslationsEnUs _root; // ignore: unused_field
+
+	// Translations
+	@override String get openAbove => 'Open above';
+	@override String get openBelow => 'Open below';
+	@override String get openLeft => 'Open left';
+	@override String get openRight => 'Open right';
+	@override String get closeTab => 'Close tab';
+}
+
 /// The flat map containing all translations for locale <en-US>.
 /// Only for edge cases! For simple maps, use the map function of this library.
 ///
@@ -2614,6 +2631,8 @@ extension on TranslationsEnUs {
 			'settings.colorBrown' => 'Brown',
 			'settings.colorGrey' => 'Grey',
 			'settings.colorBlueGrey' => 'Blue grey',
+			'settings.colorMaskRed' => 'Mask red',
+			'settings.colorPresets' => 'Preset colors',
 			'settings.coremlDebug' => 'CoreML upscale debug',
 			'settings.coremlDebugSubtitle' => 'Test CoreML upscale with absolute path model',
 			'settings.aboutAndMore' => 'About & More',
@@ -2705,10 +2724,10 @@ extension on TranslationsEnUs {
 			'settings.operationBindingActionBookMode' => 'Book mode',
 			'settings.operationBindingActionResetView' => 'Reset view',
 			'settings.operationBindingActionToggleBars' => 'Show or hide the bars',
-			'settings.operationBindingActionOpenSettings' => 'Open settings',
-			'settings.operationBindingActionZoomIn' => 'Zoom in',
 			_ => null,
 		} ?? switch (path) {
+			'settings.operationBindingActionOpenSettings' => 'Open settings',
+			'settings.operationBindingActionZoomIn' => 'Zoom in',
 			'settings.operationBindingActionZoomOut' => 'Zoom out',
 			'settings.operationBindingActionFitWindow' => 'Fit to window',
 			'settings.operationBindingActionActualSize' => 'Actual size',
@@ -3219,10 +3238,10 @@ extension on TranslationsEnUs {
 			'plugin.chromiumFallbackUnsupported' => 'External Chromium auto-login fallback is not supported on this platform',
 			'plugin.switchingToExternalBrowser' => 'Built-in WebView login is limited, switching to external browser...',
 			'plugin.chromiumNotFound' => 'No Chromium browser detected, please install Chrome first',
-			'plugin.browserSwitched' => ({required Object browser}) => 'Switched to ${browser}, cookies will be synced automatically after login',
-			'plugin.invalidLink' => ({required Object url}) => 'Invalid link: ${url}',
 			_ => null,
 		} ?? switch (path) {
+			'plugin.browserSwitched' => ({required Object browser}) => 'Switched to ${browser}, cookies will be synced automatically after login',
+			'plugin.invalidLink' => ({required Object url}) => 'Invalid link: ${url}',
 			'plugin.cannotOpenLink' => ({required Object url}) => 'Cannot open link: ${url}',
 			'plugin.readLocalPluginFailed' => ({required Object error}) => 'Failed to read local plugin: ${error}',
 			'plugin.addFromNetwork' => 'Add plugin from network',
@@ -3733,10 +3752,10 @@ extension on TranslationsEnUs {
 			'download.selectChaptersPrompt' => 'Please select chapters to download',
 			'download.taskStarted' => 'Download task started',
 			'download.taskStartFailed' => ({required Object error}) => 'Failed to start download task: ${error}',
-			'download.noTasks' => 'No download tasks',
-			'download.downloading' => 'Downloading',
 			_ => null,
 		} ?? switch (path) {
+			'download.noTasks' => 'No download tasks',
+			'download.downloading' => 'Downloading',
 			'download.pending' => ({required Object count}) => 'Pending (${count})',
 			'download.taskDeleted' => 'Task deleted',
 			'download.cancelTask' => 'Cancel Task',
@@ -3977,6 +3996,11 @@ extension on TranslationsEnUs {
 			'bindingEditor.bindings' => 'Bindings',
 			'bindingEditor.restore' => 'Restore defaults',
 			'bindingEditor.resetFilters' => 'Clear filters',
+			'plat.openAbove' => 'Open above',
+			'plat.openBelow' => 'Open below',
+			'plat.openLeft' => 'Open left',
+			'plat.openRight' => 'Open right',
+			'plat.closeTab' => 'Close tab',
 			_ => null,
 		};
 	}

@@ -30,6 +30,16 @@ class DiscoverLeafSpec {
   final IconData? icon;
 
   final WidgetBuilder content;
+
+  /// 换标题用（复制成第二个窗格时标题要带新序号，其余一律照旧）。
+  DiscoverLeafSpec copyWith({String? label}) => DiscoverLeafSpec(
+    label: label ?? this.label,
+    source: source,
+    pluginName: pluginName,
+    iconUrl: iconUrl,
+    icon: icon,
+    content: content,
+  );
 }
 
 /// 发现页的标签：**一个 plat 的 `PlatTabGroup`**。
@@ -37,10 +47,12 @@ class DiscoverLeafSpec {
 /// 为什么交给 plat 而不是自己排 Row：垂直轨、拖拽换序、pin / lock、undo、
 /// 快照这几件事是同一套东西，自己写等于再造一份 `WorkspaceCubit` 的几何记账。
 ///
-/// # 只有一组
+/// # 一组打底，分屏由右键开
 ///
-/// 整页就一个组（[groupId]），没有分栏 —— 发现页要的是「多条同类页面切换」，
-/// 不是「任意切分的工作区」。plat 的 split 能力留在这里但不启用。
+/// 默认就一个组（[groupId]）：发现页要的是「多条同类页面切换」，不是「任意切分的
+/// 工作区」。右键标签「在上/下/左/右打开」会经 `insertTabBeside` 拆出第二个窗格，
+/// 于是树上会出现 split —— 但**入口只有那一个**，拖拽落点仍然关着
+/// （`acceptsDrops: false`），免得随手一拖就把列表切成两半。
 ///
 /// # 不去重
 ///
@@ -81,7 +93,34 @@ class DiscoverTabs {
   /// 也不占掉那一行 chrome。
   bool get showsChrome => tabs.length > 1;
 
-  List<TabSnapshot> get tabs => _group?.tabs ?? const <TabSnapshot>[];
+  /// 树上**所有组**里的标签，按「先原组、后分出来的组」的顺序。
+  ///
+  /// 不能只读 [groupId] 那一组：右键分屏之后树上会有第二个组，序号与
+  /// 「关掉这一格」都要能找到分出去的那条标签，否则分屏就收不回去。
+  List<TabSnapshot> get tabs {
+    final out = <TabSnapshot>[];
+    _collectTabs(controller.root, out);
+    return out;
+  }
+
+  static void _collectTabs(PlatSnapshot node, List<TabSnapshot> out) {
+    switch (node) {
+      case final TabGroupSnapshot group:
+        out.addAll(group.tabs);
+      case final SplitSnapshot split:
+        for (final child in split.children) {
+          _collectTabs(child, out);
+        }
+      case final SlotSnapshot slot:
+        final child = slot.child;
+        if (child != null) _collectTabs(child, out);
+      default:
+        break;
+    }
+  }
+
+  /// 这条标签所在的组（分屏后不止一个组）。
+  String? groupOf(String tabId) => controller.tabGroupContaining(tabId);
 
   /// 标签条**当前**的朝向：只认树上的那一份。
   ///
@@ -132,6 +171,36 @@ class DiscoverTabs {
   /// 关掉一条标签。首页那条是 locked 的，plat 会直接拒掉。
   void close(String id) => controller.close(id);
 
+  TabSnapshot? _tabById(String id) {
+    for (final tab in tabs) {
+      if (tab.id == id) return tab;
+    }
+    return null;
+  }
+
+  /// 这条标签的内容规格；取不到返回 `null`。
+  DiscoverLeafSpec? specOf(String tabId) => _specOf(_tabById(tabId));
+
+  /// 复制一条标签（右键「在这一侧打开」用）：同内容、新 id、标题带新序号。
+  ///
+  /// 返回 `null` = 这条不给拆。首页那条是 `locked` 的：它既不能关，也不该被复制成
+  /// 两个窗格 —— 两个「插件列表」没有意义，还会让「回到列表」出现两个出口。
+  PlatTab? duplicateTabOf(String tabId) {
+    final source = _tabById(tabId);
+    if (source == null || source.locked) return null;
+    final spec = _specOf(source);
+    if (spec == null) return null;
+    final label = disambiguateLabel(
+      label: spec.label,
+      existingLabels: _labelsOf(spec.source),
+    );
+    return PlatTab.leaf(
+      id: 'tab-${++_seq}',
+      title: label,
+      data: spec.copyWith(label: label),
+    );
+  }
+
   void goHome() => controller.focus(homeId);
 
   void setSide(DiscoverTabBarSide side) =>
@@ -157,8 +226,8 @@ class DiscoverTabs {
     );
   }
 
-  static DiscoverLeafSpec? _specOf(TabSnapshot tab) {
-    final child = tab.child;
+  static DiscoverLeafSpec? _specOf(TabSnapshot? tab) {
+    final child = tab?.child;
     return child is LeafSnapshot ? child.data as DiscoverLeafSpec? : null;
   }
 

@@ -426,6 +426,8 @@
     "colorBrown": "Brown",
     "colorGrey": "Grey",
     "colorBlueGrey": "Blue grey",
+    "colorMaskRed": "Mask red",
+    "colorPresets": "Preset colors",
     "coremlDebug": "CoreML upscale debug",
     "coremlDebugSubtitle": "Test CoreML upscale with absolute path model",
     "aboutAndMore": "About & More",
@@ -1849,5 +1851,12 @@
     "bindings": "Bindings",
     "restore": "Restore defaults",
     "resetFilters": "Clear filters"
+  },
+  "plat": {
+    "openAbove": "Open above",
+    "openBelow": "Open below",
+    "openLeft": "Open left",
+    "openRight": "Open right",
+    "closeTab": "Close tab"
   }
 }

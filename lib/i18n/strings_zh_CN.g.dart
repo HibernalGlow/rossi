@@ -82,6 +82,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$shelfMenu$zh_CN shelfMenu = Translations$shelfMenu$zh_CN.internal(_root);
 	late final Translations$video$zh_CN video = Translations$video$zh_CN.internal(_root);
 	late final Translations$bindingEditor$zh_CN bindingEditor = Translations$bindingEditor$zh_CN.internal(_root);
+	late final Translations$plat$zh_CN plat = Translations$plat$zh_CN.internal(_root);
 }
 
 // Path: common
@@ -1372,6 +1373,12 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '蓝灰色'
 	String get colorBlueGrey => '蓝灰色';
+
+	/// zh-CN: '面具红'
+	String get colorMaskRed => '面具红';
+
+	/// zh-CN: '预设颜色'
+	String get colorPresets => '预设颜色';
 
 	/// zh-CN: 'CoreML 超分调试'
 	String get coremlDebug => 'CoreML 超分调试';
@@ -5745,6 +5752,30 @@ class Translations$bindingEditor$zh_CN {
 	String get resetFilters => '清除筛选';
 }
 
+// Path: plat
+class Translations$plat$zh_CN {
+	Translations$plat$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '在上方打开'
+	String get openAbove => '在上方打开';
+
+	/// zh-CN: '在下方打开'
+	String get openBelow => '在下方打开';
+
+	/// zh-CN: '在左侧打开'
+	String get openLeft => '在左侧打开';
+
+	/// zh-CN: '在右侧打开'
+	String get openRight => '在右侧打开';
+
+	/// zh-CN: '关闭标签'
+	String get closeTab => '关闭标签';
+}
+
 /// The flat map containing all translations for locale <zh-CN>.
 /// Only for edge cases! For simple maps, use the map function of this library.
 ///
@@ -6172,6 +6203,8 @@ extension on Translations {
 			'settings.colorBrown' => '棕色',
 			'settings.colorGrey' => '灰色',
 			'settings.colorBlueGrey' => '蓝灰色',
+			'settings.colorMaskRed' => '面具红',
+			'settings.colorPresets' => '预设颜色',
 			'settings.coremlDebug' => 'CoreML 超分调试',
 			'settings.coremlDebugSubtitle' => '使用绝对路径模型测试 CoreML 超分',
 			'settings.aboutAndMore' => '关于与更多',
@@ -6263,10 +6296,10 @@ extension on Translations {
 			'settings.operationBindingActionOpenSettings' => '打开设置',
 			'settings.operationBindingActionZoomIn' => '放大',
 			'settings.operationBindingActionZoomOut' => '缩小',
-			'settings.operationBindingActionFitWindow' => '适应窗口',
-			'settings.operationBindingActionActualSize' => '实际大小',
 			_ => null,
 		} ?? switch (path) {
+			'settings.operationBindingActionFitWindow' => '适应窗口',
+			'settings.operationBindingActionActualSize' => '实际大小',
 			'settings.operationBindingActionRotateClockwise' => '旋转',
 			'settings.operationBindingActionRotate180' => '旋转180度',
 			'settings.operationBindingBoundAction' => '绑定的动作',
@@ -6777,10 +6810,10 @@ extension on Translations {
 			'plugin.loginSuccess' => '请在网页中完成登录，宿主会自动同步 Cookie',
 			'plugin.chromiumFallbackUnsupported' => '当前平台不支持外部 Chromium 自动登录回退',
 			'plugin.switchingToExternalBrowser' => '内置 WebView 登录受限，正在切换外部浏览器...',
-			'plugin.chromiumNotFound' => '未检测到 Chromium 浏览器，请先安装 Chrome',
-			'plugin.browserSwitched' => ({required Object browser}) => '已切换到 ${browser}，登录完成后会自动同步 Cookie',
 			_ => null,
 		} ?? switch (path) {
+			'plugin.chromiumNotFound' => '未检测到 Chromium 浏览器，请先安装 Chrome',
+			'plugin.browserSwitched' => ({required Object browser}) => '已切换到 ${browser}，登录完成后会自动同步 Cookie',
 			'plugin.invalidLink' => ({required Object url}) => '无效链接: ${url}',
 			'plugin.cannotOpenLink' => ({required Object url}) => '无法打开链接: ${url}',
 			'plugin.readLocalPluginFailed' => ({required Object error}) => '读取本地插件失败: ${error}',
@@ -7291,10 +7324,10 @@ extension on Translations {
 			'download.startDownload' => '开始下载',
 			'download.selectChaptersPrompt' => '请选择要下载的章节',
 			'download.taskStarted' => '下载任务已启动',
-			'download.taskStartFailed' => ({required Object error}) => '下载任务启动失败，${error}',
-			'download.noTasks' => '暂无下载任务',
 			_ => null,
 		} ?? switch (path) {
+			'download.taskStartFailed' => ({required Object error}) => '下载任务启动失败，${error}',
+			'download.noTasks' => '暂无下载任务',
 			'download.downloading' => '正在下载',
 			'download.pending' => ({required Object count}) => '等待中 (${count})',
 			'download.taskDeleted' => '已删除任务',
@@ -7536,6 +7569,11 @@ extension on Translations {
 			'bindingEditor.bindings' => '绑定',
 			'bindingEditor.restore' => '恢复默认',
 			'bindingEditor.resetFilters' => '清除筛选',
+			'plat.openAbove' => '在上方打开',
+			'plat.openBelow' => '在下方打开',
+			'plat.openLeft' => '在左侧打开',
+			'plat.openRight' => '在右侧打开',
+			'plat.closeTab' => '关闭标签',
 			_ => null,
 		};
 	}
