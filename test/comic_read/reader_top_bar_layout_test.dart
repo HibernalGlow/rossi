@@ -15,6 +15,7 @@
 // `LocalReadSession.instance.presenter` 默认为 null ⇒ 超分芯片走 shrink 分支。
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -24,6 +25,7 @@ import 'package:zephyr/page/comic_read/cubit/reader_presentation_cubit.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/app_bar.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/auto_scroll_quick_button.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_upscale_status_chip.dart';
 import 'package:zephyr/util/reader/reader_top_bar_style.dart';
 
 /// 把顶栏按给定宽度画出来。
@@ -74,6 +76,10 @@ Future<void> _paintBar(
 Finder _barButtons() => find.byType(ReaderToolbarIconButton);
 
 void main() {
+  // 超分总闸存在 SharedPreferences 里：不给 mock，那颗芯片会永远停在「还在读」
+  // 的那一帧，测试看到的就是一颗没有内容的空壳。
+  setUpAll(() => SharedPreferences.setMockInitialValues({}));
+
   group('宽度分档是纯函数', () {
     test('三档的边界各只有一条线', () {
       expect(
@@ -89,8 +95,8 @@ void main() {
         ReaderToolbarTier.medium,
       );
       // 阈值本身也是判据：改了数就得改这份说明。
-      expect(ReaderTopBarStyleLimits.labeledToolbarMinWidth, 960);
-      expect(ReaderTopBarStyleLimits.expandedLayoutMinWidth, 800);
+      expect(ReaderTopBarStyleLimits.labeledToolbarMinWidth, 1060);
+      expect(ReaderTopBarStyleLimits.expandedLayoutMinWidth, 880);
       expect(
         resolveReaderToolbarTier(
           ReaderTopBarStyleLimits.expandedLayoutMinWidth,
@@ -162,18 +168,49 @@ void main() {
     }
   });
 
-  group('主行的图标按钮是同一个几何', () {
-    testWidgets('宽档：每一颗都是 40×40', (tester) async {
+  group('主行是一个 40 的高度带', () {
+    // 用户拿截图报的「错位」：图标钮 40、胶囊 44（内边距 2 撑出来的）、芯片 32 ——
+    // 三种高度并排，中心线再齐也还是乱。所以这条钉**高度**，不只是宽度。
+    testWidgets('宽档：每一颗控件都占满同一档 40 高，中心线一致', (tester) async {
       await _paintBar(tester, 1280);
-      final count = _barButtons().evaluate().length;
-      expect(count, greaterThan(6), reason: '宽档主行不该只剩几颗');
+      final controls = find.byWidgetPredicate(
+        (widget) =>
+            widget is ReaderToolbarIconButton ||
+            widget is ReaderToolbarToggleChip ||
+            widget is ReaderToolbarPill,
+      );
+      final elements = controls.evaluate().toList();
+      final count = elements.length;
+      expect(count, greaterThan(8), reason: '宽档主行不该只剩几颗');
+      double? center;
       for (var i = 0; i < count; i++) {
+        final rect = tester.getRect(controls.at(i));
         expect(
-          tester.getSize(_barButtons().at(i)),
-          const Size(40, 40),
-          reason: '第 $i 颗图标按钮偏离了统一边长，主行又会看起来一堆不同大小',
+          rect.height,
+          40,
+          reason:
+              '第 $i 颗（${elements[i].widget.runtimeType}）不是 40 高，'
+              '主行又会出现两种高度',
         );
+        expect(rect.width, greaterThanOrEqualTo(40));
+        if (center == null) {
+          center = rect.center.dy;
+        } else {
+          expect(
+            (rect.center.dy - center).abs(),
+            lessThan(0.01),
+            reason: '中心线不齐：第 $i 颗偏了',
+          );
+        }
       }
+    });
+
+    testWidgets('在线图源（没有呈现器）也画超分那颗', (tester) async {
+      // 用户口径：超分的显示与开关留在第一行。在线那条路没有逐页状态，
+      // 但总闸芯片必须在 —— 曾经整块不画，那就是「超分显示没了」。
+      await _paintBar(tester, 1280);
+      expect(find.byType(ReaderOnlineUpscaleChip), findsOneWidget);
+      expect(find.text('超分'), findsOneWidget);
     });
 
     testWidgets('neo 那五颗占位不再占主行宽度', (tester) async {
@@ -225,14 +262,17 @@ void main() {
       expect(find.byIcon(Icons.dashboard_customize_outlined), findsNothing);
       expect(find.byIcon(Icons.push_pin_outlined), findsNothing);
       expect(find.byIcon(Icons.fullscreen_rounded), findsNothing);
-      // 用户点名要留的第一行：自动滚屏（超分芯片在没有呈现器时本就不画）。
-      expect(find.byType(AutoScrollQuickButton), findsOneWidget);
+      // 用户点名要留的第一行：超分的显示与开关（在线图源也画，见下面那条）。
+      expect(find.byType(ReaderOnlineUpscaleChip), findsOneWidget);
+      // 滚屏让位了：主行放不下它 + 超分芯片，两者按用户口径分先后。
+      expect(find.byType(AutoScrollQuickButton), findsNothing);
       // 让出去的那一组仍然可达，而且就在末尾那颗「更多」里。
       await tester.tap(find.byIcon(Icons.more_vert_rounded));
       await tester.pumpAndSettle();
       expect(find.text('版式工具'), findsOneWidget);
       expect(find.text('旋转设置'), findsOneWidget);
       expect(find.text(t.reader.pinTopBar), findsOneWidget);
+      expect(find.text('开启自动滚屏'), findsOneWidget);
     });
     testWidgets('触摸屏（没有全屏那颗）时窄档同样不溢出', (tester) async {
       await _paintBar(tester, 360, withFullscreen: false);
@@ -254,7 +294,7 @@ void main() {
     testWidgets('从窄拖到宽不抛异常，芯片重新带字', (tester) async {
       await _paintBar(tester, 700);
       expect(find.text('单页'), findsNothing);
-      await resize(tester, 1000);
+      await resize(tester, ReaderTopBarStyleLimits.labeledToolbarMinWidth + 40);
       expect(tester.takeException(), isNull);
       expect(find.text('单页'), findsOneWidget);
     });
@@ -288,8 +328,9 @@ void main() {
       const expanded = ReaderTopBarStyleLimits.expandedLayoutMinWidth;
       expect(await titleWidthAt(tester, labeled), greaterThan(240));
       expect(await titleWidthAt(tester, expanded), greaterThan(240));
-      // 窄：手机与窄泳道，让位之后书名仍然比控件那一串先受益。
-      expect(await titleWidthAt(tester, 389), greaterThan(120));
+      // 窄：手机那一档第一行要保住超分（用户口径排在书名之前），
+      // 所以书名只要求还剩一个词的量 —— 再往下掉就是阈值给错了。
+      expect(await titleWidthAt(tester, 389), greaterThan(100));
     });
   });
 }

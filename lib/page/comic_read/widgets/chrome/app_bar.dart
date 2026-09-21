@@ -297,16 +297,17 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
                 if (showDownloadEntry && inlineView)
                   _buildDownloadEntry(bookTitle),
                 ReaderUpscaleStatusChip(availableWidth: chipWidth),
-                AutoScrollQuickButton(
-                  isEnabled: readSetting.autoScroll,
-                  isPaused: widget.isAutoReadPaused?.call() ?? false,
-                  onToggleAutoScroll: (enabled) {
-                    cubit.updateReadSetting(
-                      (s) => s.copyWith(autoScroll: enabled),
-                    );
-                  },
-                  onTogglePause: widget.onToggleAutoRead,
-                ),
+                if (tier.keepsAutoScrollInline)
+                  AutoScrollQuickButton(
+                    isEnabled: readSetting.autoScroll,
+                    isPaused: widget.isAutoReadPaused?.call() ?? false,
+                    onToggleAutoScroll: (enabled) {
+                      cubit.updateReadSetting(
+                        (s) => s.copyWith(autoScroll: enabled),
+                      );
+                    },
+                    onTogglePause: widget.onToggleAutoRead,
+                  ),
               ],
             ),
 
@@ -347,6 +348,9 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
                     fitMode: fitMode,
                     inlineView: inlineView,
                     inlineWindow: inlineWindow,
+                    inlineAutoScroll: tier.keepsAutoScrollInline,
+                    isAutoScrollPaused:
+                        widget.isAutoReadPaused?.call() ?? false,
                     showDownloadEntry: showDownloadEntry,
                     bookTitle: bookTitle,
                   ),
@@ -477,10 +481,34 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
     required ReaderFitMode fitMode,
     required bool inlineView,
     required bool inlineWindow,
+    required bool inlineAutoScroll,
+    required bool isAutoScrollPaused,
     required bool showDownloadEntry,
     required String? bookTitle,
   }) {
     return [
+      if (!inlineAutoScroll) ...[
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.play_circle_outline_rounded),
+          trailingIcon: readSetting.autoScroll ? const Icon(Icons.check) : null,
+          onPressed: () => toggleReaderAutoScroll(
+            isEnabled: readSetting.autoScroll,
+            isPaused: isAutoScrollPaused,
+            onToggleAutoScroll: (enabled) =>
+                cubit.updateReadSetting((s) => s.copyWith(autoScroll: enabled)),
+            onTogglePause: widget.onToggleAutoRead,
+          ),
+          child: Text(readSetting.autoScroll ? '暂停 / 继续自动滚屏' : '开启自动滚屏'),
+        ),
+        if (readSetting.autoScroll)
+          MenuItemButton(
+            leadingIcon: const Icon(Icons.stop_circle_outlined),
+            onPressed: () =>
+                cubit.updateReadSetting((s) => s.copyWith(autoScroll: false)),
+            child: const Text('关闭自动滚屏'),
+          ),
+        const _ReaderMenuDivider(),
+      ],
       if (!inlineView) ...[
         // 下载是让位的第一批：它是整本下载这类低频动作，：它是整本下载这类低频动作，
         // 而超分芯片与滚屏按用户的口径必须留在看得见的第一行。

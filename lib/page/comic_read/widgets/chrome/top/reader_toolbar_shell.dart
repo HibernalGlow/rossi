@@ -37,13 +37,13 @@ abstract final class ReaderToolbarMetrics {
   static const double separatorMargin = 6;
 
   /// 胶囊容器（一组紧贴合的控件）的内边距。
-  static const double pillPadding = 2;
+  ///
+  /// **0**：容器与里面的圆钮同高（40），整条主行才是**一个 40 的高度带**。
+  /// 留 2 会让胶囊变成 44、芯片 32、按钮 40 —— 三种高度并排就是「错位」。
+  static const double pillPadding = 0;
 
-  /// 芯片（带文字的开关）高度 —— MD3 chip 的规范档。
-  static const double chipHeight = 32;
-
-  /// 芯片里的图标边长（MD3 chip 规范是 18，比主行那颗小一档）。
-  static const double chipIconSize = 18;
+  /// 芯片（带文字的开关）与状态芯片的高度：与 [buttonSize] 同档。
+  static const double chipHeight = 40;
 
   /// 顶栏自身的圆角：贴边浮层组件的造型，**不走主题圆角**
   /// （见 `lib/config/global/theme_shape.dart` 里那条「组件自身造型不该被主题拉走」）。
@@ -334,7 +334,7 @@ class ReaderToolbarToggleChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: ReaderToolbarMetrics.chipIconSize, color: fg),
+              Icon(icon, size: ReaderToolbarMetrics.iconSize, color: fg),
               if (hasLabel) ...[
                 const SizedBox(width: 6),
                 Text(

@@ -40,17 +40,18 @@ abstract final class ReaderTopBarStyleLimits {
   /// 阈值不是拍脑袋，是按**书名的最低生存宽度**定的：宽档那一串固定成本
   /// （返回 + 视图三项 + 条漫胶囊 + 单双页 + 方向 + 旋转 + 下载 + 超分芯片 +
   /// 滚屏 + 全屏 + 钉住 + 设置 + 更多，其中带文字的三颗各要 60~90px）实测约 700px，
-  /// 再低书名就读不出来了。判据在
+  /// 再低书名就读不出来了（实测固定成本约 810px，1060 那一档书名剩 250px）。判据在
   /// `test/comic_read/reader_top_bar_layout_test.dart` 的「书名不被挤没」那一组：
   /// 越过这条线书名若剩不下 240px，就是这一档的阈值给低了。
-  static const double labeledToolbarMinWidth = 960;
+  static const double labeledToolbarMinWidth = 1060;
 
   /// 「版式组摊开成独立控件」的下限宽度；再窄就换成一颗循环切换按钮。
   ///
-  /// 中档比宽档省掉「文字标签 + 钉住 + 全屏」，固定成本约 530px，
-  /// 所以这条线压在 800 —— 上一版写的是 720，被书名预算那条判据抓出来了：
-  /// 720 那一档全体摊开时书名只剩 97px。
-  static const double expandedLayoutMinWidth = 800;
+  /// 中档比宽档省掉「文字标签 + 钉住 + 全屏」，固定成本约 620px，
+  /// 所以这条线压在 880。前两版分别写的是 720 与 800，都被书名预算那条判据
+  /// 抓出来过：720 时书名只剩 97px，800 时只剩 177px —— 都比窄档还窄，
+  /// 等于「不溢出了，但看不见在读什么」。
+  static const double expandedLayoutMinWidth = 880;
 }
 
 /// 顶栏主行按可用宽度分的那三档。
@@ -66,6 +67,12 @@ enum ReaderToolbarTier {
 
   /// 窄：版式组并成一颗循环按钮，低频的窗口控件收进「更多」菜单。
   narrow;
+
+  /// 自动滚屏那颗开关是否还留在主行上。
+  ///
+  /// 窄档不让位就放不下超分芯片（用户点名要留的那一颗）—— 按同一句口径，
+  /// 滚屏收进「更多」，超分留在第一行。
+  bool get keepsAutoScrollInline => this != ReaderToolbarTier.narrow;
 
   /// 版式组是否摊开成「条漫胶囊 + 单双页 + 方向」这一排独立控件。
   bool get expandsLayoutGroup => this != ReaderToolbarTier.narrow;
