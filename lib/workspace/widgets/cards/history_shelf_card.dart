@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
@@ -5,6 +7,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
+import 'package:zephyr/plugin/utils/plugin_display_name.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/comic/comic_quick_read.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
@@ -15,6 +18,9 @@ import 'package:zephyr/workspace/method/open_comic_item.dart';
 import 'package:zephyr/workspace/method/shelf_entry_actions.dart';
 import 'package:zephyr/workspace/model/shelf_entry_menu_spec.dart';
 import 'package:zephyr/workspace/model/shelf_library_query.dart';
+import 'package:zephyr/workspace/model/shelf_view_state.dart';
+import 'package:zephyr/workspace/registry/workspace_ids.dart';
+import 'package:zephyr/workspace/service/shelf_view_state_store.dart';
 import 'package:zephyr/workspace/widgets/cards/shelf_entry_context_menu.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view.dart';
@@ -61,6 +67,41 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
   LibraryViewMode _viewMode = LibraryViewMode.coverList;
   ShelfSort _sort = const ShelfSort(field: ShelfSortField.time);
   String _keyword = '';
+
+  /// 视图档位与排序的落盘。卡片会被面板回收重建（换泳道、收起再展开、重启），
+  /// 那两个值原先只是 State 字段，于是每次重建都回到出厂的「封面列表 + 按时间」。
+  final _viewMemory = ShelfViewMemory(WorkspacePanelId.history);
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_restoreViewState());
+  }
+
+  Future<void> _restoreViewState() async {
+    final saved = await _viewMemory.restore();
+    if (saved == null || !mounted) return;
+    setState(() {
+      // 名字不认识就当没存过（枚举改过名 / 偏好文件来自更新的版本）：
+      // 视图状态是可重建的东西，为它让整张卡片红屏不成立。
+      _viewMode =
+          shelfEnumByName(LibraryViewMode.values, saved.viewMode) ?? _viewMode;
+      final field = shelfEnumByName(ShelfSortField.values, saved.sortField);
+      if (field != null) {
+        _sort = ShelfSort(field: field, ascending: saved.sortAscending);
+      }
+    });
+  }
+
+  void _rememberViewState() {
+    _viewMemory.remember(
+      ShelfViewState(
+        viewMode: _viewMode.name,
+        sortField: _sort.field.name,
+        sortAscending: _sort.ascending,
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -133,9 +174,11 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
       sort: _sort,
       normalize: _normalize,
     );
+    // 插件 id 是一串 uuid，行上得换成插件自己报的名字（口径见 pluginDisplayNames）。
+    final pluginNames = pluginDisplayNames();
     final rows = [
       for (final entry in visible)
-        if (entities[entry.key] case final item?) _row(item),
+        if (entities[entry.key] case final item?) _row(item, pluginNames),
     ];
 
     return Column(
@@ -143,9 +186,15 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
       children: [
         ShelfListToolbar(
           viewMode: _viewMode,
-          onViewMode: (mode) => setState(() => _viewMode = mode),
+          onViewMode: (mode) {
+            setState(() => _viewMode = mode);
+            _rememberViewState();
+          },
           sort: _sort,
-          onSort: (sort) => setState(() => _sort = sort),
+          onSort: (sort) {
+            setState(() => _sort = sort);
+            _rememberViewState();
+          },
           searchController: _searchController,
           onKeywordChanged: (value) => setState(() => _keyword = value),
           count: rows.length,
@@ -185,9 +234,12 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
         ShelfSortField.time => 'time',
       },
       sortAscending: _sort.ascending,
-      onSort: (key) => setState(
-        () => _sort = _sort.toggled(ShelfSortField.values.byName(key)),
-      ),
+      onSort: (key) {
+        setState(
+          () => _sort = _sort.toggled(ShelfSortField.values.byName(key)),
+        );
+        _rememberViewState();
+      },
       wrapRow: (context, row, child) => ShelfEntryContextMenuRegion(
         enabled: menuEnabled,
         inputBuilder: () => _menuInput(row.source! as UnifiedComicHistory),
@@ -217,10 +269,14 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
     );
   }
 
-  LibraryEntry _row(UnifiedComicHistory item) {
+  LibraryEntry _row(UnifiedComicHistory item, Map<String, String> pluginNames) {
     final theme = Theme.of(context);
     final cover = unifiedComicFromUnifiedHistory(item).cover;
-    final source = shelfSourceLabel(source: item.source, comicId: item.comicId);
+    final source = shelfSourceLabel(
+      source: item.source,
+      comicId: item.comicId,
+      pluginName: shelfPluginName(pluginNames, item.source),
+    );
     final chapter = shelfChapterLabel(
       title: item.title,
       chapterTitle: item.chapterTitle,

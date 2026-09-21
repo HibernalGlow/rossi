@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
@@ -13,6 +14,7 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/page/bookshelf/service/comic_folder_service.dart';
+import 'package:zephyr/plugin/utils/plugin_display_name.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/comic/comic_quick_read.dart';
 import 'package:zephyr/util/get_path.dart';
@@ -26,7 +28,10 @@ import 'package:zephyr/workspace/method/shelf_entry_actions.dart';
 import 'package:zephyr/workspace/model/bookmark_library_portable.dart';
 import 'package:zephyr/workspace/model/shelf_entry_menu_spec.dart';
 import 'package:zephyr/workspace/model/shelf_library_query.dart';
+import 'package:zephyr/workspace/model/shelf_view_state.dart';
+import 'package:zephyr/workspace/registry/workspace_ids.dart';
 import 'package:zephyr/workspace/service/bookmark_library_service.dart';
+import 'package:zephyr/workspace/service/shelf_view_state_store.dart';
 import 'package:zephyr/workspace/widgets/cards/shelf_entry_context_menu.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view.dart';
@@ -79,10 +84,40 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
   List<ComicFolder> _folders = const [];
   bool _busy = false;
 
+  /// 视图档位与排序的落盘，口径与历史卡片一致。
+  ///
+  /// **刻意不记**当前选中的书签列表：那是一条筛选，恢复回来会让用户以为
+  /// 「书签少了一半」，而少掉的那些并没有被删。
+  final _viewMemory = ShelfViewMemory(WorkspacePanelId.favorite);
+
   @override
   void initState() {
     super.initState();
     _loadLists();
+    unawaited(_restoreViewState());
+  }
+
+  Future<void> _restoreViewState() async {
+    final saved = await _viewMemory.restore();
+    if (saved == null || !mounted) return;
+    setState(() {
+      _viewMode =
+          shelfEnumByName(LibraryViewMode.values, saved.viewMode) ?? _viewMode;
+      final field = shelfEnumByName(ShelfSortField.values, saved.sortField);
+      if (field != null) {
+        _sort = ShelfSort(field: field, ascending: saved.sortAscending);
+      }
+    });
+  }
+
+  void _rememberViewState() {
+    _viewMemory.remember(
+      ShelfViewState(
+        viewMode: _viewMode.name,
+        sortField: _sort.field.name,
+        sortAscending: _sort.ascending,
+      ),
+    );
   }
 
   @override
@@ -164,9 +199,11 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
       sort: _sort,
       normalize: _normalize,
     );
+    // 插件 id 是一串 uuid，行上得换成插件自己报的名字（口径见 pluginDisplayNames）。
+    final pluginNames = pluginDisplayNames();
     final rows = [
       for (final entry in visible)
-        if (entities[entry.key] case final item?) _row(item),
+        if (entities[entry.key] case final item?) _row(item, pluginNames),
     ];
 
     return Column(
@@ -176,9 +213,15 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
         const SizedBox(height: 6),
         ShelfListToolbar(
           viewMode: _viewMode,
-          onViewMode: (mode) => setState(() => _viewMode = mode),
+          onViewMode: (mode) {
+            setState(() => _viewMode = mode);
+            _rememberViewState();
+          },
           sort: _sort,
-          onSort: (sort) => setState(() => _sort = sort),
+          onSort: (sort) {
+            setState(() => _sort = sort);
+            _rememberViewState();
+          },
           searchController: _searchController,
           onKeywordChanged: (value) => setState(() => _keyword = value),
           count: rows.length,
@@ -223,9 +266,12 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
         ShelfSortField.time => 'time',
       },
       sortAscending: _sort.ascending,
-      onSort: (key) => setState(
-        () => _sort = _sort.toggled(ShelfSortField.values.byName(key)),
-      ),
+      onSort: (key) {
+        setState(
+          () => _sort = _sort.toggled(ShelfSortField.values.byName(key)),
+        );
+        _rememberViewState();
+      },
       wrapRow: (context, row, child) => ShelfEntryContextMenuRegion(
         enabled: menuEnabled,
         inputBuilder: () => _menuInput(row.source! as UnifiedComicFavorite),
@@ -492,11 +538,18 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
     );
   }
 
-  LibraryEntry _row(UnifiedComicFavorite item) {
+  LibraryEntry _row(
+    UnifiedComicFavorite item,
+    Map<String, String> pluginNames,
+  ) {
     final theme = Theme.of(context);
     final cover = unifiedComicFromUnifiedFavorite(item).cover;
     final author = shelfCreatorName(item.creator);
-    final source = shelfSourceLabel(source: item.source, comicId: item.comicId);
+    final source = shelfSourceLabel(
+      source: item.source,
+      comicId: item.comicId,
+      pluginName: shelfPluginName(pluginNames, item.source),
+    );
     final time = formatShelfTime(item.updatedAt);
     return LibraryEntry(
       key: item.uniqueKey,

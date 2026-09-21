@@ -158,10 +158,41 @@ String shelfChapterLabel({
   return chapter;
 }
 
-/// 来源标记：本地 ⇒ [kShelfLocalSourceLabel]，插件 ⇒ 插件 id 大写。
-String shelfSourceLabel({required String source, required String comicId}) {
+/// 插件 uuid 的形状。命中它只为了判「这串东西不是名字」。
+final RegExp _uuidShape = RegExp(
+  r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+  caseSensitive: false,
+);
+
+/// 从 [pluginDisplayNames] 那张表里查一个来源 id 的名字。
+///
+/// 大小写不敏感：uuid 在库里是 `Uuid.v4()` 的小写形态，而记录里的 `source`
+/// 是历史某个时刻传进去的串，两边不保证同一写法。表的键统一是小写。
+String? shelfPluginName(Map<String, String> names, String source) {
+  final trimmed = source.trim();
+  if (trimmed.isEmpty) return null;
+  return names[trimmed.toLowerCase()];
+}
+
+/// 来源标记：本地 ⇒ [kShelfLocalSourceLabel]；插件 ⇒ 先试解析到的插件名，
+/// 拿不到才退回 id。
+///
+/// [pluginName] 由调用方从 [pluginDisplayNames] 那张表里查出来传进来 —— 插件 id
+/// 是一串 uuid（`A16835E9-D405-…`），摆在行上等于没显示。真名字**不做大写**：
+/// 「BikaACG」被写成「BIKAACG」是另一种认不出来。
+/// 退路里 uuid 只留前 8 位：整串 36 个十六进制字符会吃掉行宽，而认前缀就够
+/// 区分两个插件；完整 id 右键「复制链接」拿得到。
+String shelfSourceLabel({
+  required String source,
+  required String comicId,
+  String? pluginName,
+}) {
   if (isLocalComicSource(source, comicId)) return kShelfLocalSourceLabel;
-  return source.trim().toUpperCase();
+  final name = pluginName?.trim() ?? '';
+  if (name.isNotEmpty) return name;
+  final id = source.trim();
+  if (_uuidShape.hasMatch(id)) return id.substring(0, 8).toUpperCase();
+  return id.toUpperCase();
 }
 
 /// 用 ` · ` 拼一行元信息，丢掉空段 —— 章节名判重之后不能留下孤零零的「 · 」。

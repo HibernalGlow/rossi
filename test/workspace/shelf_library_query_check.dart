@@ -13,6 +13,8 @@
 //   5. **第二行不重复第一行** —— 本地漫画的「章节名」就是它自己的文件名
 //      （`cp.zip` 那一本的章节就叫 `cp.zip`），丢掉这一段之后剩下的段之间
 //      也不能留下孤零零的「 · 」。
+//   6. **来源标记优先用插件自己报的名字** —— 插件 id 是一串 uuid，摆在行上
+//      认不出来；真名字不做 `.toUpperCase()`，查不到名字时 uuid 只留前 8 位。
 //
 // 没有 package:test 依赖（跟 `shelf_entry_menu_check.dart` 同一套路）。
 //
@@ -62,6 +64,8 @@ void main() {
   _creatorComesInTwoShapes();
   _haystackCoversEveryField();
   _sourceLabelSaysLocalNotAPath();
+  _realPluginNameBeatsTheUuid();
+  _nameLookupIgnoresUuidCase();
   _chapterDoesNotRepeatTheBookName();
   _metaLineDropsEmptyParts();
 
@@ -211,6 +215,71 @@ void _sourceLabelSaysLocalNotAPath() {
   check(
     '网络地址不算本地',
     shelfSourceLabel(source: 'bika', comicId: 'https://x/1') == 'BIKA',
+  );
+}
+
+/// 插件 id 是一串 uuid，行上光靠大写认不出来 —— 名字由调用方查表传进来。
+void _realPluginNameBeatsTheUuid() {
+  const uuid = 'A16835E9-D405-4E01-8019-08E30BA6CDE2';
+  check(
+    '有名字就用名字，且不做大写（BikaACG 不该变成 BIKAACG）',
+    shelfSourceLabel(source: uuid, comicId: '42', pluginName: 'BikaACG') ==
+        'BikaACG',
+  );
+  check(
+    '中文名照原样',
+    shelfSourceLabel(source: uuid, comicId: '42', pluginName: '禁漫公寓') ==
+        '禁漫公寓',
+  );
+  check(
+    '名字只有空白 ⇒ 退回 id',
+    shelfSourceLabel(source: 'jm', comicId: '42', pluginName: '   ') == 'JM',
+  );
+  check(
+    '查不到名字退回 uuid 前 8 位（整串会吃掉行宽，完整 id 右键复制）',
+    shelfSourceLabel(source: uuid, comicId: '42') == 'A16835E9',
+  );
+  check(
+    '不是 uuid 的短 id 照旧大写',
+    shelfSourceLabel(source: 'jm', comicId: '42') == 'JM',
+  );
+  check(
+    'uuid 小写写法也只留前 8 位，并按老口径大写',
+    shelfSourceLabel(source: uuid.toLowerCase(), comicId: '42') == 'A16835E9',
+  );
+  check(
+    '本地优先于名字：存过名字的本地条目不该被标成插件',
+    shelfSourceLabel(
+      source: 'local',
+      comicId: '/sdcard/cp.zip',
+      pluginName: '某个插件',
+    ) == '本地',
+  );
+}
+
+/// 名字表按小写键存，记录里的 `source` 不保证同一写法。
+void _nameLookupIgnoresUuidCase() {
+  const names = <String, String>{
+    'a16835e9-d405-4e01-8019-08e30ba6cde2': '禁漫公寓',
+  };
+  check(
+    '库里小写、记录里大写也能命中',
+    shelfPluginName(names, 'A16835E9-D405-4E01-8019-08E30BA6CDE2') == '禁漫公寓',
+  );
+  check(
+    '两侧空白不算内容',
+    shelfPluginName(names, '  a16835e9-d405-4e01-8019-08e30ba6cde2 ') ==
+        '禁漫公寓',
+  );
+  check('查不到返回 null（不是空串）', shelfPluginName(names, 'jm') == null);
+  check('空 source 返回 null', shelfPluginName(names, '   ') == null);
+  check(
+    '查到 null 时行上退回 uuid 前缀',
+    shelfSourceLabel(
+      source: 'A16835E9-D405-4E01-8019-08E30BA6CDE2',
+      comicId: '42',
+      pluginName: shelfPluginName(names, 'A16835E9-D405-4E01-8019-08E30BA6CDE2'),
+    ) == '禁漫公寓',
   );
 }
 
