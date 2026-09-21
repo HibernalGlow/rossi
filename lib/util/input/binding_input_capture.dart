@@ -56,9 +56,16 @@ String bindingDirection(Offset delta) => delta.dx.abs() > delta.dy.abs()
     ? (delta.dx < 0 ? 'left' : 'right')
     : (delta.dy < 0 ? 'up' : 'down');
 
-Map<String, dynamic> bindingWheelInput(double dy) => {
+/// 一次滚轮/双指平移 → 滚轮 descriptor。
+///
+/// [invert] 把方向词从「内容往哪走」换成「手往哪推」：macOS 的 `scrollDelta.dy` 已经含了
+/// 系统「自然滚动」那一次反转，见 `OperationBindingSettingState.invertWheelDirection`。
+/// **录制与运行时必须传同一个值**，否则会出现「录进去是 up、触发时算 down」的错位 ——
+/// 所以取反只可能落在这一个函数里。`bindingDirection`（鼠标轨迹的拖动方向）不吃这个：
+/// 指针位移没有系统反转那一层。
+Map<String, dynamic> bindingWheelInput(double dy, {bool invert = false}) => {
   'device': 'wheel',
-  'direction': dy < 0 ? 'up' : 'down',
+  'direction': (invert ? -dy : dy) < 0 ? 'up' : 'down',
   'ctrl': HardwareKeyboard.instance.isControlPressed,
   'alt': HardwareKeyboard.instance.isAltPressed,
   'shift': HardwareKeyboard.instance.isShiftPressed,

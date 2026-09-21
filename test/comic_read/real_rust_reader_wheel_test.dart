@@ -102,6 +102,8 @@ void main() {
           operationBindingSetting: OperationBindingSettingState(
             bindingsRuntime: true,
             bindingsJson: defaultBindings,
+            // 方向词按内容算，别被 macOS 的「按手算」默认翻掉
+            invertWheelDirection: false,
           ),
         ),
       );
@@ -164,6 +166,8 @@ void main() {
           operationBindingSetting: OperationBindingSettingState(
             bindingsRuntime: true,
             bindingsJson: defaultBindings,
+            // 方向词按内容算，别被 macOS 的「按手算」默认翻掉
+            invertWheelDirection: false,
           ),
         ),
       );

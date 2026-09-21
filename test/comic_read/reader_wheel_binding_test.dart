@@ -37,6 +37,9 @@ class _Settings extends GlobalSettingCubit {
         operationBindingSetting: state.operationBindingSetting.copyWith(
           bindingsRuntime: true,
           bindingsJson: encodeBindingsDoc(bindings),
+          // 方向词按「内容往哪走」算：这几条判据测的是绑定命中，不是滚轮符号
+          // （macOS 的默认是按手算的，会把 dy 的读法翻过来）。
+          invertWheelDirection: false,
         ),
       ),
     );

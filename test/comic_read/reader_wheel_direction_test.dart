@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/gestures.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -88,6 +91,8 @@ Future<_ReaderState> _mount(
   required int readMode,
   required bool noAnimation,
   required String bindingsDocJson,
+  bool? invertWheel = false,
+  bool bindingsRuntime = true,
 }) async {
   final cubit = GlobalSettingCubit()
     ..emit(
@@ -97,8 +102,11 @@ Future<_ReaderState> _mount(
           noAnimation: noAnimation,
         ),
         operationBindingSetting: OperationBindingSettingState(
-          bindingsRuntime: true,
+          bindingsRuntime: bindingsRuntime,
           bindingsJson: bindingsDocJson,
+          // 判据要的是「方向词 == 内容方向」那一格，所以显式关掉平台默认
+          // （macOS 上默认是按手算的，见 `wheelDirectionFollowsHand`）。
+          invertWheelDirection: invertWheel,
         ),
       ),
     );
@@ -193,6 +201,58 @@ void main() {
         reader.slot,
         readMode == kReadModeRowRtl ? 4 : 2,
         reason: '空间动作的方向解释必须留在引擎里',
+      );
+    }
+  });
+
+  /// macOS 的系统「自然滚动」在 dy 里已经翻过一次，开了这颗之后方向词改按**手**算：
+  /// 物理下滚在这台机器上给的是 `dy < 0`，它必须命中出厂那行「下滚 = 下一页」。
+  testWidgets('滚轮按手算时，物理下滚仍是下一页（两个方向都一样）', (tester) async {
+    for (final readMode in [kReadModeRowLtr, kReadModeRowRtl]) {
+      final reader = await _mount(
+        tester,
+        readMode: readMode,
+        noAnimation: true,
+        bindingsDocJson: factory(),
+        invertWheel: true,
+      );
+      await _wheel(tester, -40);
+      expect(reader.slot, 4, reason: '物理下滚（macOS 给 dy<0）必须前进');
+      await _wheel(tester, 40);
+      expect(reader.slot, 3, reason: '物理上滚必须退回');
+    }
+  });
+
+  /// 采集端那一份判定必须**三处共用**：绑定表关掉时走的是旧硬编码滚轮，
+  /// 它若不吃同一个开关，同一个手势会在「开/关绑定表」下走出两种方向。
+  testWidgets('绑定表没启用时，旧硬编码滚轮吃同一个判定', (tester) async {
+    final reader = await _mount(
+      tester,
+      readMode: kReadModeRowRtl,
+      noAnimation: true,
+      bindingsDocJson: factory(),
+      invertWheel: true,
+      bindingsRuntime: false,
+    );
+    await _wheel(tester, -40);
+    expect(reader.slot, 4);
+  });
+
+  test('平台默认只在用户没表态时生效', () {
+    final platformDefault = !kIsWeb && Platform.isMacOS;
+    expect(
+      OperationBindingStore.wheelDirectionFollowsHand(
+        const OperationBindingSettingState(),
+      ),
+      platformDefault,
+    );
+    for (final explicit in [true, false]) {
+      expect(
+        OperationBindingStore.wheelDirectionFollowsHand(
+          OperationBindingSettingState(invertWheelDirection: explicit),
+        ),
+        explicit,
+        reason: '用户表过态就永远听他的，不再跟随平台',
       );
     }
   });

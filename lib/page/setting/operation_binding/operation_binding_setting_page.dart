@@ -369,6 +369,34 @@ class _OperationBindingSettingPageState
                     Text(t.settings.operationBindingRuntime),
                   ],
                 ),
+                // 滚轮方向词是「手往哪推」还是「内容往哪走」。值没表过态时按平台取默认
+                // （macOS 的系统反转滚动已经翻过 dy，所以那边默认按手算），
+                // 拨一下就把显式值写死，不再跟随平台。
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    BlocBuilder<GlobalSettingCubit, GlobalSettingState>(
+                      builder: (context, state) => Tooltip(
+                        message:
+                            t.settings.operationBindingInvertWheelSubtitle,
+                        child: Switch(
+                          value:
+                              OperationBindingStore.wheelDirectionFollowsHand(
+                                state.operationBindingSetting,
+                              ),
+                          onChanged: (value) => context
+                              .read<GlobalSettingCubit>()
+                              .updateOperationBindingSetting(
+                                (current) => current.copyWith(
+                                  invertWheelDirection: value,
+                                ),
+                              ),
+                        ),
+                      ),
+                    ),
+                    Text(t.settings.operationBindingInvertWheel),
+                  ],
+                ),
                 SegmentedButton<bool>(
                   showSelectedIcon: false,
                   segments: [

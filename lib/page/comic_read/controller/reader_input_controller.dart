@@ -553,7 +553,12 @@ class ReaderInputController {
     if (!_isDesktopPlatform || dy == 0) return false;
     final bindings = _runtimeBindings;
     if (bindings == null) return false;
-    final input = bindingWheelInput(dy);
+    // macOS 的系统「自然滚动」已经翻过一次 dy，所以方向词要不要按手推的方向算，
+    // 三处采集口（这里、录制器、下面那条旧硬编码）必须读同一个判定。
+    final invert = OperationBindingStore.wheelDirectionFollowsHand(
+      context.read<GlobalSettingCubit>().state.operationBindingSetting,
+    );
+    final input = bindingWheelInput(dy, invert: invert);
     // 滚轮由命中测试送到阅读区，不依赖键盘焦点。右侧设置页可能把桥的上下文
     // 留在 panel；复用它会使 reader 绑定失配，必须按当前内容采集本次上下文。
     final contexts = [
@@ -569,7 +574,8 @@ class ReaderInputController {
     // 现场诊断：滚轮增量在一根轴上，方向词（上/下）由平台给，左右开又只改画面的那一侧。
     // 「下滚到底命中了哪条动作、当时在第几页」这三件事只有在真机上对得上，出问题时看这一行。
     debugPrint(
-      '滚轮 dy=${dy.round()} → ${input['direction']} · ${hit['action']} · '
+      '滚轮 dy=${dy.round()}${invert ? '(取反)' : ''} → ${input['direction']} · '
+      '${hit['action']} · '
       'slot=${readerCubit.state.currentSlot}/${readerCubit.state.totalSlots}',
     );
     final before = transformationController.value.clone();
@@ -650,15 +656,20 @@ class ReaderInputController {
     // 否则删除、停用或改绑滚轮之后，它仍会绕过配置翻页。
     if (_runtimeBindings != null) return;
 
-    final readMode = context
+    final readSetting = context
         .read<GlobalSettingCubit>()
         .state
-        .readSetting
-        .readMode;
-    if (!newCtrlPressed && readMode != 0) {
-      if (event.scrollDelta.dy > 0) {
+        .readSetting;
+    if (!newCtrlPressed && readSetting.readMode != 0) {
+      // 与采集口同一个方向判定：关掉总开关不该让滚轮的手势方向变掉。
+      final dy = OperationBindingStore.wheelDirectionFollowsHand(
+        context.read<GlobalSettingCubit>().state.operationBindingSetting,
+      )
+        ? -event.scrollDelta.dy
+        : event.scrollDelta.dy;
+      if (dy > 0) {
         actionController.onPageActionNext();
-      } else if (event.scrollDelta.dy < 0) {
+      } else if (dy < 0) {
         actionController.onPageActionPrev();
       }
     }
