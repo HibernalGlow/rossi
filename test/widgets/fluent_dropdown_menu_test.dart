@@ -63,18 +63,13 @@ void main() {
       return true;
     });
 
-    expect(
-      overlaysAboveMenu,
-      1,
-      reason: '菜单被插进了泳道的局部 Overlay，会被裁在面板里',
-    );
+    expect(overlaysAboveMenu, 1, reason: '菜单被插进了泳道的局部 Overlay，会被裁在面板里');
   });
 
   testWidgets('菜单摆位留在可视区内', (tester) async {
     await pumpLaneWithMenuButton(tester);
 
-    final viewport =
-        tester.view.physicalSize / tester.view.devicePixelRatio;
+    final viewport = tester.view.physicalSize / tester.view.devicePixelRatio;
     final screen = Offset.zero & viewport;
     final itemRect = tester.getRect(find.text('新建一个文件夹'));
 

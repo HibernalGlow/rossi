@@ -197,10 +197,7 @@ void _fullCustomStateRoundTrip() {
   check('激活面板保住了', restored.activePanel['right'] == 'tools');
   check('激活泳道保住了', restored.activeLaneId == LaneId.reader);
   check('悬停聚焦开关保住了', !restored.interaction.hoverFocusEnabled);
-  check(
-    '面板泳道悬停聚焦开关保住了',
-    !restored.interaction.panelHoverFocusEnabled,
-  );
+  check('面板泳道悬停聚焦开关保住了', !restored.interaction.panelHoverFocusEnabled);
   check('呼出后自动聚焦开关保住了', !restored.interaction.revealFocusesLane);
   check(
     '三个延时保住了',
@@ -211,14 +208,8 @@ void _fullCustomStateRoundTrip() {
   check('Reader 窄缝宽保住了', restored.interaction.readerPeekWidth == 72);
   check('自动独占开关保住了', restored.interaction.autoSoloOnFocus);
   check('独占时显示切换栏保住了', restored.interaction.showLaneNavigatorInSolo);
-  check(
-    '「允许手动横向滚动」关掉这件事保住了',
-    !restored.interaction.manualScrollEnabled,
-  );
-  check(
-    '「顶栏画出来」这件事保住了（出厂默认是不画）',
-    restored.interaction.showTopChrome,
-  );
+  check('「允许手动横向滚动」关掉这件事保住了', !restored.interaction.manualScrollEnabled);
+  check('「顶栏画出来」这件事保住了（出厂默认是不画）', restored.interaction.showTopChrome);
   check(
     '四条唤出区整体保住（含 0.1 的百分比精度）',
     restored.interaction.revealZones == _richZones,
@@ -369,10 +360,7 @@ void _badInteractionFieldsFallBackPerField() {
     '非布尔开关退回默认',
     snapshot.interaction.hoverFocusEnabled == fallback.hoverFocusEnabled,
   );
-  check(
-    '非布尔的「面板悬停聚焦」退回默认（开）',
-    snapshot.interaction.panelHoverFocusEnabled,
-  );
+  check('非布尔的「面板悬停聚焦」退回默认（开）', snapshot.interaction.panelHoverFocusEnabled);
   check(
     '缺项的「呼出后自动聚焦」退回默认（开 —— 老快照升级后这两项默认生效，是刻意的）',
     snapshot.interaction.revealFocusesLane == fallback.revealFocusesLane &&
@@ -388,10 +376,7 @@ void _badInteractionFieldsFallBackPerField() {
   );
   check('合法的延时保住', snapshot.interaction.edgeRevealRestoreDelayMs == 640);
   check('越界的缝宽被夹到 400', snapshot.interaction.readerPeekWidth == 400);
-  check(
-    '非布尔的自动独占退回默认（关）',
-    !snapshot.interaction.autoSoloOnFocus,
-  );
+  check('非布尔的自动独占退回默认（关）', !snapshot.interaction.autoSoloOnFocus);
   check('合法的切换栏「开」保住', snapshot.interaction.showLaneNavigatorInSolo);
   check(
     '缺项的「允许手动滚动」退回默认（开 —— 保持改造前的手感）',

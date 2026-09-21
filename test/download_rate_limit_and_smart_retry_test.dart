@@ -4,7 +4,10 @@ import 'package:zephyr/service/download/download_retry.dart';
 void main() {
   group('isRateLimitedError', () {
     test('identifies HTTP 429 status', () {
-      expect(isRateLimitedError(Exception('HTTP 429 Too Many Requests')), isTrue);
+      expect(
+        isRateLimitedError(Exception('HTTP 429 Too Many Requests')),
+        isTrue,
+      );
       expect(isRateLimitedError('Status code: 429'), isTrue);
     });
 
@@ -13,7 +16,10 @@ void main() {
     });
 
     test('identifies Cloudflare rate limiting', () {
-      expect(isRateLimitedError('Cloudflare Ray ID error rate limit exceeded'), isTrue);
+      expect(
+        isRateLimitedError('Cloudflare Ray ID error rate limit exceeded'),
+        isTrue,
+      );
       expect(isRateLimitedError('Error: Too Many Requests from host'), isTrue);
     });
 

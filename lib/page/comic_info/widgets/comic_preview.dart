@@ -24,11 +24,14 @@ class ComicPreviewSliver extends StatelessWidget {
   Widget build(BuildContext context) {
     // 磁力是画廊级的，只挂在第一张封面（预览的「封面」）上。
     // 下载详情等场景没有 GetComicInfoBloc，取不到就整颗按钮不出现。
-    final hasComicInfoBloc = context
-        .findAncestorWidgetOfExactType<BlocProvider<GetComicInfoBloc>>() !=
+    final hasComicInfoBloc =
+        context
+            .findAncestorWidgetOfExactType<BlocProvider<GetComicInfoBloc>>() !=
         null;
     final magnet = hasComicInfoBloc
-        ? comicMagnetOf(BlocProvider.of<GetComicInfoBloc>(context).state.allInfo)
+        ? comicMagnetOf(
+            BlocProvider.of<GetComicInfoBloc>(context).state.allInfo,
+          )
         : '';
     return BlocBuilder<ComicPreviewBloc, ComicPreviewState>(
       builder: (context, state) {

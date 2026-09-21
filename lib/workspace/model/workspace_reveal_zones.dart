@@ -121,10 +121,7 @@ class WorkspaceRevealZone {
 
   /// 百分比坐标是否落在这块矩形里。
   bool contains(double xPercent, double yPercent) =>
-      xPercent >= x &&
-      xPercent <= right &&
-      yPercent >= y &&
-      yPercent <= bottom;
+      xPercent >= x && xPercent <= right && yPercent >= y && yPercent <= bottom;
 
   /// 沿某条轴**镜像**到对侧：贴边方向反过来，其余尺寸不变。
   ///
@@ -334,10 +331,7 @@ class WorkspaceRevealZones {
   /// 重叠时按 **左右 → 上下** 的顺序判：左右两条管的是「换泳道」，是更明确的
   /// 意图；顶栏与底栏在任何指针位置都还能靠剩下的边沿召出来。
   /// 这个顺序必须写在一处并被判据钉住 —— 两处各写一遍必然分叉。
-  RevealEdge? edgeAt({
-    required double xPercent,
-    required double yPercent,
-  }) {
+  RevealEdge? edgeAt({required double xPercent, required double yPercent}) {
     for (final edge in const [
       RevealEdge.left,
       RevealEdge.right,
@@ -361,10 +355,7 @@ class WorkspaceRevealZones {
     if (json is! Map) return defaults;
     final raw = json.cast<String, Object?>();
     return WorkspaceRevealZones(
-      left: WorkspaceRevealZone.fromJson(
-        raw['left'],
-        fallback: defaults.left,
-      ),
+      left: WorkspaceRevealZone.fromJson(raw['left'], fallback: defaults.left),
       right: WorkspaceRevealZone.fromJson(
         raw['right'],
         fallback: defaults.right,

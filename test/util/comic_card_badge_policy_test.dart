@@ -168,7 +168,10 @@ void main() {
 
     test('与下载角标相反：本地漫画一定要画，它才是这条路径最划算的一本', () {
       const policy = ComicCardBadgePolicy();
-      expect(policy.showDownloadBadge(pluginId: 'local', comicId: '/a/b'), isFalse);
+      expect(
+        policy.showDownloadBadge(pluginId: 'local', comicId: '/a/b'),
+        isFalse,
+      );
       expect(policy.showReadButton(pluginId: 'local', comicId: '/a/b'), isTrue);
       expect(
         policy.showReadButton(pluginId: _plugin, comicId: '/Users/me/x.cbz'),

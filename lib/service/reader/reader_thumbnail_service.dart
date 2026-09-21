@@ -283,7 +283,8 @@ class _ReaderThumbnailWidgetState extends State<ReaderThumbnailWidget> {
       // 0. 视频页：图像缩略图那条路（SQLite catalog / Image.file）对它必然失败，
       //    先分流到海报服务。不分流的症状是页列表里每个视频格都是「加载失败」占位。
       final pages = source.pages;
-      final isVideoPage = widget.index >= 0 &&
+      final isVideoPage =
+          widget.index >= 0 &&
           widget.index < pages.length &&
           isVideoName(pages[widget.index].name);
       if (isVideoPage) {
@@ -295,8 +296,7 @@ class _ReaderThumbnailWidgetState extends State<ReaderThumbnailWidget> {
         } else {
           final bytes = await source.getPageBytes(widget.index);
           if (bytes != null && bytes.isNotEmpty) {
-            poster =
-                await VideoPosterService.instance.posterForBytes(
+            poster = await VideoPosterService.instance.posterForBytes(
               identityKey: sha1ish(
                 '${source.path}|${pages[widget.index].name}|${bytes.lengthInBytes}',
               ),

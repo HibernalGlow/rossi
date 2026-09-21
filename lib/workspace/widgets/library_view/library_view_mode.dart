@@ -4,7 +4,14 @@ import 'package:material_ui/material_ui.dart';
 ///
 /// 共享视图层不能直接吃 FRB 的枚举：书签和历史都住在 ObjectBox 里，没有
 /// Rust 会话可言。所以这一层只认自己的枚举，文件管理器在适配器里映射一次。
-enum LibraryViewMode { compact, coverList, mosaicList, details, coverGrid, mosaicGrid }
+enum LibraryViewMode {
+  compact,
+  coverList,
+  mosaicList,
+  details,
+  coverGrid,
+  mosaicGrid,
+}
 
 extension LibraryViewModeX on LibraryViewMode {
   /// 文案与 `FileManagerViewModeX.label` 保持逐字一致：文件卡工具栏的 tooltip

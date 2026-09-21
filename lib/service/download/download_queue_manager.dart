@@ -133,17 +133,13 @@ class DownloadQueueManager {
       .length;
 
   List<DownloadTask> _runnableTasks() {
-    return _taskRepository
-        .getAll(incompleteOnly: true)
-        .where((task) {
-          final payload = _taskRepository.readPayload(task);
-          final stateCode = payload?.stateCode;
-          final key = payload?.taskKey ?? '';
-          if (_autoRetryingTaskKeys.contains(key)) return false;
-          return stateCode != 'failed' && stateCode != 'paused';
-        })
-        .toList()
-      ..sort((a, b) => a.id.compareTo(b.id));
+    return _taskRepository.getAll(incompleteOnly: true).where((task) {
+      final payload = _taskRepository.readPayload(task);
+      final stateCode = payload?.stateCode;
+      final key = payload?.taskKey ?? '';
+      if (_autoRetryingTaskKeys.contains(key)) return false;
+      return stateCode != 'failed' && stateCode != 'paused';
+    }).toList()..sort((a, b) => a.id.compareTo(b.id));
   }
 
   /// 检查任务是否已存在（未完成的任务）
@@ -282,7 +278,8 @@ class DownloadQueueManager {
       logger.d('_processQueue: 任务完成并清理');
     } catch (e, s) {
       final currentDbTaskForPauseCheck = _taskRepository.findByTaskKey(taskKey);
-      final isPaused = currentDbTaskForPauseCheck != null &&
+      final isPaused =
+          currentDbTaskForPauseCheck != null &&
           _taskRepository.readPayload(currentDbTaskForPauseCheck)?.stateCode ==
               'paused';
       if (isPaused) {
@@ -332,7 +329,8 @@ class DownloadQueueManager {
             errorStr.contains('404') || errorStr.contains('not found');
         final isRateLimit = isRateLimitedError(e);
         final canAutoRetry =
-            !isPermanent404 && (retryForever || currentAttempt < maxAutoRetries);
+            !isPermanent404 &&
+            (retryForever || currentAttempt < maxAutoRetries);
 
         if (canAutoRetry) {
           final retryDelaySeconds = isRateLimit
@@ -364,10 +362,7 @@ class DownloadQueueManager {
           _autoRetryingTaskKeys.add(taskKey);
 
           _progressController.add(
-            DownloadProgress(
-              comicName: task.comicName,
-              message: autoRetryMsg,
-            ),
+            DownloadProgress(comicName: task.comicName, message: autoRetryMsg),
           );
 
           Timer(Duration(seconds: retryDelaySeconds), () {
@@ -565,10 +560,7 @@ class DownloadQueueManager {
 
     _taskRepository.putPayload(
       task,
-      payload.copyWith(
-        stateCode: 'paused',
-        phaseCode: 'paused',
-      ),
+      payload.copyWith(stateCode: 'paused', phaseCode: 'paused'),
       status: t.reader.downloadStatusPaused,
       isDownloading: false,
       isCompleted: false,
@@ -578,7 +570,9 @@ class DownloadQueueManager {
       triggerDownloadCancelSignal(taskKey);
       final source = payload.from;
       if (source.isNotEmpty) {
-        unawaited(cancelTrackedQjsTasks(pluginId: source, taskGroupKey: taskKey));
+        unawaited(
+          cancelTrackedQjsTasks(pluginId: source, taskGroupKey: taskKey),
+        );
       }
     }
 
@@ -640,7 +634,9 @@ class DownloadQueueManager {
       triggerDownloadCancelSignal(taskKey);
       final source = payload.from;
       if (source.isNotEmpty) {
-        unawaited(cancelTrackedQjsTasks(pluginId: source, taskGroupKey: taskKey));
+        unawaited(
+          cancelTrackedQjsTasks(pluginId: source, taskGroupKey: taskKey),
+        );
       }
     }
 
@@ -708,7 +704,9 @@ class DownloadQueueManager {
       triggerDownloadCancelSignal(taskKey);
       final source = _taskRepository.readPayload(currentTask)?.from ?? from;
       if (source.isNotEmpty) {
-        unawaited(cancelTrackedQjsTasks(pluginId: source, taskGroupKey: taskKey));
+        unawaited(
+          cancelTrackedQjsTasks(pluginId: source, taskGroupKey: taskKey),
+        );
       }
     }
 

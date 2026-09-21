@@ -51,7 +51,8 @@ class FileManagerEntryContextMenuRegion extends StatelessWidget {
   final FileManagerEntryMenuInput Function() inputBuilder;
 
   /// 用户选了一个动作。选中后菜单已经关掉了，这里只负责执行。
-  final void Function(BuildContext context, FileManagerEntryAction action) onAction;
+  final void Function(BuildContext context, FileManagerEntryAction action)
+  onAction;
 
   /// **菜单弹出来之前**要做的事，会等它做完再弹。
   ///
@@ -91,7 +92,8 @@ class _FileManagerEntryMenuAnchor extends StatefulWidget {
 
   final Widget child;
   final FileManagerEntryMenuInput Function() inputBuilder;
-  final void Function(BuildContext context, FileManagerEntryAction action) onAction;
+  final void Function(BuildContext context, FileManagerEntryAction action)
+  onAction;
   final Future<void> Function()? onBeforeOpen;
 
   @override
@@ -233,7 +235,10 @@ class FileManagerEntrySelectionShell extends StatelessWidget {
       child: Container(
         width: 16,
         height: 16,
-        decoration: BoxDecoration(color: scheme.primary, shape: BoxShape.circle),
+        decoration: BoxDecoration(
+          color: scheme.primary,
+          shape: BoxShape.circle,
+        ),
         child: Icon(Icons.check_rounded, size: 12, color: scheme.onPrimary),
       ),
     );

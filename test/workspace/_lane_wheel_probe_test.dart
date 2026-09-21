@@ -14,7 +14,12 @@ import 'package:zephyr/workspace/widgets/swimlane/swimlane_workspace.dart';
 const WorkspaceLayoutConfig _layout = WorkspaceLayoutConfig(
   laneOrder: LaneId.defaultOrder,
   lanes: <String, LaneConfig>{
-    LaneId.left: LaneConfig(width: 520, minWidth: 300, maxWidth: 900, title: 'L'),
+    LaneId.left: LaneConfig(
+      width: 520,
+      minWidth: 300,
+      maxWidth: 900,
+      title: 'L',
+    ),
     LaneId.reader: LaneConfig(
       width: 540,
       widthRatio: 0.3,
@@ -99,11 +104,7 @@ Future<WorkspaceCubit> _pump(
   return cubit;
 }
 
-Future<String> _wheel(
-  WidgetTester tester,
-  Offset delta, {
-  Offset? at,
-}) async {
+Future<String> _wheel(WidgetTester tester, Offset delta, {Offset? at}) async {
   final pointer = TestPointer(1, PointerDeviceKind.mouse);
   final finder = find.byKey(const ValueKey<String>('list:${LaneId.right}'));
   final target = at ?? tester.getCenter(finder);
@@ -132,7 +133,11 @@ void _openSheet(BuildContext context, {required bool root}) {
         child: Column(
           children: [
             const TabBar(
-              tabs: [Tab(text: 'A'), Tab(text: 'B'), Tab(text: 'C')],
+              tabs: [
+                Tab(text: 'A'),
+                Tab(text: 'B'),
+                Tab(text: 'C'),
+              ],
             ),
             Expanded(
               child: TabBarView(
@@ -149,10 +154,7 @@ void _openSheet(BuildContext context, {required bool root}) {
                           child: Column(
                             children: [
                               for (int i = 0; i < 120; i++)
-                                SizedBox(
-                                  height: 56,
-                                  child: Text('$label-$i'),
-                                ),
+                                SizedBox(height: 56, child: Text('$label-$i')),
                             ],
                           ),
                         );
@@ -249,9 +251,8 @@ void main() {
     return cubit;
   }
 
-  Offset laneTopLeft(WidgetTester t) => t.getTopLeft(
-    find.byKey(const ValueKey<String>('list:${LaneId.right}')),
-  );
+  Offset laneTopLeft(WidgetTester t) =>
+      t.getTopLeft(find.byKey(const ValueKey<String>('list:${LaneId.right}')));
 
   testWidgets('探针 G：非激活泳道里，事件被送到**条带**（横向滚轮能滚条带）', (tester) async {
     final cubit = await pumpNarrow(tester, activate: false);
@@ -268,13 +269,13 @@ void main() {
     final before = laneTopLeft(tester);
     await _wheel(tester, const Offset(-200, 0));
     final after = laneTopLeft(tester);
-    print('H 激活=${cubit.state.activeLaneId} 条带横移 dx：${before.dx} → ${after.dx}');
+    print(
+      'H 激活=${cubit.state.activeLaneId} 条带横移 dx：${before.dx} → ${after.dx}',
+    );
   });
 
   for (final root in [false, true]) {
-    testWidgets('探针 F：从泳道里的设置页开面板（useRootNavigator=$root）', (
-      tester,
-    ) async {
+    testWidgets('探针 F：从泳道里的设置页开面板（useRootNavigator=$root）', (tester) async {
       _sheetControllers.clear();
       final cubit = await _pump(
         tester,
@@ -304,31 +305,43 @@ void main() {
 
   testWidgets('探针 A：普通页面（无局部 Navigator）', (tester) async {
     final cubit = await _pump(tester, _page, activate: true);
-    print('A 激活=${cubit.state.activeLaneId} ${await _wheel(tester, const Offset(0, 120))}');
+    print(
+      'A 激活=${cubit.state.activeLaneId} ${await _wheel(tester, const Offset(0, 120))}',
+    );
   });
 
   testWidgets('探针 B：嵌进面板（Listener + 局部 Navigator）+ 泳道已激活', (tester) async {
     final cubit = await _pump(tester, _embedded, activate: true);
-    print('B 激活=${cubit.state.activeLaneId} ${await _wheel(tester, const Offset(0, 120))}');
+    print(
+      'B 激活=${cubit.state.activeLaneId} ${await _wheel(tester, const Offset(0, 120))}',
+    );
   });
 
   testWidgets('探针 C：嵌进面板 + 泳道**未激活**（AbsorbPointer 生效中）', (tester) async {
     final cubit = await _pump(tester, _embedded, activate: false);
-    print('C 激活=${cubit.state.activeLaneId} ${await _wheel(tester, const Offset(0, 120))}');
+    print(
+      'C 激活=${cubit.state.activeLaneId} ${await _wheel(tester, const Offset(0, 120))}',
+    );
   });
 
   testWidgets('探针 D：嵌进面板 + 激活，滚轮落在视口右边缘的揭示带内', (tester) async {
     final cubit = await _pump(tester, _embedded, activate: true);
     final edge = Offset(tester.view.physicalSize.width - 6, 400);
-    print('D 激活=${cubit.state.activeLaneId} ${await _wheel(tester, const Offset(0, 120), at: edge)}');
+    print(
+      'D 激活=${cubit.state.activeLaneId} ${await _wheel(tester, const Offset(0, 120), at: edge)}',
+    );
   });
 
   testWidgets('探针 E：嵌进面板，先真的点一下再滚（模拟用户路径）', (tester) async {
     final cubit = await _pump(tester, _embedded, activate: false);
     await tester.tapAt(
-      tester.getCenter(find.byKey(const ValueKey<String>('list:${LaneId.right}'))),
+      tester.getCenter(
+        find.byKey(const ValueKey<String>('list:${LaneId.right}')),
+      ),
     );
     await tester.pumpAndSettle();
-    print('E 点过之后激活=${cubit.state.activeLaneId} ${await _wheel(tester, const Offset(0, 120))}');
+    print(
+      'E 点过之后激活=${cubit.state.activeLaneId} ${await _wheel(tester, const Offset(0, 120))}',
+    );
   });
 }

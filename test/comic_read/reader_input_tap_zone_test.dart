@@ -512,8 +512,10 @@ void main() {
     });
 
     test('正中那一格不随方向变：始终唤出上下栏', () {
-      expect(zone(at: _center, viewport: normal, rightToLeft: true),
-          ReaderTapZone.toggleMenu);
+      expect(
+        zone(at: _center, viewport: normal, rightToLeft: true),
+        ReaderTapZone.toggleMenu,
+      );
     });
 
     test('空间动作的语义解析与 Rust 引擎同构（isNext = isPageRight != rightToLeft）', () {

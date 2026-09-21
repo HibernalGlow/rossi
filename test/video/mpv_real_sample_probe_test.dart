@@ -51,24 +51,65 @@ Future<Map<String, String>?> _makeSamples() async {
   final mkv = '${dir.path}/real.mkv';
   final mp4 = '${dir.path}/real.mp4';
   final r = await Process.run('ffmpeg', <String>[
-    '-hide_banner', '-loglevel', 'error', '-y',
-    '-f', 'lavfi', '-i', 'testsrc2=size=160x120:rate=25:duration=4',
-    '-f', 'lavfi', '-i', 'sine=frequency=220:sample_rate=44100:duration=4',
-    '-f', 'srt', '-i', srt.path,
-    '-f', 'ffmetadata', '-i', meta.path,
-    '-map', '0:v', '-map', '1:a', '-map', '2:s', '-map_metadata', '3',
-    '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-c:s', 'ass',
+    '-hide_banner',
+    '-loglevel',
+    'error',
+    '-y',
+    '-f',
+    'lavfi',
+    '-i',
+    'testsrc2=size=160x120:rate=25:duration=4',
+    '-f',
+    'lavfi',
+    '-i',
+    'sine=frequency=220:sample_rate=44100:duration=4',
+    '-f',
+    'srt',
+    '-i',
+    srt.path,
+    '-f',
+    'ffmetadata',
+    '-i',
+    meta.path,
+    '-map',
+    '0:v',
+    '-map',
+    '1:a',
+    '-map',
+    '2:s',
+    '-map_metadata',
+    '3',
+    '-c:v',
+    'libx264',
+    '-pix_fmt',
+    'yuv420p',
+    '-c:a',
+    'aac',
+    '-c:s',
+    'ass',
     mkv,
   ]);
   if (r.exitCode != 0) {
     return null;
   }
   final r2 = await Process.run('ffmpeg', <String>[
-    '-hide_banner', '-loglevel', 'error', '-y',
-    '-i', mkv,
-    '-map_metadata', '-1',
-    '-c:v', 'copy', '-c:a', 'copy', '-c:s', 'mov_text',
-    '-movflags', '+faststart', mp4,
+    '-hide_banner',
+    '-loglevel',
+    'error',
+    '-y',
+    '-i',
+    mkv,
+    '-map_metadata',
+    '-1',
+    '-c:v',
+    'copy',
+    '-c:a',
+    'copy',
+    '-c:s',
+    'mov_text',
+    '-movflags',
+    '+faststart',
+    mp4,
   ]);
   if (r2.exitCode != 0) {
     return <String, String>{'mkv': mkv};
@@ -83,18 +124,31 @@ Future<String?> _makeRotated() async {
   final dir = Directory.systemTemp.createTempSync('rossi-rot');
   final out = '${dir.path}/rot.mp4';
   final r = await Process.run('ffmpeg', <String>[
-    '-hide_banner', '-loglevel', 'error', '-y',
-    '-display_rotation:v:0', '90',
-    '-f', 'lavfi', '-i', 'testsrc2=size=160x120:rate=25:duration=2',
-    '-c:v', 'libx264', '-pix_fmt', 'yuv420p',
+    '-hide_banner',
+    '-loglevel',
+    'error',
+    '-y',
+    '-display_rotation:v:0',
+    '90',
+    '-f',
+    'lavfi',
+    '-i',
+    'testsrc2=size=160x120:rate=25:duration=2',
+    '-c:v',
+    'libx264',
+    '-pix_fmt',
+    'yuv420p',
     out,
   ]);
   return r.exitCode == 0 ? out : null;
 }
 
 /// 打开到 ready（或带着原因失败）。
-Future<VideoEnginePhase> _ready(MpvVideoTransport transport, String path,
-    {VideoOpenOptions options = const VideoOpenOptions(autoplay: false)}) async {
+Future<VideoEnginePhase> _ready(
+  MpvVideoTransport transport,
+  String path, {
+  VideoOpenOptions options = const VideoOpenOptions(autoplay: false),
+}) async {
   final seen = transport.phaseStream.firstWhere(
     (p) => p == VideoEnginePhase.ready || p == VideoEnginePhase.failed,
   );
@@ -138,7 +192,10 @@ void main() {
       (m) => m.chapters.length >= 2,
       what: 'chapter-list 解出两条章节',
     );
-    expect(meta.chapters.map((c) => c.title), containsAll(<String>['one', 'two']));
+    expect(
+      meta.chapters.map((c) => c.title),
+      containsAll(<String>['one', 'two']),
+    );
     // 缺陷 ⑨ 的回归判据：以前按 `toInt()` 取整，1.5 s 会变成 1 s。
     expect(
       meta.chapters[1].at.inMilliseconds,
@@ -190,7 +247,7 @@ void main() {
       what: 'video-codec 与宽解出来',
     );
     // mpv 的 `video-codec` 给的是**描述串**（`h.264 / avc / mpeg-4 avc / ...`），
-    // 不是短标记 —— 信息卡那行本来就长这样，判据只能按子串认。  
+    // 不是短标记 —— 信息卡那行本来就长这样，判据只能按子串认。
     expect(meta.videoCodec?.toLowerCase(), contains('264'));
     expect(meta.frameRate ?? 0, closeTo(25, 0.5));
     expect((meta.audioCodec ?? '').toLowerCase(), contains('aac'));
@@ -262,7 +319,8 @@ void main() {
       expect(
         peaks.length,
         inInclusiveRange(30, 45),
-        reason: '$key：4 s / 0.1 s 该有 40 格上下，拿到 ${peaks.length} 格。'
+        reason:
+            '$key：4 s / 0.1 s 该有 40 格上下，拿到 ${peaks.length} 格。'
             '空列就意味着进度条对这个容器不会画波形',
       );
       expect(
@@ -330,4 +388,3 @@ Future<T> _untilValue<T>(
     await Future<void>.delayed(const Duration(milliseconds: 60));
   }
 }
-

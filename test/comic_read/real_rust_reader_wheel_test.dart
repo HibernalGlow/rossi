@@ -90,7 +90,9 @@ void main() {
     final defaultBindings = OperationBindingStore.factoryBindingsJson();
     print('Factory bindings: ${defaultBindings.length} chars');
     final rows = parseBindings(defaultBindings)!;
-    final wheelRows = rows.where((r) => (r['input'] as Map)['device'] == 'wheel').toList();
+    final wheelRows = rows
+        .where((r) => (r['input'] as Map)['device'] == 'wheel')
+        .toList();
     print('Wheel bindings: $wheelRows');
 
     final cubit = GlobalSettingCubit()
@@ -192,9 +194,7 @@ void main() {
     // 触控板双指滑动向下 (panDelta.dy = 30 > 24 步进阈值)。
     // 出厂滚轮行是语义族：下滚 = 下一页，不随左右开翻转（见 `neo_defaults.json` 那条例外）。
     await tester.sendEventToBinding(
-      const PointerPanZoomStartEvent(
-        position: Offset(300, 300),
-      ),
+      const PointerPanZoomStartEvent(position: Offset(300, 300)),
     );
     await tester.sendEventToBinding(
       const PointerPanZoomUpdateEvent(
@@ -202,18 +202,14 @@ void main() {
         panDelta: Offset(0, 30),
       ),
     );
-    await tester.sendEventToBinding(
-      const PointerPanZoomEndEvent(),
-    );
+    await tester.sendEventToBinding(const PointerPanZoomEndEvent());
     await tester.pumpAndSettle();
 
     expect(reader.pages.page, 4.0);
 
     // 触控板双指滑动向上 (panDelta.dy = -30)
     await tester.sendEventToBinding(
-      const PointerPanZoomStartEvent(
-        position: Offset(300, 300),
-      ),
+      const PointerPanZoomStartEvent(position: Offset(300, 300)),
     );
     await tester.sendEventToBinding(
       const PointerPanZoomUpdateEvent(
@@ -221,9 +217,7 @@ void main() {
         panDelta: Offset(0, -30),
       ),
     );
-    await tester.sendEventToBinding(
-      const PointerPanZoomEndEvent(),
-    );
+    await tester.sendEventToBinding(const PointerPanZoomEndEvent());
     await tester.pumpAndSettle();
 
     expect(reader.pages.page, 3.0);

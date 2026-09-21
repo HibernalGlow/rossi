@@ -104,15 +104,11 @@ void main() {
           [3],
         ],
       );
-      expect(
-        buildReadModeSlotEntryIndexes(entries, enableDoublePage: true),
-        [
-          [0],
-          [1],
-          [2, 3],
-        ],
-        reason: '不开留白时，卡片后面那两张仍然并排',
-      );
+      expect(buildReadModeSlotEntryIndexes(entries, enableDoublePage: true), [
+        [0],
+        [1],
+        [2, 3],
+      ], reason: '不开留白时，卡片后面那两张仍然并排');
     });
   });
 
@@ -130,7 +126,10 @@ void main() {
       );
       expect(remapped, 5, reason: '双页下条目 10 落在槽位 5（= 10 ~/ 2）');
       expect(
-        buildReadModeSlotEntryIndexes(entries, enableDoublePage: true)[remapped],
+        buildReadModeSlotEntryIndexes(
+          entries,
+          enableDoublePage: true,
+        )[remapped],
         contains(10),
       );
     });

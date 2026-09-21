@@ -56,8 +56,7 @@ class BookmarkLibraryService {
           favorite.uniqueKey,
           ComicFolderType.favorite,
         ))
-          if (link.folderSyncId != null)
-            _pathOf(link.folderSyncId!, folders),
+          if (link.folderSyncId != null) _pathOf(link.folderSyncId!, folders),
       ],
     );
   }
@@ -143,7 +142,11 @@ class BookmarkLibraryService {
     for (final listPath in item.lists) {
       final resolved = _ensureFolderPath(listPath);
       if (resolved != null) {
-        ComicLinkService.addComic(item.uniqueKey, resolved, ComicFolderType.favorite);
+        ComicLinkService.addComic(
+          item.uniqueKey,
+          resolved,
+          ComicFolderType.favorite,
+        );
       }
     }
   }
@@ -160,11 +163,17 @@ class BookmarkLibraryService {
 
     var current = kComicFolderRootPath;
     for (final name in segments) {
-      final target = current == kComicFolderRootPath ? '/$name' : '$current/$name';
+      final target = current == kComicFolderRootPath
+          ? '/$name'
+          : '$current/$name';
       if (ComicFolderService.folderName(target, ComicFolderType.favorite) ==
           null) {
         try {
-          ComicFolderService.createFolder(current, name, ComicFolderType.favorite);
+          ComicFolderService.createFolder(
+            current,
+            name,
+            ComicFolderType.favorite,
+          );
         } on StateError {
           // 同名已存在（并发导入或墓碑复活），继续往下走。
         } catch (e) {
@@ -179,24 +188,23 @@ class BookmarkLibraryService {
 
   // ── 书签列表（ComicFolder / ComicLink） ───────────────────────────────────
 
-  static List<ComicFolder> lists() =>
-      ComicFolderService.listChildFolders(
-        kComicFolderRootPath,
-        ComicFolderType.favorite,
-      );
+  static List<ComicFolder> lists() => ComicFolderService.listChildFolders(
+    kComicFolderRootPath,
+    ComicFolderType.favorite,
+  );
 
-  static void createList(String name) =>
-      ComicFolderService.createFolder(kComicFolderRootPath, name, ComicFolderType.favorite);
+  static void createList(String name) => ComicFolderService.createFolder(
+    kComicFolderRootPath,
+    name,
+    ComicFolderType.favorite,
+  );
 
   static void renameList(String path, String name) =>
       ComicFolderService.renameFolder(path, name, ComicFolderType.favorite);
 
   /// 删除列表本身，列表里的书签**不跟着取消收藏** —— 它们回到未分类。
   static void deleteList(String path) {
-    final members = ComicLinkService.listLinks(
-      path,
-      ComicFolderType.favorite,
-    );
+    final members = ComicLinkService.listLinks(path, ComicFolderType.favorite);
     for (final member in members) {
       ComicLinkService.addComic(
         member.comicUniqueKey,

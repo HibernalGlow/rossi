@@ -77,14 +77,22 @@ void _everyActionIsPresent() {
     _input(),
     _input(isDirectory: true, canPaste: true),
     _input(selectionCount: 3, inSelection: true),
-    _input(isDirectory: true, selectionCount: 3, inSelection: true, canPaste: true),
+    _input(
+      isDirectory: true,
+      selectionCount: 3,
+      inSelection: true,
+      canPaste: true,
+    ),
     _input(canOpen: false, canCreateFolder: false),
   ]) {
     final items = buildFileManagerEntryMenuItems(input);
     for (final action in FileManagerEntryAction.values) {
       check('每一种局面下都必须有 ${action.name}', items.any((i) => i.action == action));
     }
-    check('菜单里不出现重复项', items.map((i) => i.action).toSet().length == items.length);
+    check(
+      '菜单里不出现重复项',
+      items.map((i) => i.action).toSet().length == items.length,
+    );
   }
 }
 
@@ -96,7 +104,12 @@ void _batchGreysOutWhatHasNoMeaning() {
     _input(isDirectory: true, canPaste: true),
   );
   final batch = buildFileManagerEntryMenuItems(
-    _input(isDirectory: true, selectionCount: 3, inSelection: true, canPaste: true),
+    _input(
+      isDirectory: true,
+      selectionCount: 3,
+      inSelection: true,
+      canPaste: true,
+    ),
   );
 
   for (final action in <FileManagerEntryAction>[
@@ -134,11 +147,11 @@ void _batchGreysOutWhatHasNoMeaning() {
   final outside = buildFileManagerEntryMenuItems(
     _input(isDirectory: true, selectionCount: 3, inSelection: false),
   );
-  check('在选中集合外右键时按单选处理', _item(outside, FileManagerEntryAction.rename).enabled);
   check(
-    '在选中集合外右键时「打开」可用',
-    _item(outside, FileManagerEntryAction.open).enabled,
+    '在选中集合外右键时按单选处理',
+    _item(outside, FileManagerEntryAction.rename).enabled,
   );
+  check('在选中集合外右键时「打开」可用', _item(outside, FileManagerEntryAction.open).enabled);
 }
 
 // ── 3. 粘贴只落在目录上 ────────────────────────────────────────────────────
@@ -205,7 +218,10 @@ void _dangerousGroupIsLast() {
           dangerous.last.action == FileManagerEntryAction.deletePermanently,
       '${dangerous.map((i) => i.action.name).toList()}',
     );
-    check('永久删除排在最后', items.last.action == FileManagerEntryAction.deletePermanently);
+    check(
+      '永久删除排在最后',
+      items.last.action == FileManagerEntryAction.deletePermanently,
+    );
     check(
       '回收站紧挨在永久删除之前',
       items[items.length - 2].action == FileManagerEntryAction.trash,
@@ -213,7 +229,9 @@ void _dangerousGroupIsLast() {
     // 「复制路径」这类无害动作不许混进危险组后面 —— 那会让它被误当成安全的。
     check(
       '危险组之后没有别的项',
-      items.skipWhile((item) => !item.dangerous).every((item) => item.dangerous),
+      items
+          .skipWhile((item) => !item.dangerous)
+          .every((item) => item.dangerous),
     );
   }
 }
@@ -222,7 +240,12 @@ void _dangerousGroupIsLast() {
 
 void _exactlyOneNeedsConfirmation() {
   final items = buildFileManagerEntryMenuItems(
-    _input(isDirectory: true, selectionCount: 2, inSelection: true, canPaste: true),
+    _input(
+      isDirectory: true,
+      selectionCount: 2,
+      inSelection: true,
+      canPaste: true,
+    ),
   );
   final destructive = items.where((item) => item.destructive).toList();
   check(
@@ -242,14 +265,8 @@ void _exactlyOneNeedsConfirmation() {
   }
 
   // 回收站**不是**靠确认保护的：它的保护是撤销通道。
-  check(
-    '「移到回收站」不弹确认',
-    !_item(items, FileManagerEntryAction.trash).destructive,
-  );
-  check(
-    '「移到回收站」仍然是危险色',
-    _item(items, FileManagerEntryAction.trash).dangerous,
-  );
+  check('「移到回收站」不弹确认', !_item(items, FileManagerEntryAction.trash).destructive);
+  check('「移到回收站」仍然是危险色', _item(items, FileManagerEntryAction.trash).dangerous);
 }
 
 // ── 6. 与 neoview 的默认确认配置一致 ───────────────────────────────────────
@@ -294,11 +311,7 @@ void _deletePromptValues() {
     FileManagerEntryAction.createFolder: null,
   };
   cases.forEach((action, expected) {
-    final actual = deletePromptFor(
-      action,
-      count: 3,
-      restoreSupported: true,
-    );
+    final actual = deletePromptFor(action, count: 3, restoreSupported: true);
     check(
       'deletePromptFor(${action.name}) == $expected',
       actual == expected,
@@ -320,11 +333,15 @@ void _deletePromptValues() {
   );
   check('macOS 与 Windows 的回收站提示不相同', macTrash != winTrash);
   check('macOS 的回收站提示标为不可撤销', macTrash!.restoreSupported == false);
-  check('永久删除的提示与回收站不同', macTrash != deletePromptFor(
-    FileManagerEntryAction.deletePermanently,
-    count: 1,
-    restoreSupported: false,
-  ));
+  check(
+    '永久删除的提示与回收站不同',
+    macTrash !=
+        deletePromptFor(
+          FileManagerEntryAction.deletePermanently,
+          count: 1,
+          restoreSupported: false,
+        ),
+  );
 }
 
 // ── 8. 「能不能撤销」只有一个判断入口 ──────────────────────────────────────

@@ -110,9 +110,7 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
             subtitle: const Text('Rust 解码 → wgpu → GPU 拷贝 → 共享纹理，像素不过桥'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const GpuPresentPage(),
-              ),
+              MaterialPageRoute<void>(builder: (_) => const GpuPresentPage()),
             ),
           ),
           const SizedBox(height: 32),

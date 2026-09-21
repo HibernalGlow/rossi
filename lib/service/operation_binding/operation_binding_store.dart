@@ -78,7 +78,9 @@ abstract final class OperationBindingStore {
       )) {
         final factoryRows = _decodeArray(operationBindingFactoryPreset());
         final wheelRows = factoryRows
-            .where((row) => (row['input'] as Map)['device'] == InputDevice.wheel)
+            .where(
+              (row) => (row['input'] as Map)['device'] == InputDevice.wheel,
+            )
             .toList();
         // 出厂表里没有滚轮行时不落这一笔 —— 重写一遍同样的 JSON 只是白脏一次配置。
         if (wheelRows.isNotEmpty) {

@@ -53,7 +53,10 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
 
   @override
   Widget build(BuildContext context) {
-    final setting = context.watch<GlobalSettingCubit>().state.switchToastSetting;
+    final setting = context
+        .watch<GlobalSettingCubit>()
+        .state
+        .switchToastSetting;
 
     Widget content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,16 +95,16 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
             _toggle(
               '切换书籍时显示提示',
               setting.enableBook,
-              (v) => context.read<GlobalSettingCubit>().updateSwitchToastSetting(
-                (c) => c.copyWith(enableBook: v),
-              ),
+              (v) => context
+                  .read<GlobalSettingCubit>()
+                  .updateSwitchToastSetting((c) => c.copyWith(enableBook: v)),
             ),
             _toggle(
               '切换页面时显示提示',
               setting.enablePage,
-              (v) => context.read<GlobalSettingCubit>().updateSwitchToastSetting(
-                (c) => c.copyWith(enablePage: v),
-              ),
+              (v) => context
+                  .read<GlobalSettingCubit>()
+                  .updateSwitchToastSetting((c) => c.copyWith(enablePage: v)),
             ),
           ],
         ),
@@ -155,10 +158,7 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: content,
       );
-      return Material(
-        type: MaterialType.transparency,
-        child: content,
-      );
+      return Material(type: MaterialType.transparency, child: content);
     }
 
     return CollapsibleCard(
@@ -328,7 +328,10 @@ class _DraftFieldState extends State<_DraftField> {
       children: [
         Text(
           widget.label,
-          style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurfaceVariant),
+          style: TextStyle(
+            fontSize: 10,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 2),
         Focus(
@@ -377,9 +380,7 @@ class _VariableTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final borderColor = theme.colorScheme.outlineVariant.withValues(
-      alpha: 0.4,
-    );
+    final borderColor = theme.colorScheme.outlineVariant.withValues(alpha: 0.4);
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: borderColor),
@@ -413,7 +414,10 @@ class _VariableTable extends StatelessWidget {
                       horizontal: 6,
                       vertical: 3,
                     ),
-                    child: Text(description, style: const TextStyle(fontSize: 10)),
+                    child: Text(
+                      description,
+                      style: const TextStyle(fontSize: 10),
+                    ),
                   ),
                 ),
               ],

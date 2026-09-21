@@ -50,8 +50,10 @@ Future<void> unifiedDownloadTask(
   }
 
   int resolveConcurrency() {
-    final val =
-        objectbox.userSettingBox.get(1)?.globalSetting.downloadConcurrency;
+    final val = objectbox.userSettingBox
+        .get(1)
+        ?.globalSetting
+        .downloadConcurrency;
     return (val != null && val >= 1 && val <= 5) ? val : 3;
   }
 

@@ -40,7 +40,8 @@ class GpuPresentPage extends StatefulWidget {
 
 class _GpuPresentPageState extends State<GpuPresentPage> {
   final TextEditingController _pathController = TextEditingController(
-    text: Platform.environment['ROSSI_GPU_PRESENT_SAMPLE'] ??
+    text:
+        Platform.environment['ROSSI_GPU_PRESENT_SAMPLE'] ??
         (Platform.isWindows ? r'D:\1Dev\tmp\rossi-probe\probe.cbz' : ''),
   );
   final GpuPresentController _presenter = GpuPresentController();
@@ -108,7 +109,7 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
       run.note(
         waited < 0
             ? '等呈现器就绪超时（上限 ${PageTurnProbe.readyTimeoutMs} ms）—— '
-                '这份基线会混进 CPU 兜底路径，别当 GPU 路的数用'
+                  '这份基线会混进 CPU 兜底路径，别当 GPU 路的数用'
             : '呈现器 $waited ms 后就绪',
       );
 
@@ -289,7 +290,9 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(Platform.isWindows ? 'GPU 上屏（D3D12 共享纹理）' : 'GPU 上屏（Metal / UMA 零拷贝）'),
+        title: Text(
+          Platform.isWindows ? 'GPU 上屏（D3D12 共享纹理）' : 'GPU 上屏（Metal / UMA 零拷贝）',
+        ),
         actions: <Widget>[
           IconButton(
             tooltip: '刷新统计',
@@ -313,9 +316,9 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
               listenable: _presenter,
               builder: (BuildContext context, Widget? child) =>
                   SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                child: _buildPanel(devicePixelRatio),
-              ),
+                    physics: const ClampingScrollPhysics(),
+                    child: _buildPanel(devicePixelRatio),
+                  ),
             ),
           ),
         ],
@@ -411,7 +414,9 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
               ),
               const SizedBox(width: 6),
               FilledButton.tonal(
-                onPressed: _busy || _index <= 0 ? null : () => _show(_index - 1),
+                onPressed: _busy || _index <= 0
+                    ? null
+                    : () => _show(_index - 1),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                 ),
@@ -440,7 +445,11 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
               const SizedBox(width: 14),
               Text(
                 pageCount == 0 ? '尚未打开来源' : '第 ${_index + 1} / $pageCount 页',
-                style: const TextStyle(fontSize: 14, color: Color(0xFFE6EDF3), fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFFE6EDF3),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               const Spacer(),
               Flexible(
@@ -497,13 +506,22 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
                     '原图',
                     '${stats.probeInt('sourceWidth')} × ${stats.probeInt('sourceHeight')}',
                   ),
-                  _stat('解码', '${stats.probeDouble('decodeMs').toStringAsFixed(1)} ms'),
-                  _stat('上传', '${stats.probeDouble('uploadMs').toStringAsFixed(1)} ms'),
+                  _stat(
+                    '解码',
+                    '${stats.probeDouble('decodeMs').toStringAsFixed(1)} ms',
+                  ),
+                  _stat(
+                    '上传',
+                    '${stats.probeDouble('uploadMs').toStringAsFixed(1)} ms',
+                  ),
                   _stat(
                     '渲染+提交',
                     '${stats.probeDouble('submitMs').toStringAsFixed(1)} ms',
                   ),
-                  _stat('合计', '${stats.probeDouble('totalMs').toStringAsFixed(1)} ms'),
+                  _stat(
+                    '合计',
+                    '${stats.probeDouble('totalMs').toStringAsFixed(1)} ms',
+                  ),
                   if (stats.probe.containsKey('prerenderHit'))
                     _stat(
                       '预渲染直拷',
@@ -571,7 +589,9 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
       return '当前平台不支持';
     }
     final PageSource? source = _source;
-    final String? mismatch = source == null ? null : _presenter.mismatchFor(source);
+    final String? mismatch = source == null
+        ? null
+        : _presenter.mismatchFor(source);
     if (mismatch != null) {
       return mismatch;
     }
@@ -601,8 +621,14 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF8B949E))),
-        Text(value, style: const TextStyle(fontSize: 14, color: Color(0xFFE6EDF3))),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 11, color: Color(0xFF8B949E)),
+        ),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 14, color: Color(0xFFE6EDF3)),
+        ),
       ],
     );
   }

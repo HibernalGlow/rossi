@@ -45,8 +45,14 @@ List<LibraryEntry> _entries({int count = 3, Set<LibraryViewMode>? thumbModes}) {
         title: '标题$i',
         subtitle: '副标题$i',
         metaText: '元$i',
-        media: (context, {required width, required height, required radius, required fit}) =>
-            _Marker('k$i'),
+        media:
+            (
+              context, {
+              required width,
+              required height,
+              required radius,
+              required fit,
+            }) => _Marker('k$i'),
         badge: const Icon(Icons.book_outlined),
         thumbModes: thumbModes ?? LibraryViewMode.values.toSet(),
         detailCells: ['列A$i', '列B$i', '列C$i'],
@@ -93,11 +99,7 @@ void main() {
         LibraryEntryList(mode: mode, entries: _entries(), onTap: (_) {}),
       );
       for (var i = 0; i < 3; i++) {
-        expect(
-          find.text('标题$i'),
-          findsWidgets,
-          reason: '$mode 这一档没把条目标题画出来',
-        );
+        expect(find.text('标题$i'), findsWidgets, reason: '$mode 这一档没把条目标题画出来');
       }
     }
   });
@@ -161,11 +163,7 @@ void main() {
           onTap: (_) {},
         ),
       );
-      expect(
-        received,
-        isNotEmpty,
-        reason: '$mode 这一档根本没画缩略图，测了个空',
-      );
+      expect(received, isNotEmpty, reason: '$mode 这一档根本没画缩略图，测了个空');
       for (final size in received) {
         final parts = size.split(' x ');
         for (final value in parts) {
@@ -218,7 +216,12 @@ void main() {
         entries: _entries(),
         onTap: (_) {},
         columns: const [
-          LibraryColumn(key: 'chapter', label: '章节', width: 90, sortable: false),
+          LibraryColumn(
+            key: 'chapter',
+            label: '章节',
+            width: 90,
+            sortable: false,
+          ),
           LibraryColumn(key: 'source', label: '来源', width: 70),
         ],
         onSort: (key) => sorted = key,

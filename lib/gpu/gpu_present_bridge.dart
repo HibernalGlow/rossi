@@ -80,7 +80,8 @@ class GpuPresentStatus {
   }
 
   @override
-  String toString() => 'GpuPresentStatus(${state.name}, tex=$textureId, '
+  String toString() =>
+      'GpuPresentStatus(${state.name}, tex=$textureId, '
       '${width}x$height, adapter=$adapter, error=$error)';
 }
 
@@ -147,18 +148,21 @@ class GpuPresentBridge {
   /// 引擎随后会用另一个尺寸来问 `SurfaceCallback`，两边永远对不上，形成反复重建。
   ///
   /// **未就绪不是异常**：那时返回 [GpuPresentState.loading]，调用方继续走兜底即可。
-  Future<GpuPresentStatus> tryInit({required int width, required int height}) async {
+  Future<GpuPresentStatus> tryInit({
+    required int width,
+    required int height,
+  }) async {
     if (!isPlatformSupported) {
       return const GpuPresentStatus(
         state: GpuPresentState.unsupported,
         error: '当前平台没有 D3D12 共享纹理这条路',
       );
     }
-    final Map<Object?, Object?>? result =
-        await channel.invokeMethod<Map<Object?, Object?>>('init', <String, Object?>{
-      'width': width,
-      'height': height,
-    });
+    final Map<Object?, Object?>? result = await channel
+        .invokeMethod<Map<Object?, Object?>>('init', <String, Object?>{
+          'width': width,
+          'height': height,
+        });
     return GpuPresentStatus.fromMap(result ?? const <Object?, Object?>{});
   }
 
@@ -173,8 +177,8 @@ class GpuPresentBridge {
         error: '当前平台没有 D3D12 共享纹理这条路',
       );
     }
-    final Map<Object?, Object?>? result =
-        await channel.invokeMethod<Map<Object?, Object?>>('status');
+    final Map<Object?, Object?>? result = await channel
+        .invokeMethod<Map<Object?, Object?>>('status');
     return GpuPresentStatus.fromMap(result ?? const <Object?, Object?>{});
   }
 
@@ -187,10 +191,10 @@ class GpuPresentBridge {
   /// 归档目录的解析只值几毫秒，所以这次重复是可接受的；但接线进真正的阅读器时
   /// 页来源应当统一，见 `docs/texture-bridge-integration.md`。
   Future<int> open(String path) async {
-    final Map<Object?, Object?>? result =
-        await channel.invokeMethod<Map<Object?, Object?>>('open', <String, Object?>{
-      'path': path,
-    });
+    final Map<Object?, Object?>? result = await channel
+        .invokeMethod<Map<Object?, Object?>>('open', <String, Object?>{
+          'path': path,
+        });
     final Object? count = result?['pageCount'];
     if (count is! int) {
       throw StateError('打开失败，native 侧没有返回页数: $result');
@@ -202,7 +206,9 @@ class GpuPresentBridge {
   Future<void> show(int index) async {
     _trace('show-enter idx=$index');
     try {
-      await channel.invokeMethod<bool>('show', <String, Object?>{'index': index});
+      await channel.invokeMethod<bool>('show', <String, Object?>{
+        'index': index,
+      });
       _trace('show-done idx=$index');
     } catch (error) {
       _trace('show-error idx=$index err=$error');
@@ -244,14 +250,16 @@ class GpuPresentBridge {
   /// **不抛异常**：这是个可选的性能开关，调用方不该为它写 try/catch；
   /// 而且"没接受"和"关了"必须能分辨 —— 混在一起会让 A/B 的对照组是假的。
   Future<bool> setPrefetchEnabled(bool enabled) async {
-    final bool? accepted = await channel
-        .invokeMethod<bool>('setPrefetch', <String, Object?>{'enabled': enabled});
+    final bool? accepted = await channel.invokeMethod<bool>(
+      'setPrefetch',
+      <String, Object?>{'enabled': enabled},
+    );
     return accepted ?? false;
   }
 
   Future<GpuPresentStats> stats() async {
-    final Map<Object?, Object?>? result =
-        await channel.invokeMethod<Map<Object?, Object?>>('stats');
+    final Map<Object?, Object?>? result = await channel
+        .invokeMethod<Map<Object?, Object?>>('stats');
     return GpuPresentStats.fromMap(result ?? const <Object?, Object?>{});
   }
 
@@ -264,14 +272,17 @@ class GpuPresentBridge {
   /// 「准备」与「上屏」拆开，两边都能到位。
   ///
   /// 返回是否被接受。失败**不需要降级**：它本来就不影响画面。
-  Future<bool> prepare({required int index, required int width, required int height}) async {
+  Future<bool> prepare({
+    required int index,
+    required int width,
+    required int height,
+  }) async {
     if (!isPlatformSupported) return false;
     try {
-      final bool? ok = await channel.invokeMethod<bool>('prepare', <String, Object?>{
-        'index': index,
-        'width': width,
-        'height': height,
-      });
+      final bool? ok = await channel.invokeMethod<bool>(
+        'prepare',
+        <String, Object?>{'index': index, 'width': width, 'height': height},
+      );
       return ok ?? false;
     } catch (_) {
       return false;
@@ -358,25 +369,32 @@ class GpuPresentStats {
 
   final String error;
   final int textureId;
+
   /// 呈现目标的当前尺寸（物理像素）。
   final int width;
   final int height;
+
   /// Flutter 正在用的那块显卡名。
   final String adapter;
+
   /// 有没有拿到 Flutter 的 adapter LUID。
   ///
   /// `false` 意味着 Rust 侧只能自己挑一块卡，跨 adapter 共享可能失败或极慢。
   /// 这不是无关紧要的细节，所以要显示出来。
   final bool luidKnown;
+
   /// 我们通知引擎来取帧的次数。
   final int framesMarked;
+
   /// **引擎打开共享句柄的次数**。
   ///
   /// 这是"链路真的通了"的唯一硬证据：引擎只有确实把这张纹理拿去合成了，
   /// 才会去打开句柄。`framesMarked` 只说明我们通知了，不说明有人来取。
   final int handleOpened;
+
   /// 呈现目标被重建的次数（拖动窗口会增长）。
   final int resizes;
+
   /// 最近一次打开的来源有几页。
   final int pageCount;
 
@@ -388,8 +406,10 @@ class GpuPresentStats {
 
   /// 因为"上一页还在呈现"而被拒掉的 `show` 次数。正常恒为 0。
   final int showBusyRejected;
+
   /// Rust 侧上报的 JSON，已解析。
   final Map<String, Object?> probe;
+
   /// 上面那份 JSON 的原文，用来在解析失败时还能给人看。
   final String probeRaw;
 
@@ -446,7 +466,6 @@ class GpuPresentStats {
     }
     return 0;
   }
-
 }
 
 /// 从 native 侧回传的 map 里取一个整数。

@@ -32,10 +32,7 @@ void main() {
 
     final center = tester.getCenter(find.text(t.bindingEditor.recordWaiting));
     await tester.sendEventToBinding(
-      PointerScrollEvent(
-        position: center,
-        scrollDelta: const Offset(0, 40),
-      ),
+      PointerScrollEvent(position: center, scrollDelta: const Offset(0, 40)),
     );
     await tester.pumpAndSettle();
 
@@ -72,10 +69,7 @@ void main() {
 
     final titlePos = tester.getCenter(find.text(t.bindingEditor.recordHint));
     await tester.sendEventToBinding(
-      PointerScrollEvent(
-        position: titlePos,
-        scrollDelta: const Offset(0, -40),
-      ),
+      PointerScrollEvent(position: titlePos, scrollDelta: const Offset(0, -40)),
     );
     await tester.pumpAndSettle();
 
@@ -112,10 +106,7 @@ void main() {
 
     final center = tester.getCenter(find.text(t.bindingEditor.recordWaiting));
     await tester.sendEventToBinding(
-      PointerScrollEvent(
-        position: center,
-        scrollDelta: const Offset(0, 40),
-      ),
+      PointerScrollEvent(position: center, scrollDelta: const Offset(0, 40)),
     );
     await tester.pumpAndSettle();
 
@@ -153,22 +144,14 @@ void main() {
     final center = tester.getCenter(find.text(t.bindingEditor.recordWaiting));
 
     // 模拟 Mac 触控板向上推（panDelta.dy < 0）
-    await tester.sendEventToBinding(
-      PointerPanZoomStartEvent(
-        position: center,
-      ),
-    );
+    await tester.sendEventToBinding(PointerPanZoomStartEvent(position: center));
     await tester.sendEventToBinding(
       PointerPanZoomUpdateEvent(
         position: center,
         panDelta: const Offset(0, -20),
       ),
     );
-    await tester.sendEventToBinding(
-      PointerPanZoomEndEvent(
-        position: center,
-      ),
-    );
+    await tester.sendEventToBinding(PointerPanZoomEndEvent(position: center));
     await tester.pumpAndSettle();
 
     expect(find.text(t.bindingEditor.recordWaiting), findsNothing);

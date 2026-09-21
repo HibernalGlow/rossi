@@ -66,7 +66,10 @@ void main() {
       );
       expect(toggled.showThumbnailStrip, isTrue);
       // 与其它阅读设置互不干扰。
-      expect(toggled.hoverRevealEnabled, const ReadSettingState().hoverRevealEnabled);
+      expect(
+        toggled.hoverRevealEnabled,
+        const ReadSettingState().hoverRevealEnabled,
+      );
     });
   });
 }

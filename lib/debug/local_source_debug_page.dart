@@ -582,7 +582,11 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
   /// `auto` 的语义是「**Rust 优先，格式归外壳时退回**」，不是「随便挑一个能用的」。
   /// 只有 Rust 明确回答 `shellOnlyFormat` 才算「这页归外壳」；解码失败是另一回事，
   /// 那种情况就地报错 —— 偷偷换条路会把失败藏起来，而失败正是这张页面要显示的东西。
-  Future<void> _loadPageTask(BigInt id, int index, {required bool force}) async {
+  Future<void> _loadPageTask(
+    BigInt id,
+    int index, {
+    required bool force,
+  }) async {
     // 这两个是给预取判决用的状态（上游 `last_prefetch_scroll_at` 与
     // `visible_state_pending` 的对应物）。判决本身在 Rust 侧，这里只报事实。
     _lastTurnAt = DateTime.now();
@@ -635,7 +639,9 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
         debugPrint('[local-debug] 翻页目标正在预取，等在跑的那一路 index=$index');
         await inFlight;
         final waited = swWait.elapsed;
-        debugPrint('[local-debug] 等预取完成 index=$index 等${waited.inMilliseconds}ms');
+        debugPrint(
+          '[local-debug] 等预取完成 index=$index 等${waited.inMilliseconds}ms',
+        );
         final hitAfterWait = _takePrefetch(index);
         if (hitAfterWait != null) {
           _presentPrefetched(

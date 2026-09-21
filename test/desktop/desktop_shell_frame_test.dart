@@ -198,11 +198,7 @@ void main() {
     });
 
     testWidgets('透明 + 融合浮层：那 40px 让给内容，标题栏浮在上面、不画底色', (tester) async {
-      await _pumpShell(
-        tester,
-        transparentTitleBar: true,
-        titleBarFused: true,
-      );
+      await _pumpShell(tester, transparentTitleBar: true, titleBarFused: true);
 
       // 「不占位」必须看矩形：只看 `findsOneWidget` 不能区分占位与浮层。
       expect(_contentTop(tester), 0, reason: '内容顶到窗口顶部（独立行这里是 40）');

@@ -149,9 +149,9 @@ class _SuperResolutionEngineSettingsState
       children: [
         Text(
           '预超分（当前页优先）',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 6),
         Wrap(
@@ -165,7 +165,9 @@ class _SuperResolutionEngineSettingsState
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                    color: colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.4,
+                    ),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: colorScheme.outlineVariant.withValues(alpha: 0.4),
@@ -202,7 +204,9 @@ class _SuperResolutionEngineSettingsState
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                    color: colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.4,
+                    ),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: colorScheme.outlineVariant.withValues(alpha: 0.4),
@@ -237,10 +241,7 @@ class _SuperResolutionEngineSettingsState
         const SizedBox(height: 4),
         Text(
           '一次处理一页，避免争抢内存；都设为 0 可关闭预超分。',
-          style: TextStyle(
-            fontSize: 11,
-            color: colorScheme.onSurfaceVariant,
-          ),
+          style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 10),
         const SuperResolutionLogControls(),
@@ -274,15 +275,20 @@ class _SuperResolutionEngineSettingsState
             else if (_engine == SuperResolutionEngine.breezeCoreML) ...[
               Text(
                 'Rossi 原生模型',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 2,
+                ),
                 decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  color: colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.5,
+                  ),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: colorScheme.outlineVariant.withValues(alpha: 0.5),
@@ -312,7 +318,9 @@ class _SuperResolutionEngineSettingsState
                         ? null
                         : (family) {
                             if (family != null) {
-                              _change(() => RealSrSettings.saveCoreMLFamily(family));
+                              _change(
+                                () => RealSrSettings.saveCoreMLFamily(family),
+                              );
                             }
                           },
                   ),
@@ -325,9 +333,14 @@ class _SuperResolutionEngineSettingsState
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
-                      color: colorScheme.secondaryContainer.withValues(alpha: 0.7),
+                      color: colorScheme.secondaryContainer.withValues(
+                        alpha: 0.7,
+                      ),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -340,7 +353,10 @@ class _SuperResolutionEngineSettingsState
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(8),
@@ -354,7 +370,10 @@ class _SuperResolutionEngineSettingsState
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: _available
                           ? Colors.green.withValues(alpha: 0.15)
@@ -407,15 +426,14 @@ class _SuperResolutionEngineSettingsState
           ],
           if (_error != null) ...[
             const SizedBox(height: 8),
-            Text(
-              _error!,
-              style: TextStyle(color: colorScheme.error),
-            ),
+            Text(_error!, style: TextStyle(color: colorScheme.error)),
           ],
           const SizedBox(height: 12),
           if (widget.isReaderCompact)
             Theme(
-              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              data: Theme.of(
+                context,
+              ).copyWith(dividerColor: Colors.transparent),
               child: ExpansionTile(
                 tilePadding: EdgeInsets.zero,
                 dense: true,
@@ -427,9 +445,7 @@ class _SuperResolutionEngineSettingsState
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                children: [
-                  advancedSection,
-                ],
+                children: [advancedSection],
               ),
             )
           else

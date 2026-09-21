@@ -157,10 +157,9 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
         ? null
         : BookmarkLibraryService.membersOf(_selectedList);
     final visible = searchAndSortShelf(
-      selectShelf(
-        [for (final item in all) _searchable(item)],
-        memberKeys: memberKeys,
-      ),
+      selectShelf([
+        for (final item in all) _searchable(item),
+      ], memberKeys: memberKeys),
       keyword: _keyword,
       sort: _sort,
       normalize: _normalize,
@@ -401,9 +400,11 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
   Future<void> _import() async {
     final picked = await openFile(
       acceptedTypeGroups: const [
-        XTypeGroup(label: '书签文件', extensions: ['json'], mimeTypes: [
-          'application/json',
-        ]),
+        XTypeGroup(
+          label: '书签文件',
+          extensions: ['json'],
+          mimeTypes: ['application/json'],
+        ),
       ],
     );
     if (picked?.path case final path?) {
@@ -524,10 +525,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
               height: height,
             ),
           ),
-      badge: Icon(
-        Icons.menu_book_rounded,
-        color: theme.colorScheme.primary,
-      ),
+      badge: Icon(Icons.menu_book_rounded, color: theme.colorScheme.primary),
       // 书签一共就几百条，每一档都值得画封面；文件管理器不这么想。
       thumbModes: LibraryViewMode.values.toSet(),
       detailCells: [author.isEmpty ? '—' : author, source, time],
@@ -636,7 +634,8 @@ class _ListEditorDialogState extends State<_ListEditorDialog> {
       actions: [
         if (widget.editing)
           TextButton(
-            onPressed: () => context.pop(const _ListEditorResult('', delete: true)),
+            onPressed: () =>
+                context.pop(const _ListEditorResult('', delete: true)),
             child: const Text('删除列表'),
           ),
         TextButton(

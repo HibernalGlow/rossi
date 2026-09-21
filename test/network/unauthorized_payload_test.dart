@@ -136,10 +136,7 @@ void main() {
 
     test('空 message 时返回 null，不崩', () {
       expect(
-        parseUnauthorizedPayload(
-          AnyhowException(''),
-          fallbackPluginId: 'bika',
-        ),
+        parseUnauthorizedPayload(AnyhowException(''), fallbackPluginId: 'bika'),
         isNull,
       );
     });

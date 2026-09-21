@@ -58,12 +58,12 @@ class ReaderAmbientPalette {
 
   @override
   int get hashCode => Object.hash(
-        average,
-        Object.hashAll(top),
-        Object.hashAll(right),
-        Object.hashAll(bottom),
-        Object.hashAll(left),
-      );
+    average,
+    Object.hashAll(top),
+    Object.hashAll(right),
+    Object.hashAll(bottom),
+    Object.hashAll(left),
+  );
 
   static bool _listEquals(List<Color> a, List<Color> b) {
     if (identical(a, b)) return true;

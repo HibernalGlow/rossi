@@ -85,7 +85,10 @@ void main() {
       expect(parseBindings('not json'), isNull);
       expect(parseBindings('{"bindings":{}}'), isNull);
       // input 缺 device 的行：宁可整份判非法，也不要把一条永远匹配不上的绑定留下。
-      expect(parseBindings('[{"id":"x","action":"a","input":{"code":"A"}}]'), isNull);
+      expect(
+        parseBindings('[{"id":"x","action":"a","input":{"code":"A"}}]'),
+        isNull,
+      );
     });
   });
 
@@ -146,29 +149,27 @@ void main() {
     });
 
     test('descriptor 组装：修饰键与九宫格', () {
+      expect(jsonDecodeMap(keyboardInputJson(code: 'ArrowLeft', ctrl: true)), {
+        'device': 'keyboard',
+        'code': 'ArrowLeft',
+        'trigger': 'down',
+        'ctrl': true,
+        'alt': false,
+        'shift': false,
+        'meta': false,
+      });
+      expect(jsonDecodeMap(areaInputJson(area: TapArea.middleCenter)), {
+        'device': 'area',
+        'area': 'middle-center',
+        'button': 0,
+        'action': 'click',
+      });
       expect(
-        jsonDecodeMap(keyboardInputJson(code: 'ArrowLeft', ctrl: true)),
-        {
-          'device': 'keyboard',
-          'code': 'ArrowLeft',
-          'trigger': 'down',
-          'ctrl': true,
-          'alt': false,
-          'shift': false,
-          'meta': false,
-        },
-      );
-      expect(
-        jsonDecodeMap(areaInputJson(area: TapArea.middleCenter)),
-        {
-          'device': 'area',
-          'area': 'middle-center',
-          'button': 0,
-          'action': 'click',
-        },
-      );
-      expect(
-        describeInput(jsonDecodeMap(keyboardInputJson(code: 'Space', shift: true, meta: true))),
+        describeInput(
+          jsonDecodeMap(
+            keyboardInputJson(code: 'Space', shift: true, meta: true),
+          ),
+        ),
         'Shift+Meta+Space',
       );
     });
@@ -255,11 +256,10 @@ void main() {
   });
 
   group('点击分区的读写（设置页那一侧的表操作）', () {
-    final table =
-        parseBindings(
-              '[{"id":"preset-tap-advance","action":"reader.page-right","context":"reader",'
-              '"enabled":true,"input":{"device":"area","area":"middle-right","button":0,"action":"click"}}]',
-            )!;
+    final table = parseBindings(
+      '[{"id":"preset-tap-advance","action":"reader.page-right","context":"reader",'
+      '"enabled":true,"input":{"device":"area","area":"middle-right","button":0,"action":"click"}}]',
+    )!;
 
     test('同一格只留一条：改写而不是追加（追加会立刻造出冲突）', () {
       var bindings = bindArea(table, TapArea.middleRight, 'reader.fullscreen');
@@ -284,7 +284,11 @@ void main() {
         '{"id":"g1","action":"reader.zoom-in","context":"reader","enabled":true,'
         '"input":{"device":"gamepad","button":3}}]',
       )!;
-      final bindings = bindArea(withKeyboard, TapArea.middleRight, 'reader.last-page');
+      final bindings = bindArea(
+        withKeyboard,
+        TapArea.middleRight,
+        'reader.last-page',
+      );
       expect(bindings, hasLength(3), reason: '两个 area 格之外，键盘与手柄那两条原样在');
       expect(
         bindings.firstWhere((b) => b['id'] == 'g1')['input']['device'],
@@ -306,12 +310,10 @@ void main() {
       final input = jsonDecodeMap(json!);
       expect(input['code'], 'KeyA');
       expect(input['device'], 'keyboard');
-      expect([input['ctrl'], input['alt'], input['shift'], input['meta']], [
-        false,
-        false,
-        false,
-        false,
-      ]);
+      expect(
+        [input['ctrl'], input['alt'], input['shift'], input['meta']],
+        [false, false, false, false],
+      );
     });
 
     test('认不出键名的键返回 null（录入框要据此提示，而不是静默失败）', () {

@@ -185,7 +185,9 @@ class _BindingInputRecorderState extends State<BindingInputRecorder> {
                   alignment: Alignment.center,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -201,17 +203,17 @@ class _BindingInputRecorderState extends State<BindingInputRecorder> {
         ),
       ),
       actions: [
-      TextButton(
-        onPressed: () => Navigator.of(context).pop(),
-        child: Text(t.common.cancel),
-      ),
-      FilledButton(
-        onPressed: _captured == null
-            ? null
-            : () => Navigator.of(context).pop(_captured),
-        child: Text(t.common.confirm),
-      ),
-    ],
-  );
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(t.common.cancel),
+        ),
+        FilledButton(
+          onPressed: _captured == null
+              ? null
+              : () => Navigator.of(context).pop(_captured),
+          child: Text(t.common.confirm),
+        ),
+      ],
+    );
   }
 }

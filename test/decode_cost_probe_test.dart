@@ -39,7 +39,10 @@ void main() {
     int? targetWidth,
   ) async {
     final sw = Stopwatch()..start();
-    final codec = await ui.instantiateImageCodec(bytes, targetWidth: targetWidth);
+    final codec = await ui.instantiateImageCodec(
+      bytes,
+      targetWidth: targetWidth,
+    );
     final frame = await codec.getNextFrame();
     sw.stop();
     final result = (

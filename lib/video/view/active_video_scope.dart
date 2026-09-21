@@ -35,7 +35,8 @@ class ActiveVideoScope {
   /// 是否处于 seek-mode：开着时「翻页」输入被重映射成跳转（neo 的快进档）。
   bool get seekModeActive => _controller.value?.snapshot.seekMode ?? false;
 
-  final StreamController<String> _uiActions = StreamController<String>.broadcast();
+  final StreamController<String> _uiActions =
+      StreamController<String>.broadcast();
 
   /// 「这条动作的界面效果长在页面上」的那一类：控制条显隐、全屏。
   ///
@@ -74,8 +75,9 @@ class VideoSettingsStore {
   Future<VideoSettings> load() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(key);
-    final settings =
-        raw == null ? const VideoSettings() : VideoSettings.parse(raw);
+    final settings = raw == null
+        ? const VideoSettings()
+        : VideoSettings.parse(raw);
     // 读设置顺带刷新别名登记表：判定「这一页是不是视频」有 5 个使用点，
     // 逐个传参会漏，漏掉的那处的症状是把视频字节当图片写进封面缓存。
     VideoAliasRegistry.instance.update(settings.extraVideoExtensions);
@@ -213,6 +215,7 @@ class VideoSettings {
       final raw = map[k];
       return raw == null ? null : raw == 'true';
     }
+
     return VideoSettings(
       controlsPinned: b('pinned') ?? base.controlsPinned,
       hardwareDecode: b('hw') ?? base.hardwareDecode,
@@ -223,10 +226,11 @@ class VideoSettings {
       autoHideMilliseconds: i('autoHide') ?? base.autoHideMilliseconds,
       volumePercent: i('volume') ?? base.volumePercent,
       animatedVideoEnabled: b('animatedVideo') ?? base.animatedVideoEnabled,
-      animatedVideoKeywords: (map['animatedKeywords']?.split('\u001f')) ??
+      animatedVideoKeywords:
+          (map['animatedKeywords']?.split('\u001f')) ??
           base.animatedVideoKeywords,
-      extraVideoExtensions: (map['videoAliases']?.split('\u001f')) ??
-          base.extraVideoExtensions,
+      extraVideoExtensions:
+          (map['videoAliases']?.split('\u001f')) ?? base.extraVideoExtensions,
       deinterlace: b('deinterlace') ?? base.deinterlace,
       subtitleStyle: parseSubtitleStyle(map['subStyle']),
     );

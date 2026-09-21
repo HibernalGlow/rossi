@@ -37,9 +37,7 @@ void main() {
         isFalse,
       );
       expect(
-        isLayoutOverflowReport(
-          _flutterError('Build scheduled during frame.'),
-        ),
+        isLayoutOverflowReport(_flutterError('Build scheduled during frame.')),
         isFalse,
       );
       // 非 FlutterError（比如 Rust 侧抛上来的）即使文案相似也不碰。

@@ -121,8 +121,7 @@ class CollapsibleCard extends StatelessWidget {
               firstChild: const SizedBox.shrink(),
               secondChild: Padding(
                 padding:
-                    contentPadding ??
-                    const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    contentPadding ?? const EdgeInsets.fromLTRB(12, 0, 12, 12),
                 child: child,
               ),
               crossFadeState: isExpanded

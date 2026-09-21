@@ -74,7 +74,11 @@ Future<FileManagerActionCall?> planFileManagerEntryAction(
   // 确认放在最前面：先问「删不删」再问「叫什么」会显得顺序错乱，
   // 而反过来（先填名字再问删不删）在用户取消时会白填一遍。
   if (requiresConfirmation(action)) {
-    final ok = await confirmFileManagerDestructive(context, action: action, target: target);
+    final ok = await confirmFileManagerDestructive(
+      context,
+      action: action,
+      target: target,
+    );
     if (!ok) return null;
     // 对话框关掉之后这一层可能已经不在了（面板被拖走、卡片重建）。
     // 少了这道守卫，下面那次 `showDialog` 会挂到一个已经失效的 context 上。
@@ -90,7 +94,9 @@ Future<FileManagerActionCall?> planFileManagerEntryAction(
         initial: target.name,
         confirmLabel: '重命名',
       );
-      return name == null ? null : FileManagerActionCall(action, path: target.path, newName: name);
+      return name == null
+          ? null
+          : FileManagerActionCall(action, path: target.path, newName: name);
 
     case FileManagerEntryAction.createFolder:
       final name = await _promptName(
@@ -100,7 +106,9 @@ Future<FileManagerActionCall?> planFileManagerEntryAction(
         initial: _defaultFolderName,
         confirmLabel: '创建',
       );
-      return name == null ? null : FileManagerActionCall(action, path: target.path, newName: name);
+      return name == null
+          ? null
+          : FileManagerActionCall(action, path: target.path, newName: name);
 
     case FileManagerEntryAction.open:
     case FileManagerEntryAction.openInNewTab:
@@ -179,8 +187,12 @@ Future<String?> _promptName(
 }) async {
   final name = await showDialog<String>(
     context: context,
-    builder: (dialogContext) =>
-        _NameInputDialog(title: title, label: label, initial: initial, confirmLabel: confirmLabel),
+    builder: (dialogContext) => _NameInputDialog(
+      title: title,
+      label: label,
+      initial: initial,
+      confirmLabel: confirmLabel,
+    ),
   );
   final trimmed = name?.trim();
   return (trimmed == null || trimmed.isEmpty) ? null : trimmed;
@@ -329,7 +341,9 @@ void showFileManagerReport(BuildContext context, FileOpsReport report) {
   }
 
   showWarningToast(
-    firstFailure == null ? report.summary : '${report.summary}　首个失败原因：$firstFailure',
+    firstFailure == null
+        ? report.summary
+        : '${report.summary}　首个失败原因：$firstFailure',
     context: context,
   );
 }

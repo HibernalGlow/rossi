@@ -208,11 +208,7 @@ void main() {
       findsOneWidget,
       reason: '面板里那一页不能被连坐退掉 —— 那一下不是冲它来的',
     );
-    expect(
-      find.text(_hostChromeText),
-      findsOneWidget,
-      reason: '工作台更不能被连坐',
-    );
+    expect(find.text(_hostChromeText), findsOneWidget, reason: '工作台更不能被连坐');
   });
 
   // 接管的**下界**：把 `Esc` / 鼠标侧键那条出口留着（两者走的都是根路由的
@@ -336,8 +332,10 @@ class _TestRouter extends RootStackRouter with WorkspaceBackInterceptor {
 
   @override
   List<AutoRoute> get routes => [
-    AutoRoute(page: PageInfo(_homeName, builder: (_) => const _HomePage()),
-        initial: startAtHome),
+    AutoRoute(
+      page: PageInfo(_homeName, builder: (_) => const _HomePage()),
+      initial: startAtHome,
+    ),
     AutoRoute(
       page: PageInfo(
         _hostName,
@@ -376,9 +374,7 @@ Future<_TestRouter> _pumpHost(
   // 而每个用例的 `tearDown` 清过登记，复用就会让新用例里的卡片**从未登记过**，
   // 判据于是变成「全屏」而测试还以为在验卡片。卸载一次再挂，登记必然重做。
   await tester.pumpWidget(const SizedBox.shrink());
-  await tester.pumpWidget(
-    MaterialApp.router(routerConfig: router.config()),
-  );
+  await tester.pumpWidget(MaterialApp.router(routerConfig: router.config()));
   await tester.pumpAndSettle();
   return router;
 }

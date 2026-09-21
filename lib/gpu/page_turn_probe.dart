@@ -82,7 +82,8 @@ class PageTurnProbe {
   /// **每一轮都是冷页**，这条路径才被真正压到。
   static int get stride => _intFromEnv('ROSSI_PAGE_TURN_STRIDE', 1);
   static int get dwellMs => _intFromEnv('ROSSI_PAGE_TURN_DWELL_MS', 900);
-  static int get readyTimeoutMs => _intFromEnv('ROSSI_PAGE_TURN_READY_MS', 10000);
+  static int get readyTimeoutMs =>
+      _intFromEnv('ROSSI_PAGE_TURN_READY_MS', 10000);
 
   static int _intFromEnv(String name, int fallback) {
     final int? parsed = int.tryParse((Platform.environment[name] ?? '').trim());
@@ -335,7 +336,9 @@ class PageTurnProbeRun {
     final StringBuffer out = StringBuffer();
     out.writeln('# 翻页量具');
     out.writeln();
-    out.writeln('来源     : ${PageTurnProbe.sample.isEmpty ? '(页面默认)' : PageTurnProbe.sample}');
+    out.writeln(
+      '来源     : ${PageTurnProbe.sample.isEmpty ? '(页面默认)' : PageTurnProbe.sample}',
+    );
     out.writeln('轮数     : ${PageTurnProbe.turns}');
     out.writeln('每轮停留 : ${PageTurnProbe.dwellMs} ms');
     out.writeln('收帧总数 : ${_frames.length}');
@@ -385,7 +388,9 @@ class PageTurnProbeRun {
     if (_turns.isNotEmpty) {
       final ProbeTurn last = _turns.last;
       final String enabled = last._bool('prefetchEnabled');
-      final int hits = _turns.where((ProbeTurn t) => t._bool('cacheHit') == '1').length;
+      final int hits = _turns
+          .where((ProbeTurn t) => t._bool('cacheHit') == '1')
+          .length;
       out.writeln('## 预取');
       out.writeln();
       out.writeln(
@@ -439,9 +444,7 @@ class PageTurnProbeRun {
       );
     }
     if (gpuTurns != _turns.length) {
-      out.writeln(
-        '- ⚠️ 有轮次落在 CPU 兜底路上。那些轮次**不能**当作 GPU 路的延迟。',
-      );
+      out.writeln('- ⚠️ 有轮次落在 CPU 兜底路上。那些轮次**不能**当作 GPU 路的延迟。');
     }
     out.writeln();
 
@@ -567,9 +570,15 @@ void _writeFrameVerdict(StringBuffer out, List<ProbeFrame> frames) {
   final double p95 = _percentile(values, 95);
   final double p99 = _percentile(values, 99);
   final double max = values.reduce((double a, double b) => a > b ? a : b);
-  out.writeln('- p95 = ${p95.toStringAsFixed(2)} ms ${p95 <= 16.7 ? '✅' : '❌'}（阈值 16.7）');
-  out.writeln('- p99 = ${p99.toStringAsFixed(2)} ms ${p99 <= 33 ? '✅' : '❌'}（阈值 33）');
-  out.writeln('- max = ${max.toStringAsFixed(2)} ms ${max <= 100 ? '✅' : '❌'}（不许有 > 100 的单帧）');
+  out.writeln(
+    '- p95 = ${p95.toStringAsFixed(2)} ms ${p95 <= 16.7 ? '✅' : '❌'}（阈值 16.7）',
+  );
+  out.writeln(
+    '- p99 = ${p99.toStringAsFixed(2)} ms ${p99 <= 33 ? '✅' : '❌'}（阈值 33）',
+  );
+  out.writeln(
+    '- max = ${max.toStringAsFixed(2)} ms ${max <= 100 ? '✅' : '❌'}（不许有 > 100 的单帧）',
+  );
 }
 
 /// 最近秩（nearest-rank）分位数。样本这么少，插值只会让它看着更精确。

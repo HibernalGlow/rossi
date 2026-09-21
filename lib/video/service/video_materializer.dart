@@ -66,8 +66,7 @@ class VideoMaterializer {
     required int pageIndex,
     required String entryName,
     required int size,
-  }) =>
-      '${sha1Hex('$sourcePath|$entryName|$pageIndex|$size')}.bin';
+  }) => '${sha1Hex('$sourcePath|$entryName|$pageIndex|$size')}.bin';
 
   /// 文件夹来源：不物化，直接用原路径。
   static MaterializedVideo fromFolder(String path, {int size = 0}) =>
@@ -165,7 +164,9 @@ class VideoMaterializer {
   void _scheduleCleanup() {
     unawaited(
       Future<void>.delayed(_keepAlive * 2, () async {
-        final cutoff = DateTime.now().subtract(_keepAlive).millisecondsSinceEpoch;
+        final cutoff = DateTime.now()
+            .subtract(_keepAlive)
+            .millisecondsSinceEpoch;
         final stale = _entries.entries
             .where((e) => e.value.lastSeenMs < cutoff)
             .toList(growable: false);
@@ -182,7 +183,6 @@ class VideoMaterializer {
       await _drop(entry);
     }
   }
-
 }
 
 class _CachedEntry {
@@ -203,8 +203,7 @@ class VideoMaterializeLimitExceeded implements Exception {
   final int limit;
 
   @override
-  String toString() =>
-      '视频条目 $actual 字节，超过单条目上限 $limit 字节';
+  String toString() => '视频条目 $actual 字节，超过单条目上限 $limit 字节';
 }
 
 String sha1Hex(String input) =>

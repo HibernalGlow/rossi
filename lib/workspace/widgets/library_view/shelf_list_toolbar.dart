@@ -96,7 +96,8 @@ class _ShelfListToolbarState extends State<ShelfListToolbar> {
                   ],
                 ),
                 FluentPopupMenuButton<String>(
-                  tooltip: '排序：${widget.sort.field.label} · '
+                  tooltip:
+                      '排序：${widget.sort.field.label} · '
                       '${widget.sort.ascending ? '升序' : '降序'}',
                   visualDensity: VisualDensity.compact,
                   icon: const Icon(Icons.sort_rounded, size: 18),
@@ -111,9 +112,7 @@ class _ShelfListToolbarState extends State<ShelfListToolbar> {
                       return;
                     }
                     widget.onSort(
-                      widget.sort.toggled(
-                        ShelfSortField.values.byName(value),
-                      ),
+                      widget.sort.toggled(ShelfSortField.values.byName(value)),
                     );
                   },
                   itemBuilder: (_) => [
@@ -126,9 +125,7 @@ class _ShelfListToolbarState extends State<ShelfListToolbar> {
                     const FluentPopupMenuItem.divider(),
                     FluentPopupMenuItem(
                       value: 'order',
-                      title: Text(
-                        widget.sort.ascending ? '切换为降序' : '切换为升序',
-                      ),
+                      title: Text(widget.sort.ascending ? '切换为降序' : '切换为升序'),
                     ),
                   ],
                 ),
@@ -145,10 +142,7 @@ class _ShelfListToolbarState extends State<ShelfListToolbar> {
                 ),
                 ?widget.trailing,
                 const SizedBox(width: 4),
-                Text(
-                  '${widget.count} 项',
-                  style: theme.textTheme.labelSmall,
-                ),
+                Text('${widget.count} 项', style: theme.textTheme.labelSmall),
               ],
             ),
           ),

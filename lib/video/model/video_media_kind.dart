@@ -106,7 +106,9 @@ class VideoAliasRegistry {
   void update(List<String> extra) {
     _extra = extra
         .map((e) => e.trim().toLowerCase())
-        .where((e) => e.isNotEmpty && e.length <= MediaKindOverrides._maxAliasLength)
+        .where(
+          (e) => e.isNotEmpty && e.length <= MediaKindOverrides._maxAliasLength,
+        )
         .toList(growable: false);
   }
 }
@@ -177,7 +179,10 @@ bool isVideoName(
   MediaKindOverrides overrides = MediaKindOverrides.none,
 ]) => mediaKindOf(name, overrides) == RossiMediaKind.video;
 
-bool isImageName(String name, [MediaKindOverrides overrides = MediaKindOverrides.none]) {
+bool isImageName(
+  String name, [
+  MediaKindOverrides overrides = MediaKindOverrides.none,
+]) {
   final ext = extensionLower(name);
   if (ext == null) return false;
   final resolved = disguisedExtensions[ext] ?? ext;
@@ -195,8 +200,7 @@ RossiMediaKind? mediaKindOf(
   final ext = extensionLower(name);
   if (ext == null) return null;
   final resolved = disguisedExtensions[ext] ?? ext;
-  if (animatedImageExtensions.contains(resolved) ||
-      resolved == 'webp') {
+  if (animatedImageExtensions.contains(resolved) || resolved == 'webp') {
     // webp 可能是动图也可能是静图。上游同样按「动图档」处理它：
     // 静图 webp 走动图路径只是白拿一帧，反过来的错误是「动图只画第一帧」。
     return resolved == 'gif' || resolved == 'apng'

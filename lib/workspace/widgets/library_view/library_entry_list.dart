@@ -49,8 +49,8 @@ class LibraryEntryList extends StatelessWidget {
   final ValueChanged<LibraryEntry>? onDoubleTap;
 
   /// 给整行套一层壳子（书签与历史用它挂右键菜单宿主）。
-  final Widget Function(BuildContext context, LibraryEntry entry, Widget row)
-  ? wrapRow;
+  final Widget Function(BuildContext context, LibraryEntry entry, Widget row)?
+  wrapRow;
 
   /// 为假时行不接手势，也不显示水波纹（沿用文件管理器在 `_busy` 下的表现）。
   final bool enabled;
@@ -69,9 +69,9 @@ class LibraryEntryList extends StatelessWidget {
     final content = DecoratedBox(
       decoration: BoxDecoration(
         border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant.withValues(
-            alpha: 0.35,
-          ),
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.35),
         ),
         borderRadius: const BorderRadius.all(Radius.circular(_borderRadius)),
       ),
@@ -84,10 +84,7 @@ class LibraryEntryList extends StatelessWidget {
     final list = standalone
         ? content
         : ConstrainedBox(
-            constraints: const BoxConstraints(
-              minHeight: 120,
-              maxHeight: 440,
-            ),
+            constraints: const BoxConstraints(minHeight: 120, maxHeight: 440),
             child: content,
           );
 

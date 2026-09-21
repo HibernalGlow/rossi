@@ -25,9 +25,7 @@ class _InMemoryGlobalSettingCubit extends GlobalSettingCubit {
   void updateSwitchToastSetting(
     SwitchToastSettingState Function(SwitchToastSettingState current) updates,
   ) {
-    emit(
-      state.copyWith(switchToastSetting: updates(state.switchToastSetting)),
-    );
+    emit(state.copyWith(switchToastSetting: updates(state.switchToastSetting)));
   }
 }
 

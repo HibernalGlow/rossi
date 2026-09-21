@@ -253,10 +253,7 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
               height: height,
             ),
           ),
-      badge: Icon(
-        Icons.menu_book_rounded,
-        color: theme.colorScheme.primary,
-      ),
+      badge: Icon(Icons.menu_book_rounded, color: theme.colorScheme.primary),
       thumbModes: LibraryViewMode.values.toSet(),
       detailCells: [chapter.isEmpty ? '—' : chapter, source, time],
       onRead: () => _read(item),

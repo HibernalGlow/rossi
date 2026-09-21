@@ -31,7 +31,11 @@ class VideoMediaTrack {
 
 /// 章节边界。mImageViewer `decoder.rs:1594 boundary_starts_from_chapters` 的产物。
 class VideoChapter {
-  const VideoChapter({required this.index, required this.title, required this.at});
+  const VideoChapter({
+    required this.index,
+    required this.title,
+    required this.at,
+  });
 
   final int index;
   final String title;
@@ -89,7 +93,11 @@ class VideoMetadata {
 
 /// 画面滤镜三值（neo 的亮度/对比度/饱和度滑杆，0–200%，100 = 原样）。
 class VideoFilterState {
-  const VideoFilterState({this.brightness = 100, this.contrast = 100, this.saturation = 100});
+  const VideoFilterState({
+    this.brightness = 100,
+    this.contrast = 100,
+    this.saturation = 100,
+  });
 
   final int brightness;
   final int contrast;
@@ -98,12 +106,15 @@ class VideoFilterState {
   bool get isDefault =>
       brightness == 100 && contrast == 100 && saturation == 100;
 
-  VideoFilterState copyWith({int? brightness, int? contrast, int? saturation}) =>
-      VideoFilterState(
-        brightness: brightness ?? this.brightness,
-        contrast: contrast ?? this.contrast,
-        saturation: saturation ?? this.saturation,
-      );
+  VideoFilterState copyWith({
+    int? brightness,
+    int? contrast,
+    int? saturation,
+  }) => VideoFilterState(
+    brightness: brightness ?? this.brightness,
+    contrast: contrast ?? this.contrast,
+    saturation: saturation ?? this.saturation,
+  );
 
   static const VideoFilterState neutral = VideoFilterState();
 }
@@ -141,6 +152,7 @@ class VideoAbLoop {
 enum VideoEnginePhase {
   idle,
   opening,
+
   /// 已解出足够帧、可以出声/出画（mimage 的 preroll gate）。
   prerolling,
   ready,
@@ -189,7 +201,10 @@ abstract class VideoTransport {
   bool get isPlaying;
   bool get isSeeking;
 
-  Future<void> open(String uri, {VideoOpenOptions options = const VideoOpenOptions()});
+  Future<void> open(
+    String uri, {
+    VideoOpenOptions options = const VideoOpenOptions(),
+  });
   Future<void> close();
 
   Future<void> play();
@@ -199,8 +214,10 @@ abstract class VideoTransport {
 
   Future<void> seek(Duration to);
   Future<RelativeSeekOutcome> seekRelative(Duration delta);
+
   /// 暂停下也要能定位（mimage `seek_paused`：逐帧看时不能顺手把播放打开）。
   Future<void> seekPaused(Duration to);
+
   /// 逐帧步进。direction = ±1（mimage `step_frame`）。
   Future<void> stepFrame(int direction);
 
@@ -225,6 +242,7 @@ abstract class VideoTransport {
   List<VideoMediaTrack> get audioTracks;
   Future<void> selectSubtitleTrack(String? id);
   Future<void> selectAudioTrack(String? id);
+
   /// 外挂字幕文件（SRT/ASS 直接喂给引擎；VTT 要先转换）。
   Future<void> addSubtitleFile(String path);
 

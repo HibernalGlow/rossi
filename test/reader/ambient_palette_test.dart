@@ -11,10 +11,8 @@ Map<String, Object?> probeFixture({
   String bottomColor = '#0000ff',
   String leftColor = '#ffff00',
 }) {
-  List<String> stops(String color) => List<String>.filled(
-    ReaderAmbientPalette.stops,
-    color,
-  );
+  List<String> stops(String color) =>
+      List<String>.filled(ReaderAmbientPalette.stops, color);
   return <String, Object?>{
     'average': average,
     'top': stops(topColor),

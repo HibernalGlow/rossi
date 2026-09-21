@@ -87,19 +87,27 @@ Map<String, dynamic>? _normalizeConditionMap(
   int priority,
   List<String> warnings,
 ) {
-  final id = raw['id']?.toString() ?? 'condition-${DateTime.now().millisecondsSinceEpoch}-$priority';
+  final id =
+      raw['id']?.toString() ??
+      'condition-${DateTime.now().millisecondsSinceEpoch}-$priority';
   final name = raw['name']?.toString() ?? '条件 ${priority + 1}';
   final enabled = raw['enabled'] is bool ? raw['enabled'] as bool : true;
 
-  final rawMatch = raw['match'] is Map ? (raw['match'] as Map).cast<String, dynamic>() : <String, dynamic>{};
-  final rawAction = raw['action'] is Map ? (raw['action'] as Map).cast<String, dynamic>() : <String, dynamic>{};
+  final rawMatch = raw['match'] is Map
+      ? (raw['match'] as Map).cast<String, dynamic>()
+      : <String, dynamic>{};
+  final rawAction = raw['action'] is Map
+      ? (raw['action'] as Map).cast<String, dynamic>()
+      : <String, dynamic>{};
 
   // 兼容旧字段：regexBookPath / regexImagePath / minPixels / maxPixels
   final match = Map<String, dynamic>.from(rawMatch);
-  if (match.containsKey('regexBookPath') && !match.containsKey('bookPathRegex')) {
+  if (match.containsKey('regexBookPath') &&
+      !match.containsKey('bookPathRegex')) {
     match['bookPathRegex'] = match['regexBookPath'];
   }
-  if (match.containsKey('regexImagePath') && !match.containsKey('imagePathRegex')) {
+  if (match.containsKey('regexImagePath') &&
+      !match.containsKey('imagePathRegex')) {
     match['imagePathRegex'] = match['regexImagePath'];
   }
   if (match.containsKey('minPixels') && !match.containsKey('minMegapixels')) {
@@ -108,7 +116,10 @@ Map<String, dynamic>? _normalizeConditionMap(
   if (match.containsKey('maxPixels') && !match.containsKey('maxMegapixels')) {
     match['maxMegapixels'] = match['maxPixels'];
   }
-  match['dimensionMode'] = (match['dimensionMode'] ?? match['dimension_mode']) == 'or' ? 'or' : 'and';
+  match['dimensionMode'] =
+      (match['dimensionMode'] ?? match['dimension_mode']) == 'or'
+      ? 'or'
+      : 'and';
 
   // 兼容旧 action 字段：modelName / noiseLevel
   final action = Map<String, dynamic>.from(rawAction);

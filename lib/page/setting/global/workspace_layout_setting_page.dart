@@ -178,8 +178,9 @@ class _FocusAndSoloCard extends StatelessWidget {
   final WorkspaceInteractionSettings interaction;
   final ValueChanged<WorkspaceInteractionSettings> onChanged;
 
-  void _patch(WorkspaceInteractionSettings Function(WorkspaceInteractionSettings) change) =>
-      onChanged(change(interaction));
+  void _patch(
+    WorkspaceInteractionSettings Function(WorkspaceInteractionSettings) change,
+  ) => onChanged(change(interaction));
 
   @override
   Widget build(BuildContext context) {
@@ -297,7 +298,10 @@ class _DelayTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon, color: enabled ? null : Theme.of(context).disabledColor),
+      leading: Icon(
+        icon,
+        color: enabled ? null : Theme.of(context).disabledColor,
+      ),
       title: Text(title),
       subtitle: subtitle == null ? null : Text(subtitle!),
       trailing: Row(
@@ -539,7 +543,11 @@ class _RevealZoneEditorState extends State<_RevealZoneEditor> {
       Offset(xPercent / 100 * size.width, yPercent / 100 * size.height);
 
   /// 画布上某个角的像素位置（手柄画在那儿，命中判定也用它）。
-  Offset _cornerPixel(WorkspaceRevealZone zone, RevealCorner corner, Size size) {
+  Offset _cornerPixel(
+    WorkspaceRevealZone zone,
+    RevealCorner corner,
+    Size size,
+  ) {
     final x = corner.isWest ? zone.x : zone.right;
     final y = corner.isNorth ? zone.y : zone.bottom;
     return _pixel(x, y, size);
@@ -558,10 +566,7 @@ class _RevealZoneEditorState extends State<_RevealZoneEditor> {
     final corner = _cornerAt(event.localPosition, size);
     setState(() {
       _drag = corner == null
-          ? _ZoneDrag.draw(
-              _percent(event.localPosition, size),
-              event.position,
-            )
+          ? _ZoneDrag.draw(_percent(event.localPosition, size), event.position)
           : _ZoneDrag.resize(corner, _draft[_selected]);
     });
   }
@@ -591,12 +596,7 @@ class _RevealZoneEditorState extends State<_RevealZoneEditor> {
     }
     final from = drag.start!;
     _apply(
-      drawnRevealZone(
-        fromX: from.dx,
-        fromY: from.dy,
-        toX: at.dx,
-        toY: at.dy,
-      ),
+      drawnRevealZone(fromX: from.dx, fromY: from.dy, toX: at.dx, toY: at.dy),
     );
   }
 
@@ -700,7 +700,9 @@ class _RevealZoneEditorState extends State<_RevealZoneEditor> {
                 child: Container(
                   height: height,
                   decoration: BoxDecoration(
-                    color: scheme.surfaceContainerHighest.withValues(alpha: .35),
+                    color: scheme.surfaceContainerHighest.withValues(
+                      alpha: .35,
+                    ),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: scheme.outlineVariant.withValues(alpha: .7),
@@ -788,10 +790,7 @@ class _LabeledNumberField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.labelSmall,
-        ),
+        Text(label, style: Theme.of(context).textTheme.labelSmall),
         _PercentBox(value: value, onCommit: onCommit),
       ],
     );
@@ -860,9 +859,7 @@ class _PercentBoxState extends State<_PercentBox> {
       focusNode: _focus,
       textAlign: TextAlign.center,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-      ],
+      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
       style: const TextStyle(fontSize: 13),
       decoration: const InputDecoration(
         isDense: true,
@@ -911,8 +908,7 @@ class _RevealZonePainter extends CustomPainter {
       final active = edge == selected;
       canvas.drawRect(
         rect,
-        Paint()
-          ..color = color.withValues(alpha: active ? 0.24 : 0.14),
+        Paint()..color = color.withValues(alpha: active ? 0.24 : 0.14),
       );
       canvas.drawRect(
         rect,

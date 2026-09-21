@@ -67,12 +67,11 @@ class WorkspaceState {
   /// effective width is the workspace viewport width` —— 前提条件就是
   /// 「激活」。把这条判断放在**一个地方**（这里），是因为条带宽度分配与
   /// 滚动落点都要问同一个问题；两处各写一遍必然会在某个边界上分叉。
-  String? get effectiveSoloLaneId =>
-      isReaderFullscreen
-          ? LaneId.reader
-          : (layout.soloLaneId != null && layout.soloLaneId == activeLaneId
-              ? layout.soloLaneId
-              : null);
+  String? get effectiveSoloLaneId => isReaderFullscreen
+      ? LaneId.reader
+      : (layout.soloLaneId != null && layout.soloLaneId == activeLaneId
+            ? layout.soloLaneId
+            : null);
 
   WorkspaceState copyWith({
     WorkspaceMode? mode,

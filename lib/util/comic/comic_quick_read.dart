@@ -48,7 +48,11 @@ Future<void> startComicQuickRead(
     if (isLocalComicSource(pluginId, id)) {
       // 本地来源写历史时用的 from 就是 'local'（阅读器收到的就是这个值），
       // 所以续读记录也按 'local' 查，不能按卡片上的 source。
-      _pushLocalComicRead(context, id, hasHistory: _hasComicHistory('local', id));
+      _pushLocalComicRead(
+        context,
+        id,
+        hasHistory: _hasComicHistory('local', id),
+      );
       return;
     }
 
@@ -117,7 +121,9 @@ bool _hasComicHistory(String from, String comicId) {
 UnifiedComicDownload? _findDownloadRecord(String from, String comicId) {
   return objectbox.unifiedDownloadBox
       .query(
-        UnifiedComicDownload_.uniqueKey.equals(buildDownloadTaskKey(from, comicId)),
+        UnifiedComicDownload_.uniqueKey.equals(
+          buildDownloadTaskKey(from, comicId),
+        ),
       )
       .build()
       .findFirst();

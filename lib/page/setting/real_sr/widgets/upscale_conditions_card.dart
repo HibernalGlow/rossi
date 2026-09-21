@@ -12,10 +12,7 @@ import 'package:zephyr/widgets/toast.dart';
 class UpscaleConditionsCard extends StatefulWidget {
   final bool isReaderCompact;
 
-  const UpscaleConditionsCard({
-    super.key,
-    this.isReaderCompact = false,
-  });
+  const UpscaleConditionsCard({super.key, this.isReaderCompact = false});
 
   @override
   State<UpscaleConditionsCard> createState() => _UpscaleConditionsCardState();
@@ -426,8 +423,9 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                   showCheckmark: false,
                   labelStyle: TextStyle(
                     fontSize: 11,
-                    fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                   ),
                   onSelected: (_) {
                     setState(() => _selectedIndex = index);
@@ -447,13 +445,17 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
               OutlinedButton.icon(
                 icon: const Icon(Icons.add, size: 14),
                 label: const Text('添加条件', style: TextStyle(fontSize: 11)),
-                style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact),
+                style: OutlinedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
                 onPressed: _addCondition,
               ),
               OutlinedButton.icon(
                 icon: const Icon(Icons.copy, size: 14),
                 label: const Text('复制', style: TextStyle(fontSize: 11)),
-                style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact),
+                style: OutlinedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
                 onPressed: _duplicateCondition,
               ),
               IconButton.outlined(
@@ -471,8 +473,11 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                     : null,
               ),
               IconButton.outlined(
-                icon: Icon(Icons.delete_outline,
-                    size: 14, color: colorScheme.error),
+                icon: Icon(
+                  Icons.delete_outline,
+                  size: 14,
+                  color: colorScheme.error,
+                ),
                 tooltip: '删除条件',
                 visualDensity: VisualDensity.compact,
                 onPressed: _conditions.length > 1 ? _removeCondition : null,
@@ -480,19 +485,25 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
               OutlinedButton.icon(
                 icon: const Icon(Icons.file_upload_outlined, size: 14),
                 label: const Text('导入', style: TextStyle(fontSize: 11)),
-                style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact),
+                style: OutlinedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
                 onPressed: _showImportDialog,
               ),
               OutlinedButton.icon(
                 icon: const Icon(Icons.file_download_outlined, size: 14),
                 label: const Text('导出', style: TextStyle(fontSize: 11)),
-                style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact),
+                style: OutlinedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
                 onPressed: _showExportDialog,
               ),
               OutlinedButton.icon(
                 icon: const Icon(Icons.refresh, size: 14),
                 label: const Text('重置', style: TextStyle(fontSize: 11)),
-                style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact),
+                style: OutlinedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
                 onPressed: _resetConditions,
               ),
             ],
@@ -546,7 +557,10 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                   decoration: const InputDecoration(
                     labelText: '条件名称',
                     isDense: true,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
                   ),
                   style: const TextStyle(fontSize: 12),
                   onChanged: (val) {
@@ -599,7 +613,10 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                   value: match.minWidth,
                   onChanged: (v) => _updateCurrentCondition(
                     current.copyWith(
-                      match: match.copyWith(minWidth: v, clearMinWidth: v == null),
+                      match: match.copyWith(
+                        minWidth: v,
+                        clearMinWidth: v == null,
+                      ),
                     ),
                   ),
                 ),
@@ -611,7 +628,10 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                   value: match.maxWidth,
                   onChanged: (v) => _updateCurrentCondition(
                     current.copyWith(
-                      match: match.copyWith(maxWidth: v, clearMaxWidth: v == null),
+                      match: match.copyWith(
+                        maxWidth: v,
+                        clearMaxWidth: v == null,
+                      ),
                     ),
                   ),
                 ),
@@ -627,7 +647,10 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                   value: match.minHeight,
                   onChanged: (v) => _updateCurrentCondition(
                     current.copyWith(
-                      match: match.copyWith(minHeight: v, clearMinHeight: v == null),
+                      match: match.copyWith(
+                        minHeight: v,
+                        clearMinHeight: v == null,
+                      ),
                     ),
                   ),
                 ),
@@ -639,7 +662,10 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                   value: match.maxHeight,
                   onChanged: (v) => _updateCurrentCondition(
                     current.copyWith(
-                      match: match.copyWith(maxHeight: v, clearMaxHeight: v == null),
+                      match: match.copyWith(
+                        maxHeight: v,
+                        clearMaxHeight: v == null,
+                      ),
                     ),
                   ),
                 ),
@@ -895,7 +921,10 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                     visualDensity: VisualDensity.compact,
-                    title: const Text('启用分块 Tile', style: TextStyle(fontSize: 11)),
+                    title: const Text(
+                      '启用分块 Tile',
+                      style: TextStyle(fontSize: 11),
+                    ),
                     value: action.tileEnabled ?? true,
                     onChanged: (v) => _updateCurrentCondition(
                       current.copyWith(
@@ -927,7 +956,10 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                     visualDensity: VisualDensity.compact,
-                    title: const Text('启用 TTA 增强', style: TextStyle(fontSize: 11)),
+                    title: const Text(
+                      '启用 TTA 增强',
+                      style: TextStyle(fontSize: 11),
+                    ),
                     value: action.tta ?? false,
                     onChanged: (v) => _updateCurrentCondition(
                       current.copyWith(

@@ -26,10 +26,12 @@ Future<T> retryDownloadOperation<T>({
   Object? lastError;
   StackTrace? lastStackTrace;
 
-  for (var attempt = 0;
-      (shouldRetryUntilSuccess?.call() ?? false) ||
-          attempt <= downloadSilentRetryCount;
-      attempt++) {
+  for (
+    var attempt = 0;
+    (shouldRetryUntilSuccess?.call() ?? false) ||
+        attempt <= downloadSilentRetryCount;
+    attempt++
+  ) {
     // 取消检查放在 try 外，取消不会被当成普通网络错误再次重试。
     await ensureTaskRunning();
     try {
@@ -52,11 +54,11 @@ Future<T> retryDownloadOperation<T>({
       final actualDelay = retryDelay == Duration.zero
           ? Duration.zero
           : (isRateLimit
-              ? Duration(seconds: 3 + attempt * 2)
-              : Duration(
-                  milliseconds: (retryDelay.inMilliseconds * (1 << attempt))
-                      .clamp(1000, 5000),
-                ));
+                ? Duration(seconds: 3 + attempt * 2)
+                : Duration(
+                    milliseconds: (retryDelay.inMilliseconds * (1 << attempt))
+                        .clamp(1000, 5000),
+                  ));
 
       logger.w(
         retryForever
@@ -80,4 +82,3 @@ bool _isDownloadCancellation(Object error) {
   return message.contains(downloadTaskCancelledMessage) ||
       message.contains('__QJS_RUNTIME_CANCELLED__');
 }
-

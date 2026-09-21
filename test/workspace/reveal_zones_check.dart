@@ -115,27 +115,20 @@ void _linking() {
     verticalLinked: true,
   );
   check('改下把上镜像过去', vertical.top.y == 0.0 && vertical.top.height == 5.0);
-  check('改下不牵连左右', vertical.left == zones.left && vertical.right == zones.right);
+  check(
+    '改下不牵连左右',
+    vertical.left == zones.left && vertical.right == zones.right,
+  );
 }
 
 // ── 画框与四角缩放 ────────────────────────────────────────────────────────
 
 void _drawing() {
-  final forward = drawnRevealZone(
-    fromX: 10,
-    fromY: 20,
-    toX: 30,
-    toY: 45,
-  );
+  final forward = drawnRevealZone(fromX: 10, fromY: 20, toX: 30, toY: 45);
   check('右下方向拖：原点=起点', forward.x == 10 && forward.y == 20);
   check('右下方向拖：宽高=差值', forward.width == 20 && forward.height == 25);
 
-  final backward = drawnRevealZone(
-    fromX: 30,
-    fromY: 45,
-    toX: 10,
-    toY: 20,
-  );
+  final backward = drawnRevealZone(fromX: 30, fromY: 45, toX: 10, toY: 20);
   check('反向拖得到同一个矩形', backward == forward, '$backward');
 
   final point = drawnRevealZone(fromX: 50, fromY: 50, toX: 50, toY: 50);
@@ -192,8 +185,14 @@ void _hitOrder() {
   check('贴顶命中上', zones.edgeAt(xPercent: 50, yPercent: 5) == RevealEdge.top);
   check('贴底命中下', zones.edgeAt(xPercent: 50, yPercent: 95) == RevealEdge.bottom);
   // 左上角同时落在左与斯里 —— 换泳道比唤出顶栏更明确，所以左赢。
-  check('两角重叠时左右优先于上下', zones.edgeAt(xPercent: 5, yPercent: 5) == RevealEdge.left);
-  check('边界点算命中（含端点）', zones.edgeAt(xPercent: 20, yPercent: 50) == RevealEdge.left);
+  check(
+    '两角重叠时左右优先于上下',
+    zones.edgeAt(xPercent: 5, yPercent: 5) == RevealEdge.left,
+  );
+  check(
+    '边界点算命中（含端点）',
+    zones.edgeAt(xPercent: 20, yPercent: 50) == RevealEdge.left,
+  );
 }
 
 // ── JSON ──────────────────────────────────────────────────────────────────
@@ -217,16 +216,33 @@ void _lenientFromJson() {
     ..['bottom'] = '不是对象';
   final restored = WorkspaceRevealZones.fromJson(json.cast<String, Object?>());
   // 手改坏一个数字不该让整块回到出厂：**一项坏只退回那一项**。
-  check('top 里坏掉的 x 退回默认', restored.top.x == WorkspaceRevealZones.defaults.top.x);
-  check('top 里合法的 y / 宽 / 高保住', restored.top.y == 5 && restored.top.width == 90 && restored.top.height == 4, '${restored.top}');
-  check('整条不是对象时那一条回默认', restored.bottom == WorkspaceRevealZones.defaults.bottom);
+  check(
+    'top 里坏掉的 x 退回默认',
+    restored.top.x == WorkspaceRevealZones.defaults.top.x,
+  );
+  check(
+    'top 里合法的 y / 宽 / 高保住',
+    restored.top.y == 5 && restored.top.width == 90 && restored.top.height == 4,
+    '${restored.top}',
+  );
+  check(
+    '整条不是对象时那一条回默认',
+    restored.bottom == WorkspaceRevealZones.defaults.bottom,
+  );
   check('没被动过的左保住', restored.left == WorkspaceRevealZones.defaults.left);
 
   final outOfRange = WorkspaceRevealZones.fromJson(<String, Object?>{
     'left': <String, Object?>{'x': -50, 'y': 0, 'width': 999, 'height': 999},
   });
   check('越界的原点被夹回', outOfRange.left.x == 0);
-  check('越界的宽高被夹回画布内', outOfRange.left.right <= 100 && outOfRange.left.bottom <= 100, '${outOfRange.left}');
+  check(
+    '越界的宽高被夹回画布内',
+    outOfRange.left.right <= 100 && outOfRange.left.bottom <= 100,
+    '${outOfRange.left}',
+  );
 
-  check('整块不是对象时回默认', WorkspaceRevealZones.fromJson(null) == WorkspaceRevealZones.defaults);
+  check(
+    '整块不是对象时回默认',
+    WorkspaceRevealZones.fromJson(null) == WorkspaceRevealZones.defaults,
+  );
 }

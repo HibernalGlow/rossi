@@ -237,7 +237,8 @@ Future<void> _syncToDownloadDirectoryIfEnabled({
 }) async {
   if (pictureType != PictureType.page) return;
   try {
-    final readWhileDownloading = objectbox.userSettingBox
+    final readWhileDownloading =
+        objectbox.userSettingBox
             .get(1)
             ?.globalSetting
             .readSetting
@@ -246,12 +247,13 @@ Future<void> _syncToDownloadDirectoryIfEnabled({
     if (!readWhileDownloading) return;
 
     final taskKey = buildDownloadTaskKey(from, cartoonId);
-    final hasTask = DownloadQueueManager.instance.taskExists(from, cartoonId) ||
+    final hasTask =
+        DownloadQueueManager.instance.taskExists(from, cartoonId) ||
         objectbox.unifiedDownloadBox
-            .query(UnifiedComicDownload_.uniqueKey.equals(taskKey))
-            .build()
-            .findFirst() !=
-        null;
+                .query(UnifiedComicDownload_.uniqueKey.equals(taskKey))
+                .build()
+                .findFirst() !=
+            null;
     if (!hasTask) return;
 
     final canonicalDownloadPath = await assetStore.canonicalDownloadPath();

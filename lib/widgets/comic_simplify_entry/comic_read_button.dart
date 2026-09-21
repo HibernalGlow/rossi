@@ -62,7 +62,8 @@ class _ComicReadButtonState extends State<ComicReadButton> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final side = constraints.biggest.shortestSide;
-        final diameter = widget.size ??
+        final diameter =
+            widget.size ??
             comicReadButtonSize(side.isFinite ? side : _unknownBoxSide);
         // 自动定径时，盒子短边不够就把整颗按钮让出去：44 的封面槽上摆一个
         // 26 的圆圈等于盖住半张封面，那种档位的卡片本身就该整行可点。

@@ -140,8 +140,9 @@ class RadialDoc {
     if (kept.length == menus.length) return this;
     return copyWith(
       menus: kept,
-      activeMenuId:
-          activeMenuId == id ? (kept.isEmpty ? '' : kept.first.id) : activeMenuId,
+      activeMenuId: activeMenuId == id
+          ? (kept.isEmpty ? '' : kept.first.id)
+          : activeMenuId,
     );
   }
 
@@ -150,9 +151,9 @@ class RadialDoc {
     final all = menus;
     final index = all.indexWhere((entry) => entry.id == menu.id);
     if (index < 0) return withMenu(menu);
-    return copyWith(menus: [
-      for (var i = 0; i < all.length; i++) i == index ? menu : all[i],
-    ]);
+    return copyWith(
+      menus: [for (var i = 0; i < all.length; i++) i == index ? menu : all[i]],
+    );
   }
 
   /// 文档里已有多少个条目（新条目 id 的计数基准）。
@@ -316,11 +317,12 @@ class RadialItemDoc {
 bool isRadialItemIdShape(String id) => _radialIdPattern.hasMatch(id);
 
 /// 一条轮盘输入 → descriptor 的 JSON（与核心 `radial_input` 同一形状）。
-String radialInputJson({required String menuId, required String itemId}) => jsonEncode({
-  'device': InputDevice.radial,
-  'menuId': menuId,
-  'itemId': itemId,
-});
+String radialInputJson({required String menuId, required String itemId}) =>
+    jsonEncode({
+      'device': InputDevice.radial,
+      'menuId': menuId,
+      'itemId': itemId,
+    });
 
 /// 一条绑定是不是轮盘输入；是则报出它指向哪个条目。
 RadialSlotRef? slotOfBinding(Map<String, dynamic> binding) {
@@ -337,7 +339,9 @@ RadialSlotRef? slotOfBinding(Map<String, dynamic> binding) {
 List<Map<String, dynamic>> radialBindingsForMenu(
   List<Map<String, dynamic>> bindings,
   String menuId,
-) => bindings.where((binding) => slotOfBinding(binding)?.menuId == menuId).toList();
+) => bindings
+    .where((binding) => slotOfBinding(binding)?.menuId == menuId)
+    .toList();
 
 /// 一个条目当前绑到的动作 id；没绑返回 `null`。
 String? actionForSlot(List<Map<String, dynamic>> bindings, RadialSlotRef slot) {
@@ -360,7 +364,9 @@ List<Map<String, dynamic>> bindSlot(
   RadialSlotRef slot,
   String actionId,
 ) {
-  final index = bindings.indexWhere((binding) => slotOfBinding(binding) == slot);
+  final index = bindings.indexWhere(
+    (binding) => slotOfBinding(binding) == slot,
+  );
   if (index < 0) {
     if (actionId.isEmpty) return bindings;
     return [

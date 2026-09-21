@@ -34,12 +34,11 @@ String renderSwitchToastTemplate(String template, SwitchToastContext context) {
       return match.group(0)!;
     }
     final segments = path.split('.');
-    Object? value =
-        switch (segments.first) {
-          'book' => context.book,
-          'page' => context.page,
-          _ => null,
-        };
+    Object? value = switch (segments.first) {
+      'book' => context.book,
+      'page' => context.page,
+      _ => null,
+    };
     for (final segment in segments.skip(1)) {
       if (value is! Map) {
         value = null;

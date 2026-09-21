@@ -155,8 +155,9 @@ class SwitchToastService {
           ? null
           : <String, Object?>{
               'name': doc.originalName,
-              'displayName':
-                  doc.originalName.isEmpty ? '第 ${slot + 1} 页' : doc.originalName,
+              'displayName': doc.originalName.isEmpty
+                  ? '第 ${slot + 1} 页'
+                  : doc.originalName,
               'path': doc.path,
               'index': slot,
               'indexDisplay': slot + 1,
@@ -169,7 +170,8 @@ class SwitchToastService {
     if (local == null) return '在线';
     final file = local.path.split(RegExp(r'[/\\]')).last;
     final dot = file.lastIndexOf('.');
-    if (dot > 0 && dot < file.length - 1) return file.substring(dot + 1).toUpperCase();
+    if (dot > 0 && dot < file.length - 1)
+      return file.substring(dot + 1).toUpperCase();
     return '目录';
   }
 }

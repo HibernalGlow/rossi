@@ -469,7 +469,9 @@ class _FileManagerCardState extends State<FileManagerCard> {
 
   /// 选中态的改动。**都不走 [_busy]**：多选本来就是「连着点几下」，
   /// 中间插一个转圈会让第二下点在灰掉的列表上。
-  Future<void> _runOps(Future<FileOpsSnapshot> Function(BigInt id) action) async {
+  Future<void> _runOps(
+    Future<FileOpsSnapshot> Function(BigInt id) action,
+  ) async {
     final id = _sessionId;
     if (id == null || _disposed) return;
     final serial = ++_opsSerial;
@@ -484,7 +486,9 @@ class _FileManagerCardState extends State<FileManagerCard> {
 
   int _entryIndexOf(FileManagerEntry entry) {
     final entries = _snapshot?.entries ?? const <FileManagerEntry>[];
-    final index = entries.indexWhere((candidate) => candidate.path == entry.path);
+    final index = entries.indexWhere(
+      (candidate) => candidate.path == entry.path,
+    );
     // 找不到（列表刚好换了代）就报 0：Rust 那边还有 `path` 这条轨兜底，
     // 抛异常只会让用户看见一个本可以避免的红条。
     return index < 0 ? 0 : index;
@@ -518,9 +522,11 @@ class _FileManagerCardState extends State<FileManagerCard> {
 
   Future<void> _selectAll() => _runOps((id) => fileOpsSelectAll(id: id));
 
-  Future<void> _invertSelection() => _runOps((id) => fileOpsInvertSelection(id: id));
+  Future<void> _invertSelection() =>
+      _runOps((id) => fileOpsInvertSelection(id: id));
 
-  Future<void> _clearSelection() => _runOps((id) => fileOpsClearSelection(id: id));
+  Future<void> _clearSelection() =>
+      _runOps((id) => fileOpsClearSelection(id: id));
 
   /// 右键（长按）一行时把选中态收敛到它。
   ///
@@ -668,8 +674,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
         final parent = call.path;
         final name = call.newName;
         if (name == null) return null;
-        return () =>
-            fileOpsCreateDirectory(id: id, name: name, parent: parent);
+        return () => fileOpsCreateDirectory(id: id, name: name, parent: parent);
       case FileManagerEntryAction.open:
       case FileManagerEntryAction.openInNewTab:
       case FileManagerEntryAction.copy:
@@ -2355,7 +2360,10 @@ class _FileManagerCardState extends State<FileManagerCard> {
   /// 只在**有选中**时出现 —— 它不是常驻工具条，而是「你正拿着一批东西」的提示
   /// 加一个出口。没有它，用户想删 12 个文件得回到某一个条目上右键：右键菜单
   /// 一次只能从一个条目进，批量动作没有入口。它同时是**唯一**能撤销的地方。
-  Widget _buildSelectionBar(BuildContext context, FileManagerSnapshot snapshot) {
+  Widget _buildSelectionBar(
+    BuildContext context,
+    FileManagerSnapshot snapshot,
+  ) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final count = _ops?.selectedCount ?? 0;

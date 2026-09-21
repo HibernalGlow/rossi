@@ -51,9 +51,7 @@ List<SubtitleCandidate> matchSubtitleNames({
     if (ext == null || !subtitleExtensions.contains(ext)) continue;
     final subStem = p.basenameWithoutExtension(name);
     if (subStem == stem) {
-      out.add(
-        SubtitleCandidate(path: name, label: '默认', format: ext),
-      );
+      out.add(SubtitleCandidate(path: name, label: '默认', format: ext));
       continue;
     }
     if (!subStem.startsWith(stem)) continue;
@@ -88,15 +86,16 @@ Future<List<SubtitleCandidate>> discoverSidecarSubtitles(
   await for (final entity in dir.list()) {
     if (entity is File) names.add(p.basename(entity.path));
   }
-  return matchSubtitleNames(
-    videoName: p.basename(videoPath),
-    entryNames: names,
-  ).map((c) => SubtitleCandidate(
-    path: p.join(dir.path, c.path),
-    label: c.label,
-    language: c.language,
-    format: c.format,
-  )).toList();
+  return matchSubtitleNames(videoName: p.basename(videoPath), entryNames: names)
+      .map(
+        (c) => SubtitleCandidate(
+          path: p.join(dir.path, c.path),
+          label: c.label,
+          language: c.language,
+          format: c.format,
+        ),
+      )
+      .toList();
 }
 
 String _vttTimestamp(Duration d) {
@@ -125,7 +124,9 @@ Duration? _parseTime(String raw) {
     fractions.add(split.length == 1 ? 0 : _millisOf(split[1]));
   }
   final hours = parts.length == 3 ? seconds[0] : 0;
-  final minutes = parts.length == 3 ? seconds[1] : (parts.length == 2 ? seconds[0] : 0);
+  final minutes = parts.length == 3
+      ? seconds[1]
+      : (parts.length == 2 ? seconds[0] : 0);
   final secs = seconds.last;
   // 小数位挂在**最后一段**上（`01:02.500` 的 .500 属于秒），前面各段不会有。
   final millis = fractions.last;
@@ -224,10 +225,7 @@ Future<String?> convertSubtitleFileForEngine(
     if (!vtt.contains('-->')) return null; // 一家都解不出来：不如不挂
     final dir = Directory.systemTemp.createTempSync('rossi-sub');
     final target = File('${dir.path}/${p.basenameWithoutExtension(path)}.vtt');
-    await target.writeAsBytes(
-      utf8.encode(vtt),
-      flush: true,
-    );
+    await target.writeAsBytes(utf8.encode(vtt), flush: true);
     return target.path;
   } catch (_) {
     return null;

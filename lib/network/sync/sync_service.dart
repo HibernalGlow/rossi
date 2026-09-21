@@ -958,7 +958,8 @@ Map<String, Map<String, dynamic>> _extractSyncableSettingsBlocks(
     for (final entry in _settingsBlockKeys.entries)
       entry.key: <String, dynamic>{
         for (final key in entry.value)
-          if (json.containsKey(key)) key: _stripNestedExclusions(key, json[key]),
+          if (json.containsKey(key))
+            key: _stripNestedExclusions(key, json[key]),
       },
     // reader 块的载荷形状是**冻结**的：老版本直接拿整个 `readSetting` 对象当块数据。
     // 详见 `_settingsBlockKeys` 上那段说明 —— 统一成顶层键映射会让旧客户端
@@ -1864,7 +1865,10 @@ int resolveWorkspaceBlockUpdatedAtForTest({
   hash: hash,
   previous: previousHash == null
       ? null
-      : _LocalSettingsBlockMeta(updatedAt: previousUpdatedAt, hash: previousHash),
+      : _LocalSettingsBlockMeta(
+          updatedAt: previousUpdatedAt,
+          hash: previousHash,
+        ),
   nowMs: nowMs,
 );
 

@@ -123,13 +123,15 @@ bool dispatchVideoAction(String actionId) {
     case BindingVideoAction.speedUp:
       unawaitedSeek(
         controller.setPlaybackRate(
-          controller.snapshot.playbackRate + controller.snapshot.playbackRateStep,
+          controller.snapshot.playbackRate +
+              controller.snapshot.playbackRateStep,
         ),
       );
     case BindingVideoAction.speedDown:
       unawaitedSeek(
         controller.setPlaybackRate(
-          controller.snapshot.playbackRate - controller.snapshot.playbackRateStep,
+          controller.snapshot.playbackRate -
+              controller.snapshot.playbackRateStep,
         ),
       );
     case BindingVideoAction.toggleSpeed:
@@ -160,9 +162,7 @@ bool dispatchVideoAction(String actionId) {
     case BindingVideoAction.subtitleDelayDown:
       _shiftSubtitleDelay(transport, -0.25);
     case BindingVideoAction.toggleAudioOnly:
-      unawaitedSeek(
-        controller.setAudioOnly(!controller.snapshot.audioOnly),
-      );
+      unawaitedSeek(controller.setAudioOnly(!controller.snapshot.audioOnly));
     case BindingVideoAction.nextChapter:
       controller.nextChapter();
     case BindingVideoAction.previousChapter:

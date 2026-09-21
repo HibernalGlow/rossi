@@ -133,7 +133,9 @@ class WorkspaceStripMetrics {
     // 独占那条自己被折叠时不摆切换栏：与下面「折叠态优先」同一条取舍 ——
     // 用户把它折叠是更明确的意图，此时没有任何一条泳道在独占视口。
     final railForOthers =
-        solo != null && showLaneNavigatorInSolo && layout.lanes[solo]?.collapsed != true;
+        solo != null &&
+        showLaneNavigatorInSolo &&
+        layout.lanes[solo]?.collapsed != true;
     for (final laneId in layout.laneOrder) {
       final lane = layout.lanes[laneId];
       if (lane == null) continue;

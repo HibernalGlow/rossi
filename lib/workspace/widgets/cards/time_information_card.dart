@@ -103,8 +103,7 @@ class _TimeInformationCardState extends State<TimeInformationCard> {
       } on Object {
         pagePath = null;
       }
-      final pageStat =
-          pagePath == null ? null : await FileStat.stat(pagePath);
+      final pageStat = pagePath == null ? null : await FileStat.stat(pagePath);
       if (!mounted || generation != _generation) return;
       setState(() {
         _facts = _TimeFacts(
@@ -145,10 +144,7 @@ class _TimeInformationCardState extends State<TimeInformationCard> {
                   text: '打开书本后显示文件时间',
                 )
               : facts?.rootPath == null
-              ? const InfoEmpty(
-                  icon: Icons.cloud_rounded,
-                  text: '在线图源没有本地文件时间',
-                )
+              ? const InfoEmpty(icon: Icons.cloud_rounded, text: '在线图源没有本地文件时间')
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [

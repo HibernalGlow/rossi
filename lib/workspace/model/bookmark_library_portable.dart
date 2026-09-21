@@ -150,7 +150,9 @@ BookmarkLibraryParseResult parseBookmarkLibrary(String raw) {
   for (var index = 0; index < list.length; index++) {
     final entry = list[index];
     if (entry is! Map) {
-      rejected.add(BookmarkRejection(label: '第 ${index + 1} 条', reason: '不是对象'));
+      rejected.add(
+        BookmarkRejection(label: '第 ${index + 1} 条', reason: '不是对象'),
+      );
       continue;
     }
     final parsed = _itemAt(entry, index);
@@ -245,10 +247,7 @@ class BookmarkMergeDecision {
 }
 
 class BookmarkMergePlan {
-  const BookmarkMergePlan({
-    required this.decisions,
-    this.rejected = const [],
-  });
+  const BookmarkMergePlan({required this.decisions, this.rejected = const []});
 
   final List<BookmarkMergeDecision> decisions;
 
@@ -271,7 +270,11 @@ class BookmarkMergePlan {
 
   /// 给用户看的一句话结论。
   String get summary {
-    final parts = ['新增 $addCount 条', '复活 $reviveCount 条', '已存在 $duplicateCount 条'];
+    final parts = [
+      '新增 $addCount 条',
+      '复活 $reviveCount 条',
+      '已存在 $duplicateCount 条',
+    ];
     if (rejected.isNotEmpty) parts.add('跳过 ${rejected.length} 条');
     return parts.join(' · ');
   }
@@ -294,7 +297,10 @@ BookmarkMergePlan planBookmarkImport({
   for (final item in items) {
     if (!seen.add(item.uniqueKey)) {
       decisions.add(
-        BookmarkMergeDecision(item: item, action: BookmarkMergeAction.duplicate),
+        BookmarkMergeDecision(
+          item: item,
+          action: BookmarkMergeAction.duplicate,
+        ),
       );
       continue;
     }

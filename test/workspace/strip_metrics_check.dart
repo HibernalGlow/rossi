@@ -380,4 +380,3 @@ void _collapsedSoloLaneDoesNotRailOthers() {
   check('独占者自己被折叠时，右泳道不被挤成轨', _laneWidth(m, LaneId.right) == 360.0);
   _invariants('折叠的独占者 + 切换栏', m, _available(1625.0));
 }
-

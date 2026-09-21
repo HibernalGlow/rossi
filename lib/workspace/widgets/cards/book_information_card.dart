@@ -65,10 +65,7 @@ class BookInformationCard extends StatelessWidget {
     );
   }
 
-  Widget _buildRows(
-    ReaderSessionCoordinator coordinator,
-    dynamic comicInfo,
-  ) {
+  Widget _buildRows(ReaderSessionCoordinator coordinator, dynamic comicInfo) {
     final total = coordinator.totalSlots;
     final current = coordinator.currentSlot;
     final progress = total <= 0 ? '—' : '${(current / total * 100).round()}%';
@@ -93,9 +90,7 @@ class BookInformationCard extends StatelessWidget {
           InfoRow(label: '状态', value: infoField('status')),
         InfoRow(
           label: '类型',
-          value: coordinator.localSource != null
-              ? '本地漫画'
-              : '在线图源 · $from',
+          value: coordinator.localSource != null ? '本地漫画' : '在线图源 · $from',
         ),
         InfoRow(label: '漫画 ID', value: coordinator.comicId),
         if (epInfo != null) InfoRow(label: '章节', value: epInfo.epName),

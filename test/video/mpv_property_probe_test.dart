@@ -78,7 +78,9 @@ List<String> _mpvNamesInUse() {
   final text = source.readAsStringSync();
   final names = <String>{};
   // `static const loopFile = 'loop-file';`
-  for (final m in RegExp(r"static const \w+ = '([a-z][a-z0-9-]+)';").allMatches(text)) {
+  for (final m in RegExp(
+    r"static const \w+ = '([a-z][a-z0-9-]+)';",
+  ).allMatches(text)) {
     names.add(m.group(1)!);
   }
   // `_get('chapter-list')`
@@ -86,8 +88,9 @@ List<String> _mpvNamesInUse() {
     names.add(m.group(1)!);
   }
   // `_cmd(<String>['screenshot-to-file', path, 'video'])` —— 只有首位是命令名。
-  for (final m
-      in RegExp(r"_cmd\(<String>\[\s*'([a-z][a-z0-9-]+)'").allMatches(text)) {
+  for (final m in RegExp(
+    r"_cmd\(<String>\[\s*'([a-z][a-z0-9-]+)'",
+  ).allMatches(text)) {
     names.add(m.group(1)!);
   }
   return names.toList()..sort();
@@ -102,20 +105,17 @@ String _writeWav() {
   for (var i = 0; i < frames; i++) {
     final t = i / rate;
     final amp = t < seconds / 2 ? 0.6 : 0.05;
-    final sample = (amp * _sin(2 * 3.141592653589793 * 220 * t) * 32767).toInt();
+    final sample = (amp * _sin(2 * 3.141592653589793 * 220 * t) * 32767)
+        .toInt();
     final bytes = Int16List.fromList(<int>[sample]).buffer.asByteData();
     data[i * 2] = bytes.getUint8(0);
     data[i * 2 + 1] = bytes.getUint8(1);
   }
   final out = BytesBuilder();
-  void u32(int v) => out.add(
-        Uint8List(4)
-          ..buffer.asByteData().setUint32(0, v, Endian.little),
-      );
-  void u16(int v) => out.add(
-        Uint8List(2)
-          ..buffer.asByteData().setUint16(0, v, Endian.little),
-      );
+  void u32(int v) =>
+      out.add(Uint8List(4)..buffer.asByteData().setUint32(0, v, Endian.little));
+  void u16(int v) =>
+      out.add(Uint8List(2)..buffer.asByteData().setUint16(0, v, Endian.little));
   out.add('RIFF'.codeUnits);
   u32(36 + data.length);
   out.add('WAVEfmt '.codeUnits);
@@ -168,14 +168,14 @@ String? _loadableLibmpv() {
     if (env != null && env.isNotEmpty) env,
     ...switch (Platform.operatingSystem) {
       'macos' => const [
-          '/opt/homebrew/opt/mpv/lib/libmpv.2.dylib',
-          '/opt/homebrew/lib/libmpv.2.dylib',
-          '/usr/local/lib/libmpv.2.dylib',
-        ],
+        '/opt/homebrew/opt/mpv/lib/libmpv.2.dylib',
+        '/opt/homebrew/lib/libmpv.2.dylib',
+        '/usr/local/lib/libmpv.2.dylib',
+      ],
       'linux' => const [
-          '/usr/lib/x86_64-linux-gnu/libmpv.so.2',
-          '/usr/lib/libmpv.so.2',
-        ],
+        '/usr/lib/x86_64-linux-gnu/libmpv.so.2',
+        '/usr/lib/libmpv.so.2',
+      ],
       'windows' => const ['libmpv-2.dll'],
       _ => const <String>[],
     },
@@ -271,7 +271,11 @@ String _writeAvi({
   final hdrl = BytesBuilder();
   final avih = BytesBuilder();
   _le(avih, 1000000 ~/ fps, 4); // dwMicroSecPerFrame
-  _le(avih, (frameBytes + (withAudio ? blockBytes : 0)) * fps, 4); // dwMaxBytesPerSec
+  _le(
+    avih,
+    (frameBytes + (withAudio ? blockBytes : 0)) * fps,
+    4,
+  ); // dwMaxBytesPerSec
   _le(avih, 0, 4); // dwPaddingGranularity
   _le(avih, 0x10 | 0x20, 4); // HAS_INDEX | IS_INTERLEAVED
   _le(avih, 0, 4); // dwTruncatedFrames
@@ -409,7 +413,6 @@ String _writeAvi({
   return path;
 }
 
-
 /// 轮询到某个异步值满足条件为止（默认 12 s）。
 ///
 /// 这套探针原先靠 `delay(120ms/400ms)` 猜 mpv 什么时候把值落下去，在同一台机器上
@@ -450,7 +453,6 @@ Future<VideoEnginePhase> _openAndAwait(
   return seen.timeout(const Duration(seconds: 50));
 }
 
-
 void main() {
   test('默认视频样式保持原色，字幕颜色和透明度被 mpv 接受', () async {
     final lib = _loadableLibmpv();
@@ -479,7 +481,10 @@ void main() {
     }
 
     try {
-      expect(await _openAndAwait(transport, media.path), VideoEnginePhase.ready);
+      expect(
+        await _openAndAwait(transport, media.path),
+        VideoEnginePhase.ready,
+      );
       await transport.setFilter(VideoFilterState.neutral);
       for (final key in ['brightness', 'contrast', 'saturation']) {
         expect(double.parse(await native.getProperty(key)), 0);
@@ -563,9 +568,9 @@ void main() {
       );
       await transport
           .open(
-        'file://${_writeWav()}',
-        options: const VideoOpenOptions(autoplay: false),
-      )
+            'file://${_writeWav()}',
+            options: const VideoOpenOptions(autoplay: false),
+          )
           .timeout(const Duration(seconds: 20));
       await phaseSeen.timeout(const Duration(seconds: 20));
       loaded = player.state.duration > Duration.zero;
@@ -879,7 +884,6 @@ void main() {
     await player.dispose();
   }, timeout: const Timeout(Duration(minutes: 2)));
 
-
   /// 外挂字幕这条链的活体一半：`sub-add` 之后轨列表里有它、认得出是外挂、能选中。
   ///
   /// 侧挂字幕是两个上游共有的一条主功能。Rossi 侧的名字匹配与 SRT/ASS/MicroDVD
@@ -903,9 +907,7 @@ void main() {
 
     final dir = Directory.systemTemp.createTempSync('rossi-sub');
     final srt = '${dir.path}/probe.srt';
-    File(srt).writeAsStringSync(
-      '1\n00:00:00,500 --> 00:00:01,000\nrossi\n\n',
-    );
+    File(srt).writeAsStringSync('1\n00:00:00,500 --> 00:00:01,000\nrossi\n\n');
     await transport.addSubtitleFile(srt);
     // 先问 mpv 自己收没收下（`_cmd` 是吞异常的，光看 transport 那边分不出来），
     // 再等 media_kit 的 tracks 流把这条轨送到 `subtitleTracks`。
@@ -937,26 +939,17 @@ void main() {
 
     // 关掉再选回来：数字轨号必须按号选 —— 走 URI 分支的话 mpv 会去开一个叫 "1" 的文件。
     await transport.selectSubtitleTrack(null);
-    expect(
-      await _until(sid, (v) => v == 'no', what: '关闭字幕该回到 sid=no'),
-      'no',
-    );
+    expect(await _until(sid, (v) => v == 'no', what: '关闭字幕该回到 sid=no'), 'no');
     await transport.selectSubtitleTrack(sidecar.first.id);
     expect(
-      await _until(
-        sid,
-        (v) => v == sidecar.first.id,
-        what: '数字轨号的外挂字幕要按号选中',
-      ),
+      await _until(sid, (v) => v == sidecar.first.id, what: '数字轨号的外挂字幕要按号选中'),
       sidecar.first.id,
     );
 
     // MicroDVD `.sub`：mpv 对它的解码不可靠，所以 Rossi 侧先转成 WebVTT 再挂
     // （`convertSubtitleFileForEngine`）。转出来的东西 mpv 认不认，只有活体能答。
     final sub = '${dir.path}/probe.sub';
-    File(sub).writeAsStringSync(
-      '{0}{100}第一句|换行\\n{120}{200}第二句\\n',
-    );
+    File(sub).writeAsStringSync('{0}{100}第一句|换行\\n{120}{200}第二句\\n');
     final converted = await convertSubtitleFileForEngine(sub, format: 'sub');
     expect(converted, isNotNull, reason: '.sub 该被转成临时 .vtt');
     expect(
@@ -975,18 +968,13 @@ void main() {
     );
     await transport.selectSubtitleTrack(vttId);
     expect(
-      await _until(
-        sid,
-        (v) => v == vttId,
-        what: '转换出来的 WebVTT 要选得中',
-      ),
+      await _until(sid, (v) => v == vttId, what: '转换出来的 WebVTT 要选得中'),
       vttId,
     );
 
     await transport.close();
     await player.dispose();
   }, timeout: const Timeout(Duration(minutes: 2)));
-
 
   /// 要有**两条轨**才看得见的那半：音轨面板、`aid` 选择、音画漂移、码率。
   ///
@@ -1089,5 +1077,4 @@ void main() {
     await transport.close();
     await player.dispose();
   }, timeout: const Timeout(Duration(minutes: 2)));
-
 }

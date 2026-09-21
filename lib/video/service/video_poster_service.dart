@@ -70,7 +70,11 @@ class VideoPosterService {
     final file = File(videoPath);
     if (!await file.exists()) return null;
     final stat = await file.stat();
-    final key = cacheKeyFor(videoPath, stat.modified.millisecondsSinceEpoch, stat.size);
+    final key = cacheKeyFor(
+      videoPath,
+      stat.modified.millisecondsSinceEpoch,
+      stat.size,
+    );
 
     final mem = _memory[key];
     if (mem != null) return mem;
@@ -136,22 +140,19 @@ class VideoPosterService {
     }
   }
 
-  Future<Uint8List?> _capture(
-    String videoPath,
-    String key,
-    File disk,
-  ) => _serialize(() async {
-    final bytes = await _captureBytes(videoPath);
-    if (bytes != null) {
-      try {
-        await disk.writeAsBytes(bytes, flush: true);
-      } on FileSystemException {
-        // 落盘失败不影响本次返回。
-      }
-      _remember(key, bytes);
-    }
-    return bytes;
-  });
+  Future<Uint8List?> _capture(String videoPath, String key, File disk) =>
+      _serialize(() async {
+        final bytes = await _captureBytes(videoPath);
+        if (bytes != null) {
+          try {
+            await disk.writeAsBytes(bytes, flush: true);
+          } on FileSystemException {
+            // 落盘失败不影响本次返回。
+          }
+          _remember(key, bytes);
+        }
+        return bytes;
+      });
 
   /// 串行尾指针：新任务挂在最后一个后面跑。
   ///

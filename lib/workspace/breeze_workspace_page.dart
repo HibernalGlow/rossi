@@ -152,7 +152,8 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
 
   Future<void> _restoreLayout() async {
     try {
-      final store = widget.store ??
+      final store =
+          widget.store ??
           WorkspaceLayoutFileStore(await workspaceLayoutDirectory());
       final persistence = WorkspaceLayoutPersistence(store: store);
       _persistence = persistence;
@@ -343,7 +344,8 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
                 child: Stack(
                   children: [
                     Positioned.fill(
-                      child: chromeMode == WorkspaceTopChromeMode.persistent &&
+                      child:
+                          chromeMode == WorkspaceTopChromeMode.persistent &&
                               chromeVisible
                           // 常驻形态：顶栏在**正常流**里，内容从它下面开始 ——
                           // 这条路上不存在「顶栏盖住内容」那一档（那是揭示形态
@@ -365,7 +367,10 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
                           // 内容从窗口最顶端开始铺满。`SafeArea` 只为移动端兜底
                           // （桌面端 `MediaQuery.padding` 本来就是 0，这里不会内缩，
                           // 所以不留空档）—— 顶栏被关掉时状态栏那一截正是靠它让出来的。
-                          : SafeArea(top: !state.isReaderFullscreen, child: content),
+                          : SafeArea(
+                              top: !state.isReaderFullscreen,
+                              child: content,
+                            ),
                     ),
 
                     // 揭示形态的顶栏：叠在内容上层，默认不可见（不占高度、不吃鼠标）。

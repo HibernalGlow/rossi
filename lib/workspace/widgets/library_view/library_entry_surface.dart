@@ -105,9 +105,7 @@ class LibraryEntrySurface extends StatelessWidget {
   /// `FileManagerThumbnailWidget` 自己的兜底：格子短边的 52%，夹在 16~26。
   Widget _centeredBadge(double boxSide) {
     final size = (boxSide * 0.52).clamp(16.0, 26.0);
-    return Center(
-      child: _badge(size: size) ?? const SizedBox.shrink(),
-    );
+    return Center(child: _badge(size: size) ?? const SizedBox.shrink());
   }
 
   Widget _subLines(BuildContext context) {
@@ -121,7 +119,11 @@ class LibraryEntrySurface extends StatelessWidget {
             onDoubleTap: line.onDoubleTap,
             child: Row(
               children: [
-                Icon(line.icon, size: 12, color: theme.colorScheme.onSurfaceVariant),
+                Icon(
+                  line.icon,
+                  size: 12,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
                 const SizedBox(width: 3),
                 Expanded(
                   child: Text(
@@ -161,7 +163,10 @@ class LibraryEntrySurface extends StatelessWidget {
     return _metaText(context);
   }
 
-  BoxDecoration _cardDecoration(BuildContext context, {double radius = _cardRadius}) {
+  BoxDecoration _cardDecoration(
+    BuildContext context, {
+    double radius = _cardRadius,
+  }) {
     final theme = Theme.of(context);
     return BoxDecoration(
       color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),

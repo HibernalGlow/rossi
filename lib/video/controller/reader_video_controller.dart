@@ -90,8 +90,7 @@ class ReaderVideoSnapshot {
   final String? failureReason;
 
   bool get ready =>
-      phase == VideoEnginePhase.ready ||
-      phase == VideoEnginePhase.prerolling;
+      phase == VideoEnginePhase.ready || phase == VideoEnginePhase.prerolling;
 
   double get progress => duration.inMilliseconds == 0
       ? 0
@@ -178,11 +177,7 @@ class ReaderVideoSnapshot {
   final normalizedMin = min < 0.05 ? 0.05 : min;
   final normalizedMax = max < normalizedMin ? normalizedMin : max;
   final normalizedStep = step < 0.01 ? 0.01 : step;
-  return (
-    min: normalizedMin,
-    max: normalizedMax,
-    step: normalizedStep,
-  );
+  return (min: normalizedMin, max: normalizedMax, step: normalizedStep);
 }
 
 /// 播放控制器的宿主接口：把「播完了要翻页」这类跨界动作交回上层。
@@ -279,7 +274,8 @@ class ReaderVideoController extends ChangeNotifier {
   Timer? _progressTimer;
   double _previousPlaybackRate = 1.0;
   bool _endedFired = false;
-  final List<StreamSubscription<dynamic>> _subs = <StreamSubscription<dynamic>>[];
+  final List<StreamSubscription<dynamic>> _subs =
+      <StreamSubscription<dynamic>>[];
   Duration _lastReported = Duration.zero;
 
   ReaderVideoSnapshot get snapshot => _snapshot;
@@ -467,7 +463,9 @@ class ReaderVideoController extends ChangeNotifier {
     final outcome = await t.seekRelative(delta);
     // 时间标签必须跟着键走：暂停态里位置流是不发的（探针里量到过 —— 定位之后
     // `player.state.position` 仍是 0），只等事件的话按 ±10 s 屏幕上数字纹丝不动。
-    _update(_snapshot.copyWith(currentTime: _afterRelativeSeek(delta, outcome)));
+    _update(
+      _snapshot.copyWith(currentTime: _afterRelativeSeek(delta, outcome)),
+    );
     return true;
   }
 

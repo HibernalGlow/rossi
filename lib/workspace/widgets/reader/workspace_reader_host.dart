@@ -109,9 +109,7 @@ class _WorkspaceReaderHostState extends State<WorkspaceReaderHost> {
             onPointerDown: (_) =>
                 WorkspaceNavigationBridge.instance.noteLaneInteraction(_host),
             child: Navigator(
-              key: ValueKey<String>(
-                'reader-navigator:${current.identityKey}',
-              ),
+              key: ValueKey<String>('reader-navigator:${current.identityKey}'),
               onGenerateRoute: (settings) => MaterialPageRoute<void>(
                 settings: settings,
                 builder: (_) => _buildReader(context, current),

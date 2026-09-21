@@ -116,9 +116,7 @@ class SuperResolutionPolicyService {
   late final List<SuperResolutionCondition> _activeConditions;
 
   SuperResolutionPolicyService(this.preferences) {
-    _activeConditions = preferences.conditions
-        .where((c) => c.enabled)
-        .toList()
+    _activeConditions = preferences.conditions.where((c) => c.enabled).toList()
       ..sort((a, b) => a.priority.compareTo(b.priority));
   }
 
@@ -174,8 +172,7 @@ class SuperResolutionPolicyService {
       );
     }
 
-    final modelId =
-        condition?.action.modelId ?? preferences.defaultModelId;
+    final modelId = condition?.action.modelId ?? preferences.defaultModelId;
     final scale = condition?.action.scale ?? preferences.defaultScale;
 
     if (modelId == null || scale == null) {
@@ -228,11 +225,16 @@ class SuperResolutionPolicyService {
     final hasWidthRule = match.minWidth != null || match.maxWidth != null;
     final hasHeightRule = match.minHeight != null || match.maxHeight != null;
     final widthMatches = _within(input.width, match.minWidth, match.maxWidth);
-    final heightMatches = _within(input.height, match.minHeight, match.maxHeight);
+    final heightMatches = _within(
+      input.height,
+      match.minHeight,
+      match.maxHeight,
+    );
 
     if (match.dimensionMode == 'or' && hasWidthRule && hasHeightRule) {
       if (!widthMatches && !heightMatches) return false;
-    } else if ((hasWidthRule && !widthMatches) || (hasHeightRule && !heightMatches)) {
+    } else if ((hasWidthRule && !widthMatches) ||
+        (hasHeightRule && !heightMatches)) {
       return false;
     }
 

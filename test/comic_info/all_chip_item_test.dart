@@ -83,11 +83,7 @@ void main() {
   testWidgets('超长 chip 文案：一行 + 省略号，且不再溢出（无黄黑条）', (tester) async {
     await tester.pumpWidget(
       _host(
-        AllChipItem(
-          label: _longSeedLabel,
-          onTap: () {},
-          onLongPress: () {},
-        ),
+        AllChipItem(label: _longSeedLabel, onTap: () {}, onLongPress: () {}),
       ),
     );
 

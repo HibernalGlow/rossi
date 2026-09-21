@@ -96,8 +96,16 @@ WorkspaceLayoutSnapshot _deviceA() => WorkspaceLayoutSnapshot(
   ),
   board: const WorkspaceBoardLayout(
     panels: {
-      'shelf': PanelLayout(visible: true, order: 0, side: WorkspacePanelSide.left),
-      'tools': PanelLayout(visible: false, order: 1, side: WorkspacePanelSide.right),
+      'shelf': PanelLayout(
+        visible: true,
+        order: 0,
+        side: WorkspacePanelSide.left,
+      ),
+      'tools': PanelLayout(
+        visible: false,
+        order: 1,
+        side: WorkspacePanelSide.right,
+      ),
     },
     cards: {
       'favorite': CardLayout(panelId: 'shelf', visible: true, order: 0),
@@ -199,10 +207,7 @@ void _roundTripKeepsEverything() {
         decoded.board.panelLayout('tools')?.order == 1,
   );
   check('面板可见性取云端', decoded.board.panelLayout('tools')?.visible == false);
-  check(
-    '卡片归属面板取云端',
-    decoded.board.cardLayout('download')?.panelId == 'tools',
-  );
+  check('卡片归属面板取云端', decoded.board.cardLayout('download')?.panelId == 'tools');
   check('卡片次序取云端', decoded.board.cardLayout('download')?.order == 2);
   check('卡片折叠取云端', decoded.board.cardLayout('download')?.expanded == false);
   check('卡片可见性取云端', decoded.board.cardLayout('download')?.visible == false);
@@ -214,10 +219,7 @@ void _roundTripKeepsEverything() {
   );
 
   check('悬停聚焦开关取云端', !decoded.interaction.hoverFocusEnabled);
-  check(
-    '面板泳道悬停聚焦开关取云端',
-    !decoded.interaction.panelHoverFocusEnabled,
-  );
+  check('面板泳道悬停聚焦开关取云端', !decoded.interaction.panelHoverFocusEnabled);
   check('呼出后自动聚焦开关取云端', !decoded.interaction.revealFocusesLane);
   check('悬停聚焦延时取云端', decoded.interaction.hoverFocusDelayMs == 111);
   check('边缘揭示延时取云端', decoded.interaction.edgeRevealDelayMs == 222);
@@ -287,15 +289,15 @@ void _localOnlyFieldsStayLocal() {
 void _encodingIsStable() {
   final a = WorkspaceSyncCodec.encode(_deviceA());
   final b = WorkspaceSyncCodec.encode(_deviceA());
-  check(
-    '同一份布局两次编码深相等（块哈希才可能稳定）',
-    _sameJson(a, b),
-    '块哈希不稳定 ⇒ 每轮同步都在上传',
-  );
+  check('同一份布局两次编码深相等（块哈希才可能稳定）', _sameJson(a, b), '块哈希不稳定 ⇒ 每轮同步都在上传');
   check('编码产物能 JSON 往返', _sameJson(jsonDecode(jsonEncode(a)), a));
 
-  final factoryA = WorkspaceSyncCodec.encode(WorkspaceLayoutSnapshot.defaults());
-  final factoryB = WorkspaceSyncCodec.encode(WorkspaceLayoutSnapshot.defaults());
+  final factoryA = WorkspaceSyncCodec.encode(
+    WorkspaceLayoutSnapshot.defaults(),
+  );
+  final factoryB = WorkspaceSyncCodec.encode(
+    WorkspaceLayoutSnapshot.defaults(),
+  );
   check('出厂布局编码也稳定', _sameJson(factoryA, factoryB));
   check(
     '出厂布局与改动过的布局编码不同',
@@ -324,10 +326,7 @@ void _localOnlyFieldsDoNotChangeTheHash() {
 
   check(
     '只差抽屉与激活泳道 ⇒ 两块完全相同',
-    _sameJson(
-      WorkspaceSyncCodec.encode(a),
-      WorkspaceSyncCodec.encode(twin),
-    ),
+    _sameJson(WorkspaceSyncCodec.encode(a), WorkspaceSyncCodec.encode(twin)),
     '不等 ⇒ 「只是把指针伸到边上」也会被当成布局改动推上云端',
   );
 }
@@ -336,15 +335,12 @@ void _localOnlyFieldsDoNotChangeTheHash() {
 
 void _brokenBlocksDegradePerBlock() {
   final base = _deviceB();
-  final decoded = WorkspaceSyncCodec.decode(
-    const <String, dynamic>{
-      'mode': 'not-a-mode',
-      'layout': 'not-a-map',
-      'board': 42,
-      'interaction': <dynamic>[],
-    },
-    base: base,
-  );
+  final decoded = WorkspaceSyncCodec.decode(const <String, dynamic>{
+    'mode': 'not-a-mode',
+    'layout': 'not-a-map',
+    'board': 42,
+    'interaction': <dynamic>[],
+  }, base: base);
 
   check('认不出的模式退回本机', decoded.mode == base.mode);
   check(
@@ -358,26 +354,23 @@ void _brokenBlocksDegradePerBlock() {
   );
   // 逐块退化的关键是**别的块照常应用**：全判废会让「云端格式演进一次」
   // 变成「所有设备上布局回出厂」。
-  final partial = WorkspaceSyncCodec.decode(
-    const <String, dynamic>{'layout': 'not-a-map', 'mode': 'swimlane'},
-    base: base,
-  );
+  final partial = WorkspaceSyncCodec.decode(const <String, dynamic>{
+    'layout': 'not-a-map',
+    'mode': 'swimlane',
+  }, base: base);
   check('一块坏不影响另一块', partial.mode == WorkspaceMode.swimlane);
 }
 
 // ── 6. 指向不存在泳道的记录要丢掉 ────────────────────────────────────────
 
 void _strayActivePanelRecordsAreDropped() {
-  final decoded = WorkspaceSyncCodec.decode(
-    const <String, dynamic>{
-      'activePanel': {
-        'ghost-lane': 'ghost-panel',
-        LaneId.left: '',
-        LaneId.right: 'tools',
-      },
+  final decoded = WorkspaceSyncCodec.decode(const <String, dynamic>{
+    'activePanel': {
+      'ghost-lane': 'ghost-panel',
+      LaneId.left: '',
+      LaneId.right: 'tools',
     },
-    base: _deviceB(),
-  );
+  }, base: _deviceB());
 
   check('不存在的泳道记录丢掉', !decoded.activePanel.containsKey('ghost-lane'));
   check('空面板 id 丢掉', !decoded.activePanel.containsKey(LaneId.left));
@@ -390,7 +383,9 @@ void _usableBlockHeuristic() {
   check('空块不可用', !WorkspaceSyncCodec.isUsableBlock(const <String, dynamic>{}));
   check(
     '只有 mode 也算可用',
-    WorkspaceSyncCodec.isUsableBlock(const <String, dynamic>{'mode': 'swimlane'}),
+    WorkspaceSyncCodec.isUsableBlock(const <String, dynamic>{
+      'mode': 'swimlane',
+    }),
   );
   check(
     '只有无关字段不算可用',

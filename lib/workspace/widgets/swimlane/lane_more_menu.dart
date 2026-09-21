@@ -131,10 +131,7 @@ class LaneMenu {
       _StaticMenuItem(
         child: BlocProvider<WorkspaceCubit>.value(
           value: cubit,
-          child: _LaneWidthField(
-            laneId: laneId,
-            viewportWidth: viewportWidth,
-          ),
+          child: _LaneWidthField(laneId: laneId, viewportWidth: viewportWidth),
         ),
       ),
       _item(
@@ -241,7 +238,10 @@ class LaneMenu {
           ),
         );
       case 'barConstrained':
-        cubit.setLanePanelBar(laneId, bar.copyWith(constrained: !bar.constrained));
+        cubit.setLanePanelBar(
+          laneId,
+          bar.copyWith(constrained: !bar.constrained),
+        );
       case 'barReset':
         // 「默认」取的是**本项目**的默认（钉在顶部 = 挂进栏头），不是参考里那个
         // 悬浮默认值 —— 见 `PanelBarDock.defaultDock` 的说明。
@@ -414,11 +414,9 @@ class _LaneWidthFieldState extends State<_LaneWidthField> {
     final lane = _cubit.state.layout.lanes[widget.laneId];
     _seed = (lane?.resolveWidth(widget.viewportWidth) ?? 0).round();
     _controller = TextEditingController(text: '$_seed');
-    _focusNode.addListener(
-      () {
-        if (!_focusNode.hasFocus) _commit();
-      },
-    );
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus) _commit();
+    });
   }
 
   @override
@@ -477,10 +475,7 @@ class _LaneWidthFieldState extends State<_LaneWidthField> {
             style: theme.textTheme.bodySmall,
             decoration: const InputDecoration(
               isDense: true,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 6,
-                vertical: 5,
-              ),
+              contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 5),
               border: OutlineInputBorder(),
             ),
             onChanged: (_) => setState(() => _committed = false),

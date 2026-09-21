@@ -27,8 +27,12 @@ class LibraryListGeometry {
 
 /// 缩略图槽的尺寸。[fillsCell] 为真时铺满所在格子（两档网格）。
 class LibraryThumbGeometry {
-  const LibraryThumbGeometry(this.size, this.radius, this.fit,
-      {this.fillsCell = false});
+  const LibraryThumbGeometry(
+    this.size,
+    this.radius,
+    this.fit, {
+    this.fillsCell = false,
+  });
 
   final Size? size;
   final BorderRadius radius;

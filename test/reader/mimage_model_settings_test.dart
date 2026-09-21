@@ -171,15 +171,11 @@ void main() {
       final models = await CoreMLModelConfig.modelsDirectory;
       await models.create(recursive: true);
       await File('${models.path}/${variant.fileName}').writeAsBytes([1]);
-      await RealSrSettings.saveEngine(
-        SuperResolutionEngine.breezeCoreML,
-      );
+      await RealSrSettings.saveEngine(SuperResolutionEngine.breezeCoreML);
       expect(await RealSrSuperResolution.isAvailable, isTrue);
       final profile = await RealSrSettings.loadProfile();
       final nativeKey = profile.cacheKey;
-      await RealSrSettings.saveEngine(
-        SuperResolutionEngine.mimageOnnx,
-      );
+      await RealSrSettings.saveEngine(SuperResolutionEngine.mimageOnnx);
       expect(await RealSrSettings.loadCacheKey(), isNot(nativeKey));
       expect(await RealSrSuperResolution.isAvailable, isFalse);
       final input = File('${root.path}/input.png');
@@ -214,9 +210,7 @@ void main() {
         await RealSrSettings.loadEngine(),
         SuperResolutionEngine.mimageOnnx,
       );
-      await RealSrSettings.saveEngine(
-        SuperResolutionEngine.breezeCoreML,
-      );
+      await RealSrSettings.saveEngine(SuperResolutionEngine.breezeCoreML);
       expect(await RealSrSettings.loadCacheKey(), nativeKey);
     },
     skip: !Platform.isMacOS,

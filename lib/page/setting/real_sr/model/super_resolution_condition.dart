@@ -10,10 +10,7 @@ class ConditionMetadataExpression {
     required this.value,
   });
 
-  Map<String, dynamic> toJson() => {
-    'operator': operator,
-    'value': value,
-  };
+  Map<String, dynamic> toJson() => {'operator': operator, 'value': value};
 
   factory ConditionMetadataExpression.fromJson(Map<String, dynamic> json) {
     return ConditionMetadataExpression(
@@ -97,13 +94,21 @@ class ConditionMatch {
       minHeight: clearMinHeight ? null : (minHeight ?? this.minHeight),
       maxWidth: clearMaxWidth ? null : (maxWidth ?? this.maxWidth),
       maxHeight: clearMaxHeight ? null : (maxHeight ?? this.maxHeight),
-      minMegapixels: clearMinMegapixels ? null : (minMegapixels ?? this.minMegapixels),
-      maxMegapixels: clearMaxMegapixels ? null : (maxMegapixels ?? this.maxMegapixels),
+      minMegapixels: clearMinMegapixels
+          ? null
+          : (minMegapixels ?? this.minMegapixels),
+      maxMegapixels: clearMaxMegapixels
+          ? null
+          : (maxMegapixels ?? this.maxMegapixels),
       dimensionMode: dimensionMode ?? this.dimensionMode,
       createdBetween: createdBetween ?? this.createdBetween,
       modifiedBetween: modifiedBetween ?? this.modifiedBetween,
-      bookPathRegex: clearBookPathRegex ? null : (bookPathRegex ?? this.bookPathRegex),
-      imagePathRegex: clearImagePathRegex ? null : (imagePathRegex ?? this.imagePathRegex),
+      bookPathRegex: clearBookPathRegex
+          ? null
+          : (bookPathRegex ?? this.bookPathRegex),
+      imagePathRegex: clearImagePathRegex
+          ? null
+          : (imagePathRegex ?? this.imagePathRegex),
       matchInnerPath: matchInnerPath ?? this.matchInnerPath,
       excludeFromPreload: excludeFromPreload ?? this.excludeFromPreload,
       metadata: metadata ?? this.metadata,
@@ -182,8 +187,8 @@ class ConditionMatch {
       ),
       dimensionMode:
           (json['dimensionMode'] ?? json['dimension_mode'] ?? 'and') == 'or'
-              ? 'or'
-              : 'and',
+          ? 'or'
+          : 'and',
       createdBetween: parseRange(
         json['createdBetween'] ?? json['created_between'],
       ),
@@ -191,7 +196,8 @@ class ConditionMatch {
         json['modifiedBetween'] ?? json['modified_between'],
       ),
       bookPathRegex:
-          json['bookPathRegex'] as String? ?? json['book_path_regex'] as String?,
+          json['bookPathRegex'] as String? ??
+          json['book_path_regex'] as String?,
       imagePathRegex:
           json['imagePathRegex'] as String? ??
           json['image_path_regex'] as String?,
@@ -292,8 +298,7 @@ class ConditionAction {
       tileEnabled: rawTileEnabled ?? (rawTile != null && rawTile > 0),
       noise: parseInt(json['noise'] ?? json['noise_level']),
       gpuId: json['gpuId']?.toString() ?? json['gpu_id']?.toString(),
-      useCache:
-          json['useCache'] as bool? ?? json['use_cache'] as bool? ?? true,
+      useCache: json['useCache'] as bool? ?? json['use_cache'] as bool? ?? true,
       tta: json['tta'] as bool? ?? false,
     );
   }
@@ -346,7 +351,9 @@ class SuperResolutionCondition {
 
   factory SuperResolutionCondition.fromJson(Map<String, dynamic> json) {
     return SuperResolutionCondition(
-      id: json['id'] as String? ?? 'condition-${DateTime.now().millisecondsSinceEpoch}',
+      id:
+          json['id'] as String? ??
+          'condition-${DateTime.now().millisecondsSinceEpoch}',
       name: json['name'] as String? ?? '未命名条件',
       enabled: json['enabled'] as bool? ?? true,
       priority: (json['priority'] as num?)?.toInt() ?? 0,

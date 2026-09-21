@@ -74,7 +74,9 @@ void main() {
           '{{book.emmTags}}',
           const SwitchToastContext(
             book: {
-              'emmTags': {'artist': ['A']},
+              'emmTags': {
+                'artist': ['A'],
+              },
             },
           ),
         ),

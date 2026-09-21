@@ -78,8 +78,8 @@ class ImageInformationCard extends StatelessWidget {
 
     final name = pageRef?.name ?? doc?.originalName;
     // 尺寸快照是**按页下标**记的，下标对不上就是上一页的，不能用。
-    final raster = (presenter != null &&
-            presenter.currentPageUpscaleStatus.index == slot)
+    final raster =
+        (presenter != null && presenter.currentPageUpscaleStatus.index == slot)
         ? presenter.currentPageUpscaleStatus
         : null;
 

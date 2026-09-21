@@ -36,10 +36,7 @@ class VideoWaveformService {
 
   /// 取整条波形。任何失败都退化成 [VideoWaveformStrip.empty]（UI 不画波形条），
   /// 因为波形是装饰，不该让一个视频播不了。
-  Future<VideoWaveformStrip> stripFor(
-    String path,
-    Duration duration,
-  ) async {
+  Future<VideoWaveformStrip> stripFor(String path, Duration duration) async {
     if (duration <= Duration.zero) return VideoWaveformStrip.empty;
     final file = File(path);
     final FileStat stat;

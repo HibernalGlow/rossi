@@ -207,7 +207,9 @@ void main() {
       final direction = (row['input'] as Map)['direction'];
       expect(
         row['action'],
-        direction == 'down' ? BindingAction.nextPage : BindingAction.previousPage,
+        direction == 'down'
+            ? BindingAction.nextPage
+            : BindingAction.previousPage,
         reason: '滚轮只有一根轴，出厂行不许随左右开翻转',
       );
     }

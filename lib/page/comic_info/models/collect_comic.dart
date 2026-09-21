@@ -64,12 +64,11 @@ Future<bool> ensureLocalComicCollected({
 
   // 联动自动追更
   try {
-    final autoFollow = objectbox.userSettingBox
-            .get(1)
-            ?.globalSetting
-            .autoFollowOnCollect ??
+    final autoFollow =
+        objectbox.userSettingBox.get(1)?.globalSetting.autoFollowOnCollect ??
         false;
-    final cubit = followCubit ??
+    final cubit =
+        followCubit ??
         (context != null && context.mounted
             ? () {
                 try {
@@ -104,14 +103,13 @@ Future<void> autoFavoriteComicOnDownloadIfEnabled({
   BuildContext? context,
   ComicFollowCubit? followCubit,
 }) async {
-  final enabled = objectbox.userSettingBox
-          .get(1)
-          ?.globalSetting
-          .autoFavoriteOnDownload ??
+  final enabled =
+      objectbox.userSettingBox.get(1)?.globalSetting.autoFavoriteOnDownload ??
       false;
   if (!enabled) return;
 
-  final cubit = followCubit ??
+  final cubit =
+      followCubit ??
       (context != null && context.mounted
           ? () {
               try {
@@ -131,7 +129,11 @@ Future<void> autoFavoriteComicOnDownloadIfEnabled({
 
   if (normalInfo == null) {
     try {
-      final detail = await getComicDetailByPlugin(comicId, from, pluginId: from);
+      final detail = await getComicDetailByPlugin(
+        comicId,
+        from,
+        pluginId: from,
+      );
       normalInfo = detail.normalInfo;
     } catch (e) {
       logger.w('autoFavoriteComicOnDownloadIfEnabled 获取详情失败: $e');

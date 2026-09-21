@@ -135,7 +135,12 @@ abstract final class WorkspaceSyncCodec {
   /// 用来挡住旧版本写进来的空块 —— 空块走 [decode] 会得到「什么都不改」，
   /// 与「云端没有这一块」应该表现一致（跳过），不该白算一次。
   static bool isUsableBlock(Map<String, dynamic> data) {
-    for (final key in const <String>['mode', 'layout', 'board', 'interaction']) {
+    for (final key in const <String>[
+      'mode',
+      'layout',
+      'board',
+      'interaction',
+    ]) {
       if (data[key] != null) return true;
     }
     return false;

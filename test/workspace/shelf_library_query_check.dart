@@ -43,8 +43,7 @@ ShelfSearchable _item(
     author: author,
     source: source,
     time: DateTime(2026, 1, 1).add(Duration(minutes: minutes)),
-    haystack:
-        haystack ?? [title, author, source, key].join(' ').toLowerCase(),
+    haystack: haystack ?? [title, author, source, key].join(' ').toLowerCase(),
   );
 }
 
@@ -71,15 +70,9 @@ void main() {
 
 void _creatorComesInTwoShapes() {
   check('纯文本作者名原样用', shelfCreatorName('尾田荣一郎') == '尾田荣一郎');
-  check(
-    'JSON 形态取 name',
-    shelfCreatorName('{"name":"岸本齐史","id":7}') == '岸本齐史',
-  );
+  check('JSON 形态取 name', shelfCreatorName('{"name":"岸本齐史","id":7}') == '岸本齐史');
   check('空串还是空串', shelfCreatorName('   ').isEmpty);
-  check(
-    '坏 JSON 退化为原文而不是吞掉',
-    shelfCreatorName('{"name":') == '{"name":',
-  );
+  check('坏 JSON 退化为原文而不是吞掉', shelfCreatorName('{"name":') == '{"name":');
   check(
     'JSON 里没有 name ⇒ 没有作者，而不是把 JSON 当名字显示',
     shelfCreatorName('{"id":1}') == '',
@@ -95,13 +88,7 @@ void _haystackCoversEveryField() {
     titleMeta: '浏览：123',
     metadata: '[{"type":"标签","value":["热血"]}]',
   );
-  for (final needle in [
-    'c-1',
-    '航海王',
-    '大海贼',
-    '尾田荣一郎',
-    '热血',
-  ]) {
+  for (final needle in ['c-1', '航海王', '大海贼', '尾田荣一郎', '热血']) {
     check('搜索面覆盖 $needle', text.contains(needle));
   }
 }
@@ -119,18 +106,9 @@ void _keywordMatchesAnywhereInHaystack() {
     _item('a', title: '山田花子', author: '渡边', source: 'bika'),
     _item('b', title: 'John Doe', author: 'Smith', source: 'jm'),
   ];
-  check(
-    '命中标题',
-    _keys(filterShelf(items, keyword: 'john')).join() == 'b',
-  );
-  check(
-    '命中作者',
-    _keys(filterShelf(items, keyword: '渡边')).join() == 'a',
-  );
-  check(
-    '命中来源且不区分大小写',
-    _keys(filterShelf(items, keyword: 'JM')).join() == 'b',
-  );
+  check('命中标题', _keys(filterShelf(items, keyword: 'john')).join() == 'b');
+  check('命中作者', _keys(filterShelf(items, keyword: '渡边')).join() == 'a');
+  check('命中来源且不区分大小写', _keys(filterShelf(items, keyword: 'JM')).join() == 'b');
   check('不命中则空', filterShelf(items, keyword: 'zzz').isEmpty);
 }
 
@@ -145,12 +123,11 @@ void _normalizeAppliesToBothSides() {
   check(
     '排序按归一化后的标题比（大小写不敏感）',
     _keys(
-          sortShelf(
-            [_item('z', title: 'B'), _item('y', title: 'a')],
-            const ShelfSort(field: ShelfSortField.title, ascending: true),
-          ),
-        )
-        .join() ==
+          sortShelf([
+            _item('z', title: 'B'),
+            _item('y', title: 'a'),
+          ], const ShelfSort(field: ShelfSortField.title, ascending: true)),
+        ).join() ==
         'yz',
   );
 }
@@ -177,24 +154,25 @@ void _togglingAndSwitchingFields() {
 
 void _tiesStayStable() {
   // 三条标题与时间全同，只有 key 不同。
-  final items = [_item('c', title: '同', minutes: 5), _item('a', title: '同', minutes: 5), _item('b', title: '同', minutes: 5)];
+  final items = [
+    _item('c', title: '同', minutes: 5),
+    _item('a', title: '同', minutes: 5),
+    _item('b', title: '同', minutes: 5),
+  ];
   final desc = sortShelf(items, const ShelfSort(field: ShelfSortField.title));
-  final again = sortShelf(items.reversed.toList(), const ShelfSort(field: ShelfSortField.title));
-  check('降序时 key 兜底仍为升序', _keys(desc).join() == 'abc', _keys(desc).join());
-  check(
-    '输入顺序不影响结果',
-    _keys(desc).join() == _keys(again).join(),
+  final again = sortShelf(
+    items.reversed.toList(),
+    const ShelfSort(field: ShelfSortField.title),
   );
+  check('降序时 key 兜底仍为升序', _keys(desc).join() == 'abc', _keys(desc).join());
+  check('输入顺序不影响结果', _keys(desc).join() == _keys(again).join());
 }
 
 void _unfiledIsNotEmptySet() {
   final items = [_item('a'), _item('b')];
   check('null 表示全部', selectShelf(items).length == 2);
   check('空集表示真的没有', selectShelf(items, memberKeys: {}).isEmpty);
-  check(
-    '按成员集挑',
-    _keys(selectShelf(items, memberKeys: {'b'})).join() == 'b',
-  );
+  check('按成员集挑', _keys(selectShelf(items, memberKeys: {'b'})).join() == 'b');
 }
 
 void _searchThenSortPipeline() {
@@ -256,24 +234,17 @@ void _chapterDoesNotRepeatTheBookName() {
   );
   check(
     '插件给的章节名照原样留',
-    shelfChapterLabel(title: '航海王', chapterTitle: '全1话 (37P)') ==
-        '全1话 (37P)',
+    shelfChapterLabel(title: '航海王', chapterTitle: '全1话 (37P)') == '全1话 (37P)',
   );
   check(
     '本地漫画里的真章节（子目录名）要留',
     shelfChapterLabel(title: '某本', chapterTitle: '第3话') == '第3话',
   );
-  check(
-    '没有章节 ⇒ 空串',
-    shelfChapterLabel(title: 'x', chapterTitle: '   ') == '',
-  );
+  check('没有章节 ⇒ 空串', shelfChapterLabel(title: 'x', chapterTitle: '   ') == '');
 }
 
 void _metaLineDropsEmptyParts() {
-  check(
-    '丢掉重复章节后不留空段',
-    joinShelfMeta(['本地', '', 'P.3']) == '本地 · P.3',
-  );
+  check('丢掉重复章节后不留空段', joinShelfMeta(['本地', '', 'P.3']) == '本地 · P.3');
   check(
     '照旧拼三段',
     joinShelfMeta(['JM', '全1话 (37P)', 'P.14']) == 'JM · 全1话 (37P) · P.14',

@@ -181,17 +181,15 @@ class RealSrSuperResolution {
     return file.existsSync() && await file.length() >= 1024;
   }
 
-  static Future<bool> isProfileAvailable(
-    SuperResolutionProfile profile,
-  ) => switch (profile.engine) {
-    SuperResolutionEngine.breezeCoreML => CoreMLModelLoader.isModelAvailable(
-      profile.coremlVariant.fileName,
-    ),
-    SuperResolutionEngine.mimageOnnx => isMImageModelAvailable(
-      profile.mimageModel,
-    ),
-    SuperResolutionEngine.desktopNcnn => _isDesktopNcnnAvailable(),
-  };
+  static Future<bool> isProfileAvailable(SuperResolutionProfile profile) =>
+      switch (profile.engine) {
+        SuperResolutionEngine.breezeCoreML =>
+          CoreMLModelLoader.isModelAvailable(profile.coremlVariant.fileName),
+        SuperResolutionEngine.mimageOnnx => isMImageModelAvailable(
+          profile.mimageModel,
+        ),
+        SuperResolutionEngine.desktopNcnn => _isDesktopNcnnAvailable(),
+      };
 
   /// 桌面 NCNN 路线的就绪判据：所选模式对应的可执行文件在位。
   static Future<bool> _isDesktopNcnnAvailable() async {

@@ -33,10 +33,9 @@ BookmarkLibraryItem _item({
   String title = '标题',
 }) {
   return BookmarkLibraryItem(
-    uniqueKey: uniqueKey ?? BookmarkLibraryItem.keyFor(
-      source: source,
-      comicId: comicId,
-    ),
+    uniqueKey:
+        uniqueKey ??
+        BookmarkLibraryItem.keyFor(source: source, comicId: comicId),
     source: source,
     comicId: comicId,
     title: title,
@@ -77,7 +76,12 @@ void _roundTrip() {
 void _rejectsBadKeys() {
   final result = parseBookmarkLibrary(
     _doc([
-      {'uniqueKey': 'wrong:key', 'source': 'bika', 'comicId': '1', 'title': 'T'},
+      {
+        'uniqueKey': 'wrong:key',
+        'source': 'bika',
+        'comicId': '1',
+        'title': 'T',
+      },
     ]),
   );
   check('键不一致被拒收', result.items.isEmpty && result.rejected.length == 1);
@@ -100,11 +104,19 @@ void _badItemsDoNotSinkTheFile() {
   );
   check('坏条目不影响好条目入库', result.items.length == 1, '${result.items}');
   check('每条坏条目都有理由', result.rejected.length == 4, '${result.rejected}');
-  check('缺 key 时按 source:comicId 补齐', result.items.single.uniqueKey == 'bika:1');
+  check(
+    '缺 key 时按 source:comicId 补齐',
+    result.items.single.uniqueKey == 'bika:1',
+  );
 }
 
 void _unreadableDocumentThrows() {
-  for (final raw in ['{', '[]', '{"items":[]}', '{"version":"v9","items":[]}']) {
+  for (final raw in [
+    '{',
+    '[]',
+    '{"items":[]}',
+    '{"version":"v9","items":[]}',
+  ]) {
     var threw = false;
     try {
       parseBookmarkLibrary(raw);

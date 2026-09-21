@@ -194,7 +194,10 @@ void main() {
     });
 
     test('选某个标签页：关掉开关并记下这个编号', () {
-      final next = resolveSplashSelection(selected: 1, currentWelcomePageNum: 2);
+      final next = resolveSplashSelection(
+        selected: 1,
+        currentWelcomePageNum: 2,
+      );
       expect(next.startWithWorkspace, isFalse);
       expect(next.welcomePageNum, 1);
     });

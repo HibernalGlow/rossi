@@ -3,18 +3,9 @@ import 'package:zephyr/service/download/download_task_progress.dart';
 
 void main() {
   test('converts completed counts to one-based display positions', () {
-    expect(
-      downloadTaskDisplayPosition(completed: 0, total: 4),
-      1,
-    );
-    expect(
-      downloadTaskDisplayPosition(completed: 3, total: 4),
-      4,
-    );
-    expect(
-      downloadTaskDisplayPosition(completed: 4, total: 4),
-      4,
-    );
+    expect(downloadTaskDisplayPosition(completed: 0, total: 4), 1);
+    expect(downloadTaskDisplayPosition(completed: 3, total: 4), 4);
+    expect(downloadTaskDisplayPosition(completed: 4, total: 4), 4);
   });
 
   test('uses completed chapters and current chapter progress', () {

@@ -178,10 +178,30 @@ class _AmbientSurface extends StatelessWidget {
       fit: StackFit.expand,
       children: <Widget>[
         ColoredBox(color: dimmed.average),
-        _edgeLayer(dimmed.top, dimmed.average, Alignment.topCenter, Alignment.bottomCenter),
-        _edgeLayer(dimmed.bottom, dimmed.average, Alignment.bottomCenter, Alignment.topCenter),
-        _edgeLayer(dimmed.left, dimmed.average, Alignment.centerLeft, Alignment.centerRight),
-        _edgeLayer(dimmed.right, dimmed.average, Alignment.centerRight, Alignment.centerLeft),
+        _edgeLayer(
+          dimmed.top,
+          dimmed.average,
+          Alignment.topCenter,
+          Alignment.bottomCenter,
+        ),
+        _edgeLayer(
+          dimmed.bottom,
+          dimmed.average,
+          Alignment.bottomCenter,
+          Alignment.topCenter,
+        ),
+        _edgeLayer(
+          dimmed.left,
+          dimmed.average,
+          Alignment.centerLeft,
+          Alignment.centerRight,
+        ),
+        _edgeLayer(
+          dimmed.right,
+          dimmed.average,
+          Alignment.centerRight,
+          Alignment.centerLeft,
+        ),
       ],
     );
   }
@@ -225,8 +245,7 @@ LinearGradient edgeGradient({
     end: end,
     colors: <Color>[...stops, fade],
     stops: <double>[
-      for (int index = 0; index < stops.length; index++)
-        (index / last) * 0.42,
+      for (int index = 0; index < stops.length; index++) (index / last) * 0.42,
       0.70,
     ],
   );

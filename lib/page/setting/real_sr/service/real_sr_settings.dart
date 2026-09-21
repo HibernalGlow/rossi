@@ -34,7 +34,8 @@ bool get supportsMImageOnnx =>
         Platform.isIOS);
 
 /// 桌面 NCNN（waifu2x / Real-CUGAN 可执行文件）这条路的平台。
-bool get supportsDesktopNcnn => !kIsWeb && (Platform.isWindows || Platform.isLinux);
+bool get supportsDesktopNcnn =>
+    !kIsWeb && (Platform.isWindows || Platform.isLinux);
 
 /// mImage ONNX 引擎在本平台的**实际**运行时，供设置页如实显示。
 ///
@@ -68,10 +69,9 @@ List<SuperResolutionEngine> get availableEngines => [
 ///
 /// Windows / Linux 保持 **桌面 NCNN**：那是这次改动之前唯一的路线，默认值改了
 /// 就等于替所有桌面用户换引擎（ONNX 在非 Apple 上此前从未跑过）。
-SuperResolutionEngine get defaultEngine =>
-    supportsDesktopNcnn
-        ? SuperResolutionEngine.desktopNcnn
-        : SuperResolutionEngine.mimageOnnx;
+SuperResolutionEngine get defaultEngine => supportsDesktopNcnn
+    ? SuperResolutionEngine.desktopNcnn
+    : SuperResolutionEngine.mimageOnnx;
 
 /// 一次任务的不可变配置；排队期间切换设置不会改变正在处理的模型。
 class SuperResolutionProfile {
@@ -92,8 +92,7 @@ class SuperResolutionProfile {
   final int desktopScale;
 
   int get scale => switch (engine) {
-    SuperResolutionEngine.breezeCoreML =>
-      coremlVariant.config['scale'] as int,
+    SuperResolutionEngine.breezeCoreML => coremlVariant.config['scale'] as int,
     SuperResolutionEngine.mimageOnnx => mimageModel.scale,
     SuperResolutionEngine.desktopNcnn => desktopScale,
   };
@@ -538,7 +537,8 @@ class RealSrSettings {
   }
 
   /// 载入完整的条件策略偏好对象
-  static Future<SuperResolutionPolicyPreferences> loadPolicyPreferences() async {
+  static Future<SuperResolutionPolicyPreferences>
+  loadPolicyPreferences() async {
     final autoUpscale = await loadAutoUpscale();
     final prefetch = await loadPrefetch();
     final preUpscaleEnabled = prefetch.$1 > 0;

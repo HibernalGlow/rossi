@@ -48,25 +48,23 @@ void main() {
   ///
   /// 两个 finder 都要限在按钮子树里 —— `MaterialApp` 自己那层也有同名组件，
   /// 全树去找会撞上「Too many elements」。
-  bool tapReachesButton(WidgetTester tester) =>
-      !tester
-          .widget<IgnorePointer>(
-            find.descendant(
-              of: find.byType(ComicReadButton),
-              matching: find.byType(IgnorePointer),
-            ),
-          )
-          .ignoring;
+  bool tapReachesButton(WidgetTester tester) => !tester
+      .widget<IgnorePointer>(
+        find.descendant(
+          of: find.byType(ComicReadButton),
+          matching: find.byType(IgnorePointer),
+        ),
+      )
+      .ignoring;
 
-  double revealOpacity(WidgetTester tester) =>
-      tester
-          .widget<AnimatedOpacity>(
-            find.descendant(
-              of: find.byType(ComicReadButton),
-              matching: find.byType(AnimatedOpacity),
-            ),
-          )
-          .opacity;
+  double revealOpacity(WidgetTester tester) => tester
+      .widget<AnimatedOpacity>(
+        find.descendant(
+          of: find.byType(ComicReadButton),
+          matching: find.byType(AnimatedOpacity),
+        ),
+      )
+      .opacity;
 
   Future<void> enterMouse(WidgetTester tester, Offset to) async {
     final pointer = await tester.createGesture(kind: PointerDeviceKind.mouse);
@@ -95,18 +93,30 @@ void main() {
 
     test('有指针：悬停才显形，否则整屏封面都扣一个圆圈', () {
       expect(
-        shouldRevealComicReadButton(hasPointer: true, hovered: true, busy: false),
+        shouldRevealComicReadButton(
+          hasPointer: true,
+          hovered: true,
+          busy: false,
+        ),
         isTrue,
       );
       expect(
-        shouldRevealComicReadButton(hasPointer: true, hovered: false, busy: false),
+        shouldRevealComicReadButton(
+          hasPointer: true,
+          hovered: false,
+          busy: false,
+        ),
         isFalse,
       );
     });
 
     test('进度期间一律显形：正在转圈的按钮不能是隐形的', () {
       expect(
-        shouldRevealComicReadButton(hasPointer: true, hovered: false, busy: true),
+        shouldRevealComicReadButton(
+          hasPointer: true,
+          hovered: false,
+          busy: true,
+        ),
         isTrue,
       );
     });

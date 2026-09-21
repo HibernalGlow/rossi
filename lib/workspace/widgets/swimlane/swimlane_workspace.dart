@@ -431,7 +431,8 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
               resizerWidth: LaneResizer.width,
               // solo 的生效宽度以「它同时是激活泳道」为前提。
               soloLaneId: state.effectiveSoloLaneId,
-              showLaneNavigatorInSolo: state.interaction.showLaneNavigatorInSolo,
+              showLaneNavigatorInSolo:
+                  state.interaction.showLaneNavigatorInSolo,
             );
             final geometry = WorkspaceLaneFocusGeometry.fromMetrics(metrics);
             _geometry = geometry;

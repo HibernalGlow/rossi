@@ -190,13 +190,7 @@ void main() {
     final cubit = await _pumpWorkspace(tester);
 
     await _openMenuByRightClick(tester, _leftTitle);
-    for (final label in [
-      '独占该栏',
-      '常规宽度',
-      '面板栏停靠左侧',
-      '恢复面板栏默认位置',
-      '折叠为紧凑条',
-    ]) {
+    for (final label in ['独占该栏', '常规宽度', '面板栏停靠左侧', '恢复面板栏默认位置', '折叠为紧凑条']) {
       expect(
         find.text(label),
         findsOneWidget,
@@ -213,9 +207,7 @@ void main() {
     );
   });
 
-  testWidgets('右键栏头里的按钮也要能开菜单（那颗按钮本身可能看不见）', (
-    tester,
-  ) async {
+  testWidgets('右键栏头里的按钮也要能开菜单（那颗按钮本身可能看不见）', (tester) async {
     await _pumpWorkspace(tester);
 
     await tester.tap(
@@ -254,9 +246,7 @@ void main() {
     expect(cubit.state.layout.lanes[LaneId.left]!.collapsed, isFalse);
   });
 
-  testWidgets('页签条挂进栏头（没有把手）时，菜单能把面板栏挪到别的边', (
-    tester,
-  ) async {
+  testWidgets('页签条挂进栏头（没有把手）时，菜单能把面板栏挪到别的边', (tester) async {
     final cubit = await _pumpWorkspace(tester);
 
     expect(
@@ -360,9 +350,7 @@ void main() {
     expect(cubit.state.layout.lanes[LaneId.left]!.width, 600);
   });
 
-  testWidgets('阅读器泳道：菜单改宽度会改写**视口比例**，且没有面板栏那一节', (
-    tester,
-  ) async {
+  testWidgets('阅读器泳道：菜单改宽度会改写**视口比例**，且没有面板栏那一节', (tester) async {
     final cubit = await _pumpWorkspace(tester);
     expect(
       cubit.state.layout.lanes[LaneId.reader]!.widthRatio,
@@ -396,7 +384,10 @@ void main() {
     final cubit = WorkspaceCubit();
     addTearDown(cubit.close);
     cubit.restore(
-      WorkspaceLayoutSnapshot(mode: WorkspaceMode.swimlane, layout: _testLayout),
+      WorkspaceLayoutSnapshot(
+        mode: WorkspaceMode.swimlane,
+        layout: _testLayout,
+      ),
     );
 
     cubit.setLaneWidth(LaneId.reader, 500, 1000);

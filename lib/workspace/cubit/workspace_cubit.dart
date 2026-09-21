@@ -136,12 +136,7 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
   /// 关闭当前这一本，阅读器泳道回到空态。
   void closeReader() {
     if (state.readerTarget == null) return;
-    emit(
-      state.copyWith(
-        readerTarget: () => null,
-        isReaderFullscreen: false,
-      ),
-    );
+    emit(state.copyWith(readerTarget: () => null, isReaderFullscreen: false));
   }
 
   /// 切换阅读器铺满窗口全屏状态。
@@ -386,7 +381,10 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
     final lane = state.layout.lanes[laneId];
     if (lane == null) return;
     final width = px.clamp(lane.minWidth, lane.maxWidth).toDouble();
-    final updated = _replaceLane(laneId, _withWidth(lane, width, viewportWidth));
+    final updated = _replaceLane(
+      laneId,
+      _withWidth(lane, width, viewportWidth),
+    );
     emit(state.copyWith(layout: state.layout.copyWith(lanes: updated)));
   }
 

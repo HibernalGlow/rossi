@@ -48,10 +48,7 @@ void main() {
     test('开关关着就不许说「已超分」—— 哪怕盘上真有产物', () {
       // 这一条是整个文件的重点：recorded 是流水线留下的历史（上一轮真的换上了），
       // 但开关一关，画面就被旁路成原图了。照着 recorded 显示就是在撒谎。
-      expect(
-        resolve(upscaleEnabled: false, recorded: applied).phase,
-        disabled,
-      );
+      expect(resolve(upscaleEnabled: false, recorded: applied).phase, disabled);
     });
 
     test('原图对比优先于打点：画面上是原图就别说已超分', () {
@@ -94,17 +91,29 @@ void main() {
       expect(superResolutionPhaseLabel(applied), '已超分');
       expect(superResolutionPhaseLabel(disabled), '超分关');
       expect(superResolutionPhaseLabel(queued), '排队中');
-      expect(superResolutionPhaseLabel(SuperResolutionPagePhase.skipped), '无需超分');
-      expect(superResolutionPhaseLabel(SuperResolutionPagePhase.failed), '超分失败');
+      expect(
+        superResolutionPhaseLabel(SuperResolutionPagePhase.skipped),
+        '无需超分',
+      );
+      expect(
+        superResolutionPhaseLabel(SuperResolutionPagePhase.failed),
+        '超分失败',
+      );
     });
 
     test('「正在跑」与「有产物」是两回事', () {
       expect(superResolutionPhaseIsBusy(queued), isTrue);
-      expect(superResolutionPhaseIsBusy(SuperResolutionPagePhase.running), isTrue);
+      expect(
+        superResolutionPhaseIsBusy(SuperResolutionPagePhase.running),
+        isTrue,
+      );
       expect(superResolutionPhaseIsBusy(applied), isFalse);
 
       expect(superResolutionPhaseHasEnhancedResult(applied), isTrue);
-      expect(superResolutionPhaseHasEnhancedResult(SuperResolutionPagePhase.ready), isTrue);
+      expect(
+        superResolutionPhaseHasEnhancedResult(SuperResolutionPagePhase.ready),
+        isTrue,
+      );
       // 原图对比时产物还在（只是被旁路挡住），配色仍该走强调色。
       expect(superResolutionPhaseHasEnhancedResult(originalPreview), isTrue);
       expect(superResolutionPhaseHasEnhancedResult(disabled), isFalse);
@@ -166,10 +175,7 @@ void main() {
     });
 
     test('两边都不知道就没有文字，也不报空串', () {
-      expect(
-        superResolutionSizeText(resolve(recorded: queued), 1000),
-        isNull,
-      );
+      expect(superResolutionSizeText(resolve(recorded: queued), 1000), isNull);
     });
   });
 

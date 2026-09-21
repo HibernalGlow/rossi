@@ -15,22 +15,26 @@ void main() {
       path: '/books/current.cbz',
       navigationJson: '{"cursor":1}',
       notify: messages.add,
-      resolve: ({
-        required String path,
-        String? navigationJson,
-        required bool forward,
-      }) async {
-        calls += 1;
-        await Future<void>.delayed(const Duration(milliseconds: 1));
-        expect(path, '/books/current.cbz');
-        expect(navigationJson, '{"cursor":1}');
-        expect(forward, isTrue);
-        return target;
-      },
+      resolve:
+          ({
+            required String path,
+            String? navigationJson,
+            required bool forward,
+          }) async {
+            calls += 1;
+            await Future<void>.delayed(const Duration(milliseconds: 1));
+            expect(path, '/books/current.cbz');
+            expect(navigationJson, '{"cursor":1}');
+            expect(forward, isTrue);
+            return target;
+          },
       open: (value) async => opened.add(value.path),
     );
 
-    await Future.wait([controller.switchBook(true), controller.switchBook(true)]);
+    await Future.wait([
+      controller.switchBook(true),
+      controller.switchBook(true),
+    ]);
     expect(calls, 1);
     expect(opened, ['/books/next.cbz']);
     expect(messages, isEmpty);
@@ -41,11 +45,12 @@ void main() {
     final controller = LocalBookNavigationController(
       path: '/books/current.cbz',
       notify: messages.add,
-      resolve: ({
-        required String path,
-        String? navigationJson,
-        required bool forward,
-      }) async => null,
+      resolve:
+          ({
+            required String path,
+            String? navigationJson,
+            required bool forward,
+          }) async => null,
       open: (_) async {},
     );
 

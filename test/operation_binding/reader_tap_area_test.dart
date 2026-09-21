@@ -71,15 +71,22 @@ void main() {
         Size(0, 800),
         Size(double.infinity, double.infinity),
       ]) {
-        expect(areaWithViewport(size, 400, 100), TapArea.middleCenter,
-            reason: '$size 量不出格子，不许落到翻页分支');
+        expect(
+          areaWithViewport(size, 400, 100),
+          TapArea.middleCenter,
+          reason: '$size 量不出格子，不许落到翻页分支',
+        );
       }
     });
   });
 
   group('几何不认识左右手与方向', () {
     test('leftHand / rightHand 在同一落点上给出**同一格**', () {
-      for (final point in const [(400.0, 100.0), (100.0, 400.0), (700.0, 400.0)]) {
+      for (final point in const [
+        (400.0, 100.0),
+        (100.0, 400.0),
+        (700.0, 400.0),
+      ]) {
         expect(
           area(x: point.$1, y: point.$2, mode: ReaderTapPageTurnMode.leftHand),
           area(x: point.$1, y: point.$2, mode: ReaderTapPageTurnMode.rightHand),
@@ -183,9 +190,9 @@ void main() {
         return ReaderTapZone.toggleMenu;
       }
       return ReaderGestureLogic.spatialPageTurnIsNext(
-        isPageRight: isPageRightCell(mode, cell),
-        rightToLeft: rightToLeft,
-      )
+            isPageRight: isPageRightCell(mode, cell),
+            rightToLeft: rightToLeft,
+          )
           ? ReaderTapZone.nextPage
           : ReaderTapZone.previousPage;
     }
@@ -229,7 +236,11 @@ void main() {
         ReaderTapPageTurnMode.rightHand,
         ReaderTapPageTurnMode.fullScreen,
       ]) {
-        for (final point in const [(100.0, 100.0), (100.0, 700.0), (400.0, 400.0)]) {
+        for (final point in const [
+          (100.0, 100.0),
+          (100.0, 700.0),
+          (400.0, 400.0),
+        ]) {
           expect(
             viaBinding(
               x: point.$1,
@@ -255,11 +266,21 @@ void main() {
 
     test('验收口径：左开点右半屏=上一页、点左半屏=下一页', () {
       expect(
-        viaBinding(x: 700, y: 400, mode: ReaderTapPageTurnMode.rightHand, rightToLeft: true),
+        viaBinding(
+          x: 700,
+          y: 400,
+          mode: ReaderTapPageTurnMode.rightHand,
+          rightToLeft: true,
+        ),
         ReaderTapZone.previousPage,
       );
       expect(
-        viaBinding(x: 100, y: 400, mode: ReaderTapPageTurnMode.rightHand, rightToLeft: true),
+        viaBinding(
+          x: 100,
+          y: 400,
+          mode: ReaderTapPageTurnMode.rightHand,
+          rightToLeft: true,
+        ),
         ReaderTapZone.nextPage,
       );
     });

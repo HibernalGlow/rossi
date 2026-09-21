@@ -464,10 +464,7 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent>
         )
         .toList();
     list.add(
-      _FilterSourceOption(
-        pluginId: 'local',
-        title: _sourceTitle('local'),
-      ),
+      _FilterSourceOption(pluginId: 'local', title: _sourceTitle('local')),
     );
     return list;
   }
@@ -659,11 +656,10 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent>
   }
 
   void _syncSourcesFromRegistry(Map<String, PluginRuntimeState> pluginStates) {
-    final available =
-        pluginStates.values
-            .where((plugin) => plugin.isEnabled && !plugin.isDeleted)
-            .map((plugin) => plugin.uuid)
-            .toList();
+    final available = pluginStates.values
+        .where((plugin) => plugin.isEnabled && !plugin.isDeleted)
+        .map((plugin) => plugin.uuid)
+        .toList();
     if (!available.contains('local')) {
       available.add('local');
     }

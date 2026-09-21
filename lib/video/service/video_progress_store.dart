@@ -75,7 +75,9 @@ abstract interface class VideoProgressStore {
 /// 上游注释里的理由在 Rossi 同样成立：位置每帧都变，直接写会把偏好存储打穿；
 /// 而「刚打开就退出」的窗口期靠 [flush] 在 dispose 时补一次写。
 class SharedPreferencesVideoProgressStore implements VideoProgressStore {
-  SharedPreferencesVideoProgressStore({this.namespace = 'rossi.video.progress'});
+  SharedPreferencesVideoProgressStore({
+    this.namespace = 'rossi.video.progress',
+  });
 
   static const int _maxEntries = 400;
   final String namespace;
@@ -112,10 +114,7 @@ class SharedPreferencesVideoProgressStore implements VideoProgressStore {
   }
 
   @override
-  Future<void> save(
-    VideoProgressEntry entry, {
-    required String key,
-  }) async {
+  Future<void> save(VideoProgressEntry entry, {required String key}) async {
     await _ensureLoaded();
     _cache[key] = entry;
     if (_cache.length > _maxEntries) _trim();

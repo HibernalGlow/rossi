@@ -22,20 +22,35 @@ void main() {
     test('http/https 图片地址（含签名串）判为非本地', () {
       expect(isLocalComicSource('wnacg', wnacgImageUrl), isFalse);
       expect(
-        isLocalComicSource('wnacg', wnacgImageUrl.replaceFirst('http:', 'https:')),
+        isLocalComicSource(
+          'wnacg',
+          wnacgImageUrl.replaceFirst('http:', 'https:'),
+        ),
         isFalse,
       );
-      expect(isLocalComicSource('wnacg', 'https://t4.wnimg2.cfd/data/t/1.png'), isFalse);
+      expect(
+        isLocalComicSource('wnacg', 'https://t4.wnimg2.cfd/data/t/1.png'),
+        isFalse,
+      );
     });
 
     test('协议相对地址 //host/... 判为非本地（首段是主机名）', () {
-      expect(isLocalComicSource('wnacg', '//img5.wnimg2.cfd/data/3858/21/1.webp'), isFalse);
+      expect(
+        isLocalComicSource('wnacg', '//img5.wnimg2.cfd/data/3858/21/1.webp'),
+        isFalse,
+      );
       expect(isLocalComicSource('wnacg', '//localhost:8080/a.jpg'), isFalse);
     });
 
     test('URL 以归档扩展名结尾也仍是非本地（扩展名分支不得抢先命中）', () {
-      expect(isLocalComicSource('plugin-a', 'https://cdn.example.com/a.zip'), isFalse);
-      expect(isLocalComicSource('plugin-a', 'http://cdn.example.com/b.cbz'), isFalse);
+      expect(
+        isLocalComicSource('plugin-a', 'https://cdn.example.com/a.zip'),
+        isFalse,
+      );
+      expect(
+        isLocalComicSource('plugin-a', 'http://cdn.example.com/b.cbz'),
+        isFalse,
+      );
     });
 
     test('isNetworkAddress 自身：URL 为真，路径为假', () {
@@ -75,7 +90,10 @@ void main() {
       expect(isLocalComicSource('local', ''), isTrue);
       expect(isLocalComicSource('local_source', 'whatever'), isTrue);
       // 短路优先于网络判定：本地会话里 url 字段可能是任意串。
-      expect(isLocalComicSource('local', 'http://img5.wnimg2.cfd/a.webp'), isTrue);
+      expect(
+        isLocalComicSource('local', 'http://img5.wnimg2.cfd/a.webp'),
+        isTrue,
+      );
     });
 
     test('普通插件 id / 漫画 id 判为非本地（否则会绕开插件运行时）', () {
@@ -124,10 +142,7 @@ void main() {
         isFalse,
       );
       // 图片层会把它当 url 传，因此这里也必须为假（否则下载队列直接抛 notFound）。
-      expect(
-        isLocalPictureRequest(from: 'wnacg', url: wnacgImageUrl),
-        isFalse,
-      );
+      expect(isLocalPictureRequest(from: 'wnacg', url: wnacgImageUrl), isFalse);
       // 对照：同一组 from/cartoonId 只把 url 换成归档路径，就必须翻成 true。
       // 少了这一对，"url 子句被摘掉"也能骗过上面两条（cartoonId 恰好无害）。
       expect(
@@ -163,7 +178,10 @@ void main() {
     });
 
     test('本地路径 / 归档形态仍进本地分支', () {
-      expect(isLocalPictureRequest(from: 'plugin-a', url: '/tmp/a.cbz'), isTrue);
+      expect(
+        isLocalPictureRequest(from: 'plugin-a', url: '/tmp/a.cbz'),
+        isTrue,
+      );
       expect(
         isLocalPictureRequest(from: 'plugin-a', cartoonId: 'comics/a.7z'),
         isTrue,

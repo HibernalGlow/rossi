@@ -32,12 +32,10 @@ String _writeSquareWav() {
     data.setInt16(i * 2, amp * sign, Endian.little);
   }
   final out = BytesBuilder();
-  void u32(int v) => out.add(
-        Uint8List(4)..buffer.asByteData().setUint32(0, v, Endian.little),
-      );
-  void u16(int v) => out.add(
-        Uint8List(2)..buffer.asByteData().setUint16(0, v, Endian.little),
-      );
+  void u32(int v) =>
+      out.add(Uint8List(4)..buffer.asByteData().setUint32(0, v, Endian.little));
+  void u16(int v) =>
+      out.add(Uint8List(2)..buffer.asByteData().setUint16(0, v, Endian.little));
   final bytes = data.buffer.asUint8List();
   out.add('RIFF'.codeUnits);
   u32(36 + bytes.length);
@@ -87,7 +85,11 @@ void main() {
       binSecs: 0.1,
     );
     // 2 s / 0.1 s = 20 格，允许末格不满。
-    expect(peaks.length, inInclusiveRange(18, 22), reason: '拿到 ${peaks.length} 格');
+    expect(
+      peaks.length,
+      inInclusiveRange(18, 22),
+      reason: '拿到 ${peaks.length} 格',
+    );
     // Rust 侧给的是**绝对** RMS（不归一），所以这里必须能看到量级差；
     // 归一化是 Dart 侧在拿到整条列之后做的 —— 两半各归一次就毁了跨窗口可比性。
     expect(
@@ -114,7 +116,8 @@ void main() {
     final half = strip.samples.length ~/ 2;
     final first = strip.samples.take(half).reduce((a, b) => a + b) / half;
     final second =
-        strip.samples.skip(half).reduce((a, b) => a + b) / (strip.samples.length - half);
+        strip.samples.skip(half).reduce((a, b) => a + b) /
+        (strip.samples.length - half);
     expect(
       first,
       greaterThan(second * 4),

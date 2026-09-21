@@ -625,9 +625,7 @@ class ComicSimplifyEntry extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (isFavoriteArtist)
-                      FavoriteArtistBadge(
-                        artistName: matchResult?.matchedName,
-                      ),
+                      FavoriteArtistBadge(artistName: matchResult?.matchedName),
                     if (isFavoriteTag) ...[
                       if (isFavoriteArtist) const SizedBox(height: 4),
                       FavoriteTagBadge(tagName: tagMatchResult.label),

@@ -131,16 +131,14 @@ class _StorageInformationCardState extends State<StorageInformationCard> {
       }
     }
     final slot = coordinator.currentSlot;
-    final currentPageSize =
-        source != null && slot < source.pages.length
+    final currentPageSize = source != null && slot < source.pages.length
         ? source.pages[slot].size
         : null;
 
     final path = source?.path;
-    final kindLabel =
-        path == null
-            ? '在线'
-            : p.extension(path).toUpperCase().replaceFirst('.', '');
+    final kindLabel = path == null
+        ? '在线'
+        : p.extension(path).toUpperCase().replaceFirst('.', '');
 
     final memory = _memory;
     final topTags = memory == null || memory.taggedAllocations.isEmpty
@@ -165,13 +163,9 @@ class _StorageInformationCardState extends State<StorageInformationCard> {
               ? '${source.pages.length}'
               : '${coordinator.docs.length}',
         ),
+        if (isLocal) InfoRow(label: '页表总量', value: formatInfoBytes(total)),
         if (isLocal)
-          InfoRow(label: '页表总量', value: formatInfoBytes(total)),
-        if (isLocal)
-          InfoRow(
-            label: '当前页大小',
-            value: formatInfoBytes(currentPageSize),
-          ),
+          InfoRow(label: '当前页大小', value: formatInfoBytes(currentPageSize)),
         InfoRow(
           label: 'Rust 内存',
           value: memory == null
@@ -179,10 +173,7 @@ class _StorageInformationCardState extends State<StorageInformationCard> {
               : formatInfoBytes(memory.totalAllocated),
         ),
         if (memory != null)
-          InfoRow(
-            label: '峰值',
-            value: formatInfoBytes(memory.peakAllocated),
-          ),
+          InfoRow(label: '峰值', value: formatInfoBytes(memory.peakAllocated)),
         if (topTags != null) InfoRow(label: '主要占用', value: topTags),
       ],
     );

@@ -11,16 +11,8 @@ void main() {
           'name': '条件一',
           'enabled': true,
           'priority': 0,
-          'match': {
-            'minWidth': 600,
-            'maxWidth': 1200,
-            'dimensionMode': 'and',
-          },
-          'action': {
-            'skip': false,
-            'modelId': 'realcugan',
-            'scale': 2,
-          },
+          'match': {'minWidth': 600, 'maxWidth': 1200, 'dimensionMode': 'and'},
+          'action': {'skip': false, 'modelId': 'realcugan', 'scale': 2},
         },
       ]);
 
@@ -45,9 +37,9 @@ void main() {
               'name': '嵌套条件',
               'match': {'maxMegapixels': 4.0},
               'action': {'skip': true},
-            }
-          ]
-        }
+            },
+          ],
+        },
       });
 
       final result = parseUpscaleConditionImport(jsonStr);
@@ -75,7 +67,7 @@ void main() {
             'noiseLevel': -1,
             'skip': false,
           },
-        }
+        },
       ]);
 
       final result = parseUpscaleConditionImport(jsonStr);
@@ -90,7 +82,10 @@ void main() {
 
     test('非法输入抛出友好异常', () {
       expect(() => parseUpscaleConditionImport(''), throwsFormatException);
-      expect(() => parseUpscaleConditionImport('not a json'), throwsFormatException);
+      expect(
+        () => parseUpscaleConditionImport('not a json'),
+        throwsFormatException,
+      );
       expect(() => parseUpscaleConditionImport('[]'), throwsFormatException);
     });
   });

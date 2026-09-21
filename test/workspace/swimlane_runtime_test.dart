@@ -297,11 +297,7 @@ void main() {
     await gesture.moveTo(tester.getCenter(_probe(LaneId.left)));
     await tester.pump();
     await _waitDwell(tester, cubit.state.interaction.hoverFocusDelayMs);
-    expect(
-      cubit.state.activeLaneId,
-      isNull,
-      reason: '关掉之后面板只剩点击这一条路',
-    );
+    expect(cubit.state.activeLaneId, isNull, reason: '关掉之后面板只剩点击这一条路');
 
     // 两颗开关是**独立**的：把面板那侧关掉不该顺手把 Reader 也弄哑。
     await gesture.moveTo(tester.getCenter(_probe(LaneId.reader)));

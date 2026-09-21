@@ -162,10 +162,7 @@ void main() {
           defaultScale: 2,
         ),
       );
-      expect(
-        policy.decide(defaultInput).kind,
-        'disabled',
-      );
+      expect(policy.decide(defaultInput).kind, 'disabled');
       expect(
         policy
             .decide(
@@ -191,10 +188,7 @@ void main() {
           defaultScale: 2,
         ),
       );
-      expect(
-        conditionalMinPolicy.decide(defaultInput).kind,
-        'skip',
-      );
+      expect(conditionalMinPolicy.decide(defaultInput).kind, 'skip');
       expect(
         conditionalMinPolicy
             .decide(
@@ -234,10 +228,7 @@ void main() {
           ],
         ),
       );
-      expect(
-        orPolicy.decide(defaultInput).modelId,
-        'matched-model',
-      );
+      expect(orPolicy.decide(defaultInput).modelId, 'matched-model');
 
       final andPolicy = SuperResolutionPolicyService(
         const SuperResolutionPolicyPreferences(
@@ -261,10 +252,7 @@ void main() {
           ],
         ),
       );
-      expect(
-        andPolicy.decide(defaultInput).modelId,
-        'default',
-      );
+      expect(andPolicy.decide(defaultInput).modelId, 'default');
     });
   });
 }

@@ -63,7 +63,11 @@ Future<TabController> _pump(WidgetTester tester, {required bool guard}) async {
               return Column(
                 children: [
                   const TabBar(
-                    tabs: [Tab(text: 'TAB-A'), Tab(text: 'TAB-B'), Tab(text: 'TAB-C')],
+                    tabs: [
+                      Tab(text: 'TAB-A'),
+                      Tab(text: 'TAB-B'),
+                      Tab(text: 'TAB-C'),
+                    ],
                   ),
                   Expanded(
                     child: TabBarView(
@@ -122,20 +126,28 @@ void main() {
     vertical.jumpTo(vertical.maxScrollExtent);
     await tester.pumpAndSettle();
     await _wheel(tester, const Offset(0, 120));
-    debugPrint('② 到底后纯纵向：vertical=${vertical.pixels}/${vertical.maxScrollExtent}');
+    debugPrint(
+      '② 到底后纯纵向：vertical=${vertical.pixels}/${vertical.maxScrollExtent}',
+    );
     debugPrint('   横向 pixels=${horizontal.pixels} index=${controller.index}');
 
     // ③ 到底后带横向分量（触控板斜着划 / 带侧滚的鼠标）
     await _wheel(tester, const Offset(120, 120));
-    debugPrint('③ 到底后斜向(dx=120,dy=120)：横向 pixels=${horizontal.pixels} index=${controller.index}');
+    debugPrint(
+      '③ 到底后斜向(dx=120,dy=120)：横向 pixels=${horizontal.pixels} index=${controller.index}',
+    );
 
     // ④ 到底后纯横向
     await _wheel(tester, const Offset(120, 0));
-    debugPrint('④ 到底后纯横向：横向 pixels=${horizontal.pixels} index=${controller.index}');
+    debugPrint(
+      '④ 到底后纯横向：横向 pixels=${horizontal.pixels} index=${controller.index}',
+    );
 
     // ⑤ 到底后 Shift+纵向（框架的翻转轴）
     await _wheel(tester, const Offset(0, 120), shift: true);
-    debugPrint('⑤ 到底后 Shift+纵向：横向 pixels=${horizontal.pixels} index=${controller.index}');
+    debugPrint(
+      '⑤ 到底后 Shift+纵向：横向 pixels=${horizontal.pixels} index=${controller.index}',
+    );
   });
 
   testWidgets('探针：加了一层「滚轮边界」之后同样四种增量', (tester) async {
@@ -151,12 +163,20 @@ void main() {
     await tester.pumpAndSettle();
 
     await _wheel(tester, const Offset(0, 120));
-    debugPrint('② 到底后纯纵向：横向 pixels=${horizontal.pixels} index=${controller.index}');
+    debugPrint(
+      '② 到底后纯纵向：横向 pixels=${horizontal.pixels} index=${controller.index}',
+    );
     await _wheel(tester, const Offset(120, 120));
-    debugPrint('③ 到底后斜向：横向 pixels=${horizontal.pixels} index=${controller.index}');
+    debugPrint(
+      '③ 到底后斜向：横向 pixels=${horizontal.pixels} index=${controller.index}',
+    );
     await _wheel(tester, const Offset(120, 0));
-    debugPrint('④ 到底后纯横向：横向 pixels=${horizontal.pixels} index=${controller.index}');
+    debugPrint(
+      '④ 到底后纯横向：横向 pixels=${horizontal.pixels} index=${controller.index}',
+    );
     await _wheel(tester, const Offset(0, 120), shift: true);
-    debugPrint('⑤ 到底后 Shift+纵向：横向 pixels=${horizontal.pixels} index=${controller.index}');
+    debugPrint(
+      '⑤ 到底后 Shift+纵向：横向 pixels=${horizontal.pixels} index=${controller.index}',
+    );
   });
 }
