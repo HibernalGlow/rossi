@@ -67,47 +67,51 @@ void main() {
       late DiscoverTabs tabs;
       var leafBuilds = 0;
       await tester.pumpWidget(
-        _app(Builder(builder: (context) {
-          tabs = DiscoverTabs(
-            side: side,
-            home: DiscoverLeafSpec(
-              label: '发现',
-              source: '',
-              pluginName: '',
-              iconUrl: '',
-              content: (context) => const SizedBox.shrink(),
-            ),
-          );
-          // 8 条：在 320 宽（或 152 厚的竖轨）里一定溢出，走的是滚动 + 定位那条路。
-          for (var i = 0; i < 8; i++) {
-            tabs.open(
-              label: '排行 $i',
-              source: 'p1',
-              content: (context) => _CountBuilds(
-                onBuild: () => leafBuilds++,
-                child: SearchPage(
-                  searchState: SearchStates.initial().copyWith(from: 'p1'),
-                  aggregateMode: false,
+        _app(
+          Builder(
+            builder: (context) {
+              tabs = DiscoverTabs(
+                side: side,
+                home: DiscoverLeafSpec(
+                  label: '发现',
+                  source: '',
+                  pluginName: '',
+                  iconUrl: '',
+                  content: (context) => const SizedBox.shrink(),
                 ),
-              ),
-            );
-          }
-          return Scaffold(
-            body: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox(
-                width: 320,
-                height: 600,
-                child: DiscoverPlatView(
-                  tabs: tabs,
-                  setting: DiscoverSettingState(tabSide: side),
-                  onSearch: () {},
-                  onCustomizeOrder: () {},
+              );
+              // 8 条：在 320 宽（或 152 厚的竖轨）里一定溢出，走的是滚动 + 定位那条路。
+              for (var i = 0; i < 8; i++) {
+                tabs.open(
+                  label: '排行 $i',
+                  source: 'p1',
+                  content: (context) => _CountBuilds(
+                    onBuild: () => leafBuilds++,
+                    child: SearchPage(
+                      searchState: SearchStates.initial().copyWith(from: 'p1'),
+                      aggregateMode: false,
+                    ),
+                  ),
+                );
+              }
+              return Scaffold(
+                body: Align(
+                  alignment: Alignment.topLeft,
+                  child: SizedBox(
+                    width: 320,
+                    height: 600,
+                    child: DiscoverPlatView(
+                      tabs: tabs,
+                      setting: DiscoverSettingState(tabSide: side),
+                      onSearch: () {},
+                      onCustomizeOrder: () {},
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          );
-        })),
+              );
+            },
+          ),
+        ),
       );
       await tester.pumpAndSettle(
         const Duration(seconds: 5),
@@ -116,11 +120,7 @@ void main() {
       );
       // 故意不 takeException：让框架在测试结束时把完整的 creator 链打出来。
       expect(find.byType(SearchPage), findsOneWidget);
-      expect(
-        leafBuilds,
-        lessThan(40),
-        reason: '溢出档下还在反复重建 = 滚动定位与重建互相触发',
-      );
+      expect(leafBuilds, lessThan(40), reason: '溢出档下还在反复重建 = 滚动定位与重建互相触发');
       final settled = leafBuilds;
       for (var i = 0; i < 30; i++) {
         await tester.pump(const Duration(milliseconds: 16));
@@ -139,39 +139,43 @@ void main() {
     late DiscoverTabs tabs;
     var leafBuilds = 0;
     await tester.pumpWidget(
-      _app(Builder(builder: (context) {
-        // DiscoverPage 自己持有标签；这一条判据要的是「同一份标签状态」下面
-        // 挂着真页面，所以直接用它对外暴露的那套 chrome。
-        tabs = DiscoverTabs(
-          side: DiscoverTabBarSide.top,
-          home: DiscoverLeafSpec(
-            label: '发现',
-            source: '',
-            pluginName: '',
-            iconUrl: '',
-            content: (context) => const SizedBox.shrink(),
-          ),
-        );
-        tabs.open(
-          label: '搜索',
-          source: 'p1',
-          content: (context) => _CountBuilds(
-            onBuild: () => leafBuilds++,
-            child: SearchPage(
-              searchState: SearchStates.initial().copyWith(from: 'p1'),
-              aggregateMode: false,
-            ),
-          ),
-        );
-        return Scaffold(
-          body: DiscoverPlatView(
-            tabs: tabs,
-            setting: const DiscoverSettingState(),
-            onSearch: () {},
-            onCustomizeOrder: () {},
-          ),
-        );
-      })),
+      _app(
+        Builder(
+          builder: (context) {
+            // DiscoverPage 自己持有标签；这一条判据要的是「同一份标签状态」下面
+            // 挂着真页面，所以直接用它对外暴露的那套 chrome。
+            tabs = DiscoverTabs(
+              side: DiscoverTabBarSide.top,
+              home: DiscoverLeafSpec(
+                label: '发现',
+                source: '',
+                pluginName: '',
+                iconUrl: '',
+                content: (context) => const SizedBox.shrink(),
+              ),
+            );
+            tabs.open(
+              label: '搜索',
+              source: 'p1',
+              content: (context) => _CountBuilds(
+                onBuild: () => leafBuilds++,
+                child: SearchPage(
+                  searchState: SearchStates.initial().copyWith(from: 'p1'),
+                  aggregateMode: false,
+                ),
+              ),
+            );
+            return Scaffold(
+              body: DiscoverPlatView(
+                tabs: tabs,
+                setting: const DiscoverSettingState(),
+                onSearch: () {},
+                onCustomizeOrder: () {},
+              ),
+            );
+          },
+        ),
+      ),
     );
     await tester.pumpAndSettle(
       const Duration(seconds: 5),
@@ -184,11 +188,7 @@ void main() {
     expect(find.byType(TextField), findsWidgets);
     expect(find.text('搜索'), findsWidgets);
     final afterFirstSettle = leafBuilds;
-    expect(
-      afterFirstSettle,
-      lessThan(20),
-      reason: '稳定之后还在重建 = 自循环',
-    );
+    expect(afterFirstSettle, lessThan(20), reason: '稳定之后还在重建 = 自循环');
 
     // 再空转 30 帧，计数不该继续涨。
     for (var i = 0; i < 30; i++) {

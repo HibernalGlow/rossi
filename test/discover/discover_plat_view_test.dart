@@ -126,6 +126,42 @@ Future<void> _pumpInLaneHost(WidgetTester tester, DiscoverTabs tabs) async {
   await tester.pumpAndSettle();
 }
 
+/// 只做内存写入的设置 cubit。
+///
+/// 生产那份 `updateDiscoverSetting` 会落 ObjectBox，而本机测试起不来那套原生库；
+/// 菜单点选要验的是「点完不抛、树跟着转」，与持久化无关，所以这里只 emit。
+class _MemSettingCubit extends GlobalSettingCubit {
+  @override
+  void updateDiscoverSetting(
+    DiscoverSettingState Function(DiscoverSettingState current) updates,
+  ) {
+    emit(state.copyWith(discoverSetting: updates(state.discoverSetting)));
+  }
+}
+
+Future<void> _pumpTuneMenuHost(WidgetTester tester, DiscoverTabs tabs) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      supportedLocales: AppLocaleUtils.supportedLocales,
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      home: BlocProvider<GlobalSettingCubit>(
+        // 类型参数要写 GlobalSettingCubit：_DisplayOptionsButton 读的是它，
+        // 传子类型只会让 Provider 找不到。
+        create: (_) => _MemSettingCubit(),
+        child: Scaffold(
+          body: DiscoverPlatView(
+            tabs: tabs,
+            setting: const DiscoverSettingState(),
+            onSearch: () {},
+            onCustomizeOrder: () {},
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('只有一条标签时画得出来，且不抛', (tester) async {
     final tabs = _tabs();
@@ -226,6 +262,44 @@ void main() {
     tabs.setSide(DiscoverTabBarSide.left);
     await _pump(tester, tabs, surface: const Size(320, 600), centered: false);
     expect(tester.takeException(), isNull);
+    tabs.dispose();
+  });
+
+  testWidgets('指针悬停在标签条上时切到竖向轨：不抛、帧收敛', (tester) async {
+    final tabs = _tabs();
+    tabs.open(
+      label: '排行',
+      source: 'p1',
+      content: (context) => const SizedBox(width: 40, height: 40),
+    );
+    await _pump(tester, tabs, surface: const Size(480, 600), centered: false);
+    expect(tester.takeException(), isNull);
+
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await gesture.addPointer(location: Offset.zero);
+    // 指针停在标签条中段 —— 实机卡死时指针就在标签条上（刚点完标签显示菜单）。
+    await gesture.moveTo(tester.getCenter(find.text('排行').first));
+    await tester.pumpAndSettle();
+
+    // 与 _DisplayOptionsButton 的 onSelected 同款顺序：先改设置（触发 watch 重建），
+    // 再动树上的朝向。
+    tabs.setSide(DiscoverTabBarSide.left);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    // 切完轨还悬着：竖排布局下的 hover 派发也要干净。
+    for (var i = 0; i < 3; i++) {
+      await tester.pump(const Duration(milliseconds: 400));
+    }
+    expect(tester.takeException(), isNull);
+
+    // 来回切两次，把 enter/exit 配对的不同组合都走到。
+    tabs.setSide(DiscoverTabBarSide.top);
+    await tester.pumpAndSettle();
+    tabs.setSide(DiscoverTabBarSide.right);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await gesture.removePointer();
     tabs.dispose();
   });
 
@@ -334,6 +408,70 @@ void main() {
           '切换后重建了 '
           '${_leafBuilds - baseline} 次',
     );
+    tabs.dispose();
+  });
+  testWidgets('指针停在标签上不动时，鼠标注解数量必须不变', (tester) async {
+    // `!_debugDuringDeviceUpdate` 那条断言唯一的燃料是「hover 期间命中树里的
+    // 鼠标注解还在变」：每一次增删都会让 RendererBinding 再排一次
+    // _scheduleMouseTrackerUpdate，于是设备更新相里套设备更新相。
+    // 这里让指针**停在**标签上什么都不做，只推进时间：数量必须一动不动。
+    final tabs = _tabs();
+    tabs.open(label: '排行', source: 'p1', content: (c) => _probedLeaf());
+    await _pumpInLaneHost(tester, tabs);
+
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await gesture.addPointer(location: Offset.zero);
+    await gesture.moveTo(tester.getCenter(find.text('排行').first));
+    await tester.pumpAndSettle();
+    final baseline = find.byType(MouseRegion).evaluate().length;
+    expect(baseline, greaterThan(0));
+
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(
+        find.byType(MouseRegion).evaluate().length,
+        baseline,
+        reason: '第 $i 次静置之后鼠标注解数量变了 —— 悬停期间有人在改命中树',
+      );
+    }
+    expect(tester.takeException(), isNull);
+    await gesture.removePointer();
+    tabs.dispose();
+  });
+
+  testWidgets('点「标签显示」：开菜单、逐项点一遍都不抛', (tester) async {
+    // 实机「点这颗按钮就卡死」的那条路。根因是 `PopupMenuButton.constraints`
+    // 其实是**菜单**的尺寸（不是按钮的）：填成 32×32 会把五项内容当场撑破。
+    final tabs = _tabs();
+    tabs.open(label: '排行', source: 'p1', content: (c) => _probedLeaf());
+    await _pumpTuneMenuHost(tester, tabs);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byIcon(Icons.tune_rounded));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull, reason: '开「标签显示」菜单时溢出过');
+    expect(find.text(t.discover.tabShowIcon), findsOneWidget);
+
+    for (final label in [
+      t.discover.tabShowIcon,
+      t.discover.tabShowPluginShort,
+    ]) {
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: '点「$label」之后抛了');
+      await tester.tap(find.byIcon(Icons.tune_rounded));
+      await tester.pumpAndSettle();
+    }
+    await tester.tapAt(const Offset(4, 4)); // 关掉菜单
+    await tester.pumpAndSettle();
+
+    for (final side in DiscoverTabBarSide.values) {
+      await tester.tap(find.byIcon(Icons.tune_rounded));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(side.label).last);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: '切到「${side.label}」之后抛了');
+    }
     tabs.dispose();
   });
 }

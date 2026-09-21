@@ -69,6 +69,8 @@ class _DiscoverTabsHostState extends State<_DiscoverTabsHost> {
       builder: (context, _) => Scaffold(
         // 顶栏那一行交给标签条了（用户口径：另起一行会割裂），所以这里
         // 没有 AppBar；状态栏的内边距由 SafeArea 收在标签条上面。
+        // 竖向档在窄页面上会被 DiscoverPlatView 自己钳回横向 —— 那层才知道
+        // 轨厚吃掉的是谁的宽度。
         resizeToAvoidBottomInset: false,
         body: SafeArea(
           bottom: false,

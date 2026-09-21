@@ -10,7 +10,6 @@ import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:zephyr/page/discover/service/discover_tabs.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
 import 'package:zephyr/page/search/view/search_page.dart';
-import 'package:zephyr/page/discover/service/plugin_display_label.dart';
 import 'package:zephyr/widgets/plugin_icon.dart';
 
 /// 发现页的标签宿主：一个 plat 的 `PlatTabGroup`。
@@ -18,7 +17,7 @@ import 'package:zephyr/widgets/plugin_icon.dart';
 /// 横向档（[TabBarSide.top]）时那一行标签条**就是**发现页的顶栏 —— 用户
 /// 2026-09-20 的口径：另起一行与「发现」标题栏割裂。竖向档时同一份 chrome
 /// 转到内容的左边或右边。
-class DiscoverPlatView extends StatelessWidget {
+class DiscoverPlatView extends StatefulWidget {
   const DiscoverPlatView({
     super.key,
     required this.tabs,
@@ -32,42 +31,120 @@ class DiscoverPlatView extends StatelessWidget {
   final VoidCallback onSearch;
   final VoidCallback onCustomizeOrder;
 
-  /// 横向档一条标签最多占多宽。超出的字走省略号，全名在 tooltip 里。
-  static const double _chipMaxWidth = 180;
-
   /// 竖向轨的厚度（= 一条标签可用的全部宽度）。
   ///
   /// 不能贪宽：这一档是**从内容区里扣出来的**。发现页住在泳道里时整页常常只有
   /// 320~500 宽，轨给到 152 之后剩下的宽度连标签内容自己的工具栏都摆不下
   /// （实测 `SearchPage` 那条搜索栏要 ~160，被压到 152 就报 RenderFlex overflowed，
   /// 而布局异常会跳过 MouseTracker 的复位标志 → 每帧刷断言直到卡死）。
-  static const double _railThickness = 120;
+  static const double _railThickness = 200;
 
-  /// 竖排一条标签里**不是标签名**的那部分：前导图标 + 两道间距 + 关闭钮 + 标签内边距。
-  static const double _railChromeWidth = 72;
-
-  /// 竖排标签名的上限。
+  /// 竖向轨要能从内容区里扣走的**最小整页宽度**。
   ///
-  /// 必须自己算：竖排时 `PlatTabStrip` 给每条标签的是**无界**宽度，
-  /// `PlatTabChip` 于是 `mainAxisSize.min` 按内容取宽 —— 标签名一长就把整条轨撑破
-  /// （实测溢出 8px，报 RenderFlex overflowed，而布局异常会把 MouseTracker 的
-  /// 复位标志跳过去，表现就是每帧刷断言直到界面卡死）。
-  static const double _railLabelMaxWidth = _railThickness - _railChromeWidth;
+  /// 实测：轨厚 120 时，整页 320 宽会把标签内容自己的搜索栏压到 24 宽并报
+  /// `RenderFlex overflowed`，400 起才干净（判据见
+  /// `test/discover/discover_page_real_test.dart` 的窄宽度那几条）。
+  /// 布局异常会跳过 `MouseTracker` 的复位标志 —— 那正是「每帧刷
+  /// `!_debugDuringDeviceUpdate` 直到卡死」的成因，所以宁可不转。
+  static const double railMinPageWidth = 480;
 
-  bool get _vertical => tabs.vertical;
+  @override
+  State<DiscoverPlatView> createState() => _DiscoverPlatViewState();
+}
+
+class _DiscoverPlatViewState extends State<DiscoverPlatView> {
+  @override
+  void initState() {
+    super.initState();
+    // **必须自己听**：朝向存在 plat 的树上，树变了 `PlatView` 会立刻按新朝向
+    // 排布，而轨厚（`PlatTabBarTheme.size`）是这一层 build 时算出来的。
+    // 只靠宿主重建的话，宿主一旦没监听，就会出现「竖排轨道 + 横条的 40 厚」
+    // 同帧混排 —— 标签被压到 24 宽、RenderFlex 溢出，那一帧的异常就是
+    // MouseTracker 不复位的引信（实机表现为每帧刷断言直到卡死）。
+    widget.tabs.controller.addListener(_onTabsChanged);
+  }
+
+  @override
+  void didUpdateWidget(DiscoverPlatView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.tabs, widget.tabs)) {
+      oldWidget.tabs.controller.removeListener(_onTabsChanged);
+      widget.tabs.controller.addListener(_onTabsChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.tabs.controller.removeListener(_onTabsChanged);
+    super.dispose();
+  }
+
+  void _onTabsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  DiscoverTabs get tabs => widget.tabs;
+  DiscoverSettingState get setting => widget.setting;
+  VoidCallback get onSearch => widget.onSearch;
+  VoidCallback get onCustomizeOrder => widget.onCustomizeOrder;
+  bool get _vertical => widget.tabs.vertical;
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final effective = _effectiveSide(constraints.maxWidth);
+        if (effective != tabs.tabSide) {
+          _applySideSoon(context, effective);
+          // 朝向要变的那一帧**先空着**：拿旧朝向硬画新宽度会把标签内容压到
+          // 布局溢出（实测窄页面里搜索栏被挤成 24 宽）。空一帧无害，
+          // 抛一帧换来之后每帧一条断言直到界面卡死。
+          return const SizedBox.shrink();
+        }
+        return _view(context);
+      },
+    );
+  }
+
+  /// 窄页面上把竖向档钳回横向：这里只**算**该用哪一档，不改树。
+  DiscoverTabBarSide _effectiveSide(double pageWidth) {
+    final preferred = setting.tabSide;
+    if (preferred == DiscoverTabBarSide.top) return preferred;
+    if (!pageWidth.isFinite || pageWidth < DiscoverPlatView.railMinPageWidth) {
+      return DiscoverTabBarSide.top;
+    }
+    return preferred;
+  }
+
+  /// 改树排到帧尾：build 期间动 controller 等于在构建过程中改状态。
+  ///
+  /// 为什么不「照样竖着、让内容挤一挤」：挤出来的结果是布局溢出并抛异常，
+  /// 而布局异常发生在设备更新相里会跳过 `MouseTracker` 的复位标志。
+  /// 偏好不动，所以页面一变宽它自己会转回竖向。
+  void _applySideSoon(BuildContext context, DiscoverTabBarSide effective) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (context.mounted) tabs.setSide(effective);
+    });
+  }
+
+  Widget _view(BuildContext context) {
     return PlatTheme(
       data: PlatThemeData(
         tabBar: PlatTabBarTheme(
           // 竖向轨要窄：它是列表的边，不该吃掉内容的三分之一。
-          size: _vertical ? _railThickness : 40,
+          size: _vertical ? DiscoverPlatView._railThickness : 40,
           fit: TabStripFit.scrollable,
           spacing: 2,
+          // Material 的 TabBar 默认给 16 的左右标签内边距；竖轨一共才 120 厚，
+          // 那 32 就是「标签名明明没超长、Row 却溢出」的来源。
+          labelPadding: EdgeInsets.symmetric(horizontal: 4),
         ),
       ),
       child: PlatView(
+        // 换朝向时整棵重建一次。plat 在运行时改 `side` 之后不会重算标签拿到的
+        // 约束（竖轨上仍按无界宽度排字），实测会留一条 20px 的 RenderFlex 溢出；
+        // 而朝向是用户主动切的，重挂一次比留着布局异常划算。
+        key: ValueKey<Object?>(tabs.side),
         controller: tabs.controller,
         // 不在挂载时抢键盘焦点：焦点一抢走，Cmd/Ctrl + Z 这类键就先被 plat 的
         // 标签命令看见（见 [_leafShortcuts]）。让用户点进这一片再生效。
@@ -135,17 +212,15 @@ class DiscoverPlatView extends StatelessWidget {
 
     return PlatTabChip(
       leading: setting.tabIconEnabled ? _chipLeading(context, leaf) : null,
-      label: Tooltip(
-        // tooltip 用**全名**：标签上截的是缩写，窄轨上那截字到底属于哪个插件，
-        // 得有个地方能看全。
-        message: joinTabLabel(shortName: leaf.pluginName, label: leaf.label),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: _vertical ? _railLabelMaxWidth : _chipMaxWidth,
-          ),
-          child: text,
-        ),
-      ),
+      // 这里**不放 Tooltip**：它是这条标签条里唯一会在 hover 回调里往 Overlay
+      // 插东西的东西，而「hover 时改命中树」正是 `!_debugDuringDeviceUpdate`
+      // 那条断言唯一需要的燃料（上游 flutter/flutter#107063 至今没修，
+      // 我们的判据又复现不出来 —— 那就先把这层燃料抽掉）。
+      // 标签**不设上限**：竖轨里 plat 给每条标签的是「轨厚 − 内边距」这一有界宽度
+      // （实测 120 的轨给 112），横向那条轨则是无界、按内容取宽后整条可滚。
+      // 之前按朝向现算一个上限塞进去，朝向是切出来的而 chip 不会重建，
+      // 于是旧档的上限留在新布局里 —— 竖轨上溢出 20px，就是实机卡死的燃料。
+      label: text,
       // 首页那条是 locked 的，plat 自己会把关闭按钮藏掉。
       trailing: const PlatTabCloseButton(),
     );
@@ -247,56 +322,64 @@ class _DisplayOptionsButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final cubit = context.read<GlobalSettingCubit>();
     final setting = context.watch<GlobalSettingCubit>().state.discoverSetting;
-    return PopupMenuButton<Object>(
-      tooltip: t.discover.tabDisplay,
-      icon: const Icon(Icons.tune_rounded, size: 18),
-      iconSize: 18,
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
-      onSelected: (value) {
-        if (value == _TabDisplayOption.icon) {
-          cubit.updateDiscoverSetting(
-            (current) =>
-                current.copyWith(tabIconEnabled: !current.tabIconEnabled),
-          );
-          return;
-        }
-        if (value == _TabDisplayOption.pluginShort) {
-          cubit.updateDiscoverSetting(
-            (current) => current.copyWith(
-              tabPluginShortEnabled: !current.tabPluginShortEnabled,
-            ),
-          );
-          return;
-        }
-        if (value is DiscoverTabBarSide) {
-          cubit.updateDiscoverSetting(
-            (current) => current.copyWith(tabSide: value),
-          );
-          // 朝向是**树**上的状态（plat 把它记在标签组节点里），只改设置
-          // 不会让眼前这一条转过去；两处一起动，才不会出现「下次才是这样」。
-          tabs.setSide(value);
-        }
-      },
-      itemBuilder: (context) => [
-        CheckedPopupMenuItem(
-          value: _TabDisplayOption.icon,
-          checked: setting.tabIconEnabled,
-          child: Text(t.discover.tabShowIcon),
-        ),
-        CheckedPopupMenuItem(
-          value: _TabDisplayOption.pluginShort,
-          checked: setting.tabPluginShortEnabled,
-          child: Text(t.discover.tabShowPluginShort),
-        ),
-        const PopupMenuDivider(),
-        for (final side in DiscoverTabBarSide.values)
+    return SizedBox(
+      width: 32,
+      height: 32,
+      child: PopupMenuButton<Object>(
+        tooltip: t.discover.tabDisplay,
+        icon: const Icon(Icons.tune_rounded, size: 18),
+        iconSize: 18,
+        padding: EdgeInsets.zero,
+        // 这里**不要**设 `constraints`：`PopupMenuButton.constraints` 是**菜单**的
+        // 尺寸，不是这颗按钮的（SDK 原文「Optional size constraints for the menu」，
+        // 直接转给 `showMenu(constraints:)`）。先前按按钮尺寸填了 32×32，
+        // 菜单被掐成 32×32、五项内容当场撑破布局 —— 而那一帧的布局异常就是
+        // MouseTracker 不复位的引信：点这颗按钮之后每帧刷断言直到界面卡死。
+        onSelected: (value) {
+          if (value == _TabDisplayOption.icon) {
+            cubit.updateDiscoverSetting(
+              (current) =>
+                  current.copyWith(tabIconEnabled: !current.tabIconEnabled),
+            );
+            return;
+          }
+          if (value == _TabDisplayOption.pluginShort) {
+            cubit.updateDiscoverSetting(
+              (current) => current.copyWith(
+                tabPluginShortEnabled: !current.tabPluginShortEnabled,
+              ),
+            );
+            return;
+          }
+          if (value is DiscoverTabBarSide) {
+            cubit.updateDiscoverSetting(
+              (current) => current.copyWith(tabSide: value),
+            );
+            // 朝向是**树**上的状态（plat 把它记在标签组节点里），只改设置
+            // 不会让眼前这一条转过去；两处一起动，才不会出现「下次才是这样」。
+            tabs.setSide(value);
+          }
+        },
+        itemBuilder: (context) => [
           CheckedPopupMenuItem(
-            value: side,
-            checked: setting.tabSide == side,
-            child: Text(side.label),
+            value: _TabDisplayOption.icon,
+            checked: setting.tabIconEnabled,
+            child: Text(t.discover.tabShowIcon),
           ),
-      ],
+          CheckedPopupMenuItem(
+            value: _TabDisplayOption.pluginShort,
+            checked: setting.tabPluginShortEnabled,
+            child: Text(t.discover.tabShowPluginShort),
+          ),
+          const PopupMenuDivider(),
+          for (final side in DiscoverTabBarSide.values)
+            CheckedPopupMenuItem(
+              value: side,
+              checked: setting.tabSide == side,
+              child: Text(side.label),
+            ),
+        ],
+      ),
     );
   }
 }

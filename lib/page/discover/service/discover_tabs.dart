@@ -91,6 +91,13 @@ class DiscoverTabs {
 
   bool get vertical => side != TabBarSide.top;
 
+  /// 树上那一份换算回设置里的枚举（钳制逻辑要拿它跟偏好比）。
+  DiscoverTabBarSide get tabSide => switch (side) {
+    TabBarSide.left => DiscoverTabBarSide.left,
+    TabBarSide.right => DiscoverTabBarSide.right,
+    _ => DiscoverTabBarSide.top,
+  };
+
   TabGroupSnapshot? get _group {
     final snapshot = controller.snapshot(groupId);
     return snapshot is TabGroupSnapshot ? snapshot : null;
