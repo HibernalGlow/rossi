@@ -115,6 +115,22 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
               (current) => current.copyWith(favoriteTagBadgeEnabled: value),
             ),
           ),
+          const Divider(height: 1, thickness: 0.3),
+          _switchTile(
+            icon: Icons.radio_button_checked,
+            title: t.settings.cardUnreadIndicator,
+            subtitle: t.settings.cardUnreadIndicatorSubtitle,
+            value: cardSetting.unreadIndicatorEnabled,
+            onChanged: (value) => cubit.updateComicCardSetting(
+              (current) => current.copyWith(unreadIndicatorEnabled: value),
+            ),
+          ),
+          // 关掉总开关就没有标识可挑样式，这一行整个不画：
+          // 留一行点不动的下拉，用户会以为它管的是别的东西。
+          if (cardSetting.unreadIndicatorEnabled) ...[
+            const Divider(height: 1, thickness: 0.3),
+            _unreadIndicatorStyleTile(cardSetting, cubit),
+          ],
 
           const SizedBox(height: 8),
           const Divider(height: 1, thickness: 0.3),
@@ -162,6 +178,40 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
       ),
     );
   }
+
+  /// 「未读标识」画成哪一档。三档的差别全在封面上才看得出来，
+  /// 所以选项名按形状给（圆点 / 圆片 / 文字），不给抽象词。
+  Widget _unreadIndicatorStyleTile(
+    ComicCardSettingState cardSetting,
+    GlobalSettingCubit cubit,
+  ) {
+    final style = cardSetting.unreadIndicatorStyle;
+    final labels = _unreadIndicatorStyleLabels;
+
+    return ListTile(
+      leading: const Icon(Icons.palette_outlined),
+      title: Text(t.settings.cardUnreadIndicatorStyle),
+      subtitle: Text(t.settings.cardUnreadIndicatorStyleSubtitle),
+      trailing: FluentDropdown<ComicUnreadIndicatorStyle>(
+        value: style,
+        displayValue: labels[style]!,
+        items: labels,
+        onChanged: (value) {
+          if (value == style) return;
+          cubit.updateComicCardSetting(
+            (current) => current.copyWith(unreadIndicatorStyle: value),
+          );
+          showSuccessToast(t.common.settingSaved);
+        },
+      ),
+    );
+  }
+
+  Map<ComicUnreadIndicatorStyle, String> get _unreadIndicatorStyleLabels => {
+    ComicUnreadIndicatorStyle.dot: t.settings.cardUnreadIndicatorStyleDot,
+    ComicUnreadIndicatorStyle.disc: t.settings.cardUnreadIndicatorStyleDisc,
+    ComicUnreadIndicatorStyle.label: t.settings.cardUnreadIndicatorStyleLabel,
+  };
 
   /// 设置页统一的开关行。
   ///

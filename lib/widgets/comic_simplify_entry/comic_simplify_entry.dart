@@ -26,6 +26,7 @@ import 'package:zephyr/widgets/comic_simplify_entry/comic_download_badge.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_read_button.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_info.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_translation_badge.dart';
+import 'package:zephyr/widgets/comic_simplify_entry/comic_unread_indicator.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/favorite_tag_badge.dart';
 
@@ -412,6 +413,12 @@ class ComicSimplifyEntry extends StatelessWidget {
   /// 封面正中是否显示「直接阅读」按钮。默认开：下载过 / 本地有的书，
   /// 点封面进详情页只是多一步。多选模式下自动隐藏（同 [showDownloadAction] 的让位规矩）。
   final bool showReadAction;
+
+  /// 这本书是否「已下载但还没读过」，决定封面右上角那颗未读圆点。
+  ///
+  /// 由调用方批量算好再传进来（见 `FolderShelfState.unreadComicKeys`）：
+  /// 卡片自己查库的话，一屏几十张卡就是几十次查询。
+  final bool unread;
   final String? collectionTargetId;
   final String? collectionTargetName;
 
@@ -431,6 +438,7 @@ class ComicSimplifyEntry extends StatelessWidget {
     this.showDownloadAction = true,
     this.showTranslationBadge = true,
     this.showReadAction = true,
+    this.unread = false,
     this.collectionTargetId,
     this.collectionTargetName,
   });
@@ -498,6 +506,8 @@ class ComicSimplifyEntry extends StatelessWidget {
       readButtonEnabled: globalSetting.comicCardSetting.readButtonEnabled,
       favoriteTagBadgeEnabled:
           globalSetting.comicCardSetting.favoriteTagBadgeEnabled,
+      unreadIndicatorEnabled:
+          globalSetting.comicCardSetting.unreadIndicatorEnabled,
     );
     // 本地漫画本来就在盘上；多选模式下右上角让给勾选圈。
     final showDownloadBadge = badgePolicy.showDownloadBadge(
@@ -510,6 +520,12 @@ class ComicSimplifyEntry extends StatelessWidget {
       pluginId: pluginId,
       comicId: info.id,
       cardEnabled: showReadAction,
+      selectionMode: selectionMode,
+    );
+    // 下载角标的尺寸未读标识也要用（决定它贴在角标下方多远），两处写死迟早对不上。
+    final double downloadBadgeSize = width < 110 ? 24 : 28;
+    final showUnreadIndicator = badgePolicy.showUnreadIndicator(
+      unread: unread,
       selectionMode: selectionMode,
     );
     final favoriteSetting = globalSetting.favoriteArtistSetting;
@@ -611,7 +627,19 @@ class ComicSimplifyEntry extends StatelessWidget {
                   from: pluginId,
                   comicId: info.id,
                   title: info.title,
-                  size: width < 110 ? 24 : 28,
+                  size: downloadBadgeSize,
+                ),
+              ),
+            // 未读标识贴在下载角标正下方、与它共用右边缘：右上角这一列是「状态」，
+            // 左上角那一列留给内容属性（画师 / tag / 语言），两边不互相挤。
+            // 三档样式的宽度差很多，所以靠右对齐而不是与下载角标居中对齐。
+            if (showUnreadIndicator)
+              Positioned(
+                top: 6 + (showDownloadBadge ? downloadBadgeSize + 5 : 0),
+                right: 6,
+                child: ComicUnreadIndicator(
+                  style: globalSetting.comicCardSetting.unreadIndicatorStyle,
+                  compact: width < 110,
                 ),
               ),
             // 左上角角标族：喜欢画师、收藏 tag、语言/汉化，纵向排开。

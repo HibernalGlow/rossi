@@ -195,12 +195,50 @@ void main() {
     });
   });
 
+  group('未读标识', () {
+    test('只有「未读」才画：读过的书开关开着也不画', () {
+      const policy = ComicCardBadgePolicy();
+      expect(policy.showUnreadIndicator(unread: true), isTrue);
+      expect(policy.showUnreadIndicator(unread: false), isFalse);
+    });
+
+    test('用户关掉总开关后不再显示', () {
+      expect(
+        const ComicCardBadgePolicy(
+          unreadIndicatorEnabled: false,
+        ).showUnreadIndicator(unread: true),
+        isFalse,
+      );
+    });
+
+    test('多选模式下不画（右上角那颗位置要让给勾选圈）', () {
+      expect(
+        const ComicCardBadgePolicy().showUnreadIndicator(
+          unread: true,
+          selectionMode: true,
+        ),
+        isFalse,
+      );
+    });
+
+    test('关掉圆点不影响另外三个角标', () {
+      const policy = ComicCardBadgePolicy(unreadIndicatorEnabled: false);
+      expect(
+        policy.showDownloadBadge(pluginId: _plugin, comicId: _comicId),
+        isTrue,
+      );
+      expect(policy.showTranslationBadge(), isTrue);
+      expect(policy.showReadButton(pluginId: _plugin, comicId: _comicId), isTrue);
+    });
+  });
+
   group('设置的默认值与向后兼容', () {
     test('新装默认全开（不改变既有观感）', () {
       const state = ComicCardSettingState();
       expect(state.downloadBadgeEnabled, isTrue);
       expect(state.translationBadgeEnabled, isTrue);
       expect(state.readButtonEnabled, isTrue);
+      expect(state.unreadIndicatorEnabled, isTrue);
     });
 
     test('老配置文件（json 里没有这些键）回落到全开', () {
@@ -208,6 +246,7 @@ void main() {
       expect(state.downloadBadgeEnabled, isTrue);
       expect(state.translationBadgeEnabled, isTrue);
       expect(state.readButtonEnabled, isTrue);
+      expect(state.unreadIndicatorEnabled, isTrue);
     });
 
     test('关掉的偏好存得下、读得回', () {
@@ -236,6 +275,32 @@ void main() {
       expect(
         off.favoriteArtistSetting.highlightEnabled,
         global.favoriteArtistSetting.highlightEnabled,
+      );
+    });
+
+    test('样式：新装默认文字档，老配置（json 里没这个键）回落到同一档', () {
+      expect(
+        const ComicCardSettingState().unreadIndicatorStyle,
+        ComicUnreadIndicatorStyle.label,
+      );
+      expect(
+        ComicCardSettingState.fromJson(
+          const <String, dynamic>{},
+        ).unreadIndicatorStyle,
+        ComicUnreadIndicatorStyle.label,
+      );
+    });
+
+    test('样式存得下、读得回（枚举按名字进 json）', () {
+      const state = ComicCardSettingState(
+        unreadIndicatorStyle: ComicUnreadIndicatorStyle.disc,
+      );
+      expect(state.toJson()['unreadIndicatorStyle'], 'disc');
+      expect(
+        ComicCardSettingState.fromJson(
+          Map<String, dynamic>.from(state.toJson()),
+        ).unreadIndicatorStyle,
+        ComicUnreadIndicatorStyle.disc,
       );
     });
   });

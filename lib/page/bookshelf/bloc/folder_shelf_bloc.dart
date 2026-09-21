@@ -30,6 +30,7 @@ class FolderShelfState extends Equatable {
     this.folders = const <ComicFolder>[],
     this.comics = const <ComicSimplifyEntryInfo>[],
     this.comicSearchTexts = const <String, String>{},
+    this.unreadComicKeys = const <String>{},
     this.search,
     this.isLoading = false,
     this.error,
@@ -44,6 +45,12 @@ class FolderShelfState extends Equatable {
   final List<ComicFolder> folders;
   final List<ComicSimplifyEntryInfo> comics;
   final Map<String, String> comicSearchTexts;
+
+  /// 「已下载但未读」的漫画键（`'from:comicId'`）。
+  ///
+  /// 只在下载书架模式下计算，其余模式恒为空集：那里每一本都有下载记录，
+  /// 「未读」就等价于「没有任何阅读记录」，语义与这个键集的名字一致。
+  final Set<String> unreadComicKeys;
   final SearchStatusState? search;
   final bool isLoading;
   final String? error;
@@ -74,6 +81,7 @@ class FolderShelfState extends Equatable {
     List<ComicFolder>? folders,
     List<ComicSimplifyEntryInfo>? comics,
     Map<String, String>? comicSearchTexts,
+    Set<String>? unreadComicKeys,
     SearchStatusState? search,
     bool? isLoading,
     String? error,
@@ -88,6 +96,7 @@ class FolderShelfState extends Equatable {
       folders: folders ?? this.folders,
       comics: comics ?? this.comics,
       comicSearchTexts: comicSearchTexts ?? this.comicSearchTexts,
+      unreadComicKeys: unreadComicKeys ?? this.unreadComicKeys,
       search: search ?? this.search,
       isLoading: isLoading ?? this.isLoading,
       error: error,
@@ -105,6 +114,7 @@ class FolderShelfState extends Equatable {
     folders,
     comics,
     comicSearchTexts,
+    unreadComicKeys,
     search,
     isLoading,
     error,
@@ -305,6 +315,9 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
           comicSearchTexts:
               (result['comicSearchTexts'] as Map?)?.cast<String, String>() ??
               const <String, String>{},
+          unreadComicKeys:
+              (result['unreadComicKeys'] as List?)?.cast<String>().toSet() ??
+              const <String>{},
           search: search,
           sortAscending: search?.sort == 'da',
           isLoading: false,
@@ -645,6 +658,25 @@ Future<Map<String, dynamic>> _runFolderShelfLoadTask(
       comics.add(resolved.info);
       comicSearchTexts[key] = resolved.searchText;
     }
+
+    // 「已下载但未读」：这一屏一次查询，不逐张卡片查库（一屏几十张就是几十次查询）。
+    // 键口径与本文件「按观看时间排序」一致：history.uniqueKey == 'from:comicId'。
+    final unreadComicKeys = <String>[];
+    if (mode == ShelfPageMode.download && comicSearchTexts.isNotEmpty) {
+      final readKeys = objectbox.unifiedHistoryBox
+          .query(
+            UnifiedComicHistory_.uniqueKey
+                .oneOf(comicSearchTexts.keys.toList())
+                .and(UnifiedComicHistory_.deleted.equals(false)),
+          )
+          .build()
+          .find()
+          .map((history) => history.uniqueKey)
+          .toSet();
+      unreadComicKeys.addAll(
+        comicSearchTexts.keys.where((key) => !readKeys.contains(key)),
+      );
+    }
     if (sortByViewTime) {
       _sortShelfItemsByViewTime(
         comics,
@@ -658,6 +690,7 @@ Future<Map<String, dynamic>> _runFolderShelfLoadTask(
       'folders': folders,
       'comics': comics,
       'comicSearchTexts': comicSearchTexts,
+      'unreadComicKeys': unreadComicKeys,
     };
   } catch (e) {
     return {
@@ -665,6 +698,7 @@ Future<Map<String, dynamic>> _runFolderShelfLoadTask(
       'folders': <ComicFolder>[],
       'comics': <ComicSimplifyEntryInfo>[],
       'comicSearchTexts': <String, String>{},
+      'unreadComicKeys': <String>[],
     };
   }
 }

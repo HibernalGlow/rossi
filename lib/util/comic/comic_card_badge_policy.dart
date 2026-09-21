@@ -21,6 +21,7 @@ class ComicCardBadgePolicy {
     this.translationBadgeEnabled = true,
     this.readButtonEnabled = true,
     this.favoriteTagBadgeEnabled = true,
+    this.unreadIndicatorEnabled = true,
   });
 
   /// 用户的「下载角标」总开关。
@@ -34,6 +35,9 @@ class ComicCardBadgePolicy {
 
   /// 用户的「收藏 tag 角标」总开关（封面左上角）。
   final bool favoriteTagBadgeEnabled;
+
+  /// 用户的「未读标识」总开关（封面右上角，下载书架）。
+  final bool unreadIndicatorEnabled;
 
   /// 下载角标是否显示（右上角）。
   ///
@@ -89,5 +93,18 @@ class ComicCardBadgePolicy {
     if (pluginId.trim().isEmpty) return false;
     if (comicId.trim().isEmpty) return false;
     return true;
+  }
+
+  /// 「已下载但未读」标识是否显示（封面右上角，下载角标之下）。
+  ///
+  /// 只管**画不画**；画成圆点还是文字由 `ComicCardSettingState.unreadIndicatorStyle`
+  /// 决定，属于呈现层，不在这道闸门里掺和。
+  ///
+  /// [unread] 由调用方批量算好（见 `folder_shelf_bloc` 的 `unreadComicKeys`），
+  /// 这里只做闸门：**卡片本身不查库**，一屏几十张卡逐张查历史是白付的开销。
+  /// 多选模式下不画，同下载角标 —— 右上角那颗是勾选圈的地盘。
+  bool showUnreadIndicator({required bool unread, bool selectionMode = false}) {
+    if (!unread) return false;
+    return unreadIndicatorEnabled && !selectionMode;
   }
 }

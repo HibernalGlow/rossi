@@ -367,6 +367,7 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
                         type: comicType,
                         selectionMode: state.selectionMode,
                         isSelected: isComicSelected,
+                        unread: state.unreadComicKeys.contains(comicUniqueKey),
                         refresh: () => context.read<FolderShelfBloc>().add(
                           const FolderShelfLoadRequested(),
                         ),
