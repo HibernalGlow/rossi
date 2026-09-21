@@ -4,6 +4,7 @@
 // `toast_overlay.dart` 的宿主统一处理。
 
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/util/theme/status_accent.dart';
 import 'package:zephyr/util/toast/toast_style.dart';
 import 'package:zephyr/widgets/glass/liquid_glass.dart';
 
@@ -12,15 +13,16 @@ import 'package:zephyr/widgets/glass/liquid_glass.dart';
 /// 对外仍然从 `package:zephyr/widgets/toast.dart` 导出，历史调用点不受影响。
 enum ToastType { info, success, warning, error }
 
+/// 成功 / 警告没有 M3 角色，走 `statusAccent` 那套「固定色相、按亮度取色调」。
 Color _toastAccentColor(BuildContext context, ToastType type) {
   final scheme = Theme.of(context).colorScheme;
   switch (type) {
     case ToastType.info:
       return scheme.primary;
     case ToastType.success:
-      return const Color(0xFF2E9E5B);
+      return statusAccent(context, StatusHue.success);
     case ToastType.warning:
-      return const Color(0xFFE08A00);
+      return statusAccent(context, StatusHue.warning);
     case ToastType.error:
       return scheme.error;
   }

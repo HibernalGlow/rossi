@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zephyr/util/theme/status_accent.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
@@ -233,25 +234,27 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
     Color statusColor;
     IconData statusIcon;
 
+    // 进行中 / 失败 / 未下载走 M3 角色；暂停与完成没有角色可用，
+    // 交给 statusAccent 按亮度取一档能看清的绿/橙。
     if (isDownloading) {
       statusText = t.reader.downloadStatusDownloading;
-      statusColor = Colors.blue;
+      statusColor = colorScheme.primary;
       statusIcon = Icons.downloading_rounded;
     } else if (isPaused) {
       statusText = t.reader.downloadStatusPaused;
-      statusColor = Colors.orange;
+      statusColor = statusAccent(context, StatusHue.warning);
       statusIcon = Icons.pause_circle_outline_rounded;
     } else if (isFailed) {
       statusText = t.reader.downloadStatusFailed;
-      statusColor = Colors.red;
+      statusColor = colorScheme.error;
       statusIcon = Icons.error_outline_rounded;
     } else if (isCompleted) {
       statusText = t.reader.downloadStatusCompleted;
-      statusColor = Colors.green;
+      statusColor = statusAccent(context, StatusHue.success);
       statusIcon = Icons.check_circle_outline_rounded;
     } else if (dbTask != null) {
       statusText = t.reader.downloadStatusQueued;
-      statusColor = Colors.teal;
+      statusColor = colorScheme.tertiary;
       statusIcon = Icons.schedule_rounded;
     } else {
       statusText = '未下载';
