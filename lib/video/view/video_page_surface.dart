@@ -262,7 +262,10 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
     _controller = controller;
     _observedPlaying = controller.snapshot.playing;
     controller.addListener(_onPlaybackChanged);
-    _preview = VideoFramePreviewProvider(transport: transport);
+    _preview = VideoFramePreviewProvider(
+      createPreviewTransport: () =>
+          MpvVideoTransport(hardwareDecode: settings.hardwareDecode),
+    );
     _uiSub ??= ActiveVideoScope.instance.uiActions.listen(_onUiAction);
     // 只有当前页才登记为「活动视频」：邻居页也挂着，先登记的那个会抢走按键归属。
     if (widget.active) _claimActive();
@@ -276,6 +279,9 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
         return;
       }
       _materializedPath = resolved;
+      final uri = 'file://${Uri.file(resolved).path}';
+      // 预览那台解码器自己开这个文件 —— 悬停因此与主播放器的位置无关。
+      _preview?.setSource(uri);
       await controller.attach(transport);
       if (!_isCurrent(generation)) return;
 
@@ -284,7 +290,7 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
       );
       if (!_isCurrent(generation)) return;
       await transport.open(
-        'file://${Uri.file(resolved).path}',
+        uri,
         options: VideoOpenOptions(
           autoplay:
               widget.settings.autoplay &&

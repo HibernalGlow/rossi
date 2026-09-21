@@ -72,7 +72,7 @@ Rossi 实现为**应用内置顶浮窗**（`_pip` 分支）——同一 `VideoCo
 | 硬解开关 | `settings.rs video_hw_decode` | `MpvKeys.hwdec` = `auto-copy` / `no`，走 `VideoSettingsStore` |
 | 去隔行 | `VideoPlayer::open(deinterlace)` | `MpvKeys.deinterlace` |
 | 倍速不失真 | `audio_stretch.rs`（signalsmith-stretch） | mpv `speed` 默认 `audio-pitch-correction=yes` |
-| 拖动条缩略帧的**容差最近帧**设计 | `video/thumbnail.rs` | `VideoFrameCache.nearest`（整数纳秒键 + 有序表 + 每次请求独立容差）；**预览会先定位到鼠标所指的时刻**（`screenshot` 截的是当前解码位置，不先 seek 就是「划到哪儿都同一张图」）：已暂停时借用当前播放器定位，播放中不抢用户位置、只给已缓存帧 —— 上游为此单开 worker，这里没有第二台解码器 |
+| 拖动条缩略帧的**容差最近帧**设计 | `video/thumbnail.rs` | `VideoFrameCache.nearest`（整数微秒键 + 有序表 + 每次请求独立容差）；**预览自带一路 headless 解码器**（同 `thumbnail.rs` 的独立 worker：自己的输入、自己的解码器），悬停先定位到鼠标所指的时刻再截图（`screenshot` 截的是当前解码位置，不先 seek 就是「划到哪儿都同一张图」）。**悬停只解帧，绝不碰主播放器的位置** —— 借主播放器 `seekPaused` 定位等于「鼠标划过进度条就把视频拖到那儿去」，落点归 Slider 的点击与拖动。seek 没落到目标附近就不给帧（宁可不显示，也不显示上一帧）。代价是预览期间多一台 mpv 实例，空闲 60 s 释放 |
 | 视频→纯音频模式 | `video->audio` | `setVideoEnabled(false)` |
 | `KeyAction::Video*` 键位面 | `keymap.rs:1752-1780` | `vocabulary.rs` 的 22 条 `video.*` 动作 + `ACTION_CATALOG`，执行体在 `video_action_dispatch.dart` |
 
@@ -185,8 +185,10 @@ Rossi 实现为**应用内置顶浮窗**（`_pip` 分支）——同一 `VideoCo
   不是完整工作区或 Release 的性能保证；各平台实际硬解由驱动与片源决定。
 - 进度最多每 100 ms 刷新进度条，时间文字每秒更新；按钮和菜单只响应操作状态或轨道变化。
   控制条隐藏时停止进度组件订阅，视频与手势子树通过 `ListenableBuilder.child` 保持稳定。
-  退出或换源会释放自有 Player、原生视频纹理、流订阅与预览目录；异步旧目标不会重新起播。
-- 截图失败不再遮住正在播放的画面；播放中悬停仅查缓存，不抢占主播放器取帧。
+  退出或换源会释放自有 Player、原生视频纹理、流订阅、预览目录与**预览解码器**（预览自己的那台
+  mpv，空闲 60 s 也会自行释放）；异步旧目标不会重新起播。
+- 截图失败不再遮住正在播放的画面；悬停取帧走预览自己的解码器 —— 播放中与暂停时都不碰
+  主播放器的位置（旧做法借它 `seekPaused` 定位，鼠标划过进度条就会把视频拖走）。
 - `integration_test/video_page_surface_test.dart` 覆盖首帧、暂停恢复、真实截图、截图失败后
   连续悬停 15 秒、子树稳定、切换硬解/目标、延迟路径解析，以及退出后的资源释放。
   默认使用仓库内自生成 H.264 样本，可通过

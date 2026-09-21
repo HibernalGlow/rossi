@@ -5,12 +5,14 @@
 /// 1. **自动隐藏 3 s，但暂停或钉住时常显** —— 暂停时收起等于把进度条藏起来，
 ///    用户下一步一定是「先让它出来」。
 /// 2. **弹层打开期间不隐藏**（`shown = visible || anyPanelOpen`）。
-/// 3. 拖动条上的**悬停帧预览**是 160×90、夹在 ±80 px 内，配一个 `formatVideoTime` 气泡。
+/// 3. 拖动条上的**悬停帧预览**是 160×90、夹在 ±80 px 内，配一个 `formatVideoTime` 气泡；
+///    **悬停只预览，不改变播放位置** —— 落点归 Slider 的点击与拖动，预览由自带解码器解帧。
 library;
 
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' show PointerDeviceKind;
 
 import 'package:zephyr/i18n/strings.g.dart';
 
@@ -586,6 +588,10 @@ class _ScrubBarState extends State<_ScrubBar> {
   Duration? _hoverAt;
   Offset? _hoverLocal;
   VideoFramePreview? _previewFrame;
+
+  /// 挂着的这一帧不是 [_hoverAt] 那一刻的画面（正在解 / 解不出来）。
+  /// 上游为此给预览盖一个「定位中」，否则用户看到的是一张时间对不上的图。
+  bool _previewStale = false;
   Timer? _previewDebounce;
 
   @override
@@ -594,28 +600,45 @@ class _ScrubBarState extends State<_ScrubBar> {
     super.dispose();
   }
 
-  void _onHover(PointerEvent event, Size size) {
+  /// 指针位置 → 预览位置。**只解帧，不 seek** —— 落点归 Slider 的点击与拖动管，
+  /// 悬停唯一的作用是让用户先看见他要跳到哪儿。
+  void _updatePreview(Offset local, Size size) {
     final duration = widget.snapshot.duration;
     if (duration <= Duration.zero) return;
-    final fraction =
-        ((event.localPosition.dx - 12) / math.max(1, size.width - 24)).clamp(
-          0.0,
-          1.0,
-        );
+    final fraction = ((local.dx - 12) / math.max(1, size.width - 24)).clamp(
+      0.0,
+      1.0,
+    );
     final at = duration * fraction;
     // 已经解出来的帧立刻显示：去抖窗口里先亮一个转圈，划过缓存区时会闪个不停。
     final cached = widget.framePreview?.peek(at);
     setState(() {
       _hoverAt = at;
-      _hoverLocal = event.localPosition;
-      if (cached != null) _previewFrame = cached;
+      _hoverLocal = local;
+      if (cached != null) {
+        _previewFrame = cached;
+        _previewStale = false;
+      } else {
+        // 上一帧继续挂着当占位，但标记它不是这个位置的。
+        _previewStale = true;
+      }
     });
     _previewDebounce?.cancel();
     // 120 ms 去抖：鼠标划过整条时间轴不该触发二十次解帧。
     _previewDebounce = Timer(const Duration(milliseconds: 120), () async {
       final frame = await widget.framePreview?.request(at);
-      if (mounted) setState(() => _previewFrame = frame);
+      // 结果回来时鼠标已经划走了：这一帧对不上现在的位置，丢掉。
+      if (!mounted || _hoverAt != at) return;
+      setState(() {
+        if (frame != null) _previewFrame = frame;
+        _previewStale = frame == null;
+      });
     });
+  }
+
+  void _previewFrom(Offset local) {
+    final box = context.findRenderObject() as RenderBox?;
+    if (box != null) _updatePreview(local, box.size);
   }
 
   @override
@@ -628,51 +651,61 @@ class _ScrubBarState extends State<_ScrubBar> {
 
     return MouseRegion(
       key: const ValueKey('video-progress-bar'),
-      onHover: (e) {
-        final box = context.findRenderObject() as RenderBox?;
-        if (box != null) _onHover(e, box.size);
-      },
+      onHover: (e) => _previewFrom(e.localPosition),
       onExit: (_) {
         _previewDebounce?.cancel();
         setState(() {
           _hoverAt = null;
           _previewFrame = null;
+          _previewStale = false;
         });
       },
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.maxWidth.isFinite
-              ? constraints.maxWidth
-              : 320.0;
-          return SizedBox(
-            height: 40,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: <Widget>[
-                Positioned.fill(
-                  child: _ProgressBar(
-                    snapshot: snapshot,
-                    chapters: chapters,
-                    waveform: widget.waveform,
-                    onChanged: widget.controller.seekFraction,
-                  ),
-                ),
-                if (_hoverAt != null && snapshot.duration > Duration.zero)
-                  Positioned(
-                    left: (_hoverLocal!.dx - 80).clamp(
-                      0.0,
-                      math.max(0, width - 160),
-                    ),
-                    bottom: 36,
-                    child: _FramePreviewBubble(
-                      at: _hoverAt!,
-                      frame: _previewFrame,
-                    ),
-                  ),
-              ],
-            ),
-          );
+      // 按下期间只有 move 事件（`MouseRegion.onHover` 收不到 PointerMoveEvent），
+      // 所以拖进度条时预览要靠这一路才跟手。触摸不参与：手指盖住的预览没有意义。
+      child: Listener(
+        onPointerMove: (e) {
+          if (e.kind != PointerDeviceKind.mouse &&
+              e.kind != PointerDeviceKind.stylus) {
+            return;
+          }
+          _previewFrom(e.localPosition);
         },
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth.isFinite
+                ? constraints.maxWidth
+                : 320.0;
+            return SizedBox(
+              height: 40,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: <Widget>[
+                  Positioned.fill(
+                    child: _ProgressBar(
+                      snapshot: snapshot,
+                      chapters: chapters,
+                      waveform: widget.waveform,
+                      onChanged: widget.controller.seekFraction,
+                    ),
+                  ),
+                  if (_hoverAt != null && snapshot.duration > Duration.zero)
+                    Positioned(
+                      left: (_hoverLocal!.dx - 80).clamp(
+                        0.0,
+                        math.max(0, width - 160),
+                      ),
+                      bottom: 36,
+                      child: _FramePreviewBubble(
+                        at: _hoverAt!,
+                        frame: _previewFrame,
+                        stale: _previewStale,
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -797,14 +830,23 @@ String _rateText(double rate) => rate == rate.roundToDouble()
     : rate.toStringAsFixed(2);
 
 class _FramePreviewBubble extends StatelessWidget {
-  const _FramePreviewBubble({required this.at, required this.frame});
+  const _FramePreviewBubble({
+    required this.at,
+    required this.frame,
+    required this.stale,
+  });
 
   final Duration at;
   final VideoFramePreview? frame;
 
+  /// 挂着的这一帧不是 [at] 那一刻的画面：还没有帧就给空框 + 转圈，
+  /// 有旧帧就让它继续挂着但盖一个角标 —— 不能让用户以为这就是那一刻。
+  final bool stale;
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final preview = frame;
     return Material(
       color: colors.surfaceContainerHighest,
       elevation: 3,
@@ -813,13 +855,26 @@ class _FramePreviewBubble extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          if (frame != null)
-            Image.file(
-              File(frame!.filePath),
-              width: 160,
-              height: 90,
-              fit: BoxFit.contain,
-            ),
+          SizedBox(
+            width: 160,
+            height: 90,
+            child: preview == null
+                ? const Center(child: _PreviewBusyChip())
+                : Stack(
+                    fit: StackFit.expand,
+                    children: <Widget>[
+                      Image.file(File(preview.filePath), fit: BoxFit.contain),
+                      if (stale)
+                        const Align(
+                          alignment: Alignment.bottomRight,
+                          child: Padding(
+                            padding: EdgeInsets.all(6),
+                            child: _PreviewBusyChip(),
+                          ),
+                        ),
+                    ],
+                  ),
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Text(
@@ -830,6 +885,29 @@ class _FramePreviewBubble extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 「定位中」角标：解帧没回来 / 回来的不是这一格。
+class _PreviewBusyChip extends StatelessWidget {
+  const _PreviewBusyChip();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      key: const ValueKey('video-preview-busy'),
+      padding: const EdgeInsets.all(5),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest.withValues(alpha: 0.86),
+        shape: BoxShape.circle,
+      ),
+      child: SizedBox(
+        width: 12,
+        height: 12,
+        child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:ui' as ui;
+import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -154,6 +155,62 @@ void main() {
     });
   }
 
+  testWidgets('悬停只出预览不改位置，点击才跳，拖动时预览跟手', (tester) async {
+    // 这三条是同一条手感口径的三面：预览是「先看看要跳到哪儿」，
+    // 落点是用户按下那一刻的事 —— 鼠标划过进度条不该把播放位置拖走。
+    await tester.binding.setSurfaceSize(const Size(900, 600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final key = GlobalKey<_ControlsHarnessState>();
+    await tester.pumpWidget(
+      _ControlsHarness(key: key, brightness: Brightness.dark),
+    );
+    await tester.pumpAndSettle();
+    final transport = key.currentState!.controller.transport! as _UiTransport;
+    final bar = find.byKey(const ValueKey('video-progress-bar'));
+    final center = tester.getCenter(bar);
+
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: center);
+    addTearDown(mouse.removePointer);
+    await mouse.moveTo(center);
+    await tester.pump();
+    expect(transport.seeks, isEmpty, reason: '悬停不是 seek');
+    final chip = find.byKey(const ValueKey('video-preview-busy'));
+    expect(chip, findsOneWidget, reason: '还没有帧时给占位和「定位中」');
+    final hoveringAt = tester.getCenter(chip);
+
+    await mouse.moveTo(center + const Offset(120, 0));
+    await tester.pump();
+    expect(transport.seeks, isEmpty, reason: '悬停划过整条轴也不许动位置');
+    expect(
+      tester.getCenter(chip).dx,
+      greaterThan(hoveringAt.dx),
+      reason: '预览要跟着指针走',
+    );
+
+    await tester.tapAt(center);
+    await tester.pump();
+    expect(transport.seeks, hasLength(1), reason: '点击才是落点');
+
+    // 按下期间只有 move 事件（`MouseRegion.onHover` 收不到），预览靠 Listener 跟手。
+    final draggingFrom = tester.getCenter(chip).dx;
+    final drag = await tester.startGesture(
+      center,
+      kind: PointerDeviceKind.mouse,
+    );
+    await drag.moveBy(const Offset(140, 0));
+    await tester.pump();
+    expect(
+      tester.getCenter(chip).dx,
+      greaterThan(draggingFrom),
+      reason: '拖动时预览也要跟手',
+    );
+    await drag.up();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('窄泳道菜单不会越界，音量和倍速即时刷新，开着菜单也能安全退出', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 640));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -302,6 +359,11 @@ Future<void> _capturePreview(WidgetTester tester, String name) async {
 }
 
 class _UiTransport implements VideoTransport {
+  /// 悬停与点击的差别就落在这张表上：悬停一次都不该往里加东西。
+  final List<Duration> seeks = <Duration>[];
+
+  @override
+  Future<void> seek(Duration to) async => seeks.add(to);
   @override
   List<VideoMediaTrack> get audioTracks => const [];
   @override
