@@ -78,6 +78,17 @@ class _DownloadPageState extends State<DownloadPage> {
         _downloadInfo[chapter.id] = isDownloaded;
       }
     }
+
+    // 上游在这里无条件勾 `_chapters.first` 以省掉一次手动选择。本仓不改顺序，
+    // `_chapters` 保持图源返回的顺序，所以 `first` 并不保证是第一话；且这页在本仓
+    // 只从「已有下载 → 补章节」和「长按 → 自己挑」两个入口进来，勾已下载的那一话
+    // 等于把 FAB 变成重下。折中：勾「第一个还没下载过的」，同样点一下就能开下。
+    for (final chapter in _chapters) {
+      if (_downloadInfo[chapter.id] != true) {
+        _downloadInfo[chapter.id] = true;
+        break;
+      }
+    }
   }
 
   // 判断是否所有章节都被选中
