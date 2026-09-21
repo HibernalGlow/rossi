@@ -11,6 +11,8 @@ import 'package:zephyr/page/discover/service/discover_tabs.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/discover/widgets/discover_plat_view.dart';
+import 'package:zephyr/workspace/router/workspace_lane_dispatch.dart';
+import 'package:zephyr/workspace/widgets/containers/embedded_upstream_page.dart';
 
 /// 标签条的悬停判据。
 ///
@@ -81,6 +83,47 @@ Future<void> _dragChip(WidgetTester tester, String from, Offset delta) async {
   await gesture.up();
   await tester.pumpAndSettle();
   await gesture.removePointer();
+}
+
+/// 探针：叶子内容被建了几次。
+///
+/// 帧自循环在测试里只有两种露脸方式 —— `pumpAndSettle` 超时，或者把某个
+/// 子树的重建次数推到几百。所以这里数它。
+int _leafBuilds = 0;
+
+Widget _probedLeaf() {
+  _leafBuilds++;
+  return const SizedBox(width: 40, height: 40);
+}
+
+/// 真实宿主：发现页在工作台里住在 `EmbeddedUpstreamPage` 之下 —— 那层带一个
+/// `Listener(onPointerDown)` 与一条局部 Navigator。指针进出的配对要在那一层
+/// 也走一遍，不然测不到「hover 回调里改了命中树」这类重入。
+Future<void> _pumpInLaneHost(WidgetTester tester, DiscoverTabs tabs) async {
+  _leafBuilds = 0;
+  await tester.pumpWidget(
+    MaterialApp(
+      supportedLocales: AppLocaleUtils.supportedLocales,
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      home: BlocProvider(
+        create: (_) => GlobalSettingCubit(),
+        child: Scaffold(
+          body: EmbeddedUpstreamPage(
+            host: const WorkspaceLaneHost('right', 'discover'),
+            instanceKey: 'discover',
+            isVisible: true,
+            builder: (context) => DiscoverPlatView(
+              tabs: tabs,
+              setting: const DiscoverSettingState(),
+              onSearch: () {},
+              onCustomizeOrder: () {},
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -232,6 +275,65 @@ void main() {
 
     await _dragChip(tester, '收藏', const Offset(0, 160));
     expect(tester.takeException(), isNull);
+    tabs.dispose();
+  });
+
+  testWidgets('泳道宿主里反复进出悬停：帧要收敛，且不抛', (tester) async {
+    final tabs = _tabs();
+    tabs.open(label: '排行', source: 'p1', content: (c) => _probedLeaf());
+    tabs.open(label: '最新', source: 'p1', content: (c) => _probedLeaf());
+    await _pumpInLaneHost(tester, tabs);
+    expect(tester.takeException(), isNull);
+    final baseline = _leafBuilds;
+
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await gesture.addPointer(location: Offset.zero);
+    // 在两条标签与内容区之间来回扫三次：每一趟都会打出一对 enter/exit，
+    // 也就是「hover 回调里改命中树」最容易自激的那条路。
+    for (var round = 0; round < 3; round++) {
+      await gesture.moveTo(tester.getCenter(find.text('排行').first));
+      await tester.pumpAndSettle();
+      await gesture.moveTo(tester.getCenter(find.text('最新').first));
+      await tester.pumpAndSettle();
+      await gesture.moveTo(const Offset(240, 420));
+      await tester.pumpAndSettle();
+    }
+    await gesture.removePointer();
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    // 收敛判据：来回扫 9 趟，重建必须还是个位数级别。自循环会直接冲到几百
+    // 或者让上面的 pumpAndSettle 超时。
+    expect(
+      _leafBuilds - baseline,
+      lessThan(20),
+      reason:
+          '叶子重建了 '
+          '${_leafBuilds - baseline} 次，帧没有收敛',
+    );
+    tabs.dispose();
+  });
+
+  testWidgets('泳道宿主里点标签切换：帧要收敛', (tester) async {
+    final tabs = _tabs();
+    tabs.open(label: '排行', source: 'p1', content: (c) => _probedLeaf());
+    tabs.open(label: '最新', source: 'p1', content: (c) => _probedLeaf());
+    await _pumpInLaneHost(tester, tabs);
+    final baseline = _leafBuilds;
+
+    for (var i = 0; i < 4; i++) {
+      await tester.tap(find.text(i.isEven ? '排行' : '最新').first);
+      await tester.pumpAndSettle();
+    }
+    expect(tester.takeException(), isNull);
+    // 4 次切换：每次最多重绘两三条标签的内容，不该超过两位数。
+    expect(
+      _leafBuilds - baseline,
+      lessThan(24),
+      reason:
+          '切换后重建了 '
+          '${_leafBuilds - baseline} 次',
+    );
     tabs.dispose();
   });
 }
