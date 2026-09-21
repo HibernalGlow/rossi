@@ -433,6 +433,13 @@ abstract class OperationBindingSettingState
     /// 共用同一个解析器与同一套冲突判定，不需要为它写第二遍判断。
     /// 空串 = 还没播种（首次启动用核心的出厂值填上）。
     @Default('') String radialJson,
+
+    /// 滚轮方向词按**手推的方向**算，而不是按内容走的方向。
+    ///
+    /// `null` = 跟随平台：macOS 的 `scrollDelta.dy` 已经带过系统「自然滚动」那一次反转，
+    /// 默认再翻一次才等于用户心里的「下滚」；其它平台不翻。用户在这颗开关上表过态就永远
+    /// 听他的。**它不进 bindingsJson** —— 手方向是一台设备的属性，不该跟着绑定包导入导出。
+    bool? invertWheelDirection,
   }) = _OperationBindingSettingState;
 
   factory OperationBindingSettingState.fromJson(Map<String, dynamic> json) =>
@@ -626,6 +633,22 @@ List<FavoriteTag> _dedupeFavoriteTags(Iterable<FavoriteTag> input) {
   return [for (final key in order) byKey[key]!];
 }
 
+/// 封面「已下载但未读」标识的画法。
+///
+/// 三档说的是同一件事，辨识度与占位面积一起递增：嫌色块压封面的用 [dot]，
+/// 嫌小点看不清又不要文字的用 [disc]，要一眼知道意思的用 [label]。
+/// 与其替用户拍板，不如让他自己挑。
+enum ComicUnreadIndicatorStyle {
+  /// 加大白环的纯色圆点。
+  dot,
+
+  /// 圆点包进一枚中性色圆片，靠承底从封面里择出来。
+  disc,
+
+  /// 「未读」文字胶囊，与封面左上角的语言角标同一套形状语言。
+  label,
+}
+
 /// 漫画卡片上的封面角标显示开关。
 ///
 /// 约定：**新加的卡片角标一律要在这里有一个开关**，默认开，
@@ -643,6 +666,13 @@ abstract class ComicCardSettingState with _$ComicCardSettingState {
 
     /// 封面左上角的「收藏 tag」角标。
     @Default(true) bool favoriteTagBadgeEnabled,
+
+    /// 封面右上角的「已下载但未读」标识（只在下载书架显示：有下载记录、没有任何阅读记录）。
+    @Default(true) bool unreadIndicatorEnabled,
+
+    /// 这颗标识画成什么样子（圆点 / 圆片 / 文字胶囊）。
+    @Default(ComicUnreadIndicatorStyle.label)
+    ComicUnreadIndicatorStyle unreadIndicatorStyle,
   }) = _ComicCardSettingState;
 
   factory ComicCardSettingState.fromJson(Map<String, dynamic> json) =>

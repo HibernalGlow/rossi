@@ -1304,7 +1304,12 @@ mixin _$OperationBindingSettingState {
 /// 仍然是绑定表里那些 `device: radial` 的行。于是轮盘与键盘、点击同权，
 /// 共用同一个解析器与同一套冲突判定，不需要为它写第二遍判断。
 /// 空串 = 还没播种（首次启动用核心的出厂值填上）。
- String get radialJson;
+ String get radialJson;/// 滚轮方向词按**手推的方向**算，而不是按内容走的方向。
+///
+/// `null` = 跟随平台：macOS 的 `scrollDelta.dy` 已经带过系统「自然滚动」那一次反转，
+/// 默认再翻一次才等于用户心里的「下滚」；其它平台不翻。用户在这颗开关上表过态就永远
+/// 听他的。**它不进 bindingsJson** —— 手方向是一台设备的属性，不该跟着绑定包导入导出。
+ bool? get invertWheelDirection;
 /// Create a copy of OperationBindingSettingState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1318,20 +1323,20 @@ $OperationBindingSettingStateCopyWith<OperationBindingSettingState> get copyWith
 @override
 bool operator ==(Object other) {
   final _this = this as OperationBindingSettingState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OperationBindingSettingState&&(identical(other.bindingsRuntime, _this.bindingsRuntime) || other.bindingsRuntime == _this.bindingsRuntime)&&(identical(other.bindingsJson, _this.bindingsJson) || other.bindingsJson == _this.bindingsJson)&&(identical(other.radialJson, _this.radialJson) || other.radialJson == _this.radialJson));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OperationBindingSettingState&&(identical(other.bindingsRuntime, _this.bindingsRuntime) || other.bindingsRuntime == _this.bindingsRuntime)&&(identical(other.bindingsJson, _this.bindingsJson) || other.bindingsJson == _this.bindingsJson)&&(identical(other.radialJson, _this.radialJson) || other.radialJson == _this.radialJson)&&(identical(other.invertWheelDirection, _this.invertWheelDirection) || other.invertWheelDirection == _this.invertWheelDirection));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as OperationBindingSettingState;
-  return Object.hash(runtimeType,_this.bindingsRuntime,_this.bindingsJson,_this.radialJson);
+  return Object.hash(runtimeType,_this.bindingsRuntime,_this.bindingsJson,_this.radialJson,_this.invertWheelDirection);
 }
 
 @override
 String toString() {
   final _this = this as OperationBindingSettingState;
-  return 'OperationBindingSettingState(bindingsRuntime: ${_this.bindingsRuntime}, bindingsJson: ${_this.bindingsJson}, radialJson: ${_this.radialJson})';
+  return 'OperationBindingSettingState(bindingsRuntime: ${_this.bindingsRuntime}, bindingsJson: ${_this.bindingsJson}, radialJson: ${_this.radialJson}, invertWheelDirection: ${_this.invertWheelDirection})';
 }
 
 
@@ -1342,7 +1347,7 @@ abstract mixin class $OperationBindingSettingStateCopyWith<$Res>  {
   factory $OperationBindingSettingStateCopyWith(OperationBindingSettingState value, $Res Function(OperationBindingSettingState) _then) = _$OperationBindingSettingStateCopyWithImpl;
 @useResult
 $Res call({
- bool bindingsRuntime, String bindingsJson, String radialJson
+ bool bindingsRuntime, String bindingsJson, String radialJson, bool? invertWheelDirection
 });
 
 
@@ -1359,12 +1364,13 @@ class _$OperationBindingSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of OperationBindingSettingState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? bindingsRuntime = null,Object? bindingsJson = null,Object? radialJson = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? bindingsRuntime = null,Object? bindingsJson = null,Object? radialJson = null,Object? invertWheelDirection = freezed,}) {
   return _then(OperationBindingSettingState(
 bindingsRuntime: null == bindingsRuntime ? _self.bindingsRuntime : bindingsRuntime // ignore: cast_nullable_to_non_nullable
 as bool,bindingsJson: null == bindingsJson ? _self.bindingsJson : bindingsJson // ignore: cast_nullable_to_non_nullable
 as String,radialJson: null == radialJson ? _self.radialJson : radialJson // ignore: cast_nullable_to_non_nullable
-as String,
+as String,invertWheelDirection: freezed == invertWheelDirection ? _self.invertWheelDirection : invertWheelDirection // ignore: cast_nullable_to_non_nullable
+as bool?,
   ));
 }
 
@@ -1449,10 +1455,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool bindingsRuntime,  String bindingsJson,  String radialJson)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool bindingsRuntime,  String bindingsJson,  String radialJson,  bool? invertWheelDirection)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OperationBindingSettingState() when $default != null:
-return $default(_that.bindingsRuntime,_that.bindingsJson,_that.radialJson);case _:
+return $default(_that.bindingsRuntime,_that.bindingsJson,_that.radialJson,_that.invertWheelDirection);case _:
   return orElse();
 
 }
@@ -1470,10 +1476,10 @@ return $default(_that.bindingsRuntime,_that.bindingsJson,_that.radialJson);case 
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool bindingsRuntime,  String bindingsJson,  String radialJson)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool bindingsRuntime,  String bindingsJson,  String radialJson,  bool? invertWheelDirection)  $default,) {final _that = this;
 switch (_that) {
 case _OperationBindingSettingState():
-return $default(_that.bindingsRuntime,_that.bindingsJson,_that.radialJson);case _:
+return $default(_that.bindingsRuntime,_that.bindingsJson,_that.radialJson,_that.invertWheelDirection);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1490,10 +1496,10 @@ return $default(_that.bindingsRuntime,_that.bindingsJson,_that.radialJson);case 
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool bindingsRuntime,  String bindingsJson,  String radialJson)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool bindingsRuntime,  String bindingsJson,  String radialJson,  bool? invertWheelDirection)?  $default,) {final _that = this;
 switch (_that) {
 case _OperationBindingSettingState() when $default != null:
-return $default(_that.bindingsRuntime,_that.bindingsJson,_that.radialJson);case _:
+return $default(_that.bindingsRuntime,_that.bindingsJson,_that.radialJson,_that.invertWheelDirection);case _:
   return null;
 
 }
@@ -1505,7 +1511,7 @@ return $default(_that.bindingsRuntime,_that.bindingsJson,_that.radialJson);case 
 @JsonSerializable()
 
 class _OperationBindingSettingState implements OperationBindingSettingState {
-  const _OperationBindingSettingState({this.bindingsRuntime = true, this.bindingsJson = '', this.radialJson = ''});
+  const _OperationBindingSettingState({this.bindingsRuntime = true, this.bindingsJson = '', this.radialJson = '', this.invertWheelDirection});
   factory _OperationBindingSettingState.fromJson(Map<String, dynamic> json) => _$OperationBindingSettingStateFromJson(json);
 
 /// 总开关：开=按键/点击经绑定表解析；关=走改造前的硬编码判断。
@@ -1519,6 +1525,12 @@ class _OperationBindingSettingState implements OperationBindingSettingState {
 /// 共用同一个解析器与同一套冲突判定，不需要为它写第二遍判断。
 /// 空串 = 还没播种（首次启动用核心的出厂值填上）。
 @override@JsonKey() final  String radialJson;
+/// 滚轮方向词按**手推的方向**算，而不是按内容走的方向。
+///
+/// `null` = 跟随平台：macOS 的 `scrollDelta.dy` 已经带过系统「自然滚动」那一次反转，
+/// 默认再翻一次才等于用户心里的「下滚」；其它平台不翻。用户在这颗开关上表过态就永远
+/// 听他的。**它不进 bindingsJson** —— 手方向是一台设备的属性，不该跟着绑定包导入导出。
+@override final  bool? invertWheelDirection;
 
 /// Create a copy of OperationBindingSettingState
 /// with the given fields replaced by the non-null parameter values.
@@ -1533,18 +1545,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _OperationBindingSettingState&&(identical(other.bindingsRuntime, bindingsRuntime) || other.bindingsRuntime == bindingsRuntime)&&(identical(other.bindingsJson, bindingsJson) || other.bindingsJson == bindingsJson)&&(identical(other.radialJson, radialJson) || other.radialJson == radialJson));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _OperationBindingSettingState&&(identical(other.bindingsRuntime, bindingsRuntime) || other.bindingsRuntime == bindingsRuntime)&&(identical(other.bindingsJson, bindingsJson) || other.bindingsJson == bindingsJson)&&(identical(other.radialJson, radialJson) || other.radialJson == radialJson)&&(identical(other.invertWheelDirection, invertWheelDirection) || other.invertWheelDirection == invertWheelDirection));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,bindingsRuntime,bindingsJson,radialJson);
+    return Object.hash(runtimeType,bindingsRuntime,bindingsJson,radialJson,invertWheelDirection);
 }
 
 @override
 String toString() {
-    return 'OperationBindingSettingState(bindingsRuntime: $bindingsRuntime, bindingsJson: $bindingsJson, radialJson: $radialJson)';
+    return 'OperationBindingSettingState(bindingsRuntime: $bindingsRuntime, bindingsJson: $bindingsJson, radialJson: $radialJson, invertWheelDirection: $invertWheelDirection)';
 }
 
 
@@ -1555,7 +1567,7 @@ abstract mixin class _$OperationBindingSettingStateCopyWith<$Res> implements $Op
   factory _$OperationBindingSettingStateCopyWith(_OperationBindingSettingState value, $Res Function(_OperationBindingSettingState) _then) = __$OperationBindingSettingStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool bindingsRuntime, String bindingsJson, String radialJson
+ bool bindingsRuntime, String bindingsJson, String radialJson, bool? invertWheelDirection
 });
 
 
@@ -1572,12 +1584,13 @@ class __$OperationBindingSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of OperationBindingSettingState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? bindingsRuntime = null,Object? bindingsJson = null,Object? radialJson = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? bindingsRuntime = null,Object? bindingsJson = null,Object? radialJson = null,Object? invertWheelDirection = freezed,}) {
   return _then(_OperationBindingSettingState(
 bindingsRuntime: null == bindingsRuntime ? _self.bindingsRuntime : bindingsRuntime // ignore: cast_nullable_to_non_nullable
 as bool,bindingsJson: null == bindingsJson ? _self.bindingsJson : bindingsJson // ignore: cast_nullable_to_non_nullable
 as String,radialJson: null == radialJson ? _self.radialJson : radialJson // ignore: cast_nullable_to_non_nullable
-as String,
+as String,invertWheelDirection: freezed == invertWheelDirection ? _self.invertWheelDirection : invertWheelDirection // ignore: cast_nullable_to_non_nullable
+as bool?,
   ));
 }
 
@@ -3029,7 +3042,9 @@ mixin _$ComicCardSettingState {
 
  bool get downloadBadgeEnabled; bool get translationBadgeEnabled;/// 封面正中间的「直接阅读」按钮。关掉后点封面仍然只进详情页。
  bool get readButtonEnabled;/// 封面左上角的「收藏 tag」角标。
- bool get favoriteTagBadgeEnabled;
+ bool get favoriteTagBadgeEnabled;/// 封面右上角的「已下载但未读」标识（只在下载书架显示：有下载记录、没有任何阅读记录）。
+ bool get unreadIndicatorEnabled;/// 这颗标识画成什么样子（圆点 / 圆片 / 文字胶囊）。
+ ComicUnreadIndicatorStyle get unreadIndicatorStyle;
 /// Create a copy of ComicCardSettingState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -3043,20 +3058,20 @@ $ComicCardSettingStateCopyWith<ComicCardSettingState> get copyWith => _$ComicCar
 @override
 bool operator ==(Object other) {
   final _this = this as ComicCardSettingState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ComicCardSettingState&&(identical(other.downloadBadgeEnabled, _this.downloadBadgeEnabled) || other.downloadBadgeEnabled == _this.downloadBadgeEnabled)&&(identical(other.translationBadgeEnabled, _this.translationBadgeEnabled) || other.translationBadgeEnabled == _this.translationBadgeEnabled)&&(identical(other.readButtonEnabled, _this.readButtonEnabled) || other.readButtonEnabled == _this.readButtonEnabled)&&(identical(other.favoriteTagBadgeEnabled, _this.favoriteTagBadgeEnabled) || other.favoriteTagBadgeEnabled == _this.favoriteTagBadgeEnabled));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ComicCardSettingState&&(identical(other.downloadBadgeEnabled, _this.downloadBadgeEnabled) || other.downloadBadgeEnabled == _this.downloadBadgeEnabled)&&(identical(other.translationBadgeEnabled, _this.translationBadgeEnabled) || other.translationBadgeEnabled == _this.translationBadgeEnabled)&&(identical(other.readButtonEnabled, _this.readButtonEnabled) || other.readButtonEnabled == _this.readButtonEnabled)&&(identical(other.favoriteTagBadgeEnabled, _this.favoriteTagBadgeEnabled) || other.favoriteTagBadgeEnabled == _this.favoriteTagBadgeEnabled)&&(identical(other.unreadIndicatorEnabled, _this.unreadIndicatorEnabled) || other.unreadIndicatorEnabled == _this.unreadIndicatorEnabled)&&(identical(other.unreadIndicatorStyle, _this.unreadIndicatorStyle) || other.unreadIndicatorStyle == _this.unreadIndicatorStyle));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as ComicCardSettingState;
-  return Object.hash(runtimeType,_this.downloadBadgeEnabled,_this.translationBadgeEnabled,_this.readButtonEnabled,_this.favoriteTagBadgeEnabled);
+  return Object.hash(runtimeType,_this.downloadBadgeEnabled,_this.translationBadgeEnabled,_this.readButtonEnabled,_this.favoriteTagBadgeEnabled,_this.unreadIndicatorEnabled,_this.unreadIndicatorStyle);
 }
 
 @override
 String toString() {
   final _this = this as ComicCardSettingState;
-  return 'ComicCardSettingState(downloadBadgeEnabled: ${_this.downloadBadgeEnabled}, translationBadgeEnabled: ${_this.translationBadgeEnabled}, readButtonEnabled: ${_this.readButtonEnabled}, favoriteTagBadgeEnabled: ${_this.favoriteTagBadgeEnabled})';
+  return 'ComicCardSettingState(downloadBadgeEnabled: ${_this.downloadBadgeEnabled}, translationBadgeEnabled: ${_this.translationBadgeEnabled}, readButtonEnabled: ${_this.readButtonEnabled}, favoriteTagBadgeEnabled: ${_this.favoriteTagBadgeEnabled}, unreadIndicatorEnabled: ${_this.unreadIndicatorEnabled}, unreadIndicatorStyle: ${_this.unreadIndicatorStyle})';
 }
 
 
@@ -3067,7 +3082,7 @@ abstract mixin class $ComicCardSettingStateCopyWith<$Res>  {
   factory $ComicCardSettingStateCopyWith(ComicCardSettingState value, $Res Function(ComicCardSettingState) _then) = _$ComicCardSettingStateCopyWithImpl;
 @useResult
 $Res call({
- bool downloadBadgeEnabled, bool translationBadgeEnabled, bool readButtonEnabled, bool favoriteTagBadgeEnabled
+ bool downloadBadgeEnabled, bool translationBadgeEnabled, bool readButtonEnabled, bool favoriteTagBadgeEnabled, bool unreadIndicatorEnabled, ComicUnreadIndicatorStyle unreadIndicatorStyle
 });
 
 
@@ -3084,13 +3099,15 @@ class _$ComicCardSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of ComicCardSettingState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? downloadBadgeEnabled = null,Object? translationBadgeEnabled = null,Object? readButtonEnabled = null,Object? favoriteTagBadgeEnabled = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? downloadBadgeEnabled = null,Object? translationBadgeEnabled = null,Object? readButtonEnabled = null,Object? favoriteTagBadgeEnabled = null,Object? unreadIndicatorEnabled = null,Object? unreadIndicatorStyle = null,}) {
   return _then(ComicCardSettingState(
 downloadBadgeEnabled: null == downloadBadgeEnabled ? _self.downloadBadgeEnabled : downloadBadgeEnabled // ignore: cast_nullable_to_non_nullable
 as bool,translationBadgeEnabled: null == translationBadgeEnabled ? _self.translationBadgeEnabled : translationBadgeEnabled // ignore: cast_nullable_to_non_nullable
 as bool,readButtonEnabled: null == readButtonEnabled ? _self.readButtonEnabled : readButtonEnabled // ignore: cast_nullable_to_non_nullable
 as bool,favoriteTagBadgeEnabled: null == favoriteTagBadgeEnabled ? _self.favoriteTagBadgeEnabled : favoriteTagBadgeEnabled // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,unreadIndicatorEnabled: null == unreadIndicatorEnabled ? _self.unreadIndicatorEnabled : unreadIndicatorEnabled // ignore: cast_nullable_to_non_nullable
+as bool,unreadIndicatorStyle: null == unreadIndicatorStyle ? _self.unreadIndicatorStyle : unreadIndicatorStyle // ignore: cast_nullable_to_non_nullable
+as ComicUnreadIndicatorStyle,
   ));
 }
 
@@ -3175,10 +3192,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool downloadBadgeEnabled,  bool translationBadgeEnabled,  bool readButtonEnabled,  bool favoriteTagBadgeEnabled)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool downloadBadgeEnabled,  bool translationBadgeEnabled,  bool readButtonEnabled,  bool favoriteTagBadgeEnabled,  bool unreadIndicatorEnabled,  ComicUnreadIndicatorStyle unreadIndicatorStyle)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ComicCardSettingState() when $default != null:
-return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.readButtonEnabled,_that.favoriteTagBadgeEnabled);case _:
+return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.readButtonEnabled,_that.favoriteTagBadgeEnabled,_that.unreadIndicatorEnabled,_that.unreadIndicatorStyle);case _:
   return orElse();
 
 }
@@ -3196,10 +3213,10 @@ return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.r
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool downloadBadgeEnabled,  bool translationBadgeEnabled,  bool readButtonEnabled,  bool favoriteTagBadgeEnabled)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool downloadBadgeEnabled,  bool translationBadgeEnabled,  bool readButtonEnabled,  bool favoriteTagBadgeEnabled,  bool unreadIndicatorEnabled,  ComicUnreadIndicatorStyle unreadIndicatorStyle)  $default,) {final _that = this;
 switch (_that) {
 case _ComicCardSettingState():
-return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.readButtonEnabled,_that.favoriteTagBadgeEnabled);case _:
+return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.readButtonEnabled,_that.favoriteTagBadgeEnabled,_that.unreadIndicatorEnabled,_that.unreadIndicatorStyle);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -3216,10 +3233,10 @@ return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.r
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool downloadBadgeEnabled,  bool translationBadgeEnabled,  bool readButtonEnabled,  bool favoriteTagBadgeEnabled)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool downloadBadgeEnabled,  bool translationBadgeEnabled,  bool readButtonEnabled,  bool favoriteTagBadgeEnabled,  bool unreadIndicatorEnabled,  ComicUnreadIndicatorStyle unreadIndicatorStyle)?  $default,) {final _that = this;
 switch (_that) {
 case _ComicCardSettingState() when $default != null:
-return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.readButtonEnabled,_that.favoriteTagBadgeEnabled);case _:
+return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.readButtonEnabled,_that.favoriteTagBadgeEnabled,_that.unreadIndicatorEnabled,_that.unreadIndicatorStyle);case _:
   return null;
 
 }
@@ -3231,7 +3248,7 @@ return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.r
 @JsonSerializable()
 
 class _ComicCardSettingState implements ComicCardSettingState {
-  const _ComicCardSettingState({this.downloadBadgeEnabled = true, this.translationBadgeEnabled = true, this.readButtonEnabled = true, this.favoriteTagBadgeEnabled = true});
+  const _ComicCardSettingState({this.downloadBadgeEnabled = true, this.translationBadgeEnabled = true, this.readButtonEnabled = true, this.favoriteTagBadgeEnabled = true, this.unreadIndicatorEnabled = true, this.unreadIndicatorStyle = ComicUnreadIndicatorStyle.label});
   factory _ComicCardSettingState.fromJson(Map<String, dynamic> json) => _$ComicCardSettingStateFromJson(json);
 
 @override@JsonKey() final  bool downloadBadgeEnabled;
@@ -3240,6 +3257,10 @@ class _ComicCardSettingState implements ComicCardSettingState {
 @override@JsonKey() final  bool readButtonEnabled;
 /// 封面左上角的「收藏 tag」角标。
 @override@JsonKey() final  bool favoriteTagBadgeEnabled;
+/// 封面右上角的「已下载但未读」标识（只在下载书架显示：有下载记录、没有任何阅读记录）。
+@override@JsonKey() final  bool unreadIndicatorEnabled;
+/// 这颗标识画成什么样子（圆点 / 圆片 / 文字胶囊）。
+@override@JsonKey() final  ComicUnreadIndicatorStyle unreadIndicatorStyle;
 
 /// Create a copy of ComicCardSettingState
 /// with the given fields replaced by the non-null parameter values.
@@ -3254,18 +3275,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ComicCardSettingState&&(identical(other.downloadBadgeEnabled, downloadBadgeEnabled) || other.downloadBadgeEnabled == downloadBadgeEnabled)&&(identical(other.translationBadgeEnabled, translationBadgeEnabled) || other.translationBadgeEnabled == translationBadgeEnabled)&&(identical(other.readButtonEnabled, readButtonEnabled) || other.readButtonEnabled == readButtonEnabled)&&(identical(other.favoriteTagBadgeEnabled, favoriteTagBadgeEnabled) || other.favoriteTagBadgeEnabled == favoriteTagBadgeEnabled));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ComicCardSettingState&&(identical(other.downloadBadgeEnabled, downloadBadgeEnabled) || other.downloadBadgeEnabled == downloadBadgeEnabled)&&(identical(other.translationBadgeEnabled, translationBadgeEnabled) || other.translationBadgeEnabled == translationBadgeEnabled)&&(identical(other.readButtonEnabled, readButtonEnabled) || other.readButtonEnabled == readButtonEnabled)&&(identical(other.favoriteTagBadgeEnabled, favoriteTagBadgeEnabled) || other.favoriteTagBadgeEnabled == favoriteTagBadgeEnabled)&&(identical(other.unreadIndicatorEnabled, unreadIndicatorEnabled) || other.unreadIndicatorEnabled == unreadIndicatorEnabled)&&(identical(other.unreadIndicatorStyle, unreadIndicatorStyle) || other.unreadIndicatorStyle == unreadIndicatorStyle));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,downloadBadgeEnabled,translationBadgeEnabled,readButtonEnabled,favoriteTagBadgeEnabled);
+    return Object.hash(runtimeType,downloadBadgeEnabled,translationBadgeEnabled,readButtonEnabled,favoriteTagBadgeEnabled,unreadIndicatorEnabled,unreadIndicatorStyle);
 }
 
 @override
 String toString() {
-    return 'ComicCardSettingState(downloadBadgeEnabled: $downloadBadgeEnabled, translationBadgeEnabled: $translationBadgeEnabled, readButtonEnabled: $readButtonEnabled, favoriteTagBadgeEnabled: $favoriteTagBadgeEnabled)';
+    return 'ComicCardSettingState(downloadBadgeEnabled: $downloadBadgeEnabled, translationBadgeEnabled: $translationBadgeEnabled, readButtonEnabled: $readButtonEnabled, favoriteTagBadgeEnabled: $favoriteTagBadgeEnabled, unreadIndicatorEnabled: $unreadIndicatorEnabled, unreadIndicatorStyle: $unreadIndicatorStyle)';
 }
 
 
@@ -3276,7 +3297,7 @@ abstract mixin class _$ComicCardSettingStateCopyWith<$Res> implements $ComicCard
   factory _$ComicCardSettingStateCopyWith(_ComicCardSettingState value, $Res Function(_ComicCardSettingState) _then) = __$ComicCardSettingStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool downloadBadgeEnabled, bool translationBadgeEnabled, bool readButtonEnabled, bool favoriteTagBadgeEnabled
+ bool downloadBadgeEnabled, bool translationBadgeEnabled, bool readButtonEnabled, bool favoriteTagBadgeEnabled, bool unreadIndicatorEnabled, ComicUnreadIndicatorStyle unreadIndicatorStyle
 });
 
 
@@ -3293,13 +3314,15 @@ class __$ComicCardSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of ComicCardSettingState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? downloadBadgeEnabled = null,Object? translationBadgeEnabled = null,Object? readButtonEnabled = null,Object? favoriteTagBadgeEnabled = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? downloadBadgeEnabled = null,Object? translationBadgeEnabled = null,Object? readButtonEnabled = null,Object? favoriteTagBadgeEnabled = null,Object? unreadIndicatorEnabled = null,Object? unreadIndicatorStyle = null,}) {
   return _then(_ComicCardSettingState(
 downloadBadgeEnabled: null == downloadBadgeEnabled ? _self.downloadBadgeEnabled : downloadBadgeEnabled // ignore: cast_nullable_to_non_nullable
 as bool,translationBadgeEnabled: null == translationBadgeEnabled ? _self.translationBadgeEnabled : translationBadgeEnabled // ignore: cast_nullable_to_non_nullable
 as bool,readButtonEnabled: null == readButtonEnabled ? _self.readButtonEnabled : readButtonEnabled // ignore: cast_nullable_to_non_nullable
 as bool,favoriteTagBadgeEnabled: null == favoriteTagBadgeEnabled ? _self.favoriteTagBadgeEnabled : favoriteTagBadgeEnabled // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,unreadIndicatorEnabled: null == unreadIndicatorEnabled ? _self.unreadIndicatorEnabled : unreadIndicatorEnabled // ignore: cast_nullable_to_non_nullable
+as bool,unreadIndicatorStyle: null == unreadIndicatorStyle ? _self.unreadIndicatorStyle : unreadIndicatorStyle // ignore: cast_nullable_to_non_nullable
+as ComicUnreadIndicatorStyle,
   ));
 }
 

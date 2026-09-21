@@ -307,6 +307,13 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get cardTranslationBadgeSubtitle => 'Detect translated / Chinese / raw from tags and mark the top-left of covers';
 	@override String get cardReadButton => 'Read Button';
 	@override String get cardReadButtonSubtitle => 'Show a read button in the middle of covers; tap it to start reading right away (resumes if there is progress) without opening the detail page';
+	@override String get cardUnreadIndicator => 'Unread Indicator';
+	@override String get cardUnreadIndicatorSubtitle => 'Mark comics you downloaded but never opened, under the download badge on covers';
+	@override String get cardUnreadIndicatorStyle => 'Unread Indicator Style';
+	@override String get cardUnreadIndicatorStyleSubtitle => 'Each step is easier to spot and covers more of the artwork';
+	@override String get cardUnreadIndicatorStyleDot => 'Dot';
+	@override String get cardUnreadIndicatorStyleDisc => 'Disc';
+	@override String get cardUnreadIndicatorStyleLabel => 'Label';
 	@override String get cardInteraction => 'Card Interaction';
 	@override String get shelfCardContextMenu => 'Context Menu on Favorite / History Cards';
 	@override String get shelfCardContextMenuSubtitle => 'Right-click an entry (long-press on touch) for open, open in a new file manager tab, copy, favorite and remove';
@@ -574,6 +581,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get operationBindingSectionSwitch => 'How bindings apply';
 	@override String get operationBindingRuntime => 'Resolve keys and taps through the binding table';
 	@override String get operationBindingRuntimeSubtitle => 'When off, the reader falls back to the built-in fixed keys (arrows, WASD, numpad and F11), and the edits below do not affect reading.';
+	@override String get operationBindingInvertWheel => 'Wheel follows the hand, not the content';
+	@override String get operationBindingInvertWheelSubtitle => 'When on: roll up = previous page, roll down = next page, named after how your hand moves. macOS already inverts scroll deltas for natural scrolling, so this is on by default there; when off, direction follows content movement. Recording bindings and the legacy fallback use the same rule.';
 	@override String get operationBindingSectionKeyboard => 'Keyboard';
 	@override String get operationBindingSectionTap => 'Tap zones';
 	@override String get operationBindingTapSubtitle => 'The reader only tells three zones apart: left half, center cell, right half. The top and bottom rows behave like the middle one.';
@@ -1731,6 +1740,7 @@ class _Translations$comicEntry$en_US extends Translations$comicEntry$zh_CN {
 	@override String get translationBadgeTranslated => 'Translated';
 	@override String get translationBadgeChinese => 'Chinese';
 	@override String get translationBadgeRaw => 'Raw';
+	@override String get unread => 'Unread';
 	@override String translationTooltipTag({required Object label, required Object keyword}) => '${label} · matched tag "${keyword}"';
 	@override String translationTooltipTitle({required Object label, required Object keyword}) => '${label} · matched title "${keyword}"';
 	@override String get resumeRead => 'Resume reading';
@@ -2054,6 +2064,10 @@ class _Translations$video$en_US extends Translations$video$zh_CN {
 	@override String get aliasesEmpty => 'None';
 	@override String get aliasesHint => 'Comma separated, e.g. myvid, cbr-video';
 	@override String get aliasesDialogHint => 'Lowercase, at most 128 entries, at most 16 characters each';
+	@override String get mediaSection => 'Media formats';
+	@override String get imageFormats => 'Image format table';
+	@override String get videoFormats => 'Video format table';
+	@override String get formatsHint => 'Filling this replaces the built-in table, so suffixes you leave out stop counting as pages at all; leave it empty to keep the defaults';
 	@override String get subSize => 'Font size';
 	@override String get subBg => 'Background';
 	@override String get subBottom => 'Bottom offset';
@@ -2406,6 +2420,13 @@ extension on TranslationsEnUs {
 			'settings.cardTranslationBadgeSubtitle' => 'Detect translated / Chinese / raw from tags and mark the top-left of covers',
 			'settings.cardReadButton' => 'Read Button',
 			'settings.cardReadButtonSubtitle' => 'Show a read button in the middle of covers; tap it to start reading right away (resumes if there is progress) without opening the detail page',
+			'settings.cardUnreadIndicator' => 'Unread Indicator',
+			'settings.cardUnreadIndicatorSubtitle' => 'Mark comics you downloaded but never opened, under the download badge on covers',
+			'settings.cardUnreadIndicatorStyle' => 'Unread Indicator Style',
+			'settings.cardUnreadIndicatorStyleSubtitle' => 'Each step is easier to spot and covers more of the artwork',
+			'settings.cardUnreadIndicatorStyleDot' => 'Dot',
+			'settings.cardUnreadIndicatorStyleDisc' => 'Disc',
+			'settings.cardUnreadIndicatorStyleLabel' => 'Label',
 			'settings.cardInteraction' => 'Card Interaction',
 			'settings.shelfCardContextMenu' => 'Context Menu on Favorite / History Cards',
 			'settings.shelfCardContextMenuSubtitle' => 'Right-click an entry (long-press on touch) for open, open in a new file manager tab, copy, favorite and remove',
@@ -2673,6 +2694,8 @@ extension on TranslationsEnUs {
 			'settings.operationBindingSectionSwitch' => 'How bindings apply',
 			'settings.operationBindingRuntime' => 'Resolve keys and taps through the binding table',
 			'settings.operationBindingRuntimeSubtitle' => 'When off, the reader falls back to the built-in fixed keys (arrows, WASD, numpad and F11), and the edits below do not affect reading.',
+			'settings.operationBindingInvertWheel' => 'Wheel follows the hand, not the content',
+			'settings.operationBindingInvertWheelSubtitle' => 'When on: roll up = previous page, roll down = next page, named after how your hand moves. macOS already inverts scroll deltas for natural scrolling, so this is on by default there; when off, direction follows content movement. Recording bindings and the legacy fallback use the same rule.',
 			'settings.operationBindingSectionKeyboard' => 'Keyboard',
 			'settings.operationBindingSectionTap' => 'Tap zones',
 			'settings.operationBindingTapSubtitle' => 'The reader only tells three zones apart: left half, center cell, right half. The top and bottom rows behave like the middle one.',
@@ -2715,6 +2738,8 @@ extension on TranslationsEnUs {
 			'settings.operationBindingCategorySession' => 'Session',
 			'settings.operationBindingActionNextPage' => 'Next page',
 			'settings.operationBindingActionPreviousPage' => 'Previous page',
+			_ => null,
+		} ?? switch (path) {
 			'settings.operationBindingActionFirstPage' => 'First page',
 			'settings.operationBindingActionLastPage' => 'Last page',
 			'settings.operationBindingActionPageLeft' => 'Page left',
@@ -2724,8 +2749,6 @@ extension on TranslationsEnUs {
 			'settings.operationBindingActionBookMode' => 'Book mode',
 			'settings.operationBindingActionResetView' => 'Reset view',
 			'settings.operationBindingActionToggleBars' => 'Show or hide the bars',
-			_ => null,
-		} ?? switch (path) {
 			'settings.operationBindingActionOpenSettings' => 'Open settings',
 			'settings.operationBindingActionZoomIn' => 'Zoom in',
 			'settings.operationBindingActionZoomOut' => 'Zoom out',
@@ -3229,6 +3252,8 @@ extension on TranslationsEnUs {
 			'reader.radialMenuHintMove' => 'Move to choose',
 			'reader.radialMenuHintRelease' => 'Release to run',
 			'reader.radialMenuHintSwitch' => 'Release to switch wheel',
+			_ => null,
+		} ?? switch (path) {
 			'plugin.store' => 'Plugin Store',
 			'plugin.searchHint' => 'Search plugin name or author...',
 			'plugin.localInstall' => 'Local install',
@@ -3238,8 +3263,6 @@ extension on TranslationsEnUs {
 			'plugin.chromiumFallbackUnsupported' => 'External Chromium auto-login fallback is not supported on this platform',
 			'plugin.switchingToExternalBrowser' => 'Built-in WebView login is limited, switching to external browser...',
 			'plugin.chromiumNotFound' => 'No Chromium browser detected, please install Chrome first',
-			_ => null,
-		} ?? switch (path) {
 			'plugin.browserSwitched' => ({required Object browser}) => 'Switched to ${browser}, cookies will be synced automatically after login',
 			'plugin.invalidLink' => ({required Object url}) => 'Invalid link: ${url}',
 			'plugin.cannotOpenLink' => ({required Object url}) => 'Cannot open link: ${url}',
@@ -3663,6 +3686,7 @@ extension on TranslationsEnUs {
 			'comicEntry.translationBadgeTranslated' => 'Translated',
 			'comicEntry.translationBadgeChinese' => 'Chinese',
 			'comicEntry.translationBadgeRaw' => 'Raw',
+			'comicEntry.unread' => 'Unread',
 			'comicEntry.translationTooltipTag' => ({required Object label, required Object keyword}) => '${label} · matched tag "${keyword}"',
 			'comicEntry.translationTooltipTitle' => ({required Object label, required Object keyword}) => '${label} · matched title "${keyword}"',
 			'comicEntry.resumeRead' => 'Resume reading',
@@ -3742,6 +3766,8 @@ extension on TranslationsEnUs {
 			'fontSetting.loadFailed' => 'Font load failed',
 			'fontSetting.cleared' => 'Cleared',
 			'fontSetting.saved' => 'Saved',
+			_ => null,
+		} ?? switch (path) {
 			'fontSetting.allCleared' => 'All cleared',
 			'fontSetting.noFileSelected' => 'No file selected',
 			'fontSetting.clearFile' => 'Clear',
@@ -3752,8 +3778,6 @@ extension on TranslationsEnUs {
 			'download.selectChaptersPrompt' => 'Please select chapters to download',
 			'download.taskStarted' => 'Download task started',
 			'download.taskStartFailed' => ({required Object error}) => 'Failed to start download task: ${error}',
-			_ => null,
-		} ?? switch (path) {
 			'download.noTasks' => 'No download tasks',
 			'download.downloading' => 'Downloading',
 			'download.pending' => ({required Object count}) => 'Pending (${count})',
@@ -3871,6 +3895,10 @@ extension on TranslationsEnUs {
 			'video.aliasesEmpty' => 'None',
 			'video.aliasesHint' => 'Comma separated, e.g. myvid, cbr-video',
 			'video.aliasesDialogHint' => 'Lowercase, at most 128 entries, at most 16 characters each',
+			'video.mediaSection' => 'Media formats',
+			'video.imageFormats' => 'Image format table',
+			'video.videoFormats' => 'Video format table',
+			'video.formatsHint' => 'Filling this replaces the built-in table, so suffixes you leave out stop counting as pages at all; leave it empty to keep the defaults',
 			'video.subSize' => 'Font size',
 			'video.subBg' => 'Background',
 			'video.subBottom' => 'Bottom offset',

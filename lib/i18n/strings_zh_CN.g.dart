@@ -699,6 +699,27 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '封面正中显示阅读按钮，点一下直接起读（有进度就续读），不必先进详情页'
 	String get cardReadButtonSubtitle => '封面正中显示阅读按钮，点一下直接起读（有进度就续读），不必先进详情页';
 
+	/// zh-CN: '未读标识'
+	String get cardUnreadIndicator => '未读标识';
+
+	/// zh-CN: '下载后还没读过的书，在封面右上角的下载角标下方显示标识'
+	String get cardUnreadIndicatorSubtitle => '下载后还没读过的书，在封面右上角的下载角标下方显示标识';
+
+	/// zh-CN: '未读标识样式'
+	String get cardUnreadIndicatorStyle => '未读标识样式';
+
+	/// zh-CN: '三档辨识度递增、占的封面面积也递增，按观感自己挑'
+	String get cardUnreadIndicatorStyleSubtitle => '三档辨识度递增、占的封面面积也递增，按观感自己挑';
+
+	/// zh-CN: '圆点'
+	String get cardUnreadIndicatorStyleDot => '圆点';
+
+	/// zh-CN: '圆片'
+	String get cardUnreadIndicatorStyleDisc => '圆片';
+
+	/// zh-CN: '文字'
+	String get cardUnreadIndicatorStyleLabel => '文字';
+
 	/// zh-CN: '卡片交互'
 	String get cardInteraction => '卡片交互';
 
@@ -1499,6 +1520,12 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '关掉后回到内置的固定键位（方向键、WASD、小键盘与 F11），下面的编辑不影响阅读。'
 	String get operationBindingRuntimeSubtitle => '关掉后回到内置的固定键位（方向键、WASD、小键盘与 F11），下面的编辑不影响阅读。';
+
+	/// zh-CN: '滚轮按手推的方向翻页'
+	String get operationBindingInvertWheel => '滚轮按手推的方向翻页';
+
+	/// zh-CN: '开启后：向上滚=上一页、向下滚=下一页（按手的动作算）。macOS 的系统「自然滚动」已经把滚动增量翻过一次，所以 Mac 上默认开启；关掉则按内容移动的方向算。录制按键与关掉绑定表时的旧规则用同一套判定。'
+	String get operationBindingInvertWheelSubtitle => '开启后：向上滚=上一页、向下滚=下一页（按手的动作算）。macOS 的系统「自然滚动」已经把滚动增量翻过一次，所以 Mac 上默认开启；关掉则按内容移动的方向算。录制按键与关掉绑定表时的旧规则用同一套判定。';
 
 	/// zh-CN: '键盘'
 	String get operationBindingSectionKeyboard => '键盘';
@@ -4632,6 +4659,9 @@ class Translations$comicEntry$zh_CN {
 	/// zh-CN: '生肉'
 	String get translationBadgeRaw => '生肉';
 
+	/// zh-CN: '未读'
+	String get unread => '未读';
+
 	/// zh-CN: '$label · 标签命中「$keyword」'
 	String translationTooltipTag({required Object label, required Object keyword}) => '${label} · 标签命中「${keyword}」';
 
@@ -5367,6 +5397,18 @@ class Translations$video$zh_CN {
 	/// zh-CN: '输入后按逗号分隔；小写、最多 128 条、每条最长 16 字符'
 	String get aliasesDialogHint => '输入后按逗号分隔；小写、最多 128 条、每条最长 16 字符';
 
+	/// zh-CN: '媒体格式'
+	String get mediaSection => '媒体格式';
+
+	/// zh-CN: '图片格式表'
+	String get imageFormats => '图片格式表';
+
+	/// zh-CN: '视频格式表'
+	String get videoFormats => '视频格式表';
+
+	/// zh-CN: '填了就整体替换内置表，没列进来的后缀会连一页都不算；留空才用内置表'
+	String get formatsHint => '填了就整体替换内置表，没列进来的后缀会连一页都不算；留空才用内置表';
+
 	/// zh-CN: '字号'
 	String get subSize => '字号';
 
@@ -5978,6 +6020,13 @@ extension on Translations {
 			'settings.cardTranslationBadgeSubtitle' => '按标签识别「汉化 / 中文 / 生肉」并标记在封面左上角',
 			'settings.cardReadButton' => '阅读按钮',
 			'settings.cardReadButtonSubtitle' => '封面正中显示阅读按钮，点一下直接起读（有进度就续读），不必先进详情页',
+			'settings.cardUnreadIndicator' => '未读标识',
+			'settings.cardUnreadIndicatorSubtitle' => '下载后还没读过的书，在封面右上角的下载角标下方显示标识',
+			'settings.cardUnreadIndicatorStyle' => '未读标识样式',
+			'settings.cardUnreadIndicatorStyleSubtitle' => '三档辨识度递增、占的封面面积也递增，按观感自己挑',
+			'settings.cardUnreadIndicatorStyleDot' => '圆点',
+			'settings.cardUnreadIndicatorStyleDisc' => '圆片',
+			'settings.cardUnreadIndicatorStyleLabel' => '文字',
 			'settings.cardInteraction' => '卡片交互',
 			'settings.shelfCardContextMenu' => '收藏 / 历史卡片右键菜单',
 			'settings.shelfCardContextMenuSubtitle' => '右键条目弹出操作菜单（触摸端长按）；含打开、在文件管理新页签打开、复制标题与链接、收藏、移除',
@@ -6245,6 +6294,8 @@ extension on Translations {
 			'settings.operationBindingSectionSwitch' => '生效方式',
 			'settings.operationBindingRuntime' => '用绑定表解析按键与点击',
 			'settings.operationBindingRuntimeSubtitle' => '关掉后回到内置的固定键位（方向键、WASD、小键盘与 F11），下面的编辑不影响阅读。',
+			'settings.operationBindingInvertWheel' => '滚轮按手推的方向翻页',
+			'settings.operationBindingInvertWheelSubtitle' => '开启后：向上滚=上一页、向下滚=下一页（按手的动作算）。macOS 的系统「自然滚动」已经把滚动增量翻过一次，所以 Mac 上默认开启；关掉则按内容移动的方向算。录制按键与关掉绑定表时的旧规则用同一套判定。',
 			'settings.operationBindingSectionKeyboard' => '键盘',
 			'settings.operationBindingSectionTap' => '点击分区',
 			'settings.operationBindingTapSubtitle' => '阅读区只分「左半 / 正中 / 右半」三档：上下两排与中排同一动作。',
@@ -6287,6 +6338,8 @@ extension on Translations {
 			'settings.operationBindingActionFirstPage' => '第一页',
 			'settings.operationBindingActionLastPage' => '最后一页',
 			'settings.operationBindingActionPageLeft' => '向左翻页',
+			_ => null,
+		} ?? switch (path) {
 			'settings.operationBindingActionPageRight' => '向右翻页',
 			'settings.operationBindingActionFullscreen' => '全屏',
 			'settings.operationBindingActionToggleDirection' => '阅读方向切换',
@@ -6296,8 +6349,6 @@ extension on Translations {
 			'settings.operationBindingActionOpenSettings' => '打开设置',
 			'settings.operationBindingActionZoomIn' => '放大',
 			'settings.operationBindingActionZoomOut' => '缩小',
-			_ => null,
-		} ?? switch (path) {
 			'settings.operationBindingActionFitWindow' => '适应窗口',
 			'settings.operationBindingActionActualSize' => '实际大小',
 			'settings.operationBindingActionRotateClockwise' => '旋转',
@@ -6801,6 +6852,8 @@ extension on Translations {
 			'reader.radialMenuHint' => '松手执行 · 中心或 Esc 取消',
 			'reader.radialMenuHintMove' => '移动以选择',
 			'reader.radialMenuHintRelease' => '松手执行',
+			_ => null,
+		} ?? switch (path) {
 			'reader.radialMenuHintSwitch' => '松手切换轮盘',
 			'plugin.store' => '插件商店',
 			'plugin.searchHint' => '搜索插件名称或作者...',
@@ -6810,8 +6863,6 @@ extension on Translations {
 			'plugin.loginSuccess' => '请在网页中完成登录，宿主会自动同步 Cookie',
 			'plugin.chromiumFallbackUnsupported' => '当前平台不支持外部 Chromium 自动登录回退',
 			'plugin.switchingToExternalBrowser' => '内置 WebView 登录受限，正在切换外部浏览器...',
-			_ => null,
-		} ?? switch (path) {
 			'plugin.chromiumNotFound' => '未检测到 Chromium 浏览器，请先安装 Chrome',
 			'plugin.browserSwitched' => ({required Object browser}) => '已切换到 ${browser}，登录完成后会自动同步 Cookie',
 			'plugin.invalidLink' => ({required Object url}) => '无效链接: ${url}',
@@ -7236,6 +7287,7 @@ extension on Translations {
 			'comicEntry.translationBadgeTranslated' => '汉化',
 			'comicEntry.translationBadgeChinese' => '中文',
 			'comicEntry.translationBadgeRaw' => '生肉',
+			'comicEntry.unread' => '未读',
 			'comicEntry.translationTooltipTag' => ({required Object label, required Object keyword}) => '${label} · 标签命中「${keyword}」',
 			'comicEntry.translationTooltipTitle' => ({required Object label, required Object keyword}) => '${label} · 标题命中「${keyword}」',
 			'comicEntry.resumeRead' => '继续阅读',
@@ -7314,6 +7366,8 @@ extension on Translations {
 			'fontSetting.hint' => '按字重分别选择字体文件。',
 			'fontSetting.loadFailed' => '字体加载失败',
 			'fontSetting.cleared' => '已清除',
+			_ => null,
+		} ?? switch (path) {
 			'fontSetting.saved' => '已保存',
 			'fontSetting.allCleared' => '已清空',
 			'fontSetting.noFileSelected' => '未选择文件',
@@ -7324,8 +7378,6 @@ extension on Translations {
 			'download.startDownload' => '开始下载',
 			'download.selectChaptersPrompt' => '请选择要下载的章节',
 			'download.taskStarted' => '下载任务已启动',
-			_ => null,
-		} ?? switch (path) {
 			'download.taskStartFailed' => ({required Object error}) => '下载任务启动失败，${error}',
 			'download.noTasks' => '暂无下载任务',
 			'download.downloading' => '正在下载',
@@ -7444,6 +7496,10 @@ extension on Translations {
 			'video.aliasesEmpty' => '未设置',
 			'video.aliasesHint' => '逗号分隔，例如：myvid, cbr-video',
 			'video.aliasesDialogHint' => '输入后按逗号分隔；小写、最多 128 条、每条最长 16 字符',
+			'video.mediaSection' => '媒体格式',
+			'video.imageFormats' => '图片格式表',
+			'video.videoFormats' => '视频格式表',
+			'video.formatsHint' => '填了就整体替换内置表，没列进来的后缀会连一页都不算；留空才用内置表',
 			'video.subSize' => '字号',
 			'video.subBg' => '底色',
 			'video.subBottom' => '底部位置',

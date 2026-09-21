@@ -278,6 +278,7 @@ _OperationBindingSettingState _$OperationBindingSettingStateFromJson(
   bindingsRuntime: json['bindingsRuntime'] as bool? ?? true,
   bindingsJson: json['bindingsJson'] as String? ?? '',
   radialJson: json['radialJson'] as String? ?? '',
+  invertWheelDirection: json['invertWheelDirection'] as bool?,
 );
 
 Map<String, dynamic> _$OperationBindingSettingStateToJson(
@@ -286,6 +287,7 @@ Map<String, dynamic> _$OperationBindingSettingStateToJson(
   'bindingsRuntime': instance.bindingsRuntime,
   'bindingsJson': instance.bindingsJson,
   'radialJson': instance.radialJson,
+  'invertWheelDirection': instance.invertWheelDirection,
 };
 
 _ToastSettingState _$ToastSettingStateFromJson(Map<String, dynamic> json) =>
@@ -425,6 +427,13 @@ _ComicCardSettingState _$ComicCardSettingStateFromJson(
   translationBadgeEnabled: json['translationBadgeEnabled'] as bool? ?? true,
   readButtonEnabled: json['readButtonEnabled'] as bool? ?? true,
   favoriteTagBadgeEnabled: json['favoriteTagBadgeEnabled'] as bool? ?? true,
+  unreadIndicatorEnabled: json['unreadIndicatorEnabled'] as bool? ?? true,
+  unreadIndicatorStyle:
+      $enumDecodeNullable(
+        _$ComicUnreadIndicatorStyleEnumMap,
+        json['unreadIndicatorStyle'],
+      ) ??
+      ComicUnreadIndicatorStyle.label,
 );
 
 Map<String, dynamic> _$ComicCardSettingStateToJson(
@@ -434,6 +443,15 @@ Map<String, dynamic> _$ComicCardSettingStateToJson(
   'translationBadgeEnabled': instance.translationBadgeEnabled,
   'readButtonEnabled': instance.readButtonEnabled,
   'favoriteTagBadgeEnabled': instance.favoriteTagBadgeEnabled,
+  'unreadIndicatorEnabled': instance.unreadIndicatorEnabled,
+  'unreadIndicatorStyle':
+      _$ComicUnreadIndicatorStyleEnumMap[instance.unreadIndicatorStyle]!,
+};
+
+const _$ComicUnreadIndicatorStyleEnumMap = {
+  ComicUnreadIndicatorStyle.dot: 'dot',
+  ComicUnreadIndicatorStyle.disc: 'disc',
+  ComicUnreadIndicatorStyle.label: 'label',
 };
 
 _CacheSettingState _$CacheSettingStateFromJson(Map<String, dynamic> json) =>
