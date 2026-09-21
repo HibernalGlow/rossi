@@ -52,8 +52,8 @@ class PluginSettingsFieldRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    // 整行可点 = 必须有状态层：MD3 的交互件不给墨水就是「按不动」的错觉。
+    return InkWell(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),

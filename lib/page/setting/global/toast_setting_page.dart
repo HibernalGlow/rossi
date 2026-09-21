@@ -257,8 +257,10 @@ class _PositionPicker extends StatelessWidget {
       message: position.label,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
-        child: GestureDetector(
+        child: InkWell(
           onTap: () => onChanged(position),
+          // 墨水要跟着格子的圆角走，否则方形水波会从圆角里切出来。
+          borderRadius: BorderRadius.circular(8),
           child: Container(
             width: 56,
             height: 38,
