@@ -30,6 +30,7 @@ class ColorThemeInfo {
       16 => t.settings.colorBrown,
       17 => t.settings.colorGrey,
       18 => t.settings.colorBlueGrey,
+      19 => t.settings.colorMaskRed,
       _ => label,
     };
   }
@@ -40,6 +41,10 @@ class ColorThemeInfo {
   }
 }
 
+/// 预设种子色。
+///
+/// **只能往末尾追加**：`migration_v3_to_v4` 按列表位置取 `colorThemeList[6]`，
+/// 中间插一项就会把老用户升级时的默认色改掉。
 final List<ColorThemeInfo> colorThemeList = [
   ColorThemeInfo(Colors.red, '红色', 0),
   ColorThemeInfo(Colors.pink, '粉色', 1),
@@ -60,4 +65,6 @@ final List<ColorThemeInfo> colorThemeList = [
   ColorThemeInfo(Colors.brown, '棕色', 16),
   ColorThemeInfo(Colors.grey, '灰色', 17),
   ColorThemeInfo(Colors.blueGrey, '蓝灰色', 18),
+  // 应用图标的面具色，也是新装时的默认种子色。
+  ColorThemeInfo(Color(0xFF9C4B5E), '面具红', 19),
 ];

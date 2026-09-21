@@ -34,33 +34,34 @@ class _ThemeColorPageState extends State<ThemeColorPage> {
             // 颜色选择器
             ColorPickerPage(
               currentColor: _currentColor,
-              onColorChanged: (color) {
-                // 更新本地 UI 状态
-                setState(() {
-                  _currentColor = color;
-                });
-                // 更新全局 Cubit 状态
-                _setThemeColor(color);
-              },
+              onColorChanged: _applyColor,
             ),
-            // 颜色块网格
+            // 预设色块
             Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Wrap(
-                spacing: 16.0,
-                runSpacing: 16.0,
-                children: colorThemeList.map((colorInfo) {
-                  return ColorThemeItem(
-                    colorInfo: colorInfo,
-                    currentColor: _currentColor,
-                    onColorSelected: (color) {
-                      setState(() {
-                        _currentColor = color;
-                      });
-                      _setThemeColor(color);
-                    },
-                  );
-                }).toList(),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t.settings.colorPresets,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final colorInfo in colorThemeList)
+                        ColorThemeItem(
+                          colorInfo: colorInfo,
+                          currentColor: _currentColor,
+                          onColorSelected: _applyColor,
+                        ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],
@@ -69,7 +70,10 @@ class _ThemeColorPageState extends State<ThemeColorPage> {
     );
   }
 
-  void _setThemeColor(Color color) {
+  void _applyColor(Color color) {
+    setState(() {
+      _currentColor = color;
+    });
     context.read<GlobalSettingCubit>().updateState(
       (current) => current.copyWith(seedColor: color),
     );
