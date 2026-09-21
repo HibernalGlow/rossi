@@ -15,11 +15,7 @@ import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/widgets/toast.dart';
 
-enum ReaderExportAction {
-  saveToAlbum,
-  exportZip,
-  downloadSelected,
-}
+enum ReaderExportAction { saveToAlbum, exportZip, downloadSelected }
 
 class ReaderImageExportItem {
   final int index;
@@ -126,7 +122,9 @@ class ReaderImageExportService {
           );
         }
 
-        if (imagePath.isEmpty || imagePath == '404' || !File(imagePath).existsSync()) {
+        if (imagePath.isEmpty ||
+            imagePath == '404' ||
+            !File(imagePath).existsSync()) {
           logger.w('选图提取图片不存在，跳过: index=${item.index}, path=$imagePath');
           continue;
         }
@@ -152,8 +150,7 @@ class ReaderImageExportService {
               } catch (_) {}
             }
           } else if (desktopTargetDir != null) {
-            final targetName =
-                'p${item.index.toString().padLeft(3, '0')}$ext';
+            final targetName = 'p${item.index.toString().padLeft(3, '0')}$ext';
             await file.copy(p.join(desktopTargetDir, targetName));
           }
         } else if (action == ReaderExportAction.exportZip) {

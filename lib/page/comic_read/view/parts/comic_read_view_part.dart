@@ -30,8 +30,8 @@ extension _ComicReadViewPart on _ComicReadPageState {
     final onToggleFullscreen = fullscreenScope != null
         ? fullscreenScope.onToggleFullscreen
         : (_isDesktopPlatform
-            ? () => unawaited(_lifecycleController.toggleDesktopFullscreen())
-            : null);
+              ? () => unawaited(_lifecycleController.toggleDesktopFullscreen())
+              : null);
 
     return ComicReadAppBar(
       title: epInfo.epName,

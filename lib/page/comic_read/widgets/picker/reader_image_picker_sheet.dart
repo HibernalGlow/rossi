@@ -289,10 +289,7 @@ class _ReaderImagePickerSheetState extends State<_ReaderImagePickerSheet> {
         child: Align(
           alignment: Alignment.bottomCenter,
           child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: 820,
-              maxHeight: maxHeight,
-            ),
+            constraints: BoxConstraints(maxWidth: 820, maxHeight: maxHeight),
             child: Material(
               color: colorScheme.surface,
               elevation: 8,
@@ -590,7 +587,9 @@ class _PickerTileState extends State<_PickerTile> {
                 : theme.dividerColor.withValues(alpha: 0.4),
             width: isSelected ? 2.5 : 1,
           ),
-          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          color: theme.colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.3,
+          ),
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(

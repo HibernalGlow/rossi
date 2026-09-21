@@ -59,8 +59,7 @@ class ReaderPresentationCubit extends Cubit<ReaderPresentation> {
   ///
   /// 与 neoview 同一边界：那边重置的是 `presentation`，`layout.pageMode` 与
   /// `readingDirection` 各自有自己的持久化，不归这个按钮管。
-  void resetView() =>
-      _apply(ReaderPresentation.defaultPresentation);
+  void resetView() => _apply(ReaderPresentation.defaultPresentation);
 
   void _apply(ReaderPresentation next) {
     if (next == state) return;

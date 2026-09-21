@@ -267,8 +267,7 @@ class _PageInfoAppearanceSection extends StatelessWidget {
               suffix: t.reader.percent,
               onChanged: (value) {
                 globalSettingCubit.updateReadSetting(
-                  (current) =>
-                      current.copyWith(pageInfoOpacityPercent: value),
+                  (current) => current.copyWith(pageInfoOpacityPercent: value),
                 );
               },
             ),

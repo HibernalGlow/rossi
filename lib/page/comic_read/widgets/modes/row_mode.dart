@@ -70,9 +70,7 @@ class _RowModeWidgetState extends State<RowModeWidget> {
     final readMode = globalSettingState.readSetting.readMode;
     final readSetting = globalSettingState.readSetting;
     // 顶栏缩放/旋转面板的那一份状态：一个 route 一份，换书即归零。
-    final presentation = context.select(
-      (ReaderPresentationCubit c) => c.state,
-    );
+    final presentation = context.select((ReaderPresentationCubit c) => c.state);
     final isDoublePage = readSetting.doublePageMode;
     final doublePageSlots = isDoublePage
         ? buildReadModeDoublePageSlots(

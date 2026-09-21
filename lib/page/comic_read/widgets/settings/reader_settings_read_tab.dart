@@ -136,7 +136,8 @@ class _VideoSectionState extends State<_VideoSection> {
                 max: 10000,
                 divisions: 9,
                 suffix: 'ms',
-                onChanged: (value) => _write(_copy(autoHideMilliseconds: value)),
+                onChanged: (value) =>
+                    _write(_copy(autoHideMilliseconds: value)),
               ),
             ),
             _SettingsSliderCard(
@@ -275,9 +276,9 @@ class _VideoListTile extends StatelessWidget {
     final problems = validate?.call(saved) ?? const <String>[];
     if (problems.isNotEmpty) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(problems.join('；'))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(problems.join('；'))));
       }
       return;
     }
@@ -401,8 +402,8 @@ class _ReadModeSection extends StatelessWidget {
               subtitle: readSetting.readMode == 0
                   ? t.reader.readingDirectionToggleDisabled
                   : (readSetting.readMode == 2
-                      ? t.reader.readingDirectionToggleLeftOpen
-                      : t.reader.readingDirectionToggleRightOpen),
+                        ? t.reader.readingDirectionToggleLeftOpen
+                        : t.reader.readingDirectionToggleRightOpen),
               value: readSetting.readingDirectionToggle,
               onChanged: (value) {
                 globalSettingCubit.updateReadSetting(
@@ -677,9 +678,7 @@ class _ReadBackgroundSection extends StatelessWidget {
             // 选固定底色**同时**关掉自适应：两者是互斥的一档，
             // 让它们同时"开着"会让用户看到一条选了却没生效的设置。
             globalSettingCubit.updateReadSetting(
-              (current) => current.copyWith(
-                readerBackgroundMode: mode,
-              ),
+              (current) => current.copyWith(readerBackgroundMode: mode),
             );
           },
         ),
@@ -716,9 +715,7 @@ class _ReadBackgroundSection extends StatelessWidget {
                 ],
                 onSelectionChanged: (mode) {
                   globalSettingCubit.updateReadSetting(
-                    (current) => current.copyWith(
-                      readerBackgroundMode: mode,
-                    ),
+                    (current) => current.copyWith(readerBackgroundMode: mode),
                   );
                 },
               ),
@@ -853,8 +850,7 @@ class _ReadExperienceSection extends StatelessWidget {
                 onChanged: (value) {
                   final percent = value.clamp(0, 30);
                   globalSettingCubit.updateReadSetting(
-                    (current) =>
-                        current.copyWith(sidePaddingPercent: percent),
+                    (current) => current.copyWith(sidePaddingPercent: percent),
                   );
                 },
               ),
@@ -1037,9 +1033,7 @@ class _SuperResolutionSectionState extends State<_SuperResolutionSection> {
                 ),
               ),
               padding: const EdgeInsets.all(14),
-              child: const SuperResolutionEngineSettings(
-                isReaderCompact: true,
-              ),
+              child: const SuperResolutionEngineSettings(isReaderCompact: true),
             ),
           ],
           const UpscaleConditionsCard(isReaderCompact: true),

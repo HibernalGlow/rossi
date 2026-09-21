@@ -83,7 +83,7 @@ enum ReaderWidePageStretch {
   uniformHeight,
 
   /// 宽度对齐：每页缩放到该帧的平均宽度。
-  uniformWidth;
+  uniformWidth,
 }
 
 /// 一帧的排布轴。
@@ -145,9 +145,8 @@ class ReaderPresentation {
       stepReaderManualScale(manualScale, direction);
 
   /// 顺时针转 `quarterTurns` 个直角。
-  ReaderPresentation rotated(int quarterTurns) => copyWith(
-    rotation: normalizeReaderRotation(rotation + quarterTurns * 90),
-  );
+  ReaderPresentation rotated(int quarterTurns) =>
+      copyWith(rotation: normalizeReaderRotation(rotation + quarterTurns * 90));
 
   ReaderPresentation copyWith({
     ReaderFitMode? fitMode,
@@ -220,17 +219,18 @@ double calculateReaderScale({
   final widthScale = viewport.width / content.width;
   final heightScale = viewport.height / content.height;
   final modeScale = switch (fitMode) {
-    ReaderFitMode.fill => axis == ReaderFrameAxis.strip
-      ? widthScale
-      : math.max(widthScale, heightScale),
+    ReaderFitMode.fill =>
+      axis == ReaderFrameAxis.strip
+          ? widthScale
+          : math.max(widthScale, heightScale),
     ReaderFitMode.fitWidth => widthScale,
     ReaderFitMode.fitHeight => heightScale,
     ReaderFitMode.original => 1.0,
     // 条漫的固定轴是宽度：`fit` 在这里就是「铺满宽」，不是「塞进一屏」。
     ReaderFitMode.fit || ReaderFitMode.fitLeft || ReaderFitMode.fitRight =>
       axis == ReaderFrameAxis.strip
-      ? widthScale
-      : math.min(widthScale, heightScale),
+          ? widthScale
+          : math.min(widthScale, heightScale),
   };
   return modeScale * normalized;
 }
@@ -272,7 +272,8 @@ int effectiveReaderRotation(
   Size page,
 ) {
   final portrait = page.height > page.width;
-  final delta = autoRotation == ReaderAutoRotation.forcedLeft ||
+  final delta =
+      autoRotation == ReaderAutoRotation.forcedLeft ||
           (autoRotation == ReaderAutoRotation.left && portrait) ||
           (autoRotation == ReaderAutoRotation.horizontalLeft && !portrait)
       ? -90
@@ -286,9 +287,7 @@ int effectiveReaderRotation(
 
 /// 旋转后的布局尺寸：直角旋转会交换宽高。
 Size rotatePresentationSize(Size size, int rotation) =>
-    (rotation == 90 || rotation == 270)
-    ? Size(size.height, size.width)
-    : size;
+    (rotation == 90 || rotation == 270) ? Size(size.height, size.width) : size;
 
 /// 一帧的总尺寸：沿排布轴累加，交叉轴取最大。
 ///

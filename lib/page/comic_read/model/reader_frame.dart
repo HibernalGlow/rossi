@@ -71,8 +71,7 @@ class ReaderFrame {
       presentation.widePageStretch,
     );
     final stretched = <Size>[
-      for (var i = 0; i < rotated.length; i++)
-        rotated[i] * stretches[i],
+      for (var i = 0; i < rotated.length; i++) rotated[i] * stretches[i],
     ];
 
     final content = _frameSize(stretched, axis);
@@ -95,10 +94,7 @@ class ReaderFrame {
 
     return ReaderFrame(
       pages: placed,
-      size: _frameSize(
-        placed.map((page) => page.boxSize).toList(),
-        axis,
-      ),
+      size: _frameSize(placed.map((page) => page.boxSize).toList(), axis),
     );
   }
 

@@ -216,10 +216,8 @@ int remapReadModeSlotIndexForPairingChange({
   );
   if (previousSlots.isEmpty) return slotIndex.clamp(0, nextSlots.length - 1);
 
-  final previousSlot = previousSlots[slotIndex.clamp(
-    0,
-    previousSlots.length - 1,
-  )];
+  final previousSlot =
+      previousSlots[slotIndex.clamp(0, previousSlots.length - 1)];
   if (previousSlot.isEmpty) return slotIndex.clamp(0, nextSlots.length - 1);
 
   final anchorEntryIndex = previousSlot.first;

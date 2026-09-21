@@ -122,8 +122,9 @@ class _TapBehaviorSection extends StatelessWidget {
                 globalSettingCubit.updateReadSetting(
                   (current) => current.copyWith(
                     doubleTapZoom: value,
-                    doubleTapOpenMenu:
-                        value ? false : current.doubleTapOpenMenu,
+                    doubleTapOpenMenu: value
+                        ? false
+                        : current.doubleTapOpenMenu,
                   ),
                 );
               },
@@ -284,8 +285,7 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
                     value: readSetting.hoverRevealBottom,
                     onChanged: (value) {
                       globalSettingCubit.updateReadSetting(
-                        (current) =>
-                            current.copyWith(hoverRevealBottom: value),
+                        (current) => current.copyWith(hoverRevealBottom: value),
                       );
                     },
                   ),
@@ -325,9 +325,8 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
                     value: readSetting.hoverShowVisualIndicator,
                     onChanged: (value) {
                       globalSettingCubit.updateReadSetting(
-                        (current) => current.copyWith(
-                          hoverShowVisualIndicator: value,
-                        ),
+                        (current) =>
+                            current.copyWith(hoverShowVisualIndicator: value),
                       );
                     },
                   ),

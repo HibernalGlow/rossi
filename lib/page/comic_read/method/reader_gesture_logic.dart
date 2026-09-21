@@ -158,7 +158,10 @@ class ReaderGestureLogic {
         dispatcher.dispatch(BindingAction.nextPage, fromKeyboard: false);
         return;
       }
-      dispatcher.dispatchTapArea(area: area, bindingsArrayJson: bindingsArrayJson);
+      dispatcher.dispatchTapArea(
+        area: area,
+        bindingsArrayJson: bindingsArrayJson,
+      );
       return;
     }
 

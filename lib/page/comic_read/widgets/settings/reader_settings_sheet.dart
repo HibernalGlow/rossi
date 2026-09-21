@@ -216,10 +216,8 @@ class _ReaderSettingsHeader extends StatelessWidget {
                   labelStyle: context.theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
-                  unselectedLabelStyle:
-                      context.theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
+                  unselectedLabelStyle: context.theme.textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w500),
                   tabs: [
                     Tab(text: t.reader.settings),
                     Tab(text: t.reader.gesture),
@@ -232,8 +230,8 @@ class _ReaderSettingsHeader extends StatelessWidget {
                 tooltip: t.common.close,
                 icon: const Icon(Icons.close, size: 20),
                 style: IconButton.styleFrom(
-                  backgroundColor:
-                      colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                  backgroundColor: colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.4),
                   visualDensity: VisualDensity.compact,
                 ),
                 onPressed: () => Navigator.of(context).pop(),
@@ -506,10 +504,7 @@ class _SettingsSwitchTile extends StatelessWidget {
               ),
             )
           : null,
-      trailing: Switch.adaptive(
-        value: value,
-        onChanged: onChanged,
-      ),
+      trailing: Switch.adaptive(value: value, onChanged: onChanged),
       onTap: () {
         HapticFeedback.selectionClick();
         onChanged(!value);
@@ -624,7 +619,10 @@ class _SettingsSliderCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 3,
+                ),
                 decoration: BoxDecoration(
                   color: enabled
                       ? colorScheme.secondaryContainer

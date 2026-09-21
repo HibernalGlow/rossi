@@ -75,11 +75,7 @@ class ReaderSeamlessCubit extends Cubit<ReaderSeamlessState> {
     _chapterRefs = resolveUnifiedComicChapters(_comicInfo, _from);
     if (_chapterRefs.isEmpty && isLocalComicSource(_from, _comicId)) {
       _chapterRefs = <UnifiedComicChapterRef>[
-        UnifiedComicChapterRef(
-          id: _comicId,
-          name: '全本',
-          order: _initialOrder,
-        ),
+        UnifiedComicChapterRef(id: _comicId, name: '全本', order: _initialOrder),
       ];
     }
     _chapterOrderToCatalogIndex = <int, int>{};

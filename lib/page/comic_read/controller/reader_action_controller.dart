@@ -96,10 +96,7 @@ class ReaderActionController {
       return;
     }
     _turnPage(
-      isNext: isNextPageTurn(
-        isPageRight: isPageRight,
-        rightToLeft: mode == 2,
-      ),
+      isNext: isNextPageTurn(isPageRight: isPageRight, rightToLeft: mode == 2),
     );
   }
 
