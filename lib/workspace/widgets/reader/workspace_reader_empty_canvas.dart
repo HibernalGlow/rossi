@@ -48,74 +48,134 @@ class _WorkspaceReaderEmptyCanvasState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final history = _latestHistory;
 
     // 泳道可能被拖到很窄（甚至分屏）—— 一律用滚动兜住，空态永不溢出。
     return Stack(
       children: [
         Positioned.fill(
-          child: CustomPaint(
-            painter: ReaderEmptyGridPainter(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.12),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: const Alignment(0, -0.12),
+                radius: 0.95,
+                colors: [
+                  scheme.primary.withValues(alpha: 0.07),
+                  scheme.primary.withValues(alpha: 0),
+                ],
+              ),
             ),
           ),
         ),
         Positioned.fill(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.auto_stories_outlined,
-                  size: 44,
-                  color: theme.colorScheme.primary.withValues(alpha: 0.55),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  '阅读器泳道空闲中',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 460),
-                  child: Text(
-                    '在左侧书架或右侧发现里点开任意一本，都会读在这条泳道里；'
-                    '点栏顶的独占按钮可让它瞬间撑满视口。',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    if (_latestHistory != null)
-                      FilledButton.icon(
-                        onPressed: () => _resume(_latestHistory!),
-                        icon: const Icon(Icons.play_arrow_rounded, size: 18),
-                        label: Text(
-                          '继续阅读: ${_latestHistory!.title}',
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    OutlinedButton.icon(
-                      onPressed: _openLocalPicker,
-                      icon: const Icon(Icons.folder_open_rounded, size: 16),
-                      label: const Text('打开本地漫画'),
-                    ),
-                  ],
-                ),
-              ],
+          child: CustomPaint(
+            painter: ReaderEmptyGridPainter(
+              color: scheme.outlineVariant.withValues(alpha: 0.16),
             ),
           ),
         ),
+        Positioned.fill(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  // 视口内摆得下就正好居中，摆不下才滚动。
+                  constraints: BoxConstraints(
+                    minHeight: constraints.hasBoundedHeight
+                        ? constraints.maxHeight
+                        : 0,
+                  ),
+                  child: Center(child: _buildContent(context, history)),
+                ),
+              );
+            },
+          ),
+        ),
       ],
+    );
+  }
+
+  Widget _buildContent(BuildContext context, UnifiedComicHistory? history) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 420),
+            curve: Curves.easeOutCubic,
+            tween: Tween<double>(begin: 0, end: 1),
+            builder: (context, t, child) => Opacity(
+              opacity: t,
+              child: Transform.translate(
+                offset: Offset(0, (1 - t) * 10),
+                child: child,
+              ),
+            ),
+            child: _EmptyBadge(
+              icon: Icons.auto_stories_outlined,
+              iconColor: scheme.primary,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            '阅读器泳道空闲中',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: scheme.onSurface,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Text(
+              '在左侧书架或右侧发现里点开任意一本，都会读在这条泳道里；'
+              '点栏顶的独占按钮可让它瞬间撑满视口。',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
+                height: 1.6,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 26),
+          Wrap(
+            spacing: 12,
+            runSpacing: 10,
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (history != null) ...[
+                FilledButton.icon(
+                  onPressed: () => _resume(history),
+                  icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                  label: const Text('继续阅读'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _openLocalPicker,
+                  icon: const Icon(Icons.folder_open_rounded, size: 18),
+                  label: const Text('打开本地漫画'),
+                ),
+              ] else
+                FilledButton.icon(
+                  onPressed: _openLocalPicker,
+                  icon: const Icon(Icons.folder_open_rounded, size: 18),
+                  label: const Text('打开本地漫画'),
+                ),
+            ],
+          ),
+          if (history != null) ...[
+            const SizedBox(height: 16),
+            _LastReadCaption(text: '上次读到 · ${history.title}'),
+          ],
+        ],
+      ),
     );
   }
 
@@ -159,7 +219,80 @@ class _WorkspaceReaderEmptyCanvasState
   }
 }
 
+/// 空态的「状态图标」：MD3 里空态属于 large illustration，
+/// 用一层 surfaceContainerHighest 的圆形容器托住，比裸图标更有分量。
+class _EmptyBadge extends StatelessWidget {
+  const _EmptyBadge({required this.icon, required this.iconColor});
+
+  final IconData icon;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: 84,
+      height: 84,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: iconColor.withValues(alpha: 0.18),
+            blurRadius: 36,
+            spreadRadius: -6,
+          ),
+        ],
+      ),
+      child: Icon(icon, size: 40, color: iconColor),
+    );
+  }
+}
+
+/// 「上次读到 · 书名」：被动说明，不是第三颗按钮，因此压到最弱的层级。
+class _LastReadCaption extends StatelessWidget {
+  const _LastReadCaption({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Tooltip(
+      message: text,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.schedule_rounded,
+            size: 14,
+            color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360),
+              child: Text(
+                text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// 空态背景的暗纹网格（neoview 中央画板的视觉语言）。
+///
+/// 网格从中心向四周淡出：铺满到边缘时，视线会被边缘的线抢走。
 class ReaderEmptyGridPainter extends CustomPainter {
   final Color color;
 
@@ -168,8 +301,13 @@ class ReaderEmptyGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1;
+      ..strokeWidth = 1
+      ..shader = RadialGradient(
+        center: const Alignment(0, -0.12),
+        radius: 1.15,
+        colors: [color, color.withValues(alpha: 0)],
+        stops: const [0.1, 1],
+      ).createShader(Offset.zero & size);
 
     const step = 28.0;
     for (double x = 0; x < size.width; x += step) {
