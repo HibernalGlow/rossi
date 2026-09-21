@@ -526,6 +526,8 @@ class _MetaPill extends StatelessWidget {
       ),
       child: Text(
         label,
+        textAlign: TextAlign.center,
+        softWrap: true,
         style: context.theme.textTheme.bodySmall?.copyWith(
           fontWeight: FontWeight.w600,
           height: 1.15,

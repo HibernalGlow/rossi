@@ -6,6 +6,7 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/cubit/plugin_registry_cubit.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
+import 'package:zephyr/page/search/widget/search_input_dialog.dart';
 import 'package:zephyr/page/search/widget/source_select_dialog.dart';
 import 'package:zephyr/page/search_result/bloc/search_bloc.dart';
 import 'package:zephyr/config/router/router.gr.dart';
@@ -155,53 +156,11 @@ class _SearchBarTrigger extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: GestureDetector(
-              onTap: () {
-                final tabs = DiscoverTabScope.maybeOf(context);
-                if (tabs != null) {
-                  tabs.openSearchInput(
-                    context.read<SearchCubit>().state,
-                    aggregateMode: true,
-                  );
-                  return;
-                }
-                final stack = context.router.stack;
-                if (stack.length > 1 &&
-                    stack[stack.length - 2].name == SearchRoute.name) {
-                  context.maybePop();
-                  return;
-                }
-
-                context.replaceRoute(
-                  SearchRoute(
-                    key: ValueKey(const Uuid().v4()),
-                    searchState: context.read<SearchCubit>().state,
-                    aggregateMode: true,
-                  ),
-                );
-              },
-              child: Container(
-                height: 42,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(21),
-                ),
-                child: Row(
-                  children: [
-                    const SizedBox(width: 12),
-                    const Icon(Icons.search, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        searchEvent.searchStates.searchKeyword,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                ),
-              ),
+            child: SearchQueryField(
+              query: searchEvent.searchStates.searchKeyword,
+              hintText: t.search.searchHint,
+              semanticLabel: t.search.title,
+              onTap: () => _openSearchPage(context),
             ),
           ),
           IconButton(
@@ -210,6 +169,33 @@ class _SearchBarTrigger extends StatelessWidget {
             icon: const Icon(Icons.tune),
           ),
         ],
+      ),
+    );
+  }
+
+  void _openSearchPage(BuildContext context) {
+    // 在发现页的标签里：根栈上只有导航栏，「弹回去」与「换一页」两件事都不成立，
+    // 所以开一条搜索标签。
+    final tabs = DiscoverTabScope.maybeOf(context);
+    if (tabs != null) {
+      tabs.openSearchInput(
+        context.read<SearchCubit>().state,
+        aggregateMode: true,
+      );
+      return;
+    }
+
+    final stack = context.router.stack;
+    if (stack.length > 1 && stack[stack.length - 2].name == SearchRoute.name) {
+      context.maybePop();
+      return;
+    }
+
+    context.replaceRoute(
+      SearchRoute(
+        key: ValueKey(const Uuid().v4()),
+        searchState: context.read<SearchCubit>().state,
+        aggregateMode: true,
       ),
     );
   }
