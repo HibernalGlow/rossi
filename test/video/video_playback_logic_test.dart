@@ -863,7 +863,7 @@ Comment: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,不该出现
   });
 
   group('视频设置持久化（encode ⇄ parse）', () {
-    test('十条字段往返一个都不许丢', () {
+    test('每一条字段往返一个都不许丢', () {
       const original = VideoSettings(
         controlsPinned: true,
         hardwareDecode: false,
@@ -876,6 +876,8 @@ Comment: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,不该出现
         animatedVideoEnabled: true,
         animatedVideoKeywords: <String>['[#dyna]', '[#动]'],
         extraVideoExtensions: <String>['myvid', 'cbr-video'],
+        imageFormats: <String>['webp', 'myimg'],
+        videoFormats: <String>['movid'],
         deinterlace: true,
         subtitleStyle: VideoSubtitleStyle(
           sizeEm: 1.6,
@@ -896,6 +898,8 @@ Comment: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,不该出现
       expect(back.animatedVideoEnabled, isTrue);
       expect(back.animatedVideoKeywords, <String>['[#dyna]', '[#动]']);
       expect(back.extraVideoExtensions, <String>['myvid', 'cbr-video']);
+      expect(back.imageFormats, <String>['webp', 'myimg']);
+      expect(back.videoFormats, <String>['movid']);
       expect(back.deinterlace, isTrue);
       expect(back.subtitleStyle.sizeEm, 1.6);
       expect(back.subtitleStyle.colorHex, 'ffe066');
@@ -911,6 +915,79 @@ Comment: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,不该出现
         VideoSettings.parse('animatedKeywords=a\u001fb').animatedVideoKeywords,
         <String>['a', 'b'],
       );
+    });
+
+    /// 空表在**替换档**里的意思格外要紧：它等于「没设置过，用内置默认」，
+    /// 而不是「用户把表清空了」。`''.split('\u001f')` 会给出 `['']`，
+    /// 照字面收下就是一颗空后缀进了表 —— 那会让整本书按空表判，症状是啥都不显示。
+    test('格式表为空 = 没设置过，不是一颗空后缀', () {
+      expect(VideoSettings.parse('imageFormats=').imageFormats, isEmpty);
+      expect(VideoSettings.parse('').imageFormats, isEmpty);
+      expect(VideoSettings.parse('').videoFormats, isEmpty);
+      const roundTrip = VideoSettings(
+        imageFormats: <String>[],
+        videoFormats: <String>[],
+      );
+      expect(VideoSettings.parse(roundTrip.encode()).imageFormats, isEmpty);
+    });
+
+    test('格式表读回来已经规整过（去点、小写、丢空段）', () {
+      expect(
+        VideoSettings.parse('imageFormats=.JPG\u001f\u001fpng').imageFormats,
+        <String>['jpg', 'png'],
+      );
+    });
+  });
+
+  group('媒体格式表校验（neoview media.ts:154-166）', () {
+    test('留空两档都没有问题（空表 = 用内置默认）', () {
+      expect(
+        mediaFormatTableProblems(
+          image: const <String>[],
+          video: const <String>[],
+        ),
+        isEmpty,
+      );
+    });
+
+    test('同一个后缀不许同时进两档', () {
+      final problems = mediaFormatTableProblems(
+        image: const <String>['myimg', 'shared'],
+        video: const <String>['shared'],
+      );
+      expect(problems, hasLength(1));
+      expect(problems.single, contains('shared'));
+    });
+
+    test('字符集、长度与条数三条都报错', () {
+      final problems = mediaFormatTableProblems(
+        image: <String>[
+          '',
+          'web*p',
+          'x' * 17,
+          ...List<String>.generate(129, (i) => 'e$i'),
+        ],
+        video: const <String>[],
+      );
+      expect(problems.any((p) => p.contains('空后缀')), isTrue);
+      expect(problems.any((p) => p.contains('web*p')), isTrue);
+      expect(problems.any((p) => p.contains('16 个字符')), isTrue);
+      expect(problems.any((p) => p.contains('128 条')), isTrue);
+    });
+
+    test('首字符必须是字母或数字，但 + _ - 与数字开头合法', () {
+      expect(
+        mediaFormatTableProblems(
+          image: const <String>['c++', 'cbz-x', '7z_img'],
+          video: const <String>[],
+        ),
+        isEmpty,
+      );
+      final problems = mediaFormatTableProblems(
+        image: const <String>['_lead'],
+        video: const <String>[],
+      );
+      expect(problems, hasLength(1));
     });
   });
 }
