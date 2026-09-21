@@ -8,15 +8,31 @@ import 'package:zephyr/util/input/binding_input_capture.dart';
 import 'package:zephyr/page/setting/operation_binding/binding_editor_labels.dart';
 
 class BindingInputRecorder extends StatefulWidget {
-  const BindingInputRecorder({super.key, required this.input});
+  const BindingInputRecorder({
+    super.key,
+    required this.input,
+    this.wheelFollowsHand = false,
+  });
+
   final Map<String, dynamic> input;
 
+  /// 滚轮方向词按手推的方向还是按内容走的方向算（见
+  /// `OperationBindingStore.wheelDirectionFollowsHand`）。由持有设置的调用方传进来，
+  /// 这个组件自己不去读 `GlobalSettingCubit` —— 录键框要能在隔离的夹具里跑。
+  final bool wheelFollowsHand;
+
+  /// 方向判定由**持有设置的调用方**传进来：这个组件自己不看 `GlobalSettingCubit`，
+  /// 录键框因此能在任何宿主里打开，也不会因为缺一层 provider 而 behaves 不同。
   static Future<Map<String, dynamic>?> show(
     BuildContext context,
-    Map<String, dynamic> input,
-  ) => showDialog<Map<String, dynamic>>(
+    Map<String, dynamic> input, {
+    bool wheelFollowsHand = false,
+  }) => showDialog<Map<String, dynamic>>(
     context: context,
-    builder: (_) => BindingInputRecorder(input: input),
+    builder: (_) => BindingInputRecorder(
+      input: input,
+      wheelFollowsHand: wheelFollowsHand,
+    ),
   );
 
   @override
@@ -128,16 +144,30 @@ class _BindingInputRecorderState extends State<BindingInputRecorder> {
     setState(() => _captured = result);
   }
 
+  /// 录制与运行时共用同一个滚轮方向判定（macOS 的系统反转滚动已在 dy 里翻过一次）。
+  /// 两边不一致就会出现「录进去是 up、触发时算 down」的错位。
+  bool get _wheelFollowsHand => widget.wheelFollowsHand;
+
   void _onScroll(PointerScrollEvent event) {
     if (event.scrollDelta.dy != 0) {
-      setState(() => _captured = bindingWheelInput(event.scrollDelta.dy));
+      setState(
+        () => _captured = bindingWheelInput(
+          event.scrollDelta.dy,
+          invert: _wheelFollowsHand,
+        ),
+      );
     }
   }
 
   void _onPanZoomUpdate(PointerPanZoomUpdateEvent event) {
     _panZoomDyAccumulator += event.panDelta.dy;
     if (_panZoomDyAccumulator.abs() >= 10) {
-      setState(() => _captured = bindingWheelInput(_panZoomDyAccumulator));
+      setState(
+        () => _captured = bindingWheelInput(
+          _panZoomDyAccumulator,
+          invert: _wheelFollowsHand,
+        ),
+      );
       _panZoomDyAccumulator = 0;
     }
   }

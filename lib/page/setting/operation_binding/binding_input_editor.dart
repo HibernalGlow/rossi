@@ -1,6 +1,9 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/service/operation_binding/binding_doc.dart';
+import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
 import 'package:zephyr/page/setting/operation_binding/binding_editor_labels.dart';
 import 'package:zephyr/page/setting/operation_binding/binding_input_recorder.dart';
 
@@ -203,7 +206,19 @@ class BindingInputEditor extends StatelessWidget {
           const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: () async {
-              final captured = await BindingInputRecorder.show(context, input);
+              // 录制与运行时必须用同一个滚轮方向判定，否则「录进去的方向」和
+              // 「触发时的方向」会反着对不上。
+              final binding = context
+                  .read<GlobalSettingCubit>()
+                  .state
+                  .operationBindingSetting;
+              final followsHand =
+                  OperationBindingStore.wheelDirectionFollowsHand(binding);
+              final captured = await BindingInputRecorder.show(
+                context,
+                input,
+                wheelFollowsHand: followsHand,
+              );
               if (captured != null && context.mounted) onChanged(captured);
             },
             icon: const Icon(Icons.sensors, size: 18),
