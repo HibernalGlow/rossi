@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 import 'package:zephyr/main.dart';
-import 'package:zephyr/network/http/plugin/unified_comic_plugin.dart';
+import 'package:zephyr/network/http/plugin/plugin_init_coordinator.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/object_box.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
@@ -29,7 +29,6 @@ class PluginRegistryService {
       StreamController<Map<String, PluginRuntimeState>>.broadcast();
   ObjectBox? _objectbox;
   final Map<String, Map<String, dynamic>> _pluginInfoCache = {};
-  final Set<String> _pluginInitDone = <String>{};
 
   Stream<Map<String, PluginRuntimeState>> get stream =>
       _streamController.stream;
@@ -90,14 +89,10 @@ class PluginRegistryService {
 
     for (final uuid in affected) {
       _pluginInfoCache.remove(uuid);
-      _pluginInitDone.remove(uuid);
 
       final runtimeName = resolveRuntimeName(uuid);
       try {
-        final runtimeReady = await isQjsRuntimeInitialized(name: runtimeName);
-        if (runtimeReady) {
-          await qjsDropRuntime(runtimeName: runtimeName);
-        }
+        await PluginInitCoordinator.I.resetRuntime(runtimeName);
       } catch (e, st) {
         logger.w('同步后清理插件 runtime 失败: $uuid', error: e, stackTrace: st);
       }
@@ -137,7 +132,10 @@ class PluginRegistryService {
 
   Future<void> initializeActivePluginRuntimes() async {
     final plugins = updateCheckTargets()
-        .where((plugin) => !_pluginInitDone.contains(plugin.uuid))
+        .where(
+          (plugin) =>
+              !PluginInitCoordinator.I.isReady(resolveRuntimeName(plugin.uuid)),
+        )
         .toList();
     if (plugins.isEmpty) {
       return;
@@ -372,7 +370,7 @@ class PluginRegistryService {
     objectbox.pluginInfoBox.put(info);
     _states[info.uuid] = _toState(info);
     _pluginInfoCache.remove(info.uuid);
-    _pluginInitDone.remove(info.uuid);
+    PluginInitCoordinator.I.invalidate(resolveRuntimeName(info.uuid));
     _emit();
   }
 
@@ -393,13 +391,16 @@ class PluginRegistryService {
     objectbox.pluginInfoBox.put(found);
     _states[uuid] = _toState(found);
     _pluginInfoCache.remove(uuid);
-    _pluginInitDone.remove(uuid);
+    final runtimeName = resolveRuntimeName(uuid);
+    PluginInitCoordinator.I.invalidate(runtimeName);
     _emit();
 
-    final runtimeName = resolveRuntimeName(uuid);
     if (enabled) {
       await ensurePluginRuntimeReady(_states[uuid]!, runtimeName: runtimeName);
-      await runPluginInitIfNeeded(_states[uuid]!, runtimeName: runtimeName);
+      // 开关等不起域名探测：init 挂后台跑，真正的把关点在调用插件函数时统一 await。
+      unawaited(
+        runPluginInitIfNeeded(_states[uuid]!, runtimeName: runtimeName),
+      );
       try {
         await fetchPluginInfo(uuid: uuid, runtimeName: runtimeName);
       } catch (e, st) {
@@ -407,10 +408,7 @@ class PluginRegistryService {
       }
     } else {
       try {
-        final runtimeReady = await isQjsRuntimeInitialized(name: runtimeName);
-        if (runtimeReady) {
-          await qjsDropRuntime(runtimeName: runtimeName);
-        }
+        await PluginInitCoordinator.I.resetRuntime(runtimeName);
       } catch (e, st) {
         logger.w('禁用插件时释放 runtime 失败: $uuid', error: e, stackTrace: st);
       }
@@ -463,7 +461,7 @@ class PluginRegistryService {
     objectbox.pluginInfoBox.put(found);
     _states[uuid] = _toState(found);
     _pluginInfoCache.remove(uuid);
-    _pluginInitDone.remove(uuid);
+    PluginInitCoordinator.I.invalidate(resolveRuntimeName(uuid));
     _emit();
   }
 
@@ -482,10 +480,7 @@ class PluginRegistryService {
 
     final runtimeName = resolveRuntimeName(uuid);
     try {
-      final runtimeReady = await isQjsRuntimeInitialized(name: runtimeName);
-      if (runtimeReady) {
-        await qjsDropRuntime(runtimeName: runtimeName);
-      }
+      await PluginInitCoordinator.I.resetRuntime(runtimeName);
     } catch (_) {
       // runtime 失败不阻断删除主流程
     }
@@ -507,7 +502,7 @@ class PluginRegistryService {
     objectbox.pluginInfoBox.put(found);
     _states[uuid] = _toState(found);
     _pluginInfoCache.remove(uuid);
-    _pluginInitDone.remove(uuid);
+    PluginInitCoordinator.I.invalidate(runtimeName);
     _emit();
   }
 
@@ -655,44 +650,37 @@ class PluginRegistryService {
         ),
       ),
     );
-    _pluginInitDone.remove(plugin.uuid);
+    // buildQjsRuntime 命中同名 runtime 时是「换 bundle」，JS 模块状态全新，
+    // 旧的 init 结论必须作废，否则之后的调用会跳过 init。
+    PluginInitCoordinator.I.invalidate(runtimeName);
   }
 
+  /// 等到插件 init 真正完成；并发调用共用同一次 init。
   Future<void> runPluginInitIfNeeded(
     PluginRuntimeState plugin, {
     required String runtimeName,
   }) async {
-    if (_pluginInitDone.contains(plugin.uuid)) {
+    if (PluginInitCoordinator.I.isReady(runtimeName)) {
       return;
     }
 
-    // init 不需要等待结果，触发后即返回，避免阻塞安装/启用流程。
-    Future(() async {
-      try {
-        await callUnifiedComicPlugin(
-          pluginId: runtimeName,
-          fnPath: 'init',
-          core: {},
-        );
-        _pluginInitDone.add(plugin.uuid);
-        await updateLoadResult(plugin.uuid, success: true, error: null);
-      } catch (e) {
-        final err = e.toString();
-        if (err.contains('target is not function: init')) {
-          _pluginInitDone.add(plugin.uuid);
-          logger.w('插件未实现 init，已跳过: ${plugin.uuid}');
-          return;
-        }
-        await updateLoadResult(
-          plugin.uuid,
-          success: false,
-          error: 'init 执行失败: $e',
-        );
-        logger.w('插件 init 执行失败: ${plugin.uuid}', error: e);
+    try {
+      final initialized = await PluginInitCoordinator.I.ensureInitialized(
+        runtimeName,
+      );
+      if (!initialized) {
+        // 静默期跳过：这次没有真正的 init 结果，别把上一次的失败覆盖成成功。
+        return;
       }
-    }).catchError((e) {
-      logger.w('插件 init 异步执行失败: ${plugin.uuid}', error: e);
-    });
+      await updateLoadResult(plugin.uuid, success: true, error: null);
+    } catch (e) {
+      await updateLoadResult(
+        plugin.uuid,
+        success: false,
+        error: 'init 执行失败: $e',
+      );
+      logger.w('插件 init 执行失败: ${plugin.uuid}', error: e);
+    }
   }
 
   Future<String> _resolveBundleJs(PluginRuntimeState plugin) async {

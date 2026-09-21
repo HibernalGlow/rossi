@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:cbor/simple.dart' as cbor;
 import 'package:zephyr/main.dart';
 import 'package:zephyr/network/http/plugin/qjs_fetch_image_result.dart';
+import 'package:zephyr/network/http/plugin/plugin_init_coordinator.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
 import 'package:zephyr/service/download/download_cancel_signal.dart';
 import 'package:zephyr/src/rust/api/qjs.dart';
@@ -13,7 +14,6 @@ import 'package:zephyr/src/rust/qjs.dart';
 import 'package:zephyr/type/pipe.dart';
 
 final Map<String, Set<String>> _trackedRuntimesByGroup = {};
-final Set<String> _runtimeInitDone = <String>{};
 
 String runtimeNameForPluginId(String pluginIdOrLegacy) {
   return normalizePluginId(pluginIdOrLegacy);
@@ -72,7 +72,7 @@ Future<void> ensureQjsRuntimeReady({required String pluginId}) async {
           ),
         ),
       );
-      _runtimeInitDone.remove(runtimeName);
+      PluginInitCoordinator.I.invalidate(runtimeName);
     }
 
     final ready = await isQjsRuntimeInitialized(name: runtimeName);
@@ -92,32 +92,11 @@ Future<void> ensureQjsRuntimeReady({required String pluginId}) async {
         await installBundle();
       }
     }
-    await _runRuntimeInitIfNeeded(runtimeName);
+    // false 只可能是静默期跳过：继续走到插件函数，报错让插件自己给出，
+    // 由下面的 retryAfterNotReady 统一收口。
+    await PluginInitCoordinator.I.ensureInitialized(runtimeName);
   } catch (e) {
     logger.w('初始化 QJS 失败: $runtimeName', error: e);
-    rethrow;
-  }
-}
-
-Future<void> _runRuntimeInitIfNeeded(String runtimeName) async {
-  if (_runtimeInitDone.contains(runtimeName)) {
-    return;
-  }
-  try {
-    await qjsTaskCall(
-      runtimeName: runtimeName,
-      taskGroupKey: '',
-      isOnce: false,
-      fnPath: 'init',
-      argsJson: '{}',
-    );
-    _runtimeInitDone.add(runtimeName);
-  } catch (e) {
-    if (e.toString().contains('target is not function: init')) {
-      _runtimeInitDone.add(runtimeName);
-      return;
-    }
-    logger.w('插件 init 执行失败: $runtimeName', error: e);
     rethrow;
   }
 }
@@ -163,59 +142,80 @@ Future<T> _runQjsTask<T>({
     throw StateError('fnPath 不能为空: pluginId=$resolvedPluginId');
   }
 
-  final useCallOnce = _shouldUseQjsCallOnce(resolvedPluginId);
-  final debugBundleUrl = useCallOnce
-      ? loadQjsDebugBundleUrl(resolvedPluginId)
-      : null;
-  final bundleJs = useCallOnce && debugBundleUrl == null
-      ? await loadQjsBundleJs(resolvedPluginId)
-      : null;
+  Future<T> invokeOnce() async {
+    final useCallOnce = _shouldUseQjsCallOnce(resolvedPluginId);
+    final debugBundleUrl = useCallOnce
+        ? loadQjsDebugBundleUrl(resolvedPluginId)
+        : null;
+    final bundleJs = useCallOnce && debugBundleUrl == null
+        ? await loadQjsBundleJs(resolvedPluginId)
+        : null;
 
-  if (!useCallOnce) {
-    await ensureQjsRuntimeReady(pluginId: resolvedPluginId);
-  }
+    if (!useCallOnce) {
+      await ensureQjsRuntimeReady(pluginId: resolvedPluginId);
+    }
 
-  // QJS 结果通过 FRB 返回，避免 Dart 与 Rust 共享堆内存。
-  final waitFuture = call(
-    runtimeName: resolvedRuntimeName,
-    taskGroupKey: taskGroupKey ?? '',
-    isOnce: useCallOnce,
-    bundleJs: bundleJs,
-    bundleUrl: debugBundleUrl,
-    fnPath: resolvedFnPath,
-    argsJson: argsJson,
-  );
+    // QJS 结果通过 FRB 返回，避免 Dart 与 Rust 共享堆内存。
+    final waitFuture = call(
+      runtimeName: resolvedRuntimeName,
+      taskGroupKey: taskGroupKey ?? '',
+      isOnce: useCallOnce,
+      bundleJs: bundleJs,
+      bundleUrl: debugBundleUrl,
+      fnPath: resolvedFnPath,
+      argsJson: argsJson,
+    );
 
-  var didUntrack = false;
-  void untrackOnce() {
-    if (didUntrack) return;
-    didUntrack = true;
+    var didUntrack = false;
+    void untrackOnce() {
+      if (didUntrack) return;
+      didUntrack = true;
+      if (taskGroupKey != null && taskGroupKey.isNotEmpty) {
+        _untrackRuntime(
+          pluginId: resolvedPluginId,
+          taskGroupKey: taskGroupKey,
+          runtimeName: resolvedRuntimeName,
+        );
+      }
+    }
+
     if (taskGroupKey != null && taskGroupKey.isNotEmpty) {
-      _untrackRuntime(
+      _trackRuntime(
         pluginId: resolvedPluginId,
         taskGroupKey: taskGroupKey,
         runtimeName: resolvedRuntimeName,
       );
     }
-  }
 
-  if (taskGroupKey != null && taskGroupKey.isNotEmpty) {
-    _trackRuntime(
-      pluginId: resolvedPluginId,
-      taskGroupKey: taskGroupKey,
-      runtimeName: resolvedRuntimeName,
+    unawaited(
+      waitFuture
+          .then<void>((_) {})
+          .catchError((_) {})
+          .whenComplete(untrackOnce),
     );
+    // 注意：不要在 try/finally 里 return Future（会触发
+    // unawaited_return_in_try_block）。untrack 已由上面的 whenComplete 在
+    // future 完成时统一处理；空 taskGroupKey 时 untrackOnce 本身也是 no-op。
+    return taskGroupKey != null && taskGroupKey.isNotEmpty
+        ? raceWithDownloadCancel(taskGroupKey, waitFuture)
+        : waitFuture;
   }
 
-  unawaited(
-    waitFuture.then<void>((_) {}).catchError((_) {}).whenComplete(untrackOnce),
-  );
-  // 注意：不要在 try/finally 里 return Future（会触发
-  // unawaited_return_in_try_block）。untrack 已由上面的 whenComplete 在
-  // future 完成时统一处理；空 taskGroupKey 时 untrackOnce 本身也是 no-op。
-  return taskGroupKey != null && taskGroupKey.isNotEmpty
-      ? raceWithDownloadCancel(taskGroupKey, waitFuture)
-      : waitFuture;
+  try {
+    return await invokeOnce();
+  } catch (error, stackTrace) {
+    if (!isPluginNotReadyError(error)) {
+      Error.throwWithStackTrace(error, stackTrace);
+    }
+    // 插件自己报告还没初始化好，说明宿主的「已就绪」判定是假的（探测型插件会把
+    // 探测失败吞掉后正常返回）。重跑一次 init 再试一次；第二次不再重试，避免成环。
+    if (!await PluginInitCoordinator.I.retryAfterNotReady(
+      resolvedRuntimeName,
+    )) {
+      Error.throwWithStackTrace(error, stackTrace);
+    }
+    return invokeOnce();
+  }
 }
 
 /// 调用插件函数,返回 JSON 字符串。
