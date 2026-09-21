@@ -1561,7 +1561,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
       key: ValueKey('file-manager-tree:${row.path}'),
       dense: true,
       selected: row.isActive,
-      selectedTileColor: theme.colorScheme.primary.withValues(alpha: 0.08),
+      selectedTileColor: theme.colorScheme.secondaryContainer,
       contentPadding: EdgeInsets.only(left: 4.0 + row.depth * 14, right: 8),
       leading: SizedBox(
         width: 24,
@@ -2729,7 +2729,10 @@ class _ErrorState extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.error_outline_rounded, color: Colors.amber),
+        Icon(
+          Icons.error_outline_rounded,
+          color: Theme.of(context).colorScheme.error,
+        ),
         const SizedBox(height: 6),
         Text(
           message,

@@ -127,8 +127,8 @@ class FileManagerNavigationPad extends StatelessWidget {
                 message: '刷新',
                 child: Material(
                   color: scheme.surface,
-                  shape: const CircleBorder(
-                    side: BorderSide(width: 0.5, color: Colors.black26),
+                  shape: CircleBorder(
+                    side: BorderSide(width: 0.5, color: scheme.outlineVariant),
                   ),
                   child: InkWell(
                     customBorder: const CircleBorder(),
