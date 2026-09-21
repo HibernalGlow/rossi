@@ -142,6 +142,19 @@ String normalizeLocalComicPath(String rawPath) {
   return normalized;
 }
 
+/// 在目录书的页表里找「点开的那一张」排在第几页。
+///
+/// 文件夹来源的页名是相对路径（递归那一档带目录前缀，平铺那一档就是文件名本身），
+/// 所以既要按整名比，也要按尾部比。对不上（文件被移走、改名）返回 null。
+int? findLocalEntryHintIndex(List<Doc> docs, String hint) {
+  if (hint.isEmpty) return null;
+  for (var i = 0; i < docs.length; i++) {
+    final name = docs[i].originalName;
+    if (name == hint || name.endsWith('/$hint')) return i;
+  }
+  return null;
+}
+
 /// 封面用的页下标：**页序现在含视频条目**，直接取第 0 页可能把一个 mp4 的字节
 /// 当 jpg 写进封面缓存（症状是封面永久白图，且因为按路径哈希缓存了，改不回来）。
 int firstImagePageIndex(PageSource source) {

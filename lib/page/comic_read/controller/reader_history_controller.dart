@@ -27,6 +27,7 @@ class ReaderHistoryController {
     required this.getEpInfo,
     required this.isHistoryEntry,
     required this.jumpToGlobalSlot,
+    this.entryHintName,
   });
 
   final String comicId;
@@ -39,6 +40,9 @@ class ReaderHistoryController {
   final NormalComicEpInfo Function() getEpInfo;
   final bool Function() isHistoryEntry;
   final Future<void> Function(int target) jumpToGlobalSlot;
+
+  /// 松散图片被提升到「所在目录那一本书」时，点开的那一张的文件名。
+  final String? entryHintName;
 
   final _service = ReaderHistoryService.instance;
   StreamSubscription<String>? _statusSubscription;
@@ -78,10 +82,23 @@ class ReaderHistoryController {
 
   int getHistoryPageIndex() => _service.lastPageIndex;
 
+  /// 点开的那一张在当前这一本的页表里排第几；对不上（图片被移动、改名，或者
+  /// 目录里根本没有它）时返回 null，退回按历史续读。
+  int? _entryHintDocIndex() {
+    final hint = entryHintName;
+    if (hint == null || hint.isEmpty) return null;
+    return findLocalEntryHintIndex(getEpInfo().docs, hint);
+  }
+
   /// 章节成功加载后恢复历史阅读位置，仅执行一次。
   Future<void> handleHistoryScroll(BuildContext context) async {
     final isLocal = isLocalComicSource(from, comicId);
-    final historyIndex = getHistoryPageIndex();
+    final hintIndex = isLocal ? _entryHintDocIndex() : null;
+    // 点击的意图优先于同一个目录的上次位置；历史页码是 displayPage + 1，
+    // 因此 0 基的页下标加 2 正好落在同一刻度上。
+    final historyIndex = hintIndex != null
+        ? hintIndex + 2
+        : getHistoryPageIndex();
     var shouldScroll =
         (isHistoryEntry() || (isLocal && historyIndex > 1)) && !isSkipped;
     if (shouldScroll) {

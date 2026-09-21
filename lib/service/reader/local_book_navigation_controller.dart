@@ -11,6 +11,10 @@ class LocalBookNavigationController {
   });
 
   static const contextKey = 'localBookNavigation';
+
+  /// 松散图片被提升为「所在目录那一本书」后，点开的那一张的名字随路由一起带过去，
+  /// 阅读器据此把初始位置落在这一页而不是同目录的上次阅读位置。
+  static const entryHintKey = 'localEntryHint';
   final String path;
   final String? navigationJson;
   final Future<void> Function(LocalBookNavigationTarget target) open;

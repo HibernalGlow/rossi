@@ -149,6 +149,9 @@ extension _ComicReadInitPart on _ComicReadPageState {
       getEpInfo: () => epInfo,
       isHistoryEntry: () => _isHistory,
       jumpToGlobalSlot: (target) => _jumpToGlobalSlot(target),
+      entryHintName:
+          widget.chapterExtern[LocalBookNavigationController.entryHintKey]
+              as String?,
     );
 
     unawaited(_historyController.init());

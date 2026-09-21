@@ -1129,11 +1129,26 @@ impl FileManagerState {
                 .and_then(|value| value.to_str())
                 .unwrap_or_default()
                 .to_ascii_lowercase();
+            let is_image = crate::folder_tree::is_recognized_image_ext(&extension);
             if !crate::file_tree::is_comic_archive_path(path)
-                && !crate::folder_tree::is_recognized_image_ext(&extension)
+                && !is_image
                 && !crate::page_order::is_video_name(&path.to_string_lossy())
             {
                 return Err(anyhow!("当前 Reader 暂不支持直接打开 {}", path.display()));
+            }
+            // mImageViewer 口径：松散图片不是一本书，它所在的那个目录才是；点开的那张
+            // 只是书里的一页。压缩包按自身成一本书，因此不走这条解析。
+            // 判据取「算不算一页」那张表，不取文件列表的可见性表：后者还含 RAW 等
+            // 页序不认的后缀，提升上去会翻出一本空书，平铺为空时更要递归进子目录，
+            // 把完全无关的目录当成这一本的内容。
+            if is_image && crate::page_order::is_page_name(&path.to_string_lossy()) {
+                if let Some(resolved) = crate::folder_tree::resolve_openable_path_detailed(path) {
+                    if resolved.kind == crate::folder_tree::OpenablePathKind::Directory
+                        && resolved.requested_is_file
+                    {
+                        return Ok(OpenEntryResult::Opened(resolved.path));
+                    }
+                }
             }
             return Ok(OpenEntryResult::Opened(path.to_path_buf()));
         }
@@ -1689,8 +1704,7 @@ fn describe_children(path: &Path, settings: &FileManagerSettings) -> Vec<FileMan
                         is_dir,
                         is_archive: !is_dir && target_is_archive,
                         is_image: crate::folder_tree::is_recognized_image_ext(&extension),
-                        is_video: crate::folder_tree::SUPPORTED_VIDEO_EXTENSIONS
-                            .contains(&extension.as_str()),
+                        is_video: crate::media_formats::is_video_ext(&extension),
                         is_audio: crate::folder_tree::is_audio_ext(&extension),
                     };
                 }
@@ -1749,6 +1763,46 @@ mod tests {
             assert_eq!(source.page_bytes(0).unwrap(), b"x");
             assert!(source.page_bytes(1).is_err());
         }
+    }
+
+    #[test]
+    fn loose_image_opens_the_directory_it_lives_in() {
+        let dir = tempdir().unwrap();
+        touch(&dir.path().join("page_1.jpg"));
+        let target = dir.path().join("page_2.jpg");
+        touch(&target);
+        fs::create_dir(dir.path().join("nested")).unwrap();
+        touch(&dir.path().join("nested").join("page_9.jpg"));
+        let mut state = FileManagerState::new(Some(dir.path().into())).unwrap();
+
+        let OpenEntryResult::Opened(opened) = state.open_entry(&target, false).unwrap() else {
+            panic!("点击松散图片应该打开 Reader");
+        };
+        // 书是那个目录，不是这一张；点开的那一张由调用方作为起始页带上。
+        assert_eq!(opened, dir.path());
+        let source = crate::LocalSource::open(&opened).unwrap();
+        assert_eq!(source.kind(), crate::SourceKind::Folder);
+        // 平铺里有东西就不进子目录，所以这一本只有两张。
+        assert_eq!(source.len(), 2);
+
+        // 压缩包自身就是一本书，不能被同样的解析提到父目录。
+        let archive = dir.path().join("book.cbz");
+        touch(&archive);
+        assert_eq!(
+            state.open_entry(&archive, false).unwrap(),
+            OpenEntryResult::Opened(archive)
+        );
+
+        // RAW 在文件列表那张表里算图片，但页序不认它：提升上去只会翻出一本空书，
+        // 平铺为空时还要递归进子目录捞无关页，所以这种后缀保持按单个文件交给 Reader。
+        let raw = dir.path().join("shot.cr2");
+        touch(&raw);
+        assert!(crate::folder_tree::is_recognized_image_ext("cr2"));
+        assert!(!crate::page_order::is_page_name("shot.cr2"));
+        assert_eq!(
+            state.open_entry(&raw, false).unwrap(),
+            OpenEntryResult::Opened(raw)
+        );
     }
 
     #[test]
