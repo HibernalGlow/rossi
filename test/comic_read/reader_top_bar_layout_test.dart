@@ -9,7 +9,7 @@
 //      这条以前只能靠实机肉眼抓（上一轮就是这么发现溢出条纹的）；
 //   3. 主行上所有图标按钮是**同一个几何**（40×40）；
 //   4. 窄档让位的是**整组**（视图三项 + 钉住 + 全屏 + 下载进「更多」），
-//      而超分芯片与自动滚屏按用户口径**永不折叠** —— 它们是最常用的那一档。
+//      而超分芯片按用户口径**永不折叠**；自动滚屏反过来 —— 它常驻二级。
 //
 // 只 pump 顶栏本体：`from` 留空 ⇒ 下载那颗不出现，不牵 ObjectBox 与下载队列；
 // `LocalReadSession.instance.presenter` 默认为 null ⇒ 超分芯片走 shrink 分支。
@@ -23,7 +23,6 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_presentation_cubit.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/app_bar.dart';
-import 'package:zephyr/page/comic_read/widgets/chrome/top/auto_scroll_quick_button.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_upscale_status_chip.dart';
 import 'package:zephyr/util/reader/reader_top_bar_style.dart';
@@ -264,8 +263,6 @@ void main() {
       expect(find.byIcon(Icons.fullscreen_rounded), findsNothing);
       // 用户点名要留的第一行：超分的显示与开关（在线图源也画，见下面那条）。
       expect(find.byType(ReaderOnlineUpscaleChip), findsOneWidget);
-      // 滚屏让位了：主行放不下它 + 超分芯片，两者按用户口径分先后。
-      expect(find.byType(AutoScrollQuickButton), findsNothing);
       // 让出去的那一组仍然可达，而且就在末尾那颗「更多」里。
       await tester.tap(find.byIcon(Icons.more_vert_rounded));
       await tester.pumpAndSettle();
@@ -278,6 +275,21 @@ void main() {
       await _paintBar(tester, 360, withFullscreen: false);
       expect(tester.takeException(), isNull);
     });
+  });
+
+  group('滚屏住在二级', () {
+    // 用户口径：滚屏不常用，放二级。主行不画它，但三档都得在菜单里找得到，
+    // 且标签要说清现在是什么状态（二级不等于把状态藏起来）。
+    // 「点下去真的开始滚屏」这条要写库（ObjectBox），留给实机清单 8.13。
+    for (final width in const [389.0, 820.0, 1280.0]) {
+      testWidgets('$width：主行没有它，菜单里有开启项', (tester) async {
+        await _paintBar(tester, width);
+        await tester.tap(find.byIcon(Icons.more_vert_rounded));
+        await tester.pumpAndSettle();
+        expect(find.text('开启自动滚屏'), findsOneWidget);
+        expect(find.text('关闭自动滚屏'), findsNothing);
+      });
+    }
   });
 
   group('窗口拖动跨档', () {

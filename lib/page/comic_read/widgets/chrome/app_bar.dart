@@ -5,7 +5,6 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_presentation_cubit.dart';
 import 'package:zephyr/page/comic_read/model/reader_presentation.dart';
-import 'package:zephyr/page/comic_read/widgets/chrome/top/auto_scroll_quick_button.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_download_button.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_download_sheet.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_layout_panel.dart';
@@ -19,6 +18,7 @@ import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_sheet.da
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/reader/reader_top_bar_style.dart';
+import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
 import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/reader_hover_reveal_layer.dart';
@@ -49,7 +49,9 @@ import 'package:zephyr/widgets/glass/liquid_glass.dart';
 /// - [CompactReadingModeButton]：窄档的循环切换按钮
 /// - [ReaderUpscaleStatusChip]：当前页超分状态（状态字 + 超分后分辨率 + 超分开关）
 /// - [ReaderDownloadButton]：在线漫画边看边下载快捷入口与状态指示
-/// - [AutoScrollQuickButton]：自动滚屏状态快捷按钮
+///
+/// 自动滚屏按用户口径**只住二级**（「不常用」）：主行三档都不画它，
+/// 入口是「更多」菜单的第一项，见 [_toggleReaderAutoScroll]。
 class ComicReadAppBar extends StatefulWidget {
   final String title;
   final String? comicTitle;
@@ -297,17 +299,8 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
                 if (showDownloadEntry && inlineView)
                   _buildDownloadEntry(bookTitle),
                 ReaderUpscaleStatusChip(availableWidth: chipWidth),
-                if (tier.keepsAutoScrollInline)
-                  AutoScrollQuickButton(
-                    isEnabled: readSetting.autoScroll,
-                    isPaused: widget.isAutoReadPaused?.call() ?? false,
-                    onToggleAutoScroll: (enabled) {
-                      cubit.updateReadSetting(
-                        (s) => s.copyWith(autoScroll: enabled),
-                      );
-                    },
-                    onTogglePause: widget.onToggleAutoRead,
-                  ),
+                // 自动滚屏按用户口径放**二级**：主行不画它，入口与开/关状态
+                // 在「更多」菜单的第一项（所有档位都在那里）。
               ],
             ),
 
@@ -348,7 +341,6 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
                     fitMode: fitMode,
                     inlineView: inlineView,
                     inlineWindow: inlineWindow,
-                    inlineAutoScroll: tier.keepsAutoScrollInline,
                     isAutoScrollPaused:
                         widget.isAutoReadPaused?.call() ?? false,
                     showDownloadEntry: showDownloadEntry,
@@ -481,37 +473,34 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
     required ReaderFitMode fitMode,
     required bool inlineView,
     required bool inlineWindow,
-    required bool inlineAutoScroll,
     required bool isAutoScrollPaused,
     required bool showDownloadEntry,
     required String? bookTitle,
   }) {
     return [
-      if (!inlineAutoScroll) ...[
-        MenuItemButton(
-          leadingIcon: const Icon(Icons.play_circle_outline_rounded),
-          trailingIcon: readSetting.autoScroll ? const Icon(Icons.check) : null,
-          onPressed: () => toggleReaderAutoScroll(
-            isEnabled: readSetting.autoScroll,
-            isPaused: isAutoScrollPaused,
-            onToggleAutoScroll: (enabled) =>
-                cubit.updateReadSetting((s) => s.copyWith(autoScroll: enabled)),
-            onTogglePause: widget.onToggleAutoRead,
-          ),
-          child: Text(readSetting.autoScroll ? '暂停 / 继续自动滚屏' : '开启自动滚屏'),
+      // 自动滚屏按用户的口径常驻二级（「不常用」）：这一项在所有档位都在。
+      MenuItemButton(
+        leadingIcon: const Icon(Icons.play_circle_outline_rounded),
+        trailingIcon: readSetting.autoScroll ? const Icon(Icons.check) : null,
+        onPressed: () => _toggleReaderAutoScroll(
+          isEnabled: readSetting.autoScroll,
+          isPaused: isAutoScrollPaused,
+          onToggleAutoScroll: (enabled) =>
+              cubit.updateReadSetting((s) => s.copyWith(autoScroll: enabled)),
+          onTogglePause: widget.onToggleAutoRead,
         ),
-        if (readSetting.autoScroll)
-          MenuItemButton(
-            leadingIcon: const Icon(Icons.stop_circle_outlined),
-            onPressed: () =>
-                cubit.updateReadSetting((s) => s.copyWith(autoScroll: false)),
-            child: const Text('关闭自动滚屏'),
-          ),
-        const _ReaderMenuDivider(),
-      ],
+        child: Text(readSetting.autoScroll ? '暂停 / 继续自动滚屏' : '开启自动滚屏'),
+      ),
+      if (readSetting.autoScroll)
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.stop_circle_outlined),
+          onPressed: () =>
+              cubit.updateReadSetting((s) => s.copyWith(autoScroll: false)),
+          child: const Text('关闭自动滚屏'),
+        ),
       if (!inlineView) ...[
-        // 下载是让位的第一批：它是整本下载这类低频动作，：它是整本下载这类低频动作，
-        // 而超分芯片与滚屏按用户的口径必须留在看得见的第一行。
+        // 让位的第一批：下载（整本下载是低频动作）与三块面板的入口。
+        // 超分芯片不参与让位 —— 用户口径是它最常用，必须留在第一行。
         if (showDownloadEntry)
           MenuItemButton(
             leadingIcon: const Icon(Icons.download_rounded),
@@ -587,6 +576,26 @@ const List<(IconData, String)> _kReaderComingSoon = [
   (Icons.slideshow_rounded, '幻灯片'),
   (Icons.zoom_in_map_rounded, '放大镜'),
 ];
+
+/// 自动滚屏那颗开关的**分派**：没开就开启，开着就暂停（没有暂停回调时直接关掉）。
+///
+/// 主行不再画它的芯片，所以这个分派只有菜单一个调用方 —— 但它得与芯片当年
+/// 完全同一套行为：开与暂停都要给一句话，否则点了没反应只会让人以为没生效。
+void _toggleReaderAutoScroll({
+  required bool isEnabled,
+  required bool isPaused,
+  required ValueChanged<bool> onToggleAutoScroll,
+  VoidCallback? onTogglePause,
+}) {
+  if (!isEnabled) {
+    onToggleAutoScroll(true);
+    showInfoToast('已开启自动滚屏');
+  } else if (onTogglePause != null) {
+    onTogglePause();
+  } else {
+    onToggleAutoScroll(false);
+  }
+}
 
 IconData _readerPanelIcon(ReaderToolbarPanel panel, ReaderFitMode fitMode) =>
     switch (panel) {

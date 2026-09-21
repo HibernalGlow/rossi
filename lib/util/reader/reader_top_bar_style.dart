@@ -68,12 +68,6 @@ enum ReaderToolbarTier {
   /// 窄：版式组并成一颗循环按钮，低频的窗口控件收进「更多」菜单。
   narrow;
 
-  /// 自动滚屏那颗开关是否还留在主行上。
-  ///
-  /// 窄档不让位就放不下超分芯片（用户点名要留的那一颗）—— 按同一句口径，
-  /// 滚屏收进「更多」，超分留在第一行。
-  bool get keepsAutoScrollInline => this != ReaderToolbarTier.narrow;
-
   /// 版式组是否摊开成「条漫胶囊 + 单双页 + 方向」这一排独立控件。
   bool get expandsLayoutGroup => this != ReaderToolbarTier.narrow;
 
