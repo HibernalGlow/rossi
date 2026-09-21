@@ -315,6 +315,7 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
               ),
               Switch.adaptive(
                 value: _conditionalEnabled,
+                activeTrackColor: colorScheme.primary,
                 onChanged: (val) async {
                   setState(() => _conditionalEnabled = val);
                   await RealSrSettings.saveConditionalEnabled(val);
@@ -585,6 +586,7 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                   const SizedBox(width: 4),
                   Switch.adaptive(
                     value: current.enabled,
+                    activeTrackColor: colorScheme.primary,
                     onChanged: (val) {
                       _updateCurrentCondition(current.copyWith(enabled: val));
                     },
