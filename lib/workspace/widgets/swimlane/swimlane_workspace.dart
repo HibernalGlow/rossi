@@ -215,8 +215,19 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
 
     final revealSide = _edgeDwell.takeDue(now);
     if (revealSide != null) {
-      setState(() => _revealedLaneId = revealSide);
-      _applyOffset();
+      if (cubit.state.interaction.revealFocusesLane) {
+        // 揭示即聚焦：交互交给被揭示的泳道，揭示这个**瞬态**当场结束。
+        // 不自己算落点 —— `activateLane` 会经 `BlocListener` 走 post-frame 的
+        // `_scheduleFocus`，那条路径用的是**聚焦**几何（最小移动 + 给 Reader
+        // 留一条缝），而不是揭示几何（整条推进视口、Reader 该挤多少挤多少）。
+        // 留着那条缝才谈得上「点一下回独占」，否则自动聚焦等于把独占弄丢。
+        cubit.activateLane(revealSide);
+        if (_revealedLaneId != null) setState(() => _revealedLaneId = null);
+      } else {
+        // 契约的原味：揭示只是看清楚，不动激活泳道。
+        setState(() => _revealedLaneId = revealSide);
+        _applyOffset();
+      }
     }
 
     if (_restoreDwell.takeDue(now) != null) {
@@ -229,21 +240,33 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
 
   // ── 指针 ───────────────────────────────────────────────────────────────
 
-  /// Reader 悬停聚焦。
+  /// 悬停驻留聚焦：非激活泳道停够久就把交互交给它。
   ///
-  /// 只对**阅读器**这一条泳道生效：契约里这项能力就叫 `Reader hover-focus`
-  /// （`An optional, configurable dwell inside an inactive Reader lane activates
-  /// it`）。若对所有泳道都生效，用户把指针挪到面板泳道上方想看看就绪状态时，
-  /// 激活态会自己跑掉。
-  void _handleLaneHoverEnter(String laneId, WorkspaceState state) {
+  /// 开关分两颗 —— Reader 用 `hoverFocusEnabled`，左/右面板用
+  /// `panelHoverFocusEnabled`（契约只把这项能力定义在 Reader 上：`a dwell
+  /// inside an inactive **Reader** lane activates it`；面板那侧默认也给，
+  /// 但留一颗独立的退回口）。两者**共用**同一段延时，因为差别在「吃不吃」
+  /// 而不在「多久」，多一套延时只会让手感有第四个要对着表的旋钮。
+  ///
+  /// [isRail] 的泳道**一律跳过**：44px 的紧凑轨（用户折叠的、或 Reader 独占时
+  /// 的切换栏轨）已经在当「切换把手」用了，读数时指针扫过去是常事，
+  /// 停一下就跳焦点会把这条把手变成陷阱。
+  void _handleLaneHoverEnter(
+    String laneId,
+    WorkspaceState state, {
+    required bool isRail,
+  }) {
     _hoveredLaneId = laneId;
     // 进了被揭示的那条泳道 ⇒ 取消「回到 Reader」的计时（用户在看它）。
     if (laneId == _revealedLaneId) {
       _restoreDwell.cancel();
     }
 
-    if (!state.interaction.hoverFocusEnabled) return;
-    if (laneId != LaneId.reader) return;
+    if (isRail) return;
+    final enabled = laneId == LaneId.reader
+        ? state.interaction.hoverFocusEnabled
+        : state.interaction.panelHoverFocusEnabled;
+    if (!enabled) return;
     if (laneId == state.activeLaneId) return;
     if (_pointerDown) return;
 
@@ -330,6 +353,11 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
   }
 
   /// 离开一条**未被激活**的揭示 ⇒ 延时回到 Reader。
+  ///
+  /// `revealFocusesLane` 打开时这条路径基本走不到（揭示到点就被激活了，
+  /// 于是 `revealed == activeLaneId` 的守卫直接返回）—— 那是自洽的：
+  /// 「收回 Reader」是为了不留下一个没人认领的瞬态，而它现在已经是激活泳道了。
+  /// 回 Reader 改由悬停聚焦或点那条 Reader 窄缝负责。
   void _maybeScheduleRestore(WorkspaceState state) {
     final revealed = _revealedLaneId;
     if (revealed == null) return;
@@ -560,7 +588,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
     );
 
     return MouseRegion(
-      onEnter: (_) => _handleLaneHoverEnter(laneId, state),
+      onEnter: (_) => _handleLaneHoverEnter(laneId, state, isRail: isRail),
       onExit: (_) => _handleLaneHoverExit(laneId),
       child: Listener(
         // 在**整条泳道**上听按下：栏头里的控件（折叠 / 独占 / 宽度）也要算

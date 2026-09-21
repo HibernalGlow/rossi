@@ -113,9 +113,11 @@ WorkspaceLayoutSnapshot _deviceA() => WorkspaceLayoutSnapshot(
   activeLaneId: LaneId.reader,
   interaction: const WorkspaceInteractionSettings(
     hoverFocusEnabled: false,
+    panelHoverFocusEnabled: false,
     hoverFocusDelayMs: 111,
     edgeRevealDelayMs: 222,
     edgeRevealRestoreDelayMs: 333,
+    revealFocusesLane: false,
     readerPeekWidth: 61.5,
     autoSoloOnFocus: true,
     showLaneNavigatorInSolo: true,
@@ -212,6 +214,11 @@ void _roundTripKeepsEverything() {
   );
 
   check('悬停聚焦开关取云端', !decoded.interaction.hoverFocusEnabled);
+  check(
+    '面板泳道悬停聚焦开关取云端',
+    !decoded.interaction.panelHoverFocusEnabled,
+  );
+  check('呼出后自动聚焦开关取云端', !decoded.interaction.revealFocusesLane);
   check('悬停聚焦延时取云端', decoded.interaction.hoverFocusDelayMs == 111);
   check('边缘揭示延时取云端', decoded.interaction.edgeRevealDelayMs == 222);
   check('揭示恢复延时取云端', decoded.interaction.edgeRevealRestoreDelayMs == 333);

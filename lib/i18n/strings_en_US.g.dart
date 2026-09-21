@@ -645,6 +645,10 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get edgeRevealDelay => 'Side lane reveal delay';
 	@override String get readerHoverFocusDelay => 'Reader hover refocus delay';
 	@override String get readerHoverFocusEnable => 'Enable Reader hover refocus';
+	@override String get revealFocusesLane => 'Focus lane after edge reveal';
+	@override String get revealFocusesLaneSubtitle => 'Once the pointer has dwelled at the left or right edge long enough, the revealed lane also takes over interaction — no extra click. Reader keeps a narrow sliver, so one click returns to solo. When off, a reveal is only a peek and folds back to Reader after a while.';
+	@override String get panelLaneHoverFocus => 'Hover focus for panel lanes';
+	@override String get panelLaneHoverFocusSubtitle => 'Dwelling inside the left or right lane activates it too, sharing the delay above. Lanes collapsed to a rail are excluded, so brushing past them while reading won\'t steal focus.';
 	@override String get delayRangeHint => 'Dwell time in milliseconds before it fires. The three delays are independent — changing one never drags another along.';
 	@override String get hoverRevealZones => 'Hover reveal zones';
 	@override String get hoverRevealZonesSubtitle => 'Drag rectangles on the canvas to decide where the pointer brings content up.';
@@ -2724,6 +2728,10 @@ extension on TranslationsEnUs {
 			'settings.edgeRevealDelay' => 'Side lane reveal delay',
 			'settings.readerHoverFocusDelay' => 'Reader hover refocus delay',
 			'settings.readerHoverFocusEnable' => 'Enable Reader hover refocus',
+			'settings.revealFocusesLane' => 'Focus lane after edge reveal',
+			'settings.revealFocusesLaneSubtitle' => 'Once the pointer has dwelled at the left or right edge long enough, the revealed lane also takes over interaction — no extra click. Reader keeps a narrow sliver, so one click returns to solo. When off, a reveal is only a peek and folds back to Reader after a while.',
+			'settings.panelLaneHoverFocus' => 'Hover focus for panel lanes',
+			'settings.panelLaneHoverFocusSubtitle' => 'Dwelling inside the left or right lane activates it too, sharing the delay above. Lanes collapsed to a rail are excluded, so brushing past them while reading won\'t steal focus.',
 			'settings.delayRangeHint' => 'Dwell time in milliseconds before it fires. The three delays are independent — changing one never drags another along.',
 			'settings.hoverRevealZones' => 'Hover reveal zones',
 			'settings.hoverRevealZonesSubtitle' => 'Drag rectangles on the canvas to decide where the pointer brings content up.',
@@ -3211,12 +3219,12 @@ extension on TranslationsEnUs {
 			'plugin.invalidLink' => ({required Object url}) => 'Invalid link: ${url}',
 			'plugin.cannotOpenLink' => ({required Object url}) => 'Cannot open link: ${url}',
 			'plugin.readLocalPluginFailed' => ({required Object error}) => 'Failed to read local plugin: ${error}',
+			_ => null,
+		} ?? switch (path) {
 			'plugin.addFromNetwork' => 'Add plugin from network',
 			'plugin.urlCannotBeEmpty' => 'URL cannot be empty',
 			'plugin.startInstall' => 'Start install',
 			'plugin.pluginSettingsTitle' => ({required Object name}) => '${name} settings',
-			_ => null,
-		} ?? switch (path) {
 			'plugin.debugConfigUpdated' => 'Plugin debug config updated',
 			'plugin.deletePlugin' => 'Delete plugin',
 			'plugin.confirmDeletePlugin' => 'Delete this plugin? This will delete plugin and related data.',
@@ -3725,12 +3733,12 @@ extension on TranslationsEnUs {
 			'download.downloading' => 'Downloading',
 			'download.pending' => ({required Object count}) => 'Pending (${count})',
 			'download.taskDeleted' => 'Task deleted',
+			_ => null,
+		} ?? switch (path) {
 			'download.cancelTask' => 'Cancel Task',
 			'download.cancelTaskConfirm' => ({required Object comicName}) => 'Cancel download of ${comicName}?',
 			'download.paused' => 'Paused',
 			'download.completed' => 'Completed',
-			_ => null,
-		} ?? switch (path) {
 			'download.failed' => 'Failed',
 			'download.startAll' => 'Start all',
 			'download.pauseAll' => 'Pause all',

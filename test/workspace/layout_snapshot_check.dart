@@ -158,9 +158,11 @@ void _fullCustomStateRoundTrip() {
     activeLaneId: LaneId.reader,
     interaction: const WorkspaceInteractionSettings(
       hoverFocusEnabled: false,
+      panelHoverFocusEnabled: false,
       hoverFocusDelayMs: 250,
       edgeRevealDelayMs: 150,
       edgeRevealRestoreDelayMs: 900,
+      revealFocusesLane: false,
       readerPeekWidth: 72,
       autoSoloOnFocus: true,
       showLaneNavigatorInSolo: true,
@@ -195,6 +197,11 @@ void _fullCustomStateRoundTrip() {
   check('激活面板保住了', restored.activePanel['right'] == 'tools');
   check('激活泳道保住了', restored.activeLaneId == LaneId.reader);
   check('悬停聚焦开关保住了', !restored.interaction.hoverFocusEnabled);
+  check(
+    '面板泳道悬停聚焦开关保住了',
+    !restored.interaction.panelHoverFocusEnabled,
+  );
+  check('呼出后自动聚焦开关保住了', !restored.interaction.revealFocusesLane);
   check(
     '三个延时保住了',
     restored.interaction.hoverFocusDelayMs == 250 &&
@@ -347,6 +354,7 @@ void _badInteractionFieldsFallBackPerField() {
     'version': 1,
     'interaction': <String, Object?>{
       'hoverFocusEnabled': 'yes',
+      'panelHoverFocusEnabled': 'nope',
       'hoverFocusDelayMs': 0,
       'edgeRevealDelayMs': -5,
       'edgeRevealRestoreDelayMs': 640,
@@ -360,6 +368,15 @@ void _badInteractionFieldsFallBackPerField() {
   check(
     '非布尔开关退回默认',
     snapshot.interaction.hoverFocusEnabled == fallback.hoverFocusEnabled,
+  );
+  check(
+    '非布尔的「面板悬停聚焦」退回默认（开）',
+    snapshot.interaction.panelHoverFocusEnabled,
+  );
+  check(
+    '缺项的「呼出后自动聚焦」退回默认（开 —— 老快照升级后这两项默认生效，是刻意的）',
+    snapshot.interaction.revealFocusesLane == fallback.revealFocusesLane &&
+        fallback.revealFocusesLane,
   );
   check(
     '0 延时退回默认（0 会横跳）',

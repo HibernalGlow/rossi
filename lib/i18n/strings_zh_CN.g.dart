@@ -1715,6 +1715,18 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '启用 Reader 悬停重新聚焦'
 	String get readerHoverFocusEnable => '启用 Reader 悬停重新聚焦';
 
+	/// zh-CN: '呼出泳道后自动聚焦'
+	String get revealFocusesLane => '呼出泳道后自动聚焦';
+
+	/// zh-CN: '指针在视口左右边缘停够久，就把交互一并交给被揭示的泳道，不必再点一下；Reader 仍留一条窄缝，点它即可回到独占。关掉后揭示只是「看清楚」，离开一会儿自动收回 Reader。'
+	String get revealFocusesLaneSubtitle => '指针在视口左右边缘停够久，就把交互一并交给被揭示的泳道，不必再点一下；Reader 仍留一条窄缝，点它即可回到独占。关掉后揭示只是「看清楚」，离开一会儿自动收回 Reader。';
+
+	/// zh-CN: '面板泳道悬停聚焦'
+	String get panelLaneHoverFocus => '面板泳道悬停聚焦';
+
+	/// zh-CN: '指针停在左/右泳道里够久也把它激活，与 Reader 共用上面那段延迟。折叠成紧凑轨的泳道不参与，免得读数时扫过去就跳焦点。'
+	String get panelLaneHoverFocusSubtitle => '指针停在左/右泳道里够久也把它激活，与 Reader 共用上面那段延迟。折叠成紧凑轨的泳道不参与，免得读数时扫过去就跳焦点。';
+
 	/// zh-CN: '驻留多久才触发，单位毫秒。三套延时各自独立，改一个不会连带改坏另一个。'
 	String get delayRangeHint => '驻留多久才触发，单位毫秒。三套延时各自独立，改一个不会连带改坏另一个。';
 
@@ -6270,6 +6282,10 @@ extension on Translations {
 			'settings.edgeRevealDelay' => '左右泳道展开延迟',
 			'settings.readerHoverFocusDelay' => 'Reader 悬停重新聚焦延迟',
 			'settings.readerHoverFocusEnable' => '启用 Reader 悬停重新聚焦',
+			'settings.revealFocusesLane' => '呼出泳道后自动聚焦',
+			'settings.revealFocusesLaneSubtitle' => '指针在视口左右边缘停够久，就把交互一并交给被揭示的泳道，不必再点一下；Reader 仍留一条窄缝，点它即可回到独占。关掉后揭示只是「看清楚」，离开一会儿自动收回 Reader。',
+			'settings.panelLaneHoverFocus' => '面板泳道悬停聚焦',
+			'settings.panelLaneHoverFocusSubtitle' => '指针停在左/右泳道里够久也把它激活，与 Reader 共用上面那段延迟。折叠成紧凑轨的泳道不参与，免得读数时扫过去就跳焦点。',
 			'settings.delayRangeHint' => '驻留多久才触发，单位毫秒。三套延时各自独立，改一个不会连带改坏另一个。',
 			'settings.hoverRevealZones' => '悬停唤出区',
 			'settings.hoverRevealZonesSubtitle' => '在画布上拖出矩形，决定指针停在哪儿会把对应内容调出来。',
@@ -6757,12 +6773,12 @@ extension on Translations {
 			'plugin.browserSwitched' => ({required Object browser}) => '已切换到 ${browser}，登录完成后会自动同步 Cookie',
 			'plugin.invalidLink' => ({required Object url}) => '无效链接: ${url}',
 			'plugin.cannotOpenLink' => ({required Object url}) => '无法打开链接: ${url}',
+			_ => null,
+		} ?? switch (path) {
 			'plugin.readLocalPluginFailed' => ({required Object error}) => '读取本地插件失败: ${error}',
 			'plugin.addFromNetwork' => '从网络添加插件',
 			'plugin.urlCannotBeEmpty' => 'URL 不能为空',
 			'plugin.startInstall' => '开始安装',
-			_ => null,
-		} ?? switch (path) {
 			'plugin.pluginSettingsTitle' => ({required Object name}) => '${name} 设置',
 			'plugin.debugConfigUpdated' => '插件调试配置已更新',
 			'plugin.deletePlugin' => '删除插件',
@@ -7271,12 +7287,12 @@ extension on Translations {
 			'download.noTasks' => '暂无下载任务',
 			'download.downloading' => '正在下载',
 			'download.pending' => ({required Object count}) => '等待中 (${count})',
+			_ => null,
+		} ?? switch (path) {
 			'download.taskDeleted' => '已删除任务',
 			'download.cancelTask' => '取消任务',
 			'download.cancelTaskConfirm' => ({required Object comicName}) => '确定要取消下载 ${comicName} 吗？',
 			'download.paused' => '已暂停',
-			_ => null,
-		} ?? switch (path) {
 			'download.completed' => '已完成',
 			'download.failed' => '失败',
 			'download.startAll' => '全部开始',

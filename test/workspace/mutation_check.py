@@ -288,27 +288,37 @@ SUITES = [
                 False,
             ),
             (
-                "M20 悬停聚焦对**所有**泳道生效（不只 Reader）",
+                "M20 面板泳道不看自己那颗开关（恒用 Reader 的）→ 关掉面板开关没用",
                 "lib/workspace/widgets/swimlane/swimlane_workspace.dart",
-                "    if (laneId != LaneId.reader) return;",
-                "    if (false) return;",
+                "    final enabled = laneId == LaneId.reader\n"
+                "        ? state.interaction.hoverFocusEnabled\n"
+                "        : state.interaction.panelHoverFocusEnabled;",
+                "    final enabled = state.interaction.hoverFocusEnabled;",
                 False,
             ),
             (
                 "M21 悬停聚焦忽略开关",
                 "lib/workspace/widgets/swimlane/swimlane_workspace.dart",
-                "    if (!state.interaction.hoverFocusEnabled) return;",
+                "    if (!enabled) return;",
                 "    if (false) return;",
                 False,
             ),
             (
-                "M22 认了这次边缘揭示却不移动条带",
+                "M44 紧凑轨也吃悬停聚焦（`isRail` 守卫删掉）",
                 "lib/workspace/widgets/swimlane/swimlane_workspace.dart",
-                "    if (revealSide != null) {\n"
-                "      setState(() => _revealedLaneId = revealSide);\n"
-                "      _applyOffset();\n"
-                "    }",
-                "    if (revealSide != null) {\n      setState(() {});\n    }",
+                "    if (isRail) return;",
+                "    if (false) return;",
+                False,
+            ),
+            (
+                "M22 认了这次边缘揭示却不移动条带（瞬态那一支）",
+                "lib/workspace/widgets/swimlane/swimlane_workspace.dart",
+                "      } else {\n"
+                "        // 契约的原味：揭示只是看清楚，不动激活泳道。\n"
+                "        setState(() => _revealedLaneId = revealSide);\n"
+                "        _applyOffset();\n"
+                "      }",
+                "      } else {\n        setState(() {});\n      }",
                 False,
             ),
             (
@@ -319,6 +329,20 @@ SUITES = [
                 "      _applyOffset();\n"
                 "    }",
                 "    if (_restoreDwell.takeDue(now) != null) {\n      setState(() {});\n    }",
+                False,
+            ),
+            (
+                "M45 揭示到点不接管交互（`revealFocusesLane` 被忽略）",
+                "lib/workspace/widgets/swimlane/swimlane_workspace.dart",
+                "      if (cubit.state.interaction.revealFocusesLane) {",
+                "      if (false) {",
+                False,
+            ),
+            (
+                "M46 揭示恒接管交互（不看开关）→ 契约原味的瞬态揭示没了",
+                "lib/workspace/widgets/swimlane/swimlane_workspace.dart",
+                "      if (cubit.state.interaction.revealFocusesLane) {",
+                "      if (true) {",
                 False,
             ),
         ],

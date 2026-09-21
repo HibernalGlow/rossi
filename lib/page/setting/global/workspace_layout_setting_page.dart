@@ -227,6 +227,15 @@ class _FocusAndSoloCard extends StatelessWidget {
           onChanged: (value) =>
               _patch((c) => c.copyWith(edgeRevealDelayMs: value)),
         ),
+        SwitchListTile(
+          secondary: const Icon(Icons.center_focus_weak_outlined),
+          title: Text(t.settings.revealFocusesLane),
+          subtitle: Text(t.settings.revealFocusesLaneSubtitle),
+          thumbIcon: kSettingSwitchThumbIcon,
+          value: interaction.revealFocusesLane,
+          onChanged: (value) =>
+              _patch((c) => c.copyWith(revealFocusesLane: value)),
+        ),
         _DelayTile(
           icon: Icons.mouse_outlined,
           title: t.settings.readerHoverFocusDelay,
@@ -240,6 +249,15 @@ class _FocusAndSoloCard extends StatelessWidget {
               _patch((c) => c.copyWith(hoverFocusEnabled: value)),
           onChanged: (value) =>
               _patch((c) => c.copyWith(hoverFocusDelayMs: value)),
+        ),
+        SwitchListTile(
+          secondary: const Icon(Icons.view_sidebar_outlined),
+          title: Text(t.settings.panelLaneHoverFocus),
+          subtitle: Text(t.settings.panelLaneHoverFocusSubtitle),
+          thumbIcon: kSettingSwitchThumbIcon,
+          value: interaction.panelHoverFocusEnabled,
+          onChanged: (value) =>
+              _patch((c) => c.copyWith(panelHoverFocusEnabled: value)),
         ),
       ],
     );

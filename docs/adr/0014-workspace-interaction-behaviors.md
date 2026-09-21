@@ -116,7 +116,49 @@
     通知是异步的，它会给去抖器排一次写盘；排在前面的话刚清掉的快照会被默认值写回去。
     同理，「正在还原」的旗子也要等那次投递之后才撤。
 
-## 判据
+## 后续修订（2026-09-21）：悬停聚焦扩到面板泳道、揭示到点即接管
+
+上面「决定」第 4、5 两条把范围按 neoview 契约钉死在 Reader 上。用户实机用下来判为
+**缺东西**（「泳道悬停自动聚焦只有 reader 做了」），这一轮改口，两处都留了退回口：
+
+1. **面板泳道吃不吃悬停聚焦 = 独立的一颗开关** `panelHoverFocusEnabled`（默认**开**），
+   与 Reader 的 `hoverFocusEnabled` **共用** `hoverFocusDelayMs`。
+   - 为什么分两颗而不是一根总闸：契约那句「指针挪到面板泳道上方想看一眼就绪状态，
+     激活态会自己跑掉」的顾虑是**真的**，只是这一轮的口径是「要这个手感，不想要的人自己关」。
+     合成一颗会让「只想让 Reader 灵一点」这种配置表达不出来。
+   - 为什么不再起第四套延时：两处的差别在**吃不吃**，不在**多久**。
+   - **折叠成 44px 紧凑轨的泳道一律跳过**（含 Reader 独占时那条切换栏轨）：
+     轨已经在当切换把手用，读数时指针扫过去是常事，「停一下就跳焦点」会把它变成陷阱。
+2. **边缘揭示到点即接管交互** = `revealFocusesLane`（默认**开**）。关掉才是契约原味的
+   `does not change the active lane` + 「离开 600ms 收回 Reader」。
+   - 落点是 `activateLane`，于是条带位置由**聚焦**几何给出（最小移动 + 给 Reader
+     留一条 `readerPeekWidth` 的缝），而不是揭示几何的「整条推进视口、Reader 该挤多少
+     挤多少」。那条缝是回独占的唯一出口，不能省。
+   - 「离开未激活的揭示就收回」在开关打开后**自然走不到**（`revealed == activeLaneId`
+     被既有守卫挡掉），不是为此新加的判断。
+3. **老快照缺这两个键 ⇒ 升级之后默认生效** —— 这是「坏一项退一项」的直接后果。
+   快照版本**没升**：这是产品口径变化，不是语义或单位变了。代价记在这儿，别当没看见。
+4. **判据跟着反转**：原来那条「指针停在面板泳道上多久都不激活」验的是**契约**，
+   现在结论正好相反，于是它被拆成「面板默认吃」「面板那颗关掉只影响面板（Reader 照旧）」
+   「紧凑轨不吃」三条；揭示那两条拆成「默认即接管」「接管后不收回」「关掉后仍是瞬态」。
+   变异体 **M20/M22 的锚点随之改写**（旧锚点 `if (laneId != LaneId.reader) return;`
+   已经不在源码里，留着就是 `PATTERN-NOT-FOUND`），并补 **M44**（删 `isRail` 守卫）、
+   **M45/M46**（`revealFocusesLane` 的两个方向各一个）。
+   「关掉后是瞬态」那条**同时关掉** Reader 悬停聚焦 —— 否则指针落回 Reader 之后，
+   「收回」到底是恢复计时干的还是驻留聚焦干的，判据答不上来（假绿的一种典型形状）。
+
+### 这一轮的判据（2026-09-21，本机实跑）
+
+| 判据 | 结果 |
+|---|---|
+| `flutter test test/workspace/swimlane_runtime_test.dart` | **11 passed**（上表那 8 条里「只认 Reader」一条被拆成三条，揭示那条拆成三条） |
+| `dart run test/workspace/layout_snapshot_check.dart` | **67 checks passed**（含两个新键的往返与「缺键退回开」） |
+| `dart run test/network/sync/workspace_sync_codec_check.dart` | **56 checks passed**（两个新键取云端） |
+| `python3 test/workspace/mutation_check.py swimlane_runtime` | M20 / M21 / M22 / M23 / **M44** 由判据捕获；**M45 / M46** 单独跑过（各撞对那条断言：`Expected: 'left'` 与 `Expected: 'reader'`），当时整组重跑被**别人的**一次中间提交打断（`lib/page/comic_read/widgets/chrome/app_bar.dart` 编译不过），所以那两行在组报告里显示成「只触发编译错」 |
+
+`dart analyze lib/workspace/ lib/page/setting/global/workspace_layout_setting_page.dart test/workspace/ test/network/sync/` ⇒ 本方的文件无问题。
+实机清单：`docs/lane-hover-focus-acceptance.md`。
+
 
 | 判据 | 结果 |
 |---|---|

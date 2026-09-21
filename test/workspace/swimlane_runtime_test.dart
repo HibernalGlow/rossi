@@ -218,7 +218,7 @@ void main() {
     );
   });
 
-  // ── 3 / 4：悬停驻留聚焦（只对 Reader 泳道） ──────────────────────────────
+  // ── 3 / 4：悬停驻留聚焦（Reader 与面板两颗开关，紧凑轨不参与） ─────────────
 
   testWidgets('指针在非激活的阅读器泳道上停留够久，就把它激活', (tester) async {
     final cubit = await _pumpWorkspace(tester);
@@ -252,12 +252,14 @@ void main() {
     );
   });
 
-  testWidgets('指针停在**面板**泳道上多久都不激活（悬停聚焦只认 Reader）', (tester) async {
+  testWidgets('指针停在**面板**泳道里够久也激活（这颗开关默认开）', (tester) async {
     final cubit = await _pumpWorkspace(tester);
+    expect(
+      cubit.state.interaction.panelHoverFocusEnabled,
+      isTrue,
+      reason: '面板那侧默认必须开着，否则这条判据验的是空气',
+    );
 
-    // 契约原文：`An optional, configurable dwell inside an inactive **Reader**
-    // lane activates it`。对**所有**泳道都生效的话，用户把指针挪到面板泳道上方
-    // 想看一眼就绪状态，激活态会自己跑掉 —— 而那正是「谁被激活」的全部意义。
     final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
     addTearDown(gesture.removePointer);
     await gesture.addPointer(location: const Offset(4, 4));
@@ -265,9 +267,82 @@ void main() {
     await gesture.moveTo(tester.getCenter(_probe(LaneId.left)));
     await tester.pump();
 
+    expect(
+      cubit.state.activeLaneId,
+      isNull,
+      reason: '刚进去还不能激活：重音在**驻留**上，面板那侧也不例外',
+    );
+
     await _waitDwell(tester, cubit.state.interaction.hoverFocusDelayMs);
 
-    expect(cubit.state.activeLaneId, isNull, reason: '面板泳道不吃悬停聚焦：它只认 Reader');
+    expect(
+      cubit.state.activeLaneId,
+      LaneId.left,
+      reason: '面板泳道吃悬停聚焦，且与 Reader **共用**同一段延时（多一套延时就是第四个要对着表的旋钮）',
+    );
+  });
+
+  testWidgets('面板那颗关掉只影响面板：Reader 的悬停聚焦照旧', (tester) async {
+    final cubit = await _pumpWorkspace(tester);
+    cubit.setInteraction(
+      cubit.state.interaction.copyWith(panelHoverFocusEnabled: false),
+    );
+    await tester.pumpAndSettle();
+
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(gesture.removePointer);
+    await gesture.addPointer(location: const Offset(4, 4));
+    await tester.pump();
+
+    await gesture.moveTo(tester.getCenter(_probe(LaneId.left)));
+    await tester.pump();
+    await _waitDwell(tester, cubit.state.interaction.hoverFocusDelayMs);
+    expect(
+      cubit.state.activeLaneId,
+      isNull,
+      reason: '关掉之后面板只剩点击这一条路',
+    );
+
+    // 两颗开关是**独立**的：把面板那侧关掉不该顺手把 Reader 也弄哑。
+    await gesture.moveTo(tester.getCenter(_probe(LaneId.reader)));
+    await tester.pump();
+    await _waitDwell(tester, cubit.state.interaction.hoverFocusDelayMs);
+    expect(
+      cubit.state.activeLaneId,
+      LaneId.reader,
+      reason: 'Reader 那侧仍然吃悬停聚焦（`hoverFocusEnabled` 一字未动）',
+    );
+  });
+
+  testWidgets('折叠成 44px 紧凑轨的泳道**不**吃悬停聚焦', (tester) async {
+    final cubit = await _pumpWorkspace(tester);
+    cubit.toggleLaneCollapsed(LaneId.left);
+    await tester.pumpAndSettle();
+
+    expect(
+      cubit.state.layout.lanes[LaneId.left]!.collapsed,
+      isTrue,
+      reason: '前置：左泳道已折叠成轨',
+    );
+
+    // 轨这一档**不渲染内容**（`_buildCollapsedRail`），所以只能按栏头认这块矩形。
+    final rail = _laneScope(_leftTitle);
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(gesture.removePointer);
+    await gesture.addPointer(location: const Offset(4, 4));
+    await tester.pump();
+    await gesture.moveTo(tester.getCenter(rail));
+    await tester.pump();
+
+    await _waitDwell(tester, cubit.state.interaction.hoverFocusDelayMs);
+
+    expect(
+      cubit.state.activeLaneId,
+      isNull,
+      reason:
+          '轨只有 44px，读数时指针扫过去是常事 —— 停一下就跳焦点会把「切换把手」变成陷阱。'
+          '点它仍然激活（见 `_buildLane` 的 `onToggleCollapse`），只是不自动。',
+    );
   });
 
   testWidgets('悬停聚焦关掉之后，停多久都不激活', (tester) async {
@@ -293,9 +368,9 @@ void main() {
     );
   });
 
-  // ── 5 / 6：边缘驻留揭示（瞬态、不改激活泳道） ────────────────────────────
+  // ── 5 / 6：边缘驻留揭示（`revealFocusesLane` 决定它到此为止还是接管交互） ──
 
-  testWidgets('Reader 独占且激活时，视口左边缘驻留会揭示左泳道', (tester) async {
+  testWidgets('Reader 独占且激活时，视口左边缘驻留会揭示左泳道并接管交互', (tester) async {
     final cubit = await _pumpWorkspace(tester);
     cubit.toggleSoloLane(LaneId.reader);
     await tester.pumpAndSettle();
@@ -330,15 +405,63 @@ void main() {
     );
     expect(
       cubit.state.activeLaneId,
-      LaneId.reader,
-      reason: '契约：揭示是 transient 且 `does not change the active lane`',
+      LaneId.left,
+      reason:
+          '默认口径：`revealFocusesLane` 开着 ⇒ 揭示到点即把交互交出去。'
+          '契约原本是 `does not change the active lane`，这一项是**按用户口径覆盖**的（见 ADR-0014 的后续修订）。',
     );
   });
 
-  testWidgets('指针离开被揭示的泳道之后，延时把条带收回 Reader', (tester) async {
+  testWidgets('自动聚焦开着时，揭示之后不存在「延时收回 Reader」', (tester) async {
     final cubit = await _pumpWorkspace(tester);
     cubit.toggleSoloLane(LaneId.reader);
     await tester.pumpAndSettle();
+
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(gesture.removePointer);
+    await gesture.addPointer(location: const Offset(600, 450));
+    await tester.pump();
+    await gesture.moveTo(const Offset(3, 450));
+    await tester.pump();
+    await _waitDwell(tester, cubit.state.interaction.edgeRevealDelayMs);
+    expect(cubit.state.activeLaneId, LaneId.left, reason: '前置：揭示已经接管了交互');
+
+    // 指针**不动**，再等一整个「收回」的延时。
+    await _waitDwell(tester, cubit.state.interaction.edgeRevealRestoreDelayMs);
+
+    expect(
+      cubit.state.activeLaneId,
+      LaneId.left,
+      reason:
+          '「离开未激活的揭示就收回」是为了不留下一个没人认领的**瞬态**；'
+          '它已经是激活泳道了，再收回就是把用户正在用的那条路抢走。',
+    );
+    expect(
+      tester.getCenter(_probe(LaneId.left)).dx,
+      greaterThan(0),
+      reason: '条带留在原地（回 Reader 交给悬停聚焦或点那条窄缝，不是自动跳）',
+    );
+  });
+
+  testWidgets('揭示是瞬态的：关掉自动聚焦后，指针离开会延时把条带收回 Reader', (tester) async {
+    final cubit = await _pumpWorkspace(tester);
+    cubit.toggleSoloLane(LaneId.reader);
+    // 这一条验的是契约原味（`Dwell alone is transient and does not change the
+    // active lane` + `Leaving an unactivated reveal restores Reader`），所以
+    // 先把自动聚焦关掉；**同时**关掉 Reader 悬停聚焦 —— 否则指针落回 Reader
+    // 之后「收回」到底是恢复计时干的还是驻留聚焦干的，这条判据答不上来。
+    cubit.setInteraction(
+      cubit.state.interaction.copyWith(
+        revealFocusesLane: false,
+        hoverFocusEnabled: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      cubit.state.interaction.revealFocusesLane,
+      isFalse,
+      reason: '前置：这一条走的是「揭示不改激活」那条分支',
+    );
 
     final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
     addTearDown(gesture.removePointer);
@@ -351,6 +474,11 @@ void main() {
       tester.getCenter(_probe(LaneId.left)).dx,
       greaterThan(0),
       reason: '前置：揭示已经发生',
+    );
+    expect(
+      cubit.state.activeLaneId,
+      LaneId.reader,
+      reason: '这条分支上揭示**只是看清楚**：交互还留在 Reader',
     );
 
     // 移出去（落回 Reader 泳道里）—— 不是「离开被揭示的那条」，而是「离开它」。
@@ -365,6 +493,10 @@ void main() {
           '揭示是**瞬态**的：指针不在旁边了，它就该消失，'
           '否则「上次它自己动过」会变成一个用户没法关掉的状态',
     );
-    expect(cubit.state.activeLaneId, LaneId.reader);
+    expect(
+      cubit.state.activeLaneId,
+      LaneId.reader,
+      reason: '收回的是**条带位置**，激活泳道自始至终没换过',
+    );
   });
 }
