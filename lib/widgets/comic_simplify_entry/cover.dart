@@ -114,11 +114,23 @@ class CoverWidget extends StatelessWidget {
                     ),
                   );
                 } else {
+                  // 「重载封面」住在**顶边居中**，不住正中。
+                  //
+                  // 重试的点击目标本来就是整格封面（这个 InkWell 铺满），图标只是
+                  // 个记号；但正中那一格另有其人 —— 封面的「直接阅读」按钮压在
+                  // 标题渐变之上、就在正中间。两颗叠在同一个点上，谁都不该在那儿。
+                  // 顶边居中是封面槽里唯一既空着又不与左右角标争位的地方。
                   return InkWell(
                     onTap: () {
                       context.read<PictureBloc>().add(GetPicture(pictureInfo));
                     },
-                    child: Center(child: Icon(Icons.refresh)),
+                    child: const Padding(
+                      padding: EdgeInsets.only(top: 6),
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: Icon(Icons.refresh, size: 20),
+                      ),
+                    ),
                   );
                 }
             }
