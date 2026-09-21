@@ -1100,6 +1100,12 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '桌面端在操作行里「下载」旁边放一个阅读按钮，并撤掉右下角的悬浮按钮'
 	String get comicInfoInlineReadButtonSubtitle => '桌面端在操作行里「下载」旁边放一个阅读按钮，并撤掉右下角的悬浮按钮';
 
+	/// zh-CN: '详情页操作栏液态玻璃'
+	String get comicInfoRailLiquidGlass => '详情页操作栏液态玻璃';
+
+	/// zh-CN: '桌面端左右两颗悬浮胶囊改用液态玻璃材质；关掉则换成不透明实底加描边'
+	String get comicInfoRailLiquidGlassSubtitle => '桌面端左右两颗悬浮胶囊改用液态玻璃材质；关掉则换成不透明实底加描边';
+
 	/// zh-CN: '后台保活'
 	String get androidKeepAlive => '后台保活';
 
@@ -6075,6 +6081,8 @@ extension on Translations {
 			'settings.clickCoverToStartReadingSubtitle' => '在漫画详情页点击封面直接开始阅读',
 			'settings.comicInfoInlineReadButton' => '详情页内置阅读按钮',
 			'settings.comicInfoInlineReadButtonSubtitle' => '桌面端在操作行里「下载」旁边放一个阅读按钮，并撤掉右下角的悬浮按钮',
+			'settings.comicInfoRailLiquidGlass' => '详情页操作栏液态玻璃',
+			'settings.comicInfoRailLiquidGlassSubtitle' => '桌面端左右两颗悬浮胶囊改用液态玻璃材质；关掉则换成不透明实底加描边',
 			'settings.androidKeepAlive' => '后台保活',
 			'settings.androidKeepAliveSubtitle' => '开启后通过前台服务尽量保持应用在后台运行，会显示常驻通知',
 			'settings.backPressExit' => '返回键退出',
@@ -6257,10 +6265,10 @@ extension on Translations {
 			'settings.operationBindingActionZoomOut' => '缩小',
 			'settings.operationBindingActionFitWindow' => '适应窗口',
 			'settings.operationBindingActionActualSize' => '实际大小',
-			'settings.operationBindingActionRotateClockwise' => '旋转',
-			'settings.operationBindingActionRotate180' => '旋转180度',
 			_ => null,
 		} ?? switch (path) {
+			'settings.operationBindingActionRotateClockwise' => '旋转',
+			'settings.operationBindingActionRotate180' => '旋转180度',
 			'settings.operationBindingBoundAction' => '绑定的动作',
 			'settings.operationBindingDisabledRow' => '已停用（不参与冲突判定）',
 			'settings.operationBindingRemove' => '删除这条绑定',
@@ -6771,10 +6779,10 @@ extension on Translations {
 			'plugin.switchingToExternalBrowser' => '内置 WebView 登录受限，正在切换外部浏览器...',
 			'plugin.chromiumNotFound' => '未检测到 Chromium 浏览器，请先安装 Chrome',
 			'plugin.browserSwitched' => ({required Object browser}) => '已切换到 ${browser}，登录完成后会自动同步 Cookie',
-			'plugin.invalidLink' => ({required Object url}) => '无效链接: ${url}',
-			'plugin.cannotOpenLink' => ({required Object url}) => '无法打开链接: ${url}',
 			_ => null,
 		} ?? switch (path) {
+			'plugin.invalidLink' => ({required Object url}) => '无效链接: ${url}',
+			'plugin.cannotOpenLink' => ({required Object url}) => '无法打开链接: ${url}',
 			'plugin.readLocalPluginFailed' => ({required Object error}) => '读取本地插件失败: ${error}',
 			'plugin.addFromNetwork' => '从网络添加插件',
 			'plugin.urlCannotBeEmpty' => 'URL 不能为空',
@@ -7285,10 +7293,10 @@ extension on Translations {
 			'download.taskStarted' => '下载任务已启动',
 			'download.taskStartFailed' => ({required Object error}) => '下载任务启动失败，${error}',
 			'download.noTasks' => '暂无下载任务',
-			'download.downloading' => '正在下载',
-			'download.pending' => ({required Object count}) => '等待中 (${count})',
 			_ => null,
 		} ?? switch (path) {
+			'download.downloading' => '正在下载',
+			'download.pending' => ({required Object count}) => '等待中 (${count})',
 			'download.taskDeleted' => '已删除任务',
 			'download.cancelTask' => '取消任务',
 			'download.cancelTaskConfirm' => ({required Object comicName}) => '确定要取消下载 ${comicName} 吗？',

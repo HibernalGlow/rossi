@@ -440,6 +440,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get clickCoverToStartReadingSubtitle => 'Tap the cover on the comic info page to start reading directly';
 	@override String get comicInfoInlineReadButton => 'Read button in comic info page';
 	@override String get comicInfoInlineReadButtonSubtitle => 'On desktop, put a read button next to Download in the action row and drop the floating read button at the bottom-right';
+	@override String get comicInfoRailLiquidGlass => 'Liquid glass for the action rail';
+	@override String get comicInfoRailLiquidGlassSubtitle => 'Render the floating capsules on the left and right of the comic info page with liquid glass; turn off for an opaque surface with an outline';
 	@override String get androidKeepAlive => 'Keep alive';
 	@override String get androidKeepAliveSubtitle => 'Use a foreground service to keep the app running in the background; shows a persistent notification';
 	@override String get backPressExit => 'Exit on back';
@@ -2521,6 +2523,8 @@ extension on TranslationsEnUs {
 			'settings.clickCoverToStartReadingSubtitle' => 'Tap the cover on the comic info page to start reading directly',
 			'settings.comicInfoInlineReadButton' => 'Read button in comic info page',
 			'settings.comicInfoInlineReadButtonSubtitle' => 'On desktop, put a read button next to Download in the action row and drop the floating read button at the bottom-right',
+			'settings.comicInfoRailLiquidGlass' => 'Liquid glass for the action rail',
+			'settings.comicInfoRailLiquidGlassSubtitle' => 'Render the floating capsules on the left and right of the comic info page with liquid glass; turn off for an opaque surface with an outline',
 			'settings.androidKeepAlive' => 'Keep alive',
 			'settings.androidKeepAliveSubtitle' => 'Use a foreground service to keep the app running in the background; shows a persistent notification',
 			'settings.backPressExit' => 'Exit on back',
@@ -2703,10 +2707,10 @@ extension on TranslationsEnUs {
 			'settings.operationBindingActionToggleBars' => 'Show or hide the bars',
 			'settings.operationBindingActionOpenSettings' => 'Open settings',
 			'settings.operationBindingActionZoomIn' => 'Zoom in',
-			'settings.operationBindingActionZoomOut' => 'Zoom out',
-			'settings.operationBindingActionFitWindow' => 'Fit to window',
 			_ => null,
 		} ?? switch (path) {
+			'settings.operationBindingActionZoomOut' => 'Zoom out',
+			'settings.operationBindingActionFitWindow' => 'Fit to window',
 			'settings.operationBindingActionActualSize' => 'Actual size',
 			'settings.operationBindingActionRotateClockwise' => 'Rotate clockwise',
 			'settings.operationBindingActionRotate180' => 'Rotate 180 degrees',
@@ -3217,10 +3221,10 @@ extension on TranslationsEnUs {
 			'plugin.chromiumNotFound' => 'No Chromium browser detected, please install Chrome first',
 			'plugin.browserSwitched' => ({required Object browser}) => 'Switched to ${browser}, cookies will be synced automatically after login',
 			'plugin.invalidLink' => ({required Object url}) => 'Invalid link: ${url}',
-			'plugin.cannotOpenLink' => ({required Object url}) => 'Cannot open link: ${url}',
-			'plugin.readLocalPluginFailed' => ({required Object error}) => 'Failed to read local plugin: ${error}',
 			_ => null,
 		} ?? switch (path) {
+			'plugin.cannotOpenLink' => ({required Object url}) => 'Cannot open link: ${url}',
+			'plugin.readLocalPluginFailed' => ({required Object error}) => 'Failed to read local plugin: ${error}',
 			'plugin.addFromNetwork' => 'Add plugin from network',
 			'plugin.urlCannotBeEmpty' => 'URL cannot be empty',
 			'plugin.startInstall' => 'Start install',
@@ -3731,10 +3735,10 @@ extension on TranslationsEnUs {
 			'download.taskStartFailed' => ({required Object error}) => 'Failed to start download task: ${error}',
 			'download.noTasks' => 'No download tasks',
 			'download.downloading' => 'Downloading',
-			'download.pending' => ({required Object count}) => 'Pending (${count})',
-			'download.taskDeleted' => 'Task deleted',
 			_ => null,
 		} ?? switch (path) {
+			'download.pending' => ({required Object count}) => 'Pending (${count})',
+			'download.taskDeleted' => 'Task deleted',
 			'download.cancelTask' => 'Cancel Task',
 			'download.cancelTaskConfirm' => ({required Object comicName}) => 'Cancel download of ${comicName}?',
 			'download.paused' => 'Paused',

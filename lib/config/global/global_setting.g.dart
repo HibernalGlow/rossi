@@ -60,6 +60,7 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
   leftHandModeEnabled: json['leftHandModeEnabled'] as bool? ?? false,
   clickCoverToStartReading: json['clickCoverToStartReading'] as bool? ?? false,
   comicInfoInlineReadButton: json['comicInfoInlineReadButton'] as bool? ?? true,
+  comicInfoRailLiquidGlass: json['comicInfoRailLiquidGlass'] as bool? ?? true,
   startWithWorkspace: json['startWithWorkspace'] as bool? ?? false,
   transparentDesktopTitleBar:
       json['transparentDesktopTitleBar'] as bool? ?? false,
@@ -185,6 +186,7 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'leftHandModeEnabled': instance.leftHandModeEnabled,
       'clickCoverToStartReading': instance.clickCoverToStartReading,
       'comicInfoInlineReadButton': instance.comicInfoInlineReadButton,
+      'comicInfoRailLiquidGlass': instance.comicInfoRailLiquidGlass,
       'startWithWorkspace': instance.startWithWorkspace,
       'transparentDesktopTitleBar': instance.transparentDesktopTitleBar,
       'transparentTitleBarFused': instance.transparentTitleBarFused,
