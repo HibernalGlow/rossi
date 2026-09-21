@@ -12,6 +12,7 @@ import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
+import 'package:zephyr/reader/animated_local_page.dart';
 import 'package:zephyr/reader/image_surface.dart';
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
@@ -172,37 +173,55 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
       // 以前邻页自带一个 ImageSurface，顺手就把下一页解出来并推上纹理；
       // 改成只让当前页上屏之后，这个副作用也跟着没了，翻页就要现场等
       // 400–500 ms 的解码。所以要显式补一个**只预取、不上屏**的入口。
+      final Widget staticRoute =
+          source != null && GpuPresentController.isPlatformSupported
+          ? Stack(
+              fit: StackFit.expand,
+              children: <Widget>[
+                if (isActiveSlot)
+                  ImageSurface(
+                    source: source,
+                    index: localIndex,
+                    presenter: presenter,
+                    onIntrinsicSize: (size) => context
+                        .read<ImageSizeCubit>()
+                        .updateIntrinsicSize(cacheIndex, size),
+                  )
+                else
+                  placeholder(
+                    backgroundColor: backgroundColor,
+                    foregroundColor: foregroundColor,
+                  ),
+                if (!isActiveSlot)
+                  _NeighborPrefetch(
+                    source: source,
+                    index: localIndex,
+                    presenter: presenter,
+                  ),
+              ],
+            )
+          : placeholder(
+              backgroundColor: backgroundColor,
+              foregroundColor: foregroundColor,
+            );
+
+      // 动图页在**上面那条路之外**：那条路是「Rust 解成一帧 → 上屏」，
+      // 动图走到那里不会报错，只会安静地变成一张不会动的图。
+      // 判定没回来之前先照常画 staticRoute，所以这里没有黑屏空窗。
       return Container(
         color: backgroundColor,
-        child: source != null && GpuPresentController.isPlatformSupported
-            ? Stack(
-                fit: StackFit.expand,
-                children: <Widget>[
-                  if (isActiveSlot)
-                    ImageSurface(
-                      source: source,
-                      index: localIndex,
-                      presenter: presenter,
-                      onIntrinsicSize: (size) => context
-                          .read<ImageSizeCubit>()
-                          .updateIntrinsicSize(cacheIndex, size),
-                    )
-                  else
-                    placeholder(
-                      backgroundColor: backgroundColor,
-                      foregroundColor: foregroundColor,
-                    ),
-                  if (!isActiveSlot)
-                    _NeighborPrefetch(
-                      source: source,
-                      index: localIndex,
-                      presenter: presenter,
-                    ),
-                ],
-              )
-            : placeholder(
-                backgroundColor: backgroundColor,
-                foregroundColor: foregroundColor,
+        child: source == null
+            ? staticRoute
+            : AnimatedLocalPage(
+                source: source,
+                index: localIndex,
+                isColumn: isColumn,
+                imageAlignment: widget.imageAlignment,
+                paintSize: widget.paintSize,
+                onIntrinsicSize: (size) => context
+                    .read<ImageSizeCubit>()
+                    .updateIntrinsicSize(cacheIndex, size),
+                child: staticRoute,
               ),
       );
     }

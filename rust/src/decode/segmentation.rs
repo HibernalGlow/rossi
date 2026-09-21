@@ -17,7 +17,14 @@ pub(crate) fn segmentation_picture(
         .unwrap_or("");
     let num = get_segmentation_num(chapter_id, scramble_id, picture_name);
 
-    if format == ImageFormat::Gif || num <= 1 {
+    // 动图必须原样返回：下面这条路径是「解成一帧 → 重编码成静帧 WebP」，
+    // 走到那一步动图就被**悄悄拍平**了 —— 用户看到一张不会动的图，且没有任何报错。
+    // GIF 连容器都不用查（后缀即动图档，见 `animation` 模块注释）；
+    // PNG / WebP 只有头部那么多字节要查。
+    if format == ImageFormat::Gif
+        || rossi_local_core::animation::animated_container(&img_data)
+        || num <= 1
+    {
         return Ok(img_data);
     }
 

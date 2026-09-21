@@ -18,6 +18,7 @@ import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/upscaled_image_cache.dart';
 import 'package:zephyr/page/setting/real_sr/service/mimage_onnx_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/service/super_resolution_policy_service.dart';
+import 'package:zephyr/reader/page_animation.dart';
 import 'package:zephyr/src/rust/api/image.dart';
 import 'package:zephyr/src/rust/api/mimage_onnx.dart';
 import 'package:zephyr/src/rust/api/simple.dart';
@@ -600,12 +601,17 @@ class RealSrSuperResolution {
 
   /// 检测图片是否可被 RealSR 处理。
   ///
-  /// 只读取文件头做判断，返回规范化扩展名；不支持（含动图 WebP）返回 null。
+  /// 只读取文件头做判断，返回规范化扩展名；不支持（含任何动图容器）返回 null。
+  ///
+  /// 动图必须挡在这里：超分是「解成一帧 → 重编码一张 PNG」，动图走到那一步会被
+  /// **悄悄拍平**。原先只挡动图 WebP，而且那条判定的偏移是错的（动图 WebP 第一个
+  /// 块必须是 VP8X，`ANIM` 不在偏移 12），等于一条都没挡住 —— 改名成 `.png` 的
+  /// APNG 更是完全没查。现在统一交给 `page_animation` 的容器嗅探。
   static Future<String?> _detectUpscalableExtension(File file) async {
     final rawExt = await detectImageExtension(file);
     final normalizedExt = rawExt.toLowerCase();
     if (!_supportedFormats.contains(normalizedExt)) return null;
-    if (normalizedExt == '.webp' && await isAnimatedWebP(file)) return null;
+    if (await animatedFileHead(file)) return null;
     return normalizedExt;
   }
 
@@ -877,8 +883,8 @@ class RealSrSuperResolution {
       return false;
     }
 
-    if (normalizedExt == '.webp' && await isAnimatedWebP(inputFile)) {
-      logger.w('RealSR 不支持动图 WebP，跳过超分: $inputPath');
+    if (await animatedFileHead(inputFile)) {
+      logger.w('RealSR 不支持动图容器，跳过超分: $inputPath');
       return false;
     }
 
@@ -1193,41 +1199,5 @@ class RealSrUpscaleResult {
   @override
   String toString() {
     return 'RealSrUpscaleResult(success=$success, exitCode=$exitCode, outputPath=$outputPath)';
-  }
-}
-
-/// 检测 WebP 文件是否为动图
-/// 返回 true 表示是动图，false 表示静态图或读取失败
-Future<bool> isAnimatedWebP(File file) async {
-  try {
-    // 只需要读取前 20 个字节就够了（实际只需 16 个，读 20 以防万一）
-    final bytes = await file.openRead(0, 20).first;
-
-    // 长度不足则判定为非动图
-    if (bytes.length < 16) return false;
-
-    // 校验头部是否为 RIFF...WEBP (0x52= R, 0x49=I, 0x46=F)
-    // 偏移 0-3: RIFF, 偏移 8-11: WEBP
-    if (bytes[0] != 0x52 ||
-        bytes[1] != 0x49 ||
-        bytes[2] != 0x46 ||
-        bytes[3] != 0x46) {
-      return false;
-    }
-    if (bytes[8] != 0x57 ||
-        bytes[9] != 0x45 ||
-        bytes[10] != 0x42 ||
-        bytes[11] != 0x50) {
-      return false;
-    }
-
-    // 关键判断：偏移 12-15 必须是 'ANIM' (0x41=A, 0x4E=N, 0x49=I, 0x4D=M)
-    // 只要是 ANIM，就说明包含动画控制块，必然是动图
-    return bytes[12] == 0x41 &&
-        bytes[13] == 0x4E &&
-        bytes[14] == 0x49 &&
-        bytes[15] == 0x4D;
-  } catch (_) {
-    return true;
   }
 }
