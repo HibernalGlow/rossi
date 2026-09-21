@@ -113,7 +113,7 @@ class VideoAliasRegistry {
   }
 }
 
-/// 用户自定义扩展名别名（neoview 的 `formatAlias` 设置）的上位约束。
+/// 用户自定义扩展名别名（neoview 的媒体格式表）的上位约束。
 class MediaKindOverrides {
   const MediaKindOverrides({this.extraVideoExtensions = const <String>[]});
 
@@ -213,4 +213,68 @@ RossiMediaKind? mediaKindOf(
     return RossiMediaKind.video;
   }
   return null;
+}
+
+/// 用户自定义格式表的一条上限，与 Rust `media_formats.rs` 的 `MAX_ENTRIES` 同值。
+const int maxMediaFormatEntries = 128;
+
+/// 单个后缀的最长字符数，与 Rust 侧 `MAX_SUFFIX_LEN` 同值。
+const int maxMediaFormatSuffixLength = 16;
+
+/// 上游 `media.ts:154-166` 的那字符集：首字符字母或数字，其余可带 `+ _ -`。
+final RegExp _mediaFormatPattern = RegExp(r'^[a-z0-9][a-z0-9+_-]{0,15}$');
+
+/// 规整一颗后缀：去空白、去前导点、小写。
+///
+/// Rust 侧 `media_formats.rs::normalize` 做的是同一件事。**两边都必须做**：
+/// 设置界面按这份校验给用户报错，而 Rust 收到的是同一串 —— 两边规则不一致时，
+/// 症状是「界面收了、表里却没有」。
+String normalizeMediaFormat(String raw) =>
+    raw.trim().replaceFirst(RegExp(r'^\.+'), '').toLowerCase();
+
+/// 校验用户给的两张格式表（图片档与视频档），返回可直接展示的问题列表。
+///
+/// 规则照 neoview `MediaSettingsCard.tsx:177-196` + `media.ts:154-166`：
+/// 每条 ≤16 个字符、每表 ≤128 条、字符集受限，以及**同一个后缀不许同时进两档** ——
+/// 最后这条不是为了整齐：一个后缀命中两档，页序里它就会被随机路由，
+/// 于是「同一本书每次打开页数不一样」。
+///
+/// 一起收两张表而不是逐张校验，是因为交集那条判定要看见对面表才能算。
+List<String> mediaFormatTableProblems({
+  required List<String> image,
+  required List<String> video,
+}) {
+  final problems = <String>[];
+
+  void check(String label, List<String> entries) {
+    if (entries.length > maxMediaFormatEntries) {
+      problems.add('$label最多 $maxMediaFormatEntries 条');
+    }
+    // 去重后再报错：列表里写了两遍 `png` 不该刷两条同样的提示。
+    for (final raw in entries.toSet()) {
+      final ext = normalizeMediaFormat(raw);
+      if (ext.isEmpty) {
+        problems.add('$label存在空后缀');
+        continue;
+      }
+      if (ext.length > maxMediaFormatSuffixLength ||
+          !_mediaFormatPattern.hasMatch(ext)) {
+        problems.add(
+          '$label的 $ext 不合规：只能是 a-z0-9 开头，可含 + _ -，最长 $maxMediaFormatSuffixLength 个字符',
+        );
+      }
+    }
+  }
+
+  check('图片档', image);
+  check('视频档', video);
+
+  final overlap = image
+      .map(normalizeMediaFormat)
+      .toSet()
+      .intersection(video.map(normalizeMediaFormat).toSet());
+  if (overlap.isNotEmpty) {
+    problems.add('同一个后缀不能既是图片又是视频：${overlap.join('、')}');
+  }
+  return problems;
 }

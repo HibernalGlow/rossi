@@ -69,9 +69,15 @@ impl Default for FolderTreeOptions {
 /// - avif      → AV1 Video Extensions
 /// - jxl       → JPEG XL Image Extensions
 /// - cr2/nef/arw 等 → Raw Image Extension
+///
+/// Rossi Added two alias suffixes on top of the upstream table: `wbp` (a renamed
+/// WebP — neoview `media.ts:13` lists it the same way) and `apng` (the container is
+/// PNG). Both were invisible in the file browser before, which is a listing bug
+/// rather than a decode gap: whether a page can be decoded is `page_order`'s call,
+/// while this table only answers "does this entry show up at all".
 pub const SUPPORTED_EXTENSIONS: &[&str] = &[
     // image クレートで直接デコード
-    "jpg", "jpeg", "png", "webp", "bmp", "gif", // WIC 経由 (モダン形式)
+    "jpg", "jpeg", "png", "webp", "wbp", "apng", "bmp", "gif", // WIC 経由 (モダン形式)
     "heic", "heif", "avif", "jxl",
     // WIC 経由 (TIFF: image クレートも対応するが WIC の方が高機能)
     "tiff", "tif", // WIC 経由 (カメラ RAW)
@@ -118,11 +124,14 @@ mod audio_ext_tests {
 /// ネイティブ対応の `SUPPORTED_EXTENSIONS` に加え、起動時にロードした Susie プラグイン
 /// が対応する拡張子もここで画像扱いとする。Susie がロード前、または無効の場合は
 /// `SUPPORTED_EXTENSIONS` のみで判定する。
+///
+/// Rossi 追加の一段：`SUPPORTED_EXTENSIONS` は**デフォルト表**であって唯一の表ではない。
+/// 設定で自定义した后缀（[`crate::media_formats`]）もここで効く —— 这一档必须落在 Rust，
+/// 因为它决定的是条目**是否出现在列表里**。只改 Dart 侧那套 `RossiMediaKind` 的话，
+/// 用户加了后缀仍然在文件管理器里看不见（`.wbp` 被隐藏就是这个根因）。
 pub fn is_recognized_image_ext(ext_lower: &str) -> bool {
-    if SUPPORTED_EXTENSIONS.contains(&ext_lower) {
-        return true;
-    }
-    crate::susie_loader::supports_extension(ext_lower)
+    crate::media_formats::is_image_ext(ext_lower)
+        || crate::susie_loader::supports_extension(ext_lower)
 }
 
 // -----------------------------------------------------------------------
@@ -295,7 +304,7 @@ fn folder_qualifies(
         if let Some(ext) = p.extension().and_then(|e| e.to_str()) {
             let ext_lower = ext.to_lowercase();
             if is_recognized_image_ext(&ext_lower)
-                || (include_video && SUPPORTED_VIDEO_EXTENSIONS.contains(&ext_lower.as_str()))
+                || (include_video && crate::media_formats::is_video_ext(&ext_lower))
             {
                 return true;
             }

@@ -50,6 +50,7 @@ pub mod folder_source;
 // modules intentionally keep the upstream names so future mImageViewer updates can
 // be diffed and applied without reimplementing the platform rules in Rossi.
 pub mod activity_gate;
+pub mod animation;
 pub mod archive_converter;
 pub mod auto_aspect;
 pub mod books;
@@ -72,6 +73,7 @@ pub mod zip_loader;
 pub mod final_pipeline;
 #[cfg(any(feature = "jxl-rs-mt", feature = "jxl-rs-1t", feature = "jxl-oxide"))]
 pub mod jxl_backend;
+pub mod media_formats;
 pub mod operation_binding;
 pub mod page_load_scheduler;
 pub mod page_order;
@@ -454,6 +456,53 @@ mod tests {
             assert_eq!((pixels.width, pixels.height), (3, 2));
         }
         assert_eq!(source.page_size(1).unwrap(), (3, 2));
+    }
+
+    /// `.apng` / `.wbp` 是**后缀别名**：容器就是 PNG / WebP，所以它们既要算一页、
+    /// 又要真的从核心解出第一帧。
+    ///
+    /// 少一条的后果都不是「动图不会动」这么轻：不算页 → 用户看到书里凭空少几页；
+    /// 解不出 → 翻到那一页直接报解码失败。动图本身的判定不在这里
+    /// （「会不会动」由 `animation.rs` 与 Dart 侧 `page_animation.dart` 回答）。
+    #[test]
+    fn animated_extension_aliases_are_pages_and_decode() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("motion.cbz");
+
+        let mut png = std::io::Cursor::new(Vec::new());
+        image::DynamicImage::ImageRgb8(image::RgbImage::from_pixel(3, 2, image::Rgb([9, 8, 7])))
+            .write_to(&mut png, image::ImageFormat::Png)
+            .unwrap();
+        let mut webp = std::io::Cursor::new(Vec::new());
+        image::DynamicImage::ImageRgb8(image::RgbImage::from_pixel(3, 2, image::Rgb([1, 2, 3])))
+            .write_to(&mut webp, image::ImageFormat::WebP)
+            .unwrap();
+
+        {
+            let file = std::fs::File::create(&path).unwrap();
+            let mut zip = zip::ZipWriter::new(file);
+            let options = zip::write::SimpleFileOptions::default();
+            for (name, bytes) in [
+                ("p1.apng", &png.get_ref()[..]),
+                ("p2.wbp", &webp.get_ref()[..]),
+                ("p3.avif", &[][..]), // 冒充：闸门在解码之前，内容读不读都无所谓
+            ] {
+                zip.start_file(name, options).unwrap();
+                zip.write_all(bytes).unwrap();
+            }
+            zip.finish().unwrap();
+        }
+
+        let source = LocalSource::open(&path).unwrap();
+        let names: Vec<&str> = source.pages().iter().map(|p| p.name.as_str()).collect();
+        assert_eq!(names, vec!["p1.apng", "p2.wbp", "p3.avif"]);
+
+        assert_eq!(source.page_decode_support(0), Some(DecodeSupport::Core));
+        assert_eq!(source.page_decode_support(1), Some(DecodeSupport::Core));
+        for index in 0..2 {
+            let pixels = source.page_pixels(index).unwrap();
+            assert_eq!((pixels.width, pixels.height), (3, 2), "页 {index}");
+        }
     }
 
     #[test]

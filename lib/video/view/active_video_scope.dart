@@ -12,6 +12,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/src/rust/api/local.dart';
 import 'package:zephyr/video/controller/reader_video_controller.dart';
 import 'package:zephyr/video/controller/video_transport.dart';
 import 'package:zephyr/video/model/video_media_kind.dart';
@@ -78,16 +79,30 @@ class VideoSettingsStore {
     final settings = raw == null
         ? const VideoSettings()
         : VideoSettings.parse(raw);
-    // 读设置顺带刷新别名登记表：判定「这一页是不是视频」有 5 个使用点，
-    // 逐个传参会漏，漏掉的那处的症状是把视频字节当图片写进封面缓存。
-    VideoAliasRegistry.instance.update(settings.extraVideoExtensions);
+    _apply(settings);
     return settings;
   }
 
   Future<void> save(VideoSettings settings) async {
-    VideoAliasRegistry.instance.update(settings.extraVideoExtensions);
+    _apply(settings);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(key, settings.encode());
+  }
+
+  /// 把「哪些后缀算媒体」推给 Rust，并刷新 Dart 侧的别名登记表。
+  ///
+  /// 读设置与写设置都要推，理由不同：**读**是启动与每次进阅读页时的对齐点
+  /// （文件管理器第一次列目录之前必须已经拿到表，否则用户加的格式在第一屏就是隐身的），
+  /// **写**是改完立刻生效，不用重开。
+  /// 两张表的家也在这里：`apply` 是唯一一处能同时看到两张表的地方，
+  /// 分成两个 setter 迟早会推漏一张 —— 那症状是图片档生效、视频档没生效。
+  void _apply(VideoSettings settings) {
+    VideoAliasRegistry.instance.update(settings.extraVideoExtensions);
+    mediaFormatsSet(
+      image: settings.imageFormats,
+      video: settings.videoFormats,
+      extraVideo: settings.extraVideoExtensions,
+    );
   }
 }
 
@@ -104,6 +119,8 @@ class VideoSettings {
     this.animatedVideoEnabled = false,
     this.animatedVideoKeywords = const <String>['[#dyna]'],
     this.extraVideoExtensions = const <String>[],
+    this.imageFormats = const <String>[],
+    this.videoFormats = const <String>[],
     this.deinterlace = false,
     this.subtitleStyle = const VideoSubtitleStyle(),
   });
@@ -123,8 +140,21 @@ class VideoSettings {
   final bool animatedVideoEnabled;
   final List<String> animatedVideoKeywords;
 
-  /// 用户自定义视频后缀别名（neoview `MediaSettingsCard` 的 format alias）。
+  /// 用户自定义视频后缀别名（neoview `supportedImageFormats` 的兄弟档，语义是**追加**）。
   final List<String> extraVideoExtensions;
+
+  /// 「哪些后缀算图片」的用户表。**非空即替换**内置默认表（neoview `media.ts:64-65`），
+  /// 空表 = 没设置过 = 用默认。填错不是「多加一条」而是「其余全不见了」，
+  /// 所以界面上先过 `mediaFormatTableProblems` 再落盘。
+  ///
+  /// 存在这里而不是 `ReadSettingState`：它不该触发阅读页重建，
+  /// 而且必须与视频档同进同出（一次推给 Rust，见 `VideoSettingsStore._apply`）。
+  final List<String> imageFormats;
+
+  /// 「哪些后缀算视频」的用户表，同样是非空即替换。
+  /// 与上面那条 [extraVideoExtensions] 的关系是**两张表并存**：替换档决定基线，
+  /// 追加档永远叠在基线之上。
+  final List<String> videoFormats;
 
   /// 去隔行（mImageViewer `VideoPlayer::open` 的 `deinterlace`）。
   final bool deinterlace;
@@ -163,6 +193,8 @@ class VideoSettings {
     bool? animatedVideoEnabled,
     List<String>? animatedVideoKeywords,
     List<String>? extraVideoExtensions,
+    List<String>? imageFormats,
+    List<String>? videoFormats,
     bool? deinterlace,
     VideoSubtitleStyle? subtitleStyle,
   }) => VideoSettings(
@@ -177,6 +209,8 @@ class VideoSettings {
     animatedVideoEnabled: animatedVideoEnabled ?? this.animatedVideoEnabled,
     animatedVideoKeywords: animatedVideoKeywords ?? this.animatedVideoKeywords,
     extraVideoExtensions: extraVideoExtensions ?? this.extraVideoExtensions,
+    imageFormats: imageFormats ?? this.imageFormats,
+    videoFormats: videoFormats ?? this.videoFormats,
     deinterlace: deinterlace ?? this.deinterlace,
     subtitleStyle: subtitleStyle ?? this.subtitleStyle,
   );
@@ -193,6 +227,8 @@ class VideoSettings {
     'animatedVideo': '$animatedVideoEnabled',
     'animatedKeywords': animatedVideoKeywords.join('\u001f'),
     'videoAliases': extraVideoExtensions.join('\u001f'),
+    'imageFormats': imageFormats.join('\u001f'),
+    'videoFormats': videoFormats.join('\u001f'),
     'deinterlace': '$deinterlace',
     'subStyle': encodeSubtitleStyle(subtitleStyle),
   }.entries.map((e) => '${e.key}=${e.value}').join('\n');
@@ -216,6 +252,19 @@ class VideoSettings {
       return raw == null ? null : raw == 'true';
     }
 
+    /// 列表字段：`''.split('\u001f')` 会得到 `['']`，而**替换档**里一颗空后缀
+    /// 意思正好相反（「用户设置过，但表是空的」），所以这里必须把空串滤掉 ——
+    /// 滤完为空就是「没设置过」，继续用默认表。
+    List<String> list(String k, List<String> fallback) {
+      final raw = map[k];
+      if (raw == null || raw.isEmpty) return fallback;
+      return raw
+          .split('\u001f')
+          .map(normalizeMediaFormat)
+          .where((e) => e.isNotEmpty)
+          .toList(growable: false);
+    }
+
     return VideoSettings(
       controlsPinned: b('pinned') ?? base.controlsPinned,
       hardwareDecode: b('hw') ?? base.hardwareDecode,
@@ -231,6 +280,8 @@ class VideoSettings {
           base.animatedVideoKeywords,
       extraVideoExtensions:
           (map['videoAliases']?.split('\u001f')) ?? base.extraVideoExtensions,
+      imageFormats: list('imageFormats', base.imageFormats),
+      videoFormats: list('videoFormats', base.videoFormats),
       deinterlace: b('deinterlace') ?? base.deinterlace,
       subtitleStyle: parseSubtitleStyle(map['subStyle']),
     );

@@ -12,10 +12,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 
 use crate::filename_sort::SortNameKey;
-use crate::folder_tree::{
-    SUPPORTED_VIDEO_EXTENSIONS, is_convertible_archive_path, is_recognized_image_ext,
-    is_virtual_folder,
-};
+use crate::folder_tree::{is_convertible_archive_path, is_recognized_image_ext, is_virtual_folder};
 // `sort_natural` 只在 macOS 分支用（/Volumes 卷列表要按自然序排），
 // 无条件 import 会在 Windows/Linux 上触发 unused_imports。
 #[cfg(target_os = "macos")]
@@ -238,7 +235,7 @@ pub fn node_for_dir_entry(
         .unwrap_or_default();
     let is_archive = is_virtual_folder(&path) || is_convertible_archive_path(&path);
     let is_image = is_recognized_image_ext(&extension);
-    let is_video = SUPPORTED_VIDEO_EXTENSIONS.contains(&extension.as_str());
+    let is_video = crate::media_formats::is_video_ext(&extension);
     let is_audio = crate::folder_tree::is_audio_ext(&extension);
 
     // 图片、视频与容器可交给 Reader；音频保留在列表中供浏览。
@@ -335,6 +332,27 @@ mod tests {
     fn test_available_roots() {
         let roots = get_available_roots();
         assert!(!roots.is_empty(), "必须能探测到至少一个根目录");
+    }
+
+    /// 回归线：`.wbp`（改名的 WebP）与 `.apng` 曾在文件管理器里**完全不出现**。
+    ///
+    /// 根因是这里查的表（`folder_tree::SUPPORTED_EXTENSIONS`）与阅读器页序查的表
+    /// （`page_order::CORE_DECODABLE_EXTENSIONS`）是两张，只补后者等于「翻开书能看见、
+    /// 列表里没有」。症状不对称，所以两边都要有断言钉着。
+    #[test]
+    fn alias_suffixes_are_listed_as_images() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        for name in ["motion.wbp", "loop.apng", "page.png", "note.txt"] {
+            fs::File::create(root.join(name)).unwrap();
+        }
+
+        let nodes = list_directory(root).unwrap();
+        let names: Vec<&str> = nodes.iter().map(|n| n.name.as_str()).collect();
+        assert_eq!(names, vec!["loop.apng", "motion.wbp", "page.png"]);
+        for node in &nodes {
+            assert!(node.is_image, "{} 应当算图片", node.name);
+        }
     }
 
     #[test]

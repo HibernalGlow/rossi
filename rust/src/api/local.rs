@@ -617,6 +617,23 @@ pub fn local_close_all() -> u32 {
     count
 }
 
+/// 装上用户自定义的媒体格式表。见 `rossi_local_core::media_formats`。
+///
+/// 三个参数都是**小写、不含点**的后缀列表，空数组表示该档不覆盖默认：
+/// - `image` / `video`：非空即**替换**内置默认表（neoview `media.ts:64-65` 的语义）。
+///   所以填错不是「多加了一条」而是「其余全不见了」，界面上要先过一遍校验再推。
+/// - `extra_video`：改造前就存在的那条「自定义视频后缀」，语义是追加，
+///   与 `video` 的替换档并存。
+///
+/// 为什么这条必须过桥：文件管理器列不列一个条目，判的是 Rust 侧那张表
+/// （`folder_tree::is_recognized_image_ext`）。只在 Dart 侧加表的话，
+/// 用户新加的后缀仍然**在列表里看不见** —— 那就是 `.wbp` 被隐藏的根因。
+/// 同步而不是异步：这只是一次内存写，而它必须在第一次列目录之前生效。
+#[frb(sync)]
+pub fn media_formats_set(image: Vec<String>, video: Vec<String>, extra_video: Vec<String>) {
+    rossi_local_core::media_formats::set(&image, &video, &extra_video);
+}
+
 fn session(id: u64) -> Result<LocalSource, Error> {
     SESSIONS
         .get(&id)

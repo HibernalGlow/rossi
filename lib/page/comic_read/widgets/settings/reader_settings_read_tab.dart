@@ -32,6 +32,8 @@ class _ReaderSettingsReadTab extends StatelessWidget {
           const SizedBox(height: 18),
           const _ReadExperienceSection(),
           const SizedBox(height: 18),
+          const _MediaFormatSection(),
+          const SizedBox(height: 18),
           const _VideoSection(),
         ],
       ),
@@ -98,7 +100,7 @@ class _VideoSectionState extends State<_VideoSection> {
               value: _settings.deinterlace,
               onChanged: (value) => _write(_copy(deinterlace: value)),
             ),
-            _VideoListTile(
+            _StringListTile(
               title: t.video.aliases,
               hint: t.video.aliasesHint,
               dialogHint: t.video.aliasesDialogHint,
@@ -108,7 +110,7 @@ class _VideoSectionState extends State<_VideoSection> {
               onChanged: (next) => _write(_copy(extraVideoExtensions: next)),
             ),
             if (_settings.animatedVideoEnabled)
-              _VideoListTile(
+              _StringListTile(
                 title: t.video.animatedKeywords,
                 hint: t.video.animatedKeywordsHint,
                 dialogHint: t.video.aliasesDialogHint,
@@ -189,12 +191,99 @@ class _VideoSectionState extends State<_VideoSection> {
   );
 }
 
-/// 自定义视频后缀别名（neoview `MediaSettingsCard.tsx:155-283` 的 format alias 编辑）。
+/// 「哪些后缀算图片 / 算视频」。
 ///
-/// 校验直接复用 `MediaKindOverrides.invalidEntries` —— 「≤128 条 / ≤16 字符 /
-/// 不许与图片档重叠」这三条在上游是同一份规则，写两遍迟早漂移。
-class _VideoListTile extends StatelessWidget {
-  const _VideoListTile({
+/// # 为什么单独一屏而不是塞进上面的视频段
+///
+/// 这张表判的是**文件管理器列不列一个条目**（`folder_tree::is_recognized_image_ext`
+/// 在 Rust 侧），影响面是整库浏览，不是「这一页怎么播」。放错段的代价不是难看而已：
+/// 用户要找的是「为什么这个文件看不见」，而它会在播放设置里被划过去。
+///
+/// # 语义是替换，不是追加
+///
+/// 照 neoview `media.ts:64-65`：**填了就整体替换内置表**，没列进来的后缀会连页都不算。
+/// 留空才继续用内置默认。所以这两颗的提示必须把「填错不是多加一条，而是其余全不见」
+/// 说在前面 —— 这是这次改动最容易自我伤害的一处。
+/// 上面那段里原有的「自定义视频后缀」是**追加**档，两档并存：替换档定基线，
+/// 追加档永远叠在基线之上。
+///
+/// 存在 `VideoSettingsStore`：两张表要和 `extraVideoExtensions` **同进同出**推给 Rust
+/// （见 `VideoSettingsStore._apply`），拆成两个存储就会有一张表被推漏的那天。
+class _MediaFormatSection extends StatefulWidget {
+  const _MediaFormatSection();
+
+  @override
+  State<_MediaFormatSection> createState() => _MediaFormatSectionState();
+}
+
+class _MediaFormatSectionState extends State<_MediaFormatSection> {
+  VideoSettings _settings = const VideoSettings();
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final loaded = await VideoSettingsStore.instance.load();
+    if (!mounted) return;
+    setState(() => _settings = loaded);
+  }
+
+  Future<void> _write(VideoSettings next) async {
+    setState(() => _settings = next);
+    await VideoSettingsStore.instance.save(next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SettingsSection(
+      title: t.video.mediaSection,
+      icon: Icons.folder_copy_rounded,
+      children: [
+        _SettingsCardGroup(
+          children: [
+            _StringListTile(
+              title: t.video.imageFormats,
+              hint: t.video.formatsHint,
+              dialogHint: t.video.aliasesDialogHint,
+              values: _settings.imageFormats,
+              validate: (next) => mediaFormatTableProblems(
+                image: next,
+                video: _settings.videoFormats,
+              ),
+              onChanged: (next) =>
+                  _write(_settings.copyWith(imageFormats: next)),
+            ),
+            _StringListTile(
+              title: t.video.videoFormats,
+              hint: t.video.formatsHint,
+              dialogHint: t.video.aliasesDialogHint,
+              values: _settings.videoFormats,
+              validate: (next) => mediaFormatTableProblems(
+                image: _settings.imageFormats,
+                video: next,
+              ),
+              onChanged: (next) =>
+                  _write(_settings.copyWith(videoFormats: next)),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// 自定义后缀列表的编辑器（neoview `MediaSettingsCard.tsx:155-283` 那三档里的字符串列表档）。
+///
+/// 校验由调用方给：别名有「不许与图片后缀重叠」这类硬规则，关键字没有。
+/// 值统一在弹窗里做过 `trim` + 小写，所以登记表与校验器看到的是同一份写法。
+///
+/// 原名 `_VideoListTile`：它现在同时服务视频别名、动图关键字与两张媒体格式表，
+/// 留在旧名字下会让人以为「图片格式不该走这颗」。
+class _StringListTile extends StatelessWidget {
+  const _StringListTile({
     required this.title,
     required this.hint,
     required this.dialogHint,

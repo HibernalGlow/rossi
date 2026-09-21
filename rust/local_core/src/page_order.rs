@@ -7,6 +7,8 @@
 
 use std::cmp::Ordering;
 
+use crate::media_formats;
+
 /// **本 crate 真能解码**的扩展名（小写、不含前导点）。
 ///
 /// 与 `Cargo.toml` 里 `image` 的 feature 集严格对齐：这里列了却解不了，
@@ -16,17 +18,28 @@ use std::cmp::Ordering;
 /// 是因为 Windows 引擎实测解不了 —— 交给外壳等于交给「解不动」，
 /// 而 dav1d 已经证明能解（见 `SHELL_DECODABLE_EXTENSIONS` 的实测表）。
 ///
+/// `apng` 与 `wbp` 是**后缀别名**，不是新格式：APNG 的容器就是 PNG、
+/// `.wbp` 的容器就是 WebP（图源用它们表示「这一页会动」），内容由魔数嗅探，
+/// 所以两档 feature 都不用加。列进来的唯一意义是「算一页」——
+/// 少了这一行，`.apng` / `.wbp` 条目在页序阶段就消失了，用户看到的是
+/// 「书里少几页」，而不是「这一页解不动」。
+///
+/// 这两档在 Dart 侧各有对应的表：`apng` ∈ `animatedImageExtensions`、
+/// `wbp` ∈ `disguisedExtensions`（都在 `lib/video/model/video_media_kind.dart`）。
+/// 与 `VIDEO_EXTENSIONS` 同理，改动必须两边一起改。
+///
 /// `jxl` 不在表里：它跟着 `jxl_backend` 的三个后端 feature 走，
 /// 归属判断在 [`decode_support`] 里（见 [`JXL_CORE`]）。
 #[cfg(feature = "avif")]
 pub const CORE_DECODABLE_EXTENSIONS: &[&str] = &[
-    "jpg", "jpeg", "png", "webp", "bmp", "gif", "tif", "tiff", "avif",
+    "jpg", "jpeg", "png", "webp", "wbp", "bmp", "gif", "apng", "tif", "tiff", "avif",
 ];
 
 /// `avif` feature 关闭时的核心档（见 `Cargo.toml` 的 `[features]`）。
 #[cfg(not(feature = "avif"))]
-pub const CORE_DECODABLE_EXTENSIONS: &[&str] =
-    &["jpg", "jpeg", "png", "webp", "bmp", "gif", "tif", "tiff"];
+pub const CORE_DECODABLE_EXTENSIONS: &[&str] = &[
+    "jpg", "jpeg", "png", "webp", "wbp", "bmp", "gif", "apng", "tif", "tiff",
+];
 
 /// `jxl` 是否已进核心档：任一 JXL 后端 feature（`jxl-rs-mt` / `jxl-rs-1t` /
 /// `jxl-oxide`）开启即为真。App 默认开 `jxl-rs-mt`，所以默认构建里
@@ -135,12 +148,24 @@ pub const VIDEO_EXTENSIONS: &[&str] = &[
     "webm", "wmv",
 ];
 
-/// 是否为视频条目。
+/// 是否为视频条目（按当前生效的表）。
+///
+/// 走 [`media_formats::is_video_ext`] 而不是直接查 [`VIDEO_EXTENSIONS`]：
+/// 用户在设置里改过视频档时，页序与文件列表必须给同一个答案 —— 两边各查各的表，
+/// 症状是「列表里有这一页，翻开却不播」。
 pub fn is_video_name(name: &str) -> bool {
+    is_video_name_in(&media_formats::current(), name)
+}
+
+/// [`is_video_name`] 的纯函数版：表由参数给，不从全局读。
+///
+/// 分开这两个是因为这份表是进程级 `static`，测试一旦写它就是拿调度顺序当断言
+/// （见 `media_formats` 的模块注释）。
+pub fn is_video_name_in(tables: &media_formats::Tables, name: &str) -> bool {
     match extension_lower(name) {
         // `.nov` 是被改名的 mp4：按真实内容算，与 Dart 侧同一张伪装后缀表。
         Some(ext) if ext == "nov" => true,
-        Some(ext) => VIDEO_EXTENSIONS.contains(&ext.as_str()),
+        Some(ext) => tables.is_video_ext(&ext),
         None => false,
     }
 }
@@ -155,20 +180,43 @@ pub fn is_page_name(name: &str) -> bool {
 }
 
 /// 这一页由谁解码。不认识的格式返回 `None`（不算页）。
+///
+/// 用户自定义过图片档（[`media_formats::overriding_image`]）时多两条：
+/// - 默认表里有、用户表里被去掉的档 → **不算页**（替换语义，neoview `media.ts:64-65`）；
+/// - 用户表里有、两档常量表都不认识的档 → 算页，落 [`DecodeSupport::ShellOnly`]。
+///   后者仍然是那条老规矩：「算不算一页」是格式识别，「谁来解」是解码能力，
+///   不许用后者当前者的门槛（见 `SHELL_DECODABLE_EXTENSIONS` 的踩坑记录）。
 pub fn decode_support(name: &str) -> Option<DecodeSupport> {
+    decode_support_in(&media_formats::current(), name)
+}
+
+/// [`decode_support`] 的纯函数版（表由参数给，不读全局）。
+///
+/// 两条与用户表相关的分支都只在这里判定，测试因此不必碰那份 `static`。
+pub fn decode_support_in(tables: &media_formats::Tables, name: &str) -> Option<DecodeSupport> {
     let ext = extension_lower(name)?;
     // jxl 先于两档常量表判断：开着后端 feature 时它在核心档，
     // 全关时落进下面的 SHELL_DECODABLE_EXTENSIONS（"jxl" 一直留在那张表里）。
     if JXL_CORE && ext == "jxl" {
         return Some(DecodeSupport::Core);
     }
-    if CORE_DECODABLE_EXTENSIONS.contains(&ext.as_str()) {
-        Some(DecodeSupport::Core)
-    } else if SHELL_DECODABLE_EXTENSIONS.contains(&ext.as_str()) {
-        Some(DecodeSupport::ShellOnly)
-    } else {
-        None
+    let core = CORE_DECODABLE_EXTENSIONS.contains(&ext.as_str());
+    let shell = SHELL_DECODABLE_EXTENSIONS.contains(&ext.as_str());
+    if core || shell {
+        // 用户表生效时，被它去掉的默认档不再算页。
+        if tables.overriding_image() && !tables.is_image_ext(&ext) {
+            return None;
+        }
+        return Some(if core {
+            DecodeSupport::Core
+        } else {
+            DecodeSupport::ShellOnly
+        });
     }
+    if tables.overriding_image() && tables.is_image_ext(&ext) {
+        return Some(DecodeSupport::ShellOnly);
+    }
+    None
 }
 
 /// 是否必须交给外壳解码（等价于 `decode_support(..) == Some(ShellOnly)`）。
@@ -331,10 +379,102 @@ mod tests {
         ] {
             assert!(is_image_name(name), "{name}");
         }
+        // 后缀别名同样要算页：不列进来的话这些条目在页序阶段就消失了。
+        for name in ["1.apng", "1.wbp", "1.APNG"] {
+            assert!(is_image_name(name), "{name}");
+            assert_eq!(
+                decode_support(name),
+                Some(DecodeSupport::Core),
+                "{name} 的内容就是 PNG / WebP，容器 feature 早就开着"
+            );
+        }
         // 谁都不认识的格式不是页：列出来只会让用户在翻到它时才失败
         for name in ["1.cr2", "1.mp4", "1.txt", "no_dot"] {
             assert!(!is_image_name(name), "{name}");
         }
+    }
+
+    /// 动图后缀的**跨语言前置条件**：Dart 侧 `animatedNameSuffixes`
+    /// （`lib/reader/page_animation.dart`）里每一个后缀，Rust 侧都必须先**算它一页** ——
+    /// 否则「这一页会动」的判定根本轮不到出场，症状是书里凭空少几页。
+    /// 与 [`video_extension_table_matches_the_dart_side`] 同一个理由：判定的归属
+    /// 分属两语言时，要靠断言而不是注释维持。
+    #[test]
+    fn animated_suffixes_are_pages_here_too() {
+        let dart = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../lib/reader/page_animation.dart");
+        let text = std::fs::read_to_string(&dart)
+            .unwrap_or_else(|e| panic!("读不到 {}：{e}", dart.display()));
+        let start = text
+            .find("const Set<String> animatedNameSuffixes")
+            .expect("Dart 侧的 animatedNameSuffixes 声明被改名了");
+        let end = text[start..]
+            .find('}')
+            .map(|i| start + i)
+            .expect("animatedNameSuffixes 没有收尾的大括号");
+        let dart_exts: Vec<String> = text[start..end]
+            .split('\'')
+            .filter(|s| {
+                !s.is_empty()
+                    && s.chars()
+                        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
+            })
+            .map(str::to_string)
+            .collect();
+        assert!(dart_exts.len() >= 2, "表短得不像话：{dart_exts:?}");
+        for ext in dart_exts {
+            assert!(
+                is_image_name(&format!("1.{ext}")),
+                "Dart 把 .{ext} 当动图档，Rust 侧却不算它一页"
+            );
+        }
+    }
+
+    /// 用户表怎么改写「算不算一页」—— 用纯函数版断言，不碰进程级那份表。
+    #[test]
+    fn user_tables_change_what_counts_as_a_page() {
+        use crate::media_formats::Tables;
+
+        let to_vec =
+            |values: &[&str]| -> Vec<String> { values.iter().map(|v| (*v).to_string()).collect() };
+        let tables = Tables::normalized(&to_vec(&["png", "myimg"]), &to_vec(&["movid"]), &[]);
+
+        assert_eq!(
+            decode_support_in(&tables, "1.png"),
+            Some(DecodeSupport::Core),
+            "用户表里留着的默认档仍然走核心"
+        );
+        assert_eq!(
+            decode_support_in(&tables, "1.cr2"),
+            None,
+            "替换语义：用户没列进来的档不算页（哪怕它看起来像图片）"
+        );
+        assert_eq!(
+            decode_support_in(&tables, "1.myimg"),
+            Some(DecodeSupport::ShellOnly),
+            "用户加进来、核心又解不动的档：算页并交外壳 —— 格式识别不该被解码能力挡住"
+        );
+        assert!(is_video_name_in(&tables, "a.movid"));
+        assert!(
+            !is_video_name_in(&tables, "a.mp4"),
+            "视频档被替换之后默认档不再算视频"
+        );
+        assert!(
+            is_video_name_in(&tables, "a.nov"),
+            "伪装后缀按真实内容算，不吃表"
+        );
+
+        // 没设置过的时候，两档常量表说了算。
+        let untouched = Tables::default();
+        assert_eq!(
+            decode_support_in(&untouched, "1.cr2"),
+            None,
+            "默认情况下相机 RAW 不算页：folder_tree 那张表比页序宽得多"
+        );
+        assert_eq!(
+            decode_support_in(&untouched, "1.heic"),
+            Some(DecodeSupport::ShellOnly),
+        );
     }
 
     /// 这一条是**回归线**，不是补充测试：把 `avif` 挡在页枚举之外，

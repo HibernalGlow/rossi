@@ -504,7 +504,11 @@ class _SettingsSwitchTile extends StatelessWidget {
               ),
             )
           : null,
-      trailing: Switch.adaptive(value: value, onChanged: onChanged),
+      trailing: Switch.adaptive(
+        value: value,
+        activeTrackColor: colorScheme.primary,
+        onChanged: onChanged,
+      ),
       onTap: () {
         HapticFeedback.selectionClick();
         onChanged(!value);

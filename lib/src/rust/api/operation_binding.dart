@@ -89,7 +89,8 @@ String operationBindingKeyPreset() =>
 String operationBindingFactoryPreset() => RustLib.instance.api
     .crateApiOperationBindingOperationBindingFactoryPreset();
 
-/// 未改动的旧默认输入表升级到 Neo 默认值；自定义配置返回 None，轮盘行原样保留。
+/// 未改动的旧默认输入表升级到 Neo 默认值；自定义配置里**只有还留着旧口径的出厂滚轮行**
+/// 会被换成语义动作（下滚=下一页），其余原样保留，轮盘行不动。没有可演进项时返回 None。
 String? operationBindingUpgradeDefaults({required String bindingsJson}) =>
     RustLib.instance.api
         .crateApiOperationBindingOperationBindingUpgradeDefaults(

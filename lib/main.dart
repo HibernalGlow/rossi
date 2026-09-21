@@ -53,6 +53,7 @@ import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/util/layout/layout_overflow_guard.dart';
 import 'package:zephyr/util/manage_cache.dart';
 import 'package:zephyr/util/rust_loader.dart';
+import 'package:zephyr/video/view/active_video_scope.dart';
 import 'package:zephyr/widgets/desktop/desktop_shell_frame.dart';
 import 'package:zephyr/widgets/desktop/intent.dart';
 
@@ -513,6 +514,11 @@ Future<(GlobalSettingCubit, PluginRegistryCubit)> _initServices() async {
   setHostCacheGcEnabled(enabled: false);
 
   setTlsVerifyEnabled(enabled: false);
+
+  // 「哪些后缀算媒体」的表判在 Rust 侧（文件管理器列不列一个条目靠它），
+  // 所以启动时就要推一次：不推的话，用户自定义的格式在第一屏是隐身的，
+  // 要等他进过一次阅读页或设置页才出现。`load()` 顺带把表装进 native。
+  await VideoSettingsStore.instance.load();
 
   // Rust 已在本函数开头初始化；快照查询和 Brotli 压缩均在后台执行。
   unawaited(saveStartupDatabaseSnapshot());
