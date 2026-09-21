@@ -98,6 +98,23 @@ void main() {
     expect(tester.getSize(find.byType(ComicInfoActionRail)), Size.zero);
   });
 
+  testWidgets('胶囊按内容多高就多高，不铺满一列（第一版的回归：挤占漫画宽度）', (tester) async {
+    final scope = _FakeScope([
+      _entry(ComicInfoActionIds.back),
+      _entry(ComicInfoActionIds.home),
+    ]);
+    await tester.pumpWidget(
+      _wrap(ComicInfoActionRail(scope: scope, items: scope.items)),
+    );
+
+    final size = tester.getSize(find.byType(ComicInfoActionRail));
+    // 视口是 600x600：铺满一列就是回归成第一版那条 52px 的空白列。
+    expect(size.height, lessThan(140), reason: '两颗 = 约 94px，不是整屏高');
+    expect(size.width, lessThan(60));
+    expect(size.width, greaterThan(40));
+    expect(size.height, greaterThan(80));
+  });
+
   test('未接执行端的 id 派发返回 false（不许静默吞掉）', () {
     final scope = _FakeScope(const []);
     expect(

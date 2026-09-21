@@ -161,10 +161,13 @@
 **E + F（渲染与挂载）**：
 - `widgets/comic_info_action_rail.dart` —— 不持状态、不判断「这条该干什么」，点击一律走 `dispatchComicInfoAction`
 - `comic_info.dart` 的 `_ComicInfoState implements ComicInfoActionScope`；`body` 包一层 `_withActionRails(child:)`
-- 判据按**口径 4**：`comicInfoPlatformHasPointer(defaultTargetPlatform)` ⇒ 画左右 rail，触摸端原样返回（底部条是车道 G，还没做）
+- 判据按**口径 4**：`comicInfoPlatformHasPointer(defaultTargetPlatform)` ⇒ 左右各浮一颗胶囊，触摸端原样返回（底部条是车道 G，还没做）
 - 默认左 = 返回 / 回首页，右 = 阅读。`_loadingComplete` 之前阅读那颗**不出现**（与那颗悬浮按钮同口径），而不是画一颗点不动的
-- rail 顶对齐（`CrossAxisAlignment.start`）：默认 center 会把「返回」甩到屏幕中段，那不是手放的位置
+- **实机第一版被打回一次（2026-09-21）**：原本用 `Row` 把 rail 做成正文两侧各一条 52px 的列，截图里漫画正文被挤窄 104px、而那一列除了顶上两颗之外整截是空的。用户口径：**「应该是纵向悬浮胶囊，符合 MD3 规范，不能挤占漫画显示空间」**。改成 `Stack` + `Positioned`（`left/right: 8`、`top:0/bottom:0` + `Center`）⇒ **不占布局宽度**，胶囊按内容多高就多高、垂直居中贴边
+- 造型不自己发明，跟阅读器顶栏那套已有的悬浮语言对齐（`reader_toolbar_shell.dart`）：`surfaceContainerHigh` 底 + `outlineVariant` 描边 + stadium 圆角 + `secondaryContainer` 选中态 + 禁用 `onSurfaceVariant` 38% 透明；按钮 40 见方、图标 20。承底用 [Material] 而不是 `BoxDecoration`，否则 `IconButton` 的水波纹画在胶囊背后的页面上。数值与 `ReaderToolbarMetrics` 一致但**不 import** 它（那个类属于阅读器 chrome，依赖过去等于把两个界面的改期绑一起）
+- 胶囊内条目多到一屏放不下时自己滚（`LayoutBuilder` 限高 + `SingleChildScrollView`），不裁掉最后几颗
 - 文案没造新 i18n 键：`t.reader.backToHome` 复用现成的，「章节倒序」没有现成键所以干脆不端上 rail —— 造键要重跑 slang，那是全仓共享的生成物
+- 回归判据：`test/comic_info/comic_info_action_rail_test.dart` 里「胶囊按内容多高就多高，不铺满一列」那条会量 rail 自己的尺寸（两颗 ⇒ 高 <140、宽 <60）。**Row 版本当场红**，所以它专门钉这件事
 
 **验证状态**：`cargo test -p rossi_local_core --lib operation_binding::vocabulary` 6 passed；`test/comic_info/comic_info_action_rail_test.dart` 4 条 + 过桥 3 条全绿；`dart analyze`（我这 4 个文件）No issues。🟡 **未实机** —— rail 长什么样、让不让位、宽窗口下吃不吃正文宽度，都还得你在真窗口里看（§8 的 D1–D7）。
 

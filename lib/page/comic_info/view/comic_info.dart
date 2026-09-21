@@ -414,10 +414,14 @@ class _ComicInfoState extends State<_ComicInfo>
   @override
   void actionRead(BuildContext context) => _startReading(widget.type);
 
-  /// 有指针 ⇒ 正文两侧各一条 rail；触摸端原样返回（底部条是车道 G）。
+  /// 有指针 ⇒ 正文左右各浮一颗胶囊；触摸端原样返回（底部条是车道 G）。
   ///
   /// 判据用指针而不是视口宽度（口径 4）：带触摸屏的 Windows 笔记本仍然有指针，
   /// 「该不该省鼠标的路」取决于手上是什么，不取决于窗口多宽。
+  ///
+  /// 用 `Stack` + `Positioned` 而不是 `Row`：第一版用 Row 占了两列 52px，实机截图里
+  /// 漫画正文被挤窄 104px、而那一列除了顶上两颗整截是空的。悬浮 = **不占布局宽度**，
+  /// 正文该多宽还多宽。
   Widget _withActionRails({required Widget child}) {
     if (!comicInfoPlatformHasPointer(defaultTargetPlatform)) {
       return child;
@@ -429,21 +433,34 @@ class _ComicInfoState extends State<_ComicInfo>
           if (item.actionId == id) item,
     ];
 
-    return Row(
-      // rail 顶对齐：默认 center 会让「返回」落在屏幕中段，那不是手放的位置。
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Stack(
       children: [
-        ComicInfoActionRail(
-          scope: this,
-          items: pick(const [
-            ComicInfoActionIds.back,
-            ComicInfoActionIds.home,
-          ]),
+        Positioned.fill(child: child),
+        Positioned(
+          // 垂直居中贴边：手/鼠标停在屏幕边上就能点，且上下都不挡正文标题与封面。
+          left: 8,
+          top: 0,
+          bottom: 0,
+          child: Center(
+            child: ComicInfoActionRail(
+              scope: this,
+              items: pick(const [
+                ComicInfoActionIds.back,
+                ComicInfoActionIds.home,
+              ]),
+            ),
+          ),
         ),
-        Expanded(child: child),
-        ComicInfoActionRail(
-          scope: this,
-          items: pick(const [ComicInfoActionIds.read]),
+        Positioned(
+          right: 8,
+          top: 0,
+          bottom: 0,
+          child: Center(
+            child: ComicInfoActionRail(
+              scope: this,
+              items: pick(const [ComicInfoActionIds.read]),
+            ),
+          ),
         ),
       ],
     );
