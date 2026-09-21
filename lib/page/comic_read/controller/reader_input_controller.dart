@@ -560,10 +560,18 @@ class ReaderInputController {
       'reader',
       if (ActiveVideoScope.instance.hasTarget) 'video',
     ];
-    if (_actionDispatcher.resolveInput(input, bindings, contexts: contexts) ==
-        null) {
-      return false;
-    }
+    final hit = _actionDispatcher.resolveInput(
+      input,
+      bindings,
+      contexts: contexts,
+    );
+    if (hit == null) return false;
+    // 现场诊断：滚轮增量在一根轴上，方向词（上/下）由平台给，左右开又只改画面的那一侧。
+    // 「下滚到底命中了哪条动作、当时在第几页」这三件事只有在真机上对得上，出问题时看这一行。
+    debugPrint(
+      '滚轮 dy=${dy.round()} → ${input['direction']} · ${hit['action']} · '
+      'slot=${readerCubit.state.currentSlot}/${readerCubit.state.totalSlots}',
+    );
     final before = transformationController.value.clone();
     void execute() {
       transformationController.value = before;
