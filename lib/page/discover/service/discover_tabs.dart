@@ -50,8 +50,9 @@ class DiscoverLeafSpec {
 /// # 一组打底，分屏由右键开
 ///
 /// 默认就一个组（[groupId]）：发现页要的是「多条同类页面切换」，不是「任意切分的
-/// 工作区」。右键标签「在上/下/左/右打开」会经 `insertTabBeside` 拆出第二个窗格，
-/// 于是树上会出现 split —— 但**入口只有那一个**，拖拽落点仍然关着
+/// 工作区」。横向档下右键标签「在上/下/左/右打开」会经 `moveTabBeside` 把**这一条
+/// 标签挪**到新窗格里（移动，不是复制），于是树上会出现 split；竖向轨那一档不分屏，
+/// 新标签直接落在轨里（见 `RossiPlatTabMenuRegion`）。两条路都不开放拖拽落点
 /// （`acceptsDrops: false`），免得随手一拖就把列表切成两半。
 ///
 /// # 不去重
@@ -122,6 +123,29 @@ class DiscoverTabs {
   /// 这条标签所在的组（分屏后不止一个组）。
   String? groupOf(String tabId) => controller.tabGroupContaining(tabId);
 
+  /// 树上**每一个**组的 id。分屏之后不止一个，朝向与钳制都要按个数组算。
+  List<String> get groupIds {
+    final out = <String>[];
+    _collectGroups(controller.root, out);
+    return out;
+  }
+
+  static void _collectGroups(PlatSnapshot node, List<String> out) {
+    switch (node) {
+      case final TabGroupSnapshot group:
+        out.add(group.id);
+      case final SplitSnapshot split:
+        for (final child in split.children) {
+          _collectGroups(child, out);
+        }
+      case final SlotSnapshot slot:
+        final child = slot.child;
+        if (child != null) _collectGroups(child, out);
+      default:
+        break;
+    }
+  }
+
   /// 标签条**当前**的朝向：只认树上的那一份。
   ///
   /// 这里不能改读设置：设置是「下次启动也要这样」的持久值，树才是眼前这一条。
@@ -129,6 +153,24 @@ class DiscoverTabs {
   TabBarSide get side => _group?.side ?? TabBarSide.top;
 
   bool get vertical => side != TabBarSide.top;
+
+  /// 树上的组之间朝向不一致。
+  ///
+  /// plat 分出来的新组**永远**是 `top`（`_singleTabPane` 用的默认值），所以在竖轨
+  /// 状态下分屏就会得到「一根竖轨 + 一根有轨那么高的横条」。右键菜单那一档已经不
+  /// 再在竖向分屏，但 plat 自己的 `Cmd + \` 不受我们管，所以宿主拿这个标志兜底。
+  bool get sidesMixed {
+    final ids = groupIds;
+    if (ids.length < 2) return false;
+    final first = sideOf(ids.first);
+    return ids.any((id) => sideOf(id) != first);
+  }
+
+  /// 某一个组的朝向；组不在树上（刚被关掉）就是 `null`。
+  TabBarSide? sideOf(String groupId) {
+    final snapshot = controller.snapshot(groupId);
+    return snapshot is TabGroupSnapshot ? snapshot.side : null;
+  }
 
   /// 树上那一份换算回设置里的枚举（钳制逻辑要拿它跟偏好比）。
   DiscoverTabBarSide get tabSide => switch (side) {
@@ -203,8 +245,19 @@ class DiscoverTabs {
 
   void goHome() => controller.focus(homeId);
 
-  void setSide(DiscoverTabBarSide side) =>
-      controller.setTabBarSide(groupId, platSideOf(side));
+  /// 转朝向：树上**每一个**组一起转。
+  ///
+  /// 只改 [groupId] 那一份的话，分屏出来的那一格会留在横档上，而轨厚是全页一个值
+  /// —— 结果是「一条竖轨 + 一根 132 高的横条」。包在 `transaction` 里是为了只通知
+  /// 一次：逐组 notify 会让宿主每一组重建一遍，中间那一帧正是布局异常趁虚而入的地方。
+  void setSide(DiscoverTabBarSide side) {
+    final plat = platSideOf(side);
+    controller.transaction(() {
+      for (final id in groupIds) {
+        controller.setTabBarSide(id, plat);
+      }
+    });
+  }
 
   void dispose() => controller.dispose();
 
@@ -228,7 +281,7 @@ class DiscoverTabs {
 
   static DiscoverLeafSpec? _specOf(TabSnapshot? tab) {
     final child = tab?.child;
-    return child is LeafSnapshot ? child.data as DiscoverLeafSpec? : null;
+    return child is LeafSnapshot ? specOfLeaf(child) : null;
   }
 
   static TabBarSide platSideOf(DiscoverTabBarSide side) => switch (side) {
@@ -238,8 +291,14 @@ class DiscoverTabs {
   };
 
   /// 从 leaf 快照上取回内容规格；取不到（不是发现页的标签）返回 `null`。
-  static DiscoverLeafSpec? specOfLeaf(LeafSnapshot leaf) =>
-      leaf.data as DiscoverLeafSpec?;
+  ///
+  /// 这里**不做硬转**：树上混进一条别的 leaf（跨视图拖放、以后接进来的别的面板）
+  /// 时，`data as DiscoverLeafSpec?` 会直接抛类型错误，而它发生在 build 里 ——
+  /// 认不出来就当没有内容，比整片标签炸掉好。
+  static DiscoverLeafSpec? specOfLeaf(LeafSnapshot leaf) {
+    final data = leaf.data;
+    return data is DiscoverLeafSpec ? data : null;
+  }
 
   /// 插件的显示名与图标 URL，取自插件注册表缓存的 info。
   ///

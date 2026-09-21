@@ -8,6 +8,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/discover/service/discover_router.dart';
 import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:zephyr/page/discover/service/discover_tabs.dart';
+import 'package:zephyr/widgets/plat/rossi_plat_pane_probe.dart';
 import 'package:zephyr/widgets/plat/rossi_plat_tab_menu.dart';
 import 'package:zephyr/widgets/plat/rossi_plat_theme.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
@@ -65,8 +66,12 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
   /// 拖动中的轨厚；`null` = 没在拖（读设置里的值）。
   double? _dragWidth;
 
-  /// 这一片现在多大（右键分屏要拿它判断「切一半还摆得下吗」）。
-  Size? _pageSize;
+  /// 每一格（窗格）**内容区**当前多大，键是它所在的组。
+  ///
+  /// 由叶子外层的 [RossiPlatPaneProbe] 在布局相里写进来：那一格就是「条/轨扣掉之后
+  /// 还剩多少」。分屏之后每一格宽度都不一样，拿整页尺寸判断「还能不能再切一刀」会对
+  /// 已经切过的那一格放行，切出一个摆不下的布局。
+  final Map<String, Size> _paneSizes = {};
 
   @override
   void initState() {
@@ -95,7 +100,13 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
   }
 
   void _onTabsChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    // 关掉一格之后那个组就没了，别让它的大小留在表里（id 是 plat 生成的，会复用）。
+    final live = tabs.groupIds.toSet();
+    _paneSizes.removeWhere((id, _) => !live.contains(id));
+    setState(() {});
+    // 朝向混排（plat 的 Cmd + \ 切出来的新组永远是横档）不在这里修：`build`
+    // 那一档发现混了就先把这一片摘出布局、帧尾再拧树。这里只负责叫起 build。
   }
 
   DiscoverTabs get tabs => widget.tabs;
@@ -108,16 +119,19 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        _pageSize = constraints.biggest;
         final effective = _effectiveSide(constraints.maxWidth);
         // 朝向要变的那一帧**不布局**：拿旧朝向硬画新宽度会把标签内容压到布局
         // 溢出（实测窄页面里搜索栏被挤成 24 宽、竖轨里标签被挤成 24 宽），
         // 而那一帧的异常就是 MouseTracker 不复位的引信。
         //
+        // 同样的道理适用于**树上的组朝向不一致**：plat 分出来的新组永远是横档，
+        // 而轨厚全页只有一个值 —— 那一档会被画成「有轨那么高的一条空栏」（用户
+        // 看过的那张分屏截图）。一并先不布局、帧尾把每一组都拧过来。
+        //
         // 包装必须是**恒在**的：`Offstage` 换进换出等于给子树换了个祖先，
         // element 无法复用，标签内容会整棵重挂 —— 那正是用户说的
         // 「热切换触发页签重载」。所以这里只切标志位，绝不换包装。
-        final transitioning = effective != tabs.tabSide;
+        final transitioning = effective != tabs.tabSide || tabs.sidesMixed;
         if (transitioning) _applySideSoon(context, effective);
         return Offstage(offstage: transitioning, child: _view(context));
       },
@@ -125,11 +139,17 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
   }
 
   /// 窄页面上把竖向档钳回横向：这里只**算**该用哪一档，不改树。
+  ///
+  /// 每一格都要养活一条轨 + 一份内容，所以留出的是 `格数 × 内容下限`：
+  /// 分过屏的那一页再转竖轨，两条轨会把内容挤到溢出。
   DiscoverTabBarSide _effectiveSide(double pageWidth) {
     final preferred = setting.tabSide;
     if (preferred == DiscoverTabBarSide.top) return preferred;
+    final panes = tabs.groupIds.length;
     if (!pageWidth.isFinite ||
-        pageWidth < _railWidth + DiscoverPlatView.contentMinWidth) {
+        pageWidth <
+            _railWidth +
+                DiscoverPlatView.contentMinWidth * (panes < 1 ? 1 : panes)) {
       return DiscoverTabBarSide.top;
     }
     return preferred;
@@ -174,14 +194,11 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
     });
   }
 
-  /// 条/轨本身占掉之后，标签内容那一格还剩多大。
-  Size? get _paneSize {
-    final page = _pageSize;
-    if (page == null) return null;
-    return _vertical
-        ? Size(page.width - _railWidth, page.height)
-        : Size(page.width, page.height - _barThickness);
-  }
+  /// 这一格现在多大（右键换边要拿它判断「切一半还摆得下吗」）。
+  ///
+  /// 取不到 = 那一格还没布局过（第一次右键之前必然已经布过了），此时通用件不做
+  /// 置灰判断。
+  Size? _paneSizeOf(String tabId) => _paneSizes[tabs.groupOf(tabId)];
 
   static const double _barThickness = 40;
 
@@ -251,9 +268,21 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
   Widget _buildLeaf(BuildContext context, LeafSnapshot leaf) {
     final spec = DiscoverTabs.specOfLeaf(leaf);
     if (spec == null) return const SizedBox.shrink();
-    return DiscoverTabScope(
-      actions: _LeafActions(tabs: tabs, leafId: leaf.id, source: spec.source),
-      child: _leafShortcuts(context, spec.content),
+    final groupId = tabs.groupOf(leaf.id);
+    return RossiPlatPaneProbe(
+      // 顺手记下这一格的大小（见 `_paneSizes`）：叶子建在条/轨**之外**的那一格里，
+      // 它的约束就是「这一格能给内容用多少」。
+      onSize: (size) {
+        if (groupId != null) _paneSizes[groupId] = size;
+      },
+      child: DiscoverTabScope(
+        actions: _LeafActions(
+          tabs: tabs,
+          leafId: leaf.id,
+          source: spec.source,
+        ),
+        child: _leafShortcuts(context, spec.content),
+      ),
     );
   }
 
@@ -309,12 +338,13 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
     return RossiPlatTabMenuRegion(
       controller: tabs.controller,
       tabId: tab.snapshot.id,
-      // 复制 = 「在这一侧再开一条同内容的」；locked 的那条（首页）不给拆。
-      duplicable: !tab.snapshot.locked,
+      // 横向档这一项决定「能不能把这条标签挪出去」，竖向档决定「能不能在轨里
+      // 多开一条」；locked 的那条（首页）两样都不给。
+      detachable: !tab.snapshot.locked,
       duplicateTab: () => tabs.duplicateTabOf(tab.snapshot.id),
       onClose: tab.snapshot.locked ? null : () => tabs.close(tab.snapshot.id),
       // 切一半之后每格还剩多宽/多高，决定四个方向里哪些点了会炸。
-      paneSize: _paneSize,
+      paneSize: () => _paneSizeOf(tab.snapshot.id),
       child: PlatTabChip(
         leading: setting.tabIconEnabled ? _chipLeading(context, leaf) : null,
         // 这里**不放 Tooltip**：它是这条标签条里唯一会在 hover 回调里往 Overlay
