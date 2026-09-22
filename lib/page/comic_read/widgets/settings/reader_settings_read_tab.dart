@@ -250,6 +250,18 @@ class _ReadModeSection extends StatelessWidget {
                 );
               },
             ),
+            // 条漫（readMode 0）里没有"翻页"这个动作，开关对它没有意义。
+            if (readSetting.readMode != 0)
+              _SettingsSwitchTile(
+                title: t.reader.swipePreview,
+                subtitle: t.reader.swipePreviewSubtitle,
+                value: readSetting.swipePreviewEnabled,
+                onChanged: (value) {
+                  globalSettingCubit.updateReadSetting(
+                    (current) => current.copyWith(swipePreviewEnabled: value),
+                  );
+                },
+              ),
           ],
         ),
       ],

@@ -472,6 +472,19 @@ abstract class ReadSettingState with _$ReadSettingState {
     // 这里先按不回归既有观感取值，想要 neo 那一档在顶栏面板里点一下就有。
     @Default(ReaderWidePageStretch.none)
     ReaderWidePageStretch readerWidePageStretch,
+    // 翻页时**每个槽位都画这一页自己的位图**，不再用「大字页码」占位。
+    //
+    // 要解决的问题：共享纹理只有一张、且归当前页用，而滑动期间旧页与新页
+    // 谁都不是当前页 —— 于是翻页时先看到半个屏幕的大字号码（`fontSize: 150`），
+    // 等滑动过半、当前页落定、`present` 回来才换成画面。
+    //
+    // 打开之后：进场那一半在它还是邻页时就把位图解好了，退场那一半在它还是
+    // 当前页时顺手留了一份，两边都有像素，全程没有号码、也没有空窗。
+    //
+    // **代价说清楚**：每页多解一次「视口宽度」的位图（不是全尺寸），并且在上屏
+    // 期间留着它。所以这一项是**可关**的，而且默认开 = 用户要的「直接出图」，
+    // 关掉即回到改制前的行为（邻页只画号码，上屏成功就释放位图）。
+    @Default(true) bool swipePreviewEnabled,
   }) = _ReadSettingState;
 
   factory ReadSettingState.fromJson(Map<String, dynamic> json) =>

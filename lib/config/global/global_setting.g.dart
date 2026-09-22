@@ -226,234 +226,6 @@ const _$ChineseConvertModeEnumMap = {
   ChineseConvertMode.traditional: 'traditional',
 };
 
-_FileManagerSettingState _$FileManagerSettingStateFromJson(
-  Map<String, dynamic> json,
-) => _FileManagerSettingState(
-  homeEnabled: json['homeEnabled'] as bool? ?? true,
-  homePath: json['homePath'] as String? ?? '',
-  openHomeOnStart: json['openHomeOnStart'] as bool? ?? false,
-  rememberViewState: json['rememberViewState'] as bool? ?? true,
-  fileOperations: json['fileOperations'] as bool? ?? true,
-);
-
-Map<String, dynamic> _$FileManagerSettingStateToJson(
-  _FileManagerSettingState instance,
-) => <String, dynamic>{
-  'homeEnabled': instance.homeEnabled,
-  'homePath': instance.homePath,
-  'openHomeOnStart': instance.openHomeOnStart,
-  'rememberViewState': instance.rememberViewState,
-  'fileOperations': instance.fileOperations,
-};
-
-_DiscoverSettingState _$DiscoverSettingStateFromJson(
-  Map<String, dynamic> json,
-) => _DiscoverSettingState(
-  tabIconEnabled: json['tabIconEnabled'] as bool? ?? true,
-  tabPluginShortEnabled: json['tabPluginShortEnabled'] as bool? ?? true,
-  tabSide:
-      $enumDecodeNullable(_$DiscoverTabBarSideEnumMap, json['tabSide']) ??
-      DiscoverTabBarSide.top,
-  tabRailWidth: (json['tabRailWidth'] as num?)?.toDouble() ?? 132.0,
-);
-
-Map<String, dynamic> _$DiscoverSettingStateToJson(
-  _DiscoverSettingState instance,
-) => <String, dynamic>{
-  'tabIconEnabled': instance.tabIconEnabled,
-  'tabPluginShortEnabled': instance.tabPluginShortEnabled,
-  'tabSide': _$DiscoverTabBarSideEnumMap[instance.tabSide]!,
-  'tabRailWidth': instance.tabRailWidth,
-};
-
-const _$DiscoverTabBarSideEnumMap = {
-  DiscoverTabBarSide.top: 'top',
-  DiscoverTabBarSide.left: 'left',
-  DiscoverTabBarSide.right: 'right',
-};
-
-_OperationBindingSettingState _$OperationBindingSettingStateFromJson(
-  Map<String, dynamic> json,
-) => _OperationBindingSettingState(
-  bindingsRuntime: json['bindingsRuntime'] as bool? ?? true,
-  bindingsJson: json['bindingsJson'] as String? ?? '',
-  radialJson: json['radialJson'] as String? ?? '',
-  invertWheelDirection: json['invertWheelDirection'] as bool?,
-);
-
-Map<String, dynamic> _$OperationBindingSettingStateToJson(
-  _OperationBindingSettingState instance,
-) => <String, dynamic>{
-  'bindingsRuntime': instance.bindingsRuntime,
-  'bindingsJson': instance.bindingsJson,
-  'radialJson': instance.radialJson,
-  'invertWheelDirection': instance.invertWheelDirection,
-};
-
-_ToastSettingState _$ToastSettingStateFromJson(Map<String, dynamic> json) =>
-    _ToastSettingState(
-      position:
-          $enumDecodeNullable(_$ToastPositionEnumMap, json['position']) ??
-          ToastPosition.topRight,
-      edgePadding: (json['edgePadding'] as num?)?.toInt() ?? 12,
-      durationMs: (json['durationMs'] as num?)?.toInt() ?? 3000,
-      maxWidth: (json['maxWidth'] as num?)?.toInt() ?? 400,
-      opacityPercent: (json['opacityPercent'] as num?)?.toInt() ?? 100,
-      maxVisible: (json['maxVisible'] as num?)?.toInt() ?? 3,
-      animationDurationMs:
-          (json['animationDurationMs'] as num?)?.toInt() ?? 220,
-      liquidGlass: json['liquidGlass'] as bool? ?? false,
-      showProgressBar: json['showProgressBar'] as bool? ?? true,
-      showIcon: json['showIcon'] as bool? ?? true,
-      showCloseButton: json['showCloseButton'] as bool? ?? true,
-    );
-
-Map<String, dynamic> _$ToastSettingStateToJson(_ToastSettingState instance) =>
-    <String, dynamic>{
-      'position': _$ToastPositionEnumMap[instance.position]!,
-      'edgePadding': instance.edgePadding,
-      'durationMs': instance.durationMs,
-      'maxWidth': instance.maxWidth,
-      'opacityPercent': instance.opacityPercent,
-      'maxVisible': instance.maxVisible,
-      'animationDurationMs': instance.animationDurationMs,
-      'liquidGlass': instance.liquidGlass,
-      'showProgressBar': instance.showProgressBar,
-      'showIcon': instance.showIcon,
-      'showCloseButton': instance.showCloseButton,
-    };
-
-const _$ToastPositionEnumMap = {
-  ToastPosition.topLeft: 'topLeft',
-  ToastPosition.topCenter: 'topCenter',
-  ToastPosition.topRight: 'topRight',
-  ToastPosition.middleLeft: 'middleLeft',
-  ToastPosition.center: 'center',
-  ToastPosition.middleRight: 'middleRight',
-  ToastPosition.bottomLeft: 'bottomLeft',
-  ToastPosition.bottomCenter: 'bottomCenter',
-  ToastPosition.bottomRight: 'bottomRight',
-};
-
-_SwitchToastSettingState _$SwitchToastSettingStateFromJson(
-  Map<String, dynamic> json,
-) => _SwitchToastSettingState(
-  enableBook: json['enableBook'] as bool? ?? false,
-  enablePage: json['enablePage'] as bool? ?? false,
-  bookTitleTemplate:
-      json['bookTitleTemplate'] as String? ??
-      '已切换到 {{book.displayName}}（第 {{book.currentPageDisplay}} / {{book.totalPages}} 页）',
-  bookDescriptionTemplate:
-      json['bookDescriptionTemplate'] as String? ?? '路径：{{book.path}}',
-  pageTitleTemplate:
-      json['pageTitleTemplate'] as String? ??
-      '第 {{page.indexDisplay}} / {{book.totalPages}} 页',
-  pageDescriptionTemplate:
-      json['pageDescriptionTemplate'] as String? ?? '{{page.name}}',
-);
-
-Map<String, dynamic> _$SwitchToastSettingStateToJson(
-  _SwitchToastSettingState instance,
-) => <String, dynamic>{
-  'enableBook': instance.enableBook,
-  'enablePage': instance.enablePage,
-  'bookTitleTemplate': instance.bookTitleTemplate,
-  'bookDescriptionTemplate': instance.bookDescriptionTemplate,
-  'pageTitleTemplate': instance.pageTitleTemplate,
-  'pageDescriptionTemplate': instance.pageDescriptionTemplate,
-};
-
-_FavoriteArtistSettingState _$FavoriteArtistSettingStateFromJson(
-  Map<String, dynamic> json,
-) => _FavoriteArtistSettingState(
-  highlightEnabled: json['highlightEnabled'] as bool? ?? true,
-  artists:
-      (json['artists'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-      const [],
-  circleMode:
-      $enumDecodeNullable(
-        _$FavoriteArtistCircleModeEnumMap,
-        json['circleMode'],
-      ) ??
-      FavoriteArtistCircleMode.fallbackOnly,
-);
-
-Map<String, dynamic> _$FavoriteArtistSettingStateToJson(
-  _FavoriteArtistSettingState instance,
-) => <String, dynamic>{
-  'highlightEnabled': instance.highlightEnabled,
-  'artists': instance.artists,
-  'circleMode': _$FavoriteArtistCircleModeEnumMap[instance.circleMode]!,
-};
-
-const _$FavoriteArtistCircleModeEnumMap = {
-  FavoriteArtistCircleMode.off: 'off',
-  FavoriteArtistCircleMode.fallbackOnly: 'fallbackOnly',
-  FavoriteArtistCircleMode.independent: 'independent',
-};
-
-_FavoriteTag _$FavoriteTagFromJson(Map<String, dynamic> json) => _FavoriteTag(
-  name: json['name'] as String? ?? '',
-  aliases:
-      (json['aliases'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-      const [],
-);
-
-Map<String, dynamic> _$FavoriteTagToJson(_FavoriteTag instance) =>
-    <String, dynamic>{'name': instance.name, 'aliases': instance.aliases};
-
-_FavoriteTagSettingState _$FavoriteTagSettingStateFromJson(
-  Map<String, dynamic> json,
-) => _FavoriteTagSettingState(
-  highlightEnabled: json['highlightEnabled'] as bool? ?? true,
-  tags:
-      (json['tags'] as List<dynamic>?)
-          ?.map((e) => FavoriteTag.fromJson(e as Map<String, dynamic>))
-          .toList() ??
-      const [],
-);
-
-Map<String, dynamic> _$FavoriteTagSettingStateToJson(
-  _FavoriteTagSettingState instance,
-) => <String, dynamic>{
-  'highlightEnabled': instance.highlightEnabled,
-  'tags': instance.tags.map((e) => e.toJson()).toList(),
-};
-
-_ComicCardSettingState _$ComicCardSettingStateFromJson(
-  Map<String, dynamic> json,
-) => _ComicCardSettingState(
-  downloadBadgeEnabled: json['downloadBadgeEnabled'] as bool? ?? true,
-  translationBadgeEnabled: json['translationBadgeEnabled'] as bool? ?? true,
-  readButtonEnabled: json['readButtonEnabled'] as bool? ?? true,
-  favoriteTagBadgeEnabled: json['favoriteTagBadgeEnabled'] as bool? ?? true,
-  unreadIndicatorEnabled: json['unreadIndicatorEnabled'] as bool? ?? true,
-  unreadIndicatorStyle:
-      $enumDecodeNullable(
-        _$ComicUnreadIndicatorStyleEnumMap,
-        json['unreadIndicatorStyle'],
-      ) ??
-      ComicUnreadIndicatorStyle.label,
-);
-
-Map<String, dynamic> _$ComicCardSettingStateToJson(
-  _ComicCardSettingState instance,
-) => <String, dynamic>{
-  'downloadBadgeEnabled': instance.downloadBadgeEnabled,
-  'translationBadgeEnabled': instance.translationBadgeEnabled,
-  'readButtonEnabled': instance.readButtonEnabled,
-  'favoriteTagBadgeEnabled': instance.favoriteTagBadgeEnabled,
-  'unreadIndicatorEnabled': instance.unreadIndicatorEnabled,
-  'unreadIndicatorStyle':
-      _$ComicUnreadIndicatorStyleEnumMap[instance.unreadIndicatorStyle]!,
-};
-
-const _$ComicUnreadIndicatorStyleEnumMap = {
-  ComicUnreadIndicatorStyle.dot: 'dot',
-  ComicUnreadIndicatorStyle.disc: 'disc',
-  ComicUnreadIndicatorStyle.label: 'label',
-};
-
 _CacheSettingState _$CacheSettingStateFromJson(Map<String, dynamic> json) =>
     _CacheSettingState(
       autoCleanCache: json['autoCleanCache'] as bool? ?? true,
@@ -686,6 +458,7 @@ _ReadSettingState _$ReadSettingStateFromJson(Map<String, dynamic> json) =>
             json['readerWidePageStretch'],
           ) ??
           ReaderWidePageStretch.none,
+      swipePreviewEnabled: json['swipePreviewEnabled'] as bool? ?? true,
     );
 
 Map<String, dynamic> _$ReadSettingStateToJson(
@@ -758,6 +531,7 @@ Map<String, dynamic> _$ReadSettingStateToJson(
       _$ReaderAutoRotationEnumMap[instance.readerAutoRotation]!,
   'readerWidePageStretch':
       _$ReaderWidePageStretchEnumMap[instance.readerWidePageStretch]!,
+  'swipePreviewEnabled': instance.swipePreviewEnabled,
 };
 
 const _$ReaderTapPageTurnModeEnumMap = {
@@ -836,4 +610,232 @@ Map<String, dynamic> _$BookshelfSettingStateToJson(
   'rememberDownloadSort': instance.rememberDownloadSort,
   'downloadSort': instance.downloadSort,
   'shelfCardContextMenu': instance.shelfCardContextMenu,
+};
+
+_ToastSettingState _$ToastSettingStateFromJson(Map<String, dynamic> json) =>
+    _ToastSettingState(
+      position:
+          $enumDecodeNullable(_$ToastPositionEnumMap, json['position']) ??
+          ToastPosition.topRight,
+      edgePadding: (json['edgePadding'] as num?)?.toInt() ?? 12,
+      durationMs: (json['durationMs'] as num?)?.toInt() ?? 3000,
+      maxWidth: (json['maxWidth'] as num?)?.toInt() ?? 400,
+      opacityPercent: (json['opacityPercent'] as num?)?.toInt() ?? 100,
+      maxVisible: (json['maxVisible'] as num?)?.toInt() ?? 3,
+      animationDurationMs:
+          (json['animationDurationMs'] as num?)?.toInt() ?? 220,
+      liquidGlass: json['liquidGlass'] as bool? ?? false,
+      showProgressBar: json['showProgressBar'] as bool? ?? true,
+      showIcon: json['showIcon'] as bool? ?? true,
+      showCloseButton: json['showCloseButton'] as bool? ?? true,
+    );
+
+Map<String, dynamic> _$ToastSettingStateToJson(_ToastSettingState instance) =>
+    <String, dynamic>{
+      'position': _$ToastPositionEnumMap[instance.position]!,
+      'edgePadding': instance.edgePadding,
+      'durationMs': instance.durationMs,
+      'maxWidth': instance.maxWidth,
+      'opacityPercent': instance.opacityPercent,
+      'maxVisible': instance.maxVisible,
+      'animationDurationMs': instance.animationDurationMs,
+      'liquidGlass': instance.liquidGlass,
+      'showProgressBar': instance.showProgressBar,
+      'showIcon': instance.showIcon,
+      'showCloseButton': instance.showCloseButton,
+    };
+
+const _$ToastPositionEnumMap = {
+  ToastPosition.topLeft: 'topLeft',
+  ToastPosition.topCenter: 'topCenter',
+  ToastPosition.topRight: 'topRight',
+  ToastPosition.middleLeft: 'middleLeft',
+  ToastPosition.center: 'center',
+  ToastPosition.middleRight: 'middleRight',
+  ToastPosition.bottomLeft: 'bottomLeft',
+  ToastPosition.bottomCenter: 'bottomCenter',
+  ToastPosition.bottomRight: 'bottomRight',
+};
+
+_SwitchToastSettingState _$SwitchToastSettingStateFromJson(
+  Map<String, dynamic> json,
+) => _SwitchToastSettingState(
+  enableBook: json['enableBook'] as bool? ?? false,
+  enablePage: json['enablePage'] as bool? ?? false,
+  bookTitleTemplate:
+      json['bookTitleTemplate'] as String? ??
+      '已切换到 {{book.displayName}}（第 {{book.currentPageDisplay}} / {{book.totalPages}} 页）',
+  bookDescriptionTemplate:
+      json['bookDescriptionTemplate'] as String? ?? '路径：{{book.path}}',
+  pageTitleTemplate:
+      json['pageTitleTemplate'] as String? ??
+      '第 {{page.indexDisplay}} / {{book.totalPages}} 页',
+  pageDescriptionTemplate:
+      json['pageDescriptionTemplate'] as String? ?? '{{page.name}}',
+);
+
+Map<String, dynamic> _$SwitchToastSettingStateToJson(
+  _SwitchToastSettingState instance,
+) => <String, dynamic>{
+  'enableBook': instance.enableBook,
+  'enablePage': instance.enablePage,
+  'bookTitleTemplate': instance.bookTitleTemplate,
+  'bookDescriptionTemplate': instance.bookDescriptionTemplate,
+  'pageTitleTemplate': instance.pageTitleTemplate,
+  'pageDescriptionTemplate': instance.pageDescriptionTemplate,
+};
+
+_FavoriteArtistSettingState _$FavoriteArtistSettingStateFromJson(
+  Map<String, dynamic> json,
+) => _FavoriteArtistSettingState(
+  highlightEnabled: json['highlightEnabled'] as bool? ?? true,
+  artists:
+      (json['artists'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const [],
+  circleMode:
+      $enumDecodeNullable(
+        _$FavoriteArtistCircleModeEnumMap,
+        json['circleMode'],
+      ) ??
+      FavoriteArtistCircleMode.fallbackOnly,
+);
+
+Map<String, dynamic> _$FavoriteArtistSettingStateToJson(
+  _FavoriteArtistSettingState instance,
+) => <String, dynamic>{
+  'highlightEnabled': instance.highlightEnabled,
+  'artists': instance.artists,
+  'circleMode': _$FavoriteArtistCircleModeEnumMap[instance.circleMode]!,
+};
+
+const _$FavoriteArtistCircleModeEnumMap = {
+  FavoriteArtistCircleMode.off: 'off',
+  FavoriteArtistCircleMode.fallbackOnly: 'fallbackOnly',
+  FavoriteArtistCircleMode.independent: 'independent',
+};
+
+_FavoriteTag _$FavoriteTagFromJson(Map<String, dynamic> json) => _FavoriteTag(
+  name: json['name'] as String? ?? '',
+  aliases:
+      (json['aliases'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const [],
+);
+
+Map<String, dynamic> _$FavoriteTagToJson(_FavoriteTag instance) =>
+    <String, dynamic>{'name': instance.name, 'aliases': instance.aliases};
+
+_FavoriteTagSettingState _$FavoriteTagSettingStateFromJson(
+  Map<String, dynamic> json,
+) => _FavoriteTagSettingState(
+  highlightEnabled: json['highlightEnabled'] as bool? ?? true,
+  tags:
+      (json['tags'] as List<dynamic>?)
+          ?.map((e) => FavoriteTag.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+);
+
+Map<String, dynamic> _$FavoriteTagSettingStateToJson(
+  _FavoriteTagSettingState instance,
+) => <String, dynamic>{
+  'highlightEnabled': instance.highlightEnabled,
+  'tags': instance.tags.map((e) => e.toJson()).toList(),
+};
+
+_FileManagerSettingState _$FileManagerSettingStateFromJson(
+  Map<String, dynamic> json,
+) => _FileManagerSettingState(
+  homeEnabled: json['homeEnabled'] as bool? ?? true,
+  homePath: json['homePath'] as String? ?? '',
+  openHomeOnStart: json['openHomeOnStart'] as bool? ?? false,
+  rememberViewState: json['rememberViewState'] as bool? ?? true,
+  fileOperations: json['fileOperations'] as bool? ?? true,
+);
+
+Map<String, dynamic> _$FileManagerSettingStateToJson(
+  _FileManagerSettingState instance,
+) => <String, dynamic>{
+  'homeEnabled': instance.homeEnabled,
+  'homePath': instance.homePath,
+  'openHomeOnStart': instance.openHomeOnStart,
+  'rememberViewState': instance.rememberViewState,
+  'fileOperations': instance.fileOperations,
+};
+
+_DiscoverSettingState _$DiscoverSettingStateFromJson(
+  Map<String, dynamic> json,
+) => _DiscoverSettingState(
+  tabIconEnabled: json['tabIconEnabled'] as bool? ?? true,
+  tabPluginShortEnabled: json['tabPluginShortEnabled'] as bool? ?? true,
+  tabSide:
+      $enumDecodeNullable(_$DiscoverTabBarSideEnumMap, json['tabSide']) ??
+      DiscoverTabBarSide.top,
+  tabRailWidth: (json['tabRailWidth'] as num?)?.toDouble() ?? 132.0,
+);
+
+Map<String, dynamic> _$DiscoverSettingStateToJson(
+  _DiscoverSettingState instance,
+) => <String, dynamic>{
+  'tabIconEnabled': instance.tabIconEnabled,
+  'tabPluginShortEnabled': instance.tabPluginShortEnabled,
+  'tabSide': _$DiscoverTabBarSideEnumMap[instance.tabSide]!,
+  'tabRailWidth': instance.tabRailWidth,
+};
+
+const _$DiscoverTabBarSideEnumMap = {
+  DiscoverTabBarSide.top: 'top',
+  DiscoverTabBarSide.left: 'left',
+  DiscoverTabBarSide.right: 'right',
+};
+
+_OperationBindingSettingState _$OperationBindingSettingStateFromJson(
+  Map<String, dynamic> json,
+) => _OperationBindingSettingState(
+  bindingsRuntime: json['bindingsRuntime'] as bool? ?? true,
+  bindingsJson: json['bindingsJson'] as String? ?? '',
+  radialJson: json['radialJson'] as String? ?? '',
+  invertWheelDirection: json['invertWheelDirection'] as bool?,
+);
+
+Map<String, dynamic> _$OperationBindingSettingStateToJson(
+  _OperationBindingSettingState instance,
+) => <String, dynamic>{
+  'bindingsRuntime': instance.bindingsRuntime,
+  'bindingsJson': instance.bindingsJson,
+  'radialJson': instance.radialJson,
+  'invertWheelDirection': instance.invertWheelDirection,
+};
+
+_ComicCardSettingState _$ComicCardSettingStateFromJson(
+  Map<String, dynamic> json,
+) => _ComicCardSettingState(
+  downloadBadgeEnabled: json['downloadBadgeEnabled'] as bool? ?? true,
+  translationBadgeEnabled: json['translationBadgeEnabled'] as bool? ?? true,
+  readButtonEnabled: json['readButtonEnabled'] as bool? ?? true,
+  favoriteTagBadgeEnabled: json['favoriteTagBadgeEnabled'] as bool? ?? true,
+  unreadIndicatorEnabled: json['unreadIndicatorEnabled'] as bool? ?? true,
+  unreadIndicatorStyle:
+      $enumDecodeNullable(
+        _$ComicUnreadIndicatorStyleEnumMap,
+        json['unreadIndicatorStyle'],
+      ) ??
+      ComicUnreadIndicatorStyle.label,
+);
+
+Map<String, dynamic> _$ComicCardSettingStateToJson(
+  _ComicCardSettingState instance,
+) => <String, dynamic>{
+  'downloadBadgeEnabled': instance.downloadBadgeEnabled,
+  'translationBadgeEnabled': instance.translationBadgeEnabled,
+  'readButtonEnabled': instance.readButtonEnabled,
+  'favoriteTagBadgeEnabled': instance.favoriteTagBadgeEnabled,
+  'unreadIndicatorEnabled': instance.unreadIndicatorEnabled,
+  'unreadIndicatorStyle':
+      _$ComicUnreadIndicatorStyleEnumMap[instance.unreadIndicatorStyle]!,
+};
+
+const _$ComicUnreadIndicatorStyleEnumMap = {
+  ComicUnreadIndicatorStyle.dot: 'dot',
+  ComicUnreadIndicatorStyle.disc: 'disc',
+  ComicUnreadIndicatorStyle.label: 'label',
 };

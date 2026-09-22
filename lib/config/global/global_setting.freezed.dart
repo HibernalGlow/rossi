@@ -731,2606 +731,6 @@ $OperationBindingSettingStateCopyWith<$Res> get operationBindingSetting {
 
 
 /// @nodoc
-mixin _$FileManagerSettingState {
-
- bool get homeEnabled; String get homePath; bool get openHomeOnStart; bool get rememberViewState; bool get fileOperations;
-/// Create a copy of FileManagerSettingState
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$FileManagerSettingStateCopyWith<FileManagerSettingState> get copyWith => _$FileManagerSettingStateCopyWithImpl<FileManagerSettingState>(this as FileManagerSettingState, _$identity);
-
-  /// Serializes this FileManagerSettingState to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-@override
-bool operator ==(Object other) {
-  final _this = this as FileManagerSettingState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileManagerSettingState&&(identical(other.homeEnabled, _this.homeEnabled) || other.homeEnabled == _this.homeEnabled)&&(identical(other.homePath, _this.homePath) || other.homePath == _this.homePath)&&(identical(other.openHomeOnStart, _this.openHomeOnStart) || other.openHomeOnStart == _this.openHomeOnStart)&&(identical(other.rememberViewState, _this.rememberViewState) || other.rememberViewState == _this.rememberViewState)&&(identical(other.fileOperations, _this.fileOperations) || other.fileOperations == _this.fileOperations));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode {
-  final _this = this as FileManagerSettingState;
-  return Object.hash(runtimeType,_this.homeEnabled,_this.homePath,_this.openHomeOnStart,_this.rememberViewState,_this.fileOperations);
-}
-
-@override
-String toString() {
-  final _this = this as FileManagerSettingState;
-  return 'FileManagerSettingState(homeEnabled: ${_this.homeEnabled}, homePath: ${_this.homePath}, openHomeOnStart: ${_this.openHomeOnStart}, rememberViewState: ${_this.rememberViewState}, fileOperations: ${_this.fileOperations})';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $FileManagerSettingStateCopyWith<$Res>  {
-  factory $FileManagerSettingStateCopyWith(FileManagerSettingState value, $Res Function(FileManagerSettingState) _then) = _$FileManagerSettingStateCopyWithImpl;
-@useResult
-$Res call({
- bool homeEnabled, String homePath, bool openHomeOnStart, bool rememberViewState, bool fileOperations
-});
-
-
-
-
-}
-/// @nodoc
-class _$FileManagerSettingStateCopyWithImpl<$Res>
-    implements $FileManagerSettingStateCopyWith<$Res> {
-  _$FileManagerSettingStateCopyWithImpl(this._self, this._then);
-
-  final FileManagerSettingState _self;
-  final $Res Function(FileManagerSettingState) _then;
-
-/// Create a copy of FileManagerSettingState
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? homeEnabled = null,Object? homePath = null,Object? openHomeOnStart = null,Object? rememberViewState = null,Object? fileOperations = null,}) {
-  return _then(FileManagerSettingState(
-homeEnabled: null == homeEnabled ? _self.homeEnabled : homeEnabled // ignore: cast_nullable_to_non_nullable
-as bool,homePath: null == homePath ? _self.homePath : homePath // ignore: cast_nullable_to_non_nullable
-as String,openHomeOnStart: null == openHomeOnStart ? _self.openHomeOnStart : openHomeOnStart // ignore: cast_nullable_to_non_nullable
-as bool,rememberViewState: null == rememberViewState ? _self.rememberViewState : rememberViewState // ignore: cast_nullable_to_non_nullable
-as bool,fileOperations: null == fileOperations ? _self.fileOperations : fileOperations // ignore: cast_nullable_to_non_nullable
-as bool,
-  ));
-}
-
-}
-
-
-/// Adds pattern-matching-related methods to [FileManagerSettingState].
-extension FileManagerSettingStatePatterns on FileManagerSettingState {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _FileManagerSettingState value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _FileManagerSettingState() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _FileManagerSettingState value)  $default,){
-final _that = this;
-switch (_that) {
-case _FileManagerSettingState():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _FileManagerSettingState value)?  $default,){
-final _that = this;
-switch (_that) {
-case _FileManagerSettingState() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool homeEnabled,  String homePath,  bool openHomeOnStart,  bool rememberViewState,  bool fileOperations)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _FileManagerSettingState() when $default != null:
-return $default(_that.homeEnabled,_that.homePath,_that.openHomeOnStart,_that.rememberViewState,_that.fileOperations);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool homeEnabled,  String homePath,  bool openHomeOnStart,  bool rememberViewState,  bool fileOperations)  $default,) {final _that = this;
-switch (_that) {
-case _FileManagerSettingState():
-return $default(_that.homeEnabled,_that.homePath,_that.openHomeOnStart,_that.rememberViewState,_that.fileOperations);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool homeEnabled,  String homePath,  bool openHomeOnStart,  bool rememberViewState,  bool fileOperations)?  $default,) {final _that = this;
-switch (_that) {
-case _FileManagerSettingState() when $default != null:
-return $default(_that.homeEnabled,_that.homePath,_that.openHomeOnStart,_that.rememberViewState,_that.fileOperations);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-@JsonSerializable()
-
-class _FileManagerSettingState implements FileManagerSettingState {
-  const _FileManagerSettingState({this.homeEnabled = true, this.homePath = '', this.openHomeOnStart = false, this.rememberViewState = true, this.fileOperations = true});
-  factory _FileManagerSettingState.fromJson(Map<String, dynamic> json) => _$FileManagerSettingStateFromJson(json);
-
-@override@JsonKey() final  bool homeEnabled;
-@override@JsonKey() final  String homePath;
-@override@JsonKey() final  bool openHomeOnStart;
-@override@JsonKey() final  bool rememberViewState;
-@override@JsonKey() final  bool fileOperations;
-
-/// Create a copy of FileManagerSettingState
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$FileManagerSettingStateCopyWith<_FileManagerSettingState> get copyWith => __$FileManagerSettingStateCopyWithImpl<_FileManagerSettingState>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$FileManagerSettingStateToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _FileManagerSettingState&&(identical(other.homeEnabled, homeEnabled) || other.homeEnabled == homeEnabled)&&(identical(other.homePath, homePath) || other.homePath == homePath)&&(identical(other.openHomeOnStart, openHomeOnStart) || other.openHomeOnStart == openHomeOnStart)&&(identical(other.rememberViewState, rememberViewState) || other.rememberViewState == rememberViewState)&&(identical(other.fileOperations, fileOperations) || other.fileOperations == fileOperations));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode {
-    return Object.hash(runtimeType,homeEnabled,homePath,openHomeOnStart,rememberViewState,fileOperations);
-}
-
-@override
-String toString() {
-    return 'FileManagerSettingState(homeEnabled: $homeEnabled, homePath: $homePath, openHomeOnStart: $openHomeOnStart, rememberViewState: $rememberViewState, fileOperations: $fileOperations)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$FileManagerSettingStateCopyWith<$Res> implements $FileManagerSettingStateCopyWith<$Res> {
-  factory _$FileManagerSettingStateCopyWith(_FileManagerSettingState value, $Res Function(_FileManagerSettingState) _then) = __$FileManagerSettingStateCopyWithImpl;
-@override @useResult
-$Res call({
- bool homeEnabled, String homePath, bool openHomeOnStart, bool rememberViewState, bool fileOperations
-});
-
-
-
-
-}
-/// @nodoc
-class __$FileManagerSettingStateCopyWithImpl<$Res>
-    implements _$FileManagerSettingStateCopyWith<$Res> {
-  __$FileManagerSettingStateCopyWithImpl(this._self, this._then);
-
-  final _FileManagerSettingState _self;
-  final $Res Function(_FileManagerSettingState) _then;
-
-/// Create a copy of FileManagerSettingState
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? homeEnabled = null,Object? homePath = null,Object? openHomeOnStart = null,Object? rememberViewState = null,Object? fileOperations = null,}) {
-  return _then(_FileManagerSettingState(
-homeEnabled: null == homeEnabled ? _self.homeEnabled : homeEnabled // ignore: cast_nullable_to_non_nullable
-as bool,homePath: null == homePath ? _self.homePath : homePath // ignore: cast_nullable_to_non_nullable
-as String,openHomeOnStart: null == openHomeOnStart ? _self.openHomeOnStart : openHomeOnStart // ignore: cast_nullable_to_non_nullable
-as bool,rememberViewState: null == rememberViewState ? _self.rememberViewState : rememberViewState // ignore: cast_nullable_to_non_nullable
-as bool,fileOperations: null == fileOperations ? _self.fileOperations : fileOperations // ignore: cast_nullable_to_non_nullable
-as bool,
-  ));
-}
-
-
-}
-
-
-/// @nodoc
-mixin _$DiscoverSettingState {
-
- bool get tabIconEnabled; bool get tabPluginShortEnabled; DiscoverTabBarSide get tabSide;/// 竖向轨的厚度（像素）。拖动轨内侧那条边即改这个值。
- double get tabRailWidth;
-/// Create a copy of DiscoverSettingState
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$DiscoverSettingStateCopyWith<DiscoverSettingState> get copyWith => _$DiscoverSettingStateCopyWithImpl<DiscoverSettingState>(this as DiscoverSettingState, _$identity);
-
-  /// Serializes this DiscoverSettingState to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-@override
-bool operator ==(Object other) {
-  final _this = this as DiscoverSettingState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DiscoverSettingState&&(identical(other.tabIconEnabled, _this.tabIconEnabled) || other.tabIconEnabled == _this.tabIconEnabled)&&(identical(other.tabPluginShortEnabled, _this.tabPluginShortEnabled) || other.tabPluginShortEnabled == _this.tabPluginShortEnabled)&&(identical(other.tabSide, _this.tabSide) || other.tabSide == _this.tabSide)&&(identical(other.tabRailWidth, _this.tabRailWidth) || other.tabRailWidth == _this.tabRailWidth));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode {
-  final _this = this as DiscoverSettingState;
-  return Object.hash(runtimeType,_this.tabIconEnabled,_this.tabPluginShortEnabled,_this.tabSide,_this.tabRailWidth);
-}
-
-@override
-String toString() {
-  final _this = this as DiscoverSettingState;
-  return 'DiscoverSettingState(tabIconEnabled: ${_this.tabIconEnabled}, tabPluginShortEnabled: ${_this.tabPluginShortEnabled}, tabSide: ${_this.tabSide}, tabRailWidth: ${_this.tabRailWidth})';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $DiscoverSettingStateCopyWith<$Res>  {
-  factory $DiscoverSettingStateCopyWith(DiscoverSettingState value, $Res Function(DiscoverSettingState) _then) = _$DiscoverSettingStateCopyWithImpl;
-@useResult
-$Res call({
- bool tabIconEnabled, bool tabPluginShortEnabled, DiscoverTabBarSide tabSide, double tabRailWidth
-});
-
-
-
-
-}
-/// @nodoc
-class _$DiscoverSettingStateCopyWithImpl<$Res>
-    implements $DiscoverSettingStateCopyWith<$Res> {
-  _$DiscoverSettingStateCopyWithImpl(this._self, this._then);
-
-  final DiscoverSettingState _self;
-  final $Res Function(DiscoverSettingState) _then;
-
-/// Create a copy of DiscoverSettingState
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? tabIconEnabled = null,Object? tabPluginShortEnabled = null,Object? tabSide = null,Object? tabRailWidth = null,}) {
-  return _then(DiscoverSettingState(
-tabIconEnabled: null == tabIconEnabled ? _self.tabIconEnabled : tabIconEnabled // ignore: cast_nullable_to_non_nullable
-as bool,tabPluginShortEnabled: null == tabPluginShortEnabled ? _self.tabPluginShortEnabled : tabPluginShortEnabled // ignore: cast_nullable_to_non_nullable
-as bool,tabSide: null == tabSide ? _self.tabSide : tabSide // ignore: cast_nullable_to_non_nullable
-as DiscoverTabBarSide,tabRailWidth: null == tabRailWidth ? _self.tabRailWidth : tabRailWidth // ignore: cast_nullable_to_non_nullable
-as double,
-  ));
-}
-
-}
-
-
-/// Adds pattern-matching-related methods to [DiscoverSettingState].
-extension DiscoverSettingStatePatterns on DiscoverSettingState {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _DiscoverSettingState value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _DiscoverSettingState() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _DiscoverSettingState value)  $default,){
-final _that = this;
-switch (_that) {
-case _DiscoverSettingState():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _DiscoverSettingState value)?  $default,){
-final _that = this;
-switch (_that) {
-case _DiscoverSettingState() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool tabIconEnabled,  bool tabPluginShortEnabled,  DiscoverTabBarSide tabSide,  double tabRailWidth)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _DiscoverSettingState() when $default != null:
-return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide,_that.tabRailWidth);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool tabIconEnabled,  bool tabPluginShortEnabled,  DiscoverTabBarSide tabSide,  double tabRailWidth)  $default,) {final _that = this;
-switch (_that) {
-case _DiscoverSettingState():
-return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide,_that.tabRailWidth);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool tabIconEnabled,  bool tabPluginShortEnabled,  DiscoverTabBarSide tabSide,  double tabRailWidth)?  $default,) {final _that = this;
-switch (_that) {
-case _DiscoverSettingState() when $default != null:
-return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide,_that.tabRailWidth);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-@JsonSerializable()
-
-class _DiscoverSettingState implements DiscoverSettingState {
-  const _DiscoverSettingState({this.tabIconEnabled = true, this.tabPluginShortEnabled = true, this.tabSide = DiscoverTabBarSide.top, this.tabRailWidth = 132.0});
-  factory _DiscoverSettingState.fromJson(Map<String, dynamic> json) => _$DiscoverSettingStateFromJson(json);
-
-@override@JsonKey() final  bool tabIconEnabled;
-@override@JsonKey() final  bool tabPluginShortEnabled;
-@override@JsonKey() final  DiscoverTabBarSide tabSide;
-/// 竖向轨的厚度（像素）。拖动轨内侧那条边即改这个值。
-@override@JsonKey() final  double tabRailWidth;
-
-/// Create a copy of DiscoverSettingState
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$DiscoverSettingStateCopyWith<_DiscoverSettingState> get copyWith => __$DiscoverSettingStateCopyWithImpl<_DiscoverSettingState>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$DiscoverSettingStateToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _DiscoverSettingState&&(identical(other.tabIconEnabled, tabIconEnabled) || other.tabIconEnabled == tabIconEnabled)&&(identical(other.tabPluginShortEnabled, tabPluginShortEnabled) || other.tabPluginShortEnabled == tabPluginShortEnabled)&&(identical(other.tabSide, tabSide) || other.tabSide == tabSide)&&(identical(other.tabRailWidth, tabRailWidth) || other.tabRailWidth == tabRailWidth));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode {
-    return Object.hash(runtimeType,tabIconEnabled,tabPluginShortEnabled,tabSide,tabRailWidth);
-}
-
-@override
-String toString() {
-    return 'DiscoverSettingState(tabIconEnabled: $tabIconEnabled, tabPluginShortEnabled: $tabPluginShortEnabled, tabSide: $tabSide, tabRailWidth: $tabRailWidth)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$DiscoverSettingStateCopyWith<$Res> implements $DiscoverSettingStateCopyWith<$Res> {
-  factory _$DiscoverSettingStateCopyWith(_DiscoverSettingState value, $Res Function(_DiscoverSettingState) _then) = __$DiscoverSettingStateCopyWithImpl;
-@override @useResult
-$Res call({
- bool tabIconEnabled, bool tabPluginShortEnabled, DiscoverTabBarSide tabSide, double tabRailWidth
-});
-
-
-
-
-}
-/// @nodoc
-class __$DiscoverSettingStateCopyWithImpl<$Res>
-    implements _$DiscoverSettingStateCopyWith<$Res> {
-  __$DiscoverSettingStateCopyWithImpl(this._self, this._then);
-
-  final _DiscoverSettingState _self;
-  final $Res Function(_DiscoverSettingState) _then;
-
-/// Create a copy of DiscoverSettingState
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? tabIconEnabled = null,Object? tabPluginShortEnabled = null,Object? tabSide = null,Object? tabRailWidth = null,}) {
-  return _then(_DiscoverSettingState(
-tabIconEnabled: null == tabIconEnabled ? _self.tabIconEnabled : tabIconEnabled // ignore: cast_nullable_to_non_nullable
-as bool,tabPluginShortEnabled: null == tabPluginShortEnabled ? _self.tabPluginShortEnabled : tabPluginShortEnabled // ignore: cast_nullable_to_non_nullable
-as bool,tabSide: null == tabSide ? _self.tabSide : tabSide // ignore: cast_nullable_to_non_nullable
-as DiscoverTabBarSide,tabRailWidth: null == tabRailWidth ? _self.tabRailWidth : tabRailWidth // ignore: cast_nullable_to_non_nullable
-as double,
-  ));
-}
-
-
-}
-
-
-/// @nodoc
-mixin _$OperationBindingSettingState {
-
-/// 总开关：开=按键/点击经绑定表解析；关=走改造前的硬编码判断。
- bool get bindingsRuntime; String get bindingsJson;/// 轮盘的**形状**（核心 `RadialConfig` 的 JSON：几个轮盘 / 几层 / 半径 /
-/// 生效项，外加轮盘自己的总开关）。
-///
-/// 为什么不并进 [bindingsJson]：两者是两件事 —— 这份只有形状，槽位「干什么」
-/// 仍然是绑定表里那些 `device: radial` 的行。于是轮盘与键盘、点击同权，
-/// 共用同一个解析器与同一套冲突判定，不需要为它写第二遍判断。
-/// 空串 = 还没播种（首次启动用核心的出厂值填上）。
- String get radialJson;/// 滚轮方向词按**手推的方向**算，而不是按内容走的方向。
-///
-/// `null` = 跟随平台：macOS 的 `scrollDelta.dy` 已经带过系统「自然滚动」那一次反转，
-/// 默认再翻一次才等于用户心里的「下滚」；其它平台不翻。用户在这颗开关上表过态就永远
-/// 听他的。**它不进 bindingsJson** —— 手方向是一台设备的属性，不该跟着绑定包导入导出。
- bool? get invertWheelDirection;
-/// Create a copy of OperationBindingSettingState
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$OperationBindingSettingStateCopyWith<OperationBindingSettingState> get copyWith => _$OperationBindingSettingStateCopyWithImpl<OperationBindingSettingState>(this as OperationBindingSettingState, _$identity);
-
-  /// Serializes this OperationBindingSettingState to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-@override
-bool operator ==(Object other) {
-  final _this = this as OperationBindingSettingState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OperationBindingSettingState&&(identical(other.bindingsRuntime, _this.bindingsRuntime) || other.bindingsRuntime == _this.bindingsRuntime)&&(identical(other.bindingsJson, _this.bindingsJson) || other.bindingsJson == _this.bindingsJson)&&(identical(other.radialJson, _this.radialJson) || other.radialJson == _this.radialJson)&&(identical(other.invertWheelDirection, _this.invertWheelDirection) || other.invertWheelDirection == _this.invertWheelDirection));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode {
-  final _this = this as OperationBindingSettingState;
-  return Object.hash(runtimeType,_this.bindingsRuntime,_this.bindingsJson,_this.radialJson,_this.invertWheelDirection);
-}
-
-@override
-String toString() {
-  final _this = this as OperationBindingSettingState;
-  return 'OperationBindingSettingState(bindingsRuntime: ${_this.bindingsRuntime}, bindingsJson: ${_this.bindingsJson}, radialJson: ${_this.radialJson}, invertWheelDirection: ${_this.invertWheelDirection})';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $OperationBindingSettingStateCopyWith<$Res>  {
-  factory $OperationBindingSettingStateCopyWith(OperationBindingSettingState value, $Res Function(OperationBindingSettingState) _then) = _$OperationBindingSettingStateCopyWithImpl;
-@useResult
-$Res call({
- bool bindingsRuntime, String bindingsJson, String radialJson, bool? invertWheelDirection
-});
-
-
-
-
-}
-/// @nodoc
-class _$OperationBindingSettingStateCopyWithImpl<$Res>
-    implements $OperationBindingSettingStateCopyWith<$Res> {
-  _$OperationBindingSettingStateCopyWithImpl(this._self, this._then);
-
-  final OperationBindingSettingState _self;
-  final $Res Function(OperationBindingSettingState) _then;
-
-/// Create a copy of OperationBindingSettingState
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? bindingsRuntime = null,Object? bindingsJson = null,Object? radialJson = null,Object? invertWheelDirection = freezed,}) {
-  return _then(OperationBindingSettingState(
-bindingsRuntime: null == bindingsRuntime ? _self.bindingsRuntime : bindingsRuntime // ignore: cast_nullable_to_non_nullable
-as bool,bindingsJson: null == bindingsJson ? _self.bindingsJson : bindingsJson // ignore: cast_nullable_to_non_nullable
-as String,radialJson: null == radialJson ? _self.radialJson : radialJson // ignore: cast_nullable_to_non_nullable
-as String,invertWheelDirection: freezed == invertWheelDirection ? _self.invertWheelDirection : invertWheelDirection // ignore: cast_nullable_to_non_nullable
-as bool?,
-  ));
-}
-
-}
-
-
-/// Adds pattern-matching-related methods to [OperationBindingSettingState].
-extension OperationBindingSettingStatePatterns on OperationBindingSettingState {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _OperationBindingSettingState value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _OperationBindingSettingState() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _OperationBindingSettingState value)  $default,){
-final _that = this;
-switch (_that) {
-case _OperationBindingSettingState():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _OperationBindingSettingState value)?  $default,){
-final _that = this;
-switch (_that) {
-case _OperationBindingSettingState() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool bindingsRuntime,  String bindingsJson,  String radialJson,  bool? invertWheelDirection)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _OperationBindingSettingState() when $default != null:
-return $default(_that.bindingsRuntime,_that.bindingsJson,_that.radialJson,_that.invertWheelDirection);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool bindingsRuntime,  String bindingsJson,  String radialJson,  bool? invertWheelDirection)  $default,) {final _that = this;
-switch (_that) {
-case _OperationBindingSettingState():
-return $default(_that.bindingsRuntime,_that.bindingsJson,_that.radialJson,_that.invertWheelDirection);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool bindingsRuntime,  String bindingsJson,  String radialJson,  bool? invertWheelDirection)?  $default,) {final _that = this;
-switch (_that) {
-case _OperationBindingSettingState() when $default != null:
-return $default(_that.bindingsRuntime,_that.bindingsJson,_that.radialJson,_that.invertWheelDirection);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-@JsonSerializable()
-
-class _OperationBindingSettingState implements OperationBindingSettingState {
-  const _OperationBindingSettingState({this.bindingsRuntime = true, this.bindingsJson = '', this.radialJson = '', this.invertWheelDirection});
-  factory _OperationBindingSettingState.fromJson(Map<String, dynamic> json) => _$OperationBindingSettingStateFromJson(json);
-
-/// 总开关：开=按键/点击经绑定表解析；关=走改造前的硬编码判断。
-@override@JsonKey() final  bool bindingsRuntime;
-@override@JsonKey() final  String bindingsJson;
-/// 轮盘的**形状**（核心 `RadialConfig` 的 JSON：几个轮盘 / 几层 / 半径 /
-/// 生效项，外加轮盘自己的总开关）。
-///
-/// 为什么不并进 [bindingsJson]：两者是两件事 —— 这份只有形状，槽位「干什么」
-/// 仍然是绑定表里那些 `device: radial` 的行。于是轮盘与键盘、点击同权，
-/// 共用同一个解析器与同一套冲突判定，不需要为它写第二遍判断。
-/// 空串 = 还没播种（首次启动用核心的出厂值填上）。
-@override@JsonKey() final  String radialJson;
-/// 滚轮方向词按**手推的方向**算，而不是按内容走的方向。
-///
-/// `null` = 跟随平台：macOS 的 `scrollDelta.dy` 已经带过系统「自然滚动」那一次反转，
-/// 默认再翻一次才等于用户心里的「下滚」；其它平台不翻。用户在这颗开关上表过态就永远
-/// 听他的。**它不进 bindingsJson** —— 手方向是一台设备的属性，不该跟着绑定包导入导出。
-@override final  bool? invertWheelDirection;
-
-/// Create a copy of OperationBindingSettingState
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$OperationBindingSettingStateCopyWith<_OperationBindingSettingState> get copyWith => __$OperationBindingSettingStateCopyWithImpl<_OperationBindingSettingState>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$OperationBindingSettingStateToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _OperationBindingSettingState&&(identical(other.bindingsRuntime, bindingsRuntime) || other.bindingsRuntime == bindingsRuntime)&&(identical(other.bindingsJson, bindingsJson) || other.bindingsJson == bindingsJson)&&(identical(other.radialJson, radialJson) || other.radialJson == radialJson)&&(identical(other.invertWheelDirection, invertWheelDirection) || other.invertWheelDirection == invertWheelDirection));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode {
-    return Object.hash(runtimeType,bindingsRuntime,bindingsJson,radialJson,invertWheelDirection);
-}
-
-@override
-String toString() {
-    return 'OperationBindingSettingState(bindingsRuntime: $bindingsRuntime, bindingsJson: $bindingsJson, radialJson: $radialJson, invertWheelDirection: $invertWheelDirection)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$OperationBindingSettingStateCopyWith<$Res> implements $OperationBindingSettingStateCopyWith<$Res> {
-  factory _$OperationBindingSettingStateCopyWith(_OperationBindingSettingState value, $Res Function(_OperationBindingSettingState) _then) = __$OperationBindingSettingStateCopyWithImpl;
-@override @useResult
-$Res call({
- bool bindingsRuntime, String bindingsJson, String radialJson, bool? invertWheelDirection
-});
-
-
-
-
-}
-/// @nodoc
-class __$OperationBindingSettingStateCopyWithImpl<$Res>
-    implements _$OperationBindingSettingStateCopyWith<$Res> {
-  __$OperationBindingSettingStateCopyWithImpl(this._self, this._then);
-
-  final _OperationBindingSettingState _self;
-  final $Res Function(_OperationBindingSettingState) _then;
-
-/// Create a copy of OperationBindingSettingState
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? bindingsRuntime = null,Object? bindingsJson = null,Object? radialJson = null,Object? invertWheelDirection = freezed,}) {
-  return _then(_OperationBindingSettingState(
-bindingsRuntime: null == bindingsRuntime ? _self.bindingsRuntime : bindingsRuntime // ignore: cast_nullable_to_non_nullable
-as bool,bindingsJson: null == bindingsJson ? _self.bindingsJson : bindingsJson // ignore: cast_nullable_to_non_nullable
-as String,radialJson: null == radialJson ? _self.radialJson : radialJson // ignore: cast_nullable_to_non_nullable
-as String,invertWheelDirection: freezed == invertWheelDirection ? _self.invertWheelDirection : invertWheelDirection // ignore: cast_nullable_to_non_nullable
-as bool?,
-  ));
-}
-
-
-}
-
-
-/// @nodoc
-mixin _$ToastSettingState {
-
- ToastPosition get position; int get edgePadding; int get durationMs; int get maxWidth; int get opacityPercent; int get maxVisible; int get animationDurationMs; bool get liquidGlass; bool get showProgressBar; bool get showIcon; bool get showCloseButton;
-/// Create a copy of ToastSettingState
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$ToastSettingStateCopyWith<ToastSettingState> get copyWith => _$ToastSettingStateCopyWithImpl<ToastSettingState>(this as ToastSettingState, _$identity);
-
-  /// Serializes this ToastSettingState to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-@override
-bool operator ==(Object other) {
-  final _this = this as ToastSettingState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ToastSettingState&&(identical(other.position, _this.position) || other.position == _this.position)&&(identical(other.edgePadding, _this.edgePadding) || other.edgePadding == _this.edgePadding)&&(identical(other.durationMs, _this.durationMs) || other.durationMs == _this.durationMs)&&(identical(other.maxWidth, _this.maxWidth) || other.maxWidth == _this.maxWidth)&&(identical(other.opacityPercent, _this.opacityPercent) || other.opacityPercent == _this.opacityPercent)&&(identical(other.maxVisible, _this.maxVisible) || other.maxVisible == _this.maxVisible)&&(identical(other.animationDurationMs, _this.animationDurationMs) || other.animationDurationMs == _this.animationDurationMs)&&(identical(other.liquidGlass, _this.liquidGlass) || other.liquidGlass == _this.liquidGlass)&&(identical(other.showProgressBar, _this.showProgressBar) || other.showProgressBar == _this.showProgressBar)&&(identical(other.showIcon, _this.showIcon) || other.showIcon == _this.showIcon)&&(identical(other.showCloseButton, _this.showCloseButton) || other.showCloseButton == _this.showCloseButton));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode {
-  final _this = this as ToastSettingState;
-  return Object.hash(runtimeType,_this.position,_this.edgePadding,_this.durationMs,_this.maxWidth,_this.opacityPercent,_this.maxVisible,_this.animationDurationMs,_this.liquidGlass,_this.showProgressBar,_this.showIcon,_this.showCloseButton);
-}
-
-@override
-String toString() {
-  final _this = this as ToastSettingState;
-  return 'ToastSettingState(position: ${_this.position}, edgePadding: ${_this.edgePadding}, durationMs: ${_this.durationMs}, maxWidth: ${_this.maxWidth}, opacityPercent: ${_this.opacityPercent}, maxVisible: ${_this.maxVisible}, animationDurationMs: ${_this.animationDurationMs}, liquidGlass: ${_this.liquidGlass}, showProgressBar: ${_this.showProgressBar}, showIcon: ${_this.showIcon}, showCloseButton: ${_this.showCloseButton})';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $ToastSettingStateCopyWith<$Res>  {
-  factory $ToastSettingStateCopyWith(ToastSettingState value, $Res Function(ToastSettingState) _then) = _$ToastSettingStateCopyWithImpl;
-@useResult
-$Res call({
- ToastPosition position, int edgePadding, int durationMs, int maxWidth, int opacityPercent, int maxVisible, int animationDurationMs, bool liquidGlass, bool showProgressBar, bool showIcon, bool showCloseButton
-});
-
-
-
-
-}
-/// @nodoc
-class _$ToastSettingStateCopyWithImpl<$Res>
-    implements $ToastSettingStateCopyWith<$Res> {
-  _$ToastSettingStateCopyWithImpl(this._self, this._then);
-
-  final ToastSettingState _self;
-  final $Res Function(ToastSettingState) _then;
-
-/// Create a copy of ToastSettingState
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? position = null,Object? edgePadding = null,Object? durationMs = null,Object? maxWidth = null,Object? opacityPercent = null,Object? maxVisible = null,Object? animationDurationMs = null,Object? liquidGlass = null,Object? showProgressBar = null,Object? showIcon = null,Object? showCloseButton = null,}) {
-  return _then(ToastSettingState(
-position: null == position ? _self.position : position // ignore: cast_nullable_to_non_nullable
-as ToastPosition,edgePadding: null == edgePadding ? _self.edgePadding : edgePadding // ignore: cast_nullable_to_non_nullable
-as int,durationMs: null == durationMs ? _self.durationMs : durationMs // ignore: cast_nullable_to_non_nullable
-as int,maxWidth: null == maxWidth ? _self.maxWidth : maxWidth // ignore: cast_nullable_to_non_nullable
-as int,opacityPercent: null == opacityPercent ? _self.opacityPercent : opacityPercent // ignore: cast_nullable_to_non_nullable
-as int,maxVisible: null == maxVisible ? _self.maxVisible : maxVisible // ignore: cast_nullable_to_non_nullable
-as int,animationDurationMs: null == animationDurationMs ? _self.animationDurationMs : animationDurationMs // ignore: cast_nullable_to_non_nullable
-as int,liquidGlass: null == liquidGlass ? _self.liquidGlass : liquidGlass // ignore: cast_nullable_to_non_nullable
-as bool,showProgressBar: null == showProgressBar ? _self.showProgressBar : showProgressBar // ignore: cast_nullable_to_non_nullable
-as bool,showIcon: null == showIcon ? _self.showIcon : showIcon // ignore: cast_nullable_to_non_nullable
-as bool,showCloseButton: null == showCloseButton ? _self.showCloseButton : showCloseButton // ignore: cast_nullable_to_non_nullable
-as bool,
-  ));
-}
-
-}
-
-
-/// Adds pattern-matching-related methods to [ToastSettingState].
-extension ToastSettingStatePatterns on ToastSettingState {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ToastSettingState value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _ToastSettingState() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ToastSettingState value)  $default,){
-final _that = this;
-switch (_that) {
-case _ToastSettingState():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ToastSettingState value)?  $default,){
-final _that = this;
-switch (_that) {
-case _ToastSettingState() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ToastPosition position,  int edgePadding,  int durationMs,  int maxWidth,  int opacityPercent,  int maxVisible,  int animationDurationMs,  bool liquidGlass,  bool showProgressBar,  bool showIcon,  bool showCloseButton)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _ToastSettingState() when $default != null:
-return $default(_that.position,_that.edgePadding,_that.durationMs,_that.maxWidth,_that.opacityPercent,_that.maxVisible,_that.animationDurationMs,_that.liquidGlass,_that.showProgressBar,_that.showIcon,_that.showCloseButton);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ToastPosition position,  int edgePadding,  int durationMs,  int maxWidth,  int opacityPercent,  int maxVisible,  int animationDurationMs,  bool liquidGlass,  bool showProgressBar,  bool showIcon,  bool showCloseButton)  $default,) {final _that = this;
-switch (_that) {
-case _ToastSettingState():
-return $default(_that.position,_that.edgePadding,_that.durationMs,_that.maxWidth,_that.opacityPercent,_that.maxVisible,_that.animationDurationMs,_that.liquidGlass,_that.showProgressBar,_that.showIcon,_that.showCloseButton);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ToastPosition position,  int edgePadding,  int durationMs,  int maxWidth,  int opacityPercent,  int maxVisible,  int animationDurationMs,  bool liquidGlass,  bool showProgressBar,  bool showIcon,  bool showCloseButton)?  $default,) {final _that = this;
-switch (_that) {
-case _ToastSettingState() when $default != null:
-return $default(_that.position,_that.edgePadding,_that.durationMs,_that.maxWidth,_that.opacityPercent,_that.maxVisible,_that.animationDurationMs,_that.liquidGlass,_that.showProgressBar,_that.showIcon,_that.showCloseButton);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-@JsonSerializable()
-
-class _ToastSettingState implements ToastSettingState {
-  const _ToastSettingState({this.position = ToastPosition.topRight, this.edgePadding = 12, this.durationMs = 3000, this.maxWidth = 400, this.opacityPercent = 100, this.maxVisible = 3, this.animationDurationMs = 220, this.liquidGlass = false, this.showProgressBar = true, this.showIcon = true, this.showCloseButton = true});
-  factory _ToastSettingState.fromJson(Map<String, dynamic> json) => _$ToastSettingStateFromJson(json);
-
-@override@JsonKey() final  ToastPosition position;
-@override@JsonKey() final  int edgePadding;
-@override@JsonKey() final  int durationMs;
-@override@JsonKey() final  int maxWidth;
-@override@JsonKey() final  int opacityPercent;
-@override@JsonKey() final  int maxVisible;
-@override@JsonKey() final  int animationDurationMs;
-@override@JsonKey() final  bool liquidGlass;
-@override@JsonKey() final  bool showProgressBar;
-@override@JsonKey() final  bool showIcon;
-@override@JsonKey() final  bool showCloseButton;
-
-/// Create a copy of ToastSettingState
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$ToastSettingStateCopyWith<_ToastSettingState> get copyWith => __$ToastSettingStateCopyWithImpl<_ToastSettingState>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$ToastSettingStateToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ToastSettingState&&(identical(other.position, position) || other.position == position)&&(identical(other.edgePadding, edgePadding) || other.edgePadding == edgePadding)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs)&&(identical(other.maxWidth, maxWidth) || other.maxWidth == maxWidth)&&(identical(other.opacityPercent, opacityPercent) || other.opacityPercent == opacityPercent)&&(identical(other.maxVisible, maxVisible) || other.maxVisible == maxVisible)&&(identical(other.animationDurationMs, animationDurationMs) || other.animationDurationMs == animationDurationMs)&&(identical(other.liquidGlass, liquidGlass) || other.liquidGlass == liquidGlass)&&(identical(other.showProgressBar, showProgressBar) || other.showProgressBar == showProgressBar)&&(identical(other.showIcon, showIcon) || other.showIcon == showIcon)&&(identical(other.showCloseButton, showCloseButton) || other.showCloseButton == showCloseButton));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode {
-    return Object.hash(runtimeType,position,edgePadding,durationMs,maxWidth,opacityPercent,maxVisible,animationDurationMs,liquidGlass,showProgressBar,showIcon,showCloseButton);
-}
-
-@override
-String toString() {
-    return 'ToastSettingState(position: $position, edgePadding: $edgePadding, durationMs: $durationMs, maxWidth: $maxWidth, opacityPercent: $opacityPercent, maxVisible: $maxVisible, animationDurationMs: $animationDurationMs, liquidGlass: $liquidGlass, showProgressBar: $showProgressBar, showIcon: $showIcon, showCloseButton: $showCloseButton)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$ToastSettingStateCopyWith<$Res> implements $ToastSettingStateCopyWith<$Res> {
-  factory _$ToastSettingStateCopyWith(_ToastSettingState value, $Res Function(_ToastSettingState) _then) = __$ToastSettingStateCopyWithImpl;
-@override @useResult
-$Res call({
- ToastPosition position, int edgePadding, int durationMs, int maxWidth, int opacityPercent, int maxVisible, int animationDurationMs, bool liquidGlass, bool showProgressBar, bool showIcon, bool showCloseButton
-});
-
-
-
-
-}
-/// @nodoc
-class __$ToastSettingStateCopyWithImpl<$Res>
-    implements _$ToastSettingStateCopyWith<$Res> {
-  __$ToastSettingStateCopyWithImpl(this._self, this._then);
-
-  final _ToastSettingState _self;
-  final $Res Function(_ToastSettingState) _then;
-
-/// Create a copy of ToastSettingState
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? position = null,Object? edgePadding = null,Object? durationMs = null,Object? maxWidth = null,Object? opacityPercent = null,Object? maxVisible = null,Object? animationDurationMs = null,Object? liquidGlass = null,Object? showProgressBar = null,Object? showIcon = null,Object? showCloseButton = null,}) {
-  return _then(_ToastSettingState(
-position: null == position ? _self.position : position // ignore: cast_nullable_to_non_nullable
-as ToastPosition,edgePadding: null == edgePadding ? _self.edgePadding : edgePadding // ignore: cast_nullable_to_non_nullable
-as int,durationMs: null == durationMs ? _self.durationMs : durationMs // ignore: cast_nullable_to_non_nullable
-as int,maxWidth: null == maxWidth ? _self.maxWidth : maxWidth // ignore: cast_nullable_to_non_nullable
-as int,opacityPercent: null == opacityPercent ? _self.opacityPercent : opacityPercent // ignore: cast_nullable_to_non_nullable
-as int,maxVisible: null == maxVisible ? _self.maxVisible : maxVisible // ignore: cast_nullable_to_non_nullable
-as int,animationDurationMs: null == animationDurationMs ? _self.animationDurationMs : animationDurationMs // ignore: cast_nullable_to_non_nullable
-as int,liquidGlass: null == liquidGlass ? _self.liquidGlass : liquidGlass // ignore: cast_nullable_to_non_nullable
-as bool,showProgressBar: null == showProgressBar ? _self.showProgressBar : showProgressBar // ignore: cast_nullable_to_non_nullable
-as bool,showIcon: null == showIcon ? _self.showIcon : showIcon // ignore: cast_nullable_to_non_nullable
-as bool,showCloseButton: null == showCloseButton ? _self.showCloseButton : showCloseButton // ignore: cast_nullable_to_non_nullable
-as bool,
-  ));
-}
-
-
-}
-
-
-/// @nodoc
-mixin _$SwitchToastSettingState {
-
-/// 切换书籍（含首次进入一本书）时显示提示。上游同款：默认关。
- bool get enableBook;/// 翻页时显示提示。
- bool get enablePage;/// 模板变量为 `{{book.*}}` / `{{page.*}}`，语义与上游
-/// `renderReaderSwitchToastTemplate` 逐条对照（见
-/// `lib/util/toast/switch_toast_template.dart`）。
- String get bookTitleTemplate; String get bookDescriptionTemplate; String get pageTitleTemplate;/// 上游默认是「分辨率 + 文件大小」，但 Rossi 的页表（`Doc`）没有这两项，
-/// 换成页文件名 —— 刻意偏离，见 `docs/ROADMAP.md`。
- String get pageDescriptionTemplate;
-/// Create a copy of SwitchToastSettingState
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$SwitchToastSettingStateCopyWith<SwitchToastSettingState> get copyWith => _$SwitchToastSettingStateCopyWithImpl<SwitchToastSettingState>(this as SwitchToastSettingState, _$identity);
-
-  /// Serializes this SwitchToastSettingState to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-@override
-bool operator ==(Object other) {
-  final _this = this as SwitchToastSettingState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SwitchToastSettingState&&(identical(other.enableBook, _this.enableBook) || other.enableBook == _this.enableBook)&&(identical(other.enablePage, _this.enablePage) || other.enablePage == _this.enablePage)&&(identical(other.bookTitleTemplate, _this.bookTitleTemplate) || other.bookTitleTemplate == _this.bookTitleTemplate)&&(identical(other.bookDescriptionTemplate, _this.bookDescriptionTemplate) || other.bookDescriptionTemplate == _this.bookDescriptionTemplate)&&(identical(other.pageTitleTemplate, _this.pageTitleTemplate) || other.pageTitleTemplate == _this.pageTitleTemplate)&&(identical(other.pageDescriptionTemplate, _this.pageDescriptionTemplate) || other.pageDescriptionTemplate == _this.pageDescriptionTemplate));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode {
-  final _this = this as SwitchToastSettingState;
-  return Object.hash(runtimeType,_this.enableBook,_this.enablePage,_this.bookTitleTemplate,_this.bookDescriptionTemplate,_this.pageTitleTemplate,_this.pageDescriptionTemplate);
-}
-
-@override
-String toString() {
-  final _this = this as SwitchToastSettingState;
-  return 'SwitchToastSettingState(enableBook: ${_this.enableBook}, enablePage: ${_this.enablePage}, bookTitleTemplate: ${_this.bookTitleTemplate}, bookDescriptionTemplate: ${_this.bookDescriptionTemplate}, pageTitleTemplate: ${_this.pageTitleTemplate}, pageDescriptionTemplate: ${_this.pageDescriptionTemplate})';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $SwitchToastSettingStateCopyWith<$Res>  {
-  factory $SwitchToastSettingStateCopyWith(SwitchToastSettingState value, $Res Function(SwitchToastSettingState) _then) = _$SwitchToastSettingStateCopyWithImpl;
-@useResult
-$Res call({
- bool enableBook, bool enablePage, String bookTitleTemplate, String bookDescriptionTemplate, String pageTitleTemplate, String pageDescriptionTemplate
-});
-
-
-
-
-}
-/// @nodoc
-class _$SwitchToastSettingStateCopyWithImpl<$Res>
-    implements $SwitchToastSettingStateCopyWith<$Res> {
-  _$SwitchToastSettingStateCopyWithImpl(this._self, this._then);
-
-  final SwitchToastSettingState _self;
-  final $Res Function(SwitchToastSettingState) _then;
-
-/// Create a copy of SwitchToastSettingState
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? enableBook = null,Object? enablePage = null,Object? bookTitleTemplate = null,Object? bookDescriptionTemplate = null,Object? pageTitleTemplate = null,Object? pageDescriptionTemplate = null,}) {
-  return _then(SwitchToastSettingState(
-enableBook: null == enableBook ? _self.enableBook : enableBook // ignore: cast_nullable_to_non_nullable
-as bool,enablePage: null == enablePage ? _self.enablePage : enablePage // ignore: cast_nullable_to_non_nullable
-as bool,bookTitleTemplate: null == bookTitleTemplate ? _self.bookTitleTemplate : bookTitleTemplate // ignore: cast_nullable_to_non_nullable
-as String,bookDescriptionTemplate: null == bookDescriptionTemplate ? _self.bookDescriptionTemplate : bookDescriptionTemplate // ignore: cast_nullable_to_non_nullable
-as String,pageTitleTemplate: null == pageTitleTemplate ? _self.pageTitleTemplate : pageTitleTemplate // ignore: cast_nullable_to_non_nullable
-as String,pageDescriptionTemplate: null == pageDescriptionTemplate ? _self.pageDescriptionTemplate : pageDescriptionTemplate // ignore: cast_nullable_to_non_nullable
-as String,
-  ));
-}
-
-}
-
-
-/// Adds pattern-matching-related methods to [SwitchToastSettingState].
-extension SwitchToastSettingStatePatterns on SwitchToastSettingState {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _SwitchToastSettingState value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _SwitchToastSettingState() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _SwitchToastSettingState value)  $default,){
-final _that = this;
-switch (_that) {
-case _SwitchToastSettingState():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _SwitchToastSettingState value)?  $default,){
-final _that = this;
-switch (_that) {
-case _SwitchToastSettingState() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool enableBook,  bool enablePage,  String bookTitleTemplate,  String bookDescriptionTemplate,  String pageTitleTemplate,  String pageDescriptionTemplate)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _SwitchToastSettingState() when $default != null:
-return $default(_that.enableBook,_that.enablePage,_that.bookTitleTemplate,_that.bookDescriptionTemplate,_that.pageTitleTemplate,_that.pageDescriptionTemplate);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool enableBook,  bool enablePage,  String bookTitleTemplate,  String bookDescriptionTemplate,  String pageTitleTemplate,  String pageDescriptionTemplate)  $default,) {final _that = this;
-switch (_that) {
-case _SwitchToastSettingState():
-return $default(_that.enableBook,_that.enablePage,_that.bookTitleTemplate,_that.bookDescriptionTemplate,_that.pageTitleTemplate,_that.pageDescriptionTemplate);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool enableBook,  bool enablePage,  String bookTitleTemplate,  String bookDescriptionTemplate,  String pageTitleTemplate,  String pageDescriptionTemplate)?  $default,) {final _that = this;
-switch (_that) {
-case _SwitchToastSettingState() when $default != null:
-return $default(_that.enableBook,_that.enablePage,_that.bookTitleTemplate,_that.bookDescriptionTemplate,_that.pageTitleTemplate,_that.pageDescriptionTemplate);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-@JsonSerializable()
-
-class _SwitchToastSettingState implements SwitchToastSettingState {
-  const _SwitchToastSettingState({this.enableBook = false, this.enablePage = false, this.bookTitleTemplate = '已切换到 {{book.displayName}}（第 {{book.currentPageDisplay}} / {{book.totalPages}} 页）', this.bookDescriptionTemplate = '路径：{{book.path}}', this.pageTitleTemplate = '第 {{page.indexDisplay}} / {{book.totalPages}} 页', this.pageDescriptionTemplate = '{{page.name}}'});
-  factory _SwitchToastSettingState.fromJson(Map<String, dynamic> json) => _$SwitchToastSettingStateFromJson(json);
-
-/// 切换书籍（含首次进入一本书）时显示提示。上游同款：默认关。
-@override@JsonKey() final  bool enableBook;
-/// 翻页时显示提示。
-@override@JsonKey() final  bool enablePage;
-/// 模板变量为 `{{book.*}}` / `{{page.*}}`，语义与上游
-/// `renderReaderSwitchToastTemplate` 逐条对照（见
-/// `lib/util/toast/switch_toast_template.dart`）。
-@override@JsonKey() final  String bookTitleTemplate;
-@override@JsonKey() final  String bookDescriptionTemplate;
-@override@JsonKey() final  String pageTitleTemplate;
-/// 上游默认是「分辨率 + 文件大小」，但 Rossi 的页表（`Doc`）没有这两项，
-/// 换成页文件名 —— 刻意偏离，见 `docs/ROADMAP.md`。
-@override@JsonKey() final  String pageDescriptionTemplate;
-
-/// Create a copy of SwitchToastSettingState
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$SwitchToastSettingStateCopyWith<_SwitchToastSettingState> get copyWith => __$SwitchToastSettingStateCopyWithImpl<_SwitchToastSettingState>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$SwitchToastSettingStateToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _SwitchToastSettingState&&(identical(other.enableBook, enableBook) || other.enableBook == enableBook)&&(identical(other.enablePage, enablePage) || other.enablePage == enablePage)&&(identical(other.bookTitleTemplate, bookTitleTemplate) || other.bookTitleTemplate == bookTitleTemplate)&&(identical(other.bookDescriptionTemplate, bookDescriptionTemplate) || other.bookDescriptionTemplate == bookDescriptionTemplate)&&(identical(other.pageTitleTemplate, pageTitleTemplate) || other.pageTitleTemplate == pageTitleTemplate)&&(identical(other.pageDescriptionTemplate, pageDescriptionTemplate) || other.pageDescriptionTemplate == pageDescriptionTemplate));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode {
-    return Object.hash(runtimeType,enableBook,enablePage,bookTitleTemplate,bookDescriptionTemplate,pageTitleTemplate,pageDescriptionTemplate);
-}
-
-@override
-String toString() {
-    return 'SwitchToastSettingState(enableBook: $enableBook, enablePage: $enablePage, bookTitleTemplate: $bookTitleTemplate, bookDescriptionTemplate: $bookDescriptionTemplate, pageTitleTemplate: $pageTitleTemplate, pageDescriptionTemplate: $pageDescriptionTemplate)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$SwitchToastSettingStateCopyWith<$Res> implements $SwitchToastSettingStateCopyWith<$Res> {
-  factory _$SwitchToastSettingStateCopyWith(_SwitchToastSettingState value, $Res Function(_SwitchToastSettingState) _then) = __$SwitchToastSettingStateCopyWithImpl;
-@override @useResult
-$Res call({
- bool enableBook, bool enablePage, String bookTitleTemplate, String bookDescriptionTemplate, String pageTitleTemplate, String pageDescriptionTemplate
-});
-
-
-
-
-}
-/// @nodoc
-class __$SwitchToastSettingStateCopyWithImpl<$Res>
-    implements _$SwitchToastSettingStateCopyWith<$Res> {
-  __$SwitchToastSettingStateCopyWithImpl(this._self, this._then);
-
-  final _SwitchToastSettingState _self;
-  final $Res Function(_SwitchToastSettingState) _then;
-
-/// Create a copy of SwitchToastSettingState
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? enableBook = null,Object? enablePage = null,Object? bookTitleTemplate = null,Object? bookDescriptionTemplate = null,Object? pageTitleTemplate = null,Object? pageDescriptionTemplate = null,}) {
-  return _then(_SwitchToastSettingState(
-enableBook: null == enableBook ? _self.enableBook : enableBook // ignore: cast_nullable_to_non_nullable
-as bool,enablePage: null == enablePage ? _self.enablePage : enablePage // ignore: cast_nullable_to_non_nullable
-as bool,bookTitleTemplate: null == bookTitleTemplate ? _self.bookTitleTemplate : bookTitleTemplate // ignore: cast_nullable_to_non_nullable
-as String,bookDescriptionTemplate: null == bookDescriptionTemplate ? _self.bookDescriptionTemplate : bookDescriptionTemplate // ignore: cast_nullable_to_non_nullable
-as String,pageTitleTemplate: null == pageTitleTemplate ? _self.pageTitleTemplate : pageTitleTemplate // ignore: cast_nullable_to_non_nullable
-as String,pageDescriptionTemplate: null == pageDescriptionTemplate ? _self.pageDescriptionTemplate : pageDescriptionTemplate // ignore: cast_nullable_to_non_nullable
-as String,
-  ));
-}
-
-
-}
-
-
-/// @nodoc
-mixin _$FavoriteArtistSettingState {
-
- bool get highlightEnabled; List<String> get artists; FavoriteArtistCircleMode get circleMode;
-/// Create a copy of FavoriteArtistSettingState
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$FavoriteArtistSettingStateCopyWith<FavoriteArtistSettingState> get copyWith => _$FavoriteArtistSettingStateCopyWithImpl<FavoriteArtistSettingState>(this as FavoriteArtistSettingState, _$identity);
-
-  /// Serializes this FavoriteArtistSettingState to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-@override
-bool operator ==(Object other) {
-  final _this = this as FavoriteArtistSettingState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FavoriteArtistSettingState&&(identical(other.highlightEnabled, _this.highlightEnabled) || other.highlightEnabled == _this.highlightEnabled)&&const DeepCollectionEquality().equals(other.artists, _this.artists)&&(identical(other.circleMode, _this.circleMode) || other.circleMode == _this.circleMode));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode {
-  final _this = this as FavoriteArtistSettingState;
-  return Object.hash(runtimeType,_this.highlightEnabled,const DeepCollectionEquality().hash(_this.artists),_this.circleMode);
-}
-
-@override
-String toString() {
-  final _this = this as FavoriteArtistSettingState;
-  return 'FavoriteArtistSettingState(highlightEnabled: ${_this.highlightEnabled}, artists: ${_this.artists}, circleMode: ${_this.circleMode})';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $FavoriteArtistSettingStateCopyWith<$Res>  {
-  factory $FavoriteArtistSettingStateCopyWith(FavoriteArtistSettingState value, $Res Function(FavoriteArtistSettingState) _then) = _$FavoriteArtistSettingStateCopyWithImpl;
-@useResult
-$Res call({
- bool highlightEnabled, List<String> artists, FavoriteArtistCircleMode circleMode
-});
-
-
-
-
-}
-/// @nodoc
-class _$FavoriteArtistSettingStateCopyWithImpl<$Res>
-    implements $FavoriteArtistSettingStateCopyWith<$Res> {
-  _$FavoriteArtistSettingStateCopyWithImpl(this._self, this._then);
-
-  final FavoriteArtistSettingState _self;
-  final $Res Function(FavoriteArtistSettingState) _then;
-
-/// Create a copy of FavoriteArtistSettingState
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? highlightEnabled = null,Object? artists = null,Object? circleMode = null,}) {
-  return _then(FavoriteArtistSettingState(
-highlightEnabled: null == highlightEnabled ? _self.highlightEnabled : highlightEnabled // ignore: cast_nullable_to_non_nullable
-as bool,artists: null == artists ? _self.artists : artists // ignore: cast_nullable_to_non_nullable
-as List<String>,circleMode: null == circleMode ? _self.circleMode : circleMode // ignore: cast_nullable_to_non_nullable
-as FavoriteArtistCircleMode,
-  ));
-}
-
-}
-
-
-/// Adds pattern-matching-related methods to [FavoriteArtistSettingState].
-extension FavoriteArtistSettingStatePatterns on FavoriteArtistSettingState {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _FavoriteArtistSettingState value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _FavoriteArtistSettingState() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _FavoriteArtistSettingState value)  $default,){
-final _that = this;
-switch (_that) {
-case _FavoriteArtistSettingState():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _FavoriteArtistSettingState value)?  $default,){
-final _that = this;
-switch (_that) {
-case _FavoriteArtistSettingState() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool highlightEnabled,  List<String> artists,  FavoriteArtistCircleMode circleMode)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _FavoriteArtistSettingState() when $default != null:
-return $default(_that.highlightEnabled,_that.artists,_that.circleMode);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool highlightEnabled,  List<String> artists,  FavoriteArtistCircleMode circleMode)  $default,) {final _that = this;
-switch (_that) {
-case _FavoriteArtistSettingState():
-return $default(_that.highlightEnabled,_that.artists,_that.circleMode);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool highlightEnabled,  List<String> artists,  FavoriteArtistCircleMode circleMode)?  $default,) {final _that = this;
-switch (_that) {
-case _FavoriteArtistSettingState() when $default != null:
-return $default(_that.highlightEnabled,_that.artists,_that.circleMode);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-@JsonSerializable()
-
-class _FavoriteArtistSettingState implements FavoriteArtistSettingState {
-  const _FavoriteArtistSettingState({this.highlightEnabled = true,  List<String> artists = const [], this.circleMode = FavoriteArtistCircleMode.fallbackOnly}): _artists = artists;
-  factory _FavoriteArtistSettingState.fromJson(Map<String, dynamic> json) => _$FavoriteArtistSettingStateFromJson(json);
-
-@override@JsonKey() final  bool highlightEnabled;
- final  List<String> _artists;
-@override@JsonKey() List<String> get artists {
-  if (_artists is EqualUnmodifiableListView) return _artists;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_artists);
-}
-
-@override@JsonKey() final  FavoriteArtistCircleMode circleMode;
-
-/// Create a copy of FavoriteArtistSettingState
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$FavoriteArtistSettingStateCopyWith<_FavoriteArtistSettingState> get copyWith => __$FavoriteArtistSettingStateCopyWithImpl<_FavoriteArtistSettingState>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$FavoriteArtistSettingStateToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _FavoriteArtistSettingState&&(identical(other.highlightEnabled, highlightEnabled) || other.highlightEnabled == highlightEnabled)&&const DeepCollectionEquality().equals(other.artists, _artists)&&(identical(other.circleMode, circleMode) || other.circleMode == circleMode));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode {
-    return Object.hash(runtimeType,highlightEnabled,const DeepCollectionEquality().hash(_artists),circleMode);
-}
-
-@override
-String toString() {
-    return 'FavoriteArtistSettingState(highlightEnabled: $highlightEnabled, artists: $artists, circleMode: $circleMode)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$FavoriteArtistSettingStateCopyWith<$Res> implements $FavoriteArtistSettingStateCopyWith<$Res> {
-  factory _$FavoriteArtistSettingStateCopyWith(_FavoriteArtistSettingState value, $Res Function(_FavoriteArtistSettingState) _then) = __$FavoriteArtistSettingStateCopyWithImpl;
-@override @useResult
-$Res call({
- bool highlightEnabled, List<String> artists, FavoriteArtistCircleMode circleMode
-});
-
-
-
-
-}
-/// @nodoc
-class __$FavoriteArtistSettingStateCopyWithImpl<$Res>
-    implements _$FavoriteArtistSettingStateCopyWith<$Res> {
-  __$FavoriteArtistSettingStateCopyWithImpl(this._self, this._then);
-
-  final _FavoriteArtistSettingState _self;
-  final $Res Function(_FavoriteArtistSettingState) _then;
-
-/// Create a copy of FavoriteArtistSettingState
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? highlightEnabled = null,Object? artists = null,Object? circleMode = null,}) {
-  return _then(_FavoriteArtistSettingState(
-highlightEnabled: null == highlightEnabled ? _self.highlightEnabled : highlightEnabled // ignore: cast_nullable_to_non_nullable
-as bool,artists: null == artists ? _self._artists : artists // ignore: cast_nullable_to_non_nullable
-as List<String>,circleMode: null == circleMode ? _self.circleMode : circleMode // ignore: cast_nullable_to_non_nullable
-as FavoriteArtistCircleMode,
-  ));
-}
-
-
-}
-
-
-/// @nodoc
-mixin _$FavoriteTag {
-
- String get name; List<String> get aliases;
-/// Create a copy of FavoriteTag
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$FavoriteTagCopyWith<FavoriteTag> get copyWith => _$FavoriteTagCopyWithImpl<FavoriteTag>(this as FavoriteTag, _$identity);
-
-  /// Serializes this FavoriteTag to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-@override
-bool operator ==(Object other) {
-  final _this = this as FavoriteTag;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FavoriteTag&&(identical(other.name, _this.name) || other.name == _this.name)&&const DeepCollectionEquality().equals(other.aliases, _this.aliases));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode {
-  final _this = this as FavoriteTag;
-  return Object.hash(runtimeType,_this.name,const DeepCollectionEquality().hash(_this.aliases));
-}
-
-@override
-String toString() {
-  final _this = this as FavoriteTag;
-  return 'FavoriteTag(name: ${_this.name}, aliases: ${_this.aliases})';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $FavoriteTagCopyWith<$Res>  {
-  factory $FavoriteTagCopyWith(FavoriteTag value, $Res Function(FavoriteTag) _then) = _$FavoriteTagCopyWithImpl;
-@useResult
-$Res call({
- String name, List<String> aliases
-});
-
-
-
-
-}
-/// @nodoc
-class _$FavoriteTagCopyWithImpl<$Res>
-    implements $FavoriteTagCopyWith<$Res> {
-  _$FavoriteTagCopyWithImpl(this._self, this._then);
-
-  final FavoriteTag _self;
-  final $Res Function(FavoriteTag) _then;
-
-/// Create a copy of FavoriteTag
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? aliases = null,}) {
-  return _then(FavoriteTag(
-name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,aliases: null == aliases ? _self.aliases : aliases // ignore: cast_nullable_to_non_nullable
-as List<String>,
-  ));
-}
-
-}
-
-
-/// Adds pattern-matching-related methods to [FavoriteTag].
-extension FavoriteTagPatterns on FavoriteTag {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _FavoriteTag value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _FavoriteTag() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _FavoriteTag value)  $default,){
-final _that = this;
-switch (_that) {
-case _FavoriteTag():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _FavoriteTag value)?  $default,){
-final _that = this;
-switch (_that) {
-case _FavoriteTag() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  List<String> aliases)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _FavoriteTag() when $default != null:
-return $default(_that.name,_that.aliases);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  List<String> aliases)  $default,) {final _that = this;
-switch (_that) {
-case _FavoriteTag():
-return $default(_that.name,_that.aliases);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  List<String> aliases)?  $default,) {final _that = this;
-switch (_that) {
-case _FavoriteTag() when $default != null:
-return $default(_that.name,_that.aliases);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-@JsonSerializable()
-
-class _FavoriteTag implements FavoriteTag {
-  const _FavoriteTag({this.name = '',  List<String> aliases = const []}): _aliases = aliases;
-  factory _FavoriteTag.fromJson(Map<String, dynamic> json) => _$FavoriteTagFromJson(json);
-
-@override@JsonKey() final  String name;
- final  List<String> _aliases;
-@override@JsonKey() List<String> get aliases {
-  if (_aliases is EqualUnmodifiableListView) return _aliases;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_aliases);
-}
-
-
-/// Create a copy of FavoriteTag
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$FavoriteTagCopyWith<_FavoriteTag> get copyWith => __$FavoriteTagCopyWithImpl<_FavoriteTag>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$FavoriteTagToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _FavoriteTag&&(identical(other.name, name) || other.name == name)&&const DeepCollectionEquality().equals(other.aliases, _aliases));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode {
-    return Object.hash(runtimeType,name,const DeepCollectionEquality().hash(_aliases));
-}
-
-@override
-String toString() {
-    return 'FavoriteTag(name: $name, aliases: $aliases)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$FavoriteTagCopyWith<$Res> implements $FavoriteTagCopyWith<$Res> {
-  factory _$FavoriteTagCopyWith(_FavoriteTag value, $Res Function(_FavoriteTag) _then) = __$FavoriteTagCopyWithImpl;
-@override @useResult
-$Res call({
- String name, List<String> aliases
-});
-
-
-
-
-}
-/// @nodoc
-class __$FavoriteTagCopyWithImpl<$Res>
-    implements _$FavoriteTagCopyWith<$Res> {
-  __$FavoriteTagCopyWithImpl(this._self, this._then);
-
-  final _FavoriteTag _self;
-  final $Res Function(_FavoriteTag) _then;
-
-/// Create a copy of FavoriteTag
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? aliases = null,}) {
-  return _then(_FavoriteTag(
-name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,aliases: null == aliases ? _self._aliases : aliases // ignore: cast_nullable_to_non_nullable
-as List<String>,
-  ));
-}
-
-
-}
-
-
-/// @nodoc
-mixin _$FavoriteTagSettingState {
-
- bool get highlightEnabled; List<FavoriteTag> get tags;
-/// Create a copy of FavoriteTagSettingState
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$FavoriteTagSettingStateCopyWith<FavoriteTagSettingState> get copyWith => _$FavoriteTagSettingStateCopyWithImpl<FavoriteTagSettingState>(this as FavoriteTagSettingState, _$identity);
-
-  /// Serializes this FavoriteTagSettingState to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-@override
-bool operator ==(Object other) {
-  final _this = this as FavoriteTagSettingState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FavoriteTagSettingState&&(identical(other.highlightEnabled, _this.highlightEnabled) || other.highlightEnabled == _this.highlightEnabled)&&const DeepCollectionEquality().equals(other.tags, _this.tags));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode {
-  final _this = this as FavoriteTagSettingState;
-  return Object.hash(runtimeType,_this.highlightEnabled,const DeepCollectionEquality().hash(_this.tags));
-}
-
-@override
-String toString() {
-  final _this = this as FavoriteTagSettingState;
-  return 'FavoriteTagSettingState(highlightEnabled: ${_this.highlightEnabled}, tags: ${_this.tags})';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $FavoriteTagSettingStateCopyWith<$Res>  {
-  factory $FavoriteTagSettingStateCopyWith(FavoriteTagSettingState value, $Res Function(FavoriteTagSettingState) _then) = _$FavoriteTagSettingStateCopyWithImpl;
-@useResult
-$Res call({
- bool highlightEnabled, List<FavoriteTag> tags
-});
-
-
-
-
-}
-/// @nodoc
-class _$FavoriteTagSettingStateCopyWithImpl<$Res>
-    implements $FavoriteTagSettingStateCopyWith<$Res> {
-  _$FavoriteTagSettingStateCopyWithImpl(this._self, this._then);
-
-  final FavoriteTagSettingState _self;
-  final $Res Function(FavoriteTagSettingState) _then;
-
-/// Create a copy of FavoriteTagSettingState
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? highlightEnabled = null,Object? tags = null,}) {
-  return _then(FavoriteTagSettingState(
-highlightEnabled: null == highlightEnabled ? _self.highlightEnabled : highlightEnabled // ignore: cast_nullable_to_non_nullable
-as bool,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
-as List<FavoriteTag>,
-  ));
-}
-
-}
-
-
-/// Adds pattern-matching-related methods to [FavoriteTagSettingState].
-extension FavoriteTagSettingStatePatterns on FavoriteTagSettingState {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _FavoriteTagSettingState value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _FavoriteTagSettingState() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _FavoriteTagSettingState value)  $default,){
-final _that = this;
-switch (_that) {
-case _FavoriteTagSettingState():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _FavoriteTagSettingState value)?  $default,){
-final _that = this;
-switch (_that) {
-case _FavoriteTagSettingState() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool highlightEnabled,  List<FavoriteTag> tags)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _FavoriteTagSettingState() when $default != null:
-return $default(_that.highlightEnabled,_that.tags);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool highlightEnabled,  List<FavoriteTag> tags)  $default,) {final _that = this;
-switch (_that) {
-case _FavoriteTagSettingState():
-return $default(_that.highlightEnabled,_that.tags);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool highlightEnabled,  List<FavoriteTag> tags)?  $default,) {final _that = this;
-switch (_that) {
-case _FavoriteTagSettingState() when $default != null:
-return $default(_that.highlightEnabled,_that.tags);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-@JsonSerializable()
-
-class _FavoriteTagSettingState implements FavoriteTagSettingState {
-  const _FavoriteTagSettingState({this.highlightEnabled = true,  List<FavoriteTag> tags = const []}): _tags = tags;
-  factory _FavoriteTagSettingState.fromJson(Map<String, dynamic> json) => _$FavoriteTagSettingStateFromJson(json);
-
-@override@JsonKey() final  bool highlightEnabled;
- final  List<FavoriteTag> _tags;
-@override@JsonKey() List<FavoriteTag> get tags {
-  if (_tags is EqualUnmodifiableListView) return _tags;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_tags);
-}
-
-
-/// Create a copy of FavoriteTagSettingState
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$FavoriteTagSettingStateCopyWith<_FavoriteTagSettingState> get copyWith => __$FavoriteTagSettingStateCopyWithImpl<_FavoriteTagSettingState>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$FavoriteTagSettingStateToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _FavoriteTagSettingState&&(identical(other.highlightEnabled, highlightEnabled) || other.highlightEnabled == highlightEnabled)&&const DeepCollectionEquality().equals(other.tags, _tags));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode {
-    return Object.hash(runtimeType,highlightEnabled,const DeepCollectionEquality().hash(_tags));
-}
-
-@override
-String toString() {
-    return 'FavoriteTagSettingState(highlightEnabled: $highlightEnabled, tags: $tags)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$FavoriteTagSettingStateCopyWith<$Res> implements $FavoriteTagSettingStateCopyWith<$Res> {
-  factory _$FavoriteTagSettingStateCopyWith(_FavoriteTagSettingState value, $Res Function(_FavoriteTagSettingState) _then) = __$FavoriteTagSettingStateCopyWithImpl;
-@override @useResult
-$Res call({
- bool highlightEnabled, List<FavoriteTag> tags
-});
-
-
-
-
-}
-/// @nodoc
-class __$FavoriteTagSettingStateCopyWithImpl<$Res>
-    implements _$FavoriteTagSettingStateCopyWith<$Res> {
-  __$FavoriteTagSettingStateCopyWithImpl(this._self, this._then);
-
-  final _FavoriteTagSettingState _self;
-  final $Res Function(_FavoriteTagSettingState) _then;
-
-/// Create a copy of FavoriteTagSettingState
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? highlightEnabled = null,Object? tags = null,}) {
-  return _then(_FavoriteTagSettingState(
-highlightEnabled: null == highlightEnabled ? _self.highlightEnabled : highlightEnabled // ignore: cast_nullable_to_non_nullable
-as bool,tags: null == tags ? _self._tags : tags // ignore: cast_nullable_to_non_nullable
-as List<FavoriteTag>,
-  ));
-}
-
-
-}
-
-
-/// @nodoc
-mixin _$ComicCardSettingState {
-
- bool get downloadBadgeEnabled; bool get translationBadgeEnabled;/// 封面正中间的「直接阅读」按钮。关掉后点封面仍然只进详情页。
- bool get readButtonEnabled;/// 封面左上角的「收藏 tag」角标。
- bool get favoriteTagBadgeEnabled;/// 封面右上角的「已下载但未读」标识（只在下载书架显示：有下载记录、没有任何阅读记录）。
- bool get unreadIndicatorEnabled;/// 这颗标识画成什么样子（圆点 / 圆片 / 文字胶囊）。
- ComicUnreadIndicatorStyle get unreadIndicatorStyle;
-/// Create a copy of ComicCardSettingState
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$ComicCardSettingStateCopyWith<ComicCardSettingState> get copyWith => _$ComicCardSettingStateCopyWithImpl<ComicCardSettingState>(this as ComicCardSettingState, _$identity);
-
-  /// Serializes this ComicCardSettingState to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-@override
-bool operator ==(Object other) {
-  final _this = this as ComicCardSettingState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ComicCardSettingState&&(identical(other.downloadBadgeEnabled, _this.downloadBadgeEnabled) || other.downloadBadgeEnabled == _this.downloadBadgeEnabled)&&(identical(other.translationBadgeEnabled, _this.translationBadgeEnabled) || other.translationBadgeEnabled == _this.translationBadgeEnabled)&&(identical(other.readButtonEnabled, _this.readButtonEnabled) || other.readButtonEnabled == _this.readButtonEnabled)&&(identical(other.favoriteTagBadgeEnabled, _this.favoriteTagBadgeEnabled) || other.favoriteTagBadgeEnabled == _this.favoriteTagBadgeEnabled)&&(identical(other.unreadIndicatorEnabled, _this.unreadIndicatorEnabled) || other.unreadIndicatorEnabled == _this.unreadIndicatorEnabled)&&(identical(other.unreadIndicatorStyle, _this.unreadIndicatorStyle) || other.unreadIndicatorStyle == _this.unreadIndicatorStyle));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode {
-  final _this = this as ComicCardSettingState;
-  return Object.hash(runtimeType,_this.downloadBadgeEnabled,_this.translationBadgeEnabled,_this.readButtonEnabled,_this.favoriteTagBadgeEnabled,_this.unreadIndicatorEnabled,_this.unreadIndicatorStyle);
-}
-
-@override
-String toString() {
-  final _this = this as ComicCardSettingState;
-  return 'ComicCardSettingState(downloadBadgeEnabled: ${_this.downloadBadgeEnabled}, translationBadgeEnabled: ${_this.translationBadgeEnabled}, readButtonEnabled: ${_this.readButtonEnabled}, favoriteTagBadgeEnabled: ${_this.favoriteTagBadgeEnabled}, unreadIndicatorEnabled: ${_this.unreadIndicatorEnabled}, unreadIndicatorStyle: ${_this.unreadIndicatorStyle})';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $ComicCardSettingStateCopyWith<$Res>  {
-  factory $ComicCardSettingStateCopyWith(ComicCardSettingState value, $Res Function(ComicCardSettingState) _then) = _$ComicCardSettingStateCopyWithImpl;
-@useResult
-$Res call({
- bool downloadBadgeEnabled, bool translationBadgeEnabled, bool readButtonEnabled, bool favoriteTagBadgeEnabled, bool unreadIndicatorEnabled, ComicUnreadIndicatorStyle unreadIndicatorStyle
-});
-
-
-
-
-}
-/// @nodoc
-class _$ComicCardSettingStateCopyWithImpl<$Res>
-    implements $ComicCardSettingStateCopyWith<$Res> {
-  _$ComicCardSettingStateCopyWithImpl(this._self, this._then);
-
-  final ComicCardSettingState _self;
-  final $Res Function(ComicCardSettingState) _then;
-
-/// Create a copy of ComicCardSettingState
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? downloadBadgeEnabled = null,Object? translationBadgeEnabled = null,Object? readButtonEnabled = null,Object? favoriteTagBadgeEnabled = null,Object? unreadIndicatorEnabled = null,Object? unreadIndicatorStyle = null,}) {
-  return _then(ComicCardSettingState(
-downloadBadgeEnabled: null == downloadBadgeEnabled ? _self.downloadBadgeEnabled : downloadBadgeEnabled // ignore: cast_nullable_to_non_nullable
-as bool,translationBadgeEnabled: null == translationBadgeEnabled ? _self.translationBadgeEnabled : translationBadgeEnabled // ignore: cast_nullable_to_non_nullable
-as bool,readButtonEnabled: null == readButtonEnabled ? _self.readButtonEnabled : readButtonEnabled // ignore: cast_nullable_to_non_nullable
-as bool,favoriteTagBadgeEnabled: null == favoriteTagBadgeEnabled ? _self.favoriteTagBadgeEnabled : favoriteTagBadgeEnabled // ignore: cast_nullable_to_non_nullable
-as bool,unreadIndicatorEnabled: null == unreadIndicatorEnabled ? _self.unreadIndicatorEnabled : unreadIndicatorEnabled // ignore: cast_nullable_to_non_nullable
-as bool,unreadIndicatorStyle: null == unreadIndicatorStyle ? _self.unreadIndicatorStyle : unreadIndicatorStyle // ignore: cast_nullable_to_non_nullable
-as ComicUnreadIndicatorStyle,
-  ));
-}
-
-}
-
-
-/// Adds pattern-matching-related methods to [ComicCardSettingState].
-extension ComicCardSettingStatePatterns on ComicCardSettingState {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ComicCardSettingState value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _ComicCardSettingState() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ComicCardSettingState value)  $default,){
-final _that = this;
-switch (_that) {
-case _ComicCardSettingState():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ComicCardSettingState value)?  $default,){
-final _that = this;
-switch (_that) {
-case _ComicCardSettingState() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool downloadBadgeEnabled,  bool translationBadgeEnabled,  bool readButtonEnabled,  bool favoriteTagBadgeEnabled,  bool unreadIndicatorEnabled,  ComicUnreadIndicatorStyle unreadIndicatorStyle)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _ComicCardSettingState() when $default != null:
-return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.readButtonEnabled,_that.favoriteTagBadgeEnabled,_that.unreadIndicatorEnabled,_that.unreadIndicatorStyle);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool downloadBadgeEnabled,  bool translationBadgeEnabled,  bool readButtonEnabled,  bool favoriteTagBadgeEnabled,  bool unreadIndicatorEnabled,  ComicUnreadIndicatorStyle unreadIndicatorStyle)  $default,) {final _that = this;
-switch (_that) {
-case _ComicCardSettingState():
-return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.readButtonEnabled,_that.favoriteTagBadgeEnabled,_that.unreadIndicatorEnabled,_that.unreadIndicatorStyle);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool downloadBadgeEnabled,  bool translationBadgeEnabled,  bool readButtonEnabled,  bool favoriteTagBadgeEnabled,  bool unreadIndicatorEnabled,  ComicUnreadIndicatorStyle unreadIndicatorStyle)?  $default,) {final _that = this;
-switch (_that) {
-case _ComicCardSettingState() when $default != null:
-return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.readButtonEnabled,_that.favoriteTagBadgeEnabled,_that.unreadIndicatorEnabled,_that.unreadIndicatorStyle);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-@JsonSerializable()
-
-class _ComicCardSettingState implements ComicCardSettingState {
-  const _ComicCardSettingState({this.downloadBadgeEnabled = true, this.translationBadgeEnabled = true, this.readButtonEnabled = true, this.favoriteTagBadgeEnabled = true, this.unreadIndicatorEnabled = true, this.unreadIndicatorStyle = ComicUnreadIndicatorStyle.label});
-  factory _ComicCardSettingState.fromJson(Map<String, dynamic> json) => _$ComicCardSettingStateFromJson(json);
-
-@override@JsonKey() final  bool downloadBadgeEnabled;
-@override@JsonKey() final  bool translationBadgeEnabled;
-/// 封面正中间的「直接阅读」按钮。关掉后点封面仍然只进详情页。
-@override@JsonKey() final  bool readButtonEnabled;
-/// 封面左上角的「收藏 tag」角标。
-@override@JsonKey() final  bool favoriteTagBadgeEnabled;
-/// 封面右上角的「已下载但未读」标识（只在下载书架显示：有下载记录、没有任何阅读记录）。
-@override@JsonKey() final  bool unreadIndicatorEnabled;
-/// 这颗标识画成什么样子（圆点 / 圆片 / 文字胶囊）。
-@override@JsonKey() final  ComicUnreadIndicatorStyle unreadIndicatorStyle;
-
-/// Create a copy of ComicCardSettingState
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$ComicCardSettingStateCopyWith<_ComicCardSettingState> get copyWith => __$ComicCardSettingStateCopyWithImpl<_ComicCardSettingState>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$ComicCardSettingStateToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ComicCardSettingState&&(identical(other.downloadBadgeEnabled, downloadBadgeEnabled) || other.downloadBadgeEnabled == downloadBadgeEnabled)&&(identical(other.translationBadgeEnabled, translationBadgeEnabled) || other.translationBadgeEnabled == translationBadgeEnabled)&&(identical(other.readButtonEnabled, readButtonEnabled) || other.readButtonEnabled == readButtonEnabled)&&(identical(other.favoriteTagBadgeEnabled, favoriteTagBadgeEnabled) || other.favoriteTagBadgeEnabled == favoriteTagBadgeEnabled)&&(identical(other.unreadIndicatorEnabled, unreadIndicatorEnabled) || other.unreadIndicatorEnabled == unreadIndicatorEnabled)&&(identical(other.unreadIndicatorStyle, unreadIndicatorStyle) || other.unreadIndicatorStyle == unreadIndicatorStyle));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode {
-    return Object.hash(runtimeType,downloadBadgeEnabled,translationBadgeEnabled,readButtonEnabled,favoriteTagBadgeEnabled,unreadIndicatorEnabled,unreadIndicatorStyle);
-}
-
-@override
-String toString() {
-    return 'ComicCardSettingState(downloadBadgeEnabled: $downloadBadgeEnabled, translationBadgeEnabled: $translationBadgeEnabled, readButtonEnabled: $readButtonEnabled, favoriteTagBadgeEnabled: $favoriteTagBadgeEnabled, unreadIndicatorEnabled: $unreadIndicatorEnabled, unreadIndicatorStyle: $unreadIndicatorStyle)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$ComicCardSettingStateCopyWith<$Res> implements $ComicCardSettingStateCopyWith<$Res> {
-  factory _$ComicCardSettingStateCopyWith(_ComicCardSettingState value, $Res Function(_ComicCardSettingState) _then) = __$ComicCardSettingStateCopyWithImpl;
-@override @useResult
-$Res call({
- bool downloadBadgeEnabled, bool translationBadgeEnabled, bool readButtonEnabled, bool favoriteTagBadgeEnabled, bool unreadIndicatorEnabled, ComicUnreadIndicatorStyle unreadIndicatorStyle
-});
-
-
-
-
-}
-/// @nodoc
-class __$ComicCardSettingStateCopyWithImpl<$Res>
-    implements _$ComicCardSettingStateCopyWith<$Res> {
-  __$ComicCardSettingStateCopyWithImpl(this._self, this._then);
-
-  final _ComicCardSettingState _self;
-  final $Res Function(_ComicCardSettingState) _then;
-
-/// Create a copy of ComicCardSettingState
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? downloadBadgeEnabled = null,Object? translationBadgeEnabled = null,Object? readButtonEnabled = null,Object? favoriteTagBadgeEnabled = null,Object? unreadIndicatorEnabled = null,Object? unreadIndicatorStyle = null,}) {
-  return _then(_ComicCardSettingState(
-downloadBadgeEnabled: null == downloadBadgeEnabled ? _self.downloadBadgeEnabled : downloadBadgeEnabled // ignore: cast_nullable_to_non_nullable
-as bool,translationBadgeEnabled: null == translationBadgeEnabled ? _self.translationBadgeEnabled : translationBadgeEnabled // ignore: cast_nullable_to_non_nullable
-as bool,readButtonEnabled: null == readButtonEnabled ? _self.readButtonEnabled : readButtonEnabled // ignore: cast_nullable_to_non_nullable
-as bool,favoriteTagBadgeEnabled: null == favoriteTagBadgeEnabled ? _self.favoriteTagBadgeEnabled : favoriteTagBadgeEnabled // ignore: cast_nullable_to_non_nullable
-as bool,unreadIndicatorEnabled: null == unreadIndicatorEnabled ? _self.unreadIndicatorEnabled : unreadIndicatorEnabled // ignore: cast_nullable_to_non_nullable
-as bool,unreadIndicatorStyle: null == unreadIndicatorStyle ? _self.unreadIndicatorStyle : unreadIndicatorStyle // ignore: cast_nullable_to_non_nullable
-as ComicUnreadIndicatorStyle,
-  ));
-}
-
-
-}
-
-
-/// @nodoc
 mixin _$CacheSettingState {
 
  bool get autoCleanCache; int get cacheSizeLimit;
@@ -5052,7 +2452,7 @@ $S3SettingStateCopyWith<$Res> get s3Setting {
 /// @nodoc
 mixin _$ReadSettingState {
 
- bool get noAnimation; bool get comicReadTopContainer; int get readMode; ReaderTapPageTurnMode get tapPageTurnMode; bool get tapPageTurnInWebtoon;@JsonKey(unknownEnumValue: ReaderBackgroundMode.auto) ReaderBackgroundMode get readerBackgroundMode; int get readerAmbientDimPercent; bool get readFilterEnabled; int get readFilterOpacityPercent; bool get einkOptimization; int get einkDelayMs; bool get autoScroll; bool get autoScrollHidePauseButton; bool get autoScrollSmooth; int get autoScrollColumnIntervalMs; int get autoScrollPageIntervalMs; int get autoScrollColumnDistancePercent; int get preloadImageCount; int get preloadChapterCount; bool get readWhileDownloading; bool get landscapeReader; bool get doublePageMode; bool get doublePageSeamless; bool get doublePageLeadingBlank; bool get splitLandscapePages; int get landscapeSplitDirection; bool get sidePaddingEnabled; int get sidePaddingPercent; bool get volumeKeyPageTurn; int get volumeKeyPageTurnDistancePercent; bool get doubleTapZoom; bool get doubleTapOpenMenu; bool get pageInfoShowPage; bool get pageInfoShowNetwork; bool get pageInfoShowBattery; bool get pageInfoShowTime; ReaderInfoVerticalPosition get pageInfoVerticalPosition; bool get pageInfoTopInStatusBar; ReaderInfoHorizontalPosition get pageInfoHorizontalPosition; int get pageInfoEdgePadding; int get pageInfoOpacityPercent; int get pageInfoFontSize; bool get showBottomProgressBar; bool get bottomProgressBarGlow; bool get hoverRevealEnabled; bool get hoverRevealTop; bool get hoverRevealBottom; int get hoverTriggerAreaTop; int get hoverTriggerAreaBottom; int get hoverHideDelayMs; bool get hoverShowVisualIndicator; bool get centerTapToggleBars; bool get topBarPinned; bool get bottomBarPinned; bool get showThumbnailStrip; bool get transparentTopBar; int get topBarScrimOpacityPercent; bool get readingDirectionToggle; ReaderFitMode get readerFitMode; ReaderAutoRotation get readerAutoRotation; ReaderWidePageStretch get readerWidePageStretch;
+ bool get noAnimation; bool get comicReadTopContainer; int get readMode; ReaderTapPageTurnMode get tapPageTurnMode; bool get tapPageTurnInWebtoon;@JsonKey(unknownEnumValue: ReaderBackgroundMode.auto) ReaderBackgroundMode get readerBackgroundMode; int get readerAmbientDimPercent; bool get readFilterEnabled; int get readFilterOpacityPercent; bool get einkOptimization; int get einkDelayMs; bool get autoScroll; bool get autoScrollHidePauseButton; bool get autoScrollSmooth; int get autoScrollColumnIntervalMs; int get autoScrollPageIntervalMs; int get autoScrollColumnDistancePercent; int get preloadImageCount; int get preloadChapterCount; bool get readWhileDownloading; bool get landscapeReader; bool get doublePageMode; bool get doublePageSeamless; bool get doublePageLeadingBlank; bool get splitLandscapePages; int get landscapeSplitDirection; bool get sidePaddingEnabled; int get sidePaddingPercent; bool get volumeKeyPageTurn; int get volumeKeyPageTurnDistancePercent; bool get doubleTapZoom; bool get doubleTapOpenMenu; bool get pageInfoShowPage; bool get pageInfoShowNetwork; bool get pageInfoShowBattery; bool get pageInfoShowTime; ReaderInfoVerticalPosition get pageInfoVerticalPosition; bool get pageInfoTopInStatusBar; ReaderInfoHorizontalPosition get pageInfoHorizontalPosition; int get pageInfoEdgePadding; int get pageInfoOpacityPercent; int get pageInfoFontSize; bool get showBottomProgressBar; bool get bottomProgressBarGlow; bool get hoverRevealEnabled; bool get hoverRevealTop; bool get hoverRevealBottom; int get hoverTriggerAreaTop; int get hoverTriggerAreaBottom; int get hoverHideDelayMs; bool get hoverShowVisualIndicator; bool get centerTapToggleBars; bool get topBarPinned; bool get bottomBarPinned; bool get showThumbnailStrip; bool get transparentTopBar; int get topBarScrimOpacityPercent; bool get readingDirectionToggle; ReaderFitMode get readerFitMode; ReaderAutoRotation get readerAutoRotation; ReaderWidePageStretch get readerWidePageStretch; bool get swipePreviewEnabled;
 /// Create a copy of ReadSettingState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -5066,20 +2466,20 @@ $ReadSettingStateCopyWith<ReadSettingState> get copyWith => _$ReadSettingStateCo
 @override
 bool operator ==(Object other) {
   final _this = this as ReadSettingState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReadSettingState&&(identical(other.noAnimation, _this.noAnimation) || other.noAnimation == _this.noAnimation)&&(identical(other.comicReadTopContainer, _this.comicReadTopContainer) || other.comicReadTopContainer == _this.comicReadTopContainer)&&(identical(other.readMode, _this.readMode) || other.readMode == _this.readMode)&&(identical(other.tapPageTurnMode, _this.tapPageTurnMode) || other.tapPageTurnMode == _this.tapPageTurnMode)&&(identical(other.tapPageTurnInWebtoon, _this.tapPageTurnInWebtoon) || other.tapPageTurnInWebtoon == _this.tapPageTurnInWebtoon)&&(identical(other.readerBackgroundMode, _this.readerBackgroundMode) || other.readerBackgroundMode == _this.readerBackgroundMode)&&(identical(other.readerAmbientDimPercent, _this.readerAmbientDimPercent) || other.readerAmbientDimPercent == _this.readerAmbientDimPercent)&&(identical(other.readFilterEnabled, _this.readFilterEnabled) || other.readFilterEnabled == _this.readFilterEnabled)&&(identical(other.readFilterOpacityPercent, _this.readFilterOpacityPercent) || other.readFilterOpacityPercent == _this.readFilterOpacityPercent)&&(identical(other.einkOptimization, _this.einkOptimization) || other.einkOptimization == _this.einkOptimization)&&(identical(other.einkDelayMs, _this.einkDelayMs) || other.einkDelayMs == _this.einkDelayMs)&&(identical(other.autoScroll, _this.autoScroll) || other.autoScroll == _this.autoScroll)&&(identical(other.autoScrollHidePauseButton, _this.autoScrollHidePauseButton) || other.autoScrollHidePauseButton == _this.autoScrollHidePauseButton)&&(identical(other.autoScrollSmooth, _this.autoScrollSmooth) || other.autoScrollSmooth == _this.autoScrollSmooth)&&(identical(other.autoScrollColumnIntervalMs, _this.autoScrollColumnIntervalMs) || other.autoScrollColumnIntervalMs == _this.autoScrollColumnIntervalMs)&&(identical(other.autoScrollPageIntervalMs, _this.autoScrollPageIntervalMs) || other.autoScrollPageIntervalMs == _this.autoScrollPageIntervalMs)&&(identical(other.autoScrollColumnDistancePercent, _this.autoScrollColumnDistancePercent) || other.autoScrollColumnDistancePercent == _this.autoScrollColumnDistancePercent)&&(identical(other.preloadImageCount, _this.preloadImageCount) || other.preloadImageCount == _this.preloadImageCount)&&(identical(other.preloadChapterCount, _this.preloadChapterCount) || other.preloadChapterCount == _this.preloadChapterCount)&&(identical(other.readWhileDownloading, _this.readWhileDownloading) || other.readWhileDownloading == _this.readWhileDownloading)&&(identical(other.landscapeReader, _this.landscapeReader) || other.landscapeReader == _this.landscapeReader)&&(identical(other.doublePageMode, _this.doublePageMode) || other.doublePageMode == _this.doublePageMode)&&(identical(other.doublePageSeamless, _this.doublePageSeamless) || other.doublePageSeamless == _this.doublePageSeamless)&&(identical(other.doublePageLeadingBlank, _this.doublePageLeadingBlank) || other.doublePageLeadingBlank == _this.doublePageLeadingBlank)&&(identical(other.splitLandscapePages, _this.splitLandscapePages) || other.splitLandscapePages == _this.splitLandscapePages)&&(identical(other.landscapeSplitDirection, _this.landscapeSplitDirection) || other.landscapeSplitDirection == _this.landscapeSplitDirection)&&(identical(other.sidePaddingEnabled, _this.sidePaddingEnabled) || other.sidePaddingEnabled == _this.sidePaddingEnabled)&&(identical(other.sidePaddingPercent, _this.sidePaddingPercent) || other.sidePaddingPercent == _this.sidePaddingPercent)&&(identical(other.volumeKeyPageTurn, _this.volumeKeyPageTurn) || other.volumeKeyPageTurn == _this.volumeKeyPageTurn)&&(identical(other.volumeKeyPageTurnDistancePercent, _this.volumeKeyPageTurnDistancePercent) || other.volumeKeyPageTurnDistancePercent == _this.volumeKeyPageTurnDistancePercent)&&(identical(other.doubleTapZoom, _this.doubleTapZoom) || other.doubleTapZoom == _this.doubleTapZoom)&&(identical(other.doubleTapOpenMenu, _this.doubleTapOpenMenu) || other.doubleTapOpenMenu == _this.doubleTapOpenMenu)&&(identical(other.pageInfoShowPage, _this.pageInfoShowPage) || other.pageInfoShowPage == _this.pageInfoShowPage)&&(identical(other.pageInfoShowNetwork, _this.pageInfoShowNetwork) || other.pageInfoShowNetwork == _this.pageInfoShowNetwork)&&(identical(other.pageInfoShowBattery, _this.pageInfoShowBattery) || other.pageInfoShowBattery == _this.pageInfoShowBattery)&&(identical(other.pageInfoShowTime, _this.pageInfoShowTime) || other.pageInfoShowTime == _this.pageInfoShowTime)&&(identical(other.pageInfoVerticalPosition, _this.pageInfoVerticalPosition) || other.pageInfoVerticalPosition == _this.pageInfoVerticalPosition)&&(identical(other.pageInfoTopInStatusBar, _this.pageInfoTopInStatusBar) || other.pageInfoTopInStatusBar == _this.pageInfoTopInStatusBar)&&(identical(other.pageInfoHorizontalPosition, _this.pageInfoHorizontalPosition) || other.pageInfoHorizontalPosition == _this.pageInfoHorizontalPosition)&&(identical(other.pageInfoEdgePadding, _this.pageInfoEdgePadding) || other.pageInfoEdgePadding == _this.pageInfoEdgePadding)&&(identical(other.pageInfoOpacityPercent, _this.pageInfoOpacityPercent) || other.pageInfoOpacityPercent == _this.pageInfoOpacityPercent)&&(identical(other.pageInfoFontSize, _this.pageInfoFontSize) || other.pageInfoFontSize == _this.pageInfoFontSize)&&(identical(other.showBottomProgressBar, _this.showBottomProgressBar) || other.showBottomProgressBar == _this.showBottomProgressBar)&&(identical(other.bottomProgressBarGlow, _this.bottomProgressBarGlow) || other.bottomProgressBarGlow == _this.bottomProgressBarGlow)&&(identical(other.hoverRevealEnabled, _this.hoverRevealEnabled) || other.hoverRevealEnabled == _this.hoverRevealEnabled)&&(identical(other.hoverRevealTop, _this.hoverRevealTop) || other.hoverRevealTop == _this.hoverRevealTop)&&(identical(other.hoverRevealBottom, _this.hoverRevealBottom) || other.hoverRevealBottom == _this.hoverRevealBottom)&&(identical(other.hoverTriggerAreaTop, _this.hoverTriggerAreaTop) || other.hoverTriggerAreaTop == _this.hoverTriggerAreaTop)&&(identical(other.hoverTriggerAreaBottom, _this.hoverTriggerAreaBottom) || other.hoverTriggerAreaBottom == _this.hoverTriggerAreaBottom)&&(identical(other.hoverHideDelayMs, _this.hoverHideDelayMs) || other.hoverHideDelayMs == _this.hoverHideDelayMs)&&(identical(other.hoverShowVisualIndicator, _this.hoverShowVisualIndicator) || other.hoverShowVisualIndicator == _this.hoverShowVisualIndicator)&&(identical(other.centerTapToggleBars, _this.centerTapToggleBars) || other.centerTapToggleBars == _this.centerTapToggleBars)&&(identical(other.topBarPinned, _this.topBarPinned) || other.topBarPinned == _this.topBarPinned)&&(identical(other.bottomBarPinned, _this.bottomBarPinned) || other.bottomBarPinned == _this.bottomBarPinned)&&(identical(other.showThumbnailStrip, _this.showThumbnailStrip) || other.showThumbnailStrip == _this.showThumbnailStrip)&&(identical(other.transparentTopBar, _this.transparentTopBar) || other.transparentTopBar == _this.transparentTopBar)&&(identical(other.topBarScrimOpacityPercent, _this.topBarScrimOpacityPercent) || other.topBarScrimOpacityPercent == _this.topBarScrimOpacityPercent)&&(identical(other.readingDirectionToggle, _this.readingDirectionToggle) || other.readingDirectionToggle == _this.readingDirectionToggle)&&(identical(other.readerFitMode, _this.readerFitMode) || other.readerFitMode == _this.readerFitMode)&&(identical(other.readerAutoRotation, _this.readerAutoRotation) || other.readerAutoRotation == _this.readerAutoRotation)&&(identical(other.readerWidePageStretch, _this.readerWidePageStretch) || other.readerWidePageStretch == _this.readerWidePageStretch));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReadSettingState&&(identical(other.noAnimation, _this.noAnimation) || other.noAnimation == _this.noAnimation)&&(identical(other.comicReadTopContainer, _this.comicReadTopContainer) || other.comicReadTopContainer == _this.comicReadTopContainer)&&(identical(other.readMode, _this.readMode) || other.readMode == _this.readMode)&&(identical(other.tapPageTurnMode, _this.tapPageTurnMode) || other.tapPageTurnMode == _this.tapPageTurnMode)&&(identical(other.tapPageTurnInWebtoon, _this.tapPageTurnInWebtoon) || other.tapPageTurnInWebtoon == _this.tapPageTurnInWebtoon)&&(identical(other.readerBackgroundMode, _this.readerBackgroundMode) || other.readerBackgroundMode == _this.readerBackgroundMode)&&(identical(other.readerAmbientDimPercent, _this.readerAmbientDimPercent) || other.readerAmbientDimPercent == _this.readerAmbientDimPercent)&&(identical(other.readFilterEnabled, _this.readFilterEnabled) || other.readFilterEnabled == _this.readFilterEnabled)&&(identical(other.readFilterOpacityPercent, _this.readFilterOpacityPercent) || other.readFilterOpacityPercent == _this.readFilterOpacityPercent)&&(identical(other.einkOptimization, _this.einkOptimization) || other.einkOptimization == _this.einkOptimization)&&(identical(other.einkDelayMs, _this.einkDelayMs) || other.einkDelayMs == _this.einkDelayMs)&&(identical(other.autoScroll, _this.autoScroll) || other.autoScroll == _this.autoScroll)&&(identical(other.autoScrollHidePauseButton, _this.autoScrollHidePauseButton) || other.autoScrollHidePauseButton == _this.autoScrollHidePauseButton)&&(identical(other.autoScrollSmooth, _this.autoScrollSmooth) || other.autoScrollSmooth == _this.autoScrollSmooth)&&(identical(other.autoScrollColumnIntervalMs, _this.autoScrollColumnIntervalMs) || other.autoScrollColumnIntervalMs == _this.autoScrollColumnIntervalMs)&&(identical(other.autoScrollPageIntervalMs, _this.autoScrollPageIntervalMs) || other.autoScrollPageIntervalMs == _this.autoScrollPageIntervalMs)&&(identical(other.autoScrollColumnDistancePercent, _this.autoScrollColumnDistancePercent) || other.autoScrollColumnDistancePercent == _this.autoScrollColumnDistancePercent)&&(identical(other.preloadImageCount, _this.preloadImageCount) || other.preloadImageCount == _this.preloadImageCount)&&(identical(other.preloadChapterCount, _this.preloadChapterCount) || other.preloadChapterCount == _this.preloadChapterCount)&&(identical(other.readWhileDownloading, _this.readWhileDownloading) || other.readWhileDownloading == _this.readWhileDownloading)&&(identical(other.landscapeReader, _this.landscapeReader) || other.landscapeReader == _this.landscapeReader)&&(identical(other.doublePageMode, _this.doublePageMode) || other.doublePageMode == _this.doublePageMode)&&(identical(other.doublePageSeamless, _this.doublePageSeamless) || other.doublePageSeamless == _this.doublePageSeamless)&&(identical(other.doublePageLeadingBlank, _this.doublePageLeadingBlank) || other.doublePageLeadingBlank == _this.doublePageLeadingBlank)&&(identical(other.splitLandscapePages, _this.splitLandscapePages) || other.splitLandscapePages == _this.splitLandscapePages)&&(identical(other.landscapeSplitDirection, _this.landscapeSplitDirection) || other.landscapeSplitDirection == _this.landscapeSplitDirection)&&(identical(other.sidePaddingEnabled, _this.sidePaddingEnabled) || other.sidePaddingEnabled == _this.sidePaddingEnabled)&&(identical(other.sidePaddingPercent, _this.sidePaddingPercent) || other.sidePaddingPercent == _this.sidePaddingPercent)&&(identical(other.volumeKeyPageTurn, _this.volumeKeyPageTurn) || other.volumeKeyPageTurn == _this.volumeKeyPageTurn)&&(identical(other.volumeKeyPageTurnDistancePercent, _this.volumeKeyPageTurnDistancePercent) || other.volumeKeyPageTurnDistancePercent == _this.volumeKeyPageTurnDistancePercent)&&(identical(other.doubleTapZoom, _this.doubleTapZoom) || other.doubleTapZoom == _this.doubleTapZoom)&&(identical(other.doubleTapOpenMenu, _this.doubleTapOpenMenu) || other.doubleTapOpenMenu == _this.doubleTapOpenMenu)&&(identical(other.pageInfoShowPage, _this.pageInfoShowPage) || other.pageInfoShowPage == _this.pageInfoShowPage)&&(identical(other.pageInfoShowNetwork, _this.pageInfoShowNetwork) || other.pageInfoShowNetwork == _this.pageInfoShowNetwork)&&(identical(other.pageInfoShowBattery, _this.pageInfoShowBattery) || other.pageInfoShowBattery == _this.pageInfoShowBattery)&&(identical(other.pageInfoShowTime, _this.pageInfoShowTime) || other.pageInfoShowTime == _this.pageInfoShowTime)&&(identical(other.pageInfoVerticalPosition, _this.pageInfoVerticalPosition) || other.pageInfoVerticalPosition == _this.pageInfoVerticalPosition)&&(identical(other.pageInfoTopInStatusBar, _this.pageInfoTopInStatusBar) || other.pageInfoTopInStatusBar == _this.pageInfoTopInStatusBar)&&(identical(other.pageInfoHorizontalPosition, _this.pageInfoHorizontalPosition) || other.pageInfoHorizontalPosition == _this.pageInfoHorizontalPosition)&&(identical(other.pageInfoEdgePadding, _this.pageInfoEdgePadding) || other.pageInfoEdgePadding == _this.pageInfoEdgePadding)&&(identical(other.pageInfoOpacityPercent, _this.pageInfoOpacityPercent) || other.pageInfoOpacityPercent == _this.pageInfoOpacityPercent)&&(identical(other.pageInfoFontSize, _this.pageInfoFontSize) || other.pageInfoFontSize == _this.pageInfoFontSize)&&(identical(other.showBottomProgressBar, _this.showBottomProgressBar) || other.showBottomProgressBar == _this.showBottomProgressBar)&&(identical(other.bottomProgressBarGlow, _this.bottomProgressBarGlow) || other.bottomProgressBarGlow == _this.bottomProgressBarGlow)&&(identical(other.hoverRevealEnabled, _this.hoverRevealEnabled) || other.hoverRevealEnabled == _this.hoverRevealEnabled)&&(identical(other.hoverRevealTop, _this.hoverRevealTop) || other.hoverRevealTop == _this.hoverRevealTop)&&(identical(other.hoverRevealBottom, _this.hoverRevealBottom) || other.hoverRevealBottom == _this.hoverRevealBottom)&&(identical(other.hoverTriggerAreaTop, _this.hoverTriggerAreaTop) || other.hoverTriggerAreaTop == _this.hoverTriggerAreaTop)&&(identical(other.hoverTriggerAreaBottom, _this.hoverTriggerAreaBottom) || other.hoverTriggerAreaBottom == _this.hoverTriggerAreaBottom)&&(identical(other.hoverHideDelayMs, _this.hoverHideDelayMs) || other.hoverHideDelayMs == _this.hoverHideDelayMs)&&(identical(other.hoverShowVisualIndicator, _this.hoverShowVisualIndicator) || other.hoverShowVisualIndicator == _this.hoverShowVisualIndicator)&&(identical(other.centerTapToggleBars, _this.centerTapToggleBars) || other.centerTapToggleBars == _this.centerTapToggleBars)&&(identical(other.topBarPinned, _this.topBarPinned) || other.topBarPinned == _this.topBarPinned)&&(identical(other.bottomBarPinned, _this.bottomBarPinned) || other.bottomBarPinned == _this.bottomBarPinned)&&(identical(other.showThumbnailStrip, _this.showThumbnailStrip) || other.showThumbnailStrip == _this.showThumbnailStrip)&&(identical(other.transparentTopBar, _this.transparentTopBar) || other.transparentTopBar == _this.transparentTopBar)&&(identical(other.topBarScrimOpacityPercent, _this.topBarScrimOpacityPercent) || other.topBarScrimOpacityPercent == _this.topBarScrimOpacityPercent)&&(identical(other.readingDirectionToggle, _this.readingDirectionToggle) || other.readingDirectionToggle == _this.readingDirectionToggle)&&(identical(other.readerFitMode, _this.readerFitMode) || other.readerFitMode == _this.readerFitMode)&&(identical(other.readerAutoRotation, _this.readerAutoRotation) || other.readerAutoRotation == _this.readerAutoRotation)&&(identical(other.readerWidePageStretch, _this.readerWidePageStretch) || other.readerWidePageStretch == _this.readerWidePageStretch)&&(identical(other.swipePreviewEnabled, _this.swipePreviewEnabled) || other.swipePreviewEnabled == _this.swipePreviewEnabled));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as ReadSettingState;
-  return Object.hashAll([runtimeType,_this.noAnimation,_this.comicReadTopContainer,_this.readMode,_this.tapPageTurnMode,_this.tapPageTurnInWebtoon,_this.readerBackgroundMode,_this.readerAmbientDimPercent,_this.readFilterEnabled,_this.readFilterOpacityPercent,_this.einkOptimization,_this.einkDelayMs,_this.autoScroll,_this.autoScrollHidePauseButton,_this.autoScrollSmooth,_this.autoScrollColumnIntervalMs,_this.autoScrollPageIntervalMs,_this.autoScrollColumnDistancePercent,_this.preloadImageCount,_this.preloadChapterCount,_this.readWhileDownloading,_this.landscapeReader,_this.doublePageMode,_this.doublePageSeamless,_this.doublePageLeadingBlank,_this.splitLandscapePages,_this.landscapeSplitDirection,_this.sidePaddingEnabled,_this.sidePaddingPercent,_this.volumeKeyPageTurn,_this.volumeKeyPageTurnDistancePercent,_this.doubleTapZoom,_this.doubleTapOpenMenu,_this.pageInfoShowPage,_this.pageInfoShowNetwork,_this.pageInfoShowBattery,_this.pageInfoShowTime,_this.pageInfoVerticalPosition,_this.pageInfoTopInStatusBar,_this.pageInfoHorizontalPosition,_this.pageInfoEdgePadding,_this.pageInfoOpacityPercent,_this.pageInfoFontSize,_this.showBottomProgressBar,_this.bottomProgressBarGlow,_this.hoverRevealEnabled,_this.hoverRevealTop,_this.hoverRevealBottom,_this.hoverTriggerAreaTop,_this.hoverTriggerAreaBottom,_this.hoverHideDelayMs,_this.hoverShowVisualIndicator,_this.centerTapToggleBars,_this.topBarPinned,_this.bottomBarPinned,_this.showThumbnailStrip,_this.transparentTopBar,_this.topBarScrimOpacityPercent,_this.readingDirectionToggle,_this.readerFitMode,_this.readerAutoRotation,_this.readerWidePageStretch]);
+  return Object.hashAll([runtimeType,_this.noAnimation,_this.comicReadTopContainer,_this.readMode,_this.tapPageTurnMode,_this.tapPageTurnInWebtoon,_this.readerBackgroundMode,_this.readerAmbientDimPercent,_this.readFilterEnabled,_this.readFilterOpacityPercent,_this.einkOptimization,_this.einkDelayMs,_this.autoScroll,_this.autoScrollHidePauseButton,_this.autoScrollSmooth,_this.autoScrollColumnIntervalMs,_this.autoScrollPageIntervalMs,_this.autoScrollColumnDistancePercent,_this.preloadImageCount,_this.preloadChapterCount,_this.readWhileDownloading,_this.landscapeReader,_this.doublePageMode,_this.doublePageSeamless,_this.doublePageLeadingBlank,_this.splitLandscapePages,_this.landscapeSplitDirection,_this.sidePaddingEnabled,_this.sidePaddingPercent,_this.volumeKeyPageTurn,_this.volumeKeyPageTurnDistancePercent,_this.doubleTapZoom,_this.doubleTapOpenMenu,_this.pageInfoShowPage,_this.pageInfoShowNetwork,_this.pageInfoShowBattery,_this.pageInfoShowTime,_this.pageInfoVerticalPosition,_this.pageInfoTopInStatusBar,_this.pageInfoHorizontalPosition,_this.pageInfoEdgePadding,_this.pageInfoOpacityPercent,_this.pageInfoFontSize,_this.showBottomProgressBar,_this.bottomProgressBarGlow,_this.hoverRevealEnabled,_this.hoverRevealTop,_this.hoverRevealBottom,_this.hoverTriggerAreaTop,_this.hoverTriggerAreaBottom,_this.hoverHideDelayMs,_this.hoverShowVisualIndicator,_this.centerTapToggleBars,_this.topBarPinned,_this.bottomBarPinned,_this.showThumbnailStrip,_this.transparentTopBar,_this.topBarScrimOpacityPercent,_this.readingDirectionToggle,_this.readerFitMode,_this.readerAutoRotation,_this.readerWidePageStretch,_this.swipePreviewEnabled]);
 }
 
 @override
 String toString() {
   final _this = this as ReadSettingState;
-  return 'ReadSettingState(noAnimation: ${_this.noAnimation}, comicReadTopContainer: ${_this.comicReadTopContainer}, readMode: ${_this.readMode}, tapPageTurnMode: ${_this.tapPageTurnMode}, tapPageTurnInWebtoon: ${_this.tapPageTurnInWebtoon}, readerBackgroundMode: ${_this.readerBackgroundMode}, readerAmbientDimPercent: ${_this.readerAmbientDimPercent}, readFilterEnabled: ${_this.readFilterEnabled}, readFilterOpacityPercent: ${_this.readFilterOpacityPercent}, einkOptimization: ${_this.einkOptimization}, einkDelayMs: ${_this.einkDelayMs}, autoScroll: ${_this.autoScroll}, autoScrollHidePauseButton: ${_this.autoScrollHidePauseButton}, autoScrollSmooth: ${_this.autoScrollSmooth}, autoScrollColumnIntervalMs: ${_this.autoScrollColumnIntervalMs}, autoScrollPageIntervalMs: ${_this.autoScrollPageIntervalMs}, autoScrollColumnDistancePercent: ${_this.autoScrollColumnDistancePercent}, preloadImageCount: ${_this.preloadImageCount}, preloadChapterCount: ${_this.preloadChapterCount}, readWhileDownloading: ${_this.readWhileDownloading}, landscapeReader: ${_this.landscapeReader}, doublePageMode: ${_this.doublePageMode}, doublePageSeamless: ${_this.doublePageSeamless}, doublePageLeadingBlank: ${_this.doublePageLeadingBlank}, splitLandscapePages: ${_this.splitLandscapePages}, landscapeSplitDirection: ${_this.landscapeSplitDirection}, sidePaddingEnabled: ${_this.sidePaddingEnabled}, sidePaddingPercent: ${_this.sidePaddingPercent}, volumeKeyPageTurn: ${_this.volumeKeyPageTurn}, volumeKeyPageTurnDistancePercent: ${_this.volumeKeyPageTurnDistancePercent}, doubleTapZoom: ${_this.doubleTapZoom}, doubleTapOpenMenu: ${_this.doubleTapOpenMenu}, pageInfoShowPage: ${_this.pageInfoShowPage}, pageInfoShowNetwork: ${_this.pageInfoShowNetwork}, pageInfoShowBattery: ${_this.pageInfoShowBattery}, pageInfoShowTime: ${_this.pageInfoShowTime}, pageInfoVerticalPosition: ${_this.pageInfoVerticalPosition}, pageInfoTopInStatusBar: ${_this.pageInfoTopInStatusBar}, pageInfoHorizontalPosition: ${_this.pageInfoHorizontalPosition}, pageInfoEdgePadding: ${_this.pageInfoEdgePadding}, pageInfoOpacityPercent: ${_this.pageInfoOpacityPercent}, pageInfoFontSize: ${_this.pageInfoFontSize}, showBottomProgressBar: ${_this.showBottomProgressBar}, bottomProgressBarGlow: ${_this.bottomProgressBarGlow}, hoverRevealEnabled: ${_this.hoverRevealEnabled}, hoverRevealTop: ${_this.hoverRevealTop}, hoverRevealBottom: ${_this.hoverRevealBottom}, hoverTriggerAreaTop: ${_this.hoverTriggerAreaTop}, hoverTriggerAreaBottom: ${_this.hoverTriggerAreaBottom}, hoverHideDelayMs: ${_this.hoverHideDelayMs}, hoverShowVisualIndicator: ${_this.hoverShowVisualIndicator}, centerTapToggleBars: ${_this.centerTapToggleBars}, topBarPinned: ${_this.topBarPinned}, bottomBarPinned: ${_this.bottomBarPinned}, showThumbnailStrip: ${_this.showThumbnailStrip}, transparentTopBar: ${_this.transparentTopBar}, topBarScrimOpacityPercent: ${_this.topBarScrimOpacityPercent}, readingDirectionToggle: ${_this.readingDirectionToggle}, readerFitMode: ${_this.readerFitMode}, readerAutoRotation: ${_this.readerAutoRotation}, readerWidePageStretch: ${_this.readerWidePageStretch})';
+  return 'ReadSettingState(noAnimation: ${_this.noAnimation}, comicReadTopContainer: ${_this.comicReadTopContainer}, readMode: ${_this.readMode}, tapPageTurnMode: ${_this.tapPageTurnMode}, tapPageTurnInWebtoon: ${_this.tapPageTurnInWebtoon}, readerBackgroundMode: ${_this.readerBackgroundMode}, readerAmbientDimPercent: ${_this.readerAmbientDimPercent}, readFilterEnabled: ${_this.readFilterEnabled}, readFilterOpacityPercent: ${_this.readFilterOpacityPercent}, einkOptimization: ${_this.einkOptimization}, einkDelayMs: ${_this.einkDelayMs}, autoScroll: ${_this.autoScroll}, autoScrollHidePauseButton: ${_this.autoScrollHidePauseButton}, autoScrollSmooth: ${_this.autoScrollSmooth}, autoScrollColumnIntervalMs: ${_this.autoScrollColumnIntervalMs}, autoScrollPageIntervalMs: ${_this.autoScrollPageIntervalMs}, autoScrollColumnDistancePercent: ${_this.autoScrollColumnDistancePercent}, preloadImageCount: ${_this.preloadImageCount}, preloadChapterCount: ${_this.preloadChapterCount}, readWhileDownloading: ${_this.readWhileDownloading}, landscapeReader: ${_this.landscapeReader}, doublePageMode: ${_this.doublePageMode}, doublePageSeamless: ${_this.doublePageSeamless}, doublePageLeadingBlank: ${_this.doublePageLeadingBlank}, splitLandscapePages: ${_this.splitLandscapePages}, landscapeSplitDirection: ${_this.landscapeSplitDirection}, sidePaddingEnabled: ${_this.sidePaddingEnabled}, sidePaddingPercent: ${_this.sidePaddingPercent}, volumeKeyPageTurn: ${_this.volumeKeyPageTurn}, volumeKeyPageTurnDistancePercent: ${_this.volumeKeyPageTurnDistancePercent}, doubleTapZoom: ${_this.doubleTapZoom}, doubleTapOpenMenu: ${_this.doubleTapOpenMenu}, pageInfoShowPage: ${_this.pageInfoShowPage}, pageInfoShowNetwork: ${_this.pageInfoShowNetwork}, pageInfoShowBattery: ${_this.pageInfoShowBattery}, pageInfoShowTime: ${_this.pageInfoShowTime}, pageInfoVerticalPosition: ${_this.pageInfoVerticalPosition}, pageInfoTopInStatusBar: ${_this.pageInfoTopInStatusBar}, pageInfoHorizontalPosition: ${_this.pageInfoHorizontalPosition}, pageInfoEdgePadding: ${_this.pageInfoEdgePadding}, pageInfoOpacityPercent: ${_this.pageInfoOpacityPercent}, pageInfoFontSize: ${_this.pageInfoFontSize}, showBottomProgressBar: ${_this.showBottomProgressBar}, bottomProgressBarGlow: ${_this.bottomProgressBarGlow}, hoverRevealEnabled: ${_this.hoverRevealEnabled}, hoverRevealTop: ${_this.hoverRevealTop}, hoverRevealBottom: ${_this.hoverRevealBottom}, hoverTriggerAreaTop: ${_this.hoverTriggerAreaTop}, hoverTriggerAreaBottom: ${_this.hoverTriggerAreaBottom}, hoverHideDelayMs: ${_this.hoverHideDelayMs}, hoverShowVisualIndicator: ${_this.hoverShowVisualIndicator}, centerTapToggleBars: ${_this.centerTapToggleBars}, topBarPinned: ${_this.topBarPinned}, bottomBarPinned: ${_this.bottomBarPinned}, showThumbnailStrip: ${_this.showThumbnailStrip}, transparentTopBar: ${_this.transparentTopBar}, topBarScrimOpacityPercent: ${_this.topBarScrimOpacityPercent}, readingDirectionToggle: ${_this.readingDirectionToggle}, readerFitMode: ${_this.readerFitMode}, readerAutoRotation: ${_this.readerAutoRotation}, readerWidePageStretch: ${_this.readerWidePageStretch}, swipePreviewEnabled: ${_this.swipePreviewEnabled})';
 }
 
 
@@ -5090,7 +2490,7 @@ abstract mixin class $ReadSettingStateCopyWith<$Res>  {
   factory $ReadSettingStateCopyWith(ReadSettingState value, $Res Function(ReadSettingState) _then) = _$ReadSettingStateCopyWithImpl;
 @useResult
 $Res call({
- bool noAnimation, bool comicReadTopContainer, int readMode, ReaderTapPageTurnMode tapPageTurnMode, bool tapPageTurnInWebtoon,@JsonKey(unknownEnumValue: ReaderBackgroundMode.auto) ReaderBackgroundMode readerBackgroundMode, int readerAmbientDimPercent, bool readFilterEnabled, int readFilterOpacityPercent, bool einkOptimization, int einkDelayMs, bool autoScroll, bool autoScrollHidePauseButton, bool autoScrollSmooth, int autoScrollColumnIntervalMs, int autoScrollPageIntervalMs, int autoScrollColumnDistancePercent, int preloadImageCount, int preloadChapterCount, bool readWhileDownloading, bool landscapeReader, bool doublePageMode, bool doublePageSeamless, bool doublePageLeadingBlank, bool splitLandscapePages, int landscapeSplitDirection, bool sidePaddingEnabled, int sidePaddingPercent, bool volumeKeyPageTurn, int volumeKeyPageTurnDistancePercent, bool doubleTapZoom, bool doubleTapOpenMenu, bool pageInfoShowPage, bool pageInfoShowNetwork, bool pageInfoShowBattery, bool pageInfoShowTime, ReaderInfoVerticalPosition pageInfoVerticalPosition, bool pageInfoTopInStatusBar, ReaderInfoHorizontalPosition pageInfoHorizontalPosition, int pageInfoEdgePadding, int pageInfoOpacityPercent, int pageInfoFontSize, bool showBottomProgressBar, bool bottomProgressBarGlow, bool hoverRevealEnabled, bool hoverRevealTop, bool hoverRevealBottom, int hoverTriggerAreaTop, int hoverTriggerAreaBottom, int hoverHideDelayMs, bool hoverShowVisualIndicator, bool centerTapToggleBars, bool topBarPinned, bool bottomBarPinned, bool showThumbnailStrip, bool transparentTopBar, int topBarScrimOpacityPercent, bool readingDirectionToggle, ReaderFitMode readerFitMode, ReaderAutoRotation readerAutoRotation, ReaderWidePageStretch readerWidePageStretch
+ bool noAnimation, bool comicReadTopContainer, int readMode, ReaderTapPageTurnMode tapPageTurnMode, bool tapPageTurnInWebtoon,@JsonKey(unknownEnumValue: ReaderBackgroundMode.auto) ReaderBackgroundMode readerBackgroundMode, int readerAmbientDimPercent, bool readFilterEnabled, int readFilterOpacityPercent, bool einkOptimization, int einkDelayMs, bool autoScroll, bool autoScrollHidePauseButton, bool autoScrollSmooth, int autoScrollColumnIntervalMs, int autoScrollPageIntervalMs, int autoScrollColumnDistancePercent, int preloadImageCount, int preloadChapterCount, bool readWhileDownloading, bool landscapeReader, bool doublePageMode, bool doublePageSeamless, bool doublePageLeadingBlank, bool splitLandscapePages, int landscapeSplitDirection, bool sidePaddingEnabled, int sidePaddingPercent, bool volumeKeyPageTurn, int volumeKeyPageTurnDistancePercent, bool doubleTapZoom, bool doubleTapOpenMenu, bool pageInfoShowPage, bool pageInfoShowNetwork, bool pageInfoShowBattery, bool pageInfoShowTime, ReaderInfoVerticalPosition pageInfoVerticalPosition, bool pageInfoTopInStatusBar, ReaderInfoHorizontalPosition pageInfoHorizontalPosition, int pageInfoEdgePadding, int pageInfoOpacityPercent, int pageInfoFontSize, bool showBottomProgressBar, bool bottomProgressBarGlow, bool hoverRevealEnabled, bool hoverRevealTop, bool hoverRevealBottom, int hoverTriggerAreaTop, int hoverTriggerAreaBottom, int hoverHideDelayMs, bool hoverShowVisualIndicator, bool centerTapToggleBars, bool topBarPinned, bool bottomBarPinned, bool showThumbnailStrip, bool transparentTopBar, int topBarScrimOpacityPercent, bool readingDirectionToggle, ReaderFitMode readerFitMode, ReaderAutoRotation readerAutoRotation, ReaderWidePageStretch readerWidePageStretch, bool swipePreviewEnabled
 });
 
 
@@ -5107,7 +2507,7 @@ class _$ReadSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of ReadSettingState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? noAnimation = null,Object? comicReadTopContainer = null,Object? readMode = null,Object? tapPageTurnMode = null,Object? tapPageTurnInWebtoon = null,Object? readerBackgroundMode = null,Object? readerAmbientDimPercent = null,Object? readFilterEnabled = null,Object? readFilterOpacityPercent = null,Object? einkOptimization = null,Object? einkDelayMs = null,Object? autoScroll = null,Object? autoScrollHidePauseButton = null,Object? autoScrollSmooth = null,Object? autoScrollColumnIntervalMs = null,Object? autoScrollPageIntervalMs = null,Object? autoScrollColumnDistancePercent = null,Object? preloadImageCount = null,Object? preloadChapterCount = null,Object? readWhileDownloading = null,Object? landscapeReader = null,Object? doublePageMode = null,Object? doublePageSeamless = null,Object? doublePageLeadingBlank = null,Object? splitLandscapePages = null,Object? landscapeSplitDirection = null,Object? sidePaddingEnabled = null,Object? sidePaddingPercent = null,Object? volumeKeyPageTurn = null,Object? volumeKeyPageTurnDistancePercent = null,Object? doubleTapZoom = null,Object? doubleTapOpenMenu = null,Object? pageInfoShowPage = null,Object? pageInfoShowNetwork = null,Object? pageInfoShowBattery = null,Object? pageInfoShowTime = null,Object? pageInfoVerticalPosition = null,Object? pageInfoTopInStatusBar = null,Object? pageInfoHorizontalPosition = null,Object? pageInfoEdgePadding = null,Object? pageInfoOpacityPercent = null,Object? pageInfoFontSize = null,Object? showBottomProgressBar = null,Object? bottomProgressBarGlow = null,Object? hoverRevealEnabled = null,Object? hoverRevealTop = null,Object? hoverRevealBottom = null,Object? hoverTriggerAreaTop = null,Object? hoverTriggerAreaBottom = null,Object? hoverHideDelayMs = null,Object? hoverShowVisualIndicator = null,Object? centerTapToggleBars = null,Object? topBarPinned = null,Object? bottomBarPinned = null,Object? showThumbnailStrip = null,Object? transparentTopBar = null,Object? topBarScrimOpacityPercent = null,Object? readingDirectionToggle = null,Object? readerFitMode = null,Object? readerAutoRotation = null,Object? readerWidePageStretch = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? noAnimation = null,Object? comicReadTopContainer = null,Object? readMode = null,Object? tapPageTurnMode = null,Object? tapPageTurnInWebtoon = null,Object? readerBackgroundMode = null,Object? readerAmbientDimPercent = null,Object? readFilterEnabled = null,Object? readFilterOpacityPercent = null,Object? einkOptimization = null,Object? einkDelayMs = null,Object? autoScroll = null,Object? autoScrollHidePauseButton = null,Object? autoScrollSmooth = null,Object? autoScrollColumnIntervalMs = null,Object? autoScrollPageIntervalMs = null,Object? autoScrollColumnDistancePercent = null,Object? preloadImageCount = null,Object? preloadChapterCount = null,Object? readWhileDownloading = null,Object? landscapeReader = null,Object? doublePageMode = null,Object? doublePageSeamless = null,Object? doublePageLeadingBlank = null,Object? splitLandscapePages = null,Object? landscapeSplitDirection = null,Object? sidePaddingEnabled = null,Object? sidePaddingPercent = null,Object? volumeKeyPageTurn = null,Object? volumeKeyPageTurnDistancePercent = null,Object? doubleTapZoom = null,Object? doubleTapOpenMenu = null,Object? pageInfoShowPage = null,Object? pageInfoShowNetwork = null,Object? pageInfoShowBattery = null,Object? pageInfoShowTime = null,Object? pageInfoVerticalPosition = null,Object? pageInfoTopInStatusBar = null,Object? pageInfoHorizontalPosition = null,Object? pageInfoEdgePadding = null,Object? pageInfoOpacityPercent = null,Object? pageInfoFontSize = null,Object? showBottomProgressBar = null,Object? bottomProgressBarGlow = null,Object? hoverRevealEnabled = null,Object? hoverRevealTop = null,Object? hoverRevealBottom = null,Object? hoverTriggerAreaTop = null,Object? hoverTriggerAreaBottom = null,Object? hoverHideDelayMs = null,Object? hoverShowVisualIndicator = null,Object? centerTapToggleBars = null,Object? topBarPinned = null,Object? bottomBarPinned = null,Object? showThumbnailStrip = null,Object? transparentTopBar = null,Object? topBarScrimOpacityPercent = null,Object? readingDirectionToggle = null,Object? readerFitMode = null,Object? readerAutoRotation = null,Object? readerWidePageStretch = null,Object? swipePreviewEnabled = null,}) {
   return _then(ReadSettingState(
 noAnimation: null == noAnimation ? _self.noAnimation : noAnimation // ignore: cast_nullable_to_non_nullable
 as bool,comicReadTopContainer: null == comicReadTopContainer ? _self.comicReadTopContainer : comicReadTopContainer // ignore: cast_nullable_to_non_nullable
@@ -5170,7 +2570,8 @@ as int,readingDirectionToggle: null == readingDirectionToggle ? _self.readingDir
 as bool,readerFitMode: null == readerFitMode ? _self.readerFitMode : readerFitMode // ignore: cast_nullable_to_non_nullable
 as ReaderFitMode,readerAutoRotation: null == readerAutoRotation ? _self.readerAutoRotation : readerAutoRotation // ignore: cast_nullable_to_non_nullable
 as ReaderAutoRotation,readerWidePageStretch: null == readerWidePageStretch ? _self.readerWidePageStretch : readerWidePageStretch // ignore: cast_nullable_to_non_nullable
-as ReaderWidePageStretch,
+as ReaderWidePageStretch,swipePreviewEnabled: null == swipePreviewEnabled ? _self.swipePreviewEnabled : swipePreviewEnabled // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -5255,10 +2656,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool noAnimation,  bool comicReadTopContainer,  int readMode,  ReaderTapPageTurnMode tapPageTurnMode,  bool tapPageTurnInWebtoon, @JsonKey(unknownEnumValue: ReaderBackgroundMode.auto)  ReaderBackgroundMode readerBackgroundMode,  int readerAmbientDimPercent,  bool readFilterEnabled,  int readFilterOpacityPercent,  bool einkOptimization,  int einkDelayMs,  bool autoScroll,  bool autoScrollHidePauseButton,  bool autoScrollSmooth,  int autoScrollColumnIntervalMs,  int autoScrollPageIntervalMs,  int autoScrollColumnDistancePercent,  int preloadImageCount,  int preloadChapterCount,  bool readWhileDownloading,  bool landscapeReader,  bool doublePageMode,  bool doublePageSeamless,  bool doublePageLeadingBlank,  bool splitLandscapePages,  int landscapeSplitDirection,  bool sidePaddingEnabled,  int sidePaddingPercent,  bool volumeKeyPageTurn,  int volumeKeyPageTurnDistancePercent,  bool doubleTapZoom,  bool doubleTapOpenMenu,  bool pageInfoShowPage,  bool pageInfoShowNetwork,  bool pageInfoShowBattery,  bool pageInfoShowTime,  ReaderInfoVerticalPosition pageInfoVerticalPosition,  bool pageInfoTopInStatusBar,  ReaderInfoHorizontalPosition pageInfoHorizontalPosition,  int pageInfoEdgePadding,  int pageInfoOpacityPercent,  int pageInfoFontSize,  bool showBottomProgressBar,  bool bottomProgressBarGlow,  bool hoverRevealEnabled,  bool hoverRevealTop,  bool hoverRevealBottom,  int hoverTriggerAreaTop,  int hoverTriggerAreaBottom,  int hoverHideDelayMs,  bool hoverShowVisualIndicator,  bool centerTapToggleBars,  bool topBarPinned,  bool bottomBarPinned,  bool showThumbnailStrip,  bool transparentTopBar,  int topBarScrimOpacityPercent,  bool readingDirectionToggle,  ReaderFitMode readerFitMode,  ReaderAutoRotation readerAutoRotation,  ReaderWidePageStretch readerWidePageStretch)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool noAnimation,  bool comicReadTopContainer,  int readMode,  ReaderTapPageTurnMode tapPageTurnMode,  bool tapPageTurnInWebtoon, @JsonKey(unknownEnumValue: ReaderBackgroundMode.auto)  ReaderBackgroundMode readerBackgroundMode,  int readerAmbientDimPercent,  bool readFilterEnabled,  int readFilterOpacityPercent,  bool einkOptimization,  int einkDelayMs,  bool autoScroll,  bool autoScrollHidePauseButton,  bool autoScrollSmooth,  int autoScrollColumnIntervalMs,  int autoScrollPageIntervalMs,  int autoScrollColumnDistancePercent,  int preloadImageCount,  int preloadChapterCount,  bool readWhileDownloading,  bool landscapeReader,  bool doublePageMode,  bool doublePageSeamless,  bool doublePageLeadingBlank,  bool splitLandscapePages,  int landscapeSplitDirection,  bool sidePaddingEnabled,  int sidePaddingPercent,  bool volumeKeyPageTurn,  int volumeKeyPageTurnDistancePercent,  bool doubleTapZoom,  bool doubleTapOpenMenu,  bool pageInfoShowPage,  bool pageInfoShowNetwork,  bool pageInfoShowBattery,  bool pageInfoShowTime,  ReaderInfoVerticalPosition pageInfoVerticalPosition,  bool pageInfoTopInStatusBar,  ReaderInfoHorizontalPosition pageInfoHorizontalPosition,  int pageInfoEdgePadding,  int pageInfoOpacityPercent,  int pageInfoFontSize,  bool showBottomProgressBar,  bool bottomProgressBarGlow,  bool hoverRevealEnabled,  bool hoverRevealTop,  bool hoverRevealBottom,  int hoverTriggerAreaTop,  int hoverTriggerAreaBottom,  int hoverHideDelayMs,  bool hoverShowVisualIndicator,  bool centerTapToggleBars,  bool topBarPinned,  bool bottomBarPinned,  bool showThumbnailStrip,  bool transparentTopBar,  int topBarScrimOpacityPercent,  bool readingDirectionToggle,  ReaderFitMode readerFitMode,  ReaderAutoRotation readerAutoRotation,  ReaderWidePageStretch readerWidePageStretch,  bool swipePreviewEnabled)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReadSettingState() when $default != null:
-return $default(_that.noAnimation,_that.comicReadTopContainer,_that.readMode,_that.tapPageTurnMode,_that.tapPageTurnInWebtoon,_that.readerBackgroundMode,_that.readerAmbientDimPercent,_that.readFilterEnabled,_that.readFilterOpacityPercent,_that.einkOptimization,_that.einkDelayMs,_that.autoScroll,_that.autoScrollHidePauseButton,_that.autoScrollSmooth,_that.autoScrollColumnIntervalMs,_that.autoScrollPageIntervalMs,_that.autoScrollColumnDistancePercent,_that.preloadImageCount,_that.preloadChapterCount,_that.readWhileDownloading,_that.landscapeReader,_that.doublePageMode,_that.doublePageSeamless,_that.doublePageLeadingBlank,_that.splitLandscapePages,_that.landscapeSplitDirection,_that.sidePaddingEnabled,_that.sidePaddingPercent,_that.volumeKeyPageTurn,_that.volumeKeyPageTurnDistancePercent,_that.doubleTapZoom,_that.doubleTapOpenMenu,_that.pageInfoShowPage,_that.pageInfoShowNetwork,_that.pageInfoShowBattery,_that.pageInfoShowTime,_that.pageInfoVerticalPosition,_that.pageInfoTopInStatusBar,_that.pageInfoHorizontalPosition,_that.pageInfoEdgePadding,_that.pageInfoOpacityPercent,_that.pageInfoFontSize,_that.showBottomProgressBar,_that.bottomProgressBarGlow,_that.hoverRevealEnabled,_that.hoverRevealTop,_that.hoverRevealBottom,_that.hoverTriggerAreaTop,_that.hoverTriggerAreaBottom,_that.hoverHideDelayMs,_that.hoverShowVisualIndicator,_that.centerTapToggleBars,_that.topBarPinned,_that.bottomBarPinned,_that.showThumbnailStrip,_that.transparentTopBar,_that.topBarScrimOpacityPercent,_that.readingDirectionToggle,_that.readerFitMode,_that.readerAutoRotation,_that.readerWidePageStretch);case _:
+return $default(_that.noAnimation,_that.comicReadTopContainer,_that.readMode,_that.tapPageTurnMode,_that.tapPageTurnInWebtoon,_that.readerBackgroundMode,_that.readerAmbientDimPercent,_that.readFilterEnabled,_that.readFilterOpacityPercent,_that.einkOptimization,_that.einkDelayMs,_that.autoScroll,_that.autoScrollHidePauseButton,_that.autoScrollSmooth,_that.autoScrollColumnIntervalMs,_that.autoScrollPageIntervalMs,_that.autoScrollColumnDistancePercent,_that.preloadImageCount,_that.preloadChapterCount,_that.readWhileDownloading,_that.landscapeReader,_that.doublePageMode,_that.doublePageSeamless,_that.doublePageLeadingBlank,_that.splitLandscapePages,_that.landscapeSplitDirection,_that.sidePaddingEnabled,_that.sidePaddingPercent,_that.volumeKeyPageTurn,_that.volumeKeyPageTurnDistancePercent,_that.doubleTapZoom,_that.doubleTapOpenMenu,_that.pageInfoShowPage,_that.pageInfoShowNetwork,_that.pageInfoShowBattery,_that.pageInfoShowTime,_that.pageInfoVerticalPosition,_that.pageInfoTopInStatusBar,_that.pageInfoHorizontalPosition,_that.pageInfoEdgePadding,_that.pageInfoOpacityPercent,_that.pageInfoFontSize,_that.showBottomProgressBar,_that.bottomProgressBarGlow,_that.hoverRevealEnabled,_that.hoverRevealTop,_that.hoverRevealBottom,_that.hoverTriggerAreaTop,_that.hoverTriggerAreaBottom,_that.hoverHideDelayMs,_that.hoverShowVisualIndicator,_that.centerTapToggleBars,_that.topBarPinned,_that.bottomBarPinned,_that.showThumbnailStrip,_that.transparentTopBar,_that.topBarScrimOpacityPercent,_that.readingDirectionToggle,_that.readerFitMode,_that.readerAutoRotation,_that.readerWidePageStretch,_that.swipePreviewEnabled);case _:
   return orElse();
 
 }
@@ -5276,10 +2677,10 @@ return $default(_that.noAnimation,_that.comicReadTopContainer,_that.readMode,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool noAnimation,  bool comicReadTopContainer,  int readMode,  ReaderTapPageTurnMode tapPageTurnMode,  bool tapPageTurnInWebtoon, @JsonKey(unknownEnumValue: ReaderBackgroundMode.auto)  ReaderBackgroundMode readerBackgroundMode,  int readerAmbientDimPercent,  bool readFilterEnabled,  int readFilterOpacityPercent,  bool einkOptimization,  int einkDelayMs,  bool autoScroll,  bool autoScrollHidePauseButton,  bool autoScrollSmooth,  int autoScrollColumnIntervalMs,  int autoScrollPageIntervalMs,  int autoScrollColumnDistancePercent,  int preloadImageCount,  int preloadChapterCount,  bool readWhileDownloading,  bool landscapeReader,  bool doublePageMode,  bool doublePageSeamless,  bool doublePageLeadingBlank,  bool splitLandscapePages,  int landscapeSplitDirection,  bool sidePaddingEnabled,  int sidePaddingPercent,  bool volumeKeyPageTurn,  int volumeKeyPageTurnDistancePercent,  bool doubleTapZoom,  bool doubleTapOpenMenu,  bool pageInfoShowPage,  bool pageInfoShowNetwork,  bool pageInfoShowBattery,  bool pageInfoShowTime,  ReaderInfoVerticalPosition pageInfoVerticalPosition,  bool pageInfoTopInStatusBar,  ReaderInfoHorizontalPosition pageInfoHorizontalPosition,  int pageInfoEdgePadding,  int pageInfoOpacityPercent,  int pageInfoFontSize,  bool showBottomProgressBar,  bool bottomProgressBarGlow,  bool hoverRevealEnabled,  bool hoverRevealTop,  bool hoverRevealBottom,  int hoverTriggerAreaTop,  int hoverTriggerAreaBottom,  int hoverHideDelayMs,  bool hoverShowVisualIndicator,  bool centerTapToggleBars,  bool topBarPinned,  bool bottomBarPinned,  bool showThumbnailStrip,  bool transparentTopBar,  int topBarScrimOpacityPercent,  bool readingDirectionToggle,  ReaderFitMode readerFitMode,  ReaderAutoRotation readerAutoRotation,  ReaderWidePageStretch readerWidePageStretch)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool noAnimation,  bool comicReadTopContainer,  int readMode,  ReaderTapPageTurnMode tapPageTurnMode,  bool tapPageTurnInWebtoon, @JsonKey(unknownEnumValue: ReaderBackgroundMode.auto)  ReaderBackgroundMode readerBackgroundMode,  int readerAmbientDimPercent,  bool readFilterEnabled,  int readFilterOpacityPercent,  bool einkOptimization,  int einkDelayMs,  bool autoScroll,  bool autoScrollHidePauseButton,  bool autoScrollSmooth,  int autoScrollColumnIntervalMs,  int autoScrollPageIntervalMs,  int autoScrollColumnDistancePercent,  int preloadImageCount,  int preloadChapterCount,  bool readWhileDownloading,  bool landscapeReader,  bool doublePageMode,  bool doublePageSeamless,  bool doublePageLeadingBlank,  bool splitLandscapePages,  int landscapeSplitDirection,  bool sidePaddingEnabled,  int sidePaddingPercent,  bool volumeKeyPageTurn,  int volumeKeyPageTurnDistancePercent,  bool doubleTapZoom,  bool doubleTapOpenMenu,  bool pageInfoShowPage,  bool pageInfoShowNetwork,  bool pageInfoShowBattery,  bool pageInfoShowTime,  ReaderInfoVerticalPosition pageInfoVerticalPosition,  bool pageInfoTopInStatusBar,  ReaderInfoHorizontalPosition pageInfoHorizontalPosition,  int pageInfoEdgePadding,  int pageInfoOpacityPercent,  int pageInfoFontSize,  bool showBottomProgressBar,  bool bottomProgressBarGlow,  bool hoverRevealEnabled,  bool hoverRevealTop,  bool hoverRevealBottom,  int hoverTriggerAreaTop,  int hoverTriggerAreaBottom,  int hoverHideDelayMs,  bool hoverShowVisualIndicator,  bool centerTapToggleBars,  bool topBarPinned,  bool bottomBarPinned,  bool showThumbnailStrip,  bool transparentTopBar,  int topBarScrimOpacityPercent,  bool readingDirectionToggle,  ReaderFitMode readerFitMode,  ReaderAutoRotation readerAutoRotation,  ReaderWidePageStretch readerWidePageStretch,  bool swipePreviewEnabled)  $default,) {final _that = this;
 switch (_that) {
 case _ReadSettingState():
-return $default(_that.noAnimation,_that.comicReadTopContainer,_that.readMode,_that.tapPageTurnMode,_that.tapPageTurnInWebtoon,_that.readerBackgroundMode,_that.readerAmbientDimPercent,_that.readFilterEnabled,_that.readFilterOpacityPercent,_that.einkOptimization,_that.einkDelayMs,_that.autoScroll,_that.autoScrollHidePauseButton,_that.autoScrollSmooth,_that.autoScrollColumnIntervalMs,_that.autoScrollPageIntervalMs,_that.autoScrollColumnDistancePercent,_that.preloadImageCount,_that.preloadChapterCount,_that.readWhileDownloading,_that.landscapeReader,_that.doublePageMode,_that.doublePageSeamless,_that.doublePageLeadingBlank,_that.splitLandscapePages,_that.landscapeSplitDirection,_that.sidePaddingEnabled,_that.sidePaddingPercent,_that.volumeKeyPageTurn,_that.volumeKeyPageTurnDistancePercent,_that.doubleTapZoom,_that.doubleTapOpenMenu,_that.pageInfoShowPage,_that.pageInfoShowNetwork,_that.pageInfoShowBattery,_that.pageInfoShowTime,_that.pageInfoVerticalPosition,_that.pageInfoTopInStatusBar,_that.pageInfoHorizontalPosition,_that.pageInfoEdgePadding,_that.pageInfoOpacityPercent,_that.pageInfoFontSize,_that.showBottomProgressBar,_that.bottomProgressBarGlow,_that.hoverRevealEnabled,_that.hoverRevealTop,_that.hoverRevealBottom,_that.hoverTriggerAreaTop,_that.hoverTriggerAreaBottom,_that.hoverHideDelayMs,_that.hoverShowVisualIndicator,_that.centerTapToggleBars,_that.topBarPinned,_that.bottomBarPinned,_that.showThumbnailStrip,_that.transparentTopBar,_that.topBarScrimOpacityPercent,_that.readingDirectionToggle,_that.readerFitMode,_that.readerAutoRotation,_that.readerWidePageStretch);case _:
+return $default(_that.noAnimation,_that.comicReadTopContainer,_that.readMode,_that.tapPageTurnMode,_that.tapPageTurnInWebtoon,_that.readerBackgroundMode,_that.readerAmbientDimPercent,_that.readFilterEnabled,_that.readFilterOpacityPercent,_that.einkOptimization,_that.einkDelayMs,_that.autoScroll,_that.autoScrollHidePauseButton,_that.autoScrollSmooth,_that.autoScrollColumnIntervalMs,_that.autoScrollPageIntervalMs,_that.autoScrollColumnDistancePercent,_that.preloadImageCount,_that.preloadChapterCount,_that.readWhileDownloading,_that.landscapeReader,_that.doublePageMode,_that.doublePageSeamless,_that.doublePageLeadingBlank,_that.splitLandscapePages,_that.landscapeSplitDirection,_that.sidePaddingEnabled,_that.sidePaddingPercent,_that.volumeKeyPageTurn,_that.volumeKeyPageTurnDistancePercent,_that.doubleTapZoom,_that.doubleTapOpenMenu,_that.pageInfoShowPage,_that.pageInfoShowNetwork,_that.pageInfoShowBattery,_that.pageInfoShowTime,_that.pageInfoVerticalPosition,_that.pageInfoTopInStatusBar,_that.pageInfoHorizontalPosition,_that.pageInfoEdgePadding,_that.pageInfoOpacityPercent,_that.pageInfoFontSize,_that.showBottomProgressBar,_that.bottomProgressBarGlow,_that.hoverRevealEnabled,_that.hoverRevealTop,_that.hoverRevealBottom,_that.hoverTriggerAreaTop,_that.hoverTriggerAreaBottom,_that.hoverHideDelayMs,_that.hoverShowVisualIndicator,_that.centerTapToggleBars,_that.topBarPinned,_that.bottomBarPinned,_that.showThumbnailStrip,_that.transparentTopBar,_that.topBarScrimOpacityPercent,_that.readingDirectionToggle,_that.readerFitMode,_that.readerAutoRotation,_that.readerWidePageStretch,_that.swipePreviewEnabled);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -5296,10 +2697,10 @@ return $default(_that.noAnimation,_that.comicReadTopContainer,_that.readMode,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool noAnimation,  bool comicReadTopContainer,  int readMode,  ReaderTapPageTurnMode tapPageTurnMode,  bool tapPageTurnInWebtoon, @JsonKey(unknownEnumValue: ReaderBackgroundMode.auto)  ReaderBackgroundMode readerBackgroundMode,  int readerAmbientDimPercent,  bool readFilterEnabled,  int readFilterOpacityPercent,  bool einkOptimization,  int einkDelayMs,  bool autoScroll,  bool autoScrollHidePauseButton,  bool autoScrollSmooth,  int autoScrollColumnIntervalMs,  int autoScrollPageIntervalMs,  int autoScrollColumnDistancePercent,  int preloadImageCount,  int preloadChapterCount,  bool readWhileDownloading,  bool landscapeReader,  bool doublePageMode,  bool doublePageSeamless,  bool doublePageLeadingBlank,  bool splitLandscapePages,  int landscapeSplitDirection,  bool sidePaddingEnabled,  int sidePaddingPercent,  bool volumeKeyPageTurn,  int volumeKeyPageTurnDistancePercent,  bool doubleTapZoom,  bool doubleTapOpenMenu,  bool pageInfoShowPage,  bool pageInfoShowNetwork,  bool pageInfoShowBattery,  bool pageInfoShowTime,  ReaderInfoVerticalPosition pageInfoVerticalPosition,  bool pageInfoTopInStatusBar,  ReaderInfoHorizontalPosition pageInfoHorizontalPosition,  int pageInfoEdgePadding,  int pageInfoOpacityPercent,  int pageInfoFontSize,  bool showBottomProgressBar,  bool bottomProgressBarGlow,  bool hoverRevealEnabled,  bool hoverRevealTop,  bool hoverRevealBottom,  int hoverTriggerAreaTop,  int hoverTriggerAreaBottom,  int hoverHideDelayMs,  bool hoverShowVisualIndicator,  bool centerTapToggleBars,  bool topBarPinned,  bool bottomBarPinned,  bool showThumbnailStrip,  bool transparentTopBar,  int topBarScrimOpacityPercent,  bool readingDirectionToggle,  ReaderFitMode readerFitMode,  ReaderAutoRotation readerAutoRotation,  ReaderWidePageStretch readerWidePageStretch)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool noAnimation,  bool comicReadTopContainer,  int readMode,  ReaderTapPageTurnMode tapPageTurnMode,  bool tapPageTurnInWebtoon, @JsonKey(unknownEnumValue: ReaderBackgroundMode.auto)  ReaderBackgroundMode readerBackgroundMode,  int readerAmbientDimPercent,  bool readFilterEnabled,  int readFilterOpacityPercent,  bool einkOptimization,  int einkDelayMs,  bool autoScroll,  bool autoScrollHidePauseButton,  bool autoScrollSmooth,  int autoScrollColumnIntervalMs,  int autoScrollPageIntervalMs,  int autoScrollColumnDistancePercent,  int preloadImageCount,  int preloadChapterCount,  bool readWhileDownloading,  bool landscapeReader,  bool doublePageMode,  bool doublePageSeamless,  bool doublePageLeadingBlank,  bool splitLandscapePages,  int landscapeSplitDirection,  bool sidePaddingEnabled,  int sidePaddingPercent,  bool volumeKeyPageTurn,  int volumeKeyPageTurnDistancePercent,  bool doubleTapZoom,  bool doubleTapOpenMenu,  bool pageInfoShowPage,  bool pageInfoShowNetwork,  bool pageInfoShowBattery,  bool pageInfoShowTime,  ReaderInfoVerticalPosition pageInfoVerticalPosition,  bool pageInfoTopInStatusBar,  ReaderInfoHorizontalPosition pageInfoHorizontalPosition,  int pageInfoEdgePadding,  int pageInfoOpacityPercent,  int pageInfoFontSize,  bool showBottomProgressBar,  bool bottomProgressBarGlow,  bool hoverRevealEnabled,  bool hoverRevealTop,  bool hoverRevealBottom,  int hoverTriggerAreaTop,  int hoverTriggerAreaBottom,  int hoverHideDelayMs,  bool hoverShowVisualIndicator,  bool centerTapToggleBars,  bool topBarPinned,  bool bottomBarPinned,  bool showThumbnailStrip,  bool transparentTopBar,  int topBarScrimOpacityPercent,  bool readingDirectionToggle,  ReaderFitMode readerFitMode,  ReaderAutoRotation readerAutoRotation,  ReaderWidePageStretch readerWidePageStretch,  bool swipePreviewEnabled)?  $default,) {final _that = this;
 switch (_that) {
 case _ReadSettingState() when $default != null:
-return $default(_that.noAnimation,_that.comicReadTopContainer,_that.readMode,_that.tapPageTurnMode,_that.tapPageTurnInWebtoon,_that.readerBackgroundMode,_that.readerAmbientDimPercent,_that.readFilterEnabled,_that.readFilterOpacityPercent,_that.einkOptimization,_that.einkDelayMs,_that.autoScroll,_that.autoScrollHidePauseButton,_that.autoScrollSmooth,_that.autoScrollColumnIntervalMs,_that.autoScrollPageIntervalMs,_that.autoScrollColumnDistancePercent,_that.preloadImageCount,_that.preloadChapterCount,_that.readWhileDownloading,_that.landscapeReader,_that.doublePageMode,_that.doublePageSeamless,_that.doublePageLeadingBlank,_that.splitLandscapePages,_that.landscapeSplitDirection,_that.sidePaddingEnabled,_that.sidePaddingPercent,_that.volumeKeyPageTurn,_that.volumeKeyPageTurnDistancePercent,_that.doubleTapZoom,_that.doubleTapOpenMenu,_that.pageInfoShowPage,_that.pageInfoShowNetwork,_that.pageInfoShowBattery,_that.pageInfoShowTime,_that.pageInfoVerticalPosition,_that.pageInfoTopInStatusBar,_that.pageInfoHorizontalPosition,_that.pageInfoEdgePadding,_that.pageInfoOpacityPercent,_that.pageInfoFontSize,_that.showBottomProgressBar,_that.bottomProgressBarGlow,_that.hoverRevealEnabled,_that.hoverRevealTop,_that.hoverRevealBottom,_that.hoverTriggerAreaTop,_that.hoverTriggerAreaBottom,_that.hoverHideDelayMs,_that.hoverShowVisualIndicator,_that.centerTapToggleBars,_that.topBarPinned,_that.bottomBarPinned,_that.showThumbnailStrip,_that.transparentTopBar,_that.topBarScrimOpacityPercent,_that.readingDirectionToggle,_that.readerFitMode,_that.readerAutoRotation,_that.readerWidePageStretch);case _:
+return $default(_that.noAnimation,_that.comicReadTopContainer,_that.readMode,_that.tapPageTurnMode,_that.tapPageTurnInWebtoon,_that.readerBackgroundMode,_that.readerAmbientDimPercent,_that.readFilterEnabled,_that.readFilterOpacityPercent,_that.einkOptimization,_that.einkDelayMs,_that.autoScroll,_that.autoScrollHidePauseButton,_that.autoScrollSmooth,_that.autoScrollColumnIntervalMs,_that.autoScrollPageIntervalMs,_that.autoScrollColumnDistancePercent,_that.preloadImageCount,_that.preloadChapterCount,_that.readWhileDownloading,_that.landscapeReader,_that.doublePageMode,_that.doublePageSeamless,_that.doublePageLeadingBlank,_that.splitLandscapePages,_that.landscapeSplitDirection,_that.sidePaddingEnabled,_that.sidePaddingPercent,_that.volumeKeyPageTurn,_that.volumeKeyPageTurnDistancePercent,_that.doubleTapZoom,_that.doubleTapOpenMenu,_that.pageInfoShowPage,_that.pageInfoShowNetwork,_that.pageInfoShowBattery,_that.pageInfoShowTime,_that.pageInfoVerticalPosition,_that.pageInfoTopInStatusBar,_that.pageInfoHorizontalPosition,_that.pageInfoEdgePadding,_that.pageInfoOpacityPercent,_that.pageInfoFontSize,_that.showBottomProgressBar,_that.bottomProgressBarGlow,_that.hoverRevealEnabled,_that.hoverRevealTop,_that.hoverRevealBottom,_that.hoverTriggerAreaTop,_that.hoverTriggerAreaBottom,_that.hoverHideDelayMs,_that.hoverShowVisualIndicator,_that.centerTapToggleBars,_that.topBarPinned,_that.bottomBarPinned,_that.showThumbnailStrip,_that.transparentTopBar,_that.topBarScrimOpacityPercent,_that.readingDirectionToggle,_that.readerFitMode,_that.readerAutoRotation,_that.readerWidePageStretch,_that.swipePreviewEnabled);case _:
   return null;
 
 }
@@ -5311,7 +2712,7 @@ return $default(_that.noAnimation,_that.comicReadTopContainer,_that.readMode,_th
 @JsonSerializable()
 
 class _ReadSettingState implements ReadSettingState {
-  const _ReadSettingState({this.noAnimation = false, this.comicReadTopContainer = true, this.readMode = 0, this.tapPageTurnMode = ReaderTapPageTurnMode.rightHand, this.tapPageTurnInWebtoon = false, @JsonKey(unknownEnumValue: ReaderBackgroundMode.auto) this.readerBackgroundMode = ReaderBackgroundMode.auto, this.readerAmbientDimPercent = readerAmbientDimPercentDefault, this.readFilterEnabled = true, this.readFilterOpacityPercent = 50, this.einkOptimization = false, this.einkDelayMs = 120, this.autoScroll = false, this.autoScrollHidePauseButton = false, this.autoScrollSmooth = false, this.autoScrollColumnIntervalMs = 1600, this.autoScrollPageIntervalMs = 3000, this.autoScrollColumnDistancePercent = 72, this.preloadImageCount = 3, this.preloadChapterCount = 1, this.readWhileDownloading = true, this.landscapeReader = false, this.doublePageMode = false, this.doublePageSeamless = false, this.doublePageLeadingBlank = false, this.splitLandscapePages = false, this.landscapeSplitDirection = 0, this.sidePaddingEnabled = false, this.sidePaddingPercent = 10, this.volumeKeyPageTurn = true, this.volumeKeyPageTurnDistancePercent = 72, this.doubleTapZoom = false, this.doubleTapOpenMenu = false, this.pageInfoShowPage = true, this.pageInfoShowNetwork = true, this.pageInfoShowBattery = false, this.pageInfoShowTime = true, this.pageInfoVerticalPosition = ReaderInfoVerticalPosition.bottom, this.pageInfoTopInStatusBar = false, this.pageInfoHorizontalPosition = ReaderInfoHorizontalPosition.left, this.pageInfoEdgePadding = 12, this.pageInfoOpacityPercent = 82, this.pageInfoFontSize = 12, this.showBottomProgressBar = false, this.bottomProgressBarGlow = true, this.hoverRevealEnabled = true, this.hoverRevealTop = true, this.hoverRevealBottom = true, this.hoverTriggerAreaTop = 32, this.hoverTriggerAreaBottom = 32, this.hoverHideDelayMs = 500, this.hoverShowVisualIndicator = false, this.centerTapToggleBars = true, this.topBarPinned = false, this.bottomBarPinned = false, this.showThumbnailStrip = false, this.transparentTopBar = false, this.topBarScrimOpacityPercent = 85, this.readingDirectionToggle = true, this.readerFitMode = ReaderFitMode.fit, this.readerAutoRotation = ReaderAutoRotation.none, this.readerWidePageStretch = ReaderWidePageStretch.none});
+  const _ReadSettingState({this.noAnimation = false, this.comicReadTopContainer = true, this.readMode = 0, this.tapPageTurnMode = ReaderTapPageTurnMode.rightHand, this.tapPageTurnInWebtoon = false, @JsonKey(unknownEnumValue: ReaderBackgroundMode.auto) this.readerBackgroundMode = ReaderBackgroundMode.auto, this.readerAmbientDimPercent = readerAmbientDimPercentDefault, this.readFilterEnabled = true, this.readFilterOpacityPercent = 50, this.einkOptimization = false, this.einkDelayMs = 120, this.autoScroll = false, this.autoScrollHidePauseButton = false, this.autoScrollSmooth = false, this.autoScrollColumnIntervalMs = 1600, this.autoScrollPageIntervalMs = 3000, this.autoScrollColumnDistancePercent = 72, this.preloadImageCount = 3, this.preloadChapterCount = 1, this.readWhileDownloading = true, this.landscapeReader = false, this.doublePageMode = false, this.doublePageSeamless = false, this.doublePageLeadingBlank = false, this.splitLandscapePages = false, this.landscapeSplitDirection = 0, this.sidePaddingEnabled = false, this.sidePaddingPercent = 10, this.volumeKeyPageTurn = true, this.volumeKeyPageTurnDistancePercent = 72, this.doubleTapZoom = false, this.doubleTapOpenMenu = false, this.pageInfoShowPage = true, this.pageInfoShowNetwork = true, this.pageInfoShowBattery = false, this.pageInfoShowTime = true, this.pageInfoVerticalPosition = ReaderInfoVerticalPosition.bottom, this.pageInfoTopInStatusBar = false, this.pageInfoHorizontalPosition = ReaderInfoHorizontalPosition.left, this.pageInfoEdgePadding = 12, this.pageInfoOpacityPercent = 82, this.pageInfoFontSize = 12, this.showBottomProgressBar = false, this.bottomProgressBarGlow = true, this.hoverRevealEnabled = true, this.hoverRevealTop = true, this.hoverRevealBottom = true, this.hoverTriggerAreaTop = 32, this.hoverTriggerAreaBottom = 32, this.hoverHideDelayMs = 500, this.hoverShowVisualIndicator = false, this.centerTapToggleBars = true, this.topBarPinned = false, this.bottomBarPinned = false, this.showThumbnailStrip = false, this.transparentTopBar = false, this.topBarScrimOpacityPercent = 85, this.readingDirectionToggle = true, this.readerFitMode = ReaderFitMode.fit, this.readerAutoRotation = ReaderAutoRotation.none, this.readerWidePageStretch = ReaderWidePageStretch.none, this.swipePreviewEnabled = true});
   factory _ReadSettingState.fromJson(Map<String, dynamic> json) => _$ReadSettingStateFromJson(json);
 
 @override@JsonKey() final  bool noAnimation;
@@ -5375,6 +2776,7 @@ class _ReadSettingState implements ReadSettingState {
 @override@JsonKey() final  ReaderFitMode readerFitMode;
 @override@JsonKey() final  ReaderAutoRotation readerAutoRotation;
 @override@JsonKey() final  ReaderWidePageStretch readerWidePageStretch;
+@override@JsonKey() final  bool swipePreviewEnabled;
 
 /// Create a copy of ReadSettingState
 /// with the given fields replaced by the non-null parameter values.
@@ -5389,18 +2791,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReadSettingState&&(identical(other.noAnimation, noAnimation) || other.noAnimation == noAnimation)&&(identical(other.comicReadTopContainer, comicReadTopContainer) || other.comicReadTopContainer == comicReadTopContainer)&&(identical(other.readMode, readMode) || other.readMode == readMode)&&(identical(other.tapPageTurnMode, tapPageTurnMode) || other.tapPageTurnMode == tapPageTurnMode)&&(identical(other.tapPageTurnInWebtoon, tapPageTurnInWebtoon) || other.tapPageTurnInWebtoon == tapPageTurnInWebtoon)&&(identical(other.readerBackgroundMode, readerBackgroundMode) || other.readerBackgroundMode == readerBackgroundMode)&&(identical(other.readerAmbientDimPercent, readerAmbientDimPercent) || other.readerAmbientDimPercent == readerAmbientDimPercent)&&(identical(other.readFilterEnabled, readFilterEnabled) || other.readFilterEnabled == readFilterEnabled)&&(identical(other.readFilterOpacityPercent, readFilterOpacityPercent) || other.readFilterOpacityPercent == readFilterOpacityPercent)&&(identical(other.einkOptimization, einkOptimization) || other.einkOptimization == einkOptimization)&&(identical(other.einkDelayMs, einkDelayMs) || other.einkDelayMs == einkDelayMs)&&(identical(other.autoScroll, autoScroll) || other.autoScroll == autoScroll)&&(identical(other.autoScrollHidePauseButton, autoScrollHidePauseButton) || other.autoScrollHidePauseButton == autoScrollHidePauseButton)&&(identical(other.autoScrollSmooth, autoScrollSmooth) || other.autoScrollSmooth == autoScrollSmooth)&&(identical(other.autoScrollColumnIntervalMs, autoScrollColumnIntervalMs) || other.autoScrollColumnIntervalMs == autoScrollColumnIntervalMs)&&(identical(other.autoScrollPageIntervalMs, autoScrollPageIntervalMs) || other.autoScrollPageIntervalMs == autoScrollPageIntervalMs)&&(identical(other.autoScrollColumnDistancePercent, autoScrollColumnDistancePercent) || other.autoScrollColumnDistancePercent == autoScrollColumnDistancePercent)&&(identical(other.preloadImageCount, preloadImageCount) || other.preloadImageCount == preloadImageCount)&&(identical(other.preloadChapterCount, preloadChapterCount) || other.preloadChapterCount == preloadChapterCount)&&(identical(other.readWhileDownloading, readWhileDownloading) || other.readWhileDownloading == readWhileDownloading)&&(identical(other.landscapeReader, landscapeReader) || other.landscapeReader == landscapeReader)&&(identical(other.doublePageMode, doublePageMode) || other.doublePageMode == doublePageMode)&&(identical(other.doublePageSeamless, doublePageSeamless) || other.doublePageSeamless == doublePageSeamless)&&(identical(other.doublePageLeadingBlank, doublePageLeadingBlank) || other.doublePageLeadingBlank == doublePageLeadingBlank)&&(identical(other.splitLandscapePages, splitLandscapePages) || other.splitLandscapePages == splitLandscapePages)&&(identical(other.landscapeSplitDirection, landscapeSplitDirection) || other.landscapeSplitDirection == landscapeSplitDirection)&&(identical(other.sidePaddingEnabled, sidePaddingEnabled) || other.sidePaddingEnabled == sidePaddingEnabled)&&(identical(other.sidePaddingPercent, sidePaddingPercent) || other.sidePaddingPercent == sidePaddingPercent)&&(identical(other.volumeKeyPageTurn, volumeKeyPageTurn) || other.volumeKeyPageTurn == volumeKeyPageTurn)&&(identical(other.volumeKeyPageTurnDistancePercent, volumeKeyPageTurnDistancePercent) || other.volumeKeyPageTurnDistancePercent == volumeKeyPageTurnDistancePercent)&&(identical(other.doubleTapZoom, doubleTapZoom) || other.doubleTapZoom == doubleTapZoom)&&(identical(other.doubleTapOpenMenu, doubleTapOpenMenu) || other.doubleTapOpenMenu == doubleTapOpenMenu)&&(identical(other.pageInfoShowPage, pageInfoShowPage) || other.pageInfoShowPage == pageInfoShowPage)&&(identical(other.pageInfoShowNetwork, pageInfoShowNetwork) || other.pageInfoShowNetwork == pageInfoShowNetwork)&&(identical(other.pageInfoShowBattery, pageInfoShowBattery) || other.pageInfoShowBattery == pageInfoShowBattery)&&(identical(other.pageInfoShowTime, pageInfoShowTime) || other.pageInfoShowTime == pageInfoShowTime)&&(identical(other.pageInfoVerticalPosition, pageInfoVerticalPosition) || other.pageInfoVerticalPosition == pageInfoVerticalPosition)&&(identical(other.pageInfoTopInStatusBar, pageInfoTopInStatusBar) || other.pageInfoTopInStatusBar == pageInfoTopInStatusBar)&&(identical(other.pageInfoHorizontalPosition, pageInfoHorizontalPosition) || other.pageInfoHorizontalPosition == pageInfoHorizontalPosition)&&(identical(other.pageInfoEdgePadding, pageInfoEdgePadding) || other.pageInfoEdgePadding == pageInfoEdgePadding)&&(identical(other.pageInfoOpacityPercent, pageInfoOpacityPercent) || other.pageInfoOpacityPercent == pageInfoOpacityPercent)&&(identical(other.pageInfoFontSize, pageInfoFontSize) || other.pageInfoFontSize == pageInfoFontSize)&&(identical(other.showBottomProgressBar, showBottomProgressBar) || other.showBottomProgressBar == showBottomProgressBar)&&(identical(other.bottomProgressBarGlow, bottomProgressBarGlow) || other.bottomProgressBarGlow == bottomProgressBarGlow)&&(identical(other.hoverRevealEnabled, hoverRevealEnabled) || other.hoverRevealEnabled == hoverRevealEnabled)&&(identical(other.hoverRevealTop, hoverRevealTop) || other.hoverRevealTop == hoverRevealTop)&&(identical(other.hoverRevealBottom, hoverRevealBottom) || other.hoverRevealBottom == hoverRevealBottom)&&(identical(other.hoverTriggerAreaTop, hoverTriggerAreaTop) || other.hoverTriggerAreaTop == hoverTriggerAreaTop)&&(identical(other.hoverTriggerAreaBottom, hoverTriggerAreaBottom) || other.hoverTriggerAreaBottom == hoverTriggerAreaBottom)&&(identical(other.hoverHideDelayMs, hoverHideDelayMs) || other.hoverHideDelayMs == hoverHideDelayMs)&&(identical(other.hoverShowVisualIndicator, hoverShowVisualIndicator) || other.hoverShowVisualIndicator == hoverShowVisualIndicator)&&(identical(other.centerTapToggleBars, centerTapToggleBars) || other.centerTapToggleBars == centerTapToggleBars)&&(identical(other.topBarPinned, topBarPinned) || other.topBarPinned == topBarPinned)&&(identical(other.bottomBarPinned, bottomBarPinned) || other.bottomBarPinned == bottomBarPinned)&&(identical(other.showThumbnailStrip, showThumbnailStrip) || other.showThumbnailStrip == showThumbnailStrip)&&(identical(other.transparentTopBar, transparentTopBar) || other.transparentTopBar == transparentTopBar)&&(identical(other.topBarScrimOpacityPercent, topBarScrimOpacityPercent) || other.topBarScrimOpacityPercent == topBarScrimOpacityPercent)&&(identical(other.readingDirectionToggle, readingDirectionToggle) || other.readingDirectionToggle == readingDirectionToggle)&&(identical(other.readerFitMode, readerFitMode) || other.readerFitMode == readerFitMode)&&(identical(other.readerAutoRotation, readerAutoRotation) || other.readerAutoRotation == readerAutoRotation)&&(identical(other.readerWidePageStretch, readerWidePageStretch) || other.readerWidePageStretch == readerWidePageStretch));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReadSettingState&&(identical(other.noAnimation, noAnimation) || other.noAnimation == noAnimation)&&(identical(other.comicReadTopContainer, comicReadTopContainer) || other.comicReadTopContainer == comicReadTopContainer)&&(identical(other.readMode, readMode) || other.readMode == readMode)&&(identical(other.tapPageTurnMode, tapPageTurnMode) || other.tapPageTurnMode == tapPageTurnMode)&&(identical(other.tapPageTurnInWebtoon, tapPageTurnInWebtoon) || other.tapPageTurnInWebtoon == tapPageTurnInWebtoon)&&(identical(other.readerBackgroundMode, readerBackgroundMode) || other.readerBackgroundMode == readerBackgroundMode)&&(identical(other.readerAmbientDimPercent, readerAmbientDimPercent) || other.readerAmbientDimPercent == readerAmbientDimPercent)&&(identical(other.readFilterEnabled, readFilterEnabled) || other.readFilterEnabled == readFilterEnabled)&&(identical(other.readFilterOpacityPercent, readFilterOpacityPercent) || other.readFilterOpacityPercent == readFilterOpacityPercent)&&(identical(other.einkOptimization, einkOptimization) || other.einkOptimization == einkOptimization)&&(identical(other.einkDelayMs, einkDelayMs) || other.einkDelayMs == einkDelayMs)&&(identical(other.autoScroll, autoScroll) || other.autoScroll == autoScroll)&&(identical(other.autoScrollHidePauseButton, autoScrollHidePauseButton) || other.autoScrollHidePauseButton == autoScrollHidePauseButton)&&(identical(other.autoScrollSmooth, autoScrollSmooth) || other.autoScrollSmooth == autoScrollSmooth)&&(identical(other.autoScrollColumnIntervalMs, autoScrollColumnIntervalMs) || other.autoScrollColumnIntervalMs == autoScrollColumnIntervalMs)&&(identical(other.autoScrollPageIntervalMs, autoScrollPageIntervalMs) || other.autoScrollPageIntervalMs == autoScrollPageIntervalMs)&&(identical(other.autoScrollColumnDistancePercent, autoScrollColumnDistancePercent) || other.autoScrollColumnDistancePercent == autoScrollColumnDistancePercent)&&(identical(other.preloadImageCount, preloadImageCount) || other.preloadImageCount == preloadImageCount)&&(identical(other.preloadChapterCount, preloadChapterCount) || other.preloadChapterCount == preloadChapterCount)&&(identical(other.readWhileDownloading, readWhileDownloading) || other.readWhileDownloading == readWhileDownloading)&&(identical(other.landscapeReader, landscapeReader) || other.landscapeReader == landscapeReader)&&(identical(other.doublePageMode, doublePageMode) || other.doublePageMode == doublePageMode)&&(identical(other.doublePageSeamless, doublePageSeamless) || other.doublePageSeamless == doublePageSeamless)&&(identical(other.doublePageLeadingBlank, doublePageLeadingBlank) || other.doublePageLeadingBlank == doublePageLeadingBlank)&&(identical(other.splitLandscapePages, splitLandscapePages) || other.splitLandscapePages == splitLandscapePages)&&(identical(other.landscapeSplitDirection, landscapeSplitDirection) || other.landscapeSplitDirection == landscapeSplitDirection)&&(identical(other.sidePaddingEnabled, sidePaddingEnabled) || other.sidePaddingEnabled == sidePaddingEnabled)&&(identical(other.sidePaddingPercent, sidePaddingPercent) || other.sidePaddingPercent == sidePaddingPercent)&&(identical(other.volumeKeyPageTurn, volumeKeyPageTurn) || other.volumeKeyPageTurn == volumeKeyPageTurn)&&(identical(other.volumeKeyPageTurnDistancePercent, volumeKeyPageTurnDistancePercent) || other.volumeKeyPageTurnDistancePercent == volumeKeyPageTurnDistancePercent)&&(identical(other.doubleTapZoom, doubleTapZoom) || other.doubleTapZoom == doubleTapZoom)&&(identical(other.doubleTapOpenMenu, doubleTapOpenMenu) || other.doubleTapOpenMenu == doubleTapOpenMenu)&&(identical(other.pageInfoShowPage, pageInfoShowPage) || other.pageInfoShowPage == pageInfoShowPage)&&(identical(other.pageInfoShowNetwork, pageInfoShowNetwork) || other.pageInfoShowNetwork == pageInfoShowNetwork)&&(identical(other.pageInfoShowBattery, pageInfoShowBattery) || other.pageInfoShowBattery == pageInfoShowBattery)&&(identical(other.pageInfoShowTime, pageInfoShowTime) || other.pageInfoShowTime == pageInfoShowTime)&&(identical(other.pageInfoVerticalPosition, pageInfoVerticalPosition) || other.pageInfoVerticalPosition == pageInfoVerticalPosition)&&(identical(other.pageInfoTopInStatusBar, pageInfoTopInStatusBar) || other.pageInfoTopInStatusBar == pageInfoTopInStatusBar)&&(identical(other.pageInfoHorizontalPosition, pageInfoHorizontalPosition) || other.pageInfoHorizontalPosition == pageInfoHorizontalPosition)&&(identical(other.pageInfoEdgePadding, pageInfoEdgePadding) || other.pageInfoEdgePadding == pageInfoEdgePadding)&&(identical(other.pageInfoOpacityPercent, pageInfoOpacityPercent) || other.pageInfoOpacityPercent == pageInfoOpacityPercent)&&(identical(other.pageInfoFontSize, pageInfoFontSize) || other.pageInfoFontSize == pageInfoFontSize)&&(identical(other.showBottomProgressBar, showBottomProgressBar) || other.showBottomProgressBar == showBottomProgressBar)&&(identical(other.bottomProgressBarGlow, bottomProgressBarGlow) || other.bottomProgressBarGlow == bottomProgressBarGlow)&&(identical(other.hoverRevealEnabled, hoverRevealEnabled) || other.hoverRevealEnabled == hoverRevealEnabled)&&(identical(other.hoverRevealTop, hoverRevealTop) || other.hoverRevealTop == hoverRevealTop)&&(identical(other.hoverRevealBottom, hoverRevealBottom) || other.hoverRevealBottom == hoverRevealBottom)&&(identical(other.hoverTriggerAreaTop, hoverTriggerAreaTop) || other.hoverTriggerAreaTop == hoverTriggerAreaTop)&&(identical(other.hoverTriggerAreaBottom, hoverTriggerAreaBottom) || other.hoverTriggerAreaBottom == hoverTriggerAreaBottom)&&(identical(other.hoverHideDelayMs, hoverHideDelayMs) || other.hoverHideDelayMs == hoverHideDelayMs)&&(identical(other.hoverShowVisualIndicator, hoverShowVisualIndicator) || other.hoverShowVisualIndicator == hoverShowVisualIndicator)&&(identical(other.centerTapToggleBars, centerTapToggleBars) || other.centerTapToggleBars == centerTapToggleBars)&&(identical(other.topBarPinned, topBarPinned) || other.topBarPinned == topBarPinned)&&(identical(other.bottomBarPinned, bottomBarPinned) || other.bottomBarPinned == bottomBarPinned)&&(identical(other.showThumbnailStrip, showThumbnailStrip) || other.showThumbnailStrip == showThumbnailStrip)&&(identical(other.transparentTopBar, transparentTopBar) || other.transparentTopBar == transparentTopBar)&&(identical(other.topBarScrimOpacityPercent, topBarScrimOpacityPercent) || other.topBarScrimOpacityPercent == topBarScrimOpacityPercent)&&(identical(other.readingDirectionToggle, readingDirectionToggle) || other.readingDirectionToggle == readingDirectionToggle)&&(identical(other.readerFitMode, readerFitMode) || other.readerFitMode == readerFitMode)&&(identical(other.readerAutoRotation, readerAutoRotation) || other.readerAutoRotation == readerAutoRotation)&&(identical(other.readerWidePageStretch, readerWidePageStretch) || other.readerWidePageStretch == readerWidePageStretch)&&(identical(other.swipePreviewEnabled, swipePreviewEnabled) || other.swipePreviewEnabled == swipePreviewEnabled));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hashAll([runtimeType,noAnimation,comicReadTopContainer,readMode,tapPageTurnMode,tapPageTurnInWebtoon,readerBackgroundMode,readerAmbientDimPercent,readFilterEnabled,readFilterOpacityPercent,einkOptimization,einkDelayMs,autoScroll,autoScrollHidePauseButton,autoScrollSmooth,autoScrollColumnIntervalMs,autoScrollPageIntervalMs,autoScrollColumnDistancePercent,preloadImageCount,preloadChapterCount,readWhileDownloading,landscapeReader,doublePageMode,doublePageSeamless,doublePageLeadingBlank,splitLandscapePages,landscapeSplitDirection,sidePaddingEnabled,sidePaddingPercent,volumeKeyPageTurn,volumeKeyPageTurnDistancePercent,doubleTapZoom,doubleTapOpenMenu,pageInfoShowPage,pageInfoShowNetwork,pageInfoShowBattery,pageInfoShowTime,pageInfoVerticalPosition,pageInfoTopInStatusBar,pageInfoHorizontalPosition,pageInfoEdgePadding,pageInfoOpacityPercent,pageInfoFontSize,showBottomProgressBar,bottomProgressBarGlow,hoverRevealEnabled,hoverRevealTop,hoverRevealBottom,hoverTriggerAreaTop,hoverTriggerAreaBottom,hoverHideDelayMs,hoverShowVisualIndicator,centerTapToggleBars,topBarPinned,bottomBarPinned,showThumbnailStrip,transparentTopBar,topBarScrimOpacityPercent,readingDirectionToggle,readerFitMode,readerAutoRotation,readerWidePageStretch]);
+    return Object.hashAll([runtimeType,noAnimation,comicReadTopContainer,readMode,tapPageTurnMode,tapPageTurnInWebtoon,readerBackgroundMode,readerAmbientDimPercent,readFilterEnabled,readFilterOpacityPercent,einkOptimization,einkDelayMs,autoScroll,autoScrollHidePauseButton,autoScrollSmooth,autoScrollColumnIntervalMs,autoScrollPageIntervalMs,autoScrollColumnDistancePercent,preloadImageCount,preloadChapterCount,readWhileDownloading,landscapeReader,doublePageMode,doublePageSeamless,doublePageLeadingBlank,splitLandscapePages,landscapeSplitDirection,sidePaddingEnabled,sidePaddingPercent,volumeKeyPageTurn,volumeKeyPageTurnDistancePercent,doubleTapZoom,doubleTapOpenMenu,pageInfoShowPage,pageInfoShowNetwork,pageInfoShowBattery,pageInfoShowTime,pageInfoVerticalPosition,pageInfoTopInStatusBar,pageInfoHorizontalPosition,pageInfoEdgePadding,pageInfoOpacityPercent,pageInfoFontSize,showBottomProgressBar,bottomProgressBarGlow,hoverRevealEnabled,hoverRevealTop,hoverRevealBottom,hoverTriggerAreaTop,hoverTriggerAreaBottom,hoverHideDelayMs,hoverShowVisualIndicator,centerTapToggleBars,topBarPinned,bottomBarPinned,showThumbnailStrip,transparentTopBar,topBarScrimOpacityPercent,readingDirectionToggle,readerFitMode,readerAutoRotation,readerWidePageStretch,swipePreviewEnabled]);
 }
 
 @override
 String toString() {
-    return 'ReadSettingState(noAnimation: $noAnimation, comicReadTopContainer: $comicReadTopContainer, readMode: $readMode, tapPageTurnMode: $tapPageTurnMode, tapPageTurnInWebtoon: $tapPageTurnInWebtoon, readerBackgroundMode: $readerBackgroundMode, readerAmbientDimPercent: $readerAmbientDimPercent, readFilterEnabled: $readFilterEnabled, readFilterOpacityPercent: $readFilterOpacityPercent, einkOptimization: $einkOptimization, einkDelayMs: $einkDelayMs, autoScroll: $autoScroll, autoScrollHidePauseButton: $autoScrollHidePauseButton, autoScrollSmooth: $autoScrollSmooth, autoScrollColumnIntervalMs: $autoScrollColumnIntervalMs, autoScrollPageIntervalMs: $autoScrollPageIntervalMs, autoScrollColumnDistancePercent: $autoScrollColumnDistancePercent, preloadImageCount: $preloadImageCount, preloadChapterCount: $preloadChapterCount, readWhileDownloading: $readWhileDownloading, landscapeReader: $landscapeReader, doublePageMode: $doublePageMode, doublePageSeamless: $doublePageSeamless, doublePageLeadingBlank: $doublePageLeadingBlank, splitLandscapePages: $splitLandscapePages, landscapeSplitDirection: $landscapeSplitDirection, sidePaddingEnabled: $sidePaddingEnabled, sidePaddingPercent: $sidePaddingPercent, volumeKeyPageTurn: $volumeKeyPageTurn, volumeKeyPageTurnDistancePercent: $volumeKeyPageTurnDistancePercent, doubleTapZoom: $doubleTapZoom, doubleTapOpenMenu: $doubleTapOpenMenu, pageInfoShowPage: $pageInfoShowPage, pageInfoShowNetwork: $pageInfoShowNetwork, pageInfoShowBattery: $pageInfoShowBattery, pageInfoShowTime: $pageInfoShowTime, pageInfoVerticalPosition: $pageInfoVerticalPosition, pageInfoTopInStatusBar: $pageInfoTopInStatusBar, pageInfoHorizontalPosition: $pageInfoHorizontalPosition, pageInfoEdgePadding: $pageInfoEdgePadding, pageInfoOpacityPercent: $pageInfoOpacityPercent, pageInfoFontSize: $pageInfoFontSize, showBottomProgressBar: $showBottomProgressBar, bottomProgressBarGlow: $bottomProgressBarGlow, hoverRevealEnabled: $hoverRevealEnabled, hoverRevealTop: $hoverRevealTop, hoverRevealBottom: $hoverRevealBottom, hoverTriggerAreaTop: $hoverTriggerAreaTop, hoverTriggerAreaBottom: $hoverTriggerAreaBottom, hoverHideDelayMs: $hoverHideDelayMs, hoverShowVisualIndicator: $hoverShowVisualIndicator, centerTapToggleBars: $centerTapToggleBars, topBarPinned: $topBarPinned, bottomBarPinned: $bottomBarPinned, showThumbnailStrip: $showThumbnailStrip, transparentTopBar: $transparentTopBar, topBarScrimOpacityPercent: $topBarScrimOpacityPercent, readingDirectionToggle: $readingDirectionToggle, readerFitMode: $readerFitMode, readerAutoRotation: $readerAutoRotation, readerWidePageStretch: $readerWidePageStretch)';
+    return 'ReadSettingState(noAnimation: $noAnimation, comicReadTopContainer: $comicReadTopContainer, readMode: $readMode, tapPageTurnMode: $tapPageTurnMode, tapPageTurnInWebtoon: $tapPageTurnInWebtoon, readerBackgroundMode: $readerBackgroundMode, readerAmbientDimPercent: $readerAmbientDimPercent, readFilterEnabled: $readFilterEnabled, readFilterOpacityPercent: $readFilterOpacityPercent, einkOptimization: $einkOptimization, einkDelayMs: $einkDelayMs, autoScroll: $autoScroll, autoScrollHidePauseButton: $autoScrollHidePauseButton, autoScrollSmooth: $autoScrollSmooth, autoScrollColumnIntervalMs: $autoScrollColumnIntervalMs, autoScrollPageIntervalMs: $autoScrollPageIntervalMs, autoScrollColumnDistancePercent: $autoScrollColumnDistancePercent, preloadImageCount: $preloadImageCount, preloadChapterCount: $preloadChapterCount, readWhileDownloading: $readWhileDownloading, landscapeReader: $landscapeReader, doublePageMode: $doublePageMode, doublePageSeamless: $doublePageSeamless, doublePageLeadingBlank: $doublePageLeadingBlank, splitLandscapePages: $splitLandscapePages, landscapeSplitDirection: $landscapeSplitDirection, sidePaddingEnabled: $sidePaddingEnabled, sidePaddingPercent: $sidePaddingPercent, volumeKeyPageTurn: $volumeKeyPageTurn, volumeKeyPageTurnDistancePercent: $volumeKeyPageTurnDistancePercent, doubleTapZoom: $doubleTapZoom, doubleTapOpenMenu: $doubleTapOpenMenu, pageInfoShowPage: $pageInfoShowPage, pageInfoShowNetwork: $pageInfoShowNetwork, pageInfoShowBattery: $pageInfoShowBattery, pageInfoShowTime: $pageInfoShowTime, pageInfoVerticalPosition: $pageInfoVerticalPosition, pageInfoTopInStatusBar: $pageInfoTopInStatusBar, pageInfoHorizontalPosition: $pageInfoHorizontalPosition, pageInfoEdgePadding: $pageInfoEdgePadding, pageInfoOpacityPercent: $pageInfoOpacityPercent, pageInfoFontSize: $pageInfoFontSize, showBottomProgressBar: $showBottomProgressBar, bottomProgressBarGlow: $bottomProgressBarGlow, hoverRevealEnabled: $hoverRevealEnabled, hoverRevealTop: $hoverRevealTop, hoverRevealBottom: $hoverRevealBottom, hoverTriggerAreaTop: $hoverTriggerAreaTop, hoverTriggerAreaBottom: $hoverTriggerAreaBottom, hoverHideDelayMs: $hoverHideDelayMs, hoverShowVisualIndicator: $hoverShowVisualIndicator, centerTapToggleBars: $centerTapToggleBars, topBarPinned: $topBarPinned, bottomBarPinned: $bottomBarPinned, showThumbnailStrip: $showThumbnailStrip, transparentTopBar: $transparentTopBar, topBarScrimOpacityPercent: $topBarScrimOpacityPercent, readingDirectionToggle: $readingDirectionToggle, readerFitMode: $readerFitMode, readerAutoRotation: $readerAutoRotation, readerWidePageStretch: $readerWidePageStretch, swipePreviewEnabled: $swipePreviewEnabled)';
 }
 
 
@@ -5411,7 +2813,7 @@ abstract mixin class _$ReadSettingStateCopyWith<$Res> implements $ReadSettingSta
   factory _$ReadSettingStateCopyWith(_ReadSettingState value, $Res Function(_ReadSettingState) _then) = __$ReadSettingStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool noAnimation, bool comicReadTopContainer, int readMode, ReaderTapPageTurnMode tapPageTurnMode, bool tapPageTurnInWebtoon,@JsonKey(unknownEnumValue: ReaderBackgroundMode.auto) ReaderBackgroundMode readerBackgroundMode, int readerAmbientDimPercent, bool readFilterEnabled, int readFilterOpacityPercent, bool einkOptimization, int einkDelayMs, bool autoScroll, bool autoScrollHidePauseButton, bool autoScrollSmooth, int autoScrollColumnIntervalMs, int autoScrollPageIntervalMs, int autoScrollColumnDistancePercent, int preloadImageCount, int preloadChapterCount, bool readWhileDownloading, bool landscapeReader, bool doublePageMode, bool doublePageSeamless, bool doublePageLeadingBlank, bool splitLandscapePages, int landscapeSplitDirection, bool sidePaddingEnabled, int sidePaddingPercent, bool volumeKeyPageTurn, int volumeKeyPageTurnDistancePercent, bool doubleTapZoom, bool doubleTapOpenMenu, bool pageInfoShowPage, bool pageInfoShowNetwork, bool pageInfoShowBattery, bool pageInfoShowTime, ReaderInfoVerticalPosition pageInfoVerticalPosition, bool pageInfoTopInStatusBar, ReaderInfoHorizontalPosition pageInfoHorizontalPosition, int pageInfoEdgePadding, int pageInfoOpacityPercent, int pageInfoFontSize, bool showBottomProgressBar, bool bottomProgressBarGlow, bool hoverRevealEnabled, bool hoverRevealTop, bool hoverRevealBottom, int hoverTriggerAreaTop, int hoverTriggerAreaBottom, int hoverHideDelayMs, bool hoverShowVisualIndicator, bool centerTapToggleBars, bool topBarPinned, bool bottomBarPinned, bool showThumbnailStrip, bool transparentTopBar, int topBarScrimOpacityPercent, bool readingDirectionToggle, ReaderFitMode readerFitMode, ReaderAutoRotation readerAutoRotation, ReaderWidePageStretch readerWidePageStretch
+ bool noAnimation, bool comicReadTopContainer, int readMode, ReaderTapPageTurnMode tapPageTurnMode, bool tapPageTurnInWebtoon,@JsonKey(unknownEnumValue: ReaderBackgroundMode.auto) ReaderBackgroundMode readerBackgroundMode, int readerAmbientDimPercent, bool readFilterEnabled, int readFilterOpacityPercent, bool einkOptimization, int einkDelayMs, bool autoScroll, bool autoScrollHidePauseButton, bool autoScrollSmooth, int autoScrollColumnIntervalMs, int autoScrollPageIntervalMs, int autoScrollColumnDistancePercent, int preloadImageCount, int preloadChapterCount, bool readWhileDownloading, bool landscapeReader, bool doublePageMode, bool doublePageSeamless, bool doublePageLeadingBlank, bool splitLandscapePages, int landscapeSplitDirection, bool sidePaddingEnabled, int sidePaddingPercent, bool volumeKeyPageTurn, int volumeKeyPageTurnDistancePercent, bool doubleTapZoom, bool doubleTapOpenMenu, bool pageInfoShowPage, bool pageInfoShowNetwork, bool pageInfoShowBattery, bool pageInfoShowTime, ReaderInfoVerticalPosition pageInfoVerticalPosition, bool pageInfoTopInStatusBar, ReaderInfoHorizontalPosition pageInfoHorizontalPosition, int pageInfoEdgePadding, int pageInfoOpacityPercent, int pageInfoFontSize, bool showBottomProgressBar, bool bottomProgressBarGlow, bool hoverRevealEnabled, bool hoverRevealTop, bool hoverRevealBottom, int hoverTriggerAreaTop, int hoverTriggerAreaBottom, int hoverHideDelayMs, bool hoverShowVisualIndicator, bool centerTapToggleBars, bool topBarPinned, bool bottomBarPinned, bool showThumbnailStrip, bool transparentTopBar, int topBarScrimOpacityPercent, bool readingDirectionToggle, ReaderFitMode readerFitMode, ReaderAutoRotation readerAutoRotation, ReaderWidePageStretch readerWidePageStretch, bool swipePreviewEnabled
 });
 
 
@@ -5428,7 +2830,7 @@ class __$ReadSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of ReadSettingState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? noAnimation = null,Object? comicReadTopContainer = null,Object? readMode = null,Object? tapPageTurnMode = null,Object? tapPageTurnInWebtoon = null,Object? readerBackgroundMode = null,Object? readerAmbientDimPercent = null,Object? readFilterEnabled = null,Object? readFilterOpacityPercent = null,Object? einkOptimization = null,Object? einkDelayMs = null,Object? autoScroll = null,Object? autoScrollHidePauseButton = null,Object? autoScrollSmooth = null,Object? autoScrollColumnIntervalMs = null,Object? autoScrollPageIntervalMs = null,Object? autoScrollColumnDistancePercent = null,Object? preloadImageCount = null,Object? preloadChapterCount = null,Object? readWhileDownloading = null,Object? landscapeReader = null,Object? doublePageMode = null,Object? doublePageSeamless = null,Object? doublePageLeadingBlank = null,Object? splitLandscapePages = null,Object? landscapeSplitDirection = null,Object? sidePaddingEnabled = null,Object? sidePaddingPercent = null,Object? volumeKeyPageTurn = null,Object? volumeKeyPageTurnDistancePercent = null,Object? doubleTapZoom = null,Object? doubleTapOpenMenu = null,Object? pageInfoShowPage = null,Object? pageInfoShowNetwork = null,Object? pageInfoShowBattery = null,Object? pageInfoShowTime = null,Object? pageInfoVerticalPosition = null,Object? pageInfoTopInStatusBar = null,Object? pageInfoHorizontalPosition = null,Object? pageInfoEdgePadding = null,Object? pageInfoOpacityPercent = null,Object? pageInfoFontSize = null,Object? showBottomProgressBar = null,Object? bottomProgressBarGlow = null,Object? hoverRevealEnabled = null,Object? hoverRevealTop = null,Object? hoverRevealBottom = null,Object? hoverTriggerAreaTop = null,Object? hoverTriggerAreaBottom = null,Object? hoverHideDelayMs = null,Object? hoverShowVisualIndicator = null,Object? centerTapToggleBars = null,Object? topBarPinned = null,Object? bottomBarPinned = null,Object? showThumbnailStrip = null,Object? transparentTopBar = null,Object? topBarScrimOpacityPercent = null,Object? readingDirectionToggle = null,Object? readerFitMode = null,Object? readerAutoRotation = null,Object? readerWidePageStretch = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? noAnimation = null,Object? comicReadTopContainer = null,Object? readMode = null,Object? tapPageTurnMode = null,Object? tapPageTurnInWebtoon = null,Object? readerBackgroundMode = null,Object? readerAmbientDimPercent = null,Object? readFilterEnabled = null,Object? readFilterOpacityPercent = null,Object? einkOptimization = null,Object? einkDelayMs = null,Object? autoScroll = null,Object? autoScrollHidePauseButton = null,Object? autoScrollSmooth = null,Object? autoScrollColumnIntervalMs = null,Object? autoScrollPageIntervalMs = null,Object? autoScrollColumnDistancePercent = null,Object? preloadImageCount = null,Object? preloadChapterCount = null,Object? readWhileDownloading = null,Object? landscapeReader = null,Object? doublePageMode = null,Object? doublePageSeamless = null,Object? doublePageLeadingBlank = null,Object? splitLandscapePages = null,Object? landscapeSplitDirection = null,Object? sidePaddingEnabled = null,Object? sidePaddingPercent = null,Object? volumeKeyPageTurn = null,Object? volumeKeyPageTurnDistancePercent = null,Object? doubleTapZoom = null,Object? doubleTapOpenMenu = null,Object? pageInfoShowPage = null,Object? pageInfoShowNetwork = null,Object? pageInfoShowBattery = null,Object? pageInfoShowTime = null,Object? pageInfoVerticalPosition = null,Object? pageInfoTopInStatusBar = null,Object? pageInfoHorizontalPosition = null,Object? pageInfoEdgePadding = null,Object? pageInfoOpacityPercent = null,Object? pageInfoFontSize = null,Object? showBottomProgressBar = null,Object? bottomProgressBarGlow = null,Object? hoverRevealEnabled = null,Object? hoverRevealTop = null,Object? hoverRevealBottom = null,Object? hoverTriggerAreaTop = null,Object? hoverTriggerAreaBottom = null,Object? hoverHideDelayMs = null,Object? hoverShowVisualIndicator = null,Object? centerTapToggleBars = null,Object? topBarPinned = null,Object? bottomBarPinned = null,Object? showThumbnailStrip = null,Object? transparentTopBar = null,Object? topBarScrimOpacityPercent = null,Object? readingDirectionToggle = null,Object? readerFitMode = null,Object? readerAutoRotation = null,Object? readerWidePageStretch = null,Object? swipePreviewEnabled = null,}) {
   return _then(_ReadSettingState(
 noAnimation: null == noAnimation ? _self.noAnimation : noAnimation // ignore: cast_nullable_to_non_nullable
 as bool,comicReadTopContainer: null == comicReadTopContainer ? _self.comicReadTopContainer : comicReadTopContainer // ignore: cast_nullable_to_non_nullable
@@ -5491,7 +2893,8 @@ as int,readingDirectionToggle: null == readingDirectionToggle ? _self.readingDir
 as bool,readerFitMode: null == readerFitMode ? _self.readerFitMode : readerFitMode // ignore: cast_nullable_to_non_nullable
 as ReaderFitMode,readerAutoRotation: null == readerAutoRotation ? _self.readerAutoRotation : readerAutoRotation // ignore: cast_nullable_to_non_nullable
 as ReaderAutoRotation,readerWidePageStretch: null == readerWidePageStretch ? _self.readerWidePageStretch : readerWidePageStretch // ignore: cast_nullable_to_non_nullable
-as ReaderWidePageStretch,
+as ReaderWidePageStretch,swipePreviewEnabled: null == swipePreviewEnabled ? _self.swipePreviewEnabled : swipePreviewEnabled // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -5783,6 +3186,2606 @@ as String,rememberDownloadSort: null == rememberDownloadSort ? _self.rememberDow
 as bool,downloadSort: null == downloadSort ? _self.downloadSort : downloadSort // ignore: cast_nullable_to_non_nullable
 as String,shelfCardContextMenu: null == shelfCardContextMenu ? _self.shelfCardContextMenu : shelfCardContextMenu // ignore: cast_nullable_to_non_nullable
 as bool,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$ToastSettingState {
+
+ ToastPosition get position; int get edgePadding; int get durationMs; int get maxWidth; int get opacityPercent; int get maxVisible; int get animationDurationMs; bool get liquidGlass; bool get showProgressBar; bool get showIcon; bool get showCloseButton;
+/// Create a copy of ToastSettingState
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ToastSettingStateCopyWith<ToastSettingState> get copyWith => _$ToastSettingStateCopyWithImpl<ToastSettingState>(this as ToastSettingState, _$identity);
+
+  /// Serializes this ToastSettingState to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  final _this = this as ToastSettingState;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ToastSettingState&&(identical(other.position, _this.position) || other.position == _this.position)&&(identical(other.edgePadding, _this.edgePadding) || other.edgePadding == _this.edgePadding)&&(identical(other.durationMs, _this.durationMs) || other.durationMs == _this.durationMs)&&(identical(other.maxWidth, _this.maxWidth) || other.maxWidth == _this.maxWidth)&&(identical(other.opacityPercent, _this.opacityPercent) || other.opacityPercent == _this.opacityPercent)&&(identical(other.maxVisible, _this.maxVisible) || other.maxVisible == _this.maxVisible)&&(identical(other.animationDurationMs, _this.animationDurationMs) || other.animationDurationMs == _this.animationDurationMs)&&(identical(other.liquidGlass, _this.liquidGlass) || other.liquidGlass == _this.liquidGlass)&&(identical(other.showProgressBar, _this.showProgressBar) || other.showProgressBar == _this.showProgressBar)&&(identical(other.showIcon, _this.showIcon) || other.showIcon == _this.showIcon)&&(identical(other.showCloseButton, _this.showCloseButton) || other.showCloseButton == _this.showCloseButton));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+  final _this = this as ToastSettingState;
+  return Object.hash(runtimeType,_this.position,_this.edgePadding,_this.durationMs,_this.maxWidth,_this.opacityPercent,_this.maxVisible,_this.animationDurationMs,_this.liquidGlass,_this.showProgressBar,_this.showIcon,_this.showCloseButton);
+}
+
+@override
+String toString() {
+  final _this = this as ToastSettingState;
+  return 'ToastSettingState(position: ${_this.position}, edgePadding: ${_this.edgePadding}, durationMs: ${_this.durationMs}, maxWidth: ${_this.maxWidth}, opacityPercent: ${_this.opacityPercent}, maxVisible: ${_this.maxVisible}, animationDurationMs: ${_this.animationDurationMs}, liquidGlass: ${_this.liquidGlass}, showProgressBar: ${_this.showProgressBar}, showIcon: ${_this.showIcon}, showCloseButton: ${_this.showCloseButton})';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ToastSettingStateCopyWith<$Res>  {
+  factory $ToastSettingStateCopyWith(ToastSettingState value, $Res Function(ToastSettingState) _then) = _$ToastSettingStateCopyWithImpl;
+@useResult
+$Res call({
+ ToastPosition position, int edgePadding, int durationMs, int maxWidth, int opacityPercent, int maxVisible, int animationDurationMs, bool liquidGlass, bool showProgressBar, bool showIcon, bool showCloseButton
+});
+
+
+
+
+}
+/// @nodoc
+class _$ToastSettingStateCopyWithImpl<$Res>
+    implements $ToastSettingStateCopyWith<$Res> {
+  _$ToastSettingStateCopyWithImpl(this._self, this._then);
+
+  final ToastSettingState _self;
+  final $Res Function(ToastSettingState) _then;
+
+/// Create a copy of ToastSettingState
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? position = null,Object? edgePadding = null,Object? durationMs = null,Object? maxWidth = null,Object? opacityPercent = null,Object? maxVisible = null,Object? animationDurationMs = null,Object? liquidGlass = null,Object? showProgressBar = null,Object? showIcon = null,Object? showCloseButton = null,}) {
+  return _then(ToastSettingState(
+position: null == position ? _self.position : position // ignore: cast_nullable_to_non_nullable
+as ToastPosition,edgePadding: null == edgePadding ? _self.edgePadding : edgePadding // ignore: cast_nullable_to_non_nullable
+as int,durationMs: null == durationMs ? _self.durationMs : durationMs // ignore: cast_nullable_to_non_nullable
+as int,maxWidth: null == maxWidth ? _self.maxWidth : maxWidth // ignore: cast_nullable_to_non_nullable
+as int,opacityPercent: null == opacityPercent ? _self.opacityPercent : opacityPercent // ignore: cast_nullable_to_non_nullable
+as int,maxVisible: null == maxVisible ? _self.maxVisible : maxVisible // ignore: cast_nullable_to_non_nullable
+as int,animationDurationMs: null == animationDurationMs ? _self.animationDurationMs : animationDurationMs // ignore: cast_nullable_to_non_nullable
+as int,liquidGlass: null == liquidGlass ? _self.liquidGlass : liquidGlass // ignore: cast_nullable_to_non_nullable
+as bool,showProgressBar: null == showProgressBar ? _self.showProgressBar : showProgressBar // ignore: cast_nullable_to_non_nullable
+as bool,showIcon: null == showIcon ? _self.showIcon : showIcon // ignore: cast_nullable_to_non_nullable
+as bool,showCloseButton: null == showCloseButton ? _self.showCloseButton : showCloseButton // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [ToastSettingState].
+extension ToastSettingStatePatterns on ToastSettingState {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ToastSettingState value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ToastSettingState() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ToastSettingState value)  $default,){
+final _that = this;
+switch (_that) {
+case _ToastSettingState():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ToastSettingState value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ToastSettingState() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ToastPosition position,  int edgePadding,  int durationMs,  int maxWidth,  int opacityPercent,  int maxVisible,  int animationDurationMs,  bool liquidGlass,  bool showProgressBar,  bool showIcon,  bool showCloseButton)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ToastSettingState() when $default != null:
+return $default(_that.position,_that.edgePadding,_that.durationMs,_that.maxWidth,_that.opacityPercent,_that.maxVisible,_that.animationDurationMs,_that.liquidGlass,_that.showProgressBar,_that.showIcon,_that.showCloseButton);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ToastPosition position,  int edgePadding,  int durationMs,  int maxWidth,  int opacityPercent,  int maxVisible,  int animationDurationMs,  bool liquidGlass,  bool showProgressBar,  bool showIcon,  bool showCloseButton)  $default,) {final _that = this;
+switch (_that) {
+case _ToastSettingState():
+return $default(_that.position,_that.edgePadding,_that.durationMs,_that.maxWidth,_that.opacityPercent,_that.maxVisible,_that.animationDurationMs,_that.liquidGlass,_that.showProgressBar,_that.showIcon,_that.showCloseButton);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ToastPosition position,  int edgePadding,  int durationMs,  int maxWidth,  int opacityPercent,  int maxVisible,  int animationDurationMs,  bool liquidGlass,  bool showProgressBar,  bool showIcon,  bool showCloseButton)?  $default,) {final _that = this;
+switch (_that) {
+case _ToastSettingState() when $default != null:
+return $default(_that.position,_that.edgePadding,_that.durationMs,_that.maxWidth,_that.opacityPercent,_that.maxVisible,_that.animationDurationMs,_that.liquidGlass,_that.showProgressBar,_that.showIcon,_that.showCloseButton);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _ToastSettingState implements ToastSettingState {
+  const _ToastSettingState({this.position = ToastPosition.topRight, this.edgePadding = 12, this.durationMs = 3000, this.maxWidth = 400, this.opacityPercent = 100, this.maxVisible = 3, this.animationDurationMs = 220, this.liquidGlass = false, this.showProgressBar = true, this.showIcon = true, this.showCloseButton = true});
+  factory _ToastSettingState.fromJson(Map<String, dynamic> json) => _$ToastSettingStateFromJson(json);
+
+@override@JsonKey() final  ToastPosition position;
+@override@JsonKey() final  int edgePadding;
+@override@JsonKey() final  int durationMs;
+@override@JsonKey() final  int maxWidth;
+@override@JsonKey() final  int opacityPercent;
+@override@JsonKey() final  int maxVisible;
+@override@JsonKey() final  int animationDurationMs;
+@override@JsonKey() final  bool liquidGlass;
+@override@JsonKey() final  bool showProgressBar;
+@override@JsonKey() final  bool showIcon;
+@override@JsonKey() final  bool showCloseButton;
+
+/// Create a copy of ToastSettingState
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ToastSettingStateCopyWith<_ToastSettingState> get copyWith => __$ToastSettingStateCopyWithImpl<_ToastSettingState>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ToastSettingStateToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ToastSettingState&&(identical(other.position, position) || other.position == position)&&(identical(other.edgePadding, edgePadding) || other.edgePadding == edgePadding)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs)&&(identical(other.maxWidth, maxWidth) || other.maxWidth == maxWidth)&&(identical(other.opacityPercent, opacityPercent) || other.opacityPercent == opacityPercent)&&(identical(other.maxVisible, maxVisible) || other.maxVisible == maxVisible)&&(identical(other.animationDurationMs, animationDurationMs) || other.animationDurationMs == animationDurationMs)&&(identical(other.liquidGlass, liquidGlass) || other.liquidGlass == liquidGlass)&&(identical(other.showProgressBar, showProgressBar) || other.showProgressBar == showProgressBar)&&(identical(other.showIcon, showIcon) || other.showIcon == showIcon)&&(identical(other.showCloseButton, showCloseButton) || other.showCloseButton == showCloseButton));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+    return Object.hash(runtimeType,position,edgePadding,durationMs,maxWidth,opacityPercent,maxVisible,animationDurationMs,liquidGlass,showProgressBar,showIcon,showCloseButton);
+}
+
+@override
+String toString() {
+    return 'ToastSettingState(position: $position, edgePadding: $edgePadding, durationMs: $durationMs, maxWidth: $maxWidth, opacityPercent: $opacityPercent, maxVisible: $maxVisible, animationDurationMs: $animationDurationMs, liquidGlass: $liquidGlass, showProgressBar: $showProgressBar, showIcon: $showIcon, showCloseButton: $showCloseButton)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ToastSettingStateCopyWith<$Res> implements $ToastSettingStateCopyWith<$Res> {
+  factory _$ToastSettingStateCopyWith(_ToastSettingState value, $Res Function(_ToastSettingState) _then) = __$ToastSettingStateCopyWithImpl;
+@override @useResult
+$Res call({
+ ToastPosition position, int edgePadding, int durationMs, int maxWidth, int opacityPercent, int maxVisible, int animationDurationMs, bool liquidGlass, bool showProgressBar, bool showIcon, bool showCloseButton
+});
+
+
+
+
+}
+/// @nodoc
+class __$ToastSettingStateCopyWithImpl<$Res>
+    implements _$ToastSettingStateCopyWith<$Res> {
+  __$ToastSettingStateCopyWithImpl(this._self, this._then);
+
+  final _ToastSettingState _self;
+  final $Res Function(_ToastSettingState) _then;
+
+/// Create a copy of ToastSettingState
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? position = null,Object? edgePadding = null,Object? durationMs = null,Object? maxWidth = null,Object? opacityPercent = null,Object? maxVisible = null,Object? animationDurationMs = null,Object? liquidGlass = null,Object? showProgressBar = null,Object? showIcon = null,Object? showCloseButton = null,}) {
+  return _then(_ToastSettingState(
+position: null == position ? _self.position : position // ignore: cast_nullable_to_non_nullable
+as ToastPosition,edgePadding: null == edgePadding ? _self.edgePadding : edgePadding // ignore: cast_nullable_to_non_nullable
+as int,durationMs: null == durationMs ? _self.durationMs : durationMs // ignore: cast_nullable_to_non_nullable
+as int,maxWidth: null == maxWidth ? _self.maxWidth : maxWidth // ignore: cast_nullable_to_non_nullable
+as int,opacityPercent: null == opacityPercent ? _self.opacityPercent : opacityPercent // ignore: cast_nullable_to_non_nullable
+as int,maxVisible: null == maxVisible ? _self.maxVisible : maxVisible // ignore: cast_nullable_to_non_nullable
+as int,animationDurationMs: null == animationDurationMs ? _self.animationDurationMs : animationDurationMs // ignore: cast_nullable_to_non_nullable
+as int,liquidGlass: null == liquidGlass ? _self.liquidGlass : liquidGlass // ignore: cast_nullable_to_non_nullable
+as bool,showProgressBar: null == showProgressBar ? _self.showProgressBar : showProgressBar // ignore: cast_nullable_to_non_nullable
+as bool,showIcon: null == showIcon ? _self.showIcon : showIcon // ignore: cast_nullable_to_non_nullable
+as bool,showCloseButton: null == showCloseButton ? _self.showCloseButton : showCloseButton // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$SwitchToastSettingState {
+
+/// 切换书籍（含首次进入一本书）时显示提示。上游同款：默认关。
+ bool get enableBook;/// 翻页时显示提示。
+ bool get enablePage;/// 模板变量为 `{{book.*}}` / `{{page.*}}`，语义与上游
+/// `renderReaderSwitchToastTemplate` 逐条对照（见
+/// `lib/util/toast/switch_toast_template.dart`）。
+ String get bookTitleTemplate; String get bookDescriptionTemplate; String get pageTitleTemplate;/// 上游默认是「分辨率 + 文件大小」，但 Rossi 的页表（`Doc`）没有这两项，
+/// 换成页文件名 —— 刻意偏离，见 `docs/ROADMAP.md`。
+ String get pageDescriptionTemplate;
+/// Create a copy of SwitchToastSettingState
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$SwitchToastSettingStateCopyWith<SwitchToastSettingState> get copyWith => _$SwitchToastSettingStateCopyWithImpl<SwitchToastSettingState>(this as SwitchToastSettingState, _$identity);
+
+  /// Serializes this SwitchToastSettingState to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  final _this = this as SwitchToastSettingState;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SwitchToastSettingState&&(identical(other.enableBook, _this.enableBook) || other.enableBook == _this.enableBook)&&(identical(other.enablePage, _this.enablePage) || other.enablePage == _this.enablePage)&&(identical(other.bookTitleTemplate, _this.bookTitleTemplate) || other.bookTitleTemplate == _this.bookTitleTemplate)&&(identical(other.bookDescriptionTemplate, _this.bookDescriptionTemplate) || other.bookDescriptionTemplate == _this.bookDescriptionTemplate)&&(identical(other.pageTitleTemplate, _this.pageTitleTemplate) || other.pageTitleTemplate == _this.pageTitleTemplate)&&(identical(other.pageDescriptionTemplate, _this.pageDescriptionTemplate) || other.pageDescriptionTemplate == _this.pageDescriptionTemplate));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+  final _this = this as SwitchToastSettingState;
+  return Object.hash(runtimeType,_this.enableBook,_this.enablePage,_this.bookTitleTemplate,_this.bookDescriptionTemplate,_this.pageTitleTemplate,_this.pageDescriptionTemplate);
+}
+
+@override
+String toString() {
+  final _this = this as SwitchToastSettingState;
+  return 'SwitchToastSettingState(enableBook: ${_this.enableBook}, enablePage: ${_this.enablePage}, bookTitleTemplate: ${_this.bookTitleTemplate}, bookDescriptionTemplate: ${_this.bookDescriptionTemplate}, pageTitleTemplate: ${_this.pageTitleTemplate}, pageDescriptionTemplate: ${_this.pageDescriptionTemplate})';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $SwitchToastSettingStateCopyWith<$Res>  {
+  factory $SwitchToastSettingStateCopyWith(SwitchToastSettingState value, $Res Function(SwitchToastSettingState) _then) = _$SwitchToastSettingStateCopyWithImpl;
+@useResult
+$Res call({
+ bool enableBook, bool enablePage, String bookTitleTemplate, String bookDescriptionTemplate, String pageTitleTemplate, String pageDescriptionTemplate
+});
+
+
+
+
+}
+/// @nodoc
+class _$SwitchToastSettingStateCopyWithImpl<$Res>
+    implements $SwitchToastSettingStateCopyWith<$Res> {
+  _$SwitchToastSettingStateCopyWithImpl(this._self, this._then);
+
+  final SwitchToastSettingState _self;
+  final $Res Function(SwitchToastSettingState) _then;
+
+/// Create a copy of SwitchToastSettingState
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? enableBook = null,Object? enablePage = null,Object? bookTitleTemplate = null,Object? bookDescriptionTemplate = null,Object? pageTitleTemplate = null,Object? pageDescriptionTemplate = null,}) {
+  return _then(SwitchToastSettingState(
+enableBook: null == enableBook ? _self.enableBook : enableBook // ignore: cast_nullable_to_non_nullable
+as bool,enablePage: null == enablePage ? _self.enablePage : enablePage // ignore: cast_nullable_to_non_nullable
+as bool,bookTitleTemplate: null == bookTitleTemplate ? _self.bookTitleTemplate : bookTitleTemplate // ignore: cast_nullable_to_non_nullable
+as String,bookDescriptionTemplate: null == bookDescriptionTemplate ? _self.bookDescriptionTemplate : bookDescriptionTemplate // ignore: cast_nullable_to_non_nullable
+as String,pageTitleTemplate: null == pageTitleTemplate ? _self.pageTitleTemplate : pageTitleTemplate // ignore: cast_nullable_to_non_nullable
+as String,pageDescriptionTemplate: null == pageDescriptionTemplate ? _self.pageDescriptionTemplate : pageDescriptionTemplate // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [SwitchToastSettingState].
+extension SwitchToastSettingStatePatterns on SwitchToastSettingState {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _SwitchToastSettingState value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _SwitchToastSettingState() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _SwitchToastSettingState value)  $default,){
+final _that = this;
+switch (_that) {
+case _SwitchToastSettingState():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _SwitchToastSettingState value)?  $default,){
+final _that = this;
+switch (_that) {
+case _SwitchToastSettingState() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool enableBook,  bool enablePage,  String bookTitleTemplate,  String bookDescriptionTemplate,  String pageTitleTemplate,  String pageDescriptionTemplate)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _SwitchToastSettingState() when $default != null:
+return $default(_that.enableBook,_that.enablePage,_that.bookTitleTemplate,_that.bookDescriptionTemplate,_that.pageTitleTemplate,_that.pageDescriptionTemplate);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool enableBook,  bool enablePage,  String bookTitleTemplate,  String bookDescriptionTemplate,  String pageTitleTemplate,  String pageDescriptionTemplate)  $default,) {final _that = this;
+switch (_that) {
+case _SwitchToastSettingState():
+return $default(_that.enableBook,_that.enablePage,_that.bookTitleTemplate,_that.bookDescriptionTemplate,_that.pageTitleTemplate,_that.pageDescriptionTemplate);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool enableBook,  bool enablePage,  String bookTitleTemplate,  String bookDescriptionTemplate,  String pageTitleTemplate,  String pageDescriptionTemplate)?  $default,) {final _that = this;
+switch (_that) {
+case _SwitchToastSettingState() when $default != null:
+return $default(_that.enableBook,_that.enablePage,_that.bookTitleTemplate,_that.bookDescriptionTemplate,_that.pageTitleTemplate,_that.pageDescriptionTemplate);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _SwitchToastSettingState implements SwitchToastSettingState {
+  const _SwitchToastSettingState({this.enableBook = false, this.enablePage = false, this.bookTitleTemplate = '已切换到 {{book.displayName}}（第 {{book.currentPageDisplay}} / {{book.totalPages}} 页）', this.bookDescriptionTemplate = '路径：{{book.path}}', this.pageTitleTemplate = '第 {{page.indexDisplay}} / {{book.totalPages}} 页', this.pageDescriptionTemplate = '{{page.name}}'});
+  factory _SwitchToastSettingState.fromJson(Map<String, dynamic> json) => _$SwitchToastSettingStateFromJson(json);
+
+/// 切换书籍（含首次进入一本书）时显示提示。上游同款：默认关。
+@override@JsonKey() final  bool enableBook;
+/// 翻页时显示提示。
+@override@JsonKey() final  bool enablePage;
+/// 模板变量为 `{{book.*}}` / `{{page.*}}`，语义与上游
+/// `renderReaderSwitchToastTemplate` 逐条对照（见
+/// `lib/util/toast/switch_toast_template.dart`）。
+@override@JsonKey() final  String bookTitleTemplate;
+@override@JsonKey() final  String bookDescriptionTemplate;
+@override@JsonKey() final  String pageTitleTemplate;
+/// 上游默认是「分辨率 + 文件大小」，但 Rossi 的页表（`Doc`）没有这两项，
+/// 换成页文件名 —— 刻意偏离，见 `docs/ROADMAP.md`。
+@override@JsonKey() final  String pageDescriptionTemplate;
+
+/// Create a copy of SwitchToastSettingState
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$SwitchToastSettingStateCopyWith<_SwitchToastSettingState> get copyWith => __$SwitchToastSettingStateCopyWithImpl<_SwitchToastSettingState>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$SwitchToastSettingStateToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _SwitchToastSettingState&&(identical(other.enableBook, enableBook) || other.enableBook == enableBook)&&(identical(other.enablePage, enablePage) || other.enablePage == enablePage)&&(identical(other.bookTitleTemplate, bookTitleTemplate) || other.bookTitleTemplate == bookTitleTemplate)&&(identical(other.bookDescriptionTemplate, bookDescriptionTemplate) || other.bookDescriptionTemplate == bookDescriptionTemplate)&&(identical(other.pageTitleTemplate, pageTitleTemplate) || other.pageTitleTemplate == pageTitleTemplate)&&(identical(other.pageDescriptionTemplate, pageDescriptionTemplate) || other.pageDescriptionTemplate == pageDescriptionTemplate));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+    return Object.hash(runtimeType,enableBook,enablePage,bookTitleTemplate,bookDescriptionTemplate,pageTitleTemplate,pageDescriptionTemplate);
+}
+
+@override
+String toString() {
+    return 'SwitchToastSettingState(enableBook: $enableBook, enablePage: $enablePage, bookTitleTemplate: $bookTitleTemplate, bookDescriptionTemplate: $bookDescriptionTemplate, pageTitleTemplate: $pageTitleTemplate, pageDescriptionTemplate: $pageDescriptionTemplate)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$SwitchToastSettingStateCopyWith<$Res> implements $SwitchToastSettingStateCopyWith<$Res> {
+  factory _$SwitchToastSettingStateCopyWith(_SwitchToastSettingState value, $Res Function(_SwitchToastSettingState) _then) = __$SwitchToastSettingStateCopyWithImpl;
+@override @useResult
+$Res call({
+ bool enableBook, bool enablePage, String bookTitleTemplate, String bookDescriptionTemplate, String pageTitleTemplate, String pageDescriptionTemplate
+});
+
+
+
+
+}
+/// @nodoc
+class __$SwitchToastSettingStateCopyWithImpl<$Res>
+    implements _$SwitchToastSettingStateCopyWith<$Res> {
+  __$SwitchToastSettingStateCopyWithImpl(this._self, this._then);
+
+  final _SwitchToastSettingState _self;
+  final $Res Function(_SwitchToastSettingState) _then;
+
+/// Create a copy of SwitchToastSettingState
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? enableBook = null,Object? enablePage = null,Object? bookTitleTemplate = null,Object? bookDescriptionTemplate = null,Object? pageTitleTemplate = null,Object? pageDescriptionTemplate = null,}) {
+  return _then(_SwitchToastSettingState(
+enableBook: null == enableBook ? _self.enableBook : enableBook // ignore: cast_nullable_to_non_nullable
+as bool,enablePage: null == enablePage ? _self.enablePage : enablePage // ignore: cast_nullable_to_non_nullable
+as bool,bookTitleTemplate: null == bookTitleTemplate ? _self.bookTitleTemplate : bookTitleTemplate // ignore: cast_nullable_to_non_nullable
+as String,bookDescriptionTemplate: null == bookDescriptionTemplate ? _self.bookDescriptionTemplate : bookDescriptionTemplate // ignore: cast_nullable_to_non_nullable
+as String,pageTitleTemplate: null == pageTitleTemplate ? _self.pageTitleTemplate : pageTitleTemplate // ignore: cast_nullable_to_non_nullable
+as String,pageDescriptionTemplate: null == pageDescriptionTemplate ? _self.pageDescriptionTemplate : pageDescriptionTemplate // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$FavoriteArtistSettingState {
+
+ bool get highlightEnabled; List<String> get artists; FavoriteArtistCircleMode get circleMode;
+/// Create a copy of FavoriteArtistSettingState
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$FavoriteArtistSettingStateCopyWith<FavoriteArtistSettingState> get copyWith => _$FavoriteArtistSettingStateCopyWithImpl<FavoriteArtistSettingState>(this as FavoriteArtistSettingState, _$identity);
+
+  /// Serializes this FavoriteArtistSettingState to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  final _this = this as FavoriteArtistSettingState;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FavoriteArtistSettingState&&(identical(other.highlightEnabled, _this.highlightEnabled) || other.highlightEnabled == _this.highlightEnabled)&&const DeepCollectionEquality().equals(other.artists, _this.artists)&&(identical(other.circleMode, _this.circleMode) || other.circleMode == _this.circleMode));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+  final _this = this as FavoriteArtistSettingState;
+  return Object.hash(runtimeType,_this.highlightEnabled,const DeepCollectionEquality().hash(_this.artists),_this.circleMode);
+}
+
+@override
+String toString() {
+  final _this = this as FavoriteArtistSettingState;
+  return 'FavoriteArtistSettingState(highlightEnabled: ${_this.highlightEnabled}, artists: ${_this.artists}, circleMode: ${_this.circleMode})';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $FavoriteArtistSettingStateCopyWith<$Res>  {
+  factory $FavoriteArtistSettingStateCopyWith(FavoriteArtistSettingState value, $Res Function(FavoriteArtistSettingState) _then) = _$FavoriteArtistSettingStateCopyWithImpl;
+@useResult
+$Res call({
+ bool highlightEnabled, List<String> artists, FavoriteArtistCircleMode circleMode
+});
+
+
+
+
+}
+/// @nodoc
+class _$FavoriteArtistSettingStateCopyWithImpl<$Res>
+    implements $FavoriteArtistSettingStateCopyWith<$Res> {
+  _$FavoriteArtistSettingStateCopyWithImpl(this._self, this._then);
+
+  final FavoriteArtistSettingState _self;
+  final $Res Function(FavoriteArtistSettingState) _then;
+
+/// Create a copy of FavoriteArtistSettingState
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? highlightEnabled = null,Object? artists = null,Object? circleMode = null,}) {
+  return _then(FavoriteArtistSettingState(
+highlightEnabled: null == highlightEnabled ? _self.highlightEnabled : highlightEnabled // ignore: cast_nullable_to_non_nullable
+as bool,artists: null == artists ? _self.artists : artists // ignore: cast_nullable_to_non_nullable
+as List<String>,circleMode: null == circleMode ? _self.circleMode : circleMode // ignore: cast_nullable_to_non_nullable
+as FavoriteArtistCircleMode,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [FavoriteArtistSettingState].
+extension FavoriteArtistSettingStatePatterns on FavoriteArtistSettingState {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _FavoriteArtistSettingState value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _FavoriteArtistSettingState() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _FavoriteArtistSettingState value)  $default,){
+final _that = this;
+switch (_that) {
+case _FavoriteArtistSettingState():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _FavoriteArtistSettingState value)?  $default,){
+final _that = this;
+switch (_that) {
+case _FavoriteArtistSettingState() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool highlightEnabled,  List<String> artists,  FavoriteArtistCircleMode circleMode)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _FavoriteArtistSettingState() when $default != null:
+return $default(_that.highlightEnabled,_that.artists,_that.circleMode);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool highlightEnabled,  List<String> artists,  FavoriteArtistCircleMode circleMode)  $default,) {final _that = this;
+switch (_that) {
+case _FavoriteArtistSettingState():
+return $default(_that.highlightEnabled,_that.artists,_that.circleMode);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool highlightEnabled,  List<String> artists,  FavoriteArtistCircleMode circleMode)?  $default,) {final _that = this;
+switch (_that) {
+case _FavoriteArtistSettingState() when $default != null:
+return $default(_that.highlightEnabled,_that.artists,_that.circleMode);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _FavoriteArtistSettingState implements FavoriteArtistSettingState {
+  const _FavoriteArtistSettingState({this.highlightEnabled = true,  List<String> artists = const [], this.circleMode = FavoriteArtistCircleMode.fallbackOnly}): _artists = artists;
+  factory _FavoriteArtistSettingState.fromJson(Map<String, dynamic> json) => _$FavoriteArtistSettingStateFromJson(json);
+
+@override@JsonKey() final  bool highlightEnabled;
+ final  List<String> _artists;
+@override@JsonKey() List<String> get artists {
+  if (_artists is EqualUnmodifiableListView) return _artists;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_artists);
+}
+
+@override@JsonKey() final  FavoriteArtistCircleMode circleMode;
+
+/// Create a copy of FavoriteArtistSettingState
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$FavoriteArtistSettingStateCopyWith<_FavoriteArtistSettingState> get copyWith => __$FavoriteArtistSettingStateCopyWithImpl<_FavoriteArtistSettingState>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$FavoriteArtistSettingStateToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _FavoriteArtistSettingState&&(identical(other.highlightEnabled, highlightEnabled) || other.highlightEnabled == highlightEnabled)&&const DeepCollectionEquality().equals(other.artists, _artists)&&(identical(other.circleMode, circleMode) || other.circleMode == circleMode));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+    return Object.hash(runtimeType,highlightEnabled,const DeepCollectionEquality().hash(_artists),circleMode);
+}
+
+@override
+String toString() {
+    return 'FavoriteArtistSettingState(highlightEnabled: $highlightEnabled, artists: $artists, circleMode: $circleMode)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$FavoriteArtistSettingStateCopyWith<$Res> implements $FavoriteArtistSettingStateCopyWith<$Res> {
+  factory _$FavoriteArtistSettingStateCopyWith(_FavoriteArtistSettingState value, $Res Function(_FavoriteArtistSettingState) _then) = __$FavoriteArtistSettingStateCopyWithImpl;
+@override @useResult
+$Res call({
+ bool highlightEnabled, List<String> artists, FavoriteArtistCircleMode circleMode
+});
+
+
+
+
+}
+/// @nodoc
+class __$FavoriteArtistSettingStateCopyWithImpl<$Res>
+    implements _$FavoriteArtistSettingStateCopyWith<$Res> {
+  __$FavoriteArtistSettingStateCopyWithImpl(this._self, this._then);
+
+  final _FavoriteArtistSettingState _self;
+  final $Res Function(_FavoriteArtistSettingState) _then;
+
+/// Create a copy of FavoriteArtistSettingState
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? highlightEnabled = null,Object? artists = null,Object? circleMode = null,}) {
+  return _then(_FavoriteArtistSettingState(
+highlightEnabled: null == highlightEnabled ? _self.highlightEnabled : highlightEnabled // ignore: cast_nullable_to_non_nullable
+as bool,artists: null == artists ? _self._artists : artists // ignore: cast_nullable_to_non_nullable
+as List<String>,circleMode: null == circleMode ? _self.circleMode : circleMode // ignore: cast_nullable_to_non_nullable
+as FavoriteArtistCircleMode,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$FavoriteTag {
+
+ String get name; List<String> get aliases;
+/// Create a copy of FavoriteTag
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$FavoriteTagCopyWith<FavoriteTag> get copyWith => _$FavoriteTagCopyWithImpl<FavoriteTag>(this as FavoriteTag, _$identity);
+
+  /// Serializes this FavoriteTag to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  final _this = this as FavoriteTag;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FavoriteTag&&(identical(other.name, _this.name) || other.name == _this.name)&&const DeepCollectionEquality().equals(other.aliases, _this.aliases));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+  final _this = this as FavoriteTag;
+  return Object.hash(runtimeType,_this.name,const DeepCollectionEquality().hash(_this.aliases));
+}
+
+@override
+String toString() {
+  final _this = this as FavoriteTag;
+  return 'FavoriteTag(name: ${_this.name}, aliases: ${_this.aliases})';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $FavoriteTagCopyWith<$Res>  {
+  factory $FavoriteTagCopyWith(FavoriteTag value, $Res Function(FavoriteTag) _then) = _$FavoriteTagCopyWithImpl;
+@useResult
+$Res call({
+ String name, List<String> aliases
+});
+
+
+
+
+}
+/// @nodoc
+class _$FavoriteTagCopyWithImpl<$Res>
+    implements $FavoriteTagCopyWith<$Res> {
+  _$FavoriteTagCopyWithImpl(this._self, this._then);
+
+  final FavoriteTag _self;
+  final $Res Function(FavoriteTag) _then;
+
+/// Create a copy of FavoriteTag
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? aliases = null,}) {
+  return _then(FavoriteTag(
+name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,aliases: null == aliases ? _self.aliases : aliases // ignore: cast_nullable_to_non_nullable
+as List<String>,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [FavoriteTag].
+extension FavoriteTagPatterns on FavoriteTag {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _FavoriteTag value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _FavoriteTag() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _FavoriteTag value)  $default,){
+final _that = this;
+switch (_that) {
+case _FavoriteTag():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _FavoriteTag value)?  $default,){
+final _that = this;
+switch (_that) {
+case _FavoriteTag() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  List<String> aliases)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _FavoriteTag() when $default != null:
+return $default(_that.name,_that.aliases);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  List<String> aliases)  $default,) {final _that = this;
+switch (_that) {
+case _FavoriteTag():
+return $default(_that.name,_that.aliases);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  List<String> aliases)?  $default,) {final _that = this;
+switch (_that) {
+case _FavoriteTag() when $default != null:
+return $default(_that.name,_that.aliases);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _FavoriteTag implements FavoriteTag {
+  const _FavoriteTag({this.name = '',  List<String> aliases = const []}): _aliases = aliases;
+  factory _FavoriteTag.fromJson(Map<String, dynamic> json) => _$FavoriteTagFromJson(json);
+
+@override@JsonKey() final  String name;
+ final  List<String> _aliases;
+@override@JsonKey() List<String> get aliases {
+  if (_aliases is EqualUnmodifiableListView) return _aliases;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_aliases);
+}
+
+
+/// Create a copy of FavoriteTag
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$FavoriteTagCopyWith<_FavoriteTag> get copyWith => __$FavoriteTagCopyWithImpl<_FavoriteTag>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$FavoriteTagToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _FavoriteTag&&(identical(other.name, name) || other.name == name)&&const DeepCollectionEquality().equals(other.aliases, _aliases));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+    return Object.hash(runtimeType,name,const DeepCollectionEquality().hash(_aliases));
+}
+
+@override
+String toString() {
+    return 'FavoriteTag(name: $name, aliases: $aliases)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$FavoriteTagCopyWith<$Res> implements $FavoriteTagCopyWith<$Res> {
+  factory _$FavoriteTagCopyWith(_FavoriteTag value, $Res Function(_FavoriteTag) _then) = __$FavoriteTagCopyWithImpl;
+@override @useResult
+$Res call({
+ String name, List<String> aliases
+});
+
+
+
+
+}
+/// @nodoc
+class __$FavoriteTagCopyWithImpl<$Res>
+    implements _$FavoriteTagCopyWith<$Res> {
+  __$FavoriteTagCopyWithImpl(this._self, this._then);
+
+  final _FavoriteTag _self;
+  final $Res Function(_FavoriteTag) _then;
+
+/// Create a copy of FavoriteTag
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? aliases = null,}) {
+  return _then(_FavoriteTag(
+name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,aliases: null == aliases ? _self._aliases : aliases // ignore: cast_nullable_to_non_nullable
+as List<String>,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$FavoriteTagSettingState {
+
+ bool get highlightEnabled; List<FavoriteTag> get tags;
+/// Create a copy of FavoriteTagSettingState
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$FavoriteTagSettingStateCopyWith<FavoriteTagSettingState> get copyWith => _$FavoriteTagSettingStateCopyWithImpl<FavoriteTagSettingState>(this as FavoriteTagSettingState, _$identity);
+
+  /// Serializes this FavoriteTagSettingState to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  final _this = this as FavoriteTagSettingState;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FavoriteTagSettingState&&(identical(other.highlightEnabled, _this.highlightEnabled) || other.highlightEnabled == _this.highlightEnabled)&&const DeepCollectionEquality().equals(other.tags, _this.tags));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+  final _this = this as FavoriteTagSettingState;
+  return Object.hash(runtimeType,_this.highlightEnabled,const DeepCollectionEquality().hash(_this.tags));
+}
+
+@override
+String toString() {
+  final _this = this as FavoriteTagSettingState;
+  return 'FavoriteTagSettingState(highlightEnabled: ${_this.highlightEnabled}, tags: ${_this.tags})';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $FavoriteTagSettingStateCopyWith<$Res>  {
+  factory $FavoriteTagSettingStateCopyWith(FavoriteTagSettingState value, $Res Function(FavoriteTagSettingState) _then) = _$FavoriteTagSettingStateCopyWithImpl;
+@useResult
+$Res call({
+ bool highlightEnabled, List<FavoriteTag> tags
+});
+
+
+
+
+}
+/// @nodoc
+class _$FavoriteTagSettingStateCopyWithImpl<$Res>
+    implements $FavoriteTagSettingStateCopyWith<$Res> {
+  _$FavoriteTagSettingStateCopyWithImpl(this._self, this._then);
+
+  final FavoriteTagSettingState _self;
+  final $Res Function(FavoriteTagSettingState) _then;
+
+/// Create a copy of FavoriteTagSettingState
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? highlightEnabled = null,Object? tags = null,}) {
+  return _then(FavoriteTagSettingState(
+highlightEnabled: null == highlightEnabled ? _self.highlightEnabled : highlightEnabled // ignore: cast_nullable_to_non_nullable
+as bool,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
+as List<FavoriteTag>,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [FavoriteTagSettingState].
+extension FavoriteTagSettingStatePatterns on FavoriteTagSettingState {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _FavoriteTagSettingState value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _FavoriteTagSettingState() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _FavoriteTagSettingState value)  $default,){
+final _that = this;
+switch (_that) {
+case _FavoriteTagSettingState():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _FavoriteTagSettingState value)?  $default,){
+final _that = this;
+switch (_that) {
+case _FavoriteTagSettingState() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool highlightEnabled,  List<FavoriteTag> tags)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _FavoriteTagSettingState() when $default != null:
+return $default(_that.highlightEnabled,_that.tags);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool highlightEnabled,  List<FavoriteTag> tags)  $default,) {final _that = this;
+switch (_that) {
+case _FavoriteTagSettingState():
+return $default(_that.highlightEnabled,_that.tags);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool highlightEnabled,  List<FavoriteTag> tags)?  $default,) {final _that = this;
+switch (_that) {
+case _FavoriteTagSettingState() when $default != null:
+return $default(_that.highlightEnabled,_that.tags);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _FavoriteTagSettingState implements FavoriteTagSettingState {
+  const _FavoriteTagSettingState({this.highlightEnabled = true,  List<FavoriteTag> tags = const []}): _tags = tags;
+  factory _FavoriteTagSettingState.fromJson(Map<String, dynamic> json) => _$FavoriteTagSettingStateFromJson(json);
+
+@override@JsonKey() final  bool highlightEnabled;
+ final  List<FavoriteTag> _tags;
+@override@JsonKey() List<FavoriteTag> get tags {
+  if (_tags is EqualUnmodifiableListView) return _tags;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_tags);
+}
+
+
+/// Create a copy of FavoriteTagSettingState
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$FavoriteTagSettingStateCopyWith<_FavoriteTagSettingState> get copyWith => __$FavoriteTagSettingStateCopyWithImpl<_FavoriteTagSettingState>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$FavoriteTagSettingStateToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _FavoriteTagSettingState&&(identical(other.highlightEnabled, highlightEnabled) || other.highlightEnabled == highlightEnabled)&&const DeepCollectionEquality().equals(other.tags, _tags));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+    return Object.hash(runtimeType,highlightEnabled,const DeepCollectionEquality().hash(_tags));
+}
+
+@override
+String toString() {
+    return 'FavoriteTagSettingState(highlightEnabled: $highlightEnabled, tags: $tags)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$FavoriteTagSettingStateCopyWith<$Res> implements $FavoriteTagSettingStateCopyWith<$Res> {
+  factory _$FavoriteTagSettingStateCopyWith(_FavoriteTagSettingState value, $Res Function(_FavoriteTagSettingState) _then) = __$FavoriteTagSettingStateCopyWithImpl;
+@override @useResult
+$Res call({
+ bool highlightEnabled, List<FavoriteTag> tags
+});
+
+
+
+
+}
+/// @nodoc
+class __$FavoriteTagSettingStateCopyWithImpl<$Res>
+    implements _$FavoriteTagSettingStateCopyWith<$Res> {
+  __$FavoriteTagSettingStateCopyWithImpl(this._self, this._then);
+
+  final _FavoriteTagSettingState _self;
+  final $Res Function(_FavoriteTagSettingState) _then;
+
+/// Create a copy of FavoriteTagSettingState
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? highlightEnabled = null,Object? tags = null,}) {
+  return _then(_FavoriteTagSettingState(
+highlightEnabled: null == highlightEnabled ? _self.highlightEnabled : highlightEnabled // ignore: cast_nullable_to_non_nullable
+as bool,tags: null == tags ? _self._tags : tags // ignore: cast_nullable_to_non_nullable
+as List<FavoriteTag>,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$FileManagerSettingState {
+
+ bool get homeEnabled; String get homePath; bool get openHomeOnStart; bool get rememberViewState; bool get fileOperations;
+/// Create a copy of FileManagerSettingState
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$FileManagerSettingStateCopyWith<FileManagerSettingState> get copyWith => _$FileManagerSettingStateCopyWithImpl<FileManagerSettingState>(this as FileManagerSettingState, _$identity);
+
+  /// Serializes this FileManagerSettingState to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  final _this = this as FileManagerSettingState;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileManagerSettingState&&(identical(other.homeEnabled, _this.homeEnabled) || other.homeEnabled == _this.homeEnabled)&&(identical(other.homePath, _this.homePath) || other.homePath == _this.homePath)&&(identical(other.openHomeOnStart, _this.openHomeOnStart) || other.openHomeOnStart == _this.openHomeOnStart)&&(identical(other.rememberViewState, _this.rememberViewState) || other.rememberViewState == _this.rememberViewState)&&(identical(other.fileOperations, _this.fileOperations) || other.fileOperations == _this.fileOperations));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+  final _this = this as FileManagerSettingState;
+  return Object.hash(runtimeType,_this.homeEnabled,_this.homePath,_this.openHomeOnStart,_this.rememberViewState,_this.fileOperations);
+}
+
+@override
+String toString() {
+  final _this = this as FileManagerSettingState;
+  return 'FileManagerSettingState(homeEnabled: ${_this.homeEnabled}, homePath: ${_this.homePath}, openHomeOnStart: ${_this.openHomeOnStart}, rememberViewState: ${_this.rememberViewState}, fileOperations: ${_this.fileOperations})';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $FileManagerSettingStateCopyWith<$Res>  {
+  factory $FileManagerSettingStateCopyWith(FileManagerSettingState value, $Res Function(FileManagerSettingState) _then) = _$FileManagerSettingStateCopyWithImpl;
+@useResult
+$Res call({
+ bool homeEnabled, String homePath, bool openHomeOnStart, bool rememberViewState, bool fileOperations
+});
+
+
+
+
+}
+/// @nodoc
+class _$FileManagerSettingStateCopyWithImpl<$Res>
+    implements $FileManagerSettingStateCopyWith<$Res> {
+  _$FileManagerSettingStateCopyWithImpl(this._self, this._then);
+
+  final FileManagerSettingState _self;
+  final $Res Function(FileManagerSettingState) _then;
+
+/// Create a copy of FileManagerSettingState
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? homeEnabled = null,Object? homePath = null,Object? openHomeOnStart = null,Object? rememberViewState = null,Object? fileOperations = null,}) {
+  return _then(FileManagerSettingState(
+homeEnabled: null == homeEnabled ? _self.homeEnabled : homeEnabled // ignore: cast_nullable_to_non_nullable
+as bool,homePath: null == homePath ? _self.homePath : homePath // ignore: cast_nullable_to_non_nullable
+as String,openHomeOnStart: null == openHomeOnStart ? _self.openHomeOnStart : openHomeOnStart // ignore: cast_nullable_to_non_nullable
+as bool,rememberViewState: null == rememberViewState ? _self.rememberViewState : rememberViewState // ignore: cast_nullable_to_non_nullable
+as bool,fileOperations: null == fileOperations ? _self.fileOperations : fileOperations // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [FileManagerSettingState].
+extension FileManagerSettingStatePatterns on FileManagerSettingState {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _FileManagerSettingState value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _FileManagerSettingState() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _FileManagerSettingState value)  $default,){
+final _that = this;
+switch (_that) {
+case _FileManagerSettingState():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _FileManagerSettingState value)?  $default,){
+final _that = this;
+switch (_that) {
+case _FileManagerSettingState() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool homeEnabled,  String homePath,  bool openHomeOnStart,  bool rememberViewState,  bool fileOperations)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _FileManagerSettingState() when $default != null:
+return $default(_that.homeEnabled,_that.homePath,_that.openHomeOnStart,_that.rememberViewState,_that.fileOperations);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool homeEnabled,  String homePath,  bool openHomeOnStart,  bool rememberViewState,  bool fileOperations)  $default,) {final _that = this;
+switch (_that) {
+case _FileManagerSettingState():
+return $default(_that.homeEnabled,_that.homePath,_that.openHomeOnStart,_that.rememberViewState,_that.fileOperations);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool homeEnabled,  String homePath,  bool openHomeOnStart,  bool rememberViewState,  bool fileOperations)?  $default,) {final _that = this;
+switch (_that) {
+case _FileManagerSettingState() when $default != null:
+return $default(_that.homeEnabled,_that.homePath,_that.openHomeOnStart,_that.rememberViewState,_that.fileOperations);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _FileManagerSettingState implements FileManagerSettingState {
+  const _FileManagerSettingState({this.homeEnabled = true, this.homePath = '', this.openHomeOnStart = false, this.rememberViewState = true, this.fileOperations = true});
+  factory _FileManagerSettingState.fromJson(Map<String, dynamic> json) => _$FileManagerSettingStateFromJson(json);
+
+@override@JsonKey() final  bool homeEnabled;
+@override@JsonKey() final  String homePath;
+@override@JsonKey() final  bool openHomeOnStart;
+@override@JsonKey() final  bool rememberViewState;
+@override@JsonKey() final  bool fileOperations;
+
+/// Create a copy of FileManagerSettingState
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$FileManagerSettingStateCopyWith<_FileManagerSettingState> get copyWith => __$FileManagerSettingStateCopyWithImpl<_FileManagerSettingState>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$FileManagerSettingStateToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _FileManagerSettingState&&(identical(other.homeEnabled, homeEnabled) || other.homeEnabled == homeEnabled)&&(identical(other.homePath, homePath) || other.homePath == homePath)&&(identical(other.openHomeOnStart, openHomeOnStart) || other.openHomeOnStart == openHomeOnStart)&&(identical(other.rememberViewState, rememberViewState) || other.rememberViewState == rememberViewState)&&(identical(other.fileOperations, fileOperations) || other.fileOperations == fileOperations));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+    return Object.hash(runtimeType,homeEnabled,homePath,openHomeOnStart,rememberViewState,fileOperations);
+}
+
+@override
+String toString() {
+    return 'FileManagerSettingState(homeEnabled: $homeEnabled, homePath: $homePath, openHomeOnStart: $openHomeOnStart, rememberViewState: $rememberViewState, fileOperations: $fileOperations)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$FileManagerSettingStateCopyWith<$Res> implements $FileManagerSettingStateCopyWith<$Res> {
+  factory _$FileManagerSettingStateCopyWith(_FileManagerSettingState value, $Res Function(_FileManagerSettingState) _then) = __$FileManagerSettingStateCopyWithImpl;
+@override @useResult
+$Res call({
+ bool homeEnabled, String homePath, bool openHomeOnStart, bool rememberViewState, bool fileOperations
+});
+
+
+
+
+}
+/// @nodoc
+class __$FileManagerSettingStateCopyWithImpl<$Res>
+    implements _$FileManagerSettingStateCopyWith<$Res> {
+  __$FileManagerSettingStateCopyWithImpl(this._self, this._then);
+
+  final _FileManagerSettingState _self;
+  final $Res Function(_FileManagerSettingState) _then;
+
+/// Create a copy of FileManagerSettingState
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? homeEnabled = null,Object? homePath = null,Object? openHomeOnStart = null,Object? rememberViewState = null,Object? fileOperations = null,}) {
+  return _then(_FileManagerSettingState(
+homeEnabled: null == homeEnabled ? _self.homeEnabled : homeEnabled // ignore: cast_nullable_to_non_nullable
+as bool,homePath: null == homePath ? _self.homePath : homePath // ignore: cast_nullable_to_non_nullable
+as String,openHomeOnStart: null == openHomeOnStart ? _self.openHomeOnStart : openHomeOnStart // ignore: cast_nullable_to_non_nullable
+as bool,rememberViewState: null == rememberViewState ? _self.rememberViewState : rememberViewState // ignore: cast_nullable_to_non_nullable
+as bool,fileOperations: null == fileOperations ? _self.fileOperations : fileOperations // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$DiscoverSettingState {
+
+ bool get tabIconEnabled; bool get tabPluginShortEnabled; DiscoverTabBarSide get tabSide;/// 竖向轨的厚度（像素）。拖动轨内侧那条边即改这个值。
+ double get tabRailWidth;
+/// Create a copy of DiscoverSettingState
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$DiscoverSettingStateCopyWith<DiscoverSettingState> get copyWith => _$DiscoverSettingStateCopyWithImpl<DiscoverSettingState>(this as DiscoverSettingState, _$identity);
+
+  /// Serializes this DiscoverSettingState to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  final _this = this as DiscoverSettingState;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DiscoverSettingState&&(identical(other.tabIconEnabled, _this.tabIconEnabled) || other.tabIconEnabled == _this.tabIconEnabled)&&(identical(other.tabPluginShortEnabled, _this.tabPluginShortEnabled) || other.tabPluginShortEnabled == _this.tabPluginShortEnabled)&&(identical(other.tabSide, _this.tabSide) || other.tabSide == _this.tabSide)&&(identical(other.tabRailWidth, _this.tabRailWidth) || other.tabRailWidth == _this.tabRailWidth));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+  final _this = this as DiscoverSettingState;
+  return Object.hash(runtimeType,_this.tabIconEnabled,_this.tabPluginShortEnabled,_this.tabSide,_this.tabRailWidth);
+}
+
+@override
+String toString() {
+  final _this = this as DiscoverSettingState;
+  return 'DiscoverSettingState(tabIconEnabled: ${_this.tabIconEnabled}, tabPluginShortEnabled: ${_this.tabPluginShortEnabled}, tabSide: ${_this.tabSide}, tabRailWidth: ${_this.tabRailWidth})';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $DiscoverSettingStateCopyWith<$Res>  {
+  factory $DiscoverSettingStateCopyWith(DiscoverSettingState value, $Res Function(DiscoverSettingState) _then) = _$DiscoverSettingStateCopyWithImpl;
+@useResult
+$Res call({
+ bool tabIconEnabled, bool tabPluginShortEnabled, DiscoverTabBarSide tabSide, double tabRailWidth
+});
+
+
+
+
+}
+/// @nodoc
+class _$DiscoverSettingStateCopyWithImpl<$Res>
+    implements $DiscoverSettingStateCopyWith<$Res> {
+  _$DiscoverSettingStateCopyWithImpl(this._self, this._then);
+
+  final DiscoverSettingState _self;
+  final $Res Function(DiscoverSettingState) _then;
+
+/// Create a copy of DiscoverSettingState
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? tabIconEnabled = null,Object? tabPluginShortEnabled = null,Object? tabSide = null,Object? tabRailWidth = null,}) {
+  return _then(DiscoverSettingState(
+tabIconEnabled: null == tabIconEnabled ? _self.tabIconEnabled : tabIconEnabled // ignore: cast_nullable_to_non_nullable
+as bool,tabPluginShortEnabled: null == tabPluginShortEnabled ? _self.tabPluginShortEnabled : tabPluginShortEnabled // ignore: cast_nullable_to_non_nullable
+as bool,tabSide: null == tabSide ? _self.tabSide : tabSide // ignore: cast_nullable_to_non_nullable
+as DiscoverTabBarSide,tabRailWidth: null == tabRailWidth ? _self.tabRailWidth : tabRailWidth // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [DiscoverSettingState].
+extension DiscoverSettingStatePatterns on DiscoverSettingState {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _DiscoverSettingState value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _DiscoverSettingState() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _DiscoverSettingState value)  $default,){
+final _that = this;
+switch (_that) {
+case _DiscoverSettingState():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _DiscoverSettingState value)?  $default,){
+final _that = this;
+switch (_that) {
+case _DiscoverSettingState() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool tabIconEnabled,  bool tabPluginShortEnabled,  DiscoverTabBarSide tabSide,  double tabRailWidth)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _DiscoverSettingState() when $default != null:
+return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide,_that.tabRailWidth);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool tabIconEnabled,  bool tabPluginShortEnabled,  DiscoverTabBarSide tabSide,  double tabRailWidth)  $default,) {final _that = this;
+switch (_that) {
+case _DiscoverSettingState():
+return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide,_that.tabRailWidth);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool tabIconEnabled,  bool tabPluginShortEnabled,  DiscoverTabBarSide tabSide,  double tabRailWidth)?  $default,) {final _that = this;
+switch (_that) {
+case _DiscoverSettingState() when $default != null:
+return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide,_that.tabRailWidth);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _DiscoverSettingState implements DiscoverSettingState {
+  const _DiscoverSettingState({this.tabIconEnabled = true, this.tabPluginShortEnabled = true, this.tabSide = DiscoverTabBarSide.top, this.tabRailWidth = 132.0});
+  factory _DiscoverSettingState.fromJson(Map<String, dynamic> json) => _$DiscoverSettingStateFromJson(json);
+
+@override@JsonKey() final  bool tabIconEnabled;
+@override@JsonKey() final  bool tabPluginShortEnabled;
+@override@JsonKey() final  DiscoverTabBarSide tabSide;
+/// 竖向轨的厚度（像素）。拖动轨内侧那条边即改这个值。
+@override@JsonKey() final  double tabRailWidth;
+
+/// Create a copy of DiscoverSettingState
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$DiscoverSettingStateCopyWith<_DiscoverSettingState> get copyWith => __$DiscoverSettingStateCopyWithImpl<_DiscoverSettingState>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$DiscoverSettingStateToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _DiscoverSettingState&&(identical(other.tabIconEnabled, tabIconEnabled) || other.tabIconEnabled == tabIconEnabled)&&(identical(other.tabPluginShortEnabled, tabPluginShortEnabled) || other.tabPluginShortEnabled == tabPluginShortEnabled)&&(identical(other.tabSide, tabSide) || other.tabSide == tabSide)&&(identical(other.tabRailWidth, tabRailWidth) || other.tabRailWidth == tabRailWidth));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+    return Object.hash(runtimeType,tabIconEnabled,tabPluginShortEnabled,tabSide,tabRailWidth);
+}
+
+@override
+String toString() {
+    return 'DiscoverSettingState(tabIconEnabled: $tabIconEnabled, tabPluginShortEnabled: $tabPluginShortEnabled, tabSide: $tabSide, tabRailWidth: $tabRailWidth)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$DiscoverSettingStateCopyWith<$Res> implements $DiscoverSettingStateCopyWith<$Res> {
+  factory _$DiscoverSettingStateCopyWith(_DiscoverSettingState value, $Res Function(_DiscoverSettingState) _then) = __$DiscoverSettingStateCopyWithImpl;
+@override @useResult
+$Res call({
+ bool tabIconEnabled, bool tabPluginShortEnabled, DiscoverTabBarSide tabSide, double tabRailWidth
+});
+
+
+
+
+}
+/// @nodoc
+class __$DiscoverSettingStateCopyWithImpl<$Res>
+    implements _$DiscoverSettingStateCopyWith<$Res> {
+  __$DiscoverSettingStateCopyWithImpl(this._self, this._then);
+
+  final _DiscoverSettingState _self;
+  final $Res Function(_DiscoverSettingState) _then;
+
+/// Create a copy of DiscoverSettingState
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? tabIconEnabled = null,Object? tabPluginShortEnabled = null,Object? tabSide = null,Object? tabRailWidth = null,}) {
+  return _then(_DiscoverSettingState(
+tabIconEnabled: null == tabIconEnabled ? _self.tabIconEnabled : tabIconEnabled // ignore: cast_nullable_to_non_nullable
+as bool,tabPluginShortEnabled: null == tabPluginShortEnabled ? _self.tabPluginShortEnabled : tabPluginShortEnabled // ignore: cast_nullable_to_non_nullable
+as bool,tabSide: null == tabSide ? _self.tabSide : tabSide // ignore: cast_nullable_to_non_nullable
+as DiscoverTabBarSide,tabRailWidth: null == tabRailWidth ? _self.tabRailWidth : tabRailWidth // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$OperationBindingSettingState {
+
+/// 总开关：开=按键/点击经绑定表解析；关=走改造前的硬编码判断。
+ bool get bindingsRuntime; String get bindingsJson;/// 轮盘的**形状**（核心 `RadialConfig` 的 JSON：几个轮盘 / 几层 / 半径 /
+/// 生效项，外加轮盘自己的总开关）。
+///
+/// 为什么不并进 [bindingsJson]：两者是两件事 —— 这份只有形状，槽位「干什么」
+/// 仍然是绑定表里那些 `device: radial` 的行。于是轮盘与键盘、点击同权，
+/// 共用同一个解析器与同一套冲突判定，不需要为它写第二遍判断。
+/// 空串 = 还没播种（首次启动用核心的出厂值填上）。
+ String get radialJson;/// 滚轮方向词按**手推的方向**算，而不是按内容走的方向。
+///
+/// `null` = 跟随平台：macOS 的 `scrollDelta.dy` 已经带过系统「自然滚动」那一次反转，
+/// 默认再翻一次才等于用户心里的「下滚」；其它平台不翻。用户在这颗开关上表过态就永远
+/// 听他的。**它不进 bindingsJson** —— 手方向是一台设备的属性，不该跟着绑定包导入导出。
+ bool? get invertWheelDirection;
+/// Create a copy of OperationBindingSettingState
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$OperationBindingSettingStateCopyWith<OperationBindingSettingState> get copyWith => _$OperationBindingSettingStateCopyWithImpl<OperationBindingSettingState>(this as OperationBindingSettingState, _$identity);
+
+  /// Serializes this OperationBindingSettingState to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  final _this = this as OperationBindingSettingState;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OperationBindingSettingState&&(identical(other.bindingsRuntime, _this.bindingsRuntime) || other.bindingsRuntime == _this.bindingsRuntime)&&(identical(other.bindingsJson, _this.bindingsJson) || other.bindingsJson == _this.bindingsJson)&&(identical(other.radialJson, _this.radialJson) || other.radialJson == _this.radialJson)&&(identical(other.invertWheelDirection, _this.invertWheelDirection) || other.invertWheelDirection == _this.invertWheelDirection));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+  final _this = this as OperationBindingSettingState;
+  return Object.hash(runtimeType,_this.bindingsRuntime,_this.bindingsJson,_this.radialJson,_this.invertWheelDirection);
+}
+
+@override
+String toString() {
+  final _this = this as OperationBindingSettingState;
+  return 'OperationBindingSettingState(bindingsRuntime: ${_this.bindingsRuntime}, bindingsJson: ${_this.bindingsJson}, radialJson: ${_this.radialJson}, invertWheelDirection: ${_this.invertWheelDirection})';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $OperationBindingSettingStateCopyWith<$Res>  {
+  factory $OperationBindingSettingStateCopyWith(OperationBindingSettingState value, $Res Function(OperationBindingSettingState) _then) = _$OperationBindingSettingStateCopyWithImpl;
+@useResult
+$Res call({
+ bool bindingsRuntime, String bindingsJson, String radialJson, bool? invertWheelDirection
+});
+
+
+
+
+}
+/// @nodoc
+class _$OperationBindingSettingStateCopyWithImpl<$Res>
+    implements $OperationBindingSettingStateCopyWith<$Res> {
+  _$OperationBindingSettingStateCopyWithImpl(this._self, this._then);
+
+  final OperationBindingSettingState _self;
+  final $Res Function(OperationBindingSettingState) _then;
+
+/// Create a copy of OperationBindingSettingState
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? bindingsRuntime = null,Object? bindingsJson = null,Object? radialJson = null,Object? invertWheelDirection = freezed,}) {
+  return _then(OperationBindingSettingState(
+bindingsRuntime: null == bindingsRuntime ? _self.bindingsRuntime : bindingsRuntime // ignore: cast_nullable_to_non_nullable
+as bool,bindingsJson: null == bindingsJson ? _self.bindingsJson : bindingsJson // ignore: cast_nullable_to_non_nullable
+as String,radialJson: null == radialJson ? _self.radialJson : radialJson // ignore: cast_nullable_to_non_nullable
+as String,invertWheelDirection: freezed == invertWheelDirection ? _self.invertWheelDirection : invertWheelDirection // ignore: cast_nullable_to_non_nullable
+as bool?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [OperationBindingSettingState].
+extension OperationBindingSettingStatePatterns on OperationBindingSettingState {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _OperationBindingSettingState value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _OperationBindingSettingState() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _OperationBindingSettingState value)  $default,){
+final _that = this;
+switch (_that) {
+case _OperationBindingSettingState():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _OperationBindingSettingState value)?  $default,){
+final _that = this;
+switch (_that) {
+case _OperationBindingSettingState() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool bindingsRuntime,  String bindingsJson,  String radialJson,  bool? invertWheelDirection)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _OperationBindingSettingState() when $default != null:
+return $default(_that.bindingsRuntime,_that.bindingsJson,_that.radialJson,_that.invertWheelDirection);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool bindingsRuntime,  String bindingsJson,  String radialJson,  bool? invertWheelDirection)  $default,) {final _that = this;
+switch (_that) {
+case _OperationBindingSettingState():
+return $default(_that.bindingsRuntime,_that.bindingsJson,_that.radialJson,_that.invertWheelDirection);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool bindingsRuntime,  String bindingsJson,  String radialJson,  bool? invertWheelDirection)?  $default,) {final _that = this;
+switch (_that) {
+case _OperationBindingSettingState() when $default != null:
+return $default(_that.bindingsRuntime,_that.bindingsJson,_that.radialJson,_that.invertWheelDirection);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _OperationBindingSettingState implements OperationBindingSettingState {
+  const _OperationBindingSettingState({this.bindingsRuntime = true, this.bindingsJson = '', this.radialJson = '', this.invertWheelDirection});
+  factory _OperationBindingSettingState.fromJson(Map<String, dynamic> json) => _$OperationBindingSettingStateFromJson(json);
+
+/// 总开关：开=按键/点击经绑定表解析；关=走改造前的硬编码判断。
+@override@JsonKey() final  bool bindingsRuntime;
+@override@JsonKey() final  String bindingsJson;
+/// 轮盘的**形状**（核心 `RadialConfig` 的 JSON：几个轮盘 / 几层 / 半径 /
+/// 生效项，外加轮盘自己的总开关）。
+///
+/// 为什么不并进 [bindingsJson]：两者是两件事 —— 这份只有形状，槽位「干什么」
+/// 仍然是绑定表里那些 `device: radial` 的行。于是轮盘与键盘、点击同权，
+/// 共用同一个解析器与同一套冲突判定，不需要为它写第二遍判断。
+/// 空串 = 还没播种（首次启动用核心的出厂值填上）。
+@override@JsonKey() final  String radialJson;
+/// 滚轮方向词按**手推的方向**算，而不是按内容走的方向。
+///
+/// `null` = 跟随平台：macOS 的 `scrollDelta.dy` 已经带过系统「自然滚动」那一次反转，
+/// 默认再翻一次才等于用户心里的「下滚」；其它平台不翻。用户在这颗开关上表过态就永远
+/// 听他的。**它不进 bindingsJson** —— 手方向是一台设备的属性，不该跟着绑定包导入导出。
+@override final  bool? invertWheelDirection;
+
+/// Create a copy of OperationBindingSettingState
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$OperationBindingSettingStateCopyWith<_OperationBindingSettingState> get copyWith => __$OperationBindingSettingStateCopyWithImpl<_OperationBindingSettingState>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$OperationBindingSettingStateToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _OperationBindingSettingState&&(identical(other.bindingsRuntime, bindingsRuntime) || other.bindingsRuntime == bindingsRuntime)&&(identical(other.bindingsJson, bindingsJson) || other.bindingsJson == bindingsJson)&&(identical(other.radialJson, radialJson) || other.radialJson == radialJson)&&(identical(other.invertWheelDirection, invertWheelDirection) || other.invertWheelDirection == invertWheelDirection));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+    return Object.hash(runtimeType,bindingsRuntime,bindingsJson,radialJson,invertWheelDirection);
+}
+
+@override
+String toString() {
+    return 'OperationBindingSettingState(bindingsRuntime: $bindingsRuntime, bindingsJson: $bindingsJson, radialJson: $radialJson, invertWheelDirection: $invertWheelDirection)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$OperationBindingSettingStateCopyWith<$Res> implements $OperationBindingSettingStateCopyWith<$Res> {
+  factory _$OperationBindingSettingStateCopyWith(_OperationBindingSettingState value, $Res Function(_OperationBindingSettingState) _then) = __$OperationBindingSettingStateCopyWithImpl;
+@override @useResult
+$Res call({
+ bool bindingsRuntime, String bindingsJson, String radialJson, bool? invertWheelDirection
+});
+
+
+
+
+}
+/// @nodoc
+class __$OperationBindingSettingStateCopyWithImpl<$Res>
+    implements _$OperationBindingSettingStateCopyWith<$Res> {
+  __$OperationBindingSettingStateCopyWithImpl(this._self, this._then);
+
+  final _OperationBindingSettingState _self;
+  final $Res Function(_OperationBindingSettingState) _then;
+
+/// Create a copy of OperationBindingSettingState
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? bindingsRuntime = null,Object? bindingsJson = null,Object? radialJson = null,Object? invertWheelDirection = freezed,}) {
+  return _then(_OperationBindingSettingState(
+bindingsRuntime: null == bindingsRuntime ? _self.bindingsRuntime : bindingsRuntime // ignore: cast_nullable_to_non_nullable
+as bool,bindingsJson: null == bindingsJson ? _self.bindingsJson : bindingsJson // ignore: cast_nullable_to_non_nullable
+as String,radialJson: null == radialJson ? _self.radialJson : radialJson // ignore: cast_nullable_to_non_nullable
+as String,invertWheelDirection: freezed == invertWheelDirection ? _self.invertWheelDirection : invertWheelDirection // ignore: cast_nullable_to_non_nullable
+as bool?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$ComicCardSettingState {
+
+ bool get downloadBadgeEnabled; bool get translationBadgeEnabled;/// 封面正中间的「直接阅读」按钮。关掉后点封面仍然只进详情页。
+ bool get readButtonEnabled;/// 封面左上角的「收藏 tag」角标。
+ bool get favoriteTagBadgeEnabled;/// 封面右上角的「已下载但未读」标识（只在下载书架显示：有下载记录、没有任何阅读记录）。
+ bool get unreadIndicatorEnabled;/// 这颗标识画成什么样子（圆点 / 圆片 / 文字胶囊）。
+ ComicUnreadIndicatorStyle get unreadIndicatorStyle;
+/// Create a copy of ComicCardSettingState
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ComicCardSettingStateCopyWith<ComicCardSettingState> get copyWith => _$ComicCardSettingStateCopyWithImpl<ComicCardSettingState>(this as ComicCardSettingState, _$identity);
+
+  /// Serializes this ComicCardSettingState to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  final _this = this as ComicCardSettingState;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ComicCardSettingState&&(identical(other.downloadBadgeEnabled, _this.downloadBadgeEnabled) || other.downloadBadgeEnabled == _this.downloadBadgeEnabled)&&(identical(other.translationBadgeEnabled, _this.translationBadgeEnabled) || other.translationBadgeEnabled == _this.translationBadgeEnabled)&&(identical(other.readButtonEnabled, _this.readButtonEnabled) || other.readButtonEnabled == _this.readButtonEnabled)&&(identical(other.favoriteTagBadgeEnabled, _this.favoriteTagBadgeEnabled) || other.favoriteTagBadgeEnabled == _this.favoriteTagBadgeEnabled)&&(identical(other.unreadIndicatorEnabled, _this.unreadIndicatorEnabled) || other.unreadIndicatorEnabled == _this.unreadIndicatorEnabled)&&(identical(other.unreadIndicatorStyle, _this.unreadIndicatorStyle) || other.unreadIndicatorStyle == _this.unreadIndicatorStyle));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+  final _this = this as ComicCardSettingState;
+  return Object.hash(runtimeType,_this.downloadBadgeEnabled,_this.translationBadgeEnabled,_this.readButtonEnabled,_this.favoriteTagBadgeEnabled,_this.unreadIndicatorEnabled,_this.unreadIndicatorStyle);
+}
+
+@override
+String toString() {
+  final _this = this as ComicCardSettingState;
+  return 'ComicCardSettingState(downloadBadgeEnabled: ${_this.downloadBadgeEnabled}, translationBadgeEnabled: ${_this.translationBadgeEnabled}, readButtonEnabled: ${_this.readButtonEnabled}, favoriteTagBadgeEnabled: ${_this.favoriteTagBadgeEnabled}, unreadIndicatorEnabled: ${_this.unreadIndicatorEnabled}, unreadIndicatorStyle: ${_this.unreadIndicatorStyle})';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ComicCardSettingStateCopyWith<$Res>  {
+  factory $ComicCardSettingStateCopyWith(ComicCardSettingState value, $Res Function(ComicCardSettingState) _then) = _$ComicCardSettingStateCopyWithImpl;
+@useResult
+$Res call({
+ bool downloadBadgeEnabled, bool translationBadgeEnabled, bool readButtonEnabled, bool favoriteTagBadgeEnabled, bool unreadIndicatorEnabled, ComicUnreadIndicatorStyle unreadIndicatorStyle
+});
+
+
+
+
+}
+/// @nodoc
+class _$ComicCardSettingStateCopyWithImpl<$Res>
+    implements $ComicCardSettingStateCopyWith<$Res> {
+  _$ComicCardSettingStateCopyWithImpl(this._self, this._then);
+
+  final ComicCardSettingState _self;
+  final $Res Function(ComicCardSettingState) _then;
+
+/// Create a copy of ComicCardSettingState
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? downloadBadgeEnabled = null,Object? translationBadgeEnabled = null,Object? readButtonEnabled = null,Object? favoriteTagBadgeEnabled = null,Object? unreadIndicatorEnabled = null,Object? unreadIndicatorStyle = null,}) {
+  return _then(ComicCardSettingState(
+downloadBadgeEnabled: null == downloadBadgeEnabled ? _self.downloadBadgeEnabled : downloadBadgeEnabled // ignore: cast_nullable_to_non_nullable
+as bool,translationBadgeEnabled: null == translationBadgeEnabled ? _self.translationBadgeEnabled : translationBadgeEnabled // ignore: cast_nullable_to_non_nullable
+as bool,readButtonEnabled: null == readButtonEnabled ? _self.readButtonEnabled : readButtonEnabled // ignore: cast_nullable_to_non_nullable
+as bool,favoriteTagBadgeEnabled: null == favoriteTagBadgeEnabled ? _self.favoriteTagBadgeEnabled : favoriteTagBadgeEnabled // ignore: cast_nullable_to_non_nullable
+as bool,unreadIndicatorEnabled: null == unreadIndicatorEnabled ? _self.unreadIndicatorEnabled : unreadIndicatorEnabled // ignore: cast_nullable_to_non_nullable
+as bool,unreadIndicatorStyle: null == unreadIndicatorStyle ? _self.unreadIndicatorStyle : unreadIndicatorStyle // ignore: cast_nullable_to_non_nullable
+as ComicUnreadIndicatorStyle,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [ComicCardSettingState].
+extension ComicCardSettingStatePatterns on ComicCardSettingState {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ComicCardSettingState value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ComicCardSettingState() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ComicCardSettingState value)  $default,){
+final _that = this;
+switch (_that) {
+case _ComicCardSettingState():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ComicCardSettingState value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ComicCardSettingState() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool downloadBadgeEnabled,  bool translationBadgeEnabled,  bool readButtonEnabled,  bool favoriteTagBadgeEnabled,  bool unreadIndicatorEnabled,  ComicUnreadIndicatorStyle unreadIndicatorStyle)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ComicCardSettingState() when $default != null:
+return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.readButtonEnabled,_that.favoriteTagBadgeEnabled,_that.unreadIndicatorEnabled,_that.unreadIndicatorStyle);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool downloadBadgeEnabled,  bool translationBadgeEnabled,  bool readButtonEnabled,  bool favoriteTagBadgeEnabled,  bool unreadIndicatorEnabled,  ComicUnreadIndicatorStyle unreadIndicatorStyle)  $default,) {final _that = this;
+switch (_that) {
+case _ComicCardSettingState():
+return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.readButtonEnabled,_that.favoriteTagBadgeEnabled,_that.unreadIndicatorEnabled,_that.unreadIndicatorStyle);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool downloadBadgeEnabled,  bool translationBadgeEnabled,  bool readButtonEnabled,  bool favoriteTagBadgeEnabled,  bool unreadIndicatorEnabled,  ComicUnreadIndicatorStyle unreadIndicatorStyle)?  $default,) {final _that = this;
+switch (_that) {
+case _ComicCardSettingState() when $default != null:
+return $default(_that.downloadBadgeEnabled,_that.translationBadgeEnabled,_that.readButtonEnabled,_that.favoriteTagBadgeEnabled,_that.unreadIndicatorEnabled,_that.unreadIndicatorStyle);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _ComicCardSettingState implements ComicCardSettingState {
+  const _ComicCardSettingState({this.downloadBadgeEnabled = true, this.translationBadgeEnabled = true, this.readButtonEnabled = true, this.favoriteTagBadgeEnabled = true, this.unreadIndicatorEnabled = true, this.unreadIndicatorStyle = ComicUnreadIndicatorStyle.label});
+  factory _ComicCardSettingState.fromJson(Map<String, dynamic> json) => _$ComicCardSettingStateFromJson(json);
+
+@override@JsonKey() final  bool downloadBadgeEnabled;
+@override@JsonKey() final  bool translationBadgeEnabled;
+/// 封面正中间的「直接阅读」按钮。关掉后点封面仍然只进详情页。
+@override@JsonKey() final  bool readButtonEnabled;
+/// 封面左上角的「收藏 tag」角标。
+@override@JsonKey() final  bool favoriteTagBadgeEnabled;
+/// 封面右上角的「已下载但未读」标识（只在下载书架显示：有下载记录、没有任何阅读记录）。
+@override@JsonKey() final  bool unreadIndicatorEnabled;
+/// 这颗标识画成什么样子（圆点 / 圆片 / 文字胶囊）。
+@override@JsonKey() final  ComicUnreadIndicatorStyle unreadIndicatorStyle;
+
+/// Create a copy of ComicCardSettingState
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ComicCardSettingStateCopyWith<_ComicCardSettingState> get copyWith => __$ComicCardSettingStateCopyWithImpl<_ComicCardSettingState>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ComicCardSettingStateToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ComicCardSettingState&&(identical(other.downloadBadgeEnabled, downloadBadgeEnabled) || other.downloadBadgeEnabled == downloadBadgeEnabled)&&(identical(other.translationBadgeEnabled, translationBadgeEnabled) || other.translationBadgeEnabled == translationBadgeEnabled)&&(identical(other.readButtonEnabled, readButtonEnabled) || other.readButtonEnabled == readButtonEnabled)&&(identical(other.favoriteTagBadgeEnabled, favoriteTagBadgeEnabled) || other.favoriteTagBadgeEnabled == favoriteTagBadgeEnabled)&&(identical(other.unreadIndicatorEnabled, unreadIndicatorEnabled) || other.unreadIndicatorEnabled == unreadIndicatorEnabled)&&(identical(other.unreadIndicatorStyle, unreadIndicatorStyle) || other.unreadIndicatorStyle == unreadIndicatorStyle));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode {
+    return Object.hash(runtimeType,downloadBadgeEnabled,translationBadgeEnabled,readButtonEnabled,favoriteTagBadgeEnabled,unreadIndicatorEnabled,unreadIndicatorStyle);
+}
+
+@override
+String toString() {
+    return 'ComicCardSettingState(downloadBadgeEnabled: $downloadBadgeEnabled, translationBadgeEnabled: $translationBadgeEnabled, readButtonEnabled: $readButtonEnabled, favoriteTagBadgeEnabled: $favoriteTagBadgeEnabled, unreadIndicatorEnabled: $unreadIndicatorEnabled, unreadIndicatorStyle: $unreadIndicatorStyle)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ComicCardSettingStateCopyWith<$Res> implements $ComicCardSettingStateCopyWith<$Res> {
+  factory _$ComicCardSettingStateCopyWith(_ComicCardSettingState value, $Res Function(_ComicCardSettingState) _then) = __$ComicCardSettingStateCopyWithImpl;
+@override @useResult
+$Res call({
+ bool downloadBadgeEnabled, bool translationBadgeEnabled, bool readButtonEnabled, bool favoriteTagBadgeEnabled, bool unreadIndicatorEnabled, ComicUnreadIndicatorStyle unreadIndicatorStyle
+});
+
+
+
+
+}
+/// @nodoc
+class __$ComicCardSettingStateCopyWithImpl<$Res>
+    implements _$ComicCardSettingStateCopyWith<$Res> {
+  __$ComicCardSettingStateCopyWithImpl(this._self, this._then);
+
+  final _ComicCardSettingState _self;
+  final $Res Function(_ComicCardSettingState) _then;
+
+/// Create a copy of ComicCardSettingState
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? downloadBadgeEnabled = null,Object? translationBadgeEnabled = null,Object? readButtonEnabled = null,Object? favoriteTagBadgeEnabled = null,Object? unreadIndicatorEnabled = null,Object? unreadIndicatorStyle = null,}) {
+  return _then(_ComicCardSettingState(
+downloadBadgeEnabled: null == downloadBadgeEnabled ? _self.downloadBadgeEnabled : downloadBadgeEnabled // ignore: cast_nullable_to_non_nullable
+as bool,translationBadgeEnabled: null == translationBadgeEnabled ? _self.translationBadgeEnabled : translationBadgeEnabled // ignore: cast_nullable_to_non_nullable
+as bool,readButtonEnabled: null == readButtonEnabled ? _self.readButtonEnabled : readButtonEnabled // ignore: cast_nullable_to_non_nullable
+as bool,favoriteTagBadgeEnabled: null == favoriteTagBadgeEnabled ? _self.favoriteTagBadgeEnabled : favoriteTagBadgeEnabled // ignore: cast_nullable_to_non_nullable
+as bool,unreadIndicatorEnabled: null == unreadIndicatorEnabled ? _self.unreadIndicatorEnabled : unreadIndicatorEnabled // ignore: cast_nullable_to_non_nullable
+as bool,unreadIndicatorStyle: null == unreadIndicatorStyle ? _self.unreadIndicatorStyle : unreadIndicatorStyle // ignore: cast_nullable_to_non_nullable
+as ComicUnreadIndicatorStyle,
   ));
 }
 

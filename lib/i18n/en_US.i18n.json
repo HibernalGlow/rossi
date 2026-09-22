@@ -895,6 +895,8 @@
     "readingDirectionToggleRightOpen": "Right-opening now (next page on the right) · tap for left-opening",
     "readingDirectionToggleDisabled": "Webtoon mode has no horizontal reading direction",
     "readingDirectionToggleSetting": "Show reading direction toggle in top bar",
+    "swipePreview": "Page-turn preview",
+    "swipePreviewSubtitle": "Show the actual image on both sides while turning, instead of a large page-number placeholder (decodes one extra viewport-width bitmap per page)",
     "doublePage": "Double page",
     "doublePageSubtitle": "Enable double-page spread in current reading mode",
     "doublePageSeamless": "Seamless double page",

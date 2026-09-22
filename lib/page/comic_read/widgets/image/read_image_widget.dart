@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -14,7 +12,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/animated_local_page.dart';
 import 'package:zephyr/reader/image_surface.dart';
-import 'package:zephyr/reader/page_source.dart';
+import 'package:zephyr/reader/neighbor_page_prefetch.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
 import 'package:zephyr/video/service/video_progress_store.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_fullscreen_scope.dart';
@@ -169,20 +167,51 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
       // 不再写死 context.screenWidth，继承父容器传入的约束（contentWidth），
       // 消除 RenderFlex overflowed 导致的红黄条纹色块。
       //
-      // 非当前页仍然要**提前把这一页解好**，否则就退回成了“翻到才解”：
-      // 以前邻页自带一个 ImageSurface，顺手就把下一页解出来并推上纹理；
-      // 改成只让当前页上屏之后，这个副作用也跟着没了，翻页就要现场等
-      // 400–500 ms 的解码。所以要显式补一个**只预取、不上屏**的入口。
+      // ── 谁画什么：翻页那两半都得有画面 ──
+      //
+      // 共享纹理只有一张，而且它归**当前页**用。滑动期间旧页与新页谁都不是
+      // 当前页，两边都只能画**自己那份位图** —— 所以每个槽位都挂 `ImageSurface`：
+      // 当前页那个额外负责推上屏（`drivesPresentation`），邻页那个只画自己。
+      //
+      // 老做法是让非当前页画一个 `fontSize: 150` 的页码占位。那是「还没有像素」
+      // 的显示，而现在邻页本来就有像素（它自己在解），没理由再顶一个大数字，
+      // 翻页时也不该先看到号码再看图。
+      //
+      // 非当前页**仍然要提前把这一页解好**：改成只让当前页上屏之后，
+      // 「邻页顺手把下一页解出来」的副作用一起没了，翻页就要现场等 400–500 ms。
+      // 所以除了邻页自己解那张预览位图，还要补一个**只预取、不上屏**的入口
+      // （`NeighborPagePrefetch`），让 native 侧把这一页的渲染帧也提前备好。
+      //
+      // 但"提前解"还不够，它得**在用户翻过去之前解完**。连翻时纹理那条路来不及：
+      // 预取准入（`decide_prefetch_allowed`）在每次翻页后 100 ms 内一律拦住预取，
+      // 而一次 `prepare` 本身要 200–300 ms —— 于是每一页都成了"新图"，
+      // 翻过去现场解码，那一瞬两条路同时没料，透出阅读底色（也就是"黑一下"）。
+      // 位图这条是唯一不占那条串行队列的兜底，所以它的**到达时间**才是关键：
+      // 邻页按 `bitmapWidthScale` 缩小了解（见 `kNeighborBitmapWidthScale`），
+      // 先让那一半有像素，清晰度交给紧跟着的纹理帧。
+      final bool swipePreview = readSetting.swipePreviewEnabled;
       final Widget staticRoute =
           source != null && GpuPresentController.isPlatformSupported
           ? Stack(
               fit: StackFit.expand,
               children: <Widget>[
-                if (isActiveSlot)
+                if (isActiveSlot || swipePreview)
                   ImageSurface(
                     source: source,
                     index: localIndex,
                     presenter: presenter,
+                    // 只有当前页推共享纹理：两个 slot 都推就是 Ping-Pong 拔河
+                    // （同一张纹理被交替覆写）—— 那就是红黄闪的成因。
+                    drivesPresentation: isActiveSlot,
+                    // 关掉「翻页预览」即退回老行为：上屏成功就释放位图。
+                    holdOwnBitmap: swipePreview,
+                    // 邻页那份位图是**翻页滑动那两半**的画面，它必须在用户翻过去的
+                    // 那一瞬间就位 —— 等一次 300–400 ms 的全宽解码等于没修。按
+                    // [kNeighborBitmapWidthScale] 缩小，先有像素，再让纹理帧换成全清。
+                    // 当前页那份是留给自己**退场**时画的，要清晰，不给系数。
+                    bitmapWidthScale: isActiveSlot
+                        ? 1.0
+                        : kNeighborBitmapWidthScale,
                     onIntrinsicSize: (size) => context
                         .read<ImageSizeCubit>()
                         .updateIntrinsicSize(cacheIndex, size),
@@ -193,7 +222,7 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
                     foregroundColor: foregroundColor,
                   ),
                 if (!isActiveSlot)
-                  _NeighborPrefetch(
+                  NeighborPagePrefetch(
                     source: source,
                     index: localIndex,
                     presenter: presenter,
@@ -317,88 +346,4 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
       ),
     ),
   );
-}
-
-/// 邻页的「只预取、不上屏」节点。
-///
-/// # 它解决的是这个回归
-///
-/// 以前每个 slot 都挂 `ImageSurface`，所以你在第 N 页时，**下一页已经被邻页 slot
-/// 解好并画在它自己那一格里了** —— 翻过去是瞬间的。为了避免多个 slot 抢唯一那张
-/// 上屏纹理（Ping-Pong → 红黄闪），改成只有当前页挂 `ImageSurface` 之后，这个
-/// 「顺手把邻页解好」的副作用一起消失了，翻页退回成现场等 400–500 ms 的解码。
-///
-/// 本节点把丢掉的那部分单独补回来：它照常请求 native 侧解码并生成当前视口尺寸的
-/// 预渲染帧（翻过去时 `show` 就能 <1 ms 命中），但**不写用户的 display buffer**，
-/// 所以不会跟当前页抢纹理。
-///
-/// 它自己**不画任何东西**（`SizedBox.shrink`）：画面由占位或 `ImageSurface` 负责，
-/// 这里只借 Flutter 的布局算出物理尺寸去发一次请求。
-class _NeighborPrefetch extends StatefulWidget {
-  const _NeighborPrefetch({
-    required this.source,
-    required this.index,
-    required this.presenter,
-  });
-
-  final PageSource source;
-  final int index;
-  final GpuPresentController presenter;
-
-  @override
-  State<_NeighborPrefetch> createState() => _NeighborPrefetchState();
-}
-
-class _NeighborPrefetchState extends State<_NeighborPrefetch> {
-  /// 已发过的请求。同一页 + 同一物理尺寸只发一次 —— 这个节点会在每帧布局后
-  /// 被回调，不去重就是每帧一次跨语言往返。
-  int? _requestedIndex;
-  String? _requestedSize;
-
-  @override
-  void didUpdateWidget(_NeighborPrefetch oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.index != widget.index ||
-        !identical(oldWidget.source, widget.source)) {
-      _requestedIndex = null;
-      _requestedSize = null;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final double devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        final Size physicalSize = Size(
-          constraints.maxWidth * devicePixelRatio,
-          constraints.maxHeight * devicePixelRatio,
-        );
-        final String sizeKey =
-            '${physicalSize.width.round()}x${physicalSize.height.round()}';
-        final bool alreadyRequested =
-            _requestedIndex == widget.index && _requestedSize == sizeKey;
-        if (!alreadyRequested &&
-            physicalSize.width >= 1 &&
-            physicalSize.height >= 1) {
-          _requestedIndex = widget.index;
-          _requestedSize = sizeKey;
-          // 不能在 build 里 await：下一帧再发。
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted) {
-              return;
-            }
-            unawaited(
-              widget.presenter.prepareNeighbor(
-                source: widget.source,
-                index: widget.index,
-                physicalSize: physicalSize,
-              ),
-            );
-          });
-        }
-        return const SizedBox.shrink();
-      },
-    );
-  }
 }

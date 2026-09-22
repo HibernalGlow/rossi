@@ -420,7 +420,8 @@ void main() {
     expect(find.byType(RawImage), findsNothing);
   });
 
-  testWidgets('cancelled 不当作错误显示（那一页完全可能解得出）', (WidgetTester tester) async {
+  testWidgets('cancelled 不当作错误、也不把这一页钉死（那一页完全可能解得出）', (WidgetTester tester) async {
+    // 这份来源**每次都**回 cancelled，所以「重试用尽」那一步也一并验到。
     final _FakeSource source = _FakeSource(
       failure: PageLoadFailureKind.cancelled,
     );
@@ -428,14 +429,28 @@ void main() {
     addTearDown(presenter.dispose);
 
     await tester.pumpWidget(_host(source, 0, presenter, <ImageSurfacePath>[]));
-    await _flushDecode(tester, untilRawImage: false);
+    await tester.pump();
+    await tester.pump();
 
-    expect(find.textContaining('已经过期'), findsOneWidget);
     expect(
       find.textContaining('假失败'),
       findsNothing,
       reason: 'cancelled 被显示成了"解不了" —— 用户会据此以为这本打不开',
     );
+
+    // 从前这里的问题不在文案，在**行为**：无论哪一类失败都记进"解不了"并就此早退，
+    // 于是这一页被永久拉黑 —— 文案说"过期"（暗示会重来），代码却再也不会重来。
+    // 现在它自己安排重试（`_cancelRetry`），推一点时间就能看见第二次请求。
+    await tester.pump(const Duration(milliseconds: 150));
+    expect(source.loads.length, greaterThan(1), reason: '一次 cancelled 之后必须还会再试');
+
+    // 重试用尽（8 × 120 ms）之后才给那句中性的说明：说的是"这一次没轮到"，
+    // 不是"这一页坏了"。
+    for (int i = 0; i < 12; i++) {
+      await tester.pump(const Duration(milliseconds: 120));
+    }
+    expect(find.textContaining('已经过期'), findsOneWidget);
+    expect(find.textContaining('假失败'), findsNothing);
   });
 
   testWidgets('越界下标不取页，并说明是页码问题', (WidgetTester tester) async {

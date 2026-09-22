@@ -2793,6 +2793,12 @@ class Translations$reader$zh_CN {
 	/// zh-CN: '顶栏显示阅读方向切换'
 	String get readingDirectionToggleSetting => '顶栏显示阅读方向切换';
 
+	/// zh-CN: '翻页预览'
+	String get swipePreview => '翻页预览';
+
+	/// zh-CN: '翻页时两侧直接显示画面，不再先用大字页码占位（每页多解一张视口宽度的位图）'
+	String get swipePreviewSubtitle => '翻页时两侧直接显示画面，不再先用大字页码占位（每页多解一张视口宽度的位图）';
+
 	/// zh-CN: '双页阅读'
 	String get doublePage => '双页阅读';
 
@@ -6711,6 +6717,8 @@ extension on Translations {
 			'reader.readingDirectionToggleRightOpen' => '当前右开（下一页在右）· 点按切换为左开',
 			'reader.readingDirectionToggleDisabled' => '条漫模式没有左右翻页方向',
 			'reader.readingDirectionToggleSetting' => '顶栏显示阅读方向切换',
+			'reader.swipePreview' => '翻页预览',
+			'reader.swipePreviewSubtitle' => '翻页时两侧直接显示画面，不再先用大字页码占位（每页多解一张视口宽度的位图）',
 			'reader.doublePage' => '双页阅读',
 			'reader.doublePageSubtitle' => '在当前阅读模式中启用双页并排',
 			'reader.doublePageSeamless' => '双页无缝',
@@ -6850,10 +6858,10 @@ extension on Translations {
 			'reader.saveImagePermissionDenied' => '保存失败: 请在系统设置中授予相册访问权限',
 			'reader.imageSaveFailedWithError' => ({required Object error}) => '保存失败: ${error}',
 			'reader.radialMenuHint' => '松手执行 · 中心或 Esc 取消',
-			'reader.radialMenuHintMove' => '移动以选择',
-			'reader.radialMenuHintRelease' => '松手执行',
 			_ => null,
 		} ?? switch (path) {
+			'reader.radialMenuHintMove' => '移动以选择',
+			'reader.radialMenuHintRelease' => '松手执行',
 			'reader.radialMenuHintSwitch' => '松手切换轮盘',
 			'plugin.store' => '插件商店',
 			'plugin.searchHint' => '搜索插件名称或作者...',
@@ -7364,10 +7372,10 @@ extension on Translations {
 			'fontSetting.title' => '字体设置',
 			'fontSetting.clear' => '清空',
 			'fontSetting.hint' => '按字重分别选择字体文件。',
-			'fontSetting.loadFailed' => '字体加载失败',
-			'fontSetting.cleared' => '已清除',
 			_ => null,
 		} ?? switch (path) {
+			'fontSetting.loadFailed' => '字体加载失败',
+			'fontSetting.cleared' => '已清除',
 			'fontSetting.saved' => '已保存',
 			'fontSetting.allCleared' => '已清空',
 			'fontSetting.noFileSelected' => '未选择文件',

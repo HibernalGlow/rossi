@@ -1022,6 +1022,8 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get readingDirectionToggleRightOpen => 'Right-opening now (next page on the right) · tap for left-opening';
 	@override String get readingDirectionToggleDisabled => 'Webtoon mode has no horizontal reading direction';
 	@override String get readingDirectionToggleSetting => 'Show reading direction toggle in top bar';
+	@override String get swipePreview => 'Page-turn preview';
+	@override String get swipePreviewSubtitle => 'Show the actual image on both sides while turning, instead of a large page-number placeholder (decodes one extra viewport-width bitmap per page)';
 	@override String get doublePage => 'Double page';
 	@override String get doublePageSubtitle => 'Enable double-page spread in current reading mode';
 	@override String get doublePageSeamless => 'Seamless double page';
@@ -3110,6 +3112,8 @@ extension on TranslationsEnUs {
 			'reader.readingDirectionToggleRightOpen' => 'Right-opening now (next page on the right) · tap for left-opening',
 			'reader.readingDirectionToggleDisabled' => 'Webtoon mode has no horizontal reading direction',
 			'reader.readingDirectionToggleSetting' => 'Show reading direction toggle in top bar',
+			'reader.swipePreview' => 'Page-turn preview',
+			'reader.swipePreviewSubtitle' => 'Show the actual image on both sides while turning, instead of a large page-number placeholder (decodes one extra viewport-width bitmap per page)',
 			'reader.doublePage' => 'Double page',
 			'reader.doublePageSubtitle' => 'Enable double-page spread in current reading mode',
 			'reader.doublePageSeamless' => 'Seamless double page',
@@ -3250,10 +3254,10 @@ extension on TranslationsEnUs {
 			'reader.imageSaveFailedWithError' => ({required Object error}) => 'Save failed: ${error}',
 			'reader.radialMenuHint' => 'Release to run · centre or Esc to cancel',
 			'reader.radialMenuHintMove' => 'Move to choose',
-			'reader.radialMenuHintRelease' => 'Release to run',
-			'reader.radialMenuHintSwitch' => 'Release to switch wheel',
 			_ => null,
 		} ?? switch (path) {
+			'reader.radialMenuHintRelease' => 'Release to run',
+			'reader.radialMenuHintSwitch' => 'Release to switch wheel',
 			'plugin.store' => 'Plugin Store',
 			'plugin.searchHint' => 'Search plugin name or author...',
 			'plugin.localInstall' => 'Local install',
@@ -3764,10 +3768,10 @@ extension on TranslationsEnUs {
 			'fontSetting.clear' => 'Clear',
 			'fontSetting.hint' => 'Select font files for each weight.',
 			'fontSetting.loadFailed' => 'Font load failed',
-			'fontSetting.cleared' => 'Cleared',
-			'fontSetting.saved' => 'Saved',
 			_ => null,
 		} ?? switch (path) {
+			'fontSetting.cleared' => 'Cleared',
+			'fontSetting.saved' => 'Saved',
 			'fontSetting.allCleared' => 'All cleared',
 			'fontSetting.noFileSelected' => 'No file selected',
 			'fontSetting.clearFile' => 'Clear',

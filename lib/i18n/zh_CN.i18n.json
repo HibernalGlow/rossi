@@ -896,6 +896,8 @@
     "readingDirectionToggleRightOpen": "当前右开（下一页在右）· 点按切换为左开",
     "readingDirectionToggleDisabled": "条漫模式没有左右翻页方向",
     "readingDirectionToggleSetting": "顶栏显示阅读方向切换",
+    "swipePreview": "翻页预览",
+    "swipePreviewSubtitle": "翻页时两侧直接显示画面，不再先用大字页码占位（每页多解一张视口宽度的位图）",
     "doublePage": "双页阅读",
     "doublePageSubtitle": "在当前阅读模式中启用双页并排",
     "doublePageSeamless": "双页无缝",
