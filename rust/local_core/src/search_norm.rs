@@ -1,32 +1,32 @@
 //! Vendored directly from `vendor/mimageviewer/src/search_norm.rs` (MIT).
 //!
-//! 検索テキストの正規化関数。
+//! 搜索文本的归一化函数。
 //!
-//! **設計上の重要制約**:
-//!   インデックス作成時 (ingest の `all_text_norm` 生成)、
-//!   クエリパース時 (search_query)、
-//!   post-filter 時 (matches の text 側) の **3 箇所で同じ関数を使う**。
-//!   ズレると偽陰性が出る。 Rossi では現状 post-filter とパースの 2 箇所のみ
-//!   （`zip_entry_key` は索引側が未導入のため将来に備えた保持）。
+//! **设计上的重要约束**:
+//!   建索引时 (ingest 生成 `all_text_norm`)、
+//!   解析查询时 (search_query)、
+//!   post-filter 时 (matches 的 text 侧) **这 3 处必须用同一个函数**。
+//!   一旦不一致就会出现假阴性。Rossi 目前只有 post-filter 与解析 2 处
+//!   （`zip_entry_key` 因索引侧尚未引入，作为面向未来的保留）。
 //!
-//! v1 では `to_lowercase()` のみ。NFKC (全角/半角正規化) は v2 で検討。
-//! NFKC 導入時は `index_version` を bump して再インデックス必須。
+//! v1 仅做 `to_lowercase()`。NFKC（全角/半角归一化）留待 v2 考虑。
+//! 引入 NFKC 时必须 bump `index_version` 并重建索引。
 
-/// インデックスとクエリの両方で使う、検索マッチ用のテキスト正規化。
-/// v1: 小文字化のみ (現行 `search_query.rs` の `to_lowercase()` と整合)。
+/// 索引与查询两侧共用的、用于搜索匹配的文本归一化。
+/// v1: 仅小写化（与现行 `search_query.rs` 的 `to_lowercase()` 保持一致）。
 pub fn normalize_for_match(s: &str) -> String {
     s.to_lowercase()
 }
 
-/// ZIP 内エントリの fts_meta 上のキー表現 `<zip_path>\x1F<entry>`。
-/// path_key 正規化済みの `zip_path` と元エントリパス (slash 統一・lowercase 済み) を受け取る。
+/// ZIP 内条目在 fts_meta 上的键表示 `<zip_path>\x1F<entry>`。
+/// 接受已按 path_key 归一化的 `zip_path` 与原始条目路径（已统一为 slash、已小写化）。
 ///
-/// セパレータは ASCII Unit Separator (U+001F)。Windows / POSIX のいずれでも通常ファイル名
-/// 文字として許容されない (Windows は制御文字 0x00–0x1F をすべて禁止、POSIX でも
-/// ユーザーは普通使わない) ため、`<zip>SEP<entry>` と通常パス `c:/a/book.zip!cover.jpg`
-/// が衝突するあいまいさを構造的に排除できる (Codex P2 対応)。旧実装は `!` 区切りで、
-/// ファイル名に `!` を含む Eagle 生成ファイル等と曖昧だった。INDEX_VERSION bump で
-/// 旧データは自動再構築される。
+/// 分隔符是 ASCII Unit Separator (U+001F)。Windows / POSIX 下都不允许把它当作
+/// 普通文件名字符（Windows 禁止全部控制字符 0x00–0x1F，POSIX 下用户也基本不会用），
+/// 因此可以从结构上排除 `<zip>SEP<entry>` 与普通路径 `c:/a/book.zip!cover.jpg`
+/// 相冲突的歧义（对应 Codex P2）。旧实现用 `!` 作分隔，与文件名中含 `!` 的
+/// Eagle 生成文件等存在歧义。通过 bump INDEX_VERSION，
+/// 旧数据会自动重建。
 pub const ZIP_ENTRY_SEP: char = '\u{1F}';
 
 pub fn zip_entry_key(normalized_zip_path: &str, entry_name: &str) -> String {
@@ -45,18 +45,18 @@ mod tests {
 
     #[test]
     fn normalize_preserves_cjk() {
-        // CJK 漢字・ひらがな・カタカナは to_lowercase で変化しない
+        // CJK 汉字、平假名、片假名经 to_lowercase 不会发生变化
         assert_eq!(normalize_for_match("夕焼け"), "夕焼け");
         assert_eq!(normalize_for_match("カメラ"), "カメラ");
     }
 
     #[test]
     fn normalize_fullwidth_ascii_lowercases() {
-        // to_lowercase は全角英字も小文字化する (Unicode case folding の動作)。
-        // 実質的に fullwidth ⇄ halfwidth の混合は "同一 lowercase variant にはならない" ので、
-        // 全角を含む検索は v2 で NFKC を入れるまで完全一致優先となる。
+        // to_lowercase 也会把全角英文字母小写化（Unicode case folding 的行为）。
+        // 实际上 fullwidth ⇄ halfwidth 混合时 "不会变成同一个 lowercase variant"，因此
+        // 含全角的搜索在 v2 引入 NFKC 之前以完全匹配优先。
         assert_eq!(normalize_for_match("ＡＢＣ"), "ａｂｃ");
-        // 半角小文字と全角小文字は別物
+        // 半角小写与全角小写是不同的字符
         assert_ne!(normalize_for_match("abc"), normalize_for_match("ＡＢＣ"));
     }
 
@@ -84,8 +84,8 @@ mod tests {
         );
     }
 
-    /// 新 separator (U+001F) は Windows / POSIX の通常ファイル名に出現し得ないので、
-    /// 通常パス `c:/a/book.zip!cover.jpg` (ファイル名に `!` 含む) と衝突しない。
+    /// 新 separator (U+001F) 不可能出现在 Windows / POSIX 的普通文件名中，
+    /// 因此不会与普通路径 `c:/a/book.zip!cover.jpg`（文件名含 `!`）冲突。
     #[test]
     fn zip_entry_key_is_not_ambiguous_with_bang_filename() {
         let zip_key = zip_entry_key("c:/a/book.zip", "cover.jpg");

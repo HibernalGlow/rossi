@@ -1,4 +1,3 @@
-// ignore_for_file: invalid_use_of_protected_member
 part of '../file_manager_card.dart';
 
 // 从 class _FileManagerCardState 搬出的方法组；extension 与宿主类同库，可直接访问私有成员。
@@ -26,6 +25,7 @@ extension _FileManagerCardFileOpsPart on _FileManagerCardState {
     try {
       final ops = await fileOpsSnapshot(id: id);
       if (!mounted || _disposed || serial != _opsSerial) return;
+      // ignore: invalid_use_of_protected_member
       setState(() => _applyOps(ops));
     } catch (_) {
       // 读不到选中态不该让整张列表冒红条：它是**附加信息**，列表本身已经拿到了。
@@ -47,6 +47,7 @@ extension _FileManagerCardFileOpsPart on _FileManagerCardState {
     try {
       final ops = await action(id);
       if (!mounted || _disposed || serial != _opsSerial) return;
+      // ignore: invalid_use_of_protected_member
       setState(() => _applyOps(ops));
     } catch (error) {
       if (mounted) _showError(error);
@@ -255,6 +256,7 @@ extension _FileManagerCardFileOpsPart on _FileManagerCardState {
     if (id == null || _busy || _disposed) return;
     _cancelPendingSearch();
     final serial = ++_requestSerial;
+    // ignore: invalid_use_of_protected_member
     setState(() {
       _busy = true;
       _error = null;
@@ -262,6 +264,7 @@ extension _FileManagerCardFileOpsPart on _FileManagerCardState {
     try {
       final report = await dispatch();
       if (!mounted || _disposed || serial != _requestSerial) return;
+      // ignore: invalid_use_of_protected_member
       setState(() {
         _applyOps(report.snapshot);
         _busy = false;

@@ -121,7 +121,7 @@ impl Settings {
         !self.include_convertible_archives
     }
 
-    /// 現在の表示フィールドを共通値として退避し、お気に入り専用値を有効値へ載せる。
+    /// 把当前的显示字段暂存为公共值，并将收藏专用值载入为有效值。
     pub fn apply_favorite_view_overlay(
         &mut self,
         favorite_id: impl Into<String>,
@@ -136,7 +136,7 @@ impl Settings {
         });
     }
 
-    /// お気に入り専用値を外し、overlay が保持する共通値へ戻す。
+    /// 移除收藏专用值，回到 overlay 中保留的公共值。
     pub fn clear_favorite_view_overlay(&mut self) {
         let Some(overlay) = self.favorite_view_overlay.take() else {
             return;
@@ -144,21 +144,21 @@ impl Settings {
         overlay.common.apply_to_settings(self);
     }
 
-    /// 環境設定ダイアログへ渡す snapshot を作る。
+    /// 生成传给偏好设置对话框的 snapshot。
     ///
-    /// 有効値へお気に入り専用の表示状態が載っていても、環境設定が表示・編集するのは
-    /// 常に標準の値とする。対象項目は [`FavoriteViewState`] の変換だけから導く。
+    /// 即使有效值上载入了收藏专用的显示状态，偏好设置显示与编辑的
+    /// 也始终是标准值。涉及项目仅由 [`FavoriteViewState`] 的转换导出。
     pub fn preferences_snapshot(&self) -> Self {
         let mut snapshot = self.clone();
         snapshot.clear_favorite_view_overlay();
         snapshot
     }
 
-    /// 環境設定で編集した表示状態を標準値へ route する。
+    /// 把在偏好设置中编辑的显示状态 route 到标准值。
     ///
-    /// お気に入り専用値が有効な間は、その有効値を `Settings` のフィールドへ残したまま、
-    /// ダイアログの値だけを標準値へ反映する。お気に入り外ではダイアログの値をそのまま
-    /// 有効値 (= 標準値) にする。
+    /// 收藏专用值生效期间，把该有效值继续保留在 `Settings` 的字段里，
+    /// 只把对话框的值反映到标准值。非收藏状态下，直接把对话框的值
+    /// 作为有效值 (= 标准值)。
     pub fn route_preferences_view_state(
         &mut self,
         standard: FavoriteViewState,
@@ -180,7 +180,7 @@ impl Settings {
 }
 
 // -----------------------------------------------------------------------
-// サムネイルアスペクト比
+// 缩略图宽高比
 // -----------------------------------------------------------------------
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
@@ -196,7 +196,7 @@ pub enum ThumbAspect {
 }
 
 impl ThumbAspect {
-    /// セル幅に対するセル高さの比率 (h / w)
+    /// 单元格高度相对宽度的比率 (h / w)
     pub fn height_ratio(self) -> f32 {
         match self {
             Self::Landscape16x9 => 9.0 / 16.0,
@@ -387,7 +387,7 @@ impl SpreadMode {
 }
 
 // -----------------------------------------------------------------------
-// グリッド表示モード (GridViewMode)
+// 网格显示模式 (GridViewMode)
 // -----------------------------------------------------------------------
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default)]
@@ -572,14 +572,14 @@ impl<'de> serde::Deserialize<'de> for GridDisplayOrder {
 // FavoriteViewState (每个位置/收藏独立记忆的视图状态)
 // -----------------------------------------------------------------------
 
-/// お気に入り/位置単位で記憶する表示状態。
+/// 按收藏/位置为单位记忆的显示状态。
 ///
-/// 出処：`vendor/mimageviewer/src/settings.rs` の `FavoriteViewState` (約 3595–3640 行)。
-/// 画面上の列数、縮小サムネイル比率、表示モード、並び順、見開き設定等を整組記憶する。
+/// 出处：`vendor/mimageviewer/src/settings.rs` 的 `FavoriteViewState`（约 3595–3640 行）。
+/// 整组记忆屏幕上的列数、缩略图缩放比例、显示模式、排序顺序、见开设置等。
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct FavoriteViewState {
     pub grid_view_mode: GridViewMode,
-    /// 画面上の列数。利用者から見た「サムネイルサイズ」はこれで決まる。
+    /// 屏幕上的列数。用户所看到的「缩略图大小」由它决定。
     pub grid_cols: usize,
     pub thumb_aspect: ThumbAspect,
     pub thumb_aspect_auto: bool,
@@ -615,11 +615,11 @@ impl FavoriteViewState {
     }
 }
 
-/// 現在 `Settings` の表示フィールドへ適用している位置 overlay。
+/// 当前正应用到 `Settings` 显示字段上的位置 overlay。
 ///
-/// `common` が永続化すべき共通値の正本であり、`Settings::preferences_snapshot` や
-/// DB 保存時は必ずこちらが対象となる。viewer context の切替時はいったん共通値へ戻してから
-/// 次の overlay を適用する。
+/// `common` 是应当持久化的公共值的正本，`Settings::preferences_snapshot` 与
+/// DB 保存时一律以它为准。切换 viewer context 时先回到公共值，
+/// 再应用下一个 overlay。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FavoriteViewOverlay {
     pub favorite_id: String,

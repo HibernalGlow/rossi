@@ -1,4 +1,3 @@
-// ignore_for_file: invalid_use_of_protected_member
 part of '../file_manager_card.dart';
 
 // 从 class _FileManagerCardState 搬出的方法组；extension 与宿主类同库，可直接访问私有成员。
@@ -11,12 +10,14 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
         extentOffset: snapshot.activePath.length,
       ),
     );
+    // ignore: invalid_use_of_protected_member
     setState(() => _editingPath = true);
   }
   Future<void> _submitPath() async {
     final accepted = await _apply(
       (id) => fileManagerNavigateText(id: id, text: _pathController.text),
     );
+    // ignore: invalid_use_of_protected_member
     if (accepted && mounted) setState(() => _editingPath = false);
   }
   /// 把一条横向滚动的行停在「开头，除非放不下才滚到末尾」。
@@ -34,6 +35,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
       return CallbackShortcuts(
         bindings: {
           const SingleActivator(LogicalKeyboardKey.escape): () {
+            // ignore: invalid_use_of_protected_member
             if (!_busy) setState(() => _editingPath = false);
           },
         },
@@ -64,6 +66,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
               tooltip: '取消路径编辑',
               onPressed: _busy
                   ? null
+                  // ignore: invalid_use_of_protected_member
                   : () => setState(() => _editingPath = false),
               icon: const Icon(Icons.close, size: 18),
             ),

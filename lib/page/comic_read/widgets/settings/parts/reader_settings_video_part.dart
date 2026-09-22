@@ -1,4 +1,4 @@
-part of '../reader_settings_read_tab.dart';
+part of '../reader_settings_sheet.dart';
 // rossi
 
 

@@ -9,20 +9,20 @@
 use crate::PagePixels;
 use std::sync::Arc;
 
-/// 使用可能な AI モデルの種類（对齐 mImageViewer `ModelKind`）。
+/// 可用的 AI 模型种类（对齐 mImageViewer `ModelKind`）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ModelKind {
-    /// Real-ESRGAN x4plus（写真・CG、ノイズ除去強）
+    /// Real-ESRGAN x4plus（照片、CG，降噪强）
     UpscaleRealEsrganX4Plus,
-    /// Real-ESRGAN Anime 6B（イラスト・アニメ、線画シャープ）
+    /// Real-ESRGAN Anime 6B（插画、动画，线条锐利）
     UpscaleRealEsrganAnime6B,
-    /// realesr-general-x4v3（高速軽量汎用）
+    /// realesr-general-x4v3（高速轻量通用）
     UpscaleRealEsrGeneralV3,
-    /// Real-CUGAN 4x conservative（漫画、スクリーントーン保持）
+    /// Real-CUGAN 4x conservative（漫画，保留网点）
     UpscaleRealCugan4x,
-    /// 4x-NMKD-Siax-200k（写真、質感・テクスチャ保持）
+    /// 4x-NMKD-Siax-200k（照片，保留质感与纹理）
     UpscaleNmkdSiax4x,
-    /// JPEG ノイズ除去 (RealPLKSR)
+    /// JPEG 降噪 (RealPLKSR)
     DenoiseRealplksr,
     /// 移动端 / Apple 原生 CoreML 模型 (waifu2x / Real-CUGAN 2x)
     NativeCoreML,

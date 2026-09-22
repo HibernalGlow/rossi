@@ -1,7 +1,6 @@
 part of '../video_control_overlay.dart';
 // 进度与拖动预览：位置节流构建器、拖动条、进度条与波形、帧预览气泡
 
-
 /// 播放时进度最多 10 Hz、时钟最多 1 Hz；暂停定位与操作状态改变立即更新。
 /// 只在可见时订阅，避免隐藏的 MD3 Slider 动画继续占用 UI 帧。
 class _PositionBuilder extends StatefulWidget {
@@ -22,7 +21,6 @@ class _PositionBuilder extends StatefulWidget {
   @override
   State<_PositionBuilder> createState() => _PositionBuilderState();
 }
-
 
 class _PositionBuilderState extends State<_PositionBuilder> {
   late ReaderVideoSnapshot _snapshot = widget.initialSnapshot;
@@ -67,7 +65,6 @@ class _PositionBuilderState extends State<_PositionBuilder> {
   Widget build(BuildContext context) => widget.builder(context, _snapshot);
 }
 
-
 /// 拖动条：进度 + 已缓冲 + 章节刻度 + A–B 区间 + 悬停帧预览。
 class _ScrubBar extends StatefulWidget {
   const _ScrubBar({
@@ -85,7 +82,6 @@ class _ScrubBar extends StatefulWidget {
   @override
   State<_ScrubBar> createState() => _ScrubBarState();
 }
-
 
 class _ScrubBarState extends State<_ScrubBar> {
   Duration? _hoverAt;
@@ -214,7 +210,6 @@ class _ScrubBarState extends State<_ScrubBar> {
   }
 }
 
-
 /// 使用 MD3 Slider 提供拖动、键盘操作和进度语义，波形与章节仅作底纹。
 class _ProgressBar extends StatelessWidget {
   const _ProgressBar({
@@ -294,7 +289,6 @@ class _ProgressBar extends StatelessWidget {
   }
 }
 
-
 /// 波形条绘制：一格一根竖条，居中对称。
 ///
 /// 刻意不用 `ui.Path` 描轮廓 —— 180 根竖条在 300 px 宽度上读起来才像 mimage
@@ -329,7 +323,6 @@ class _WaveformPainter extends CustomPainter {
   bool shouldRepaint(_WaveformPainter old) =>
       old.strip != strip || old.color != color;
 }
-
 
 class _FramePreviewBubble extends StatelessWidget {
   const _FramePreviewBubble({
@@ -391,7 +384,6 @@ class _FramePreviewBubble extends StatelessWidget {
     );
   }
 }
-
 
 /// 「定位中」角标：解帧没回来 / 回来的不是这一格。
 class _PreviewBusyChip extends StatelessWidget {

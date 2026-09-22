@@ -1,7 +1,6 @@
 part of '../video_control_overlay.dart';
 // 弹层面板：倍速、音量、字幕、滤镜，以及配套的色点与带标签滑杆
 
-
 class _RatePanel extends StatelessWidget {
   const _RatePanel({
     required this.snapshot,
@@ -60,7 +59,6 @@ class _RatePanel extends StatelessWidget {
   }
 }
 
-
 class _VolumePanel extends StatelessWidget {
   const _VolumePanel({required this.controller});
 
@@ -93,7 +91,6 @@ class _VolumePanel extends StatelessWidget {
     );
   }
 }
-
 
 class _SubtitlePanel extends StatelessWidget {
   const _SubtitlePanel({
@@ -238,7 +235,6 @@ class _SubtitlePanel extends StatelessWidget {
   }
 }
 
-
 class _ColorDot extends StatelessWidget {
   const _ColorDot({
     required this.hex,
@@ -279,7 +275,6 @@ class _ColorDot extends StatelessWidget {
     );
   }
 }
-
 
 class _FilterPanel extends StatelessWidget {
   const _FilterPanel({
@@ -340,7 +335,6 @@ class _FilterPanel extends StatelessWidget {
     );
   }
 }
-
 
 class _LabeledSlider extends StatelessWidget {
   const _LabeledSlider({

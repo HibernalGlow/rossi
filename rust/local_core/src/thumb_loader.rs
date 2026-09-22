@@ -15,10 +15,10 @@ pub const CACHE_KEY_FOLDER: &str = "folderthumb:";
 pub const FOLDER_THUMB_AUTO_ALGO_VERSION: u32 = 3;
 pub const CACHE_KEY_PIN_SUFFIX: &str = "#pin:";
 
-/// フォルダ代表サムネの自動選定用 cache key を組み立てる。
+/// 组装文件夹代表缩略图自动选定用的 cache key。
 ///
-/// `identity` はフォルダ名または full path。ソート種別・探索深度・アルゴリズム世代を
-/// key に含め、設定やロジックが変わったときだけ古い自動代表サムネを読まないようにする。
+/// `identity` 是文件夹名或 full path。把排序种类、探索深度、算法世代
+/// 都含进 key，使得只有在设置或逻辑变化时才不读取旧的自动代表缩略图。
 pub fn folder_thumb_auto_cache_key(
     identity: &str,
     sort: crate::settings::SortOrder,
@@ -37,11 +37,11 @@ pub fn folder_thumb_auto_cache_key(
     )
 }
 
-/// Folder item の自動代表 cache key を、通常一覧と再帰 cache-only 参照で同じ規則から作る。
+/// Folder item 的自动代表 cache key，在普通列表与递归 cache-only 参照下按同一规则生成。
 ///
-/// ドライブルートや集約ビューは同名衝突を避けるため full path、それ以外は basename を
-/// identity にする。再帰探索側は物理フォルダだけを扱うため、直上がドライブ / share root
-/// かどうかから `use_full_path` を決めてこの helper を呼ぶ。
+/// 驱动器根目录与汇总视图为避免同名冲突使用 full path，其余使用 basename
+/// 作为 identity。递归探索侧只处理物理文件夹，因此由上一层是否为驱动器 / share root
+/// 来决定 `use_full_path`，再调用这个 helper。
 pub fn folder_thumb_auto_cache_key_for_path(
     path: &Path,
     use_full_path: bool,
@@ -62,10 +62,10 @@ pub enum FolderThumbResolution {
     Archive(PathBuf),
 }
 
-/// フォルダ内をスキャンして代表画像を返す。
-/// `sort` で指定されたソート順でフォルダブロックと画像ブロックをそれぞれ並べ、
-/// サムネイル一覧に近い順序 (フォルダ → 画像) で最初に見つかった画像を選ぶ。
-/// サブフォルダ再帰は最大 `remaining_depth` 階層。
+/// 扫描文件夹内部并返回代表图片。
+/// 按 `sort` 指定的排序顺序分别排列文件夹块与图片块，
+/// 以接近缩略图列表的顺序（文件夹 → 图片）选取最先找到的图片。
+/// 子文件夹递归最多 `remaining_depth` 层。
 /// Rossi 适配还会返回 LocalSource 可直接读取的归档候选。
 pub fn resolve_folder_thumb_image(
     folder: &Path,
@@ -176,8 +176,8 @@ fn collect_folder_thumbs<T>(
         }
     }
 
-    // サムネイル一覧はフォルダブロックを画像より先に出すため、代表サムネも
-    // キャッシュミス時の自動選定ではサブフォルダを先に辿る。
+    // 缩略图列表会把文件夹块排在图片之前，因此代表缩略图
+    // 在缓存未命中时的自动选定也先遍历子文件夹。
     if remaining_depth > 0 {
         let mut keyed_subdirs: Vec<_> = subdirs
             .into_iter()

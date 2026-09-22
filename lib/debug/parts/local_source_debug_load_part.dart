@@ -1,6 +1,5 @@
 part of '../local_source_debug_page.dart';
 
-// ignore_for_file: invalid_use_of_protected_member
 // 从 class _LocalSourceDebugPageState 搬出的方法组；extension 与宿主类同库，可直接访问私有成员。
 extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
   /// 释放当前页的两条显示资源，连同预取缓存。
@@ -22,6 +21,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
   }
   Future<void> _refreshProbe() async {
     final n = localOpenSessionCount();
+    // ignore: invalid_use_of_protected_member
     if (mounted) setState(() => _probeCount = n);
   }
   Future<void> _closeCurrent({bool silent = false}) async {
@@ -31,6 +31,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
     // 解绑是大位图的唯一释放途径（见类注释第 2 条）。
     _releaseCurrentImage();
     if (!mounted) return;
+    // ignore: invalid_use_of_protected_member
     setState(() {
       _sessionId = null;
       _info = null;
@@ -53,6 +54,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
     final swOpen = Stopwatch()..start();
     debugPrint('[local-debug] open 开始: $path');
 
+    // ignore: invalid_use_of_protected_member
     setState(() {
       _busy = true;
       _error = null;
@@ -71,6 +73,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
           '[local-debug] open 被拒绝: ${rejection.kind} ${rejection.message}',
         );
         if (!mounted) return;
+        // ignore: invalid_use_of_protected_member
         setState(() {
           _rejection = rejection;
           _info = null;
@@ -95,6 +98,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
       if (!mounted) return;
       // 换书了：上一本解好的位图一页都不能留。
       _clearPrefetch();
+      // ignore: invalid_use_of_protected_member
       setState(() {
         _sessionId = info.id;
         _info = info;
@@ -121,8 +125,10 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
     } catch (e, st) {
       debugPrint('openLocalSource failed: $e\n$st');
       if (!mounted) return;
+      // ignore: invalid_use_of_protected_member
       setState(() => _error = '$e');
     } finally {
+      // ignore: invalid_use_of_protected_member
       if (mounted) setState(() => _busy = false);
     }
   }
@@ -158,10 +164,12 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
     final id = _sessionId;
     if (id == null || index < 0 || index >= _pages.length) return;
     if (!force && _currentBytesIndex == index && _rustImage != null) {
+      // ignore: invalid_use_of_protected_member
       setState(() => _current = index);
       return;
     }
     if (!force && _currentBytesIndex == index && _currentBytes != null) {
+      // ignore: invalid_use_of_protected_member
       setState(() => _current = index);
       return;
     }
@@ -202,9 +210,9 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
     // ── 用户要翻页了：立刻让在跑的预取退场 ──
     //
     // 照的是 mImageViewer `update_prefetch_window` 的做法（`src/app.rs:55192`）：
-    // **当前页还没有可显示内容的时候，取消其它 pending，并且连新的先読み也不发**。
+    // **当前页还没有可显示内容的时候，取消其它 pending，并且连新的预取也不发**。
     // 上游把这段撤过（判断「有 High 预留枠就不需要」），实机立刻变差：
-    // 页面完成 p50 **148 ms → 396 ms**；理由是「已经拿到许可的先読み 会 commit 到
+    // 页面完成 p50 **148 ms → 396 ms**；理由是「已经拿到许可的预取 会 commit 到
     // 一段不可中断的读取上」。所以这不是保守，是被数据逼回来的一行。
     //
     // 我们这边比上游更硬：dav1d 一条流几乎不能并行（实测 1 核 610–667 ms /
@@ -294,6 +302,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
     } catch (e) {
       debugPrint('[local-debug] 读页失败 index=$index: $e');
       if (!mounted) return;
+      // ignore: invalid_use_of_protected_member
       setState(() => _error = '读第 $index 页失败：$e');
       return;
     }
@@ -335,6 +344,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
       if (handled || !mounted) return;
       handled = true;
       if (isError) {
+        // ignore: invalid_use_of_protected_member
         setState(() {
           _current = index;
           _currentBytes = bytes;
@@ -351,6 +361,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
         final paint = total - read - decode;
         final width = image?.width ?? 0;
         final height = image?.height ?? 0;
+        // ignore: invalid_use_of_protected_member
         setState(() {
           _current = index;
           _currentBytes = bytes;
@@ -479,6 +490,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
       }
       debugPrint('[local-debug] Rust 解码失败 index=$index: ${failure?.message}');
       if (!mounted) return true;
+      // ignore: invalid_use_of_protected_member
       setState(() {
         _current = index;
         _error = '第 $index 页 Rust 解码失败。\n${failure?.message ?? '未知原因'}';
@@ -510,6 +522,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
     // 少了这一句新位图根本不会被画出来，要等下一次**别的**原因触发的重建。
     // 实测那种「等」能长到 3.9 s —— 用户不动鼠标就一直不出图，
     // 而且它会被算进下面的「上屏」，让这个数字看起来像上屏花了 3.9 s。
+    // ignore: invalid_use_of_protected_member
     setState(() {
       _current = index;
       _currentBytes = null;
@@ -524,6 +537,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
       final bridge = swBridge.elapsed;
       final pack = swPack.elapsed;
       final paint = total - bridge - pack;
+      // ignore: invalid_use_of_protected_member
       setState(() {
         _stage = _StageRow(
           index: index,
@@ -575,6 +589,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
     unawaited(staleProvider?.evict());
     stale?.dispose();
 
+    // ignore: invalid_use_of_protected_member
     setState(() {
       _current = index;
       _currentBytes = null;
@@ -585,6 +600,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !identical(_rustImage, hit.image)) return;
       final total = swAll.elapsed;
+      // ignore: invalid_use_of_protected_member
       setState(() {
         _stage = _StageRow(
           index: index,
@@ -629,6 +645,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
   Future<void> _refreshLoadStats() async {
     final stats = await localPageLoadStats();
     if (!mounted) return;
+    // ignore: invalid_use_of_protected_member
     setState(() => _loadStats = stats);
   }
   String _loadStatsLabel() {

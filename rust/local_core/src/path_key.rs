@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-/// ドライブルート (`C:\` など) または共有ルートとして扱うパスか。
+/// 是否为驱动器根目录（如 `C:\`）或按共享根目录处理的路径。
 pub fn is_drive_or_share_root(path: &Path) -> bool {
     if path.parent().is_none() {
         return true;
@@ -17,7 +17,7 @@ pub fn is_drive_or_share_root(path: &Path) -> bool {
     }
 }
 
-/// ドライブ文字を除いて小文字化・スラッシュ統一したパス文字列を返す。
+/// 返回去除驱动器字母、统一为小写与正斜杠的路径字符串。
 pub fn normalize(path: &Path) -> String {
     let s = path.to_string_lossy();
     let no_drive = if s.len() >= 2 && s.chars().nth(1) == Some(':') {
@@ -28,13 +28,13 @@ pub fn normalize(path: &Path) -> String {
     no_drive.to_lowercase().replace('\\', "/")
 }
 
-/// ドライブ文字を **保持** したまま小文字化・スラッシュ統一したパス文字列を返す。
+/// 返回 **保留** 驱动器字母、统一为小写与正斜杠的路径字符串。
 pub fn normalize_keep_drive(path: &Path) -> String {
     path.to_string_lossy().to_lowercase().replace('\\', "/")
 }
 
-/// DB キーと実ファイル列挙結果のように、表記が異なり得る 2 パスを
-/// `normalize_keep_drive` と同じ規則で比較する。
+/// 对 DB 键与实际文件枚举结果这类书写方式可能不同的 2 个路径，
+/// 按与 `normalize_keep_drive` 相同的规则进行比较。
 pub fn eq_keep_drive(a: &Path, b: &Path) -> bool {
     normalize_keep_drive(a) == normalize_keep_drive(b)
 }

@@ -1,10 +1,10 @@
 // Vendored from vendor/mimageviewer/src/fast_resize.rs (MIT License)
-// SIMD 高速リサイズ用ユーティリティ (fast_image_resize ラッパー)。
+// SIMD 高速缩放工具 (fast_image_resize 的封装)。
 
 use fast_image_resize::{FilterType, ResizeAlg, ResizeOptions, Resizer};
 use image::{DynamicImage, RgbImage, RgbaImage};
 
-/// リサイズ品質。Triangle 相当 (`Bilinear`) と Lanczos3 の 2 択。
+/// 缩放质量。两档可选：与 Triangle 相当的 (`Bilinear`) 和 Lanczos3。
 #[derive(Clone, Copy, Debug)]
 pub enum Quality {
     Bilinear,
@@ -20,7 +20,7 @@ impl From<Quality> for FilterType {
     }
 }
 
-/// RGBA8 画像を指定サイズに正確にリサイズする。
+/// 将 RGBA8 图像精确缩放到指定尺寸。
 pub fn resize_rgba8_exact(src: &RgbaImage, new_w: u32, new_h: u32, quality: Quality) -> RgbaImage {
     let mut dst = RgbaImage::new(new_w.max(1), new_h.max(1));
     let mut resizer = Resizer::new();
@@ -31,7 +31,7 @@ pub fn resize_rgba8_exact(src: &RgbaImage, new_w: u32, new_h: u32, quality: Qual
     dst
 }
 
-/// RGB8 画像を指定サイズに正確にリサイズする。
+/// 将 RGB8 图像精确缩放到指定尺寸。
 pub fn resize_rgb8_exact(src: &RgbImage, new_w: u32, new_h: u32, quality: Quality) -> RgbImage {
     let mut dst = RgbImage::new(new_w.max(1), new_h.max(1));
     let mut resizer = Resizer::new();
@@ -42,7 +42,7 @@ pub fn resize_rgb8_exact(src: &RgbImage, new_w: u32, new_h: u32, quality: Qualit
     dst
 }
 
-/// DynamicImage を指定サイズに正確にリサイズする。
+/// 将 DynamicImage 精确缩放到指定尺寸。
 pub fn resize_dynamic_exact(
     src: &DynamicImage,
     new_w: u32,
@@ -63,7 +63,7 @@ pub fn resize_dynamic_exact(
     }
 }
 
-/// DynamicImage を (max_w, max_h) の矩形にアスペクト比保持で収める。
+/// 将 DynamicImage 保持宽高比，缩放收纳进 (max_w, max_h) 矩形。
 pub fn resize_dynamic_fit(
     src: &DynamicImage,
     max_w: u32,

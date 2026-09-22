@@ -1,4 +1,3 @@
-// ignore_for_file: invalid_use_of_protected_member
 part of '../file_manager_card.dart';
 
 // 从 class _FileManagerCardState 搬出的方法组；extension 与宿主类同库，可直接访问私有成员。
@@ -28,6 +27,7 @@ extension _FileManagerCardOpenPart on _FileManagerCardState {
     if (id == null || _busy) return;
     _cancelPendingSearch();
     final serial = ++_requestSerial;
+    // ignore: invalid_use_of_protected_member
     setState(() {
       _busy = true;
       _error = null;
@@ -35,6 +35,7 @@ extension _FileManagerCardOpenPart on _FileManagerCardState {
     try {
       final result = await action(id);
       if (!mounted || serial != _requestSerial) return;
+      // ignore: invalid_use_of_protected_member
       setState(() {
         _acceptSnapshot(result.snapshot);
       });
@@ -49,6 +50,7 @@ extension _FileManagerCardOpenPart on _FileManagerCardState {
         await _openReader(openedPath, result.bookNavigationJson, entryHint);
       }
       if (!mounted || serial != _requestSerial) return;
+      // ignore: invalid_use_of_protected_member
       setState(() => _busy = false);
     } catch (error) {
       if (!mounted || serial != _requestSerial) return;

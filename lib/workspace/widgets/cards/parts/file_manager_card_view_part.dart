@@ -1,4 +1,3 @@
-// ignore_for_file: invalid_use_of_protected_member
 part of '../file_manager_card.dart';
 
 // 从 class _FileManagerCardState 搬出的方法组；extension 与宿主类同库，可直接访问私有成员。
@@ -33,6 +32,7 @@ extension _FileManagerCardViewPart on _FileManagerCardState {
           IconButton(
             icon: const Icon(Icons.close, size: 15),
             visualDensity: VisualDensity.compact,
+            // ignore: invalid_use_of_protected_member
             onPressed: () => setState(() => _error = null),
           ),
         ],

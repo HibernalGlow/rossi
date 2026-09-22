@@ -674,6 +674,9 @@ void cmdExtract(Map<String, String> opt, {required bool asPart}) {
   final note = opt['note'] ?? '';
   final units = libraryUnits(file);
   final parent = units.first;
+  // 新 part 必须挂在**库根**上：若目标文件自身已经是 part，`part of` 指向它是非法的
+  // （part 文件不能再拥有 part），必须指向它所属的库根。
+  final rootEarly = libraryRootOf(parent);
   final found = <Declaration, Unit>{};
   for (final u in units) {
     for (final d in u.root.declarations) {
@@ -702,7 +705,7 @@ void cmdExtract(Map<String, String> opt, {required bool asPart}) {
   });
   final pieces = <String>[];
   if (asPart) {
-    pieces.add("part of '${slash(p.relative(file, from: p.dirname(to)))}';");
+    pieces.add("part of '${slash(p.relative(rootEarly.path, from: p.dirname(to)))}';");
   } else {
     pieces.add('// 从 ${p.basename(file)} 抽出的独立模块。');
     pieces.add('// 原文件 export 本文件，因此既有调用方的 import 无需改动。');
@@ -754,6 +757,11 @@ void cmdExtractMembers(Map<String, String> opt) {
   final ext = opt['extension']!;
   final wanted = nameList(opt, 'members');
   final force = opt.containsKey('force');
+  final upstreamFile = opt['upstream-file'];
+  String? upstreamSource;
+  if (upstreamFile != null && File(upstreamFile).existsSync()) {
+    upstreamSource = File(upstreamFile).readAsStringSync();
+  }
   Unit? owner;
   ClassDeclaration? target;
   for (final u in libraryUnits(file)) {
@@ -768,13 +776,50 @@ void cmdExtractMembers(Map<String, String> opt) {
     stderr.writeln('找不到 class $cls');
     exit(3);
   }
+  // 公有宿主类的成员搬进 extension 有真实语义风险：别的库若用
+  // `import '...' show ClassName` 引入，extension 不在 show 名单里，
+  // 方法在调用点直接解析不到。私有宿主类不受影响（库外无法引用它）。
+  if (!cls.startsWith('_') && !opt.containsKey('allow-public-host')) {
+    // 私有成员库外既无法 show 到、也无法覆写或调用，搬进 extension 是安全的；
+    // 公有成员两条都会出问题，所以只放行私有的。
+    final publicWanted = [
+      ...wanted.where((w) => !w.trim().startsWith('_')),
+    ];
+    if (publicWanted.isNotEmpty) {
+      stderr.writeln(
+        '拒绝：class $cls 是公有类，${publicWanted.join(', ')} 是公有成员，'
+        '搬进 extension 会让 `show $cls` 的调用点解析不到、并丢失子类覆写的多态。\n'
+        '      私有成员可以搬；确认可之后再加 --allow-public-host。',
+      );
+      exit(7);
+    }
+  }
   final src = owner.source;
   final picked = <ClassMember>[];
   final problems = <String>[];
+  // extension 里裸用宿主的静态成员是**编译错误**
+  // （static_members_from_extended_type），必须先收集静态成员名。
+  final hostStatics = <String>{};
+  for (final m in target.members) {
+    if (m is FieldDeclaration && m.isStatic) {
+      for (final v in m.fields.variables) {
+        hostStatics.add(v.name.toString());
+      }
+    } else if (m is MethodDeclaration && m.isStatic) {
+      hostStatics.add(m.name.toString());
+    }
+  }
+  // @protected 成员在 extension 里调用会触发 invalid_use_of_protected_member：
+  // 运行时行为不变（仍是 this 上的实例调用），但属于约定违规，需要显式放行。
+  const protectedNames = {
+    'notifyListeners', 'setState', 'markNeedsBuild', 'didChangeDependencies',
+    'createState', 'element', 'mounted',
+  };
   for (final m in target.members) {
     final e = memberEntry(m, cls, owner);
     final short = e.key.substring('member:$cls.'.length);
     if (!wanted.contains(short)) continue;
+    final body = src.substring(m.offset, m.end);
     if (m is FieldDeclaration) problems.add('$short: 字段不能进 extension');
     if (m is ConstructorDeclaration) {
       problems.add('$short: 构造函数不能进 extension');
@@ -788,8 +833,35 @@ void cmdExtractMembers(Map<String, String> opt) {
     if (RegExp(r'\bsuper\b').hasMatch(src.substring(m.offset, m.end))) {
       problems.add('$short: 用了 super');
     }
+    final usedStatics = hostStatics
+        .where((s) => RegExp(r'\b' + RegExp.escape(s) + r'\b').hasMatch(body))
+        .toList();
+    if (usedStatics.isNotEmpty && !opt.containsKey('allow-host-statics')) {
+      problems.add(
+        '$short: 引用了宿主静态成员 ${usedStatics.join(', ')}，'
+        'extension 里裸用静态成员是编译错误（必须限定为「宿主类名.静态名」），',
+      );
+    }
+    final usedProtected = protectedNames
+        .where((s) => RegExp(r'\b' + RegExp.escape(s) + r'\b').hasMatch(body))
+        .toList();
+    if (usedProtected.isNotEmpty && !opt.containsKey('allow-protected')) {
+      problems.add(
+        '$short: 调用了 @protected 成员 ${usedProtected.join(', ')}，'
+        '搬进 extension 会触发 invalid_use_of_protected_member'
+        '（行为不变但需显式 --allow-protected 并在该行加行级 ignore）',
+      );
+    }
     if (baseMemberDenylist.contains(short.trim()) && !force) {
       problems.add('$short: 与基类成员同名，静态派发会改变行为');
+    }
+    // 「上游的不动」：成员名若在上游版本里出现过，说明那是上游的方法
+    // （本仓可能大改过它的实现，diff 会整段显示为新增行，但所有权仍是上游的）。
+    if (upstreamSource != null &&
+        RegExp(
+          r"\b" + RegExp.escape(short.trim()) + r"\b",
+        ).hasMatch(upstreamSource)) {
+      problems.add('$short: 上游版本里已存在该名字，属于上游的代码，不搬');
     }
     picked.add(m);
   }
@@ -825,12 +897,12 @@ void cmdExtractMembers(Map<String, String> opt) {
   }
   newSrc = newSrc.replaceAll(RegExp(r'\n{3,}'), '\n\n');
   Directory(p.dirname(to)).createSync(recursive: true);
+  final root = libraryRootOf(owner);
   File(to).writeAsStringSync(
-    "part of '${slash(p.relative(file, from: p.dirname(to)))}';\n\n"
+    "part of '${slash(p.relative(root.path, from: p.dirname(to)))}';\n\n"
     '// 从 class $cls 搬出的方法组；extension 与宿主类同库，可直接访问私有成员。\n'
     'extension $ext on $cls {\n$movedText\n}\n',
   );
-  final root = libraryRootOf(owner);
   // 先写回被摘除成员的宿主文件，再把新 part 注册到库根。
   if (owner.path != root.path) {
     File(owner.path).writeAsStringSync(newSrc);

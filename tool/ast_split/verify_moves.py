@@ -39,6 +39,12 @@ def meaningful(text: str) -> list[str]:
             continue
         if l.startswith(DIRECTIVE_PREFIXES):
             continue
+        # Rust 的 mod 拆分必须给搬出的 item 补可见性前缀，那是唯一允许的差异；
+        # 归一化掉它，否则每验一次都要手写一次比对脚本。
+        for pref in ("pub(crate) ", "pub(super) "):
+            if l.startswith(pref):
+                l = l[len(pref):]
+                break
         out.append(l)
     return out
 
@@ -60,12 +66,17 @@ def untracked_and_new() -> list[Path]:
             out += [f for f in p.rglob("*") if f.is_file() and f.suffix in EXTS]
         elif p.is_file() and p.suffix in EXTS:
             out.append(p)
-    # 开工后新增、但已被用户并发提交进 HEAD 的文件也算「本次搬出去的承接方」
-    for line in git("diff", "--name-only", f"{REF}..HEAD").splitlines():
+    # 开工后新增、但已被用户并发提交进 HEAD 的文件也算「本次搬出去的承接方」。
+    # 用一次 A 状态的名字表判定，别对每个文件起一个 git log（满载时会拖垮验收器）。
+    added = {
+        line.split("\t", 1)[1]
+        for line in git("diff", "--name-status", "--diff-filter=A", f"{REF}..HEAD").splitlines()
+        if "\t" in line
+    }
+    for line in added:
         p = REPO / line
-        if p.is_file() and p.suffix in EXTS and git("log", "--oneline", f"{REF}..HEAD", "--", line).strip():
-            if p not in out:
-                out.append(p)
+        if p.is_file() and p.suffix in EXTS and p not in out:
+            out.append(p)
     return out
 
 
@@ -120,28 +131,48 @@ def main() -> int:
             failures += 1
             continue
         cur_lines = meaningful(cur.read_text(encoding="utf-8"))
+        old_counter = Counter(old_lines)
 
-        # 该文件的同伴新文件：与它同目录（含子目录）且同语言后缀
+        # 该文件的同伴新文件。归属必须收窄，否则同目录里别人建的文件
+        # （例如早先提交的 file_manager_toolbar.dart、别的特性的 part）
+        # 会被拉进来比对，既虚报「不在原文里」又掩盖真正的丢失。
         stem = rel.suffix
+        base = rel.name[: -len(stem)] if rel.name.endswith(stem) else rel.name
         parent = (REPO / rel).parent
-        # 只有「行确实取自本文件原文」的新文件才算承接方，否则同目录下
-        # 别人新建的文件会让多重集合虚胖、把丢失行掩盖掉。
-        companions = []
+        in_scope = {
+            "parts/",                # Dart 惯例：<dir>/parts/<主题>_part.dart
+            f"{base}/",              # Rust 惯例：<dir>/<stem>/xxx.rs
+        }
+
+        def belongs(n: Path) -> bool:
+            try:
+                under = n.relative_to(parent)
+            except ValueError:
+                return False
+            s = str(under).replace("\\", "/")
+            return s.startswith(tuple(in_scope)) or n.name.startswith(base)
+
+        # 新文件只要「每一行都来自原文」就算合法承接。
+        # 不要求它与原文同序：按主题分组时项的先后必然变化，那是合法的搬家，
+        # 而多重集合守恒才是真判据。顺序判据只用在原文件身上。
+        companions, foreign = [], []
         for n in news:
             if n.suffix != stem or n == cur or parent not in n.parents:
                 continue
             if str(n.relative_to(REPO)) == str(rel):
                 continue
+            if not belongs(n):
+                continue
             nl = [
                 l for l in meaningful(n.read_text(encoding="utf-8"))
                 if not l.startswith("extension ") and l != "}"
             ]
-            if nl and is_subsequence(nl, old_lines):
-                companions.append(n)
-        comp_lines: list[str] = []
-        for n in companions:
-            comp_lines += meaningful(n.read_text(encoding="utf-8"))
-
+            bad = [l for l in nl if old_counter[l] == 0]
+            (foreign if bad else companions).append((n, nl, bad))
+        comp_lines: list[str] = [l for _, nl, _ in companions for l in nl]
+        for n, _, bad in foreign:
+            print(f"  !! {n.relative_to(REPO)} 有 {len(bad)} 行不在原文里："
+                  f"{bad[0][:60]}")
         pool = Counter(cur_lines) + Counter(comp_lines)
         missing = sum(
             max(0, c - pool[k]) for k, c in Counter(old_lines).items()
@@ -153,7 +184,7 @@ def main() -> int:
         )
         order_ok = is_subsequence(cur_lines, old_lines)
         moved_out = len(old_lines) - len(cur_lines)
-        if missing or not order_ok or invented:
+        if missing or not order_ok or invented or foreign:
             failures += 1
         print(
             f"{str(rel):<58}{len(old_lines):>6}{len(cur_lines):>6}"
