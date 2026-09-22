@@ -111,3 +111,46 @@ VERIFY_REF=<开工时的 commit> python3 tool/ast_split/verify_moves.py <路径.
 ⚠️ **并发提交会动摇基线**：用户可能在我们干活时继续往 main 上提交，`HEAD` 不再是拆分前的状态。
 所以要显式 `VERIFY_REF=` 钉住开工时那个 commit。
 改动留在工作区交给用户。
+
+## 已知限制与复核办法
+
+- **基线会漂移**：用户在并发提交，`HEAD` 不是拆分前的状态。按文件取「拆分提交的父提交」最准，
+  例如 `VERIFY_REF=29ac2a0c^ python3 tool/ast_split/verify_moves.py <文件>`。
+- **同伴文件作用域**：只把 `<目录>/parts/` 与 `<目录>/<词干>/` 下的新文件当承接方。
+  若同一次重构里代码还进了**同目录兄弟文件**（例：卡片的工具栏行早已在
+  `file_manager_toolbar.dart` 里），会误报「丢失行」。先按下面的办法把整目录并入池子复核，
+  再判断是否真丢了东西：
+
+```bash
+python3 - <<'PY'
+import subprocess, pathlib
+from collections import Counter
+def mean(t):
+    return [x.strip() for x in t.split('\n')
+            if x.strip() and not x.strip().startswith(
+                ('//','/*','*','import ','export ','part '))]
+base = 'lib/workspace/widgets/cards'   # 改成你的目录
+orig = '399eaeac'                      # 改成拆分前提交
+rel  = f'{base}/file_manager_card.dart'
+up = subprocess.run(['git','show',f'{orig}:{rel}'], capture_output=True, text=True).stdout
+pool = Counter()
+for p in list(pathlib.Path(base).glob('*.dart')) + list(pathlib.Path(base,'parts').glob('*.dart')):
+    pool += Counter(mean(p.read_text()))
+miss = [(l,c,pool[l]) for l,c in Counter(mean(up)).items() if pool[l] < c]
+print('未承接', len(miss), '种行')
+for l,c,h in miss[:8]: print(f'  x{c}->x{h}  {l[:90]}')
+PY
+```
+
+实测：卡片那次报 129 行「丢失」，按上式复核结果为 **0 行未承接**，即判据的假阳性。
+
+## extension 搬家的三条硬限制（撞过的）
+
+1. 跨库 `import 'x.dart' show TheClass;` 会把 extension 成员挡在门外 → 调用点 `undefined_method`。
+2. extension 内裸用宿主**静态成员**是编译错误（`static_members_from_extended_type`）。
+3. extension 内调用 `@protected`（`setState`/`notifyListeners`）触发
+   `invalid_use_of_protected_member`：**行为不变**，但必须用**行级** `// ignore:`，
+   不要 `ignore_for_file` 整片盖。
+
+所以：私有宿主类可搬；公有宿主类只搬私有成员（工具默认如此拦截）。
+工具对 1 不拦截（无法在此静态判定），靠 `flutter analyze` 兜底 —— 这也是每次搬家后必须跑它的原因。

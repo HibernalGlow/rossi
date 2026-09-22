@@ -1,6 +1,5 @@
 part of '../local_source_debug_page.dart';
 
-// ignore_for_file: invalid_use_of_protected_member
 // 从 class _LocalSourceDebugPageState 搬出的方法组；extension 与宿主类同库，可直接访问私有成员。
 extension _LocalSourceDebugPrefetchPart on _LocalSourceDebugPageState {
   void _onFrameTimings(List<ui.FrameTiming> timings) {
@@ -56,6 +55,7 @@ extension _LocalSourceDebugPrefetchPart on _LocalSourceDebugPageState {
       );
       if (!mounted || generation != _prefetchGeneration) return;
       if (_lastPrefetchDecision?.reason != decision.reason) {
+        // ignore: invalid_use_of_protected_member
         setState(() => _lastPrefetchDecision = decision);
       }
       if (decision.allowed) break;
@@ -70,6 +70,7 @@ extension _LocalSourceDebugPrefetchPart on _LocalSourceDebugPageState {
 
     // 判决放行了，这一轮真的开始跑 —— 把上一轮的收手理由清掉。
     // 不清的话，「预取在让路」会一直挂在界面上，看起来像预取再也没动过。
+    // ignore: invalid_use_of_protected_member
     if (_prefetchNote != null) setState(() => _prefetchNote = null);
 
     // 目标顺序 `+1, -1, +2, …`（同距离 forward 先），边界由上游函数处理。
@@ -122,6 +123,7 @@ extension _LocalSourceDebugPrefetchPart on _LocalSourceDebugPageState {
             '让路：用户在等（翻页在跑 $highRunning 张 / 排队 ${stats.waiting} 个），'
             '本轮还剩 ${targets.length - i} 页没备';
         debugPrint('[local-debug] 预取$why');
+        // ignore: invalid_use_of_protected_member
         setState(() => _prefetchNote = why);
         return;
       }
@@ -239,6 +241,7 @@ extension _LocalSourceDebugPrefetchPart on _LocalSourceDebugPageState {
     // 先让预取退场，否则这把尺子会量到别人的噪声。
     _clearPrefetch();
 
+    // ignore: invalid_use_of_protected_member
     setState(() {
       _busy = true;
       _sweepMs = null;
@@ -256,14 +259,17 @@ extension _LocalSourceDebugPrefetchPart on _LocalSourceDebugPageState {
       }
       swAll.stop();
       if (!mounted) return;
+      // ignore: invalid_use_of_protected_member
       setState(() {
         _sweepMs = out;
         _sweepTotalMs = swAll.elapsedMicroseconds / 1000.0;
       });
     } catch (e) {
       if (!mounted) return;
+      // ignore: invalid_use_of_protected_member
       setState(() => _error = '逐页计时中断：$e');
     } finally {
+      // ignore: invalid_use_of_protected_member
       if (mounted) setState(() => _busy = false);
       _schedulePrefetch();
     }

@@ -52,7 +52,7 @@ pub fn natural_sort_key(name: &str) -> Vec<NaturalChunk> {
     chunks
 }
 
-/// `std::fs::Metadata` から mtime を UNIX epoch 秒として返す。取得失敗時は 0。
+/// 从 `std::fs::Metadata` 以 UNIX epoch 秒的形式返回 mtime。获取失败时返回 0。
 pub fn mtime_secs(meta: &std::fs::Metadata) -> i64 {
     meta.modified()
         .ok()

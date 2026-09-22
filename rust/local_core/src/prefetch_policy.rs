@@ -36,28 +36,28 @@
 //! 上游这个文件**不带测试**（纯函数测试散在 `src/app/tests.rs` 里、且与 `App` 混放）。
 //! 本模块底部把其中**只用纯函数**的那些逐字搬了过来，作为「搬运等价」的证据。
 
-/// スクロール停止 (= 最後の scroll input から) 経過時間がこの閾値以上なら "idle" 扱い。
+/// 滚动停止（= 距最后一次 scroll input）的经过时间达到此阈值即视为 "idle"。
 pub const PREFETCH_IDLE_THRESHOLD: std::time::Duration = std::time::Duration::from_millis(100);
 
-/// visible が永久 Pending のまま prefetch が永久停止しないよう、絶対 timeout。
-/// この時間 scroll なしが経過したら visible_pending によらず prefetch を allow する。
+/// 绝对 timeout：防止 visible 一直 Pending 导致 prefetch 永久停止。
+/// 距上次 scroll 超过该时间后，不论 visible_pending 如何都 allow prefetch。
 pub const PREFETCH_BACKSTOP: std::time::Duration = std::time::Duration::from_secs(3);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AllowReason {
-    /// `last_prefetch_scroll_at == None` (= 起動直後 / フォルダ切替時の sentinel `Some(now)` でなく未設定)。
+    /// `last_prefetch_scroll_at == None`（= 启动后 / 切换文件夹时未设置，而非 sentinel `Some(now)`）。
     NoScrollYet,
-    /// scroll idle 100ms 経過 + visible 全部 ready。
+    /// 滚动静默 100ms 以上且可见区全部就绪。
     ScrollIdleAndVisibleReady,
-    /// 3 秒 backstop 発動 (= visible が永久 Pending でも prefetch 再開)。
+    /// 3 秒兜底触发（= 即使 visible 一直 Pending 也恢复 prefetch）。
     Backstop3s,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlockReason {
-    /// 最後の scroll input から `PREFETCH_IDLE_THRESHOLD` 未満。
+    /// 距最后一次 scroll input 不足 `PREFETCH_IDLE_THRESHOLD`。
     ScrollNotIdle { elapsed_ms: u64 },
-    /// scroll idle だが visible 範囲のサムネがまだ Loaded/Failed でない。
+    /// 滚动已静默，但可见范围的缩略图还不是 Loaded/Failed。
     VisibleStillLoading { pending: usize },
 }
 
@@ -67,17 +67,17 @@ pub enum PrefetchDecision {
     Block { reason: BlockReason },
 }
 
-/// prefetch (= 非可視範囲) を enqueue してよいか判定。
+/// 判定能否 enqueue 预取（= 非可见范围）。
 ///
-/// 順序:
-/// 1. `last_prefetch_scroll_at` が `PREFETCH_BACKSTOP` 以上前 → 無条件 Allow (Backstop3s)
-/// 2. `last_prefetch_scroll_at` から `PREFETCH_IDLE_THRESHOLD` 未満 → Block (ScrollNotIdle)
+/// 顺序:
+/// 1. `last_prefetch_scroll_at` 距今达 `PREFETCH_BACKSTOP` 以上 → 无条件 Allow (Backstop3s)
+/// 2. `last_prefetch_scroll_at` 距今不足 `PREFETCH_IDLE_THRESHOLD` → Block (ScrollNotIdle)
 /// 3. `visible_state_pending > 0` → Block (VisibleStillLoading)
-/// 4. それ以外 → Allow (NoScrollYet or ScrollIdleAndVisibleReady)
+/// 4. 其余情况 → Allow (NoScrollYet or ScrollIdleAndVisibleReady)
 ///
-/// `last_prefetch_scroll_at = None` は「起動直後 / 一度もスクロールしてない」状態。
-/// `emit_scroll_settle_event` で `last_scroll_event_at` は clear されるが、
-/// 本関数が見る `last_prefetch_scroll_at` は **clear されない** (= backstop 計時起点が安定)。
+/// `last_prefetch_scroll_at = None` 表示「刚启动 / 从未滚动过」状态。
+/// `emit_scroll_settle_event` 会 clear `last_scroll_event_at`，但
+/// 本函数读取的 `last_prefetch_scroll_at` **不会被 clear**（= backstop 计时起点稳定）。
 ///
 /// Rossi 侧的对应关系（同一个函数，换了一套输入名）：
 /// 「滚动」= 翻页/跳页，「可见区待完成」= 当前页还没出图。
@@ -91,7 +91,7 @@ pub fn decide_prefetch_allowed(
 ) -> PrefetchDecision {
     if let Some(t) = last_prefetch_scroll_at {
         let elapsed = now.saturating_duration_since(t);
-        // (1) backstop: 3 秒経ったら無条件 allow
+        // (1) backstop: 过 3 秒即无条件 allow
         if elapsed >= PREFETCH_BACKSTOP {
             return PrefetchDecision::Allow {
                 reason: AllowReason::Backstop3s,
@@ -139,9 +139,9 @@ impl FinalEffectPrefetchAdmission {
     }
 }
 
-/// final-effect の先読み対象を viewer mode、連結読み keep-set、texel LOW 水位から判定する。
-/// ページ送りでは keep-set / 水位を参照せず従来の AI 先読み対象を維持する。連結読みは
-/// keep-set 内だけを許可し、準備帯は LOW 水位をバイパス、それ以外は LOW 未満に限定する。
+/// 从 viewer mode、连续阅读 keep-set、texel LOW 水位判定 final-effect 的预取对象。
+/// 翻页时不参考 keep-set / 水位，维持原有的 AI 预取对象。连续阅读只
+/// 允许 keep-set 内的页面，准备带绕过 LOW 水位，其余限定在 LOW 以下。
 pub fn should_prefetch_final_effect(
     reading_is_paged: bool,
     continuous_keep_set: &std::collections::HashSet<usize>,
@@ -164,9 +164,9 @@ pub fn should_prefetch_final_effect(
     }
 }
 
-/// 先読み対象を距離順・forward 先で交互配置: +1, -1, +2, -2, +3, -3, …
-/// 同距離の組では forward (次ページ方向) が先。片側が尽きたら反対側だけ続く。
-/// fs_cache / AI アップスケール / サムネイルグリッド の全先読みで方針統一。
+/// 预取对象按距离、forward 优先交替排列: +1, -1, +2, -2, +3, -3, …
+/// 同距离的一组中 forward（下一页方向）在前。一侧用尽后只继续另一侧。
+/// fs_cache / AI 放大 / 缩略图网格的全部预取统一采用此策略。
 pub fn interleaved_prefetch_positions(
     pos: usize,
     n: usize,
@@ -192,7 +192,7 @@ pub fn interleaved_prefetch_positions(
     out
 }
 
-/// 表示順の位置で選んだ先読み対象を raw item index へ引き直す。
+/// 把按显示顺序位置选出的预取对象换算回 raw item index。
 pub fn interleaved_prefetch_targets(
     image_indices: &[usize],
     pos: usize,
@@ -213,40 +213,40 @@ mod tests {
 
     // ── 以下、上游 src/app/tests.rs 里只用纯函数的用例，逐字搬运 ──
 
-    /// P6-6: `interleaved_prefetch_targets` 純関数の境界条件を符号化する。
+    /// P6-6: 编码固定 `interleaved_prefetch_targets` 纯函数的边界条件。
     ///
-    /// この関数は `App::ai_prefetch_targets` の中核で、UI スレッドから 1 フレーム
-    /// 数回呼ばれる経路にいる。順序 (forward, back, forward, back, ...) を変えると
-    /// 「ユーザーが次に見るページから優先して AI を温める」スケジュールが崩れる
-    /// (= ページ送り直後に毎回 cold miss する退行)。
+    /// 该函数是 `App::ai_prefetch_targets` 的核心，位于 UI 线程每帧
+    /// 调用数次的路径上。改变顺序 (forward, back, forward, back, ...) 会破坏
+    /// 「优先预热用户接下来要看的页面」的调度安排
+    /// （= 翻页之后每次都 cold miss 的退化）。
     ///
-    /// それぞれ独立した境界 (= 先頭で back が無い / 末尾で forward が無い /
-    /// 全 0 で空 / 大きい d で末尾にぶつかったらスキップ) を 1 個ずつチェックする。
+    /// 逐一检查各自独立的边界（= 开头没有 back / 末尾没有 forward /
+    /// 全 0 时为空 / 较大的 d 撞到末尾则跳过），每种各验证 1 次。
     #[test]
     fn interleaved_prefetch_targets_boundary_cases() {
         // 通常 case: 中央 (pos=3), forward=2, back=1
-        // 期待順: forward d=1 → back d=1 → forward d=2  (back d=2 は無し: pf_back=1)
+        // 期望顺序: forward d=1 → back d=1 → forward d=2  (无 back d=2: pf_back=1)
         let indices: Vec<usize> = (0..7).collect(); // [0,1,2,3,4,5,6]
         assert_eq!(
             interleaved_prefetch_targets(&indices, 3, 7, 2, 1),
             vec![4, 2, 5],
-            "通常 case: forward → back → forward 順 (d=1 forward, d=1 back, d=2 forward)"
+            "通常 case: forward → back → forward 顺序 (d=1 forward, d=1 back, d=2 forward)"
         );
 
-        // 先頭: pos=0, forward=3, back=2
-        // pos.checked_sub(d) → None で back は何も生やさない
+        // 开头: pos=0, forward=3, back=2
+        // pos.checked_sub(d) → None，back 不产生任何结果
         assert_eq!(
             interleaved_prefetch_targets(&indices, 0, 7, 3, 2),
             vec![1, 2, 3],
-            "先頭: back は全部 None なので forward のみ"
+            "开头: back 全部为 None，只有 forward"
         );
 
         // 末尾: pos=6, forward=2, back=3
-        // pos+d >= n で forward はカット、back は 3 件取れる
+        // pos+d >= n 时 forward 被裁掉，back 可取 3 个
         assert_eq!(
             interleaved_prefetch_targets(&indices, 6, 7, 2, 3),
             vec![5, 4, 3],
-            "末尾: forward は 範囲外なので back のみ"
+            "末尾: forward 超出范围，只有 back"
         );
 
         // 全 0: forward=0, back=0
@@ -255,20 +255,20 @@ mod tests {
             "forward=back=0 → 空"
         );
 
-        // 非対称: forward >> back の旧既定ケース (forward=2, back=1)
-        // pos=2, n=5 → forward d=1→3, back d=1→1, forward d=2→4 (back d=2 は無し)
+        // 非对称: forward >> back 的旧默认情形 (forward=2, back=1)
+        // pos=2, n=5 → forward d=1→3, back d=1→1, forward d=2→4 (无 back d=2)
         let small: Vec<usize> = vec![10, 20, 30, 40, 50];
         assert_eq!(
             interleaved_prefetch_targets(&small, 2, 5, 2, 1),
             vec![40, 20, 50],
-            "旧既定 forward=2 back=1 のインタリーブ順序"
+            "旧默认 forward=2 back=1 的交错顺序"
         );
 
-        // forward が n を越える: 末尾を超えたらスキップ
+        // forward 超过 n: 越过末尾则跳过
         assert_eq!(
             interleaved_prefetch_targets(&small, 2, 5, 10, 0),
             vec![40, 50],
-            "forward が n を越えても、範囲内のものだけが選ばれる (overflow scenarios)"
+            "forward 超过 n 时，也只选出范围内的项 (overflow scenarios)"
         );
     }
 
@@ -277,12 +277,12 @@ mod tests {
         assert_eq!(
             interleaved_prefetch_positions(0, 4, 2, 2),
             vec![1, 2],
-            "表示先頭では forward 側の位置だけを近い順に返す"
+            "显示开头时只按由近到远返回 forward 侧的位置"
         );
         assert_eq!(
             interleaved_prefetch_positions(3, 4, 2, 2),
             vec![2, 1],
-            "表示末尾では back 側の位置だけを近い順に返す"
+            "显示末尾时只按由近到远返回 back 侧的位置"
         );
     }
 
@@ -347,14 +347,14 @@ mod tests {
 
         #[test]
         fn no_scroll_yet_with_visible_pending_still_allows() {
-            // last_prefetch_scroll_at = None なら elapsed check しないので
-            // visible_pending > 0 でも (Codex 設計: 起動直後経路) — ただし起動経路は
-            // 通常 `start_loading_items` が `Some(now)` を立てるので、
-            // 厳密には起動から最初の `update` までの極短い窓でしか発生しない。
+            // 因为 last_prefetch_scroll_at = None 时不做 elapsed check，所以
+            // visible_pending > 0 也一样（Codex 设计: 启动后直接路径）— 但启动路径
+            // 通常 `start_loading_items` 会设 `Some(now)`，因此严格来说，
+            // 只在启动到第一次 `update` 之间的极短窗口内才会出现。
             let now = Instant::now();
             let d = decide_prefetch_allowed(now, None, 5);
-            // visible_pending check は last_prefetch_scroll_at の elapsed branch を
-            // 抜けた後に走るので、None だとそのまま到達して Block { VisibleStillLoading }。
+            // visible_pending check 在走完 last_prefetch_scroll_at 的 elapsed branch
+            // 之后才跑，所以 None 时径直到达并 Block { VisibleStillLoading }。
             assert_eq!(
                 d,
                 PrefetchDecision::Block {
@@ -430,7 +430,7 @@ mod tests {
 
         #[test]
         fn scroll_2999ms_with_pending_blocks() {
-            // backstop 未到達 + visible 残り → block
+            // 未达 backstop + visible 仍有剩余 → block
             let now = Instant::now();
             let t = now - Duration::from_millis(2999);
             let d = decide_prefetch_allowed(now, Some(t), 5);
@@ -444,7 +444,7 @@ mod tests {
 
         #[test]
         fn scroll_exactly_3000ms_backstop_allows() {
-            // backstop 境界 (≥ 3000ms) → visible pending あっても allow
+            // backstop 边界 (≥ 3000ms) → 即使 visible pending 存在也 allow
             let now = Instant::now();
             let t = now - Duration::from_millis(3000);
             let d = decide_prefetch_allowed(now, Some(t), 5);
@@ -458,8 +458,8 @@ mod tests {
 
         #[test]
         fn scroll_3001ms_backstop_allows_no_pending() {
-            // backstop 超過 + visible 揃ってる → 同じく allow (Backstop3s)
-            // Backstop は (1) で先に判定されるので visible_pending=0 でも Backstop3s 扱い。
+            // 超过 backstop + visible 已就绪 → 同样 allow (Backstop3s)
+            // Backstop 在 (1) 处先判定，所以 visible_pending=0 也按 Backstop3s 处理。
             let now = Instant::now();
             let t = now - Duration::from_millis(3001);
             let d = decide_prefetch_allowed(now, Some(t), 0);

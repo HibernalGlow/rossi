@@ -1,4 +1,3 @@
-// ignore_for_file: invalid_use_of_protected_member
 part of '../file_manager_card.dart';
 
 // 从 class _FileManagerCardState 搬出的方法组；extension 与宿主类同库，可直接访问私有成员。
@@ -185,6 +184,7 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                   tooltip: _searchExpanded ? '收起搜索' : '搜索（空格分词，-排除）',
                   selected: _searchExpanded || snapshot.searchQuery.isNotEmpty,
                   onPressed: () {
+                    // ignore: invalid_use_of_protected_member
                     setState(() => _searchExpanded = !_searchExpanded);
                     if (_searchExpanded) _loadSearchHistory();
                   },

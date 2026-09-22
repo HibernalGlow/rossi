@@ -1,4 +1,3 @@
-// ignore_for_file: invalid_use_of_protected_member
 part of '../file_manager_card.dart';
 
 // 从 class _FileManagerCardState 搬出的方法组；extension 与宿主类同库，可直接访问私有成员。
@@ -25,10 +24,12 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
     _cancelPendingSearch();
     _pendingSearchQuery = query;
     final serial = ++_requestSerial;
+    // ignore: invalid_use_of_protected_member
     if (!_searchPending) setState(() => _searchPending = true);
     try {
       final snapshot = await fileManagerSetSearchQuery(id: id, query: query);
       if (!mounted || serial != _requestSerial) return;
+      // ignore: invalid_use_of_protected_member
       setState(() {
         _searchPending = false;
         _acceptSnapshot(snapshot);
@@ -38,6 +39,7 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
       }
     } catch (error) {
       if (!mounted || serial != _requestSerial) return;
+      // ignore: invalid_use_of_protected_member
       setState(() => _searchPending = false);
       _showError(error);
     }
@@ -46,6 +48,7 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
     try {
       final history = await fileManagerRecordSearchHistory(query: query);
       if (!mounted || history.isEmpty) return;
+      // ignore: invalid_use_of_protected_member
       setState(() {
         _searchHistory = history;
         _searchHistoryLoaded = true;
@@ -59,6 +62,7 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
     try {
       await fileManagerClearSearchHistory();
       if (!mounted) return;
+      // ignore: invalid_use_of_protected_member
       setState(() => _searchHistory = const []);
       showInfoToast('已清空搜索历史', context: context);
     } catch (error) {
@@ -99,21 +103,25 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
     final id = _sessionId;
     if (id == null || _disposed) return;
     final serial = ++_searchSerial;
+    // ignore: invalid_use_of_protected_member
     setState(() => _searchRunning = true);
     try {
       final next = await fileManagerSearch(id: id);
       if (!mounted || serial != _searchSerial) return;
       // 遍历期间用户可能已经改了词或切走：条件签名一变，这批结果就不是现在要看的了。
       if (_searchSignatureOf(next) != _searchSignature) {
+        // ignore: invalid_use_of_protected_member
         setState(() => _searchRunning = false);
         return;
       }
+      // ignore: invalid_use_of_protected_member
       setState(() {
         _searchRunning = false;
         _acceptSnapshot(next);
       });
     } catch (error) {
       if (!mounted || serial != _searchSerial) return;
+      // ignore: invalid_use_of_protected_member
       setState(() => _searchRunning = false);
       _showError(error);
     }
@@ -167,6 +175,7 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
                 icon: const Icon(Icons.clear, size: 16),
                 onPressed: () {
                   _submitSearch('');
+                  // ignore: invalid_use_of_protected_member
                   setState(() => _searchExpanded = false);
                 },
               ),

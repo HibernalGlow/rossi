@@ -1,4 +1,3 @@
-// ignore_for_file: invalid_use_of_protected_member
 part of '../file_manager_card.dart';
 
 // 从 class _FileManagerCardState 搬出的方法组；extension 与宿主类同库，可直接访问私有成员。
@@ -10,6 +9,7 @@ extension _FileManagerCardTreePart on _FileManagerCardState {
   Future<void> _setTreeEnabled(bool enabled) async {
     if (!enabled) {
       _treePoll?.cancel();
+      // ignore: invalid_use_of_protected_member
       setState(() {
         _treeEnabled = false;
         _tree = null;
@@ -24,6 +24,7 @@ extension _FileManagerCardTreePart on _FileManagerCardState {
       );
     }
     if (!mounted) return;
+    // ignore: invalid_use_of_protected_member
     setState(() {
       _treeEnabled = true;
       // 清掉上一次的对齐记号，让本帧后的 `_followTreeOn` 一定问一次。
@@ -49,10 +50,12 @@ extension _FileManagerCardTreePart on _FileManagerCardState {
     try {
       final tree = await fileManagerTreeSnapshot(id: id);
       if (!mounted || serial != _treeSerial || !_treeEnabled) return;
+      // ignore: invalid_use_of_protected_member
       setState(() => _tree = tree);
       _scheduleTreePoll(tree);
     } catch (error) {
       if (!mounted || serial != _treeSerial) return;
+      // ignore: invalid_use_of_protected_member
       setState(() => _tree = null);
       _showError(error);
     }
@@ -64,6 +67,7 @@ extension _FileManagerCardTreePart on _FileManagerCardState {
     try {
       final tree = await fileManagerTreeToggle(id: id, path: path);
       if (!mounted || serial != _treeSerial || !_treeEnabled) return;
+      // ignore: invalid_use_of_protected_member
       setState(() => _tree = tree);
       _scheduleTreePoll(tree);
     } catch (error) {

@@ -218,8 +218,8 @@ ADR-0001 / ADR-0005 / `START_WORK.md` 里的「20MP 26–58 ms/张」注的是**
 
 - `src/app.rs:5765`：`enum FsLoadPurpose { Display, Prefetch, AnimationPromotion }`，
   由 `for_page(is_current)` 决定 —— 当前页走 `Display`，邻页走 `Prefetch`。
-- `src/app/prefetch_policy.rs:219-222`：**先読み枚数の設定上限は前後とも 10 枚**，
-  默认 **後方 2／前方 3**；UI 上还有「先読み: 取得済み／取得中／未取得」的状态指示器。
+- `src/app/prefetch_policy.rs:219-222`：**预取张数的设置上限前后都是 10 张**，
+  默认 **后方 2／前方 3**；UI 上还有「预取: 已取得／取得中／未取得」的状态指示器。
 - 另有一条防饥饿规则（同文件 `PREFETCH_IDLE_THRESHOLD = 100 ms` / `PREFETCH_BACKSTOP = 3 s`），
   不过那是**网格缩略图**的入队抑制，与阅读器邻页预取是两套。
 

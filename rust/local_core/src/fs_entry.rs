@@ -16,8 +16,8 @@ use std::path::Path;
 
 pub const PORTABLE_METADATA_BUNDLE_DIRNAME: &str = "mimageviewer.meta.miv";
 
-/// mIV自身が作る持ち運び用bundleは、Hidden属性や「隠しファイルを表示」の設定に
-/// 依存せず、通常一覧・再帰ビュー・フォルダナビから常に除外する。
+/// mIV 自身生成的可携带 bundle 不依赖 Hidden 属性或「显示隐藏文件」设置，
+/// 在普通列表、递归视图与文件夹导航中始终予以排除。
 pub fn is_internal_app_entry_name(name: &OsStr) -> bool {
     let name = name.to_string_lossy();
     if name.eq_ignore_ascii_case(PORTABLE_METADATA_BUNDLE_DIRNAME) {
@@ -59,20 +59,20 @@ pub fn classify_dir_entry(entry: &DirEntry, file_type: &FileType) -> DirEntryKin
 const FILE_ATTRIBUTE_HIDDEN: u32 = 0x2;
 const FILE_ATTRIBUTE_SYSTEM: u32 = 0x4;
 
-/// Windows のファイル属性から、一覧で除外すべきエントリかを判定する純関数。
+/// 纯函数：根据 Windows 文件属性判定某条目是否应从列表排除。
 ///
-/// Hidden + System は保護された OS ファイルとして常に隠し、Hidden のみは
-/// show_hidden_files が false のときだけ隠す。
+/// Hidden + System 作为受保护的 OS 文件始终隐藏，仅 Hidden 的条目
+/// 只在 show_hidden_files 为 false 时隐藏。
 pub fn should_hide_dir_entry(attributes: u32, show_hidden_files: bool) -> bool {
     let hidden = attributes & FILE_ATTRIBUTE_HIDDEN != 0;
     let system = attributes & FILE_ATTRIBUTE_SYSTEM != 0;
     hidden && (system || !show_hidden_files)
 }
 
-/// DirEntry のキャッシュ済み情報だけを使って一覧の表示可否を判定する。
+/// 只使用 DirEntry 已缓存的信息判定列表中的显示与否。
 ///
-/// Windows の entry.metadata() は FindFirstFile / FindNextFile の結果を再利用するため、
-/// エントリごとの追加 syscall は発生しない。属性を取得できない場合は従来どおり表示側へ倒す。
+/// Windows 上 entry.metadata() 会复用 FindFirstFile / FindNextFile 的结果，
+/// 不产生逐条目的额外 syscall。取不到属性时照旧交给显示侧判断。
 #[cfg(windows)]
 pub fn should_hide_fs_entry(entry: &DirEntry, show_hidden_files: bool) -> bool {
     use std::os::windows::fs::MetadataExt;
@@ -82,7 +82,7 @@ pub fn should_hide_fs_entry(entry: &DirEntry, show_hidden_files: bool) -> bool {
     })
 }
 
-/// Unix 系では Windows 属性がないため、先頭 . を Hidden 相当として扱う。
+/// Unix 系没有 Windows 属性，因此把开头的 . 按等同 Hidden 处理。
 #[cfg(not(windows))]
 pub fn should_hide_fs_entry(entry: &DirEntry, show_hidden_files: bool) -> bool {
     !show_hidden_files && entry.file_name().to_string_lossy().starts_with('.')

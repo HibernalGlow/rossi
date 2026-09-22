@@ -1,4 +1,4 @@
-//! 横長ページ 1 枚を左右の表示ステップへ分けて読む (§1.119)。
+//! 把 1 张横长页拆成左右两个显示步骤来读 (§1.119)。
 //!
 //! ── 来源与形态（读之前先看这段）──
 //!
@@ -14,21 +14,21 @@
 //! 2. 旋转类型重定向：`crate::rotation_db::Rotation` → `crate::rotation::Rotation`。
 //! 3. 逆 UV 变换重定向：`crate::displayed_image_transform::inverse_uv` → `crate::rotation::inverse_uv`。
 //!
-//! **元の item index が正本のまま**で、フルスクリーンの表示位置だけが左右へ分かれる。
-//! ★ / タグ / しおり / 読書位置 / 補正 / 注釈 / 切り取りはすべて分割前のページへ記録し、
-//! サムネイルも分割前の画像を使う。永続的な論理ページを作らないのが前提である
-//! (作ると DB・検索・シークバー・サムネイルまで一斉に論理ページ化する必要が出る)。
+//! **原来的 item index 始终保持为正本**，只有全屏的显示位置会分到左右两侧。
+//! ★ / 标签 / 书签 / 阅读位置 / 校正 / 注释 / 裁剪都记录在分割前的页面上，
+//! 缩略图也使用分割前的图片。前提是不产生持久的逻辑页面
+//! (一旦产生，DB、搜索、进度条、缩略图就会全部被迫改成按逻辑页面处理)。
 //!
-//! このモジュールは**分割の順序だけ**を持つ。持たないもの:
+//! 本模块只持有**分割的顺序**。不持有的东西:
 //!
-//! - **分割対象かどうかの判定**。回転を反映した縦横比と「静止画か」は一覧側の
-//!   `is_landscape` / `is_spread_pairable_item` が既に持っているので、述語で受け取る。
-//!   ここで縦横比を読み直すと、同じ判定が 2 か所に増える。
-//! - 描画、テクスチャ、永続化。`PageSlice::uv_rect` が返すのは範囲だけで、
-//!   誰がどう描くかは呼び出し側の責務。
+//! - **是否属于分割对象的判定**。反映旋转后的纵横比与「是否为静止画」，列表侧的
+//!   `is_landscape` / `is_spread_pairable_item` 已经持有，因此通过谓词接收。
+//!   如果在这里重新读一遍纵横比，同一个判定就会增加到 2 处。
+//! - 绘制、纹理、持久化。`PageSlice::uv_rect` 返回的只是范围，
+//!   由谁来怎么画是调用方的责任。
 //!
-//! 縦連結でも同じステップ列を使う。連結時は「同じ texture 由来の 2 領域を縦に並べる」
-//! ことになり、並べる順序はページ送りの順序と同じものである。
+//! 纵向拼接也使用同一套步骤列。拼接时会变成「把源自同一 texture 的 2 个区域纵向排列」，
+//! 而排列的顺序与翻页的顺序相同。
 
 // ── B3 几何类型剥离 ────────────────────────────────────────────────────────
 //
@@ -98,10 +98,10 @@ use egui_compat as egui;
 
 // ── 上游核心逻辑 ──
 
-/// 分割したページの、どちら側を見ているか。
+/// 分割后的页面正在看哪一侧。
 ///
-/// `Full` は「分割していない」であって「左右の中間」ではない。縦長ページ、動画、
-/// 分割 OFF はすべて `Full` になる。
+/// `Full` 是「没有分割」，而不是「左右中间」。竖长页、视频、
+/// 分割 OFF 都会变成 `Full`。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub enum PageSlice {
     #[default]
@@ -111,9 +111,9 @@ pub enum PageSlice {
 }
 
 impl PageSlice {
-    /// テクスチャのどの範囲を描くか (左上原点の正規化座標)。
+    /// 纹理上要绘制哪个范围 (以左上角为原点的归一化坐标)。
     ///
-    /// 分割位置は 50% 固定。手動調整は MVP に含めない。
+    /// 分割位置固定为 50%。手动调整不包含在 MVP 里。
     pub fn uv_rect(self) -> egui::Rect {
         match self {
             Self::Full => egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
@@ -122,16 +122,16 @@ impl PageSlice {
         }
     }
 
-    /// 半分だけを見ているか。自動表示トリムを無効にする条件でもある。
+    /// 是否只看了一半。这也是禁用自动显示裁剪的条件。
     pub fn is_half(self) -> bool {
         matches!(self, Self::Left | Self::Right)
     }
 
-    /// **元画像空間**の部分矩形。`content_bbox` に渡すのはこちら。
+    /// **原图空间**的部分矩形。传给 `content_bbox` 的是这个。
     ///
-    /// [`Self::uv_rect`] は「画面で見て左半分 / 右半分」なので**表示空間**である。
-    /// 保存回転があると両者は一致しない (90 度回転したページの画面左半分は、元画像では
-    /// 上半分)。写像は screen ↔ source と同じ `inverse_uv` を使う。
+    /// [`Self::uv_rect`] 是「从画面看左半边 / 右半边」，因此是**显示空间**。
+    /// 存在保存旋转时两者不一致 (旋转 90 度的页面，画面左半部分在原图中
+    /// 是上半部分)。映射使用与 screen ↔ source 相同的 `inverse_uv`。
     pub fn source_bbox(self, rotation: crate::rotation::Rotation) -> egui::Rect {
         let display = self.uv_rect();
         let (ax, ay) = crate::rotation::inverse_uv(rotation, display.min.x, display.min.y);
@@ -143,23 +143,23 @@ impl PageSlice {
     }
 }
 
-/// 分割したページをどちら側から読むか。
+/// 分割后的页面从哪一侧开始读。
 ///
-/// 表示モードとして排他的に選ぶ。「1ページ表示 / 通常の見開き」と組み合わせる独立の
-/// bool にはしない (組み合わせ状態が増え、どの経路が有効かを各所で判定し直すことになる)。
+/// 作为显示模式排他地选择。不要做成与「单页显示 / 普通跨页」组合的独立
+/// bool (组合状态会变多，每条路径在哪里有效要各处重新判定)。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SplitDirection {
-    /// 左半分から読む。
+    /// 从左半边开始读。
     LeftFirst,
-    /// 右半分から読む。
+    /// 从右半边开始读。
     RightFirst,
 }
 
 impl SplitDirection {
-    /// 表示モードから分割の向きを取る。分割モードでなければ `None`。
+    /// 从显示模式取分割方向。不是分割模式时返回 `None`。
     ///
-    /// `SpreadMode::is_split` との食い違いは
-    /// `every_split_mode_names_a_direction` が固定する。
+    /// 与 `SpreadMode::is_split` 的不一致，由
+    /// `every_split_mode_names_a_direction` 固定住。
     pub fn from_spread_mode(mode: crate::settings::SpreadMode) -> Option<Self> {
         match mode {
             crate::settings::SpreadMode::SplitLtr => Some(Self::LeftFirst),
@@ -168,7 +168,7 @@ impl SplitDirection {
         }
     }
 
-    /// このページで最初に見る側。しおり等から開いたときの着地先でもある。
+    /// 在此页面最先看到的一侧。也是从书签等打开时的落点。
     pub fn first(self) -> PageSlice {
         match self {
             Self::LeftFirst => PageSlice::Left,
@@ -176,7 +176,7 @@ impl SplitDirection {
         }
     }
 
-    /// 2 つ目に見る側。
+    /// 第二个看到的一侧。
     pub fn second(self) -> PageSlice {
         match self {
             Self::LeftFirst => PageSlice::Right,
@@ -185,10 +185,10 @@ impl SplitDirection {
     }
 }
 
-/// フルスクリーンの表示位置。
+/// 全屏时的显示位置。
 ///
-/// `source_idx` が正本で、`slice` は表示だけの一時状態。**どちらを見ていたかは
-/// 永続化しない** ので、この型は保存経路へ渡さない。
+/// `source_idx` 是正本，`slice` 只是显示用的临时状态。**看过哪一侧
+/// 不持久化**，因此这个类型不会传给保存路径。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PresentationStep {
     pub source_idx: usize,
@@ -196,7 +196,7 @@ pub struct PresentationStep {
 }
 
 impl PresentationStep {
-    /// 分割しないページの表示位置。
+    /// 不分割页面的显示位置。
     pub fn whole(source_idx: usize) -> Self {
         Self {
             source_idx,
@@ -205,23 +205,23 @@ impl PresentationStep {
     }
 }
 
-/// 表示を 1 つ動かした結果。
+/// 显示前进 1 步的结果。
 ///
-/// 元ページが変わったかどうかで、テクスチャの読み直し・表示確定・履歴記録の扱いが
-/// 変わる。呼び出し側が `before.source_idx != after.source_idx` を各所で組み立てると
-/// 判定が散るので、ここで型にして返す。
+/// 原始页面是否变了，会改变纹理的重读、显示确定、历史记录的处理方式。
+/// 如果调用方在各处自行拼 `before.source_idx != after.source_idx`，
+/// 判定就会分散，所以在这里做成类型返回。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum StepMove {
-    /// 同じ元ページの中で左右が変わった。
+    /// 同一个原始页面内左右发生了变化。
     WithinPage { to: PresentationStep },
-    /// 別の元ページへ移った。
+    /// 移到了另一个原始页面。
     ToAnotherPage { to: PresentationStep },
-    /// 端にいて動かない。
+    /// 处在端点，不移动。
     AtEnd,
 }
 
 impl StepMove {
-    /// 移動先。端なら `None`。
+    /// 移动目标。在端点时为 `None`。
     pub fn destination(self) -> Option<PresentationStep> {
         match self {
             Self::WithinPage { to } | Self::ToAnotherPage { to } => Some(to),
@@ -230,15 +230,15 @@ impl StepMove {
     }
 }
 
-/// nav 順の item を、分割を織り込んだ表示ステップ列へ広げる。
+/// 把 nav 顺序的 item 展开为织入分割后的显示步骤列。
 ///
-/// `is_split_idx` が真の item だけが 2 ステップになる。まだ寸法が分からない item は
-/// 偽を返してもらい 1 ステップになる — 寸法が届いた後にステップ列は組み直される。
-/// これは既存の見開きユニット生成が `is_landscape` に対して持つ性質と同じで、
-/// 分割のためだけに読み込みを待たせない。
+/// 只有 `is_split_idx` 为真的 item 变成 2 步。尺寸还不清楚的 item 返回
+/// 假并只占 1 步 — 尺寸到达后步骤列会重新组装。
+/// 这与既有跨页单元生成对 `is_landscape` 持有的性质相同，
+/// 不会仅为了分割而等待加载。
 ///
-/// 述語は既存の見開きユニット生成と同じ `(nav 内の位置, item index)` を受け取る。
-/// 保存回転が nav と同じ並びで返るので、位置が要る。
+/// 谓词接收与既有跨页单元生成相同的 `(nav 内的位置, item index)`。
+/// 因为保存旋转按与 nav 相同的顺序返回，所以需要位置。
 pub fn presentation_steps(
     nav: &[usize],
     direction: SplitDirection,
@@ -262,21 +262,21 @@ pub fn presentation_steps(
     steps
 }
 
-/// この item を開いたときに着地するステップ位置。
+/// 打开这个 item 时落脚的步骤位置。
 ///
-/// **分割方向の最初の半分**へ着地する。しおり・履歴・検索・シークバーから開き直した
-/// ときに「前回どちらを見ていたか」を覚えていないのは仕様で、覚えると保存対象が
-/// 増え、元ページ単位という前提が崩れる。
+/// **落到分割方向的第一半**。从书签、历史、搜索、进度条重新打开时
+/// 不记得「上次看的是哪一侧」，这是规格；一旦记住，保存对象就会增加，
+/// 以原始页面为单位的前提也会崩塌。
 pub fn landing_step(steps: &[PresentationStep], source_idx: usize) -> Option<usize> {
     steps.iter().position(|s| s.source_idx == source_idx)
 }
 
-/// 表示を 1 つ進める。
+/// 显示前进 1 步。
 pub fn step_forward(steps: &[PresentationStep], at: usize) -> StepMove {
     step_to(steps, at, at.checked_add(1))
 }
 
-/// 表示を 1 つ戻す。
+/// 显示后退 1 步。
 pub fn step_backward(steps: &[PresentationStep], at: usize) -> StepMove {
     step_to(steps, at, at.checked_sub(1))
 }
@@ -296,7 +296,7 @@ fn step_to(steps: &[PresentationStep], at: usize, target: Option<usize>) -> Step
 mod tests {
     use super::*;
 
-    /// 分割対象がなければ、ステップ列は nav とそのまま 1 対 1 になる。
+    /// 没有分割对象时，步骤列与 nav 直接保持 1 对 1。
     #[test]
     fn pages_that_do_not_split_stay_one_step_each() {
         let steps = presentation_steps(&[4, 7, 9], SplitDirection::LeftFirst, |_, _| false);
@@ -324,12 +324,12 @@ mod tests {
             vec![PageSlice::Right, PageSlice::Left]
         );
 
-        // どちらの向きでも、元ページは 1 つのまま。
+        // 无论哪个方向，原始页面都仍是 1 个。
         assert!(ltr.iter().all(|s| s.source_idx == 0));
         assert!(rtl.iter().all(|s| s.source_idx == 0));
     }
 
-    /// 横長と縦長が混ざったときに、分割したページだけが 2 ステップになる。
+    /// 横长与竖长混杂时，只有被分割的页面才变成 2 步。
     #[test]
     fn only_the_landscape_pages_are_split() {
         let steps = presentation_steps(&[0, 1, 2], SplitDirection::RightFirst, |_, idx| idx == 1);
@@ -355,11 +355,11 @@ mod tests {
         assert!(presentation_steps(&[], SplitDirection::LeftFirst, |_, _| true).is_empty());
     }
 
-    /// 開き直しは分割方向の最初の半分へ着地する。後ろの半分には着地しない。
+    /// 重新打开时落到分割方向的第一半。不会落到后半。
     #[test]
     fn reopening_a_split_page_lands_on_its_first_half() {
         let steps = presentation_steps(&[5, 6], SplitDirection::RightFirst, |_, _| true);
-        let at = landing_step(&steps, 6).expect("6 がステップ列に無い");
+        let at = landing_step(&steps, 6).expect("6 不在步骤列中");
         assert_eq!(
             steps[at],
             PresentationStep {
@@ -370,7 +370,7 @@ mod tests {
         assert_eq!(landing_step(&steps, 99), None);
     }
 
-    /// 同じ元ページ内の左右移動と、次の元ページへの移動を区別する。
+    /// 区分同一原始页面内的左右移动与移到下一个原始页面。
     #[test]
     fn moving_within_a_page_is_distinguished_from_moving_to_the_next_one() {
         let steps = presentation_steps(&[0, 1], SplitDirection::LeftFirst, |_, idx| idx == 0);
@@ -410,7 +410,7 @@ mod tests {
         );
     }
 
-    /// 端では動かない。分割の途中で端に当たる形にはしない。
+    /// 在端点不动。不要出现分割中途撞到端点的形态。
     #[test]
     fn both_ends_stop_instead_of_wrapping() {
         let steps = presentation_steps(&[0], SplitDirection::LeftFirst, |_, _| true);
@@ -420,7 +420,7 @@ mod tests {
         assert_eq!(StepMove::AtEnd.destination(), None);
     }
 
-    /// 左右で元画像をちょうど覆い、重ならない。
+    /// 左右合起来恰好覆盖原图，且不重叠。
     #[test]
     fn the_two_halves_tile_the_whole_image() {
         let left = PageSlice::Left.uv_rect();
@@ -429,7 +429,7 @@ mod tests {
         assert_eq!(left.min.x, 0.0);
         assert_eq!(right.max.x, 1.0);
         assert_eq!(left.width(), right.width());
-        // 縦は切らない。
+        // 纵向不切。
         for rect in [left, right, PageSlice::Full.uv_rect()] {
             assert_eq!(rect.min.y, 0.0);
             assert_eq!(rect.max.y, 1.0);
@@ -443,15 +443,15 @@ mod tests {
         assert!(PageSlice::Right.is_half());
     }
 
-    /// 分割モードだと名乗るモードは、必ず向きを答えられる。
+    /// 自称分割模式的模式，必须都能答出方向。
     ///
-    /// `SpreadMode::is_split` と `SplitDirection::from_spread_mode` が別々に書かれて
-    /// いるので、モードを増やしたときに片方だけ直すと**分割 ON なのに何も起きない**
-    /// 状態になる。そこを固定する。
+    /// `SpreadMode::is_split` 与 `SplitDirection::from_spread_mode` 是分开写的，
+    /// 增加模式时如果只改一边，就会出现**分割 ON 却什么都不发生**的
+    /// 状态。这里把它固定住。
     #[test]
     fn every_split_mode_names_a_direction() {
         use crate::settings::SpreadMode;
-        // `all()` はプルダウンに出す並びなので、網羅の根拠には使わない。
+        // `all()` 是下拉框里展示的排列，不要拿它作为网罗的依据。
         let every_mode = [
             SpreadMode::Single,
             SpreadMode::Ltr,
@@ -466,7 +466,7 @@ mod tests {
             assert_eq!(
                 mode.is_split(),
                 SplitDirection::from_spread_mode(mode).is_some(),
-                "{mode:?} の is_split と from_spread_mode が食い違っている"
+                "{mode:?} 的 is_split 与 from_spread_mode 不一致"
             );
         }
         assert_eq!(
@@ -479,29 +479,29 @@ mod tests {
         );
     }
 
-    /// 画面で見た左右が、回転に応じて元画像のどこになるか。
+    /// 画面看到的左右，随旋转对应到原图的哪个位置。
     ///
-    /// ここを表示空間のまま渡すと、90 度回転したページで**左右ではなく上下**が切れる。
+    /// 这里若按显示空间原样传递，旋转 90 度的页面上切掉的将是**上下而非左右**。
     #[test]
     fn the_halves_map_back_through_the_rotation() {
         use crate::rotation::Rotation;
         let left = PageSlice::Left;
-        // 無回転: 画面左 = 元画像の左。
+        // 无旋转: 画面左 = 原图的左。
         assert_eq!(left.source_bbox(Rotation::None), left.uv_rect());
-        // 時計回り 90 度で表示している = 元画像の下半分が画面左に来る。
+        // 顺时针旋转 90 度显示 = 原图的下半部分出现在画面左侧。
         let mapped = left.source_bbox(Rotation::Cw90);
         assert!((mapped.min.x - 0.0).abs() < 1e-5, "{mapped:?}");
         assert!((mapped.max.x - 1.0).abs() < 1e-5, "{mapped:?}");
         assert!((mapped.min.y - 0.5).abs() < 1e-5, "{mapped:?}");
         assert!((mapped.max.y - 1.0).abs() < 1e-5, "{mapped:?}");
-        // 180 度なら左右が入れ替わる。
+        // 180 度时左右互换。
         assert_eq!(
             left.source_bbox(Rotation::Cw180),
             PageSlice::Right.uv_rect()
         );
     }
 
-    /// どの回転でも、左右あわせて元画像をちょうど覆う。
+    /// 无论哪种旋转，左右合起来都恰好覆盖原图。
     #[test]
     fn the_two_halves_still_tile_the_source_under_every_rotation() {
         use crate::rotation::Rotation;
@@ -522,7 +522,7 @@ mod tests {
         }
     }
 
-    /// 分割しないときは元画像全体。回転しても全体のまま。
+    /// 不分割时是原图整体。旋转后也保持整体。
     #[test]
     fn a_whole_page_stays_whole_under_rotation() {
         use crate::rotation::Rotation;
@@ -536,7 +536,7 @@ mod tests {
         }
     }
 
-    /// 分割は見開きではない。見開き用の分岐へ紛れ込ませない。
+    /// 分割不是跨页。不要混进跨页专用的分支里。
     #[test]
     fn splitting_is_not_a_spread() {
         use crate::settings::SpreadMode;
@@ -547,16 +547,16 @@ mod tests {
         }
     }
 
-    /// 整数との往復で向きが失われない (DB へは整数で入る)。
+    /// 与整数往返后方向不丢失 (存入 DB 时使用整数)。
     #[test]
     fn the_split_modes_survive_the_integer_round_trip() {
         use crate::settings::SpreadMode;
         for mode in [SpreadMode::SplitLtr, SpreadMode::SplitRtl] {
             assert_eq!(SpreadMode::from_int(mode.to_int()), mode);
         }
-        // 旧版が書いた値と衝突しない。
+        // 不与旧版本写入的值冲突。
         assert_eq!(SpreadMode::from_int(5), SpreadMode::Vertical);
-        // 知らない値は既定へ倒す (新版が書いた値を旧版が読んだときの経路)。
+        // 不认识的值倒向默认 (新版写入的值被旧版读到时的路径)。
         assert_eq!(SpreadMode::from_int(99), SpreadMode::Single);
     }
 }

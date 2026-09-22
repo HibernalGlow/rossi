@@ -1,6 +1,5 @@
 part of '../local_source_debug_page.dart';
 
-// ignore_for_file: invalid_use_of_protected_member
 // 从 class _LocalSourceDebugPageState 搬出的方法组；extension 与宿主类同库，可直接访问私有成员。
 extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
   Widget _toolbar() {
@@ -40,6 +39,7 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
               ),
               label: Text(_displaySizedDecode ? '尺寸：显示' : '尺寸：全尺寸'),
               onSelected: (v) {
+                // ignore: invalid_use_of_protected_member
                 setState(() => _displaySizedDecode = v);
                 // 预取缓存是按目标宽度存的，尺寸一变就整批作废。
                 _clearPrefetch();
@@ -63,6 +63,7 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
                   _DecoderMode.rust => _DecoderMode.shell,
                   _DecoderMode.shell => _DecoderMode.auto,
                 };
+                // ignore: invalid_use_of_protected_member
                 setState(() => _decoderMode = next);
                 // 换了解码器，旧预取是另一条路解出来的，不能混用。
                 _clearPrefetch();
@@ -90,6 +91,7 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
               ),
               label: Text(_prefetchEnabled ? '预取：开' : '预取：关'),
               onSelected: (v) {
+                // ignore: invalid_use_of_protected_member
                 setState(() => _prefetchEnabled = v);
                 if (!v) {
                   _clearPrefetch();
@@ -116,6 +118,7 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
               final n = localCloseAll();
               if (!mounted) return;
               _releaseCurrentImage();
+              // ignore: invalid_use_of_protected_member
               setState(() {
                 _sessionId = null;
                 _info = null;
@@ -550,6 +553,7 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
             ),
             const SizedBox(height: 16),
             OutlinedButton(
+              // ignore: invalid_use_of_protected_member
               onPressed: () => setState(() => _rejection = null),
               child: const Text('换一个'),
             ),

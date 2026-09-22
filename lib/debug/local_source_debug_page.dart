@@ -56,7 +56,7 @@ part 'parts/local_source_debug_view_part.dart';
 ///    （位图小了 10 倍反而更慢），是**预取与翻页同时解码** —— dav1d 一条流几乎
 ///    不能并行，并发不是分核而是双输，顺带把 Flutter 的帧生产也饿住了。
 ///    做法照上游 mImageViewer `update_prefetch_window`（`app.rs:55192`）：
-///    当前页还没显示出来时取消其它 pending、连新的先読み也不发；
+///    当前页还没显示出来时取消其它 pending、连新的预取也不发；
 ///    我们另加一条「每解完一页重新问一次『用户在等吗』」。
 ///    字段与显示见 `_prefetchGeneration` / `_prefetchNote` / `_frameCostLabel`。
 /// 4. **本页不新增 i18n 键、不注册 auto_route**：调试页属于内部工具，走

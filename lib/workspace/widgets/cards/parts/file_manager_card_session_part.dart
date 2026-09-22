@@ -1,4 +1,3 @@
-// ignore_for_file: invalid_use_of_protected_member
 part of '../file_manager_card.dart';
 
 // 从 class _FileManagerCardState 搬出的方法组；extension 与宿主类同库，可直接访问私有成员。
@@ -24,6 +23,7 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
       await _reload();
       return;
     }
+    // ignore: invalid_use_of_protected_member
     setState(() {
       _busy = true;
       _error = null;
@@ -139,10 +139,12 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
     final id = _sessionId;
     if (id == null) return;
     final serial = ++_requestSerial;
+    // ignore: invalid_use_of_protected_member
     setState(() => _busy = true);
     try {
       final snapshot = await fileManagerSnapshot(id: id);
       if (!mounted || serial != _requestSerial) return;
+      // ignore: invalid_use_of_protected_member
       setState(() {
         _acceptSnapshot(snapshot);
         _error = null;
@@ -168,6 +170,7 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
     try {
       final snapshot = await fileManagerNewTab(id: id, path: path);
       if (!mounted || _disposed) return FileManagerTabOpenOutcome.failed;
+      // ignore: invalid_use_of_protected_member
       setState(() => _acceptSnapshot(snapshot));
       return FileManagerTabOpenOutcome.opened;
     } catch (error) {
@@ -182,6 +185,7 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
     if (id == null || _busy) return false;
     _cancelPendingSearch();
     final serial = ++_requestSerial;
+    // ignore: invalid_use_of_protected_member
     setState(() {
       _busy = true;
       _error = null;
@@ -189,6 +193,7 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
     try {
       final snapshot = await action(id);
       if (!mounted || serial != _requestSerial) return false;
+      // ignore: invalid_use_of_protected_member
       setState(() {
         _acceptSnapshot(snapshot);
         _busy = false;
@@ -244,6 +249,7 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
   }
   void _showError(Object error) {
     if (!mounted) return;
+    // ignore: invalid_use_of_protected_member
     setState(() {
       _busy = false;
       _error = error.toString();
