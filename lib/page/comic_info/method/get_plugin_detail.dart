@@ -141,38 +141,67 @@ Future<UnifiedPluginPreviewResponse> getComicPreviewByPlugin(
   return UnifiedPluginPreviewResponse.fromMap(map);
 }
 
+/// 有完整 order（全部 > 0）时按 order 升序稳定排序，否则保持原样返回。
+///
+/// 详情页显示与阅读器导航共用，保证两处顺序一致。
+List<T> sortChaptersByOrder<T>(List<T> items, int Function(T item) orderOf) {
+  for (final item in items) {
+    if (orderOf(item) <= 0) return items;
+  }
+  final sorted = List<T>.from(items);
+  sorted.sort((a, b) => orderOf(a).compareTo(orderOf(b)));
+  return sorted;
+}
+
 List<UnifiedComicChapterRef> resolveUnifiedComicChapters(
   dynamic comicInfo,
   String from,
 ) {
   if (comicInfo is PluginComicDetailSource) {
-    return comicInfo.eps.map((ep) {
-      final extern = Map<String, dynamic>.from(ep.extern);
-      return UnifiedComicChapterRef(
-        id: ep.id,
-        name: ep.name,
-        order: ep.order,
-        requestId: ep.requestId.trim(),
-        storageChapterId: ep.storageChapterId.trim(),
-        logicalKey: ep.logicalKey.trim(),
-        extern: extern,
-      );
-    }).toList();
+    return sortChaptersByOrder(
+      comicInfo.eps.map((ep) {
+        final extern = Map<String, dynamic>.from(ep.extern);
+        return UnifiedComicChapterRef(
+          id: ep.id,
+          name: ep.name,
+          order: ep.order,
+          requestId: ep.requestId.trim(),
+          storageChapterId: ep.storageChapterId.trim(),
+          logicalKey: ep.logicalKey.trim(),
+          extern: extern,
+        );
+      }).toList(),
+      (ref) => ref.order,
+    );
   }
 
   if (comicInfo is UnifiedComicDownload) {
     return _decodeListOfMaps(comicInfo.chapters).map((ep) {
+      // id 优先取 logicalKey（与 DownloadChapterAdapter.fromStoredMap 对齐）：
+      // 新数据里 ep['id'] 是本地存储 key，可能被多章节共享（如 EH 的 "Gallery"），
+      // 不能直接当身份 key。
+      final rawLogicalKey = ep['logicalKey']?.toString().trim() ?? '';
+      final rawId = ep['id']?.toString().trim() ?? '';
+      final rawTaskChapterId = ep['taskChapterId']?.toString().trim() ?? '';
+      final rawRequestId = ep['requestId']?.toString().trim() ?? '';
+      final resolvedId =
+          _firstNonEmpty([
+            rawLogicalKey,
+            rawId,
+            rawTaskChapterId,
+            rawRequestId,
+          ]) ??
+          _toInt(ep['order'], 0).toString();
       final storageChapterId =
           ep['storageChapterId']?.toString().trim() ??
-          ep['id']?.toString().trim() ??
-          '';
+          (rawId.isNotEmpty ? rawId : '');
       return UnifiedComicChapterRef(
-        id: ep['id']?.toString() ?? '',
+        id: resolvedId,
         name: ep['name']?.toString() ?? '',
         order: _toInt(ep['order'], 0),
-        requestId: ep['taskChapterId']?.toString() ?? '',
+        requestId: rawRequestId.isNotEmpty ? rawRequestId : rawTaskChapterId,
         storageChapterId: storageChapterId,
-        logicalKey: ep['logicalKey']?.toString() ?? '',
+        logicalKey: rawLogicalKey,
         extern: asJsonMap(ep['extern']),
       );
     }).toList();
@@ -201,4 +230,11 @@ List<Map<String, dynamic>> _decodeListOfMaps(String raw) {
 
 int _toInt(Object? value, int fallback) {
   return int.tryParse(value?.toString() ?? '') ?? fallback;
+}
+
+String? _firstNonEmpty(List<String> values) {
+  for (final value in values) {
+    if (value.isNotEmpty) return value;
+  }
+  return null;
 }

@@ -55,38 +55,50 @@ bool hasComicDownloadTask({required String from, required String comicId}) {
   return DownloadQueueManager.instance.getTaskByComic(from, comicId) != null;
 }
 
-/// 由章节列表构造「整本下载」任务 payload；章节为空时返回 null。
+/// 单章节 → 单章节下载任务。
 ///
-/// 这是全仓唯一的整本任务构造点：详情页直接下载、阅读器下载按钮、
-/// 章节选择页的「开始下载」都走这里，避免三处字段映射各自漂移。
-DownloadTaskJson? buildDownloadAllTask({
+/// 上游把任务模型改成「一个任务一章」后，这是全仓唯一的章节任务构造点：
+/// 详情页整本下载、阅读器下载按钮、章节选择页的「开始下载」都走这里，
+/// 避免多处字段映射各自漂移。
+DownloadTaskJson buildChapterDownloadTask({
+  required String from,
+  required String comicId,
+  required String comicName,
+  required DownloadChapter chapter,
+}) {
+  return DownloadTaskJson(
+    from: from,
+    comicId: comicId,
+    comicName: comicName,
+    chapterRef: DownloadChapterTaskRef(
+      chapterId: chapter.id,
+      requestId: chapter.effectiveRequestId,
+      storageChapterId: chapter.effectiveStorageId,
+      logicalKey: chapter.id,
+      title: chapter.displayName,
+      order: chapter.order,
+      extern: Map<String, dynamic>.from(chapter.extern),
+    ),
+  );
+}
+
+/// 「整本下载」= 每个章节一个任务，一次性入队；章节为空时返回空列表。
+List<DownloadTaskJson> buildDownloadAllTasks({
   required String from,
   required String comicId,
   required String comicName,
   required List<DownloadChapter> chapters,
 }) {
-  if (chapters.isEmpty) {
-    return null;
-  }
-
-  return DownloadTaskJson(
-    from: from,
-    comicId: comicId,
-    comicName: comicName,
-    chapterRefs: chapters
-        .map(
-          (chapter) => DownloadChapterTaskRef(
-            chapterId: chapter.id,
-            requestId: chapter.effectiveRequestId,
-            storageChapterId: chapter.effectiveStorageId,
-            logicalKey: chapter.id,
-            title: chapter.displayName,
-            order: chapter.order,
-            extern: Map<String, dynamic>.from(chapter.extern),
-          ),
-        )
-        .toList(),
-  );
+  return chapters
+      .map(
+        (chapter) => buildChapterDownloadTask(
+          from: from,
+          comicId: comicId,
+          comicName: comicName,
+          chapter: chapter,
+        ),
+      )
+      .toList();
 }
 
 /// 解析本次整本下载可用的章节引用。
@@ -150,19 +162,19 @@ Future<bool> startComicDownloadAll({
   }
 
   const adapter = DownloadChapterAdapter();
-  final task = buildDownloadAllTask(
+  final tasks = buildDownloadAllTasks(
     from: from,
     comicId: comicId,
     comicName: comicName,
     chapters: refs.map(adapter.fromChapterRef).toList(),
   );
-  if (task == null) {
+  if (tasks.isEmpty) {
     showErrorToast(t.error.operationFailed);
     return false;
   }
 
   try {
-    await startDownloadTask(task);
+    await startDownloadTasks(tasks);
     showSuccessToast(t.reader.downloadStartedToast);
     return true;
   } catch (e) {

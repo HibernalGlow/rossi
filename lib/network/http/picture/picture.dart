@@ -314,6 +314,7 @@ Future<String> downloadPicture({
   bool retry = false,
   bool Function()? shouldRetryUntilSuccess,
   Map<String, dynamic> extern = const <String, dynamic>{},
+  bool applyRealSr = true,
 }) async {
   final result = await downloadPictureResult(
     from: from,
@@ -327,6 +328,7 @@ Future<String> downloadPicture({
     qjsTaskGroupKey: qjsTaskGroupKey,
     retry: retry,
     shouldRetryUntilSuccess: shouldRetryUntilSuccess,
+    applyRealSr: applyRealSr,
     extern: extern,
   );
   if (result.status == DownloadPictureResultStatus.notFound ||
@@ -350,6 +352,7 @@ Future<DownloadPictureResult> downloadPictureResult({
   bool retry = false,
   bool Function()? shouldRetryUntilSuccess,
   Map<String, dynamic> extern = const <String, dynamic>{},
+  bool applyRealSr = true,
 }) async {
   final resolvedFrom = normalizePluginId(from);
   if (resolvedFrom.isEmpty) {
@@ -528,7 +531,8 @@ Future<DownloadPictureResult> downloadPictureResult({
       errorStackTrace: StackTrace.current,
     );
   }
-  if (pictureType == PictureType.page) {
+  // 导出等只读场景传 applyRealSr=false，避免改动已落盘文件。
+  if (pictureType == PictureType.page && applyRealSr) {
     await RealSrSuperResolution.upscaleAndConvertToWebp(downloadFilePath);
   }
   return DownloadPictureResult(

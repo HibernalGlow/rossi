@@ -10,6 +10,9 @@ import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/page/comic_info/comic_info.dart';
 import 'package:zephyr/page/comic_info/json/normal/normal_comic_all_info.dart'
     as normal;
+import 'package:zephyr/page/download/adapters/download_chapter_adapter.dart';
+import 'package:zephyr/page/download/models/download_chapter.dart';
+import 'package:zephyr/page/download/models/unified_comic_download.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/error_filter.dart';
 
@@ -65,7 +68,16 @@ class GetComicInfoBloc extends Bloc<GetComicInfoEvent, GetComicInfoState> {
         resolvedComicId = pluginResult.comicId;
       } else {
         final download = comicInfo as UnifiedComicDownload;
-        normalComicInfo = _localizeDownloadDetail(download);
+        var localized = _localizeDownloadDetail(download);
+        // 下载入口用记录里的目录快照给已下载章节排序（内存里排，不写库）。
+        // 快照缺失的章节缀在最后，保证入口不丢。
+        final catalog = readChapterCatalog(download);
+        if (catalog.isNotEmpty) {
+          localized = localized.copyWith(
+            eps: _sortEpsByCatalog(localized.eps, catalog),
+          );
+        }
+        normalComicInfo = localized;
         resolvedComicId = download.comicId;
       }
 
@@ -86,6 +98,19 @@ class GetComicInfoBloc extends Bloc<GetComicInfoEvent, GetComicInfoState> {
         ),
       );
     }
+  }
+
+  /// 按目录快照顺序排列本地 eps，快照里没有的缀在最后（保持原相对顺序）。
+  List<normal.Ep> _sortEpsByCatalog(
+    List<normal.Ep> localEps,
+    List<DownloadChapter> catalog,
+  ) {
+    if (localEps.isEmpty || catalog.isEmpty) return localEps;
+    const adapter = DownloadChapterAdapter();
+    final chapters = localEps.map(adapter.fromEp).toList();
+    final sorted = sortDownloadChaptersByCatalog(chapters, catalog);
+    if (identical(sorted, chapters)) return localEps;
+    return sorted.map((c) => localEps[chapters.indexOf(c)]).toList();
   }
 
   normal.NormalComicAllInfo _localizeDownloadDetail(

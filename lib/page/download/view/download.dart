@@ -10,10 +10,10 @@ import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/page/download/adapters/download_chapter_adapter.dart';
 import 'package:zephyr/page/download/adapters/download_chapter_matcher.dart';
 import 'package:zephyr/page/download/models/download_chapter.dart';
+import 'package:zephyr/page/download/method/comic_download_entry.dart';
 import 'package:zephyr/page/download/models/unified_comic_download.dart';
-import 'package:zephyr/page/download/widgets/eps.dart';
+import 'package:zephyr/page/download/widgets/chapter_select_tile.dart';
 import 'package:zephyr/util/error_filter.dart';
-import 'package:zephyr/service/download/models/download_task_json.dart';
 import 'package:zephyr/service/download/download_queue_manager.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/toast.dart';
@@ -36,12 +36,17 @@ class _DownloadPageState extends State<DownloadPage> {
       (downloadInfo.source.trim().isEmpty ? '' : downloadInfo.source).trim();
 
   late List<DownloadChapter> _chapters;
-  late Map<String, bool> _downloadInfo;
+
+  /// 本次要下载哪些章节（与「本地是否已有」分开记，避免勾选态被已下载章节占满）。
+  final Map<String, bool> _selected = {};
+
+  /// 本地已下载的章节 id，用于行内标记与默认勾选。
+  final Set<String> _downloadedIds = {};
   late UnifiedComicDownload? comicDownloadInfo;
 
-  void onUpdateDownloadInfo(String selectionKey) {
+  void _toggleSelection(String selectionKey) {
     setState(() {
-      _downloadInfo[selectionKey] = !(_downloadInfo[selectionKey] ?? false);
+      _selected[selectionKey] = !(_selected[selectionKey] ?? false);
     });
   }
 
@@ -57,9 +62,8 @@ class _DownloadPageState extends State<DownloadPage> {
         .map((chapter) => adapter.fromOnlineChapter(chapter))
         .toList();
 
-    _downloadInfo = {};
     for (final chapter in _chapters) {
-      _downloadInfo[chapter.id] = false;
+      _selected[chapter.id] = false;
     }
 
     final query = objectbox.unifiedDownloadBox.query(
@@ -70,12 +74,11 @@ class _DownloadPageState extends State<DownloadPage> {
       final storedChapters = resolveDownloadChapters(comicDownloadInfo!);
       const matcher = DownloadChapterMatcher();
       for (final chapter in _chapters) {
+        // 只认逻辑身份匹配：纯 order 相等在多分块图源下会把两章算成一章。
         final isDownloaded = storedChapters.any(
-          (stored) =>
-              matcher.matches(stored, chapter.id) ||
-              stored.order == chapter.order,
+          (stored) => matcher.matches(stored, chapter.id),
         );
-        _downloadInfo[chapter.id] = isDownloaded;
+        if (isDownloaded) _downloadedIds.add(chapter.id);
       }
     }
 
@@ -84,8 +87,8 @@ class _DownloadPageState extends State<DownloadPage> {
     // 只从「已有下载 → 补章节」和「长按 → 自己挑」两个入口进来，勾已下载的那一话
     // 等于把 FAB 变成重下。折中：勾「第一个还没下载过的」，同样点一下就能开下。
     for (final chapter in _chapters) {
-      if (_downloadInfo[chapter.id] != true) {
-        _downloadInfo[chapter.id] = true;
+      if (!_downloadedIds.contains(chapter.id)) {
+        _selected[chapter.id] = true;
         break;
       }
     }
@@ -93,15 +96,15 @@ class _DownloadPageState extends State<DownloadPage> {
 
   // 判断是否所有章节都被选中
   bool get isAllSelected {
-    return _chapters.every((chapter) => _downloadInfo[chapter.id] == true);
+    return _chapters.every((chapter) => _selected[chapter.id] == true);
   }
 
   // 切换全选或取消全选
   void toggleSelectAll() {
     setState(() {
-      bool newState = !isAllSelected;
+      final newState = !isAllSelected;
       for (final chapter in _chapters) {
-        _downloadInfo[chapter.id] = newState;
+        _selected[chapter.id] = newState;
       }
     });
   }
@@ -134,10 +137,11 @@ class _DownloadPageState extends State<DownloadPage> {
               final chapter = _chapters[index];
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
-                child: EpsWidget(
+                child: ChapterSelectTile(
                   chapter: chapter,
-                  downloaded: _downloadInfo[chapter.id] ?? false,
-                  onUpdateDownloadInfo: onUpdateDownloadInfo,
+                  selected: _selected[chapter.id] ?? false,
+                  downloaded: _downloadedIds.contains(chapter.id),
+                  onTap: () => _toggleSelection(chapter.id),
                 ),
               );
             },
@@ -161,33 +165,25 @@ class _DownloadPageState extends State<DownloadPage> {
 
   Future<void> download() async {
     final selectedChapters = _chapters
-        .where((chapter) => _downloadInfo[chapter.id] == true)
+        .where((chapter) => _selected[chapter.id] == true)
         .toList();
     if (selectedChapters.isEmpty) {
       showErrorToast(t.download.selectChaptersPrompt);
       return;
     }
-    final task = DownloadTaskJson(
-      from: source,
-      comicId: downloadInfo.comicId,
-      comicName: downloadInfo.title,
-      chapterRefs: selectedChapters
-          .map(
-            (chapter) => DownloadChapterTaskRef(
-              chapterId: chapter.id,
-              requestId: chapter.effectiveRequestId,
-              storageChapterId: chapter.effectiveStorageId,
-              logicalKey: chapter.id,
-              title: chapter.displayName,
-              order: chapter.order,
-              extern: Map<String, dynamic>.from(chapter.extern),
-            ),
-          )
-          .toList(),
-    );
-    logger.d('download task payload=${task.toJson()}');
+    // 单章节任务模型：每章一个任务，一次性入队由队列串行执行。
+    final tasks = selectedChapters
+        .map(
+          (chapter) => buildChapterDownloadTask(
+            from: source,
+            comicId: downloadInfo.comicId,
+            comicName: downloadInfo.title,
+            chapter: chapter,
+          ),
+        )
+        .toList();
     try {
-      await startDownloadTask(task);
+      await startDownloadTasks(tasks);
       if (!mounted) return;
       showInfoToast(t.download.taskStarted);
       unawaited(
