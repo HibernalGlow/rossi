@@ -12,10 +12,12 @@
 
 pub mod detect;
 pub mod postprocess;
+pub mod recognize;
 pub mod session;
 pub mod types;
 
 pub use detect::{Detection, Detector};
 pub use postprocess::Params as DetectorParams;
+pub use recognize::{Recognition, Recognizer};
 pub use session::Ep;
 pub use types::{Quad, TextBox};
