@@ -10,7 +10,9 @@
 
 use anyhow::{Context, Result, anyhow};
 use image::{Rgb, RgbImage};
-use rossi_ocr_core::{Detector, Ep, GroupParams, Recognizer, TextBlock, group_boxes};
+use rossi_ocr_core::{
+    Detector, Ep, GroupParams, Inpainter, Recognizer, TextBlock, group_boxes, mask_from_blocks,
+};
 use serde_json::json;
 use std::path::PathBuf;
 use std::time::Instant;
@@ -24,6 +26,10 @@ fn main() -> Result<()> {
     let mut limit = usize::MAX;
     let mut dump_crops: Option<PathBuf> = None;
     let mut dump_groups: Option<PathBuf> = None;
+    let mut inpaint_model: Option<PathBuf> = None;
+    let mut dump_inpainted: Option<PathBuf> = None;
+    let mut inpaint_max_side = 1024u32;
+    let mut inpaint_dilate = 3i32;
     let mut group = false;
     // 默认 6 是实测出来的：pad=2 时「出てきなさ」被裁成半截，pad=6 补全为「出てきなさい」
     // （竖排末字常贴着框边）。再大就会把相邻列的墨也带进来，反而干扰识别。
@@ -42,6 +48,12 @@ fn main() -> Result<()> {
             "--limit" => limit = take_value(&mut args, &arg)?.parse()?,
             "--pad" => pad = take_value(&mut args, &arg)?.parse()?,
             "--group" => group = true,
+            "--inpaint" => inpaint_model = Some(PathBuf::from(take_value(&mut args, &arg)?)),
+            "--dump-inpainted" => {
+                dump_inpainted = Some(PathBuf::from(take_value(&mut args, &arg)?))
+            }
+            "--inpaint-max-side" => inpaint_max_side = take_value(&mut args, &arg)?.parse()?,
+            "--inpaint-dilate" => inpaint_dilate = take_value(&mut args, &arg)?.parse()?,
             "--dump-groups" => dump_groups = Some(PathBuf::from(take_value(&mut args, &arg)?)),
             "--dump-crops" => {
                 let dir = PathBuf::from(take_value(&mut args, &arg)?);
@@ -111,8 +123,11 @@ fn main() -> Result<()> {
     // 按块聚簇：翻译与擦字都以**块**为单位。成员下标顺序 = 检测给出的竖排阅读序，
     // 所以直接按顺序把各框文本拼起来就是整块文本（「トカゲじゃ」+「ない!?」=「トカゲじゃない!?」）。
     let mut blocks_json = Vec::new();
+    let mut inpaint_json = serde_json::Value::Null;
+    let mut blocks_for_mask = Vec::new();
     if group {
         let blocks = group_boxes(&detection.boxes, &GroupParams::default());
+        blocks_for_mask = blocks.clone();
         for (bi, blk) in blocks.iter().enumerate() {
             // 读序用列优先（右→左、列内上→下），不是成员下标顺序 —— 后者是「y 分桶 + x 降序」，
             // 会把同列的两段拆开（实测「あの」会被拼到别的列后面）。
@@ -135,6 +150,29 @@ fn main() -> Result<()> {
         }
     }
 
+    if let Some(model) = &inpaint_model {
+        if blocks_for_mask.is_empty() {
+            return Err(anyhow!("--inpaint 需要同时给 --group（掩膜按块生成）"));
+        }
+        let mask = mask_from_blocks(&blocks_for_mask, page_w, page_h, inpaint_dilate);
+        let mut inpainter = Inpainter::from_file(model, ep)?.with_max_side(inpaint_max_side);
+        let erased = inpainter.inpaint(&page, &mask)?;
+        if let Some(path) = &dump_inpainted {
+            erased
+                .image
+                .save(path)
+                .with_context(|| format!("写擦字结果失败：{path:?}"))?;
+        }
+        inpaint_json = json!({
+            "run_size": [erased.run_size.0, erased.run_size.1],
+            "preprocess_ms": erased.preprocess_ms,
+            "infer_ms": erased.infer_ms,
+            "composite_ms": erased.composite_ms,
+            "mask_px": mask.iter().filter(|v| **v > 0).count(),
+            "ep": inpainter.ep().label(),
+        });
+    }
+
     if print_json {
         println!(
             "{}",
@@ -147,6 +185,7 @@ fn main() -> Result<()> {
                 "recognize_total_ms": recognize_total_ms,
                 "items": items,
                 "blocks": blocks_json,
+                "inpaint": inpaint_json,
             })
         );
     } else {
@@ -171,6 +210,17 @@ fn main() -> Result<()> {
                     b["text"].as_str().unwrap_or("")
                 );
             }
+        }
+        if !inpaint_json.is_null() {
+            println!(
+                "擦字：{}x{} 前/推/合 = {}/{}/{} ms（掩膜 {} px）",
+                inpaint_json["run_size"][0],
+                inpaint_json["run_size"][1],
+                inpaint_json["preprocess_ms"],
+                inpaint_json["infer_ms"],
+                inpaint_json["composite_ms"],
+                inpaint_json["mask_px"]
+            );
         }
         println!(
             "共 {} 个框；检测 前/推/后 = {}/{}/{} ms；识别合计 {} ms",
