@@ -1,0 +1,255 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+import 'package:zephyr/reader/gpu_present_controller.dart';
+import 'package:zephyr/reader/page_source.dart';
+import 'package:zephyr/service/ocr/ocr_models.dart';
+import 'package:zephyr/service/ocr/ocr_service.dart';
+import 'package:zephyr/service/ocr/ocr_settings.dart';
+import 'package:zephyr/service/ocr/ocr_translator.dart';
+import 'package:zephyr/service/ocr/translated_page_builder.dart';
+
+enum TranslatedPagePhase {
+  /// 这一页显示的是原图。
+  off,
+
+  /// 正在跑「检测 → 识别 → 擦字 → 翻译 → 回填」，整页要十几秒。
+  building,
+
+  /// 成品页已经注入呈现器，并且**核对过**画面真的来自它。
+  showing,
+
+  /// 失败。原因在 [TranslatedPageController.lastError]，界面直接显示，不静默回退。
+  failed,
+}
+
+/// 呈现器那一侧需要的三件事。抽成接口只为了能在没有 GPU 的测试里跑状态机。
+abstract interface class TranslatedPagePresenter {
+  Future<bool> setEnhancedImage(int index, String imagePath);
+
+  Future<bool> reshowAfterInjection(int index);
+
+  /// `null` = 呈现器答不上来（不是「没换上」，是「不知道」）。
+  Future<bool?> presenterUsesEnhanced(int index);
+
+  /// 被译文占用的页号；超分调度读它给译文让路（增强图轨一页只有一份）。
+  Set<int> get translationOwnedPages;
+
+  static TranslatedPagePresenter of(GpuPresentController controller) =>
+      _GpuPresenter(controller);
+}
+
+class _GpuPresenter implements TranslatedPagePresenter {
+  _GpuPresenter(this._c);
+  final GpuPresentController _c;
+
+  @override
+  Future<bool> setEnhancedImage(int index, String imagePath) =>
+      _c.setEnhancedImage(index, imagePath);
+
+  @override
+  Future<bool> reshowAfterInjection(int index) =>
+      _c.reshowAfterInjection(index);
+
+  @override
+  Future<bool?> presenterUsesEnhanced(int index) =>
+      _c.presenterUsesEnhanced(index);
+
+  @override
+  Set<int> get translationOwnedPages => _c.translationOwnedPages;
+}
+
+/// 当前这一页要不要显示成「成品页」（译文回填后的那张）。
+///
+/// # 为什么走呈现器的增强图轨
+/// 阅读器的页面在桌面端由 native 上屏，Flutter 侧再画一层 `Image.file`
+/// 会绕开旋转、双页、页宽适配那一整套变换（画出来的是「另一张没转的图」）。
+/// 增强图轨本来就是「第 N 页换成另一个文件显示」的入口，AI 超分走的就是它。
+///
+/// # 与超分共用一条轨的代价
+/// 增强图轨一页只有一份，所以**译文与超分互斥**：这一页被译文占用时，
+/// 超分调度会跳过它（见 `gpu_present_enhance_part.dart` 的闸）。
+/// 关掉译文时把**原图**当增强图注回去 —— 呈现器没有「清除增强图」这个入口，
+/// 而用户要的就是回到原图，注一张原图效果等价。
+class TranslatedPageController extends ChangeNotifier {
+  TranslatedPageController({TranslatedPageBuilder? builder})
+    : _builder = builder ?? TranslatedPageBuilder();
+
+  static final TranslatedPageController instance = TranslatedPageController();
+
+  final TranslatedPageBuilder _builder;
+
+  TranslatedPagePhase _phase = TranslatedPagePhase.off;
+  int _index = -1;
+  String _lastError = '';
+  TranslatedPagePresenter? _presenter;
+  final Map<int, String> _inputScratch = <int, String>{};
+  Directory? _scratch;
+
+  TranslatedPagePhase get phase => _phase;
+  int get index => _index;
+  String get lastError => _lastError;
+
+  /// 这一页是否归译文管（只给界面用；超分那边直接读呈现器自己那份集合）。
+  bool isOwned(int index) =>
+      _presenter?.translationOwnedPages.contains(index) ?? false;
+
+  /// 换书 / 换章：清掉所有归属与临时输入，避免拿旧页的产物往新页上贴。
+  void reset() {
+    _presenter?.translationOwnedPages.clear();
+    try {
+      _scratch?.deleteSync(recursive: true);
+    } catch (_) {
+      // 临时目录删不掉不影响阅读，别在这里抛。
+    }
+    _scratch = null;
+    _inputScratch.clear();
+    _phase = TranslatedPagePhase.off;
+    _index = -1;
+    _lastError = '';
+    notifyListeners();
+  }
+
+  /// 翻转某一页。返回是否成功（失败时 [lastError] 有话说）。
+  Future<bool> toggle({
+    required PageSource source,
+    required TranslatedPagePresenter presenter,
+    required int index,
+  }) async {
+    _presenter = presenter;
+    if (presenter.translationOwnedPages.contains(index)) {
+      return _turnOff(index, source, presenter);
+    }
+    return _turnOn(index, source, presenter);
+  }
+
+  Future<bool> _turnOn(
+    int index,
+    PageSource source,
+    TranslatedPagePresenter presenter,
+  ) async {
+    final config = await OcrSettings.loadConfig();
+    if (config == null) return _fail(index, '还没配好翻译端点，去设置里填');
+    if (!ocrSupportedHere) return _fail(index, '这个平台不做译文页');
+    final missing = await _missingWeights();
+    if (missing.isNotEmpty) {
+      return _fail(index, '权重没下全：缺 ${missing.join('、')}');
+    }
+
+    _phase = TranslatedPagePhase.building;
+    _index = index;
+    _lastError = '';
+    notifyListeners();
+
+    try {
+      final input = await _inputPathFor(source, index);
+      final out = await _builder.build(
+        imagePath: input,
+        pageIndex: index,
+        config: config,
+        force: false,
+      );
+      if (!out.hasText) return _fail(index, '这一页没识别到文字');
+      return await _inject(index, out.path, presenter, showingOnSuccess: true);
+    } on OcrModelsMissing catch (e) {
+      return _fail(index, '$e');
+    } on OcrTranslationException catch (e) {
+      return _fail(index, '翻译失败：${e.message}');
+    } catch (e) {
+      return _fail(index, '成品页构建失败：$e');
+    }
+  }
+
+  Future<bool> _turnOff(
+    int index,
+    PageSource source,
+    TranslatedPagePresenter presenter,
+  ) async {
+    final original = await _inputPathFor(source, index);
+    final ok = await _inject(
+      index,
+      original,
+      presenter,
+      showingOnSuccess: false,
+    );
+    if (ok) {
+      presenter.translationOwnedPages.remove(index);
+      _phase = TranslatedPagePhase.off;
+      _index = index;
+      notifyListeners();
+    }
+    return ok;
+  }
+
+  /// 注入 → 重画 → **向呈现器核对**这一帧确实来自注入的那张图。
+  ///
+  /// 核对不是形式主义：注入成功但画面没换（原图轨被预取线程写回）是真实发生过的，
+  /// 那种情况下声称「已显示译文」就是虚报。
+  Future<bool> _inject(
+    int index,
+    String path,
+    TranslatedPagePresenter presenter, {
+    required bool showingOnSuccess,
+  }) async {
+    if (!await presenter.setEnhancedImage(index, path)) {
+      return _fail(index, '呈现器拒绝注入这张图');
+    }
+    if (!await presenter.reshowAfterInjection(index)) {
+      // 已经注入了：下一次该页上屏自然生效，这里不当失败。
+      presenter.translationOwnedPages.add(index);
+      _phase = showingOnSuccess
+          ? TranslatedPagePhase.showing
+          : TranslatedPagePhase.off;
+      _index = index;
+      notifyListeners();
+      return true;
+    }
+    final confirmed = await presenter.presenterUsesEnhanced(index);
+    if (confirmed == false) {
+      return _fail(index, '注入成功但画面没换，这一页再翻回来会重试');
+    }
+    presenter.translationOwnedPages.add(index);
+    _phase = showingOnSuccess
+        ? TranslatedPagePhase.showing
+        : TranslatedPagePhase.off;
+    _index = index;
+    _lastError = '';
+    notifyListeners();
+    return true;
+  }
+
+  /// 归档里的页没有磁盘直路径，OCR 与呈现器都要一个文件 —— 落到一个临时目录，
+  /// 按页缓存，关译文时同一份原图还要用它注回去。
+  Future<String> _inputPathFor(PageSource source, int index) async {
+    final direct = await source.getPageFilePath(index);
+    if (direct != null) return direct;
+    final cached = _inputScratch[index];
+    if (cached != null && File(cached).existsSync()) return cached;
+    final bytes = await source.getPageBytes(index);
+    if (bytes == null) throw StateError('取不到第 $index 页的图像字节');
+    final dir = await _scratchDir();
+    final file = File('${dir.path}/page_$index.img');
+    await file.writeAsBytes(bytes, flush: true);
+    _inputScratch[index] = file.path;
+    return file.path;
+  }
+
+  Future<Directory> _scratchDir() async {
+    return _scratch ??= await Directory.systemTemp.createTemp(
+      'rossi_ocr_input_',
+    );
+  }
+
+  Future<List<String>> _missingWeights() async {
+    final (_, missing) = await OcrModels.status();
+    return missing;
+  }
+
+  bool _fail(int index, String message) {
+    _phase = TranslatedPagePhase.failed;
+    _index = index;
+    _lastError = message;
+    notifyListeners();
+    return false;
+  }
+}

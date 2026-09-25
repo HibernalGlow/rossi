@@ -763,6 +763,20 @@ class GpuPresentController extends ChangeNotifier {
   }
 
   final _enhancementQueue = SuperResolutionQueue<(int, int)>();
+
+  /// 被**译文页**占用的页号集合。
+  ///
+  /// 增强图轨一页只有一份像素，超分与译文回填抢的是同一个位置，所以必须有个明确的
+  /// 让路规则：谁在里面，超分调度就跳过那一页。由 `TranslatedPageController` 增删，
+  /// 放在这边是为了不让本文件去 import 它（那会绕成一个环）。
+  final Set<int> translationOwnedPages = <int>{};
+
+  /// 注入之后把当前页重画一次，让「已经放进轨里的图」真的上屏。
+  Future<bool> reshowAfterInjection(int index) => _redrawCurrentPage(index);
+
+  /// 问呈现器：这一帧到底取自增强图轨还是原图轨（`null` = 它答不上来）。
+  Future<bool?> presenterUsesEnhanced(int index) =>
+      _presenterUsesEnhanced(index);
   final Set<Future<void>> _enhancementSchedules = {};
   int _scheduleRevision = 0;
   Set<int> _enhancementTargets = {};
@@ -811,6 +825,12 @@ class GpuPresentController extends ChangeNotifier {
     int targetH,
   ) async {
     final epoch = _enhancementEpoch;
+    if (translationOwnedPages.contains(index)) {
+      // 增强图轨一页只有一份像素：这一页现在显示的是译文回填出来的成品页，
+      // 超分再注一次就会把译文整页冲掉。让路，等用户关掉这一页的译文。
+      SuperResolutionLog.add('第 ${index + 1} 页：译文页占用增强图轨，超分让路。');
+      return;
+    }
     bool acceptsWork() =>
         _acceptsEnhancement(epoch) && _enhancementTargets.contains(index);
     if (!acceptsWork() ||

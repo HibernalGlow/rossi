@@ -1482,6 +1482,12 @@ class _Translations$ocr$en_US extends Translations$ocr$zh_CN {
 	@override String get clearCacheSubtitle => 'Use after changing the model or the font; original images are untouched';
 	@override String get cacheCleared => 'Finished-page cache cleared';
 	@override String get readerHint => 'Tap the translate button in the reader toolbar to switch this page only';
+	@override String get chipOff => 'Translate';
+	@override String get chipOn => 'Translated';
+	@override String get building => 'Working';
+	@override String get failedShort => 'Failed';
+	@override String get busyToast => 'This page is still being translated';
+	@override String get needWeights => 'Weights are incomplete; download them in Settings';
 }
 
 // Path: realSr
@@ -3551,6 +3557,12 @@ extension on TranslationsEnUs {
 			'ocr.clearCacheSubtitle' => 'Use after changing the model or the font; original images are untouched',
 			'ocr.cacheCleared' => 'Finished-page cache cleared',
 			'ocr.readerHint' => 'Tap the translate button in the reader toolbar to switch this page only',
+			'ocr.chipOff' => 'Translate',
+			'ocr.chipOn' => 'Translated',
+			'ocr.building' => 'Working',
+			'ocr.failedShort' => 'Failed',
+			'ocr.busyToast' => 'This page is still being translated',
+			'ocr.needWeights' => 'Weights are incomplete; download them in Settings',
 			'realSr.title' => 'Image Super-Resolution (Experimental)',
 			'realSr.unlimited' => 'Unlimited',
 			'realSr.modelDownloadFailed' => 'Model download failed',
@@ -3812,14 +3824,14 @@ extension on TranslationsEnUs {
 			'comicFollow.update' => 'Update',
 			'comicFollow.retry' => 'Retry',
 			'comicFollow.updateChannelName' => 'Comic update reminder',
+			_ => null,
+		} ?? switch (path) {
 			'comicFollow.updateChannelDesc' => 'Pushed when followed comics have new chapters',
 			'comicFollow.updateTitle' => 'Follow update',
 			'comicFollow.updateBodySingle' => '1 followed comic has updates',
 			'comicFollow.updateBodyMultiple' => ({required Object count}) => '${count} followed comics have updates',
 			'changelog.title' => 'Changelog',
 			'changelog.loadFailed' => 'Load failed',
-			_ => null,
-		} ?? switch (path) {
 			'changelog.loadFailedWithError' => ({required Object error}) => 'Load failed: ${error}',
 			'changelog.cannotOpenLink' => ({required Object url}) => 'Cannot open link: ${url}',
 			'changelog.checkNetwork' => 'Load failed, please check network',

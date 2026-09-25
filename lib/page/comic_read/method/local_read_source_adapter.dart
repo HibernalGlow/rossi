@@ -8,6 +8,7 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
+import 'package:zephyr/reader/translated_page_controller.dart';
 import 'package:zephyr/reader/local_page_source.dart';
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/util/get_path.dart';
@@ -47,6 +48,9 @@ class LocalReadSession {
     if (!identical(_currentSource, source)) {
       unawaited(_currentSource?.close());
       _currentSource = source;
+      // 换书 / 换章：译文页的归属与临时输入必须跟着清，
+      // 否则旧书某页的「已翻译」会贴到新书同一序号的页上。
+      TranslatedPageController.instance.reset();
     }
   }
 

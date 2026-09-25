@@ -1298,7 +1298,13 @@
     "clearCache": "清空成品页缓存",
     "clearCacheSubtitle": "换模型或换字体后用；不会动原图",
     "cacheCleared": "已清空成品页缓存",
-    "readerHint": "在阅读器工具条上按「译」，只切换当前这一页"
+    "readerHint": "在阅读器工具条上按「译」，只切换当前这一页",
+    "chipOff": "译",
+    "chipOn": "译文页",
+    "building": "生成中",
+    "failedShort": "译文失败",
+    "busyToast": "这一页正在生成译文，稍等",
+    "needWeights": "权重还没下全，去设置里下载"
   },
   "realSr": {
     "title": "图片超分（实验性）",

@@ -4026,6 +4026,24 @@ class Translations$ocr$zh_CN {
 
 	/// zh-CN: '在阅读器工具条上按「译」，只切换当前这一页'
 	String get readerHint => '在阅读器工具条上按「译」，只切换当前这一页';
+
+	/// zh-CN: '译'
+	String get chipOff => '译';
+
+	/// zh-CN: '译文页'
+	String get chipOn => '译文页';
+
+	/// zh-CN: '生成中'
+	String get building => '生成中';
+
+	/// zh-CN: '译文失败'
+	String get failedShort => '译文失败';
+
+	/// zh-CN: '这一页正在生成译文，稍等'
+	String get busyToast => '这一页正在生成译文，稍等';
+
+	/// zh-CN: '权重还没下全，去设置里下载'
+	String get needWeights => '权重还没下全，去设置里下载';
 }
 
 // Path: realSr
@@ -7236,6 +7254,12 @@ extension on Translations {
 			'ocr.clearCacheSubtitle' => '换模型或换字体后用；不会动原图',
 			'ocr.cacheCleared' => '已清空成品页缓存',
 			'ocr.readerHint' => '在阅读器工具条上按「译」，只切换当前这一页',
+			'ocr.chipOff' => '译',
+			'ocr.chipOn' => '译文页',
+			'ocr.building' => '生成中',
+			'ocr.failedShort' => '译文失败',
+			'ocr.busyToast' => '这一页正在生成译文，稍等',
+			'ocr.needWeights' => '权重还没下全，去设置里下载',
 			'realSr.title' => '图片超分（实验性）',
 			'realSr.unlimited' => '不限制',
 			'realSr.modelDownloadFailed' => '模型下载失败',
@@ -7496,14 +7520,14 @@ extension on Translations {
 			'comicFollow.newUnreadChaptersShort' => ({required Object diff}) => '新增 ${diff} 话未阅读',
 			'comicFollow.update' => '更新',
 			'comicFollow.retry' => '重试',
+			_ => null,
+		} ?? switch (path) {
 			'comicFollow.updateChannelName' => '漫画更新提醒',
 			'comicFollow.updateChannelDesc' => '追更漫画检测到新章节时推送',
 			'comicFollow.updateTitle' => '追更更新',
 			'comicFollow.updateBodySingle' => '有 1 部追更漫画更新了',
 			'comicFollow.updateBodyMultiple' => ({required Object count}) => '有 ${count} 部追更漫画更新了',
 			'changelog.title' => '更新日志',
-			_ => null,
-		} ?? switch (path) {
 			'changelog.loadFailed' => '加载失败',
 			'changelog.loadFailedWithError' => ({required Object error}) => '加载失败: ${error}',
 			'changelog.cannotOpenLink' => ({required Object url}) => '无法打开链接: ${url}',
