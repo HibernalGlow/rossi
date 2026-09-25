@@ -313,9 +313,12 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
    「只能读不能抄」补全清单，并加一句「**HF 上标 apache-2.0 不代表权重可随包**」。
    另把 §外部参考里 `Venera-SSR` 那条「Rossi 的 OCR / 上色 / Anime4K 以其为能力参考」收窄为
    「上色 / Anime4K 的能力参考」—— OCR 的参考已经换了。
-4. ⏸ `pubspec.yaml` 的字体段**未做**，留到真正接回填那一提交：13.2 MB 二进制一旦进 git 就永久留在历史里，
-   而 `ocr_core` 还不存在，先落一个没有消费者的字体只是把不可逆的仓库膨胀提前。
-   届时一并定：放哪个字重（Regular 13.2 MB / Medium 13.1 MB / 两个 26 MB）+ 把 `OFL.txt` 放进 `assets:` 段。
+4. ✅ 字体（做于 2026-09-25 的回填那一提交，不在本 ADR 批准当天落）：
+   进包的是 **Regular 单字重 13.2 MB**（`asset/fonts/LXGWWenKaiLite-Regular.ttf`）+ 同目录 `OFL.txt`
+   进 `assets:` 段（OFL 要求再分发附带许可证全文）。
+   **注册方式与本文原写的「进 `fonts:` 段」不同**，理由见 §决定 5 的实测更正：
+   `flutter test` 不加载 FontManifest 里的字体，像素测试就挡不住豆腐块 ——
+   现在当普通 asset 进包、首次回填时 `FontLoader(别名)` 显式注册，生产与测试同一条路径。
 
 ## Consequences
 
@@ -341,10 +344,11 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
 
 | 本 ADR 的决定 | 落点 | 状态 |
 |---|---|---|
-| §2 `rust/ocr_core` | `rust/ocr_core/src/{detect,postprocess,recognize,group,inpaint,session}.rs`，经 `rust/src/api/ocr.rs::ocr_analyze_page` 过 FRB | 已实现；`cargo test -p rossi_ocr_core` 21 条 |
+| §2 `rust/ocr_core` | `rust/ocr_core/src/{detect,postprocess,recognize,group,inpaint,session}.rs`，经 `rust/src/api/ocr.rs::ocr_analyze_page` 过 FRB | 已实现；`cargo test -p rossi_ocr_core` 24 条 |
 | §3 成品页 = 缓存产物 | `translated_page_cache.dart`（指纹 + 可读标签目录 + `manifest.json` + 原子写） | 已实现 |
 | §3 Dart 侧排版 | `translated_page_renderer.dart`（字号候选下降、越框禁止、OFL 字体运行时注册） | 已实现 |
 | §3.4 每页开关 / 与超分互斥 / 状态核对 | `lib/reader/translated_page_controller.dart` + 顶栏 `reader_translated_page_chip.dart`；芯片状态表抽成纯函数 `translated_page_status.dart`（与超分那边同形） | 已实现 |
+| Consequences「退出阅读 / 切章必须取消在途推理」 | `LocalReadSession.setSource` 与 `dispose(expectedPath:)` 都调 `TranslatedPageController.reset()`；在飞的那次构建按 `_generation` 认出自己过期后**丢弃结果** | 已实现。⚠️ 口径：v0 做的是「作废 + 不上屏」，**不是**从 Rust 侧中断一次推理 —— 最后那页会跑完才让出 CPU。过期判定有单测（去掉 `_stale` 就红），`dispose` 那一行装配没有单测，判据在验收清单第 7c 条 |
 | §4 页后处理位定型 | 替代位图 = 成品页 PNG，替换入口 = 呈现器既有的增强图轨；`PageSource` 形状**未改**，没有引入图层集合 | 符合 |
 | §5 权重首下 / 字体随包 | `ocr_models.dart` + `ocr_model_downloader.dart`；字体当普通 asset、`FontLoader` 注册（原因见 §决定 5 的实测更正） | 已实现 |
 | §6 平台排除 | `ocrSupportedHere`：移动端连设置入口都不画 | 已实现 |

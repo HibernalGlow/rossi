@@ -61,6 +61,10 @@ class LocalReadSession {
     final presenter = _presenter;
     _currentSource = null;
     _presenter = null;
+    // ADR-0018 Consequences 那条「退出阅读 / 切章时必须取消在途推理」：
+    // 在途的成品页构建要认自己过期（一页十几秒，退出后还在烧 CPU），
+    // 归属与临时输入也要一起清 —— 呈现器马上就要没了，那些路径没有归宿。
+    TranslatedPageController.instance.reset();
     // 先摘走旧引用，再异步释放；换书期间不能把新来源/新纹理一并清掉。
     presenter?.dispose();
     final closingSource = source?.close();

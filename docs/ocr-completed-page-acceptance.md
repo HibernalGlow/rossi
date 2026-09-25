@@ -8,7 +8,7 @@
 
 - `dart analyze lib/` 干净（只剩一条与本次无关的 `switch_toast_service.dart` info）；
 - `flutter test test/ocr/ test/reader/translated_page_controller_test.dart test/reader/translated_page_status_test.dart` **66 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
-- `cargo test -p rossi_ocr_core` **21 条全过**；
+- `cargo test -p rossi_ocr_core` **24 条全过**；
 - `flutter build macos --debug` 出包成功；
 - **端到端已经跑过一次真权重**：`test/ocr/completed_page_e2e_test.dart` 对
   `mokuro_001a.jpg` 出 15 块成品页，尺寸 827×1170、每块内都有墨、第二次构建命中缓存。
@@ -124,7 +124,18 @@ ollama serve && ollama run qwen2.5:14b        # 本机：base URL = http://127.0
 （超分日志里会出现「增强图轨已被淘汰，重新注入成品页」）；
 ② 芯片显示「译文页」时画面必须真是成品页 —— 若看到原图配「译文页」，就是虚报，算缺陷。
 
+## 7c. 退出阅读：在途构建要停下来，不许继续烧 CPU
+
+**做**：按「译」后立刻退出阅读页回到书库（留十几秒），再用活动监视器 / 任务管理器看进程。
+**预期**：CPU 占用在**当前这一页跑完之后**回落，不会一页接一页地继续往下烧；
+重进同一本书时，芯片显示「译」（未处理）而不是「译文页」。
+**判据**：这条只有装配是单测覆盖不到的（`LocalReadSession.dispose` → `reset()` 那一行），
+过期判定本身有单测（把 `_turnOn` / `_turnOff` 的 `_stale` 去掉就红）。
+⚠️ 已知口径：v0 做的是「认过期 + 丢弃结果」，**不是**从 Rust 侧真中断一次推理 ——
+最后一次推理会跑到结束才让出。所以这里判的是「不再继续下一页」，不是「立刻归零」。
+
 ## 8. 翻回来秒开（缓存），以及坏产物不许被当成缓存
+
 
 **做**：某页生成完之后，手动把 `manga_translated/<指纹>/p<N>.png` 截掉尾巴（或整个删掉），再按「译」。
 **预期**：删掉的 → 重新生成一张；截断的 → **也重新生成**，而不是把半张图端上屏、更不是弹一条「呈现器拒绝注入」。

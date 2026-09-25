@@ -119,6 +119,8 @@ class TranslatedPageController extends ChangeNotifier {
     }
     _scratch = null;
     _inputScratch.clear();
+    // 别攥着已经 dispose 掉的呈现器：归属表存在它身上，留着只是拖着一个死对象。
+    _presenter = null;
     _phase = TranslatedPagePhase.off;
     _index = -1;
     _lastError = '';
@@ -190,7 +192,7 @@ class TranslatedPageController extends ChangeNotifier {
     int generation,
   ) async {
     final original = await _inputPathFor(source, index);
-    // 关的那一路也要认过期：取原图字节可能要落一次临时文件，
+    // 关的那一路也要认过期：`_inputPathFor` 会问呈现源要路径、必要时落一次临时文件，
     // 这中间换书的话，把旧书的原图注到新书那一页上同样是错的。
     if (_stale(generation)) return false;
     final ok = await _inject(
