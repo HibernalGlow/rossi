@@ -503,7 +503,7 @@ class _BottomWidgetState extends State<BottomWidget> {
           order: chapter.order,
           chapterId: chapter.id,
           requestId: result.requestId.trim(),
-          storageChapterId: result.storageChapterId.trim(),
+          storageChapterId: chapter.effectiveStorageId,
           logicalKey: chapter.id,
           chapterExtern: Map<String, dynamic>.from(chapter.extern),
           epsNumber: widget.epsNumber,

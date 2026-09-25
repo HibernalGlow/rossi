@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/model.dart';
@@ -16,7 +15,6 @@ import 'package:zephyr/service/download/download_task_repository.dart';
 import 'package:zephyr/service/download/models/download_task_json.dart';
 import 'package:zephyr/network/http/picture/picture.dart'
     show deleteComicDownloadDirectory;
-import 'package:zephyr/type/enum.dart';
 
 /// 单章删除的结果。
 enum DeleteDownloadedChapterResult {
@@ -72,25 +70,15 @@ Future<DeleteDownloadedChapterResult> deleteDownloadedChapter({
 
   final removed = storedChapters.removeAt(index);
   final candidate = adapter.fromStoredMap(removed.toMap());
-  for (final image in removed.images) {
-    final path = image.path.trim();
-    if (path.isEmpty) continue;
-    try {
-      final store = DownloadAssetStore(
-        from: from,
-        path: path,
-        cartoonId: comicId,
-        chapterId: '',
-        storageChapterId: candidate.effectiveStorageId,
-        pictureType: PictureType.page,
-      );
-      final found = await store.findCanonicalDownload();
-      if (found == null) continue;
-      await File(found.path).delete();
-    } catch (_) {
-      // 单个文件删除失败不影响元数据提交。
-    }
-  }
+  // 与取消下载走同一套删除口径：按章节 key 的全部候选清理，
+  // 覆盖历史版本阅读器落盘的位置。
+  await DownloadAssetStore.deleteDownloadedFiles(
+    from: from,
+    cartoonId: comicId,
+    effectiveStorageChapterId: candidate.effectiveStorageId,
+    chapterId: candidate.id,
+    docPaths: removed.images.map((image) => image.path),
+  );
 
   final detail = NormalComicAllInfo.fromJson(
     jsonDecode(record.detailJson) as Map<String, dynamic>,

@@ -136,6 +136,7 @@ Future<void> unifiedDownloadTask(
       from: from,
       cartoonId: comicId,
       effectiveStorageChapterId: chapter.effectiveStorageId,
+      chapterId: chapter.id,
       docPaths: completedPaths,
     );
   }

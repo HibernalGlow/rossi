@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as file_path;
 import 'package:zephyr/main.dart';
 import 'package:zephyr/network/http/plugin/qjs_download_runtime.dart';
+import 'package:zephyr/network/http/picture/picture_inflight.dart';
 import 'package:zephyr/service/download/download_asset_store.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/type/pipe.dart';
@@ -665,50 +666,22 @@ Future<Uint8List> downloadImageWithRetry(
       if (externPayload.isNotEmpty) {
         args["extern"] = externPayload;
       }
-      final result = await executeQjsFetchImageResult(
-        pluginId: pluginId,
-        runtimeName: runtimeName,
-        fnPath: 'fetchImageBytes',
-        argsJson: jsonEncode(args),
-        taskGroupKey: qjsTaskGroupKey.isEmpty ? null : qjsTaskGroupKey,
+      return await PictureInflightBytes.share(
+        PictureInflightBytes.key(
+          url: url,
+          source: pluginId,
+          runtimeName: runtimeName,
+          taskGroupKey: qjsTaskGroupKey,
+          extern: externPayload,
+        ),
+        () => _fetchImageBytesOnce(
+          url: url,
+          pluginId: pluginId,
+          runtimeName: runtimeName,
+          argsJson: jsonEncode(args),
+          qjsTaskGroupKey: qjsTaskGroupKey,
+        ),
       );
-
-      if (result.error != null) {
-        throw DownloadPictureHttpException(
-          url,
-          result.error!,
-          statusCode: result.statusCode,
-          responseBodyLength: result.responseBodyLength,
-        );
-      }
-
-      final statusCode = result.statusCode;
-      if (statusCode == 404 || statusCode == 422) {
-        throw DownloadPictureNotFoundException(
-          url,
-          DownloadPictureHttpException(
-            url,
-            'HTTP $statusCode',
-            statusCode: statusCode,
-            responseBodyLength: result.responseBodyLength,
-          ),
-        );
-      }
-      if (statusCode != null && (statusCode < 200 || statusCode >= 300)) {
-        throw DownloadPictureHttpException(
-          url,
-          'HTTP $statusCode',
-          statusCode: statusCode,
-          responseBodyLength: result.responseBodyLength,
-        );
-      }
-
-      final bytes = result.bytes;
-      if (bytes.isEmpty) {
-        throw DownloadPictureEmptyDataException(url);
-      }
-
-      return bytes;
     } catch (e) {
       if (_isDownloadTaskCancelledError(e)) {
         throw const DownloadTaskCancelledException();
@@ -760,6 +733,62 @@ Future<Uint8List> downloadImageWithRetry(
       );
     }
   }
+}
+
+/// 单次插件取字节请求与其 HTTP 状态判定。
+///
+/// 只负责「发一次、判一次」；重试次数、取消判定与退避都留在
+/// [downloadImageWithRetry]，这样并发合并失败时各自主调方仍按自己的策略重试。
+Future<Uint8List> _fetchImageBytesOnce({
+  required String url,
+  required String pluginId,
+  required String runtimeName,
+  required String argsJson,
+  required String qjsTaskGroupKey,
+}) async {
+  final result = await executeQjsFetchImageResult(
+    pluginId: pluginId,
+    runtimeName: runtimeName,
+    fnPath: 'fetchImageBytes',
+    argsJson: argsJson,
+    taskGroupKey: qjsTaskGroupKey.isEmpty ? null : qjsTaskGroupKey,
+  );
+
+  if (result.error != null) {
+    throw DownloadPictureHttpException(
+      url,
+      result.error!,
+      statusCode: result.statusCode,
+      responseBodyLength: result.responseBodyLength,
+    );
+  }
+
+  final statusCode = result.statusCode;
+  if (statusCode == 404 || statusCode == 422) {
+    throw DownloadPictureNotFoundException(
+      url,
+      DownloadPictureHttpException(
+        url,
+        'HTTP $statusCode',
+        statusCode: statusCode,
+        responseBodyLength: result.responseBodyLength,
+      ),
+    );
+  }
+  if (statusCode != null && (statusCode < 200 || statusCode >= 300)) {
+    throw DownloadPictureHttpException(
+      url,
+      'HTTP $statusCode',
+      statusCode: statusCode,
+      responseBodyLength: result.responseBodyLength,
+    );
+  }
+
+  final bytes = result.bytes;
+  if (bytes.isEmpty) {
+    throw DownloadPictureEmptyDataException(url);
+  }
+  return bytes;
 }
 
 bool _isQjsRuntimeCancelledError(Object error) {

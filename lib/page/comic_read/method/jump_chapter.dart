@@ -104,7 +104,7 @@ class JumpChapter {
     order = useChapter.order;
     chapterId = useChapter.id;
     requestId = useChapter.effectiveRequestId;
-    storageChapterId = useChapter.storageId ?? '';
+    storageChapterId = useChapter.effectiveStorageId;
     logicalKey = useChapter.id;
     chapterExtern = ChapterExtern.from(useChapter.extern);
 
@@ -189,7 +189,7 @@ class JumpChapter {
       order: current?.order ?? order,
       chapterId: current?.id ?? chapterId,
       requestId: current?.effectiveRequestId ?? requestId,
-      storageChapterId: current?.storageId ?? storageChapterId,
+      storageChapterId: current?.effectiveStorageId ?? storageChapterId,
       logicalKey: current?.id ?? logicalKey,
       chapterExtern: ChapterExtern.from(
         chapterExtern.isNotEmpty

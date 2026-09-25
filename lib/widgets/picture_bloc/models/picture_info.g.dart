@@ -12,6 +12,7 @@ _PictureInfo _$PictureInfoFromJson(Map<String, dynamic> json) => _PictureInfo(
   path: json['path'] as String? ?? '',
   cartoonId: json['cartoonId'] as String? ?? '',
   chapterId: json['chapterId'] as String? ?? '',
+  storageChapterId: json['storageChapterId'] as String? ?? '',
   pictureType:
       $enumDecodeNullable(_$PictureTypeEnumMap, json['pictureType']) ??
       PictureType.comic,
@@ -25,6 +26,7 @@ Map<String, dynamic> _$PictureInfoToJson(_PictureInfo instance) =>
       'path': instance.path,
       'cartoonId': instance.cartoonId,
       'chapterId': instance.chapterId,
+      'storageChapterId': instance.storageChapterId,
       'pictureType': _$PictureTypeEnumMap[instance.pictureType]!,
       'extern': instance.extern,
     };

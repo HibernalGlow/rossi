@@ -46,16 +46,37 @@ class DownloadAssetStore {
     return storageChapterId.isNotEmpty ? storageChapterId : chapterId;
   }
 
+  /// 读取时可用的章节目录 key。
+  ///
+  /// 下载任务写入的是 storage key（插件未提供时对章节 id 做 hash），
+  /// 而历史版本阅读器把原始章节 id 直接当作目录段写入过缓存与下载目录。
+  /// 查找需要同时覆盖两者，写入仍只用 [effectiveChapterId]。
+  List<String> get chapterKeyCandidates {
+    final keys = <String>{effectiveChapterId};
+    if (chapterId.isNotEmpty) keys.add(chapterId);
+    return keys.toList();
+  }
+
   /// 新布局只由 hash 片段组成，任何外部传入值都不会直接进入路径。
   Future<DownloadAssetCandidate> canonicalDownloadCandidate() async {
-    return _canonicalCandidate(
+    return (await canonicalDownloadCandidates()).first;
+  }
+
+  Future<DownloadAssetCandidate> canonicalCacheCandidate() async {
+    return (await canonicalCacheCandidates()).first;
+  }
+
+  /// 含全部章节 key 变体的下载目录候选，第一个是当前口径。
+  Future<List<DownloadAssetCandidate>> canonicalDownloadCandidates() async {
+    return _canonicalCandidates(
       await getDownloadPath(),
       DownloadAssetLocation.canonicalDownload,
     );
   }
 
-  Future<DownloadAssetCandidate> canonicalCacheCandidate() async {
-    return _canonicalCandidate(
+  /// 含全部章节 key 变体的缓存目录候选，第一个是当前口径。
+  Future<List<DownloadAssetCandidate>> canonicalCacheCandidates() async {
+    return _canonicalCandidates(
       await getCachePath(),
       DownloadAssetLocation.canonicalCache,
     );
@@ -70,10 +91,7 @@ class DownloadAssetStore {
     final pathHash = encodePath(path: path);
     final normalizedPathHash = encodePath(path: normalizedPath);
     final cartoonHash = encodePath(path: cartoonId);
-    final chapterKeys = <String>{effectiveChapterId};
-    if (chapterId.isNotEmpty) chapterKeys.add(chapterId);
-
-    final result = <DownloadAssetCandidate>[await canonicalDownloadCandidate()];
+    final result = await canonicalDownloadCandidates();
 
     void addLegacy(String candidatePath) {
       if (isWithinRoot(root, candidatePath) &&
@@ -88,7 +106,7 @@ class DownloadAssetStore {
     }
 
     // c703e334 以前的编码布局：from 未 hash，且包含 original。
-    for (final legacyChapterId in chapterKeys) {
+    for (final legacyChapterId in chapterKeyCandidates) {
       final encodedChapter = encodePath(path: legacyChapterId);
       addLegacy(
         _buildLegacyFilePath(
@@ -131,7 +149,7 @@ class DownloadAssetStore {
   }
 
   Future<DownloadAssetCandidate?> findCanonicalDownload() async {
-    return _findExisting([await canonicalDownloadCandidate()]);
+    return _findExisting(await canonicalDownloadCandidates());
   }
 
   Future<DownloadAssetCandidate?> findLegacyDownload() async {
@@ -161,14 +179,9 @@ class DownloadAssetStore {
     return null;
   }
 
-  /// 读取缓存时只检查新缓存布局，不兼容旧缓存布局。
+  /// 读取缓存时只检查新缓存布局（含章节 key 变体），不兼容旧缓存布局。
   Future<DownloadAssetCandidate?> findCanonicalCache() async {
-    final candidate = await canonicalCacheCandidate();
-    final file = File(candidate.path);
-    try {
-      if (await file.exists() && await file.length() > 0) return candidate;
-    } catch (_) {}
-    return null;
+    return _findExisting(await canonicalCacheCandidates());
   }
 
   /// 读取本地图片时，先查下载目录，再查新缓存目录。
@@ -202,15 +215,26 @@ class DownloadAssetStore {
     return (await canonicalCacheCandidate()).path;
   }
 
+  List<DownloadAssetCandidate> _canonicalCandidates(
+    String root,
+    DownloadAssetLocation location,
+  ) {
+    return [
+      for (final chapterKey in chapterKeyCandidates)
+        _canonicalCandidate(root, location, chapterKey),
+    ];
+  }
+
   DownloadAssetCandidate _canonicalCandidate(
     String root,
     DownloadAssetLocation location,
+    String chapterKey,
   ) {
     final segments = <String>[
       root,
       encodePath(path: from),
       encodePath(path: cartoonId),
-      encodePath(path: effectiveChapterId),
+      encodePath(path: chapterKey),
       encodePath(path: normalizeStoredAssetPath(path)),
     ];
     final candidate = file_path.joinAll(segments);
@@ -265,13 +289,15 @@ class DownloadAssetStore {
 
   /// 按 doc path 逐个删除已落盘的章节散图（取消下载时用）。
   ///
-  /// 只删 canonical 下载路径命中的文件；共享目录（如 EH 的 Gallery）下
-  /// 其他章节的文件不受影响。
+  /// 只删该章节 key 候选命中的文件；共享目录（如 EH 的 Gallery）下
+  /// 其他章节的文件不受影响。[chapterId] 传原始章节 id，用于一并清掉
+  /// 历史版本阅读器按该 id 落过盘的位置，避免留下删不掉的孤儿文件。
   static Future<void> deleteDownloadedFiles({
     required String from,
     required String cartoonId,
     required String effectiveStorageChapterId,
     required Iterable<String> docPaths,
+    String chapterId = '',
   }) async {
     for (final docPath in docPaths) {
       final trimmed = docPath.trim();
@@ -281,13 +307,17 @@ class DownloadAssetStore {
           from: from,
           path: trimmed,
           cartoonId: cartoonId,
-          chapterId: '',
+          chapterId: chapterId,
           storageChapterId: effectiveStorageChapterId,
           pictureType: PictureType.page,
         );
-        final candidate = await store.findCanonicalDownload();
-        if (candidate != null) {
-          await File(candidate.path).delete();
+        for (final candidate in await store.canonicalDownloadCandidates()) {
+          final file = File(candidate.path);
+          try {
+            if (await file.exists()) await file.delete();
+          } catch (_) {
+            // 单个位置删除失败不影响该页的其他候选。
+          }
         }
       } catch (_) {
         // 单个文件删除失败不影响整体取消流程。

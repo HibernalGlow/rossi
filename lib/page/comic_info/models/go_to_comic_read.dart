@@ -114,7 +114,7 @@ void pushComicReadRoute(
       order: orderVal,
       chapterId: readChapter?.id ?? '',
       requestId: readChapter?.effectiveRequestId ?? '',
-      storageChapterId: readChapter?.storageId ?? '',
+      storageChapterId: readChapter?.effectiveStorageId ?? '',
       logicalKey: readChapter?.id ?? '',
       chapterExtern: ChapterExtern.from(
         readChapter?.extern ?? const <String, dynamic>{},
