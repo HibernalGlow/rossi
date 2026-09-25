@@ -139,11 +139,19 @@ ollama serve && ollama run qwen2.5:14b        # 本机：base URL = http://127.0
 **预期**：显示「已生成 N 张成品页」→ 操作后显示「还没有生成过成品页」。
 **判据**：**原图一张都不动**（只删 `manga_translated/`）。
 
-## 14. Windows（可选，有机器再验）
+## 14. Windows
 
-**做**：Windows 上把推理后端选 DirectML。
+**已经在命令行验过的**（不需要开 App，见 `REFERENCE_RESEARCH.md` §8.6.3 末尾那张表）：
+`rust/ocr_core` 在 MSVC 上 `cargo build --release` 通过；DirectML EP **注册得上也真跑**
+（不是静默退回 CPU）；同一张 Manga109 页 CPU 148 ms / DirectML 1318 ms 出**同样的 28 框**
+—— 检测这种小模型上 GPU 反而慢约 9 倍，所以默认 cpu 在 Windows 同样成立。
+
+**还要开 App 验的**：
+**做**：Windows 上把推理后端选 DirectML，按「译」。
 **预期**：能出成品页；EP 注册失败时**明确报错**，不静默退回 CPU。
-**判据**：后端选项里选的值与实际跑的 EP 一致（这条纪律来自超分：选了 GPU 就不许偷偷用 CPU）。
+**判据**：后端选项里选的值与实际跑的 EP 一致（这条纪律来自超分：选了 GPU 就不许偷偷用 CPU）；
+另外 Windows 的 GPU 呈现器是另一条实现（`rossi_gpu_present.dll`），
+译文页注入走的是同一个增强图轨，要单独确认「注入后画面真换了」而不是只有日志好看。
 
 ---
 

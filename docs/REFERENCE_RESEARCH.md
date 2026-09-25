@@ -394,6 +394,19 @@ EP 行为**不能直接搬**；这张表的作用是「谁明显不该走哪个 
 
 **这一节把 ADR-0018 的未决 4 从「选哪个模型」改成了「按区域选两个模型，且 AOT 要先补一次导出」。**
 
+**Windows / DirectML 补测（2026-09-26，那台 3090 盒子）**：把 `rust/ocr_core` 单独拷过去
+`cargo build --release`（25 s 编过，`ort` 与 `ort-sys` 都解析到 rc.13），同一张 `mokuro_001a`：
+
+| EP | 载入 | 前处理 | 推理 | 后处理 | 框数 |
+|---|---|---|---|---|---|
+| cpu | 116 ms | 15 ms | **148 ms** | 2 ms | 28 |
+| directml | 672 ms | 15 ms | **1318 ms** | 3 ms | 28 |
+
+三条结论：① DirectML **注册得上也真跑**（不是静默退回 CPU —— `session.rs` 那条不退回的纪律
+在这边成立）；② 与 macOS 一样，**检测这种小模型上 GPU 反而慢 ~9 倍**，所以 §决定 3.1
+「EP 按模型指定、默认 cpu」在 Windows 同样成立，不是只针对 CoreML 的妥协；
+③ 框数与 macOS 完全一致（28），跨平台输出对齐。
+
 ### 8.6.4 识别半边：同一探针跑 manga-ocr 的 encoder / decoder
 
 | 件 | CPU 稳态 | CoreML 稳态 | CoreML 建会话+首跑 |
