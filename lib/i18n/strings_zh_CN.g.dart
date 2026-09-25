@@ -1491,6 +1491,15 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '每个目录各自记住视图、排序与筛选；关闭后浏览照常，只是不再记忆'
 	String get fileManagerRememberViewStateSubtitle => '每个目录各自记住视图、排序与筛选；关闭后浏览照常，只是不再记忆';
 
+	/// zh-CN: '页签'
+	String get fileManagerSectionTabs => '页签';
+
+	/// zh-CN: '自动恢复上次打开的页签'
+	String get fileManagerRestoreTabs => '自动恢复上次打开的页签';
+
+	/// zh-CN: '文件管理器打开时把上次那批页签摆回来。两个以上页签才记，而且只记目录（后退历史与搜索结果不记）；目录已经没了就落在就近还在的父目录。上次开着两个以上页签时，这条比「启动时默认打开主页」优先'
+	String get fileManagerRestoreTabsSubtitle => '文件管理器打开时把上次那批页签摆回来。两个以上页签才记，而且只记目录（后退历史与搜索结果不记）；目录已经没了就落在就近还在的父目录。上次开着两个以上页签时，这条比「启动时默认打开主页」优先';
+
 	/// zh-CN: '文件操作'
 	String get fileManagerSectionFileOps => '文件操作';
 
@@ -1745,6 +1754,12 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '关掉之后条带仍会按激活与揭示自己滚到该看的位置，只是不再响应自己伸手的拖动与滚轮。'
 	String get manualScrollEnabledSubtitle => '关掉之后条带仍会按激活与揭示自己滚到该看的位置，只是不再响应自己伸手的拖动与滚轮。';
+
+	/// zh-CN: '阅读器全屏时禁止横向拖动泳道'
+	String get blockManualScrollInReaderFullscreen => '阅读器全屏时禁止横向拖动泳道';
+
+	/// zh-CN: '全屏时横向手势只用于翻页，不再把整条泳道条带拽动（那会连阅读器一起拖动）。关掉后全屏与平时一样可拖。'
+	String get blockManualScrollInReaderFullscreenSubtitle => '全屏时横向手势只用于翻页，不再把整条泳道条带拽动（那会连阅读器一起拖动）。关掉后全屏与平时一样可拖。';
 
 	/// zh-CN: '左右泳道展开延迟'
 	String get edgeRevealDelay => '左右泳道展开延迟';
@@ -6293,6 +6308,9 @@ extension on Translations {
 			'settings.fileManagerSectionView' => '浏览视图',
 			'settings.fileManagerRememberViewState' => '记住每个目录的视图与排序',
 			'settings.fileManagerRememberViewStateSubtitle' => '每个目录各自记住视图、排序与筛选；关闭后浏览照常，只是不再记忆',
+			'settings.fileManagerSectionTabs' => '页签',
+			'settings.fileManagerRestoreTabs' => '自动恢复上次打开的页签',
+			'settings.fileManagerRestoreTabsSubtitle' => '文件管理器打开时把上次那批页签摆回来。两个以上页签才记，而且只记目录（后退历史与搜索结果不记）；目录已经没了就落在就近还在的父目录。上次开着两个以上页签时，这条比「启动时默认打开主页」优先',
 			'settings.fileManagerSectionFileOps' => '文件操作',
 			'settings.fileManagerFileOperations' => '允许修改文件',
 			'settings.fileManagerFileOperationsSubtitle' => '复制、移动、重命名、新建与删除。关闭后右键菜单、多选与操作条都会消失，文件管理器回到只看不改',
@@ -6344,11 +6362,11 @@ extension on Translations {
 			'settings.operationBindingCategorySession' => '会话',
 			'settings.operationBindingActionNextPage' => '下一页',
 			'settings.operationBindingActionPreviousPage' => '上一页',
+			_ => null,
+		} ?? switch (path) {
 			'settings.operationBindingActionFirstPage' => '第一页',
 			'settings.operationBindingActionLastPage' => '最后一页',
 			'settings.operationBindingActionPageLeft' => '向左翻页',
-			_ => null,
-		} ?? switch (path) {
 			'settings.operationBindingActionPageRight' => '向右翻页',
 			'settings.operationBindingActionFullscreen' => '全屏',
 			'settings.operationBindingActionToggleDirection' => '阅读方向切换',
@@ -6380,6 +6398,8 @@ extension on Translations {
 			'settings.showLaneNavigatorInSoloSubtitle' => '其余泳道收成紧凑轨留在条带里，点一条就把交互交给它；关掉则只剩 Reader，靠左右唤出区调回别的泳道。',
 			'settings.manualScrollEnabled' => '允许手动横向滚动',
 			'settings.manualScrollEnabledSubtitle' => '关掉之后条带仍会按激活与揭示自己滚到该看的位置，只是不再响应自己伸手的拖动与滚轮。',
+			'settings.blockManualScrollInReaderFullscreen' => '阅读器全屏时禁止横向拖动泳道',
+			'settings.blockManualScrollInReaderFullscreenSubtitle' => '全屏时横向手势只用于翻页，不再把整条泳道条带拽动（那会连阅读器一起拖动）。关掉后全屏与平时一样可拖。',
 			'settings.edgeRevealDelay' => '左右泳道展开延迟',
 			'settings.readerHoverFocusDelay' => 'Reader 悬停重新聚焦延迟',
 			'settings.readerHoverFocusEnable' => '启用 Reader 悬停重新聚焦',
@@ -6856,13 +6876,13 @@ extension on Translations {
 			'reader.resumeAutoRead' => '继续自动阅读',
 			'reader.imageLoadFailedRetry' => ({required Object error}) => '${error}\n加载失败，点击重试',
 			'reader.imageSavedTo' => ({required Object path}) => '图片已保存至: ${path}',
+			_ => null,
+		} ?? switch (path) {
 			'reader.imageSavedToAlbum' => '图片已保存到相册！',
 			'reader.imageSaveFailed' => '图片保存失败！',
 			'reader.saveImagePermissionDenied' => '保存失败: 请在系统设置中授予相册访问权限',
 			'reader.imageSaveFailedWithError' => ({required Object error}) => '保存失败: ${error}',
 			'reader.radialMenuHint' => '松手执行 · 中心或 Esc 取消',
-			_ => null,
-		} ?? switch (path) {
 			'reader.radialMenuHintMove' => '移动以选择',
 			'reader.radialMenuHintRelease' => '松手执行',
 			'reader.radialMenuHintSwitch' => '松手切换轮盘',
@@ -7370,13 +7390,13 @@ extension on Translations {
 			'login.loggingIn' => '正在登录，请耐心等待...',
 			'login.loginSuccess' => '登录成功',
 			'login.loginFailed' => '登录失败',
+			_ => null,
+		} ?? switch (path) {
 			'login.loginButton' => '登录',
 			'login.retry' => '重试',
 			'fontSetting.title' => '字体设置',
 			'fontSetting.clear' => '清空',
 			'fontSetting.hint' => '按字重分别选择字体文件。',
-			_ => null,
-		} ?? switch (path) {
 			'fontSetting.loadFailed' => '字体加载失败',
 			'fontSetting.cleared' => '已清除',
 			'fontSetting.saved' => '已保存',

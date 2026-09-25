@@ -571,6 +571,9 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get fileManagerSectionView => 'Browsing view';
 	@override String get fileManagerRememberViewState => 'Remember view and sort per folder';
 	@override String get fileManagerRememberViewStateSubtitle => 'Each folder keeps its own view mode, sort and filter. When off, browsing works as usual but nothing is remembered';
+	@override String get fileManagerSectionTabs => 'Tabs';
+	@override String get fileManagerRestoreTabs => 'Restore the tabs from last time';
+	@override String get fileManagerRestoreTabsSubtitle => 'Puts last session\'s tabs back when the file manager opens. Only recorded from two tabs up, and only the folders - no back history, no search results. A folder that is gone falls back to the nearest parent that still exists. When the last session had two or more tabs, this wins over \'Open the home folder on start\'';
 	@override String get fileManagerSectionFileOps => 'File operations';
 	@override String get fileManagerFileOperations => 'Allow modifying files';
 	@override String get fileManagerFileOperationsSubtitle => 'Copy, move, rename, create and delete. When off, the context menu, multi-select and the action bar all disappear and the file manager goes back to read-only';
@@ -656,6 +659,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get showLaneNavigatorInSoloSubtitle => 'Other lanes stay in the strip as compact rails you can click; turn it off and only Reader remains, with other lanes brought back by the side reveal zones.';
 	@override String get manualScrollEnabled => 'Allow manual horizontal scroll';
 	@override String get manualScrollEnabledSubtitle => 'When off the strip still scrolls itself to the active or revealed lane; only your own drags and the wheel are ignored.';
+	@override String get blockManualScrollInReaderFullscreen => 'Block horizontal lane dragging in fullscreen';
+	@override String get blockManualScrollInReaderFullscreenSubtitle => 'While the Reader is fullscreen, horizontal gestures only turn pages and no longer pan the swimlane strip (which drags the Reader along). Turn it off to keep dragging available, same as usual.';
 	@override String get edgeRevealDelay => 'Side lane reveal delay';
 	@override String get readerHoverFocusDelay => 'Reader hover refocus delay';
 	@override String get readerHoverFocusEnable => 'Enable Reader hover refocus';
@@ -2687,6 +2692,9 @@ extension on TranslationsEnUs {
 			'settings.fileManagerSectionView' => 'Browsing view',
 			'settings.fileManagerRememberViewState' => 'Remember view and sort per folder',
 			'settings.fileManagerRememberViewStateSubtitle' => 'Each folder keeps its own view mode, sort and filter. When off, browsing works as usual but nothing is remembered',
+			'settings.fileManagerSectionTabs' => 'Tabs',
+			'settings.fileManagerRestoreTabs' => 'Restore the tabs from last time',
+			'settings.fileManagerRestoreTabsSubtitle' => 'Puts last session\'s tabs back when the file manager opens. Only recorded from two tabs up, and only the folders - no back history, no search results. A folder that is gone falls back to the nearest parent that still exists. When the last session had two or more tabs, this wins over \'Open the home folder on start\'',
 			'settings.fileManagerSectionFileOps' => 'File operations',
 			'settings.fileManagerFileOperations' => 'Allow modifying files',
 			'settings.fileManagerFileOperationsSubtitle' => 'Copy, move, rename, create and delete. When off, the context menu, multi-select and the action bar all disappear and the file manager goes back to read-only',
@@ -2738,11 +2746,11 @@ extension on TranslationsEnUs {
 			'settings.operationBindingCategoryNavigation' => 'Navigation',
 			'settings.operationBindingCategoryZoom' => 'Zoom',
 			'settings.operationBindingCategoryView' => 'View',
+			_ => null,
+		} ?? switch (path) {
 			'settings.operationBindingCategorySession' => 'Session',
 			'settings.operationBindingActionNextPage' => 'Next page',
 			'settings.operationBindingActionPreviousPage' => 'Previous page',
-			_ => null,
-		} ?? switch (path) {
 			'settings.operationBindingActionFirstPage' => 'First page',
 			'settings.operationBindingActionLastPage' => 'Last page',
 			'settings.operationBindingActionPageLeft' => 'Page left',
@@ -2774,6 +2782,8 @@ extension on TranslationsEnUs {
 			'settings.showLaneNavigatorInSoloSubtitle' => 'Other lanes stay in the strip as compact rails you can click; turn it off and only Reader remains, with other lanes brought back by the side reveal zones.',
 			'settings.manualScrollEnabled' => 'Allow manual horizontal scroll',
 			'settings.manualScrollEnabledSubtitle' => 'When off the strip still scrolls itself to the active or revealed lane; only your own drags and the wheel are ignored.',
+			'settings.blockManualScrollInReaderFullscreen' => 'Block horizontal lane dragging in fullscreen',
+			'settings.blockManualScrollInReaderFullscreenSubtitle' => 'While the Reader is fullscreen, horizontal gestures only turn pages and no longer pan the swimlane strip (which drags the Reader along). Turn it off to keep dragging available, same as usual.',
 			'settings.edgeRevealDelay' => 'Side lane reveal delay',
 			'settings.readerHoverFocusDelay' => 'Reader hover refocus delay',
 			'settings.readerHoverFocusEnable' => 'Enable Reader hover refocus',
@@ -3250,13 +3260,13 @@ extension on TranslationsEnUs {
 			'reader.imageLoadFailedRetry' => ({required Object error}) => '${error}\nLoad failed, tap to retry',
 			'reader.imageSavedTo' => ({required Object path}) => 'Image saved to: ${path}',
 			'reader.imageSavedToAlbum' => 'Image saved to album',
+			_ => null,
+		} ?? switch (path) {
 			'reader.imageSaveFailed' => 'Image save failed',
 			'reader.saveImagePermissionDenied' => 'Save failed: please grant album access in settings',
 			'reader.imageSaveFailedWithError' => ({required Object error}) => 'Save failed: ${error}',
 			'reader.radialMenuHint' => 'Release to run · centre or Esc to cancel',
 			'reader.radialMenuHintMove' => 'Move to choose',
-			_ => null,
-		} ?? switch (path) {
 			'reader.radialMenuHintRelease' => 'Release to run',
 			'reader.radialMenuHintSwitch' => 'Release to switch wheel',
 			'plugin.store' => 'Plugin Store',
@@ -3764,13 +3774,13 @@ extension on TranslationsEnUs {
 			'login.loginSuccess' => 'Login successful',
 			'login.loginFailed' => 'Login failed',
 			'login.loginButton' => 'Login',
+			_ => null,
+		} ?? switch (path) {
 			'login.retry' => 'Retry',
 			'fontSetting.title' => 'Font Settings',
 			'fontSetting.clear' => 'Clear',
 			'fontSetting.hint' => 'Select font files for each weight.',
 			'fontSetting.loadFailed' => 'Font load failed',
-			_ => null,
-		} ?? switch (path) {
 			'fontSetting.cleared' => 'Cleared',
 			'fontSetting.saved' => 'Saved',
 			'fontSetting.allCleared' => 'All cleared',
