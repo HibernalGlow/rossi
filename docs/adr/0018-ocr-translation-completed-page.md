@@ -351,6 +351,7 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
 | 本 ADR 的决定 | 落点 | 状态 |
 |---|---|---|
 | §2 `rust/ocr_core` | `rust/ocr_core/src/{detect,postprocess,recognize,group,inpaint,session}.rs`，经 `rust/src/api/ocr.rs::ocr_analyze_page` 过 FRB | 已实现；`cargo test -p rossi_ocr_core` 24 条 |
+| §6「排除移动端功能 ≠ 排除移动端构建」 | `ocr_core` 是 `windcore` 的依赖（`rust/Cargo.toml:42`），所以 iOS / Android / Linux 的 App 构建**一样要编它** —— 功能关掉救不了编译失败。交叉 `cargo check` 各跑一遍 `aarch64-apple-ios` 与 `aarch64-linux-android`（后者顺带覆盖 Linux 用的那条同 cfg 分支），并清掉了只在移动端才露面的两个告警：`PathBuf` 只在 Apple 分支被用、CPU-only 那版 `apply_accelerator` 用不到模型参数（改成 `_model` 并写明为什么） | 已验到 **check 级**（不含链接）。⚠️ 还没跑过：iOS/Android 的真机链接与出包（CI 在推送时会走），Windows 那版还是压在那台下线的机器上 |
 | §3 成品页 = 缓存产物 | `translated_page_cache.dart`（指纹 + 可读标签目录 + `manifest.json` + 原子写；降级档走同根的旁路目录 `manga_translated_degraded/`，不参与指纹查表但归「清空」管） | 已实现 |
 | §3 Dart 侧排版 | `translated_page_renderer.dart`（字号候选下降、越框禁止、OFL 字体运行时注册） | 已实现。「越框禁止」是**量过的**：八页真页逐像素对照擦干净底图，框外改动的像素每页 0–83 个、离框最远 4 px（笔画外沿 + 浮点框取整）；同一测试里故意把框放大 30 px 渲染，同样那把尺子量出 11–26 px / 728–42895 个像素 —— 判据取「离框 ≤6 px」，落在两个数量级的空档里，并由那条对照钉住「尺子看得见真越框」 |
 | §3.4 每页开关 / 与超分互斥 / 状态核对 | `lib/reader/translated_page_controller.dart` + 顶栏 `reader_translated_page_chip.dart`；芯片状态表抽成纯函数 `translated_page_status.dart`（与超分那边同形） | 已实现 |

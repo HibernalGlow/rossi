@@ -9,7 +9,10 @@
 
 use anyhow::{Result, anyhow};
 use ort::session::{Session, builder::GraphOptimizationLevel};
-use std::path::{Path, PathBuf};
+use std::path::Path;
+// 只有 CoreML 那条目录策略用得上 `PathBuf`；不挂 cfg 的话 Linux / Android 构建会报未使用。
+#[cfg(any(target_os = "macos", target_os = "ios"))]
+use std::path::PathBuf;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -138,7 +141,9 @@ fn apply_accelerator(
 fn apply_accelerator(
     builder: ort::session::builder::SessionBuilder,
     ep: Ep,
-    model: &Path,
+    // 这些构建上没有任何加速器 EP，用不到模型路径；下划线是「这里有意不用」，
+    // 不是「还没写完」（Windows / Apple 那两版都要用它选 EP 与缓存目录）。
+    _model: &Path,
 ) -> Result<ort::session::builder::SessionBuilder> {
     match ep {
         Ep::Cpu => Ok(builder),
