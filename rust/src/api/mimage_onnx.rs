@@ -10,7 +10,7 @@ use flutter_rust_bridge::frb;
 use image::{ImageBuffer, Rgb};
 use ort::{ep, session::Session, value::TensorRef};
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
@@ -79,14 +79,30 @@ const ONNX_BACKEND: &str = "ONNXRuntime(DirectML+CPU)";
 #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
 const ONNX_BACKEND: &str = "ONNXRuntime(CPU)";
 
-fn init_ort() -> Result<()> {
+/// CoreML EP 的编译产物目录：落在模型旁边的 `.coreml_cache`。
+///
+/// 不设 `ModelCacheDirectory` 时，ORT **每次建 session 都重编译一遍** `.onnx`，产物还丢在
+/// 系统临时目录里（macOS 每天清一次）。目录从 Dart 传进来的模型路径派生 —— Rust 不另猜
+/// 一套目录策略（口径见 `lib/util/get_path.dart` 的注释）。所有 mImage 模型都在同一个
+/// `super_resolution/mimage_onnx/` 下，所以进程内第一次算出来的就是大家共用的那一份。
+#[cfg(any(target_os = "macos", target_os = "ios"))]
+fn coreml_cache_dir(model: &Path) -> PathBuf {
+    let dir = model.parent().unwrap_or(model).join(".coreml_cache");
+    let _ = std::fs::create_dir_all(&dir);
+    dir
+}
+
+fn init_ort(model_path: &str) -> Result<()> {
     ORT_READY
         .get_or_init(|| {
+            #[cfg(not(any(target_os = "macos", target_os = "ios")))]
+            let _ = model_path;
             #[cfg(any(target_os = "macos", target_os = "ios"))]
             let result = ort::init()
                 .with_name("rossi-mimage-onnx")
                 .with_execution_providers([ep::CoreML::default()
                     .with_compute_units(ep::coreml::ComputeUnits::All)
+                    .with_model_cache_dir(coreml_cache_dir(Path::new(model_path)).display().to_string())
                     .build()
                     .error_on_failure()])
                 .commit();
@@ -133,7 +149,7 @@ pub async fn mimage_onnx_upscale(
 ) -> Result<String> {
     tokio::task::spawn_blocking(move || {
         let started = Instant::now();
-        init_ort()?;
+        init_ort(&model_path)?;
         let meta = std::fs::metadata(&model_path)
             .with_context(|| format!("mImage ONNX model missing: {model_path}"))?;
         if meta.len() < 1024 {
