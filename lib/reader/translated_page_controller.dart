@@ -165,6 +165,10 @@ class TranslatedPageController extends ChangeNotifier {
         imagePath: input,
         pageIndex: index,
         config: config,
+        // 换书 / 退出之后，剩下的阶段就不要再跑了：一页要十几秒，
+        // 光靠「结果回来再丢弃」是把 CPU 烧完才算完。
+        // 粒度只能是阶段 —— Rust 侧一次调用没有协作式取消点。
+        shouldCancel: () => _stale(generation),
         force: false,
       );
       if (_stale(generation)) return false; // 书都换了，这份产物没有归属可言
@@ -176,6 +180,9 @@ class TranslatedPageController extends ChangeNotifier {
         showingOnSuccess: true,
         degraded: out.degraded,
       );
+    } on TranslatedPageCancelled {
+      // 自己取消的那次构建不是一条错误，也不该有归属：干净收手。
+      return false;
     } on OcrModelsMissing catch (e) {
       return _stale(generation) ? false : _fail(index, '$e');
     } on OcrTranslationException catch (e) {

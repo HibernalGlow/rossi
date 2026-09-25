@@ -349,15 +349,16 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
 | §3 成品页 = 缓存产物 | `translated_page_cache.dart`（指纹 + 可读标签目录 + `manifest.json` + 原子写） | 已实现 |
 | §3 Dart 侧排版 | `translated_page_renderer.dart`（字号候选下降、越框禁止、OFL 字体运行时注册） | 已实现 |
 | §3.4 每页开关 / 与超分互斥 / 状态核对 | `lib/reader/translated_page_controller.dart` + 顶栏 `reader_translated_page_chip.dart`；芯片状态表抽成纯函数 `translated_page_status.dart`（与超分那边同形） | 已实现 |
-| Consequences「退出阅读 / 切章必须取消在途推理」 | `LocalReadSession.setSource` 与 `dispose(expectedPath:)` 都调 `TranslatedPageController.reset()`；在飞的那次构建按 `_generation` 认出自己过期后**丢弃结果** | 已实现。⚠️ 口径：v0 做的是「作废 + 不上屏」，**不是**从 Rust 侧中断一次推理 —— 最后那页会跑完才让出 CPU。过期判定有单测（去掉 `_stale` 就红），`dispose` 那一行装配没有单测，判据在验收清单第 7c 条 |
+| Consequences「退出阅读 / 切章必须取消在途推理」 | `LocalReadSession.setSource` 与 `dispose(expectedPath:)` 都调 `TranslatedPageController.reset()`；在飞的那次构建按 `_generation` 认出自己过期，并且**把 `shouldCancel` 传给构建器**，于是剩下的翻译 / 排版 / 落盘都不再发生 | 已实现。⚠️ 粒度只能是**阶段**：检测+识别+擦字是一次过桥的整段调用，Rust 侧没有协作式取消点，所以「正在跑的那一段」会跑到结束才让出。过期判定与阶段取消都有单测（去掉 `_stale` 或摘掉 `shouldCancel` 就红），`dispose` 那一行装配没有单测，判据在验收清单第 7c 条 |
 | 同一条里的「切 lane」那一半 | 查过代码：**它不构成一个场景**。泳道里阅读器只有一条（`workspace/model/workspace_layout_config.dart:14` 三个 LaneId 中只有 `reader` 挂阅读器，`workspace_cubit.dart:124` 的 `readerTarget` 是整体替换的单值），切 lane 只改 `activeLaneId` 并给非活动道套 `AbsorbPointer`（`swimlane_workspace.dart:633`），阅读器**不卸载** → 不存在「旧 lane 的译文状态贴在单例上」。真正的卸载入口只有 `closeReader`、`identityKey` 变更、把阅读器道收成 44 px 轨（`swimlane_column.dart:98`），而第三条会走 `State.dispose` → 正好落在上一行那个钩子上 | 无需改动（登记为查证结果） |
 | §4 页后处理位定型 | 替代位图 = 成品页 PNG，替换入口 = 呈现器既有的增强图轨；`PageSource` 形状**未改**，没有引入图层集合 | 符合 |
 | §5 权重首下 / 字体随包 | `ocr_models.dart` + `ocr_model_downloader.dart`；字体当普通 asset、`FontLoader` 注册（原因见 §决定 5 的实测更正） | 已实现 |
 | §6 平台排除 | `ocrSupportedHere`：移动端连设置入口都不画 | 已实现 |
 | §7 不内置 NMT | `ocr_translator.dart` 只走 OpenAI-compatible；真 HTTP 有 6 条测试 | 已实现 |
 
-验证：`flutter test test/ocr/` + 两份 reader 测试共 **92 条全过 0 skip**（Dart 66 + 呈现器测试 26），
+验证：`flutter test test/ocr/` + 两份 reader 测试共 **94 条全过 0 skip**（Dart 68 + 呈现器测试 26），
 其中 `completed_page_e2e_test.dart` 用真权重跑通整条链路（15 块 / 827×1170 / 每块有墨 / 二次命中缓存）。
+`flutter build macos` 的 Debug 与 Release 都出包（Release 152.7 MB，含 13.2 MB 字体）。
 真机逐条判据在 `docs/ocr-completed-page-acceptance.md`。
 
 **本期没做**（不是缺陷）：整本批量、真竖排（标点旋转与列读序）、拟声词、上色、Android / iOS。

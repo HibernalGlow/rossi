@@ -434,6 +434,88 @@ void main() {
     expect(c.lastError, isEmpty);
   });
 
+  test('换书之后剩下的阶段不该接着跑：取消要落在阶段之间', () async {
+    // 「结果回来再丢弃」只保证不贴错图，代价是那十几秒 CPU 照样烧完。
+    // 控制器必须把 shouldCancel 传下去：翻译这一跳回来时书已经换了，
+    // 排版与落盘都不该再发生（粒度只能到阶段 —— Rust 侧一次调用没有取消点）。
+    await seedReady();
+    final gate = Completer<void>();
+    var translateHits = 0;
+    final presenter = _FakePresenter(confirmed: true);
+    final c = TranslatedPageController(
+      builder: TranslatedPageBuilder(
+        analyze: (imagePath, erasedPath, ep) async {
+          await File(erasedPath).writeAsBytes(page, flush: true);
+          return OcrPageResult(
+            blocks: blocks,
+            pageWidth: _pageW,
+            pageHeight: _pageH,
+            detectMs: BigInt.one,
+            recognizeMs: BigInt.one,
+            inpaintMs: BigInt.one,
+            erasedPath: erasedPath,
+          );
+        },
+        translate: (texts, config) async {
+          translateHits++;
+          await gate.future;
+          return List.filled(texts.length, '是蜥蜴啊');
+        },
+      ),
+    );
+
+    final running = c.toggle(
+      source: _FakeSource(page),
+      presenter: presenter,
+      index: 4,
+    );
+    await _until(() => translateHits > 0);
+    c.reset(); // 换书就发生在翻译等待期间
+    gate.complete();
+
+    expect(await running, isFalse);
+    expect(c.phase, TranslatedPagePhase.off);
+    expect(c.lastError, isEmpty, reason: '自己取消的构建不该变成一条错误');
+    expect(presenter.injected, isEmpty);
+    final outDir = Directory('${root.path}/files/manga_translated');
+    final written = outDir.existsSync()
+        ? outDir.listSync(recursive: true).whereType<File>().toList()
+        : const <File>[];
+    expect(written, isEmpty, reason: '取消之后排版与落盘都不该发生');
+  });
+
+  test('换书把临时输入删了：在飞构建因此抛出的异常也算过期', () async {
+    // `reset()` 会 deleteSync 掉临时输入目录，在飞的那次构建于是以「文件不见了」收场，
+    // 走的是 `_turnOn` 的 catch 那一路。那里的顺序很要紧：先 `_fail` 再比号的话，
+    // 新书第 3 页脸上会弹出一条「成品页构建失败：PathNotFoundException」。
+    await seedReady();
+    final gate = Completer<void>();
+    final presenter = _FakePresenter(confirmed: true);
+    final c = TranslatedPageController(
+      builder: TranslatedPageBuilder(
+        analyze: (imagePath, erasedPath, ep) async {
+          await gate.future;
+          throw const FileSystemException('输入文件已经不在了');
+        },
+        translate: (texts, config) async => ['是蜥蜴啊'],
+      ),
+    );
+
+    final running = c.toggle(
+      source: _FakeSource(page),
+      presenter: presenter,
+      index: 3,
+    );
+    await _until(() => c.phase == TranslatedPagePhase.building);
+    c.reset(); // 换书：顺手删掉临时输入
+    gate.complete();
+
+    expect(await running, isFalse);
+    expect(c.phase, TranslatedPagePhase.off);
+    expect(c.lastError, isEmpty, reason: '过期任务的异常不该顶成新页脸上的错误条');
+    expect(presenter.injected, isEmpty);
+  });
+
   test('关译文关到一半换书：旧书的原图也不许注到新书上', () async {
     await seedReady();
     final presenter = _FakePresenter(confirmed: true);

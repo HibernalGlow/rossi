@@ -7,9 +7,9 @@
 静态层面已经过了，不必重复验：
 
 - `dart analyze lib/` 干净（只剩一条与本次无关的 `switch_toast_service.dart` info）；
-- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart test/reader/translated_page_status_test.dart` **66 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
+- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart test/reader/translated_page_status_test.dart` **68 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
 - `cargo test -p rossi_ocr_core` **24 条全过**；
-- `flutter build macos --debug` 出包成功；
+- `flutter build macos --debug` 与 `--release` 都出包成功（Release 产物 152.7 MB，含 13.2 MB 字体）；
 - **端到端已经跑过一次真权重**：`test/ocr/completed_page_e2e_test.dart` 对
   `mokuro_001a.jpg` 出 15 块成品页，尺寸 827×1170、每块内都有墨、第二次构建命中缓存。
   只有翻译那一跳是假的。翻译那一跳另有一条**真 HTTP** 的验证
@@ -127,12 +127,18 @@ ollama serve && ollama run qwen2.5:14b        # 本机：base URL = http://127.0
 ## 7c. 退出阅读：在途构建要停下来，不许继续烧 CPU
 
 **做**：按「译」后立刻退出阅读页回到书库（留十几秒），再用活动监视器 / 任务管理器看进程。
-**预期**：CPU 占用在**当前这一页跑完之后**回落，不会一页接一页地继续往下烧；
+**预期**：CPU 占用在**当前那一次过桥调用（检测 + 识别 + 擦字）跑完之后**回落，
+其后的翻译、排版、落盘都不该再发生；更不会一页接一页地继续往下烧。
 重进同一本书时，芯片显示「译」（未处理）而不是「译文页」。
 **判据**：这条只有装配是单测覆盖不到的（`LocalReadSession.dispose` → `reset()` 那一行），
 过期判定本身有单测（把 `_turnOn` / `_turnOff` 的 `_stale` 去掉就红）。
-⚠️ 已知口径：v0 做的是「认过期 + 丢弃结果」，**不是**从 Rust 侧真中断一次推理 ——
-最后一次推理会跑到结束才让出。所以这里判的是「不再继续下一页」，不是「立刻归零」。
+`reset()` 顺手会删临时输入，所以在飞的那次构建常常是以「文件不见了」收场的 ——
+异常那一路也钉住了：先比号再报错，去掉这个顺序同样会红（新书页脸上会弹一条
+「成品页构建失败：PathNotFoundException」）。
+⚠️ 已知口径：取消的粒度是**阶段** —— 换书之后剩余的翻译 / 排版 / 落盘都不会再跑
+（把控制器传的 `shouldCancel` 摘掉，测试就会看到盘上多出一张没人要的成品页）；
+但**正在跑的那一次过桥推理**在 Rust 侧没有协作式取消点，会跑到结束才让出。
+所以这里判的是「不再往下走」，不是「立刻归零」。
 
 ## 8. 翻回来秒开（缓存），以及坏产物不许被当成缓存
 
