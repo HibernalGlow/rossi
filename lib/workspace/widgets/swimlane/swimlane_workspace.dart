@@ -530,10 +530,17 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
     // `isScrollingEnabled` 这个闸），边界回弹与程序化 `animateTo` 一律照旧 ——
     // 用 `NeverScrollableScrollPhysics` 顶替会把后面那条也一起废掉，
     // 于是「激活左泳道」不再把条带滚过去，表现为「点了没反应」。
+    //
+    // Reader 全屏是这条规则的**第二道闸**：此时条带仍有可滚余量（其余泳道只是
+    // 被推出视口），翻页那一下横拖会连阅读器一起拽走，所以默认把它掐掉。
+    final userScrollAllowed =
+        state.interaction.manualScrollEnabled &&
+        !(state.isReaderFullscreen &&
+            state.interaction.blockManualScrollInReaderFullscreen);
     return SingleChildScrollView(
       controller: _scroll,
       scrollDirection: Axis.horizontal,
-      physics: state.interaction.manualScrollEnabled
+      physics: userScrollAllowed
           ? const ClampingScrollPhysics()
           : const _ProgrammaticScrollPhysics(),
       child: SizedBox(width: metrics.contentWidth, child: strip),

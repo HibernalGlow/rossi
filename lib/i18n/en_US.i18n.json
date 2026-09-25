@@ -553,6 +553,8 @@
     "showLaneNavigatorInSoloSubtitle": "Other lanes stay in the strip as compact rails you can click; turn it off and only Reader remains, with other lanes brought back by the side reveal zones.",
     "manualScrollEnabled": "Allow manual horizontal scroll",
     "manualScrollEnabledSubtitle": "When off the strip still scrolls itself to the active or revealed lane; only your own drags and the wheel are ignored.",
+    "blockManualScrollInReaderFullscreen": "Block horizontal lane dragging in fullscreen",
+    "blockManualScrollInReaderFullscreenSubtitle": "While the Reader is fullscreen, horizontal gestures only turn pages and no longer pan the swimlane strip (which drags the Reader along). Turn it off to keep dragging available, same as usual.",
     "edgeRevealDelay": "Side lane reveal delay",
     "readerHoverFocusDelay": "Reader hover refocus delay",
     "readerHoverFocusEnable": "Enable Reader hover refocus",

@@ -383,6 +383,10 @@ void _badInteractionFieldsFallBackPerField() {
     snapshot.interaction.manualScrollEnabled,
   );
   check(
+    '缺项的「全屏时禁止横向拖动泳道」退回默认（开 —— 老快照升级后直接生效）',
+    snapshot.interaction.blockManualScrollInReaderFullscreen,
+  );
+  check(
     '缺项的「顶栏」退回默认（关）—— 老快照里没有这个键，升级之后顶栏就是不画',
     !snapshot.interaction.showTopChrome,
   );

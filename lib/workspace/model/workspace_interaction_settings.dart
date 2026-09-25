@@ -87,6 +87,15 @@ class WorkspaceInteractionSettings {
   /// 「用户自己伸手拖」这一条路径，不是滚动本身。
   final bool manualScrollEnabled;
 
+  /// Reader **全屏**时是否额外禁止用户手动横向拖动条带。默认开。
+  ///
+  /// 全屏时 Reader 泳道占满视口，可滚余量却不一定归零（其余泳道仍排在条带
+  /// 里，只是被推出视口），于是翻页时那一下横向拖动会拽动条带 —— 表现成
+  /// 「连阅读器一起被拖走」。这一项只在那种状态下生效：
+  /// [manualScrollEnabled] 管的是平时，这里管的是全屏那一档。
+  /// 关掉它，全屏时和平时一样能伸手拖。
+  final bool blockManualScrollInReaderFullscreen;
+
   /// 工作台**顶栏**画不画（`WorkspaceTopChrome`：退出 / 当前书名 / 切模式 / 重置布局）。
   ///
   /// 默认**关**。理由是那条顶栏在泳道模式下是**第二层顶栏**：每条泳道自带栏头，
@@ -117,6 +126,7 @@ class WorkspaceInteractionSettings {
     this.autoSoloOnFocus = false,
     this.showLaneNavigatorInSolo = false,
     this.manualScrollEnabled = true,
+    this.blockManualScrollInReaderFullscreen = true,
     this.showTopChrome = false,
     this.revealZones = WorkspaceRevealZones.defaults,
   });
@@ -132,6 +142,7 @@ class WorkspaceInteractionSettings {
     bool? autoSoloOnFocus,
     bool? showLaneNavigatorInSolo,
     bool? manualScrollEnabled,
+    bool? blockManualScrollInReaderFullscreen,
     bool? showTopChrome,
     WorkspaceRevealZones? revealZones,
   }) {
@@ -149,6 +160,9 @@ class WorkspaceInteractionSettings {
       showLaneNavigatorInSolo:
           showLaneNavigatorInSolo ?? this.showLaneNavigatorInSolo,
       manualScrollEnabled: manualScrollEnabled ?? this.manualScrollEnabled,
+      blockManualScrollInReaderFullscreen:
+          blockManualScrollInReaderFullscreen ??
+          this.blockManualScrollInReaderFullscreen,
       showTopChrome: showTopChrome ?? this.showTopChrome,
       revealZones: revealZones ?? this.revealZones,
     );
@@ -165,6 +179,7 @@ class WorkspaceInteractionSettings {
     'autoSoloOnFocus': autoSoloOnFocus,
     'showLaneNavigatorInSolo': showLaneNavigatorInSolo,
     'manualScrollEnabled': manualScrollEnabled,
+    'blockManualScrollInReaderFullscreen': blockManualScrollInReaderFullscreen,
     'showTopChrome': showTopChrome,
     'revealZones': revealZones.toJson(),
   };
@@ -214,6 +229,10 @@ class WorkspaceInteractionSettings {
       manualScrollEnabled: json['manualScrollEnabled'] is bool
           ? json['manualScrollEnabled']! as bool
           : fallback.manualScrollEnabled,
+      blockManualScrollInReaderFullscreen:
+          json['blockManualScrollInReaderFullscreen'] is bool
+          ? json['blockManualScrollInReaderFullscreen']! as bool
+          : fallback.blockManualScrollInReaderFullscreen,
       showTopChrome: json['showTopChrome'] is bool
           ? json['showTopChrome']! as bool
           : fallback.showTopChrome,
@@ -241,6 +260,8 @@ class WorkspaceInteractionSettings {
       other.autoSoloOnFocus == autoSoloOnFocus &&
       other.showLaneNavigatorInSolo == showLaneNavigatorInSolo &&
       other.manualScrollEnabled == manualScrollEnabled &&
+      other.blockManualScrollInReaderFullscreen ==
+          blockManualScrollInReaderFullscreen &&
       other.showTopChrome == showTopChrome &&
       other.revealZones == revealZones;
 
@@ -256,6 +277,7 @@ class WorkspaceInteractionSettings {
     autoSoloOnFocus,
     showLaneNavigatorInSolo,
     manualScrollEnabled,
+    blockManualScrollInReaderFullscreen,
     showTopChrome,
     revealZones,
   );

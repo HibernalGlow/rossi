@@ -553,6 +553,8 @@
     "showLaneNavigatorInSoloSubtitle": "其余泳道收成紧凑轨留在条带里，点一条就把交互交给它；关掉则只剩 Reader，靠左右唤出区调回别的泳道。",
     "manualScrollEnabled": "允许手动横向滚动",
     "manualScrollEnabledSubtitle": "关掉之后条带仍会按激活与揭示自己滚到该看的位置，只是不再响应自己伸手的拖动与滚轮。",
+    "blockManualScrollInReaderFullscreen": "阅读器全屏时禁止横向拖动泳道",
+    "blockManualScrollInReaderFullscreenSubtitle": "全屏时横向手势只用于翻页，不再把整条泳道条带拽动（那会连阅读器一起拖动）。关掉后全屏与平时一样可拖。",
     "edgeRevealDelay": "左右泳道展开延迟",
     "readerHoverFocusDelay": "Reader 悬停重新聚焦延迟",
     "readerHoverFocusEnable": "启用 Reader 悬停重新聚焦",
