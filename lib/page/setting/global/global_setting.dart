@@ -8,6 +8,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_sheet.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
+import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/workspace/model/workspace_startup.dart';
 
 @RoutePage()
@@ -165,6 +166,17 @@ class _GlobalSettingPageState extends State<GlobalSettingPage> {
             },
           ),
           const Divider(height: 1, thickness: 0.3),
+          // 移动端整条不画：ADR-0018 §决定 6 把 Android / iOS 定为排除项，
+          // 摆一个点了只会报错的入口比少一个入口更糟。
+          if (ocrSupportedHere) ...[
+            settingCategoryTile(
+              icon: Icons.translate_outlined,
+              title: t.settings.ocr,
+              subtitle: t.settings.ocrSubtitle,
+              onTap: () => _openSubPage(const OcrSettingRoute()),
+            ),
+            const Divider(height: 1, thickness: 0.3),
+          ],
           settingCategoryTile(
             icon: Icons.bug_report_outlined,
             title: t.settings.debug,

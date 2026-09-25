@@ -60,6 +60,7 @@ class AppRouter extends RootStackRouter with WorkspaceBackInterceptor {
     AutoRoute(page: QjsRuntimeDebugRoute.page),
     AutoRoute(page: CacheSettingRoute.page),
     AutoRoute(page: RealSrSettingRoute.page),
+    AutoRoute(page: OcrSettingRoute.page),
     AutoRoute(page: BookshelfSettingRoute.page),
     AutoRoute(page: OperationBindingSettingRoute.page),
     AutoRoute(page: DataBackupRoute.page),

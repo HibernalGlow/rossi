@@ -59,6 +59,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$cache$zh_CN cache = Translations$cache$zh_CN.internal(_root);
 	late final Translations$dataBackup$zh_CN dataBackup = Translations$dataBackup$zh_CN.internal(_root);
 	late final Translations$webdavSync$zh_CN webdavSync = Translations$webdavSync$zh_CN.internal(_root);
+	late final Translations$ocr$zh_CN ocr = Translations$ocr$zh_CN.internal(_root);
 	late final Translations$realSr$zh_CN realSr = Translations$realSr$zh_CN.internal(_root);
 	late final Translations$about$zh_CN about = Translations$about$zh_CN.internal(_root);
 	late final Translations$oldHome$zh_CN oldHome = Translations$oldHome$zh_CN.internal(_root);
@@ -1214,6 +1215,12 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '图片超分（实验性）'
 	String get realSr => '图片超分（实验性）';
+
+	/// zh-CN: '漫画翻译（成品页）'
+	String get ocr => '漫画翻译（成品页）';
+
+	/// zh-CN: '试验性功能，需下载权重与配置翻译端点'
+	String get ocrSubtitle => '试验性功能，需下载权重与配置翻译端点';
 
 	/// zh-CN: '试验性功能，可能不稳定'
 	String get realSrSubtitle => '试验性功能，可能不稳定';
@@ -3916,6 +3923,111 @@ class Translations$webdavSync$zh_CN {
 	String get faqMarkdown => '### 可以同步哪些内容？\n- 目前同步哔咔历史记录、禁漫收藏和禁漫历史。\n\n### WebDAV 如何配置？\n- 填写 WebDAV 地址、账号、密码，点击测试连接并保存即可。\n\n### S3 如何配置？\n- Endpoint 示例：`s3.amazonaws.com`、`s3.filebase.com`、`play.min.io`。\n- 如果是自建 MinIO，可填写自定义端口，必要时关闭 SSL。\n\n### 自动同步间隔是多久？\n- 每 5 分钟自动同步一次。\n\n### 如何手动触发一次同步？\n- 在同步配置页测试连接并保存后会触发一次同步。\n- 或在设置里切换一次自动同步开关。';
 }
 
+// Path: ocr
+class Translations$ocr$zh_CN {
+	Translations$ocr$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '漫画翻译（成品页）'
+	String get title => '漫画翻译（成品页）';
+
+	/// zh-CN: '翻译端点'
+	String get endpointSection => '翻译端点';
+
+	/// zh-CN: '接口地址'
+	String get baseUrl => '接口地址';
+
+	/// zh-CN: 'https://api.deepseek.com/v1 或 http://127.0.0.1:11434/v1'
+	String get baseUrlHint => 'https://api.deepseek.com/v1 或 http://127.0.0.1:11434/v1';
+
+	/// zh-CN: '未配置'
+	String get baseUrlNone => '未配置';
+
+	/// zh-CN: '模型名'
+	String get model => '模型名';
+
+	/// zh-CN: '例如 deepseek-chat、qwen2.5:14b'
+	String get modelHint => '例如 deepseek-chat、qwen2.5:14b';
+
+	/// zh-CN: 'API Key'
+	String get apiKey => 'API Key';
+
+	/// zh-CN: '只存本机设置，不进导出文件；本机 Ollama 可留空'
+	String get apiKeySubtitle => '只存本机设置，不进导出文件；本机 Ollama 可留空';
+
+	/// zh-CN: '目标语言'
+	String get targetLanguage => '目标语言';
+
+	/// zh-CN: '术语表'
+	String get glossary => '术语表';
+
+	/// zh-CN: '每行一条「原文=译文」；改动会让已生成的成品页重译'
+	String get glossarySubtitle => '每行一条「原文=译文」；改动会让已生成的成品页重译';
+
+	/// zh-CN: 'トカゲ=石龙子'
+	String get glossaryHint => 'トカゲ=石龙子';
+
+	/// zh-CN: '已保存'
+	String get saved => '已保存';
+
+	/// zh-CN: '还缺接口地址或模型名'
+	String get notConfigured => '还缺接口地址或模型名';
+
+	/// zh-CN: '推理后端'
+	String get epSection => '推理后端';
+
+	/// zh-CN: '推理后端'
+	String get ep => '推理后端';
+
+	/// zh-CN: '实测这两个模型在 CoreML 上更慢，默认走 CPU'
+	String get epSubtitle => '实测这两个模型在 CoreML 上更慢，默认走 CPU';
+
+	/// zh-CN: '模型权重'
+	String get modelSection => '模型权重';
+
+	/// zh-CN: '权重已就绪（$count 个文件）'
+	String weightsReady({required Object count}) => '权重已就绪（${count} 个文件）';
+
+	/// zh-CN: '缺少：$missing'
+	String weightsMissing({required Object missing}) => '缺少：${missing}';
+
+	/// zh-CN: '下载权重'
+	String get download => '下载权重';
+
+	/// zh-CN: '下载中'
+	String get downloading => '下载中';
+
+	/// zh-CN: '权重下载完成'
+	String get downloadDone => '权重下载完成';
+
+	/// zh-CN: '权重下载失败'
+	String get downloadFailed => '权重下载失败';
+
+	/// zh-CN: '成品页缓存'
+	String get cacheSection => '成品页缓存';
+
+	/// zh-CN: '已生成 $count 张成品页'
+	String cacheCount({required Object count}) => '已生成 ${count} 张成品页';
+
+	/// zh-CN: '还没有生成过成品页'
+	String get cacheEmpty => '还没有生成过成品页';
+
+	/// zh-CN: '清空成品页缓存'
+	String get clearCache => '清空成品页缓存';
+
+	/// zh-CN: '换模型或换字体后用；不会动原图'
+	String get clearCacheSubtitle => '换模型或换字体后用；不会动原图';
+
+	/// zh-CN: '已清空成品页缓存'
+	String get cacheCleared => '已清空成品页缓存';
+
+	/// zh-CN: '在阅读器工具条上按「译」，只切换当前这一页'
+	String get readerHint => '在阅读器工具条上按「译」，只切换当前这一页';
+}
+
 // Path: realSr
 class Translations$realSr$zh_CN {
 	Translations$realSr$zh_CN.internal(this._root);
@@ -6216,6 +6328,8 @@ extension on Translations {
 			'settings.importData' => '导入数据',
 			'settings.imageProcessing' => '图片处理',
 			'settings.realSr' => '图片超分（实验性）',
+			'settings.ocr' => '漫画翻译（成品页）',
+			'settings.ocrSubtitle' => '试验性功能，需下载权重与配置翻译端点',
 			'settings.realSrSubtitle' => '试验性功能，可能不稳定',
 			'settings.autoRealSr' => '自动超分',
 			'settings.resolutionThreshold' => '分辨率阈值',
@@ -6360,10 +6474,10 @@ extension on Translations {
 			'settings.operationBindingCategoryZoom' => '缩放',
 			'settings.operationBindingCategoryView' => '视图',
 			'settings.operationBindingCategorySession' => '会话',
-			'settings.operationBindingActionNextPage' => '下一页',
-			'settings.operationBindingActionPreviousPage' => '上一页',
 			_ => null,
 		} ?? switch (path) {
+			'settings.operationBindingActionNextPage' => '下一页',
+			'settings.operationBindingActionPreviousPage' => '上一页',
 			'settings.operationBindingActionFirstPage' => '第一页',
 			'settings.operationBindingActionLastPage' => '最后一页',
 			'settings.operationBindingActionPageLeft' => '向左翻页',
@@ -6874,10 +6988,10 @@ extension on Translations {
 			'reader.infoBar' => '信息条',
 			'reader.pauseAutoRead' => '暂停自动阅读',
 			'reader.resumeAutoRead' => '继续自动阅读',
-			'reader.imageLoadFailedRetry' => ({required Object error}) => '${error}\n加载失败，点击重试',
-			'reader.imageSavedTo' => ({required Object path}) => '图片已保存至: ${path}',
 			_ => null,
 		} ?? switch (path) {
+			'reader.imageLoadFailedRetry' => ({required Object error}) => '${error}\n加载失败，点击重试',
+			'reader.imageSavedTo' => ({required Object path}) => '图片已保存至: ${path}',
 			'reader.imageSavedToAlbum' => '图片已保存到相册！',
 			'reader.imageSaveFailed' => '图片保存失败！',
 			'reader.saveImagePermissionDenied' => '保存失败: 请在系统设置中授予相册访问权限',
@@ -7090,6 +7204,38 @@ extension on Translations {
 			'webdavSync.success' => '成功',
 			'webdavSync.error' => '错误',
 			'webdavSync.faqMarkdown' => '### 可以同步哪些内容？\n- 目前同步哔咔历史记录、禁漫收藏和禁漫历史。\n\n### WebDAV 如何配置？\n- 填写 WebDAV 地址、账号、密码，点击测试连接并保存即可。\n\n### S3 如何配置？\n- Endpoint 示例：`s3.amazonaws.com`、`s3.filebase.com`、`play.min.io`。\n- 如果是自建 MinIO，可填写自定义端口，必要时关闭 SSL。\n\n### 自动同步间隔是多久？\n- 每 5 分钟自动同步一次。\n\n### 如何手动触发一次同步？\n- 在同步配置页测试连接并保存后会触发一次同步。\n- 或在设置里切换一次自动同步开关。',
+			'ocr.title' => '漫画翻译（成品页）',
+			'ocr.endpointSection' => '翻译端点',
+			'ocr.baseUrl' => '接口地址',
+			'ocr.baseUrlHint' => 'https://api.deepseek.com/v1 或 http://127.0.0.1:11434/v1',
+			'ocr.baseUrlNone' => '未配置',
+			'ocr.model' => '模型名',
+			'ocr.modelHint' => '例如 deepseek-chat、qwen2.5:14b',
+			'ocr.apiKey' => 'API Key',
+			'ocr.apiKeySubtitle' => '只存本机设置，不进导出文件；本机 Ollama 可留空',
+			'ocr.targetLanguage' => '目标语言',
+			'ocr.glossary' => '术语表',
+			'ocr.glossarySubtitle' => '每行一条「原文=译文」；改动会让已生成的成品页重译',
+			'ocr.glossaryHint' => 'トカゲ=石龙子',
+			'ocr.saved' => '已保存',
+			'ocr.notConfigured' => '还缺接口地址或模型名',
+			'ocr.epSection' => '推理后端',
+			'ocr.ep' => '推理后端',
+			'ocr.epSubtitle' => '实测这两个模型在 CoreML 上更慢，默认走 CPU',
+			'ocr.modelSection' => '模型权重',
+			'ocr.weightsReady' => ({required Object count}) => '权重已就绪（${count} 个文件）',
+			'ocr.weightsMissing' => ({required Object missing}) => '缺少：${missing}',
+			'ocr.download' => '下载权重',
+			'ocr.downloading' => '下载中',
+			'ocr.downloadDone' => '权重下载完成',
+			'ocr.downloadFailed' => '权重下载失败',
+			'ocr.cacheSection' => '成品页缓存',
+			'ocr.cacheCount' => ({required Object count}) => '已生成 ${count} 张成品页',
+			'ocr.cacheEmpty' => '还没有生成过成品页',
+			'ocr.clearCache' => '清空成品页缓存',
+			'ocr.clearCacheSubtitle' => '换模型或换字体后用；不会动原图',
+			'ocr.cacheCleared' => '已清空成品页缓存',
+			'ocr.readerHint' => '在阅读器工具条上按「译」，只切换当前这一页',
 			'realSr.title' => '图片超分（实验性）',
 			'realSr.unlimited' => '不限制',
 			'realSr.modelDownloadFailed' => '模型下载失败',
@@ -7356,6 +7502,8 @@ extension on Translations {
 			'comicFollow.updateBodySingle' => '有 1 部追更漫画更新了',
 			'comicFollow.updateBodyMultiple' => ({required Object count}) => '有 ${count} 部追更漫画更新了',
 			'changelog.title' => '更新日志',
+			_ => null,
+		} ?? switch (path) {
 			'changelog.loadFailed' => '加载失败',
 			'changelog.loadFailedWithError' => ({required Object error}) => '加载失败: ${error}',
 			'changelog.cannotOpenLink' => ({required Object url}) => '无法打开链接: ${url}',
@@ -7390,8 +7538,6 @@ extension on Translations {
 			'login.loggingIn' => '正在登录，请耐心等待...',
 			'login.loginSuccess' => '登录成功',
 			'login.loginFailed' => '登录失败',
-			_ => null,
-		} ?? switch (path) {
 			'login.loginButton' => '登录',
 			'login.retry' => '重试',
 			'fontSetting.title' => '字体设置',

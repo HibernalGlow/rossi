@@ -35,13 +35,21 @@ class TranslatedPageCache {
       'targetLanguage': config.targetLanguage,
       'endpointHost': Uri.parse(config.baseUrl).host,
       'model': config.model,
-      'glossarySha1': sha1.convert(utf8.encode(config.glossary)).toString().substring(0, 8),
+      'glossarySha1': sha1
+          .convert(utf8.encode(config.glossary))
+          .toString()
+          .substring(0, 8),
       'models': tag,
       'font': fontVersion,
       'layout': '$layoutVersion',
     };
-    final fingerprint = entries.entries.map((e) => '${e.key}=${e.value}').join('|');
-    final hash = sha1.convert(utf8.encode(fingerprint)).toString().substring(0, 8);
+    final fingerprint = entries.entries
+        .map((e) => '${e.key}=${e.value}')
+        .join('|');
+    final hash = sha1
+        .convert(utf8.encode(fingerprint))
+        .toString()
+        .substring(0, 8);
     String safe(String s) => s.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '-');
     final label = '${safe(config.targetLanguage)}_${safe(config.model)}_$hash';
     return (fingerprint: fingerprint, label: label);
@@ -56,10 +64,15 @@ class TranslatedPageCache {
     required int pageIndex,
   }) async => File(p.join((await directory(label)).path, 'p$pageIndex.png'));
 
-  static Future<bool> has({required String label, required int pageIndex}) async =>
-      (await pageFile(label: label, pageIndex: pageIndex)).exists();
+  static Future<bool> has({
+    required String label,
+    required int pageIndex,
+  }) async => (await pageFile(label: label, pageIndex: pageIndex)).exists();
 
-  static Future<Uint8List?> read({required String label, required int pageIndex}) async {
+  static Future<Uint8List?> read({
+    required String label,
+    required int pageIndex,
+  }) async {
     final f = await pageFile(label: label, pageIndex: pageIndex);
     return await f.exists() ? f.readAsBytes() : null;
   }
@@ -84,8 +97,21 @@ class TranslatedPageCache {
           : <String, dynamic>{};
       existing['fingerprint'] = fingerprint;
       existing['writtenAt'] = DateTime.now().toIso8601String();
-      await manifest.writeAsString(const JsonEncoder.withIndent('  ').convert(existing));
+      await manifest.writeAsString(
+        const JsonEncoder.withIndent('  ').convert(existing),
+      );
     }
+  }
+
+  /// 已生成的成品页数：设置页用它显示「已生成 N 张」，也决定「清空」要不要亮着。
+  static Future<int> pageCount() async {
+    final root = await OcrService.outputRoot();
+    if (!await root.exists()) return 0;
+    var count = 0;
+    await for (final e in root.list(recursive: true, followLinks: false)) {
+      if (e is File && e.path.endsWith('.png')) count++;
+    }
+    return count;
   }
 
   /// 清掉所有成品页（换模型 / 换字体后用户手点「重来」时用）。

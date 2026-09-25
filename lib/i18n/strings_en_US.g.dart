@@ -54,6 +54,7 @@ class TranslationsEnUs extends Translations with BaseTranslations<AppLocale, Tra
 	@override late final _Translations$cache$en_US cache = _Translations$cache$en_US._(_root);
 	@override late final _Translations$dataBackup$en_US dataBackup = _Translations$dataBackup$en_US._(_root);
 	@override late final _Translations$webdavSync$en_US webdavSync = _Translations$webdavSync$en_US._(_root);
+	@override late final _Translations$ocr$en_US ocr = _Translations$ocr$en_US._(_root);
 	@override late final _Translations$realSr$en_US realSr = _Translations$realSr$en_US._(_root);
 	@override late final _Translations$about$en_US about = _Translations$about$en_US._(_root);
 	@override late final _Translations$oldHome$en_US oldHome = _Translations$oldHome$en_US._(_root);
@@ -479,6 +480,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get importData => 'Import data';
 	@override String get imageProcessing => 'Image processing';
 	@override String get realSr => 'Image Super-Resolution (Experimental)';
+	@override String get ocr => 'Manga Translation (Finished Pages)';
+	@override String get ocrSubtitle => 'Experimental; needs model download and a translation endpoint';
 	@override String get realSrSubtitle => 'Experimental feature, may be unstable';
 	@override String get autoRealSr => 'Auto super-resolution';
 	@override String get resolutionThreshold => 'Resolution threshold';
@@ -1438,6 +1441,47 @@ class _Translations$webdavSync$en_US extends Translations$webdavSync$zh_CN {
 	@override String get success => 'Success';
 	@override String get error => 'Error';
 	@override String get faqMarkdown => '### What can be synced?\n- Currently syncs Bika history, JM favorites, and JM history.\n\n### How to configure WebDAV?\n- Fill in WebDAV URL, username, password, then tap Test & Save.\n\n### How to configure S3?\n- Endpoint examples: `s3.amazonaws.com`, `s3.filebase.com`, `play.min.io`.\n- For self-hosted MinIO, fill in a custom port and disable SSL if necessary.\n\n### How often does auto-sync run?\n- Every 5 minutes.\n\n### How to trigger a manual sync?\n- Tap Test & Save on the sync config page.\n- Or toggle the auto-sync switch in Settings.';
+}
+
+// Path: ocr
+class _Translations$ocr$en_US extends Translations$ocr$zh_CN {
+	_Translations$ocr$en_US._(TranslationsEnUs root) : this._root = root, super.internal(root);
+
+	final TranslationsEnUs _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Manga Translation (Finished Pages)';
+	@override String get endpointSection => 'Translation endpoint';
+	@override String get baseUrl => 'Base URL';
+	@override String get baseUrlHint => 'https://api.deepseek.com/v1 or http://127.0.0.1:11434/v1';
+	@override String get baseUrlNone => 'Not configured';
+	@override String get model => 'Model name';
+	@override String get modelHint => 'e.g. deepseek-chat, qwen2.5:14b';
+	@override String get apiKey => 'API key';
+	@override String get apiKeySubtitle => 'Stored locally only, never exported; leave empty for local Ollama';
+	@override String get targetLanguage => 'Target language';
+	@override String get glossary => 'Glossary';
+	@override String get glossarySubtitle => 'One per line: source=target; changing it re-translates finished pages';
+	@override String get glossaryHint => 'トカゲ=stone skink';
+	@override String get saved => 'Saved';
+	@override String get notConfigured => 'Base URL or model name is missing';
+	@override String get epSection => 'Inference backend';
+	@override String get ep => 'Inference backend';
+	@override String get epSubtitle => 'Measured: both models are slower on CoreML, so CPU is the default';
+	@override String get modelSection => 'Model weights';
+	@override String weightsReady({required Object count}) => 'Weights ready (${count} files)';
+	@override String weightsMissing({required Object missing}) => 'Missing: ${missing}';
+	@override String get download => 'Download weights';
+	@override String get downloading => 'Downloading';
+	@override String get downloadDone => 'Weights downloaded';
+	@override String get downloadFailed => 'Weight download failed';
+	@override String get cacheSection => 'Finished-page cache';
+	@override String cacheCount({required Object count}) => '${count} finished pages generated';
+	@override String get cacheEmpty => 'No finished pages yet';
+	@override String get clearCache => 'Clear finished-page cache';
+	@override String get clearCacheSubtitle => 'Use after changing the model or the font; original images are untouched';
+	@override String get cacheCleared => 'Finished-page cache cleared';
+	@override String get readerHint => 'Tap the translate button in the reader toolbar to switch this page only';
 }
 
 // Path: realSr
@@ -2600,6 +2644,8 @@ extension on TranslationsEnUs {
 			'settings.importData' => 'Import data',
 			'settings.imageProcessing' => 'Image processing',
 			'settings.realSr' => 'Image Super-Resolution (Experimental)',
+			'settings.ocr' => 'Manga Translation (Finished Pages)',
+			'settings.ocrSubtitle' => 'Experimental; needs model download and a translation endpoint',
 			'settings.realSrSubtitle' => 'Experimental feature, may be unstable',
 			'settings.autoRealSr' => 'Auto super-resolution',
 			'settings.resolutionThreshold' => 'Resolution threshold',
@@ -2744,10 +2790,10 @@ extension on TranslationsEnUs {
 			'settings.operationBindingConflictBody' => 'One input may have only one enabled binding. Remove or disable one of them, then save again.',
 			'settings.operationBindingInvalidTable' => 'This binding table could not be parsed, so the save was refused',
 			'settings.operationBindingCategoryNavigation' => 'Navigation',
-			'settings.operationBindingCategoryZoom' => 'Zoom',
-			'settings.operationBindingCategoryView' => 'View',
 			_ => null,
 		} ?? switch (path) {
+			'settings.operationBindingCategoryZoom' => 'Zoom',
+			'settings.operationBindingCategoryView' => 'View',
 			'settings.operationBindingCategorySession' => 'Session',
 			'settings.operationBindingActionNextPage' => 'Next page',
 			'settings.operationBindingActionPreviousPage' => 'Previous page',
@@ -3258,10 +3304,10 @@ extension on TranslationsEnUs {
 			'reader.pauseAutoRead' => 'Pause auto read',
 			'reader.resumeAutoRead' => 'Resume auto read',
 			'reader.imageLoadFailedRetry' => ({required Object error}) => '${error}\nLoad failed, tap to retry',
-			'reader.imageSavedTo' => ({required Object path}) => 'Image saved to: ${path}',
-			'reader.imageSavedToAlbum' => 'Image saved to album',
 			_ => null,
 		} ?? switch (path) {
+			'reader.imageSavedTo' => ({required Object path}) => 'Image saved to: ${path}',
+			'reader.imageSavedToAlbum' => 'Image saved to album',
 			'reader.imageSaveFailed' => 'Image save failed',
 			'reader.saveImagePermissionDenied' => 'Save failed: please grant album access in settings',
 			'reader.imageSaveFailedWithError' => ({required Object error}) => 'Save failed: ${error}',
@@ -3473,6 +3519,38 @@ extension on TranslationsEnUs {
 			'webdavSync.success' => 'Success',
 			'webdavSync.error' => 'Error',
 			'webdavSync.faqMarkdown' => '### What can be synced?\n- Currently syncs Bika history, JM favorites, and JM history.\n\n### How to configure WebDAV?\n- Fill in WebDAV URL, username, password, then tap Test & Save.\n\n### How to configure S3?\n- Endpoint examples: `s3.amazonaws.com`, `s3.filebase.com`, `play.min.io`.\n- For self-hosted MinIO, fill in a custom port and disable SSL if necessary.\n\n### How often does auto-sync run?\n- Every 5 minutes.\n\n### How to trigger a manual sync?\n- Tap Test & Save on the sync config page.\n- Or toggle the auto-sync switch in Settings.',
+			'ocr.title' => 'Manga Translation (Finished Pages)',
+			'ocr.endpointSection' => 'Translation endpoint',
+			'ocr.baseUrl' => 'Base URL',
+			'ocr.baseUrlHint' => 'https://api.deepseek.com/v1 or http://127.0.0.1:11434/v1',
+			'ocr.baseUrlNone' => 'Not configured',
+			'ocr.model' => 'Model name',
+			'ocr.modelHint' => 'e.g. deepseek-chat, qwen2.5:14b',
+			'ocr.apiKey' => 'API key',
+			'ocr.apiKeySubtitle' => 'Stored locally only, never exported; leave empty for local Ollama',
+			'ocr.targetLanguage' => 'Target language',
+			'ocr.glossary' => 'Glossary',
+			'ocr.glossarySubtitle' => 'One per line: source=target; changing it re-translates finished pages',
+			'ocr.glossaryHint' => 'トカゲ=stone skink',
+			'ocr.saved' => 'Saved',
+			'ocr.notConfigured' => 'Base URL or model name is missing',
+			'ocr.epSection' => 'Inference backend',
+			'ocr.ep' => 'Inference backend',
+			'ocr.epSubtitle' => 'Measured: both models are slower on CoreML, so CPU is the default',
+			'ocr.modelSection' => 'Model weights',
+			'ocr.weightsReady' => ({required Object count}) => 'Weights ready (${count} files)',
+			'ocr.weightsMissing' => ({required Object missing}) => 'Missing: ${missing}',
+			'ocr.download' => 'Download weights',
+			'ocr.downloading' => 'Downloading',
+			'ocr.downloadDone' => 'Weights downloaded',
+			'ocr.downloadFailed' => 'Weight download failed',
+			'ocr.cacheSection' => 'Finished-page cache',
+			'ocr.cacheCount' => ({required Object count}) => '${count} finished pages generated',
+			'ocr.cacheEmpty' => 'No finished pages yet',
+			'ocr.clearCache' => 'Clear finished-page cache',
+			'ocr.clearCacheSubtitle' => 'Use after changing the model or the font; original images are untouched',
+			'ocr.cacheCleared' => 'Finished-page cache cleared',
+			'ocr.readerHint' => 'Tap the translate button in the reader toolbar to switch this page only',
 			'realSr.title' => 'Image Super-Resolution (Experimental)',
 			'realSr.unlimited' => 'Unlimited',
 			'realSr.modelDownloadFailed' => 'Model download failed',
@@ -3740,6 +3818,8 @@ extension on TranslationsEnUs {
 			'comicFollow.updateBodyMultiple' => ({required Object count}) => '${count} followed comics have updates',
 			'changelog.title' => 'Changelog',
 			'changelog.loadFailed' => 'Load failed',
+			_ => null,
+		} ?? switch (path) {
 			'changelog.loadFailedWithError' => ({required Object error}) => 'Load failed: ${error}',
 			'changelog.cannotOpenLink' => ({required Object url}) => 'Cannot open link: ${url}',
 			'changelog.checkNetwork' => 'Load failed, please check network',
@@ -3774,8 +3854,6 @@ extension on TranslationsEnUs {
 			'login.loginSuccess' => 'Login successful',
 			'login.loginFailed' => 'Login failed',
 			'login.loginButton' => 'Login',
-			_ => null,
-		} ?? switch (path) {
 			'login.retry' => 'Retry',
 			'fontSetting.title' => 'Font Settings',
 			'fontSetting.clear' => 'Clear',
