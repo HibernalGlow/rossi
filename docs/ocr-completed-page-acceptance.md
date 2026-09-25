@@ -7,7 +7,7 @@
 静态层面已经过了，不必重复验：
 
 - `dart analyze lib/` 干净（只剩一条与本次无关的 `switch_toast_service.dart` info）；
-- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart test/reader/translated_page_status_test.dart` **75 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
+- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart test/reader/translated_page_status_test.dart test/reader/local_read_session_translation_gate_test.dart` **77 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
 - `cargo test -p rossi_ocr_core` **24 条全过**；
 - `flutter build macos --debug` 与 `--release` 都出包成功（Release 产物 152.7 MB，含 13.2 MB 字体）；
 - **iOS 出包本机跑过一次，但断在一处与 OCR 无关的地方**：`packages/coreml_upscale/ios/Classes/MultiArrayModel.swift`
@@ -171,8 +171,9 @@ dart script/ocr_stub_endpoint.dart --fail         # 直接 500 → 第 11b 与�
 **预期**：CPU 占用在**当前那一次过桥调用（检测 + 识别 + 擦字）跑完之后**回落，
 其后的翻译、排版、落盘都不该再发生；更不会一页接一页地继续往下烧。
 重进同一本书时，芯片显示「译」（未处理）而不是「译文页」。
-**判据**：这条只有装配是单测覆盖不到的（`LocalReadSession.dispose` → `reset()` 那一行），
-过期判定本身有单测（把 `_turnOn` / `_turnOff` 的 `_stale` 去掉就红）。
+**判据**：装配那两行**现在有单测了**（`test/reader/local_read_session_translation_gate_test.dart`）：
+① `dispose(expectedPath:)` 对不上路径时不许清掉当前这本的在飞构建（把路径闸摘掉就红）；
+② 对得上时必须取消在飞构建、且不留下归属（把 `dispose` 里的 `reset()` 摘掉就红）。
 `reset()` 顺手会删临时输入，所以在飞的那次构建常常是以「文件不见了」收场的 ——
 异常那一路也钉住了：先比号再报错，去掉这个顺序同样会红（新书页脸上会弹一条
 「成品页构建失败：PathNotFoundException」）。

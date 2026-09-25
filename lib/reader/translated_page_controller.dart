@@ -77,7 +77,22 @@ class TranslatedPageController extends ChangeNotifier {
   TranslatedPageController({TranslatedPageBuilder? builder})
     : _builder = builder ?? TranslatedPageBuilder();
 
-  static final TranslatedPageController instance = TranslatedPageController();
+  static TranslatedPageController instance = TranslatedPageController();
+
+  /// 换一台**带假构建器**的控制器给测试，并返回之前那台（调用方负责换回去）。
+  ///
+  /// 为什么需要它：`LocalReadSession` 那两行装配（`setSource` / `dispose` 里的
+  /// `TranslatedPageController.instance.reset()`）走的就是这个单例，而单例默认的构建器
+  /// 要原生库与 660 MB 权重 —— 不换掉它，「退出阅读真的取消了在飞推理」这句话在桌面测试里
+  /// 根本没法被执行，只能写成「靠真机验」。
+  @visibleForTesting
+  static TranslatedPageController useForTest(
+    TranslatedPageController controller,
+  ) {
+    final previous = instance;
+    instance = controller;
+    return previous;
+  }
 
   final TranslatedPageBuilder _builder;
 
