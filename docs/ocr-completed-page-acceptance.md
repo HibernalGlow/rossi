@@ -288,6 +288,29 @@ cargo run -q --release -p rossi_ocr_core --bin ocr_page -- \
 
 ---
 
+## 上面这些结论怎么自己复跑
+
+```bash
+export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer   # 不带它会写坏 SPM 接线
+dart analyze lib/                                                 # 期望：只剩 switch_toast_service 那条 info
+(cd rust && cargo test -p rossi_ocr_core)                          # 期望：24 passed
+flutter test test/ocr/ test/reader/translated_page_controller_test.dart \
+  test/reader/translated_page_status_test.dart \
+  test/reader/local_read_session_translation_gate_test.dart \
+  test/reader/gpu_present_controller_test.dart                     # 期望：103 过 0 skip
+flutter build macos --debug                                        # 出包
+# 交叉编译（PATH 上默认是 Homebrew 的 cargo，没有交叉 std，要用工具链绝对路径）：
+(cd rust && PATH="$HOME/.rustup/toolchains/1.96.1-aarch64-apple-darwin/bin:$PATH" \
+  sh -c 'for t in aarch64-apple-ios aarch64-linux-android aarch64-unknown-linux-gnu; do \
+           cargo check -q -p rossi_ocr_core --target $t || exit 1; done')
+```
+
+两条重头的实测各自要真权重与真页（放 `.local/ocr-test-data/`，见第 0 条）：
+`completed_page_e2e_test.dart`（单页全链路 + 缓存二次命中）与
+`completed_page_multi_page_probe_test.dart`（八页逐像素对照，成品图丢在 `/tmp/ocr-lab/sweep/`）。
+**「越框」那一条不是自证的**：同一次运行里会再渲染一张故意把框放大 30 px 的对照，
+量不到的话那条判据会直接红（`blindMetric`）。
+
 ## 明确不做（别按这些来验）
 
 - **上色 / 去字后重绘**：ADR-0018 一期只占位。
