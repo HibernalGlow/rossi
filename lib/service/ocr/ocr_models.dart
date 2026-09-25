@@ -65,6 +65,26 @@ class OcrModels {
     return (ready, missing);
   }
 
+  /// 权重版本标签：用**文件长度**当版本代理 —— 换权重几乎必然改长度，而对 460 MB
+  /// 每页都算一次哈希不可接受。它进成品页缓存指纹（`TranslatedPageCache.describe`），
+  /// 所以「换了模型但页面还是旧的」这种静默错不会发生。缺文件的项记 0，便于一眼看出没下全。
+  static Future<String> versionTag() async {
+    const short = {
+      detFile: 'det',
+      encoderFile: 'enc',
+      decoderFile: 'dec',
+      vocabFile: 'voc',
+      inpaintFile: 'lama',
+    };
+    final parts = <String>[];
+    for (final f in short.keys) {
+      final file = File(await pathOf(f));
+      final len = await file.exists() ? await file.length() : 0;
+      parts.add('${short[f]}$len');
+    }
+    return parts.join('-');
+  }
+
   static Future<bool> _valid(String file) async {
     final f = File(await pathOf(file));
     if (!await f.exists()) return false;
