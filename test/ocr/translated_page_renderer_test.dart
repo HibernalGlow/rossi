@@ -75,15 +75,16 @@ Future<Uint8List> _raster(String text) async {
   await TranslatedPageRenderer.ensureFontLoaded();
   final recorder = ui.PictureRecorder();
   final canvas = ui.Canvas(recorder);
-  final builder = ui.ParagraphBuilder(
-    ui.ParagraphStyle(textDirection: ui.TextDirection.ltr),
-  )..pushStyle(
-    ui.TextStyle(
-      color: const ui.Color(0xFF111111),
-      fontSize: 32,
-      fontFamily: TranslatedPageRenderer.fontFamily,
-    ),
-  );
+  final builder =
+      ui.ParagraphBuilder(
+        ui.ParagraphStyle(textDirection: ui.TextDirection.ltr),
+      )..pushStyle(
+        ui.TextStyle(
+          color: const ui.Color(0xFF111111),
+          fontSize: 32,
+          fontFamily: TranslatedPageRenderer.fontFamily,
+        ),
+      );
   builder.addText(text);
   final paragraph = builder.build()
     ..layout(const ui.ParagraphConstraints(width: 220));
@@ -94,10 +95,40 @@ Future<Uint8List> _raster(String text) async {
   return data!.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
 }
 
+/// 给定范围内墨的包围盒（找不到墨时返回零矩形）。
+ui.Rect _inkBounds(Uint8List rgba, int stride, ui.Rect area) {
+  var x0 = 1 << 30, y0 = 1 << 30, x1 = -1, y1 = -1;
+  for (var y = area.top.toInt(); y < area.bottom.toInt(); y++) {
+    for (var x = area.left.toInt(); x < area.right.toInt(); x++) {
+      final i = (y * stride + x) * 4;
+      if (rgba[i] < 128 && rgba[i + 1] < 128 && rgba[i + 2] < 128) {
+        if (x < x0) x0 = x;
+        if (y < y0) y0 = y;
+        if (x > x1) x1 = x;
+        if (y > y1) y1 = y;
+      }
+    }
+  }
+  if (x1 < 0) return ui.Rect.zero;
+  return ui.Rect.fromLTWH(
+    x0.toDouble(),
+    y0.toDouble(),
+    (x1 - x0 + 1).toDouble(),
+    (y1 - y0 + 1).toDouble(),
+  );
+}
+
 OcrBlock _block(ui.Rect r) => OcrBlock(
   // FRB 把 Rust 的 Vec<f32> 映射成 Float32List，不是 List<double>。
   quad: Float32List.fromList([
-    r.left, r.top, r.right, r.top, r.right, r.bottom, r.left, r.bottom,
+    r.left,
+    r.top,
+    r.right,
+    r.top,
+    r.right,
+    r.bottom,
+    r.left,
+    r.bottom,
   ]),
   text: '原文',
   boxes: 1,
@@ -125,7 +156,11 @@ void main() {
     });
 
     test('顺序打乱也能按编号归位（编号是 1 基）', () {
-      expect(parseTranslatedLines('3\t丙\n1\t甲\n2\t乙', expected: 3), ['甲', '乙', '丙']);
+      expect(parseTranslatedLines('3\t丙\n1\t甲\n2\t乙', expected: 3), [
+        '甲',
+        '乙',
+        '丙',
+      ]);
     });
 
     test('少一条就抛，不许静默留空', () {
@@ -136,7 +171,10 @@ void main() {
     });
 
     test('多出来的编号被忽略，不影响对齐', () {
-      expect(parseTranslatedLines('1\t甲\n2\t乙\n9\t不该存在', expected: 2), ['甲', '乙']);
+      expect(parseTranslatedLines('1\t甲\n2\t乙\n9\t不该存在', expected: 2), [
+        '甲',
+        '乙',
+      ]);
     });
   });
 
@@ -145,7 +183,10 @@ void main() {
       const w = 400, h = 300;
       final rgba = await _rgba(await _whitePng(w, h));
       expect(rgba.length, w * h * 4);
-      expect(_untouchedViolations(rgba, w, const ui.Rect.fromLTWH(0, 0, 400, 300)), 0);
+      expect(
+        _untouchedViolations(rgba, w, const ui.Rect.fromLTWH(0, 0, 400, 300)),
+        0,
+      );
     });
 
     test('框内真的落了墨，框外没动', () async {
@@ -193,6 +234,42 @@ void main() {
       );
     });
 
+    test('窄高框走「一字一行」，宽扁框才横排换行', () async {
+      // 端到端那张真页看图看出的缺陷（REFERENCE_RESEARCH §8.6.9）：漫画气泡多是窄高框，
+      // 一律横排会排成 3–4 字一行的「假竖排」。断言用**墨的包围盒宽度**分辨两种排法：
+      // 竖堆只有一个字宽，横排会铺满框宽。
+      const w = 400, h = 300;
+      const tall = ui.Rect.fromLTWH(300, 20, 60, 240);
+      const wide = ui.Rect.fromLTWH(20, 200, 240, 60);
+      const text = 'どっから捕まえてきたんだよお前';
+
+      final filled = await TranslatedPageRenderer.render(
+        erasedPng: await _whitePng(w, h),
+        blocks: [_block(tall), _block(wide)],
+        translations: [text, text],
+      );
+      final rgba = await _rgba(filled);
+      final tallInk = _inkBounds(rgba, w, tall);
+      final wideInk = _inkBounds(rgba, w, wide);
+
+      expect(
+        tallInk.width,
+        lessThan(tall.width * 0.55),
+        reason: '窄框里墨铺满了宽度 = 还在横排换行',
+      );
+      expect(
+        tallInk.height,
+        greaterThan(tall.height * 0.6),
+        reason: '竖堆应该把框的高度用起来',
+      );
+      expect(wideInk.width, greaterThan(wide.width * 0.5), reason: '宽框该横排铺开');
+      expect(wideInk.height, lessThan(wide.height), reason: '宽框不该占满高度');
+
+      final dump = File('/tmp/ocr-lab/filled_tall_wide.png');
+      await dump.parent.create(recursive: true);
+      await dump.writeAsBytes(filled, flush: true);
+    });
+
     test('空译文跳过，不画空段落', () async {
       const w = 200, h = 120;
       final filled = await TranslatedPageRenderer.render(
@@ -201,7 +278,10 @@ void main() {
         translations: ['   '],
       );
       final rgba = await _rgba(filled);
-      expect(_untouchedViolations(rgba, w, const ui.Rect.fromLTWH(0, 0, 200, 120)), 0);
+      expect(
+        _untouchedViolations(rgba, w, const ui.Rect.fromLTWH(0, 0, 200, 120)),
+        0,
+      );
     });
   });
 }

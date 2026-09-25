@@ -10,15 +10,31 @@ import 'package:zephyr/src/rust/api/ocr.dart';
 /// 为什么在 Dart 侧画：CJK 整形在 Flutter 里是现成的（bundled 文楷 + 引擎的断行），
 /// 在 Rust 侧自己接 harfbuzz/swash 是长期成本（§决定 3）。
 ///
-/// **一期是水平排版**：竖排（`vert`/`vrt2` 组版）明确排在后面 —— 它需要字号-行高-列距的
-/// 联合求解，不是「把字转 90°」那么简单（见 ADR-0018 Consequences 的砍单顺序）。
+/// **一期是水平排版 + 窄高框的「一字一行」竖堆**（[_tallAspect]）：真竖排（`vert`/`vrt2`
+/// 组版、标点旋转、列读序）明确排在后面 —— 它需要字号-行高-列距的联合求解，
+/// 不是「把字转 90°」那么简单（见 ADR-0018 Consequences 的砍单顺序）。
 class TranslatedPageRenderer {
   TranslatedPageRenderer._();
 
   /// 字号候选：从大到小试，第一个「装得下」的胜出。
   /// 太小会看不清，太大的下限由 [minFontSize] 兜底（装不下就截行，不许画到框外）。
   static const _candidates = <double>[
-    40, 36, 32, 28, 24, 21, 18, 16, 14, 12.5, 11, 10, 9, 8, 7.5, 7,
+    40,
+    36,
+    32,
+    28,
+    24,
+    21,
+    18,
+    16,
+    14,
+    12.5,
+    11,
+    10,
+    9,
+    8,
+    7.5,
+    7,
   ];
 
   /// 与 `pubspec.yaml` 的 `assets:` 段一致的**注册名**（不是 TTF 内部的 family 名）。
@@ -64,7 +80,13 @@ class TranslatedPageRenderer {
       final text = translations[i].trim();
       if (text.isEmpty) continue;
       final rect = _aabb(blocks[i]);
-      _paintFitted(canvas, rect, text, padding: padding, minFontSize: minFontSize);
+      _paintFitted(
+        canvas,
+        rect,
+        text,
+        padding: padding,
+        minFontSize: minFontSize,
+      );
     }
 
     final picture = recorder.endRecording();
@@ -92,6 +114,13 @@ class TranslatedPageRenderer {
     );
   }
 
+  /// 框的长短边之比超过这个值就改走「一字一行」的竖堆。
+  ///
+  /// 判据来自端到端那张真页（`REFERENCE_RESEARCH.md` §8.6.9）：漫画气泡**多是窄高框**，
+  /// 横排换行会排成 3–4 字一行的「假竖排」，读起来是竖着断句的一串。
+  /// 这里不是真竖排（没有标点旋转、没有列序），只是让窄框至少能正常读。
+  static const _tallAspect = 1.6;
+
   static void _paintFitted(
     ui.Canvas canvas,
     ui.Rect rect,
@@ -101,12 +130,15 @@ class TranslatedPageRenderer {
   }) {
     final maxWidth = (rect.width - 2 * padding).clamp(8.0, double.infinity);
     final maxHeight = (rect.height - 2 * padding).clamp(8.0, double.infinity);
+    // 竖堆：把可用宽度收到约一个字，引擎每行只放得下一个字（见下面传进 _paragraph 的宽度）。
+    final vertical =
+        rect.height >= rect.width * _tallAspect && text.runes.length > 3;
 
     ui.Paragraph? chosen;
     var chosenSize = 0.0;
     for (final size in _candidates) {
       if (size < minFontSize) break;
-      final p = _paragraph(text, size, maxWidth);
+      final p = _paragraph(text, size, vertical ? size * 1.12 : maxWidth);
       if (p.height <= maxHeight) {
         chosen = p;
         chosenSize = size;
@@ -114,9 +146,15 @@ class TranslatedPageRenderer {
       }
     }
     if (chosen == null) {
-      // 连最小字号都装不下：用最小字号 + 限行数，宁可截断也不许溢出到别人的框上。
-      final p = _paragraph(text, minFontSize, maxWidth, maxLines: 3, ellipsis: '…');
-      chosen = p;
+      // 连最小字号都装不下：按能放几行就限行数，宁可截断也不许溢出到别人的框上。
+      final lines = (maxHeight / (minFontSize * 1.15)).floor().clamp(1, 999);
+      chosen = _paragraph(
+        text,
+        minFontSize,
+        vertical ? minFontSize * 1.12 : maxWidth,
+        maxLines: lines,
+        ellipsis: '…',
+      );
       chosenSize = minFontSize;
     }
     if (chosenSize == 0) return;
@@ -132,21 +170,22 @@ class TranslatedPageRenderer {
     int? maxLines,
     String? ellipsis,
   }) {
-    final builder = ui.ParagraphBuilder(
-      ui.ParagraphStyle(
-        textAlign: ui.TextAlign.center,
-        textDirection: ui.TextDirection.ltr,
-        maxLines: maxLines,
-        ellipsis: ellipsis,
-      ),
-    )..pushStyle(
-      ui.TextStyle(
-        color: const ui.Color(0xFF111111),
-        fontSize: fontSize,
-        height: 1.15,
-        fontFamily: fontFamily,
-      ),
-    );
+    final builder =
+        ui.ParagraphBuilder(
+          ui.ParagraphStyle(
+            textAlign: ui.TextAlign.center,
+            textDirection: ui.TextDirection.ltr,
+            maxLines: maxLines,
+            ellipsis: ellipsis,
+          ),
+        )..pushStyle(
+          ui.TextStyle(
+            color: const ui.Color(0xFF111111),
+            fontSize: fontSize,
+            height: 1.15,
+            fontFamily: fontFamily,
+          ),
+        );
     builder.addText(text);
     final paragraph = builder.build();
     paragraph.layout(ui.ParagraphConstraints(width: maxWidth));
