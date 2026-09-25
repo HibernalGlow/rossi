@@ -79,6 +79,9 @@ Rust（ocr_core）                     Dart（Reader）
 - `<key>` **必须把影响产物的每一项都编进去**：译文语言、翻译端点/模型标识、术语表版本、
   检测/识别/擦字模型版本、**字体版本**、回填排版参数版本。缺任何一项都会造成
   「换了模型但页面还是旧的」这种**静默**错误（本仓在章节 key 上已经吃过同型的亏）；
+- **页级回退（已实现，2026-09-26）**：`TranslatedPageCache.isUsable` 查 PNG 签名 + 结尾 `IEND` +
+  体积下限，坏文件一律当「没有」→ 重算；注入前发现产物又消失了则静默回到原图（不弹错）。
+  两条都有测试，且各自做过证伪（把判据换回 `exists()` 立刻红）。
 - **页级回退**：原始解码图永远是真相，成品页是可失效的派生物。必须存在「本页回到原图」的开关，
   且 Reader 在产物缺失/损坏时**静默回落**到原图而不是报错。
 
@@ -328,7 +331,7 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
 | §6 平台排除 | `ocrSupportedHere`：移动端连设置入口都不画 | 已实现 |
 | §7 不内置 NMT | `ocr_translator.dart` 只走 OpenAI-compatible；真 HTTP 有 6 条测试 | 已实现 |
 
-验证：`flutter test test/ocr/` + 两份 reader 测试共 **84 条全过 0 skip**（Dart 58 + 呈现器测试 26），
+验证：`flutter test test/ocr/` + 两份 reader 测试共 **91 条全过 0 skip**（Dart 65 + 呈现器测试 26），
 其中 `completed_page_e2e_test.dart` 用真权重跑通整条链路（15 块 / 827×1170 / 每块有墨 / 二次命中缓存）。
 真机逐条判据在 `docs/ocr-completed-page-acceptance.md`。
 

@@ -199,7 +199,7 @@ void main() {
     final label = (await TranslatedPageCache.describe(config: config)).label;
     expect(label, startsWith('zh-Hans_stub_'));
     expect(out.path, contains(label));
-    expect(await TranslatedPageCache.has(label: label, pageIndex: 6), isTrue);
+    expect(await TranslatedPageCache.isUsable(label: label, pageIndex: 6), isTrue);
     expect(
       File(
         '${root.path}/files/manga_translated/$label/manifest.json',
@@ -241,7 +241,7 @@ void main() {
     );
     final label = (await TranslatedPageCache.describe(config: cfg2)).label;
     expect(
-      await TranslatedPageCache.has(label: label, pageIndex: 0),
+      await TranslatedPageCache.isUsable(label: label, pageIndex: 0),
       isFalse,
       reason: '翻译没对齐就不该写缓存：半张成品页比没有更糟',
     );

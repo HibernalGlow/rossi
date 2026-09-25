@@ -205,6 +205,16 @@ class TranslatedPageController extends ChangeNotifier {
     TranslatedPagePresenter presenter, {
     required bool showingOnSuccess,
   }) async {
+    if (!await File(path).exists()) {
+      // 产物在这一步之前被人删了 / 目录被清了：ADR-0018 §决定 3 要的是
+      // 「静默回落到原图」，不是弹一条「找不到文件」。原图本来就是真相。
+      _presenter?.translationOwnedPages.remove(index);
+      _phase = TranslatedPagePhase.off;
+      _index = index;
+      _lastError = '';
+      notifyListeners();
+      return false;
+    }
     if (!await presenter.setEnhancedImage(index, path)) {
       return _fail(index, '呈现器拒绝注入这张图');
     }

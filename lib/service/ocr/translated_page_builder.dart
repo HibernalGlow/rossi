@@ -103,7 +103,7 @@ class TranslatedPageBuilder {
       label: label,
       pageIndex: pageIndex,
     );
-    if (!force && await target.exists()) {
+    if (!force && await TranslatedPageCache.isUsable(label: label, pageIndex: pageIndex)) {
       onStage?.call(TranslatedPageStage.cacheHit);
       return TranslatedPage(
         path: target.path,

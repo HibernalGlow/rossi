@@ -18,6 +18,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/reader/translated_page_controller.dart';
 import 'package:zephyr/service/ocr/ocr_models.dart';
+import 'package:zephyr/service/ocr/ocr_translator.dart';
+import 'package:zephyr/service/ocr/translated_page_builder.dart';
+import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_builder.dart';
 import 'package:zephyr/src/rust/api/ocr.dart';
 
@@ -127,6 +130,29 @@ void _fakeWeights(Directory dir) {
     raf.truncateSync(e.value);
     raf.closeSync();
   }
+}
+
+/// 假装产物已经生成、但那个文件其实不在（被清过目录 / 被别的进程删了）。
+class _MissingProductBuilder extends TranslatedPageBuilder {
+  _MissingProductBuilder(this.path);
+
+  final String path;
+
+  @override
+  Future<TranslatedPage> build({
+    required String imagePath,
+    required int pageIndex,
+    required OcrTranslationConfig config,
+    void Function(TranslatedPageStage stage)? onStage,
+    bool Function()? shouldCancel,
+    bool force = false,
+  }) async => TranslatedPage(
+    path: path,
+    fromCache: true,
+    hasText: true,
+    blockCount: 1,
+    truncatedCount: 0,
+  );
 }
 
 void main() {
@@ -384,6 +410,24 @@ void main() {
 
     expect(await turningOff, isFalse);
     expect(presenter.injected, hasLength(1), reason: '第二次注入属于旧书，必须作废');
+  });
+
+  test('产物在注入前消失：静默回落原图，不弹错', () async {
+    // ADR-0018 §决定 3：「Reader 在产物缺失/损坏时静默回落到原图而不是报错」。
+    await seedReady();
+    final presenter = _FakePresenter(confirmed: true);
+    final c = TranslatedPageController(
+      builder: _MissingProductBuilder('/tmp/rossi_gone/p0.png'),
+    );
+
+    expect(
+      await c.toggle(source: _FakeSource(page), presenter: presenter, index: 1),
+      isFalse,
+    );
+    expect(c.phase, TranslatedPagePhase.off, reason: '缺产物不该显示成失败态');
+    expect(c.lastError, isEmpty, reason: '静默回落 = 不弹一条用户无法行动的错');
+    expect(presenter.injected, isEmpty);
+    expect(presenter.translationOwnedPages, isEmpty);
   });
 
   test('换书 reset：清掉归属，否则新书那几页会被旧译文占着', () async {

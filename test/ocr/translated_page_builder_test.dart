@@ -54,14 +54,22 @@ int _darkPixels(Uint8List rgba, int stride, ui.Rect rect) {
   return count;
 }
 
-OcrBlock _block(ui.Rect r, {String text = 'トカゲじゃ', bool truncated = false}) => OcrBlock(
-  quad: Float32List.fromList([
-    r.left, r.top, r.right, r.top, r.right, r.bottom, r.left, r.bottom,
-  ]),
-  text: text,
-  boxes: 1,
-  truncated: truncated,
-);
+OcrBlock _block(ui.Rect r, {String text = 'トカゲじゃ', bool truncated = false}) =>
+    OcrBlock(
+      quad: Float32List.fromList([
+        r.left,
+        r.top,
+        r.right,
+        r.top,
+        r.right,
+        r.bottom,
+        r.left,
+        r.bottom,
+      ]),
+      text: text,
+      boxes: 1,
+      truncated: truncated,
+    );
 
 const _pageW = 400, _pageH = 300;
 final _boxA = const ui.Rect.fromLTWH(40, 30, 140, 90);
@@ -77,12 +85,18 @@ class _FakeAnalyze {
   String? lastErasedPath;
   String? lastEp;
 
-  Future<OcrPageResult> call(String imagePath, String erasedPath, String ep) async {
+  Future<OcrPageResult> call(
+    String imagePath,
+    String erasedPath,
+    String ep,
+  ) async {
     calls++;
     lastEp = ep;
     lastErasedPath = erasedPath;
     // 正常链路里这张图是 Rust 写的；这里替它写一张纯白底。
-    await File(erasedPath).writeAsBytes(await _whitePng(_pageW, _pageH), flush: true);
+    await File(
+      erasedPath,
+    ).writeAsBytes(await _whitePng(_pageW, _pageH), flush: true);
     erasedSeenAtCallTime = await File(erasedPath).exists();
     return OcrPageResult(
       blocks: blocks,
@@ -103,7 +117,10 @@ class _FakeTranslate {
   int calls = 0;
   List<String>? lastTexts;
 
-  Future<List<String>> call(List<String> texts, OcrTranslationConfig config) async {
+  Future<List<String>> call(
+    List<String> texts,
+    OcrTranslationConfig config,
+  ) async {
     calls++;
     lastTexts = texts;
     return reply(texts);
@@ -141,11 +158,10 @@ void main() {
     final analyze = _FakeAnalyze([_block(_boxA)]);
     final translate = _FakeTranslate((texts) => ['是蜥蜴啊']);
 
-    final out = await builderWith(analyze, translate).build(
-      imagePath: '/nonexistent/page.jpg',
-      pageIndex: 0,
-      config: config,
-    );
+    final out = await builderWith(
+      analyze,
+      translate,
+    ).build(imagePath: '/nonexistent/page.jpg', pageIndex: 0, config: config);
 
     expect(analyze.calls, 1);
     expect(analyze.lastEp, 'auto', reason: '没设置过就该交给「按平台与模型选」，而不是写死 cpu');
@@ -158,7 +174,11 @@ void main() {
     final file = File(out.path);
     expect(await file.exists(), isTrue);
     final rgba = await _rgba(await file.readAsBytes());
-    expect(_darkPixels(rgba, _pageW, _boxA), greaterThan(200), reason: '译文没画上去');
+    expect(
+      _darkPixels(rgba, _pageW, _boxA),
+      greaterThan(200),
+      reason: '译文没画上去',
+    );
 
     // 缓存目录里只该有成品与清单：擦字中间产物漏进来，用户就分不清哪张是成品页。
     final dir = file.parent;
@@ -175,12 +195,53 @@ void main() {
     final analyze = _FakeAnalyze([_block(_boxA)]);
     final b = builderWith(analyze, _FakeTranslate((_) => ['是蜥蜴啊']));
 
-    final first = await b.build(imagePath: 'p.jpg', pageIndex: 3, config: config);
-    final again = await b.build(imagePath: 'p.jpg', pageIndex: 3, config: config);
+    final first = await b.build(
+      imagePath: 'p.jpg',
+      pageIndex: 3,
+      config: config,
+    );
+    final again = await b.build(
+      imagePath: 'p.jpg',
+      pageIndex: 3,
+      config: config,
+    );
 
     expect(again.fromCache, isTrue);
     expect(again.path, first.path);
     expect(analyze.calls, 1, reason: '一页分析 ~14 s，命中缓存还重跑等于没有缓存');
+  });
+
+  test('缓存里那张是坏的：当没有，重算一份，而不是把坏文件端出去', () async {
+    // ADR-0018 §决定 3 的「缺失或损坏静默回落」在这里的前一步：
+    // 编排层就不该把半张 PNG 当成产物返回。
+    final analyze = _FakeAnalyze([_block(_boxA)]);
+    final b = builderWith(analyze, _FakeTranslate((_) => ['是蜥蜴啊']));
+    final first = await b.build(
+      imagePath: 'p.jpg',
+      pageIndex: 1,
+      config: config,
+    );
+    final callsAfterFirst = analyze.calls;
+
+    final file = File(first.path);
+    final bytes = await file.readAsBytes();
+    await file.writeAsBytes(
+      bytes.sublist(0, bytes.length - 8),
+      flush: true,
+    ); // 砍掉 IEND
+
+    final second = await b.build(
+      imagePath: 'p.jpg',
+      pageIndex: 1,
+      config: config,
+    );
+    expect(analyze.calls, callsAfterFirst + 1, reason: '坏产物命中了缓存 = 把损坏当存在');
+    expect(second.fromCache, isFalse);
+    expect(
+      await File(second.path).length(),
+      bytes.length,
+      reason: '重算的那份要补回完整文件',
+    );
   });
 
   test('force 重算，覆盖旧产物', () async {
@@ -188,7 +249,12 @@ void main() {
     final b = builderWith(analyze, _FakeTranslate((_) => ['是蜥蜴啊']));
     await b.build(imagePath: 'p.jpg', pageIndex: 0, config: config);
 
-    final forced = await b.build(imagePath: 'p.jpg', pageIndex: 0, config: config, force: true);
+    final forced = await b.build(
+      imagePath: 'p.jpg',
+      pageIndex: 0,
+      config: config,
+      force: true,
+    );
 
     expect(analyze.calls, 2);
     expect(forced.fromCache, isFalse);
@@ -222,36 +288,43 @@ void main() {
     final original = '${root.path}/plain.jpg';
     await File(original).writeAsBytes(await _whitePng(_pageW, _pageH));
 
-    final out = await builderWith(analyze, translate).build(
-      imagePath: original,
-      pageIndex: 0,
-      config: config,
-    );
+    final out = await builderWith(
+      analyze,
+      translate,
+    ).build(imagePath: original, pageIndex: 0, config: config);
 
     expect(out.hasText, isFalse);
     expect(out.path, original, reason: '擦不擦都一样的页，不该被换成一份缓存副本');
     expect(translate.calls, 0, reason: '没台词就别发翻译请求，白烧一次 token');
-    expect(await TranslatedPageCache.has(label: (await TranslatedPageCache.describe(config: config)).label, pageIndex: 0), isFalse);
+    expect(
+      await TranslatedPageCache.isUsable(
+        label: (await TranslatedPageCache.describe(config: config)).label,
+        pageIndex: 0,
+      ),
+      isFalse,
+    );
   });
 
   test('设置里选的后端真的传到分析那一跳（否则选择器是个骗人的控件）', () async {
     SharedPreferences.setMockInitialValues({'ocr_ep': 'coreml'});
     final analyze = _FakeAnalyze([_block(_boxA)]);
-    await builderWith(analyze, _FakeTranslate((_) => ['是蜥蜴啊'])).build(
-      imagePath: 'p.jpg',
-      pageIndex: 0,
-      config: config,
-    );
+    await builderWith(
+      analyze,
+      _FakeTranslate((_) => ['是蜥蜴啊']),
+    ).build(imagePath: 'p.jpg', pageIndex: 0, config: config);
     expect(analyze.lastEp, 'coreml');
   });
 
   test('中途取消：抛、且不留下半成品', () async {
     final analyze = _FakeAnalyze([_block(_boxA)]);
     var cancelled = false;
-    final b = TranslatedPageBuilder(analyze: analyze.call, translate: (_, _) async {
-      cancelled = true;
-      return ['是蜥蜴啊'];
-    });
+    final b = TranslatedPageBuilder(
+      analyze: analyze.call,
+      translate: (_, _) async {
+        cancelled = true;
+        return ['是蜥蜴啊'];
+      },
+    );
 
     await expectLater(
       b.build(
@@ -263,7 +336,7 @@ void main() {
       throwsA(isA<TranslatedPageCancelled>()),
     );
     expect(
-      await TranslatedPageCache.has(
+      await TranslatedPageCache.isUsable(
         label: (await TranslatedPageCache.describe(config: config)).label,
         pageIndex: 0,
       ),
@@ -274,13 +347,15 @@ void main() {
 
   test('阶段按顺序上报，UI 才有的显示', () async {
     final stages = <TranslatedPageStage>[];
-    await builderWith(_FakeAnalyze([_block(_boxA)]), _FakeTranslate((_) => ['是蜥蜴啊']))
-        .build(
-          imagePath: 'p.jpg',
-          pageIndex: 7,
-          config: config,
-          onStage: stages.add,
-        );
+    await builderWith(
+      _FakeAnalyze([_block(_boxA)]),
+      _FakeTranslate((_) => ['是蜥蜴啊']),
+    ).build(
+      imagePath: 'p.jpg',
+      pageIndex: 7,
+      config: config,
+      onStage: stages.add,
+    );
     expect(stages, [
       TranslatedPageStage.analyzing,
       TranslatedPageStage.translating,
@@ -290,7 +365,10 @@ void main() {
 
   test('截断的块数会被报上去，UI 好标「可疑」', () async {
     final out = await builderWith(
-      _FakeAnalyze([_block(_boxA, truncated: true), _block(const ui.Rect.fromLTWH(220, 160, 140, 90))]),
+      _FakeAnalyze([
+        _block(_boxA, truncated: true),
+        _block(const ui.Rect.fromLTWH(220, 160, 140, 90)),
+      ]),
       _FakeTranslate((texts) => List.filled(texts.length, '译文')),
     ).build(imagePath: 'p.jpg', pageIndex: 0, config: config);
     expect(out.blockCount, 2);

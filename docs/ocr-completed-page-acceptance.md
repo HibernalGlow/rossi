@@ -7,7 +7,7 @@
 静态层面已经过了，不必重复验：
 
 - `dart analyze lib/` 干净（只剩一条与本次无关的 `switch_toast_service.dart` info）；
-- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart test/reader/translated_page_status_test.dart` **58 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
+- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart test/reader/translated_page_status_test.dart` **65 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
 - `cargo test -p rossi_ocr_core` **21 条全过**；
 - `flutter build macos --debug` 出包成功；
 - **端到端已经跑过一次真权重**：`test/ocr/completed_page_e2e_test.dart` 对
@@ -124,7 +124,12 @@ ollama serve && ollama run qwen2.5:14b        # 本机：base URL = http://127.0
 （超分日志里会出现「增强图轨已被淘汰，重新注入成品页」）；
 ② 芯片显示「译文页」时画面必须真是成品页 —— 若看到原图配「译文页」，就是虚报，算缺陷。
 
-## 8. 翻回来秒开（缓存）
+## 8. 翻回来秒开（缓存），以及坏产物不许被当成缓存
+
+**做**：某页生成完之后，手动把 `manga_translated/<指纹>/p<N>.png` 截掉尾巴（或整个删掉），再按「译」。
+**预期**：删掉的 → 重新生成一张；截断的 → **也重新生成**，而不是把半张图端上屏、更不是弹一条「呈现器拒绝注入」。
+**判据**：这条是 ADR-0018 §决定 3 的「产物缺失或损坏时静默回落到原图」——
+`exists()` 把「存在」当成「可用」是不够的，所以缓存判据查了 PNG 签名与结尾的 `IEND`。
 
 **做**：第 5 页生成完成后翻走再翻回。
 **预期**：不再出现「生成中」，直接是译文页。

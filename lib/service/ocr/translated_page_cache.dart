@@ -18,6 +18,28 @@ import 'package:zephyr/service/ocr/ocr_service.dart';
 class TranslatedPageCache {
   TranslatedPageCache._();
 
+  static const _minPngBytes = 1024;
+  static const _pngSignature = <int>[
+    0x89,
+    0x50,
+    0x4E,
+    0x47,
+    0x0D,
+    0x0A,
+    0x1A,
+    0x0A,
+  ];
+  static const _iendTail = <int>[
+    0x49,
+    0x45,
+    0x4E,
+    0x44,
+    0xAE,
+    0x42,
+    0x60,
+    0x82,
+  ];
+
   /// 排版参数版本：改字号策略 / 边距 / 换行规则就 +1，让旧产物失效。
   static const layoutVersion = 1;
 
@@ -64,17 +86,38 @@ class TranslatedPageCache {
     required int pageIndex,
   }) async => File(p.join((await directory(label)).path, 'p$pageIndex.png'));
 
-  static Future<bool> has({
-    required String label,
-    required int pageIndex,
-  }) async => (await pageFile(label: label, pageIndex: pageIndex)).exists();
-
-  static Future<Uint8List?> read({
+  /// 这张成品页**能不能用**。
+  ///
+  /// 不是 `exists()`：ADR-0018 §决定 3 要求「产物缺失或损坏时静默回落到原图」，
+  /// 而 `exists()` 把「存在」当成了「可用」—— 半张 PNG（目录被清过、磁盘满过）
+  /// 会被当成可用交下去，最后表现为呈现器拒绝注入并报错给用户。
+  /// 判据挑能廉价看出损坏的两端：PNG 签名 + 结尾的 `IEND` 块（截断的尾巴一定缺），
+  /// 再加一个体积下限。不做整图解码 —— 命中缓存这条路本来就该是零成本。
+  static Future<bool> isUsable({
     required String label,
     required int pageIndex,
   }) async {
     final f = await pageFile(label: label, pageIndex: pageIndex);
-    return await f.exists() ? f.readAsBytes() : null;
+    if (!await f.exists()) return false;
+    if (await f.length() < _minPngBytes) return false;
+    final raf = await f.open();
+    try {
+      final head = Uint8List(8);
+      await raf.readInto(head, 0, 8);
+      for (var i = 0; i < 8; i++) {
+        if (head[i] != _pngSignature[i]) return false;
+      }
+      final tail = Uint8List(8);
+      await raf.setPosition(await f.length() - 8);
+      await raf.readInto(tail, 0, 8);
+      // 结尾 8 字节是确定的：IEND 长度 00000000 + 类型 + CRC 0xAE426082。
+      for (var i = 0; i < 8; i++) {
+        if (tail[i] != _iendTail[i]) return false;
+      }
+      return true;
+    } finally {
+      await raf.close();
+    }
   }
 
   /// 原子写：先写 `.tmp_<pid>` 再改名 —— 半张 PNG 比没有更糟（Reader 会当它可用）。
