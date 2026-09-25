@@ -33,13 +33,19 @@ class OcrSettings {
 
   static const defaultTargetLanguage = 'zh-Hans';
 
-  /// 推理后端。默认 **cpu**：实测 manga-ocr 的 encoder 与 LaMa 在 CoreML EP 上都比 CPU 慢
-  /// （`REFERENCE_RESEARCH.md` §8.6.4 / §8.6.8），所以「Apple 机器就开 CoreML」是错的直觉。
-  static const defaultEp = 'cpu';
+  /// 推理后端。默认 **auto = 按「平台 + 哪一段模型」选**，不是一个固定值。
+  ///
+  /// 为什么不是「Apple 就 CoreML、Windows 就 DirectML」：实测三段的胜负各不相同 ——
+  /// Windows 上 DirectML 让识别快 4 倍（10.7 s → 2.6 s）、擦字快 8.7 倍（12.5 s → 1.4 s），
+  /// 但检测反而慢（151 ms → 209 ms）；macOS 上 CoreML 对 det / encoder / LaMa 全都更慢。
+  /// 数字与策略见 `REFERENCE_RESEARCH.md` §8.6.3 与 `rust/ocr_core` 的 `Ep::resolve`。
+  /// 显式选的值一定照办（哪怕更慢），且不支持的 EP **报错**，不静默退回 CPU。
+  static const defaultEp = 'auto';
   static const epChoices = <(String, String)>[
-    ('cpu', 'CPU（默认，实测最快）'),
-    ('coreml', 'CoreML（Apple；这两个模型上更慢）'),
-    ('directml', 'DirectML（Windows）'),
+    ('auto', '自动（按平台与模型选，实测最快）'),
+    ('cpu', 'CPU（强制）'),
+    ('coreml', 'CoreML（Apple；这几个模型上实测更慢）'),
+    ('directml', 'DirectML（Windows；识别与擦字明显更快）'),
   ];
 
   static final _changes = _OcrSettingsNotifier();

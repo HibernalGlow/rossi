@@ -48,7 +48,9 @@ pub struct OcrPageResult {
 
 /// 检测 → 识别 → 聚块（→ 可选擦字）。**不做翻译**，也不画字。
 ///
-/// `ep` 取 `cpu` / `coreml` / `directml`：EP 按模型指定，且选了不支持的不静默退回 CPU
+/// `ep` 取 `auto` / `cpu` / `coreml` / `directml`。**默认 `auto` = 按「平台 + 哪一段模型」选**
+/// （Windows 上识别与擦字走 DirectML、检测走 CPU；其余平台走 CPU —— 数字见
+/// `docs/REFERENCE_RESEARCH.md` §8.6.3）。显式选了不支持的不静默退回 CPU
 /// （ADR-0018 §决定 3.1 的实测结论）。
 #[frb]
 pub async fn ocr_analyze_page(

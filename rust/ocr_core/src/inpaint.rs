@@ -10,7 +10,7 @@
 //! 掩膜外保持原图逐像素不变（这点与 LaMa 自身的性质一致：它不碰掩膜外的像素）。
 
 use crate::group::TextBlock;
-use crate::session::{Ep, build_session};
+use crate::session::{Ep, Stage, build_session};
 use anyhow::{Context, Result, anyhow};
 use image::{Rgb, RgbImage, imageops::FilterType};
 use ort::session::Session;
@@ -38,8 +38,9 @@ pub struct Inpainted {
 impl Inpainter {
     pub fn from_file(model: &Path, ep: Ep) -> Result<Self> {
         Ok(Self {
-            session: build_session(model, ep, 1)?,
-            ep,
+            session: build_session(model, ep, Stage::Inpaint, 1)?,
+            // 记实际生效的 EP，理由同 Detector。
+            ep: ep.resolve(Stage::Inpaint),
             max_side: 1024,
             dilate_px: 3,
         })

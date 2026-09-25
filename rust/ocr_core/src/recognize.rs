@@ -9,7 +9,7 @@
 //! - 解码：参考实现用 `num_beams=4`，一期用**贪心**；`no_repeat_ngram_size=3` 保留，
 //!   因为它在短文本上直接决定「会不会复读同一个词」。
 
-use crate::session::{Ep, build_session};
+use crate::session::{Ep, Stage, build_session};
 use anyhow::{Context, Result, anyhow};
 use image::{RgbImage, imageops::FilterType};
 use ort::session::Session;
@@ -49,11 +49,12 @@ impl Recognizer {
     pub fn from_files(encoder: &Path, decoder: &Path, vocab: &Path, ep: Ep) -> Result<Self> {
         let vocab = load_vocab(vocab)?;
         Ok(Self {
-            encoder: build_session(encoder, ep, 1)?,
-            decoder: build_session(decoder, ep, 1)?,
+            encoder: build_session(encoder, ep, Stage::Recognize, 1)?,
+            decoder: build_session(decoder, ep, Stage::Recognize, 1)?,
             vocab,
             max_new_tokens: 64,
-            ep,
+            // 记实际生效的 EP，理由同 Detector。
+            ep: ep.resolve(Stage::Recognize),
         })
     }
 

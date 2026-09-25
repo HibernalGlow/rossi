@@ -141,10 +141,16 @@ ollama serve && ollama run qwen2.5:14b        # 本机：base URL = http://127.0
 
 ## 14. Windows
 
-**已经在命令行验过的**（不需要开 App，见 `REFERENCE_RESEARCH.md` §8.6.3 末尾那张表）：
+**已经在命令行验过的**（不需要开 App，全表见 `REFERENCE_RESEARCH.md` §8.6.3 末尾）：
 `rust/ocr_core` 在 MSVC 上 `cargo build --release` 通过；DirectML EP **注册得上也真跑**
-（不是静默退回 CPU）；同一张 Manga109 页 CPU 148 ms / DirectML 1318 ms 出**同样的 28 框**
-—— 检测这种小模型上 GPU 反而慢约 9 倍，所以默认 cpu 在 Windows 同样成立。
+（不是静默退回 CPU），且输出与 CPU **逐块一致**（15 块、文本全同）。
+分段数字：检测 cpu 151 ms / dml 209 ms（cpu 赢），识别 10.7 s / 2.6 s、
+擦字 12.5 s / 1.4 s（DirectML 分别快 4.1 与 8.7 倍）→ 整页 ~23 s 降到 ~4.3 s。
+所以默认值已从 `cpu` 改成 **`auto`（按段选）**：Windows 上 det 走 cpu、识别与擦字走 DirectML。
+
+**还欠一次真机确认**：`--ep auto` 这条在 Windows 上没跑成（盒子传模型传到一半掉线）。
+策略本身有 Rust 单测钉住，但「auto 在那台机器上真的落到 det=cpu / 其余=DirectML 并且整页 ~4 s」
+这句要有人开 App 或再跑一次命令行才算验过。
 
 **还要开 App 验的**：
 **做**：Windows 上把推理后端选 DirectML，按「译」。

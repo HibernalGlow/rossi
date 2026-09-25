@@ -148,7 +148,7 @@ void main() {
     );
 
     expect(analyze.calls, 1);
-    expect(analyze.lastEp, 'cpu', reason: '没设置过就该走实测最快的默认档');
+    expect(analyze.lastEp, 'auto', reason: '没设置过就该交给「按平台与模型选」，而不是写死 cpu');
     expect(translate.lastTexts, ['トカゲじゃ'], reason: '送翻译的必须是识别出来的原文');
     expect(analyze.erasedSeenAtCallTime, isTrue, reason: '底图没落盘就去画，成品会是空的');
     expect(out.fromCache, isFalse);

@@ -2,7 +2,7 @@
 //!
 //! 用法：
 //! `ocr_page --det det.onnx --encoder enc.onnx --decoder dec.onnx --vocab vocab.txt <page.jpg>
-//!           [--ep cpu|coreml] [--limit N] [--group] [--dump-crops DIR] [--dump-groups PNG] [--json]`
+//!           [--ep auto|cpu|coreml|directml] [--limit N] [--group] [--dump-crops DIR] [--dump-groups PNG] [--json]`
 //!
 //! 裁剪口径：取框的轴对齐外接框再各边外扩 `--pad`（默认 6 px，见 main 里的实测说明）——
 //! 旋转框不做透视矫正，一期先按 v1 简化；竖排列基本都是近轴对齐的。

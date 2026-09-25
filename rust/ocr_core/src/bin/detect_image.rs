@@ -8,7 +8,7 @@
 //! Rust 这边 8 张里有 4 张对不上（33 / 28 / 18 / 84），逐张对照与原因分析见
 //! `docs/REFERENCE_RESEARCH.md` §8.6.5 —— 别把这里当断言用。
 //!
-//! 用法：`detect_image <model.onnx> <image> [--ep cpu|coreml] [--json]`
+//! 用法：`detect_image <model.onnx> <image> [--ep auto|cpu|coreml|directml] [--json]`
 
 use anyhow::{Context, Result, anyhow};
 use rossi_ocr_core::{Detector, Ep, TextBox};
@@ -42,7 +42,7 @@ fn main() -> Result<()> {
         [m, i] => [PathBuf::from(m), PathBuf::from(i)],
         _ => {
             return Err(anyhow!(
-                "用法：detect_image <model.onnx> <image> [--ep cpu|coreml] [--json]"
+                "用法：detect_image <model.onnx> <image> [--ep auto|cpu|coreml|directml] [--json]"
             ));
         }
     };

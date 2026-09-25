@@ -7,7 +7,7 @@
 //! 否则概率图会整体偏暗、框数显著偏少。
 
 use crate::postprocess::{Params, boxes_from_prob};
-use crate::session::{Ep, build_session};
+use crate::session::{Ep, Stage, build_session};
 use crate::types::TextBox;
 use anyhow::{Context, Result, anyhow};
 use image::{RgbImage, imageops::FilterType};
@@ -40,8 +40,9 @@ pub struct Detection {
 impl Detector {
     pub fn from_file(model: &Path, ep: Ep) -> Result<Self> {
         Ok(Self {
-            session: build_session(model, ep, 1)?,
-            ep,
+            session: build_session(model, ep, Stage::Detect, 1)?,
+            // 记**实际生效**的那个 EP：auto 报成 auto 等于把「到底跑了什么」藏起来。
+            ep: ep.resolve(Stage::Detect),
             params: Params::default(),
             limit_side: LIMIT_SIDE,
         })
