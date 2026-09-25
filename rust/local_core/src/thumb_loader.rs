@@ -1,7 +1,10 @@
 // Copyright (c) 2024-2026 mImageViewer authors
 // SPDX-License-Identifier: MIT
 //
-// Vendored from mImageViewer `src/thumb_loader.rs` at commit 1fd6f863.
+// Vendored from mImageViewer `src/thumb_loader.rs` at commit 1fd6f863 —— 只是文件夹代表图
+// 那一段的切片（上游该文件 4510 行），刻意不进 sync_vendored_modules.py 的 PORTS，
+// 理由见 docs/local-core-vendored-modules.md §2。上游 1ffce811 的
+// 「列表用排序值不得进入代表图选择与缓存键」守卫已人工跟入。
 // Preserves upstream function, constant, and type names.
 // Rossi 适配：归档候选、失败回退、多子项代表图、元数据过滤与有界循环保护。
 

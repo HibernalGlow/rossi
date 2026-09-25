@@ -6,7 +6,7 @@
 //!
 //! ── 来源与形态（读之前先看这段）──
 //!
-//! 逐字搬自 mImageViewer `src/folder_pane.rs` @ `1fd6f863`（MIT）。
+//! 逐字搬自 mImageViewer `src/folder_pane.rs` @ `1ffce811`（MIT）。
 //! 上游该模块是私有模块、内里一律 `pub(crate)`，跨 crate 用不了，所以只能搬源码而不是 path 依赖。
 //!
 //! 版权：Copyright (c) 2026 SANO Taku (佐野 拓), online handle "Mikage Sawatari"。
@@ -1398,7 +1398,7 @@ mod tests {
                 path: root.clone(),
                 children: vec![a.clone(), b.clone()],
                 loaded: true,
-                resolved_options: None,
+                resolved_options: Some(options(SortOrder::NameAsc, false)),
                 loading: false,
                 error: None,
             },
@@ -1739,7 +1739,7 @@ mod tests {
                 path: root.clone(),
                 children: vec![a.clone(), b.clone()],
                 loaded: true,
-                resolved_options: None,
+                resolved_options: Some(options(SortOrder::NameAsc, false)),
                 loading: false,
                 error: None,
             },

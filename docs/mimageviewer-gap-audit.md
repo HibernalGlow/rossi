@@ -1,7 +1,10 @@
 # Rossi × mImageViewer 差距核对（2026-09-20）
 
 上游：`MikageSawatari/mimageviewer`，MIT，检出在 `vendor/mimageviewer/`，
-**pin = `1fd6f863`**（`v3.5.0-403-g1fd6f863`，2026-09-13）。本文只对照**这一台矿**；
+本文写于 pin = `1fd6f863`（`v3.5.0-403-g1fd6f863`，2026-09-13）。
+**2026-09-25 子模块 pin 已跟到 `1ffce811`（上游 `main`，`v3.10.0-115`）**，本文的
+「上游这块长什么样」按 `1fd6f863` 核对，涉及排序/收藏/远程窗口/ONNX 的结论要按那 115 个提交重读一遍；
+搬入模块的偏离清单以 [`local-core-vendored-modules.md`](local-core-vendored-modules.md) 为准。
 neoview 的候选在 [`feature-migration-spec.md`](feature-migration-spec.md) 的 N 系列，不在此重复。
 
 本文回答一个具体问题：**「相比 mImageViewer，Rossi 还差哪些」**。
