@@ -874,7 +874,10 @@ mod tests {
             ..FolderTreeOptions::default()
         };
 
-        assert_eq!(labels(sorted_subdirs(&root, options)), ["ccc", "bbb", "aaa"]);
+        assert_eq!(
+            labels(sorted_subdirs(&root, options)),
+            ["ccc", "bbb", "aaa"]
+        );
         let first = next_folder_dfs(&root, options).expect("first DFS child");
         assert_eq!(first.file_name().unwrap(), "ccc");
         let second = next_sibling_folder(&first, options).expect("second sibling");
