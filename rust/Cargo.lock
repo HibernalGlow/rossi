@@ -6625,6 +6625,7 @@ dependencies = [
  "reqwest-middleware",
  "reqwest_dav",
  "rossi_local_core",
+ "rossi_ocr_core",
  "rquickjs_playground",
  "rustls-platform-verifier",
  "serde",

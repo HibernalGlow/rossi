@@ -24,12 +24,12 @@ use rossi_local_core::{
 
 use super::local::LocalRootLocation;
 
-mod browse;
-mod entry_ops;
-mod search;
-mod settings;
-mod tree;
-mod types;
+pub mod browse;
+pub mod entry_ops;
+pub mod search;
+pub mod settings;
+pub mod tree;
+pub mod types;
 
 pub use self::browse::*;
 pub use self::entry_ops::*;

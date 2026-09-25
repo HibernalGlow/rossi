@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/service/reader/reader_thumbnail_service.dart';
-import 'package:zephyr/src/rust/api/file_manager.dart';
+import 'package:zephyr/src/rust/api/file_manager/types.dart';
 import 'package:zephyr/video/service/video_poster_service.dart';
 
 /// 参考 NeoView 与 mImageViewer 设计的文件管理器条目缩略图展示组件。

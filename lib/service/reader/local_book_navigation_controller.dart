@@ -1,4 +1,4 @@
-import 'package:zephyr/src/rust/api/file_manager.dart';
+import 'package:zephyr/src/rust/api/file_manager/entry_ops.dart';
 
 /// 跟随一本书存活：连按合并，旧阅读器销毁后忽略尚未完成的目录查找。
 class LocalBookNavigationController {

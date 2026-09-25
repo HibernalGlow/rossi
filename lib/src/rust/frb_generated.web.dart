@@ -7,7 +7,12 @@
 // ignore_for_file: argument_type_not_assignable
 
 import 'api/data_backup.dart';
-import 'api/file_manager.dart';
+import 'api/file_manager/browse.dart';
+import 'api/file_manager/entry_ops.dart';
+import 'api/file_manager/search.dart';
+import 'api/file_manager/settings.dart';
+import 'api/file_manager/tree.dart';
+import 'api/file_manager/types.dart';
 import 'api/file_ops.dart';
 import 'api/http.dart';
 import 'api/image.dart';
@@ -17,6 +22,7 @@ import 'api/localization.dart';
 import 'api/logger.dart';
 import 'api/memory.dart';
 import 'api/mimage_onnx.dart';
+import 'api/ocr.dart';
 import 'api/operation_binding.dart';
 import 'api/qjs.dart';
 import 'api/simple.dart';
@@ -145,6 +151,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LocalSourceInfo dco_decode_box_autoadd_local_source_info(dynamic raw);
+
+  @protected
+  OcrModelPaths dco_decode_box_autoadd_ocr_model_paths(dynamic raw);
 
   @protected
   PackInfo dco_decode_box_autoadd_pack_info(dynamic raw);
@@ -302,6 +311,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<LocalRootLocation> dco_decode_list_local_root_location(dynamic raw);
 
   @protected
+  List<OcrBlock> dco_decode_list_ocr_block(dynamic raw);
+
+  @protected
   Float32List dco_decode_list_prim_f_32_strict(dynamic raw);
 
   @protected
@@ -376,6 +388,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LocalSourceOpenResult dco_decode_local_source_open_result(dynamic raw);
+
+  @protected
+  OcrBlock dco_decode_ocr_block(dynamic raw);
+
+  @protected
+  OcrModelPaths dco_decode_ocr_model_paths(dynamic raw);
+
+  @protected
+  OcrPageResult dco_decode_ocr_page_result(dynamic raw);
 
   @protected
   Map<String, String>? dco_decode_opt_Map_String_String_None(dynamic raw);
@@ -595,6 +616,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  OcrModelPaths sse_decode_box_autoadd_ocr_model_paths(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PackInfo sse_decode_box_autoadd_pack_info(SseDeserializer deserializer);
 
   @protected
@@ -792,6 +818,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<OcrBlock> sse_decode_list_ocr_block(SseDeserializer deserializer);
+
+  @protected
   Float32List sse_decode_list_prim_f_32_strict(SseDeserializer deserializer);
 
   @protected
@@ -892,6 +921,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   LocalSourceOpenResult sse_decode_local_source_open_result(
     SseDeserializer deserializer,
   );
+
+  @protected
+  OcrBlock sse_decode_ocr_block(SseDeserializer deserializer);
+
+  @protected
+  OcrModelPaths sse_decode_ocr_model_paths(SseDeserializer deserializer);
+
+  @protected
+  OcrPageResult sse_decode_ocr_page_result(SseDeserializer deserializer);
 
   @protected
   Map<String, String>? sse_decode_opt_Map_String_String_None(
@@ -1163,6 +1201,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_ocr_model_paths(
+    OcrModelPaths self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_pack_info(
     PackInfo self,
     SseSerializer serializer,
@@ -1406,6 +1450,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_ocr_block(List<OcrBlock> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_prim_f_32_strict(
     Float32List self,
     SseSerializer serializer,
@@ -1542,6 +1589,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     LocalSourceOpenResult self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_ocr_block(OcrBlock self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_ocr_model_paths(OcrModelPaths self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_ocr_page_result(OcrPageResult self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_Map_String_String_None(

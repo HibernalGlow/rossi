@@ -4,7 +4,12 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api/data_backup.dart';
-import 'api/file_manager.dart';
+import 'api/file_manager/browse.dart';
+import 'api/file_manager/entry_ops.dart';
+import 'api/file_manager/search.dart';
+import 'api/file_manager/settings.dart';
+import 'api/file_manager/tree.dart';
+import 'api/file_manager/types.dart';
 import 'api/file_ops.dart';
 import 'api/http.dart';
 import 'api/image.dart';
@@ -14,6 +19,7 @@ import 'api/localization.dart';
 import 'api/logger.dart';
 import 'api/memory.dart';
 import 'api/mimage_onnx.dart';
+import 'api/ocr.dart';
 import 'api/operation_binding.dart';
 import 'api/qjs.dart';
 import 'api/simple.dart';
@@ -85,7 +91,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -329334406;
+  int get rustContentHash => -997361259;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -189,230 +195,248 @@ abstract class RustLibApi extends BaseApi {
 
   Future<FetchInit> crateApiHttpFetchInitDefault();
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerActivateTab({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerActivateTab({
     required BigInt id,
     required BigInt tabId,
   });
 
-  Future<bool> crateApiFileManagerFileManagerCancelSearch({required BigInt id});
-
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerClearSearch({
+  Future<bool> crateApiFileManagerSearchFileManagerCancelSearch({
     required BigInt id,
   });
 
-  Future<int> crateApiFileManagerFileManagerClearSearchHistory();
-
-  bool crateApiFileManagerFileManagerClose({required BigInt id});
-
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerCloseOtherTabs({
+  Future<FileManagerSnapshot> crateApiFileManagerSearchFileManagerClearSearch({
     required BigInt id,
-    required BigInt tabId,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerCloseTab({
+  Future<int> crateApiFileManagerSearchFileManagerClearSearchHistory();
+
+  bool crateApiFileManagerSettingsFileManagerClose({required BigInt id});
+
+  Future<FileManagerSnapshot>
+  crateApiFileManagerBrowseFileManagerCloseOtherTabs({
     required BigInt id,
     required BigInt tabId,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerCloseTabsLeft({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerCloseTab({
     required BigInt id,
     required BigInt tabId,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerCloseTabsRight({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerBrowseFileManagerCloseTabsLeft({
     required BigInt id,
     required BigInt tabId,
   });
 
-  Future<BigInt> crateApiFileManagerFileManagerCreate({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerBrowseFileManagerCloseTabsRight({
+    required BigInt id,
+    required BigInt tabId,
+  });
+
+  Future<BigInt> crateApiFileManagerBrowseFileManagerCreate({
     String? initialPath,
     String? homePath,
     String? settingsDbPath,
     required bool rememberViewState,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerDuplicateTab({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerDuplicateTab({
     required BigInt id,
     required BigInt tabId,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerGoBack({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerGoBack({
     required BigInt id,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerGoForward({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerGoForward({
     required BigInt id,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerGoHome({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerGoHome({
     required BigInt id,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerGoUp({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerGoUp({
     required BigInt id,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerNavigate({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerNavigate({
     required BigInt id,
     required String path,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerNavigateText({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerNavigateText({
     required BigInt id,
     required String text,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerNewTab({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerNewTab({
     required BigInt id,
     String? path,
   });
 
-  Future<FileManagerActionResult> crateApiFileManagerFileManagerOpenArchive({
+  Future<FileManagerActionResult>
+  crateApiFileManagerEntryOpsFileManagerOpenArchive({
     required BigInt id,
     required String path,
   });
 
-  Future<FileManagerActionResult> crateApiFileManagerFileManagerOpenEntry({
+  Future<FileManagerActionResult>
+  crateApiFileManagerEntryOpsFileManagerOpenEntry({
     required BigInt id,
     required String path,
     required bool forceEnter,
   });
 
-  Future<List<String>> crateApiFileManagerFileManagerRecordSearchHistory({
+  Future<List<String>> crateApiFileManagerSearchFileManagerRecordSearchHistory({
     required String query,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerRefresh({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerRefresh({
     required BigInt id,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerReopenClosedTab({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerBrowseFileManagerReopenClosedTab({
     required BigInt id,
     required BigInt tabId,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSaveSearchAsTab({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSearchFileManagerSaveSearchAsTab({required BigInt id});
+
+  Future<FileManagerSnapshot> crateApiFileManagerSearchFileManagerSearch({
     required BigInt id,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSearch({
-    required BigInt id,
-  });
-
-  Future<List<String>> crateApiFileManagerFileManagerSearchHistory({
+  Future<List<String>> crateApiFileManagerSearchFileManagerSearchHistory({
     required int limit,
   });
 
   Future<FileManagerSnapshot>
-  crateApiFileManagerFileManagerSetDirectoriesFirst({
+  crateApiFileManagerSettingsFileManagerSetDirectoriesFirst({
     required BigInt id,
     required bool enabled,
   });
 
   Future<FileManagerSnapshot>
-  crateApiFileManagerFileManagerSetDirectoryColumns({
+  crateApiFileManagerBrowseFileManagerSetDirectoryColumns({
     required BigInt id,
     required bool enabled,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetEntryFilter({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSettingsFileManagerSetEntryFilter({
     required BigInt id,
     required FileManagerEntryFilter filter,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetHomePath({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerSetHomePath({
     required BigInt id,
     String? path,
   });
 
   Future<FileManagerSnapshot>
-  crateApiFileManagerFileManagerSetInternalItemsMode({
+  crateApiFileManagerSettingsFileManagerSetInternalItemsMode({
     required BigInt id,
     required FileManagerInternalItemsMode mode,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetMaxDepth({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSettingsFileManagerSetMaxDepth({
     required BigInt id,
     required int depth,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetPenetration({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSettingsFileManagerSetPenetration({
     required BigInt id,
     required bool enabled,
   });
 
   Future<FileManagerSnapshot>
-  crateApiFileManagerFileManagerSetRememberViewState({
-    required BigInt id,
-    required bool enabled,
-  });
-
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetSearchInPath({
+  crateApiFileManagerSettingsFileManagerSetRememberViewState({
     required BigInt id,
     required bool enabled,
   });
 
   Future<FileManagerSnapshot>
-  crateApiFileManagerFileManagerSetSearchIncludeSubfolders({
+  crateApiFileManagerSearchFileManagerSetSearchInPath({
     required BigInt id,
     required bool enabled,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetSearchMaxDepth({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSearchFileManagerSetSearchIncludeSubfolders({
+    required BigInt id,
+    required bool enabled,
+  });
+
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSearchFileManagerSetSearchMaxDepth({
     required BigInt id,
     required int depth,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetSearchOrMode({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSearchFileManagerSetSearchOrMode({
     required BigInt id,
     required bool enabled,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetSearchQuery({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSearchFileManagerSetSearchQuery({
     required BigInt id,
     required String query,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetShowChildNames({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSettingsFileManagerSetShowChildNames({
     required BigInt id,
     required bool enabled,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetShowHiddenFiles({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSettingsFileManagerSetShowHiddenFiles({
     required BigInt id,
     required bool enabled,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetSort({
+  Future<FileManagerSnapshot> crateApiFileManagerSettingsFileManagerSetSort({
     required BigInt id,
     required FileManagerSortField field,
     required FileManagerSortOrder order,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetSortTemporary({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSettingsFileManagerSetSortTemporary({
     required BigInt id,
     required bool enabled,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetViewMode({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSettingsFileManagerSetViewMode({
     required BigInt id,
     required FileManagerViewMode mode,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSnapshot({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerSnapshot({
     required BigInt id,
   });
 
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerToggleTabPinned({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerBrowseFileManagerToggleTabPinned({
     required BigInt id,
     required BigInt tabId,
   });
 
-  Future<FileManagerTreeSnapshot> crateApiFileManagerFileManagerTreeSnapshot({
-    required BigInt id,
-  });
+  Future<FileManagerTreeSnapshot>
+  crateApiFileManagerTreeFileManagerTreeSnapshot({required BigInt id});
 
-  Future<FileManagerTreeSnapshot> crateApiFileManagerFileManagerTreeToggle({
+  Future<FileManagerTreeSnapshot> crateApiFileManagerTreeFileManagerTreeToggle({
     required BigInt id,
     required String path,
   });
@@ -552,7 +576,8 @@ abstract class RustLibApi extends BaseApi {
 
   bool crateApiQjsIsTlsVerifyEnabled();
 
-  Future<LocalBookNavigationTarget?> crateApiFileManagerLocalBookAdjacent({
+  Future<LocalBookNavigationTarget?>
+  crateApiFileManagerEntryOpsLocalBookAdjacent({
     required String path,
     String? navigationJson,
     required bool forward,
@@ -620,6 +645,15 @@ abstract class RustLibApi extends BaseApi {
     required String modelPath,
     required String modelId,
     required int tileSize,
+  });
+
+  Future<OcrPageResult> crateApiOcrOcrAnalyzePage({
+    required String imagePath,
+    required OcrModelPaths models,
+    required String ep,
+    String? inpaintModel,
+    String? erasedOutput,
+    int? maxNewTokens,
   });
 
   Future<LocalSourceOpenResult> crateApiLocalOpenLocalSource({
@@ -1684,7 +1718,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "fetch_init_default", argNames: []);
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerActivateTab({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerActivateTab({
     required BigInt id,
     required BigInt tabId,
   }) {
@@ -1705,21 +1739,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerActivateTabConstMeta,
+        constMeta: kCrateApiFileManagerBrowseFileManagerActivateTabConstMeta,
         argValues: [id, tabId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerActivateTabConstMeta =>
+  TaskConstMeta get kCrateApiFileManagerBrowseFileManagerActivateTabConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_activate_tab",
         argNames: ["id", "tabId"],
       );
 
   @override
-  Future<bool> crateApiFileManagerFileManagerCancelSearch({
+  Future<bool> crateApiFileManagerSearchFileManagerCancelSearch({
     required BigInt id,
   }) {
     return handler.executeNormal(
@@ -1738,21 +1772,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_bool,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerCancelSearchConstMeta,
+        constMeta: kCrateApiFileManagerSearchFileManagerCancelSearchConstMeta,
         argValues: [id],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerCancelSearchConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileManagerSearchFileManagerCancelSearchConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_cancel_search",
         argNames: ["id"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerClearSearch({
+  Future<FileManagerSnapshot> crateApiFileManagerSearchFileManagerClearSearch({
     required BigInt id,
   }) {
     return handler.executeNormal(
@@ -1771,21 +1806,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerClearSearchConstMeta,
+        constMeta: kCrateApiFileManagerSearchFileManagerClearSearchConstMeta,
         argValues: [id],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerClearSearchConstMeta =>
+  TaskConstMeta get kCrateApiFileManagerSearchFileManagerClearSearchConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_clear_search",
         argNames: ["id"],
       );
 
   @override
-  Future<int> crateApiFileManagerFileManagerClearSearchHistory() {
+  Future<int> crateApiFileManagerSearchFileManagerClearSearchHistory() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -1801,7 +1836,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_u_32,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerClearSearchHistoryConstMeta,
+        constMeta:
+            kCrateApiFileManagerSearchFileManagerClearSearchHistoryConstMeta,
         argValues: [],
         apiImpl: this,
       ),
@@ -1809,14 +1845,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta
-  get kCrateApiFileManagerFileManagerClearSearchHistoryConstMeta =>
+  get kCrateApiFileManagerSearchFileManagerClearSearchHistoryConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_clear_search_history",
         argNames: [],
       );
 
   @override
-  bool crateApiFileManagerFileManagerClose({required BigInt id}) {
+  bool crateApiFileManagerSettingsFileManagerClose({required BigInt id}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
@@ -1828,18 +1864,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_bool,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiFileManagerFileManagerCloseConstMeta,
+        constMeta: kCrateApiFileManagerSettingsFileManagerCloseConstMeta,
         argValues: [id],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerCloseConstMeta =>
+  TaskConstMeta get kCrateApiFileManagerSettingsFileManagerCloseConstMeta =>
       const TaskConstMeta(debugName: "file_manager_close", argNames: ["id"]);
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerCloseOtherTabs({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerBrowseFileManagerCloseOtherTabs({
     required BigInt id,
     required BigInt tabId,
   }) {
@@ -1860,21 +1897,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerCloseOtherTabsConstMeta,
+        constMeta: kCrateApiFileManagerBrowseFileManagerCloseOtherTabsConstMeta,
         argValues: [id, tabId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerCloseOtherTabsConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileManagerBrowseFileManagerCloseOtherTabsConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_close_other_tabs",
         argNames: ["id", "tabId"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerCloseTab({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerCloseTab({
     required BigInt id,
     required BigInt tabId,
   }) {
@@ -1895,21 +1933,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerCloseTabConstMeta,
+        constMeta: kCrateApiFileManagerBrowseFileManagerCloseTabConstMeta,
         argValues: [id, tabId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerCloseTabConstMeta =>
+  TaskConstMeta get kCrateApiFileManagerBrowseFileManagerCloseTabConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_close_tab",
         argNames: ["id", "tabId"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerCloseTabsLeft({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerBrowseFileManagerCloseTabsLeft({
     required BigInt id,
     required BigInt tabId,
   }) {
@@ -1930,21 +1969,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerCloseTabsLeftConstMeta,
+        constMeta: kCrateApiFileManagerBrowseFileManagerCloseTabsLeftConstMeta,
         argValues: [id, tabId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerCloseTabsLeftConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileManagerBrowseFileManagerCloseTabsLeftConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_close_tabs_left",
         argNames: ["id", "tabId"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerCloseTabsRight({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerBrowseFileManagerCloseTabsRight({
     required BigInt id,
     required BigInt tabId,
   }) {
@@ -1965,21 +2006,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerCloseTabsRightConstMeta,
+        constMeta: kCrateApiFileManagerBrowseFileManagerCloseTabsRightConstMeta,
         argValues: [id, tabId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerCloseTabsRightConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileManagerBrowseFileManagerCloseTabsRightConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_close_tabs_right",
         argNames: ["id", "tabId"],
       );
 
   @override
-  Future<BigInt> crateApiFileManagerFileManagerCreate({
+  Future<BigInt> crateApiFileManagerBrowseFileManagerCreate({
     String? initialPath,
     String? homePath,
     String? settingsDbPath,
@@ -2004,14 +2046,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_u_64,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerCreateConstMeta,
+        constMeta: kCrateApiFileManagerBrowseFileManagerCreateConstMeta,
         argValues: [initialPath, homePath, settingsDbPath, rememberViewState],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerCreateConstMeta =>
+  TaskConstMeta get kCrateApiFileManagerBrowseFileManagerCreateConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_create",
         argNames: [
@@ -2023,7 +2065,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerDuplicateTab({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerDuplicateTab({
     required BigInt id,
     required BigInt tabId,
   }) {
@@ -2044,21 +2086,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerDuplicateTabConstMeta,
+        constMeta: kCrateApiFileManagerBrowseFileManagerDuplicateTabConstMeta,
         argValues: [id, tabId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerDuplicateTabConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileManagerBrowseFileManagerDuplicateTabConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_duplicate_tab",
         argNames: ["id", "tabId"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerGoBack({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerGoBack({
     required BigInt id,
   }) {
     return handler.executeNormal(
@@ -2077,18 +2120,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerGoBackConstMeta,
+        constMeta: kCrateApiFileManagerBrowseFileManagerGoBackConstMeta,
         argValues: [id],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerGoBackConstMeta =>
+  TaskConstMeta get kCrateApiFileManagerBrowseFileManagerGoBackConstMeta =>
       const TaskConstMeta(debugName: "file_manager_go_back", argNames: ["id"]);
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerGoForward({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerGoForward({
     required BigInt id,
   }) {
     return handler.executeNormal(
@@ -2107,21 +2150,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerGoForwardConstMeta,
+        constMeta: kCrateApiFileManagerBrowseFileManagerGoForwardConstMeta,
         argValues: [id],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerGoForwardConstMeta =>
+  TaskConstMeta get kCrateApiFileManagerBrowseFileManagerGoForwardConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_go_forward",
         argNames: ["id"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerGoHome({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerGoHome({
     required BigInt id,
   }) {
     return handler.executeNormal(
@@ -2140,18 +2183,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerGoHomeConstMeta,
+        constMeta: kCrateApiFileManagerBrowseFileManagerGoHomeConstMeta,
         argValues: [id],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerGoHomeConstMeta =>
+  TaskConstMeta get kCrateApiFileManagerBrowseFileManagerGoHomeConstMeta =>
       const TaskConstMeta(debugName: "file_manager_go_home", argNames: ["id"]);
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerGoUp({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerGoUp({
     required BigInt id,
   }) {
     return handler.executeNormal(
@@ -2170,18 +2213,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerGoUpConstMeta,
+        constMeta: kCrateApiFileManagerBrowseFileManagerGoUpConstMeta,
         argValues: [id],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerGoUpConstMeta =>
+  TaskConstMeta get kCrateApiFileManagerBrowseFileManagerGoUpConstMeta =>
       const TaskConstMeta(debugName: "file_manager_go_up", argNames: ["id"]);
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerNavigate({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerNavigate({
     required BigInt id,
     required String path,
   }) {
@@ -2202,21 +2245,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerNavigateConstMeta,
+        constMeta: kCrateApiFileManagerBrowseFileManagerNavigateConstMeta,
         argValues: [id, path],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerNavigateConstMeta =>
+  TaskConstMeta get kCrateApiFileManagerBrowseFileManagerNavigateConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_navigate",
         argNames: ["id", "path"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerNavigateText({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerNavigateText({
     required BigInt id,
     required String text,
   }) {
@@ -2237,21 +2280,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerNavigateTextConstMeta,
+        constMeta: kCrateApiFileManagerBrowseFileManagerNavigateTextConstMeta,
         argValues: [id, text],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerNavigateTextConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileManagerBrowseFileManagerNavigateTextConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_navigate_text",
         argNames: ["id", "text"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerNewTab({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerNewTab({
     required BigInt id,
     String? path,
   }) {
@@ -2272,21 +2316,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerNewTabConstMeta,
+        constMeta: kCrateApiFileManagerBrowseFileManagerNewTabConstMeta,
         argValues: [id, path],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerNewTabConstMeta =>
+  TaskConstMeta get kCrateApiFileManagerBrowseFileManagerNewTabConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_new_tab",
         argNames: ["id", "path"],
       );
 
   @override
-  Future<FileManagerActionResult> crateApiFileManagerFileManagerOpenArchive({
+  Future<FileManagerActionResult>
+  crateApiFileManagerEntryOpsFileManagerOpenArchive({
     required BigInt id,
     required String path,
   }) {
@@ -2307,21 +2352,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_action_result,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerOpenArchiveConstMeta,
+        constMeta: kCrateApiFileManagerEntryOpsFileManagerOpenArchiveConstMeta,
         argValues: [id, path],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerOpenArchiveConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileManagerEntryOpsFileManagerOpenArchiveConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_open_archive",
         argNames: ["id", "path"],
       );
 
   @override
-  Future<FileManagerActionResult> crateApiFileManagerFileManagerOpenEntry({
+  Future<FileManagerActionResult>
+  crateApiFileManagerEntryOpsFileManagerOpenEntry({
     required BigInt id,
     required String path,
     required bool forceEnter,
@@ -2344,21 +2391,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_action_result,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerOpenEntryConstMeta,
+        constMeta: kCrateApiFileManagerEntryOpsFileManagerOpenEntryConstMeta,
         argValues: [id, path, forceEnter],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerOpenEntryConstMeta =>
+  TaskConstMeta get kCrateApiFileManagerEntryOpsFileManagerOpenEntryConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_open_entry",
         argNames: ["id", "path", "forceEnter"],
       );
 
   @override
-  Future<List<String>> crateApiFileManagerFileManagerRecordSearchHistory({
+  Future<List<String>> crateApiFileManagerSearchFileManagerRecordSearchHistory({
     required String query,
   }) {
     return handler.executeNormal(
@@ -2377,7 +2424,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_String,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerRecordSearchHistoryConstMeta,
+        constMeta:
+            kCrateApiFileManagerSearchFileManagerRecordSearchHistoryConstMeta,
         argValues: [query],
         apiImpl: this,
       ),
@@ -2385,14 +2433,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta
-  get kCrateApiFileManagerFileManagerRecordSearchHistoryConstMeta =>
+  get kCrateApiFileManagerSearchFileManagerRecordSearchHistoryConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_record_search_history",
         argNames: ["query"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerRefresh({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerRefresh({
     required BigInt id,
   }) {
     return handler.executeNormal(
@@ -2411,18 +2459,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerRefreshConstMeta,
+        constMeta: kCrateApiFileManagerBrowseFileManagerRefreshConstMeta,
         argValues: [id],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerRefreshConstMeta =>
+  TaskConstMeta get kCrateApiFileManagerBrowseFileManagerRefreshConstMeta =>
       const TaskConstMeta(debugName: "file_manager_refresh", argNames: ["id"]);
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerReopenClosedTab({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerBrowseFileManagerReopenClosedTab({
     required BigInt id,
     required BigInt tabId,
   }) {
@@ -2443,23 +2492,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerReopenClosedTabConstMeta,
+        constMeta:
+            kCrateApiFileManagerBrowseFileManagerReopenClosedTabConstMeta,
         argValues: [id, tabId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerReopenClosedTabConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileManagerBrowseFileManagerReopenClosedTabConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_reopen_closed_tab",
         argNames: ["id", "tabId"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSaveSearchAsTab({
-    required BigInt id,
-  }) {
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSearchFileManagerSaveSearchAsTab({required BigInt id}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -2476,21 +2526,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerSaveSearchAsTabConstMeta,
+        constMeta:
+            kCrateApiFileManagerSearchFileManagerSaveSearchAsTabConstMeta,
         argValues: [id],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerSaveSearchAsTabConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileManagerSearchFileManagerSaveSearchAsTabConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_save_search_as_tab",
         argNames: ["id"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSearch({
+  Future<FileManagerSnapshot> crateApiFileManagerSearchFileManagerSearch({
     required BigInt id,
   }) {
     return handler.executeNormal(
@@ -2509,18 +2561,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerSearchConstMeta,
+        constMeta: kCrateApiFileManagerSearchFileManagerSearchConstMeta,
         argValues: [id],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerSearchConstMeta =>
+  TaskConstMeta get kCrateApiFileManagerSearchFileManagerSearchConstMeta =>
       const TaskConstMeta(debugName: "file_manager_search", argNames: ["id"]);
 
   @override
-  Future<List<String>> crateApiFileManagerFileManagerSearchHistory({
+  Future<List<String>> crateApiFileManagerSearchFileManagerSearchHistory({
     required int limit,
   }) {
     return handler.executeNormal(
@@ -2539,14 +2591,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_String,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerSearchHistoryConstMeta,
+        constMeta: kCrateApiFileManagerSearchFileManagerSearchHistoryConstMeta,
         argValues: [limit],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerSearchHistoryConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileManagerSearchFileManagerSearchHistoryConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_search_history",
         argNames: ["limit"],
@@ -2554,7 +2607,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @override
   Future<FileManagerSnapshot>
-  crateApiFileManagerFileManagerSetDirectoriesFirst({
+  crateApiFileManagerSettingsFileManagerSetDirectoriesFirst({
     required BigInt id,
     required bool enabled,
   }) {
@@ -2575,7 +2628,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerSetDirectoriesFirstConstMeta,
+        constMeta:
+            kCrateApiFileManagerSettingsFileManagerSetDirectoriesFirstConstMeta,
         argValues: [id, enabled],
         apiImpl: this,
       ),
@@ -2583,7 +2637,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta
-  get kCrateApiFileManagerFileManagerSetDirectoriesFirstConstMeta =>
+  get kCrateApiFileManagerSettingsFileManagerSetDirectoriesFirstConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_set_directories_first",
         argNames: ["id", "enabled"],
@@ -2591,7 +2645,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @override
   Future<FileManagerSnapshot>
-  crateApiFileManagerFileManagerSetDirectoryColumns({
+  crateApiFileManagerBrowseFileManagerSetDirectoryColumns({
     required BigInt id,
     required bool enabled,
   }) {
@@ -2612,7 +2666,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerSetDirectoryColumnsConstMeta,
+        constMeta:
+            kCrateApiFileManagerBrowseFileManagerSetDirectoryColumnsConstMeta,
         argValues: [id, enabled],
         apiImpl: this,
       ),
@@ -2620,14 +2675,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta
-  get kCrateApiFileManagerFileManagerSetDirectoryColumnsConstMeta =>
+  get kCrateApiFileManagerBrowseFileManagerSetDirectoryColumnsConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_set_directory_columns",
         argNames: ["id", "enabled"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetEntryFilter({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSettingsFileManagerSetEntryFilter({
     required BigInt id,
     required FileManagerEntryFilter filter,
   }) {
@@ -2648,21 +2704,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerSetEntryFilterConstMeta,
+        constMeta:
+            kCrateApiFileManagerSettingsFileManagerSetEntryFilterConstMeta,
         argValues: [id, filter],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerSetEntryFilterConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileManagerSettingsFileManagerSetEntryFilterConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_set_entry_filter",
         argNames: ["id", "filter"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetHomePath({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerSetHomePath({
     required BigInt id,
     String? path,
   }) {
@@ -2683,14 +2741,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerSetHomePathConstMeta,
+        constMeta: kCrateApiFileManagerBrowseFileManagerSetHomePathConstMeta,
         argValues: [id, path],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerSetHomePathConstMeta =>
+  TaskConstMeta get kCrateApiFileManagerBrowseFileManagerSetHomePathConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_set_home_path",
         argNames: ["id", "path"],
@@ -2698,7 +2756,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @override
   Future<FileManagerSnapshot>
-  crateApiFileManagerFileManagerSetInternalItemsMode({
+  crateApiFileManagerSettingsFileManagerSetInternalItemsMode({
     required BigInt id,
     required FileManagerInternalItemsMode mode,
   }) {
@@ -2719,7 +2777,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerSetInternalItemsModeConstMeta,
+        constMeta:
+            kCrateApiFileManagerSettingsFileManagerSetInternalItemsModeConstMeta,
         argValues: [id, mode],
         apiImpl: this,
       ),
@@ -2727,14 +2786,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta
-  get kCrateApiFileManagerFileManagerSetInternalItemsModeConstMeta =>
+  get kCrateApiFileManagerSettingsFileManagerSetInternalItemsModeConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_set_internal_items_mode",
         argNames: ["id", "mode"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetMaxDepth({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSettingsFileManagerSetMaxDepth({
     required BigInt id,
     required int depth,
   }) {
@@ -2755,21 +2815,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerSetMaxDepthConstMeta,
+        constMeta: kCrateApiFileManagerSettingsFileManagerSetMaxDepthConstMeta,
         argValues: [id, depth],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerSetMaxDepthConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileManagerSettingsFileManagerSetMaxDepthConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_set_max_depth",
         argNames: ["id", "depth"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetPenetration({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSettingsFileManagerSetPenetration({
     required BigInt id,
     required bool enabled,
   }) {
@@ -2790,14 +2852,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerSetPenetrationConstMeta,
+        constMeta:
+            kCrateApiFileManagerSettingsFileManagerSetPenetrationConstMeta,
         argValues: [id, enabled],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerSetPenetrationConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileManagerSettingsFileManagerSetPenetrationConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_set_penetration",
         argNames: ["id", "enabled"],
@@ -2805,7 +2869,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @override
   Future<FileManagerSnapshot>
-  crateApiFileManagerFileManagerSetRememberViewState({
+  crateApiFileManagerSettingsFileManagerSetRememberViewState({
     required BigInt id,
     required bool enabled,
   }) {
@@ -2826,7 +2890,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerSetRememberViewStateConstMeta,
+        constMeta:
+            kCrateApiFileManagerSettingsFileManagerSetRememberViewStateConstMeta,
         argValues: [id, enabled],
         apiImpl: this,
       ),
@@ -2834,14 +2899,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta
-  get kCrateApiFileManagerFileManagerSetRememberViewStateConstMeta =>
+  get kCrateApiFileManagerSettingsFileManagerSetRememberViewStateConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_set_remember_view_state",
         argNames: ["id", "enabled"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetSearchInPath({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSearchFileManagerSetSearchInPath({
     required BigInt id,
     required bool enabled,
   }) {
@@ -2862,14 +2928,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerSetSearchInPathConstMeta,
+        constMeta:
+            kCrateApiFileManagerSearchFileManagerSetSearchInPathConstMeta,
         argValues: [id, enabled],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerSetSearchInPathConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileManagerSearchFileManagerSetSearchInPathConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_set_search_in_path",
         argNames: ["id", "enabled"],
@@ -2877,7 +2945,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @override
   Future<FileManagerSnapshot>
-  crateApiFileManagerFileManagerSetSearchIncludeSubfolders({
+  crateApiFileManagerSearchFileManagerSetSearchIncludeSubfolders({
     required BigInt id,
     required bool enabled,
   }) {
@@ -2899,7 +2967,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_AnyhowException,
         ),
         constMeta:
-            kCrateApiFileManagerFileManagerSetSearchIncludeSubfoldersConstMeta,
+            kCrateApiFileManagerSearchFileManagerSetSearchIncludeSubfoldersConstMeta,
         argValues: [id, enabled],
         apiImpl: this,
       ),
@@ -2907,14 +2975,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta
-  get kCrateApiFileManagerFileManagerSetSearchIncludeSubfoldersConstMeta =>
+  get kCrateApiFileManagerSearchFileManagerSetSearchIncludeSubfoldersConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_set_search_include_subfolders",
         argNames: ["id", "enabled"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetSearchMaxDepth({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSearchFileManagerSetSearchMaxDepth({
     required BigInt id,
     required int depth,
   }) {
@@ -2935,21 +3004,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerSetSearchMaxDepthConstMeta,
+        constMeta:
+            kCrateApiFileManagerSearchFileManagerSetSearchMaxDepthConstMeta,
         argValues: [id, depth],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerSetSearchMaxDepthConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileManagerSearchFileManagerSetSearchMaxDepthConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_set_search_max_depth",
         argNames: ["id", "depth"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetSearchOrMode({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSearchFileManagerSetSearchOrMode({
     required BigInt id,
     required bool enabled,
   }) {
@@ -2970,21 +3042,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerSetSearchOrModeConstMeta,
+        constMeta:
+            kCrateApiFileManagerSearchFileManagerSetSearchOrModeConstMeta,
         argValues: [id, enabled],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerSetSearchOrModeConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileManagerSearchFileManagerSetSearchOrModeConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_set_search_or_mode",
         argNames: ["id", "enabled"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetSearchQuery({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSearchFileManagerSetSearchQuery({
     required BigInt id,
     required String query,
   }) {
@@ -3005,21 +3080,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerSetSearchQueryConstMeta,
+        constMeta: kCrateApiFileManagerSearchFileManagerSetSearchQueryConstMeta,
         argValues: [id, query],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerSetSearchQueryConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileManagerSearchFileManagerSetSearchQueryConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_set_search_query",
         argNames: ["id", "query"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetShowChildNames({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSettingsFileManagerSetShowChildNames({
     required BigInt id,
     required bool enabled,
   }) {
@@ -3040,21 +3117,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerSetShowChildNamesConstMeta,
+        constMeta:
+            kCrateApiFileManagerSettingsFileManagerSetShowChildNamesConstMeta,
         argValues: [id, enabled],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerSetShowChildNamesConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileManagerSettingsFileManagerSetShowChildNamesConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_set_show_child_names",
         argNames: ["id", "enabled"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetShowHiddenFiles({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSettingsFileManagerSetShowHiddenFiles({
     required BigInt id,
     required bool enabled,
   }) {
@@ -3075,7 +3155,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerSetShowHiddenFilesConstMeta,
+        constMeta:
+            kCrateApiFileManagerSettingsFileManagerSetShowHiddenFilesConstMeta,
         argValues: [id, enabled],
         apiImpl: this,
       ),
@@ -3083,14 +3164,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta
-  get kCrateApiFileManagerFileManagerSetShowHiddenFilesConstMeta =>
+  get kCrateApiFileManagerSettingsFileManagerSetShowHiddenFilesConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_set_show_hidden_files",
         argNames: ["id", "enabled"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetSort({
+  Future<FileManagerSnapshot> crateApiFileManagerSettingsFileManagerSetSort({
     required BigInt id,
     required FileManagerSortField field,
     required FileManagerSortOrder order,
@@ -3113,21 +3194,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerSetSortConstMeta,
+        constMeta: kCrateApiFileManagerSettingsFileManagerSetSortConstMeta,
         argValues: [id, field, order],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerSetSortConstMeta =>
+  TaskConstMeta get kCrateApiFileManagerSettingsFileManagerSetSortConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_set_sort",
         argNames: ["id", "field", "order"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetSortTemporary({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSettingsFileManagerSetSortTemporary({
     required BigInt id,
     required bool enabled,
   }) {
@@ -3148,21 +3230,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerSetSortTemporaryConstMeta,
+        constMeta:
+            kCrateApiFileManagerSettingsFileManagerSetSortTemporaryConstMeta,
         argValues: [id, enabled],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerSetSortTemporaryConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileManagerSettingsFileManagerSetSortTemporaryConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_set_sort_temporary",
         argNames: ["id", "enabled"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSetViewMode({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerSettingsFileManagerSetViewMode({
     required BigInt id,
     required FileManagerViewMode mode,
   }) {
@@ -3183,21 +3268,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerSetViewModeConstMeta,
+        constMeta: kCrateApiFileManagerSettingsFileManagerSetViewModeConstMeta,
         argValues: [id, mode],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerSetViewModeConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileManagerSettingsFileManagerSetViewModeConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_set_view_mode",
         argNames: ["id", "mode"],
       );
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerSnapshot({
+  Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerSnapshot({
     required BigInt id,
   }) {
     return handler.executeNormal(
@@ -3216,18 +3302,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerSnapshotConstMeta,
+        constMeta: kCrateApiFileManagerBrowseFileManagerSnapshotConstMeta,
         argValues: [id],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerSnapshotConstMeta =>
+  TaskConstMeta get kCrateApiFileManagerBrowseFileManagerSnapshotConstMeta =>
       const TaskConstMeta(debugName: "file_manager_snapshot", argNames: ["id"]);
 
   @override
-  Future<FileManagerSnapshot> crateApiFileManagerFileManagerToggleTabPinned({
+  Future<FileManagerSnapshot>
+  crateApiFileManagerBrowseFileManagerToggleTabPinned({
     required BigInt id,
     required BigInt tabId,
   }) {
@@ -3248,23 +3335,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerToggleTabPinnedConstMeta,
+        constMeta:
+            kCrateApiFileManagerBrowseFileManagerToggleTabPinnedConstMeta,
         argValues: [id, tabId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerToggleTabPinnedConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileManagerBrowseFileManagerToggleTabPinnedConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_toggle_tab_pinned",
         argNames: ["id", "tabId"],
       );
 
   @override
-  Future<FileManagerTreeSnapshot> crateApiFileManagerFileManagerTreeSnapshot({
-    required BigInt id,
-  }) {
+  Future<FileManagerTreeSnapshot>
+  crateApiFileManagerTreeFileManagerTreeSnapshot({required BigInt id}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -3281,21 +3369,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_tree_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerTreeSnapshotConstMeta,
+        constMeta: kCrateApiFileManagerTreeFileManagerTreeSnapshotConstMeta,
         argValues: [id],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerTreeSnapshotConstMeta =>
+  TaskConstMeta get kCrateApiFileManagerTreeFileManagerTreeSnapshotConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_tree_snapshot",
         argNames: ["id"],
       );
 
   @override
-  Future<FileManagerTreeSnapshot> crateApiFileManagerFileManagerTreeToggle({
+  Future<FileManagerTreeSnapshot> crateApiFileManagerTreeFileManagerTreeToggle({
     required BigInt id,
     required String path,
   }) {
@@ -3316,14 +3404,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_manager_tree_snapshot,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerFileManagerTreeToggleConstMeta,
+        constMeta: kCrateApiFileManagerTreeFileManagerTreeToggleConstMeta,
         argValues: [id, path],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerFileManagerTreeToggleConstMeta =>
+  TaskConstMeta get kCrateApiFileManagerTreeFileManagerTreeToggleConstMeta =>
       const TaskConstMeta(
         debugName: "file_manager_tree_toggle",
         argNames: ["id", "path"],
@@ -4538,7 +4626,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "is_tls_verify_enabled", argNames: []);
 
   @override
-  Future<LocalBookNavigationTarget?> crateApiFileManagerLocalBookAdjacent({
+  Future<LocalBookNavigationTarget?>
+  crateApiFileManagerEntryOpsLocalBookAdjacent({
     required String path,
     String? navigationJson,
     required bool forward,
@@ -4562,14 +4651,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
               sse_decode_opt_box_autoadd_local_book_navigation_target,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFileManagerLocalBookAdjacentConstMeta,
+        constMeta: kCrateApiFileManagerEntryOpsLocalBookAdjacentConstMeta,
         argValues: [path, navigationJson, forward],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFileManagerLocalBookAdjacentConstMeta =>
+  TaskConstMeta get kCrateApiFileManagerEntryOpsLocalBookAdjacentConstMeta =>
       const TaskConstMeta(
         debugName: "local_book_adjacent",
         argNames: ["path", "navigationJson", "forward"],
@@ -5043,6 +5132,62 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<OcrPageResult> crateApiOcrOcrAnalyzePage({
+    required String imagePath,
+    required OcrModelPaths models,
+    required String ep,
+    String? inpaintModel,
+    String? erasedOutput,
+    int? maxNewTokens,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(imagePath, serializer);
+          sse_encode_box_autoadd_ocr_model_paths(models, serializer);
+          sse_encode_String(ep, serializer);
+          sse_encode_opt_String(inpaintModel, serializer);
+          sse_encode_opt_String(erasedOutput, serializer);
+          sse_encode_opt_box_autoadd_u_32(maxNewTokens, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 127,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_ocr_page_result,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiOcrOcrAnalyzePageConstMeta,
+        argValues: [
+          imagePath,
+          models,
+          ep,
+          inpaintModel,
+          erasedOutput,
+          maxNewTokens,
+        ],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOcrOcrAnalyzePageConstMeta => const TaskConstMeta(
+    debugName: "ocr_analyze_page",
+    argNames: [
+      "imagePath",
+      "models",
+      "ep",
+      "inpaintModel",
+      "erasedOutput",
+      "maxNewTokens",
+    ],
+  );
+
+  @override
   Future<LocalSourceOpenResult> crateApiLocalOpenLocalSource({
     required String path,
   }) {
@@ -5054,7 +5199,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 127,
+            funcId: 128,
             port: port_,
           );
         },
@@ -5086,7 +5231,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 128,
+            funcId: 129,
           )!;
         },
         codec: SseCodec(
@@ -5114,7 +5259,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 129,
+            funcId: 130,
           )!;
         },
         codec: SseCodec(
@@ -5154,7 +5299,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 130,
+            funcId: 131,
           )!;
         },
         codec: SseCodec(
@@ -5188,7 +5333,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 131,
+            funcId: 132,
           )!;
         },
         codec: SseCodec(
@@ -5218,7 +5363,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 132,
+            funcId: 133,
           )!;
         },
         codec: SseCodec(
@@ -5249,7 +5394,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 133,
+            funcId: 134,
           )!;
         },
         codec: SseCodec(
@@ -5279,7 +5424,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 134,
+            funcId: 135,
           )!;
         },
         codec: SseCodec(
@@ -5315,7 +5460,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 135,
+            funcId: 136,
           )!;
         },
         codec: SseCodec(
@@ -5349,7 +5494,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 136,
+            funcId: 137,
           )!;
         },
         codec: SseCodec(
@@ -5383,7 +5528,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 137,
+            funcId: 138,
           )!;
         },
         codec: SseCodec(
@@ -5417,7 +5562,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 138,
+            funcId: 139,
           )!;
         },
         codec: SseCodec(
@@ -5451,7 +5596,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 139,
+            funcId: 140,
           )!;
         },
         codec: SseCodec(
@@ -5487,7 +5632,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 140,
+            funcId: 141,
           )!;
         },
         codec: SseCodec(
@@ -5527,7 +5672,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 141,
+            funcId: 142,
           )!;
         },
         codec: SseCodec(
@@ -5560,7 +5705,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 142,
+            funcId: 143,
           )!;
         },
         codec: SseCodec(
@@ -5598,7 +5743,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 143,
+            funcId: 144,
           )!;
         },
         codec: SseCodec(
@@ -5634,7 +5779,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 144,
+            funcId: 145,
           )!;
         },
         codec: SseCodec(
@@ -5670,7 +5815,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 145,
+            funcId: 146,
           )!;
         },
         codec: SseCodec(
@@ -5704,7 +5849,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 146,
+            funcId: 147,
           )!;
         },
         codec: SseCodec(
@@ -5737,7 +5882,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 147,
+            funcId: 148,
           )!;
         },
         codec: SseCodec(
@@ -5771,7 +5916,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 148,
+            funcId: 149,
           )!;
         },
         codec: SseCodec(
@@ -5806,7 +5951,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 149,
+            funcId: 150,
             port: port_,
           );
         },
@@ -5840,7 +5985,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 150,
+            funcId: 151,
             port: port_,
           );
         },
@@ -5875,7 +6020,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 151,
+            funcId: 152,
             port: port_,
           );
         },
@@ -5906,7 +6051,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 152,
+            funcId: 153,
             port: port_,
           );
         },
@@ -5936,7 +6081,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 153,
+            funcId: 154,
             port: port_,
           );
         },
@@ -5967,7 +6112,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 154,
+            funcId: 155,
             port: port_,
           );
         },
@@ -5998,7 +6143,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 155,
+            funcId: 156,
             port: port_,
           );
         },
@@ -6042,7 +6187,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 156,
+            funcId: 157,
             port: port_,
           );
         },
@@ -6094,7 +6239,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 157,
+            funcId: 158,
             port: port_,
           );
         },
@@ -6139,7 +6284,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 158,
+            funcId: 159,
             port: port_,
           );
         },
@@ -6187,7 +6332,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 159,
+            funcId: 160,
             port: port_,
           );
         },
@@ -6225,7 +6370,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 160,
+            funcId: 161,
           )!;
         },
         codec: SseCodec(
@@ -6254,7 +6399,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 161,
+            funcId: 162,
             port: port_,
           );
         },
@@ -6282,7 +6427,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 162,
+            funcId: 163,
           )!;
         },
         codec: SseCodec(
@@ -6312,7 +6457,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 163,
+            funcId: 164,
           )!;
         },
         codec: SseCodec(
@@ -6339,7 +6484,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 164,
+            funcId: 165,
           )!;
         },
         codec: SseCodec(
@@ -6369,7 +6514,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 165,
+            funcId: 166,
           )!;
         },
         codec: SseCodec(
@@ -6396,7 +6541,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 166,
+            funcId: 167,
           )!;
         },
         codec: SseCodec(
@@ -6426,7 +6571,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 167,
+            funcId: 168,
           )!;
         },
         codec: SseCodec(
@@ -6456,7 +6601,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 168,
+            funcId: 169,
           )!;
         },
         codec: SseCodec(
@@ -6483,7 +6628,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 169,
+            funcId: 170,
           )!;
         },
         codec: SseCodec(
@@ -6512,7 +6657,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 170,
+            funcId: 171,
             port: port_,
           );
         },
@@ -6539,7 +6684,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 171,
+            funcId: 172,
             port: port_,
           );
         },
@@ -6569,7 +6714,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 172,
+              funcId: 173,
               port: port_,
             );
           },
@@ -6604,7 +6749,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 173,
+              funcId: 174,
               port: port_,
             );
           },
@@ -6648,7 +6793,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 174,
+            funcId: 175,
             port: port_,
           );
         },
@@ -6709,7 +6854,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 175,
+            funcId: 176,
             port: port_,
           );
         },
@@ -6770,7 +6915,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 176,
+            funcId: 177,
             port: port_,
           );
         },
@@ -6825,7 +6970,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 177,
+            funcId: 178,
             port: port_,
           );
         },
@@ -6868,7 +7013,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 178,
+            funcId: 179,
             port: port_,
           );
         },
@@ -6919,7 +7064,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 179,
+            funcId: 180,
             port: port_,
           );
         },
@@ -6968,7 +7113,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 180,
+            funcId: 181,
             port: port_,
           );
         },
@@ -7035,7 +7180,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 181,
+            funcId: 182,
             port: port_,
           );
         },
@@ -7088,7 +7233,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 182,
+            funcId: 183,
             port: port_,
           );
         },
@@ -7121,7 +7266,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 183,
+            funcId: 184,
             port: port_,
           );
         },
@@ -7373,6 +7518,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   LocalSourceInfo dco_decode_box_autoadd_local_source_info(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_local_source_info(raw);
+  }
+
+  @protected
+  OcrModelPaths dco_decode_box_autoadd_ocr_model_paths(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_ocr_model_paths(raw);
   }
 
   @protected
@@ -7900,6 +8051,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<OcrBlock> dco_decode_list_ocr_block(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_ocr_block).toList();
+  }
+
+  @protected
   Float32List dco_decode_list_prim_f_32_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Float32List;
@@ -8137,6 +8294,51 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return LocalSourceOpenResult(
       source: dco_decode_opt_box_autoadd_local_source_info(arr[0]),
       rejection: dco_decode_opt_box_autoadd_local_rejection(arr[1]),
+    );
+  }
+
+  @protected
+  OcrBlock dco_decode_ocr_block(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return OcrBlock(
+      quad: dco_decode_list_prim_f_32_strict(arr[0]),
+      text: dco_decode_String(arr[1]),
+      boxes: dco_decode_u_32(arr[2]),
+      truncated: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
+  OcrModelPaths dco_decode_ocr_model_paths(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return OcrModelPaths(
+      det: dco_decode_String(arr[0]),
+      encoder: dco_decode_String(arr[1]),
+      decoder: dco_decode_String(arr[2]),
+      vocab: dco_decode_String(arr[3]),
+    );
+  }
+
+  @protected
+  OcrPageResult dco_decode_ocr_page_result(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return OcrPageResult(
+      blocks: dco_decode_list_ocr_block(arr[0]),
+      pageWidth: dco_decode_u_32(arr[1]),
+      pageHeight: dco_decode_u_32(arr[2]),
+      detectMs: dco_decode_u_64(arr[3]),
+      recognizeMs: dco_decode_u_64(arr[4]),
+      inpaintMs: dco_decode_u_64(arr[5]),
+      erasedPath: dco_decode_opt_String(arr[6]),
     );
   }
 
@@ -8603,6 +8805,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_local_source_info(deserializer));
+  }
+
+  @protected
+  OcrModelPaths sse_decode_box_autoadd_ocr_model_paths(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_ocr_model_paths(deserializer));
   }
 
   @protected
@@ -9343,6 +9553,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<OcrBlock> sse_decode_list_ocr_block(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <OcrBlock>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_ocr_block(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   Float32List sse_decode_list_prim_f_32_strict(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
@@ -9624,6 +9846,57 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       deserializer,
     );
     return LocalSourceOpenResult(source: var_source, rejection: var_rejection);
+  }
+
+  @protected
+  OcrBlock sse_decode_ocr_block(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_quad = sse_decode_list_prim_f_32_strict(deserializer);
+    var var_text = sse_decode_String(deserializer);
+    var var_boxes = sse_decode_u_32(deserializer);
+    var var_truncated = sse_decode_bool(deserializer);
+    return OcrBlock(
+      quad: var_quad,
+      text: var_text,
+      boxes: var_boxes,
+      truncated: var_truncated,
+    );
+  }
+
+  @protected
+  OcrModelPaths sse_decode_ocr_model_paths(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_det = sse_decode_String(deserializer);
+    var var_encoder = sse_decode_String(deserializer);
+    var var_decoder = sse_decode_String(deserializer);
+    var var_vocab = sse_decode_String(deserializer);
+    return OcrModelPaths(
+      det: var_det,
+      encoder: var_encoder,
+      decoder: var_decoder,
+      vocab: var_vocab,
+    );
+  }
+
+  @protected
+  OcrPageResult sse_decode_ocr_page_result(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_blocks = sse_decode_list_ocr_block(deserializer);
+    var var_pageWidth = sse_decode_u_32(deserializer);
+    var var_pageHeight = sse_decode_u_32(deserializer);
+    var var_detectMs = sse_decode_u_64(deserializer);
+    var var_recognizeMs = sse_decode_u_64(deserializer);
+    var var_inpaintMs = sse_decode_u_64(deserializer);
+    var var_erasedPath = sse_decode_opt_String(deserializer);
+    return OcrPageResult(
+      blocks: var_blocks,
+      pageWidth: var_pageWidth,
+      pageHeight: var_pageHeight,
+      detectMs: var_detectMs,
+      recognizeMs: var_recognizeMs,
+      inpaintMs: var_inpaintMs,
+      erasedPath: var_erasedPath,
+    );
   }
 
   @protected
@@ -10251,6 +10524,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_ocr_model_paths(
+    OcrModelPaths self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_ocr_model_paths(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_pack_info(
     PackInfo self,
     SseSerializer serializer,
@@ -10813,6 +11095,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_ocr_block(
+    List<OcrBlock> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_ocr_block(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_prim_f_32_strict(
     Float32List self,
     SseSerializer serializer,
@@ -11072,6 +11366,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_opt_box_autoadd_local_source_info(self.source, serializer);
     sse_encode_opt_box_autoadd_local_rejection(self.rejection, serializer);
+  }
+
+  @protected
+  void sse_encode_ocr_block(OcrBlock self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_prim_f_32_strict(self.quad, serializer);
+    sse_encode_String(self.text, serializer);
+    sse_encode_u_32(self.boxes, serializer);
+    sse_encode_bool(self.truncated, serializer);
+  }
+
+  @protected
+  void sse_encode_ocr_model_paths(
+    OcrModelPaths self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.det, serializer);
+    sse_encode_String(self.encoder, serializer);
+    sse_encode_String(self.decoder, serializer);
+    sse_encode_String(self.vocab, serializer);
+  }
+
+  @protected
+  void sse_encode_ocr_page_result(
+    OcrPageResult self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_ocr_block(self.blocks, serializer);
+    sse_encode_u_32(self.pageWidth, serializer);
+    sse_encode_u_32(self.pageHeight, serializer);
+    sse_encode_u_64(self.detectMs, serializer);
+    sse_encode_u_64(self.recognizeMs, serializer);
+    sse_encode_u_64(self.inpaintMs, serializer);
+    sse_encode_opt_String(self.erasedPath, serializer);
   }
 
   @protected

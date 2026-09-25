@@ -167,6 +167,14 @@ Rust（ocr_core）                     Dart（Reader）
    原尺寸直跑要按 6 倍面积算。质量：文字抹净、气泡描边保留、美术未动；
    拟声词区（网点/速度线上）**明确不处理**（检测漏 + LaMa 糊，两处缺口同区叠加）。
 
+   **桥接已通（2026-09-25）**：`rust/src/api/ocr.rs::ocr_analyze_page` 经 FRB 暴露给 Dart
+   （检测 → 识别 → 聚块 → 可选擦字，返回每块的 quad + 原文 + 擦干净底图路径）；
+   翻译与译文绘制仍在 Dart 侧（§决定 3 / §决定 7）。**顺带修掉一个潜伏故障**：
+   Rust 侧 `file_manager` 拆子模块后没有重跑 codegen，Dart 侧旧 `file_manager.dart` 期望的
+   wire 名（`crateApiFileManagerFileManagerCreate`）与 Rust 新生成的（`…BrowseFileManagerCreate`）
+   已不一致 —— 文件管理器在运行时必炸。已重跑 codegen、删除旧文件、改 8 处导入，
+   并把 `file_manager` 的 FRB 子模块改成 `pub mod`（生成代码按新路径引用，私有会编译不过）。
+
 ### 4. 占位②（页后处理位）从此定型
 
 ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固化进公开接口」在本 ADR 批准后**结束留白**：
