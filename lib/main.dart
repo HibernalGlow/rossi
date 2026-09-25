@@ -37,6 +37,7 @@ import 'package:zephyr/network/sync/sync_device_id.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/object_box.dart';
 import 'package:zephyr/page/comic_follow/cubit/comic_follow_cubit.dart';
+import 'package:zephyr/page/setting/real_sr/service/super_resolution_log.dart';
 import 'package:zephyr/platform/desktop/native_window.dart';
 import 'package:zephyr/platform/desktop/system_tray.dart';
 import 'package:zephyr/platform/desktop/window_logic.dart';
@@ -46,6 +47,7 @@ import 'package:zephyr/service/startup_database_snapshot_service.dart';
 import 'package:zephyr/src/rust/api/qjs.dart';
 import 'package:zephyr/src/rust/api/simple.dart';
 import 'package:zephyr/src/rust/api/system.dart' as rust_system;
+import 'package:zephyr/util/coreml_model_loader.dart';
 import 'package:zephyr/util/debouncer.dart';
 import 'package:zephyr/util/error_filter.dart';
 import 'package:zephyr/util/font/font_profile.dart';
@@ -377,6 +379,18 @@ Future<(GlobalSettingCubit, PluginRegistryCubit)> _initServices() async {
   if (globalSettingCubit.state.needCleanCache) {
     await clearCache(await getCachePath());
   }
+
+  // 旧版把 CoreML 超分模型解在临时目录（会被每天一次的 dirhelper 清掉）。先把它搬到
+  // 持久目录，之后的就绪判定才不会把「下过的模型」看成没下过。
+  await CoreMLModelLoader.migrateFromLegacyTemp();
+
+  // 超分产物缓存现在落在持久目录里（跨启动复用），没人清了，所以启动期自己封顶一次。
+  // 不 await：淘汰几千个文件是 IO，不该把首屏压在它后面；失败只是这次不淘汰。
+  unawaited(
+    SuperResolutionLog.trimCache().catchError((Object error) {
+      logger.w('超分产物缓存淘汰失败', error: error);
+    }),
+  );
 
   final proxySetting = globalSettingCubit.state.proxySetting;
   if (proxySetting.enabled && proxySetting.address.trim().isNotEmpty) {

@@ -146,6 +146,7 @@ void main() {
 
   group('GPU enhancement replacement', () {
     late Directory cache;
+    late Directory srDir;
     late _Source source;
     late _Bridge bridge;
     late GpuPresentController controller;
@@ -161,7 +162,8 @@ void main() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(pathChannel, (call) async => cache.path);
       source = _Source();
-      final srDir = await Directory('${cache.path}/rossi_sr_cache').create();
+      // 产物落点由被测代码自己决定，这里问它要，别再手拼一遍。
+      srDir = await SuperResolutionLog.cacheDirectory();
       // 解码由假 bridge 接管，这里只模拟已落盘的超分产物。
       await File(
         '${srDir.path}/sr_${source.path.hashCode}_0_${await RealSrSettings.loadCacheKey()}.png',
@@ -394,7 +396,7 @@ void main() {
         final key = await RealSrSettings.loadCacheKey();
         for (final index in [1, 2]) {
           await File(
-            '${cache.path}/rossi_sr_cache/sr_${source.path.hashCode}_${index}_$key.png',
+            '${srDir.path}/sr_${source.path.hashCode}_${index}_$key.png',
           ).writeAsBytes([2]);
         }
         await RealSrSettings.savePrefetch(forward: 1, back: 1);
@@ -555,7 +557,7 @@ void main() {
         final oldPath = bridge.injectedPaths.single;
         const newKey = 'mimage_onnx_realesr_general_v3_0';
         await File(
-          '${cache.path}/rossi_sr_cache/sr_${source.path.hashCode}_0_$newKey.png',
+          '${srDir.path}/sr_${source.path.hashCode}_0_$newKey.png',
         ).writeAsBytes([2]);
         await RealSrSettings.saveMImageModel(MImageOnnxModel.general);
         await _until(() => bridge.opens == 2);
@@ -588,7 +590,7 @@ void main() {
         const nativeKey =
             'breeze_coreml_waifu2x_photo_noise0_scale2x.mlmodel_2x';
         await File(
-          '${cache.path}/rossi_sr_cache/sr_${source.path.hashCode}_0_$nativeKey.png',
+          '${srDir.path}/sr_${source.path.hashCode}_0_$nativeKey.png',
         ).writeAsBytes([3]);
         await RealSrSettings.saveEngine(SuperResolutionEngine.breezeCoreML);
         await _until(() => bridge.injectedPaths.last.contains(nativeKey));
@@ -661,7 +663,7 @@ void main() {
     test('翻到预超分过的邻页时，状态也落在「已超分」上', () async {
       final key = await RealSrSettings.loadCacheKey();
       await File(
-        '${cache.path}/rossi_sr_cache/sr_${source.path.hashCode}_1_$key.png',
+        '${srDir.path}/sr_${source.path.hashCode}_1_$key.png',
       ).writeAsBytes(image.encodePng(image.Image(width: 3, height: 5)));
       await RealSrSettings.savePrefetch(forward: 1, back: 0);
 
@@ -749,7 +751,7 @@ void main() {
       // 换一份**真的** PNG 当产物：分辨率是量出来的，所以这里必须给真文件。
       final key = await RealSrSettings.loadCacheKey();
       final outFile = File(
-        '${cache.path}/rossi_sr_cache/sr_${source.path.hashCode}_0_$key.png',
+        '${srDir.path}/sr_${source.path.hashCode}_0_$key.png',
       );
       await outFile.writeAsBytes(
         image.encodePng(image.Image(width: 6, height: 9)),
@@ -778,7 +780,7 @@ void main() {
       // 路径、也不给原始字节，于是必然失败。
       final key = await RealSrSettings.loadCacheKey();
       final outFile = File(
-        '${cache.path}/rossi_sr_cache/sr_${source.path.hashCode}_0_$key.png',
+        '${srDir.path}/sr_${source.path.hashCode}_0_$key.png',
       );
       if (await outFile.exists()) await outFile.delete();
 

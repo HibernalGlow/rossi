@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/util/get_path.dart';
 
 /// iOS / macOS CoreML 超分模型配置。
 ///
@@ -150,9 +151,26 @@ abstract class CoreMLModelConfig {
     return blockSize - 2 * shrinkSize;
   }
 
-  /// 返回解压后模型根目录。
-  static Future<Directory> get modelsDirectory async {
-    final tempDir = await getTemporaryDirectory();
-    return Directory(p.join(tempDir.path, 'coreml_models', archiveSubDir));
-  }
+  /// 解压后模型根目录：`getFilePath()/super_resolution/coreml_models/<archiveSubDir>`。
+  ///
+  /// 曾经这里在 `getTemporaryDirectory()` 下，于是每次启动都要重下一整包：macOS 的
+  /// `/usr/libexec/dirhelper` 每天 03:35 清 `$TMPDIR`（`CLEAN_FILES_OLDER_THAN_DAYS=3`），
+  /// 而就绪判据只看这个目录里有没有文件（`CoreMLModelLoader.isModelAvailable`）。
+  /// 放在 `super_resolution/` 里与 mImage ONNX 同级，`deleteModel` 的整目录清理才覆盖得到它。
+  static Future<Directory> get modelsDirectory async => Directory(
+    p.join(
+      await getFilePath(),
+      'super_resolution', // 与 `real_sr_super_resolution.dart` 的 `_modelDirectory` 同源
+      rootSegment,
+      archiveSubDir,
+    ),
+  );
+
+  /// [modelsDirectory] 改址前的位置，仅用于一次性搬迁。
+  static Future<Directory> get legacyModelsDirectory async => Directory(
+    p.join((await getTemporaryDirectory()).path, rootSegment, archiveSubDir),
+  );
+
+  /// 新旧两处都用的那一段目录名。
+  static const String rootSegment = 'coreml_models';
 }

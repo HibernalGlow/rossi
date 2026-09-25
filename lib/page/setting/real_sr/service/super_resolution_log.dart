@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+import 'package:zephyr/util/get_path.dart';
 
 /// 独立于控制台的超分诊断。保留本次运行最近 300 条，并异步落盘。
 abstract final class SuperResolutionLog {
@@ -25,12 +25,44 @@ abstract final class SuperResolutionLog {
   /// 等待已经记录的日志落盘，再复制缓存或清理临时目录。
   static Future<void> flush() => _writeQueue;
 
+  /// 超分产物与本次运行日志的落点：`getFilePath()/super_resolution/rossi_sr_cache`。
+  ///
+  /// 以前在 `$TMPDIR` 下，好处是 macOS 每天清临时目录时顺手替我们收了尾，代价是
+  /// **跨启动不复用** —— 上一轮看过的页每次都要重新推理一遍。搬到持久目录后由
+  /// [trimCache] 自己封顶（启动期调，见 `main.dart`）。
   static Future<Directory> cacheDirectory() async {
-    final directory = Directory(
-      p.join((await getTemporaryDirectory()).path, 'rossi_sr_cache'),
-    );
+    final directory = _under(await getFilePath());
     await directory.create(recursive: true);
     return directory;
+  }
+
+  static Directory _under(String filesRoot) =>
+      Directory(p.join(filesRoot, 'super_resolution', 'rossi_sr_cache'));
+
+  /// 缓存里允许留下的产物总字节数。
+  static const int cacheBudget = 2 * 1024 * 1024 * 1024;
+
+  /// 产物是可重生成的，所以超预算时按修改时间从最旧的开始删；日志不参与。
+  static Future<void> trimCache() async {
+    final root = _under(await getFilePath());
+    if (!await root.exists()) return;
+    final products = <(File, int, DateTime)>[];
+    for (final file in root.listSync().whereType<File>()) {
+      if (!file.path.endsWith('.png')) continue;
+      products.add((file, file.lengthSync(), file.statSync().modified));
+    }
+    var total = products.fold<int>(0, (sum, e) => sum + e.$2);
+    if (total <= cacheBudget) return;
+    products.sort((a, b) => a.$3.compareTo(b.$3));
+    for (final (file, size, _) in products) {
+      if (total <= cacheBudget) return;
+      try {
+        await file.delete();
+        total -= size;
+      } on FileSystemException {
+        continue;
+      }
+    }
   }
 
   static String get text => [

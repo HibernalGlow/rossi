@@ -4,7 +4,6 @@ import 'dart:ui' show Size;
 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/gpu/gpu_present_bridge.dart';

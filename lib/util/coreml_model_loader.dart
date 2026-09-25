@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:archive/archive_io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/src/rust/api/simple.dart';
 import 'package:zephyr/util/coreml_model_config.dart';
@@ -11,9 +10,37 @@ import 'package:zephyr/util/coreml_model_config.dart';
 /// 下载并解压 iOS/macOS CoreML 超分模型。
 ///
 /// 仓库里模型被打包成 `MacOS-iOS.7z`，下载后通过 Rust 侧的 `decompress7Z`
-/// 解压到临时目录；社区 Real-ESRGAN 使用独立 ZIP，再返回本地模型路径。
+/// 解压到 `getFilePath()/super_resolution/coreml_models/`；社区 Real-ESRGAN 使用
+/// 独立 ZIP，再返回本地模型路径。
 class CoreMLModelLoader {
   CoreMLModelLoader._();
+
+  /// 旧版本把解压出来的模型放在 `$TMPDIR/coreml_models/`，而 macOS 的 dirhelper 每天会清
+  /// 临时目录里 3 天没动过的文件 —— 于是「明明下过却要重下」。这里把还在的那一份搬到新址，
+  /// 用户升级后不必重下整包。搬不动（跨卷 rename 失败）就留着，代价只是照旧重下一次，
+  /// 不值得为它写递归复制。
+  ///
+  /// 由**启动期显式 await**（见 `main.dart`），不留进程内懒执行的 future：那种写法一旦
+  /// 首跳落在一个先死掉的异步区里（widget 测试的 fake-async 正是如此），后面每次
+  /// `isModelAvailable` 都会等一个永远不会结束的搬迁。
+  static Future<void> migrateFromLegacyTemp() async {
+    try {
+      final legacy = await CoreMLModelConfig.legacyModelsDirectory;
+      if (!await legacy.exists()) return;
+      final target = await CoreMLModelConfig.modelsDirectory;
+      await target.create(recursive: true);
+      await for (final entry in legacy.list()) {
+        final destination = p.join(target.path, p.basename(entry.path));
+        if (await FileSystemEntity.type(destination) !=
+            FileSystemEntityType.notFound) {
+          continue;
+        }
+        await entry.rename(destination);
+      }
+    } catch (e, s) {
+      logger.w('CoreML 模型从临时目录搬迁失败，按未下载处理', error: e, stackTrace: s);
+    }
+  }
 
   /// 返回指定模型的本地路径。
   ///
@@ -33,11 +60,8 @@ class CoreMLModelLoader {
         }
       }
     }
-    final tempDir = await getTemporaryDirectory();
-    final modelsDir = Directory(p.join(tempDir.path, 'coreml_models'));
-    final extractedDir = Directory(
-      p.join(modelsDir.path, CoreMLModelConfig.archiveSubDir),
-    );
+    final extractedDir = await CoreMLModelConfig.modelsDirectory;
+    final modelsDir = extractedDir.parent;
     final archiveFile = File(
       p.join(modelsDir.path, CoreMLModelConfig.archiveName),
     );

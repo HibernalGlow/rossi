@@ -8,6 +8,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:zephyr/gpu/gpu_present_bridge.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr/page/setting/real_sr/service/super_resolution_log.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/image_surface.dart';
 import 'package:zephyr/reader/page_source.dart';
@@ -170,9 +171,7 @@ void main() {
       );
       final source = _FolderSource(dir.path, 12);
       final controller = GpuPresentController();
-      final srDir = await Directory(
-        '${(await getTemporaryDirectory()).path}/rossi_sr_cache',
-      ).create(recursive: true);
+      final srDir = await SuperResolutionLog.cacheDirectory();
       final srFile = File('${srDir.path}/sr_${source.path.hashCode}_0.png');
       Future<List<int>?> pixel() =>
           GpuPresentBridge.channel.invokeListMethod<int>('debugFramePixel');

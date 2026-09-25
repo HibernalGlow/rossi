@@ -243,13 +243,7 @@ extension GpcEnhancePart on GpuPresentController {
     if (cached != null && cached.existsSync()) {
       return cached;
     }
-    final Directory cacheDir = await getTemporaryDirectory();
-    final Directory srCacheDir = Directory(
-      p.join(cacheDir.path, 'rossi_sr_cache'),
-    );
-    if (!srCacheDir.existsSync()) {
-      await srCacheDir.create(recursive: true);
-    }
+    final Directory srCacheDir = await SuperResolutionLog.cacheDirectory();
     logger.i('[Rossi AI] 超分缓存目录: ${srCacheDir.path}');
     _srCacheDirCache = srCacheDir;
     return srCacheDir;
