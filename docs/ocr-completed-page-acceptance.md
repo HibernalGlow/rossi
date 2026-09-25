@@ -10,6 +10,13 @@
 - `flutter test test/ocr/ test/reader/translated_page_controller_test.dart test/reader/translated_page_status_test.dart` **71 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
 - `cargo test -p rossi_ocr_core` **24 条全过**；
 - `flutter build macos --debug` 与 `--release` 都出包成功（Release 产物 152.7 MB，含 13.2 MB 字体）；
+- **iOS 出包本机跑过一次，但断在一处与 OCR 无关的地方**：`packages/coreml_upscale/ios/Classes/MultiArrayModel.swift`
+  用了 `float16`（要 iOS 16），而工程 `ios/Runner.xcodeproj` 的 `IPHONEOS_DEPLOYMENT_TARGET = 15.0`，
+  于是 `pod install` 之后 xcodebuild 直接报四条 `'float16' is only available in iOS 16.0 or newer`。
+  引入它的是 `d66ee508`（2026-09-25 的 CoreML 分块提交，未推送），**不是成品页链路**；
+  后果是 OCR 的 iOS **链接级**证据本机拿不到（`ocr_core` 的 iOS `cargo check` 是零告警过的）。
+- **Windows 侧仍未验**：`--ep auto` 的端到端与 scratch 目录清理压在那台离线机器上
+  （Tailscale 报 `offline, last seen 2h ago`，不是网络或密钥问题）。
 - **端到端已经跑过一次真权重**：`test/ocr/completed_page_e2e_test.dart` 对
   `mokuro_001a.jpg` 出 15 块成品页，尺寸 827×1170、每块内都有墨、第二次构建命中缓存。
 - **八页真页的多页扫描也过了**（`completed_page_multi_page_probe_test.dart`，真权重 + 同字数的中文伪译文）：
