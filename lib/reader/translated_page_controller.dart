@@ -126,7 +126,7 @@ class TranslatedPageController extends ChangeNotifier {
   }) async {
     _presenter = presenter;
     if (presenter.translationOwnedPages.containsKey(index)) {
-      return _turnOff(index, source, presenter);
+      return _turnOff(index, source, presenter, _generation);
     }
     return _turnOn(index, source, presenter);
   }
@@ -174,8 +174,12 @@ class TranslatedPageController extends ChangeNotifier {
     int index,
     PageSource source,
     TranslatedPagePresenter presenter,
+    int generation,
   ) async {
     final original = await _inputPathFor(source, index);
+    // 关的那一路也要认过期：取原图字节可能要落一次临时文件，
+    // 这中间换书的话，把旧书的原图注到新书那一页上同样是错的。
+    if (_stale(generation)) return false;
     final ok = await _inject(
       index,
       original,

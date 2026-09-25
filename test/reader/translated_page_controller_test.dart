@@ -32,6 +32,9 @@ class _FakeSource implements PageSource {
   final Uint8List bytes;
   int directCalls = 0;
 
+  /// 给了就把「取原图字节」这一跳卡住，用来测「关译文关到一半换了书」。
+  Completer<void>? bytesGate;
+
   @override
   List<PageRef> get pages => const [];
 
@@ -62,7 +65,10 @@ class _FakeSource implements PageSource {
   }
 
   @override
-  Future<Uint8List?> getPageBytes(int index) async => bytes;
+  Future<Uint8List?> getPageBytes(int index) async {
+    await bytesGate?.future;
+    return bytes;
+  }
 }
 
 class _FakePresenter implements TranslatedPagePresenter {
@@ -357,6 +363,27 @@ void main() {
     expect(presenter.translationOwnedPages, isEmpty);
     expect(c.phase, TranslatedPagePhase.off, reason: '旧构建的收尾不许把新页脸改成 failed');
     expect(c.lastError, isEmpty);
+  });
+
+  test('关译文关到一半换书：旧书的原图也不许注到新书上', () async {
+    await seedReady();
+    final presenter = _FakePresenter(confirmed: true);
+    final source = _FakeSource(page);
+    final c = controllerWith(blocks: blocks);
+
+    await c.toggle(source: source, presenter: presenter, index: 2);
+    expect(presenter.injected, hasLength(1));
+
+    source.bytesGate = Completer<void>();
+    final turningOff = c.toggle(source: source, presenter: presenter, index: 2);
+    for (var i = 0; i < 20 && presenter.injected.length != 1; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    c.reset(); // 换书
+    source.bytesGate!.complete();
+
+    expect(await turningOff, isFalse);
+    expect(presenter.injected, hasLength(1), reason: '第二次注入属于旧书，必须作废');
   });
 
   test('换书 reset：清掉归属，否则新书那几页会被旧译文占着', () async {
