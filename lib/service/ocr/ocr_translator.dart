@@ -25,14 +25,19 @@ class OcrTranslationConfig {
   /// 改一个词就该让成品页失效，而不是让人纳闷「为什么还是旧译名」。
   final String glossary;
 
-  OcrTranslationConfig copyWith({String? baseUrl, String? model, String? apiKey, String? glossary}) =>
-      OcrTranslationConfig(
-        baseUrl: baseUrl ?? this.baseUrl,
-        model: model ?? this.model,
-        apiKey: apiKey ?? this.apiKey,
-        targetLanguage: targetLanguage,
-        glossary: glossary ?? this.glossary,
-      );
+  OcrTranslationConfig copyWith({
+    String? baseUrl,
+    String? model,
+    String? apiKey,
+    String? targetLanguage,
+    String? glossary,
+  }) => OcrTranslationConfig(
+    baseUrl: baseUrl ?? this.baseUrl,
+    model: model ?? this.model,
+    apiKey: apiKey ?? this.apiKey,
+    targetLanguage: targetLanguage ?? this.targetLanguage,
+    glossary: glossary ?? this.glossary,
+  );
 
   Map<String, dynamic> toJson() => {
     'baseUrl': baseUrl,
