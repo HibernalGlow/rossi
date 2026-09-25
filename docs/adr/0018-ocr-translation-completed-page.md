@@ -174,6 +174,9 @@ Rust（ocr_core）                     Dart（Reader）
    wire 名（`crateApiFileManagerFileManagerCreate`）与 Rust 新生成的（`…BrowseFileManagerCreate`）
    已不一致 —— 文件管理器在运行时必炸。已重跑 codegen、删除旧文件、改 8 处导入，
    并把 `file_manager` 的 FRB 子模块改成 `pub mod`（生成代码按新路径引用，私有会编译不过）。
+   **过桥验真（同日）**：`test/ocr/ocr_analyze_page_probe_test.dart` 在测试 VM 里真实调用 ——
+   块数、竖排两列聚成一块、相邻气泡不串簇、四角点在页内、擦字写出 827×1170 底图，全部通过。
+   踩到的坑记在测试注释里：**Rust `u64` 过桥是 Dart `BigInt`**，不是 `int`（`greaterThan(0)` 会炸）。
 
 ### 4. 占位②（页后处理位）从此定型
 
