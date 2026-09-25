@@ -315,6 +315,25 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
 - 13.2 MB 字体进包：桌面包可接受，但它会让**每次都重新链接**的调试构建变慢，
   若实测明显，处置是把字体从 `pubspec.yaml` 临时移出而不是换字体。
 
+## 实现记录（2026-09-26，逐页这一期落地）
+
+| 本 ADR 的决定 | 落点 | 状态 |
+|---|---|---|
+| §2 `rust/ocr_core` | `rust/ocr_core/src/{detect,postprocess,recognize,group,inpaint,session}.rs`，经 `rust/src/api/ocr.rs::ocr_analyze_page` 过 FRB | 已实现；`cargo test -p rossi_ocr_core` 21 条 |
+| §3 成品页 = 缓存产物 | `translated_page_cache.dart`（指纹 + 可读标签目录 + `manifest.json` + 原子写） | 已实现 |
+| §3 Dart 侧排版 | `translated_page_renderer.dart`（字号候选下降、越框禁止、OFL 字体运行时注册） | 已实现 |
+| §3.4 每页开关 / 与超分互斥 / 状态核对 | `lib/reader/translated_page_controller.dart` + 顶栏 `reader_translated_page_chip.dart` | 已实现 |
+| §4 页后处理位定型 | 替代位图 = 成品页 PNG，替换入口 = 呈现器既有的增强图轨；`PageSource` 形状**未改**，没有引入图层集合 | 符合 |
+| §5 权重首下 / 字体随包 | `ocr_models.dart` + `ocr_model_downloader.dart`；字体当普通 asset、`FontLoader` 注册（原因见 §决定 5 的实测更正） | 已实现 |
+| §6 平台排除 | `ocrSupportedHere`：移动端连设置入口都不画 | 已实现 |
+| §7 不内置 NMT | `ocr_translator.dart` 只走 OpenAI-compatible；真 HTTP 有 6 条测试 | 已实现 |
+
+验证：`flutter test test/ocr/` + 两份 reader 测试共 **73 条全过 0 skip**，
+其中 `completed_page_e2e_test.dart` 用真权重跑通整条链路（15 块 / 827×1170 / 每块有墨 / 二次命中缓存）。
+真机逐条判据在 `docs/ocr-completed-page-acceptance.md`。
+
+**本期没做**（不是缺陷）：整本批量、真竖排（标点旋转与列读序）、拟声词、上色、Android / iOS。
+
 ## 未决（批准本 ADR 前需要先定的）
 
 1. ~~**权重再分发条款核实不了**~~ → **已当场核实**（HF 从本机可达；之前记成「不可达」是调研环境的网络受限，
