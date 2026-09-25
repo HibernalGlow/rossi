@@ -67,6 +67,12 @@ extension _ComicReadInteractionPart on _ComicReadPageState {
           onGlobalSlotChanged: seamlessEnabled
               ? (globalSlot) async {
                   _prefetchImagesAroundSlot(globalSlot, readSetting);
+                  // 自然翻页只走这条回调，`_jumpToGlobalSlot` 不参与；
+                  // 不同步到会话总线的话「切换提示 → 翻页提示」开关永远不会触发。
+                  ReaderSessionCoordinator.instance.updateProgress(
+                    currentSlot: globalSlot,
+                    totalSlots: seamlessCubit.resolveTotalSlots(readSetting),
+                  );
                   final result = await seamlessCubit.onGlobalSlotObserved(
                     globalSlot,
                     readSetting,
@@ -79,8 +85,13 @@ extension _ComicReadInteractionPart on _ComicReadPageState {
                     );
                   }
                 }
-              : (globalSlot) =>
-                    _prefetchImagesAroundSlot(globalSlot, readSetting),
+              : (globalSlot) {
+                  _prefetchImagesAroundSlot(globalSlot, readSetting);
+                  ReaderSessionCoordinator.instance.updateProgress(
+                    currentSlot: globalSlot,
+                    totalSlots: seamlessCubit.resolveTotalSlots(readSetting),
+                  );
+                },
           onTransitionAction: seamlessEnabled
               ? (nextOrder) async {
                   final result = await seamlessCubit.onTransitionAction(
@@ -130,6 +141,11 @@ extension _ComicReadInteractionPart on _ComicReadPageState {
       onGlobalSlotChanged: seamlessEnabled
           ? (globalSlot) async {
               _prefetchImagesAroundSlot(globalSlot, readSetting);
+              // 见列模式同名回调处的注释：自然翻页必须显式喂会话总线。
+              ReaderSessionCoordinator.instance.updateProgress(
+                currentSlot: globalSlot,
+                totalSlots: seamlessCubit.resolveTotalSlots(readSetting),
+              );
               final result = await seamlessCubit.onGlobalSlotObserved(
                 globalSlot,
                 readSetting,
@@ -142,7 +158,13 @@ extension _ComicReadInteractionPart on _ComicReadPageState {
                 );
               }
             }
-          : (globalSlot) => _prefetchImagesAroundSlot(globalSlot, readSetting),
+          : (globalSlot) {
+              _prefetchImagesAroundSlot(globalSlot, readSetting);
+              ReaderSessionCoordinator.instance.updateProgress(
+                currentSlot: globalSlot,
+                totalSlots: seamlessCubit.resolveTotalSlots(readSetting),
+              );
+            },
       onEdgePrevious: seamlessEnabled
           ? () async {
               final result = await seamlessCubit.triggerBoundary(

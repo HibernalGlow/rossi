@@ -3498,12 +3498,14 @@ mixin _$SwitchToastSettingState {
 
 /// 切换书籍（含首次进入一本书）时显示提示。上游同款：默认关。
  bool get enableBook;/// 翻页时显示提示。
- bool get enablePage;/// 模板变量为 `{{book.*}}` / `{{page.*}}`，语义与上游
+ bool get enablePage;/// 翻到最后一页 / 在最后一页继续向前翻页时显示提示（上游 `enableBoundaryToast`）。
+ bool get enableBoundaryToast;/// 模板变量为 `{{book.*}}` / `{{page.*}}`，语义与上游
 /// `renderReaderSwitchToastTemplate` 逐条对照（见
 /// `lib/util/toast/switch_toast_template.dart`）。
  String get bookTitleTemplate; String get bookDescriptionTemplate; String get pageTitleTemplate;/// 上游默认是「分辨率 + 文件大小」，但 Rossi 的页表（`Doc`）没有这两项，
 /// 换成页文件名 —— 刻意偏离，见 `docs/ROADMAP.md`。
- String get pageDescriptionTemplate;
+ String get pageDescriptionTemplate;/// 边界提示文案（对齐上游 `enableBoundaryToast` 的语义，Rossi 侧不带模板变量）。
+ String get lastPageMessage;
 /// Create a copy of SwitchToastSettingState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -3517,20 +3519,20 @@ $SwitchToastSettingStateCopyWith<SwitchToastSettingState> get copyWith => _$Swit
 @override
 bool operator ==(Object other) {
   final _this = this as SwitchToastSettingState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SwitchToastSettingState&&(identical(other.enableBook, _this.enableBook) || other.enableBook == _this.enableBook)&&(identical(other.enablePage, _this.enablePage) || other.enablePage == _this.enablePage)&&(identical(other.bookTitleTemplate, _this.bookTitleTemplate) || other.bookTitleTemplate == _this.bookTitleTemplate)&&(identical(other.bookDescriptionTemplate, _this.bookDescriptionTemplate) || other.bookDescriptionTemplate == _this.bookDescriptionTemplate)&&(identical(other.pageTitleTemplate, _this.pageTitleTemplate) || other.pageTitleTemplate == _this.pageTitleTemplate)&&(identical(other.pageDescriptionTemplate, _this.pageDescriptionTemplate) || other.pageDescriptionTemplate == _this.pageDescriptionTemplate));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SwitchToastSettingState&&(identical(other.enableBook, _this.enableBook) || other.enableBook == _this.enableBook)&&(identical(other.enablePage, _this.enablePage) || other.enablePage == _this.enablePage)&&(identical(other.enableBoundaryToast, _this.enableBoundaryToast) || other.enableBoundaryToast == _this.enableBoundaryToast)&&(identical(other.bookTitleTemplate, _this.bookTitleTemplate) || other.bookTitleTemplate == _this.bookTitleTemplate)&&(identical(other.bookDescriptionTemplate, _this.bookDescriptionTemplate) || other.bookDescriptionTemplate == _this.bookDescriptionTemplate)&&(identical(other.pageTitleTemplate, _this.pageTitleTemplate) || other.pageTitleTemplate == _this.pageTitleTemplate)&&(identical(other.pageDescriptionTemplate, _this.pageDescriptionTemplate) || other.pageDescriptionTemplate == _this.pageDescriptionTemplate)&&(identical(other.lastPageMessage, _this.lastPageMessage) || other.lastPageMessage == _this.lastPageMessage));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as SwitchToastSettingState;
-  return Object.hash(runtimeType,_this.enableBook,_this.enablePage,_this.bookTitleTemplate,_this.bookDescriptionTemplate,_this.pageTitleTemplate,_this.pageDescriptionTemplate);
+  return Object.hash(runtimeType,_this.enableBook,_this.enablePage,_this.enableBoundaryToast,_this.bookTitleTemplate,_this.bookDescriptionTemplate,_this.pageTitleTemplate,_this.pageDescriptionTemplate,_this.lastPageMessage);
 }
 
 @override
 String toString() {
   final _this = this as SwitchToastSettingState;
-  return 'SwitchToastSettingState(enableBook: ${_this.enableBook}, enablePage: ${_this.enablePage}, bookTitleTemplate: ${_this.bookTitleTemplate}, bookDescriptionTemplate: ${_this.bookDescriptionTemplate}, pageTitleTemplate: ${_this.pageTitleTemplate}, pageDescriptionTemplate: ${_this.pageDescriptionTemplate})';
+  return 'SwitchToastSettingState(enableBook: ${_this.enableBook}, enablePage: ${_this.enablePage}, enableBoundaryToast: ${_this.enableBoundaryToast}, bookTitleTemplate: ${_this.bookTitleTemplate}, bookDescriptionTemplate: ${_this.bookDescriptionTemplate}, pageTitleTemplate: ${_this.pageTitleTemplate}, pageDescriptionTemplate: ${_this.pageDescriptionTemplate}, lastPageMessage: ${_this.lastPageMessage})';
 }
 
 
@@ -3541,7 +3543,7 @@ abstract mixin class $SwitchToastSettingStateCopyWith<$Res>  {
   factory $SwitchToastSettingStateCopyWith(SwitchToastSettingState value, $Res Function(SwitchToastSettingState) _then) = _$SwitchToastSettingStateCopyWithImpl;
 @useResult
 $Res call({
- bool enableBook, bool enablePage, String bookTitleTemplate, String bookDescriptionTemplate, String pageTitleTemplate, String pageDescriptionTemplate
+ bool enableBook, bool enablePage, bool enableBoundaryToast, String bookTitleTemplate, String bookDescriptionTemplate, String pageTitleTemplate, String pageDescriptionTemplate, String lastPageMessage
 });
 
 
@@ -3558,14 +3560,16 @@ class _$SwitchToastSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of SwitchToastSettingState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? enableBook = null,Object? enablePage = null,Object? bookTitleTemplate = null,Object? bookDescriptionTemplate = null,Object? pageTitleTemplate = null,Object? pageDescriptionTemplate = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? enableBook = null,Object? enablePage = null,Object? enableBoundaryToast = null,Object? bookTitleTemplate = null,Object? bookDescriptionTemplate = null,Object? pageTitleTemplate = null,Object? pageDescriptionTemplate = null,Object? lastPageMessage = null,}) {
   return _then(SwitchToastSettingState(
 enableBook: null == enableBook ? _self.enableBook : enableBook // ignore: cast_nullable_to_non_nullable
 as bool,enablePage: null == enablePage ? _self.enablePage : enablePage // ignore: cast_nullable_to_non_nullable
+as bool,enableBoundaryToast: null == enableBoundaryToast ? _self.enableBoundaryToast : enableBoundaryToast // ignore: cast_nullable_to_non_nullable
 as bool,bookTitleTemplate: null == bookTitleTemplate ? _self.bookTitleTemplate : bookTitleTemplate // ignore: cast_nullable_to_non_nullable
 as String,bookDescriptionTemplate: null == bookDescriptionTemplate ? _self.bookDescriptionTemplate : bookDescriptionTemplate // ignore: cast_nullable_to_non_nullable
 as String,pageTitleTemplate: null == pageTitleTemplate ? _self.pageTitleTemplate : pageTitleTemplate // ignore: cast_nullable_to_non_nullable
 as String,pageDescriptionTemplate: null == pageDescriptionTemplate ? _self.pageDescriptionTemplate : pageDescriptionTemplate // ignore: cast_nullable_to_non_nullable
+as String,lastPageMessage: null == lastPageMessage ? _self.lastPageMessage : lastPageMessage // ignore: cast_nullable_to_non_nullable
 as String,
   ));
 }
@@ -3651,10 +3655,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool enableBook,  bool enablePage,  String bookTitleTemplate,  String bookDescriptionTemplate,  String pageTitleTemplate,  String pageDescriptionTemplate)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool enableBook,  bool enablePage,  bool enableBoundaryToast,  String bookTitleTemplate,  String bookDescriptionTemplate,  String pageTitleTemplate,  String pageDescriptionTemplate,  String lastPageMessage)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SwitchToastSettingState() when $default != null:
-return $default(_that.enableBook,_that.enablePage,_that.bookTitleTemplate,_that.bookDescriptionTemplate,_that.pageTitleTemplate,_that.pageDescriptionTemplate);case _:
+return $default(_that.enableBook,_that.enablePage,_that.enableBoundaryToast,_that.bookTitleTemplate,_that.bookDescriptionTemplate,_that.pageTitleTemplate,_that.pageDescriptionTemplate,_that.lastPageMessage);case _:
   return orElse();
 
 }
@@ -3672,10 +3676,10 @@ return $default(_that.enableBook,_that.enablePage,_that.bookTitleTemplate,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool enableBook,  bool enablePage,  String bookTitleTemplate,  String bookDescriptionTemplate,  String pageTitleTemplate,  String pageDescriptionTemplate)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool enableBook,  bool enablePage,  bool enableBoundaryToast,  String bookTitleTemplate,  String bookDescriptionTemplate,  String pageTitleTemplate,  String pageDescriptionTemplate,  String lastPageMessage)  $default,) {final _that = this;
 switch (_that) {
 case _SwitchToastSettingState():
-return $default(_that.enableBook,_that.enablePage,_that.bookTitleTemplate,_that.bookDescriptionTemplate,_that.pageTitleTemplate,_that.pageDescriptionTemplate);case _:
+return $default(_that.enableBook,_that.enablePage,_that.enableBoundaryToast,_that.bookTitleTemplate,_that.bookDescriptionTemplate,_that.pageTitleTemplate,_that.pageDescriptionTemplate,_that.lastPageMessage);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -3692,10 +3696,10 @@ return $default(_that.enableBook,_that.enablePage,_that.bookTitleTemplate,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool enableBook,  bool enablePage,  String bookTitleTemplate,  String bookDescriptionTemplate,  String pageTitleTemplate,  String pageDescriptionTemplate)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool enableBook,  bool enablePage,  bool enableBoundaryToast,  String bookTitleTemplate,  String bookDescriptionTemplate,  String pageTitleTemplate,  String pageDescriptionTemplate,  String lastPageMessage)?  $default,) {final _that = this;
 switch (_that) {
 case _SwitchToastSettingState() when $default != null:
-return $default(_that.enableBook,_that.enablePage,_that.bookTitleTemplate,_that.bookDescriptionTemplate,_that.pageTitleTemplate,_that.pageDescriptionTemplate);case _:
+return $default(_that.enableBook,_that.enablePage,_that.enableBoundaryToast,_that.bookTitleTemplate,_that.bookDescriptionTemplate,_that.pageTitleTemplate,_that.pageDescriptionTemplate,_that.lastPageMessage);case _:
   return null;
 
 }
@@ -3707,13 +3711,15 @@ return $default(_that.enableBook,_that.enablePage,_that.bookTitleTemplate,_that.
 @JsonSerializable()
 
 class _SwitchToastSettingState implements SwitchToastSettingState {
-  const _SwitchToastSettingState({this.enableBook = false, this.enablePage = false, this.bookTitleTemplate = '已切换到 {{book.displayName}}（第 {{book.currentPageDisplay}} / {{book.totalPages}} 页）', this.bookDescriptionTemplate = '路径：{{book.path}}', this.pageTitleTemplate = '第 {{page.indexDisplay}} / {{book.totalPages}} 页', this.pageDescriptionTemplate = '{{page.name}}'});
+  const _SwitchToastSettingState({this.enableBook = false, this.enablePage = false, this.enableBoundaryToast = false, this.bookTitleTemplate = '已切换到 {{book.displayName}}（第 {{book.currentPageDisplay}} / {{book.totalPages}} 页）', this.bookDescriptionTemplate = '路径：{{book.path}}', this.pageTitleTemplate = '第 {{page.indexDisplay}} / {{book.totalPages}} 页', this.pageDescriptionTemplate = '{{page.name}}', this.lastPageMessage = '已经是最后一页'});
   factory _SwitchToastSettingState.fromJson(Map<String, dynamic> json) => _$SwitchToastSettingStateFromJson(json);
 
 /// 切换书籍（含首次进入一本书）时显示提示。上游同款：默认关。
 @override@JsonKey() final  bool enableBook;
 /// 翻页时显示提示。
 @override@JsonKey() final  bool enablePage;
+/// 翻到最后一页 / 在最后一页继续向前翻页时显示提示（上游 `enableBoundaryToast`）。
+@override@JsonKey() final  bool enableBoundaryToast;
 /// 模板变量为 `{{book.*}}` / `{{page.*}}`，语义与上游
 /// `renderReaderSwitchToastTemplate` 逐条对照（见
 /// `lib/util/toast/switch_toast_template.dart`）。
@@ -3723,6 +3729,8 @@ class _SwitchToastSettingState implements SwitchToastSettingState {
 /// 上游默认是「分辨率 + 文件大小」，但 Rossi 的页表（`Doc`）没有这两项，
 /// 换成页文件名 —— 刻意偏离，见 `docs/ROADMAP.md`。
 @override@JsonKey() final  String pageDescriptionTemplate;
+/// 边界提示文案（对齐上游 `enableBoundaryToast` 的语义，Rossi 侧不带模板变量）。
+@override@JsonKey() final  String lastPageMessage;
 
 /// Create a copy of SwitchToastSettingState
 /// with the given fields replaced by the non-null parameter values.
@@ -3737,18 +3745,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _SwitchToastSettingState&&(identical(other.enableBook, enableBook) || other.enableBook == enableBook)&&(identical(other.enablePage, enablePage) || other.enablePage == enablePage)&&(identical(other.bookTitleTemplate, bookTitleTemplate) || other.bookTitleTemplate == bookTitleTemplate)&&(identical(other.bookDescriptionTemplate, bookDescriptionTemplate) || other.bookDescriptionTemplate == bookDescriptionTemplate)&&(identical(other.pageTitleTemplate, pageTitleTemplate) || other.pageTitleTemplate == pageTitleTemplate)&&(identical(other.pageDescriptionTemplate, pageDescriptionTemplate) || other.pageDescriptionTemplate == pageDescriptionTemplate));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _SwitchToastSettingState&&(identical(other.enableBook, enableBook) || other.enableBook == enableBook)&&(identical(other.enablePage, enablePage) || other.enablePage == enablePage)&&(identical(other.enableBoundaryToast, enableBoundaryToast) || other.enableBoundaryToast == enableBoundaryToast)&&(identical(other.bookTitleTemplate, bookTitleTemplate) || other.bookTitleTemplate == bookTitleTemplate)&&(identical(other.bookDescriptionTemplate, bookDescriptionTemplate) || other.bookDescriptionTemplate == bookDescriptionTemplate)&&(identical(other.pageTitleTemplate, pageTitleTemplate) || other.pageTitleTemplate == pageTitleTemplate)&&(identical(other.pageDescriptionTemplate, pageDescriptionTemplate) || other.pageDescriptionTemplate == pageDescriptionTemplate)&&(identical(other.lastPageMessage, lastPageMessage) || other.lastPageMessage == lastPageMessage));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,enableBook,enablePage,bookTitleTemplate,bookDescriptionTemplate,pageTitleTemplate,pageDescriptionTemplate);
+    return Object.hash(runtimeType,enableBook,enablePage,enableBoundaryToast,bookTitleTemplate,bookDescriptionTemplate,pageTitleTemplate,pageDescriptionTemplate,lastPageMessage);
 }
 
 @override
 String toString() {
-    return 'SwitchToastSettingState(enableBook: $enableBook, enablePage: $enablePage, bookTitleTemplate: $bookTitleTemplate, bookDescriptionTemplate: $bookDescriptionTemplate, pageTitleTemplate: $pageTitleTemplate, pageDescriptionTemplate: $pageDescriptionTemplate)';
+    return 'SwitchToastSettingState(enableBook: $enableBook, enablePage: $enablePage, enableBoundaryToast: $enableBoundaryToast, bookTitleTemplate: $bookTitleTemplate, bookDescriptionTemplate: $bookDescriptionTemplate, pageTitleTemplate: $pageTitleTemplate, pageDescriptionTemplate: $pageDescriptionTemplate, lastPageMessage: $lastPageMessage)';
 }
 
 
@@ -3759,7 +3767,7 @@ abstract mixin class _$SwitchToastSettingStateCopyWith<$Res> implements $SwitchT
   factory _$SwitchToastSettingStateCopyWith(_SwitchToastSettingState value, $Res Function(_SwitchToastSettingState) _then) = __$SwitchToastSettingStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool enableBook, bool enablePage, String bookTitleTemplate, String bookDescriptionTemplate, String pageTitleTemplate, String pageDescriptionTemplate
+ bool enableBook, bool enablePage, bool enableBoundaryToast, String bookTitleTemplate, String bookDescriptionTemplate, String pageTitleTemplate, String pageDescriptionTemplate, String lastPageMessage
 });
 
 
@@ -3776,14 +3784,16 @@ class __$SwitchToastSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of SwitchToastSettingState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? enableBook = null,Object? enablePage = null,Object? bookTitleTemplate = null,Object? bookDescriptionTemplate = null,Object? pageTitleTemplate = null,Object? pageDescriptionTemplate = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? enableBook = null,Object? enablePage = null,Object? enableBoundaryToast = null,Object? bookTitleTemplate = null,Object? bookDescriptionTemplate = null,Object? pageTitleTemplate = null,Object? pageDescriptionTemplate = null,Object? lastPageMessage = null,}) {
   return _then(_SwitchToastSettingState(
 enableBook: null == enableBook ? _self.enableBook : enableBook // ignore: cast_nullable_to_non_nullable
 as bool,enablePage: null == enablePage ? _self.enablePage : enablePage // ignore: cast_nullable_to_non_nullable
+as bool,enableBoundaryToast: null == enableBoundaryToast ? _self.enableBoundaryToast : enableBoundaryToast // ignore: cast_nullable_to_non_nullable
 as bool,bookTitleTemplate: null == bookTitleTemplate ? _self.bookTitleTemplate : bookTitleTemplate // ignore: cast_nullable_to_non_nullable
 as String,bookDescriptionTemplate: null == bookDescriptionTemplate ? _self.bookDescriptionTemplate : bookDescriptionTemplate // ignore: cast_nullable_to_non_nullable
 as String,pageTitleTemplate: null == pageTitleTemplate ? _self.pageTitleTemplate : pageTitleTemplate // ignore: cast_nullable_to_non_nullable
 as String,pageDescriptionTemplate: null == pageDescriptionTemplate ? _self.pageDescriptionTemplate : pageDescriptionTemplate // ignore: cast_nullable_to_non_nullable
+as String,lastPageMessage: null == lastPageMessage ? _self.lastPageMessage : lastPageMessage // ignore: cast_nullable_to_non_nullable
 as String,
   ));
 }

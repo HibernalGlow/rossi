@@ -82,6 +82,12 @@ extension _ComicReadInitPart on _ComicReadPageState {
       pageController: _pageController,
       onBeforeTurnPage: _inputController.restoreScaleBeforeTurnPage,
       isUserScrolling: () => _isUserScrollActive,
+      canAdvanceNext: () {
+        final seamlessCubit = context.read<ReaderSeamlessCubit>();
+        return seamlessCubit.isSeamlessEnabled()
+            ? seamlessCubit.canLoadNextChapter()
+            : _jumpChapter.haveNext;
+      },
     );
   }
 

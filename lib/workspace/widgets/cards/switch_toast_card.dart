@@ -106,6 +106,15 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
                   .read<GlobalSettingCubit>()
                   .updateSwitchToastSetting((c) => c.copyWith(enablePage: v)),
             ),
+            _toggle(
+              '到达最后一页时显示提示',
+              setting.enableBoundaryToast,
+              (v) => context
+                  .read<GlobalSettingCubit>()
+                  .updateSwitchToastSetting(
+                    (c) => c.copyWith(enableBoundaryToast: v),
+                  ),
+            ),
           ],
         ),
         _TemplateSection(
@@ -149,6 +158,23 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
             '页面模板同样可以使用 {{book.*}} 变量。',
             style: TextStyle(fontSize: 10),
           ),
+        ),
+        _Section(
+          title: '边界提示文案',
+          icon: Icons.last_page_rounded,
+          children: [
+            const SizedBox(height: 2),
+            _DraftField(
+              key: ValueKey('boundary-${setting.lastPageMessage}'),
+              label: '最后一页提示文案',
+              value: setting.lastPageMessage,
+              placeholder: '例如：已经是最后一页',
+              onCommit: (v) =>
+                  context.read<GlobalSettingCubit>().updateSwitchToastSetting(
+                    (c) => c.copyWith(lastPageMessage: v),
+                  ),
+            ),
+          ],
         ),
       ],
     );

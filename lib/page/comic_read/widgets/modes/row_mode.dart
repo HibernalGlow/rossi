@@ -13,6 +13,7 @@ import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
 import 'package:zephyr/page/comic_read/widgets/modes/read_mode_slot_builder.dart';
 import 'package:zephyr/page/comic_read/widgets/modes/read_mode_transition_style.dart';
 import 'package:zephyr/page/comic_read/widgets/modes/read_mode_utils.dart';
+import 'package:zephyr/service/reader/switch_toast_service.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 
@@ -150,9 +151,14 @@ class _RowModeWidgetState extends State<RowModeWidget> {
           }
 
           if (currentPixels > maxPixels) {
-            if (currentPixels > maxPixels + context.screenWidth / offset &&
-                widget.haveNext) {
-              jumpToNext();
+            if (currentPixels > maxPixels + context.screenWidth / offset) {
+              if (widget.haveNext) {
+                jumpToNext();
+              } else {
+                // 已到本书最后一页：越界回弹的每帧都会走到这里，
+                // 由 SwitchToastService 内部 500ms 去重压回一条。
+                SwitchToastService.instance.notifyLastPage();
+              }
             }
           }
         }

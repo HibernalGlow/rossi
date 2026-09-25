@@ -150,6 +150,28 @@ void main() {
       await events.pump();
       expect(events.received, isEmpty);
     });
+
+    test('notifyLastPage：关开关时不弹；开启后按文案弹；500ms 内重复调用去重', () async {
+      events.settings = const SwitchToastSettingState();
+      SwitchToastService.instance.notifyLastPage();
+      await events.pump();
+      expect(events.received, isEmpty, reason: 'enableBoundaryToast 默认关');
+
+      events.settings = const SwitchToastSettingState(
+        enableBoundaryToast: true,
+        lastPageMessage: '已经是最后一页',
+      );
+      SwitchToastService.instance.notifyLastPage();
+      await events.pump();
+      expect(events.received, hasLength(1));
+      expect(events.received.single.message, '已经是最后一页');
+
+      // 越界回弹每帧都在触发，靠去重窗口压回一条。
+      SwitchToastService.instance.notifyLastPage();
+      SwitchToastService.instance.notifyLastPage();
+      await events.pump();
+      expect(events.received, hasLength(1));
+    });
   });
 
   group('切换提示卡片', () {
@@ -190,8 +212,10 @@ void main() {
       expect(find.text('触发条件'), findsOneWidget);
       expect(find.text('切换书籍时显示提示'), findsOneWidget);
       expect(find.text('切换页面时显示提示'), findsOneWidget);
+      expect(find.text('到达最后一页时显示提示'), findsOneWidget);
       expect(find.text('书籍提示模板'), findsOneWidget);
       expect(find.text('页面提示模板'), findsOneWidget);
+      expect(find.text('边界提示文案'), findsOneWidget);
       expect(find.text('{{book.displayName}}'), findsWidgets);
       expect(find.text('{{page.indexDisplay}}'), findsWidgets);
       expect(find.text('显示测试提示'), findsOneWidget);

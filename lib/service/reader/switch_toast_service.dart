@@ -9,8 +9,9 @@
 //   （`showInfoToast` → 无 context 时经 `eventBus` 由前台补弹），
 //   位置 / 时长 / 外观全部沿用「设置 → 提示样式」（`ToastSettingState`）。
 //
-// 上游的 enableAction（按键操作提示）与 enableBoundaryToast（边界翻页提示）
-// 需要按键执行 / 边界判定处的挂点，本轮未搬（口径登记在 docs/ROADMAP.md）。
+// 上游的 enableAction（按键操作提示）需要按键执行处的统一挂点，本轮未搬
+// （口径登记在 docs/ROADMAP.md）。enableBoundaryToast 已接入：由
+// `notifyLastPage()` 从阅读器边界处（末页越界 / 到底后再翻页）直接调用。
 
 import 'package:flutter/foundation.dart';
 import 'package:zephyr/config/global/global_setting.dart';
@@ -127,6 +128,31 @@ class SwitchToastService {
     } else {
       showInfoToast(description, title: resolvedTitle);
     }
+  }
+
+  /// 阅读器在「最后一页 / 末页越界」边界处调用；受 [SwitchToastSettingState.enableBoundaryToast] 控制。
+  ///
+  /// 走与 book/page 提示同一条 500ms 去重窗口，越界滚动每帧都会回调这里，
+  /// 依赖去重把连续触发压回一条。
+  void notifyLastPage() {
+    final settings = _settings;
+    if (!settings.enableBoundaryToast) return;
+    final message = settings.lastPageMessage.trim();
+    if (message.isEmpty) return;
+    _publishRaw(message);
+  }
+
+  void _publishRaw(String message) {
+    final key = message;
+    final now = DateTime.now();
+    if (key == _lastKey &&
+        _lastShownAt != null &&
+        now.difference(_lastShownAt!) < _dedupWindow) {
+      return;
+    }
+    _lastKey = key;
+    _lastShownAt = now;
+    showInfoToast(message);
   }
 
   /// 变量表与上游 `switchToastContext` 对齐；Rossi 拿不到的键
