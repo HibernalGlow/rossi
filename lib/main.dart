@@ -860,6 +860,7 @@ class _MyAppState extends State<MyApp>
               }
 
               return MaterialApp.router(
+                debugShowCheckedModeBanner: false,
                 routerConfig: appRouter.config(
                   navigatorObservers: () => [AutoRouteObserver()],
                 ),
