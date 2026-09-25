@@ -37,10 +37,28 @@ actor ModelManager {
         }
 
         let fileURL = URL(fileURLWithPath: path)
-        let compiledUrl = try await MLModel.compileModel(at: fileURL)
+        let cached = CompiledModelCache.cachedURL(for: fileURL)
+        var compiledUrl = cached
+        var loadedFromCache = CompiledModelCache.isUsable(cached)
+        if !loadedFromCache {
+            compiledUrl = try CompiledModelCache.install(
+                compiled: try await MLModel.compileModel(at: fileURL), for: fileURL)
+        }
         let configuration = MLModelConfiguration()
         configuration.computeUnits = .all
-        let mlModel = try MLModel(contentsOf: compiledUrl, configuration: configuration)
+        let mlModel: MLModel
+        do {
+            mlModel = try MLModel(contentsOf: compiledUrl, configuration: configuration)
+        } catch {
+            // 「缓存里那份读不出来」是可能的（上次编译被中断，只剩个空壳）：那种情况
+            // 重编译一次。本来就现编译出来的还失败，则别试第二遍。
+            // 用标志位而不是比 URL：`appendingPathComponent` 在目录已存在时会带尾斜杠，
+            // 两个指向同一个目录的 URL 可以 `==` 为 false。
+            guard loadedFromCache else { throw error }
+            compiledUrl = try CompiledModelCache.install(
+                compiled: try await MLModel.compileModel(at: fileURL), for: fileURL)
+            mlModel = try MLModel(contentsOf: compiledUrl, configuration: configuration)
+        }
 
         let model: ImageProcessingModel?
         switch type.lowercased() {
