@@ -92,7 +92,6 @@ comic_read/
 | 音量键翻页 | `ReaderVolumeController` | 平台侧拦截后转 action |
 | 自动阅读计时 | `ReaderAutoReadController` + auto_read part | 参数同步与 UI 浮动按钮仍可能在 part |
 | 系统栏 / 全屏 | `ReaderSystemUiController` + system_ui part | 菜单显隐联动 |
-| 顶部那条物理边归谁 | `chrome/reader_top_chrome_inset.dart`（纯判据）+ `ReaderHoverScope.reserveOf` | macOS 原生全屏时让出 40px 给系统菜单栏与红绿灯；感应带与顶栏本体**必须读同一个值**，各读一次就会出现一处让了、一处没让 |
 | 生命周期、首帧 bootstrap 标记 | `ReaderLifecycleController` | `hasBootstrappedReadState` 等 |
 | 章节跳转（换路由/换章入口） | `JumpChapter`（method） | 与 seamless 边界加载不是同一条路径 |
 | `PageController` / `ScrollController` / `TransformationController` | `_ComicReadPageState` | 仍由 State 持有，Cubit 不直接拥有 |
@@ -300,8 +299,7 @@ service/       # jump、history isolate 协作
 2. 列模式滚动、行模式 LTR / RTL、双页（若开启）
 3. 半无缝：滚到边界加载前后章、过渡卡片点击、prepend 后位置不跳飞
 4. 滑动条跳转、页码信息显示
-5. 菜单显隐与系统栏 / 桌面全屏（含 macOS 原生全屏：推到屏幕顶只出系统红绿灯、
-   推到下面那条带才出阅读器顶栏，顶栏左上角的返回/退出不被压住）
+5. 菜单显隐与系统栏 / 桌面全屏
 6. 音量键翻页（Android）
 7. 自动阅读启停与参数变更
 8. 历史进入恢复进度、阅读中历史写入

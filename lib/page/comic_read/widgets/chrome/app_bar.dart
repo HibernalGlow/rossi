@@ -138,15 +138,9 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
       surface: Theme.of(context).colorScheme.surface,
     );
 
-    // macOS 原生全屏时，顶栏整条往下挪，把屏幕最顶让给系统的菜单栏与红绿灯
-    // （否则红绿灯压在这一行左上角那颗返回/退出上，等于出不来全屏）。
-    // 让出量已经 ≥ 菜单栏高度，所以这一档**不再**叠 `SafeArea` 的顶部内缩：
-    // 系统栏露出的那一瞬间内缩会从 0 跳到 ~25，两处一起加就是顶栏当场跳一下。
-    final topReserve = ReaderHoverScope.reserveOf(context);
-
     // 顶栏本体（两种材质共用同一份内容，只有外面那层材质不同）。
     final barContent = SafeArea(
-      top: topReserve <= 0,
+      top: true,
       bottom: false,
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -178,7 +172,7 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
     );
 
     return Positioned(
-      top: topReserve,
+      top: 0,
       left: 0,
       right: 0,
       child: IgnorePointer(

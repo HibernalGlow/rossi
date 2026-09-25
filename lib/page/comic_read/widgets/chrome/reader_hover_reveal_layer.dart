@@ -5,8 +5,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_state.dart';
-import 'package:zephyr/page/comic_read/widgets/chrome/reader_top_chrome_inset.dart';
-import 'package:zephyr/service/reader/reader_desktop_fullscreen_service.dart';
 
 /// 悬停唤出的「锁」（手动展开的菜单 `isMenuVisible` / 正在拖的进度条
 /// `isSliderRolling`）是不是**刚刚**解除。
@@ -200,88 +198,25 @@ class ReaderHoverController {
   }
 }
 
-/// 悬停控制器 + 「顶部那条物理边该让给系统多少」的共享作用域。
-///
-/// 两件事放一起不是为了少写一层 widget，而是因为**「这条边的主人是谁」只能有一个
-/// 答案**：感应带（本文件的 [ReaderHoverRevealOverlay]）与顶栏本体
-/// （`chrome/app_bar.dart`）必须读同一个值。各读一次平台与全屏状态，就会出现
-/// 「一处让了、一处还贴着顶」—— 那正是 macOS 原生全屏下红绿灯压住顶栏返回键、
-/// 结果连全屏都出不来的成因。
-///
-/// 挂在本 Scope 而不是新建一层，是为了让唯一的挂载点
-/// （`widgets/success/comic_read_success_widget.dart`）逐字不变：多套一层会让
-/// 那棵 60 行的 chrome 子树整体重排，下次同步上游时全是冲突。
-class ReaderHoverScope extends StatefulWidget {
+/// 悬停控制器共享作用域。
+class ReaderHoverScope extends InheritedWidget {
+  final ReaderHoverController controller;
+
   const ReaderHoverScope({
     super.key,
     required this.controller,
-    required this.child,
-    this.isMacOS,
-  });
-
-  final ReaderHoverController controller;
-
-  /// 被本作用域包住的那棵子树（感应带与两条栏都在里面）。
-  final Widget child;
-
-  /// 默认为「跑代码这台机器真的是 macOS」。判据要在任何主机上跑同一份真值表，
-  /// 就得让测试注入：Linux / Windows 的开发机上 `Platform.isMacOS` 是 `false`，
-  /// 不注入的话那条断言只会在那台机器上成立。
-  final bool? isMacOS;
-
-  static ReaderHoverController? of(BuildContext context) {
-    return context
-        .dependOnInheritedWidgetOfExactType<_ReaderChromeScope>()
-        ?.controller;
-  }
-
-  /// 顶部该让出多少像素。不在本 Scope 之下（测试里单独 pump 顶栏、
-  /// 从书架外的宿主进来）就是 0，也就是改造前的行为。
-  static double reserveOf(BuildContext context) {
-    return context
-            .dependOnInheritedWidgetOfExactType<_ReaderChromeScope>()
-            ?.reserve ??
-        0.0;
-  }
-
-  @override
-  State<ReaderHoverScope> createState() => _ReaderHoverScopeState();
-}
-
-class _ReaderHoverScopeState extends State<ReaderHoverScope> {
-  @override
-  Widget build(BuildContext context) {
-    // 全屏状态只有这一个来源：`ReaderLifecycleController._isDesktopFullscreen`
-    // 是 docs/adr/0013 记了账的过期第二本账（⌃⌘F 之后会滞后），不能拿它当判据。
-    return ValueListenableBuilder<bool>(
-      valueListenable:
-          ReaderDesktopFullscreenService.instance.fullscreenNotifier,
-      builder: (context, isOsFullscreen, _) => _ReaderChromeScope(
-        controller: widget.controller,
-        reserve: resolveReaderTopChromeReserve(
-          isMacOS: widget.isMacOS ?? isMacOSHost,
-          isOsFullscreen: isOsFullscreen,
-        ),
-        child: widget.child,
-      ),
-    );
-  }
-}
-
-class _ReaderChromeScope extends InheritedWidget {
-  const _ReaderChromeScope({
-    required this.controller,
-    required this.reserve,
     required super.child,
   });
 
-  final ReaderHoverController controller;
-  final double reserve;
+  static ReaderHoverController? of(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<ReaderHoverScope>()
+        ?.controller;
+  }
 
   @override
-  bool updateShouldNotify(_ReaderChromeScope oldWidget) {
-    return controller != oldWidget.controller || reserve != oldWidget.reserve;
-  }
+  bool updateShouldNotify(covariant ReaderHoverScope oldWidget) =>
+      controller != oldWidget.controller;
 }
 
 /// 一块唤出区的**百分比**矩形（相对阅读器可视区，0..100）。
@@ -358,11 +293,6 @@ class ReaderHoverRevealOverlay extends StatelessWidget {
         .toDouble()
         .clamp(8.0, 150.0);
 
-    // macOS 原生全屏时，屏幕最顶那一条归系统的菜单栏与红绿灯：感应带整体下移到
-    // 保留线之下，于是「推顶边」只出系统 chrome、「推到下面这条带」只出阅读器顶栏。
-    // 与顶栏本体读的是同一个值（见 [ReaderHoverScope]），不会一处让了、一处没让。
-    final topReserve = ReaderHoverScope.reserveOf(context);
-
     final colorScheme = Theme.of(context).colorScheme;
 
     return Stack(
@@ -370,7 +300,7 @@ class ReaderHoverRevealOverlay extends StatelessWidget {
         // 顶部唤出感应带
         if (readSetting.hoverRevealTop)
           Positioned(
-            top: topReserve,
+            top: 0,
             left: 0,
             right: 0,
             height: topAreaHeight,
