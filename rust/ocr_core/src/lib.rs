@@ -11,12 +11,14 @@
 //! `comic-text-detector` / `manga-image-translator` / Yakuyomi 的权重**一律不得**进来。
 
 pub mod detect;
+pub mod group;
 pub mod postprocess;
 pub mod recognize;
 pub mod session;
 pub mod types;
 
 pub use detect::{Detection, Detector};
+pub use group::{GroupParams, TextBlock, group_boxes};
 pub use postprocess::Params as DetectorParams;
 pub use recognize::{Recognition, Recognizer};
 pub use session::Ep;
