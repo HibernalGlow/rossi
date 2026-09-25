@@ -11,8 +11,10 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:zephyr/service/ocr/ocr_service.dart';
 import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_cache.dart';
@@ -130,6 +132,39 @@ void main() {
     expect(
       await TranslatedPageCache.isUsable(label: label, pageIndex: 7),
       isFalse,
+    );
+  });
+
+  test('降级产物写在持久根目录下，但不进指纹目录', () async {
+    final f = await TranslatedPageCache.writeDegraded(
+      pageIndex: 7,
+      pngBytes: await _realPng(),
+    );
+    // 落点必须在 outputRoot 里：系统临时目录会被 dirhelper 每天扫一次，
+    // 而呈现器是按归属表里这个路径重注入的 —— 被扫走就等于正在显示的页静默变回原图。
+    expect(p.isWithin((await OcrService.outputRoot()).path, f.path), isTrue);
+    expect(await f.exists(), isTrue);
+    // 同一个页号在缓存那一侧仍然「没有可用产物」：降级档不进指纹缓存，
+    // 否则端点恢复之后永远端出这张没翻译的页。
+    expect(
+      await TranslatedPageCache.isUsable(label: label, pageIndex: 7),
+      isFalse,
+    );
+    // 「在受管根目录下」的实际含义：设置页那颗「清空成品页」的按钮管得到它。
+    // 写在系统临时目录里的那一版是管不到的 —— 它会自己在一个没人知道的时间消失。
+    await TranslatedPageCache.clearAll();
+    expect(await f.exists(), isFalse);
+  });
+
+  test('已生成张数不把降级产物算进去', () async {
+    final png = await _realPng();
+    await put(png);
+    expect(await TranslatedPageCache.pageCount(), 1);
+    await TranslatedPageCache.writeDegraded(pageIndex: 3, pngBytes: png);
+    expect(
+      await TranslatedPageCache.pageCount(),
+      1,
+      reason: '「已生成 N 张」把没翻译的那张报成产物，就是虚报',
     );
   });
 }

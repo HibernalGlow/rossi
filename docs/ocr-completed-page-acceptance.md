@@ -7,7 +7,7 @@
 静态层面已经过了，不必重复验：
 
 - `dart analyze lib/` 干净（只剩一条与本次无关的 `switch_toast_service.dart` info）；
-- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart test/reader/translated_page_status_test.dart` **68 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
+- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart test/reader/translated_page_status_test.dart` **70 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
 - `cargo test -p rossi_ocr_core` **24 条全过**；
 - `flutter build macos --debug` 与 `--release` 都出包成功（Release 产物 152.7 MB，含 13.2 MB 字体）；
 - **端到端已经跑过一次真权重**：`test/ocr/completed_page_e2e_test.dart` 对
@@ -20,9 +20,11 @@
 ## 先说一条落盘纪律
 
 **成品页缓存与权重都不许挪到 `getTemporaryDirectory()`。** 这台机器的 dirhelper 每天 03:35
-清 tmp（超分那边已经因此踩过「每次启动重下」）。两边现在都在持久区：
-`getFilePath()/manga_ocr/`（权重）与 `getFilePath()/manga_translated/<指纹>/`（成品页）。
-只有两处用系统临时目录，且都是**用完就删**的中间产物：擦出来的底图（渲染完即删）、
+清 tmp（超分那边已经因此踩过「每次启动重下」）。三样都在持久区：
+`getFilePath()/manga_ocr/`（权重）、`getFilePath()/manga_translated/<指纹>/`（成品页）、
+`getFilePath()/manga_translated_degraded/`（降级档 —— 不参与指纹查表，但在受管根目录下，
+所以「清空成品页」管得到它）。
+只剩两处用系统临时目录，且都是**用完就删**的中间产物：擦出来的底图（渲染完即删）、
 归档页取原图时落的临时文件（换书即删，取不到会自动重建）。
 
 ## 先给一件工具：应用内冒烟页
@@ -190,9 +192,11 @@ ollama serve && ollama run qwen2.5:14b        # 本机：base URL = http://127.0
 **做**：把端点指向一个不通的端口，再按「译」。
 **预期**：这一页**仍然出一张图** —— 擦掉原文、把原文画回去 —— 芯片显示**「原文回填」**（另一种颜色），
 不是「译文页」，也不是「译文失败」。
-**判据两条**：① 界面必须区分「翻译成功」与「只是回填了原文」，混起来就是撒谎；
+**判据三条**：① 界面必须区分「翻译成功」与「只是回填了原文」，混起来就是撒谎；
 ② 这张降级页**不许进指纹缓存**：去 `manga_translated/<指纹>/` 里看，不该多出 `p<N>.png`；
 把端点改回可用的再点一次，必须真的出译文，而不是命中那张未翻译的旧图。
+③ 它落在 `manga_translated_degraded/`（**不是**系统临时目录）：翻远再翻回来仍该是那张降级页，
+而且设置页按「清空成品页」之后这个目录要跟着没有 —— 「已生成 N 张」那一行**不该**把它算进去。
 
 ## 12. 失败不谎报
 

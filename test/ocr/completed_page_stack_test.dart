@@ -14,8 +14,10 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:zephyr/service/ocr/ocr_service.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_builder.dart';
 import 'package:zephyr/service/ocr/translated_page_cache.dart';
@@ -248,6 +250,14 @@ void main() {
     expect(out.degraded, isTrue);
     expect(out.hasText, isTrue);
     expect(await File(out.path).exists(), isTrue, reason: '降级页也得能显示出来');
+    // 落点必须是**持久目录**：呈现器会按归属表里这个路径在翻回来时重注入，
+    // 放系统临时目录的话 dirhelper 每天 03:35 扫一次，正在显示的这张会静默变回原图。
+    final root = await OcrService.outputRoot();
+    expect(
+      p.isWithin(root.path, out.path),
+      isTrue,
+      reason: '降级产物落在 ${root.path} 之外，设置页的「清空成品页」就管不到它',
+    );
 
     final label = (await TranslatedPageCache.describe(config: cfg2)).label;
     expect(

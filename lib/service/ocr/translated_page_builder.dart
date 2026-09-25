@@ -190,12 +190,12 @@ class TranslatedPageBuilder {
       // **降级产物不进指纹缓存。** 端点只是暂时没起，写进去的话：
       // 下次端点好了再点，命中的还是这张「擦掉日文又画回日文」的页 ——
       // 而缓存指纹里没有任何一项能反映「端点当时活着吗」，这类陈旧是静默的。
-      // 落到系统临时目录的一个固定名字里：本次能显示、能注入，下次自然重来。
-      final dir = await Directory(
-        p.join(Directory.systemTemp.path, 'rossi_ocr_degraded'),
-      ).create(recursive: true);
-      final throwaway = File(p.join(dir.path, 'p$pageIndex.png'));
-      await throwaway.writeAsBytes(png, flush: true);
+      // 落点仍是**持久目录**下的一个旁路目录（不是系统临时目录）：呈现器按归属表里
+      // 那个路径重注入，目录被 dirhelper 扫走的话这张正在显示的页会静默变回原图。
+      final throwaway = await TranslatedPageCache.writeDegraded(
+        pageIndex: pageIndex,
+        pngBytes: png,
+      );
       return TranslatedPage(
         path: throwaway.path,
         fromCache: false,

@@ -43,6 +43,13 @@ class TranslatedPageCache {
   /// 排版参数版本：改字号策略 / 边距 / 换行规则就 +1，让旧产物失效。
   static const layoutVersion = 1;
 
+  /// 降级档（擦字 + 原文回填）产物的目录名，与缓存目录同级但**不参与指纹查表**。
+  ///
+  /// 之所以不落在系统临时目录：macOS 的 dirhelper 每天 03:35 会扫 `tmp/`，
+  /// 一张**正在显示**的降级页会凭空消失 —— 呈现器按归属表里那个路径重注入时
+  /// 拿到的是死路径（本仓在模型落盘上已经吃过同型的亏，见「每次启动重下」）。
+  static const degradedDirName = 'manga_translated_degraded';
+
   /// 字体版本：换字体或换字重都要改（与 `pubspec.yaml` 里的 family 对应）。
   static const fontVersion = 'wenkai-lite-1.522';
 
@@ -130,9 +137,7 @@ class TranslatedPageCache {
     final dir = await directory(label);
     await dir.create(recursive: true);
     final target = await pageFile(label: label, pageIndex: pageIndex);
-    final tmp = File('${target.path}.tmp_$pid');
-    await tmp.writeAsBytes(pngBytes, flush: true);
-    await tmp.rename(target.path);
+    await _writeAtomically(target, pngBytes);
     if (fingerprint != null) {
       final manifest = File(p.join(dir.path, 'manifest.json'));
       final existing = await manifest.exists()
@@ -146,13 +151,39 @@ class TranslatedPageCache {
     }
   }
 
+  /// 降级产物（擦字 + 原文回填）：同一套原子写，但**目录与指纹缓存分开**，
+  /// 所以端点恢复之后下一次一定重跑，不会命中这张没翻译的。
+  static Future<File> writeDegraded({
+    required int pageIndex,
+    required Uint8List pngBytes,
+  }) async {
+    final dir = Directory(
+      p.join((await OcrService.outputRoot()).path, degradedDirName),
+    );
+    await dir.create(recursive: true);
+    final target = File(p.join(dir.path, 'p$pageIndex.png'));
+    await _writeAtomically(target, pngBytes);
+    return target;
+  }
+
+  static Future<void> _writeAtomically(File target, Uint8List bytes) async {
+    final tmp = File('${target.path}.tmp_$pid');
+    await tmp.writeAsBytes(bytes, flush: true);
+    await tmp.rename(target.path);
+  }
+
   /// 已生成的成品页数：设置页用它显示「已生成 N 张」，也决定「清空」要不要亮着。
   static Future<int> pageCount() async {
     final root = await OcrService.outputRoot();
     if (!await root.exists()) return 0;
+    final degradedDir = p.join(root.path, degradedDirName);
     var count = 0;
     await for (final e in root.list(recursive: true, followLinks: false)) {
-      if (e is File && e.path.endsWith('.png')) count++;
+      // 降级那一份是「这次能看、下次重做」的临时体，算进「已生成」就是把没翻译的
+      // 那张也报成产物。
+      if (e is! File || !e.path.endsWith('.png')) continue;
+      if (p.isWithin(degradedDir, e.path)) continue;
+      count++;
     }
     return count;
   }

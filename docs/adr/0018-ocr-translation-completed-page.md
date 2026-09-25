@@ -269,7 +269,12 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
 **这一档已实现（2026-09-26），并且补了一条 ADR 当时没说清的铁律：降级产物不进指纹缓存。**
 端点只是**当时**不可用，而缓存指纹里没有任何一项能表达这件事 —— 写进去就等于
 「端点恢复之后永远端出这张未翻译的页」，正是本 ADR 一路在防的静默陈旧。
-所以降级产物只落到系统临时目录的一个固定名字里（本次能显示、能注入，下次自然重来），
+所以降级产物**不进缓存目录、但也不许落系统临时目录**：落到持久区里一个不参与指纹查表的旁路目录
+`getFilePath()/manga_translated_degraded/p<idx>.png`（`TranslatedPageCache.writeDegraded`）。
+第一版写的是系统临时目录，那是本文自己的落盘纪律没被执行 —— 呈现器翻回来时会按归属表里**那个路径**
+重注入，而本机 dirhelper 每天 03:35 扫 tmp（超分那边「每次启动重下」的同型成因），
+结果就是一张正在显示的降级页会在没人碰它的情况下静默变回原图。
+落在这里同时满足两件事：**下一次一定重跑**（不参与指纹查表），且**「清空成品页」管得到它**（在受管根目录下）。
 并且顶栏芯片显示成**「原文回填」**而不是「译文页」（`TranslatedPageChipState.showingOriginal`，
 单独一个颜色）：一张「擦掉日文又画回日文」的页面看着像成功了，不标出来就是在撒谎。
 
@@ -346,7 +351,7 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
 | 本 ADR 的决定 | 落点 | 状态 |
 |---|---|---|
 | §2 `rust/ocr_core` | `rust/ocr_core/src/{detect,postprocess,recognize,group,inpaint,session}.rs`，经 `rust/src/api/ocr.rs::ocr_analyze_page` 过 FRB | 已实现；`cargo test -p rossi_ocr_core` 24 条 |
-| §3 成品页 = 缓存产物 | `translated_page_cache.dart`（指纹 + 可读标签目录 + `manifest.json` + 原子写） | 已实现 |
+| §3 成品页 = 缓存产物 | `translated_page_cache.dart`（指纹 + 可读标签目录 + `manifest.json` + 原子写；降级档走同根的旁路目录 `manga_translated_degraded/`，不参与指纹查表但归「清空」管） | 已实现 |
 | §3 Dart 侧排版 | `translated_page_renderer.dart`（字号候选下降、越框禁止、OFL 字体运行时注册） | 已实现 |
 | §3.4 每页开关 / 与超分互斥 / 状态核对 | `lib/reader/translated_page_controller.dart` + 顶栏 `reader_translated_page_chip.dart`；芯片状态表抽成纯函数 `translated_page_status.dart`（与超分那边同形） | 已实现 |
 | Consequences「退出阅读 / 切章必须取消在途推理」 | `LocalReadSession.setSource` 与 `dispose(expectedPath:)` 都调 `TranslatedPageController.reset()`；在飞的那次构建按 `_generation` 认出自己过期，并且**把 `shouldCancel` 传给构建器**，于是剩下的翻译 / 排版 / 落盘都不再发生 | 已实现。⚠️ 粒度只能是**阶段**：检测+识别+擦字是一次过桥的整段调用，Rust 侧没有协作式取消点，所以「正在跑的那一段」会跑到结束才让出。过期判定与阶段取消都有单测（去掉 `_stale` 或摘掉 `shouldCancel` 就红），`dispose` 那一行装配没有单测，判据在验收清单第 7c 条 |
@@ -356,7 +361,7 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
 | §6 平台排除 | `ocrSupportedHere`：移动端连设置入口都不画 | 已实现 |
 | §7 不内置 NMT | `ocr_translator.dart` 只走 OpenAI-compatible；真 HTTP 有 6 条测试 | 已实现 |
 
-验证：`flutter test test/ocr/` + 两份 reader 测试共 **94 条全过 0 skip**（Dart 68 + 呈现器测试 26），
+验证：`flutter test test/ocr/` + 两份 reader 测试共 **96 条全过 0 skip**（Dart 70 + 呈现器测试 26），
 其中 `completed_page_e2e_test.dart` 用真权重跑通整条链路（15 块 / 827×1170 / 每块有墨 / 二次命中缓存）。
 `flutter build macos` 的 Debug 与 Release 都出包（Release 152.7 MB，含 13.2 MB 字体）。
 真机逐条判据在 `docs/ocr-completed-page-acceptance.md`。
