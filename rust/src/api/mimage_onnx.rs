@@ -102,7 +102,11 @@ fn init_ort(model_path: &str) -> Result<()> {
                 .with_name("rossi-mimage-onnx")
                 .with_execution_providers([ep::CoreML::default()
                     .with_compute_units(ep::coreml::ComputeUnits::All)
-                    .with_model_cache_dir(coreml_cache_dir(Path::new(model_path)).display().to_string())
+                    .with_model_cache_dir(
+                        coreml_cache_dir(Path::new(model_path))
+                            .display()
+                            .to_string(),
+                    )
                     .build()
                     .error_on_failure()])
                 .commit();

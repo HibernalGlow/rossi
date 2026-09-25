@@ -9,7 +9,7 @@
 
 use anyhow::{Result, anyhow};
 use ort::session::{Session, builder::GraphOptimizationLevel};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -82,10 +82,23 @@ impl Ep {
     }
 }
 
+/// CoreML EP 的编译产物目录：落在模型旁边的 `.coreml_cache`。
+///
+/// 不设 `ModelCacheDirectory` 时 ORT **每次建 session 都把 .onnx 重编译一遍**，产物还丢在
+/// 系统临时目录里（macOS 每天清一次）。目录从调用方传进来的模型路径派生，Rust 不另猜一套
+/// 目录策略；与 `rust/src/api/mimage_onnx.rs` 同一口径、同一个 `.coreml_cache` 名字。
+#[cfg(any(target_os = "macos", target_os = "ios"))]
+fn coreml_cache_dir(model: &Path) -> PathBuf {
+    let dir = model.parent().unwrap_or(model).join(".coreml_cache");
+    let _ = std::fs::create_dir_all(&dir);
+    dir
+}
+
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 fn apply_accelerator(
     builder: ort::session::builder::SessionBuilder,
     ep: Ep,
+    model: &Path,
 ) -> Result<ort::session::builder::SessionBuilder> {
     match ep {
         Ep::Auto => Err(anyhow!(
@@ -94,6 +107,7 @@ fn apply_accelerator(
         Ep::CoreMl => builder
             .with_execution_providers([ort::ep::CoreML::default()
                 .with_compute_units(ort::ep::coreml::ComputeUnits::All)
+                .with_model_cache_dir(coreml_cache_dir(model).display().to_string())
                 .build()
                 .error_on_failure()])
             .map_err(|e| anyhow!("注册 CoreML EP 失败（不静默退回 CPU）：{e:?}")),
@@ -106,6 +120,7 @@ fn apply_accelerator(
 fn apply_accelerator(
     builder: ort::session::builder::SessionBuilder,
     ep: Ep,
+    model: &Path,
 ) -> Result<ort::session::builder::SessionBuilder> {
     match ep {
         Ep::Auto => Err(anyhow!(
@@ -123,6 +138,7 @@ fn apply_accelerator(
 fn apply_accelerator(
     builder: ort::session::builder::SessionBuilder,
     ep: Ep,
+    model: &Path,
 ) -> Result<ort::session::builder::SessionBuilder> {
     match ep {
         Ep::Cpu => Ok(builder),
@@ -148,7 +164,7 @@ pub fn build_session(model: &Path, ep: Ep, stage: Stage, intra_threads: usize) -
     let builder = builder
         .with_intra_threads(intra_threads.max(1))
         .map_err(|e| anyhow!("设置 intra 线程数失败：{e:?}"))?;
-    let mut builder = apply_accelerator(builder, ep)?;
+    let mut builder = apply_accelerator(builder, ep, model)?;
     builder
         .commit_from_file(model)
         .map_err(|e| anyhow!("加载 ONNX 模型失败（{}）：{e:?}", model.display()))
