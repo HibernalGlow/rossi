@@ -27,6 +27,7 @@ class TranslatedPage {
     required this.hasText,
     required this.blockCount,
     required this.truncatedCount,
+    this.elapsed = Duration.zero,
   });
 
   /// 成品页 PNG 的路径。**没有文字的页直接返回原图路径** —— 那种页擦不擦都一样，
@@ -38,6 +39,11 @@ class TranslatedPage {
 
   /// 识别被上限截断的块数：这些块的原文不完整，译文自然也可疑，UI 要标出来。
   final int truncatedCount;
+
+  /// 本次构建花了多久（命中缓存时是查表时间）。
+  /// 冒烟页与以后的状态条都要显示它 —— 一页十几秒这件事得让用户看得见，
+  /// 不然只会以为点了没反应。
+  final Duration elapsed;
 }
 
 /// 整页链路：查缓存 → 分析（检测/识别/聚块/擦字）→ 翻译 → 回填 → 原子写缓存。
@@ -89,6 +95,7 @@ class TranslatedPageBuilder {
     bool Function()? shouldCancel,
     bool force = false,
   }) async {
+    final clock = Stopwatch()..start();
     final (:fingerprint, :label) = await TranslatedPageCache.describe(
       config: config,
     );
@@ -104,6 +111,7 @@ class TranslatedPageBuilder {
         hasText: true,
         blockCount: 0,
         truncatedCount: 0,
+        elapsed: clock.elapsed,
       );
     }
 
@@ -127,6 +135,7 @@ class TranslatedPageBuilder {
           hasText: false,
           blockCount: 0,
           truncatedCount: 0,
+          elapsed: clock.elapsed,
         );
       }
 
@@ -170,6 +179,7 @@ class TranslatedPageBuilder {
       hasText: true,
       blockCount: blocks,
       truncatedCount: truncated,
+      elapsed: clock.elapsed,
     );
   }
 

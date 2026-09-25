@@ -7,7 +7,7 @@
 静态层面已经过了，不必重复验：
 
 - `dart analyze lib/` 干净（只剩一条与本次无关的 `switch_toast_service.dart` info）；
-- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart` **55 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
+- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart test/reader/translated_page_status_test.dart` **58 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
 - `cargo test -p rossi_ocr_core` **21 条全过**；
 - `flutter build macos --debug` 出包成功；
 - **端到端已经跑过一次真权重**：`test/ocr/completed_page_e2e_test.dart` 对
@@ -24,6 +24,16 @@
 `getFilePath()/manga_ocr/`（权重）与 `getFilePath()/manga_translated/<指纹>/`（成品页）。
 只有两处用系统临时目录，且都是**用完就删**的中间产物：擦出来的底图（渲染完即删）、
 归档页取原图时落的临时文件（换书即删，取不到会自动重建）。
+
+## 先给一件工具：应用内冒烟页
+
+**设置 → 调试 → OCR 成品页冒烟**（刻意不锁在 debug 构建里，与本地来源、GPU 上屏那两条同口径）。
+它把这条链路的六道关摊开成可读的一行行：权重缺哪几个、后端实际是什么、选一张页、
+逐段报「检测 / 识别 / 擦字 → 翻译请求 → 回填排版」并显示总耗时、块数、被截断的块数与成品图。
+
+下面第 1、2、4、5、11、12 条在这一页上就能判，**不必先进书再翻页**。
+它跑的是生产同一套 `TranslatedPageBuilder`（`force: true`，不读缓存），
+所以这里过了再回阅读器看第 3、6、7、9 条，才分得清是哪一层的问题。
 
 ## 0. 起环境与前置
 

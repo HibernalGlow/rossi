@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/debug/local_source_debug_page.dart';
+import 'package:zephyr/debug/ocr_smoke_debug_page.dart';
 import 'package:zephyr/gpu/gpu_present_page.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
@@ -104,6 +105,17 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
           // GPU 上屏（D3D12 共享纹理）。与上一条同理**刻意不放进 kDebugMode**：
           // 这条链路通不通由「引擎有没有来打开共享句柄」判定，而那要拖窗口、
           // 要看合成，只有在 Release 下跑出来的数才作数。
+          // OCR 成品页冒烟：整条链路六道关，任何一道错了在阅读器的表现都只是「按了没反应」。
+          // 同样刻意不放进 kDebugMode —— 要判的是发出去的构建对不对，只有 Release 的数作数。
+          ListTile(
+            leading: const Icon(Icons.translate_outlined),
+            title: const Text('OCR 成品页冒烟'),
+            subtitle: const Text('选一张页 → 检测/识别/擦字/翻译/回填，逐段看耗时与产物'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const OcrSmokeDebugPage()),
+            ),
+          ),
           ListTile(
             leading: const Icon(Icons.memory_outlined),
             title: const Text('GPU 上屏（D3D12 共享纹理）'),
