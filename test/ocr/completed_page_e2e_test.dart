@@ -24,6 +24,8 @@ import 'package:zephyr/service/ocr/translated_page_builder.dart';
 import 'package:zephyr/src/rust/api/ocr.dart';
 import 'package:zephyr/src/rust/frb_generated.dart';
 
+import 'real_page_fixtures.dart';
+
 const _pathChannel = MethodChannel('plugins.flutter.io/path_provider');
 
 void main() {
@@ -41,50 +43,23 @@ void main() {
     appRoot = await Directory.systemTemp.createTemp('rossi_ocr_e2e_');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(_pathChannel, (call) async => appRoot.path);
-    const models = {
-      OcrModels.detFile: 'ch_PP-OCRv4_det_infer.onnx',
-      OcrModels.encoderFile: 'encoder_model.onnx',
-      OcrModels.decoderFile: 'decoder_model.onnx',
-      OcrModels.vocabFile: 'vocab.txt',
-      OcrModels.inpaintFile: 'lama-manga-dynamic.onnx',
-    };
-    final modelDirs = [
-      if (Platform.environment['ROSSI_OCR_MODELS_DIR'] != null)
-        Directory(Platform.environment['ROSSI_OCR_MODELS_DIR']!),
-      Directory('/tmp/inpaint-lab/models'),
-      Directory('/tmp/detect-lab/models'),
-    ];
-    final pageCandidates = [
-      ?Platform.environment['ROSSI_OCR_TEST_PAGE'],
-      '/tmp/detect-lab/pages/mokuro_001a.jpg',
-    ];
-    for (final p in pageCandidates) {
-      if (File(p).existsSync()) {
-        page = p;
-        break;
-      }
-    }
-    final missing = <String>[];
-    for (final entry in models.entries) {
-      final found = modelDirs
-          .map((d) => File('${d.path}/${entry.value}'))
-          .firstWhere((f) => f.existsSync(), orElse: () => File(''));
-      if (found.path.isEmpty) {
-        missing.add(entry.value);
-        continue;
-      }
-      // 符号链接而不是拷贝：识别件 343 MB，拷一份只为跑测试没必要。
-      _linkInto(await OcrModels.pathOf(entry.key), found.path);
-    }
+    final missing = await linkRealWeights();
     try {
       await RustLib.init();
     } catch (e) {
       missing.add('原生库：$e');
     }
-    ready = missing.isEmpty && page.isNotEmpty;
-    reason = ready
-        ? ''
-        : '缺权重或页图（${missing.join('、')}${page.isEmpty ? '；也没有测试页' : ''}）';
+    // 这条下面的尺寸断言（827×1170）是照这一页写的，所以按名字钉住，
+    // 不能「拿目录里第一个」—— 那会随夹具顺序变成另一张图然后报一个假的尺寸错。
+    const pinnedPage = 'mokuro_001a.jpg';
+    final found = realPages();
+    final wanted = found.where((p) => p.split('/').last == pinnedPage);
+    page =
+        Platform.environment['ROSSI_OCR_TEST_PAGE'] ??
+        (wanted.isEmpty ? '' : wanted.first);
+    if (page.isEmpty) missing.add('没有 $pinnedPage（尺寸断言照它写）');
+    ready = missing.isEmpty;
+    reason = ready ? '' : '缺权重或页图（${missing.join('、')}）';
     probe = TranslatedPageCacheProbe(page);
   });
 
@@ -184,19 +159,6 @@ class TranslatedPageCacheProbe {
       ep: 'cpu',
     )).blocks;
   }
-}
-
-void _linkInto(String linkPath, String targetPath) {
-  if (linkPath.isEmpty || !File(targetPath).existsSync()) return;
-  final f = File(linkPath);
-  Directory(f.parent.path).createSync(recursive: true);
-  final link = Link(f.path);
-  if (link.existsSync()) {
-    link.deleteSync();
-  } else if (f.existsSync()) {
-    f.deleteSync();
-  }
-  link.createSync(targetPath);
 }
 
 ui.Rect _rectOf(OcrBlock block) {

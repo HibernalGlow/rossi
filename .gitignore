@@ -116,3 +116,9 @@ native/generated/ir.json
 # docs/windows-build/win-baseline-env.sh 写入。不入库 —— 见该脚本与
 # docs/v0.1-local-core.md §5.2。
 .cargo/config.toml
+
+# 真权重与真页测试夹具（`.local/ocr-test-data/`，约 644 MB）：
+# 不入库 —— 权重有再分发限制，样本页来自 Manga109（学术研究数据集，禁止再分发）。
+# 位置刻意在持久区而不是 $TMPDIR：dirhelper 每天清 tmp 会让这些验证静默变成 skip。
+# 见 docs/ocr-completed-page-acceptance.md 第 0 条与 test/ocr/completed_page_*_test.dart。
+.local/
