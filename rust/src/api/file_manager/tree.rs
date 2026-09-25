@@ -8,8 +8,8 @@ use std::path::PathBuf;
 use anyhow::{Error, anyhow};
 use flutter_rust_bridge::frb;
 use rossi_local_core::{
-    FolderPaneState, FolderPaneTreeKey, folder_tree::path_eq as pane_path_eq,
-    settings::SortOrder as PaneSortOrder,
+    FolderPaneListingOptions, FolderPaneState, FolderPaneTreeKey,
+    folder_tree::path_eq as pane_path_eq,
 };
 
 use super::types::FileManagerTreeSnapshot;
@@ -25,12 +25,12 @@ use super::{FILE_MANAGER_PANES, FILE_MANAGER_SESSIONS, pane_inputs, project_pane
 ///
 /// 每次调用都先 `sync_to_active` 再取行：面板原本按帧驱动（egui 每帧调一次），
 /// 这里没有帧循环，于是把「对齐当前目录 + 收一次后台扫描结果」并进每个用户动作里。
-/// `sync_to_active` 只在当前目录、排序或隐藏项策略真的变了之后才重建节点，没变时
-/// 只是一次带 1.5s 节流的盘符刷新。
+/// 排序或隐藏项策略变了不再推倒整棵树：核心只丢弃旧 receiver 并对已展开的分支发一次
+/// 保留现孩子的刷新，新结果到达前画面不动。
 async fn with_pane<R, F>(id: u64, operation: F) -> Result<R, Error>
 where
     R: Send + 'static,
-    F: FnOnce(&mut FolderPaneState, PaneSortOrder) -> Result<R, Error> + Send + 'static,
+    F: FnOnce(&mut FolderPaneState) -> Result<R, Error> + Send + 'static,
 {
     rquickjs_playground::global_handle()
         .spawn_blocking(move || {
@@ -45,16 +45,19 @@ where
                 .lock()
                 .map_err(|_| anyhow!("文件树面板的锁已中毒"))?;
             let pane = panes.entry(id).or_default();
-            pane.sync_to_active(Some(active.as_path()), sort_order, show_hidden);
+            pane.sync_to_active(
+                Some(active.as_path()),
+                FolderPaneListingOptions::new(sort_order, show_hidden),
+            );
             pane.poll_pending();
-            operation(pane, sort_order)
+            operation(pane)
         })
         .await?
 }
 
 #[frb]
 pub async fn file_manager_tree_snapshot(id: u64) -> Result<FileManagerTreeSnapshot, Error> {
-    with_pane(id, |pane, _| Ok(project_pane(pane))).await
+    with_pane(id, |pane| Ok(project_pane(pane))).await
 }
 
 /// 展开/收起某一行。核心没有「按路径直接改展开态」的入口，于是把游标挪过去、
@@ -65,21 +68,18 @@ pub async fn file_manager_tree_toggle(
     id: u64,
     path: String,
 ) -> Result<FileManagerTreeSnapshot, Error> {
-    with_pane(id, move |pane, sort_order| {
+    with_pane(id, move |pane| {
         let target = PathBuf::from(path);
         pane.set_cursor(target.clone());
         let expanded = pane
             .visible_rows()
             .iter()
             .any(|row| pane_path_eq(&row.path, &target) && row.expanded);
-        pane.handle_tree_key(
-            if expanded {
-                FolderPaneTreeKey::Left
-            } else {
-                FolderPaneTreeKey::Right
-            },
-            sort_order,
-        );
+        pane.handle_tree_key(if expanded {
+            FolderPaneTreeKey::Left
+        } else {
+            FolderPaneTreeKey::Right
+        });
         Ok(project_pane(pane))
     })
     .await

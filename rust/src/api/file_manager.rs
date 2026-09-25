@@ -394,7 +394,7 @@ fn map_entry(entry: CoreEntry) -> FileManagerEntry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rossi_local_core::FolderPaneTreeKey;
+    use rossi_local_core::{FolderPaneListingOptions, FolderPaneTreeKey};
 
     #[test]
     fn snapshot_projects_home_pad_sort_lock_and_new_sort_fields() {
@@ -690,9 +690,12 @@ mod tests {
 
         let mut pane = FolderPaneState::default();
         // 面板只自动展开到当前目录的**祖先**，当前目录自己得点开。
-        pane.sync_to_active(Some(active.as_path()), sort_order, show_hidden);
+        pane.sync_to_active(
+            Some(active.as_path()),
+            FolderPaneListingOptions::new(sort_order, show_hidden),
+        );
         pane.set_cursor(active.clone());
-        pane.handle_tree_key(FolderPaneTreeKey::Right, sort_order);
+        pane.handle_tree_key(FolderPaneTreeKey::Right);
 
         // 生产路径上「收一轮后台扫描」发生在下一次 `with_pane` 里；测试自己跑到静。
         let mut rows = project_pane(&pane);
