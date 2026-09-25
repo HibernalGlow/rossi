@@ -749,6 +749,7 @@ _FileManagerSettingState _$FileManagerSettingStateFromJson(
   homePath: json['homePath'] as String? ?? '',
   openHomeOnStart: json['openHomeOnStart'] as bool? ?? false,
   rememberViewState: json['rememberViewState'] as bool? ?? true,
+  restoreTabs: json['restoreTabs'] as bool? ?? true,
   fileOperations: json['fileOperations'] as bool? ?? true,
 );
 
@@ -759,6 +760,7 @@ Map<String, dynamic> _$FileManagerSettingStateToJson(
   'homePath': instance.homePath,
   'openHomeOnStart': instance.openHomeOnStart,
   'rememberViewState': instance.rememberViewState,
+  'restoreTabs': instance.restoreTabs,
   'fileOperations': instance.fileOperations,
 };
 

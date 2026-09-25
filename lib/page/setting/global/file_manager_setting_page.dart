@@ -177,6 +177,32 @@ class FileManagerSettingPage extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           SettingSectionCard(
+            title: t.settings.fileManagerSectionTabs,
+            icon: Icons.tab_outlined,
+            children: [
+              SwitchListTile(
+                secondary: const Icon(Icons.restore_outlined),
+                title: Text(t.settings.fileManagerRestoreTabs),
+                subtitle: Text(t.settings.fileManagerRestoreTabsSubtitle),
+                thumbIcon: kSettingSwitchThumbIcon,
+                value: setting.restoreTabs,
+                // 和「启动时默认打开主页」同一个口径：恢复是**新建会话**时才做的事，
+                // 设置页不该把用户正开着的那批页签搬走，所以改完只说明「下次生效」。
+                // （记录那一半是立刻停/立刻起的 —— 卡片每来一份快照都重新问一次开关。）
+                onChanged: (value) {
+                  cubit.updateFileManagerSetting(
+                    (current) => current.copyWith(restoreTabs: value),
+                  );
+                  showSuccessToast(
+                    t.common.restartToTakeEffect,
+                    context: context,
+                  );
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SettingSectionCard(
             title: t.settings.fileManagerSectionFileOps,
             icon: Icons.drive_file_move_outlined,
             children: [

@@ -15,8 +15,10 @@ import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/workspace/method/file_manager_actions.dart';
 import 'package:zephyr/workspace/model/file_manager_entry_menu_spec.dart';
+import 'package:zephyr/workspace/model/file_manager_tab_session.dart';
 import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
 import 'package:zephyr/workspace/service/file_manager_tab_bridge.dart';
+import 'package:zephyr/workspace/service/file_manager_tab_session_store.dart';
 import 'package:zephyr/workspace/widgets/cards/file_manager_entry_context_menu.dart';
 import 'package:zephyr/workspace/widgets/cards/file_manager_thumbnail.dart';
 import 'package:zephyr/workspace/widgets/cards/file_manager_toolbar.dart';
@@ -102,6 +104,13 @@ class _FileManagerCardState extends State<FileManagerCard> {
   List<String> _searchHistory = const [];
   bool _searchHistoryLoaded = false;
   static const _searchHistoryLimit = 8;
+
+  /// 「上次打开的页签」的读写口（落盘在 SharedPreferences）。
+  ///
+  /// 挂在这个实例上而不是全局单例：它记的是「**这一个会话**已经落到哪一步」，
+  /// 换布局把卡片重建一次，那份签名就该重来（理由同 `ShelfViewMemory`）。
+  final _tabMemory = FileManagerTabMemory();
+
   BigInt? _sessionId;
   FileManagerSnapshot? _snapshot;
   String? _error;
@@ -183,6 +192,13 @@ class _FileManagerCardState extends State<FileManagerCard> {
       .state
       .fileManagerSetting
       .rememberViewState;
+
+  /// 「自动恢复上次打开的页签」的落盘开关（全局设置）。
+  bool get _persistedRestoreTabs => context
+      .read<GlobalSettingCubit>()
+      .state
+      .fileManagerSetting
+      .restoreTabs;
 
   /// 新建会话该落在哪个目录，`null` = 交给核心选默认目录。
   ///
