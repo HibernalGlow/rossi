@@ -16,6 +16,13 @@ part of '../global_setting.dart';
 ///   启动落点不该偷偷跟着走。
 /// - [rememberViewState]：记住每个目录的视图与排序（写进 `settings.db` 的
 ///   `file_manager_view_states` 表）。默认开；关掉之后浏览照常，只是不再读写目录偏好。
+/// - [restoreTabs]：把上次打开的**那几个页签**摆回来（记在 SharedPreferences 的
+///   `rossi.fileManager.openTabs`，为什么不走这份设置见
+///   `file_manager_tab_session_store.dart`）。默认开；关掉之后浏览照常，
+///   只是不再记也不再恢复。
+///   只有**两个以上**页签才记 —— 单个页签谈不上页签条，记它等于悄悄把
+///   [openHomeOnStart] 顶掉。两条都开着时以本条为准：「回到我上次待的那几个目录」
+///   比「回到主页」更接近用户关掉应用之前的意图。
 /// - [fileOperations]：**写操作的总开关**（复制 / 移动 / 重命名 / 新建 / 删除）。
 ///   默认开；关掉之后文件浏览器回到「只看不改」—— 没有右键菜单、没有多选、
 ///   没有操作条。之所以给它一个总开关而不是逐个动作给：这一层第一次具备了
@@ -28,6 +35,7 @@ abstract class FileManagerSettingState with _$FileManagerSettingState {
     @Default('') String homePath,
     @Default(false) bool openHomeOnStart,
     @Default(true) bool rememberViewState,
+    @Default(true) bool restoreTabs,
     @Default(true) bool fileOperations,
   }) = _FileManagerSettingState;
 

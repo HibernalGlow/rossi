@@ -252,7 +252,8 @@ class AllChipItem extends StatefulWidget {
   final String label;
   final bool isFavorite;
 
-  /// 命中收藏 tag：与 [isFavorite]（喜欢画师）同一套琥珀色，靠前面的 `#` 区分。
+  /// 命中收藏 tag：与 [isFavorite]（喜欢画师）按 M3 角色色分家
+  /// （tag = tertiaryContainer，画师 = errorContainer），再靠前缀的 `#` 双路区分。
   final bool isFavoriteTag;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
@@ -275,28 +276,29 @@ class _AllChipItemState extends State<AllChipItem> {
 
   @override
   Widget build(BuildContext context) {
-    final primary = context.theme.colorScheme.primary;
+    final scheme = context.theme.colorScheme;
+    final primary = scheme.primary;
     final background = context.backgroundColor;
-    final isDark = context.theme.brightness == Brightness.dark;
-    // 画师与 tag 共用同一套琥珀色，只在前面那颗符号上分家。
+    // 画师与 tag 按 M3 角色色分家：画师 = errorContainer（♥ 的红色语义），
+    // tag = tertiaryContainer（#）。选中的 M3 FilterChip 就是「色调容器 +
+    // 无描边」，所以命中时不再画琥珀边框，只换整颗胶囊的容器色。
+    final isArtist = widget.isFavorite;
     final highlighted = widget.isFavorite || widget.isFavoriteTag;
     final mark = widget.isFavorite
         ? '♥ '
         : (widget.isFavoriteTag ? '# ' : null);
+    final highlightContainer = isArtist ? scheme.errorContainer : scheme.tertiaryContainer;
+    final highlightText = isArtist ? scheme.onErrorContainer : scheme.onTertiaryContainer;
 
     final borderColor = highlighted
-        ? const Color(0xFFF59E0B)
+        ? highlightContainer
         : primary.withValues(alpha: _hovering ? 0.9 : 0.55);
 
     final chipBackground = highlighted
-        ? (isDark
-              ? const Color(0xFF78350F).withValues(alpha: 0.35)
-              : const Color(0xFFFEF3C7))
+        ? highlightContainer
         : (_hovering ? primary.withValues(alpha: 0.08) : background);
 
-    final textColor = highlighted
-        ? (isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E))
-        : primary;
+    final textColor = highlighted ? highlightText : primary;
 
     return Tooltip(
       // chip 的文案只占一行、超出省略（见下面的 Flexible）⇒ 悬停给全文。
@@ -324,14 +326,12 @@ class _AllChipItemState extends State<AllChipItem> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: highlighted
-                      ? const Color(0xFFF59E0B).withValues(alpha: 0.25)
-                      : context.textColor.withValues(
-                          alpha: _hovering ? 0.28 : 0.18,
-                        ),
-                  blurRadius: highlighted ? 6 : (_hovering ? 10 : 6),
+                  color: context.textColor.withValues(
+                    alpha: highlighted ? 0.22 : (_hovering ? 0.28 : 0.18),
+                  ),
+                  blurRadius: _hovering ? 10 : 6,
                   offset: const Offset(0, 2),
-                  spreadRadius: highlighted ? 0.5 : (_hovering ? 0.5 : 0),
+                  spreadRadius: _hovering ? 0.5 : 0,
                 ),
               ],
             ),
@@ -343,9 +343,7 @@ class _AllChipItemState extends State<AllChipItem> {
                   Text(
                     mark,
                     style: TextStyle(
-                      color: widget.isFavorite
-                          ? const Color(0xFFDC2626)
-                          : const Color(0xFFB45309),
+                      color: highlightText,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),

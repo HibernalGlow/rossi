@@ -21,7 +21,7 @@ enum WorkspaceTopChromeMode {
   /// 内容从它下面开始。
   ///
   /// 触摸屏上 `reveal` 等于**没有出口**：`MouseRegion` 永远不触发，
-  /// 而工作台是 `Navigator.push` 上来的整页、没有系统返回按钮
+  /// 而工作台这一整页没有系统返回按钮
   /// （`Esc` 只在键盘上存在）。所以那边必须常驻。
   persistent;
 

@@ -332,6 +332,44 @@ class RealSrSettings {
     await prefs.setInt(_keyTileSize, value);
   }
 
+  /// 「分块大小」这条值在当前超分路线上到底画不画。
+  ///
+  /// Rossi 原生 CoreML 的分块 = 模型输入张量的边长，编译 `.mlmodel`/`.mlpackage`
+  /// 时就焊死了（见 [CoreMLModelConfig] 每个变体的 `blockSize`），运行期改它只会
+  /// 让 CoreML 报输入尺寸不符。所以这条引擎不画下拉，改由引擎面板给只读的
+  /// 「分块信息」；其余路线（Android 内置 CLI、桌面 NCNN 的 `-t`、mImage ONNX）
+  /// 都真的会读这个值，必须画出来 —— f5b523a8 曾把 ONNX 一起藏掉，值仍在生效却没开关。
+  static bool tileSizeRowApplies({
+    required SuperResolutionEngine engine,
+    required bool hasEngineChoice,
+  }) => !(hasEngineChoice && engine == SuperResolutionEngine.breezeCoreML);
+
+  /// 该路线可选的分块档位与显示文案。纯函数，两个入参显式传入是为了能在
+  /// 任意平台上验证 ONNX 那一支（同 [availableThresholdsFor] 的口径）。
+  ///
+  /// ONNX 的约束来自 `rust/src/api/mimage_onnx.rs`：请求值被夹到 64..512，
+  /// 0 的含义是「按模型推荐分块」而不是「不分块」，且模型声明了固定输入尺寸时
+  /// 请求值整个被忽略。给它 1024 这一档，等于在界面上写一个不会照做的数字。
+  static Map<int, String> tileSizeLabelsFor({
+    required SuperResolutionEngine engine,
+    required bool hasEngineChoice,
+  }) => (hasEngineChoice && engine == SuperResolutionEngine.mimageOnnx)
+      ? const {0: '自动', 128: '128', 256: '256', 512: '512'}
+      : const {0: '0', 128: '128', 256: '256', 512: '512', 1024: '1024'};
+
+  /// 存储值落在本路线可选档位之外时的回退：ONNX 回「自动」，其余回 0（不分块）。
+  static int effectiveTileSize({
+    required SuperResolutionEngine engine,
+    required bool hasEngineChoice,
+    required int stored,
+  }) =>
+      tileSizeLabelsFor(
+        engine: engine,
+        hasEngineChoice: hasEngineChoice,
+      ).containsKey(stored)
+      ? stored
+      : 0;
+
   static Future<RealSrNoiseLevel> loadNoiseLevel() async {
     final prefs = await SharedPreferences.getInstance();
     final name = prefs.getString(_keyNoiseLevel);

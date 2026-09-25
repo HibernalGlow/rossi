@@ -1,7 +1,10 @@
 // Copyright (c) 2024-2026 mImageViewer authors
 // SPDX-License-Identifier: MIT
 //
-// Vendored from mImageViewer `src/thumb_loader.rs` at commit 1fd6f863.
+// Vendored from mImageViewer `src/thumb_loader.rs` at commit 1fd6f863 —— 只是文件夹代表图
+// 那一段的切片（上游该文件 4510 行），刻意不进 sync_vendored_modules.py 的 PORTS，
+// 理由见 docs/local-core-vendored-modules.md §2。上游 1ffce811 的
+// 「列表用排序值不得进入代表图选择与缓存键」守卫已人工跟入。
 // Preserves upstream function, constant, and type names.
 // Rossi 适配：归档候选、失败回退、多子项代表图、元数据过滤与有界循环保护。
 
@@ -24,13 +27,13 @@ pub fn folder_thumb_auto_cache_key(
     sort: crate::settings::SortOrder,
     depth: u32,
 ) -> String {
+    let sort = sort.sanitized_for_folder_thumb();
     let sort_token = match sort {
         crate::settings::SortOrder::FileName => "name",
         crate::settings::SortOrder::Numeric => "numeric",
         crate::settings::SortOrder::DateAsc => "date-asc",
         crate::settings::SortOrder::DateDesc => "date-desc",
-        crate::settings::SortOrder::NameAsc => "name-asc",
-        crate::settings::SortOrder::NameDesc => "name-desc",
+        crate::settings::SortOrder::NameAsc | crate::settings::SortOrder::NameDesc => "name",
     };
     format!(
         "{CACHE_KEY_FOLDER}auto-v{FOLDER_THUMB_AUTO_ALGO_VERSION}:{sort_token}:d{depth}:{identity}"
@@ -97,6 +100,9 @@ pub(crate) fn resolve_folder_thumb_images<T>(
     limit: usize,
     mut load: impl FnMut(&FolderThumbResolution) -> Option<T>,
 ) -> Vec<T> {
+    // 上游把这一行放在 `resolve_folder_thumb_image_inner` 开头；本仓的多子项拾取
+    // 由 `thumbnail_pipeline` 直接调本函数，绕过了 `_inner`，所以守卫要落在共同入口。
+    let sort = sort.sanitized_for_folder_thumb();
     let mut search = FolderThumbSearch {
         visited: HashSet::new(),
         attempts_left: 128,
@@ -257,6 +263,32 @@ mod tests {
             Some(FolderThumbResolution::Image(p)) => Some(p),
             _ => None,
         }
+    }
+
+    #[test]
+    fn list_only_sort_does_not_reach_folder_thumb_key_or_pick() {
+        let name = folder_thumb_auto_cache_key("folder", SortOrder::FileName, 3);
+        assert_eq!(
+            folder_thumb_auto_cache_key("folder", SortOrder::NameAsc, 3),
+            name,
+            "与 FileName 等价的升序不该另开一个缓存键"
+        );
+        assert_eq!(
+            folder_thumb_auto_cache_key("folder", SortOrder::NameDesc, 3),
+            name,
+            "仅为列表服务的降序值不得进入代表图缓存键"
+        );
+
+        let tmp = TempDir::new().unwrap();
+        std::fs::write(tmp.path().join("a.jpg"), b"not decoded").unwrap();
+        std::fs::write(tmp.path().join("z.jpg"), b"not decoded").unwrap();
+
+        let picked = resolve_folder_thumb_image(tmp.path(), SortOrder::NameDesc, 0);
+        assert_eq!(
+            resolved_image_path(picked),
+            Some(tmp.path().join("a.jpg")),
+            "列表降序不该翻转代表图选择"
+        );
     }
 
     #[test]

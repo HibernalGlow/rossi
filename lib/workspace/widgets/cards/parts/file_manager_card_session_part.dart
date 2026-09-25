@@ -17,6 +17,7 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
           fileManagerSetRememberViewState(id: session, enabled: remember),
     );
   }
+
   Future<void> _startSession() async {
     if (_busy) return;
     if (_sessionId != null) {
@@ -31,10 +32,15 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
     try {
       final home = _persistedHomePath;
       final remember = _persistedRememberViewState;
+      // 「自动恢复上次打开的页签」：读盘放在建会话**之前**，首个页签直接用上次
+      // 那一份的第一个目录来建，省掉「先开默认目录、再搬过去」的那一下闪动。
+      final restored = await _tabMemory.restore(enabled: _persistedRestoreTabs);
+      if (_disposed) return;
       final id = await fileManagerCreate(
         // 「启动时默认打开主页」：开着时首个页签直接落在主页目录，
         // 关掉 / 没设主页时不传这个参数（判据见 [_startPath]）。
-        initialPath: _startPath,
+        // 上次开着多个页签时以恢复为准，两条的取舍见设置里的 restoreTabs。
+        initialPath: restored == null ? _startPath : restored.paths.first,
         homePath: home.isEmpty ? null : home,
         // 目录级视图状态的正本在 Rust 的 `settings.db`，路径在启动期就解析好了
         // （`prepareSettingsDbPath`）；为 null ＝ 本次不记忆，浏览照常。
@@ -48,6 +54,7 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
       // 会话已经带着这个值建起来了，别再补发一次。
       _syncedRememberViewState = remember;
       _sessionId = id;
+      if (restored != null) await _restoreTabs(id, restored);
       // 会话一就绪就登记进「新页签」通道：别的地方（收藏 / 历史卡片的右键菜单）
       // 只有从这里才能拿到这个会话。登记的是 `this`，`dispose` 时按同一个对象注销。
       FileManagerTabBridge.instance.attach(this, _openPathInNewTab);
@@ -56,6 +63,41 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
       _showError(error);
     }
   }
+
+  /// 把恢复出来的**其余**页签补开出来，再把焦点放回上次那一个。
+  ///
+  /// 有意不走 [_apply]：这一段跑在会话刚建好、`_busy` 还是 `true` 的时候，
+  /// 走 `_apply` 会被自己的忙状态挡掉（[_openPathInNewTab] 同一个理由）。
+  /// 中间那几份快照也**不采纳** —— 它们是「还没切回上次那个页签」的过渡态，
+  /// 采纳了就是当着用户的面一页一页蹦出来；末尾的 [_reload] 会给到最终那一帧。
+  ///
+  /// 单个页签开不出来就跳过它继续下一个：恢复出 5/6 个好过因为一个失效目录
+  /// 整批放弃。而失效路径本身也不会抛 —— 核心会向上找到最近的、还在的父目录，
+  /// 与 [_startPath] 那条是同一个兜底。
+  Future<void> _restoreTabs(BigInt id, FileManagerTabSession session) async {
+    FileManagerSnapshot? last;
+    for (final path in session.paths.skip(1)) {
+      if (_disposed) return;
+      try {
+        last = await fileManagerNewTab(id: id, path: path);
+      } catch (_) {
+        continue;
+      }
+    }
+    final tabs = last?.tabs;
+    if (_disposed || tabs == null || tabs.isEmpty) return;
+    // 按**下标**取而不是按路径找：路径会被核心规范化（补斜杠、走符号链接），
+    // 文本比对认不出它自己存出去的值；而下标在「按同一顺序 push 出来的列表」里
+    // 一直是同一个页签。少开了几个就夹到末尾 —— 那已经是能给出的最好答案。
+    final target = tabs[session.activeIndex.clamp(0, tabs.length - 1)].id;
+    if (target == last!.activeTabId) return;
+    try {
+      await fileManagerActivateTab(id: id, tabId: target);
+    } catch (_) {
+      // 焦点没落回去只是「停在最后一个页签」，页签本身还在。
+    }
+  }
+
   /// 把某个目录设为主页：**先让核心确认，再落盘**。
   ///
   /// 顺序有意义 —— 核心（`set_home_path`）只接受真实存在的目录，落盘的必须是
@@ -74,6 +116,7 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
     );
     showSuccessToast(applied, title: '主页已设为', context: context);
   }
+
   Future<void> _clearHomePath() async {
     final ok = await _apply((id) => fileManagerSetHomePath(id: id, path: null));
     if (!ok || !mounted || _snapshot?.homePath != null) return;
@@ -82,6 +125,7 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
     );
     showInfoToast('已清除主页', context: context);
   }
+
   /// 文件操作的总开关（全局设置，跨重启保持）。
   ///
   /// 落盘之后立刻生效：卡片下一帧就会重建 —— [build] 里 `select` 了它。
@@ -93,6 +137,7 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
     );
     if (!enabled) await _clearSelection();
   }
+
   /// 主页菜单：把「回主页 / 设为主页 / 清除主页」三个动作收在主页键自己身上。
   ///
   /// 为什么不直接把右键当「设为主页」：那样「回主页」和「清除主页」在卡片上
@@ -135,6 +180,7 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
         await _clearHomePath();
     }
   }
+
   Future<void> _reload() async {
     final id = _sessionId;
     if (id == null) return;
@@ -155,6 +201,7 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
       _showError(error);
     }
   }
+
   /// 「在文件管理新页签里打开 [path]」落到这张卡片上。
   ///
   /// 有意**不走** [_apply]：那个口径里有 `_busy` 与请求序号两道闸，是给
@@ -178,6 +225,7 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
       return FileManagerTabOpenOutcome.failed;
     }
   }
+
   Future<bool> _apply(
     Future<FileManagerSnapshot> Function(BigInt id) action,
   ) async {
@@ -205,8 +253,10 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
       return false;
     }
   }
+
   void _acceptSnapshot(FileManagerSnapshot snapshot) {
     _snapshot = snapshot;
+    _rememberOpenTabs(snapshot);
     // 列表换代了，选中态要跟着重读 —— 否则界面上会拿旧代的下标去标新代的行。
     if (_ops?.generation != snapshot.generation) _scheduleOpsRefresh();
     _syncSearchField(snapshot);
@@ -227,6 +277,24 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
       _runSearch(snapshot);
     });
   }
+
+  /// 把当前这批页签记下来，供下次启动恢复（开关见设置里的 restoreTabs）。
+  ///
+  /// 每一帧快照都会走这里，所以「要不要落盘」交给 [_tabMemory] 按签名判：
+  /// 导航、排序、搜索这些不动页签的改动一次盘也不落。
+  /// 开关的值**现读**而不是在 build 里订阅：恢复那一半要等新会话才生效，
+  /// 记录这一半应该用户一关掉就立刻停手 —— 别把一个他不想要的名额留在盘上。
+  void _rememberOpenTabs(FileManagerSnapshot snapshot) {
+    final tabs = snapshot.tabs;
+    _tabMemory.remember(
+      enabled: _persistedRestoreTabs,
+      paths: [for (final tab in tabs) tab.path],
+      // 找不到当前页签 ⇒ -1，由 remember 夹成 0：快照里 `activeTabId` 与 `tabs`
+      // 是同一次生成的，正常不会走到那条兜底。
+      activeIndex: tabs.indexWhere((tab) => tab.id == snapshot.activeTabId),
+    );
+  }
+
   /// 输入框的文本以「谁最后改了查询」为准，而不是无条件跟随快照。
   ///
   /// 核心收到查询会 `trim`。边打边搜时若无条件回显，用户刚敲下的空格会被吃掉，
@@ -247,6 +315,7 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
       selection: TextSelection.collapsed(offset: server.length),
     );
   }
+
   void _showError(Object error) {
     if (!mounted) return;
     // ignore: invalid_use_of_protected_member

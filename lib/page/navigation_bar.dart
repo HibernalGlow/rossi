@@ -34,7 +34,6 @@ import 'package:zephyr/page/discover/view/discover_page.dart';
 import 'package:zephyr/page/more/view/more.dart';
 import 'package:zephyr/page/old_page/old_home/old_home_page.dart';
 import 'package:zephyr/page/old_page/old_ranking/old_ranking_page.dart';
-import 'package:zephyr/workspace/breeze_workspace_page.dart';
 import 'package:zephyr/workspace/model/workspace_startup.dart';
 
 @RoutePage()
@@ -131,21 +130,17 @@ class _NavigationBarState extends State<NavigationBar> {
 
   /// 打开工作台（泳道 / 四边栏）。两个入口共用：四边栏布局 trailing 上的按钮，
   /// 以及「启动时直接打开工作台」。
+  ///
+  /// 走路由表（`context.pushRoute`）而不是 `Navigator.push`：工作台里摊的是上游
+  /// 原版页面，它们会按 auto_route 的常规写法查自己那条路由，手工推的一页给不出
+  /// 那个上下文（注册理由见 `AppRouter.routes`）。
   void _openWorkspace() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        // 带上名字：工作台靠它判断「我是不是最上面那一页」，
-        // 详情页 →「开始阅读」时才知道要不要把自己弹回前台
-        // （见 BreezeWorkspacePage.routeName）。
-        settings: const RouteSettings(name: BreezeWorkspacePage.routeName),
-        builder: (_) => const BreezeWorkspacePage(),
-      ),
-    );
+    context.pushRoute(BreezeWorkspaceRoute());
   }
 
   /// 启动后是否**直接**进工作台（判定见 `resolveStartupLanding`）。
   ///
-  /// 排到首帧之后：工作台是 `Navigator.push` 上来的整页，`initState` 期间这一层
+  /// 排到首帧之后：工作台是整页、`initState` 期间这一层
   /// 还没进 Navigator；而「有没有入口」要看 `MediaQuery`（`isTablet`）——
   /// 两者都要求先有帧。
   void _maybeOpenWorkspaceOnStart(bool startWithWorkspace) {

@@ -37,7 +37,11 @@ FavoriteTag? parseFavoriteTagLine(String line) {
 /// 从文件、批量文本或 JSON 里解析出收藏列表。
 ///
 /// 字符串按行（`|` 语法）、`List` 逐元素、`{"tags": [...]}` 与单条
-/// `{name, aliases}` 对象也都吃。分行只在这里做一次：批量导入与文件导入共用，
+/// `{name, aliases}` 对象也都吃。EMM（exhentai-manga-manager）的
+/// `setting.json` 也直接认：取顶层 `collectTag` 数组，每条用 `tag` 字段
+/// （`cat` 丢掉 —— 匹配时命名空间前缀本来就会被剥掉，留着只会挡掉
+/// 别的站上不带前缀的写法）。
+/// 分行只在这里做一次：批量导入与文件导入共用，
 /// 免得两处各写一份分隔符理解而漂开。
 List<FavoriteTag> parseFavoriteTags(dynamic decoded) {
   final raw = <dynamic>[];
@@ -45,6 +49,8 @@ List<FavoriteTag> parseFavoriteTags(dynamic decoded) {
     raw.addAll(decoded.split(RegExp(r'[\r\n]+')));
   } else if (decoded is List) {
     raw.addAll(decoded);
+  } else if (decoded is Map && decoded['collectTag'] is List) {
+    raw.addAll(decoded['collectTag'] as List);
   } else if (decoded is Map && decoded['tags'] is List) {
     raw.addAll(decoded['tags'] as List);
   } else if (decoded is Map && decoded['aliases'] is List) {
@@ -62,6 +68,11 @@ List<FavoriteTag> parseFavoriteTags(dynamic decoded) {
               : const [],
         ),
       );
+      continue;
+    }
+    if (entry is Map && entry['tag'] is String) {
+      final tag = (entry['tag'] as String).trim();
+      if (tag.isNotEmpty) tags.add(FavoriteTag(name: tag));
       continue;
     }
     final tag = parseFavoriteTagLine(entry.toString());
@@ -413,7 +424,7 @@ class _FavoriteTagSettingPageState extends State<FavoriteTagSettingPage> {
                   ),
                 ),
                 icon: const Icon(Icons.upload_file, size: 18),
-                label: const Text('导入文件 (TXT/JSON)'),
+                label: const Text('导入文件 (TXT/JSON/EMM setting.json)'),
                 onPressed: () => _importFromFile(context),
               ),
               if (tags.isNotEmpty)

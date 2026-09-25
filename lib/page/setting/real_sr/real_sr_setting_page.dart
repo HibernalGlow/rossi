@@ -26,16 +26,7 @@ final Map<int, String> _concurrencyLabels = {
   0: t.realSr.unlimited,
 };
 
-const Map<int, String> _tileSizeLabels = {
-  0: '0',
-  128: '128',
-  256: '256',
-  512: '512',
-  1024: '1024',
-};
-
 final List<int> _concurrencyOptions = _concurrencyLabels.keys.toList()..sort();
-final List<int> _tileSizeOptions = _tileSizeLabels.keys.toList()..sort();
 
 @RoutePage()
 class RealSrSettingPage extends StatefulWidget {
@@ -61,11 +52,12 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
   bool _importing = false;
   double _downloadProgress = 0;
 
-  /// 「桌面 NCNN 专属」的那几块（分块大小、模型管理）要不要画。
+  /// 「桌面 NCNN 专属」的那几块（模型管理 / 手动下载 / 导入）要不要画。
   ///
   /// Apple 没有 NCNN 这条引擎，永远不画；Windows / Linux 只在选中桌面 NCNN 时画 ——
   /// 切到 mImage ONNX 之后，模型的下载/导入由 ONNX 面板自己管，这里再摆一份就会
   /// 出现「按了下载却去拉 7z」的错路。
+  /// 「分块大小」不在这一组里：ONNX 也读那个值，门禁见 [RealSrSettings.tileSizeRowApplies]。
   bool get _showsDesktopNcnnBlocks =>
       supportsDesktopNcnn && _engine != SuperResolutionEngine.mimageOnnx;
 
@@ -495,22 +487,39 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
                     );
                   },
                 ),
-                if (_showsDesktopNcnnBlocks)
+                if (RealSrSettings.tileSizeRowApplies(
+                  engine: _engine,
+                  hasEngineChoice: hasSuperResolutionEngineChoice,
+                ))
                   Builder(
                     builder: (context) {
-                      final effective = _tileSizeOptions.contains(_tileSize)
-                          ? _tileSize
-                          : 0;
+                      final labels = RealSrSettings.tileSizeLabelsFor(
+                        engine: _engine,
+                        hasEngineChoice: hasSuperResolutionEngineChoice,
+                      );
+                      final options = labels.keys.toList()..sort();
+                      final effective = RealSrSettings.effectiveTileSize(
+                        engine: _engine,
+                        hasEngineChoice: hasSuperResolutionEngineChoice,
+                        stored: _tileSize,
+                      );
+                      final isMImageOnnx =
+                          _engine == SuperResolutionEngine.mimageOnnx;
                       return ListTile(
                         leading: const Icon(Icons.grid_on_outlined),
                         title: Text(t.realSr.tileSize),
-                        subtitle: Text(t.realSr.tileSizeSubtitle),
+                        // ONNX 那侧 0 不是「不分块」，照抄旧文案等于在界面上撒谎。
+                        subtitle: Text(
+                          isMImageOnnx
+                              ? '遇到崩溃可设置较小值；「自动」按模型推荐分块，模型声明固定输入尺寸时以模型为准'
+                              : t.realSr.tileSizeSubtitle,
+                        ),
                         trailing: FluentDropdown<int>(
                           value: effective,
-                          displayValue: _tileSizeLabels[effective]!,
+                          displayValue: labels[effective]!,
                           items: {
-                            for (final option in _tileSizeOptions)
-                              option: _tileSizeLabels[option]!,
+                            for (final option in options)
+                              option: labels[option]!,
                           },
                           onChanged: _setTileSize,
                         ),

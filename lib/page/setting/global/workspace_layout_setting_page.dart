@@ -224,6 +224,18 @@ class _FocusAndSoloCard extends StatelessWidget {
           onChanged: (value) =>
               _patch((c) => c.copyWith(manualScrollEnabled: value)),
         ),
+        SwitchListTile(
+          secondary: const Icon(Icons.lock_outline),
+          title: Text(t.settings.blockManualScrollInReaderFullscreen),
+          subtitle: Text(
+            t.settings.blockManualScrollInReaderFullscreenSubtitle,
+          ),
+          thumbIcon: kSettingSwitchThumbIcon,
+          value: interaction.blockManualScrollInReaderFullscreen,
+          onChanged: (value) => _patch(
+            (c) => c.copyWith(blockManualScrollInReaderFullscreen: value),
+          ),
+        ),
         _DelayTile(
           icon: Icons.speed_outlined,
           title: t.settings.edgeRevealDelay,

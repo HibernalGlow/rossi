@@ -3,8 +3,10 @@ import 'package:zephyr/i18n/strings.g.dart';
 
 /// 封面左上角的「收藏 tag」角标。
 ///
-/// 与 [FavoriteArtistBadge] 同族配色（#fbbf24 底 / #451a03 字），靠前面的 `#`
-/// 区分：两个角标会同时出现在同一张卡上，只有形状能分辨谁是谁。
+/// 按 M3 的色调容器走：tag 用 `tertiaryContainer`/`onTertiaryContainer`，
+/// 与 [FavoriteArtistBadge] 的 `errorContainer` 一家分家 —— 两个角标会同时
+/// 出现在同一张卡上，靠**容器色 + 前面的 `#`** 两路信息分辨谁是谁，
+/// 不再共用同一块琥珀底。
 class FavoriteTagBadge extends StatelessWidget {
   final String? tagName;
 
@@ -12,10 +14,11 @@ class FavoriteTagBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: BoxDecoration(
-        color: const Color(0xFFFBBF24),
+        color: scheme.tertiaryContainer,
         borderRadius: BorderRadius.circular(4),
         boxShadow: [
           BoxShadow(
@@ -28,10 +31,10 @@ class FavoriteTagBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
+          Text(
             '#',
             style: TextStyle(
-              color: Color(0xFFB45309),
+              color: scheme.onTertiaryContainer,
               fontSize: 10,
               fontWeight: FontWeight.w900,
               height: 1.1,
@@ -48,8 +51,8 @@ class FavoriteTagBadge extends StatelessWidget {
                   : t.settings.favoriteTagBadge,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xFF451A03),
+              style: TextStyle(
+                color: scheme.onTertiaryContainer,
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
                 height: 1.1,

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
+import 'package:zephyr/service/reader/switch_toast_service.dart';
 
 class ReaderActionController {
   static const int _webtoonTapScrollPercent = 70;
@@ -15,12 +16,18 @@ class ReaderActionController {
   /// 用户是否正在触摸拖拽/惯性滚动列表（由列表侧的滚动通知维护）。
   final bool Function()? isUserScrolling;
 
+  /// 横翻模式下「当前 loaded 范围到尽头后，是否还有下一话可以续」；
+  /// 由宿主在构造时传入，用于在最后一页再次向前翻页时给出边界提示。
+  /// 未提供时视为「可继续」，退化为改造前的静默行为。
+  final bool Function()? canAdvanceNext;
+
   ReaderActionController({
     required this.context,
     required this.scrollController,
     required this.pageController,
     this.onBeforeTurnPage,
     this.isUserScrolling,
+    this.canAdvanceNext,
   });
 
   ReadSettingState get _readSetting =>
@@ -279,6 +286,19 @@ class ReaderActionController {
   void _turnPage({required bool isNext}) {
     if (onBeforeTurnPage?.call(isNext) ?? false) return;
     if (!pageController.hasClients) return;
+
+    // 已在最后一页、也没有下一话可续时，不再静默吞掉前进：
+    // 受 enableBoundaryToast 控制的「已是最后一页」提示走 SwitchToastService。
+    if (isNext) {
+      final total = _totalSlots;
+      final current = _currentSlot;
+      if (total > 0 &&
+          current >= total - 1 &&
+          !(canAdvanceNext?.call() ?? true)) {
+        SwitchToastService.instance.notifyLastPage();
+        return;
+      }
+    }
 
     final shouldGoForward = isNext;
     final noAnimation = _noAnimation;

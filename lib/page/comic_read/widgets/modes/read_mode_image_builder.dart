@@ -29,10 +29,6 @@ Widget buildReadModeImage({
     return const SizedBox.shrink();
   }
 
-  final resolvedChapterId = entry.doc!.storageChapterId.trim().isNotEmpty
-      ? entry.doc!.storageChapterId
-      : entry.chapterId!;
-
   // 视频自行管理画面。静态 GPU 图片与普通图片共用真实尺寸算出的缩放/旋转框。
   final isVideo = entry.doc!.extern['isVideo'] == true;
   final effectivePlaced = isVideo ? null : placed;
@@ -45,12 +41,15 @@ Widget buildReadModeImage({
       entry.doc!.fileServer,
       entry.doc!.path,
     )),
+    // 章节 id 与本地存储目录 key 要分开传：下载任务落盘的目录段是后者，
+    // 混用会让阅读器把已下载的页当作未下载重新请求。
     pictureInfo: PictureInfo(
       from: from,
       url: entry.doc!.fileServer,
       path: entry.doc!.path,
       cartoonId: comicId,
-      chapterId: resolvedChapterId,
+      chapterId: entry.chapterId!,
+      storageChapterId: entry.doc!.storageChapterId,
       pictureType: PictureType.page,
       extern: entry.doc!.extern,
     ),

@@ -691,10 +691,7 @@ pub fn sorted_subdirs(path: &Path, opts: FolderTreeOptions) -> Vec<PathBuf> {
             let p = e.path();
             // mtime は DateAsc/Desc のソートでだけ意味を持つので、それ以外なら
             // 0 でも構わない。`metadata()` が追加 syscall になるので、必要なときだけ取る。
-            let mtime: i64 = if matches!(
-                sort_order,
-                crate::settings::SortOrder::DateAsc | crate::settings::SortOrder::DateDesc
-            ) {
+            let mtime: i64 = if sort_order.uses_mtime() {
                 e.metadata()
                     .and_then(|m| m.modified())
                     .ok()
@@ -857,6 +854,37 @@ pub fn resolve_openable_path_detailed(path: &Path) -> Option<OpenablePathResolut
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn labels(paths: Vec<PathBuf>) -> Vec<String> {
+        paths
+            .into_iter()
+            .filter_map(|path| path.file_name()?.to_str().map(str::to_owned))
+            .collect()
+    }
+
+    #[test]
+    fn tree_sort_drives_dfs_and_sibling_navigation_in_the_same_order() {
+        let temp = tempfile::TempDir::new().unwrap();
+        let root = temp.path().join("root");
+        for name in ["aaa", "bbb", "ccc"] {
+            std::fs::create_dir_all(root.join(name)).unwrap();
+        }
+        let options = FolderTreeOptions {
+            sort_order: crate::settings::SortOrder::NameDesc,
+            ..FolderTreeOptions::default()
+        };
+
+        assert_eq!(
+            labels(sorted_subdirs(&root, options)),
+            ["ccc", "bbb", "aaa"]
+        );
+        let first = next_folder_dfs(&root, options).expect("first DFS child");
+        assert_eq!(first.file_name().unwrap(), "ccc");
+        let second = next_sibling_folder(&first, options).expect("second sibling");
+        assert_eq!(second.file_name().unwrap(), "bbb");
+        let previous = prev_sibling_folder(&second, options).expect("previous sibling");
+        assert!(path_eq(&previous, &first));
+    }
 
     #[test]
     fn sorted_subdirs_excludes_portable_metadata_bundle() {

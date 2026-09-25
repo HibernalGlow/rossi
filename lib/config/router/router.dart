@@ -15,13 +15,17 @@ class AppRouter extends RootStackRouter with WorkspaceBackInterceptor {
     AutoRoute(page: AppBootstrapRoute.page, initial: true),
     AutoRoute(page: CoreMLUpscaleDebugRoute.page),
     AutoRoute(page: NavigationBar.page),
+    // 工作台必须走路由表注册：它摊的是上游原版页面，而那些页面按 auto_route 的
+    // 常规写法查自己所在的路由（`context.routeData`，见上游 `SearchQueryField` 用的
+    // `AutoRouteAwareStateMixin`）。手工 `Navigator.push` 的一页不在 `AutoRoutePage`
+    // 之下，那个查询会直接抛成红屏（工作台里的「搜索」标签就是这么炸的）。
+    AutoRoute(page: BreezeWorkspaceRoute.page),
     AutoRoute(page: LoginRoute.page),
     AutoRoute(page: ComicListRoute.page),
     AutoRoute(page: DiscoverRoute.page),
     AutoRoute(page: SearchResultRoute.page),
     AutoRoute(page: SearchAggregateResultRoute.page),
     AutoRoute(page: ComicInfoRoute.page),
-    AutoRoute(page: DownloadRoute.page),
     AutoRoute(page: CommentsRoute.page),
     AutoRoute(page: PluginCommentsScaffoldRoute.page),
     AutoRoute(page: ComicReadRoute.page),
@@ -45,6 +49,7 @@ class AppRouter extends RootStackRouter with WorkspaceBackInterceptor {
     AutoRoute(page: FullRouteImageRoute.page),
     AutoRoute(page: ChangelogRoute.page),
     AutoRoute(page: SearchRoute.page),
+    AutoRoute(page: DownloadRoute.page),
     AutoRoute(page: DownloadTaskRoute.page),
     AutoRoute(page: PluginStoreRoute.page),
     AutoRoute(page: PluginSettingsRoute.page),

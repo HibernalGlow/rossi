@@ -65,6 +65,7 @@ class DownloadImageJobsResult {
     required this.completed,
     required this.downloaded,
     required this.reused,
+    required this.skipped,
     this.failed = 0,
     this.failedJobs = const [],
   });
@@ -72,6 +73,9 @@ class DownloadImageJobsResult {
   final int completed;
   final int downloaded;
   final int reused;
+
+  /// 真 404 / 空数据而跳过的图片数（不计入失败，不阻塞完成）。
+  final int skipped;
   final int failed;
   final List<DownloadImageJob> failedJobs;
 }
@@ -109,7 +113,14 @@ Future<DownloadImageJobsResult> downloadImageJobs({
   bool Function()? shouldRetryUntilSuccess,
   required DownloadProgressReporter reporter,
   Future<void> Function(Object error, DownloadImageJob job)? onError,
-  Future<void> Function(int completed, int downloaded, int reused)? onProgress,
+  Future<void> Function(
+    int completed,
+    int downloaded,
+    int reused,
+    DownloadImageJob completedJob,
+    bool jobSkipped,
+  )?
+  onProgress,
 }) async {
   void updateProgress(String message) {
     reporter.updateMessage(message);
@@ -123,6 +134,7 @@ Future<DownloadImageJobsResult> downloadImageJobs({
       completed: 0,
       downloaded: 0,
       reused: 0,
+      skipped: 0,
     );
   }
 
@@ -131,11 +143,26 @@ Future<DownloadImageJobsResult> downloadImageJobs({
   var progress = 0;
   var downloaded = 0;
   var reused = 0;
+  var skipped = 0;
   var lastReportedPercent = 0;
   var nextIndex = 0;
   final failedJobs = <DownloadImageJob>[];
   Object? firstFatalError;
   StackTrace? firstFatalStackTrace;
+
+  // 单图失败先记账，等并行阶段结束后统一补重试；firstFatalError 只留第一个错误，
+  // 补重试仍失败时用它向上抛，让上层知道这一章失败的原因。
+  void recordFailedJob(
+    DownloadImageJob job, [
+    Object? error,
+    StackTrace? stackTrace,
+  ]) {
+    failedJobs.add(job);
+    if (error != null) {
+      firstFatalError ??= error;
+      firstFatalStackTrace ??= stackTrace;
+    }
+  }
 
   Future<void> runWorker() async {
     while (firstFatalError == null) {
@@ -148,13 +175,16 @@ Future<DownloadImageJobsResult> downloadImageJobs({
         job = jobs[nextIndex];
         nextIndex += 1;
       });
-      if (job == null) {
+      final currentJob = job;
+      if (currentJob == null) {
         return;
       }
+      var jobSkipped = false;
+      var jobDone = false;
       try {
         final result = await _downloadSingleJob(
           from: from,
-          job: job!,
+          job: currentJob,
           qjsRuntimeName: qjsRuntimeName,
           qjsTaskGroupKey: qjsTaskGroupKey,
           ensureTaskRunning: ensureTaskRunning,
@@ -172,18 +202,20 @@ Future<DownloadImageJobsResult> downloadImageJobs({
             await Future.delayed(requestDelay);
           }
         }
-        if (onProgress != null) {
-          await onProgress(progress, downloaded, reused);
-        }
-        final currentPercent = (progress / jobs.length * 100).floor();
-        if (onProgress == null && currentPercent > lastReportedPercent) {
-          lastReportedPercent = currentPercent;
-          updateProgress(
-            t.download.statusDownloadProgress(percent: currentPercent),
-          );
+        jobDone = true;
+      } on DownloadImageJobException catch (e) {
+        // 真 404 / 空数据：记跳过，不失败整章。
+        if (e.result.status == DownloadPictureResultStatus.notFound ||
+            e.result.status == DownloadPictureResultStatus.emptyData) {
+          progress++;
+          skipped++;
+          jobSkipped = true;
+          jobDone = true;
+        } else {
+          recordFailedJob(currentJob, e);
         }
       } catch (error, stackTrace) {
-        // 如果是任务取消，立即向上抛出中断所有协程
+        // 任务取消立即中断；普通单图失败只记账，不打断并行的其它图片
         final errorStr = error.toString();
         if (errorStr.contains(downloadTaskCancelledMessage) ||
             errorStr.contains('__QJS_RUNTIME_CANCELLED__')) {
@@ -191,10 +223,23 @@ Future<DownloadImageJobsResult> downloadImageJobs({
           firstFatalStackTrace ??= stackTrace;
           return;
         }
-        // 普通单图下载失败：记录到失败列表，不打断其它并行图片下载
-        failedJobs.add(job!);
-        firstFatalError ??= error;
-        firstFatalStackTrace ??= stackTrace;
+        recordFailedJob(currentJob, error, stackTrace);
+      }
+      if (!jobDone) {
+        // 这张图没落地：不推进度，也不要把它的路径记进 imagePaths，
+        // 后面的补全重试会再给它一次机会。
+        await ensureTaskRunning();
+        continue;
+      }
+      if (onProgress != null) {
+        await onProgress(progress, downloaded, reused, currentJob, jobSkipped);
+      }
+      final currentPercent = (progress / jobs.length * 100).floor();
+      if (onProgress == null && currentPercent > lastReportedPercent) {
+        lastReportedPercent = currentPercent;
+        updateProgress(
+          t.download.statusDownloadProgress(percent: currentPercent),
+        );
       }
       await ensureTaskRunning();
     }
@@ -238,7 +283,19 @@ Future<DownloadImageJobsResult> downloadImageJobs({
           }
         }
         if (onProgress != null) {
-          await onProgress(progress, downloaded, reused);
+          await onProgress(progress, downloaded, reused, job, false);
+        }
+      } on DownloadImageJobException catch (e) {
+        // 补重试时才暴露出真 404 / 空数据的图，同样记跳过而不是算失败。
+        if (e.result.status == DownloadPictureResultStatus.notFound ||
+            e.result.status == DownloadPictureResultStatus.emptyData) {
+          progress++;
+          skipped++;
+          if (onProgress != null) {
+            await onProgress(progress, downloaded, reused, job, true);
+          }
+        } else {
+          stillFailedJobs.add(job);
         }
       } catch (e) {
         stillFailedJobs.add(job);
@@ -259,6 +316,7 @@ Future<DownloadImageJobsResult> downloadImageJobs({
     reused: reused,
     failed: stillFailedJobs.length,
     failedJobs: stillFailedJobs,
+    skipped: skipped,
   );
 }
 

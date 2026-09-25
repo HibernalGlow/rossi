@@ -98,8 +98,8 @@ abstract class ToastSettingState with _$ToastSettingState {
 /// 上游卡片里「提示悬浮窗」那一节（X/Y、透明度、液态玻璃）**不在这里** ——
 /// Rossi 的提示条外观统一由 [ToastSettingState] 的九宫格 + 尺寸负责
 /// （见 `toast_setting_page`），本设置只管「什么时候提示、提示什么」。
-/// 上游的 `enableAction` / `enableBoundaryToast` 在 Rossi 还没有统一的
-/// 按键执行 / 边界翻页挂点，本轮不搬（口径登记在 `docs/ROADMAP.md`）。
+/// 上游的 `enableAction`（按键操作提示）在 Rossi 还没有统一的按键执行挂点，
+/// 本轮不搬（口径登记在 `docs/ROADMAP.md`）。
 @freezed
 abstract class SwitchToastSettingState with _$SwitchToastSettingState {
   const factory SwitchToastSettingState({
@@ -108,6 +108,9 @@ abstract class SwitchToastSettingState with _$SwitchToastSettingState {
 
     /// 翻页时显示提示。
     @Default(false) bool enablePage,
+
+    /// 翻到最后一页 / 在最后一页继续向前翻页时显示提示（上游 `enableBoundaryToast`）。
+    @Default(false) bool enableBoundaryToast,
 
     /// 模板变量为 `{{book.*}}` / `{{page.*}}`，语义与上游
     /// `renderReaderSwitchToastTemplate` 逐条对照（见
@@ -123,6 +126,9 @@ abstract class SwitchToastSettingState with _$SwitchToastSettingState {
     /// 上游默认是「分辨率 + 文件大小」，但 Rossi 的页表（`Doc`）没有这两项，
     /// 换成页文件名 —— 刻意偏离，见 `docs/ROADMAP.md`。
     @Default('{{page.name}}') String pageDescriptionTemplate,
+
+    /// 边界提示文案（对齐上游 `enableBoundaryToast` 的语义，Rossi 侧不带模板变量）。
+    @Default('已经是最后一页') String lastPageMessage,
   }) = _SwitchToastSettingState;
 
   factory SwitchToastSettingState.fromJson(Map<String, dynamic> json) =>

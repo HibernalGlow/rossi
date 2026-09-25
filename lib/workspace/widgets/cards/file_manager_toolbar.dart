@@ -17,32 +17,41 @@ abstract final class FileManagerToolbarMetrics {
   /// 同一组之内的间距。
   static const double gapWithinGroup = 4;
 
-  /// 组间竖分隔线：线宽 1、长 20、左右各 6 的呼吸。
-  static const double separatorThickness = 1;
-  static const double separatorHeight = 20;
-  static const double separatorMargin = 6;
+  /// 组与组之间的间距。MD3 的分组靠**间距分级**，不靠分隔线 ——
+  /// 组内 4、组间 12，一眼能看出哪几颗是一回事。
+  static const double gapBetweenGroups = 12;
+
+  /// 分组槽的水平内边距。槽本身高度固定为 [buttonSize]，所以里头的图标钮
+  /// 与槽外邻居仍然共用同一条 40 的高度带。
+  static const double wellPadding = 2;
 
   /// 导航摊开成五颗标准键所需的最小**卡片宽度**；低于这条线收成一颗导航掌。
   ///
   /// 这笔账要连右边一起算，否则摊开了反而要横向滚（那正是导航掌存在的理由）：
-  /// 导航五颗 5×40+4×4=216，主工具组五颗 216，两条分隔线 2×(1+12)=26，
-  /// 「更多」40 + 计数约 52 ⇒ 约 550。
-  static const double expandedNavigationMinWidth = 550;
+  /// 导航五颗 5×40+4×4=216 再加槽的左右内边距 4 ⇒ 220，主工具组五颗 216，
+  /// 两条组间间距 2×12=24，「更多」40 + 计数约 52 ⇒ 约 552。
+  static const double expandedNavigationMinWidth = 560;
 }
 
-/// 工具栏里的一颗图标按钮：三种态各用一处角色，不自己叠透明度。
+/// 工具栏里的一颗**瞬时动作**键：后退 / 前进 / 上一级 / 刷新 / 主页。
 ///
-/// - 常态：`onSurfaceVariant` 图标 + 无底
-/// - 按下（选中 / 开关开着）：`secondaryContainer` 底 + `onSecondaryContainer`
-/// - 禁用：`onSurfaceVariant` 38%（MD3 的禁用档就是这个数）
+/// 它没有「选中」这一态 —— 按完就完，留下状态的是别的东西。以前这些键和
+/// 开关共用一个带 `selected` 的按钮，于是「当前就在主页上」和「文件树开着」
+/// 长成了同一个灰粉圆底，两种完全不同的事读起来是一回事。开关见
+/// [FileManagerToolbarToggleButton]。
 ///
-/// 悬停/按压的水波纹由官方 `IconButton` 的状态层承担。[style] 是同一份样式的出口，
-/// `FluentPopupMenuButton` 那颗菜单触发键也走它，整行才只有一个几何口径。
+/// 配色：常态 `onSurfaceVariant` 图标 + 无底；禁用 `onSurfaceVariant` 38%
+/// （MD3 的禁用档就是这个数）。悬停/按压的水波纹由官方 `IconButton` 的状态层承担。
 class FileManagerToolbarIconButton extends StatelessWidget {
   final IconData icon;
   final String tooltip;
-  final bool selected;
   final bool enabled;
+
+  /// 「在这儿了，点了也没去处」：按禁用的样子画，但仍然可点。
+  ///
+  /// 主页那颗用得上 —— 已经站在主页上时它不再提供「回主页」，但长按/右键的
+  /// 主页菜单还得留口，所以不能真的走 [enabled]。
+  final bool muted;
   final VoidCallback? onPressed;
   final VoidCallback? onLongPress;
 
@@ -51,11 +60,14 @@ class FileManagerToolbarIconButton extends StatelessWidget {
     required this.icon,
     required this.tooltip,
     required this.onPressed,
-    this.selected = false,
     this.enabled = true,
+    this.muted = false,
     this.onLongPress,
   });
 
+  /// 整行共用的几何档。[selected] 为真画 `secondaryContainer` 底，
+  /// 只有开关态（[FileManagerToolbarToggleButton] 与带值的菜单触发键）用得上；
+  /// `FluentPopupMenuButton` 那颗菜单触发键也走它，整行才只有一个几何口径。
   static ButtonStyle style(BuildContext context, {bool selected = false}) {
     final colorScheme = Theme.of(context).colorScheme;
     final fg = selected
@@ -105,30 +117,81 @@ class FileManagerToolbarIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return IconButton(
-      isSelected: selected,
       tooltip: tooltip,
       onPressed: enabled ? onPressed : null,
       onLongPress: enabled ? onLongPress : null,
-      style: style(context, selected: selected),
+      style: style(context).copyWith(
+        foregroundColor: muted
+            ? WidgetStatePropertyAll(
+                colorScheme.onSurfaceVariant.withValues(alpha: 0.38),
+              )
+            : null,
+      ),
       icon: Icon(icon),
     );
   }
 }
 
-/// 组间竖分隔线（MD3 divider：`outlineVariant`，实色不透明）。
-class FileManagerToolbarSeparator extends StatelessWidget {
-  const FileManagerToolbarSeparator({super.key});
+/// 工具栏里的一颗**开关**键：文件树、穿透模式、搜索展开。
+///
+/// 与瞬时动作键唯一的区别就是它有 `on` 这一态，用 MD3 的 tonal 底
+/// （`secondaryContainer`）表达「这个功能现在开着」。
+class FileManagerToolbarToggleButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final bool on;
+  final bool enabled;
+  final VoidCallback? onPressed;
+
+  const FileManagerToolbarToggleButton({
+    super.key,
+    required this.icon,
+    required this.tooltip,
+    required this.on,
+    required this.onPressed,
+    this.enabled = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      isSelected: on,
+      tooltip: tooltip,
+      onPressed: enabled ? onPressed : null,
+      style: FileManagerToolbarIconButton.style(context, selected: on),
+      icon: Icon(icon),
+    );
+  }
+}
+
+/// 一组控件共用的下沉槽。
+///
+/// 取代原来的竖分隔线：MD3 表达分组靠**容器 + 间距**，不靠画线。卡片底是
+/// `surfaceContainerHigh`（见 `collapsible_card.dart`），所以槽取低一档的
+/// `surfaceContainer` —— 读作「这里是一片可操作区」，而不是又加一层海拔。
+/// 高度锁死在 [FileManagerToolbarMetrics.buttonSize]，槽里的图标钮与槽外
+/// 邻居因此仍共用同一条高度带。
+class FileManagerToolbarGroup extends StatelessWidget {
+  final List<Widget> children;
+
+  const FileManagerToolbarGroup({super.key, required this.children});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: FileManagerToolbarMetrics.separatorThickness,
-      height: FileManagerToolbarMetrics.separatorHeight,
-      margin: const EdgeInsets.symmetric(
-        horizontal: FileManagerToolbarMetrics.separatorMargin,
+      height: FileManagerToolbarMetrics.buttonSize,
+      padding: const EdgeInsets.symmetric(
+        horizontal: FileManagerToolbarMetrics.wellPadding,
       ),
-      color: Theme.of(context).colorScheme.outlineVariant,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(
+          FileManagerToolbarMetrics.buttonSize / 2,
+        ),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: children),
     );
   }
 }
@@ -248,7 +311,9 @@ class FileManagerNavigation extends StatelessWidget {
               key: homeKey,
               icon: Icons.home_rounded,
               tooltip: _homeTooltip,
-              selected: atHome,
+              // 「就在主页上」不是开关态，画成 muted：它和文件树那种
+              // 「功能开着」再也不是同一个圆底。
+              muted: atHome,
               enabled: !busy,
               onPressed: onGoHome,
               onLongPress: onHomeMenu,

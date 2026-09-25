@@ -7,6 +7,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/cubit/workspace_state.dart';
+import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/util/input/reader_input_bridge.dart';
 import 'package:zephyr/util/input/reader_input_context.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
@@ -31,7 +32,7 @@ import 'package:zephyr/workspace/widgets/swimlane/swimlane_workspace.dart';
 /// - **桌面（有指针）**：悬停揭示 —— 平时不占高度，鼠标贴到窗口最顶端才淡入，
 ///   `Esc` 是退出工作台的键盘路径；
 /// - **触摸屏（没有指针）**：常驻 —— 揭示式顶栏在那边**唤不出来**，
-///   而工作台是 `Navigator.push` 上来的整页、没有系统返回按钮，
+///   而工作台这一整页没有 AppBar、也就没有系统返回按钮，
 ///   顶栏一撤就**没有可见出口**。所以那边顶栏占一行真实高度、内容从它下面开始。
 ///
 /// **两种形态都只在 `interaction.showTopChrome` 打开时才有**，而它默认是**关**的：
@@ -64,9 +65,10 @@ class BreezeWorkspacePage extends StatefulWidget {
 
   /// 本页在导航栈里的名字。
   ///
-  /// 它是用 `MaterialPageRoute` 直接推入的（不经 `router.gr.dart`），
-  /// 所以名字要自己给 —— 工作台靠它判断「我是不是最上面那一页」。
-  static const String routeName = 'BreezeWorkspacePage';
+  /// 推入走的是路由表（`context.pushRoute(BreezeWorkspaceRoute())`），所以名字
+  /// 由生成物给（`AutoRoutePage` 把它填进 `RouteSettings.name`）—— 工作台靠它
+  /// 判断「我是不是最上面那一页」。
+  static const String routeName = BreezeWorkspaceRoute.name;
 
   @override
   State<BreezeWorkspacePage> createState() => _BreezeWorkspacePageState();
@@ -199,10 +201,10 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
   /// 所以开完泳道后把工作台上面的页面弹掉 —— 一次 post-frame 之后再做，
   /// 让守卫那次被中止的导航先收尾。
   ///
-  /// 用 `ModalRoute.isCurrent` 判断「我是不是最上面那一页」，而不是比路由名：
-  /// 工作台是用 `Navigator.push` 直接推的，auto_route 自己的栈里根本没有它这一页。
-  /// 这个判断同时挡住一个真会出事的写法 —— 万一工作台不在栈里，
-  /// `popUntil` 会一路弹到根页面，把整个应用弹空。
+  /// 判据用 `ModalRoute.isCurrent`（Navigator 层面的事实：我上面还有没有别的一页）。
+  /// 先问这一句再 `popUntil`，挡的是一个真会出事的写法 —— 谓词比的是路由名，
+  /// 名字一旦对不上（或这一页压根不在栈里），`popUntil` 会一路弹到根页面，
+  /// 把整个应用弹空。
   void _handleOpenInLane(WorkspaceReaderTarget target) {
     _cubit.openReader(target);
 
@@ -218,7 +220,7 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
 
   /// 退出工作台（若阅读器处于全屏铺满状态则优先退出全屏）。
   ///
-  /// 工作台是用 `Navigator.push` 上来的整页，**没有系统返回按钮** ——
+  /// 工作台这一整页没有 AppBar，**没有系统返回按钮** ——
   /// 顶栏一撤，它就是唯一的可见出口（键盘侧由 `Esc` 兜底，
   /// Android 侧另有系统返回键）。只在「工作台确实是栈顶」时才弹：
   /// 详情页之类压在上面时不该把用户弹走。
@@ -234,7 +236,7 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
   }
 
   /// 顶栏形态 —— **触摸屏上揭示式顶栏等于没有出口**（`MouseRegion` 永远不触发，
-  /// 而工作台是 `Navigator.push` 上来的整页、没有系统返回按钮、`Esc` 也用不上）。
+  /// 而工作台这一整页没有系统返回按钮、`Esc` 也用不上）。
   /// 所以那边保留**常驻**顶栏：占一行真实高度，内容从它下面开始。
   ///
   /// 判据是**平台有没有鼠标指针**（`defaultTargetPlatform`），不是「名字里带不带

@@ -32,16 +32,16 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
       FileManagerSortField.random: '随机',
     };
 
-    Widget action({
+    Widget toggle({
       required IconData icon,
       required String tooltip,
+      required bool on,
       required VoidCallback? onPressed,
-      bool active = false,
     }) {
-      return FileManagerToolbarIconButton(
+      return FileManagerToolbarToggleButton(
         icon: icon,
         tooltip: tooltip,
-        selected: active,
+        on: on,
         enabled: !_busy,
         onPressed: onPressed,
       );
@@ -64,31 +64,37 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                 // —— 导航组 ——
                 // 够宽就摊开成后退/前进/上一级/主页/刷新五颗标准键，
                 // 窄下来才把五个方向收成一颗掌形控件（NeoView 的 FolderNavigationPad）。
-                FileManagerNavigation(
-                  expanded: expandedNavigation,
-                  busy: _busy,
-                  loading: _busy,
-                  canGoBack: activeTab.canGoBack,
-                  canGoForward: activeTab.canGoForward,
-                  canGoUp: snapshot.canGoUp,
-                  homeKey: _homeButtonKey,
-                  homeEnabled: homeEnabled,
-                  hasHome: snapshot.homePath != null,
-                  atHome: snapshot.isHome,
-                  onNavigateBack: () =>
-                      _apply((id) => fileManagerGoBack(id: id)),
-                  onNavigateForward: () =>
-                      _apply((id) => fileManagerGoForward(id: id)),
-                  onNavigateUp: () => _apply((id) => fileManagerGoUp(id: id)),
-                  // 设过主页 = 单击回主页；没设过 = 单击把当前目录设为主页，
-                  // 这样第一次用的人不必先猜「要长按/右键」。
-                  onGoHome: snapshot.homePath != null
-                      ? () => _apply((id) => fileManagerGoHome(id: id))
-                      : () => _setHomePath(snapshot.activePath),
-                  onHomeMenu: () => _openHomeMenu(snapshot),
-                  onRefresh: () => _apply((id) => fileManagerRefresh(id: id)),
+                // 两种画法都坐在同一颗下沉槽里，组与组之间只靠 gapBetweenGroups 分开。
+                FileManagerToolbarGroup(
+                  children: [
+                    FileManagerNavigation(
+                      expanded: expandedNavigation,
+                      busy: _busy,
+                      loading: _busy,
+                      canGoBack: activeTab.canGoBack,
+                      canGoForward: activeTab.canGoForward,
+                      canGoUp: snapshot.canGoUp,
+                      homeKey: _homeButtonKey,
+                      homeEnabled: homeEnabled,
+                      hasHome: snapshot.homePath != null,
+                      atHome: snapshot.isHome,
+                      onNavigateBack: () =>
+                          _apply((id) => fileManagerGoBack(id: id)),
+                      onNavigateForward: () =>
+                          _apply((id) => fileManagerGoForward(id: id)),
+                      onNavigateUp: () => _apply((id) => fileManagerGoUp(id: id)),
+                      // 设过主页 = 单击回主页；没设过 = 单击把当前目录设为主页，
+                      // 这样第一次用的人不必先猜「要长按/右键」。
+                      onGoHome: snapshot.homePath != null
+                          ? () => _apply((id) => fileManagerGoHome(id: id))
+                          : () => _setHomePath(snapshot.activePath),
+                      onHomeMenu: () => _openHomeMenu(snapshot),
+                      onRefresh: () =>
+                          _apply((id) => fileManagerRefresh(id: id)),
+                    ),
+                  ],
                 ),
-                const FileManagerToolbarSeparator(),
+                const SizedBox(width: FileManagerToolbarMetrics.gapBetweenGroups),
 
                 // —— 主工具组 ——
                 FluentPopupMenuButton<FileManagerViewMode>(
@@ -179,10 +185,10 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                 ),
                 // 搜索键不参与 _busy 门控：展开/收起只是 UI 状态切换。
                 const SizedBox(width: FileManagerToolbarMetrics.gapWithinGroup),
-                FileManagerToolbarIconButton(
+                FileManagerToolbarToggleButton(
                   icon: Icons.search_rounded,
                   tooltip: _searchExpanded ? '收起搜索' : '搜索（空格分词，-排除）',
-                  selected: _searchExpanded || snapshot.searchQuery.isNotEmpty,
+                  on: _searchExpanded || snapshot.searchQuery.isNotEmpty,
                   onPressed: () {
                     // ignore: invalid_use_of_protected_member
                     setState(() => _searchExpanded = !_searchExpanded);
@@ -190,17 +196,17 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                   },
                 ),
                 const SizedBox(width: FileManagerToolbarMetrics.gapWithinGroup),
-                action(
+                toggle(
                   icon: Icons.account_tree_outlined,
                   tooltip: _treeEnabled ? '关闭文件树' : '文件树',
-                  active: _treeEnabled,
+                  on: _treeEnabled,
                   onPressed: () => _setTreeEnabled(!_treeEnabled),
                 ),
                 const SizedBox(width: FileManagerToolbarMetrics.gapWithinGroup),
-                action(
+                toggle(
                   icon: Icons.alt_route_rounded,
                   tooltip: snapshot.penetrationEnabled ? '关闭穿透模式' : '穿透模式',
-                  active: snapshot.penetrationEnabled,
+                  on: snapshot.penetrationEnabled,
                   onPressed: () => _apply(
                     (id) => fileManagerSetPenetration(
                       id: id,
@@ -210,7 +216,9 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                 ),
 
                 // —— 更多组 ——
-                const FileManagerToolbarSeparator(),
+                const SizedBox(
+                  width: FileManagerToolbarMetrics.gapBetweenGroups,
+                ),
                 FluentPopupMenuButton<String>(
                   tooltip: '更多',
                   enabled: !_busy,

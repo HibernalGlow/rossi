@@ -13,8 +13,9 @@ import 'package:zephyr/workspace/router/workspace_navigation_bridge.dart';
 /// 1. `ComicReadRoute` → **阅读器泳道**（「中央泳道 = Reader」不跟着点击位置走）；
 /// 2. 其余 → **发起交互的那个面板**（`WorkspaceNavigationBridge.pushInLane`）。
 ///
-/// 放行的三种情况（行为与没有工作台时**逐字一致**）：
+/// 放行的四种情况（行为与没有工作台时**逐字一致**）：
 /// - 工作台没挂载（`isAttached == false`）；
+/// - 推的是工作台自己那一页（`BreezeWorkspaceRoute`）—— 它只能是整页；
 /// - `ComicReadRoute` 的参数不是 `ComicReadRouteArgs`（例如按路径推入、没有类型化参数）；
 /// - 落点不明（用户还没在任何一个面板里点过、那条泳道已经换面板 / 收起、
 ///   面板正在卸载）—— 这时候**宁可全屏**：把页面开进一个用户看不见的地方，
@@ -39,6 +40,16 @@ class WorkspaceRouteGuard extends AutoRouteGuard {
 
     final match = resolver.route;
     final args = match.args;
+
+    // 0. 工作台自己：**永远整页**。它一旦被当成「别的东西」塞进某条面板，
+    //    用户看到的就是套在工作台里的第二层工作台，而落点记账会把「返回」算错。
+    //    生产里入口在工作台背后（`NavigationBar` 那颗按钮），此刻够不到；
+    //    但守卫接的是**每一次**推入，所以先把这个口子堵上，
+    //    以后从泳道里新增一个「打开工作台」不必再踩一遍。
+    if (match.name == BreezeWorkspaceRoute.name) {
+      resolver.next(true);
+      return;
+    }
 
     // 1. 阅读：一律进中央泳道。
     if (match.name == ComicReadRoute.name && args is ComicReadRouteArgs) {

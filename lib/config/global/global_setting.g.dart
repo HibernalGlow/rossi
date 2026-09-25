@@ -662,6 +662,7 @@ _SwitchToastSettingState _$SwitchToastSettingStateFromJson(
 ) => _SwitchToastSettingState(
   enableBook: json['enableBook'] as bool? ?? false,
   enablePage: json['enablePage'] as bool? ?? false,
+  enableBoundaryToast: json['enableBoundaryToast'] as bool? ?? false,
   bookTitleTemplate:
       json['bookTitleTemplate'] as String? ??
       '已切换到 {{book.displayName}}（第 {{book.currentPageDisplay}} / {{book.totalPages}} 页）',
@@ -672,6 +673,7 @@ _SwitchToastSettingState _$SwitchToastSettingStateFromJson(
       '第 {{page.indexDisplay}} / {{book.totalPages}} 页',
   pageDescriptionTemplate:
       json['pageDescriptionTemplate'] as String? ?? '{{page.name}}',
+  lastPageMessage: json['lastPageMessage'] as String? ?? '已经是最后一页',
 );
 
 Map<String, dynamic> _$SwitchToastSettingStateToJson(
@@ -679,10 +681,12 @@ Map<String, dynamic> _$SwitchToastSettingStateToJson(
 ) => <String, dynamic>{
   'enableBook': instance.enableBook,
   'enablePage': instance.enablePage,
+  'enableBoundaryToast': instance.enableBoundaryToast,
   'bookTitleTemplate': instance.bookTitleTemplate,
   'bookDescriptionTemplate': instance.bookDescriptionTemplate,
   'pageTitleTemplate': instance.pageTitleTemplate,
   'pageDescriptionTemplate': instance.pageDescriptionTemplate,
+  'lastPageMessage': instance.lastPageMessage,
 };
 
 _FavoriteArtistSettingState _$FavoriteArtistSettingStateFromJson(
@@ -749,6 +753,7 @@ _FileManagerSettingState _$FileManagerSettingStateFromJson(
   homePath: json['homePath'] as String? ?? '',
   openHomeOnStart: json['openHomeOnStart'] as bool? ?? false,
   rememberViewState: json['rememberViewState'] as bool? ?? true,
+  restoreTabs: json['restoreTabs'] as bool? ?? true,
   fileOperations: json['fileOperations'] as bool? ?? true,
 );
 
@@ -759,6 +764,7 @@ Map<String, dynamic> _$FileManagerSettingStateToJson(
   'homePath': instance.homePath,
   'openHomeOnStart': instance.openHomeOnStart,
   'rememberViewState': instance.rememberViewState,
+  'restoreTabs': instance.restoreTabs,
   'fileOperations': instance.fileOperations,
 };
 

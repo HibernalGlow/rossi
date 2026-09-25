@@ -122,8 +122,12 @@ class ComicEntryWidget extends StatelessWidget {
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: (isFavoriteArtist || isFavoriteTag)
-                ? const Color(0xFFF59E0B)
+            // 与封面卡片同一分家口径：画师 = error、tag = tertiary，
+            // 都命中时画师优先。
+            color: isFavoriteArtist
+                ? theme.colorScheme.error
+                : isFavoriteTag
+                ? theme.colorScheme.tertiary
                 : theme.colorScheme.outlineVariant,
             width: (isFavoriteArtist || isFavoriteTag) ? 1.8 : 1.0,
           ),

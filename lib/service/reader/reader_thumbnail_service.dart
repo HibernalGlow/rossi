@@ -385,6 +385,7 @@ class _ReaderThumbnailWidgetState extends State<ReaderThumbnailWidget> {
         chapterId: doc.storageChapterId.isNotEmpty
             ? doc.storageChapterId
             : widget.comicId,
+        storageChapterId: doc.storageChapterId,
         pictureType: PictureType.page,
         extern: doc.extern,
       );

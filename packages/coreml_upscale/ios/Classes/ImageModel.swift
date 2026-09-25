@@ -9,18 +9,32 @@ class ImageModel: ImageProcessingModel {
         self.model = model
     }
 
-    func process(_ image: CGImage) async -> CGImage? {
-        guard let vnModel = try? VNCoreMLModel(for: model) else { return nil }
+    func process(_ image: CGImage) async throws -> CGImage {
+        let vnModel: VNCoreMLModel
+        do {
+            vnModel = try VNCoreMLModel(for: model)
+        } catch {
+            throw CoreMLUpscaleError.processingFailed("Vision 包装 CoreML 模型失败：\(error)")
+        }
 
         let request = VNCoreMLRequest(model: vnModel)
         request.imageCropAndScaleOption = .scaleFill
         let handler = VNImageRequestHandler(cgImage: image, options: [:])
 
-        try? handler.perform([request])
+        do {
+            try handler.perform([request])
+        } catch {
+            throw CoreMLUpscaleError.processingFailed("Vision 推理失败：\(error)")
+        }
 
-        guard let result = request.results?.first as? VNPixelBufferObservation else { return nil }
+        guard let result = request.results?.first as? VNPixelBufferObservation else {
+            throw CoreMLUpscaleError.processingFailed("Image 型模型没有产出像素缓冲")
+        }
 
-        let image = CIImage(cvImageBuffer: result.pixelBuffer)
-        return image.cgImage
+        let output = CIImage(cvImageBuffer: result.pixelBuffer)
+        guard let cgImage = output.cgImage else {
+            throw CoreMLUpscaleError.processingFailed("Image 型模型的像素缓冲无法转成 CGImage")
+        }
+        return cgImage
     }
 }

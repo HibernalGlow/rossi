@@ -138,6 +138,38 @@ Future<void> _waitDwell(WidgetTester tester, int delayMs) async {
   await tester.pumpAndSettle();
 }
 
+/// 找到条带那一层的 `ScrollPosition`。
+///
+/// 按「左泳道探针的祖先」认条带，而不是按轴向扫全部 `Scrollable`：夹具里
+/// 横向可滚件**不止一条**（每条泳道栏头的页签条也是横向的），扫轴向会挑错人。
+ScrollPosition _stripPosition(WidgetTester tester) {
+  final states = tester.stateList<ScrollableState>(
+    find.ancestor(of: _probe(LaneId.left), matching: find.byType(Scrollable)),
+  );
+  expect(states.length, 1, reason: '左泳道只该被条带这一条可滚件包住，否则不知道在量谁');
+  final position = states.single.position;
+  expect(position.axis, Axis.horizontal, reason: '条带是横向的');
+  return position;
+}
+
+/// 条带上「左泳道探针」的屏幕横坐标 —— 条带动没动，看这个最直接。
+double _leftProbeDx(WidgetTester tester) =>
+    tester.getCenter(_probe(LaneId.left)).dx;
+
+/// 全屏判据的**共同前置**：条带得真的有向右拖的余量。
+///
+/// 余量为 0 时「拖了没动」是空转而不是被闸口拦住，那种 PASS 什么也没验。
+/// 拖向右 ⇒ 偏移变小 ⇒ 左泳道进入视口，所以要问的是 `pixels` 而不是
+/// `maxScrollExtent`（方向反了同样会假绿：向左拖只会把左泳道推得更远）。
+void _expectCanDragRight(WidgetTester tester, double delta) {
+  final position = _stripPosition(tester);
+  expect(
+    position.pixels,
+    greaterThan(delta),
+    reason: '前置：向右拖 $delta 的余量都不够，判据无从谈起',
+  );
+}
+
 void main() {
   setUp(_contentTaps.clear);
 
@@ -493,6 +525,60 @@ void main() {
       cubit.state.activeLaneId,
       LaneId.reader,
       reason: '收回的是**条带位置**，激活泳道自始至终没换过',
+    );
+  });
+
+  // ── 7：Reader 全屏时的那道横向拖动闸 ──────────────────────────────────────
+
+  testWidgets('Reader 全屏时横向拖动不拽动条带（开关默认开）', (tester) async {
+    final cubit = await _pumpWorkspace(tester);
+    cubit.setReaderFullscreen(true);
+    await tester.pumpAndSettle();
+
+    expect(cubit.state.isReaderFullscreen, isTrue, reason: '前置：已进入全屏');
+    expect(
+      cubit.state.interaction.blockManualScrollInReaderFullscreen,
+      isTrue,
+      reason: '前置：新开关出厂就是开的（用户要的默认行为）',
+    );
+    _expectCanDragRight(tester, 240);
+    final before = _leftProbeDx(tester);
+
+    await tester.dragFrom(const Offset(600, 450), const Offset(240, 0));
+    await tester.pumpAndSettle();
+
+    expect(
+      _leftProbeDx(tester),
+      moreOrLessEquals(before, epsilon: 0.5),
+      reason: '纹丝不动：全屏下的横向手势只该翻页，不该把条带拽出来',
+    );
+  });
+
+  testWidgets('关掉开关后全屏时又能拖 —— 证明上一判据拦它的就是这颗开关', (tester) async {
+    final cubit = await _pumpWorkspace(tester);
+    cubit.setReaderFullscreen(true);
+    cubit.setInteraction(
+      cubit.state.interaction.copyWith(
+        blockManualScrollInReaderFullscreen: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      cubit.state.interaction.blockManualScrollInReaderFullscreen,
+      isFalse,
+      reason: '前置：这一条走的是「全屏也照旧可拖」那条分支',
+    );
+    _expectCanDragRight(tester, 240);
+    final before = _leftProbeDx(tester);
+
+    await tester.dragFrom(const Offset(600, 450), const Offset(240, 0));
+    await tester.pumpAndSettle();
+
+    expect(
+      _leftProbeDx(tester),
+      greaterThan(before + 100),
+      reason: '拖得动 —— 否则上一条的「拖不动」可能来自别的原因（例如整条根本不能滚）',
     );
   });
 }

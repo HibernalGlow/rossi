@@ -232,8 +232,10 @@ Breeze 是 RealSR / waifu2x），跨平台画质必然不一致，不做画质�
   运行时是 `SwitchToastService` 听 `ReaderSessionCoordinator`，模板引擎与上游
   `renderReaderSwitchToastTemplate` 逐条对照（判据 `test/workspace/switch_toast_test.dart`）。
   **上游不搬部分的口径**：外观摆位由「设置 → 提示样式」（`ToastSettingState` 九宫格）统一负责，
-  卡片不再重复一套窗口 X/Y 摆位；`enableAction`（按键操作）与 `enableBoundaryToast`（边界翻页）
-  在 Rossi 还没有统一挂点，留待本阶段输入绑定运行时（ADR-0009）补齐后接入。
+  卡片不再重复一套窗口 X/Y 摆位；`enableAction`（按键操作）在 Rossi 还没有统一挂点，
+  留待本阶段输入绑定运行时（ADR-0009）补齐后接入。
+  `enableBoundaryToast`（边界翻页）已接入（c41995ff）：判据是「loaded 范围到尽头且没有下一话可续」，
+  横翻越界与键位/上下翻页两条入口各自在 `row_mode` 与 `ReaderActionController` 上挂。
 - 输入设备适配 → **已提前到 v0.1**，见 ADR-0009 与判据 E（v0.1 只做键盘 / 鼠标 / 滚轮 / 触屏 / 区域；
   手柄 / 轨迹手势 / 轮盘留 schema 占位，运行时推迟到本阶段）
 

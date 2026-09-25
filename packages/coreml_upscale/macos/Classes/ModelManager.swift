@@ -1,7 +1,7 @@
 import Foundation
 import CoreML
 
-enum CoreMLUpscaleError: Error, CustomStringConvertible {
+enum CoreMLUpscaleError: Error, CustomStringConvertible, LocalizedError {
     case invalidInput(String)
     case modelLoadFailed(String)
     case processingFailed(String)
@@ -19,6 +19,11 @@ enum CoreMLUpscaleError: Error, CustomStringConvertible {
             return "Write failed: \(message)"
         }
     }
+
+    /// 插件把错误经 `localizedDescription` 透成 FlutterError 给 Dart。
+    /// 只 conform `CustomStringConvertible` 的话，桥成 NSError 后这条消息会被丢光，
+    /// Dart 侧只剩「The operation couldn’t be completed. (…) error 2.」。
+    var errorDescription: String? { description }
 }
 
 actor ModelManager {

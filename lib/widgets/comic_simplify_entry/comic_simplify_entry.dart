@@ -55,6 +55,10 @@ FavoriteTagMatchResult _favoriteTagMatch(
   );
 }
 
+/// 封面左上角的「喜欢画师」角标。
+///
+/// 按 M3 的色调容器走：画师用 `errorContainer`/`onErrorContainer`（♥ 的
+/// 红色语义），与 [FavoriteTagBadge] 的 tertiary 一家分家。
 class FavoriteArtistBadge extends StatelessWidget {
   final String? artistName;
 
@@ -62,10 +66,11 @@ class FavoriteArtistBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: BoxDecoration(
-        color: const Color(0xFFFBBF24), // #fbbf24
+        color: scheme.errorContainer,
         borderRadius: BorderRadius.circular(4),
         boxShadow: [
           BoxShadow(
@@ -78,10 +83,10 @@ class FavoriteArtistBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
+          Text(
             '♥',
             style: TextStyle(
-              color: Color(0xFFDC2626),
+              color: scheme.onErrorContainer,
               fontSize: 10,
               fontWeight: FontWeight.w900,
               height: 1.1,
@@ -92,8 +97,8 @@ class FavoriteArtistBadge extends StatelessWidget {
             artistName?.isNotEmpty == true
                 ? artistName!
                 : t.settings.favoriteArtistBadge,
-            style: const TextStyle(
-              color: Color(0xFF451A03), // #451a03
+            style: TextStyle(
+              color: scheme.onErrorContainer,
               fontSize: 10,
               fontWeight: FontWeight.w700,
               height: 1.1,
@@ -241,12 +246,18 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
         ? ChineseTranslationMatcher.match(title: info.title, tags: info.tags)
         : ChineseTranslationMatch.none;
 
+    // 描边按 M3 角色色分家：画师 = error、tag = tertiary；两者都命中时
+    // 画师优先（与角标堆叠的先后一致）。
+    final highlightEdge = isFavoriteArtist
+        ? Theme.of(context).colorScheme.error
+        : Theme.of(context).colorScheme.tertiary;
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(circular),
       child: Container(
         foregroundDecoration: (isFavoriteArtist || isFavoriteTag)
             ? BoxDecoration(
-                border: Border.all(color: const Color(0xFFF59E0B), width: 2.5),
+                border: Border.all(color: highlightEdge, width: 2.5),
                 borderRadius: BorderRadius.circular(circular),
               )
             : null,
@@ -548,6 +559,11 @@ class ComicSimplifyEntry extends StatelessWidget {
         ? ChineseTranslationMatcher.match(title: info.title, tags: info.tags)
         : ChineseTranslationMatch.none;
 
+    // 同网格卡片：画师 = error、tag = tertiary，都命中时画师优先。
+    final highlightEdge = isFavoriteArtist
+        ? Theme.of(context).colorScheme.error
+        : Theme.of(context).colorScheme.tertiary;
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(circular),
       child: Container(
@@ -558,10 +574,7 @@ class ComicSimplifyEntry extends StatelessWidget {
               )
             : ((isFavoriteArtist || isFavoriteTag)
                   ? BoxDecoration(
-                      border: Border.all(
-                        color: const Color(0xFFF59E0B),
-                        width: 2.5,
-                      ),
+                      border: Border.all(color: highlightEdge, width: 2.5),
                       borderRadius: BorderRadius.circular(circular),
                     )
                   : null),

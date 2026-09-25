@@ -38,49 +38,62 @@ void main() {
     });
   });
 
-  group('整本下载任务 payload', () {
+  group('整本下载任务（单章节任务模型：一章一个任务）', () {
+    const chapters = [
+      DownloadChapter(
+        id: 'ch-1',
+        displayName: '第 1 话',
+        order: 1,
+        extern: {},
+        images: [],
+      ),
+      DownloadChapter(
+        id: 'ch-2',
+        displayName: '第 2 话',
+        order: 2,
+        requestId: 'req-2',
+        storageId: 'store-2',
+        extern: {'k': 'v'},
+        images: [],
+      ),
+    ];
+
     test('没有章节时不构造任务', () {
       expect(
-        buildDownloadAllTask(
+        buildDownloadAllTasks(
           from: 'plugin-a',
           comicId: 'comic/1',
           comicName: '测试漫画',
           chapters: const [],
         ),
-        isNull,
+        isEmpty,
       );
     });
 
-    test('全部章节都进 payload，且 requestId/storageId 缺失时按 id 兜底', () {
-      final task = buildDownloadAllTask(
+    test('每个章节各一个任务，key 精确到章且互不相同', () {
+      final tasks = buildDownloadAllTasks(
         from: 'plugin-a',
         comicId: 'comic/1',
         comicName: '测试漫画',
-        chapters: const [
-          DownloadChapter(
-            id: 'ch-1',
-            displayName: '第 1 话',
-            order: 1,
-            extern: {},
-            images: [],
-          ),
-          DownloadChapter(
-            id: 'ch-2',
-            displayName: '第 2 话',
-            order: 2,
-            requestId: 'req-2',
-            storageId: 'store-2',
-            extern: {'k': 'v'},
-            images: [],
-          ),
-        ],
+        chapters: chapters,
       );
 
-      expect(task, isNotNull);
-      expect(task!.taskKey, 'plugin-a:comic/1');
-      expect(task.chapterRefs.length, 2);
+      expect(tasks.length, 2);
+      expect(
+        tasks.map((task) => task.taskKey).toList(),
+        ['plugin-a:comic/1:ch-1', 'plugin-a:comic/1:ch-2'],
+      );
+    });
 
-      final first = task.chapterRefs.first;
+    test('requestId / storageId 缺失时按 id 兜底', () {
+      final tasks = buildDownloadAllTasks(
+        from: 'plugin-a',
+        comicId: 'comic/1',
+        comicName: '测试漫画',
+        chapters: chapters,
+      );
+
+      final first = tasks.first.chapterRef;
       expect(first.chapterId, 'ch-1');
       expect(first.logicalKey, 'ch-1');
       expect(first.title, '第 1 话');
@@ -91,7 +104,7 @@ void main() {
         md5.convert(utf8.encode('ch-1')).toString(),
       );
 
-      final second = task.chapterRefs.last;
+      final second = tasks.last.chapterRef;
       expect(second.chapterId, 'ch-2');
       expect(second.requestId, 'req-2');
       expect(second.storageChapterId, 'store-2');

@@ -835,12 +835,14 @@ class RealSrSuperResolution {
 
   /// 对单张图片做超分放大。
   ///
-  /// 返回 `true` 的完整含义是：**超分引擎跑完且 [outputPath] 上确实留下了非空的
-  /// 产物文件**。图片格式不支持、模型不可用、引擎报错、引擎跑完但没写出文件
-  /// 等情况一律返回 `false`。
+  /// 返回 `true` 的完整含义是：**超分引擎跑完，且 [outputPath] 上留下了一张
+  /// 尺寸等于「输入 × 该引擎实际倍率」的有效图片**。图片格式不支持、模型不可用、
+  /// 引擎报错、引擎跑完但没写出文件、产物量不出尺寸、产物尺寸对不上，一律 `false`。
   ///
   /// 「跑完没报错就算成功」这种宽松返回值会让调用方把"执行过"读成"已产出"，
   /// 进而把没有超分图的一页报成"替换成功" —— 所以这里的判据必须是产物本身。
+  /// 尺寸断言则是最后一道：分块拼接缺块/截断的产物仍然是个能打开的 PNG，
+  /// 只有尺寸能把它和「真的放大过」区分开；判 false 之后阅读器的重试才会接手。
   static Future<bool> upscale({
     required String inputPath,
     String? outputPath,
@@ -851,6 +853,7 @@ class RealSrSuperResolution {
     int tileSize = 0,
     int syncGapMode = 3,
     SuperResolutionProfile? engineProfile,
+    ui.Size? knownInputSize,
     bool Function()? shouldRun,
   }) async {
     final profile = hasSuperResolutionEngineChoice
@@ -913,12 +916,22 @@ class RealSrSuperResolution {
         await convertImageToPng(inputPath: inputPath, outputPath: pngInputPath);
       }
 
+      // 尺寸必须在引擎动手**之前**量：就地替换那条链路里 out 就是 inputPath，
+      // 跑完之后原图已经被放大图覆盖了。转换出的临时 PNG 与原图同尺寸，
+      // 所以调用方已经量过的 [knownInputSize] 可以直接用。
+      final inputSize = knownInputSize ?? await imageSizeOf(pngInputPath);
+
+      // 期望倍率要按**该引擎实际吃进去的那份配置**算，不能直接用参数 [scale]：
+      // Android 分支的 `-s` 来自内置 variant，CoreML / ONNX 更是各看各的模型。
+      int expectedScale;
+
       try {
         if (Platform.isAndroid) {
           final variant = AndroidNcnnModelConfig.variantFor(
             mode: AndroidNcnnModelConfig.defaultMode,
             noise: AndroidNcnnModelConfig.defaultNoise,
           );
+          expectedScale = variant.scale;
           await _upscaleAndroidCli(
             inputPath: pngInputPath,
             outputPath: out,
@@ -927,6 +940,7 @@ class RealSrSuperResolution {
           );
         } else if (profile != null &&
             profile.engine != SuperResolutionEngine.desktopNcnn) {
+          expectedScale = profile.scale;
           SuperResolutionLog.add(
             '开始推理：引擎=${profile.engine.label}；原生 ${profile.scale}×',
           );
@@ -954,6 +968,7 @@ class RealSrSuperResolution {
         } else {
           // 桌面 NCNN 引擎（Windows / Linux 的默认档），以及没有引擎概念的平台上
           // 的兜底 —— 与改动前 Windows/Linux 走的同一条路。
+          expectedScale = scale;
           await _upscaleCli(
             inputPath: pngInputPath,
             outputPath: out,
@@ -983,6 +998,32 @@ class RealSrSuperResolution {
           '（${outFile.existsSync() ? '$outBytes 字节' : '文件不存在'}）',
         );
         return false;
+      }
+
+      // 「非空」只说明写出了个文件，不说明那是一张完整放大的图 —— 缺块的产物
+      // 照样打得开。尺寸是这里唯一还能区分两者的证据：量不出来就是无效图片，
+      // 量出来对不上就是没按倍率产出，两种都按未产出处理，让调用方的重试接手。
+      final outSize = await imageSizeOf(out);
+      if (outSize == null) {
+        logger.w('超分产物解析不出尺寸，按失败处理: $out（$outBytes 字节）');
+        SuperResolutionLog.add('产物校验失败：$out 解析不出图片尺寸（$outBytes 字节），按未产出处理。');
+        return false;
+      }
+      if (expectedScale > 0 && inputSize != null) {
+        final wantW = (inputSize.width * expectedScale).round();
+        final wantH = (inputSize.height * expectedScale).round();
+        if (outSize.width != wantW || outSize.height != wantH) {
+          logger.w(
+            '超分产物尺寸不符: $out 实际 ${outSize.width.round()}x${outSize.height.round()}，'
+            '期望 ${wantW}x$wantH（输入 ${inputSize.width.round()}x${inputSize.height.round()} × $expectedScale）',
+          );
+          SuperResolutionLog.add(
+            '产物校验失败：${p.basename(out)} 实际 ${outSize.width.round()}x${outSize.height.round()}，'
+            '期望 ${wantW}x$wantH（输入 ${inputSize.width.round()}x${inputSize.height.round()} × $expectedScale）。'
+            '按未产出处理，保留原图。',
+          );
+          return false;
+        }
       }
 
       final endAt = DateTime.now();

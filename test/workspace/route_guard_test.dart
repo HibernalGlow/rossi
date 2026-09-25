@@ -22,6 +22,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/router/router.dart';
+import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_reader_target.dart';
 import 'package:zephyr/workspace/router/workspace_back_interception.dart';
@@ -137,6 +138,33 @@ void main() {
     );
   });
 
+  // 守卫接的是**每一次**推入，所以「打开工作台」这一种也得明确放行：
+  // 它一旦被落点记账塞进某条面板，用户看到的就是套在工作台里的第二层工作台。
+  testWidgets('工作台自己那一页不进面板：守卫必须放行成整页', (tester) async {
+    WorkspaceNavigationBridge.instance.attachReader(onOpenReader);
+    await _pumpHost(tester);
+
+    // 点的是卡片 A 里那颗按钮 —— 按下指针那一下就把 A 立成了落点。
+    // 这一步不能省：没有落点时 `pushInLane` 本来就返回 false，
+    // 「整页」是白给的，这条判据就成了假绿（对照第一条用例：同样有落点，
+    // 那里要的却是「开在卡片里」）。
+    await tester.tap(find.text(_openWorkspaceLabel).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text(_secondWorkspaceText), findsOneWidget);
+    final rect = tester.getRect(find.byType(_SecondWorkspacePage));
+    expect(
+      rect.topLeft,
+      Offset.zero,
+      reason: '工作台那一页必须整页，开进卡片 A 就是套娃的第二层工作台',
+    );
+    expect(
+      rect.size,
+      _windowSize,
+      reason: '放行 = 与没有守卫时逐字一致，不只是「看起来比较大」',
+    );
+  });
+
   // 插件界面（`SearchRoute` 那条链：图源卡片 → 该插件的搜索界面）顶部那个返回
   // 箭头是**上游自己画的** `IconButton(onPressed: () => context.maybePop())`。
   // `context.maybePop()` → `AutoRouter.of(context)` → 就近的 `StackRouterScope`；
@@ -147,10 +175,9 @@ void main() {
     final router = await _pumpHost(tester, startAtHome: true);
     expect(find.text(_homeText), findsOneWidget, reason: '首屏是工作台下面那一页');
 
-    // 真实进入方式：工作台是**裸 `Navigator.push`** 上来的整页
-    // （`auto_route` 自己的栈里没有它，见 `_handleOpenInLane` 的说明）。
-    // 必须摆出这一层 —— 根栈只有一页时 `Navigator.maybePop` 会 bubble 而不弹，
-    // 那样这里就没法复现「退出整个泳道」。
+    // 这里要摆的是**根栈里工作台下面还有一页**那个形状：根栈只有一页时
+    // `Navigator.maybePop` 会 bubble 而不弹，那样就没法复现「退出整个泳道」。
+    // （生产里工作台走 `context.pushRoute`；判据要的是这个栈形状，不是它怎么进来的。）
     unawaited(
       router.navigatorKey.currentState!.push(
         MaterialPageRoute<void>(
@@ -275,6 +302,21 @@ void main() {
           '面板里的一下「返回」又会弹掉整个工作台（用户报的那个 bug）',
     );
   });
+
+  // 同一类接线单独钉：**工作台在路由表里注册着**。
+  // 少这一行 `dart analyze` 照样绿（路由类是生成物里现成的），
+  // 而上游页面在工作台子树里一查自己那条路由（`context.routeData`）就红屏 ——
+  // 2026-09-25 用户报的「泳道里搜索标签 RouteData operation requested」正是这个。
+  test('路由表里注册着工作台那一页', () {
+    final names = AppRouter().routes.map((route) => route.page.name).toSet();
+    expect(
+      names,
+      contains(BreezeWorkspaceRoute.name),
+      reason:
+          '工作台必须是 `AutoRoutePage`：它摊的上游页面要按 auto_route 的常规写法'
+          '查自己所在的那条路由，手工 `Navigator.push` 的一页给不出这个上下文',
+    );
+  });
 }
 
 // ── 测试用最小的宿主 ────────────────────────────────────────────────────────
@@ -302,6 +344,11 @@ const _laneRootBackLabel = 'LANE-ROOT-BACK';
 const _openDialogLabel = 'OPEN-DIALOG';
 const _closeDialogLabel = 'CLOSE-DIALOG';
 
+/// 「打开工作台」那颗按钮，以及**真路由表里那一页的名字**。
+const _openWorkspaceLabel = 'OPEN-WORKSPACE';
+const _workspaceName = BreezeWorkspaceRoute.name;
+const _secondWorkspaceText = 'SECOND-WORKSPACE';
+
 const Size _boxA = Size(300, 400);
 const Size _boxB = Size(220, 300);
 
@@ -327,7 +374,8 @@ class _TestRouter extends RootStackRouter with WorkspaceBackInterceptor {
   ///
   /// 默认（false）首屏就是泳道宿主，与之前一致；置真时首屏换成 [_HomePage]，
   /// 于是用例可以自己用**裸 `Navigator.push`** 把泳道宿主压上去 ——
-  /// 这正是真实工作台的进入方式（`auto_route` 栈里根本没有它这一页）。
+  /// 要的是「工作台下面还有一页」那个栈形状（生产里工作台走 `context.pushRoute`，
+  /// 判据跟它怎么进来的无关）。
   final bool startAtHome;
 
   @override
@@ -345,6 +393,14 @@ class _TestRouter extends RootStackRouter with WorkspaceBackInterceptor {
     ),
     AutoRoute(
       page: PageInfo(_targetName, builder: (_) => const _LaneTargetPage()),
+    ),
+    // 「工作台自己那一页」。**名字必须与真路由表里同一个字符串** —— 守卫的放行
+    // 判据比的就是 `BreezeWorkspaceRoute.name`，换个名字这条判据就什么都验不到。
+    AutoRoute(
+      page: PageInfo(
+        BreezeWorkspaceRoute.name,
+        builder: (_) => const _SecondWorkspacePage(),
+      ),
     ),
   ];
 
@@ -387,6 +443,16 @@ class _HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(body: Center(child: Text(_homeText)));
+  }
+}
+
+/// 「第二个工作台」的替身：存在的唯一理由是**量它落在哪个矩形里**。
+class _SecondWorkspacePage extends StatelessWidget {
+  const _SecondWorkspacePage();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(body: Center(child: Text(_secondWorkspaceText)));
   }
 }
 
@@ -507,6 +573,14 @@ class _FakeUpstreamPage extends StatelessWidget {
             // 这一下必须**还回根栈**（= 退出工作台），否则键盘侧没有出口。
             onPressed: () => context.maybePop(),
             child: const Text(_laneRootBackLabel),
+          ),
+          TextButton(
+            // 「打开工作台」的写法（生产里是 `NavigationBar` trailing 那颗按钮，
+            // 它现在也走路由表）。守卫必须**明确放行**这一种 —— 见
+            // `WorkspaceRouteGuard` 的第 0 步。
+            onPressed: () =>
+                context.router.push(const PageRouteInfo<void>(_workspaceName)),
+            child: const Text(_openWorkspaceLabel),
           ),
         ],
       ),

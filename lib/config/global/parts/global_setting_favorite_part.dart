@@ -21,13 +21,13 @@ abstract class FavoriteArtistSettingState with _$FavoriteArtistSettingState {
 /// 一条收藏的 tag。
 ///
 /// [name] 是给用户看的本名（也是高亮徽标上写的那个词），[aliases] 是同一个 tag
-/// 在各个图源里的其它写法。别名必须是显式登记的：匹配只做归一化后的整串相等
+/// 在各个图源里的其它写法。匹配只做归一化后的整串相等
 /// （见 `TagText.normalize`），刻意不做子串兜底 —— `lolita` 命中 `school_lolita`
 /// 那种放宽在画师上尚可、在 tag 上会把列表刷成一片琥珀色。
 ///
-/// 为什么需要别名：同一含义在不同网站拼法不同（`school_lolita` / `School Lolita` /
-/// `学校萝莉`），插件给回的原始串对不上就没有高亮。归一化已经吃掉了大小写、
-/// 全半角和 `_`／空格这三类差异，剩下的是真正的不同词，只能由用户登记。
+/// 跨站写法的第一路是内置的 `TagTranslation`（EhTagTranslation 的译名↔原词，
+/// 建索引时自动挂上，见 `FavoriteTagMatcher.buildAliasIndex`）；[aliases] 补
+/// 的是字典覆盖不到的那部分（比如 JM 站自己起的中文名）。
 @freezed
 abstract class FavoriteTag with _$FavoriteTag {
   const factory FavoriteTag({

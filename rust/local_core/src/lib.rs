@@ -127,8 +127,9 @@ pub use file_tree::{
     list_directory_with_hidden,
 };
 pub use folder_pane::{
-    FolderPaneCommand, FolderPaneNode, FolderPaneRow, FolderPaneScanPending, FolderPaneState,
-    FolderPaneTreeKey, active_filesystem_folder, drive_label, folder_label, scan_real_subfolders,
+    FolderPaneCommand, FolderPaneListingOptions, FolderPaneNode, FolderPaneRow,
+    FolderPaneScanPending, FolderPaneState, FolderPaneTreeKey, active_filesystem_folder,
+    drive_label, folder_label, scan_real_subfolders,
 };
 pub use page_load_scheduler::{
     FS_PAGE_LOAD_HIGH_RESERVED_PERMITS, FS_PAGE_LOAD_TOTAL_PERMITS, FsPageLoadContract,

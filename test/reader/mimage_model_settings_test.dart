@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
@@ -15,6 +16,18 @@ import 'package:zephyr/page/setting/real_sr/widgets/super_resolution_engine_sett
 import 'package:zephyr/util/coreml_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/super_resolution_log_controls.dart';
 import 'package:zephyr/page/setting/real_sr/service/super_resolution_log.dart';
+
+/// 真 PNG（纯红像素，1×1 与 2×2）。
+///
+/// `upscale` 的产物判据现在是「解得出图片尺寸，且尺寸 = 输入 × 该引擎实际倍率」。
+/// 以前拿 `[1, 2, 3]` 冒充产物也算通过 —— 那正是这次要堵掉的虚报，所以这里必须
+/// 用能真被解码器认出来的图。
+final List<int> _png1x1 = base64Decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC',
+);
+final List<int> _png2x2 = base64Decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==',
+);
 
 Future<void> _settleFileIO(WidgetTester tester) async {
   // 存在检查会跨多个文件系统 await；在真实 IO 和测试帧之间推进。
@@ -179,30 +192,40 @@ void main() {
       expect(await RealSrSettings.loadCacheKey(), isNot(nativeKey));
       expect(await RealSrSuperResolution.isAvailable, isFalse);
       final input = File('${root.path}/input.png');
-      await input.writeAsBytes([137, 80, 78, 71, 13, 10, 26, 10]);
+      await input.writeAsBytes(_png1x1);
       final out = '${root.path}/output.png';
       Map<dynamic, dynamic>? arguments;
+      // mock 写进 outputPath 的那份「产物」，下面三条断言各换一个形态。
+      List<int> product = _png1x1;
       const native = MethodChannel('coreml_upscale');
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(native, (call) async {
             arguments = call.arguments as Map<dynamic, dynamic>;
-            await File(
-              arguments!['outputPath'] as String,
-            ).writeAsBytes([1, 2, 3]);
+            await File(arguments!['outputPath'] as String)
+                .writeAsBytes(product);
             return null;
           });
       addTearDown(
         () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(native, null),
       );
-      expect(
-        await RealSrSuperResolution.upscale(
-          inputPath: input.path,
-          outputPath: out,
-          engineProfile: profile,
-        ),
-        isTrue,
+
+      Future<bool> runUpscale() => RealSrSuperResolution.upscale(
+        inputPath: input.path,
+        outputPath: out,
+        engineProfile: profile,
       );
+
+      // 非空但不是图片：以前 `[1, 2, 3]` 也算通过，正是「跑过一遍被当成已产出」的
+      // 那个虚报口径，现在必须判失败。
+      product = <int>[1, 2, 3];
+      expect(await runUpscale(), isFalse, reason: '产物解析不出尺寸，不能算超分成功');
+      // 有效图片，但没按模型倍率放大：1×1 输入配 2× 模型，期望 2×2。
+      // 缺块/截断的产物就是这一类 —— 尺寸对不上是唯一还留得住的证据。
+      product = _png1x1;
+      expect(await runUpscale(), isFalse, reason: '尺寸未达期望倍率要重做，而不是落盘缓存');
+      product = _png2x2;
+      expect(await runUpscale(), isTrue);
       expect(arguments!['modelPath'], endsWith(variant.fileName));
       expect(arguments!['config']['scale'], 2);
       expect(arguments!['config']['blockSize'], 156);

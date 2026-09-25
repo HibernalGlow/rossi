@@ -57,19 +57,52 @@ PORTS = [
     {
         "upstream": "src/folder_tree.rs",
         "local": "rust/local_core/src/folder_tree.rs",
-        "pinned_at": "1fd6f863",
+        "pinned_at": "1ffce811",
         "upstream_normalize": [
             (r"\bpub\(crate\)", "pub"),
             # Unix 的反斜杠/大小写不能使用 Catalog 的 Windows 风格归一化键。
             (r"crate::path_key::normalize_keep_drive", "crate::fs_entry::directory_visit_key"),
             (
                 r"a\.to_string_lossy\(\)\.to_lowercase\(\) == b\.to_string_lossy\(\)\.to_lowercase\(\)",
-                "#[cfg(windows)] { crate::path_key::eq_keep_drive(a, b) }\n"
-                "#[cfg(not(windows))] { a == b }",
+                "#[cfg(windows)]\n{\ncrate::path_key::eq_keep_drive(a, b)\n}\n"
+                "#[cfg(not(windows))]\n{\na == b\n}",
             ),
             (r"#\[test\]\n(\s*)fn path_eq_case_insensitive", r"#[cfg(windows)]\n#[test]\n\1fn path_eq_case_insensitive"),
             (r'\.join\("testdata/archives/rar-multipart-filename-regression"\)',
              '.join("../../vendor/mimageviewer/testdata/archives/rar-multipart-filename-regression")'),
+            # 上游 61471572 把树排序独立成 FolderTreeSortOrder + settings.folder_tree_sort_order；
+            # 本仓不拆独立设置（要连带设置存储与 Dart 开关，属新功能），比较时映射回 SortOrder。
+            (r"crate::settings::FolderTreeSortOrder", "crate::settings::SortOrder"),
+            (r"settings\.folder_tree_sort_order", "settings.sort_order"),
+            # 6f720e42 把 last_descendant_dir 提给上游别的模块用；本仓没有消费者，保持私有。
+            (r"pub fn last_descendant_dir", "fn last_descendant_dir"),
+            # 本地扩展名表多了 wbp/apng 两个别名（重命名的 WebP 与 PNG 容器），
+            # 视频表与图像判定改走 media_formats 单一正本。
+            (
+                r'"jpg", "jpeg", "png", "webp", "bmp", "gif",',
+                '"jpg", "jpeg", "png", "webp", "wbp", "apng", "bmp", "gif",',
+            ),
+            (
+                r"SUPPORTED_VIDEO_EXTENSIONS: &\[&str\] = &\[[^\]]*\]",
+                "SUPPORTED_VIDEO_EXTENSIONS: &[&str] = crate::page_order::VIDEO_EXTENSIONS",
+            ),
+            (
+                r"if SUPPORTED_EXTENSIONS\.contains\(&ext_lower\) \{\s*return true;\s*\}\s*"
+                r"crate::susie_loader::supports_extension\(ext_lower\)",
+                "crate::media_formats::is_image_ext(ext_lower)\n"
+                "        || crate::susie_loader::supports_extension(ext_lower)",
+            ),
+            (
+                r"\(include_video && SUPPORTED_VIDEO_EXTENSIONS\.contains\(&ext_lower\.as_str\(\)\)\)",
+                "(include_video && crate::media_formats::is_video_ext(&ext_lower))",
+            ),
+            # 上游的 DFS/兄弟导航用例用数字降序 + chapterNN；本仓用 NameDesc + aaa/bbb/ccc，
+            # 因为 SortOrder 没有 NumericDesc，且想同时钉住「名字降序不靠自然序」。
+            (r'for name in \["chapter1", "chapter2", "chapter10"\] \{', 'for name in ["aaa", "bbb", "ccc"] {'),
+            (r"sort_order: crate::settings::SortOrder::NumericDesc,", "sort_order: crate::settings::SortOrder::NameDesc,"),
+            (r'\["chapter10", "chapter2", "chapter1"\]', '["ccc", "bbb", "aaa"]'),
+            (r'assert_eq!\(first\.file_name\(\)\.unwrap\(\), "chapter10"\);', 'assert_eq!(first.file_name().unwrap(), "ccc");'),
+            (r'assert_eq!\(second\.file_name\(\)\.unwrap\(\), "chapter2"\);', 'assert_eq!(second.file_name().unwrap(), "bbb");'),
         ],
         "local_strip": [
             # 新增 Unix 平台回归测试；上游 Windows 测试仍参与比较。
@@ -77,7 +110,11 @@ PORTS = [
             # 既有移植：没有 checkout 测试数据时跳过上游 RAR 样本用例。
             (r'\s*if !fixture\.is_dir\(\) \{\s*eprintln!\(\s*"skip: upstream RAR fixture is not checked out: \{\}"\s*,\s*fixture\.display\(\)\s*\);\s*return;\s*\}', ""),
         ],
-        "upstream_strip": [],
+        "upstream_strip": [
+            # 这两个用例依赖本仓刻意未拆的独立树排序（6 模式枚举 + 独立设置），未搬。
+            (r"\n\s*#\[test\]\n\s*fn folder_tree_sort_order_covers_all_six_modes_and_date_ties\(\)[\s\S]*?\n    \}\n", ""),
+            (r"\n\s*#\[test\]\n\s*fn folder_tree_options_ignore_list_sort_and_use_the_independent_tree_setting\(\)[\s\S]*?\n    \}\n", ""),
+        ],
         "drop_lines": [],
     },
     {
@@ -111,7 +148,7 @@ PORTS = [
     {
         "upstream": "src/filename_sort.rs",
         "local": "rust/local_core/src/filename_sort.rs",
-        "pinned_at": "1fd6f863",
+        "pinned_at": "1ffce811",
         "upstream_normalize": [(r"\bpub\(crate\)", "pub")],
         "local_strip": [],
         "upstream_strip": [],
@@ -130,6 +167,19 @@ PORTS = [
             (r"serde_json::Value::from", "PerfValue::from"),
             # 偏离 3：stats() 从 #[cfg(test)] 提升为 pub（FRB 层要在调试页显示在跑几个解码）。
             (r"#\[cfg\(test\)\]\n[ \t]*pub fn stats\(", "pub fn stats("),
+            # 偏离 3b：本仓 rustfmt 把这两条 perf 字段并成单行。
+            (
+                r'\(\s*"total_limit",\s*PerfValue::from\(FS_PAGE_LOAD_TOTAL_PERMITS\),\s*\)',
+                '("total_limit", PerfValue::from(FS_PAGE_LOAD_TOTAL_PERMITS))',
+            ),
+            (
+                r'PerfValue::from\(\s*'
+                r'FS_PAGE_LOAD_TOTAL_PERMITS - FS_PAGE_LOAD_HIGH_RESERVED_PERMITS,\s*\)',
+                'PerfValue::from(FS_PAGE_LOAD_TOTAL_PERMITS - FS_PAGE_LOAD_HIGH_RESERVED_PERMITS)',
+            ),
+            # 偏离 4：单文件超 1000 行，测试体整体搬到 page_load_scheduler/tests/cases.rs。
+            # **代价**：脚本从此不比这部分内容，跟版时必须人工读那个文件。
+            (r"#\[cfg\(test\)\]\nmod tests \{[\s\S]*", "#[cfg(test)]\nmod tests {\n    mod cases;\n}"),
         ],
         "local_strip": [
             # 偏离 4：本地补的 Default（clippy 的 new_without_default）。
@@ -168,6 +218,12 @@ PORTS = [
         "pinned_at": "1fd6f863",
         "upstream_normalize": [
             (r"\bpub\(crate\)", "pub"),
+            # 偏离 2：测试里的行尾注释翻成中文（行尾带注释的行算代码行，不参与注释差异）。
+            (r"// 32/4 = 8 ぴったり", "// 32/4 = 8 正好"),
+            (r"// 36/4 = 9 で 25% ルール", "// 36/4 = 9，走 25% 规则"),
+            (r"// 96/4 = 24 上限ぴったり", "// 96/4 = 24 正好到上限"),
+            (r"// 上限でクリップ", "// 按上限裁剪"),
+            (r"// 上限維持", "// 维持上限"),
         ],
         "local_strip": [],
         "upstream_strip": [],
@@ -184,6 +240,14 @@ PORTS = [
             (r"crate::rotation_db::Rotation", "crate::rotation::Rotation"),
             # 偏离 3: inverse_uv 重定向到本地 rotation 模块
             (r"crate::displayed_image_transform::inverse_uv", "crate::rotation::inverse_uv"),
+            # 偏离 4: 本仓 rustfmt 把这条调用并回一行
+            (r"=\s*\n\s*(crate::rotation::inverse_uv\()", r"= \1"),
+            # 偏离 5: 测试里的断言消息翻成中文（注释差异不参与比较，但这几行是代码行）
+            (r'\.expect\("6 がステップ列に無い"\)', '.expect("6 不在步骤列中")'),
+            (
+                r'"\{mode:\?\} の is_split と from_spread_mode が食い違っている"',
+                '"{mode:?} 的 is_split 与 from_spread_mode 不一致"',
+            ),
         ],
         "local_strip": [
             # 本地 B3 纯几何结构体与兼容别名定义
@@ -195,7 +259,7 @@ PORTS = [
     {
         "upstream": "src/folder_pane.rs",
         "local": "rust/local_core/src/folder_pane.rs",
-        "pinned_at": "1fd6f863",
+        "pinned_at": "1ffce811",
         "upstream_normalize": [
             # 偏离 1：跨 crate 必须 pub。上游一律 pub(crate)。
             (r"\bpub\(crate\)", "pub"),
@@ -205,14 +269,46 @@ PORTS = [
             (r"crate::perf::is_enabled\b", "crate::perf_sink::is_enabled"),
             (r"crate::perf::event\b", "crate::perf_sink::event"),
             (r"serde_json::Value::from", "PerfValue::from"),
+            # 偏离 5：上游 61471572 新拆的树排序枚举在本仓仍是共用的 SortOrder
+            # （见 folder_tree 条目里的同名规则），本仓也没有 NumericDesc，
+            # 用例里以 Numeric 顶替——只需要一个与前一阶段不同的选项值。
+            (r"use crate::settings::\{FolderTreeSortOrder, Settings\};", "use crate::settings::SortOrder;"),
+            (r"\bFolderTreeSortOrder\b", "SortOrder"),
+            (r"SortOrder::NumericDesc", "SortOrder::Numeric"),
+            # 偏离 6：ListingOptions 的取值入口 —— 上游读 Settings 的两个字段，
+            # 本仓这两项归文件管理器会话，所以入口改成收参数。
+            (
+                r"pub fn from_settings\(settings: &Settings\) -> Self \{\s*Self \{\s*"
+                r"sort_order: settings\.folder_tree_sort_order,\s*"
+                r"show_hidden_files: settings\.show_hidden_files,\s*\}\s*\}",
+                "pub fn new(sort_order: SortOrder, show_hidden_files: bool) -> Self {\n"
+                "        Self {\n            sort_order,\n            show_hidden_files,\n        }\n    }",
+            ),
+            # 偏离 7：本仓按 rustfmt 排版，以下三处 perf 字段与测试辅助函数被并成单行。
+            (r'\(\s*"dirs_returned",\s*PerfValue::from\(stats\.dirs_returned\),\s*\)', '("dirs_returned", PerfValue::from(stats.dirs_returned))'),
+            (r'\(\s*"file_type_errors",\s*PerfValue::from\(stats\.file_type_errors\),\s*\)', '("file_type_errors", PerfValue::from(stats.file_type_errors))'),
+            (r'fields\.push\(\(\s*"error_kind",\s*PerfValue::from\(format!\("\{\:\?\}", err\.kind\(\)\)\),\s*\)\);', 'fields.push(("error_kind", PerfValue::from(format!("{:?}", err.kind()))));'),
+            (r"fn options\(\s*sort_order: SortOrder,\s*show_hidden_files: bool,\s*\) -> FolderPaneListingOptions \{", "fn options(sort_order: SortOrder, show_hidden_files: bool) -> FolderPaneListingOptions {"),
+            (
+                r"assert_eq!\(\s*state\.listing_options,\s*options\(SortOrder::(\w+), (true|false)\)\s*\);",
+                r"assert_eq!(state.listing_options, options(SortOrder::\1, \2));",
+            ),
+            (
+                r"let dirs =\s*scan_real_subfolders\(",
+                "let dirs = scan_real_subfolders(",
+            ),
             # 偏离 4：上游硬编码 Windows 路径的单测在非 Windows 下标记为 #[cfg(windows)]
             (r"#\[test\]\n(\s*)fn active_virtual_folder_maps_to_parent", r"#[cfg(windows)]\n#[test]\n\1fn active_virtual_folder_maps_to_parent"),
             (r"#\[test\]\n(\s*)fn sync_to_active_expands_minimum_ancestor_chain", r"#[cfg(windows)]\n#[test]\n\1fn sync_to_active_expands_minimum_ancestor_chain"),
             (r"#\[test\]\n(\s*)fn auto_branch_is_replaced_but_user_expansion_persists", r"#[cfg(windows)]\n#[test]\n\1fn auto_branch_is_replaced_but_user_expansion_persists"),
             (r"#\[test\]\n(\s*)fn cursor_nav_target_only_when_cursor_moved_off_active", r"#[cfg(windows)]\n#[test]\n\1fn cursor_nav_target_only_when_cursor_moved_off_active"),
-            (r"#\[test\]\n(\s*)fn sort_change_resets_expansion_and_scrolls_to_active", r"#[cfg(windows)]\n#[test]\n\1fn sort_change_resets_expansion_and_scrolls_to_active"),
+            (r"#\[test\]\n(\s*)fn sort_change_preserves_expansion_cursor_and_visible_children_until_refresh", r"#[cfg(windows)]\n#[test]\n\1fn sort_change_preserves_expansion_cursor_and_visible_children_until_refresh"),
             (r"#\[test\]\n(\s*)fn collapse_auto_expanded_branch_hides_it_until_active_changes", r"#[cfg(windows)]\n#[test]\n\1fn collapse_auto_expanded_branch_hides_it_until_active_changes"),
-            (r"#\[test\]\n(\s*)fn hidden_visibility_change_rebuilds_tree_cache", r"#[cfg(windows)]\n#[test]\n\1fn hidden_visibility_change_rebuilds_tree_cache"),
+            (r"#\[test\]\n(\s*)fn hidden_visibility_change_preserves_manual_expansion_and_cursor", r"#[cfg(windows)]\n#[test]\n\1fn hidden_visibility_change_preserves_manual_expansion_and_cursor"),
+            (r"#\[test\]\n(\s*)fn refresh_failure_keeps_previous_children_and_marks_error", r"#[cfg(windows)]\n#[test]\n\1fn refresh_failure_keeps_previous_children_and_marks_error"),
+            (r"#\[test\]\n(\s*)fn collapsed_loaded_branch_refreshes_with_current_options_when_reexpanded", r"#[cfg(windows)]\n#[test]\n\1fn collapsed_loaded_branch_refreshes_with_current_options_when_reexpanded"),
+            (r"#\[test\]\n(\s*)fn successful_refresh_repairs_a_disappeared_cursor_without_opening_a_folder", r"#[cfg(windows)]\n#[test]\n\1fn successful_refresh_repairs_a_disappeared_cursor_without_opening_a_folder"),
+            (r"#\[test\]\n(\s*)fn explicit_reload_still_resets_expansion_before_rebuilding_active_chain", r"#[cfg(windows)]\n#[test]\n\1fn explicit_reload_still_resets_expansion_before_rebuilding_active_chain"),
             (r"#\[test\]\n(\s*)fn keyboard_moves_visible_rows_and_enter_opens_cursor", r"#[cfg(windows)]\n#[test]\n\1fn keyboard_moves_visible_rows_and_enter_opens_cursor"),
         ],
         "local_strip": [

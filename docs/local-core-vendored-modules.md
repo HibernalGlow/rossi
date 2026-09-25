@@ -53,7 +53,16 @@
 `search_norm::zip_entry_key` 在 Rossi 侧暂时无人调用 —— 它属于索引层（M-18），
 按「保住上游名字」的原则一并搬入，为将来的索引留接口；`pub` 项不会触发 `dead_code`。
 
-七份浏览器源码的 pin 均为 `1fd6f863`，也已纳入 `sync_vendored_modules.py`。
+这七份里**有六份**纳入 `sync_vendored_modules.py`：`folder_tree.rs` / `folder_pane.rs` /
+`filename_sort.rs` 的 `pinned_at` 已跟到 `1ffce811`（2026-09-25 融合上游的排序改动），
+`fs_entry.rs` / `search_query.rs` / `search_norm.rs` 上游自 `1fd6f863` 起零改动，
+`pinned_at` 保持原值（内容与 `1ffce811` 一致）。
+
+`thumb_loader.rs` **刻意不登记 PORTS**：本地那 368 行是从上游 4510 行里切出的文件夹代表图
+子集，并按 Rossi 需要改过结构（多子项拾取、归档候选、失败回退、有界循环），逐行 diff
+只会产出一份毫无意义的报告 —— 与下面 §2.1 的 `file_ops` 同一口径。代价是上游改这个文件时
+脚本不会报警，只能人工读（2026-09-25 这次就跟进了它的「列表用排序值不得进入代表图选择」
+守卫）。`docs/mimageviewer-gap-audit.md` 把这条切片列为待管缺口。
 
 ### 2.1 `file_ops`：**刻意不登记 PORTS** 的一块（ADR-0017）
 
@@ -176,6 +185,23 @@ ZIP/CBZ/RAR/CBR 候选、AppleDouble / 内部元数据过滤、加载失败后�
 | Unix 符号链接分类与 `directory_visit_key` 分平台 | 可浏览链接，且不会把合法目录误判为循环 |
 | Windows 路径用例加平台门，新增 Unix 用例 | 保留原测试并补上移植回归 |
 | 上游 RAR 样本路径指向 vendor，未 checkout 样本时显式跳过 | 测试数据仍由原仓库管理 |
+
+### 2026-09-25 融合上游排序改动（`1fd6f863` → `1ffce811`）新增的偏离
+
+上游这三个提交与本仓有关：`38092874 Add descending name and numeric sort options`、
+`61471572 Separate folder tree sorting from list order`、`6f720e42`（只动了
+`last_descendant_dir` 的可见性）。跟进来之后本仓多出的偏离：
+
+| 本地差异 | 理由 |
+|---|---|
+| 树排序继续共用 `settings::SortOrder`，不拆上游的 `FolderTreeSortOrder`，也不加 `Settings.folder_tree_sort_order` | 拆枚举要连带设置存储与 Dart 侧开关，属**新功能**；本仓只跟上它的形状（`uses_mtime()` 等）与用例 |
+| `FolderPaneListingOptions::new(sort, show_hidden)` 取代上游的 `from_settings(&Settings)` | 上游那两项归 `Settings`，本仓归文件管理器会话（`FileManagerSettings`） |
+| 上游用例里的 `SortOrder::NumericDesc` 在本仓用 `Numeric` 顶替 | 本仓 `SortOrder` 没有数字降序；该断言只需要一个与前次**不同**的选项值 |
+| `folder_tree::last_descendant_dir` 保持私有 | 上游提它是给 `smart_folder` 用，本仓没有那个消费者。`pub(crate)` → `pub` 的机械规则因此对它不适用 |
+| 上游 `folder_tree.rs` 两个依赖独立树排序的用例未搬（`upstream_strip`） | 与本仓刻意不拆的设置有耦合 |
+| `page_load_scheduler.rs` 的 `mod tests` 体搬到 `page_load_scheduler/tests/cases.rs`，本文件只留 3 行声明 | 单文件 ≤1000 行（AGENTS §6.5）。**代价**：脚本不再比较那部分测试内容，跟版时要人工读那个文件 |
+| `auto_aspect.rs` / `page_split.rs` 若干行尾注释与断言文案翻成中文 | 带行尾注释的行按代码行比较，所以翻译也要登记成规则 |
+| `folder_tree.rs` 的扩展名表加 `wbp` / `apng`，图像与视频判定改走 `media_formats`，视频表指向 `page_order::VIDEO_EXTENSIONS` | 文件浏览器可见性判定的单一正本在本地（这些是早于本次融合、此前**未登记**的偏离） |
 
 ## 5. 刻意**没**搬的部分
 

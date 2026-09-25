@@ -64,5 +64,22 @@ void main() {
       );
       expect(single.single.aliases, ['b']);
     });
+
+    test('EMM setting.json：取 collectTag 的 tag 字段，cat 不参与', () {
+      final decoded = jsonDecode('''
+      {
+        "library": "D:/emm",
+        "collectTag": [
+          {"id": "female:footjob", "letter": "f", "cat": "female",
+           "tag": "footjob", "color": "rgb(38, 166, 154)"},
+          {"id": "other:full color", "cat": "other", "tag": "full color"},
+          {"cat": "misc", "tag": "  "}
+        ]
+      }
+      ''');
+      final tags = parseFavoriteTags(decoded);
+      expect(tags.map((t) => t.name), ['footjob', 'full color']);
+      expect(tags.every((t) => t.aliases.isEmpty), isTrue);
+    });
   });
 }

@@ -11,6 +11,7 @@ import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
 import 'package:zephyr/page/download/method/comic_download_entry.dart';
+import 'package:zephyr/service/download/download_delete_service.dart';
 import 'package:zephyr/service/download/download_queue_manager.dart';
 import 'package:zephyr/service/download/download_task_progress.dart';
 import 'package:zephyr/service/download/models/download_task_json.dart';
@@ -84,7 +85,8 @@ class _ReaderDownloadSheet extends StatefulWidget {
 }
 
 class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
-  String get taskKey => buildDownloadTaskKey(widget.from, widget.comicId);
+  /// 整本下载记录的 key（漫画粒度，与章节任务 key 不同）。
+  String get recordKey => buildDownloadTaskKey(widget.from, widget.comicId);
 
   @override
   Widget build(BuildContext context) {
@@ -125,7 +127,7 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
                   final isDownloaded =
                       objectbox.unifiedDownloadBox
                           .query(
-                            UnifiedComicDownload_.uniqueKey.equals(taskKey),
+                            UnifiedComicDownload_.uniqueKey.equals(recordKey),
                           )
                           .build()
                           .findFirst() !=
@@ -347,6 +349,8 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
     final isPaused = stateCode == 'paused';
     final isFailed = stateCode == 'failed';
     final hasTask = dbTask != null;
+    // 暂停 / 恢复作用于当前展示的那个章节任务。
+    final chapterTaskKey = payload?.taskKey;
 
     return Wrap(
       spacing: 12,
@@ -372,19 +376,23 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
           FilledButton.tonalIcon(
             icon: const Icon(Icons.pause_rounded),
             label: Text(t.reader.pauseDownload),
-            onPressed: () {
-              DownloadQueueManager.instance.pauseTask(taskKey);
-              showInfoToast(t.reader.downloadStatusPaused);
-            },
+            onPressed: chapterTaskKey == null
+                ? null
+                : () {
+                    DownloadQueueManager.instance.pauseTask(chapterTaskKey);
+                    showInfoToast(t.reader.downloadStatusPaused);
+                  },
           ),
         if (isPaused)
           FilledButton.icon(
             icon: const Icon(Icons.play_arrow_rounded),
             label: Text(t.reader.resumeDownload),
-            onPressed: () {
-              DownloadQueueManager.instance.resumeTask(taskKey);
-              showInfoToast(t.reader.downloadStatusDownloading);
-            },
+            onPressed: chapterTaskKey == null
+                ? null
+                : () {
+                    DownloadQueueManager.instance.resumeTask(chapterTaskKey);
+                    showInfoToast(t.reader.downloadStatusDownloading);
+                  },
           ),
         if (isFailed)
           FilledButton.icon(
@@ -480,7 +488,10 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
       ),
     );
     if (confirmed == true && mounted) {
-      DownloadQueueManager.instance.restartTask(taskKey);
+      await DownloadQueueManager.instance.retryComicTasks(
+        from: widget.from,
+        comicId: widget.comicId,
+      );
       showInfoToast('已重新加入下载队列');
     }
   }
@@ -505,10 +516,9 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
       ),
     );
     if (confirmed == true && mounted) {
-      await DownloadQueueManager.instance.deleteComicDownload(
-        widget.from,
-        widget.comicId,
-        deleteFiles: true,
+      await deleteWholeComicDownload(
+        from: widget.from,
+        comicId: widget.comicId,
       );
       if (mounted) {
         showSuccessToast(t.download.taskDeleted);

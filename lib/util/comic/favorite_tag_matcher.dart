@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/util/text/tag_text.dart';
+import 'package:zephyr/util/text/tag_translation.dart';
 
 /// 一次收藏 tag 命中的结果。
 @immutable
@@ -36,24 +37,42 @@ class FavoriteTagMatchResult {
 ///
 /// 与喜欢画师的匹配（`FavoriteArtistMatcher`）同一档位，但**只有精确比较**：
 /// 画师那条「标题包含画师名」的兜底放在 tag 上会大面积误报（`lolita` 命中
-/// `school_lolita`、`complete` 命中任何带这个词的标题）。跨站点的写法差异由用户
-/// 登记的别名承担。
+/// `school_lolita`、`complete` 命中任何带这个词的标题）。跨站点的写法差异由
+/// 两路承担：内置的 `TagTranslation`（EhTagTranslation 译名↔原词）与用户
+/// 显式登记的别名（`FavoriteTag.aliases`）。
 class FavoriteTagMatcher {
   FavoriteTagMatcher._();
 
   /// 把收藏列表摊平成「归一化写法 → 条目」的查找表。
   ///
   /// 同一归一化键被多条收藏抢到时，先加入者赢：用户的列表顺序就是优先级。
+  ///
+  /// 除了本名与登记别名，还会挂上 `TagTranslation` 的**译名/原词**展开
+  /// （收藏 `footjob` ⇒ 「足交」也进表，EH 详情页那种「插件已把 tag 翻成中文」
+  /// 的胶囊才能命中）。展开排在第二遍：某条收藏的本名/别名永远优先于
+  /// 另一条收藏的译名展开，否则列表靠前的翻译会把后面条目的原词抢走。
   static Map<String, FavoriteTag> buildAliasIndex(
     Iterable<FavoriteTag> favorites,
   ) {
     final index = <String, FavoriteTag>{};
+    final exactKeys = <(String, FavoriteTag)>[];
     for (final favorite in favorites) {
       final nameKey = TagText.normalize(favorite.name);
-      if (nameKey.isNotEmpty) index.putIfAbsent(nameKey, () => favorite);
+      if (nameKey.isNotEmpty) {
+        index.putIfAbsent(nameKey, () => favorite);
+        exactKeys.add((nameKey, favorite));
+      }
       for (final alias in favorite.aliases) {
         final aliasKey = TagText.normalize(alias);
-        if (aliasKey.isNotEmpty) index.putIfAbsent(aliasKey, () => favorite);
+        if (aliasKey.isNotEmpty) {
+          index.putIfAbsent(aliasKey, () => favorite);
+          exactKeys.add((aliasKey, favorite));
+        }
+      }
+    }
+    for (final (key, favorite) in exactKeys) {
+      for (final expanded in TagTranslation.expansionsNormalized(key)) {
+        index.putIfAbsent(expanded, () => favorite);
       }
     }
     return index;
@@ -122,9 +141,9 @@ class FavoriteTagMatcher {
     String matchedText,
     String matchedKey,
   ) {
-    final viaAlias =
-        TagText.normalize(tag.name) != matchedKey &&
-        tag.aliases.any((a) => TagText.normalize(a) == matchedKey);
+    // 「不是本名」就是走了别的写法：登记别名与内置译名同一语义，
+    // 徽标上写的仍是本名。
+    final viaAlias = TagText.normalize(tag.name) != matchedKey;
     return FavoriteTagMatchResult(
       tag: tag,
       matchedText: matchedText.trim(),

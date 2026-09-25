@@ -1,71 +1,51 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/download/models/download_chapter.dart';
 
-class EpsWidget extends StatefulWidget {
-  final DownloadChapter chapter;
-  final bool downloaded;
-  final Function(String selectionKey) onUpdateDownloadInfo;
-
-  const EpsWidget({
+/// 章节选择页的单行：左侧勾选状态、中间章节名、右侧「本地已有」标记。
+///
+/// 无内部状态，勾选态由页面持有，避免控件自己存一份导致和页面不同步。
+class ChapterSelectTile extends StatelessWidget {
+  const ChapterSelectTile({
     super.key,
     required this.chapter,
+    required this.selected,
     required this.downloaded,
-    required this.onUpdateDownloadInfo,
+    required this.onTap,
   });
 
-  @override
-  State<EpsWidget> createState() => _EpsWidgetState();
-}
-
-class _EpsWidgetState extends State<EpsWidget> {
-  bool _isChecked = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _isChecked = widget.downloaded;
-  }
-
-  @override
-  void didUpdateWidget(EpsWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.downloaded != widget.downloaded) {
-      setState(() => _isChecked = widget.downloaded);
-    }
-  }
+  final DownloadChapter chapter;
+  final bool selected;
+  final bool downloaded;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isChecked = _isChecked;
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: () {
-        widget.onUpdateDownloadInfo(widget.chapter.id);
-      },
+      onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: isChecked
+          color: selected
               ? colorScheme.primaryContainer.withValues(alpha: 0.3)
               : colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isChecked
+            color: selected
                 ? colorScheme.primary.withValues(alpha: 0.5)
                 : Colors.transparent,
             width: 1,
           ),
         ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
             Icon(
-              isChecked ? Icons.check_circle : Icons.radio_button_unchecked,
-              color: isChecked
+              selected ? Icons.check_circle : Icons.radio_button_unchecked,
+              color: selected
                   ? colorScheme.primary
                   : colorScheme.onSurfaceVariant,
               size: 22,
@@ -73,16 +53,25 @@ class _EpsWidgetState extends State<EpsWidget> {
             const SizedBox(width: 16),
             Expanded(
               child: Text(
-                widget.chapter.displayName,
+                chapter.displayName,
                 style: TextStyle(
                   fontSize: 15,
-                  fontWeight: isChecked ? FontWeight.w600 : FontWeight.w500,
-                  color: isChecked
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                  color: selected
                       ? colorScheme.onSurface
                       : colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
+            if (downloaded)
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Icon(
+                  Icons.cloud_done_outlined,
+                  size: 18,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
           ],
         ),
       ),
