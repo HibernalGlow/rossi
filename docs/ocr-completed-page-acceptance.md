@@ -9,7 +9,10 @@
 - `dart analyze lib/` 干净（只剩一条与本次无关的 `switch_toast_service.dart` info）；
 - `flutter test test/ocr/ test/reader/translated_page_controller_test.dart test/reader/translated_page_status_test.dart test/reader/local_read_session_translation_gate_test.dart` **77 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
 - `cargo test -p rossi_ocr_core` **24 条全过**；
-- `flutter build macos --debug` 与 `--release` 都出包成功（Release 产物 152.7 MB，含 13.2 MB 字体）；
+- `flutter build macos --debug` 与 `--release` 都出包成功（Release 产物 152.7 MB，含 13.2 MB 字体）。
+  ⚠️ 精确到位：**Debug 是在最后一批改动（降级档换目录、阶段取消、假端点、装配单测）之后重跑过的**，
+  Release 那一次在这之前 —— 成品页的 Dart 逻辑两边同一份码，但「Release 出包成功」这句话的范围
+  只到那一刻为止，别再把它当成最新那批的结论。
 - **iOS 出包本机跑过一次，但断在一处与 OCR 无关的地方**：`packages/coreml_upscale/ios/Classes/MultiArrayModel.swift`
   用了 `float16`（要 iOS 16），而工程 `ios/Runner.xcodeproj` 的 `IPHONEOS_DEPLOYMENT_TARGET = 15.0`，
   于是 `pod install` 之后 xcodebuild 直接报四条 `'float16' is only available in iOS 16.0 or newer`。
