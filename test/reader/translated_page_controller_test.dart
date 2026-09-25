@@ -33,8 +33,13 @@ class _FakeSource implements PageSource {
   final Uint8List bytes;
   int directCalls = 0;
 
-  /// 给了就把「取原图字节」这一跳卡住，用来测「关译文关到一半换了书」。
-  Completer<void>? bytesGate;
+  /// 给了就把「问有没有磁盘直路径」这一跳卡住，用来测「关译文关到一半换了书」。
+  ///
+  /// 卡点必须落在 `getPageFilePath` 而不是 `getPageBytes`：开译文时那页的原图字节
+  /// 已经落进临时目录并记进缓存，关译文走的是缓存命中，根本不会再要字节 ——
+  /// 卡在那儿的话这条测试等的其实是一个不会发生的挂起。
+  Completer<void>? pathGate;
+  int pathHits = 0;
 
   @override
   List<PageRef> get pages => const [];
@@ -62,14 +67,13 @@ class _FakeSource implements PageSource {
   @override
   Future<String?> getPageFilePath(int index) async {
     directCalls++;
+    pathHits++;
+    await pathGate?.future;
     return null;
   }
 
   @override
-  Future<Uint8List?> getPageBytes(int index) async {
-    await bytesGate?.future;
-    return bytes;
-  }
+  Future<Uint8List?> getPageBytes(int index) async => bytes;
 }
 
 class _FakePresenter implements TranslatedPagePresenter {
@@ -99,6 +103,21 @@ class _FakePresenter implements TranslatedPagePresenter {
 
   @override
   Future<bool?> presenterUsesEnhanced(int index) async => confirmed;
+}
+
+/// 等到条件成立，最多 5 s。
+///
+/// 不用 `for (i < 20) await Future.delayed(Duration.zero)`：那几条 await 后面是
+/// **真文件 IO**（读配置、查权重体积），整机负载高时 20 个空转微任务根本等不到，
+/// 测试就会在满负载的那次运行里假红。
+Future<void> _until(bool Function() condition) async {
+  final deadline = DateTime.now().add(const Duration(seconds: 5));
+  while (!condition()) {
+    if (DateTime.now().isAfter(deadline)) {
+      fail('Timed out waiting for a controller state');
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+  }
 }
 
 Future<Uint8List> _whitePng(int w, int h) async {
@@ -399,10 +418,7 @@ void main() {
       presenter: presenter,
       index: 3,
     );
-    // 进到 building 之前还有几次 await（读配置、查权重），逐帧让路。
-    for (var i = 0; i < 20 && c.phase != TranslatedPagePhase.building; i++) {
-      await Future<void>.delayed(Duration.zero);
-    }
+    await _until(() => c.phase == TranslatedPagePhase.building);
     expect(
       c.phase,
       TranslatedPagePhase.building,
@@ -427,13 +443,12 @@ void main() {
     await c.toggle(source: source, presenter: presenter, index: 2);
     expect(presenter.injected, hasLength(1));
 
-    source.bytesGate = Completer<void>();
+    source.pathHits = 0;
+    source.pathGate = Completer<void>();
     final turningOff = c.toggle(source: source, presenter: presenter, index: 2);
-    for (var i = 0; i < 20 && presenter.injected.length != 1; i++) {
-      await Future<void>.delayed(Duration.zero);
-    }
+    await _until(() => source.pathGate != null && source.pathHits > 0);
     c.reset(); // 换书
-    source.bytesGate!.complete();
+    source.pathGate!.complete();
 
     expect(await turningOff, isFalse);
     expect(presenter.injected, hasLength(1), reason: '第二次注入属于旧书，必须作废');

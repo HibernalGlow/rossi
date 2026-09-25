@@ -34,14 +34,23 @@ void main() {
     await root.delete(recursive: true);
   });
 
-  Future<void> pump(WidgetTester tester) async {
+  /// 泵到页面真的把状态跑出来为止。
+  ///
+  /// 不能只泵固定的 6 次：`initState` 里那次 `OcrModels.status()` 是**真文件 IO**
+  /// （查目录 + 逐个 stat 权重体积），全仓一起跑、机器被 e2e 那条占满时
+  /// 300 ms 不够用，于是偶尔看到的一直是「权重状态查询中…」。
+  Future<void> pumpUntil(WidgetTester tester, bool Function() settled) async {
     tester.view.physicalSize = const Size(900, 1600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.runAsync(() async {
       await tester.pumpWidget(MaterialApp(home: const OcrSmokeDebugPage()));
-      for (var i = 0; i < 6; i++) {
+      final deadline = DateTime.now().add(const Duration(seconds: 10));
+      while (!settled()) {
+        if (DateTime.now().isAfter(deadline)) {
+          fail('冒烟页 10 s 内没把状态跑出来');
+        }
         await tester.pump(const Duration(milliseconds: 50));
         await Future<void>.delayed(const Duration(milliseconds: 50));
       }
@@ -50,7 +59,10 @@ void main() {
   }
 
   testWidgets('没下过权重：如实报缺 5 个，并把每个文件名列出来', (tester) async {
-    await pump(tester);
+    await pumpUntil(
+      tester,
+      () => find.textContaining('缺 5 个').evaluate().isNotEmpty,
+    );
     expect(find.text('权重状态查询中…'), findsNothing);
     expect(find.textContaining('缺 5 个'), findsOneWidget);
     expect(find.textContaining(OcrModels.detFile), findsOneWidget);
@@ -58,7 +70,10 @@ void main() {
   });
 
   testWidgets('没选页时开跑是灰的，后端那行说明 auto 的语义', (tester) async {
-    await pump(tester);
+    await pumpUntil(
+      tester,
+      () => find.textContaining('推理后端：').evaluate().isNotEmpty,
+    );
     expect(find.text('还没选页'), findsOneWidget);
     final button = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, '开跑'),

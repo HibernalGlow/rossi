@@ -34,6 +34,12 @@ void main() {
     await root.delete(recursive: true);
   });
 
+  /// 泵到页面真的加载完（权重那一段进树）为止。
+  ///
+  /// 不写死次数：`_load` 那几条是**真**文件 IO，全仓一起跑、机器被 e2e 占满时
+  /// 固定 6 次泵会不够，于是偶尔看到的还是加载转圈。
+  /// 第三条（API Key 掩码）尤其吃这个：它断言的是「不该出现」，
+  /// 页面还在转圈时它一样会绿 —— 那是假绿，不是通过。
   Future<void> pump(WidgetTester tester) async {
     // 视口拉高：`ListView(children:)` 只建可见的那几行，默认 600 高的窗口里
     // 「模型权重」那段根本进不了树，`find` 会报「0 个」而不是「在屏幕外」。
@@ -46,7 +52,11 @@ void main() {
     // 直接 pumpAndSettle 的结果是永远卡在加载转圈上（实测超时）。
     await tester.runAsync(() async {
       await tester.pumpWidget(MaterialApp(home: const OcrSettingPage()));
-      for (var i = 0; i < 6; i++) {
+      final deadline = DateTime.now().add(const Duration(seconds: 10));
+      while (find.text(t.ocr.modelSection).evaluate().isEmpty) {
+        if (DateTime.now().isAfter(deadline)) {
+          fail('设置页 10 s 内没加载完');
+        }
         await tester.pump(const Duration(milliseconds: 50));
         await Future<void>.delayed(const Duration(milliseconds: 50));
       }
@@ -86,6 +96,9 @@ void main() {
       'ocr_api_key': 'sk-super-secret',
     });
     await pump(tester);
+    // 先要「那一行画出来了」，再判「没有明文」—— 只看后半句的话，
+    // 页面卡在加载转圈上也会绿，那是假绿。
+    expect(find.textContaining('••••••'), findsOneWidget);
     expect(find.textContaining('sk-super-secret'), findsNothing);
   });
 }
