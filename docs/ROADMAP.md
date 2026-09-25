@@ -13,7 +13,7 @@
 | 不进 v0.1 | 处置 |
 |---|---|
 | 在线源（QuickJS 插件） | 会把验收面从「本地阅读」扩大到网络 + 插件错误处理 + 源站变化 |
-| OCR 翻译 | **已解冻（ADR-0018，2026-09-25）**：形态是**成品页**（检测→识别→翻译→擦字→回填），产物落盘缓存、渲染路径只读缓存。代码来源走 MIT/Apache 白名单（`xianscan-rust` / `manga-ocr-rs`），**不改仓库许可证**；实测选型见 `docs/REFERENCE_RESEARCH.md` §8.6 |
+| OCR 翻译 | **已解冻（ADR-0018，2026-09-25）并已实现（逐页，2026-09-26）**：形态是**成品页**（检测→识别→翻译→擦字→回填）。落点 `rust/ocr_core`（rossi_ocr_core）+ `lib/service/ocr/*` + 顶栏每页一颗「译」芯片；产物按页落盘复用，构建在点芯片后异步进行、不进渲染路径，换画面走呈现器增强图轨（与超分互斥）。代码来源走 MIT/Apache 白名单（`xianscan-rust` / `manga-ocr-rs`），**不改仓库许可证**；实测选型见 `docs/REFERENCE_RESEARCH.md` §8.6，真机判据见 `docs/ocr-completed-page-acceptance.md`。一期不做：整本批量、真竖排、拟声词、上色、Android / iOS |
 | 上色 | 不进：GPL 参考实现只能读不能抄，且只在黑白页有意义。与 OCR 共用「页后处理」位，但 ADR-0018 **不代为解冻** |
 | Anime4K | 参考实现 GPL；超分统一以 mImageViewer 的 `ort` 核心为准 |
 | 视频播放 | **已解冻（ADR-0016）**：形态是「一页可以是视频」，引擎用 media_kit / libmpv，功能并集见 `docs/video-playback-spec.md` |
