@@ -7,7 +7,7 @@
 静态层面已经过了，不必重复验：
 
 - `dart analyze lib/` 干净（只剩一条与本次无关的 `switch_toast_service.dart` info）；
-- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart` **47 条全过 0 skip**；
+- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart` **47 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
 - `cargo test -p rossi_ocr_core` **21 条全过**；
 - `flutter build macos --debug` 出包成功；
 - **端到端已经跑过一次真权重**：`test/ocr/completed_page_e2e_test.dart` 对
@@ -89,6 +89,15 @@ ollama serve && ollama run qwen2.5:14b        # 本机：base URL = http://127.0
 **做**：把第 5 页翻成译文，翻到第 6 页，再翻回第 5 页。
 **预期**：第 6 页芯片显示「译」（未处理），第 5 页仍是「译文页」。
 **判据**：不存在「一开全局每页都变慢」的行为。
+
+## 7b. 翻远再翻回来：译文不许被悄悄换回原图
+
+**做**：把某页翻成译文 → 往后翻五六页 → 再翻回来。
+**预期**：仍是译文那张，且**不重跑**分析（应当秒开，因为盘上已有产物）。
+**判据**：这条有两条独立的失败模式，要分开看 ——
+① 呈现器会按保留集把增强图淘汰掉，那种情况下代码会核对一次并把**同一张成品页**重新注回去
+（超分日志里会出现「增强图轨已被淘汰，重新注入成品页」）；
+② 芯片显示「译文页」时画面必须真是成品页 —— 若看到原图配「译文页」，就是虚报，算缺陷。
 
 ## 8. 翻回来秒开（缓存）
 

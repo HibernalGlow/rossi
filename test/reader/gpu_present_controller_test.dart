@@ -182,6 +182,38 @@ void main() {
       await cache.delete(recursive: true);
     });
 
+    test('译文页占用增强图轨：超分让路，且被淘汰后重新注回成品页', () async {
+      // 这是「翻回来芯片还在说译文页、画面却已经是原图」那一类谎的闸：
+      // 假桥在 show() 里模拟离开保留集就淘汰增强图，所以第二次呈现必须重新注入。
+      const translated = '/tmp/rossi_done_p0.png';
+      controller.translationOwnedPages[0] = translated;
+
+      await controller.present(
+        source: source,
+        index: 0,
+        physicalSize: viewport,
+      );
+      await _until(() => bridge.injectedPaths.contains(translated));
+      expect(bridge.injectedPaths, contains(translated));
+
+      // 翻到别页再翻回来：呈现器报「这一帧是原图」，归属里的路径必须被重新注回去。
+      await controller.present(
+        source: source,
+        index: 1,
+        physicalSize: viewport,
+      );
+      final before = bridge.injectedPaths.length;
+      await controller.present(
+        source: source,
+        index: 0,
+        physicalSize: viewport,
+      );
+      await _until(() => bridge.injectedPaths.length > before);
+      expect(bridge.injectedPaths.last, translated);
+      // 译文占用的那一页，超分一次都不许注自己的产物（注了就等于把译文冲掉）。
+      expect(bridge.injectedPaths.where((p) => p.contains('sr_')), isEmpty);
+    });
+
     for (final windows in [false, true]) {
       test('原始尺寸不依赖超分，拒绝过期页和其他来源（Windows=$windows）', () async {
         controller.setUpscaleEnabled(false);

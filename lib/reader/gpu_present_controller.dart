@@ -22,7 +22,6 @@ import 'package:zephyr/reader/super_resolution_status.dart';
 part 'parts/gpu_present_enhance_part.dart';
 part 'parts/gpu_present_frame_part.dart';
 
-
 /// GPU 呈现器的就绪状态与呈现目标 —— 从界面里搬出来的一份小状态机。
 ///
 /// # 它管什么
@@ -764,12 +763,13 @@ class GpuPresentController extends ChangeNotifier {
 
   final _enhancementQueue = SuperResolutionQueue<(int, int)>();
 
-  /// 被**译文页**占用的页号集合。
+  /// 被**译文页**占用的页 → 那张成品页的路径。
   ///
   /// 增强图轨一页只有一份像素，超分与译文回填抢的是同一个位置，所以必须有个明确的
-  /// 让路规则：谁在里面，超分调度就跳过那一页。由 `TranslatedPageController` 增删，
+  /// 让路规则：谁在里面，超分调度就不注自己的产物。路径也要记着，理由见
+  /// [_reassertTranslatedPage]。由 `TranslatedPageController` 增删，
   /// 放在这边是为了不让本文件去 import 它（那会绕成一个环）。
-  final Set<int> translationOwnedPages = <int>{};
+  final Map<int, String> translationOwnedPages = <int, String>{};
 
   /// 注入之后把当前页重画一次，让「已经放进轨里的图」真的上屏。
   Future<bool> reshowAfterInjection(int index) => _redrawCurrentPage(index);
@@ -787,6 +787,19 @@ class GpuPresentController extends ChangeNotifier {
       await Future.wait(_enhancementSchedules.toList());
     }
     await _enhancementQueue.idle;
+  }
+
+  /// 翻回来时把成品页**重新注回**增强图轨 —— 否则芯片在说谎。
+  ///
+  /// 呈现器按保留集淘汰增强图：翻到远处再翻回来，那一帧其实已经是原图，
+  /// 而 Dart 侧的归属记账还在，芯片会继续显示「译文页」。超分那边早就防着这一手
+  /// （同一个轨、同一份证据），译文不能假装这个问题不存在。
+  Future<void> _reassertTranslatedPage(int index, String path) async {
+    if (_pushedIndex != index) return; // 不是当前页：等它被推上来时再核对
+    if (await _presenterUsesEnhanced(index) != false) return; // 还在用 / 问不出结果，都不动
+    SuperResolutionLog.add('第 ${index + 1} 页：增强图轨已被淘汰，重新注入成品页。');
+    if (!await setEnhancedImage(index, path)) return;
+    await _redrawCurrentPage(index);
   }
 
   /// 让「第 [index] 页显示成超分图」这件事成真 —— 该注入就注入、该推理就推理。
@@ -825,10 +838,13 @@ class GpuPresentController extends ChangeNotifier {
     int targetH,
   ) async {
     final epoch = _enhancementEpoch;
-    if (translationOwnedPages.contains(index)) {
-      // 增强图轨一页只有一份像素：这一页现在显示的是译文回填出来的成品页，
-      // 超分再注一次就会把译文整页冲掉。让路，等用户关掉这一页的译文。
+    final translatedPath = translationOwnedPages[index];
+    if (translatedPath != null) {
+      // 增强图轨一页只有一份像素：这一页显示的是译文回填出来的成品页，
+      // 超分再注一次就会把译文整页冲掉。让路 —— 但**不只是让路**，
+      // 翻回来那一帧可能已经是原图了，见 [_reassertTranslatedPage]。
       SuperResolutionLog.add('第 ${index + 1} 页：译文页占用增强图轨，超分让路。');
+      await _reassertTranslatedPage(index, translatedPath);
       return;
     }
     bool acceptsWork() =>

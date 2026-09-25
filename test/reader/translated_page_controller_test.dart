@@ -70,12 +70,12 @@ class _FakePresenter implements TranslatedPagePresenter {
   /// `null` = 呈现器答不上来；`false` = 注入了但画面没换。
   final bool? confirmed;
 
-  final Set<int> _owned = <int>{};
+  final Map<int, String> _owned = <int, String>{};
   final List<(int, String)> injected = <(int, String)>[];
   int redraws = 0;
 
   @override
-  Set<int> get translationOwnedPages => _owned;
+  Map<int, String> get translationOwnedPages => _owned;
 
   @override
   Future<bool> setEnhancedImage(int index, String imagePath) async {
@@ -230,7 +230,10 @@ void main() {
     expect(presenter.injected, hasLength(1));
     expect(await File(presenter.injected.single.$2).exists(), isTrue);
     expect(presenter.redraws, 1, reason: '注入之后必须重画一次，否则画面还是原图');
-    expect(presenter.translationOwnedPages, {4});
+    expect(presenter.translationOwnedPages.keys, {4});
+    // 归属里必须带着「归的是哪张图」：翻回来时呈现器可能已经把增强图轨淘汰掉，
+    // 那时要靠这个路径把同一张成品页重新注回去，而不是让芯片继续说「译文页」。
+    expect(presenter.translationOwnedPages[4], endsWith('p4.png'));
     expect(c.isOwned(4), isTrue);
     expect(c.isOwned(5), isFalse);
   });
@@ -262,7 +265,7 @@ void main() {
     final source = _FakeSource(page);
 
     await c.toggle(source: source, presenter: presenter, index: 2);
-    expect(presenter.translationOwnedPages, {2});
+    expect(presenter.translationOwnedPages.keys, {2});
 
     final off = await c.toggle(source: source, presenter: presenter, index: 2);
     expect(off, isTrue);
@@ -295,7 +298,7 @@ void main() {
     final c = controllerWith(blocks: blocks);
     final presenter = _FakePresenter(confirmed: true);
     await c.toggle(source: _FakeSource(page), presenter: presenter, index: 1);
-    expect(presenter.translationOwnedPages, {1});
+    expect(presenter.translationOwnedPages.keys, {1});
 
     c.reset();
     expect(presenter.translationOwnedPages, isEmpty);

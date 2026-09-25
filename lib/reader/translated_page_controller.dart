@@ -33,7 +33,9 @@ abstract interface class TranslatedPagePresenter {
   Future<bool?> presenterUsesEnhanced(int index);
 
   /// 被译文占用的页号；超分调度读它给译文让路（增强图轨一页只有一份）。
-  Set<int> get translationOwnedPages;
+  /// 被译文占用的页 → 成品页路径。超分调度读它给译文让路，并在翻回来时用它
+  /// 把同一张成品页重新注回去（增强图轨会被呈现器按保留集淘汰）。
+  Map<int, String> get translationOwnedPages;
 
   static TranslatedPagePresenter of(GpuPresentController controller) =>
       _GpuPresenter(controller);
@@ -56,7 +58,7 @@ class _GpuPresenter implements TranslatedPagePresenter {
       _c.presenterUsesEnhanced(index);
 
   @override
-  Set<int> get translationOwnedPages => _c.translationOwnedPages;
+  Map<int, String> get translationOwnedPages => _c.translationOwnedPages;
 }
 
 /// 当前这一页要不要显示成「成品页」（译文回填后的那张）。
@@ -92,7 +94,7 @@ class TranslatedPageController extends ChangeNotifier {
 
   /// 这一页是否归译文管（只给界面用；超分那边直接读呈现器自己那份集合）。
   bool isOwned(int index) =>
-      _presenter?.translationOwnedPages.contains(index) ?? false;
+      _presenter?.translationOwnedPages.containsKey(index) ?? false;
 
   /// 换书 / 换章：清掉所有归属与临时输入，避免拿旧页的产物往新页上贴。
   void reset() {
@@ -117,7 +119,7 @@ class TranslatedPageController extends ChangeNotifier {
     required int index,
   }) async {
     _presenter = presenter;
-    if (presenter.translationOwnedPages.contains(index)) {
+    if (presenter.translationOwnedPages.containsKey(index)) {
       return _turnOff(index, source, presenter);
     }
     return _turnOn(index, source, presenter);
@@ -196,7 +198,7 @@ class TranslatedPageController extends ChangeNotifier {
     }
     if (!await presenter.reshowAfterInjection(index)) {
       // 已经注入了：下一次该页上屏自然生效，这里不当失败。
-      presenter.translationOwnedPages.add(index);
+      _claim(presenter, index, path, showingOnSuccess);
       _phase = showingOnSuccess
           ? TranslatedPagePhase.showing
           : TranslatedPagePhase.off;
@@ -208,7 +210,7 @@ class TranslatedPageController extends ChangeNotifier {
     if (confirmed == false) {
       return _fail(index, '注入成功但画面没换，这一页再翻回来会重试');
     }
-    presenter.translationOwnedPages.add(index);
+    _claim(presenter, index, path, showingOnSuccess);
     _phase = showingOnSuccess
         ? TranslatedPagePhase.showing
         : TranslatedPagePhase.off;
@@ -243,6 +245,20 @@ class TranslatedPageController extends ChangeNotifier {
   Future<List<String>> _missingWeights() async {
     final (_, missing) = await OcrModels.status();
     return missing;
+  }
+
+  /// 开译文时登记「这一页归译文 + 归的是哪张图」；关译文时把归属摘掉。
+  static void _claim(
+    TranslatedPagePresenter presenter,
+    int index,
+    String path,
+    bool showingOnSuccess,
+  ) {
+    if (showingOnSuccess) {
+      presenter.translationOwnedPages[index] = path;
+    } else {
+      presenter.translationOwnedPages.remove(index);
+    }
   }
 
   bool _fail(int index, String message) {
