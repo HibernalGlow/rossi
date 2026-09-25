@@ -7,11 +7,17 @@
 静态层面已经过了，不必重复验：
 
 - `dart analyze lib/` 干净（只剩一条与本次无关的 `switch_toast_service.dart` info）；
-- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart test/reader/translated_page_status_test.dart` **70 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
+- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart test/reader/translated_page_status_test.dart` **71 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
 - `cargo test -p rossi_ocr_core` **24 条全过**；
 - `flutter build macos --debug` 与 `--release` 都出包成功（Release 产物 152.7 MB，含 13.2 MB 字体）；
 - **端到端已经跑过一次真权重**：`test/ocr/completed_page_e2e_test.dart` 对
   `mokuro_001a.jpg` 出 15 块成品页，尺寸 827×1170、每块内都有墨、第二次构建命中缓存。
+- **八页真页的多页扫描也过了**（`completed_page_multi_page_probe_test.dart`，真权重 + 同字数的中文伪译文）：
+  每页**每个块都有墨**（最少墨点 22–1413），尺寸全对，无截断块；
+  「字压到框外」的实测是每页 0–83 个像素、**离框不超过 4 px**（笔画外沿与浮点框取整），
+  同一次运行里故意把框放大 30 px 的对照渲染会到 11–26 px / 728–42895 个像素 ——
+  也就是说这条判据看得见「字跑到隔壁气泡」，而生产那一侧没跑出去。
+  成品图落在 `/tmp/ocr-lab/sweep/<页名>_done.png`，第 5 条用眼睛看的就是这批。
   只有翻译那一跳是假的。翻译那一跳另有一条**真 HTTP** 的验证
   （`ocr_translator_http_test.dart`：本地起 OpenAI-compatible 桩，走 `WindHttp` → Rust reqwest，
   验 URL 拼接、1 基编号、术语表进请求、Authorization 有无、Ollama 原生形状、非 2xx 报状态码、
@@ -46,6 +52,15 @@ export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 flutter pub get
 task dev            # = cargo build windcore + flutter run -d macos
 ```
+
+**真数据测试的夹具在哪**：`test/ocr/completed_page_e2e_test.dart` 与
+`completed_page_multi_page_probe_test.dart` 要真权重 + 真页，查找顺序写在
+`test/ocr/real_page_fixtures.dart` 里：环境变量（`ROSSI_OCR_MODELS_DIR` /
+`ROSSI_OCR_TEST_PAGES_DIR`）→ `<仓根>/.local/ocr-test-data/{models,pages}` → `/tmp/{inpaint,detect}-lab/…`。
+`.local/` 已经进 `.gitignore` 且**不会入库**：权重有再分发限制，样本页来自 Manga109
+（学术研究数据集，禁止再分发）。放持久区而不是 `$TMPDIR` 是刻意的 —— dirhelper 每天扫 tmp，
+夹具被扫走之后这两条测试会静默变成 skip，而本文开头那些「已经跑过」的话就查无实据了。
+本机现有 5 个权重（约 644 MB）与 8 页真页就放在 `.local/ocr-test-data/` 下。
 
 需要一个能用的 OpenAI-compatible 端点，二选一：
 
@@ -89,10 +104,13 @@ ollama serve && ollama run qwen2.5:14b        # 本机：base URL = http://127.0
 **判据**：状态字与画面**一致** —— 显示「译文页」时屏幕上必须已经是回填后的那张；
 如果注入被拒或画面没换，芯片显示「译文失败」并给出原因，**不许静默回到原图**。
 
-## 5. 成品页质量（唯一必须靠眼睛的一条）
+## 5. 成品页质量（一半已经被机器判掉，剩下靠眼睛）
 
-**判据逐条看**：
-- 每只被处理的气泡里有译文，且**译文在自己的气泡内**，不越到邻泡或画面区；
+**判据逐条看**（图在 `/tmp/ocr-lab/sweep/`，八页；自己机器上跑
+`flutter test test/ocr/completed_page_multi_page_probe_test.dart` 会重新生成）：
+- 每只被处理的气泡里有译文，且**译文在自己的气泡内**，不越到邻泡或画面区 ——
+  这条已经量化了（开头那条扫描：每块有墨 + 框外像素离框 ≤4 px），
+  眼睛只需要复核**机器看不出的那一半**：字压在气泡线上好不好看、有没有盖住关键画面；
 - 窄高气泡是**单字一列**（ADR-0018 §3.4 第 4 条），不是 3–4 字一行的假竖排；
 - 字号是自动降下来求得的，允许小，但不允许截断到读不出（截断的块应显示「可疑」标记）；
 - 擦字干净：原文不残留（网点、速度线上的粗笔画残留属已知缺口，见 §8.6.2）；
