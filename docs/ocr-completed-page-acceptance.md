@@ -7,12 +7,15 @@
 静态层面已经过了，不必重复验：
 
 - `dart analyze lib/` 干净（只剩一条与本次无关的 `switch_toast_service.dart` info）；
-- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart` **40 条全过 0 skip**；
+- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart` **47 条全过 0 skip**；
 - `cargo test -p rossi_ocr_core` **21 条全过**；
 - `flutter build macos --debug` 出包成功；
 - **端到端已经跑过一次真权重**：`test/ocr/completed_page_e2e_test.dart` 对
   `mokuro_001a.jpg` 出 15 块成品页，尺寸 827×1170、每块内都有墨、第二次构建命中缓存。
-  只有翻译那一跳是假的，所以下面第 3、4、9 条仍然要真端点。
+  只有翻译那一跳是假的。翻译那一跳另有一条**真 HTTP** 的验证
+  （`ocr_translator_http_test.dart`：本地起 OpenAI-compatible 桩，走 `WindHttp` → Rust reqwest，
+  验 URL 拼接、1 基编号、术语表进请求、Authorization 有无、Ollama 原生形状、非 2xx 报状态码、
+  漏一条就抛），所以**协议接线已经通了**；下面第 3、4、9 条要验的是**翻译质量与真端点**。
 
 ## 0. 起环境与前置
 
