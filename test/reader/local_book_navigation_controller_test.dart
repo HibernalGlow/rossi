@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr/service/reader/local_book_navigation_controller.dart';
-import 'package:zephyr/src/rust/api/file_manager.dart';
+import 'package:zephyr/src/rust/api/file_manager/entry_ops.dart';
 
 void main() {
   test('上下本切换会把游标交给下一本，并合并并发输入', () async {

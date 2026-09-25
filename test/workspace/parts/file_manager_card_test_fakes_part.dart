@@ -54,28 +54,28 @@ class _FileManagerApi implements RustLibApi {
   dynamic noSuchMethod(Invocation invocation) {
     calls.add(invocation);
     switch (invocation.memberName) {
-      case #crateApiFileManagerFileManagerCreate:
+      case #crateApiFileManagerBrowseFileManagerCreate:
         return Future.value(BigInt.one);
-      case #crateApiFileManagerFileManagerSetSearchQuery:
+      case #crateApiFileManagerSearchFileManagerSetSearchQuery:
         final gate = searchReply;
         return gate == null ? Future.value(snapshot) : gate.future;
-      case #crateApiFileManagerFileManagerClose:
+      case #crateApiFileManagerSettingsFileManagerClose:
         return true;
-      case #crateApiFileManagerFileManagerTreeSnapshot:
-      case #crateApiFileManagerFileManagerTreeToggle:
+      case #crateApiFileManagerTreeFileManagerTreeSnapshot:
+      case #crateApiFileManagerTreeFileManagerTreeToggle:
         return Future.value(tree);
-      case #crateApiFileManagerFileManagerSearchHistory:
+      case #crateApiFileManagerSearchFileManagerSearchHistory:
         return Future.value(List<String>.from(history));
-      case #crateApiFileManagerFileManagerRecordSearchHistory:
+      case #crateApiFileManagerSearchFileManagerRecordSearchHistory:
         final query = invocation.namedArguments[#query] as String;
         history.remove(query);
         history.insert(0, query);
         return Future.value(List<String>.from(history));
-      case #crateApiFileManagerFileManagerClearSearchHistory:
+      case #crateApiFileManagerSearchFileManagerClearSearchHistory:
         history.clear();
         return Future.value(0);
-      case #crateApiFileManagerFileManagerOpenEntry:
-      case #crateApiFileManagerFileManagerOpenArchive:
+      case #crateApiFileManagerEntryOpsFileManagerOpenEntry:
+      case #crateApiFileManagerEntryOpsFileManagerOpenArchive:
         return Future.value(FileManagerActionResult(snapshot: snapshot));
       case #crateApiLocalThumbnailGetFileManagerEntryThumbnail:
         return Future.value(null);

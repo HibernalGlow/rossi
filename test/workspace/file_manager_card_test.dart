@@ -5,7 +5,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
-import 'package:zephyr/src/rust/api/file_manager.dart';
+import 'package:zephyr/src/rust/api/file_manager/browse.dart';
+import 'package:zephyr/src/rust/api/file_manager/entry_ops.dart';
+import 'package:zephyr/src/rust/api/file_manager/search.dart';
+import 'package:zephyr/src/rust/api/file_manager/settings.dart';
+import 'package:zephyr/src/rust/api/file_manager/tree.dart';
+import 'package:zephyr/src/rust/api/file_manager/types.dart';
 import 'package:zephyr/src/rust/api/file_ops.dart';
 import 'package:zephyr/src/rust/api/local.dart';
 import 'package:zephyr/src/rust/frb_generated.dart';
@@ -75,7 +80,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerSetSearchQuery)
+          .callsTo(#crateApiFileManagerSearchFileManagerSetSearchQuery)
           .single
           .namedArguments[#query],
       'book',
@@ -87,7 +92,7 @@ void main() {
     api.snapshot = _snapshot(query: 'from other tab');
     await tester.tap(find.byTooltip('新建页签'));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerFileManagerNewTab), hasLength(1));
+    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerNewTab), hasLength(1));
     expect(
       tester.widget<TextField>(find.byType(TextField)).controller!.text,
       'from other tab',
@@ -103,13 +108,13 @@ void main() {
     await tester.enterText(find.byType(TextField), '春 日 -草稿');
     // 防抖窗口内还没发出去 —— 连续敲字不会每个字符打一次桥。
     await tester.pump(const Duration(milliseconds: 60));
-    expect(api.callsTo(#crateApiFileManagerFileManagerSetSearchQuery), isEmpty);
+    expect(api.callsTo(#crateApiFileManagerSearchFileManagerSetSearchQuery), isEmpty);
 
     // 让这一次提交挂在飞行中，才测得到「请求期间输入框不能失效」。
     final gate = Completer<FileManagerSnapshot>();
     api.searchReply = gate;
     await tester.pump(const Duration(milliseconds: 200));
-    final calls = api.callsTo(#crateApiFileManagerFileManagerSetSearchQuery);
+    final calls = api.callsTo(#crateApiFileManagerSearchFileManagerSetSearchQuery);
     expect(calls, hasLength(1));
     expect(calls.single.namedArguments[#query], '春 日 -草稿');
     expect(
@@ -121,7 +126,7 @@ void main() {
     await tester.enterText(find.byType(TextField), '春 日 -草稿 修');
     await tester.pump(const Duration(milliseconds: 200));
     expect(
-      api.callsTo(#crateApiFileManagerFileManagerSetSearchQuery).length,
+      api.callsTo(#crateApiFileManagerSearchFileManagerSetSearchQuery).length,
       2,
     );
     api.searchReply = null;
@@ -172,13 +177,13 @@ void main() {
 
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerSetSearchIncludeSubfolders)
+          .callsTo(#crateApiFileManagerSearchFileManagerSetSearchIncludeSubfolders)
           .single
           .namedArguments[#enabled],
       isTrue,
     );
     // 条件一变就跑一次遍历；结果由 Rust 写进页签，卡片不再有第二份列表。
-    expect(api.callsTo(#crateApiFileManagerFileManagerSearch), hasLength(1));
+    expect(api.callsTo(#crateApiFileManagerSearchFileManagerSearch), hasLength(1));
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
@@ -202,11 +207,11 @@ void main() {
       await tester.pumpAndSettle();
     }
     expect(
-      api.callsTo(#crateApiFileManagerFileManagerSaveSearchAsTab),
+      api.callsTo(#crateApiFileManagerSearchFileManagerSaveSearchAsTab),
       hasLength(1),
     );
     expect(
-      api.callsTo(#crateApiFileManagerFileManagerClearSearch),
+      api.callsTo(#crateApiFileManagerSearchFileManagerClearSearch),
       hasLength(1),
     );
     await tester.pumpWidget(const SizedBox.shrink());
@@ -224,21 +229,21 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerSetSearchQuery)
+          .callsTo(#crateApiFileManagerSearchFileManagerSetSearchQuery)
           .single
           .namedArguments[#query],
       '旧词',
     );
     // 点历史词是「主动定下的搜索」，所以要进历史；防抖那一路不进。
     expect(
-      api.callsTo(#crateApiFileManagerFileManagerRecordSearchHistory),
+      api.callsTo(#crateApiFileManagerSearchFileManagerRecordSearchHistory),
       hasLength(1),
     );
 
     await tester.tap(find.text('清空历史'));
     await tester.pumpAndSettle();
     expect(
-      api.callsTo(#crateApiFileManagerFileManagerClearSearchHistory),
+      api.callsTo(#crateApiFileManagerSearchFileManagerClearSearchHistory),
       hasLength(1),
     );
     await tester.pumpAndSettle();
@@ -254,11 +259,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
     await tester.pumpAndSettle();
     expect(
-      api.callsTo(#crateApiFileManagerFileManagerSetSearchQuery),
+      api.callsTo(#crateApiFileManagerSearchFileManagerSetSearchQuery),
       hasLength(1),
     );
     expect(
-      api.callsTo(#crateApiFileManagerFileManagerRecordSearchHistory),
+      api.callsTo(#crateApiFileManagerSearchFileManagerRecordSearchHistory),
       isEmpty,
     );
     await tester.pumpWidget(const SizedBox.shrink());
@@ -277,25 +282,25 @@ void main() {
     // 否则点「左」会点成「刷新」—— 这正是这个用例要守住的行为。
     await tester.tapAt(_padPoint(tester, const Offset(0.15, 0.5)));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerFileManagerGoBack), hasLength(1));
+    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoBack), hasLength(1));
 
     await tester.tapAt(_padPoint(tester, const Offset(0.85, 0.5)));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerFileManagerGoForward), hasLength(1));
+    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoForward), hasLength(1));
 
     await tester.tapAt(_padPoint(tester, const Offset(0.5, 0.2)));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerFileManagerGoUp), hasLength(1));
+    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoUp), hasLength(1));
 
     // 中心圆：刷新。它压在四片热区之上，这一块必须归它。
     await tester.tapAt(_padPoint(tester, const Offset(0.5, 0.5)));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerFileManagerRefresh), hasLength(1));
+    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerRefresh), hasLength(1));
     // 上一步不能顺带把「主页」也触发了。
-    expect(api.callsTo(#crateApiFileManagerFileManagerGoHome), isEmpty);
+    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoHome), isEmpty);
 
     await _tapHomeRegion(tester);
-    expect(api.callsTo(#crateApiFileManagerFileManagerGoHome), hasLength(1));
+    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoHome), hasLength(1));
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
@@ -326,23 +331,23 @@ void main() {
 
     await tester.tap(find.byTooltip('后退'));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerFileManagerGoBack), hasLength(1));
+    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoBack), hasLength(1));
 
     await tester.tap(find.byTooltip('前进'));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerFileManagerGoForward), hasLength(1));
+    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoForward), hasLength(1));
 
     await tester.tap(find.byTooltip('上一级'));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerFileManagerGoUp), hasLength(1));
+    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoUp), hasLength(1));
 
     await tester.tap(find.byTooltip('刷新'));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerFileManagerRefresh), hasLength(1));
-    expect(api.callsTo(#crateApiFileManagerFileManagerGoHome), isEmpty);
+    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerRefresh), hasLength(1));
+    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoHome), isEmpty);
 
     await _tapHomeRegion(tester);
-    expect(api.callsTo(#crateApiFileManagerFileManagerGoHome), hasLength(1));
+    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoHome), hasLength(1));
 
     // 右键入口挂在按钮外层：桌面端不必先长按。
     await tester.tapAt(_homeRegionPoint(tester), buttons: kSecondaryButton);
@@ -407,7 +412,7 @@ void main() {
 
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerSetHomePath)
+          .callsTo(#crateApiFileManagerBrowseFileManagerSetHomePath)
           .single
           .namedArguments[#path],
       '/books',
@@ -424,7 +429,7 @@ void main() {
     await _pumpCard(tester, settings: settings);
 
     await _tapHomeRegion(tester);
-    expect(api.callsTo(#crateApiFileManagerFileManagerGoHome), hasLength(1));
+    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoHome), hasLength(1));
 
     // 长按打开主页菜单：三个动作按当前能力置灰。
     await _longPressHomeRegion(tester);
@@ -436,7 +441,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerSetHomePath)
+          .callsTo(#crateApiFileManagerBrowseFileManagerSetHomePath)
           .single
           .namedArguments[#path],
       '/books',
@@ -465,7 +470,7 @@ void main() {
     await _pumpCard(tester, settings: settings);
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerCreate)
+          .callsTo(#crateApiFileManagerBrowseFileManagerCreate)
           .single
           .namedArguments[#homePath],
       '/home',
@@ -478,7 +483,7 @@ void main() {
     await _pumpCard(tester, settings: settings);
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerCreate)
+          .callsTo(#crateApiFileManagerBrowseFileManagerCreate)
           .single
           .namedArguments[#homePath],
       isNull,
@@ -496,7 +501,7 @@ void main() {
     await _pumpCard(tester, settings: settings);
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerCreate)
+          .callsTo(#crateApiFileManagerBrowseFileManagerCreate)
           .single
           .namedArguments[#initialPath],
       '/home',
@@ -511,7 +516,7 @@ void main() {
     await _pumpCard(tester, settings: settings);
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerCreate)
+          .callsTo(#crateApiFileManagerBrowseFileManagerCreate)
           .single
           .namedArguments[#initialPath],
       isNull,
@@ -530,7 +535,7 @@ void main() {
     await _pumpCard(tester, settings: settings);
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerCreate)
+          .callsTo(#crateApiFileManagerBrowseFileManagerCreate)
           .single
           .namedArguments[#initialPath],
       isNull,
@@ -545,7 +550,7 @@ void main() {
     await _pumpCard(tester, settings: settings);
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerCreate)
+          .callsTo(#crateApiFileManagerBrowseFileManagerCreate)
           .single
           .namedArguments[#initialPath],
       isNull,
@@ -563,7 +568,7 @@ void main() {
     await _pumpCard(tester, settings: settings);
 
     final args = api
-        .callsTo(#crateApiFileManagerFileManagerCreate)
+        .callsTo(#crateApiFileManagerBrowseFileManagerCreate)
         .single
         .namedArguments;
     expect(args[#settingsDbPath], '/tmp/rossi/settings.db');
@@ -577,7 +582,7 @@ void main() {
 
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerCreate)
+          .callsTo(#crateApiFileManagerBrowseFileManagerCreate)
           .single
           .namedArguments[#settingsDbPath],
       isNull,
@@ -589,7 +594,7 @@ void main() {
   testWidgets('全局关掉记忆后同步给活着的会话，且不重复打桥', (tester) async {
     await _pumpCard(tester, settings: settings);
     expect(
-      api.callsTo(#crateApiFileManagerFileManagerSetRememberViewState),
+      api.callsTo(#crateApiFileManagerSettingsFileManagerSetRememberViewState),
       isEmpty,
     );
 
@@ -599,7 +604,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final calls = api.callsTo(
-      #crateApiFileManagerFileManagerSetRememberViewState,
+      #crateApiFileManagerSettingsFileManagerSetRememberViewState,
     );
     expect(calls, hasLength(1));
     expect(calls.single.namedArguments[#enabled], isFalse);
@@ -608,7 +613,7 @@ void main() {
     // 没有守卫的话每帧都会再发一次。
     await tester.pumpAndSettle();
     expect(
-      api.callsTo(#crateApiFileManagerFileManagerSetRememberViewState),
+      api.callsTo(#crateApiFileManagerSettingsFileManagerSetRememberViewState),
       hasLength(1),
     );
     await tester.pumpWidget(const SizedBox.shrink());
@@ -629,7 +634,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerSetSort)
+          .callsTo(#crateApiFileManagerSettingsFileManagerSetSort)
           .single
           .namedArguments[#field],
       FileManagerSortField.random,
@@ -648,7 +653,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerSetSortTemporary)
+          .callsTo(#crateApiFileManagerSettingsFileManagerSetSortTemporary)
           .single
           .namedArguments[#enabled],
       isFalse,
@@ -670,7 +675,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerSetEntryFilter)
+          .callsTo(#crateApiFileManagerSettingsFileManagerSetEntryFilter)
           .single
           .namedArguments[#filter],
       FileManagerEntryFilter.images,
@@ -712,7 +717,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         api
-            .callsTo(#crateApiFileManagerFileManagerNavigate)
+            .callsTo(#crateApiFileManagerBrowseFileManagerNavigate)
             .single
             .namedArguments[#path],
         '/home',
@@ -728,13 +733,13 @@ void main() {
     await tester.tap(find.text('book.cbz'));
     await tester.pumpAndSettle();
     expect(
-      api.callsTo(#crateApiFileManagerFileManagerOpenArchive),
+      api.callsTo(#crateApiFileManagerEntryOpsFileManagerOpenArchive),
       hasLength(1),
     );
-    expect(api.callsTo(#crateApiFileManagerFileManagerOpenEntry), isEmpty);
+    expect(api.callsTo(#crateApiFileManagerEntryOpsFileManagerOpenEntry), isEmpty);
     await tester.tap(find.text('book.cbz'));
     await tester.pumpAndSettle(const Duration(milliseconds: 400));
-    expect(api.callsTo(#crateApiFileManagerFileManagerOpenEntry), hasLength(1));
+    expect(api.callsTo(#crateApiFileManagerEntryOpsFileManagerOpenEntry), hasLength(1));
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
@@ -746,7 +751,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerDuplicateTab)
+          .callsTo(#crateApiFileManagerBrowseFileManagerDuplicateTab)
           .single
           .namedArguments[#tabId],
       BigInt.one,
@@ -757,7 +762,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerReopenClosedTab)
+          .callsTo(#crateApiFileManagerBrowseFileManagerReopenClosedTab)
           .single
           .namedArguments[#tabId],
       BigInt.from(3),
@@ -775,7 +780,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerNavigate)
+          .callsTo(#crateApiFileManagerBrowseFileManagerNavigate)
           .last
           .namedArguments[#path],
       '/',
@@ -786,7 +791,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerNavigate)
+          .callsTo(#crateApiFileManagerBrowseFileManagerNavigate)
           .last
           .namedArguments[#path],
       '/books/series',
@@ -802,7 +807,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerNavigateText)
+          .callsTo(#crateApiFileManagerBrowseFileManagerNavigateText)
           .single
           .namedArguments[#text],
       '  "../书籍"  ',
@@ -842,10 +847,10 @@ void main() {
     api.snapshotError = null;
     await tester.tap(find.text('重试'));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerFileManagerCreate), hasLength(1));
+    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerCreate), hasLength(1));
     expect(find.text('book.cbz'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
-    expect(api.callsTo(#crateApiFileManagerFileManagerClose), hasLength(1));
+    expect(api.callsTo(#crateApiFileManagerSettingsFileManagerClose), hasLength(1));
   });
 
   testWidgets('文件与文件夹缩略图组件存在且平滑回退语义图标', (tester) async {
@@ -876,7 +881,7 @@ void main() {
 
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerSetViewMode)
+          .callsTo(#crateApiFileManagerSettingsFileManagerSetViewMode)
           .single
           .namedArguments[#mode],
       FileManagerViewMode.details,
@@ -899,7 +904,7 @@ void main() {
 
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerSetSort)
+          .callsTo(#crateApiFileManagerSettingsFileManagerSetSort)
           .last
           .namedArguments[#field],
       FileManagerSortField.size,
@@ -910,7 +915,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerSetSort)
+          .callsTo(#crateApiFileManagerSettingsFileManagerSetSort)
           .last
           .namedArguments[#field],
       FileManagerSortField.date,
@@ -930,7 +935,7 @@ void main() {
     await _openTree(tester);
 
     expect(
-      api.callsTo(#crateApiFileManagerFileManagerTreeSnapshot),
+      api.callsTo(#crateApiFileManagerTreeFileManagerTreeSnapshot),
       hasLength(1),
     );
     // 深度来自核心的 `visible_rows`，Dart 不自己数层。
@@ -964,18 +969,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerTreeToggle)
+          .callsTo(#crateApiFileManagerTreeFileManagerTreeToggle)
           .single
           .namedArguments[#path],
       '/books/series',
     );
-    expect(api.callsTo(#crateApiFileManagerFileManagerNavigate), isEmpty);
+    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerNavigate), isEmpty);
 
     await tester.tap(find.byKey(const ValueKey('file-manager-tree:/')));
     await tester.pumpAndSettle();
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerNavigate)
+          .callsTo(#crateApiFileManagerBrowseFileManagerNavigate)
           .single
           .namedArguments[#path],
       '/',
@@ -996,7 +1001,7 @@ void main() {
 
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerSetDirectoryColumns)
+          .callsTo(#crateApiFileManagerBrowseFileManagerSetDirectoryColumns)
           .single
           .namedArguments[#enabled],
       isFalse,
@@ -1020,7 +1025,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerSetDirectoryColumns)
+          .callsTo(#crateApiFileManagerBrowseFileManagerSetDirectoryColumns)
           .single
           .namedArguments[#enabled],
       isTrue,
@@ -1042,7 +1047,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       api
-          .callsTo(#crateApiFileManagerFileManagerReopenClosedTab)
+          .callsTo(#crateApiFileManagerBrowseFileManagerReopenClosedTab)
           .single
           .namedArguments[#tabId],
       BigInt.from(3),
