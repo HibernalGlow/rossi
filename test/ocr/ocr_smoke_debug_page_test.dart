@@ -72,13 +72,17 @@ void main() {
   testWidgets('没选页时开跑是灰的，后端那行说明 auto 的语义', (tester) async {
     await pumpUntil(
       tester,
-      () => find.textContaining('推理后端：').evaluate().isNotEmpty,
+      () => find.textContaining('推理后端').evaluate().isNotEmpty,
     );
     expect(find.text('还没选页'), findsOneWidget);
     final button = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, '开跑'),
     );
     expect(button.onPressed, isNull, reason: '没选页就能点 = 跑一次必然失败的链路');
-    expect(find.textContaining('推理后端：auto'), findsOneWidget);
+    expect(
+      find.textContaining('推理后端（请求值）：auto'),
+      findsOneWidget,
+      reason: '这行必须说清是请求值，不是实际生效的那条 EP',
+    );
   });
 }

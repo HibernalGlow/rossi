@@ -156,7 +156,10 @@ class _OcrSmokeDebugPageState extends State<OcrSmokeDebugPage> {
           ),
           ListTile(
             leading: const Icon(Icons.memory_outlined),
-            title: Text('推理后端：$_ep（auto = 按平台与段选）'),
+            // 明说是「请求值」：三段实际用哪条 EP 由 Rust 侧按段 resolve，
+            // 这个值**没有**过桥回来（要等 OcrPageResult 带上 per-stage 才算得上报实际值），
+            // 现在写成「推理后端：auto」会让人以为看见的就是跑起来的那条。
+            title: Text('推理后端（请求值）：$_ep；各段实际用哪条由 Rust 按段决定'),
           ),
           ListTile(
             leading: const Icon(Icons.image_outlined),
