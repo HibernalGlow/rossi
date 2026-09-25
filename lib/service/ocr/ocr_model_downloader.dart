@@ -15,11 +15,15 @@ class OcrModelDownloader {
   ///
   /// [withInpaint] 为 false 时只下识别链路（约 460 MB）；成品页还要 LaMa（再 206 MB）。
   /// [onProgress] 报**总进度**：`(已传字节, 总字节, 当前文件名)`，总字节在开始前按已知体积估。
+  /// [download] 是网络那一跳的缝：默认走 `WindHttp`，测试要能喂「下到一半就断」这种剧本 ——
+  /// 这条路径的产物是 660 MB 权重，真下载不该是单测的前提。
   static Future<void> ensure({
     bool withInpaint = true,
     bool force = false,
     void Function(int received, int total, String file)? onProgress,
+    Future<void> Function(String url, String path, OcrModelProgress)? download,
   }) async {
+    final pull = download ?? _windDownload;
     final dir = await OcrModels.directory();
     await dir.create(recursive: true);
 
@@ -56,13 +60,9 @@ class OcrModelDownloader {
 
       final pending = File('${destination.path}.download_${const Uuid().v4()}');
       try {
-        await WindHttp().download(
-          url,
-          pending.path,
-          onReceiveProgress: (received, total) {
-            onProgress?.call(doneBytes + received, grandTotal, file);
-          },
-        );
+        await pull(url, pending.path, (received, total) {
+          onProgress?.call(doneBytes + received, grandTotal, file);
+        });
         if (!await _looksValid(pending, file)) {
           throw StateError('下载的 $file 体积不对（可能是 HTML 错误页或 LFS 指针）');
         }
@@ -87,3 +87,12 @@ class OcrModelDownloader {
     return await f.length() >= (minBytes[name] ?? 1024);
   }
 }
+
+/// 单文件的下载进度回调。
+typedef OcrModelProgress = void Function(int received, int total);
+
+Future<void> _windDownload(
+  String url,
+  String path,
+  OcrModelProgress onReceiveProgress,
+) => WindHttp().download(url, path, onReceiveProgress: onReceiveProgress);
