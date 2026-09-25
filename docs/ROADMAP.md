@@ -13,8 +13,8 @@
 | 不进 v0.1 | 处置 |
 |---|---|
 | 在线源（QuickJS 插件） | 会把验收面从「本地阅读」扩大到网络 + 插件错误处理 + 源站变化 |
-| OCR 翻译 | 最贵的一项（检测+识别+翻译+排版回填）；参考实现是 GPL，**只能读不能抄** |
-| 上色 | 同上，且只在黑白页有意义 |
+| OCR 翻译 | **已解冻（ADR-0018，2026-09-25）**：形态是**成品页**（检测→识别→翻译→擦字→回填），产物落盘缓存、渲染路径只读缓存。代码来源走 MIT/Apache 白名单（`xianscan-rust` / `manga-ocr-rs`），**不改仓库许可证**；实测选型见 `docs/REFERENCE_RESEARCH.md` §8.6 |
+| 上色 | 不进：GPL 参考实现只能读不能抄，且只在黑白页有意义。与 OCR 共用「页后处理」位，但 ADR-0018 **不代为解冻** |
 | Anime4K | 参考实现 GPL；超分统一以 mImageViewer 的 `ort` 核心为准 |
 | 视频播放 | **已解冻（ADR-0016）**：形态是「一页可以是视频」，引擎用 media_kit / libmpv，功能并集见 `docs/video-playback-spec.md` |
 
@@ -336,8 +336,11 @@ Android 与 iOS 不是当前投入方向，只做最低程度适配：
 
 ## 明确不做
 
-- 不做 v0.1 冻结线之外的任何能力（在线源 / OCR 翻译 / 上色 / Anime4K / 视频，见 ADR-0008）
-- 不引入 GPL-3.0 源码（Venera-SSR / ntrn），也不为此把仓库改为 GPL
+- 不做 v0.1 冻结线之外的能力（在线源 / 上色 / Anime4K，见 ADR-0008）。
+  已按同一流程解冻的两条不在此列：**视频页**（ADR-0016）、**OCR 翻译成品页**（ADR-0018）
+- 不引入 GPL-3.0 源码（Venera-SSR / ntrn / comic-text-detector / manga-image-translator / Mekuru / Frank Yomik /
+  Chimahon / mokuro / yomitan），也不为此把仓库改为 GPL。
+  **权重按 ADR-0018 §决定 5 一律首下、不随包**；字体是 OFL 可随包，与权重是两回事
 - 不为省掉一次上屏拷贝去 fork `wgpu-hal`（Gate A-W 实测：4K 单页 0.348 ms，占帧预算 2.1%）
 - 不把 mImageViewer 的显示管线照抄进来（decode → CPU RGBA → `load_texture`）
 - 不先重写整个 Breeze UI
