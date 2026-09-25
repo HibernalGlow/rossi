@@ -7,7 +7,7 @@
 静态层面已经过了，不必重复验：
 
 - `dart analyze lib/` 干净（只剩一条与本次无关的 `switch_toast_service.dart` info）；
-- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart test/reader/translated_page_status_test.dart` **71 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
+- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart test/reader/translated_page_status_test.dart` **75 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
 - `cargo test -p rossi_ocr_core` **24 条全过**；
 - `flutter build macos --debug` 与 `--release` 都出包成功（Release 产物 152.7 MB，含 13.2 MB 字体）；
 - **iOS 出包本机跑过一次，但断在一处与 OCR 无关的地方**：`packages/coreml_upscale/ios/Classes/MultiArrayModel.swift`
@@ -75,6 +75,20 @@ task dev            # = cargo build windcore + flutter run -d macos
 ollama serve && ollama run qwen2.5:14b        # 本机：base URL = http://127.0.0.1:11434/v1
 # 或云端：base URL = https://api.deepseek.com/v1 + 对应 key
 ```
+
+**两样都没有、也不想拉几十 GB 模型时**，可以起一个本机假端点把**通路**那一半先验完：
+
+```bash
+dart script/ocr_stub_endpoint.dart                # 别用 dart run：那会先跑 native-assets 构建钩子去编 Rust
+dart script/ocr_stub_endpoint.dart --drop-one     # 故意少回一条 → 触发第 11b 条的降级档
+dart script/ocr_stub_endpoint.dart --fail         # 直接 500 → 第 11b 与第 12 条的另一种成因
+```
+
+设置里填 `http://127.0.0.1:8787/v1`、模型名任意。它能验：编号协议与条数、术语表是否随请求走
+（端点终端会打「术语表=进了请求」）、API Key 有没有带上（同上「authorization=有/无」）、
+降级档与失败不谎报。**它验不了译文质量** —— 第 5 条里「这译得像不像人话」必须换成真端点再看。
+假端点与生产解析器之间有一条契约测试钉着（`test/ocr/ocr_stub_endpoint_contract_test.dart`：
+拿真的 `parseTranslatedLines` 去读它的应答，少回一条必须真抛）。
 
 样本用 Manga109 的页（或任意本地已下载的日漫章节）。**必须是本地来源** ——
 在线图源没有呈现器，芯片不出现（这是设计，不是 bug，见第 12 条）。

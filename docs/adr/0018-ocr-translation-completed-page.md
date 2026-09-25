@@ -362,7 +362,7 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
 | §6 平台排除 | `ocrSupportedHere`：移动端连设置入口都不画 | 已实现 |
 | §7 不内置 NMT | `ocr_translator.dart` 只走 OpenAI-compatible；真 HTTP 有 6 条测试 | 已实现 |
 
-验证：`flutter test test/ocr/` + 两份 reader 测试共 **97 条全过 0 skip**（Dart 71 + 呈现器测试 26），
+验证：`flutter test test/ocr/` + 两份 reader 测试共 **101 条全过 0 skip**（Dart 75 + 呈现器测试 26），
 其中 `completed_page_e2e_test.dart` 用真权重跑通整条链路（15 块 / 827×1170 / 每块有墨 / 二次命中缓存）。
 `flutter build macos` 的 Debug 与 Release 都出包（Release 152.7 MB，含 13.2 MB 字体）。
 真机逐条判据在 `docs/ocr-completed-page-acceptance.md`。
