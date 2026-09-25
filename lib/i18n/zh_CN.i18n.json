@@ -1303,6 +1303,8 @@
     "chipOn": "译文页",
     "building": "生成中",
     "failedShort": "译文失败",
+    "chipDegraded": "原文回填",
+    "degradedHint": "端点当时不可用：这一页只做了擦字与原文回填，没有译文",
     "busyToast": "这一页正在生成译文，稍等",
     "needWeights": "权重还没下全，去设置里下载"
   },

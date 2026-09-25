@@ -1302,6 +1302,8 @@
     "chipOn": "Translated",
     "building": "Working",
     "failedShort": "Failed",
+    "chipDegraded": "Source text",
+    "degradedHint": "The endpoint was unavailable: this page only had the text erased and re-set in the source language.",
     "busyToast": "This page is still being translated",
     "needWeights": "Weights are incomplete; download them in Settings"
   },

@@ -199,7 +199,10 @@ void main() {
     final label = (await TranslatedPageCache.describe(config: config)).label;
     expect(label, startsWith('zh-Hans_stub_'));
     expect(out.path, contains(label));
-    expect(await TranslatedPageCache.isUsable(label: label, pageIndex: 6), isTrue);
+    expect(
+      await TranslatedPageCache.isUsable(label: label, pageIndex: 6),
+      isTrue,
+    );
     expect(
       File(
         '${root.path}/files/manga_translated/$label/manifest.json',
@@ -208,7 +211,7 @@ void main() {
     );
   });
 
-  test('端点回少了条数：整页失败，不画半张', () async {
+  test('端点回少了条数：降级成原文回填，且不进指纹缓存', () async {
     if (!nativeReady) {
       markTestSkipped('原生库加载不了：$nativeError');
       return;
@@ -235,15 +238,30 @@ void main() {
       },
       translate: (texts, cfg) async => const ['只有一条'],
     );
-    await expectLater(
-      page.build(imagePath: 'unused.jpg', pageIndex: 0, config: cfg2),
-      throwsA(isA<OcrTranslationException>()),
+    final out = await page.build(
+      imagePath: 'unused.jpg',
+      pageIndex: 0,
+      config: cfg2,
     );
+    // ADR-0018 §决定 7 的降级档：端点不可用 / 模型漏译时出「擦字 + 原文回填」，
+    // 而不是整页失败。
+    expect(out.degraded, isTrue);
+    expect(out.hasText, isTrue);
+    expect(await File(out.path).exists(), isTrue, reason: '降级页也得能显示出来');
+
     final label = (await TranslatedPageCache.describe(config: cfg2)).label;
     expect(
       await TranslatedPageCache.isUsable(label: label, pageIndex: 0),
       isFalse,
-      reason: '翻译没对齐就不该写缓存：半张成品页比没有更糟',
+      reason: '降级产物写进指纹缓存 = 端点恢复后永远端出这张未翻译的页',
     );
+
+    // 画上去的确实是原文：与「拿原文直接回填」的对照逐字节相同。
+    final asSource = await TranslatedPageRenderer.render(
+      erasedPng: await _whitePng(_pageW, _pageH),
+      blocks: [_block(_boxA, 'トカゲじゃ'), _block(_boxB, 'あの田舎とかにいる!?')],
+      translations: const ['トカゲじゃ', 'あの田舎とかにいる!?'],
+    );
+    expect(await File(out.path).readAsBytes(), equals(asSource));
   });
 }

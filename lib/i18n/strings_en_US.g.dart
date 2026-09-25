@@ -1486,6 +1486,8 @@ class _Translations$ocr$en_US extends Translations$ocr$zh_CN {
 	@override String get chipOn => 'Translated';
 	@override String get building => 'Working';
 	@override String get failedShort => 'Failed';
+	@override String get chipDegraded => 'Source text';
+	@override String get degradedHint => 'The endpoint was unavailable: this page only had the text erased and re-set in the source language.';
 	@override String get busyToast => 'This page is still being translated';
 	@override String get needWeights => 'Weights are incomplete; download them in Settings';
 }
@@ -3561,6 +3563,8 @@ extension on TranslationsEnUs {
 			'ocr.chipOn' => 'Translated',
 			'ocr.building' => 'Working',
 			'ocr.failedShort' => 'Failed',
+			'ocr.chipDegraded' => 'Source text',
+			'ocr.degradedHint' => 'The endpoint was unavailable: this page only had the text erased and re-set in the source language.',
 			'ocr.busyToast' => 'This page is still being translated',
 			'ocr.needWeights' => 'Weights are incomplete; download them in Settings',
 			'realSr.title' => 'Image Super-Resolution (Experimental)',
@@ -3822,10 +3826,10 @@ extension on TranslationsEnUs {
 			'comicFollow.newChaptersShort' => ({required Object diff}) => '${diff} new',
 			'comicFollow.newUnreadChaptersShort' => ({required Object diff}) => '${diff} unread',
 			'comicFollow.update' => 'Update',
-			'comicFollow.retry' => 'Retry',
-			'comicFollow.updateChannelName' => 'Comic update reminder',
 			_ => null,
 		} ?? switch (path) {
+			'comicFollow.retry' => 'Retry',
+			'comicFollow.updateChannelName' => 'Comic update reminder',
 			'comicFollow.updateChannelDesc' => 'Pushed when followed comics have new chapters',
 			'comicFollow.updateTitle' => 'Follow update',
 			'comicFollow.updateBodySingle' => '1 followed comic has updates',

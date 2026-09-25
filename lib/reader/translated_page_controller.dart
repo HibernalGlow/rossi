@@ -91,6 +91,10 @@ class TranslatedPageController extends ChangeNotifier {
   /// 旧书第 5 页的成品页会被注到新书第 5 页上（同一序号，完全不同的内容）。
   int _generation = 0;
   final Map<int, String> _inputScratch = <int, String>{};
+
+  /// 哪些页显示的是降级产物（原文回填）。**不进缓存，所以这份只能记在会话里** ——
+  /// 芯片要能区分「译文页」与「只是擦了字又画回原文」。
+  final Set<int> _degradedPages = <int>{};
   Directory? _scratch;
 
   TranslatedPagePhase get phase => _phase;
@@ -98,6 +102,8 @@ class TranslatedPageController extends ChangeNotifier {
   String get lastError => _lastError;
 
   /// 这一页是否归译文管（只给界面用；超分那边直接读呈现器自己那份集合）。
+  bool isDegraded(int index) => _degradedPages.contains(index);
+
   bool isOwned(int index) =>
       _presenter?.translationOwnedPages.containsKey(index) ?? false;
 
@@ -105,6 +111,7 @@ class TranslatedPageController extends ChangeNotifier {
   void reset() {
     _generation++;
     _presenter?.translationOwnedPages.clear();
+    _degradedPages.clear();
     try {
       _scratch?.deleteSync(recursive: true);
     } catch (_) {
@@ -160,7 +167,13 @@ class TranslatedPageController extends ChangeNotifier {
       );
       if (_stale(generation)) return false; // 书都换了，这份产物没有归属可言
       if (!out.hasText) return _fail(index, '这一页没识别到文字');
-      return await _inject(index, out.path, presenter, showingOnSuccess: true);
+      return await _inject(
+        index,
+        out.path,
+        presenter,
+        showingOnSuccess: true,
+        degraded: out.degraded,
+      );
     } on OcrModelsMissing catch (e) {
       return _stale(generation) ? false : _fail(index, '$e');
     } on OcrTranslationException catch (e) {
@@ -185,6 +198,7 @@ class TranslatedPageController extends ChangeNotifier {
       original,
       presenter,
       showingOnSuccess: false,
+      degraded: false,
     );
     if (ok) {
       presenter.translationOwnedPages.remove(index);
@@ -204,6 +218,7 @@ class TranslatedPageController extends ChangeNotifier {
     String path,
     TranslatedPagePresenter presenter, {
     required bool showingOnSuccess,
+    required bool degraded,
   }) async {
     if (!await File(path).exists()) {
       // 产物在这一步之前被人删了 / 目录被清了：ADR-0018 §决定 3 要的是
@@ -220,7 +235,7 @@ class TranslatedPageController extends ChangeNotifier {
     }
     if (!await presenter.reshowAfterInjection(index)) {
       // 已经注入了：下一次该页上屏自然生效，这里不当失败。
-      _claim(presenter, index, path, showingOnSuccess);
+      _claim(presenter, index, path, showingOnSuccess, degraded);
       _phase = showingOnSuccess
           ? TranslatedPagePhase.showing
           : TranslatedPagePhase.off;
@@ -232,7 +247,7 @@ class TranslatedPageController extends ChangeNotifier {
     if (confirmed == false) {
       return _fail(index, '注入成功但画面没换，这一页再翻回来会重试');
     }
-    _claim(presenter, index, path, showingOnSuccess);
+    _claim(presenter, index, path, showingOnSuccess, degraded);
     _phase = showingOnSuccess
         ? TranslatedPagePhase.showing
         : TranslatedPagePhase.off;
@@ -273,16 +288,23 @@ class TranslatedPageController extends ChangeNotifier {
   }
 
   /// 开译文时登记「这一页归译文 + 归的是哪张图」；关译文时把归属摘掉。
-  static void _claim(
+  void _claim(
     TranslatedPagePresenter presenter,
     int index,
     String path,
     bool showingOnSuccess,
+    bool degraded,
   ) {
     if (showingOnSuccess) {
       presenter.translationOwnedPages[index] = path;
+      if (degraded) {
+        _degradedPages.add(index);
+      } else {
+        _degradedPages.remove(index);
+      }
     } else {
       presenter.translationOwnedPages.remove(index);
+      _degradedPages.remove(index);
     }
   }
 

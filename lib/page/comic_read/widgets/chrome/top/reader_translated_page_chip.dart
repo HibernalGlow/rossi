@@ -52,6 +52,7 @@ class ReaderTranslatedPageChip extends StatelessWidget {
           phaseIndex: controller.index,
           index: index,
           owned: controller.isOwned(index),
+          degraded: controller.isDegraded(index),
         );
         return _build(context, controller, source, presenter, index, state);
       },
@@ -77,6 +78,11 @@ class ReaderTranslatedPageChip extends StatelessWidget {
         scheme.secondaryContainer,
         scheme.onSecondaryContainer,
       ),
+      // 降级产物看着像成功，所以给它一个**不同**的颜色而不是复用 showing 的强调色。
+      TranslatedPageChipState.showingOriginal => (
+        scheme.tertiaryContainer,
+        scheme.onTertiaryContainer,
+      ),
       _ => (scheme.surfaceContainerHigh, scheme.onSurfaceVariant),
     };
     final showLabel = availableWidth >= 620;
@@ -85,6 +91,7 @@ class ReaderTranslatedPageChip extends StatelessWidget {
       message: switch (state) {
         TranslatedPageChipState.failed => controller.lastError,
         TranslatedPageChipState.showing => t.ocr.chipOn,
+        TranslatedPageChipState.showingOriginal => t.ocr.degradedHint,
         TranslatedPageChipState.building => t.ocr.building,
         _ => t.ocr.chipOff,
       },
@@ -133,6 +140,8 @@ class ReaderTranslatedPageChip extends StatelessWidget {
                     TranslatedPageChipState.building => t.ocr.building,
                     TranslatedPageChipState.failed => t.ocr.failedShort,
                     TranslatedPageChipState.showing => t.ocr.chipOn,
+                    TranslatedPageChipState.showingOriginal =>
+                      t.ocr.chipDegraded,
                     TranslatedPageChipState.off => t.ocr.chipOff,
                   },
                   style: theme.textTheme.labelSmall?.copyWith(

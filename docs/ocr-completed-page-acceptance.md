@@ -7,7 +7,7 @@
 静态层面已经过了，不必重复验：
 
 - `dart analyze lib/` 干净（只剩一条与本次无关的 `switch_toast_service.dart` info）；
-- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart test/reader/translated_page_status_test.dart` **65 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
+- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart test/reader/translated_page_status_test.dart` **66 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
 - `cargo test -p rossi_ocr_core` **21 条全过**；
 - `flutter build macos --debug` 出包成功；
 - **端到端已经跑过一次真权重**：`test/ocr/completed_page_e2e_test.dart` 对
@@ -155,6 +155,15 @@ ollama serve && ollama run qwen2.5:14b        # 本机：base URL = http://127.0
 **预期**：芯片进入「译文失败」，文案分别是「还没配好翻译端点，去设置里填」和
 「权重没下全：缺 <文件名>」。
 **判据**：**不弹 Rust/ONNX 的原始错误**给用户。
+
+## 11b. 端点不可用时的降级档（ADR-0018 §决定 7）
+
+**做**：把端点指向一个不通的端口，再按「译」。
+**预期**：这一页**仍然出一张图** —— 擦掉原文、把原文画回去 —— 芯片显示**「原文回填」**（另一种颜色），
+不是「译文页」，也不是「译文失败」。
+**判据两条**：① 界面必须区分「翻译成功」与「只是回填了原文」，混起来就是撒谎；
+② 这张降级页**不许进指纹缓存**：去 `manga_translated/<指纹>/` 里看，不该多出 `p<N>.png`；
+把端点改回可用的再点一次，必须真的出译文，而不是命中那张未翻译的旧图。
 
 ## 12. 失败不谎报
 

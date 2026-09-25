@@ -16,11 +16,13 @@ void main() {
     required int phaseIndex,
     int index = 4,
     bool owned = false,
+    bool degraded = false,
   }) => translatedPageChipState(
     phase: phase,
     phaseIndex: phaseIndex,
     index: index,
     owned: owned,
+    degraded: degraded,
   );
 
   test('这一页归译文管就是 showing，不管控制器停在哪个阶段', () {

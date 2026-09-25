@@ -28,6 +28,7 @@ class TranslatedPage {
     required this.blockCount,
     required this.truncatedCount,
     this.elapsed = Duration.zero,
+    this.degraded = false,
   });
 
   /// 成品页 PNG 的路径。**没有文字的页直接返回原图路径** —— 那种页擦不擦都一样，
@@ -39,6 +40,12 @@ class TranslatedPage {
 
   /// 识别被上限截断的块数：这些块的原文不完整，译文自然也可疑，UI 要标出来。
   final int truncatedCount;
+
+  /// 端点不可用 / 条数对不上时，画的是**原文回填**而不是译文
+  /// （ADR-0018 §决定 7 写明的那一档降级形态）。
+  /// UI 必须把它显示出来：一张「擦掉日文又画回日文」的页面看着像成功了，
+  /// 可用户真正要的译文一个都没有。
+  final bool degraded;
 
   /// 本次构建花了多久（命中缓存时是查表时间）。
   /// 冒烟页与以后的状态条都要显示它 —— 一页十几秒这件事得让用户看得见，
@@ -103,7 +110,11 @@ class TranslatedPageBuilder {
       label: label,
       pageIndex: pageIndex,
     );
-    if (!force && await TranslatedPageCache.isUsable(label: label, pageIndex: pageIndex)) {
+    if (!force &&
+        await TranslatedPageCache.isUsable(
+          label: label,
+          pageIndex: pageIndex,
+        )) {
       onStage?.call(TranslatedPageStage.cacheHit);
       return TranslatedPage(
         path: target.path,
@@ -122,6 +133,7 @@ class TranslatedPageBuilder {
     final Uint8List png;
     final int blocks;
     final int truncated;
+    bool degraded;
     // 擦干净的底图只是中间产物，落在系统临时目录、出函数就删；
     // 缓存目录里只留成品，免得用户看到两类分不清的 PNG。
     final scratch = await Directory.systemTemp.createTemp('rossi_ocr_erase_');
@@ -141,17 +153,24 @@ class TranslatedPageBuilder {
 
       _check(shouldCancel);
       onStage?.call(TranslatedPageStage.translating);
-      final translations = await _translate(
-        result.blocks.map((b) => b.text).toList(growable: false),
-        config,
-      );
-      if (translations.length != result.blocks.length) {
-        // 渲染那边只有 `assert`，release 下会被跳过 —— 那时它会按下标越界崩掉，
-        // 用户看到的是一句没头没尾的 RangeError。条数在这条缝上就必须钉住。
-        throw OcrTranslationException(
-          '翻译返回的条数与块数不符：块 ${result.blocks.length}，'
-          '译文 ${translations.length}',
-        );
+      final sources = result.blocks.map((b) => b.text).toList(growable: false);
+      List<String> translations;
+      degraded = false;
+      try {
+        translations = await _translate(sources, config);
+        if (translations.length != sources.length) {
+          // 渲染那边只有 `assert`，release 下会被跳过 —— 那时它会按下标越界崩掉，
+          // 用户看到的是一句没头没尾的 RangeError。条数在这条缝上就必须钉住。
+          throw OcrTranslationException(
+            '翻译返回的条数与块数不符：块 ${sources.length}，译文 ${translations.length}',
+          );
+        }
+      } on OcrTranslationException {
+        // ADR-0018 §决定 7 写明的那一档：断网 / 端点没起 / 模型漏译时，
+        // 链路出「擦字 + 原文回填」而不是什么都不给。
+        // 但这不是成功 —— 靠 degraded 标出来，UI 必须如实说「画的是原文」。
+        translations = sources;
+        degraded = true;
       }
 
       _check(shouldCancel);
@@ -167,6 +186,27 @@ class TranslatedPageBuilder {
       await scratch.delete(recursive: true);
     }
 
+    if (degraded) {
+      // **降级产物不进指纹缓存。** 端点只是暂时没起，写进去的话：
+      // 下次端点好了再点，命中的还是这张「擦掉日文又画回日文」的页 ——
+      // 而缓存指纹里没有任何一项能反映「端点当时活着吗」，这类陈旧是静默的。
+      // 落到系统临时目录的一个固定名字里：本次能显示、能注入，下次自然重来。
+      final dir = await Directory(
+        p.join(Directory.systemTemp.path, 'rossi_ocr_degraded'),
+      ).create(recursive: true);
+      final throwaway = File(p.join(dir.path, 'p$pageIndex.png'));
+      await throwaway.writeAsBytes(png, flush: true);
+      return TranslatedPage(
+        path: throwaway.path,
+        fromCache: false,
+        hasText: true,
+        blockCount: blocks,
+        truncatedCount: truncated,
+        elapsed: clock.elapsed,
+        degraded: true,
+      );
+    }
+
     await TranslatedPageCache.write(
       label: label,
       pageIndex: pageIndex,
@@ -180,6 +220,7 @@ class TranslatedPageBuilder {
       blockCount: blocks,
       truncatedCount: truncated,
       elapsed: clock.elapsed,
+      degraded: degraded,
     );
   }
 

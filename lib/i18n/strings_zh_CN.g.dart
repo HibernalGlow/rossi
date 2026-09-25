@@ -4039,6 +4039,12 @@ class Translations$ocr$zh_CN {
 	/// zh-CN: '译文失败'
 	String get failedShort => '译文失败';
 
+	/// zh-CN: '原文回填'
+	String get chipDegraded => '原文回填';
+
+	/// zh-CN: '端点当时不可用：这一页只做了擦字与原文回填，没有译文'
+	String get degradedHint => '端点当时不可用：这一页只做了擦字与原文回填，没有译文';
+
 	/// zh-CN: '这一页正在生成译文，稍等'
 	String get busyToast => '这一页正在生成译文，稍等';
 
@@ -7258,6 +7264,8 @@ extension on Translations {
 			'ocr.chipOn' => '译文页',
 			'ocr.building' => '生成中',
 			'ocr.failedShort' => '译文失败',
+			'ocr.chipDegraded' => '原文回填',
+			'ocr.degradedHint' => '端点当时不可用：这一页只做了擦字与原文回填，没有译文',
 			'ocr.busyToast' => '这一页正在生成译文，稍等',
 			'ocr.needWeights' => '权重还没下全，去设置里下载',
 			'realSr.title' => '图片超分（实验性）',
@@ -7518,10 +7526,10 @@ extension on Translations {
 			'comicFollow.fetchFailed' => '获取失败',
 			'comicFollow.newChaptersShort' => ({required Object diff}) => '新增 ${diff} 话',
 			'comicFollow.newUnreadChaptersShort' => ({required Object diff}) => '新增 ${diff} 话未阅读',
-			'comicFollow.update' => '更新',
-			'comicFollow.retry' => '重试',
 			_ => null,
 		} ?? switch (path) {
+			'comicFollow.update' => '更新',
+			'comicFollow.retry' => '重试',
 			'comicFollow.updateChannelName' => '漫画更新提醒',
 			'comicFollow.updateChannelDesc' => '追更漫画检测到新章节时推送',
 			'comicFollow.updateTitle' => '追更更新',

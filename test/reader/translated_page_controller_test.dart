@@ -20,8 +20,6 @@ import 'package:zephyr/reader/translated_page_controller.dart';
 import 'package:zephyr/service/ocr/ocr_models.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_builder.dart';
-import 'package:zephyr/service/ocr/ocr_translator.dart';
-import 'package:zephyr/service/ocr/translated_page_builder.dart';
 import 'package:zephyr/src/rust/api/ocr.dart';
 
 const _pathChannel = MethodChannel('plugins.flutter.io/path_provider');
@@ -153,6 +151,35 @@ class _MissingProductBuilder extends TranslatedPageBuilder {
     blockCount: 1,
     truncatedCount: 0,
   );
+}
+
+/// 假装这次构建是**降级产物**（擦字与回填都做了，但一个译文都没有）。
+class _DegradedBuilder extends TranslatedPageBuilder {
+  _DegradedBuilder(this.path, this.bytes);
+
+  final String path;
+  final Uint8List bytes;
+
+  @override
+  Future<TranslatedPage> build({
+    required String imagePath,
+    required int pageIndex,
+    required OcrTranslationConfig config,
+    void Function(TranslatedPageStage stage)? onStage,
+    bool Function()? shouldCancel,
+    bool force = false,
+  }) async {
+    // 注入前控制器会确认文件真的在，所以这里得给它一个真文件。
+    await File(path).writeAsBytes(bytes, flush: true);
+    return TranslatedPage(
+      path: path,
+      fromCache: false,
+      hasText: true,
+      blockCount: 1,
+      truncatedCount: 0,
+      degraded: true,
+    );
+  }
 }
 
 void main() {
@@ -428,6 +455,27 @@ void main() {
     expect(c.lastError, isEmpty, reason: '静默回落 = 不弹一条用户无法行动的错');
     expect(presenter.injected, isEmpty);
     expect(presenter.translationOwnedPages, isEmpty);
+  });
+
+  test('降级产物：页归译文管，但记成「原文回填」，关掉后两笔账都清', () async {
+    // 端点挂了的时候，页面看着像处理完了 —— 擦字做了、字也画上去了，只是没有一个字是译文。
+    // 界面必须能区分这两件事。
+    await seedReady();
+    final presenter = _FakePresenter(confirmed: true);
+    final c = TranslatedPageController(
+      builder: _DegradedBuilder('${root.path}/degraded_p3.png', page),
+    );
+
+    expect(
+      await c.toggle(source: _FakeSource(page), presenter: presenter, index: 3),
+      isTrue,
+    );
+    expect(c.isOwned(3), isTrue);
+    expect(c.isDegraded(3), isTrue);
+
+    await c.toggle(source: _FakeSource(page), presenter: presenter, index: 3);
+    expect(c.isDegraded(3), isFalse);
+    expect(c.isOwned(3), isFalse);
   });
 
   test('换书 reset：清掉归属，否则新书那几页会被旧译文占着', () async {
