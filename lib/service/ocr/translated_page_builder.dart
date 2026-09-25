@@ -136,6 +136,14 @@ class TranslatedPageBuilder {
         result.blocks.map((b) => b.text).toList(growable: false),
         config,
       );
+      if (translations.length != result.blocks.length) {
+        // 渲染那边只有 `assert`，release 下会被跳过 —— 那时它会按下标越界崩掉，
+        // 用户看到的是一句没头没尾的 RangeError。条数在这条缝上就必须钉住。
+        throw OcrTranslationException(
+          '翻译返回的条数与块数不符：块 ${result.blocks.length}，'
+          '译文 ${translations.length}',
+        );
+      }
 
       _check(shouldCancel);
       onStage?.call(TranslatedPageStage.typesetting);

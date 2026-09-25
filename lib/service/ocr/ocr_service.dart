@@ -34,14 +34,15 @@ class OcrService {
 
   /// 分析一页：检测 → 识别 → 聚块（→ 可选擦字）。
   ///
-  /// [ep] 默认 `cpu`：实测 LaMa 与 manga-ocr 的 encoder 在 CoreML EP 上**都比 CPU 慢**
-  /// （ADR-0018 §决定 3.1/3.2），所以「Apple 就走 coreml」是错的，要用得更明确地选。
+  /// [ep] 默认 `auto` = 交给 Rust 侧按「平台 + 哪一段」选（Windows 上识别与擦字走 DirectML、
+  /// 检测走 CPU；其余走 CPU）。ADR-0018 §决定 3.1 的实测：CoreML 对这几个模型全都更慢，
+  /// 而 DirectML 只赢在识别与擦字上 —— 单一 EP 在哪个平台都不是最优解。
   /// [erasedOutput] 给了就把擦干净的底图写在那里（做成品页时给）。
   Future<OcrPageResult> analyzePage({
     required String imagePath,
     bool inpaint = false,
     String? erasedOutput,
-    String ep = 'cpu',
+    String ep = 'auto',
     int? maxNewTokens,
   }) async {
     final missing = <String>[];
@@ -67,7 +68,9 @@ class OcrService {
         vocab: await OcrModels.pathOf(OcrModels.vocabFile),
       ),
       ep: ep,
-      inpaintModel: inpaint ? await OcrModels.pathOf(OcrModels.inpaintFile) : null,
+      inpaintModel: inpaint
+          ? await OcrModels.pathOf(OcrModels.inpaintFile)
+          : null,
       erasedOutput: erasedOutput,
       maxNewTokens: maxNewTokens,
     );
