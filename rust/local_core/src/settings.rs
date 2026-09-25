@@ -34,6 +34,12 @@ impl SortOrder {
         }
     }
 
+    /// 只有日期序需要 mtime。上游把它放在 `FolderTreeSortOrder` 上；
+    /// 本仓还没拆出树专用枚举，因此先挂在 `SortOrder` 上，调用点形状保持一致。
+    pub fn uses_mtime(self) -> bool {
+        matches!(self, Self::DateAsc | Self::DateDesc)
+    }
+
     pub fn name_key(self, name: &str) -> SortNameKey {
         match self {
             Self::Numeric => SortNameKey::with_natural(name),
