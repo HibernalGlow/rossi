@@ -333,6 +333,7 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
   （Chimahon 为此写了 subsampling 视图与坐标映射器，那是 overlay 形态的解法；本形态要防的是预处理逆变换。）
 - **判据 A–E 不变**，新增一条要进验收的约束：**OCR 开启后翻页帧时间不得劣化**（渲染路径只读缓存）。
   这条可测：同一章节「有成品页缓存」与「无缓存」两种状态下各跑一次判据 C，差值必须在噪声内。
+  → 已落为验收清单**第 9b 条**（三态翻页 + 为什么真正要量的是「翻回一张被淘汰过的译文页」）。
 - **新增一类跨页生命周期**（与 ADR-0016 的视频同类）：一个后台任务队列 + 一组落盘产物。
   退出阅读 / 切章 / 切 lane 时必须取消在途推理，且产物写入要原子（半张 webp 比没有更糟）。
 - **明确不在本 ADR**：上色、词取字典（Yomihon 那种 tap-lookup）、移动端端侧 OCR、
@@ -349,6 +350,7 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
 | §3 Dart 侧排版 | `translated_page_renderer.dart`（字号候选下降、越框禁止、OFL 字体运行时注册） | 已实现 |
 | §3.4 每页开关 / 与超分互斥 / 状态核对 | `lib/reader/translated_page_controller.dart` + 顶栏 `reader_translated_page_chip.dart`；芯片状态表抽成纯函数 `translated_page_status.dart`（与超分那边同形） | 已实现 |
 | Consequences「退出阅读 / 切章必须取消在途推理」 | `LocalReadSession.setSource` 与 `dispose(expectedPath:)` 都调 `TranslatedPageController.reset()`；在飞的那次构建按 `_generation` 认出自己过期后**丢弃结果** | 已实现。⚠️ 口径：v0 做的是「作废 + 不上屏」，**不是**从 Rust 侧中断一次推理 —— 最后那页会跑完才让出 CPU。过期判定有单测（去掉 `_stale` 就红），`dispose` 那一行装配没有单测，判据在验收清单第 7c 条 |
+| 同一条里的「切 lane」那一半 | 查过代码：**它不构成一个场景**。泳道里阅读器只有一条（`workspace/model/workspace_layout_config.dart:14` 三个 LaneId 中只有 `reader` 挂阅读器，`workspace_cubit.dart:124` 的 `readerTarget` 是整体替换的单值），切 lane 只改 `activeLaneId` 并给非活动道套 `AbsorbPointer`（`swimlane_workspace.dart:633`），阅读器**不卸载** → 不存在「旧 lane 的译文状态贴在单例上」。真正的卸载入口只有 `closeReader`、`identityKey` 变更、把阅读器道收成 44 px 轨（`swimlane_column.dart:98`），而第三条会走 `State.dispose` → 正好落在上一行那个钩子上 | 无需改动（登记为查证结果） |
 | §4 页后处理位定型 | 替代位图 = 成品页 PNG，替换入口 = 呈现器既有的增强图轨；`PageSource` 形状**未改**，没有引入图层集合 | 符合 |
 | §5 权重首下 / 字体随包 | `ocr_models.dart` + `ocr_model_downloader.dart`；字体当普通 asset、`FontLoader` 注册（原因见 §决定 5 的实测更正） | 已实现 |
 | §6 平台排除 | `ocrSupportedHere`：移动端连设置入口都不画 | 已实现 |
