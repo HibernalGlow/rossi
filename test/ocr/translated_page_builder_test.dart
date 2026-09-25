@@ -14,6 +14,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_builder.dart';
@@ -74,9 +75,11 @@ class _FakeAnalyze {
   int calls = 0;
   bool erasedSeenAtCallTime = false;
   String? lastErasedPath;
+  String? lastEp;
 
-  Future<OcrPageResult> call(String imagePath, String erasedPath) async {
+  Future<OcrPageResult> call(String imagePath, String erasedPath, String ep) async {
     calls++;
+    lastEp = ep;
     lastErasedPath = erasedPath;
     // 正常链路里这张图是 Rust 写的；这里替它写一张纯白底。
     await File(erasedPath).writeAsBytes(await _whitePng(_pageW, _pageH), flush: true);
@@ -114,6 +117,7 @@ void main() {
   late OcrTranslationConfig config;
 
   setUp(() async {
+    SharedPreferences.setMockInitialValues({});
     root = await Directory.systemTemp.createTemp('rossi_ocr_build_test_');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(_pathChannel, (call) async => root.path);
@@ -144,6 +148,7 @@ void main() {
     );
 
     expect(analyze.calls, 1);
+    expect(analyze.lastEp, 'cpu', reason: '没设置过就该走实测最快的默认档');
     expect(translate.lastTexts, ['トカゲじゃ'], reason: '送翻译的必须是识别出来的原文');
     expect(analyze.erasedSeenAtCallTime, isTrue, reason: '底图没落盘就去画，成品会是空的');
     expect(out.fromCache, isFalse);
@@ -227,6 +232,17 @@ void main() {
     expect(out.path, original, reason: '擦不擦都一样的页，不该被换成一份缓存副本');
     expect(translate.calls, 0, reason: '没台词就别发翻译请求，白烧一次 token');
     expect(await TranslatedPageCache.has(label: (await TranslatedPageCache.describe(config: config)).label, pageIndex: 0), isFalse);
+  });
+
+  test('设置里选的后端真的传到分析那一跳（否则选择器是个骗人的控件）', () async {
+    SharedPreferences.setMockInitialValues({'ocr_ep': 'coreml'});
+    final analyze = _FakeAnalyze([_block(_boxA)]);
+    await builderWith(analyze, _FakeTranslate((_) => ['是蜥蜴啊'])).build(
+      imagePath: 'p.jpg',
+      pageIndex: 0,
+      config: config,
+    );
+    expect(analyze.lastEp, 'coreml');
   });
 
   test('中途取消：抛、且不留下半成品', () async {

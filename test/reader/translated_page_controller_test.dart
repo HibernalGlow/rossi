@@ -65,9 +65,7 @@ class _FakeSource implements PageSource {
 }
 
 class _FakePresenter implements TranslatedPagePresenter {
-  _FakePresenter({this.accepts = true, this.confirmed});
-
-  final bool accepts;
+  _FakePresenter({this.confirmed});
 
   /// `null` = 呈现器答不上来；`false` = 注入了但画面没换。
   final bool? confirmed;
@@ -82,7 +80,7 @@ class _FakePresenter implements TranslatedPagePresenter {
   @override
   Future<bool> setEnhancedImage(int index, String imagePath) async {
     injected.add((index, imagePath));
-    return accepts;
+    return true;
   }
 
   @override
@@ -155,7 +153,7 @@ void main() {
   TranslatedPageController controllerWith({List<OcrBlock> blocks = const []}) =>
       TranslatedPageController(
         builder: TranslatedPageBuilder(
-          analyze: (imagePath, erasedPath) async {
+          analyze: (imagePath, erasedPath, ep) async {
             await File(erasedPath).writeAsBytes(page, flush: true);
             return OcrPageResult(
               blocks: blocks,

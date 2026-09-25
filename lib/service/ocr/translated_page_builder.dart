@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
 import 'package:zephyr/service/ocr/ocr_service.dart';
+import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_cache.dart';
 import 'package:zephyr/service/ocr/translated_page_renderer.dart';
@@ -46,21 +47,34 @@ class TranslatedPage {
 /// 这三件事不属于它们任何一个。
 class TranslatedPageBuilder {
   TranslatedPageBuilder({
-    Future<OcrPageResult> Function(String imagePath, String erasedPath)? analyze,
-    Future<List<String>> Function(List<String> texts, OcrTranslationConfig config)?
+    Future<OcrPageResult> Function(
+      String imagePath,
+      String erasedPath,
+      String ep,
+    )?
+    analyze,
+    Future<List<String>> Function(
+      List<String> texts,
+      OcrTranslationConfig config,
+    )?
     translate,
   }) : _analyze = analyze ?? _rustAnalyze,
        _translate = translate ?? _httpTranslate;
 
-  final Future<OcrPageResult> Function(String, String) _analyze;
-  final Future<List<String>> Function(List<String>, OcrTranslationConfig) _translate;
+  final Future<OcrPageResult> Function(String, String, String) _analyze;
+  final Future<List<String>> Function(List<String>, OcrTranslationConfig)
+  _translate;
 
-  static Future<OcrPageResult> _rustAnalyze(String imagePath, String erasedPath) =>
-      OcrService.instance.analyzePage(
-        imagePath: imagePath,
-        inpaint: true,
-        erasedOutput: erasedPath,
-      );
+  static Future<OcrPageResult> _rustAnalyze(
+    String imagePath,
+    String erasedPath,
+    String ep,
+  ) => OcrService.instance.analyzePage(
+    imagePath: imagePath,
+    inpaint: true,
+    erasedOutput: erasedPath,
+    ep: ep,
+  );
 
   static Future<List<String>> _httpTranslate(
     List<String> texts,
@@ -95,6 +109,8 @@ class TranslatedPageBuilder {
 
     _check(shouldCancel);
     onStage?.call(TranslatedPageStage.analyzing);
+    // 后端从设置里读，不能在这里写死 cpu：设置页那颗选择器会变成一个骗人的控件。
+    final ep = await OcrSettings.loadEp();
     final Uint8List png;
     final int blocks;
     final int truncated;
@@ -103,7 +119,7 @@ class TranslatedPageBuilder {
     final scratch = await Directory.systemTemp.createTemp('rossi_ocr_erase_');
     try {
       final erasedPath = p.join(scratch.path, 'erased_p$pageIndex.png');
-      final result = await _analyze(imagePath, erasedPath);
+      final result = await _analyze(imagePath, erasedPath, ep);
       if (result.blocks.isEmpty) {
         return TranslatedPage(
           path: imagePath,
