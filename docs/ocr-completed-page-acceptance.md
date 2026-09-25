@@ -7,7 +7,7 @@
 静态层面已经过了，不必重复验：
 
 - `dart analyze lib/` 干净（只剩一条与本次无关的 `switch_toast_service.dart` info）；
-- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart` **54 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
+- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart` **55 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
 - `cargo test -p rossi_ocr_core` **21 条全过**；
 - `flutter build macos --debug` 出包成功；
 - **端到端已经跑过一次真权重**：`test/ocr/completed_page_e2e_test.dart` 对
@@ -16,6 +16,14 @@
   （`ocr_translator_http_test.dart`：本地起 OpenAI-compatible 桩，走 `WindHttp` → Rust reqwest，
   验 URL 拼接、1 基编号、术语表进请求、Authorization 有无、Ollama 原生形状、非 2xx 报状态码、
   漏一条就抛），所以**协议接线已经通了**；下面第 3、4、9 条要验的是**翻译质量与真端点**。
+
+## 先说一条落盘纪律
+
+**成品页缓存与权重都不许挪到 `getTemporaryDirectory()`。** 这台机器的 dirhelper 每天 03:35
+清 tmp（超分那边已经因此踩过「每次启动重下」）。两边现在都在持久区：
+`getFilePath()/manga_ocr/`（权重）与 `getFilePath()/manga_translated/<指纹>/`（成品页）。
+只有两处用系统临时目录，且都是**用完就删**的中间产物：擦出来的底图（渲染完即删）、
+归档页取原图时落的临时文件（换书即删，取不到会自动重建）。
 
 ## 0. 起环境与前置
 
