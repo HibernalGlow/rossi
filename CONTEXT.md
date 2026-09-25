@@ -42,7 +42,9 @@ _See_: ADR-0002
 **Venera-SSR**:
 `Kiastr/Venera-SSR`——**Flutter + Rust 的多平台改版漫画阅读器**（含 android/ios/linux/macos/windows/debian）。
 已实现本地 OCR 翻译、黑白漫画实时上色、Anime4K 超分、JavaScript 漫画源、WebDAV 同步。
-Rossi 的 **OCR / 上色 / Anime4K** 以其为能力参考（不是 neoview——neoview 的对应实现是 Web 侧）。
+Rossi 的 **上色 / Anime4K** 以其为能力参考（不是 neoview——neoview 的对应实现是 Web 侧）。
+**OCR 的参考已经换掉**：ADR-0018 之后它的代码来源是 `xianscan-rust`（MIT），
+排版回填读 `Koharu`，逐页开关与队列读 `Yomihon` / `Kototoro`；Venera-SSR 在这里只剩「问题定义值得读」。
 **注意**：它是 **GPL-3.0**，见「许可边界」。
 _Avoid_: venera（那是它上游的 Flutter 漫画阅读器项目名）、SSR（这个词同时指超分与它的项目名）
 
@@ -157,19 +159,34 @@ Reader 内决定「哪一页、什么时候、用哪个 backend」触发超分�
 
 ### 能力（v0.1 冻结线之外）
 
-以下三项**全部不在 v0.1**，也不在 v0.1 之后自动排期——要进范围必须先改 ADR-0008 与 `docs/ROADMAP.md`。
+本节列的是**曾经**在冻结线外的能力。要进范围必须先改 ADR-0008 与 `docs/ROADMAP.md` ——
+**视频页（ADR-0016）与 OCR 翻译（ADR-0018）就是走这条流程进来的**，上色与 Anime4K 仍在线外。
 
 **OCR 翻译**:
-在漫画页内检测文字区域、识别并替换为译文的链路。能力参考 Venera-SSR（本地推理、内嵌文字替换），
-但**其实现是 GPL，只能读不能抄**。**不在 v0.1。**
+在漫画页内检测文字区域、识别、翻译、**擦除原文并回填译文**的链路。
+**已解冻（ADR-0018，2026-09-25）**，交付形态是**成品页**。
+能力参考分三处，不再单指一个项目：代码来源 `xianscan-rust`（**MIT**，同 `ort` 栈）；
+排版回填与竖排 `Koharu`（**MIT OR Apache-2.0**，但跑 LibTorch → 只读不依赖）；
+逐页开关与任务队列 `Yomihon` / `Kototoro`（**Apache-2.0**，Kotlin → Dart 仍是重写）。
+`Venera-SSR` 仍是**问题定义**的参考，但它 GPL → 只能读。
 _Avoid_: 实时翻译（歧义：可指「边翻页边翻」，也可指「流式增量翻译」）
+
+**成品页**（translated page）:
+OCR 翻译链路的**产物**：擦掉原文、填入译文后的一张**替代位图**。
+它是**可失效的派生物**，不是渲染路径的一部分 —— 原始解码图永远是真相，Reader 只读缓存、缺失时静默回落。
+其缓存 key **必须把每一项影响产物的输入都编进去**（译文语言、翻译端点/模型、术语表版本、
+检测/识别/擦字模型版本、字体版本、排版参数版本），少一项就是「换了模型页面还是旧的」那种静默错误。
+_Avoid_: 翻译层、译文叠加层（一期不做叠加层）、烧图（口语，不精确）
 
 **上色**（colorization）:
 把黑白漫画页实时转成彩色的链路。能力参考 Venera-SSR（int8 轻量模型），同样是 GPL。
-**它只在黑白页上有意义**，且必须能逐页开关。**不在 v0.1。**
+**它只在黑白页上有意义**，且必须能逐页开关。**不在 v0.1**；
+与成品页共用「页后处理」位，但 **ADR-0018 不代为解冻**。
 
 **视频页**:
-Reader 中「一页不是一张图而是一段视频」的情形。**不在 v0.1**（推迟，但架构上留位）；
+Reader 中「一页不是一张图而是一段视频」的情形。**已解冻（ADR-0016，2026-09-19）**，
+形态是「一页可以是视频」，引擎用 media_kit / libmpv，功能并集见 `docs/video-playback-spec.md`；
+**不进入 v0.1 的可数判据**。
 **PageSource 与 Reader 不得假设「一页 = 一张静态图」**——这个前提现在定型几乎免费，以后改很贵。
 
 ### 操作绑定（ADR-0009）
@@ -213,11 +230,13 @@ v0.1 的边界 = **本地漫画 → 归档直读 → 解码 → GPU 上屏 → �
 _See_: ADR-0008
 
 **占位**（placeholder）:
-对被推迟能力**现在只做、以后不做就会很贵**的那部分准备。当前有两处：
-① `PageSource` / Reader 不假设「一页 = 一张静态图」（视频）；
-② 页面渲染层留一个「页后处理」位（上色与 OCR 翻译同属解码之后的图像变换）。
-占位**不等于**预留公开 API——它只是不让架构把未来的可能性堵死。
-_See_: ADR-0008
+对被推迟能力**现在只做、以后不做就会很贵**的那部分准备。当前两处**都已结束留白**：
+① `PageSource` / Reader 不假设「一页 = 一张静态图」（视频）—— 由 ADR-0016 兑现；
+② 页面渲染层的「页后处理」位 —— 由 ADR-0018 定型为「**一页 = 一张图，但这张图的来源可被替换**」，
+后处理产出「替代位图 + 派生指纹」，不改 `PageSource` 形状、不引入「一页 = 图层集合」。
+占位**不等于**预留公开 API——它只是不让架构把未来的可能性堵死；一旦某个能力真的要接进来，
+那个位才从「不固化」变成「定型」，这两处就是两次这样的时刻。
+_See_: ADR-0008、ADR-0016、ADR-0018
 
 **v0.1 验收判据**:
 v0.1 达标的四条硬条件：覆盖度（CBZ / CBR / 散图文件夹）、冷启动 ≤ 2 s、
@@ -232,12 +251,26 @@ Rossi 与 Breeze 的许可证。它决定**哪些外部源码可以直接搬进�
 
 **可直接抄**:
 `mImageViewer`（**MIT**）——可原文拷入，只需保留其版权声明。
+`xianscan-rust`（**MIT**）、`manga-ocr-rs`（**MIT**）、`manga-ocr` 与 `PP-OCRv4 det`（**Apache-2.0**）——
+ADR-0018 §决定 1 的**代码来源白名单**，OCR 链路只从这几处取码。
+`LXGW WenKai Lite`（**OFL-1.1**）——可随包嵌入，但**再分发必须附 `OFL.txt` 全文**，
+且**不许自行子集化**（它的保留名书面特例只覆盖「未改源码的重编译」与「仅为 Web Font 交付」的子集）。
 
 **只能读不能抄**:
 `Venera-SSR` 与 `ntrn`（均 **GPL-3.0**）。GPL 源码进入 MPL-2.0 仓库会把整体分发拖成 GPL。
 → 「抄 Venera-SSR 的 OCR / 上色 / Anime4K」与「把 Rossi 整体改为 GPL-3.0」是**同一个决定**。
 → 但**算法与思路不受版权保护**：读它的实现、理解它的问题定义、自己重写，不触发 GPL。
 → `ntrn` 作为**命令行工具**运行（输出是自有源码的变换）通常不感染输出；复制它的源码不行。
+同一类还有：`comic-text-detector`（GPL-3，2023 停更，**几乎所有 fork 的检测件都源自它**）、
+`manga-image-translator`（GPL-3，Yakuyomi 的三个权重由它转换）、Yakuyomi（app 与 engine 均 GPL-3）、
+Mekuru 与 `mekuru-ocr`（**AGPL-3**，网络条款连它的自托管 OCR 服务一起覆盖）、
+Frank Yomik（根 AGPL / `client/` GPL）、Chimahon（GPL-3 + **逆向 Google Lens 私有 blob**）、
+mokuro、yomitan（GPL-3）。
+**权重与代码是两件事**：HF 上标 `apache-2.0` 不代表可随包 ——
+`mayocream/comic-text-detector-onnx` 声明 Apache 但权重源自 GPL 项目，按脏处理；
+`speech-bubble-segmentation` 与 `mit48px-ocr` 是 GPL-3；RF-DETR 那份是 `license: other` + Manga109 衍生。
+`sieugene/yomikomi` **没有 LICENSE 文件** = 默认保留所有权利，连读都别引其数据。
+_See_: ADR-0018 §决定 1 / §决定 5、`docs/REFERENCE_RESEARCH.md` §8.1 与 §8.6.1
 
 ### 平台与验收
 
