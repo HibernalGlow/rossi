@@ -197,7 +197,14 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
   但仍走首下，**不要出现两套模型分发口径**。
   manga-ocr-rs 的**编译期拉模型**（`build.rs` curl ~441 MB）是必须去掉的反模式：会打断离线与交叉编译 CI。
 - **回填字体 = 霞鹜文楷轻便版 `LXGWWenKaiLite-Regular.ttf`**（`lxgw/LxgwWenKai-Lite`，
-  **OFL-1.1**，v1.522，单字重 13.2 MB），进 `pubspec.yaml` 的 `fonts:` 段、**随包分发**。
+  **OFL-1.1**，v1.522，单字重 13.2 MB），**随包分发**。
+  ⚠️ 注册方式在实现时被实测推翻了一次：原写「进 `pubspec.yaml` 的 `fonts:` 段」，但
+  **`flutter test` 不加载 FontManifest 里的自定义字体**（`iiii` 与 `WWWW` 等宽 = 全是 `.notdef`），
+  于是像素断言只能证明「有墨」、证明不了「不是豆腐块」—— 而豆腐块恰好也是有墨的。
+  现改为：字体当**普通 asset** 进包，首次回填时用 `FontLoader(别名)..addFont(rootBundle.load(...))`
+  显式注册（`TranslatedPageRenderer.ensureFontLoaded`，幂等），生产与测试走同一条路径。
+  另一个实测结论：`FontLoader` 的**别名才是注册名**，字体内部名 `LXGW WenKai Lite` 注册后仍是豆腐块，
+  所以 `TextStyle.fontFamily` 必须用别名，改哪边都要同步。
   OFL 明确允许「嵌入软件或 APP、与任何软件捆绑再分发」，但**再分发时必须附带 `OFL.txt` 全文** →
   要进 `asset/`（与字体同目录），不能只在 README 提一句。
 - ⚠️ **不许我们自己子集化这个字体。** 它的 `OFL.txt` 首行给保留名（霞鹜 / 落霞孤鹜 / LXGW）的

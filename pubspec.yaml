@@ -149,6 +149,10 @@ flutter:
     - family: JetBrainsMonoNL-Regular
       fonts:
         - asset: asset/fonts/JetBrainsMonoNL-Regular.ttf
+    # OCR 译文回填的中文字体（霞鹜文楷轻便版）故意**不放在这里**，而是当普通 asset 在首次
+    # 回填时用 FontLoader 显式注册 —— 见 TranslatedPageRenderer.ensureFontLoaded。
+    # 原因：flutter test 不会加载 FontManifest 里的自定义字体，像素测试只能证明「有墨」，
+    # 证明不了「不是豆腐块」；显式注册让生产与测试走同一条路径。
 
   # 资源文件配置
   assets:
@@ -163,6 +167,14 @@ flutter:
     - asset/image/bika_image/cat_random.jpg
     - asset/image/assets/default_cover.png
     - asset/tag_translation/etht.json.gz
+    # OCR 译文回填用的中文字体（ADR-0018 §决定 5）：霞鹜文楷轻便版，OFL-1.1，随包。
+    # 为什么是「轻便版」而不是完整版：完整版单字重 24 MB，轻便版 13.2 MiB。
+    # ⚠️ 不许自行子集化 —— OFL.txt 首行的保留名书面特例只覆盖「未改源码的重编译」与
+    # 「仅为 Web Font 交付」的子集；应用内嵌的自定子集不在其中。要压体积只能用官方 Lite。
+    # 它不进 `fonts:` 段、改由 FontLoader 运行时注册，原因见上面的注释。
+    - asset/fonts/LXGWWenKaiLite-Regular.ttf
+    # OFL 要求再分发时附带许可证全文，所以它与字体一起进包、并留在同目录。
+    - asset/fonts/LXGWWenKaiLite-OFL.txt
     - .env.proxy
 objectbox:
   # Writes objectbox-model.json and objectbox.g.dart to lib/custom (and test/custom).
