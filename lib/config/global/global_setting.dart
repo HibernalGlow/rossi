@@ -13,6 +13,7 @@ import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
 import 'package:zephyr/util/json/converter.dart';
 import 'package:zephyr/util/layout/layout_overflow_guard.dart';
 import 'package:zephyr/util/text/tag_text.dart';
+import 'package:zephyr/util/text/tag_translation.dart';
 
 part 'global_setting.freezed.dart';
 part 'global_setting.g.dart';
@@ -518,6 +519,9 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
   static const _defaults = GlobalSettingState();
 
   Future<void> initBox() async {
+    // 收藏 tag 的自动别名要靠 EhTagTranslation 表；不 await —— 加载失败或
+    // 没加载完都只是退回「只有登记别名」，不该拖住设置的首帧。
+    TagTranslation.ensureLoaded();
     final persisted = objectbox.userSettingBox.get(1)!.globalSetting;
     _applyLayoutOverflowGuard(persisted);
     emit(persisted);

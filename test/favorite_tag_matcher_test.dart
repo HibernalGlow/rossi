@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/util/comic/favorite_tag_matcher.dart';
 import 'package:zephyr/util/text/tag_text.dart';
+import 'package:zephyr/util/text/tag_translation.dart';
 
 FavoriteTag tag(String name, [List<String> aliases = const []]) =>
     FavoriteTag(name: name, aliases: aliases);
@@ -133,6 +134,56 @@ void main() {
       expect(FavoriteTagMatcher.hitInIndex(index, 'tag:loli'), isTrue);
       expect(FavoriteTagMatcher.hitInIndex(index, 'school_loli'), isFalse);
       expect(FavoriteTagMatcher.hitInIndex(const {}, 'loli'), isFalse);
+    });
+  });
+
+  group('EhTagTranslation 自动别名', () {
+    setUp(() {
+      // 键与值都按建表时的口径放归一化形式（_load 里就是归一化后入表）。
+      TagTranslation.installForTest(
+        toChinese: const {'footjob': ['足交'], 'school lolita': ['学校萝莉']},
+        toEnglish: const {'足交': ['footjob'], '学校萝莉': ['school lolita']},
+      );
+    });
+    tearDown(TagTranslation.resetForTest);
+
+    test('收藏英文原词，插件给的中文译名胶囊也命中（EH 详情页那条路）', () {
+      final index = FavoriteTagMatcher.buildAliasIndex([tag('footjob')]);
+      expect(FavoriteTagMatcher.hitInIndex(index, '足交'), isTrue);
+
+      final result = FavoriteTagMatcher.match(
+        tags: const ['足交'],
+        favoriteTags: [tag('footjob')],
+      );
+      expect(result.isMatched, isTrue);
+      expect(result.label, 'footjob');
+      expect(result.viaAlias, isTrue);
+    });
+
+    test('反方向：收藏中文名，别的站给的英文原词命中', () {
+      final result = FavoriteTagMatcher.match(
+        tags: const ['female:footjob'],
+        favoriteTags: [tag('足交')],
+      );
+      expect(result.isMatched, isTrue);
+      expect(result.label, '足交');
+    });
+
+    test('字典未就绪时行为退回原样：只有本名与登记别名命中', () {
+      TagTranslation.resetForTest();
+      final index = FavoriteTagMatcher.buildAliasIndex([tag('footjob')]);
+      expect(FavoriteTagMatcher.hitInIndex(index, '足交'), isFalse);
+      expect(FavoriteTagMatcher.hitInIndex(index, 'footjob'), isTrue);
+    });
+
+    test('某条收藏的本名优先于另一条收藏的译名展开', () {
+      // 'footjob' 的译名展开撞上 '足交' 条目的本名 —— 本名那遍先入表，展开抢不走。
+      final index = FavoriteTagMatcher.buildAliasIndex([
+        tag('footjob'),
+        tag('足交'),
+      ]);
+      expect(index['footjob']!.name, 'footjob');
+      expect(index['足交']!.name, '足交');
     });
   });
 }
