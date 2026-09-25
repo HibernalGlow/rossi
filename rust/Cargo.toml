@@ -11,7 +11,7 @@ resolver = "3"
 # 产物是独立的 `rossi_gpu_present.dll`，由 C++ runner 用 LoadLibrary 加载。
 # 它**不在** default-members 里，所以 `cargo build` / `cargo test` 仍然只碰 windcore；
 # Flutter 的 native-assets hook 也显式带 `--package windcore`，不会被连带构建。
-members = ["local_core", "gpu_present"]
+members = ["local_core", "gpu_present", "ocr_core"]
 default-members = ["."]
 
 [package]

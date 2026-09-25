@@ -44,7 +44,7 @@ Koharu / Kototoro / Yomihon 法律上可搬，但另有排除理由，见 §Cons
 沿用 ADR-0016 的 B4 口径：`local_core` 只管归档 / 解码 / 缓存，不因为 OCR 多一个成员。
 从 XianScan 抽取时必须处理这三件事，**它们的失败模式都是静默或延迟的**：
 
-- `ort 2.0.0-rc.9 → rc.12`、`ndarray 0.16 → 0.17`（本仓已在 rc.12 / 0.17）；
+- `ort 2.0.0-rc.9 → rc.12`、`ndarray 0.16 → 0.17`（本仓 Cargo.lock 实际锁在 `ort 2.0.0-rc.13` / ndarray 0.17）；
 - `ort` 的 feature 集必须与本仓 `rust/Cargo.toml` 里那**三段互斥 cfg 精确相等**
   （Apple `coreml` / Windows `directml` / 其余留 accelerator EP）。不匹配时 build script 只打一行
   debug 就返回，症状推迟到链接期 `LNK2019: unresolved external symbol OrtGetApiBase`；
@@ -103,7 +103,7 @@ Rust（ocr_core）                     Dart（Reader）
 - **EP 不能按平台一刀切**：稳态中位数 LaMa = CPU **1 656 ms** / CoreML 3 825 ms（**更慢**），
   AOT = CPU 5 916 ms / CoreML **295 ms**。所以 §决定 2 里「Apple 走 coreml 段」这条默认
   **对 LaMa 不成立** → `ocr_core` 的 EP 选择必须**按模型指定**，不是全局一个档。
-  ⚠️ 该表出自 Python `onnxruntime 1.30`，本仓 Rust 侧是 `ort 2.0.0-rc.12`（ORT 版本更低），
+  ⚠️ 该表出自 Python `onnxruntime 1.30`，本仓 Rust 侧是 `ort 2.0.0-rc.13`（内嵌 ONNX Runtime **1.28.0**），
   **EP 行为不能直接搬**；这张表只回答「谁明显不该走哪个 EP」，不是可写进验收的数字。
 
 ### 3.2 识别半边：CoreML EP 同样不该用，且这份导出没有 KV cache
@@ -145,6 +145,9 @@ Rust（ocr_core）                     Dart（Reader）
 2. **拟声词漏检登记为已知缺口，不当 bug 处理**：三家都漏（PP-OCR 全漏、CTD 只捞回一部分），
    这是「漫画检测」与「文档检测」的真实分界。一期表现 = **气泡与旁白被翻译，手写拟声词保持原样**；
    要补它只有一条干净路：**自己标数据训一个**（成本另计，另开 ADR）。
+   **已落地（2026-09-25）**：新 workspace 成员 `rust/ocr_core` 实现了检测件 + DB 后处理，
+   6 条单测通过，8 张真实页对照见 `REFERENCE_RESEARCH.md` §8.6.5；EP 由 `Ep` 显式指定、
+   **不静默退回 CPU**。识别（manga-ocr）与擦字（LaMa）是下一批；文字绘制仍归 Dart 侧。
 3. 若将来要用 comic-text-detector 的召回，**先按它官方的 `blk` 头解码重测**再谈选型，
    且**许可按「源自 GPL 项目」对待**，不因 HF 上标了 apache-2.0 就放行。
 

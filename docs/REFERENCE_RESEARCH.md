@@ -313,7 +313,7 @@ Flutter Texture
 | 项目 | 仓库 | 许可证 | 栈 / OCR 实际执行处 | 对 Rossi 的可用性 |
 |---|---|---|---|---|
 | **XianScan** | `ArbenApura/xianscan-rust` | **MIT**（`license = "MIT"`） | Rust；`ort 2.0.0-rc.9` + `ndarray 0.16` + `imageproc`，ML 在 `src/ml/{detect,inpaint,ocr}` 与 `src/pipeline/*`，GUI 是 axum + SvelteKit 且**不在 ML 依赖路径上** | **目前唯一能 vendor 进 `windcore` 的整链路**（检测→识别→擦字）。未上 crates.io，只能 git/path |
-| **manga-ocr-rs** | `CodeMonkeyNinja/manga-ocr-rs` | **MIT** | Rust；`ort 2.0.0-rc.12`（与本仓 pin **完全一致**）+ `image`，纯库无 UI；**只有识别**，无检测/擦字/翻译 | 可用。但 `build.rs` 编译期 curl ~441 MB 权重到 `~/.cache`，模型获取方式**不可照抄** |
+| **manga-ocr-rs** | `CodeMonkeyNinja/manga-ocr-rs` | **MIT** | Rust；`ort` 约束与本仓相同（`2.0.0-rc.12` caret，本仓 Cargo.lock 锁到 `rc.13`）+ `image`，纯库无 UI；**只有识别**，无检测/擦字/翻译 | 可用。但 `build.rs` 编译期 curl ~441 MB 权重到 `~/.cache`，模型获取方式**不可照抄** |
 | **manga-ocr**（上游） | `kha-white/manga-ocr` | **Apache-2.0**（LICENSE 首行，README 不写许可） | Python/PyTorch，ViT + mBERT 编解码 | 识别半边的模型来源；预处理/解码逻辑可作跨语言参考 |
 | **comic-text-detector** | `dmMaze/comic-text-detector` | **GPL-3.0**，2023-08 起停更 | Python，DBNet + YOLO | **检测半边的地雷**：Kototoro 与 Mekuru 的检测都自述源自它，故两者都不可取式 |
 | **manga-image-translator** | `zyddnys/manga-image-translator` | **GPL-3.0** | Python | Yakuyomi 的检测/擦字/识别**三个权重全部由它转换而来** |
@@ -387,7 +387,8 @@ Flutter Texture
 | LaMa 206 MB | **1 656 ms** | 3 825 ms | **CoreML 反而慢 2.3×** —— 别按「Apple 一律走 coreml」推 |
 | AOT-GAN 61 MB | 5 916 ms | **295 ms** | CoreML 快 20× |
 
-⚠️ 口径要说清：这是 **Python onnxruntime 1.30** 的数，本仓 Rust 侧是 `ort 2.0.0-rc.12`（ORT 版本更低），
+⚠️ 口径要说清：这是 **Python onnxruntime 1.30** 的数，本仓 Rust 侧是 `ort 2.0.0-rc.13`（Cargo.lock 锁定，
+内嵌 **ONNX Runtime 1.28.0**，低于 Python 侧），
 EP 行为**不能直接搬**；这张表的作用是「谁明显不该走哪个 EP」，不是可写进验收的数字。
 另外 AOT 是**固定 512×512**，真实页 1000–1500 px 要自己分块拼接；LaMa 是动态尺寸，单页一把过。
 
@@ -407,7 +408,7 @@ EP 行为**不能直接搬**；这张表的作用是「谁明显不该走哪个 
 
 > 复现：`/tmp/inpaint-lab/{run,sweep,zoom,ocr_ep}.py` 与 `/tmp/detect-lab/{det_run.py,vision_probe.swift}`
 > （临时目录，未入库）。
-> 口径提醒：全部是 **Python onnxruntime 1.30** 的数，本仓 Rust 侧 `ort 2.0.0-rc.12` 更低，
+> 口径提醒：全部是 **Python onnxruntime 1.30** 的数，本仓 Rust 侧 `ort 2.0.0-rc.13`（内嵌 ORT 1.28.0）更低，
 > 这些表回答的是「谁明显不该走哪个 EP / 哪个模型在哪类区域更强」，不是可写进验收的性能数字。
 
 ### 8.6.5 检测件实测：8 张真实页，三家对比（未决 3）
@@ -427,6 +428,14 @@ EP 行为**不能直接搬**；这张表的作用是「谁明显不该走哪个 
 - ⚠️ **对 comic-text-detector 要公平**：我取的是它的 `det` 分割通道 + 通用 DB 后处理
   （pyclipper unclip + minAreaRect），**没有用它自己的 `blk` 头与官方后处理** →
   那批巨型斜框里有一部分是我这边解码方式造成的，不是模型上限。要真选它，得按官方解码重测。
+**Rust 侧移植（`rust/ocr_core`，2026-09-25 首落）**：同一批 8 张页跑通。框数对照 Python 参考为
+`33 vs 39 / 4=4 / 18=18 / 28 vs 30 / 25=25 / 18=18 / 18 vs 21 / 84 vs 93` —— 4 张完全一致，
+其余低 0–15%。差异来自 Rust 侧把 `min_area` 判据换成 `cv2.contourArea` 的等价量
+（`像素数 − 边界长度/2`，对 w×h 实心块恰好等于 `(w−1)(h−1)`）并补了「最小边 < 4 丢弃」；
+换之前普遍**偏多 2–6 个**（小斑点漏过）。耗时（debug profile，opt-level 1）：
+前处理 22–59 ms、推理 80–160 ms/页，后处理 2–14 ms。
+复跑：`cargo run -p rossi_ocr_core --bin detect_image -- <model.onnx> <page.jpg> [--ep cpu|coreml] [--limit-side N] [--json]`。
+
 - **三家共同的缺口是手写拟声词**（PP-OCR 全漏、CTD 只捞回一部分）——
   这是「漫画检测」区别于「文档检测」的核心难点，也是 §8.1 里那些 fork 都要自己训一个检测器的原因。
 
@@ -434,7 +443,7 @@ EP 行为**不能直接搬**；这张表的作用是「谁明显不该走哪个 
 
 ```text
 检测 + 识别 + 擦字的代码  → xianscan-rust 的 src/ml/{detect,ocr,inpaint}（MIT + ort，唯一 vendor 候选）
-                          → manga-ocr-rs（MIT，ort rc.12 同 pin）作识别半边对照
+                          → manga-ocr-rs（MIT，同 ort 约束）作识别半边对照
 pipeline 分层 / 排版回填   → Koharu（MIT OR Apache-2.0，读分层与 vert+vrt2 竖排，不取 LibTorch）
 reader overlay 与 OCR 队列 → Yomihon、Kototoro（Apache-2.0，但 Kotlin → Dart 仍是重写）
 按住窥视译文的交互         → Frank Yomik（AGPL，只读设计）

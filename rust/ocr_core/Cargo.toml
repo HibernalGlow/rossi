@@ -1,0 +1,56 @@
+[package]
+name = "rossi_ocr_core"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "Rossi 的 OCR 翻译流水线（检测 / 识别 / 擦字 / 回填），见 docs/adr/0018"
+
+# 为什么独立成 crate 而不是塞进 local_core：
+# ADR-0018 §决定 2 —— local_core 只管归档 / 解码 / 缓存，不因为 OCR 多一个成员；
+# B4 依赖树口径见 ADR-0016 / ADR-0005。
+[lib]
+name = "rossi_ocr_core"
+
+[dependencies]
+anyhow = "1.0.102"
+log = "0.4.33"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+image = { version = "0.25.10", default-features = false, features = [
+    "jpeg",
+    "png",
+    "webp",
+] }
+ndarray = "0.17"
+
+# `ort` 的特性集必须与预编译发行包**精确相等**，否则 ort-sys 的 build script 只打一行
+# debug 日志就返回，症状推迟到链接期的 `LNK2019: unresolved external symbol OrtGetApiBase`。
+# 下面三段 cfg 与 `rust/Cargo.toml`（windcore）逐字对齐，两处改动必须同步。
+[target.'cfg(any(target_os = "ios", target_os = "macos"))'.dependencies]
+ort = { version = "2.0.0-rc.12", default-features = false, features = [
+    "std",
+    "ndarray",
+    "coreml",
+    "download-binaries",
+    "tls-rustls",
+] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+ort = { version = "2.0.0-rc.12", default-features = false, features = [
+    "std",
+    "ndarray",
+    "directml",
+    "download-binaries",
+    "tls-rustls",
+] }
+
+[target.'cfg(not(any(target_os = "ios", target_os = "macos", target_os = "windows")))'.dependencies]
+ort = { version = "2.0.0-rc.12", default-features = false, features = [
+    "std",
+    "ndarray",
+    "download-binaries",
+    "tls-rustls",
+] }
+
+[dev-dependencies]
+tempfile = "3"

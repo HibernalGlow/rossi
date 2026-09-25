@@ -4489,6 +4489,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rossi_ocr_core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "image",
+ "log",
+ "ndarray",
+ "ort",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "rquickjs"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
