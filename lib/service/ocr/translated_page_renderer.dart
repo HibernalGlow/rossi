@@ -67,7 +67,13 @@ class TranslatedPageRenderer {
     double padding = 3,
     double minFontSize = 7,
   }) async {
-    assert(blocks.length == translations.length, '块与译文必须一一对应');
+    // 用真抛而不是 assert：release 下 assert 会被整个跳过，
+    // 那时条数不符会崩成一句按下标越界的 RangeError，看不出是这件事。
+    if (blocks.length != translations.length) {
+      throw ArgumentError(
+        '块与译文必须一一对应：块 ${blocks.length}，译文 ${translations.length}',
+      );
+    }
     await ensureFontLoaded();
     final codec = await ui.instantiateImageCodec(erasedPng);
     final frame = await codec.getNextFrame();
@@ -103,7 +109,9 @@ class TranslatedPageRenderer {
 
   static ui.Rect _aabb(OcrBlock block) {
     final q = block.quad;
-    assert(q.length == 8, '四角点必须是 8 个数，实际 ${q.length}');
+    if (q.length != 8) {
+      throw ArgumentError('四角点必须是 8 个数，实际 ${q.length}');
+    }
     final xs = [q[0], q[2], q[4], q[6]];
     final ys = [q[1], q[3], q[5], q[7]];
     return ui.Rect.fromLTRB(

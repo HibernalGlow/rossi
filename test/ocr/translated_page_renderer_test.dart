@@ -21,6 +21,8 @@ import 'package:zephyr/src/rust/api/ocr.dart';
 
 /// 整页纯白的 PNG 底。所有像素断言都以它为参照，所以它必须**真的**铺满整页 ——
 /// 下面「夹具本身铺满整页」那条就是专门守这个的：夹具漏了洞，其余像素断言全会变成假绿。
+const _pageW2 = 200, _pageH2 = 120;
+
 Future<Uint8List> _whitePng(int w, int h) async {
   final recorder = ui.PictureRecorder();
   ui.Canvas(recorder).drawRect(
@@ -268,6 +270,33 @@ void main() {
       final dump = File('/tmp/ocr-lab/filled_tall_wide.png');
       await dump.parent.create(recursive: true);
       await dump.writeAsBytes(filled, flush: true);
+    });
+
+    test('条数或四角点不对：抛得出名字，不崩成越界', () async {
+      // 断言在 release 下会被跳过，所以这两条得是真抛 —— 否则用户看到的是一句 RangeError。
+      final erased = await _whitePng(_pageW2, _pageH2);
+      await expectLater(
+        TranslatedPageRenderer.render(
+          erasedPng: erased,
+          blocks: [_block(const ui.Rect.fromLTWH(20, 20, 160, 80))],
+          translations: const ['一条', '两条'],
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      final broken = OcrBlock(
+        quad: Float32List.fromList([10, 10, 20, 20, 10]),
+        text: '原文',
+        boxes: 1,
+        truncated: false,
+      );
+      await expectLater(
+        TranslatedPageRenderer.render(
+          erasedPng: erased,
+          blocks: [broken],
+          translations: const ['译文'],
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
     });
 
     test('空译文跳过，不画空段落', () async {
