@@ -73,6 +73,19 @@ class _SuperResolutionEngineSettingsState
     }
   }
 
+  /// 当前 CoreML 模型的分块（= 模型输入张量边长）说明。
+  ///
+  /// 这行原来在「图片超分」设置页上，7818d0f2 连同 CoreML 变体选择一起删了，
+  /// 只剩调试页还能看到。CoreML 的分块改不了（编译进模型），所以这里以只读
+  /// 信息的方式放回用户选模型的那一屏，而不是给一个不会照做的下拉。
+  String get _coreMLBlockInfo {
+    final blockSize = _variant.config['blockSize'] as int? ?? 0;
+    final shrinkSize = _variant.config['shrinkSize'] as int? ?? 0;
+    final contentSize = CoreMLModelConfig.contentBlockSize(_variant);
+    return '分块：内容块 $contentSize×$contentSize，模型输入 $blockSize×$blockSize'
+        '（含 ${shrinkSize}px 反射边距），由模型固定';
+  }
+
   Future<void> _download() async {
     final variant = _variant;
     setState(() {
@@ -392,6 +405,14 @@ class _SuperResolutionEngineSettingsState
                 ],
               ),
               const SizedBox(height: 6),
+              Text(
+                _coreMLBlockInfo,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 4),
               Text(
                 'Swift 直接调用 Apple CoreML，复用已加载模型。',
                 style: TextStyle(

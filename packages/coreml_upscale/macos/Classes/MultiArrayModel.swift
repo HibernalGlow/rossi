@@ -28,10 +28,14 @@ class MultiArrayModel: ImageProcessingModel {
         }
     }
 
-    func process(_ image: CGImage) async -> CGImage? {
+    func process(_ image: CGImage) async throws -> CGImage {
         let inputType = mlmodel.modelDescription.inputDescriptionsByName[inputName]?
             .multiArrayConstraint?.dataType ?? .float32
-        guard inputType == .float32 || inputType == .float16 else { return nil }
+        guard inputType == .float32 || inputType == .float16 else {
+            throw CoreMLUpscaleError.processingFailed(
+                "输入张量既不是 float32 也不是 float16，无法按 NCHW 逐块拼接"
+            )
+        }
         let width = image.width
         let height = image.height
         let channels = 4
@@ -55,7 +59,11 @@ class MultiArrayModel: ImageProcessingModel {
         var bufferPool: [MLMultiArray] = (0..<poolSize).compactMap { _ in
             try? MLMultiArray(shape: shape, dataType: inputType)
         }
-        guard bufferPool.count == poolSize else { return nil }
+        guard bufferPool.count == poolSize else {
+            throw CoreMLUpscaleError.processingFailed(
+                "无法分配 \(poolSize) 个 \(blockAndShrink)×\(blockAndShrink) 输入张量（内存不足）"
+            )
+        }
         let bufferSemaphore = DispatchSemaphore(value: poolSize)
         let bufferPoolLock = NSLock()
 
@@ -86,6 +94,13 @@ class MultiArrayModel: ImageProcessingModel {
 
         // calculate image block rects over the padded canvas
         let rects = calculateRects(width: paddedWidth, height: paddedHeight, blockSize: contentBlockSize)
+
+        /// 坏块必须能报出**位置**，否则用户只知道「这张图失败了」，
+        /// 分不清是模型问题、内存问题还是某一块的数值翻车。
+        func blockLabel(_ index: Int) -> String {
+            let rect = rects[index]
+            return "第 \(index) 块 (x=\(Int(rect.origin.x)) y=\(Int(rect.origin.y)) 边长 \(Int(rect.width)))"
+        }
 
         // feed expanded image data into blocks of MLMultiArrays
         let multiArrayStream = AsyncStream<(Int, MLMultiArray)> { continuation in
@@ -129,13 +144,27 @@ class MultiArrayModel: ImageProcessingModel {
         let predictionSlots = PredictionSlots()
 
         // feed image block arrays into the model
-        let predictionStream = AsyncStream<(Int, MLMultiArray?)> { [inputName, outputName] continuation in
+        // 三元组的第三项是「这块为什么坏了」，只带第一条原因就够，坏块一旦确立整图作废。
+        let predictionStream = AsyncStream<(Int, MLMultiArray?, String?)> { [inputName, outputName] continuation in
             Task.detached {
                 for await (i, multi) in multiArrayStream {
                     await predictionSlots.acquire()
-                    let prediction = try? self.mlmodel.prediction(inputName: inputName, outputName: outputName, input: multi)
                     // 失败不能把输入张量冒充输出，否则 2x/4x 拼接会越界。
-                    continuation.yield((i, prediction))
+                    var prediction: MLMultiArray?
+                    var failure: String?
+                    do {
+                        prediction = try self.mlmodel.prediction(
+                            inputName: inputName,
+                            outputName: outputName,
+                            input: multi
+                        )
+                        if prediction == nil {
+                            failure = "输出特征里没有 \(outputName) 这个张量"
+                        }
+                    } catch {
+                        failure = "\(error)"
+                    }
+                    continuation.yield((i, prediction, failure.map { "\(blockLabel(i)) 推理失败：\($0)" }))
                     returnBuffer(multi)
                 }
                 continuation.finish()
@@ -151,13 +180,23 @@ class MultiArrayModel: ImageProcessingModel {
         var minimum: Float32 = 0
         var maximum: Float32 = 255
         var failed = false
-        for await (i, output) in predictionStream {
-            guard let prediction = output,
-                  (prediction.dataType == .float32 || prediction.dataType == .float16),
+        var firstFailure: String?
+        var received = 0
+        for await (i, output, message) in predictionStream {
+            received += 1
+            guard let prediction = output else {
+                firstFailure = firstFailure ?? (message ?? "\(blockLabel(i)) 没有输出张量")
+                failed = true
+                await predictionSlots.release()
+                continue
+            }
+            guard prediction.dataType == .float32 || prediction.dataType == .float16,
                   prediction.shape.count == 4,
                   prediction.shape[1].intValue >= 3,
                   prediction.shape[2].intValue >= outBlockSize + 2 * outputCrop,
                   prediction.shape[3].intValue >= outBlockSize + 2 * outputCrop else {
+                firstFailure = firstFailure ??
+                    "\(blockLabel(i)) 输出张量类型/形状不符合 \(outBlockSize)×\(outBlockSize) 拼接要求"
                 failed = true
                 await predictionSlots.release()
                 continue
@@ -170,6 +209,28 @@ class MultiArrayModel: ImageProcessingModel {
             let channelStride = prediction.strides[1].intValue
             let rowStride = prediction.strides[2].intValue
             let pixelStride = prediction.strides[3].intValue
+            // strides 是拼接读地址的唯一依据：正数假设不成立的话，下面的元素数
+            // 就算不出真实上界，越界读会把别的内存当像素画进图里 —— 那正是
+            // 「某一块花掉了但整图仍然成功」的成因之一。
+            guard channelStride > 0, rowStride > 0, pixelStride > 0 else {
+                firstFailure = firstFailure ??
+                    "\(blockLabel(i)) 输出 strides 非正（\(channelStride)/\(rowStride)/\(pixelStride)），布局与 NCHW 假设不符"
+                failed = true
+                await predictionSlots.release()
+                continue
+            }
+            let requiredElements =
+                2 * channelStride
+                + (outBlockSize - 1 + outputCrop) * rowStride
+                + (outputCrop + outBlockSize - 1) * pixelStride
+                + 1
+            guard prediction.count >= requiredElements else {
+                firstFailure = firstFailure ??
+                    "\(blockLabel(i)) 输出只有 \(prediction.count) 个元素，按 strides 需要 \(requiredElements)，拒绝越界拼接"
+                failed = true
+                await predictionSlots.release()
+                continue
+            }
             imgData.withUnsafeMutableBufferPointer { destination in
                 for channel in 0..<3 {
                     for y in 0..<outBlockSize {
@@ -185,6 +246,17 @@ class MultiArrayModel: ImageProcessingModel {
                             vDSP_vsmul(source, vDSP_Stride(pixelStride), &multiplier,
                                        &multiplied, 1, vDSP_Length(outBlockSize))
                         }
+                        // 平方和只用于判 NaN/Inf：正常块的值域是 0…255 的几千项平方和，
+                        // 远不到浮点上限，所以结果一旦非有限，就是这一行真的坏了。
+                        // 不做这步的话 NaN 会被 vclip/vfixu8 静默变成 0，坏块以纯黑的样子
+                        // 「成功」落盘，再被超分缓存永久复用。
+                        var energy: Float32 = 0
+                        vDSP_svesq(&multiplied, 1, &energy, vDSP_Length(outBlockSize))
+                        if !energy.isFinite {
+                            failed = true
+                            firstFailure = firstFailure ??
+                                "\(blockLabel(i)) 通道 \(channel) 行 \(y) 出现 NaN/Inf，判定为坏块"
+                        }
                         vDSP_vclip(&multiplied, 1, &minimum, &maximum,
                                    &clipped, 1, vDSP_Length(outBlockSize))
                         vDSP_vfixu8(&clipped, 1, target, vDSP_Stride(channels),
@@ -194,14 +266,22 @@ class MultiArrayModel: ImageProcessingModel {
             }
             await predictionSlots.release()
         }
-        if failed { return nil }
+        // 缺块不报错的话，缺的那几块会以纯黑留在零初始化的画布上出图。
+        if !failed && received != rects.count {
+            firstFailure = "只收到 \(received)/\(rects.count) 个分块输出，缺的块会留成黑块，判定失败"
+        }
+        if failed {
+            throw CoreMLUpscaleError.processingFailed(firstFailure ?? "分块拼接失败")
+        }
 
         // create final cgimage from imgData buffer
         guard
             let cfbuffer = CFDataCreate(nil, &imgData, outWidth * outHeight * channels),
             let dataProvider = CGDataProvider(data: cfbuffer)
         else {
-            return nil
+            throw CoreMLUpscaleError.processingFailed(
+                "无法为 \(outWidth)×\(outHeight) 的拼接画布建立数据源"
+            )
         }
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         let bitmapInfo = CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.noneSkipLast.rawValue // skip alpha
@@ -218,7 +298,9 @@ class MultiArrayModel: ImageProcessingModel {
             shouldInterpolate: true,
             intent: CGColorRenderingIntent.defaultIntent
         ) else {
-            return nil
+            throw CoreMLUpscaleError.processingFailed(
+                "\(outWidth)×\(outHeight) 的拼接画布建不出 CGImage"
+            )
         }
 
         // Crop back to the original image dimensions (padded area was only added
@@ -229,7 +311,12 @@ class MultiArrayModel: ImageProcessingModel {
             width: width * outScale,
             height: height * outScale
         )
-        return fullImage.cropping(to: cropRect)
+        guard let cropped = fullImage.cropping(to: cropRect) else {
+            throw CoreMLUpscaleError.processingFailed(
+                "裁回原图尺寸 \(width * outScale)×\(height * outScale) 失败"
+            )
+        }
+        return cropped
     }
 
     // calculate the rects for the image blocks

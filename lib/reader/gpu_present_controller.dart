@@ -910,6 +910,10 @@ class GpuPresentController extends ChangeNotifier {
       if (!acceptsWork()) return;
       _markSourceSize(index, inputSize);
       final isConditional = await RealSrSettings.loadConditionalEnabled();
+      // 条件超分命中时按那条条件的分块走；没开条件才用全局那份。
+      // 这条链路以前**两个都不传**，`upscale` 就用签名默认 0 跑了，
+      // 于是设置页改分块大小对阅读器实时超分从来没有作用过。
+      int? conditionTileSize;
       if (isConditional) {
         final trigger = prefetch
             ? SuperResolutionPolicyTrigger.preload
@@ -929,6 +933,8 @@ class GpuPresentController extends ChangeNotifier {
           SuperResolutionLog.add('第 ${index + 1} 页：条件超分判定跳过；$desc');
           return;
         }
+        // `tileSize == null` 是策略侧「这条条件不分块」的表示，落到引擎就是 0。
+        conditionTileSize = decision.tileSize;
       } else {
         if (!await RealSrSuperResolution.shouldUpscale(
           inputPath,
@@ -940,6 +946,9 @@ class GpuPresentController extends ChangeNotifier {
           return;
         }
       }
+      final tileSize = isConditional
+          ? (conditionTileSize ?? 0)
+          : await RealSrSettings.loadTileSize();
       if (!acceptsWork()) return;
       // 旧任务不能覆盖切换模型后产生的缓存，先写独立文件再发布。
       pendingOutput = File(
@@ -956,6 +965,8 @@ class GpuPresentController extends ChangeNotifier {
         inputPath: inputPath,
         outputPath: pendingOutput.path,
         engineProfile: engineProfile,
+        tileSize: tileSize,
+        knownInputSize: inputSize,
         shouldRun: acceptsWork,
       );
       if (!_acceptsEnhancement(epoch)) {

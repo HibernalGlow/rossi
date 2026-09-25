@@ -69,9 +69,9 @@ public class CoremlUpscalePlugin: NSObject, FlutterPlugin {
             throw CoreMLUpscaleError.modelLoadFailed("Could not initialize model processor")
         }
 
-        guard let outputImage = await model.process(inputImage) else {
-            throw CoreMLUpscaleError.processingFailed("Model returned no output")
-        }
+        // 失败原因（哪一块、为什么）由模型自己抛出，经下面的
+        // `error.localizedDescription` 原样带给 Dart，不再压成「Model returned no output」。
+        let outputImage = try await model.process(inputImage)
 
         try ImageIO.writeCGImage(outputImage, to: outputPath)
     }
