@@ -7,7 +7,7 @@
 静态层面已经过了，不必重复验：
 
 - `dart analyze lib/` 干净（只剩一条与本次无关的 `switch_toast_service.dart` info）；
-- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart` **53 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
+- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart` **54 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
 - `cargo test -p rossi_ocr_core` **21 条全过**；
 - `flutter build macos --debug` 出包成功；
 - **端到端已经跑过一次真权重**：`test/ocr/completed_page_e2e_test.dart` 对
@@ -89,6 +89,13 @@ ollama serve && ollama run qwen2.5:14b        # 本机：base URL = http://127.0
 **做**：把第 5 页翻成译文，翻到第 6 页，再翻回第 5 页。
 **预期**：第 6 页芯片显示「译」（未处理），第 5 页仍是「译文页」。
 **判据**：不存在「一开全局每页都变慢」的行为。
+
+## 7a. 构建途中换书：旧产物不许贴到新书上
+
+**做**：按「译」后立刻在等待期间换到另一本书（整页要十几秒，窗口很大）。
+**预期**：新书那一页是干净的 —— 既没有旧书的成品页贴上来，也没有旧构建的报错顶在新页脸上。
+**判据**：芯片显示「译」（未处理），不是「译文页」也不是「译文失败」。
+这条有单测钉住（关掉过期判定就红），真机再走一遍是防并发路径有别的东西漏出来。
 
 ## 7b. 翻远再翻回来：译文不许被悄悄换回原图
 

@@ -6,6 +6,7 @@
 /// 3. **失败静默退回原图** —— 用户点了「译」结果什么都没发生，比报错更难查。
 library;
 
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -291,6 +292,71 @@ void main() {
     expect(ok, isFalse);
     expect(c.lastError, contains('没识别到文字'));
     expect(presenter.injected, isEmpty);
+  });
+
+  test('构建途中换书：旧产物既不注入，也不把失败顶到新页脸上', () async {
+    // 一页要十几秒，这期间用户完全可能翻到另一本书。
+    // 不认过期，旧书第 3 页的成品页就会被注到新书第 3 页上 —— 同一序号，不同内容。
+    await seedReady();
+    final gate = Completer<void>();
+    final presenter = _FakePresenter(confirmed: true);
+    final c = TranslatedPageController(
+      builder: TranslatedPageBuilder(
+        analyze: (imagePath, erasedPath, ep) async {
+          await gate.future;
+          await File(erasedPath).writeAsBytes(page, flush: true);
+          return OcrPageResult(
+            blocks: [
+              OcrBlock(
+                quad: Float32List.fromList([
+                  _box.left,
+                  _box.top,
+                  _box.right,
+                  _box.top,
+                  _box.right,
+                  _box.bottom,
+                  _box.left,
+                  _box.bottom,
+                ]),
+                text: 'トカゲじゃ',
+                boxes: 1,
+                truncated: false,
+              ),
+            ],
+            pageWidth: _pageW,
+            pageHeight: _pageH,
+            detectMs: BigInt.one,
+            recognizeMs: BigInt.one,
+            inpaintMs: BigInt.one,
+            erasedPath: erasedPath,
+          );
+        },
+        translate: (texts, config) async => ['是蜥蜴啊'],
+      ),
+    );
+
+    final running = c.toggle(
+      source: _FakeSource(page),
+      presenter: presenter,
+      index: 3,
+    );
+    // 进到 building 之前还有几次 await（读配置、查权重），逐帧让路。
+    for (var i = 0; i < 20 && c.phase != TranslatedPagePhase.building; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(
+      c.phase,
+      TranslatedPagePhase.building,
+      reason: '没进入生成中就说明这条测的不是在飞构建',
+    );
+
+    c.reset(); // 换书
+    gate.complete();
+    expect(await running, isFalse);
+    expect(presenter.injected, isEmpty, reason: '过期产物不许注到新书上');
+    expect(presenter.translationOwnedPages, isEmpty);
+    expect(c.phase, TranslatedPagePhase.off, reason: '旧构建的收尾不许把新页脸改成 failed');
+    expect(c.lastError, isEmpty);
   });
 
   test('换书 reset：清掉归属，否则新书那几页会被旧译文占着', () async {

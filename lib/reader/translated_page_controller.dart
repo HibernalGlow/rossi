@@ -85,6 +85,11 @@ class TranslatedPageController extends ChangeNotifier {
   int _index = -1;
   String _lastError = '';
   TranslatedPagePresenter? _presenter;
+
+  /// 「第几本书」的计数。换书 / 换章时 +1，用来让**在飞的构建**认出自己已经过期：
+  /// 一页要十几秒，这期间用户完全可能翻到另一本书 —— 不认出的话，
+  /// 旧书第 5 页的成品页会被注到新书第 5 页上（同一序号，完全不同的内容）。
+  int _generation = 0;
   final Map<int, String> _inputScratch = <int, String>{};
   Directory? _scratch;
 
@@ -98,6 +103,7 @@ class TranslatedPageController extends ChangeNotifier {
 
   /// 换书 / 换章：清掉所有归属与临时输入，避免拿旧页的产物往新页上贴。
   void reset() {
+    _generation++;
     _presenter?.translationOwnedPages.clear();
     try {
       _scratch?.deleteSync(recursive: true);
@@ -138,6 +144,7 @@ class TranslatedPageController extends ChangeNotifier {
       return _fail(index, '权重没下全：缺 ${missing.join('、')}');
     }
 
+    final generation = _generation;
     _phase = TranslatedPagePhase.building;
     _index = index;
     _lastError = '';
@@ -151,14 +158,15 @@ class TranslatedPageController extends ChangeNotifier {
         config: config,
         force: false,
       );
+      if (_stale(generation)) return false; // 书都换了，这份产物没有归属可言
       if (!out.hasText) return _fail(index, '这一页没识别到文字');
       return await _inject(index, out.path, presenter, showingOnSuccess: true);
     } on OcrModelsMissing catch (e) {
-      return _fail(index, '$e');
+      return _stale(generation) ? false : _fail(index, '$e');
     } on OcrTranslationException catch (e) {
-      return _fail(index, '翻译失败：${e.message}');
+      return _stale(generation) ? false : _fail(index, '翻译失败：${e.message}');
     } catch (e) {
-      return _fail(index, '成品页构建失败：$e');
+      return _stale(generation) ? false : _fail(index, '成品页构建失败：$e');
     }
   }
 
@@ -222,6 +230,9 @@ class TranslatedPageController extends ChangeNotifier {
 
   /// 归档里的页没有磁盘直路径，OCR 与呈现器都要一个文件 —— 落到一个临时目录，
   /// 按页缓存，关译文时同一份原图还要用它注回去。
+  /// 构建期间用户换了书 / 章：旧结果一律作废，既不注入也不报错到新页脸上。
+  bool _stale(int generation) => generation != _generation;
+
   Future<String> _inputPathFor(PageSource source, int index) async {
     final direct = await source.getPageFilePath(index);
     if (direct != null) return direct;
