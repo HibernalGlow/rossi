@@ -173,13 +173,29 @@ fn main() -> Result<()> {
         });
     }
 
+    // 每一段**实际用上**的 EP，从各组件身上读回来（它们存的是 `resolve` 之后的值），
+    // 而不是回显 `--ep` 传进来的那个词。`--ep auto` 的验收靠的就是这一眼：
+    // 以前顶层只有一个 `ep`，装的其实是检测那一段，识别段（DirectML 收益最大的那段）根本没报。
+    let used_eps = json!({
+        "detect": detector.ep().label(),
+        "recognize": recognizer.ep().label(),
+        // 没跑擦字时报 null，别让它看着像「跑了但用了 cpu」。
+        "inpaint": inpaint_json.get("ep").cloned(),
+    });
+    eprintln!(
+        "后端实际生效：检测={} 识别={} 擦字={}",
+        used_eps["detect"].as_str().unwrap_or("?"),
+        used_eps["recognize"].as_str().unwrap_or("?"),
+        used_eps["inpaint"].as_str().unwrap_or("未跑"),
+    );
+
     if print_json {
         println!(
             "{}",
             json!({
                 "image": image_path,
                 "size": [page_w, page_h],
-                "ep": detector.ep().label(),
+                "ep": used_eps,
                 "boxes": items.len(),
                 "detect_ms": { "pre": detection.preprocess_ms, "infer": detection.infer_ms, "post": detection.postprocess_ms },
                 "recognize_total_ms": recognize_total_ms,

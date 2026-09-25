@@ -263,9 +263,21 @@ dart script/ocr_stub_endpoint.dart --fail         # 直接 500 → 第 11b 与�
 擦字 12.5 s / 1.4 s（DirectML 分别快 4.1 与 8.7 倍）→ 整页 ~23 s 降到 ~4.3 s。
 所以默认值已从 `cpu` 改成 **`auto`（按段选）**：Windows 上 det 走 cpu、识别与擦字走 DirectML。
 
-**还欠一次真机确认**：`--ep auto` 这条在 Windows 上没跑成（盒子传模型传到一半掉线）。
-策略本身有 Rust 单测钉住，但「auto 在那台机器上真的落到 det=cpu / 其余=DirectML 并且整页 ~4 s」
-这句要有人开 App 或再跑一次命令行才算验过。
+**还欠一次真机确认**：`--ep auto` 这条在 Windows 上没跑成（盒子传模型传到一半掉线，之后整机 offline）。
+好消息是这条不再是「要开 App 才有办法判」的事：`ocr_page` 现在把**三段各自实际生效的 EP**
+都读回来打印（以前顶层那个 `ep` 只是检测段的，识别段根本没报）。盒子回来跑一条就闭合：
+
+```bash
+cargo run -q --release -p rossi_ocr_core --bin ocr_page -- \
+  --det det.onnx --encoder enc.onnx --decoder dec.onnx --vocab vocab.txt \
+  --inpaint lama-manga-dynamic.onnx --group --ep auto --json page.jpg
+```
+
+**预期**：stderr 那行是 `后端实际生效：检测=cpu 识别=directml 擦字=directml`，
+且整页耗时接近 §8.6.3 那套分段数字合出来的 ~4 s（不是 CPU 的 ~23 s）。
+本机 macOS 已跑过同一条：报 `cpu / cpu / cpu`，与非 Windows 分支的策略一致 —— 也就是
+「报的是实际值」这半边已经验过，只差 Windows 那三个词。
+顺手清掉盒子上的 `D:\tmp_ocr_dml`（约 660 MB 权重 + target）。
 
 **还要开 App 验的**：
 **做**：Windows 上把推理后端选 DirectML，按「译」。

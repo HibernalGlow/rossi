@@ -414,8 +414,24 @@ Windows 上 det→cpu、recognize/inpaint→directml，其余平台 cpu。显式
 不支持的 EP 仍然**报错**不静默退回。`Ep::ep()` 现在报的是**实际生效**的那个，不是请求值。
 
 ⚠️ 还差一步：`--ep auto` 在 Windows 上跑通这条**没验成** —— 传到一半那台盒子掉线了
-（scp lost connection 后 22 端口直接超时）。策略本身有 Rust 单测钉住（`session.rs` 三条），
-真机数字是上面这套「分别显式指定 EP」量出来的。
+（scp lost connection 后 22 端口直接超时；后来 `tailscale status` 显示整机 offline）。
+策略本身有 Rust 单测钉住（`session.rs` 三条），真机数字是上面这套「分别显式指定 EP」量出来的。
+
+**2026-09-26 补：这条现在是一条命令就能验的事**。原先 `ocr_page --json` 顶层只有一个 `ep`，
+装的是**检测那一段**的 EP，识别段（DirectML 收益最大的那段）根本没报 —— 也就是说
+「auto 真的落到 det=cpu / 其余=DirectML」这句话在命令行上读不出来。现在三段都从组件身上
+读回**实际生效值**并一起输出（人读行 + `ep` 对象）：
+
+```bash
+cargo run -q --release -p rossi_ocr_core --bin ocr_page -- \
+  --det det.onnx --encoder enc.onnx --decoder dec.onnx --vocab vocab.txt \
+  --inpaint lama.onnx --group --ep auto --json page.jpg
+# stderr：后端实际生效：检测=cpu 识别=directml 擦字=directml
+```
+
+本机（macOS）已用真权重跑过这一条：`--ep auto` 报出 `检测=cpu 识别=cpu 擦字=cpu`，
+与 `resolve` 的非 Windows 分支一致（检测 117 ms、识别 210 ms/2 框、擦字 5.3 s，opt 构建）。
+**Windows 那一版仍待跑**：预期看到 `cpu / directml / directml` 且整页 ~4 s 才算这条闭合。
 
 ### 8.6.4 识别半边：同一探针跑 manga-ocr 的 encoder / decoder
 
