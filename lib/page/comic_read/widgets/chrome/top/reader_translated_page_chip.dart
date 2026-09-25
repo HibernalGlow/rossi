@@ -6,6 +6,7 @@ import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/page_source.dart';
+import 'package:zephyr/reader/translated_page_status.dart';
 import 'package:zephyr/reader/translated_page_controller.dart';
 import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/widgets/toast.dart';
@@ -46,23 +47,13 @@ class ReaderTranslatedPageChip extends StatelessWidget {
         final index = context.select<ReaderCubit, int>(
           (c) => c.state.currentSlot,
         );
-        final owned = controller.isOwned(index);
-        final busy =
-            controller.phase == TranslatedPagePhase.building &&
-            controller.index == index;
-        final failed =
-            controller.phase == TranslatedPagePhase.failed &&
-            controller.index == index;
-        return _build(
-          context,
-          controller,
-          source,
-          presenter,
-          index,
-          owned: owned,
-          busy: busy,
-          failed: failed,
+        final state = translatedPageChipState(
+          phase: controller.phase,
+          phaseIndex: controller.index,
+          index: index,
+          owned: controller.isOwned(index),
         );
+        return _build(context, controller, source, presenter, index, state);
       },
     );
   }
@@ -72,32 +63,40 @@ class ReaderTranslatedPageChip extends StatelessWidget {
     TranslatedPageController controller,
     PageSource source,
     GpuPresentController presenter,
-    int index, {
-    required bool owned,
-    required bool busy,
-    required bool failed,
-  }) {
+    int index,
+    TranslatedPageChipState state,
+  ) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final (Color bg, Color fg) = failed
-        ? (scheme.errorContainer, scheme.onErrorContainer)
-        : owned
-        ? (scheme.secondaryContainer, scheme.onSecondaryContainer)
-        : (scheme.surfaceContainerHigh, scheme.onSurfaceVariant);
+    final (Color bg, Color fg) = switch (state) {
+      TranslatedPageChipState.failed => (
+        scheme.errorContainer,
+        scheme.onErrorContainer,
+      ),
+      TranslatedPageChipState.showing => (
+        scheme.secondaryContainer,
+        scheme.onSecondaryContainer,
+      ),
+      _ => (scheme.surfaceContainerHigh, scheme.onSurfaceVariant),
+    };
     final showLabel = availableWidth >= 620;
 
     return Tooltip(
-      message: failed
-          ? controller.lastError
-          : owned
-          ? t.ocr.chipOn
-          : t.ocr.chipOff,
+      message: switch (state) {
+        TranslatedPageChipState.failed => controller.lastError,
+        TranslatedPageChipState.showing => t.ocr.chipOn,
+        TranslatedPageChipState.building => t.ocr.building,
+        _ => t.ocr.chipOff,
+      },
       child: InkWell(
         borderRadius: BorderRadius.circular(ReaderToolbarMetrics.fullRadius),
         onTap: () async {
-          if (busy) {
-            showInfoToast(t.ocr.busyToast);
-            return;
+          switch (translatedPageTapFor(state)) {
+            case TranslatedPageTap.wait:
+              showInfoToast(t.ocr.busyToast);
+              return;
+            case TranslatedPageTap.toggle:
+              break;
           }
           final ok = await controller.toggle(
             source: source,
@@ -121,20 +120,21 @@ class ReaderTranslatedPageChip extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                busy ? Icons.hourglass_top_outlined : Icons.translate_outlined,
+                state == TranslatedPageChipState.building
+                    ? Icons.hourglass_top_outlined
+                    : Icons.translate_outlined,
                 size: 14,
                 color: fg,
               ),
               if (showLabel) ...[
                 const SizedBox(width: 4),
                 Text(
-                  busy
-                      ? t.ocr.building
-                      : failed
-                      ? t.ocr.failedShort
-                      : owned
-                      ? t.ocr.chipOn
-                      : t.ocr.chipOff,
+                  switch (state) {
+                    TranslatedPageChipState.building => t.ocr.building,
+                    TranslatedPageChipState.failed => t.ocr.failedShort,
+                    TranslatedPageChipState.showing => t.ocr.chipOn,
+                    TranslatedPageChipState.off => t.ocr.chipOff,
+                  },
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: fg,
                     fontWeight: FontWeight.w500,
