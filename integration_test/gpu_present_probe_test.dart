@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:zephyr/gpu/gpu_present_bridge.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/image_surface.dart';
@@ -41,7 +42,10 @@ import 'package:zephyr/util/rust_loader.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  const String defaultSample = r'D:\1Dev\tmp\rossi-probe\probe.cbz';
+  // 默认夹具落在临时目录下的 rossi-probe/，盘符由 win-baseline-env.sh 的
+  // TMP/TEMP（= $ROSSI_WIN_ROOT/tmp）决定，不在此处写死。
+  final String defaultSample =
+      p.join(Directory.systemTemp.path, 'rossi-probe', 'probe.cbz');
 
   void log(String message) {
     // ignore: avoid_print

@@ -45,37 +45,65 @@ if [ "$_rossi_need_git_path" = "1" ]; then
 fi
 unset _rossi_need_git_path
 
-# ── scoop NuGet.exe 兜底（默认不启用） ──
+# ── scoop NuGet.exe 健康检查 ──
 # 历史：本机 scoop 的 NuGet.exe 曾是 0 字节（apps/nuget/7.6.0/NuGet.exe），
 # 导致 permission_handler_windows 插件的 CMake 在 `nuget install` 阶段
 # FATAL_ERROR。该损坏已于 2026-09-15 手工修复为 7.9.0（见
 # docs/windows-build/README.md）。
-# 这里只在检测到 scoop 侧仍为空/缺失时才挂兜底，避免污染基线环境。
+# 原先这里挂的是 `/d/1Dev/tools/nuget` 兜底，但该目录已不存在，且「往 PATH
+# 前面塞一个不存在的目录」只会把报错推到 CMake 阶段，所以改成直接喊出来。
 if [ ! -s "/d/scoop/apps/nuget/current/NuGet.exe" ]; then
-  echo "[rossi-env] 警告：scoop 的 NuGet.exe 不可用，启用 /d/1Dev/tools/nuget 兜底" >&2
-  export PATH="/d/1Dev/tools/nuget:$PATH"
+  echo "[rossi-env] 错误：scoop 的 NuGet.exe 缺失或为 0 字节，permission_handler_windows 的 CMake 会在 nuget install 阶段 FATAL_ERROR。请先 'scoop install nuget'（或按 README 手工修复），不要靠 PATH 兜底。" >&2
 fi
 
-# ── Flutter 3.47.3 (与 .fvmrc / .puro.json 一致) ──
+# ── 构建环境根目录：本文件唯一需要按机器改的一行 ──
+# 所有 SDK / 包缓存 / 临时目录都从这个根派生，不要再写死盘符。
+# 默认 D:/1Dev 的理由见文件头背景第 1 点（C 盘空间紧张）。换机器或换盘时
+# 在 source 之前覆盖即可，不必改本文件：
+#   export ROSSI_WIN_ROOT=/f/rossi-env   # MSYS 风格，须与 cygpath 的输入一致
+: "${ROSSI_WIN_ROOT:=/d/1Dev}"
+export ROSSI_WIN_ROOT
+_rossi_root_msys="$ROSSI_WIN_ROOT"
+# Windows 风格反斜杠形式（cygpath 不可用时原样透传，保证 WSL 下不炸）
+_rossi_root_win=$(cygpath -w "$_rossi_root_msys" 2>/dev/null || echo "$_rossi_root_msys")
+# 正斜杠的 Windows 形式（D:/1Dev）—— 下面 PUB_CACHE / TMPDIR 历史上就是这个形状
+_rossi_root_fwd=$(cygpath -m "$_rossi_root_msys" 2>/dev/null || echo "$_rossi_root_msys")
+
+# ── Flutter（版本由 .fvmrc / .puro.json 锁定） ──
 # 注意：PATH 必须用 MSYS 风格路径（/d/...），Windows 风格 "D:/..." 在
 # Git Bash 下 which/bash 解析不到，会导致后续所有命令找不到 flutter。
-export FLUTTER_ROOT="D:\\1Dev\\flutter"
-export PATH="/d/1Dev/flutter/bin:$PATH"
+export FLUTTER_ROOT="$_rossi_root_win\\flutter"
+export PATH="$_rossi_root_msys/flutter/bin:$PATH"
+# 缺失时立刻喊：否则只会在后面某处得到一句「flutter: command not found」，
+# 看不出是 SDK 根目录没装。
+if [ ! -x "$_rossi_root_msys/flutter/bin/flutter" ]; then
+  echo "[rossi-env] 警告：$_rossi_root_msys/flutter/bin/flutter 不存在 —— Flutter SDK 未安装或 ROSSI_WIN_ROOT 指错了。装好后重跑；若要换位置用 'export ROSSI_WIN_ROOT=…'。" >&2
+fi
 
 # ── Dart pub 缓存：默认在 C:\Users\<u>\AppData\Local\Pub\Cache，必须改 ──
-export PUB_CACHE="D:/1Dev/pub-cache"
+export PUB_CACHE="$_rossi_root_fwd/pub-cache"
 
 # ── 临时目录：默认在 C:\Users\<u>\AppData\Local\Temp，必须改 ──
-export TMPDIR="D:/1Dev/tmp"
-export TMP="D:\\1Dev\\tmp"
-export TEMP="D:\\1Dev\\tmp"
+export TMPDIR="$_rossi_root_fwd/tmp"
+export TMP="$_rossi_root_win\\tmp"
+export TEMP="$_rossi_root_win\\tmp"
+# 只在根目录确实存在时才建 tmp，避免 ROSSI_WIN_ROOT 打错时在别的盘上凭空造个目录
+[ -d "$_rossi_root_msys" ] && mkdir -p "$_rossi_root_msys/tmp" 2>/dev/null
+
+unset _rossi_root_msys _rossi_root_win _rossi_root_fwd
 
 # ── rquickjs-sys 的 bindgen 需要 libclang ──
 export LIBCLANG_PATH="D:/scoop/apps/llvm/current/bin"
 export CLANG_PATH="D:/scoop/apps/llvm/current/bin/clang.exe"
 
-# ── Rust 产物留在 D 盘项目内（rust/target 默认即可） ──
-export CARGO_TARGET_DIR="D:/1VSCODE/Projects/rossi/rust/target"
+# ── Rust 产物留在仓库内 ──
+# 原先写死 D:/1VSCODE/Projects/rossi/rust/target，仓库换位置（例如归进 Base）就失效。
+# 本文件固定位于 <repo>/docs/windows-build/，据此反推仓根；必须转成 Windows 形式，
+# 因为 cargo 是 Windows 可执行文件，读不懂 MSYS 的 /d/... 。
+_rossi_self=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+export CARGO_TARGET_DIR="$(cygpath -m "$_rossi_self/rust/target" 2>/dev/null || echo "$_rossi_self/rust/target")"
+echo "[rossi-env] repo root = $_rossi_self ; CARGO_TARGET_DIR = $CARGO_TARGET_DIR"
+unset _rossi_self
 
 # ── MSVC / Windows SDK 路径注入（本机必需，见上文背景第 2 点） ──
 _rossi_vs_root="C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools"

@@ -23,7 +23,7 @@
 
 | 项 | 值 |
 |---|---|
-| Flutter | **3.47.3**（装在 `D:\1Dev\flutter`，镜像 `storage.flutter-io.cn`） |
+| Flutter | **3.47.3**（`.fvmrc`/`.puro.json` 钉；装在 `$ROSSI_WIN_ROOT\flutter`，`ROSSI_WIN_ROOT` 默认 `D:\1Dev`，镜像 `storage.flutter-io.cn`） |
 | Dart（随 Flutter） | 3.13.3 |
 | Rust | **1.96.1**（`rust/rust-toolchain.toml` 钉死，含全部交叉 target） |
 | flutter_rust_bridge | 2.13.0 |
@@ -217,10 +217,11 @@ scoop reinstall imageglass powertoys vlc jhentai imagemagick ...
 PATH 里命中的正是那个 0 字节 shim，于是 CMake 在 `nuget install Microsoft.Windows.CppWinRT`
 阶段直接 `FATAL_ERROR`。修复 scoop nuget 后此路已通。
 
-备用兜底：`docs/windows-build/win-baseline-env.sh` 里保留了一段**条件式**兜底 ——
-只有当 `/d/scoop/apps/nuget/current/NuGet.exe` 为空时才把校验过的
-`/d/1Dev/tools/nuget`（SHA256 `04eb6c4f…`，v6.0.0）挂到 PATH 前面。
-默认不启用，以免基线环境被污染。
+原先这里还写了一段「条件式兜底」：scoop 的 NuGet.exe 为空时把
+`/d/1Dev/tools/nuget`（SHA256 `04eb6c4f…`，v6.0.0）挂到 PATH 前面。该兜底已于
+2026-09-25 移除 —— `D:\1Dev\tools` 已不存在，而「往 PATH 前面塞一个不存在的目录」
+只会把报错推到 CMake 阶段。脚本现在改成检测到 scoop 侧缺失/0 字节就直接报错并要求
+`scoop install nuget`，不再静默兜底。
 
 ---
 
@@ -708,7 +709,7 @@ windows\flutter\ephemeral\cpp_client_wrapper\core_implementations.cc(1,1):
 ls windows/flutter/ephemeral/cpp_client_wrapper/
 # 只有 include/  → 中招
 
-ls /d/1Dev/flutter/bin/cache/artifacts/engine/windows-x64/cpp_client_wrapper/
+ls "${ROSSI_WIN_ROOT:-/d/1Dev}/flutter/bin/cache/artifacts/engine/windows-x64/cpp_client_wrapper/"
 # 这里 core_implementations.cc / standard_codec.cc / plugin_registrar.cc /
 # flutter_engine.cc / flutter_view_controller.cc 都在 → 原件没丢
 ```
@@ -718,7 +719,7 @@ ls /d/1Dev/flutter/bin/cache/artifacts/engine/windows-x64/cpp_client_wrapper/
 **处理**：从引擎缓存把缺的补回去（等价于工具本该做的事）：
 
 ```bash
-cp -r /d/1Dev/flutter/bin/cache/artifacts/engine/windows-x64/cpp_client_wrapper/. \
+cp -r "${ROSSI_WIN_ROOT:-/d/1Dev}/flutter/bin/cache/artifacts/engine/windows-x64/cpp_client_wrapper/." \
       windows/flutter/ephemeral/cpp_client_wrapper/
 ```
 

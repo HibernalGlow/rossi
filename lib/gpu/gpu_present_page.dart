@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:zephyr/gpu/gpu_present_bridge.dart';
 import 'package:zephyr/gpu/page_turn_probe.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
@@ -39,10 +40,15 @@ class GpuPresentPage extends StatefulWidget {
 }
 
 class _GpuPresentPageState extends State<GpuPresentPage> {
+  /// 默认样本取临时目录下的 `rossi-probe/`，不写死盘符 ——
+  /// `win-baseline-env.sh` 把 TMP/TEMP 指向 `$ROSSI_WIN_ROOT/tmp`，跟着它一起搬。
+  static String _defaultSample() =>
+      p.join(Directory.systemTemp.path, 'rossi-probe', 'probe.cbz');
+
   final TextEditingController _pathController = TextEditingController(
     text:
         Platform.environment['ROSSI_GPU_PRESENT_SAMPLE'] ??
-        (Platform.isWindows ? r'D:\1Dev\tmp\rossi-probe\probe.cbz' : ''),
+        (Platform.isWindows ? _defaultSample() : ''),
   );
   final GpuPresentController _presenter = GpuPresentController();
 
