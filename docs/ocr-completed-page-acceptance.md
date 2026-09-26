@@ -95,6 +95,25 @@ task dev            # = cargo build windcore + flutter run -d macos
 夹具被扫走之后这两条测试会静默变成 skip，而本文开头那些「已经跑过」的话就查无实据了。
 本机现有 5 个权重（约 644 MB）与 8 页真页就放在 `.local/ocr-test-data/` 下。
 
+**第 2 条（权重下载）踩过的真坑，先记在这**：界面上那句
+「权重下载失败：AnyhowException(read download stream failed: error decoding response body)」
+**不是网络问题，是实现问题** —— `HttpClient` 把 30 s 的**整请求上限**加在了流式下载上，
+而识别件 343 MB 在实测 5 MB/s 下要 ~69 s，必然死在读 body 的半路；
+reqwest 又把「上限到期」统一包成 `Decode`，所以报错看不出原因。
+现在 `download` 的超时按**空闲**算（连续 `timeout_ms` 没新字节才算停滞，总时长不受限），
+报错也会写清「下载停滞：N ms 没收到新字节（已收 M 字节）」。
+判据与证伪都在 `test/network/wind_http_download_timeout_test.dart`
+（把客户端级上限装回去，第一条就会以**用户截图那句原文**红）。
+
+**源可达性实测（2026-09-27，本机不挂代理）**：`huggingface.co` 的 TLS 握手直接被掐
+（`SSL_ERROR_SYSCALL`，0 字节）→ 走 `127.0.0.1:7890` 通，5 MB/s；
+`hf-mirror.com` 对这三个 repo 回 **308 且 Location 指回 huggingface.co**，等于不解决问题；
+魔搭上按同名 repo 查 `mayocream/manga-ocr-onnx`、`breezedeus/cnstd-ppocr-ch_PP-OCRv4_det`、
+`ogkalu/lama-manga-onnx-dynamic` **全是 404**（魔搭的搜索接口我没打对，两条路由都 404，
+所以「魔搭完全没有」这句不下结论）；`github.com/deretame/breeze-binary` 直连可用，2.85 MB/s。
+也就是说：**要国内免代理下载，得把权重搬到自家 GitHub binary 仓**（与 RealSR / CoreML 同一模式，
+这三件权重是 apache-2.0 / apache-2.0 / mit，再分发要连 LICENSE 一起放）—— 那是分发决定，等人点头。
+
 需要一个能用的 OpenAI-compatible 端点，二选一：
 
 ```bash

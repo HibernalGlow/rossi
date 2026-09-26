@@ -8,6 +8,8 @@ use rquickjs_playground::{
     BuildHttpClientOptions, build_http_client_ex, current_http_client_config,
 };
 use std::collections::HashMap;
+// 只为 `Error::source()` 进 trait —— reqwest 的 Display 会把真实原因藏在 source 里。
+use std::error::Error;
 use std::path::Path;
 use std::time::Duration;
 use tokio::io::AsyncWriteExt;
@@ -173,6 +175,13 @@ impl HttpClient {
     }
 
     /// 下载到本地文件（流式写盘）。
+    ///
+    /// **这里的超时按「空闲」算，不是整请求上限**：连续 `timeout_ms`（缺省取客户端的
+    /// `timeout_ms`，默认 30 s）没收到新字节才算断流，总时长不受限。
+    /// 之前用的是 reqwest 的 `.timeout()`，它连 body 一起管 —— 于是几百 MB 的模型
+    /// 在慢一点的连接上**必然**死在半路（2026-09-26 实测：huggingface 走代理 5 MB/s，
+    /// 343 MB 的 OCR 识别件要 ~69 s），而且症状是一句看不出原因的
+    /// 「error decoding response body」。
     pub async fn download(
         &self,
         url: String,
@@ -200,13 +209,15 @@ impl HttpClient {
         if let Some(body) = init.body {
             builder = builder.body(body);
         }
-        let timeout_ms = init.timeout_ms.unwrap_or(self.timeout_ms);
-        builder = builder.timeout(Duration::from_millis(timeout_ms));
+        // 按**空闲**计时：连接/响应头阶段用一次，之后每收一片再各用一次（见函数注释）。
+        let idle = Duration::from_millis(init.timeout_ms.unwrap_or(self.timeout_ms));
 
-        let response = builder
-            .send()
-            .await
-            .map_err(|e| anyhow!("download failed: {e}"))?;
+        let response = match tokio::time::timeout(idle, builder.send()).await {
+            Ok(r) => r.map_err(|e| anyhow!("download failed: {e}"))?,
+            Err(_) => {
+                return Err(anyhow!("下载停滞：{} ms 内没拿到响应头", idle.as_millis()));
+            }
+        };
 
         let status = response.status();
         if !status.is_success() {
@@ -233,7 +244,21 @@ impl HttpClient {
         let mut received: u64 = 0;
         let mut stream = response;
         loop {
-            match stream.chunk().await {
+            let next = match tokio::time::timeout(idle, stream.chunk()).await {
+                Ok(r) => r,
+                Err(_) => {
+                    let _ = tokio::fs::remove_file(&tmp_path).await;
+                    return Err(anyhow!(
+                        "下载停滞：{} ms 没收到新字节（已收 {} 字节{}）",
+                        idle.as_millis(),
+                        received,
+                        total
+                            .map(|t| format!(" / 共 {t}"))
+                            .unwrap_or_default(),
+                    ));
+                }
+            };
+            match next {
                 Ok(Some(chunk)) => {
                     file.write_all(&chunk)
                         .await
@@ -246,7 +271,14 @@ impl HttpClient {
                 Ok(None) => break,
                 Err(e) => {
                     let _ = tokio::fs::remove_file(&tmp_path).await;
-                    return Err(anyhow!("read download stream failed: {e}"));
+                    // reqwest 把「连接被掐」「body 被截断」统一包成 error decoding response body，
+                    // 不把 source 带出来的话，用户分不清该去查网络、查代理还是查源站。
+                    return Err(anyhow!(
+                        "read download stream failed: {e}{}",
+                        e.source()
+                            .map(|s| format!("（{s}）"))
+                            .unwrap_or_default()
+                    ));
                 }
             }
         }
@@ -320,7 +352,13 @@ fn create_reqwest_client(options: &HttpClientOptions) -> Result<ClientWithMiddle
         &config,
         BuildHttpClientOptions {
             no_proxy: options.no_proxy.unwrap_or(false),
-            timeout: Some(Duration::from_millis(options.timeout_ms.unwrap_or(30_000))),
+            // 整请求上限**按请求设**：`fetch` 用 `timeout_ms`（它要把整个 body 读进内存），
+            // `download` 用「多久没新字节算停滞」的空闲计时。
+            // 这里必须给一个不会真正命中的长值 —— `build_http_client_ex` 里
+            // `timeout: None` 会落回 30 s，而客户端级的上限**连 body 一起掐**，
+            // 几百 MB 的模型在实测 5 MB/s 下要 ~69 s，于是必然死在半路
+            // （症状是 `error decoding response body`，2026-09-26 实测）。
+            timeout: Some(Duration::from_secs(24 * 3600)),
             connect_timeout: Some(Duration::from_millis(
                 options.connect_timeout_ms.unwrap_or(15_000),
             )),

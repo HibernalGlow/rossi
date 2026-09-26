@@ -99,6 +99,11 @@ class WindHttp {
   }
 
   /// 流式下载到本地文件。
+  /// 流式下载到本地文件。
+  ///
+  /// [timeout] 在这里是**空闲超时**（连续这么久没收到新字节才算断流），**不是**整请求上限：
+  /// 几百 MB 的模型按整请求上限计时会在慢一点的连接上必然死在半路（见 `http.rs` 的注释）。
+  /// 没传就用构造时的 `receiveTimeout`（默认 30 s）。
   Future<void> download(
     String url,
     String savePath, {
