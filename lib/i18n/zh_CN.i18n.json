@@ -1285,6 +1285,8 @@
     "epSection": "推理后端",
     "ep": "推理后端",
     "epSubtitle": "实测这两个模型在 CoreML 上更慢，默认走 CPU",
+    "epPlan": "本机各段：检测 $detect · 识别 $recognize · 擦字 $inpaint",
+    "epPlanUnsupported": "本平台构建里没有 $ep —— 选了会在开始分析时报错，不会静默退回 CPU",
     "modelSection": "模型权重",
     "weightsReady": "权重已就绪（$count 个文件）",
     "weightsMissing": "缺少：$missing",

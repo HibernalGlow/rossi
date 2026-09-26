@@ -84,5 +84,10 @@ void main() {
       findsOneWidget,
       reason: '这行必须说清是请求值，不是实际生效的那条 EP',
     );
+    expect(
+      find.textContaining('各段实际生效'),
+      findsNothing,
+      reason: '一次都没跑过就没有「实际生效」可言 —— 那时报出来只能是凭空捏的',
+    );
   });
 }

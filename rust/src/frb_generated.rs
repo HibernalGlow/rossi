@@ -40,7 +40,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -997361259;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 765574824;
 
 // Section: executor
 
@@ -4870,6 +4870,38 @@ fn wire__crate__api__ocr__ocr_analyze_page_impl(
         },
     )
 }
+fn wire__crate__api__ocr__ocr_stage_ep_plan_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "ocr_stage_ep_plan",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_ep = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                (move || {
+                    let output_ok = crate::api::ocr::ocr_stage_ep_plan(api_ep)?;
+                    Ok(output_ok)
+                })(),
+            )
+        },
+    )
+}
 fn wire__crate__api__local__open_local_source_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -8312,6 +8344,7 @@ impl SseDecode for crate::api::ocr::OcrPageResult {
         let mut var_recognizeMs = <u64>::sse_decode(deserializer);
         let mut var_inpaintMs = <u64>::sse_decode(deserializer);
         let mut var_erasedPath = <Option<String>>::sse_decode(deserializer);
+        let mut var_stageEps = <crate::api::ocr::OcrStageEps>::sse_decode(deserializer);
         return crate::api::ocr::OcrPageResult {
             blocks: var_blocks,
             page_width: var_pageWidth,
@@ -8320,6 +8353,35 @@ impl SseDecode for crate::api::ocr::OcrPageResult {
             recognize_ms: var_recognizeMs,
             inpaint_ms: var_inpaintMs,
             erased_path: var_erasedPath,
+            stage_eps: var_stageEps,
+        };
+    }
+}
+
+impl SseDecode for crate::api::ocr::OcrStageEpPlan {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_detect = <Option<String>>::sse_decode(deserializer);
+        let mut var_recognize = <Option<String>>::sse_decode(deserializer);
+        let mut var_inpaint = <Option<String>>::sse_decode(deserializer);
+        return crate::api::ocr::OcrStageEpPlan {
+            detect: var_detect,
+            recognize: var_recognize,
+            inpaint: var_inpaint,
+        };
+    }
+}
+
+impl SseDecode for crate::api::ocr::OcrStageEps {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_detect = <String>::sse_decode(deserializer);
+        let mut var_recognize = <String>::sse_decode(deserializer);
+        let mut var_inpaint = <Option<String>>::sse_decode(deserializer);
+        return crate::api::ocr::OcrStageEps {
+            detect: var_detect,
+            recognize: var_recognize,
+            inpaint: var_inpaint,
         };
     }
 }
@@ -9169,80 +9231,80 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         127 => wire__crate__api__ocr__ocr_analyze_page_impl(port, ptr, rust_vec_len, data_len),
-        128 => wire__crate__api__local__open_local_source_impl(port, ptr, rust_vec_len, data_len),
-        150 => wire__crate__api__simple__pack_folder_impl(port, ptr, rust_vec_len, data_len),
-        151 => wire__crate__api__simple__pack_folder_zip_impl(port, ptr, rust_vec_len, data_len),
-        152 => {
+        129 => wire__crate__api__local__open_local_source_impl(port, ptr, rust_vec_len, data_len),
+        151 => wire__crate__api__simple__pack_folder_impl(port, ptr, rust_vec_len, data_len),
+        152 => wire__crate__api__simple__pack_folder_zip_impl(port, ptr, rust_vec_len, data_len),
+        153 => {
             wire__crate__api__qjs__qjs_cancel_tasks_by_group_impl(port, ptr, rust_vec_len, data_len)
         }
-        153 => wire__crate__api__qjs__qjs_clear_bundle_impl(port, ptr, rust_vec_len, data_len),
-        154 => wire__crate__api__qjs__qjs_current_bundle_impl(port, ptr, rust_vec_len, data_len),
-        155 => wire__crate__api__qjs__qjs_debug_snapshot_impl(port, ptr, rust_vec_len, data_len),
-        156 => wire__crate__api__qjs__qjs_drop_runtime_impl(port, ptr, rust_vec_len, data_len),
-        157 => wire__crate__api__qjs__qjs_fetch_image_impl(port, ptr, rust_vec_len, data_len),
-        158 => wire__crate__api__qjs__qjs_replace_bundle_impl(port, ptr, rust_vec_len, data_len),
-        159 => wire__crate__api__qjs__qjs_task_call_impl(port, ptr, rust_vec_len, data_len),
-        160 => wire__crate__api__data_backup__read_data_backup_config_impl(
+        154 => wire__crate__api__qjs__qjs_clear_bundle_impl(port, ptr, rust_vec_len, data_len),
+        155 => wire__crate__api__qjs__qjs_current_bundle_impl(port, ptr, rust_vec_len, data_len),
+        156 => wire__crate__api__qjs__qjs_debug_snapshot_impl(port, ptr, rust_vec_len, data_len),
+        157 => wire__crate__api__qjs__qjs_drop_runtime_impl(port, ptr, rust_vec_len, data_len),
+        158 => wire__crate__api__qjs__qjs_fetch_image_impl(port, ptr, rust_vec_len, data_len),
+        159 => wire__crate__api__qjs__qjs_replace_bundle_impl(port, ptr, rust_vec_len, data_len),
+        160 => wire__crate__api__qjs__qjs_task_call_impl(port, ptr, rust_vec_len, data_len),
+        161 => wire__crate__api__data_backup__read_data_backup_config_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        162 => wire__crate__api__memory__reset_rust_memory_stats_impl(
+        163 => wire__crate__api__memory__reset_rust_memory_stats_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        171 => wire__crate__api__user_utils__setup_default_user_utils_impl(
+        172 => wire__crate__api__user_utils__setup_default_user_utils_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        172 => wire__crate__api__simple__sleep_test_impl(port, ptr, rust_vec_len, data_len),
-        173 => wire__crate__api__system__start_shutdown_listener_impl(
+        173 => wire__crate__api__simple__sleep_test_impl(port, ptr, rust_vec_len, data_len),
+        174 => wire__crate__api__system__start_shutdown_listener_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        174 => wire__crate__api__simple__stream_test_impl(port, ptr, rust_vec_len, data_len),
-        175 => wire__crate__api__webdav__webdav_delete_remote_files_impl(
+        175 => wire__crate__api__simple__stream_test_impl(port, ptr, rust_vec_len, data_len),
+        176 => wire__crate__api__webdav__webdav_delete_remote_files_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        176 => {
+        177 => {
             wire__crate__api__webdav__webdav_download_file_impl(port, ptr, rust_vec_len, data_len)
         }
-        177 => {
+        178 => {
             wire__crate__api__webdav__webdav_download_text_impl(port, ptr, rust_vec_len, data_len)
         }
-        178 => wire__crate__api__webdav__webdav_ensure_remote_ready_impl(
+        179 => wire__crate__api__webdav__webdav_ensure_remote_ready_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        179 => wire__crate__api__webdav__webdav_list_remote_data_files_impl(
+        180 => wire__crate__api__webdav__webdav_list_remote_data_files_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        180 => {
+        181 => {
             wire__crate__api__webdav__webdav_test_connection_impl(port, ptr, rust_vec_len, data_len)
         }
-        181 => {
+        182 => {
             wire__crate__api__webdav__webdav_upload_bytes_impl(port, ptr, rust_vec_len, data_len)
         }
-        182 => wire__crate__api__webdav__webdav_upload_text_impl(port, ptr, rust_vec_len, data_len),
-        183 => {
+        183 => wire__crate__api__webdav__webdav_upload_text_impl(port, ptr, rust_vec_len, data_len),
+        184 => {
             wire__crate__api__simple__zstd_compress_bytes_impl(port, ptr, rust_vec_len, data_len)
         }
-        184 => {
+        185 => {
             wire__crate__api__simple__zstd_decompress_bytes_impl(port, ptr, rust_vec_len, data_len)
         }
         _ => unreachable!(),
@@ -9297,118 +9359,119 @@ fn pde_ffi_dispatcher_sync_impl(
         115 => wire__crate__api__local__local_get_available_roots_impl(ptr, rust_vec_len, data_len),
         117 => wire__crate__api__local__local_open_session_count_impl(ptr, rust_vec_len, data_len),
         125 => wire__crate__api__local__media_formats_set_impl(ptr, rust_vec_len, data_len),
-        129 => wire__crate__api__qjs__opencc_convert_impl(ptr, rust_vec_len, data_len),
-        130 => wire__crate__api__operation_binding__operation_binding_action_catalog_impl(
+        128 => wire__crate__api__ocr__ocr_stage_ep_plan_impl(ptr, rust_vec_len, data_len),
+        130 => wire__crate__api__qjs__opencc_convert_impl(ptr, rust_vec_len, data_len),
+        131 => wire__crate__api__operation_binding__operation_binding_action_catalog_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        131 => wire__crate__api__operation_binding__operation_binding_area_at_point_impl(
+        132 => wire__crate__api__operation_binding__operation_binding_area_at_point_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        132 => wire__crate__api__operation_binding__operation_binding_conflicts_impl(
+        133 => wire__crate__api__operation_binding__operation_binding_conflicts_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        133 => wire__crate__api__operation_binding__operation_binding_factory_preset_impl(
+        134 => wire__crate__api__operation_binding__operation_binding_factory_preset_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        134 => wire__crate__api__operation_binding__operation_binding_key_preset_impl(
+        135 => wire__crate__api__operation_binding__operation_binding_key_preset_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        135 => wire__crate__api__operation_binding__operation_binding_radial_default_config_impl(
+        136 => wire__crate__api__operation_binding__operation_binding_radial_default_config_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        136 => wire__crate__api__operation_binding__operation_binding_radial_layout_impl(
+        137 => wire__crate__api__operation_binding__operation_binding_radial_layout_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        137 => wire__crate__api__operation_binding__operation_binding_radial_new_item_id_impl(
+        138 => wire__crate__api__operation_binding__operation_binding_radial_new_item_id_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        138 => wire__crate__api__operation_binding__operation_binding_radial_new_menu_impl(
+        139 => wire__crate__api__operation_binding__operation_binding_radial_new_menu_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        139 => wire__crate__api__operation_binding__operation_binding_radial_preset_impl(
+        140 => wire__crate__api__operation_binding__operation_binding_radial_preset_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        140 => wire__crate__api__operation_binding__operation_binding_radial_problems_impl(
+        141 => wire__crate__api__operation_binding__operation_binding_radial_problems_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        141 => wire__crate__api__operation_binding__operation_binding_radial_prune_impl(
+        142 => wire__crate__api__operation_binding__operation_binding_radial_prune_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        142 => wire__crate__api__operation_binding__operation_binding_radial_slot_impl(
+        143 => wire__crate__api__operation_binding__operation_binding_radial_slot_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        143 => wire__crate__api__operation_binding__operation_binding_radial_validate_impl(
+        144 => wire__crate__api__operation_binding__operation_binding_radial_validate_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        144 => wire__crate__api__operation_binding__operation_binding_resolve_impl(
+        145 => wire__crate__api__operation_binding__operation_binding_resolve_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        145 => wire__crate__api__operation_binding__operation_binding_resolve_binding_impl(
+        146 => wire__crate__api__operation_binding__operation_binding_resolve_binding_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        146 => wire__crate__api__operation_binding__operation_binding_resolve_page_turn_impl(
+        147 => wire__crate__api__operation_binding__operation_binding_resolve_page_turn_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        147 => wire__crate__api__operation_binding__operation_binding_tap_preset_impl(
+        148 => wire__crate__api__operation_binding__operation_binding_tap_preset_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        148 => wire__crate__api__operation_binding__operation_binding_upgrade_defaults_impl(
+        149 => wire__crate__api__operation_binding__operation_binding_upgrade_defaults_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        149 => wire__crate__api__operation_binding__operation_binding_validate_impl(
+        150 => wire__crate__api__operation_binding__operation_binding_validate_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        161 => wire__crate__api__qjs__register_function_impl(ptr, rust_vec_len, data_len),
-        163 => wire__crate__api__qjs__set_host_cache_gc_enabled_impl(ptr, rust_vec_len, data_len),
-        164 => wire__crate__api__qjs__set_http_proxy_impl(ptr, rust_vec_len, data_len),
-        165 => wire__crate__api__qjs__set_http_requests_blocked_impl(ptr, rust_vec_len, data_len),
-        166 => wire__crate__api__qjs__set_log_http_forward_impl(ptr, rust_vec_len, data_len),
-        167 => {
+        162 => wire__crate__api__qjs__register_function_impl(ptr, rust_vec_len, data_len),
+        164 => wire__crate__api__qjs__set_host_cache_gc_enabled_impl(ptr, rust_vec_len, data_len),
+        165 => wire__crate__api__qjs__set_http_proxy_impl(ptr, rust_vec_len, data_len),
+        166 => wire__crate__api__qjs__set_http_requests_blocked_impl(ptr, rust_vec_len, data_len),
+        167 => wire__crate__api__qjs__set_log_http_forward_impl(ptr, rust_vec_len, data_len),
+        168 => {
             wire__crate__api__qjs__set_qjs_error_message_language_impl(ptr, rust_vec_len, data_len)
         }
-        168 => wire__crate__api__qjs__set_qjs_error_stack_enabled_impl(ptr, rust_vec_len, data_len),
-        169 => wire__crate__api__qjs__set_socks5_proxy_impl(ptr, rust_vec_len, data_len),
-        170 => wire__crate__api__qjs__set_tls_verify_enabled_impl(ptr, rust_vec_len, data_len),
+        169 => wire__crate__api__qjs__set_qjs_error_stack_enabled_impl(ptr, rust_vec_len, data_len),
+        170 => wire__crate__api__qjs__set_socks5_proxy_impl(ptr, rust_vec_len, data_len),
+        171 => wire__crate__api__qjs__set_tls_verify_enabled_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -10535,6 +10598,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::ocr::OcrPageResult {
             self.recognize_ms.into_into_dart().into_dart(),
             self.inpaint_ms.into_into_dart().into_dart(),
             self.erased_path.into_into_dart().into_dart(),
+            self.stage_eps.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -10547,6 +10611,47 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::ocr::OcrPageResult>
     for crate::api::ocr::OcrPageResult
 {
     fn into_into_dart(self) -> crate::api::ocr::OcrPageResult {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::ocr::OcrStageEpPlan {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.detect.into_into_dart().into_dart(),
+            self.recognize.into_into_dart().into_dart(),
+            self.inpaint.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::ocr::OcrStageEpPlan
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::ocr::OcrStageEpPlan>
+    for crate::api::ocr::OcrStageEpPlan
+{
+    fn into_into_dart(self) -> crate::api::ocr::OcrStageEpPlan {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::ocr::OcrStageEps {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.detect.into_into_dart().into_dart(),
+            self.recognize.into_into_dart().into_dart(),
+            self.inpaint.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::ocr::OcrStageEps {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::ocr::OcrStageEps>
+    for crate::api::ocr::OcrStageEps
+{
+    fn into_into_dart(self) -> crate::api::ocr::OcrStageEps {
         self
     }
 }
@@ -11675,6 +11780,25 @@ impl SseEncode for crate::api::ocr::OcrPageResult {
         <u64>::sse_encode(self.recognize_ms, serializer);
         <u64>::sse_encode(self.inpaint_ms, serializer);
         <Option<String>>::sse_encode(self.erased_path, serializer);
+        <crate::api::ocr::OcrStageEps>::sse_encode(self.stage_eps, serializer);
+    }
+}
+
+impl SseEncode for crate::api::ocr::OcrStageEpPlan {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<String>>::sse_encode(self.detect, serializer);
+        <Option<String>>::sse_encode(self.recognize, serializer);
+        <Option<String>>::sse_encode(self.inpaint, serializer);
+    }
+}
+
+impl SseEncode for crate::api::ocr::OcrStageEps {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.detect, serializer);
+        <String>::sse_encode(self.recognize, serializer);
+        <Option<String>>::sse_encode(self.inpaint, serializer);
     }
 }
 

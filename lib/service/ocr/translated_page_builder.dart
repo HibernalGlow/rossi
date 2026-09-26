@@ -27,6 +27,7 @@ class TranslatedPage {
     required this.hasText,
     required this.blockCount,
     required this.truncatedCount,
+    this.stageEps,
     this.elapsed = Duration.zero,
     this.degraded = false,
   });
@@ -51,6 +52,12 @@ class TranslatedPage {
   /// 冒烟页与以后的状态条都要显示它 —— 一页十几秒这件事得让用户看得见，
   /// 不然只会以为点了没反应。
   final Duration elapsed;
+
+  /// 分析那一跳三段各自**实际生效**的 EP（Rust 侧 resolve 之后的值，**不是**设置里的请求值）。
+  ///
+  /// 命中缓存时是 null：那一次什么都没跑，不该拿一个旧值顶替。降级档**有**值 ——
+  /// 分析跑了，只是翻译那一跳挂了。「选了 GPU 就不许偷偷用 CPU」这条纪律要核对的就是它。
+  final OcrStageEps? stageEps;
 }
 
 /// 整页链路：查缓存 → 分析（检测/识别/聚块/擦字）→ 翻译 → 回填 → 原子写缓存。
@@ -133,6 +140,7 @@ class TranslatedPageBuilder {
     final Uint8List png;
     final int blocks;
     final int truncated;
+    late final OcrStageEps stageEps;
     bool degraded;
     // 擦干净的底图只是中间产物，落在系统临时目录、出函数就删；
     // 缓存目录里只留成品，免得用户看到两类分不清的 PNG。
@@ -147,6 +155,7 @@ class TranslatedPageBuilder {
           hasText: false,
           blockCount: 0,
           truncatedCount: 0,
+          stageEps: result.stageEps,
           elapsed: clock.elapsed,
         );
       }
@@ -182,6 +191,7 @@ class TranslatedPageBuilder {
       );
       blocks = result.blocks.length;
       truncated = result.blocks.where((b) => b.truncated).length;
+      stageEps = result.stageEps;
     } finally {
       await scratch.delete(recursive: true);
     }
@@ -202,6 +212,7 @@ class TranslatedPageBuilder {
         hasText: true,
         blockCount: blocks,
         truncatedCount: truncated,
+        stageEps: stageEps,
         elapsed: clock.elapsed,
         degraded: true,
       );
@@ -219,6 +230,7 @@ class TranslatedPageBuilder {
       hasText: true,
       blockCount: blocks,
       truncatedCount: truncated,
+      stageEps: stageEps,
       elapsed: clock.elapsed,
       degraded: degraded,
     );

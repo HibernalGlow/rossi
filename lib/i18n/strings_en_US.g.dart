@@ -1468,6 +1468,8 @@ class _Translations$ocr$en_US extends Translations$ocr$zh_CN {
 	@override String get epSection => 'Inference backend';
 	@override String get ep => 'Inference backend';
 	@override String get epSubtitle => 'Measured: both models are slower on CoreML, so CPU is the default';
+	@override String epPlan({required Object detect, required Object recognize, required Object inpaint}) => 'Per stage on this machine: detect ${detect} · recognize ${recognize} · inpaint ${inpaint}';
+	@override String epPlanUnsupported({required Object ep}) => 'This platform\'s build has no ${ep} — picking it fails as analysis starts; it never silently falls back to CPU';
 	@override String get modelSection => 'Model weights';
 	@override String weightsReady({required Object count}) => 'Weights ready (${count} files)';
 	@override String weightsMissing({required Object missing}) => 'Missing: ${missing}';
@@ -3545,6 +3547,8 @@ extension on TranslationsEnUs {
 			'ocr.epSection' => 'Inference backend',
 			'ocr.ep' => 'Inference backend',
 			'ocr.epSubtitle' => 'Measured: both models are slower on CoreML, so CPU is the default',
+			'ocr.epPlan' => ({required Object detect, required Object recognize, required Object inpaint}) => 'Per stage on this machine: detect ${detect} · recognize ${recognize} · inpaint ${inpaint}',
+			'ocr.epPlanUnsupported' => ({required Object ep}) => 'This platform\'s build has no ${ep} — picking it fails as analysis starts; it never silently falls back to CPU',
 			'ocr.modelSection' => 'Model weights',
 			'ocr.weightsReady' => ({required Object count}) => 'Weights ready (${count} files)',
 			'ocr.weightsMissing' => ({required Object missing}) => 'Missing: ${missing}',
@@ -3824,10 +3828,10 @@ extension on TranslationsEnUs {
 			'comicFollow.latestCount' => ({required Object count}) => 'Latest ${count} chapters',
 			'comicFollow.fetchFailed' => 'Fetch failed',
 			'comicFollow.newChaptersShort' => ({required Object diff}) => '${diff} new',
-			'comicFollow.newUnreadChaptersShort' => ({required Object diff}) => '${diff} unread',
-			'comicFollow.update' => 'Update',
 			_ => null,
 		} ?? switch (path) {
+			'comicFollow.newUnreadChaptersShort' => ({required Object diff}) => '${diff} unread',
+			'comicFollow.update' => 'Update',
 			'comicFollow.retry' => 'Retry',
 			'comicFollow.updateChannelName' => 'Comic update reminder',
 			'comicFollow.updateChannelDesc' => 'Pushed when followed comics have new chapters',

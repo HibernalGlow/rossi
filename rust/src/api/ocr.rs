@@ -11,6 +11,7 @@ use anyhow::{Context, Result, anyhow};
 use flutter_rust_bridge::frb;
 use rossi_ocr_core::{
     Detector, Ep, GroupParams, Inpainter, Recognizer, group_boxes, mask_from_blocks,
+    stage_ep_plan,
 };
 use std::path::PathBuf;
 use std::time::Instant;
@@ -34,6 +35,19 @@ pub struct OcrBlock {
     pub truncated: bool,
 }
 
+/// 三段各自**实际生效**的 EP（Rust 侧 `resolve` 之后的值，不是请求值）。
+///
+/// 为什么要它：`ep = auto` 时三段本来就该各走各的（Windows 上检测 CPU、
+/// 识别与擦字 DirectML），只回报请求值等于什么都没说；而「选了 GPU 就不许偷偷用 CPU」
+/// 这条纪律要成立，界面必须能核对**跑起来的那条**。
+pub struct OcrStageEps {
+    pub detect: String,
+    pub recognize: String,
+    /// 没跑擦字（掩膜为空、或没给擦字模型）时是 `None` —— 界面显示「未跑」，
+    /// 别让它看着像「跑了但用了 cpu」。
+    pub inpaint: Option<String>,
+}
+
 /// 一页的分析结果。耗时字段的单位是毫秒。
 pub struct OcrPageResult {
     pub blocks: Vec<OcrBlock>,
@@ -44,6 +58,30 @@ pub struct OcrPageResult {
     pub inpaint_ms: u64,
     /// 擦干净的底图（仅在给了 `erased_output` 时写出）。译文要画在这张图上。
     pub erased_path: Option<String>,
+    /// 这三段各自动用了哪条 EP。从各组件身上读回来（它们存的是 resolve 之后的值）。
+    pub stage_eps: OcrStageEps,
+}
+
+/// 设置页要显示的「本机三段落点」。每段 `None` = 本平台构建里没注册这条 EP，
+/// 真跑会在建会话时报错（不静默退回 CPU）。
+pub struct OcrStageEpPlan {
+    pub detect: Option<String>,
+    pub recognize: Option<String>,
+    pub inpaint: Option<String>,
+}
+
+/// 把「请求的 EP」翻译成「本机三段各自会用哪条」。纯函数：不读模型、不建会话。
+///
+/// 与 [`ocr_analyze_page`] 回报实际值用的是**同一把尺子**（`ocr_core::stage_ep_plan`），
+/// 所以设置页说「将用 directml」与冒烟页说「实际用了 directml」不会各说各话。
+#[frb(sync)]
+pub fn ocr_stage_ep_plan(ep: String) -> Result<OcrStageEpPlan> {
+    let plan = stage_ep_plan(Ep::parse(&ep)?);
+    Ok(OcrStageEpPlan {
+        detect: plan.detect.map(|e| e.label().to_string()),
+        recognize: plan.recognize.map(|e| e.label().to_string()),
+        inpaint: plan.inpaint.map(|e| e.label().to_string()),
+    })
 }
 
 /// 检测 → 识别 → 聚块（→ 可选擦字）。**不做翻译**，也不画字。
@@ -69,6 +107,7 @@ pub async fn ocr_analyze_page(
         let (page_w, page_h) = page.dimensions();
 
         let mut detector = Detector::from_file(&PathBuf::from(&models.det), ep)?;
+        let ep_detect = detector.ep().label().to_string();
         let detection = detector.detect(&page)?;
         let detect_ms =
             (detection.preprocess_ms + detection.infer_ms + detection.postprocess_ms) as u64;
@@ -82,6 +121,7 @@ pub async fn ocr_analyze_page(
         if let Some(n) = max_new_tokens {
             recognizer = recognizer.with_max_new_tokens(n as usize);
         }
+        let ep_recognize = recognizer.ep().label().to_string();
 
         let recognize_start = Instant::now();
         let mut texts: Vec<(String, bool)> = Vec::with_capacity(detection.boxes.len());
@@ -122,6 +162,7 @@ pub async fn ocr_analyze_page(
 
         let mut inpaint_ms = 0u64;
         let mut erased_path = None;
+        let mut ep_inpaint = None;
         if let Some(model) = inpaint_model {
             let out = erased_output
                 .clone()
@@ -129,6 +170,7 @@ pub async fn ocr_analyze_page(
             let mask = mask_from_blocks(&blocks_raw, page_w, page_h, 3);
             if mask.iter().any(|v| *v > 0) {
                 let mut inpainter = Inpainter::from_file(&PathBuf::from(&model), ep)?;
+                ep_inpaint = Some(inpainter.ep().label().to_string());
                 let erased = inpainter.inpaint(&page, &mask)?;
                 inpaint_ms = (erased.preprocess_ms + erased.infer_ms + erased.composite_ms) as u64;
                 erased
@@ -147,6 +189,11 @@ pub async fn ocr_analyze_page(
             recognize_ms,
             inpaint_ms,
             erased_path,
+            stage_eps: OcrStageEps {
+                detect: ep_detect,
+                recognize: ep_recognize,
+                inpaint: ep_inpaint,
+            },
         })
     })
     .await

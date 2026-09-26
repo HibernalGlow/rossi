@@ -8,6 +8,7 @@ import 'package:zephyr/service/ocr/ocr_models.dart';
 import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_cache.dart';
+import 'package:zephyr/src/rust/api/ocr.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
 
@@ -30,6 +31,7 @@ class _OcrSettingPageState extends State<OcrSettingPage> {
   );
   bool _configured = false;
   String _ep = OcrSettings.defaultEp;
+  OcrStageEpPlan? _epPlan;
   List<String> _missing = const [];
   int _readyCount = 0;
   int _cacheCount = 0;
@@ -59,15 +61,29 @@ class _OcrSettingPageState extends State<OcrSettingPage> {
     ]);
     if (!mounted) return;
     final status = results[3] as (List<String>, List<String>);
+    final ep = results[2] as String;
     setState(() {
       _draft = results[0] as OcrTranslationConfig;
       _configured = results[1] != null;
-      _ep = results[2] as String;
+      _ep = ep;
+      _epPlan = _resolveEpPlan(ep);
       _readyCount = status.$1.length;
       _missing = status.$2;
       _cacheCount = results[4] as int;
       _loading = false;
     });
+  }
+
+  /// 本机三段落点（Rust 侧 `ocr_core::stage_ep_plan`，与冒烟页回报实际值同一把尺子）。
+  ///
+  /// 拿不到时返回 null —— 这一行只是说明，宁可不说，也不该把整页拖垮，
+  /// 更不该在不知道的情况下替构建许一个「能用」。
+  static OcrStageEpPlan? _resolveEpPlan(String ep) {
+    try {
+      return ocrStageEpPlan(ep: ep);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _save(OcrTranslationConfig next) async {
@@ -284,6 +300,14 @@ class _OcrSettingPageState extends State<OcrSettingPage> {
                     },
                   ),
                 ),
+                if (_epPlan case final plan?)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: Text(
+                      _epPlanText(plan),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
 
                 const SizedBox(height: 8),
                 const Divider(height: 1, thickness: 0.3),
@@ -335,6 +359,19 @@ class _OcrSettingPageState extends State<OcrSettingPage> {
   String _epLabel(String ep) => OcrSettings.epChoices
       .firstWhere((c) => c.$1 == ep, orElse: () => OcrSettings.epChoices.first)
       .$2;
+
+  /// 「本机各段会用哪条」。同一个 EP 同时作用于三段，所以三段要么都有落点、
+  /// 要么都没有 —— 只要有一段空着，就是本平台构建没注册这条 EP，
+  /// 如实说「选了会在开始分析时报错」，而不是显示成一条跑得起来的 EP。
+  String _epPlanText(OcrStageEpPlan plan) => switch (plan) {
+    OcrStageEpPlan(
+      detect: final String detect,
+      recognize: final String recognize,
+      inpaint: final String inpaint,
+    ) =>
+      t.ocr.epPlan(detect: detect, recognize: recognize, inpaint: inpaint),
+    _ => t.ocr.epPlanUnsupported(ep: _ep),
+  };
 
   Widget _tile({
     required IconData icon,

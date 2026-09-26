@@ -164,6 +164,11 @@ void main() {
           recognizeMs: BigInt.one,
           inpaintMs: BigInt.one,
           erasedPath: erasedPath,
+          stageEps: const OcrStageEps(
+            detect: 'cpu',
+            recognize: 'cpu',
+            inpaint: 'cpu',
+          ),
         );
       },
     );
@@ -236,6 +241,11 @@ void main() {
           recognizeMs: BigInt.one,
           inpaintMs: BigInt.one,
           erasedPath: erasedPath,
+          stageEps: const OcrStageEps(
+            detect: 'cpu',
+            recognize: 'cpu',
+            inpaint: 'cpu',
+          ),
         );
       },
       translate: (texts, cfg) async => const ['只有一条'],

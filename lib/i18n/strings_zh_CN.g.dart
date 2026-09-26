@@ -3985,6 +3985,12 @@ class Translations$ocr$zh_CN {
 	/// zh-CN: '实测这两个模型在 CoreML 上更慢，默认走 CPU'
 	String get epSubtitle => '实测这两个模型在 CoreML 上更慢，默认走 CPU';
 
+	/// zh-CN: '本机各段：检测 $detect · 识别 $recognize · 擦字 $inpaint'
+	String epPlan({required Object detect, required Object recognize, required Object inpaint}) => '本机各段：检测 ${detect} · 识别 ${recognize} · 擦字 ${inpaint}';
+
+	/// zh-CN: '本平台构建里没有 $ep —— 选了会在开始分析时报错，不会静默退回 CPU'
+	String epPlanUnsupported({required Object ep}) => '本平台构建里没有 ${ep} —— 选了会在开始分析时报错，不会静默退回 CPU';
+
 	/// zh-CN: '模型权重'
 	String get modelSection => '模型权重';
 
@@ -7246,6 +7252,8 @@ extension on Translations {
 			'ocr.epSection' => '推理后端',
 			'ocr.ep' => '推理后端',
 			'ocr.epSubtitle' => '实测这两个模型在 CoreML 上更慢，默认走 CPU',
+			'ocr.epPlan' => ({required Object detect, required Object recognize, required Object inpaint}) => '本机各段：检测 ${detect} · 识别 ${recognize} · 擦字 ${inpaint}',
+			'ocr.epPlanUnsupported' => ({required Object ep}) => '本平台构建里没有 ${ep} —— 选了会在开始分析时报错，不会静默退回 CPU',
 			'ocr.modelSection' => '模型权重',
 			'ocr.weightsReady' => ({required Object count}) => '权重已就绪（${count} 个文件）',
 			'ocr.weightsMissing' => ({required Object missing}) => '缺少：${missing}',
@@ -7524,10 +7532,10 @@ extension on Translations {
 			'comicFollow.newUnreadChapters' => ({required Object diff, required Object total}) => '新增 ${diff} 话未阅读，共 ${total} 话',
 			'comicFollow.latestCount' => ({required Object count}) => '最新 ${count} 话',
 			'comicFollow.fetchFailed' => '获取失败',
-			'comicFollow.newChaptersShort' => ({required Object diff}) => '新增 ${diff} 话',
-			'comicFollow.newUnreadChaptersShort' => ({required Object diff}) => '新增 ${diff} 话未阅读',
 			_ => null,
 		} ?? switch (path) {
+			'comicFollow.newChaptersShort' => ({required Object diff}) => '新增 ${diff} 话',
+			'comicFollow.newUnreadChaptersShort' => ({required Object diff}) => '新增 ${diff} 话未阅读',
 			'comicFollow.update' => '更新',
 			'comicFollow.retry' => '重试',
 			'comicFollow.updateChannelName' => '漫画更新提醒',

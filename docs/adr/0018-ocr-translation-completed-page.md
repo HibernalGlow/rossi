@@ -350,11 +350,12 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
 
 | 本 ADR 的决定 | 落点 | 状态 |
 |---|---|---|
-| §2 `rust/ocr_core` | `rust/ocr_core/src/{detect,postprocess,recognize,group,inpaint,session}.rs`，经 `rust/src/api/ocr.rs::ocr_analyze_page` 过 FRB | 已实现；`cargo test -p rossi_ocr_core` 24 条 |
+| §2 `rust/ocr_core` | `rust/ocr_core/src/{detect,postprocess,recognize,group,inpaint,session}.rs`，经 `rust/src/api/ocr.rs::ocr_analyze_page` 过 FRB | 已实现；`cargo test -p rossi_ocr_core` 27 条 |
 | §6「排除移动端功能 ≠ 排除移动端构建」 | `ocr_core` 是 `windcore` 的依赖（`rust/Cargo.toml:42`），所以 iOS / Android / Linux 的 App 构建**一样要编它** —— 功能关掉救不了编译失败。交叉 `cargo check` 跑了 `aarch64-apple-ios`、`aarch64-linux-android`、`aarch64-unknown-linux-gnu` 三个目标（Android 与 Linux 共用那条 CPU-only cfg 分支，但各查一遍），并清掉了只在移动端才露面的两个告警：`PathBuf` 只在 Apple 分支被用、CPU-only 那版 `apply_accelerator` 用不到模型参数（改成 `_model` 并写明为什么） | 已验到 **check 级、三目标各只剩 "Checking…/Finished" 两行输出（零告警）**；`windcore` host 构建 rc=0。⚠️ 还没验：iOS / Android 的链接与出包 —— 本机 `flutter build ios --release --no-codesign` 过了 `pod install`，断在 xcodebuild 的 `coreml_upscale`（`MultiArrayModel.swift` 用 `float16` 要 iOS 16，而工程 `IPHONEOS_DEPLOYMENT_TARGET = 15.0`；由 `d66ee508` 带入，与成品页链路无关），所以 OCR 在 iOS 上只有 check 级证据；Windows 那版仍压在那台下线的机器上 |
 | §3 成品页 = 缓存产物 | `translated_page_cache.dart`（指纹 + 可读标签目录 + `manifest.json` + 原子写；降级档走同根的旁路目录 `manga_translated_degraded/`，不参与指纹查表但归「清空」管） | 已实现 |
 | §3 Dart 侧排版 | `translated_page_renderer.dart`（字号候选下降、越框禁止、OFL 字体运行时注册） | 已实现。「越框禁止」是**量过的**：八页真页逐像素对照擦干净底图，框外改动的像素每页 0–83 个、离框最远 4 px（笔画外沿 + 浮点框取整）；同一测试里故意把框放大 30 px 渲染，同样那把尺子量出 11–26 px / 728–42895 个像素 —— 判据取「离框 ≤6 px」，落在两个数量级的空档里，并由那条对照钉住「尺子看得见真越框」 |
 | §3.4 每页开关 / 与超分互斥 / 状态核对 | `lib/reader/translated_page_controller.dart` + 顶栏 `reader_translated_page_chip.dart`；芯片状态表抽成纯函数 `translated_page_status.dart`（与超分那边同形） | 已实现 |
+| 未决 8「各段实际用了哪条 EP 要看得见」 | 实际值：`OcrPageResult.stage_eps`，从 `Detector` / `Recognizer` / `Inpainter` 各自的 `ep()` 读回（擦字没跑 = `null`）；本机落点：`ocr_stage_ep_plan`。界面两处 —— `lib/debug/ocr_smoke_debug_page.dart`（跑完才出现那一行）、`lib/page/setting/ocr/ocr_setting_page.dart`（推理后端下拉下面） | 已实现，FRB codegen 与 `windcore` dylib 同批重跑。**两处共用 `ocr_core::stage_ep_plan` 这一把尺子**，所以「设置页说将用 X」与「冒烟页说实际用了 X」不会各说各话；本平台构建没有那条 EP 时设置页直接说「选了会报错」，不显示成能用。命中缓存时那一行**不出现** —— 那一次什么都没跑。 |
 | Consequences「退出阅读 / 切章必须取消在途推理」 | `LocalReadSession.setSource` 与 `dispose(expectedPath:)` 都调 `TranslatedPageController.reset()`；在飞的那次构建按 `_generation` 认出自己过期，并且**把 `shouldCancel` 传给构建器**，于是剩下的翻译 / 排版 / 落盘都不再发生 | 已实现。⚠️ 粒度只能是**阶段**：检测+识别+擦字是一次过桥的整段调用，Rust 侧没有协作式取消点，所以「正在跑的那一段」会跑到结束才让出。过期判定、阶段取消、以及 `LocalReadSession` 那两行装配**都有单测**（摘掉路径闸 / 摘掉 `dispose` 里的 `reset()` / 摘掉 `shouldCancel` / 去掉 `_stale`，各有一条会红）；真机判据仍留在验收清单第 7c 条（要看的是 CPU 占用真的回落）。 |
 | 同一条里的「切 lane」那一半 | 查过代码：**它不构成一个场景**。泳道里阅读器只有一条（`workspace/model/workspace_layout_config.dart:14` 三个 LaneId 中只有 `reader` 挂阅读器，`workspace_cubit.dart:124` 的 `readerTarget` 是整体替换的单值），切 lane 只改 `activeLaneId` 并给非活动道套 `AbsorbPointer`（`swimlane_workspace.dart:633`），阅读器**不卸载** → 不存在「旧 lane 的译文状态贴在单例上」。真正的卸载入口只有 `closeReader`、`identityKey` 变更、把阅读器道收成 44 px 轨（`swimlane_column.dart:98`），而第三条会走 `State.dispose` → 正好落在上一行那个钩子上 | 无需改动（登记为查证结果） |
 | §4 页后处理位定型 | 替代位图 = 成品页 PNG，替换入口 = 呈现器既有的增强图轨；`PageSource` 形状**未改**，没有引入图层集合 | 符合 |
@@ -362,9 +363,22 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
 | §6 平台排除 | `ocrSupportedHere`：移动端连设置入口都不画 | 已实现 |
 | §7 不内置 NMT | `ocr_translator.dart` 只走 OpenAI-compatible；真 HTTP 有 6 条测试 | 已实现 |
 
-验证：`flutter test test/ocr/` + 三份 reader 测试共 **103 条全过 0 skip**（Dart 77 + 呈现器测试 26），
-其中 `completed_page_e2e_test.dart` 用真权重跑通整条链路（15 块 / 827×1170 / 每块有墨 / 二次命中缓存）。
-`flutter build macos` 的 Debug 与 Release 都出包（Release 152.7 MB，含 13.2 MB 字体）。
+验证：`flutter test test/ocr/` + 三份 reader 测试共 **104 条全过 0 skip**（Dart 78 + 呈现器测试 26），
+`cargo test -p rossi_ocr_core` **27 条**，
+其中 `completed_page_e2e_test.dart` 用真权重跑通整条链路（15 块 / 827×1170 / 每块有墨 / 二次命中缓存，
+且断住 `auto` 在本机三段的**实际**落点 = cpu/cpu/cpu）。
+`flutter build macos` 的 Debug 与 Release 都出包（Release 152.7 MB，含 13.2 MB 字体）；
+本批改动之后 Debug 又跑了一次：`✓ Built build/macos/Build/Products/Debug/Rossi.app`，rc=0。
+⚠️ 顺带记一件**与 OCR 无关**的本机事：仓库从 `/Users/glow/Base/Code/rossi` 搬进 `Freya/` 之后，
+`flutter build macos --debug` 直接红在「There is no XCFramework found at
+…/Code/rossi/build/macos/SourcePackages/artifacts/sentry-cocoa/Sentry/Sentry.xcframework」。
+旧绝对路径**只存在于生成物里** —— `build/macos/SourcePackages/workspace-state.json`（和它的 `.bak`）
+加 `macos/Flutter/ephemeral/FlutterInputs.xcfilelist` / `FlutterOutputs.xcfilelist`；
+受跟踪的那几份（`macos/Podfile`、`macos/Podfile.lock`、`Runner.xcodeproj/project.pbxproj`、
+`RunnerTests.swift`）现查**一处都没有**，所以这是本机状态问题，不是仓里写错了路径。
+做法（本机验过）：把上面那几份生成物里的旧根前缀改成新根，构建就过。
+**只把 `build/macos/Build` 移开不够** —— 我试过，第二次仍然报同一句（产物本身在新路径下一直都在，
+红的是那份记着旧绝对路径的状态）。
 真机逐条判据在 `docs/ocr-completed-page-acceptance.md`。
 
 **本期没做**（不是缺陷）：整本批量、真竖排（标点旋转与列读序）、拟声词、上色、Android / iOS。
@@ -398,11 +412,16 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
    一个新的过桥转码 API、缓存文件名、`TranslatedPageCache.isUsable` 的签名判据
    （现在查的是 PNG 签名 + 结尾 `IEND`）。**外加一次 Windows 解码验证** —— 收益小、跨两平台解码路径，
    所以排在拟声词与真竖排之后，不在这一期硬做。
-8. **界面上看不到「各段实际用了哪条 EP」**（2026-09-26 记，本次没做）：命令行那半边已经修好 ——
-   `ocr_page` 现在报三段各自**实际生效**的 EP。但这个值**没过桥**：`OcrPageResult` 只带请求的
-   `ep` 字符串加三段耗时。补齐是四步、少一步就自相矛盾：`ocr_core` 把 resolve 后的值挂上结果结构
-   → `rust/src/api/ocr.rs` 的 DTO → **重跑 FRB codegen**（不重跑会留旧 wire 名，`analyze` 绿而调用才炸）
-   → `cargo build --release -p windcore`（测试加载的就是那份 dylib）→ 冒烟页与设置页显示。
-   当前处置：冒烟页那行已改成明写「推理后端（请求值）」，不再让人把请求值当成实跑值；
-   第 14 条的实际值判定改走 CLI 那一条命令（见验收清单第 14 条）。
+8. ~~**界面上看不到「各段实际用了哪条 EP」**~~ → **已补齐（2026-09-26，同一轮）**。
+   四步活都落了：`ocr_core` 各组件本就把 resolve 后的值挂在身上（`ep()`，命令行那半边一直在用），
+   `OcrPageResult` 新增 `stage_eps`（`rust/src/api/ocr.rs`，擦字没跑时 `inpaint` 是 `null`）
+   → 重跑 FRB codegen → `cargo build --release -p windcore` → 界面两处显示：
+   冒烟页跑完一遍报「各段实际生效：检测 X · 识别 Y · 擦字 Z」；设置页在推理后端那一行下面
+   报**本机各段落点**（`ocr_stage_ep_plan(ep)`）。设置页那条不是另一套逻辑 ——
+   它调的就是 `ocr_core::stage_ep_plan`，与冒烟页回报实际值同一把尺子；
+   三段里只要有一段落空（本平台构建没注册这条 EP）就直接说「选了会在开始分析时报错」，
+   而不是显示成一条跑得起来的 EP。
+   **没有做的**：命中缓存时不报 EP（那一次什么都没跑，拿旧值顶替等于谎报），
+   所以那一行在缓存命中时**不出现**；这是如实，不是漏画。
+   → 第 14 条的 Windows 判定现在有两条等价的路：CLI 那一行，或冒烟页跑一遍（见验收清单第 14 条）。
 

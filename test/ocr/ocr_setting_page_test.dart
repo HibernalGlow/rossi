@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/ocr/ocr_setting_page.dart';
 import 'package:zephyr/service/ocr/ocr_models.dart';
+import 'package:zephyr/src/rust/frb_generated.dart';
 
 const _pathChannel = MethodChannel('plugins.flutter.io/path_provider');
 
@@ -20,6 +21,23 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late Directory root;
+
+  /// 原生库要在 **FakeAsync 区之外**初始化一次：`testWidgets` 体里 await 一个真异步
+  /// （`RustLib.init` 要 dlopen + 起线程）永远不会推进，只会等到 10 min 超时。
+  /// 这条测试要问 Rust 侧要「本机各段落点」，而设置页拿不到时会安静地不画那一行
+  /// （宁可不说，也不替构建撒谎），所以必须先确认原生库真的在 ——
+  /// 否则那条「找不到文案」的断言会误报成页面错。
+  var nativeReady = false;
+  var nativeError = '';
+
+  setUpAll(() async {
+    try {
+      await RustLib.init();
+      nativeReady = true;
+    } catch (e) {
+      nativeError = '$e';
+    }
+  });
 
   setUp(() async {
     root = await Directory.systemTemp.createTemp('rossi_ocr_page_test_');
@@ -100,5 +118,27 @@ void main() {
     // 页面卡在加载转圈上也会绿，那是假绿。
     expect(find.textContaining('••••••'), findsOneWidget);
     expect(find.textContaining('sk-super-secret'), findsNothing);
+  });
+
+  testWidgets('推理后端那行下面，如实说本机各段会落到哪条 EP', (tester) async {
+    if (!nativeReady) {
+      markTestSkipped('原生库加载不了（$nativeError）');
+      return;
+    }
+    await pump(tester);
+    // 值来自 Rust 侧同一把尺子（`ocr_core::stage_ep_plan`）：Windows 上 auto 落成
+    // 检测 cpu / 识别 directml / 擦字 directml，其余平台三段都是 cpu。
+    final expected = Platform.isWindows
+        ? t.ocr.epPlan(
+            detect: 'cpu',
+            recognize: 'directml',
+            inpaint: 'directml',
+          )
+        : t.ocr.epPlan(detect: 'cpu', recognize: 'cpu', inpaint: 'cpu');
+    expect(
+      find.text(expected),
+      findsOneWidget,
+      reason: '选了 auto 就得说清本机各段实际会落到哪条 —— 这正是「不静默退回 CPU」的一半',
+    );
   });
 }

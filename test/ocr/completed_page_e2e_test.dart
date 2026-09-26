@@ -106,6 +106,16 @@ void main() {
 
     expect(out.hasText, isTrue);
     expect(out.blockCount, greaterThan(0));
+    // 三段报的必须是**实际生效**的 EP（不是回显请求值）：这条走的是真 Rust 路径，
+    // 设置里没动过就是 `auto` —— Apple 上落三段 cpu，Windows 上检测 cpu、识别与擦字 directml。
+    final expectedEps = Platform.isWindows
+        ? ('cpu', 'directml', 'directml')
+        : ('cpu', 'cpu', 'cpu');
+    expect(
+      (out.stageEps?.detect, out.stageEps?.recognize, out.stageEps?.inpaint),
+      expectedEps,
+      reason: '实跑的三段 EP 要如实过桥（擦字这一段跑了，也不该是 null）',
+    );
 
     final bytes = await File(out.path).readAsBytes();
     final decoded = await _decode(bytes);

@@ -200,6 +200,11 @@ TranslatedPageController _gatedController(Uint8List page) =>
             recognizeMs: BigInt.one,
             inpaintMs: BigInt.one,
             erasedPath: erasedPath,
+            stageEps: const OcrStageEps(
+              detect: 'cpu',
+              recognize: 'cpu',
+              inpaint: 'cpu',
+            ),
           );
         },
         translate: (texts, config) async => ['是蜥蜴啊'],

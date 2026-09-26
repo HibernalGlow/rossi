@@ -8,9 +8,18 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `crop_with_pad`
 
+/// 把「请求的 EP」翻译成「本机三段各自会用哪条」。纯函数：不读模型、不建会话。
+///
+/// 与 [`ocr_analyze_page`] 回报实际值用的是**同一把尺子**（`ocr_core::stage_ep_plan`），
+/// 所以设置页说「将用 directml」与冒烟页说「实际用了 directml」不会各说各话。
+OcrStageEpPlan ocrStageEpPlan({required String ep}) =>
+    RustLib.instance.api.crateApiOcrOcrStageEpPlan(ep: ep);
+
 /// 检测 → 识别 → 聚块（→ 可选擦字）。**不做翻译**，也不画字。
 ///
-/// `ep` 取 `cpu` / `coreml` / `directml`：EP 按模型指定，且选了不支持的不静默退回 CPU
+/// `ep` 取 `auto` / `cpu` / `coreml` / `directml`。**默认 `auto` = 按「平台 + 哪一段模型」选**
+/// （Windows 上识别与擦字走 DirectML、检测走 CPU；其余平台走 CPU —— 数字见
+/// `docs/REFERENCE_RESEARCH.md` §8.6.3）。显式选了不支持的不静默退回 CPU
 /// （ADR-0018 §决定 3.1 的实测结论）。
 Future<OcrPageResult> ocrAnalyzePage({
   required String imagePath,
@@ -104,6 +113,9 @@ class OcrPageResult {
   /// 擦干净的底图（仅在给了 `erased_output` 时写出）。译文要画在这张图上。
   final String? erasedPath;
 
+  /// 这三段各自动用了哪条 EP。从各组件身上读回来（它们存的是 resolve 之后的值）。
+  final OcrStageEps stageEps;
+
   const OcrPageResult({
     required this.blocks,
     required this.pageWidth,
@@ -112,6 +124,7 @@ class OcrPageResult {
     required this.recognizeMs,
     required this.inpaintMs,
     this.erasedPath,
+    required this.stageEps,
   });
 
   @override
@@ -122,7 +135,8 @@ class OcrPageResult {
       detectMs.hashCode ^
       recognizeMs.hashCode ^
       inpaintMs.hashCode ^
-      erasedPath.hashCode;
+      erasedPath.hashCode ^
+      stageEps.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -135,5 +149,60 @@ class OcrPageResult {
           detectMs == other.detectMs &&
           recognizeMs == other.recognizeMs &&
           inpaintMs == other.inpaintMs &&
-          erasedPath == other.erasedPath;
+          erasedPath == other.erasedPath &&
+          stageEps == other.stageEps;
+}
+
+/// 设置页要显示的「本机三段落点」。每段 `None` = 本平台构建里没注册这条 EP，
+/// 真跑会在建会话时报错（不静默退回 CPU）。
+class OcrStageEpPlan {
+  final String? detect;
+  final String? recognize;
+  final String? inpaint;
+
+  const OcrStageEpPlan({this.detect, this.recognize, this.inpaint});
+
+  @override
+  int get hashCode => detect.hashCode ^ recognize.hashCode ^ inpaint.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OcrStageEpPlan &&
+          runtimeType == other.runtimeType &&
+          detect == other.detect &&
+          recognize == other.recognize &&
+          inpaint == other.inpaint;
+}
+
+/// 三段各自**实际生效**的 EP（Rust 侧 `resolve` 之后的值，不是请求值）。
+///
+/// 为什么要它：`ep = auto` 时三段本来就该各走各的（Windows 上检测 CPU、
+/// 识别与擦字 DirectML），只回报请求值等于什么都没说；而「选了 GPU 就不许偷偷用 CPU」
+/// 这条纪律要成立，界面必须能核对**跑起来的那条**。
+class OcrStageEps {
+  final String detect;
+  final String recognize;
+
+  /// 没跑擦字（掩膜为空、或没给擦字模型）时是 `None` —— 界面显示「未跑」，
+  /// 别让它看着像「跑了但用了 cpu」。
+  final String? inpaint;
+
+  const OcrStageEps({
+    required this.detect,
+    required this.recognize,
+    this.inpaint,
+  });
+
+  @override
+  int get hashCode => detect.hashCode ^ recognize.hashCode ^ inpaint.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OcrStageEps &&
+          runtimeType == other.runtimeType &&
+          detect == other.detect &&
+          recognize == other.recognize &&
+          inpaint == other.inpaint;
 }

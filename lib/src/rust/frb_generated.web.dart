@@ -399,6 +399,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   OcrPageResult dco_decode_ocr_page_result(dynamic raw);
 
   @protected
+  OcrStageEpPlan dco_decode_ocr_stage_ep_plan(dynamic raw);
+
+  @protected
+  OcrStageEps dco_decode_ocr_stage_eps(dynamic raw);
+
+  @protected
   Map<String, String>? dco_decode_opt_Map_String_String_None(dynamic raw);
 
   @protected
@@ -930,6 +936,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   OcrPageResult sse_decode_ocr_page_result(SseDeserializer deserializer);
+
+  @protected
+  OcrStageEpPlan sse_decode_ocr_stage_ep_plan(SseDeserializer deserializer);
+
+  @protected
+  OcrStageEps sse_decode_ocr_stage_eps(SseDeserializer deserializer);
 
   @protected
   Map<String, String>? sse_decode_opt_Map_String_String_None(
@@ -1598,6 +1610,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_ocr_page_result(OcrPageResult self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_ocr_stage_ep_plan(
+    OcrStageEpPlan self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_ocr_stage_eps(OcrStageEps self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_Map_String_String_None(

@@ -27,6 +27,13 @@ const _pathChannel = MethodChannel('plugins.flutter.io/path_provider');
 const _pageW = 400, _pageH = 300;
 final _box = const ui.Rect.fromLTWH(40, 30, 140, 90);
 
+/// 假的「三段实际生效」：取本机（Apple）上 `auto` 的真实落点。
+const _fakeStageEps = OcrStageEps(
+  detect: 'cpu',
+  recognize: 'cpu',
+  inpaint: 'cpu',
+);
+
 class _FakeSource implements PageSource {
   _FakeSource(this.bytes);
 
@@ -242,6 +249,7 @@ void main() {
               recognizeMs: BigInt.one,
               inpaintMs: BigInt.one,
               erasedPath: erasedPath,
+              stageEps: _fakeStageEps,
             );
           },
           translate: (texts, config) async => List.filled(texts.length, '是蜥蜴啊'),
@@ -407,6 +415,7 @@ void main() {
             recognizeMs: BigInt.one,
             inpaintMs: BigInt.one,
             erasedPath: erasedPath,
+            stageEps: _fakeStageEps,
           );
         },
         translate: (texts, config) async => ['是蜥蜴啊'],
@@ -454,6 +463,7 @@ void main() {
             recognizeMs: BigInt.one,
             inpaintMs: BigInt.one,
             erasedPath: erasedPath,
+            stageEps: _fakeStageEps,
           );
         },
         translate: (texts, config) async {

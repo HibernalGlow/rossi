@@ -85,6 +85,14 @@ class _FakeAnalyze {
   String? lastErasedPath;
   String? lastEp;
 
+  /// 故意取一组**三段不同**的值（Windows 上 auto 的实际结果），
+  /// 好让「编排层把实际生效的 EP 原样透传出来」这条测试能分辨真假。
+  final OcrStageEps stageEps = const OcrStageEps(
+    detect: 'cpu',
+    recognize: 'directml',
+    inpaint: 'directml',
+  );
+
   Future<OcrPageResult> call(
     String imagePath,
     String erasedPath,
@@ -106,6 +114,7 @@ class _FakeAnalyze {
       recognizeMs: BigInt.from(3700),
       inpaintMs: BigInt.from(1700),
       erasedPath: erasedPath,
+      stageEps: stageEps,
     );
   }
 }
@@ -170,6 +179,11 @@ void main() {
     expect(out.fromCache, isFalse);
     expect(out.hasText, isTrue);
     expect(out.blockCount, 1);
+    expect(
+      out.stageEps,
+      analyze.stageEps,
+      reason: '三段实际生效的 EP 要原样透传出来 —— 界面据它核对「选了 GPU 就真用了 GPU」',
+    );
 
     final file = File(out.path);
     expect(await file.exists(), isTrue);
@@ -208,6 +222,7 @@ void main() {
 
     expect(again.fromCache, isTrue);
     expect(again.path, first.path);
+    expect(again.stageEps, isNull, reason: '命中缓存那一次什么都没跑，不该拿上一次的 EP 顶替（那是谎报）');
     expect(analyze.calls, 1, reason: '一页分析 ~14 s，命中缓存还重跑等于没有缓存');
   });
 

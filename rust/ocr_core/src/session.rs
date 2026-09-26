@@ -85,6 +85,47 @@ impl Ep {
     }
 }
 
+/// 本平台构建里有没有注册这条 EP。
+///
+/// **与下面三个 `apply_accelerator` 分支一一对应** —— 这里说「没有」而那边能跑（或反过来），
+/// 就是让设置页替构建撒谎。`Ep::Auto` 不是可注册的值，先 [Ep::resolve]。
+pub fn ep_available(ep: Ep) -> bool {
+    match ep {
+        Ep::Cpu => true,
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
+        Ep::CoreMl => true,
+        #[cfg(target_os = "windows")]
+        Ep::DirectMl => true,
+        _ => false,
+    }
+}
+
+/// 三段各自**最终会用到哪条** EP。`None` = 本平台构建里没有这条 EP ——
+/// 真跑会在建会话时报错（不静默退回 CPU），所以预览里如实空着。
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct StageEpPlan {
+    pub detect: Option<Ep>,
+    pub recognize: Option<Ep>,
+    pub inpaint: Option<Ep>,
+}
+
+/// 把「请求的 EP」翻译成「本机三段各自会用哪条」。纯函数：不读模型、不建会话。
+///
+/// `auto` 经 [Ep::resolve] 落到的一定是能跑的 EP；显式选的值照办，
+/// 但本平台构建没有的话如实空着 —— 设置页据此能提前说清
+/// 「选了会在开始分析时报错」，而不是把 directml 显示成能用。
+pub fn stage_ep_plan(ep: Ep) -> StageEpPlan {
+    let one = |stage: Stage| {
+        let resolved = ep.resolve(stage);
+        ep_available(resolved).then_some(resolved)
+    };
+    StageEpPlan {
+        detect: one(Stage::Detect),
+        recognize: one(Stage::Recognize),
+        inpaint: one(Stage::Inpaint),
+    }
+}
+
 /// CoreML EP 的编译产物目录：落在模型旁边的 `.coreml_cache`。
 ///
 /// 不设 `ModelCacheDirectory` 时 ORT **每次建 session 都把 .onnx 重编译一遍**，产物还丢在
@@ -200,6 +241,55 @@ mod tests {
         // 「auto 才是聪明选择」不等于可以无视用户显式选的值 —— 那是另一种骗人。
         assert_eq!(Ep::CoreMl.resolve(Stage::Detect), Ep::CoreMl);
         assert_eq!(Ep::Cpu.resolve(Stage::Inpaint), Ep::Cpu);
+    }
+
+    #[test]
+    fn 可用性判定与三个_cfg_分支一一对应() {
+        // CPU 哪个构建都有；两条加速器 EP 只在对应平台上注册。
+        assert!(ep_available(Ep::Cpu));
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
+        assert!(ep_available(Ep::CoreMl));
+        #[cfg(not(any(target_os = "macos", target_os = "ios")))]
+        assert!(!ep_available(Ep::CoreMl));
+        #[cfg(target_os = "windows")]
+        assert!(ep_available(Ep::DirectMl));
+        #[cfg(not(target_os = "windows"))]
+        assert!(!ep_available(Ep::DirectMl));
+    }
+
+    #[test]
+    fn auto_的落点预览一定是能跑的那几条() {
+        let plan = stage_ep_plan(Ep::Auto);
+        if cfg!(target_os = "windows") {
+            assert_eq!(plan.detect, Some(Ep::Cpu));
+            assert_eq!(plan.recognize, Some(Ep::DirectMl));
+            assert_eq!(plan.inpaint, Some(Ep::DirectMl));
+        } else {
+            for got in [plan.detect, plan.recognize, plan.inpaint] {
+                assert_eq!(got, Some(Ep::Cpu));
+            }
+        }
+    }
+
+    #[test]
+    fn 显式选了本平台没有的_ep_预览如实空着() {
+        // 选了本平台没有的 EP 会在建会话时报错，所以预览必须是「空」而不是照抄请求值 ——
+        // 设置页那一行就是把这段事实说出来。
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
+        {
+            assert_eq!(stage_ep_plan(Ep::DirectMl).detect, None);
+            assert_eq!(stage_ep_plan(Ep::CoreMl).inpaint, Some(Ep::CoreMl));
+        }
+        #[cfg(target_os = "windows")]
+        {
+            assert_eq!(stage_ep_plan(Ep::CoreMl).detect, None);
+            assert_eq!(stage_ep_plan(Ep::DirectMl).inpaint, Some(Ep::DirectMl));
+        }
+        #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
+        {
+            assert_eq!(stage_ep_plan(Ep::CoreMl).detect, None);
+            assert_eq!(stage_ep_plan(Ep::DirectMl).inpaint, None);
+        }
     }
 
     #[test]

@@ -80,12 +80,8 @@ void main() {
         : '缺少 ${missing.join(' / ')}；设 ROSSI_OCR_MODELS_DIR 指向存放模型的目录';
   });
 
-  OcrModelPaths paths() => OcrModelPaths(
-    det: det,
-    encoder: encoder,
-    decoder: decoder,
-    vocab: vocab,
-  );
+  OcrModelPaths paths() =>
+      OcrModelPaths(det: det, encoder: encoder, decoder: decoder, vocab: vocab);
 
   test('过桥：检测 → 识别 → 聚块，块文本与四角点都拿得到', () async {
     if (!nativeReady) return markTestSkipped('原生库加载不了（$nativeError）');
@@ -107,6 +103,17 @@ void main() {
     expect(result.detectMs, greaterThan(BigInt.zero));
     expect(result.recognizeMs, greaterThan(BigInt.zero));
     expect(result.erasedPath, isNull, reason: '没给擦字模型就不该有产物');
+    // 三段各自**实际生效**的 EP 要真的过桥回来（以前只有请求值，识别段根本没报）。
+    expect(
+      (result.stageEps.detect, result.stageEps.recognize),
+      ('cpu', 'cpu'),
+      reason: '显式传了 cpu，前两段必须如实回报 cpu',
+    );
+    expect(
+      result.stageEps.inpaint,
+      isNull,
+      reason: '没跑擦字就该是 null，而不是回一条「跑过但用了 cpu」',
+    );
 
     final texts = result.blocks.map((b) => b.text).toList();
     // 回归锚点，取自 2026-09-25 的实测（`REFERENCE_RESEARCH.md` §8.6.7）：
@@ -148,7 +155,8 @@ void main() {
       );
     }
 
-    final out = '${Directory.systemTemp.createTempSync('rossi-ocr').path}/erased.png';
+    final out =
+        '${Directory.systemTemp.createTempSync('rossi-ocr').path}/erased.png';
     final result = await ocrAnalyzePage(
       imagePath: page,
       models: paths(),
@@ -163,6 +171,7 @@ void main() {
     expect(erased.existsSync(), isTrue, reason: '擦干净的底图必须落盘');
     expect(erased.lengthSync(), greaterThan(1000));
     expect(result.inpaintMs, greaterThan(BigInt.zero));
+    expect(result.stageEps.inpaint, 'cpu', reason: '跑了擦字就必须报出它实际用的那条 EP，而不是留空');
     // PNG 头里的宽高要与原页一致（降采样只发生在推理内部，产物是原尺寸）。
     final header = erased.readAsBytesSync().sublist(16, 24);
     final w = header[0] << 24 | header[1] << 16 | header[2] << 8 | header[3];

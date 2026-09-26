@@ -7,12 +7,18 @@
 静态层面已经过了，不必重复验：
 
 - `dart analyze lib/` 干净（只剩一条与本次无关的 `switch_toast_service.dart` info）；
-- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart test/reader/translated_page_status_test.dart test/reader/local_read_session_translation_gate_test.dart` **77 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条）；
-- `cargo test -p rossi_ocr_core` **24 条全过**；
-- `flutter build macos --debug` 与 `--release` 都出包成功（Release 产物 152.7 MB，含 13.2 MB 字体）。
-  ⚠️ 精确到位：**Debug 是在最后一批改动（降级档换目录、阶段取消、假端点、装配单测）之后重跑过的**，
-  Release 那一次在这之前 —— 成品页的 Dart 逻辑两边同一份码，但「Release 出包成功」这句话的范围
-  只到那一刻为止，别再把它当成最新那批的结论。
+- `flutter test test/ocr/ test/reader/translated_page_controller_test.dart test/reader/translated_page_status_test.dart test/reader/local_read_session_translation_gate_test.dart` **78 条全过 0 skip**（另加 `test/reader/gpu_present_controller_test.dart` 26 条，含译文页重注入那条 —— 两组合计 **104**）；
+- `cargo test -p rossi_ocr_core` **27 条全过**；
+- 三段**实际生效**的 EP 现在真的过了桥，并且四处都钉住了：过桥探针（显式 cpu → 前两段报 cpu、擦字没跑必须是 `null`；跑了擦字 → 报出它那条）、e2e（`auto` 在本机的真落点 cpu/cpu/cpu）、编排层原样透传 + 「命中缓存不许拿旧值顶替」、设置页与冒烟页那两行（摘掉设置页那一行，那条测试就红）。
+- `flutter build macos --debug` 出包成功（本批「三段实际生效 EP 过桥」之后重跑过）。
+  ⚠️ **`--release` 的那一次在这批改动之前** —— 成品页的 Dart 逻辑两边同一份码，
+  但「Release 出包成功」这句话的范围只到那一刻为止，别把它当成最新那批的结论。
+  ⚠️ 另有一条**与 OCR 无关**的坑：仓库从 `…/Code/rossi` 搬进 `…/Code/Freya/rossi` 之后，
+  构建会红在「no XCFramework found at …/Code/rossi/build/macos/…」——
+  旧绝对路径只留在 `build/macos/SourcePackages/workspace-state.json` 与
+  `macos/Flutter/ephemeral/Flutter{Inputs,Outputs}.xcfilelist` 这几份**生成物**里
+  （受跟踪的 Podfile / pbxproj 一处都没有）。改前缀即可；**只把 `build/macos/Build` 移开不够**。
+  详见 ADR-0018 实现记录那段。
 - **iOS 出包本机跑过一次，但断在一处与 OCR 无关的地方**：`packages/coreml_upscale/ios/Classes/MultiArrayModel.swift`
   用了 `float16`（要 iOS 16），而工程 `ios/Runner.xcodeproj` 的 `IPHONEOS_DEPLOYMENT_TARGET = 15.0`，
   于是 `pod install` 之后 xcodebuild 直接报四条 `'float16' is only available in iOS 16.0 or newer`。
@@ -35,7 +41,7 @@
 
 ## 接手须知：现状与四件未了
 
-- 本地 `main` 相对 `origin/main` **领先 91、落后 1**（2026-09-26 现量）。
+- 本地 `main` 相对 `origin/main` **领先 93、落后 1**（2026-09-26 晚现量，含「未决 8 过桥」这一笔）。
   也就是说 **CI 至今没编过这批代码** —— 想要 iOS / Android / Windows / Linux 的真实构建结果，
   顺序是先 fetch + rebase 那 1 笔、再推，然后看 `push-build.yml`。这一步需要人来点头。
 - 四件未了，各自的落点（都在仓里，不靠会话记忆）：
@@ -43,7 +49,8 @@
   ② Windows 的 `--ep auto` = 第 14 条里那一条命令（盒子目前 offline），跑完顺手清 `D:\tmp_ocr_dml`；
   ③ iOS / Android 的链接级出包被 `coreml_upscale` 的 `float16`（要 iOS 16，工程 15.0）挡着，
      与成品页链路无关，见开头那条注记；
-  ④ ADR 未决 7（产物换无损 WebP）与未决 8（把各段实际生效 EP 过桥到界面，四步活已列在 ADR 里）。
+  ④ ADR 未决 7（产物换无损 WebP，排在拟声词与真竖排之后）；**未决 8 已落地**（2026-09-26）——
+     三段实际生效的 EP 过了桥：冒烟页跑完报实际值，设置页报本机落点（见下面「先给一件工具」）。
 - 本文里所有「已经过了」都能按上面「怎么自己复跑」那一节重放一遍。
 
 ## 先说一条落盘纪律
@@ -59,8 +66,11 @@
 ## 先给一件工具：应用内冒烟页
 
 **设置 → 调试 → OCR 成品页冒烟**（刻意不锁在 debug 构建里，与本地来源、GPU 上屏那两条同口径）。
-它把这条链路的六道关摊开成可读的一行行：权重缺哪几个、后端实际是什么、选一张页、
-逐段报「检测 / 识别 / 擦字 → 翻译请求 → 回填排版」并显示总耗时、块数、被截断的块数与成品图。
+它把这条链路的六道关摊开成可读的一行行：权重缺哪几个、推理后端的**请求值**、选一张页、
+逐段报「检测 / 识别 / 擦字 → 翻译请求 → 回填排版」，跑完一遍再报三段**实际生效**的 EP
+（请求值与实际值是两行，不许混着看）、总耗时、块数、被截断的块数与成品图。
+设置页那一侧同口径：推理后端下拉下面直接写「本机各段：检测 X · 识别 Y · 擦字 Z」，
+本平台构建没有的 EP 会说「选了会在开始分析时报错」，不会显示成能用。
 
 下面第 1、2、4、5、11、12 条在这一页上就能判，**不必先进书再翻页**。
 它跑的是生产同一套 `TranslatedPageBuilder`（`force: true`，不读缓存），
@@ -290,6 +300,8 @@ cargo run -q --release -p rossi_ocr_core --bin ocr_page -- \
 且整页耗时接近 §8.6.3 那套分段数字合出来的 ~4 s（不是 CPU 的 ~23 s）。
 本机 macOS 已跑过同一条：报 `cpu / cpu / cpu`，与非 Windows 分支的策略一致 —— 也就是
 「报的是实际值」这半边已经验过，只差 Windows 那三个词。
+**等价的一条路（不必开命令行）**：冒烟页跑一遍，结果里「各段实际生效」那一行报的是同一个值
+（设置页选 auto 时，「本机各段」那一行与它必须逐段一致 —— 两处都调 `ocr_core::stage_ep_plan`）。
 顺手清掉盒子上的 `D:\tmp_ocr_dml`（约 660 MB 权重 + target）。
 
 **还要开 App 验的**：
@@ -306,11 +318,11 @@ cargo run -q --release -p rossi_ocr_core --bin ocr_page -- \
 ```bash
 export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer   # 不带它会写坏 SPM 接线
 dart analyze lib/                                                 # 期望：只剩 switch_toast_service 那条 info
-(cd rust && cargo test -p rossi_ocr_core)                          # 期望：24 passed
+(cd rust && cargo test -p rossi_ocr_core)                          # 期望：27 passed
 flutter test test/ocr/ test/reader/translated_page_controller_test.dart \
   test/reader/translated_page_status_test.dart \
   test/reader/local_read_session_translation_gate_test.dart \
-  test/reader/gpu_present_controller_test.dart                     # 期望：103 过 0 skip
+  test/reader/gpu_present_controller_test.dart                     # 期望：104 过 0 skip
 flutter build macos --debug                                        # 出包
 # 交叉编译（PATH 上默认是 Homebrew 的 cargo，没有交叉 std，要用工具链绝对路径）：
 (cd rust && PATH="$HOME/.rustup/toolchains/1.96.1-aarch64-apple-darwin/bin:$PATH" \

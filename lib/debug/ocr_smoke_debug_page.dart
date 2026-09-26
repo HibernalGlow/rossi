@@ -156,10 +156,10 @@ class _OcrSmokeDebugPageState extends State<OcrSmokeDebugPage> {
           ),
           ListTile(
             leading: const Icon(Icons.memory_outlined),
-            // 明说是「请求值」：三段实际用哪条 EP 由 Rust 侧按段 resolve，
-            // 这个值**没有**过桥回来（要等 OcrPageResult 带上 per-stage 才算得上报实际值），
-            // 现在写成「推理后端：auto」会让人以为看见的就是跑起来的那条。
-            title: Text('推理后端（请求值）：$_ep；各段实际用哪条由 Rust 按段决定'),
+            // 这一行是**请求值**（设置里选的那个），不是实际跑的：三段各用哪条 EP
+            // 由 Rust 按平台与段落 resolve，跑完一遍后由下面那种「各段实际生效」如实回报。
+            title: Text('推理后端（请求值）：$_ep'),
+            subtitle: const Text('各段实际用了哪条，跑一遍看结果里那一行'),
           ),
           ListTile(
             leading: const Icon(Icons.image_outlined),
@@ -193,6 +193,17 @@ class _OcrSmokeDebugPageState extends State<OcrSmokeDebugPage> {
               ),
               subtitle: Text(result.path),
             ),
+            if (result.stageEps case final eps?)
+              // 三段**实际生效**的 EP，值从 Rust 侧读回来（请求值在上面那一行）。
+              // 「选了 GPU 就不许偷偷用 CPU」这条纪律核对的就是这一行；
+              // 命中缓存时不显示 —— 那一次什么都没跑，拿旧值顶替等于谎报。
+              ListTile(
+                leading: const Icon(Icons.developer_board_outlined),
+                title: Text(
+                  '各段实际生效：检测 ${eps.detect} · 识别 ${eps.recognize} '
+                  '· 擦字 ${eps.inpaint ?? '未跑'}',
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.all(8),
               child: Image.file(File(result.path)),

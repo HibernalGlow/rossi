@@ -1284,6 +1284,8 @@
     "epSection": "Inference backend",
     "ep": "Inference backend",
     "epSubtitle": "Measured: both models are slower on CoreML, so CPU is the default",
+    "epPlan": "Per stage on this machine: detect $detect · recognize $recognize · inpaint $inpaint",
+    "epPlanUnsupported": "This platform's build has no $ep — picking it fails as analysis starts; it never silently falls back to CPU",
     "modelSection": "Model weights",
     "weightsReady": "Weights ready ($count files)",
     "weightsMissing": "Missing: $missing",
