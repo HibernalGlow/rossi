@@ -1483,6 +1483,14 @@ class _Translations$ocr$en_US extends Translations$ocr$zh_CN {
 	@override String get clearCache => 'Clear finished-page cache';
 	@override String get clearCacheSubtitle => 'Use after changing the model or the font; original images are untouched';
 	@override String get cacheCleared => 'Finished-page cache cleared';
+	@override String get logSection => 'Diagnostics';
+	@override String get viewLog => 'Translation log';
+	@override String get logHint => 'One line per gate for each page: endpoint, inference (with the EP actually used per stage), translation request, typesetting, write, presenter check.';
+	@override String get logDialogTitle => 'Manga translation log';
+	@override String get logEmpty => 'No translation log yet. Tap translate in the reader, or run Settings → Debug → OCR page smoke, and steps will show up here.';
+	@override String get copyLog => 'Copy log';
+	@override String get logCopied => 'Translation log copied';
+	@override String get openLogLocation => 'Reveal log file';
 	@override String get readerHint => 'Tap the translate button in the reader toolbar to switch this page only';
 	@override String get chipOff => 'Translate';
 	@override String get chipOn => 'Translated';
@@ -3562,6 +3570,14 @@ extension on TranslationsEnUs {
 			'ocr.clearCache' => 'Clear finished-page cache',
 			'ocr.clearCacheSubtitle' => 'Use after changing the model or the font; original images are untouched',
 			'ocr.cacheCleared' => 'Finished-page cache cleared',
+			'ocr.logSection' => 'Diagnostics',
+			'ocr.viewLog' => 'Translation log',
+			'ocr.logHint' => 'One line per gate for each page: endpoint, inference (with the EP actually used per stage), translation request, typesetting, write, presenter check.',
+			'ocr.logDialogTitle' => 'Manga translation log',
+			'ocr.logEmpty' => 'No translation log yet. Tap translate in the reader, or run Settings → Debug → OCR page smoke, and steps will show up here.',
+			'ocr.copyLog' => 'Copy log',
+			'ocr.logCopied' => 'Translation log copied',
+			'ocr.openLogLocation' => 'Reveal log file',
 			'ocr.readerHint' => 'Tap the translate button in the reader toolbar to switch this page only',
 			'ocr.chipOff' => 'Translate',
 			'ocr.chipOn' => 'Translated',
@@ -3820,6 +3836,8 @@ extension on TranslationsEnUs {
 			'comicFollow.notRead' => 'Not read yet',
 			'comicFollow.lastReadChapter' => ({required Object chapter}) => 'Read to: ${chapter}',
 			'comicFollow.latestChapter' => ({required Object count, required Object chapter}) => 'Latest: ${count} / ${chapter}',
+			_ => null,
+		} ?? switch (path) {
 			'comicFollow.noUnread' => 'No updated unread comics',
 			'comicFollow.showAll' => 'Show all',
 			'comicFollow.latestChapterFailed' => 'Failed to get latest chapter',
@@ -3828,8 +3846,6 @@ extension on TranslationsEnUs {
 			'comicFollow.latestCount' => ({required Object count}) => 'Latest ${count} chapters',
 			'comicFollow.fetchFailed' => 'Fetch failed',
 			'comicFollow.newChaptersShort' => ({required Object diff}) => '${diff} new',
-			_ => null,
-		} ?? switch (path) {
 			'comicFollow.newUnreadChaptersShort' => ({required Object diff}) => '${diff} unread',
 			'comicFollow.update' => 'Update',
 			'comicFollow.retry' => 'Retry',

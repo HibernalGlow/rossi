@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/setting/real_sr/service/super_resolution_log.dart';
+import 'package:zephyr/widgets/app_log_dialog.dart';
 
 class SuperResolutionLogControls extends StatelessWidget {
   const SuperResolutionLogControls({super.key});
@@ -31,44 +32,19 @@ class SuperResolutionLogControls extends StatelessWidget {
     }
   }
 
-  void _showLog(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('超分日志'),
-        content: SizedBox(
-          width: 720,
-          height: MediaQuery.sizeOf(context).height * .55,
-          child: ValueListenableBuilder(
-            valueListenable: SuperResolutionLog.entries,
-            builder: (context, entries, _) => SingleChildScrollView(
-              reverse: true,
-              child: SelectableText(
-                entries.isEmpty
-                    ? '尚无超分日志。启用超分后，推理和替换过程会记录在这里。'
-                    : SuperResolutionLog.text,
-                style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
-              ),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => _copy(context),
-            child: const Text('复制日志'),
-          ),
-          TextButton(
-            onPressed: () => _openFolder(context),
-            child: const Text('打开图片文件夹'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('关闭'),
-          ),
-        ],
-      ),
-    );
-  }
+  void _showLog(BuildContext context) => showAppLogDialog(
+    context,
+    log: SuperResolutionLog.log,
+    title: '超分日志',
+    emptyText: '尚无超分日志。启用超分后，推理和替换过程会记录在这里。',
+    copyLabel: '复制日志',
+    copiedToast: '超分日志已复制',
+    // 这个按钮开的是**最近产物**所在目录，不是日志文件 —— 超分的用法是
+    // 「刚超分完那张图在哪」，所以把去向整个交给 SuperResolutionLog 自己决定。
+    openLabel: '打开图片文件夹',
+    openAction: SuperResolutionLog.openOutputFolder,
+    closeLabel: '关闭',
+  );
 
   @override
   Widget build(BuildContext context) => Column(

@@ -17,6 +17,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:zephyr/service/ocr/ocr_log.dart';
 import 'package:zephyr/service/ocr/ocr_service.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_builder.dart';
@@ -140,6 +141,7 @@ void main() {
   tearDown(() async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(_pathChannel, null);
+    await OcrLog.flush();
     await root.delete(recursive: true);
   });
 
@@ -259,6 +261,11 @@ void main() {
     // 而不是整页失败。
     expect(out.degraded, isTrue);
     expect(out.hasText, isTrue);
+    expect(
+      OcrLog.log.entries.value.join('\n'),
+      contains('走降级档（擦字 + 原文回填）'),
+      reason: '降级必须在日志里留痕：界面上那句「原文回填」几秒就被下一次点击顶掉了',
+    );
     expect(await File(out.path).exists(), isTrue, reason: '降级页也得能显示出来');
     // 落点必须是**持久目录**：呈现器会按归属表里这个路径在翻回来时重注入，
     // 放系统临时目录的话 dirhelper 每天 03:35 扫一次，正在显示的这张会静默变回原图。

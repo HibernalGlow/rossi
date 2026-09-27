@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/page_source.dart';
+import 'package:zephyr/service/ocr/ocr_log.dart';
 import 'package:zephyr/service/ocr/ocr_models.dart';
 import 'package:zephyr/service/ocr/ocr_service.dart';
 import 'package:zephyr/service/ocr/ocr_settings.dart';
@@ -247,6 +248,8 @@ class TranslatedPageController extends ChangeNotifier {
     if (!await File(path).exists()) {
       // 产物在这一步之前被人删了 / 目录被清了：ADR-0018 §决定 3 要的是
       // 「静默回落到原图」，不是弹一条「找不到文件」。原图本来就是真相。
+      // 「静默」是对用户而言，日志里必须留一行，否则翻记录时这一页什么都没有。
+      OcrLog.add('${OcrLog.page(index)} 产物不在了（$path），按原图显示');
       _presenter?.translationOwnedPages.remove(index);
       _phase = TranslatedPagePhase.off;
       _index = index;
@@ -259,6 +262,7 @@ class TranslatedPageController extends ChangeNotifier {
     }
     if (!await presenter.reshowAfterInjection(index)) {
       // 已经注入了：下一次该页上屏自然生效，这里不当失败。
+      OcrLog.add('${OcrLog.page(index)} 已注入 $path（这一页当前没在屏上，下次上屏生效）');
       _claim(presenter, index, path, showingOnSuccess, degraded);
       _phase = showingOnSuccess
           ? TranslatedPagePhase.showing
@@ -271,6 +275,10 @@ class TranslatedPageController extends ChangeNotifier {
     if (confirmed == false) {
       return _fail(index, '注入成功但画面没换，这一页再翻回来会重试');
     }
+    OcrLog.add(
+      '${OcrLog.page(index)} ${showingOnSuccess ? "已显示成品页" : "已关回原图"}'
+      '（呈现器核对${confirmed == true ? "通过" : "答不上来，按注入成功算"}）：$path',
+    );
     _claim(presenter, index, path, showingOnSuccess, degraded);
     _phase = showingOnSuccess
         ? TranslatedPagePhase.showing
@@ -333,6 +341,9 @@ class TranslatedPageController extends ChangeNotifier {
   }
 
   bool _fail(int index, String message) {
+    // 失败一律进日志：芯片上那一句几秒后就被下一次点击顶掉，
+    // 而「刚才到底为什么没出译文」正是最需要回头看的时刻。
+    OcrLog.add('${OcrLog.page(index)} 失败：$message');
     _phase = TranslatedPagePhase.failed;
     _index = index;
     _lastError = message;

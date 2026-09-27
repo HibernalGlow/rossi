@@ -4030,6 +4030,30 @@ class Translations$ocr$zh_CN {
 	/// zh-CN: '已清空成品页缓存'
 	String get cacheCleared => '已清空成品页缓存';
 
+	/// zh-CN: '诊断'
+	String get logSection => '诊断';
+
+	/// zh-CN: '翻译日志'
+	String get viewLog => '翻译日志';
+
+	/// zh-CN: '每一页的六道关各记一行：端点、推理（含各段实际生效 EP）、翻译请求、回填排版、落盘、注入核对。'
+	String get logHint => '每一页的六道关各记一行：端点、推理（含各段实际生效 EP）、翻译请求、回填排版、落盘、注入核对。';
+
+	/// zh-CN: '漫画翻译日志'
+	String get logDialogTitle => '漫画翻译日志';
+
+	/// zh-CN: '尚无翻译日志。在阅读器里按「译」，或去「设置 → 调试 → OCR 成品页冒烟」跑一遍，这里就会有记录。'
+	String get logEmpty => '尚无翻译日志。在阅读器里按「译」，或去「设置 → 调试 → OCR 成品页冒烟」跑一遍，这里就会有记录。';
+
+	/// zh-CN: '复制日志'
+	String get copyLog => '复制日志';
+
+	/// zh-CN: '翻译日志已复制'
+	String get logCopied => '翻译日志已复制';
+
+	/// zh-CN: '打开日志位置'
+	String get openLogLocation => '打开日志位置';
+
 	/// zh-CN: '在阅读器工具条上按「译」，只切换当前这一页'
 	String get readerHint => '在阅读器工具条上按「译」，只切换当前这一页';
 
@@ -7267,6 +7291,14 @@ extension on Translations {
 			'ocr.clearCache' => '清空成品页缓存',
 			'ocr.clearCacheSubtitle' => '换模型或换字体后用；不会动原图',
 			'ocr.cacheCleared' => '已清空成品页缓存',
+			'ocr.logSection' => '诊断',
+			'ocr.viewLog' => '翻译日志',
+			'ocr.logHint' => '每一页的六道关各记一行：端点、推理（含各段实际生效 EP）、翻译请求、回填排版、落盘、注入核对。',
+			'ocr.logDialogTitle' => '漫画翻译日志',
+			'ocr.logEmpty' => '尚无翻译日志。在阅读器里按「译」，或去「设置 → 调试 → OCR 成品页冒烟」跑一遍，这里就会有记录。',
+			'ocr.copyLog' => '复制日志',
+			'ocr.logCopied' => '翻译日志已复制',
+			'ocr.openLogLocation' => '打开日志位置',
 			'ocr.readerHint' => '在阅读器工具条上按「译」，只切换当前这一页',
 			'ocr.chipOff' => '译',
 			'ocr.chipOn' => '译文页',
@@ -7524,6 +7556,8 @@ extension on Translations {
 			'comicFollow.checkTime' => ({required Object time}) => '检测时间：${time}',
 			'comicFollow.notRead' => '尚未阅读',
 			'comicFollow.lastReadChapter' => ({required Object chapter}) => '看到：${chapter}',
+			_ => null,
+		} ?? switch (path) {
 			'comicFollow.latestChapter' => ({required Object count, required Object chapter}) => '最新：${count} 话 / ${chapter}',
 			'comicFollow.noUnread' => '暂无已更新未看内容',
 			'comicFollow.showAll' => '显示全部',
@@ -7532,8 +7566,6 @@ extension on Translations {
 			'comicFollow.newUnreadChapters' => ({required Object diff, required Object total}) => '新增 ${diff} 话未阅读，共 ${total} 话',
 			'comicFollow.latestCount' => ({required Object count}) => '最新 ${count} 话',
 			'comicFollow.fetchFailed' => '获取失败',
-			_ => null,
-		} ?? switch (path) {
 			'comicFollow.newChaptersShort' => ({required Object diff}) => '新增 ${diff} 话',
 			'comicFollow.newUnreadChaptersShort' => ({required Object diff}) => '新增 ${diff} 话未阅读',
 			'comicFollow.update' => '更新',

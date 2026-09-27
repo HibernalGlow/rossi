@@ -16,6 +16,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:zephyr/service/ocr/ocr_log.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_builder.dart';
 import 'package:zephyr/service/ocr/translated_page_cache.dart';
@@ -157,6 +158,7 @@ void main() {
   tearDown(() async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(_pathChannel, null);
+    await OcrLog.flush();
     await root.delete(recursive: true);
   });
 
@@ -203,6 +205,22 @@ void main() {
     final manifest = await File('${dir.path}/manifest.json').readAsString();
     expect(manifest, contains('zh-Hans'));
     expect(analyze.lastErasedPath, startsWith(Directory.systemTemp.path));
+
+    // 六道关要有关关留痕 —— 用户那句「翻译没日志，我不知道情况如何」就是这个意思。
+    final logged = OcrLog.log.entries.value.join('\n');
+    expect(
+      logged,
+      contains('第 1 页 开始构建：端点=127.0.0.1/hello-world'),
+      reason: '端点只记 host：base URL 上可能夹着带 token 的路径，日志是要被复制走的',
+    );
+    expect(
+      logged,
+      contains('实际生效 EP：检测=cpu 识别=directml 擦字=directml'),
+      reason: '日志里的 EP 必须是 Rust 回报的实际值，不是设置里的请求值',
+    );
+    expect(logged, contains('第 1 页 翻译：1 条 → 1 条'));
+    expect(logged, contains('第 1 页 回填排版'));
+    expect(logged, contains('第 1 页 成品已写入'));
   });
 
   test('再建命中缓存，一次分析都不许重跑', () async {
@@ -223,6 +241,13 @@ void main() {
     expect(again.fromCache, isTrue);
     expect(again.path, first.path);
     expect(again.stageEps, isNull, reason: '命中缓存那一次什么都没跑，不该拿上一次的 EP 顶替（那是谎报）');
+    final lastLogged = OcrLog.log.entries.value.last;
+    expect(lastLogged, contains('命中缓存'));
+    expect(
+      lastLogged,
+      isNot(contains('EP')),
+      reason: '同上：日志里也不许出现一条没跑过的 EP',
+    );
     expect(analyze.calls, 1, reason: '一页分析 ~14 s，命中缓存还重跑等于没有缓存');
   });
 

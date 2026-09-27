@@ -17,6 +17,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:zephyr/service/ocr/ocr_log.dart';
 import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/reader/translated_page_controller.dart';
@@ -106,6 +107,7 @@ void main() {
     TranslatedPageController.instance = previous;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(_pathChannel, null);
+    await OcrLog.flush();
     await root.delete(recursive: true);
   });
 

@@ -215,12 +215,3 @@ class _OcrSmokeDebugPageState extends State<OcrSmokeDebugPage> {
     );
   }
 }
-
-extension on TranslatedPageStage {
-  String label() => switch (this) {
-    TranslatedPageStage.cacheHit => '查缓存',
-    TranslatedPageStage.analyzing => '检测 / 识别 / 擦字',
-    TranslatedPageStage.translating => '翻译请求',
-    TranslatedPageStage.typesetting => '回填排版',
-  };
-}

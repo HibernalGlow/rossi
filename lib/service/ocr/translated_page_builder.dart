@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
+import 'package:zephyr/service/ocr/ocr_log.dart';
 import 'package:zephyr/service/ocr/ocr_service.dart';
 import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
@@ -12,6 +13,16 @@ import 'package:zephyr/src/rust/api/ocr.dart';
 /// 成品页构建的某一阶段。给 UI 显示「在做什么」用 —— 整页要十几秒，
 /// 没有阶段提示的话用户只会觉得「点了没反应」。
 enum TranslatedPageStage { cacheHit, analyzing, translating, typesetting }
+
+/// 阶段的中文说法。**日志与界面共用这一份** —— 两边各写一遍迟早会说出两种话。
+extension TranslatedPageStageLabel on TranslatedPageStage {
+  String label() => switch (this) {
+    TranslatedPageStage.cacheHit => '查缓存',
+    TranslatedPageStage.analyzing => '检测 / 识别 / 擦字',
+    TranslatedPageStage.translating => '翻译请求',
+    TranslatedPageStage.typesetting => '回填排版',
+  };
+}
 
 /// 中途放弃（翻页翻走了、用户关了开关）。只在**阶段之间**生效：
 /// 检测/识别/擦字是一次过桥的整段调用，Rust 侧没有协作式取消点。
@@ -110,6 +121,16 @@ class TranslatedPageBuilder {
     bool force = false,
   }) async {
     final clock = Stopwatch()..start();
+    final page = OcrLog.page(pageIndex);
+    // 取消也要留一行：否则「按了没反应」在日志里同样是一片空白，
+    // 而这正是这份日志要治的那个病。
+    void check(TranslatedPageStage next) {
+      if (shouldCancel?.call() ?? false) {
+        OcrLog.add('$page 已取消（停在「${next.label()}」之前）');
+        throw TranslatedPageCancelled();
+      }
+    }
+
     final (:fingerprint, :label) = await TranslatedPageCache.describe(
       config: config,
     );
@@ -123,6 +144,7 @@ class TranslatedPageBuilder {
           pageIndex: pageIndex,
         )) {
       onStage?.call(TranslatedPageStage.cacheHit);
+      OcrLog.add('$page 命中缓存（${clock.elapsedMilliseconds} ms）：${target.path}');
       return TranslatedPage(
         path: target.path,
         fromCache: true,
@@ -133,10 +155,15 @@ class TranslatedPageBuilder {
       );
     }
 
-    _check(shouldCancel);
+    check(TranslatedPageStage.analyzing);
     onStage?.call(TranslatedPageStage.analyzing);
     // 后端从设置里读，不能在这里写死 cpu：设置页那颗选择器会变成一个骗人的控件。
     final ep = await OcrSettings.loadEp();
+    OcrLog.add(
+      '$page 开始构建：端点=${_hostOf(config.baseUrl)}/${config.model} '
+      '目标=${config.targetLanguage} 请求后端=$ep'
+      '${force ? '（force 重算）' : ''}',
+    );
     final Uint8List png;
     final int blocks;
     final int truncated;
@@ -148,7 +175,16 @@ class TranslatedPageBuilder {
     try {
       final erasedPath = p.join(scratch.path, 'erased_p$pageIndex.png');
       final result = await _analyze(imagePath, erasedPath, ep);
+      final eps = result.stageEps;
+      OcrLog.add(
+        '$page 分析：${result.blocks.length} 块，'
+        '检测 ${result.detectMs} ms / 识别 ${result.recognizeMs} ms / '
+        '擦字 ${result.inpaintMs} ms；'
+        '实际生效 EP：检测=${eps.detect} 识别=${eps.recognize} '
+        '擦字=${eps.inpaint ?? '未跑'}',
+      );
       if (result.blocks.isEmpty) {
+        OcrLog.add('$page 没识别到文字，直接用原图');
         return TranslatedPage(
           path: imagePath,
           fromCache: false,
@@ -160,11 +196,12 @@ class TranslatedPageBuilder {
         );
       }
 
-      _check(shouldCancel);
+      check(TranslatedPageStage.translating);
       onStage?.call(TranslatedPageStage.translating);
       final sources = result.blocks.map((b) => b.text).toList(growable: false);
       List<String> translations;
       degraded = false;
+      final translateClock = Stopwatch()..start();
       try {
         translations = await _translate(sources, config);
         if (translations.length != sources.length) {
@@ -174,16 +211,22 @@ class TranslatedPageBuilder {
             '翻译返回的条数与块数不符：块 ${sources.length}，译文 ${translations.length}',
           );
         }
-      } on OcrTranslationException {
+        OcrLog.add(
+          '$page 翻译：${sources.length} 条 → ${translations.length} 条，'
+          '用时 ${translateClock.elapsedMilliseconds} ms',
+        );
+      } on OcrTranslationException catch (e) {
         // ADR-0018 §决定 7 写明的那一档：断网 / 端点没起 / 模型漏译时，
         // 链路出「擦字 + 原文回填」而不是什么都不给。
         // 但这不是成功 —— 靠 degraded 标出来，UI 必须如实说「画的是原文」。
+        OcrLog.add('$page 翻译那一跳失败：${e.message} —— 走降级档（擦字 + 原文回填）');
         translations = sources;
         degraded = true;
       }
 
-      _check(shouldCancel);
+      check(TranslatedPageStage.typesetting);
       onStage?.call(TranslatedPageStage.typesetting);
+      final typesetClock = Stopwatch()..start();
       png = await TranslatedPageRenderer.render(
         erasedPng: await File(erasedPath).readAsBytes(),
         blocks: result.blocks,
@@ -192,6 +235,11 @@ class TranslatedPageBuilder {
       blocks = result.blocks.length;
       truncated = result.blocks.where((b) => b.truncated).length;
       stageEps = result.stageEps;
+      OcrLog.add(
+        '$page 回填排版：${typesetClock.elapsedMilliseconds} ms，'
+        '$blocks 块'
+        '${truncated > 0 ? '，其中 $truncated 块被截断（可疑）' : ''}',
+      );
     } finally {
       await scratch.delete(recursive: true);
     }
@@ -206,6 +254,7 @@ class TranslatedPageBuilder {
         pageIndex: pageIndex,
         pngBytes: png,
       );
+      OcrLog.add('$page 降级产物落在 ${throwaway.path}（${png.length} 字节，不进指纹缓存）');
       return TranslatedPage(
         path: throwaway.path,
         fromCache: false,
@@ -224,6 +273,7 @@ class TranslatedPageBuilder {
       pngBytes: png,
       fingerprint: fingerprint,
     );
+    OcrLog.add('$page 成品已写入 ${target.path}（${png.length} 字节）');
     return TranslatedPage(
       path: target.path,
       fromCache: false,
@@ -235,8 +285,13 @@ class TranslatedPageBuilder {
       degraded: degraded,
     );
   }
+}
 
-  static void _check(bool Function()? shouldCancel) {
-    if (shouldCancel?.call() ?? false) throw TranslatedPageCancelled();
-  }
+/// 端点在日志里只记 **host**。
+///
+/// base URL 是用户自己填的，里面完全可能夹一段带 token 的路径或查询串
+/// （某些网关把 key 写在 path 上）—— 而这份日志的用途就是被「复制」走。
+String _hostOf(String url) {
+  final host = Uri.tryParse(url)?.host;
+  return (host == null || host.isEmpty) ? url : host;
 }

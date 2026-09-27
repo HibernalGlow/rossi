@@ -3,12 +3,14 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
+import 'package:zephyr/service/ocr/ocr_log.dart';
 import 'package:zephyr/service/ocr/ocr_model_downloader.dart';
 import 'package:zephyr/service/ocr/ocr_models.dart';
 import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_cache.dart';
 import 'package:zephyr/src/rust/api/ocr.dart';
+import 'package:zephyr/widgets/app_log_dialog.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
 
@@ -146,6 +148,9 @@ class _OcrSettingPageState extends State<OcrSettingPage> {
       _downloading = true;
       _progress = 0;
     });
+    OcrLog.add(
+      '开始下载权重：${_missing.isEmpty ? "（没有缺失项，直接过）" : "缺 ${_missing.join('、')}"}',
+    );
     try {
       await OcrModelDownloader.ensure(
         onProgress: (received, total, file) {
@@ -153,9 +158,11 @@ class _OcrSettingPageState extends State<OcrSettingPage> {
           setState(() => _progress = received / total);
         },
       );
+      OcrLog.add('权重下载完成');
       if (mounted) showSuccessToast(t.ocr.downloadDone);
     } catch (e, s) {
       logger.e('OCR 权重下载失败', error: e, stackTrace: s);
+      OcrLog.add('权重下载失败', error: e, stackTrace: s);
       if (mounted) showErrorToast('${t.ocr.downloadFailed}: $e');
     } finally {
       if (mounted) {
@@ -349,6 +356,28 @@ class _OcrSettingPageState extends State<OcrSettingPage> {
                 ListTile(
                   leading: const Icon(Icons.touch_app_outlined),
                   title: Text(t.ocr.readerHint),
+                ),
+
+                const SizedBox(height: 8),
+                const Divider(height: 1, thickness: 0.3),
+                settingSectionTitle(context, t.ocr.logSection),
+                ListTile(
+                  leading: const Icon(Icons.article_outlined),
+                  title: Text(t.ocr.viewLog),
+                  subtitle: Text(t.ocr.logHint),
+                  trailing: TextButton(
+                    onPressed: () => showAppLogDialog(
+                      context,
+                      log: OcrLog.log,
+                      title: t.ocr.logDialogTitle,
+                      emptyText: t.ocr.logEmpty,
+                      copyLabel: t.ocr.copyLog,
+                      copiedToast: t.ocr.logCopied,
+                      openLabel: t.ocr.openLogLocation,
+                      closeLabel: t.common.close,
+                    ),
+                    child: Text(t.ocr.viewLog),
+                  ),
                 ),
                 const SizedBox(height: 32),
               ],

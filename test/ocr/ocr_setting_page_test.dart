@@ -120,6 +120,20 @@ void main() {
     expect(find.textContaining('sk-super-secret'), findsNothing);
   });
 
+  testWidgets('诊断那一节：有「翻译日志」入口（点开能看、能复制、能定位文件）', (tester) async {
+    await pump(tester);
+    expect(find.text(t.ocr.logSection), findsOneWidget);
+    // 标题与按钮各一处 —— 只数「找得到」，别把「那一行根本没进树」读成通过。
+    expect(find.text(t.ocr.viewLog), findsNWidgets(2));
+    expect(find.text(t.ocr.logHint), findsOneWidget);
+    await tester.tap(find.byType(TextButton).last);
+    await tester.pump();
+    expect(find.text(t.ocr.logDialogTitle), findsOneWidget);
+    expect(find.text(t.ocr.logEmpty), findsOneWidget, reason: '还没跑过就该明说没有，而不是开一个空框');
+    expect(find.text(t.ocr.copyLog), findsOneWidget);
+    expect(find.text(t.ocr.openLogLocation), findsOneWidget);
+  });
+
   testWidgets('推理后端那行下面，如实说本机各段会落到哪条 EP', (tester) async {
     if (!nativeReady) {
       markTestSkipped('原生库加载不了（$nativeError）');

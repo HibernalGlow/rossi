@@ -1,13 +1,25 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
+import 'package:zephyr/service/diagnostics/app_log.dart';
 import 'package:zephyr/util/get_path.dart';
 
-/// 独立于控制台的超分诊断。保留本次运行最近 300 条，并异步落盘。
+/// 超分诊断日志的**门面**：环形、落盘、复制、定位文件这些机制都在 [AppLog]，
+/// 与漫画翻译共用同一份；这里只留超分特有的三件事与产物缓存的收封顶。
 abstract final class SuperResolutionLog {
-  static final entries = ValueNotifier<List<String>>([]);
+  /// 机制在 [AppLog]（与漫画翻译共用同一份实现），这里只留超分自己的
+  /// 「写到哪、标题叫什么、页脚补哪一行」。日志文件的位置**没有变**，
+  /// 还在超分缓存目录里，`trimCache` 只收 `.png` 产物、不动它。
+  static final AppLog log = AppLog(
+    name: '超分',
+    title: 'Rossi 超分日志（本次运行）',
+    filePath: () async =>
+        p.join((await cacheDirectory()).path, 'super_resolution.log'),
+    header: () => ['最近生成图片：${latestOutputPath ?? "尚未生成"}'],
+  );
+
+  static ValueNotifier<List<String>> get entries => log.entries;
 
   /// 最近一次**真的落在盘上**的超分产物路径。
   ///
@@ -20,10 +32,9 @@ abstract final class SuperResolutionLog {
   ///   [markOutput]）。这条链路会持续写日志，却从不产出 `rossi_sr_cache` 里的文件，
   ///   所以它必须自己登记，否则按钮永远停在呈现器链路的目录里。
   static String? latestOutputPath;
-  static Future<void> _writeQueue = Future<void>.value();
 
   /// 等待已经记录的日志落盘，再复制缓存或清理临时目录。
-  static Future<void> flush() => _writeQueue;
+  static Future<void> flush() => log.flush();
 
   /// 超分产物与本次运行日志的落点：`getFilePath()/super_resolution/rossi_sr_cache`。
   ///
@@ -65,33 +76,10 @@ abstract final class SuperResolutionLog {
     }
   }
 
-  static String get text => [
-    'Rossi 超分日志（本次运行）',
-    '系统：${Platform.operatingSystem} ${Platform.operatingSystemVersion}',
-    '最近生成图片：${latestOutputPath ?? "尚未生成"}',
-    '',
-    ...entries.value,
-  ].join('\n');
+  static String get text => log.text;
 
-  static void add(String message, {Object? error, StackTrace? stackTrace}) {
-    final entry =
-        '[${DateTime.now().toIso8601String()}] $message'
-        '${error == null ? "" : "\n$error"}'
-        '${stackTrace == null ? "" : "\n$stackTrace"}';
-    final next = [...entries.value, entry];
-    entries.value = List.unmodifiable(
-      next.length > 300 ? next.sublist(next.length - 300) : next,
-    );
-    final snapshot = text;
-    _writeQueue = _writeQueue
-        .then((_) async {
-          final root = await cacheDirectory();
-          await File(
-            p.join(root.path, 'super_resolution.log'),
-          ).writeAsString(snapshot);
-        })
-        .catchError((Object _) {});
-  }
+  static void add(String message, {Object? error, StackTrace? stackTrace}) =>
+      log.add(message, error: error, stackTrace: stackTrace);
 
   static void outputReady(
     String path, {
