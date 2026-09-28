@@ -190,13 +190,34 @@ class MultiArrayModel: ImageProcessingModel {
                 await predictionSlots.release()
                 continue
             }
-            guard prediction.dataType == .float32 || prediction.dataType == .float16,
-                  prediction.shape.count == 4,
-                  prediction.shape[1].intValue >= 3,
-                  prediction.shape[2].intValue >= outBlockSize + 2 * outputCrop,
-                  prediction.shape[3].intValue >= outBlockSize + 2 * outputCrop else {
+            guard prediction.dataType == .float32 || prediction.dataType == .float16 else {
                 firstFailure = firstFailure ??
-                    "\(blockLabel(i)) 输出张量类型/形状不符合 \(outBlockSize)×\(outBlockSize) 拼接要求"
+                    "\(blockLabel(i)) 输出张量类型不是 float32/float16，无法按 NCHW 逐行拼接"
+                failed = true
+                await predictionSlots.release()
+                continue
+            }
+            let shape = prediction.shape.map { $0.intValue }
+            let strides = prediction.strides.map { $0.intValue }
+            // 存储字节数要趁读之前取：它是容量判据的唯一可信上界，见
+            // `blockLayoutRejection` 里为什么不能用 `count`。
+            var storageBytes: Int?
+            if #available(macOS 12.3, iOS 15.4, *) {
+                var bytes = 0
+                prediction.withUnsafeBytes { bytes = $0.count }
+                storageBytes = bytes
+            }
+            if let rejection = Self.blockLayoutRejection(
+                shape: shape,
+                strides: strides,
+                storageBytes: storageBytes,
+                // 上面已限定类型只能是 float32/float16；这里判 float32 而不是 float16，
+                // 免得给 iOS 15 的 `.float16` 可用性报错再添一条。
+                bytesPerElement: prediction.dataType == .float32 ? 4 : 2,
+                outBlockSize: outBlockSize,
+                outputCrop: outputCrop
+            ) {
+                firstFailure = firstFailure ?? "\(blockLabel(i)) \(rejection)"
                 failed = true
                 await predictionSlots.release()
                 continue
@@ -206,31 +227,9 @@ class MultiArrayModel: ImageProcessingModel {
             let originY = Int(rect.origin.y) * outScale
             let data = prediction.dataPointer.assumingMemoryBound(to: Float32.self)
             let halfData = prediction.dataPointer.assumingMemoryBound(to: Float16.self)
-            let channelStride = prediction.strides[1].intValue
-            let rowStride = prediction.strides[2].intValue
-            let pixelStride = prediction.strides[3].intValue
-            // strides 是拼接读地址的唯一依据：正数假设不成立的话，下面的元素数
-            // 就算不出真实上界，越界读会把别的内存当像素画进图里 —— 那正是
-            // 「某一块花掉了但整图仍然成功」的成因之一。
-            guard channelStride > 0, rowStride > 0, pixelStride > 0 else {
-                firstFailure = firstFailure ??
-                    "\(blockLabel(i)) 输出 strides 非正（\(channelStride)/\(rowStride)/\(pixelStride)），布局与 NCHW 假设不符"
-                failed = true
-                await predictionSlots.release()
-                continue
-            }
-            let requiredElements =
-                2 * channelStride
-                + (outBlockSize - 1 + outputCrop) * rowStride
-                + (outputCrop + outBlockSize - 1) * pixelStride
-                + 1
-            guard prediction.count >= requiredElements else {
-                firstFailure = firstFailure ??
-                    "\(blockLabel(i)) 输出只有 \(prediction.count) 个元素，按 strides 需要 \(requiredElements)，拒绝越界拼接"
-                failed = true
-                await predictionSlots.release()
-                continue
-            }
+            let channelStride = strides[1]
+            let rowStride = strides[2]
+            let pixelStride = strides[3]
             imgData.withUnsafeMutableBufferPointer { destination in
                 for channel in 0..<3 {
                     for y in 0..<outBlockSize {
@@ -317,6 +316,52 @@ class MultiArrayModel: ImageProcessingModel {
             )
         }
         return cropped
+    }
+
+    /// 拼接前的输出张量布局校验：`nil` = 可以按 NCHW 逐行读，否则是拒绝原因。
+    ///
+    /// 容量判据必须用**真实存储字节数**，不能用 `count`：`count` 是逻辑元素数
+    /// （shape 乘积，头文件里写死的定义），而 CoreML 给输出行做 64 字节对齐分配，
+    /// 行尾 padding 让存储大于 count —— 实测 RealCUGAN 2× 的 float32 输出
+    /// shape [1,3,312,312]、strides 299520/99840/320/1、count 292032，存储却有
+    /// 299520 个元素。拿 count 当上界，每一块都会被误判成「越界拼接」。
+    ///
+    /// `storageBytes` 为 nil（macOS 12.3 / iOS 15.4 以下没有 `withUnsafeBytes`）时，
+    /// 只校验形状与 strides 顺序 —— 那两条保证每个取样点都落在 shape 之内，
+    /// 但「存储够不够」这层就测不了了。
+    static func blockLayoutRejection(
+        shape: [Int],
+        strides: [Int],
+        storageBytes: Int?,
+        bytesPerElement: Int,
+        outBlockSize: Int,
+        outputCrop: Int
+    ) -> String? {
+        guard shape.count == 4, strides.count == 4 else {
+            return "输出张量不是 4 维 NCHW（shape \(shape)）"
+        }
+        guard shape[1] >= 3,
+              shape[2] >= outBlockSize + 2 * outputCrop,
+              shape[3] >= outBlockSize + 2 * outputCrop else {
+            return "输出张量形状 \(shape) 不符合 \(outBlockSize)×\(outBlockSize) 拼接要求"
+        }
+        let channelStride = strides[1]
+        let rowStride = strides[2]
+        let pixelStride = strides[3]
+        // strides 是拼接读地址的唯一依据。除了全为正，还得是 NCHW 行主序：
+        // 只有单调递减的 strides 配 NCHW 下标，取样点才都落在 shape 之内。
+        guard channelStride > rowStride, rowStride > pixelStride, pixelStride > 0 else {
+            return "输出 strides（\(channelStride)/\(rowStride)/\(pixelStride)）不是 NCHW 行主序"
+        }
+        let requiredElements =
+            2 * channelStride
+            + (outBlockSize - 1 + outputCrop) * rowStride
+            + (outputCrop + outBlockSize - 1) * pixelStride
+            + 1
+        if let storageBytes, storageBytes < requiredElements * bytesPerElement {
+            return "输出存储只有 \(storageBytes) 字节，按 strides 需要 \(requiredElements * bytesPerElement)，拒绝越界拼接"
+        }
+        return nil
     }
 
     // calculate the rects for the image blocks
