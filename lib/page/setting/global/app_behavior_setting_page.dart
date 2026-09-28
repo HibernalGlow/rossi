@@ -67,6 +67,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
           // 「启动直接打开工作台」并进了这一条的下拉（见 `_splashPage`），
           // 不再单开一栏 —— 两者本来就是同一件事：启动落到哪儿。
           _splashPage(state, cubit),
+          _skipUpdateCheck(state, cubit),
           if (isDesktop) _desktopCloseBehaviorTile(),
           if (Platform.isAndroid) _androidKeepAlive(state, cubit),
           if (Platform.isAndroid) _backPressExit(state, cubit),
@@ -135,6 +136,24 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
           showSuccessToast(t.common.restartToTakeEffect);
         },
       ),
+    );
+  }
+
+  /// 启动时要不要跳过「检查上游新版本」。默认开：本仓是 fork，版本号永远低于
+  /// 上游，弹窗只会把人引向 deretame/Breeze 的安装包。
+  Widget _skipUpdateCheck(GlobalSettingState state, GlobalSettingCubit cubit) {
+    return SwitchListTile(
+      secondary: const Icon(Icons.update_disabled),
+      title: Text(t.settings.skipUpdateCheck),
+      subtitle: Text(t.settings.skipUpdateCheckSubtitle),
+      thumbIcon: kSettingSwitchThumbIcon,
+      value: state.skipUpdateCheck,
+      onChanged: (bool value) {
+        cubit.updateState(
+          (current) => current.copyWith(skipUpdateCheck: value),
+        );
+        showSuccessToast(t.common.settingSaved);
+      },
     );
   }
 

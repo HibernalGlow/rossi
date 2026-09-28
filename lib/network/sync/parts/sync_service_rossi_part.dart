@@ -74,6 +74,9 @@ const Map<String, List<String>> _settingsBlockKeys = <String, List<String>>{
     // 启动落点。手机端没有工作台入口时会自己忽略（`resolveStartupLanding`），
     // 所以从桌面同步到手机无害。
     'startWithWorkspace',
+    // 启动时跳不跳过上游更新检查：fork 构建的**偏好**（不是本机事实），
+    // 跟外壳这一块走。
+    'skipUpdateCheck',
     // 下面三条是**平台专属**开关：本平台不读它，同步过去也就不会有效果，
     // 但两台 Android / 两台桌面之间是有意义的，所以一并带走。
     'forceEnableImpeller',

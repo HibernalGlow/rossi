@@ -1048,6 +1048,12 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '工作台'
 	String get startWithWorkspace => '工作台';
 
+	/// zh-CN: '跳过更新检查'
+	String get skipUpdateCheck => '跳过更新检查';
+
+	/// zh-CN: '本构建是 fork 版本，启动时不再请求上游最新版本，也不再弹出更新提示'
+	String get skipUpdateCheckSubtitle => '本构建是 fork 版本，启动时不再请求上游最新版本，也不再弹出更新提示';
+
 	/// zh-CN: '关闭行为'
 	String get desktopCloseBehavior => '关闭行为';
 
@@ -6326,6 +6332,8 @@ extension on Translations {
 			'settings.splashPage' => '开屏页',
 			'settings.splashPageSubtitle' => '选择启动页，打开应用直达目标',
 			'settings.startWithWorkspace' => '工作台',
+			'settings.skipUpdateCheck' => '跳过更新检查',
+			'settings.skipUpdateCheckSubtitle' => '本构建是 fork 版本，启动时不再请求上游最新版本，也不再弹出更新提示',
 			'settings.desktopCloseBehavior' => '关闭行为',
 			'settings.desktopCloseBehaviorSubtitle' => '选择点击关闭按钮时的行为',
 			'settings.desktopCloseAsk' => '询问',
@@ -6526,10 +6534,10 @@ extension on Translations {
 			'settings.operationBindingInvalidTable' => '这份绑定表读不懂，已拒绝保存',
 			'settings.operationBindingCategoryNavigation' => '导航',
 			'settings.operationBindingCategoryZoom' => '缩放',
-			'settings.operationBindingCategoryView' => '视图',
-			'settings.operationBindingCategorySession' => '会话',
 			_ => null,
 		} ?? switch (path) {
+			'settings.operationBindingCategoryView' => '视图',
+			'settings.operationBindingCategorySession' => '会话',
 			'settings.operationBindingActionNextPage' => '下一页',
 			'settings.operationBindingActionPreviousPage' => '上一页',
 			'settings.operationBindingActionFirstPage' => '第一页',
@@ -7040,10 +7048,10 @@ extension on Translations {
 			'reader.pixels' => 'px',
 			'reader.gesture' => '手势与悬停',
 			'reader.infoBar' => '信息条',
-			'reader.pauseAutoRead' => '暂停自动阅读',
-			'reader.resumeAutoRead' => '继续自动阅读',
 			_ => null,
 		} ?? switch (path) {
+			'reader.pauseAutoRead' => '暂停自动阅读',
+			'reader.resumeAutoRead' => '继续自动阅读',
 			'reader.imageLoadFailedRetry' => ({required Object error}) => '${error}\n加载失败，点击重试',
 			'reader.imageSavedTo' => ({required Object path}) => '图片已保存至: ${path}',
 			'reader.imageSavedToAlbum' => '图片已保存到相册！',
@@ -7554,10 +7562,10 @@ extension on Translations {
 			'comicFollow.lastRead' => '最后阅读',
 			'comicFollow.lastUpdate' => '最近检测更新',
 			'comicFollow.checkTime' => ({required Object time}) => '检测时间：${time}',
-			'comicFollow.notRead' => '尚未阅读',
-			'comicFollow.lastReadChapter' => ({required Object chapter}) => '看到：${chapter}',
 			_ => null,
 		} ?? switch (path) {
+			'comicFollow.notRead' => '尚未阅读',
+			'comicFollow.lastReadChapter' => ({required Object chapter}) => '看到：${chapter}',
 			'comicFollow.latestChapter' => ({required Object count, required Object chapter}) => '最新：${count} 话 / ${chapter}',
 			'comicFollow.noUnread' => '暂无已更新未看内容',
 			'comicFollow.showAll' => '显示全部',

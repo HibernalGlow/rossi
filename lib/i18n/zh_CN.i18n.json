@@ -317,6 +317,8 @@
     "splashPage": "开屏页",
     "splashPageSubtitle": "选择启动页，打开应用直达目标",
     "startWithWorkspace": "工作台",
+    "skipUpdateCheck": "跳过更新检查",
+    "skipUpdateCheckSubtitle": "本构建是 fork 版本，启动时不再请求上游最新版本，也不再弹出更新提示",
     "desktopCloseBehavior": "关闭行为",
     "desktopCloseBehaviorSubtitle": "选择点击关闭按钮时的行为",
     "desktopCloseAsk": "询问",

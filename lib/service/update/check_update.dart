@@ -10,6 +10,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:permission_guard/permission_guard.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/type/pipe.dart';
 import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/network/utils/github_proxy.dart';
@@ -178,6 +179,13 @@ bool _isGithubReleaseDownloadUrl(String url) {
 }
 
 Future<void> checkUpdate(BuildContext context) async {
+  // fork 构建默认跳过（见 `GlobalSettingState.skipUpdateCheck`）：本仓版本号永远
+  // 低于上游，弹出来的只会是 deretame/Breeze 的安装包。
+  if (globalSetting.skipUpdateCheck) {
+    logger.d('已开启「跳过更新检查」，本次不请求上游版本');
+    return;
+  }
+
   if (!context.mounted) return;
   final temp = await getCloudVersion();
   final cloudVersion = temp.tagName;

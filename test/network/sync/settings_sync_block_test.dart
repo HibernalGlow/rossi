@@ -314,6 +314,7 @@ void main() {
       final merged = applySyncableBlockDataForTest(localState, {
         'shell': {
           'startWithWorkspace': true,
+          'skipUpdateCheck': false,
           'forceEnableImpeller': true,
           'androidKeepAliveEnabled': true,
           'backPressExitEnabled': true,
@@ -323,6 +324,7 @@ void main() {
       });
 
       expect(merged.startWithWorkspace, isTrue);
+      expect(merged.skipUpdateCheck, isFalse);
       expect(merged.forceEnableImpeller, isTrue);
       expect(merged.androidKeepAliveEnabled, isTrue);
       expect(merged.backPressExitEnabled, isTrue);

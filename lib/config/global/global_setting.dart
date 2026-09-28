@@ -180,6 +180,10 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     @Default(false) bool androidKeepAliveEnabled,
     @Default(false) bool backPressExitEnabled,
     @Default(true) bool updateAccelerate,
+    // 启动时跳过「检查上游新版本」。**本仓是 fork**：版本号（0.1.x）永远低于
+    // 上游（3.x），弹窗必然每次都弹，且安装按钮指向 deretame/Breeze 的产物 ——
+    // 所以默认跳过。想恢复弹窗就在设置里把这个开关关掉。
+    @Default(true) bool skipUpdateCheck,
     @Default(true) bool retryDownloadUntilSuccess,
     @Default(3) int downloadConcurrency,
     @Default(150) int downloadDelayMs,

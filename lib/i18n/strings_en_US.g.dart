@@ -424,6 +424,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get splashPage => 'Startup page';
 	@override String get splashPageSubtitle => 'Choose startup page to open directly';
 	@override String get startWithWorkspace => 'Workspace';
+	@override String get skipUpdateCheck => 'Skip update check';
+	@override String get skipUpdateCheckSubtitle => 'This build is a fork: it won\'t query the upstream release on startup and won\'t show update prompts';
 	@override String get desktopCloseBehavior => 'Close behavior';
 	@override String get desktopCloseBehaviorSubtitle => 'Choose behavior when clicking close button';
 	@override String get desktopCloseAsk => 'Ask';
@@ -2606,6 +2608,8 @@ extension on TranslationsEnUs {
 			'settings.splashPage' => 'Startup page',
 			'settings.splashPageSubtitle' => 'Choose startup page to open directly',
 			'settings.startWithWorkspace' => 'Workspace',
+			'settings.skipUpdateCheck' => 'Skip update check',
+			'settings.skipUpdateCheckSubtitle' => 'This build is a fork: it won\'t query the upstream release on startup and won\'t show update prompts',
 			'settings.desktopCloseBehavior' => 'Close behavior',
 			'settings.desktopCloseBehaviorSubtitle' => 'Choose behavior when clicking close button',
 			'settings.desktopCloseAsk' => 'Ask',
@@ -2806,10 +2810,10 @@ extension on TranslationsEnUs {
 			'settings.operationBindingRecordUnsupported' => ({required Object label}) => 'No platform-neutral key name for ${label}, so it cannot be bound',
 			'settings.operationBindingConflictTitle' => 'Conflicting bindings',
 			'settings.operationBindingConflictBody' => 'One input may have only one enabled binding. Remove or disable one of them, then save again.',
-			'settings.operationBindingInvalidTable' => 'This binding table could not be parsed, so the save was refused',
-			'settings.operationBindingCategoryNavigation' => 'Navigation',
 			_ => null,
 		} ?? switch (path) {
+			'settings.operationBindingInvalidTable' => 'This binding table could not be parsed, so the save was refused',
+			'settings.operationBindingCategoryNavigation' => 'Navigation',
 			'settings.operationBindingCategoryZoom' => 'Zoom',
 			'settings.operationBindingCategoryView' => 'View',
 			'settings.operationBindingCategorySession' => 'Session',
@@ -3320,10 +3324,10 @@ extension on TranslationsEnUs {
 			'reader.gesture' => 'Gestures & Hover',
 			'reader.infoBar' => 'Info Bar',
 			'reader.pauseAutoRead' => 'Pause auto read',
-			'reader.resumeAutoRead' => 'Resume auto read',
-			'reader.imageLoadFailedRetry' => ({required Object error}) => '${error}\nLoad failed, tap to retry',
 			_ => null,
 		} ?? switch (path) {
+			'reader.resumeAutoRead' => 'Resume auto read',
+			'reader.imageLoadFailedRetry' => ({required Object error}) => '${error}\nLoad failed, tap to retry',
 			'reader.imageSavedTo' => ({required Object path}) => 'Image saved to: ${path}',
 			'reader.imageSavedToAlbum' => 'Image saved to album',
 			'reader.imageSaveFailed' => 'Image save failed',
@@ -3834,10 +3838,10 @@ extension on TranslationsEnUs {
 			'comicFollow.lastUpdate' => 'Latest update check',
 			'comicFollow.checkTime' => ({required Object time}) => 'Check time: ${time}',
 			'comicFollow.notRead' => 'Not read yet',
-			'comicFollow.lastReadChapter' => ({required Object chapter}) => 'Read to: ${chapter}',
-			'comicFollow.latestChapter' => ({required Object count, required Object chapter}) => 'Latest: ${count} / ${chapter}',
 			_ => null,
 		} ?? switch (path) {
+			'comicFollow.lastReadChapter' => ({required Object chapter}) => 'Read to: ${chapter}',
+			'comicFollow.latestChapter' => ({required Object count, required Object chapter}) => 'Latest: ${count} / ${chapter}',
 			'comicFollow.noUnread' => 'No updated unread comics',
 			'comicFollow.showAll' => 'Show all',
 			'comicFollow.latestChapterFailed' => 'Failed to get latest chapter',

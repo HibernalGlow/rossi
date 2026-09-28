@@ -317,6 +317,8 @@
     "splashPage": "Startup page",
     "splashPageSubtitle": "Choose startup page to open directly",
     "startWithWorkspace": "Workspace",
+    "skipUpdateCheck": "Skip update check",
+    "skipUpdateCheckSubtitle": "This build is a fork: it won't query the upstream release on startup and won't show update prompts",
     "desktopCloseBehavior": "Close behavior",
     "desktopCloseBehaviorSubtitle": "Choose behavior when clicking close button",
     "desktopCloseAsk": "Ask",
