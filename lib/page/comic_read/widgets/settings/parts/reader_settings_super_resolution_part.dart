@@ -3,6 +3,11 @@ part of '../reader_settings_sheet.dart';
 
 
 /// 阅读器设置里的「AI 超分辨率」。
+///
+/// 面板里是**两条**开关，作用域不同，别混：
+/// - 「本书」：写这本书自己的覆盖（`RealSrBookScope`），关掉只影响这本书，
+///   别的书仍按全局走；重开这本书仍是你上次的选择。
+/// - 「全局」：与设置页「自动超分」同一条（`realsr_auto_upscale`），所有书的默认。
 class _SuperResolutionSection extends StatefulWidget {
   const _SuperResolutionSection();
 
@@ -14,7 +19,13 @@ class _SuperResolutionSection extends StatefulWidget {
 
 class _SuperResolutionSectionState extends State<_SuperResolutionSection> {
   bool _loading = true;
-  bool _autoUpscale = false;
+
+  /// 这本书最终是否超分（覆盖 ?? 全局）。本地书以呈现器的实时值为准。
+  bool _bookEnabled = false;
+
+  /// 全局那条总闸（所有书的默认）。
+  bool _globalEnabled = false;
+
   RealSrResolutionThreshold _threshold = RealSrResolutionThreshold.p720;
   bool _modelReady = false;
 
@@ -22,16 +33,38 @@ class _SuperResolutionSectionState extends State<_SuperResolutionSection> {
   void initState() {
     super.initState();
     unawaited(_load());
+    // 另一处拨了同一条（顶栏芯片 / 全局设置）要跟着刷新，别两颗控件各说各话。
+    RealSrBookScope.changes.addListener(_onScopeChanged);
   }
+
+  @override
+  void dispose() {
+    RealSrBookScope.changes.removeListener(_onScopeChanged);
+    super.dispose();
+  }
+
+  void _onScopeChanged() {
+    if (mounted) unawaited(_load());
+  }
+
+  /// 当前这本书的身份：本地书用读会话登记的那条路径，在线书用 `插件id:漫画id`。
+  String? get _bookKey =>
+      RealSrBookScope.activeLocalBook ??
+      RealSrBookScope.keyFor(
+        from: ReaderSessionCoordinator.instance.from,
+        comicId: ReaderSessionCoordinator.instance.comicId,
+      );
 
   Future<void> _load() async {
     try {
-      final auto = await RealSrSettings.loadAutoUpscale();
+      final global = await RealSrSettings.loadAutoUpscale();
+      final book = await RealSrBookScope.enabledFor(_bookKey);
       final threshold = await RealSrSettings.loadResolutionThreshold();
       final modelReady = await RealSrSuperResolution.isAvailable;
       if (!mounted) return;
       setState(() {
-        _autoUpscale = auto;
+        _globalEnabled = global;
+        _bookEnabled = book;
         _threshold = threshold;
         _modelReady = modelReady;
         _loading = false;
@@ -41,10 +74,22 @@ class _SuperResolutionSectionState extends State<_SuperResolutionSection> {
     }
   }
 
-  Future<void> _setAutoUpscale(bool value) async {
-    setState(() => _autoUpscale = value);
+  Future<void> _setBookUpscale(bool value) async {
+    setState(() => _bookEnabled = value);
+    try {
+      await RealSrBookScope.save(_bookKey, value);
+      // 本地书：呈现器立刻跟随（写覆盖那条链也会通知，但带着明确的值更直接）。
+      final presenter = LocalReadSession.instance.presenter;
+      if (presenter != null) await presenter.setUpscaleEnabled(value);
+    } catch (_) {}
+  }
+
+  Future<void> _setGlobalUpscale(bool value) async {
+    setState(() => _globalEnabled = value);
     try {
       await RealSrSettings.saveAutoUpscale(value);
+      // 本书没有自己的覆盖时，呈现器会经 `RealSrBookScope.changes` 当场跟随；
+      // 有覆盖的书不受影响 —— 这正是「本书」与「全局」的区分。
     } catch (_) {}
   }
 
@@ -58,19 +103,21 @@ class _SuperResolutionSectionState extends State<_SuperResolutionSection> {
   @override
   Widget build(BuildContext context) {
     final presenter = LocalReadSession.instance.presenter;
-    final hasPresenter = presenter != null;
     final presenterReady = presenter != null && presenter.canPresent;
     final hasEngineChoice = hasSuperResolutionEngineChoice;
 
     Widget section() {
       final cardItems = <Widget>[
-        if (presenterReady) ...[
+        if (!_loading)
           _SettingsSwitchTile(
-            title: '启用 AI 超分辨率',
-            subtitle: '后台处理当前页，完成后替换画面',
-            value: presenter.isUpscaleEnabled,
-            onChanged: presenter.setUpscaleEnabled,
+            title: '本书：启用 AI 超分辨率',
+            subtitle: _modelReady
+                ? '只影响这本书，其它书仍按全局设置'
+                : '只影响这本书；模型未下载，开启时会先问一句',
+            value: presenterReady ? presenter.isUpscaleEnabled : _bookEnabled,
+            onChanged: _setBookUpscale,
           ),
+        if (presenterReady) ...[
           _SettingsAnimatedCollapse(
             isExpanded: presenter.isUpscaleEnabled,
             child: _SettingsSwitchTile(
@@ -80,14 +127,15 @@ class _SuperResolutionSectionState extends State<_SuperResolutionSection> {
               onChanged: presenter.setOriginalPreview,
             ),
           ),
-        ] else if (!hasPresenter && !_loading)
+        ],
+        if (!_loading)
           _SettingsSwitchTile(
             title: t.realSr.autoUpscale,
-            subtitle: _modelReady
-                ? t.realSr.autoUpscaleSubtitleAvailable
-                : t.realSr.autoUpscaleSubtitleUnavailable,
-            value: _autoUpscale,
-            onChanged: _setAutoUpscale,
+            subtitle: _globalEnabled
+                ? '所有书的默认（与设置页那条同一条）'
+                : '所有书的默认，现在关着；打开后没有单独设置的书都会跟着开',
+            value: _globalEnabled,
+            onChanged: _setGlobalUpscale,
           ),
         if (!_loading)
           _SettingsDropdownTile<RealSrResolutionThreshold>(

@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
 import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
+import 'package:zephyr/page/setting/real_sr/service/real_sr_book_scope.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
+import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/super_resolution_status.dart';
@@ -89,7 +93,9 @@ class ReaderUpscaleStatusChip extends StatelessWidget {
     };
 
     return Tooltip(
-      message: superResolutionTooltip(status),
+      message:
+          '${superResolutionTooltip(status)}\n'
+          '开关：只影响本书（其它书按全局设置）',
       child: Container(
         height: ReaderToolbarMetrics.chipHeight,
         padding: const EdgeInsets.only(left: 10, right: 2),
@@ -198,18 +204,23 @@ class ReaderUpscaleStatusChip extends StatelessWidget {
   }
 
   /// 打开超分。**模型没下载时不偷偷失败** —— 先问一句再下。
+  ///
+  /// 这颗开关是**本书**的：写的是这本书自己的覆盖（`RealSrBookScope`），
+  /// 全局那条（设置页「自动超分」）不受影响 —— 别的书照旧按全局走。
   Future<void> _enable(
     BuildContext context,
     GpuPresentController presenter,
   ) async {
     if (!await ensureSuperResolutionModel(context)) return;
+    await RealSrBookScope.setForActiveLocalBook(true);
     await presenter.setUpscaleEnabled(true);
-    showInfoToast('AI 超分已启用');
+    showInfoToast('本书已启用 AI 超分');
   }
 
   Future<void> _disable(GpuPresentController presenter) async {
+    await RealSrBookScope.setForActiveLocalBook(false);
     await presenter.setUpscaleEnabled(false);
-    showInfoToast('已关闭 AI 超分（当前页回到原图）');
+    showInfoToast('本书已关闭 AI 超分（其它书仍按全局设置）');
   }
 }
 
@@ -298,7 +309,10 @@ class ReaderOnlineUpscaleChip extends StatefulWidget {
 
 class _ReaderOnlineUpscaleChipState extends State<ReaderOnlineUpscaleChip> {
   /// null = 还在读设置（这一帧不画，免得开关先弹一下再翻）。
-  bool? _autoUpscale;
+  bool? _bookEnabled;
+
+  /// 全局总闸：只进 tooltip（这颗开关拨的是**本书**，不是它）。
+  bool _globalEnabled = false;
 
   /// 悬停要说清的另外两件事：模型、生效阈值。它们只能从设置里读 ——
   /// 在线这一路没有呈现器，问不出「这一页跑到哪一步」。
@@ -309,18 +323,43 @@ class _ReaderOnlineUpscaleChipState extends State<ReaderOnlineUpscaleChip> {
   void initState() {
     super.initState();
     _load();
+    // 面板里拨了同一条（或全局变了）都要跟着刷新，否则两颗控件会各说各话。
+    RealSrBookScope.changes.addListener(_onScopeChanged);
   }
+
+  @override
+  void dispose() {
+    RealSrBookScope.changes.removeListener(_onScopeChanged);
+    super.dispose();
+  }
+
+  void _onScopeChanged() {
+    if (mounted) unawaited(_load());
+  }
+
+  /// 这本书的身份：在线书 = `插件id:漫画id`。拿不到就是 null（按全局走）。
+  String? get _bookKey => RealSrBookScope.keyFor(
+    from: ReaderSessionCoordinator.instance.from,
+    comicId: ReaderSessionCoordinator.instance.comicId,
+  );
 
   Future<void> _load() async {
     // **先只读 SharedPreferences**：这颗芯片不该等 Rust 那一趟可用性检查才肯出现
     // —— 那条调用在测试里根本不返回，等于「超分显示又没了」；在真机上它也要跨一次 FFI。
-    var auto = false;
+    var book = false;
+    var global = false;
     try {
-      auto = await RealSrSettings.loadAutoUpscale();
+      book = await RealSrBookScope.enabledFor(_bookKey);
+      global = await RealSrSettings.loadAutoUpscale();
     } catch (_) {
       // 读不到就按「关着」画：芯片不该把顶栏炸掉。
     }
-    if (mounted) setState(() => _autoUpscale = auto);
+    if (mounted) {
+      setState(() {
+        _bookEnabled = book;
+        _globalEnabled = global;
+      });
+    }
 
     // 悬停信息随后补。读不到就少写那两行，不影响芯片本身。
     try {
@@ -338,25 +377,30 @@ class _ReaderOnlineUpscaleChipState extends State<ReaderOnlineUpscaleChip> {
   }
 
   String get _tooltip => [
-    '在线图源：超分在取图/解码层发生，这颗是总闸（没有逐页状态）',
-    '总闸：${_autoUpscale == true ? '已开启' : '未开启'}',
+    '在线图源：超分在取图/解码层发生，这颗是本书的开关（没有逐页状态）',
+    '本书：${_bookEnabled == true ? '已开启' : '未开启'}',
+    '全局（所有书默认）：${_globalEnabled ? '已开启' : '未开启'}',
     '模型：${_modelReady ? '已下载' : '未下载（开启时会先问一句）'}',
     if (_thresholdLabel.isNotEmpty) '生效阈值：$_thresholdLabel',
   ].join('\n');
 
   Future<void> _toggle(bool value) async {
     if (value && !await ensureSuperResolutionModel(context)) return;
-    await RealSrSettings.saveAutoUpscale(value);
+    await RealSrBookScope.save(_bookKey, value);
     if (!mounted) return;
-    setState(() => _autoUpscale = value);
-    showInfoToast(value ? '已开启自动超分（后续页面在取图层处理）' : '已关闭自动超分');
+    setState(() => _bookEnabled = value);
+    showInfoToast(
+      value
+          ? '本书已开启超分（后续取图在取图层处理）'
+          : '本书已关闭超分（其它书仍按全局设置）',
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final bool? value = _autoUpscale;
+    final bool? value = _bookEnabled;
     if (value == null) return const SizedBox.shrink();
 
     final bool showLabel = superResolutionShowsLabel(widget.availableWidth);

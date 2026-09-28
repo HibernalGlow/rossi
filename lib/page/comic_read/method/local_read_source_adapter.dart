@@ -7,11 +7,13 @@ import 'package:path/path.dart' as p;
 import 'package:zephyr/main.dart';
 import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
+import 'package:zephyr/page/setting/real_sr/service/real_sr_book_scope.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/translated_page_controller.dart';
 import 'package:zephyr/reader/local_page_source.dart';
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/util/get_path.dart';
+import 'package:zephyr/util/path_util.dart';
 import 'package:zephyr/video/model/animated_video_mode.dart';
 import 'package:zephyr/video/model/video_media_kind.dart';
 import 'package:zephyr/video/service/video_poster_service.dart';
@@ -19,7 +21,7 @@ import 'package:zephyr/video/service/video_waveform_service.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
 
 export 'package:zephyr/util/path_util.dart'
-    show isLocalComicSource, isLocalPictureRequest;
+    show isLocalComicSource, isLocalPictureRequest, normalizeLocalComicPath;
 
 /// 管理当前活跃的本地 GPU 呈现阅读会话。
 class LocalReadSession {
@@ -51,6 +53,9 @@ class LocalReadSession {
       // 换书 / 换章：译文页的归属与临时输入必须跟着清，
       // 否则旧书某页的「已翻译」会贴到新书同一序号的页上。
       TranslatedPageController.instance.reset();
+      // 超分的书级开关要知道「现在读的是哪本书」。必须在这里写：呈现器在构造里
+      // 就读初值，那时它自己还没推过任何一页，只有读会话知道身份。
+      RealSrBookScope.setActiveLocalBook(source.path);
     }
   }
 
@@ -67,6 +72,9 @@ class LocalReadSession {
     TranslatedPageController.instance.reset();
     // 先摘走旧引用，再异步释放；换书期间不能把新来源/新纹理一并清掉。
     presenter?.dispose();
+    // 呈现器**没了之后**再撤「当前这本书」：反过来的话，还活着的呈现器会收到一条
+    // 「书变成 null」的通知，于是按全局值在这个正被释放的会话上再起一次超分。
+    RealSrBookScope.setActiveLocalBook(null);
     final closingSource = source?.close();
     // 视频侧的两份缓存跟着会话一起收：海报服务里挂着一个 mpv 实例
     // （它只有 60 s 空闲定时器兜底），波形列的键是**物化后的临时路径**，
@@ -140,15 +148,9 @@ Future<NormalComicEpInfo> getLocalComicEpInfo(String path) async {
   }
 }
 
-/// 路径归一化（统一消除尾随斜杠与相对路径符号，确保历史键值唯一）
-String normalizeLocalComicPath(String rawPath) {
-  var normalized = p.normalize(rawPath.trim());
-  if (normalized.length > 1 &&
-      (normalized.endsWith('/') || normalized.endsWith(r'\'))) {
-    normalized = normalized.substring(0, normalized.length - 1);
-  }
-  return normalized;
-}
+// `normalizeLocalComicPath` 已搬到 `util/path_util.dart`（超分的书级覆盖键也要用它，
+// 不能让设置层反过来依赖读会话这个文件）。它跟着 `path_util.dart` 一起 re-export，
+// 原有调用点不用动。
 
 /// 在目录书的页表里找「点开的那一张」排在第几页。
 ///

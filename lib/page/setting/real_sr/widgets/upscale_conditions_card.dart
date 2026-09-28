@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/setting/real_sr/model/super_resolution_condition.dart';
 import 'package:zephyr/page/setting/real_sr/model/upscale_condition_import.dart';
+import 'package:zephyr/page/setting/real_sr/service/real_sr_book_scope.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
@@ -38,7 +39,12 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
   }
 
   Future<void> _load() async {
-    final autoUpscale = await RealSrSettings.loadAutoUpscale();
+    // 「总闸关着」这条提醒要按**当前这本书**的有效开关判：在阅读器里，书的开关
+    // 可以独立于全局（`RealSrBookScope`）；不在阅读器里（设置页那条路）没有书，
+    // 落到全局，与从前一致。
+    final autoUpscale = await RealSrBookScope.enabledFor(
+      RealSrBookScope.activeLocalBook,
+    );
     final conditionalEnabled = await RealSrSettings.loadConditionalEnabled();
     final conditions = await RealSrSettings.loadConditions();
     if (!mounted) return;

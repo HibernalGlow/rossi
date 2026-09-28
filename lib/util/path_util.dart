@@ -105,3 +105,17 @@ bool isLocalPictureRequest({
       isLocalComicSource(from, cartoonId) ||
       isLocalComicSource(from, url);
 }
+
+/// 路径归一化（统一消除尾随斜杠与相对路径符号，确保历史键值唯一）。
+///
+/// 「唯一」是**键**的性质：同一本书被写成两个键，就会出现「设置没生效 / 历史多出
+/// 一条」这类看起来毫无规律的怪象。所以本地书的身份（阅读历史键、超分的书级
+/// 覆盖键）都从这一个函数走，别在调用点各写一份。
+String normalizeLocalComicPath(String rawPath) {
+  var normalized = p.normalize(rawPath.trim());
+  if (normalized.length > 1 &&
+      (normalized.endsWith('/') || normalized.endsWith(r'\'))) {
+    normalized = normalized.substring(0, normalized.length - 1);
+  }
+  return normalized;
+}

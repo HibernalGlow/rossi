@@ -10,6 +10,7 @@ import 'package:zephyr/gpu/gpu_present_bridge.dart';
 import 'package:zephyr/main.dart' show logger;
 import 'package:zephyr/reader/ambient_palette.dart';
 import 'package:zephyr/reader/reader_ambient_background.dart';
+import 'package:zephyr/page/setting/real_sr/service/real_sr_book_scope.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 import 'package:zephyr/page/setting/real_sr/service/super_resolution_log.dart';
@@ -52,6 +53,8 @@ class GpuPresentController extends ChangeNotifier {
   GpuPresentController([this._bridge = const GpuPresentBridge()]) {
     RealSrSettings.modelChanges.addListener(_onModelChanged);
     RealSrSettings.prefetchChanges.addListener(_onPrefetchChanged);
+    // 书级开关（含全局那条）变了要当场跟随：没有覆盖的书不该等到重开才生效。
+    RealSrBookScope.changes.addListener(_onUpscaleScopeChanged);
     unawaited(_initUpscaleSetting());
   }
 
@@ -958,6 +961,9 @@ class GpuPresentController extends ChangeNotifier {
           knownSize: inputSize,
           bookPath: source.path,
           trigger: trigger,
+          // 条件超分的第一条判据就是「开关开着没有」：这里要传**这本书**的有效值，
+          // 传全局的话，一本被单独打开超分的书会卡在「总闸关着」上不动。
+          autoUpscaleEnabled: await RealSrBookScope.enabledForActiveLocalBook(),
         );
         if (!decision.shouldRun) {
           _upscaleAttempts[index] = _maxUpscaleAttempts;
@@ -1106,6 +1112,7 @@ class GpuPresentController extends ChangeNotifier {
   void dispose() {
     RealSrSettings.modelChanges.removeListener(_onModelChanged);
     RealSrSettings.prefetchChanges.removeListener(_onPrefetchChanged);
+    RealSrBookScope.changes.removeListener(_onUpscaleScopeChanged);
     _enhancementQueue.dispose();
     // 离开阅读器：背景层不该继续挂着一份属于这本书的颜色。
     ReaderAmbientStore.instance.clear();

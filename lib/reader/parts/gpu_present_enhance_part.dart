@@ -2,13 +2,31 @@ part of '../gpu_present_controller.dart';
 
 // 从 class GpuPresentController 搬出的方法组；extension 与宿主类同库，可直接访问私有成员。
 extension GpcEnhancePart on GpuPresentController {
+  /// 会话初值：按**这本书**的有效开关（书级覆盖 ?? 全局）决定要不要超分。
   Future<void> _initUpscaleSetting() async {
     try {
-      final bool auto = await RealSrSettings.loadAutoUpscale();
-      if (!_disposed && auto) {
-        setUpscaleEnabled(true);
+      final bool enabled = await RealSrBookScope.enabledForActiveLocalBook();
+      if (!_disposed && enabled != _isUpscaleEnabled) {
+        setUpscaleEnabled(enabled);
       }
     } catch (_) {}
+  }
+
+  /// 书级覆盖或全局总闸变了 → 这本书没有自己的覆盖就当场跟随。
+  ///
+  /// 有覆盖的书重算后值不变，`setUpscaleEnabled` 自己会短路，不会白跑一次
+  /// 「清增强轨、重处理当前页」。
+  void _onUpscaleScopeChanged() {
+    if (_disposed) return;
+    unawaited(_syncUpscaleScope());
+  }
+
+  Future<void> _syncUpscaleScope() async {
+    final bool enabled = await RealSrBookScope.enabledForActiveLocalBook();
+    if (_disposed) return;
+    if (enabled != _isUpscaleEnabled) {
+      await setUpscaleEnabled(enabled);
+    }
   }
   void _onModelChanged() {
     if (_disposed) return;

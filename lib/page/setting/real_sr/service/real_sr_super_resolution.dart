@@ -14,6 +14,7 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/page/comic_info/method/export_comic.dart';
 import 'package:zephyr/page/setting/real_sr/service/android_ncnn_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/service/desktop_ncnn_model_config.dart';
+import 'package:zephyr/page/setting/real_sr/service/real_sr_book_scope.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/upscaled_image_cache.dart';
 import 'package:zephyr/page/setting/real_sr/service/mimage_onnx_model_config.dart';
@@ -686,6 +687,7 @@ class RealSrSuperResolution {
     SuperResolutionPolicyTrigger trigger = SuperResolutionPolicyTrigger.auto,
     Map<String, dynamic>? metadata,
     SuperResolutionPolicyPreferences? policyPreferences,
+    bool? autoUpscaleEnabled,
   }) async {
     final size = knownSize ?? await imageSizeOf(inputPath);
     if (size == null) {
@@ -695,7 +697,10 @@ class RealSrSuperResolution {
       );
     }
     final prefs =
-        policyPreferences ?? await RealSrSettings.loadPolicyPreferences();
+        policyPreferences ??
+        await RealSrSettings.loadPolicyPreferences(
+          autoUpscaleEnabled: autoUpscaleEnabled,
+        );
     final input = SuperResolutionPolicyInput(
       trigger: trigger,
       width: size.width,
@@ -711,9 +716,15 @@ class RealSrSuperResolution {
   static bool _missingModelNotified = false;
 
   /// 对单张图片做超分放大，成功后再转换为 WebP 以节省空间。
-  static Future<void> upscaleAndConvertToWebp(String inputPath) async {
-    final autoUpscale = await RealSrSettings.loadAutoUpscale();
-    if (!autoUpscale) return;
+  ///
+  /// [bookKey] 是这张图所属的**书**（本地路径 / `插件id:漫画id`，见
+  /// `RealSrBookScope.keyFor`）：有书就按那本书自己的开关判（覆盖 ?? 全局），
+  /// 拿不到才退回全局 —— 在阅读器里关掉一本书的超分，不该把别的书一起关掉。
+  static Future<void> upscaleAndConvertToWebp(
+    String inputPath, {
+    String? bookKey,
+  }) async {
+    if (!await RealSrBookScope.enabledFor(bookKey)) return;
 
     // 先做廉价的文件头格式检测，不支持的格式（如 GIF、动图 WebP）直接跳过，
     // 避免进入分辨率解析、模型检查与超分队列。

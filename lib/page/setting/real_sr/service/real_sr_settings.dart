@@ -281,9 +281,18 @@ class RealSrSettings {
     return prefs.getBool(_keyAutoUpscale) ?? false;
   }
 
+  /// 全局那条总闸（「所有书的默认」）变化时的通知。
+  ///
+  /// 与 [modelChanges] 分开：那条是「换了模型」，消费方要清增强轨、重跑当前页；
+  /// 这条只影响「这本书还该不该超分」，重跑量级完全不同，不能混用。
+  static final _RealSrSettingsNotifier _autoUpscaleChanges =
+      _RealSrSettingsNotifier();
+  static ChangeNotifier get autoUpscaleChanges => _autoUpscaleChanges;
+
   static Future<void> saveAutoUpscale(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyAutoUpscale, value);
+    _autoUpscaleChanges.notify();
   }
 
   static Future<RealSrResolutionThreshold> loadResolutionThreshold() async {
@@ -574,10 +583,14 @@ class RealSrSettings {
     notifyChanges();
   }
 
-  /// 载入完整的条件策略偏好对象
+  /// 载入完整的条件策略偏好对象。
+  ///
+  /// [autoUpscaleEnabled] 给「已经在阅读某本书」的调用方传**这本书的有效值**
+  /// （书级覆盖 ?? 全局）：条件超分的第一条判据就是它，传全局的话，一本被单独
+  /// 打开超分的书会因为全局关着而在条件那一步被跳过 —— 开关看起来就没生效。
   static Future<SuperResolutionPolicyPreferences>
-  loadPolicyPreferences() async {
-    final autoUpscale = await loadAutoUpscale();
+  loadPolicyPreferences({bool? autoUpscaleEnabled}) async {
+    final autoUpscale = autoUpscaleEnabled ?? await loadAutoUpscale();
     final prefetch = await loadPrefetch();
     final preUpscaleEnabled = prefetch.$1 > 0;
     final conditionalEnabled = await loadConditionalEnabled();

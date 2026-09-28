@@ -14,6 +14,7 @@ import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/service/download/download_queue_manager.dart';
 import 'package:zephyr/service/download/models/download_task_json.dart';
 import 'package:zephyr/service/download/download_cancel_signal.dart';
+import 'package:zephyr/page/setting/real_sr/service/real_sr_book_scope.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 
 import 'package:zephyr/src/rust/api/simple.dart';
@@ -87,6 +88,12 @@ Future<String> getCachePicture({
   if (resolvedFrom.isEmpty) {
     throw StateError('getCachePicture missing pluginId');
   }
+  // 超分的书级开关按**这本书**判（`插件id:漫画id`，与下载记录 uniqueKey 同形）：
+  // 在阅读器里关掉一本书的超分，不该把别的书一起关掉。
+  final String? srBookKey = RealSrBookScope.keyFor(
+    from: resolvedFrom,
+    comicId: cartoonId,
+  );
   if (url.contains("nopic-Male.gif")) return "nopic-Male.gif";
 
   final directPath = path.trim();
@@ -110,6 +117,7 @@ Future<String> getCachePicture({
       if (pictureType == PictureType.page && applyRealSr) {
         await RealSrSuperResolution.upscaleAndConvertToWebp(
           existingDownload.path,
+          bookKey: srBookKey,
         );
       }
       return existingDownload.path;
@@ -125,7 +133,10 @@ Future<String> getCachePicture({
   if (existingCache != null) {
     try {
       if (pictureType == PictureType.page && applyRealSr) {
-        await RealSrSuperResolution.upscaleAndConvertToWebp(existingCache.path);
+        await RealSrSuperResolution.upscaleAndConvertToWebp(
+          existingCache.path,
+          bookKey: srBookKey,
+        );
       }
       return existingCache.path;
     } catch (e) {
@@ -187,7 +198,10 @@ Future<String> getCachePicture({
     // 验证文件已成功保存
     if (await File(newCacheFilePath).exists()) {
       if (pictureType == PictureType.page && applyRealSr) {
-        await RealSrSuperResolution.upscaleAndConvertToWebp(newCacheFilePath);
+        await RealSrSuperResolution.upscaleAndConvertToWebp(
+          newCacheFilePath,
+          bookKey: srBookKey,
+        );
       }
       unawaited(
         _syncToDownloadDirectoryIfEnabled(
@@ -212,7 +226,10 @@ Future<String> getCachePicture({
       await File(newCacheFilePath).length() > 0) {
     // 超分 + WebP 转换统一封装，内部会判断分辨率并保留原文件名
     if (pictureType == PictureType.page && applyRealSr) {
-      await RealSrSuperResolution.upscaleAndConvertToWebp(newCacheFilePath);
+      await RealSrSuperResolution.upscaleAndConvertToWebp(
+        newCacheFilePath,
+        bookKey: srBookKey,
+      );
     }
     unawaited(
       _syncToDownloadDirectoryIfEnabled(
@@ -359,6 +376,11 @@ Future<DownloadPictureResult> downloadPictureResult({
   if (resolvedFrom.isEmpty) {
     throw StateError('downloadPicture missing pluginId');
   }
+  // 同 `getCachePicture`：超分开关按这本书自己的来（覆盖 ?? 全局）。
+  final String? srBookKey = RealSrBookScope.keyFor(
+    from: resolvedFrom,
+    comicId: cartoonId,
+  );
   if (url.isEmpty) {
     return DownloadPictureResult(
       status: DownloadPictureResultStatus.notFound,
@@ -534,7 +556,10 @@ Future<DownloadPictureResult> downloadPictureResult({
   }
   // 导出等只读场景传 applyRealSr=false，避免改动已落盘文件。
   if (pictureType == PictureType.page && applyRealSr) {
-    await RealSrSuperResolution.upscaleAndConvertToWebp(downloadFilePath);
+    await RealSrSuperResolution.upscaleAndConvertToWebp(
+      downloadFilePath,
+      bookKey: srBookKey,
+    );
   }
   return DownloadPictureResult(
     status: DownloadPictureResultStatus.downloaded,
