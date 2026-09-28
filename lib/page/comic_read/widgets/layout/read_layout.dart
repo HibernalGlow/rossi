@@ -95,6 +95,17 @@ int getSlotIndexFromStoredHistoryPage({
   return displayPage ~/ 2;
 }
 
+/// 跳页之后，画面是否真的落在目标槽位上。
+///
+/// `PageController.jumpToPage` 有几条**静默不落地**的路：控制器还没挂上、
+/// 视口尺寸还是 0（那一下只记进 `_cachedPage`，读回来的 page 是 NaN）、
+/// 位置越界被物理弹回。它不会告诉你发生了哪一种，只有跳完回读实际页才知道。
+bool didLandOnSlot({required double? actualPage, required int targetSlot}) {
+  return actualPage != null &&
+      actualPage.isFinite &&
+      (actualPage - targetSlot).abs() < 0.01;
+}
+
 /// 阅读器内容顶部偏移。
 ///
 /// 在状态栏下方留出 5.0 的呼吸边距。

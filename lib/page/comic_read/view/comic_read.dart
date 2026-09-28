@@ -9,6 +9,7 @@ import 'package:scrollview_observer/scrollview_observer.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/cubit/string_select.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/main.dart';
 import 'package:zephyr/page/comic_read/comic_read.dart';
 import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
@@ -468,7 +469,22 @@ class _ComicReadPageState extends State<_ComicReadPage>
 
     final readMode = readSetting.readMode;
     if (isColumnReadMode(readMode)) {
-      if (!scrollController.hasClients) return;
+      if (!scrollController.hasClients) {
+        // 列表还没挂上：以前这里直接放弃，于是状态已经指到 safeTarget、画面
+        // 还停在原处，而没有任何东西会再来纠正它。下一帧补一次。
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          if (!scrollController.hasClients) {
+            logger.w(
+              '阅读器跳槽位未落地（列模式列表未挂上）：目标 $safeTarget / 共 $totalSlots, '
+              'book=$comicId',
+            );
+            return;
+          }
+          unawaited(_jumpColumnAndVerify(safeTarget));
+        });
+        return;
+      }
 
       // 列模式：先根据已缓存/默认尺寸做粗略同步偏移，
       // 再由 observerController.jumpTo 在 postFrame 做精确修正，
@@ -502,19 +518,68 @@ class _ComicReadPageState extends State<_ComicReadPage>
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !scrollController.hasClients) return;
-        observerController.jumpTo(
-          index: safeTarget,
-          offset: (offset) => getReaderTopOffset(context),
-        );
+        unawaited(_jumpColumnAndVerify(safeTarget));
       });
       return;
     }
 
+    // 行模式：跳完**回读实际页**。`jumpToPage` 有几条静默不落地的路（控制器
+    // 还没挂上、视口尺寸还是 0 时只记进 `_cachedPage`、越界被物理弹回），
+    // 而状态在跳之前就写好了 —— 不核对就会停在「状态指 X、画面在别处」，
+    // 且没有任何东西会纠正它：唯一能纠正的 `onPageChanged` 只在真的换页时
+    // 才来（症状：点进度条跳到画面已经在的那一页，"没反应"）。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (_pageController.hasClients) {
-        _pageController.jumpToPage(safeTarget);
-      }
+      if (_jumpRowAndVerify(safeTarget)) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (_jumpRowAndVerify(safeTarget)) return;
+        logger.w(
+          '阅读器跳槽位未落地（行模式）：目标 $safeTarget / 共 $totalSlots, '
+          '实际页 ${_currentRowPage()}, book=$comicId',
+        );
+      });
     });
+  }
+
+  /// 行模式当前实际页；控制器没挂上时返回 null。
+  double? _currentRowPage() =>
+      _pageController.hasClients ? _pageController.page : null;
+
+  /// 行模式跳一次并回读，返回是否真的落在目标页上。
+  bool _jumpRowAndVerify(int targetSlot) {
+    if (!_pageController.hasClients) return false;
+    _pageController.jumpToPage(targetSlot);
+    return didLandOnSlot(actualPage: _currentRowPage(), targetSlot: targetSlot);
+  }
+
+  /// 列模式：跳完回读一次（目标有没有进视口），没进就再试一次并留日志。
+  Future<void> _jumpColumnAndVerify(int targetSlot) async {
+    // 偏移先取出来：`jumpTo` 可能在等待期间才回调 offset，那时 context
+    // 未必还在树上。
+    final topOffset = getReaderTopOffset(context);
+    await observerController.jumpTo(
+      index: targetSlot,
+      offset: (_) => topOffset,
+    );
+    if (!mounted || _columnSlotIsVisible(targetSlot)) return;
+    await observerController.jumpTo(
+      index: targetSlot,
+      offset: (_) => topOffset,
+    );
+    if (!mounted || _columnSlotIsVisible(targetSlot)) return;
+    logger.w(
+      '阅读器跳槽位未落地（列模式）：目标 $targetSlot, book=$comicId',
+    );
+  }
+
+  /// 目标槽位此刻是否在列模式视口里。观察器还没接上时按「可见」处理 ——
+  /// 拿不到判据就不该乱重试。
+  bool _columnSlotIsVisible(int targetSlot) {
+    try {
+      return observerController.observeItem(index: targetSlot) != null;
+    } catch (_) {
+      return true;
+    }
   }
 }
