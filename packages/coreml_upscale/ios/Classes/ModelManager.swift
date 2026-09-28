@@ -39,10 +39,10 @@ actor ModelManager {
         let fileURL = URL(fileURLWithPath: path)
         let cached = CompiledModelCache.cachedURL(for: fileURL)
         var compiledUrl = cached
-        var loadedFromCache = CompiledModelCache.isUsable(cached)
+        let loadedFromCache = CompiledModelCache.isUsable(cached)
         if !loadedFromCache {
             compiledUrl = try CompiledModelCache.install(
-                compiled: try await MLModel.compileModel(at: fileURL), for: fileURL)
+                compiled: try await Self.compileModel(at: fileURL), for: fileURL)
         }
         let configuration = MLModelConfiguration()
         configuration.computeUnits = .all
@@ -56,7 +56,7 @@ actor ModelManager {
             // 两个指向同一个目录的 URL 可以 `==` 为 false。
             guard loadedFromCache else { throw error }
             compiledUrl = try CompiledModelCache.install(
-                compiled: try await MLModel.compileModel(at: fileURL), for: fileURL)
+                compiled: try await Self.compileModel(at: fileURL), for: fileURL)
             mlModel = try MLModel(contentsOf: compiledUrl, configuration: configuration)
         }
 
@@ -74,6 +74,20 @@ actor ModelManager {
             imageModelCache[path] = model
         }
         return model
+    }
+
+    /// 编译模型：macOS 13 / iOS 16 起走真正的 async 重载，12.x 只有同步版可用。
+    ///
+    /// 不能直接写 `try await MLModel.compileModel(at:)`：在以 12.0 为下限的目标里
+    /// 编译器会解析到**已废弃的同步重载**，await 成了空操作、还报一条
+    /// 「no 'async' operations occur within 'await'」；反过来只写 `try`（不 await），
+    /// 下限一抬到 13.0 又会因为解析到 async 重载而编译不过 —— 所以这里显式分叉。
+    private static func compileModel(at url: URL) async throws -> URL {
+        if #available(macOS 13.0, iOS 16.0, *) {
+            return try await MLModel.compileModel(at: url)
+        }
+        let sync: (URL) throws -> URL = MLModel.compileModel(at:)
+        return try sync(url)
     }
 
     func clearCache() {
