@@ -32,9 +32,13 @@ class HistorySnapshot {
 ///
 /// 封装 ObjectBox 历史记录查询、worker isolate 写入与序列化逻辑，
 /// 通过 [statusStream] 把左下角状态文本暴露给 controller，自身不依赖任何 cubit。
+///
+/// **一个阅读会话一份实例**（由 `ReaderHistoryController` 持有），不是单例。
+/// 这里的每个字段（`_source` / `_comicId` / `_history`）都是「当前这本」的状态，
+/// 而读写都是异步的：单例形态下，上一本在途的写入会落在下一本的 `loadHistory`
+/// 之后，把上一本的页码交给下一本（症状：换书后停在中间/最后一页）。
 class ReaderHistoryService {
-  static final ReaderHistoryService instance = ReaderHistoryService._();
-  ReaderHistoryService._();
+  ReaderHistoryService();
 
   final _statusController = StreamController<String>.broadcast();
   Stream<String> get statusStream => _statusController.stream;
@@ -49,12 +53,19 @@ class ReaderHistoryService {
   bool _isLoading = true;
   HistorySnapshot Function()? _snapshotProvider;
 
+  /// 绑定代次：每 [loadHistory] 加一。
+  ///
+  /// 异步结果回来时若代次已经变了，说明这条结果属于上一次绑定，**不许**再写回
+  /// [_history] —— 否则新会话读到的是上一次绑定的页码。
+  int _generation = 0;
+
   /// 加载指定漫画的历史记录，并解析 comicInfo 供后续写入使用。
   Future<void> loadHistory({
     required String source,
     required String comicId,
     required dynamic comicInfo,
   }) async {
+    final int generation = ++_generation;
     final isLocal = isLocalComicSource(source, comicId);
     final resolvedComicId = isLocal
         ? normalizeLocalComicPath(comicId)
@@ -62,11 +73,13 @@ class ReaderHistoryService {
 
     _source = source;
     _comicId = resolvedComicId;
-    _comicInfo = await _resolveNormalComicInfo(
+    final resolvedComicInfo = await _resolveNormalComicInfo(
       source: source,
       comicId: resolvedComicId,
       comicInfo: comicInfo,
     );
+    if (generation != _generation) return;
+    _comicInfo = resolvedComicInfo;
     _isLoading = true;
 
     final query = objectbox.unifiedHistoryBox
@@ -75,7 +88,10 @@ class ReaderHistoryService {
         )
         .build();
     try {
-      _history = query.findFirst();
+      final found = query.findFirst();
+      if (generation == _generation) {
+        _history = found;
+      }
     } finally {
       query.close();
     }
@@ -117,6 +133,11 @@ class ReaderHistoryService {
     final snapshot = _snapshotProvider?.call();
     if (snapshot == null) return;
 
+    // 这次写入属于哪一代绑定：回来时若已经换了一代，落盘照旧（键/内容都是
+    // 发起那一刻抓的），但**不再写回内存** —— 新会话的内存值由它自己的
+    // `loadHistory` 说了算。
+    final int generation = _generation;
+
     final currentTime = DateTime.now().toLocal().toString().substring(0, 19);
     _statusController.add(
       '${snapshot.chapterOrder > 0 ? '${snapshot.chapterOrder}-' : ''}'
@@ -141,7 +162,9 @@ class ReaderHistoryService {
       final historyJson = await workerManager.execute<Map<String, dynamic>>(
         () => _upsertUnifiedHistoryOnWorker(payload, rootIsolateToken),
       );
-      _history = UnifiedComicHistory.fromJson(historyJson);
+      if (generation == _generation) {
+        _history = UnifiedComicHistory.fromJson(historyJson);
+      }
     } catch (e, s) {
       logger.w('history write offloaded to worker failed', error: e);
       logger.d(s);

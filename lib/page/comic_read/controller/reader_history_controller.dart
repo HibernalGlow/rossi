@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/cubit/string_select.dart';
+import 'package:zephyr/main.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_seamless_cubit.dart';
 import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
@@ -44,17 +45,38 @@ class ReaderHistoryController {
   /// 松散图片被提升到「所在目录那一本书」时，点开的那一张的文件名。
   final String? entryHintName;
 
-  final _service = ReaderHistoryService.instance;
+  final _service = ReaderHistoryService();
   StreamSubscription<String>? _statusSubscription;
+  Future<void>? _loadFuture;
   bool isSkipped = false;
   bool _stopped = false;
 
-  Future<void> init() async {
-    await _service.loadHistory(
-      source: from,
-      comicId: comicId,
-      comicInfo: comicInfo,
-    );
+  /// 本次这本的历史加载；重复调用返回同一个 future，可以安全 await。
+  Future<void> init() => _loadFuture ??= _load();
+
+  /// 本次这本的历史已经加载完（`init()` 的同一个 future）。
+  ///
+  /// 读页码之前**必须**等它：`loadHistory` 是异步的，不等就可能读到上一次
+  /// 绑定留下的页码（症状：换书后停在上一次的页数）。
+  Future<void> get ready => init();
+
+  Future<void> _load() async {
+    try {
+      await _service.loadHistory(
+        source: from,
+        comicId: comicId,
+        comicInfo: comicInfo,
+      );
+    } catch (error, stackTrace) {
+      // 加载失败按「这本没有历史记录」处理：宁可从头读，也不能让上一次绑定的
+      // 页码冒充这本的。
+      logger.w(
+        '阅读历史加载失败，按无记录处理: $from:$comicId',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+    if (stringSelectCubit.isClosed) return;
     _statusSubscription = _service.statusStream.listen((status) {
       if (!stringSelectCubit.isClosed) {
         stringSelectCubit.setDate(status);
@@ -94,11 +116,22 @@ class ReaderHistoryController {
   Future<void> handleHistoryScroll(BuildContext context) async {
     final isLocal = isLocalComicSource(from, comicId);
     final hintIndex = isLocal ? _entryHintDocIndex() : null;
+    if (hintIndex == null && (isHistoryEntry() || isLocal)) {
+      // 要读的就是历史页码：等本次这本加载完再读。不等的话，读到的是上一次
+      // 绑定留在 service 里的页码 —— 换书后停在中间 / 最后一页就是这么来的。
+      // 入口提示（点开的那一张）不依赖历史，所以只在真的要用时才等。
+      await ready;
+      if (!context.mounted) return;
+    }
     // 点击的意图优先于同一个目录的上次位置；历史页码是 displayPage + 1，
     // 因此 0 基的页下标加 2 正好落在同一刻度上。
     final historyIndex = hintIndex != null
         ? hintIndex + 2
         : getHistoryPageIndex();
+    logger.d(
+      '阅读位置恢复 book=$comicId 历史入口=${isHistoryEntry()} local=$isLocal '
+      'hint=$hintIndex 存储页=$historyIndex',
+    );
     var shouldScroll =
         (isHistoryEntry() || (isLocal && historyIndex > 1)) && !isSkipped;
     if (shouldScroll) {
@@ -161,6 +194,7 @@ class ReaderHistoryController {
         );
       }
       targetIndex = targetIndex.clamp(0, totalSlots - 1);
+      logger.d('阅读位置恢复 → 跳槽位 $targetIndex / 共 $totalSlots');
       await jumpToGlobalSlot(targetIndex);
       isSkipped = true;
     });
