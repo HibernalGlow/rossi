@@ -110,7 +110,7 @@ bool didLandOnSlot({required double? actualPage, required int targetSlot}) {
 ///
 /// 在状态栏下方留出 5.0 的呼吸边距。
 double getReaderTopOffset(BuildContext context) {
-  return MediaQuery.of(context).padding.top + 5.0;
+  return MediaQuery.paddingOf(context).top + 5.0;
 }
 
 /// 生成稳定的图片尺寸缓存索引。

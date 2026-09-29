@@ -20,6 +20,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_presentation_cubit.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/app_bar.dart';
@@ -47,6 +48,10 @@ Future<void> _paintBar(
   await tester.pumpWidget(
     MultiBlocProvider(
       providers: [
+        // 上游的 readEffectiveReadSetting() 要求树上有这个 cubit（真机由 main.dart 注册）。
+        BlocProvider<ComicReadPreferenceCubit>(
+          create: (_) => ComicReadPreferenceCubit(),
+        ),
         BlocProvider.value(value: settings),
         BlocProvider(create: (_) => ReaderCubit()),
         BlocProvider.value(value: presentation),

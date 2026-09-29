@@ -65,6 +65,17 @@ class _TapPageTurnModeSection extends StatelessWidget {
             );
           },
         ),
+        // 上游的「反转左右方向键」：本仓把左右键当空间动作，翻转只在这一层生效。
+        _SettingsSwitchTile(
+          title: t.reader.reverseHorizontalPageTurn,
+          subtitle: t.reader.reverseHorizontalPageTurnSubtitle,
+          value: globalSettingState.readSetting.reverseHorizontalPageTurn,
+          onChanged: (value) {
+            globalSettingCubit.updateReadSetting(
+              (current) => current.copyWith(reverseHorizontalPageTurn: value),
+            );
+          },
+        ),
       ],
     );
   }

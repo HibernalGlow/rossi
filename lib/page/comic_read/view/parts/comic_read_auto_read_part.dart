@@ -22,9 +22,10 @@ extension _ComicReadAutoReadPart on _ComicReadPageState {
   // 仅暂停计时，不改动用户设置项本身。
   void _toggleAutoReadPaused() {
     _refreshState(() {});
+    final effective = context.readEffectiveReadSetting();
     _autoReadController.togglePaused(
-      readSetting: context.read<GlobalSettingCubit>().state.readSetting,
-      readMode: context.read<GlobalSettingCubit>().state.readSetting.readMode,
+      readSetting: effective,
+      readMode: effective.readMode,
       canTick: () {
         final readerState = context.read<ReaderCubit>().state;
         return !readerState.isMenuVisible &&
@@ -56,8 +57,12 @@ extension _ComicReadAutoReadPart on _ComicReadPageState {
           selector: (state) => state.isMenuVisible,
           builder: (context, isMenuVisible) {
             final bottomSafe = context.bottomSafeHeight;
+            // 墨水屏：按钮位移与图标缩放都会留下残影，直接落位。
+            final eInkInstant = globalSettingState.eInkSetting.enabled;
             return AnimatedPositioned(
-              duration: const Duration(milliseconds: 300),
+              duration: eInkInstant
+                  ? Duration.zero
+                  : const Duration(milliseconds: 300),
               curve: Curves.easeOutCubic,
               left: leftHandMode ? 14 : null,
               right: leftHandMode ? null : 14,
@@ -69,7 +74,9 @@ extension _ComicReadAutoReadPart on _ComicReadPageState {
                     : t.reader.pauseAutoRead,
                 onPressed: _toggleAutoReadPaused,
                 child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
+                  duration: eInkInstant
+                      ? Duration.zero
+                      : const Duration(milliseconds: 220),
                   transitionBuilder: (child, animation) {
                     return ScaleTransition(scale: animation, child: child);
                   },

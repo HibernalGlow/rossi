@@ -52,7 +52,7 @@ extension _ComicReadViewPart on _ComicReadPageState {
   }
 
   Widget _pageCountWidget() {
-    final readSetting = context.read<GlobalSettingCubit>().state.readSetting;
+    final readSetting = context.readEffectiveReadSetting();
     final seamlessCubit = context.read<ReaderSeamlessCubit>();
     final seamlessEnabled = seamlessCubit.isSeamlessEnabled();
     return PageCountWidget(
@@ -89,7 +89,7 @@ extension _ComicReadViewPart on _ComicReadPageState {
   }
 
   Widget _bottomWidget(BuildContext innerContext) {
-    final readSetting = context.read<GlobalSettingCubit>().state.readSetting;
+    final readSetting = context.readEffectiveReadSetting();
     final seamlessCubit = context.read<ReaderSeamlessCubit>();
     final seamlessEnabled = seamlessCubit.isSeamlessEnabled();
     // 传构造器而不是造好的 widget：展开缩略图时进度条要**去掉自己的玻璃**

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
 import 'package:zephyr/page/comic_read/controller/reader_action_controller.dart';
 import 'package:zephyr/page/comic_read/controller/reader_input_controller.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
@@ -148,8 +149,16 @@ Future<_ZoneRecorder> _pumpReader(
   final recorder = _ZoneRecorder();
   await tester.pumpWidget(
     MaterialApp(
-      home: BlocProvider<GlobalSettingCubit>(
-        create: (_) => _TestSettingCubit(read: read),
+      home: MultiBlocProvider(
+        providers: [
+          BlocProvider<GlobalSettingCubit>(
+            create: (_) => _TestSettingCubit(read: read),
+          ),
+          // 上游的 readEffectiveReadSetting() 要求树上有这个 cubit（真机由 main.dart 注册）。
+          BlocProvider<ComicReadPreferenceCubit>(
+            create: (_) => ComicReadPreferenceCubit(),
+          ),
+        ],
         child: BlocProvider<ReaderCubit>(
           create: (_) => ReaderCubit(),
           child: Builder(

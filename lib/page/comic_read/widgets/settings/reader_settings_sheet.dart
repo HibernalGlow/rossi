@@ -14,6 +14,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/video/model/video_media_kind.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
@@ -35,16 +36,23 @@ Future<void> showReaderSettingsSheet(
   BuildContext context, {
   ValueChanged<int>? changePageIndex,
   ValueChanged<bool>? onLandscapeChanged,
+  String source = '',
+  String comicId = '',
 }) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
+    barrierLabel: t.common.close,
+    isDismissible: true,
+    enableDrag: true,
     builder: (context) {
       return _ReaderSettingsSheetEscScope(
         child: _ReaderSettingsSheet(
           changePageIndex: changePageIndex ?? (_) {},
           onLandscapeChanged: onLandscapeChanged,
+          source: source,
+          comicId: comicId,
         ),
       );
     },
@@ -108,36 +116,54 @@ class _ReaderSettingsSheetEscScopeState
 class _ReaderSettingsSheet extends StatelessWidget {
   final ValueChanged<int> changePageIndex;
   final ValueChanged<bool>? onLandscapeChanged;
+  final String source;
+  final String comicId;
 
   const _ReaderSettingsSheet({
     required this.changePageIndex,
     this.onLandscapeChanged,
+    this.source = '',
+    this.comicId = '',
   });
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    final maxHeight = mediaQuery.size.height * 0.7;
+    final mediaSize = MediaQuery.sizeOf(context);
+    final maxHeight = mediaSize.height * 0.7;
     final isAndroidPhone =
-        !kIsWeb && Platform.isAndroid && mediaQuery.size.shortestSide < 600;
+        !kIsWeb && Platform.isAndroid && mediaSize.shortestSide < 600;
 
     return SafeArea(
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 760),
-            child: SizedBox(
-              height: maxHeight,
-              child: _ReaderSettingsCard(
-                changePageIndex: changePageIndex,
-                isAndroidPhone: isAndroidPhone,
-                onLandscapeChanged: onLandscapeChanged,
+        child: Stack(
+          children: [
+            // 卡片外部的空白点击直接关闭（框体自身占满全屏，默认遮罩点不透）。
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => Navigator.of(context).maybePop(),
+                child: const SizedBox.expand(),
               ),
             ),
-          ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 760),
+                child: SizedBox(
+                  height: maxHeight,
+                  child: _ReaderSettingsCard(
+                    changePageIndex: changePageIndex,
+                    isAndroidPhone: isAndroidPhone,
+                    onLandscapeChanged: onLandscapeChanged,
+                    source: source,
+                    comicId: comicId,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -148,11 +174,15 @@ class _ReaderSettingsCard extends StatelessWidget {
   final ValueChanged<int> changePageIndex;
   final bool isAndroidPhone;
   final ValueChanged<bool>? onLandscapeChanged;
+  final String source;
+  final String comicId;
 
   const _ReaderSettingsCard({
     required this.changePageIndex,
     required this.isAndroidPhone,
     this.onLandscapeChanged,
+    this.source = '',
+    this.comicId = '',
   });
 
   @override
@@ -177,6 +207,8 @@ class _ReaderSettingsCard extends StatelessWidget {
                   _ReaderSettingsReadTab(
                     changePageIndex: changePageIndex,
                     onLandscapeChanged: onLandscapeChanged,
+                    source: source,
+                    comicId: comicId,
                   ),
                   _ReaderSettingsGestureTab(isAndroidPhone: isAndroidPhone),
                   const _ReaderSettingsInfoTab(),
@@ -200,14 +232,19 @@ class _ReaderSettingsHeader extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Center(
-          child: Container(
-            width: 36,
-            height: 4,
-            margin: const EdgeInsets.only(top: 10, bottom: 6),
-            decoration: BoxDecoration(
-              color: colorScheme.outlineVariant.withValues(alpha: 0.8),
-              borderRadius: BorderRadius.circular(999),
+        // 上游的「点空白关闭」补在拖拽条上：点这根条也收起面板。
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => Navigator.of(context).maybePop(),
+          child: Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 10, bottom: 6),
+              decoration: BoxDecoration(
+                color: colorScheme.outlineVariant.withValues(alpha: 0.8),
+                borderRadius: BorderRadius.circular(999),
+              ),
             ),
           ),
         ),
@@ -471,6 +508,49 @@ class _SettingsAnimatedCollapse extends StatelessWidget {
               ],
             )
           : const SizedBox.shrink(),
+    );
+  }
+}
+
+/// 上游阅读页设置里的那颗选项胶囊（本漫独立模式与阅读模式都用它）。
+class _SettingsChoiceChip extends StatelessWidget {
+  final String title;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _SettingsChoiceChip({
+    required this.title,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = context.theme.colorScheme;
+
+    return ChoiceChip(
+      label: Text(title),
+      selected: selected,
+      showCheckmark: false,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
+      backgroundColor: colorScheme.surfaceContainerHighest.withValues(
+        alpha: 0.45,
+      ),
+      selectedColor: colorScheme.primaryContainer.withValues(alpha: 0.92),
+      side: BorderSide(
+        color: selected
+            ? colorScheme.primary
+            : colorScheme.outlineVariant.withValues(alpha: 0.7),
+        width: selected ? 1.4 : 1,
+      ),
+      labelStyle: context.theme.textTheme.bodyMedium?.copyWith(
+        fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+        color: selected
+            ? colorScheme.onPrimaryContainer
+            : colorScheme.onSurface,
+      ),
+      onSelected: (_) => onTap(),
     );
   }
 }

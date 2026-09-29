@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/widgets/image/image_display.dart';
@@ -75,6 +76,10 @@ void main() {
       Widget host() => MultiBlocProvider(
         providers: [
           BlocProvider<GlobalSettingCubit>.value(value: settings),
+          // 上游的 readEffectiveReadSetting() 要求树上有这个 cubit（真机由 main.dart 注册）。
+          BlocProvider<ComicReadPreferenceCubit>(
+            create: (_) => ComicReadPreferenceCubit(),
+          ),
           BlocProvider<ReaderCubit>.value(value: reader),
           BlocProvider<ImageSizeCubit>.value(value: sizes),
         ],

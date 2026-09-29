@@ -329,7 +329,11 @@ Future<void> unifiedDownloadTask(
         ensureTaskRunning: ensureTaskRunning,
         shouldRetryUntilSuccess: shouldRetryUntilSuccess,
         reporter: reporter,
-        concurrency: resolveConcurrency(),
+        // 上游让插件决定并发；本仓的设置页并发数是用户显式上限，取两者较小值。
+        concurrency: (await resolveDownloadConcurrency(
+          from: from,
+          pluginId: pluginId,
+        )).clamp(1, resolveConcurrency()),
         requestDelay: resolveRequestDelay(),
         onProgress:
             (completed, downloaded, reused, completedJob, jobSkipped) async {

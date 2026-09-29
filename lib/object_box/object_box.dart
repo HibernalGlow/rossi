@@ -21,10 +21,6 @@ class ObjectBox {
   late final Box<UnifiedComicFavorite> _unifiedComicFavoriteBox;
   late final Box<UnifiedComicHistory> _unifiedComicHistoryBox;
   late final Box<UnifiedComicDownload> _unifiedComicDownloadBox;
-  late final Box<FavoriteFolder> _favoriteFolderBox;
-  late final Box<FavoriteFolderItem> _favoriteFolderItemBox;
-  late final Box<DownloadFolder> _downloadFolderBox;
-  late final Box<DownloadFolderItem> _downloadFolderItemBox;
 
   late final Box<UserSetting> _userSettingBox;
 
@@ -36,6 +32,7 @@ class ObjectBox {
   late final Box<ComicFolder> _comicFolderBox;
   late final Box<ComicLink> _comicLinkBox;
   late final Box<ComicFollow> _comicFollowBox;
+  late final Box<ComicReadPreference> _comicReadPreferenceBox;
 
   void close() {
     store.close();
@@ -51,10 +48,6 @@ class ObjectBox {
     _unifiedComicFavoriteBox = store.box<UnifiedComicFavorite>();
     _unifiedComicHistoryBox = store.box<UnifiedComicHistory>();
     _unifiedComicDownloadBox = store.box<UnifiedComicDownload>();
-    _favoriteFolderBox = store.box<FavoriteFolder>();
-    _favoriteFolderItemBox = store.box<FavoriteFolderItem>();
-    _downloadFolderBox = store.box<DownloadFolder>();
-    _downloadFolderItemBox = store.box<DownloadFolderItem>();
 
     _userSettingBox = store.box<UserSetting>();
 
@@ -66,6 +59,7 @@ class ObjectBox {
     _comicFolderBox = store.box<ComicFolder>();
     _comicLinkBox = store.box<ComicLink>();
     _comicFollowBox = store.box<ComicFollow>();
+    _comicReadPreferenceBox = store.box<ComicReadPreference>();
   }
 
   static Future<ObjectBox> create({String? dbRootPath}) async {
@@ -130,10 +124,6 @@ class ObjectBox {
   Box<UnifiedComicHistory> get unifiedHistoryBox => _unifiedComicHistoryBox;
 
   Box<UnifiedComicDownload> get unifiedDownloadBox => _unifiedComicDownloadBox;
-  Box<FavoriteFolder> get favoriteFolderBox => _favoriteFolderBox;
-  Box<FavoriteFolderItem> get favoriteFolderItemBox => _favoriteFolderItemBox;
-  Box<DownloadFolder> get downloadFolderBox => _downloadFolderBox;
-  Box<DownloadFolderItem> get downloadFolderItemBox => _downloadFolderItemBox;
 
   Box<UserSetting> get userSettingBox => _userSettingBox;
 
@@ -148,6 +138,9 @@ class ObjectBox {
   Box<ComicLink> get comicLinkBox => _comicLinkBox;
 
   Box<ComicFollow> get comicFollowBox => _comicFollowBox;
+
+  Box<ComicReadPreference> get comicReadPreferenceBox =>
+      _comicReadPreferenceBox;
 
   /// 在当前 isolate 中以只读事务收集所有 ObjectBox 数据并序列化为 JSON。
   ///
@@ -193,16 +186,6 @@ class ObjectBox {
       _unifiedComicDownloadBox,
       "UnifiedComicDownload",
     );
-    _dumpBoxData<FavoriteFolder>(_favoriteFolderBox, "FavoriteFolder");
-    _dumpBoxData<FavoriteFolderItem>(
-      _favoriteFolderItemBox,
-      "FavoriteFolderItem",
-    );
-    _dumpBoxData<DownloadFolder>(_downloadFolderBox, "DownloadFolder");
-    _dumpBoxData<DownloadFolderItem>(
-      _downloadFolderItemBox,
-      "DownloadFolderItem",
-    );
 
     _dumpBoxData<UserSetting>(_userSettingBox, "UserSetting");
     _dumpBoxData<DownloadTask>(_downloadTaskBox, "DownloadTask");
@@ -211,6 +194,10 @@ class ObjectBox {
     _dumpBoxData<ComicFolder>(_comicFolderBox, "ComicFolder");
     _dumpBoxData<ComicLink>(_comicLinkBox, "ComicLink");
     _dumpBoxData<ComicFollow>(_comicFollowBox, "ComicFollow");
+    _dumpBoxData<ComicReadPreference>(
+      _comicReadPreferenceBox,
+      "ComicReadPreference",
+    );
 
     logger.d("=========  ObjectBox Data Dump End  =========");
   }
@@ -263,28 +250,16 @@ String _collectObjectBoxDataJson(Store store, bool removeIds) {
       store.box<UnifiedComicDownload>(),
       (item) => item.toJson(),
     ),
-    'favoriteFolder': readBox(
-      store.box<FavoriteFolder>(),
-      (item) => item.toJson(),
-    ),
-    'favoriteFolderItem': readBox(
-      store.box<FavoriteFolderItem>(),
-      (item) => item.toJson(),
-    ),
-    'downloadFolder': readBox(
-      store.box<DownloadFolder>(),
-      (item) => item.toJson(),
-    ),
-    'downloadFolderItem': readBox(
-      store.box<DownloadFolderItem>(),
-      (item) => item.toJson(),
-    ),
     'userSetting': readBox(store.box<UserSetting>(), (item) => item.toJson()),
     'downloadTask': readBox(store.box<DownloadTask>(), (item) => item.toJson()),
     'pluginConfig': readBox(store.box<PluginConfig>(), (item) => item.toJson()),
     'pluginInfo': readBox(store.box<PluginInfo>(), (item) => item.toJson()),
     'comicFolder': readBox(store.box<ComicFolder>(), (item) => item.toJson()),
     'comicLink': readBox(store.box<ComicLink>(), (item) => item.toJson()),
+    'comicReadPreference': readBox(
+      store.box<ComicReadPreference>(),
+      (item) => item.toJson(),
+    ),
   };
 
   return jsonEncode(data);

@@ -170,6 +170,10 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
         },
       ),
     );
+    // 墨水屏：工具栏滑入滑出的中间帧只会攒成残影，直接出图。
+    final eInkInstant = context.select(
+      (GlobalSettingCubit cubit) => cubit.state.eInkSetting.enabled,
+    );
 
     return Positioned(
       top: 0,
@@ -178,7 +182,9 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
       child: IgnorePointer(
         ignoring: !showTopAppBar,
         child: AnimatedSlide(
-          duration: const Duration(milliseconds: 320),
+          duration: eInkInstant
+              ? Duration.zero
+              : const Duration(milliseconds: 320),
           curve: Curves.easeOutCubic,
           offset: showTopAppBar ? Offset.zero : const Offset(0, -1),
           child: MouseRegion(
@@ -356,6 +362,9 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
                     context,
                     changePageIndex: widget.changePageIndex,
                     onLandscapeChanged: widget.onLandscapeChanged,
+                    // 顶栏这个入口也在阅读页里：带上本漫身份，否则「启用本漫画设置」不会出现。
+                    source: widget.from,
+                    comicId: widget.comicId,
                   ),
                 ),
               ],

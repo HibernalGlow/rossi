@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
@@ -195,6 +196,9 @@ class _ImageDisplayState extends State<ImageDisplay> {
     final readSetting = context.select(
       (GlobalSettingCubit c) => c.state.readSetting,
     );
+    final showStaticPlaceholder = context.select(
+      (GlobalSettingCubit c) => c.state.eInkSetting.shouldRemoveLoadingSpinner,
+    );
     final brightness = Theme.of(context).brightness;
     final backgroundColor = readSetting.resolveReaderBackgroundColor(
       brightness,
@@ -203,9 +207,7 @@ class _ImageDisplayState extends State<ImageDisplay> {
       brightness,
     );
     final progressColor = foregroundColor.withValues(alpha: 0.3);
-    final readMode = context.select(
-      (GlobalSettingCubit c) => c.state.readSetting.readMode,
-    );
+    final readMode = context.watchEffectiveReadMode();
     final currentPageIndex = context.select(
       (ReaderCubit c) => c.state.currentSlot,
     );
@@ -240,6 +242,25 @@ class _ImageDisplayState extends State<ImageDisplay> {
           });
         }
 
+        Widget loadingPlaceholder() {
+          if (showStaticPlaceholder) {
+            return Container(width: width, color: backgroundColor);
+          }
+          return Container(
+            width: width,
+            color: backgroundColor,
+            alignment: Alignment.center,
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: progressColor,
+              ),
+            ),
+          );
+        }
+
         return Align(
           alignment: widget.imageAlignment,
           child: Image.file(
@@ -266,38 +287,10 @@ class _ImageDisplayState extends State<ImageDisplay> {
                 return child;
               }
 
-              if (isColumn) {
-                return Container(
-                  width: width,
-                  color: backgroundColor,
-                  alignment: Alignment.center,
-                  child: SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: progressColor,
-                    ),
-                  ),
-                );
-              } else {
-                if (canUseEinkMask && isActiveRowImage && !_einkDelayFinished) {
-                  return Container(width: width, color: Colors.white);
-                }
-                return Container(
-                  width: width,
-                  color: backgroundColor,
-                  alignment: Alignment.center,
-                  child: SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: progressColor,
-                    ),
-                  ),
-                );
+              if (canUseEinkMask && isActiveRowImage && !_einkDelayFinished) {
+                return Container(width: width, color: Colors.white);
               }
+              return loadingPlaceholder();
             },
           ),
         );

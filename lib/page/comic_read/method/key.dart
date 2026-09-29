@@ -16,43 +16,53 @@ import 'package:zephyr/page/comic_read/controller/reader_action_controller.dart'
 /// 与九宫格点击分区共用同一条方向解析
 /// （`ReaderActionController.onSpatialPageRight/Left`）。上下键与 WASD 的
 /// 竖向键保持**语义动作**（任何方向下「下 = 前进」）。
+///
+/// [reverseHorizontal]（上游的「反转左右方向键」设置）只在这一层交换左右两键
+/// 对应的**空间动作**，不改语义键、也不绕过上面那条方向解析 —— 否则「左开 + 反转」
+/// 会被翻两次，回到写死「右 = 下一页」的老行为。
 bool handleGlobalKeyEvent(
   KeyEvent event,
-  ReaderActionController actionController,
-) {
+  ReaderActionController actionController, {
+  bool reverseHorizontal = false,
+}) {
   // 只响应按下瞬间 (KeyDown) 和 长按重复 (KeyRepeat)
   if (event is! KeyDownEvent && event is! KeyRepeatEvent) return false;
 
   final key = event.logicalKey;
 
-  // 1. 「向下/下一步」—— 语义动作：不论方向，就是前进。
-  final isNext =
+  // 1. 「向下/下一步」—— 语义动作：不论方向，就是前进。纵向键上下永远不变。
+  final isNextVertical =
       key == LogicalKeyboardKey.arrowDown ||
       key == LogicalKeyboardKey.numpad2 || // 小键盘 2
       key == LogicalKeyboardKey.keyS;
 
   // 2. 「向上/上一步」—— 语义动作。
-  final isPrev =
+  final isPrevVertical =
       key == LogicalKeyboardKey.arrowUp ||
       key == LogicalKeyboardKey.numpad8 || // 小键盘 8
       key == LogicalKeyboardKey.keyW;
 
-  // 3. 左右方向键 —— 空间动作：方向在 ReaderActionController 里解析。
-  final isSpatialRight =
+  // 3. 左右方向键 —— 空间动作：前进还是退回在 ReaderActionController 里解析。
+  var isSpatialRight =
       key == LogicalKeyboardKey.arrowRight ||
       key == LogicalKeyboardKey.numpad6 || // 小键盘 6
       key == LogicalKeyboardKey.keyD;
-  final isSpatialLeft =
+  var isSpatialLeft =
       key == LogicalKeyboardKey.arrowLeft ||
       key == LogicalKeyboardKey.numpad4 || // 小键盘 4
       key == LogicalKeyboardKey.keyA;
+  if (reverseHorizontal) {
+    final tmp = isSpatialRight;
+    isSpatialRight = isSpatialLeft;
+    isSpatialLeft = tmp;
+  }
 
-  if (isNext) {
+  if (isNextVertical) {
     actionController.onKeyScrollNext();
     return true; // 拦截！ListView 也就是这一刻收不到事件了，也就不会跳页了
   }
 
-  if (isPrev) {
+  if (isPrevVertical) {
     actionController.onKeyScrollPrev();
     return true; // 拦截！
   }

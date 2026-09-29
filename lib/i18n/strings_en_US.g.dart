@@ -485,6 +485,33 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get ocr => 'Manga Translation (Finished Pages)';
 	@override String get ocrSubtitle => 'Experimental; needs model download and a translation endpoint';
 	@override String get realSrSubtitle => 'Experimental feature, may be unstable';
+	@override String get eink => 'E-ink';
+	@override String get einkSubtitle => 'Page-turn animation · full refresh · loading';
+	@override String get einkPageTitle => 'E-ink adaptation';
+	@override String get einkDetected => 'Detected as an e-ink device';
+	@override String get einkNotDetected => 'No e-ink device detected, you can enable it manually';
+	@override String get einkEnabled => 'Enable e-ink mode';
+	@override String get einkEnabledSubtitle => 'Remove animations and refresh the whole screen periodically';
+	@override String get einkSectionAnimation => 'Animation & transitions';
+	@override String get einkNoRouteTransition => 'Remove page transition animation';
+	@override String get einkNoRouteTransitionSubtitle => 'Show pages instantly instead of sliding and fading';
+	@override String get einkNoScrollBounce => 'Remove scroll overscroll';
+	@override String get einkNoScrollBounceSubtitle => 'Stop at the edge instead of bouncing in webtoon mode';
+	@override String get einkSectionLoading => 'Loading';
+	@override String get einkSectionRefresh => 'Refresh';
+	@override String get einkRefreshMode => 'Full-screen refresh';
+	@override String get einkRefreshNone => 'Disabled';
+	@override String get einkRefreshWhite => 'White flash';
+	@override String get einkRefreshFull => 'Black & white flash';
+	@override String get einkRefreshHint => 'A full refresh flashes white or black-and-white to clear the ghost of the previous page.';
+	@override String get einkRefreshNow => 'Refresh now';
+	@override String get einkRefreshDone => 'Screen refreshed';
+	@override String get einkAutoRefreshTurns => 'Auto refresh every N pages';
+	@override String get einkAutoRefreshOff => 'Never';
+	@override String get einkShowRefreshButton => 'Show refresh button';
+	@override String get einkShowRefreshButtonSubtitle => 'Keep a manual full refresh in a reader corner';
+	@override String get einkNoSpinner => 'No loading spinner';
+	@override String get einkNoSpinnerSubtitle => 'A spinning indicator forces the panel to keep doing partial refreshes';
 	@override String get autoRealSr => 'Auto super-resolution';
 	@override String get resolutionThreshold => 'Resolution threshold';
 	@override String get debug => 'Debug';
@@ -775,29 +802,16 @@ class _Translations$bookshelf$en_US extends Translations$bookshelf$zh_CN {
 	@override String get sortAsc => 'Time (oldest first)';
 	@override String get viewSortDesc => 'View time (newest first)';
 	@override String get viewSortAsc => 'View time (oldest first)';
-	@override String get folderDeprecated => 'Folders (deprecated)';
 	@override String get source => 'Comic source';
 	@override String get deselectAll => 'Deselect all';
-	@override String get deleteFolder => 'Delete folder';
 	@override String get renameFolder => 'Rename folder';
-	@override String confirmDeleteFolder({required Object name}) => 'Delete folder "${name}"?';
-	@override String get folderAction => 'Please select an action';
 	@override String get createFolder => 'Create folder';
-	@override String get createFolderHint => 'Enter folder name';
 	@override String get multiSelect => 'Multi-select';
 	@override String get copyTo => 'Copy to';
 	@override String get batchExport => 'Batch export';
 	@override String get batchDeleteFailed => 'Batch delete failed';
 	@override String get deleteSelected => 'Delete selected';
 	@override String get cancel => 'Cancel selection';
-	@override String get addToFavorite => 'Add to favorites';
-	@override String get addToDownloadFolder => 'Add to download folder';
-	@override String get createFavoriteFolderFirst => 'Please create a custom favorite folder first';
-	@override String get addedToFavorite => 'Added to favorites';
-	@override String get createDownloadFolderFirst => 'Please create a custom download folder first';
-	@override String get addedToDownloadFolder => 'Added to download folder';
-	@override String get selectFavoriteFolder => 'Select favorite folders (multiple)';
-	@override String get selectDownloadFolder => 'Select download folders (multiple)';
 	@override String selectedCount({required Object count}) => 'Selected ${count} items';
 	@override String get selectTargetFolder => 'Select target folders (multiple)';
 	@override String get confirmDeleteFolderTitle => 'Confirm delete';
@@ -818,7 +832,6 @@ class _Translations$bookshelf$en_US extends Translations$bookshelf$zh_CN {
 	@override String get moveTo => 'Move to';
 	@override String get addToFolder => 'Add to folder';
 	@override String get folderName => 'Folder name';
-	@override String get folderNameHint => 'Enter folder name';
 	@override String get helpContent => '• Favorites and bookshelf are linked: favoriting a comic adds it to the bookshelf; only removing it from all favorite folders unfavorites it.\n• On comic detail page, unfavorite removes it from all favorite folders at once.\n• Same for downloads: only removing a comic from all download folders deletes its downloaded files.';
 	@override String get folderCreated => 'Folder created';
 	@override String get noComic => 'No comics yet';
@@ -850,13 +863,6 @@ class _Translations$bookshelf$en_US extends Translations$bookshelf$zh_CN {
 	@override String get cannotMoveParentToChild => 'Cannot move a parent folder into its subfolder';
 	@override String get cannotCopyFolderToSelfOrChild => 'Cannot copy a folder into itself or its subfolders';
 	@override String get moveFoldersOnlyOneTarget => 'Only one target folder can be selected when moving folders';
-	@override String get favoriteFolderNameEmpty => 'Favorite folder name cannot be empty';
-	@override String get favoriteFolderNameExists => 'A favorite folder with the same name already exists';
-	@override String get downloadFolderNameEmpty => 'Download folder name cannot be empty';
-	@override String get downloadFolderNameExists => 'A download folder with the same name already exists';
-	@override String get removeFromFavoriteFolder => 'Remove from favorite folder';
-	@override String get removeFromDownloadFolder => 'Remove from download folder';
-	@override String get confirmRemoveFromCurrentFolder => 'Remove from current folder?';
 	@override String confirmDeleteSelectedFavorites({required Object count}) => 'Delete selected ${count} favorite records?';
 	@override String confirmDeleteSelectedHistory({required Object count}) => 'Delete selected ${count} history records?';
 	@override String confirmDeleteSelectedDownloads({required Object count}) => 'Delete selected ${count} download records and files?';
@@ -876,7 +882,7 @@ class _Translations$comicInfo$en_US extends Translations$comicInfo$zh_CN {
 	@override String get removeCloudCollection => 'Remove cloud collection';
 	@override String get collectToLocal => 'Collect locally';
 	@override String get removeLocalCollection => 'Remove local collection';
-	@override String get cloudCollectDisabled => 'Cloud collection disabled';
+	@override String get cloudCollectDisabled => 'This plugin does not support this feature';
 	@override String get collectingToCloud => 'Adding to cloud collection...';
 	@override String get removingCloudCollection => 'Removing cloud collection...';
 	@override String get cloudCollectSuccess => 'Added to cloud collection';
@@ -887,12 +893,12 @@ class _Translations$comicInfo$en_US extends Translations$comicInfo$zh_CN {
 	@override String get collected => 'Collected';
 	@override String get collect => 'Collect';
 	@override String get download => 'Download';
-	@override String get downloadForbidden => 'Download forbidden';
+	@override String get downloadForbidden => 'This plugin does not support this feature';
 	@override String get addedToCollection => 'Added to collection';
 	@override String get removedFromCollection => 'Removed from collection';
 	@override String get confirmUncollectTitle => 'Remove collection';
 	@override String get confirmUncollectContent => 'This will delete the comic from all folders. Continue?';
-	@override String get commentForbidden => 'Comments are disabled for this comic';
+	@override String get commentForbidden => 'This plugin does not support this feature';
 	@override String get commentForbiddenTitle => 'Comments disabled';
 	@override String get back => 'Back';
 	@override String get exportTitle => 'Choose export format';
@@ -931,6 +937,7 @@ class _Translations$comicInfo$en_US extends Translations$comicInfo$zh_CN {
 	@override String get unliking => 'Unliking...';
 	@override String get likeSuccess => 'Liked';
 	@override String get unlikeSuccess => 'Unliked';
+	@override String get likeDisabled => 'This plugin does not support this feature';
 	@override String localCollectFailed({required Object error}) => 'Local favorite failed: ${error}';
 	@override String likeFailed({required Object error}) => 'Like failed: ${error}';
 	@override String loadFailedWithError({required Object error}) => '${error}\nLoading failed, please retry.';
@@ -1004,10 +1011,17 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get fullscreen => 'Fullscreen';
 	@override String get leftHandMode => 'Left-hand mode';
 	@override String get rightHandMode => 'Right-hand mode';
+	@override String get reverseHorizontalPageTurn => 'Reverse arrow keys';
+	@override String get reverseHorizontalPageTurnSubtitle => 'Swap left/right arrow keys for page turning, useful for right-to-left manga';
 	@override String get webtoonTapPageTurn => 'Webtoon tap navigation';
 	@override String get enableWebtoonTapPageTurn => 'Allow tapping to turn vertically';
 	@override String get webtoonTapPageTurnSubtitle => 'Tap the upper/lower area in webtoon mode; the center still opens the controls';
 	@override String get readingMode => 'Reading mode';
+	@override String get perComicReadMode => 'Enable per-comic settings';
+	@override String get perComicReadModeSubtitle => 'Only applies to the current comic';
+	@override String get perComicFollowGlobal => 'Follow global';
+	@override String get perComicGlobalIs => 'Global is';
+	@override String get perComicThisComic => 'This comic';
 	@override String get infoDisplay => 'Info display';
 	@override String get pageNumber => 'Page number';
 	@override String get pageNumberSubtitle => 'Show current/total page count';
@@ -2669,6 +2683,33 @@ extension on TranslationsEnUs {
 			'settings.ocr' => 'Manga Translation (Finished Pages)',
 			'settings.ocrSubtitle' => 'Experimental; needs model download and a translation endpoint',
 			'settings.realSrSubtitle' => 'Experimental feature, may be unstable',
+			'settings.eink' => 'E-ink',
+			'settings.einkSubtitle' => 'Page-turn animation · full refresh · loading',
+			'settings.einkPageTitle' => 'E-ink adaptation',
+			'settings.einkDetected' => 'Detected as an e-ink device',
+			'settings.einkNotDetected' => 'No e-ink device detected, you can enable it manually',
+			'settings.einkEnabled' => 'Enable e-ink mode',
+			'settings.einkEnabledSubtitle' => 'Remove animations and refresh the whole screen periodically',
+			'settings.einkSectionAnimation' => 'Animation & transitions',
+			'settings.einkNoRouteTransition' => 'Remove page transition animation',
+			'settings.einkNoRouteTransitionSubtitle' => 'Show pages instantly instead of sliding and fading',
+			'settings.einkNoScrollBounce' => 'Remove scroll overscroll',
+			'settings.einkNoScrollBounceSubtitle' => 'Stop at the edge instead of bouncing in webtoon mode',
+			'settings.einkSectionLoading' => 'Loading',
+			'settings.einkSectionRefresh' => 'Refresh',
+			'settings.einkRefreshMode' => 'Full-screen refresh',
+			'settings.einkRefreshNone' => 'Disabled',
+			'settings.einkRefreshWhite' => 'White flash',
+			'settings.einkRefreshFull' => 'Black & white flash',
+			'settings.einkRefreshHint' => 'A full refresh flashes white or black-and-white to clear the ghost of the previous page.',
+			'settings.einkRefreshNow' => 'Refresh now',
+			'settings.einkRefreshDone' => 'Screen refreshed',
+			'settings.einkAutoRefreshTurns' => 'Auto refresh every N pages',
+			'settings.einkAutoRefreshOff' => 'Never',
+			'settings.einkShowRefreshButton' => 'Show refresh button',
+			'settings.einkShowRefreshButtonSubtitle' => 'Keep a manual full refresh in a reader corner',
+			'settings.einkNoSpinner' => 'No loading spinner',
+			'settings.einkNoSpinnerSubtitle' => 'A spinning indicator forces the panel to keep doing partial refreshes',
 			'settings.autoRealSr' => 'Auto super-resolution',
 			'settings.resolutionThreshold' => 'Resolution threshold',
 			'settings.debug' => 'Debug',
@@ -2783,6 +2824,8 @@ extension on TranslationsEnUs {
 			'settings.operationBindingAreaMiddleRight' => 'Right half',
 			'settings.operationBindingBoundAction' => 'Bound action',
 			'settings.operationBindingUnbound' => 'Unbound',
+			_ => null,
+		} ?? switch (path) {
 			'settings.operationBindingSectionBundle' => 'Binding bundle',
 			'settings.operationBindingImport' => 'Import JSON',
 			'settings.operationBindingImportSubtitle' => 'Import a bindings object or array, preserving every input type, context and action sequence.',
@@ -2810,8 +2853,6 @@ extension on TranslationsEnUs {
 			'settings.operationBindingRecordUnsupported' => ({required Object label}) => 'No platform-neutral key name for ${label}, so it cannot be bound',
 			'settings.operationBindingConflictTitle' => 'Conflicting bindings',
 			'settings.operationBindingConflictBody' => 'One input may have only one enabled binding. Remove or disable one of them, then save again.',
-			_ => null,
-		} ?? switch (path) {
 			'settings.operationBindingInvalidTable' => 'This binding table could not be parsed, so the save was refused',
 			'settings.operationBindingCategoryNavigation' => 'Navigation',
 			'settings.operationBindingCategoryZoom' => 'Zoom',
@@ -2952,29 +2993,16 @@ extension on TranslationsEnUs {
 			'bookshelf.sortAsc' => 'Time (oldest first)',
 			'bookshelf.viewSortDesc' => 'View time (newest first)',
 			'bookshelf.viewSortAsc' => 'View time (oldest first)',
-			'bookshelf.folderDeprecated' => 'Folders (deprecated)',
 			'bookshelf.source' => 'Comic source',
 			'bookshelf.deselectAll' => 'Deselect all',
-			'bookshelf.deleteFolder' => 'Delete folder',
 			'bookshelf.renameFolder' => 'Rename folder',
-			'bookshelf.confirmDeleteFolder' => ({required Object name}) => 'Delete folder "${name}"?',
-			'bookshelf.folderAction' => 'Please select an action',
 			'bookshelf.createFolder' => 'Create folder',
-			'bookshelf.createFolderHint' => 'Enter folder name',
 			'bookshelf.multiSelect' => 'Multi-select',
 			'bookshelf.copyTo' => 'Copy to',
 			'bookshelf.batchExport' => 'Batch export',
 			'bookshelf.batchDeleteFailed' => 'Batch delete failed',
 			'bookshelf.deleteSelected' => 'Delete selected',
 			'bookshelf.cancel' => 'Cancel selection',
-			'bookshelf.addToFavorite' => 'Add to favorites',
-			'bookshelf.addToDownloadFolder' => 'Add to download folder',
-			'bookshelf.createFavoriteFolderFirst' => 'Please create a custom favorite folder first',
-			'bookshelf.addedToFavorite' => 'Added to favorites',
-			'bookshelf.createDownloadFolderFirst' => 'Please create a custom download folder first',
-			'bookshelf.addedToDownloadFolder' => 'Added to download folder',
-			'bookshelf.selectFavoriteFolder' => 'Select favorite folders (multiple)',
-			'bookshelf.selectDownloadFolder' => 'Select download folders (multiple)',
 			'bookshelf.selectedCount' => ({required Object count}) => 'Selected ${count} items',
 			'bookshelf.selectTargetFolder' => 'Select target folders (multiple)',
 			'bookshelf.confirmDeleteFolderTitle' => 'Confirm delete',
@@ -2995,7 +3023,6 @@ extension on TranslationsEnUs {
 			'bookshelf.moveTo' => 'Move to',
 			'bookshelf.addToFolder' => 'Add to folder',
 			'bookshelf.folderName' => 'Folder name',
-			'bookshelf.folderNameHint' => 'Enter folder name',
 			'bookshelf.helpContent' => '• Favorites and bookshelf are linked: favoriting a comic adds it to the bookshelf; only removing it from all favorite folders unfavorites it.\n• On comic detail page, unfavorite removes it from all favorite folders at once.\n• Same for downloads: only removing a comic from all download folders deletes its downloaded files.',
 			'bookshelf.folderCreated' => 'Folder created',
 			'bookshelf.noComic' => 'No comics yet',
@@ -3027,13 +3054,6 @@ extension on TranslationsEnUs {
 			'bookshelf.cannotMoveParentToChild' => 'Cannot move a parent folder into its subfolder',
 			'bookshelf.cannotCopyFolderToSelfOrChild' => 'Cannot copy a folder into itself or its subfolders',
 			'bookshelf.moveFoldersOnlyOneTarget' => 'Only one target folder can be selected when moving folders',
-			'bookshelf.favoriteFolderNameEmpty' => 'Favorite folder name cannot be empty',
-			'bookshelf.favoriteFolderNameExists' => 'A favorite folder with the same name already exists',
-			'bookshelf.downloadFolderNameEmpty' => 'Download folder name cannot be empty',
-			'bookshelf.downloadFolderNameExists' => 'A download folder with the same name already exists',
-			'bookshelf.removeFromFavoriteFolder' => 'Remove from favorite folder',
-			'bookshelf.removeFromDownloadFolder' => 'Remove from download folder',
-			'bookshelf.confirmRemoveFromCurrentFolder' => 'Remove from current folder?',
 			'bookshelf.confirmDeleteSelectedFavorites' => ({required Object count}) => 'Delete selected ${count} favorite records?',
 			'bookshelf.confirmDeleteSelectedHistory' => ({required Object count}) => 'Delete selected ${count} history records?',
 			'bookshelf.confirmDeleteSelectedDownloads' => ({required Object count}) => 'Delete selected ${count} download records and files?',
@@ -3044,7 +3064,7 @@ extension on TranslationsEnUs {
 			'comicInfo.removeCloudCollection' => 'Remove cloud collection',
 			'comicInfo.collectToLocal' => 'Collect locally',
 			'comicInfo.removeLocalCollection' => 'Remove local collection',
-			'comicInfo.cloudCollectDisabled' => 'Cloud collection disabled',
+			'comicInfo.cloudCollectDisabled' => 'This plugin does not support this feature',
 			'comicInfo.collectingToCloud' => 'Adding to cloud collection...',
 			'comicInfo.removingCloudCollection' => 'Removing cloud collection...',
 			'comicInfo.cloudCollectSuccess' => 'Added to cloud collection',
@@ -3055,12 +3075,12 @@ extension on TranslationsEnUs {
 			'comicInfo.collected' => 'Collected',
 			'comicInfo.collect' => 'Collect',
 			'comicInfo.download' => 'Download',
-			'comicInfo.downloadForbidden' => 'Download forbidden',
+			'comicInfo.downloadForbidden' => 'This plugin does not support this feature',
 			'comicInfo.addedToCollection' => 'Added to collection',
 			'comicInfo.removedFromCollection' => 'Removed from collection',
 			'comicInfo.confirmUncollectTitle' => 'Remove collection',
 			'comicInfo.confirmUncollectContent' => 'This will delete the comic from all folders. Continue?',
-			'comicInfo.commentForbidden' => 'Comments are disabled for this comic',
+			'comicInfo.commentForbidden' => 'This plugin does not support this feature',
 			'comicInfo.commentForbiddenTitle' => 'Comments disabled',
 			'comicInfo.back' => 'Back',
 			'comicInfo.exportTitle' => 'Choose export format',
@@ -3099,6 +3119,7 @@ extension on TranslationsEnUs {
 			'comicInfo.unliking' => 'Unliking...',
 			'comicInfo.likeSuccess' => 'Liked',
 			'comicInfo.unlikeSuccess' => 'Unliked',
+			'comicInfo.likeDisabled' => 'This plugin does not support this feature',
 			'comicInfo.localCollectFailed' => ({required Object error}) => 'Local favorite failed: ${error}',
 			'comicInfo.likeFailed' => ({required Object error}) => 'Like failed: ${error}',
 			'comicInfo.loadFailedWithError' => ({required Object error}) => '${error}\nLoading failed, please retry.',
@@ -3163,10 +3184,17 @@ extension on TranslationsEnUs {
 			'reader.fullscreen' => 'Fullscreen',
 			'reader.leftHandMode' => 'Left-hand mode',
 			'reader.rightHandMode' => 'Right-hand mode',
+			'reader.reverseHorizontalPageTurn' => 'Reverse arrow keys',
+			'reader.reverseHorizontalPageTurnSubtitle' => 'Swap left/right arrow keys for page turning, useful for right-to-left manga',
 			'reader.webtoonTapPageTurn' => 'Webtoon tap navigation',
 			'reader.enableWebtoonTapPageTurn' => 'Allow tapping to turn vertically',
 			'reader.webtoonTapPageTurnSubtitle' => 'Tap the upper/lower area in webtoon mode; the center still opens the controls',
 			'reader.readingMode' => 'Reading mode',
+			'reader.perComicReadMode' => 'Enable per-comic settings',
+			'reader.perComicReadModeSubtitle' => 'Only applies to the current comic',
+			'reader.perComicFollowGlobal' => 'Follow global',
+			'reader.perComicGlobalIs' => 'Global is',
+			'reader.perComicThisComic' => 'This comic',
 			'reader.infoDisplay' => 'Info display',
 			'reader.pageNumber' => 'Page number',
 			'reader.pageNumberSubtitle' => 'Show current/total page count',
@@ -3310,6 +3338,8 @@ extension on TranslationsEnUs {
 			'reader.doubleTapZoom' => 'Double-tap zoom',
 			'reader.doubleTapZoomSubtitle' => 'Double-tap image to toggle zoom',
 			'reader.doubleTapOpenMenu' => 'Double-tap to open menu',
+			_ => null,
+		} ?? switch (path) {
 			'reader.doubleTapOpenMenuSubtitle' => 'Double-tap page to open menu (exclusive with zoom)',
 			'reader.centerTapBar' => 'Tap to reveal bars',
 			'reader.centerTapToggleBars' => 'Tap center to toggle top/bottom bars',
@@ -3324,8 +3354,6 @@ extension on TranslationsEnUs {
 			'reader.gesture' => 'Gestures & Hover',
 			'reader.infoBar' => 'Info Bar',
 			'reader.pauseAutoRead' => 'Pause auto read',
-			_ => null,
-		} ?? switch (path) {
 			'reader.resumeAutoRead' => 'Resume auto read',
 			'reader.imageLoadFailedRetry' => ({required Object error}) => '${error}\nLoad failed, tap to retry',
 			'reader.imageSavedTo' => ({required Object path}) => 'Image saved to: ${path}',
@@ -3824,6 +3852,8 @@ extension on TranslationsEnUs {
 			'comicEntry.translationTooltipTitle' => ({required Object label, required Object keyword}) => '${label} · matched title "${keyword}"',
 			'comicEntry.resumeRead' => 'Resume reading',
 			'comicEntry.readFailed' => 'Could not start reading. Please try again later.',
+			_ => null,
+		} ?? switch (path) {
 			'comicFollow.title' => 'Updates',
 			'comicFollow.loadFailed' => ({required Object result}) => 'Load failed: ${result}',
 			'comicFollow.empty' => 'No followed comics',
@@ -3838,8 +3868,6 @@ extension on TranslationsEnUs {
 			'comicFollow.lastUpdate' => 'Latest update check',
 			'comicFollow.checkTime' => ({required Object time}) => 'Check time: ${time}',
 			'comicFollow.notRead' => 'Not read yet',
-			_ => null,
-		} ?? switch (path) {
 			'comicFollow.lastReadChapter' => ({required Object chapter}) => 'Read to: ${chapter}',
 			'comicFollow.latestChapter' => ({required Object count, required Object chapter}) => 'Latest: ${count} / ${chapter}',
 			'comicFollow.noUnread' => 'No updated unread comics',

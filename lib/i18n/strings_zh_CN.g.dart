@@ -1231,6 +1231,87 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '试验性功能，可能不稳定'
 	String get realSrSubtitle => '试验性功能，可能不稳定';
 
+	/// zh-CN: '墨水屏'
+	String get eink => '墨水屏';
+
+	/// zh-CN: '翻页动画 · 整屏刷新 · 加载'
+	String get einkSubtitle => '翻页动画 · 整屏刷新 · 加载';
+
+	/// zh-CN: '墨水屏适配'
+	String get einkPageTitle => '墨水屏适配';
+
+	/// zh-CN: '已识别为墨水屏设备'
+	String get einkDetected => '已识别为墨水屏设备';
+
+	/// zh-CN: '未识别到墨水屏设备，可手动开启'
+	String get einkNotDetected => '未识别到墨水屏设备，可手动开启';
+
+	/// zh-CN: '启用墨水屏模式'
+	String get einkEnabled => '启用墨水屏模式';
+
+	/// zh-CN: '去除动画，并让屏幕定期整屏刷新'
+	String get einkEnabledSubtitle => '去除动画，并让屏幕定期整屏刷新';
+
+	/// zh-CN: '动画与过渡'
+	String get einkSectionAnimation => '动画与过渡';
+
+	/// zh-CN: '去除页面切换动画'
+	String get einkNoRouteTransition => '去除页面切换动画';
+
+	/// zh-CN: '进入和退出页面直接出图，不做滑动淡入'
+	String get einkNoRouteTransitionSubtitle => '进入和退出页面直接出图，不做滑动淡入';
+
+	/// zh-CN: '去除滚动回弹'
+	String get einkNoScrollBounce => '去除滚动回弹';
+
+	/// zh-CN: '长图模式拖到边界直接停住'
+	String get einkNoScrollBounceSubtitle => '长图模式拖到边界直接停住';
+
+	/// zh-CN: '加载'
+	String get einkSectionLoading => '加载';
+
+	/// zh-CN: '刷新'
+	String get einkSectionRefresh => '刷新';
+
+	/// zh-CN: '整屏刷新方式'
+	String get einkRefreshMode => '整屏刷新方式';
+
+	/// zh-CN: '不刷新'
+	String get einkRefreshNone => '不刷新';
+
+	/// zh-CN: '白屏刷'
+	String get einkRefreshWhite => '白屏刷';
+
+	/// zh-CN: '黑白全刷'
+	String get einkRefreshFull => '黑白全刷';
+
+	/// zh-CN: '整屏刷新会闪一次白或黑白，用来清掉上一页残影。'
+	String get einkRefreshHint => '整屏刷新会闪一次白或黑白，用来清掉上一页残影。';
+
+	/// zh-CN: '立即整屏刷新'
+	String get einkRefreshNow => '立即整屏刷新';
+
+	/// zh-CN: '已完成整屏刷新'
+	String get einkRefreshDone => '已完成整屏刷新';
+
+	/// zh-CN: '每翻 N 页自动整屏刷新'
+	String get einkAutoRefreshTurns => '每翻 N 页自动整屏刷新';
+
+	/// zh-CN: '不自动刷新'
+	String get einkAutoRefreshOff => '不自动刷新';
+
+	/// zh-CN: '显示刷新按钮'
+	String get einkShowRefreshButton => '显示刷新按钮';
+
+	/// zh-CN: '阅读页角落常驻，随时手动整屏刷新'
+	String get einkShowRefreshButtonSubtitle => '阅读页角落常驻，随时手动整屏刷新';
+
+	/// zh-CN: '加载时不转圈'
+	String get einkNoSpinner => '加载时不转圈';
+
+	/// zh-CN: '转圈动画会让墨水屏反复局刷并留下残影'
+	String get einkNoSpinnerSubtitle => '转圈动画会让墨水屏反复局刷并留下残影';
+
 	/// zh-CN: '自动超分'
 	String get autoRealSr => '自动超分';
 
@@ -2083,32 +2164,17 @@ class Translations$bookshelf$zh_CN {
 	/// zh-CN: '观看时间(早→晚)'
 	String get viewSortAsc => '观看时间(早→晚)';
 
-	/// zh-CN: '文件夹（已废弃）'
-	String get folderDeprecated => '文件夹（已废弃）';
-
 	/// zh-CN: '漫画源'
 	String get source => '漫画源';
 
 	/// zh-CN: '取消全选'
 	String get deselectAll => '取消全选';
 
-	/// zh-CN: '删除收藏夹'
-	String get deleteFolder => '删除收藏夹';
-
 	/// zh-CN: '重命名收藏夹'
 	String get renameFolder => '重命名收藏夹';
 
-	/// zh-CN: '是否删除当前文件夹「$name」？'
-	String confirmDeleteFolder({required Object name}) => '是否删除当前文件夹「${name}」？';
-
-	/// zh-CN: '请选择操作'
-	String get folderAction => '请选择操作';
-
 	/// zh-CN: '新建收藏夹'
 	String get createFolder => '新建收藏夹';
-
-	/// zh-CN: '输入收藏夹名称'
-	String get createFolderHint => '输入收藏夹名称';
 
 	/// zh-CN: '多选'
 	String get multiSelect => '多选';
@@ -2127,30 +2193,6 @@ class Translations$bookshelf$zh_CN {
 
 	/// zh-CN: '取消选择'
 	String get cancel => '取消选择';
-
-	/// zh-CN: '加入收藏夹'
-	String get addToFavorite => '加入收藏夹';
-
-	/// zh-CN: '加入下载文件夹'
-	String get addToDownloadFolder => '加入下载文件夹';
-
-	/// zh-CN: '请先创建自定义收藏夹'
-	String get createFavoriteFolderFirst => '请先创建自定义收藏夹';
-
-	/// zh-CN: '已加入收藏夹'
-	String get addedToFavorite => '已加入收藏夹';
-
-	/// zh-CN: '请先创建自定义下载文件夹'
-	String get createDownloadFolderFirst => '请先创建自定义下载文件夹';
-
-	/// zh-CN: '已加入下载文件夹'
-	String get addedToDownloadFolder => '已加入下载文件夹';
-
-	/// zh-CN: '选择收藏夹（可多选）'
-	String get selectFavoriteFolder => '选择收藏夹（可多选）';
-
-	/// zh-CN: '选择下载文件夹（可多选）'
-	String get selectDownloadFolder => '选择下载文件夹（可多选）';
 
 	/// zh-CN: '已选择 $count 项'
 	String selectedCount({required Object count}) => '已选择 ${count} 项';
@@ -2214,9 +2256,6 @@ class Translations$bookshelf$zh_CN {
 
 	/// zh-CN: '文件夹名称'
 	String get folderName => '文件夹名称';
-
-	/// zh-CN: '请输入文件夹名称'
-	String get folderNameHint => '请输入文件夹名称';
 
 	/// zh-CN: '• 收藏和书架是联动的：收藏一本漫画，它会出现在书架里；只有把这本漫画从所有收藏文件夹里都删除，才会自动取消收藏。 • 在漫画详情页“取消收藏”，会一次性从所有收藏文件夹里移除这本漫画。 • 下载也是一样：只有把一本漫画从所有下载文件夹里都删除，才会自动删除它的下载文件。'
 	String get helpContent => '• 收藏和书架是联动的：收藏一本漫画，它会出现在书架里；只有把这本漫画从所有收藏文件夹里都删除，才会自动取消收藏。\n• 在漫画详情页“取消收藏”，会一次性从所有收藏文件夹里移除这本漫画。\n• 下载也是一样：只有把一本漫画从所有下载文件夹里都删除，才会自动删除它的下载文件。';
@@ -2311,27 +2350,6 @@ class Translations$bookshelf$zh_CN {
 	/// zh-CN: '移动文件夹时只能选择一个目标文件夹'
 	String get moveFoldersOnlyOneTarget => '移动文件夹时只能选择一个目标文件夹';
 
-	/// zh-CN: '收藏夹名称不能为空'
-	String get favoriteFolderNameEmpty => '收藏夹名称不能为空';
-
-	/// zh-CN: '已存在同名收藏夹'
-	String get favoriteFolderNameExists => '已存在同名收藏夹';
-
-	/// zh-CN: '下载文件夹名称不能为空'
-	String get downloadFolderNameEmpty => '下载文件夹名称不能为空';
-
-	/// zh-CN: '已存在同名下载文件夹'
-	String get downloadFolderNameExists => '已存在同名下载文件夹';
-
-	/// zh-CN: '移出收藏夹'
-	String get removeFromFavoriteFolder => '移出收藏夹';
-
-	/// zh-CN: '移出下载文件夹'
-	String get removeFromDownloadFolder => '移出下载文件夹';
-
-	/// zh-CN: '是否要从本文件夹中移除'
-	String get confirmRemoveFromCurrentFolder => '是否要从本文件夹中移除';
-
 	/// zh-CN: '确定要删除选中的 $count 条收藏记录吗？'
 	String confirmDeleteSelectedFavorites({required Object count}) => '确定要删除选中的 ${count} 条收藏记录吗？';
 
@@ -2371,8 +2389,8 @@ class Translations$comicInfo$zh_CN {
 	/// zh-CN: '取消本地收藏'
 	String get removeLocalCollection => '取消本地收藏';
 
-	/// zh-CN: '云端收藏已关闭'
-	String get cloudCollectDisabled => '云端收藏已关闭';
+	/// zh-CN: '该插件暂不支持此功能'
+	String get cloudCollectDisabled => '该插件暂不支持此功能';
 
 	/// zh-CN: '收藏到云端中...'
 	String get collectingToCloud => '收藏到云端中...';
@@ -2404,8 +2422,8 @@ class Translations$comicInfo$zh_CN {
 	/// zh-CN: '下载'
 	String get download => '下载';
 
-	/// zh-CN: '禁止下载'
-	String get downloadForbidden => '禁止下载';
+	/// zh-CN: '该插件暂不支持此功能'
+	String get downloadForbidden => '该插件暂不支持此功能';
 
 	/// zh-CN: '已添加收藏'
 	String get addedToCollection => '已添加收藏';
@@ -2419,8 +2437,8 @@ class Translations$comicInfo$zh_CN {
 	/// zh-CN: '此项操作会删除该漫画在所有文件夹的记录，是否确认删除？'
 	String get confirmUncollectContent => '此项操作会删除该漫画在所有文件夹的记录，是否确认删除？';
 
-	/// zh-CN: '该漫画禁止评论'
-	String get commentForbidden => '该漫画禁止评论';
+	/// zh-CN: '该插件暂不支持此功能'
+	String get commentForbidden => '该插件暂不支持此功能';
 
 	/// zh-CN: '禁止评论'
 	String get commentForbiddenTitle => '禁止评论';
@@ -2535,6 +2553,9 @@ class Translations$comicInfo$zh_CN {
 
 	/// zh-CN: '已取消点赞'
 	String get unlikeSuccess => '已取消点赞';
+
+	/// zh-CN: '该插件暂不支持此功能'
+	String get likeDisabled => '该插件暂不支持此功能';
 
 	/// zh-CN: '本地收藏失败: $error'
 	String localCollectFailed({required Object error}) => '本地收藏失败: ${error}';
@@ -2737,6 +2758,12 @@ class Translations$reader$zh_CN {
 	/// zh-CN: '右手模式'
 	String get rightHandMode => '右手模式';
 
+	/// zh-CN: '反转左右方向键'
+	String get reverseHorizontalPageTurn => '反转左右方向键';
+
+	/// zh-CN: '交换左右方向键的翻页方向，适合从右到左的日漫'
+	String get reverseHorizontalPageTurnSubtitle => '交换左右方向键的翻页方向，适合从右到左的日漫';
+
 	/// zh-CN: '条漫点击翻动'
 	String get webtoonTapPageTurn => '条漫点击翻动';
 
@@ -2748,6 +2775,21 @@ class Translations$reader$zh_CN {
 
 	/// zh-CN: '阅读模式'
 	String get readingMode => '阅读模式';
+
+	/// zh-CN: '启用本漫画设置'
+	String get perComicReadMode => '启用本漫画设置';
+
+	/// zh-CN: '仅当前漫画生效'
+	String get perComicReadModeSubtitle => '仅当前漫画生效';
+
+	/// zh-CN: '跟随全局'
+	String get perComicFollowGlobal => '跟随全局';
+
+	/// zh-CN: '全局为'
+	String get perComicGlobalIs => '全局为';
+
+	/// zh-CN: '本漫'
+	String get perComicThisComic => '本漫';
 
 	/// zh-CN: '信息项显示'
 	String get infoDisplay => '信息项显示';
@@ -6393,6 +6435,33 @@ extension on Translations {
 			'settings.ocr' => '漫画翻译（成品页）',
 			'settings.ocrSubtitle' => '试验性功能，需下载权重与配置翻译端点',
 			'settings.realSrSubtitle' => '试验性功能，可能不稳定',
+			'settings.eink' => '墨水屏',
+			'settings.einkSubtitle' => '翻页动画 · 整屏刷新 · 加载',
+			'settings.einkPageTitle' => '墨水屏适配',
+			'settings.einkDetected' => '已识别为墨水屏设备',
+			'settings.einkNotDetected' => '未识别到墨水屏设备，可手动开启',
+			'settings.einkEnabled' => '启用墨水屏模式',
+			'settings.einkEnabledSubtitle' => '去除动画，并让屏幕定期整屏刷新',
+			'settings.einkSectionAnimation' => '动画与过渡',
+			'settings.einkNoRouteTransition' => '去除页面切换动画',
+			'settings.einkNoRouteTransitionSubtitle' => '进入和退出页面直接出图，不做滑动淡入',
+			'settings.einkNoScrollBounce' => '去除滚动回弹',
+			'settings.einkNoScrollBounceSubtitle' => '长图模式拖到边界直接停住',
+			'settings.einkSectionLoading' => '加载',
+			'settings.einkSectionRefresh' => '刷新',
+			'settings.einkRefreshMode' => '整屏刷新方式',
+			'settings.einkRefreshNone' => '不刷新',
+			'settings.einkRefreshWhite' => '白屏刷',
+			'settings.einkRefreshFull' => '黑白全刷',
+			'settings.einkRefreshHint' => '整屏刷新会闪一次白或黑白，用来清掉上一页残影。',
+			'settings.einkRefreshNow' => '立即整屏刷新',
+			'settings.einkRefreshDone' => '已完成整屏刷新',
+			'settings.einkAutoRefreshTurns' => '每翻 N 页自动整屏刷新',
+			'settings.einkAutoRefreshOff' => '不自动刷新',
+			'settings.einkShowRefreshButton' => '显示刷新按钮',
+			'settings.einkShowRefreshButtonSubtitle' => '阅读页角落常驻，随时手动整屏刷新',
+			'settings.einkNoSpinner' => '加载时不转圈',
+			'settings.einkNoSpinnerSubtitle' => '转圈动画会让墨水屏反复局刷并留下残影',
 			'settings.autoRealSr' => '自动超分',
 			'settings.resolutionThreshold' => '分辨率阈值',
 			'settings.debug' => '调试',
@@ -6507,6 +6576,8 @@ extension on Translations {
 			'settings.operationBindingAreaMiddleRight' => '右半屏',
 			'settings.operationBindingUnbound' => '未绑定',
 			'settings.operationBindingSectionBundle' => '绑定包',
+			_ => null,
+		} ?? switch (path) {
 			'settings.operationBindingImport' => '导入 JSON',
 			'settings.operationBindingImportSubtitle' => '导入绑定包，支持 bindings 对象或数组；保留全部输入类型、上下文和后续动作。',
 			'settings.operationBindingImportConfirm' => '载入',
@@ -6534,8 +6605,6 @@ extension on Translations {
 			'settings.operationBindingInvalidTable' => '这份绑定表读不懂，已拒绝保存',
 			'settings.operationBindingCategoryNavigation' => '导航',
 			'settings.operationBindingCategoryZoom' => '缩放',
-			_ => null,
-		} ?? switch (path) {
 			'settings.operationBindingCategoryView' => '视图',
 			'settings.operationBindingCategorySession' => '会话',
 			'settings.operationBindingActionNextPage' => '下一页',
@@ -6676,29 +6745,16 @@ extension on Translations {
 			'bookshelf.sortAsc' => '时间(早→晚)',
 			'bookshelf.viewSortDesc' => '观看时间(晚→早)',
 			'bookshelf.viewSortAsc' => '观看时间(早→晚)',
-			'bookshelf.folderDeprecated' => '文件夹（已废弃）',
 			'bookshelf.source' => '漫画源',
 			'bookshelf.deselectAll' => '取消全选',
-			'bookshelf.deleteFolder' => '删除收藏夹',
 			'bookshelf.renameFolder' => '重命名收藏夹',
-			'bookshelf.confirmDeleteFolder' => ({required Object name}) => '是否删除当前文件夹「${name}」？',
-			'bookshelf.folderAction' => '请选择操作',
 			'bookshelf.createFolder' => '新建收藏夹',
-			'bookshelf.createFolderHint' => '输入收藏夹名称',
 			'bookshelf.multiSelect' => '多选',
 			'bookshelf.copyTo' => '复制到',
 			'bookshelf.batchExport' => '批量导出',
 			'bookshelf.batchDeleteFailed' => '批量删除失败',
 			'bookshelf.deleteSelected' => '删除选中',
 			'bookshelf.cancel' => '取消选择',
-			'bookshelf.addToFavorite' => '加入收藏夹',
-			'bookshelf.addToDownloadFolder' => '加入下载文件夹',
-			'bookshelf.createFavoriteFolderFirst' => '请先创建自定义收藏夹',
-			'bookshelf.addedToFavorite' => '已加入收藏夹',
-			'bookshelf.createDownloadFolderFirst' => '请先创建自定义下载文件夹',
-			'bookshelf.addedToDownloadFolder' => '已加入下载文件夹',
-			'bookshelf.selectFavoriteFolder' => '选择收藏夹（可多选）',
-			'bookshelf.selectDownloadFolder' => '选择下载文件夹（可多选）',
 			'bookshelf.selectedCount' => ({required Object count}) => '已选择 ${count} 项',
 			'bookshelf.selectTargetFolder' => '选择目标文件夹（可多选）',
 			'bookshelf.confirmDeleteFolderTitle' => '确认删除',
@@ -6720,7 +6776,6 @@ extension on Translations {
 			'bookshelf.moveTo' => '移动到',
 			'bookshelf.addToFolder' => '加入文件夹',
 			'bookshelf.folderName' => '文件夹名称',
-			'bookshelf.folderNameHint' => '请输入文件夹名称',
 			'bookshelf.helpContent' => '• 收藏和书架是联动的：收藏一本漫画，它会出现在书架里；只有把这本漫画从所有收藏文件夹里都删除，才会自动取消收藏。\n• 在漫画详情页“取消收藏”，会一次性从所有收藏文件夹里移除这本漫画。\n• 下载也是一样：只有把一本漫画从所有下载文件夹里都删除，才会自动删除它的下载文件。',
 			'bookshelf.folderCreated' => '文件夹创建成功',
 			'bookshelf.noComic' => '还没有漫画',
@@ -6752,13 +6807,6 @@ extension on Translations {
 			'bookshelf.cannotMoveParentToChild' => '不能将父文件夹移动到子文件夹中',
 			'bookshelf.cannotCopyFolderToSelfOrChild' => '不能复制文件夹到自身或其子路径下',
 			'bookshelf.moveFoldersOnlyOneTarget' => '移动文件夹时只能选择一个目标文件夹',
-			'bookshelf.favoriteFolderNameEmpty' => '收藏夹名称不能为空',
-			'bookshelf.favoriteFolderNameExists' => '已存在同名收藏夹',
-			'bookshelf.downloadFolderNameEmpty' => '下载文件夹名称不能为空',
-			'bookshelf.downloadFolderNameExists' => '已存在同名下载文件夹',
-			'bookshelf.removeFromFavoriteFolder' => '移出收藏夹',
-			'bookshelf.removeFromDownloadFolder' => '移出下载文件夹',
-			'bookshelf.confirmRemoveFromCurrentFolder' => '是否要从本文件夹中移除',
 			'bookshelf.confirmDeleteSelectedFavorites' => ({required Object count}) => '确定要删除选中的 ${count} 条收藏记录吗？',
 			'bookshelf.confirmDeleteSelectedHistory' => ({required Object count}) => '确定要删除选中的 ${count} 条历史记录吗？',
 			'bookshelf.confirmDeleteSelectedDownloads' => ({required Object count}) => '确定要删除选中的 ${count} 条下载记录及文件吗？',
@@ -6769,7 +6817,7 @@ extension on Translations {
 			'comicInfo.removeCloudCollection' => '取消云端收藏',
 			'comicInfo.collectToLocal' => '收藏到本地',
 			'comicInfo.removeLocalCollection' => '取消本地收藏',
-			'comicInfo.cloudCollectDisabled' => '云端收藏已关闭',
+			'comicInfo.cloudCollectDisabled' => '该插件暂不支持此功能',
 			'comicInfo.collectingToCloud' => '收藏到云端中...',
 			'comicInfo.removingCloudCollection' => '取消云端收藏中...',
 			'comicInfo.cloudCollectSuccess' => '云端收藏成功',
@@ -6780,12 +6828,12 @@ extension on Translations {
 			'comicInfo.collected' => '已收藏',
 			'comicInfo.collect' => '收藏',
 			'comicInfo.download' => '下载',
-			'comicInfo.downloadForbidden' => '禁止下载',
+			'comicInfo.downloadForbidden' => '该插件暂不支持此功能',
 			'comicInfo.addedToCollection' => '已添加收藏',
 			'comicInfo.removedFromCollection' => '已取消收藏',
 			'comicInfo.confirmUncollectTitle' => '确认取消收藏',
 			'comicInfo.confirmUncollectContent' => '此项操作会删除该漫画在所有文件夹的记录，是否确认删除？',
-			'comicInfo.commentForbidden' => '该漫画禁止评论',
+			'comicInfo.commentForbidden' => '该插件暂不支持此功能',
 			'comicInfo.commentForbiddenTitle' => '禁止评论',
 			'comicInfo.back' => '返回',
 			'comicInfo.exportTitle' => '选择导出方式',
@@ -6824,6 +6872,7 @@ extension on Translations {
 			'comicInfo.unliking' => '取消点赞中...',
 			'comicInfo.likeSuccess' => '点赞成功',
 			'comicInfo.unlikeSuccess' => '已取消点赞',
+			'comicInfo.likeDisabled' => '该插件暂不支持此功能',
 			'comicInfo.localCollectFailed' => ({required Object error}) => '本地收藏失败: ${error}',
 			'comicInfo.likeFailed' => ({required Object error}) => '点赞失败: ${error}',
 			'comicInfo.loadFailedWithError' => ({required Object error}) => '${error}\n加载失败，请重试。',
@@ -6888,10 +6937,17 @@ extension on Translations {
 			'reader.fullscreen' => '全屏模式',
 			'reader.leftHandMode' => '左手模式',
 			'reader.rightHandMode' => '右手模式',
+			'reader.reverseHorizontalPageTurn' => '反转左右方向键',
+			'reader.reverseHorizontalPageTurnSubtitle' => '交换左右方向键的翻页方向，适合从右到左的日漫',
 			'reader.webtoonTapPageTurn' => '条漫点击翻动',
 			'reader.enableWebtoonTapPageTurn' => '允许点击上下翻动',
 			'reader.webtoonTapPageTurnSubtitle' => '条漫模式下点击上方/下方区域翻动，中央区域仍用于打开操作栏',
 			'reader.readingMode' => '阅读模式',
+			'reader.perComicReadMode' => '启用本漫画设置',
+			'reader.perComicReadModeSubtitle' => '仅当前漫画生效',
+			'reader.perComicFollowGlobal' => '跟随全局',
+			'reader.perComicGlobalIs' => '全局为',
+			'reader.perComicThisComic' => '本漫',
 			'reader.infoDisplay' => '信息项显示',
 			'reader.pageNumber' => '页数',
 			'reader.pageNumberSubtitle' => '显示当前页/总页数',
@@ -7034,6 +7090,8 @@ extension on Translations {
 			'reader.doubleTapAction' => '双击操作',
 			'reader.doubleTapZoom' => '双击缩放',
 			'reader.doubleTapZoomSubtitle' => '双击图片可在缩放和还原之间切换',
+			_ => null,
+		} ?? switch (path) {
 			'reader.doubleTapOpenMenu' => '双击打开操作栏',
 			'reader.doubleTapOpenMenuSubtitle' => '双击页面打开操作栏（与双击缩放互斥）',
 			'reader.centerTapBar' => '点击唤出上下栏',
@@ -7048,8 +7106,6 @@ extension on Translations {
 			'reader.pixels' => 'px',
 			'reader.gesture' => '手势与悬停',
 			'reader.infoBar' => '信息条',
-			_ => null,
-		} ?? switch (path) {
 			'reader.pauseAutoRead' => '暂停自动阅读',
 			'reader.resumeAutoRead' => '继续自动阅读',
 			'reader.imageLoadFailedRetry' => ({required Object error}) => '${error}\n加载失败，点击重试',
@@ -7548,6 +7604,8 @@ extension on Translations {
 			'comicEntry.translationTooltipTag' => ({required Object label, required Object keyword}) => '${label} · 标签命中「${keyword}」',
 			'comicEntry.translationTooltipTitle' => ({required Object label, required Object keyword}) => '${label} · 标题命中「${keyword}」',
 			'comicEntry.resumeRead' => '继续阅读',
+			_ => null,
+		} ?? switch (path) {
 			'comicEntry.readFailed' => '无法开始阅读，请稍后重试',
 			'comicFollow.title' => '追更',
 			'comicFollow.loadFailed' => ({required Object result}) => '加载失败：${result}',
@@ -7562,8 +7620,6 @@ extension on Translations {
 			'comicFollow.lastRead' => '最后阅读',
 			'comicFollow.lastUpdate' => '最近检测更新',
 			'comicFollow.checkTime' => ({required Object time}) => '检测时间：${time}',
-			_ => null,
-		} ?? switch (path) {
 			'comicFollow.notRead' => '尚未阅读',
 			'comicFollow.lastReadChapter' => ({required Object chapter}) => '看到：${chapter}',
 			'comicFollow.latestChapter' => ({required Object count, required Object chapter}) => '最新：${count} 话 / ${chapter}',

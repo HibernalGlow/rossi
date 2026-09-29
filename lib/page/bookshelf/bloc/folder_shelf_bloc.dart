@@ -14,8 +14,6 @@ import 'package:zephyr/page/bookshelf/cubit/search_status.dart';
 import 'package:zephyr/page/bookshelf/models/shelf_page_mode.dart';
 import 'package:zephyr/page/bookshelf/service/comic_folder_service.dart';
 import 'package:zephyr/page/bookshelf/service/comic_link_service.dart';
-import 'package:zephyr/page/bookshelf/service/download_folder_service.dart';
-import 'package:zephyr/page/bookshelf/service/favorite_folder_service.dart';
 import 'package:zephyr/util/rust_loader.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/util/worker_isolate.dart';
@@ -329,10 +327,14 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
     }
   }
 
+  /// 历史无文件夹：导航/文件夹变更事件直接忽略（历史恒为根目录）。
+  bool get _isHistoryMode => state.mode == ShelfPageMode.history;
+
   Future<void> _onEnterFolder(
     FolderShelfEnterFolder event,
     Emitter<FolderShelfState> emit,
   ) async {
+    if (_isHistoryMode) return;
     emit(state.copyWith(currentPath: event.path));
     add(const FolderShelfLoadRequested());
   }
@@ -371,6 +373,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
     FolderShelfCreateFolder event,
     Emitter<FolderShelfState> emit,
   ) async {
+    if (_isHistoryMode) return;
     try {
       ComicFolderService.createFolder(
         state.currentPath,
@@ -387,6 +390,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
     FolderShelfDeleteFolder event,
     Emitter<FolderShelfState> emit,
   ) async {
+    if (_isHistoryMode) return;
     try {
       ComicFolderService.deleteFolder(event.path, _folderType);
       ComicLinkService.removeLinksInFolderTree(event.path, _folderType);
@@ -400,6 +404,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
     FolderShelfRenameFolder event,
     Emitter<FolderShelfState> emit,
   ) async {
+    if (_isHistoryMode) return;
     try {
       ComicFolderService.renameFolder(event.path, event.newName, _folderType);
       add(const FolderShelfLoadRequested());
@@ -432,6 +437,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
     FolderShelfToggleFolderSelection event,
     Emitter<FolderShelfState> emit,
   ) async {
+    if (_isHistoryMode) return;
     final selected = Set<String>.from(state.selectedFolderPaths);
     if (selected.contains(event.path)) {
       selected.remove(event.path);
@@ -458,13 +464,20 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
     FolderShelfSelectAll event,
     Emitter<FolderShelfState> emit,
   ) async {
-    final syncIdMap = _buildSyncIdMap(_folderType);
-    final allFolders = state.folders
-        .map((f) => ComicFolderService.folderPath(f, syncIdMap: syncIdMap))
-        .toSet();
     final allComics = state.comics
         .map((c) => '${c.from.trim()}:${c.id}')
         .toSet();
+    // 历史无文件夹，全选只选中漫画。
+    final allFolders = _isHistoryMode
+        ? <String>{}
+        : state.folders
+              .map(
+                (f) => ComicFolderService.folderPath(
+                  f,
+                  syncIdMap: _buildSyncIdMap(_folderType),
+                ),
+              )
+              .toSet();
     emit(
       state.copyWith(
         selectionMode: true,
@@ -483,6 +496,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
     FolderShelfMoveSelected event,
     Emitter<FolderShelfState> emit,
   ) async {
+    if (_isHistoryMode) return;
     try {
       final targetPaths = event.targetPaths;
       final sourceFolderPaths =
@@ -515,6 +529,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
     FolderShelfCopySelected event,
     Emitter<FolderShelfState> emit,
   ) async {
+    if (_isHistoryMode) return;
     try {
       for (final targetPath in event.targetPaths) {
         ComicFolderService.batchCopyFolders(
@@ -539,6 +554,12 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
     Emitter<FolderShelfState> emit,
   ) async {
     try {
+      // 历史无 ComicLink：直接软删除历史本体（与旧 LocalShelfPage 一致）。
+      if (_isHistoryMode) {
+        _deleteHistoryComics(state.selectedComicKeys);
+        _exitSelectionAndRefresh();
+        return;
+      }
       ComicFolderService.batchDeleteFolders(
         state.selectedFolderPaths,
         _folderType,
@@ -554,6 +575,24 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
       _exitSelectionAndRefresh();
     } catch (e) {
       emit(state.copyWith(error: e.toString()));
+    }
+  }
+
+  /// 批量软删除历史记录。调用方保证只传历史 uniqueKey。
+  void _deleteHistoryComics(Set<String> comicUniqueKeys) {
+    if (comicUniqueKeys.isEmpty) return;
+    final now = DateTime.now().toUtc();
+    for (final uniqueKey in comicUniqueKeys) {
+      final history = objectbox.unifiedHistoryBox
+          .query(UnifiedComicHistory_.uniqueKey.equals(uniqueKey))
+          .build()
+          .findFirst();
+      if (history != null) {
+        history
+          ..deleted = true
+          ..updatedAt = now;
+        objectbox.unifiedHistoryBox.put(history);
+      }
     }
   }
 
@@ -612,8 +651,16 @@ Future<Map<String, dynamic>> _runFolderShelfLoadTask(
         }
       }
     }
-    final sourceFilter = _sourceFilterFromSearch(search, folderType);
-    final folderMembers = _folderMembersFromSearch(search, folderType);
+    final sourceFilter = _sourceFilterFromSearch(search);
+
+    // 历史无文件夹体系：直读历史表，按更新时间排序。
+    if (mode == ShelfPageMode.history) {
+      return _loadHistoryShelf(
+        sortAscending: sortAscending,
+        keyword: keyword,
+        sourceFilter: sourceFilter,
+      );
+    }
 
     // 搜索时不应被“当前所在文件夹”限制，而是全局搜索该类型下的全部漫画。
     final isSearching = keyword.trim().isNotEmpty;
@@ -640,10 +687,6 @@ Future<Map<String, dynamic>> _runFolderShelfLoadTask(
     final comicSearchTexts = <String, String>{};
     final seenKeys = <String>{};
     for (final link in links) {
-      if (folderMembers != null &&
-          !folderMembers.contains(link.comicUniqueKey)) {
-        continue;
-      }
       final resolved = _resolveComic(link.comicUniqueKey, folderType);
       if (resolved == null) continue;
       if (sourceFilter != null &&
@@ -703,6 +746,66 @@ Future<Map<String, dynamic>> _runFolderShelfLoadTask(
   }
 }
 
+/// 历史无文件夹体系：直接查询历史表，按 updatedAt 排序（与旧 LocalShelfPage 一致）。
+Map<String, dynamic> _loadHistoryShelf({
+  required bool sortAscending,
+  required String keyword,
+  required Set<String>? sourceFilter,
+}) {
+  final condition = UnifiedComicHistory_.deleted
+      .equals(false)
+      .and(_historySourceConditionFromSources(sourceFilter));
+  final query = objectbox.unifiedHistoryBox
+      .query(condition)
+      .order(
+        UnifiedComicHistory_.updatedAt,
+        flags: sortAscending ? 0 : Order.descending,
+      )
+      .build();
+  try {
+    final isSearching = keyword.trim().isNotEmpty;
+    final normalizedKeyword = isSearching ? _normalizeSearchText(keyword) : '';
+    final comics = <ComicSimplifyEntryInfo>[];
+    final comicSearchTexts = <String, String>{};
+    for (final history in query.find()) {
+      final info = unifiedComicFromUnifiedHistory(
+        history,
+      ).toSimplifyEntryInfo();
+      final key = '${info.from.trim()}:${info.id}';
+      final searchText = _buildComicSearchText(history);
+      if (isSearching && !searchText.contains(normalizedKeyword)) {
+        continue;
+      }
+      comics.add(info);
+      comicSearchTexts[key] = searchText;
+    }
+    return {
+      'folders': <ComicFolder>[],
+      'comics': comics,
+      'comicSearchTexts': comicSearchTexts,
+    };
+  } finally {
+    query.close();
+  }
+}
+
+/// 历史源过滤：沿用 FolderShelf 约定——sources 为空视为不过滤（与收藏/下载一致）。
+/// search 为 null（尚未同步图源）时同样不过滤，避免首帧闪空。
+Condition<UnifiedComicHistory> _historySourceConditionFromSources(
+  Set<String>? sourceFilter,
+) {
+  // _sourceFilterFromSearch 在 sources 为空/未同步时返回 null（不过滤）；
+  // 空集理论上到不了这里，为保险起见同样视为不过滤，与收藏/下载一致。
+  if (sourceFilter == null || sourceFilter.isEmpty) {
+    return UnifiedComicHistory_.id.notNull();
+  }
+  var condition = UnifiedComicHistory_.source.equals(sourceFilter.first);
+  for (final source in sourceFilter.skip(1)) {
+    condition = condition.or(UnifiedComicHistory_.source.equals(source));
+  }
+  return condition;
+}
+
 void _sortShelfItemsByViewTime(
   List<ComicSimplifyEntryInfo> items, {
   required Map<String, DateTime> viewTimes,
@@ -733,56 +836,14 @@ void _sortShelfItemsByViewTime(
   });
 }
 
-Set<String>? _sourceFilterFromSearch(
-  SearchStatusState? search,
-  ComicFolderType folderType,
-) {
+Set<String>? _sourceFilterFromSearch(SearchStatusState? search) {
   if (search == null) return null;
-  final sources = switch (folderType) {
-    ComicFolderType.favorite => FavoriteFolderService.stripFolderSourceTokens(
-      search.sources,
-    ),
-    ComicFolderType.download => DownloadFolderService.stripFolderSourceTokens(
-      search.sources,
-    ),
-    ComicFolderType.history => search.sources,
-  };
-  final cleaned = sources
+  final cleaned = search.sources
       .map((e) => e.trim())
       .where((e) => e.isNotEmpty)
       .toSet();
   if (cleaned.isEmpty) return null;
   return cleaned;
-}
-
-Set<String>? _folderMembersFromSearch(
-  SearchStatusState? search,
-  ComicFolderType folderType,
-) {
-  if (search == null) return null;
-  final folderKey = switch (folderType) {
-    ComicFolderType.favorite => FavoriteFolderService.parseFolderKeyFromSources(
-      search.sources,
-    ),
-    ComicFolderType.download => DownloadFolderService.parseFolderKeyFromSources(
-      search.sources,
-    ),
-    ComicFolderType.history => null,
-  };
-  if (folderKey == null) return null;
-  final isAllFolder = switch (folderType) {
-    ComicFolderType.favorite => folderKey == kFavoriteFolderAllKey,
-    ComicFolderType.download => folderKey == kDownloadFolderAllKey,
-    ComicFolderType.history => true,
-  };
-  if (isAllFolder) return null;
-  final members = switch (folderType) {
-    ComicFolderType.favorite => FavoriteFolderService.membersOf(folderKey),
-    ComicFolderType.download => DownloadFolderService.membersOf(folderKey),
-    ComicFolderType.history => const <String>{},
-  };
-  if (members.isEmpty) return const <String>{};
-  return members;
 }
 
 ({ComicSimplifyEntryInfo info, String searchText})? _resolveComic(

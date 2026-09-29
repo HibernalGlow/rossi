@@ -26,12 +26,12 @@
 
 ## 2. 清单
 
-| 本地 | 上游 | 搬取时的上游 commit |
+| 本地 | 上游 | 当前对齐的上游 commit |
 |---|---|---|
-| `rust/local_core/src/page_load_scheduler.rs` | `src/fs_page_load_scheduler.rs` | `1fd6f863` |
-| `rust/local_core/src/prefetch_policy.rs` | `src/app/prefetch_policy.rs` | `1fd6f863` |
-| `rust/local_core/src/auto_aspect.rs` | `src/auto_aspect.rs` | `1fd6f863` |
-| `rust/local_core/src/page_split.rs` | `src/page_split.rs` | `1fd6f863` |
+| `rust/local_core/src/page_load_scheduler.rs` | `src/fs_page_load_scheduler.rs` | `8d95fffe` |
+| `rust/local_core/src/prefetch_policy.rs` | `src/app/prefetch_policy.rs` | `8d95fffe` |
+| `rust/local_core/src/auto_aspect.rs` | `src/auto_aspect.rs` | `8d95fffe` |
+| `rust/local_core/src/page_split.rs` | `src/page_split.rs` | `8d95fffe` |
 | `rust/local_core/src/perf_sink.rs` | —— **本地新增**，上游对应物是 `src/perf.rs`（完整 JSONL 性能日志系统） | —— |
 
 
@@ -53,12 +53,20 @@
 `search_norm::zip_entry_key` 在 Rossi 侧暂时无人调用 —— 它属于索引层（M-18），
 按「保住上游名字」的原则一并搬入，为将来的索引留接口；`pub` 项不会触发 `dead_code`。
 
-这七份里**有六份**纳入 `sync_vendored_modules.py`：`folder_tree.rs` / `folder_pane.rs` /
-`filename_sort.rs` 的 `pinned_at` 已跟到 `1ffce811`（2026-09-25 融合上游的排序改动），
-`fs_entry.rs` / `search_query.rs` / `search_norm.rs` 上游自 `1fd6f863` 起零改动，
-`pinned_at` 保持原值（内容与 `1ffce811` 一致）。
+这七份里**有六份**纳入 `sync_vendored_modules.py`。
 
-`thumb_loader.rs` **刻意不登记 PORTS**：本地那 368 行是从上游 4510 行里切出的文件夹代表图
+**2026-09-28 同步到上游 `8d95fffe`（v4.1.0，子模块 pin 从 `1ffce811` 快进 70 个提交）**：
+十份 `PORTS` 的 `pinned_at` 全部跟到 `8d95fffe`，脚本一条命令跑完 `exit 0`。
+
+- **九份上游零改动**：`folder_pane.rs` / `filename_sort.rs` / `fs_entry.rs` / `search_query.rs` /
+  `search_norm.rs` / `fs_page_load_scheduler.rs` / `app/prefetch_policy.rs` / `auto_aspect.rs` /
+  `page_split.rs`。
+- **`folder_tree.rs` 上游动了一个提交**（`c633825c`，+802/−43），但它动的整段是本仓**刻意不跟**的
+  导航层，已按「未搬」登记（`upstream_strip` + `local_strip` 各一条同区间规则），
+  理由与代价见 §8.1。除导航层之外的扩展名表、路径判定、`path_eq`、`OpenablePath*`
+  仍逐行参与比较（归一化后两侧各 791 代码行）。
+
+`thumb_loader.rs` **刻意不登记 PORTS**：本地那 400 行是从上游 4500+ 行里切出的文件夹代表图
 子集，并按 Rossi 需要改过结构（多子项拾取、归档候选、失败回退、有界循环），逐行 diff
 只会产出一份毫无意义的报告 —— 与下面 §2.1 的 `file_ops` 同一口径。代价是上游改这个文件时
 脚本不会报警，只能人工读（2026-09-25 这次就跟进了它的「列表用排序值不得进入代表图选择」
@@ -103,6 +111,25 @@ ZIP/CBZ/RAR/CBR 候选、AppleDouble / 内部元数据过滤、加载失败后�
 （含已启用的 JXL 后端），缩放与缓存仍走 `fast_resize` / `CatalogDb`。
 文件夹缓存键升级为 `auto-v3`，追加合成策略与尺寸，避免复用旧单图或较小的合成图。
 这些是 Rossi 的封面策略扩展，上游同步时须保留。
+
+### 2.2 2026-09-28 对「脚本看不到的那四份」的人工读法
+
+上游 `1ffce811 → 8d95fffe` 里，`PORTS` 不守的四份同名移植有两份被动了，人工读结论如下：
+
+| 上游文件 | 窗口内改动 | 与本仓切片的关系 | 结论 |
+|---|---|---|---|
+| `src/thumb_loader.rs` | `9a905104` 重写代表图 **+1911/−228** | 本仓那份 400 行含同名入口 `folder_thumb_auto_cache_key*` 与 `resolve_folder_thumb_image_inner`。上游把**候选顺序改成「先取本目录直下的图片，再取子目录 / 归档」**（此前正是「子目录优先」，也就是本仓 `collect_folder_thumbs` 注释里写死的那条），并把 auto 键升到 `auto-v3` | **未合**。它会换掉所有文件夹封面、且与 `folder_thumb_pins` + catalog 的 selection-proof 一体；属行为决策，见 §8.2 |
+| `src/catalog.rs` | `9a905104` **+880/−16** | 动了本仓也有的 `CacheEntry` / `init_schema`：新增 `folder_provenance`、`selection_proof` 两列与 `folder_selection_revision` 触发器表 | **未合**。那是上面那条的缓存新鲜度配套，本仓没有写入方；纯增量表不影响现有键 |
+| `src/displayed_image_transform.rs` | +55/−19 | 只动 `SingletonSpreadPlacement` 与 `DisplayedImageGeometry`；本仓 `rotation.rs` 只取 `inverse_uv` / `forward_uv`，两个函数未变 | 无需处理 |
+| `src/fast_resize.rs` | 零改动 | —— | 无需处理 |
+| `src/path_key.rs` | 零改动 | 文件头写着 `Vendored from vendor/mimageviewer/src/path_key.rs`，是**第五份**未登记移植（差距核对 §7.1 只列了四份） | 无需处理，但下次同步要按这份一起人工读 |
+
+⚠ 上面两处提到的 `auto-v3` **与本文 §2 里 Rossi 自己的 `auto-v3` 不是同一件事**：
+本仓的 3 是「追加合成策略与尺寸」，上游的 3 是「直下图片优先」。两边各升各的，
+真要跟进候选顺序时必须升到本仓的 **4**，否则会静默复用按旧顺序生成的封面。
+
+依赖面也一并核过：本仓唯一真正 `path` 依赖上游的是 `crates/unrar-patched`，它在整个窗口内
+**没有提交**；`Cargo.lock` 只有 mimageviewer 自身包名从 `4.0.0` 到 `4.1.0` 的版本号，第三方依赖树未变。
 
 许可：上游 mImageViewer 是 **MIT**，可 vendor，已保留版权与来源声明（每个文件头都写了）。
 
@@ -269,3 +296,48 @@ python script/sync_vendored_modules.py --bump <新的上游 commit>
 
 预取的**执行**（谁来解、解完存哪、淘汰谁）仍在 Reader 层 —— 那是「谁拥有 `pixels`」的问题，
 不是判决问题。所以判据 D（连读三本 RSS 增幅 ≤ 5%）的依据不变。
+
+## 8. 本次同步（→ `8d95fffe` / v4.1.0）没合的两大块 —— 结论与登记
+
+这两块的**结论**（2026-09-28 定）。下面写清「不合的理由」和「以后要跟需要动哪里」，
+下次同步不必重新评估一遍。
+
+### 8.1 `folder_tree` 的导航层重写（上游 `c633825c`）—— 决定：不跟，已登记为未搬
+
+上游修的是「独立窗口里的 RAR 用 Ctrl+↑/↓ 跳不到前后本」。为此它把
+`FolderTreeOptions.include_convertible_archives: bool` 换成 `NavigationArchivePolicy`
+三值枚举，并加了「落点解析 + 每请求决策 memo + 取消贯穿枚举与检视」。
+
+- **为什么不跟**：`resolve_folder_nav_landing` 的 `DetachedReadable` 分支直接查
+  `ArchiveCacheDb::peek()`，并用 `zip_loader::first_image_entry()` 验转换产物里有图 ——
+  转换缓存就是差距核对的 **G-02，本仓没有**；「拥有这个请求的独立窗口」这一上下文本仓也不存在
+  （Rossi 单窗，上下本走 `book_navigation.rs`）。`folder_tree` 的 DFS 导航族在本仓除一个用例外
+  **没有生产消费者**，为一个还没有的功能搬它的骨架只会得到死代码。
+- **怎么登记的**：`PORTS` 的 `folder_tree.rs` 条目加了一条 `upstream_strip` 与一条同区间的
+  `local_strip`（区间 = `is_convertible_archive_path` 之后到 `path_eq` 之前），另加
+  `NavigationArchivePolicy` 枚举本体、上游新增的 11 个 `rar_nav_*` 用例，
+  以及 bool ⇄ 枚举的三条形态映射；`pinned_at` 照样跟到 `8d95fffe`。
+- **代价（要记住的失明区）**：这条区间同时挡掉 `folder_should_stop*` / `folder_has_still_image*` /
+  `folder_qualifies` / `navigate_folder_with_skip` / `next|prev_folder_dfs` / 兄弟导航 /
+  `walk_dirs_recursive*` / `sorted_subdirs`。以后上游改这些函数**脚本不会报**，只能人工读上游。
+  保留区仍有 791 代码行逐行可比（扩展名表、`path_eq`、`OpenablePath*`、虚拟文件夹与可转换归档判定）。
+- **什么时候重新评估**：G-01（归档转换器）与 G-02（转换缓存）落地之后，这段导航层才从
+  「没有消费者的骨架」变成能解本仓问题的代码；届时按上游形态整段搬，并删掉上面两条区间规则。
+
+### 8.2 文件夹代表图「直下图片优先」（上游 `9a905104`）—— 决定：保持本仓顺序
+
+上游把候选顺序改成本目录直下的图片优先，其次才是子目录与归档；本仓 `collect_folder_thumbs`
+目前是**子目录优先**（注释里写的是「与缩略图列表把文件夹块排在图片之前对齐」）。
+
+- **为什么不跟**：本仓的封面不是「一张代表图」，而是 `thumbnail_pipeline.rs:199` 向
+  `resolve_folder_thumb_images(…, 4, …)` 要**最多四个子项**合成的（每个子目录各贡献一张；
+  仅一张时保留原比例，多张铺满合成）。改成直下优先后，一个既有子目录、又有一叠连续页面
+  的文件夹，四个 tile 会被同一章的前四页占满 —— 正好丢掉本仓做合成封面的意义。
+  上游那条服务的是「一个文件夹 = 一本书 = 一张封面」的图库语境，而且它捆了
+  `folder_thumb_pins`（G-14，本仓无）与 catalog 的 `selection_proof` 触发器。
+- **要跟的话要动三处**：`collect_folder_thumbs` 的候选顺序（`thumb_loader.rs:185` 那段注释一起改）、
+  `FOLDER_THUMB_AUTO_ALGO_VERSION` 3 → **4**（本仓的 3 与上游的 3 不是同一次变更，见 §2.2 的警告）、
+  以及 `thumb_loader::tests` 里按「子目录优先」写死的用例。
+- **顺带记下本仓自己的不足**：本仓的 auto 键只含目录身份 + 排序 + 深度，
+  **目录内容变了不会让封面失效**。上游的 `selection_proof` 解的是这个，
+  但那是新功能而不是同步 —— 进 `ROADMAP` 之前不动。

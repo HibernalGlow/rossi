@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
 import 'package:zephyr/service/operation_binding/binding_doc.dart';
 import 'package:zephyr/page/comic_read/controller/reader_action_controller.dart';
 import 'package:zephyr/page/comic_read/controller/reader_input_controller.dart';
@@ -119,6 +120,10 @@ void main() {
       MaterialApp(
         home: MultiBlocProvider(
           providers: [
+            // 上游的 readEffectiveReadSetting() 要求树上有这个 cubit（真机由 main.dart 注册）。
+            BlocProvider<ComicReadPreferenceCubit>(
+              create: (_) => ComicReadPreferenceCubit(),
+            ),
             BlocProvider<GlobalSettingCubit>.value(value: cubit),
             BlocProvider(create: (_) => ReaderCubit()),
           ],
@@ -183,6 +188,10 @@ void main() {
       MaterialApp(
         home: MultiBlocProvider(
           providers: [
+            // 上游的 readEffectiveReadSetting() 要求树上有这个 cubit（真机由 main.dart 注册）。
+            BlocProvider<ComicReadPreferenceCubit>(
+              create: (_) => ComicReadPreferenceCubit(),
+            ),
             BlocProvider<GlobalSettingCubit>.value(value: cubit),
             BlocProvider(create: (_) => ReaderCubit()),
           ],

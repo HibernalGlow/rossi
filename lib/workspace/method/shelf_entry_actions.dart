@@ -7,7 +7,6 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/page/bookshelf/service/comic_link_service.dart';
-import 'package:zephyr/page/bookshelf/service/favorite_folder_service.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/shelf_entry_menu_spec.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
@@ -148,8 +147,9 @@ Future<bool> confirmShelfEntryRemoval(
 // ── 库侧读写 ────────────────────────────────────────────────────────────────
 //
 // 口径照抄既有的两条路径，不另立一套：
-// - 移除：`page/bookshelf/widgets/local_shelf_page.dart` 的批量删除
-//   （软删 + 摘掉文件夹成员关系 + 清掉跨文件夹链接）；
+// - 移除：`page/comic_info/models/collect_comic.dart` 与
+//   `service/download/download_delete_service.dart` 的那套（软删 +
+//   `ComicLinkService.removeComicFromAll` 清掉文件夹成员与跨文件夹链接）；
 // - 加收藏：`page/comic_info/models/collect_comic.dart` 的字段映射。
 
 /// 这条目当前在不在收藏里（按库内唯一键 `来源:漫画id`）。
@@ -219,7 +219,6 @@ void removeShelfEntryFromFavorites(String uniqueKey) {
   item.deleted = true;
   item.updatedAt = DateTime.now().toUtc();
   objectbox.unifiedFavoriteBox.put(item);
-  FavoriteFolderService.removeMemberFromAllFolders(uniqueKey);
   ComicLinkService.removeComicFromAll(uniqueKey, ComicFolderType.favorite);
 }
 

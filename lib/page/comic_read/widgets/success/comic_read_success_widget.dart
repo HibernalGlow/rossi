@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_seamless_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_seamless_state.dart';
@@ -27,6 +28,7 @@ class ComicReadSuccessWidget extends StatefulWidget {
   final WidgetBuilder buildAppBar;
   final WidgetBuilder buildBottom;
   final WidgetBuilder buildAutoReadControl;
+  final WidgetBuilder buildEinkControl;
   final int Function(ReadSettingState readSetting)? resolveTotalSlots;
   final void Function(
     BuildContext innerContext,
@@ -47,6 +49,7 @@ class ComicReadSuccessWidget extends StatefulWidget {
     required this.buildAppBar,
     required this.buildBottom,
     required this.buildAutoReadControl,
+    required this.buildEinkControl,
     this.resolveTotalSlots,
     required this.onReady,
   });
@@ -101,12 +104,8 @@ class _ComicReadSuccessWidgetState extends State<ComicReadSuccessWidget> {
             builder: (innerContext) {
               _scheduleInitialPrefetch(innerContext);
               final cubit = innerContext.read<ReaderCubit>();
-              final readMode = innerContext.select(
-                (GlobalSettingCubit c) => c.state.readSetting.readMode,
-              );
-              final readSetting = innerContext.select(
-                (GlobalSettingCubit c) => c.state.readSetting,
-              );
+              final readSetting = innerContext.watchEffectiveReadSetting();
+              final readMode = readSetting.readMode;
               final backgroundColor = readSetting.resolveReaderBackgroundColor(
                 Theme.of(innerContext).brightness,
               );
@@ -202,6 +201,7 @@ class _ComicReadSuccessWidgetState extends State<ComicReadSuccessWidget> {
                           widget.buildAppBar(innerContext),
                           widget.buildBottom(innerContext),
                           widget.buildAutoReadControl(innerContext),
+                          widget.buildEinkControl(innerContext),
                         ],
                       ),
                     ),

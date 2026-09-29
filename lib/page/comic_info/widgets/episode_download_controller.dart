@@ -1,51 +1,40 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
+import 'package:zephyr/page/comic_info/cubit/episode_download_status_cubit.dart';
+import 'package:zephyr/page/comic_info/cubit/episode_selection_cubit.dart';
 import 'package:zephyr/page/download/adapters/download_chapter_adapter.dart';
-import 'package:zephyr/page/download/adapters/download_chapter_matcher.dart';
 import 'package:zephyr/page/download/models/download_chapter.dart';
 import 'package:zephyr/page/download/models/unified_comic_download.dart';
 import 'package:zephyr/service/download/download_delete_service.dart';
 import 'package:zephyr/service/download/download_queue_manager.dart';
 import 'package:zephyr/service/download/download_task_repository.dart';
 import 'package:zephyr/service/download/models/download_task_json.dart';
-import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/toast.dart';
-
-/// 章节下载状态（详情页章节行右侧按钮用）。
-enum ChapterDownloadStatus {
-  notDownloaded,
-  queued,
-  downloading,
-  failed,
-  downloaded,
-}
-
-class _ChapterTaskSnap {
-  const _ChapterTaskSnap({
-    required this.isDownloading,
-    required this.isFailed,
-    this.progress,
-  });
-
-  final bool isDownloading;
-  final bool isFailed;
-  final double? progress;
-}
 
 /// 漫画详情页章节下载状态 + 长按多选控制器。
 ///
+/// 下载状态由 [statusCubit] 持有，多选态由 [selectionCubit] 持有，
+/// 行级 UI 各自订阅。
 /// 订阅本地下载记录和下载任务表，章节行按
 /// 已下载 > 下载中 > 排队中 > 失败 > 未下载的优先级显示状态。
-class EpisodeDownloadController extends ChangeNotifier {
+class EpisodeDownloadController {
   EpisodeDownloadController();
 
   static const _repository = DownloadTaskRepository();
   static const _adapter = DownloadChapterAdapter();
-  static const _matcher = DownloadChapterMatcher();
+
+  /// 多选态版本号 cubit：只在进入/切换/全选/清空/退出选择时 bump。
+  /// 章节行用它做行级监听，下载进度 tick 只走 [statusCubit]，
+  /// 不会触发选中 UI 的全列表重建。
+  final EpisodeSelectionCubit selectionCubit = EpisodeSelectionCubit();
+
+  /// 下载状态 cubit：下载记录 / 任务表变化时 emit，章节角标订阅它。
+  final EpisodeDownloadStatusCubit statusCubit = EpisodeDownloadStatusCubit();
 
   String _from = '';
   String _comicId = '';
@@ -55,11 +44,8 @@ class EpisodeDownloadController extends ChangeNotifier {
   StreamSubscription? _recordSubscription;
   StreamSubscription? _taskSubscription;
 
-  /// 已下载章节 id（DownloadChapter.id 形式）。
-  Set<String> downloadedIds = {};
-
-  /// 章节 key -> 任务快照（仅未完成任务）。
-  final Map<String, _ChapterTaskSnap> _taskSnaps = {};
+  /// 已下载章节 id（DownloadChapter.id 形式），只读 [statusCubit] 的状态。
+  Set<String> get downloadedIds => statusCubit.state.downloadedIds;
 
   bool selectionMode = false;
   final Set<String> selectedIds = {};
@@ -85,13 +71,27 @@ class EpisodeDownloadController extends ChangeNotifier {
     _comicId = comicId.trim();
     _comicTitle = comicTitle;
     _allowDownload = allowDownload;
-    // attach 在 build 期间调用，这里只同步算初值、不 notify；
-    // 后续变化由订阅回调异步 notify。
-    _resubscribe(notify: false);
+    // attach 在 _EpisodeBoard 的 initState/didUpdateWidget 里调用，
+    // 这里同步算初值后 emit 一次；后续变化由订阅回调异步 emit。
+    _resubscribe();
     _loadInitial();
   }
 
-  void _resubscribe({bool notify = true}) {
+  void _updateStatus({
+    Set<String>? downloadedIds,
+    Map<String, ChapterTaskSnap>? taskSnaps,
+  }) {
+    if (statusCubit.isClosed) return;
+    statusCubit.update(downloadedIds: downloadedIds, taskSnaps: taskSnaps);
+  }
+
+  static Set<String> _resolveDownloadedIds(UnifiedComicDownload? record) {
+    return record == null
+        ? <String>{}
+        : resolveDownloadChapters(record).map((c) => c.id).toSet();
+  }
+
+  void _resubscribe() {
     unawaited(_recordSubscription?.cancel());
     unawaited(_taskSubscription?.cancel());
     _recordSubscription = null;
@@ -102,37 +102,31 @@ class EpisodeDownloadController extends ChangeNotifier {
         .query(UnifiedComicDownload_.uniqueKey.equals(_recordKey))
         .watch();
     _recordSubscription = recordQuery.listen((query) {
-      final record = query.findFirst();
-      downloadedIds = record == null
-          ? <String>{}
-          : resolveDownloadChapters(record).map((c) => c.id).toSet();
-      notifyListeners();
+      _updateStatus(downloadedIds: _resolveDownloadedIds(query.findFirst()));
     });
 
     final taskQuery = objectbox.downloadTaskBox
         .query(DownloadTask_.comicId.equals(_comicId))
         .watch();
     _taskSubscription = taskQuery.listen((query) {
-      _readTaskSnaps(query.find());
-      notifyListeners();
+      _updateStatus(taskSnaps: _buildTaskSnaps(query.find()));
     });
-    if (notify) notifyListeners();
   }
 
   void _loadInitial() {
     final record = _repository.findDownloadRecord(_from, _comicId);
-    downloadedIds = record == null
-        ? <String>{}
-        : resolveDownloadChapters(record).map((c) => c.id).toSet();
     final tasks = objectbox.downloadTaskBox
         .query(DownloadTask_.comicId.equals(_comicId))
         .build()
         .find();
-    _readTaskSnaps(tasks);
+    _updateStatus(
+      downloadedIds: _resolveDownloadedIds(record),
+      taskSnaps: _buildTaskSnaps(tasks),
+    );
   }
 
-  void _readTaskSnaps(List<DownloadTask> tasks) {
-    final snaps = <String, _ChapterTaskSnap>{};
+  Map<String, ChapterTaskSnap> _buildTaskSnaps(List<DownloadTask> tasks) {
+    final snaps = <String, ChapterTaskSnap>{};
     for (final task in tasks) {
       if (task.isCompleted) continue;
       DownloadTaskJson? payload;
@@ -152,50 +146,38 @@ class EpisodeDownloadController extends ChangeNotifier {
                 .clamp(0.0, 1.0)
                 .toDouble();
       }
-      snaps[key] = _ChapterTaskSnap(
+      snaps[key] = ChapterTaskSnap(
         isDownloading: task.isDownloading,
         isFailed: payload.stateCode == 'failed',
         progress: progress,
       );
     }
-    _taskSnaps
-      ..clear()
-      ..addAll(snaps);
+    return snaps;
   }
 
-  bool isDownloaded(DownloadChapter chapter) {
-    if (downloadedIds.contains(chapter.id)) return true;
-    for (final storedId in downloadedIds) {
-      if (_matcher.matches(chapter, storedId)) return true;
-    }
-    return false;
-  }
+  bool isDownloaded(DownloadChapter chapter) =>
+      statusCubit.state.isDownloaded(chapter);
 
-  ChapterDownloadStatus statusOf(DownloadChapter chapter) {
-    if (isDownloaded(chapter)) {
-      return ChapterDownloadStatus.downloaded;
-    }
-    final snap =
-        _taskSnaps[chapter.id] ?? _taskSnaps[chapter.effectiveRequestId];
-    if (snap == null) return ChapterDownloadStatus.notDownloaded;
-    if (snap.isDownloading) return ChapterDownloadStatus.downloading;
-    if (snap.isFailed) return ChapterDownloadStatus.failed;
-    return ChapterDownloadStatus.queued;
-  }
+  ChapterDownloadStatus statusOf(DownloadChapter chapter) =>
+      statusCubit.state.statusOf(chapter);
 
-  double? progressOf(DownloadChapter chapter) {
-    return (_taskSnaps[chapter.id] ?? _taskSnaps[chapter.effectiveRequestId])
-        ?.progress;
-  }
+  double? progressOf(DownloadChapter chapter) =>
+      statusCubit.state.progressOf(chapter);
 
   // ---------- 多选 ----------
+
+  void _notifySelection() {
+    // 选中变化只 bump 版本号：行级选中 UI 订阅 selectionCubit，
+    // 下载角标订阅 statusCubit，互不影响。
+    selectionCubit.bump();
+  }
 
   void enterSelection(String chapterId) {
     selectionMode = true;
     selectedIds
       ..clear()
       ..add(chapterId);
-    notifyListeners();
+    _notifySelection();
   }
 
   void toggleSelect(String chapterId) {
@@ -207,25 +189,25 @@ class EpisodeDownloadController extends ChangeNotifier {
     } else {
       selectedIds.add(chapterId);
     }
-    notifyListeners();
+    _notifySelection();
   }
 
   void selectAll(Iterable<String> chapterIds) {
     selectedIds
       ..clear()
       ..addAll(chapterIds);
-    notifyListeners();
+    _notifySelection();
   }
 
   void clearSelection() {
     selectedIds.clear();
-    notifyListeners();
+    _notifySelection();
   }
 
   void exitSelection() {
     selectionMode = false;
     selectedIds.clear();
-    notifyListeners();
+    _notifySelection();
   }
 
   // ---------- 动作 ----------
@@ -250,12 +232,9 @@ class EpisodeDownloadController extends ChangeNotifier {
   /// 选中的可下载章节（未下载且无未完成任务）。
   List<DownloadChapter> downloadableOf(List<DownloadChapter> chapters) {
     return chapters.where((chapter) {
-      if (statusOf(chapter) == ChapterDownloadStatus.downloaded) return false;
-      if (statusOf(chapter) != ChapterDownloadStatus.notDownloaded &&
-          statusOf(chapter) != ChapterDownloadStatus.failed) {
-        return false;
-      }
-      return true;
+      final status = statusOf(chapter);
+      return status == ChapterDownloadStatus.notDownloaded ||
+          status == ChapterDownloadStatus.failed;
     }).toList();
   }
 
@@ -423,17 +402,34 @@ class EpisodeDownloadController extends ChangeNotifier {
 
   /// 最近一次适配的章节列表（底栏全选等用，与列表显示顺序一致）。
   List<DownloadChapter> lastChapters = const [];
+  List<dynamic> _lastEpsRefs = const [];
 
   /// 从在线章节列表构建 DownloadChapter（供 UI 层调用）。
+  ///
+  /// 带元素级缓存：displayEps 每次 build 都是新 List，但里面 Ep 实例
+  /// 不变时（下载进度 tick 触发的重建）直接复用上次结果，避免
+  /// O(N) 的 fromEp + extern Map 拷贝。倒序切换会改变元素顺序，
+  /// 自然 miss 并按新顺序重建。
   List<DownloadChapter> adaptEps(List<dynamic> eps) {
+    if (_lastEpsRefs.length == eps.length && eps.isNotEmpty) {
+      var same = true;
+      for (var i = 0; i < eps.length; i++) {
+        if (!identical(_lastEpsRefs[i], eps[i])) {
+          same = false;
+          break;
+        }
+      }
+      if (same) return lastChapters;
+    }
     lastChapters = eps.map((e) => _adapter.fromEp(e)).toList();
+    _lastEpsRefs = List<dynamic>.from(eps, growable: false);
     return lastChapters;
   }
 
-  @override
   void dispose() {
     unawaited(_recordSubscription?.cancel());
     unawaited(_taskSubscription?.cancel());
-    super.dispose();
+    unawaited(selectionCubit.close());
+    unawaited(statusCubit.close());
   }
 }

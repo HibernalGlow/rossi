@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
 import 'package:zephyr/page/comic_read/controller/reader_action_controller.dart';
 import 'package:zephyr/page/comic_read/controller/reader_action_dispatcher.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
@@ -245,8 +246,9 @@ class ReaderInputController {
 
   /// 构建阅读核心交互层：键盘、手势、缩放、多指锁滚动。
   Widget buildInteractiveViewer() {
-    final globalSettingState = context.watch<GlobalSettingCubit>().state;
-    final readSetting = globalSettingState.readSetting;
+    final readSetting = context.watchEffectiveReadSetting();
+    // 绑定表住在同一份全局设置里；上一句已经订阅了同一个 cubit，这里只取值不再建第二个监听。
+    final globalSettingState = context.read<GlobalSettingCubit>().state;
     final isDoubleTapActionEnabled =
         readSetting.doubleTapZoom ||
         readSetting.doubleTapOpenMenu ||
@@ -401,7 +403,15 @@ class ReaderInputController {
       unawaited(toggleReaderFullscreen());
       return KeyEventResult.handled;
     }
-    final handled = handleGlobalKeyEvent(event, actionController);
+    final handled = handleGlobalKeyEvent(
+      event,
+      actionController,
+      reverseHorizontal: context
+          .read<GlobalSettingCubit>()
+          .state
+          .readSetting
+          .reverseHorizontalPageTurn,
+    );
     return handled ? KeyEventResult.handled : KeyEventResult.ignored;
   }
 
@@ -656,11 +666,9 @@ class ReaderInputController {
     // 否则删除、停用或改绑滚轮之后，它仍会绕过配置翻页。
     if (_runtimeBindings != null) return;
 
-    final readSetting = context
-        .read<GlobalSettingCubit>()
-        .state
-        .readSetting;
-    if (!newCtrlPressed && readSetting.readMode != 0) {
+    // 上游的单本覆盖：滚轮翻页按「这本」的有效模式判，不是全局模式。
+    final readMode = context.readEffectiveReadMode();
+    if (!newCtrlPressed && readMode != 0) {
       // 与采集口同一个方向判定：关掉总开关不该让滚轮的手势方向变掉。
       final dy = OperationBindingStore.wheelDirectionFollowsHand(
         context.read<GlobalSettingCubit>().state.operationBindingSetting,

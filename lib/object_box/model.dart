@@ -648,83 +648,6 @@ class UnifiedComicDownload {
 
 @Entity()
 @JsonSerializable()
-class FavoriteFolder {
-  @Id()
-  int id;
-
-  @Unique()
-  String folderKey;
-
-  String name;
-
-  @Property(type: PropertyType.date)
-  DateTime createdAt;
-
-  @Property(type: PropertyType.date)
-  DateTime updatedAt;
-
-  bool deleted;
-
-  FavoriteFolder({
-    this.id = 0,
-    required this.folderKey,
-    required this.name,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.deleted,
-  });
-
-  Map<String, dynamic> toJson() => _$FavoriteFolderToJson(this);
-
-  factory FavoriteFolder.fromJson(Map<String, dynamic> json) =>
-      _$FavoriteFolderFromJson(json);
-
-  @override
-  String toString() {
-    return jsonEncode(toJson());
-  }
-}
-
-@Entity()
-@JsonSerializable()
-class FavoriteFolderItem {
-  @Id()
-  int id;
-
-  @Unique()
-  String uniqueKey;
-
-  String folderKey;
-  String favoriteUniqueKey;
-  @Property(type: PropertyType.date)
-  DateTime createdAt;
-  @Property(type: PropertyType.date)
-  DateTime updatedAt;
-  bool deleted;
-
-  FavoriteFolderItem({
-    this.id = 0,
-    required this.uniqueKey,
-    required this.folderKey,
-    required this.favoriteUniqueKey,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.deleted,
-  });
-
-  Map<String, dynamic> toJson() => _$FavoriteFolderItemToJson(this);
-
-  factory FavoriteFolderItem.fromJson(Map<String, dynamic> json) =>
-      _$FavoriteFolderItemFromJson(json);
-
-  @override
-  String toString() {
-    return jsonEncode(toJson());
-  }
-}
-
-@Entity()
-@JsonSerializable()
 class UserSetting {
   @Id()
   int id;
@@ -850,83 +773,6 @@ class DownloadTask {
 
   factory DownloadTask.fromJson(Map<String, dynamic> json) =>
       _$DownloadTaskFromJson(json);
-
-  @override
-  String toString() {
-    return jsonEncode(toJson());
-  }
-}
-
-@Entity()
-@JsonSerializable()
-class DownloadFolder {
-  @Id()
-  int id;
-
-  @Unique()
-  String folderKey;
-
-  String name;
-
-  @Property(type: PropertyType.date)
-  DateTime createdAt;
-
-  @Property(type: PropertyType.date)
-  DateTime updatedAt;
-
-  bool deleted;
-
-  DownloadFolder({
-    this.id = 0,
-    required this.folderKey,
-    required this.name,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.deleted,
-  });
-
-  Map<String, dynamic> toJson() => _$DownloadFolderToJson(this);
-
-  factory DownloadFolder.fromJson(Map<String, dynamic> json) =>
-      _$DownloadFolderFromJson(json);
-
-  @override
-  String toString() {
-    return jsonEncode(toJson());
-  }
-}
-
-@Entity()
-@JsonSerializable()
-class DownloadFolderItem {
-  @Id()
-  int id;
-
-  @Unique()
-  String uniqueKey;
-
-  String folderKey;
-  String downloadUniqueKey;
-  @Property(type: PropertyType.date)
-  DateTime createdAt;
-  @Property(type: PropertyType.date)
-  DateTime updatedAt;
-  bool deleted;
-
-  DownloadFolderItem({
-    this.id = 0,
-    required this.uniqueKey,
-    required this.folderKey,
-    required this.downloadUniqueKey,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.deleted,
-  });
-
-  Map<String, dynamic> toJson() => _$DownloadFolderItemToJson(this);
-
-  factory DownloadFolderItem.fromJson(Map<String, dynamic> json) =>
-      _$DownloadFolderItemFromJson(json);
 
   @override
   String toString() {
@@ -1280,6 +1126,53 @@ class ComicLink {
 
   factory ComicLink.fromJson(Map<String, dynamic> json) =>
       _$ComicLinkFromJson(json);
+
+  @override
+  String toString() {
+    return jsonEncode(toJson());
+  }
+}
+
+/// 单本漫画独立阅读设置（最小版：仅 readMode）。
+///
+/// 有记录且 [deleted] 为 false 表示启用了本漫特定设置；
+/// 停用时写入 `deleted=true` 的 tombstone，保证 WebDAV/备份能把删除同步出去。
+/// 合并规则：unix 时间戳（[updatedAt]）更大的保留，与收藏/历史同一套 LWW。
+@Entity()
+@JsonSerializable()
+class ComicReadPreference {
+  @Id()
+  int id;
+
+  /// 复合唯一键：`$source:$comicId`，与历史/收藏保持一致。
+  @Unique()
+  String uniqueKey;
+
+  String source;
+  String comicId;
+
+  /// 0=条漫从上到下 / 1=单页从左到右 / 2=单页从右到左。
+  int readMode;
+
+  @Property(type: PropertyType.date)
+  DateTime updatedAt;
+
+  bool deleted;
+
+  ComicReadPreference({
+    this.id = 0,
+    required this.uniqueKey,
+    required this.source,
+    required this.comicId,
+    required this.readMode,
+    required this.updatedAt,
+    this.deleted = false,
+  });
+
+  Map<String, dynamic> toJson() => _$ComicReadPreferenceToJson(this);
+
+  factory ComicReadPreference.fromJson(Map<String, dynamic> json) =>
+      _$ComicReadPreferenceFromJson(json);
 
   @override
   String toString() {

@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
 import 'package:zephyr/service/reader/switch_toast_service.dart';
@@ -30,8 +31,7 @@ class ReaderActionController {
     this.canAdvanceNext,
   });
 
-  ReadSettingState get _readSetting =>
-      context.read<GlobalSettingCubit>().state.readSetting;
+  ReadSettingState get _readSetting => context.readEffectiveReadSetting();
 
   int get _readMode => _readSetting.readMode;
 
@@ -222,7 +222,7 @@ class ReaderActionController {
     // 用户触摸拖拽/惯性滚动期间让位，避免自动滚动与手势打架。
     if (isUserScrolling?.call() ?? false) return;
 
-    final viewportHeight = MediaQuery.of(_activeContext).size.height;
+    final viewportHeight = MediaQuery.sizeOf(_activeContext).height;
     final distancePercent = _autoScrollColumnDistancePercent.clamp(10, 100);
     final stepDistance = viewportHeight * (distancePercent / 100);
 

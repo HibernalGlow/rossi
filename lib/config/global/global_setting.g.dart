@@ -146,6 +146,9 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
       : OperationBindingSettingState.fromJson(
           json['operationBindingSetting'] as Map<String, dynamic>,
         ),
+  eInkSetting: json['eInkSetting'] == null
+      ? const EInkSettingState()
+      : EInkSettingState.fromJson(json['eInkSetting'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
@@ -214,6 +217,7 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'fileManagerSetting': instance.fileManagerSetting.toJson(),
       'discoverSetting': instance.discoverSetting.toJson(),
       'operationBindingSetting': instance.operationBindingSetting.toJson(),
+      'eInkSetting': instance.eInkSetting.toJson(),
     };
 
 const _$ThemeModeEnumMap = {
@@ -363,6 +367,8 @@ _ReadSettingState _$ReadSettingStateFromJson(Map<String, dynamic> json) =>
           ) ??
           ReaderTapPageTurnMode.rightHand,
       tapPageTurnInWebtoon: json['tapPageTurnInWebtoon'] as bool? ?? false,
+      reverseHorizontalPageTurn:
+          json['reverseHorizontalPageTurn'] as bool? ?? false,
       readerBackgroundMode:
           $enumDecodeNullable(
             _$ReaderBackgroundModeEnumMap,
@@ -471,6 +477,7 @@ Map<String, dynamic> _$ReadSettingStateToJson(
   'readMode': instance.readMode,
   'tapPageTurnMode': _$ReaderTapPageTurnModeEnumMap[instance.tapPageTurnMode]!,
   'tapPageTurnInWebtoon': instance.tapPageTurnInWebtoon,
+  'reverseHorizontalPageTurn': instance.reverseHorizontalPageTurn,
   'readerBackgroundMode':
       _$ReaderBackgroundModeEnumMap[instance.readerBackgroundMode]!,
   'readerAmbientDimPercent': instance.readerAmbientDimPercent,
@@ -586,6 +593,39 @@ const _$ReaderWidePageStretchEnumMap = {
   ReaderWidePageStretch.none: 'none',
   ReaderWidePageStretch.uniformHeight: 'uniformHeight',
   ReaderWidePageStretch.uniformWidth: 'uniformWidth',
+};
+
+_EInkSettingState _$EInkSettingStateFromJson(Map<String, dynamic> json) =>
+    _EInkSettingState(
+      enabled: json['enabled'] as bool? ?? false,
+      detectionHandled: json['detectionHandled'] as bool? ?? false,
+      noRouteTransition: json['noRouteTransition'] as bool? ?? true,
+      noScrollBounce: json['noScrollBounce'] as bool? ?? true,
+      noLoadingSpinner: json['noLoadingSpinner'] as bool? ?? true,
+      refreshMode:
+          $enumDecodeNullable(_$EinkRefreshModeEnumMap, json['refreshMode']) ??
+          EinkRefreshMode.fullFlash,
+      autoRefreshEveryNTurns:
+          (json['autoRefreshEveryNTurns'] as num?)?.toInt() ?? 5,
+      showRefreshButton: json['showRefreshButton'] as bool? ?? true,
+    );
+
+Map<String, dynamic> _$EInkSettingStateToJson(_EInkSettingState instance) =>
+    <String, dynamic>{
+      'enabled': instance.enabled,
+      'detectionHandled': instance.detectionHandled,
+      'noRouteTransition': instance.noRouteTransition,
+      'noScrollBounce': instance.noScrollBounce,
+      'noLoadingSpinner': instance.noLoadingSpinner,
+      'refreshMode': _$EinkRefreshModeEnumMap[instance.refreshMode]!,
+      'autoRefreshEveryNTurns': instance.autoRefreshEveryNTurns,
+      'showRefreshButton': instance.showRefreshButton,
+    };
+
+const _$EinkRefreshModeEnumMap = {
+  EinkRefreshMode.none: 'none',
+  EinkRefreshMode.whiteFlash: 'whiteFlash',
+  EinkRefreshMode.fullFlash: 'fullFlash',
 };
 
 _BookshelfSettingState _$BookshelfSettingStateFromJson(

@@ -1632,206 +1632,6 @@ final _entities = <obx_int.ModelEntity>[
     backlinks: <obx_int.ModelBacklink>[],
   ),
   obx_int.ModelEntity(
-    id: const obx_int.IdUid(16, 4683267141234852980),
-    name: 'FavoriteFolder',
-    lastPropertyId: const obx_int.IdUid(6, 4213704760336173955),
-    flags: 0,
-    properties: <obx_int.ModelProperty>[
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(1, 6945716509727272076),
-        name: 'id',
-        type: 6,
-        flags: 1,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(2, 6235609258707742665),
-        name: 'folderKey',
-        type: 9,
-        flags: 2080,
-        indexId: const obx_int.IdUid(11, 1240751833000433404),
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(3, 3442780145775718167),
-        name: 'name',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(4, 3348616849527062490),
-        name: 'createdAt',
-        type: 10,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(5, 3731452627344411868),
-        name: 'updatedAt',
-        type: 10,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(6, 4213704760336173955),
-        name: 'deleted',
-        type: 1,
-        flags: 0,
-      ),
-    ],
-    relations: <obx_int.ModelRelation>[],
-    backlinks: <obx_int.ModelBacklink>[],
-  ),
-  obx_int.ModelEntity(
-    id: const obx_int.IdUid(17, 6011038726690231230),
-    name: 'FavoriteFolderItem',
-    lastPropertyId: const obx_int.IdUid(7, 1218572692134792001),
-    flags: 0,
-    properties: <obx_int.ModelProperty>[
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(1, 8673710042050950019),
-        name: 'id',
-        type: 6,
-        flags: 1,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(2, 2387566729962031895),
-        name: 'uniqueKey',
-        type: 9,
-        flags: 2080,
-        indexId: const obx_int.IdUid(12, 7477328395011863297),
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(3, 5480739183676994490),
-        name: 'folderKey',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(4, 2235637352583080247),
-        name: 'favoriteUniqueKey',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(5, 4620339642990864139),
-        name: 'createdAt',
-        type: 10,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(6, 7382791055814857375),
-        name: 'updatedAt',
-        type: 10,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(7, 1218572692134792001),
-        name: 'deleted',
-        type: 1,
-        flags: 0,
-      ),
-    ],
-    relations: <obx_int.ModelRelation>[],
-    backlinks: <obx_int.ModelBacklink>[],
-  ),
-  obx_int.ModelEntity(
-    id: const obx_int.IdUid(18, 7669847009671819367),
-    name: 'DownloadFolder',
-    lastPropertyId: const obx_int.IdUid(6, 5555215542152334516),
-    flags: 0,
-    properties: <obx_int.ModelProperty>[
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(1, 8331806886002302109),
-        name: 'id',
-        type: 6,
-        flags: 1,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(2, 303393992497367216),
-        name: 'folderKey',
-        type: 9,
-        flags: 2080,
-        indexId: const obx_int.IdUid(13, 8315302838109110921),
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(3, 5580848589883920785),
-        name: 'name',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(4, 7765731357859474566),
-        name: 'createdAt',
-        type: 10,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(5, 2527597739110052821),
-        name: 'updatedAt',
-        type: 10,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(6, 5555215542152334516),
-        name: 'deleted',
-        type: 1,
-        flags: 0,
-      ),
-    ],
-    relations: <obx_int.ModelRelation>[],
-    backlinks: <obx_int.ModelBacklink>[],
-  ),
-  obx_int.ModelEntity(
-    id: const obx_int.IdUid(19, 3096208290767984506),
-    name: 'DownloadFolderItem',
-    lastPropertyId: const obx_int.IdUid(7, 3729876147938331074),
-    flags: 0,
-    properties: <obx_int.ModelProperty>[
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(1, 7235279495055666074),
-        name: 'id',
-        type: 6,
-        flags: 1,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(2, 7851998514592408478),
-        name: 'uniqueKey',
-        type: 9,
-        flags: 2080,
-        indexId: const obx_int.IdUid(14, 8839680506101054869),
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(3, 8095768372851194155),
-        name: 'folderKey',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(4, 8849522082745791067),
-        name: 'downloadUniqueKey',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(5, 4298721539010437446),
-        name: 'createdAt',
-        type: 10,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(6, 3009028334568267897),
-        name: 'updatedAt',
-        type: 10,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(7, 3729876147938331074),
-        name: 'deleted',
-        type: 1,
-        flags: 0,
-      ),
-    ],
-    relations: <obx_int.ModelRelation>[],
-    backlinks: <obx_int.ModelBacklink>[],
-  ),
-  obx_int.ModelEntity(
     id: const obx_int.IdUid(20, 5951662380810661930),
     name: 'ComicFolder',
     lastPropertyId: const obx_int.IdUid(11, 1502995240696988760),
@@ -2095,6 +1895,59 @@ final _entities = <obx_int.ModelEntity>[
     relations: <obx_int.ModelRelation>[],
     backlinks: <obx_int.ModelBacklink>[],
   ),
+  obx_int.ModelEntity(
+    id: const obx_int.IdUid(23, 8024759089770245234),
+    name: 'ComicReadPreference',
+    lastPropertyId: const obx_int.IdUid(7, 2403847445825609405),
+    flags: 0,
+    properties: <obx_int.ModelProperty>[
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(1, 3385498830915254932),
+        name: 'id',
+        type: 6,
+        flags: 1,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(2, 3254589025120382724),
+        name: 'uniqueKey',
+        type: 9,
+        flags: 2080,
+        indexId: const obx_int.IdUid(21, 6523988624980157350),
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(3, 6034926044038007872),
+        name: 'source',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(4, 1978886196981138003),
+        name: 'comicId',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(5, 7102032935589645117),
+        name: 'readMode',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(6, 5781171983387023820),
+        name: 'updatedAt',
+        type: 10,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(7, 2403847445825609405),
+        name: 'deleted',
+        type: 1,
+        flags: 0,
+      ),
+    ],
+    relations: <obx_int.ModelRelation>[],
+    backlinks: <obx_int.ModelBacklink>[],
+  ),
 ];
 
 /// Shortcut for [obx.Store.new] that passes [getObjectBoxModel] and for Flutter
@@ -2140,14 +1993,18 @@ obx_int.ModelDefinition getObjectBoxModel() {
     // Typically, this is done with `dart run build_runner build`.
     generatorVersion: obx_int.GeneratorVersion.v2025_12_16,
     entities: _entities,
-    lastEntityId: const obx_int.IdUid(22, 1286366745902983298),
-    lastIndexId: const obx_int.IdUid(20, 5514676853041497745),
+    lastEntityId: const obx_int.IdUid(23, 8024759089770245234),
+    lastIndexId: const obx_int.IdUid(21, 6523988624980157350),
     lastRelationId: const obx_int.IdUid(0, 0),
     lastSequenceId: const obx_int.IdUid(0, 0),
     retiredEntityUids: const [
       264467845223121709,
       1327783071807974029,
       9050006826711283619,
+      4683267141234852980,
+      6011038726690231230,
+      7669847009671819367,
+      3096208290767984506,
     ],
     retiredIndexUids: const [
       3486826873856380308,
@@ -2236,6 +2093,32 @@ obx_int.ModelDefinition getObjectBoxModel() {
       4280874279179197961,
       3842766463624819454,
       5968257070431639977,
+      6945716509727272076,
+      6235609258707742665,
+      3442780145775718167,
+      3348616849527062490,
+      3731452627344411868,
+      4213704760336173955,
+      8673710042050950019,
+      2387566729962031895,
+      5480739183676994490,
+      2235637352583080247,
+      4620339642990864139,
+      7382791055814857375,
+      1218572692134792001,
+      8331806886002302109,
+      303393992497367216,
+      5580848589883920785,
+      7765731357859474566,
+      2527597739110052821,
+      5555215542152334516,
+      7235279495055666074,
+      7851998514592408478,
+      8095768372851194155,
+      8849522082745791067,
+      4298721539010437446,
+      3009028334568267897,
+      3729876147938331074,
     ],
     retiredRelationUids: const [],
     modelVersion: 5,
@@ -4126,256 +4009,8 @@ obx_int.ModelDefinition getObjectBoxModel() {
         return object;
       },
     ),
-    FavoriteFolder: obx_int.EntityDefinition<FavoriteFolder>(
-      model: _entities[12],
-      toOneRelations: (FavoriteFolder object) => [],
-      toManyRelations: (FavoriteFolder object) => {},
-      getId: (FavoriteFolder object) => object.id,
-      setId: (FavoriteFolder object, int id) {
-        object.id = id;
-      },
-      objectToFB: (FavoriteFolder object, fb.Builder fbb) {
-        final folderKeyOffset = fbb.writeString(object.folderKey);
-        final nameOffset = fbb.writeString(object.name);
-        fbb.startTable(7);
-        fbb.addInt64(0, object.id);
-        fbb.addOffset(1, folderKeyOffset);
-        fbb.addOffset(2, nameOffset);
-        fbb.addInt64(3, object.createdAt.millisecondsSinceEpoch);
-        fbb.addInt64(4, object.updatedAt.millisecondsSinceEpoch);
-        fbb.addBool(5, object.deleted);
-        fbb.finish(fbb.endTable());
-        return object.id;
-      },
-      objectFromFB: (obx.Store store, ByteData fbData) {
-        final buffer = fb.BufferContext(fbData);
-        final rootOffset = buffer.derefObject(0);
-        final idParam = const fb.Int64Reader().vTableGet(
-          buffer,
-          rootOffset,
-          4,
-          0,
-        );
-        final folderKeyParam = const fb.StringReader(asciiOptimization: true)
-            .vTableGet(buffer, rootOffset, 6, '');
-        final nameParam = const fb.StringReader(asciiOptimization: true)
-            .vTableGet(buffer, rootOffset, 8, '');
-        final createdAtParam = DateTime.fromMillisecondsSinceEpoch(
-          const fb.Int64Reader().vTableGet(buffer, rootOffset, 10, 0),
-        );
-        final updatedAtParam = DateTime.fromMillisecondsSinceEpoch(
-          const fb.Int64Reader().vTableGet(buffer, rootOffset, 12, 0),
-        );
-        final deletedParam = const fb.BoolReader().vTableGet(
-          buffer,
-          rootOffset,
-          14,
-          false,
-        );
-        final object = FavoriteFolder(
-          id: idParam,
-          folderKey: folderKeyParam,
-          name: nameParam,
-          createdAt: createdAtParam,
-          updatedAt: updatedAtParam,
-          deleted: deletedParam,
-        );
-
-        return object;
-      },
-    ),
-    FavoriteFolderItem: obx_int.EntityDefinition<FavoriteFolderItem>(
-      model: _entities[13],
-      toOneRelations: (FavoriteFolderItem object) => [],
-      toManyRelations: (FavoriteFolderItem object) => {},
-      getId: (FavoriteFolderItem object) => object.id,
-      setId: (FavoriteFolderItem object, int id) {
-        object.id = id;
-      },
-      objectToFB: (FavoriteFolderItem object, fb.Builder fbb) {
-        final uniqueKeyOffset = fbb.writeString(object.uniqueKey);
-        final folderKeyOffset = fbb.writeString(object.folderKey);
-        final favoriteUniqueKeyOffset = fbb.writeString(
-          object.favoriteUniqueKey,
-        );
-        fbb.startTable(8);
-        fbb.addInt64(0, object.id);
-        fbb.addOffset(1, uniqueKeyOffset);
-        fbb.addOffset(2, folderKeyOffset);
-        fbb.addOffset(3, favoriteUniqueKeyOffset);
-        fbb.addInt64(4, object.createdAt.millisecondsSinceEpoch);
-        fbb.addInt64(5, object.updatedAt.millisecondsSinceEpoch);
-        fbb.addBool(6, object.deleted);
-        fbb.finish(fbb.endTable());
-        return object.id;
-      },
-      objectFromFB: (obx.Store store, ByteData fbData) {
-        final buffer = fb.BufferContext(fbData);
-        final rootOffset = buffer.derefObject(0);
-        final idParam = const fb.Int64Reader().vTableGet(
-          buffer,
-          rootOffset,
-          4,
-          0,
-        );
-        final uniqueKeyParam = const fb.StringReader(asciiOptimization: true)
-            .vTableGet(buffer, rootOffset, 6, '');
-        final folderKeyParam = const fb.StringReader(asciiOptimization: true)
-            .vTableGet(buffer, rootOffset, 8, '');
-        final favoriteUniqueKeyParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGet(buffer, rootOffset, 10, '');
-        final createdAtParam = DateTime.fromMillisecondsSinceEpoch(
-          const fb.Int64Reader().vTableGet(buffer, rootOffset, 12, 0),
-        );
-        final updatedAtParam = DateTime.fromMillisecondsSinceEpoch(
-          const fb.Int64Reader().vTableGet(buffer, rootOffset, 14, 0),
-        );
-        final deletedParam = const fb.BoolReader().vTableGet(
-          buffer,
-          rootOffset,
-          16,
-          false,
-        );
-        final object = FavoriteFolderItem(
-          id: idParam,
-          uniqueKey: uniqueKeyParam,
-          folderKey: folderKeyParam,
-          favoriteUniqueKey: favoriteUniqueKeyParam,
-          createdAt: createdAtParam,
-          updatedAt: updatedAtParam,
-          deleted: deletedParam,
-        );
-
-        return object;
-      },
-    ),
-    DownloadFolder: obx_int.EntityDefinition<DownloadFolder>(
-      model: _entities[14],
-      toOneRelations: (DownloadFolder object) => [],
-      toManyRelations: (DownloadFolder object) => {},
-      getId: (DownloadFolder object) => object.id,
-      setId: (DownloadFolder object, int id) {
-        object.id = id;
-      },
-      objectToFB: (DownloadFolder object, fb.Builder fbb) {
-        final folderKeyOffset = fbb.writeString(object.folderKey);
-        final nameOffset = fbb.writeString(object.name);
-        fbb.startTable(7);
-        fbb.addInt64(0, object.id);
-        fbb.addOffset(1, folderKeyOffset);
-        fbb.addOffset(2, nameOffset);
-        fbb.addInt64(3, object.createdAt.millisecondsSinceEpoch);
-        fbb.addInt64(4, object.updatedAt.millisecondsSinceEpoch);
-        fbb.addBool(5, object.deleted);
-        fbb.finish(fbb.endTable());
-        return object.id;
-      },
-      objectFromFB: (obx.Store store, ByteData fbData) {
-        final buffer = fb.BufferContext(fbData);
-        final rootOffset = buffer.derefObject(0);
-        final idParam = const fb.Int64Reader().vTableGet(
-          buffer,
-          rootOffset,
-          4,
-          0,
-        );
-        final folderKeyParam = const fb.StringReader(asciiOptimization: true)
-            .vTableGet(buffer, rootOffset, 6, '');
-        final nameParam = const fb.StringReader(asciiOptimization: true)
-            .vTableGet(buffer, rootOffset, 8, '');
-        final createdAtParam = DateTime.fromMillisecondsSinceEpoch(
-          const fb.Int64Reader().vTableGet(buffer, rootOffset, 10, 0),
-        );
-        final updatedAtParam = DateTime.fromMillisecondsSinceEpoch(
-          const fb.Int64Reader().vTableGet(buffer, rootOffset, 12, 0),
-        );
-        final deletedParam = const fb.BoolReader().vTableGet(
-          buffer,
-          rootOffset,
-          14,
-          false,
-        );
-        final object = DownloadFolder(
-          id: idParam,
-          folderKey: folderKeyParam,
-          name: nameParam,
-          createdAt: createdAtParam,
-          updatedAt: updatedAtParam,
-          deleted: deletedParam,
-        );
-
-        return object;
-      },
-    ),
-    DownloadFolderItem: obx_int.EntityDefinition<DownloadFolderItem>(
-      model: _entities[15],
-      toOneRelations: (DownloadFolderItem object) => [],
-      toManyRelations: (DownloadFolderItem object) => {},
-      getId: (DownloadFolderItem object) => object.id,
-      setId: (DownloadFolderItem object, int id) {
-        object.id = id;
-      },
-      objectToFB: (DownloadFolderItem object, fb.Builder fbb) {
-        final uniqueKeyOffset = fbb.writeString(object.uniqueKey);
-        final folderKeyOffset = fbb.writeString(object.folderKey);
-        final downloadUniqueKeyOffset = fbb.writeString(
-          object.downloadUniqueKey,
-        );
-        fbb.startTable(8);
-        fbb.addInt64(0, object.id);
-        fbb.addOffset(1, uniqueKeyOffset);
-        fbb.addOffset(2, folderKeyOffset);
-        fbb.addOffset(3, downloadUniqueKeyOffset);
-        fbb.addInt64(4, object.createdAt.millisecondsSinceEpoch);
-        fbb.addInt64(5, object.updatedAt.millisecondsSinceEpoch);
-        fbb.addBool(6, object.deleted);
-        fbb.finish(fbb.endTable());
-        return object.id;
-      },
-      objectFromFB: (obx.Store store, ByteData fbData) {
-        final buffer = fb.BufferContext(fbData);
-        final rootOffset = buffer.derefObject(0);
-        final idParam = const fb.Int64Reader().vTableGet(
-          buffer,
-          rootOffset,
-          4,
-          0,
-        );
-        final uniqueKeyParam = const fb.StringReader(asciiOptimization: true)
-            .vTableGet(buffer, rootOffset, 6, '');
-        final folderKeyParam = const fb.StringReader(asciiOptimization: true)
-            .vTableGet(buffer, rootOffset, 8, '');
-        final downloadUniqueKeyParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGet(buffer, rootOffset, 10, '');
-        final createdAtParam = DateTime.fromMillisecondsSinceEpoch(
-          const fb.Int64Reader().vTableGet(buffer, rootOffset, 12, 0),
-        );
-        final updatedAtParam = DateTime.fromMillisecondsSinceEpoch(
-          const fb.Int64Reader().vTableGet(buffer, rootOffset, 14, 0),
-        );
-        final deletedParam = const fb.BoolReader().vTableGet(
-          buffer,
-          rootOffset,
-          16,
-          false,
-        );
-        final object = DownloadFolderItem(
-          id: idParam,
-          uniqueKey: uniqueKeyParam,
-          folderKey: folderKeyParam,
-          downloadUniqueKey: downloadUniqueKeyParam,
-          createdAt: createdAtParam,
-          updatedAt: updatedAtParam,
-          deleted: deletedParam,
-        );
-
-        return object;
-      },
-    ),
     ComicFolder: obx_int.EntityDefinition<ComicFolder>(
-      model: _entities[16],
+      model: _entities[12],
       toOneRelations: (ComicFolder object) => [],
       toManyRelations: (ComicFolder object) => {},
       getId: (ComicFolder object) => object.id,
@@ -4463,7 +4098,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
       },
     ),
     ComicLink: obx_int.EntityDefinition<ComicLink>(
-      model: _entities[17],
+      model: _entities[13],
       toOneRelations: (ComicLink object) => [],
       toManyRelations: (ComicLink object) => {},
       getId: (ComicLink object) => object.id,
@@ -4547,7 +4182,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
       },
     ),
     ComicFollow: obx_int.EntityDefinition<ComicFollow>(
-      model: _entities[18],
+      model: _entities[14],
       toOneRelations: (ComicFollow object) => [],
       toManyRelations: (ComicFollow object) => {},
       getId: (ComicFollow object) => object.id,
@@ -4679,6 +4314,72 @@ obx_int.ModelDefinition getObjectBoxModel() {
           createdAt: createdAtParam,
           updatedAt: updatedAtParam,
           schemaVersion: schemaVersionParam,
+        );
+
+        return object;
+      },
+    ),
+    ComicReadPreference: obx_int.EntityDefinition<ComicReadPreference>(
+      model: _entities[15],
+      toOneRelations: (ComicReadPreference object) => [],
+      toManyRelations: (ComicReadPreference object) => {},
+      getId: (ComicReadPreference object) => object.id,
+      setId: (ComicReadPreference object, int id) {
+        object.id = id;
+      },
+      objectToFB: (ComicReadPreference object, fb.Builder fbb) {
+        final uniqueKeyOffset = fbb.writeString(object.uniqueKey);
+        final sourceOffset = fbb.writeString(object.source);
+        final comicIdOffset = fbb.writeString(object.comicId);
+        fbb.startTable(8);
+        fbb.addInt64(0, object.id);
+        fbb.addOffset(1, uniqueKeyOffset);
+        fbb.addOffset(2, sourceOffset);
+        fbb.addOffset(3, comicIdOffset);
+        fbb.addInt64(4, object.readMode);
+        fbb.addInt64(5, object.updatedAt.millisecondsSinceEpoch);
+        fbb.addBool(6, object.deleted);
+        fbb.finish(fbb.endTable());
+        return object.id;
+      },
+      objectFromFB: (obx.Store store, ByteData fbData) {
+        final buffer = fb.BufferContext(fbData);
+        final rootOffset = buffer.derefObject(0);
+        final idParam = const fb.Int64Reader().vTableGet(
+          buffer,
+          rootOffset,
+          4,
+          0,
+        );
+        final uniqueKeyParam = const fb.StringReader(asciiOptimization: true)
+            .vTableGet(buffer, rootOffset, 6, '');
+        final sourceParam = const fb.StringReader(asciiOptimization: true)
+            .vTableGet(buffer, rootOffset, 8, '');
+        final comicIdParam = const fb.StringReader(asciiOptimization: true)
+            .vTableGet(buffer, rootOffset, 10, '');
+        final readModeParam = const fb.Int64Reader().vTableGet(
+          buffer,
+          rootOffset,
+          12,
+          0,
+        );
+        final updatedAtParam = DateTime.fromMillisecondsSinceEpoch(
+          const fb.Int64Reader().vTableGet(buffer, rootOffset, 14, 0),
+        );
+        final deletedParam = const fb.BoolReader().vTableGet(
+          buffer,
+          rootOffset,
+          16,
+          false,
+        );
+        final object = ComicReadPreference(
+          id: idParam,
+          uniqueKey: uniqueKeyParam,
+          source: sourceParam,
+          comicId: comicIdParam,
+          readMode: readModeParam,
+          updatedAt: updatedAtParam,
+          deleted: deletedParam,
         );
 
         return object;
@@ -5961,198 +5662,56 @@ class UnifiedComicHistory_ {
   );
 }
 
-/// [FavoriteFolder] entity fields to define ObjectBox queries.
-class FavoriteFolder_ {
-  /// See [FavoriteFolder.id].
-  static final id = obx.QueryIntegerProperty<FavoriteFolder>(
-    _entities[12].properties[0],
-  );
-
-  /// See [FavoriteFolder.folderKey].
-  static final folderKey = obx.QueryStringProperty<FavoriteFolder>(
-    _entities[12].properties[1],
-  );
-
-  /// See [FavoriteFolder.name].
-  static final name = obx.QueryStringProperty<FavoriteFolder>(
-    _entities[12].properties[2],
-  );
-
-  /// See [FavoriteFolder.createdAt].
-  static final createdAt = obx.QueryDateProperty<FavoriteFolder>(
-    _entities[12].properties[3],
-  );
-
-  /// See [FavoriteFolder.updatedAt].
-  static final updatedAt = obx.QueryDateProperty<FavoriteFolder>(
-    _entities[12].properties[4],
-  );
-
-  /// See [FavoriteFolder.deleted].
-  static final deleted = obx.QueryBooleanProperty<FavoriteFolder>(
-    _entities[12].properties[5],
-  );
-}
-
-/// [FavoriteFolderItem] entity fields to define ObjectBox queries.
-class FavoriteFolderItem_ {
-  /// See [FavoriteFolderItem.id].
-  static final id = obx.QueryIntegerProperty<FavoriteFolderItem>(
-    _entities[13].properties[0],
-  );
-
-  /// See [FavoriteFolderItem.uniqueKey].
-  static final uniqueKey = obx.QueryStringProperty<FavoriteFolderItem>(
-    _entities[13].properties[1],
-  );
-
-  /// See [FavoriteFolderItem.folderKey].
-  static final folderKey = obx.QueryStringProperty<FavoriteFolderItem>(
-    _entities[13].properties[2],
-  );
-
-  /// See [FavoriteFolderItem.favoriteUniqueKey].
-  static final favoriteUniqueKey = obx.QueryStringProperty<FavoriteFolderItem>(
-    _entities[13].properties[3],
-  );
-
-  /// See [FavoriteFolderItem.createdAt].
-  static final createdAt = obx.QueryDateProperty<FavoriteFolderItem>(
-    _entities[13].properties[4],
-  );
-
-  /// See [FavoriteFolderItem.updatedAt].
-  static final updatedAt = obx.QueryDateProperty<FavoriteFolderItem>(
-    _entities[13].properties[5],
-  );
-
-  /// See [FavoriteFolderItem.deleted].
-  static final deleted = obx.QueryBooleanProperty<FavoriteFolderItem>(
-    _entities[13].properties[6],
-  );
-}
-
-/// [DownloadFolder] entity fields to define ObjectBox queries.
-class DownloadFolder_ {
-  /// See [DownloadFolder.id].
-  static final id = obx.QueryIntegerProperty<DownloadFolder>(
-    _entities[14].properties[0],
-  );
-
-  /// See [DownloadFolder.folderKey].
-  static final folderKey = obx.QueryStringProperty<DownloadFolder>(
-    _entities[14].properties[1],
-  );
-
-  /// See [DownloadFolder.name].
-  static final name = obx.QueryStringProperty<DownloadFolder>(
-    _entities[14].properties[2],
-  );
-
-  /// See [DownloadFolder.createdAt].
-  static final createdAt = obx.QueryDateProperty<DownloadFolder>(
-    _entities[14].properties[3],
-  );
-
-  /// See [DownloadFolder.updatedAt].
-  static final updatedAt = obx.QueryDateProperty<DownloadFolder>(
-    _entities[14].properties[4],
-  );
-
-  /// See [DownloadFolder.deleted].
-  static final deleted = obx.QueryBooleanProperty<DownloadFolder>(
-    _entities[14].properties[5],
-  );
-}
-
-/// [DownloadFolderItem] entity fields to define ObjectBox queries.
-class DownloadFolderItem_ {
-  /// See [DownloadFolderItem.id].
-  static final id = obx.QueryIntegerProperty<DownloadFolderItem>(
-    _entities[15].properties[0],
-  );
-
-  /// See [DownloadFolderItem.uniqueKey].
-  static final uniqueKey = obx.QueryStringProperty<DownloadFolderItem>(
-    _entities[15].properties[1],
-  );
-
-  /// See [DownloadFolderItem.folderKey].
-  static final folderKey = obx.QueryStringProperty<DownloadFolderItem>(
-    _entities[15].properties[2],
-  );
-
-  /// See [DownloadFolderItem.downloadUniqueKey].
-  static final downloadUniqueKey = obx.QueryStringProperty<DownloadFolderItem>(
-    _entities[15].properties[3],
-  );
-
-  /// See [DownloadFolderItem.createdAt].
-  static final createdAt = obx.QueryDateProperty<DownloadFolderItem>(
-    _entities[15].properties[4],
-  );
-
-  /// See [DownloadFolderItem.updatedAt].
-  static final updatedAt = obx.QueryDateProperty<DownloadFolderItem>(
-    _entities[15].properties[5],
-  );
-
-  /// See [DownloadFolderItem.deleted].
-  static final deleted = obx.QueryBooleanProperty<DownloadFolderItem>(
-    _entities[15].properties[6],
-  );
-}
-
 /// [ComicFolder] entity fields to define ObjectBox queries.
 class ComicFolder_ {
   /// See [ComicFolder.id].
   static final id = obx.QueryIntegerProperty<ComicFolder>(
-    _entities[16].properties[0],
+    _entities[12].properties[0],
   );
 
   /// See [ComicFolder.uniqueKey].
   static final uniqueKey = obx.QueryStringProperty<ComicFolder>(
-    _entities[16].properties[1],
+    _entities[12].properties[1],
   );
 
   /// See [ComicFolder.name].
   static final name = obx.QueryStringProperty<ComicFolder>(
-    _entities[16].properties[2],
+    _entities[12].properties[2],
   );
 
   /// See [ComicFolder.typeData].
   static final typeData = obx.QueryStringProperty<ComicFolder>(
-    _entities[16].properties[3],
+    _entities[12].properties[3],
   );
 
   /// See [ComicFolder.versionVectorJson].
   static final versionVectorJson = obx.QueryStringProperty<ComicFolder>(
-    _entities[16].properties[4],
+    _entities[12].properties[4],
   );
 
   /// See [ComicFolder.deletedAt].
   static final deletedAt = obx.QueryIntegerProperty<ComicFolder>(
-    _entities[16].properties[5],
+    _entities[12].properties[5],
   );
 
   /// See [ComicFolder.createdAt].
   static final createdAt = obx.QueryIntegerProperty<ComicFolder>(
-    _entities[16].properties[6],
+    _entities[12].properties[6],
   );
 
   /// See [ComicFolder.updatedAt].
   static final updatedAt = obx.QueryIntegerProperty<ComicFolder>(
-    _entities[16].properties[7],
+    _entities[12].properties[7],
   );
 
   /// See [ComicFolder.syncId].
   static final syncId = obx.QueryStringProperty<ComicFolder>(
-    _entities[16].properties[8],
+    _entities[12].properties[8],
   );
 
   /// See [ComicFolder.parentSyncId].
   static final parentSyncId = obx.QueryStringProperty<ComicFolder>(
-    _entities[16].properties[9],
+    _entities[12].properties[9],
   );
 }
 
@@ -6160,47 +5719,47 @@ class ComicFolder_ {
 class ComicLink_ {
   /// See [ComicLink.id].
   static final id = obx.QueryIntegerProperty<ComicLink>(
-    _entities[17].properties[0],
+    _entities[13].properties[0],
   );
 
   /// See [ComicLink.uniqueKey].
   static final uniqueKey = obx.QueryStringProperty<ComicLink>(
-    _entities[17].properties[1],
+    _entities[13].properties[1],
   );
 
   /// See [ComicLink.typeData].
   static final typeData = obx.QueryStringProperty<ComicLink>(
-    _entities[17].properties[2],
+    _entities[13].properties[2],
   );
 
   /// See [ComicLink.versionVectorJson].
   static final versionVectorJson = obx.QueryStringProperty<ComicLink>(
-    _entities[17].properties[3],
+    _entities[13].properties[3],
   );
 
   /// See [ComicLink.deletedAt].
   static final deletedAt = obx.QueryIntegerProperty<ComicLink>(
-    _entities[17].properties[4],
+    _entities[13].properties[4],
   );
 
   /// See [ComicLink.createdAt].
   static final createdAt = obx.QueryIntegerProperty<ComicLink>(
-    _entities[17].properties[5],
+    _entities[13].properties[5],
   );
 
   /// See [ComicLink.updatedAt].
   static final updatedAt = obx.QueryIntegerProperty<ComicLink>(
-    _entities[17].properties[6],
+    _entities[13].properties[6],
   );
 
   /// See [ComicLink.comicUniqueKey].
   static final comicUniqueKey = obx.QueryStringProperty<ComicLink>(
-    _entities[17].properties[7],
+    _entities[13].properties[7],
   );
 
   /// See [ComicLink.folderSyncId].
   static final folderSyncId = obx.QueryStringProperty<ComicLink>(
-    _entities[17].properties[8],
+    _entities[13].properties[8],
   );
 }
 
@@ -6208,96 +5767,134 @@ class ComicLink_ {
 class ComicFollow_ {
   /// See [ComicFollow.id].
   static final id = obx.QueryIntegerProperty<ComicFollow>(
-    _entities[18].properties[0],
+    _entities[14].properties[0],
   );
 
   /// See [ComicFollow.uniqueKey].
   static final uniqueKey = obx.QueryStringProperty<ComicFollow>(
-    _entities[18].properties[1],
+    _entities[14].properties[1],
   );
 
   /// See [ComicFollow.source].
   static final source = obx.QueryStringProperty<ComicFollow>(
-    _entities[18].properties[2],
+    _entities[14].properties[2],
   );
 
   /// See [ComicFollow.comicId].
   static final comicId = obx.QueryStringProperty<ComicFollow>(
-    _entities[18].properties[3],
+    _entities[14].properties[3],
   );
 
   /// See [ComicFollow.title].
   static final title = obx.QueryStringProperty<ComicFollow>(
-    _entities[18].properties[4],
+    _entities[14].properties[4],
   );
 
   /// See [ComicFollow.description].
   static final description = obx.QueryStringProperty<ComicFollow>(
-    _entities[18].properties[5],
+    _entities[14].properties[5],
   );
 
   /// See [ComicFollow.cover].
   static final cover = obx.QueryStringProperty<ComicFollow>(
-    _entities[18].properties[6],
+    _entities[14].properties[6],
   );
 
   /// See [ComicFollow.creator].
   static final creator = obx.QueryStringProperty<ComicFollow>(
-    _entities[18].properties[7],
+    _entities[14].properties[7],
   );
 
   /// See [ComicFollow.titleMeta].
   static final titleMeta = obx.QueryStringProperty<ComicFollow>(
-    _entities[18].properties[8],
+    _entities[14].properties[8],
   );
 
   /// See [ComicFollow.metadata].
   static final metadata = obx.QueryStringProperty<ComicFollow>(
-    _entities[18].properties[9],
+    _entities[14].properties[9],
   );
 
   /// See [ComicFollow.lastChapterCount].
   static final lastChapterCount = obx.QueryIntegerProperty<ComicFollow>(
-    _entities[18].properties[10],
+    _entities[14].properties[10],
   );
 
   /// See [ComicFollow.detectedChapterCount].
   static final detectedChapterCount = obx.QueryIntegerProperty<ComicFollow>(
-    _entities[18].properties[11],
+    _entities[14].properties[11],
   );
 
   /// See [ComicFollow.hasUpdate].
   static final hasUpdate = obx.QueryBooleanProperty<ComicFollow>(
-    _entities[18].properties[12],
+    _entities[14].properties[12],
   );
 
   /// See [ComicFollow.updateTime].
   static final updateTime = obx.QueryDateProperty<ComicFollow>(
-    _entities[18].properties[13],
+    _entities[14].properties[13],
   );
 
   /// See [ComicFollow.deleted].
   static final deleted = obx.QueryBooleanProperty<ComicFollow>(
-    _entities[18].properties[14],
+    _entities[14].properties[14],
   );
 
   /// See [ComicFollow.createdAt].
   static final createdAt = obx.QueryDateProperty<ComicFollow>(
-    _entities[18].properties[15],
+    _entities[14].properties[15],
   );
 
   /// See [ComicFollow.updatedAt].
   static final updatedAt = obx.QueryDateProperty<ComicFollow>(
-    _entities[18].properties[16],
+    _entities[14].properties[16],
   );
 
   /// See [ComicFollow.schemaVersion].
   static final schemaVersion = obx.QueryIntegerProperty<ComicFollow>(
-    _entities[18].properties[17],
+    _entities[14].properties[17],
   );
 
   /// See [ComicFollow.detectedChapterTitle].
   static final detectedChapterTitle = obx.QueryStringProperty<ComicFollow>(
-    _entities[18].properties[18],
+    _entities[14].properties[18],
+  );
+}
+
+/// [ComicReadPreference] entity fields to define ObjectBox queries.
+class ComicReadPreference_ {
+  /// See [ComicReadPreference.id].
+  static final id = obx.QueryIntegerProperty<ComicReadPreference>(
+    _entities[15].properties[0],
+  );
+
+  /// See [ComicReadPreference.uniqueKey].
+  static final uniqueKey = obx.QueryStringProperty<ComicReadPreference>(
+    _entities[15].properties[1],
+  );
+
+  /// See [ComicReadPreference.source].
+  static final source = obx.QueryStringProperty<ComicReadPreference>(
+    _entities[15].properties[2],
+  );
+
+  /// See [ComicReadPreference.comicId].
+  static final comicId = obx.QueryStringProperty<ComicReadPreference>(
+    _entities[15].properties[3],
+  );
+
+  /// See [ComicReadPreference.readMode].
+  static final readMode = obx.QueryIntegerProperty<ComicReadPreference>(
+    _entities[15].properties[4],
+  );
+
+  /// See [ComicReadPreference.updatedAt].
+  static final updatedAt = obx.QueryDateProperty<ComicReadPreference>(
+    _entities[15].properties[5],
+  );
+
+  /// See [ComicReadPreference.deleted].
+  static final deleted = obx.QueryBooleanProperty<ComicReadPreference>(
+    _entities[15].properties[6],
   );
 }

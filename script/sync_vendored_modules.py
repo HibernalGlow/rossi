@@ -57,9 +57,22 @@ PORTS = [
     {
         "upstream": "src/folder_tree.rs",
         "local": "rust/local_core/src/folder_tree.rs",
-        "pinned_at": "1ffce811",
+        "pinned_at": "8d95fffe",
         "upstream_normalize": [
             (r"\bpub\(crate\)", "pub"),
+            # v4.1.0：上游把导航用的 bool 换成 NavigationArchivePolicy 三值枚举；
+            # 本仓没有独立窗口消费者，保持 bool，比较时把枚举形态映射回来。
+            (r"pub archive_policy: NavigationArchivePolicy,", "pub include_convertible_archives: bool,"),
+            (
+                r"archive_policy: if settings\.archive_file_handling_ignores_convertible\(\) \{\s*"
+                r"NavigationArchivePolicy::IgnoreConvertible\s*\} else \{\s*"
+                r"NavigationArchivePolicy::AllSupported\s*\},",
+                "include_convertible_archives: !settings.archive_file_handling_ignores_convertible(),",
+            ),
+            (r"archive_policy: NavigationArchivePolicy::AllSupported,", "include_convertible_archives: true,"),
+            (r"archive_policy: NavigationArchivePolicy::IgnoreConvertible,", "include_convertible_archives: false,"),
+            # 导航层未搬 ⇒ 它带来的 import 也不在本地（区间丢弃后仍留在文件头）。
+            (r"use std::cell::RefCell;\nuse std::collections::\{HashMap, HashSet\};", "use std::collections::HashSet;"),
             # Unix 的反斜杠/大小写不能使用 Catalog 的 Windows 风格归一化键。
             (r"crate::path_key::normalize_keep_drive", "crate::fs_entry::directory_visit_key"),
             (
@@ -105,22 +118,46 @@ PORTS = [
             (r'assert_eq!\(second\.file_name\(\)\.unwrap\(\), "chapter2"\);', 'assert_eq!(second.file_name().unwrap(), "bbb");'),
         ],
         "local_strip": [
+            # 与上面 upstream_strip 同一条区间：本仓保留 c633825c 之前的导航实现，
+            # 两侧一起丢掉后才比较剩下的部分（见 §8.1）。
+            (r"(pub fn is_convertible_archive_path\(path: &Path\) -> bool \{[\s\S]*?\n\}\n)[\s\S]*?(\npub fn path_eq)", r"\1\2"),
             # 新增 Unix 平台回归测试；上游 Windows 测试仍参与比较。
             (r"\n\s*#\[cfg\(not\(windows\)\)\]\n\s*#\[test\]\n\s*fn unix_paths_preserve_case_and_backslashes\(\) \{[^}]*\}", ""),
             # 既有移植：没有 checkout 测试数据时跳过上游 RAR 样本用例。
             (r'\s*if !fixture\.is_dir\(\) \{\s*eprintln!\(\s*"skip: upstream RAR fixture is not checked out: \{\}"\s*,\s*fixture\.display\(\)\s*\);\s*return;\s*\}', ""),
         ],
         "upstream_strip": [
+            # 枚举本体 + 它的 impl（本仓没有 NavigationArchivePolicy）。
+            (
+                r"\n#\[derive\(Clone, Copy, Debug, PartialEq, Eq\)\]\npub enum NavigationArchivePolicy "
+                r"\{[\s\S]*?\n\}\n\nimpl NavigationArchivePolicy \{[\s\S]*?\n\}\n",
+                "",
+            ),
             # 这两个用例依赖本仓刻意未拆的独立树排序（6 模式枚举 + 独立设置），未搬。
             (r"\n\s*#\[test\]\n\s*fn folder_tree_sort_order_covers_all_six_modes_and_date_ties\(\)[\s\S]*?\n    \}\n", ""),
             (r"\n\s*#\[test\]\n\s*fn folder_tree_options_ignore_list_sort_and_use_the_independent_tree_setting\(\)[\s\S]*?\n    \}\n", ""),
+            # ── 2026-09-28（pin → 8d95fffe / v4.1.0）：上游 c633825c 的导航层整段列为刻意未搬 ──
+            # 上游为「独立窗口里的 RAR 用 Ctrl+↑/↓ 跳本」重写了 folder_should_stop …
+            # sorted_subdirs_for_nav_observed 这一族（+802/−43）：新增 NavigationArchivePolicy、
+            # FolderNavLanding(Kind)、FolderNavDecisionMemo、resolve_folder_nav_landing，
+            # 并给每个导航入口加了 _with_context / _with_memo 变体。它依赖本仓没有的
+            # archive_cache::ArchiveCacheDb（= G-02）与「独立窗口」拥有者；本仓的上下本走
+            # book_navigation.rs，这一族除一个用例外**没有生产消费者**。
+            # 代价（要人工记得）：被这一条同时挡掉的还有 walk_dirs_* 与 sorted_subdirs，
+            # 它们的改动以后要人工读上游。理由见 docs/local-core-vendored-modules.md §8.1。
+            (
+                r"(pub fn is_convertible_archive_path\(path: &Path\) -> bool \{[\s\S]*?\n\}\n)[\s\S]*?(\npub fn path_eq)",
+                r"\1\2",
+            ),
+            # 上游为导航层新增的 11 个 rar_nav_* 用例（真实 RAR 夹具 + 独立窗口），随实现一起未搬。
+            (r"\n\s*#\[test\]\n\s*fn rar_nav_[\s\S]*?\n    \}\n", ""),
         ],
         "drop_lines": [],
     },
     {
         "upstream": "src/fs_entry.rs",
         "local": "rust/local_core/src/fs_entry.rs",
-        "pinned_at": "1fd6f863",
+        "pinned_at": "8d95fffe",
         "upstream_normalize": [
             (r"\bpub\(crate\)", "pub"),
             (
@@ -148,7 +185,7 @@ PORTS = [
     {
         "upstream": "src/filename_sort.rs",
         "local": "rust/local_core/src/filename_sort.rs",
-        "pinned_at": "1ffce811",
+        "pinned_at": "8d95fffe",
         "upstream_normalize": [(r"\bpub\(crate\)", "pub")],
         "local_strip": [],
         "upstream_strip": [],
@@ -157,7 +194,7 @@ PORTS = [
     {
         "upstream": "src/fs_page_load_scheduler.rs",
         "local": "rust/local_core/src/page_load_scheduler.rs",
-        "pinned_at": "1fd6f863",
+        "pinned_at": "8d95fffe",
         "upstream_normalize": [
             # 偏离 1：跨 crate 必须 pub。上游一律 pub(crate)。
             (r"\bpub\(crate\)", "pub"),
@@ -193,7 +230,7 @@ PORTS = [
     {
         "upstream": "src/app/prefetch_policy.rs",
         "local": "rust/local_core/src/prefetch_policy.rs",
-        "pinned_at": "1fd6f863",
+        "pinned_at": "8d95fffe",
         "upstream_normalize": [
             (r"\bpub\(crate\)", "pub"),
         ],
@@ -215,7 +252,7 @@ PORTS = [
     {
         "upstream": "src/auto_aspect.rs",
         "local": "rust/local_core/src/auto_aspect.rs",
-        "pinned_at": "1fd6f863",
+        "pinned_at": "8d95fffe",
         "upstream_normalize": [
             (r"\bpub\(crate\)", "pub"),
             # 偏离 2：测试里的行尾注释翻成中文（行尾带注释的行算代码行，不参与注释差异）。
@@ -232,7 +269,7 @@ PORTS = [
     {
         "upstream": "src/page_split.rs",
         "local": "rust/local_core/src/page_split.rs",
-        "pinned_at": "1fd6f863",
+        "pinned_at": "8d95fffe",
         "upstream_normalize": [
             # 偏离 1: B3 几何解耦，替换 eframe::egui 为本地无依赖纯几何类型与别名
             (r"use eframe::egui;", "use egui_compat as egui;"),
@@ -259,7 +296,7 @@ PORTS = [
     {
         "upstream": "src/folder_pane.rs",
         "local": "rust/local_core/src/folder_pane.rs",
-        "pinned_at": "1ffce811",
+        "pinned_at": "8d95fffe",
         "upstream_normalize": [
             # 偏离 1：跨 crate 必须 pub。上游一律 pub(crate)。
             (r"\bpub\(crate\)", "pub"),
@@ -327,7 +364,7 @@ PORTS = [
     {
         "upstream": "src/search_query.rs",
         "local": "rust/local_core/src/search_query.rs",
-        "pinned_at": "1fd6f863",
+        "pinned_at": "8d95fffe",
         "upstream_normalize": [],
         "local_strip": [],
         "upstream_strip": [],
@@ -336,7 +373,7 @@ PORTS = [
     {
         "upstream": "src/search_norm.rs",
         "local": "rust/local_core/src/search_norm.rs",
-        "pinned_at": "1fd6f863",
+        "pinned_at": "8d95fffe",
         "upstream_normalize": [],
         "local_strip": [],
         "upstream_strip": [],

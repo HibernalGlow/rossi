@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:scrollview_observer/scrollview_observer.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
 import 'package:zephyr/i18n/strings.g.dart';
@@ -250,11 +251,7 @@ class _SliderWidgetState extends State<SliderWidget> {
     _secondCorrectionTimer?.cancel();
     _secondCorrectionTimer = Timer(const Duration(milliseconds: 260), () {
       if (!mounted) return;
-      final readMode = context
-          .read<GlobalSettingCubit>()
-          .state
-          .readSetting
-          .readMode;
+      final readMode = context.readEffectiveReadMode();
       if (readMode != 0) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -449,15 +446,15 @@ class _SliderContents extends StatelessWidget {
                         },
                       );
 
-                      final globalSettingState = context
-                          .read<GlobalSettingCubit>()
-                          .state;
+                      // 上游的单本覆盖：跳转按「这本」的有效阅读设置，不是全局那份。
+                      final effectiveReadSetting = context
+                          .readEffectiveReadSetting();
 
                       try {
-                        if (globalSettingState.readSetting.readMode == 0) {
+                        if (effectiveReadSetting.readMode == 0) {
                           owner._jumpColumnWithOffsetThenCorrection(
                             targetGlobalSlot,
-                            globalSettingState.readSetting,
+                            effectiveReadSetting,
                           );
                         } else {
                           configuration.pageController.jumpToPage(

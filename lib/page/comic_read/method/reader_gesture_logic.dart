@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
 import 'package:zephyr/page/comic_read/controller/reader_action_controller.dart';
 import 'package:zephyr/page/comic_read/controller/reader_action_dispatcher.dart';
 import 'package:zephyr/service/operation_binding/binding_doc.dart';
@@ -136,7 +136,8 @@ class ReaderGestureLogic {
     ReaderActionDispatcher? dispatcher,
     String? bindingsArrayJson,
   }) {
-    final readSetting = context.read<GlobalSettingCubit>().state.readSetting;
+    // 上游的单本覆盖 readMode 走 readEffectiveReadSetting()，本仓的绑定表分区照旧。
+    final readSetting = context.readEffectiveReadSetting();
 
     // 绑定表在位（开关开 + 表能用）时，点击这一路只做「落在哪一格」的归一化，
     // **动作与方向都交给引擎**。表还没播种或被用户导坏时回落到下面那份改造前的硬编码

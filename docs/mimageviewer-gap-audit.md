@@ -5,6 +5,9 @@
 **2026-09-25 子模块 pin 已跟到 `1ffce811`（上游 `main`，`v3.10.0-115`）**，本文的
 「上游这块长什么样」按 `1fd6f863` 核对，涉及排序/收藏/远程窗口/ONNX 的结论要按那 115 个提交重读一遍；
 搬入模块的偏离清单以 [`local-core-vendored-modules.md`](local-core-vendored-modules.md) 为准。
+**2026-09-28 子模块 pin 已快进到 `8d95fffe`（= 上游 tag `v4.1.0`，比 `1ffce811` 多 70 个提交）**，
+本仓十个已登记模块里只有 `folder_tree.rs` 被上游改动，两份未登记切片（`catalog.rs` /
+`thumb_loader.rs`）被 `9a905104` 动到 —— 逐条状态与未合理由见该文 §2.2 与 §8。
 neoview 的候选在 [`feature-migration-spec.md`](feature-migration-spec.md) 的 N 系列，不在此重复。
 
 本文回答一个具体问题：**「相比 mImageViewer，Rossi 还差哪些」**。
@@ -208,20 +211,24 @@ G-03（`book_fs_journal.rs`，crash-safe 的 forward/rollback 自证）是**另�
 
 ## 7. 本次核对查出的三件事
 
-### 7.1 `PORTS` 漏登记 4 份同名移植（同步盲区）
+### 7.1 `PORTS` 漏登记的同名移植（同步盲区，2026-09-28 按磁盘复核为 **5 份**）
 
 `script/sync_vendored_modules.py` 只守 10 份文件。但磁盘上还有：
 
-| 本地 | 上游 | 证据 | 风险 |
+| 本地 | 上游（行数按 `8d95fffe` / v4.1.0 现读） | 证据 | 风险 |
 |---|---|---|---|
-| `catalog.rs`（1871 行） | `catalog.rs`（1880 行） | 10 个同名顶层 `pub fn` + 日文注释原样 | 上游改它**不会报警** |
-| `fast_resize.rs`（178 行） | `fast_resize.rs`（326 行） | 5 个同名 `pub fn`（`resize_rgba8_exact` 等） | 同上 |
-| `thumb_loader.rs`（368 行） | `thumb_loader.rs`（4510 行） | 文件头写明 `Vendored from … at commit 1fd6f863` | 只搬了切片，上游那 4142 行里的纯逻辑长出来了没人管 |
-| `rotation.rs`（137 行） | `displayed_image_transform.rs`（3035 行） | `inverse_uv` / `forward_uv` 同名 | 同上 |
+| `catalog.rs`（**299** 行 + `catalog/{cache_store,db,thumbnail}.rs`，已按 §6.5 拆分） | `catalog.rs`（2728 行） | 同名 `CacheEntry` / `CatalogDb` / `init_schema`；**文件头没有溯源声明** | 上游改它**不会报警**（本次就改了 +880） |
+| `fast_resize.rs`（178 行） | `fast_resize.rs`（326 行） | 文件头 `Vendored from …`，5 个同名 `pub fn` | 同上（本次零改动） |
+| `thumb_loader.rs`（**400** 行） | `thumb_loader.rs`（5988 行） | 文件头 `Vendored from …` | 只搬切片，上游新增部分无人管（本次 +1683/−228） |
+| `rotation.rs`（137 行） | `displayed_image_transform.rs`（3071 行） | `inverse_uv` / `forward_uv` 同名；**文件头没有溯源声明** | 同上（本次只动了本仓没搬的 `SingletonSpreadPlacement`） |
+| `path_key.rs`（**71** 行） | `path_key.rs`（91 行） | 文件头 `Vendored from … at …`，**本行是 2026-09-28 新发现的第 5 份** | 同上（本次零改动） |
 
 **后果**：`file-manager-parity.md` 里「五份源码与固定版本的差异均已登记」这句话
-只对 `PORTS` 里的那几份成立。**建议**：把这 4 份并进 `PORTS`（或写进文档的显式例外表），
+只对 `PORTS` 里的那几份成立。**建议**：把这 5 份并进 `PORTS`（或写进文档的显式例外表），
 否则「上游更新时一条命令跑完就知道要不要跟」这个承诺是打折的。
+2026-09-28 的处置是**先走例外表这条路**：本次的人工读结论（哪些被动、哪些无需处理）
+记在 [`local-core-vendored-modules.md`](local-core-vendored-modules.md) §2.2，
+两份 `catalog.rs` / `rotation.rs` 缺文件头溯源声明也一并记在那里 —— 并 `PORTS` 仍未做。
 
 ### 7.2 既有文档里已过时的现状描述
 
