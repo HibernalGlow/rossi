@@ -339,6 +339,24 @@ void main() {
       return tester.getSize(titleColumn.first).width;
     }
 
+    /// 书名那一列还剩得下几个汉字（按标题实际字号折算，向下取整）。
+    ///
+    /// 字号从**渲染出来的那行 Text** 上读，不写死 14：主题把 `titleSmall` 改过一次，
+    /// 写死的字数就会和屏幕上真正看得见的字数脱节，那这条守卫就成摆设了。
+    Future<int> titleCharsAt(WidgetTester tester, double width) async {
+      await _paintBar(tester, width);
+      final w = tester.getSize(titleColumn.first).width;
+      final style = tester.widget<Text>(
+        find.descendant(
+          of: titleColumn.first,
+          matching: find.byType(Text),
+        ).first,
+      ).style;
+      final fontSize = style?.fontSize;
+      expect(fontSize, isNotNull, reason: '读不到字号就没法折算字数');
+      return (w / fontSize!).floor();
+    }
+
     testWidgets('每一档书名都还剩得下几个字', (tester) async {
       // 宽 / 中：这两档是桌面端的常见宽度，书名要能读。
       const labeled = ReaderTopBarStyleLimits.labeledToolbarMinWidth;
@@ -346,8 +364,30 @@ void main() {
       expect(await titleWidthAt(tester, labeled), greaterThan(240));
       expect(await titleWidthAt(tester, expanded), greaterThan(240));
       // 窄：手机那一档第一行要保住超分（用户口径排在书名之前），
-      // 所以书名只要求还剩一个词的量 —— 再往下掉就是阈值给错了。
-      expect(await titleWidthAt(tester, 389), greaterThan(100));
+      // 所以书名只要求还剩一个词的量。
+      //
+      // 这里按**实际字号折算成字数**，不写像素魔数：389 档实测书名 99px，
+      // 而旧断言 `>100` 离实测只有 1px —— 任何一次 ±1px 的布局抖动都会让它翻脸，
+      // 它想守的「还能读」本来就是个字数概念（99px / titleSmall ≈ 7 个字）。
+      expect(
+        await titleCharsAt(tester, 389),
+        greaterThanOrEqualTo(6),
+        reason: '389 宽时书名剩得太少',
+      );
+    });
+
+    testWidgets('字数折算这条尺子看得见违规（证伪哨兵）', (tester) async {
+      // 拿同一把尺子量两个已知不同的宽度：宽档的书名余额必须明显多于窄档。
+      // 要是这里相等，说明 `titleCharsAt` 读到的字号或宽度是常数，
+      // 那上面那条 `>= 6` 就是永远不会红的假守卫。
+      final narrow = await titleCharsAt(tester, 389);
+      // `_paintBar` 每次重设视口并重新 pump，量的是换档后的那一棵树。
+      final wide = await titleCharsAt(
+        tester,
+        ReaderTopBarStyleLimits.labeledToolbarMinWidth + 40,
+      );
+      expect(wide, greaterThan(narrow + 10), reason: '宽档应明显比窄档宽');
+      expect(narrow, greaterThanOrEqualTo(6));
     });
   });
 }
