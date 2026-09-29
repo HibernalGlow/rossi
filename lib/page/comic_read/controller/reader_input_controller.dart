@@ -349,8 +349,15 @@ class ReaderInputController {
       return KeyEventResult.ignored;
     }
     if (bindings != null) {
+      // 上游的「反转左右方向键」在绑定表这条路上同样要生效：派发时换键名，
+      // 表里的数据不动（见 `keyboardInputJsonOf` 的 swapHorizontal）。
+      final swapHorizontal = context
+          .read<GlobalSettingCubit>()
+          .state
+          .readSetting
+          .reverseHorizontalPageTurn;
       if (event is KeyDownEvent) {
-        final json = keyboardInputJsonOf(event);
+        final json = keyboardInputJsonOf(event, swapHorizontal: swapHorizontal);
         if (json != null) {
           final holdInput = {
             ...Map<String, dynamic>.from(jsonDecode(json) as Map),
@@ -394,7 +401,15 @@ class ReaderInputController {
       if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
         return KeyEventResult.ignored;
       }
-      return _actionDispatcher.dispatchKeyEvent(event, bindings)
+      return _actionDispatcher.dispatchKeyEvent(
+            event,
+            bindings,
+            swapHorizontal: context
+                .read<GlobalSettingCubit>()
+                .state
+                .readSetting
+                .reverseHorizontalPageTurn,
+          )
           ? KeyEventResult.handled
           : KeyEventResult.ignored;
     }

@@ -61,8 +61,12 @@ class ReaderActionDispatcher {
   /// 采集一次按键 → 解析 → 派发。
   ///
   /// 返回 `false` = 这张表里没人认这个键（事件继续往下冒泡，例如让焦点遍历接管方向键）。
-  bool dispatchKeyEvent(KeyEvent event, String bindingsArrayJson) {
-    final inputJson = keyboardInputJsonOf(event);
+  bool dispatchKeyEvent(
+    KeyEvent event,
+    String bindingsArrayJson, {
+    bool swapHorizontal = false,
+  }) {
+    final inputJson = keyboardInputJsonOf(event, swapHorizontal: swapHorizontal);
     if (inputJson == null) return false;
     return dispatchInput(
       inputJson,

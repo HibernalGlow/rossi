@@ -329,6 +329,96 @@ void main() {
       );
     });
   });
+
+  // 「反转左右方向键」（上游 7f0cdb40）在绑定表那条路上的落点。
+  //
+  // 这条路上没有一份写死的名单可查，翻转只发生在**descriptor 的键名**上，
+  // 所以判据必须直接盯键名：写成单向重映射（左右都映射到右）在这里照样
+  // 「有反应」，只有对合性 + 非横向键不动这两条能把它挡住。
+  group('派发时换左右键名（绑定表这条路）', () {
+    String? codeOf(LogicalKeyboardKey key, {bool swap = false}) {
+      final json = keyboardInputJsonOf(
+        KeyDownEvent(
+          physicalKey: PhysicalKeyboardKey(0),
+          logicalKey: key,
+          timeStamp: Duration.zero,
+        ),
+        swapHorizontal: swap,
+      );
+      return json == null ? null : jsonDecodeMap(json)['code'];
+    }
+
+    test('开关关掉时左右各归各（阳性对照：不换的那条路必须还是原样）', () {
+      expect(
+        codeOf(LogicalKeyboardKey.arrowLeft),
+        'ArrowLeft',
+      );
+      expect(
+        codeOf(LogicalKeyboardKey.arrowRight),
+        'ArrowRight',
+      );
+    });
+
+    test('换的正是那三对：箭头、A/D、小键盘 4/6', () {
+      expect(
+        codeOf(LogicalKeyboardKey.arrowLeft, swap: true),
+        'ArrowRight',
+      );
+      expect(
+        codeOf(LogicalKeyboardKey.arrowRight, swap: true),
+        'ArrowLeft',
+      );
+      expect(codeOf(LogicalKeyboardKey.keyA, swap: true), 'KeyD');
+      expect(codeOf(LogicalKeyboardKey.keyD, swap: true), 'KeyA');
+      expect(codeOf(LogicalKeyboardKey.numpad4, swap: true), 'Numpad6');
+      expect(codeOf(LogicalKeyboardKey.numpad6, swap: true), 'Numpad4');
+    });
+
+    test('纵向与语义键一个都不动（上下、S、Enter）', () {
+      expect(
+        codeOf(LogicalKeyboardKey.arrowUp, swap: true),
+        'ArrowUp',
+      );
+      expect(
+        codeOf(LogicalKeyboardKey.arrowDown, swap: true),
+        'ArrowDown',
+      );
+      expect(codeOf(LogicalKeyboardKey.keyS, swap: true), 'KeyS');
+      expect(codeOf(LogicalKeyboardKey.enter, swap: true), 'Enter');
+    });
+
+    test('换名不改 device，也只改 code 一处', () {
+      // 修饰键 flag 来自 `HardwareKeyboard.instance` 的实时按键状态，换的只是
+      // `code` 一个字段；换表里没有任何 Control*/Alt* 条目，所以
+      // 「键自己不算自己的修饰键」那条规则不受影响。
+      final plain = keyboardInputJsonOf(
+        KeyDownEvent(
+          physicalKey: PhysicalKeyboardKey(0),
+          logicalKey: LogicalKeyboardKey.arrowLeft,
+          timeStamp: Duration.zero,
+        ),
+      );
+      final swapped = keyboardInputJsonOf(
+        KeyDownEvent(
+          physicalKey: PhysicalKeyboardKey(0),
+          logicalKey: LogicalKeyboardKey.arrowLeft,
+          timeStamp: Duration.zero,
+        ),
+        swapHorizontal: true,
+      );
+      final a = jsonDecodeMap(plain!);
+      final b = jsonDecodeMap(swapped!);
+      expect(a['device'], 'keyboard');
+      expect(b['device'], 'keyboard');
+      expect(a['code'], 'ArrowLeft');
+      expect(b['code'], 'ArrowRight');
+      // 除 code 之外，其余字段必须逐项相同（换了别的就说明写错了）。
+      expect(
+        b.map((k, v) => MapEntry(k, v))..remove('code'),
+        a.map((k, v) => MapEntry(k, v))..remove('code'),
+      );
+    });
+  });
 }
 
 Object? jsonDecodeValue(String source) => jsonDecode(source);

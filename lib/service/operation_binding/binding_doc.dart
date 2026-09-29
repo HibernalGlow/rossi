@@ -461,9 +461,25 @@ String? _areaOf(Map<String, dynamic> binding) {
 /// 修饰键有个坑：按下 `ControlLeft` 本身时 `isControlPressed` 已经是 `true`，于是
 /// 采集结果会是 `Ctrl+ControlLeft` —— 用户录进去的是这个，而**单独按 Ctrl 永远
 /// 不满足它**（那条绑定形同废掉）。所以「键自己不算自己的修饰键」。
-String? keyboardInputJsonOf(KeyEvent event) {
-  final code = keyCodeOf(event.logicalKey);
+/// 「反转左右方向键」在**派发**时换的键名（上游 7f0cdb40 那颗开关）。
+///
+/// 只在这一侧换、绑定表里存的仍是物理键本名：录入那条路不换，否则用户按右键
+/// 却录进左边，表本身跟着翻转，开关就成了改数据而不是改解释。
+/// 名单与 `page/comic_read/method/key.dart` 的回退路径逐一对应（箭头 + A/D + 小键盘 4/6），
+/// 两条路同一个口径，关掉总开关不该让其中一条翻转。
+const Map<String, String> _horizontalSwapCodes = {
+  'ArrowLeft': 'ArrowRight',
+  'ArrowRight': 'ArrowLeft',
+  'KeyA': 'KeyD',
+  'KeyD': 'KeyA',
+  'Numpad4': 'Numpad6',
+  'Numpad6': 'Numpad4',
+};
+
+String? keyboardInputJsonOf(KeyEvent event, {bool swapHorizontal = false}) {
+  var code = keyCodeOf(event.logicalKey);
   if (code == null) return null;
+  if (swapHorizontal) code = _horizontalSwapCodes[code] ?? code;
   final keyboard = HardwareKeyboard.instance;
   return keyboardInputJson(
     code: code,
