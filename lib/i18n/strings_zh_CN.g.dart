@@ -3343,6 +3343,9 @@ class Translations$plugin$zh_CN {
 	/// zh-CN: '读取本地插件失败: $error'
 	String readLocalPluginFailed({required Object error}) => '读取本地插件失败: ${error}';
 
+	/// zh-CN: '不支持的本地文件类型，仅支持 .js / .cjs / .br 文件：$fileName'
+	String unsupportedLocalFileType({required Object fileName}) => '不支持的本地文件类型，仅支持 .js / .cjs / .br 文件：${fileName}';
+
 	/// zh-CN: '从网络添加插件'
 	String get addFromNetwork => '从网络添加插件';
 
@@ -3424,6 +3427,9 @@ class Translations$plugin$zh_CN {
 	/// zh-CN: '主页'
 	String get homepage => '主页';
 
+	/// zh-CN: 'GitHub 仓库'
+	String get githubRepo => 'GitHub 仓库';
+
 	/// zh-CN: '下载'
 	String get download => '下载';
 
@@ -3456,6 +3462,36 @@ class Translations$plugin$zh_CN {
 
 	/// zh-CN: '网络下载插件失败: $error'
 	String networkDownloadFailed({required Object error}) => '网络下载插件失败: ${error}';
+
+	/// zh-CN: '远程插件文件不存在（404），可能已被删除或版本已更新，请稍后重试或检查更新地址'
+	String get remoteAssetNotFound => '远程插件文件不存在（404），可能已被删除或版本已更新，请稍后重试或检查更新地址';
+
+	/// zh-CN: 'GitHub 访问受限（疑似 IP 被限流），请稍后重试或切换网络；若插件确实不存在也会显示 404'
+	String get githubRateLimited => 'GitHub 访问受限（疑似 IP 被限流），请稍后重试或切换网络；若插件确实不存在也会显示 404';
+
+	/// zh-CN: '远端返回了网页而非插件文件，通常是远程文件不存在或链接已失效，请检查插件仓库的更新地址'
+	String get remoteReturnedWebPage => '远端返回了网页而非插件文件，通常是远程文件不存在或链接已失效，请检查插件仓库的更新地址';
+
+	/// zh-CN: '远端返回内容为空，请稍后重试或检查更新地址'
+	String get remoteEmptyResponse => '远端返回内容为空，请稍后重试或检查更新地址';
+
+	/// zh-CN: '远端拒绝访问（HTTP $status），请检查网络或稍后重试'
+	String remoteAccessDenied({required Object status}) => '远端拒绝访问（HTTP ${status}），请检查网络或稍后重试';
+
+	/// zh-CN: '远端服务器异常（HTTP $status），请稍后重试'
+	String remoteServerError({required Object status}) => '远端服务器异常（HTTP ${status}），请稍后重试';
+
+	/// zh-CN: '远端请求失败（HTTP $status），请稍后重试'
+	String remoteHttpError({required Object status}) => '远端请求失败（HTTP ${status}），请稍后重试';
+
+	/// zh-CN: '下载到的文件不是有效的插件脚本（疑似网页或错误页），请检查远程文件是否存在后再试'
+	String get downloadedScriptInvalid => '下载到的文件不是有效的插件脚本（疑似网页或错误页），请检查远程文件是否存在后再试';
+
+	/// zh-CN: '下载到的插件文件已损坏或解压失败，请稍后重试'
+	String get downloadedScriptCorrupted => '下载到的插件文件已损坏或解压失败，请稍后重试';
+
+	/// zh-CN: '网络不稳定，下载失败，请检查网络后重试'
+	String get networkUnstableRetry => '网络不稳定，下载失败，请检查网络后重试';
 
 	/// zh-CN: '云端 $version'
 	String cloudVersion({required Object version}) => '云端 ${version}';
@@ -4998,6 +5034,45 @@ class Translations$comicFollow$zh_CN {
 
 	/// zh-CN: '重试'
 	String get retry => '重试';
+
+	/// zh-CN: '已看 $read / 共 $total 话'
+	String readProgress({required Object read, required Object total}) => '已看 ${read} / 共 ${total} 话';
+
+	/// zh-CN: '共 $total 话'
+	String readProgressUnknown({required Object total}) => '共 ${total} 话';
+
+	/// zh-CN: '刚刚更新'
+	String get updatedJustNow => '刚刚更新';
+
+	/// zh-CN: '$minutes 分钟前更新'
+	String updatedMinutesAgo({required Object minutes}) => '${minutes} 分钟前更新';
+
+	/// zh-CN: '$hours 小时前更新'
+	String updatedHoursAgo({required Object hours}) => '${hours} 小时前更新';
+
+	/// zh-CN: '$days 天前更新'
+	String updatedDaysAgo({required Object days}) => '${days} 天前更新';
+
+	/// zh-CN: '$minutes 分钟前读过'
+	String lastReadMinutesAgo({required Object minutes}) => '${minutes} 分钟前读过';
+
+	/// zh-CN: '$hours 小时前读过'
+	String lastReadHoursAgo({required Object hours}) => '${hours} 小时前读过';
+
+	/// zh-CN: '$days 天前读过'
+	String lastReadDaysAgo({required Object days}) => '${days} 天前读过';
+
+	/// zh-CN: '检测失败，点击重试'
+	String get checkFailedTapRetry => '检测失败，点击重试';
+
+	/// zh-CN: '$count 话未读'
+	String unreadCountBadge({required Object count}) => '${count} 话未读';
+
+	/// zh-CN: '全部标为已读'
+	String get markAllReadHint => '全部标为已读';
+
+	/// zh-CN: '已全部标为已读'
+	String get markAllReadDone => '已全部标为已读';
 
 	/// zh-CN: '漫画更新提醒'
 	String get updateChannelName => '漫画更新提醒';
@@ -7131,6 +7206,7 @@ extension on Translations {
 			'plugin.invalidLink' => ({required Object url}) => '无效链接: ${url}',
 			'plugin.cannotOpenLink' => ({required Object url}) => '无法打开链接: ${url}',
 			'plugin.readLocalPluginFailed' => ({required Object error}) => '读取本地插件失败: ${error}',
+			'plugin.unsupportedLocalFileType' => ({required Object fileName}) => '不支持的本地文件类型，仅支持 .js / .cjs / .br 文件：${fileName}',
 			'plugin.addFromNetwork' => '从网络添加插件',
 			'plugin.urlCannotBeEmpty' => 'URL 不能为空',
 			'plugin.startInstall' => '开始安装',
@@ -7158,6 +7234,7 @@ extension on Translations {
 			'plugin.description' => '描述',
 			'plugin.repo' => '仓库',
 			'plugin.homepage' => '主页',
+			'plugin.githubRepo' => 'GitHub 仓库',
 			'plugin.download' => '下载',
 			'plugin.downloadUpdate' => '下载更新',
 			'plugin.noCloudPlugins' => '暂无云端组件',
@@ -7169,6 +7246,16 @@ extension on Translations {
 			'plugin.installingFromNetwork' => '正在下载网络插件...',
 			'plugin.cloudDownloadFailed' => ({required Object error}) => '云端下载失败: ${error}',
 			'plugin.networkDownloadFailed' => ({required Object error}) => '网络下载插件失败: ${error}',
+			'plugin.remoteAssetNotFound' => '远程插件文件不存在（404），可能已被删除或版本已更新，请稍后重试或检查更新地址',
+			'plugin.githubRateLimited' => 'GitHub 访问受限（疑似 IP 被限流），请稍后重试或切换网络；若插件确实不存在也会显示 404',
+			'plugin.remoteReturnedWebPage' => '远端返回了网页而非插件文件，通常是远程文件不存在或链接已失效，请检查插件仓库的更新地址',
+			'plugin.remoteEmptyResponse' => '远端返回内容为空，请稍后重试或检查更新地址',
+			'plugin.remoteAccessDenied' => ({required Object status}) => '远端拒绝访问（HTTP ${status}），请检查网络或稍后重试',
+			'plugin.remoteServerError' => ({required Object status}) => '远端服务器异常（HTTP ${status}），请稍后重试',
+			'plugin.remoteHttpError' => ({required Object status}) => '远端请求失败（HTTP ${status}），请稍后重试',
+			'plugin.downloadedScriptInvalid' => '下载到的文件不是有效的插件脚本（疑似网页或错误页），请检查远程文件是否存在后再试',
+			'plugin.downloadedScriptCorrupted' => '下载到的插件文件已损坏或解压失败，请稍后重试',
+			'plugin.networkUnstableRetry' => '网络不稳定，下载失败，请检查网络后重试',
 			'plugin.cloudVersion' => ({required Object version}) => '云端 ${version}',
 			'plugin.localVersion' => ({required Object version}) => '本地 ${version}',
 			'plugin.loginTitle' => ({required Object name}) => '${name} 登录',
@@ -7592,6 +7679,8 @@ extension on Translations {
 			'comicEntry.views' => ({required Object count}) => '浏览 ${count}',
 			'comicEntry.deleteFavorite' => '删除收藏',
 			'comicEntry.deleteFavoriteConfirm' => ({required Object title}) => '确定要删除（${title}）的收藏记录吗？',
+			_ => null,
+		} ?? switch (path) {
 			'comicEntry.deleteHistory' => '删除历史记录',
 			'comicEntry.deleteHistoryConfirm' => ({required Object title}) => '确定要删除（${title}）的历史记录吗？',
 			'comicEntry.deleteDownload' => '删除下载记录',
@@ -7604,8 +7693,6 @@ extension on Translations {
 			'comicEntry.translationTooltipTag' => ({required Object label, required Object keyword}) => '${label} · 标签命中「${keyword}」',
 			'comicEntry.translationTooltipTitle' => ({required Object label, required Object keyword}) => '${label} · 标题命中「${keyword}」',
 			'comicEntry.resumeRead' => '继续阅读',
-			_ => null,
-		} ?? switch (path) {
 			'comicEntry.readFailed' => '无法开始阅读，请稍后重试',
 			'comicFollow.title' => '追更',
 			'comicFollow.loadFailed' => ({required Object result}) => '加载失败：${result}',
@@ -7634,6 +7721,19 @@ extension on Translations {
 			'comicFollow.newUnreadChaptersShort' => ({required Object diff}) => '新增 ${diff} 话未阅读',
 			'comicFollow.update' => '更新',
 			'comicFollow.retry' => '重试',
+			'comicFollow.readProgress' => ({required Object read, required Object total}) => '已看 ${read} / 共 ${total} 话',
+			'comicFollow.readProgressUnknown' => ({required Object total}) => '共 ${total} 话',
+			'comicFollow.updatedJustNow' => '刚刚更新',
+			'comicFollow.updatedMinutesAgo' => ({required Object minutes}) => '${minutes} 分钟前更新',
+			'comicFollow.updatedHoursAgo' => ({required Object hours}) => '${hours} 小时前更新',
+			'comicFollow.updatedDaysAgo' => ({required Object days}) => '${days} 天前更新',
+			'comicFollow.lastReadMinutesAgo' => ({required Object minutes}) => '${minutes} 分钟前读过',
+			'comicFollow.lastReadHoursAgo' => ({required Object hours}) => '${hours} 小时前读过',
+			'comicFollow.lastReadDaysAgo' => ({required Object days}) => '${days} 天前读过',
+			'comicFollow.checkFailedTapRetry' => '检测失败，点击重试',
+			'comicFollow.unreadCountBadge' => ({required Object count}) => '${count} 话未读',
+			'comicFollow.markAllReadHint' => '全部标为已读',
+			'comicFollow.markAllReadDone' => '已全部标为已读',
 			'comicFollow.updateChannelName' => '漫画更新提醒',
 			'comicFollow.updateChannelDesc' => '追更漫画检测到新章节时推送',
 			'comicFollow.updateTitle' => '追更更新',

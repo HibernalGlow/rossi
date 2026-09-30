@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:file_selector/file_selector.dart';
+import 'package:zephyr/plugin/utils/plugin_local_file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -17,6 +17,7 @@ import 'package:zephyr/page/plugin_settings/widgets/plugin_settings_content.dart
 import 'package:zephyr/plugin/plugin_cloud_update_service.dart';
 import 'package:zephyr/plugin/plugin_install_service.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
+import 'package:zephyr/plugin/utils/plugin_cloud_download_utils.dart';
 import 'package:zephyr/util/event/event.dart';
 import 'package:zephyr/util/event/webview_observe_bus.dart';
 import 'package:zephyr/util/json/json_value.dart';
@@ -510,7 +511,9 @@ class _PluginSettingsPageViewState extends State<_PluginSettingsPageView> {
       }
       showSuccessToast(updated ? t.plugin.syncSuccess : t.plugin.alreadyLatest);
     } catch (e) {
-      showErrorToast(t.plugin.syncFailed(error: e.toString()));
+      showErrorToast(
+        t.plugin.syncFailed(error: normalizePluginInstallErrorMessage(e)),
+      );
     }
   }
 
@@ -573,7 +576,9 @@ class _PluginSettingsPageViewState extends State<_PluginSettingsPageView> {
       }
       showSuccessToast(message.isNotEmpty ? message : t.plugin.updateSuccess);
     } catch (e) {
-      showErrorToast(t.plugin.updateFailed(error: e.toString()));
+      showErrorToast(
+        t.plugin.updateFailed(error: normalizePluginInstallErrorMessage(e)),
+      );
     }
   }
 
@@ -607,15 +612,7 @@ class _PluginSettingsPageViewState extends State<_PluginSettingsPageView> {
 
   Future<void> _updatePluginFromLocal() async {
     try {
-      final file = await openFile(
-        acceptedTypeGroups: const [
-          XTypeGroup(
-            label: 'plugin script',
-            extensions: ['js', 'cjs', 'br'],
-            uniformTypeIdentifiers: ['public.javascript'],
-          ),
-        ],
-      );
+      final file = await pickPluginScriptFile();
       if (file == null) {
         return;
       }
@@ -632,7 +629,9 @@ class _PluginSettingsPageViewState extends State<_PluginSettingsPageView> {
       }
       showSuccessToast(message.isNotEmpty ? message : t.plugin.updateSuccess);
     } catch (e) {
-      showErrorToast(t.plugin.updateFailed(error: e.toString()));
+      showErrorToast(
+        t.plugin.updateFailed(error: normalizePluginInstallErrorMessage(e)),
+      );
     }
   }
 

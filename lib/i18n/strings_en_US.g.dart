@@ -1212,6 +1212,7 @@ class _Translations$plugin$en_US extends Translations$plugin$zh_CN {
 	@override String invalidLink({required Object url}) => 'Invalid link: ${url}';
 	@override String cannotOpenLink({required Object url}) => 'Cannot open link: ${url}';
 	@override String readLocalPluginFailed({required Object error}) => 'Failed to read local plugin: ${error}';
+	@override String unsupportedLocalFileType({required Object fileName}) => 'Unsupported local file type, only .js / .cjs / .br are supported: ${fileName}';
 	@override String get addFromNetwork => 'Add plugin from network';
 	@override String get urlCannotBeEmpty => 'URL cannot be empty';
 	@override String get startInstall => 'Start install';
@@ -1239,6 +1240,7 @@ class _Translations$plugin$en_US extends Translations$plugin$zh_CN {
 	@override String get description => 'Description';
 	@override String get repo => 'Repository';
 	@override String get homepage => 'Homepage';
+	@override String get githubRepo => 'GitHub Repo';
 	@override String get download => 'Download';
 	@override String get downloadUpdate => 'Download update';
 	@override String get noCloudPlugins => 'No cloud components';
@@ -1250,6 +1252,16 @@ class _Translations$plugin$en_US extends Translations$plugin$zh_CN {
 	@override String get installingFromNetwork => 'Downloading network plugin...';
 	@override String cloudDownloadFailed({required Object error}) => 'Cloud download failed: ${error}';
 	@override String networkDownloadFailed({required Object error}) => 'Network plugin download failed: ${error}';
+	@override String get remoteAssetNotFound => 'Remote plugin file not found (404). It may have been removed or the version updated. Please check the update URL or retry later';
+	@override String get githubRateLimited => 'GitHub access is rate limited (likely IP-based). Please retry later or switch networks; a truly missing plugin still reports 404';
+	@override String get remoteReturnedWebPage => 'Remote returned a web page instead of a plugin file. The remote file may be missing or the link expired. Please check the plugin update URL';
+	@override String get remoteEmptyResponse => 'Remote returned empty content. Please retry later or check the update URL';
+	@override String remoteAccessDenied({required Object status}) => 'Remote access denied (HTTP ${status}). Please check your network or retry later';
+	@override String remoteServerError({required Object status}) => 'Remote server error (HTTP ${status}). Please retry later';
+	@override String remoteHttpError({required Object status}) => 'Remote request failed (HTTP ${status}). Please retry later';
+	@override String get downloadedScriptInvalid => 'Downloaded file is not a valid plugin script (looks like a web or error page). Please verify the remote file exists and retry';
+	@override String get downloadedScriptCorrupted => 'Downloaded plugin file is corrupted or failed to decompress. Please retry later';
+	@override String get networkUnstableRetry => 'Unstable network, download failed. Please check your connection and retry';
 	@override String cloudVersion({required Object version}) => 'Cloud ${version}';
 	@override String localVersion({required Object version}) => 'Local ${version}';
 	@override String loginTitle({required Object name}) => '${name} Login';
@@ -1866,6 +1878,19 @@ class _Translations$comicFollow$en_US extends Translations$comicFollow$zh_CN {
 	@override String newUnreadChaptersShort({required Object diff}) => '${diff} unread';
 	@override String get update => 'Update';
 	@override String get retry => 'Retry';
+	@override String readProgress({required Object read, required Object total}) => '${read} of ${total} read';
+	@override String readProgressUnknown({required Object total}) => '${total} total';
+	@override String get updatedJustNow => 'Just updated';
+	@override String updatedMinutesAgo({required Object minutes}) => 'Updated ${minutes} min ago';
+	@override String updatedHoursAgo({required Object hours}) => 'Updated ${hours} h ago';
+	@override String updatedDaysAgo({required Object days}) => 'Updated ${days} d ago';
+	@override String lastReadMinutesAgo({required Object minutes}) => 'Read ${minutes} min ago';
+	@override String lastReadHoursAgo({required Object hours}) => 'Read ${hours} h ago';
+	@override String lastReadDaysAgo({required Object days}) => 'Read ${days} d ago';
+	@override String get checkFailedTapRetry => 'Check failed, tap to retry';
+	@override String unreadCountBadge({required Object count}) => '${count} unread';
+	@override String get markAllReadHint => 'Mark all as read';
+	@override String get markAllReadDone => 'All marked as read';
 	@override String get updateChannelName => 'Comic update reminder';
 	@override String get updateChannelDesc => 'Pushed when followed comics have new chapters';
 	@override String get updateTitle => 'Follow update';
@@ -3378,6 +3403,7 @@ extension on TranslationsEnUs {
 			'plugin.invalidLink' => ({required Object url}) => 'Invalid link: ${url}',
 			'plugin.cannotOpenLink' => ({required Object url}) => 'Cannot open link: ${url}',
 			'plugin.readLocalPluginFailed' => ({required Object error}) => 'Failed to read local plugin: ${error}',
+			'plugin.unsupportedLocalFileType' => ({required Object fileName}) => 'Unsupported local file type, only .js / .cjs / .br are supported: ${fileName}',
 			'plugin.addFromNetwork' => 'Add plugin from network',
 			'plugin.urlCannotBeEmpty' => 'URL cannot be empty',
 			'plugin.startInstall' => 'Start install',
@@ -3405,6 +3431,7 @@ extension on TranslationsEnUs {
 			'plugin.description' => 'Description',
 			'plugin.repo' => 'Repository',
 			'plugin.homepage' => 'Homepage',
+			'plugin.githubRepo' => 'GitHub Repo',
 			'plugin.download' => 'Download',
 			'plugin.downloadUpdate' => 'Download update',
 			'plugin.noCloudPlugins' => 'No cloud components',
@@ -3416,6 +3443,16 @@ extension on TranslationsEnUs {
 			'plugin.installingFromNetwork' => 'Downloading network plugin...',
 			'plugin.cloudDownloadFailed' => ({required Object error}) => 'Cloud download failed: ${error}',
 			'plugin.networkDownloadFailed' => ({required Object error}) => 'Network plugin download failed: ${error}',
+			'plugin.remoteAssetNotFound' => 'Remote plugin file not found (404). It may have been removed or the version updated. Please check the update URL or retry later',
+			'plugin.githubRateLimited' => 'GitHub access is rate limited (likely IP-based). Please retry later or switch networks; a truly missing plugin still reports 404',
+			'plugin.remoteReturnedWebPage' => 'Remote returned a web page instead of a plugin file. The remote file may be missing or the link expired. Please check the plugin update URL',
+			'plugin.remoteEmptyResponse' => 'Remote returned empty content. Please retry later or check the update URL',
+			'plugin.remoteAccessDenied' => ({required Object status}) => 'Remote access denied (HTTP ${status}). Please check your network or retry later',
+			'plugin.remoteServerError' => ({required Object status}) => 'Remote server error (HTTP ${status}). Please retry later',
+			'plugin.remoteHttpError' => ({required Object status}) => 'Remote request failed (HTTP ${status}). Please retry later',
+			'plugin.downloadedScriptInvalid' => 'Downloaded file is not a valid plugin script (looks like a web or error page). Please verify the remote file exists and retry',
+			'plugin.downloadedScriptCorrupted' => 'Downloaded plugin file is corrupted or failed to decompress. Please retry later',
+			'plugin.networkUnstableRetry' => 'Unstable network, download failed. Please check your connection and retry',
 			'plugin.cloudVersion' => ({required Object version}) => 'Cloud ${version}',
 			'plugin.localVersion' => ({required Object version}) => 'Local ${version}',
 			'plugin.loginTitle' => ({required Object name}) => '${name} Login',
@@ -3840,6 +3877,8 @@ extension on TranslationsEnUs {
 			'comicEntry.deleteFavorite' => 'Delete Favorite',
 			'comicEntry.deleteFavoriteConfirm' => ({required Object title}) => 'Delete favorite record for "${title}"?',
 			'comicEntry.deleteHistory' => 'Delete History',
+			_ => null,
+		} ?? switch (path) {
 			'comicEntry.deleteHistoryConfirm' => ({required Object title}) => 'Delete history record for "${title}"?',
 			'comicEntry.deleteDownload' => 'Delete Download',
 			'comicEntry.deleteDownloadConfirm' => ({required Object title}) => 'Delete download record and files for "${title}"?',
@@ -3852,8 +3891,6 @@ extension on TranslationsEnUs {
 			'comicEntry.translationTooltipTitle' => ({required Object label, required Object keyword}) => '${label} · matched title "${keyword}"',
 			'comicEntry.resumeRead' => 'Resume reading',
 			'comicEntry.readFailed' => 'Could not start reading. Please try again later.',
-			_ => null,
-		} ?? switch (path) {
 			'comicFollow.title' => 'Updates',
 			'comicFollow.loadFailed' => ({required Object result}) => 'Load failed: ${result}',
 			'comicFollow.empty' => 'No followed comics',
@@ -3881,6 +3918,19 @@ extension on TranslationsEnUs {
 			'comicFollow.newUnreadChaptersShort' => ({required Object diff}) => '${diff} unread',
 			'comicFollow.update' => 'Update',
 			'comicFollow.retry' => 'Retry',
+			'comicFollow.readProgress' => ({required Object read, required Object total}) => '${read} of ${total} read',
+			'comicFollow.readProgressUnknown' => ({required Object total}) => '${total} total',
+			'comicFollow.updatedJustNow' => 'Just updated',
+			'comicFollow.updatedMinutesAgo' => ({required Object minutes}) => 'Updated ${minutes} min ago',
+			'comicFollow.updatedHoursAgo' => ({required Object hours}) => 'Updated ${hours} h ago',
+			'comicFollow.updatedDaysAgo' => ({required Object days}) => 'Updated ${days} d ago',
+			'comicFollow.lastReadMinutesAgo' => ({required Object minutes}) => 'Read ${minutes} min ago',
+			'comicFollow.lastReadHoursAgo' => ({required Object hours}) => 'Read ${hours} h ago',
+			'comicFollow.lastReadDaysAgo' => ({required Object days}) => 'Read ${days} d ago',
+			'comicFollow.checkFailedTapRetry' => 'Check failed, tap to retry',
+			'comicFollow.unreadCountBadge' => ({required Object count}) => '${count} unread',
+			'comicFollow.markAllReadHint' => 'Mark all as read',
+			'comicFollow.markAllReadDone' => 'All marked as read',
 			'comicFollow.updateChannelName' => 'Comic update reminder',
 			'comicFollow.updateChannelDesc' => 'Pushed when followed comics have new chapters',
 			'comicFollow.updateTitle' => 'Follow update',

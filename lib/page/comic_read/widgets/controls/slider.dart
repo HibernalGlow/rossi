@@ -277,9 +277,15 @@ class _SliderContents extends StatelessWidget {
     final totalSlots = context.select(
       (ReaderCubit cubit) => cubit.state.totalSlots,
     );
-    final readSetting = context.select<GlobalSettingCubit, ReadSettingState>(
-      (cubit) => cubit.state.readSetting,
+    // 只订阅有效 readMode：RTL 翻转只跟它有关，需同时监听全局与本漫覆盖。
+    final globalReadMode = context.select(
+      (GlobalSettingCubit cubit) => cubit.state.readSetting.readMode,
     );
+    final overrideReadMode = context.select(
+      (ComicReadPreferenceCubit cubit) => cubit.state.overrideReadMode,
+    );
+    final effectiveReadMode = overrideReadMode ?? globalReadMode;
+    final isRtl = isReverseRowReadMode(effectiveReadMode);
     final sliderValue = context.select(
       (ReaderCubit cubit) => cubit.state.sliderValue,
     );
@@ -302,13 +308,17 @@ class _SliderContents extends StatelessWidget {
       localMaxValue,
     );
 
-    final insertLeadingBlank =
-        readSetting.doublePageMode && readSetting.doublePageLeadingBlank;
-    // 进度条跟着阅读方向镜像：左开（下一页在左）时第 1 页在右端，填充从右往左长。
-    final rightToLeft = isReverseRowReadMode(readSetting.readMode);
+    final doublePageMode = context.select(
+      (GlobalSettingCubit cubit) => cubit.state.readSetting.doublePageMode,
+    );
+    final doublePageLeadingBlank = context.select(
+      (GlobalSettingCubit cubit) =>
+          cubit.state.readSetting.doublePageLeadingBlank,
+    );
+    final insertLeadingBlank = doublePageMode && doublePageLeadingBlank;
     final sliderDisplayPage = getDisplayPageNumber(
       slotIndex: safeSliderValue.round(),
-      enableDoublePage: readSetting.doublePageMode,
+      enableDoublePage: doublePageMode,
       insertLeadingBlank: insertLeadingBlank,
     );
     final currentGlobalSlot = safeGlobalSliderValue.round();
@@ -328,6 +338,7 @@ class _SliderContents extends StatelessWidget {
       });
     }
 
+    // 从右到左阅读时反转滑杆：起始页落在右侧，拖动方向与翻页方向一致。
     return SliderTheme(
       data: SliderTheme.of(context).copyWith(
         trackHeight: 6,
@@ -349,14 +360,14 @@ class _SliderContents extends StatelessWidget {
               final rawPercent = (event.localPosition.dx / constraints.maxWidth)
                   .clamp(0.0, 1.0);
               // 镜像之后物理左端对应的是**最大**那一页 —— 悬停取页要按方向翻一次。
-              final percent = rightToLeft ? 1.0 - rawPercent : rawPercent;
+              final percent = isRtl ? 1.0 - rawPercent : rawPercent;
               final hoverStep = (percent * localMaxValue).round();
               final targetGlobalSlot =
                   configuration.mapLocalToGlobalSlot?.call(hoverStep) ??
                   hoverStep;
               final displayPage = getDisplayPageNumber(
                 slotIndex: hoverStep,
-                enableDoublePage: readSetting.doublePageMode,
+                enableDoublePage: doublePageMode,
                 insertLeadingBlank: insertLeadingBlank,
               );
               final toastMessage =
@@ -385,9 +396,7 @@ class _SliderContents extends StatelessWidget {
             // 镜像轨道与命中：Slider 自己认 Directionality（轨道从哪头填、拖拽
             // 坐标怎么换算都在内部反好），所以这里只换方向，不动 value。
             child: Directionality(
-              textDirection: rightToLeft
-                  ? TextDirection.rtl
-                  : TextDirection.ltr,
+              textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
               child: Slider(
                 value: safeSliderValue,
                 min: 0,
@@ -418,7 +427,7 @@ class _SliderContents extends StatelessWidget {
 
                   final displayPage = getDisplayPageNumber(
                     slotIndex: currentStep,
-                    enableDoublePage: readSetting.doublePageMode,
+                    enableDoublePage: doublePageMode,
                     insertLeadingBlank: insertLeadingBlank,
                   );
                   final toastMessage =
