@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use anyhow::Error;
 use flutter_rust_bridge::frb;
-use rossi_local_core::{FileManagerEntry as CoreEntry, SettingsDb};
+use rossi_local_core::SettingsDb;
 
 use super::types::FileManagerSnapshot;
 use super::{FILE_MANAGER_SEARCHES, current_store, snapshot_for, with_session};
@@ -95,10 +95,23 @@ impl Drop for FileManagerSearchGuard {
 /// 上离线遍历。代价是遍历期间用户改设置不生效 —— 那本来就该由下一次搜索回答。
 #[frb]
 pub async fn file_manager_search(id: u64) -> Result<FileManagerSnapshot, Error> {
-    let request = with_session(id, move |state| Ok(state.search_request())).await?;
+    // 先看上一批命中能不能就地回答这次的查询：用户只是接着打字时不必再扫一遍盘
+    // （整库遍历在外挂盘上实测 5–12 秒，而搜索框每停一下就发一次请求）。
+    let request = with_session(id, move |state| {
+        if state.try_refine_search_listing() {
+            Ok(None)
+        } else {
+            Ok(Some(state.search_request()))
+        }
+    })
+    .await?;
+    let Some(request) = request else {
+        // 捷径成立：还在跑的那一次遍历就该停下，它的结果已经被这批命中取代了。
+        cancel_registered_search(id);
+        return with_session(id, move |state| snapshot_for(id, state)).await;
+    };
     let cancel = Arc::new(AtomicBool::new(false));
-    // 新搜索直接作废上一次还在跑的那一次：同一张卡片只有最新的结果有意义。
-    FILE_MANAGER_SEARCHES.insert(id, cancel.clone());
+    register_search_cancel(id, &cancel);
     let guard = FileManagerSearchGuard {
         id,
         cancel: cancel.clone(),
@@ -107,7 +120,7 @@ pub async fn file_manager_search(id: u64) -> Result<FileManagerSnapshot, Error> 
     let outcome = rquickjs_playground::global_handle()
         .spawn_blocking(move || rossi_local_core::file_manager::search_entries(&request, &cancel))
         .await?;
-    let listing = map_search_outcome(outcome);
+    let listing = outcome.into_listing();
     drop(guard);
     with_session(id, move |state| {
         // 回声判定放在写入这一刻：遍历跑在别的线程上，期间用户可能已经改了词、
@@ -141,14 +154,29 @@ pub async fn file_manager_clear_search(id: u64) -> Result<FileManagerSnapshot, E
     .await
 }
 
+/// 登记本次遍历的取消旗子，并把**上一次**那一次真的停下来。
+///
+/// 只把旗子换掉是不够的：旧遍历手里是自己那份 `Arc`，登记项被换掉并不影响它，于是它会
+/// 一路扫到底，结果再被下面的回声判定丢掉 —— 白烧一遍磁盘，还把同一块盘的行进顺序搅乱。
+fn register_search_cancel(id: u64, cancel: &Arc<AtomicBool>) {
+    if let Some(previous) = FILE_MANAGER_SEARCHES.insert(id, cancel.clone()) {
+        previous.store(true, Ordering::Relaxed);
+    }
+}
+
+/// 中止当前登记的那一次遍历。没有搜索在跑时返回 `false`。
+fn cancel_registered_search(id: u64) -> bool {
+    let Some(flag) = FILE_MANAGER_SEARCHES.get(&id).map(|entry| entry.clone()) else {
+        return false;
+    };
+    flag.store(true, Ordering::Relaxed);
+    true
+}
+
 /// 请求中止本会话正在跑的搜索。没有搜索在跑时是空操作。
 #[frb]
 pub async fn file_manager_cancel_search(id: u64) -> Result<bool, Error> {
-    let Some(flag) = FILE_MANAGER_SEARCHES.get(&id).map(|entry| entry.clone()) else {
-        return Ok(false);
-    };
-    flag.store(true, Ordering::Relaxed);
-    Ok(true)
+    Ok(cancel_registered_search(id))
 }
 
 /// 记一次搜索到历史里，并回给最新的列表（省得 Dart 再问一次）。
@@ -201,27 +229,37 @@ fn now_secs() -> i64 {
         .unwrap_or(0)
 }
 
-/// 把核心的一次遍历结果变成页签上的搜索列表。
-///
-/// 命中不带子文件名投影：那需要逐条目录再读一次盘，而结果页要的是「哪些条目命中了」，
-/// 不是每本的完整上下文。
-fn map_search_outcome(
-    outcome: rossi_local_core::file_manager::FileManagerSearchOutcome,
-) -> rossi_local_core::file_manager::FileManagerSearchListing {
-    rossi_local_core::file_manager::FileManagerSearchListing {
-        root: outcome.root,
-        query: outcome.query,
-        entries: outcome
-            .hits
-            .into_iter()
-            .map(|node| CoreEntry {
-                node,
-                children: Vec::new(),
-            })
-            .collect(),
-        scanned: outcome.scanned,
-        matched: outcome.matched,
-        truncated: outcome.truncated,
-        cancelled: outcome.cancelled,
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 新搜索必须让上一次那一次遍历停下来 —— 换掉登记项不等于取消。
+    #[test]
+    fn a_new_search_cancels_the_previous_traversal() {
+        let id = u64::MAX - 1;
+        FILE_MANAGER_SEARCHES.remove(&id);
+
+        let first = Arc::new(AtomicBool::new(false));
+        register_search_cancel(id, &first);
+        assert!(!first.load(Ordering::Relaxed), "第一次登记不该动自己");
+
+        let second = Arc::new(AtomicBool::new(false));
+        register_search_cancel(id, &second);
+        assert!(
+            first.load(Ordering::Relaxed),
+            "新搜索必须把上一次那一次停下"
+        );
+        assert!(!second.load(Ordering::Relaxed), "本次不许被自己取消");
+
+        // 「中止」作用在当前登记的那一次，也就是最新这颗旗子。
+        assert!(cancel_registered_search(id));
+        assert!(second.load(Ordering::Relaxed));
+
+        // 摘干净，别把旗子留给同进程里的其它测试。
+        FILE_MANAGER_SEARCHES.remove(&id);
+        assert!(
+            !cancel_registered_search(id),
+            "没有搜索在跑时必须报「没中止任何东西」"
+        );
     }
 }

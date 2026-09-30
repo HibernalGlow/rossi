@@ -107,6 +107,40 @@ pub struct FileManagerSearchRequest {
     pub settings: FileManagerSettings,
 }
 
+/// 一次遍历的**范围**：命中池之外的、决定「这批命中是怎么来的」的那几个条件。
+///
+/// 单独立一个类型是为了把「就地收窄」的判据写死在一处：旧的命中池只有在**同样的范围**
+/// 里才是新查询的超集。设置里剩下的那些（排序字段、视图模式、穿透投影）不参与匹配，
+/// 所以不需要重新扫盘，也不该被算进范围里。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileManagerSearchScope {
+    pub root: PathBuf,
+    /// 实际生效的递归层数：已按 [`MAX_SEARCH_DEPTH`] 夹过，关掉子目录时为 `0`。
+    pub max_depth: usize,
+    pub show_hidden_files: bool,
+    pub search_in_path: bool,
+    pub search_or_mode: bool,
+    pub entry_filter: EntryFilter,
+}
+
+impl FileManagerSearchScope {
+    pub(crate) fn from_request(request: &FileManagerSearchRequest) -> Self {
+        let settings = &request.settings;
+        Self {
+            root: request.root.clone(),
+            max_depth: if settings.search_include_subfolders {
+                settings.search_max_depth.min(MAX_SEARCH_DEPTH)
+            } else {
+                0
+            },
+            show_hidden_files: settings.show_hidden_files,
+            search_in_path: settings.search_in_path,
+            search_or_mode: settings.search_or_mode,
+            entry_filter: settings.entry_filter,
+        }
+    }
+}
+
 /// 一条命中就是目录列表里那种条目，不另加「相对目录」字段：那段信息已经完整地
 /// 包含在 `path` 里，展示时由 UI 投影层用搜索根算出来（同一事实不留两份）。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -122,6 +156,34 @@ pub struct FileManagerSearchOutcome {
     pub matched: usize,
     pub truncated: bool,
     pub cancelled: bool,
+    /// 这一次是按什么范围扫的，随结果一起落到页签上（收窄判据要用）。
+    pub scope: FileManagerSearchScope,
+}
+
+impl FileManagerSearchOutcome {
+    /// 把一次遍历的结果变成页签上的搜索列表。
+    ///
+    /// 命中不带子文件名投影：那需要逐条目录再读一次盘，而结果页要的是「哪些条目命中了」，
+    /// 不是每本的完整上下文。
+    pub fn into_listing(self) -> FileManagerSearchListing {
+        FileManagerSearchListing {
+            root: self.root,
+            query: self.query,
+            entries: self
+                .hits
+                .into_iter()
+                .map(|node| FileManagerEntry {
+                    node,
+                    children: Vec::new(),
+                })
+                .collect(),
+            scanned: self.scanned,
+            matched: self.matched,
+            truncated: self.truncated,
+            cancelled: self.cancelled,
+            scope: self.scope,
+        }
+    }
 }
 
 /// 在搜索根（可选地连同子目录）里按名称找条目。
@@ -149,11 +211,9 @@ pub fn search_entries(
     } else {
         crate::search_query::MatchMode::And
     };
-    let max_depth = if settings.search_include_subfolders {
-        settings.search_max_depth.min(MAX_SEARCH_DEPTH)
-    } else {
-        0
-    };
+    let scope = FileManagerSearchScope::from_request(request);
+    // 生效层数由范围算：遍历与「就地收窄」的判据读的是同一个值，不会各说各话。
+    let max_depth = scope.max_depth;
     let show_hidden = settings.show_hidden_files;
     // 与列表同一口径：关掉路径匹配后，相对目录不参与命中，只看条目名。
     let in_path = settings.search_in_path;
@@ -170,6 +230,7 @@ pub fn search_entries(
         matched: 0,
         truncated: false,
         cancelled: false,
+        scope,
     };
     // 空查询**不是**「全量列出」。少了这道闸，一次误触（或一个忘了判空的调用方）
     // 就会把整棵目录树扫一遍再交出前 512 条 —— 那不是搜索结果，是磁盘遍历。
@@ -262,6 +323,73 @@ pub fn search_entries(
             .then_with(|| left.path.cmp(&right.path))
     });
     outcome
+}
+
+/// 词元集合是否**只窄不宽** —— 新查询的命中集合必须是旧查询命中集合的子集。
+///
+/// - **include**：旧的每个 `t` 都要有新的 `u` 满足 `u` 含 `t`。名字里出现 `u` 就一定出现
+///   `t`，所以旧池里没有的东西，新查询也不可能凭空多出来。
+/// - **exclude**：旧的每个 `e` 都要有新的 `e'` 满足 `e` 含 `e'`。名字里出现 `e` 就一定出现
+///   `e'`，于是旧里被排除掉的，在新里仍然被排除。
+///
+/// 任一条不成立就是**放宽**（删字、换词、去掉排除词），旧池不是超集，只能重新遍历 ——
+/// 走捷径的代价是一份「看起来没毛病」的漏检结果。
+fn narrows_only(
+    previous: &[crate::search_query::Token],
+    next: &[crate::search_query::Token],
+) -> bool {
+    if previous.is_empty() || next.is_empty() {
+        return false;
+    }
+    // 方向与语义一致：include 要「新的更长」，exclude 要「旧的更长」。
+    let covered = |old: &crate::search_query::Token| {
+        next.iter().any(|new| {
+            new.include == old.include
+                && if old.include {
+                    new.needle.contains(&old.needle)
+                } else {
+                    old.needle.contains(&new.needle)
+                }
+        })
+    };
+    previous.iter().all(covered)
+}
+
+/// 只在上一次的命中池里筛，回答这次的查询。返回 `None` 表示这次不能走捷径，必须重新遍历。
+///
+/// 「用户接着打字」是唯一不需要重新扫盘的常见情形：一次整库遍历在外挂盘上实测 5–12 秒，
+/// 而搜索框每停一下就发一次请求。捷径成立要同时满足三件事：范围一个字没动、上一批既没被
+/// 条数上限截断也没被中止（否则旧池本身不完整，筛出来的是漏检），以及查询只窄不宽
+/// （[`narrows_only`]）。
+pub fn refine_listing(
+    listing: &FileManagerSearchListing,
+    request: &FileManagerSearchRequest,
+) -> Option<Vec<FileManagerEntry>> {
+    if listing.truncated || listing.cancelled {
+        return None;
+    }
+    if FileManagerSearchScope::from_request(request) != listing.scope {
+        return None;
+    }
+    let settings = &request.settings;
+    // OR 下「多打一个词」是放宽而不是收窄（命中的是并集），词元判据救不回来。
+    if settings.search_or_mode {
+        return None;
+    }
+    let previous = crate::search_query::parse(&listing.query);
+    let next = crate::search_query::parse(&settings.search_query);
+    if !narrows_only(&previous, &next) {
+        return None;
+    }
+    let mut hits: Vec<FileManagerEntry> = listing
+        .entries
+        .iter()
+        .filter(|entry| matches_entry(settings, &entry.node, &next, &listing.scope.root))
+        .cloned()
+        .collect();
+    // 排序字段不属于范围，所以同键时的先后可能已经变了 —— 用列表同一个比较器重排一次。
+    hits.sort_by(|left, right| compare_entries(settings, &left.node, &right.node));
+    Some(hits)
 }
 
 pub(super) fn normalize_initial_directory(path: PathBuf) -> Option<PathBuf> {

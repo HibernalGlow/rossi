@@ -887,6 +887,32 @@ impl FileManagerState {
         self.bump_generation();
     }
 
+    /// 用户只是在接着打字时，直接用上一批命中回答这次的查询，不重新扫盘。
+    ///
+    /// 成立时页签上的列表已经换成收窄后的那一份；`scanned` 仍是原来那次遍历检视过的条目数，
+    /// 因为它回答的是「这批命中是从多大的范围里挑出来的」。返回 `false` 表示条件不允许
+    /// （判据见 [`refine_listing`]），调用方该去跑一次真遍历。
+    pub fn try_refine_search_listing(&mut self) -> bool {
+        let request = self.search_request();
+        let Some(listing) = self.tabs[self.active_tab].search.as_ref() else {
+            return false;
+        };
+        let Some(entries) = refine_listing(listing, &request) else {
+            return false;
+        };
+        let matched = entries.len();
+        let query = self.tabs[self.active_tab].settings.search_query.clone();
+        let tab = &mut self.tabs[self.active_tab];
+        let Some(listing) = tab.search.as_mut() else {
+            return false;
+        };
+        listing.entries = entries;
+        listing.matched = matched;
+        listing.query = query;
+        self.bump_generation();
+        true
+    }
+
     /// 退出搜索结果视图，回到页签自己那一层目录。
     pub fn clear_search_listing(&mut self) {
         if self.tabs[self.active_tab].search.take().is_some() {

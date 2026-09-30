@@ -618,6 +618,112 @@
         assert!(!outcome.cancelled);
     }
 
+    /// 用户接着打字时，直接用上一批命中回答这次的查询，不重新扫盘。
+    ///
+    /// 整库遍历在外挂盘上实测 5–12 秒，而搜索框每停一下就发一次请求 —— 这条捷径是给
+    /// 「边打边看」续命的。
+    #[test]
+    fn refined_search_answers_from_the_previous_hits_without_reading_the_disk() {
+        let dir = tempdir().unwrap();
+        search_fixture(dir.path());
+        let mut state = FileManagerState::new(Some(dir.path().to_path_buf())).unwrap();
+        state.set_search_include_subfolders(true);
+        state.set_search_query("春");
+        let listing =
+            search_entries(&state.search_request(), &AtomicBool::new(false)).into_listing();
+        assert_eq!(listing.matched, 4);
+        assert_eq!(listing.scanned, 7);
+        state.set_search_listing(listing);
+
+        let names = |state: &FileManagerState| -> Vec<String> {
+            state
+                .entries()
+                .unwrap()
+                .into_iter()
+                .map(|entry| entry.node.name)
+                .collect()
+        };
+
+        // 词元只是变长、范围一个字没动：这次不必扫盘。
+        state.set_search_query("春组");
+        assert!(state.try_refine_search_listing());
+        assert_eq!(names(&state), ["春组", "本子", "001.jpg", "cover.cbz"]);
+        // 「已看」仍是那次遍历检视过的条目数 —— 它回答的是范围，不是请求次数。
+        assert_eq!(state.search_listing().unwrap().scanned, 7);
+        assert_eq!(state.search_listing().unwrap().query, "春组");
+
+        // 证伪：盘上新加一个「重新扫一遍就该命中」的条目，收窄结果里**不许**出现它。
+        // 它要是出现了，说明这条捷径其实又去读了一遍盘。
+        touch(&dir.path().join("春组/春本.cbz"));
+        state.set_search_query("春组 本子");
+        assert!(state.try_refine_search_listing());
+        assert_eq!(names(&state), ["本子", "001.jpg"]);
+    }
+
+    /// 捷径只在「只窄不宽」时成立：放宽、换范围、旧池不完整都得回去真扫一遍。
+    #[test]
+    fn refine_refuses_when_the_query_widens_or_the_scope_moves() {
+        let dir = tempdir().unwrap();
+        search_fixture(dir.path());
+        let mut state = FileManagerState::new(Some(dir.path().to_path_buf())).unwrap();
+        state.set_search_include_subfolders(true);
+        state.set_search_query("春组");
+        let listing =
+            search_entries(&state.search_request(), &AtomicBool::new(false)).into_listing();
+        state.set_search_listing(listing);
+
+        // 删字 = 放宽（春组/本子 之外的条目也会进来）。
+        state.set_search_query("春");
+        assert!(!state.try_refine_search_listing());
+        // 换词 = 两批命中互不相干。
+        state.set_search_query("秋");
+        assert!(!state.try_refine_search_listing());
+        // 加一个词元 = 收窄，可以走捷径；再删掉它 = 放宽。
+        state.set_search_query("春组 本子");
+        assert!(state.try_refine_search_listing());
+        state.set_search_query("春组");
+        assert!(!state.try_refine_search_listing(), "少一个词元是在放宽");
+        // 层数一变，旧池就不是同一个范围里扫出来的了。
+        state.set_search_query("春组 本子");
+        state.set_search_max_depth(1);
+        assert!(!state.try_refine_search_listing(), "层数变了必须重扫");
+        state.set_search_max_depth(99);
+        assert!(!state.try_refine_search_listing(), "夹到上限同样是换了范围");
+        // 隐藏项、路径匹配、OR 都改的是「什么算命中」。
+        state.set_search_max_depth(DEFAULT_SEARCH_DEPTH);
+        state.set_show_hidden_files(true);
+        assert!(!state.try_refine_search_listing());
+        state.set_show_hidden_files(false);
+        state.set_search_in_path(false);
+        assert!(!state.try_refine_search_listing(), "关掉路径匹配后旧池的判据就换了");
+        state.set_search_in_path(true);
+        state.set_search_or_mode(true);
+        assert!(!state.try_refine_search_listing(), "OR 下多一个词是放宽不是收窄");
+    }
+
+    /// 旧池不完整（被条数上限截断、或被中止）时它不是超集，捷径一律不许走。
+    #[test]
+    fn refine_refuses_an_incomplete_pool() {
+        let dir = tempdir().unwrap();
+        search_fixture(dir.path());
+        let mut state = FileManagerState::new(Some(dir.path().to_path_buf())).unwrap();
+        state.set_search_include_subfolders(true);
+        state.set_search_query("春组");
+        let mut listing =
+            search_entries(&state.search_request(), &AtomicBool::new(false)).into_listing();
+        state.set_search_query("春组 本子");
+        let request = state.search_request();
+        assert!(
+            refine_listing(&listing, &request).is_some(),
+            "先确认这条查询本身能走捷径"
+        );
+        listing.truncated = true;
+        assert!(refine_listing(&listing, &request).is_none(), "截断过的池子不许当超集");
+        listing.truncated = false;
+        listing.cancelled = true;
+        assert!(refine_listing(&listing, &request).is_none(), "中止过的池子更不是超集");
+    }
+
     #[cfg(unix)]
     #[test]
     fn hidden_policy_is_shared_by_listing_children_and_penetration() {

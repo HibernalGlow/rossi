@@ -265,6 +265,9 @@ pub struct FileManagerSearchListing {
     pub matched: usize,
     pub truncated: bool,
     pub cancelled: bool,
+    /// 这批命中是在什么范围里扫出来的。就地收窄只认「范围一模一样」，见
+    /// [`crate::file_manager::refine_listing`]。
+    pub scope: FileManagerSearchScope,
 }
 
 /// 页签标题里最多露出多少个搜索词。再长就该去输入框里看，而不是把页签条撑开。
