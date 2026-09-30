@@ -1585,6 +1585,15 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '每个目录各自记住视图、排序与筛选；关闭后浏览照常，只是不再记忆'
 	String get fileManagerRememberViewStateSubtitle => '每个目录各自记住视图、排序与筛选；关闭后浏览照常，只是不再记忆';
 
+	/// zh-CN: '搜索'
+	String get fileManagerSectionSearch => '搜索';
+
+	/// zh-CN: '默认连子目录一起搜'
+	String get fileManagerSearchSubfoldersDefault => '默认连子目录一起搜';
+
+	/// zh-CN: '新建页签起手就开着「含子目录」。整库遍历在慢盘上实测要几十秒，所以默认只搜当前这一层；开着这条就不必每次去点那颗开关'
+	String get fileManagerSearchSubfoldersDefaultSubtitle => '新建页签起手就开着「含子目录」。整库遍历在慢盘上实测要几十秒，所以默认只搜当前这一层；开着这条就不必每次去点那颗开关';
+
 	/// zh-CN: '页签'
 	String get fileManagerSectionTabs => '页签';
 
@@ -6628,6 +6637,9 @@ extension on Translations {
 			'settings.fileManagerSectionView' => '浏览视图',
 			'settings.fileManagerRememberViewState' => '记住每个目录的视图与排序',
 			'settings.fileManagerRememberViewStateSubtitle' => '每个目录各自记住视图、排序与筛选；关闭后浏览照常，只是不再记忆',
+			'settings.fileManagerSectionSearch' => '搜索',
+			'settings.fileManagerSearchSubfoldersDefault' => '默认连子目录一起搜',
+			'settings.fileManagerSearchSubfoldersDefaultSubtitle' => '新建页签起手就开着「含子目录」。整库遍历在慢盘上实测要几十秒，所以默认只搜当前这一层；开着这条就不必每次去点那颗开关',
 			'settings.fileManagerSectionTabs' => '页签',
 			'settings.fileManagerRestoreTabs' => '自动恢复上次打开的页签',
 			'settings.fileManagerRestoreTabsSubtitle' => '文件管理器打开时把上次那批页签摆回来。两个以上页签才记，而且只记目录（后退历史与搜索结果不记）；目录已经没了就落在就近还在的父目录。上次开着两个以上页签时，这条比「启动时默认打开主页」优先',
@@ -6648,11 +6660,11 @@ extension on Translations {
 			'settings.operationBindingTapSubtitle' => '阅读区只分「左半 / 正中 / 右半」三档：上下两排与中排同一动作。',
 			'settings.operationBindingAreaMiddleLeft' => '左半屏',
 			'settings.operationBindingAreaMiddleCenter' => '正中',
+			_ => null,
+		} ?? switch (path) {
 			'settings.operationBindingAreaMiddleRight' => '右半屏',
 			'settings.operationBindingUnbound' => '未绑定',
 			'settings.operationBindingSectionBundle' => '绑定包',
-			_ => null,
-		} ?? switch (path) {
 			'settings.operationBindingImport' => '导入 JSON',
 			'settings.operationBindingImportSubtitle' => '导入绑定包，支持 bindings 对象或数组；保留全部输入类型、上下文和后续动作。',
 			'settings.operationBindingImportConfirm' => '载入',
@@ -7162,11 +7174,11 @@ extension on Translations {
 			'reader.chapterNotDownloaded' => '章节未下载',
 			'reader.loadFailedWithResult' => ({required Object result}) => '${result}\n加载失败',
 			'reader.chapterOrder' => ({required Object order}) => '章节 ${order}',
+			_ => null,
+		} ?? switch (path) {
 			'reader.doubleTapAction' => '双击操作',
 			'reader.doubleTapZoom' => '双击缩放',
 			'reader.doubleTapZoomSubtitle' => '双击图片可在缩放和还原之间切换',
-			_ => null,
-		} ?? switch (path) {
 			'reader.doubleTapOpenMenu' => '双击打开操作栏',
 			'reader.doubleTapOpenMenuSubtitle' => '双击页面打开操作栏（与双击缩放互斥）',
 			'reader.centerTapBar' => '点击唤出上下栏',
@@ -7676,11 +7688,11 @@ extension on Translations {
 			'comicEntry.finished' => '完结',
 			'comicEntry.ongoing' => '连载中',
 			'comicEntry.likes' => ({required Object count}) => '喜欢 ${count}',
+			_ => null,
+		} ?? switch (path) {
 			'comicEntry.views' => ({required Object count}) => '浏览 ${count}',
 			'comicEntry.deleteFavorite' => '删除收藏',
 			'comicEntry.deleteFavoriteConfirm' => ({required Object title}) => '确定要删除（${title}）的收藏记录吗？',
-			_ => null,
-		} ?? switch (path) {
 			'comicEntry.deleteHistory' => '删除历史记录',
 			'comicEntry.deleteHistoryConfirm' => ({required Object title}) => '确定要删除（${title}）的历史记录吗？',
 			'comicEntry.deleteDownload' => '删除下载记录',

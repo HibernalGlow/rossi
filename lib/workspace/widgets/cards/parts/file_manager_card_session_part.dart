@@ -46,6 +46,9 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
         // （`prepareSettingsDbPath`）；为 null ＝ 本次不记忆，浏览照常。
         settingsDbPath: preparedSettingsDbPath,
         rememberViewState: remember,
+        // 建会话时交一次「默认含子目录」，之后由核心发给每个新建页签（判据见
+        // [_persistedSearchSubfoldersDefault]）。
+        searchSubfoldersDefault: _persistedSearchSubfoldersDefault,
       );
       if (_disposed) {
         fileManagerClose(id: id);

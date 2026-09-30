@@ -1,4 +1,5 @@
 part of '../file_manager_card_test.dart';
+
 // 快照与条目的构造替身
 
 FileManagerTreeSnapshot _treeSnapshot() => const FileManagerTreeSnapshot(
@@ -43,7 +44,6 @@ FileManagerTreeSnapshot _treeSnapshot() => const FileManagerTreeSnapshot(
   hasPending: false,
 );
 
-
 FileManagerTab _tab(
   int id,
   String title, {
@@ -62,7 +62,6 @@ FileManagerTab _tab(
   canCloseLeft: false,
   canCloseRight: canClose,
 );
-
 
 FileManagerEntry _entry(
   String name, {
@@ -95,7 +94,6 @@ FileManagerEntry _entry(
   ),
 );
 
-
 FileManagerSnapshot _snapshot({
   FileManagerViewMode viewMode = FileManagerViewMode.coverList,
   String query = '',
@@ -112,6 +110,8 @@ FileManagerSnapshot _snapshot({
   bool rememberViewState = true,
   bool subfolders = false,
   bool searchActive = false,
+  bool depthLimited = false,
+  bool noEntries = false,
   int tabCount = 2,
 }) => FileManagerSnapshot(
   sessionId: BigInt.one,
@@ -157,7 +157,10 @@ FileManagerSnapshot _snapshot({
     if (tabCount > 1) _tab(2, 'pictures'),
   ],
   recentlyClosed: [_tab(3, 'closed')],
-  entries: searchActive
+  // 「零命中」要能单独造出来：往下找的那条出口只在真的没命中时才该出现。
+  entries: noEntries
+      ? const []
+      : searchActive
       ? [
           // 搜索结果页签：同名条目只有靠相对目录才分得开。
           _entry('001.jpg', searchDirectory: '春组/本子'),
@@ -185,6 +188,7 @@ FileManagerSnapshot _snapshot({
   searchMatched: searchActive ? 2 : 0,
   searchTruncated: false,
   searchCancelled: false,
+  searchDepthLimited: depthLimited,
   canSaveSearchTab: searchActive,
   entryFilter: FileManagerEntryFilter.all,
   sortField: FileManagerSortField.name,
@@ -197,7 +201,6 @@ FileManagerSnapshot _snapshot({
   canSortPreference: canSortPreference,
   rememberViewState: rememberViewState,
 );
-
 
 /// 文件操作那一份会话快照的替身（选中集合 / 剪贴板 / 撤销栈）。
 ///
@@ -230,7 +233,6 @@ FileOpsSnapshot _opsSnapshot({
   undoCount: undoCount,
   trashRestoreSupported: trashRestoreSupported,
 );
-
 
 /// 一次文件操作的回执替身。默认「什么都没做」：判据要的是卡片**收到回执之后**
 /// 怎么刷新，而不是替身自己编一份结果。

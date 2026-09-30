@@ -1405,6 +1405,7 @@ fn wire__crate__api__file_manager__browse__file_manager_create_impl(
             let api_home_path = <Option<String>>::sse_decode(&mut deserializer);
             let api_settings_db_path = <Option<String>>::sse_decode(&mut deserializer);
             let api_remember_view_state = <bool>::sse_decode(&mut deserializer);
+            let api_search_subfolders_default = <bool>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
@@ -1414,6 +1415,7 @@ fn wire__crate__api__file_manager__browse__file_manager_create_impl(
                             api_home_path,
                             api_settings_db_path,
                             api_remember_view_state,
+                            api_search_subfolders_default,
                         )
                         .await?;
                         Ok(output_ok)
@@ -7453,6 +7455,7 @@ impl SseDecode for crate::api::file_manager::types::FileManagerSnapshot {
         let mut var_searchMatched = <u32>::sse_decode(deserializer);
         let mut var_searchTruncated = <bool>::sse_decode(deserializer);
         let mut var_searchCancelled = <bool>::sse_decode(deserializer);
+        let mut var_searchDepthLimited = <bool>::sse_decode(deserializer);
         let mut var_canSaveSearchTab = <bool>::sse_decode(deserializer);
         let mut var_entryFilter =
             <crate::api::file_manager::types::FileManagerEntryFilter>::sse_decode(deserializer);
@@ -7499,6 +7502,7 @@ impl SseDecode for crate::api::file_manager::types::FileManagerSnapshot {
             search_matched: var_searchMatched,
             search_truncated: var_searchTruncated,
             search_cancelled: var_searchCancelled,
+            search_depth_limited: var_searchDepthLimited,
             can_save_search_tab: var_canSaveSearchTab,
             entry_filter: var_entryFilter,
             sort_field: var_sortField,
@@ -9787,6 +9791,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::file_manager::types::FileMana
             self.search_matched.into_into_dart().into_dart(),
             self.search_truncated.into_into_dart().into_dart(),
             self.search_cancelled.into_into_dart().into_dart(),
+            self.search_depth_limited.into_into_dart().into_dart(),
             self.can_save_search_tab.into_into_dart().into_dart(),
             self.entry_filter.into_into_dart().into_dart(),
             self.sort_field.into_into_dart().into_dart(),
@@ -11097,6 +11102,7 @@ impl SseEncode for crate::api::file_manager::types::FileManagerSnapshot {
         <u32>::sse_encode(self.search_matched, serializer);
         <bool>::sse_encode(self.search_truncated, serializer);
         <bool>::sse_encode(self.search_cancelled, serializer);
+        <bool>::sse_encode(self.search_depth_limited, serializer);
         <bool>::sse_encode(self.can_save_search_tab, serializer);
         <crate::api::file_manager::types::FileManagerEntryFilter>::sse_encode(
             self.entry_filter,

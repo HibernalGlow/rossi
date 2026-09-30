@@ -152,6 +152,8 @@ pub struct FileManagerSnapshot {
     pub search_matched: u32,
     pub search_truncated: bool,
     pub search_cancelled: bool,
+    /// 遍历卡在层数上限上：下面还有目录没走过。界面据此把「没搜到」说成「没搜到」。
+    pub search_depth_limited: bool,
     /// 「把当前搜索存成页签」是否可用（需要有结果）。
     pub can_save_search_tab: bool,
     pub entry_filter: FileManagerEntryFilter,

@@ -8,7 +8,7 @@ import '../local.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'types.dart';
 
-// These functions are ignored because they are not marked as `pub`: `load_search_history`, `map_search_outcome`, `now_secs`
+// These functions are ignored because they are not marked as `pub`: `cancel_registered_search`, `load_search_history`, `now_secs`, `register_search_cancel`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `FileManagerSearchGuard`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `drop`
 

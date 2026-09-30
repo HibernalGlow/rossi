@@ -11,6 +11,7 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
     _searchDebounce?.cancel();
     _searchDebounce = null;
   }
+
   /// 搜索专用的提交通道：**不走 [_apply] 的 `_busy` 门控**。
   ///
   /// `_busy` 会同时禁用输入框、列表和整排工具键，那是给「一次动作把目录换掉」
@@ -44,6 +45,7 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
       _showError(error);
     }
   }
+
   Future<void> _recordSearchHistory(String query) async {
     try {
       final history = await fileManagerRecordSearchHistory(query: query);
@@ -58,6 +60,7 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
       // 搜索冒一个红条，更不该把已经拿到的命中丢掉。
     }
   }
+
   Future<void> _clearSearchHistory() async {
     try {
       await fileManagerClearSearchHistory();
@@ -69,12 +72,14 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
       if (mounted) _showError(error);
     }
   }
+
   /// 「递归搜索模式」：只在**确实有查询**且**开了含子目录**时成立。
   ///
   /// 只搜当前一层时不需要另一套结果列表 —— 那一层的过滤已经由 Rust 的 `entries`
   /// 做完并带着子文件名/穿透投影，另起一份只会让两种视图各说各话。
   bool _isRecursiveSearch(FileManagerSnapshot snapshot) =>
       snapshot.searchQuery.isNotEmpty && snapshot.searchIncludeSubfolders;
+
   /// 会让一次递归搜索作废的条件集合。
   ///
   /// 逐项去挂触发点（类型筛选、排序、隐藏项、层数……）一定会漏，改成「条件变了
@@ -95,6 +100,7 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
       snapshot.showHiddenFiles,
     ].join('\x1F');
   }
+
   /// 跑一次搜索。返回的是**快照**：命中由 Rust 写进当前页签，卡片只负责画它。
   ///
   /// 不参与 [_requestSerial]：那个序号管的是「别用旧快照盖掉新目录」，而遍历不改
@@ -126,6 +132,7 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
       _showError(error);
     }
   }
+
   Future<void> _cancelSearch() async {
     final id = _sessionId;
     if (id == null) return;
@@ -133,6 +140,18 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
     // `cancelled` 标记正常返回，界面据此说明结果是部分扫过的。
     await fileManagerCancelSearch(id: id);
   }
+
+  /// 层数档位在 chip 上循环：3 → 6 → 12 → 3（12 是核心 `MAX_SEARCH_DEPTH` 的夹值，
+  /// 再深会被它压回来，所以不该由 Dart 自己发明第四个档位）。
+  Future<void> _cycleSearchDepth(FileManagerSnapshot snapshot) async {
+    final index = _searchDepths.indexOf(snapshot.searchMaxDepth);
+    final next = _searchDepths[(index + 1) % _searchDepths.length];
+    if (next == snapshot.searchMaxDepth) return;
+    await _applySearchAction(
+      (id) => fileManagerSetSearchMaxDepth(id: id, depth: next),
+    );
+  }
+
   /// 搜索行上的动作（条件开关、存为页签、回到目录）。
   ///
   /// 先丢掉还在排队的那一次键入：这些动作是用户**决定**下来的，不能让一个
@@ -143,6 +162,7 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
     _cancelPendingSearch();
     await _apply(action);
   }
+
   /// 可折叠搜索框：由工具栏的搜索键展开；已有生效查询时强制显示。
   ///
   /// 输入即搜（防抖 [_searchDebounceDuration]），回车只是把这一次提前提交。
@@ -185,6 +205,7 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
       onSubmitted: _submitSearch,
     );
   }
+
   /// 搜索选项行：递归开关 + 命中统计。窄卡片下横向滚动，与工具栏同一策略。
   Widget _buildSearchOptions(
     BuildContext context,
@@ -203,6 +224,8 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
             '已看 ${snapshot.searchScanned}',
             if (snapshot.searchTruncated) '已达上限',
             if (snapshot.searchCancelled) '已中止',
+            if (snapshot.searchDepthLimited)
+              '第 ${snapshot.searchMaxDepth} 层以下未搜',
           ].join(' · ')
         : null;
     return SingleChildScrollView(
@@ -262,6 +285,39 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
               (id) => fileManagerSetSearchOrMode(id: id, enabled: enabled),
             ),
           ),
+          // 层数上限是「搜不到」与「没有」之间最容易混的一处，所以既露出当前档位，
+          // 也给一个不用去设置页就能改的入口。
+          if (snapshot.searchIncludeSubfolders) ...[
+            const SizedBox(width: 6),
+            ChoiceChip(
+              label: Text('层数 ≤${snapshot.searchMaxDepth}'),
+              tooltip:
+                  '点按切换递归层数（${_searchDepths.join(' / ')} 层）。'
+                  '层数越大越慢：一次整库遍历在慢盘上要几十秒；太浅会漏掉更深的目录',
+              // 停在默认档位时不着色：这一行只该在「你把它改离了默认」时跳出来。
+              selected: snapshot.searchMaxDepth != _searchDefaultDepth,
+              visualDensity: VisualDensity.compact,
+              onSelected: (_) => _cycleSearchDepth(snapshot),
+            ),
+          ],
+          // 只搜当前一层时零命中，用户不该靠猜才知道还能往下找：给一条明确出口。
+          if (searching &&
+              !snapshot.searchIncludeSubfolders &&
+              snapshot.entries.isEmpty) ...[
+            const SizedBox(width: 6),
+            ChoiceChip(
+              label: const Text('在子目录里搜'),
+              tooltip: '当前这一层没有命中；开着「含子目录」再搜一次（整库遍历在慢盘上要几十秒）',
+              selected: false,
+              visualDensity: VisualDensity.compact,
+              onSelected: (_) => _applySearchAction(
+                (id) => fileManagerSetSearchIncludeSubfolders(
+                  id: id,
+                  enabled: true,
+                ),
+              ),
+            ),
+          ],
           if (status != null) ...[
             const SizedBox(width: 8),
             Text(

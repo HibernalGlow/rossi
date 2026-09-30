@@ -240,6 +240,7 @@ abstract class RustLibApi extends BaseApi {
     String? homePath,
     String? settingsDbPath,
     required bool rememberViewState,
+    required bool searchSubfoldersDefault,
   });
 
   Future<FileManagerSnapshot> crateApiFileManagerBrowseFileManagerDuplicateTab({
@@ -2028,6 +2029,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     String? homePath,
     String? settingsDbPath,
     required bool rememberViewState,
+    required bool searchSubfoldersDefault,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -2037,6 +2039,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_opt_String(homePath, serializer);
           sse_encode_opt_String(settingsDbPath, serializer);
           sse_encode_bool(rememberViewState, serializer);
+          sse_encode_bool(searchSubfoldersDefault, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -2049,7 +2052,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_AnyhowException,
         ),
         constMeta: kCrateApiFileManagerBrowseFileManagerCreateConstMeta,
-        argValues: [initialPath, homePath, settingsDbPath, rememberViewState],
+        argValues: [
+          initialPath,
+          homePath,
+          settingsDbPath,
+          rememberViewState,
+          searchSubfoldersDefault,
+        ],
         apiImpl: this,
       ),
     );
@@ -2063,6 +2072,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           "homePath",
           "settingsDbPath",
           "rememberViewState",
+          "searchSubfoldersDefault",
         ],
       );
 
@@ -7749,8 +7759,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   FileManagerSnapshot dco_decode_file_manager_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 42)
-      throw Exception('unexpected arr length: expect 42 but see ${arr.length}');
+    if (arr.length != 43)
+      throw Exception('unexpected arr length: expect 43 but see ${arr.length}');
     return FileManagerSnapshot(
       sessionId: dco_decode_u_64(arr[0]),
       maxTabs: dco_decode_u_8(arr[1]),
@@ -7783,17 +7793,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       searchMatched: dco_decode_u_32(arr[28]),
       searchTruncated: dco_decode_bool(arr[29]),
       searchCancelled: dco_decode_bool(arr[30]),
-      canSaveSearchTab: dco_decode_bool(arr[31]),
-      entryFilter: dco_decode_file_manager_entry_filter(arr[32]),
-      sortField: dco_decode_file_manager_sort_field(arr[33]),
-      sortOrder: dco_decode_file_manager_sort_order(arr[34]),
-      directoriesFirst: dco_decode_bool(arr[35]),
-      homePath: dco_decode_opt_String(arr[36]),
-      isHome: dco_decode_bool(arr[37]),
-      canSetHome: dco_decode_bool(arr[38]),
-      sortTemporary: dco_decode_bool(arr[39]),
-      canSortPreference: dco_decode_bool(arr[40]),
-      rememberViewState: dco_decode_bool(arr[41]),
+      searchDepthLimited: dco_decode_bool(arr[31]),
+      canSaveSearchTab: dco_decode_bool(arr[32]),
+      entryFilter: dco_decode_file_manager_entry_filter(arr[33]),
+      sortField: dco_decode_file_manager_sort_field(arr[34]),
+      sortOrder: dco_decode_file_manager_sort_order(arr[35]),
+      directoriesFirst: dco_decode_bool(arr[36]),
+      homePath: dco_decode_opt_String(arr[37]),
+      isHome: dco_decode_bool(arr[38]),
+      canSetHome: dco_decode_bool(arr[39]),
+      sortTemporary: dco_decode_bool(arr[40]),
+      canSortPreference: dco_decode_bool(arr[41]),
+      rememberViewState: dco_decode_bool(arr[42]),
     );
   }
 
@@ -9133,6 +9144,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_searchMatched = sse_decode_u_32(deserializer);
     var var_searchTruncated = sse_decode_bool(deserializer);
     var var_searchCancelled = sse_decode_bool(deserializer);
+    var var_searchDepthLimited = sse_decode_bool(deserializer);
     var var_canSaveSearchTab = sse_decode_bool(deserializer);
     var var_entryFilter = sse_decode_file_manager_entry_filter(deserializer);
     var var_sortField = sse_decode_file_manager_sort_field(deserializer);
@@ -9176,6 +9188,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       searchMatched: var_searchMatched,
       searchTruncated: var_searchTruncated,
       searchCancelled: var_searchCancelled,
+      searchDepthLimited: var_searchDepthLimited,
       canSaveSearchTab: var_canSaveSearchTab,
       entryFilter: var_entryFilter,
       sortField: var_sortField,
@@ -10832,6 +10845,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_u_32(self.searchMatched, serializer);
     sse_encode_bool(self.searchTruncated, serializer);
     sse_encode_bool(self.searchCancelled, serializer);
+    sse_encode_bool(self.searchDepthLimited, serializer);
     sse_encode_bool(self.canSaveSearchTab, serializer);
     sse_encode_file_manager_entry_filter(self.entryFilter, serializer);
     sse_encode_file_manager_sort_field(self.sortField, serializer);
@@ -11860,6 +11874,13 @@ class HttpClientImpl extends RustOpaque implements HttpClient {
       RustLib.instance.api.crateApiHttpHttpClientDefaultHeaders(that: this);
 
   /// 下载到本地文件（流式写盘）。
+  ///
+  /// **这里的超时按「空闲」算，不是整请求上限**：连续 `timeout_ms`（缺省取客户端的
+  /// `timeout_ms`，默认 30 s）没收到新字节才算断流，总时长不受限。
+  /// 之前用的是 reqwest 的 `.timeout()`，它连 body 一起管 —— 于是几百 MB 的模型
+  /// 在慢一点的连接上**必然**死在半路（2026-09-26 实测：huggingface 走代理 5 MB/s，
+  /// 343 MB 的 OCR 识别件要 ~69 s），而且症状是一句看不出原因的
+  /// 「error decoding response body」。
   Future<void> download({
     required String url,
     required String savePath,

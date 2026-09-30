@@ -265,6 +265,8 @@ pub struct FileManagerSearchListing {
     pub matched: usize,
     pub truncated: bool,
     pub cancelled: bool,
+    /// 遍历停在层数上限那一层：下面还有目录没走过。UI 用它把「没搜到」和「没有」分开。
+    pub depth_limited: bool,
     /// 这批命中是在什么范围里扫出来的。就地收窄只认「范围一模一样」，见
     /// [`crate::file_manager::refine_listing`]。
     pub scope: FileManagerSearchScope,

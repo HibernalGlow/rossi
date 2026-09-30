@@ -13,11 +13,13 @@ Future<BigInt> fileManagerCreate({
   String? homePath,
   String? settingsDbPath,
   required bool rememberViewState,
+  required bool searchSubfoldersDefault,
 }) => RustLib.instance.api.crateApiFileManagerBrowseFileManagerCreate(
   initialPath: initialPath,
   homePath: homePath,
   settingsDbPath: settingsDbPath,
   rememberViewState: rememberViewState,
+  searchSubfoldersDefault: searchSubfoldersDefault,
 );
 
 Future<FileManagerSnapshot> fileManagerSnapshot({required BigInt id}) =>

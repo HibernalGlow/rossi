@@ -603,6 +603,9 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get fileManagerSectionView => 'Browsing view';
 	@override String get fileManagerRememberViewState => 'Remember view and sort per folder';
 	@override String get fileManagerRememberViewStateSubtitle => 'Each folder keeps its own view mode, sort and filter. When off, browsing works as usual but nothing is remembered';
+	@override String get fileManagerSectionSearch => 'Search';
+	@override String get fileManagerSearchSubfoldersDefault => 'Include subfolders by default';
+	@override String get fileManagerSearchSubfoldersDefaultSubtitle => 'New tabs start with subfolder search switched on. A whole-library scan takes tens of seconds on a slow drive, so the default stays the current folder; turn this on to skip clicking the chip every time';
 	@override String get fileManagerSectionTabs => 'Tabs';
 	@override String get fileManagerRestoreTabs => 'Restore the tabs from last time';
 	@override String get fileManagerRestoreTabsSubtitle => 'Puts last session\'s tabs back when the file manager opens. Only recorded from two tabs up, and only the folders - no back history, no search results. A folder that is gone falls back to the nearest parent that still exists. When the last session had two or more tabs, this wins over \'Open the home folder on start\'';
@@ -2826,6 +2829,9 @@ extension on TranslationsEnUs {
 			'settings.fileManagerSectionView' => 'Browsing view',
 			'settings.fileManagerRememberViewState' => 'Remember view and sort per folder',
 			'settings.fileManagerRememberViewStateSubtitle' => 'Each folder keeps its own view mode, sort and filter. When off, browsing works as usual but nothing is remembered',
+			'settings.fileManagerSectionSearch' => 'Search',
+			'settings.fileManagerSearchSubfoldersDefault' => 'Include subfolders by default',
+			'settings.fileManagerSearchSubfoldersDefaultSubtitle' => 'New tabs start with subfolder search switched on. A whole-library scan takes tens of seconds on a slow drive, so the default stays the current folder; turn this on to skip clicking the chip every time',
 			'settings.fileManagerSectionTabs' => 'Tabs',
 			'settings.fileManagerRestoreTabs' => 'Restore the tabs from last time',
 			'settings.fileManagerRestoreTabsSubtitle' => 'Puts last session\'s tabs back when the file manager opens. Only recorded from two tabs up, and only the folders - no back history, no search results. A folder that is gone falls back to the nearest parent that still exists. When the last session had two or more tabs, this wins over \'Open the home folder on start\'',
@@ -2846,11 +2852,11 @@ extension on TranslationsEnUs {
 			'settings.operationBindingTapSubtitle' => 'The reader only tells three zones apart: left half, center cell, right half. The top and bottom rows behave like the middle one.',
 			'settings.operationBindingAreaMiddleLeft' => 'Left half',
 			'settings.operationBindingAreaMiddleCenter' => 'Center',
+			_ => null,
+		} ?? switch (path) {
 			'settings.operationBindingAreaMiddleRight' => 'Right half',
 			'settings.operationBindingBoundAction' => 'Bound action',
 			'settings.operationBindingUnbound' => 'Unbound',
-			_ => null,
-		} ?? switch (path) {
 			'settings.operationBindingSectionBundle' => 'Binding bundle',
 			'settings.operationBindingImport' => 'Import JSON',
 			'settings.operationBindingImportSubtitle' => 'Import a bindings object or array, preserving every input type, context and action sequence.',
@@ -3360,11 +3366,11 @@ extension on TranslationsEnUs {
 			'reader.loadFailedWithResult' => ({required Object result}) => '${result}\nLoad failed',
 			'reader.chapterOrder' => ({required Object order}) => 'Chapter ${order}',
 			'reader.doubleTapAction' => 'Double-tap action',
+			_ => null,
+		} ?? switch (path) {
 			'reader.doubleTapZoom' => 'Double-tap zoom',
 			'reader.doubleTapZoomSubtitle' => 'Double-tap image to toggle zoom',
 			'reader.doubleTapOpenMenu' => 'Double-tap to open menu',
-			_ => null,
-		} ?? switch (path) {
 			'reader.doubleTapOpenMenuSubtitle' => 'Double-tap page to open menu (exclusive with zoom)',
 			'reader.centerTapBar' => 'Tap to reveal bars',
 			'reader.centerTapToggleBars' => 'Tap center to toggle top/bottom bars',
@@ -3874,11 +3880,11 @@ extension on TranslationsEnUs {
 			'comicEntry.ongoing' => 'Ongoing',
 			'comicEntry.likes' => ({required Object count}) => 'Likes ${count}',
 			'comicEntry.views' => ({required Object count}) => 'Views ${count}',
+			_ => null,
+		} ?? switch (path) {
 			'comicEntry.deleteFavorite' => 'Delete Favorite',
 			'comicEntry.deleteFavoriteConfirm' => ({required Object title}) => 'Delete favorite record for "${title}"?',
 			'comicEntry.deleteHistory' => 'Delete History',
-			_ => null,
-		} ?? switch (path) {
 			'comicEntry.deleteHistoryConfirm' => ({required Object title}) => 'Delete history record for "${title}"?',
 			'comicEntry.deleteDownload' => 'Delete Download',
 			'comicEntry.deleteDownloadConfirm' => ({required Object title}) => 'Delete download record and files for "${title}"?',

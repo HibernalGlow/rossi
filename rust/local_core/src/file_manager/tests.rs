@@ -724,6 +724,60 @@
         assert!(refine_listing(&listing, &request).is_none(), "中止过的池子更不是超集");
     }
 
+    /// 卡在层数上限上时要如实报出来：否则「没搜到」会被当成「没有」。
+    #[test]
+    fn search_reports_when_the_depth_cap_left_directories_unwalked() {
+        let dir = tempdir().unwrap();
+        fs::create_dir_all(dir.path().join("a/b/c/d")).unwrap();
+        touch(&dir.path().join("a/b/c/d/针.cbz"));
+        let mut state = FileManagerState::new(Some(dir.path().to_path_buf())).unwrap();
+        state.set_search_include_subfolders(true);
+        state.set_search_query("针");
+
+        state.set_search_max_depth(2);
+        let shallow = search_entries(&state.search_request(), &AtomicBool::new(false));
+        assert_eq!(shallow.matched, 0);
+        assert!(shallow.depth_limited, "c/d 两层没走过，必须报「未搜尽」");
+
+        state.set_search_max_depth(12);
+        let deep = search_entries(&state.search_request(), &AtomicBool::new(false));
+        assert_eq!(deep.matched, 1);
+        assert!(!deep.depth_limited, "整棵树都走过了就不该再报未搜尽");
+        assert!(deep.into_listing().scanned > 0);
+    }
+
+    /// 「默认含子目录」是**新页签的起手值**，不是当前页签的状态：用户手动关掉之后
+    /// 不该被这颗默认值翻回来，但下一个新页签仍按默认起手。
+    #[test]
+    fn new_tabs_inherit_the_session_subfolders_default() {
+        let dir = tempdir().unwrap();
+        let other = dir.path().join("other");
+        fs::create_dir(&other).unwrap();
+        let mut state = FileManagerState::new(Some(dir.path().into())).unwrap();
+        assert!(
+            !state.settings().search_include_subfolders,
+            "没注入默认值时仍只搜当前一层"
+        );
+
+        state.set_search_subfolders_default(true);
+        assert!(
+            state.settings().search_include_subfolders,
+            "建会话时注入要立刻反映在第一个页签上"
+        );
+
+        state.set_search_include_subfolders(false);
+        assert!(
+            !state.settings().search_include_subfolders,
+            "用户在这一页签上的手动选择不该被默认值翻回来"
+        );
+
+        state.new_tab(Some(other)).unwrap();
+        assert!(
+            state.settings().search_include_subfolders,
+            "新页签按会话的默认范围起手"
+        );
+    }
+
     #[cfg(unix)]
     #[test]
     fn hidden_policy_is_shared_by_listing_children_and_penetration() {

@@ -283,6 +283,9 @@ class FileManagerSnapshot {
   final bool searchTruncated;
   final bool searchCancelled;
 
+  /// 遍历卡在层数上限上：下面还有目录没走过。界面据此把「没搜到」说成「没搜到」。
+  final bool searchDepthLimited;
+
   /// 「把当前搜索存成页签」是否可用（需要有结果）。
   final bool canSaveSearchTab;
   final FileManagerEntryFilter entryFilter;
@@ -336,6 +339,7 @@ class FileManagerSnapshot {
     required this.searchMatched,
     required this.searchTruncated,
     required this.searchCancelled,
+    required this.searchDepthLimited,
     required this.canSaveSearchTab,
     required this.entryFilter,
     required this.sortField,
@@ -382,6 +386,7 @@ class FileManagerSnapshot {
       searchMatched.hashCode ^
       searchTruncated.hashCode ^
       searchCancelled.hashCode ^
+      searchDepthLimited.hashCode ^
       canSaveSearchTab.hashCode ^
       entryFilter.hashCode ^
       sortField.hashCode ^
@@ -430,6 +435,7 @@ class FileManagerSnapshot {
           searchMatched == other.searchMatched &&
           searchTruncated == other.searchTruncated &&
           searchCancelled == other.searchCancelled &&
+          searchDepthLimited == other.searchDepthLimited &&
           canSaveSearchTab == other.canSaveSearchTab &&
           entryFilter == other.entryFilter &&
           sortField == other.sortField &&

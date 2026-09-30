@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/src/rust/api/file_manager/browse.dart';
@@ -22,7 +23,6 @@ part 'parts/file_manager_card_test_fakes_part.dart';
 part 'parts/file_manager_card_test_fixture_part.dart';
 part 'parts/file_manager_card_test_helper_part.dart';
 
-
 // Fake only the FRB boundary. Render the real card with the same Material
 // library as main.dart and no Scaffold/Material supplied by its host.
 
@@ -32,6 +32,12 @@ void main() {
   setUp(() {
     api = _FileManagerApi();
     settings = _TestGlobalSettingCubit();
+    // 卡片在发出第一条桥调用**之前**要先读一次「上次打开的页签」（`_startSession` →
+    // `FileManagerTabMemory.restore`），那一份住在 SharedPreferences 里。这里没有桩时
+    // 那条 future 在 `testWidgets` 里永远不落地（同一次调用在裸 `test()` 里会立刻抛
+    // MissingPluginException，所以 `read()` 的兜底在测试里救不到），于是每个用例都卡在
+    // `_pumpCard` 的 pumpAndSettle 上。给一个空档，比让整张卡片的测试全哑便宜。
+    SharedPreferences.setMockInitialValues({});
     RustLib.initMock(api: api);
     // 启动期才解析的路径，测试里默认按「还没解析出来」起跑；需要它的用例自己注入。
     preparedSettingsDbPathForTests = null;
@@ -92,7 +98,10 @@ void main() {
     api.snapshot = _snapshot(query: 'from other tab');
     await tester.tap(find.byTooltip('新建页签'));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerNewTab), hasLength(1));
+    expect(
+      api.callsTo(#crateApiFileManagerBrowseFileManagerNewTab),
+      hasLength(1),
+    );
     expect(
       tester.widget<TextField>(find.byType(TextField)).controller!.text,
       'from other tab',
@@ -108,13 +117,18 @@ void main() {
     await tester.enterText(find.byType(TextField), '春 日 -草稿');
     // 防抖窗口内还没发出去 —— 连续敲字不会每个字符打一次桥。
     await tester.pump(const Duration(milliseconds: 60));
-    expect(api.callsTo(#crateApiFileManagerSearchFileManagerSetSearchQuery), isEmpty);
+    expect(
+      api.callsTo(#crateApiFileManagerSearchFileManagerSetSearchQuery),
+      isEmpty,
+    );
 
     // 让这一次提交挂在飞行中，才测得到「请求期间输入框不能失效」。
     final gate = Completer<FileManagerSnapshot>();
     api.searchReply = gate;
     await tester.pump(const Duration(milliseconds: 200));
-    final calls = api.callsTo(#crateApiFileManagerSearchFileManagerSetSearchQuery);
+    final calls = api.callsTo(
+      #crateApiFileManagerSearchFileManagerSetSearchQuery,
+    );
     expect(calls, hasLength(1));
     expect(calls.single.namedArguments[#query], '春 日 -草稿');
     expect(
@@ -177,13 +191,93 @@ void main() {
 
     expect(
       api
-          .callsTo(#crateApiFileManagerSearchFileManagerSetSearchIncludeSubfolders)
+          .callsTo(
+            #crateApiFileManagerSearchFileManagerSetSearchIncludeSubfolders,
+          )
           .single
           .namedArguments[#enabled],
       isTrue,
     );
     // 条件一变就跑一次遍历；结果由 Rust 写进页签，卡片不再有第二份列表。
-    expect(api.callsTo(#crateApiFileManagerSearchFileManagerSearch), hasLength(1));
+    expect(
+      api.callsTo(#crateApiFileManagerSearchFileManagerSearch),
+      hasLength(1),
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('递归搜索露出层数档位，并如实说明「更深的没搜」', (tester) async {
+    api.snapshot = _snapshot(
+      query: '春',
+      subfolders: true,
+      searchActive: true,
+      depthLimited: true,
+    );
+    await _pumpCard(tester, width: 700);
+    await tester.pumpAndSettle();
+
+    // 「没搜到」不等于「没有」：状态行要说清遍历停在哪一层。
+    expect(find.textContaining('第 6 层以下未搜'), findsOneWidget);
+
+    final chip = find.text('层数 ≤6');
+    expect(chip, findsOneWidget);
+    await tester.ensureVisible(chip);
+    await tester.pumpAndSettle();
+    await tester.tap(chip);
+    await tester.pumpAndSettle();
+    expect(
+      api
+          .callsTo(#crateApiFileManagerSearchFileManagerSetSearchMaxDepth)
+          .single
+          .namedArguments[#depth],
+      12,
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('只搜当前一层且零命中时，给出「在子目录里搜」的出口', (tester) async {
+    api.snapshot = _snapshot(query: '春', noEntries: true);
+    await _pumpCard(tester, width: 700);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('当前这一层没有匹配「春」的条目'), findsOneWidget);
+    final chip = find.text('在子目录里搜');
+    expect(chip, findsOneWidget);
+    await tester.ensureVisible(chip);
+    await tester.pumpAndSettle();
+    await tester.tap(chip);
+    await tester.pumpAndSettle();
+    expect(
+      api
+          .callsTo(
+            #crateApiFileManagerSearchFileManagerSetSearchIncludeSubfolders,
+          )
+          .single
+          .namedArguments[#enabled],
+      isTrue,
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('「默认连子目录一起搜」在建会话时交给核心一次', (tester) async {
+    await _pumpCard(
+      tester,
+      settings: _TestGlobalSettingCubit(
+        fileManagerSetting: const FileManagerSettingState(
+          searchSubfoldersDefault: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 只在建会话时交一次：卡片不该每来一份快照就把用户手动关掉的开关翻回来。
+    expect(
+      api
+          .callsTo(#crateApiFileManagerBrowseFileManagerCreate)
+          .single
+          .namedArguments[#searchSubfoldersDefault],
+      isTrue,
+    );
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
@@ -282,25 +376,40 @@ void main() {
     // 否则点「左」会点成「刷新」—— 这正是这个用例要守住的行为。
     await tester.tapAt(_padPoint(tester, const Offset(0.15, 0.5)));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoBack), hasLength(1));
+    expect(
+      api.callsTo(#crateApiFileManagerBrowseFileManagerGoBack),
+      hasLength(1),
+    );
 
     await tester.tapAt(_padPoint(tester, const Offset(0.85, 0.5)));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoForward), hasLength(1));
+    expect(
+      api.callsTo(#crateApiFileManagerBrowseFileManagerGoForward),
+      hasLength(1),
+    );
 
     await tester.tapAt(_padPoint(tester, const Offset(0.5, 0.2)));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoUp), hasLength(1));
+    expect(
+      api.callsTo(#crateApiFileManagerBrowseFileManagerGoUp),
+      hasLength(1),
+    );
 
     // 中心圆：刷新。它压在四片热区之上，这一块必须归它。
     await tester.tapAt(_padPoint(tester, const Offset(0.5, 0.5)));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerRefresh), hasLength(1));
+    expect(
+      api.callsTo(#crateApiFileManagerBrowseFileManagerRefresh),
+      hasLength(1),
+    );
     // 上一步不能顺带把「主页」也触发了。
     expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoHome), isEmpty);
 
     await _tapHomeRegion(tester);
-    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoHome), hasLength(1));
+    expect(
+      api.callsTo(#crateApiFileManagerBrowseFileManagerGoHome),
+      hasLength(1),
+    );
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
@@ -331,23 +440,38 @@ void main() {
 
     await tester.tap(find.byTooltip('后退'));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoBack), hasLength(1));
+    expect(
+      api.callsTo(#crateApiFileManagerBrowseFileManagerGoBack),
+      hasLength(1),
+    );
 
     await tester.tap(find.byTooltip('前进'));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoForward), hasLength(1));
+    expect(
+      api.callsTo(#crateApiFileManagerBrowseFileManagerGoForward),
+      hasLength(1),
+    );
 
     await tester.tap(find.byTooltip('上一级'));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoUp), hasLength(1));
+    expect(
+      api.callsTo(#crateApiFileManagerBrowseFileManagerGoUp),
+      hasLength(1),
+    );
 
     await tester.tap(find.byTooltip('刷新'));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerRefresh), hasLength(1));
+    expect(
+      api.callsTo(#crateApiFileManagerBrowseFileManagerRefresh),
+      hasLength(1),
+    );
     expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoHome), isEmpty);
 
     await _tapHomeRegion(tester);
-    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoHome), hasLength(1));
+    expect(
+      api.callsTo(#crateApiFileManagerBrowseFileManagerGoHome),
+      hasLength(1),
+    );
 
     // 右键入口挂在按钮外层：桌面端不必先长按。
     await tester.tapAt(_homeRegionPoint(tester), buttons: kSecondaryButton);
@@ -429,7 +553,10 @@ void main() {
     await _pumpCard(tester, settings: settings);
 
     await _tapHomeRegion(tester);
-    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerGoHome), hasLength(1));
+    expect(
+      api.callsTo(#crateApiFileManagerBrowseFileManagerGoHome),
+      hasLength(1),
+    );
 
     // 长按打开主页菜单：三个动作按当前能力置灰。
     await _longPressHomeRegion(tester);
@@ -736,10 +863,16 @@ void main() {
       api.callsTo(#crateApiFileManagerEntryOpsFileManagerOpenArchive),
       hasLength(1),
     );
-    expect(api.callsTo(#crateApiFileManagerEntryOpsFileManagerOpenEntry), isEmpty);
+    expect(
+      api.callsTo(#crateApiFileManagerEntryOpsFileManagerOpenEntry),
+      isEmpty,
+    );
     await tester.tap(find.text('book.cbz'));
     await tester.pumpAndSettle(const Duration(milliseconds: 400));
-    expect(api.callsTo(#crateApiFileManagerEntryOpsFileManagerOpenEntry), hasLength(1));
+    expect(
+      api.callsTo(#crateApiFileManagerEntryOpsFileManagerOpenEntry),
+      hasLength(1),
+    );
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
@@ -847,10 +980,16 @@ void main() {
     api.snapshotError = null;
     await tester.tap(find.text('重试'));
     await tester.pumpAndSettle();
-    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerCreate), hasLength(1));
+    expect(
+      api.callsTo(#crateApiFileManagerBrowseFileManagerCreate),
+      hasLength(1),
+    );
     expect(find.text('book.cbz'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
-    expect(api.callsTo(#crateApiFileManagerSettingsFileManagerClose), hasLength(1));
+    expect(
+      api.callsTo(#crateApiFileManagerSettingsFileManagerClose),
+      hasLength(1),
+    );
   });
 
   testWidgets('文件与文件夹缩略图组件存在且平滑回退语义图标', (tester) async {

@@ -1,6 +1,6 @@
 part of '../global_setting.dart';
-// 工作台/发现页/操作绑定/卡片外观（rossi）
 
+// 工作台/发现页/操作绑定/卡片外观（rossi）
 
 /// 文件管理器卡片（工作台里的本地文件浏览）的跨重启偏好。
 ///
@@ -28,6 +28,8 @@ part of '../global_setting.dart';
 ///   没有操作条。之所以给它一个总开关而不是逐个动作给：这一层第一次具备了
 ///   **修改用户磁盘**的能力，而这类能力的方向应该是「默认给了，但随时能整个收回去」，
 ///   不是「一样一样地关」（那样关到一半是最糟的状态）。
+/// - [searchSubfoldersDefault]：新建页签起手就开着「含子目录」。默认关：一次整库遍历
+///   在慢盘上实测要几十秒，「要不要等这个时间」是用户的取舍，不该由我们替他翻上去。
 @freezed
 abstract class FileManagerSettingState with _$FileManagerSettingState {
   const factory FileManagerSettingState({
@@ -37,12 +39,12 @@ abstract class FileManagerSettingState with _$FileManagerSettingState {
     @Default(true) bool rememberViewState,
     @Default(true) bool restoreTabs,
     @Default(true) bool fileOperations,
+    @Default(false) bool searchSubfoldersDefault,
   }) = _FileManagerSettingState;
 
   factory FileManagerSettingState.fromJson(Map<String, dynamic> json) =>
       _$FileManagerSettingStateFromJson(json);
 }
-
 
 /// 发现页标签条摆在哪一条边上。
 ///
@@ -64,7 +66,6 @@ enum DiscoverTabBarSide {
   /// 设置项上的中文名（这个枚举只有三个值，不值得走 i18n 词条）。
   final String label;
 }
-
 
 /// 发现页**标签条**的显示口径。
 ///
@@ -91,7 +92,6 @@ abstract class DiscoverSettingState with _$DiscoverSettingState {
   factory DiscoverSettingState.fromJson(Map<String, dynamic> json) =>
       _$DiscoverSettingStateFromJson(json);
 }
-
 
 /// 操作绑定（ADR-0015）的持久化。
 ///
@@ -132,7 +132,6 @@ abstract class OperationBindingSettingState
       _$OperationBindingSettingStateFromJson(json);
 }
 
-
 /// 封面「已下载但未读」标识的画法。
 ///
 /// 三档说的是同一件事，辨识度与占位面积一起递增：嫌色块压封面的用 [dot]，
@@ -148,7 +147,6 @@ enum ComicUnreadIndicatorStyle {
   /// 「未读」文字胶囊，与封面左上角的语言角标同一套形状语言。
   label,
 }
-
 
 /// 漫画卡片上的封面角标显示开关。
 ///
@@ -179,7 +177,6 @@ abstract class ComicCardSettingState with _$ComicCardSettingState {
   factory ComicCardSettingState.fromJson(Map<String, dynamic> json) =>
       _$ComicCardSettingStateFromJson(json);
 }
-
 
 /// 角标开关的读入口（非 widget 上下文也能读）。
 ///

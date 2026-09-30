@@ -19,6 +19,7 @@ pub async fn file_manager_create(
     home_path: Option<String>,
     settings_db_path: Option<String>,
     remember_view_state: bool,
+    search_subfolders_default: bool,
 ) -> Result<u64, Error> {
     let path = initial_path.map(PathBuf::from);
     let home = home_path.map(PathBuf::from);
@@ -27,6 +28,7 @@ pub async fn file_manager_create(
         .spawn_blocking(move || {
             let mut state = FileManagerState::new(path)?;
             state.set_remember_view_state(remember_view_state);
+            state.set_search_subfolders_default(search_subfolders_default);
             seed_home_path(&mut state, home);
             let store = attached_store(db_path.as_deref());
             hydrate_view_states_from(store.as_deref(), &mut state);

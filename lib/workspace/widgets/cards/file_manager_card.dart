@@ -41,6 +41,15 @@ part 'parts/file_manager_card_open_part.dart';
 part 'parts/file_manager_card_toolbar_part.dart';
 part 'parts/file_manager_card_view_part.dart';
 
+/// 搜索层数的可选档位。`12` 是核心 `MAX_SEARCH_DEPTH` 的夹值，不是这里自己拍的数。
+///
+/// 放在库级而不是类成员上：卡片按职责拆成 parts 之后，extension 里引用宿主类的静态
+/// 成员必须带类名限定，而库级常量没有这个限制。
+const _searchDepths = <int>[3, 6, 12];
+
+/// 核心的默认层数（`DEFAULT_SEARCH_DEPTH`）。层数 chip 用它判断「有没有被改离默认」，
+/// 所以两边要一致；不一致的后果只是这颗 chip 多着色或少着色一次。
+const _searchDefaultDepth = 6;
 
 /// Rust 驱动的文件浏览卡片。
 ///
@@ -199,11 +208,18 @@ class _FileManagerCardState extends State<FileManagerCard> {
       .rememberViewState;
 
   /// 「自动恢复上次打开的页签」的落盘开关（全局设置）。
-  bool get _persistedRestoreTabs => context
+  bool get _persistedRestoreTabs =>
+      context.read<GlobalSettingCubit>().state.fileManagerSetting.restoreTabs;
+
+  /// 「新建页签默认连子目录一起搜」的落盘开关（全局设置）。
+  ///
+  /// 只在**建会话**时交给核心一次，之后由核心发给每个新建的页签：卡片不该每来一份
+  /// 快照就把用户手动关掉的「含子目录」翻回来（判据见 Rust 侧的同一处注释）。
+  bool get _persistedSearchSubfoldersDefault => context
       .read<GlobalSettingCubit>()
       .state
       .fileManagerSetting
-      .restoreTabs;
+      .searchSubfoldersDefault;
 
   /// 新建会话该落在哪个目录，`null` = 交给核心选默认目录。
   ///
@@ -424,6 +440,8 @@ class _FileManagerCardState extends State<FileManagerCard> {
       ],
       emptyText: snapshot.searchActive && query.isNotEmpty
           ? '子目录里没有匹配「$query」的条目'
+          : query.isNotEmpty && !snapshot.searchIncludeSubfolders
+          ? '当前这一层没有匹配「$query」的条目，可用上面的「在子目录里搜」往下找'
           : searching
           ? '没有符合搜索或类型筛选的条目'
           : '当前目录没有可浏览的漫画或媒体文件',
@@ -484,6 +502,4 @@ class _FileManagerCardState extends State<FileManagerCard> {
       trailing: _trailing(context, entry, mode),
     );
   }
-
 }
-

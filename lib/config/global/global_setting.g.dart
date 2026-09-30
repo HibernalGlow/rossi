@@ -797,6 +797,7 @@ _FileManagerSettingState _$FileManagerSettingStateFromJson(
   rememberViewState: json['rememberViewState'] as bool? ?? true,
   restoreTabs: json['restoreTabs'] as bool? ?? true,
   fileOperations: json['fileOperations'] as bool? ?? true,
+  searchSubfoldersDefault: json['searchSubfoldersDefault'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$FileManagerSettingStateToJson(
@@ -808,6 +809,7 @@ Map<String, dynamic> _$FileManagerSettingStateToJson(
   'rememberViewState': instance.rememberViewState,
   'restoreTabs': instance.restoreTabs,
   'fileOperations': instance.fileOperations,
+  'searchSubfoldersDefault': instance.searchSubfoldersDefault,
 };
 
 _DiscoverSettingState _$DiscoverSettingStateFromJson(

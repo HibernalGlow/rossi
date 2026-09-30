@@ -330,6 +330,7 @@ fn snapshot_for(id: u64, state: &mut FileManagerState) -> Result<FileManagerSnap
         search_matched: state.search_listing().map_or(0, |l| l.matched as u32),
         search_truncated: state.search_listing().is_some_and(|l| l.truncated),
         search_cancelled: state.search_listing().is_some_and(|l| l.cancelled),
+        search_depth_limited: state.search_listing().is_some_and(|l| l.depth_limited),
         can_save_search_tab: state.search_listing().is_some(),
         entry_filter: match settings.entry_filter {
             EntryFilter::All => FileManagerEntryFilter::All,

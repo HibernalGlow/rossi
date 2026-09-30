@@ -16,6 +16,8 @@ pub struct FileManagerState {
     /// 核心不认识数据库：它只回答「哪些目录的偏好变了」，由会话层决定什么时候落盘。
     dirty_view_states: std::collections::BTreeSet<String>,
     remember_view_state: bool,
+    /// 新建页签默认要不要连子目录一起搜（建会话时从全局设置注入一次）。
+    search_subfolders_default: bool,
     /// 用户指定的「主页」。跨页签共享，未设置时导航掌的主页键不可点（与 NeoView 一致）。
     home_path: Option<PathBuf>,
 }
@@ -39,6 +41,7 @@ impl FileManagerState {
             view_states: std::collections::HashMap::new(),
             dirty_view_states: std::collections::BTreeSet::new(),
             remember_view_state: true,
+            search_subfolders_default: false,
             home_path: None,
         })
     }
@@ -440,6 +443,18 @@ impl FileManagerState {
         }
     }
 
+    /// 建会话时注入一次：这个用户习惯上要不要连子目录一起搜。
+    ///
+    /// 它是**默认值**而不是当前页签的状态：只落到 `new_tab` 那一头，所以用户后来在某个
+    /// 页签上关掉「含子目录」，不会被这颗默认值偷偷翻回来。
+    pub fn set_search_subfolders_default(&mut self, enabled: bool) {
+        self.search_subfolders_default = enabled;
+        self.tabs[self.active_tab]
+            .settings
+            .search_include_subfolders = enabled;
+        self.bump_generation();
+    }
+
     /// 递归层数。`0` 与「不递归」等价，交给搜索时再被上限夹一次。
     pub fn set_search_max_depth(&mut self, depth: usize) {
         let depth = depth.min(MAX_SEARCH_DEPTH);
@@ -585,7 +600,10 @@ impl FileManagerState {
         let id = self.next_tab_id;
         self.next_tab_id = self.next_tab_id.saturating_add(1);
         self.tabs.push(FileManagerTab::new(id, target));
-        self.active_tab = self.tabs.len() - 1;
+        let index = self.tabs.len() - 1;
+        // 新页签按会话的默认范围起手（判据见 [`Self::set_search_subfolders_default`]）。
+        self.tabs[index].settings.search_include_subfolders = self.search_subfolders_default;
+        self.active_tab = index;
         self.bump_generation();
         Ok(id)
     }

@@ -156,6 +156,8 @@ pub struct FileManagerSearchOutcome {
     pub matched: usize,
     pub truncated: bool,
     pub cancelled: bool,
+    /// 遍历停在层数上限那一层：下面还有目录没走过。UI 用它把「没搜到」和「没有」分开。
+    pub depth_limited: bool,
     /// 这一次是按什么范围扫的，随结果一起落到页签上（收窄判据要用）。
     pub scope: FileManagerSearchScope,
 }
@@ -181,6 +183,7 @@ impl FileManagerSearchOutcome {
             matched: self.matched,
             truncated: self.truncated,
             cancelled: self.cancelled,
+            depth_limited: self.depth_limited,
             scope: self.scope,
         }
     }
@@ -230,6 +233,7 @@ pub fn search_entries(
         matched: 0,
         truncated: false,
         cancelled: false,
+        depth_limited: false,
         scope,
     };
     // 空查询**不是**「全量列出」。少了这道闸，一次误触（或一个忘了判空的调用方）
@@ -266,6 +270,10 @@ pub fn search_entries(
             };
             // 目录即使不命中也要检视（下钻用）；符号链接目录要靠 classify 才认得出来。
             let candidate_dir = descend && (file_type.is_dir() || file_type.is_symlink());
+            if !descend && (file_type.is_dir() || file_type.is_symlink()) {
+                // 层数上限就卡在这一层：下面还有目录没走过，于是「没搜到」不等于「没有」。
+                outcome.depth_limited = true;
+            }
             // 词元非空由上面的早退保证：空查询根本不进这里。
             let name_hit = {
                 let hay = crate::search_norm::normalize_for_match(&search_hay_for_name(

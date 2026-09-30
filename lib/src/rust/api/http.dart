@@ -30,6 +30,13 @@ abstract class HttpClient implements RustOpaqueInterface {
       RustLib.instance.api.crateApiHttpHttpClientDirect();
 
   /// 下载到本地文件（流式写盘）。
+  ///
+  /// **这里的超时按「空闲」算，不是整请求上限**：连续 `timeout_ms`（缺省取客户端的
+  /// `timeout_ms`，默认 30 s）没收到新字节才算断流，总时长不受限。
+  /// 之前用的是 reqwest 的 `.timeout()`，它连 body 一起管 —— 于是几百 MB 的模型
+  /// 在慢一点的连接上**必然**死在半路（2026-09-26 实测：huggingface 走代理 5 MB/s，
+  /// 343 MB 的 OCR 识别件要 ~69 s），而且症状是一句看不出原因的
+  /// 「error decoding response body」。
   Future<void> download({
     required String url,
     required String savePath,

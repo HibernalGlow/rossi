@@ -177,6 +177,27 @@ class FileManagerSettingPage extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           SettingSectionCard(
+            title: t.settings.fileManagerSectionSearch,
+            icon: Icons.search_outlined,
+            children: [
+              SwitchListTile(
+                secondary: const Icon(Icons.account_tree_outlined),
+                title: Text(t.settings.fileManagerSearchSubfoldersDefault),
+                subtitle: Text(
+                  t.settings.fileManagerSearchSubfoldersDefaultSubtitle,
+                ),
+                thumbIcon: kSettingSwitchThumbIcon,
+                value: setting.searchSubfoldersDefault,
+                // 不发「重启后生效」的提示：这条改的是**新页签的起手范围**，
+                // 正在搜的那一批页签不该被设置页偷偷换范围（那等于改他的搜索结果）。
+                onChanged: (value) => cubit.updateFileManagerSetting(
+                  (current) => current.copyWith(searchSubfoldersDefault: value),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SettingSectionCard(
             title: t.settings.fileManagerSectionTabs,
             icon: Icons.tab_outlined,
             children: [
