@@ -353,12 +353,12 @@ mod tests {
     #[test]
     fn parse_folds_width_before_tokenizing() {
         // 全角 `－` 折成 ASCII `-` 之后才认得出排除词；整串归一化发生在分词之前。
-        assert_eq!(
-            parse("summer －draft"),
-            vec![inc("summer"), exc("draft")],
-        );
+        assert_eq!(parse("summer －draft"), vec![inc("summer"), exc("draft")],);
         // 全角空格折成普通空格，于是它会正常把两个词分开。
-        assert_eq!(parse("summer\u{3000}draft"), vec![inc("summer"), inc("draft")]);
+        assert_eq!(
+            parse("summer\u{3000}draft"),
+            vec![inc("summer"), inc("draft")]
+        );
     }
 
     #[test]

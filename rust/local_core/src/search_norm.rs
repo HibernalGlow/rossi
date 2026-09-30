@@ -81,8 +81,14 @@ mod tests {
             normalize_for_match("か\u{3099}っこう"),
             normalize_for_match("がっこう")
         );
-        assert_eq!(normalize_for_match("は\u{3099}な"), normalize_for_match("ばな"));
-        assert_eq!(normalize_for_match("は\u{309A}な"), normalize_for_match("ぱな"));
+        assert_eq!(
+            normalize_for_match("は\u{3099}な"),
+            normalize_for_match("ばな")
+        );
+        assert_eq!(
+            normalize_for_match("は\u{309A}な"),
+            normalize_for_match("ぱな")
+        );
         // 半角假名折进全角假名（片假名与平假名是两套文字，NFKC 不会合并它们）。
         assert_eq!(normalize_for_match("ｶﾞ"), normalize_for_match("ガ"));
     }
