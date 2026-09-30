@@ -20,7 +20,7 @@ pub mod types;
 
 pub use detect::{Detection, Detector};
 pub use group::{GroupParams, TextBlock, group_boxes};
-pub use inpaint::{Inpainted, Inpainter, mask_from_blocks};
+pub use inpaint::{CropPolicy, Inpainted, Inpainter, mask_from_blocks};
 pub use postprocess::Params as DetectorParams;
 pub use recognize::{Recognition, Recognizer};
 pub use session::{Ep, StageEpPlan, ep_available, stage_ep_plan};

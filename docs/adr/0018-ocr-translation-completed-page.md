@@ -286,6 +286,27 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
 并且顶栏芯片显示成**「原文回填」**而不是「译文页」（`TranslatedPageChipState.showingOriginal`，
 单独一个颜色）：一张「擦掉日文又画回日文」的页面看着像成功了，不标出来就是在撒谎。
 
+**「把系统翻译当后端」这条提议的核实结果（2026-09-30，本机 macOS 27 / SDK 27）**：
+提议是用 Apple 的 `Translation` 框架做离线后端。**技术上不能采纳，原因不是质量而是装不上**：
+
+- 语言对是**认的**：`LanguageAvailability().status(from: ja, to: zh-Hans)` 回 `supported`，
+  `supportedLanguages` 共 21 个（探针 `.local/apple-probe/probe3.swift`，只读）。
+- 但**没有任何公开 API 能把它装上**。这不是我记错了名字 —— 是从 SDK 自己的
+  `Translation.swiftinterface` 现读，并用编译器复验的：`LanguageAvailability` 只有
+  `status(from:to:)` / `status(for:to:)` / `supportedLanguages` / `preferredStrategy`，
+  没有 `download…` 任何东西；`TranslationSession` 唯一的公开构造器是
+  `init(installedSource:target:…)` —— **名字本身就要求「已安装」**。
+  试过 `init(configuration:sessionID:)` / `init(source:target:)` 四种写法，全部被编译器拒绝。
+- 于是链路只能是「用户自己去系统设置里装端侧翻译语言」。**每个用户都要装一次，而 app 连替他点下去的按钮都没有**。
+  这条对一期形态是直接致命的：成品页已经要求用户下 **672 MB** 五个权重
+  （检测 4.7 + encoder 343.5 + decoder 117.5 + 擦字 206.3 + 词表，`ls -l` 现读）+ 填一个翻译端点，
+  再加一步「去系统设置找那个开关」的流失成本，比它省下的那次 HTTP 请求贵得多。
+- 附带一条：**质量仍然量不到**（装不上就翻不出），所以任何「Apple 翻译够不够好」的说法都是空口。
+  iOS 侧同样是 `installedSource:target:` 一个构造器（现读 iPhoneOS SDK 的 swiftinterface），
+  所以这不是 macOS 独有的限制，别指望换平台绕开。
+- 结论：**§决定 7 不变**。如果哪天系统语言变成「装好即有」的常态（或 Apple 补回下载 API），
+  再按 §决定 7 的口径评估 —— 那时还要多编一项进指纹：**翻译后端**，因为换后端就是换译文。
+
 ## Considered Options
 
 - **overlay-first（先只做叠加层，擦字回填另开一版）**：00948185 那一稿的选择，**已否决**。

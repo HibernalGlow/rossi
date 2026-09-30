@@ -5,6 +5,10 @@
 //! 2. pyclipper 的多边形外扩换成**矩形外扩**：对矩形，面积/周长 = `w*h / (2(w+h))`，
 //!    与 DB 的 offset 语义一致，只是不再贴合任意多边形。
 //! 这两点会让框数与原实现有 ±几个的差异，验证口径是「同一批页的框数对齐 + 人眼看叠加图」。
+//!
+//! 第三件事不是简化，是**漏了**：PaddleOCR 的 `box_thresh`（框内概率均值闸）本模块一开始没有。
+//! 后果不是多几个框，而是 `prob_thresh` / `limit_side` 这两个召回旋钮**不敢动** —— 一调低阈值，
+//! 弱框就涌进来（实测 Aisazu 一页 33 → 104 框）。现在补上了，默认 `0.0` 保持旧口径。
 
 use crate::types::{Quad, TextBox};
 
@@ -16,6 +20,13 @@ pub struct Params {
     pub min_area: f32,
     /// DB 的 unclip 比例。1.6 是我们实测下来最贴近竖排文字块的取值。
     pub unclip: f32,
+    /// 框内概率均值（box_score）的下限。**0 = 不过滤**，与本模块移植前的口径一致。
+    ///
+    /// PaddleOCR 一直有这道闸（默认 0.6），我们之前漏了：后果不是「多几个框」这么简单，
+    /// 而是**上面两个参数不敢动** —— 想把 `limit_side` 调大、`prob_thresh` 调低来找回
+    /// 散字与手写标题时，弱框会一起涌进来（实测 Aisazu 一页从 33 框涨到 104 框）。
+    /// 有了这道闸才谈得上调那两个。
+    pub box_thresh: f32,
 }
 
 impl Default for Params {
@@ -24,6 +35,7 @@ impl Default for Params {
             prob_thresh: 0.30,
             min_area: 64.0,
             unclip: 1.6,
+            box_thresh: 0.0,
         }
     }
 }
@@ -101,22 +113,27 @@ pub fn boxes_from_prob(
         if points.len() < 3 || area_est < p.min_area {
             continue;
         }
-        let (cx, cy, bw, bh, angle) = min_area_rect(&points);
+        let (cx, cy, bw0, bh0, angle) = min_area_rect(&points);
         // 细长碎片（单像素宽的线）不是文字：与 PaddleOCR 同一道闸。
-        if bw.min(bh) < 4.0 {
+        if bw0.min(bh0) < 4.0 {
             continue;
         }
-        let perimeter = 2.0 * (bw + bh);
+        // box_score 一律按**外扩前**的框算：unclip 会把框外的背景平均进来，
+        // 越弱的框反而显得分越高，这道闸就白装了。
+        let score = mean_prob_in_rect(prob, w, h, (cx, cy), (bw0, bh0), angle);
+        if score < p.box_thresh {
+            continue;
+        }
+        let perimeter = 2.0 * (bw0 + bh0);
         let grow = if perimeter > 0.0 {
-            bw * bh * (p.unclip - 1.0) / perimeter
+            bw0 * bh0 * (p.unclip - 1.0) / perimeter
         } else {
             0.0
         };
-        let (bw, bh) = (bw + 2.0 * grow, bh + 2.0 * grow);
+        let (bw, bh) = (bw0 + 2.0 * grow, bh0 + 2.0 * grow);
         if bw < 2.0 || bh < 2.0 {
             continue;
         }
-        let score = mean_prob_in_rect(prob, w, h, (cx, cy), (bw, bh), angle);
         let quad = rect_quad(
             cx * scale_x,
             cy * scale_y,
@@ -288,5 +305,25 @@ mod tests {
         assert!((y0 - 14.0).abs() < 3.0, "{y0}");
         assert!((x1 - 50.0).abs() < 3.0, "{x1}");
         assert!((y1 - 50.0).abs() < 3.0, "{y1}");
+    }
+
+    #[test]
+    fn box_thresh_drops_weak_boxes_and_keeps_strong_ones() {
+        let (w, h) = (64usize, 64usize);
+        let mut prob = vec![0.0f32; w * h];
+        solid_rect(&mut prob, w, 4, 6, 20, 10); // 强：均值 0.9
+        for y in 40..50 {
+            for x in 40..56 {
+                prob[y * w + x] = 0.35; // 弱：过得了 prob_thresh 0.30，但框内均值只有 0.35
+            }
+        }
+        let loose = boxes_from_prob(&prob, w, h, 1.0, 1.0, &Params::default());
+        assert_eq!(loose.len(), 2, "box_thresh=0 必须保持原口径：{loose:?}");
+        let mut p = Params::default();
+        p.box_thresh = 0.6;
+        let strict = boxes_from_prob(&prob, w, h, 1.0, 1.0, &p);
+        assert_eq!(strict.len(), 1, "弱框该被 box_thresh 拦掉：{strict:?}");
+        let (x0, _, _, _) = strict[0].quad.aabb();
+        assert!(x0 < 20.0, "留下的该是强块（左上那个），不是弱块");
     }
 }
