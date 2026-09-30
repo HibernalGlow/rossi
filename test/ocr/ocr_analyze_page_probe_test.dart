@@ -5,17 +5,24 @@
 /// 这一层之前只有 codegen 通过，从没被真实调用过。
 ///
 /// 模型与页图**不在仓库里**（ADR-0018 §决定 5：权重不随包、字体才是随包的），
-/// 所以路径按下面顺序找，找不到就 skip 并说明理由，不留永远红的测试：
-///   1. 环境变量 `ROSSI_OCR_MODELS_DIR` / `ROSSI_OCR_TEST_PAGE`
-///   2. 本机开发用的 `/tmp/inpaint-lab/models`、`/tmp/detect-lab/models`、`/tmp/detect-lab/pages`
+/// 所以查找口径统一走 `real_page_fixtures.dart`（env → `.local/ocr-test-data/` → `/tmp/*-lab`），
+/// 找不到就 skip 并说明理由，不留永远红的测试。
+/// ⚠️ 这份以前自己抄了一份只认 `/tmp` 的，`/tmp` 被清之后就静默 skip 了几天 ——
+/// 抽出口的正是这个文件要防的事，别再把路径抄回本地。
 library;
 
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:zephyr/service/ocr/ocr_models.dart';
 import 'package:zephyr/src/rust/api/ocr.dart';
 import 'package:zephyr/src/rust/frb_generated.dart';
+
+import 'real_page_fixtures.dart';
+
+/// 尺寸与块文本那几条断言就是照这一页写的。
+const _pinnedPage = 'mokuro_001a.jpg';
 
 void main() {
   var nativeReady = false;
@@ -38,34 +45,30 @@ void main() {
       nativeError = '$e';
     }
 
-    final envDir = Platform.environment['ROSSI_OCR_MODELS_DIR'];
-    final envPage = Platform.environment['ROSSI_OCR_TEST_PAGE'];
-    final envDirObj = envDir == null ? null : Directory(envDir);
-    final dirs = [
-      ?envDirObj,
-      Directory('/tmp/inpaint-lab/models'),
-      Directory('/tmp/detect-lab/models'),
-    ];
-    String? find(String name) {
-      for (final d in dirs) {
-        final f = File('${d.path}/$name');
+    // 查找口径**必须**走 `real_page_fixtures.dart`。这里曾经自己抄了一份只认
+    // `/tmp/{inpaint,detect}-lab` 的，于是 /tmp 被 dirhelper 扫走之后，这条测试
+    // 静默 skip 了几天，而文档里还写着它跑过 —— 正是那个文件头警告的那件事。
+    String? find(String upstream) {
+      for (final d in realModelDirs()) {
+        final f = File('${d.path}/$upstream');
         if (f.existsSync()) return f.path;
       }
       return null;
     }
 
-    det = find('ch_PP-OCRv4_det_infer.onnx') ?? '';
-    encoder = find('encoder_model.onnx') ?? '';
-    decoder = find('decoder_model.onnx') ?? '';
-    vocab = find('vocab.txt') ?? '';
-    lama = find('lama-manga-dynamic.onnx') ?? '';
-    final pages = [?envPage, '/tmp/detect-lab/pages/mokuro_001a.jpg'];
-    for (final p in pages) {
-      if (File(p).existsSync()) {
-        page = p;
-        break;
-      }
-    }
+    det = find(realModelFiles[OcrModels.detFile]!) ?? '';
+    encoder = find(realModelFiles[OcrModels.encoderFile]!) ?? '';
+    decoder = find(realModelFiles[OcrModels.decoderFile]!) ?? '';
+    vocab = find(realModelFiles[OcrModels.vocabFile]!) ?? '';
+    lama = find(realModelFiles[OcrModels.inpaintFile]!) ?? '';
+    // 尺寸与块文本那几条断言是照 `mokuro_001a` 写的（827×1170、15 块），
+    // 所以先找它；`ROSSI_OCR_TEST_PAGE` 留给临时换页时用。
+    final envPage = Platform.environment['ROSSI_OCR_TEST_PAGE'];
+    page = envPage != null && envPage.isNotEmpty && File(envPage).existsSync()
+        ? envPage
+        : realPages()
+              .where((p) => p.endsWith(_pinnedPage))
+              .fold('', (acc, p) => acc.isEmpty ? p : acc);
 
     final missing = [
       if (det.isEmpty) 'ppocr det',
@@ -77,7 +80,8 @@ void main() {
     fixturesReady = missing.isEmpty;
     fixturesReason = missing.isEmpty
         ? ''
-        : '缺少 ${missing.join(' / ')}；设 ROSSI_OCR_MODELS_DIR 指向存放模型的目录';
+        : '缺少 ${missing.join(' / ')}；放进取 `real_page_fixtures.dart` 里那三个目录之一'
+              '（通常是 `.local/ocr-test-data/models`），或设 ROSSI_OCR_MODELS_DIR';
   });
 
   OcrModelPaths paths() =>
