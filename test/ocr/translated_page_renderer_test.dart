@@ -236,40 +236,72 @@ void main() {
       );
     });
 
-    test('窄高框走「一字一行」，宽扁框才横排换行', () async {
-      // 端到端那张真页看图看出的缺陷（REFERENCE_RESEARCH §8.6.9）：漫画气泡多是窄高框，
-      // 一律横排会排成 3–4 字一行的「假竖排」。断言用**墨的包围盒宽度**分辨两种排法：
-      // 竖堆只有一个字宽，横排会铺满框宽。
-      const w = 400, h = 300;
+    test('窄高长句开多列，不再把字缩到读不了', () async {
+      // 这条是被真页逼出来的（用户 2026-09-27：「一行纵向塞了太多字根本没办法阅读」）。
+      // 旧实现竖排永远只有一列，长句只能靠缩字号塞进去 —— 60×240 的旁白框里
+      // 15 个字会被压到 12.5 px。判据用**决策**而不是猜像素：该开几列、字号多大，
+      // 是能直接断言的；墨的包围盒只用来复核「真的铺开了」。
       const tall = ui.Rect.fromLTWH(300, 20, 60, 240);
-      const wide = ui.Rect.fromLTWH(20, 200, 240, 60);
       const text = 'どっから捕まえてきたんだよお前';
 
+      final layout = TranslatedPageRenderer.plan(tall, text);
+      expect(layout.mode, LayoutMode.vertical);
+      expect(
+        layout.columns,
+        greaterThanOrEqualTo(2),
+        reason: '15 个字塞进一列只能靠缩字号 —— 必须开第二列',
+      );
+      expect(
+        layout.fontSize,
+        greaterThanOrEqualTo(18),
+        reason: '字号是「能不能读」的量，旧实现在这个框里只有 12.5',
+      );
+
       final filled = await TranslatedPageRenderer.render(
-        erasedPng: await _whitePng(w, h),
-        blocks: [_block(tall), _block(wide)],
-        translations: [text, text],
+        erasedPng: await _whitePng(400, 300),
+        blocks: [_block(tall)],
+        translations: [text],
       );
       final rgba = await _rgba(filled);
-      final tallInk = _inkBounds(rgba, w, tall);
-      final wideInk = _inkBounds(rgba, w, wide);
-
+      final ink = _inkBounds(rgba, 400, tall);
       expect(
-        tallInk.width,
-        lessThan(tall.width * 0.55),
-        reason: '窄框里墨铺满了宽度 = 还在横排换行',
+        ink.width,
+        greaterThan(tall.width * 0.6),
+        reason: '多列应该把框宽用起来（一列时只有约两成）',
       );
+      expect(ink.height, greaterThan(tall.height * 0.6));
       expect(
-        tallInk.height,
-        greaterThan(tall.height * 0.6),
-        reason: '竖堆应该把框的高度用起来',
+        _untouchedViolations(
+          rgba,
+          400,
+          const ui.Rect.fromLTWH(366, 20, 34, 240),
+        ),
+        0,
+        reason: '多列之后仍不许越到框右边外面',
       );
-      expect(wideInk.width, greaterThan(wide.width * 0.5), reason: '宽框该横排铺开');
-      expect(wideInk.height, lessThan(wide.height), reason: '宽框不该占满高度');
 
-      final dump = File('/tmp/ocr-lab/filled_tall_wide.png');
+      final dump = File('/tmp/ocr-lab/filled_multicolumn.png');
       await dump.parent.create(recursive: true);
       await dump.writeAsBytes(filled, flush: true);
+    });
+
+    test('短句不开多余列；宽扁框仍走横排；拉丁译文不许竖堆', () async {
+      const tall = ui.Rect.fromLTWH(300, 20, 60, 240);
+      const wide = ui.Rect.fromLTWH(20, 200, 240, 60);
+      // 5 个字在 60×240 里用大字号排一列就够，开 4 列反而散。
+      final short = TranslatedPageRenderer.plan(tall, '欢迎回来——博士');
+      expect(short.mode, LayoutMode.vertical);
+      expect(short.columns, 1, reason: '装得下就别拆列 —— 多余的空列比小字更难读');
+
+      final horizontal = TranslatedPageRenderer.plan(wide, 'どっから捕まえてきたんだよお前');
+      expect(horizontal.mode, LayoutMode.horizontal);
+
+      // 目标语言是用户随便填的：英文拆成一列一个字母等于不可读。
+      final latin = TranslatedPageRenderer.plan(
+        tall,
+        'Where did you find him?',
+      );
+      expect(latin.mode, LayoutMode.horizontal, reason: '拉丁字母与空格不能「一字一行」竖堆');
     });
 
     test('条数或四角点不对：抛得出名字，不崩成越界', () async {
