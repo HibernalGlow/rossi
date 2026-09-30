@@ -456,7 +456,7 @@ class _FollowCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildCover(cover),
+              _buildCover(context, cover),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
@@ -493,7 +493,7 @@ class _FollowCard extends StatelessWidget {
     }
   }
 
-  Widget _buildCover(UnifiedComicCover cover) {
+  Widget _buildCover(BuildContext context, UnifiedComicCover cover) {
     return Padding(
       padding: const EdgeInsets.all(8),
       child: ClipRRect(
