@@ -9,13 +9,30 @@
 //!   一旦不一致就会出现假阴性。Rossi 目前只有 post-filter 与解析 2 处
 //!   （`zip_entry_key` 因索引侧尚未引入，作为面向未来的保留）。
 //!
-//! v1 仅做 `to_lowercase()`。NFKC（全角/半角归一化）留待 v2 考虑。
-//! 引入 NFKC 时必须 bump `index_version` 并重建索引。
+//! **Rossi 相对上游 v1 的偏离**：归一化从 `to_lowercase()` 换成 **NFKC + 小写**
+//! （理由见 [`normalize_for_match`]）。上游那句「引入 NFKC 必须 bump `index_version`
+//! 并重建索引」在这里还不用担心 —— Rossi 的索引侧还不存在，只需要守住上面那条
+//! 「三处同一个函数」。
 
-/// 索引与查询两侧共用的、用于搜索匹配的文本归一化。
-/// v1: 仅小写化（与现行 `search_query.rs` 的 `to_lowercase()` 保持一致）。
+use unicode_normalization::UnicodeNormalization;
+
+/// 索引与查询两侧共用的、用于搜索匹配的文本归一化：**NFKC 之后小写化**。
+///
+/// 只小写化会稳定漏检，两类都实测过：
+///
+/// - **合成态/分解态**：macOS 上的文件名常以 NFD 存盘（APFS 保留写入时的形态，
+///   HFS+ 一律分解），而输入法交出的是 NFC。`か\u{3099}` 与 `が` 字面不相等，
+///   于是含浊音的查询（すごい、おっぱい……）对 NFD 名字必然 0 命中。
+/// - **全角/半角**：名字里的 `（DL版）` 与用户敲的 `(DL版)`、半角假名 `ｶﾞ` 与全角 `ガ`
+///   在只小写化的口径下也不是同一个词。取 NFKC（而不是 NFC）就是为了把这类一起折掉。
+///
+/// 先折叠再小写：`Ａ` 要经 NFKC 才落到 ASCII `A`，随后才成 `a`。纯 ASCII 名字走快路径
+/// —— 折叠对它是恒等映射，不必查表。
 pub fn normalize_for_match(s: &str) -> String {
-    s.to_lowercase()
+    if s.is_ascii() {
+        return s.to_ascii_lowercase();
+    }
+    s.nfkc().collect::<String>().to_lowercase()
 }
 
 /// ZIP 内条目在 fts_meta 上的键表示 `<zip_path>\x1F<entry>`。
@@ -51,13 +68,23 @@ mod tests {
     }
 
     #[test]
-    fn normalize_fullwidth_ascii_lowercases() {
-        // to_lowercase 也会把全角英文字母小写化（Unicode case folding 的行为）。
-        // 实际上 fullwidth ⇄ halfwidth 混合时 "不会变成同一个 lowercase variant"，因此
-        // 含全角的搜索在 v2 引入 NFKC 之前以完全匹配优先。
-        assert_eq!(normalize_for_match("ＡＢＣ"), "ａｂｃ");
-        // 半角小写与全角小写是不同的字符
-        assert_ne!(normalize_for_match("abc"), normalize_for_match("ＡＢＣ"));
+    fn normalize_folds_fullwidth_into_ascii() {
+        // NFKC 把全角拉丁折成半角，之后小写：这条是「文件存全角、用户敲半角」能命中的前提。
+        assert_eq!(normalize_for_match("ＡＢＣ"), "abc");
+        assert_eq!(normalize_for_match("abc"), normalize_for_match("ＡＢＣ"));
+    }
+
+    #[test]
+    fn normalize_folds_decomposed_into_composed_kana() {
+        // 盘上 NFD / 输入法 NFC 折完必须是同一个串。
+        assert_eq!(
+            normalize_for_match("か\u{3099}っこう"),
+            normalize_for_match("がっこう")
+        );
+        assert_eq!(normalize_for_match("は\u{3099}な"), normalize_for_match("ばな"));
+        assert_eq!(normalize_for_match("は\u{309A}な"), normalize_for_match("ぱな"));
+        // 半角假名折进全角假名（片假名与平假名是两套文字，NFKC 不会合并它们）。
+        assert_eq!(normalize_for_match("ｶﾞ"), normalize_for_match("ガ"));
     }
 
     #[test]

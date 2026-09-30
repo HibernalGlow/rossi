@@ -10,7 +10,12 @@
 //! - `-"..."` = 也支持 NOT + 引号的组合
 //! - 没有闭合引号时，直接取到末尾作为一个 token (宽松解析)
 //!
-//! token 会小写化后保存在 `needle` 中。匹配时把原始 hay 传给 `matches`，内部会自行小写化。
+//! token 会归一化后保存在 `needle` 中。匹配时把原始 hay 传给 `matches`，内部会自行归一化。
+//!
+//! **Rossi 相对上游的偏离**：上游只 `to_lowercase()`，这里两侧统一走
+//! [`crate::search_norm::normalize_for_match`]（NFKC + 小写）。只小写化会让输入法的
+//! NFC 查询对盘上的 NFD 文件名 0 命中，见那个函数的文档。除这一处外与上游逐字一致，
+//! 上游更新时按 `docs/local-core-vendored-modules.md` 对拍。
 //!
 //! ## 组合模式 (`MatchMode`)
 //!
@@ -47,7 +52,7 @@ impl From<bool> for MatchMode {
 pub struct Token {
     /// true: 只保留包含该 token 的项。false: 排除包含它的项。
     pub include: bool,
-    /// 小写化后的匹配目标字符串。为空的 token 会在 parse 中丢弃。
+    /// 归一化（NFKC + 小写）后的匹配目标字符串。为空的 token 会在 parse 中丢弃。
     pub needle: String,
     /// 为 true 时是「标签搜索 token」。以 `#标签名` 前缀输入时会被置位。
     /// needle 中包含 `#` (例如: "#原神")。
@@ -58,7 +63,11 @@ pub struct Token {
 
 /// 把查询字符串分解为正负 token 序列。仅空白或单独的 `-` 会被忽略。
 pub fn parse(query: &str) -> Vec<Token> {
-    let chars: Vec<char> = query.chars().collect();
+    // 整串先过一遍与 hay 侧同一个归一化函数（两侧不同函数会出假阴性）。放在分词**之前**
+    // 而不是只折 token：全角的 `－` 折成 ASCII `-` 才认得出排除词，全角空格与 NBSP 折成
+    // 空格才会被当成词边界 —— 用户从文件名里复制一段带全角空格的文本时就是这个形态。
+    let folded = crate::search_norm::normalize_for_match(query);
+    let chars: Vec<char> = folded.chars().collect();
     let mut tokens = Vec::new();
     let mut i = 0;
     while i < chars.len() {
@@ -107,7 +116,8 @@ pub fn parse(query: &str) -> Vec<Token> {
         // `#标签名` 前缀判定: 以 `#` 开头，且 `#` 之后还有 1 个字符以上。
         // 单独的 `#` 和 `##...` 按普通关键词处理 (因为用户意图不明确)。
         let is_tag = raw.starts_with('#') && raw.chars().count() >= 2 && !raw.starts_with("##");
-        let needle = raw.to_lowercase();
+        // 串首已整串归一化，这里不再单独小写（NFKC 与小写都是幂等的）。
+        let needle = raw.to_owned();
         if !needle.is_empty() && needle != "-" {
             tokens.push(Token {
                 include,
@@ -119,7 +129,7 @@ pub fn parse(query: &str) -> Vec<Token> {
     tokens
 }
 
-/// 判定 `hay` 是否匹配 token 序列 (内部做小写化，默认 AND 模式)。
+/// 判定 `hay` 是否匹配 token 序列 (内部做归一化，默认 AND 模式)。
 /// - include token: hay 中不包含则不匹配
 /// - exclude token: hay 中包含则不匹配
 /// - token 序列为空: 始终匹配 (视为无过滤器)
@@ -138,7 +148,7 @@ pub fn matches(tokens: &[Token], hay: &str) -> bool {
 /// include 为 0 个 + 仅有 exclude + OR 模式时，只要「不包含 exclude」即视为匹配
 /// (与 AND 模式行为一致，NOT-only 会被 UI 侧拒绝)。
 pub fn matches_with_mode(tokens: &[Token], hay: &str, mode: MatchMode) -> bool {
-    let hay_lower = hay.to_lowercase();
+    let hay_lower = crate::search_norm::normalize_for_match(hay);
     matches_lowercased_with_mode(tokens, &hay_lower, mode)
 }
 
@@ -211,7 +221,7 @@ pub fn decide_partial_with_mode(
     if tokens.is_empty() {
         return PartialResult::Decided(true);
     }
-    let hay_lower = hay_so_far.to_lowercase();
+    let hay_lower = crate::search_norm::normalize_for_match(hay_so_far);
     let mut has_include = false;
     let mut any_include_missing = false;
     let mut include_hit = false;
@@ -338,6 +348,17 @@ mod tests {
     fn parse_dash_inside_word_kept() {
         // 单词中的 `-` 不会成为 NOT (例如: "jean-claude")
         assert_eq!(parse("jean-claude"), vec![inc("jean-claude")]);
+    }
+
+    #[test]
+    fn parse_folds_width_before_tokenizing() {
+        // 全角 `－` 折成 ASCII `-` 之后才认得出排除词；整串归一化发生在分词之前。
+        assert_eq!(
+            parse("summer －draft"),
+            vec![inc("summer"), exc("draft")],
+        );
+        // 全角空格折成普通空格，于是它会正常把两个词分开。
+        assert_eq!(parse("summer\u{3000}draft"), vec![inc("summer"), inc("draft")]);
     }
 
     #[test]

@@ -97,6 +97,7 @@ jpegxl-rs = { version = "0.15", optional = true, default-features = false, featu
     "image",
     "vendored",
 ] }
+unicode-normalization = "0.1"
 
 # ── 仅 Windows 需要的依赖 ──
 # 只给 `src/file_tree.rs` 的 `get_available_roots()` 枚举本机盘符用：

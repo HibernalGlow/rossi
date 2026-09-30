@@ -382,6 +382,37 @@
         assert!(names(&state).is_empty());
     }
 
+    /// 盘上以分解形态（NFD）存的名字，必须被输入法交出的合成形态（NFC）查询搜到。
+    ///
+    /// 这条是「根本搜不出来东西」的主因：实测某个真实图库的 6 万个名字里 39% 是 NFD，
+    /// 而只小写化的匹配把 `か\u{3099}` 与 `が` 当成两个不同的词。全角/半角同理。
+    #[test]
+    fn search_ignores_normalization_and_width_form() {
+        let dir = tempdir().unwrap();
+        touch(&dir.path().join("か\u{3099}っこうの時間.zip")); // 盘上分解形态
+        touch(&dir.path().join("タイトル（DL版）.cbz")); // 全角括号
+        touch(&dir.path().join("ｶﾞﾙ.zip")); // 半角假名
+        let mut state = FileManagerState::new(Some(dir.path().into())).unwrap();
+        let names = |state: &FileManagerState| -> Vec<String> {
+            state
+                .entries()
+                .unwrap()
+                .into_iter()
+                .map(|entry| entry.node.name)
+                .collect()
+        };
+
+        // NFC 查询要命中 NFD 名字。
+        state.set_search_query("がっこう");
+        assert_eq!(names(&state), ["か\u{3099}っこうの時間.zip"]);
+        // 用户敲半角，文件存全角。
+        state.set_search_query("(DL版)");
+        assert_eq!(names(&state), ["タイトル（DL版）.cbz"]);
+        // 全角假名查询命中半角假名名字。
+        state.set_search_query("ガル");
+        assert_eq!(names(&state), ["ｶﾞﾙ.zip"]);
+    }
+
     #[test]
     fn search_uses_token_grammar_and_or_mode() {
         let dir = tempdir().unwrap();
