@@ -21,8 +21,8 @@
 use anyhow::{Context, Result, anyhow};
 use image::RgbImage;
 use rossi_ocr_core::{
-    CropPolicy, Detector, Ep, GroupParams, Inpainted, Inpainter, TextBlock, group_boxes,
-    mask_from_blocks,
+    CropPolicy, Detector, DetectorParams, Ep, GroupParams, Inpainted, Inpainter, TextBlock,
+    group_boxes, mask_from_blocks,
 };
 use serde_json::{Value, json};
 use std::io::Write;
@@ -32,6 +32,11 @@ use std::time::Instant;
 fn main() -> Result<()> {
     let mut det_model: Option<PathBuf> = None;
     let mut inpaint_model: Option<PathBuf> = None;
+    // 检测侧的三个旋钮：掩膜是**由框推出来的**，所以换检测参数就是换擦字范围。
+    // 不接这三个，台架就只能量「同一批框下的擦字」，量不到「换一批框会怎样」。
+    let mut det_limit_side: u32 = 960;
+    let mut det_prob_thresh: f32 = 0.30;
+    let mut det_box_thresh: f32 = 0.0;
     let mut out_dir = PathBuf::from("/tmp/ocr-lab/inpaint-ab");
     let mut ep = Ep::Cpu;
     let mut dilates = vec![0i32, 3, 6, 8];
@@ -81,6 +86,9 @@ fn main() -> Result<()> {
             "--probe" => probe = val!("--probe").parse()?,
             "--repeat" => repeat = val!("--repeat").parse()?,
             "--threads" => threads = val!("--threads").parse()?,
+            "--det-limit-side" => det_limit_side = val!("--det-limit-side").parse()?,
+            "--det-prob-thresh" => det_prob_thresh = val!("--det-prob-thresh").parse()?,
+            "--det-box-thresh" => det_box_thresh = val!("--det-box-thresh").parse()?,
             "--pages" => {}
             other => pages.push(PathBuf::from(other)),
         }
@@ -93,7 +101,13 @@ fn main() -> Result<()> {
     }
     std::fs::create_dir_all(&out_dir)?;
 
-    let mut detector = Detector::from_file(&det_model, ep)?;
+    let mut detector = Detector::from_file(&det_model, ep)?.with_limit_side(det_limit_side);
+    detector = detector.with_params(DetectorParams {
+        prob_thresh: det_prob_thresh,
+        min_area: 64.0,
+        unclip: 1.6,
+        box_thresh: det_box_thresh,
+    });
     let mut inpainter = Inpainter::from_file_with(&inpaint_model, ep, threads)?
         .with_max_side(max_side)
         .with_crop_pad(crop_pad);
