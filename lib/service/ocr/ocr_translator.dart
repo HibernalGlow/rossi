@@ -1,9 +1,14 @@
 import 'dart:convert';
 
 import 'package:zephyr/network/http/wind_http.dart';
+import 'package:zephyr/service/ocr/ocr_translate_engine.dart';
 
 /// 翻译配置。**不内置 NMT 模型**（ADR-0018 §决定 7）：只走 OpenAI-compatible 端点，
 /// 云端（DeepSeek / OpenAI / Groq…）与本机 Ollama（`http://127.0.0.1:11434/v1`）是同一个协议。
+///
+/// [engine] 决定「这一页的译文从哪来」：端点之外还有 Apple 系统翻译那条端侧路。
+/// 它**必须进缓存指纹**（`TranslatedPageCache.describe`）—— 否则切了引擎却继续端出
+/// 旧引擎翻的那张页，正是本 ADR 一路在防的静默陈旧。
 class OcrTranslationConfig {
   const OcrTranslationConfig({
     required this.baseUrl,
@@ -11,18 +16,22 @@ class OcrTranslationConfig {
     this.apiKey = '',
     this.targetLanguage = 'zh-Hans',
     this.glossary = '',
+    this.engine = OcrTranslateEngine.endpoint,
   });
 
   /// 形如 `https://api.deepseek.com/v1` / `http://127.0.0.1:11434/v1`（**不带**尾斜杠）。
+  /// 走 [OcrTranslateEngine.appleOnDevice] 时它可以为空 —— 那条路不要端点也不要 key。
   final String baseUrl;
   final String model;
   final String apiKey;
+  final OcrTranslateEngine engine;
 
   /// 目标语言，进缓存指纹（换目标语言必须重译）。
   final String targetLanguage;
 
   /// 术语表：每行 `原文=译文`。整体拼进提示词；它的**文本**进缓存指纹 ——
   /// 改一个词就该让成品页失效，而不是让人纳闷「为什么还是旧译名」。
+  /// Apple 端侧那条路**没有术语表接口**，选它时这一项会被忽略（设置页要写明白）。
   final String glossary;
 
   OcrTranslationConfig copyWith({
@@ -31,12 +40,14 @@ class OcrTranslationConfig {
     String? apiKey,
     String? targetLanguage,
     String? glossary,
+    OcrTranslateEngine? engine,
   }) => OcrTranslationConfig(
     baseUrl: baseUrl ?? this.baseUrl,
     model: model ?? this.model,
     apiKey: apiKey ?? this.apiKey,
     targetLanguage: targetLanguage ?? this.targetLanguage,
     glossary: glossary ?? this.glossary,
+    engine: engine ?? this.engine,
   );
 
   Map<String, dynamic> toJson() => {
@@ -44,6 +55,7 @@ class OcrTranslationConfig {
     'model': model,
     'targetLanguage': targetLanguage,
     'glossary': glossary,
+    'engine': engine.id,
     // apiKey 刻意不落盘。
   };
 }
@@ -73,14 +85,16 @@ class OcrTranslator {
   }) async {
     if (texts.isEmpty) return const [];
     final payload = _buildRequest(texts, config, chapterContext);
-    final url = '${config.baseUrl.replaceAll(RegExp(r'/+$'), '')}/chat/completions';
+    final url =
+        '${config.baseUrl.replaceAll(RegExp(r'/+$'), '')}/chat/completions';
 
     final response = await WindHttp().fetch(
       url,
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        if (config.apiKey.isNotEmpty) 'authorization': 'Bearer ${config.apiKey}',
+        if (config.apiKey.isNotEmpty)
+          'authorization': 'Bearer ${config.apiKey}',
       },
       body: jsonEncode(payload),
       timeout: timeout,
@@ -133,10 +147,7 @@ class OcrTranslator {
       'model': config.model,
       'temperature': 0.2,
       'messages': [
-        {
-          'role': 'system',
-          'content': '你是漫画翻译。输出必须与输入的条数、顺序、编号一一对应。',
-        },
+        {'role': 'system', 'content': '你是漫画翻译。输出必须与输入的条数、顺序、编号一一对应。'},
         {'role': 'user', 'content': buffer.toString()},
       ],
     };
@@ -176,7 +187,9 @@ List<String> parseTranslatedLines(String content, {required int expected}) {
     if (line.isEmpty) continue;
     // 编号与正文之间可能是制表符、句点、冒号，模型还常给编号加粗（形如 **2**）。
     // 注意别用 `\s*` 去接分隔符：它会把制表符先吃掉，导致「1<TAB>译文」整行匹配不上。
-    final m = RegExp(r'^\s*\**\s*(\d+)\s*\**\s*(?:[.、:：]\s*)?(.*)$').firstMatch(line);
+    final m = RegExp(
+      r'^\s*\**\s*(\d+)\s*\**\s*(?:[.、:：]\s*)?(.*)$',
+    ).firstMatch(line);
     if (m == null) continue;
     // 编号是**1 基**（提示词里就是这么给的）：别直接拿来当下标，否则最后一条永远落不进去、
     // 表现为「条数对不上」——这个错位正是被单测咬出来的。

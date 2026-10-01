@@ -4173,6 +4173,27 @@ class Translations$ocr$zh_CN {
 
 	/// zh-CN: '权重还没下全，去设置里下载'
 	String get needWeights => '权重还没下全，去设置里下载';
+
+	/// zh-CN: '译文引擎'
+	String get engine => '译文引擎';
+
+	/// zh-CN: '选「API 端点」按 token 计费/要网络；选「Apple 系统翻译」走端侧，免费离线'
+	String get engineSubtitle => '选「API 端点」按 token 计费/要网络；选「Apple 系统翻译」走端侧，免费离线';
+
+	/// zh-CN: '语言包已装，直接生效（整页 15 块实测约 300 ms）'
+	String get engineAppleInstalled => '语言包已装，直接生效（整页 15 块实测约 300 ms）';
+
+	/// zh-CN: '还没装 ja → 目标语言 的翻译语言包。系统里没有 app 能替你下载的 API —— 请到「系统设置 › 通用 › 语言与地区」里装好再回来'
+	String get engineAppleMissing => '还没装 ja → 目标语言 的翻译语言包。系统里没有 app 能替你下载的 API —— 请到「系统设置 › 通用 › 语言与地区」里装好再回来';
+
+	/// zh-CN: '系统不认识这个语言对，换目标语言或改用端点'
+	String get engineAppleUnsupportedPair => '系统不认识这个语言对，换目标语言或改用端点';
+
+	/// zh-CN: '这台机器上没有系统翻译这条路（仅 macOS 15+ / iOS 18+）'
+	String get engineAppleUnavailable => '这台机器上没有系统翻译这条路（仅 macOS 15+ / iOS 18+）';
+
+	/// zh-CN: '系统翻译没有术语表接口：这一档下术语表不生效，专名会按通用译法翻'
+	String get glossaryIgnoredOnApple => '系统翻译没有术语表接口：这一档下术语表不生效，专名会按通用译法翻';
 }
 
 // Path: realSr
@@ -7471,6 +7492,13 @@ extension on Translations {
 			'ocr.degradedHint' => '端点当时不可用：这一页只做了擦字与原文回填，没有译文',
 			'ocr.busyToast' => '这一页正在生成译文，稍等',
 			'ocr.needWeights' => '权重还没下全，去设置里下载',
+			'ocr.engine' => '译文引擎',
+			'ocr.engineSubtitle' => '选「API 端点」按 token 计费/要网络；选「Apple 系统翻译」走端侧，免费离线',
+			'ocr.engineAppleInstalled' => '语言包已装，直接生效（整页 15 块实测约 300 ms）',
+			'ocr.engineAppleMissing' => '还没装 ja → 目标语言 的翻译语言包。系统里没有 app 能替你下载的 API —— 请到「系统设置 › 通用 › 语言与地区」里装好再回来',
+			'ocr.engineAppleUnsupportedPair' => '系统不认识这个语言对，换目标语言或改用端点',
+			'ocr.engineAppleUnavailable' => '这台机器上没有系统翻译这条路（仅 macOS 15+ / iOS 18+）',
+			'ocr.glossaryIgnoredOnApple' => '系统翻译没有术语表接口：这一档下术语表不生效，专名会按通用译法翻',
 			'realSr.title' => '图片超分（实验性）',
 			'realSr.unlimited' => '不限制',
 			'realSr.modelDownloadFailed' => '模型下载失败',
@@ -7681,6 +7709,8 @@ extension on Translations {
 			'comicList.nothingHere' => '啥都没有',
 			'comicList.filter' => '筛选',
 			'comicList.subCategory' => '子分类',
+			_ => null,
+		} ?? switch (path) {
 			'comicList.levelCategory' => ({required Object level}) => '第${level}级分类',
 			'comicList.missingListConfig' => '缺少列表请求配置',
 			'comicList.missingFnPath' => '列表请求缺少 fnPath',
@@ -7688,8 +7718,6 @@ extension on Translations {
 			'comicEntry.finished' => '完结',
 			'comicEntry.ongoing' => '连载中',
 			'comicEntry.likes' => ({required Object count}) => '喜欢 ${count}',
-			_ => null,
-		} ?? switch (path) {
 			'comicEntry.views' => ({required Object count}) => '浏览 ${count}',
 			'comicEntry.deleteFavorite' => '删除收藏',
 			'comicEntry.deleteFavoriteConfirm' => ({required Object title}) => '确定要删除（${title}）的收藏记录吗？',

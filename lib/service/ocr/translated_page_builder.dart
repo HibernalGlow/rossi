@@ -7,6 +7,7 @@ import 'package:zephyr/service/ocr/ocr_service.dart';
 import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_cache.dart';
+import 'package:zephyr/service/ocr/ocr_translate_engine.dart';
 import 'package:zephyr/service/ocr/translated_page_renderer.dart';
 import 'package:zephyr/src/rust/api/ocr.dart';
 
@@ -90,7 +91,7 @@ class TranslatedPageBuilder {
     )?
     translate,
   }) : _analyze = analyze ?? _rustAnalyze,
-       _translate = translate ?? _httpTranslate;
+       _translate = translate ?? _dispatchTranslate;
 
   final Future<OcrPageResult> Function(String, String, String) _analyze;
   final Future<List<String>> Function(List<String>, OcrTranslationConfig)
@@ -107,10 +108,21 @@ class TranslatedPageBuilder {
     ep: ep,
   );
 
-  static Future<List<String>> _httpTranslate(
+  /// 按**用户选的引擎**分流。放在这一层而不是塞进 `OcrTranslator`：
+  /// 端侧那条路不发 HTTP、也不该被 prompt 模板那套东西碰着。
+  static Future<List<String>> _dispatchTranslate(
     List<String> texts,
     OcrTranslationConfig config,
-  ) => OcrTranslator.instance.translateBlocks(texts: texts, config: config);
+  ) => switch (config.engine) {
+    OcrTranslateEngine.appleOnDevice => AppleTranslateBackend.translateBlocks(
+      texts: texts,
+      config: config,
+    ),
+    OcrTranslateEngine.endpoint => OcrTranslator.instance.translateBlocks(
+      texts: texts,
+      config: config,
+    ),
+  };
 
   Future<TranslatedPage> build({
     required String imagePath,
@@ -160,7 +172,8 @@ class TranslatedPageBuilder {
     // 后端从设置里读，不能在这里写死 cpu：设置页那颗选择器会变成一个骗人的控件。
     final ep = await OcrSettings.loadEp();
     OcrLog.add(
-      '$page 开始构建：端点=${_hostOf(config.baseUrl)}/${config.model} '
+      '$page 开始构建：引擎=${config.engine.id}'
+      '${config.engine == OcrTranslateEngine.endpoint ? ' 端点=${_hostOf(config.baseUrl)}/${config.model}' : ''} '
       '目标=${config.targetLanguage} 请求后端=$ep'
       '${force ? '（force 重算）' : ''}',
     );

@@ -294,26 +294,49 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
 并且顶栏芯片显示成**「原文回填」**而不是「译文页」（`TranslatedPageChipState.showingOriginal`，
 单独一个颜色）：一张「擦掉日文又画回日文」的页面看着像成功了，不标出来就是在撒谎。
 
-**「把系统翻译当后端」这条提议的核实结果（2026-09-30，本机 macOS 27 / SDK 27）**：
-提议是用 Apple 的 `Translation` 框架做离线后端。**技术上不能采纳，原因不是质量而是装不上**：
+**系统翻译当后端：09-30 的结论作废，10-01 重定（本机 macOS 27 / SDK 27，语言包已装）**
 
-- 语言对是**认的**：`LanguageAvailability().status(from: ja, to: zh-Hans)` 回 `supported`，
-  `supportedLanguages` 共 21 个（探针 `.local/apple-probe/probe3.swift`，只读）。
-- 但**没有任何公开 API 能把它装上**。这不是我记错了名字 —— 是从 SDK 自己的
-  `Translation.swiftinterface` 现读，并用编译器复验的：`LanguageAvailability` 只有
-  `status(from:to:)` / `status(for:to:)` / `supportedLanguages` / `preferredStrategy`，
-  没有 `download…` 任何东西；`TranslationSession` 唯一的公开构造器是
-  `init(installedSource:target:…)` —— **名字本身就要求「已安装」**。
-  试过 `init(configuration:sessionID:)` / `init(source:target:)` 四种写法，全部被编译器拒绝。
-- 于是链路只能是「用户自己去系统设置里装端侧翻译语言」。**每个用户都要装一次，而 app 连替他点下去的按钮都没有**。
-  这条对一期形态是直接致命的：成品页已经要求用户下 **672 MB** 五个权重
-  （检测 4.7 + encoder 343.5 + decoder 117.5 + 擦字 206.3 + 词表，`ls -l` 现读）+ 填一个翻译端点，
-  再加一步「去系统设置找那个开关」的流失成本，比它省下的那次 HTTP 请求贵得多。
-- 附带一条：**质量仍然量不到**（装不上就翻不出），所以任何「Apple 翻译够不够好」的说法都是空口。
-  iOS 侧同样是 `installedSource:target:` 一个构造器（现读 iPhoneOS SDK 的 swiftinterface），
-  所以这不是 macOS 独有的限制，别指望换平台绕开。
-- 结论：**§决定 7 不变**。如果哪天系统语言变成「装好即有」的常态（或 Apple 补回下载 API），
-  再按 §决定 7 的口径评估 —— 那时还要多编一项进指纹：**翻译后端**，因为换后端就是换译文。
+09-30 这一节写的是「**技术上不能采纳，原因不是质量而是装不上**」。**那句是错的，现在收回**：
+我量到的是「**app 不能替用户装**」，而用户问的是「装了能不能用」—— 两回事。
+用户自己去系统设置装好 ja → zh-Hans 之后，链路完全通，质量也当场量出来了。
+
+**能用的证据**（探针 `.local/apple-probe/probe4.swift`，输出 `/tmp/ocr-lab/apple-translation.txt`）：
+`status(from: ja, to: zh-Hans)` = `installed`、`isReady` = true，16 条真页台词整批翻完
+**默认 375 ms / lowLatency 287 ms / highFidelity 362 ms**，全程离线、不要 key、不要网络。
+两个意外：① `lowLatency` 与 `highFidelity` 的 16 条输出**逐条完全相同**（0 处差异），
+所以别把「策略」当速度/质量档卖；② 它会把整句拆成多句并用 **ASCII 空格**拼接
+（「危机合同！？ 你没事吧？ 没有受伤吗？」），省略号退化成半角 `...` —— 画进气泡前得后处理。
+
+**质量**：16 条里 4 条实质错，且错得成规律 —— 全在**专名 + 口语语境 + 拟声**：
+「危機契約」→「危机**合同**」、「かえして〜」→「**换一下**~」（该是「还给我」）、
+「まったくもう」→「也**完全**」、「つう!?」→「**通**！？」。
+对的那面也记着：**ヤモリ→壁虎 / トカゲ→蜥蜴 正确区分**（这正是那一格的笑点），にゃん→喵。
+也就是说它的短板恰好是**术语表能救的那一类**，而它**没有术语表接口** ——
+`TranslationSession.Request` 只有 `sourceText` / `clientIdentifier`。
+
+**装不上这件事仍然成立，只是它不是「不能用」**：SDK 里确实没有任何下载入口
+（`LanguageAvailability` 只有 `status` / `supportedLanguages`；`TranslationSession` 唯一的公开构造器
+是 `init(installedSource:target:)`，四种写法都被编译器拒；本机 `canRequestDownloads` 实测 **false**）。
+所以它的真实产品成本是：**每个用户要自己去系统设置装一次，app 连替他点一下的按钮都没有**。
+
+**定案**：引擎做成**用户可主动选**的一档（`OcrTranslateEngine`：`endpoint` / `apple`），
+默认仍是端点 —— 端侧会拿「专名翻对」这件事换「免费 + 离线」，那是用户的取舍，不是我们的。
+`engine.id` 进缓存指纹（**证伪做过**：把这一项从指纹里删掉，
+`test/ocr/ocr_translate_engine_test.dart` 正好红在「换引擎必须让指纹与目录都变」那条）。
+`glossarySha1` 只在端点档参与指纹 —— 端侧没用术语表，让它去失效一份本来就没用术语表的产物是多算。
+非 Apple 平台选了 `apple` 时回落到 `endpoint`（`_engineOf`），不去调一个不存在的桥。
+
+**Windows 那一侧核实过（2026-08 的微软文档口径，⚠️ 没能本机复核 —— 那台构建机 ssh 被拒）**：
+- **Windows AI APIs（`Microsoft.Windows.AI.*`）列的是 LLM(Phi Silica) / 成像 / OCR / 语义搜索，没有文本翻译 API**；
+  多数还要求 Copilot+ PC。
+- Edge 里那个 `Translator` JS API **确实是端侧模型、也确实能由 app 触发下载与监控进度**
+  （`availability()` → downloadable/downloading/available，正好是 Apple 缺的那半），
+  但它是**浏览器里的 Web API**，Flutter 桌面 app 调不到。
+- 真正能给第三方 app 用的「本机、免费」路是 **Foundry Local**：一个 **OpenAI-compatible 的本机服务**，
+  任意 Windows 硬件。所以它属于 `endpoint` 档的一种**配法**（把 baseUrl 指过去就行），
+  **不是新引擎** —— 枚举里不加它，否则设置页会出现两个其实走同一条码路的选项。
+- 结论：`apple` 这一档就是 macOS 专属；Windows / Linux 的省钱路是「端点指向本机 Ollama / Foundry Local」，
+  设置页的 `engineSubtitle` 与 `baseUrlHint` 要能让人看出这件事（端点档的文案里已写明含本机 Ollama / Foundry Local）。
 
 ## Considered Options
 

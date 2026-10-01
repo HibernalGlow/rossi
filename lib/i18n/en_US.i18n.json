@@ -1346,7 +1346,14 @@
     "chipDegraded": "Source text",
     "degradedHint": "The endpoint was unavailable: this page only had the text erased and re-set in the source language.",
     "busyToast": "This page is still being translated",
-    "needWeights": "Weights are incomplete; download them in Settings"
+    "needWeights": "Weights are incomplete; download them in Settings",
+    "engine": "Translation engine",
+    "engineSubtitle": "API endpoint bills per token and needs network; Apple system translation runs on-device, free and offline",
+    "engineAppleInstalled": "Language pack installed — active now (15 blocks measured at ~300 ms)",
+    "engineAppleMissing": "The ja → target translation language pack is not installed. There is no API for an app to download it — install it in System Settings › General › Language & Region, then come back",
+    "engineAppleUnsupportedPair": "The system does not know this language pair; change the target language or use an endpoint",
+    "engineAppleUnavailable": "No system translation on this machine (macOS 15+ / iOS 18+ only)",
+    "glossaryIgnoredOnApple": "System translation has no glossary API: in this mode the glossary is ignored and proper nouns get generic translations"
   },
   "realSr": {
     "title": "Image Super-Resolution (Experimental)",

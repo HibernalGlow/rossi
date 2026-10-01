@@ -7,6 +7,7 @@ import 'package:zephyr/service/ocr/ocr_log.dart';
 import 'package:zephyr/service/ocr/ocr_model_downloader.dart';
 import 'package:zephyr/service/ocr/ocr_models.dart';
 import 'package:zephyr/service/ocr/ocr_settings.dart';
+import 'package:zephyr/service/ocr/ocr_translate_engine.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_cache.dart';
 import 'package:zephyr/src/rust/api/ocr.dart';
@@ -61,19 +62,41 @@ class _OcrSettingPageState extends State<OcrSettingPage> {
       OcrModels.status(),
       TranslatedPageCache.pageCount(),
     ]);
+    // 语言包状态要**现问系统**：它在系统设置里会被装/卸，缓存到成员里就会撒谎。
+    final draft = results[0] as OcrTranslationConfig;
+    final appleStatus = await AppleTranslateBackend.status(
+      target: draft.targetLanguage,
+    );
     if (!mounted) return;
     final status = results[3] as (List<String>, List<String>);
     final ep = results[2] as String;
     setState(() {
-      _draft = results[0] as OcrTranslationConfig;
+      _draft = draft;
       _configured = results[1] != null;
       _ep = ep;
       _epPlan = _resolveEpPlan(ep);
       _readyCount = status.$1.length;
       _missing = status.$2;
       _cacheCount = results[4] as int;
+      _appleStatus = appleStatus;
       _loading = false;
     });
+  }
+
+  /// 端侧引擎在本机的实际状态（`installed` / `supported` / `unsupported` / `unavailable`）。
+  String _appleStatus = 'unavailable';
+
+  /// 选端侧时那句提示。**没装**与**这台机器没这条路**要分开说：
+  /// 前者是「去系统设置装语言包」（app 连替你点一下的 API 都没有），
+  /// 后者是该平台压根没这个引擎 —— 混成一句会让人在 Windows 上找那个不存在的开关。
+  String? get _appleNoteText {
+    if (_draft.engine != OcrTranslateEngine.appleOnDevice) return null;
+    return switch (_appleStatus) {
+      'installed' => t.ocr.engineAppleInstalled,
+      'supported' => t.ocr.engineAppleMissing,
+      'unsupported' => t.ocr.engineAppleUnsupportedPair,
+      _ => t.ocr.engineAppleUnavailable,
+    };
   }
 
   /// 本机三段落点（Rust 侧 `ocr_core::stage_ep_plan`，与冒烟页回报实际值同一把尺子）。
@@ -197,6 +220,17 @@ class _OcrSettingPageState extends State<OcrSettingPage> {
     await _load();
   }
 
+  /// 端点那一档才有的字段（URL / 模型 / key / 术语表）。
+  /// 选端侧时整块收起来 —— 留着会让用户以为「填了也生效」。
+  bool get _endpointOnly => _draft.engine == OcrTranslateEngine.endpoint;
+
+  String _engineLabel(OcrTranslateEngine e) => OcrSettings.engineChoices
+      .firstWhere(
+        (c) => c.$1 == e,
+        orElse: () => (OcrSettings.defaultEngine, OcrSettings.defaultEngine.id),
+      )
+      .$2;
+
   /// 术语表不整段铺开：只显示第一条，多了省略 —— 这行的高度是固定的。
   String get _glossarySummary {
     final first = _draft.glossary
@@ -221,49 +255,76 @@ class _OcrSettingPageState extends State<OcrSettingPage> {
           : ListView(
               children: [
                 settingSectionTitle(context, t.ocr.endpointSection),
+                ListTile(
+                  leading: const Icon(Icons.alt_route_outlined),
+                  title: Text(t.ocr.engine),
+                  subtitle: Text(t.ocr.engineSubtitle),
+                  trailing: FluentDropdown<String>(
+                    value: _draft.engine.id,
+                    displayValue: _engineLabel(_draft.engine),
+                    items: {
+                      for (final c in OcrSettings.engineChoices)
+                        if (c.$1.availableHere) c.$1.id: c.$2,
+                    },
+                    onChanged: (id) async {
+                      final e = OcrTranslateEngine.fromId(id);
+                      await _save(_draft.copyWith(engine: e));
+                    },
+                  ),
+                ),
+                if (_appleNoteText case final note?)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: Text(
+                      note,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
                 if (!_configured)
                   ListTile(
                     leading: const Icon(Icons.info_outline),
                     title: Text(t.ocr.notConfigured),
                   ),
-                _tile(
-                  icon: Icons.link_outlined,
-                  label: t.ocr.baseUrl,
-                  value: _draft.baseUrl.isEmpty
-                      ? t.ocr.baseUrlNone
-                      : _draft.baseUrl,
-                  onTap: () => _edit(
+                if (_endpointOnly) ...[
+                  _tile(
+                    icon: Icons.link_outlined,
                     label: t.ocr.baseUrl,
-                    hint: t.ocr.baseUrlHint,
-                    value: _draft.baseUrl,
-                    apply: (v) => _save(_draft.copyWith(baseUrl: v)),
+                    value: _draft.baseUrl.isEmpty
+                        ? t.ocr.baseUrlNone
+                        : _draft.baseUrl,
+                    onTap: () => _edit(
+                      label: t.ocr.baseUrl,
+                      hint: t.ocr.baseUrlHint,
+                      value: _draft.baseUrl,
+                      apply: (v) => _save(_draft.copyWith(baseUrl: v)),
+                    ),
                   ),
-                ),
-                _tile(
-                  icon: Icons.model_training_outlined,
-                  label: t.ocr.model,
-                  value: _draft.model.isEmpty ? '-' : _draft.model,
-                  onTap: () => _edit(
+                  _tile(
+                    icon: Icons.model_training_outlined,
                     label: t.ocr.model,
-                    hint: t.ocr.modelHint,
-                    value: _draft.model,
-                    apply: (v) => _save(_draft.copyWith(model: v)),
+                    value: _draft.model.isEmpty ? '-' : _draft.model,
+                    onTap: () => _edit(
+                      label: t.ocr.model,
+                      hint: t.ocr.modelHint,
+                      value: _draft.model,
+                      apply: (v) => _save(_draft.copyWith(model: v)),
+                    ),
                   ),
-                ),
-                _tile(
-                  icon: Icons.key_outlined,
-                  label: t.ocr.apiKey,
-                  value: _draft.apiKey.isEmpty ? '-' : '••••••',
-                  subtitle: t.ocr.apiKeySubtitle,
-                  onTap: () => _edit(
+                  _tile(
+                    icon: Icons.key_outlined,
                     label: t.ocr.apiKey,
-                    hint: 'sk-...',
-                    value: _draft.apiKey,
+                    value: _draft.apiKey.isEmpty ? '-' : '••••••',
                     subtitle: t.ocr.apiKeySubtitle,
-                    obscure: true,
-                    apply: (v) => _save(_draft.copyWith(apiKey: v)),
+                    onTap: () => _edit(
+                      label: t.ocr.apiKey,
+                      hint: 'sk-...',
+                      value: _draft.apiKey,
+                      subtitle: t.ocr.apiKeySubtitle,
+                      obscure: true,
+                      apply: (v) => _save(_draft.copyWith(apiKey: v)),
+                    ),
                   ),
-                ),
+                ],
                 _tile(
                   icon: Icons.translate_outlined,
                   label: t.ocr.targetLanguage,
@@ -275,20 +336,27 @@ class _OcrSettingPageState extends State<OcrSettingPage> {
                     apply: (v) => _save(_draft.copyWith(targetLanguage: v)),
                   ),
                 ),
-                _tile(
-                  icon: Icons.book_outlined,
-                  label: t.ocr.glossary,
-                  value: _glossarySummary,
-                  subtitle: t.ocr.glossarySubtitle,
-                  onTap: () => _edit(
+                if (_endpointOnly)
+                  _tile(
+                    icon: Icons.book_outlined,
                     label: t.ocr.glossary,
-                    hint: t.ocr.glossaryHint,
-                    value: _draft.glossary,
+                    value: _glossarySummary,
                     subtitle: t.ocr.glossarySubtitle,
-                    multiline: true,
-                    apply: (v) => _save(_draft.copyWith(glossary: v)),
+                    onTap: () => _edit(
+                      label: t.ocr.glossary,
+                      hint: t.ocr.glossaryHint,
+                      value: _draft.glossary,
+                      subtitle: t.ocr.glossarySubtitle,
+                      multiline: true,
+                      apply: (v) => _save(_draft.copyWith(glossary: v)),
+                    ),
+                  )
+                else
+                  ListTile(
+                    leading: const Icon(Icons.book_outlined),
+                    title: Text(t.ocr.glossary),
+                    subtitle: Text(t.ocr.glossaryIgnoredOnApple),
                   ),
-                ),
 
                 const SizedBox(height: 8),
                 const Divider(height: 1, thickness: 0.3),

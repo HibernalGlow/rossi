@@ -1531,6 +1531,13 @@ class _Translations$ocr$en_US extends Translations$ocr$zh_CN {
 	@override String get degradedHint => 'The endpoint was unavailable: this page only had the text erased and re-set in the source language.';
 	@override String get busyToast => 'This page is still being translated';
 	@override String get needWeights => 'Weights are incomplete; download them in Settings';
+	@override String get engine => 'Translation engine';
+	@override String get engineSubtitle => 'API endpoint bills per token and needs network; Apple system translation runs on-device, free and offline';
+	@override String get engineAppleInstalled => 'Language pack installed — active now (15 blocks measured at ~300 ms)';
+	@override String get engineAppleMissing => 'The ja → target translation language pack is not installed. There is no API for an app to download it — install it in System Settings › General › Language & Region, then come back';
+	@override String get engineAppleUnsupportedPair => 'The system does not know this language pair; change the target language or use an endpoint';
+	@override String get engineAppleUnavailable => 'No system translation on this machine (macOS 15+ / iOS 18+ only)';
+	@override String get glossaryIgnoredOnApple => 'System translation has no glossary API: in this mode the glossary is ignored and proper nouns get generic translations';
 }
 
 // Path: realSr
@@ -3662,6 +3669,13 @@ extension on TranslationsEnUs {
 			'ocr.degradedHint' => 'The endpoint was unavailable: this page only had the text erased and re-set in the source language.',
 			'ocr.busyToast' => 'This page is still being translated',
 			'ocr.needWeights' => 'Weights are incomplete; download them in Settings',
+			'ocr.engine' => 'Translation engine',
+			'ocr.engineSubtitle' => 'API endpoint bills per token and needs network; Apple system translation runs on-device, free and offline',
+			'ocr.engineAppleInstalled' => 'Language pack installed — active now (15 blocks measured at ~300 ms)',
+			'ocr.engineAppleMissing' => 'The ja → target translation language pack is not installed. There is no API for an app to download it — install it in System Settings › General › Language & Region, then come back',
+			'ocr.engineAppleUnsupportedPair' => 'The system does not know this language pair; change the target language or use an endpoint',
+			'ocr.engineAppleUnavailable' => 'No system translation on this machine (macOS 15+ / iOS 18+ only)',
+			'ocr.glossaryIgnoredOnApple' => 'System translation has no glossary API: in this mode the glossary is ignored and proper nouns get generic translations',
 			'realSr.title' => 'Image Super-Resolution (Experimental)',
 			'realSr.unlimited' => 'Unlimited',
 			'realSr.modelDownloadFailed' => 'Model download failed',
@@ -3873,6 +3887,8 @@ extension on TranslationsEnUs {
 			'comicList.filter' => 'Filter',
 			'comicList.subCategory' => 'Subcategory',
 			'comicList.levelCategory' => ({required Object level}) => 'Level ${level}',
+			_ => null,
+		} ?? switch (path) {
 			'comicList.missingListConfig' => 'Missing list request configuration',
 			'comicList.missingFnPath' => 'List request missing fnPath',
 			'comicEntry.updatedAt' => ({required Object time}) => 'Updated: ${time}',
@@ -3880,8 +3896,6 @@ extension on TranslationsEnUs {
 			'comicEntry.ongoing' => 'Ongoing',
 			'comicEntry.likes' => ({required Object count}) => 'Likes ${count}',
 			'comicEntry.views' => ({required Object count}) => 'Views ${count}',
-			_ => null,
-		} ?? switch (path) {
 			'comicEntry.deleteFavorite' => 'Delete Favorite',
 			'comicEntry.deleteFavoriteConfirm' => ({required Object title}) => 'Delete favorite record for "${title}"?',
 			'comicEntry.deleteHistory' => 'Delete History',

@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 import 'package:zephyr/service/ocr/ocr_models.dart';
+import 'package:zephyr/service/ocr/ocr_translate_engine.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/ocr_service.dart';
 
@@ -13,7 +14,7 @@ import 'package:zephyr/service/ocr/ocr_service.dart';
 /// 目录名是**可读标签 + 短哈希**：`<语言>_<模型>_<8位哈希>`，而完整输入清单写在同目录的
 /// `manifest.json` 里 —— 只放哈希会让人查不出「为什么这页失效了」，只放可读名字又会撞名。
 ///
-/// **哈希必须覆盖每一项影响产物的输入**：目标语言、端点、模型名、术语表内容、
+/// **哈希必须覆盖每一项影响产物的输入**：翻译引擎、目标语言、端点、模型名、术语表内容、
 /// 各权重的版本、字体版本、排版参数版本。少一项就会出「换了模型页面还是旧的」这种静默错。
 class TranslatedPageCache {
   TranslatedPageCache._();
@@ -55,19 +56,32 @@ class TranslatedPageCache {
 
   /// `fingerprint`：完整输入清单（要写进 manifest.json 的）；
   /// `label`：目录名里那段可读标签。
+  ///
+  /// **每一项都必须是「换了它，译文就会不一样」的东西，而且不多不少**：
+  /// 少了 → 切了引擎/改了术语表却继续端出旧译文，且没人知道自己在看旧的（本 ADR 一路在防的静默陈旧）；
+  /// 多了 → 无关改动把整本书的成品页白白作废。
+  ///
+  /// 所以 `engine` 必须在里面；而 `glossarySha1` **只在端点那一档才算** ——
+  /// 端侧那条路没有术语表接口，让它去失效一份「本来就没用术语表」的产物就是多算。
   static Future<({String fingerprint, String label})> describe({
     required OcrTranslationConfig config,
     String? modelTag,
   }) async {
     final tag = modelTag ?? await OcrModels.versionTag();
+    final usingEndpoint = config.engine == OcrTranslateEngine.endpoint;
+    // 端侧那一档没有 model，目录名要有个人能看懂的东西，别留一个空段。
+    final modelLabel = config.model.isEmpty ? config.engine.id : config.model;
     final entries = <String, String>{
+      'engine': config.engine.id,
       'targetLanguage': config.targetLanguage,
-      'endpointHost': Uri.parse(config.baseUrl).host,
-      'model': config.model,
-      'glossarySha1': sha1
-          .convert(utf8.encode(config.glossary))
-          .toString()
-          .substring(0, 8),
+      'endpointHost': usingEndpoint ? Uri.parse(config.baseUrl).host : '-',
+      'model': modelLabel,
+      'glossarySha1': usingEndpoint
+          ? sha1
+                .convert(utf8.encode(config.glossary))
+                .toString()
+                .substring(0, 8)
+          : '-',
       'models': tag,
       'font': fontVersion,
       'layout': '$layoutVersion',
@@ -80,7 +94,7 @@ class TranslatedPageCache {
         .toString()
         .substring(0, 8);
     String safe(String s) => s.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '-');
-    final label = '${safe(config.targetLanguage)}_${safe(config.model)}_$hash';
+    final label = '${safe(config.targetLanguage)}_${safe(modelLabel)}_$hash';
     return (fingerprint: fingerprint, label: label);
   }
 

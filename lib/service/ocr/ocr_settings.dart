@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr/service/ocr/ocr_translate_engine.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 
 /// 本平台是否做 OCR 翻译。
@@ -30,8 +31,18 @@ class OcrSettings {
   static const _keyTargetLang = 'ocr_target_lang';
   static const _keyGlossary = 'ocr_glossary';
   static const _keyEp = 'ocr_ep';
+  static const _keyEngine = 'ocr_translate_engine';
 
   static const defaultTargetLanguage = 'zh-Hans';
+
+  /// 译文引擎。**默认仍是端点**：端侧那一档没有术语表，且要用户自己在系统里装语言包，
+  /// 把它设成默认等于悄悄拿走了「专名翻对」这件事（实测 Apple 把「危機契約」翻成「危机合同」、
+  /// 「かえして」翻成「换一下」）。所以它是一档**可主动选择的省钱/离线**路。
+  static const defaultEngine = OcrTranslateEngine.endpoint;
+  static const engineChoices = <(OcrTranslateEngine, String)>[
+    (OcrTranslateEngine.endpoint, 'API 端点（云端，或本机 Ollama / Foundry Local）'),
+    (OcrTranslateEngine.appleOnDevice, 'Apple 系统翻译（端侧离线、免费；不支持术语表）'),
+  ];
 
   /// 推理后端。默认 **auto = 按「平台 + 哪一段模型」选**，不是一个固定值。
   ///
@@ -53,8 +64,24 @@ class OcrSettings {
 
   /// 读配置。**没配齐就返回 null**，而不是返回一个发出去必然失败的配置 ——
   /// 阅读器据此弹「先去设置里填端点」，比抛一个 HTTP 错误友好。
+  ///
+  /// 「配齐」的定义**随引擎变**：端侧那一档不要端点也不要 key，
+  /// 拿端点的要求去问它，用户会被一句「请先填端点」挡在门外 —— 而那台机器上功能其实是通的。
   static Future<OcrTranslationConfig?> loadConfig() async {
     final prefs = await SharedPreferences.getInstance();
+    final engine = _engineOf(prefs);
+    final targetLanguage =
+        (prefs.getString(_keyTargetLang) ?? defaultTargetLanguage).trim();
+    final glossary = prefs.getString(_keyGlossary) ?? '';
+    if (engine == OcrTranslateEngine.appleOnDevice) {
+      return OcrTranslationConfig(
+        baseUrl: '',
+        model: '',
+        targetLanguage: targetLanguage,
+        glossary: glossary,
+        engine: engine,
+      );
+    }
     final baseUrl = (prefs.getString(_keyBaseUrl) ?? '').trim();
     final model = (prefs.getString(_keyModel) ?? '').trim();
     if (baseUrl.isEmpty || model.isEmpty) return null;
@@ -62,9 +89,9 @@ class OcrSettings {
       baseUrl: baseUrl.replaceAll(RegExp(r'/+$'), ''),
       model: model,
       apiKey: (prefs.getString(_keyApiKey) ?? '').trim(),
-      targetLanguage: (prefs.getString(_keyTargetLang) ?? defaultTargetLanguage)
-          .trim(),
-      glossary: prefs.getString(_keyGlossary) ?? '',
+      targetLanguage: targetLanguage,
+      glossary: glossary,
+      engine: engine,
     );
   }
 
@@ -79,6 +106,7 @@ class OcrSettings {
       targetLanguage: (prefs.getString(_keyTargetLang) ?? defaultTargetLanguage)
           .trim(),
       glossary: prefs.getString(_keyGlossary) ?? '',
+      engine: _engineOf(prefs),
     );
   }
 
@@ -89,7 +117,21 @@ class OcrSettings {
     await prefs.setString(_keyApiKey, config.apiKey);
     await prefs.setString(_keyTargetLang, config.targetLanguage);
     await prefs.setString(_keyGlossary, config.glossary);
+    await prefs.setString(_keyEngine, config.engine.id);
     _changes.notify();
+  }
+
+  static OcrTranslateEngine _engineOf(SharedPreferences prefs) {
+    final e = OcrTranslateEngine.fromId(prefs.getString(_keyEngine));
+    // 存了个这台机器上没有的引擎（比如在 Windows 上从 Mac 同步过来的配置）→ 回落到端点，
+    // 而不是让整条链路去调一个不存在的桥。
+    return e.availableHere ? e : defaultEngine;
+  }
+
+  /// 单独读引擎：设置页要在还没拼出完整 config 时就能决定「端点那一栏画不画」。
+  static Future<OcrTranslateEngine> loadEngine() async {
+    final prefs = await SharedPreferences.getInstance();
+    return _engineOf(prefs);
   }
 
   static Future<String> loadEp() async {

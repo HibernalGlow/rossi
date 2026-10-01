@@ -210,8 +210,10 @@ void main() {
     final logged = OcrLog.log.entries.value.join('\n');
     expect(
       logged,
-      contains('第 1 页 开始构建：端点=127.0.0.1/hello-world'),
-      reason: '端点只记 host：base URL 上可能夹着带 token 的路径，日志是要被复制走的',
+      contains('第 1 页 开始构建：引擎=endpoint 端点=127.0.0.1/hello-world'),
+      reason:
+          '端点只记 host：base URL 上可能夹着带 token 的路径，日志是要被复制走的；'
+          '而「引擎」要排在最前面 —— 查「这页为什么没翻对」时第一个该排除的就是走错了档',
     );
     expect(
       logged,
@@ -243,11 +245,7 @@ void main() {
     expect(again.stageEps, isNull, reason: '命中缓存那一次什么都没跑，不该拿上一次的 EP 顶替（那是谎报）');
     final lastLogged = OcrLog.log.entries.value.last;
     expect(lastLogged, contains('命中缓存'));
-    expect(
-      lastLogged,
-      isNot(contains('EP')),
-      reason: '同上：日志里也不许出现一条没跑过的 EP',
-    );
+    expect(lastLogged, isNot(contains('EP')), reason: '同上：日志里也不许出现一条没跑过的 EP');
     expect(analyze.calls, 1, reason: '一页分析 ~14 s，命中缓存还重跑等于没有缓存');
   });
 

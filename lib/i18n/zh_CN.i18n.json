@@ -1347,7 +1347,14 @@
     "chipDegraded": "原文回填",
     "degradedHint": "端点当时不可用：这一页只做了擦字与原文回填，没有译文",
     "busyToast": "这一页正在生成译文，稍等",
-    "needWeights": "权重还没下全，去设置里下载"
+    "needWeights": "权重还没下全，去设置里下载",
+    "engine": "译文引擎",
+    "engineSubtitle": "选「API 端点」按 token 计费/要网络；选「Apple 系统翻译」走端侧，免费离线",
+    "engineAppleInstalled": "语言包已装，直接生效（整页 15 块实测约 300 ms）",
+    "engineAppleMissing": "还没装 ja → 目标语言 的翻译语言包。系统里没有 app 能替你下载的 API —— 请到「系统设置 › 通用 › 语言与地区」里装好再回来",
+    "engineAppleUnsupportedPair": "系统不认识这个语言对，换目标语言或改用端点",
+    "engineAppleUnavailable": "这台机器上没有系统翻译这条路（仅 macOS 15+ / iOS 18+）",
+    "glossaryIgnoredOnApple": "系统翻译没有术语表接口：这一档下术语表不生效，专名会按通用译法翻"
   },
   "realSr": {
     "title": "图片超分（实验性）",
