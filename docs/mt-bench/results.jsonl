@@ -1,0 +1,267 @@
+{"system": "hymt2-1.8b-base", "id": 1, "kind": "感叹", "ja": "…あ！", "out": "…啊！", "ms": 1554, "completion_tokens": 4, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 2, "kind": "称呼", "ja": "おかえりなさい——博士", "out": "回来啦——博士", "ms": 310, "completion_tokens": 5, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 3, "kind": "专名+疑问", "ja": "危機契約！？あなた、無事なの？怪我してない？", "out": "危机协议！？你没事吧？没有受伤吗？", "ms": 691, "completion_tokens": 13, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 4, "kind": "口语", "ja": "しばらく見てない間に、作戦に行ってたの？", "out": "你没看它多久，去执行了任务吗？", "ms": 953, "completion_tokens": 13, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 5, "kind": "迟疑/自称", "ja": "うん…わたし、平気だよ…", "out": "嗯……我没事……", "ms": 625, "completion_tokens": 6, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 6, "kind": "语气词", "ja": "わたしが大丈夫でも、まったくもう…あなたには敵わないわ…", "out": "就算我没事，但真的……我根本比不过你……", "ms": 734, "completion_tokens": 14, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 7, "kind": "粗口/人称", "ja": "どっから捕まえてきたんだよお前!", "out": "你是从哪儿被抓来的啊！", "ms": 528, "completion_tokens": 9, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 8, "kind": "专名", "ja": "でもリーリィ!?", "out": "但是莉莉！？", "ms": 509, "completion_tokens": 6, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 9, "kind": "语境义", "ja": "かえして〜", "out": "还回来吧～", "ms": 867, "completion_tokens": 5, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 10, "kind": "拟声", "ja": "だだだだ", "out": "哒哒哒", "ms": 340, "completion_tokens": 4, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 11, "kind": "对照A(壁虎)", "ja": "これって...ヤモリ!?", "out": "这……是龙鱼吗！？", "ms": 631, "completion_tokens": 9, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 12, "kind": "对照B(蜥蜴)+方言", "ja": "トカゲじゃやない!?", "out": "不是蜥蜴吗！？", "ms": 734, "completion_tokens": 9, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 13, "kind": "口语", "ja": "あの田舎とかにいる!?", "out": "那个在乡下啊！？", "ms": 436, "completion_tokens": 7, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 14, "kind": "命令+专名", "ja": "出てきなさいナナ!", "out": "出来吧，娜娜！", "ms": 883, "completion_tokens": 7, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 15, "kind": "感叹", "ja": "初めて見たよ!こんな住宅地にもいるんだ!", "out": "第一次看到啊！居然有这种住宅区！", "ms": 626, "completion_tokens": 11, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 16, "kind": "拟声", "ja": "にゃん", "out": "喵", "ms": 194, "completion_tokens": 2, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 17, "kind": "口语连读", "ja": "あやったまきちゃう!せっかくつかまえたのにに!", "out": "会耍赖的！好不容易抓住你了啊！", "ms": 616, "completion_tokens": 11, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 18, "kind": "惯用语", "ja": "こーなったらご主人さまと根くらべよ!", "out": "这样和丈夫相比就公平了！", "ms": 952, "completion_tokens": 9, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 19, "kind": "外来语", "ja": "こうしてキャッチ&リリースをくり返した結果...", "out": "就这样，通过反复进行“捕获与释放”的操作……", "ms": 800, "completion_tokens": 13, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 20, "kind": "对照A(壁虎)+文体", "ja": "ヤモリの繁殖にみごと成功したのでした!", "out": "蝌蚪的繁殖取得了惊人的成功！", "ms": 560, "completion_tokens": 11, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 21, "kind": "自称/中二", "ja": "さらにあたしは進化をつづける!", "out": "而且，我会继续进化下去！", "ms": 514, "completion_tokens": 8, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 22, "kind": "外来语", "ja": "こいつを庭にリリースしたら...", "out": "如果把它放归到花园里……", "ms": 609, "completion_tokens": 10, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 23, "kind": "专名", "ja": "かといってナナに返したら...", "out": "不过，如果把纳纳还回去的话……", "ms": 681, "completion_tokens": 11, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 24, "kind": "口语", "ja": "マズイ!!", "out": "糟糕！！", "ms": 279, "completion_tokens": 3, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 25, "kind": "对照C(专名)+自称", "ja": "俺の名はノラボス", "out": "我的名字是诺拉博斯", "ms": 957, "completion_tokens": 8, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 26, "kind": "术语", "ja": "リード帯は縄張りだ", "out": "领带区域属于它的领地", "ms": 1628, "completion_tokens": 7, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 27, "kind": "旁白", "ja": "実家からの手紙...", "out": "来自老家的信件...", "ms": 1589, "completion_tokens": 6, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 28, "kind": "口语", "ja": "冷蔵庫とか買っちゃおうかな", "out": "或许就买个冰箱吧", "ms": 1119, "completion_tokens": 7, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 29, "kind": "专名第二次(一致性)", "ja": "危機契約を発動します", "out": "启动危机协议", "ms": 1381, "completion_tokens": 4, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 30, "kind": "对照A+B同句", "ja": "トカゲとヤモリは違うんです", "out": "蜥蜴和龙鱼是不同的", "ms": 1169, "completion_tokens": 9, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 31, "kind": "OCR残缺(识别错字)", "ja": "これこれからのキ狩も本番!", "out": "接下来对キ的狩猎也正式开始！", "ms": 805, "completion_tokens": 10, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 32, "kind": "OCR残缺(半截)", "ja": "間どもはそう手ぶ", "out": "那些人就是这么手忙脚乱的", "ms": 1227, "completion_tokens": 10, "load_s": 3.7}
+{"system": "hymt2-1.8b-base", "id": 33, "kind": "OCR乱序", "ja": "者ので娘出樹を持つ最後おっと娘はなーんもできなくなるって本当だなあ", "out": "因为那样的话，女儿就失去了拥有树木的机会了……唉，确实，女儿根本什么都做不了了。", "ms": 2750, "completion_tokens": 24, "load_s": 3.7}
+{"system": "hymt2-1.8b-manga", "id": 1, "kind": "感叹", "ja": "…あ！", "out": "……啊！", "ms": 323, "completion_tokens": 4, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 2, "kind": "称呼", "ja": "おかえりなさい——博士", "out": "欢迎回来——博士", "ms": 314, "completion_tokens": 5, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 3, "kind": "专名+疑问", "ja": "危機契約！？あなた、無事なの？怪我してない？", "out": "危机契约！？你没事吧？有没有受伤？", "ms": 1626, "completion_tokens": 12, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 4, "kind": "口语", "ja": "しばらく見てない間に、作戦に行ってたの？", "out": "没过一会儿就动用了战术了？", "ms": 459, "completion_tokens": 10, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 5, "kind": "迟疑/自称", "ja": "うん…わたし、平気だよ…", "out": "嗯……我没事……", "ms": 529, "completion_tokens": 6, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 6, "kind": "语气词", "ja": "わたしが大丈夫でも、まったくもう…あなたには敵わないわ…", "out": "就算我没事，你根本……根本配不上我……", "ms": 789, "completion_tokens": 13, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 7, "kind": "粗口/人称", "ja": "どっから捕まえてきたんだよお前!", "out": "你到底是从哪抓来的啊！", "ms": 633, "completion_tokens": 9, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 8, "kind": "专名", "ja": "でもリーリィ!?", "out": "但是莉莉！？", "ms": 1675, "completion_tokens": 6, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 9, "kind": "语境义", "ja": "かえして〜", "out": "回头见～", "ms": 336, "completion_tokens": 4, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 10, "kind": "拟声", "ja": "だだだだ", "out": "抖、抖、抖", "ms": 1228, "completion_tokens": 6, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 11, "kind": "对照A(壁虎)", "ja": "これって...ヤモリ!?", "out": "这个……是母狗吗！？", "ms": 1101, "completion_tokens": 9, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 12, "kind": "对照B(蜥蜴)+方言", "ja": "トカゲじゃやない!?", "out": "那不是蜥蜴吗！？", "ms": 2759, "completion_tokens": 10, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 13, "kind": "口语", "ja": "あの田舎とかにいる!?", "out": "你在那个乡下老家吗！？", "ms": 942, "completion_tokens": 8, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 14, "kind": "命令+专名", "ja": "出てきなさいナナ!", "out": "出来吧，娜娜！", "ms": 751, "completion_tokens": 7, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 15, "kind": "感叹", "ja": "初めて見たよ!こんな住宅地にもいるんだ!", "out": "第一次见到！居然在这种住宅区里也有！", "ms": 964, "completion_tokens": 11, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 16, "kind": "拟声", "ja": "にゃん", "out": "喵～", "ms": 878, "completion_tokens": 3, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 17, "kind": "口语连读", "ja": "あやったまきちゃう!せっかくつかまえたのにに!", "out": "哎呀，真是气人！好不容易抓住你了说！", "ms": 1102, "completion_tokens": 12, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 18, "kind": "惯用语", "ja": "こーなったらご主人さまと根くらべよ!", "out": "你再这样，就跟主人大人划清界限吧！", "ms": 651, "completion_tokens": 15, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 19, "kind": "外来语", "ja": "こうしてキャッチ&リリースをくり返した結果...", "out": "就这样，反复执行“抓住释放”的结果……", "ms": 592, "completion_tokens": 11, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 20, "kind": "对照A(壁虎)+文体", "ja": "ヤモリの繁殖にみごと成功したのでした!", "out": "鳄鱼的繁殖简直是完美成功了！", "ms": 548, "completion_tokens": 9, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 21, "kind": "自称/中二", "ja": "さらにあたしは進化をつづける!", "out": "而我，还要继续进化下去！", "ms": 623, "completion_tokens": 8, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 22, "kind": "外来语", "ja": "こいつを庭にリリースしたら...", "out": "要是把这个放生到院子里的话……", "ms": 672, "completion_tokens": 9, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 23, "kind": "专名", "ja": "かといってナナに返したら...", "out": "不过要是直接还给奈奈的话……", "ms": 577, "completion_tokens": 9, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 24, "kind": "口语", "ja": "マズイ!!", "out": "糟糕了！！", "ms": 293, "completion_tokens": 4, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 25, "kind": "对照C(专名)+自称", "ja": "俺の名はノラボス", "out": "我叫诺拉波丝。", "ms": 504, "completion_tokens": 7, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 26, "kind": "术语", "ja": "リード帯は縄張りだ", "out": "这条领带就是我的地盘。", "ms": 498, "completion_tokens": 9, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 27, "kind": "旁白", "ja": "実家からの手紙...", "out": "老家寄来的信……", "ms": 466, "completion_tokens": 6, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 28, "kind": "口语", "ja": "冷蔵庫とか買っちゃおうかな", "out": "要不干脆买个冰箱好了。", "ms": 493, "completion_tokens": 8, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 29, "kind": "专名第二次(一致性)", "ja": "危機契約を発動します", "out": "我将发动危机契约。", "ms": 423, "completion_tokens": 6, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 30, "kind": "对照A+B同句", "ja": "トカゲとヤモリは違うんです", "out": "蜥蜴和鳄鱼不一样。", "ms": 624, "completion_tokens": 10, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 31, "kind": "OCR残缺(识别错字)", "ja": "これこれからのキ狩も本番!", "out": "接下来就是真正的猎杀！", "ms": 431, "completion_tokens": 7, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 32, "kind": "OCR残缺(半截)", "ja": "間どもはそう手ぶ", "out": "大家就都这样玩吧。", "ms": 585, "completion_tokens": 8, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga", "id": 33, "kind": "OCR乱序", "ja": "者ので娘出樹を持つ最後おっと娘はなーんもできなくなるって本当だなあ", "out": "我女儿最后还抱着树，真是……哦，我女儿真的什么都做不了了呢。", "ms": 1219, "completion_tokens": 20, "load_s": 8.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 1, "kind": "感叹", "ja": "…あ！", "out": "……啊！", "ms": 1324, "completion_tokens": 4, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 2, "kind": "称呼", "ja": "おかえりなさい——博士", "out": "欢迎回来——博士", "ms": 601, "completion_tokens": 5, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 3, "kind": "专名+疑问", "ja": "危機契約！？あなた、無事なの？怪我してない？", "out": "危机契约！？你没事吧？没有受伤吗？", "ms": 643, "completion_tokens": 13, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 4, "kind": "口语", "ja": "しばらく見てない間に、作戦に行ってたの？", "out": "没过多久你就已经执行了作战任务？", "ms": 643, "completion_tokens": 11, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 5, "kind": "迟疑/自称", "ja": "うん…わたし、平気だよ…", "out": "嗯……我没事……", "ms": 357, "completion_tokens": 6, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 6, "kind": "语气词", "ja": "わたしが大丈夫でも、まったくもう…あなたには敵わないわ…", "out": "就算我没事，你根本……根本配不上我……", "ms": 716, "completion_tokens": 13, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 7, "kind": "粗口/人称", "ja": "どっから捕まえてきたんだよお前!", "out": "你到底是从哪抓来的啊！", "ms": 603, "completion_tokens": 9, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 8, "kind": "专名", "ja": "でもリーリィ!?", "out": "可是莉莉！？", "ms": 557, "completion_tokens": 6, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 9, "kind": "语境义", "ja": "かえして〜", "out": "回头见～", "ms": 337, "completion_tokens": 4, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 10, "kind": "拟声", "ja": "だだだだ", "out": "啊啊啊啊", "ms": 354, "completion_tokens": 5, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 11, "kind": "对照A(壁虎)", "ja": "これって...ヤモリ!?", "out": "这……是鳄鱼！？", "ms": 1214, "completion_tokens": 8, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 12, "kind": "对照B(蜥蜴)+方言", "ja": "トカゲじゃやない!?", "out": "你不是蝰鱼吗！？", "ms": 1022, "completion_tokens": 9, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 13, "kind": "口语", "ja": "あの田舎とかにいる!?", "out": "……在那种乡下地方？！", "ms": 941, "completion_tokens": 8, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 14, "kind": "命令+专名", "ja": "出てきなさいナナ!", "out": "出来吧，娜娜！", "ms": 1005, "completion_tokens": 7, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 15, "kind": "感叹", "ja": "初めて見たよ!こんな住宅地にもいるんだ!", "out": "第一次见到！居然在这种住宅区里也有！", "ms": 1218, "completion_tokens": 11, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 16, "kind": "拟声", "ja": "にゃん", "out": "喵～", "ms": 482, "completion_tokens": 3, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 17, "kind": "口语连读", "ja": "あやったまきちゃう!せっかくつかまえたのにに!", "out": "哎呀，真是气人！好不容易抓住你了！", "ms": 1443, "completion_tokens": 11, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 18, "kind": "惯用语", "ja": "こーなったらご主人さまと根くらべよ!", "out": "你再这样，我就跟主人大人你根本没法比！", "ms": 1927, "completion_tokens": 15, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 19, "kind": "外来语", "ja": "こうしてキャッチ&リリースをくり返した結果...", "out": "就这样，反复执行“抓住释放”的结果……", "ms": 1057, "completion_tokens": 11, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 20, "kind": "对照A(壁虎)+文体", "ja": "ヤモリの繁殖にみごと成功したのでした!", "out": "鳄鱼的繁殖简直是完美成功了！", "ms": 511, "completion_tokens": 9, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 21, "kind": "自称/中二", "ja": "さらにあたしは進化をつづける!", "out": "而我，还要继续进化下去！", "ms": 611, "completion_tokens": 8, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 22, "kind": "外来语", "ja": "こいつを庭にリリースしたら...", "out": "要是把这个放出去到院子里的话……", "ms": 804, "completion_tokens": 9, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 23, "kind": "专名", "ja": "かといってナナに返したら...", "out": "不过要是把娜娜还回去的话……", "ms": 656, "completion_tokens": 10, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 24, "kind": "口语", "ja": "マズイ!!", "out": "糟了！！", "ms": 723, "completion_tokens": 4, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 25, "kind": "对照C(专名)+自称", "ja": "俺の名はノラボス", "out": "我叫野良波。", "ms": 479, "completion_tokens": 6, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 26, "kind": "术语", "ja": "リード帯は縄張りだ", "out": "这条领带就是我的地盘。", "ms": 591, "completion_tokens": 9, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 27, "kind": "旁白", "ja": "実家からの手紙...", "out": "老家寄来的信……", "ms": 335, "completion_tokens": 6, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 28, "kind": "口语", "ja": "冷蔵庫とか買っちゃおうかな", "out": "干脆买个冰箱好了", "ms": 384, "completion_tokens": 6, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 29, "kind": "专名第二次(一致性)", "ja": "危機契約を発動します", "out": "发动危机契约。", "ms": 444, "completion_tokens": 5, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 30, "kind": "对照A+B同句", "ja": "トカゲとヤモリは違うんです", "out": "蜥蜴和鳄鱼不一样。", "ms": 710, "completion_tokens": 10, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 31, "kind": "OCR残缺(识别错字)", "ja": "これこれからのキ狩も本番!", "out": "接下来要开始真正的猎杀！", "ms": 598, "completion_tokens": 8, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 32, "kind": "OCR残缺(半截)", "ja": "間どもはそう手ぶ", "out": "你们几个，别这样打我。", "ms": 636, "completion_tokens": 9, "load_s": 3.0}
+{"system": "hymt2-1.8b-manga+术语", "id": 33, "kind": "OCR乱序", "ja": "者ので娘出樹を持つ最後おっと娘はなーんもできなくなるって本当だなあ", "out": "她把女儿还给我的时候，我正抱着她女儿，可是……真的没办法再做什么了啊。", "ms": 1233, "completion_tokens": 23, "load_s": 3.0}
+{"system": "hymt2-7b", "id": 1, "kind": "感叹", "ja": "…あ！", "out": "…啊！", "ms": 1505, "completion_tokens": 4, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 2, "kind": "称呼", "ja": "おかえりなさい——博士", "out": "欢迎回来——博士", "ms": 1413, "completion_tokens": 5, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 3, "kind": "专名+疑问", "ja": "危機契約！？あなた、無事なの？怪我してない？", "out": "危机契约！？你没事吧？没受伤吧？", "ms": 2735, "completion_tokens": 13, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 4, "kind": "口语", "ja": "しばらく見てない間に、作戦に行ってたの？", "out": "好一阵子没见了，你去执行任务了吗？", "ms": 2764, "completion_tokens": 12, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 5, "kind": "迟疑/自称", "ja": "うん…わたし、平気だよ…", "out": "嗯…我没事的…", "ms": 2477, "completion_tokens": 7, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 6, "kind": "语气词", "ja": "わたしが大丈夫でも、まったくもう…あなたには敵わないわ…", "out": "就算我没事，也真的……根本比不上你啊……", "ms": 3163, "completion_tokens": 14, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 7, "kind": "粗口/人称", "ja": "どっから捕まえてきたんだよお前!", "out": "你从哪儿抓来这东西的！", "ms": 2488, "completion_tokens": 10, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 8, "kind": "专名", "ja": "でもリーリィ!?", "out": "但是莉莉！？", "ms": 2021, "completion_tokens": 6, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 9, "kind": "语境义", "ja": "かえして〜", "out": "反而～", "ms": 1068, "completion_tokens": 3, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 10, "kind": "拟声", "ja": "だだだだ", "out": "哒哒哒哒", "ms": 1349, "completion_tokens": 5, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 11, "kind": "对照A(壁虎)", "ja": "これって...ヤモリ!?", "out": "这……是壁虎！？", "ms": 3228, "completion_tokens": 8, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 12, "kind": "对照B(蜥蜴)+方言", "ja": "トカゲじゃやない!?", "out": "不是蜥蜴吗！？", "ms": 6784, "completion_tokens": 7, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 13, "kind": "口语", "ja": "あの田舎とかにいる!?", "out": "在那种乡下地方吗！？", "ms": 7394, "completion_tokens": 9, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 14, "kind": "命令+专名", "ja": "出てきなさいナナ!", "out": "出来吧，娜娜！", "ms": 2533, "completion_tokens": 7, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 15, "kind": "感叹", "ja": "初めて見たよ!こんな住宅地にもいるんだ!", "out": "第一次见到！原来这种住宅区里也有啊！", "ms": 2604, "completion_tokens": 12, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 16, "kind": "拟声", "ja": "にゃん", "out": "喵", "ms": 778, "completion_tokens": 2, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 17, "kind": "口语连读", "ja": "あやったまきちゃう!せっかくつかまえたのにに!", "out": "要抓走了！好不容易才抓到的啊！", "ms": 3523, "completion_tokens": 11, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 18, "kind": "惯用语", "ja": "こーなったらご主人さまと根くらべよ!", "out": "既然变成这样，那就和丈夫一决胜负吧！", "ms": 2873, "completion_tokens": 13, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 19, "kind": "外来语", "ja": "こうしてキャッチ&リリースをくり返した結果...", "out": "就这样反复进行抓取与释放之后……", "ms": 2461, "completion_tokens": 10, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 20, "kind": "对照A(壁虎)+文体", "ja": "ヤモリの繁殖にみごと成功したのでした!", "out": "壁虎的繁殖取得了巨大成功！", "ms": 2067, "completion_tokens": 9, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 21, "kind": "自称/中二", "ja": "さらにあたしは進化をつづける!", "out": "我还会继续进化！", "ms": 1631, "completion_tokens": 6, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 22, "kind": "外来语", "ja": "こいつを庭にリリースしたら...", "out": "如果把它放养在花园里的话……", "ms": 2464, "completion_tokens": 10, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 23, "kind": "专名", "ja": "かといってナナに返したら...", "out": "不过要是还给娜娜的话……", "ms": 2857, "completion_tokens": 9, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 24, "kind": "口语", "ja": "マズイ!!", "out": "糟了！！", "ms": 3590, "completion_tokens": 4, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 25, "kind": "对照C(专名)+自称", "ja": "俺の名はノラボス", "out": "我的名字是诺拉博斯", "ms": 7359, "completion_tokens": 8, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 26, "kind": "术语", "ja": "リード帯は縄張りだ", "out": "领地带就是领地。", "ms": 4987, "completion_tokens": 8, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 27, "kind": "旁白", "ja": "実家からの手紙...", "out": "来自家里的信……", "ms": 6014, "completion_tokens": 5, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 28, "kind": "口语", "ja": "冷蔵庫とか買っちゃおうかな", "out": "要不要买个冰箱呢？", "ms": 4539, "completion_tokens": 7, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 29, "kind": "专名第二次(一致性)", "ja": "危機契約を発動します", "out": "启动危机契约。", "ms": 2231, "completion_tokens": 5, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 30, "kind": "对照A+B同句", "ja": "トカゲとヤモリは違うんです", "out": "蜥蜴和壁虎是不一样的。", "ms": 3527, "completion_tokens": 9, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 31, "kind": "OCR残缺(识别错字)", "ja": "これこれからのキ狩も本番!", "out": "接下来的キ狩也要正式开始了！", "ms": 5389, "completion_tokens": 8, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 32, "kind": "OCR残缺(半截)", "ja": "間どもはそう手ぶ", "out": "孩子们不是那样做的。", "ms": 2410, "completion_tokens": 6, "load_s": 11.1}
+{"system": "hymt2-7b", "id": 33, "kind": "OCR乱序", "ja": "者ので娘出樹を持つ最後おっと娘はなーんもできなくなるって本当だなあ", "out": "所以会有女儿出树，最后啊，女儿真的会什么都做不了呢。", "ms": 5318, "completion_tokens": 19, "load_s": 11.1}
+{"system": "sakura-7b", "id": 1, "kind": "感叹", "ja": "…あ！", "out": "「……啊！」", "ms": 2246, "completion_tokens": 5, "load_s": 22.2}
+{"system": "sakura-7b", "id": 2, "kind": "称呼", "ja": "おかえりなさい——博士", "out": "「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 49650, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 3, "kind": "专名+疑问", "ja": "危機契約！？あなた、無事なの？怪我してない？", "out": "「……我、我没事……」\n「……你、你没事吧？」\n「……我、我没事……」\n「……你、你没事吧？」\n「……我、我没事……」\n「……你、你没事吧？」\n「……我、我没事……」\n「……你、你没事吧？」\n「……我、我没事……」\n「……你、你没事吧？」\n「……我、我没事……」\n「……你、你没事吧？」\n「……我、我没事……」\n「……你、你没事吧？」\n「……我、我没事……」\n「……你、你没事吧？」\n「……我、我没事……」\n「……你、你没事吧？」\n「……我、我没事……」\n「……你、你没事吧？」\n「……我、我没事……」\n「……你、你没事吧？」\n「……我、我没事……」\n「……你、你没事吧？」\n「……我、", "ms": 66583, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 4, "kind": "口语", "ja": "しばらく見てない間に、作戦に行ってたの？", "out": "「……嗯，我有听说。」\n「是吗？那就好。」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「", "ms": 50806, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 5, "kind": "迟疑/自称", "ja": "うん…わたし、平気だよ…", "out": "「……嗯，我没事……」", "ms": 2242, "completion_tokens": 9, "load_s": 22.2}
+{"system": "sakura-7b", "id": 6, "kind": "语气词", "ja": "わたしが大丈夫でも、まったくもう…あなたには敵わないわ…", "out": "「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 32659, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 7, "kind": "粗口/人称", "ja": "どっから捕まえてきたんだよお前!", "out": "「……你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、你、", "ms": 42856, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 8, "kind": "专名", "ja": "でもリーリィ!?", "out": "「……嗯，我明白了。」\n「那么，就麻烦你了。」\n「……嗯。」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 36332, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 9, "kind": "语境义", "ja": "かえして〜", "out": "「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 29878, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 10, "kind": "拟声", "ja": "だだだだ", "out": "「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 28380, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 11, "kind": "对照A(壁虎)", "ja": "これって...ヤモリ!?", "out": "「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 22773, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 12, "kind": "对照B(蜥蜴)+方言", "ja": "トカゲじゃやない!?", "out": "「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 29525, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 13, "kind": "口语", "ja": "あの田舎とかにいる!?", "out": "「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 26730, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 14, "kind": "命令+专名", "ja": "出てきなさいナナ!", "out": "「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 3670, "completion_tokens": 32, "load_s": 22.2}
+{"system": "sakura-7b", "id": 15, "kind": "感叹", "ja": "初めて見たよ!こんな住宅地にもいるんだ!", "out": "「……嗯，我明白了。」\n「那么，我先失陪了。」\n「啊，等一下。」\n「什么事？」\n「你刚才说『我明白了』，那是什么意思？」\n「……」\n「你该不会是想说『我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，我明白了，", "ms": 27750, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 16, "kind": "拟声", "ja": "にゃん", "out": "「喵～」", "ms": 1823, "completion_tokens": 5, "load_s": 22.2}
+{"system": "sakura-7b", "id": 17, "kind": "口语连读", "ja": "あやったまきちゃう!せっかくつかまえたのにに!", "out": "「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 30317, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 18, "kind": "惯用语", "ja": "こーなったらご主人さまと根くらべよ!", "out": "「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 26284, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 19, "kind": "外来语", "ja": "こうしてキャッチ&リリースをくり返した結果...", "out": "「……嗯，我明白了。」\n「那么，我先去准备一下。」\n「嗯，麻烦你了。」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 25637, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 20, "kind": "对照A(壁虎)+文体", "ja": "ヤモリの繁殖にみごと成功したのでした!", "out": "「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 25540, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 21, "kind": "自称/中二", "ja": "さらにあたしは進化をつづける!", "out": "「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 26347, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 22, "kind": "外来语", "ja": "こいつを庭にリリースしたら...", "out": "「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 26787, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 23, "kind": "专名", "ja": "かといってナナに返したら...", "out": "「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 25425, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 24, "kind": "口语", "ja": "マズイ!!", "out": "「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 26084, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 25, "kind": "对照C(专名)+自称", "ja": "俺の名はノラボス", "out": "「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 30054, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 26, "kind": "术语", "ja": "リード帯は縄張りだ", "out": "「……我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、", "ms": 27302, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 27, "kind": "旁白", "ja": "実家からの手紙...", "out": "「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 27119, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 28, "kind": "口语", "ja": "冷蔵庫とか買っちゃおうかな", "out": "「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 26880, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 29, "kind": "专名第二次(一致性)", "ja": "危機契約を発動します", "out": "「……我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、", "ms": 26030, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 30, "kind": "对照A+B同句", "ja": "トカゲとヤモリは違うんです", "out": "「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 26987, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 31, "kind": "OCR残缺(识别错字)", "ja": "これこれからのキ狩も本番!", "out": "「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 31807, "completion_tokens": 220, "load_s": 22.2}
+{"system": "sakura-7b", "id": 32, "kind": "OCR残缺(半截)", "ja": "間どもはそう手ぶ", "out": "「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」\n「……」", "ms": 5239, "completion_tokens": 36, "load_s": 22.2}
+{"system": "sakura-7b", "id": 33, "kind": "OCR乱序", "ja": "者ので娘出樹を持つ最後おっと娘はなーんもできなくなるって本当だなあ", "out": "「……我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、我、", "ms": 27995, "completion_tokens": 220, "load_s": 22.2}
+{"system": "hymt2-1.8b-base-metal", "id": 1, "kind": "感叹", "ja": "…あ！", "out": "…啊！", "ms": 133}
+{"system": "hymt2-1.8b-base-metal", "id": 2, "kind": "称呼", "ja": "おかえりなさい——博士", "out": "回来啦——博士", "ms": 108}
+{"system": "hymt2-1.8b-base-metal", "id": 3, "kind": "专名+疑问", "ja": "危機契約！？あなた、無事なの？怪我してない？", "out": "危机协议！？你没事吧？没有受伤吗？", "ms": 260}
+{"system": "hymt2-1.8b-base-metal", "id": 4, "kind": "口语", "ja": "しばらく見てない間に、作戦に行ってたの？", "out": "你没看它多久，去执行了任务吗？", "ms": 279}
+{"system": "hymt2-1.8b-base-metal", "id": 5, "kind": "迟疑/自称", "ja": "うん…わたし、平気だよ…", "out": "嗯……我没事……", "ms": 155}
+{"system": "hymt2-1.8b-base-metal", "id": 6, "kind": "语气词", "ja": "わたしが大丈夫でも、まったくもう…あなたには敵わないわ…", "out": "就算我没事，但真的……我根本比不过你……", "ms": 293}
+{"system": "hymt2-1.8b-base-metal", "id": 7, "kind": "粗口/人称", "ja": "どっから捕まえてきたんだよお前!", "out": "你是从哪儿被抓来的啊！", "ms": 196}
+{"system": "hymt2-1.8b-base-metal", "id": 8, "kind": "专名", "ja": "でもリーリィ!?", "out": "但是莉莉！？", "ms": 164}
+{"system": "hymt2-1.8b-base-metal", "id": 9, "kind": "语境义", "ja": "かえして〜", "out": "还回来吧～", "ms": 136}
+{"system": "hymt2-1.8b-base-metal", "id": 10, "kind": "拟声", "ja": "だだだだ", "out": "哒哒哒", "ms": 120}
+{"system": "hymt2-1.8b-base-metal", "id": 11, "kind": "对照A(壁虎)", "ja": "これって...ヤモリ!?", "out": "这……是龙鱼吗！？", "ms": 193}
+{"system": "hymt2-1.8b-base-metal", "id": 12, "kind": "对照B(蜥蜴)+方言", "ja": "トカゲじゃやない!?", "out": "不是蜥蜴吗！？", "ms": 203}
+{"system": "hymt2-1.8b-manga-metal", "id": 1, "kind": "感叹", "ja": "…あ！", "out": "……啊！", "ms": 192}
+{"system": "hymt2-1.8b-manga-metal", "id": 2, "kind": "称呼", "ja": "おかえりなさい——博士", "out": "欢迎回来——博士", "ms": 131}
+{"system": "hymt2-1.8b-manga-metal", "id": 3, "kind": "专名+疑问", "ja": "危機契約！？あなた、無事なの？怪我してない？", "out": "危机契约！？你没事吧？有没有受伤？", "ms": 244}
+{"system": "hymt2-1.8b-manga-metal", "id": 4, "kind": "口语", "ja": "しばらく見てない間に、作戦に行ってたの？", "out": "没过一会儿就动用了战术了？", "ms": 240}
+{"system": "hymt2-1.8b-manga-metal", "id": 5, "kind": "迟疑/自称", "ja": "うん…わたし、平気だよ…", "out": "嗯……我没事……", "ms": 166}
+{"system": "hymt2-1.8b-manga-metal", "id": 6, "kind": "语气词", "ja": "わたしが大丈夫でも、まったくもう…あなたには敵わないわ…", "out": "就算我没事，你根本……根本配不上我……", "ms": 305}
+{"system": "hymt2-1.8b-manga-metal", "id": 7, "kind": "粗口/人称", "ja": "どっから捕まえてきたんだよお前!", "out": "你到底是从哪抓来的啊！", "ms": 221}
+{"system": "hymt2-1.8b-manga-metal", "id": 8, "kind": "专名", "ja": "でもリーリィ!?", "out": "但是莉莉！？", "ms": 177}
+{"system": "hymt2-1.8b-manga-metal", "id": 9, "kind": "语境义", "ja": "かえして〜", "out": "回头见～", "ms": 112}
+{"system": "hymt2-1.8b-manga-metal", "id": 10, "kind": "拟声", "ja": "だだだだ", "out": "抖、抖、抖", "ms": 149}
+{"system": "hymt2-1.8b-manga-metal", "id": 11, "kind": "对照A(壁虎)", "ja": "これって...ヤモリ!?", "out": "这个……是母狗吗！？", "ms": 192}
+{"system": "hymt2-1.8b-manga-metal", "id": 12, "kind": "对照B(蜥蜴)+方言", "ja": "トカゲじゃやない!?", "out": "那不是蜥蜴吗！？", "ms": 212}
+{"system": "hymt2-7b-metal", "id": 1, "kind": "感叹", "ja": "…あ！", "out": "…啊！", "ms": 353}
+{"system": "hymt2-7b-metal", "id": 2, "kind": "称呼", "ja": "おかえりなさい——博士", "out": "欢迎回来——博士", "ms": 400}
+{"system": "hymt2-7b-metal", "id": 3, "kind": "专名+疑问", "ja": "危機契約！？あなた、無事なの？怪我してない？", "out": "危机契约！？你没事吧？没受伤吧？", "ms": 870}
+{"system": "hymt2-7b-metal", "id": 4, "kind": "口语", "ja": "しばらく見てない間に、作戦に行ってたの？", "out": "好一阵子没见了，你去执行任务了吗？", "ms": 775}
+{"system": "hymt2-7b-metal", "id": 5, "kind": "迟疑/自称", "ja": "うん…わたし、平気だよ…", "out": "嗯…我没事的…", "ms": 535}
+{"system": "hymt2-7b-metal", "id": 6, "kind": "语气词", "ja": "わたしが大丈夫でも、まったくもう…あなたには敵わないわ…", "out": "就算我没事，也真的……根本比不上你啊……", "ms": 916}
+{"system": "hymt2-7b-metal", "id": 7, "kind": "粗口/人称", "ja": "どっから捕まえてきたんだよお前!", "out": "你从哪儿抓来这东西的！", "ms": 831}
+{"system": "hymt2-7b-metal", "id": 8, "kind": "专名", "ja": "でもリーリィ!?", "out": "但是莉莉！？", "ms": 555}
+{"system": "hymt2-7b-metal", "id": 9, "kind": "语境义", "ja": "かえして〜", "out": "反而～", "ms": 323}
+{"system": "hymt2-7b-metal", "id": 10, "kind": "拟声", "ja": "だだだだ", "out": "哒哒哒哒", "ms": 427}
+{"system": "hymt2-7b-metal", "id": 11, "kind": "对照A(壁虎)", "ja": "これって...ヤモリ!?", "out": "这……是壁虎！？", "ms": 673}
+{"system": "hymt2-7b-metal", "id": 12, "kind": "对照B(蜥蜴)+方言", "ja": "トカゲじゃやない!?", "out": "不是蜥蜴吗！？", "ms": 521}
+{"system": "apple", "id": 1, "kind": "感叹", "ja": "…あ！", "out": "...啊！", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 2, "kind": "称呼", "ja": "おかえりなさい——博士", "out": "欢迎回来——博士", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 3, "kind": "专名+疑问", "ja": "危機契約！？あなた、無事なの？怪我してない？", "out": "危机合同！？ 你没事吧？ 没有受伤吗？", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 4, "kind": "口语", "ja": "しばらく見てない間に、作戦に行ってたの？", "out": "有一段时间没见的时候，你去作战了吗？", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 5, "kind": "迟疑/自称", "ja": "うん…わたし、平気だよ…", "out": "嗯...我没事...", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 6, "kind": "语气词", "ja": "わたしが大丈夫でも、まったくもう…あなたには敵わないわ…", "out": "就算我没事，也完全...敌不过你...", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 7, "kind": "粗口/人称", "ja": "どっから捕まえてきたんだよお前!", "out": "你从哪里抓过来的啊！", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 8, "kind": "专名", "ja": "でもリーリィ!?", "out": "但是莉莉！？", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 9, "kind": "语境义", "ja": "かえして〜", "out": "换一下~", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 10, "kind": "拟声", "ja": "だだだだ", "out": "达达达达", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 11, "kind": "对照A(壁虎)", "ja": "これって...ヤモリ!?", "out": "这个是... 壁虎！？", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 12, "kind": "对照B(蜥蜴)+方言", "ja": "トカゲじゃやない!?", "out": "不是蜥蜴吗！？", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 13, "kind": "口语", "ja": "あの田舎とかにいる!?", "out": "在那个乡下吗！？", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 14, "kind": "命令+专名", "ja": "出てきなさいナナ!", "out": "出来吧娜娜！", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 15, "kind": "感叹", "ja": "初めて見たよ!こんな住宅地にもいるんだ!", "out": "第一次见到哦！ 这样的住宅区也有啊！", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 16, "kind": "拟声", "ja": "にゃん", "out": "喵", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 17, "kind": "口语连读", "ja": "あやったまきちゃう!せっかくつかまえたのにに!", "out": "啊，真厉害！ 好不容易抓到了！", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 18, "kind": "惯用语", "ja": "こーなったらご主人さまと根くらべよ!", "out": "这样的话，就和主人比一比吧！", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 19, "kind": "外来语", "ja": "こうしてキャッチ&リリースをくり返した結果...", "out": "就这样重复捕捉&释放的结果......", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 20, "kind": "对照A(壁虎)+文体", "ja": "ヤモリの繁殖にみごと成功したのでした!", "out": "壁虎的繁殖非常成功！", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 21, "kind": "自称/中二", "ja": "さらにあたしは進化をつづける!", "out": "而且我继续进化！", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 22, "kind": "外来语", "ja": "こいつを庭にリリースしたら...", "out": "如果把这家伙放到院子里的话...", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 23, "kind": "专名", "ja": "かといってナナに返したら...", "out": "话虽如此，如果还给娜娜的话......", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 24, "kind": "口语", "ja": "マズイ!!", "out": "不好！！", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 25, "kind": "对照C(专名)+自称", "ja": "俺の名はノラボス", "out": "我的名字是诺拉博斯", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 26, "kind": "术语", "ja": "リード帯は縄張りだ", "out": "里德带是领地", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 27, "kind": "旁白", "ja": "実家からの手紙...", "out": "来自老家的信...", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 28, "kind": "口语", "ja": "冷蔵庫とか買っちゃおうかな", "out": "买冰箱什么的吧", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 29, "kind": "专名第二次(一致性)", "ja": "危機契約を発動します", "out": "启动危机合同", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 30, "kind": "对照A+B同句", "ja": "トカゲとヤモリは違うんです", "out": "蜥蜴和壁虎不一样", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 31, "kind": "OCR残缺(识别错字)", "ja": "これこれからのキ狩も本番!", "out": "接下来的猎杀也是正式的！", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 32, "kind": "OCR残缺(半截)", "ja": "間どもはそう手ぶ", "out": "中间是那样的手", "ms": 134, "mode": "batch"}
+{"system": "apple", "id": 33, "kind": "OCR乱序", "ja": "者ので娘出樹を持つ最後おっと娘はなーんもできなくなるって本当だなあ", "out": "因为是人，所以有女儿出树的最后，哎呀，女儿什么也做不了，这是真的啊", "ms": 134, "mode": "batch"}
+{"system": "apple-single", "id": 1, "kind": "感叹", "ja": "…あ！", "out": "...啊！", "ms": 234, "mode": "single"}
+{"system": "apple-single", "id": 2, "kind": "称呼", "ja": "おかえりなさい——博士", "out": "欢迎回来——博士", "ms": 410, "mode": "single"}
+{"system": "apple-single", "id": 3, "kind": "专名+疑问", "ja": "危機契約！？あなた、無事なの？怪我してない？", "out": "危机合同！？ 你没事吧？ 没有受伤吗？", "ms": 707, "mode": "single"}
+{"system": "apple-single", "id": 4, "kind": "口语", "ja": "しばらく見てない間に、作戦に行ってたの？", "out": "有一段时间没见的时候，你去作战了吗？", "ms": 276, "mode": "single"}
+{"system": "apple-single", "id": 5, "kind": "迟疑/自称", "ja": "うん…わたし、平気だよ…", "out": "嗯...我没事...", "ms": 187, "mode": "single"}
+{"system": "apple-single", "id": 6, "kind": "语气词", "ja": "わたしが大丈夫でも、まったくもう…あなたには敵わないわ…", "out": "就算我没事，也完全...敌不过你...", "ms": 383, "mode": "single"}
+{"system": "apple-single", "id": 7, "kind": "粗口/人称", "ja": "どっから捕まえてきたんだよお前!", "out": "你从哪里抓过来的啊！", "ms": 374, "mode": "single"}
+{"system": "apple-single", "id": 8, "kind": "专名", "ja": "でもリーリィ!?", "out": "但是莉莉！？", "ms": 119, "mode": "single"}
+{"system": "apple-single", "id": 9, "kind": "语境义", "ja": "かえして〜", "out": "换一下~", "ms": 111, "mode": "single"}
+{"system": "apple-single", "id": 10, "kind": "拟声", "ja": "だだだだ", "out": "达达达达", "ms": 109, "mode": "single"}
+{"system": "apple-single", "id": 11, "kind": "对照A(壁虎)", "ja": "これって...ヤモリ!?", "out": "这个是... 壁虎！？", "ms": 171, "mode": "single"}
+{"system": "apple-single", "id": 12, "kind": "对照B(蜥蜴)+方言", "ja": "トカゲじゃやない!?", "out": "不是蜥蜴吗！？", "ms": 138, "mode": "single"}
+{"system": "apple-single", "id": 13, "kind": "口语", "ja": "あの田舎とかにいる!?", "out": "在那个乡下吗！？", "ms": 125, "mode": "single"}
+{"system": "apple-single", "id": 14, "kind": "命令+专名", "ja": "出てきなさいナナ!", "out": "出来吧娜娜！", "ms": 117, "mode": "single"}
+{"system": "apple-single", "id": 15, "kind": "感叹", "ja": "初めて見たよ!こんな住宅地にもいるんだ!", "out": "第一次见到哦！ 这样的住宅区也有啊！", "ms": 440, "mode": "single"}
+{"system": "apple-single", "id": 16, "kind": "拟声", "ja": "にゃん", "out": "喵", "ms": 122, "mode": "single"}
+{"system": "apple-single", "id": 17, "kind": "口语连读", "ja": "あやったまきちゃう!せっかくつかまえたのにに!", "out": "啊，真厉害！ 好不容易抓到了！", "ms": 231, "mode": "single"}
+{"system": "apple-single", "id": 18, "kind": "惯用语", "ja": "こーなったらご主人さまと根くらべよ!", "out": "这样的话，就和主人比一比吧！", "ms": 390, "mode": "single"}
+{"system": "apple-single", "id": 19, "kind": "外来语", "ja": "こうしてキャッチ&リリースをくり返した結果...", "out": "就这样重复捕捉&释放的结果......", "ms": 187, "mode": "single"}
+{"system": "apple-single", "id": 20, "kind": "对照A(壁虎)+文体", "ja": "ヤモリの繁殖にみごと成功したのでした!", "out": "壁虎的繁殖非常成功！", "ms": 131, "mode": "single"}
+{"system": "apple-single", "id": 21, "kind": "自称/中二", "ja": "さらにあたしは進化をつづける!", "out": "而且我继续进化！", "ms": 267, "mode": "single"}
+{"system": "apple-single", "id": 22, "kind": "外来语", "ja": "こいつを庭にリリースしたら...", "out": "如果把这家伙放到院子里的话...", "ms": 232, "mode": "single"}
+{"system": "apple-single", "id": 23, "kind": "专名", "ja": "かといってナナに返したら...", "out": "话虽如此，如果还给娜娜的话......", "ms": 260, "mode": "single"}
+{"system": "apple-single", "id": 24, "kind": "口语", "ja": "マズイ!!", "out": "不好！！", "ms": 317, "mode": "single"}
+{"system": "apple-single", "id": 25, "kind": "对照C(专名)+自称", "ja": "俺の名はノラボス", "out": "我的名字是诺拉博斯", "ms": 310, "mode": "single"}
+{"system": "apple-single", "id": 26, "kind": "术语", "ja": "リード帯は縄張りだ", "out": "里德带是领地", "ms": 164, "mode": "single"}
+{"system": "apple-single", "id": 27, "kind": "旁白", "ja": "実家からの手紙...", "out": "来自老家的信...", "ms": 138, "mode": "single"}
+{"system": "apple-single", "id": 28, "kind": "口语", "ja": "冷蔵庫とか買っちゃおうかな", "out": "买冰箱什么的吧", "ms": 140, "mode": "single"}
+{"system": "apple-single", "id": 29, "kind": "专名第二次(一致性)", "ja": "危機契約を発動します", "out": "启动危机合同", "ms": 161, "mode": "single"}
+{"system": "apple-single", "id": 30, "kind": "对照A+B同句", "ja": "トカゲとヤモリは違うんです", "out": "蜥蜴和壁虎不一样", "ms": 153, "mode": "single"}
+{"system": "apple-single", "id": 31, "kind": "OCR残缺(识别错字)", "ja": "これこれからのキ狩も本番!", "out": "接下来的猎杀也是正式的！", "ms": 150, "mode": "single"}
+{"system": "apple-single", "id": 32, "kind": "OCR残缺(半截)", "ja": "間どもはそう手ぶ", "out": "中间是那样的手", "ms": 170, "mode": "single"}
+{"system": "apple-single", "id": 33, "kind": "OCR乱序", "ja": "者ので娘出樹を持つ最後おっと娘はなーんもできなくなるって本当だなあ", "out": "因为是人，所以有女儿出树的最后，哎呀，女儿什么也做不了，这是真的啊", "ms": 460, "mode": "single"}
