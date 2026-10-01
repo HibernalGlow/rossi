@@ -1353,7 +1353,8 @@
     "engineAppleMissing": "The ja → target translation language pack is not installed. There is no API for an app to download it — install it in System Settings › General › Language & Region, then come back",
     "engineAppleUnsupportedPair": "The system does not know this language pair; change the target language or use an endpoint",
     "engineAppleUnavailable": "No system translation on this machine (macOS 15+ / iOS 18+ only)",
-    "glossaryIgnoredOnApple": "System translation has no glossary API: in this mode the glossary is ignored and proper nouns get generic translations"
+    "glossaryIgnoredOnApple": "System translation has no glossary API: in this mode the glossary is ignored and proper nouns get generic translations",
+    "engineHunyuanHint": "This engine needs a local server first, e.g. llama-server -m Hy-MT2-1.8B-Q4_K_M.gguf --device MTL0 -ngl 99 --port 8080\nSet base URL to http://127.0.0.1:8080/v1 and use the same model name as --model. The glossary takes effect via its native Terminology mode.\nMeasured: 1.8B is enough (~158 ms/line, ~2.4 s/page) — the glossary fixes ヤモリ/危機契約 line by line and 7B is no better at 4x the size. On macOS --device must be MTL0, otherwise llama.cpp silently uses the CPU (4.8x slower)."
   },
   "realSr": {
     "title": "Image Super-Resolution (Experimental)",

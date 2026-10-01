@@ -220,9 +220,19 @@ class _OcrSettingPageState extends State<OcrSettingPage> {
     await _load();
   }
 
-  /// 端点那一档才有的字段（URL / 模型 / key / 术语表）。
+  /// 需要端点配置的档（云端 / 混元）才画 URL / 模型 / key。
   /// 选端侧时整块收起来 —— 留着会让用户以为「填了也生效」。
-  bool get _endpointOnly => _draft.engine == OcrTranslateEngine.endpoint;
+  bool get _endpointOnly => _draft.engine.requiresEndpoint;
+
+  /// 术语表只在生效的档里可编辑；Apple 档换成一句「这一档不生效」的说明。
+  bool get _glossaryApplies => _draft.engine.glossaryApplies;
+
+  /// 混元那一档要把本机服务怎么起来写明白：它不是「填个 URL」就完事。
+  /// 少了这行，用户只会看到一个连不上的错。
+  String? get _engineHintText => switch (_draft.engine) {
+    OcrTranslateEngine.hyMt2Local => t.ocr.engineHunyuanHint,
+    _ => null,
+  };
 
   String _engineLabel(OcrTranslateEngine e) => OcrSettings.engineChoices
       .firstWhere(
@@ -272,6 +282,14 @@ class _OcrSettingPageState extends State<OcrSettingPage> {
                     },
                   ),
                 ),
+                if (_engineHintText case final hint?)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: SelectableText(
+                      hint,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
                 if (_appleNoteText case final note?)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -336,7 +354,7 @@ class _OcrSettingPageState extends State<OcrSettingPage> {
                     apply: (v) => _save(_draft.copyWith(targetLanguage: v)),
                   ),
                 ),
-                if (_endpointOnly)
+                if (_glossaryApplies)
                   _tile(
                     icon: Icons.book_outlined,
                     label: t.ocr.glossary,

@@ -7,6 +7,7 @@ import 'package:zephyr/service/ocr/ocr_service.dart';
 import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_cache.dart';
+import 'package:zephyr/service/ocr/hy_mt2_translator.dart';
 import 'package:zephyr/service/ocr/ocr_translate_engine.dart';
 import 'package:zephyr/service/ocr/translated_page_renderer.dart';
 import 'package:zephyr/src/rust/api/ocr.dart';
@@ -115,6 +116,10 @@ class TranslatedPageBuilder {
     OcrTranslationConfig config,
   ) => switch (config.engine) {
     OcrTranslateEngine.appleOnDevice => AppleTranslateBackend.translateBlocks(
+      texts: texts,
+      config: config,
+    ),
+    OcrTranslateEngine.hyMt2Local => HyMt2Translator.instance.translateBlocks(
       texts: texts,
       config: config,
     ),

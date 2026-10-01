@@ -4194,6 +4194,9 @@ class Translations$ocr$zh_CN {
 
 	/// zh-CN: '系统翻译没有术语表接口：这一档下术语表不生效，专名会按通用译法翻'
 	String get glossaryIgnoredOnApple => '系统翻译没有术语表接口：这一档下术语表不生效，专名会按通用译法翻';
+
+	/// zh-CN: '这一档要本机先起服务，例如：llama-server -m Hy-MT2-1.8B-Q4_K_M.gguf --device MTL0 -ngl 99 --port 8080 端点填 http://127.0.0.1:8080/v1，模型名与 --model 一致。术语表会走它原生的 Terminology 模式生效。 实测 1.8B 就够（约 158 ms/条、一页约 2.4 s）：术语表把 ヤモリ/危機契約 这类错逐条修对了，7B 并不更好且大 4 倍。macOS 上 --device 必须写 MTL0 —— 不写会静默走 CPU，实测慢 4.8 倍。'
+	String get engineHunyuanHint => '这一档要本机先起服务，例如：llama-server -m Hy-MT2-1.8B-Q4_K_M.gguf --device MTL0 -ngl 99 --port 8080\n端点填 http://127.0.0.1:8080/v1，模型名与 --model 一致。术语表会走它原生的 Terminology 模式生效。\n实测 1.8B 就够（约 158 ms/条、一页约 2.4 s）：术语表把 ヤモリ/危機契約 这类错逐条修对了，7B 并不更好且大 4 倍。macOS 上 --device 必须写 MTL0 —— 不写会静默走 CPU，实测慢 4.8 倍。';
 }
 
 // Path: realSr
@@ -7499,6 +7502,7 @@ extension on Translations {
 			'ocr.engineAppleUnsupportedPair' => '系统不认识这个语言对，换目标语言或改用端点',
 			'ocr.engineAppleUnavailable' => '这台机器上没有系统翻译这条路（仅 macOS 15+ / iOS 18+）',
 			'ocr.glossaryIgnoredOnApple' => '系统翻译没有术语表接口：这一档下术语表不生效，专名会按通用译法翻',
+			'ocr.engineHunyuanHint' => '这一档要本机先起服务，例如：llama-server -m Hy-MT2-1.8B-Q4_K_M.gguf --device MTL0 -ngl 99 --port 8080\n端点填 http://127.0.0.1:8080/v1，模型名与 --model 一致。术语表会走它原生的 Terminology 模式生效。\n实测 1.8B 就够（约 158 ms/条、一页约 2.4 s）：术语表把 ヤモリ/危機契約 这类错逐条修对了，7B 并不更好且大 4 倍。macOS 上 --device 必须写 MTL0 —— 不写会静默走 CPU，实测慢 4.8 倍。',
 			'realSr.title' => '图片超分（实验性）',
 			'realSr.unlimited' => '不限制',
 			'realSr.modelDownloadFailed' => '模型下载失败',
@@ -7708,9 +7712,9 @@ extension on Translations {
 			'comicList.loadFailedRetry' => '加载失败，请重试。',
 			'comicList.nothingHere' => '啥都没有',
 			'comicList.filter' => '筛选',
-			'comicList.subCategory' => '子分类',
 			_ => null,
 		} ?? switch (path) {
+			'comicList.subCategory' => '子分类',
 			'comicList.levelCategory' => ({required Object level}) => '第${level}级分类',
 			'comicList.missingListConfig' => '缺少列表请求配置',
 			'comicList.missingFnPath' => '列表请求缺少 fnPath',

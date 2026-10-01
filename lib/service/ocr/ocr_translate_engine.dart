@@ -5,19 +5,23 @@ import 'package:flutter/services.dart';
 
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 
-/// 译文从哪来。**这是用户能主动选的**：走端点要花钱/要网络，走端侧不要。
+/// 译文从哪来。**这是用户能主动选的**：走端点要花钱/要网络，走本机与端侧不要。
 ///
-/// 为什么不是一个布尔「离线开关」：端侧这一档在三个平台上是三种完全不同的东西 ——
-/// Apple 有系统翻译框架、Windows 有 Foundry Local（**它本身就是 OpenAI-compatible 端点**，
-/// 属于 [OcrTranslateEngine.endpoint] 的一种配法，不是新引擎）、Android/iOS 一期整条功能都关着。
-/// 所以枚举只列「真正不同的实现」，把「本机跑一个 OpenAI 兼容服务」留在端点那一档里，
-/// 免得设置页出现两个其实走同一条码路的选项。
+/// 分档的标准是**「同一份输入，产出会不会不同」**，不是「用的是不是同一个协议」：
+/// - [endpoint] 与 [hyMt2Local] 都是 OpenAI-compatible HTTP，但一个发「整页编号批量」、
+///   一个发「一条一次 + 原生 Terminology 术语块」，产出不同 → 必须分两档，指纹也要能区分；
+/// - Windows 的 Foundry Local **不单独列**，因为它就是 [endpoint] 换个 baseUrl，
+///   请求形状与术语注入方式都没变 —— 那才叫「同一条码路」。
+/// - Apple 有系统翻译框架、Android/iOS 一期整条功能都关着（ADR-0018 §决定 6）。
 enum OcrTranslateEngine {
   /// OpenAI-compatible 端点：云端（DeepSeek / OpenAI…）或本机（Ollama / Foundry Local）。
   endpoint('endpoint'),
 
+  /// 混元 Hy-MT2 跑在本机（llama-server 等）。见上面分档的理由。
+  hyMt2Local('hunyuan'),
+
   /// Apple 系统翻译框架（`Translation`）：端侧离线、免费、不要 key。
-  /// **没有术语表接口**，所以选它等于放弃 `glossary`。
+  /// **没有术语表接口**，所以选它等于放弃 `glossary`（术语类错要靠输出端替换兜）。
   appleOnDevice('apple');
 
   const OcrTranslateEngine(this.id);
@@ -28,12 +32,22 @@ enum OcrTranslateEngine {
   static OcrTranslateEngine fromId(String? id) => OcrTranslateEngine.values
       .firstWhere((e) => e.id == id, orElse: () => OcrTranslateEngine.endpoint);
 
+  /// 术语表在这一档**是否生效**。只有生效的档才该把 `glossarySha1` 编进指纹 ——
+  /// 否则改一个术语就把一份「本来就没用术语表」的产物白白作废。
+  bool get glossaryApplies => this != OcrTranslateEngine.appleOnDevice;
+
+  /// 这一档**要不要用户填 baseUrl / model**。与 [glossaryApplies] 是两回事，
+  /// 只是眼下恰好同真同假 —— 分开写，加下一档时才不会拿错条件（比如「Apple + 输出端替换」
+  /// 就是不要端点、但术语表照样生效）。
+  bool get requiresEndpoint => this != OcrTranslateEngine.appleOnDevice;
+
   /// 本平台**有没有**这条实现。与「装了语言包」是两件事，后者看 [AppleTranslateBackend.status]。
   bool get availableHere {
     if (kIsWeb) return false;
     // iOS 上系统翻译也在，但本功能的入口在移动端整条不画（ADR-0018 §决定 6：
     // `ocrSupportedHere` 排除 Android / iOS），所以这里也不放开。
-    return this == OcrTranslateEngine.endpoint || Platform.isMacOS;
+    if (this == OcrTranslateEngine.appleOnDevice) return Platform.isMacOS;
+    return Platform.isWindows || Platform.isLinux || Platform.isMacOS;
   }
 }
 

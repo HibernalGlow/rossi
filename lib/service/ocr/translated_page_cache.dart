@@ -5,7 +5,6 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 import 'package:zephyr/service/ocr/ocr_models.dart';
-import 'package:zephyr/service/ocr/ocr_translate_engine.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/ocr_service.dart';
 
@@ -68,15 +67,18 @@ class TranslatedPageCache {
     String? modelTag,
   }) async {
     final tag = modelTag ?? await OcrModels.versionTag();
-    final usingEndpoint = config.engine == OcrTranslateEngine.endpoint;
+    // 「有没有端点」与「术语表是否生效」是**两个问题**，别合成一个布尔：
+    // 端点与混元都有 baseUrl/model，但只有混元用原生术语块；将来加「Apple + 输出端替换」
+    // 那一档时这两项又会分叉。各写各的，才不用在加第四档时猜哪个条件该跟着变。
+    final hasEndpoint = config.engine.requiresEndpoint;
     // 端侧那一档没有 model，目录名要有个人能看懂的东西，别留一个空段。
     final modelLabel = config.model.isEmpty ? config.engine.id : config.model;
     final entries = <String, String>{
       'engine': config.engine.id,
       'targetLanguage': config.targetLanguage,
-      'endpointHost': usingEndpoint ? Uri.parse(config.baseUrl).host : '-',
+      'endpointHost': hasEndpoint ? Uri.parse(config.baseUrl).host : '-',
       'model': modelLabel,
-      'glossarySha1': usingEndpoint
+      'glossarySha1': config.engine.glossaryApplies
           ? sha1
                 .convert(utf8.encode(config.glossary))
                 .toString()

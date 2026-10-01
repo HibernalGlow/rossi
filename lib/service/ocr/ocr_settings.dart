@@ -41,6 +41,10 @@ class OcrSettings {
   static const defaultEngine = OcrTranslateEngine.endpoint;
   static const engineChoices = <(OcrTranslateEngine, String)>[
     (OcrTranslateEngine.endpoint, 'API 端点（云端，或本机 Ollama / Foundry Local）'),
+    (
+      OcrTranslateEngine.hyMt2Local,
+      '混元 Hy-MT2（本机 llama-server；一条一次，术语表走原生 Terminology）',
+    ),
     (OcrTranslateEngine.appleOnDevice, 'Apple 系统翻译（端侧离线、免费；不支持术语表）'),
   ];
 
@@ -73,7 +77,7 @@ class OcrSettings {
     final targetLanguage =
         (prefs.getString(_keyTargetLang) ?? defaultTargetLanguage).trim();
     final glossary = prefs.getString(_keyGlossary) ?? '';
-    if (engine == OcrTranslateEngine.appleOnDevice) {
+    if (!engine.requiresEndpoint) {
       return OcrTranslationConfig(
         baseUrl: '',
         model: '',

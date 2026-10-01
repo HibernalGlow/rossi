@@ -141,6 +141,29 @@ void main() {
       );
     });
 
+    test('端点与混元即使 URL/模型/术语表全相同也必须分开', () async {
+      final ep = await fp(_endpoint);
+      const hy = OcrTranslationConfig(
+        baseUrl: 'https://api.example.com/v1',
+        model: 'some-model',
+        targetLanguage: 'zh-Hans',
+        glossary: '危機契約=危机契约',
+        engine: OcrTranslateEngine.hyMt2Local,
+      );
+      final h = await fp(hy);
+      expect(
+        h.fingerprint,
+        isNot(ep.fingerprint),
+        reason: '两档的请求形状与术语注入机制都不同，产出就不同 —— 混用缓存等于端出错的那份',
+      );
+      expect(h.fingerprint, contains('engine=hunyuan'));
+      expect(
+        h.fingerprint,
+        contains('glossarySha1='),
+        reason: '混元用原生 Terminology，术语表必须参与指纹',
+      );
+    });
+
     test('端侧档的目录名不留空段', () async {
       final b = await fp(_apple);
       expect(b.label, startsWith('zh-Hans_apple_'));
@@ -211,10 +234,11 @@ void main() {
 
     test('条数不符必须抛（按块下标回填，错位就是整页串行）', () async {
       mockChannel((call) async {
-        if (call.method == 'translate')
+        if (call.method == 'translate') {
           return {
             'texts': ['只有一条'],
           };
+        }
         return null;
       });
       await expectLater(

@@ -1538,6 +1538,7 @@ class _Translations$ocr$en_US extends Translations$ocr$zh_CN {
 	@override String get engineAppleUnsupportedPair => 'The system does not know this language pair; change the target language or use an endpoint';
 	@override String get engineAppleUnavailable => 'No system translation on this machine (macOS 15+ / iOS 18+ only)';
 	@override String get glossaryIgnoredOnApple => 'System translation has no glossary API: in this mode the glossary is ignored and proper nouns get generic translations';
+	@override String get engineHunyuanHint => 'This engine needs a local server first, e.g. llama-server -m Hy-MT2-1.8B-Q4_K_M.gguf --device MTL0 -ngl 99 --port 8080\nSet base URL to http://127.0.0.1:8080/v1 and use the same model name as --model. The glossary takes effect via its native Terminology mode.\nMeasured: 1.8B is enough (~158 ms/line, ~2.4 s/page) — the glossary fixes ヤモリ/危機契約 line by line and 7B is no better at 4x the size. On macOS --device must be MTL0, otherwise llama.cpp silently uses the CPU (4.8x slower).';
 }
 
 // Path: realSr
@@ -3676,6 +3677,7 @@ extension on TranslationsEnUs {
 			'ocr.engineAppleUnsupportedPair' => 'The system does not know this language pair; change the target language or use an endpoint',
 			'ocr.engineAppleUnavailable' => 'No system translation on this machine (macOS 15+ / iOS 18+ only)',
 			'ocr.glossaryIgnoredOnApple' => 'System translation has no glossary API: in this mode the glossary is ignored and proper nouns get generic translations',
+			'ocr.engineHunyuanHint' => 'This engine needs a local server first, e.g. llama-server -m Hy-MT2-1.8B-Q4_K_M.gguf --device MTL0 -ngl 99 --port 8080\nSet base URL to http://127.0.0.1:8080/v1 and use the same model name as --model. The glossary takes effect via its native Terminology mode.\nMeasured: 1.8B is enough (~158 ms/line, ~2.4 s/page) — the glossary fixes ヤモリ/危機契約 line by line and 7B is no better at 4x the size. On macOS --device must be MTL0, otherwise llama.cpp silently uses the CPU (4.8x slower).',
 			'realSr.title' => 'Image Super-Resolution (Experimental)',
 			'realSr.unlimited' => 'Unlimited',
 			'realSr.modelDownloadFailed' => 'Model download failed',
@@ -3886,9 +3888,9 @@ extension on TranslationsEnUs {
 			'comicList.nothingHere' => 'Nothing here',
 			'comicList.filter' => 'Filter',
 			'comicList.subCategory' => 'Subcategory',
-			'comicList.levelCategory' => ({required Object level}) => 'Level ${level}',
 			_ => null,
 		} ?? switch (path) {
+			'comicList.levelCategory' => ({required Object level}) => 'Level ${level}',
 			'comicList.missingListConfig' => 'Missing list request configuration',
 			'comicList.missingFnPath' => 'List request missing fnPath',
 			'comicEntry.updatedAt' => ({required Object time}) => 'Updated: ${time}',
