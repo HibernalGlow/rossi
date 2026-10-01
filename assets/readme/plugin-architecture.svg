@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="440" viewBox="0 0 1200 440"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Rossi 的图源插件是怎么跑起来的</title>
+  <desc id="desc">三段式流程图：左侧是第三方图源（内置的哔咔与禁漫、以及自定义 JS 插件），
+  中间是 Rust 侧的 windcore 沙箱，用 QuickJS 执行插件、用 reqwest 发网络请求、负责解码与反混淆和压缩包处理，
+  右侧经 flutter_rust_bridge 交给 Flutter 界面层的发现、搜索、书架与阅读器。</desc>
+
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F5F1EA"/>
+      <stop offset="1" stop-color="#E7DFD3"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9C4B5E"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="440" rx="26" fill="url(#paper)"/>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif">
+    <text x="64" y="78" font-size="34" font-weight="700" fill="#2A2320">一个 JS 文件，就是一个图源</text>
+    <text x="1136" y="78" font-size="19" text-anchor="end" fill="#8A7A66"
+          font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">windcore · rquickjs</text>
+    <rect x="64" y="94" width="56" height="5" rx="2.5" fill="#762D3F"/>
+
+    <!-- 图源 -->
+    <g id="sources">
+      <text x="64" y="152" font-size="19" fill="#8A7A66"
+            font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">第三方图源</text>
+      <g>
+        <rect x="64" y="168" width="240" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+        <circle cx="88" cy="194" r="5" fill="#9C4B5E"/>
+        <text x="106" y="201" font-size="22" fill="#2A2320">哔咔 Bika</text>
+      </g>
+      <g>
+        <rect x="64" y="232" width="240" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+        <circle cx="88" cy="258" r="5" fill="#9C4B5E"/>
+        <text x="106" y="265" font-size="22" fill="#2A2320">禁漫 JM</text>
+      </g>
+      <g>
+        <rect x="64" y="296" width="240" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <circle cx="88" cy="322" r="5" fill="none" stroke="#8A7A66" stroke-width="1.5"/>
+        <text x="106" y="329" font-size="22" fill="#2A2320">自定义 .js</text>
+      </g>
+      <text x="64" y="378" font-size="18" fill="#8A7A66">红点＝编译时内置打包</text>
+    </g>
+
+    <line x1="310" y1="258" x2="356" y2="258" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- 沙箱 -->
+    <g id="runtime">
+      <rect x="362" y="140" width="438" height="244" rx="18" fill="#9C4B5E" fill-opacity="0.07" stroke="#9C4B5E" stroke-width="1.5"/>
+      <text x="386" y="176" font-size="22" font-weight="600" fill="#762D3F">Rust 侧沙箱</text>
+      <text x="782" y="176" font-size="18" text-anchor="end" fill="#8A7A66"
+            font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">windcore</text>
+      <line x1="386" y1="192" x2="776" y2="192" stroke="#CFC5B7" stroke-width="1.5"/>
+      <g font-size="21" fill="#2A2320">
+        <text x="386" y="228">· QuickJS 执行插件写的 JS</text>
+        <text x="386" y="264">· reqwest 发请求，代理与 TLS 可控</text>
+        <text x="386" y="300">· 图片解码与禁漫反混淆</text>
+        <text x="386" y="336">· tar / zip / brotli / zstd 打包</text>
+      </g>
+      <text x="386" y="368" font-size="18" fill="#8A7A66">内存统计 · 数据备份</text>
+    </g>
+
+    <line x1="806" y1="258" x2="852" y2="258" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="829" y="242" font-size="17" text-anchor="middle" fill="#762D3F"
+          font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">FRB</text>
+
+    <!-- 界面 -->
+    <g id="ui">
+      <text x="858" y="152" font-size="19" fill="#8A7A66"
+            font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">Flutter 界面</text>
+      <g>
+        <rect x="858" y="168" width="278" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+        <text x="882" y="201" font-size="22" fill="#2A2320">发现 · 排行</text>
+      </g>
+      <g>
+        <rect x="858" y="232" width="278" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+        <text x="882" y="265" font-size="22" fill="#2A2320">聚合搜索</text>
+      </g>
+      <g>
+        <rect x="858" y="296" width="278" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+        <text x="882" y="329" font-size="22" fill="#2A2320">书架 · 阅读器</text>
+      </g>
+    </g>
+  </g>
+
+  <text x="64" y="416" font-size="19" fill="#8A7A66"
+        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif">插件在 QuickJS 沙箱内运行，但仍能发网络请求、读写文件 —— 装一个插件，等于信任它写的那段代码。</text>
+</svg>

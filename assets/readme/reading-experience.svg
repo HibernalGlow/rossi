@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="560" viewBox="0 0 1200 560"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Rossi 的阅读方式</title>
+  <desc id="desc">六格示意图：从右到左（日漫原样）、从左到右、条漫从上到下、双页并排无缝拼接、
+  横长页自动左右分割、自动滚动定时翻页。下方注明每本漫画可单独覆盖设置，桌面端键盘、鼠标、滚轮、手柄、触屏均可自定义绑定。</desc>
+
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F5F1EA"/>
+      <stop offset="1" stop-color="#E7DFD3"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9C4B5E"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="560" rx="26" fill="url(#paper)"/>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif">
+    <text x="64" y="78" font-size="34" font-weight="700" fill="#2A2320">六种读法，同一套手势</text>
+    <text x="1136" y="78" font-size="19" text-anchor="end" fill="#8A7A66"
+          font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">reading direction</text>
+    <rect x="64" y="94" width="56" height="5" rx="2.5" fill="#762D3F"/>
+
+    <!-- 1 从右到左 -->
+    <g id="m-rtl" transform="translate(64 146)">
+      <rect width="336" height="150" rx="18" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
+      <g transform="translate(26 24)">
+        <rect x="0" y="18" width="36" height="48" rx="4" fill="#9C4B5E" fill-opacity="0.14" stroke="#9C4B5E" stroke-width="1.5"/>
+        <rect x="46" y="18" width="36" height="48" rx="4" fill="#FFFFFF" stroke="#CFC5B7" stroke-width="1.5"/>
+        <line x1="70" y1="6" x2="16" y2="6" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
+      </g>
+      <text x="132" y="64" font-size="23" font-weight="600" fill="#2A2320">从右到左</text>
+      <text x="26" y="126" font-size="18" fill="#8A7A66">日漫原样，不需要镜像</text>
+    </g>
+
+    <!-- 2 从左到右 -->
+    <g id="m-ltr" transform="translate(432 146)">
+      <rect width="336" height="150" rx="18" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
+      <g transform="translate(26 24)">
+        <rect x="0" y="18" width="36" height="48" rx="4" fill="#FFFFFF" stroke="#CFC5B7" stroke-width="1.5"/>
+        <rect x="46" y="18" width="36" height="48" rx="4" fill="#9C4B5E" fill-opacity="0.14" stroke="#9C4B5E" stroke-width="1.5"/>
+        <line x1="16" y1="6" x2="70" y2="6" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
+      </g>
+      <text x="132" y="64" font-size="23" font-weight="600" fill="#2A2320">从左到右</text>
+      <text x="26" y="126" font-size="18" fill="#8A7A66">国漫与译制版走这一档</text>
+    </g>
+
+    <!-- 3 条漫 -->
+    <g id="m-webtoon" transform="translate(800 146)">
+      <rect width="336" height="150" rx="18" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
+      <g transform="translate(26 16)">
+        <rect x="14" y="0" width="44" height="76" rx="4" fill="#FFFFFF" stroke="#CFC5B7" stroke-width="1.5"/>
+        <line x1="14" y1="26" x2="58" y2="26" stroke="#CFC5B7" stroke-width="1.5"/>
+        <line x1="14" y1="52" x2="58" y2="52" stroke="#CFC5B7" stroke-width="1.5"/>
+        <line x1="74" y1="8" x2="74" y2="66" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
+      </g>
+      <text x="132" y="64" font-size="23" font-weight="600" fill="#2A2320">条漫连读</text>
+      <text x="26" y="126" font-size="18" fill="#8A7A66">从上到下滚动，也能点击翻页</text>
+    </g>
+
+    <!-- 4 双页无缝 -->
+    <g id="m-double" transform="translate(64 320)">
+      <rect width="336" height="150" rx="18" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
+      <g transform="translate(26 24)">
+        <rect x="0" y="18" width="41" height="48" rx="4" fill="#9C4B5E" fill-opacity="0.14" stroke="#9C4B5E" stroke-width="1.5"/>
+        <rect x="41" y="18" width="41" height="48" rx="4" fill="#9C4B5E" fill-opacity="0.14" stroke="#9C4B5E" stroke-width="1.5"/>
+        <line x1="41" y1="12" x2="41" y2="72" stroke="#762D3F" stroke-width="1.5" stroke-dasharray="4 3"/>
+      </g>
+      <text x="132" y="64" font-size="23" font-weight="600" fill="#2A2320">双页无缝</text>
+      <text x="26" y="126" font-size="18" fill="#8A7A66">左右各占一半，消掉中缝留白</text>
+    </g>
+
+    <!-- 5 横长页分割 -->
+    <g id="m-split" transform="translate(432 320)">
+      <rect width="336" height="150" rx="18" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
+      <g transform="translate(26 30)">
+        <rect x="0" y="14" width="86" height="40" rx="4" fill="#FFFFFF" stroke="#CFC5B7" stroke-width="1.5"/>
+        <line x1="43" y1="8" x2="43" y2="60" stroke="#9C4B5E" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <line x1="38" y1="-2" x2="12" y2="-2" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
+        <line x1="48" y1="-2" x2="74" y2="-2" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
+      </g>
+      <text x="132" y="64" font-size="23" font-weight="600" fill="#2A2320">横长页分割</text>
+      <text x="26" y="126" font-size="18" fill="#8A7A66">跨页大图切成左右两半读</text>
+    </g>
+
+    <!-- 6 自动滚动 -->
+    <g id="m-auto" transform="translate(800 320)">
+      <rect width="336" height="150" rx="18" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
+      <g transform="translate(26 16)">
+        <rect x="14" y="0" width="44" height="76" rx="4" fill="#FFFFFF" stroke="#CFC5B7" stroke-width="1.5"/>
+        <g stroke="#9C4B5E" stroke-width="2">
+          <line x1="20" y1="14" x2="52" y2="14"/>
+          <line x1="20" y1="38" x2="52" y2="38"/>
+          <line x1="20" y1="62" x2="52" y2="62"/>
+        </g>
+        <line x1="74" y1="8" x2="74" y2="66" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
+      </g>
+      <text x="132" y="64" font-size="23" font-weight="600" fill="#2A2320">自动滚动</text>
+      <text x="26" y="126" font-size="18" fill="#8A7A66">间隔与距离可调，含墨水屏优化</text>
+    </g>
+
+    <line x1="64" y1="500" x2="1136" y2="500" stroke="#CFC5B7" stroke-width="1.5"/>
+    <text x="64" y="534" font-size="19" fill="#8A7A66">以上每一项都能只对当前这本生效；桌面端键盘、鼠标、侧键、滚轮、手柄、触屏的绑定全部可改，手机可以用音量键翻页。</text>
+  </g>
+</svg>

@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="580" viewBox="0 0 1200 580"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Rossi 的超分路线与平台支持</title>
+  <desc id="desc">上半部是低分辨率原图经超分放大为清晰图的示意图，以及按需触发、预取、权重首下、按条件指定模型四条策略；
+  下半部是平台支持矩阵：Rossi 原生 CoreML 支持 macOS 与 iOS，mImage ONNX 支持 Windows、Linux、macOS、iOS，
+  桌面 NCNN 支持 Windows 与 Linux，内置 waifu2x CLI 只在 Android 上自动使用。</desc>
+
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F5F1EA"/>
+      <stop offset="1" stop-color="#E7DFD3"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9C4B5E"/>
+    </marker>
+    <pattern id="tone-blur" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="11" cy="11" r="13" fill="#CFC5B7"/>
+    </pattern>
+    <pattern id="tone-sharp" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="11" cy="11" r="5.5" fill="#8A7A66"/>
+    </pattern>
+    <clipPath id="clip-before"><rect x="64" y="136" width="136" height="96" rx="6"/></clipPath>
+    <clipPath id="clip-after"><rect x="248" y="136" width="136" height="96" rx="6"/></clipPath>
+  </defs>
+
+  <rect width="1200" height="580" rx="26" fill="url(#paper)"/>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif">
+    <text x="64" y="78" font-size="34" font-weight="700" fill="#2A2320">糊图救回来：四条超分路线</text>
+    <text x="1136" y="78" font-size="19" text-anchor="end" fill="#8A7A66"
+          font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">super resolution</text>
+    <rect x="64" y="94" width="56" height="5" rx="2.5" fill="#762D3F"/>
+
+    <!-- 示意：漫画网点糊成一坨 → 网点归位 -->
+    <g id="schematic">
+      <rect x="64" y="136" width="136" height="96" rx="6" fill="#E7DFD3"/>
+      <rect x="64" y="136" width="136" height="96" clip-path="url(#clip-before)" fill="url(#tone-blur)"/>
+      <rect x="64" y="136" width="136" height="96" rx="6" fill="none" stroke="#CFC5B7" stroke-width="1.5"/>
+      <line x1="206" y1="184" x2="240" y2="184" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
+      <rect x="248" y="136" width="136" height="96" rx="6" fill="#FBF8F3"/>
+      <rect x="248" y="136" width="136" height="96" clip-path="url(#clip-after)" fill="url(#tone-sharp)"/>
+      <rect x="248" y="136" width="136" height="96" rx="6" fill="none" stroke="#CFC5B7" stroke-width="1.5"/>
+      <text x="64" y="258" font-size="18" fill="#8A7A66">原图 · 网点糊块</text>
+      <text x="248" y="258" font-size="18" fill="#762D3F">超分后 · 网点归位</text>
+    </g>
+
+    <!-- 策略 -->
+    <g id="policy" font-size="20" fill="#2A2320">
+      <text x="600" y="164">· 低于设定分辨率才跑，不白烧算力</text>
+      <text x="600" y="198">· 前后各预取若干页，翻页时不等推理</text>
+      <text x="600" y="232">· 权重不随包，首次使用时才下载</text>
+      <text x="600" y="266">· 可按条件给不同书指定模型与倍率</text>
+    </g>
+
+    <line x1="64" y1="300" x2="1136" y2="300" stroke="#CFC5B7" stroke-width="1.5"/>
+
+    <!-- 平台矩阵 -->
+    <g id="matrix">
+      <text x="64" y="340" font-size="20" fill="#8A7A66">引擎</text>
+      <g font-size="20" fill="#8A7A66" text-anchor="middle">
+        <text x="383" y="340">Android</text>
+        <text x="550" y="340">iOS</text>
+        <text x="717" y="340">Windows</text>
+        <text x="884" y="340">macOS</text>
+        <text x="1051" y="340">Linux</text>
+      </g>
+      <line x1="64" y1="352" x2="1136" y2="352" stroke="#9C4B5E" stroke-width="1.5"/>
+
+      <g font-size="22" fill="#2A2320">
+        <text x="64" y="384">Rossi 原生 CoreML</text>
+        <text x="64" y="432">mImage ONNX</text>
+        <text x="64" y="480">桌面 NCNN</text>
+        <text x="64" y="528">内置 waifu2x CLI</text>
+      </g>
+      <g font-size="16" fill="#8A7A66"
+         font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
+        <text x="64" y="404">ANE / GPU</text>
+        <text x="64" y="452">DirectML · CoreML · CPU</text>
+        <text x="64" y="500">waifu2x / Real-CUGAN</text>
+        <text x="64" y="548">无引擎选择，自动使用</text>
+      </g>
+
+      <g stroke="#CFC5B7" stroke-width="1">
+        <line x1="64" y1="414" x2="1136" y2="414"/>
+        <line x1="64" y1="462" x2="1136" y2="462"/>
+        <line x1="64" y1="510" x2="1136" y2="510"/>
+      </g>
+
+      <!-- 可用打勾，不可用留短横 -->
+      <g stroke="#9C4B5E" stroke-width="3" fill="none" stroke-linecap="round">
+        <path d="M 543 378 l 5 5 l 10 -11"/>
+        <path d="M 877 378 l 5 5 l 10 -11"/>
+        <path d="M 543 426 l 5 5 l 10 -11"/>
+        <path d="M 710 426 l 5 5 l 10 -11"/>
+        <path d="M 877 426 l 5 5 l 10 -11"/>
+        <path d="M 1044 426 l 5 5 l 10 -11"/>
+        <path d="M 710 474 l 5 5 l 10 -11"/>
+        <path d="M 1044 474 l 5 5 l 10 -11"/>
+        <path d="M 376 522 l 5 5 l 10 -11"/>
+      </g>
+      <g stroke="#CFC5B7" stroke-width="2" stroke-linecap="round">
+        <line x1="377" y1="383" x2="389" y2="383"/>
+        <line x1="711" y1="383" x2="723" y2="383"/>
+        <line x1="1045" y1="383" x2="1057" y2="383"/>
+        <line x1="377" y1="431" x2="389" y2="431"/>
+        <line x1="377" y1="479" x2="389" y2="479"/>
+        <line x1="544" y1="479" x2="556" y2="479"/>
+        <line x1="878" y1="479" x2="890" y2="479"/>
+        <line x1="544" y1="527" x2="556" y2="527"/>
+        <line x1="711" y1="527" x2="723" y2="527"/>
+        <line x1="878" y1="527" x2="890" y2="527"/>
+        <line x1="1045" y1="527" x2="1057" y2="527"/>
+      </g>
+    </g>
+  </g>
+</svg>
