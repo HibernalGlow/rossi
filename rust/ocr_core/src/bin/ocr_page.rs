@@ -2,7 +2,13 @@
 //!
 //! 用法：
 //! `ocr_page --det det.onnx --encoder enc.onnx --decoder dec.onnx --vocab vocab.txt <page.jpg>
-//!           [--ep auto|cpu|coreml|directml] [--limit N] [--group] [--dump-crops DIR] [--dump-groups PNG] [--json]`
+//!           [--ep auto|cpu|coreml|directml] [--limit N] [--group] [--dump-crops DIR] [--dump-groups PNG] [--json]
+//!           [--det-limit-side N] [--det-prob-thresh F]`
+//!
+//! `--det-limit-side` 是量「手写笔记/大拟声词到底能不能被认出来」那一条用的：
+//! 底部那版手写作者寄语在 960 下确实检不到、1280 才冒出来（两块 130 / 193 字）；
+//! 但**顶部那几列密排印刷旁白在 960 就已经检到了**，而且认出来是乱的 ——
+//! 所以「检不到所以不翻」只对底部那一版成立，别拿它当整页的结论（数据见 §8.6.13）。
 //!
 //! 裁剪口径：取框的轴对齐外接框再各边外扩 `--pad`（默认 6 px，见 main 里的实测说明）——
 //! 旋转框不做透视矫正，一期先按 v1 简化；竖排列基本都是近轴对齐的。
@@ -11,7 +17,8 @@
 use anyhow::{Context, Result, anyhow};
 use image::{Rgb, RgbImage};
 use rossi_ocr_core::{
-    Detector, Ep, GroupParams, Inpainter, Recognizer, TextBlock, group_boxes, mask_from_blocks,
+    Detector, DetectorParams, Ep, GroupParams, Inpainter, Recognizer, TextBlock, group_boxes,
+    mask_from_blocks,
 };
 use serde_json::json;
 use std::path::PathBuf;
@@ -31,6 +38,11 @@ fn main() -> Result<()> {
     let mut inpaint_max_side = 1024u32;
     let mut inpaint_dilate = 3i32;
     let mut group = false;
+    // 检测侧的三个旋钮：量「手写笔记/大拟声词被认成什么」时要能在 1280 那一档跑。
+    // 默认值 = 生产的默认（960 / 0.30 / 0），不给参数时行为与以前逐字相同。
+    let mut det_limit_side: u32 = 960;
+    let mut det_prob_thresh: f32 = 0.30;
+    let mut det_box_thresh: f32 = 0.0;
     // 默认 6 是实测出来的：pad=2 时「出てきなさ」被裁成半截，pad=6 补全为「出てきなさい」
     // （竖排末字常贴着框边）。再大就会把相邻列的墨也带进来，反而干扰识别。
     let mut pad: i32 = 6;
@@ -48,6 +60,11 @@ fn main() -> Result<()> {
             "--limit" => limit = take_value(&mut args, &arg)?.parse()?,
             "--pad" => pad = take_value(&mut args, &arg)?.parse()?,
             "--group" => group = true,
+            "--det-limit-side" => {
+                det_limit_side = take_value(&mut args, &arg)?.parse()?
+            }
+            "--det-prob-thresh" => det_prob_thresh = take_value(&mut args, &arg)?.parse()?,
+            "--det-box-thresh" => det_box_thresh = take_value(&mut args, &arg)?.parse()?,
             "--inpaint" => inpaint_model = Some(PathBuf::from(take_value(&mut args, &arg)?)),
             "--dump-inpainted" => {
                 dump_inpainted = Some(PathBuf::from(take_value(&mut args, &arg)?))
@@ -81,7 +98,13 @@ fn main() -> Result<()> {
         .to_rgb8();
     let (page_w, page_h) = page.dimensions();
 
-    let mut detector = Detector::from_file(&det, ep)?;
+    let mut detector = Detector::from_file(&det, ep)?
+        .with_limit_side(det_limit_side)
+        .with_params(DetectorParams {
+            prob_thresh: det_prob_thresh,
+            box_thresh: det_box_thresh,
+            ..DetectorParams::default()
+        });
     let detection = detector.detect(&page)?;
     let mut recognizer = Recognizer::from_files(&encoder, &decoder, &vocab, ep)?;
     if print_json {
