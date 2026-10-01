@@ -47,10 +47,25 @@ pub struct Recognition {
 
 impl Recognizer {
     pub fn from_files(encoder: &Path, decoder: &Path, vocab: &Path, ep: Ep) -> Result<Self> {
+        // 与擦字同一条结论、各自单独量过（`rec_bench`，交替 3 轮、两页）：
+        // 4 线程是 **0.72×**（2 407 → 1 727 ms / 页），8 线程只再多 3% 却把能效核也占满；
+        // 而**文本指纹在 1/4/8 下逐位相同** —— 线程数只改浮点归约的调度，不改识别结果，
+        // 所以这一档不会让下游的译文跟着变（缓存指纹因此不需要为它加维度）。
+        Self::from_files_with_threads(encoder, decoder, vocab, ep, 4)
+    }
+
+    /// 指定 `intra_threads` 建会话。默认走 [`Self::from_files`]（4），理由与实测数在那儿。
+    pub fn from_files_with_threads(
+        encoder: &Path,
+        decoder: &Path,
+        vocab: &Path,
+        ep: Ep,
+        intra_threads: usize,
+    ) -> Result<Self> {
         let vocab = load_vocab(vocab)?;
         Ok(Self {
-            encoder: build_session(encoder, ep, Stage::Recognize, 1)?,
-            decoder: build_session(decoder, ep, Stage::Recognize, 1)?,
+            encoder: build_session(encoder, ep, Stage::Recognize, intra_threads)?,
+            decoder: build_session(decoder, ep, Stage::Recognize, intra_threads)?,
             vocab,
             max_new_tokens: 64,
             // 记实际生效的 EP，理由同 Detector。

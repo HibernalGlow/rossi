@@ -195,10 +195,13 @@ fn apply_accelerator(
     }
 }
 
-/// 建会话。`intra_threads = 1` 是检测 / 识别两段的默认：单次推理很短，多线程的收益抵不过
-/// 与 Reader 渲染抢核；调用方要并行跑多页时再调高。
-/// **擦字段是例外**，它走 4 个线程 —— 那是整条链路里最长的一次推理（整页 5–8 s），
-/// 实测 0.54–0.74 倍且跨页一致，理由与数据在 [`crate::inpaint::Inpainter::from_file`]。
+/// 建会话。`intra_threads` 现在**三段都是 4**，但各自是各自量出来的，不是一条策略套三次：
+/// - 擦字：单次最长（整页 5–8 s），4 线程 0.54–0.56 倍，8 不再更好 ——
+///   见 [`crate::inpaint::Inpainter::from_file`]；
+/// - 识别：28 次小推理，4 线程 0.72 倍、8 只再多 3%，且文本指纹逐位不变 ——
+///   见 [`crate::recognize::Recognizer::from_files`]；
+/// - 检测：仍留 1（单次 ~0.2 s，线程唤醒占比最大，**没量过**，所以不动）。
+/// 4 = 本机性能核数，把能效核留给阅读器渲染；调用方要并行跑多页时再自己调。
 pub fn build_session(model: &Path, ep: Ep, stage: Stage, intra_threads: usize) -> Result<Session> {
     let ep = ep.resolve(stage);
     if !model.is_file() {
