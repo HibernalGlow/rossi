@@ -12,6 +12,7 @@ import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/translated_page_controller.dart';
 import 'package:zephyr/reader/local_page_source.dart';
 import 'package:zephyr/reader/page_source.dart';
+import 'package:zephyr/service/ocr/ocr_service.dart';
 import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/util/path_util.dart';
 import 'package:zephyr/video/model/animated_video_mode.dart';
@@ -70,6 +71,11 @@ class LocalReadSession {
     // 在途的成品页构建要认自己过期（一页十几秒，退出后还在烧 CPU），
     // 归属与临时输入也要一起清 —— 呈现器马上就要没了，那些路径没有归宿。
     TranslatedPageController.instance.reset();
+    // 译文那三个模型会话（检测+识别+擦字 约 670 MB 常驻）是**跨页复用**的，
+    // 复用的边界就是「还在读」：人离开阅读器了，就没有下一页要省这 2 s，必须交还。
+    // 换章（上面 `setSource` 那条 `reset()`）**不**跟着交 —— 人还在读，下一张多半还要译，
+    // 那一页省下的 ~2 s 才是应得的。
+    OcrService.instance.releaseSessions();
     // 先摘走旧引用，再异步释放；换书期间不能把新来源/新纹理一并清掉。
     presenter?.dispose();
     // 呈现器**没了之后**再撤「当前这本书」：反过来的话，还活着的呈现器会收到一条

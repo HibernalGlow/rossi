@@ -10,6 +10,7 @@ pub mod logger;
 pub mod memory;
 pub mod mimage_onnx;
 pub mod ocr;
+pub(crate) mod ocr_sessions;
 pub mod operation_binding;
 pub mod qjs;
 pub mod simple;

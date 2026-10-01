@@ -7,13 +7,10 @@
 //!
 //! 模型路径由调用方给：权重**不随包**（§决定 5），首下与目录管理在 Dart 侧。
 
+use crate::api::ocr_sessions;
 use anyhow::{Context, Result, anyhow};
 use flutter_rust_bridge::frb;
-use rossi_ocr_core::{
-    Detector, Ep, GroupParams, Inpainter, Recognizer, group_boxes, mask_from_blocks,
-    stage_ep_plan,
-};
-use std::path::PathBuf;
+use rossi_ocr_core::{Ep, GroupParams, group_boxes, mask_from_blocks, stage_ep_plan};
 use std::time::Instant;
 
 /// 四个模型文件的路径。检测件与识别件分别来自各自的模型仓库，见 `REFERENCE_RESEARCH.md` §8.6.1。
@@ -84,6 +81,17 @@ pub fn ocr_stage_ep_plan(ep: String) -> Result<OcrStageEpPlan> {
     })
 }
 
+/// 交还 OCR 会话占的内存。三个会话常驻约 670 MB（encoder 343.5 + decoder 117.5 +
+/// 擦字 206.3 + 检测 4.7，`ls -l` 现读），不是可以随手占着的东西。
+///
+/// 调用时机由 Dart 侧的 `OcrService.releaseSessions()` 决定：**退出阅读器**时交还，
+/// 换章不交（人还在读，下一张多半还要译，那 2 s 省得下来）。
+/// 代价是离开后第一次建页要重新加载权重 —— 那笔本来就该付。
+#[frb(sync)]
+pub fn ocr_release_sessions() {
+    ocr_sessions::release_sessions();
+}
+
 /// 检测 → 识别 → 聚块（→ 可选擦字）。**不做翻译**，也不画字。
 ///
 /// `ep` 取 `auto` / `cpu` / `coreml` / `directml`。**默认 `auto` = 按「平台 + 哪一段模型」选**
@@ -106,94 +114,98 @@ pub async fn ocr_analyze_page(
             .to_rgb8();
         let (page_w, page_h) = page.dimensions();
 
-        let mut detector = Detector::from_file(&PathBuf::from(&models.det), ep)?;
-        let ep_detect = detector.ep().label().to_string();
-        let detection = detector.detect(&page)?;
-        let detect_ms =
-            (detection.preprocess_ms + detection.infer_ms + detection.postprocess_ms) as u64;
+        // 会话跨页复用（`ocr_sessions`）：每页重建三个会话实测每页多付 1.8–2.4 s。
+        // 键含路径+字节数+mtime+EP，所以重下权重会触发重建，不会「静默用旧的」。
+        let key = ocr_sessions::session_key(&models, ep, inpaint_model.as_deref());
+        ocr_sessions::with_sessions(&key, &models, ep, inpaint_model.as_deref(), |sessions| {
+            let detector = &mut sessions.detector;
+            let ep_detect = detector.ep().label().to_string();
+            let detection = detector.detect(&page)?;
+            let detect_ms =
+                (detection.preprocess_ms + detection.infer_ms + detection.postprocess_ms) as u64;
 
-        let mut recognizer = Recognizer::from_files(
-            &PathBuf::from(&models.encoder),
-            &PathBuf::from(&models.decoder),
-            &PathBuf::from(&models.vocab),
-            ep,
-        )?;
-        if let Some(n) = max_new_tokens {
-            recognizer = recognizer.with_max_new_tokens(n as usize);
-        }
-        let ep_recognize = recognizer.ep().label().to_string();
-
-        let recognize_start = Instant::now();
-        let mut texts: Vec<(String, bool)> = Vec::with_capacity(detection.boxes.len());
-        for b in &detection.boxes {
-            let (x0, y0, x1, y1) = b.quad.aabb();
-            let crop = crop_with_pad(&page, x0, y0, x1, y1, CROP_PAD);
-            if crop.width() == 0 || crop.height() == 0 {
-                texts.push((String::new(), false));
-                continue;
+            let recognizer = &mut sessions.recognizer;
+            if let Some(n) = max_new_tokens {
+                recognizer.set_max_new_tokens(n as usize);
             }
-            let r = recognizer.recognize(&crop)?;
-            texts.push((r.text, r.truncated));
-        }
-        let recognize_ms = recognize_start.elapsed().as_millis() as u64;
+            let ep_recognize = recognizer.ep().label().to_string();
 
-        let blocks_raw = group_boxes(&detection.boxes, &GroupParams::default());
-        let blocks: Vec<OcrBlock> = blocks_raw
-            .iter()
-            .map(|blk| {
-                let ordered = blk.order_reading(&detection.boxes);
-                let text: String = ordered
-                    .iter()
-                    .filter_map(|m| texts.get(*m))
-                    .map(|(t, _)| t.as_str())
-                    .collect();
-                let truncated = ordered
-                    .iter()
-                    .filter_map(|m| texts.get(*m))
-                    .any(|(_, trunc)| *trunc);
-                OcrBlock {
-                    quad: blk.quad.0.iter().flat_map(|p| [p[0], p[1]]).collect(),
-                    text,
-                    boxes: blk.members.len() as u32,
-                    truncated,
+            let recognize_start = Instant::now();
+            let mut texts: Vec<(String, bool)> = Vec::with_capacity(detection.boxes.len());
+            for b in &detection.boxes {
+                let (x0, y0, x1, y1) = b.quad.aabb();
+                let crop = crop_with_pad(&page, x0, y0, x1, y1, CROP_PAD);
+                if crop.width() == 0 || crop.height() == 0 {
+                    texts.push((String::new(), false));
+                    continue;
                 }
-            })
-            .collect();
-
-        let mut inpaint_ms = 0u64;
-        let mut erased_path = None;
-        let mut ep_inpaint = None;
-        if let Some(model) = inpaint_model {
-            let out = erased_output
-                .clone()
-                .ok_or_else(|| anyhow!("给了擦字模型就必须给输出路径"))?;
-            let mask = mask_from_blocks(&blocks_raw, page_w, page_h, 3);
-            if mask.iter().any(|v| *v > 0) {
-                let mut inpainter = Inpainter::from_file(&PathBuf::from(&model), ep)?;
-                ep_inpaint = Some(inpainter.ep().label().to_string());
-                let erased = inpainter.inpaint(&page, &mask)?;
-                inpaint_ms = (erased.preprocess_ms + erased.infer_ms + erased.composite_ms) as u64;
-                erased
-                    .image
-                    .save(&out)
-                    .with_context(|| format!("写擦字结果失败：{out}"))?;
-                erased_path = Some(out);
+                let r = recognizer.recognize(&crop)?;
+                texts.push((r.text, r.truncated));
             }
-        }
+            let recognize_ms = recognize_start.elapsed().as_millis() as u64;
 
-        Ok(OcrPageResult {
-            blocks,
-            page_width: page_w,
-            page_height: page_h,
-            detect_ms,
-            recognize_ms,
-            inpaint_ms,
-            erased_path,
-            stage_eps: OcrStageEps {
-                detect: ep_detect,
-                recognize: ep_recognize,
-                inpaint: ep_inpaint,
-            },
+            let blocks_raw = group_boxes(&detection.boxes, &GroupParams::default());
+            let blocks: Vec<OcrBlock> = blocks_raw
+                .iter()
+                .map(|blk| {
+                    let ordered = blk.order_reading(&detection.boxes);
+                    let text: String = ordered
+                        .iter()
+                        .filter_map(|m| texts.get(*m))
+                        .map(|(t, _)| t.as_str())
+                        .collect();
+                    let truncated = ordered
+                        .iter()
+                        .filter_map(|m| texts.get(*m))
+                        .any(|(_, trunc)| *trunc);
+                    OcrBlock {
+                        quad: blk.quad.0.iter().flat_map(|p| [p[0], p[1]]).collect(),
+                        text,
+                        boxes: blk.members.len() as u32,
+                        truncated,
+                    }
+                })
+                .collect();
+
+            let mut inpaint_ms = 0u64;
+            let mut erased_path = None;
+            let mut ep_inpaint = None;
+            if inpaint_model.is_some() {
+                let out = erased_output
+                    .clone()
+                    .ok_or_else(|| anyhow!("给了擦字模型就必须给输出路径"))?;
+                let mask = mask_from_blocks(&blocks_raw, page_w, page_h, 3);
+                if mask.iter().any(|v| *v > 0) {
+                    let (_, inpainter) = sessions
+                        .inpaint
+                        .as_mut()
+                        .ok_or_else(|| anyhow!("会话缓存里没有擦字会话（内部逻辑错了）"))?;
+                    ep_inpaint = Some(inpainter.ep().label().to_string());
+                    let erased = inpainter.inpaint(&page, &mask)?;
+                    inpaint_ms =
+                        (erased.preprocess_ms + erased.infer_ms + erased.composite_ms) as u64;
+                    erased
+                        .image
+                        .save(&out)
+                        .with_context(|| format!("写擦字结果失败：{out}"))?;
+                    erased_path = Some(out);
+                }
+            }
+
+            Ok(OcrPageResult {
+                blocks,
+                page_width: page_w,
+                page_height: page_h,
+                detect_ms,
+                recognize_ms,
+                inpaint_ms,
+                erased_path,
+                stage_eps: OcrStageEps {
+                    detect: ep_detect,
+                    recognize: ep_recognize,
+                    inpaint: ep_inpaint,
+                },
+            })
         })
     })
     .await

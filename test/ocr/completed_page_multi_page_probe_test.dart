@@ -102,6 +102,7 @@ void main() {
 
     final report = <String>[];
     final spilled = <String>[];
+    final perPageMs = <String>[];
     final blindMetric = <String>[];
     final emptyBlocks = <String>[];
     final sizeMismatch = <String>[];
@@ -112,16 +113,26 @@ void main() {
 
       List<OcrBlock> blocks = const [];
       Uint8List erasedPng = Uint8List(0);
+      // 分析段的墙钟与「三段自己报的合计」。两者的差就是**建会话**那笔：
+      // 只在一次运行里逐页比这两个数，才不受机器负载漂移的污染。
+      var analyzeWallMs = 0;
+      var stageSumMs = 0;
       final builder = TranslatedPageBuilder(
         // 与生产的默认那一跳逐字相同，只是顺手把「擦干净的底图」和框留给自己用 ——
         // 越框这件事必须拿底图对照，事后重跑一次擦字等于把成本翻倍。
         analyze: (imagePath, erasedPath, ep) async {
+          final analyzeClock = Stopwatch()..start();
           final r = await OcrService.instance.analyzePage(
             imagePath: imagePath,
             inpaint: true,
             erasedOutput: erasedPath,
             ep: ep,
           );
+          analyzeClock.stop();
+          analyzeWallMs = analyzeClock.elapsedMilliseconds;
+          // 三段自报的是 `BigInt`（FRB 把 u64 映成它），值就是毫秒，直接落 int。
+          stageSumMs =
+              (r.detectMs + r.recognizeMs + r.inpaintMs).toInt();
           blocks = r.blocks;
           // 没识别到文字的页，Rust 侧根本不会写擦字底图（builder 那时直接回原图），
           // 这里读一个不存在的路径会把整轮扫描打断。
@@ -134,11 +145,19 @@ void main() {
             texts.map(_pseudoTranslate).toList(growable: false),
       );
 
+      // 每页单独计时：这是唯一会**连着建多页**的测试，所以它也是唯一能看见
+      // 「会话每页重建」这笔固定开销的地方（单页测试里它和推理混在一起分不开）。
+      final pageClock = Stopwatch()..start();
       final out = await builder.build(
         imagePath: pagePath,
         pageIndex: pageIndex,
         config: config,
         force: true,
+      );
+      pageClock.stop();
+      perPageMs.add(
+        '$name ${pageClock.elapsedMilliseconds} ms'
+        '（分析 $analyzeWallMs，三段 $stageSumMs，建会话 ${analyzeWallMs - stageSumMs}）',
       );
       final productPng = await File(out.path).readAsBytes();
       if (blocks.isEmpty) {
@@ -220,6 +239,7 @@ void main() {
     }
 
     // ignore: avoid_print
+    print('—— 每页耗时（「建会话」= 分析段墙钟 − 三段自报合计）：${perPageMs.join('、')}');
     print('—— 多页扫描（${pages.length} 页）\n${report.join('\n')}');
     expect(sizeMismatch, isEmpty, reason: '成品页尺寸必须与原页一致');
     expect(emptyBlocks, isEmpty, reason: '这些页里有某个块一个墨点都没有');

@@ -105,6 +105,12 @@ void main() {
     print(
       '成品页：${out.blockCount} 块，耗时 ${sw.elapsedMilliseconds} ms → ${out.path}',
     );
+    // 分段落一起打出来：Rust 三段只报了它自己的时间，Dart 侧的解码/排版/编码此前是
+    // 一段查不出来的黑箱（当时实测总 10.5 s、三段合计 4.9 s，差的 5.6 s 没人认领）。
+    // 那笔差额后来一半归给「每页重建三个会话」（§8.6.12，已修），
+    // 一半归给 Dart 侧自己的活 —— 日志本来就是给用户看的，这里让它也给我们看。
+    // ignore: avoid_print
+    print(OcrLog.log.entries.value.map((e) => '  日志｜$e').join('\n'));
 
     expect(out.hasText, isTrue);
     expect(out.blockCount, greaterThan(0));

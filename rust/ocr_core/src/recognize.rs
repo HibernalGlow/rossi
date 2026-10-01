@@ -73,6 +73,12 @@ impl Recognizer {
         })
     }
 
+    /// 就地改上限。缓存复用会话时不能靠 builder 那种消费 `self` 的写法 ——
+    /// 借来的 `&mut` 换不出去。
+    pub fn set_max_new_tokens(&mut self, n: usize) {
+        self.max_new_tokens = n;
+    }
+
     pub fn with_max_new_tokens(mut self, n: usize) -> Self {
         self.max_new_tokens = n.max(1);
         self

@@ -15,6 +15,12 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 OcrStageEpPlan ocrStageEpPlan({required String ep}) =>
     RustLib.instance.api.crateApiOcrOcrStageEpPlan(ep: ep);
 
+/// 交还 OCR 会话占的内存。三个会话常驻约 670 MB（encoder 343.5 + decoder 117.5 +
+/// 擦字 206.3 + 检测 4.7，`ls -l` 现读），不是可以随手占着的东西 ——
+/// 关掉译文页时调用一次，下次建页会重新加载（那笔 ~2 s 又回来，是应得的代价）。
+void ocrReleaseSessions() =>
+    RustLib.instance.api.crateApiOcrOcrReleaseSessions();
+
 /// 检测 → 识别 → 聚块（→ 可选擦字）。**不做翻译**，也不画字。
 ///
 /// `ep` 取 `auto` / `cpu` / `coreml` / `directml`。**默认 `auto` = 按「平台 + 哪一段模型」选**

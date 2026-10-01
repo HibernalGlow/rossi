@@ -32,6 +32,22 @@ class OcrService {
   static Future<Directory> outputRoot() async =>
       Directory(p.join(await getFilePath(), 'manga_translated'));
 
+  /// 这一进程里**是否真的过桥建过会话**。Rust 侧的会话缓存是跨页复用的（`ocr_sessions`），
+  /// 三个会话常驻约 670 MB，所以退出阅读器时必须交还；但没建过就没有可交的东西 ——
+  /// 少这一句会让「从没翻过译文页」的每次退出都白过一次桥，也让不带原生库的
+  /// 状态机单测直接崩在 `RustLib.instance` 未初始化上。
+  bool _sessionsHeld = false;
+
+  /// 交还 Rust 侧的三个模型会话（约 670 MB）。**只在真的建过会话时过桥**。
+  ///
+  /// 谁来调：`LocalReadSession.dispose()`。换章不调 —— 人还在阅读、下一张多半还要译，
+  /// 那一页省下的 2 s 是应得的。代价是退出后第一次建页要重新加载权重。
+  void releaseSessions() {
+    if (!_sessionsHeld) return;
+    _sessionsHeld = false;
+    ocrReleaseSessions();
+  }
+
   /// 分析一页：检测 → 识别 → 聚块（→ 可选擦字）。
   ///
   /// [ep] 默认 `auto` = 交给 Rust 侧按「平台 + 哪一段」选（Windows 上识别与擦字走 DirectML、
@@ -59,6 +75,7 @@ class OcrService {
       throw ArgumentError('inpaint: true 时必须给 erasedOutput');
     }
 
+    _sessionsHeld = true;
     return ocrAnalyzePage(
       imagePath: imagePath,
       models: OcrModelPaths(
