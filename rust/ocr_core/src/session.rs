@@ -195,8 +195,10 @@ fn apply_accelerator(
     }
 }
 
-/// 建会话。`intra_threads = 1` 是 OCR 侧的默认：一页推理一次，多线程的收益抵不过
+/// 建会话。`intra_threads = 1` 是检测 / 识别两段的默认：单次推理很短，多线程的收益抵不过
 /// 与 Reader 渲染抢核；调用方要并行跑多页时再调高。
+/// **擦字段是例外**，它走 4 个线程 —— 那是整条链路里最长的一次推理（整页 5–8 s），
+/// 实测 0.54–0.74 倍且跨页一致，理由与数据在 [`crate::inpaint::Inpainter::from_file`]。
 pub fn build_session(model: &Path, ep: Ep, stage: Stage, intra_threads: usize) -> Result<Session> {
     let ep = ep.resolve(stage);
     if !model.is_file() {

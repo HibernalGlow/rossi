@@ -55,7 +55,12 @@ pub struct Inpainted {
 
 impl Inpainter {
     pub fn from_file(model: &Path, ep: Ep) -> Result<Self> {
-        Self::from_file_with(model, ep, 1)
+        // 擦字段用 4 个 intra 线程，**不是** OCR 侧那条「= 1」的默认。
+        // 实测（`inpaint_threads`，同进程交替、每轮轮换顺序，8 张真页里的 4 张）：
+        // t=4 相对 t=1 是 **0.54–0.74 倍**，跨页一致；t=8 不再更好（0.67 倍，与 t=4 同量级）。
+        // 4 = 本机性能核数（`hw.perflevel0.physicalcpu`），把能效核留给阅读器渲染。
+        // 之所以要交替测：串行分块跑同一配置两次能差 57%，那台机器上「谁在吃 CPU」比效应本身还大。
+        Self::from_file_with(model, ep, 4)
     }
 
     /// `intra_threads` 交给调用方：一期默认 1（见 [crate::session::build_session] 的抢核说明），
