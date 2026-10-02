@@ -111,6 +111,19 @@ class _FileManagerCardState extends State<FileManagerCard> {
   bool _searchRunning = false;
   int _searchSerial = 0;
 
+  /// 遍历进行中「已扫多少条」的实时读数（轮询核心的进度接口得到）。
+  ///
+  /// 慢盘上一次整库遍历要几十秒，只给一个不动的转圈，用户会开始怀疑自己搜错了词 ——
+  /// 让数字自己往上走，是「它在干活」最直接的证据。
+  int _searchScannedLive = 0;
+
+  /// 引导条要不要亮：只在遍历**真的慢**的时候才亮（250ms 的闸门见
+  /// [_beginSearchFeedback]）。收窄那条路几十毫秒就回来，为它闪一下反而像卡了。
+  bool _searchSlow = false;
+  Timer? _searchSlowTimer;
+  Timer? _searchProgressPoll;
+  bool _searchProgressInFlight = false;
+
   /// 上一次为「搜索条件签名」跑过遍历的签名，见 [_searchSignatureOf]。
   String _searchSignature = '';
 
@@ -174,6 +187,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
   void dispose() {
     _disposed = true;
     _searchDebounce?.cancel();
+    _endSearchFeedback();
     _treePoll?.cancel();
     // 先摘登记再关会话：反过来的话，两个动作之间有一个窗口期，
     // 别人正好在这时候请求「新页签」会拿到一个马上要消失的会话。
@@ -360,6 +374,12 @@ class _FileManagerCardState extends State<FileManagerCard> {
         const SizedBox(height: 6),
         if (_searchExpanded || snapshot.searchQuery.isNotEmpty) ...[
           _buildSearchField(context, snapshot),
+          // 引导条紧贴输入框：这一行永远与框同宽可见，而下面那行选项是横向滚动的，
+          // 窄卡片上它会跑出视口 —— 「看不到任何动画，以为自己搜错了」就是这么来的。
+          if (_searchSlow) ...[
+            const SizedBox(height: 6),
+            _buildSearchProgress(context),
+          ],
           const SizedBox(height: 4),
           _buildSearchOptions(context, snapshot),
           const SizedBox(height: 6),
@@ -438,7 +458,9 @@ class _FileManagerCardState extends State<FileManagerCard> {
         for (final entry in snapshot.entries)
           _libraryEntry(context, entry, mode),
       ],
-      emptyText: snapshot.searchActive && query.isNotEmpty
+      emptyText: _searchSlow
+          ? '正在递归搜索，结果扫完一次给出…'
+          : snapshot.searchActive && query.isNotEmpty
           ? '子目录里没有匹配「$query」的条目'
           : query.isNotEmpty && !snapshot.searchIncludeSubfolders
           ? '当前这一层没有匹配「$query」的条目，可用上面的「在子目录里搜」往下找'

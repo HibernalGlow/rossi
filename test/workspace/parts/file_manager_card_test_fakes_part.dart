@@ -50,6 +50,15 @@ class _FileManagerApi implements RustLibApi {
   /// 飞行中」的时刻 —— 增量搜索的关键判据（输入框不能因此禁打）只能在那一刻测。
   Completer<FileManagerSnapshot>? searchReply;
 
+  /// 非空时，**递归那一次遍历**（`fileManagerSearch`）的回复挂在这个 Completer 上。
+  ///
+  /// 真机上遍历要几秒到几十秒，测试里要看的正是那一段：进度条亮不亮、已扫条数会不会涨。
+  /// 不挂它时依旧立即回快照，老用例的时序一点不动。
+  Completer<FileManagerSnapshot>? searchRunReply;
+
+  /// `fileManagerSearchProgress` 的替身读数（下一次轮询读到的「已扫条数」）。
+  int searchProgress = 0;
+
   @override
   dynamic noSuchMethod(Invocation invocation) {
     calls.add(invocation);
@@ -59,6 +68,11 @@ class _FileManagerApi implements RustLibApi {
       case #crateApiFileManagerSearchFileManagerSetSearchQuery:
         final gate = searchReply;
         return gate == null ? Future.value(snapshot) : gate.future;
+      case #crateApiFileManagerSearchFileManagerSearch:
+        final gate = searchRunReply;
+        return gate == null ? Future.value(snapshot) : gate.future;
+      case #crateApiFileManagerSearchFileManagerSearchProgress:
+        return Future.value(searchProgress);
       case #crateApiFileManagerSettingsFileManagerClose:
         return true;
       case #crateApiFileManagerTreeFileManagerTreeSnapshot:

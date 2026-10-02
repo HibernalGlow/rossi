@@ -281,6 +281,49 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('递归遍历进行中：输入框下有进度条与实时已扫条数', (tester) async {
+    api.searchRunReply = Completer<FileManagerSnapshot>();
+    api.snapshot = _snapshot(query: '春', subfolders: true, searchActive: true);
+    await _pumpCard(tester, width: 700, settle: false);
+
+    // 进度条一直在动，这一条只能自己推帧（`pumpAndSettle` 永远落不了地）。
+    Future<void> pumpUntil(bool Function() done, {int maxPumps = 25}) async {
+      for (var i = 0; i < maxPumps; i++) {
+        if (done()) return;
+        await tester.pump(const Duration(milliseconds: 80));
+      }
+    }
+
+    await pumpUntil(
+      () => api.callsTo(#crateApiFileManagerSearchFileManagerSearch).isNotEmpty,
+    );
+    // 遍历刚发出去的这一刻不该亮条：几十毫秒就回来的收窄若闪一下，反而像卡了。
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+
+    // 慢遍历：250ms 之后亮出引导条。
+    await pumpUntil(
+      () => find.byType(LinearProgressIndicator).evaluate().isNotEmpty,
+    );
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    expect(find.textContaining('正在递归搜索'), findsWidgets);
+
+    // 已扫条数是核心的真实读数，跟着轮询往上走 —— 这是「它在干活」的那份证据。
+    api.searchProgress = 12345;
+    await pumpUntil(
+      () => find.textContaining('已扫 1.2 万条').evaluate().isNotEmpty,
+    );
+    expect(find.textContaining('已扫 1.2 万条'), findsOneWidget);
+
+    // 遍历回来：引导条让位给真实统计。
+    api.searchRunReply!.complete(
+      _snapshot(query: '春', subfolders: true, searchActive: true),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('搜索结果页签：命中带相对目录，提供回到目录与存为页签', (tester) async {
     // 查询非空时搜索行本来就在（不必先展开），这一条测的是结果态的画法和出口。
     // 选项行是横向滚动的，宽一点才不用为每个芯片单独滚动。
