@@ -827,6 +827,8 @@ class _Translations$bookshelf$en_US extends Translations$bookshelf$zh_CN {
 	@override String confirmOverwriteImport({required Object title}) => '${title} already exists in download list. Overwrite?';
 	@override String get noExportableComics => 'No exportable comics in selection';
 	@override String batchExportCompleted({required Object success, required Object total}) => 'Batch export completed: ${success}/${total}';
+	@override String batchExportDeleted({required Object count}) => 'Deleted local downloads for ${count} comic(s)';
+	@override String batchExportKeptIncomplete({required Object count}) => '${count} comic(s) had pages missing from the export; their local downloads were kept';
 	@override String batchExportFailed({required Object error}) => 'Batch export failed: ${error}';
 	@override String get confirmDeleteSelectedTitle => 'Confirm delete';
 	@override String get confirmDeleteSelectedContent => 'Delete selected folders and comics? Folders will be deleted recursively.';
@@ -954,6 +956,14 @@ class _Translations$comicInfo$en_US extends Translations$comicInfo$zh_CN {
 	@override String exportFolderComplete({required Object title}) => 'Exported "${title}" as folder';
 	@override String exportZipComplete({required Object title}) => 'Exported "${title}" as zip';
 	@override String exportComicNotFound({required Object comicId}) => 'No downloadable comic found for export: ${comicId}';
+	@override String get exportDeleteAfter => 'Delete local download after a successful export';
+	@override String get exportDeleteAfterSubtitle => 'Only deleted once every page made it into the archive and the file is verified on disk. Otherwise the download is kept and the reason is shown.';
+	@override String exportedAndDeleted({required Object title}) => 'Exported and deleted local download: ${title}';
+	@override String exportDeleteSkippedIncomplete({required Object count, required Object chapters}) => '${count} page(s) did not make it into the export (${chapters}); local download kept';
+	@override String get exportDeleteSkippedEmpty => 'No downloadable pages found locally; local download kept';
+	@override String get exportDeleteSkippedArtifact => 'Exported file failed the integrity check; local download kept';
+	@override String get exportDeleteSkippedInsideRoot => 'Export target is inside the download folder, deleting would remove the export too; local download kept';
+	@override String exportDeleteFailed({required Object error}) => 'Export finished, but deleting the local download failed: ${error}';
 	@override String get pluginInvalidFavorited => 'Plugin did not return a valid favorited status';
 	@override String get pluginInvalidLiked => 'Plugin did not return a valid liked status';
 	@override String get addToCustomFolder => 'Add to custom folder';
@@ -3054,6 +3064,8 @@ extension on TranslationsEnUs {
 			'bookshelf.confirmOverwriteImport' => ({required Object title}) => '${title} already exists in download list. Overwrite?',
 			'bookshelf.noExportableComics' => 'No exportable comics in selection',
 			'bookshelf.batchExportCompleted' => ({required Object success, required Object total}) => 'Batch export completed: ${success}/${total}',
+			'bookshelf.batchExportDeleted' => ({required Object count}) => 'Deleted local downloads for ${count} comic(s)',
+			'bookshelf.batchExportKeptIncomplete' => ({required Object count}) => '${count} comic(s) had pages missing from the export; their local downloads were kept',
 			'bookshelf.batchExportFailed' => ({required Object error}) => 'Batch export failed: ${error}',
 			'bookshelf.confirmDeleteSelectedTitle' => 'Confirm delete',
 			'bookshelf.confirmDeleteSelectedContent' => 'Delete selected folders and comics? Folders will be deleted recursively.',
@@ -3172,6 +3184,14 @@ extension on TranslationsEnUs {
 			'comicInfo.exportFolderComplete' => ({required Object title}) => 'Exported "${title}" as folder',
 			'comicInfo.exportZipComplete' => ({required Object title}) => 'Exported "${title}" as zip',
 			'comicInfo.exportComicNotFound' => ({required Object comicId}) => 'No downloadable comic found for export: ${comicId}',
+			'comicInfo.exportDeleteAfter' => 'Delete local download after a successful export',
+			'comicInfo.exportDeleteAfterSubtitle' => 'Only deleted once every page made it into the archive and the file is verified on disk. Otherwise the download is kept and the reason is shown.',
+			'comicInfo.exportedAndDeleted' => ({required Object title}) => 'Exported and deleted local download: ${title}',
+			'comicInfo.exportDeleteSkippedIncomplete' => ({required Object count, required Object chapters}) => '${count} page(s) did not make it into the export (${chapters}); local download kept',
+			'comicInfo.exportDeleteSkippedEmpty' => 'No downloadable pages found locally; local download kept',
+			'comicInfo.exportDeleteSkippedArtifact' => 'Exported file failed the integrity check; local download kept',
+			'comicInfo.exportDeleteSkippedInsideRoot' => 'Export target is inside the download folder, deleting would remove the export too; local download kept',
+			'comicInfo.exportDeleteFailed' => ({required Object error}) => 'Export finished, but deleting the local download failed: ${error}',
 			'comicInfo.pluginInvalidFavorited' => 'Plugin did not return a valid favorited status',
 			'comicInfo.pluginInvalidLiked' => 'Plugin did not return a valid liked status',
 			'comicInfo.addToCustomFolder' => 'Add to custom folder',
@@ -3364,6 +3384,8 @@ extension on TranslationsEnUs {
 			'reader.transitionSwipeToLoad' => 'Swipe to load',
 			'reader.transitionLoaded' => 'Load complete',
 			'reader.transitionLoadFailedRetry' => 'Load failed, tap to retry',
+			_ => null,
+		} ?? switch (path) {
 			'reader.pullDownToPrevChapter' => 'Pull down to previous chapter',
 			'reader.releaseToJumpPrevChapter' => 'Release to jump to previous chapter',
 			'reader.releaseToLoadPrevChapter' => 'Release to load previous chapter',
@@ -3374,8 +3396,6 @@ extension on TranslationsEnUs {
 			'reader.loadFailedWithResult' => ({required Object result}) => '${result}\nLoad failed',
 			'reader.chapterOrder' => ({required Object order}) => 'Chapter ${order}',
 			'reader.doubleTapAction' => 'Double-tap action',
-			_ => null,
-		} ?? switch (path) {
 			'reader.doubleTapZoom' => 'Double-tap zoom',
 			'reader.doubleTapZoomSubtitle' => 'Double-tap image to toggle zoom',
 			'reader.doubleTapOpenMenu' => 'Double-tap to open menu',
@@ -3878,6 +3898,8 @@ extension on TranslationsEnUs {
 			'searchResult.enterPageNumber' => 'Enter page number',
 			'searchResult.pleaseEnterNumber' => 'Please enter a number',
 			'searchResult.returnToTop' => 'Return to top',
+			_ => null,
+		} ?? switch (path) {
 			'searchResult.jumpToPage' => 'Jump to page',
 			'searchResult.jump' => 'Jump',
 			'searchResult.retry' => 'Tap to retry',
@@ -3888,8 +3910,6 @@ extension on TranslationsEnUs {
 			'comicList.nothingHere' => 'Nothing here',
 			'comicList.filter' => 'Filter',
 			'comicList.subCategory' => 'Subcategory',
-			_ => null,
-		} ?? switch (path) {
 			'comicList.levelCategory' => ({required Object level}) => 'Level ${level}',
 			'comicList.missingListConfig' => 'Missing list request configuration',
 			'comicList.missingFnPath' => 'List request missing fnPath',

@@ -2242,6 +2242,12 @@ class Translations$bookshelf$zh_CN {
 	/// zh-CN: '批量导出完成：$success/$total'
 	String batchExportCompleted({required Object success, required Object total}) => '批量导出完成：${success}/${total}';
 
+	/// zh-CN: '已删除 $count 本的本地下载'
+	String batchExportDeleted({required Object count}) => '已删除 ${count} 本的本地下载';
+
+	/// zh-CN: '$count 本有页没能打包，已保留它们的本地下载'
+	String batchExportKeptIncomplete({required Object count}) => '${count} 本有页没能打包，已保留它们的本地下载';
+
 	/// zh-CN: '批量导出失败: $error'
 	String batchExportFailed({required Object error}) => '批量导出失败: ${error}';
 
@@ -2604,6 +2610,30 @@ class Translations$comicInfo$zh_CN {
 
 	/// zh-CN: '未找到可导出的下载漫画: $comicId'
 	String exportComicNotFound({required Object comicId}) => '未找到可导出的下载漫画: ${comicId}';
+
+	/// zh-CN: '导出成功后删除本地下载'
+	String get exportDeleteAfter => '导出成功后删除本地下载';
+
+	/// zh-CN: '只有全部页面都进了归档、文件确实写完，才会删除。任一条件不满足就保留本地下载，并说明原因。'
+	String get exportDeleteAfterSubtitle => '只有全部页面都进了归档、文件确实写完，才会删除。任一条件不满足就保留本地下载，并说明原因。';
+
+	/// zh-CN: '已导出并删除本地下载：$title'
+	String exportedAndDeleted({required Object title}) => '已导出并删除本地下载：${title}';
+
+	/// zh-CN: '有 $count 页没能打包进导出文件（$chapters），已保留本地下载'
+	String exportDeleteSkippedIncomplete({required Object count, required Object chapters}) => '有 ${count} 页没能打包进导出文件（${chapters}），已保留本地下载';
+
+	/// zh-CN: '本地没有任何可导出的页面，已保留本地下载'
+	String get exportDeleteSkippedEmpty => '本地没有任何可导出的页面，已保留本地下载';
+
+	/// zh-CN: '导出文件没通过完整性校验，已保留本地下载'
+	String get exportDeleteSkippedArtifact => '导出文件没通过完整性校验，已保留本地下载';
+
+	/// zh-CN: '导出位置就在下载目录里面，删下去会连导出一起删掉，已保留本地下载'
+	String get exportDeleteSkippedInsideRoot => '导出位置就在下载目录里面，删下去会连导出一起删掉，已保留本地下载';
+
+	/// zh-CN: '导出完成，但删除本地下载失败：$error'
+	String exportDeleteFailed({required Object error}) => '导出完成，但删除本地下载失败：${error}';
 
 	/// zh-CN: '插件未返回有效 favorited 状态'
 	String get pluginInvalidFavorited => '插件未返回有效 favorited 状态';
@@ -6879,6 +6909,8 @@ extension on Translations {
 			'bookshelf.confirmOverwriteImport' => ({required Object title}) => '《${title}》已经存在于下载列表中，是否覆盖导入？',
 			'bookshelf.noExportableComics' => '选中的项目中没有可导出的漫画',
 			'bookshelf.batchExportCompleted' => ({required Object success, required Object total}) => '批量导出完成：${success}/${total}',
+			'bookshelf.batchExportDeleted' => ({required Object count}) => '已删除 ${count} 本的本地下载',
+			'bookshelf.batchExportKeptIncomplete' => ({required Object count}) => '${count} 本有页没能打包，已保留它们的本地下载',
 			'bookshelf.batchExportFailed' => ({required Object error}) => '批量导出失败: ${error}',
 			'bookshelf.confirmDeleteSelectedTitle' => '确认删除',
 			'bookshelf.confirmDeleteSelectedContent' => '确定要删除选中的文件夹和漫画吗？文件夹会递归删除。',
@@ -6997,6 +7029,14 @@ extension on Translations {
 			'comicInfo.exportFolderComplete' => ({required Object title}) => '漫画${title}导出为文件夹完成',
 			'comicInfo.exportZipComplete' => ({required Object title}) => '漫画${title}导出为 zip 完成',
 			'comicInfo.exportComicNotFound' => ({required Object comicId}) => '未找到可导出的下载漫画: ${comicId}',
+			'comicInfo.exportDeleteAfter' => '导出成功后删除本地下载',
+			'comicInfo.exportDeleteAfterSubtitle' => '只有全部页面都进了归档、文件确实写完，才会删除。任一条件不满足就保留本地下载，并说明原因。',
+			'comicInfo.exportedAndDeleted' => ({required Object title}) => '已导出并删除本地下载：${title}',
+			'comicInfo.exportDeleteSkippedIncomplete' => ({required Object count, required Object chapters}) => '有 ${count} 页没能打包进导出文件（${chapters}），已保留本地下载',
+			'comicInfo.exportDeleteSkippedEmpty' => '本地没有任何可导出的页面，已保留本地下载',
+			'comicInfo.exportDeleteSkippedArtifact' => '导出文件没通过完整性校验，已保留本地下载',
+			'comicInfo.exportDeleteSkippedInsideRoot' => '导出位置就在下载目录里面，删下去会连导出一起删掉，已保留本地下载',
+			'comicInfo.exportDeleteFailed' => ({required Object error}) => '导出完成，但删除本地下载失败：${error}',
 			'comicInfo.pluginInvalidFavorited' => '插件未返回有效 favorited 状态',
 			'comicInfo.pluginInvalidLiked' => '插件未返回有效 liked 状态',
 			'comicInfo.addToCustomFolder' => '添加到自定义收藏夹',
@@ -7188,6 +7228,8 @@ extension on Translations {
 			'reader.chapterTransition' => '章节过渡中',
 			'reader.transitionSwipeToLoad' => '继续翻页加载',
 			'reader.transitionLoaded' => '加载完成',
+			_ => null,
+		} ?? switch (path) {
 			'reader.transitionLoadFailedRetry' => '加载失败，点击重试',
 			'reader.pullDownToPrevChapter' => '继续下拉到上一章',
 			'reader.releaseToJumpPrevChapter' => '松手跳转到上一章',
@@ -7198,8 +7240,6 @@ extension on Translations {
 			'reader.chapterNotDownloaded' => '章节未下载',
 			'reader.loadFailedWithResult' => ({required Object result}) => '${result}\n加载失败',
 			'reader.chapterOrder' => ({required Object order}) => '章节 ${order}',
-			_ => null,
-		} ?? switch (path) {
 			'reader.doubleTapAction' => '双击操作',
 			'reader.doubleTapZoom' => '双击缩放',
 			'reader.doubleTapZoomSubtitle' => '双击图片可在缩放和还原之间切换',
@@ -7702,6 +7742,8 @@ extension on Translations {
 			'discover.comicDetail' => '详情',
 			'searchResult.enterPageNumber' => '输入页数',
 			'searchResult.pleaseEnterNumber' => '请输入数字',
+			_ => null,
+		} ?? switch (path) {
 			'searchResult.returnToTop' => '返回顶部',
 			'searchResult.jumpToPage' => '跳转页面',
 			'searchResult.jump' => '跳转',
@@ -7712,8 +7754,6 @@ extension on Translations {
 			'comicList.loadFailedRetry' => '加载失败，请重试。',
 			'comicList.nothingHere' => '啥都没有',
 			'comicList.filter' => '筛选',
-			_ => null,
-		} ?? switch (path) {
 			'comicList.subCategory' => '子分类',
 			'comicList.levelCategory' => ({required Object level}) => '第${level}级分类',
 			'comicList.missingListConfig' => '缺少列表请求配置',
