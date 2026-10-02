@@ -5,6 +5,8 @@ import 'package:hooks/hooks.dart';
 import 'package:native_toolchain_rust/native_toolchain_rust.dart';
 import 'package:path/path.dart' as p;
 
+import 'cargo_target_dir.dart';
+
 void main(List<String> args) async {
   await build(args, (input, output) async {
     if (!input.config.buildCodeAssets) {
@@ -15,6 +17,8 @@ void main(List<String> args) async {
       input.config.code,
       input.packageRoot.toFilePath(),
     );
+
+    await useSharedCargoTargetDirectory(input);
 
     await RustBuilder(
       buildMode: input.config.linkingEnabled
