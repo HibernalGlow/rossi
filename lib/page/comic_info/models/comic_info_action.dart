@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_list/models/comic_list_scene.dart';
+import 'package:zephyr/page/download/method/comic_download_entry.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
 import 'package:zephyr/page/search_result/bloc/search_bloc.dart';
 import 'package:zephyr/util/json/json_value.dart';
@@ -78,6 +79,28 @@ Future<void> handleComicInfoAction(
     }
     final scene = ComicListScene.fromMap(sceneMap);
     context.pushRoute(ComicListRoute(scene: scene, title: scene.title));
+  }
+
+  if (type == 'downloadComic') {
+    final comicId = payload['comicId']?.toString().trim() ?? '';
+    if (comicId.isEmpty) {
+      return;
+    }
+    final source = _sourceIdFromString(
+      payload['source']?.toString(),
+      fallbackPluginId,
+    );
+    // 胶囊点一下就按这条入口指定的方式整本下载：章节列表缺省时
+    // startComicDownloadAll 会自己回源问插件详情，调用方不必先备好数据。
+    // payload.extern 会并进任务章节 extern，最终原样带回插件的 getChapter。
+    await startComicDownloadAll(
+      context: context,
+      from: source,
+      comicId: comicId,
+      comicName: payload['title']?.toString().trim() ?? '',
+      taskExtern: asJsonMap(payload['extern']),
+    );
+    return;
   }
 }
 
