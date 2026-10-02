@@ -1,6 +1,6 @@
 //! 递归搜索：搜索条件设置、遍历执行与取消、搜索历史。
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use anyhow::Error;
@@ -70,6 +70,26 @@ pub async fn file_manager_set_search_max_depth(
     .await
 }
 
+/// 一次在跑的递归遍历的把手。
+///
+/// `cancel` 管「停」：取消、以及新搜索让旧的停下。`scanned` 是给界面看的实时读数
+/// （慢盘上一次整库遍历要几十秒，没有这个数就只能给用户一个不动的转圈）。两者放进同一条
+/// 记录，是为了让「读数只属于当前那一次遍历」在结构上成立：旧把手被换掉之后，
+/// 界面再问也只会问到新那一次的数。
+pub(crate) struct FileManagerSearchHandle {
+    pub(crate) cancel: Arc<AtomicBool>,
+    pub(crate) scanned: Arc<AtomicUsize>,
+}
+
+impl FileManagerSearchHandle {
+    fn new() -> Self {
+        Self {
+            cancel: Arc::new(AtomicBool::new(false)),
+            scanned: Arc::new(AtomicUsize::new(0)),
+        }
+    }
+}
+
 /// 递归搜索的取消守卫。
 ///
 /// 放进 `Drop` 而不是写在正常返回路径上，为的是覆盖**非正常**那条：Dart 侧
@@ -77,14 +97,14 @@ pub async fn file_manager_set_search_max_depth(
 /// 守卫它会一路扫到底。正常完成时置位无害 —— 那时遍历已经结束了。
 struct FileManagerSearchGuard {
     id: u64,
-    cancel: Arc<AtomicBool>,
+    handle: Arc<FileManagerSearchHandle>,
 }
 
 impl Drop for FileManagerSearchGuard {
     fn drop(&mut self) {
-        self.cancel.store(true, Ordering::Relaxed);
-        // 只摘自己这颗旗子：期间用户可能又搜了一次，旗子已经换成新的了。
-        FILE_MANAGER_SEARCHES.remove_if(&self.id, |_, flag| Arc::ptr_eq(flag, &self.cancel));
+        self.handle.cancel.store(true, Ordering::Relaxed);
+        // 只摘自己那一份：期间用户可能又搜了一次，把手已经换成新的了。
+        FILE_MANAGER_SEARCHES.remove_if(&self.id, |_, handle| Arc::ptr_eq(handle, &self.handle));
     }
 }
 
@@ -110,15 +130,20 @@ pub async fn file_manager_search(id: u64) -> Result<FileManagerSnapshot, Error> 
         cancel_registered_search(id);
         return with_session(id, move |state| snapshot_for(id, state)).await;
     };
-    let cancel = Arc::new(AtomicBool::new(false));
-    register_search_cancel(id, &cancel);
+    let handle = begin_search(id);
     let guard = FileManagerSearchGuard {
         id,
-        cancel: cancel.clone(),
+        handle: handle.clone(),
     };
     let expected = request.clone();
     let outcome = rquickjs_playground::global_handle()
-        .spawn_blocking(move || rossi_local_core::file_manager::search_entries(&request, &cancel))
+        .spawn_blocking(move || {
+            rossi_local_core::file_manager::search_entries_with_progress(
+                &request,
+                &handle.cancel,
+                &handle.scanned,
+            )
+        })
         .await?;
     let listing = outcome.into_listing();
     drop(guard);
@@ -154,23 +179,43 @@ pub async fn file_manager_clear_search(id: u64) -> Result<FileManagerSnapshot, E
     .await
 }
 
-/// 登记本次遍历的取消旗子，并把**上一次**那一次真的停下来。
+/// 登记本次遍历的把手，并把**上一次**那一次真的停下来，返回新的把手。
 ///
-/// 只把旗子换掉是不够的：旧遍历手里是自己那份 `Arc`，登记项被换掉并不影响它，于是它会
+/// 只把登记项换掉是不够的：旧遍历手里是自己那份 `Arc`，登记项被换掉并不影响它，于是它会
 /// 一路扫到底，结果再被下面的回声判定丢掉 —— 白烧一遍磁盘，还把同一块盘的行进顺序搅乱。
-fn register_search_cancel(id: u64, cancel: &Arc<AtomicBool>) {
-    if let Some(previous) = FILE_MANAGER_SEARCHES.insert(id, cancel.clone()) {
-        previous.store(true, Ordering::Relaxed);
+fn begin_search(id: u64) -> Arc<FileManagerSearchHandle> {
+    let handle = Arc::new(FileManagerSearchHandle::new());
+    if let Some(previous) = FILE_MANAGER_SEARCHES.insert(id, handle.clone()) {
+        previous.cancel.store(true, Ordering::Relaxed);
     }
+    handle
 }
 
 /// 中止当前登记的那一次遍历。没有搜索在跑时返回 `false`。
 fn cancel_registered_search(id: u64) -> bool {
-    let Some(flag) = FILE_MANAGER_SEARCHES.get(&id).map(|entry| entry.clone()) else {
+    let Some(handle) = FILE_MANAGER_SEARCHES.get(&id).map(|entry| entry.clone()) else {
         return false;
     };
-    flag.store(true, Ordering::Relaxed);
+    handle.cancel.store(true, Ordering::Relaxed);
     true
+}
+
+/// 当前那一次遍历已经检视过多少条。没有搜索在跑时是 0。
+fn registered_progress(id: u64) -> u32 {
+    FILE_MANAGER_SEARCHES
+        .get(&id)
+        .map(|handle| handle.scanned.load(Ordering::Relaxed) as u32)
+        .unwrap_or(0)
+}
+
+/// 本会话正在跑的那一次遍历的进度读数（已检视的条目数）。
+///
+/// 纯读数，不参与任何判决：结果仍由 `file_manager_search` 的返回值交回。界面在遍历
+/// 期间每隔几百毫秒问它一次 —— 慢盘上一次整库遍历要几十秒，一个不动的转圈会让人
+/// 以为搜索坏了。
+#[frb]
+pub async fn file_manager_search_progress(id: u64) -> Result<u32, Error> {
+    Ok(registered_progress(id))
 }
 
 /// 请求中止本会话正在跑的搜索。没有搜索在跑时是空操作。
@@ -239,27 +284,34 @@ mod tests {
         let id = u64::MAX - 1;
         FILE_MANAGER_SEARCHES.remove(&id);
 
-        let first = Arc::new(AtomicBool::new(false));
-        register_search_cancel(id, &first);
-        assert!(!first.load(Ordering::Relaxed), "第一次登记不该动自己");
-
-        let second = Arc::new(AtomicBool::new(false));
-        register_search_cancel(id, &second);
+        let first = begin_search(id);
         assert!(
-            first.load(Ordering::Relaxed),
+            !first.cancel.load(Ordering::Relaxed),
+            "第一次登记不该动自己"
+        );
+
+        let second = begin_search(id);
+        assert!(
+            first.cancel.load(Ordering::Relaxed),
             "新搜索必须把上一次那一次停下"
         );
-        assert!(!second.load(Ordering::Relaxed), "本次不许被自己取消");
+        assert!(!second.cancel.load(Ordering::Relaxed), "本次不许被自己取消");
 
-        // 「中止」作用在当前登记的那一次，也就是最新这颗旗子。
+        // 进度读数只属于**当前**那一次：旧把手被换掉之后，它的计数不再是这个会话的答案。
+        first.scanned.store(41, Ordering::Relaxed);
+        second.scanned.store(7, Ordering::Relaxed);
+        assert_eq!(registered_progress(id), 7);
+        // 中止不改读数：数由遍历自己写，界面读到的就是它真正扫过的量。
         assert!(cancel_registered_search(id));
-        assert!(second.load(Ordering::Relaxed));
+        assert!(second.cancel.load(Ordering::Relaxed));
+        assert_eq!(registered_progress(id), 7);
 
-        // 摘干净，别把旗子留给同进程里的其它测试。
+        // 摘干净，别把把手留给同进程里的其它测试。
         FILE_MANAGER_SEARCHES.remove(&id);
         assert!(
             !cancel_registered_search(id),
             "没有搜索在跑时必须报「没中止任何东西」"
         );
+        assert_eq!(registered_progress(id), 0, "没有搜索在跑时读数是 0");
     }
 }
