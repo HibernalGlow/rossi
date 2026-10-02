@@ -34,7 +34,13 @@ fn rss_mib() -> u64 {
         .args(["-o", "rss=", "-p", &pid.to_string()])
         .output();
     match out {
-        Ok(o) => String::from_utf8_lossy(&o.stdout).trim().parse::<u64>().unwrap_or(0) / 1024,
+        Ok(o) => {
+            String::from_utf8_lossy(&o.stdout)
+                .trim()
+                .parse::<u64>()
+                .unwrap_or(0)
+                / 1024
+        }
         Err(_) => 0,
     }
 }
@@ -109,8 +115,18 @@ fn main() -> Result<()> {
             let mut rec = Recognizer::from_files_with_threads(&encoder, &decoder, &vocab, ep, t)?;
             let started = Instant::now();
             let mut texts = Vec::with_capacity(crops.len());
+            // encoder / decoder 各占多少，是这一路的全部前提：
+            // 「无 KV cache 所以 O(n²)」说的是 decoder，但如果大头在 encoder（每框一次
+            // 固定 224×224 的 ViT 前向），那 ADR 该指向攒批而不是缓存。
+            let mut enc_ms = 0u128;
+            let mut dec_ms = 0u128;
+            let mut tok_total = 0usize;
             for c in &crops {
-                texts.push(rec.recognize(c)?.text);
+                let r = rec.recognize(c)?;
+                enc_ms += r.encoder_ms;
+                dec_ms += r.decoder_ms;
+                tok_total += r.tokens;
+                texts.push(r.text);
             }
             let ok = texts.iter().filter(|t| !t.is_empty()).count();
             let ms = started.elapsed().as_millis();
@@ -121,6 +137,14 @@ fn main() -> Result<()> {
                     crops.len(),
                     rss_mib(),
                     text_hash(&texts)
+                );
+                let inner = enc_ms + dec_ms;
+                println!(
+                    "    其中 encoder {enc_ms} ms（{}%）/ decoder {dec_ms} ms（{}%）                     共 {tok_total} 步 → {:.1} ms/步；框均 {:.1} ms",
+                    enc_ms * 100 / inner.max(1),
+                    dec_ms * 100 / inner.max(1),
+                    dec_ms as f64 / tok_total.max(1) as f64,
+                    inner as f64 / crops.len().max(1) as f64,
                 );
             }
             results.push((format!("threads={t}"), ms, rss_mib()));
@@ -184,9 +208,18 @@ fn main() -> Result<()> {
         }
     }
     for label in seen {
-        let mut v: Vec<u128> = results.iter().filter(|r| r.0 == *label).map(|r| r.1).collect();
+        let mut v: Vec<u128> = results
+            .iter()
+            .filter(|r| r.0 == *label)
+            .map(|r| r.1)
+            .collect();
         v.sort_unstable();
-        let rss = results.iter().filter(|r| r.0 == *label).map(|r| r.2).max().unwrap_or(0);
+        let rss = results
+            .iter()
+            .filter(|r| r.0 == *label)
+            .map(|r| r.2)
+            .max()
+            .unwrap_or(0);
         println!(
             "  {label:<12} 中位 {:>6} ms   最快 {:>6} ms   峰值 RSS {} MiB",
             v[v.len() / 2],
@@ -202,6 +235,10 @@ where
     T::Err: std::fmt::Display,
 {
     s.split(',')
-        .map(|p| p.trim().parse::<T>().map_err(|e| anyhow!("解析 {p} 失败：{e}")))
+        .map(|p| {
+            p.trim()
+                .parse::<T>()
+                .map_err(|e| anyhow!("解析 {p} 失败：{e}"))
+        })
         .collect()
 }
