@@ -36,6 +36,25 @@ class _FileManagerApi implements RustLibApi {
   /// 很难看懂的 `type 'Future<FileManagerSnapshot>' is not a subtype of ...`。
   FileOpsSnapshot ops = _opsSnapshot();
 
+  /// 选中集合的替身真本（替核心记一份）。
+  ///
+  /// 三个「改选中」的桥调用必须**照提交的 path 改这份集合再回快照**，否则
+  /// 「长按把选中态立起来 → 再点一行」这条链在测试里根本走不通：桩永远回同一份
+  /// 空快照时，卡片第二下读到的仍然是「什么都没选」，也就进不到
+  /// `resolveFileManagerEntryTapGesture` 里「多选模式」那一格。
+  /// 卡片自己不留副本（正本在 Rust，见 ADR-0017），所以这一份只能记在桩这里。
+  final selectedPaths = <String>[];
+
+  FileOpsSnapshot _opsWithSelection() => _opsSnapshot(
+    selectedCount: selectedPaths.length,
+    selectedPaths: List.of(selectedPaths),
+    // 这批里有没有目录，照当前列表现算 —— 它是核心的真实读数，写死成 false
+    // 会让「粘贴到这一项」这类门控在测试里拿到假值。
+    selectionHasDirectory: selectedPaths.any(
+      (path) => snapshot.entries.any((entry) => entry.path == path && entry.isDir),
+    ),
+  );
+
   /// 文件树的投影。`hasPending` 固定为 false：真实的懒扫描靠 UI 隔一会儿再问一次，
   /// 测试里若让它一直「有待收」会让 `pumpAndSettle` 转不完。
   FileManagerTreeSnapshot tree = _treeSnapshot();
@@ -95,14 +114,26 @@ class _FileManagerApi implements RustLibApi {
         return Future.value(null);
 
       // ── 文件操作（ADR-0017）──────────────────────────────────────────────
-      // 只改选中集合 / 剪贴板的那几个，回的都是同一份 `ops`。
-      case #crateApiFileOpsFileOpsSnapshot:
+      // 改选中集合的那三个，按提交的 path 真的改 [selectedPaths] 再回快照。
       case #crateApiFileOpsFileOpsSelectSingle:
+        selectedPaths
+          ..clear()
+          ..add(invocation.namedArguments[#path] as String);
+        return Future.value(_opsWithSelection());
       case #crateApiFileOpsFileOpsSelectToggle:
+        final path = invocation.namedArguments[#path] as String;
+        if (!selectedPaths.remove(path)) selectedPaths.add(path);
+        return Future.value(_opsWithSelection());
+      case #crateApiFileOpsFileOpsClearSelection:
+        selectedPaths.clear();
+        return Future.value(_opsWithSelection());
+      // 其余只改选中集合 / 剪贴板的那几个，回的还是那份固定的 [ops]：
+      // 「全选 / 反选 / Shift 连选」要的是核心的锚点与下标轨，桩里没有真本，
+      // 所以它们的用例仍然自己 `api.ops = _opsSnapshot(...)` 摆好结果。
+      case #crateApiFileOpsFileOpsSnapshot:
       case #crateApiFileOpsFileOpsSelectChain:
       case #crateApiFileOpsFileOpsSelectAll:
       case #crateApiFileOpsFileOpsInvertSelection:
-      case #crateApiFileOpsFileOpsClearSelection:
       case #crateApiFileOpsFileOpsCopyToClipboard:
       case #crateApiFileOpsFileOpsClearClipboard:
         return Future.value(ops);

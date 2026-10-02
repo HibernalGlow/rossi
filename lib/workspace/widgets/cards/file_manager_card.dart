@@ -169,6 +169,13 @@ class _FileManagerCardState extends State<FileManagerCard> {
   /// 在 [build] 里订阅一次、同一个 build pass 里大家读它。
   bool _fileOpsEnabled = true;
 
+  /// 工具栏那颗「多选」开关摁没摁下。
+  ///
+  /// 只有这一个布尔留在 Dart：**它是「用户要哪种手感」的意图，不是选中集合的副本**
+  /// （集合的正本在 Rust 的 `FileOpsSession`，理由见 ADR-0017）。书架那边同样是
+  /// 「模式位 + 集合」两件事分开（`FolderShelfState.selectionMode`）。
+  bool _selectionModeRequested = false;
+
   /// 文件树面板。展开/懒扫描/游标的正本在 Rust 的 `FolderPaneState` 里，
   /// 这里只有「开没开」与最近一次投影。
   bool _treeEnabled = false;
@@ -473,6 +480,8 @@ class _FileManagerCardState extends State<FileManagerCard> {
       // 关掉「文件操作」时整块不挂：连右键手势都没有，列表回到纯浏览。
       wrapRow: _fileOpsEnabled ? _wrapEntryRow : null,
       onTap: (row) => _onEntryTap(row.source! as FileManagerEntry),
+      // 双击只对压缩包有意义：多选模式下「打开」由那颗模式开关管着（不在模式里时
+      // 单击就够得着打开），不必为此把每一行的双击都改成打开。
       canDoubleTap: (row) => (row.source! as FileManagerEntry).isArchive,
       onDoubleTap: (row) => _openArchive(row.source! as FileManagerEntry),
       titleColumn: _detailsTitleColumn,

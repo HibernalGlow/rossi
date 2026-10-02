@@ -213,7 +213,7 @@ enum FileManagerEntryTapGesture {
 /// 两个入参由界面层查好传进来（`HardwareKeyboard.instance`），不在这里读键盘 ——
 /// 那样这个函数就跑不进 `dart run` 的判据里了。
 ///
-/// 两处刻意的决定：
+/// 三处刻意的决定：
 ///
 /// - **不按平台挑修饰键**。调用方把 `meta || control` 合并成一个 [toggleModifier]：
 ///   macOS 的习惯键是 Cmd、Windows/Linux 是 Ctrl，而两个都认的代价只是
@@ -221,12 +221,23 @@ enum FileManagerEntryTapGesture {
 /// - **Ctrl 与 Shift 同时按，Shift 赢**。连选是「以某个点为起点选一片」，
 ///   它需要一个起点，而 [toggle] 会把起点改掉；让 [extend] 优先，
 ///   用户按住两个键时得到的是**范围**而不是「把起点换到这一项」。
+/// - **[selectionMode] 为真时，什么都不按也算 [toggle]**，不分设备。这是书架那套
+///   「多选模式」的口径（`FolderShelfState.selectionMode`）：**模式是一个明确的
+///   状态**，不是「碰巧有几点选中」。改之前只有后一种，于是长按/右键把选中态立起来
+///   （`onBeforeOpen` 收敛到那一项、操作条出现「已选 1 项」）之后，点第二下仍按
+///   「什么都不按 = 打开」裁决 —— 用户看见一个挂着的多选状态点进了文件夹，
+///   这就是那条 bug。
+///   进模式两条路：工具栏那颗「多选」开关（集合可以还是空的），或长按/右键把
+///   某一项选上（界面层把「手里正拿着东西」也算在模式里）。
+///   不在模式里时单击照旧打开，所以**不必为打开让出双击**。
 FileManagerEntryTapGesture resolveFileManagerEntryTapGesture({
   required bool toggleModifier,
   required bool extendModifier,
+  required bool selectionMode,
 }) {
   if (extendModifier) return FileManagerEntryTapGesture.extend;
   if (toggleModifier) return FileManagerEntryTapGesture.toggle;
+  if (selectionMode) return FileManagerEntryTapGesture.toggle;
   return FileManagerEntryTapGesture.open;
 }
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,6 +23,7 @@ import 'package:zephyr/workspace/widgets/cards/file_manager_thumbnail.dart';
 part 'parts/file_manager_card_test_fakes_part.dart';
 part 'parts/file_manager_card_test_fixture_part.dart';
 part 'parts/file_manager_card_test_helper_part.dart';
+part 'parts/file_manager_card_test_selection_part.dart';
 
 // Fake only the FRB boundary. Render the real card with the same Material
 // library as main.dart and no Scaffold/Material supplied by its host.
@@ -50,6 +52,11 @@ void main() {
     // ignore: invalid_use_of_internal_member
     RustLib.instance.resetState();
   });
+
+  // 多选模式那几条在 `parts/file_manager_card_test_selection_part.dart`：
+  // 宿主函数的局部变量对 part 不可见，所以把「当前这一个 api」以取值函数的形式递进去
+  // （直接传实例会传错 —— `setUp` 每个用例换一个新的）。
+  _selectionTapTests(() => api);
 
   for (final width in [260.0, 340.0, 700.0]) {
     for (final mode in FileManagerViewMode.values) {
