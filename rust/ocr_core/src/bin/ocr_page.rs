@@ -35,7 +35,9 @@ fn main() -> Result<()> {
     let mut dump_groups: Option<PathBuf> = None;
     let mut inpaint_model: Option<PathBuf> = None;
     let mut dump_inpainted: Option<PathBuf> = None;
-    let mut inpaint_max_side = 1024u32;
+    // 默认跟生产一致（`Inpainter::from_file` 的 768）：台架的默认值不等于生产，
+    // 量出来的数就不是发出去那条码路的数。
+    let mut inpaint_max_side = 768u32;
     let mut inpaint_dilate = 3i32;
     let mut group = false;
     // 检测侧的三个旋钮：量「手写笔记/大拟声词被认成什么」时要能在 1280 那一档跑。
@@ -60,9 +62,7 @@ fn main() -> Result<()> {
             "--limit" => limit = take_value(&mut args, &arg)?.parse()?,
             "--pad" => pad = take_value(&mut args, &arg)?.parse()?,
             "--group" => group = true,
-            "--det-limit-side" => {
-                det_limit_side = take_value(&mut args, &arg)?.parse()?
-            }
+            "--det-limit-side" => det_limit_side = take_value(&mut args, &arg)?.parse()?,
             "--det-prob-thresh" => det_prob_thresh = take_value(&mut args, &arg)?.parse()?,
             "--det-box-thresh" => det_box_thresh = take_value(&mut args, &arg)?.parse()?,
             "--inpaint" => inpaint_model = Some(PathBuf::from(take_value(&mut args, &arg)?)),

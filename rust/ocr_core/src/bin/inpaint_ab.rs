@@ -47,7 +47,7 @@ fn main() -> Result<()> {
     ];
     let mut gap = 40i32;
     let mut crop_pad = 32i32;
-    let mut max_side = 1024u32;
+    let mut max_side = 768u32; // = 生产默认（`Inpainter::from_file`）
     let mut thresholds = vec![100u16, 140, 180];
     let mut probe = 12i32;
     let mut repeat = 2u32;
@@ -187,6 +187,8 @@ fn main() -> Result<()> {
                     "mode": mode,
                     "ep": ep_used,
                     "threads": threads,
+                    // 跨轮对表靠这两个数自证：不写进 jsonl，四个 `--max-side` 的产物就分不出谁是谁。
+                    "max_side": max_side,
                     "runs": erased.runs,
                     "run_sizes": erased.run_sizes.iter().map(|(a, b)| [a, b]).collect::<Vec<_>>(),
                     "run_area_px": erased.run_sizes.iter().map(|(a, b)| a * b).sum::<u32>(),
