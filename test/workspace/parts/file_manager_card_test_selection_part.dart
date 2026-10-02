@@ -73,7 +73,12 @@ void _selectionTapTests(_FileManagerApi Function() getApi) {
   testWidgets('长按把选中立起来之后，点另一行是加进选中而不是进文件夹', (tester) async {
     final api = getApi();
     await _pumpCard(tester, width: 700);
-    await longPressFolderRow(tester);
+    // 按用户原话的形状来：长按**文件**那一行，然后点**文件夹**那一行。
+    await tester.longPress(
+      find.text(_archiveRow),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pumpAndSettle();
 
     final names = api.calls.map((call) => call.memberName.toString()).join(', ');
     // 这条就是用户报的那一步：长按之后操作条出现，界面上已经是多选。
@@ -86,16 +91,21 @@ void _selectionTapTests(_FileManagerApi Function() getApi) {
     // 菜单确实弹出来了 —— 不然这条链和真实操作不是同一回事。
     expect(find.text('移到回收站'), findsOneWidget);
 
-    // 先把菜单收掉再点第二行。长按那行排在最后，菜单（十来项）在下面放不下，
-    // `MenuAnchor` 会把它往上翻 —— 于是「点上面那行」实际点在菜单项上，
-    // 量出来的就是 0 次 selectToggle，红得让人误会。
-    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    // 先把菜单收掉再点第二行：菜单是十来项高的一个面，压在行上，
+    // 第二下会点到菜单项而不是那一行。
+    //
+    // 不能用 Esc 收：这条路上焦点根本没进菜单（`SingleActivator(escape)` 挂在菜单
+    // 自己的 `Shortcuts` 里）。点**卡片外面**那块空白才是用户真正会做的动作，
+    // 而 `TapRegion.onTapOutside` 只观察不吃事件。
+    // 视口 1000x1100、卡片宽 700 且左上对齐，(900, 1050) 落在卡片之外。
+    await tester.tapAt(const Offset(900, 1050), kind: PointerDeviceKind.mouse);
     await tester.pumpAndSettle();
     expect(find.text('移到回收站'), findsNothing);
+    // 收菜单不该顺手把选中清掉 —— 「刚才那一批还拿着」是这个状态的本职。
     expect(find.text('已选 1 项'), findsOneWidget);
     api.calls.clear();
 
-    await tester.tap(find.text(_archiveRow), kind: PointerDeviceKind.mouse);
+    await tester.tap(find.text(_folderRow), kind: PointerDeviceKind.mouse);
     await tester.pumpAndSettle();
 
     expect(api.callsTo(#crateApiFileOpsFileOpsSelectToggle).length, 1);

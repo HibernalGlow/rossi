@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/gestures.dart';
-import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
