@@ -35,11 +35,13 @@ class DiscoverPlatView extends StatefulWidget {
   final VoidCallback onCustomizeOrder;
 
   /// 竖向轨厚度的可拖范围与兜底默认值（真正的值存在设置里）。
-  /// 地板是量出来的，不是拍的：一条标签里**不是文字**的那部分（前导图标 +
-  /// 两道间距 + 关闭钮 + 轨内边距）实测要 54 + 8 = 62 —— 轨厚 60 时 RenderFlex
-  /// 溢 2px、61 溢 1px、62 起干净。再窄就会在设备更新相里抛布局异常，
-  /// 那正是「每帧刷 `!_debugDuringDeviceUpdate` 直到卡死」的引信。
-  static const double railMinWidth = 64;
+  ///
+  /// 地板是**量**出来的：渲染台里把轨厚压到 56，标签那一行报
+  /// `RenderFlex overflowed by 12 pixels on the right` ⇒ 零溢出的临界点就是 68，
+  /// 这一档标签分到 0 宽（只剩图标与关闭钮，标题看不见）。再窄就是负宽度，
+  /// 溢出会抛在设备更新相里，那正是「每帧刷 `!_debugDuringDeviceUpdate` 直到卡死」的引信。
+  /// 与改造前的 64 同一量级：那一档的固定开销是 60，标签同样只剩 4 像素。
+  static const double railMinWidth = 68;
   static const double railMaxWidth = 260;
 
   /// 横向档一条标签的上限（常量，不按朝向现算 —— 见 `_buildChip`）。
@@ -200,7 +202,11 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
   /// 置灰判断。
   Size? _paneSizeOf(String tabId) => _paneSizes[tabs.groupOf(tabId)];
 
-  static const double _barThickness = 40;
+  /// 横向档一条标签的高度：MD3 Tabs 的一档就是 48。
+  ///
+  /// 这一行**就是**发现页的顶栏（见本类文档），所以它跟着顶栏的高度走，
+  /// 而不是跟着「标签看起来挤不挤」调；标签的呼吸由 `RossiPlatTheme` 的内边距给。
+  static const double _barThickness = 48;
 
   Widget _view(BuildContext context) {
     return RossiPlatTheme(
@@ -347,24 +353,26 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
       paneSize: () => _paneSizeOf(tab.snapshot.id),
       child: PlatTabChip(
         leading: setting.tabIconEnabled ? _chipLeading(context, leaf) : null,
+        gap: _vertical ? 4 : 8,
         // 这里**不放 Tooltip**：它是这条标签条里唯一会在 hover 回调里往 Overlay
         // 插东西的东西，而「hover 时改命中树」正是 `!_debugDuringDeviceUpdate`
         // 那条断言唯一需要的燃料（上游 flutter/flutter#107063 至今没修）。
         label: labelWidget,
-        // 首页那条是 locked 的，plat 自己会把关闭按钮藏掉。
-        trailing: const PlatTabCloseButton(),
+        // 首页那条是 locked 的：它关不掉，plat 只会把那颗钮画成灰的（禁用态），
+        // 于是白占 22 宽摆着一个永远点不动的 ×。不给 trailing 才是「没有这个操作」。
+        trailing: tab.snapshot.locked ? null : const PlatTabCloseButton(),
       ),
     );
   }
 
   Widget _chipLeading(BuildContext context, DiscoverLeafSpec leaf) {
-    const size = 16.0;
+    // 横档 18、轨里仍是 16：轨厚出来的每一像素都是从内容区扣的，
+    // 图标从 16 涨到 18，「绅士 · よろず」就要少一个字。
+    final size = _vertical ? 16.0 : 18.0;
     if (leaf.source.isEmpty) {
-      return Icon(
-        leaf.icon ?? Icons.explore,
-        size: size,
-        color: Theme.of(context).colorScheme.primary,
-      );
+      // 不给 color：让 plat 的 IconTheme 把标签前景色传下来，
+      // 于是选中/未选中、以及竖轨那块 secondaryContainer 底板上的字色都自动跟着走。
+      return Icon(leaf.icon ?? Icons.explore, size: size);
     }
     return ClipRRect(
       borderRadius: BorderRadius.circular(4),
