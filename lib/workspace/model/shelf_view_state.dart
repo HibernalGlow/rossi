@@ -17,6 +17,7 @@ class ShelfViewState {
     required this.viewMode,
     required this.sortField,
     required this.sortAscending,
+    this.timeline = false,
   });
 
   /// `LibraryViewMode.name`。
@@ -26,10 +27,20 @@ class ShelfViewState {
   final String sortField;
   final bool sortAscending;
 
+  /// 时间线那一档开关。
+  ///
+  /// 与 `viewMode` **分开存**，不是往 `LibraryViewMode` 里加一个 `'timeline'`
+  /// 名字：那六个名字与 Rust 侧的枚举一一对应，混进第七个会让文件管理器
+  /// 的映射表与视图菜单一起遭殃（理由见 `model/shelf_timeline.dart`）。
+  /// 分开存的另一个好处是老的偏好文件天然读得出来 —— 缺 `t` 就是没开。
+  final bool timeline;
+
   Map<String, Object?> encode() => <String, Object?>{
     'v': viewMode,
     'f': sortField,
     'a': sortAscending,
+    // 只在开着的时候写：关掉时不留一个 `false`，偏好文件里就不会攒一堆空字段。
+    if (timeline) 't': true,
   };
 
   /// 名字为空或缺项 ⇒ null（宁可退回默认，也不要恢复出一个「没有视图」的状态）。
@@ -43,6 +54,7 @@ class ShelfViewState {
       viewMode: viewMode,
       sortField: sortField,
       sortAscending: json['a'] == true,
+      timeline: json['t'] == true,
     );
   }
 
@@ -51,14 +63,21 @@ class ShelfViewState {
       other is ShelfViewState &&
       other.viewMode == viewMode &&
       other.sortField == sortField &&
-      other.sortAscending == sortAscending;
+      other.sortAscending == sortAscending &&
+      other.timeline == timeline;
 
   @override
-  int get hashCode => Object.hash(viewMode, sortField, sortAscending);
+  int get hashCode => Object.hash(
+    viewMode,
+    sortField,
+    sortAscending,
+    timeline,
+  );
 
   @override
   String toString() =>
-      'ShelfViewState($viewMode, $sortField, ${sortAscending ? "asc" : "desc"})';
+      'ShelfViewState($viewMode, $sortField, ${sortAscending ? "asc" : "desc"}'
+      '${timeline ? ", timeline" : ""})';
 }
 
 /// 整份落盘文档：卡片 id ⇒ 视图状态。
