@@ -4,12 +4,22 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_list/models/comic_list_scene.dart';
+import 'package:zephyr/page/comic_list/view/comic_list_page.dart';
+import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:zephyr/page/download/method/comic_download_entry.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
 import 'package:zephyr/page/search_result/bloc/search_bloc.dart';
+import 'package:zephyr/page/search_result/view/search_result_page.dart';
+import 'package:zephyr/page/webview_page.dart';
 import 'package:zephyr/util/json/json_value.dart';
 import 'package:zephyr/widgets/toast.dart';
 
+/// 详情页里一颗胶囊/画师卡被点下去之后做什么。
+///
+/// 三种跳页动作（搜索、网页、漫画列表）都先问一句 [DiscoverTabScope]：详情页
+/// 自己可能就开在发现页的一条标签里，那时路由推出去会落在标签条**外面**
+/// （工作台里压进所在面板的局部栈、手机上压上根栈），眼前这本书被盖掉。
+/// 口径与 `on_search.dart`、`DiscoverRouter` 一致：在标签里就开成一条新标签。
 Future<void> handleComicInfoAction(
   BuildContext context,
   Map<String, dynamic> action, {
@@ -17,6 +27,7 @@ Future<void> handleComicInfoAction(
 }) async {
   final type = action['type']?.toString().trim() ?? '';
   final payload = asJsonMap(action['payload']);
+  final tabs = DiscoverTabScope.maybeOf(context);
 
   if (type.isEmpty || type == 'none') {
     return;
@@ -52,11 +63,19 @@ Future<void> handleComicInfoAction(
       pluginExtern: externPatch,
     );
 
-    context.pushRoute(
-      SearchResultRoute(
-        searchEvent: SearchEvent().copyWith(searchStates: searchStates),
-      ),
-    );
+    final event = SearchEvent().copyWith(searchStates: searchStates);
+    if (tabs != null) {
+      final trimmed = keyword.trim();
+      tabs.openPage(
+        label: trimmed.isEmpty ? t.discover.search : trimmed,
+        source: pluginId,
+        content: (context) =>
+            SearchResultPage(searchEvent: event).wrappedRoute(context),
+      );
+      return;
+    }
+
+    context.pushRoute(SearchResultRoute(searchEvent: event));
     return;
   }
 
@@ -64,6 +83,18 @@ Future<void> handleComicInfoAction(
     final title = payload['title']?.toString() ?? '';
     final url = payload['url']?.toString() ?? '';
     if (url.isEmpty) {
+      return;
+    }
+
+    if (tabs != null) {
+      tabs.openPage(
+        label: title.isEmpty ? t.discover.webPage : title,
+        source: _sourceIdFromString(
+          payload['source']?.toString(),
+          fallbackPluginId,
+        ),
+        content: (context) => WebViewPage(info: [title, url]),
+      );
       return;
     }
 
@@ -78,6 +109,14 @@ Future<void> handleComicInfoAction(
       sceneMap['source'] = fallbackPluginId;
     }
     final scene = ComicListScene.fromMap(sceneMap);
+    if (tabs != null) {
+      tabs.openPage(
+        label: scene.title.isEmpty ? t.comicList.defaultTitle : scene.title,
+        source: scene.from,
+        content: (context) => ComicListPage(scene: scene, title: scene.title),
+      );
+      return;
+    }
     context.pushRoute(ComicListRoute(scene: scene, title: scene.title));
   }
 
