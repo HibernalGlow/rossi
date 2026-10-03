@@ -172,10 +172,19 @@ class DownloadQueueManager {
     final taskKey = downloadTaskKeyOf(dbTask);
     // 先排空在途写，再落取消态，防止旧 checkpoint 复活任务。
     await _taskRepository.flushTaskWrites(taskKey);
-    dbTask.status = t.download.statusCancelling;
-    dbTask.isDownloading = false;
-    dbTask.isCompleted = true;
-    objectbox.downloadTaskBox.put(dbTask);
+    // 取消态必须写进 payload：状态文字是 i18n 文案，不能当判据；且残留行要靠
+    // stateCode 在下次启动时被认出并摘除。worker 后续的检查点会 copyWith 保留它。
+    final payload = _taskRepository.readPayload(dbTask);
+    _taskRepository.putState(
+      dbTask,
+      payload: payload?.copyWith(
+        stateCode: 'cancelled',
+        phaseCode: 'cancelled',
+      ),
+      status: t.download.statusCancelling,
+      isDownloading: false,
+      isCompleted: true,
+    );
     _autoRetryingTaskKeys.remove(taskKey);
     triggerDownloadCancelSignal(taskKey);
 
