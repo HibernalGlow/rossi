@@ -8,7 +8,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:zephyr/i18n/i18n_helper.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
-import 'package:zephyr/page/search/model/search_history_entry.dart';
 import 'package:zephyr/page/comic_read/model/reader_presentation.dart';
 import 'package:zephyr/page/search/model/search_history_entry.dart';
 import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
