@@ -12,6 +12,7 @@ pub mod mimage_onnx;
 pub mod ocr;
 pub(crate) mod ocr_sessions;
 pub mod operation_binding;
+pub mod perf;
 pub mod qjs;
 pub mod simple;
 pub mod system;
