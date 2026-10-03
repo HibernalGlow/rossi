@@ -384,6 +384,12 @@ class Translations$navigation$zh_CN {
 
 	/// zh-CN: '登录过期，请重新登录'
 	String get loginExpired => '登录过期，请重新登录';
+
+	/// zh-CN: '需要登录'
+	String get needLoginTitle => '需要登录';
+
+	/// zh-CN: '去登录'
+	String get goLogin => '去登录';
 }
 
 // Path: settings
@@ -3487,14 +3493,20 @@ class Translations$plugin$zh_CN {
 	/// zh-CN: '执行失败: $error'
 	String executeFailed({required Object error}) => '执行失败: ${error}';
 
+	/// zh-CN: '彻底删除插件，并删除相关数据'
+	String get deletePluginSubtitle => '彻底删除插件，并删除相关数据';
+
 	/// zh-CN: '调试模式'
 	String get debugMode => '调试模式';
 
 	/// zh-CN: '调试地址'
 	String get debugAddress => '调试地址';
 
-	/// zh-CN: '彻底删除插件，并删除相关数据'
-	String get deletePluginSubtitle => '彻底删除插件，并删除相关数据';
+	/// zh-CN: '账号登录'
+	String get accountLogin => '账号登录';
+
+	/// zh-CN: '前往登录'
+	String get accountLoginSubtitle => '前往登录';
 
 	/// zh-CN: '插件设置'
 	String get pluginSettings => '插件设置';
@@ -5400,6 +5412,12 @@ class Translations$login$zh_CN {
 
 	/// zh-CN: '重试'
 	String get retry => '重试';
+
+	/// zh-CN: '请填写 $label'
+	String requiredFieldEmpty({required Object label}) => '请填写 ${label}';
+
+	/// zh-CN: '该插件暂未适配新版登录页，请前往插件设置中填写账号信息'
+	String get loginNotSupported => '该插件暂未适配新版登录页，请前往插件设置中填写账号信息';
 }
 
 // Path: fontSetting
@@ -6423,6 +6441,8 @@ extension on Translations {
 			'navigation.autoSyncFailed' => '自动同步失败',
 			'navigation.syncFailedMessage' => ({required Object error}) => '请检查网络连接或稍后再试。\n${error}',
 			'navigation.loginExpired' => '登录过期，请重新登录',
+			'navigation.needLoginTitle' => '需要登录',
+			'navigation.goLogin' => '去登录',
 			'settings.title' => '设置',
 			'settings.globalTitle' => '设置',
 			'settings.appearance' => '外观与显示',
@@ -6843,10 +6863,10 @@ extension on Translations {
 			'settings.shellIntegrationUnregistered' => '已从右键菜单移除',
 			'settings.shellIntegrationStalePath' => '菜单项指向的已经不是当前这个 Rossi，关掉再打开一次即可修正',
 			'settings.shellIntegrationRepair' => '修正指向',
-			'settings.shellIntegrationMacHint' => 'macOS 的「打开方式 → Rossi」由应用包声明的文档类型决定，一直可用、没有开关；这颗开关只管 Windows。',
-			'settings.openIntentMissing' => ({required Object path}) => '这个路径已经不在了：${path}',
 			_ => null,
 		} ?? switch (path) {
+			'settings.shellIntegrationMacHint' => 'macOS 的「打开方式 → Rossi」由应用包声明的文档类型决定，一直可用、没有开关；这颗开关只管 Windows。',
+			'settings.openIntentMissing' => ({required Object path}) => '这个路径已经不在了：${path}',
 			'settings.openIntentMultiSkipped' => ({required Object count}) => '一次只打开第一项，其余 ${count} 项已忽略',
 			'settings.operationBinding' => '操作绑定',
 			'settings.operationBindingEntrySubtitle' => '按键、点击分区与绑定包',
@@ -7359,10 +7379,10 @@ extension on Translations {
 			'reader.backgroundOpacity' => '背景透明度',
 			'reader.fontSize' => '字体大小',
 			'reader.allHiddenNotice' => '当前已全部关闭，阅读页中的信息条会完全隐藏。',
-			'reader.edgePaddingDisabled' => '横向在中间时，边缘间距不会生效。',
-			'reader.bottomProgressBar' => '底部进度条',
 			_ => null,
 		} ?? switch (path) {
+			'reader.edgePaddingDisabled' => '横向在中间时，边缘间距不会生效。',
+			'reader.bottomProgressBar' => '底部进度条',
 			'reader.bottomProgressBarSubtitle' => '在画面底边画一条常驻细条表示翻页进度。它不随上下栏收起，与左下角信息条各开各的、互不影响',
 			'reader.bottomProgressBarGlow' => '进度条荧光',
 			'reader.bottomProgressBarGlowSubtitle' => '给已经走过的这一段加一圈光晕',
@@ -7452,9 +7472,11 @@ extension on Translations {
 			'plugin.deleteFailed' => ({required Object error}) => '删除失败: ${error}',
 			'plugin.pluginDeleted' => '插件已删除',
 			'plugin.executeFailed' => ({required Object error}) => '执行失败: ${error}',
+			'plugin.deletePluginSubtitle' => '彻底删除插件，并删除相关数据',
 			'plugin.debugMode' => '调试模式',
 			'plugin.debugAddress' => '调试地址',
-			'plugin.deletePluginSubtitle' => '彻底删除插件，并删除相关数据',
+			'plugin.accountLogin' => '账号登录',
+			'plugin.accountLoginSubtitle' => '前往登录',
 			'plugin.pluginSettings' => '插件设置',
 			'plugin.noUserInfo' => '暂无用户信息',
 			'plugin.operations' => '操作',
@@ -7879,12 +7901,12 @@ extension on Translations {
 			'search.newestToOldest' => '从新到旧',
 			'search.oldestToNewest' => '从旧到新',
 			'search.mostLikes' => '最多点赞',
+			_ => null,
+		} ?? switch (path) {
 			'search.mostViews' => '最多观看',
 			'search.selectSourceTooltip' => '选择漫画源',
 			'search.hasResults' => '有结果',
 			'search.showErrors' => '显示错误',
-			_ => null,
-		} ?? switch (path) {
 			'search.resultCount' => ({required Object count}) => '${count} 条',
 			'search.noResults' => '无结果',
 			'search.loadFailedForSource' => ({required Object source}) => '${source} 加载失败',
@@ -8033,6 +8055,8 @@ extension on Translations {
 			'login.loginFailed' => '登录失败',
 			'login.loginButton' => '登录',
 			'login.retry' => '重试',
+			'login.requiredFieldEmpty' => ({required Object label}) => '请填写 ${label}',
+			'login.loginNotSupported' => '该插件暂未适配新版登录页，请前往插件设置中填写账号信息',
 			'fontSetting.title' => '字体设置',
 			'fontSetting.clear' => '清空',
 			'fontSetting.hint' => '按字重分别选择字体文件。',

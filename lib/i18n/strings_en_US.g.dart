@@ -191,12 +191,14 @@ class _Translations$navigation$en_US extends Translations$navigation$zh_CN {
 	@override String get bookshelf => 'Bookshelf';
 	@override String get discover => 'Discover';
 	@override String get more => 'More';
-	@override String get syncSuccess => 'Sync successful!';
+	@override String get syncSuccess => 'Synced successfully!';
 	@override String get autoSyncSuccess => 'Auto sync successful!';
 	@override String get syncFailed => 'Sync failed';
 	@override String get autoSyncFailed => 'Auto sync failed';
 	@override String syncFailedMessage({required Object error}) => 'Please check your network connection or try again later.\n${error}';
 	@override String get loginExpired => 'Login expired, please log in again';
+	@override String get needLoginTitle => 'Login required';
+	@override String get goLogin => 'Log in';
 }
 
 // Path: settings
@@ -1260,9 +1262,10 @@ class _Translations$plugin$en_US extends Translations$plugin$zh_CN {
 	@override String deleteFailed({required Object error}) => 'Delete failed: ${error}';
 	@override String get pluginDeleted => 'Plugin deleted';
 	@override String executeFailed({required Object error}) => 'Execute failed: ${error}';
-	@override String get debugMode => 'Debug mode';
-	@override String get debugAddress => 'Debug address';
 	@override String get deletePluginSubtitle => 'Delete plugin and related data permanently';
+	@override String get debugMode => 'Debug mode';
+	@override String get accountLoginSubtitle => 'Go to login';
+	@override String get accountLogin => 'Account login';
 	@override String get pluginSettings => 'Plugin settings';
 	@override String get noUserInfo => 'No user info';
 	@override String get operations => 'Operations';
@@ -2024,6 +2027,8 @@ class _Translations$login$en_US extends Translations$login$zh_CN {
 	@override String get loginFailed => 'Login failed';
 	@override String get loginButton => 'Login';
 	@override String get retry => 'Retry';
+	@override String requiredFieldEmpty({required Object label}) => 'Please fill in ${label}';
+	@override String get loginNotSupported => 'This plugin doesn\'t support the new login page yet. Please fill in your account in plugin settings.';
 }
 
 // Path: fontSetting
@@ -2487,12 +2492,14 @@ extension on TranslationsEnUs {
 			'navigation.bookshelf' => 'Bookshelf',
 			'navigation.discover' => 'Discover',
 			'navigation.more' => 'More',
-			'navigation.syncSuccess' => 'Sync successful!',
+			'navigation.syncSuccess' => 'Synced successfully!',
 			'navigation.autoSyncSuccess' => 'Auto sync successful!',
 			'navigation.syncFailed' => 'Sync failed',
 			'navigation.autoSyncFailed' => 'Auto sync failed',
 			'navigation.syncFailedMessage' => ({required Object error}) => 'Please check your network connection or try again later.\n${error}',
 			'navigation.loginExpired' => 'Login expired, please log in again',
+			'navigation.needLoginTitle' => 'Login required',
+			'navigation.goLogin' => 'Log in',
 			'settings.title' => 'Settings',
 			'settings.globalTitle' => 'Settings',
 			'settings.appearance' => 'Appearance',
@@ -2913,10 +2920,10 @@ extension on TranslationsEnUs {
 			'settings.shellIntegrationUnregistered' => 'Removed from the context menu',
 			'settings.shellIntegrationStalePath' => 'The menu entry points at a different Rossi build; switch it off and on again to fix it',
 			'settings.shellIntegrationRepair' => 'Repair path',
-			'settings.shellIntegrationMacHint' => 'On macOS “Open With ‣ Rossi” comes from the document types the app bundle declares - always available, no switch. This toggle only affects Windows.',
-			'settings.openIntentMissing' => ({required Object path}) => 'This path no longer exists: ${path}',
 			_ => null,
 		} ?? switch (path) {
+			'settings.shellIntegrationMacHint' => 'On macOS “Open With ‣ Rossi” comes from the document types the app bundle declares - always available, no switch. This toggle only affects Windows.',
+			'settings.openIntentMissing' => ({required Object path}) => 'This path no longer exists: ${path}',
 			'settings.openIntentMultiSkipped' => ({required Object count}) => 'Only the first item opens; ${count} others were skipped',
 			'settings.operationBinding' => 'Operation bindings',
 			'settings.operationBindingEntrySubtitle' => 'Keys, tap zones and binding bundles',
@@ -3429,10 +3436,10 @@ extension on TranslationsEnUs {
 			'reader.fontSize' => 'Font size',
 			'reader.allHiddenNotice' => 'All hidden, info bar will be completely hidden',
 			'reader.edgePaddingDisabled' => 'Edge padding has no effect when horizontally centered',
-			'reader.bottomProgressBar' => 'Bottom progress bar',
-			'reader.bottomProgressBarSubtitle' => 'Draw a thin always-on bar at the bottom edge of the page. It stays while the top/bottom bars are hidden, and is independent of the info pill',
 			_ => null,
 		} ?? switch (path) {
+			'reader.bottomProgressBar' => 'Bottom progress bar',
+			'reader.bottomProgressBarSubtitle' => 'Draw a thin always-on bar at the bottom edge of the page. It stays while the top/bottom bars are hidden, and is independent of the info pill',
 			'reader.bottomProgressBarGlow' => 'Progress bar glow',
 			'reader.bottomProgressBarGlowSubtitle' => 'Add a halo to the part already read',
 			'reader.settings' => 'Reader settings',
@@ -3521,9 +3528,10 @@ extension on TranslationsEnUs {
 			'plugin.deleteFailed' => ({required Object error}) => 'Delete failed: ${error}',
 			'plugin.pluginDeleted' => 'Plugin deleted',
 			'plugin.executeFailed' => ({required Object error}) => 'Execute failed: ${error}',
-			'plugin.debugMode' => 'Debug mode',
-			'plugin.debugAddress' => 'Debug address',
 			'plugin.deletePluginSubtitle' => 'Delete plugin and related data permanently',
+			'plugin.debugMode' => 'Debug mode',
+			'plugin.accountLoginSubtitle' => 'Go to login',
+			'plugin.accountLogin' => 'Account login',
 			'plugin.pluginSettings' => 'Plugin settings',
 			'plugin.noUserInfo' => 'No user info',
 			'plugin.operations' => 'Operations',
@@ -3950,11 +3958,11 @@ extension on TranslationsEnUs {
 			'search.mostLikes' => 'Most likes',
 			'search.mostViews' => 'Most views',
 			'search.selectSourceTooltip' => 'Select source',
+			_ => null,
+		} ?? switch (path) {
 			'search.hasResults' => 'With results',
 			'search.showErrors' => 'Show errors',
 			'search.resultCount' => ({required Object count}) => '${count} results',
-			_ => null,
-		} ?? switch (path) {
 			'search.noResults' => 'No results',
 			'search.loadFailedForSource' => ({required Object source}) => 'Failed to load ${source}',
 			'discover.title' => 'Discover',
@@ -4102,6 +4110,8 @@ extension on TranslationsEnUs {
 			'login.loginFailed' => 'Login failed',
 			'login.loginButton' => 'Login',
 			'login.retry' => 'Retry',
+			'login.requiredFieldEmpty' => ({required Object label}) => 'Please fill in ${label}',
+			'login.loginNotSupported' => 'This plugin doesn\'t support the new login page yet. Please fill in your account in plugin settings.',
 			'fontSetting.title' => 'Font Settings',
 			'fontSetting.clear' => 'Clear',
 			'fontSetting.hint' => 'Select font files for each weight.',
