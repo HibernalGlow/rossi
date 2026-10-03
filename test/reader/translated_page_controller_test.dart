@@ -16,11 +16,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:zephyr/service/ocr/ocr_log.dart';
+import 'package:zephyr/reader/page_display_source.dart';
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/reader/translated_page_controller.dart';
 import 'package:zephyr/service/ocr/ocr_models.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_builder.dart';
+import 'package:zephyr/service/ocr/translated_page_cache.dart';
+import 'package:zephyr/service/ocr/translated_page_display_mode.dart';
+import 'package:zephyr/service/ocr/translated_page_layer.dart';
 import 'package:zephyr/src/rust/api/ocr.dart';
 
 const _pathChannel = MethodChannel('plugins.flutter.io/path_provider');
@@ -207,6 +211,64 @@ class _ThrowingBuilder extends TranslatedPageBuilder {
     bool retainErasedBase = false,
   }) async {
     throw OcrTranslationException(message);
+  }
+}
+
+/// 一台「按叠层交回产物」的构建器。
+///
+/// 图层 JSON 由它自己写进缓存档，于是控制器的 `overlayReady` 判得出来；
+/// `overlayNeedsBase` 由用例指定 —— 那一维正是「这一页要不要替它占增强图轨」的唯一入口。
+class _OverlayBuilder extends TranslatedPageBuilder {
+  _OverlayBuilder({required this.needsBase, required this.basePath});
+
+  final bool needsBase;
+  final String basePath;
+  static const label = 'overlay-test档';
+
+  @override
+  Future<TranslatedPage> build({
+    required String imagePath,
+    required int pageIndex,
+    required OcrTranslationConfig config,
+    void Function(TranslatedPageStage stage)? onStage,
+    bool Function()? shouldCancel,
+    bool force = false,
+    bool retainErasedBase = false,
+  }) async {
+    await TranslatedPageCache.writeLayer(
+      label: label,
+      pageIndex: pageIndex,
+      json: TranslatedPageLayer(
+        pageWidth: _pageW,
+        pageHeight: _pageH,
+        boxes: [
+          TranslatedBox(
+            quad: [
+              _box.left,
+              _box.top,
+              _box.right,
+              _box.top,
+              _box.right,
+              _box.bottom,
+              _box.left,
+              _box.bottom,
+            ],
+            source: 'トカゲじゃ',
+            text: '是蜥蜴啊',
+            fill: needsBase ? null : const ui.Color.fromARGB(255, 255, 255, 255),
+          ),
+        ],
+      ).encode(),
+    );
+    return TranslatedPage(
+      path: basePath,
+      fromCache: false,
+      hasText: true,
+      blockCount: 1,
+      truncatedCount: 0,
+      label: label,
+      overlayNeedsBase: needsBase,
+    );
   }
 }
 
@@ -648,5 +710,69 @@ void main() {
     c.reset();
     expect(presenter.translationOwnedPages, isEmpty);
     expect(c.phase, TranslatedPagePhase.off);
+  });
+
+  test('叠层档、每框都有填色：不注入、不占轨 —— 超分照常生效', () async {
+    await seedReady();
+    await TranslatedPageDisplayMode.save(TranslatedPageDisplayChoice.overlay);
+    final base = '${root.path}/overlay_fill_only.png';
+    await File(base).writeAsBytes(page, flush: true);
+    final c = TranslatedPageController(
+      builder: _OverlayBuilder(needsBase: false, basePath: base),
+    );
+    final presenter = _FakePresenter(confirmed: true);
+
+    final ok = await c.toggle(
+      source: _FakeSource(page),
+      presenter: presenter,
+      index: 2,
+    );
+
+    expect(ok, isTrue);
+    expect(c.phase, TranslatedPagePhase.showing);
+    expect(c.isOverlayActive(2), isTrue);
+    expect(
+      presenter.injected,
+      isEmpty,
+      reason: '这一页的底就是画面本来那张，占轨等于白白压掉超分',
+    );
+    expect(presenter.translationOwnedPages, isEmpty);
+  });
+
+  test('叠层档、需要擦字底图：登记档名，同时替这一页占轨', () async {
+    await seedReady();
+    await TranslatedPageDisplayMode.save(TranslatedPageDisplayChoice.overlay);
+    // 底图必须真的在缓存档里：控制器是先问 `overlayReady` 才走叠层分支的，
+    // 而「有框没填色」那一类页的底只能是这张擦字底图。
+    final erasedBase = await TranslatedPageCache.baseFile(
+      label: _OverlayBuilder.label,
+      pageIndex: 3,
+    );
+    await erasedBase.create(recursive: true);
+    await erasedBase.writeAsBytes(page, flush: true);
+    final c = TranslatedPageController(
+      builder: _OverlayBuilder(needsBase: true, basePath: erasedBase.path),
+    );
+    final presenter = _FakePresenter(confirmed: true);
+
+    final ok = await c.toggle(
+      source: _FakeSource(page),
+      presenter: presenter,
+      index: 3,
+    );
+
+    expect(ok, isTrue);
+    expect(
+      c.isOverlayActive(3),
+      isTrue,
+      reason: '占轨是为了把底图换上屏，字仍然由叠层那一层画',
+    );
+    expect(
+      presenter.injected,
+      hasLength(1),
+      reason: '底图不占轨就没人换上屏 —— 中文会压在日文下面（§决定 4 那条 0.085）',
+    );
+    expect(presenter.injected.single.$2, erasedBase.path);
+    expect(presenter.translationOwnedPages.keys, {3});
   });
 }
