@@ -133,7 +133,7 @@ void main() {
   group('填色真的盖得住原字', () {
     /// 底图是**黑**的（相当于原字/网点完全遮住底），填色后框内必须变成填的那个颜色。
     /// 用黑而不是白做底，是为了让「没填上」与「填了白」在像素上不可能混。
-    Future<Uint8List> _paint({required ui.Color? fill, double scale = 1}) async {
+    Future<Uint8List> paint({required ui.Color? fill, double scale = 1}) async {
       final layer = TranslatedPageLayer(
         pageWidth: _w,
         pageHeight: _h,
@@ -162,32 +162,32 @@ void main() {
       return data!.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
     }
 
-    int _at(Uint8List rgba, int width, int x, int y) => rgba[(y * width + x) * 4];
+    int at(Uint8List rgba, int width, int x, int y) => rgba[(y * width + x) * 4];
 
     test('给了 fill：框内变成填的色，不再是黑底', () async {
-      final png = await _paint(fill: const ui.Color.fromARGB(255, 250, 244, 214));
+      final png = await paint(fill: const ui.Color.fromARGB(255, 250, 244, 214));
       // 框内一角（离边 6 px，避开文字与外扩边）。
-      expect(_at(png, _w, 26, 26), greaterThan(200), reason: '填色没盖住这一角');
+      expect(at(png, _w, 26, 26), greaterThan(200), reason: '填色没盖住这一角');
       // 框外仍是黑的：填色不许多盖到气泡外面。
-      expect(_at(png, _w, 5, 5), lessThan(30), reason: '填色溢出到框外了');
+      expect(at(png, _w, 5, 5), lessThan(30), reason: '填色溢出到框外了');
     });
 
     test('没给 fill：什么都不盖（黑底原样留着）', () async {
-      final png = await _paint(fill: null);
-      expect(_at(png, _w, 26, 26), lessThan(30));
+      final png = await paint(fill: null);
+      expect(at(png, _w, 26, 26), lessThan(30));
     });
 
     test('叠到 2× 底图上时，填色跟着放大而不是只盖住 1× 的那块', () async {
       final scale = 2.0;
-      final png = await _paint(
+      final png = await paint(
         fill: const ui.Color.fromARGB(255, 255, 255, 255),
         scale: scale,
       );
       final w2 = (_w * scale).round();
       // 原来 (26,26) 的位置在 2× 上是 (52,52)；1× 坐标处必须还是黑的，
       // 否则说明倍率只乘了字号没乘几何。
-      expect(_at(png, w2, 52, 52), greaterThan(200), reason: '2× 上填色没跟着放大');
-      expect(_at(png, w2, 10, 10), lessThan(30), reason: '1× 位置也被盖住了 = 倍率没进几何');
+      expect(at(png, w2, 52, 52), greaterThan(200), reason: '2× 上填色没跟着放大');
+      expect(at(png, w2, 10, 10), lessThan(30), reason: '1× 位置也被盖住了 = 倍率没进几何');
     });
   });
 }

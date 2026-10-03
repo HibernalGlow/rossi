@@ -156,7 +156,7 @@ void main() {
       analyze: (imagePath, erasedPath, ep) async {
         expect(ep, 'auto', reason: '分析那一跳该拿到设置里的默认策略');
         await File(
-          erasedPath,
+          erasedPath!,
         ).writeAsBytes(await _whitePng(_pageW, _pageH), flush: true);
         return OcrPageResult(
           blocks: [_block(_boxA, sourceA), _block(_boxB, sourceB)],
@@ -232,7 +232,7 @@ void main() {
     final page = TranslatedPageBuilder(
       analyze: (imagePath, erasedPath, ep) async {
         await File(
-          erasedPath,
+          erasedPath!,
         ).writeAsBytes(await _whitePng(_pageW, _pageH), flush: true);
         return OcrPageResult(
           blocks: [_block(_boxA, 'トカゲじゃ'), _block(_boxB, 'あの田舎とかにいる!?')],
@@ -301,7 +301,7 @@ void main() {
     final page = TranslatedPageBuilder(
       analyze: (imagePath, erasedPath, ep) async {
         await File(
-          erasedPath,
+          erasedPath!,
         ).writeAsBytes(await _whitePng(_pageW, _pageH), flush: true);
         return OcrPageResult(
           blocks: [_block(_boxA, sourceA)],
