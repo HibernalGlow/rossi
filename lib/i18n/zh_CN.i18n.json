@@ -1348,6 +1348,7 @@
     "readerHint": "在阅读器工具条上按「译」，只切换当前这一页",
     "chipOff": "译",
     "chipOn": "译文页",
+    "chipOnOverlay": "译文页 · 叠层",
     "building": "生成中",
     "failedShort": "译文失败",
     "busyToast": "这一页正在生成译文，稍等",

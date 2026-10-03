@@ -108,4 +108,38 @@ void main() {
       expect(translatedPageTapFor(s), TranslatedPageTap.toggle, reason: '$s');
     }
   });
+
+  group('translatedPageDisplayOf（芯片要说得出字是怎么上屏的）', () {
+    test('没登记图层：烘焙档 —— 中文在像素里，超分为这一页让路', () {
+      expect(
+        translatedPageDisplayOf(overlayLabel: null),
+        TranslatedPageDisplay.baked,
+      );
+    });
+
+    test('登记了图层：叠层档 —— 这一页不占轨，译文与超分同时生效', () {
+      expect(
+        translatedPageDisplayOf(overlayLabel: 'fp|qwen2.5:14b'),
+        TranslatedPageDisplay.overlay,
+      );
+    });
+
+    test('档名是空串也算登记 —— 判据是「有没有这一项」，不是「字符串忙不忙」', () {
+      // 证伪位：写成 `overlayLabel != null && overlayLabel.isNotEmpty`
+      // 会把这一格判成烘焙，而画面上明明盖着一层中文（叠层画的那本账就是这张表）。
+      expect(
+        translatedPageDisplayOf(overlayLabel: ''),
+        TranslatedPageDisplay.overlay,
+      );
+    });
+
+    test('需要补擦字底图的那一页仍然报叠层 —— 占不占轨不改变「字是盖上去的」', () {
+      // 那一类页会替自己占轨（底图换成擦过字的），很容易被读成「走的是烘焙那条路」。
+      // 但芯片说的是中文怎么上屏，而它和 `TranslatedPageOverlay` 用的是同一个值。
+      expect(
+        translatedPageDisplayOf(overlayLabel: 'fp|本机 离线'),
+        TranslatedPageDisplay.overlay,
+      );
+    });
+  });
 }

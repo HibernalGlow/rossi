@@ -1347,6 +1347,7 @@
     "readerHint": "Tap the translate button in the reader toolbar to switch this page only",
     "chipOff": "Translate",
     "chipOn": "Translated",
+    "chipOnOverlay": "Translated · overlay",
     "building": "Working",
     "failedShort": "Failed",
     "busyToast": "This page is still being translated",

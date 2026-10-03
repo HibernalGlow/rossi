@@ -4174,6 +4174,9 @@ class Translations$ocr$zh_CN {
 	/// zh-CN: '译文页'
 	String get chipOn => '译文页';
 
+	/// zh-CN: '译文页 · 叠层'
+	String get chipOnOverlay => '译文页 · 叠层';
+
 	/// zh-CN: '生成中'
 	String get building => '生成中';
 
@@ -7507,6 +7510,7 @@ extension on Translations {
 			'ocr.readerHint' => '在阅读器工具条上按「译」，只切换当前这一页',
 			'ocr.chipOff' => '译',
 			'ocr.chipOn' => '译文页',
+			'ocr.chipOnOverlay' => '译文页 · 叠层',
 			'ocr.building' => '生成中',
 			'ocr.failedShort' => '译文失败',
 			'ocr.busyToast' => '这一页正在生成译文，稍等',
@@ -7681,9 +7685,9 @@ extension on Translations {
 			'search.fuzzySearchExample' => '全彩(空格)人妻',
 			'search.fuzzySearchDesc' => '显示包含任意一个关键词的结果',
 			'search.selectCategory' => '选择分类',
-			'search.dataSource' => '数据来源',
 			_ => null,
 		} ?? switch (path) {
+			'search.dataSource' => '数据来源',
 			'search.sortBy' => '排序方式',
 			'search.newestToOldest' => '从新到旧',
 			'search.oldestToNewest' => '从旧到新',

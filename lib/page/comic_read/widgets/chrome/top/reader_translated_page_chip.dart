@@ -18,9 +18,12 @@ import 'package:zephyr/widgets/toast.dart';
 /// 「往后每一页都得等」；而且用户常常只想看清某一格说了什么。
 /// 所以这里只管当前页：翻到下一页，状态自然回到「译」。
 ///
-/// # 为什么放在呈现器的增强图轨上，而不是在图上再盖一层
-/// 见 `TranslatedPageController` 的注释：阅读器在桌面端由 native 上屏，
-/// Flutter 侧再画一张 `Image.file` 会绕开旋转 / 双页 / 页宽适配。
+/// # 「译」的字是怎么上屏的（两档，芯片要说得清是哪一档）
+/// 烘焙：擦字 + 画字烤成一张 PNG，注进呈现器的增强图轨 —— 它占掉这一页唯一的像素，
+/// 所以超分为它让路。叠层：底图照旧（原图或超分产物），中文由 `TranslatedPageOverlay`
+/// 盖在上面，不占轨，于是译文与超分同时生效。
+/// 哪一档生效由 `TranslatedPageDisplayMode` 决定，而**这一页实际走的是哪一档**问控制器
+/// （`overlayLabelFor`）—— 判据见 [translatedPageDisplayOf]。
 ///
 /// 只在**本地来源 + 桌面平台**出现：在线图源没有呈现器，
 /// Android / iOS 是 ADR-0018 §决定 6 的排除项。
@@ -75,6 +78,13 @@ class ReaderTranslatedPageChip extends StatelessWidget {
   ) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    // 这一页的字是叠上去的还是烤进像素的 —— 与叠层画的是同一本账（见 [translatedPageDisplayOf]）。
+    final display = translatedPageDisplayOf(
+      overlayLabel: controller.overlayLabelFor(index),
+    );
+    final onLabel = display == TranslatedPageDisplay.overlay
+        ? t.ocr.chipOnOverlay
+        : t.ocr.chipOn;
     final (Color bg, Color fg) = switch (state) {
       TranslatedPageChipState.failed => (
         scheme.errorContainer,
@@ -97,7 +107,7 @@ class ReaderTranslatedPageChip extends StatelessWidget {
     return Tooltip(
       message: switch (state) {
         TranslatedPageChipState.failed => controller.lastError,
-        TranslatedPageChipState.showing => t.ocr.chipOn,
+        TranslatedPageChipState.showing => onLabel,
         TranslatedPageChipState.building => t.ocr.building,
         // 这一态的短语是中文原文：`ocr` 那段 i18n 里还没有对应键，而同一条链路上
         // 其余诊断文案（[TranslatedPageController.lastError]、超分的状态表）
@@ -145,6 +155,11 @@ class ReaderTranslatedPageChip extends StatelessWidget {
                   // 唯一和「译」「译文页」区分得开的东西。
                   TranslatedPageChipState.blockedByOriginalPreview =>
                     Icons.visibility_off_outlined,
+                  // 窄屏上文字位被门槛砍掉，叠层与烘焙只剩图标能分 ——
+                  // 而这一维正是用户判断「超分还在不在」的唯一线索。
+                  TranslatedPageChipState.showing
+                      when display == TranslatedPageDisplay.overlay =>
+                    Icons.layers_outlined,
                   _ => Icons.translate_outlined,
                 },
                 size: 14,
@@ -156,7 +171,7 @@ class ReaderTranslatedPageChip extends StatelessWidget {
                   switch (state) {
                     TranslatedPageChipState.building => t.ocr.building,
                     TranslatedPageChipState.failed => t.ocr.failedShort,
-                    TranslatedPageChipState.showing => t.ocr.chipOn,
+                    TranslatedPageChipState.showing => onLabel,
                     TranslatedPageChipState.blockedByOriginalPreview =>
                       '原图对比中',
                     TranslatedPageChipState.off => t.ocr.chipOff,

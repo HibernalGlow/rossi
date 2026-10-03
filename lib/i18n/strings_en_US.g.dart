@@ -1531,6 +1531,7 @@ class _Translations$ocr$en_US extends Translations$ocr$zh_CN {
 	@override String get readerHint => 'Tap the translate button in the reader toolbar to switch this page only';
 	@override String get chipOff => 'Translate';
 	@override String get chipOn => 'Translated';
+	@override String get chipOnOverlay => 'Translated · overlay';
 	@override String get building => 'Working';
 	@override String get failedShort => 'Failed';
 	@override String get busyToast => 'This page is still being translated';
@@ -3674,6 +3675,7 @@ extension on TranslationsEnUs {
 			'ocr.readerHint' => 'Tap the translate button in the reader toolbar to switch this page only',
 			'ocr.chipOff' => 'Translate',
 			'ocr.chipOn' => 'Translated',
+			'ocr.chipOnOverlay' => 'Translated · overlay',
 			'ocr.building' => 'Working',
 			'ocr.failedShort' => 'Failed',
 			'ocr.busyToast' => 'This page is still being translated',
@@ -3850,9 +3852,9 @@ extension on TranslationsEnUs {
 			'search.selectCategory' => 'Select Category',
 			'search.dataSource' => 'Data Source',
 			'search.sortBy' => 'Sort By',
-			'search.newestToOldest' => 'Newest to oldest',
 			_ => null,
 		} ?? switch (path) {
+			'search.newestToOldest' => 'Newest to oldest',
 			'search.oldestToNewest' => 'Oldest to newest',
 			'search.mostLikes' => 'Most likes',
 			'search.mostViews' => 'Most views',

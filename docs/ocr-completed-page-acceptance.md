@@ -376,29 +376,51 @@ dart script/ocr_stub_endpoint.dart --fail         # 直接 500 → 第 11b 与�
    **判据**：旁路屏蔽的是增强图轨，而叠层不占轨 —— 它靠的是自己读控制器那句
    `bypassesOriginalPreview`。这一条量的就是那句有没有真的接上。
 
-**已知没做的一维（别当 bug 报）**：芯片现在只说「译文页」，**不说这一页是烘焙还是叠层**。
-读得到的判据只有两条：日志那一句（「叠层就绪…」/「成品已写入…」）与盘上有没有 `p<N>.png`。
-芯片上多那一小段要新的 i18n 文案，而 slang 的生成物还压在另一条栈上（见 ADR §4 那行）——
-所以这一维今天只能靠日志回读。
+9. **芯片说得出这一页是烘焙还是叠层**（这一维原先登记为「已知没做」，现已接上）。
+   **预期**：叠层档下芯片写「译文页 · 叠层」并换一枚图层图标；烘焙档仍是「译文页」+ 翻译图标。
+   窄屏（文字位被 `availableWidth >= 620` 那道门槛砍掉）时**只靠图标**也要分得开 —— 那正是给它
+   单独一枚图标的原因，别把它当装饰。
+   **判据**：这一维取自 `TranslatedPageController.overlayLabelFor(index)`，与 `TranslatedPageOverlay`
+   画的是**同一本账**，所以「芯片说叠层」与「画面上真有那层字」不可能各说各话；
+   表本身钉在 `test/reader/translated_page_status_test.dart` 那四格（含「空档名也算登记」那一格证伪，
+   防的是把判据写成「字符串忙不忙」而把真叠层判成烘焙）。
+   日志那两句（「叠层已就绪…」/「成品已写入…」）与盘上有没有 `p<N>.png` 仍然留着当旁证 ——
+   它们量的是产物形态，芯片量的是画面形态，两边对不上就是接错了。
 
 ### 怎么把这一档开出来自己看（不用等 agent）
 
 ```bash
-# 已经在这台机器上编过一次，产物在：
+# 产物在这台机器上，最近一次是从当前工作树重编的（含芯片那一维）：
 open build/macos/Build/Products/Debug/Rossi.app
 # 重编（要连着 Rust，约几分钟）：
 flutter build macos --debug
 ```
 
 进阅读器 → 设置 → 漫画翻译 → 「成品页显示」选 **叠层显示** → 回阅读器按「译」。
+顶栏芯片这一轮会自己报是哪一档：**「译文页 · 叠层」+ 一枚图层图标**（第 9 条要看的就是它），
+烘焙档仍是「译文页」+ 翻译图标；窄屏上没有文字位，只有图标能分。
 日志在「设置 → 漫画翻译 → 诊断 → 翻译日志」，那一句「叠层就绪：… 全部填色（未跑擦字）」
 或「填色不足，已补擦底图」就是上面第 2、3 条要看的东西。
 
-⚠️ 这个产物是从**工作树**编出来的，含 11 个还没进栈的文件（设置页那一档 + 两份生成物）。
+⚠️ 这个产物是从**工作树**编出来的，含 8 个还没进栈的文件（设置页那一档 2 份、
+FRB 生成物 5 份、`strings.g.dart` 的计数器 1 份 —— 逐文件名单与理由见 ADR-0018 §4 那行末尾）。
 所以「跑起来对」不等于「提交里对」：并栈之前请以工作树为准。
+
+⚠️ **而且单独 checkout `feat/ocr-translate-fallback-and-layer` 现在是编不过的**（2026-10-04 逐符号查出来的，
+不是我漏跑了一次构建 —— 分支顶端从来没有编过）：`lib/service/ocr/ocr_service.dart` 里
+`erasePage()` 已经进栈，它引用的是 `lib/src/rust/api/ocr.dart` 的 `ocrErasePage` 与 `OcrEraseResult`，
+而那两份生成物连同 `frb_generated.dart`/`frb_generated.io.dart`/`.web.dart`/`rust/src/frb_generated.rs`
+整批压在 `h-branch-1`(mxr) 上没进栈 ⇒ 顶端是**悬空引用**（undefined class + undefined function）。
+处置只有一个：**并栈之后立刻跑 codegen 把那 5 份整批提掉**（顺序见 ADR §4 那行末尾的清单），
+在那之前别拿这条分支单独出包、也别按分支去评审「能不能编」。
+   范围是量过的，不是猜的：把顶端整棵树扫一遍，缺定义的只有 `ocrErasePage` 与 `OcrEraseResult` 这两个符号（`git grep -l <sym> <分支> -- lib` 在顶端分别命中 1、2 个文件，全是调用方）；而 `writeLayer`、`overlayNeedsBase`、`overlayNeedsErasedBase`、`overlayLabelFor`、`chipOnOverlay`、`bypassesOriginalPreview` 在顶端**定义与引用都在** ⇒ 修掉这一处就完，不必担心还有别的暗坑。
+为什么之前只把 3 份（`api/ocr.dart` + io + web）塞进提交又被我撤掉，也是同一个理由的另一半：
+`frb_generated.dart` 缺席时 io/web 新加的抽象成员没人实现 ⇒ 照样编不过。
 原生那一跳确实进了包：`windcore.framework` 里有 `wire__crate__api__ocr__ocr_erase_page_impl`。
 
-**⚠️ 上面 8 条都要真机**（要看像素与日志实际行数），agent 侧只钉住了单元测试。
+**⚠️ 上面 9 条都要真机**（要看像素、日志实际行数与芯片文案），agent 侧只钉住了单元测试。
+第 8 条（按下「对比原图」中文整层消失）**试过在机器上钉**：把叠层 widget 挂到假控制器上之后
+图层永远不被采纳，加一次读盘探针就卡到 10 分钟超时 ⇒ 判据仍只能靠眼睛，别当成已验过。
 
 ## 10. 换目标语言 / 改术语表必须重译
 

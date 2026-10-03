@@ -60,7 +60,6 @@ TranslatedPageChipState translatedPageChipState({
 
 /// 点击该做什么。同样是纯函数：UI 只负责照做，不自己判断。
 enum TranslatedPageTap { wait, toggle }
-
 TranslatedPageTap translatedPageTapFor(TranslatedPageChipState state) =>
     switch (state) {
       TranslatedPageChipState.building => TranslatedPageTap.wait,
@@ -71,3 +70,25 @@ TranslatedPageTap translatedPageTapFor(TranslatedPageChipState state) =>
       TranslatedPageChipState.failed ||
       TranslatedPageChipState.showing => TranslatedPageTap.toggle,
     };
+
+/// 「译文页」这一态下的第二维：中文是怎么上屏的。
+///
+/// 为什么芯片非得说这一维：叠层这一档的全部理由是**它不占增强图轨**，
+/// 于是译文与超分同时生效；烘焙那一档反过来 —— 它占轨，超分为这一页让路。
+/// 芯片只说「译文页」，用户就分不清自己手里那张到底是「两者都在」还是
+/// 「译文把超分挤掉了」，而这两种画面在他眼里长得几乎一样。
+enum TranslatedPageDisplay { baked, overlay }
+
+/// 判据只有一条：**控制器有没有给这一页登记图层档名**。
+///
+/// 这一维不另起一本账是有意的 —— `TranslatedPageOverlay` 画的正是
+/// `TranslatedPageController.overlayLabelFor(index)`，所以「画面上有没有那层字」
+/// 与「芯片说是不是叠层」由同一个值决定，不会出现芯片说叠层而画面上是烤进像素的字
+/// （或者反过来）。
+///
+/// 两类叠层页都算 [overlay]：每框都有填色的那一页（不占轨）与需要补擦字底图的那一页
+/// （占轨）—— 两者都是「底图 + 上面盖字」，区别只在底图从哪来，芯片不必展开到那一层。
+TranslatedPageDisplay translatedPageDisplayOf({required String? overlayLabel}) =>
+    overlayLabel == null
+        ? TranslatedPageDisplay.baked
+        : TranslatedPageDisplay.overlay;
