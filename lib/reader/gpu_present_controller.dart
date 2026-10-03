@@ -442,6 +442,15 @@ class GpuPresentController extends ChangeNotifier {
         unawaited(_refreshAmbientPalette(index));
       }
 
+      // 译文页的重注入**不能挂在超分调度器后面**：`_scheduleEnhancements` 只在
+      // `_isUpscaleEnabled` 时被调，而 `_scheduleEnhancementsSafely` 开头还有
+      // `if (!_acceptsEnhancement(epoch)) return;` —— 开着「关掉超分」的人永远走不到
+      // [_reassertTranslatedPage]。呈现器按保留集淘汰增强图轨与超分开没开毫无关系，
+      // 所以症状是：翻到远处再翻回来，这一页停在原图，而芯片还写着「译文页」。
+      final translatedPath = translationOwnedPages[index];
+      if (translatedPath != null) {
+        unawaited(_reassertTranslatedPage(index, translatedPath));
+      }
       if (_isUpscaleEnabled) {
         unawaited(_scheduleEnhancements(source, index, width, height));
       }
