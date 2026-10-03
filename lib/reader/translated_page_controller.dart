@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/page_display_source.dart';
 import 'package:zephyr/reader/page_source.dart';
+import 'package:zephyr/reader/translated_page_overlay.dart';
 import 'package:zephyr/service/ocr/ocr_log.dart';
 import 'package:zephyr/service/ocr/ocr_models.dart';
 import 'package:zephyr/service/ocr/ocr_service.dart';
@@ -152,6 +153,9 @@ class TranslatedPageController extends ChangeNotifier {
     _generation++;
     _presenter?.translationOwnedPages.clear();
     _overlayLabels.clear();
+    // 图层 JSON 那份 widget 层的缓存也跟着丢掉：键里带了档名（含书与章），
+    // 所以不会画错页，但换书不清就是只涨不降 —— 一份图层是几百 KB 的解析。
+    TranslatedPageOverlay.clearCache();
     try {
       _scratch?.deleteSync(recursive: true);
     } catch (_) {
