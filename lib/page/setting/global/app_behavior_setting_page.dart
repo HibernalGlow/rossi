@@ -78,7 +78,6 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
           _autoFavoriteOnDownload(state, cubit),
           _writeDownloadMetadataFile(state, cubit),
           _leftHandMode(state, cubit),
-          _searchHistoryGroupBySource(state, cubit),
           _clickCoverToStartReading(state, cubit),
           _searchHistoryGroupBySource(state, cubit),
           // 只在桌面端给这个开关：触摸端只有右下角悬浮按钮一种落点，
@@ -286,27 +285,6 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
       },
     );
   }
-  /// 搜索历史按图源分时间线。与搜索页历史标题上那颗按钮是**同一个字段**，
-  /// 两处入口、一份状态（改一处另一处立刻跟着变）。
-  Widget _searchHistoryGroupBySource(
-    GlobalSettingState state,
-    GlobalSettingCubit cubit,
-  ) {
-    return SwitchListTile(
-      secondary: const Icon(Icons.category_outlined),
-      title: Text(t.settings.searchHistoryGroupBySource),
-      subtitle: Text(t.settings.searchHistoryGroupBySourceSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
-      value: state.searchHistoryGroupBySource,
-      onChanged: (bool value) {
-        cubit.updateState(
-          (current) => current.copyWith(searchHistoryGroupBySource: value),
-        );
-        showSuccessToast(t.common.settingSaved);
-      },
-    );
-  }
-
 
   /// 搜索历史按图源分时间线。与搜索页历史标题上那颗按钮是**同一个字段**，
   /// 两处入口、一份状态（改一处另一处立刻跟着变）。

@@ -49,11 +49,6 @@ const Map<String, List<String>> _settingsBlockKeys = <String, List<String>>{
     'disableBika',
     'updateAccelerate',
     'retryDownloadUntilSuccess',
-    // 历史本身从 `List<String>` 变成了带图源归属的记录列表。读的方向做了兼容
-    // （`searchHistoryFromJson` 认老格式），**写的方向没有**：还没更新的老客户端
-    // 拉到这一项会在 `fromJson` 里把 Map 往 String 上转而抛异常。两台机器都
-    // 更新到本次版本即无此问题；真要混版本，把下面这两行一起注释掉就行。
-    'searchHistoryGroupBySource',
     'searchHistory',
     // 历史本身从 `List<String>` 变成了带图源归属的记录列表。读的方向做了兼容
     // （`searchHistoryFromJson` 认老格式），**写的方向没有**：还没更新的老客户端

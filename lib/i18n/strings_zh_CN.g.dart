@@ -1132,14 +1132,14 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '点击封面开始阅读'
 	String get clickCoverToStartReading => '点击封面开始阅读';
 
+	/// zh-CN: '在漫画详情页点击封面直接开始阅读'
+	String get clickCoverToStartReadingSubtitle => '在漫画详情页点击封面直接开始阅读';
+
 	/// zh-CN: '搜索历史按插件分时间线'
 	String get searchHistoryGroupBySource => '搜索历史按插件分时间线';
 
 	/// zh-CN: '开启后每个图源各自一条搜索时间线，不再全部堆在一起；「聚合搜索」是跨全部插件搜出来的，「未分类」是这次改造之前留下的老记录，归属已经丢了'
 	String get searchHistoryGroupBySourceSubtitle => '开启后每个图源各自一条搜索时间线，不再全部堆在一起；「聚合搜索」是跨全部插件搜出来的，「未分类」是这次改造之前留下的老记录，归属已经丢了';
-
-	/// zh-CN: '在漫画详情页点击封面直接开始阅读'
-	String get clickCoverToStartReadingSubtitle => '在漫画详情页点击封面直接开始阅读';
 
 	/// zh-CN: '详情页内置阅读按钮'
 	String get comicInfoInlineReadButton => '详情页内置阅读按钮';
@@ -4807,6 +4807,9 @@ class Translations$search$zh_CN {
 	/// zh-CN: '时间正序'
 	String get ascending => '时间正序';
 
+	/// zh-CN: '暂无搜索记录'
+	String get noHistory => '暂无搜索记录';
+
 	/// zh-CN: '已按插件分时间线，点击合并成一条'
 	String get groupByPluginTooltipOn => '已按插件分时间线，点击合并成一条';
 
@@ -4818,9 +4821,6 @@ class Translations$search$zh_CN {
 
 	/// zh-CN: '未分类'
 	String get historyGroupUncategorized => '未分类';
-
-	/// zh-CN: '暂无搜索记录'
-	String get noHistory => '暂无搜索记录';
 
 	/// zh-CN: '🔍 搜索技巧'
 	String get tipsTitle => '🔍 搜索技巧';
@@ -6669,9 +6669,9 @@ extension on Translations {
 			'settings.leftHandMode' => '左手优化',
 			'settings.leftHandModeSubtitle' => '开启后将悬浮按钮等操作按钮移到屏幕左侧',
 			'settings.clickCoverToStartReading' => '点击封面开始阅读',
+			'settings.clickCoverToStartReadingSubtitle' => '在漫画详情页点击封面直接开始阅读',
 			'settings.searchHistoryGroupBySource' => '搜索历史按插件分时间线',
 			'settings.searchHistoryGroupBySourceSubtitle' => '开启后每个图源各自一条搜索时间线，不再全部堆在一起；「聚合搜索」是跨全部插件搜出来的，「未分类」是这次改造之前留下的老记录，归属已经丢了',
-			'settings.clickCoverToStartReadingSubtitle' => '在漫画详情页点击封面直接开始阅读',
 			'settings.comicInfoInlineReadButton' => '详情页内置阅读按钮',
 			'settings.comicInfoInlineReadButtonSubtitle' => '桌面端在操作行里「下载」旁边放一个阅读按钮，并撤掉右下角的悬浮按钮',
 			'settings.comicInfoRailLiquidGlass' => '详情页操作栏液态玻璃',
@@ -6859,8 +6859,6 @@ extension on Translations {
 			'settings.operationBindingSectionKeyboard' => '键盘',
 			'settings.operationBindingSectionTap' => '点击分区',
 			'settings.operationBindingTapSubtitle' => '阅读区只分「左半 / 正中 / 右半」三档：上下两排与中排同一动作。',
-			_ => null,
-		} ?? switch (path) {
 			'settings.operationBindingAreaMiddleLeft' => '左半屏',
 			'settings.operationBindingAreaMiddleCenter' => '正中',
 			'settings.operationBindingAreaMiddleRight' => '右半屏',
@@ -7376,8 +7374,6 @@ extension on Translations {
 			'reader.enterFullscreen' => '全屏（f11）',
 			'reader.exitFullscreen' => '退出全屏',
 			'reader.chapterTransition' => '章节过渡中',
-			_ => null,
-		} ?? switch (path) {
 			'reader.transitionSwipeToLoad' => '继续翻页加载',
 			'reader.transitionLoaded' => '加载完成',
 			'reader.transitionLoadFailedRetry' => '加载失败，点击重试',
@@ -7854,11 +7850,11 @@ extension on Translations {
 			'search.oldestFirst' => '当前：最早搜索在前',
 			'search.descending' => '时间倒序',
 			'search.ascending' => '时间正序',
+			'search.noHistory' => '暂无搜索记录',
 			'search.groupByPluginTooltipOn' => '已按插件分时间线，点击合并成一条',
 			'search.groupByPluginTooltipOff' => '全部堆在一条时间线上，点击按插件分组',
 			'search.historyGroupAggregate' => '聚合搜索',
 			'search.historyGroupUncategorized' => '未分类',
-			'search.noHistory' => '暂无搜索记录',
 			'search.tipsTitle' => '🔍 搜索技巧',
 			'search.exactSearchTitle' => '精准搜索（同时满足）',
 			'search.exactSearchExample' => '全彩(空格)+人妻',
@@ -7903,8 +7899,6 @@ extension on Translations {
 			'discover.pluginDebugLoadFailed' => ({required Object error}) => '插件调试加载失败，已回退数据库: ${error}',
 			'discover.closeTab' => '关闭标签',
 			'discover.tabDisplay' => '标签显示',
-			_ => null,
-		} ?? switch (path) {
 			'discover.tabShowIcon' => '显示插件图标',
 			'discover.tabShowPluginShort' => '显示插件名缩写',
 			'discover.webPage' => '网页',
