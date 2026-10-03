@@ -219,10 +219,24 @@ class _ThrowingBuilder extends TranslatedPageBuilder {
 /// 图层 JSON 由它自己写进缓存档，于是控制器的 `overlayReady` 判得出来；
 /// `overlayNeedsBase` 由用例指定 —— 那一维正是「这一页要不要替它占增强图轨」的唯一入口。
 class _OverlayBuilder extends TranslatedPageBuilder {
-  _OverlayBuilder({required this.needsBase, required this.basePath});
+  _OverlayBuilder({
+    required this.needsBase,
+    required this.basePath,
+    this.fromCache = false,
+    this.layerFilled,
+  });
 
   final bool needsBase;
   final String basePath;
+
+  /// 图层里那框有没有填色。默认与 `needsBase` 相反（真链路里就是这一个条件），
+  /// 只有「构建器报不出这一维」那一条要单独拧。
+  final bool? layerFilled;
+
+  bool get boxHasFill => layerFilled ?? !needsBase;
+
+  /// 命中缓存那一趟：构建器什么都没算，报不出 `overlayNeedsBase`。
+  final bool fromCache;
   static const label = 'overlay-test档';
 
   @override
@@ -255,19 +269,19 @@ class _OverlayBuilder extends TranslatedPageBuilder {
             ],
             source: 'トカゲじゃ',
             text: '是蜥蜴啊',
-            fill: needsBase ? null : const ui.Color.fromARGB(255, 255, 255, 255),
+            fill: boxHasFill ? const ui.Color.fromARGB(255, 255, 255, 255) : null,
           ),
         ],
       ).encode(),
     );
     return TranslatedPage(
       path: basePath,
-      fromCache: false,
       hasText: true,
       blockCount: 1,
       truncatedCount: 0,
       label: label,
       overlayNeedsBase: needsBase,
+      fromCache: fromCache,
     );
   }
 }
@@ -774,5 +788,42 @@ void main() {
     );
     expect(presenter.injected.single.$2, erasedBase.path);
     expect(presenter.translationOwnedPages.keys, {3});
+  });
+
+  test('叠层档、命中缓存：构建器报不出这一维，控制器现读图层', () async {
+    // 占不占轨必须是这一页的**属性**。第一次建的时候替它占了轨，翻回来命中缓存就不占了，
+    // 画面会从「擦干净的底 + 中文」变回「日文压在中文下面」—— 同一页两种画面，
+    // 而这种错只有翻回来才看得见。
+    await seedReady();
+    await TranslatedPageDisplayMode.save(TranslatedPageDisplayChoice.overlay);
+    final erasedBase = await TranslatedPageCache.baseFile(
+      label: _OverlayBuilder.label,
+      pageIndex: 5,
+    );
+    await erasedBase.create(recursive: true);
+    await erasedBase.writeAsBytes(page, flush: true);
+    final c = TranslatedPageController(
+      builder: _OverlayBuilder(
+        needsBase: false,
+        fromCache: true,
+        layerFilled: false,
+        basePath: erasedBase.path,
+      ),
+    );
+    final presenter = _FakePresenter(confirmed: true);
+
+    final ok = await c.toggle(
+      source: _FakeSource(page),
+      presenter: presenter,
+      index: 5,
+    );
+
+    expect(ok, isTrue);
+    expect(c.isOverlayActive(5), isTrue);
+    expect(
+      presenter.translationOwnedPages.keys,
+      {5},
+      reason: '图层里那框没有填色 ⇒ 这一页的底只能是擦字底图，命中缓存也一样要占轨',
+    );
   });
 }
