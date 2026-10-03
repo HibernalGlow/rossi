@@ -269,7 +269,9 @@ class _OverlayBuilder extends TranslatedPageBuilder {
             ],
             source: 'トカゲじゃ',
             text: '是蜥蜴啊',
-            fill: boxHasFill ? const ui.Color.fromARGB(255, 255, 255, 255) : null,
+            fill: boxHasFill
+                ? const ui.Color.fromARGB(255, 255, 255, 255)
+                : null,
           ),
         ],
       ).encode(),
@@ -824,6 +826,31 @@ void main() {
       presenter.translationOwnedPages.keys,
       {5},
       reason: '图层里那框没有填色 ⇒ 这一页的底只能是擦字底图，命中缓存也一样要占轨',
+    );
+  });
+
+  test('「对比原图」开着：控制器报得出旁路，叠层那一层才让得开', () async {
+    // 旁路屏蔽的是增强图轨。烘焙档自然被挡住，而叠层是 Flutter 侧的一层 ——
+    // 不读这一维，用户按下对比原图看到的是「原图 + 中文」。
+    await seedReady();
+    await TranslatedPageDisplayMode.save(TranslatedPageDisplayChoice.overlay);
+    final base = '${root.path}/overlay_bypass.png';
+    await File(base).writeAsBytes(page, flush: true);
+    final c = TranslatedPageController(
+      builder: _OverlayBuilder(needsBase: false, basePath: base),
+    );
+    expect(
+      c.bypassesOriginalPreview,
+      isFalse,
+      reason: '还没挂呈现器就说「旁路开着」，是拿未知当证据',
+    );
+
+    final presenter = _FakePresenter(confirmed: true, bypassed: true);
+    await c.toggle(source: _FakeSource(page), presenter: presenter, index: 6);
+    expect(
+      c.bypassesOriginalPreview,
+      isTrue,
+      reason: '这一维要如实转达呈现器那句「我在跑原图对比」',
     );
   });
 }
