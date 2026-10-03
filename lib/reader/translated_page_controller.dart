@@ -2,12 +2,15 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
+import 'package:zephyr/reader/page_display_source.dart';
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/service/ocr/ocr_log.dart';
 import 'package:zephyr/service/ocr/ocr_models.dart';
 import 'package:zephyr/service/ocr/ocr_service.dart';
 import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
+import 'package:zephyr/service/ocr/translated_page_cache.dart';
+import 'package:zephyr/service/ocr/translated_page_display_mode.dart';
 import 'package:zephyr/service/ocr/translated_page_builder.dart';
 
 enum TranslatedPagePhase {
@@ -118,6 +121,22 @@ class TranslatedPageController extends ChangeNotifier {
   /// 旧书第 5 页的成品页会被注到新书第 5 页上（同一序号，完全不同的内容）。
   int _generation = 0;
   final Map<int, String> _inputScratch = <int, String>{};
+
+  /// 哪些页此刻显示的是**叠层**，以及它们的产物在缓存里的档名。
+  ///
+  /// 为什么不复用 `translationOwnedPages`：那张表的含义是「这一页的像素被成品页占了」，
+  /// 超分读它来让路。叠层**不占轨** —— 它要的就是底图照常（超分产物最好），
+  /// 把两件事记进同一张表，等于每次叠层都把超分白白关掉。
+  /// 为什么记在这里而不是让 widget 自己去算档名：档名是**配置**的函数
+  /// （`TranslatedPageCache.describe`），显示侧自己算就是第二个真源 ——
+  /// 切了引擎或改了术语表时两边算出的名字不一致，画面会安静地退回原图。
+  final Map<int, String> _overlayLabels = <int, String>{};
+
+  /// 这一页有没有可画的叠层（有 = 显示侧该画覆盖层）。
+  bool isOverlayActive(int index) => _overlayLabels.containsKey(index);
+
+  /// 这一页叠层产物所在的指纹档名；没登记过就是 null（不画）。
+  String? overlayLabelFor(int index) => _overlayLabels[index];
   Directory? _scratch;
 
   TranslatedPagePhase get phase => _phase;
@@ -132,6 +151,7 @@ class TranslatedPageController extends ChangeNotifier {
   void reset() {
     _generation++;
     _presenter?.translationOwnedPages.clear();
+    _overlayLabels.clear();
     try {
       _scratch?.deleteSync(recursive: true);
     } catch (_) {
@@ -193,6 +213,23 @@ class TranslatedPageController extends ChangeNotifier {
       );
       if (_stale(generation)) return false; // 书都换了，这份产物没有归属可言
       if (!out.hasText) return _fail(index, '这一页没识别到文字');
+      if (choice == TranslatedPageDisplayChoice.overlay &&
+          await TranslatedPageCache.overlayReady(
+            label: out.label,
+            pageIndex: index,
+          )) {
+        // **不注入、不占轨**：底图该是超分产物就是超分产物，字由 `TranslatedPageOverlay`
+        // 画在上面。占轨那条路留给烘焙档 —— 这是「翻译迁移到超分后的图上」的落点。
+        _overlayLabels[index] = out.label;
+        _phase = TranslatedPagePhase.showing;
+        _index = index;
+        _lastError = '';
+        notifyListeners();
+        OcrLog.add(
+          '${OcrLog.page(index)} 叠层已就绪（档=${out.label}，不占增强图轨，超分照常）',
+        );
+        return true;
+      }
       return await _inject(index, out.path, presenter, showingOnSuccess: true);
     } on TranslatedPageCancelled {
       // 自己取消的那次构建不是一条错误，也不该有归属：干净收手。
@@ -212,6 +249,18 @@ class TranslatedPageController extends ChangeNotifier {
     TranslatedPagePresenter presenter,
     int generation,
   ) async {
+    // 叠层档的这一页**从没被注入过**增强图轨，所以关掉它只是把这一层的登记摘掉。
+    // 走下面 `_inject(原图)` 那条路会把一张原图硬塞进轨里 —— 那反而盖掉了用户
+    // 本来在看的超分产物：叠层的整个理由就是「底图不动」。
+    if (_overlayLabels.containsKey(index)) {
+      _overlayLabels.remove(index);
+      _phase = TranslatedPagePhase.off;
+      _index = index;
+      _lastError = '';
+      notifyListeners();
+      OcrLog.add('${OcrLog.page(index)} 叠层已关掉（不注原图，底图照常）');
+      return true;
+    }
     final original = await _inputPathFor(source, index);
     // 关的那一路也要认过期：`_inputPathFor` 会问呈现源要路径、必要时落一次临时文件，
     // 这中间换书的话，把旧书的原图注到新书那一页上同样是错的。
