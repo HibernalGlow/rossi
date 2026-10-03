@@ -1,11 +1,10 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/discover/cubit/discover_cubit.dart';
+import 'package:zephyr/page/discover/widgets/plugin_function_chips.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
-import 'package:zephyr/type/pipe.dart';
 import 'package:zephyr/util/json/json_value.dart';
-import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/widgets/plugin_icon.dart';
 
 class PluginCard extends StatelessWidget {
@@ -197,50 +196,13 @@ class PluginCard extends StatelessWidget {
                 right: 20,
                 bottom: 12,
               ),
-              child: _buildFunctionButtons(context, rawFunctions, colorScheme),
+              child: PluginFunctionChips(
+                functions: rawFunctions,
+                onAction: onAction,
+              ),
             ),
         ],
       ),
-    );
-  }
-
-  Widget _buildFunctionButtons(
-    BuildContext context,
-    List<Map<String, dynamic>> rawFunctions,
-    ColorScheme colorScheme,
-  ) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: rawFunctions.map((function) {
-        final id = function['id']?.toString().trim() ?? '';
-        final text = function['title']?.toString().trim() ?? t.discover.unnamed;
-        var action = asJsonMap(function['action']);
-        if (action.isEmpty && id.isNotEmpty) {
-          action = {
-            'type': 'openPluginFunction',
-            'payload': {'id': id, 'title': text, 'presentation': 'page'},
-          };
-        }
-        final enabled = action.isNotEmpty;
-        return ActionChip(
-          label: Text(text.let(convertChineseForDisplay)),
-          onPressed: enabled ? () => onAction(action) : null,
-          backgroundColor: colorScheme.primaryContainer.withValues(alpha: 0.16),
-          disabledColor: colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.35,
-          ),
-          side: BorderSide(color: colorScheme.primary.withValues(alpha: 0.1)),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
-          visualDensity: VisualDensity.compact,
-          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          labelStyle: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: colorScheme.primary.withValues(alpha: 0.78),
-            fontWeight: FontWeight.w500,
-          ),
-        );
-      }).toList(),
     );
   }
 }
