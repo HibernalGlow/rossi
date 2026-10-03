@@ -222,6 +222,72 @@
 这与 `BreezeWorkspacePage.store` 是同一条先例（那个口子就是为了让「重启回来的是不是
 同一套布局」能在测试里验完）。**应用路径永不传它们**，传与不传的差别只有「内容由谁构造」。
 
+## 后续修订（2026-10-03）：聚焦落地那一刻不再产生可感知的卡顿
+
+用户口径：**「泳道聚焦和 reader 聚焦整体体验不平滑，鼠标移过去会卡一下」**，并怀疑是那
+200ms（设置页那颗滑杆的下限）造成的。实测结论是**延时不是主因**——把滑杆拖到 200ms
+仍然卡，因为卡的是聚焦落地那一刻真的在跑的那些活儿。三条按成本从大到小：
+
+1. **Reader 的独占宽度不再跟着激活态走**（撤销「决定」第 6 条里的那条前提，
+   **只对 Reader 这一档**）。原口径下指针停到隔壁泳道，`effectiveSoloLaneId` 就变 null，
+   Reader 从「占满可用宽」塌回常规宽：宽度一变，`ImageSurface` 的物理尺寸跟着变，
+   已上屏的纹理被判废并按新宽重解 —— **`lib/reader/image_surface.dart` 自己记的数是
+   300–400 ms/页**。而条带模型的第一条不变量本来就写着「显出一条泳道靠**移动条带**」，
+   靠重新排版去显是另一套版式的做法。
+   - **不对称是刻意的**：面板泳道的独占**保留**「同时是激活泳道」那条前提。理由是
+     面板内容改宽度没有重解码那笔代价，而一旦解绑，「独占一条面板泳道 + 在别处干活」
+     会把其余泳道挤到视口外，而把它们呼回来的边缘驻留**只对 Reader 独占**那一档开放
+     （`_handleStripHover` 的 `soloArmed`）——那个洞就只剩进得去。
+   - 配套：**紧凑轨改为「除独占与当前激活之外」都收成轨**，且从独占身上扣宽时
+     **只算真被收成轨的那些**。不配套的话，点轨把交互交出去之后那条泳道仍是 44px，
+     切换栏就变成陷阱（触屏上它是左右泳道唯一的把手）。
+2. **一次聚焦只重建外壳**。外层 `BlocBuilder`（工作台页面层与条带层）没有 `buildWhen`，
+   任何一次 emit 都会把 `WorkspaceReaderHost` 当新 widget 交下去，于是
+   `Navigator.didUpdateWidget ⇒ route.changedExternalState ⇒ _forceRebuildPage`，
+   上游 `ComicReadPage` **整页**重 build；面板那侧 `LanePanelHost` 用 `context.watch`
+   读整份 state，把每个访问过的整页面板同样拖一遍。改法是**内容实例按签名缓存**
+   （签名 = 除 `activeLaneId` 之外的全部字段）：签名没变就把同一个实例交下去，
+   Flutter 在 `Element.updateChild`（`framework.dart:4027`）会跳过整棵子树。
+   - 判据不是「看起来没卡」，是**计数**：`test/workspace/lane_rebuild_budget_test.dart`
+     由替身内容在自己的 `build` 里加计数，动手前那两条「零重建」是**红的**，现在全绿；
+     同一文件里两条阳性对照（换书、换面板必须涨）保证这不是计数器坏了。
+3. **驻留改成「停住之后才计时」**（`WorkspaceDwell`）。原来那一个 `delay` 同时承担
+   「别把路过当成要看这里」和「给点反应时间」，于是只能取到 420ms 才不误触，
+   而真停下来的人一起等满它。现在到期点 = 最后一次指针运动 + `settleMs`(60，
+   **内部常量**，不加第四颗旋钮) + `delayMs`；出厂值随之降到 150 / 120。
+   另加**预备态**：静够 `settleMs` 之后先把那条泳道的边框亮起，`delay` 走完才交出交互 ——
+   指针还在动时 `isArmed` 恒为假，所以路过不会闪任何东西。
+   - 边缘揭示同样吃静置：契约那句本来就是「指针**停**在视口左右边缘」。
+
+### 这一轮明确不做（以及为什么）
+
+- **不豁免「非激活泳道吃掉第一下点击」**。原本打算按「这次聚焦会不会移动画面」放行，
+  但那等于让「点一下本来完整可见的 Reader」顺带翻一页 —— 那正是上游契约
+  (`That click is consumed … must not reach Reader area bindings, page navigation`)
+  要防的事。而悬停聚焦本身已经让这颗吞点击在正常路径上碰不到了。
+- **不改生产代码去治「尺寸突变那一瞬的空窗」**。实测：`holdOwnBitmap=true`
+  （=「翻页预览」开着，出厂默认）时旧位图本来就挂着，宽度变了仍画得出像素；
+  `false` 那一档确实会空，而那是用户自己选的省内存口径（同目录既有判据早就把
+  「关掉就没有画面」钉成预期行为）。这一轮交付的是把这段行为**钉住**的一对判据
+  （含「不留位图就会空」的对照），顺带补上 3 个因 `PageSource` 加成员而编译不过的
+  reader 夹具。
+
+### 这一轮的判据（2026-10-03，本机实跑）
+
+- `dart run test/workspace/strip_metrics_check.dart` — 126 条（新增「激活不改宽度」
+  两档 × 四个激活态、对照「独占本身确实改变宽度」、「轨不给激活那条」）。
+- `dart run test/workspace/dwell_check.dart` — 54 条（原 32；新增运动推后到期点、
+  路过永不触发、预备态边界，各带对照）。
+- `flutter test test/workspace/swimlane_runtime_test.dart` — 18 条（新增「宽度一字不变」、
+  「生效值分档：Reader 解绑 / 面板保留」、「停住先亮再激活」序列）。
+- `flutter test test/workspace/lane_rebuild_budget_test.dart` — 5 条（动手前 2 条红）。
+- `flutter test test/reader/image_surface_test.dart` — 14 条（新增尺寸突变那一对）。
+- `test/workspace/lane_focus_check.dart` **被同工作树里他人未提交的 `_fitToViewport` 挡住**
+  （那条封顶让「右泳道比视口宽」的前置再也构造不出来；HEAD 上可跑，已用
+  `git show HEAD:` 归因）。留给那位改动的作者决定：改夹具，还是承认 `focusOffset`
+  里「比视口宽就对齐最近的边」那一档已成死支。
+- **实机手感未验**（macOS 由用户自己跑，见 `docs/lane-focus-smoothness-acceptance.md`）。
+
 ## 残留（明确记账）
 
 - **手感只能在真机上看。** 这一轮把「事件 → 状态 → 几何」全钉住了，但「顺手不顺手」
