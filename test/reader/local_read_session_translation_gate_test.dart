@@ -179,7 +179,7 @@ TranslatedPageController _gatedController(Uint8List page) =>
     TranslatedPageController(
       builder: TranslatedPageBuilder(
         analyze: (imagePath, erasedPath, ep) async {
-          await File(erasedPath).writeAsBytes(page, flush: true);
+          await File(erasedPath!).writeAsBytes(page, flush: true);
           return OcrPageResult(
             blocks: [
               OcrBlock(
