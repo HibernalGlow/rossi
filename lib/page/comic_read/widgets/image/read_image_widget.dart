@@ -11,6 +11,7 @@ import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
+import 'package:zephyr/reader/online_translated_page_track.dart';
 import 'package:zephyr/reader/animated_local_page.dart';
 import 'package:zephyr/reader/image_surface.dart';
 import 'package:zephyr/reader/neighbor_page_prefetch.dart';
@@ -297,25 +298,10 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
                   foregroundColor: foregroundColor,
                 );
               case PictureLoadStatus.success:
-                return GestureDetector(
-                  onLongPress: () {
-                    context.pushRoute(
-                      FullRouteImageRoute(imagePath: state.imagePath!),
-                    );
-                  },
-                  child: Container(
-                    color: backgroundColor,
-                    child: ImageDisplay(
-                      imagePath: state.imagePath!,
-                      isColumn: isColumn,
-                      pageSlotIndex: widget.index,
-                      sizeCacheIndex: cacheIndex,
-                      imageAlignment: widget.imageAlignment,
-                      paintSize: widget.paintSize,
-                      // 这条路没有着色器，半页只能由 `ImageDisplay` 自己裁。
-                      slice: widget.slice,
-                    ),
-                  ),
+                return _buildResolvedPage(
+                  context,
+                  state.imagePath!,
+                  backgroundColor: backgroundColor,
                 );
               case PictureLoadStatus.failure:
                 if (state.result.toString().contains('404')) {
@@ -353,6 +339,72 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
       ),
     );
   }
+
+  /// 已经解析到磁盘路径的那一页要画**哪张**图。
+  ///
+  /// # 为什么译文轨要挂在显示端，而不是自己去找图
+  ///
+  /// 在线这一路没有 GPU 呈现器，「第 N 页换成另一个文件」这件事只能发生在
+  /// `ImageDisplay` 拿到的那个路径上。而这一页真正在磁盘上是谁，只有这里知道
+  /// —— `PictureBloc` 才解析完，可能是下载记录里的文件、也可能是刚下好的缓存文件。
+  /// 所以这个分支同时干两件事：把原图路径交给译文轨（那是 OCR 的输入），
+  /// 再把译文轨认定的那个路径交回给界面（没认领时它就是原图）。
+  ///
+  /// # 为什么非当前页也要参与
+  ///
+  /// 预取与邻页同样会走到这里。让它们上报路径没有副作用（只是记一份路径），
+  /// 却省掉「翻过去才发现没有输入」的那一次重下；而覆盖只按槽位查，
+  /// 邻页没被认领过就拿回原图。
+  Widget _buildResolvedPage(
+    BuildContext context,
+    String resolvedPath, {
+    required Color backgroundColor,
+  }) {
+    final scope = onlineTranslatedPageScope(widget.pictureInfo);
+    if (scope == null) {
+      return _paintPage(context, resolvedPath, backgroundColor);
+    }
+    final track = OnlineTranslatedPageTrack.instance;
+    return ListenableBuilder(
+      // 译文被认领 / 摘掉时要当场换画面。这条 listen 同时是「画面真的换了」
+      // 那个证据的来源：[OnlineTranslatedPageTrack.displayPathFor] 会记下
+      // 这一帧实际拿去画的路径，控制器注入完就是回这里核对。
+      listenable: track,
+      builder: (context, _) => _paintPage(
+        context,
+        track.displayPathFor(
+          scope: scope,
+          index: widget.index,
+          sourcePath: resolvedPath,
+        ),
+        backgroundColor,
+      ),
+    );
+  }
+
+  Widget _paintPage(
+    BuildContext context,
+    String imagePath,
+    Color backgroundColor,
+  ) => GestureDetector(
+    onLongPress: () => context.pushRoute(
+      FullRouteImageRoute(imagePath: imagePath),
+    ),
+    child: Container(
+      color: backgroundColor,
+      child: ImageDisplay(
+        imagePath: imagePath,
+        isColumn: isColumn,
+        pageSlotIndex: widget.index,
+        sizeCacheIndex: cacheIndex,
+        imageAlignment: widget.imageAlignment,
+        paintSize: widget.paintSize,
+        // 这条路没有着色器，半页只能由 `ImageDisplay` 自己裁。
+        // 成品页与原图同像素尺寸，所以这一刀对它同样成立。
+        slice: widget.slice,
+      ),
+    ),
+  );
 
   Widget placeholder({
     required Color backgroundColor,

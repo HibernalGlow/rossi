@@ -6,6 +6,7 @@ import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_presentation_cubit.dart';
 import 'package:zephyr/page/comic_read/model/reader_presentation.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_download_button.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_online_translated_page_chip.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_download_sheet.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_layout_panel.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_rotate_panel.dart';
@@ -307,6 +308,7 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
                   _buildDownloadEntry(bookTitle),
                 ReaderUpscaleStatusChip(availableWidth: chipWidth),
                 ReaderTranslatedPageChip(availableWidth: chipWidth),
+                ReaderOnlineTranslatedPageChip(availableWidth: chipWidth),
                 // 自动滚屏按用户口径放**二级**：主行不画它，入口与开/关状态
                 // 在「更多」菜单的第一项（所有档位都在那里）。
               ],
