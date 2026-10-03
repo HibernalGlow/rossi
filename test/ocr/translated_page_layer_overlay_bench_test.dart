@@ -271,7 +271,8 @@ void main() {
     //    这样统计里不掺底图原有的字，两边（原图底 / 擦字底）比的才是同一批像素。
     final white = await _solidWhite(original.width, original.height);
     final textOnly = await compose(white, decoded, 1);
-    final textInk = _darkPixels(await rgba(textOnly), original.width, boxes);
+    final textRgba1 = await rgba(textOnly);
+    final textInk = _darkPixels(textRgba1, original.width, boxes);
     expect(
       textInk,
       isNotEmpty,
