@@ -52,6 +52,7 @@ class RayMenuSurface extends StatelessWidget {
                           style,
                           visibleRings,
                           selected,
+                          editEmpty,
                         ),
                       ),
                     ),
@@ -107,6 +108,7 @@ class RayMenuSurface extends StatelessWidget {
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
                             style: style.textStyle.copyWith(
+                              fontWeight: FontWeight.w600,
                               color: selected == null
                                   ? style.muted
                                   : style.foreground,
@@ -137,8 +139,10 @@ class _RayLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = slot.selectable
-        ? (selected ? style.accent : style.foreground)
+    final color = selected
+        ? (style.selectedForeground ?? style.foreground)
+        : slot.selectable
+        ? style.foreground
         : style.muted;
     return Center(
       child: Padding(
@@ -155,7 +159,7 @@ class _RayLabel extends StatelessWidget {
               child: Text(
                 slot.item?.label ?? '+',
                 textAlign: TextAlign.center,
-                maxLines: slot.item?.icon == null ? 2 : 1,
+                maxLines: slot.item?.icon == null ? 3 : 1,
                 overflow: TextOverflow.ellipsis,
                 style: style.textStyle.copyWith(color: color),
               ),
@@ -168,53 +172,67 @@ class _RayLabel extends StatelessWidget {
 }
 
 class _RayPainter extends CustomPainter {
-  _RayPainter(this.layout, this.style, this.visibleRings, this.selected);
+  _RayPainter(
+    this.layout,
+    this.style,
+    this.visibleRings,
+    this.selected,
+    this.editEmpty,
+  );
   final RayMenuLayout layout;
   final RayMenuStyle style;
   final int visibleRings;
   final RayMenuSlot? selected;
+  final bool editEmpty;
 
   @override
   void paint(Canvas canvas, Size size) {
     canvas.save();
     canvas.translate(size.width / 2, size.height / 2);
+    final geometry = layout.geometry;
+    // 只铺到「看得见的那一圈」的外沿：onHold 模式下没展开的格子背后不该有一层底。
+    final visibleOuter =
+        geometry.radius +
+        math.max(0, math.min(visibleRings, layout.ringCount) - 1) *
+            geometry.ringWidth;
+    final silhouette =
+        Path()
+          ..addOval(Rect.fromCircle(center: Offset.zero, radius: visibleOuter));
+    final shadow = style.shadow;
+    if (shadow != null) {
+      canvas.drawPath(
+        silhouette,
+        Paint()
+          ..color = shadow
+          ..maskFilter = MaskFilter.blur(
+            BlurStyle.normal,
+            visibleOuter * 0.05 + 6,
+          ),
+      );
+    }
+    // 整张轮盘是一个面：格子之间的缝露出这层底，靠色区分层而不是描边。
+    canvas.drawPath(silhouette, Paint()..color = style.surface);
     for (final slot in layout.slots) {
       if (slot.ring >= visibleRings) break;
-      final active = slot == selected;
-      canvas.drawPath(
-        slot.path,
-        Paint()
-          ..color = active
-              ? style.selected
-              : slot.item == null
-              ? style.surface.withValues(alpha: 0.4)
-              : slot.selectable
-              ? style.segment
-              : style.segment.withValues(alpha: 0.45),
-      );
-      canvas.drawPath(
-        slot.path,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = active ? 1.5 : 0.75
-          ..color = active ? style.accent : style.border,
-      );
+      final Color? fill;
+      if (slot == selected) {
+        fill = style.selected;
+      } else if (slot.selectable) {
+        fill = style.segment;
+      } else if (slot.item == null && !editEmpty) {
+        continue;
+      } else {
+        fill = style.segment.withValues(alpha: 0.45);
+      }
+      canvas.drawPath(slot.path, Paint()..color = fill);
     }
-    if (layout.geometry.innerRadius > 2) {
-      canvas.drawCircle(
-        Offset.zero,
-        layout.geometry.innerRadius - 2,
-        Paint()..color = style.surface,
-      );
-      canvas.drawCircle(
-        Offset.zero,
-        layout.geometry.innerRadius - 2,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 0.75
-          ..color = style.border,
-      );
-    }
+    canvas.drawPath(
+      silhouette,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.75
+        ..color = style.border,
+    );
     canvas.restore();
   }
 
@@ -223,6 +241,7 @@ class _RayPainter extends CustomPainter {
       layout != old.layout ||
       style != old.style ||
       visibleRings != old.visibleRings ||
+      editEmpty != old.editEmpty ||
       selected != old.selected;
 }
 
