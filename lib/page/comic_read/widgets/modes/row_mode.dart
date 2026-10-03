@@ -9,6 +9,7 @@ import 'package:zephyr/page/comic_read/controller/reader_volume_controller.dart'
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_presentation_cubit.dart';
 import 'package:zephyr/page/comic_read/method/jump_chapter.dart';
+import 'package:zephyr/page/comic_read/method/reader_landscape_split.dart';
 import 'package:zephyr/page/comic_read/widgets/dialogs/button_dialog.dart';
 import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
 import 'package:zephyr/page/comic_read/widgets/modes/read_mode_slot_builder.dart';
@@ -34,6 +35,12 @@ class RowModeWidget extends StatefulWidget {
   final Future<void> Function()? onEdgeNext;
   final ValueChanged<int> onTransitionAction;
 
+  /// 横长页拆分的判据，由阅读页算好后传下来。
+  ///
+  /// 不在这里算：`ReaderCubit.totalSlots`（进度条分母）用的是同一份集合，
+  /// 两处各算一次就会漂移。默认 `disabled` ⇒ 不传就是拆分前的行为。
+  final LandscapeSplitPlan splitPlan;
+
   const RowModeWidget({
     super.key,
     required this.entries,
@@ -50,6 +57,7 @@ class RowModeWidget extends StatefulWidget {
     this.onEdgePrevious,
     this.onEdgeNext,
     required this.onTransitionAction,
+    this.splitPlan = LandscapeSplitPlan.disabled,
   });
 
   @override
@@ -73,15 +81,31 @@ class _RowModeWidgetState extends State<RowModeWidget> {
     // 顶栏缩放/旋转面板的那一份状态：一个 route 一份，换书即归零。
     final presentation = context.select((ReaderPresentationCubit c) => c.state);
     final isDoublePage = readSetting.doublePageMode;
+    final split = widget.splitPlan;
+    // 判据为空时连列表展开都不做：`isLandscape: null` 让遍历走原来那条条目序列。
+    final isLandscape = split.isEmpty ? null : split.isSplitAt;
     final doublePageSlots = isDoublePage
         ? buildReadModeDoublePageSlots(
             widget.entries,
             insertLeadingBlank: readSetting.doublePageLeadingBlank,
+            splitLandscapePages: split.enabled,
+            direction: split.direction,
+            isLandscape: isLandscape,
           )
         : const <ReadModeDoublePageSlot>[];
+    final singlePageItems = isDoublePage
+        ? const <ReadModeSlotItem>[]
+        : buildReadModeSinglePageSlots(
+            widget.entries,
+            splitLandscapePages: split.enabled,
+            direction: split.direction,
+            isLandscape: isLandscape,
+          );
+    // 单页原先直接拿 `entries.length` 当槽位数 —— 拆分后一页占两格，
+    // 那个写法会让最后一格越界，也会让进度条分母与画面不一致。
     final slotCount = isDoublePage
         ? doublePageSlots.length
-        : widget.entries.length;
+        : singlePageItems.length;
     final backgroundColor = readSetting.resolveReaderBackgroundColor(
       Theme.of(context).brightness,
     );
@@ -193,12 +217,7 @@ class _RowModeWidgetState extends State<RowModeWidget> {
                 return buildReadModeSlot(
                   context: context,
                   slotIndex: index,
-                  singleItem: isDoublePage
-                      ? null
-                      : ReadModeSlotItem(
-                          entryIndex: index,
-                          entry: widget.entries[index],
-                        ),
+                  singleItem: isDoublePage ? null : singlePageItems[index],
                   doublePageSlot: isDoublePage ? doublePageSlots[index] : null,
                   axis: ReadModeAxis.row,
                   containerWidth: pageWidth,

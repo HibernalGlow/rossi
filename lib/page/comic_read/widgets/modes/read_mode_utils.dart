@@ -224,13 +224,22 @@ List<List<int>> buildReadModeSlotEntryIndexes(
   List<ReadModeEntry> entries, {
   required bool enableDoublePage,
   bool insertLeadingBlank = false,
+  bool splitLandscapePages = false,
+  SplitDirection direction = SplitDirection.leftFirst,
+  bool Function(int entryIndex)? isLandscape,
 }) {
   if (entries.isEmpty) return const <List<int>>[];
 
   if (!enableDoublePage) {
+    final items = buildReadModeSinglePageSlots(
+      entries,
+      splitLandscapePages: splitLandscapePages,
+      direction: direction,
+      isLandscape: isLandscape,
+    );
     return List<List<int>>.generate(
-      entries.length,
-      (index) => <int>[index],
+      items.length,
+      (index) => <int>[items[index].entryIndex],
       growable: false,
     );
   }
@@ -238,6 +247,9 @@ List<List<int>> buildReadModeSlotEntryIndexes(
   final slots = buildReadModeDoublePageSlots(
     entries,
     insertLeadingBlank: insertLeadingBlank,
+    splitLandscapePages: splitLandscapePages,
+    direction: direction,
+    isLandscape: isLandscape,
   );
   return List<List<int>>.generate(slots.length, (index) {
     final slot = slots[index];
@@ -266,11 +278,17 @@ int remapReadModeSlotIndexForPairingChange({
   required bool wasLeadingBlank,
   required bool useDoublePage,
   required bool useLeadingBlank,
+  bool splitLandscapePages = false,
+  SplitDirection direction = SplitDirection.leftFirst,
+  bool Function(int entryIndex)? isLandscape,
 }) {
   final nextSlots = buildReadModeSlotEntryIndexes(
     entries,
     enableDoublePage: useDoublePage,
     insertLeadingBlank: useLeadingBlank,
+    splitLandscapePages: splitLandscapePages,
+    direction: direction,
+    isLandscape: isLandscape,
   );
   if (nextSlots.isEmpty) return 0;
 
@@ -278,6 +296,9 @@ int remapReadModeSlotIndexForPairingChange({
     entries,
     enableDoublePage: wasDoublePage,
     insertLeadingBlank: wasLeadingBlank,
+    splitLandscapePages: splitLandscapePages,
+    direction: direction,
+    isLandscape: isLandscape,
   );
   if (previousSlots.isEmpty) return slotIndex.clamp(0, nextSlots.length - 1);
 

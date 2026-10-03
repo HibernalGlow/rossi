@@ -41,15 +41,23 @@ bool isColumnReadMode(int readMode) => readMode == kReadModeColumn;
 
 bool isReverseRowReadMode(int readMode) => readMode == kReadModeRowRtl;
 
+/// 单/双页模式下的槽位总数闭式公式。
+///
+/// [splitCount] 为要拆成两半的图片条目数：拆分只是把「一个条目」变成「两个展示
+/// 项」，配对仍在项上进行，所以先把项数算出来再套原来的公式。只在**行模式**传
+/// （条漫里宽图本就该占满宽，不拆），且调用方必须与渲染侧用同一份判据 ——
+/// 见 `test/comic_read/landscape_split_slot_agreement_test.dart` 那三方同源的钉子。
 int getReadModeSlotCount({
   required int imageCount,
   required bool enableDoublePage,
   bool insertLeadingBlank = false,
+  int splitCount = 0,
 }) {
   if (imageCount <= 0) return 0;
-  if (!enableDoublePage) return imageCount;
-  if (insertLeadingBlank) return (imageCount + 2) ~/ 2;
-  return (imageCount + 1) ~/ 2;
+  final itemCount = imageCount + (splitCount > 0 ? splitCount : 0);
+  if (!enableDoublePage) return itemCount;
+  if (insertLeadingBlank) return (itemCount + 2) ~/ 2;
+  return (itemCount + 1) ~/ 2;
 }
 
 int getDisplayPageNumber({
