@@ -4084,6 +4084,24 @@ class Translations$ocr$zh_CN {
 	/// zh-CN: '本平台构建里没有 $ep —— 选了会在开始分析时报错，不会静默退回 CPU'
 	String epPlanUnsupported({required Object ep}) => '本平台构建里没有 ${ep} —— 选了会在开始分析时报错，不会静默退回 CPU';
 
+	/// zh-CN: '成品页显示'
+	String get displaySection => '成品页显示';
+
+	/// zh-CN: '显示方式'
+	String get displayChoice => '显示方式';
+
+	/// zh-CN: '换档只影响之后按「译」的页；已经生成的那一页要重按一次，才会按新档重做（一页十几秒）。'
+	String get displayChoiceSubtitle => '换档只影响之后按「译」的页；已经生成的那一页要重按一次，才会按新档重做（一页十几秒）。';
+
+	/// zh-CN: '烘焙成图（会压掉这一页的超分）'
+	String get displayBaked => '烘焙成图（会压掉这一页的超分）';
+
+	/// zh-CN: '叠层显示（与超分同时生效）'
+	String get displayOverlay => '叠层显示（与超分同时生效）';
+
+	/// zh-CN: '叠层不改底图一个像素：译文盖在画面上，所以超分产物能留着。每框先按气泡轮廓采底色，采不到平色的那一页仍会跑擦字（实测 4.2 s/页）当底。'
+	String get displayOverlayHint => '叠层不改底图一个像素：译文盖在画面上，所以超分产物能留着。每框先按气泡轮廓采底色，采不到平色的那一页仍会跑擦字（实测 4.2 s/页）当底。';
+
 	/// zh-CN: '模型权重'
 	String get modelSection => '模型权重';
 
@@ -4161,12 +4179,6 @@ class Translations$ocr$zh_CN {
 
 	/// zh-CN: '译文失败'
 	String get failedShort => '译文失败';
-
-	/// zh-CN: '原文回填'
-	String get chipDegraded => '原文回填';
-
-	/// zh-CN: '端点当时不可用：这一页只做了擦字与原文回填，没有译文'
-	String get degradedHint => '端点当时不可用：这一页只做了擦字与原文回填，没有译文';
 
 	/// zh-CN: '这一页正在生成译文，稍等'
 	String get busyToast => '这一页正在生成译文，稍等';
@@ -7465,6 +7477,12 @@ extension on Translations {
 			'ocr.epSubtitle' => '实测这两个模型在 CoreML 上更慢，默认走 CPU',
 			'ocr.epPlan' => ({required Object detect, required Object recognize, required Object inpaint}) => '本机各段：检测 ${detect} · 识别 ${recognize} · 擦字 ${inpaint}',
 			'ocr.epPlanUnsupported' => ({required Object ep}) => '本平台构建里没有 ${ep} —— 选了会在开始分析时报错，不会静默退回 CPU',
+			'ocr.displaySection' => '成品页显示',
+			'ocr.displayChoice' => '显示方式',
+			'ocr.displayChoiceSubtitle' => '换档只影响之后按「译」的页；已经生成的那一页要重按一次，才会按新档重做（一页十几秒）。',
+			'ocr.displayBaked' => '烘焙成图（会压掉这一页的超分）',
+			'ocr.displayOverlay' => '叠层显示（与超分同时生效）',
+			'ocr.displayOverlayHint' => '叠层不改底图一个像素：译文盖在画面上，所以超分产物能留着。每框先按气泡轮廓采底色，采不到平色的那一页仍会跑擦字（实测 4.2 s/页）当底。',
 			'ocr.modelSection' => '模型权重',
 			'ocr.weightsReady' => ({required Object count}) => '权重已就绪（${count} 个文件）',
 			'ocr.weightsMissing' => ({required Object missing}) => '缺少：${missing}',
@@ -7491,8 +7509,6 @@ extension on Translations {
 			'ocr.chipOn' => '译文页',
 			'ocr.building' => '生成中',
 			'ocr.failedShort' => '译文失败',
-			'ocr.chipDegraded' => '原文回填',
-			'ocr.degradedHint' => '端点当时不可用：这一页只做了擦字与原文回填，没有译文',
 			'ocr.busyToast' => '这一页正在生成译文，稍等',
 			'ocr.needWeights' => '权重还没下全，去设置里下载',
 			'ocr.engine' => '译文引擎',
@@ -7666,6 +7682,8 @@ extension on Translations {
 			'search.fuzzySearchDesc' => '显示包含任意一个关键词的结果',
 			'search.selectCategory' => '选择分类',
 			'search.dataSource' => '数据来源',
+			_ => null,
+		} ?? switch (path) {
 			'search.sortBy' => '排序方式',
 			'search.newestToOldest' => '从新到旧',
 			'search.oldestToNewest' => '从旧到新',

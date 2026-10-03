@@ -1501,6 +1501,12 @@ class _Translations$ocr$en_US extends Translations$ocr$zh_CN {
 	@override String get epSubtitle => 'Measured: both models are slower on CoreML, so CPU is the default';
 	@override String epPlan({required Object detect, required Object recognize, required Object inpaint}) => 'Per stage on this machine: detect ${detect} · recognize ${recognize} · inpaint ${inpaint}';
 	@override String epPlanUnsupported({required Object ep}) => 'This platform\'s build has no ${ep} — picking it fails as analysis starts; it never silently falls back to CPU';
+	@override String get displaySection => 'Finished-page display';
+	@override String get displayChoice => 'Display mode';
+	@override String get displayChoiceSubtitle => 'Only pages translated afterwards follow the new mode; tap translate again on a page to rebuild it (a dozen seconds each).';
+	@override String get displayBaked => 'Bake into the image (replaces upscaling on that page)';
+	@override String get displayOverlay => 'Draw as an overlay (keeps upscaling)';
+	@override String get displayOverlayHint => 'The overlay never touches the base image, so the upscaled result stays on screen. Each bubble first samples its own flat fill; a page where any bubble fails that sample still runs inpaint (measured 4.2 s/page) as its base.';
 	@override String get modelSection => 'Model weights';
 	@override String weightsReady({required Object count}) => 'Weights ready (${count} files)';
 	@override String weightsMissing({required Object missing}) => 'Missing: ${missing}';
@@ -1527,8 +1533,6 @@ class _Translations$ocr$en_US extends Translations$ocr$zh_CN {
 	@override String get chipOn => 'Translated';
 	@override String get building => 'Working';
 	@override String get failedShort => 'Failed';
-	@override String get chipDegraded => 'Source text';
-	@override String get degradedHint => 'The endpoint was unavailable: this page only had the text erased and re-set in the source language.';
 	@override String get busyToast => 'This page is still being translated';
 	@override String get needWeights => 'Weights are incomplete; download them in Settings';
 	@override String get engine => 'Translation engine';
@@ -3640,6 +3644,12 @@ extension on TranslationsEnUs {
 			'ocr.epSubtitle' => 'Measured: both models are slower on CoreML, so CPU is the default',
 			'ocr.epPlan' => ({required Object detect, required Object recognize, required Object inpaint}) => 'Per stage on this machine: detect ${detect} · recognize ${recognize} · inpaint ${inpaint}',
 			'ocr.epPlanUnsupported' => ({required Object ep}) => 'This platform\'s build has no ${ep} — picking it fails as analysis starts; it never silently falls back to CPU',
+			'ocr.displaySection' => 'Finished-page display',
+			'ocr.displayChoice' => 'Display mode',
+			'ocr.displayChoiceSubtitle' => 'Only pages translated afterwards follow the new mode; tap translate again on a page to rebuild it (a dozen seconds each).',
+			'ocr.displayBaked' => 'Bake into the image (replaces upscaling on that page)',
+			'ocr.displayOverlay' => 'Draw as an overlay (keeps upscaling)',
+			'ocr.displayOverlayHint' => 'The overlay never touches the base image, so the upscaled result stays on screen. Each bubble first samples its own flat fill; a page where any bubble fails that sample still runs inpaint (measured 4.2 s/page) as its base.',
 			'ocr.modelSection' => 'Model weights',
 			'ocr.weightsReady' => ({required Object count}) => 'Weights ready (${count} files)',
 			'ocr.weightsMissing' => ({required Object missing}) => 'Missing: ${missing}',
@@ -3666,8 +3676,6 @@ extension on TranslationsEnUs {
 			'ocr.chipOn' => 'Translated',
 			'ocr.building' => 'Working',
 			'ocr.failedShort' => 'Failed',
-			'ocr.chipDegraded' => 'Source text',
-			'ocr.degradedHint' => 'The endpoint was unavailable: this page only had the text erased and re-set in the source language.',
 			'ocr.busyToast' => 'This page is still being translated',
 			'ocr.needWeights' => 'Weights are incomplete; download them in Settings',
 			'ocr.engine' => 'Translation engine',
@@ -3843,6 +3851,8 @@ extension on TranslationsEnUs {
 			'search.dataSource' => 'Data Source',
 			'search.sortBy' => 'Sort By',
 			'search.newestToOldest' => 'Newest to oldest',
+			_ => null,
+		} ?? switch (path) {
 			'search.oldestToNewest' => 'Oldest to newest',
 			'search.mostLikes' => 'Most likes',
 			'search.mostViews' => 'Most views',
