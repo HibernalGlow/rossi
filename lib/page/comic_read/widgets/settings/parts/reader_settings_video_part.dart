@@ -38,25 +38,25 @@ class _VideoSectionState extends State<_VideoSection> {
 
   @override
   Widget build(BuildContext context) {
-    return _SettingsSection(
+    return SettingsSection(
       title: t.video.settingsSection,
       icon: Icons.video_settings_rounded,
       children: [
-        _SettingsCardGroup(
+        SettingsCardGroup(
           children: [
-            _SettingsSwitchTile(
+            SettingsSwitchTile(
               title: t.video.autoPlay,
               subtitle: t.video.autoPlayDesc,
               value: _settings.autoPlay,
               onChanged: (value) => _write(_copy(autoPlay: value)),
             ),
-            _SettingsSwitchTile(
+            SettingsSwitchTile(
               title: t.video.hwDecode,
               subtitle: t.video.hwDecodeDesc,
               value: _settings.hardwareDecode,
               onChanged: (value) => _write(_copy(hardwareDecode: value)),
             ),
-            _SettingsSwitchTile(
+            SettingsSwitchTile(
               title: t.video.deinterlace,
               subtitle: t.video.deinterlaceDesc,
               value: _settings.deinterlace,
@@ -79,21 +79,21 @@ class _VideoSectionState extends State<_VideoSection> {
                 values: _settings.animatedVideoKeywords,
                 onChanged: (next) => _write(_copy(animatedVideoKeywords: next)),
               ),
-            _SettingsSwitchTile(
+            SettingsSwitchTile(
               title: t.video.pin,
               subtitle: t.video.pinDesc,
               value: _settings.controlsPinned,
               onChanged: (value) => _write(_copy(controlsPinned: value)),
             ),
-            _SettingsSwitchTile(
+            SettingsSwitchTile(
               title: t.video.animatedVideo,
               subtitle: t.video.animatedVideoDesc,
               value: _settings.animatedVideoEnabled,
               onChanged: (value) => _write(_copy(animatedVideoEnabled: value)),
             ),
-            _SettingsAnimatedCollapse(
+            SettingsAnimatedCollapse(
               isExpanded: _settings.animatedVideoEnabled,
-              child: _SettingsSliderCard(
+              child: SettingsSliderCard(
                 title: t.video.autoHide,
                 value: _settings.autoHideMilliseconds,
                 min: 1000,
@@ -104,7 +104,7 @@ class _VideoSectionState extends State<_VideoSection> {
                     _write(_copy(autoHideMilliseconds: value)),
               ),
             ),
-            _SettingsSliderCard(
+            SettingsSliderCard(
               title: t.video.maxRate,
               value: (_settings.maxRate * 100).round(),
               min: 100,
@@ -113,7 +113,7 @@ class _VideoSectionState extends State<_VideoSection> {
               suffix: '%',
               onChanged: (value) => _write(_copy(maxRate: value / 100)),
             ),
-            _SettingsSliderCard(
+            SettingsSliderCard(
               title: t.video.defaultVolume,
               value: _settings.volumePercent,
               min: 0,
