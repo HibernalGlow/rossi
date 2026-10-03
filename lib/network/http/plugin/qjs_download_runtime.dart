@@ -54,47 +54,83 @@ void _untrackRuntime({
   }
 }
 
+/// 只在确实需要时建 / 换 runtime，**不做**插件 `init()`。
+/// 返回本次真正建 runtime 花掉的毫秒数；0 表示已经是热的。
+Future<int> _buildQjsRuntimeIfNeeded({
+  required String normalizedPluginId,
+  required String runtimeName,
+}) async {
+  Future<int> installBundle() async {
+    final sw = Stopwatch()..start();
+    final bundleJs = await loadQjsBundleJs(normalizedPluginId);
+    await buildQjsRuntime(
+      request: QjsRuntimeBuildRequest(
+        runtimeName: runtimeName,
+        injectFilesystem: false,
+        bundle: QjsRuntimeBundleBuild(
+          bundleName: runtimeName,
+          bundleJs: bundleJs,
+        ),
+      ),
+    );
+    PluginInitCoordinator.I.invalidate(runtimeName);
+    return sw.elapsedMilliseconds;
+  }
+
+  if (await isQjsRuntimeInitialized(name: runtimeName)) {
+    String? currentBundle;
+    try {
+      final currentBundleRaw = await qjsCurrentBundle(runtimeName: runtimeName);
+      currentBundle = jsonDecode(currentBundleRaw) as String?;
+    } catch (_) {
+      currentBundle = null;
+    }
+    if (currentBundle != null && currentBundle.trim().isNotEmpty) {
+      return 0;
+    }
+  }
+  return installBundle();
+}
+
+/// 封面卡悬停时把「读 bundle + QuickJS 编译执行」提前做掉，点击时只剩网络那一段。
+///
+/// 刻意不含插件 `init()`：那一步会抓发布页并逐域名测速，用户只是划过一张卡片，
+/// 不该替他去戳图源站点。重复悬停由「runtime 已初始化」那条判定挡掉，不会重编。
+Future<void> prewarmQjsRuntime(String pluginId) async {
+  final normalizedPluginId = pluginId.trim();
+  if (normalizedPluginId.isEmpty) return;
+  final runtimeName = runtimeNameForPluginId(normalizedPluginId);
+  try {
+    final buildMs = await _buildQjsRuntimeIfNeeded(
+      normalizedPluginId: normalizedPluginId,
+      runtimeName: runtimeName,
+    );
+    if (buildMs > 0) {
+      logger.d('[read-start] qjs-prewarm $runtimeName build=${buildMs}ms');
+    }
+  } catch (e) {
+    logger.w('预建 QJS runtime 失败: $runtimeName', error: e);
+  }
+}
+
 Future<void> ensureQjsRuntimeReady({required String pluginId}) async {
   final normalizedPluginId = (pluginId).trim();
   final runtimeName = runtimeNameForPluginId(normalizedPluginId);
-  final bundleName = runtimeName;
 
   try {
-    Future<void> installBundle() async {
-      final bundleJs = await loadQjsBundleJs(normalizedPluginId);
-      await buildQjsRuntime(
-        request: QjsRuntimeBuildRequest(
-          runtimeName: runtimeName,
-          injectFilesystem: false,
-          bundle: QjsRuntimeBundleBuild(
-            bundleName: bundleName,
-            bundleJs: bundleJs,
-          ),
-        ),
-      );
-      PluginInitCoordinator.I.invalidate(runtimeName);
-    }
-
-    final ready = await isQjsRuntimeInitialized(name: runtimeName);
-    if (!ready) {
-      await installBundle();
-    } else {
-      String? currentBundle;
-      try {
-        final currentBundleRaw = await qjsCurrentBundle(
-          runtimeName: runtimeName,
-        );
-        currentBundle = jsonDecode(currentBundleRaw) as String?;
-      } catch (_) {
-        currentBundle = null;
-      }
-      if (currentBundle == null || currentBundle.trim().isEmpty) {
-        await installBundle();
-      }
-    }
+    final buildMs = await _buildQjsRuntimeIfNeeded(
+      normalizedPluginId: normalizedPluginId,
+      runtimeName: runtimeName,
+    );
     // false 只可能是静默期跳过：继续走到插件函数，报错让插件自己给出，
     // 由下面的 retryAfterNotReady 统一收口。
-    await PluginInitCoordinator.I.ensureInitialized(runtimeName);
+    final initSw = Stopwatch()..start();
+    final warmed = await PluginInitCoordinator.I.ensureInitialized(runtimeName);
+    initSw.stop();
+    logger.d(
+      '[read-start] qjs-ready $runtimeName build=${buildMs}ms '
+      'init=${initSw.elapsedMilliseconds}ms warmed=$warmed',
+    );
   } catch (e) {
     logger.w('初始化 QJS 失败: $runtimeName', error: e);
     rethrow;
@@ -156,6 +192,7 @@ Future<T> _runQjsTask<T>({
     }
 
     // QJS 结果通过 FRB 返回，避免 Dart 与 Rust 共享堆内存。
+    final callSw = Stopwatch()..start();
     final waitFuture = call(
       runtimeName: resolvedRuntimeName,
       taskGroupKey: taskGroupKey ?? '',
@@ -189,7 +226,12 @@ Future<T> _runQjsTask<T>({
 
     unawaited(
       waitFuture
-          .then<void>((_) {})
+          .then<void>((_) {
+            logger.d(
+              '[read-start] qjs-call $resolvedFnPath '
+              '${callSw.elapsedMilliseconds}ms',
+            );
+          })
           .catchError((_) {})
           .whenComplete(untrackOnce),
     );

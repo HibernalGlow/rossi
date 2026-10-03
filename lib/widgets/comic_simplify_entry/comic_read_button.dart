@@ -21,11 +21,22 @@ import 'package:zephyr/page/comic_info/models/read_entry_placement.dart';
 /// 「该不该画」由调用方的显示策略决定（卡片族走 `ComicCardBadgePolicy`）；
 /// 本组件只按 [size] 的口径决定画多大、以及格子太小时干脆不画。
 class ComicReadButton extends StatefulWidget {
-  const ComicReadButton({super.key, required this.onTap, this.size});
+  const ComicReadButton({
+    super.key,
+    required this.onTap,
+    this.onHover,
+    this.size,
+  });
 
   /// 起读动作。返回的 Future 结束前按钮保持转圈，所以远程漫画回源那一次
   /// （`startComicQuickRead` 的第 3 条路）看得见进度，也不会被连点重复触发。
   final Future<void> Function() onTap;
+
+  /// 按钮浮出（桌面端悬停进来）那一刻的预热钩子 —— 起读要用的插件 runtime
+  /// 先在后台建好，点击时就只剩网络那一段。
+  ///
+  /// 触屏没有 hover，这条永远不会触发；调用方给不给都不影响点击那条路。
+  final VoidCallback? onHover;
 
   /// 圆圈直径。null 表示按所在盒子的短边自己算 —— 库视图的格子多大只有布局时才知道。
   final double? size;
@@ -80,6 +91,7 @@ class _ComicReadButtonState extends State<ComicReadButton> {
       hitTestBehavior: HitTestBehavior.translucent,
       onEnter: (_) {
         setState(() => _hovered = true);
+        widget.onHover?.call();
       },
       onExit: (_) {
         if (mounted) setState(() => _hovered = false);

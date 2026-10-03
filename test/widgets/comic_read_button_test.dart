@@ -14,6 +14,7 @@ void main() {
   Future<void> pumpCover(
     WidgetTester tester, {
     required Future<void> Function() onTap,
+    VoidCallback? onHover,
     Size coverSize = const Size(120, 160),
     double? buttonSize,
   }) async {
@@ -32,7 +33,11 @@ void main() {
                 children: [
                   const ColoredBox(color: Color(0xFF123456)),
                   Positioned.fill(
-                    child: ComicReadButton(onTap: onTap, size: buttonSize),
+                    child: ComicReadButton(
+                      onTap: onTap,
+                      onHover: onHover,
+                      size: buttonSize,
+                    ),
                   ),
                 ],
               ),
@@ -157,6 +162,33 @@ void main() {
     expect(calls, 1);
 
     debugDefaultTargetPlatformOverride = null;
+  });
+
+  testWidgets('桌面：鼠标移进封面才预热一次，没悬停就一次都不预热带给图源', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    var prewarm = 0;
+    await pumpCover(tester, onTap: () async {}, onHover: () => prewarm++);
+
+    // 正向对照的前半：按钮画出来了不等于该预热 —— 没悬停过就必须是 0。
+    expect(prewarm, 0);
+
+    await enterMouse(tester, tester.getCenter(find.byType(ComicReadButton)));
+    expect(prewarm, 1);
+
+    debugDefaultTargetPlatformOverride = null;
+  });
+
+  testWidgets('触屏：点多少下都不会触发预热钩子（没有 hover 这回事）', (tester) async {
+    var prewarm = 0;
+    await pumpCover(tester, onTap: () async {}, onHover: () => prewarm++);
+
+    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.pump();
+
+    expect(prewarm, 0);
   });
 
   testWidgets('起读的 Future 结束前转圈，结束后放回播放图标', (tester) async {
