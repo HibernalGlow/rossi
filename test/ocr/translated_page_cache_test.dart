@@ -18,6 +18,7 @@ import 'package:zephyr/service/ocr/ocr_service.dart';
 import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_cache.dart';
+import 'package:zephyr/service/ocr/translated_page_layer.dart';
 import 'package:zephyr/service/ocr/translated_page_renderer.dart';
 import 'package:zephyr/src/rust/api/ocr.dart';
 
@@ -150,5 +151,82 @@ void main() {
     // 「在受管根目录下」的实际含义：那颗「清空成品页」的按钮管得到它。
     await TranslatedPageCache.clearAll();
     expect(await legacy.exists(), isFalse);
+  });
+
+  group('overlayDisplayable：叠层能不能直接显示', () {
+    TranslatedPageLayer buildLayer({required bool filled}) =>
+        TranslatedPageLayer(
+          pageWidth: 200,
+          pageHeight: 120,
+          boxes: [
+            // 填色是一框一份：全页有没有可用底，就看这些框是不是都有色。
+            TranslatedBox(
+              quad: const [20.0, 20.0, 160.0, 20.0, 160.0, 100.0, 20.0, 100.0],
+              source: 'トカゲじゃ',
+              text: '是蜥蜴啊',
+              fill: filled ? const ui.Color.fromARGB(255, 255, 255, 255) : null,
+            ),
+          ],
+        );
+
+    Future<void> putLayer(TranslatedPageLayer layer) =>
+        TranslatedPageCache.writeLayer(
+          label: label,
+          pageIndex: 0,
+          json: layer.encode(),
+        );
+
+    test('每框都有填色：不需要擦字底图也算可用', () async {
+      // 这一格钉的是「跳过擦字」那条路的命中判据：那一趟既不写 PNG 也不写底图，
+      // 按「必须有 base 文件」判就永远 miss，每次上屏重跑那十几秒。
+      await putLayer(buildLayer(filled: true));
+      expect(
+        await (await TranslatedPageCache.baseFile(
+          label: label,
+          pageIndex: 0,
+        )).exists(),
+        isFalse,
+        reason: '前提没搭对：这一格要的就是「没有底图文件」',
+      );
+      expect(
+        await TranslatedPageCache.overlayDisplayable(label: label, pageIndex: 0),
+        isTrue,
+      );
+    });
+
+    test('有框没填色、底图又不在：判不可用，而不是端出一张字压字的页', () async {
+      await putLayer(buildLayer(filled: false));
+      expect(
+        await TranslatedPageCache.overlayDisplayable(label: label, pageIndex: 0),
+        isFalse,
+      );
+    });
+
+    test('补擦过底图之后：同一份图层就可用了', () async {
+      await putLayer(buildLayer(filled: false));
+      await (await TranslatedPageCache.baseFile(
+        label: label,
+        pageIndex: 0,
+      )).create(recursive: true);
+      expect(
+        await TranslatedPageCache.overlayDisplayable(label: label, pageIndex: 0),
+        isTrue,
+      );
+    });
+
+    test('图层解坏了：判不可用而不是抛，也不拿半份数据画', () async {
+      await (await TranslatedPageCache.layerFile(
+        label: label,
+        pageIndex: 0,
+      )).create(recursive: true);
+      await (await TranslatedPageCache.layerFile(
+        label: label,
+        pageIndex: 0,
+      )).writeAsString('{"boxes": [ 坏掉的', flush: true);
+      expect(
+        await TranslatedPageCache.overlayDisplayable(label: label, pageIndex: 0),
+        isFalse,
+      );
+    });
   });
 }
