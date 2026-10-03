@@ -35,6 +35,7 @@ import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_layout_snapshot.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
+import 'package:zephyr/workspace/model/workspace_dwell.dart';
 import 'package:zephyr/workspace/widgets/swimlane/swimlane_column.dart';
 import 'package:zephyr/workspace/widgets/swimlane/swimlane_workspace.dart';
 
@@ -370,6 +371,66 @@ void main() {
       LaneId.left,
       reason: '面板泳道吃悬停聚焦，且与 Reader **共用**同一段延时（多一套延时就是第四个要对着表的旋钮）',
     );
+  });
+
+  testWidgetsOn(_pointerPlatform, '停住之后先进入预备态（边框亮），交互随后才交出；一路动则什么都不亮', (
+    tester,
+  ) async {
+    final cubit = await _pumpWorkspace(tester);
+    const settle = WorkspaceDwell.settleMs;
+
+    Future<void> advance(int realMs) async {
+      await tester.runAsync(
+        () => Future<void>.delayed(Duration(milliseconds: realMs)),
+      );
+      // 被测那个 16ms 轮询挂在**测试时钟**上（`Stopwatch` 才是真实时钟），
+      // 所以每段真实等待之后必须推一帧，它才有机会去看到点没有。
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+
+    bool armed() =>
+        tester
+            .widget<SwimlaneColumn>(
+              _laneScope(_leftTitle).first,
+            )
+            .focusArmed;
+
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(gesture.removePointer);
+    await gesture.addPointer(location: const Offset(4, 4));
+    await tester.pump();
+    final spot = tester.getCenter(_probe(LaneId.left));
+    await gesture.moveTo(spot);
+    await tester.pump();
+
+    expect(armed(), isFalse, reason: '刚进去还没静够：不该亮');
+    expect(cubit.state.activeLaneId, isNull, reason: '刚进去绝不激活');
+
+    // 一路动：每 30ms 挪一下，累计时间早就超过 settle —— 但「静够」这件事从没发生。
+    for (int i = 0; i < 5; i++) {
+      await gesture.moveTo(spot + Offset(i * 3.0, 0));
+      await advance(30);
+      expect(armed(), isFalse, reason: '路过（一直在动）不该闪预备态，第 $i 步');
+    }
+    expect(cubit.state.activeLaneId, isNull, reason: '路过也不该激活');
+
+    // 停下来：先静够 settle ⇒ 预备态亮；此时 delay 那一段还没走完，交互还没交出。
+    await advance(settle + 20);
+    expect(armed(), isTrue, reason: '静够 settleMs 就该亮 —— 那 100 多毫秒要「有回应」');
+    expect(
+      cubit.state.activeLaneId,
+      isNull,
+      reason: '预备态**不是**激活：边框亮了不等于交互已经交出去',
+    );
+
+    // 再等满 delay：交互交出来，预备态让位给真正的激活态。
+    await advance(cubit.state.interaction.hoverFocusDelayMs);
+    expect(
+      cubit.state.activeLaneId,
+      LaneId.left,
+      reason: '停住 settle+delay 之后就该真的聚焦',
+    );
+    expect(armed(), isFalse, reason: '已经是激活态了，不该还挂着预备高亮');
   });
 
   testWidgetsOn(_pointerPlatform, '面板那颗关掉只影响面板：Reader 的悬停聚焦照旧', (tester) async {

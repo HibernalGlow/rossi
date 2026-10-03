@@ -99,6 +99,12 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
   /// 是否正按着指针（按下期间抑制揭示与自动恢复）。
   bool _pointerDown = false;
 
+  /// **预备态**高亮落在哪条泳道（驻留已「停住」、最后那段延时还没走完）。
+  ///
+  /// 它只是边框颜色，不改几何、不改记账，也不进 cubit —— 一次 hover 就把整份
+  /// 状态 emit 一遍，等于把「预备」做成「已经换了人」。
+  String? _armedHoverLaneId;
+
   // ── 每次 build 缓存下来的纯计算结果 ────────────────────────────────────
   //
   // 它们是 `LayoutBuilder` 里那几个纯函数的输出（视口宽、几何记账），
@@ -254,6 +260,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
 
     final hoveredLane = _hoverDwell.takeDue(now);
     if (hoveredLane != null) cubit.activateLane(hoveredLane);
+    _syncHoverHighlight(now);
 
     final revealSide = _edgeDwell.takeDue(now);
     if (revealSide != null) {
@@ -278,6 +285,23 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
     }
 
     _stopTickerIfIdle();
+  }
+
+  /// 把「已经停住了」这件事翻译成边框上的预备态。
+  ///
+  /// 指针还在动时 [WorkspaceDwell.isArmed] 恒为假 ⇒ 路过一条泳道**不会闪任何东西**；
+  /// 只有真停下来，才先亮边框、再交出交互。那 150ms 因此是「有回应」而不是「没反应」。
+  void _syncHoverHighlight(int now) {
+    final armed = _hoverDwell.isArmed(now) ? _hoverDwell.pendingId : null;
+    if (armed == _armedHoverLaneId) return;
+    setState(() => _armedHoverLaneId = armed);
+  }
+
+  /// 预备态要**当场**撤掉：轮询定时器一停就没人再算了，留着它就是一道赖在边框上的
+  /// 高亮（指针都走了，那条泳道还像是「正准备被激活」）。
+  void _clearHoverHighlight() {
+    if (_armedHoverLaneId == null) return;
+    setState(() => _armedHoverLaneId = null);
   }
 
   // ── 指针 ───────────────────────────────────────────────────────────────
@@ -323,6 +347,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
   void _handleLaneHoverExit(String laneId) {
     if (_hoveredLaneId == laneId) _hoveredLaneId = null;
     _hoverDwell.leave(laneId);
+    _syncHoverHighlight(_nowMs);
     if (laneId == _revealedLaneId) {
       _maybeScheduleRestore(context.read<WorkspaceCubit>().state);
     }
@@ -331,6 +356,14 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
 
   /// 条带范围内的悬停：判定「指针是否停在视口边缘」。
   void _handleStripHover(PointerHoverEvent event) {
+    // **动了就是还没停**。两个驻留的到期点跟着最后一次运动往后推，路过哪条泳道
+    // 都轮不到触发；「延时」于是只承担「停住之后再看一会儿」这一件事。
+    // 揭示也要走这条：契约那句是「指针**停**在视口左右边缘」，横扫过边缘不该把它呼出来。
+    final now = _nowMs;
+    _hoverDwell.noteMotion(now);
+    _edgeDwell.noteMotion(now);
+    _syncHoverHighlight(now);
+
     final state = context.read<WorkspaceCubit>().state;
     final soloArmed =
         state.layout.soloLaneId == LaneId.reader &&
@@ -390,6 +423,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
     _edgeDwell.cancel();
     _hoverDwell.cancel();
     _hoveredLaneId = null;
+    _clearHoverHighlight();
     _maybeScheduleRestore(context.read<WorkspaceCubit>().state);
     _stopTickerIfIdle();
   }
@@ -422,6 +456,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
     _hoverDwell.cancel();
     _edgeDwell.cancel();
     _restoreDwell.cancel();
+    _clearHoverHighlight();
     _stopTickerIfIdle();
 
     if (laneId == _revealedLaneId) {
@@ -619,6 +654,8 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
       isFullscreen: isFullscreen,
       isActive: isActive,
       isRail: isRail,
+      // 驻留已经「停住」、最后那段延时还在走 —— 先把边框亮起来。
+      focusArmed: _armedHoverLaneId == laneId,
       titleOverride: laneId == LaneId.reader
           ? state.readerTarget?.displayTitle
           : null,

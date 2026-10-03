@@ -259,7 +259,10 @@ class _FocusAndSoloCard extends StatelessWidget {
           title: t.settings.readerHoverFocusDelay,
           subtitle: t.settings.readerHoverFocusEnable,
           value: interaction.hoverFocusDelayMs,
-          min: 200,
+          // 下限跟着口径一起降：这一段现在只是「**停住之后**再看多久」，
+          // 「停住」本身由 `WorkspaceDwell.settleMs` 判（60ms，不暴露成旋钮）。
+          // 原来 200 的下限是给「进入即计时」用的，那时它还得兼任挡住路过。
+          min: 60,
           max: 5000,
           enabled: interaction.hoverFocusEnabled,
           switchValue: interaction.hoverFocusEnabled,

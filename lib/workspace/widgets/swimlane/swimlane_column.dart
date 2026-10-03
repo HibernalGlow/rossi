@@ -46,6 +46,13 @@ class SwimlaneColumn extends StatelessWidget {
   /// 那条判断不能放在这里：栏头自己的按钮在非激活态也要能按。
   final bool isActive;
 
+  /// **预备态**：指针在这条泳道里停住了，交互还没交出来。
+  ///
+  /// 存在的意义是把驻留最后那 100 多毫秒变成「有回应」：先亮边框，随后才换人。
+  /// 它**只改颜色、不改几何**（边框宽度仍按 `isActive` 走）—— 预备态一改宽度，
+  /// 这条泳道的可用宽与 `_fitHeader` 那笔账会跟着抖，看上去就像栏头在呼吸。
+  final bool focusArmed;
+
   final VoidCallback onToggleCollapse;
   final VoidCallback onToggleSolo;
   final VoidCallback? onResetWidth;
@@ -77,6 +84,7 @@ class SwimlaneColumn extends StatelessWidget {
     this.isFullscreen = false,
     this.isRail = false,
     required this.isActive,
+    this.focusArmed = false,
     required this.onToggleCollapse,
     required this.onToggleSolo,
     this.onResetWidth,
@@ -120,8 +128,14 @@ class SwimlaneColumn extends StatelessWidget {
             border: isFullscreen
                 ? null
                 : Border.all(
+                    // 三档：交互已经在这条泳道 > 停住了马上交过来 > 常规。
+                    // 预备那档用**同一个** primary 只压 alpha：换成别的色相会让人以为
+                    // 那是另一种状态（拖拽目标用的就是 primary 实色），而它想说的
+                    // 只是「同一件事，还差一点」。
                     color: isActive
                         ? theme.colorScheme.primary.withValues(alpha: 0.55)
+                        : focusArmed
+                        ? theme.colorScheme.primary.withValues(alpha: 0.22)
                         : theme.colorScheme.outlineVariant.withValues(
                             alpha: 0.35,
                           ),
