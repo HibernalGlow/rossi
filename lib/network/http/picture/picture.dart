@@ -16,7 +16,6 @@ import 'package:zephyr/service/download/download_queue_manager.dart';
 import 'package:zephyr/service/download/models/download_task_json.dart';
 import 'package:zephyr/service/download/download_cancel_signal.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_book_scope.dart';
-import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 
 import 'package:zephyr/src/rust/api/simple.dart';
 import 'package:zephyr/src/rust/decode/decode.dart';
@@ -114,9 +113,12 @@ Future<String> getCachePicture({
 
   if (existingDownload != null) {
     // 超分 + WebP 转换统一封装，内部会判断分辨率并保留原文件名。
-    // 超分失败就交原图 —— 落回网络等于「重下一遍再撞同一个失败」。
+    // **不阻塞显示**：一页超分实测 6–22 s（预取还会同时排十几页），等到它
+    // 完成才交图就是「加载不出来」；超分落定后由 `UpscaledImageCache` 通知换图。
     if (pictureType == PictureType.page && applyRealSr) {
-      await upscaleOrKeepOriginal(existingDownload.path, bookKey: srBookKey);
+      unawaited(
+        upscaleInBackground(existingDownload.path, bookKey: srBookKey),
+      );
     }
     return existingDownload.path;
   }
@@ -124,9 +126,9 @@ Future<String> getCachePicture({
   final existingCache = await assetStore.findCanonicalCache();
   if (existingCache != null) {
     // 这里以前会在超分抛异常时把缓存删掉重下：文件本身是好的，删了只会让这张图
-    // 每一轮都重新下载、再撞同一个超分失败，永远出不来。
+    // 每一轮都重新下载、再撞同一个超分失败，永远出不来。现在超分不在显示路径上等。
     if (pictureType == PictureType.page && applyRealSr) {
-      await upscaleOrKeepOriginal(existingCache.path, bookKey: srBookKey);
+      unawaited(upscaleInBackground(existingCache.path, bookKey: srBookKey));
     }
     return existingCache.path;
   }
@@ -173,17 +175,14 @@ Future<String> getCachePicture({
     );
     // 验证文件已成功保存
     if (await File(newCacheFilePath).exists()) {
-      if (pictureType == PictureType.page && applyRealSr) {
-        await upscaleOrKeepOriginal(newCacheFilePath, bookKey: srBookKey);
-      }
-      unawaited(
-        _syncToDownloadDirectoryIfEnabled(
-          assetStore: assetStore,
-          sourcePath: newCacheFilePath,
-          pictureType: pictureType,
-          from: resolvedFrom,
-          cartoonId: cartoonId,
-        ),
+      _upscaleInBackgroundThenSyncToDownload(
+        sourcePath: newCacheFilePath,
+        bookKey: srBookKey,
+        applyRealSr: pictureType == PictureType.page && applyRealSr,
+        assetStore: assetStore,
+        pictureType: pictureType,
+        from: resolvedFrom,
+        cartoonId: cartoonId,
       );
       return newCacheFilePath;
     } else {
@@ -197,23 +196,54 @@ Future<String> getCachePicture({
   // 验证文件已成功保存
   if (await File(newCacheFilePath).exists() &&
       await File(newCacheFilePath).length() > 0) {
-    // 超分 + WebP 转换统一封装，内部会判断分辨率并保留原文件名
-    if (pictureType == PictureType.page && applyRealSr) {
-      await upscaleOrKeepOriginal(newCacheFilePath, bookKey: srBookKey);
-    }
-    unawaited(
-      _syncToDownloadDirectoryIfEnabled(
-        assetStore: assetStore,
-        sourcePath: newCacheFilePath,
-        pictureType: pictureType,
-        from: resolvedFrom,
-        cartoonId: cartoonId,
-      ),
+    // 超分 + WebP 转换统一封装，内部会判断分辨率并保留原文件名；
+    // 这里也不阻塞显示，超分落定后再同步进下载目录。
+    _upscaleInBackgroundThenSyncToDownload(
+      sourcePath: newCacheFilePath,
+      bookKey: srBookKey,
+      applyRealSr: pictureType == PictureType.page && applyRealSr,
+      assetStore: assetStore,
+      pictureType: pictureType,
+      from: resolvedFrom,
+      cartoonId: cartoonId,
     );
     return newCacheFilePath;
   } else {
     throw Exception('图片保存失败');
   }
+}
+
+/// 显示路径拿到图后的收尾：超分**后台跑**，落定后再同步进下载目录
+/// （`readWhileDownloading` 开着且有下载任务时）。
+///
+/// 顺序是「先超分、后复制」：反过来的话下载目录会永远停在未超分那一版，
+/// 而下载 worker 对已存在的页直接判 `existing`，不会补超分。
+void _upscaleInBackgroundThenSyncToDownload({
+  required String sourcePath,
+  required String? bookKey,
+  required bool applyRealSr,
+  required DownloadAssetStore assetStore,
+  required PictureType pictureType,
+  required String from,
+  required String cartoonId,
+}) {
+  Future<void> syncToDownload() => _syncToDownloadDirectoryIfEnabled(
+    assetStore: assetStore,
+    sourcePath: sourcePath,
+    pictureType: pictureType,
+    from: from,
+    cartoonId: cartoonId,
+  );
+
+  if (!applyRealSr) {
+    unawaited(syncToDownload());
+    return;
+  }
+  unawaited(
+    upscaleInBackground(sourcePath, bookKey: bookKey).whenComplete(
+      syncToDownload,
+    ),
+  );
 }
 
 Future<void> _syncToDownloadDirectoryIfEnabled({
@@ -525,16 +555,16 @@ Future<DownloadPictureResult> downloadPictureResult({
     );
   }
   // 导出等只读场景传 applyRealSr=false，避免改动已落盘文件。
+  // 下载路径可以等超分（后台任务、不占界面），但**超分失败不能判这页失败** ——
+  // 字节已经在盘上，抛出去只会让整章下载记录成失败。
   if (pictureType == PictureType.page && applyRealSr) {
-    await RealSrSuperResolution.upscaleAndConvertToWebp(
-      downloadFilePath,
-      bookKey: srBookKey,
-    );
+    await upscaleOrKeepOriginal(downloadFilePath, bookKey: srBookKey);
   }
   return DownloadPictureResult(
     status: DownloadPictureResultStatus.downloaded,
     path: downloadFilePath,
     location: DownloadAssetLocation.canonicalDownload,
+    byteLength: imageData.length,
   );
 }
 
