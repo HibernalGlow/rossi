@@ -8,6 +8,7 @@ import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_cache.dart';
 import 'package:zephyr/service/ocr/hy_mt2_translator.dart';
+import 'package:zephyr/service/ocr/index_translator.dart';
 import 'package:zephyr/service/ocr/ocr_translate_engine.dart';
 import 'package:zephyr/service/ocr/translated_page_renderer.dart';
 import 'package:zephyr/src/rust/api/ocr.dart';
@@ -40,6 +41,7 @@ class TranslatedPage {
     required this.hasText,
     required this.blockCount,
     required this.truncatedCount,
+    required this.label,
     this.stageEps,
     this.elapsed = Duration.zero,
     this.degraded = false,
@@ -65,6 +67,14 @@ class TranslatedPage {
   /// 冒烟页与以后的状态条都要显示它 —— 一页十几秒这件事得让用户看得见，
   /// 不然只会以为点了没反应。
   final Duration elapsed;
+
+  /// 这批产物落在缓存里的那个指纹档名（目录名）。
+  ///
+  /// 为什么要把它交出去：叠层要按**同一档**去问图层 JSON 与擦字底图
+  /// （`TranslatedPageCache.layerFile` / `baseFile`），而指纹是配置的函数。
+  /// 让显示侧再算一遍就是第二个真源 —— 切了引擎或改了术语表时两边算出的档名不一致，
+  /// 画面会退回原图，而且没人报错。
+  final String label;
 
   /// 分析那一跳三段各自**实际生效**的 EP（Rust 侧 resolve 之后的值，**不是**设置里的请求值）。
   ///
@@ -123,6 +133,11 @@ class TranslatedPageBuilder {
       texts: texts,
       config: config,
     ),
+    // 也是一句一次，但走的是它自己那句官方提示，并且**不挂术语表**（实测会被串味带崩）。
+    OcrTranslateEngine.indexLocal => IndexTranslator.instance.translateBlocks(
+      texts: texts,
+      config: config,
+    ),
     OcrTranslateEngine.endpoint => OcrTranslator.instance.translateBlocks(
       texts: texts,
       config: config,
@@ -136,6 +151,7 @@ class TranslatedPageBuilder {
     void Function(TranslatedPageStage stage)? onStage,
     bool Function()? shouldCancel,
     bool force = false,
+    bool retainErasedBase = false,
   }) async {
     final clock = Stopwatch()..start();
     final page = OcrLog.page(pageIndex);
@@ -168,6 +184,7 @@ class TranslatedPageBuilder {
         hasText: true,
         blockCount: 0,
         truncatedCount: 0,
+        label: a.label,
         elapsed: clock.elapsed,
       );
     }
@@ -209,6 +226,8 @@ class TranslatedPageBuilder {
           hasText: false,
           blockCount: 0,
           truncatedCount: 0,
+          // 没识别到文字 → 什么都没写进缓存，档名只是「本该在哪一档」。
+          label: attempts.first.label,
           stageEps: result.stageEps,
           elapsed: clock.elapsed,
         );
@@ -298,6 +317,7 @@ class TranslatedPageBuilder {
       hasText: true,
       blockCount: blocks,
       truncatedCount: truncated,
+      label: used.label,
       stageEps: stageEps,
       elapsed: clock.elapsed,
       degraded: degraded,

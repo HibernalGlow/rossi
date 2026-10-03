@@ -32,6 +32,7 @@ class OcrSettings {
   static const _keyGlossary = 'ocr_glossary';
   static const _keyEp = 'ocr_ep';
   static const _keyEngine = 'ocr_translate_engine';
+  static const _keyAutoTranslatePage = 'ocr_auto_translate_page';
 
   static const defaultTargetLanguage = 'zh-Hans';
 
@@ -44,6 +45,13 @@ class OcrSettings {
     (
       OcrTranslateEngine.hyMt2Local,
       '混元 Hy-MT2（本机 llama-server；一条一次，术语表走原生 Terminology）',
+    ),
+    // 标签里要写明「术语表不接」：这一档是有术语接口的，但实测挂上会把本来翻对的
+    // 专名串味带崩（判据与数字见 `OcrTranslateEngine.glossaryApplies`）。
+    // 不写出来，那颗选择器就是在撒谎 —— 用户填了术语表会以为它生效了。
+    (
+      OcrTranslateEngine.indexLocal,
+      'Index-Translate（本机 llama-server；一条一次，术语表实测负收益故不接）',
     ),
     (OcrTranslateEngine.appleOnDevice, 'Apple 系统翻译（端侧离线、免费；不支持术语表）'),
   ];
@@ -147,6 +155,28 @@ class OcrSettings {
   static Future<void> saveEp(String ep) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyEp, ep);
+    _changes.notify();
+  }
+
+  /// 翻到新的一页就自动出译文页。**默认关**。
+  ///
+  /// 为什么不做成默认开：一张成品页要十几秒（检测 + 识别 + 擦字 + 一次翻译请求 +
+  /// 排版），开着等于把「往后每一页都得等」变成默认状态 —— 而按页手动那颗芯片
+  /// 存在的理由正是要避开它。这一档是给愿意等的人的连续阅读模式。
+  ///
+  /// 为什么和端点/EP 存同一处：它改的是「翻译这条链怎么跑」，跟着
+  /// [OcrTranslationConfig] 那份走才对得上；塞进 `GlobalSettingState` 会让它
+  /// 跟着主题一起同步过去，而移动端根本没有这条链（ADR-0018 §决定 6）。
+  static const defaultAutoTranslatePage = false;
+
+  static Future<bool> loadAutoTranslatePage() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyAutoTranslatePage) ?? defaultAutoTranslatePage;
+  }
+
+  static Future<void> saveAutoTranslatePage(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyAutoTranslatePage, value);
     _changes.notify();
   }
 }
