@@ -236,6 +236,19 @@ Breeze 是 RealSR / waifu2x），跨平台画质必然不一致，不做画质�
   留待本阶段输入绑定运行时（ADR-0009）补齐后接入。
   `enableBoundaryToast`（边界翻页）已接入（c41995ff）：判据是「loaded 范围到尽头且没有下一话可续」，
   横翻越界与键位/上下翻页两条入口各自在 `row_mode` 与 `ReaderActionController` 上挂。
+- 阅读设置搬进「控制面板」→ **已完成（2026-10-03）**：超分 / 翻译 / 画面调节三节从「阅读设置」面板
+  抽成公开 section（`lib/page/comic_read/widgets/settings/sections/`），面板与工作台卡片渲染
+  **同一份** widget。存储本来就不在面板里：超分与翻译是 `RealSrSettings` / `OcrSettings`
+  （SharedPreferences + 各自的 `ChangeNotifier`），画面调节是 app 级 `GlobalSettingCubit`
+  —— 所以两边**零同步代码**，拨哪边另一边当场跟着变。
+  完整设置（端点 / API Key / 术语表 / 权重、NCNN 模型下载与导入）走 `OcrSettingsBody` 与
+  `RealSrModelManagementSection`：设置页退成壳，卡片就地展开同一份正文（卡片弹不掉路由，
+  给它一条「去设置页」等于没有出口）。
+  「没开书」时「本书超分」那颗**灰显 + 一行说明**，不是消失；顺带修掉
+  `activeLocalBook ?? keyFor(…)` 在「本地书上再 push 一本在线书」时把覆盖写到上一本书上的串书 bug
+  （判据改为只信 `ReaderSessionCoordinator`）。平台判不动的卡（翻译在 Android / iOS）
+  留壳 + 「仅桌面」tag + 不吃点击，不整张从图标轨消失。
+  判据：`test/workspace/control_panel_settings_cards_test.dart`。
 - 输入设备适配 → **已提前到 v0.1**，见 ADR-0009 与判据 E（v0.1 只做键盘 / 鼠标 / 滚轮 / 触屏 / 区域；
   手柄 / 轨迹手势 / 轮盘留 schema 占位，运行时推迟到本阶段）
 
