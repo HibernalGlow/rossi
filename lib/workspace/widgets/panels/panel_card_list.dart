@@ -50,6 +50,8 @@ class PanelCardList extends StatelessWidget {
         count: 1,
         onHide: card.canHide ? () => onHideCard(card.id) : null,
         standalone: true,
+        supported: card.supportedHere?.call() ?? true,
+        unsupportedHint: card.unsupportedHint,
       );
       return KeyedSubtree(
         key: ValueKey<String>('card:$panelId:${card.id}'),
@@ -73,6 +75,8 @@ class PanelCardList extends StatelessWidget {
               ? () => onMoveCard(card.id, 1)
               : null,
           onHide: card.canHide ? () => onHideCard(card.id) : null,
+          supported: card.supportedHere?.call() ?? true,
+          unsupportedHint: card.unsupportedHint,
         );
         return KeyedSubtree(
           key: ValueKey<String>('card:$panelId:${card.id}'),

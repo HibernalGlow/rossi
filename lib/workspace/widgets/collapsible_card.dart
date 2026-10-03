@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/theme_shape.dart';
+import 'package:zephyr/workspace/widgets/library_view/shelf_menu_button.dart';
 
 /// M3 的动效缓动档。这个版本的 `material_ui` / Flutter 都没有导出
 /// `MaterialCurves`（`Curves` 上也没有 `emphasized*` / `standard*`），
@@ -32,6 +33,13 @@ class CollapsibleCard extends StatelessWidget {
   /// 把这张卡从当前面板收起来（可从面板标题行的「已收起」入口恢复）。
   final VoidCallback? onHide;
 
+  /// 非 null = 这张卡在**当前这台机器上用不了**：内容整体灰掉、不吃点击，
+  /// 标题行挂一颗说明 tag（例如「仅桌面」）。
+  ///
+  /// 为什么不是干脆不画：面板会把「一张卡都没有」的整个页签藏掉，
+  /// 于是「这个功能不存在」和「这台机器暂时做不到」在界面上长得一模一样。
+  final String? disabledHint;
+
   const CollapsibleCard({
     super.key,
     required this.cardId,
@@ -46,6 +54,7 @@ class CollapsibleCard extends StatelessWidget {
     this.onMoveUp,
     this.onMoveDown,
     this.onHide,
+    this.disabledHint,
   });
 
   @override
@@ -97,6 +106,10 @@ class CollapsibleCard extends StatelessWidget {
                       trailing!,
                       const SizedBox(width: 8),
                     ],
+                    if (disabledHint case final hint?) ...[
+                      _DisabledTag(text: hint),
+                      const SizedBox(width: 6),
+                    ],
                     if (onMoveUp != null ||
                         onMoveDown != null ||
                         onHide != null)
@@ -122,7 +135,7 @@ class CollapsibleCard extends StatelessWidget {
               secondChild: Padding(
                 padding:
                     contentPadding ?? const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                child: child,
+                child: applyCardGate(child, disabledHint: disabledHint),
               ),
               crossFadeState: isExpanded
                   ? CrossFadeState.showSecond
@@ -143,89 +156,82 @@ class CollapsibleCard extends StatelessWidget {
   ///
   /// 放在卡片的**标题栏里**而不是卡内：这几个动作改的是「卡片在面板里的位置」，
   /// 与卡片内容无关；收进一个菜单也让标题栏在窄泳道里不至于被按钮挤爆。
+  ///
+  /// 走 [ShelfMenuButton] 而不是 `PopupMenuButton`：后者在这个 `material_ui`
+  /// 里仍按 M2 的 `PopupMenuTheme` 画菜单面，拿不到 MD3 的 `surfaceContainer` +
+  /// 4dp 圆角。触发键也并入本区图标钮的 40/20 口径，于是标题栏里不会再同时
+  /// 出现 32 与 40 两种高度。
   Widget _buildTrackMenu(BuildContext context) {
-    final theme = Theme.of(context);
-    return PopupMenuButton<String>(
+    return ShelfMenuButton(
       tooltip: '卡片位置',
-      onSelected: (value) {
-        switch (value) {
-          case 'up':
-            onMoveUp?.call();
-          case 'down':
-            onMoveDown?.call();
-          case 'hide':
-            onHide?.call();
-        }
-      },
-      itemBuilder: (context) => [
-        PopupMenuItem<String>(
-          value: 'up',
-          enabled: onMoveUp != null,
-          child: const _TrackMenuItem(
-            icon: Icons.arrow_upward_rounded,
-            label: '上移',
-          ),
+      icon: Icons.more_vert_rounded,
+      menuChildren: [
+        ShelfMenuItem(
+          label: '上移',
+          icon: Icons.arrow_upward_rounded,
+          // `onPressed: null` 就是 MD3 的禁用态：项永远在场，只是点不动。
+          onPressed: onMoveUp,
         ),
-        PopupMenuItem<String>(
-          value: 'down',
-          enabled: onMoveDown != null,
-          child: const _TrackMenuItem(
-            icon: Icons.arrow_downward_rounded,
-            label: '下移',
-          ),
+        ShelfMenuItem(
+          label: '下移',
+          icon: Icons.arrow_downward_rounded,
+          onPressed: onMoveDown,
         ),
         if (onHide != null) ...[
-          const PopupMenuDivider(),
-          PopupMenuItem<String>(
-            value: 'hide',
-            child: _TrackMenuItem(
-              icon: Icons.visibility_off_rounded,
-              label: '从该面板收起',
-              color: theme.colorScheme.error,
-            ),
+          const ShelfMenuDivider(),
+          ShelfMenuItem(
+            label: '从该面板收起',
+            icon: Icons.visibility_off_rounded,
+            onPressed: onHide,
+            destructive: true,
           ),
         ],
       ],
-      // 走 PopupMenuButton 的 IconButton 形态：自带 32px 命中区与墨水反馈，
-      // 而不是一个裸 Icon 贴在标题栏里（自定义 child 会丢掉这些）。
-      icon: const Icon(Icons.more_vert_rounded),
-      iconSize: 18,
-      padding: EdgeInsets.zero,
-      style: IconButton.styleFrom(
-        foregroundColor: theme.colorScheme.onSurfaceVariant,
-        // 不关掉 padded 命中区的话这颗钮会顶到 48 高，把整条标题栏撑成 68；
-        // 密集面板里的图标钮按桌面档收在 32。
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        minimumSize: const Size(32, 32),
+    );
+  }
+}
+
+/// 标题行上那颗「这台机器做不到」的小标签。
+class _DisabledTag extends StatelessWidget {
+  final String text;
+
+  const _DisabledTag({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 10,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }
 }
 
-class _TrackMenuItem extends StatelessWidget {
-  const _TrackMenuItem({required this.icon, required this.label, this.color});
-
-  final IconData icon;
-  final String label;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 18,
-          color: color ?? theme.colorScheme.onSurfaceVariant,
-        ),
-        const SizedBox(width: 10),
-        Text(
-          label,
-          // MD3 菜单项正文是 labelLarge（14），不是压小的 12。
-          style: theme.textTheme.labelLarge?.copyWith(color: color),
-        ),
-      ],
-    );
-  }
+/// 平台判不动这张卡时，把内容**灰掉且不吃点击**，但照样画出来。
+///
+/// 单独抽出来是因为它有两个落点：折叠外壳的内容区，以及独占面板
+/// （`WorkspaceCardChrome.standalone` —— 那条路上根本没有 [CollapsibleCard]）。
+/// 只在壳里做的话，卡片一旦独占整个面板，灰显就静默失效了。
+///
+/// 灰掉但留着：看得见「有这颗开关、这台机器暂时拨不动」，
+/// 比整张卡凭空消失少一次「那功能去哪了」。
+Widget applyCardGate(Widget child, {String? disabledHint}) {
+  if (disabledHint == null) return child;
+  return Opacity(
+    opacity: 0.55,
+    child: IgnorePointer(ignoring: true, child: child),
+  );
 }
