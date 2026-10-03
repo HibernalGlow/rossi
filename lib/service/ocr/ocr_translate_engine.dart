@@ -90,8 +90,8 @@ class AppleTranslateBackend {
   /// 两边签名不一致就会逼出一堆 `if` 散在链路里。
   ///
   /// 关键差别在这里收口：这条路上任何失败（没装语言包、桥没编进来、条数不符）
-  /// 一律转成 [OcrTranslationException] —— 编排层只认这一种异常来决定「降级成原文回填」，
-  /// 漏出去就是一个红屏而不是「这页没翻成」。
+  /// 一律转成 [OcrTranslationException] —— 编排层只认这一种异常来决定「问下一档还是
+  /// 整页失败」，漏出去就是一个红屏而不是「这页没翻成」。
   static Future<List<String>> translateBlocks({
     required List<String> texts,
     required OcrTranslationConfig config,

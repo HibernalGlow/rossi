@@ -58,7 +58,6 @@ class ReaderTranslatedPageChip extends StatelessWidget {
           phaseIndex: controller.index,
           index: index,
           owned: controller.isOwned(index),
-          degraded: controller.isDegraded(index),
           bypassed: presenter.isOriginalPreview,
         );
         return _build(context, controller, source, presenter, index, state);
@@ -85,11 +84,6 @@ class ReaderTranslatedPageChip extends StatelessWidget {
         scheme.secondaryContainer,
         scheme.onSecondaryContainer,
       ),
-      // 降级产物看着像成功，所以给它一个**不同**的颜色而不是复用 showing 的强调色。
-      TranslatedPageChipState.showingOriginal => (
-        scheme.tertiaryContainer,
-        scheme.onTertiaryContainer,
-      ),
       // 被原图对比挡住：既不能用失败色（没失败），也不能用 showing 的强调色
       // （画面上此刻就是原图）。给它中性色 + 一个「看不见」的图标。
       TranslatedPageChipState.blockedByOriginalPreview => (
@@ -104,7 +98,6 @@ class ReaderTranslatedPageChip extends StatelessWidget {
       message: switch (state) {
         TranslatedPageChipState.failed => controller.lastError,
         TranslatedPageChipState.showing => t.ocr.chipOn,
-        TranslatedPageChipState.showingOriginal => t.ocr.degradedHint,
         TranslatedPageChipState.building => t.ocr.building,
         // 这一态的短语是中文原文：`ocr` 那段 i18n 里还没有对应键，而同一条链路上
         // 其余诊断文案（[TranslatedPageController.lastError]、超分的状态表）
@@ -164,8 +157,6 @@ class ReaderTranslatedPageChip extends StatelessWidget {
                     TranslatedPageChipState.building => t.ocr.building,
                     TranslatedPageChipState.failed => t.ocr.failedShort,
                     TranslatedPageChipState.showing => t.ocr.chipOn,
-                    TranslatedPageChipState.showingOriginal =>
-                      t.ocr.chipDegraded,
                     TranslatedPageChipState.blockedByOriginalPreview =>
                       '原图对比中',
                     TranslatedPageChipState.off => t.ocr.chipOff,

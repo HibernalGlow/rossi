@@ -187,12 +187,12 @@ class _MissingProductBuilder extends TranslatedPageBuilder {
   );
 }
 
-/// 假装这次构建是**降级产物**（擦字与回填都做了，但一个译文都没有）。
-class _DegradedBuilder extends TranslatedPageBuilder {
-  _DegradedBuilder(this.path, this.bytes);
+/// 假装这次构建在**翻译那一跳**上失败（真机上的成因：语言包没装 / 端点没起 / 漏译）。
+/// 这一档现在没有「降级产物」兜着了 —— 失败就是失败，界面得如实说。
+class _ThrowingBuilder extends TranslatedPageBuilder {
+  _ThrowingBuilder(this.message);
 
-  final String path;
-  final Uint8List bytes;
+  final String message;
 
   @override
   Future<TranslatedPage> build({
@@ -203,16 +203,7 @@ class _DegradedBuilder extends TranslatedPageBuilder {
     bool Function()? shouldCancel,
     bool force = false,
   }) async {
-    // 注入前控制器会确认文件真的在，所以这里得给它一个真文件。
-    await File(path).writeAsBytes(bytes, flush: true);
-    return TranslatedPage(
-      path: path,
-      fromCache: false,
-      hasText: true,
-      blockCount: 1,
-      truncatedCount: 0,
-      degraded: true,
-    );
+    throw OcrTranslationException(message);
   }
 }
 
@@ -624,25 +615,24 @@ void main() {
     expect(presenter.translationOwnedPages, isEmpty);
   });
 
-  test('降级产物：页归译文管，但记成「原文回填」，关掉后两笔账都清', () async {
-    // 端点挂了的时候，页面看着像处理完了 —— 擦字做了、字也画上去了，只是没有一个字是译文。
-    // 界面必须能区分这两件事。
+  test('翻译那一跳失败：整页按失败处理，不占增强图轨、不谎报译文页', () async {
+    // 这一档以前会端出一张「擦掉日文又画回日文」的降级页 —— 页面看着像处理完了，
+    // 只是没有一个字是译文。现在没有那条路了：失败必须显形，而且**不登记归属**，
+    // 否则超分会一直给一张根本没上屏的译文页让路。
     await seedReady();
     final presenter = _FakePresenter(confirmed: true);
     final c = TranslatedPageController(
-      builder: _DegradedBuilder('${root.path}/degraded_p3.png', page),
+      builder: _ThrowingBuilder('系统翻译的语言包还没装（ja→zh-Hans：supported）'),
     );
 
     expect(
       await c.toggle(source: _FakeSource(page), presenter: presenter, index: 3),
-      isTrue,
+      isFalse,
     );
-    expect(c.isOwned(3), isTrue);
-    expect(c.isDegraded(3), isTrue);
-
-    await c.toggle(source: _FakeSource(page), presenter: presenter, index: 3);
-    expect(c.isDegraded(3), isFalse);
-    expect(c.isOwned(3), isFalse);
+    expect(c.phase, TranslatedPagePhase.failed);
+    expect(c.lastError, contains('语言包还没装'));
+    expect(presenter.injected, isEmpty);
+    expect(presenter.translationOwnedPages, isEmpty);
   });
 
   test('换书 reset：清掉归属，否则新书那几页会被旧译文占着', () async {

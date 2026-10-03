@@ -196,11 +196,13 @@ void main() {
       reason: '译文没画上去',
     );
 
-    // 缓存目录里只该有成品与清单：擦字中间产物漏进来，用户就分不清哪张是成品页。
+    // 缓存目录里只该有：成品 PNG、它的图层 JSON、清单。
+    // 擦字中间产物漏进来，用户就分不清哪张是成品页；JSON 是**故意同目录同名**的 ——
+    // 换超分档 / 换显示模式要靠它重新合成，分目录就会让「PNG 新、JSON 旧」这种错配发生。
     final dir = file.parent;
     expect(
       (await dir.list().map((e) => e.uri.pathSegments.last).toList())..sort(),
-      ['manifest.json', 'p0.png'],
+      ['manifest.json', 'p0.json', 'p0.png'],
     );
     final manifest = await File('${dir.path}/manifest.json').readAsString();
     expect(manifest, contains('zh-Hans'));

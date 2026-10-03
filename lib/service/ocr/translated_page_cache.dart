@@ -43,12 +43,11 @@ class TranslatedPageCache {
   /// 排版参数版本：改字号策略 / 边距 / 换行规则就 +1，让旧产物失效。
   static const layoutVersion = 1;
 
-  /// 降级档（擦字 + 原文回填）产物的目录名，与缓存目录同级但**不参与指纹查表**。
-  ///
-  /// 之所以不落在系统临时目录：macOS 的 dirhelper 每天 03:35 会扫 `tmp/`，
-  /// 一张**正在显示**的降级页会凭空消失 —— 呈现器按归属表里那个路径重注入时
-  /// 拿到的是死路径（本仓在模型落盘上已经吃过同型的亏，见「每次启动重下」）。
-  static const degradedDirName = 'manga_translated_degraded';
+  /// 老版本「降级档（擦字 + 原文回填）」的目录名。这条档已经没了 —— 翻译那一跳失败时
+  /// 整页按失败处理、画面留原图 —— 但**用户盘上那张还在**，所以计数得继续避开它：
+  /// 把没翻译的页报成「已生成 N 张」正是这个缓存最不该撒的谎。
+  /// `clearAll` 删的是整个根目录，那些孤儿文件自然跟着走。
+  static const _legacyDegradedDirName = 'manga_translated_degraded';
 
   /// 字体版本：换字体或换字重都要改（与 `pubspec.yaml` 里的 family 对应）。
   static const fontVersion = 'wenkai-lite-1.522';
@@ -109,6 +108,16 @@ class TranslatedPageCache {
     required int pageIndex,
   }) async => File(p.join((await directory(label)).path, 'p$pageIndex.png'));
 
+  /// 某页的**图层**文件（ADR-0018 §决定 4 解冻出来的那份可重复合成描述）。
+  ///
+  /// 与成品页同目录、同页号、同一个指纹档，只换扩展名：这两份东西**必须是同一批
+  /// 配置的产物**，分目录就会让「PNG 是新档、JSON 是旧档」这种错配有可能发生。
+  /// 叠层模式按它重新合成，于是换超分档 / 改译文 / 换显示模式都不必重跑 OCR。
+  static Future<File> layerFile({
+    required String label,
+    required int pageIndex,
+  }) async => File(p.join((await directory(label)).path, 'p$pageIndex.json'));
+
   /// 这张成品页**能不能用**。
   ///
   /// 不是 `exists()`：ADR-0018 §决定 3 要求「产物缺失或损坏时静默回落到原图」，
@@ -167,21 +176,6 @@ class TranslatedPageCache {
     }
   }
 
-  /// 降级产物（擦字 + 原文回填）：同一套原子写，但**目录与指纹缓存分开**，
-  /// 所以端点恢复之后下一次一定重跑，不会命中这张没翻译的。
-  static Future<File> writeDegraded({
-    required int pageIndex,
-    required Uint8List pngBytes,
-  }) async {
-    final dir = Directory(
-      p.join((await OcrService.outputRoot()).path, degradedDirName),
-    );
-    await dir.create(recursive: true);
-    final target = File(p.join(dir.path, 'p$pageIndex.png'));
-    await _writeAtomically(target, pngBytes);
-    return target;
-  }
-
   static Future<void> _writeAtomically(File target, Uint8List bytes) async {
     final tmp = File('${target.path}.tmp_$pid');
     await tmp.writeAsBytes(bytes, flush: true);
@@ -192,13 +186,12 @@ class TranslatedPageCache {
   static Future<int> pageCount() async {
     final root = await OcrService.outputRoot();
     if (!await root.exists()) return 0;
-    final degradedDir = p.join(root.path, degradedDirName);
+    final legacyDir = p.join(root.path, _legacyDegradedDirName);
     var count = 0;
     await for (final e in root.list(recursive: true, followLinks: false)) {
-      // 降级那一份是「这次能看、下次重做」的临时体，算进「已生成」就是把没翻译的
-      // 那张也报成产物。
+      // 老版本降级档留下的那张没翻译，报进「已生成」就是谎报产物。
       if (e is! File || !e.path.endsWith('.png')) continue;
-      if (p.isWithin(degradedDir, e.path)) continue;
+      if (p.isWithin(legacyDir, e.path)) continue;
       count++;
     }
     return count;

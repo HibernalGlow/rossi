@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/services.dart' show FontLoader, rootBundle;
 
+import 'package:zephyr/service/ocr/translated_page_layer.dart';
 import 'package:zephyr/src/rust/api/ocr.dart';
 
 /// 一框的排法。
@@ -94,10 +95,9 @@ class TranslatedPageRenderer {
     for (var i = 0; i < blocks.length; i++) {
       final text = translations[i].trim();
       if (text.isEmpty) continue;
-      final rect = _aabb(blocks[i]);
-      _paintFitted(
+      _paintText(
         canvas,
-        rect,
+        _aabb(blocks[i]),
         text,
         padding: padding,
         minFontSize: minFontSize,
@@ -116,8 +116,51 @@ class TranslatedPageRenderer {
     }
   }
 
-  static ui.Rect _aabb(OcrBlock block) {
-    final q = block.quad;
+  /// 按**图层描述**画一页译文 —— 叠层模式与烘焙模式共用的那一个绘制入口。
+  ///
+  /// `canvas.scale` 而不是「把每个常数都乘一遍 scale」：字号候选、`padding`、
+  /// 竖排的列宽比例全是相对字号的量，缩放画布把它们一起缩放了，同时保持
+  /// **断行结果与 1× 完全一致**（框与字号同倍放大，装得下的字自然一样）。
+  /// 所以这里不需要给 [plan] 开一条带倍率的分支，也就不会出现
+  /// 「烘焙那套字号策略与叠层那套各自演化」这种正被 ADR §决定 3 防着的东西。
+  static void paintLayer(
+    ui.Canvas canvas,
+    TranslatedPageLayer layer, {
+    double scale = 1,
+    double padding = 3,
+    double minFontSize = defaultMinFontSize,
+  }) {
+    canvas.save();
+    canvas.scale(scale);
+    for (final box in layer.boxes) {
+      final text = box.text.trim();
+      if (text.isEmpty) continue;
+      final fill = box.fill;
+      if (fill != null) {
+        // 「不擦字，按气泡轮廓填色」那一档：填色在前、画字在后。
+        final path = ui.Path()
+          ..addRect(_quadRect(box.quad));
+        canvas.drawPath(path, ui.Paint()..color = fill);
+      }
+      _paintText(canvas, _quadRect(box.quad), text, padding: padding, minFontSize: minFontSize);
+    }
+    canvas.restore();
+  }
+
+  /// 烘焙入口与叠层入口共用的那一圈「一框一画」。
+  ///
+  /// 抽出来是为了**只有一条码路决定「译文怎么放进框里」**：两边各写一遍的话，
+  /// 将来改字号候选或竖排列读序只会改到其中一条，而那正是最难发现的分叉
+  /// —— 两张图都「看着有字」，只有像素不一样。
+  static void _paintText(
+    ui.Canvas canvas,
+    ui.Rect rect,
+    String text, {
+    required double padding,
+    required double minFontSize,
+  }) => _paintFitted(canvas, rect, text, padding: padding, minFontSize: minFontSize);
+
+  static ui.Rect _quadRect(List<double> q) {
     if (q.length != 8) {
       throw ArgumentError('四角点必须是 8 个数，实际 ${q.length}');
     }
@@ -130,6 +173,8 @@ class TranslatedPageRenderer {
       ys.reduce((a, b) => a > b ? a : b),
     );
   }
+
+  static ui.Rect _aabb(OcrBlock block) => _quadRect(block.quad);
 
   /// 框的长短边之比超过这个值就改走竖排（多列、从右往左）。
   ///

@@ -16,14 +16,12 @@ void main() {
     required int phaseIndex,
     int index = 4,
     bool owned = false,
-    bool degraded = false,
     bool bypassed = false,
   }) => translatedPageChipState(
     phase: phase,
     phaseIndex: phaseIndex,
     index: index,
     owned: owned,
-    degraded: degraded,
     bypassed: bypassed,
   );
 
@@ -49,17 +47,6 @@ void main() {
         reason: '$phase 时旁路都必须改口',
       );
     }
-    // 降级产物被旁路挡住时也说「被挡住」：此刻用户看到的既不是译文也不是回填，是原图。
-    expect(
-      state(
-        phase: TranslatedPagePhase.showing,
-        phaseIndex: 4,
-        owned: true,
-        degraded: true,
-        bypassed: true,
-      ),
-      TranslatedPageChipState.blockedByOriginalPreview,
-    );
   });
 
   test('旁路开着但这一页没注入过：不许冒「被挡住」', () {

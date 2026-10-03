@@ -4,7 +4,7 @@
 /// 为什么要它：ADR-0018 §决定 7 不内置 NMT，验收清单里第 1、4、5、10、11b、12 条
 /// 全都要一个「能应答的端点」。手边没有 key、也没有拉几十 GB 模型时，这几条就成了
 /// 「实现完了但没人能验」。这个端点把**通路**那一半接过来：编号协议、条数、顺序、
-/// 术语表是否随请求走、Authorization 有没有带上、降级档能不能触发 ——
+/// 术语表是否随请求走、Authorization 有没有带上、失败那一跳能不能触发 ——
 /// **译文质量它判不了**，那一条仍然必须换成真端点。
 ///
 /// 跑法（另开一个终端）。**用 `dart <文件>` 而不是 `dart run`**：后者在这个包里会先跑
@@ -14,8 +14,8 @@
 /// ```bash
 /// dart script/ocr_stub_endpoint.dart                  # 监听 127.0.0.1:8787
 /// dart script/ocr_stub_endpoint.dart --shape=ollama    # 按 Ollama 原生结构回
-/// dart script/ocr_stub_endpoint.dart --drop-one         # 故意少回一条 → 降级档
-/// dart script/ocr_stub_endpoint.dart --fail             # 直接 500 → 降级档（另一种成因）
+/// dart script/ocr_stub_endpoint.dart --drop-one         # 故意少回一条 → 整页失败（或回落）
+/// dart script/ocr_stub_endpoint.dart --fail             # 直接 500 → 同上，另一种成因
 /// dart script/ocr_stub_endpoint.dart --port=0 --delay-ms=8000  # 随机端口 + 慢应答
 /// ```
 ///

@@ -14,11 +14,11 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:zephyr/service/ocr/ocr_log.dart';
 import 'package:zephyr/service/ocr/ocr_service.dart';
+import 'package:zephyr/service/ocr/ocr_translate_engine.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_builder.dart';
 import 'package:zephyr/service/ocr/translated_page_cache.dart';
@@ -220,12 +220,11 @@ void main() {
     );
   });
 
-  test('端点回少了条数：降级成原文回填，且不进指纹缓存', () async {
+  test('翻译那一跳失败：整页失败，不产出「擦字又画回原文」那种假成品', () async {
     if (!nativeReady) {
       markTestSkipped('原生库加载不了：$nativeError');
       return;
     }
-    // 桩按请求里的编号条数回复，这里只给一块 → 条数对不上，应当整页抛。
     final cfg2 = OcrTranslationConfig(
       baseUrl: 'http://127.0.0.1:${server.port}/v1',
       model: 'stub',
@@ -252,43 +251,103 @@ void main() {
       },
       translate: (texts, cfg) async => const ['只有一条'],
     );
-    final out = await page.build(
-      imagePath: 'unused.jpg',
-      pageIndex: 0,
-      config: cfg2,
+
+    // 端点档本身就是所选那一档，没有第二档可问 → 必须抛，而不是端出一张没翻译的页。
+    await expectLater(
+      page.build(imagePath: 'unused.jpg', pageIndex: 0, config: cfg2),
+      throwsA(isA<OcrTranslationException>()),
     );
-    // ADR-0018 §决定 7 的降级档：端点不可用 / 模型漏译时出「擦字 + 原文回填」，
-    // 而不是整页失败。
-    expect(out.degraded, isTrue);
-    expect(out.hasText, isTrue);
+
+    // 抛了就不许留下任何产物：那张「降级页」曾经会进持久目录，
+    // 芯片一句「原文回填」滑过去，用户读到的是被擦过又重新画上日文的页。
+    // （失败的那一页连目录都不该建起来，所以这里要先问在不在。）
+    final root = await OcrService.outputRoot();
+    final leftovers = await root.exists()
+        ? await root
+              .list(recursive: true, followLinks: false)
+              .where((e) => e is File && e.path.endsWith('.png'))
+              .toList()
+        : const <FileSystemEntity>[];
+    expect(
+      leftovers,
+      isEmpty,
+      reason: '失败的一页在 ${root.path} 里留下了产物：$leftovers',
+    );
     expect(
       OcrLog.log.entries.value.join('\n'),
-      contains('走降级档（擦字 + 原文回填）'),
-      reason: '降级必须在日志里留痕：界面上那句「原文回填」几秒就被下一次点击顶掉了',
+      contains('按失败处理'),
+      reason: '失败原因必须留痕：界面上那句提示几秒就被下一次点击顶掉了',
     );
-    expect(await File(out.path).exists(), isTrue, reason: '降级页也得能显示出来');
-    // 落点必须是**持久目录**：呈现器会按归属表里这个路径在翻回来时重注入，
-    // 放系统临时目录的话 dirhelper 每天 03:35 扫一次，正在显示的这张会静默变回原图。
-    final root = await OcrService.outputRoot();
-    expect(
-      p.isWithin(root.path, out.path),
-      isTrue,
-      reason: '降级产物落在 ${root.path} 之外，设置页的「清空成品页」就管不到它',
+  });
+
+  test('端侧档挂了且端点已配：回落端点，产物记在**端点档**的指纹下', () async {
+    if (!nativeReady) {
+      markTestSkipped('原生库加载不了：$nativeError');
+      return;
+    }
+    const sourceA = 'トカゲじゃ';
+    // 回落档是从 prefs 的原样快照里读的，所以这里要把端点字段**存进去**，
+    // 而不是只改传进来的 config —— 只改 config 等于测了一条生产走不到的路。
+    SharedPreferences.setMockInitialValues({
+      'ocr_base_url': 'http://127.0.0.1:${server.port}/v1',
+      'ocr_model': 'stub',
+    });
+    final appleConfig = OcrTranslationConfig(
+      baseUrl: '',
+      model: '',
+      engine: OcrTranslateEngine.appleOnDevice,
+    );
+    final asked = <OcrTranslateEngine>[];
+    final page = TranslatedPageBuilder(
+      analyze: (imagePath, erasedPath, ep) async {
+        await File(
+          erasedPath,
+        ).writeAsBytes(await _whitePng(_pageW, _pageH), flush: true);
+        return OcrPageResult(
+          blocks: [_block(_boxA, sourceA)],
+          pageWidth: _pageW,
+          pageHeight: _pageH,
+          detectMs: BigInt.one,
+          recognizeMs: BigInt.one,
+          inpaintMs: BigInt.one,
+          erasedPath: erasedPath,
+          stageEps: const OcrStageEps(
+            detect: 'cpu',
+            recognize: 'cpu',
+            inpaint: 'cpu',
+          ),
+        );
+      },
+      translate: (texts, cfg) async {
+        asked.add(cfg.engine);
+        if (cfg.engine == OcrTranslateEngine.appleOnDevice) {
+          // 真机上那一跳的成因是语言包没装（TranslationError.notInstalled）。
+          throw OcrTranslationException('Apple 系统翻译不可用：notInstalled');
+        }
+        return const ['〔中1〕这是一句回填用的中文译文'];
+      },
     );
 
-    final label = (await TranslatedPageCache.describe(config: cfg2)).label;
-    expect(
-      await TranslatedPageCache.isUsable(label: label, pageIndex: 0),
-      isFalse,
-      reason: '降级产物写进指纹缓存 = 端点恢复后永远端出这张未翻译的页',
+    final out = await page.build(
+      imagePath: 'unused.jpg',
+      pageIndex: 2,
+      config: appleConfig,
     );
 
-    // 画上去的确实是原文：与「拿原文直接回填」的对照逐字节相同。
-    final asSource = await TranslatedPageRenderer.render(
-      erasedPng: await _whitePng(_pageW, _pageH),
-      blocks: [_block(_boxA, 'トカゲじゃ'), _block(_boxB, 'あの田舎とかにいる!?')],
-      translations: const ['トカゲじゃ', 'あの田舎とかにいる!?'],
+    expect(asked, [OcrTranslateEngine.appleOnDevice, OcrTranslateEngine.endpoint]);
+    // 关键的一条：产物**不能**记在 Apple 档名下。否则用户把语言包装上之后，
+    // 这一页会永远命中这张端点翻出来的图，而指纹声称它是 Apple 的产物。
+    final appleLabel = (await TranslatedPageCache.describe(config: appleConfig))
+        .label;
+    expect(out.path, isNot(contains(appleLabel)));
+    expect(
+      out.path,
+      contains('zh-Hans_stub_'),
+      reason: '译文出自端点档，就该落在端点档的目录里',
     );
-    expect(await File(out.path).readAsBytes(), equals(asSource));
+    expect(
+      OcrLog.log.entries.value.join('\n'),
+      contains('回落 endpoint'),
+    );
   });
 }

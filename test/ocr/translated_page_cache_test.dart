@@ -135,36 +135,20 @@ void main() {
     );
   });
 
-  test('降级产物写在持久根目录下，但不进指纹目录', () async {
-    final f = await TranslatedPageCache.writeDegraded(
-      pageIndex: 7,
-      pngBytes: await _realPng(),
-    );
-    // 落点必须在 outputRoot 里：系统临时目录会被 dirhelper 每天扫一次，
-    // 而呈现器是按归属表里这个路径重注入的 —— 被扫走就等于正在显示的页静默变回原图。
-    expect(p.isWithin((await OcrService.outputRoot()).path, f.path), isTrue);
-    expect(await f.exists(), isTrue);
-    // 同一个页号在缓存那一侧仍然「没有可用产物」：降级档不进指纹缓存，
-    // 否则端点恢复之后永远端出这张没翻译的页。
-    expect(
-      await TranslatedPageCache.isUsable(label: label, pageIndex: 7),
-      isFalse,
-    );
-    // 「在受管根目录下」的实际含义：设置页那颗「清空成品页」的按钮管得到它。
-    // 写在系统临时目录里的那一版是管不到的 —— 它会自己在一个没人知道的时间消失。
-    await TranslatedPageCache.clearAll();
-    expect(await f.exists(), isFalse);
-  });
-
-  test('已生成张数不把降级产物算进去', () async {
+  test('老版本降级目录里那张没翻译的，不算进「已生成 N 张」', () async {
     final png = await _realPng();
     await put(png);
     expect(await TranslatedPageCache.pageCount(), 1);
-    await TranslatedPageCache.writeDegraded(pageIndex: 3, pngBytes: png);
-    expect(
-      await TranslatedPageCache.pageCount(),
-      1,
-      reason: '「已生成 N 张」把没翻译的那张报成产物，就是虚报',
+    // 这条档已经没有了（翻译失败现在整页失败），但用户盘上老版本留下的那张还在：
+    // 「已生成 N 张」把没翻译的页报成产物，就是虚报。
+    final legacy = Directory(
+      p.join((await OcrService.outputRoot()).path, 'manga_translated_degraded'),
     );
+    await legacy.create(recursive: true);
+    await File(p.join(legacy.path, 'p3.png')).writeAsBytes(png, flush: true);
+    expect(await TranslatedPageCache.pageCount(), 1);
+    // 「在受管根目录下」的实际含义：那颗「清空成品页」的按钮管得到它。
+    await TranslatedPageCache.clearAll();
+    expect(await legacy.exists(), isFalse);
   });
 }

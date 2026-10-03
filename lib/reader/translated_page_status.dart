@@ -15,10 +15,6 @@ enum TranslatedPageChipState {
   /// 这一页正显示成品页，再点回原图。
   showing,
 
-  /// 这一页显示的是**降级产物**：擦字与回填都做了，但译文一个都没有（端点不可用）。
-  /// 单列一个状态是因为它「看着像成功」——不标出来，用户会以为自己已经看到译文了。
-  showingOriginal,
-
   /// 成品页已经注入，但「原图对比」旁路正把它挡着 —— 画面上是原图。
   ///
   /// 单列是因为它两头都不像：说「译文页」是在谎报画面（那正是这次修的事），
@@ -45,16 +41,13 @@ TranslatedPageChipState translatedPageChipState({
   required int phaseIndex,
   required int index,
   required bool owned,
-  bool degraded = false,
   bool bypassed = false,
 }) {
   if (owned) {
     if (bypassed) {
       return TranslatedPageChipState.blockedByOriginalPreview;
     }
-    return degraded
-        ? TranslatedPageChipState.showingOriginal
-        : TranslatedPageChipState.showing;
+    return TranslatedPageChipState.showing;
   }
   if (phaseIndex != index) return TranslatedPageChipState.off;
   return switch (phase) {
@@ -76,6 +69,5 @@ TranslatedPageTap translatedPageTapFor(TranslatedPageChipState state) =>
       TranslatedPageChipState.blockedByOriginalPreview ||
       TranslatedPageChipState.off ||
       TranslatedPageChipState.failed ||
-      TranslatedPageChipState.showing ||
-      TranslatedPageChipState.showingOriginal => TranslatedPageTap.toggle,
+      TranslatedPageChipState.showing => TranslatedPageTap.toggle,
     };

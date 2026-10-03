@@ -7,6 +7,7 @@ import 'package:zephyr/service/ocr/ocr_service.dart';
 import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_cache.dart';
+import 'package:zephyr/service/ocr/translated_page_layer.dart';
 import 'package:zephyr/service/ocr/hy_mt2_translator.dart';
 import 'package:zephyr/service/ocr/ocr_translate_engine.dart';
 import 'package:zephyr/service/ocr/translated_page_renderer.dart';
@@ -41,8 +42,8 @@ class TranslatedPage {
     required this.blockCount,
     required this.truncatedCount,
     this.stageEps,
+    this.overlayNeedsBase = false,
     this.elapsed = Duration.zero,
-    this.degraded = false,
   });
 
   /// 成品页 PNG 的路径。**没有文字的页直接返回原图路径** —— 那种页擦不擦都一样，
@@ -55,12 +56,6 @@ class TranslatedPage {
   /// 识别被上限截断的块数：这些块的原文不完整，译文自然也可疑，UI 要标出来。
   final int truncatedCount;
 
-  /// 端点不可用 / 条数对不上时，画的是**原文回填**而不是译文
-  /// （ADR-0018 §决定 7 写明的那一档降级形态）。
-  /// UI 必须把它显示出来：一张「擦掉日文又画回日文」的页面看着像成功了，
-  /// 可用户真正要的译文一个都没有。
-  final bool degraded;
-
   /// 本次构建花了多久（命中缓存时是查表时间）。
   /// 冒烟页与以后的状态条都要显示它 —— 一页十几秒这件事得让用户看得见，
   /// 不然只会以为点了没反应。
@@ -68,10 +63,30 @@ class TranslatedPage {
 
   /// 分析那一跳三段各自**实际生效**的 EP（Rust 侧 resolve 之后的值，**不是**设置里的请求值）。
   ///
-  /// 命中缓存时是 null：那一次什么都没跑，不该拿一个旧值顶替。降级档**有**值 ——
-  /// 分析跑了，只是翻译那一跳挂了。「选了 GPU 就不许偷偷用 CPU」这条纪律要核对的就是它。
+  /// 命中缓存时是 null：那一次什么都没跑，不该拿一个旧值顶替。
+  /// 「选了 GPU 就不许偷偷用 CPU」这条纪律要核对的就是它。
   final OcrStageEps? stageEps;
+
+  /// 叠层这一档：这一页的底**必须**是擦字底图（有框采不出平色）。
+  ///
+  /// 为什么要把它交回控制器：「叠层不占增强图轨」是这一档的全部理由，但那种必须擦的页
+  /// 不占轨就等于把擦好的底丢在盘上没人换上屏 —— 用户看到的是超分后的原图压在中文下面
+  /// （字压字率 0.085 那一格），正是这条链要避免的画面。
+  /// true 时控制器替**这一页**占轨（超分为它让路），false 时照旧不占，超分照常。
+  ///
+  /// 默认 false：只有叠层那条分支会置真；烘焙与未识别到文字的返回都不该走到这个判断。
+  final bool overlayNeedsBase;
 }
+
+/// 一档译文来源与它对应的缓存坐标。
+///
+/// 用 record 而不是自建类：与 `PageLayout` 同一个理由（`==` 免费成立，测试可直接断言）。
+typedef TranslateAttempt = ({
+  OcrTranslationConfig config,
+  String fingerprint,
+  String label,
+  File target,
+});
 
 /// 整页链路：查缓存 → 分析（检测/识别/聚块/擦字）→ 翻译 → 回填 → 原子写缓存。
 ///
@@ -129,6 +144,74 @@ class TranslatedPageBuilder {
     ),
   };
 
+  /// 这一页按**哪几档顺序**去问译文：用户选的那一档在前，端点档填全了就跟在后面当回落。
+  ///
+  /// Apple 与混元那两档都靠用户机器上的别的部件（系统语言包、`llama-server`），
+  /// 「这一会儿没有」是常态而不是错误；端点档通常本来就是配好的，所以拿它兜一层。
+  ///
+  /// 为什么不直接用 `OcrSettings.loadConfig()` 的结果：选 Apple 时它按设计把
+  /// `baseUrl` / `model` 写成空串（那条路本来就不要端点），回落要的恰恰是那几个字段，
+  /// 只能从原样快照 [OcrSettings.loadDraft] 里另读。而 `targetLanguage` / `glossary`
+  /// 跟着传进来的 [config] 走 —— 回落只是**换个来源**，不能顺手把这页的目标语言换掉。
+  static Future<List<OcrTranslationConfig>> _candidateConfigs(
+    OcrTranslationConfig config,
+  ) async {
+    if (config.engine == OcrTranslateEngine.endpoint) return [config];
+    final draft = await OcrSettings.loadDraft();
+    final baseUrl = draft.baseUrl.trim().replaceAll(RegExp(r'/+$'), '');
+    final model = draft.model.trim();
+    if (baseUrl.isEmpty || model.isEmpty) return [config];
+    return [
+      config,
+      draft.copyWith(
+        baseUrl: baseUrl,
+        model: model,
+        targetLanguage: config.targetLanguage,
+        glossary: config.glossary,
+        engine: OcrTranslateEngine.endpoint,
+      ),
+    ];
+  }
+
+  /// Apple 端侧档的**前置检查**：只在**这台机器上根本没有这条路**时拦，并且说清去哪装。
+  ///
+  /// 为什么不替用户下：整个 `Translation.swiftinterface` 里 `download` 只出现一次，
+  /// 是 `TranslationSession.canRequestDownloads` 这个**只读**布尔 —— 没有下载 API，
+  /// 而唯一的公开构造器 `init(installedSource:target:)` 名字就要求已装。
+  /// 「装不装」只能是用户在系统设置里点的那一下。
+  ///
+  /// 为什么还留着这一道：`unsupported` / `unavailable` 是确定翻不动的，而检测+识别+擦字
+  /// 实测 14 s、那一跳只要 400 ms —— 明知不可为还让人等十几秒才报错，就是白等。
+  /// 有端点可回落时不拦（只记一行）：端点本来就是配好的那条路。
+  static Future<void> _bailIfAppleNotInstalled(
+    OcrTranslationConfig config,
+    List<TranslateAttempt> attempts,
+  ) async {
+    if (config.engine != OcrTranslateEngine.appleOnDevice) return;
+    final status = await AppleTranslateBackend.status(
+      target: config.targetLanguage,
+    );
+    if (status == 'installed') return;
+    final pair =
+        '${AppleTranslateBackend.defaultSource}→${config.targetLanguage}';
+    // `supported` **不等于「用不了」**：本机那份翻译日志（2026-10-03 18:37）里状态报
+    // supported、这一页被判给端点档，可二十秒后 apple 那一档自己翻出了 7/7 ——
+    // macOS 在第一次真调用时才把语言对补上。拿 supported 当硬闸，等于挡掉一页
+    // 本来能翻的；没配端点的人还会收到一句假的「先去系统设置装」。
+    // 真翻不动有逐档那一圈兜（那一跳实测 400 ms），不必在这里预判。
+    if (status == 'supported') {
+      OcrLog.add('Apple 语言对状态=supported（系统会在第一次用时补装），先按端侧试 $pair');
+      return;
+    }
+    if (attempts.length > 1) {
+      OcrLog.add('Apple 这一档在这台机器上没有（$pair：$status），这一页交给端点档');
+      return;
+    }
+    throw OcrTranslationException(
+      '这台机器上用不了 Apple 系统翻译（$pair：$status），请在设置里改用端点翻译。',
+    );
+  }
+
   Future<TranslatedPage> build({
     required String imagePath,
     required int pageIndex,
@@ -148,22 +231,39 @@ class TranslatedPageBuilder {
       }
     }
 
-    final (:fingerprint, :label) = await TranslatedPageCache.describe(
-      config: config,
-    );
-    final target = await TranslatedPageCache.pageFile(
-      label: label,
-      pageIndex: pageIndex,
-    );
-    if (!force &&
-        await TranslatedPageCache.isUsable(
+    // 候选档：用户选的那一档排在前面，端点档配好了就跟在后头当回落。
+    // 每档各算一份指纹 —— 译文出自哪一档，产物就得记在哪一档名下。把端点翻出来的那张
+    // 写进 Apple 档的目录里就是谎报引擎：等语言包装好、Apple 通了，这一页会永远命中
+    // 一张端点翻的旧图（ADR-0018 §决定 7 一路在防的静默陈旧，同一个形状）。
+    final attempts = <TranslateAttempt>[];
+    for (final cfg in await _candidateConfigs(config)) {
+      final (:fingerprint, :label) = await TranslatedPageCache.describe(
+        config: cfg,
+      );
+      attempts.add((
+        config: cfg,
+        fingerprint: fingerprint,
+        label: label,
+        target: await TranslatedPageCache.pageFile(
           label: label,
           pageIndex: pageIndex,
-        )) {
+        ),
+      ));
+    }
+    for (final a in attempts) {
+      if (force ||
+          !await TranslatedPageCache.isUsable(
+            label: a.label,
+            pageIndex: pageIndex,
+          )) {
+        continue;
+      }
       onStage?.call(TranslatedPageStage.cacheHit);
-      OcrLog.add('$page 命中缓存（${clock.elapsedMilliseconds} ms）：${target.path}');
+      OcrLog.add(
+        '$page 命中缓存（${clock.elapsedMilliseconds} ms 档=${a.config.engine.id}）：${a.target.path}',
+      );
       return TranslatedPage(
-        path: target.path,
+        path: a.target.path,
         fromCache: true,
         hasText: true,
         blockCount: 0,
@@ -171,6 +271,10 @@ class TranslatedPageBuilder {
         elapsed: clock.elapsed,
       );
     }
+
+    // Apple 那一档的语言包由系统自己管：没装就**现在就报**，别等十几秒 OCR 跑完才揭晓
+    // （这一轮那个「翻出来还是日文」的现场就是它）。有端点可回落时不拦 —— 回落会接手。
+    await _bailIfAppleNotInstalled(config, attempts);
 
     check(TranslatedPageStage.analyzing);
     onStage?.call(TranslatedPageStage.analyzing);
@@ -180,13 +284,16 @@ class TranslatedPageBuilder {
       '$page 开始构建：引擎=${config.engine.id}'
       '${config.engine == OcrTranslateEngine.endpoint ? ' 端点=${_hostOf(config.baseUrl)}/${config.model}' : ''} '
       '目标=${config.targetLanguage} 请求后端=$ep'
+      '${attempts.length > 1 ? ' 回落档=${attempts[1].config.engine.id}(${_hostOf(attempts[1].config.baseUrl)}/${attempts[1].config.model})' : ''}'
       '${force ? '（force 重算）' : ''}',
     );
     final Uint8List png;
     final int blocks;
     final int truncated;
+    late final TranslatedPageLayer layer;
     late final OcrStageEps stageEps;
-    bool degraded;
+    // 实际出译文的那一档（可能就是选的那一档，也可能是回落档），产物写它名下。
+    late final TranslateAttempt used;
     // 擦干净的底图只是中间产物，落在系统临时目录、出函数就删；
     // 缓存目录里只留成品，免得用户看到两类分不清的 PNG。
     final scratch = await Directory.systemTemp.createTemp('rossi_ocr_erase_');
@@ -217,30 +324,40 @@ class TranslatedPageBuilder {
       check(TranslatedPageStage.translating);
       onStage?.call(TranslatedPageStage.translating);
       final sources = result.blocks.map((b) => b.text).toList(growable: false);
-      List<String> translations;
-      degraded = false;
       final translateClock = Stopwatch()..start();
-      try {
-        translations = await _translate(sources, config);
-        if (translations.length != sources.length) {
-          // 渲染那边只有 `assert`，release 下会被跳过 —— 那时它会按下标越界崩掉，
-          // 用户看到的是一句没头没尾的 RangeError。条数在这条缝上就必须钉住。
-          throw OcrTranslationException(
-            '翻译返回的条数与块数不符：块 ${sources.length}，译文 ${translations.length}',
+      List<String>? lines;
+      for (var i = 0; i < attempts.length; i++) {
+        final a = attempts[i];
+        try {
+          final t = await _translate(sources, a.config);
+          if (t.length != sources.length) {
+            // 渲染那边只有 `assert`，release 下会被跳过 —— 那时它会按下标越界崩掉，
+            // 用户看到的是一句没头没尾的 RangeError。条数在这条缝上就必须钉住。
+            throw OcrTranslationException(
+              '翻译返回的条数与块数不符：块 ${sources.length}，译文 ${t.length}',
+            );
+          }
+          lines = t;
+          used = a;
+          break;
+        } on OcrTranslationException catch (e) {
+          // 一档挂了不算这一页失败：还有下一档就问下一档。最后一档才把原因交出去，
+          // 那时这一页**整体失败**、画面留原图 —— 不再拿原文回填冒充成品页：
+          // 「擦掉日文又把日文画回去」是一张看着像成功的没翻译页，比失败更难被发现。
+          final next = i + 1 < attempts.length ? attempts[i + 1].config : null;
+          OcrLog.add(
+            '$page ${a.config.engine.id} 那一跳失败：${e.message}'
+            '${next == null ? ' —— 没有可回落的档，这一页按失败处理' : ' —— 回落 ${next.engine.id} ${_hostOf(next.baseUrl)}/${next.model}'}',
           );
+          if (next == null) rethrow;
         }
-        OcrLog.add(
-          '$page 翻译：${sources.length} 条 → ${translations.length} 条，'
-          '用时 ${translateClock.elapsedMilliseconds} ms',
-        );
-      } on OcrTranslationException catch (e) {
-        // ADR-0018 §决定 7 写明的那一档：断网 / 端点没起 / 模型漏译时，
-        // 链路出「擦字 + 原文回填」而不是什么都不给。
-        // 但这不是成功 —— 靠 degraded 标出来，UI 必须如实说「画的是原文」。
-        OcrLog.add('$page 翻译那一跳失败：${e.message} —— 走降级档（擦字 + 原文回填）');
-        translations = sources;
-        degraded = true;
       }
+      // 循环没有第二条出路：没拿到译文就已经在最后一档 rethrow 了。
+      final translations = lines!;
+      OcrLog.add(
+        '$page 翻译：${sources.length} 条 → ${translations.length} 条，'
+        '用时 ${translateClock.elapsedMilliseconds} ms 档=${used.config.engine.id}',
+      );
 
       check(TranslatedPageStage.typesetting);
       onStage?.call(TranslatedPageStage.typesetting);
@@ -253,6 +370,21 @@ class TranslatedPageBuilder {
       blocks = result.blocks.length;
       truncated = result.blocks.where((b) => b.truncated).length;
       stageEps = result.stageEps;
+      // 同一批数据在**画之前**的样子：框、原文、译文、可疑块。烧成 PNG 就再也问不回来，
+      // 所以这份必须与那张 PNG 同源同档（ADR-0018 §决定 4 的图层那一半）。
+      layer = TranslatedPageLayer(
+        pageWidth: result.pageWidth,
+        pageHeight: result.pageHeight,
+        boxes: [
+          for (var i = 0; i < result.blocks.length; i++)
+            TranslatedBox(
+              quad: result.blocks[i].quad.map((v) => v.toDouble()).toList(),
+              source: result.blocks[i].text,
+              text: translations[i],
+              truncated: result.blocks[i].truncated,
+            ),
+        ],
+      );
       OcrLog.add(
         '$page 回填排版：${typesetClock.elapsedMilliseconds} ms，'
         '$blocks 块'
@@ -262,45 +394,29 @@ class TranslatedPageBuilder {
       await scratch.delete(recursive: true);
     }
 
-    if (degraded) {
-      // **降级产物不进指纹缓存。** 端点只是暂时没起，写进去的话：
-      // 下次端点好了再点，命中的还是这张「擦掉日文又画回日文」的页 ——
-      // 而缓存指纹里没有任何一项能反映「端点当时活着吗」，这类陈旧是静默的。
-      // 落点仍是**持久目录**下的一个旁路目录（不是系统临时目录）：呈现器按归属表里
-      // 那个路径重注入，目录被 dirhelper 扫走的话这张正在显示的页会静默变回原图。
-      final throwaway = await TranslatedPageCache.writeDegraded(
-        pageIndex: pageIndex,
-        pngBytes: png,
-      );
-      OcrLog.add('$page 降级产物落在 ${throwaway.path}（${png.length} 字节，不进指纹缓存）');
-      return TranslatedPage(
-        path: throwaway.path,
-        fromCache: false,
-        hasText: true,
-        blockCount: blocks,
-        truncatedCount: truncated,
-        stageEps: stageEps,
-        elapsed: clock.elapsed,
-        degraded: true,
-      );
-    }
-
     await TranslatedPageCache.write(
-      label: label,
+      label: used.label,
       pageIndex: pageIndex,
       pngBytes: png,
-      fingerprint: fingerprint,
+      fingerprint: used.fingerprint,
     );
-    OcrLog.add('$page 成品已写入 ${target.path}（${png.length} 字节）');
+    // 图层与成品页**同一批写**：只写 PNG 就等于把 OCR 的全部产出烧死在一张图里，
+    // 换超分档 / 换显示模式 / 手改译文都得重跑那十几秒（叠层模式没数据可用）。
+    await (await TranslatedPageCache.layerFile(
+      label: used.label,
+      pageIndex: pageIndex,
+    )).writeAsString(layer.encode(), flush: true);
+    OcrLog.add(
+      '$page 成品已写入 ${used.target.path}（${png.length} 字节 档=${used.config.engine.id}）',
+    );
     return TranslatedPage(
-      path: target.path,
+      path: used.target.path,
       fromCache: false,
       hasText: true,
       blockCount: blocks,
       truncatedCount: truncated,
       stageEps: stageEps,
       elapsed: clock.elapsed,
-      degraded: degraded,
     );
   }
 }
