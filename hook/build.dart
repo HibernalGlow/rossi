@@ -55,7 +55,16 @@ Map<String, String> _extraCargoEnvironmentVariables(
 /// 这里只做透传 —— 仓库里不出现任何机器绝对路径。
 Map<String, String> _hostEnvironmentVariables() {
   const passthrough = ['PKG_CONFIG_PATH', 'PKG_CONFIG', 'VCPKG_ROOT'];
-  final env = <String, String>{};
+  final env = <String, String>{
+    // 这一条不是透传，是**注入**：安卓分支那条 `CARGO_PROFILE_DEV_STRIP: 'none'` 的宿主版。
+    // cargo 的 release 默认往 rustc 传 `-C strip=debuginfo`，rustc 进程内重写 Mach-O 时会把
+    // LINKEDIT 的字符串池落在 4 字节偏移上（`rquickjs-macro` 那个 proc-macro dylib 实测如此），
+    // 而 macOS 27 的 dyld 要求 8 字节对齐 —— 拒载之后 rustc 只报一句 `E0463: can't find crate
+    // for rquickjs_macro`，看不到 dlopen。2026-10-03 单变量对照（同一 `--package windcore` 图，
+    // 只换这个开关）：默认档 stroff mod8=4、编不过；none 后 mod8=0、windcore 编完。
+    // 代价是宿主 release 的 Rust 静态库留着符号（`.a` 201MB，dev 是 242MB）。
+    'CARGO_PROFILE_RELEASE_STRIP': 'none',
+  };
   for (final key in passthrough) {
     final value = Platform.environment[key];
     if (value != null && value.isNotEmpty) {
