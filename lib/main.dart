@@ -43,6 +43,7 @@ import 'package:zephyr/platform/desktop/system_tray.dart';
 import 'package:zephyr/platform/desktop/window_logic.dart';
 import 'package:zephyr/platform/eink/eink_device.dart';
 import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
+import 'package:zephyr/service/open_intent/open_intents.dart';
 import 'package:zephyr/service/reader/switch_toast_service.dart';
 import 'package:zephyr/service/startup_database_snapshot_service.dart';
 import 'package:zephyr/src/rust/api/qjs.dart';
@@ -179,6 +180,12 @@ Future<void> main(List<String> args) async {
   if (!kIsWeb && Platform.isLinux && runWebViewTitleBarWidget(args)) {
     return;
   }
+
+  // 右键菜单「用 Rossi 打开」的入站。位置在 Linux 那个子进程入口**之后**：
+  // 标题栏子进程也带着同样的命令行参数，在那之前收会把主窗口的参数抢走。
+  // 这里只是把路径存起来，真正打开要等首页挂载（见 `lib/service/open_intent/`）。
+  OpenIntents.instance.collectFromCommandLine(args);
+  unawaited(OpenIntents.instance.attachMacChannel());
 
   const sentryDsn = String.fromEnvironment('sentry_dsn', defaultValue: '');
 

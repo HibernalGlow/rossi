@@ -6,6 +6,9 @@ import Darwin
 class AppDelegate: FlutterAppDelegate {
   private var activity: NSObjectProtocol?
   private var launchLockFD: Int32 = -1
+  private var openIntentChannel: FlutterMethodChannel?
+  private var pendingOpenPaths: [String] = []
+  private var dartAcceptsOpenPaths = false
 
   override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
     return false
@@ -28,6 +31,69 @@ class AppDelegate: FlutterAppDelegate {
 
   override func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
     return true
+  }
+
+  // MARK: - 访达「打开方式 → Rossi」
+
+  /// 与 `lib/service/open_intent/open_intents.dart` 里那条通道同名。
+  private static let openIntentChannelName = "com.breeze.macos/openIntent"
+
+  /// Finder 把选中的文件 / 文件夹交给应用的回调（一次可以选中多个）。
+  ///
+  /// 为什么不读 `ProcessInfo.arguments`：访达不通过命令行递路径，它发的是 `odoc`
+  /// Apple event，命令行里什么都没有。
+  ///
+  /// `super` 必须留着：`FlutterAppDelegate` 这一层会把该回调转发给注册了的插件。
+  override func application(_ application: NSApplication, open urls: [URL]) {
+    enqueueOpenPaths(urls.map { $0.path })
+    super.application(application, open: urls)
+  }
+
+  private func enqueueOpenPaths(_ paths: [String]) {
+    let usable = paths.filter { !$0.isEmpty }
+    guard !usable.isEmpty else { return }
+    pendingOpenPaths.append(contentsOf: usable)
+    attachOpenIntentChannelIfNeeded()
+    flushOpenPaths()
+  }
+
+  /// 只在 Dart 侧确认在听了之后主动推；推不出去就留在队列里等它来取
+  /// （`takePending`）。队列不是保险丝 —— Dart 的 `main()` 本来就跑在这条回调之后。
+  private func flushOpenPaths() {
+    guard dartAcceptsOpenPaths, let channel = openIntentChannel else { return }
+    guard !pendingOpenPaths.isEmpty else { return }
+    let paths = pendingOpenPaths
+    pendingOpenPaths = []
+    channel.invokeMethod("openPaths", arguments: paths)
+  }
+
+  private func attachOpenIntentChannelIfNeeded() {
+    guard openIntentChannel == nil else { return }
+    // mainWindow 可能还未就绪，回退到遍历所有 window（与上面那条判据同源）。
+    let candidate = NSApp.mainWindow?.contentViewController
+      ?? NSApp.windows.first(where: { $0.contentViewController is FlutterViewController })?.contentViewController
+    guard let controller = candidate as? FlutterViewController else { return }
+
+    let channel = FlutterMethodChannel(
+      name: AppDelegate.openIntentChannelName,
+      binaryMessenger: controller.engine.binaryMessenger
+    )
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard let self = self else {
+        result(nil)
+        return
+      }
+      switch call.method {
+      case "takePending":
+        let paths = self.pendingOpenPaths
+        self.pendingOpenPaths = []
+        self.dartAcceptsOpenPaths = true
+        result(paths)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+    openIntentChannel = channel
   }
 
   override func applicationDidFinishLaunching(_ notification: Notification) {
@@ -79,6 +145,9 @@ class AppDelegate: FlutterAppDelegate {
         result(FlutterMethodNotImplemented)
       }
     }
+
+    // 让 Dart 那边一起来就能把已经攒下的路径取走（不等到首帧之后再晚一步）。
+    attachOpenIntentChannelIfNeeded()
 
     super.applicationDidFinishLaunching(notification)
   }

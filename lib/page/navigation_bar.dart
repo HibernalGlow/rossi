@@ -15,6 +15,7 @@ import 'package:zephyr/service/download/download_queue_manager.dart';
 import 'package:zephyr/page/comic_follow/cubit/comic_follow_cubit.dart';
 import 'package:zephyr/service/lifecycle/foreground_task/foreground_task_service.dart';
 import 'package:zephyr/service/lifecycle/notification_service.dart';
+import 'package:zephyr/service/open_intent/open_intent_consumer.dart';
 import 'package:zephyr/service/update/check_update.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/util/error_filter.dart';
@@ -55,6 +56,9 @@ class _NavigationBarState extends State<NavigationBar> {
   DateTime? _lastToastShownAt;
   (ToastType, String?, String, Duration?)? _lastToastEvent;
   late HideOnScrollSettings hideOnScrollSettings;
+
+  /// 系统右键菜单递来的路径（见 `lib/service/open_intent/`）。
+  StreamSubscription<List<String>>? _openIntentSubscription;
 
   static bool _notificationsInitialized = false; // ← 使用静态变量，跨实例共享
   bool _isInitializingNotifications = false;
@@ -120,10 +124,13 @@ class _NavigationBarState extends State<NavigationBar> {
     eventBus.on<ToastEvent>().listen((event) {
       _showToast(event);
     });
+
+    _openIntentSubscription = bindOpenIntents(context);
   }
 
   @override
   void dispose() {
+    _openIntentSubscription?.cancel();
     _controller.dispose();
     super.dispose();
   }
