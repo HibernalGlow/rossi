@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:path/path.dart' as p;
+import 'package:zephyr/service/ocr/bubble_fill.dart';
 import 'package:zephyr/service/ocr/ocr_log.dart';
 import 'package:zephyr/service/ocr/ocr_service.dart';
 import 'package:zephyr/service/ocr/ocr_settings.dart';
@@ -370,6 +372,18 @@ class TranslatedPageBuilder {
       blocks = result.blocks.length;
       truncated = result.blocks.where((b) => b.truncated).length;
       stageEps = result.stageEps;
+      // 填色只在叠层档采（`retainErasedBase` 就是那一档的开关）：采的是**原图**，
+      // 因为要的是气泡自己的底色；LaMa 修出来的那片底虽然也能采，但将来真省掉擦字时
+      // 它就不存在了 —— 现在多解一次码（约百毫秒），换那条路不用改这里。
+      final fills = retainErasedBase
+          ? await _sampleFills(
+              imagePath: imagePath,
+              blocks: result.blocks,
+              pageWidth: result.pageWidth,
+              pageHeight: result.pageHeight,
+              page: page,
+            )
+          : null;
       // 同一批数据在**画之前**的样子：框、原文、译文、可疑块。烧成 PNG 就再也问不回来，
       // 所以这份必须与那张 PNG 同源同档（ADR-0018 §决定 4 的图层那一半）。
       layer = TranslatedPageLayer(
@@ -381,6 +395,7 @@ class TranslatedPageBuilder {
               quad: result.blocks[i].quad.map((v) => v.toDouble()).toList(),
               source: result.blocks[i].text,
               text: translations[i],
+              fill: fills?[i],
               truncated: result.blocks[i].truncated,
             ),
         ],
@@ -418,6 +433,59 @@ class TranslatedPageBuilder {
       stageEps: stageEps,
       elapsed: clock.elapsed,
     );
+  }
+
+  /// 逐框采底色，**全页都能采到平色才交回颜色**。
+  ///
+  /// 为什么是全有或全无而不是「能采几框填几框」：同一页里一半是 LaMa 修出来的底、
+  /// 一半是实心色块，两种底并排就是「翻译没弄干净」的样子 —— 而那正是这一档要避免的。
+  /// 交回全 null 时上层仍然有擦字底图可叠，不会退化成原文露出来。
+  static Future<List<ui.Color?>> _sampleFills({
+    required String imagePath,
+    required List<OcrBlock> blocks,
+    required int pageWidth,
+    required int pageHeight,
+    required String page,
+  }) async {
+    final codec = await ui.instantiateImageCodec(
+      await File(imagePath).readAsBytes(),
+    );
+    final frame = await codec.getNextFrame();
+    final image = frame.image;
+    final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final width = image.width;
+    final height = image.height;
+    image.dispose();
+    if (data == null || width <= 0 || height <= 0) {
+      OcrLog.add('$page 原图解不出字节，这一页不采底色（继续用擦字底图叠）');
+      return List<ui.Color?>.filled(blocks.length, null);
+    }
+    final rgba = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+    final fills = <ui.Color?>[];
+    for (final b in blocks) {
+      final sampled = sampleBoxFill(
+        rgba: rgba,
+        width: width,
+        height: height,
+        quad: b.quad.map((v) => v.toDouble()).toList(),
+      );
+      fills.add(sampled?.color);
+    }
+    final dirty = <int>[
+      for (var i = 0; i < fills.length; i++)
+        if (fills[i] == null) i + 1,
+    ];
+    if (dirty.isNotEmpty) {
+      OcrLog.add(
+        '$page ${dirty.length}/${fills.length} 框采不到平色底（第 ${dirty.join('、')} 框），'
+        '这一页整页不填色 —— 半填半擦会露出两种底',
+      );
+      return List<ui.Color?>.filled(blocks.length, null);
+    }
+    OcrLog.add(
+      '$page ${fills.length} 框全部采到平色底（填色可替代擦字，基准 ${pageWidth}x$pageHeight）',
+    );
+    return fills;
   }
 }
 

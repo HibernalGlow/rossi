@@ -178,12 +178,14 @@ class _MissingProductBuilder extends TranslatedPageBuilder {
     void Function(TranslatedPageStage stage)? onStage,
     bool Function()? shouldCancel,
     bool force = false,
+    bool retainErasedBase = false,
   }) async => TranslatedPage(
     path: path,
     fromCache: true,
     hasText: true,
     blockCount: 1,
     truncatedCount: 0,
+    label: 'test-label',
   );
 }
 
@@ -202,6 +204,7 @@ class _ThrowingBuilder extends TranslatedPageBuilder {
     void Function(TranslatedPageStage stage)? onStage,
     bool Function()? shouldCancel,
     bool force = false,
+    bool retainErasedBase = false,
   }) async {
     throw OcrTranslationException(message);
   }

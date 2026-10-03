@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -138,13 +139,52 @@ class TranslatedPageRenderer {
       final fill = box.fill;
       if (fill != null) {
         // 「不擦字，按气泡轮廓填色」那一档：填色在前、画字在后。
-        final path = ui.Path()
-          ..addRect(_quadRect(box.quad));
-        canvas.drawPath(path, ui.Paint()..color = fill);
+        canvas.drawPath(
+          _inflatedPolygon(box.quad, _fillOutsetPx),
+          ui.Paint()..color = fill,
+        );
       }
       _paintText(canvas, _quadRect(box.quad), text, padding: padding, minFontSize: minFontSize);
     }
     canvas.restore();
+  }
+
+  /// 填色相对文本框**外扩**的像素。
+  ///
+  /// 与现在喂给 LaMa 的掩膜同值（`rust/src/api/ocr.rs:177` 的 `mask_from_blocks(.., 3)`）：
+  /// 两档要在「盖住多少原字」上对齐，否则从擦字切到填色时边缘会多出来一圈没盖净的
+  /// 笔画碎屑，那种差最难在图上看出来、却最容易被人读到「翻译没弄干净」。
+  static const _fillOutsetPx = 3.0;
+
+  /// 沿 quad 的四个角点画**多边形**，并从形心向外推 [outset] 像素。
+  ///
+  /// 为什么不是矩形：检测交回的是带方向的四边形（`rust/src/api/ocr.rs:24`），
+  /// 斜排的气泡用矩形填就会露出一角原文、同时盖掉一角画面。
+  /// 为什么是「从形心外推」而不是真做多边形偏移：本仓没有可用的纯 Dart 轮廓膨胀，
+  /// 而对凸四边形来说两者结果一致；文本框的 AABB 本来就是凸的。
+  static ui.Path _inflatedPolygon(List<double> quad, double outset) {
+    final rect = _quadRect(quad);
+    final cx = rect.center.dx;
+    final cy = rect.center.dy;
+    final path = ui.Path();
+    for (var i = 0; i < 4; i++) {
+      final px = quad[i * 2];
+      final py = quad[i * 2 + 1];
+      final dx = px - cx;
+      final dy = py - cy;
+      final len = math.sqrt(dx * dx + dy * dy);
+      // 形心与角点重合（退化的零面积框）时无方向可推，原样落点即可。
+      final k = len <= 0 ? 0.0 : outset / len;
+      final x = px + dx * k;
+      final y = py + dy * k;
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    path.close();
+    return path;
   }
 
   /// 烘焙入口与叠层入口共用的那一圈「一框一画」。
