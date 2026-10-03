@@ -96,6 +96,29 @@ class WorkspaceState {
     return solo == activeLaneId ? solo : null;
   }
 
+  /// 与 [other] 之间**只差「谁被激活」**吗（其余字段一项都没动）。
+  ///
+  /// 这是「聚焦落地那一刻该重建谁」的唯一判据：这条成立时，条带几何、每条泳道的
+  /// 内容、顶栏那几档都没变，变的只有边框亮不亮、条带停在哪、哪条收成轨。页面层与
+  /// 内容槽位据此跳过重 build，把一次 hover 的代价压回「外壳」那一层。
+  ///
+  /// # 为什么按字段比，而不是给这个类加 `==`
+  ///
+  /// 所有字段都是 `@immutable` + `copyWith`（改任何一项都会换实例），所以
+  /// 「逐字段比同一性」是**保守**的：宁可多重建一次，也不能漏重建。漏重建的表现是
+  /// 界面停在旧状态（用户看到的是「点了没反应」），比多 build 一次严重得多。
+  /// 反过来，`WorkspaceState` 上挂 `==` 会让「谁被激活」混进全等比较，
+  /// 那两个概念本来是分开的 —— 一个问「有没有变」，一个问「变在哪一项」。
+  bool differsOnlyByActiveLane(WorkspaceState other) =>
+      identical(mode, other.mode) &&
+      identical(layout, other.layout) &&
+      identical(board, other.board) &&
+      identical(readerTarget, other.readerTarget) &&
+      identical(activePanel, other.activePanel) &&
+      identical(interaction, other.interaction) &&
+      isReaderFullscreen == other.isReaderFullscreen &&
+      activeLaneId != other.activeLaneId;
+
   WorkspaceState copyWith({
     WorkspaceMode? mode,
     WorkspaceLayoutConfig? layout,

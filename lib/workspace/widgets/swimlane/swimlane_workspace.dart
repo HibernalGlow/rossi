@@ -116,6 +116,48 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
   double _viewportHeight = 0;
   WorkspaceLaneFocusGeometry? _geometry;
 
+  // ── 泳道**内容**的实例缓存 ──────────────────────────────────────────────
+  //
+  // 一次「把交互交给另一条泳道」要重跑的只有外壳（边框、栏头、条带落点）；内容槽位
+  // 拿到的必须是**同一个 widget 实例**。Flutter 在 `Element.updateChild`
+  // （`framework.dart:4027`）见到 `child.widget == newWidget` 时整棵子树直接跳过 ——
+  // 这条不是微优化，是「阅读器有没有被整页重 build」的分水岭：内容实例一换，
+  // `WorkspaceReaderHost` 里那条 `Navigator` 就走到 `changedExternalState`
+  // ⇒ `_forceRebuildPage` ⇒ 上游 `ComicReadPage` 全页重 build。
+  //
+  // 缓存的失效条件用**签名**表达，不靠「我记得哪些字段被读过」：签名 = 除
+  // `activeLaneId` 之外的全部字段，逐字段比。宁可多重建，也不能漏重建。
+  Object? _contentSignature;
+  final Map<String, Widget> _laneContent = <String, Widget>{};
+
+  /// 内容签名（**不含**「谁被激活」）。
+  Object _signatureOf(WorkspaceState state) =>
+      (
+        state.mode,
+        state.layout,
+        state.board,
+        state.readerTarget,
+        state.activePanel,
+        state.interaction,
+        state.isReaderFullscreen,
+      );
+
+  /// 签名变了才重出内容实例；没变就把上次那份交出去（于是子树被整段跳过）。
+  void _syncLaneContent(
+    BuildContext context,
+    WorkspaceState state,
+    WorkspaceCubit cubit,
+  ) {
+    final signature = _signatureOf(state);
+    if (identical(signature, _contentSignature) || signature == _contentSignature) {
+      return;
+    }
+    _contentSignature = signature;
+    for (final laneId in state.layout.laneOrder) {
+      _laneContent[laneId] = _buildLaneContent(context, state, laneId, cubit);
+    }
+  }
+
   @override
   void dispose() {
     _ticker?.cancel();
@@ -440,6 +482,8 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
             );
             final geometry = WorkspaceLaneFocusGeometry.fromMetrics(metrics);
             _geometry = geometry;
+            // 内容实例：只在「除激活态之外的任何一项」变了才重出。
+            _syncLaneContent(context, state, context.read<WorkspaceCubit>());
 
             return MouseRegion(
               onHover: _handleStripHover,
@@ -596,7 +640,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
           : () => cubit.toggleLaneCollapsed(laneId),
       onToggleSolo: () => cubit.toggleSoloLane(laneId),
       onResetWidth: () => cubit.resetLaneWidth(laneId),
-      child: _buildAbsorbingContent(context, state, laneId, cubit, isActive),
+      child: _buildAbsorbingContent(context, laneId, isActive),
     );
 
     return MouseRegion(
@@ -627,16 +671,17 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
   /// 早先版本把这个 `AbsorbPointer` 包在了**整列**外面（含栏头），
   /// 于是非激活泳道上的折叠 / 独占按钮第一下必然哑掉，而注释还写着
   /// 「只包内容」—— 注释与实现不一致本身就是缺陷。
+  ///
+  /// 子节点取的是**缓存住的那一份**（见 [_syncLaneContent]）：聚焦换人只换
+  /// `absorbing` 这个开关，不该顺手把里面的内容重 build 一遍。
   Widget _buildAbsorbingContent(
     BuildContext context,
-    WorkspaceState state,
     String laneId,
-    WorkspaceCubit cubit,
     bool isActive,
   ) {
     return AbsorbPointer(
       absorbing: !isActive,
-      child: _buildLaneContent(context, state, laneId, cubit),
+      child: _laneContent[laneId]!,
     );
   }
 
