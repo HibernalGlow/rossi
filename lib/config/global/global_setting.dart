@@ -208,6 +208,9 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     @Default(true) bool skipUpdateCheck,
     @Default(true) bool retryDownloadUntilSuccess,
     @Default(3) int downloadConcurrency,
+    // 同时下载几个章节。默认 2：章节级并行是「同时下多个」最直接的旋钮，
+    // 1 = 回到逐个下载；遇到风控/验证码时调小。
+    @Default(2) int downloadTaskConcurrency,
     @Default(150) int downloadDelayMs,
     @Default(3) int downloadAutoRetryCount,
     @Default(false) bool oldPageRollbackEnabled,

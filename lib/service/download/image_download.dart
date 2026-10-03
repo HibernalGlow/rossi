@@ -6,6 +6,7 @@ import 'package:zephyr/network/http/plugin/unified_comic_plugin.dart';
 import 'package:zephyr/service/download/download_cancel_signal.dart';
 import 'package:zephyr/service/download/download_progress_reporter.dart';
 import 'package:zephyr/service/download/download_retry.dart';
+import 'package:zephyr/service/download/download_speed_meter.dart';
 import 'package:zephyr/type/enum.dart';
 
 class DownloadImageJob {
@@ -102,13 +103,22 @@ Future<String> downloadCoverAsset({
   );
 }
 
-/// 图片下载并发数：优先调用插件 `getDownloadConcurrency` 获取
-///（插件返回 `{concurrency: number}`），插件未实现、返回非法或调用失败时回落为 5。
-Future<int> resolveDownloadConcurrency({
+/// 单章节图片并发数的上限（与插件侧 `getDownloadConcurrency` 的钳制口径一致）。
+const kMaxImageConcurrency = 32;
+
+/// 每张图下载完成后的等待间隔上限（毫秒）：再长就属于「故意磨洋工」了。
+const kMaxDownloadDelayMs = 5000;
+
+/// 图片下载并发数：调用插件 `getDownloadConcurrency` 获取
+///（插件返回 `{concurrency: number}`）。
+///
+/// 返回 null 表示**这个图源没表态**（未实现、返回非法或调用失败）——
+/// 此时并发完全由用户的设置决定。以前这里回落成 5，等于替没声明的插件
+/// 投了一张否决票，用户把设置调到 8 也拿不到。
+Future<int?> resolveDownloadConcurrency({
   required String from,
   String? pluginId,
 }) async {
-  const fallback = 5;
   try {
     final data = await callUnifiedComicPlugin(
       from: from,
@@ -122,11 +132,25 @@ Future<int> resolveDownloadConcurrency({
       raw = nested['concurrency'] ?? nested['value'];
     }
     final parsed = int.tryParse(raw?.toString().trim() ?? '');
-    if (parsed == null) return fallback;
-    return parsed.clamp(1, 32);
+    if (parsed == null) return null;
+    return parsed.clamp(1, kMaxImageConcurrency);
   } catch (_) {
-    return fallback;
+    return null;
   }
+}
+
+/// 最终图片并发数 = 用户目标值，被插件声明的上限压低时取插件值。
+///
+/// 插件没声明（[pluginLimit] 为 null）就照用户的意思来；[userTarget] 已由
+/// 调用方钳进 1..[kMaxImageConcurrency]。
+int resolveEffectiveImageConcurrency({
+  required int? pluginLimit,
+  required int userTarget,
+}) {
+  final target = userTarget.clamp(1, kMaxImageConcurrency);
+  final limit = pluginLimit;
+  if (limit == null) return target;
+  return limit.clamp(1, target);
 }
 
 Future<DownloadImageJobsResult> downloadImageJobs({
@@ -139,6 +163,7 @@ Future<DownloadImageJobsResult> downloadImageJobs({
   required Future<void> Function() ensureTaskRunning,
   bool Function()? shouldRetryUntilSuccess,
   required DownloadProgressReporter reporter,
+  DownloadSpeedMeter? speedMeter,
   Future<void> Function(Object error, DownloadImageJob job)? onError,
   Future<void> Function(
     int completed,
@@ -146,6 +171,7 @@ Future<DownloadImageJobsResult> downloadImageJobs({
     int reused,
     DownloadImageJob completedJob,
     bool jobSkipped,
+    double bytesPerSecond,
   )?
   onProgress,
 }) async {
@@ -224,6 +250,7 @@ Future<DownloadImageJobsResult> downloadImageJobs({
           reused++;
         } else {
           downloaded++;
+          speedMeter?.addBytes(result.byteLength);
           // 风控节流：网络下载完成后执行设定的等待间隔
           if (requestDelay != null && requestDelay > Duration.zero) {
             await Future.delayed(requestDelay);
@@ -259,7 +286,14 @@ Future<DownloadImageJobsResult> downloadImageJobs({
         continue;
       }
       if (onProgress != null) {
-        await onProgress(progress, downloaded, reused, currentJob, jobSkipped);
+        await onProgress(
+          progress,
+          downloaded,
+          reused,
+          currentJob,
+          jobSkipped,
+          speedMeter?.bytesPerSecond ?? 0,
+        );
       }
       final currentPercent = (progress / jobs.length * 100).floor();
       if (onProgress == null && currentPercent > lastReportedPercent) {
@@ -305,12 +339,20 @@ Future<DownloadImageJobsResult> downloadImageJobs({
           reused++;
         } else {
           downloaded++;
+          speedMeter?.addBytes(result.byteLength);
           if (requestDelay != null && requestDelay > Duration.zero) {
             await Future.delayed(requestDelay);
           }
         }
         if (onProgress != null) {
-          await onProgress(progress, downloaded, reused, job, false);
+          await onProgress(
+            progress,
+            downloaded,
+            reused,
+            job,
+            false,
+            speedMeter?.bytesPerSecond ?? 0,
+          );
         }
       } on DownloadImageJobException catch (e) {
         // 补重试时才暴露出真 404 / 空数据的图，同样记跳过而不是算失败。
@@ -319,7 +361,14 @@ Future<DownloadImageJobsResult> downloadImageJobs({
           progress++;
           skipped++;
           if (onProgress != null) {
-            await onProgress(progress, downloaded, reused, job, true);
+            await onProgress(
+              progress,
+              downloaded,
+              reused,
+              job,
+              true,
+              speedMeter?.bytesPerSecond ?? 0,
+            );
           }
         } else {
           stillFailedJobs.add(job);

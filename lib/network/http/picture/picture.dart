@@ -810,6 +810,7 @@ class DownloadPictureResult {
     this.location,
     this.error,
     this.errorStackTrace,
+    this.byteLength = 0,
   });
 
   final DownloadPictureResultStatus status;
@@ -817,6 +818,9 @@ class DownloadPictureResult {
   final DownloadAssetLocation? location;
   final Object? error;
   final StackTrace? errorStackTrace;
+
+  /// 本次网络下载的图片字节数；复用已有文件（existing）或失败时为 0。
+  final int byteLength;
 
   bool get isSuccess =>
       status == DownloadPictureResultStatus.existing ||

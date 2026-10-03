@@ -946,6 +946,12 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '同时下载图片的线程数，若经常遇到风控或限流建议设为 2~3'
 	String get downloadConcurrencySubtitle => '同时下载图片的线程数，若经常遇到风控或限流建议设为 2~3';
 
+	/// zh-CN: '同时下载章节数'
+	String get downloadTaskConcurrency => '同时下载章节数';
+
+	/// zh-CN: '同时下载几个章节；1 = 逐个下载，遇到风控或验证码时调小'
+	String get downloadTaskConcurrencySubtitle => '同时下载几个章节；1 = 逐个下载，遇到风控或验证码时调小';
+
 	/// zh-CN: '单图下载延时'
 	String get downloadDelay => '单图下载延时';
 
@@ -1128,6 +1134,12 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '在漫画详情页点击封面直接开始阅读'
 	String get clickCoverToStartReadingSubtitle => '在漫画详情页点击封面直接开始阅读';
+
+	/// zh-CN: '搜索历史按插件分时间线'
+	String get searchHistoryGroupBySource => '搜索历史按插件分时间线';
+
+	/// zh-CN: '开启后每个图源各自一条搜索时间线，不再全部堆在一起；「聚合搜索」是跨全部插件搜出来的，「未分类」是这次改造之前留下的老记录，归属已经丢了'
+	String get searchHistoryGroupBySourceSubtitle => '开启后每个图源各自一条搜索时间线，不再全部堆在一起；「聚合搜索」是跨全部插件搜出来的，「未分类」是这次改造之前留下的老记录，归属已经丢了';
 
 	/// zh-CN: '详情页内置阅读按钮'
 	String get comicInfoInlineReadButton => '详情页内置阅读按钮';
@@ -1620,6 +1632,36 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '主页已更新'
 	String get fileManagerHomePathSet => '主页已更新';
+
+	/// zh-CN: '系统集成'
+	String get shellIntegration => '系统集成';
+
+	/// zh-CN: '在右键菜单显示「用 Rossi 打开」'
+	String get shellIntegrationContextMenu => '在右键菜单显示「用 Rossi 打开」';
+
+	/// zh-CN: '写当前用户的注册表（HKCU），不需要管理员权限；选中文件、选中文件夹、文件夹空白处三处都会出现。应用已经在运行时暂时不会把新目录递进来，要先开一个新 Rossi 窗口。'
+	String get shellIntegrationContextMenuSubtitle => '写当前用户的注册表（HKCU），不需要管理员权限；选中文件、选中文件夹、文件夹空白处三处都会出现。应用已经在运行时暂时不会把新目录递进来，要先开一个新 Rossi 窗口。';
+
+	/// zh-CN: '已加入右键菜单'
+	String get shellIntegrationRegistered => '已加入右键菜单';
+
+	/// zh-CN: '已从右键菜单移除'
+	String get shellIntegrationUnregistered => '已从右键菜单移除';
+
+	/// zh-CN: '菜单项指向的已经不是当前这个 Rossi，关掉再打开一次即可修正'
+	String get shellIntegrationStalePath => '菜单项指向的已经不是当前这个 Rossi，关掉再打开一次即可修正';
+
+	/// zh-CN: '修正指向'
+	String get shellIntegrationRepair => '修正指向';
+
+	/// zh-CN: 'macOS 的「打开方式 → Rossi」由应用包声明的文档类型决定，一直可用、没有开关；这颗开关只管 Windows。'
+	String get shellIntegrationMacHint => 'macOS 的「打开方式 → Rossi」由应用包声明的文档类型决定，一直可用、没有开关；这颗开关只管 Windows。';
+
+	/// zh-CN: '这个路径已经不在了：$path'
+	String openIntentMissing({required Object path}) => '这个路径已经不在了：${path}';
+
+	/// zh-CN: '一次只打开第一项，其余 $count 项已忽略'
+	String openIntentMultiSkipped({required Object count}) => '一次只打开第一项，其余 ${count} 项已忽略';
 
 	/// zh-CN: '操作绑定'
 	String get operationBinding => '操作绑定';
@@ -2563,6 +2605,9 @@ class Translations$comicInfo$zh_CN {
 	/// zh-CN: '已将 $name 复制到剪贴板'
 	String copiedToClipboard({required Object name}) => '已将 ${name} 复制到剪贴板';
 
+	/// zh-CN: '在原站打开'
+	String get openOnSource => '在原站打开';
+
 	/// zh-CN: '点赞中...'
 	String get liking => '点赞中...';
 
@@ -3303,6 +3348,27 @@ class Translations$reader$zh_CN {
 
 	/// zh-CN: '信息条'
 	String get infoBar => '信息条';
+
+	/// zh-CN: '阅读'
+	String get tabRead => '阅读';
+
+	/// zh-CN: '手势'
+	String get tabGesture => '手势';
+
+	/// zh-CN: '界面'
+	String get tabScreen => '界面';
+
+	/// zh-CN: '画面'
+	String get tabPicture => '画面';
+
+	/// zh-CN: '翻译'
+	String get tabTranslate => '翻译';
+
+	/// zh-CN: '上下栏与边距'
+	String get chromeSection => '上下栏与边距';
+
+	/// zh-CN: '画面处理'
+	String get tuningSection => '画面处理';
 
 	/// zh-CN: '暂停自动阅读'
 	String get pauseAutoRead => '暂停自动阅读';
@@ -4216,6 +4282,12 @@ class Translations$ocr$zh_CN {
 	/// zh-CN: '选「API 端点」按 token 计费/要网络；选「Apple 系统翻译」走端侧，免费离线'
 	String get engineSubtitle => '选「API 端点」按 token 计费/要网络；选「Apple 系统翻译」走端侧，免费离线';
 
+	/// zh-CN: '翻到新的一页自动译'
+	String get autoTranslatePage => '翻到新的一页自动译';
+
+	/// zh-CN: '一张成品页要十几秒，开着等于往后每页都得等。关掉只管之后的页，已经生成的译文页留着。'
+	String get autoTranslatePageSubtitle => '一张成品页要十几秒，开着等于往后每页都得等。关掉只管之后的页，已经生成的译文页留着。';
+
 	/// zh-CN: '语言包已装，直接生效（整页 15 块实测约 300 ms）'
 	String get engineAppleInstalled => '语言包已装，直接生效（整页 15 块实测约 300 ms）';
 
@@ -4743,6 +4815,18 @@ class Translations$search$zh_CN {
 
 	/// zh-CN: '暂无搜索记录'
 	String get noHistory => '暂无搜索记录';
+
+	/// zh-CN: '已按插件分时间线，点击合并成一条'
+	String get groupByPluginTooltipOn => '已按插件分时间线，点击合并成一条';
+
+	/// zh-CN: '全部堆在一条时间线上，点击按插件分组'
+	String get groupByPluginTooltipOff => '全部堆在一条时间线上，点击按插件分组';
+
+	/// zh-CN: '聚合搜索'
+	String get historyGroupAggregate => '聚合搜索';
+
+	/// zh-CN: '未分类'
+	String get historyGroupUncategorized => '未分类';
 
 	/// zh-CN: '🔍 搜索技巧'
 	String get tipsTitle => '🔍 搜索技巧';
@@ -5439,6 +5523,33 @@ class Translations$download$zh_CN {
 
 	/// zh-CN: '当前章节下载进度: 100%'
 	String get statusDownloadProgressComplete => '当前章节下载进度: 100%';
+
+	/// zh-CN: '已下载 $completed/$total 页'
+	String progressPages({required Object completed, required Object total}) => '已下载 ${completed}/${total} 页';
+
+	/// zh-CN: '已下载 $completed/$total 页 · $speed'
+	String progressPagesWithSpeed({required Object completed, required Object total, required Object speed}) => '已下载 ${completed}/${total} 页 · ${speed}';
+
+	/// zh-CN: '同时下载 $count 个任务 · $message'
+	String parallelTaskProgress({required Object count, required Object message}) => '同时下载 ${count} 个任务 · ${message}';
+
+	/// zh-CN: '下载设置'
+	String get settingsTitle => '下载设置';
+
+	/// zh-CN: '当前最多同时请求 $count 张图（同时下载章节数 × 单章节图片并发）'
+	String settingsBudgetHint({required Object count}) => '当前最多同时请求 ${count} 张图（同时下载章节数 × 单章节图片并发）';
+
+	/// zh-CN: '已离线漫画'
+	String get offlineTitle => '已离线漫画';
+
+	/// zh-CN: '还没有已下载的漫画'
+	String get offlineEmpty => '还没有已下载的漫画';
+
+	/// zh-CN: '已下 $completed/$total 章'
+	String offlineChapterCount({required Object completed, required Object total}) => '已下 ${completed}/${total} 章';
+
+	/// zh-CN: '已下 $count 章'
+	String offlineChapterCountOnly({required Object count}) => '已下 ${count} 章';
 
 	/// zh-CN: '漫画进度: $completedChapters/$totalChapters 章，当前章节: $currentChapterCompletedImages/$currentChapterTotalImages 页'
 	String statusComicProgress({required Object completedChapters, required Object totalChapters, required Object currentChapterCompletedImages, required Object currentChapterTotalImages}) => '漫画进度: ${completedChapters}/${totalChapters} 章，当前章节: ${currentChapterCompletedImages}/${currentChapterTotalImages} 页';
@@ -6496,6 +6607,8 @@ extension on Translations {
 			'settings.downloadSettings' => '下载设置',
 			'settings.downloadConcurrency' => '下载并发数',
 			'settings.downloadConcurrencySubtitle' => '同时下载图片的线程数，若经常遇到风控或限流建议设为 2~3',
+			'settings.downloadTaskConcurrency' => '同时下载章节数',
+			'settings.downloadTaskConcurrencySubtitle' => '同时下载几个章节；1 = 逐个下载，遇到风控或验证码时调小',
 			'settings.downloadDelay' => '单图下载延时',
 			'settings.downloadDelaySubtitle' => '每次图片请求之间的节流间隔，可有效规避源站风控 (429)',
 			'settings.downloadAutoRetryCount' => '失败自动重试次数',
@@ -6557,6 +6670,8 @@ extension on Translations {
 			'settings.searchHistoryGroupBySource' => '搜索历史按插件分时间线',
 			'settings.searchHistoryGroupBySourceSubtitle' => '开启后每个图源各自一条搜索时间线，不再全部堆在一起；「聚合搜索」是跨全部插件搜出来的，「未分类」是这次改造之前留下的老记录，归属已经丢了',
 			'settings.clickCoverToStartReadingSubtitle' => '在漫画详情页点击封面直接开始阅读',
+			'settings.searchHistoryGroupBySource' => '搜索历史按插件分时间线',
+			'settings.searchHistoryGroupBySourceSubtitle' => '开启后每个图源各自一条搜索时间线，不再全部堆在一起；「聚合搜索」是跨全部插件搜出来的，「未分类」是这次改造之前留下的老记录，归属已经丢了',
 			'settings.comicInfoInlineReadButton' => '详情页内置阅读按钮',
 			'settings.comicInfoInlineReadButtonSubtitle' => '桌面端在操作行里「下载」旁边放一个阅读按钮，并撤掉右下角的悬浮按钮',
 			'settings.comicInfoRailLiquidGlass' => '详情页操作栏液态玻璃',
@@ -6721,6 +6836,18 @@ extension on Translations {
 			'settings.fileManagerFileOperations' => '允许修改文件',
 			'settings.fileManagerFileOperationsSubtitle' => '复制、移动、重命名、新建与删除。关闭后右键菜单、多选与操作条都会消失，文件管理器回到只看不改',
 			'settings.fileManagerHomePathSet' => '主页已更新',
+			'settings.shellIntegration' => '系统集成',
+			'settings.shellIntegrationContextMenu' => '在右键菜单显示「用 Rossi 打开」',
+			'settings.shellIntegrationContextMenuSubtitle' => '写当前用户的注册表（HKCU），不需要管理员权限；选中文件、选中文件夹、文件夹空白处三处都会出现。应用已经在运行时暂时不会把新目录递进来，要先开一个新 Rossi 窗口。',
+			'settings.shellIntegrationRegistered' => '已加入右键菜单',
+			'settings.shellIntegrationUnregistered' => '已从右键菜单移除',
+			'settings.shellIntegrationStalePath' => '菜单项指向的已经不是当前这个 Rossi，关掉再打开一次即可修正',
+			'settings.shellIntegrationRepair' => '修正指向',
+			'settings.shellIntegrationMacHint' => 'macOS 的「打开方式 → Rossi」由应用包声明的文档类型决定，一直可用、没有开关；这颗开关只管 Windows。',
+			'settings.openIntentMissing' => ({required Object path}) => '这个路径已经不在了：${path}',
+			_ => null,
+		} ?? switch (path) {
+			'settings.openIntentMultiSkipped' => ({required Object count}) => '一次只打开第一项，其余 ${count} 项已忽略',
 			'settings.operationBinding' => '操作绑定',
 			'settings.operationBindingEntrySubtitle' => '按键、点击分区与绑定包',
 			'settings.operationBindingSubtitle' => '按键与点击对应哪个动作，由这张表决定。保存即刻生效，不需要重启。',
@@ -7031,6 +7158,7 @@ extension on Translations {
 			'comicInfo.readHistory' => '阅读记录',
 			'comicInfo.copied' => ({required Object label}) => '已复制：${label}',
 			'comicInfo.copiedToClipboard' => ({required Object name}) => '已将 ${name} 复制到剪贴板',
+			'comicInfo.openOnSource' => '在原站打开',
 			'comicInfo.liking' => '点赞中...',
 			'comicInfo.unliking' => '取消点赞中...',
 			'comicInfo.likeSuccess' => '点赞成功',
@@ -7233,6 +7361,8 @@ extension on Translations {
 			'reader.allHiddenNotice' => '当前已全部关闭，阅读页中的信息条会完全隐藏。',
 			'reader.edgePaddingDisabled' => '横向在中间时，边缘间距不会生效。',
 			'reader.bottomProgressBar' => '底部进度条',
+			_ => null,
+		} ?? switch (path) {
 			'reader.bottomProgressBarSubtitle' => '在画面底边画一条常驻细条表示翻页进度。它不随上下栏收起，与左下角信息条各开各的、互不影响',
 			'reader.bottomProgressBarGlow' => '进度条荧光',
 			'reader.bottomProgressBarGlowSubtitle' => '给已经走过的这一段加一圈光晕',
@@ -7279,6 +7409,13 @@ extension on Translations {
 			'reader.pixels' => 'px',
 			'reader.gesture' => '手势与悬停',
 			'reader.infoBar' => '信息条',
+			'reader.tabRead' => '阅读',
+			'reader.tabGesture' => '手势',
+			'reader.tabScreen' => '界面',
+			'reader.tabPicture' => '画面',
+			'reader.tabTranslate' => '翻译',
+			'reader.chromeSection' => '上下栏与边距',
+			'reader.tuningSection' => '画面处理',
 			'reader.pauseAutoRead' => '暂停自动阅读',
 			'reader.resumeAutoRead' => '继续自动阅读',
 			'reader.imageLoadFailedRetry' => ({required Object error}) => '${error}\n加载失败，点击重试',
@@ -7559,6 +7696,8 @@ extension on Translations {
 			'ocr.needWeights' => '权重还没下全，去设置里下载',
 			'ocr.engine' => '译文引擎',
 			'ocr.engineSubtitle' => '选「API 端点」按 token 计费/要网络；选「Apple 系统翻译」走端侧，免费离线',
+			'ocr.autoTranslatePage' => '翻到新的一页自动译',
+			'ocr.autoTranslatePageSubtitle' => '一张成品页要十几秒，开着等于往后每页都得等。关掉只管之后的页，已经生成的译文页留着。',
 			'ocr.engineAppleInstalled' => '语言包已装，直接生效（整页 15 块实测约 300 ms）',
 			'ocr.engineAppleMissing' => '还没装 ja → 目标语言 的翻译语言包。系统里没有 app 能替你下载的 API —— 请到「系统设置 › 通用 › 语言与地区」里装好再回来',
 			'ocr.engineAppleUnsupportedPair' => '系统不认识这个语言对，换目标语言或改用端点',
@@ -7720,6 +7859,10 @@ extension on Translations {
 			'search.historyGroupAggregate' => '聚合搜索',
 			'search.historyGroupUncategorized' => '未分类',
 			'search.noHistory' => '暂无搜索记录',
+			'search.groupByPluginTooltipOn' => '已按插件分时间线，点击合并成一条',
+			'search.groupByPluginTooltipOff' => '全部堆在一条时间线上，点击按插件分组',
+			'search.historyGroupAggregate' => '聚合搜索',
+			'search.historyGroupUncategorized' => '未分类',
 			'search.tipsTitle' => '🔍 搜索技巧',
 			'search.exactSearchTitle' => '精准搜索（同时满足）',
 			'search.exactSearchExample' => '全彩(空格)+人妻',
@@ -7740,6 +7883,8 @@ extension on Translations {
 			'search.selectSourceTooltip' => '选择漫画源',
 			'search.hasResults' => '有结果',
 			'search.showErrors' => '显示错误',
+			_ => null,
+		} ?? switch (path) {
 			'search.resultCount' => ({required Object count}) => '${count} 条',
 			'search.noResults' => '无结果',
 			'search.loadFailedForSource' => ({required Object source}) => '${source} 加载失败',
@@ -7923,6 +8068,15 @@ extension on Translations {
 			'download.statusFetchingChapterInfoProgress' => ({required Object completed, required Object total, required Object percent}) => '获取章节信息中... (${completed}/${total}, ${percent}%)',
 			'download.statusDownloadProgress' => ({required Object percent}) => '当前章节下载进度: ${percent}%',
 			'download.statusDownloadProgressComplete' => '当前章节下载进度: 100%',
+			'download.progressPages' => ({required Object completed, required Object total}) => '已下载 ${completed}/${total} 页',
+			'download.progressPagesWithSpeed' => ({required Object completed, required Object total, required Object speed}) => '已下载 ${completed}/${total} 页 · ${speed}',
+			'download.parallelTaskProgress' => ({required Object count, required Object message}) => '同时下载 ${count} 个任务 · ${message}',
+			'download.settingsTitle' => '下载设置',
+			'download.settingsBudgetHint' => ({required Object count}) => '当前最多同时请求 ${count} 张图（同时下载章节数 × 单章节图片并发）',
+			'download.offlineTitle' => '已离线漫画',
+			'download.offlineEmpty' => '还没有已下载的漫画',
+			'download.offlineChapterCount' => ({required Object completed, required Object total}) => '已下 ${completed}/${total} 章',
+			'download.offlineChapterCountOnly' => ({required Object count}) => '已下 ${count} 章',
 			'download.statusComicProgress' => ({required Object completedChapters, required Object totalChapters, required Object currentChapterCompletedImages, required Object currentChapterTotalImages}) => '漫画进度: ${completedChapters}/${totalChapters} 章，当前章节: ${currentChapterCompletedImages}/${currentChapterTotalImages} 页',
 			'download.statusComicProgressChaptersOnly' => ({required Object completedChapters, required Object totalChapters}) => '漫画进度: ${completedChapters}/${totalChapters} 章',
 			'download.statusStartDownload' => '开始下载...',

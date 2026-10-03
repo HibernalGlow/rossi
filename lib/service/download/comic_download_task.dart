@@ -20,6 +20,8 @@ import 'package:zephyr/service/download/download_asset_store.dart';
 import 'package:zephyr/service/download/download_metadata_writer.dart';
 import 'package:zephyr/service/download/download_progress_reporter.dart';
 import 'package:zephyr/service/download/download_retry.dart';
+import 'package:zephyr/service/download/download_speed_meter.dart';
+import 'package:zephyr/service/download/download_task_progress.dart';
 import 'package:zephyr/service/download/download_task_repository.dart';
 import 'package:zephyr/service/download/models/download_task_json.dart';
 import 'package:zephyr/i18n/strings.g.dart';
@@ -58,16 +60,21 @@ Future<void> unifiedDownloadTask(
         .get(1)
         ?.globalSetting
         .downloadConcurrency;
-    return (val != null && val >= 1 && val <= 5) ? val : 3;
+    return (val != null && val >= 1 && val <= kMaxImageConcurrency) ? val : 3;
   }
 
   Duration resolveRequestDelay() {
     final ms = objectbox.userSettingBox.get(1)?.globalSetting.downloadDelayMs;
-    return Duration(milliseconds: (ms != null && ms >= 0) ? ms : 150);
+    return Duration(
+      milliseconds: (ms != null && ms >= 0 && ms <= kMaxDownloadDelayMs)
+          ? ms
+          : 150,
+    );
   }
 
   Timer? progressTimer;
   bool running = true;
+  final speedMeter = DownloadSpeedMeter();
 
   DownloadTask? findCurrentTask() {
     final current = taskRepository.findByTaskKey(taskKey);
@@ -139,6 +146,24 @@ Future<void> unifiedDownloadTask(
       chapterId: chapter.id,
       docPaths: completedPaths,
     );
+  }
+
+  /// 停止本章时的善后：取消要删掉已下的散图；暂停则保留，
+  /// 恢复时 downloadPicture 会按 existing 复用，进度不必从头再来。
+  Future<void> cleanupChapterFilesOnStop() async {
+    // 中断原因以信号为准（触发点同步写入，没有读写竞态）；DB 状态只作兜底。
+    var paused = downloadStopReason(taskKey) == DownloadStopReason.paused;
+    if (!paused) {
+      final current = taskRepository.findByTaskKey(taskKey);
+      paused =
+          current != null &&
+          taskRepository.readPayload(current)?.stateCode == 'paused';
+    }
+    if (paused) {
+      logger.i('任务已暂停，保留本章已下载散图: taskKey=$taskKey');
+      return;
+    }
+    await deleteChapterFiles();
   }
 
   try {
@@ -259,9 +284,14 @@ Future<void> unifiedDownloadTask(
     }
 
     progressTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (running) {
-        updateTaskStatus(reporter.message);
-      }
+      if (!running) return;
+      // 速度每秒回写一次：窗口内没有新样本时它会自然衰减，
+      // UI 才能看出「卡住了」而不是停在最后一个速度值上。
+      updateCheckpoint(
+        (payload) =>
+            payload.copyWith(bytesPerSecond: speedMeter.bytesPerSecond.round()),
+        status: reporter.message,
+      );
     });
 
     await ensureTaskRunning();
@@ -274,6 +304,7 @@ Future<void> unifiedDownloadTask(
         completedImages: 0,
         reusedImages: 0,
         totalImages: 0,
+        bytesPerSecond: 0,
       ),
     );
 
@@ -329,14 +360,25 @@ Future<void> unifiedDownloadTask(
         ensureTaskRunning: ensureTaskRunning,
         shouldRetryUntilSuccess: shouldRetryUntilSuccess,
         reporter: reporter,
-        // 上游让插件决定并发；本仓的设置页并发数是用户显式上限，取两者较小值。
-        concurrency: (await resolveDownloadConcurrency(
-          from: from,
-          pluginId: pluginId,
-        )).clamp(1, resolveConcurrency()),
+        // 上游让插件决定并发；插件没表态时按用户设置走，表态了就把用户值压低。
+        concurrency: resolveEffectiveImageConcurrency(
+          pluginLimit: await resolveDownloadConcurrency(
+            from: from,
+            pluginId: pluginId,
+          ),
+          userTarget: resolveConcurrency(),
+        ),
         requestDelay: resolveRequestDelay(),
+        speedMeter: speedMeter,
         onProgress:
-            (completed, downloaded, reused, completedJob, jobSkipped) async {
+            (
+              completed,
+              downloaded,
+              reused,
+              completedJob,
+              jobSkipped,
+              bytesPerSecond,
+            ) async {
               if (completedJob.path.trim().isNotEmpty) {
                 completedPaths.add(completedJob.path);
                 // 真 404 的图记下来，落库时打跳过标记（不再按失败处理）。
@@ -348,12 +390,16 @@ Future<void> unifiedDownloadTask(
               if (currentPercent > lastReportedPercent ||
                   completed == jobs.length) {
                 lastReportedPercent = currentPercent;
-                final message = t.download.statusDownloadProgress(
-                  percent: currentPercent,
+                final message = downloadPagesProgressText(
+                  completedImages: completed,
+                  totalImages: jobs.length,
+                  bytesPerSecond: bytesPerSecond,
                 );
                 // 进度只走内存 + 通知流，不写库（1s Timer 负责同步 status）。
                 // 之前这里每张图写库，主线程约 13ms，是卡顿主因。
-                reporter.updateMessage(message);
+                if (message.isNotEmpty) {
+                  reporter.updateMessage(message);
+                }
               }
 
               final now = DateTime.now();
@@ -369,14 +415,16 @@ Future<void> unifiedDownloadTask(
                   completedImages: completed,
                   reusedImages: reused,
                   totalImages: jobs.length,
+                  bytesPerSecond: bytesPerSecond.round(),
                   imagePaths: completedPaths.toList(),
                 ),
               );
             },
       );
     } on DownloadTaskCancelledException {
-      // 取消本章：删掉已下的散图后继续向上抛，队列会删任务记录并继续下一章。
-      await deleteChapterFiles();
+      // 取消本章：删掉已下的散图后继续向上抛，队列会删任务记录并继续下一章；
+      // 暂停则保留散图，恢复时复用。
+      await cleanupChapterFilesOnStop();
       rethrow;
     }
 
@@ -399,6 +447,7 @@ Future<void> unifiedDownloadTask(
         phaseCode: 'completed',
         completedImages: jobs.length,
         totalImages: jobs.length,
+        bytesPerSecond: 0,
         imagePaths: completedPaths.toList(),
       ),
     );
@@ -407,8 +456,8 @@ Future<void> unifiedDownloadTask(
     // 单章节任务模型下每章完成都会重写一次整本元数据，写的是同一份目录描述文件。
     await _writeDownloadMetadataIfNeeded(from: from, comicId: comicId);
   } on DownloadTaskCancelledException {
-    // 检查点之间的取消同样要清理散图。
-    await deleteChapterFiles();
+    // 检查点之间的取消同样要清理散图（暂停时 cleanupChapterFilesOnStop 会跳过）。
+    await cleanupChapterFilesOnStop();
     rethrow;
   } finally {
     running = false;

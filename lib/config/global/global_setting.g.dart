@@ -49,6 +49,8 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
   skipUpdateCheck: json['skipUpdateCheck'] as bool? ?? true,
   retryDownloadUntilSuccess: json['retryDownloadUntilSuccess'] as bool? ?? true,
   downloadConcurrency: (json['downloadConcurrency'] as num?)?.toInt() ?? 3,
+  downloadTaskConcurrency:
+      (json['downloadTaskConcurrency'] as num?)?.toInt() ?? 2,
   downloadDelayMs: (json['downloadDelayMs'] as num?)?.toInt() ?? 150,
   downloadAutoRetryCount:
       (json['downloadAutoRetryCount'] as num?)?.toInt() ?? 3,
@@ -181,6 +183,7 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'skipUpdateCheck': instance.skipUpdateCheck,
       'retryDownloadUntilSuccess': instance.retryDownloadUntilSuccess,
       'downloadConcurrency': instance.downloadConcurrency,
+      'downloadTaskConcurrency': instance.downloadTaskConcurrency,
       'downloadDelayMs': instance.downloadDelayMs,
       'downloadAutoRetryCount': instance.downloadAutoRetryCount,
       'oldPageRollbackEnabled': instance.oldPageRollbackEnabled,

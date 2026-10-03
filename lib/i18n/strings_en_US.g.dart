@@ -390,6 +390,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get downloadSettings => 'Download Settings';
 	@override String get downloadConcurrency => 'Download Concurrency';
 	@override String get downloadConcurrencySubtitle => 'Number of concurrent image download threads; reduce if facing rate limits or captcha';
+	@override String get downloadTaskConcurrency => 'Concurrent Chapter Downloads';
+	@override String get downloadTaskConcurrencySubtitle => 'How many chapters download at the same time; 1 = one by one. Lower it when hitting rate limits or captchas';
 	@override String get downloadDelay => 'Image Request Delay';
 	@override String get downloadDelaySubtitle => 'Pacing delay between image requests to prevent rate limiting (429)';
 	@override String get downloadAutoRetryCount => 'Auto Retry Count';
@@ -451,6 +453,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get searchHistoryGroupBySource => 'Split search history by plugin';
 	@override String get searchHistoryGroupBySourceSubtitle => 'When on, every source gets its own search timeline instead of one mixed pile. "Aggregate search" holds cross-plugin queries; "Uncategorized" holds records saved before this feature, whose source is gone';
 	@override String get clickCoverToStartReadingSubtitle => 'Tap the cover on the comic info page to start reading directly';
+	@override String get searchHistoryGroupBySource => 'Split search history by plugin';
+	@override String get searchHistoryGroupBySourceSubtitle => 'When on, every source gets its own search timeline instead of one mixed pile. "Aggregate search" holds cross-plugin queries; "Uncategorized" holds records saved before this feature, whose source is gone';
 	@override String get comicInfoInlineReadButton => 'Read button in comic info page';
 	@override String get comicInfoInlineReadButtonSubtitle => 'On desktop, put a read button next to Download in the action row and drop the floating read button at the bottom-right';
 	@override String get comicInfoRailLiquidGlass => 'Liquid glass for the action rail';
@@ -615,6 +619,16 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get fileManagerFileOperations => 'Allow modifying files';
 	@override String get fileManagerFileOperationsSubtitle => 'Copy, move, rename, create and delete. When off, the context menu, multi-select and the action bar all disappear and the file manager goes back to read-only';
 	@override String get fileManagerHomePathSet => 'Home updated';
+	@override String get shellIntegration => 'System integration';
+	@override String get shellIntegrationContextMenu => 'Show “Open with Rossi” in the context menu';
+	@override String get shellIntegrationContextMenuSubtitle => 'Writes to the current user\'s registry (HKCU), no administrator needed. The entry appears on files, on folders and on a folder\'s background. While Rossi is already running a new folder is not handed to it yet - open a second window instead.';
+	@override String get shellIntegrationRegistered => 'Added to the context menu';
+	@override String get shellIntegrationUnregistered => 'Removed from the context menu';
+	@override String get shellIntegrationStalePath => 'The menu entry points at a different Rossi build; switch it off and on again to fix it';
+	@override String get shellIntegrationRepair => 'Repair path';
+	@override String get shellIntegrationMacHint => 'On macOS “Open With ‣ Rossi” comes from the document types the app bundle declares - always available, no switch. This toggle only affects Windows.';
+	@override String openIntentMissing({required Object path}) => 'This path no longer exists: ${path}';
+	@override String openIntentMultiSkipped({required Object count}) => 'Only the first item opens; ${count} others were skipped';
 	@override String get operationBinding => 'Operation bindings';
 	@override String get operationBindingEntrySubtitle => 'Keys, tap zones and binding bundles';
 	@override String get operationBindingSubtitle => 'This table decides which action a key or a click triggers. Saving takes effect immediately, no restart needed.';
@@ -940,6 +954,7 @@ class _Translations$comicInfo$en_US extends Translations$comicInfo$zh_CN {
 	@override String get readHistory => 'Reading history';
 	@override String copied({required Object label}) => 'Copied: ${label}';
 	@override String copiedToClipboard({required Object name}) => 'Copied ${name} to clipboard';
+	@override String get openOnSource => 'Open on source';
 	@override String get liking => 'Liking...';
 	@override String get unliking => 'Unliking...';
 	@override String get likeSuccess => 'Liked';
@@ -1193,6 +1208,13 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get pixels => 'px';
 	@override String get gesture => 'Gestures & Hover';
 	@override String get infoBar => 'Info Bar';
+	@override String get tabRead => 'Reading';
+	@override String get tabGesture => 'Gestures';
+	@override String get tabScreen => 'Interface';
+	@override String get tabPicture => 'Picture';
+	@override String get tabTranslate => 'Translate';
+	@override String get chromeSection => 'Bars & margins';
+	@override String get tuningSection => 'Picture tuning';
 	@override String get pauseAutoRead => 'Pause auto read';
 	@override String get resumeAutoRead => 'Resume auto read';
 	@override String imageLoadFailedRetry({required Object error}) => '${error}\nLoad failed, tap to retry';
@@ -1545,6 +1567,8 @@ class _Translations$ocr$en_US extends Translations$ocr$zh_CN {
 	@override String get needWeights => 'Weights are incomplete; download them in Settings';
 	@override String get engine => 'Translation engine';
 	@override String get engineSubtitle => 'API endpoint bills per token and needs network; Apple system translation runs on-device, free and offline';
+	@override String get autoTranslatePage => 'Auto-translate each new page';
+	@override String get autoTranslatePageSubtitle => 'A finished page takes 10s+, so leaving this on means waiting on every page. Turning it off only affects later pages; already built pages stay.';
 	@override String get engineAppleInstalled => 'Language pack installed — active now (15 blocks measured at ~300 ms)';
 	@override String get engineAppleMissing => 'The ja → target translation language pack is not installed. There is no API for an app to download it — install it in System Settings › General › Language & Region, then come back';
 	@override String get engineAppleUnsupportedPair => 'The system does not know this language pair; change the target language or use an endpoint';
@@ -1751,6 +1775,10 @@ class _Translations$search$en_US extends Translations$search$zh_CN {
 	@override String get historyGroupAggregate => 'Aggregate search';
 	@override String get historyGroupUncategorized => 'Uncategorized';
 	@override String get noHistory => 'No search history';
+	@override String get groupByPluginTooltipOn => 'Grouped by plugin. Tap to merge into one timeline';
+	@override String get groupByPluginTooltipOff => 'One merged timeline. Tap to group by plugin';
+	@override String get historyGroupAggregate => 'Aggregate search';
+	@override String get historyGroupUncategorized => 'Uncategorized';
 	@override String get tipsTitle => '🔍 Search Tips';
 	@override String get exactSearchTitle => 'Exact search (AND)';
 	@override String get exactSearchExample => 'colorful + married';
@@ -2049,6 +2077,15 @@ class _Translations$download$en_US extends Translations$download$zh_CN {
 	@override String statusFetchingChapterInfoProgress({required Object completed, required Object total, required Object percent}) => 'Fetching chapter info... (${completed}/${total}, ${percent}%)';
 	@override String statusDownloadProgress({required Object percent}) => 'Current chapter download progress: ${percent}%';
 	@override String get statusDownloadProgressComplete => 'Current chapter download progress: 100%';
+	@override String progressPages({required Object completed, required Object total}) => 'Downloaded ${completed}/${total} pages';
+	@override String progressPagesWithSpeed({required Object completed, required Object total, required Object speed}) => 'Downloaded ${completed}/${total} pages · ${speed}';
+	@override String parallelTaskProgress({required Object count, required Object message}) => '${count} tasks downloading · ${message}';
+	@override String get settingsTitle => 'Download settings';
+	@override String settingsBudgetHint({required Object count}) => 'Up to ${count} images download at once (chapters at once × images per chapter)';
+	@override String get offlineTitle => 'Offline comics';
+	@override String get offlineEmpty => 'Nothing downloaded yet';
+	@override String offlineChapterCount({required Object completed, required Object total}) => '${completed}/${total} chapters downloaded';
+	@override String offlineChapterCountOnly({required Object count}) => '${count} chapters downloaded';
 	@override String statusComicProgress({required Object completedChapters, required Object totalChapters, required Object currentChapterCompletedImages, required Object currentChapterTotalImages}) => 'Comic progress: ${completedChapters}/${totalChapters} chapters, current chapter: ${currentChapterCompletedImages}/${currentChapterTotalImages} pages';
 	@override String statusComicProgressChaptersOnly({required Object completedChapters, required Object totalChapters}) => 'Comic progress: ${completedChapters}/${totalChapters} chapters';
 	@override String get statusStartDownload => 'Start downloading...';
@@ -2640,6 +2677,8 @@ extension on TranslationsEnUs {
 			'settings.downloadSettings' => 'Download Settings',
 			'settings.downloadConcurrency' => 'Download Concurrency',
 			'settings.downloadConcurrencySubtitle' => 'Number of concurrent image download threads; reduce if facing rate limits or captcha',
+			'settings.downloadTaskConcurrency' => 'Concurrent Chapter Downloads',
+			'settings.downloadTaskConcurrencySubtitle' => 'How many chapters download at the same time; 1 = one by one. Lower it when hitting rate limits or captchas',
 			'settings.downloadDelay' => 'Image Request Delay',
 			'settings.downloadDelaySubtitle' => 'Pacing delay between image requests to prevent rate limiting (429)',
 			'settings.downloadAutoRetryCount' => 'Auto Retry Count',
@@ -2701,6 +2740,8 @@ extension on TranslationsEnUs {
 			'settings.searchHistoryGroupBySource' => 'Split search history by plugin',
 			'settings.searchHistoryGroupBySourceSubtitle' => 'When on, every source gets its own search timeline instead of one mixed pile. "Aggregate search" holds cross-plugin queries; "Uncategorized" holds records saved before this feature, whose source is gone',
 			'settings.clickCoverToStartReadingSubtitle' => 'Tap the cover on the comic info page to start reading directly',
+			'settings.searchHistoryGroupBySource' => 'Split search history by plugin',
+			'settings.searchHistoryGroupBySourceSubtitle' => 'When on, every source gets its own search timeline instead of one mixed pile. "Aggregate search" holds cross-plugin queries; "Uncategorized" holds records saved before this feature, whose source is gone',
 			'settings.comicInfoInlineReadButton' => 'Read button in comic info page',
 			'settings.comicInfoInlineReadButtonSubtitle' => 'On desktop, put a read button next to Download in the action row and drop the floating read button at the bottom-right',
 			'settings.comicInfoRailLiquidGlass' => 'Liquid glass for the action rail',
@@ -2865,6 +2906,18 @@ extension on TranslationsEnUs {
 			'settings.fileManagerFileOperations' => 'Allow modifying files',
 			'settings.fileManagerFileOperationsSubtitle' => 'Copy, move, rename, create and delete. When off, the context menu, multi-select and the action bar all disappear and the file manager goes back to read-only',
 			'settings.fileManagerHomePathSet' => 'Home updated',
+			'settings.shellIntegration' => 'System integration',
+			'settings.shellIntegrationContextMenu' => 'Show “Open with Rossi” in the context menu',
+			'settings.shellIntegrationContextMenuSubtitle' => 'Writes to the current user\'s registry (HKCU), no administrator needed. The entry appears on files, on folders and on a folder\'s background. While Rossi is already running a new folder is not handed to it yet - open a second window instead.',
+			'settings.shellIntegrationRegistered' => 'Added to the context menu',
+			'settings.shellIntegrationUnregistered' => 'Removed from the context menu',
+			'settings.shellIntegrationStalePath' => 'The menu entry points at a different Rossi build; switch it off and on again to fix it',
+			'settings.shellIntegrationRepair' => 'Repair path',
+			'settings.shellIntegrationMacHint' => 'On macOS “Open With ‣ Rossi” comes from the document types the app bundle declares - always available, no switch. This toggle only affects Windows.',
+			'settings.openIntentMissing' => ({required Object path}) => 'This path no longer exists: ${path}',
+			_ => null,
+		} ?? switch (path) {
+			'settings.openIntentMultiSkipped' => ({required Object count}) => 'Only the first item opens; ${count} others were skipped',
 			'settings.operationBinding' => 'Operation bindings',
 			'settings.operationBindingEntrySubtitle' => 'Keys, tap zones and binding bundles',
 			'settings.operationBindingSubtitle' => 'This table decides which action a key or a click triggers. Saving takes effect immediately, no restart needed.',
@@ -3174,6 +3227,7 @@ extension on TranslationsEnUs {
 			'comicInfo.readHistory' => 'Reading history',
 			'comicInfo.copied' => ({required Object label}) => 'Copied: ${label}',
 			'comicInfo.copiedToClipboard' => ({required Object name}) => 'Copied ${name} to clipboard',
+			'comicInfo.openOnSource' => 'Open on source',
 			'comicInfo.liking' => 'Liking...',
 			'comicInfo.unliking' => 'Unliking...',
 			'comicInfo.likeSuccess' => 'Liked',
@@ -3377,6 +3431,8 @@ extension on TranslationsEnUs {
 			'reader.edgePaddingDisabled' => 'Edge padding has no effect when horizontally centered',
 			'reader.bottomProgressBar' => 'Bottom progress bar',
 			'reader.bottomProgressBarSubtitle' => 'Draw a thin always-on bar at the bottom edge of the page. It stays while the top/bottom bars are hidden, and is independent of the info pill',
+			_ => null,
+		} ?? switch (path) {
 			'reader.bottomProgressBarGlow' => 'Progress bar glow',
 			'reader.bottomProgressBarGlowSubtitle' => 'Add a halo to the part already read',
 			'reader.settings' => 'Reader settings',
@@ -3422,6 +3478,13 @@ extension on TranslationsEnUs {
 			'reader.pixels' => 'px',
 			'reader.gesture' => 'Gestures & Hover',
 			'reader.infoBar' => 'Info Bar',
+			'reader.tabRead' => 'Reading',
+			'reader.tabGesture' => 'Gestures',
+			'reader.tabScreen' => 'Interface',
+			'reader.tabPicture' => 'Picture',
+			'reader.tabTranslate' => 'Translate',
+			'reader.chromeSection' => 'Bars & margins',
+			'reader.tuningSection' => 'Picture tuning',
 			'reader.pauseAutoRead' => 'Pause auto read',
 			'reader.resumeAutoRead' => 'Resume auto read',
 			'reader.imageLoadFailedRetry' => ({required Object error}) => '${error}\nLoad failed, tap to retry',
@@ -3702,6 +3765,8 @@ extension on TranslationsEnUs {
 			'ocr.needWeights' => 'Weights are incomplete; download them in Settings',
 			'ocr.engine' => 'Translation engine',
 			'ocr.engineSubtitle' => 'API endpoint bills per token and needs network; Apple system translation runs on-device, free and offline',
+			'ocr.autoTranslatePage' => 'Auto-translate each new page',
+			'ocr.autoTranslatePageSubtitle' => 'A finished page takes 10s+, so leaving this on means waiting on every page. Turning it off only affects later pages; already built pages stay.',
 			'ocr.engineAppleInstalled' => 'Language pack installed — active now (15 blocks measured at ~300 ms)',
 			'ocr.engineAppleMissing' => 'The ja → target translation language pack is not installed. There is no API for an app to download it — install it in System Settings › General › Language & Region, then come back',
 			'ocr.engineAppleUnsupportedPair' => 'The system does not know this language pair; change the target language or use an endpoint',
@@ -3863,6 +3928,10 @@ extension on TranslationsEnUs {
 			'search.historyGroupAggregate' => 'Aggregate search',
 			'search.historyGroupUncategorized' => 'Uncategorized',
 			'search.noHistory' => 'No search history',
+			'search.groupByPluginTooltipOn' => 'Grouped by plugin. Tap to merge into one timeline',
+			'search.groupByPluginTooltipOff' => 'One merged timeline. Tap to group by plugin',
+			'search.historyGroupAggregate' => 'Aggregate search',
+			'search.historyGroupUncategorized' => 'Uncategorized',
 			'search.tipsTitle' => '🔍 Search Tips',
 			'search.exactSearchTitle' => 'Exact search (AND)',
 			'search.exactSearchExample' => 'colorful + married',
@@ -3884,6 +3953,8 @@ extension on TranslationsEnUs {
 			'search.hasResults' => 'With results',
 			'search.showErrors' => 'Show errors',
 			'search.resultCount' => ({required Object count}) => '${count} results',
+			_ => null,
+		} ?? switch (path) {
 			'search.noResults' => 'No results',
 			'search.loadFailedForSource' => ({required Object source}) => 'Failed to load ${source}',
 			'discover.title' => 'Discover',
@@ -4066,6 +4137,15 @@ extension on TranslationsEnUs {
 			'download.statusFetchingChapterInfoProgress' => ({required Object completed, required Object total, required Object percent}) => 'Fetching chapter info... (${completed}/${total}, ${percent}%)',
 			'download.statusDownloadProgress' => ({required Object percent}) => 'Current chapter download progress: ${percent}%',
 			'download.statusDownloadProgressComplete' => 'Current chapter download progress: 100%',
+			'download.progressPages' => ({required Object completed, required Object total}) => 'Downloaded ${completed}/${total} pages',
+			'download.progressPagesWithSpeed' => ({required Object completed, required Object total, required Object speed}) => 'Downloaded ${completed}/${total} pages · ${speed}',
+			'download.parallelTaskProgress' => ({required Object count, required Object message}) => '${count} tasks downloading · ${message}',
+			'download.settingsTitle' => 'Download settings',
+			'download.settingsBudgetHint' => ({required Object count}) => 'Up to ${count} images download at once (chapters at once × images per chapter)',
+			'download.offlineTitle' => 'Offline comics',
+			'download.offlineEmpty' => 'Nothing downloaded yet',
+			'download.offlineChapterCount' => ({required Object completed, required Object total}) => '${completed}/${total} chapters downloaded',
+			'download.offlineChapterCountOnly' => ({required Object count}) => '${count} chapters downloaded',
 			'download.statusComicProgress' => ({required Object completedChapters, required Object totalChapters, required Object currentChapterCompletedImages, required Object currentChapterTotalImages}) => 'Comic progress: ${completedChapters}/${totalChapters} chapters, current chapter: ${currentChapterCompletedImages}/${currentChapterTotalImages} pages',
 			'download.statusComicProgressChaptersOnly' => ({required Object completedChapters, required Object totalChapters}) => 'Comic progress: ${completedChapters}/${totalChapters} chapters',
 			'download.statusStartDownload' => 'Start downloading...',

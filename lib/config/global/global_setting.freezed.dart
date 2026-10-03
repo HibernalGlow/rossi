@@ -101,6 +101,7 @@ as bool,updateAccelerate: null == updateAccelerate ? _self.updateAccelerate : up
 as bool,skipUpdateCheck: null == skipUpdateCheck ? _self.skipUpdateCheck : skipUpdateCheck // ignore: cast_nullable_to_non_nullable
 as bool,retryDownloadUntilSuccess: null == retryDownloadUntilSuccess ? _self.retryDownloadUntilSuccess : retryDownloadUntilSuccess // ignore: cast_nullable_to_non_nullable
 as bool,downloadConcurrency: null == downloadConcurrency ? _self.downloadConcurrency : downloadConcurrency // ignore: cast_nullable_to_non_nullable
+as int,downloadTaskConcurrency: null == downloadTaskConcurrency ? _self.downloadTaskConcurrency : downloadTaskConcurrency // ignore: cast_nullable_to_non_nullable
 as int,downloadDelayMs: null == downloadDelayMs ? _self.downloadDelayMs : downloadDelayMs // ignore: cast_nullable_to_non_nullable
 as int,downloadAutoRetryCount: null == downloadAutoRetryCount ? _self.downloadAutoRetryCount : downloadAutoRetryCount // ignore: cast_nullable_to_non_nullable
 as int,oldPageRollbackEnabled: null == oldPageRollbackEnabled ? _self.oldPageRollbackEnabled : oldPageRollbackEnabled // ignore: cast_nullable_to_non_nullable
@@ -451,6 +452,7 @@ class _GlobalSettingState implements GlobalSettingState {
 @override@JsonKey() final  bool skipUpdateCheck;
 @override@JsonKey() final  bool retryDownloadUntilSuccess;
 @override@JsonKey() final  int downloadConcurrency;
+@override@JsonKey() final  int downloadTaskConcurrency;
 @override@JsonKey() final  int downloadDelayMs;
 @override@JsonKey() final  int downloadAutoRetryCount;
 @override@JsonKey() final  bool oldPageRollbackEnabled;
@@ -577,6 +579,7 @@ as bool,updateAccelerate: null == updateAccelerate ? _self.updateAccelerate : up
 as bool,skipUpdateCheck: null == skipUpdateCheck ? _self.skipUpdateCheck : skipUpdateCheck // ignore: cast_nullable_to_non_nullable
 as bool,retryDownloadUntilSuccess: null == retryDownloadUntilSuccess ? _self.retryDownloadUntilSuccess : retryDownloadUntilSuccess // ignore: cast_nullable_to_non_nullable
 as bool,downloadConcurrency: null == downloadConcurrency ? _self.downloadConcurrency : downloadConcurrency // ignore: cast_nullable_to_non_nullable
+as int,downloadTaskConcurrency: null == downloadTaskConcurrency ? _self.downloadTaskConcurrency : downloadTaskConcurrency // ignore: cast_nullable_to_non_nullable
 as int,downloadDelayMs: null == downloadDelayMs ? _self.downloadDelayMs : downloadDelayMs // ignore: cast_nullable_to_non_nullable
 as int,downloadAutoRetryCount: null == downloadAutoRetryCount ? _self.downloadAutoRetryCount : downloadAutoRetryCount // ignore: cast_nullable_to_non_nullable
 as int,oldPageRollbackEnabled: null == oldPageRollbackEnabled ? _self.oldPageRollbackEnabled : oldPageRollbackEnabled // ignore: cast_nullable_to_non_nullable
