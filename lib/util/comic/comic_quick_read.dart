@@ -8,6 +8,7 @@ import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
 import 'package:zephyr/page/comic_info/models/go_to_comic_read.dart';
+import 'package:zephyr/page/comic_read/method/load_plugin_read_launch.dart';
 import 'package:zephyr/service/download/models/download_task_json.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/path_util.dart';
@@ -44,6 +45,7 @@ Future<void> startComicQuickRead(
   // 连点去重：不同卡片指向同一本漫画时也只发起一次。
   if (!_inFlight.add(key)) return;
 
+  final startSw = Stopwatch()..start();
   try {
     if (isLocalComicSource(pluginId, id)) {
       // 本地来源写历史时用的 from 就是 'local'（阅读器收到的就是这个值），
@@ -53,6 +55,7 @@ Future<void> startComicQuickRead(
         id,
         hasHistory: _hasComicHistory('local', id),
       );
+      _logQuickRead(startSw, '本地');
       return;
     }
 
@@ -67,14 +70,45 @@ Future<void> startComicQuickRead(
         hasHistory: _hasComicHistory(pluginId, id),
         stringSelectCubit: StringSelectCubit(),
       );
+      _logQuickRead(startSw, '下载记录');
       return;
     }
 
-    final detail = await getComicDetailByPlugin(id, pluginId);
-    // 拉详情期间用户可能已经退掉这一页；往死掉的 context 上 push 会抛。
+    // 在线漫画只回源**一次**：`getReadSnapshot` 内部本来就要抓详情页，并且把
+    // 整本章节目录放在 `data.chapters` 里一起带回来。旧的写法是先单独抓一遍整本
+    // 详情，进阅读器后 `getReadSnapshot` 再抓一遍 —— 同一本书回源三遍，封面按钮
+    // 和阅读器里那两个转圈其实在等同一件事。
+    final launchSw = Stopwatch()..start();
+    final launch = await loadPluginReadLaunch(
+      comicId: id,
+      from: pluginId,
+      history: _findHistory(pluginId, id),
+    );
+    launchSw.stop();
+    // 等待期间用户可能已经退掉这一页；往死掉的 context 上 push 会抛。
     if (!context.mounted) return;
-    // 用插件返回的 id 查历史 —— 阅读器存历史用的就是它（详情页传的也是解析后的 id），
-    // 卡片上的 id 可能只是列表给的简写。
+
+    if (launch != null) {
+      // 仍然用插件返回的 id 查历史 —— 阅读器存历史用的就是它，卡片上的 id
+      // 可能只是列表给的简写（`pushComicReadRoute` 内部选章也是按这个 id 查的）。
+      pushComicReadRoute(
+        context,
+        allInfo: launch,
+        comicId: launch.comicId,
+        from: pluginId,
+        isDownload: false,
+        hasHistory: _findHistory(pluginId, launch.comicId) != null,
+        stringSelectCubit: StringSelectCubit(),
+      );
+      _logQuickRead(startSw, '快照起读', detailMs: launchSw.elapsedMilliseconds);
+      return;
+    }
+
+    // 插件没在快照里给目录、或这条路直接失败了 —— 退回原来那次整本详情。
+    final detailSw = Stopwatch()..start();
+    final detail = await getComicDetailByPlugin(id, pluginId);
+    detailSw.stop();
+    if (!context.mounted) return;
     final resolvedId = detail.comicId.trim();
     final readId = resolvedId.isEmpty ? id : resolvedId;
     pushComicReadRoute(
@@ -86,6 +120,7 @@ Future<void> startComicQuickRead(
       hasHistory: _hasComicHistory(pluginId, readId),
       stringSelectCubit: StringSelectCubit(),
     );
+    _logQuickRead(startSw, '退回整本详情', detailMs: detailSw.elapsedMilliseconds);
   } catch (e, s) {
     logger.e('直接阅读起读失败', error: e, stackTrace: s);
     showErrorToast(t.comicEntry.readFailed);
@@ -94,24 +129,36 @@ Future<void> startComicQuickRead(
   }
 }
 
+/// 起读耗时埋点。整条链路原本一处计时都没有，「点了到进阅读器」慢在哪只能猜。
+void _logQuickRead(Stopwatch sw, String branch, {int? detailMs}) {
+  final detail = detailMs == null ? '' : ' 详情回源=${detailMs}ms';
+  logger.d(
+    '[read-start] quick-read 分支=$branch '
+    '合计(push 前)=${sw.elapsedMilliseconds}ms$detail',
+  );
+}
+
 /// 正在起读的 `from|comicId`。模块级：两处卡片同一本书也要去重。
 final Set<String> _inFlight = <String>{};
 
 String _flightKey(String from, String comicId) =>
     '${from.trim()}|${comicId.trim()}';
 
-/// 这本书有没有阅读记录（决定阅读器进「续读」还是从头读）。
-bool _hasComicHistory(String from, String comicId) {
+/// 这本书的阅读记录（决定阅读器进「续读」还是从头读，以及续读该点哪一章）。
+UnifiedComicHistory? _findHistory(String from, String comicId) {
   return objectbox.unifiedHistoryBox
-          .query(
-            UnifiedComicHistory_.uniqueKey.equals(
-              '${from.trim()}:${comicId.trim()}',
-            ),
-          )
-          .build()
-          .findFirst() !=
-      null;
+      .query(
+        UnifiedComicHistory_.uniqueKey.equals(
+          '${from.trim()}:${comicId.trim()}',
+        ),
+      )
+      .build()
+      .findFirst();
 }
+
+/// 这本书有没有阅读记录。
+bool _hasComicHistory(String from, String comicId) =>
+    _findHistory(from, comicId) != null;
 
 /// 这本书的下载记录（里面有整本章节目录，零网络就能起读）。
 ///

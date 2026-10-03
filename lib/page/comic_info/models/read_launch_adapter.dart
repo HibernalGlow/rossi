@@ -1,4 +1,5 @@
 import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
+import 'package:zephyr/page/comic_read/model/plugin_read_launch.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 
@@ -8,6 +9,10 @@ String resolveReadComicId(
   required bool isDownload,
 }) {
   if (!isDownload && comicInfo is PluginComicDetailSource) {
+    return comicInfo.comicId;
+  }
+
+  if (!isDownload && comicInfo is PluginReadLaunch) {
     return comicInfo.comicId;
   }
 
@@ -27,6 +32,10 @@ int resolveReadEpsCount(
 }) {
   if (!isDownload && comicInfo is PluginComicDetailSource) {
     return comicInfo.normalInfo.eps.length;
+  }
+
+  if (!isDownload && comicInfo is PluginReadLaunch) {
+    return comicInfo.chapterRefs.length;
   }
 
   if (comicInfo is UnifiedComicDownload) {
