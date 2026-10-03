@@ -498,6 +498,7 @@ class TranslatedPageBuilder {
           truncatedCount: layer.boxes.where((b) => b.truncated).length,
           label: used.label,
           stageEps: result.stageEps,
+          overlayNeedsBase: !allFilled,
           elapsed: clock.elapsed,
         );
       }
