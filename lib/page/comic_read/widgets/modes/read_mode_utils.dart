@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
+import 'package:zephyr/page/comic_read/model/page_split.dart';
 import 'package:zephyr/page/comic_read/model/seamless_transition_state.dart';
 import 'package:zephyr/page/comic_read/widgets/transition/chapter_transition_card.dart';
 
@@ -66,11 +67,19 @@ class ReadModeEntry {
 }
 
 /// 双页槽位中的单个条目包装。
+///
+/// [slice] 为这一格要显示原图的哪一半 —— 横长页被拆开时同一个 [entryIndex]
+/// 会占两格，靠它区分；其余情况恒为 [PageSlice.full]。
 class ReadModeSlotItem {
-  const ReadModeSlotItem({required this.entryIndex, required this.entry});
+  const ReadModeSlotItem({
+    required this.entryIndex,
+    required this.entry,
+    this.slice = PageSlice.full,
+  });
 
   final int entryIndex;
   final ReadModeEntry entry;
+  final PageSlice slice;
 }
 
 /// 列/行双页模式共用的显示槽位：过渡卡片或左右两张图片。
@@ -94,48 +103,104 @@ class ReadModeDoublePageSlot {
   final ReadModeSlotItem? right;
 }
 
+/// 把条目序列展开成「一格一条」的展示项：横长页拆成左右两格。
+///
+/// [isLandscape] 按**原始条目下标**回答这张图是不是横长页 —— 判定要读图片尺寸，
+/// 由调用方提供，这里保持纯函数。只有图片条目会被拆：过渡卡片是一张卡片，
+/// 拆成两半就变成两张半截卡片。[splitLandscapePages] 关掉时每条占一格，
+/// [slice] 全是 [PageSlice.full]，与拆分之行为逐项一致。
+List<ReadModeSlotItem> _expandReadModeSlotItems(
+  List<ReadModeEntry> entries, {
+  required bool splitLandscapePages,
+  required SplitDirection direction,
+  required bool Function(int entryIndex)? isLandscape,
+}) {
+  final items = <ReadModeSlotItem>[];
+  for (var i = 0; i < entries.length; i++) {
+    final entry = entries[i];
+    final split =
+        splitLandscapePages &&
+        entry.type == ReadModeEntryType.image &&
+        (isLandscape?.call(i) ?? false);
+    if (split) {
+      items.add(
+        ReadModeSlotItem(entryIndex: i, entry: entry, slice: direction.first),
+      );
+      items.add(
+        ReadModeSlotItem(entryIndex: i, entry: entry, slice: direction.second),
+      );
+    } else {
+      items.add(ReadModeSlotItem(entryIndex: i, entry: entry));
+    }
+  }
+  return items;
+}
+
+/// 单页模式的展示槽位：每格一张（半）图。
+///
+/// 横长页拆分后一格只画半页，翻页因此多出一格 —— 目录/进度条跳转要落回原图，
+/// 得靠 [ReadModeSlotItem.entryIndex] 反查，不能把槽位下标当页码用。
+List<ReadModeSlotItem> buildReadModeSinglePageSlots(
+  List<ReadModeEntry> entries, {
+  bool splitLandscapePages = false,
+  SplitDirection direction = SplitDirection.leftFirst,
+  bool Function(int entryIndex)? isLandscape,
+}) {
+  return _expandReadModeSlotItems(
+    entries,
+    splitLandscapePages: splitLandscapePages,
+    direction: direction,
+    isLandscape: isLandscape,
+  );
+}
+
 /// 把 [entries] 按顺序合并为双页显示槽位。
 ///
 /// 规则：
 /// - 遇到过渡条目单独占一个槽位；
 /// - 普通图片两两合并为一个槽位（左 + 可选右），若下一条是过渡则右侧为空；
 /// - [insertLeadingBlank] 为 true 时，每个连续图片段开头先插入「空白 | 首页」。
+///
+/// 配对在 [buildReadModeSinglePageSlots] 那套展开结果上进行，所以开了横长页拆分后
+/// 一个槽位可能是「上一张的右半 + 下一张的左半」。
 List<ReadModeDoublePageSlot> buildReadModeDoublePageSlots(
   List<ReadModeEntry> entries, {
   bool insertLeadingBlank = false,
+  bool splitLandscapePages = false,
+  SplitDirection direction = SplitDirection.leftFirst,
+  bool Function(int entryIndex)? isLandscape,
 }) {
+  final items = _expandReadModeSlotItems(
+    entries,
+    splitLandscapePages: splitLandscapePages,
+    direction: direction,
+    isLandscape: isLandscape,
+  );
+
   final slots = <ReadModeDoublePageSlot>[];
   var i = 0;
   var needLeadingBlank = insertLeadingBlank;
-  while (i < entries.length) {
-    final current = entries[i];
-    if (current.type == ReadModeEntryType.transition) {
-      slots.add(
-        ReadModeDoublePageSlot.transition(
-          ReadModeSlotItem(entryIndex: i, entry: current),
-        ),
-      );
+  while (i < items.length) {
+    final current = items[i];
+    if (current.entry.type == ReadModeEntryType.transition) {
+      slots.add(ReadModeDoublePageSlot.transition(current));
       i++;
       needLeadingBlank = insertLeadingBlank;
       continue;
     }
 
     if (needLeadingBlank) {
-      slots.add(
-        ReadModeDoublePageSlot.images(
-          right: ReadModeSlotItem(entryIndex: i, entry: current),
-        ),
-      );
+      slots.add(ReadModeDoublePageSlot.images(right: current));
       i++;
       needLeadingBlank = false;
       continue;
     }
 
-    final left = ReadModeSlotItem(entryIndex: i, entry: current);
+    final left = current;
     i++;
     ReadModeSlotItem? right;
-    if (i < entries.length && entries[i].type == ReadModeEntryType.image) {
-      right = ReadModeSlotItem(entryIndex: i, entry: entries[i]);
+    if (i < items.length && items[i].entry.type == ReadModeEntryType.image) {
+      right = items[i];
       i++;
     }
     slots.add(ReadModeDoublePageSlot.images(left: left, right: right));
