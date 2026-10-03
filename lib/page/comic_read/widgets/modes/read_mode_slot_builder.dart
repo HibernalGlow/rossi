@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
 import 'package:zephyr/page/comic_read/model/reader_frame.dart';
 import 'package:zephyr/page/comic_read/model/reader_presentation.dart';
+import 'package:zephyr/page/comic_read/model/page_split.dart';
 import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
 import 'package:zephyr/page/comic_read/widgets/modes/read_mode_image_builder.dart';
 import 'package:zephyr/page/comic_read/widgets/modes/read_mode_transition_style.dart';
@@ -175,10 +176,11 @@ Widget _buildRowFrame({
     List<({Size cached, Size? intrinsic})>
   >(
     selector: (state) => [
-      for (final index in cacheIndices)
-        (
-          cached: state.getSizeValue(index),
-          intrinsic: state.getIntrinsic(index),
+      for (final pair in items.indexed)
+        _sliceSizes(
+          pair.$2.slice,
+          cached: state.getSizeValue(cacheIndices[pair.$1]),
+          intrinsic: state.getIntrinsic(cacheIndices[pair.$1]),
         ),
     ],
     builder: (context, sizes) {
@@ -287,6 +289,25 @@ Widget _buildRowFrame({
   );
 }
 
+/// 半页槽位的尺寸基准：宽折半、高不动。
+///
+/// 帧模型问的是「这一格要画的内容有多大」。拆分后一格只画半张图，还按整张的
+/// 宽高比喂进去，算出来的 scale 会让半页只占到格子的一半宽 —— 左右各空一条，
+/// 看起来像拆分没生效。高不变、宽减半正好就是半页该有的比例。
+({Size cached, Size? intrinsic}) _sliceSizes(
+  PageSlice slice, {
+  required Size cached,
+  required Size? intrinsic,
+}) {
+  if (!slice.isHalf) return (cached: cached, intrinsic: intrinsic);
+  return (
+    cached: Size(cached.width / 2, cached.height),
+    intrinsic: intrinsic == null
+        ? null
+        : Size(intrinsic.width / 2, intrinsic.height),
+  );
+}
+
 /// 用帧模型算这一帧的排布；null = 呈现层不参与。
 ///
 /// ## 尺寸基准
@@ -353,6 +374,7 @@ Widget _page({
     isColumn: false,
     imageAlignment: presentation.fitMode.alignment,
     placed: placed,
+    slice: item.slice,
   );
 }
 
@@ -402,6 +424,7 @@ Widget _legacyRowSlot({
           displayNumber: (items[i].entry.chapterPageIndex ?? 0) + 1,
           isColumn: false,
           imageAlignment: alignment,
+          slice: items[i].slice,
         ),
       ),
     );

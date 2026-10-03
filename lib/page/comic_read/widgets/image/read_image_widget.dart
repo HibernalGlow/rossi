@@ -5,6 +5,7 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_read/comic_read.dart';
 import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
+import 'package:zephyr/page/comic_read/model/page_split.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/config/router/router.gr.dart';
@@ -32,6 +33,12 @@ class ReadImageWidget extends StatefulWidget {
   /// null 表示呈现层没参与，按老逻辑铺满宽度。
   final Size? paintSize;
 
+  /// 横长页被拆成两格时，这一格只画原图的哪一半；[PageSlice.full] 即整页。
+  ///
+  /// 只往静态图那两条渲染路（[ImageSurface] / [ImageDisplay]）传下去：动图与视频
+  /// 不参与拆分，给它们裁半页只会把动图变成一张不会动的半图。
+  final PageSlice slice;
+
   const ReadImageWidget({
     super.key,
     required this.pictureInfo,
@@ -41,6 +48,7 @@ class ReadImageWidget extends StatefulWidget {
     this.displayNumber,
     this.imageAlignment = Alignment.center,
     this.paintSize,
+    this.slice = PageSlice.full,
   });
 
   @override
@@ -199,6 +207,8 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
                   ImageSurface(
                     source: source,
                     index: localIndex,
+                    // 半页的裁剪在 `ImageSurface` 里做（它自己那两条子路都要裁）。
+                    slice: widget.slice,
                     presenter: presenter,
                     // 只有当前页推共享纹理：两个 slot 都推就是 Ping-Pong 拔河
                     // （同一张纹理被交替覆写）—— 那就是红黄闪的成因。
@@ -290,6 +300,8 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
                       sizeCacheIndex: cacheIndex,
                       imageAlignment: widget.imageAlignment,
                       paintSize: widget.paintSize,
+                      // 这条路没有着色器，半页只能由 `ImageDisplay` 自己裁。
+                      slice: widget.slice,
                     ),
                   ),
                 );

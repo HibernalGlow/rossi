@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/page/comic_read/model/page_split.dart';
 import 'package:zephyr/page/comic_read/model/reader_frame.dart';
 import 'package:zephyr/page/comic_read/widgets/image/read_image_widget.dart';
 import 'package:zephyr/type/enum.dart';
@@ -11,6 +12,7 @@ import 'package:zephyr/widgets/picture_bloc/models/picture_info.dart';
 /// - [cacheIndex] 会作为 [ReadImageWidget] 的 `sizeCacheIndex`。
 /// - [displayNumber] 用于行模式等需要显式页号的场景；为 null 时使用 [slotIndex] + 1。
 /// - [placed] 是顶栏缩放/旋转面板对**这一页**的排布结果；为 null 时按老逻辑铺满宽度。
+/// - [slice] 横长页拆分时这一格只画原图的哪一半；默认 [PageSlice.full] 即整页。
 Widget buildReadModeImage({
   required BuildContext context,
   required ReadModeEntry entry,
@@ -22,6 +24,7 @@ Widget buildReadModeImage({
   int? displayNumber,
   Alignment imageAlignment = Alignment.center,
   ReaderPlacedPage? placed,
+  PageSlice slice = PageSlice.full,
 }) {
   if (entry.type != ReadModeEntryType.image ||
       entry.doc == null ||
@@ -59,6 +62,7 @@ Widget buildReadModeImage({
     isColumn: isColumn,
     imageAlignment: isVideo ? Alignment.center : imageAlignment,
     paintSize: effectivePlaced?.paintSize,
+    slice: slice,
   );
 
   if (effectivePlaced == null) return image;
