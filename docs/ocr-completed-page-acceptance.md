@@ -328,6 +328,11 @@ dart script/ocr_stub_endpoint.dart --fail         # 直接 500 → 第 11b 与�
 
 ## 9c. 叠层显示：译文与超分同时生效（ADR-0018 §4，2026-10-03 解冻那一轮）
 
+**⚠️ 先确认包里有这一档**：设置页那一节落在 `ocr_settings_body.dart`，而这个文件是
+`feat/settings-shared-extraction` 建的，所以**只有从工作树出的包**看得到「成品页显示」；
+单独 checkout `feat/ocr-translate-fallback-and-layer` 出包会缺这一节（链路代码与 Rust 那一跳都在，
+缺的只是开关），届时用 `SharedPreferences` 的 `ocr_display_choice = overlay` 也能进到叠层档。
+
 设置 → 漫画翻译 → 「成品页显示」切成「叠层显示（与超分同时生效）」，然后逐条验：
 
 1. **叠层与超分不再互斥**：开着超分按「译」。
@@ -370,6 +375,23 @@ dart script/ocr_stub_endpoint.dart --fail         # 直接 500 → 第 11b 与�
    **预期**：画面回到纯原图，**没有**任何中文覆盖层。
    **判据**：旁路屏蔽的是增强图轨，而叠层不占轨 —— 它靠的是自己读控制器那句
    `bypassesOriginalPreview`。这一条量的就是那句有没有真的接上。
+
+### 怎么把这一档开出来自己看（不用等 agent）
+
+```bash
+# 已经在这台机器上编过一次，产物在：
+open build/macos/Build/Products/Debug/Rossi.app
+# 重编（要连着 Rust，约几分钟）：
+flutter build macos --debug
+```
+
+进阅读器 → 设置 → 漫画翻译 → 「成品页显示」选 **叠层显示** → 回阅读器按「译」。
+日志在「设置 → 漫画翻译 → 诊断 → 翻译日志」，那一句「叠层就绪：… 全部填色（未跑擦字）」
+或「填色不足，已补擦底图」就是上面第 2、3 条要看的东西。
+
+⚠️ 这个产物是从**工作树**编出来的，含 11 个还没进栈的文件（设置页那一档 + 两份生成物）。
+所以「跑起来对」不等于「提交里对」：并栈之前请以工作树为准。
+原生那一跳确实进了包：`windcore.framework` 里有 `wire__crate__api__ocr__ocr_erase_page_impl`。
 
 **⚠️ 上面 8 条都要真机**（要看像素与日志实际行数），agent 侧只钉住了单元测试。
 
