@@ -39,6 +39,9 @@ pub trait TrashBackend: Send + Sync {
 
 /// 真正调用操作系统的回收站。
 ///
+/// **只在有系统回收站可寻的平台上存在**：android / iOS 那边是另一个同名实现
+/// （见文件末尾），因为 `trash` crate 在那两个平台**编译不过**。
+///
 /// 本文件里访问那个 crate 一律写 `::trash::…`（**带前导 `::`**），不是洁癖：
 /// 父模块 `execute` 用 `use super::*` 做 glob 引入，只要它下面出现过一个叫
 /// `trash` 的子模块，那个名字就会**盖住同名的 extern crate** —— `trash::TrashContext`
@@ -46,10 +49,12 @@ pub trait TrashBackend: Send + Sync {
 /// `E0433 could not find TrashContext in trash` / `E0425` / `E0659 trash is ambiguous`。
 /// 2026-09-22 拆 `execute.rs` 时这个子模块确实短暂叫过 `trash`，后改名 `backend`。
 /// 前导 `::` 走 extern prelude，与本地模块名无关，以后再怎么拆、怎么改名都不会复发。
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 pub struct SystemTrashBackend {
     context: ::trash::TrashContext,
 }
 
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 impl SystemTrashBackend {
     pub fn new() -> Self {
         #[allow(unused_mut)]
@@ -72,18 +77,21 @@ impl SystemTrashBackend {
     }
 }
 
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 impl Default for SystemTrashBackend {
     fn default() -> Self {
         Self::new()
     }
 }
 
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 impl std::fmt::Debug for SystemTrashBackend {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter.write_str("SystemTrashBackend")
     }
 }
 
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 impl TrashBackend for SystemTrashBackend {
     fn trash(&self, path: &Path) -> FileOpResult<TrashItemReceipt> {
         // `trash` 内部按平台分流（macOS `NSFileManager`、Windows `IFileOperation`、
@@ -127,6 +135,10 @@ impl TrashBackend for SystemTrashBackend {
 ///
 /// 与 crate 里 `os_limited` 模块的 `cfg` **逐字同条件**：Windows 与 Freedesktop。
 /// 改一处必须改另一处，所以两处都写了这句注释。
+///
+/// android / iOS 那边整块不参与编译：唯一调用它的是上面那个用 `trash` crate 的实现，
+/// 而那个实现在那两个平台上不存在（留着就是 `never used`）。
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 fn os_limited_available() -> bool {
     cfg!(windows)
         || cfg!(all(
@@ -162,6 +174,10 @@ fn os_limited_list() -> FileOpResult<Vec<TrashItemReceipt>> {
         .collect())
 }
 
+// 这两条兜底分支只给「有 `SystemTrashBackend`（trash crate 那套）但没有 `os_limited`」
+// 的平台 —— 也就是 macOS。android / iOS 再排除一层：那边连调用方都不存在，
+// 留着就是 `never used`。
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 #[cfg(not(any(
     windows,
     all(
@@ -206,6 +222,10 @@ fn os_limited_restore(item: &TrashItemReceipt) -> FileOpResult<()> {
         .map_err(|error| FileOpError::new("EIO", format!("从回收站恢复失败: {error}")))
 }
 
+// 这两条兜底分支只给「有 `SystemTrashBackend`（trash crate 那套）但没有 `os_limited`」
+// 的平台 —— 也就是 macOS。android / iOS 再排除一层：那边连调用方都不存在，
+// 留着就是 `never used`。
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 #[cfg(not(any(
     windows,
     all(
@@ -219,4 +239,118 @@ fn os_limited_restore(_item: &TrashItemReceipt) -> FileOpResult<()> {
     Err(FileOpError::unsupported(
         "这个平台上没有程序化的回收站恢复（macOS 需在 Finder 里手动放回）",
     ))
+}
+
+// ── Android / iOS：没有系统回收站可寻 ────────────────────────────────────────
+//
+// `trash` crate 在这两个平台上**编译不过**（它的 `platform` 模块只在
+// windows / macos / linux 下存在，引进依赖图就是 `E0433: cannot find module or
+// crate 'platform'`），所以依赖本身也是按平台切的 —— 见
+// `local_core/Cargo.toml` 里那段 `[target.'cfg(not(any(android, ios)))]`。
+//
+// 但这里**不能退化成「直接删」**：移动端的文件管理面板走的是同一套删除动作，
+// 把「移入回收站」悄悄换成永久删除就是数据丢失。改成移到**同一个父目录下的隐藏
+// 回收轨** `.rossi_trash/`：
+// - 与源文件同一个文件系统 ⇒ `rename` 必然成立，不需要跨设备复制那一大套；
+// - 以点开头的目录在文件树里默认就是隐藏的（`file_tree::should_hide_fs_entry`
+//   与 `.DS_Store` 同一档），不会凭空多出一本「漫画」来；
+// - 回执里带着轨内的文件名 ⇒ 恢复真的放得回去，所以 `supports_restore()` 在这边
+//   可以是 `true`（不像 macOS 只能如实说不能）。
+//
+// `list()` 仍然如实报错：这里没有一个「能打开来看的系统回收站」可枚举，
+// 撤销是**按回执逐条**的能力。调用方要先问 `supports_restore()`（FRB 那侧就是这么
+// 把能力传给界面的：`api/file_ops.rs` 的 `trash_restore_supported`）。
+
+/// 父目录下的回收轨目录名。点开头 ⇒ 文件树默认隐藏它。
+#[cfg(any(target_os = "android", target_os = "ios"))]
+pub const LOCAL_TRASH_DIR_NAME: &str = ".rossi_trash";
+
+/// Android / iOS 的回收站：把项移到父目录下的 `.rossi_trash/`，可逐条放回。
+#[cfg(any(target_os = "android", target_os = "ios"))]
+#[derive(Debug)]
+pub struct SystemTrashBackend;
+
+#[cfg(any(target_os = "android", target_os = "ios"))]
+impl SystemTrashBackend {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+#[cfg(any(target_os = "android", target_os = "ios"))]
+impl Default for SystemTrashBackend {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(any(target_os = "android", target_os = "ios"))]
+impl TrashBackend for SystemTrashBackend {
+    fn trash(&self, path: &Path) -> FileOpResult<TrashItemReceipt> {
+        let name = path.file_name().map(|name| name.to_string_lossy().into_owned())
+            .ok_or_else(|| {
+                FileOpError::new("EINVAL", format!("拿不到文件名: {}", path.display()))
+            })?;
+        let parent = path.parent().map(Path::to_path_buf).unwrap_or_default();
+        let rail = parent.join(LOCAL_TRASH_DIR_NAME);
+        fs::create_dir_all(&rail).map_err(|error| {
+            FileOpError::new(
+                "EIO",
+                format!("建回收轨失败 {}: {error}", rail.display()),
+            )
+        })?;
+        // 同一秒里删掉两个同名项（比如来回改名）要各自留得住，所以往后顶序号；
+        // 顶不出去就**报错**，静默覆盖等于把用户刚删的那一项弄没了。
+        let stamp = now_secs();
+        let mut slot = format!("{stamp}-{name}");
+        let mut index = 1_u64;
+        while rail.join(&slot).exists() {
+            slot = format!("{stamp}-{index}-{name}");
+            index += 1;
+            if index > 999 {
+                return Err(FileOpError::new(
+                    "EEXIST",
+                    format!("{name} 在回收轨里同名的历史项太多"),
+                ));
+            }
+        }
+        fs::rename(path, rail.join(&slot)).map_err(|error| {
+            FileOpError::new(
+                "EIO",
+                format!("移入回收轨失败 {}: {error}", path.display()),
+            )
+        })?;
+        Ok(TrashItemReceipt {
+            id: Some(slot),
+            name,
+            original_parent: parent,
+            time_deleted: stamp,
+        })
+    }
+
+    fn supports_restore(&self) -> bool {
+        true
+    }
+
+    fn restore(&self, item: &TrashItemReceipt) -> FileOpResult<()> {
+        let slot = item.id.as_deref().ok_or_else(|| {
+            FileOpError::new("EINVAL", "回执里没有回收轨内的文件名，无法恢复")
+        })?;
+        let from = item.original_parent.join(LOCAL_TRASH_DIR_NAME).join(slot);
+        let target = item.original_parent.join(&item.name);
+        if target.exists() {
+            return Err(FileOpError::new(
+                "EEXIST",
+                format!("原位置已经有同名的一项，不覆盖: {}", target.display()),
+            ));
+        }
+        fs::rename(&from, &target)
+            .map_err(|error| FileOpError::new("EIO", format!("恢复失败: {error}")))
+    }
+
+    fn list(&self) -> FileOpResult<Vec<TrashItemReceipt>> {
+        Err(FileOpError::unsupported(
+            "这个平台没有可枚举的系统回收站；撤销是按回执逐条做的",
+        ))
+    }
 }
