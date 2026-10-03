@@ -10,6 +10,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/page/search/model/search_history_entry.dart';
 import 'package:zephyr/page/comic_read/model/reader_presentation.dart';
+import 'package:zephyr/page/search/model/search_history_entry.dart';
 import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
 import 'package:zephyr/util/json/converter.dart';
 import 'package:zephyr/util/layout/layout_overflow_guard.dart';
@@ -22,7 +23,6 @@ part 'parts/global_setting_toast_part.dart';
 part 'parts/global_setting_favorite_part.dart';
 part 'parts/global_setting_workspace_part.dart';
 part 'parts/global_setting_read_extras_part.dart';
-
 
 enum ReaderInfoVerticalPosition { top, bottom }
 
