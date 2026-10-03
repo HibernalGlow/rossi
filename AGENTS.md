@@ -391,3 +391,45 @@ Android 端已彻底从 JNI + ncnn 共享库方案切换到 **waifu2x CLI** 方�
 - **plugin-dev-docs/**：插件开发文档（VitePress 站点），对外发布地址：<https://deretame.github.io/plugin-dev-docs/>
 - **Android RealSR 构建文档**：`docs/android_realsr_build.md`
 - **Flutter Rust Bridge 文档**：<https://cjycode.com/flutter_rust_bridge/>
+
+---
+
+## 12. GitButler 工作流（agent 版本控制规约）
+
+> 下面标记对之间的整段由 `but agent setup` 生成，将来重跑向导会原地更新它，**不要手改标记对里面的内容**。
+>
+> 与 §6.6 的关系：§6.6「只暂存本功能文件、不要 `git add -A`」的**口径不变**，只是落点换成 GitButler ——
+> 用 `but diff` 拿 file/hunk id，再 `but commit -b <分支> -m "..." <id> <id>`，不再使用裸 `git add` / `git commit`。
+>
+> 本仓的 git-crypt 注意事项：`.gitattributes` 给 `android/key.properties`、`android/Breeze-key.keystore`
+> 声明了 `filter=git-crypt`，但本机**没有安装 git-crypt，也没有 `filter.git-crypt.*` 配置**，因此该 filter
+> 目前是空转（工作树里就是密文原样）。GitButler 的 workspace 操作明确不保证应用 Git filter，
+> 所以**一旦将来 `git-crypt unlock` 把工作树解密，就不要让 `but` 提交这两个路径**。
+
+<!-- gitbutler-agent-setup:start -->
+## Version control
+
+- Use GitButler (`but`) for version-control inspection and write operations, including status, diffs, branching, committing, pushing, and history edits.
+- Assume multiple agents may be working in this repository. Do not move, amend, squash, discard, commit, push, or otherwise modify another agent's work unless the user asks.
+- For commit just/only/specific changes on a new branch (selected-change requests), use the two-command fast path from the GitButler skill: `but diff`, then `but commit -b <branch> -m "message" <id> <id>`.
+- For that fast path, after the commit succeeds, stop and summarize; do not run separate branch, staging, status, or diff commands unless the commit output is missing information you need.
+- Use the installed GitButler skill for command recipes and syntax before guessing flags, using `--help`, or translating Git habits directly.
+- Mutation commands report their result without appending workspace status. Add `--status-after` only when the next step needs resulting workspace IDs or details; otherwise do not rerun status or diff to verify success.
+- Use a dedicated GitButler branch for each agent session, unless the user asks for a different branch structure. Commit only changes that belong to that session.
+- Do not push or open pull requests unless the user asks.
+- Keep commit messages and pull request descriptions succinct: explain what changed, why it changed, and any important decision.
+
+### Amend local fixes into the right commits
+
+- For small cleanup or follow-up fixes, amend an unpublished local commit when the change clearly belongs with that commit's intent.
+- Do not create tiny fixup commits unless the user asks.
+- Use GitButler to move the relevant changes into the commit where they belong.
+- Ask before rewriting pushed, reviewed, shared, or ambiguous history.
+
+### Split unrelated changes into separate commits
+
+- If one file contains unrelated changes, split them by hunk instead of committing the whole file.
+- Keep tests with the behavior they verify.
+- Split generated output, docs-only edits, or mechanical cleanup into separate commits when each commit remains coherent on its own.
+- If the split is ambiguous, summarize the options before committing.
+<!-- gitbutler-agent-setup:end -->
