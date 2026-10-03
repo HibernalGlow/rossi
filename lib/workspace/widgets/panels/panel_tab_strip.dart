@@ -327,10 +327,16 @@ class _PanelTabStripState extends State<PanelTabStrip> {
         onPanUpdate: _handlePanUpdate,
         onPanEnd: _handlePanEnd,
         onPanCancel: _handlePanCancel,
+        // 右键与长按是**同一个菜单的两个入口**，不是两套行为：触摸屏上没有
+        // `onSecondaryTapUp`，而这个把手的 `GestureDetector` 里没有别人注册长按，
+        // 所以长按在这条把手上是空出来的（页签上的长按不行 —— 那里被
+        // `LongPressDraggable` 的 220ms 拖动延时占了）。
         onSecondaryTapUp: (details) =>
-            _openSettingsMenu(context, details, cubit),
+            _openSettingsMenuAt(context, details.globalPosition, cubit),
+        onLongPressStart: (details) =>
+            _openSettingsMenuAt(context, details.globalPosition, cubit),
         child: Tooltip(
-          message: '面板栏（拖动换边或转悬浮，右键设置）',
+          message: '面板栏（拖动换边或转悬浮，右键或长按设置）',
           waitDuration: const Duration(milliseconds: 500),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 6),
@@ -422,9 +428,9 @@ class _PanelTabStripState extends State<PanelTabStrip> {
 
   // ── 右键菜单：钉住 / 悬浮、是否限制在本泳道、换成哪条边 ─────────────────
 
-  Future<void> _openSettingsMenu(
+  Future<void> _openSettingsMenuAt(
     BuildContext context,
-    TapUpDetails details,
+    Offset globalPosition,
     WorkspaceCubit cubit,
   ) async {
     final lane = cubit.state.layout.lanes[widget.side.laneId];
@@ -437,7 +443,7 @@ class _PanelTabStripState extends State<PanelTabStrip> {
     final action = await showMenu<_PanelBarAction>(
       context: context,
       position: RelativeRect.fromRect(
-        details.globalPosition & const Size(1, 1),
+        globalPosition & const Size(1, 1),
         Offset.zero & overlay.size,
       ),
       items: [

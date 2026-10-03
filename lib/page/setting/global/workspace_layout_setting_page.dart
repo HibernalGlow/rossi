@@ -3,12 +3,15 @@ import 'dart:async';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/workspace/model/workspace_interaction_settings.dart';
 import 'package:zephyr/workspace/model/workspace_layout_snapshot.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
+import 'package:zephyr/workspace/model/workspace_pointer_mode.dart';
 import 'package:zephyr/workspace/model/workspace_reveal_zones.dart';
+import 'package:zephyr/workspace/model/workspace_startup.dart';
 import 'package:zephyr/workspace/service/workspace_layout_bridge.dart';
 
 // 悬停唤出区：卡片、可拖拽画布编辑器、四个编辑量与画布 CustomPainter。
@@ -85,6 +88,19 @@ class _WorkspaceLayoutSettingPageState
                   t.settings.laneAndLayout,
                   icon: Icons.view_column_outlined,
                 ),
+                // 手机端没有那颗侧栏按钮 —— `hasWorkspaceEntry` 回答的是
+                // 「四边栏布局的 trailing 上有没有按钮」，那边真正的入口就在这一页。
+                // 桌面/平板不摆：那颗按钮本来就在导航栏上，重复一个入口只会多一行。
+                // 文案不补 i18n 词条（与导航栏上那颗工作台的 tooltip 同一口径）。
+                if (!hasWorkspaceEntry(context)) ...[
+                  settingCategoryTile(
+                    icon: Icons.dashboard_customize_outlined,
+                    title: '进入工作台',
+                    subtitle: '按下面选好的呈现打开；退出用系统返回键',
+                    onTap: () => context.pushRoute(BreezeWorkspaceRoute()),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 _StartupViewCard(
                   mode: snapshot.mode,
                   onChanged: (mode) {

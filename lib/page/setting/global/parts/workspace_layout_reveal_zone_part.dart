@@ -224,6 +224,19 @@ class _RevealZoneEditorState extends State<_RevealZoneEditor> {
           t.settings.hoverRevealZonesSubtitle,
           style: Theme.of(context).textTheme.bodySmall,
         ),
+        // 触摸屏上没有 hover，这几块画布**画不出效果**：唤出区吃的是
+        // `PointerHoverEvent`，那边左右泳道的把手是 Reader 独占时那两条 44px
+        // 切换轨（见 swimlane_workspace 的 showLaneNavigatorInSolo）。
+        // 这一行不是免责声明，是告诉用户「改这里你在手机上看不到变化」。
+        if (!hasHoverPointer)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              '本机没有悬停指针：这几块唤出区要鼠标贴住边缘才会生效。'
+              '触屏上请在 Reader 独占时点左右两侧的窄轨来切换泳道。',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
         const SizedBox(height: 12),
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,

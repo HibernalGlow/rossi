@@ -157,7 +157,7 @@ class _NavigationBarState extends State<NavigationBar> {
       if (!mounted) return;
       final landing = resolveStartupLanding(
         startWithWorkspace: startWithWorkspace,
-        workspaceEntryAvailable: hasWorkspaceEntry(context),
+        workspaceEntryAvailable: workspaceAvailableOnDevice(context),
       );
       if (landing != StartupLanding.workspace) return;
       _openWorkspace();

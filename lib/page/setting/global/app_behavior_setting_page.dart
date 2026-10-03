@@ -80,6 +80,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
           _leftHandMode(state, cubit),
           _searchHistoryGroupBySource(state, cubit),
           _clickCoverToStartReading(state, cubit),
+          _searchHistoryGroupBySource(state, cubit),
           // 只在桌面端给这个开关：触摸端只有右下角悬浮按钮一种落点，
           // 摆一个点了没反应的开关比不摆更糟（与 `_desktopCloseBehaviorTile` 同口径）。
           if (isDesktop) _comicInfoInlineReadButton(state, cubit),
@@ -92,9 +93,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
 
   Widget _splashPage(GlobalSettingState state, GlobalSettingCubit cubit) {
     final splashPageList = _splashPageList(state.oldPageRollbackEnabled);
-    // 本机有没有工作台入口。手机（既不是平板宽度、也不是桌面）没有 —— 那边导航栏
-    // 上根本没有工作台按钮，下拉里也就摆这一项：摆了也落不了地。
-    final workspaceOptionAvailable = hasWorkspaceEntry(context);
+    // 本机**用不用得了**工作台。判据不是「导航栏上有没有那颗按钮」
+    // （`hasWorkspaceEntry`，手机上确实没有），而是「进得去且出得来」——
+    // 那边靠「设置 → 布局」里的进入按钮、开屏这一项，以及系统返回键。
+    final workspaceOptionAvailable = workspaceAvailableOnDevice(context);
     // 老版回滚开关会让选项表在 3 项 / 5 项之间变，旧值可能越界，读之前先夹一次。
     final clampedWelcomePageNum = splashPageList.isEmpty
         ? 0
@@ -305,6 +307,27 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     );
   }
 
+
+  /// 搜索历史按图源分时间线。与搜索页历史标题上那颗按钮是**同一个字段**，
+  /// 两处入口、一份状态（改一处另一处立刻跟着变）。
+  Widget _searchHistoryGroupBySource(
+    GlobalSettingState state,
+    GlobalSettingCubit cubit,
+  ) {
+    return SwitchListTile(
+      secondary: const Icon(Icons.category_outlined),
+      title: Text(t.settings.searchHistoryGroupBySource),
+      subtitle: Text(t.settings.searchHistoryGroupBySourceSubtitle),
+      thumbIcon: kSettingSwitchThumbIcon,
+      value: state.searchHistoryGroupBySource,
+      onChanged: (bool value) {
+        cubit.updateState(
+          (current) => current.copyWith(searchHistoryGroupBySource: value),
+        );
+        showSuccessToast(t.common.settingSaved);
+      },
+    );
+  }
 
   Widget _comicInfoInlineReadButton(
     GlobalSettingState state,
