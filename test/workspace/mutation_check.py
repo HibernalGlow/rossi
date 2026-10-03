@@ -195,6 +195,16 @@ SUITES = [
                 "  void detachLaneContent(WorkspaceLaneHost host) {}",
                 False,
             ),
+            # 阅读器那一支**不看落点**，所以它是空画布上那颗「继续阅读」唯一走得通的
+            # 出口（落点记账里空画布刻意不占落点）。把这一支掐掉，症状就是用户报的
+            # 「点继续阅读以后全屏打开了详情页」。
+            (
+                "M59 守卫不再把阅读推入改派进泳道",
+                "lib/workspace/router/workspace_route_guard.dart",
+                "    if (match.name == ComicReadRoute.name && args is ComicReadRouteArgs) {",
+                "    if (false && match.name == ComicReadRoute.name && args is ComicReadRouteArgs) {",
+                False,
+            ),
         ],
     },
     {

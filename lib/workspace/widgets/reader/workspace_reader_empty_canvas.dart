@@ -1,14 +1,12 @@
-import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/cubit/string_select.dart';
 import 'package:zephyr/gpu/local_file_tree_sheet.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/type/enum.dart';
-import 'package:zephyr/util/path_util.dart';
+import 'package:zephyr/util/comic/comic_quick_read.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_reader_target.dart';
 
@@ -28,6 +26,9 @@ class WorkspaceReaderEmptyCanvas extends StatefulWidget {
 class _WorkspaceReaderEmptyCanvasState
     extends State<WorkspaceReaderEmptyCanvas> {
   UnifiedComicHistory? _latestHistory;
+
+  /// 远程漫画起读要先回源问一次插件详情，转圈表示「正在起读」并挡住连点。
+  bool _resuming = false;
 
   @override
   void initState() {
@@ -153,8 +154,14 @@ class _WorkspaceReaderEmptyCanvasState
             children: [
               if (history != null) ...[
                 FilledButton.icon(
-                  onPressed: () => _resume(history),
-                  icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                  onPressed: _resuming ? null : () => _resume(history),
+                  icon: _resuming
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.play_arrow_rounded, size: 18),
                   label: const Text('继续阅读'),
                 ),
                 OutlinedButton.icon(
@@ -179,20 +186,23 @@ class _WorkspaceReaderEmptyCanvasState
     );
   }
 
-  /// 「继续阅读」：本地漫画直接用文件路径进泳道；
-  /// 插件漫画没有章节参数，走上游详情页，再由详情页的「开始阅读」进泳道。
-  void _resume(UnifiedComicHistory history) {
-    if (isLocalComicSource(history.source, history.comicId)) {
-      _openLocal(history.comicId, type: ComicEntryType.history);
-      return;
-    }
-    context.pushRoute(
-      ComicInfoRoute(
+  /// 「继续阅读」：直接起读，**不进详情页**。
+  ///
+  /// 走 [startComicQuickRead]（收藏卡 / 历史卡封面那颗按钮同一口径，续读语义也同一份）。
+  /// 它推的是 `ComicReadRoute`，根路由守卫对这一条**不需要落点**就能改派进这条泳道；
+  /// 而原先插件漫画推的是 `ComicInfoRoute`，空画布按契约不占落点
+  /// （见 `WorkspaceReaderHost._updateRegistration`），守卫只能放行 ⇒ 全屏盖掉整个工作台。
+  Future<void> _resume(UnifiedComicHistory history) async {
+    setState(() => _resuming = true);
+    try {
+      await startComicQuickRead(
+        context,
         comicId: history.comicId,
         from: history.source,
-        type: ComicEntryType.normal,
-      ),
-    );
+      );
+    } finally {
+      if (mounted) setState(() => _resuming = false);
+    }
   }
 
   Future<void> _openLocalPicker() async {
@@ -206,12 +216,12 @@ class _WorkspaceReaderEmptyCanvasState
     }
   }
 
-  void _openLocal(String path, {ComicEntryType type = ComicEntryType.normal}) {
+  void _openLocal(String path) {
     context.read<WorkspaceCubit>().openReader(
       WorkspaceReaderTarget(
         comicId: path,
         from: 'local',
-        type: type,
+        type: ComicEntryType.normal,
         comicInfo: path,
         stringSelectCubit: StringSelectCubit(),
       ),
