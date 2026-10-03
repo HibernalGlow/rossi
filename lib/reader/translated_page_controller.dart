@@ -229,6 +229,18 @@ class TranslatedPageController extends ChangeNotifier {
         // **不注入、不占轨**：底图该是超分产物就是超分产物，字由 `TranslatedPageOverlay`
         // 画在上面。占轨那条路留给烘焙档 —— 这是「翻译迁移到超分后的图上」的落点。
         _overlayLabels[index] = out.label;
+        if (out.overlayNeedsBase) {
+          // 这一页的底只能是擦字底图：不占轨就没人把它换上屏，于是中文压在日文下面 ——
+          // 那正是 §决定 4 那条 0.085 / 0.000 判据要避免的画面。
+          // 代价只落在这一页（超分为它让路）；每框都能填色的那些页仍然不占轨。
+          OcrLog.add('${OcrLog.page(index)} 这一页要擦字底图当底，占轨（超分为它让路）');
+          return await _inject(
+            index,
+            out.path,
+            presenter,
+            showingOnSuccess: true,
+          );
+        }
         _phase = TranslatedPagePhase.showing;
         _index = index;
         _lastError = '';
