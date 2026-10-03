@@ -124,6 +124,7 @@ Widget 测试使用真实文件卡片、应用同款 Material 根和 FRB 替身�
 | 展开入口 | 核心没有「按路径改展开态」的公开入口，于是 `set_cursor` + 键盘左/右键 | 与方向键操作共用同一套 `user_expanded` / `user_collapsed` 记账，不出现第二套 |
 | 卡片 | 工具栏「文件树」开关 → 200px 高的 `ListTile` 列表；行点击跳转、箭头展开 | 「开树就关列」：两者回答同一个问题，同时开着只会把不高的卡片挤成两半。开关本身是 Dart 的 UI 状态，不像目录列那样进页签设置 |
 | 跟随当前目录 | `build` 里比对 `snapshot.generation`，变了就排一帧去取树 | 改当前目录的入口有七八个（页签/面包屑/导航掌/根目录/双击/外部新页签），逐个埋刷新迟早漏 |
+| 定位当前行 | 同样挂在 `build` 上：投影落地后按 `isActive` 的下标把那一行搬进 200px 视口，按当前目录路径去重 | 「展开了但看不见」不是核心的活：面板只投影行，不知道视口有多高，而行是 `ListView.builder` 按需建的。行高从视口几何反推（跟着字阶与 `visualDensity` 变，写死就会偏）；去重按路径而不是按投影次数，否则懒扫描每 80ms 把视口往中间拽一次 |
 
 游标键盘导航（`handle_tree_key` 的 Up/Down/Enter）核心具备、UI 未接。
 
@@ -243,3 +244,36 @@ Widget 测试使用真实文件卡片、应用同款 Material 根和 FRB 替身�
 - `flutter test test/workspace/file_manager_card_test.dart` **本次没跑**：
   `dart run` / `flutter test` 会先触发 native asset hook 去编 windcore（几分钟），
   而该测试文件里本来就有 3 项 FileTree 判据是红的（见上一节）。
+
+## 2026-10-02：文件树定位到当前目录
+
+现象：树按预期把祖先链整条展开了，但**当前目录那一行看不见** —— 它多半在 200px
+视口外面，深目录时压根没被 `ListView.builder` 建出来。核心侧不缺东西（`sync_to_active`
+把祖先链塞进 `auto_expanded`、投影里 `is_active` 也标得好），缺的是 Dart 这一侧没人管视口。
+
+| 落点 | 做法 | 边界 |
+|---|---|---|
+| `file_manager_card_tree_part.dart` | `_buildFileTree` 里比对当前目录路径，变了就排一帧把 `isActive` 那行搬进视口（停在**中线**） | 口径照 `_breadcrumbRevealedPath`：挂在 `build` 而不是挂在「取投影」那一次。卡片收起再展开、换布局重建都不会重新取投影，只挂那一次照样看不见 |
+| 行高来源 | 从视口几何反推：内容总高 = 上下内边距 + 行数 × 行高，即 `maxScrollExtent + viewportDimension` | 不写死数字 —— 行高跟着字阶与 `visualDensity` 变，写死会在大字号下偏出视口。行等高的前提成立：缩进只加在 `contentPadding.left`，标题 `maxLines: 1` |
+| 去重 | 按**当前目录路径**，不按投影次数 | 懒扫描期间树每 80ms 重来一份，按投影次数去重等于把视口一直往中间拽，用户正看哪儿都被抢走 |
+| 不动的情况 | 内容放得下（`maxScrollExtent == 0`）、或整行本来就都在视口里 | 后一条是取舍：停在视口边上比被人突然搬一次视口好 |
+
+本机验证结果：
+
+- 新增用例 `打开文件树把当前目录那一行搬进视口`（`test/workspace/file_manager_card_test.dart`）：
+  用一份 13 行的深链夹具（当前目录不在最后一行，下面还挂三行，才分得出「搬到中线」
+  与「滚到头」），断言那一行整行落在树视口内，并断言链头那行已经被滚出视口
+  —— 后一句是防止「行数本来就少、全都看得见」蒙对。
+  `flutter test test/workspace/file_manager_card_test.dart --plain-name 树`：**该项通过**。
+- **证伪跑过**：把 `_buildFileTree` 里那句定位摘掉再跑，该用例立刻红在
+  `Found 0 widgets with key [<'file-manager-tree:/n12'>]`，即「没定位时那一行确实不存在于树上」。
+- 同一个文件里那 3 项既有的 FileTree 判据仍然红（`_openTree` 的 `pumpAndSettle timed out`），
+  摘掉与恢复定位调用两次跑都是同样 3 红 —— 与本次改动无关。**顺带把红因定位到了**：
+  夹具 `_treeSnapshot()` 里 `/books/series` 那行 `loading: true`，而 `_buildTreeRow` 对
+  `loading` 行画的是 `CircularProgressIndicator`（无限动画）→ `pumpAndSettle` 永远转不完，
+  三条都死在 `_openTree` 的那一次等待上。顺带一句：就算把动画掐了，
+  `文件树默认关闭…` 那条仍然会红在它断言 `toggle:/books/series` 存在 —— 而 loading 行不画箭头。
+  夹具该说哪一句得先定，**本次没动**。
+- `dart analyze` 卡片与该测试文件：0 error（测试文件里 5 条 `unused_import` 提示在改动之前就有）。
+- **没有在真机上点过**：改的是 Dart 视口行为，本机 Flutter UI 仍未运行，观感（动画时长 200ms、
+  停在居中而不是贴顶）需要在目标平台上看一眼。
