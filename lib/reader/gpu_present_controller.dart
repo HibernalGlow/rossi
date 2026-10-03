@@ -798,6 +798,10 @@ class GpuPresentController extends ChangeNotifier {
   /// （同一个轨、同一份证据），译文不能假装这个问题不存在。
   Future<void> _reassertTranslatedPage(int index, String path) async {
     if (_pushedIndex != index) return; // 不是当前页：等它被推上来时再核对
+    // 原图对比期间画面上**就该**是原图。这时拿「用的是原图轨」当淘汰证据，
+    // 每次呈现都会重注一遍成品页并触发一次 PNG 解码 + 重采样，而且永远修不好 ——
+    // 因为下一帧还是旁路。旁路不是淘汰，等着就好（切回来时这条轨自然生效）。
+    if (_originalPreview) return;
     if (await _presenterUsesEnhanced(index) != false) return; // 还在用 / 问不出结果，都不动
     SuperResolutionLog.add('第 ${index + 1} 页：增强图轨已被淘汰，重新注入成品页。');
     if (!await setEnhancedImage(index, path)) return;

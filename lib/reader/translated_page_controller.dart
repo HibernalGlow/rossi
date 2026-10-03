@@ -33,6 +33,14 @@ abstract interface class TranslatedPagePresenter {
   /// `null` = 呈现器答不上来（不是「没换上」，是「不知道」）。
   Future<bool?> presenterUsesEnhanced(int index);
 
+  /// 呈现器是否正处于「原图对比」旁路。
+  ///
+  /// 必须单独问这一件事：旁路按设计整条屏蔽增强图轨（`enhance.rs` 的
+  /// `prefers_enhanced` = `!bypass && 有增强图`），所以它开着的时候
+  /// [presenterUsesEnhanced] **一定**回 `false`。那一句描述的是旁路，
+  /// 不是「注入没生效」——把它当成失败证据，就会在每一页都谎报译文失败。
+  bool get bypassesEnhancedTrack;
+
   /// 被译文占用的页号；超分调度读它给译文让路（增强图轨一页只有一份）。
   /// 被译文占用的页 → 成品页路径。超分调度读它给译文让路，并在翻回来时用它
   /// 把同一张成品页重新注回去（增强图轨会被呈现器按保留集淘汰）。
@@ -57,6 +65,9 @@ class _GpuPresenter implements TranslatedPagePresenter {
   @override
   Future<bool?> presenterUsesEnhanced(int index) =>
       _c.presenterUsesEnhanced(index);
+
+  @override
+  bool get bypassesEnhancedTrack => _c.isOriginalPreview;
 
   @override
   Map<int, String> get translationOwnedPages => _c.translationOwnedPages;
@@ -238,6 +249,10 @@ class TranslatedPageController extends ChangeNotifier {
   ///
   /// 核对不是形式主义：注入成功但画面没换（原图轨被预取线程写回）是真实发生过的，
   /// 那种情况下声称「已显示译文」就是虚报。
+  ///
+  /// 但核对只在**这条轨参显时**才有意义。「原图对比」旁路期间呈现器按设计不碰
+  /// 增强图轨，核对必然回 false —— 那既不是成功也不是失败，是「已注入、被挡住」，
+  /// 所以要先问旁路再判失败（[TranslatedPagePresenter.bypassesEnhancedTrack]）。
   Future<bool> _inject(
     int index,
     String path,
@@ -262,16 +277,30 @@ class TranslatedPageController extends ChangeNotifier {
     }
     if (!await presenter.reshowAfterInjection(index)) {
       // 已经注入了：下一次该页上屏自然生效，这里不当失败。
-      OcrLog.add('${OcrLog.page(index)} 已注入 $path（这一页当前没在屏上，下次上屏生效）');
-      _claim(presenter, index, path, showingOnSuccess, degraded);
-      _phase = showingOnSuccess
-          ? TranslatedPagePhase.showing
-          : TranslatedPagePhase.off;
-      _index = index;
-      notifyListeners();
-      return true;
+      return _adopted(
+        presenter,
+        index,
+        path,
+        showingOnSuccess: showingOnSuccess,
+        degraded: degraded,
+        note: '这一页当前没在屏上，下次上屏生效',
+      );
     }
     final confirmed = await presenter.presenterUsesEnhanced(index);
+    if (confirmed == false && presenter.bypassesEnhancedTrack) {
+      // 这一句 false 是旁路给的，不是注入给的：画面上现在是原图，因为用户要求
+      // 对比原图。成品页已经注进轨里，把旁路切回去的那一帧就是它。
+      // 按失败处理的话有两重错 —— 芯片谎报「译文失败」，而且不登记归属，
+      // 于是超分会抢走这一页的增强图轨，切回超分后显示的反倒是超分图。
+      return _adopted(
+        presenter,
+        index,
+        path,
+        showingOnSuccess: showingOnSuccess,
+        degraded: degraded,
+        note: '原图对比开着，画面上先显示原图，切回即生效',
+      );
+    }
     if (confirmed == false) {
       return _fail(index, '注入成功但画面没换，这一页再翻回来会重试');
     }
@@ -279,6 +308,30 @@ class TranslatedPageController extends ChangeNotifier {
       '${OcrLog.page(index)} ${showingOnSuccess ? "已显示成品页" : "已关回原图"}'
       '（呈现器核对${confirmed == true ? "通过" : "答不上来，按注入成功算"}）：$path',
     );
+    _claim(presenter, index, path, showingOnSuccess, degraded);
+    _phase = showingOnSuccess
+        ? TranslatedPagePhase.showing
+        : TranslatedPagePhase.off;
+    _index = index;
+    _lastError = '';
+    notifyListeners();
+    return true;
+  }
+
+  /// 「注入这件事已经算数」的收尾：登记归属、定相位、播报。
+  ///
+  /// 三处（没在屏上 / 被原图对比挡住 / 核对通过）走的都是同一套记账，差别只在
+  /// 日志里那句括号。合成一处是因为这几行的顺序本身是判据 —— 少了 `_claim`
+  /// 超分就会来抢轨，少了 `_lastError = ''` 上一次的真失败会继续顶在新页脸上。
+  bool _adopted(
+    TranslatedPagePresenter presenter,
+    int index,
+    String path, {
+    required bool showingOnSuccess,
+    required bool degraded,
+    required String note,
+  }) {
+    OcrLog.add('${OcrLog.page(index)} 已注入 $path（$note）');
     _claim(presenter, index, path, showingOnSuccess, degraded);
     _phase = showingOnSuccess
         ? TranslatedPagePhase.showing

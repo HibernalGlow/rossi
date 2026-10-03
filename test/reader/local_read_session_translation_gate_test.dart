@@ -79,6 +79,8 @@ class _Presenter implements TranslatedPagePresenter {
   Future<bool> reshowAfterInjection(int index) async => true;
   @override
   Future<bool?> presenterUsesEnhanced(int index) async => true;
+  @override
+  bool get bypassesEnhancedTrack => false;
 }
 
 void main() {

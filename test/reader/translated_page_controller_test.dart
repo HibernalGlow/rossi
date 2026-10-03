@@ -85,10 +85,14 @@ class _FakeSource implements PageSource {
 }
 
 class _FakePresenter implements TranslatedPagePresenter {
-  _FakePresenter({this.confirmed});
+  _FakePresenter({this.confirmed, this.bypassed = false});
 
   /// `null` = 呈现器答不上来；`false` = 注入了但画面没换。
   final bool? confirmed;
+
+  /// 呈现器是否在跑「原图对比」旁路 —— 开着时 `confirmed` 必然为 `false`，
+  /// 而那句 false 描述的是旁路，不是注入失败。
+  final bool bypassed;
 
   final Map<int, String> _owned = <int, String>{};
   final List<(int, String)> injected = <(int, String)>[];
@@ -96,6 +100,9 @@ class _FakePresenter implements TranslatedPagePresenter {
 
   @override
   Map<int, String> get translationOwnedPages => _owned;
+
+  @override
+  bool get bypassesEnhancedTrack => bypassed;
 
   @override
   Future<bool> setEnhancedImage(int index, String imagePath) async {
@@ -345,6 +352,57 @@ void main() {
       isEmpty,
       reason: '没换上就别占着，否则超分会永久让路',
     );
+  });
+
+  test('原图对比开着：核对回 false 也判「已注入」，不谎报译文失败', () async {
+    // 这就是 2026-10-03 那次「翻译全都失败」的现场：旁路按设计不参显增强图轨
+    // （`enhance.rs` 的 `prefers_enhanced` = `!bypass && 有增强图`），
+    // 于是开着它的每一页，核对都必然回 false。
+    await seedReady();
+    final c = controllerWith(blocks: blocks);
+    final presenter = _FakePresenter(confirmed: false, bypassed: true);
+
+    final ok = await c.toggle(
+      source: _FakeSource(page),
+      presenter: presenter,
+      index: 6,
+    );
+    expect(
+      ok,
+      isTrue,
+      reason: '产物已经生成并注入 —— 报成失败只会让用户反复重跑那十几秒',
+    );
+    expect(c.lastError, isEmpty);
+    expect(c.phase, TranslatedPagePhase.showing);
+    expect(presenter.injected, hasLength(1));
+    expect(
+      presenter.translationOwnedPages.keys,
+      {6},
+      reason: '不登记归属，超分就会来抢这一页的增强图轨',
+    );
+  });
+
+  test('原图对比开着时点第二下：译文关得掉，归属要让出来', () async {
+    // 关译文走的是同一条核对。旁路期间关不掉的话，用户只能看着芯片一直停在
+    // 「译文页」，而画面上从头到尾都是原图。
+    await seedReady();
+    final c = controllerWith(blocks: blocks);
+    final presenter = _FakePresenter(confirmed: false, bypassed: true);
+    final source = _FakeSource(page);
+
+    expect(
+      await c.toggle(source: source, presenter: presenter, index: 1),
+      isTrue,
+    );
+    expect(presenter.translationOwnedPages.keys, {1});
+
+    expect(
+      await c.toggle(source: source, presenter: presenter, index: 1),
+      isTrue,
+    );
+    expect(presenter.translationOwnedPages, isEmpty);
+    expect(c.phase, TranslatedPagePhase.off);
+    expect(presenter.injected, hasLength(2));
   });
 
   test('再点一次：把原图注回去并让出这一页', () async {

@@ -17,12 +17,14 @@ void main() {
     int index = 4,
     bool owned = false,
     bool degraded = false,
+    bool bypassed = false,
   }) => translatedPageChipState(
     phase: phase,
     phaseIndex: phaseIndex,
     index: index,
     owned: owned,
     degraded: degraded,
+    bypassed: bypassed,
   );
 
   test('这一页归译文管就是 showing，不管控制器停在哪个阶段', () {
@@ -35,6 +37,43 @@ void main() {
         reason: '$phase 时旧页的归属不该被盖掉',
       );
     }
+  });
+
+  test('原图对比开着：归属成立也不许说「译文页」，要说「被挡住」', () {
+    // 这一行就是那次「翻译全都失败」的另一半：芯片不能把「注入好了」说成
+    // 「画面上是译文」——旁路期间画面上就是原图。
+    for (final phase in TranslatedPagePhase.values) {
+      expect(
+        state(phase: phase, phaseIndex: 99, owned: true, bypassed: true),
+        TranslatedPageChipState.blockedByOriginalPreview,
+        reason: '$phase 时旁路都必须改口',
+      );
+    }
+    // 降级产物被旁路挡住时也说「被挡住」：此刻用户看到的既不是译文也不是回填，是原图。
+    expect(
+      state(
+        phase: TranslatedPagePhase.showing,
+        phaseIndex: 4,
+        owned: true,
+        degraded: true,
+        bypassed: true,
+      ),
+      TranslatedPageChipState.blockedByOriginalPreview,
+    );
+  });
+
+  test('旁路开着但这一页没注入过：不许冒「被挡住」', () {
+    // 阳性对照。少了这一条，「bypassed 就返回 blocked」这种把归属忘掉、
+    // 平白告诉用户「有译文但看不见」的写法也能全绿。
+    expect(
+      state(
+        phase: TranslatedPagePhase.off,
+        phaseIndex: 4,
+        owned: false,
+        bypassed: true,
+      ),
+      TranslatedPageChipState.off,
+    );
   });
 
   test('别的页在生成 / 失败，不许顶到当前页脸上', () {
@@ -76,6 +115,8 @@ void main() {
       TranslatedPageChipState.off,
       TranslatedPageChipState.showing,
       TranslatedPageChipState.failed,
+      // 被旁路挡住的那一页照样能点：点它就是把译文关掉。
+      TranslatedPageChipState.blockedByOriginalPreview,
     ]) {
       expect(translatedPageTapFor(s), TranslatedPageTap.toggle, reason: '$s');
     }

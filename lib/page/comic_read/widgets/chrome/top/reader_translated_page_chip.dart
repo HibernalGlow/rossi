@@ -41,7 +41,13 @@ class ReaderTranslatedPageChip extends StatelessWidget {
       return const SizedBox.shrink();
     }
     return ListenableBuilder(
-      listenable: TranslatedPageController.instance,
+      // 两边都要听：控制器给「归属与阶段」，呈现器给「原图对比旁路」。
+      // 少了呈现器这一路，切回超分的那一刻芯片会一直停在「原图对比中」，
+      // 直到用户翻页或再点一次才改口 —— 而画面其实早就换成译文了。
+      listenable: Listenable.merge([
+        TranslatedPageController.instance,
+        presenter,
+      ]),
       builder: (context, _) {
         final controller = TranslatedPageController.instance;
         final index = context.select<ReaderCubit, int>(
@@ -53,6 +59,7 @@ class ReaderTranslatedPageChip extends StatelessWidget {
           index: index,
           owned: controller.isOwned(index),
           degraded: controller.isDegraded(index),
+          bypassed: presenter.isOriginalPreview,
         );
         return _build(context, controller, source, presenter, index, state);
       },
@@ -83,6 +90,12 @@ class ReaderTranslatedPageChip extends StatelessWidget {
         scheme.tertiaryContainer,
         scheme.onTertiaryContainer,
       ),
+      // 被原图对比挡住：既不能用失败色（没失败），也不能用 showing 的强调色
+      // （画面上此刻就是原图）。给它中性色 + 一个「看不见」的图标。
+      TranslatedPageChipState.blockedByOriginalPreview => (
+        scheme.surfaceContainerHighest,
+        scheme.onSurfaceVariant,
+      ),
       _ => (scheme.surfaceContainerHigh, scheme.onSurfaceVariant),
     };
     final showLabel = availableWidth >= 620;
@@ -93,6 +106,11 @@ class ReaderTranslatedPageChip extends StatelessWidget {
         TranslatedPageChipState.showing => t.ocr.chipOn,
         TranslatedPageChipState.showingOriginal => t.ocr.degradedHint,
         TranslatedPageChipState.building => t.ocr.building,
+        // 这一态的短语是中文原文：`ocr` 那段 i18n 里还没有对应键，而同一条链路上
+        // 其余诊断文案（[TranslatedPageController.lastError]、超分的状态表）
+        // 本来也是原文。要补 i18n 就在 `ocr` 段加两个键，别在这里另起一套。
+        TranslatedPageChipState.blockedByOriginalPreview =>
+          '译文已经生成并注入，正被「对比原图」挡着：切回超分就显示译文',
         _ => t.ocr.chipOff,
       },
       child: InkWell(
@@ -127,9 +145,15 @@ class ReaderTranslatedPageChip extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                state == TranslatedPageChipState.building
-                    ? Icons.hourglass_top_outlined
-                    : Icons.translate_outlined,
+                switch (state) {
+                  TranslatedPageChipState.building =>
+                    Icons.hourglass_top_outlined,
+                  // 「注进去了但这会儿看不见」——窄屏上不显示文字时，图标是这一态
+                  // 唯一和「译」「译文页」区分得开的东西。
+                  TranslatedPageChipState.blockedByOriginalPreview =>
+                    Icons.visibility_off_outlined,
+                  _ => Icons.translate_outlined,
+                },
                 size: 14,
                 color: fg,
               ),
@@ -142,6 +166,8 @@ class ReaderTranslatedPageChip extends StatelessWidget {
                     TranslatedPageChipState.showing => t.ocr.chipOn,
                     TranslatedPageChipState.showingOriginal =>
                       t.ocr.chipDegraded,
+                    TranslatedPageChipState.blockedByOriginalPreview =>
+                      '原图对比中',
                     TranslatedPageChipState.off => t.ocr.chipOff,
                   },
                   style: theme.textTheme.labelSmall?.copyWith(
