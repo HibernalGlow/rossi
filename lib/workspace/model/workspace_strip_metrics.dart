@@ -89,16 +89,43 @@ class WorkspaceStripMetrics {
   /// 小到看不见的差值直接吃掉，让 `contentWidth` 精确等于可用宽。
   static const double fitTolerance = 0.5;
 
+  /// 单条泳道最多吃掉视口宽的多少（见 [_fitToViewport]）。
+  ///
+  /// 取 0.85 而不是 1.0：留一条缝，让「旁边还有别的泳道」这件事在画面上看得见。
+  static const double maxLaneViewportFactor = 0.85;
+
   const WorkspaceStripMetrics({
     required this.slots,
     required this.contentWidth,
     required this.needsScroll,
   });
 
+  /// 一条泳道不该**比视口还宽**。
+  ///
+  /// 契约说面板泳道是绝对像素、不按窗口宽夹取（ADR-0012 第 5 条），而那条的**前提**
+  /// 是「装不下就整条带横向滚动」—— 桌面上这条成立，因为旁边还有边缘驻留能把相邻
+  /// 泳道呼出来。单条泳道宽过视口时，用户看到的不是「外面还有内容」，
+  /// 而是**这一条被切掉一半**：滚动的余量全花在这一条自己身上，画面上没有任何东西
+  /// 提示还有别的泳道。手机竖屏（视口 ~369dp）配桌面默认的 380/650/360 恰好三条全是
+  /// 这种情况。
+  ///
+  /// 地板取 `min(lane.minWidth, cap)` 而不是 `lane.minWidth`：窄视口上那条最小值
+  /// 本身就可能超过上限（左栏的 300 对 369 的视口是 81%），照原样夹会**夹不动**，
+  /// 于是这个函数在真正需要它的设备上什么也没做。`minWidth` 是为桌面的可读性定的，
+  /// 放不下它的时候，「这一条完整可见」优先。
+  static double _fitToViewport(LaneConfig lane, double viewportWidth) {
+    final resolved = lane.resolveWidth(viewportWidth);
+    if (viewportWidth <= 0) return resolved;
+    final cap = viewportWidth * maxLaneViewportFactor;
+    final floor = lane.minWidth < cap ? lane.minWidth : cap;
+    return resolved.clamp(floor, cap).toDouble();
+  }
+
   /// 按泳道性质分配宽度。三条不变量（neoview 契约）：
   ///
   /// 1. **面板泳道是绝对像素、不按窗口宽夹取**；阅读器泳道是**视口比例**
-  ///    （`viewportWidth × widthRatio`）—— 所以比例要乘**视口宽**；
+  ///    （`viewportWidth × widthRatio`）—— 所以比例要乘**视口宽**。
+  ///    唯一的例外是 [_fitToViewport]：单条泳道不吃满视口；
   /// 2. 有富余宽度时**富余全部给阅读器**（中央弹性填充）；
   /// 3. 装不下时各自保持存储宽度、**整条带横向滚动**（泳道之间永不重叠）。
   ///
@@ -147,7 +174,7 @@ class WorkspaceStripMetrics {
           ? WorkspaceLayoutConfig.collapsedLaneWidth
           : isSolo
           ? availableWidth
-          : lane.resolveWidth(viewportWidth);
+          : _fitToViewport(lane, viewportWidth);
       collapsed[laneId] = isCollapsed;
     }
 
