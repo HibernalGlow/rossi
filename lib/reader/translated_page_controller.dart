@@ -148,6 +148,14 @@ class TranslatedPageController extends ChangeNotifier {
   bool isOwned(int index) =>
       _presenter?.translationOwnedPages.containsKey(index) ?? false;
 
+  /// 「对比原图」旁路现在开着吗。叠层那一层要跟着让位。
+  ///
+  /// 为什么单独问一句：旁路屏蔽的是**增强图轨**，烘焙档自然被挡住；而叠层是 Flutter 侧
+  /// 的一层，不占轨、也就不受那道屏蔽 —— 不显式判它，用户按「对比原图」看到的会是
+  /// 「原图 + 中文」，而不是他要的那张原图。
+  bool get bypassesOriginalPreview =>
+      _presenter?.bypassesEnhancedTrack ?? false;
+
   /// 换书 / 换章：清掉所有归属与临时输入，避免拿旧页的产物往新页上贴。
   void reset() {
     _generation++;
