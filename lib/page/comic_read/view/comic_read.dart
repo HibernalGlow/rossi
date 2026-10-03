@@ -22,6 +22,7 @@ import 'package:zephyr/page/comic_read/controller/reader_orientation_controller.
 import 'package:zephyr/page/comic_read/cubit/reader_state.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
 import 'package:zephyr/page/comic_read/type/chapter_extern.dart';
+import 'package:zephyr/page/comic_read/widgets/reader_auto_translate_page.dart';
 import 'package:zephyr/page/comic_read/widgets/modes/read_mode_utils.dart';
 import 'package:zephyr/platform/eink/eink_refresh.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
@@ -119,18 +120,22 @@ class ComicReadPage extends StatelessWidget {
           ),
         ),
       ],
-      child: _ComicReadPage(
-        comicId: comicId,
-        order: order,
-        chapterId: chapterId,
-        requestId: requestId,
-        storageChapterId: storageChapterId,
-        logicalKey: logicalKey,
-        chapterExtern: chapterExtern,
-        epsNumber: epsNumber,
-        from: from,
-        type: type,
-        comicInfo: comicInfo,
+      // 「翻到新的一页自动译」的执行端。它没有 UI，只能住在这种与正文同生同死的
+      // 位置：放进上下栏里就会跟着栏一起被揭示掉，自动档于是时灵时不灵。
+      child: ReaderAutoTranslatePage(
+        child: _ComicReadPage(
+          comicId: comicId,
+          order: order,
+          chapterId: chapterId,
+          requestId: requestId,
+          storageChapterId: storageChapterId,
+          logicalKey: logicalKey,
+          chapterExtern: chapterExtern,
+          epsNumber: epsNumber,
+          from: from,
+          type: type,
+          comicInfo: comicInfo,
+        ),
       ),
     );
   }
@@ -591,9 +596,7 @@ class _ComicReadPageState extends State<_ComicReadPage>
       offset: (_) => topOffset,
     );
     if (!mounted || _columnSlotIsVisible(targetSlot)) return;
-    logger.w(
-      '阅读器跳槽位未落地（列模式）：目标 $targetSlot, book=$comicId',
-    );
+    logger.w('阅读器跳槽位未落地（列模式）：目标 $targetSlot, book=$comicId');
   }
 
   /// 目标槽位此刻是否在列模式视口里。观察器还没接上时按「可见」处理 ——
