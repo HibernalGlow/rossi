@@ -3,11 +3,8 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:scrollview_observer/scrollview_observer.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
-import 'package:zephyr/main.dart';
-import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
@@ -17,15 +14,15 @@ import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/widgets/glass/liquid_glass.dart';
 
 class SliderWidget extends StatefulWidget {
-  final ListObserverController observerController;
-  final PageController pageController;
   final int Function()? getCurrentChapterSlotCount;
   final int Function(int globalSlot)? mapGlobalToLocalSlot;
   final int Function(int localSlot)? mapLocalToGlobalSlot;
   final bool Function(int globalSlot)? isTransitionSlot;
   final String transitionLabel;
-  final double Function(BuildContext context, int globalSlot)?
-  estimateColumnOffset;
+
+  /// 提交跳页的唯一出口 —— 必须走阅读页那份带「跳完回读、没落地补一跳」的实现，
+  /// 滑块自己 `jumpToPage` 会静默不落地（见 `didLandOnSlot`）。
+  final ValueChanged<int>? onJumpToSlot;
 
   /// 是否嵌进**别人的**玻璃面板。
   ///
@@ -36,14 +33,12 @@ class SliderWidget extends StatefulWidget {
 
   const SliderWidget({
     super.key,
-    required this.observerController,
-    required this.pageController,
     this.getCurrentChapterSlotCount,
     this.mapGlobalToLocalSlot,
     this.mapLocalToGlobalSlot,
     this.isTransitionSlot,
     this.transitionLabel = '',
-    this.estimateColumnOffset,
+    this.onJumpToSlot,
     this.embedded = false,
   });
 
@@ -52,17 +47,19 @@ class SliderWidget extends StatefulWidget {
 }
 
 class _SliderWidgetState extends State<SliderWidget> {
-  Timer? _sliderIsRollingTimer; // 用来控制滚动隐藏组件的操作
+  // 悬浮层的收起与跳页是两个互不相干的动作，必须各自一个 Timer：合成一个字段时，
+  // 鼠标在轨道上移动会 cancel 掉「待跳页」那个 Timer，于是滑块动了、页面永远不跳。
+  Timer? _overlayHideTimer; // 悬停提示的延时收起
+  Timer? _jumpTimer; // 拖动防抖后提交跳页
   Timer? _comicRollingTimer; // 漫画本身是否在滚动
-  Timer? _secondCorrectionTimer; // 滑块跳转后延迟二次校正
   OverlayEntry? _overlayEntry; // 用于存储 OverlayEntry
   int? _lastHapticStep;
 
   @override
   void dispose() {
-    _sliderIsRollingTimer?.cancel();
+    _overlayHideTimer?.cancel();
+    _jumpTimer?.cancel();
     _comicRollingTimer?.cancel();
-    _secondCorrectionTimer?.cancel();
     _overlayEntry?.remove();
     super.dispose();
   }
@@ -194,75 +191,6 @@ class _SliderWidgetState extends State<SliderWidget> {
     // 插入 Overlay
     Overlay.of(context).insert(_overlayEntry!);
   }
-
-  void _jumpColumnWithOffsetThenCorrection(
-    int targetGlobalSlot,
-    ReadSettingState readSetting,
-  ) {
-    var jumpedByOffset = false;
-    final scrollController = widget.observerController.controller;
-    if (scrollController != null && scrollController.hasClients) {
-      try {
-        final double roughOffset;
-        final estimate = widget.estimateColumnOffset;
-        if (estimate != null) {
-          roughOffset = estimate(context, targetGlobalSlot);
-        } else {
-          final viewportWidth = MediaQuery.sizeOf(context).width;
-          final contentWidth = getConstrainedImageWidth(
-            containerWidth: viewportWidth,
-            enableSidePadding: readSetting.sidePaddingEnabled,
-            sidePaddingPercent: readSetting.sidePaddingPercent,
-          );
-          roughOffset = getOffset(
-            context,
-            targetGlobalSlot,
-            imageWidth: contentWidth,
-          );
-        }
-        final maxScrollExtent = scrollController.position.maxScrollExtent;
-        scrollController.jumpTo(roughOffset.clamp(0.0, maxScrollExtent));
-        jumpedByOffset = true;
-      } catch (e) {
-        logger.e(e);
-      }
-    }
-
-    if (!jumpedByOffset) {
-      _jumpColumnWithSecondCorrection(targetGlobalSlot);
-      return;
-    }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _jumpColumnWithSecondCorrection(targetGlobalSlot);
-    });
-  }
-
-  void _jumpColumnWithSecondCorrection(int targetGlobalSlot) {
-    void jumpNow() {
-      widget.observerController.jumpTo(
-        index: targetGlobalSlot,
-        offset: (offset) => getReaderTopOffset(context),
-      );
-    }
-
-    jumpNow();
-    _secondCorrectionTimer?.cancel();
-    _secondCorrectionTimer = Timer(const Duration(milliseconds: 260), () {
-      if (!mounted) return;
-      final readMode = context.readEffectiveReadMode();
-      if (readMode != 0) return;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        try {
-          jumpNow();
-        } catch (e) {
-          logger.e(e);
-        }
-      });
-    });
-  }
 }
 
 class _SliderContents extends StatelessWidget {
@@ -379,8 +307,8 @@ class _SliderContents extends StatelessWidget {
                 toastMessage,
                 slotIndex: targetGlobalSlot,
               );
-              owner._sliderIsRollingTimer?.cancel();
-              owner._sliderIsRollingTimer = Timer(
+              owner._overlayHideTimer?.cancel();
+              owner._overlayHideTimer = Timer(
                 const Duration(milliseconds: 1400),
                 () {
                   owner._overlayEntry?.remove();
@@ -389,7 +317,7 @@ class _SliderContents extends StatelessWidget {
               );
             },
             onExit: (_) {
-              owner._sliderIsRollingTimer?.cancel();
+              owner._overlayHideTimer?.cancel();
               owner._overlayEntry?.remove();
               owner._overlayEntry = null;
             },
@@ -422,8 +350,11 @@ class _SliderContents extends StatelessWidget {
                     cubit.updateSliderChanged(targetGlobalValue);
                   }
 
+                  // 拖动标记要在第一次 onChanged 就立起来：等防抖 Timer 里才置位的话，
+                  // 中间这 300ms 里 onPageChanged 会把滑块拽回画面当前那一页。
+                  cubit.updateSliderRolling(true);
                   cubit.updateIsComicRolling(true);
-                  owner._sliderIsRollingTimer?.cancel();
+                  owner._jumpTimer?.cancel();
 
                   final displayPage = getDisplayPageNumber(
                     slotIndex: currentStep,
@@ -440,11 +371,21 @@ class _SliderContents extends StatelessWidget {
                     slotIndex: targetGlobalSlot,
                   );
 
-                  owner._sliderIsRollingTimer = Timer(
+                  owner._jumpTimer = Timer(
                     const Duration(milliseconds: 300),
                     () {
-                      cubit.updateSliderRolling(true);
-                      cubit.updateIsComicRolling(true);
+                      final commit = configuration.onJumpToSlot;
+                      if (commit != null) {
+                        commit(targetGlobalSlot);
+                      } else {
+                        // 没接线也不能只动滑块：协调器上登记的就是同一个跳页回调。
+                        unawaited(
+                          ReaderSessionCoordinator.instance.jumpTo(
+                            targetGlobalSlot,
+                          ),
+                        );
+                      }
+                      owner._comicRollingTimer?.cancel();
                       owner._comicRollingTimer = Timer(
                         const Duration(milliseconds: 350),
                         () {
@@ -454,25 +395,6 @@ class _SliderContents extends StatelessWidget {
                           owner._overlayEntry = null;
                         },
                       );
-
-                      // 上游的单本覆盖：跳转按「这本」的有效阅读设置，不是全局那份。
-                      final effectiveReadSetting = context
-                          .readEffectiveReadSetting();
-
-                      try {
-                        if (effectiveReadSetting.readMode == 0) {
-                          owner._jumpColumnWithOffsetThenCorrection(
-                            targetGlobalSlot,
-                            effectiveReadSetting,
-                          );
-                        } else {
-                          configuration.pageController.jumpToPage(
-                            targetGlobalSlot,
-                          );
-                        }
-                      } catch (e) {
-                        logger.e(e);
-                      }
                     },
                   );
                 },
@@ -486,31 +408,4 @@ class _SliderContents extends StatelessWidget {
       ),
     );
   }
-}
-
-double getOffset(BuildContext context, int index, {double? imageWidth}) {
-  final sizeCubit = context.read<ImageSizeCubit>();
-
-  final targetListIndex = index;
-
-  double targetItemStartY = 0;
-  for (int i = 0; i < targetListIndex; i++) {
-    final cachedSize = sizeCubit.state.getSizeValue(i);
-    if (imageWidth != null &&
-        cachedSize.width > 0 &&
-        cachedSize.height > 0 &&
-        (cachedSize.width - imageWidth).abs() >= 0.1) {
-      final aspectRatio = cachedSize.height / cachedSize.width;
-      targetItemStartY += imageWidth * aspectRatio;
-    } else {
-      targetItemStartY += cachedSize.height;
-    }
-  }
-
-  double finalOffset = targetItemStartY - context.statusBarHeight;
-  if (finalOffset < 0) {
-    finalOffset = 0;
-  }
-
-  return finalOffset;
 }

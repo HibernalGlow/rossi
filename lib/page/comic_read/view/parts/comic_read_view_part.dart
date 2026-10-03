@@ -96,8 +96,6 @@ extension _ComicReadViewPart on _ComicReadPageState {
     // 融进同一块面板（见 `chrome/bottom.dart`），形态由父级决定。
     Widget buildSlider(bool embedded) => SliderWidget(
       embedded: embedded,
-      observerController: observerController,
-      pageController: _pageController,
       getCurrentChapterSlotCount: seamlessEnabled
           ? () => seamlessCubit.effectiveCurrentChapterSlotCount()
           : null,
@@ -111,24 +109,9 @@ extension _ComicReadViewPart on _ComicReadPageState {
           ? (globalSlot) =>
                 seamlessCubit.isTransitionSlot(globalSlot, readSetting)
           : null,
-      estimateColumnOffset: seamlessEnabled
-          ? (context, globalSlot) {
-              final imageSizeCubit = context.read<ImageSizeCubit>();
-              final viewportWidth = MediaQuery.sizeOf(context).width;
-              final contentWidth = getConstrainedImageWidth(
-                containerWidth: viewportWidth,
-                enableSidePadding: readSetting.sidePaddingEnabled,
-                sidePaddingPercent: readSetting.sidePaddingPercent,
-              );
-              final height = seamlessCubit.estimateColumnHeightBeforeGlobalSlot(
-                globalSlot,
-                readSetting,
-                imageSizeCubit,
-                contentWidth,
-              );
-              return height + getReaderTopOffset(context);
-            }
-          : null,
+      // 跳页只有这一条路：里面会钳位、同步 currentSlot/章节/阅读进度，行模式跳完
+      // 还要回读实际页、没落地就补一跳。滑块自己 jumpToPage 会静默不落地。
+      onJumpToSlot: _jumpToGlobalSlot,
     );
 
     return BottomWidget(
