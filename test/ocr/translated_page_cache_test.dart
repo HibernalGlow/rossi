@@ -228,5 +228,43 @@ void main() {
         isFalse,
       );
     });
+
+    test('overlayNeedsErasedBase 与「能不能显示」用同一份图层，答案互相一致', () async {
+      // 这一维决定控制器替不替这一页占增强图轨（超分让不让路）。
+      // 命中缓存那一路也必须报同一个答案，否则同一页首建占轨、翻回来不占，
+      // 用户会看到中文底下又露出日文。
+      await putLayer(buildLayer(filled: true));
+      expect(
+        await TranslatedPageCache.overlayNeedsErasedBase(
+          label: label,
+          pageIndex: 0,
+        ),
+        isFalse,
+        reason: '每框都有填色 ⇒ 底就是画面本来那张，不该占轨',
+      );
+
+      await putLayer(buildLayer(filled: false));
+      expect(
+        await TranslatedPageCache.overlayNeedsErasedBase(
+          label: label,
+          pageIndex: 0,
+        ),
+        isTrue,
+        reason: '有框没填色 ⇒ 底只能是擦字底图，必须占轨才看得见',
+      );
+
+      // 图层问不到时按「要擦」处理：宁可多占一次轨，也不端出一张字压字的页。
+      await (await TranslatedPageCache.layerFile(
+        label: label,
+        pageIndex: 3,
+      )).writeAsString('{"boxes": [ 坏掉的', flush: true);
+      expect(
+        await TranslatedPageCache.overlayNeedsErasedBase(
+          label: label,
+          pageIndex: 3,
+        ),
+        isTrue,
+      );
+    });
   });
 }
