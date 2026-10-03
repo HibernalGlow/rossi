@@ -159,8 +159,100 @@ void main() {
   _brokenBlocksDegradePerBlock();
   _strayActivePanelRecordsAreDropped();
   _usableBlockHeuristic();
+  _touchDevicesKeepTheirOwnGeometry();
   print('workspace_sync_codec_check: $_passed checks passed');
 }
+
+// ── 8. 触屏设备只丢几何，不丢整块 ────────────────────────────────────────
+
+/// `adoptDesktopGeometry: false`（触屏设备）必须**只**挡住呈现模式与泳道几何，
+/// 面板/卡片记账、折叠态、面板操作栏摆放照旧采纳。
+///
+/// 这条判据的全部风险是「写成一个偷偷整块跳过的实现也能过」—— 所以每一半都配了
+/// 正向断言：A 机的 `collapsed`、`panelBar`、`board`、`activePanel` 都必须真的过来。
+void _touchDevicesKeepTheirOwnGeometry() {
+  final source = _deviceA();
+  final target = _deviceB();
+  final decoded = WorkspaceSyncCodec.decode(
+    WorkspaceSyncCodec.encode(source),
+    base: target,
+    adoptDesktopGeometry: false,
+  );
+
+  // ── 几何：留在本机 ──
+  check('触屏不采纳云端呈现模式', decoded.mode == WorkspaceMode.swimlane);
+  check(
+    '触屏不采纳云端泳道顺序',
+    decoded.layout.laneOrder.join(',') == 'left,reader,right',
+    decoded.layout.laneOrder.join(','),
+  );
+  check(
+    '触屏不采纳左栏绝对宽（A 机 411.5 没进来）',
+    decoded.layout.lanes[LaneId.left]!.width == 380.0,
+    '${decoded.layout.lanes[LaneId.left]!.width}',
+  );
+  check(
+    '触屏不采纳阅读器的视口比例（A 机 0.375 没进来）',
+    decoded.layout.lanes[LaneId.reader]!.widthRatio == 0.5,
+    '${decoded.layout.lanes[LaneId.reader]!.widthRatio}',
+  );
+  check(
+    '触屏不采纳「哪条泳道在独占」',
+    decoded.layout.soloLaneId == null,
+    '${decoded.layout.soloLaneId}',
+  );
+  check(
+    '触屏不采纳边缘唤出区（那是悬停的几何，退回本机默认的 1% 宽带）',
+    decoded.interaction.revealZones.left.width == 1.0,
+    '${decoded.interaction.revealZones.left.width}',
+  );
+
+  // ── 非几何：真的过来了（正向断言，挡住「整块跳过」也能绿）──
+  check(
+    '折叠态仍然采纳云端（左栏 collapsed=true）',
+    decoded.layout.lanes[LaneId.left]!.collapsed,
+  );
+  check(
+    '面板操作栏摆放仍然采纳云端（A 机是悬浮+停靠下边）',
+    decoded.layout.lanes[LaneId.left]!.panelBar.mode == PanelBarMode.floating &&
+        decoded.layout.lanes[LaneId.left]!.panelBar.dock ==
+            PanelBarDock.bottom,
+  );
+  check(
+    '卡片记账仍然采纳云端',
+    decoded.board.cards.containsKey('favorite') &&
+        decoded.board.cards.containsKey('download'),
+  );
+  check(
+    '每条泳道的激活面板仍然采纳云端',
+    decoded.activePanel[LaneId.left] == 'shelf' &&
+        decoded.activePanel[LaneId.right] == 'tools',
+    '${decoded.activePanel}',
+  );
+  check(
+    '其余交互偏好（延时/开关）仍然采纳云端',
+    decoded.interaction.hoverFocusDelayMs == 111 &&
+        decoded.interaction.showTopChrome,
+  );
+
+  // ── 与 adopt=true 那一档成对：差别必须**只有**几何 ──
+  final adopted = WorkspaceSyncCodec.decode(
+    WorkspaceSyncCodec.encode(source),
+    base: target,
+  );
+  check(
+    'adopt=true 时云端几何真的进得来（否则上面那组是假绿）',
+    adopted.layout.lanes[LaneId.left]!.width == 411.5 &&
+        adopted.mode == WorkspaceMode.edges &&
+        adopted.layout.soloLaneId == LaneId.right,
+  );
+  check(
+    '两档只在几何上分叉：唤出区在 adopt=true 那档确实跟了云端（A 机是 3% 宽）',
+    adopted.interaction.revealZones.left.width == 3.0 &&
+        decoded.interaction.revealZones.left.width == 1.0,
+  );
+}
+
 
 // ── 1. 该带走的都带走 ────────────────────────────────────────────────────
 

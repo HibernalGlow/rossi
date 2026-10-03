@@ -76,12 +76,28 @@ abstract final class WorkspaceSyncCodec {
   /// **唯独四个抽屉开关必须显式按本机值写回**：`WorkspaceLayoutConfig.fromJson`
   /// 对缺失项一律取 `false`，而云端**不带**这四个键 ⇒ 不写回就是
   /// 「每同步一次，四个抽屉全被合上」，且用户找不到是谁关的。
+  ///
+  /// [adoptDesktopGeometry] 决定这台设备要不要采纳云端那份的**呈现模式 + 泳道
+  /// 几何**（`mode` / 泳道顺序 / 每条泳道的宽度 / 独占那条是谁）与**边缘唤出区**。
+  /// 默认 `true` ⇒ 同族设备之间照旧全套采纳，一个字的行为都没变。
+  ///
+  /// 触屏设备传 `false`（判据见 `WorkspacePointerMode`），理由不是「布局不好看」：
+  /// 面板泳道的宽度是**绝对像素、且刻意不按视口夹取**（ADR-0012 第 5 条），
+  /// 桌面那套 380/650/360 原样灌进一台 369dp 的手机，落地结果是
+  /// 「一条左栏比屏幕还宽」+「独占被采纳 ⇒ 另外两条被推出视口」，
+  /// 而把它们唤回来的那条路是**边缘悬停驻留** —— 触摸屏上永远不触发。
+  /// 也就是**进得去出不来**，与 ADR-0012 第 12 条修掉的「没有常驻出口」同一类。
+  ///
+  /// 刻意**只**挡几何与唤出区：面板与卡片记账（哪个面板停在哪条泳道、次序、
+  /// 可见、展开）是真正的跨端偏好，折叠态与面板操作栏摆放同理 —— 那些是
+  /// 「用户想怎么组织内容」，不是「这台机器的屏幕上放得下多宽」。
   static WorkspaceLayoutSnapshot decode(
     Map<String, dynamic> data, {
     required WorkspaceLayoutSnapshot base,
+    bool adoptDesktopGeometry = true,
   }) {
     final layoutJson = _map(data['layout']);
-    final layout = layoutJson.isEmpty
+    var layout = layoutJson.isEmpty
         ? base.layout
         : WorkspaceLayoutConfig.fromJson(layoutJson).copyWith(
             edgeLeftOpen: base.layout.edgeLeftOpen,
@@ -114,18 +130,59 @@ abstract final class WorkspaceSyncCodec {
     }
 
     final rawInteraction = data['interaction'];
-    final interaction = rawInteraction is Map
+    var interaction = rawInteraction is Map
         ? WorkspaceInteractionSettings.fromJson(_map(rawInteraction))
         : base.interaction;
 
+    if (!adoptDesktopGeometry) {
+      layout = _keepLocalGeometry(layout, base.layout);
+      // 唤出区是**边缘悬停**的几何：在触屏上它一块都点不到，采纳它没有意义，
+      // 而「设置 → 布局」里那张画布会把桌面画的那几块原样显示到手机上，
+      // 用户会以为它们代表某种本机行为。
+      interaction = interaction.copyWith(
+        revealZones: base.interaction.revealZones,
+      );
+    }
+
     return WorkspaceLayoutSnapshot(
-      mode: _parseMode(data['mode']) ?? base.mode,
+      mode: (!adoptDesktopGeometry ? null : _parseMode(data['mode'])) ??
+          base.mode,
       layout: layout,
       board: board,
       activePanel: activePanel,
       // 本机独有：谁在这个屏幕上把交互交给了哪条泳道，不该被别的设备改写。
       activeLaneId: base.activeLaneId,
       interaction: interaction,
+    );
+  }
+
+  /// 把云端那份布局里的**几何**换回本机自己的：泳道顺序、每条泳道的宽度
+  /// （绝对像素与视口比例都算几何）、以及「哪条泳道在独占」。
+  ///
+  /// 折叠态与面板操作栏摆放**不动**（见 [decode] 的口径）。云端有、本机没有的
+  /// 泳道原样保留 —— 那是新增泳道下来的正常路径，不是几何冲突。
+  static WorkspaceLayoutConfig _keepLocalGeometry(
+    WorkspaceLayoutConfig remote,
+    WorkspaceLayoutConfig local,
+  ) {
+    final lanes = <String, LaneConfig>{};
+    for (final entry in remote.lanes.entries) {
+      final mine = local.lanes[entry.key];
+      if (mine == null) {
+        lanes[entry.key] = entry.value;
+        continue;
+      }
+      lanes[entry.key] = entry.value.copyWith(
+        width: mine.width,
+        widthRatio: () => mine.widthRatio,
+        minWidth: mine.minWidth,
+        maxWidth: mine.maxWidth,
+      );
+    }
+    return remote.copyWith(
+      laneOrder: local.laneOrder,
+      lanes: lanes,
+      soloLaneId: () => local.soloLaneId,
     );
   }
 
