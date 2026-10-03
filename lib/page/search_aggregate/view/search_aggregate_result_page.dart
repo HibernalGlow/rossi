@@ -6,6 +6,7 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/cubit/plugin_registry_cubit.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
+import 'package:zephyr/page/search/model/search_history_entry.dart';
 import 'package:zephyr/page/search/widget/search_input_dialog.dart';
 import 'package:zephyr/page/search/widget/source_select_dialog.dart';
 import 'package:zephyr/page/search_result/bloc/search_bloc.dart';
@@ -102,8 +103,15 @@ class _SearchAggregateResultPageState
     });
   }
 
-  String _buildHistoryItem(SearchEvent event) {
-    return event.searchStates.searchKeyword.trim();
+  SearchHistoryEntry _buildHistoryItem(SearchEvent event) {
+    // 聚合搜索跨全部插件，不隶属某一个插件，所以固定记成聚合哨兵。
+    // 这里**不能**读 `searchStates.from`：发现页开聚合搜索时它被塞成了
+    // 「当前聚焦的那个插件」（`discover_page.dart:107`），照抄会把一次跨全站的
+    // 搜索挂到单个图源名下。
+    return SearchHistoryEntry(
+      keyword: event.searchStates.searchKeyword.trim(),
+      source: kAggregateSearchSource,
+    );
   }
 
   @override

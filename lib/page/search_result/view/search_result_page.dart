@@ -7,6 +7,7 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/cubit/string_select.dart';
 import 'package:zephyr/page/comic_list/view/plugin_comic_grid_sliver.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
+import 'package:zephyr/page/search/model/search_history_entry.dart';
 import 'package:zephyr/page/search_result/search_result.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_mapper.dart';
@@ -216,8 +217,13 @@ class _SearchResultPageState extends State<_SearchResultPage>
     },
   );
 
-  String _buildHistoryItem(SearchEvent event) {
-    return event.searchStates.searchKeyword.trim();
+  SearchHistoryEntry _buildHistoryItem(SearchEvent event) {
+    // `from` 就是这次搜索落在哪个插件上：发现页插件卡的搜索与聚合结果页的
+    // 「下钻到某个源」都会带上；没带就算归属未知（空串 ⇒ 界面归进「未分类」）。
+    return SearchHistoryEntry(
+      keyword: event.searchStates.searchKeyword.trim(),
+      source: event.searchStates.from.trim(),
+    );
   }
 
   Widget _comicList(SearchState state) {

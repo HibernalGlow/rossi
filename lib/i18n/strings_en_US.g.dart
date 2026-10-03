@@ -448,6 +448,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get leftHandMode => 'Left-hand mode';
 	@override String get leftHandModeSubtitle => 'Move floating action buttons and other controls to the left side';
 	@override String get clickCoverToStartReading => 'Tap cover to start reading';
+	@override String get searchHistoryGroupBySource => 'Split search history by plugin';
+	@override String get searchHistoryGroupBySourceSubtitle => 'When on, every source gets its own search timeline instead of one mixed pile. "Aggregate search" holds cross-plugin queries; "Uncategorized" holds records saved before this feature, whose source is gone';
 	@override String get clickCoverToStartReadingSubtitle => 'Tap the cover on the comic info page to start reading directly';
 	@override String get comicInfoInlineReadButton => 'Read button in comic info page';
 	@override String get comicInfoInlineReadButtonSubtitle => 'On desktop, put a read button next to Download in the action row and drop the floating read button at the bottom-right';
@@ -1744,6 +1746,10 @@ class _Translations$search$en_US extends Translations$search$zh_CN {
 	@override String get oldestFirst => 'Current: oldest first';
 	@override String get descending => 'Newest first';
 	@override String get ascending => 'Oldest first';
+	@override String get groupByPluginTooltipOn => 'Grouped by plugin. Tap to merge into one timeline';
+	@override String get groupByPluginTooltipOff => 'One merged timeline. Tap to group by plugin';
+	@override String get historyGroupAggregate => 'Aggregate search';
+	@override String get historyGroupUncategorized => 'Uncategorized';
 	@override String get noHistory => 'No search history';
 	@override String get tipsTitle => '🔍 Search Tips';
 	@override String get exactSearchTitle => 'Exact search (AND)';
@@ -2692,6 +2698,8 @@ extension on TranslationsEnUs {
 			'settings.leftHandMode' => 'Left-hand mode',
 			'settings.leftHandModeSubtitle' => 'Move floating action buttons and other controls to the left side',
 			'settings.clickCoverToStartReading' => 'Tap cover to start reading',
+			'settings.searchHistoryGroupBySource' => 'Split search history by plugin',
+			'settings.searchHistoryGroupBySourceSubtitle' => 'When on, every source gets its own search timeline instead of one mixed pile. "Aggregate search" holds cross-plugin queries; "Uncategorized" holds records saved before this feature, whose source is gone',
 			'settings.clickCoverToStartReadingSubtitle' => 'Tap the cover on the comic info page to start reading directly',
 			'settings.comicInfoInlineReadButton' => 'Read button in comic info page',
 			'settings.comicInfoInlineReadButtonSubtitle' => 'On desktop, put a read button next to Download in the action row and drop the floating read button at the bottom-right',
@@ -2868,10 +2876,10 @@ extension on TranslationsEnUs {
 			'settings.operationBindingSectionKeyboard' => 'Keyboard',
 			'settings.operationBindingSectionTap' => 'Tap zones',
 			'settings.operationBindingTapSubtitle' => 'The reader only tells three zones apart: left half, center cell, right half. The top and bottom rows behave like the middle one.',
-			'settings.operationBindingAreaMiddleLeft' => 'Left half',
-			'settings.operationBindingAreaMiddleCenter' => 'Center',
 			_ => null,
 		} ?? switch (path) {
+			'settings.operationBindingAreaMiddleLeft' => 'Left half',
+			'settings.operationBindingAreaMiddleCenter' => 'Center',
 			'settings.operationBindingAreaMiddleRight' => 'Right half',
 			'settings.operationBindingBoundAction' => 'Bound action',
 			'settings.operationBindingUnbound' => 'Unbound',
@@ -3382,6 +3390,8 @@ extension on TranslationsEnUs {
 			'reader.exitFullscreen' => 'Exit fullscreen',
 			'reader.chapterTransition' => 'Chapter transition',
 			'reader.transitionSwipeToLoad' => 'Swipe to load',
+			_ => null,
+		} ?? switch (path) {
 			'reader.transitionLoaded' => 'Load complete',
 			'reader.transitionLoadFailedRetry' => 'Load failed, tap to retry',
 			_ => null,
@@ -3848,6 +3858,10 @@ extension on TranslationsEnUs {
 			'search.oldestFirst' => 'Current: oldest first',
 			'search.descending' => 'Newest first',
 			'search.ascending' => 'Oldest first',
+			'search.groupByPluginTooltipOn' => 'Grouped by plugin. Tap to merge into one timeline',
+			'search.groupByPluginTooltipOff' => 'One merged timeline. Tap to group by plugin',
+			'search.historyGroupAggregate' => 'Aggregate search',
+			'search.historyGroupUncategorized' => 'Uncategorized',
 			'search.noHistory' => 'No search history',
 			'search.tipsTitle' => '🔍 Search Tips',
 			'search.exactSearchTitle' => 'Exact search (AND)',
@@ -3892,6 +3906,8 @@ extension on TranslationsEnUs {
 			'discover.closeTab' => 'Close tab',
 			'discover.tabDisplay' => 'Tab display',
 			'discover.tabShowIcon' => 'Show plugin icon',
+			_ => null,
+		} ?? switch (path) {
 			'discover.tabShowPluginShort' => 'Show plugin short name',
 			'discover.webPage' => 'Web page',
 			'discover.comicDetail' => 'Details',

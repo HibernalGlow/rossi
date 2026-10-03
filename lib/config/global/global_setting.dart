@@ -8,6 +8,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:zephyr/i18n/i18n_helper.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
+import 'package:zephyr/page/search/model/search_history_entry.dart';
 import 'package:zephyr/page/comic_read/model/reader_presentation.dart';
 import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
 import 'package:zephyr/util/json/converter.dart';
@@ -245,7 +246,15 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     // 融合浮层（内容顶到窗口顶部，栏浮在画面上）。默认独立行。
     // 只在 transparentDesktopTitleBar 打开时才被读到；关着时它是死数据。
     @Default(false) bool transparentTitleBarFused,
-    @Default([]) List<String> searchHistory,
+    // 搜索历史。顺序即时间序（新的在前），每条带一个图源归属。
+    // 读的时候走 [searchHistoryFromJson]，兼容老版本那份纯 `List<String>`，
+    // 所以不需要一次数据库迁移。
+    @Default([])
+    @JsonKey(fromJson: searchHistoryFromJson)
+    List<SearchHistoryEntry> searchHistory,
+    // 「按插件分时间线」开关。开 = 历史按图源分组，每个插件各自一条；
+    // 关 = 改造前的样子，全部堆在一条时间线上。默认关，保住老观感。
+    @Default(false) bool searchHistoryGroupBySource,
     @Default(ProxySettingState()) ProxySettingState proxySetting,
     @Default(1280.0) double windowWidth,
     @Default(720.0) double windowHeight,
