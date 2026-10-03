@@ -1,21 +1,18 @@
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:file_selector/file_selector.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:zephyr/i18n/strings.g.dart';
-import 'package:zephyr/main.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/page/setting/real_sr/service/android_ncnn_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/service/desktop_ncnn_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
+import 'package:zephyr/page/setting/real_sr/widgets/real_sr_model_management_section.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/super_resolution_engine_settings.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/upscale_conditions_card.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
-import 'package:zephyr/widgets/toast.dart';
 
 final Map<int, String> _concurrencyLabels = {
   1: '1',
@@ -48,18 +45,6 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
   RealSrScale _scale = RealSrScale.x2;
   bool _isAvailable = false;
   SuperResolutionEngine _engine = defaultEngine;
-  bool _downloading = false;
-  bool _importing = false;
-  double _downloadProgress = 0;
-
-  /// 「桌面 NCNN 专属」的那几块（模型管理 / 手动下载 / 导入）要不要画。
-  ///
-  /// Apple 没有 NCNN 这条引擎，永远不画；Windows / Linux 只在选中桌面 NCNN 时画 ——
-  /// 切到 mImage ONNX 之后，模型的下载/导入由 ONNX 面板自己管，这里再摆一份就会
-  /// 出现「按了下载却去拉 7z」的错路。
-  /// 「分块大小」不在这一组里：ONNX 也读那个值，门禁见 [RealSrSettings.tileSizeRowApplies]。
-  bool get _showsDesktopNcnnBlocks =>
-      supportsDesktopNcnn && _engine != SuperResolutionEngine.mimageOnnx;
 
   // 可用档位与夹取规则统一由 RealSrSettings 提供 —— 阅读器面板用同一份，
   // 两处各写一遍就会漂移（见 effectiveThreshold 的注释）。
@@ -159,109 +144,6 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
     });
   }
 
-  Future<void> _downloadModel() async {
-    setState(() {
-      _downloading = true;
-      _downloadProgress = 0;
-    });
-
-    try {
-      await RealSrSuperResolution.downloadModel(
-        force: _isAvailable,
-        onProgress: (received, total) {
-          if (!mounted || total <= 0) return;
-          setState(() => _downloadProgress = received / total);
-        },
-      );
-    } catch (e, s) {
-      logger.e('模型下载失败', error: e, stackTrace: s);
-      showErrorToast('${t.realSr.modelDownloadFailed}: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _downloading = false);
-        await _refreshAvailability();
-      }
-    }
-  }
-
-  Future<void> _deleteModel() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(t.realSr.deleteModel),
-        content: Text(t.realSr.deleteModelConfirm),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(t.common.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(t.common.delete),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true || !mounted) return;
-
-    try {
-      await RealSrSuperResolution.deleteModel();
-      showSuccessToast(t.realSr.modelDeleted);
-    } catch (e, s) {
-      logger.e('模型删除失败', error: e, stackTrace: s);
-      showErrorToast('${t.realSr.modelDeleteFailed}: $e');
-    } finally {
-      if (mounted) await _refreshAvailability();
-    }
-  }
-
-  Future<void> _openManualDownloadUrl() async {
-    final url = RealSrSuperResolution.manualDownloadUrl;
-    if (url == null) {
-      showErrorToast(t.realSr.manualDownloadUnsupported);
-      return;
-    }
-    final opened = await launchUrl(
-      Uri.parse(url),
-      mode: LaunchMode.externalApplication,
-    );
-    if (!opened && mounted) {
-      showErrorToast(t.realSr.openDownloadUrlFailed);
-    }
-  }
-
-  Future<void> _importModel() async {
-    // iOS 没有系统声明的 7z UTI，使用通用数据类型后由导入逻辑校验 7z 魔数。
-    final typeGroup = Platform.isIOS
-        ? const XTypeGroup(label: '7z')
-        : const XTypeGroup(label: '7z', extensions: ['7z']);
-    final XFile? file;
-    try {
-      file = await openFile(acceptedTypeGroups: [typeGroup]);
-    } catch (e) {
-      showErrorToast('${t.realSr.modelImportFailed}: $e');
-      return;
-    }
-    if (file == null) return;
-
-    setState(() => _importing = true);
-    try {
-      await RealSrSuperResolution.importModelArchive(file.path);
-      if (mounted) showSuccessToast(t.realSr.modelImportSuccess);
-    } catch (e, s) {
-      logger.e('模型导入失败', error: e, stackTrace: s);
-      if (mounted) {
-        showErrorToast('${t.realSr.modelImportFailed}: $e');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _importing = false);
-        await _refreshAvailability();
-      }
-    }
-  }
-
   List<Widget> _buildModelItems() {
     if (supportsCoreML) {
       return const [SuperResolutionEngineSettings()];
@@ -321,95 +203,6 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
         ),
       ),
     ];
-  }
-
-  Widget _buildModelManagementTile() {
-    if (_downloading) {
-      return ListTile(
-        leading: const Icon(Icons.downloading_outlined),
-        title: Text(t.realSr.downloadingModel),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 8),
-            LinearProgressIndicator(value: _downloadProgress),
-            const SizedBox(height: 4),
-            Text('${(_downloadProgress * 100).toStringAsFixed(1)}%'),
-          ],
-        ),
-      );
-    }
-
-    if (_isAvailable) {
-      return ListTile(
-        leading: Icon(
-          Icons.check_circle,
-          color: Theme.of(context).colorScheme.primary,
-        ),
-        title: Text(t.realSr.modelReady),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextButton(
-              onPressed: _deleteModel,
-              child: Text(t.realSr.deleteModel),
-            ),
-            TextButton(
-              onPressed: _downloadModel,
-              child: Text(t.realSr.redownload),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListTile(
-      leading: const Icon(Icons.warning_amber_rounded),
-      title: Text(t.realSr.modelNotDownloaded),
-      subtitle: Text(t.realSr.modelNotDownloadedSubtitle),
-      trailing: ElevatedButton(
-        onPressed: _downloadModel,
-        child: Text(t.realSr.downloadModel),
-      ),
-    );
-  }
-
-  Widget _buildManualDownloadTile() {
-    final url = RealSrSuperResolution.manualDownloadUrl;
-    if (url == null) {
-      return ListTile(
-        leading: const Icon(Icons.open_in_browser_outlined),
-        title: Text(t.realSr.manualDownload),
-        subtitle: Text(t.realSr.manualDownloadUnsupported),
-      );
-    }
-    return ListTile(
-      leading: const Icon(Icons.open_in_browser_outlined),
-      title: Text(t.realSr.manualDownload),
-      subtitle: Text(url, maxLines: 2, overflow: TextOverflow.ellipsis),
-      trailing: TextButton(
-        onPressed: _openManualDownloadUrl,
-        child: Text(t.realSr.openDownloadUrl),
-      ),
-    );
-  }
-
-  Widget _buildImportModelTile() {
-    return ListTile(
-      leading: const Icon(Icons.file_open_outlined),
-      title: Text(t.realSr.importModel),
-      subtitle: Text(t.realSr.importModelSubtitle),
-      trailing: _importing
-          ? const SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : TextButton(
-              onPressed: _importModel,
-              child: Text(t.realSr.importModelAction),
-            ),
-    );
   }
 
   @override
@@ -532,14 +325,7 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
                 settingSectionTitle(context, t.realSr.modelSection),
                 ..._buildModelItems(),
 
-                const SizedBox(height: 8),
-                const Divider(height: 1, thickness: 0.3),
-                if (_showsDesktopNcnnBlocks) ...[
-                  settingSectionTitle(context, t.realSr.modelManagementSection),
-                  _buildModelManagementTile(),
-                  _buildManualDownloadTile(),
-                  _buildImportModelTile(),
-                ],
+                const RealSrModelManagementSection(),
                 const SizedBox(height: 32),
               ],
             ),
