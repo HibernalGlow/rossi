@@ -265,11 +265,20 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
 - **坐标与排版都是线性映射**：框从原图物理像素映射到显示框；字号候选与 `padding`
   现在是**绝对像素**（`translated_page_renderer.dart:30-47,77`），叠到 2×/4× 底图上时
   必须按同一个比例放大，否则高清大气泡里会塞进一颗 40 px 小字。
-- **擦字不退场**：拟声词压在网点 / 速度线上的那一类，填色块就是糊一脸（§决定 2 里
-  「拟声词区明确不处理」那一条正是这个缺口），所以复杂背景仍然走 LaMa；
-  白气泡那一类可以只按轮廓填充。
-- ⚠️ 未决：叠层模式下这一页还**要不要**再落一张成品页 PNG。两种模式的缓存 key 已经
-  分了档，但「同一页既烘焙又叠层」会各占一份盘，等接线时定。
+- **擦字不退场，但改成「先采色、采不到才擦」**：每框在轮廓内一圈采样，只有**整圈接近同一个
+  平色**（占比 ≥0.92、极差 ≤12）才允许拿那块色当底；拟声词压在网点 / 速度线上的那一类采不出
+  平色，仍然走 LaMa（§决定 2 里「拟声词区明确不处理」那一条正是这个缺口）。
+  **全页一致**：一个框采不到，这一页就**全部不填色**、老实擦一张底图 ——
+  一半实心色块、一半 LaMa 修出来的底，并排摆就是「翻译没弄干净」的样子，而那正是这一档要避免的。
+  渲染台实测（`test/ocr/translated_page_layer_overlay_bench_test.dart`）：译文叠在**没擦字**的原图上
+  字压字率 **0.085**，叠在擦字底上 **0.000** —— 这把尺就是上面那道闸的来历。
+- **叠层档不烤 PNG**（解掉上面那条未决）：这一档只写图层 JSON，底图按「全页采到平色 → 用**原图**；
+  否则 → 用擦字底图 `p<N>.base.png`」二选一。占增强图轨那一条路整条让给超分，所以叠层与超分**同时生效**。
+  代价是缓存命中判据也得换一把（`overlayDisplayable` 而不是 `isUsable`），否则每次上屏都重跑那十几秒。
+- **跳过擦字要真的省下来**：叠层档先让 Rust 只跑检测+识别（`inpaint: false`），采完色才决定擦不擦；
+  需要擦时**不许**重跑一遍 `analyze_page`（检测+识别实测约 4 s，比它想省的 4.2 s 还贵）。
+  为此新增一条只擦字的过桥接口 `ocr_erase_page(image, quads, ...)`，掩膜复用 `mask_from_quads`
+  （与 `analyze_page` 同一段代码，两边不会擦得不一样），会话缓存按 `|erase` 键复用同一份权重。
 
 ### 5. 模型与字体：字体随包，权重首下
 
@@ -465,6 +474,7 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
 | §3.4 每页开关 / 与超分互斥 / 状态核对 | `lib/reader/translated_page_controller.dart` + 顶栏 `reader_translated_page_chip.dart`；芯片状态表抽成纯函数 `translated_page_status.dart`（与超分那边同形） | 已实现 |
 | §3.4 那条核对**分不清「被旁路挡着」与「真没换上」**（2026-10-03 修） | `TranslatedPagePresenter.bypassesEnhancedTrack` + `_inject` 里「先问旁路再判失败」 + `_reassertTranslatedPage` 的旁路闸 + 芯片多一态 `blockedByOriginalPreview` | 已实现，两侧都有单测。**症状**：开着「对比原图」时每页都记 `失败：注入成功但画面没换`，而那三页的翻译（10→10 / 5→5 / 12→12）、擦字、排版、落盘全部成功 —— 旁路按设计不让增强图轨参显（`enhance.rs` 的 `prefers_enhanced` = `!bypass && 有增强图`），所以核对必然回 false，它说的是旁路不是注入。**为什么归属照样要登记**：不登记超分就来抢这一页的轨，用户切回超分时看到的反而是超分图，译文白跑一次。**为什么旁路期间不重注入**：`_reassertTranslatedPage` 若照常按「用的是原图轨」当淘汰证据，每次呈现都会重注一遍成品页 + 一次 PNG 解码，而且永远修不好（下一帧还是旁路）—— 这是 `enhance.rs` 那条「每 15 ms 重采样一次」同型的坑。芯片新增的两条短语**暂未进 i18n**：`ocr` 段里没有对应键，而该段的 JSON 与生成物当时正压在别人的改动里，补键要等那批落地。验收见 `ocr-completed-page-acceptance.md` 第 6a 条。 |
 | 译文页**翻回来就变回原图**（2026-10-03 修） | `gpu_present_controller.dart` 的 `present` 成功路径里加一次无条件 `_reassertTranslatedPage`；重注入**不再挂在超分开关后面** | 已实现 + 单测。**根因是执行者挂错了地方**：全仓只有 `_ensureEnhancedForIndex` 里那一处会重注成品页，而它整条路被 `if (_isUpscaleEnabled)`（`present` 内）与 `_scheduleEnhancementsSafely` 开头的 `if (!_acceptsEnhancement(epoch)) return;` 双重挡住 —— 呈现器按保留集淘汰增强图轨跟超分开没开**毫无关系**，所以那一格子里没有任何人负责把成品页注回来，芯片却继续说「译文页」。**症状**：用户原话「好不容易生成好的翻译，翻个页就没了」；产物其实一直在盘上（再点一次秒命中缓存）。**为什么不能靠 `_reassertTranslatedPage` 原来那个调用点**：它只在超分调度真的跑到那一页时才生效，而 `gpu_present_enhance_part.dart` 里当前页只有一条支路会直接 `await _ensureEnhancedForIndex`（`if (cached)`，要求这一页**已有**超分产物），其余情况被丢进队列后还会被 `replace()` 按同键剔掉。**证伪**：新测试把条件退回 `_isUpscaleEnabled` 立刻红（`test/reader/gpu_present_controller_test.dart`「超分没开：译文页翻回来也必须重新注回」）。 |
+| §4 叠层显示形态（2026-10-03 解冻那一轮，落地） | 图层数据 `translated_page_layer.dart`（早一批已在）+ 绘制入口 `TranslatedPageRenderer.paintLayer`；**画的那一层** `lib/reader/translated_page_overlay.dart`（挂在 `read_mode_image_builder.dart:87` 那个 `RotatedBox` 里面，contain-fit 见 `overlayPaintFit`）；**谁上屏** `lib/reader/page_display_source.dart` 的 `resolvePageDisplaySource`；**开关** `translated_page_display_mode.dart`（键 `ocr_display_choice`，默认烘焙）+ 设置页「成品页显示」那一节；**构建侧** `translated_page_builder.dart` 的叠层分支（不烤 PNG、命中判据换 `overlayDisplayable`）；**采色** `bubble_fill.dart`；**只擦字那一跳** `rust/ocr_core/src/inpaint.rs::mask_from_quads` + `rust/src/api/ocr.rs::ocr_erase_page` | 已实现，Dart/Rust 两侧都有测试（`bubble_fill_test` 10 条、`page_display_source_test` 裁决格 + 几何、`translated_page_layer_scale_test` 倍率、`ocr_setting_page_test` 那三条开关往返）。**为什么默认还是烘焙**：叠层要求底图要么每框都有平色填充、要么擦字底已在盘上（`overlayDisplayable`），判据就是 §4 那条 0.085 / 0.000 的实测 —— 前提不成立时默认叠层等于默认端出中日文叠在一起的页。**为什么采色全有或全无**：见 §4。**为什么要新增 `ocr_erase_page`**：叠层必须先看框才能决定擦不擦，重跑 `analyze_page` 会把检测+识别（约 4 s）再付一遍，比省下的 4.2 s 还贵。⚠️ 真机逐条判据仍在验收清单（第 11 条那组）。 |
 | 未决 8「各段实际用了哪条 EP 要看得见」 | 实际值：`OcrPageResult.stage_eps`，从 `Detector` / `Recognizer` / `Inpainter` 各自的 `ep()` 读回（擦字没跑 = `null`）；本机落点：`ocr_stage_ep_plan`。界面两处 —— `lib/debug/ocr_smoke_debug_page.dart`（跑完才出现那一行）、`lib/page/setting/ocr/ocr_setting_page.dart`（推理后端下拉下面） | 已实现，FRB codegen 与 `windcore` dylib 同批重跑。**两处共用 `ocr_core::stage_ep_plan` 这一把尺子**，所以「设置页说将用 X」与「冒烟页说实际用了 X」不会各说各话；本平台构建没有那条 EP 时设置页直接说「选了会报错」，不显示成能用。命中缓存时那一行**不出现** —— 那一次什么都没跑。 |
 | 用户要能自己查出「为什么没出译文」（2026-09-27 追加） | `lib/service/diagnostics/app_log.dart`（**统一的一份机制**：环形 300 条 + 异步整份落盘 + 查看/复制/定位文件），门面 `lib/service/ocr/ocr_log.dart` 落在 `manga_ocr/ocr.log`；写点在 `translated_page_builder.dart`（六道关逐段）与 `translated_page_controller.dart`（注入核对与一切失败）；界面入口「设置 → 漫画翻译 → 诊断 → 翻译日志」 | 已实现。**超分那份日志改为共用同一机制**（`SuperResolutionLog` 只留「写到哪、标题、页脚补哪一行」，文件位置与行为一字未动，`test/real_sr/` 那两组照绿）。与 `logger`（控制台 / Sentry 那条）的分工：这一份是**给用户翻的**。两条口径钉了测试：命中缓存那一条**不许**出现 EP；端点在日志里**只记 host**（base URL 可能夹 token，而日志天生要被复制走）。 |
 | Consequences「退出阅读 / 切章必须取消在途推理」 | `LocalReadSession.setSource` 与 `dispose(expectedPath:)` 都调 `TranslatedPageController.reset()`；在飞的那次构建按 `_generation` 认出自己过期，并且**把 `shouldCancel` 传给构建器**，于是剩下的翻译 / 排版 / 落盘都不再发生 | 已实现。⚠️ 粒度只能是**阶段**：检测+识别+擦字是一次过桥的整段调用，Rust 侧没有协作式取消点，所以「正在跑的那一段」会跑到结束才让出。过期判定、阶段取消、以及 `LocalReadSession` 那两行装配**都有单测**（摘掉路径闸 / 摘掉 `dispose` 里的 `reset()` / 摘掉 `shouldCancel` / 去掉 `_stale`，各有一条会红）；真机判据仍留在验收清单第 7c 条（要看的是 CPU 占用真的回落）。 |
