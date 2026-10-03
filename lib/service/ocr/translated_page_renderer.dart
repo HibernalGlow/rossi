@@ -48,6 +48,15 @@ class TranslatedPageRenderer {
     7,
   ];
 
+  /// 按底图倍率放大过的那串候选。
+  ///
+  /// 为什么候选必须跟着倍率走：[_candidates] 是**绝对像素**（40…7），而框是随底图
+  /// 一起放大的。叠到 2× / 4× 的图上还按 40 px 上限选字号，结果就是「大气泡配小字」。
+  /// 倍率进候选之后，选出来的字号与断行仍与 1× 同构（框与字同倍），只是绝对尺寸
+  /// 跟着底图放大。`scale == 1` 时直接返回常量表，烘焙那条路一个字节都不变。
+  static List<double> _sizes(double scale) =>
+      scale == 1 ? _candidates : [for (final s in _candidates) s * scale];
+
   /// 与 `pubspec.yaml` 的 `assets:` 段一致的**注册名**（不是 TTF 内部的 family 名）。
   ///
   /// 实测：`FontLoader(别名)` 只会以别名注册，字体内部名 `LXGW WenKai Lite` 仍然是豆腐块；
@@ -237,6 +246,7 @@ class TranslatedPageRenderer {
     String text, {
     double padding = 3,
     double minFontSize = defaultMinFontSize,
+    double scale = 1,
   }) {
     final maxWidth = (rect.width - 2 * padding).clamp(8.0, double.infinity);
     final maxHeight = (rect.height - 2 * padding).clamp(8.0, double.infinity);
@@ -247,7 +257,7 @@ class TranslatedPageRenderer {
         _stackable(text);
 
     if (!vertical) {
-      for (final size in _candidates) {
+      for (final size in _sizes(scale)) {
         final p = _paragraph(text, size, maxWidth);
         final fits = p.height <= maxHeight;
         p.dispose();
@@ -261,7 +271,7 @@ class TranslatedPageRenderer {
     // 竖排：字号从大到小，第一个「列数 × 每列字数 ≥ 总字数」的胜出。
     // 旧实现把宽度锁死成一个字（`size * 1.12`），于是长句只能靠缩字号塞进那一列 ——
     // 20 字的旁白框会被压到 7–13 px，这正是「一行纵向根本没办法阅读」的成因。
-    for (final size in _candidates) {
+    for (final size in _sizes(scale)) {
       final colWidth = size * 1.12;
       final gap = size * _colGapRatio;
       final rows = (maxHeight / (size * 1.15)).floor();
@@ -303,10 +313,17 @@ class TranslatedPageRenderer {
     String text, {
     required double padding,
     required double minFontSize,
+    double scale = 1,
   }) {
     final maxWidth = (rect.width - 2 * padding).clamp(8.0, double.infinity);
     final maxHeight = (rect.height - 2 * padding).clamp(8.0, double.infinity);
-    final layout = plan(rect, text, padding: padding, minFontSize: minFontSize);
+    final layout = plan(
+      rect,
+      text,
+      padding: padding,
+      minFontSize: minFontSize,
+      scale: scale,
+    );
 
     if (layout.mode == LayoutMode.horizontal) {
       final chosen = _fitHorizontal(
@@ -315,6 +332,7 @@ class TranslatedPageRenderer {
         maxHeight,
         layout.fontSize,
         minFontSize,
+        scale,
       );
       canvas.drawParagraph(
         chosen,
@@ -335,8 +353,9 @@ class TranslatedPageRenderer {
     double maxHeight,
     double fromSize,
     double minFontSize,
+    double scale,
   ) {
-    for (final size in _candidates) {
+    for (final size in _sizes(scale)) {
       if (size > fromSize) continue;
       final p = _paragraph(text, size, maxWidth);
       if (p.height <= maxHeight) return p;

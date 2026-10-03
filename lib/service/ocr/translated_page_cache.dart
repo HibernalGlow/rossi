@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:zephyr/service/ocr/ocr_models.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/ocr_service.dart';
+import 'package:zephyr/service/ocr/translated_page_layer.dart';
 
 /// 成品页缓存的 key 口径（ADR-0018 §决定 3）。
 ///
@@ -118,6 +119,83 @@ class TranslatedPageCache {
     required int pageIndex,
   }) async => File(p.join((await directory(label)).path, 'p$pageIndex.json'));
 
+  /// 某页的**擦字底图** —— 叠层的像素前提。
+  ///
+  /// 为什么非要它，而不是直接拿原图当底：渲染台实测「译文叠在没擦字的原图上」
+  /// 字压字率 0.085，叠在擦字底上是 0.000。缺它就等于把中文画在日文上，
+  /// 所以 [resolvePageDisplaySource] 在它缺席时**不许**选叠层那一格。
+  ///
+  /// 为什么落进缓存目录而不是留在临时目录：底图只在 `scratch` 里活到函数结束的话，
+  /// 叠层每次上屏都要重跑擦字（实测整页最贵的一段 4–6 s），而且本机 dirhelper
+  /// 每天 03:35 扫 tmp —— 本仓在权重落盘与老降级页上吃过同一口同型的亏。
+  static Future<File> baseFile({
+    required String label,
+    required int pageIndex,
+  }) async => File(p.join((await directory(label)).path, 'p$pageIndex.base.png'));
+
+  /// 把刚擦好的底图收进缓存目录（沿用成品页那套原子写：半张 PNG 比没有更糟）。
+  static Future<void> writeBase({
+    required String label,
+    required int pageIndex,
+    required File erasedFile,
+  }) async {
+    final dir = await directory(label);
+    await dir.create(recursive: true);
+    await _writeAtomically(
+      await baseFile(label: label, pageIndex: pageIndex),
+      await erasedFile.readAsBytes(),
+    );
+  }
+
+  /// 这一页的叠层两件产物齐不齐（图层 JSON + 擦字底图）。
+  ///
+  /// 一次问完而不是分两次：裁决要的是**一格**布尔，分开问会让「只有一半」这个状态
+  /// 在每个调用点各自解释一遍 —— 而「只有一半」正好画出半截译文。
+  static Future<bool> overlayReady({
+    required String label,
+    required int pageIndex,
+  }) async => overlayDisplayable(label: label, pageIndex: pageIndex);
+
+  /// 叠层能不能直接显示：图层在盘上，并且**底要么不需要擦（每框都有填色）、要么擦字底图在**。
+  ///
+  /// 为什么不是简单看两个文件在不在：填色够用的那一页根本不会有 `p<N>.base.png`
+  /// （擦字整个跳过了），按「必须有底图文件」判就会把最省时间的那条路判成不可用，
+  /// 于是每次上屏都重跑一遍 OCR —— 那正好是这一档要避免的事。
+  static Future<bool> overlayDisplayable({
+    required String label,
+    required int pageIndex,
+  }) async {
+    final layer = await _decodeLayer(label: label, pageIndex: pageIndex);
+    if (layer == null || layer.boxes.isEmpty) return false;
+    if (layer.boxes.every((b) => b.fill != null)) return true;
+    return (await baseFile(label: label, pageIndex: pageIndex)).exists();
+  }
+
+  /// 这一页的叠层底是不是**必须**是擦字底图（而不是画面上本来那张）。
+  ///
+  /// 命中缓存那一路也要问它：不然第一次建好时替这一页占了轨、翻回来命中缓存就不占，
+  /// 同一页两种画面，用户会看到中文底下又露出日文 —— 占不占轨必须是这一页的**属性**，
+  /// 不能是「这次走了哪条分支」的副产品。
+  static Future<bool> overlayNeedsErasedBase({
+    required String label,
+    required int pageIndex,
+  }) async {
+    final layer = await _decodeLayer(label: label, pageIndex: pageIndex);
+    // 图层问不到就按「要擦」处理：宁可多占一次轨（超分为这一页让路），
+    // 也不要端出一张字压字的页。
+    if (layer == null || layer.boxes.isEmpty) return true;
+    return !layer.boxes.every((b) => b.fill != null);
+  }
+
+  static Future<TranslatedPageLayer?> _decodeLayer({
+    required String label,
+    required int pageIndex,
+  }) async {
+    final file = await layerFile(label: label, pageIndex: pageIndex);
+    if (!file.existsSync()) return null;
+    return TranslatedPageLayer.tryDecode(await file.readAsString());
+  }
+
   /// 这张成品页**能不能用**。
   ///
   /// 不是 `exists()`：ADR-0018 §决定 3 要求「产物缺失或损坏时静默回落到原图」，
@@ -163,17 +241,44 @@ class TranslatedPageCache {
     await dir.create(recursive: true);
     final target = await pageFile(label: label, pageIndex: pageIndex);
     await _writeAtomically(target, pngBytes);
-    if (fingerprint != null) {
-      final manifest = File(p.join(dir.path, 'manifest.json'));
-      final existing = await manifest.exists()
-          ? jsonDecode(await manifest.readAsString()) as Map<String, dynamic>
-          : <String, dynamic>{};
-      existing['fingerprint'] = fingerprint;
-      existing['writtenAt'] = DateTime.now().toIso8601String();
-      await manifest.writeAsString(
-        const JsonEncoder.withIndent('  ').convert(existing),
-      );
-    }
+    if (fingerprint != null) await _recordFingerprint(dir, fingerprint);
+  }
+
+  /// 写某一页的**图层 JSON**（叠层与烘焙共用那份可重复合成描述）。
+  ///
+  /// 为什么要有这一层，而不是让调用方自己 `layerFile(...).writeAsString(...)`：
+  /// 叠层「全页都采到平色」那一条路**不会**先创建缓存目录（既没写 PNG 也没写底图），
+  /// 裸 `writeAsString` 当场撞在 `PathNotFoundException` 上 —— 而那条路正是干净的白气泡
+  /// 页每一本第一页必走的路（2026-10-04 单测抓到的就是这个）。目录、原子写、清单
+  /// 这三件事在这里一次做对，两个调用点就不会各漏一件。
+  static Future<void> writeLayer({
+    required String label,
+    required int pageIndex,
+    required String json,
+    String? fingerprint,
+  }) async {
+    final dir = await directory(label);
+    await dir.create(recursive: true);
+    await _writeAtomically(
+      await layerFile(label: label, pageIndex: pageIndex),
+      Uint8List.fromList(utf8.encode(json)),
+    );
+    if (fingerprint != null) await _recordFingerprint(dir, fingerprint);
+  }
+
+  static Future<void> _recordFingerprint(
+    Directory dir,
+    String fingerprint,
+  ) async {
+    final manifest = File(p.join(dir.path, 'manifest.json'));
+    final existing = await manifest.exists()
+        ? jsonDecode(await manifest.readAsString()) as Map<String, dynamic>
+        : <String, dynamic>{};
+    existing['fingerprint'] = fingerprint;
+    existing['writtenAt'] = DateTime.now().toIso8601String();
+    await manifest.writeAsString(
+      const JsonEncoder.withIndent('  ').convert(existing),
+    );
   }
 
   static Future<void> _writeAtomically(File target, Uint8List bytes) async {
@@ -190,7 +295,9 @@ class TranslatedPageCache {
     var count = 0;
     await for (final e in root.list(recursive: true, followLinks: false)) {
       // 老版本降级档留下的那张没翻译，报进「已生成」就是谎报产物。
+      // 擦字底图也不算产物：它是叠层的中间像素，一页的成品只该被数一次。
       if (e is! File || !e.path.endsWith('.png')) continue;
+      if (e.path.endsWith('.base.png')) continue;
       if (p.isWithin(legacyDir, e.path)) continue;
       count++;
     }
