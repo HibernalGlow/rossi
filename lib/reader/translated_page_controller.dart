@@ -205,6 +205,9 @@ class TranslatedPageController extends ChangeNotifier {
 
     try {
       final input = await _inputPathFor(source, index);
+      // 叠层与烘焙抢的不是同一件事：烘焙占掉这一页唯一的像素（所以要压超分），
+      // 叠层只在底图之上盖一层字（超分照常，底图越清晰越好）。
+      final choice = await TranslatedPageDisplayMode.load();
       final out = await _builder.build(
         imagePath: input,
         pageIndex: index,
@@ -214,6 +217,7 @@ class TranslatedPageController extends ChangeNotifier {
         // 粒度只能是阶段 —— Rust 侧一次调用没有协作式取消点。
         shouldCancel: () => _stale(generation),
         force: false,
+        retainErasedBase: choice == TranslatedPageDisplayChoice.overlay,
       );
       if (_stale(generation)) return false; // 书都换了，这份产物没有归属可言
       if (!out.hasText) return _fail(index, '这一页没识别到文字');
