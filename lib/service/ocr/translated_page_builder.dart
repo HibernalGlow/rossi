@@ -99,30 +99,57 @@ class TranslatedPageBuilder {
   TranslatedPageBuilder({
     Future<OcrPageResult> Function(
       String imagePath,
-      String erasedPath,
+      String? erasedPath,
       String ep,
     )?
     analyze,
+    Future<OcrEraseResult> Function(
+      String imagePath,
+      List<Float32List> quads,
+      String erasedOutput,
+      String ep,
+    )?
+    erase,
     Future<List<String>> Function(
       List<String> texts,
       OcrTranslationConfig config,
     )?
     translate,
   }) : _analyze = analyze ?? _rustAnalyze,
+       _erase = erase ?? _rustErase,
        _translate = translate ?? _dispatchTranslate;
 
-  final Future<OcrPageResult> Function(String, String, String) _analyze;
+  /// `erasedPath == null` = 这一趟**不要擦字**（叠层档先看框、采完色才决定擦不擦）。
+  final Future<OcrPageResult> Function(String, String?, String) _analyze;
+
+  /// 只擦字那一跳：不重跑检测与识别。见 [OcrService.erasePage] 的理由。
+  final Future<OcrEraseResult> Function(String, List<Float32List>, String, String)
+  _erase;
   final Future<List<String>> Function(List<String>, OcrTranslationConfig)
   _translate;
 
   static Future<OcrPageResult> _rustAnalyze(
     String imagePath,
-    String erasedPath,
+    String? erasedPath,
     String ep,
   ) => OcrService.instance.analyzePage(
     imagePath: imagePath,
-    inpaint: true,
+    inpaint: erasedPath != null,
     erasedOutput: erasedPath,
+    ep: ep,
+  );
+
+  /// 只擦字那一跳的默认实现。见 [OcrService.erasePage]：叠层档采不到平色时才走这里，
+  /// 目的是不把这页的检测+识别（实测约 4 s）再付一遍。
+  static Future<OcrEraseResult> _rustErase(
+    String imagePath,
+    List<Float32List> quads,
+    String erasedOutput,
+    String ep,
+  ) => OcrService.instance.erasePage(
+    imagePath: imagePath,
+    quads: quads,
+    erasedOutput: erasedOutput,
     ep: ep,
   );
 
@@ -253,19 +280,35 @@ class TranslatedPageBuilder {
       ));
     }
     for (final a in attempts) {
-      if (force ||
-          !await TranslatedPageCache.isUsable(
-            label: a.label,
-            pageIndex: pageIndex,
-          )) {
-        continue;
-      }
+      if (force) continue;
+      // 叠层档命中看的是图层与底，不是那张烤好的 PNG —— 这一档不写 PNG，
+      // 按 PNG 判就永远 miss，每次上屏都要重跑那十几秒（等于把这一档的收益清零）。
+      final hit = retainErasedBase
+          ? await TranslatedPageCache.overlayDisplayable(
+              label: a.label,
+              pageIndex: pageIndex,
+            )
+          : await TranslatedPageCache.isUsable(
+              label: a.label,
+              pageIndex: pageIndex,
+            );
+      if (!hit) continue;
       onStage?.call(TranslatedPageStage.cacheHit);
+      // 叠层档命中时交回的是**底图**（有擦字底就用它，否则原图）：这一档不烤 PNG，
+      // 按 PNG 路径交回去等于交回一个不存在的文件。
+      final base = await TranslatedPageCache.baseFile(
+        label: a.label,
+        pageIndex: pageIndex,
+      );
+      final hitPath = retainErasedBase
+          ? (base.existsSync() ? base.path : imagePath)
+          : a.target.path;
       OcrLog.add(
-        '$page 命中缓存（${clock.elapsedMilliseconds} ms 档=${a.config.engine.id}）：${a.target.path}',
+        '$page 命中缓存（${clock.elapsedMilliseconds} ms 档=${a.config.engine.id}'
+        '${retainErasedBase ? " 叠层" : ""}）：${retainErasedBase ? hitPath : a.target.path}',
       );
       return TranslatedPage(
-        path: a.target.path,
+        path: hitPath,
         fromCache: true,
         hasText: true,
         blockCount: 0,
@@ -292,8 +335,10 @@ class TranslatedPageBuilder {
     final Uint8List png;
     final int blocks;
     final int truncated;
-    late final TranslatedPageLayer layer;
     late final OcrStageEps stageEps;
+    // 图层在 try 里组装、烘焙档在 try **之后**才写盘（要和 PNG 同一批）。
+    // 声明放在外面，是为了让「编译期就要求两条分支都赋过值」这条检查还在。
+    late final TranslatedPageLayer layer;
     // 实际出译文的那一档（可能就是选的那一档，也可能是回落档），产物写它名下。
     late final TranslateAttempt used;
     // 擦干净的底图只是中间产物，落在系统临时目录、出函数就删；
@@ -301,7 +346,12 @@ class TranslatedPageBuilder {
     final scratch = await Directory.systemTemp.createTemp('rossi_ocr_erase_');
     try {
       final erasedPath = p.join(scratch.path, 'erased_p$pageIndex.png');
-      final result = await _analyze(imagePath, erasedPath, ep);
+      // 叠层档先**不擦**：要看完框、采完色才知道需不需要那 4.2 s。
+      final result = await _analyze(
+        imagePath,
+        retainErasedBase ? null : erasedPath,
+        ep,
+      );
       final eps = result.stageEps;
       OcrLog.add(
         '$page 分析：${result.blocks.length} 块，'
@@ -361,20 +411,8 @@ class TranslatedPageBuilder {
         '用时 ${translateClock.elapsedMilliseconds} ms 档=${used.config.engine.id}',
       );
 
-      check(TranslatedPageStage.typesetting);
-      onStage?.call(TranslatedPageStage.typesetting);
-      final typesetClock = Stopwatch()..start();
-      png = await TranslatedPageRenderer.render(
-        erasedPng: await File(erasedPath).readAsBytes(),
-        blocks: result.blocks,
-        translations: translations,
-      );
-      blocks = result.blocks.length;
-      truncated = result.blocks.where((b) => b.truncated).length;
-      stageEps = result.stageEps;
-      // 填色只在叠层档采（`retainErasedBase` 就是那一档的开关）：采的是**原图**，
-      // 因为要的是气泡自己的底色；LaMa 修出来的那片底虽然也能采，但将来真省掉擦字时
-      // 它就不存在了 —— 现在多解一次码（约百毫秒），换那条路不用改这里。
+      // 填色采的是**原图**：要的是气泡自己的底色。LaMa 修出来的那片底虽然也能采，
+      // 但叠层档现在根本不一定跑擦字了（见下面的分支），所以只能按原图采。
       final fills = retainErasedBase
           ? await _sampleFills(
               imagePath: imagePath,
@@ -400,6 +438,81 @@ class TranslatedPageBuilder {
             ),
         ],
       );
+
+      if (retainErasedBase) {
+        // 叠层档：不烤 PNG、不占增强图轨，所以**底图越清晰越好**（超分照常生效）。
+        // 每框都采到平色 → 填色就足够盖住原文，LaMa 那一跳（实测 4.2 s/页）整个跳过；
+        // 有一框采不出 → 老老实实擦，底图落进同一档缓存里给叠层当底。
+        final allFilled = layer.boxes.every((b) => b.fill != null);
+        // 取消点放在**补擦之前**：这一档最贵的一跳还没发生，翻走了就不该再付 4.2 s。
+        check(TranslatedPageStage.typesetting);
+        onStage?.call(TranslatedPageStage.typesetting);
+        final base = allFilled
+            ? imagePath
+            : (await TranslatedPageCache.baseFile(
+                label: used.label,
+                pageIndex: pageIndex,
+              )).path;
+        if (!allFilled) {
+          final eraseClock = Stopwatch()..start();
+          // 先擦进临时目录，再由缓存那层原子收进来（`writeBase`）。
+          final erased = await _erase(
+            imagePath,
+            result.blocks.map((b) => b.quad).toList(growable: false),
+            erasedPath,
+            ep,
+          );
+          final written = erased.erasedPath;
+          if (written == null) {
+            // 掩膜为空 = Rust 侧一个字都没擦、也没写底图（框全是退化的那种）。
+            // 这时能拿到的底只有原图，而叠在未擦字的原图上字压字率实测 0.085 ——
+            // 与其画一张糊的冒充成品，不如如实失败，界面会说「译文失败」。
+            throw OcrTranslationException('擦字没有写出底图（掩膜为空），这一页不能叠层');
+          }
+          await TranslatedPageCache.writeBase(
+            label: used.label,
+            pageIndex: pageIndex,
+            erasedFile: File(written),
+          );
+          OcrLog.add(
+            '$page 采不到全平色底，只擦字（不重跑检测/识别）：'
+            '${eraseClock.elapsedMilliseconds} ms，实际生效 EP=${erased.ep ?? '未报'}',
+          );
+        }
+        await TranslatedPageCache.writeLayer(
+          label: used.label,
+          pageIndex: pageIndex,
+          json: layer.encode(),
+          fingerprint: used.fingerprint,
+        );
+        OcrLog.add(
+          '$page 叠层就绪：${layer.boxes.length} 框，'
+          '${allFilled ? "全部填色（未跑擦字）" : "填色不足，已补擦底图"}，'
+          '底图=${allFilled ? "原图" : "擦字底图"} 档=${used.config.engine.id}',
+        );
+        return TranslatedPage(
+          path: base,
+          fromCache: false,
+          hasText: true,
+          blockCount: layer.boxes.length,
+          truncatedCount: layer.boxes.where((b) => b.truncated).length,
+          label: used.label,
+          stageEps: result.stageEps,
+          elapsed: clock.elapsed,
+        );
+      }
+
+      check(TranslatedPageStage.typesetting);
+      onStage?.call(TranslatedPageStage.typesetting);
+      final typesetClock = Stopwatch()..start();
+      png = await TranslatedPageRenderer.render(
+        erasedPng: await File(erasedPath).readAsBytes(),
+        blocks: result.blocks,
+        translations: translations,
+      );
+      blocks = result.blocks.length;
+      truncated = result.blocks.where((b) => b.truncated).length;
+      stageEps = result.stageEps;
       OcrLog.add(
         '$page 回填排版：${typesetClock.elapsedMilliseconds} ms，'
         '$blocks 块'
@@ -417,10 +530,12 @@ class TranslatedPageBuilder {
     );
     // 图层与成品页**同一批写**：只写 PNG 就等于把 OCR 的全部产出烧死在一张图里，
     // 换超分档 / 换显示模式 / 手改译文都得重跑那十几秒（叠层模式没数据可用）。
-    await (await TranslatedPageCache.layerFile(
+    // 清单已由 `write` 记过，这里不再传 fingerprint。
+    await TranslatedPageCache.writeLayer(
       label: used.label,
       pageIndex: pageIndex,
-    )).writeAsString(layer.encode(), flush: true);
+      json: layer.encode(),
+    );
     OcrLog.add(
       '$page 成品已写入 ${used.target.path}（${png.length} 字节 档=${used.config.engine.id}）',
     );
