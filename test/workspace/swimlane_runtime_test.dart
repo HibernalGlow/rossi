@@ -25,6 +25,8 @@
 //    （栏头、次序、吃点击、驻留）一字未动 —— 被测的正是后者。
 //
 // ignore_for_file: avoid_print
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, debugDefaultTargetPlatformOverride;
 import 'package:flutter/gestures.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -170,12 +172,64 @@ void _expectCanDragRight(WidgetTester tester, double delta) {
   );
 }
 
+/// Reader **独占且激活** —— 桌面那一档下两条面板泳道被推出视口的前置状态。
+Future<WorkspaceCubit> _pumpSoloActiveReader(WidgetTester tester) async {
+  final cubit = await _pumpWorkspace(tester);
+  cubit.activateLane(LaneId.reader);
+  cubit.toggleSoloLane(LaneId.reader);
+  await tester.pumpAndSettle();
+  expect(cubit.state.layout.soloLaneId, LaneId.reader, reason: '前置：Reader 独占');
+  expect(
+    cubit.state.effectiveSoloLaneId,
+    LaneId.reader,
+    reason: '前置：独占已经生效，**与谁被激活无关**（见 `WorkspaceState.effectiveSoloLaneId`）',
+  );
+  expect(
+    cubit.state.interaction.showLaneNavigatorInSolo,
+    isFalse,
+    reason:
+        '前置：这颗开关**没开** —— 判据验的是「触屏上不给开关也照样给把手」，'
+        '开着的话这条判据就只是在验用户自己设的那一下。',
+  );
+  return cubit;
+}
+
+/// 在**指定平台**下跑一条 widget 判据。
+///
+/// 为什么必须钉平台，而不是靠 `flutter test` 的默认值：
+/// `debugDefaultTargetPlatformOverride` 在测试里默认是 **android**，而工作台的
+/// 条带几何现在按「这台设备有没有悬停指针」分流（触屏 ⇒ Reader 独占时左右两条
+/// 收成 44px 切换轨，见 `WorkspacePointerMode`）。不钉住就会全部量到触屏那一档，
+/// 那些讲桌面行为的判据会红成「像是回归」，而真正该红的没人看得见。
+///
+/// 复位只能写在**测试体内**（这里的 `finally`）：`_verifyInvariants` 在测试体
+/// 结束时就要看到 foundation 变量已清回原值，`addTearDown` 排得比它晚，
+/// 症状是每一条判据都以「The value of a foundation debug variable was changed
+/// by the test.」收场。
+void testWidgetsOn(
+  TargetPlatform platform,
+  String description,
+  WidgetTesterCallback body,
+) {
+  testWidgets(description, (tester) async {
+    debugDefaultTargetPlatformOverride = platform;
+    try {
+      await body(tester);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+}
+
+/// 有悬停指针的那一档 —— 本文件绝大多数判据描述的就是它。
+const TargetPlatform _pointerPlatform = TargetPlatform.macOS;
+
 void main() {
   setUp(_contentTaps.clear);
 
   // ── 1 / 2：激活泳道 + 第一下点击被吃掉 ────────────────────────────────────
 
-  testWidgets('非激活泳道的第一下点击被吃掉，同时完成激活', (tester) async {
+  testWidgetsOn(_pointerPlatform, '非激活泳道的第一下点击被吃掉，同时完成激活', (tester) async {
     final cubit = await _pumpWorkspace(tester);
     expect(
       cubit.state.activeLaneId,
@@ -200,7 +254,7 @@ void main() {
     );
   });
 
-  testWidgets('激活之后，落在这条泳道上的点击恢复正常派发', (tester) async {
+  testWidgetsOn(_pointerPlatform, '激活之后，落在这条泳道上的点击恢复正常派发', (tester) async {
     final cubit = await _pumpWorkspace(tester);
     final spot = tester.getCenter(_probe(LaneId.right));
 
@@ -221,7 +275,9 @@ void main() {
     expect(cubit.state.activeLaneId, LaneId.right);
   });
 
-  testWidgets('非激活泳道**栏头**的按钮第一下就生效（栏头不进吸收范围）', (tester) async {
+  testWidgetsOn(_pointerPlatform, '非激活泳道**栏头**的按钮第一下就生效（栏头不进吸收范围）', (
+    tester,
+  ) async {
     final cubit = await _pumpWorkspace(tester);
     expect(cubit.state.activeLaneId, isNull, reason: '前置：右泳道此刻是非激活的');
 
@@ -252,7 +308,7 @@ void main() {
 
   // ── 3 / 4：悬停驻留聚焦（Reader 与面板两颗开关，紧凑轨不参与） ─────────────
 
-  testWidgets('指针在非激活的阅读器泳道上停留够久，就把它激活', (tester) async {
+  testWidgetsOn(_pointerPlatform, '指针在非激活的阅读器泳道上停留够久，就把它激活', (tester) async {
     final cubit = await _pumpWorkspace(tester);
     expect(
       cubit.state.interaction.hoverFocusEnabled,
@@ -284,7 +340,9 @@ void main() {
     );
   });
 
-  testWidgets('指针停在**面板**泳道里够久也激活（这颗开关默认开）', (tester) async {
+  testWidgetsOn(_pointerPlatform, '指针停在**面板**泳道里够久也激活（这颗开关默认开）', (
+    tester,
+  ) async {
     final cubit = await _pumpWorkspace(tester);
     expect(
       cubit.state.interaction.panelHoverFocusEnabled,
@@ -314,7 +372,7 @@ void main() {
     );
   });
 
-  testWidgets('面板那颗关掉只影响面板：Reader 的悬停聚焦照旧', (tester) async {
+  testWidgetsOn(_pointerPlatform, '面板那颗关掉只影响面板：Reader 的悬停聚焦照旧', (tester) async {
     final cubit = await _pumpWorkspace(tester);
     cubit.setInteraction(
       cubit.state.interaction.copyWith(panelHoverFocusEnabled: false),
@@ -342,7 +400,7 @@ void main() {
     );
   });
 
-  testWidgets('折叠成 44px 紧凑轨的泳道**不**吃悬停聚焦', (tester) async {
+  testWidgetsOn(_pointerPlatform, '折叠成 44px 紧凑轨的泳道**不**吃悬停聚焦', (tester) async {
     final cubit = await _pumpWorkspace(tester);
     cubit.toggleLaneCollapsed(LaneId.left);
     await tester.pumpAndSettle();
@@ -373,7 +431,7 @@ void main() {
     );
   });
 
-  testWidgets('悬停聚焦关掉之后，停多久都不激活', (tester) async {
+  testWidgetsOn(_pointerPlatform, '悬停聚焦关掉之后，停多久都不激活', (tester) async {
     final cubit = await _pumpWorkspace(tester);
     cubit.setInteraction(
       cubit.state.interaction.copyWith(hoverFocusEnabled: false),
@@ -398,7 +456,9 @@ void main() {
 
   // ── 5 / 6：边缘驻留揭示（`revealFocusesLane` 决定它到此为止还是接管交互） ──
 
-  testWidgets('Reader 独占且激活时，视口左边缘驻留会揭示左泳道并接管交互', (tester) async {
+  testWidgetsOn(_pointerPlatform, 'Reader 独占且激活时，视口左边缘驻留会揭示左泳道并接管交互', (
+    tester,
+  ) async {
     final cubit = await _pumpWorkspace(tester);
     cubit.toggleSoloLane(LaneId.reader);
     await tester.pumpAndSettle();
@@ -440,7 +500,9 @@ void main() {
     );
   });
 
-  testWidgets('自动聚焦开着时，揭示之后不存在「延时收回 Reader」', (tester) async {
+  testWidgetsOn(_pointerPlatform, '自动聚焦开着时，揭示之后不存在「延时收回 Reader」', (
+    tester,
+  ) async {
     final cubit = await _pumpWorkspace(tester);
     cubit.toggleSoloLane(LaneId.reader);
     await tester.pumpAndSettle();
@@ -471,7 +533,9 @@ void main() {
     );
   });
 
-  testWidgets('揭示是瞬态的：关掉自动聚焦后，指针离开会延时把条带收回 Reader', (tester) async {
+  testWidgetsOn(_pointerPlatform, '揭示是瞬态的：关掉自动聚焦后，指针离开会延时把条带收回 Reader', (
+    tester,
+  ) async {
     final cubit = await _pumpWorkspace(tester);
     cubit.toggleSoloLane(LaneId.reader);
     // 这一条验的是契约原味（`Dwell alone is transient and does not change the
@@ -528,9 +592,76 @@ void main() {
     );
   });
 
+  // ── A：聚焦不改宽度（条带只平移）──────────────────────────────────────────
+
+  testWidgetsOn(_pointerPlatform, '独占的 Reader 把交互交给左泳道之后，宽度一字不变', (
+    tester,
+  ) async {
+    final cubit = await _pumpWorkspace(tester);
+    cubit.activateLane(LaneId.reader);
+    cubit.toggleSoloLane(LaneId.reader);
+    await tester.pumpAndSettle();
+
+    final readerScope = _laneScope(_readerTitle);
+    final before = tester.getSize(readerScope).width;
+    expect(before, greaterThan(1000), reason: '前置：Reader 独占 ≈ 占满可用宽（夹具 1200）');
+
+    cubit.activateLane(LaneId.left);
+    await tester.pumpAndSettle();
+
+    // 这一条是「鼠标移过去卡一下」里最贵那下的正面判据：宽度一变，
+    // `ImageSurface` 的物理尺寸就变，已上屏的纹理被判废并按新宽重解
+    // （`lib/reader/image_surface.dart` 自己记的 300–400 ms/页）。
+    expect(
+      tester.getSize(readerScope).width,
+      moreOrLessEquals(before, epsilon: 0.5),
+      reason: '聚焦只该移动条带，不该重新排版 Reader',
+    );
+    expect(_leftProbeDx(tester), greaterThan(0), reason: '条带确实把左泳道移进来了');
+    expect(
+      cubit.state.layout.soloLaneId,
+      LaneId.reader,
+      reason: '独占偏好没被这次聚焦改掉（契约：激活别的泳道不清除 solo）',
+    );
+  });
+
+  testWidgetsOn(_pointerPlatform, '生效值分档：Reader 的独占不随激活失效，面板的独占仍然随', (
+    tester,
+  ) async {
+    final cubit = await _pumpWorkspace(tester);
+
+    cubit.toggleSoloLane(LaneId.reader);
+    cubit.activateLane(LaneId.left);
+    await tester.pumpAndSettle();
+    expect(
+      cubit.state.effectiveSoloLaneId,
+      LaneId.reader,
+      reason:
+          'Reader 这一档解绑了：激活左泳道不该把 Reader 打回常规宽度 '
+          '（那是一次几百像素的重排 + 重解码，见 `WorkspaceState.activeLaneId`）',
+    );
+
+    cubit.toggleSoloLane(LaneId.reader); // 关掉 Reader 的独占
+    cubit.toggleSoloLane(LaneId.left); // 打开左泳道的独占（它会顺带激活自己）
+    cubit.activateLane(LaneId.right);
+    await tester.pumpAndSettle();
+    expect(
+      cubit.state.layout.soloLaneId,
+      LaneId.left,
+      reason: '前置：独占偏好记在左泳道',
+    );
+    expect(
+      cubit.state.effectiveSoloLaneId,
+      isNull,
+      reason:
+          '面板那一档**保留**老契约，不是漏改：边缘驻留只对 Reader 独占开放，'
+          '解绑之后「独占一条面板泳道 + 在别处干活」会把其余泳道挤到呼不回来的位置',
+    );
+  });
+
   // ── 7：Reader 全屏时的那道横向拖动闸 ──────────────────────────────────────
 
-  testWidgets('Reader 全屏时横向拖动不拽动条带（开关默认开）', (tester) async {
+  testWidgetsOn(_pointerPlatform, 'Reader 全屏时横向拖动不拽动条带（开关默认开）', (tester) async {
     final cubit = await _pumpWorkspace(tester);
     cubit.setReaderFullscreen(true);
     await tester.pumpAndSettle();
@@ -554,7 +685,9 @@ void main() {
     );
   });
 
-  testWidgets('关掉开关后全屏时又能拖 —— 证明上一判据拦它的就是这颗开关', (tester) async {
+  testWidgetsOn(_pointerPlatform, '关掉开关后全屏时又能拖 —— 证明上一判据拦它的就是这颗开关', (
+    tester,
+  ) async {
     final cubit = await _pumpWorkspace(tester);
     cubit.setReaderFullscreen(true);
     cubit.setInteraction(
@@ -579,6 +712,66 @@ void main() {
       _leftProbeDx(tester),
       greaterThan(before + 100),
       reason: '拖得动 —— 否则上一条的「拖不动」可能来自别的原因（例如整条根本不能滚）',
+    );
+  });
+
+  // ── 7：触摸屏上没有悬停指针 ⇒ 左右泳道必须有等价的把手 ─────────────────────
+  //
+  // 桌面把左右泳道「叫回来」的两条路，在触屏上一条都走不到：
+  // ① 边缘驻留揭示吃的是 `PointerHoverEvent`（手指没有 hover，回调永不触发）；
+  // ② 横扫条带在阅读器泳道里会被翻页的横向拖拽吃掉。
+  // 于是 Reader 独占时，用户看得见 Reader、看不见左右两条，且没有任何手势能把
+  // 它们推回来 —— 这就是「进得去出不来」的那个洞。补法是给出那条 44px 切换轨
+  // （点它 = `activateLane`，`_buildLane` 的 `onToggleCollapse` 早就实现了这条语义）。
+
+  testWidgetsOn(TargetPlatform.android, '触屏：Reader 独占时左右泳道收成 44px 轨，点它就交出交互', (
+    tester,
+  ) async {
+    final cubit = await _pumpSoloActiveReader(tester);
+
+    for (final title in [_leftTitle, _rightTitle]) {
+      // 按「远小于一条面板泳道（夹具给的是 400）」判，而不是死磕 44.0：
+      // 栏头那圈 `AnimatedContainer` 的边框各占 1.5，量到的矩形会是 41。
+      // 差这 3px 与这条判据要问的问题无关（「有没有把手」），
+      // 写成等式反而会让人以为边框宽度是契约的一部分。
+      expect(
+        tester.getSize(_laneScope(title)).width,
+        lessThan(100),
+        reason: '没有指针 ⇒ 这条轨必须出现，否则那两条泳道在触屏上不可达',
+      );
+    }
+
+    final railCenter = tester.getCenter(_laneScope(_leftTitle));
+    await tester.tapAt(railCenter);
+    await tester.pumpAndSettle();
+
+    expect(
+      cubit.state.activeLaneId,
+      LaneId.left,
+      reason:
+          '点轨的语义是「把交互交给这条泳道」，不是折叠 '
+          '（`_buildLane`：`isRail && !config.collapsed` 那一支）。',
+    );
+    expect(
+      cubit.state.layout.lanes[LaneId.left]!.collapsed,
+      isFalse,
+      reason: '不该把「显示切换栏」变成「把这条泳道永久折起来」',
+    );
+  });
+
+  testWidgetsOn(_pointerPlatform, '桌面：同一份设置**不**给切换轨 —— 证明上一判据量的是平台而不是别的', (
+    tester,
+  ) async {
+    await _pumpSoloActiveReader(tester);
+    expect(
+      tester.getSize(_laneScope(_leftTitle)).width,
+      greaterThan(300),
+      reason: '桌面保持原样：那边有边缘驻留，不该凭空多两条占位的轨',
+    );
+    expect(
+      tester.getCenter(_probe(LaneId.left)).dx,
+      lessThan(0),
+      reason: '左泳道整条在视口外 —— 触屏上那条判据要解决的就是这个状态',
     );
   });
 }

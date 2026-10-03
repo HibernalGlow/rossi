@@ -41,9 +41,13 @@ const Key laneWidthFieldKey = ValueKey<String>('lane-width-field');
 ///
 /// ## 为什么独占项读的是记账，不是生效值
 ///
-/// `effectiveSoloLaneId` 还要求「同时是激活泳道」。用它做标签的话，一条
-/// 「solo 记着但当前没生效」的泳道会显示「独占该栏」，按下去却是**关掉**它 ——
-/// 标签必须与 `toggleSoloLane` 实际要做的那件事一致。
+/// 标签必须与 `toggleSoloLane` 实际要做的那件事一致 —— 那个方法比的是
+/// `state.layout.soloLaneId`。生效值（`effectiveSoloLaneId`）在两种情况下与它不同：
+/// 一条**面板**泳道被独占而此刻激活的是别处（面板那档仍保留「同时被激活」的前提），
+/// 以及阅读器全屏（生效值被强行算成 Reader）。用生效值做标签，这两种档位下都会
+/// 显示「独占该栏」而按下去是**关掉**它。
+///
+/// （Reader 的独占**不**再随激活态失效 —— 见 `WorkspaceState.activeLaneId` 那条修订。）
 class LaneMenu {
   const LaneMenu({
     required this.laneId,

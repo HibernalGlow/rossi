@@ -113,26 +113,33 @@ class WorkspaceStripMetrics {
   /// 边缘驻留的**揭示**才有东西可滚 —— 独立分支里的 `Expanded` 根本滚不动，
   /// 于是揭示无从实现。
   ///
-  /// **只在该泳道同时也是激活泳道时才传它**（契约：solo 的生效宽度以
-  /// 「Reader 泳道处于激活态」为前提；激活别的泳道会让 Reader 变回常规宽度，
-  /// 但不清除 solo 偏好 —— 重新点回 Reader 时才恢复独占呈现）。
+  /// **传的是生效值**（`WorkspaceState.effectiveSoloLaneId`）。其中 **Reader 的
+  /// 独占不看激活态**：激活别的泳道**不会**让它回落到常规宽度 —— 宽度一变，
+  /// `ImageSurface` 就要按新宽重解一遍画面（`lib/reader/image_surface.dart` 记的
+  /// 是 300–400 ms/页），而「显出一条泳道」靠**移动条带**就够了。判据：
+  /// `test/workspace/strip_metrics_check.dart` 的「激活不改宽度」。
+  /// 面板泳道保持老契约（要同时是激活泳道），原因见 `effectiveSoloLaneId` 的文档。
+  ///
+  /// [activeLaneId] 只决定**紧凑轨给谁**：被激活的那条展开成自己的宽度，
+  /// 其余的按 `showLaneNavigatorInSolo` 收成轨。
   factory WorkspaceStripMetrics.resolve({
     required WorkspaceLayoutConfig layout,
     required double viewportWidth,
     required double availableWidth,
     required double resizerWidth,
     String? soloLaneId,
+    String? activeLaneId,
     bool showLaneNavigatorInSolo = false,
   }) {
     // 1. 每条泳道先按自己的计量单位算宽度
     final widths = <String, double>{};
     final collapsed = <String, bool>{};
-    // 「独占时显示泳道切换栏」= 其余泳道**一律**收成紧凑轨，
-    // 于是那几条轨本身就是切换栏（点一条就把交互交给它）。
+    // 「独占时显示泳道切换栏」= 除独占与**当前激活**那两条之外，一律收成紧凑轨，
+    // 于是那几条轨本身就是切换栏（点一条就把交互交给它，交出去之后它就展开）。
     final solo = soloLaneId;
     // 独占那条自己被折叠时不摆切换栏：与下面「折叠态优先」同一条取舍 ——
     // 用户把它折叠是更明确的意图，此时没有任何一条泳道在独占视口。
-    final railForOthers =
+    final railsArmed =
         solo != null &&
         showLaneNavigatorInSolo &&
         layout.lanes[solo]?.collapsed != true;
@@ -140,9 +147,14 @@ class WorkspaceStripMetrics {
       final lane = layout.lanes[laneId];
       if (lane == null) continue;
       final isSolo = laneId == solo;
+      // **激活哪条，哪条就展开**：切换栏的用途是「把交互交给别处」，
+      // 而交互已经在那条泳道里了还把它压回 44px，等于用户点完轨之后
+      // 点的东西仍然被吞（触屏上那是唯一把手）。
+      final isRail =
+          railsArmed && laneId != activeLaneId && laneId != solo;
       // 折叠态优先 —— 折叠是用户更明确的意图（自己就被折叠的泳道，
       // 切换栏里它长得一模一样，不需要再判一次）。
-      final isCollapsed = lane.collapsed || (railForOthers && !isSolo);
+      final isCollapsed = lane.collapsed || isRail;
       widths[laneId] = isCollapsed
           ? WorkspaceLayoutConfig.collapsedLaneWidth
           : isSolo
@@ -156,12 +168,17 @@ class WorkspaceStripMetrics {
     // 直接让独占吃满 `availableWidth`、再在旁边摆几条 44px 的轨，条带总宽
     // 就超出可用宽一个轨宽 ⇒ [needsScroll] 为真 ⇒ 那几条轨正好被推出视口。
     // 也就是说「显示切换栏」的结果是**什么都看不见**，比不开这个开关更糟。
-    if (railForOthers) {
+    //
+    // 扣的只该是**真被收成轨的那些**（44px）：激活那条已经展开成自己的宽度，
+    // 把它那 400px 也从独占身上扣，等于「聚焦把 Reader 挤小了」——
+    // 而那正是本文件不再做的事（见 `WorkspaceState.effectiveSoloLaneId`）。
+    if (railsArmed) {
       final soloWidth = widths[solo];
       if (soloWidth != null) {
         var railTotal = 0.0;
         for (final entry in widths.entries) {
           if (entry.key == solo) continue;
+          if (collapsed[entry.key] != true) continue;
           railTotal += entry.value;
         }
         // 窗口窄到放不下「一条独占 + 两条轨」时，轨仍然占位（可滚），

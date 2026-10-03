@@ -78,6 +78,11 @@ class WorkspaceInteractionSettings {
   /// 关掉时独占就是字面意思的「只剩一条」：其余泳道被推出视口，只能靠
   /// 左右唤出区调回来。打开时它们各留 `WorkspaceLayoutConfig.collapsedLaneWidth`
   /// 的宽度，等于一条常驻的泳道切换栏。
+  ///
+  /// **当前激活那条永远不收成轨**：轨的语义是「点我把交互交给你」，
+  /// 交互已经在手上了还压回 44px，等于点完轨仍然点不动里面的东西
+  /// （触屏上那是左右泳道唯一把手，见 `SwimlaneWorkspace` 的
+  /// `showLaneNavigatorInSolo: ... || !hasHoverPointer`）。
   final bool showLaneNavigatorInSolo;
 
   /// 是否允许用户**手动横向拖动**整条泳道条带。

@@ -429,8 +429,12 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
               viewportWidth: viewportWidth,
               availableWidth: availableWidth,
               resizerWidth: LaneResizer.width,
-              // solo 的生效宽度以「它同时是激活泳道」为前提。
+              // **Reader 的**独占宽度不看激活态（见 `WorkspaceState.effectiveSoloLaneId`）：
+              // 聚焦只移动条带，不把 Reader 按新宽度重排、重解一遍画面。
+              // 面板泳道仍走老契约（生效要同时被激活），那条不对称的理由写在同一个 getter 上。
               soloLaneId: state.effectiveSoloLaneId,
+              // 轨只给「不是当前激活」的那几条 —— 激活哪条，哪条就展开。
+              activeLaneId: state.activeLaneId,
               showLaneNavigatorInSolo:
                   state.interaction.showLaneNavigatorInSolo,
             );
