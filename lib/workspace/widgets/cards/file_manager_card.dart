@@ -184,6 +184,16 @@ class _FileManagerCardState extends State<FileManagerCard> {
   Timer? _treePoll;
   int _treeSerial = 0;
 
+  /// 树的纵向滚动。行是 `ListView.builder` 按需建的，「把当前目录那一行搬进视口」
+  /// 只有这一层做得动 —— 核心只投影行，不知道视口有多高。
+  final _treeScroll = ScrollController();
+
+  /// 已经为哪一条当前目录定位过，口径同 [_breadcrumbRevealedPath]。
+  ///
+  /// 不按投影次数搬视口：懒扫描期间树每 80ms 重来一份，那样会把视口一直往中间拽，
+  /// 用户正低头看哪儿都被抢走。
+  String? _treeRevealedPath;
+
   @override
   void initState() {
     super.initState();
@@ -196,6 +206,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
     _searchDebounce?.cancel();
     _endSearchFeedback();
     _treePoll?.cancel();
+    _treeScroll.dispose();
     // 先摘登记再关会话：反过来的话，两个动作之间有一个窗口期，
     // 别人正好在这时候请求「新页签」会拿到一个马上要消失的会话。
     FileManagerTabBridge.instance.detach(this);

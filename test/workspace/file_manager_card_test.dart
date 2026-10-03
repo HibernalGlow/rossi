@@ -1147,6 +1147,28 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('打开文件树把当前目录那一行搬进视口', (tester) async {
+    api.tree = _deepTreeSnapshot();
+    await _pumpCard(tester);
+    // 当前目录在链的最深处：树没开时它连被建出来都没有。
+    const activeRow = ValueKey('file-manager-tree:/n12');
+    expect(find.byKey(activeRow), findsNothing);
+
+    await _openTree(tester);
+
+    expect(find.byKey(activeRow), findsOneWidget);
+    final viewport = tester.getRect(
+      find.byKey(const ValueKey('file-manager-tree-list')),
+    );
+    final row = tester.getRect(find.byKey(activeRow));
+    expect(row.top, greaterThanOrEqualTo(viewport.top));
+    expect(row.bottom, lessThanOrEqualTo(viewport.bottom));
+    // 这一句是上面两条的对照：链头那行已经被滚出视口（连建都没建出来），
+    // 说明视口确实搬过，而不是「行数本来就少、全都看得见」蒙对的。
+    expect(find.byKey(const ValueKey('file-manager-tree:/')), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('树里点箭头只展开节点，点行才提交跳转目录', (tester) async {
     await _pumpCard(tester);
     await _openTree(tester);
