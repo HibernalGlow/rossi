@@ -164,6 +164,17 @@ final RegExp _uuidShape = RegExp(
   caseSensitive: false,
 );
 
+/// 来源 id 的归一形态：插件 uuid 一律小写，其余原样保留。
+///
+/// uuid 在库里是 `Uuid.v4()` 的小写形态，而记录里的 `source` 是历史某个时刻
+/// 传进去的串，两边不保证同一写法。按来源**分组**时必须先归一，否则同一个插件
+/// 会大小写各占一行，而解析到名字之后那两行还叫同一个名。
+/// 非 uuid（本地那类已经在上游折成中文了）不动大小写：名字被大写化是另一种认不出来。
+String shelfSourceKey(String source) {
+  final trimmed = source.trim();
+  return _uuidShape.hasMatch(trimmed) ? trimmed.toLowerCase() : trimmed;
+}
+
 /// 从 [pluginDisplayNames] 那张表里查一个来源 id 的名字。
 ///
 /// 大小写不敏感：uuid 在库里是 `Uuid.v4()` 的小写形态，而记录里的 `source`

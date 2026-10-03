@@ -11,6 +11,7 @@
 //   3. **热力格的编号** —— 周日必须落在第 0 行。直接拿 `weekday` 当下标不会崩，
 //      只会让整张图错一行，而错一行的热力图照样「看起来对」。
 //   4. **来源分类** —— 本地判定要用 `isLocalComicSource`，插件名不能被当成在线；
+//      同一个插件的 uuid 写成大写也要合成一条（否则两根条叫同一个名）；
 //      同一份数据的次序必须稳定，否则每次刷新条形会自己重排。
 //
 // 没有 package:test 依赖（跟 `shelf_entry_menu_check.dart` 同一套路：这个外壳里
@@ -41,6 +42,7 @@ void main() {
   _readingStreak();
   _readingHeatmap();
   _sourceBreakdown();
+  _sourceBreakdownUuidCase();
   _emptyWindow();
   print('OK: history insights checks passed ($_passed)');
 }
@@ -244,6 +246,38 @@ void _sourceBreakdown() {
   check(
     '同次数时按名字排（次序稳定）',
     summary.items.map((item) => item.source).join(',') == 'Bika,本地,禁漫',
+    summary.items.map((item) => item.source).join(','),
+  );
+}
+
+const String _uuidLower = 'a16835e9-d405-4e01-8019-08e30ba6cde2';
+const String _uuidUpper = 'A16835E9-D405-4E01-8019-08E30BA6CDE2';
+
+void _sourceBreakdownUuidCase() {
+  final summary = buildSourceBreakdown([
+    _event(DateTime(2026, 9, 20, 9), source: _uuidUpper),
+    _event(DateTime(2026, 9, 20, 9), source: _uuidUpper),
+    // 同一个插件：库里 `source` 的写法不保证与 uuid 的小写形态一致
+    _event(DateTime(2026, 9, 20, 9), source: _uuidLower),
+    _event(DateTime(2026, 9, 20, 9), source: '  $_uuidLower  '),
+    // 不是 uuid 的串不能顺手大写化/归一：那正是「BikaACG 变 BIKAACG」的错法
+    _event(DateTime(2026, 9, 20, 9), source: 'JMPlugin'),
+  ]);
+
+  final bySource = {for (final item in summary.items) item.source: item};
+  check(
+    '同一插件的大小写写法合成一条',
+    summary.items.length == 2,
+    summary.items.map((item) => item.source).join(','),
+  );
+  check(
+    '合并后按小写 uuid 归键（含首尾空格）',
+    bySource[_uuidLower]?.count == 4,
+    '${bySource[_uuidLower]?.count}',
+  );
+  check(
+    '非 uuid 的来源保持原样',
+    bySource['JMPlugin']?.count == 1,
     summary.items.map((item) => item.source).join(','),
   );
 }
