@@ -37,17 +37,6 @@ class TranslatedPageLayer {
   /// 一框一框的译文盒，顺序与 OCR 交回来的块序一致。
   final List<TranslatedBox> boxes;
 
-  /// 底图倍率：叠在宽为 [displayWidth] 的框上时该用的线性缩放。
-  ///
-  /// 拒绝 NaN / 非正值：那是上游算坏了，让它在这里炸一句比让字号变成 NaN
-  /// 然后在画布上什么都不画（一个看起来「没有字幕」的页面）好。
-  double scaleForWidth(double displayWidth) {
-    if (pageWidth <= 0 || displayWidth.isNaN || displayWidth <= 0) {
-      throw StateError('图层尺寸坏了：pageWidth=$pageWidth displayWidth=$displayWidth');
-    }
-    return displayWidth / pageWidth;
-  }
-
   /// 四角点的**外接矩形**（底图物理像素）。
   ///
   /// AABB 只在这里定义一次：烘焙那条路（`TranslatedPageRenderer._aabb`）与叠层
