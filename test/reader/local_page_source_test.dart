@@ -12,6 +12,11 @@ class _LocalSourceApi implements RustLibApi {
   late LocalPageInfo page;
   final closed = <BigInt>[];
 
+  /// 页表长度。`LocalPageSource` 的页数取自 `localSourcePages` 返回的**条数**，
+  /// 不是 `LocalSourceInfo.pageCount` 那个打开时的申报值 —— 所以想造「同一章补了页」
+  /// 必须动这里。默认 1，保持原有那条用例一模一样。
+  int pageReplicas = 1;
+
   @override
   Future<LocalSourceOpenResult> crateApiLocalOpenLocalSource({
     required String path,
@@ -23,7 +28,10 @@ class _LocalSourceApi implements RustLibApi {
   @override
   Future<List<LocalPageInfo>> crateApiLocalLocalSourcePages({
     required BigInt id,
-  }) async => [page];
+  }) async => List.generate(
+    pageReplicas,
+    (i) => LocalPageInfo(index: i, name: page.name, size: page.size),
+  );
 
   @override
   bool crateApiLocalLocalClose({required BigInt id}) {
@@ -91,4 +99,51 @@ void main() {
       expect(await source.getPageFilePath(0), isNull);
     });
   }
+
+  group('本地档的成品页源身份', () {
+    Future<LocalPageSource> openChapter(
+      String name, {
+      int pageCount = 3,
+    }) async {
+      final path = p.join(directory.path, name);
+      api.info = LocalSourceInfo(
+        id: BigInt.one,
+        path: path,
+        kind: LocalSourceKind.zip,
+        pageCount: pageCount,
+        totalBytes: BigInt.from(3),
+      );
+      api.page = LocalPageInfo(index: 0, name: '001.jpg', size: BigInt.from(3));
+      api.pageReplicas = pageCount;
+      final opened = await LocalPageSource.open(path);
+      return ((opened as PageSourceOpened).source) as LocalPageSource;
+    }
+
+    test('一本一章报得出源身份（在线那档用的是 from|漫画|章）', () async {
+      final source = await openChapter('book.cbz');
+      expect(source, isA<TranslationScopeBearing>());
+      expect(
+        source.translationCacheScope,
+        'local|${p.join(directory.path, 'book.cbz')}|3',
+      );
+    });
+
+    test('同一路径两种拼法算同一章（补页之前的相对路径不该把缓存劈成两半）', () async {
+      final a = await openChapter('book.cbz');
+      final b = await openChapter(p.join('sub', '..', 'book.cbz'));
+      expect(a.translationCacheScope, b.translationCacheScope);
+    });
+
+    test('换一章就是另一个源身份 —— 这正是 A 本第 5 页不再端给 B 本第 5 页的那道闸', () async {
+      final one = await openChapter('vol1.cbz');
+      final two = await openChapter('vol2.cbz');
+      expect(one.translationCacheScope, isNot(two.translationCacheScope));
+    });
+
+    test('同一章补了页，源身份跟着变（页号与内容的对应关系已经变了）', () async {
+      final before = await openChapter('book.cbz', pageCount: 3);
+      final after = await openChapter('book.cbz', pageCount: 5);
+      expect(before.translationCacheScope, isNot(after.translationCacheScope));
+    });
+  });
 }

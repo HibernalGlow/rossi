@@ -62,6 +62,11 @@ class TranslatedPageCache {
   ///
   /// 所以 `engine` 必须在里面；而 `glossarySha1` **只在端点那一档才算** ——
   /// 端侧那条路没有术语表接口，让它去失效一份「本来就没用术语表」的产物就是多算。
+  ///
+  /// 唯一例外是 `scope`（[OcrTranslationConfig.cacheScope]）：它不改变译文内容，
+  /// 改变的是「这张产物属于哪一本书的哪一章」。没有它，这份表就退化成
+  /// 「按页号查表」，不同书的同号页会互相命中 —— 那是比静默陈旧更糟的一种错：
+  /// 端出来的画面压根是另一本书。
   static Future<({String fingerprint, String label})> describe({
     required OcrTranslationConfig config,
     String? modelTag,
@@ -73,6 +78,12 @@ class TranslatedPageCache {
     final hasEndpoint = config.engine.requiresEndpoint;
     // 端侧那一档没有 model，目录名要有个人能看懂的东西，别留一个空段。
     final modelLabel = config.model.isEmpty ? config.engine.id : config.model;
+    // 源身份：**给了才进指纹，没给时这一项整个不存在**。
+    // 写成条件项而不是 `'scope': config.cacheScope ?? '-'`，是为了让没接这条链的
+    // 调用方（本地档、冒烟页、既有测试）算出来的指纹与目录名跟改造前逐字节相同 ——
+    // 否则这一改动会把用户盘上所有成品页一次性判死，而它们并没有错。
+    // 理由与 `glossarySha1` 只在端点档才算同型：多算一项等于白白作废。
+    final scope = config.cacheScope;
     final entries = <String, String>{
       'engine': config.engine.id,
       'targetLanguage': config.targetLanguage,
@@ -87,6 +98,7 @@ class TranslatedPageCache {
       'models': tag,
       'font': fontVersion,
       'layout': '$layoutVersion',
+      if (scope != null && scope.isNotEmpty) 'scope': scope,
     };
     final fingerprint = entries.entries
         .map((e) => '${e.key}=${e.value}')

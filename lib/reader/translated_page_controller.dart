@@ -169,6 +169,15 @@ class TranslatedPageController extends ChangeNotifier {
       return _fail(index, '权重没下全：缺 ${missing.join('、')}');
     }
 
+    // 来源报得出源身份就带上（在线那一路），报不出就是没有 —— 与加这个概念之前
+    // 逐字一致。用模式匹配而不是 `is` 提升：后者在这一处没把类型收窄。
+    // 不带它的话，「同一份配置 + 同一个页号」在几本书之间是同一个键 ——
+    // 那正是这条链一路在防的静默错页，只是这次错的是**另一本书的画面**。
+    final cacheScope = switch (source) {
+      final TranslationScopeBearing bearing => bearing.translationCacheScope,
+      _ => null,
+    };
+
     final generation = _generation;
     _phase = TranslatedPagePhase.building;
     _index = index;
@@ -180,7 +189,7 @@ class TranslatedPageController extends ChangeNotifier {
       final out = await _builder.build(
         imagePath: input,
         pageIndex: index,
-        config: config,
+        config: config.copyWith(cacheScope: cacheScope),
         // 换书 / 退出之后，剩下的阶段就不要再跑了：一页要十几秒，
         // 光靠「结果回来再丢弃」是把 CPU 烧完才算完。
         // 粒度只能是阶段 —— Rust 侧一次调用没有协作式取消点。
