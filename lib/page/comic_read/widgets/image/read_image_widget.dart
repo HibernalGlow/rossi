@@ -39,6 +39,16 @@ class ReadImageWidget extends StatefulWidget {
   /// 不参与拆分，给它们裁半页只会把动图变成一张不会动的半图。
   final PageSlice slice;
 
+  /// 这一格是不是当前槽位；`null` = 由本 widget 自己按老规则判（`localIndex` 比
+  /// `currentSlot`）。
+  ///
+  /// 行模式必须显式传：横长页拆成两半以后，同一个源页会占**两个**槽位，两半的
+  /// `localIndex` 相同，老规则会把它们同时判成当前页 —— 两个 `ImageSurface` 一起
+  /// 向唯一的 presenter 推帧，就是下面写过的「同一张 CVPixelBuffer 交替覆写 =
+  /// 红黄闪」。槽位号是唯一的，按它判只会剩下一个驱动者。
+  /// 列模式与其它调用方不传，行为与今天逐字一致。
+  final bool? slotIsCurrent;
+
   const ReadImageWidget({
     super.key,
     required this.pictureInfo,
@@ -49,6 +59,7 @@ class ReadImageWidget extends StatefulWidget {
     this.imageAlignment = Alignment.center,
     this.paintSize,
     this.slice = PageSlice.full,
+    this.slotIsCurrent,
   });
 
   @override
@@ -87,7 +98,7 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
     final int currentSlot = context.select(
       (ReaderCubit c) => c.state.currentSlot,
     );
-    final bool isActive = localIndex == currentSlot;
+    final bool isActive = widget.slotIsCurrent ?? (localIndex == currentSlot);
 
     return FutureBuilder<VideoSettings>(
       future: VideoSettingsStore.instance.load(),
@@ -170,7 +181,8 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
       final int currentSlot = context.select(
         (ReaderCubit c) => c.state.currentSlot,
       );
-      final bool isActiveSlot = localIndex == currentSlot;
+      final bool isActiveSlot =
+          widget.slotIsCurrent ?? (localIndex == currentSlot);
 
       // 不再写死 context.screenWidth，继承父容器传入的约束（contentWidth），
       // 消除 RenderFlex overflowed 导致的红黄条纹色块。

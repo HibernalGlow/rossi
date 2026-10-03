@@ -13,6 +13,8 @@ import 'package:zephyr/widgets/picture_bloc/models/picture_info.dart';
 /// - [displayNumber] 用于行模式等需要显式页号的场景；为 null 时使用 [slotIndex] + 1。
 /// - [placed] 是顶栏缩放/旋转面板对**这一页**的排布结果；为 null 时按老逻辑铺满宽度。
 /// - [slice] 横长页拆分时这一格只画原图的哪一半；默认 [PageSlice.full] 即整页。
+/// - [slotIsCurrent] 由行模式显式传入的「这一格是当前槽位」；为 null 时
+///   [ReadImageWidget] 仍按 `localIndex` 比 `currentSlot` 的老规则自判。
 Widget buildReadModeImage({
   required BuildContext context,
   required ReadModeEntry entry,
@@ -25,6 +27,7 @@ Widget buildReadModeImage({
   Alignment imageAlignment = Alignment.center,
   ReaderPlacedPage? placed,
   PageSlice slice = PageSlice.full,
+  bool? slotIsCurrent,
 }) {
   if (entry.type != ReadModeEntryType.image ||
       entry.doc == null ||
@@ -37,12 +40,16 @@ Widget buildReadModeImage({
   final effectivePlaced = isVideo ? null : placed;
 
   final image = ReadImageWidget(
+    // slice 必须在 key 里：双页下一个槽位可能同时装同一页的左半与右半
+    // （条目 0 被拆开时配对就是 [0L, 0R]），两个同 key 的兄弟节点会让 Element
+    // 复用错乱。
     key: ValueKey((
       entry.chapterId,
       entry.chapterOrder,
       entry.chapterPageIndex,
       entry.doc!.fileServer,
       entry.doc!.path,
+      slice,
     )),
     // 章节 id 与本地存储目录 key 要分开传：下载任务落盘的目录段是后者，
     // 混用会让阅读器把已下载的页当作未下载重新请求。
@@ -63,6 +70,7 @@ Widget buildReadModeImage({
     imageAlignment: isVideo ? Alignment.center : imageAlignment,
     paintSize: effectivePlaced?.paintSize,
     slice: slice,
+    slotIsCurrent: slotIsCurrent,
   );
 
   if (effectivePlaced == null) return image;

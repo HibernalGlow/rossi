@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
+import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/model/reader_frame.dart';
 import 'package:zephyr/page/comic_read/model/reader_presentation.dart';
 import 'package:zephyr/page/comic_read/model/page_split.dart';
@@ -353,6 +354,15 @@ ReaderFrame? _frameOf({
   );
 }
 
+/// 行模式：这一格是不是当前槽位。
+///
+/// 只能按槽位号判 —— 拆分后同一页的两半共享一个 `localIndex`，交给
+/// `ReadImageWidget` 自己按 `localIndex` 比 `currentSlot` 会把两半同时判成当前页，
+/// 于是两个 `ImageSurface` 一起推那一唯一张纹理（红黄闪）。
+/// 见 `ReadImageWidget.slotIsCurrent`。
+bool _rowSlotIsCurrent(BuildContext context, int slotIndex) =>
+    context.select((ReaderCubit c) => c.state.currentSlot) == slotIndex;
+
 Widget _page({
   required BuildContext context,
   required ReadModeSlotItem item,
@@ -375,6 +385,7 @@ Widget _page({
     imageAlignment: presentation.fitMode.alignment,
     placed: placed,
     slice: item.slice,
+    slotIsCurrent: _rowSlotIsCurrent(context, slotIndex),
   );
 }
 
@@ -425,6 +436,7 @@ Widget _legacyRowSlot({
           isColumn: false,
           imageAlignment: alignment,
           slice: items[i].slice,
+          slotIsCurrent: _rowSlotIsCurrent(context, slotIndex),
         ),
       ),
     );
