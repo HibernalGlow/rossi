@@ -455,8 +455,6 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get searchHistoryGroupBySource => 'Split search history by plugin';
 	@override String get searchHistoryGroupBySourceSubtitle => 'When on, every source gets its own search timeline instead of one mixed pile. "Aggregate search" holds cross-plugin queries; "Uncategorized" holds records saved before this feature, whose source is gone';
 	@override String get clickCoverToStartReadingSubtitle => 'Tap the cover on the comic info page to start reading directly';
-	@override String get searchHistoryGroupBySource => 'Split search history by plugin';
-	@override String get searchHistoryGroupBySourceSubtitle => 'When on, every source gets its own search timeline instead of one mixed pile. "Aggregate search" holds cross-plugin queries; "Uncategorized" holds records saved before this feature, whose source is gone';
 	@override String get comicInfoInlineReadButton => 'Read button in comic info page';
 	@override String get comicInfoInlineReadButtonSubtitle => 'On desktop, put a read button next to Download in the action row and drop the floating read button at the bottom-right';
 	@override String get comicInfoRailLiquidGlass => 'Liquid glass for the action rail';
@@ -1778,10 +1776,6 @@ class _Translations$search$en_US extends Translations$search$zh_CN {
 	@override String get historyGroupAggregate => 'Aggregate search';
 	@override String get historyGroupUncategorized => 'Uncategorized';
 	@override String get noHistory => 'No search history';
-	@override String get groupByPluginTooltipOn => 'Grouped by plugin. Tap to merge into one timeline';
-	@override String get groupByPluginTooltipOff => 'One merged timeline. Tap to group by plugin';
-	@override String get historyGroupAggregate => 'Aggregate search';
-	@override String get historyGroupUncategorized => 'Uncategorized';
 	@override String get tipsTitle => '🔍 Search Tips';
 	@override String get exactSearchTitle => 'Exact search (AND)';
 	@override String get exactSearchExample => 'colorful + married';
@@ -2747,8 +2741,6 @@ extension on TranslationsEnUs {
 			'settings.searchHistoryGroupBySource' => 'Split search history by plugin',
 			'settings.searchHistoryGroupBySourceSubtitle' => 'When on, every source gets its own search timeline instead of one mixed pile. "Aggregate search" holds cross-plugin queries; "Uncategorized" holds records saved before this feature, whose source is gone',
 			'settings.clickCoverToStartReadingSubtitle' => 'Tap the cover on the comic info page to start reading directly',
-			'settings.searchHistoryGroupBySource' => 'Split search history by plugin',
-			'settings.searchHistoryGroupBySourceSubtitle' => 'When on, every source gets its own search timeline instead of one mixed pile. "Aggregate search" holds cross-plugin queries; "Uncategorized" holds records saved before this feature, whose source is gone',
 			'settings.comicInfoInlineReadButton' => 'Read button in comic info page',
 			'settings.comicInfoInlineReadButtonSubtitle' => 'On desktop, put a read button next to Download in the action row and drop the floating read button at the bottom-right',
 			'settings.comicInfoRailLiquidGlass' => 'Liquid glass for the action rail',
@@ -3457,8 +3449,6 @@ extension on TranslationsEnUs {
 		} ?? switch (path) {
 			'reader.transitionLoaded' => 'Load complete',
 			'reader.transitionLoadFailedRetry' => 'Load failed, tap to retry',
-			_ => null,
-		} ?? switch (path) {
 			'reader.pullDownToPrevChapter' => 'Pull down to previous chapter',
 			'reader.releaseToJumpPrevChapter' => 'Release to jump to previous chapter',
 			'reader.releaseToLoadPrevChapter' => 'Release to load previous chapter',
@@ -3936,10 +3926,6 @@ extension on TranslationsEnUs {
 			'search.historyGroupAggregate' => 'Aggregate search',
 			'search.historyGroupUncategorized' => 'Uncategorized',
 			'search.noHistory' => 'No search history',
-			'search.groupByPluginTooltipOn' => 'Grouped by plugin. Tap to merge into one timeline',
-			'search.groupByPluginTooltipOff' => 'One merged timeline. Tap to group by plugin',
-			'search.historyGroupAggregate' => 'Aggregate search',
-			'search.historyGroupUncategorized' => 'Uncategorized',
 			'search.tipsTitle' => '🔍 Search Tips',
 			'search.exactSearchTitle' => 'Exact search (AND)',
 			'search.exactSearchExample' => 'colorful + married',
@@ -3993,8 +3979,6 @@ extension on TranslationsEnUs {
 			'searchResult.enterPageNumber' => 'Enter page number',
 			'searchResult.pleaseEnterNumber' => 'Please enter a number',
 			'searchResult.returnToTop' => 'Return to top',
-			_ => null,
-		} ?? switch (path) {
 			'searchResult.jumpToPage' => 'Jump to page',
 			'searchResult.jump' => 'Jump',
 			'searchResult.retry' => 'Tap to retry',

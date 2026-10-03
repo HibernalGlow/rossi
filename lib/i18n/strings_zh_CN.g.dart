@@ -1141,12 +1141,6 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '在漫画详情页点击封面直接开始阅读'
 	String get clickCoverToStartReadingSubtitle => '在漫画详情页点击封面直接开始阅读';
 
-	/// zh-CN: '搜索历史按插件分时间线'
-	String get searchHistoryGroupBySource => '搜索历史按插件分时间线';
-
-	/// zh-CN: '开启后每个图源各自一条搜索时间线，不再全部堆在一起；「聚合搜索」是跨全部插件搜出来的，「未分类」是这次改造之前留下的老记录，归属已经丢了'
-	String get searchHistoryGroupBySourceSubtitle => '开启后每个图源各自一条搜索时间线，不再全部堆在一起；「聚合搜索」是跨全部插件搜出来的，「未分类」是这次改造之前留下的老记录，归属已经丢了';
-
 	/// zh-CN: '详情页内置阅读按钮'
 	String get comicInfoInlineReadButton => '详情页内置阅读按钮';
 
@@ -4828,18 +4822,6 @@ class Translations$search$zh_CN {
 	/// zh-CN: '暂无搜索记录'
 	String get noHistory => '暂无搜索记录';
 
-	/// zh-CN: '已按插件分时间线，点击合并成一条'
-	String get groupByPluginTooltipOn => '已按插件分时间线，点击合并成一条';
-
-	/// zh-CN: '全部堆在一条时间线上，点击按插件分组'
-	String get groupByPluginTooltipOff => '全部堆在一条时间线上，点击按插件分组';
-
-	/// zh-CN: '聚合搜索'
-	String get historyGroupAggregate => '聚合搜索';
-
-	/// zh-CN: '未分类'
-	String get historyGroupUncategorized => '未分类';
-
 	/// zh-CN: '🔍 搜索技巧'
 	String get tipsTitle => '🔍 搜索技巧';
 
@@ -6690,8 +6672,6 @@ extension on Translations {
 			'settings.searchHistoryGroupBySource' => '搜索历史按插件分时间线',
 			'settings.searchHistoryGroupBySourceSubtitle' => '开启后每个图源各自一条搜索时间线，不再全部堆在一起；「聚合搜索」是跨全部插件搜出来的，「未分类」是这次改造之前留下的老记录，归属已经丢了',
 			'settings.clickCoverToStartReadingSubtitle' => '在漫画详情页点击封面直接开始阅读',
-			'settings.searchHistoryGroupBySource' => '搜索历史按插件分时间线',
-			'settings.searchHistoryGroupBySourceSubtitle' => '开启后每个图源各自一条搜索时间线，不再全部堆在一起；「聚合搜索」是跨全部插件搜出来的，「未分类」是这次改造之前留下的老记录，归属已经丢了',
 			'settings.comicInfoInlineReadButton' => '详情页内置阅读按钮',
 			'settings.comicInfoInlineReadButtonSubtitle' => '桌面端在操作行里「下载」旁边放一个阅读按钮，并撤掉右下角的悬浮按钮',
 			'settings.comicInfoRailLiquidGlass' => '详情页操作栏液态玻璃',
@@ -7400,8 +7380,6 @@ extension on Translations {
 		} ?? switch (path) {
 			'reader.transitionSwipeToLoad' => '继续翻页加载',
 			'reader.transitionLoaded' => '加载完成',
-			_ => null,
-		} ?? switch (path) {
 			'reader.transitionLoadFailedRetry' => '加载失败，点击重试',
 			'reader.pullDownToPrevChapter' => '继续下拉到上一章',
 			'reader.releaseToJumpPrevChapter' => '松手跳转到上一章',
@@ -7881,10 +7859,6 @@ extension on Translations {
 			'search.historyGroupAggregate' => '聚合搜索',
 			'search.historyGroupUncategorized' => '未分类',
 			'search.noHistory' => '暂无搜索记录',
-			'search.groupByPluginTooltipOn' => '已按插件分时间线，点击合并成一条',
-			'search.groupByPluginTooltipOff' => '全部堆在一条时间线上，点击按插件分组',
-			'search.historyGroupAggregate' => '聚合搜索',
-			'search.historyGroupUncategorized' => '未分类',
 			'search.tipsTitle' => '🔍 搜索技巧',
 			'search.exactSearchTitle' => '精准搜索（同时满足）',
 			'search.exactSearchExample' => '全彩(空格)+人妻',
@@ -7937,8 +7911,6 @@ extension on Translations {
 			'discover.comicDetail' => '详情',
 			'searchResult.enterPageNumber' => '输入页数',
 			'searchResult.pleaseEnterNumber' => '请输入数字',
-			_ => null,
-		} ?? switch (path) {
 			'searchResult.returnToTop' => '返回顶部',
 			'searchResult.jumpToPage' => '跳转页面',
 			'searchResult.jump' => '跳转',
