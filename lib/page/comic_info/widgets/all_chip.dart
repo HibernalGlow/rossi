@@ -177,8 +177,13 @@ class _AllChipWidgetState extends State<AllChipWidget> {
               leading: const Icon(Icons.copy),
               title: Text(t.common.copy),
               onTap: () {
+                // 插件可用 onLongPress 指定「复制的是另一段文本」：胶囊上显示短名，
+                // 真正要拿走的是那串磁力链接/种子标题。
+                final copyText = item.onLongPress?.trim().isNotEmpty == true
+                    ? item.onLongPress!.trim()
+                    : processText(item.name);
                 Navigator.pop(sheetContext);
-                Clipboard.setData(ClipboardData(text: processText(item.name)));
+                Clipboard.setData(ClipboardData(text: copyText));
                 showSuccessToast(
                   t.comicInfo.copiedToClipboard(
                     name: item.name.let(convertChineseForDisplay),

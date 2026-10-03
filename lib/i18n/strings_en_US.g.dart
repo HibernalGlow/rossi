@@ -191,12 +191,14 @@ class _Translations$navigation$en_US extends Translations$navigation$zh_CN {
 	@override String get bookshelf => 'Bookshelf';
 	@override String get discover => 'Discover';
 	@override String get more => 'More';
-	@override String get syncSuccess => 'Sync successful!';
+	@override String get syncSuccess => 'Synced successfully!';
 	@override String get autoSyncSuccess => 'Auto sync successful!';
 	@override String get syncFailed => 'Sync failed';
 	@override String get autoSyncFailed => 'Auto sync failed';
 	@override String syncFailedMessage({required Object error}) => 'Please check your network connection or try again later.\n${error}';
 	@override String get loginExpired => 'Login expired, please log in again';
+	@override String get needLoginTitle => 'Login required';
+	@override String get goLogin => 'Log in';
 }
 
 // Path: settings
@@ -1236,9 +1238,10 @@ class _Translations$plugin$en_US extends Translations$plugin$zh_CN {
 	@override String deleteFailed({required Object error}) => 'Delete failed: ${error}';
 	@override String get pluginDeleted => 'Plugin deleted';
 	@override String executeFailed({required Object error}) => 'Execute failed: ${error}';
-	@override String get debugMode => 'Debug mode';
-	@override String get debugAddress => 'Debug address';
 	@override String get deletePluginSubtitle => 'Delete plugin and related data permanently';
+	@override String get debugMode => 'Debug mode';
+	@override String get accountLoginSubtitle => 'Go to login';
+	@override String get accountLogin => 'Account login';
 	@override String get pluginSettings => 'Plugin settings';
 	@override String get noUserInfo => 'No user info';
 	@override String get operations => 'Operations';
@@ -1990,6 +1993,8 @@ class _Translations$login$en_US extends Translations$login$zh_CN {
 	@override String get loginFailed => 'Login failed';
 	@override String get loginButton => 'Login';
 	@override String get retry => 'Retry';
+	@override String requiredFieldEmpty({required Object label}) => 'Please fill in ${label}';
+	@override String get loginNotSupported => 'This plugin doesn\'t support the new login page yet. Please fill in your account in plugin settings.';
 }
 
 // Path: fontSetting
@@ -2444,12 +2449,14 @@ extension on TranslationsEnUs {
 			'navigation.bookshelf' => 'Bookshelf',
 			'navigation.discover' => 'Discover',
 			'navigation.more' => 'More',
-			'navigation.syncSuccess' => 'Sync successful!',
+			'navigation.syncSuccess' => 'Synced successfully!',
 			'navigation.autoSyncSuccess' => 'Auto sync successful!',
 			'navigation.syncFailed' => 'Sync failed',
 			'navigation.autoSyncFailed' => 'Auto sync failed',
 			'navigation.syncFailedMessage' => ({required Object error}) => 'Please check your network connection or try again later.\n${error}',
 			'navigation.loginExpired' => 'Login expired, please log in again',
+			'navigation.needLoginTitle' => 'Login required',
+			'navigation.goLogin' => 'Log in',
 			'settings.title' => 'Settings',
 			'settings.globalTitle' => 'Settings',
 			'settings.appearance' => 'Appearance',
@@ -2868,10 +2875,10 @@ extension on TranslationsEnUs {
 			'settings.operationBindingSectionKeyboard' => 'Keyboard',
 			'settings.operationBindingSectionTap' => 'Tap zones',
 			'settings.operationBindingTapSubtitle' => 'The reader only tells three zones apart: left half, center cell, right half. The top and bottom rows behave like the middle one.',
-			'settings.operationBindingAreaMiddleLeft' => 'Left half',
-			'settings.operationBindingAreaMiddleCenter' => 'Center',
 			_ => null,
 		} ?? switch (path) {
+			'settings.operationBindingAreaMiddleLeft' => 'Left half',
+			'settings.operationBindingAreaMiddleCenter' => 'Center',
 			'settings.operationBindingAreaMiddleRight' => 'Right half',
 			'settings.operationBindingBoundAction' => 'Bound action',
 			'settings.operationBindingUnbound' => 'Unbound',
@@ -3382,10 +3389,10 @@ extension on TranslationsEnUs {
 			'reader.exitFullscreen' => 'Exit fullscreen',
 			'reader.chapterTransition' => 'Chapter transition',
 			'reader.transitionSwipeToLoad' => 'Swipe to load',
-			'reader.transitionLoaded' => 'Load complete',
-			'reader.transitionLoadFailedRetry' => 'Load failed, tap to retry',
 			_ => null,
 		} ?? switch (path) {
+			'reader.transitionLoaded' => 'Load complete',
+			'reader.transitionLoadFailedRetry' => 'Load failed, tap to retry',
 			'reader.pullDownToPrevChapter' => 'Pull down to previous chapter',
 			'reader.releaseToJumpPrevChapter' => 'Release to jump to previous chapter',
 			'reader.releaseToLoadPrevChapter' => 'Release to load previous chapter',
@@ -3448,9 +3455,10 @@ extension on TranslationsEnUs {
 			'plugin.deleteFailed' => ({required Object error}) => 'Delete failed: ${error}',
 			'plugin.pluginDeleted' => 'Plugin deleted',
 			'plugin.executeFailed' => ({required Object error}) => 'Execute failed: ${error}',
-			'plugin.debugMode' => 'Debug mode',
-			'plugin.debugAddress' => 'Debug address',
 			'plugin.deletePluginSubtitle' => 'Delete plugin and related data permanently',
+			'plugin.debugMode' => 'Debug mode',
+			'plugin.accountLoginSubtitle' => 'Go to login',
+			'plugin.accountLogin' => 'Account login',
 			'plugin.pluginSettings' => 'Plugin settings',
 			'plugin.noUserInfo' => 'No user info',
 			'plugin.operations' => 'Operations',
@@ -3895,11 +3903,11 @@ extension on TranslationsEnUs {
 			'discover.tabShowPluginShort' => 'Show plugin short name',
 			'discover.webPage' => 'Web page',
 			'discover.comicDetail' => 'Details',
+			_ => null,
+		} ?? switch (path) {
 			'searchResult.enterPageNumber' => 'Enter page number',
 			'searchResult.pleaseEnterNumber' => 'Please enter a number',
 			'searchResult.returnToTop' => 'Return to top',
-			_ => null,
-		} ?? switch (path) {
 			'searchResult.jumpToPage' => 'Jump to page',
 			'searchResult.jump' => 'Jump',
 			'searchResult.retry' => 'Tap to retry',
@@ -4015,6 +4023,8 @@ extension on TranslationsEnUs {
 			'login.loginFailed' => 'Login failed',
 			'login.loginButton' => 'Login',
 			'login.retry' => 'Retry',
+			'login.requiredFieldEmpty' => ({required Object label}) => 'Please fill in ${label}',
+			'login.loginNotSupported' => 'This plugin doesn\'t support the new login page yet. Please fill in your account in plugin settings.',
 			'fontSetting.title' => 'Font Settings',
 			'fontSetting.clear' => 'Clear',
 			'fontSetting.hint' => 'Select font files for each weight.',
