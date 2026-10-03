@@ -507,6 +507,11 @@ void main() {
       pageFile.path,
       reason: '底图必须是原图：这一档不占增强图轨，超分产物照常往上面叠',
     );
+    expect(
+      out.overlayNeedsBase,
+      isFalse,
+      reason: '这一页的底就是画面本来那张 —— 报 true 会把超分白白压掉',
+    );
     // 这一档的产物只有图层：没有烤好的 PNG，也没有擦字底图。
     expect(
       (await (await TranslatedPageCache.directory(out.label))
@@ -561,6 +566,11 @@ void main() {
     );
 
     expect(erase.calls, 1);
+    expect(
+      out.overlayNeedsBase,
+      isTrue,
+      reason: '底只能是擦字底图：不报这一维，控制器就不会替这一页占轨，中文会压在日文下面',
+    );
     expect(
       erase.lastQuads?.length,
       1,
