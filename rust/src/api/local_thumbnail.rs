@@ -20,13 +20,20 @@ pub fn get_local_thumbnail(
     page_index: u32,
     max_long_side: Option<u32>,
 ) -> Result<Option<Vec<u8>>> {
-    get_or_create_thumbnail(
+    // 这是个 `#[frb] pub fn`（同步），所以它跑在 FRB 的**调用线程**上：
+    // 未命中缓存时它要读归档、缩放、压 WebP。列表页一片缩略图同时进来就是这里排队。
+    let _total = crate::perf::perf("frb.get_local_thumbnail");
+    let out = get_or_create_thumbnail(
         Path::new(&cache_dir),
         Path::new(&book_path),
         &entry_name,
         page_index as usize,
         max_long_side,
-    )
+    )?;
+    if let Some(bytes) = &out {
+        crate::perf::record_bytes("frb.get_local_thumbnail", bytes.len() as u64);
+    }
+    Ok(out)
 }
 
 /// 从 SQLite 目录数据库直接读取整本漫画所有已缓存页面的真实宽高 (免解压大图)。

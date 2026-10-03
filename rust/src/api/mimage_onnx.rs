@@ -151,6 +151,7 @@ pub async fn mimage_onnx_upscale(
     model_id: String,
     tile_size: u32,
 ) -> Result<String> {
+    let _total = crate::perf::perf("frb.mimage_onnx_upscale");
     tokio::task::spawn_blocking(move || {
         let started = Instant::now();
         init_ort(&model_path)?;
@@ -179,9 +180,14 @@ pub async fn mimage_onnx_upscale(
         let session_start = Instant::now();
         let session_key = format!("{model_path}:{}:{:?}", meta.len(), meta.modified()?);
         let sessions = SESSIONS.get_or_init(|| Mutex::new(HashMap::new()));
+        // 量「等到拿到锁」的时长。下面那个 guard 会一路持有到整个分块推理结束，
+        // 所以两次超分之间是**完全串行**的：这条标签的 count 与 `frb.mimage_onnx_upscale`
+        // 相同、但 total 明显大于 0，就说明有一趟在等另一趟。
+        let mut lock_wait = crate::perf::perf("mimage.session_lock_wait");
         let mut sessions = sessions
             .lock()
             .map_err(|_| anyhow!("mImage ONNX session cache poisoned"))?;
+        lock_wait.stop();
         let session_created = if !sessions.contains_key(&session_key) {
             // 本地重新导入同名模型后释放旧 session，避免反复安装积累内存。
             let prefix = format!("{model_path}:");

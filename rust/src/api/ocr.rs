@@ -107,16 +107,24 @@ pub async fn ocr_analyze_page(
     erased_output: Option<String>,
     max_new_tokens: Option<u32>,
 ) -> Result<OcrPageResult> {
+    let _total = crate::perf::perf("frb.ocr_analyze_page");
     tokio::task::spawn_blocking(move || {
         let ep = Ep::parse(&ep)?;
-        let page = image::open(&image_path)
-            .with_context(|| format!("读图失败：{image_path}"))?
-            .to_rgb8();
+        let page = {
+            let _load = crate::perf::perf("frb.ocr_analyze_page.load_image");
+            image::open(&image_path)
+                .with_context(|| format!("读图失败：{image_path}"))?
+                .to_rgb8()
+        };
         let (page_w, page_h) = page.dimensions();
 
         // 会话跨页复用（`ocr_sessions`）：每页重建三个会话实测每页多付 1.8–2.4 s。
         // 键含路径+字节数+mtime+EP，所以重下权重会触发重建，不会「静默用旧的」。
         let key = ocr_sessions::session_key(&models, ep, inpaint_model.as_deref());
+        // 单独量「持锁时长」而不是只量建页总时长：`ocr_sessions::CACHE` 是**全局单槽**，
+        // 整页都在锁里跑完，所以一次只能有一页在做 OCR。
+        // 这条标签回答的是排队问题 —— 它远小于本页耗时却频繁出现，说明慢是等锁等出来的。
+        let _sessions_lock = crate::perf::perf("ocr.sessions_lock_held");
         ocr_sessions::with_sessions(&key, &models, ep, inpaint_model.as_deref(), |sessions| {
             let detector = &mut sessions.detector;
             let ep_detect = detector.ep().label().to_string();

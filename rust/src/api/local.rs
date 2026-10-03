@@ -234,10 +234,17 @@ pub async fn local_source_pages(id: u64) -> Result<Vec<LocalPageInfo>, Error> {
 /// 取一页的**编码字节**。每调用一次都会重新打开来源（不常驻句柄，判据 D）。
 #[frb]
 pub async fn local_page_bytes(id: u64, index: u32) -> Result<Vec<u8>, Error> {
+    // 父标签覆盖整个 FRB 调用体：与 Dart 侧同名标签的墙钟相减，才得到过桥成本。
+    let _total = crate::perf::perf("frb.local_page_bytes");
     let source = session(id)?;
-    rquickjs_playground::global_handle()
-        .spawn_blocking(move || source.page_bytes(index as usize))
-        .await?
+    let bytes = rquickjs_playground::global_handle()
+        .spawn_blocking(move || {
+            let _read = crate::perf::perf("frb.local_page_bytes.read");
+            source.page_bytes(index as usize)
+        })
+        .await??;
+    crate::perf::record_bytes("frb.local_page_bytes", bytes.len() as u64);
+    Ok(bytes)
 }
 
 /// 视频进度条背后的**波形峰值列**（mImageViewer `seek_strip_wave.rs` 的等效面）。
@@ -387,6 +394,10 @@ pub async fn local_page_pixels(
     priority: LocalPageLoadPriority,
     contract: LocalPageLoadContract,
 ) -> LocalPageDecodeResult {
+    // 父标签覆盖整个调用体。与 Dart 侧同名标签（墙钟）相减，差值就是
+    // FRB 序列化 + 那整块 RGBA 跨桥拷贝 + isolate 排队的总和 ——
+    // 这一层是本套工具存在的理由：光看 Rust 侧会以为解码就是全部代价。
+    let _total = crate::perf::perf("frb.local_page_pixels");
     let source = match session(id) {
         Ok(source) => source,
         Err(error) => return decode_failed(format!("{error:#}")),
@@ -408,8 +419,13 @@ pub async fn local_page_pixels(
         .spawn_blocking(move || {
             // 排队等许可。**这一步会阻塞**，所以它在 spawn_blocking 的线程里 ——
             // 不卡 UI 线程，也不卡 tokio 的调度线程。
+            //
+            // 单独一个子标签：排队时长和真在解码的时长必须分开看。
+            // 前者大说明调度器许可不够或 prefetch 挤占了交互位，后者大才是解码本身慢。
+            let mut permit_wait = crate::perf::perf("frb.local_page_pixels.permit_wait");
             let Some(_permit) = waiter.acquire_cancellable() else {
                 // 被 `LatestSeek` 取代（或调用方放弃）：这不是错误，见 `Cancelled` 的说明。
+                // 这里让 guard 在 Drop 里落账 —— 被取消的请求等了多久同样是要看的数。
                 return LocalPageDecodeResult {
                     pixels: None,
                     failure: Some(LocalDecodeFailure {
@@ -418,7 +434,16 @@ pub async fn local_page_pixels(
                     }),
                 };
             };
-            decode_page_impl(&source, index as usize, target_width)
+            permit_wait.stop();
+
+            let decoded = {
+                let _decode = crate::perf::perf("frb.local_page_pixels.decode");
+                decode_page_impl(&source, index as usize, target_width)
+            };
+            if let Some(pixels) = &decoded.pixels {
+                crate::perf::record_bytes("frb.local_page_pixels", pixels.rgba.len() as u64);
+            }
+            decoded
         })
         .await;
 

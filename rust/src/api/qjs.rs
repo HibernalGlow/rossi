@@ -29,7 +29,8 @@ pub async fn qjs_task_call(
     fn_path: String,
     args_json: String,
 ) -> Result<Vec<u8>> {
-    crate::qjs::qjs_task_call(
+    let _total = crate::perf::perf("frb.qjs_task_call");
+    let out = crate::qjs::qjs_task_call(
         runtime_name,
         task_group_key,
         is_once,
@@ -38,7 +39,9 @@ pub async fn qjs_task_call(
         fn_path,
         args_json,
     )
-    .await
+    .await?;
+    crate::perf::record_bytes("frb.qjs_task_call", out.len() as u64);
+    Ok(out)
 }
 
 /// 调用插件图片函数，并以 CBOR 返回 Rust reqwest 采集的 HTTP 结果信息。
@@ -52,7 +55,8 @@ pub async fn qjs_fetch_image(
     fn_path: String,
     args_json: String,
 ) -> Result<Vec<u8>> {
-    crate::qjs::qjs_fetch_image(
+    let _total = crate::perf::perf("frb.qjs_fetch_image");
+    let out = crate::qjs::qjs_fetch_image(
         runtime_name,
         task_group_key,
         is_once,
@@ -61,7 +65,9 @@ pub async fn qjs_fetch_image(
         fn_path,
         args_json,
     )
-    .await
+    .await?;
+    crate::perf::record_bytes("frb.qjs_fetch_image", out.len() as u64);
+    Ok(out)
 }
 
 #[frb]
