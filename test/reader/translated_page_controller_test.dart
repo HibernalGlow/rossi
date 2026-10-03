@@ -243,7 +243,7 @@ void main() {
       TranslatedPageController(
         builder: TranslatedPageBuilder(
           analyze: (imagePath, erasedPath, ep) async {
-            await File(erasedPath).writeAsBytes(page, flush: true);
+            await File(erasedPath!).writeAsBytes(page, flush: true);
             return OcrPageResult(
               blocks: blocks,
               pageWidth: _pageW,
@@ -444,7 +444,7 @@ void main() {
       builder: TranslatedPageBuilder(
         analyze: (imagePath, erasedPath, ep) async {
           await gate.future;
-          await File(erasedPath).writeAsBytes(page, flush: true);
+          await File(erasedPath!).writeAsBytes(page, flush: true);
           return OcrPageResult(
             blocks: [
               OcrBlock(
@@ -508,7 +508,7 @@ void main() {
     final c = TranslatedPageController(
       builder: TranslatedPageBuilder(
         analyze: (imagePath, erasedPath, ep) async {
-          await File(erasedPath).writeAsBytes(page, flush: true);
+          await File(erasedPath!).writeAsBytes(page, flush: true);
           return OcrPageResult(
             blocks: blocks,
             pageWidth: _pageW,
