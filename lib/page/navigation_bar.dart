@@ -109,12 +109,7 @@ class _NavigationBarState extends State<NavigationBar> {
     });
 
     eventBus.on<NeedLogin>().listen((event) {
-      _goToLoginPage(
-        event.from,
-        loginScheme: event.scheme,
-        loginData: event.data,
-        message: event.message,
-      );
+      _goToLoginPage(event.from, message: event.message);
     });
 
     eventBus.on<ToastEvent>().listen((event) {
@@ -487,12 +482,7 @@ class _NavigationBarState extends State<NavigationBar> {
     }
   }
 
-  void _goToLoginPage(
-    String from, {
-    Map<String, dynamic>? loginScheme,
-    Map<String, dynamic>? loginData,
-    String? message,
-  }) {
+  void _goToLoginPage(String from, {String? message}) {
     try {
       final pluginId = from.trim();
       if (pluginId.isEmpty) {
@@ -523,20 +513,54 @@ class _NavigationBarState extends State<NavigationBar> {
         final hasLoginRoute = navigator.widget.pages.any(
           (route) => (route.name ?? '').contains('LoginRoute'),
         );
-        if (!hasLoginRoute) {
-          showErrorToast(message ?? t.navigation.loginExpired);
-
-          _lastLoginNavigateAt = now;
-          _lastLoginPluginId = pluginId;
-          context.navigateTo(
-            LoginRoute(
-              from: pluginId,
-              loginScheme: loginScheme,
-              loginData: loginData,
-            ),
-          );
+        if (hasLoginRoute) {
+          return;
         }
+        _lastLoginNavigateAt = now;
+        _lastLoginPluginId = pluginId;
+        unawaited(_confirmAndGoToLogin(pluginId, message: message));
       });
+    } catch (e, stackTrace) {
+      logger.e('Failed to navigate to login', error: e, stackTrace: stackTrace);
+    }
+  }
+
+  Future<void> _confirmAndGoToLogin(String pluginId, {String? message}) async {
+    if (!mounted) {
+      return;
+    }
+    final goLogin = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(t.navigation.needLoginTitle),
+        content: Text(message ?? t.navigation.loginExpired),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(t.common.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(t.navigation.goLogin),
+          ),
+        ],
+      ),
+    );
+    if (goLogin != true || !mounted) {
+      return;
+    }
+    try {
+      final navigator = Navigator.maybeOf(context);
+      if (navigator == null) {
+        return;
+      }
+      final hasLoginRoute = navigator.widget.pages.any(
+        (route) => (route.name ?? '').contains('LoginRoute'),
+      );
+      if (hasLoginRoute) {
+        return;
+      }
+      context.navigateTo(LoginRoute(from: pluginId));
     } catch (e, stackTrace) {
       logger.e('Failed to navigate to login', error: e, stackTrace: stackTrace);
     }
