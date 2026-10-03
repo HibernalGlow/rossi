@@ -7,6 +7,7 @@ import 'package:path/path.dart' as file_path;
 import 'package:zephyr/main.dart';
 import 'package:zephyr/network/http/plugin/qjs_download_runtime.dart';
 import 'package:zephyr/network/http/picture/picture_inflight.dart';
+import 'package:zephyr/network/http/picture/picture_upscale_guard.dart';
 import 'package:zephyr/service/download/download_asset_store.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/type/pipe.dart';
@@ -112,47 +113,22 @@ Future<String> getCachePicture({
   final existingDownload = await assetStore.findExistingDownload();
 
   if (existingDownload != null) {
-    try {
-      // 超分 + WebP 转换统一封装，内部会判断分辨率并保留原文件名。
-      if (pictureType == PictureType.page && applyRealSr) {
-        await RealSrSuperResolution.upscaleAndConvertToWebp(
-          existingDownload.path,
-          bookKey: srBookKey,
-        );
-      }
-      return existingDownload.path;
-    } catch (e) {
-      logger.w(
-        'getCachePicture: 已存在下载文件不可访问，准备继续查找新缓存/网络: ${existingDownload.path}',
-        error: e,
-      );
+    // 超分 + WebP 转换统一封装，内部会判断分辨率并保留原文件名。
+    // 超分失败就交原图 —— 落回网络等于「重下一遍再撞同一个失败」。
+    if (pictureType == PictureType.page && applyRealSr) {
+      await upscaleOrKeepOriginal(existingDownload.path, bookKey: srBookKey);
     }
+    return existingDownload.path;
   }
 
   final existingCache = await assetStore.findCanonicalCache();
   if (existingCache != null) {
-    try {
-      if (pictureType == PictureType.page && applyRealSr) {
-        await RealSrSuperResolution.upscaleAndConvertToWebp(
-          existingCache.path,
-          bookKey: srBookKey,
-        );
-      }
-      return existingCache.path;
-    } catch (e) {
-      logger.w(
-        'getCachePicture: 缓存文件存在但无法访问，删除并重新下载: ${existingCache.path}',
-        error: e,
-      );
-      try {
-        await File(existingCache.path).delete();
-      } catch (deleteError) {
-        logger.e(
-          'getCachePicture: 删除损坏缓存文件失败: ${existingCache.path}',
-          error: deleteError,
-        );
-      }
+    // 这里以前会在超分抛异常时把缓存删掉重下：文件本身是好的，删了只会让这张图
+    // 每一轮都重新下载、再撞同一个超分失败，永远出不来。
+    if (pictureType == PictureType.page && applyRealSr) {
+      await upscaleOrKeepOriginal(existingCache.path, bookKey: srBookKey);
     }
+    return existingCache.path;
   }
 
   if (url.isEmpty) {
@@ -198,10 +174,7 @@ Future<String> getCachePicture({
     // 验证文件已成功保存
     if (await File(newCacheFilePath).exists()) {
       if (pictureType == PictureType.page && applyRealSr) {
-        await RealSrSuperResolution.upscaleAndConvertToWebp(
-          newCacheFilePath,
-          bookKey: srBookKey,
-        );
+        await upscaleOrKeepOriginal(newCacheFilePath, bookKey: srBookKey);
       }
       unawaited(
         _syncToDownloadDirectoryIfEnabled(
@@ -226,10 +199,7 @@ Future<String> getCachePicture({
       await File(newCacheFilePath).length() > 0) {
     // 超分 + WebP 转换统一封装，内部会判断分辨率并保留原文件名
     if (pictureType == PictureType.page && applyRealSr) {
-      await RealSrSuperResolution.upscaleAndConvertToWebp(
-        newCacheFilePath,
-        bookKey: srBookKey,
-      );
+      await upscaleOrKeepOriginal(newCacheFilePath, bookKey: srBookKey);
     }
     unawaited(
       _syncToDownloadDirectoryIfEnabled(
