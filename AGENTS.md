@@ -267,6 +267,35 @@ Android 端已彻底从 JNI + ncnn 共享库方案切换到 **waifu2x CLI** 方�
 
 开发模式下应用会读取 `.env.proxy` 资源文件中的 `proxy=` 配置，自动探测并设置 HTTP 代理，方便调试网络请求。
 
+### 5.5 Rust 构建缓存（`rust/target`）的三条口径
+
+`rust/target` 下会同时存在好几棵缓存树，这是结构性的，**不要试图合并 target 目录**：
+
+- Flutter 的 native-assets hook 恒定带 `--target <三元组>`（`native_toolchain_rust` 的
+  `build_runner.dart` 里写死），而终端里的 cargo 不带。带不带 `--target` 会改变 cargo 的
+  unit 元数据哈希 —— 实测同一批依赖在两边的「同名同哈希」产物是 **0 个**，所以合并目录
+  并不能互相复用，只会把两套缓存挤在一处。
+- hook 子进程的环境与终端不同（`CC`/`AR`/`PKG_CONFIG_PATH`/`CARGO_PROFILE_*`）。两边共用
+  一个目录时，`unrar_sys` / `libwebp-sys` / `libsqlite3-sys` 的 cc-rs 会因
+  `cargo:rerun-if-env-changed` 每次交替重编整条 C 子树，同一个坑的实测记录见
+  `script/build_macos_gpu_present.sh` 顶部注释。
+
+因此约定如下：
+
+1. **宿主构建不要在终端或脚本里加 `--target`**。加了的代价是多出一棵只有 `.rmeta` 的
+   check 树（本仓曾残留 2.3 GB，无消费方，已删）。交叉编译（Android/iOS/Windows）当然照旧要带。
+2. **过桥测试前跑 `./script/refresh_release_dylib.sh`，不要再跑
+   `cd rust && cargo build -p windcore --release`**。hook 已经编过一份 release，脚本把它搬到
+   `lib/src/rust/frb_generated.dart` 里 `ioDirectory` 指向的加载点即可；自己再编一次等于多养
+   一棵 5.1 GB 的 release 依赖树。内容哈希门禁照旧生效：搬来的产物若与当前生成物不同源，
+   `RustLib.init()` 会直接抛 `Content hash ... different from Rust side`，不会静默测旧代码。
+   脚本在「目标比来源更新」时会拒绝覆盖（要覆盖显式加 `--force`）。
+3. **`python3 script/prune_rust_cache.py` 回收 incremental 死账**（默认 dry-run，加
+   `--apply` 才删；本仓实测 242 个旧 session、13.55 GB）。rustc 每换一个 unit 元数据就新开
+   一个 incremental 目录且永不回收。判据是「多少天没被写过」，默认 7 天；**不要按 mtime 删
+   `deps/`** —— 产物构建后只读不写，mtime 不说明它还在不在用（实测按 fingerprint 在册关系判，
+   `debug/deps` 的无主产物是 0 个，全是热缓存，删了就是把热缓存砸了）。
+
 ---
 
 ## 6. 代码风格与约定
