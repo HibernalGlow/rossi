@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
+import 'package:zephyr/reader/page_display_source.dart';
 import 'package:zephyr/service/ocr/ocr_log.dart';
 import 'package:zephyr/service/ocr/ocr_model_downloader.dart';
 import 'package:zephyr/service/ocr/ocr_models.dart';
@@ -9,6 +10,7 @@ import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/service/ocr/ocr_translate_engine.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_cache.dart';
+import 'package:zephyr/service/ocr/translated_page_display_mode.dart';
 import 'package:zephyr/src/rust/api/ocr.dart';
 import 'package:zephyr/widgets/app_log_dialog.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
@@ -50,6 +52,10 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
   /// 端侧引擎在本机的实际状态（`installed` / `supported` / `unsupported` / `unavailable`）。
   String _appleStatus = 'unavailable';
 
+  /// 成品页显示方式（烘焙 / 叠层）。与控制器读的是同一份 `TranslatedPageDisplayMode`。
+  TranslatedPageDisplayChoice _displayChoice =
+      TranslatedPageDisplayMode.defaultChoice;
+
   @override
   void initState() {
     super.initState();
@@ -70,6 +76,7 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
       OcrSettings.loadEp(),
       OcrModels.status(),
       TranslatedPageCache.pageCount(),
+      TranslatedPageDisplayMode.load(),
     ]);
     // 语言包状态要**现问系统**：它在系统设置里会被装/卸，缓存到成员里就会撒谎。
     final draft = results[0] as OcrTranslationConfig;
@@ -88,6 +95,7 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
       _missing = status.$2;
       _cacheCount = results[4] as int;
       _appleStatus = appleStatus;
+      _displayChoice = results[5] as TranslatedPageDisplayChoice;
       _loading = false;
     });
   }
@@ -250,6 +258,14 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
   String _epLabel(String ep) => OcrSettings.epChoices
       .firstWhere((c) => c.$1 == ep, orElse: () => OcrSettings.epChoices.first)
       .$2;
+
+  /// 两档的中文说法。**只有这一处**把它们翻成人话 ——
+  /// 裁决那边读的是枚举，这里读的是同一份枚举，不会各说各的。
+  String _displayLabel(TranslatedPageDisplayChoice choice) =>
+      switch (choice) {
+        TranslatedPageDisplayChoice.baked => t.ocr.displayBaked,
+        TranslatedPageDisplayChoice.overlay => t.ocr.displayOverlay,
+      };
 
   /// 「本机各段会用哪条」。同一个 EP 同时作用于三段，所以三段要么都有落点、
   /// 要么都没有 —— 只要有一段空着，就是本平台构建没注册这条 EP，
@@ -436,6 +452,40 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Text(
             _epPlanText(plan),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+
+      const SizedBox(height: 8),
+      const Divider(height: 1, thickness: 0.3),
+      settingSectionTitle(context, t.ocr.displaySection),
+      ListTile(
+        leading: const Icon(Icons.layers_outlined),
+        title: Text(t.ocr.displayChoice),
+        subtitle: Text(t.ocr.displayChoiceSubtitle),
+        trailing: FluentDropdown<String>(
+          value: _displayChoice.name,
+          displayValue: _displayLabel(_displayChoice),
+          items: {
+            for (final c in TranslatedPageDisplayChoice.values)
+              c.name: _displayLabel(c),
+          },
+          onChanged: (name) async {
+            final next = TranslatedPageDisplayChoice.values.firstWhere(
+              (c) => c.name == name,
+            );
+            await TranslatedPageDisplayMode.save(next);
+            if (!mounted) return;
+            setState(() => _displayChoice = next);
+            showSuccessToast(t.ocr.saved);
+          },
+        ),
+      ),
+      if (_displayChoice == TranslatedPageDisplayChoice.overlay)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: SelectableText(
+            t.ocr.displayOverlayHint,
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ),

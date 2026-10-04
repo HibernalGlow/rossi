@@ -12,7 +12,9 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/ocr/ocr_setting_page.dart';
+import 'package:zephyr/reader/page_display_source.dart';
 import 'package:zephyr/service/ocr/ocr_models.dart';
+import 'package:zephyr/service/ocr/translated_page_display_mode.dart';
 import 'package:zephyr/src/rust/frb_generated.dart';
 
 const _pathChannel = MethodChannel('plugins.flutter.io/path_provider');
@@ -134,8 +136,7 @@ void main() {
     expect(find.text(t.ocr.openLogLocation), findsOneWidget);
   });
 
-  testWidgets('推理后端那行下面，如实说本机各段会落到哪条 EP', (tester) async {
-    if (!nativeReady) {
+  testWidgets('推理后端那行下面，如实说本机各段会落到哪条 EP', (tester) async {    if (!nativeReady) {
       markTestSkipped('原生库加载不了（$nativeError）');
       return;
     }
@@ -154,5 +155,43 @@ void main() {
       findsOneWidget,
       reason: '选了 auto 就得说清本机各段实际会落到哪条 —— 这正是「不静默退回 CPU」的一半',
     );
+  });
+
+  testWidgets('显示方式：默认烘焙，且叠层那句说明不画', (tester) async {
+    await pump(tester);
+    expect(find.text(t.ocr.displaySection), findsOneWidget);
+    expect(find.text(t.ocr.displayChoice), findsOneWidget);
+    expect(find.text(t.ocr.displayBaked), findsOneWidget);
+    // 反向着陆：叠层的说明只在选了那一档时出现。少了这条，「画了两档的说明」
+    // 这种错也能绿 —— 而用户会以为已经在用叠层了。
+    expect(find.text(t.ocr.displayOverlay), findsNothing);
+    expect(find.text(t.ocr.displayOverlayHint), findsNothing);
+  });
+
+  testWidgets('显示方式：存的是叠层就照实回填，并说出它怎么和超分共处', (tester) async {
+    SharedPreferences.setMockInitialValues({'ocr_display_choice': 'overlay'});
+    await pump(tester);
+    expect(find.text(t.ocr.displayOverlay), findsOneWidget);
+    expect(find.text(t.ocr.displayBaked), findsNothing);
+    expect(find.text(t.ocr.displayOverlayHint), findsOneWidget);
+  });
+
+  testWidgets('显示方式：点开换档，控制器读的那一份真的变了', (tester) async {
+    await pump(tester);
+    // 走**用户那条路**：点触发键开菜单、点另一档、等关闭动画把 onSelected 放出来。
+    // 只断言「页面显示对了」不算 —— 存储没落地时界面照样是绿的。
+    await tester.runAsync(() async {
+      await tester.tap(find.text(t.ocr.displayBaked));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.text(t.ocr.displayOverlay));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
+    });
+
+    expect(await TranslatedPageDisplayMode.load(), TranslatedPageDisplayChoice.overlay);
+    expect(find.text(t.ocr.displayOverlay), findsOneWidget);
+    expect(find.text(t.ocr.displayOverlayHint), findsOneWidget);
   });
 }
