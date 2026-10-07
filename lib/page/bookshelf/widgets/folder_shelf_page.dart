@@ -1275,19 +1275,37 @@ Future<void> _batchExportSelected(
     return;
   }
 
+  final choice = await pickBatchExportChoice(context);
+  if (choice == null) return;
+
   try {
-    final success = await batchExportComics(
-      context: context,
+    final result = await batchExportComics(
       comics: selectedComics,
+      choice: choice,
     );
     if (!context.mounted) return;
-    showSuccessToast(
+    final lines = <String>[
       t.bookshelf.batchExportCompleted(
-        success: success,
+        success: result.success,
         total: selectedComics.length,
       ),
-    );
+      if (result.deleted > 0)
+        t.bookshelf.batchExportDeleted(count: result.deleted),
+      if (result.keptForMissingPages > 0)
+        t.bookshelf.batchExportKeptIncomplete(
+          count: result.keptForMissingPages,
+        ),
+    ];
+    final message = lines.join('\n');
+    if (result.keptForMissingPages > 0) {
+      showErrorToast(message, duration: const Duration(seconds: 6));
+    } else {
+      showSuccessToast(message);
+    }
     context.read<FolderShelfBloc>().add(const FolderShelfExitSelectionMode());
+    if (result.deleted > 0) {
+      context.read<FolderShelfBloc>().add(const FolderShelfLoadRequested());
+    }
   } catch (e) {
     if (!context.mounted) return;
     showErrorToast(t.bookshelf.batchExportFailed(error: e.toString()));

@@ -18,6 +18,7 @@ import 'package:zephyr/service/ocr/ocr_service.dart';
 import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_cache.dart';
+import 'package:zephyr/service/ocr/translated_page_layer.dart';
 import 'package:zephyr/service/ocr/translated_page_renderer.dart';
 import 'package:zephyr/src/rust/api/ocr.dart';
 
@@ -135,36 +136,135 @@ void main() {
     );
   });
 
-  test('降级产物写在持久根目录下，但不进指纹目录', () async {
-    final f = await TranslatedPageCache.writeDegraded(
-      pageIndex: 7,
-      pngBytes: await _realPng(),
-    );
-    // 落点必须在 outputRoot 里：系统临时目录会被 dirhelper 每天扫一次，
-    // 而呈现器是按归属表里这个路径重注入的 —— 被扫走就等于正在显示的页静默变回原图。
-    expect(p.isWithin((await OcrService.outputRoot()).path, f.path), isTrue);
-    expect(await f.exists(), isTrue);
-    // 同一个页号在缓存那一侧仍然「没有可用产物」：降级档不进指纹缓存，
-    // 否则端点恢复之后永远端出这张没翻译的页。
-    expect(
-      await TranslatedPageCache.isUsable(label: label, pageIndex: 7),
-      isFalse,
-    );
-    // 「在受管根目录下」的实际含义：设置页那颗「清空成品页」的按钮管得到它。
-    // 写在系统临时目录里的那一版是管不到的 —— 它会自己在一个没人知道的时间消失。
-    await TranslatedPageCache.clearAll();
-    expect(await f.exists(), isFalse);
-  });
-
-  test('已生成张数不把降级产物算进去', () async {
+  test('老版本降级目录里那张没翻译的，不算进「已生成 N 张」', () async {
     final png = await _realPng();
     await put(png);
     expect(await TranslatedPageCache.pageCount(), 1);
-    await TranslatedPageCache.writeDegraded(pageIndex: 3, pngBytes: png);
-    expect(
-      await TranslatedPageCache.pageCount(),
-      1,
-      reason: '「已生成 N 张」把没翻译的那张报成产物，就是虚报',
+    // 这条档已经没有了（翻译失败现在整页失败），但用户盘上老版本留下的那张还在：
+    // 「已生成 N 张」把没翻译的页报成产物，就是虚报。
+    final legacy = Directory(
+      p.join((await OcrService.outputRoot()).path, 'manga_translated_degraded'),
     );
+    await legacy.create(recursive: true);
+    await File(p.join(legacy.path, 'p3.png')).writeAsBytes(png, flush: true);
+    expect(await TranslatedPageCache.pageCount(), 1);
+    // 「在受管根目录下」的实际含义：那颗「清空成品页」的按钮管得到它。
+    await TranslatedPageCache.clearAll();
+    expect(await legacy.exists(), isFalse);
+  });
+
+  group('overlayDisplayable：叠层能不能直接显示', () {
+    TranslatedPageLayer buildLayer({required bool filled}) =>
+        TranslatedPageLayer(
+          pageWidth: 200,
+          pageHeight: 120,
+          boxes: [
+            // 填色是一框一份：全页有没有可用底，就看这些框是不是都有色。
+            TranslatedBox(
+              quad: const [20.0, 20.0, 160.0, 20.0, 160.0, 100.0, 20.0, 100.0],
+              source: 'トカゲじゃ',
+              text: '是蜥蜴啊',
+              fill: filled ? const ui.Color.fromARGB(255, 255, 255, 255) : null,
+            ),
+          ],
+        );
+
+    Future<void> putLayer(TranslatedPageLayer layer) =>
+        TranslatedPageCache.writeLayer(
+          label: label,
+          pageIndex: 0,
+          json: layer.encode(),
+        );
+
+    test('每框都有填色：不需要擦字底图也算可用', () async {
+      // 这一格钉的是「跳过擦字」那条路的命中判据：那一趟既不写 PNG 也不写底图，
+      // 按「必须有 base 文件」判就永远 miss，每次上屏重跑那十几秒。
+      await putLayer(buildLayer(filled: true));
+      expect(
+        await (await TranslatedPageCache.baseFile(
+          label: label,
+          pageIndex: 0,
+        )).exists(),
+        isFalse,
+        reason: '前提没搭对：这一格要的就是「没有底图文件」',
+      );
+      expect(
+        await TranslatedPageCache.overlayDisplayable(label: label, pageIndex: 0),
+        isTrue,
+      );
+    });
+
+    test('有框没填色、底图又不在：判不可用，而不是端出一张字压字的页', () async {
+      await putLayer(buildLayer(filled: false));
+      expect(
+        await TranslatedPageCache.overlayDisplayable(label: label, pageIndex: 0),
+        isFalse,
+      );
+    });
+
+    test('补擦过底图之后：同一份图层就可用了', () async {
+      await putLayer(buildLayer(filled: false));
+      await (await TranslatedPageCache.baseFile(
+        label: label,
+        pageIndex: 0,
+      )).create(recursive: true);
+      expect(
+        await TranslatedPageCache.overlayDisplayable(label: label, pageIndex: 0),
+        isTrue,
+      );
+    });
+
+    test('图层解坏了：判不可用而不是抛，也不拿半份数据画', () async {
+      await (await TranslatedPageCache.layerFile(
+        label: label,
+        pageIndex: 0,
+      )).create(recursive: true);
+      await (await TranslatedPageCache.layerFile(
+        label: label,
+        pageIndex: 0,
+      )).writeAsString('{"boxes": [ 坏掉的', flush: true);
+      expect(
+        await TranslatedPageCache.overlayDisplayable(label: label, pageIndex: 0),
+        isFalse,
+      );
+    });
+
+    test('overlayNeedsErasedBase 与「能不能显示」用同一份图层，答案互相一致', () async {
+      // 这一维决定控制器替不替这一页占增强图轨（超分让不让路）。
+      // 命中缓存那一路也必须报同一个答案，否则同一页首建占轨、翻回来不占，
+      // 用户会看到中文底下又露出日文。
+      await putLayer(buildLayer(filled: true));
+      expect(
+        await TranslatedPageCache.overlayNeedsErasedBase(
+          label: label,
+          pageIndex: 0,
+        ),
+        isFalse,
+        reason: '每框都有填色 ⇒ 底就是画面本来那张，不该占轨',
+      );
+
+      await putLayer(buildLayer(filled: false));
+      expect(
+        await TranslatedPageCache.overlayNeedsErasedBase(
+          label: label,
+          pageIndex: 0,
+        ),
+        isTrue,
+        reason: '有框没填色 ⇒ 底只能是擦字底图，必须占轨才看得见',
+      );
+
+      // 图层问不到时按「要擦」处理：宁可多占一次轨，也不端出一张字压字的页。
+      await (await TranslatedPageCache.layerFile(
+        label: label,
+        pageIndex: 3,
+      )).writeAsString('{"boxes": [ 坏掉的', flush: true);
+      expect(
+        await TranslatedPageCache.overlayNeedsErasedBase(
+          label: label,
+          pageIndex: 3,
+        ),
+        isTrue,
+      );
+    });
   });
 }

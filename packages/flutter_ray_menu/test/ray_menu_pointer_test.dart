@@ -135,6 +135,24 @@ Future<TestGesture> _openMenu(
   bool passesOpeningPointer = true,
   bool forwardsFromHost = false,
 }) async {
+  await _pumpHost(tester, selected, dismissed, forwardsFromHost: forwardsFromHost);
+  final mouse = await tester.startGesture(
+    const Offset(20, 20),
+    kind: PointerDeviceKind.mouse,
+    buttons: kSecondaryMouseButton,
+  );
+  await tester.pumpAndSettle();
+  expect(find.byType(RayMenu), findsOneWidget, reason: '按下就该开出轮盘');
+  return mouse;
+}
+
+Future<void> _pumpHost(
+  WidgetTester tester,
+  List<String> selected,
+  List<int> dismissed, {
+  bool passesOpeningPointer = true,
+  bool forwardsFromHost = true,
+}) async {
   await tester.pumpWidget(
     Directionality(
       textDirection: TextDirection.ltr,
@@ -153,14 +171,6 @@ Future<TestGesture> _openMenu(
     ),
   );
   await tester.pump();
-  final mouse = await tester.startGesture(
-    const Offset(20, 20),
-    kind: PointerDeviceKind.mouse,
-    buttons: kSecondaryMouseButton,
-  );
-  await tester.pumpAndSettle();
-  expect(find.byType(RayMenu), findsOneWidget, reason: '按下就该开出轮盘');
-  return mouse;
 }
 
 void main() {
@@ -259,4 +269,144 @@ void main() {
       expect(selected, isEmpty, reason: '关掉的那一下不该顺手执行指针下的那一格');
     });
   }
+
+  // 真实鼠标的 pointer id 约定：hover 与每一次按下/抬起是**不同**的 id，而按下与抬起
+  // 挤在同一帧时，浮层还没挂载 —— 唤出那一次的抬起组件整条都看不见。
+  // `TestGesture` 一整条手势只用一个 id，测不出这两种情况，所以这里发裸事件。
+  group('真实鼠标的 pointer id', () {
+    const viewId = 0;
+    const origin = Offset(20, 20);
+
+    PointerHoverEvent hover(int pointer, Offset at) => PointerHoverEvent(
+      viewId: viewId,
+      pointer: pointer,
+      position: at,
+      kind: PointerDeviceKind.mouse,
+    );
+    PointerDownEvent press(int pointer, Offset at, int buttons) =>
+        PointerDownEvent(
+          viewId: viewId,
+          pointer: pointer,
+          position: at,
+          buttons: buttons,
+          kind: PointerDeviceKind.mouse,
+        );
+    PointerUpEvent release(int pointer, Offset at) => PointerUpEvent(
+      viewId: viewId,
+      pointer: pointer,
+      position: at,
+      kind: PointerDeviceKind.mouse,
+    );
+
+    /// 右键按下把轮盘开出来；[sameFrameRelease] = 抬起紧跟在同一个批次里（挂载之前）。
+    Future<void> rightPress(
+      WidgetTester tester, {
+      required int pointer,
+      bool sameFrameRelease = false,
+    }) async {
+      await tester.sendEventToBinding(
+        PointerAddedEvent(
+          viewId: viewId,
+          pointer: 1,
+          kind: PointerDeviceKind.mouse,
+        ),
+      );
+      await tester.sendEventToBinding(hover(1, origin));
+      await tester.sendEventToBinding(press(pointer, origin, kSecondaryButton));
+      if (sameFrameRelease) {
+        await tester.sendEventToBinding(release(pointer, origin));
+      }
+      await tester.pumpAndSettle();
+      if (!sameFrameRelease) {
+        await tester.sendEventToBinding(release(pointer, origin));
+      }
+      await tester.pumpAndSettle();
+      expect(find.byType(RayMenu), findsOneWidget, reason: '轮盘该开出来');
+    }
+
+    testWidgets('hover 到某一格 → 左键单击即执行', (tester) async {
+      final selected = <String>[];
+      final dismissed = <int>[];
+      await _pumpHost(tester, selected, dismissed);
+      await rightPress(tester, pointer: 2);
+
+      final target = _slotCenter(tester, 'down');
+      await tester.sendEventToBinding(hover(1, target));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<Semantics>(find.byKey(const ValueKey('ray-item:down')))
+            .properties
+            .selected,
+        isTrue,
+        reason: '不按住、只是移过去，也该高亮那一格',
+      );
+      await tester.sendEventToBinding(press(3, target, kPrimaryButton));
+      await tester.sendEventToBinding(release(3, target));
+      await tester.pumpAndSettle();
+      expect(selected, ['down']);
+      expect(dismissed, isEmpty);
+    });
+
+    testWidgets('唤出的抬起早于浮层挂载 → 之后左键单击仍然可用', (
+      tester,
+    ) async {
+      final selected = <String>[];
+      final dismissed = <int>[];
+      await _pumpHost(tester, selected, dismissed);
+      // 按下与抬起之间一帧都不给：组件既没注册全局路由，也还没进命中路径。
+      await rightPress(tester, pointer: 2, sameFrameRelease: true);
+
+      final target = _slotCenter(tester, 'right');
+      await tester.sendEventToBinding(hover(1, target));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<Semantics>(find.byKey(const ValueKey('ray-item:right')))
+            .properties
+            .selected,
+        isTrue,
+        reason: '高亮照旧跟着鼠标走 —— 这正是它容易被误判成「没坏」的地方',
+      );
+      await tester.sendEventToBinding(press(3, target, kPrimaryButton));
+      await tester.sendEventToBinding(release(3, target));
+      await tester.pumpAndSettle();
+      expect(
+        selected,
+        ['right'],
+        reason: '漏掉一次抬起不能把后面所有点击永久挡死',
+      );
+    });
+
+    testWidgets('右键按住拖到某一格 → 松手即执行', (tester) async {
+      final selected = <String>[];
+      final dismissed = <int>[];
+      await _pumpHost(tester, selected, dismissed);
+      await tester.sendEventToBinding(
+        PointerAddedEvent(
+          viewId: viewId,
+          pointer: 1,
+          kind: PointerDeviceKind.mouse,
+        ),
+      );
+      await tester.sendEventToBinding(hover(1, origin));
+      await tester.sendEventToBinding(press(2, origin, kSecondaryButton));
+      await tester.pumpAndSettle();
+      final target = _slotCenter(tester, 'up');
+      await tester.sendEventToBinding(
+        PointerMoveEvent(
+          viewId: viewId,
+          pointer: 2,
+          position: target,
+          buttons: kSecondaryButton,
+          kind: PointerDeviceKind.mouse,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.sendEventToBinding(release(2, target));
+      await tester.pumpAndSettle();
+      expect(selected, ['up']);
+      expect(dismissed, isEmpty);
+    });
+  });
 }

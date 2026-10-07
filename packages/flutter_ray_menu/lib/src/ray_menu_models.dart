@@ -43,6 +43,13 @@ enum RayMenuVariant { slice, bubble }
 /// [onHold] reveals the outer rings after holding a pointer in the menu.
 enum RayMenuExpansion { all, onHold }
 
+/// 轮盘的配色入口。字段一律是「角色」而不是具体色值，宿主按设计体系（这里是 MD3 的
+/// `ColorScheme`）填；组件自己不认主题，也不留任何硬编码的品牌色。
+///
+/// - [surface]：整张轮盘的底（也用来填中心空洞），[segment]：未选中的一格。
+///   两者是**同一体系的相邻两档**，靠色差而不是描边分层。
+/// - [selected] + [selectedForeground]：指针下那一格的填充与文字。
+/// - [shadow]：整张轮盘的投影；`null` = 不画（嵌在别处时不需要）。
 @immutable
 class RayMenuStyle {
   const RayMenuStyle({
@@ -51,10 +58,14 @@ class RayMenuStyle {
     this.border = const Color(0x665E6575),
     this.foreground = const Color(0xFFF2F3F7),
     this.muted = const Color(0xFFADB4C3),
-    this.accent = const Color(0xFF83AAFF),
     this.selected = const Color(0xFF344D79),
+    this.selectedForeground,
+    this.shadow,
     this.scrim = const Color(0x24000000),
-    this.textStyle = const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+    this.textStyle = const TextStyle(
+      fontSize: 11,
+      fontWeight: FontWeight.w500,
+    ),
     this.animationDuration = const Duration(milliseconds: 150),
   });
 
@@ -63,8 +74,11 @@ class RayMenuStyle {
   final Color border;
   final Color foreground;
   final Color muted;
-  final Color accent;
   final Color selected;
+
+  /// 选中格的文字色；不给就沿用 [foreground]。
+  final Color? selectedForeground;
+  final Color? shadow;
   final Color scrim;
   final TextStyle textStyle;
   final Duration animationDuration;

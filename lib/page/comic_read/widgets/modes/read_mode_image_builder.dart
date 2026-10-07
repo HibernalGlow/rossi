@@ -1,6 +1,9 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/page/comic_read/model/page_split.dart';
 import 'package:zephyr/page/comic_read/model/reader_frame.dart';
 import 'package:zephyr/page/comic_read/widgets/image/read_image_widget.dart';
+import 'package:zephyr/reader/translated_page_overlay.dart';
+import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/page/comic_read/widgets/modes/read_mode_utils.dart';
 import 'package:zephyr/widgets/picture_bloc/models/picture_info.dart';
@@ -11,6 +14,9 @@ import 'package:zephyr/widgets/picture_bloc/models/picture_info.dart';
 /// - [cacheIndex] 会作为 [ReadImageWidget] 的 `sizeCacheIndex`。
 /// - [displayNumber] 用于行模式等需要显式页号的场景；为 null 时使用 [slotIndex] + 1。
 /// - [placed] 是顶栏缩放/旋转面板对**这一页**的排布结果；为 null 时按老逻辑铺满宽度。
+/// - [slice] 横长页拆分时这一格只画原图的哪一半；默认 [PageSlice.full] 即整页。
+/// - [slotIsCurrent] 由行模式显式传入的「这一格是当前槽位」；为 null 时
+///   [ReadImageWidget] 仍按 `localIndex` 比 `currentSlot` 的老规则自判。
 Widget buildReadModeImage({
   required BuildContext context,
   required ReadModeEntry entry,
@@ -22,6 +28,8 @@ Widget buildReadModeImage({
   int? displayNumber,
   Alignment imageAlignment = Alignment.center,
   ReaderPlacedPage? placed,
+  PageSlice slice = PageSlice.full,
+  bool? slotIsCurrent,
 }) {
   if (entry.type != ReadModeEntryType.image ||
       entry.doc == null ||
@@ -34,12 +42,16 @@ Widget buildReadModeImage({
   final effectivePlaced = isVideo ? null : placed;
 
   final image = ReadImageWidget(
+    // slice 必须在 key 里：双页下一个槽位可能同时装同一页的左半与右半
+    // （条目 0 被拆开时配对就是 [0L, 0R]），两个同 key 的兄弟节点会让 Element
+    // 复用错乱。
     key: ValueKey((
       entry.chapterId,
       entry.chapterOrder,
       entry.chapterPageIndex,
       entry.doc!.fileServer,
       entry.doc!.path,
+      slice,
     )),
     // 章节 id 与本地存储目录 key 要分开传：下载任务落盘的目录段是后者，
     // 混用会让阅读器把已下载的页当作未下载重新请求。
@@ -59,6 +71,8 @@ Widget buildReadModeImage({
     isColumn: isColumn,
     imageAlignment: isVideo ? Alignment.center : imageAlignment,
     paintSize: effectivePlaced?.paintSize,
+    slice: slice,
+    slotIsCurrent: slotIsCurrent,
   );
 
   if (effectivePlaced == null) return image;
@@ -66,11 +80,43 @@ Widget buildReadModeImage({
   // 占位盒按**旋转后**的尺寸给，图片本身画在旋转前的尺寸上 —— 两者只差一次宽高交换。
   // 旋转放在这一层而不是 `ImageDisplay` 里，是因为本地 GPU 管线那条分支（`ImageSurface`）
   // 走的是完全不同的绘制路径，放在外层才能让两条路径一起旋转。
+  //
+  // 叠层就挂在这一层的**里面**（同一个 `RotatedBox` 的孩子）：同一个理由反过来用 ——
+  // 放在外层才能让两条渲染路一起被旋转 / 双页 / 页宽适配带着走，
+  // 而不必在 Flutter 侧与 Rust 侧各算一遍变换。GPU 那条纹理通路一个字都不改。
+  final painted = effectivePlaced.paintSize;
+  // 半页也画：图层那份坐标始终是**整页**物理像素，`TranslatedPageOverlay` 按 [slice]
+  // 自己裁（与底图那一路同一把尺 `PageSlice.uvRect`）。
+  // 之前这里直接不挂叠层，于是横长页拆半读时芯片说「译文页」而画面上一个中文都没有 ——
+  // 那是最难发现的一类错：状态是真的（这一页确实翻好了），只是没画。
+  final overlay = !ocrSupportedHere
+      ? const SizedBox.shrink()
+      : TranslatedPageOverlay(
+          pageIndex: slotIndex,
+          boxSize: painted,
+          slice: slice,
+        );
+
+  Widget withOverlay(Widget child) => Stack(
+    fit: StackFit.passthrough,
+    children: [child, Positioned.fill(child: overlay)],
+  );
+
+  if (effectivePlaced.quarterTurns == 0) {
+    return SizedBox(
+      width: effectivePlaced.boxSize.width,
+      height: effectivePlaced.boxSize.height,
+      child: withOverlay(image),
+    );
+  }
   return SizedBox(
     width: effectivePlaced.boxSize.width,
     height: effectivePlaced.boxSize.height,
-    child: effectivePlaced.quarterTurns == 0
-        ? image
-        : RotatedBox(quarterTurns: effectivePlaced.quarterTurns, child: image),
+    child: withOverlay(
+      RotatedBox(
+        quarterTurns: effectivePlaced.quarterTurns,
+        child: image,
+      ),
+    ),
   );
 }

@@ -241,6 +241,41 @@ class DownloadTaskRepository {
     logger.i('重置了 ${interrupted.length} 个中断的下载任务');
   }
 
+  /// 摘掉上次进程留下的「取消中」残留行，返回被摘掉的任务 key。
+  ///
+  /// 取消分两段落库：取消态先写进行，删行由当时在飞的 worker 在收尾时执行。
+  /// 进程被杀或 worker 没能结束时，这一行会永远留在库里：它的
+  /// `isCompleted == true`，队列调度与所有 `incompleteOnly` 查询都看不见它，
+  /// 于是再没有任何路径会去删它。只能启动时按取消态清一次。
+  ///
+  /// 只摘取消态的行：完成/失败/暂停的行是给用户看的，不动。
+  List<String> removeCancelledTaskRecords() {
+    final orphans = objectbox
+        .downloadTaskBox
+        .getAll()
+        .where((task) => task.isCompleted && _isCancelledRecord(task))
+        .toList();
+    if (orphans.isEmpty) return const [];
+
+    final removedKeys = <String>[];
+    for (final task in orphans) {
+      removedKeys.add(downloadTaskKeyOf(task));
+      objectbox.downloadTaskBox.remove(task.id);
+    }
+    logger.i('清理了 ${removedKeys.length} 个取消后未收尾的下载任务记录');
+    return removedKeys;
+  }
+
+  /// 该行是否已被标记为取消。
+  ///
+  /// 认 `stateCode == 'cancelled'`（新数据）外还认状态文字，是为了清掉本仓
+  /// 改这个字段之前就已经卡住的旧行。
+  bool _isCancelledRecord(DownloadTask task) {
+    if (readPayload(task)?.stateCode == 'cancelled') return true;
+    final status = task.status;
+    return status.contains('取消') || status.toLowerCase().contains('cancel');
+  }
+
   String _taskKeyOf(DownloadTask task) {
     final payload = readPayload(task);
     if (payload != null) return payload.taskKey;

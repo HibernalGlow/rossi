@@ -449,9 +449,10 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
   /// Solo 是**泳道自己的属性**，不是全局工作区状态：进入/退出 Solo 都不改写
   /// 该泳道记录下来的宽度（阅读器回到常规时用的还是它原来的比例）。
   ///
-  /// 打开 Solo 时**顺带激活这条泳道**：solo 的生效宽度以「这条泳道同时是激活
-  /// 泳道」为前提（见 `WorkspaceState.effectiveSoloLaneId`），不激活的话
-  /// 用户按了独占却什么都没发生。关掉时不反向激活 —— 退出独占的用户
+  /// 打开 Solo 时**顺带激活这条泳道**：面板泳道那档仍然需要它（生效宽度以
+  /// 「同时被激活」为前提，见 `WorkspaceState.effectiveSoloLaneId`），而 Reader
+  /// 那档现在只需要「条带滚过去让你看见」这一半 —— 两边都在说同一件事：
+  /// 按了独占就该看到它。关掉时不反向激活 —— 退出独占的用户
   /// 想要的是「回到多栏」，不是「跳到别处」。
   void toggleSoloLane(String laneId) {
     final currentSolo = state.layout.soloLaneId;

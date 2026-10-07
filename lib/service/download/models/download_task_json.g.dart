@@ -46,6 +46,7 @@ _DownloadTaskJson _$DownloadTaskJsonFromJson(Map<String, dynamic> json) =>
       completedImages: (json['completedImages'] as num?)?.toInt() ?? 0,
       reusedImages: (json['reusedImages'] as num?)?.toInt() ?? 0,
       totalImages: (json['totalImages'] as num?)?.toInt() ?? 0,
+      bytesPerSecond: (json['bytesPerSecond'] as num?)?.toInt() ?? 0,
       imagePaths:
           (json['imagePaths'] as List<dynamic>?)
               ?.map((e) => e as String)
@@ -68,6 +69,7 @@ Map<String, dynamic> _$DownloadTaskJsonToJson(_DownloadTaskJson instance) =>
       'completedImages': instance.completedImages,
       'reusedImages': instance.reusedImages,
       'totalImages': instance.totalImages,
+      'bytesPerSecond': instance.bytesPerSecond,
       'imagePaths': instance.imagePaths,
       'attempt': instance.attempt,
       'lastErrorCode': instance.lastErrorCode,

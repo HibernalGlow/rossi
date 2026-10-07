@@ -36,8 +36,18 @@ class _LanePanelHostState extends State<LanePanelHost> {
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<WorkspaceCubit>();
-    final state = context.watch<WorkspaceCubit>().state;
-    final board = state.board;
+    // **两项 select，不是整份 state 的 watch**：这条宿主住在泳道内容槽位里，
+    // 而「谁被激活」对它没有意义 —— 原来那句 `context.watch` 会让每一次 emit
+    // 都把 `IndexedStack` 里**每个访问过的面板**重 build 一遍，而每个整页面板
+    // 都包着一条 `Navigator`（`EmbeddedUpstreamPage`），于是上游
+    // `BookshelfPage` / `DiscoverPage` 也跟着整页重 build。
+    // 读的两项就是这里真正用到的两项：面板集合的记账，与本泳道当前是哪个面板。
+    final board = context.select<WorkspaceCubit, WorkspaceBoardLayout>(
+      (c) => c.state.board,
+    );
+    final requested = context.select<WorkspaceCubit, String?>(
+      (c) => c.state.activePanel[widget.side.laneId],
+    );
     final registry = WorkspacePanelRegistry.I;
 
     final panels = registry.panelsForSide(widget.side, board);
@@ -45,7 +55,6 @@ class _LanePanelHostState extends State<LanePanelHost> {
       return _buildNoPanel(context);
     }
 
-    final requested = state.activePanel[widget.side.laneId];
     var active = panels.indexWhere((p) => p.id == requested);
     if (active < 0) active = 0;
     final activePanel = panels[active];

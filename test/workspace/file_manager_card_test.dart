@@ -22,6 +22,7 @@ import 'package:zephyr/workspace/widgets/cards/file_manager_thumbnail.dart';
 part 'parts/file_manager_card_test_fakes_part.dart';
 part 'parts/file_manager_card_test_fixture_part.dart';
 part 'parts/file_manager_card_test_helper_part.dart';
+part 'parts/file_manager_card_test_selection_part.dart';
 
 // Fake only the FRB boundary. Render the real card with the same Material
 // library as main.dart and no Scaffold/Material supplied by its host.
@@ -50,6 +51,11 @@ void main() {
     // ignore: invalid_use_of_internal_member
     RustLib.instance.resetState();
   });
+
+  // 多选模式那几条在 `parts/file_manager_card_test_selection_part.dart`：
+  // 宿主函数的局部变量对 part 不可见，所以把「当前这一个 api」以取值函数的形式递进去
+  // （直接传实例会传错 —— `setUp` 每个用例换一个新的）。
+  _selectionTapTests(() => api);
 
   for (final width in [260.0, 340.0, 700.0]) {
     for (final mode in FileManagerViewMode.values) {
@@ -278,6 +284,49 @@ void main() {
           .namedArguments[#searchSubfoldersDefault],
       isTrue,
     );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('递归遍历进行中：输入框下有进度条与实时已扫条数', (tester) async {
+    api.searchRunReply = Completer<FileManagerSnapshot>();
+    api.snapshot = _snapshot(query: '春', subfolders: true, searchActive: true);
+    await _pumpCard(tester, width: 700, settle: false);
+
+    // 进度条一直在动，这一条只能自己推帧（`pumpAndSettle` 永远落不了地）。
+    Future<void> pumpUntil(bool Function() done, {int maxPumps = 25}) async {
+      for (var i = 0; i < maxPumps; i++) {
+        if (done()) return;
+        await tester.pump(const Duration(milliseconds: 80));
+      }
+    }
+
+    await pumpUntil(
+      () => api.callsTo(#crateApiFileManagerSearchFileManagerSearch).isNotEmpty,
+    );
+    // 遍历刚发出去的这一刻不该亮条：几十毫秒就回来的收窄若闪一下，反而像卡了。
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+
+    // 慢遍历：250ms 之后亮出引导条。
+    await pumpUntil(
+      () => find.byType(LinearProgressIndicator).evaluate().isNotEmpty,
+    );
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    expect(find.textContaining('正在递归搜索'), findsWidgets);
+
+    // 已扫条数是核心的真实读数，跟着轮询往上走 —— 这是「它在干活」的那份证据。
+    api.searchProgress = 12345;
+    await pumpUntil(
+      () => find.textContaining('已扫 1.2 万条').evaluate().isNotEmpty,
+    );
+    expect(find.textContaining('已扫 1.2 万条'), findsOneWidget);
+
+    // 遍历回来：引导条让位给真实统计。
+    api.searchRunReply!.complete(
+      _snapshot(query: '春', subfolders: true, searchActive: true),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byType(LinearProgressIndicator), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
@@ -1095,6 +1144,28 @@ void main() {
       find.byKey(const ValueKey('file-manager-tree-toggle:/books/series')),
       findsOneWidget,
     );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('打开文件树把当前目录那一行搬进视口', (tester) async {
+    api.tree = _deepTreeSnapshot();
+    await _pumpCard(tester);
+    // 当前目录在链的最深处：树没开时它连被建出来都没有。
+    const activeRow = ValueKey('file-manager-tree:/n12');
+    expect(find.byKey(activeRow), findsNothing);
+
+    await _openTree(tester);
+
+    expect(find.byKey(activeRow), findsOneWidget);
+    final viewport = tester.getRect(
+      find.byKey(const ValueKey('file-manager-tree-list')),
+    );
+    final row = tester.getRect(find.byKey(activeRow));
+    expect(row.top, greaterThanOrEqualTo(viewport.top));
+    expect(row.bottom, lessThanOrEqualTo(viewport.bottom));
+    // 这一句是上面两条的对照：链头那行已经被滚出视口（连建都没建出来），
+    // 说明视口确实搬过，而不是「行数本来就少、全都看得见」蒙对的。
+    expect(find.byKey(const ValueKey('file-manager-tree:/')), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

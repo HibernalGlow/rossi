@@ -1,17 +1,11 @@
 part of 'reader_settings_sheet.dart';
 
+/// 「阅读」这一排：这一本怎么翻、底色是什么、不想动手时让它自己走、
+/// 下一张图从哪儿来。
 class _ReaderSettingsReadTab extends StatelessWidget {
-  final ValueChanged<int> changePageIndex;
-  final ValueChanged<bool>? onLandscapeChanged;
-  final String source;
-  final String comicId;
+  final _ReaderSettingsArgs args;
 
-  const _ReaderSettingsReadTab({
-    required this.changePageIndex,
-    this.onLandscapeChanged,
-    this.source = '',
-    this.comicId = '',
-  });
+  const _ReaderSettingsReadTab({required this.args});
 
   @override
   Widget build(BuildContext context) {
@@ -19,14 +13,7 @@ class _ReaderSettingsReadTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _ReadModeSection(
-            changePageIndex: changePageIndex,
-            onLandscapeChanged: onLandscapeChanged,
-            source: source,
-            comicId: comicId,
-          ),
-          const SizedBox(height: 18),
-          const _SuperResolutionSection(),
+          _ReadModeSection(args: args),
           const SizedBox(height: 18),
           const _ThemeModeSection(),
           const SizedBox(height: 18),
@@ -35,133 +22,36 @@ class _ReaderSettingsReadTab extends StatelessWidget {
           const _AutoReadSection(),
           const SizedBox(height: 18),
           const _PreloadSection(),
-          const SizedBox(height: 18),
-          const _ReadExperienceSection(),
-          const SizedBox(height: 18),
-          const _MediaFormatSection(),
-          const SizedBox(height: 18),
-          const _VideoSection(),
         ],
       ),
     );
   }
 }
 
-/// 「哪些后缀算图片 / 算视频」。
-///
-/// # 为什么单独一屏而不是塞进上面的视频段
-///
-/// 这张表判的是**文件管理器列不列一个条目**（`folder_tree::is_recognized_image_ext`
-/// 在 Rust 侧），影响面是整库浏览，不是「这一页怎么播」。放错段的代价不是难看而已：
-/// 用户要找的是「为什么这个文件看不见」，而它会在播放设置里被划过去。
-///
-/// # 语义是替换，不是追加
-///
-/// 照 neoview `media.ts:64-65`：**填了就整体替换内置表**，没列进来的后缀会连页都不算。
-/// 留空才继续用内置默认。所以这两颗的提示必须把「填错不是多加一条，而是其余全不见」
-/// 说在前面 —— 这是这次改动最容易自我伤害的一处。
-/// 上面那段里原有的「自定义视频后缀」是**追加**档，两档并存：替换档定基线，
-/// 追加档永远叠在基线之上。
-///
-/// 存在 `VideoSettingsStore`：两张表要和 `extraVideoExtensions` **同进同出**推给 Rust
-/// （见 `VideoSettingsStore._apply`），拆成两个存储就会有一张表被推漏的那天。
-class _MediaFormatSection extends StatefulWidget {
-  const _MediaFormatSection();
-
-  @override
-  State<_MediaFormatSection> createState() => _MediaFormatSectionState();
-}
-
-class _MediaFormatSectionState extends State<_MediaFormatSection> {
-  VideoSettings _settings = const VideoSettings();
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final loaded = await VideoSettingsStore.instance.load();
-    if (!mounted) return;
-    setState(() => _settings = loaded);
-  }
-
-  Future<void> _write(VideoSettings next) async {
-    setState(() => _settings = next);
-    await VideoSettingsStore.instance.save(next);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _SettingsSection(
-      title: t.video.mediaSection,
-      icon: Icons.folder_copy_rounded,
-      children: [
-        _SettingsCardGroup(
-          children: [
-            _StringListTile(
-              title: t.video.imageFormats,
-              hint: t.video.formatsHint,
-              dialogHint: t.video.aliasesDialogHint,
-              values: _settings.imageFormats,
-              validate: (next) => mediaFormatTableProblems(
-                image: next,
-                video: _settings.videoFormats,
-              ),
-              onChanged: (next) =>
-                  _write(_settings.copyWith(imageFormats: next)),
-            ),
-            _StringListTile(
-              title: t.video.videoFormats,
-              hint: t.video.formatsHint,
-              dialogHint: t.video.aliasesDialogHint,
-              values: _settings.videoFormats,
-              validate: (next) => mediaFormatTableProblems(
-                image: _settings.imageFormats,
-                video: next,
-              ),
-              onChanged: (next) =>
-                  _write(_settings.copyWith(videoFormats: next)),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
 class _ReadModeSection extends StatelessWidget {
-  final ValueChanged<int> changePageIndex;
-  final ValueChanged<bool>? onLandscapeChanged;
-  final String source;
-  final String comicId;
+  final _ReaderSettingsArgs args;
 
-  const _ReadModeSection({
-    required this.changePageIndex,
-    this.onLandscapeChanged,
-    this.source = '',
-    this.comicId = '',
-  });
-
-  bool get _perComicAvailable =>
-      source.trim().isNotEmpty && comicId.trim().isNotEmpty;
+  const _ReadModeSection({required this.args});
 
   @override
   Widget build(BuildContext context) {
+    final changePageIndex = args.changePageIndex;
+    final onLandscapeChanged = args.onLandscapeChanged;
+    final perComicAvailable = args.perComicAvailable;
     final globalSettingState = context.watch<GlobalSettingCubit>().state;
     final globalSettingCubit = context.read<GlobalSettingCubit>();
     final isMobilePlatform =
         !kIsWeb && (Platform.isAndroid || Platform.isIOS) && !isTablet(context);
     final readSetting = globalSettingState.readSetting;
     // 本漫特定设置仅在阅读页入口（带 source/comicId）可用，全局设置页隐藏。
-    final perComicState = _perComicAvailable
+    final perComicState = perComicAvailable
         ? context.watch<ComicReadPreferenceCubit>().state
         : const ComicReadPreferenceState();
-    final perComicEnabled = _perComicAvailable && perComicState.hasOverride;
+    final perComicEnabled = perComicAvailable && perComicState.hasOverride;
     // 有效阅读模式：启用本漫设置时用覆盖值，否则跟随全局。
     final effectiveReadMode =
-        perComicState.overrideReadMode ?? globalSettingState.readSetting.readMode;
+        perComicState.overrideReadMode ??
+        globalSettingState.readSetting.readMode;
 
     Future<void> selectPerComicReadMode(int mode) async {
       if (perComicState.overrideReadMode == mode) return;
@@ -170,13 +60,13 @@ class _ReadModeSection extends StatelessWidget {
       changePageIndex(0);
     }
 
-    return _SettingsSection(
+    return SettingsSection(
       title: t.reader.readingMode,
       icon: Icons.auto_stories_outlined,
       children: [
         // 上游的「本漫独立阅读模式」：开关 + 展开的本漫选项，只在阅读页入口出现。
-        if (_perComicAvailable) ...[
-          _SettingsSwitchTile(
+        if (perComicAvailable) ...[
+          SettingsSwitchTile(
             title: t.reader.perComicReadMode,
             subtitle: t.reader.perComicReadModeSubtitle,
             value: perComicEnabled,
@@ -208,7 +98,7 @@ class _ReadModeSection extends StatelessWidget {
           ),
         ],
         // 全局阅读模式：本仓沿用分段控件，改这里始终改全局。
-        _SettingsSegmentedTile<int>(
+        SettingsSegmentedTile<int>(
           selected: readSetting.readMode,
           segments: [
             ButtonSegment<int>(
@@ -246,10 +136,10 @@ class _ReadModeSection extends StatelessWidget {
             }
           },
         ),
-        _SettingsCardGroup(
+        SettingsCardGroup(
           children: [
             if (isMobilePlatform && onLandscapeChanged != null)
-              _SettingsSwitchTile(
+              SettingsSwitchTile(
                 title: t.reader.landscapeReader,
                 subtitle: t.reader.landscapeReaderSubtitle,
                 value: readSetting.landscapeReader,
@@ -257,10 +147,10 @@ class _ReadModeSection extends StatelessWidget {
                   globalSettingCubit.updateReadSetting(
                     (current) => current.copyWith(landscapeReader: value),
                   );
-                  onLandscapeChanged!(value);
+                  onLandscapeChanged(value);
                 },
               ),
-            _SettingsSwitchTile(
+            SettingsSwitchTile(
               title: t.reader.doublePage,
               subtitle: t.reader.doublePageSubtitle,
               value: readSetting.doublePageMode,
@@ -270,10 +160,9 @@ class _ReadModeSection extends StatelessWidget {
                 );
               },
             ),
-            _SettingsAnimatedCollapse(
-              isExpanded:
-                  readSetting.doublePageMode && effectiveReadMode != 0,
-              child: _SettingsSwitchTile(
+            SettingsAnimatedCollapse(
+              isExpanded: readSetting.doublePageMode && effectiveReadMode != 0,
+              child: SettingsSwitchTile(
                 title: t.reader.doublePageSeamless,
                 subtitle: t.reader.doublePageSeamlessSubtitle,
                 value: readSetting.doublePageSeamless,
@@ -286,9 +175,9 @@ class _ReadModeSection extends StatelessWidget {
                 },
               ),
             ),
-            _SettingsAnimatedCollapse(
+            SettingsAnimatedCollapse(
               isExpanded: readSetting.doublePageMode,
-              child: _SettingsSwitchTile(
+              child: SettingsSwitchTile(
                 title: t.reader.doublePageLeadingBlank,
                 subtitle: t.reader.doublePageLeadingBlankSubtitle,
                 value: readSetting.doublePageLeadingBlank,
@@ -302,7 +191,7 @@ class _ReadModeSection extends StatelessWidget {
                 },
               ),
             ),
-            _SettingsSwitchTile(
+            SettingsSwitchTile(
               title: t.reader.readingDirectionToggleSetting,
               subtitle: effectiveReadMode == 0
                   ? t.reader.readingDirectionToggleDisabled
@@ -319,7 +208,7 @@ class _ReadModeSection extends StatelessWidget {
             // 条漫（readMode 0）里没有"翻页"这个动作，开关对它没有意义。
             // 判据用**有效**模式：这本开了独立模式时，跟着这本走。
             if (effectiveReadMode != 0)
-              _SettingsSwitchTile(
+              SettingsSwitchTile(
                 title: t.reader.swipePreview,
                 subtitle: t.reader.swipePreviewSubtitle,
                 value: readSetting.swipePreviewEnabled,
@@ -386,19 +275,19 @@ class _PerComicReadModeOptions extends StatelessWidget {
               spacing: 10,
               runSpacing: 10,
               children: [
-                _SettingsChoiceChip(
+                SettingsChoiceChip(
                   title: t.reader.webtoon,
                   selected: overrideReadMode == 0,
                   onTap: () => onSelect(0),
                 ),
-                _SettingsChoiceChip(
+                SettingsChoiceChip(
                   // 文案沿用本仓分段控件的那一份（上游的 singlePageLtr/Rtl 键
                   // 在本仓已被 readingDirection* 取代，这里不再新增键）。
                   title: t.reader.readingDirectionRightOpen,
                   selected: overrideReadMode == 1,
                   onTap: () => onSelect(1),
                 ),
-                _SettingsChoiceChip(
+                SettingsChoiceChip(
                   title: t.reader.readingDirectionLeftOpen,
                   selected: overrideReadMode == 2,
                   onTap: () => onSelect(2),
@@ -420,11 +309,11 @@ class _ThemeModeSection extends StatelessWidget {
     final globalSettingState = context.watch<GlobalSettingCubit>().state;
     final globalSettingCubit = context.read<GlobalSettingCubit>();
 
-    return _SettingsSection(
+    return SettingsSection(
       title: t.reader.themeMode,
       icon: Icons.light_mode_outlined,
       children: [
-        _SettingsSegmentedTile<ThemeMode>(
+        SettingsSegmentedTile<ThemeMode>(
           selected: globalSettingState.themeMode,
           segments: [
             ButtonSegment<ThemeMode>(
@@ -463,13 +352,13 @@ class _AutoReadSection extends StatelessWidget {
     final globalSettingCubit = context.read<GlobalSettingCubit>();
     final readSetting = globalSettingState.readSetting;
 
-    return _SettingsSection(
+    return SettingsSection(
       title: t.reader.autoRead,
       icon: Icons.play_circle_outline_rounded,
       children: [
-        _SettingsCardGroup(
+        SettingsCardGroup(
           children: [
-            _SettingsSwitchTile(
+            SettingsSwitchTile(
               title: t.reader.autoRead,
               subtitle: t.reader.autoReadSubtitle,
               value: readSetting.autoScroll,
@@ -479,12 +368,12 @@ class _AutoReadSection extends StatelessWidget {
                 );
               },
             ),
-            _SettingsAnimatedCollapse(
+            SettingsAnimatedCollapse(
               isExpanded: readSetting.autoScroll,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _SettingsSwitchTile(
+                  SettingsSwitchTile(
                     title: t.reader.autoReadHidePauseButton,
                     subtitle: t.reader.autoReadHidePauseButtonSubtitle,
                     value: readSetting.autoScrollHidePauseButton,
@@ -495,7 +384,7 @@ class _AutoReadSection extends StatelessWidget {
                       );
                     },
                   ),
-                  _SettingsSwitchTile(
+                  SettingsSwitchTile(
                     title: t.reader.autoReadSmooth,
                     subtitle: t.reader.autoReadSmoothSubtitle,
                     value: readSetting.autoScrollSmooth,
@@ -505,7 +394,7 @@ class _AutoReadSection extends StatelessWidget {
                       );
                     },
                   ),
-                  _SettingsSliderCard(
+                  SettingsSliderCard(
                     title: t.reader.webtoonScrollDistance,
                     value: readSetting.autoScrollColumnDistancePercent.clamp(
                       10,
@@ -524,7 +413,7 @@ class _AutoReadSection extends StatelessWidget {
                       );
                     },
                   ),
-                  _SettingsSliderCard(
+                  SettingsSliderCard(
                     title: t.reader.webtoonScrollInterval,
                     value: readSetting.autoScrollColumnIntervalMs.clamp(
                       300,
@@ -543,7 +432,7 @@ class _AutoReadSection extends StatelessWidget {
                       );
                     },
                   ),
-                  _SettingsSliderCard(
+                  SettingsSliderCard(
                     title: t.reader.singlePageScrollInterval,
                     value: readSetting.autoScrollPageIntervalMs.clamp(
                       800,
@@ -580,13 +469,13 @@ class _PreloadSection extends StatelessWidget {
     final readSetting = context.watch<GlobalSettingCubit>().state.readSetting;
     final globalSettingCubit = context.read<GlobalSettingCubit>();
 
-    return _SettingsSection(
+    return SettingsSection(
       title: t.reader.preload,
       icon: Icons.downloading_rounded,
       children: [
-        _SettingsCardGroup(
+        SettingsCardGroup(
           children: [
-            _SettingsDropdownTile(
+            SettingsDropdownTile(
               title: t.reader.preloadImageCount,
               subtitle: t.reader.preloadImageCountSubtitle,
               value: readSetting.preloadImageCount.clamp(2, 10).toInt(),
@@ -597,7 +486,7 @@ class _PreloadSection extends StatelessWidget {
                 );
               },
             ),
-            _SettingsDropdownTile(
+            SettingsDropdownTile(
               title: t.reader.preloadChapterCount,
               subtitle: t.reader.preloadChapterCountSubtitle,
               value: readSetting.preloadChapterCount.clamp(1, 3).toInt(),
@@ -608,7 +497,7 @@ class _PreloadSection extends StatelessWidget {
                 );
               },
             ),
-            _SettingsSwitchTile(
+            SettingsSwitchTile(
               title: t.reader.readWhileDownloading,
               subtitle: t.reader.readWhileDownloadingSubtitle,
               value: readSetting.readWhileDownloading,
@@ -640,11 +529,11 @@ class _ReadBackgroundSection extends StatelessWidget {
         ? ReaderBackgroundMode.auto
         : readSetting.readerBackgroundMode;
 
-    return _SettingsSection(
+    return SettingsSection(
       title: t.reader.background,
       icon: Icons.palette_outlined,
       children: [
-        _SettingsSegmentedTile<ReaderBackgroundMode>(
+        SettingsSegmentedTile<ReaderBackgroundMode>(
           selected: baseMode,
           segments: [
             ButtonSegment<ReaderBackgroundMode>(
@@ -676,7 +565,7 @@ class _ReadBackgroundSection extends StatelessWidget {
             );
           },
         ),
-        _SettingsSwitchTile(
+        SettingsSwitchTile(
           title: t.reader.adaptive,
           subtitle: t.reader.ambientDimSubtitle,
           value: readSetting.readerAmbientEnabled,
@@ -691,9 +580,9 @@ class _ReadBackgroundSection extends StatelessWidget {
           },
         ),
         if (readSetting.readerAmbientEnabled)
-          _SettingsCardGroup(
+          SettingsCardGroup(
             children: [
-              _SettingsSegmentedTile<ReaderBackgroundMode>(
+              SettingsSegmentedTile<ReaderBackgroundMode>(
                 selected: readSetting.readerBackgroundMode,
                 segments: [
                   ButtonSegment<ReaderBackgroundMode>(
@@ -713,7 +602,7 @@ class _ReadBackgroundSection extends StatelessWidget {
                   );
                 },
               ),
-              _SettingsSliderCard(
+              SettingsSliderCard(
                 title: t.reader.ambientDim,
                 value: readSetting.readerAmbientDimPercent.clamp(
                   readerAmbientDimPercentMin,
@@ -741,171 +630,3 @@ class _ReadBackgroundSection extends StatelessWidget {
     );
   }
 }
-
-class _ReadExperienceSection extends StatelessWidget {
-  const _ReadExperienceSection();
-
-  @override
-  Widget build(BuildContext context) {
-    final globalSettingState = context.watch<GlobalSettingCubit>().state;
-    final globalSettingCubit = context.read<GlobalSettingCubit>();
-    final readSetting = globalSettingState.readSetting;
-
-    return _SettingsSection(
-      title: t.reader.readingExperience,
-      icon: Icons.tune_rounded,
-      children: [
-        _SettingsCardGroup(
-          children: [
-            _SettingsSwitchTile(
-              title: t.reader.disableAnimation,
-              subtitle: t.reader.disableAnimationSubtitle,
-              value: readSetting.noAnimation,
-              onChanged: (value) {
-                globalSettingCubit.updateReadSetting(
-                  (current) => current.copyWith(noAnimation: value),
-                );
-              },
-            ),
-            _SettingsSwitchTile(
-              title: t.reader.readFilter,
-              subtitle: t.reader.readFilterSubtitle,
-              value: readSetting.readFilterEnabled,
-              onChanged: (value) {
-                globalSettingCubit.updateReadSetting(
-                  (current) => current.copyWith(readFilterEnabled: value),
-                );
-              },
-            ),
-            _SettingsAnimatedCollapse(
-              isExpanded: readSetting.readFilterEnabled,
-              child: _SettingsSliderCard(
-                title: t.reader.filterIntensity,
-                value: readSetting.readFilterOpacityPercent.clamp(0, 100),
-                min: 0,
-                max: 100,
-                divisions: 100,
-                suffix: t.reader.percent,
-                onChanged: (value) {
-                  final percent = value.clamp(0, 100);
-                  globalSettingCubit.updateReadSetting(
-                    (current) =>
-                        current.copyWith(readFilterOpacityPercent: percent),
-                  );
-                },
-              ),
-            ),
-            _SettingsSwitchTile(
-              title: t.reader.einkOptimization,
-              subtitle: t.reader.einkOptimizationSubtitle,
-              value: readSetting.einkOptimization,
-              onChanged: (value) {
-                globalSettingCubit.updateReadSetting(
-                  (current) => current.copyWith(einkOptimization: value),
-                );
-              },
-            ),
-            _SettingsAnimatedCollapse(
-              isExpanded: readSetting.einkOptimization,
-              child: _SettingsSliderCard(
-                title: t.reader.einkDelay,
-                value: readSetting.einkDelayMs.clamp(50, 500),
-                min: 50,
-                max: 500,
-                divisions: 45,
-                suffix: t.reader.milliseconds,
-                onChanged: (value) {
-                  final delayMs = value.clamp(50, 500);
-                  globalSettingCubit.updateReadSetting(
-                    (current) => current.copyWith(einkDelayMs: delayMs),
-                  );
-                },
-              ),
-            ),
-            _SettingsSwitchTile(
-              title: t.reader.sidePadding,
-              subtitle: t.reader.sidePaddingSubtitle,
-              value: readSetting.sidePaddingEnabled,
-              onChanged: (value) {
-                globalSettingCubit.updateReadSetting(
-                  (current) => current.copyWith(sidePaddingEnabled: value),
-                );
-              },
-            ),
-            _SettingsAnimatedCollapse(
-              isExpanded: readSetting.sidePaddingEnabled,
-              child: _SettingsSliderCard(
-                title: t.reader.sidePaddingPercent,
-                value: readSetting.sidePaddingPercent.clamp(0, 30),
-                min: 0,
-                max: 30,
-                divisions: 30,
-                suffix: t.reader.percent,
-                onChanged: (value) {
-                  final percent = value.clamp(0, 30);
-                  globalSettingCubit.updateReadSetting(
-                    (current) => current.copyWith(sidePaddingPercent: percent),
-                  );
-                },
-              ),
-            ),
-            _SettingsSwitchTile(
-              title: t.reader.hoverRevealEnabled,
-              subtitle:
-                  '${t.reader.hoverRevealEnabledSubtitle}（前往「${t.reader.gesture}」标签可微调）',
-              value: readSetting.hoverRevealEnabled,
-              onChanged: (value) {
-                globalSettingCubit.updateReadSetting(
-                  (current) => current.copyWith(hoverRevealEnabled: value),
-                );
-              },
-            ),
-            _SettingsSwitchTile(
-              title: t.reader.thumbnailStrip,
-              subtitle: t.reader.thumbnailStripSubtitle,
-              value: readSetting.showThumbnailStrip,
-              onChanged: (value) {
-                globalSettingCubit.updateReadSetting(
-                  (current) => current.copyWith(showThumbnailStrip: value),
-                );
-              },
-            ),
-            // 顶栏「透明」档：跳过玻璃，只留一层半透明蒙层。
-            // 住在全局设置里，换书 / 换章 / 重启都保持（与上面两条同一口径）。
-            _SettingsSwitchTile(
-              title: t.reader.transparentTopBar,
-              subtitle: t.reader.transparentTopBarSubtitle,
-              value: readSetting.transparentTopBar,
-              onChanged: (value) {
-                globalSettingCubit.updateReadSetting(
-                  (current) => current.copyWith(transparentTopBar: value),
-                );
-              },
-            ),
-            _SettingsAnimatedCollapse(
-              isExpanded: readSetting.transparentTopBar,
-              child: _SettingsSliderCard(
-                title: t.reader.transparentTopBarOpacity,
-                value: clampReaderTopBarOpacityPercent(
-                  readSetting.topBarScrimOpacityPercent,
-                ),
-                min: ReaderTopBarStyleLimits.minOpacityPercent,
-                max: ReaderTopBarStyleLimits.maxOpacityPercent,
-                divisions: 100,
-                suffix: t.reader.percent,
-                onChanged: (value) {
-                  final percent = clampReaderTopBarOpacityPercent(value);
-                  globalSettingCubit.updateReadSetting(
-                    (current) =>
-                        current.copyWith(topBarScrimOpacityPercent: percent),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-

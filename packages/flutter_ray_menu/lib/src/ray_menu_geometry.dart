@@ -75,12 +75,31 @@ class RayMenuSlot {
     required RayMenuGeometry geometry,
   }) {
     final midRadius = (innerRadius + outerRadius) / 2;
-    labelCenter = Offset(math.cos(angle), math.sin(angle)) * midRadius;
+    final direction = Offset(math.cos(angle), math.sin(angle));
     final chord = 2 * midRadius * math.sin(math.min(sweep, math.pi) / 2);
+    // 标签盒不许越过自己这一圈的环带：环带宽 = outer-inner，而盒子是轴对齐的，
+    // 正对外（0°/180°）时它的宽度就是径向占位。只按弦长给宽的话，相邻两圈在水平
+    // 方向上会顶到一起（「打开设置」和「向左翻页」糊成一行）。
+    final band = outerRadius - innerRadius;
     labelSize = Size(
-      math.max(1, math.min(104, chord * 0.82)),
-      math.max(1, math.min(48, outerRadius - innerRadius - 8)),
+      math.max(1, math.min(104, math.min(chord * 0.82, band - 4))),
+      math.max(1, math.min(52, band - 8)),
     );
+    // 轴对齐的标签盒沿自己那个方向的半宽 = w/2·|cos| + h/2·|sin|（矩形在单位向量上的
+    // 支撑函数）。正对外的格子（0°/180°）里，盒子中心本来就落在 midRadius 上，再摊开
+    // 半个宽度就越过外沿、被圆盘的边界裁掉字。越界就把整盒往圆心收，收到刚好贴住。
+    // 气泡变体不收：它的 labelSize 要按气泡半径在下面重算。
+    var labelRadius = midRadius;
+    if (geometry.variant != RayMenuVariant.bubble) {
+      final halfExtent =
+          labelSize.width / 2 * direction.dx.abs() +
+          labelSize.height / 2 * direction.dy.abs();
+      labelRadius = math.min(
+        midRadius,
+        math.max(0, outerRadius - halfExtent - 2),
+      );
+    }
+    labelCenter = direction * labelRadius;
     final radialGap = math.min(
       geometry.ringGap / 2,
       (outerRadius - innerRadius) / 4,

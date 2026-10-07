@@ -16,8 +16,11 @@ OcrStageEpPlan ocrStageEpPlan({required String ep}) =>
     RustLib.instance.api.crateApiOcrOcrStageEpPlan(ep: ep);
 
 /// 交还 OCR 会话占的内存。三个会话常驻约 670 MB（encoder 343.5 + decoder 117.5 +
-/// 擦字 206.3 + 检测 4.7，`ls -l` 现读），不是可以随手占着的东西 ——
-/// 关掉译文页时调用一次，下次建页会重新加载（那笔 ~2 s 又回来，是应得的代价）。
+/// 擦字 206.3 + 检测 4.7，`ls -l` 现读），不是可以随手占着的东西。
+///
+/// 调用时机由 Dart 侧的 `OcrService.releaseSessions()` 决定：**退出阅读器**时交还，
+/// 换章不交（人还在读，下一张多半还要译，那 2 s 省得下来）。
+/// 代价是离开后第一次建页要重新加载权重 —— 那笔本来就该付。
 void ocrReleaseSessions() =>
     RustLib.instance.api.crateApiOcrOcrReleaseSessions();
 

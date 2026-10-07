@@ -13,6 +13,7 @@ import 'package:zephyr/service/download/download_cancel_signal.dart';
 import 'package:zephyr/service/download/download_notification_reporter.dart';
 import 'package:zephyr/service/download/download_retry.dart';
 import 'package:zephyr/service/download/download_task_repository.dart';
+import 'package:zephyr/service/download/download_task_scheduler.dart';
 import 'package:zephyr/service/download/models/download_task_json.dart';
 import 'package:zephyr/service/lifecycle/foreground_task/foreground_task_service.dart';
 
@@ -38,9 +39,13 @@ class DownloadProgress {
   });
 }
 
+/// 「同时下载章节数」的硬上限（下载管理页的自定义输入也按这个范围钳）。
+const kMaxParallelChapters = 10;
+
 /// 跨平台下载队列管理器（单例）
 ///
-/// 任务粒度为单章节：点 1 章建 1 个任务，多选 N 章建 N 个任务，队列串行执行。
+/// 任务粒度为单章节：点 1 章建 1 个任务，多选 N 章建 N 个任务；
+/// 同时执行几个由「同时下载章节数」设置决定（默认 2，1 = 逐个下载）。
 /// 在所有平台的主 Isolate 中运行，负责统一下载调度。
 /// Android 端配合前台服务使用；前台服务与「后台保活」共用，仅用于提权与通知展示。
 class DownloadQueueManager {
@@ -50,9 +55,9 @@ class DownloadQueueManager {
 
   static const _taskRepository = DownloadTaskRepository();
 
-  String _downloadingTaskKey = "";
+  /// 正在执行的章节任务 key。占位与释放都在主 Isolate 同步完成。
+  final Set<String> _runningTaskKeys = <String>{};
 
-  bool _isProcessing = false;
   StreamSubscription? _watchSubscription;
   Timer? _startupResumeTimer;
   bool _startupResumeWaiting = false;
@@ -66,38 +71,40 @@ class DownloadQueueManager {
   Stream<DownloadProgress> get progressStream => _progressController.stream;
 
   /// 当前是否有任务在执行
-  bool get isProcessing => _isProcessing;
+  bool get isProcessing => _runningTaskKeys.isNotEmpty;
 
-  /// 取消当前正在执行的下载任务
+  /// 同时下载几个章节（1 = 逐个下载）。
+  int _maxParallelTasks() {
+    final val = objectbox.userSettingBox
+        .get(1)
+        ?.globalSetting
+        .downloadTaskConcurrency;
+    return (val != null && val >= 1 && val <= kMaxParallelChapters) ? val : 1;
+  }
+
+  /// 取消所有正在执行的下载任务（前台服务通知栏的「取消」）。
   ///
   /// 如果当前没有运行中的任务，此方法无任何副作用。
   void cancelCurrentTask() {
-    final downloadingTasks = _taskRepository
-        .getAll(incompleteOnly: true)
-        .where((task) => task.isDownloading)
-        .toList();
-    final downloadingTask = downloadingTasks.isEmpty
-        ? null
-        : downloadingTasks.first;
-
-    if (downloadingTask != null) {
-      logger.i('收到取消请求，正在取消当前任务: ${downloadingTask.comicName}');
-      unawaited(_cancelTask(downloadingTask));
-      return;
+    final runningTasks = <DownloadTask>[];
+    for (final taskKey in _runningTaskKeys.toList()) {
+      final task = _taskRepository.findByTaskKey(taskKey, incompleteOnly: true);
+      if (task != null) runningTasks.add(task);
     }
 
-    if (_downloadingTaskKey.isEmpty) {
-      return;
+    if (runningTasks.isEmpty) {
+      // 调度态与库不一致时的兜底：库里有「下载中」标记的行仍然取消。
+      final downloadingTasks = _taskRepository
+          .getAll(incompleteOnly: true)
+          .where((task) => task.isDownloading)
+          .toList();
+      if (downloadingTasks.isEmpty) return;
+      runningTasks.add(downloadingTasks.first);
     }
 
-    final fallbackTask = _taskRepository.findByTaskKey(
-      _downloadingTaskKey,
-      incompleteOnly: true,
-    );
-
-    if (fallbackTask != null) {
-      logger.i('收到取消请求(回退匹配)，正在取消任务: ${fallbackTask.comicName}');
-      unawaited(_cancelTask(fallbackTask));
+    for (final task in runningTasks) {
+      logger.i('收到取消请求，正在取消任务: ${task.comicName}');
+      unawaited(_cancelTask(task));
     }
   }
 
@@ -113,14 +120,25 @@ class DownloadQueueManager {
     final taskKey = buildDownloadChapterTaskKey(from, comicId, chapterKey);
     final dbTask = _taskRepository.findByTaskKey(taskKey, incompleteOnly: true);
     if (dbTask == null) return;
+    await _cancelOrRemoveTask(dbTask);
+  }
 
-    if (dbTask.isDownloading) {
-      logger.i('收到章节取消请求(下载中)，正在取消任务: ${dbTask.comicName}');
+  /// 按任务 id 取消（下载任务列表每行的取消按钮）。
+  Future<void> cancelTaskById(int taskId) async {
+    final dbTask = objectbox.downloadTaskBox.get(taskId);
+    if (dbTask == null) return;
+    await _cancelOrRemoveTask(dbTask);
+  }
+
+  Future<void> _cancelOrRemoveTask(DownloadTask dbTask) async {
+    final taskKey = downloadTaskKeyOf(dbTask);
+    if (dbTask.isDownloading || _runningTaskKeys.contains(taskKey)) {
+      logger.i('收到取消请求(下载中)，正在取消任务: ${dbTask.comicName}');
       await _cancelTask(dbTask);
       return;
     }
 
-    logger.i('收到章节取消请求(排队中)，直接摘除任务: ${dbTask.comicName}');
+    logger.i('收到取消请求(排队中)，直接摘除任务: ${dbTask.comicName}');
     objectbox.downloadTaskBox.remove(dbTask.id);
     await _deleteTaskChapterFiles(dbTask);
     try {
@@ -154,10 +172,19 @@ class DownloadQueueManager {
     final taskKey = downloadTaskKeyOf(dbTask);
     // 先排空在途写，再落取消态，防止旧 checkpoint 复活任务。
     await _taskRepository.flushTaskWrites(taskKey);
-    dbTask.status = t.download.statusCancelling;
-    dbTask.isDownloading = false;
-    dbTask.isCompleted = true;
-    objectbox.downloadTaskBox.put(dbTask);
+    // 取消态必须写进 payload：状态文字是 i18n 文案，不能当判据；且残留行要靠
+    // stateCode 在下次启动时被认出并摘除。worker 后续的检查点会 copyWith 保留它。
+    final payload = _taskRepository.readPayload(dbTask);
+    _taskRepository.putState(
+      dbTask,
+      payload: payload?.copyWith(
+        stateCode: 'cancelled',
+        phaseCode: 'cancelled',
+      ),
+      status: t.download.statusCancelling,
+      isDownloading: false,
+      isCompleted: true,
+    );
     _autoRetryingTaskKeys.remove(taskKey);
     triggerDownloadCancelSignal(taskKey);
 
@@ -202,7 +229,10 @@ class DownloadQueueManager {
         null;
   }
 
-  /// 统一的队列处理入口
+  /// 统一的队列调度入口：在并发额度内启动可运行的章节任务。
+  ///
+  /// 具体执行体在 [_runTask]；本方法只做挑选与占位，占位（[_runningTaskKeys]）
+  /// 同步完成，所以重复调用不会重复启动同一个任务。
   Future<void> _processQueue({bool bypassStartupResumeDelay = false}) async {
     final allPendingTasks = _runnableTasks();
     final pendingTasks = bypassStartupResumeDelay || !_startupResumeWaiting
@@ -210,17 +240,28 @@ class DownloadQueueManager {
         : allPendingTasks
               .where((task) => !_startupResumeTaskIds.contains(task.id))
               .toList();
-    logger.d('_processQueue: 发现 ${pendingTasks.length} 个待处理任务');
 
-    if (pendingTasks.isEmpty) {
+    final capacity = _maxParallelTasks() - _runningTaskKeys.length;
+    final toStart = selectDownloadTasksToStart(
+      pendingTasks: pendingTasks,
+      runningTaskKeys: _runningTaskKeys,
+      capacity: capacity,
+    );
+    logger.d(
+      '_processQueue: 待处理 ${pendingTasks.length} 个, 正在跑 ${_runningTaskKeys.length} 个, 本轮启动 ${toStart.length} 个',
+    );
+
+    if (toStart.isEmpty) {
       if (_startupResumeWaiting && allPendingTasks.isNotEmpty) {
-        _isProcessing = false;
+        return;
+      }
+      if (_runningTaskKeys.isNotEmpty) {
+        // 还有任务在跑，它们收尾时会把调度再叫一次。
         return;
       }
       if (Platform.isMacOS) {
         MacOSActivity.stop();
       }
-      _isProcessing = false;
       if (Platform.isAndroid) {
         await ForegroundTaskService.instance.stop();
       }
@@ -230,38 +271,49 @@ class DownloadQueueManager {
     if (Platform.isMacOS) {
       MacOSActivity.start();
     }
-    _isProcessing = true;
+
+    var skippedAny = false;
+    for (final dbTask in toStart) {
+      final task = _taskRepository.readPayload(dbTask);
+      if (task == null) {
+        logger.w("任务 ${dbTask.comicName} 无任务信息，跳过");
+        dbTask.isCompleted = true;
+        objectbox.downloadTaskBox.put(dbTask);
+        skippedAny = true;
+        continue;
+      }
+      final taskKey = task.taskKey;
+      if (!_runningTaskKeys.add(taskKey)) {
+        continue;
+      }
+      unawaited(_runTask(dbTask, task));
+    }
+    if (skippedAny) {
+      Future.microtask(() => _processQueue());
+    }
+  }
+
+  /// 执行单个章节任务（调度器已占位 [_runningTaskKeys]）。
+  Future<void> _runTask(DownloadTask dbTask, DownloadTaskJson task) async {
+    final taskKey = task.taskKey;
+    prepareDownloadCancelSignal(taskKey);
 
     final reporter = DownloadNotificationReporter();
     reporter.setOnUpdate((comicName, message) {
       _progressController.add(
-        DownloadProgress(comicName: comicName, message: message),
+        _runningTaskKeys.length > 1
+            ? DownloadProgress(
+                comicName: comicName,
+                message: t.download.parallelTaskProgress(
+                  count: _runningTaskKeys.length,
+                  message: message,
+                ),
+              )
+            : DownloadProgress(comicName: comicName, message: message),
       );
     });
-    final dbTask = pendingTasks.first;
-    final task = dbTask.taskInfo;
-    logger.d(
-      '_processQueue: 处理任务 id=${dbTask.id}, comicId=${dbTask.comicId}, taskInfo=${task != null}',
-    );
 
-    if (task == null) {
-      logger.w("任务 ${dbTask.comicName} 无任务信息，跳过");
-      dbTask.isCompleted = true;
-      objectbox.downloadTaskBox.put(dbTask);
-      Future.microtask(() => _processQueue());
-      return;
-    }
-
-    final taskKey = task.taskKey;
-    if (_downloadingTaskKey == taskKey) {
-      logger.w("重复添加任务 ${task.comicName}");
-      _isProcessing = false;
-      Future.microtask(() => _processQueue());
-      return;
-    }
-
-    _downloadingTaskKey = taskKey;
-    prepareDownloadCancelSignal(taskKey);
+    logger.d('_runTask: 处理任务 id=${dbTask.id}, comicId=${dbTask.comicId}');
 
     dbTask.isDownloading = true;
     dbTask.status = t.download.statusStartDownload;
@@ -327,13 +379,16 @@ class DownloadQueueManager {
 
       // 下载成功后清理所有已完成的任务记录
       _removeAllCompletedTasks();
-      logger.d('_processQueue: 任务完成并清理');
+      logger.d('_runTask: 任务完成并清理');
     } catch (e, s) {
+      // 暂停与否以中断原因为准：DB 里的 stateCode 可能被在途旧写盖回 running。
       final currentDbTaskForPauseCheck = _taskRepository.findByTaskKey(taskKey);
+      final payloadStateCode = currentDbTaskForPauseCheck == null
+          ? null
+          : _taskRepository.readPayload(currentDbTaskForPauseCheck)?.stateCode;
       final isPaused =
-          currentDbTaskForPauseCheck != null &&
-          _taskRepository.readPayload(currentDbTaskForPauseCheck)?.stateCode ==
-              'paused';
+          downloadStopReason(taskKey) == DownloadStopReason.paused ||
+          payloadStateCode == 'paused';
       if (isPaused) {
         logger.i('任务已暂停并保留断点: $displayName');
         _progressController.add(
@@ -420,9 +475,7 @@ class DownloadQueueManager {
 
           Timer(Duration(seconds: retryDelaySeconds), () {
             _autoRetryingTaskKeys.remove(taskKey);
-            if (!_isProcessing) {
-              _processQueue();
-            }
+            _processQueue();
           });
           return;
         }
@@ -467,7 +520,7 @@ class DownloadQueueManager {
       }
     } finally {
       clearDownloadCancelSignal(taskKey);
-      _downloadingTaskKey = "";
+      _runningTaskKeys.remove(taskKey);
       Future.microtask(() => _processQueue());
     }
   }
@@ -604,9 +657,7 @@ class DownloadQueueManager {
       isCompleted: false,
     );
     logger.i('已重新排队下载任务: taskId=$taskId, taskKey=$taskKey');
-    if (!_isProcessing) {
-      _processQueue();
-    }
+    _processQueue();
   }
 
   /// 该漫画是否仍有未完成的下载任务（任一章节还在队列里）。
@@ -677,13 +728,20 @@ class DownloadQueueManager {
 
   /// 暂停指定任务（支持正在运行或正在排队的任务）
   void pauseTask(String taskKey) {
+    unawaited(_pauseTask(taskKey));
+  }
+
+  Future<void> _pauseTask(String taskKey) async {
+    // 先排空在途写，防止旧的 checkpoint 把暂停态覆盖回 running，
+    // 否则下游会把「暂停」误判成「取消」并删掉任务与散图。
+    await _taskRepository.flushTaskWrites(taskKey);
     final task = _taskRepository.findByTaskKey(taskKey, incompleteOnly: true);
     if (task == null) return;
     final payload = _taskRepository.readPayload(task);
     if (payload == null) return;
 
     logger.i('收到暂停请求: taskKey=$taskKey, comicName=${task.comicName}');
-    final isRunning = task.isDownloading || _downloadingTaskKey == taskKey;
+    final isRunning = task.isDownloading || _runningTaskKeys.contains(taskKey);
 
     _taskRepository.putPayload(
       task,
@@ -694,7 +752,7 @@ class DownloadQueueManager {
     );
 
     if (isRunning) {
-      triggerDownloadCancelSignal(taskKey);
+      triggerDownloadCancelSignal(taskKey, reason: DownloadStopReason.paused);
       final source = payload.from;
       if (source.isNotEmpty) {
         unawaited(
@@ -713,6 +771,12 @@ class DownloadQueueManager {
 
   /// 恢复已暂停的任务
   void resumeTask(String taskKey) {
+    unawaited(_resumeTask(taskKey));
+  }
+
+  Future<void> _resumeTask(String taskKey) async {
+    // 同暂停：旧写在途时不能被它盖回暂停/运行态。
+    await _taskRepository.flushTaskWrites(taskKey);
     final task = _taskRepository.findByTaskKey(taskKey, incompleteOnly: true);
     if (task == null) return;
     final payload = _taskRepository.readPayload(task);
@@ -740,9 +804,7 @@ class DownloadQueueManager {
       ),
     );
 
-    if (!_isProcessing) {
-      _processQueue();
-    }
+    _processQueue();
   }
 
   /// 重新排队指定漫画的全部未完成章节任务。
@@ -762,19 +824,34 @@ class DownloadQueueManager {
     for (final task in tasks) {
       final payload = _taskRepository.readPayload(task);
       if (payload == null) continue;
-      if (task.isDownloading || _downloadingTaskKey == payload.taskKey) {
+      if (task.isDownloading || _runningTaskKeys.contains(payload.taskKey)) {
         continue;
       }
       await retryTask(task.id);
     }
   }
 
-  /// 重置异常退出时遗留的“下载中”状态。
+  /// 重置异常退出时遗留的“下载中”状态，并摘掉遗留的“取消中”记录。
   ///
   /// 应用启动后、开始监听任务队列前调用一次，避免上次崩溃/杀进程后留下的
-  /// `isDownloading == true` 任务永远无法被调度。
+  /// `isDownloading == true` 任务永远无法被调度；取消的删行那一步是靠当时在飞
+  /// 的 worker 收尾的，进程没了就没人补删，只能在这里按取消态清掉，否则它会
+  /// 永远挂在库里的同时把那本漫画报成「已下载」。
   void resetStuckTasks() {
     _taskRepository.resetInterruptedTasks();
+    unawaited(_sweepCancelledTaskRecords());
+  }
+
+  /// 摘掉上次进程留下的「取消中」残留行，并清掉它的临时文件。
+  Future<void> _sweepCancelledTaskRecords() async {
+    for (final taskKey in _taskRepository.removeCancelledTaskRecords()) {
+      try {
+        await cleanupDownloadTaskTemporaryFiles(taskKey);
+        logger.i('已清理取消残留任务的临时文件: $taskKey');
+      } catch (e, s) {
+        logger.w('清理取消残留任务临时文件失败: taskKey=$taskKey', error: e, stackTrace: s);
+      }
+    }
   }
 
   void watchTasks({Duration startupResumeDelay = Duration.zero}) {
@@ -816,23 +893,20 @@ class DownloadQueueManager {
         _startupResumeTaskIds.clear();
         _startupResumeTimer = null;
         logger.i('应用启动下载恢复延迟结束，开始处理下载队列');
-        if (!_isProcessing) {
-          _processQueue();
-        }
+        _processQueue();
       });
     }
 
     _watchSubscription = watchedQuery.listen((query) {
       final pendingTasks = query.find();
-      if (pendingTasks.isNotEmpty && !_isProcessing) {
-        final hasNewTaskDuringStartupDelay =
-            _startupResumeWaiting &&
-            pendingTasks.any(
-              (task) => !_startupResumeTaskIds.contains(task.id),
-            );
-        if (!_startupResumeWaiting || hasNewTaskDuringStartupDelay) {
-          _processQueue(bypassStartupResumeDelay: hasNewTaskDuringStartupDelay);
-        }
+      if (pendingTasks.isEmpty) return;
+      // 并发额度满了就不叫调度，等在跑的任务收尾时再来。
+      if (_runningTaskKeys.length >= _maxParallelTasks()) return;
+      final hasNewTaskDuringStartupDelay =
+          _startupResumeWaiting &&
+          pendingTasks.any((task) => !_startupResumeTaskIds.contains(task.id));
+      if (!_startupResumeWaiting || hasNewTaskDuringStartupDelay) {
+        _processQueue(bypassStartupResumeDelay: hasNewTaskDuringStartupDelay);
       }
     });
   }

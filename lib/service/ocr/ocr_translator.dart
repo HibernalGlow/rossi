@@ -17,6 +17,7 @@ class OcrTranslationConfig {
     this.targetLanguage = 'zh-Hans',
     this.glossary = '',
     this.engine = OcrTranslateEngine.endpoint,
+    this.cacheScope,
   });
 
   /// 形如 `https://api.deepseek.com/v1` / `http://127.0.0.1:11434/v1`（**不带**尾斜杠）。
@@ -34,6 +35,21 @@ class OcrTranslationConfig {
   /// Apple 端侧那条路**没有术语表接口**，选它时这一项会被忽略（设置页要写明白）。
   final String glossary;
 
+  /// 成品页缓存的**源身份**：「这一页属于哪本书的哪一章」。
+  ///
+  /// 它和其它字段不是同一类东西 —— 其它项回答「译文会不一样吗」，这一项回答
+  /// 「是不是同一页」。缺它时缓存只能按 `配置指纹 + 页号` 查表，于是
+  /// **不同书的同号页会互相命中**：看完 A 本第 5 页再翻 B 本第 5 页，
+  /// 端出来的是 A 本那一页的画面，而芯片说它是译文页。
+  ///
+  /// 走 `config` 而不是给 `TranslatedPageBuilder.build` 加参数，是因为这一项
+  /// 只被 `TranslatedPageCache.describe` 消费，加参数得改整条链的签名。
+  ///
+  /// 默认 `null` = 不参与指纹，目录名与引入它之前**逐字节一致**，
+  /// 老用户盘上已经生成的成品页不会集体作废。
+  /// 它**不进** [toJson]：这是运行期算出来的坐标，不是用户填的配置。
+  final String? cacheScope;
+
   OcrTranslationConfig copyWith({
     String? baseUrl,
     String? model,
@@ -41,6 +57,7 @@ class OcrTranslationConfig {
     String? targetLanguage,
     String? glossary,
     OcrTranslateEngine? engine,
+    String? cacheScope,
   }) => OcrTranslationConfig(
     baseUrl: baseUrl ?? this.baseUrl,
     model: model ?? this.model,
@@ -48,6 +65,7 @@ class OcrTranslationConfig {
     targetLanguage: targetLanguage ?? this.targetLanguage,
     glossary: glossary ?? this.glossary,
     engine: engine ?? this.engine,
+    cacheScope: cacheScope ?? this.cacheScope,
   );
 
   Map<String, dynamic> toJson() => {

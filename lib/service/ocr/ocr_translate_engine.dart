@@ -20,6 +20,12 @@ enum OcrTranslateEngine {
   /// 混元 Hy-MT2 跑在本机（llama-server 等）。见上面分档的理由。
   hyMt2Local('hunyuan'),
 
+  /// B站 Index-Translate 跑在本机（llama-server 等）。也是「一条一次」，
+  /// 但**提示词与术语策略都不同**：它按自己 instTrans 的一句一次格式训练，
+  /// 而实测挂上术语块会把本来翻对的专名串味带崩 —— 见 [OcrTranslateEngine.glossaryApplies]。
+  /// 所以它是一档独立的码路，不是 `hyMt2Local` 换个模型名。
+  indexLocal('index-translate'),
+
   /// Apple 系统翻译框架（`Translation`）：端侧离线、免费、不要 key。
   /// **没有术语表接口**，所以选它等于放弃 `glossary`（术语类错要靠输出端替换兜）。
   appleOnDevice('apple');
@@ -34,7 +40,16 @@ enum OcrTranslateEngine {
 
   /// 术语表在这一档**是否生效**。只有生效的档才该把 `glossarySha1` 编进指纹 ——
   /// 否则改一个术语就把一份「本来就没用术语表」的产物白白作废。
-  bool get glossaryApplies => this != OcrTranslateEngine.appleOnDevice;
+  ///
+  /// 两档为 `false` 的理由**不一样**，别在注释里把它们并成一件事：
+  /// Apple 是框架压根没有术语接口；[indexLocal] 是有接口但**实测是负收益**
+  /// （2026-10-03 本机 `docs/mt-bench/`，同一批 33 条真页台词、同一份 4 条术语：
+  /// 不挂时 ヤモリ→壁虎 本来就对，挂上后两次被别的条目串味带成「野良波」，
+  /// 中位延迟还 380 → 433 ms）。
+  /// 分开写，将来加「Apple + 输出端替换」那一档时才不会拿错条件把它一起判成不用。
+  bool get glossaryApplies =>
+      this != OcrTranslateEngine.appleOnDevice &&
+      this != OcrTranslateEngine.indexLocal;
 
   /// 这一档**要不要用户填 baseUrl / model**。与 [glossaryApplies] 是两回事，
   /// 只是眼下恰好同真同假 —— 分开写，加下一档时才不会拿错条件（比如「Apple + 输出端替换」
@@ -90,8 +105,8 @@ class AppleTranslateBackend {
   /// 两边签名不一致就会逼出一堆 `if` 散在链路里。
   ///
   /// 关键差别在这里收口：这条路上任何失败（没装语言包、桥没编进来、条数不符）
-  /// 一律转成 [OcrTranslationException] —— 编排层只认这一种异常来决定「降级成原文回填」，
-  /// 漏出去就是一个红屏而不是「这页没翻成」。
+  /// 一律转成 [OcrTranslationException] —— 编排层只认这一种异常来决定「问下一档还是
+  /// 整页失败」，漏出去就是一个红屏而不是「这页没翻成」。
   static Future<List<String>> translateBlocks({
     required List<String> texts,
     required OcrTranslationConfig config,

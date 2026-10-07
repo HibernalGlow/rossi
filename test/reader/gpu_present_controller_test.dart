@@ -216,6 +216,37 @@ void main() {
       expect(bridge.injectedPaths.where((p) => p.contains('sr_')), isEmpty);
     });
 
+    test('超分没开：译文页翻回来也必须重新注回（重注入不许依赖超分开关）', () async {
+      // 「好不容易生成好的翻译，翻个页就没了」的那一半根因在这里：
+      // `present` 只有 `_isUpscaleEnabled` 才走 `_scheduleEnhancements`，
+      // 而 `_reassertTranslatedPage` 过去只挂在那条路上 —— 于是「超分没开、旁路也没开」
+      // 这一格子里没有任何人负责把成品页注回来，芯片却继续说「译文页」。
+      // 用一台没开过超分的控制器：setUp 那台已经开了，复用就测不到这一格。
+      final srOffBridge = _Bridge();
+      final srOff = GpuPresentController(srOffBridge);
+      addTearDown(srOff.dispose);
+      await Future<void>.delayed(Duration.zero);
+      expect(srOff.isUpscaleEnabled, isFalse);
+      expect(srOff.isOriginalPreview, isFalse, reason: '旁路开着的话这条轨本就不参显');
+
+      const translated = '/tmp/rossi_done_p0_sr_off.png';
+      srOff.translationOwnedPages[0] = translated;
+
+      await srOff.present(source: source, index: 0, physicalSize: viewport);
+      await _until(() => srOffBridge.injectedPaths.contains(translated));
+
+      // 翻到别页（假桥在 show() 里模拟离开保留集就淘汰），再翻回来。
+      await srOff.present(source: source, index: 1, physicalSize: viewport);
+      final before = srOffBridge.injectedPaths.length;
+      await srOff.present(source: source, index: 0, physicalSize: viewport);
+      await _until(() => srOffBridge.injectedPaths.length > before);
+      expect(
+        srOffBridge.injectedPaths.where((p) => p == translated).length,
+        greaterThan(1),
+        reason: '超分关着也要把译文页重新注回增强图轨',
+      );
+    });
+
     for (final windows in [false, true]) {
       test('原始尺寸不依赖超分，拒绝过期页和其他来源（Windows=$windows）', () async {
         controller.setUpscaleEnabled(false);

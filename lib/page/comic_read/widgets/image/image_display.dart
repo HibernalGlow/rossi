@@ -8,6 +8,7 @@ import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
+import 'package:zephyr/page/comic_read/model/page_split.dart';
 import 'package:zephyr/page/setting/real_sr/service/upscaled_image_cache.dart';
 
 class ImageDisplay extends StatefulWidget {
@@ -23,6 +24,13 @@ class ImageDisplay extends StatefulWidget {
   /// 给满宽度、让 `Image` 自己 contain。第一帧因此与今天完全一致。
   final Size? paintSize;
 
+  /// 横长页被拆成两格时，这一格只画原图的**哪一半**（[PageSlice.full] = 整页）。
+  ///
+  /// 裁剪必须发生在这一层：`ImageSurface` 那条路有纹理/着色器可以只取半幅 UV，
+  /// 这条网络/已下载文件的路**没有着色器**，`Image` 自己没有任何办法只画一半 ——
+  /// 不在这里裁，整幅横图就会被塞进半格里（等比缩到一半宽，字小到读不了）。
+  final PageSlice slice;
+
   const ImageDisplay({
     super.key,
     required this.imagePath,
@@ -31,6 +39,7 @@ class ImageDisplay extends StatefulWidget {
     required this.sizeCacheIndex,
     this.imageAlignment = Alignment.center,
     this.paintSize,
+    this.slice = PageSlice.full,
   });
 
   @override
@@ -261,7 +270,7 @@ class _ImageDisplayState extends State<ImageDisplay> {
           );
         }
 
-        return Align(
+        final Widget page = Align(
           alignment: widget.imageAlignment,
           child: Image.file(
             File(widget.imagePath),
@@ -294,7 +303,59 @@ class _ImageDisplayState extends State<ImageDisplay> {
             },
           ),
         );
+
+        // 半页要在这里裁：这条路没有着色器，`Image` 自己没法只画半幅。
+        // 盒子尺寸取 `LayoutBuilder` 的约束而不是 `context.screenWidth` —— 侧边
+        // 留白开着时后者比 contentWidth 宽，拿它裁就是一条溢出红条（与上面
+        // `width` 的取值同一回事）。
+        return wrapPageSlice(
+          page,
+          slice: widget.slice,
+          width: constraints.maxWidth,
+          height: constraints.maxHeight,
+        );
       },
     );
   }
+}
+
+/// 把 [child] 按 [slice] 裁成半页：让子节点按**两倍宽**铺排，再用 [ClipRect]
+/// 只露出左半或右半。
+///
+/// 机制与 `ImageSurface._wrapSlice` 逐行相同 —— 同一个语义才能保证 GPU 路与这条
+/// 网络/文件路之间来回切（超分、翻页预览开关）时半页的位置不跳。
+/// [PageSlice.full] 原样返回 [child]，因此未拆分的页面与拆分前完全一致。
+///
+/// 给 `OverflowBox` 的四条约束都是**定值**（min == max，紧约束），不是无界 ——
+/// 这是这里唯一的雷：`OverflowBox` 一旦给子节点无界约束，`Row` 就会拿着无界
+/// 约束参与命中测试并报 "Cannot hit test a render box with no size"（踩坑记录见
+/// `read_mode_slot_builder.dart`）。所以不要把它改成只传 `maxWidth`。
+///
+/// 约束无界时（列模式在 `paintSize` 到位之前高度未定）根本没有可裁的盒子，
+/// 只能原样交出去 —— 宁可看到整图，也不要 `SizedBox` 当场抛
+/// "BoxConstraints forces an infinite height"。
+Widget wrapPageSlice(
+  Widget child, {
+  required PageSlice slice,
+  required double width,
+  required double height,
+}) {
+  if (!slice.isHalf) return child;
+  if (!width.isFinite || !height.isFinite) return child;
+  return ClipRect(
+    child: SizedBox(
+      width: width,
+      height: height,
+      child: OverflowBox(
+        minWidth: width * 2,
+        maxWidth: width * 2,
+        minHeight: height,
+        maxHeight: height,
+        alignment: slice == PageSlice.left
+            ? Alignment.centerLeft
+            : Alignment.centerRight,
+        child: child,
+      ),
+    ),
+  );
 }

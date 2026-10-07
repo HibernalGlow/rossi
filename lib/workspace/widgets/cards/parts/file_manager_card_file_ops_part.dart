@@ -98,6 +98,25 @@ extension _FileManagerCardFileOpsPart on _FileManagerCardState {
     if (_isEntrySelected(entry.path)) return;
     await _selectSingle(entry);
   }
+  /// 现在**是不是**多选模式。口径与书架一致：模式是一个明确的状态，不是「碰巧有
+  /// 几点选中」，但**手里正拿着东西也算在模式里** —— 长按/右键会把选中态立起来
+  /// （[_convergeSelectionFor]），那一刻操作条已经在显示了，若界面还按「不在模式」
+  /// 裁决单击，就正是用户报的那条 bug：看着像模式、点下去是打开。
+  bool get _selectionModeOn =>
+      _selectionModeRequested || _selectedPaths.isNotEmpty;
+
+  /// 工具栏那颗「多选」开关。
+  ///
+  /// 退出模式时把集合一起清掉：留着高亮却宣布「不在模式里」，就又回到了那条 bug。
+  /// 反过来进入模式**不动集合** —— 空着集合进模式、然后一家一家点着选，
+  /// 正是这颗开关存在的理由（书架那颗 checklist 同一条路）。
+  void _toggleSelectionMode() {
+    final next = !_selectionModeOn;
+    // ignore: invalid_use_of_protected_member
+    setState(() => _selectionModeRequested = next);
+    if (!next && _selectedPaths.isNotEmpty) unawaited(_clearSelection());
+  }
+
   /// 单击一行。三种含义由纯函数决定（见 [resolveFileManagerEntryTapGesture]）。
   void _onEntryTap(FileManagerEntry entry) {
     final keys = HardwareKeyboard.instance;
@@ -108,11 +127,14 @@ extension _FileManagerCardFileOpsPart on _FileManagerCardState {
       toggleModifier:
           _fileOpsEnabled && (keys.isControlPressed || keys.isMetaPressed),
       extendModifier: _fileOpsEnabled && keys.isShiftPressed,
+      selectionMode: _fileOpsEnabled && _selectionModeOn,
     );
     switch (gesture) {
       case FileManagerEntryTapGesture.open:
         // 打开是对**这一个**的动作。留着一批高亮的行会让人以为打开的是那一批，
         // 所以顺手把选中集合清掉（桌面文件管理器的单击即打开模式也是这么做的）。
+        // 有了模式位之后能走到这一格几乎只剩「一个都没选」；这句仍留着，是因为
+        // 「文件操作」总开关刚关掉时可能带着上一轮的选中。
         if (_selectedPaths.isNotEmpty) unawaited(_clearSelection());
         unawaited(_openEntry(entry));
       case FileManagerEntryTapGesture.toggle:

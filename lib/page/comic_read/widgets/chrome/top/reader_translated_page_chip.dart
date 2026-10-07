@@ -18,9 +18,12 @@ import 'package:zephyr/widgets/toast.dart';
 /// 「往后每一页都得等」；而且用户常常只想看清某一格说了什么。
 /// 所以这里只管当前页：翻到下一页，状态自然回到「译」。
 ///
-/// # 为什么放在呈现器的增强图轨上，而不是在图上再盖一层
-/// 见 `TranslatedPageController` 的注释：阅读器在桌面端由 native 上屏，
-/// Flutter 侧再画一张 `Image.file` 会绕开旋转 / 双页 / 页宽适配。
+/// # 「译」的字是怎么上屏的（两档，芯片要说得清是哪一档）
+/// 烘焙：擦字 + 画字烤成一张 PNG，注进呈现器的增强图轨 —— 它占掉这一页唯一的像素，
+/// 所以超分为它让路。叠层：底图照旧（原图或超分产物），中文由 `TranslatedPageOverlay`
+/// 盖在上面，不占轨，于是译文与超分同时生效。
+/// 哪一档生效由 `TranslatedPageDisplayMode` 决定，而**这一页实际走的是哪一档**问控制器
+/// （`overlayLabelFor`）—— 判据见 [translatedPageDisplayOf]。
 ///
 /// 只在**本地来源 + 桌面平台**出现：在线图源没有呈现器，
 /// Android / iOS 是 ADR-0018 §决定 6 的排除项。
@@ -41,7 +44,13 @@ class ReaderTranslatedPageChip extends StatelessWidget {
       return const SizedBox.shrink();
     }
     return ListenableBuilder(
-      listenable: TranslatedPageController.instance,
+      // 两边都要听：控制器给「归属与阶段」，呈现器给「原图对比旁路」。
+      // 少了呈现器这一路，切回超分的那一刻芯片会一直停在「原图对比中」，
+      // 直到用户翻页或再点一次才改口 —— 而画面其实早就换成译文了。
+      listenable: Listenable.merge([
+        TranslatedPageController.instance,
+        presenter,
+      ]),
       builder: (context, _) {
         final controller = TranslatedPageController.instance;
         final index = context.select<ReaderCubit, int>(
@@ -52,7 +61,7 @@ class ReaderTranslatedPageChip extends StatelessWidget {
           phaseIndex: controller.index,
           index: index,
           owned: controller.isOwned(index),
-          degraded: controller.isDegraded(index),
+          bypassed: presenter.isOriginalPreview,
         );
         return _build(context, controller, source, presenter, index, state);
       },
@@ -69,6 +78,13 @@ class ReaderTranslatedPageChip extends StatelessWidget {
   ) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    // 这一页的字是叠上去的还是烤进像素的 —— 与叠层画的是同一本账（见 [translatedPageDisplayOf]）。
+    final display = translatedPageDisplayOf(
+      overlayLabel: controller.overlayLabelFor(index),
+    );
+    final onLabel = display == TranslatedPageDisplay.overlay
+        ? t.ocr.chipOnOverlay
+        : t.ocr.chipOn;
     final (Color bg, Color fg) = switch (state) {
       TranslatedPageChipState.failed => (
         scheme.errorContainer,
@@ -78,10 +94,11 @@ class ReaderTranslatedPageChip extends StatelessWidget {
         scheme.secondaryContainer,
         scheme.onSecondaryContainer,
       ),
-      // 降级产物看着像成功，所以给它一个**不同**的颜色而不是复用 showing 的强调色。
-      TranslatedPageChipState.showingOriginal => (
-        scheme.tertiaryContainer,
-        scheme.onTertiaryContainer,
+      // 被原图对比挡住：既不能用失败色（没失败），也不能用 showing 的强调色
+      // （画面上此刻就是原图）。给它中性色 + 一个「看不见」的图标。
+      TranslatedPageChipState.blockedByOriginalPreview => (
+        scheme.surfaceContainerHighest,
+        scheme.onSurfaceVariant,
       ),
       _ => (scheme.surfaceContainerHigh, scheme.onSurfaceVariant),
     };
@@ -90,9 +107,13 @@ class ReaderTranslatedPageChip extends StatelessWidget {
     return Tooltip(
       message: switch (state) {
         TranslatedPageChipState.failed => controller.lastError,
-        TranslatedPageChipState.showing => t.ocr.chipOn,
-        TranslatedPageChipState.showingOriginal => t.ocr.degradedHint,
+        TranslatedPageChipState.showing => onLabel,
         TranslatedPageChipState.building => t.ocr.building,
+        // 这一态的短语是中文原文：`ocr` 那段 i18n 里还没有对应键，而同一条链路上
+        // 其余诊断文案（[TranslatedPageController.lastError]、超分的状态表）
+        // 本来也是原文。要补 i18n 就在 `ocr` 段加两个键，别在这里另起一套。
+        TranslatedPageChipState.blockedByOriginalPreview =>
+          '译文已经生成并注入，正被「对比原图」挡着：切回超分就显示译文',
         _ => t.ocr.chipOff,
       },
       child: InkWell(
@@ -127,9 +148,20 @@ class ReaderTranslatedPageChip extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                state == TranslatedPageChipState.building
-                    ? Icons.hourglass_top_outlined
-                    : Icons.translate_outlined,
+                switch (state) {
+                  TranslatedPageChipState.building =>
+                    Icons.hourglass_top_outlined,
+                  // 「注进去了但这会儿看不见」——窄屏上不显示文字时，图标是这一态
+                  // 唯一和「译」「译文页」区分得开的东西。
+                  TranslatedPageChipState.blockedByOriginalPreview =>
+                    Icons.visibility_off_outlined,
+                  // 窄屏上文字位被门槛砍掉，叠层与烘焙只剩图标能分 ——
+                  // 而这一维正是用户判断「超分还在不在」的唯一线索。
+                  TranslatedPageChipState.showing
+                      when display == TranslatedPageDisplay.overlay =>
+                    Icons.layers_outlined,
+                  _ => Icons.translate_outlined,
+                },
                 size: 14,
                 color: fg,
               ),
@@ -139,9 +171,9 @@ class ReaderTranslatedPageChip extends StatelessWidget {
                   switch (state) {
                     TranslatedPageChipState.building => t.ocr.building,
                     TranslatedPageChipState.failed => t.ocr.failedShort,
-                    TranslatedPageChipState.showing => t.ocr.chipOn,
-                    TranslatedPageChipState.showingOriginal =>
-                      t.ocr.chipDegraded,
+                    TranslatedPageChipState.showing => onLabel,
+                    TranslatedPageChipState.blockedByOriginalPreview =>
+                      '原图对比中',
                     TranslatedPageChipState.off => t.ocr.chipOff,
                   },
                   style: theme.textTheme.labelSmall?.copyWith(

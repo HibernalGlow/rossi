@@ -177,6 +177,131 @@ void main() {
     });
   }
 
+  // 上面那一圈用的是 `TestGesture`：一整条手势只有一个 pointer id。真实鼠标不是这样
+  // —— hover 与每一次按下/抬起各有自己的 id，所以这里按真实 id 约定发裸事件，
+  // 走的是用户实际那一条路：右键开出来 → 把鼠标移到某一格 → 左键单击。
+  testWidgets('真实鼠标：右键开 → 移到某一格 → 左键单击执行', (tester) async {
+    RustLib.initMock(api: _Api());
+    final scroll = ScrollController();
+    final pages = PageController();
+    addTearDown(() {
+      ReaderRadialMenu.dismiss();
+      scroll.dispose();
+      pages.dispose();
+      RustLib.dispose();
+      // ignore: invalid_use_of_internal_member
+      RustLib.instance.resetState();
+    });
+    var executed = 0;
+    late ReaderActionDispatcher dispatcher;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            dispatcher = ReaderActionDispatcher(
+              context: context,
+              actions: ReaderActionController(
+                context: context,
+                scrollController: scroll,
+                pageController: pages,
+              ),
+              onToggleMenu: () {},
+              onToggleFullscreen: () async {},
+              onOpenSettings: () => executed++,
+              onResetView: () {},
+              onOpenRadialMenu: () {},
+              onConfirmRadialMenu: ReaderRadialMenu.confirm,
+            );
+            return Listener(
+              onPointerDown: (event) => ReaderRadialMenu.show(
+                context,
+                globalCenter: event.position,
+                openingPointer: event.pointer,
+                configJson:
+                    '{"enabled":true,"activeMenuId":"default","menus":[{"id":"default","layers":[]}]}',
+                bindingsArrayJson: '[]',
+                dispatcher: dispatcher,
+              ),
+              child: const Scaffold(),
+            );
+          },
+        ),
+      ),
+    );
+    final viewId = tester.view.viewId;
+    Future<void> send(PointerEvent event) => tester.sendEventToBinding(event);
+    const at = Offset(400, 300);
+    final item = find.byKey(const ValueKey('ray-item:settings'));
+
+    await send(
+      PointerHoverEvent(
+        viewId: viewId,
+        pointer: 1,
+        position: at,
+        kind: PointerDeviceKind.mouse,
+      ),
+    );
+    await send(
+      PointerDownEvent(
+        viewId: viewId,
+        pointer: 2,
+        position: at,
+        buttons: kSecondaryButton,
+        kind: PointerDeviceKind.mouse,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(ReaderRadialMenu.isOpen, isTrue);
+    await send(
+      PointerUpEvent(
+        viewId: viewId,
+        pointer: 2,
+        position: at,
+        kind: PointerDeviceKind.mouse,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(ReaderRadialMenu.isOpen, isTrue, reason: '按下即松只是把轮盘开出来');
+    expect(executed, 0);
+
+    final target = tester.getCenter(item);
+    await send(
+      PointerHoverEvent(
+        viewId: viewId,
+        pointer: 1,
+        position: target,
+        kind: PointerDeviceKind.mouse,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<Semantics>(item).properties.selected,
+      isTrue,
+      reason: '没按住任何键、只是移过去就该高亮那一格',
+    );
+    await send(
+      PointerDownEvent(
+        viewId: viewId,
+        pointer: 3,
+        position: target,
+        buttons: kPrimaryButton,
+        kind: PointerDeviceKind.mouse,
+      ),
+    );
+    await send(
+      PointerUpEvent(
+        viewId: viewId,
+        pointer: 3,
+        position: target,
+        kind: PointerDeviceKind.mouse,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(executed, 1, reason: '左键单击应当执行指针下那一格');
+    expect(ReaderRadialMenu.isOpen, isFalse);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('确认轮盘走可编辑绑定，改绑后空格不会继续硬编码确认', (tester) async {
     RustLib.initMock(api: _Api());
     final scroll = ScrollController();

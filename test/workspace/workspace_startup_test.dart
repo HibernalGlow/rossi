@@ -146,6 +146,105 @@ void main() {
     });
   });
 
+  group('workspaceAvailableOnDevice（能不能用 ≠ 侧栏上有没有那颗按钮）', () {
+    /// 按给定判据探一次。三条判据共用同一个探针，差别只在传进去的函数。
+    Future<bool> probe(
+      WidgetTester tester, {
+      required Size size,
+      required bool Function(BuildContext) predicate,
+    }) async {
+      late bool result;
+      await tester.pumpWidget(
+        MediaQuery(
+          data: MediaQueryData(size: size),
+          child: Builder(
+            builder: (context) {
+              result = predicate(context);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      return result;
+    }
+
+    Future<void> withPlatform(
+      TargetPlatform platform,
+      Future<void> Function() body,
+    ) async {
+      final previous = debugDefaultTargetPlatformOverride;
+      debugDefaultTargetPlatformOverride = platform;
+      try {
+        await body();
+      } finally {
+        debugDefaultTargetPlatformOverride = previous;
+      }
+    }
+
+    testWidgets('手机（窄）：没有那颗按钮，但工作台可用', (tester) async {
+      await withPlatform(TargetPlatform.android, () async {
+        const size = Size(400, 800);
+        expect(
+          await probe(
+            tester,
+            size: size,
+            predicate: hasWorkspaceEntry,
+          ),
+          isFalse,
+          reason: '那颗按钮只长在四边栏布局的 trailing 上，这条没变',
+        );
+        expect(
+          await probe(
+            tester,
+            size: size,
+            predicate: workspaceAvailableOnDevice,
+          ),
+          isTrue,
+          reason:
+              '入口在「设置 → 布局」那张按钮 + 开屏页那一项，出口有系统返回键与'
+              '泳道「更多」菜单 —— 两条都落地，所以「没有按钮」不能推出「不能用」。',
+        );
+      });
+    });
+
+    testWidgets('六档平台全部可用（这条判据不许把任何一档关在外面）', (
+      tester,
+    ) async {
+      for (final platform in TargetPlatform.values) {
+        await withPlatform(platform, () async {
+          expect(
+            await probe(
+              tester,
+              size: const Size(400, 800),
+              predicate: workspaceAvailableOnDevice,
+            ),
+            isTrue,
+            reason: '$platform',
+          );
+        });
+      }
+    });
+
+    test('启动落点吃的必须是「可用」那条，不是「有按钮」那条', () {
+      // 这条是纯函数判据：手机上 hasWorkspaceEntry=false，若把那条传进去，
+      // 用户开着「启动直接进工作台」也永远进不去 —— 症状是「设置了没用」。
+      expect(
+        resolveStartupLanding(
+          startWithWorkspace: true,
+          workspaceEntryAvailable: false,
+        ),
+        StartupLanding.navigationBar,
+      );
+      expect(
+        resolveStartupLanding(
+          startWithWorkspace: true,
+          workspaceEntryAvailable: true,
+        ),
+        StartupLanding.workspace,
+      );
+    });
+  });
+
   group('开屏页下拉（工作台并进了那一条）', () {
     test('哨兵不占标签页编号空间', () {
       expect(splashWorkspaceOption, lessThan(0));

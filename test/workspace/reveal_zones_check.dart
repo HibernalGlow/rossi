@@ -30,6 +30,7 @@ void main() {
   _drawing();
   _cornerResizeAnchorsTheOppositeCorner();
   _hitOrder();
+  _authoredGate();
   _jsonRoundTrip();
   _lenientFromJson();
   print('reveal_zones_check: $_passed checks passed');
@@ -244,5 +245,42 @@ void _lenientFromJson() {
   check(
     '整块不是对象时回默认',
     WorkspaceRevealZones.fromJson(null) == WorkspaceRevealZones.defaults,
+  );
+}
+
+// ── 「画过没有」判据 ──────────────────────────────────────────────────────
+//
+// 底栏的唤出带有两个主人：「设置 → 布局」的下唤出区，和阅读器自己的
+// 「底部唤出感应区高度」。前者一旦无条件接管，出厂那块（只有 1% 高）就会把
+// 后者整个盖掉 —— 界面上表现为「感应区高度怎么拖都不生效」。接管与否全靠
+// [WorkspaceRevealZones.isAuthored]，所以这条判据必须钉住。
+
+void _authoredGate() {
+  const defaults = WorkspaceRevealZones.defaults;
+  check('出厂值四条边都算没画过', RevealEdge.values.every((e) => !defaults.isAuthored(e)));
+
+  final drawn = defaults.withZone(
+    RevealEdge.bottom,
+    const WorkspaceRevealZone(x: 10, y: 90, width: 80, height: 10),
+  );
+  check('改过的那条边算画过', drawn.isAuthored(RevealEdge.bottom));
+  check('改底不会把顶条也说成画过', !drawn.isAuthored(RevealEdge.top));
+
+  final nudged = defaults.copyWith(
+    bottom: defaults.bottom.copyWith(height: 1.1),
+  );
+  check('只挪 0.1 也算画过', nudged.isAuthored(RevealEdge.bottom));
+
+  check(
+    '改回出厂值就不算画过',
+    !drawn.copyWith(bottom: defaults.bottom).isAuthored(RevealEdge.bottom),
+  );
+
+  // 这条判据之所以能顶替「已编辑」标记，是因为出厂底条明显小于阅读器的
+  // 默认感应区（32px）—— 一旦漏判，用户看到的就是那条 1% 的窄带。
+  check(
+    '出厂底条只占视口高 1%',
+    defaults.bottom.height == 1 && defaults.bottom.y == 99,
+    '${defaults.bottom}',
   );
 }

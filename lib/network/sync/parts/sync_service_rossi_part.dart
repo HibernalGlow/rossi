@@ -50,7 +50,13 @@ const Map<String, List<String>> _settingsBlockKeys = <String, List<String>>{
     'updateAccelerate',
     'retryDownloadUntilSuccess',
     'searchHistory',
+    // 历史本身从 `List<String>` 变成了带图源归属的记录列表。读的方向做了兼容
+    // （`searchHistoryFromJson` 认老格式），**写的方向没有**：还没更新的老客户端
+    // 拉到这一项会在 `fromJson` 里把 Map 往 String 上转而抛异常。两台机器都
+    // 更新到本次版本即无此问题；真要混版本，把下面这两行一起注释掉就行。
+    'searchHistoryGroupBySource',
     'downloadConcurrency',
+    'downloadTaskConcurrency',
     'downloadDelayMs',
     'downloadAutoRetryCount',
     'autoFavoriteOnDownload',
@@ -241,10 +247,19 @@ Future<void> _applyWorkspaceBlockData(Map<String, dynamic> data) async {
   }
   try {
     final base = await WorkspaceLayoutBridge.instance.read();
-    final merged = WorkspaceSyncCodec.decode(data, base: base);
+    final merged = WorkspaceSyncCodec.decode(
+      data,
+      base: base,
+      // 触屏设备不采纳桌面那份的几何（模式 / 泳道顺序 / 宽度 / 独占 / 唤出区）。
+      // 判据是「这台设备有没有悬停指针」，与工作台里所有 hover 专属触发同一把尺
+      // —— 把桌面那套原样灌到手机上，换来的是「一条栏比屏幕还宽 + 只有边缘悬停
+      // 才唤得回来」，那是进得去出不来，不是布局不好看。
+      adoptDesktopGeometry: hasHoverPointer,
+    );
     await WorkspaceLayoutBridge.instance.apply(merged);
     logger.d(
       '[sync][workspace] applied mode=${merged.mode.name} '
+      'geometry=${hasHoverPointer ? "adopted" : "local"} '
       'laneOrder=${merged.layout.laneOrder.join(",")} '
       'panels=${merged.board.panels.length} cards=${merged.board.cards.length} '
       'activePanel=${merged.activePanel.length}',

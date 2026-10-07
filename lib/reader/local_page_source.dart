@@ -20,7 +20,7 @@ import 'package:zephyr/src/rust/api/local.dart';
 /// 由 native 侧自己打开文件、自己解码（像素不过桥）。两侧能对同一页达成一致，
 /// 是因为跑的是同一份枚举代码（`rossi_gpu_present` 依赖 `rossi_local_core`），
 /// 而不是因为在这里做了什么同步 —— 所以页数要被交叉校验，见 [GpuPresentController]。
-class LocalPageSource implements PageSource {
+class LocalPageSource implements PageSource, TranslationScopeBearing {
   /// 位置参数而不是命名参数：字段是私有的，而**命名参数不能以下划线开头**，
   /// 于是「命名 + 私有字段」只能退化成初始化列表赋值（会被 lint 判为多余）。
   /// 这个构造函数本来也只有内部调用点，不值得为它换一套字段命名。
@@ -35,6 +35,16 @@ class LocalPageSource implements PageSource {
 
   @override
   String get path => _path;
+
+  /// 本地档的成品页也按「哪一章」分档了。
+  ///
+  /// 这个洞比在线那一路更早存在：缓存目录只由「配置指纹 + 页号」决定，
+  /// 于是看完 A 本第 5 页再打开 B 本第 5 页，命中的是 A 本那张 —— 端出来的画面
+  /// 是另一本书，而芯片会说它是译文页。之前没暴露出来，只因为一次只开一个来源，
+  /// 要撞车得跨会话翻回旧产物。
+  @override
+  String? get translationCacheScope =>
+      localTranslationCacheScope(_path, _pages.length);
 
   @override
   List<PageRef> get pages => _pages;
@@ -203,3 +213,21 @@ class LocalPageSource implements PageSource {
     }
   }
 }
+
+/// 本地一章的**成品页源身份**：`local|<规范化路径>|<页数>`。
+///
+/// # 为什么带页数
+///
+/// 换进同一批归档/文件夹（补页、删页）之后，页号与内容的对应关系就变了；
+/// 只按路径分档的话，第 5 页会继续命中「补页之前的第 5 页」。页数是能免费拿到的
+/// 最小信号。
+/// **换内容而页数不变**（同名替换一本）这把尺量不出来 —— 要量得引入内容哈希，
+/// 那是超分缓存同样没做的事（它的键是 `路径.hashCode + 页号`，见
+/// `GpuPresentController._cacheFileName`），这里不单独开一条。
+///
+/// # 为什么不写进在线那档的格式
+///
+/// 在线档是 `图源|漫画|章节` 三段可读 id，本地只有文件系统路径可用；
+/// 前缀 `local|` 就是为了让 `manifest.json` 里一眼能看出这一档走的是哪条路。
+String localTranslationCacheScope(String path, int pageCount) =>
+    'local|${p.canonicalize(path)}|$pageCount';

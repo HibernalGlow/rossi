@@ -1,8 +1,10 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/services.dart' show FontLoader, rootBundle;
 
+import 'package:zephyr/service/ocr/translated_page_layer.dart';
 import 'package:zephyr/src/rust/api/ocr.dart';
 
 /// 一框的排法。
@@ -45,6 +47,15 @@ class TranslatedPageRenderer {
     7.5,
     7,
   ];
+
+  /// 按底图倍率放大过的那串候选。
+  ///
+  /// 为什么候选必须跟着倍率走：[_candidates] 是**绝对像素**（40…7），而框是随底图
+  /// 一起放大的。叠到 2× / 4× 的图上还按 40 px 上限选字号，结果就是「大气泡配小字」。
+  /// 倍率进候选之后，选出来的字号与断行仍与 1× 同构（框与字同倍），只是绝对尺寸
+  /// 跟着底图放大。`scale == 1` 时直接返回常量表，烘焙那条路一个字节都不变。
+  static List<double> _sizes(double scale) =>
+      scale == 1 ? _candidates : [for (final s in _candidates) s * scale];
 
   /// 与 `pubspec.yaml` 的 `assets:` 段一致的**注册名**（不是 TTF 内部的 family 名）。
   ///
@@ -94,10 +105,9 @@ class TranslatedPageRenderer {
     for (var i = 0; i < blocks.length; i++) {
       final text = translations[i].trim();
       if (text.isEmpty) continue;
-      final rect = _aabb(blocks[i]);
-      _paintFitted(
+      _paintText(
         canvas,
-        rect,
+        _aabb(blocks[i]),
         text,
         padding: padding,
         minFontSize: minFontSize,
@@ -116,8 +126,90 @@ class TranslatedPageRenderer {
     }
   }
 
-  static ui.Rect _aabb(OcrBlock block) {
-    final q = block.quad;
+  /// 按**图层描述**画一页译文 —— 叠层模式与烘焙模式共用的那一个绘制入口。
+  ///
+  /// `canvas.scale` 而不是「把每个常数都乘一遍 scale」：字号候选、`padding`、
+  /// 竖排的列宽比例全是相对字号的量，缩放画布把它们一起缩放了，同时保持
+  /// **断行结果与 1× 完全一致**（框与字号同倍放大，装得下的字自然一样）。
+  /// 所以这里不需要给 [plan] 开一条带倍率的分支，也就不会出现
+  /// 「烘焙那套字号策略与叠层那套各自演化」这种正被 ADR §决定 3 防着的东西。
+  static void paintLayer(
+    ui.Canvas canvas,
+    TranslatedPageLayer layer, {
+    double scale = 1,
+    double padding = 3,
+    double minFontSize = defaultMinFontSize,
+  }) {
+    canvas.save();
+    canvas.scale(scale);
+    for (final box in layer.boxes) {
+      final text = box.text.trim();
+      if (text.isEmpty) continue;
+      final fill = box.fill;
+      if (fill != null) {
+        // 「不擦字，按气泡轮廓填色」那一档：填色在前、画字在后。
+        canvas.drawPath(
+          _inflatedPolygon(box.quad, _fillOutsetPx),
+          ui.Paint()..color = fill,
+        );
+      }
+      _paintText(canvas, _quadRect(box.quad), text, padding: padding, minFontSize: minFontSize);
+    }
+    canvas.restore();
+  }
+
+  /// 填色相对文本框**外扩**的像素。
+  ///
+  /// 与现在喂给 LaMa 的掩膜同值（`rust/src/api/ocr.rs:177` 的 `mask_from_blocks(.., 3)`）：
+  /// 两档要在「盖住多少原字」上对齐，否则从擦字切到填色时边缘会多出来一圈没盖净的
+  /// 笔画碎屑，那种差最难在图上看出来、却最容易被人读到「翻译没弄干净」。
+  static const _fillOutsetPx = 3.0;
+
+  /// 沿 quad 的四个角点画**多边形**，并从形心向外推 [outset] 像素。
+  ///
+  /// 为什么不是矩形：检测交回的是带方向的四边形（`rust/src/api/ocr.rs:24`），
+  /// 斜排的气泡用矩形填就会露出一角原文、同时盖掉一角画面。
+  /// 为什么是「从形心外推」而不是真做多边形偏移：本仓没有可用的纯 Dart 轮廓膨胀，
+  /// 而对凸四边形来说两者结果一致；文本框的 AABB 本来就是凸的。
+  static ui.Path _inflatedPolygon(List<double> quad, double outset) {
+    final rect = _quadRect(quad);
+    final cx = rect.center.dx;
+    final cy = rect.center.dy;
+    final path = ui.Path();
+    for (var i = 0; i < 4; i++) {
+      final px = quad[i * 2];
+      final py = quad[i * 2 + 1];
+      final dx = px - cx;
+      final dy = py - cy;
+      final len = math.sqrt(dx * dx + dy * dy);
+      // 形心与角点重合（退化的零面积框）时无方向可推，原样落点即可。
+      final k = len <= 0 ? 0.0 : outset / len;
+      final x = px + dx * k;
+      final y = py + dy * k;
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    path.close();
+    return path;
+  }
+
+  /// 烘焙入口与叠层入口共用的那一圈「一框一画」。
+  ///
+  /// 抽出来是为了**只有一条码路决定「译文怎么放进框里」**：两边各写一遍的话，
+  /// 将来改字号候选或竖排列读序只会改到其中一条，而那正是最难发现的分叉
+  /// —— 两张图都「看着有字」，只有像素不一样。
+  static void _paintText(
+    ui.Canvas canvas,
+    ui.Rect rect,
+    String text, {
+    required double padding,
+    required double minFontSize,
+  }) => _paintFitted(canvas, rect, text, padding: padding, minFontSize: minFontSize);
+
+  static ui.Rect _quadRect(List<double> q) {
     if (q.length != 8) {
       throw ArgumentError('四角点必须是 8 个数，实际 ${q.length}');
     }
@@ -130,6 +222,8 @@ class TranslatedPageRenderer {
       ys.reduce((a, b) => a > b ? a : b),
     );
   }
+
+  static ui.Rect _aabb(OcrBlock block) => _quadRect(block.quad);
 
   /// 框的长短边之比超过这个值就改走竖排（多列、从右往左）。
   ///
@@ -152,6 +246,7 @@ class TranslatedPageRenderer {
     String text, {
     double padding = 3,
     double minFontSize = defaultMinFontSize,
+    double scale = 1,
   }) {
     final maxWidth = (rect.width - 2 * padding).clamp(8.0, double.infinity);
     final maxHeight = (rect.height - 2 * padding).clamp(8.0, double.infinity);
@@ -162,7 +257,7 @@ class TranslatedPageRenderer {
         _stackable(text);
 
     if (!vertical) {
-      for (final size in _candidates) {
+      for (final size in _sizes(scale)) {
         final p = _paragraph(text, size, maxWidth);
         final fits = p.height <= maxHeight;
         p.dispose();
@@ -176,7 +271,7 @@ class TranslatedPageRenderer {
     // 竖排：字号从大到小，第一个「列数 × 每列字数 ≥ 总字数」的胜出。
     // 旧实现把宽度锁死成一个字（`size * 1.12`），于是长句只能靠缩字号塞进那一列 ——
     // 20 字的旁白框会被压到 7–13 px，这正是「一行纵向根本没办法阅读」的成因。
-    for (final size in _candidates) {
+    for (final size in _sizes(scale)) {
       final colWidth = size * 1.12;
       final gap = size * _colGapRatio;
       final rows = (maxHeight / (size * 1.15)).floor();
@@ -218,10 +313,17 @@ class TranslatedPageRenderer {
     String text, {
     required double padding,
     required double minFontSize,
+    double scale = 1,
   }) {
     final maxWidth = (rect.width - 2 * padding).clamp(8.0, double.infinity);
     final maxHeight = (rect.height - 2 * padding).clamp(8.0, double.infinity);
-    final layout = plan(rect, text, padding: padding, minFontSize: minFontSize);
+    final layout = plan(
+      rect,
+      text,
+      padding: padding,
+      minFontSize: minFontSize,
+      scale: scale,
+    );
 
     if (layout.mode == LayoutMode.horizontal) {
       final chosen = _fitHorizontal(
@@ -230,6 +332,7 @@ class TranslatedPageRenderer {
         maxHeight,
         layout.fontSize,
         minFontSize,
+        scale,
       );
       canvas.drawParagraph(
         chosen,
@@ -250,8 +353,9 @@ class TranslatedPageRenderer {
     double maxHeight,
     double fromSize,
     double minFontSize,
+    double scale,
   ) {
-    for (final size in _candidates) {
+    for (final size in _sizes(scale)) {
       if (size > fromSize) continue;
       final p = _paragraph(text, size, maxWidth);
       if (p.height <= maxHeight) return p;

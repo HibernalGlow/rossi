@@ -186,6 +186,9 @@ class ImageSizeCubit extends Cubit<ImageSizeState> {
           chapterOrder: _chapterOrder,
           localPageIndex: entry.key,
         );
+        // 水合现在是异步的，可能比首屏测量更晚回来。已经量到真实尺寸的页
+        // 不能被「上一次存的」盖回去 —— 那会让刚稳定的布局再跳一次。
+        if (newResolved.contains(cacheIndex)) continue;
         newCache[cacheIndex] = entry.value;
         newResolved.add(cacheIndex);
         changed = true;

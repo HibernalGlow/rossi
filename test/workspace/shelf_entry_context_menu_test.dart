@@ -11,7 +11,8 @@
 //   1. **手势 → 菜单**：桌面右键与触摸长按都得弹出来。挂错手势时界面完全正常，
 //      只是「右键没反应」——那不报错，所以必须真的按一次；
 //   2. **灰掉的项**：它必须**在场**（用户看得见这一项存在），但点不动、不回调。
-//      `PopupMenuItem.enabled` 写反了同样不报错，只会「点了没反应」。
+//      MD3 的禁用态就是 `MenuItemButton(onPressed: null)`，写反了同样不报错，
+//      只会「点了没反应」。
 //
 // 这里不搭真实卡片（那要 ObjectBox 与全局设置 Cubit，本机是基线红），
 // 只搭菜单宿主 + 一个假的行内容 —— 被测的东西全在宿主里。
@@ -22,6 +23,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/workspace/model/shelf_entry_menu_spec.dart';
 import 'package:zephyr/workspace/widgets/cards/shelf_entry_context_menu.dart';
+import 'package:zephyr/workspace/widgets/library_view/shelf_menu_button.dart';
 
 /// 夹具：一行可点内容 + 菜单宿主。选到的动作由测试自己收，夹具不存状态
 /// —— 存状态的夹具会让「上一次用例的动作」跟着 widget 活下来。
@@ -58,13 +60,26 @@ class _Harness extends StatelessWidget {
 }
 
 /// 当前弹出来的菜单里，每一项的（动作, 能不能点）——按**画出来的次序**。
+///
+/// 动作从 key 上读，不读文案：文案收进 slang 之后会随语言变，而这条判据
+/// 不该跟着翻译走。
 List<(ShelfEntryAction, bool)> _menuItems(WidgetTester tester) {
   return [
-    for (final item in tester.widgetList<PopupMenuItem<ShelfEntryAction>>(
-      find.byType(PopupMenuItem<ShelfEntryAction>),
+    for (final item in tester.widgetList<ShelfMenuItem>(
+      find.byType(ShelfMenuItem),
     ))
-      (item.value as ShelfEntryAction, item.enabled),
+      if (item.key case final ValueKey<ShelfEntryAction> key)
+        (key.value, item.onPressed != null),
   ];
+}
+
+/// 按动作找那一项。**灰掉的项也必须找得到** —— 所以不能按「可点的项」筛。
+Finder _itemOf(ShelfEntryAction action) {
+  return find.byWidgetPredicate(
+    (widget) =>
+        widget is ShelfMenuItem &&
+        widget.key == ValueKey<ShelfEntryAction>(action),
+  );
 }
 
 void main() {
@@ -144,7 +159,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(PopupMenuItem<ShelfEntryAction>), findsNothing);
+    expect(find.byType(ShelfMenuItem), findsNothing);
     expect(seen, isEmpty);
   });
 
@@ -168,26 +183,14 @@ void main() {
     await tester.pumpAndSettle();
 
     // 先点灰掉的那一项（已收藏 ⇒ 「收藏」不可用）：菜单不关、不回调。
-    await tester.tap(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is PopupMenuItem<ShelfEntryAction> &&
-            widget.value == ShelfEntryAction.toggleFavorite,
-      ),
-    );
+    await tester.tap(_itemOf(ShelfEntryAction.toggleFavorite));
     await tester.pumpAndSettle();
     expect(seen, isEmpty);
 
     // 再点「复制标题」：回调一次，菜单关掉。
-    await tester.tap(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is PopupMenuItem<ShelfEntryAction> &&
-            widget.value == ShelfEntryAction.copyTitle,
-      ),
-    );
+    await tester.tap(_itemOf(ShelfEntryAction.copyTitle));
     await tester.pumpAndSettle();
     expect(seen, <ShelfEntryAction>[ShelfEntryAction.copyTitle]);
-    expect(find.byType(PopupMenuItem<ShelfEntryAction>), findsNothing);
+    expect(find.byType(ShelfMenuItem), findsNothing);
   });
 }

@@ -17,16 +17,25 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
     final match = current.match;
     final action = current.action;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
+    // 底色与边框走 Material，不走 Container 的 BoxDecoration：
+    // 这一格里的 `RadioListTile` 把背景与水波画在**最近的 Material 祖先**上，
+    // 中间夹一层带色 DecoratedBox 就把它们全挡住（Flutter 直接抛
+    // 「ListTile background color or ink splashes may be invisible」，
+    // 而且这些选择行真的没有按压反馈）。
+    // Material 没有 padding，所以多垫一层 Padding —— 这是这个文件里唯一
+    // 为此让出的缩进，其余一律不动。
+    return Material(
+      color: colorScheme.surface,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
+        side: BorderSide(
           color: colorScheme.outlineVariant.withValues(alpha: 0.6),
         ),
       ),
-      padding: const EdgeInsets.all(12),
-      child: Column(
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 条件名称与启用开关
@@ -456,6 +465,7 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
             ),
           ],
         ],
+      ),
       ),
     );
   }

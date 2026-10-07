@@ -72,6 +72,10 @@ class ReaderImagePrefetchController {
             storageChapterId: storageChapterId,
             pictureType: PictureType.page,
             extern: doc.extern,
+            // 预取只负责把**字节**放进缓存：它一次排 10 页（`preloadImageCount`），
+            // 若每页都在超分池里占一个 6–22 s 的任务，正在显示的那页就永远排在后面。
+            // 超分交给「这页真的被显示」那条路（后台跑，完成即换图）。
+            applyRealSr: false,
           );
           if (cachedPath == '404') _requestedKeys.remove(item.key);
         } catch (_) {

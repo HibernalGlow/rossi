@@ -89,6 +89,9 @@ class ComicReadSnapshotChapter {
     required this.name,
     required this.order,
     required this.pages,
+    this.requestId = '',
+    this.logicalKey = '',
+    this.storageChapterId = '',
     this.extern = const {},
   });
 
@@ -96,6 +99,9 @@ class ComicReadSnapshotChapter {
   final String name;
   final int order;
   final List<ComicReadSnapshotPage> pages;
+  final String requestId;
+  final String logicalKey;
+  final String storageChapterId;
   final Map<String, dynamic> extern;
 
   factory ComicReadSnapshotChapter.fromMap(Map<String, dynamic> map) {
@@ -103,6 +109,9 @@ class ComicReadSnapshotChapter {
       id: map['id']?.toString() ?? map['epId']?.toString() ?? '',
       name: map['name']?.toString() ?? map['epName']?.toString() ?? '',
       order: _toInt(map['order'], 0),
+      requestId: map['requestId']?.toString().trim() ?? '',
+      logicalKey: map['logicalKey']?.toString().trim() ?? '',
+      storageChapterId: map['storageChapterId']?.toString().trim() ?? '',
       pages: _resolvePages(
         map,
       ).map((item) => ComicReadSnapshotPage.fromMap(_asMap(item))).toList(),
@@ -116,12 +125,18 @@ class ComicReadSnapshotChapterRef {
     required this.id,
     required this.name,
     required this.order,
+    this.requestId = '',
+    this.logicalKey = '',
+    this.storageChapterId = '',
     this.extern = const {},
   });
 
   final String id;
   final String name;
   final int order;
+  final String requestId;
+  final String logicalKey;
+  final String storageChapterId;
   final Map<String, dynamic> extern;
 
   factory ComicReadSnapshotChapterRef.fromMap(Map<String, dynamic> map) {
@@ -129,6 +144,9 @@ class ComicReadSnapshotChapterRef {
       id: map['id']?.toString() ?? '',
       name: map['name']?.toString() ?? '',
       order: _toInt(map['order'], 0),
+      requestId: map['requestId']?.toString().trim() ?? '',
+      logicalKey: map['logicalKey']?.toString().trim() ?? '',
+      storageChapterId: map['storageChapterId']?.toString().trim() ?? '',
       extern: _asMap(map['extern']),
     );
   }

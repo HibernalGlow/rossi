@@ -2,11 +2,13 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_info/models/favorite_workflow.dart';
 import 'package:zephyr/page/comic_info/json/normal/normal_comic_all_info.dart';
 import 'package:zephyr/page/comic_info/models/collect_comic.dart';
 import 'package:zephyr/page/comic_info/models/comic_magnet.dart';
+import 'package:zephyr/page/comic_info/models/comic_source_page_url.dart';
 import 'package:zephyr/page/comic_follow/cubit/comic_follow_cubit.dart';
 import 'package:zephyr/page/download/method/comic_download_entry.dart';
 import 'package:zephyr/page/download/models/unified_comic_download.dart';
@@ -62,12 +64,40 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
   String? _taskStreamKey;
   Stream<DownloadTask?>? _taskStream;
 
+  /// 这本书在原站的页面地址；空串 = 插件没给过，那颗卡整个不渲染。
+  String _sourcePageUrl = '';
+
   @override
   void initState() {
     super.initState();
     _syncLocalCollectStatus();
     isLiked = normalInfo.isLiked;
     isCloudCollected = normalInfo.isFavourite;
+    _resolveSourcePageUrl();
+  }
+
+  @override
+  void didUpdateWidget(covariant ComicOperationWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 下拉刷新会换一份 normalInfo（插件可能这次才给链接），只在这时重算。
+    if (oldWidget.normalInfo != widget.normalInfo ||
+        oldWidget.from != widget.from) {
+      _resolveSourcePageUrl();
+    }
+  }
+
+  Future<void> _resolveSourcePageUrl() async {
+    final url = await resolveComicSourcePageUrl(
+      info: widget.normalInfo,
+      from: widget.from,
+      comicId: _downloadComicId,
+    );
+    if (!mounted || url == _sourcePageUrl) {
+      return;
+    }
+    setState(() {
+      _sourcePageUrl = url;
+    });
   }
 
   Future<void> _syncLocalCollectStatus() async {
@@ -165,7 +195,7 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
             : t.comicInfo.downloadForbidden,
         enabled: normalInfo.allowDownload,
         onTap: _openDownload,
-        onLongPress: _openDownloadChapterPicker,
+        onLongPress: (_) => _openDownloadChapterPicker(),
         onLongPressTooltip: t.reader.selectChapter,
       ),
       // 磁力一键复制：只有插件在 comicInfo.extern 里给了 magnet 才出现，
@@ -176,6 +206,18 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
           text: t.common.copy,
           enabled: true,
           onTap: _copyMagnet,
+        ),
+      // 在原站打开。链接只取插件**已经交出来过**的地址（详情的 extern，或早前解析
+      // 列表项时记下的那条），插件没给就和磁力那颗一样静默不出现 —— 不去猜站的 URL。
+      // 单击走内置 WebView（它右上角本来就有「外部浏览器打开」，且与插件共享 Cookie），
+      // 长按给「外部浏览器打开 / 复制链接」。
+      if (_sourcePageUrl.isNotEmpty)
+        _OperationItemData(
+          icon: Icons.public_rounded,
+          text: t.comicInfo.openOnSource,
+          onTap: _openSourcePageInWebView,
+          onLongPress: _showSourcePageMenu,
+          onLongPressTooltip: t.webview.openInExternalBrowser,
         ),
     ];
 
@@ -232,6 +274,88 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
     }
     showSuccessToast(
       t.comicInfo.copiedToClipboard(name: magnet),
+      context: context,
+    );
+  }
+
+  /// 单击「在原站打开」：走内置 WebView —— 它与插件共享 Cookie，
+  /// 在应用里登录过的源不需要在系统浏览器里再登一遍。
+  void _openSourcePageInWebView() {
+    final url = _sourcePageUrl;
+    if (url.isEmpty) {
+      return;
+    }
+    context.pushRoute(WebViewRoute(info: [comicInfoView.title, url]));
+  }
+
+  /// 长按「在原站打开」：给外部浏览器和复制链接两个出口。
+  Future<void> _showSourcePageMenu(Offset position) async {
+    final url = _sourcePageUrl;
+    if (url.isEmpty) {
+      return;
+    }
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
+    if (overlay == null) {
+      return;
+    }
+
+    final choice = await showMenu<_SourcePageAction>(
+      context: context,
+      position: RelativeRect.fromRect(
+        position & const Size(1, 1),
+        Offset.zero & overlay.size,
+      ),
+      items: [
+        PopupMenuItem(
+          value: _SourcePageAction.external,
+          child: Text(t.webview.openInExternalBrowser),
+        ),
+        PopupMenuItem(
+          value: _SourcePageAction.copy,
+          child: Text(t.common.copy),
+        ),
+      ],
+    );
+
+    if (!mounted) {
+      return;
+    }
+    switch (choice) {
+      case _SourcePageAction.external:
+        await _openSourcePageExternally(url);
+      case _SourcePageAction.copy:
+        await _copySourcePageUrl(url);
+      case null:
+        break;
+    }
+  }
+
+  /// 长按菜单里的「外部浏览器打开」：系统浏览器没有插件的 Cookie，
+  /// 所以它是**出口**而不是默认路径（默认那颗点击进的是内置 WebView）。
+  Future<void> _openSourcePageExternally(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null || !uri.hasScheme) {
+      if (mounted) {
+        showErrorToast(t.webview.invalidLink);
+      }
+      return;
+    }
+    if (await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      return;
+    }
+    if (mounted) {
+      showErrorToast(t.webview.cannotOpenLink(uri: url));
+    }
+  }
+
+  Future<void> _copySourcePageUrl(String url) async {
+    await Clipboard.setData(ClipboardData(text: url));
+    if (!mounted) {
+      return;
+    }
+    showSuccessToast(
+      t.comicInfo.copiedToClipboard(name: url),
       context: context,
     );
   }
@@ -467,6 +591,9 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
 
 enum _OperationKind { generic, download }
 
+/// 「在原站打开」长按菜单的两项。
+enum _SourcePageAction { external, copy }
+
 class _OperationItemData {
   const _OperationItemData({
     required this.icon,
@@ -488,8 +615,9 @@ class _OperationItemData {
   final _OperationKind kind;
   final VoidCallback? onTap;
 
-  /// 长按回调；为空时该卡片不响应长按。
-  final VoidCallback? onLongPress;
+  /// 长按回调，参数是**全局坐标**——弹菜单的那一项要在手指按下的位置开
+  /// （与书架卡片右键/长按菜单同一套做法），只给一个 VoidCallback 就不够了。
+  final void Function(Offset position)? onLongPress;
 
   /// 长按的悬停提示（桌面端可发现性）。
   final String? onLongPressTooltip;
@@ -610,7 +738,11 @@ class _OperationCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: item.onTap,
-        onLongPress: item.onLongPress,
+        // material_ui 的 InkWell 只暴露 onLongPress（没有 Start 变体），拿不到手指
+        // 的按下点，于是菜单锚在卡片自己的中心。
+        onLongPress: item.onLongPress == null
+            ? null
+            : () => item.onLongPress!(_menuAnchor(context)),
         child: Ink(
           decoration: BoxDecoration(
             color: background,
@@ -659,5 +791,14 @@ class _OperationCard extends StatelessWidget {
       triggerMode: TooltipTriggerMode.manual,
       child: card,
     );
+  }
+
+  /// 长按菜单的锚点：这张卡自己的中心（全局坐标）。
+  Offset _menuAnchor(BuildContext context) {
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) {
+      return Offset.zero;
+    }
+    return box.localToGlobal(box.size.center(Offset.zero));
   }
 }

@@ -22,11 +22,20 @@ class WorkspaceState {
   /// 当前**激活**的泳道 ID。
   ///
   /// 「激活」不是「独占」：独占（solo）是**泳道自己的属性**，激活是
-  /// 「工作台当前把交互交给谁」。两条契约都建在它之上：
+  /// 「工作台当前把交互交给谁」。两条契约建在它之上：
   ///
-  /// - 非激活泳道的第一下点击要被工作台**吃掉**（用来激活它），不派发给内容；
-  /// - solo 的生效宽度以「那条泳道同时是激活泳道」为前提 ——
-  ///   激活别的泳道会让 Reader 回到常规宽度，但**不清除** solo 偏好。
+  /// - 非激活泳道的第一下点击要被工作台**吃掉**（用来激活它），不派发给内容 ——
+  ///   但只在「这次聚焦**会移动画面**」那一档吃（见 `SwimlaneWorkspace` 的
+  ///   `_activationMovesStrip`）；一条本来就完整可见的泳道，聚焦什么都不动，
+  ///   那一下点击就该照常生效。
+  /// - 紧凑轨（切换栏）给的是**非激活**的那些泳道：激活哪条，哪条就展开。
+  ///
+  /// **激活不改 Reader 泳道的宽度**（ADR-0014 的修订记录）。它曾要求「solo 的生效宽度
+  /// 以『同时是激活泳道』为前提」，那条前提的代价是：指针停到隔壁泳道上 0.42s，
+  /// Reader 就从「占满可用宽」塌回常规宽 —— 一次几百像素的宽度突变会把已上屏的
+  /// 纹理判废并按新宽重解（见 `lib/reader/image_surface.dart`），正是「鼠标移过去
+  /// 卡一下」里最贵的那一下。条带模型里「显出一条泳道」本来就该靠**移动**，
+  /// 不是靠重新排版。面板泳道保持老契约，理由写在 [effectiveSoloLaneId]。
   ///
   /// 为 `null` 表示「还没定过」：此时不吞任何点击，一切按改造前行为派发。
   /// 这个「没定过」的初始态是刻意的 —— 冷启动不该因为一个默认激活项
@@ -61,17 +70,54 @@ class WorkspaceState {
     );
   }
 
-  /// solo 的**生效**泳道：只有它同时也是激活泳道时才算数。
+  /// solo 的**生效**泳道。
   ///
-  /// 契约原文是 `When the Reader lane is active and solo is enabled, its
-  /// effective width is the workspace viewport width` —— 前提条件就是
-  /// 「激活」。把这条判断放在**一个地方**（这里），是因为条带宽度分配与
-  /// 滚动落点都要问同一个问题；两处各写一遍必然会在某个边界上分叉。
-  String? get effectiveSoloLaneId => isReaderFullscreen
-      ? LaneId.reader
-      : (layout.soloLaneId != null && layout.soloLaneId == activeLaneId
-            ? layout.soloLaneId
-            : null);
+  /// 阅读器全屏是另一条独立的呈现档（它压过一切），优先。
+  ///
+  /// **Reader 的独占不看激活态**：谁被激活都不改它的宽度。以前那句契约
+  /// （`When the Reader lane is **active** and solo is enabled, its effective
+  /// width is the workspace viewport width`）在这里被**按用户口径覆盖**了，代价是
+  /// 一条真实存在的卡顿：指针每停到隔壁泳道一次，Reader 就从「占满可用宽」塌回
+  /// 常规宽，而宽度一变，`ImageSurface` 的物理尺寸就变 —— 已上屏的纹理被判废并
+  /// 按新宽重解（`lib/reader/image_surface.dart` 自己记的数是 300–400 ms/页）。
+  /// 「显出一条泳道」在这套条带版式里本来就该靠**移动**，不靠重新排版。
+  ///
+  /// **面板泳道的独占保持老契约**（要同时是激活泳道）。这不是疏忽而是取舍：
+  /// 面板泳道的内容是列表与卡片，改宽度没有重解码那笔代价；而一旦解绑，
+  /// 「独占一条面板泳道 + 在别处干活」会把其余泳道挤到视口外，
+  /// 而把它们呼回来的边缘驻留**只对 Reader 独占**那档开放
+  /// （见 `SwimlaneWorkspace._handleStripHover` 的 `soloArmed`），
+  /// 于是那个洞只有进得去、没有出得来。
+  String? get effectiveSoloLaneId {
+    if (isReaderFullscreen) return LaneId.reader;
+    final solo = layout.soloLaneId;
+    if (solo == null) return null;
+    if (solo == LaneId.reader) return LaneId.reader;
+    return solo == activeLaneId ? solo : null;
+  }
+
+  /// 与 [other] 之间**只差「谁被激活」**吗（其余字段一项都没动）。
+  ///
+  /// 这是「聚焦落地那一刻该重建谁」的唯一判据：这条成立时，条带几何、每条泳道的
+  /// 内容、顶栏那几档都没变，变的只有边框亮不亮、条带停在哪、哪条收成轨。页面层与
+  /// 内容槽位据此跳过重 build，把一次 hover 的代价压回「外壳」那一层。
+  ///
+  /// # 为什么按字段比，而不是给这个类加 `==`
+  ///
+  /// 所有字段都是 `@immutable` + `copyWith`（改任何一项都会换实例），所以
+  /// 「逐字段比同一性」是**保守**的：宁可多重建一次，也不能漏重建。漏重建的表现是
+  /// 界面停在旧状态（用户看到的是「点了没反应」），比多 build 一次严重得多。
+  /// 反过来，`WorkspaceState` 上挂 `==` 会让「谁被激活」混进全等比较，
+  /// 那两个概念本来是分开的 —— 一个问「有没有变」，一个问「变在哪一项」。
+  bool differsOnlyByActiveLane(WorkspaceState other) =>
+      identical(mode, other.mode) &&
+      identical(layout, other.layout) &&
+      identical(board, other.board) &&
+      identical(readerTarget, other.readerTarget) &&
+      identical(activePanel, other.activePanel) &&
+      identical(interaction, other.interaction) &&
+      isReaderFullscreen == other.isReaderFullscreen &&
+      activeLaneId != other.activeLaneId;
 
   WorkspaceState copyWith({
     WorkspaceMode? mode,

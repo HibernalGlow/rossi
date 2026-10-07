@@ -6,6 +6,6 @@ class DowloadTaskEvent with _$DowloadTaskEvent {
   const factory DowloadTaskEvent.tasksUpdated(List<DownloadTask> tasks) =
       _TasksUpdated;
   const factory DowloadTaskEvent.taskDeleted(int taskId) = _TaskDeleted;
-  const factory DowloadTaskEvent.cancelCurrentTask() = _CancelCurrentTask;
+  const factory DowloadTaskEvent.cancelTask(int taskId) = _CancelTask;
   const factory DowloadTaskEvent.clearCompleted() = _ClearCompleted;
 }

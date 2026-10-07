@@ -77,9 +77,19 @@ rust/js/jm_http_bundle/package-lock.json
 
 .opencode/
 .you/
+
+# unlazy 技能每轮验收写的闸口台账与实测日志（结论随功能提交落档，产物本身不入库）
+.unlazy/
+
 # Third-party local clones
 third_party/llrt/
 third_party/Aidoku/
+
+# dav1d 安卓交叉编译的本机产物：由 third_party/build_dav1d_android.sh 现拉现编，
+# meson 跨编译配置也是脚本按本机 NDK 路径 cat 出来的，全部不入库。
+third_party/dav1d-src/
+third_party/android_sysroot/
+third_party/meson-android-aarch64.ini
 
 node_modules
 

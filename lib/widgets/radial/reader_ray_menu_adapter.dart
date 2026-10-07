@@ -37,18 +37,29 @@ RayMenuGeometry readerRayGeometry(RadialDoc doc) => RayMenuGeometry(
       : RayMenuVariant.slice,
 );
 
+/// 轮盘的 MD3 取色。按 M3「菜单」这一档来对：容器用 `surfaceContainer`，格子上浮一档
+/// 用 `surfaceContainerHigh`，指针下那一格是**选中态**而不是「描个边」——
+/// `secondaryContainer` 填充 + `onSecondaryContainer` 文字（M3 里 primary 留给按钮，
+/// 菜单/列表的选中一律 secondary 系）。整张盘靠投影与色差分层，不再画一圈圈描边。
 RayMenuStyle readerRayStyle(BuildContext context, {bool embedded = false}) {
   final theme = Theme.of(context);
   final colors = theme.colorScheme;
   return RayMenuStyle(
-    surface: colors.surfaceContainerHigh,
-    segment: colors.surfaceContainerHighest,
+    surface: colors.surfaceContainer,
+    segment: colors.surfaceContainerHigh,
     border: colors.outlineVariant,
     foreground: colors.onSurface,
     muted: colors.onSurfaceVariant,
-    accent: colors.primary,
-    selected: colors.primaryContainer,
-    scrim: embedded ? Colors.transparent : colors.scrim.withValues(alpha: 0.24),
-    textStyle: theme.textTheme.labelSmall ?? const TextStyle(fontSize: 11),
+    selected: colors.secondaryContainer,
+    selectedForeground: colors.onSecondaryContainer,
+    shadow: embedded ? null : colors.shadow.withValues(alpha: 0.28),
+    scrim: embedded ? Colors.transparent : colors.scrim.withValues(alpha: 0.16),
+    // 字号只能自己写：这一版 Flutter 的 `textTheme` token 只带颜色与字族，
+    // `labelLarge?.fontSize` 实测是 null —— 直接沿用 token 会掉回环境默认字号，
+    // 「按 MD3 排版」就成了空话。这里取 M3 的 labelMedium（12sp / w500）。
+    textStyle: (theme.textTheme.labelMedium ?? const TextStyle()).copyWith(
+      fontSize: 12,
+      fontWeight: FontWeight.w500,
+    ),
   );
 }

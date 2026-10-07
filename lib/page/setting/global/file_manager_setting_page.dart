@@ -7,6 +7,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
+import 'package:zephyr/page/setting/global/shell_integration_setting_card.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 /// 文件管理器设置：本地文件浏览卡片的跨重启偏好。
@@ -239,6 +240,8 @@ class FileManagerSettingPage extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          const ShellIntegrationSettingCard(),
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),

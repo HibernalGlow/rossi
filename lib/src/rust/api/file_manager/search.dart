@@ -8,8 +8,8 @@ import '../local.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'types.dart';
 
-// These functions are ignored because they are not marked as `pub`: `cancel_registered_search`, `load_search_history`, `now_secs`, `register_search_cancel`
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `FileManagerSearchGuard`
+// These functions are ignored because they are not marked as `pub`: `begin_search`, `cancel_registered_search`, `load_search_history`, `new`, `now_secs`, `registered_progress`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `FileManagerSearchGuard`, `FileManagerSearchHandle`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `drop`
 
 Future<FileManagerSnapshot> fileManagerSetSearchQuery({
@@ -73,6 +73,16 @@ Future<FileManagerSnapshot> fileManagerClearSearch({required BigInt id}) =>
     RustLib.instance.api.crateApiFileManagerSearchFileManagerClearSearch(
       id: id,
     );
+
+/// 本会话正在跑的那一次遍历的进度读数（已检视的条目数）。
+///
+/// 纯读数，不参与任何判决：结果仍由 `file_manager_search` 的返回值交回。界面在遍历
+/// 期间每隔几百毫秒问它一次 —— 慢盘上一次整库遍历要几十秒，一个不动的转圈会让人
+/// 以为搜索坏了。
+Future<int> fileManagerSearchProgress({required BigInt id}) => RustLib
+    .instance
+    .api
+    .crateApiFileManagerSearchFileManagerSearchProgress(id: id);
 
 /// 请求中止本会话正在跑的搜索。没有搜索在跑时是空操作。
 Future<bool> fileManagerCancelSearch({required BigInt id}) => RustLib

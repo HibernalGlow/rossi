@@ -44,6 +44,41 @@ FileManagerTreeSnapshot _treeSnapshot() => const FileManagerTreeSnapshot(
   hasPending: false,
 );
 
+/// 一条 13 行的目录链，当前目录在最深处，它下面还挂着三行子目录。
+///
+/// 摆这一份是为了复现「树展开了却没定位」：树的视口只有 200px 高，而
+/// `ListView.builder` 只建看得见的行 —— 最深处那一行在滚之前根本不存在于树上，
+/// 所以「它出现了」就是定位生效的证据（`hasPending` 同样固定为 false，
+/// 否则懒扫描的轮询会让 `pumpAndSettle` 转不完）。
+///
+/// 当前目录**不是**最后一行：定位要做的是「把它搬到视口中间」，而不是
+/// 「滚到头让它贴着底」，下面留几行才分得出这两种。
+FileManagerTreeSnapshot _deepTreeSnapshot({int depth = 12}) {
+  final rows = [
+    for (var level = 0; level <= depth; level++)
+      FileManagerTreeRow(
+        path: level == 0 ? '/' : '/n$level',
+        name: level == 0 ? '/' : 'n$level',
+        depth: level,
+        expanded: true,
+        loading: false,
+        mayHaveChildren: true,
+        isActive: level == depth,
+      ),
+    for (var leaf = 1; leaf <= 3; leaf++)
+      FileManagerTreeRow(
+        path: '/n$depth/c$leaf',
+        name: 'c$leaf',
+        depth: depth + 1,
+        expanded: false,
+        loading: false,
+        mayHaveChildren: false,
+        isActive: false,
+      ),
+  ];
+  return FileManagerTreeSnapshot(rows: rows, hasPending: false);
+}
+
 FileManagerTab _tab(
   int id,
   String title, {

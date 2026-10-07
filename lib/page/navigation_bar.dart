@@ -15,6 +15,7 @@ import 'package:zephyr/service/download/download_queue_manager.dart';
 import 'package:zephyr/page/comic_follow/cubit/comic_follow_cubit.dart';
 import 'package:zephyr/service/lifecycle/foreground_task/foreground_task_service.dart';
 import 'package:zephyr/service/lifecycle/notification_service.dart';
+import 'package:zephyr/service/open_intent/open_intent_consumer.dart';
 import 'package:zephyr/service/update/check_update.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/util/error_filter.dart';
@@ -55,6 +56,9 @@ class _NavigationBarState extends State<NavigationBar> {
   DateTime? _lastToastShownAt;
   (ToastType, String?, String, Duration?)? _lastToastEvent;
   late HideOnScrollSettings hideOnScrollSettings;
+
+  /// 系统右键菜单递来的路径（见 `lib/service/open_intent/`）。
+  StreamSubscription<List<String>>? _openIntentSubscription;
 
   static bool _notificationsInitialized = false; // ← 使用静态变量，跨实例共享
   bool _isInitializingNotifications = false;
@@ -109,21 +113,19 @@ class _NavigationBarState extends State<NavigationBar> {
     });
 
     eventBus.on<NeedLogin>().listen((event) {
-      _goToLoginPage(
-        event.from,
-        loginScheme: event.scheme,
-        loginData: event.data,
-        message: event.message,
-      );
+      _goToLoginPage(event.from, message: event.message);
     });
 
     eventBus.on<ToastEvent>().listen((event) {
       _showToast(event);
     });
+
+    _openIntentSubscription = bindOpenIntents(context);
   }
 
   @override
   void dispose() {
+    _openIntentSubscription?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -150,7 +152,7 @@ class _NavigationBarState extends State<NavigationBar> {
       if (!mounted) return;
       final landing = resolveStartupLanding(
         startWithWorkspace: startWithWorkspace,
-        workspaceEntryAvailable: hasWorkspaceEntry(context),
+        workspaceEntryAvailable: workspaceAvailableOnDevice(context),
       );
       if (landing != StartupLanding.workspace) return;
       _openWorkspace();
@@ -487,12 +489,7 @@ class _NavigationBarState extends State<NavigationBar> {
     }
   }
 
-  void _goToLoginPage(
-    String from, {
-    Map<String, dynamic>? loginScheme,
-    Map<String, dynamic>? loginData,
-    String? message,
-  }) {
+  void _goToLoginPage(String from, {String? message}) {
     try {
       final pluginId = from.trim();
       if (pluginId.isEmpty) {
@@ -523,20 +520,54 @@ class _NavigationBarState extends State<NavigationBar> {
         final hasLoginRoute = navigator.widget.pages.any(
           (route) => (route.name ?? '').contains('LoginRoute'),
         );
-        if (!hasLoginRoute) {
-          showErrorToast(message ?? t.navigation.loginExpired);
-
-          _lastLoginNavigateAt = now;
-          _lastLoginPluginId = pluginId;
-          context.navigateTo(
-            LoginRoute(
-              from: pluginId,
-              loginScheme: loginScheme,
-              loginData: loginData,
-            ),
-          );
+        if (hasLoginRoute) {
+          return;
         }
+        _lastLoginNavigateAt = now;
+        _lastLoginPluginId = pluginId;
+        unawaited(_confirmAndGoToLogin(pluginId, message: message));
       });
+    } catch (e, stackTrace) {
+      logger.e('Failed to navigate to login', error: e, stackTrace: stackTrace);
+    }
+  }
+
+  Future<void> _confirmAndGoToLogin(String pluginId, {String? message}) async {
+    if (!mounted) {
+      return;
+    }
+    final goLogin = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(t.navigation.needLoginTitle),
+        content: Text(message ?? t.navigation.loginExpired),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(t.common.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(t.navigation.goLogin),
+          ),
+        ],
+      ),
+    );
+    if (goLogin != true || !mounted) {
+      return;
+    }
+    try {
+      final navigator = Navigator.maybeOf(context);
+      if (navigator == null) {
+        return;
+      }
+      final hasLoginRoute = navigator.widget.pages.any(
+        (route) => (route.name ?? '').contains('LoginRoute'),
+      );
+      if (hasLoginRoute) {
+        return;
+      }
+      context.navigateTo(LoginRoute(from: pluginId));
     } catch (e, stackTrace) {
       logger.e('Failed to navigate to login', error: e, stackTrace: stackTrace);
     }

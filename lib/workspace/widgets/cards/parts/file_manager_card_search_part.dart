@@ -111,25 +111,82 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
     final serial = ++_searchSerial;
     // ignore: invalid_use_of_protected_member
     setState(() => _searchRunning = true);
+    _beginSearchFeedback(id);
     try {
       final next = await fileManagerSearch(id: id);
       if (!mounted || serial != _searchSerial) return;
       // 遍历期间用户可能已经改了词或切走：条件签名一变，这批结果就不是现在要看的了。
       if (_searchSignatureOf(next) != _searchSignature) {
         // ignore: invalid_use_of_protected_member
-        setState(() => _searchRunning = false);
+        setState(() {
+          _searchRunning = false;
+          _endSearchFeedback();
+        });
         return;
       }
       // ignore: invalid_use_of_protected_member
       setState(() {
         _searchRunning = false;
+        _endSearchFeedback();
         _acceptSnapshot(next);
       });
     } catch (error) {
       if (!mounted || serial != _searchSerial) return;
       // ignore: invalid_use_of_protected_member
-      setState(() => _searchRunning = false);
+      setState(() {
+        _searchRunning = false;
+        _endSearchFeedback();
+      });
       _showError(error);
+    }
+  }
+
+  /// 遍历开始：先等 250ms，确认它是**慢的那一种**再亮引导条。
+  ///
+  /// 「接着打字」走的是核心里的就地收窄，几十毫秒就回来 —— 为它闪一下进度条反而像卡了。
+  /// 250ms 这个闸门借的是 MD3 对进度指示的分寸：短等待不打扰、长等待必须给出反馈。
+  void _beginSearchFeedback(BigInt id) {
+    _endSearchFeedback();
+    _searchScannedLive = 0;
+    _searchSlowTimer = Timer(const Duration(milliseconds: 250), () {
+      if (!mounted || !_searchRunning) return;
+      // ignore: invalid_use_of_protected_member
+      setState(() => _searchSlow = true);
+      _searchProgressPoll = Timer.periodic(
+        const Duration(milliseconds: 300),
+        (_) => _pollSearchProgress(id),
+      );
+    });
+  }
+
+  /// 遍历结束：收掉计时器与引导条。**不自己 setState** —— 调用方都在 setState 里。
+  void _endSearchFeedback() {
+    _searchSlowTimer?.cancel();
+    _searchSlowTimer = null;
+    _searchProgressPoll?.cancel();
+    _searchProgressPoll = null;
+    _searchProgressInFlight = false;
+    _searchScannedLive = 0;
+    _searchSlow = false;
+  }
+
+  /// 问一次「已扫多少条」。
+  ///
+  /// 慢盘上一次整库遍历要几十秒，数字自己往上走是「它在干活」最直接的证据；
+  /// 读不到就当这一轮没有数字（进度是辅助信息，不该让搜索本身冒红）。
+  Future<void> _pollSearchProgress(BigInt id) async {
+    if (_searchProgressInFlight || !_searchRunning || _disposed) return;
+    _searchProgressInFlight = true;
+    try {
+      final scanned = await fileManagerSearchProgress(id: id);
+      if (mounted && _searchRunning && scanned != _searchScannedLive) {
+        // ignore: invalid_use_of_protected_member
+        setState(() => _searchScannedLive = scanned);
+      }
+    } catch (_) {
+      // 同上：这一轮没有数字，下一次轮询会再试。
+    } finally {
+      _searchProgressInFlight = false;
     }
   }
 
@@ -206,6 +263,40 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
     );
   }
 
+  /// 遍历进行中的引导：MD3 的不定式线性进度条 + 实时「已扫 N 条」。
+  ///
+  /// 两个讲究：
+  /// - **位置**在输入框正下方，而不是选项行末尾 —— 选项行横向滚动，窄卡片上它不在视口里；
+  /// - **数字**来自核心真实计数（`fileManagerSearchProgress`），不是猜的百分比：
+  ///   树的规模在遍历前是无从知道的，编一个进度百分比只会骗人。
+  Widget _buildSearchProgress(BuildContext context) {
+    final theme = Theme.of(context);
+    final scanned = _searchScannedLive;
+    final label = scanned > 0
+        ? '正在递归搜索 · 已扫 ${_formatScannedCount(scanned)}'
+        : '正在递归搜索…';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const LinearProgressIndicator(minHeight: 3),
+        const SizedBox(height: 4),
+        Text(
+          '$label · 慢盘上要几十秒，结果扫完一次给出',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
+  /// 大数按中文读法折成「万」：14.6 万比 145827 好认，也不会把这一行撑开。
+  String _formatScannedCount(int scanned) => scanned >= 10000
+      ? '${(scanned / 10000).toStringAsFixed(1)} 万条'
+      : '$scanned 条';
+
   /// 搜索选项行：递归开关 + 命中统计。窄卡片下横向滚动，与工具栏同一策略。
   Widget _buildSearchOptions(
     BuildContext context,
@@ -214,10 +305,13 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
     final theme = Theme.of(context);
     final searching = snapshot.searchQuery.isNotEmpty;
     // 统计读的是快照：命中的正本在页签里，重建卡片也还在。
-    final status = !searching || !snapshot.searchIncludeSubfolders
+    //
+    // 遍历进行中的说明**不在这里**：这一行是横向滚动的，窄卡片上它经常不在视口里，
+    // 而「看不到任何动画」正是从那儿来的。进行中的引导搬到了输入框正下方
+    // （`_buildSearchProgress`，那一行永远可见）。
+    final status =
+        !searching || !snapshot.searchIncludeSubfolders || _searchSlow
         ? null
-        : _searchRunning
-        ? '正在递归搜索…'
         : snapshot.searchActive
         ? [
             '命中 ${snapshot.searchMatched}',

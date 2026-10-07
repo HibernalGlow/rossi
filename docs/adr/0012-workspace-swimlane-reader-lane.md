@@ -58,6 +58,21 @@
    - 有富余宽度时**富余全给阅读器**；不够时**整条带横向滚动**（一条平面、泳道之间不重叠）；
    - 分隔条拖拽把宽度从**右侧泳道**挪给**左侧泳道**，且只应用**实际让得出的距离**
      （任一侧先撞到 min/max 时，分隔条不会漂离光标）。
+   - **2026-10-03 加的唯一例外：单条泳道不吃满视口。**
+     `WorkspaceStripMetrics._fitToViewport` 把每条常规泳道夹到视口宽的 85%
+     （`maxLaneViewportFactor`），地板取 `min(lane.minWidth, 上限)`。
+     「不按窗口宽夹取」那句的前提是**装不下就整条带横向滚动**，而触屏上这条链的
+     后半截不存在（相邻泳道靠边缘**悬停**呼出，`MouseRegion.onHover` 在触摸指针下
+     永不触发）。于是「一条比屏幕还宽的泳道」在手机上不是布局不好看，是
+     滚动余量全花在自己身上、画面上没有任何东西提示外面还有内容 —— 与第 12 条
+     修掉的「触摸屏没有常驻出口」同一类。
+     地板必须让 `minWidth` 让位，否则在真正需要它的设备上**什么也不做**
+     （左栏 `minWidth=300` 对 369dp 视口就是 81%，夹不动）。
+     判据：`dart run test/workspace/strip_metrics_check.dart` 的
+     `_noLaneIsWiderThanTheViewport`（含阳性对照与「折叠轨 / 独占那条不被夹」两条
+     反向断言）；变异体「`_fitToViewport` 原样返回」实测变红。
+     与第 4.4 条同源：`docs/settings-sync-scope.md` —— 跨端同步也不把桌面这份
+     几何灌给触屏设备。
 
 6. **模式切换属于 Reader 的 chrome**：泳道模式下它挂在**阅读器泳道栏头**；
    工作台级别的动作（退出 / 重置布局 / 切换模式 / 当前书名 / 关闭漫画）
@@ -306,7 +321,86 @@
       「其实是编译错」的假证据。
 
 
+14. **安卓：把「有没有悬停指针」收成一条判据，泳道的触屏把手按它给（2026-10-02）。**
+
+    第 12 条处理的是**顶栏**在触摸屏上没有出口；这一条处理的是**左右泳道**在触摸屏上
+    根本没有把手。动手前先把事实钉住（全部来自源码，不是推测）：
+
+    - 左右泳道在桌面上靠**三种**只有指针才成立的触发：视口边缘驻留揭示
+      （`MouseRegion.onHover` → `_edgeDwell`，`swimlane_workspace.dart:440/291`）、
+      泳道悬停聚焦（`:598` → `_hoverDwell`）、滚轮/触控板横移条带
+      （`reader_input_controller.dart:661`，而且它自己就被 `_isDesktopPlatform` 闸住）。
+      触摸屏上这三个回调**一次都不会触发** —— 不是「手感差」，是结构性不可达。
+    - 那「横扫条带」呢？条带确实默认可滚（`manualScrollEnabled` 默认开 ⇒
+      `ClampingScrollPhysics`），但**阅读器泳道里的横向拖动会被翻页的 PageView 抢走**
+      （第 13 条刚把点击分区修对，翻页那一路没变），所以从正在读的那一格里拽不动条带。
+      能拽的只有栏头与非阅读器泳道的内容。
+    - `WorkspaceRevealZones` 的默认左右带是**视口宽的 1%**（`workspace_reveal_zones.dart:291`）：
+      400dp 的手机上就是 4dp，连「勉强能按到」都算不上。
+
+    决定：
+
+    1. **判据收成一处**：新增 `WorkspacePointerMode.forTargetPlatform`
+       （`model/workspace_pointer_mode.dart`）与 `hasHoverPointer`。顶栏那条
+       `WorkspaceTopChromeMode.forTargetPlatform` 改为向它委派 —— 原来两处各写一遍
+       `switch (TargetPlatform)`，而它们问的是**同一个问题**，两处迟早分叉。
+       仍然用 `defaultTargetPlatform`（不用 `dart:io` 的 `Platform`），理由见第 12 条：
+       测试里可以覆写。
+    2. **触屏 ⇒ Reader 独占时一律给出那两条 44px 切换轨**
+       （`swimlane_workspace.dart` 传给 `WorkspaceStripMetrics.resolve` 的
+       `showLaneNavigatorInSolo` 变成 `存的偏好 || !hasHoverPointer`）。
+       **不改存的值**：`showLaneNavigatorInSolo` 是用户在「设置 → 布局」里定的偏好，
+       按设备给的是**形态**，与第 12 条「不是把顶栏统一改成常驻，而是按平台分流」同一条路子。
+       点轨 = `activateLane` 这条语义**本来就有**（`_buildLane` 的
+       `isRail && !config.collapsed` 那一支，注释还专门解释过它不是折叠）——
+       这一条不是新增能力，是把已经写好的能力接到一个能按到的地方。
+    3. **「导航栏上有没有那颗按钮」与「这台设备用不用得了工作台」分成两条判据**
+       （`hasWorkspaceEntry` / 新增 `workspaceAvailableOnDevice`）。原来两者是同一条，
+       于是手机被判定为「不能用工作台」，而理由其实只是「那颗按钮长在 rail 布局的
+       trailing 上」。手机上现在从**设置 → 布局**顶部那颗「进入工作台」进去
+       （+ 开屏页那一项 + 启动落点），**底部 tab 的信息架构一字未动** ——
+       `navigation_bar.dart` 里写明那是「动作不是视图」，不该因为换了平台就改变性质。
+       出口照旧三条：系统返回键、泳道「更多」菜单里的退出、`Esc`。
+    4. **面板栏把手补 `onLongPress`**，与右键开的是**同一个**菜单（同一个
+       `_openSettingsMenuAt`），不是两套行为。这条把手自己的 `GestureDetector` 里没人
+       注册长按，所以它是空出来的；页签上的长按**没给**同样的替身，因为那里被
+       `LongPressDraggable` 的 220ms 拖动延时占了 —— 硬加只会让拖动失灵。
+    5. **唤出区那张卡在无指针设备上明写「这几块要鼠标贴边才生效」**，而不是留一个
+       可以画、画完永远看不到变化的编辑器（第 12 条那颗「不给点了没反应的开关」的纪律）。
+
+    判据（本机实跑）：
+
+    | 判据 | 结果 |
+    |---|---|
+    | `flutter test test/workspace/swimlane_runtime_test.dart` | **15 passed**（新增两条：触屏 ⇒ 左右收成轨 + 点轨真的交出交互；桌面 ⇒ 同一份设置不给轨，并把左泳道整条留在视口外） |
+    | `flutter test test/workspace/workspace_startup_test.dart` | **passed**（新增一组 4 条：手机「没有按钮但可用」、六档平台全可用、启动落点吃的是「可用」那条） |
+    | `flutter test test/workspace/top_chrome_test.dart` | **6 passed**（顶栏形态改为委派给新判据之后，原有穷举照旧全过） |
+
+    **判据层面挖出来的一条，值得单独记**：`flutter test` 里 `defaultTargetPlatform`
+    默认就是 **android**。所以任何「按有没有指针分流」的能力，一上线就把这个文件里
+    原本绿的 4 条桌面判据**静默改量到触屏那一档**（症状是 `_stripPosition` 找不到
+    条带 —— 因为轨那一档不渲染内容，探针根本不在树上）。这类红看起来完全不像
+    「平台判据变了」，所以本文件加 `testWidgetsOn(平台, …)` 把每条判据钉在它描述的那一档上。
+    复位只能写在**测试体内**：`_verifyInvariants` 在测试体结束时就要求 foundation
+    调试变量已清回原值，`addTearDown` 排在它后面 ⇒ 每一条判据都以
+    「The value of a foundation debug variable was changed by the test.」收场（实测踩过）。
+
+    明确不做（这一轮的边界）：
+
+    - **不做「边缘驻留的触屏版」**（按住边缘 / 从边缘起手的横拖）。它要和阅读器的翻页
+      抢同一个手势 arena，抢到之后还得决定「松手算不算一次翻页」，那是另一件事；
+      而第 2 条那条轨已经把可达性问题解决了。
+    - **不给页签「收起面板」加触屏入口**：现状是**收起**只有右键，**恢复**在页签条右侧
+      的「已收起」入口里（触屏可点）。也就是说触屏用户不会陷进去，只是少一个动作。
+      要补的话落点是泳道「更多」菜单里列一遍面板，不是给页签加长按。
+    - **没做竖屏手机的泳道版式**：369dp 宽的视口摆默认档（左 400 / Reader 比例 / 右 400）
+      本来就装不下，靠条带滚动 + 轨能操作，但谈不上好读。这是版式选择，留给实机反馈。
+
+    仍然没验证的：**真机手感**（轨好不好按、独占态下条带动画在手机上顺不顺）。
+    这一轮验到的是「平台 → 判据 → 几何 → 交互落到哪个状态」这四步。
+
 ## Considered Options
+
 - **嵌套 `AutoRouter` / 让每条泳道各有一条导航栈**：更"正统"，但要让上游页面的
   `pushRoute` 落到嵌套路由器上，就得给面板泳道声明一整份路由表；上游日后新增一处跳转，
   这里就会在运行时抛「route not found」。**与 ADR-0002 的合并目标直接冲突。**

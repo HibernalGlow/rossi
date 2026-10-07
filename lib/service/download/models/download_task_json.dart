@@ -80,6 +80,9 @@ abstract class DownloadTaskJson with _$DownloadTaskJson {
     @Default(0) int completedImages,
     @Default(0) int reusedImages,
     @Default(0) int totalImages,
+
+    /// 最近一次上报的下载速度（字节/秒）。只用于展示，中断/暂停后可能过期。
+    @Default(0) int bytesPerSecond,
     @Default(<String>[]) List<String> imagePaths,
     @Default(0) int attempt,
     @Default('') String lastErrorCode,

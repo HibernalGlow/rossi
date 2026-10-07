@@ -46,7 +46,9 @@ serde_json = "1"
 # **注意它的能力边界**：`list` / `restore_all` / `purge_all` 只在 Windows 与
 # Freedesktop 上存在（crate 里 `os_limited` 模块的 cfg）—— **macOS 没有程序化恢复**。
 # 所以「撤销删除」是运行时能力查询，不是常量，见 `execute::TrashBackend::supports_restore`。
-trash = "5"
+#
+# 依赖本身按平台切（见文件下方 `[target.'cfg(not(any(android, ios)))]` 那一段）：
+# android / iOS 那边这个 crate **编译不过**，不是「能力没开」。
 # ---- 波形峰值（视频进度条上的那条声音轮廓）----
 # 口径来自 mImageViewer 的 `video/seek_strip_wave.rs`，但**不搬它的机器**：
 # 那份实现 3656 行，绑 `music_core::TimelineAnalysis`、wgpu 波形纹理与 SQLite tile 缓存。
@@ -105,6 +107,16 @@ unicode-normalization = "0.1"
 # 自己拼 `A:\`…`Z:\` 再 `is_dir()` 探测会把光驱/未就绪的卷判成「存在」。
 # 版本与 `gpu_present` 保持一致（0.58），feature 合并后不会出现双份编译。
 # 非 Windows 平台这段不参与构建，file_tree.rs 的对应分支由 cfg 门关掉。
+# ── 回收站 crate 的按平台闸门 ──
+# 只在「有系统回收站可寻」的平台上引入：`trash` 的 `platform` 模块 cfg 是
+# windows / macos / linux(Freedesktop)，**android 与 iOS 那边整块不存在** ——
+# 引进依赖图就报 `E0433: cannot find module or crate 'platform'`，
+# 是编译不过，不是「能力没开」。那两个平台由
+# `file_ops/execute/backend.rs` 里的同名本地实现接手（移到 `.rossi_trash/`，可撤销）。
+# 与 `os_limited_available()` 的 cfg 是同一口径，改一处要改两处。
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+trash = "5"
+
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.58", features = [
     "Win32_Foundation",

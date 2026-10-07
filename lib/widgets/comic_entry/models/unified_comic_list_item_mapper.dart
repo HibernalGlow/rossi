@@ -1,4 +1,5 @@
 import 'package:zephyr/object_box/model.dart';
+import 'package:zephyr/service/comic_source_page/comic_source_page_store.dart';
 import 'package:zephyr/page/search_result/models/unified_plugin_search.dart';
 import 'package:zephyr/util/json/json_sanitize.dart';
 import 'package:zephyr/util/json/json_value.dart';
@@ -248,5 +249,13 @@ UnifiedComicListItem _requireUnifiedPluginItem(
   if (item['cover'] is! Map || item['metadata'] is! List) {
     throw StateError('插件返回非统一漫画结构: $context');
   }
-  return UnifiedComicListItem.fromJson(item);
+  final parsed = UnifiedComicListItem.fromJson(item);
+  // 插件只在**列表项**里给过原站页面链接（详情 payload 里没有），所以链接在
+  // 这一刻进宿主，得当场记下来，否则详情页与书架都无从可查。
+  ComicSourcePageStore.instance.remember(
+    source: parsed.source,
+    comicId: parsed.id,
+    extern: parsed.extern,
+  );
+  return parsed;
 }

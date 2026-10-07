@@ -136,7 +136,7 @@ void main() {
           blocks = r.blocks;
           // 没识别到文字的页，Rust 侧根本不会写擦字底图（builder 那时直接回原图），
           // 这里读一个不存在的路径会把整轮扫描打断。
-          erasedPng = File(erasedPath).existsSync()
+          erasedPng = File(erasedPath!).existsSync()
               ? await File(erasedPath).readAsBytes()
               : Uint8List(0);
           return r;

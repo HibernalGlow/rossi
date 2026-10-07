@@ -19,8 +19,18 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::time::Instant;
 
+/// 建一臂。臂名可以带 `@N` 后缀指定这一臂的 `max_side`（`prod@640`），
+/// 不带就用 `--max-side`。
+///
+/// 为什么要挂在臂名上而不是加一个 `--side-list`：这个台架的全部价值在于**交替 + 轮换起点**
+/// （串行分块实测同配置差 57%）。另起一层循环扫 max_side 就退回串行设计，
+/// 测出来的差和负载漂移同量级，等于没测。
 fn build(name: &str, model: &std::path::Path, max_side: u32) -> anyhow::Result<Inpainter> {
-    let painter = match name {
+    let (arm, side) = match name.split_once('@') {
+        Some((a, s)) => (a, s.parse::<u32>()?),
+        None => (name, max_side),
+    };
+    let painter = match arm {
         "prod" => Inpainter::from_file(model, Ep::Cpu)?,
         other => {
             let n: usize = other
@@ -29,7 +39,7 @@ fn build(name: &str, model: &std::path::Path, max_side: u32) -> anyhow::Result<I
             Inpainter::from_file_with(model, Ep::Cpu, n)?
         }
     };
-    Ok(painter.with_max_side(max_side))
+    Ok(painter.with_max_side(side))
 }
 
 fn median(v: &[u128]) -> u128 {
@@ -45,7 +55,7 @@ fn main() -> anyhow::Result<()> {
     let mut arms = vec!["prod".to_string(), "1".to_string(), "4".to_string()];
     let mut rounds = 5u32;
     let mut dilate = 3i32;
-    let mut max_side = 1024u32;
+    let mut max_side = 768u32; // = 生产默认（`Inpainter::from_file`）
     let mut base_arm = "1".to_string();
 
     let mut args = std::env::args().skip(1);

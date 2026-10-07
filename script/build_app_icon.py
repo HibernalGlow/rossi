@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""从 poc/mask-upright.svg 生成各桌面平台的应用图标。
+"""从 poc/mask-upright.svg 生成各平台的应用图标。
 
 主图严格遵循 macOS 图标网格：1024 画布内放置 824x824 超椭圆（n=5，实测自
 系统自带图标的轮廓），四周各留 100px。小尺寸由主图等比降采样得到。
+安卓与商店图另走一张「撑满画布」的版本，见 `full_bleed` 的说明。
 
 用法:
     python3 script/build_app_icon.py [--source poc/mask-upright.svg]
@@ -35,9 +36,20 @@ EDGE = "#CFC5B7"
 MACOS_SIZES = [16, 32, 64, 128, 256, 512, 1024]
 ICO_SIZES = [256, 128, 64, 48, 32, 16]
 
+# 安卓启动器图标的密度档（Legacy 图标，非自适应图标）。
+ANDROID_DENSITIES = {
+    "ldpi": 36,
+    "mdpi": 48,
+    "hdpi": 72,
+    "xhdpi": 96,
+    "xxhdpi": 144,
+    "xxxhdpi": 192,
+}
+
 MACOS_SET = ROOT / "macos/Runner/Assets.xcassets/AppIcon.appiconset"
 ASSET_DIR = ROOT / "asset/image"
 WINDOWS_RES = ROOT / "windows/runner/resources"
+ANDROID_RES = ROOT / "android/app/src/main/res"
 
 
 def run(cmd: list[str], **kw) -> subprocess.CompletedProcess:
@@ -151,6 +163,20 @@ def resample(src: Path, dst: Path, size: int) -> None:
          "-strip", str(dst)])
 
 
+def full_bleed(master: Path, work: Path) -> Path:
+    """把主图撑满画布，供安卓与商店图标用。
+
+    主图严格照 macOS 图标网格留了 100px 安全边距（图形只占画布 80.5%），那是
+    macOS 的要求。安卓启动器会**自己再按圆形裁一次**，照搬等于先缩 0.8 再被裁，
+    猫耳会被削掉。这里裁掉透明边距后撑满画布：形状本身一个像素没改，改的只有
+    「画布边距」这个平台网格约定。
+    """
+    out = work / "android_master.png"
+    run(["magick", str(master), "-trim", "+repage", "-resize", "1024x1024",
+         "-strip", str(out)])
+    return out
+
+
 def write_previews(master: Path, work: Path) -> list[Path]:
     """把图标分别压到浅色/深色壁纸上，便于肉眼验收小尺寸表现。"""
     out = []
@@ -210,6 +236,17 @@ def main() -> None:
         for target in (ASSET_DIR / "app_icon.ico", WINDOWS_RES / "app_icon.ico"):
             target.write_bytes(ico.read_bytes())
             print(f"  -> {target.relative_to(ROOT)}")
+
+        # 安卓：六档 legacy 图标 + 商店图。启动器按屏幕密度取其中一档，
+        # 缺档会拿大图自己缩（糊），所以一档都不省。
+        android_master = full_bleed(master, work)
+        for dpi, size in ANDROID_DENSITIES.items():
+            dst = ANDROID_RES / f"mipmap-{dpi}" / "ic_launcher.png"
+            resample(android_master, dst, size)
+            print(f"  -> {dst.relative_to(ROOT)}")
+        playstore = ANDROID_RES / "playstore-icon.png"
+        resample(android_master, playstore, 512)
+        print(f"  -> {playstore.relative_to(ROOT)}")
 
         args.preview_dir.mkdir(parents=True, exist_ok=True)
         for strip in write_previews(master, work):

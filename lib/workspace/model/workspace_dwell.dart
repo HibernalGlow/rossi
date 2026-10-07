@@ -24,10 +24,29 @@ import 'dart:math' as math;
 /// 3. **被抑制时一律不发**，并且**进入抑制的瞬间就把待发项清掉**。
 ///    契约要求「指针捕获 / 正在拖动 / 输入法组合 / 弹层 / 浮动菜单」期间既不许
 ///    揭示也不许自动恢复；等到抑制解除时，那次驻留早已作废，不该补发。
+///
+/// 第四条是这一轮加的：**指针还在动就不算驻留**（[noteMotion] 一直推后到期点，
+/// [settleMs] 静够之后才开始走 `delay` 那一段）。它换掉的口径是「进入即计时」——
+/// 那个口径下延时一个人要干两件事（别误触 + 给反应时间），于是只能取很大的值，
+/// 而真停住的人也一起等满它。
 class WorkspaceDwell {
   String? _pendingId;
+  int _armedMs = 0;
   int _deadlineMs = 0;
+  int _delayMs = 0;
   bool _suppressed = false;
+
+  /// 「停住」的判定窗口（毫秒）—— 最后一次指针运动之后要静多久，计时才开始走。
+  ///
+  /// 这条不是第四个旋钮，是**内部常量**：用户只需要回答「停住之后还要不要再等一下」
+  /// （`hoverFocusDelayMs`），而「什么叫停住」不该由他对着表调。
+  ///
+  /// 为什么要有它：以前的计时是「进入即开始」，于是延时同时承担了两件事 ——
+  /// 一是别把「路过」当成「要看这里」，二是给用户一点反应时间。一件事两个职责的结果
+  /// 就是那个数必须很大（420ms）才不误触，而真停下来的人也得等满它，
+  /// 主观感受是「移过去先卡一下，然后一起动」。拆开之后：路过由 [noteMotion]
+  /// 不断推后到期点，永远轮不到触发；真停住的人只等 `settle + delay`。
+  static const int settleMs = 60;
 
   /// 正在计时的目标；`null` = 没有计时。
   String? get pendingId => _pendingId;
@@ -38,14 +57,44 @@ class WorkspaceDwell {
 
   /// 开始（或重新开始）对 [id] 的驻留计时。
   ///
-  /// [delayMs] 必须为正：0 延时等于「一进入就触发」，指针扫过时画面会横跳，
+  /// 到期点 = `nowMs + settleMs + delayMs`：先静够 [settleMs]（「确实停住了」），
+  /// 再等 [delayMs]（「停住之后还要不要再看一会儿」）。
+  ///
+  /// [delayMs] 必须为正：0 延时等于「一停就触发」，指针扫过时画面会横跳，
   /// 那不是「更快」而是「更坏」。非法值按 1ms 处理，把它变成一个「几乎是立刻」
   /// 但仍然过一次事件循环的延时。
-  void enter(String id, {required int nowMs, required int delayMs}) {
+  void enter(
+    String id, {
+    required int nowMs,
+    required int delayMs,
+  }) {
     if (_pendingId == id) return;
     _pendingId = id;
-    _deadlineMs = nowMs + math.max(1, delayMs);
+    _delayMs = math.max(1, delayMs);
+    _retime(nowMs);
   }
+
+  /// 指针**又动了**：把到期点整体推后（先重新静够 `settle`，再等满 `delay`）。
+  ///
+  /// 只在有待发项时起作用，也不改目标 —— 目标换了是 [enter] 的事，
+  /// 那条路径要**重新计时**（契约：换了目标不能把在上一条泳道攒的时间算给它）。
+  void noteMotion(int nowMs) {
+    if (_pendingId == null) return;
+    _retime(nowMs);
+  }
+
+  void _retime(int nowMs) {
+    _armedMs = nowMs + WorkspaceDwell.settleMs;
+    _deadlineMs = _armedMs + _delayMs;
+  }
+
+  /// 已经「确实停住」了、正在等 `delay` 走完 —— 给界面一个**预备态**的落点。
+  ///
+  /// 这一档存在的意义是把手感里那 200 来毫秒变成「有回应」而不是「没反应」：
+  /// 泳道先以边框表明「系统看见我停在这儿了」，稍后交互才真的交出来。
+  /// 路过时永远走不到这里（运动一直把 [isArmed] 往后推），所以它不会闪。
+  bool isArmed(int nowMs) =>
+      !_suppressed && _pendingId != null && nowMs >= _armedMs;
 
   /// [id] 的目标已经离开：只有**正在计时的就是它**才取消。
   ///
