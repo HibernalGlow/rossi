@@ -2,14 +2,16 @@
 //
 // 用户报的症状是「功能图标堆在一起」。改造前那一行是三种边长（30 圆钮 /
 // 40 方 IconButton / 36 自绘框）并排、彼此只差 2~4px，窄窗还会挤出黄黑斜纹。
-// 所以这里钉四件事，每一件都是「analyze 与编译证明不了」的那类：
+// 所以这里钉五件事，每一件都是「analyze 与编译证明不了」的那类：
 //
 //   1. **宽度分档是纯函数**，边界只写在一处（`reader_top_bar_style.dart`）；
 //   2. 十档宽度下主行**零溢出** —— RenderFlex 溢出会让 pump 直接失败，
 //      这条以前只能靠实机肉眼抓（上一轮就是这么发现溢出条纹的）；
 //   3. 主行上所有图标按钮是**同一个几何**（40×40）；
-//   4. 窄档让位的是**整组**（视图三项 + 钉住 + 全屏 + 下载进「更多」），
+//   4. 窄档让位的是**整组**（视图三项 + 下载，中档以下再搭上钉住 + 全屏），
 //      而超分芯片按用户口径**永不折叠**；自动滚屏反过来 —— 它常驻二级。
+//   5. 让出去的那一组住**常驻第二行**，只有窗高不够（横屏手机）才退回「更多」；
+//      两个落点互斥 —— 同一颗控件不许有两个入口、两颗实例。
 //
 // 只 pump 顶栏本体：`from` 留空 ⇒ 下载那颗不出现，不牵 ObjectBox 与下载队列；
 // `LocalReadSession.instance.presenter` 默认为 null ⇒ 超分芯片走 shrink 分支。
@@ -36,10 +38,14 @@ Future<void> _paintBar(
   WidgetTester tester,
   double width, {
   bool withFullscreen = true,
+  // 默认 400 是**故意的**：第二行的门槛在 600，默认值让既有那批「让位进菜单」
+  // 的判据继续量它们本来要量的那一档。测第二行就显式传 800，别抬默认值 ——
+  // 那样一半测试会静默换掉自己被测的那条分支。
+  double height = 400,
 }) async {
-  // 把**视口**改成这个宽度：默认测试画布只有 800×600，用 SizedBox 撑到 1280
+  // 把**视口**改成这个尺寸：默认测试画布只有 800×600，用 SizedBox 撑到 1280
   // 会被画布夹回 800，宽档与中档就成了同一档 —— 那样这条扫描什么也没验。
-  tester.view.physicalSize = Size(width, 400);
+  tester.view.physicalSize = Size(width, height);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 
@@ -124,9 +130,40 @@ void main() {
       expect(ReaderToolbarTier.medium.showsChipLabels, isFalse);
       expect(ReaderToolbarTier.medium.keepsViewControlsInline, isTrue);
       expect(ReaderToolbarTier.medium.keepsWindowControlsInline, isFalse);
-      // 窄档：版式组并成一颗循环按钮，视图三项与下载整组进菜单。
+      // 窄档：版式组并成一颗循环按钮，视图三项与下载整组让出主行。
       expect(ReaderToolbarTier.narrow.expandsLayoutGroup, isFalse);
       expect(ReaderToolbarTier.narrow.keepsViewControlsInline, isFalse);
+      // 「有没有让出整组」决定第二行存不存在，所以它也得只有一处口径。
+      expect(ReaderToolbarTier.wide.demotesAnyGroup, isFalse);
+      expect(ReaderToolbarTier.medium.demotesAnyGroup, isTrue);
+      expect(ReaderToolbarTier.narrow.demotesAnyGroup, isTrue);
+    });
+
+    test('第二行只看「有没有让位项 + 窗高够不够」这两条', () {
+      const tall = ReaderTopBarStyleLimits.secondaryRowMinHeight;
+      // 宽档没有让位项，多高都不加第二行。
+      expect(
+        resolveReaderSecondaryRow(
+          tier: ReaderToolbarTier.wide,
+          maxHeight: tall + 400,
+        ),
+        isFalse,
+      );
+      // 中/窄档：越过那条线才有第二行，差 1px 就没有。
+      for (final tier in [ReaderToolbarTier.medium, ReaderToolbarTier.narrow]) {
+        expect(
+          resolveReaderSecondaryRow(tier: tier, maxHeight: tall),
+          isTrue,
+          reason: '$tier 刚好到线就该有第二行',
+        );
+        expect(
+          resolveReaderSecondaryRow(tier: tier, maxHeight: tall - 1),
+          isFalse,
+          reason: '$tier 差 1px 就不该多抢那一行画面',
+        );
+      }
+      // 门槛本身也是判据：横屏手机（高 ~390）必须落在它下面。
+      expect(ReaderTopBarStyleLimits.secondaryRowMinHeight, 600);
     });
   });
 
@@ -280,6 +317,128 @@ void main() {
       await _paintBar(tester, 360, withFullscreen: false);
       expect(tester.takeException(), isNull);
     });
+  });
+
+  group('第二行（让位行）', () {
+    // 用户的报法是「窄屏隐藏的东西太多了，宽屏那些按钮直接放第二行」。
+    // 所以这一组钉的是**可达性**：让出去的每一颗都画在屏幕上，而且只画一颗。
+    // 高 800 = 竖屏手机 / 桌面窗；400 = 横屏手机，那一档仍然回「更多」菜单。
+    final rowTwo = find.byType(ReaderToolbarPanelRow);
+
+    testWidgets('窄档 + 够高：视图三项与钉住/全屏画在第二行', (tester) async {
+      await _paintBar(tester, 389, height: 800);
+      expect(rowTwo, findsOneWidget);
+      expect(find.byIcon(Icons.dashboard_customize_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.rotate_right_rounded), findsOneWidget);
+      // _paintBar 默认按桌面档画，此时 isDesktopFullscreen 为 true。
+      expect(find.byIcon(Icons.fullscreen_exit_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.push_pin_outlined), findsOneWidget);
+      // 用户点名留在第一行的那颗没被这一行挤走。
+      expect(find.byType(ReaderOnlineUpscaleChip), findsOneWidget);
+    });
+
+    testWidgets('第二行常驻时「更多」不再重复列让位项', (tester) async {
+      // 一颗控件两个入口 = 两个选中态，改一处另一处不动，比藏起来更难查。
+      await _paintBar(tester, 389, height: 800);
+      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      await tester.pumpAndSettle();
+      expect(find.text('版式工具'), findsNothing);
+      expect(find.text('旋转设置'), findsNothing);
+      expect(find.text(t.reader.pinTopBar), findsNothing);
+      // 让位项之外的东西一个不少：滚屏与那五颗占位仍然住在菜单里。
+      expect(find.text('开启自动滚屏'), findsOneWidget);
+      expect(find.text('幻灯片'), findsOneWidget);
+    });
+
+    testWidgets('窗高不够（横屏手机）时让位项退回菜单，不是消失', (tester) async {
+      await _paintBar(tester, 389, height: 400);
+      expect(rowTwo, findsNothing);
+      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      await tester.pumpAndSettle();
+      expect(find.text('版式工具'), findsOneWidget);
+      expect(find.text(t.reader.pinTopBar), findsOneWidget);
+    });
+
+    testWidgets('中档：第二行只有窗口那一节，视图三项仍在主行', (tester) async {
+      await _paintBar(
+        tester,
+        ReaderTopBarStyleLimits.expandedLayoutMinWidth + 20,
+        height: 800,
+      );
+      expect(rowTwo, findsOneWidget);
+      // 视图三项没让位：主行那颗就是唯一的一颗。
+      expect(find.byIcon(Icons.dashboard_customize_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.push_pin_outlined), findsOneWidget);
+      // 整行只有窗口那一节，前面不该有条没有左边的分隔线。
+      expect(
+        find.descendant(
+          of: rowTwo,
+          matching: find.byType(ReaderToolbarSeparator),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('宽档不常驻第二行', (tester) async {
+      await _paintBar(tester, 1280, height: 800);
+      expect(rowTwo, findsNothing);
+    });
+
+    testWidgets('展开面板时第二行不消失，让位项不会被面板换掉', (tester) async {
+      await _paintBar(tester, 389, height: 800);
+      await tester.tap(find.byIcon(Icons.dashboard_customize_outlined));
+      await tester.pumpAndSettle();
+      // 面板在第二行**下面**另起一行：两块同时在树上。
+      expect(rowTwo, findsNWidgets(2));
+      // 入口仍然只有一颗，而且带着选中态 —— 再点一次就是收起。
+      expect(find.byIcon(Icons.dashboard_customize_outlined), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('第二行也是 40 的高度带', (tester) async {
+      await _paintBar(tester, 389, height: 800);
+      final controls = find.descendant(
+        of: rowTwo,
+        matching: find.byType(ReaderToolbarIconButton),
+      );
+      final count = controls.evaluate().length;
+      expect(count, greaterThanOrEqualTo(4), reason: '第二行不该只剩几颗');
+      double? center;
+      for (var i = 0; i < count; i++) {
+        final rect = tester.getRect(controls.at(i));
+        expect(rect.height, 40, reason: '第 $i 颗不是 40 高，第二行又混了高度');
+        if (center == null) {
+          center = rect.center.dy;
+        } else {
+          expect(
+            (rect.center.dy - center).abs(),
+            lessThan(0.01),
+            reason: '中心线不齐：第 $i 颗偏了',
+          );
+        }
+      }
+    });
+  });
+
+  group('第二行在窄/中档宽度零溢出', () {
+    // 上面那组测的是「在不在」，这一组测的是「放不放得下」：让位行是 `Wrap`，
+    // 换行不算溢出，但 320 那一档一旦有人往里加宽控件就会顶出斜纹。
+    const expanded = ReaderTopBarStyleLimits.expandedLayoutMinWidth;
+    for (final width in [
+      320.0,
+      360.0,
+      389.0,
+      expanded - 240,
+      expanded - 1,
+      expanded,
+    ]) {
+      testWidgets('$width（高 800）不溢出', (tester) async {
+        await _paintBar(tester, width, height: 800);
+        expect(tester.takeException(), isNull);
+        // 阳性对照：这一档必须真的画出了第二行，否则「不溢出」是空转出来的。
+        expect(find.byType(ReaderToolbarPanelRow), findsOneWidget);
+      });
+    }
   });
 
   group('滚屏住在二级', () {

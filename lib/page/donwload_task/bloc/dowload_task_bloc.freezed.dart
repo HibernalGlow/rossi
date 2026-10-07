@@ -56,14 +56,14 @@ extension DowloadTaskEventPatterns on DowloadTaskEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _Started value)?  started,TResult Function( _TasksUpdated value)?  tasksUpdated,TResult Function( _TaskDeleted value)?  taskDeleted,TResult Function( _CancelCurrentTask value)?  cancelCurrentTask,TResult Function( _ClearCompleted value)?  clearCompleted,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _Started value)?  started,TResult Function( _TasksUpdated value)?  tasksUpdated,TResult Function( _TaskDeleted value)?  taskDeleted,TResult Function( _CancelTask value)?  cancelTask,TResult Function( _ClearCompleted value)?  clearCompleted,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _Started() when started != null:
 return started(_that);case _TasksUpdated() when tasksUpdated != null:
 return tasksUpdated(_that);case _TaskDeleted() when taskDeleted != null:
-return taskDeleted(_that);case _CancelCurrentTask() when cancelCurrentTask != null:
-return cancelCurrentTask(_that);case _ClearCompleted() when clearCompleted != null:
+return taskDeleted(_that);case _CancelTask() when cancelTask != null:
+return cancelTask(_that);case _ClearCompleted() when clearCompleted != null:
 return clearCompleted(_that);case _:
   return orElse();
 
@@ -82,14 +82,14 @@ return clearCompleted(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _Started value)  started,required TResult Function( _TasksUpdated value)  tasksUpdated,required TResult Function( _TaskDeleted value)  taskDeleted,required TResult Function( _CancelCurrentTask value)  cancelCurrentTask,required TResult Function( _ClearCompleted value)  clearCompleted,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _Started value)  started,required TResult Function( _TasksUpdated value)  tasksUpdated,required TResult Function( _TaskDeleted value)  taskDeleted,required TResult Function( _CancelTask value)  cancelTask,required TResult Function( _ClearCompleted value)  clearCompleted,}){
 final _that = this;
 switch (_that) {
 case _Started():
 return started(_that);case _TasksUpdated():
 return tasksUpdated(_that);case _TaskDeleted():
-return taskDeleted(_that);case _CancelCurrentTask():
-return cancelCurrentTask(_that);case _ClearCompleted():
+return taskDeleted(_that);case _CancelTask():
+return cancelTask(_that);case _ClearCompleted():
 return clearCompleted(_that);case _:
   throw StateError('Unexpected subclass');
 
@@ -107,14 +107,14 @@ return clearCompleted(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _Started value)?  started,TResult? Function( _TasksUpdated value)?  tasksUpdated,TResult? Function( _TaskDeleted value)?  taskDeleted,TResult? Function( _CancelCurrentTask value)?  cancelCurrentTask,TResult? Function( _ClearCompleted value)?  clearCompleted,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _Started value)?  started,TResult? Function( _TasksUpdated value)?  tasksUpdated,TResult? Function( _TaskDeleted value)?  taskDeleted,TResult? Function( _CancelTask value)?  cancelTask,TResult? Function( _ClearCompleted value)?  clearCompleted,}){
 final _that = this;
 switch (_that) {
 case _Started() when started != null:
 return started(_that);case _TasksUpdated() when tasksUpdated != null:
 return tasksUpdated(_that);case _TaskDeleted() when taskDeleted != null:
-return taskDeleted(_that);case _CancelCurrentTask() when cancelCurrentTask != null:
-return cancelCurrentTask(_that);case _ClearCompleted() when clearCompleted != null:
+return taskDeleted(_that);case _CancelTask() when cancelTask != null:
+return cancelTask(_that);case _ClearCompleted() when clearCompleted != null:
 return clearCompleted(_that);case _:
   return null;
 
@@ -132,13 +132,13 @@ return clearCompleted(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  started,TResult Function( List<DownloadTask> tasks)?  tasksUpdated,TResult Function( int taskId)?  taskDeleted,TResult Function()?  cancelCurrentTask,TResult Function()?  clearCompleted,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  started,TResult Function( List<DownloadTask> tasks)?  tasksUpdated,TResult Function( int taskId)?  taskDeleted,TResult Function( int taskId)?  cancelTask,TResult Function()?  clearCompleted,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Started() when started != null:
 return started();case _TasksUpdated() when tasksUpdated != null:
 return tasksUpdated(_that.tasks);case _TaskDeleted() when taskDeleted != null:
-return taskDeleted(_that.taskId);case _CancelCurrentTask() when cancelCurrentTask != null:
-return cancelCurrentTask();case _ClearCompleted() when clearCompleted != null:
+return taskDeleted(_that.taskId);case _CancelTask() when cancelTask != null:
+return cancelTask(_that.taskId);case _ClearCompleted() when clearCompleted != null:
 return clearCompleted();case _:
   return orElse();
 
@@ -157,13 +157,13 @@ return clearCompleted();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  started,required TResult Function( List<DownloadTask> tasks)  tasksUpdated,required TResult Function( int taskId)  taskDeleted,required TResult Function()  cancelCurrentTask,required TResult Function()  clearCompleted,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  started,required TResult Function( List<DownloadTask> tasks)  tasksUpdated,required TResult Function( int taskId)  taskDeleted,required TResult Function( int taskId)  cancelTask,required TResult Function()  clearCompleted,}) {final _that = this;
 switch (_that) {
 case _Started():
 return started();case _TasksUpdated():
 return tasksUpdated(_that.tasks);case _TaskDeleted():
-return taskDeleted(_that.taskId);case _CancelCurrentTask():
-return cancelCurrentTask();case _ClearCompleted():
+return taskDeleted(_that.taskId);case _CancelTask():
+return cancelTask(_that.taskId);case _ClearCompleted():
 return clearCompleted();case _:
   throw StateError('Unexpected subclass');
 
@@ -181,13 +181,13 @@ return clearCompleted();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  started,TResult? Function( List<DownloadTask> tasks)?  tasksUpdated,TResult? Function( int taskId)?  taskDeleted,TResult? Function()?  cancelCurrentTask,TResult? Function()?  clearCompleted,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  started,TResult? Function( List<DownloadTask> tasks)?  tasksUpdated,TResult? Function( int taskId)?  taskDeleted,TResult? Function( int taskId)?  cancelTask,TResult? Function()?  clearCompleted,}) {final _that = this;
 switch (_that) {
 case _Started() when started != null:
 return started();case _TasksUpdated() when tasksUpdated != null:
 return tasksUpdated(_that.tasks);case _TaskDeleted() when taskDeleted != null:
-return taskDeleted(_that.taskId);case _CancelCurrentTask() when cancelCurrentTask != null:
-return cancelCurrentTask();case _ClearCompleted() when clearCompleted != null:
+return taskDeleted(_that.taskId);case _CancelTask() when cancelTask != null:
+return cancelTask(_that.taskId);case _ClearCompleted() when clearCompleted != null:
 return clearCompleted();case _:
   return null;
 
@@ -373,34 +373,70 @@ as int,
 /// @nodoc
 
 
-class _CancelCurrentTask implements DowloadTaskEvent {
-  const _CancelCurrentTask();
+class _CancelTask implements DowloadTaskEvent {
+  const _CancelTask(this.taskId);
   
 
+ final  int taskId;
 
-
+/// Create a copy of DowloadTaskEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$CancelTaskCopyWith<_CancelTask> get copyWith => __$CancelTaskCopyWithImpl<_CancelTask>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _CancelCurrentTask);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _CancelTask&&(identical(other.taskId, taskId) || other.taskId == taskId));
 }
 
 
 @override
-int get hashCode => runtimeType.hashCode;
+int get hashCode {
+    return Object.hash(runtimeType,taskId);
+}
 
 @override
 String toString() {
-    return 'DowloadTaskEvent.cancelCurrentTask()';
+    return 'DowloadTaskEvent.cancelTask(taskId: $taskId)';
 }
 
 
 }
 
+/// @nodoc
+abstract mixin class _$CancelTaskCopyWith<$Res> implements $DowloadTaskEventCopyWith<$Res> {
+  factory _$CancelTaskCopyWith(_CancelTask value, $Res Function(_CancelTask) _then) = __$CancelTaskCopyWithImpl;
+@useResult
+$Res call({
+ int taskId
+});
 
 
+
+
+}
+/// @nodoc
+class __$CancelTaskCopyWithImpl<$Res>
+    implements _$CancelTaskCopyWith<$Res> {
+  __$CancelTaskCopyWithImpl(this._self, this._then);
+
+  final _CancelTask _self;
+  final $Res Function(_CancelTask) _then;
+
+/// Create a copy of DowloadTaskEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? taskId = null,}) {
+  return _then(_CancelTask(
+null == taskId ? _self.taskId : taskId // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
 
 /// @nodoc
 

@@ -16,11 +16,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:zephyr/service/ocr/ocr_log.dart';
+import 'package:zephyr/reader/page_display_source.dart';
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/reader/translated_page_controller.dart';
 import 'package:zephyr/service/ocr/ocr_models.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_builder.dart';
+import 'package:zephyr/service/ocr/translated_page_cache.dart';
+import 'package:zephyr/service/ocr/translated_page_display_mode.dart';
+import 'package:zephyr/service/ocr/translated_page_layer.dart';
 import 'package:zephyr/src/rust/api/ocr.dart';
 
 const _pathChannel = MethodChannel('plugins.flutter.io/path_provider');
@@ -85,10 +89,14 @@ class _FakeSource implements PageSource {
 }
 
 class _FakePresenter implements TranslatedPagePresenter {
-  _FakePresenter({this.confirmed});
+  _FakePresenter({this.confirmed, this.bypassed = false});
 
   /// `null` = 呈现器答不上来；`false` = 注入了但画面没换。
   final bool? confirmed;
+
+  /// 呈现器是否在跑「原图对比」旁路 —— 开着时 `confirmed` 必然为 `false`，
+  /// 而那句 false 描述的是旁路，不是注入失败。
+  final bool bypassed;
 
   final Map<int, String> _owned = <int, String>{};
   final List<(int, String)> injected = <(int, String)>[];
@@ -96,6 +104,9 @@ class _FakePresenter implements TranslatedPagePresenter {
 
   @override
   Map<int, String> get translationOwnedPages => _owned;
+
+  @override
+  bool get bypassesEnhancedTrack => bypassed;
 
   @override
   Future<bool> setEnhancedImage(int index, String imagePath) async {
@@ -171,21 +182,23 @@ class _MissingProductBuilder extends TranslatedPageBuilder {
     void Function(TranslatedPageStage stage)? onStage,
     bool Function()? shouldCancel,
     bool force = false,
+    bool retainErasedBase = false,
   }) async => TranslatedPage(
     path: path,
     fromCache: true,
     hasText: true,
     blockCount: 1,
     truncatedCount: 0,
+    label: 'test-label',
   );
 }
 
-/// 假装这次构建是**降级产物**（擦字与回填都做了，但一个译文都没有）。
-class _DegradedBuilder extends TranslatedPageBuilder {
-  _DegradedBuilder(this.path, this.bytes);
+/// 假装这次构建在**翻译那一跳**上失败（真机上的成因：语言包没装 / 端点没起 / 漏译）。
+/// 这一档现在没有「降级产物」兜着了 —— 失败就是失败，界面得如实说。
+class _ThrowingBuilder extends TranslatedPageBuilder {
+  _ThrowingBuilder(this.message);
 
-  final String path;
-  final Uint8List bytes;
+  final String message;
 
   @override
   Future<TranslatedPage> build({
@@ -195,16 +208,82 @@ class _DegradedBuilder extends TranslatedPageBuilder {
     void Function(TranslatedPageStage stage)? onStage,
     bool Function()? shouldCancel,
     bool force = false,
+    bool retainErasedBase = false,
   }) async {
-    // 注入前控制器会确认文件真的在，所以这里得给它一个真文件。
-    await File(path).writeAsBytes(bytes, flush: true);
+    throw OcrTranslationException(message);
+  }
+}
+
+/// 一台「按叠层交回产物」的构建器。
+///
+/// 图层 JSON 由它自己写进缓存档，于是控制器的 `overlayReady` 判得出来；
+/// `overlayNeedsBase` 由用例指定 —— 那一维正是「这一页要不要替它占增强图轨」的唯一入口。
+class _OverlayBuilder extends TranslatedPageBuilder {
+  _OverlayBuilder({
+    required this.needsBase,
+    required this.basePath,
+    this.fromCache = false,
+    this.layerFilled,
+  });
+
+  final bool needsBase;
+  final String basePath;
+
+  /// 图层里那框有没有填色。默认与 `needsBase` 相反（真链路里就是这一个条件），
+  /// 只有「构建器报不出这一维」那一条要单独拧。
+  final bool? layerFilled;
+
+  bool get boxHasFill => layerFilled ?? !needsBase;
+
+  /// 命中缓存那一趟：构建器什么都没算，报不出 `overlayNeedsBase`。
+  final bool fromCache;
+  static const label = 'overlay-test档';
+
+  @override
+  Future<TranslatedPage> build({
+    required String imagePath,
+    required int pageIndex,
+    required OcrTranslationConfig config,
+    void Function(TranslatedPageStage stage)? onStage,
+    bool Function()? shouldCancel,
+    bool force = false,
+    bool retainErasedBase = false,
+  }) async {
+    await TranslatedPageCache.writeLayer(
+      label: label,
+      pageIndex: pageIndex,
+      json: TranslatedPageLayer(
+        pageWidth: _pageW,
+        pageHeight: _pageH,
+        boxes: [
+          TranslatedBox(
+            quad: [
+              _box.left,
+              _box.top,
+              _box.right,
+              _box.top,
+              _box.right,
+              _box.bottom,
+              _box.left,
+              _box.bottom,
+            ],
+            source: 'トカゲじゃ',
+            text: '是蜥蜴啊',
+            fill: boxHasFill
+                ? const ui.Color.fromARGB(255, 255, 255, 255)
+                : null,
+          ),
+        ],
+      ).encode(),
+    );
     return TranslatedPage(
-      path: path,
-      fromCache: false,
+      path: basePath,
       hasText: true,
       blockCount: 1,
       truncatedCount: 0,
-      degraded: true,
+      label: label,
+      overlayNeedsBase: needsBase,
+      fromCache: fromCache,
     );
   }
 }
@@ -242,7 +321,7 @@ void main() {
       TranslatedPageController(
         builder: TranslatedPageBuilder(
           analyze: (imagePath, erasedPath, ep) async {
-            await File(erasedPath).writeAsBytes(page, flush: true);
+            await File(erasedPath!).writeAsBytes(page, flush: true);
             return OcrPageResult(
               blocks: blocks,
               pageWidth: _pageW,
@@ -347,6 +426,57 @@ void main() {
     );
   });
 
+  test('原图对比开着：核对回 false 也判「已注入」，不谎报译文失败', () async {
+    // 这就是 2026-10-03 那次「翻译全都失败」的现场：旁路按设计不参显增强图轨
+    // （`enhance.rs` 的 `prefers_enhanced` = `!bypass && 有增强图`），
+    // 于是开着它的每一页，核对都必然回 false。
+    await seedReady();
+    final c = controllerWith(blocks: blocks);
+    final presenter = _FakePresenter(confirmed: false, bypassed: true);
+
+    final ok = await c.toggle(
+      source: _FakeSource(page),
+      presenter: presenter,
+      index: 6,
+    );
+    expect(
+      ok,
+      isTrue,
+      reason: '产物已经生成并注入 —— 报成失败只会让用户反复重跑那十几秒',
+    );
+    expect(c.lastError, isEmpty);
+    expect(c.phase, TranslatedPagePhase.showing);
+    expect(presenter.injected, hasLength(1));
+    expect(
+      presenter.translationOwnedPages.keys,
+      {6},
+      reason: '不登记归属，超分就会来抢这一页的增强图轨',
+    );
+  });
+
+  test('原图对比开着时点第二下：译文关得掉，归属要让出来', () async {
+    // 关译文走的是同一条核对。旁路期间关不掉的话，用户只能看着芯片一直停在
+    // 「译文页」，而画面上从头到尾都是原图。
+    await seedReady();
+    final c = controllerWith(blocks: blocks);
+    final presenter = _FakePresenter(confirmed: false, bypassed: true);
+    final source = _FakeSource(page);
+
+    expect(
+      await c.toggle(source: source, presenter: presenter, index: 1),
+      isTrue,
+    );
+    expect(presenter.translationOwnedPages.keys, {1});
+
+    expect(
+      await c.toggle(source: source, presenter: presenter, index: 1),
+      isTrue,
+    );
+    expect(presenter.translationOwnedPages, isEmpty);
+    expect(c.phase, TranslatedPagePhase.off);
+    expect(presenter.injected, hasLength(2));
+  });
+
   test('再点一次：把原图注回去并让出这一页', () async {
     await seedReady();
     final c = controllerWith(blocks: blocks);
@@ -392,7 +522,7 @@ void main() {
       builder: TranslatedPageBuilder(
         analyze: (imagePath, erasedPath, ep) async {
           await gate.future;
-          await File(erasedPath).writeAsBytes(page, flush: true);
+          await File(erasedPath!).writeAsBytes(page, flush: true);
           return OcrPageResult(
             blocks: [
               OcrBlock(
@@ -456,7 +586,7 @@ void main() {
     final c = TranslatedPageController(
       builder: TranslatedPageBuilder(
         analyze: (imagePath, erasedPath, ep) async {
-          await File(erasedPath).writeAsBytes(page, flush: true);
+          await File(erasedPath!).writeAsBytes(page, flush: true);
           return OcrPageResult(
             blocks: blocks,
             pageWidth: _pageW,
@@ -566,25 +696,24 @@ void main() {
     expect(presenter.translationOwnedPages, isEmpty);
   });
 
-  test('降级产物：页归译文管，但记成「原文回填」，关掉后两笔账都清', () async {
-    // 端点挂了的时候，页面看着像处理完了 —— 擦字做了、字也画上去了，只是没有一个字是译文。
-    // 界面必须能区分这两件事。
+  test('翻译那一跳失败：整页按失败处理，不占增强图轨、不谎报译文页', () async {
+    // 这一档以前会端出一张「擦掉日文又画回日文」的降级页 —— 页面看着像处理完了，
+    // 只是没有一个字是译文。现在没有那条路了：失败必须显形，而且**不登记归属**，
+    // 否则超分会一直给一张根本没上屏的译文页让路。
     await seedReady();
     final presenter = _FakePresenter(confirmed: true);
     final c = TranslatedPageController(
-      builder: _DegradedBuilder('${root.path}/degraded_p3.png', page),
+      builder: _ThrowingBuilder('系统翻译的语言包还没装（ja→zh-Hans：supported）'),
     );
 
     expect(
       await c.toggle(source: _FakeSource(page), presenter: presenter, index: 3),
-      isTrue,
+      isFalse,
     );
-    expect(c.isOwned(3), isTrue);
-    expect(c.isDegraded(3), isTrue);
-
-    await c.toggle(source: _FakeSource(page), presenter: presenter, index: 3);
-    expect(c.isDegraded(3), isFalse);
-    expect(c.isOwned(3), isFalse);
+    expect(c.phase, TranslatedPagePhase.failed);
+    expect(c.lastError, contains('语言包还没装'));
+    expect(presenter.injected, isEmpty);
+    expect(presenter.translationOwnedPages, isEmpty);
   });
 
   test('换书 reset：清掉归属，否则新书那几页会被旧译文占着', () async {
@@ -597,5 +726,131 @@ void main() {
     c.reset();
     expect(presenter.translationOwnedPages, isEmpty);
     expect(c.phase, TranslatedPagePhase.off);
+  });
+
+  test('叠层档、每框都有填色：不注入、不占轨 —— 超分照常生效', () async {
+    await seedReady();
+    await TranslatedPageDisplayMode.save(TranslatedPageDisplayChoice.overlay);
+    final base = '${root.path}/overlay_fill_only.png';
+    await File(base).writeAsBytes(page, flush: true);
+    final c = TranslatedPageController(
+      builder: _OverlayBuilder(needsBase: false, basePath: base),
+    );
+    final presenter = _FakePresenter(confirmed: true);
+
+    final ok = await c.toggle(
+      source: _FakeSource(page),
+      presenter: presenter,
+      index: 2,
+    );
+
+    expect(ok, isTrue);
+    expect(c.phase, TranslatedPagePhase.showing);
+    expect(c.isOverlayActive(2), isTrue);
+    expect(
+      presenter.injected,
+      isEmpty,
+      reason: '这一页的底就是画面本来那张，占轨等于白白压掉超分',
+    );
+    expect(presenter.translationOwnedPages, isEmpty);
+  });
+
+  test('叠层档、需要擦字底图：登记档名，同时替这一页占轨', () async {
+    await seedReady();
+    await TranslatedPageDisplayMode.save(TranslatedPageDisplayChoice.overlay);
+    // 底图必须真的在缓存档里：控制器是先问 `overlayReady` 才走叠层分支的，
+    // 而「有框没填色」那一类页的底只能是这张擦字底图。
+    final erasedBase = await TranslatedPageCache.baseFile(
+      label: _OverlayBuilder.label,
+      pageIndex: 3,
+    );
+    await erasedBase.create(recursive: true);
+    await erasedBase.writeAsBytes(page, flush: true);
+    final c = TranslatedPageController(
+      builder: _OverlayBuilder(needsBase: true, basePath: erasedBase.path),
+    );
+    final presenter = _FakePresenter(confirmed: true);
+
+    final ok = await c.toggle(
+      source: _FakeSource(page),
+      presenter: presenter,
+      index: 3,
+    );
+
+    expect(ok, isTrue);
+    expect(
+      c.isOverlayActive(3),
+      isTrue,
+      reason: '占轨是为了把底图换上屏，字仍然由叠层那一层画',
+    );
+    expect(
+      presenter.injected,
+      hasLength(1),
+      reason: '底图不占轨就没人换上屏 —— 中文会压在日文下面（§决定 4 那条 0.085）',
+    );
+    expect(presenter.injected.single.$2, erasedBase.path);
+    expect(presenter.translationOwnedPages.keys, {3});
+  });
+
+  test('叠层档、命中缓存：构建器报不出这一维，控制器现读图层', () async {
+    // 占不占轨必须是这一页的**属性**。第一次建的时候替它占了轨，翻回来命中缓存就不占了，
+    // 画面会从「擦干净的底 + 中文」变回「日文压在中文下面」—— 同一页两种画面，
+    // 而这种错只有翻回来才看得见。
+    await seedReady();
+    await TranslatedPageDisplayMode.save(TranslatedPageDisplayChoice.overlay);
+    final erasedBase = await TranslatedPageCache.baseFile(
+      label: _OverlayBuilder.label,
+      pageIndex: 5,
+    );
+    await erasedBase.create(recursive: true);
+    await erasedBase.writeAsBytes(page, flush: true);
+    final c = TranslatedPageController(
+      builder: _OverlayBuilder(
+        needsBase: false,
+        fromCache: true,
+        layerFilled: false,
+        basePath: erasedBase.path,
+      ),
+    );
+    final presenter = _FakePresenter(confirmed: true);
+
+    final ok = await c.toggle(
+      source: _FakeSource(page),
+      presenter: presenter,
+      index: 5,
+    );
+
+    expect(ok, isTrue);
+    expect(c.isOverlayActive(5), isTrue);
+    expect(
+      presenter.translationOwnedPages.keys,
+      {5},
+      reason: '图层里那框没有填色 ⇒ 这一页的底只能是擦字底图，命中缓存也一样要占轨',
+    );
+  });
+
+  test('「对比原图」开着：控制器报得出旁路，叠层那一层才让得开', () async {
+    // 旁路屏蔽的是增强图轨。烘焙档自然被挡住，而叠层是 Flutter 侧的一层 ——
+    // 不读这一维，用户按下对比原图看到的是「原图 + 中文」。
+    await seedReady();
+    await TranslatedPageDisplayMode.save(TranslatedPageDisplayChoice.overlay);
+    final base = '${root.path}/overlay_bypass.png';
+    await File(base).writeAsBytes(page, flush: true);
+    final c = TranslatedPageController(
+      builder: _OverlayBuilder(needsBase: false, basePath: base),
+    );
+    expect(
+      c.bypassesOriginalPreview,
+      isFalse,
+      reason: '还没挂呈现器就说「旁路开着」，是拿未知当证据',
+    );
+
+    final presenter = _FakePresenter(confirmed: true, bypassed: true);
+    await c.toggle(source: _FakeSource(page), presenter: presenter, index: 6);
+    expect(
+      c.bypassesOriginalPreview,
+      isTrue,
+      reason: '这一维要如实转达呈现器那句「我在跑原图对比」',
+    );
   });
 }

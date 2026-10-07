@@ -55,7 +55,7 @@ void main() {
     }
   });
 
-  test('--drop-one 少回一条：生产的条数守卫必须抛（这就是降级档的触发口）', () async {
+  test('--drop-one 少回一条：生产的条数守卫必须抛（这就是失败/回落的触发口）', () async {
     final stub = await _startStub(['--drop-one']);
     try {
       final content = await _complete(stub.port, _prompt);

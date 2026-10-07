@@ -1,15 +1,30 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/workspace/model/shelf_entry_menu_spec.dart';
+import 'package:zephyr/workspace/widgets/cards/file_manager_entry_context_menu.dart'
+    show md3MenuStyle;
+import 'package:zephyr/workspace/widgets/library_view/shelf_menu_button.dart';
 
-/// 收藏 / 历史卡片里**一个条目**的右键菜单宿主。
+/// 收藏 / 历史卡片里**一个条目**的右键菜单宿主，菜单面按 Material Design 3 规格实现。
 ///
-/// 两件事分开：
+/// 三件事分开：
 ///
 /// - **有哪些项、哪一项可用** —— 纯函数 [buildShelfEntryMenuItems]
 ///   （`lib/workspace/model/shelf_entry_menu_spec.dart`，判据 `dart run
 ///   test/workspace/shelf_entry_menu_check.dart`）；
-/// - **长什么样、在哪儿弹** —— 本文件。
+/// - **长什么样、在哪儿弹** —— 本文件；
+/// - **动作怎么落地** —— 卡片里的 `_onMenuAction`。
+///
+/// # 为什么用 `MenuAnchor` 而不是 `showMenu`
+///
+/// `showMenu` 走的是 M2 的 `PopupMenuTheme`：`surface` 底色、2dp 圆角、8dp 高度。
+/// MD3 的菜单面是 `surfaceContainer` + 2dp 高度 + 4dp 圆角 + 上下 8dp 内边距，
+/// 条目 48dp 高、24dp 前置图标 —— 规格与文件管理器那一份共用 [md3MenuStyle]，
+/// 不再有两套菜单长得不一样。
+///
+/// 也**不用** `PopupMenuButton`：那个组件要的是「自己就是那个按钮」，而这里整行
+/// 已经是可点的 `InkWell`，再套一层按钮会让「点一下」与「右键一下」落到两个
+/// 不同的响应区。
 ///
 /// # 触发方式：桌面右键 + 触摸长按
 ///
@@ -19,11 +34,6 @@ import 'package:zephyr/workspace/model/shelf_entry_menu_spec.dart';
 ///
 /// 与卡片自己的 `InkWell(onTap:)` 不冲突：那个只认主键单击，这里认的是次键与长按，
 /// 三种手势在 arena 里各走各的。
-///
-/// # 为什么不包 `PopupMenuButton`
-///
-/// 那个组件要的是「自己就是那个按钮」，而这里整行已经是可点的 `InkWell`；
-/// 再套一层按钮会让「点一下」与「右键一下」落到两个不同的响应区。
 class ShelfEntryContextMenuRegion extends StatelessWidget {
   const ShelfEntryContextMenuRegion({
     super.key,
@@ -35,10 +45,12 @@ class ShelfEntryContextMenuRegion extends StatelessWidget {
 
   final Widget child;
 
-  /// **菜单真正弹出来的那一刻**才调用它。
+  /// **菜单要弹出来的那一刻**才调用它。
   ///
   /// 不提前算：`isFavorite` 要查一次 ObjectBox，而列表里每一条都查一遍属于
-  /// 「为了一个可能永远不打开的菜单，把整张列表过一遍数据库」。
+  /// 「为了一个可能永远不打开的菜单，把整张列表过一遍数据库」。所以
+  /// [MenuAnchor.menuChildren] 在菜单关着的时候是空表，只有 [_openAt] 先把
+  /// 输入算出来存进 State、重建一次，才交给菜单。
   final ShelfEntryMenuInput Function() inputBuilder;
 
   /// 用户选了一个动作。选中后菜单已经关掉了，这里只负责执行。
@@ -51,107 +63,102 @@ class ShelfEntryContextMenuRegion extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!enabled) return child;
-    return GestureDetector(
-      behavior: HitTestBehavior.deferToChild,
-      onSecondaryTapUp: (details) => _open(context, details.globalPosition),
-      onLongPressStart: (details) => _open(context, details.globalPosition),
+    return _ShelfEntryMenuAnchor(
+      inputBuilder: inputBuilder,
+      onAction: onAction,
       child: child,
     );
   }
-
-  Future<void> _open(BuildContext context, Offset globalPosition) async {
-    final action = await showShelfEntryMenu(
-      context,
-      position: globalPosition,
-      input: inputBuilder(),
-    );
-    if (action == null || !context.mounted) return;
-    onAction(context, action);
-  }
 }
 
-/// 在 [position]（全局坐标）弹出菜单并等用户选一个。
-///
-/// 返回 `null` = 点空白关掉了 / 选了灰掉的那一项 —— 两种都不该有动作。
-Future<ShelfEntryAction?> showShelfEntryMenu(
-  BuildContext context, {
-  required Offset position,
-  required ShelfEntryMenuInput input,
-}) async {
-  final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
-  if (overlay == null) return null;
+/// `MenuAnchor` 需要 `MenuController`，而 `MenuController` 只能在 State 里持有一个
+/// （它在 `attach` 之前调 `open()` 会断言失败）。所以外壳是 Stateless、内核是 Stateful。
+class _ShelfEntryMenuAnchor extends StatefulWidget {
+  const _ShelfEntryMenuAnchor({
+    required this.child,
+    required this.inputBuilder,
+    required this.onAction,
+  });
 
-  // 两条分隔线把菜单切成「打开类 / 复制类 / 破坏性」三段：挨在一起最容易点错，
-  // 而破坏性那一段必须与上面隔开（neoview 的两份菜单也是这么分组的）。
-  final items = <PopupMenuEntry<ShelfEntryAction>>[];
-  for (final spec in buildShelfEntryMenuItems(input)) {
-    if (spec.action == ShelfEntryAction.copyTitle ||
-        spec.action == ShelfEntryAction.remove) {
-      items.add(const PopupMenuDivider());
-    }
-    items.add(
-      PopupMenuItem<ShelfEntryAction>(
-        value: spec.action,
-        enabled: spec.enabled,
-        child: _MenuRow(
-          spec: spec,
-          kind: input.kind,
-          isFavorite: input.isFavorite,
-        ),
+  final Widget child;
+  final ShelfEntryMenuInput Function() inputBuilder;
+  final void Function(BuildContext context, ShelfEntryAction action) onAction;
+
+  @override
+  State<_ShelfEntryMenuAnchor> createState() => _ShelfEntryMenuAnchorState();
+}
+
+class _ShelfEntryMenuAnchorState extends State<_ShelfEntryMenuAnchor> {
+  final MenuController _controller = MenuController();
+
+  /// 这一次菜单的输入；`null` = 菜单没在弹，也就一项都不必构造。
+  ShelfEntryMenuInput? _input;
+
+  @override
+  void dispose() {
+    _controller.close();
+    super.dispose();
+  }
+
+  void _openAt(Offset localPosition) {
+    // 查库（`isFavorite`）只发生在这一行被右键/长按的时候。
+    setState(() => _input = widget.inputBuilder());
+    // MD3 的惯例是菜单左上角落在指针处。`MenuAnchor` 的 `position` 用的是
+    // 锚点自己的坐标系，所以直接用 `localPosition`，不要换算全局坐标。
+    _controller.open(position: localPosition);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MenuAnchor(
+      controller: _controller,
+      style: md3MenuStyle(context),
+      menuChildren: _buildItems(context),
+      child: GestureDetector(
+        // `deferToChild`：手势只在这一行本身吃掉了事件时才认，不抢上层滚动的。
+        behavior: HitTestBehavior.deferToChild,
+        onSecondaryTapUp: (details) => _openAt(details.localPosition),
+        onLongPressStart: (details) => _openAt(details.localPosition),
+        child: widget.child,
       ),
     );
   }
 
-  return showMenu<ShelfEntryAction>(
-    context: context,
-    position: RelativeRect.fromRect(
-      position & const Size(1, 1),
-      Offset.zero & overlay.size,
-    ),
-    items: items,
-  );
-}
-
-class _MenuRow extends StatelessWidget {
-  const _MenuRow({
-    required this.spec,
-    required this.kind,
-    required this.isFavorite,
-  });
-
-  final ShelfEntryMenuItemSpec spec;
-  final ShelfEntryKind kind;
-  final bool isFavorite;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = spec.destructive ? theme.colorScheme.error : null;
-    final label = shelfEntryActionLabel(
-      spec.action,
-      kind: kind,
-      isFavorite: isFavorite,
-    );
-
-    return Row(
-      children: [
-        Icon(
-          shelfEntryActionIcon(spec.action, kind: kind),
-          size: 18,
-          color: color,
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            label,
-            // MD3 菜单项正文是 labelLarge（14/500），与卡片位置菜单同一口径。
-            style: theme.textTheme.labelLarge?.copyWith(color: color),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+  List<Widget> _buildItems(BuildContext context) {
+    final input = _input;
+    if (input == null) return const [];
+    final items = <Widget>[];
+    for (final spec in buildShelfEntryMenuItems(input)) {
+      // 两条分隔线把菜单切成「打开类 / 复制类 / 破坏性」三段：挨在一起最容易点错，
+      // 而破坏性那一段必须与上面隔开（neoview 的两份菜单也是这么分组的）。
+      if (spec.action == ShelfEntryAction.copyTitle ||
+          spec.action == ShelfEntryAction.remove) {
+        items.add(const ShelfMenuDivider());
+      }
+      items.add(
+        ShelfMenuItem(
+          // 动作挂在 key 上：判据按「这是哪一项」找，不按文案找 —— 文案收进
+          // slang 之后会随语言变。
+          key: ValueKey(spec.action),
+          label: shelfEntryActionLabel(
+            spec.action,
+            kind: input.kind,
+            isFavorite: input.isFavorite,
           ),
+          icon: shelfEntryActionIcon(spec.action, kind: input.kind),
+          // `onPressed: null` 就是 MD3 的禁用态：菜单项**永远在场**，
+          // 只是有的不可点。
+          onPressed: spec.enabled
+              ? () {
+                  _controller.close();
+                  widget.onAction(context, spec.action);
+                }
+              : null,
+          destructive: spec.destructive,
         ),
-      ],
-    );
+      );
+    }
+    return items;
   }
 }
 

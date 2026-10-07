@@ -6,6 +6,7 @@ import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/cubit/workspace_state.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_reader_target.dart';
+import 'package:zephyr/workspace/model/workspace_reveal_zones.dart';
 import 'package:zephyr/workspace/router/workspace_lane_dispatch.dart';
 import 'package:zephyr/workspace/router/workspace_navigation_bridge.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_empty_canvas.dart';
@@ -130,17 +131,22 @@ class _WorkspaceReaderHostState extends State<WorkspaceReaderHost> {
               curr.interaction.revealZones.bottom,
       builder: (context, state) {
         final cubit = hostContext.read<WorkspaceCubit>();
-        final bottom = state.interaction.revealZones.bottom;
+        final zones = state.interaction.revealZones;
+        final bottom = zones.bottom;
         return ReaderHoverTriggerScope(
-          // 下唤出区由「设置 → 布局」那块画布管：阅读器住在泳道里，
-          // 它的底栏就是工作台的底边。阅读器自己的「唤出感应区高度」
-          // 在那时不再参与（两处都说话时只有这里说的是「画出来的那一块」）。
-          bottomRect: (
-            x: bottom.x,
-            y: bottom.y,
-            width: bottom.width,
-            height: bottom.height,
-          ),
+          // 只有「设置 → 布局」里**画过**下唤出区时，那块矩形才接管底栏的唤出带；
+          // 没画过时递 null，让阅读器自己的「底部唤出感应区高度」说话。
+          // 无条件递进去的话，出厂那块（整屏 1% 高）会一直盖住那条设置，
+          // 表现为「底栏的感应区高度怎么拖都不变」—— 顶栏没有这一层覆盖，
+          // 所以只有底部坏。
+          bottomRect: zones.isAuthored(RevealEdge.bottom)
+              ? (
+                  x: bottom.x,
+                  y: bottom.y,
+                  width: bottom.width,
+                  height: bottom.height,
+                )
+              : null,
           child: ReaderFullscreenScope(
             isFullscreen: state.isReaderFullscreen,
             onToggleFullscreen: cubit.toggleReaderFullscreen,

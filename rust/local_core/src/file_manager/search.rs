@@ -207,6 +207,19 @@ pub fn search_entries(
     request: &FileManagerSearchRequest,
     cancel: &AtomicBool,
 ) -> FileManagerSearchOutcome {
+    search_entries_with_progress(request, cancel, &std::sync::atomic::AtomicUsize::new(0))
+}
+
+/// 与 [`search_entries`] 同一条遍历，另外把「已检视多少条」实时写进 `scanned_live`。
+///
+/// 递归遍历在慢盘上要几秒到几十秒才交出结果；界面只有一个不动的转圈时，用户会开始
+/// 怀疑自己是不是搜错了词。让遍历自己报数，「它在干活」才是可看见的事实。
+/// 每条 `Relaxed` 存一次：原子存本身几乎不要钱，读侧（界面）几百毫秒才问一次。
+pub fn search_entries_with_progress(
+    request: &FileManagerSearchRequest,
+    cancel: &AtomicBool,
+    scanned_live: &std::sync::atomic::AtomicUsize,
+) -> FileManagerSearchOutcome {
     let settings = &request.settings;
     let tokens = crate::search_query::parse(&settings.search_query);
     let mode = if settings.search_or_mode {
@@ -261,6 +274,7 @@ pub fn search_entries(
                 break;
             }
             outcome.scanned += 1;
+            scanned_live.store(outcome.scanned, std::sync::atomic::Ordering::Relaxed);
             let Ok(file_type) = entry.file_type() else {
                 continue;
             };

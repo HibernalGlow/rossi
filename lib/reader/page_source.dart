@@ -245,3 +245,25 @@ abstract class PageSource {
   /// 获取该页的原始编码字节（JPEG/PNG/WebP 等）。
   Future<Uint8List?> getPageBytes(int index) => Future.value(null);
 }
+
+/// 报得出「这一页属于哪本书的哪一章」的那类来源。
+///
+/// # 为什么不直接给 [PageSource] 加一个带默认值的成员
+///
+/// 默认实现只保护 `extends`，护不住 `implements` —— 而本仓（含测试里的假来源）
+/// 就是用 `implements PageSource` 写的：加一个成员等于让那些类当场编不过。
+/// 所以这是一条**独立的能力**：谁参与成品页缓存的分档，谁自己去实现它；
+/// 不实现就是「没有源身份」，行为与加这个概念之前逐字一致。
+///
+/// # 为什么这件事非得有
+///
+/// 成品页缓存原本按「配置指纹 + 页号」查表。本地档一次只开一个来源，那还遮得住；
+/// 在线图源一旦可译，A 本第 5 页与 B 本第 5 页就是同一个键 —— 端出来的是另一本书的
+/// 画面，而芯片说它是译文页。
+abstract interface class TranslationScopeBearing {
+  /// 源身份；`null` = 这一路的产物不需要按书分档。
+  ///
+  /// 「给了才进指纹」这条判据写在 `OcrTranslationConfig.cacheScope` 上：
+  /// 多算一项等于把用户盘上已有的成品页白白作废。
+  String? get translationCacheScope;
+}

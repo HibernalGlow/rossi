@@ -143,7 +143,8 @@ page/comic_info/
 - **flutter_rust_bridge**：`lib/src/rust/frb_generated*.dart`、`rust/src/frb_generated.rs`
 - **auto_route**：`lib/util/router/router.gr.dart`
 - **freezed / json_serializable**：各目录下的 `*.freezed.dart`、`*.g.dart`
-- **桌面端应用图标**：`macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_*.png`、`asset/image/app-icon.png`、`asset/image/app_icon.ico`、`windows/runner/resources/app_icon.ico`，均由 `script/build_app_icon.py` 从 `poc/mask-upright.svg` 生成
+- **应用图标**：`macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_*.png`、`asset/image/app-icon.png`、`asset/image/app_icon.ico`、`windows/runner/resources/app_icon.ico`、`android/app/src/main/res/mipmap-*/ic_launcher.png`、`android/app/src/main/res/playstore-icon.png`，均由 `script/build_app_icon.py` 从 `poc/mask-upright.svg` 生成
+- **启动画面**：`android/app/src/main/res/drawable-*/splash.png`（与 `ios/Runner/Assets.xcassets/LaunchImage.imageset/`、`web/`），由 `flutter_native_splash` 按 `pubspec.yaml` 末尾的 `flutter_native_splash:` 段生成；重跑命令 `dart run flutter_native_splash:create`（它一次出三端，只要安卓时在改动后单独还原 `ios/` 与 `web/`）
 - **macOS 菜单栏图标**：`asset/image/menu_bar_icon.png`（纯黑 + 透明底的模板图），由 `script/build_menu_bar_icon.py` 从 `poc/mask-upright.svg` 生成，请勿手改
 
 ---
@@ -407,7 +408,7 @@ Android 端已彻底从 JNI + ncnn 共享库方案切换到 **waifu2x CLI** 方�
 | 修改桌面端 RealSR 策略/模型选择 | `lib/util/real_sr/desktop_ncnn_model_config.dart`、`lib/util/real_sr/real_sr_super_resolution.dart`、`lib/page/setting/real_sr/real_sr_setting_page.dart` |
 | 修改 CoreML 超分（iOS/macOS） | `packages/coreml_upscale/`、`lib/debug/coreml_upscale_debug_page.dart`、`asset/coreml_models/`、`script/convert_realcugan_coreml.py` |
 | 导入/导出应用数据 | `lib/page/setting/data_backup/`、`rust/src/api/data_backup.rs` |
-| 修改桌面端应用图标 | `poc/mask-upright.svg`（主图源）、`script/build_app_icon.py`（生成脚本，产物不要手改） |
+| 修改应用图标（全平台） | `poc/mask-upright.svg`（主图源）、`script/build_app_icon.py`（生成脚本，产物不要手改）；启动画面见 `pubspec.yaml` 的 `flutter_native_splash:` 段 |
 | 修改 macOS 菜单栏图标 | `poc/mask-upright.svg`、`script/build_menu_bar_icon.py`、`lib/platform/desktop/system_tray.dart` |
 | 修改 CI/CD | `.github/workflows/`、`script/` |
 
@@ -420,3 +421,45 @@ Android 端已彻底从 JNI + ncnn 共享库方案切换到 **waifu2x CLI** 方�
 - **plugin-dev-docs/**：插件开发文档（VitePress 站点），对外发布地址：<https://deretame.github.io/plugin-dev-docs/>
 - **Android RealSR 构建文档**：`docs/android_realsr_build.md`
 - **Flutter Rust Bridge 文档**：<https://cjycode.com/flutter_rust_bridge/>
+
+---
+
+## 12. GitButler 工作流（agent 版本控制规约）
+
+> 下面标记对之间的整段由 `but agent setup` 生成，将来重跑向导会原地更新它，**不要手改标记对里面的内容**。
+>
+> 与 §6.6 的关系：§6.6「只暂存本功能文件、不要 `git add -A`」的**口径不变**，只是落点换成 GitButler ——
+> 用 `but diff` 拿 file/hunk id，再 `but commit -b <分支> -m "..." <id> <id>`，不再使用裸 `git add` / `git commit`。
+>
+> 本仓的 git-crypt 注意事项：`.gitattributes` 给 `android/key.properties`、`android/Breeze-key.keystore`
+> 声明了 `filter=git-crypt`，但本机**没有安装 git-crypt，也没有 `filter.git-crypt.*` 配置**，因此该 filter
+> 目前是空转（工作树里就是密文原样）。GitButler 的 workspace 操作明确不保证应用 Git filter，
+> 所以**一旦将来 `git-crypt unlock` 把工作树解密，就不要让 `but` 提交这两个路径**。
+
+<!-- gitbutler-agent-setup:start -->
+## Version control
+
+- Use GitButler (`but`) for version-control inspection and write operations, including status, diffs, branching, committing, pushing, and history edits.
+- Assume multiple agents may be working in this repository. Do not move, amend, squash, discard, commit, push, or otherwise modify another agent's work unless the user asks.
+- For commit just/only/specific changes on a new branch (selected-change requests), use the two-command fast path from the GitButler skill: `but diff`, then `but commit -b <branch> -m "message" <id> <id>`.
+- For that fast path, after the commit succeeds, stop and summarize; do not run separate branch, staging, status, or diff commands unless the commit output is missing information you need.
+- Use the installed GitButler skill for command recipes and syntax before guessing flags, using `--help`, or translating Git habits directly.
+- Mutation commands report their result without appending workspace status. Add `--status-after` only when the next step needs resulting workspace IDs or details; otherwise do not rerun status or diff to verify success.
+- Use a dedicated GitButler branch for each agent session, unless the user asks for a different branch structure. Commit only changes that belong to that session.
+- Do not push or open pull requests unless the user asks.
+- Keep commit messages and pull request descriptions succinct: explain what changed, why it changed, and any important decision.
+
+### Amend local fixes into the right commits
+
+- For small cleanup or follow-up fixes, amend an unpublished local commit when the change clearly belongs with that commit's intent.
+- Do not create tiny fixup commits unless the user asks.
+- Use GitButler to move the relevant changes into the commit where they belong.
+- Ask before rewriting pushed, reviewed, shared, or ambiguous history.
+
+### Split unrelated changes into separate commits
+
+- If one file contains unrelated changes, split them by hunk instead of committing the whole file.
+- Keep tests with the behavior they verify.
+- Split generated output, docs-only edits, or mechanical cleanup into separate commits when each commit remains coherent on its own.
+- If the split is ambiguous, summarize the options before committing.
+<!-- gitbutler-agent-setup:end -->

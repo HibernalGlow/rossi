@@ -12,6 +12,7 @@ import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 import 'package:zephyr/main.dart';
+import 'package:zephyr/network/http/plugin/qjs_download_runtime.dart';
 import 'package:zephyr/network/http/picture/picture.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/config/router/router.gr.dart';
@@ -348,6 +349,11 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
                     comicId: info.id,
                     from: pluginId,
                   ),
+                  // 本地漫画没有插件 runtime 可建，预热带过去只会每次悬停报一次
+                  // `plugin_not_found:local`。
+                  onHover: isLocalComicSource(pluginId, info.id)
+                      ? null
+                      : () => prewarmQjsRuntime(pluginId),
                   size: comicReadButtonSize(width),
                 ),
               ),
@@ -691,6 +697,11 @@ class ComicSimplifyEntry extends StatelessWidget {
                     comicId: info.id,
                     from: pluginId,
                   ),
+                  // 本地漫画没有插件 runtime 可建，预热带过去只会每次悬停报一次
+                  // `plugin_not_found:local`。
+                  onHover: isLocalComicSource(pluginId, info.id)
+                      ? null
+                      : () => prewarmQjsRuntime(pluginId),
                   size: comicReadButtonSize(width),
                 ),
               ),

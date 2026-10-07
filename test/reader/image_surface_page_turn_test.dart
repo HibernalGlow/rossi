@@ -65,6 +65,9 @@ class _FakeSource implements PageSource {
   final String path = r'C:\fake\book.cbz';
 
   @override
+  String? get translationCacheScope => null;
+
+  @override
   final int pageCount = 3;
 
   /// 每次 `load` 的入参，按调用顺序记下来 —— 断言"请求了哪一页、按多宽解、什么许可"。

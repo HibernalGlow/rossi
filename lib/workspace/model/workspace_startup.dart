@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:zephyr/util/debouncer.dart';
+import 'package:zephyr/workspace/model/workspace_pointer_mode.dart';
 
 /// 启动后第一眼落在哪儿。
 enum StartupLanding {
@@ -11,15 +12,16 @@ enum StartupLanding {
   workspace,
 }
 
-/// 启动落点判定：开关 + 「本机有没有工作台入口」，两个都成立才去工作台。
+/// 启动落点判定：开关 + 「本机能不能用工作台」，两个都成立才去工作台。
 ///
 /// 抽成纯函数是为了让这两条能直接断言，而不必把 `NavigationBar` 挂起来
 /// （那一层依赖 ObjectBox、通知、下载队列，判据里起不来）：
 /// - 开关关着 ⇒ 永远是导航栏（默认关，所以没动过设置的用户零感知）；
-/// - 本机**没有**工作台入口 ⇒ 开关开着也仍然落在导航栏。手机（既不是平板宽度、
-///   也不是桌面）的导航栏上根本没有那个按钮，在那边自动打开只会开出一个
-///   只能靠返回键退出的整页 —— 设置页同样不摆这个开关
-///   （与 `comicInfoInlineReadButton` 的口径一致：不给点了没反应的开关）。
+/// - 本机用不了工作台 ⇒ 开关开着也仍然落在导航栏。传进来的应当是
+///   [workspaceAvailableOnDevice]，**不是** [hasWorkspaceEntry]：后者只说
+///   「侧栏布局上有没有那颗按钮」，手机上没有按钮但工作台进得去也出得来。
+///   这条守卫不是摆设：「能不能用」以后要按视口宽度收紧时（竖屏手机摆三条泳道
+///   本来就挤），改的是 [workspaceAvailableOnDevice] 那一处，这里照旧生效。
 StartupLanding resolveStartupLanding({
   required bool startWithWorkspace,
   required bool workspaceEntryAvailable,
@@ -39,13 +41,38 @@ bool isWorkspaceDesktopPlatform(TargetPlatform platform) =>
     platform == TargetPlatform.linux ||
     platform == TargetPlatform.macOS;
 
-/// 当前设备有没有工作台入口 —— 即「导航栏走不走四边栏布局」，
-/// 因为那个按钮就挂在四边栏布局的 `trailing` 上（见 `navigation_bar.dart`）。
+/// 当前设备**导航栏**有没有工作台入口 —— 即「导航栏走不走四边栏布局」，
+/// 因为那颗按钮就挂在四边栏布局的 `NavigationRail.trailing` 上
+/// （见 `navigation_bar.dart`）。
 ///
-/// **两处必须同源**（导航栏的布局分支、设置页的开关可见性、启动落点判定），
-/// 否则会出现「设置里开着、导航栏上却没入口」这类各说各话。
+/// **两处必须同源**（导航栏的布局分支、这条判据），否则会出现
+/// 「设置里开着、导航栏上却没入口」这类各说各话。
+///
+/// 这条只管**布局**。别把它当成「这台设备能不能用工作台」——那是
+/// [workspaceAvailableOnDevice]，见那里的说明（手机上没有这颗按钮，
+/// 但工作台照样能进）。
 bool hasWorkspaceEntry(BuildContext context) =>
     isTablet(context) || isWorkspaceDesktopPlatform(defaultTargetPlatform);
+
+/// 工作台在这台设备上**给不给用**。
+///
+/// 与 [hasWorkspaceEntry] 分成两条，是因为它们回答的不是一个问题：
+/// - `hasWorkspaceEntry` 问的是「侧栏布局的 trailing 上有没有那颗按钮」；
+/// - 这里问的是「用户有没有办法进去、并且出得来」。
+///
+/// 焊在一起的历史代价：手机端因为「没有那颗按钮」被判定成不能用工作台，
+/// 而真机上其实有三条进出路 —— 系统返回键、泳道「更多」菜单里的「退出工作台」，
+/// 以及「设置 → 布局」里那张「进入工作台」按钮（触摸屏专用，见
+/// `workspace_layout_setting_page.dart`）。把按钮加进底部导航倒是不用另找入口，
+/// 但那会把手机端的 tab 信息架构改掉，而 `navigation_bar.dart` 里已经写明这是
+/// **「动作不是视图」**，不该因为换了个平台就改变性质。
+///
+/// 触摸那一路的条件用 [WorkspacePointerMode]，与顶栏形态、泳道切换轨同一个
+/// 判据 —— 三处都在问「这台设备有没有悬停指针」，各写一遍迟早分叉。
+bool workspaceAvailableOnDevice(BuildContext context) =>
+    hasWorkspaceEntry(context) ||
+    WorkspacePointerMode.forTargetPlatform(defaultTargetPlatform) ==
+        WorkspacePointerMode.touchOnly;
 
 /// 开屏页下拉里「工作台」那一项的值。
 ///
@@ -56,8 +83,9 @@ const int splashWorkspaceOption = -1;
 
 /// 开屏页下拉**当前该显示哪一项**。
 ///
-/// 本机没有工作台入口（手机）时即使字段是 `true` 也显示标签页：那边导航栏上
-/// 根本没有工作台按钮，显示成「工作台」会让人以为下次启动会进去，而实际不会。
+/// [workspaceEntryAvailable] 传 [workspaceAvailableOnDevice] 的结果。它为假时
+/// 即使字段是 `true` 也显示标签页：那边根本进不去，显示成「工作台」会让人
+/// 以为下次启动会进去，而实际不会。
 int resolveSplashDropdownValue({
   required bool startWithWorkspace,
   required bool workspaceEntryAvailable,

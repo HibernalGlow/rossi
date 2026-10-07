@@ -442,6 +442,15 @@ class GpuPresentController extends ChangeNotifier {
         unawaited(_refreshAmbientPalette(index));
       }
 
+      // 译文页的重注入**不能挂在超分调度器后面**：`_scheduleEnhancements` 只在
+      // `_isUpscaleEnabled` 时被调，而 `_scheduleEnhancementsSafely` 开头还有
+      // `if (!_acceptsEnhancement(epoch)) return;` —— 开着「关掉超分」的人永远走不到
+      // [_reassertTranslatedPage]。呈现器按保留集淘汰增强图轨与超分开没开毫无关系，
+      // 所以症状是：翻到远处再翻回来，这一页停在原图，而芯片还写着「译文页」。
+      final translatedPath = translationOwnedPages[index];
+      if (translatedPath != null) {
+        unawaited(_reassertTranslatedPage(index, translatedPath));
+      }
       if (_isUpscaleEnabled) {
         unawaited(_scheduleEnhancements(source, index, width, height));
       }
@@ -798,6 +807,10 @@ class GpuPresentController extends ChangeNotifier {
   /// （同一个轨、同一份证据），译文不能假装这个问题不存在。
   Future<void> _reassertTranslatedPage(int index, String path) async {
     if (_pushedIndex != index) return; // 不是当前页：等它被推上来时再核对
+    // 原图对比期间画面上**就该**是原图。这时拿「用的是原图轨」当淘汰证据，
+    // 每次呈现都会重注一遍成品页并触发一次 PNG 解码 + 重采样，而且永远修不好 ——
+    // 因为下一帧还是旁路。旁路不是淘汰，等着就好（切回来时这条轨自然生效）。
+    if (_originalPreview) return;
     if (await _presenterUsesEnhanced(index) != false) return; // 还在用 / 问不出结果，都不动
     SuperResolutionLog.add('第 ${index + 1} 页：增强图轨已被淘汰，重新注入成品页。');
     if (!await setEnhancedImage(index, path)) return;

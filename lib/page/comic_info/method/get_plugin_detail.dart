@@ -6,6 +6,7 @@ import 'package:zephyr/page/comic_info/json/normal/normal_comic_all_info.dart'
     as normal;
 import 'package:zephyr/page/comic_info/models/unified_plugin_detail.dart';
 import 'package:zephyr/page/comic_info/models/unified_plugin_preview.dart';
+import 'package:zephyr/page/comic_read/model/plugin_read_launch.dart';
 import 'package:zephyr/page/comic_read/model/unified_plugin_chapter.dart';
 import 'package:zephyr/util/json/json_value.dart';
 
@@ -173,6 +174,12 @@ List<UnifiedComicChapterRef> resolveUnifiedComicChapters(
       }).toList(),
       (ref) => ref.order,
     );
+  }
+
+  // 起读时那一次 `getReadSnapshot` 的产物 —— 章节列表与详情页那份同一种角色，
+  // 所以下面选章、跳章、无缝拼接全都照旧，只是少了一次整本详情的回源。
+  if (comicInfo is PluginReadLaunch) {
+    return sortChaptersByOrder(comicInfo.chapterRefs, (ref) => ref.order);
   }
 
   if (comicInfo is UnifiedComicDownload) {

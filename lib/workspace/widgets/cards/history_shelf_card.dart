@@ -16,15 +16,19 @@ import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/workspace/method/open_comic_item.dart';
 import 'package:zephyr/workspace/method/shelf_entry_actions.dart';
+import 'package:zephyr/workspace/method/shelf_port_flow.dart';
+import 'package:zephyr/workspace/model/history_library_portable.dart';
 import 'package:zephyr/workspace/model/shelf_entry_menu_spec.dart';
 import 'package:zephyr/workspace/model/shelf_library_query.dart';
 import 'package:zephyr/workspace/model/shelf_view_state.dart';
 import 'package:zephyr/workspace/registry/workspace_ids.dart';
+import 'package:zephyr/workspace/service/history_library_service.dart';
 import 'package:zephyr/workspace/service/shelf_view_state_store.dart';
 import 'package:zephyr/workspace/widgets/cards/shelf_entry_context_menu.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_list_toolbar.dart';
+import 'package:zephyr/workspace/widgets/library_view/shelf_timeline_view.dart';
 
 /// 阅读历史面板。视图部分与书签面板、文件管理器共用一套（`library_view`）。
 ///
@@ -68,6 +72,14 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
   ShelfSort _sort = const ShelfSort(field: ShelfSortField.time);
   String _keyword = '';
 
+  /// 时间线那一档。与 `_viewMode` 各存各的：开着时间线时 `_viewMode` 保持原样，
+  /// 关掉就回到用户上一眼看惯的那一档。
+  bool _timeline = false;
+
+  /// 导入 / 导出在飞。与书签卡片同一口径：那两颗键在读写文件期间必须收着，
+  /// 否则一次导入没跑完又点一次，两份计划会抢同一批行。
+  bool _busy = false;
+
   /// 视图档位与排序的落盘。卡片会被面板回收重建（换泳道、收起再展开、重启），
   /// 那两个值原先只是 State 字段，于是每次重建都回到出厂的「封面列表 + 按时间」。
   final _viewMemory = ShelfViewMemory(WorkspacePanelId.history);
@@ -90,6 +102,7 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
       if (field != null) {
         _sort = ShelfSort(field: field, ascending: saved.sortAscending);
       }
+      _timeline = saved.timeline;
     });
   }
 
@@ -99,6 +112,7 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
         viewMode: _viewMode.name,
         sortField: _sort.field.name,
         sortAscending: _sort.ascending,
+        timeline: _timeline,
       ),
     );
   }
@@ -171,7 +185,12 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
     final visible = searchAndSortShelf(
       [for (final item in all) _searchable(item)],
       keyword: _keyword,
-      sort: _sort,
+      // 时间线**固定按时间倒序**（最近的在最上面），不跟着 `_sort` 走：
+      // 一条按标题排好的时间线会切出一堆上下来回的日期段，那不是时间线。
+      // 工具栏里排序那颗键在这时是灰的，所以这里不需要解释「你排的序呢」。
+      sort: _timeline
+          ? const ShelfSort(field: ShelfSortField.time)
+          : _sort,
       normalize: _normalize,
     );
     // 插件 id 是一串 uuid，行上得换成插件自己报的名字（口径见 pluginDisplayNames）。
@@ -198,6 +217,15 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
           searchController: _searchController,
           onKeywordChanged: (value) => setState(() => _keyword = value),
           count: rows.length,
+          busy: _busy,
+          portLabel: '历史数据',
+          onExport: _export,
+          onImport: _import,
+          timelineOn: _timeline,
+          onTimeline: () {
+            setState(() => _timeline = !_timeline);
+            _rememberViewState();
+          },
         ),
         const SizedBox(height: 6),
         if (widget.isStandalone)
@@ -213,6 +241,7 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
     List<LibraryEntry> rows,
     bool menuEnabled,
   ) {
+    if (_timeline) return _buildTimeline(context, rows, menuEnabled);
     return LibraryEntryList(
       mode: _viewMode,
       entries: rows,
@@ -249,6 +278,85 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
       ),
     );
   }
+
+  /// 时间线档：按「最后阅读」那一天分段。
+  ///
+  /// 行内容仍然由 `ShelfTimelineView` 转给 `LibraryEntrySurface`，这里只负责
+  /// 供时间与右键壳子 —— 与列表档共用同一套，两档不会长歪。
+  Widget _buildTimeline(
+    BuildContext context,
+    List<LibraryEntry> rows,
+    bool menuEnabled,
+  ) {
+    final timeline = ShelfTimelineView(
+      entries: rows,
+      standalone: widget.isStandalone,
+      timeOf: (row) => (row.source! as UnifiedComicHistory).lastReadAt,
+      emptyText: _keyword.trim().isNotEmpty ? '没有匹配的阅读记录' : '暂无阅读历史',
+      onTap: (row) => _open(context, row.source! as UnifiedComicHistory),
+      wrapRow: (context, row, child) => ShelfEntryContextMenuRegion(
+        enabled: menuEnabled,
+        inputBuilder: () => _menuInput(row.source! as UnifiedComicHistory),
+        onAction: (context, action) =>
+            _onMenuAction(context, row.source! as UnifiedComicHistory, action),
+        child: child,
+      ),
+    );
+    return widget.isStandalone
+        ? Expanded(child: timeline)
+        : timeline;
+  }
+
+  // ── 导入 / 导出 ───────────────────────────────────────────────────────────
+  //
+  // 管路（权限、选目录、iOS 的分享面板回退、确认对话框、忙状态）在
+  // `method/shelf_port_flow.dart`，与书签面板共用一份。
+  //
+  // 历史原先**根本没有**这一组入口 —— 书签有导出导入而历史只能靠设置页那个
+  // 会先清库的整库 ZIP 备份。两侧现在对称。
+
+  void _setBusy(bool busy) {
+    if (mounted) setState(() => _busy = busy);
+  }
+
+  Future<void> _export() async {
+    final items = HistoryLibraryService.collect();
+    await exportShelfDocument(
+      context: context,
+      label: '阅读历史',
+      fileStem: 'history',
+      count: items.length,
+      encode: () => encodeHistoryLibrary(items),
+      onBusyChanged: _setBusy,
+    );
+  }
+
+  Future<void> _import() => importShelfDocument(
+    context: context,
+    label: '阅读历史',
+    fileLabel: '历史记录文件',
+    planFrom: (path) async {
+      final HistoryMergePlan plan;
+      try {
+        plan = await HistoryLibraryService.planFromFile(path);
+      } on HistoryLibraryFormatException catch (e) {
+        throw ShelfFormatException(e.message);
+      }
+      return ShelfImportPlan(
+        summary: plan.summary,
+        writeCount: plan.writes.length,
+        rejectedLines: [
+          for (final rejection in plan.rejected)
+            '${rejection.label} — ${rejection.reason}',
+        ],
+        // 历史的合并语义与书签不同，所以这句话必须说清楚（口径见
+        // `planHistoryImport`）：一条都不删，且本地那条读得更靠后时保留本地。
+        note: '只合并：一条历史都不会删除；本地进度比文件里更新的，保留本地。',
+        apply: () => HistoryLibraryService.applyPlan(plan),
+      );
+    },
+    onBusyChanged: _setBusy,
+  );
 
   ShelfSearchable _searchable(UnifiedComicHistory item) {
     final author = shelfCreatorName(item.creator);
@@ -313,11 +421,15 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
       thumbModes: LibraryViewMode.values.toSet(),
       detailCells: [chapter.isEmpty ? '—' : chapter, source, time],
       onRead: () => _read(item),
+      // 行档图标钮：28 命中区 + 18 图标，与书签卡、文件管理器同一口径
+      // （原来是 22，比工具栏那 20 还大，一行里最抢眼的成了次要动作）。
       trailing: IconButton(
-        icon: const Icon(Icons.play_circle_outline_rounded, size: 22),
+        icon: const Icon(Icons.play_circle_outline_rounded, size: 18),
         color: theme.colorScheme.primary,
         tooltip: t.comicEntry.resumeRead,
         visualDensity: VisualDensity.compact,
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
         // 这颗图标一直写的是「继续阅读」，但历史上它走 _open —— 插件来源其实
         // 跳的是详情页。封面按钮既然把「直接起读」做出来了，这里就接上真的。
         onPressed: () => _read(item),

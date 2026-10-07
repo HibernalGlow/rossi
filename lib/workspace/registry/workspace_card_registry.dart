@@ -12,7 +12,11 @@ import 'package:zephyr/workspace/widgets/cards/image_information_card.dart';
 import 'package:zephyr/workspace/widgets/cards/storage_information_card.dart';
 import 'package:zephyr/workspace/widgets/cards/time_information_card.dart';
 import 'package:zephyr/workspace/widgets/cards/preload_status_card.dart';
+import 'package:zephyr/service/ocr/ocr_settings.dart';
+import 'package:zephyr/workspace/widgets/cards/image_tuning_card.dart';
+import 'package:zephyr/workspace/widgets/cards/super_resolution_card.dart';
 import 'package:zephyr/workspace/widgets/cards/switch_toast_card.dart';
+import 'package:zephyr/workspace/widgets/cards/translate_card.dart';
 import 'package:zephyr/workspace/widgets/cards/daily_trend_card.dart';
 import 'package:zephyr/workspace/widgets/cards/reading_streak_card.dart';
 import 'package:zephyr/workspace/widgets/cards/reading_heatmap_card.dart';
@@ -38,6 +42,15 @@ class WorkspaceCardChrome {
   /// 是否为独占面板模式（卡片占满整个面板，不渲染折叠外壳与固定高度限制）
   final bool standalone;
 
+  /// 这张卡在**当前这台机器**上能不能用（`false` = 灰显 + 一颗 [unsupportedHint] tag）。
+  ///
+  /// 由宿主按 [WorkspaceCardDefinition.supportedHere] 算好传进来 —— 卡片自己
+  /// 不该各写一遍平台判据，那样加一张卡就多一处会漏判的地方。
+  final bool supported;
+
+  /// [supported] 为 `false` 时挂在标题行上的那句说明（例如「仅桌面」）。
+  final String? unsupportedHint;
+
   const WorkspaceCardChrome({
     required this.expanded,
     required this.onToggle,
@@ -47,6 +60,8 @@ class WorkspaceCardChrome {
     this.onMoveDown,
     this.onHide,
     this.standalone = false,
+    this.supported = true,
+    this.unsupportedHint,
   });
 }
 
@@ -70,6 +85,15 @@ class WorkspaceCardDefinition {
   /// 是否允许用户把它收起来（`false` = 面板的固定主体）。
   final bool canHide;
 
+  /// 这张卡在**当前这台机器**上能不能用；`null` = 哪儿都能用。
+  ///
+  /// 为 `false` 时**不**把卡摘掉，而是灰显 + 挂一颗 [unsupportedHint] tag：
+  /// 面板「一张卡都没有就不上图标轨」，藏起来等于让用户以为这个功能不存在。
+  final bool Function()? supportedHere;
+
+  /// [supportedHere] 判不动时挂在标题行上的那句说明（例如「仅桌面」）。
+  final String? unsupportedHint;
+
   final WorkspaceCardBuilder builder;
 
   const WorkspaceCardDefinition({
@@ -82,6 +106,8 @@ class WorkspaceCardDefinition {
     this.defaultVisible = true,
     this.defaultExpanded = true,
     this.canHide = true,
+    this.supportedHere,
+    this.unsupportedHint,
   });
 }
 
@@ -102,6 +128,11 @@ class WorkspaceCardRegistry {
 
   /// 控制面板（N-17）：切换提示
   static const String switchToast = 'switch_toast';
+
+  /// 控制面板：从阅读设置搬进来的三节（超分 / 翻译 / 画面调节）
+  static const String superResolution = 'super_resolution';
+  static const String translate = 'translate';
+  static const String imageTuning = 'image_tuning';
 
   /// 信息面板（叠加）五张卡 —— 与 neoview `info` 面板的同名卡片一一对应。
   static const String bookInformation = 'book_information';
@@ -299,6 +330,63 @@ class WorkspaceCardRegistry {
         onMoveDown: chrome.onMoveDown,
         onHide: chrome.onHide,
         isStandalone: chrome.standalone,
+      ),
+    ),
+    // ── 控制面板：阅读设置里「读的时候真会去拨」的那三节 ────────────────
+    // 卡片与阅读设置面板渲染的是**同一批** section widget，读写的是同一份
+    // 存储（超分/翻译在 SharedPreferences + 各自的 ChangeNotifier，
+    // 画面调节在 app 级 GlobalSettingCubit）—— 所以两边不需要任何同步代码。
+    WorkspaceCardDefinition(
+      id: superResolution,
+      title: 'AI 超分辨率',
+      icon: Icons.auto_awesome_outlined,
+      defaultPanelId: WorkspacePanelId.control,
+      defaultOrder: 1,
+      builder: (context, chrome) => SuperResolutionCard(
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
+        isStandalone: chrome.standalone,
+        disabledHint: chrome.supported ? null : chrome.unsupportedHint,
+      ),
+    ),
+    WorkspaceCardDefinition(
+      id: translate,
+      title: '翻译',
+      icon: Icons.translate_outlined,
+      defaultPanelId: WorkspacePanelId.control,
+      defaultOrder: 2,
+      // Android / iOS 是 ADR-0018 §决定 6 的排除项：`ort` 那两端没注册加速器 EP，
+      // 识别模型还是 fp32 的 441 MB。入口画出来却必然报错比不画更坏 ——
+      // 但整张卡凭空消失又会被读成「没有这个功能」，所以留壳、灰显、说明。
+      supportedHere: () => ocrSupportedHere,
+      unsupportedHint: '仅桌面',
+      builder: (context, chrome) => TranslateCard(
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
+        isStandalone: chrome.standalone,
+        disabledHint: chrome.supported ? null : chrome.unsupportedHint,
+      ),
+    ),
+    WorkspaceCardDefinition(
+      id: imageTuning,
+      title: '画面调节',
+      icon: Icons.auto_fix_high_outlined,
+      defaultPanelId: WorkspacePanelId.control,
+      defaultOrder: 3,
+      builder: (context, chrome) => ImageTuningCard(
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
+        isStandalone: chrome.standalone,
+        disabledHint: chrome.supported ? null : chrome.unsupportedHint,
       ),
     ),
     // ── 洞察 ──────────────────────────────────────────────────────────────

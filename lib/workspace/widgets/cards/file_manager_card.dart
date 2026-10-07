@@ -111,6 +111,19 @@ class _FileManagerCardState extends State<FileManagerCard> {
   bool _searchRunning = false;
   int _searchSerial = 0;
 
+  /// 遍历进行中「已扫多少条」的实时读数（轮询核心的进度接口得到）。
+  ///
+  /// 慢盘上一次整库遍历要几十秒，只给一个不动的转圈，用户会开始怀疑自己搜错了词 ——
+  /// 让数字自己往上走，是「它在干活」最直接的证据。
+  int _searchScannedLive = 0;
+
+  /// 引导条要不要亮：只在遍历**真的慢**的时候才亮（250ms 的闸门见
+  /// [_beginSearchFeedback]）。收窄那条路几十毫秒就回来，为它闪一下反而像卡了。
+  bool _searchSlow = false;
+  Timer? _searchSlowTimer;
+  Timer? _searchProgressPoll;
+  bool _searchProgressInFlight = false;
+
   /// 上一次为「搜索条件签名」跑过遍历的签名，见 [_searchSignatureOf]。
   String _searchSignature = '';
 
@@ -156,6 +169,13 @@ class _FileManagerCardState extends State<FileManagerCard> {
   /// 在 [build] 里订阅一次、同一个 build pass 里大家读它。
   bool _fileOpsEnabled = true;
 
+  /// 工具栏那颗「多选」开关摁没摁下。
+  ///
+  /// 只有这一个布尔留在 Dart：**它是「用户要哪种手感」的意图，不是选中集合的副本**
+  /// （集合的正本在 Rust 的 `FileOpsSession`，理由见 ADR-0017）。书架那边同样是
+  /// 「模式位 + 集合」两件事分开（`FolderShelfState.selectionMode`）。
+  bool _selectionModeRequested = false;
+
   /// 文件树面板。展开/懒扫描/游标的正本在 Rust 的 `FolderPaneState` 里，
   /// 这里只有「开没开」与最近一次投影。
   bool _treeEnabled = false;
@@ -163,6 +183,16 @@ class _FileManagerCardState extends State<FileManagerCard> {
   BigInt? _treeGeneration;
   Timer? _treePoll;
   int _treeSerial = 0;
+
+  /// 树的纵向滚动。行是 `ListView.builder` 按需建的，「把当前目录那一行搬进视口」
+  /// 只有这一层做得动 —— 核心只投影行，不知道视口有多高。
+  final _treeScroll = ScrollController();
+
+  /// 已经为哪一条当前目录定位过，口径同 [_breadcrumbRevealedPath]。
+  ///
+  /// 不按投影次数搬视口：懒扫描期间树每 80ms 重来一份，那样会把视口一直往中间拽，
+  /// 用户正低头看哪儿都被抢走。
+  String? _treeRevealedPath;
 
   @override
   void initState() {
@@ -174,7 +204,9 @@ class _FileManagerCardState extends State<FileManagerCard> {
   void dispose() {
     _disposed = true;
     _searchDebounce?.cancel();
+    _endSearchFeedback();
     _treePoll?.cancel();
+    _treeScroll.dispose();
     // 先摘登记再关会话：反过来的话，两个动作之间有一个窗口期，
     // 别人正好在这时候请求「新页签」会拿到一个马上要消失的会话。
     FileManagerTabBridge.instance.detach(this);
@@ -360,6 +392,12 @@ class _FileManagerCardState extends State<FileManagerCard> {
         const SizedBox(height: 6),
         if (_searchExpanded || snapshot.searchQuery.isNotEmpty) ...[
           _buildSearchField(context, snapshot),
+          // 引导条紧贴输入框：这一行永远与框同宽可见，而下面那行选项是横向滚动的，
+          // 窄卡片上它会跑出视口 —— 「看不到任何动画，以为自己搜错了」就是这么来的。
+          if (_searchSlow) ...[
+            const SizedBox(height: 6),
+            _buildSearchProgress(context),
+          ],
           const SizedBox(height: 4),
           _buildSearchOptions(context, snapshot),
           const SizedBox(height: 6),
@@ -438,7 +476,9 @@ class _FileManagerCardState extends State<FileManagerCard> {
         for (final entry in snapshot.entries)
           _libraryEntry(context, entry, mode),
       ],
-      emptyText: snapshot.searchActive && query.isNotEmpty
+      emptyText: _searchSlow
+          ? '正在递归搜索，结果扫完一次给出…'
+          : snapshot.searchActive && query.isNotEmpty
           ? '子目录里没有匹配「$query」的条目'
           : query.isNotEmpty && !snapshot.searchIncludeSubfolders
           ? '当前这一层没有匹配「$query」的条目，可用上面的「在子目录里搜」往下找'
@@ -451,6 +491,8 @@ class _FileManagerCardState extends State<FileManagerCard> {
       // 关掉「文件操作」时整块不挂：连右键手势都没有，列表回到纯浏览。
       wrapRow: _fileOpsEnabled ? _wrapEntryRow : null,
       onTap: (row) => _onEntryTap(row.source! as FileManagerEntry),
+      // 双击只对压缩包有意义：多选模式下「打开」由那颗模式开关管着（不在模式里时
+      // 单击就够得着打开），不必为此把每一行的双击都改成打开。
       canDoubleTap: (row) => (row.source! as FileManagerEntry).isArchive,
       onDoubleTap: (row) => _openArchive(row.source! as FileManagerEntry),
       titleColumn: _detailsTitleColumn,

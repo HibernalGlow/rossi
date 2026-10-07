@@ -137,6 +137,9 @@ Rust（ocr_core）                     Dart（Reader）
   这份导出的输入只有 `input_ids` + `encoder_hidden_states`，**没有 `past_key_values`**
   → 自回归每多出一个 token 就把整个前缀重跑一遍，单格成本按 **O(n²)** 长，
   一句 20 token 的台词不是 20×2.2 ms。
+  **（2026-10-02 补：这条的形状是对的，但它在真页上不值一提 —— 实测每框 6.8–7.5 步、
+  decoder 只占识别的 30–33%，大头是每框一次的 encoder 前向。别拿这段当待办依据，
+  见 ADR-0019。）**
 - 这条直接解释了一个之前想不通的事实：**Yakuyomi 为什么不用 manga-ocr 而换成 48 px CTC int8**
   —— CTC 是单次前向，没有自回归循环。所以「识别件选谁」不是模型名气问题，是**推理形态**问题：
   `manga-ocr`（自回归、无 KV cache）适合逐格短文本；长台词与整页多格要重新估预算。
@@ -190,6 +193,14 @@ Rust（ocr_core）                     Dart（Reader）
    同一天量掉的两个候选：按掩膜外接框裁剪**不省时间**（漫画页文字本来就铺满整页，面积中位 0.93×）；
    分簇裁剪中位省 0.65× 但密集页反噬到 2.92×，且会改变填充 —— 要上必须带面积闸门，先不做。
    细节与判据见 §8.6.10。
+
+   **擦字推理边长 1 024 → 768（2026-10-02）**：`max_side` 这个常数是 §决定 3.1 落地时顺着
+   「一页约 1 500×1 100」推出来的，**当时没量过质量**。现在量了：同页交替 4 轮，
+   768 是 1 024 的 **0.58 倍**时间（640 是 0.38 倍）；掩膜内残留以 1 024 为 1，
+   768 的中位比值 **0.98**（8 页里 5 页更干净）、最差页 +34%，640 的中位 1.02 但最差 +52% ——
+   所以取 768 不取 640。风险面是关住的：掩膜**外**的改动像素逐页与 1 024 完全相同
+   （合成只往掩膜里写）。**缓存指纹不加这一维**：旧页仍是 1 024 那张、新页走 768，
+   让所有人重算的代价是重付一次翻译请求，而两档中位质量等价。数与图见 §8.6.14。
 
    **会话改成跨页复用（2026-10-01）**：`rust/src/api/ocr_sessions.rs` 把三个 ONNX 会话缓存在进程里，
    键是 `EP|路径:字节数:mtime`（**不是模型名** —— 重下权重时路径不变而内容变，
@@ -249,6 +260,54 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
 也不引入「一页 = 图层集合」（那会顺溢进渲染模型）。
 **上色仍然不做**：这个位是为它留的，但本 ADR **不代为解冻**，冻结线对它继续有效。
 
+**2026-10-03 部分解冻：译文多一种「叠层」显示形态，与成品页并存。**
+用户提出「擦字不要编辑原图，改成背景填充 + 气泡 + 文字叠上去，这样翻页能保留、超分也好适配」，
+并确认**在线与本机都要**、**擦字与叠层是两个选项**。上面那句「不引入一页 = 图层集合」的
+冻结线**收窄为只约束 `PageSource` 的公开形状**：图层集合在 OCR 这一条链里成立，
+不外溢成渲染模型的通用概念。要点：
+
+- **图层数据是一份可重复合成的描述**：每页存原图像素坐标的框 + 译文 + 排法（横排/竖排列数/字号）
+  + 该框的底色，与成品页 PNG 同目录、同一把缓存指纹。于是换超分档、换显示模式、
+  手改译文，都只是**重新合成**，不重跑那十几秒 OCR —— 这条同时是「翻页丢失」的根治方向。
+- **叠层不动 GPU**：旋转 / 双页 / 页宽适配在 Dart 侧（`read_mode_image_builder.dart:86` 的
+  `RotatedBox`），Rust presenter 只收 `target_width/height`。所以只要那一层**放进同一个
+  `RotatedBox` 里**，变换自动跟随；§决定 3 当初否决的是「另画一张没转的 `Image.file`」，
+  不是「同一个盒子里多一层」。
+- **坐标与排版都是线性映射**：框从原图物理像素映射到显示框；字号候选与 `padding`
+  现在是**绝对像素**（`translated_page_renderer.dart:30-47,77`），叠到 2×/4× 底图上时
+  必须按同一个比例放大，否则高清大气泡里会塞进一颗 40 px 小字。
+- **「对比原图」那一档也要把叠层关掉（2026-10-04）**：旁路屏蔽的是**增强图轨**，
+  烘焙档自然被挡住；叠层是 Flutter 侧的一层，不占轨、也就屏蔽不到它。
+  所以那一层自己问控制器 `bypassesOriginalPreview`（转达呈现器那句
+  `bypassesEnhancedTrack`），开着旁路就一个 widget 都不留 ——
+  少这一句，用户按下「对比原图」看到的是「原图 + 中文」，而那正是他要避开的东西。
+- **「要擦的那一类页」怎么上屏（2026-10-04 接上）**：叠层这一路不占增强图轨是它的整个理由，
+  但需要补擦底图的那一类页，底图偏偏要替换掉呈现器里那张才看得见 —— 不占轨就等于把擦好的底
+  丢在缓存目录里没人画，画面是「超分后的原图（日文还在下面）+ 中文覆盖层」，
+  正是 §决定 4 那条 0.085 / 0.000 判据要避免的东西。
+  口径收成**一维**：构建器报 `TranslatedPage.overlayNeedsBase`（= 有框采不出平色），
+  控制器据此**只替这一页**占轨、超分为它让路；每框都有填色的那些页仍然不占轨，超分照常。
+  命中缓存那一路报同一个答案（`overlayNeedsErasedBase` 现读图层）——
+  占不占轨是这一页的**属性**，不能是「这次走了哪条分支」的副产品，否则翻回来一次就换画面。
+- **半页槽位与底图共用一把尺**：拆横长页读时这一格只画整页的一半，叠层按同一个
+  `PageSlice.uvRect` 裁（`overlaySliceRect` → 平移 + 裁剪），于是「裁哪里」不会在两条渲染路各算一遍。
+  早先这里写的是「半页干脆不挂叠层」—— 那等于芯片说「译文页」而画面上一个中文都没有，
+  状态是真的、只是没画出来，属于最难发现的一类错。
+- **擦字不退场，但改成「先采色、采不到才擦」**：每框在轮廓内一圈采样，只有**整圈接近同一个
+  平色**（占比 ≥0.92、极差 ≤12）才允许拿那块色当底；拟声词压在网点 / 速度线上的那一类采不出
+  平色，仍然走 LaMa（§决定 2 里「拟声词区明确不处理」那一条正是这个缺口）。
+  **全页一致**：一个框采不到，这一页就**全部不填色**、老实擦一张底图 ——
+  一半实心色块、一半 LaMa 修出来的底，并排摆就是「翻译没弄干净」的样子，而那正是这一档要避免的。
+  渲染台实测（`test/ocr/translated_page_layer_overlay_bench_test.dart`）：译文叠在**没擦字**的原图上
+  字压字率 **0.085**，叠在擦字底上 **0.000** —— 这把尺就是上面那道闸的来历。
+- **叠层档不烤 PNG**（解掉上面那条未决）：这一档只写图层 JSON，底图按「全页采到平色 → 用**原图**；
+  否则 → 用擦字底图 `p<N>.base.png`」二选一。占增强图轨那一条路整条让给超分，所以叠层与超分**同时生效**。
+  代价是缓存命中判据也得换一把（`overlayDisplayable` 而不是 `isUsable`），否则每次上屏都重跑那十几秒。
+- **跳过擦字要真的省下来**：叠层档先让 Rust 只跑检测+识别（`inpaint: false`），采完色才决定擦不擦；
+  需要擦时**不许**重跑一遍 `analyze_page`（检测+识别实测约 4 s，比它想省的 4.2 s 还贵）。
+  为此新增一条只擦字的过桥接口 `ocr_erase_page(image, quads, ...)`，掩膜复用 `mask_from_quads`
+  （与 `analyze_page` 同一段代码，两边不会擦得不一样），会话缓存按 `|erase` 键复用同一份权重。
+
 ### 5. 模型与字体：字体随包，权重首下
 
 - **权重一律首次使用时下载，不随包分发**，沿用既有口径（RealSR / waifu2x：解压到
@@ -291,19 +350,33 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
 走已有的 `reqwest`（Dart 侧 `WindHttp`）到 OpenAI-compatible 端点或本机 Ollama。
 **不打包专用翻译模型**（OPUS-MT / NLLB / Marian 那一类）：漫画是短句 + 口语 + 语气词 + 需要跨格上下文，
 这类句对模型质量不够，且是「检测/识别/擦字/回填」之外的第五个模型族。
-**代价要写明**：断网且未起 Ollama 时，成品页链路只能出「擦字 + 原文回填」，翻不出译文。
+**代价要写明**：断网且未起 Ollama 时，这一页翻不出译文。
 
-**这一档已实现（2026-09-26），并且补了一条 ADR 当时没说清的铁律：降级产物不进指纹缓存。**
-端点只是**当时**不可用，而缓存指纹里没有任何一项能表达这件事 —— 写进去就等于
-「端点恢复之后永远端出这张未翻译的页」，正是本 ADR 一路在防的静默陈旧。
-所以降级产物**不进缓存目录、但也不许落系统临时目录**：落到持久区里一个不参与指纹查表的旁路目录
-`getFilePath()/manga_translated_degraded/p<idx>.png`（`TranslatedPageCache.writeDegraded`）。
-第一版写的是系统临时目录，那是本文自己的落盘纪律没被执行 —— 呈现器翻回来时会按归属表里**那个路径**
-重注入，而本机 dirhelper 每天 03:35 扫 tmp（超分那边「每次启动重下」的同型成因），
-结果就是一张正在显示的降级页会在没人碰它的情况下静默变回原图。
-落在这里同时满足两件事：**下一次一定重跑**（不参与指纹查表），且**「清空成品页」管得到它**（在受管根目录下）。
-并且顶栏芯片显示成**「原文回填」**而不是「译文页」（`TranslatedPageChipState.showingOriginal`，
-单独一个颜色）：一张「擦掉日文又画回日文」的页面看着像成功了，不标出来就是在撒谎。
+**10-03 改：降级档（擦字 + 原文回填）整条撤掉，换成「逐档回落 + 失败显形」。**
+撤掉的理由不是它没用，是它**长得太像成功**：一张「擦掉日文又把日文画回气泡」的页，
+在画面和文件上都与真成品页同形，只剩顶栏芯片那一句「原文回填」还活着 ——
+而那一句会被下一次点击顶掉。本机真实撞到的就是这件事：用户看到的是
+「日文页翻出来还是日文」，翻 `manga_ocr/ocr.log` 才知道是 `TranslationError.notInstalled`。
+失败本该显形，所以：
+
+- 翻译那一跳抛 `OcrTranslationException` 时，先看有没有下一档可问；没有就**整页失败**：
+  芯片进 `failed` 带原因，画面留原图，增强图轨**不登记归属**
+  （超分不该给一张根本没上屏的译文页让路）。
+- 有第二档就问第二档。Apple / 混元那两档靠用户机器上的别的部件（系统语言包、
+  `llama-server`），「这一会儿没有」是常态而不是错误，而端点通常本来就是配好的。
+- **产物记在「实际出译文那一档」的指纹下**（`TranslateAttempt`）。把端点翻出来的那张
+  写进 Apple 档的目录里就是指纹谎报引擎：语言包后来装上了，这一页会永远命中一张
+  端点翻的旧图，而缓存说它是 Apple 的 —— 又是本 ADR 一路在防的静默陈旧。
+  读缓存时两档都查，所以回落过一次之后不会每页重跑那 14 s 的 OCR。
+- Apple 档在跑 OCR **之前**先问 `LanguageAvailability`：语言对没装就当场说「去系统设置装」。
+  检测+识别+擦字实测 14 s，而那一次失败只要 400 ms —— 先跑完再报等于让用户白等十几秒。
+  **app 自己装不了**：整个 `Translation.swiftinterface` 里 `download` 只出现一次，
+  是 `TranslationSession.canRequestDownloads` 这个**只读**布尔，没有下载 API，
+  而唯一的公开构造器 `init(installedSource:target:)` 名字就要求已装。所以「没装」
+  只能是用户在系统设置里点的那一下，我们能做的只是把话说清楚。
+
+老版本留在用户盘上的 `manga_translated_degraded/` 仍然不算进「已生成 N 张」
+（`TranslatedPageCache._legacyDegradedDirName`）；`TranslatedPageCache.writeDegraded` 已随这一档一起删掉。
 
 **系统翻译当后端：09-30 的结论作废，10-01 重定（本机 macOS 27 / SDK 27，语言包已装）**
 
@@ -423,10 +496,13 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
 |---|---|---|
 | §2 `rust/ocr_core` | `rust/ocr_core/src/{detect,postprocess,recognize,group,inpaint,session}.rs`，经 `rust/src/api/ocr.rs::ocr_analyze_page` 过 FRB | 已实现；`cargo test -p rossi_ocr_core` 27 条 |
 | §6「排除移动端功能 ≠ 排除移动端构建」 | `ocr_core` 是 `windcore` 的依赖（`rust/Cargo.toml:42`），所以 iOS / Android / Linux 的 App 构建**一样要编它** —— 功能关掉救不了编译失败。交叉 `cargo check` 跑了 `aarch64-apple-ios`、`aarch64-linux-android`、`aarch64-unknown-linux-gnu` 三个目标（Android 与 Linux 共用那条 CPU-only cfg 分支，但各查一遍），并清掉了只在移动端才露面的两个告警：`PathBuf` 只在 Apple 分支被用、CPU-only 那版 `apply_accelerator` 用不到模型参数（改成 `_model` 并写明为什么） | 已验到 **check 级、三目标各只剩 "Checking…/Finished" 两行输出（零告警）**；`windcore` host 构建 rc=0。⚠️ 还没验：iOS / Android 的链接与出包 —— 本机 `flutter build ios --release --no-codesign` 过了 `pod install`，断在 xcodebuild 的 `coreml_upscale`（`MultiArrayModel.swift` 用 `float16` 要 iOS 16，而工程 `IPHONEOS_DEPLOYMENT_TARGET = 15.0`；由 `d66ee508` 带入，与成品页链路无关），所以 OCR 在 iOS 上只有 check 级证据；Windows 那版仍压在那台下线的机器上 |
-| §3 成品页 = 缓存产物 | `translated_page_cache.dart`（指纹 + 可读标签目录 + `manifest.json` + 原子写；降级档走同根的旁路目录 `manga_translated_degraded/`，不参与指纹查表但归「清空」管） | 已实现 |
+| §3 成品页 = 缓存产物 | `translated_page_cache.dart`（指纹 + 可读标签目录 + `manifest.json` + 原子写；老「降级档」目录 `manga_translated_degraded/` 只留一个名字给计数排除用，不再写入） | 已实现 |
+| §7 译文来源**逐档回落**（2026-10-03） | `translated_page_builder.dart` 的 `_candidateConfigs` + `TranslateAttempt` + 那一圈逐档 try；`OcrSettings.loadDraft` 供回落档读端点字段 | 已实现，两侧有单测。**为什么产物要记在「实际出译文那一档」名下**：混进所选档的目录 = 指纹谎报引擎，端侧档恢复后那一页永远命中端点翻的旧图。**读缓存两档都查**：否则回落过一次之后每次重看这页都要重跑 14 s 的 OCR。**降级档（擦字 + 原文回填）同日撤除**，见上面 §7。 |
 | §3 Dart 侧排版 | `translated_page_renderer.dart`（字号候选下降、越框禁止、OFL 字体运行时注册） | 已实现。「越框禁止」是**量过的**：八页真页逐像素对照擦干净底图，框外改动的像素每页 0–83 个、离框最远 4 px（笔画外沿 + 浮点框取整）；同一测试里故意把框放大 30 px 渲染，同样那把尺子量出 11–26 px / 728–42895 个像素 —— 判据取「离框 ≤6 px」，落在两个数量级的空档里，并由那条对照钉住「尺子看得见真越框」 |
 | §3.4 每页开关 / 与超分互斥 / 状态核对 | `lib/reader/translated_page_controller.dart` + 顶栏 `reader_translated_page_chip.dart`；芯片状态表抽成纯函数 `translated_page_status.dart`（与超分那边同形） | 已实现 |
-| 未决 8「各段实际用了哪条 EP 要看得见」 | 实际值：`OcrPageResult.stage_eps`，从 `Detector` / `Recognizer` / `Inpainter` 各自的 `ep()` 读回（擦字没跑 = `null`）；本机落点：`ocr_stage_ep_plan`。界面两处 —— `lib/debug/ocr_smoke_debug_page.dart`（跑完才出现那一行）、`lib/page/setting/ocr/ocr_setting_page.dart`（推理后端下拉下面） | 已实现，FRB codegen 与 `windcore` dylib 同批重跑。**两处共用 `ocr_core::stage_ep_plan` 这一把尺子**，所以「设置页说将用 X」与「冒烟页说实际用了 X」不会各说各话；本平台构建没有那条 EP 时设置页直接说「选了会报错」，不显示成能用。命中缓存时那一行**不出现** —— 那一次什么都没跑。 |
+| §3.4 那条核对**分不清「被旁路挡着」与「真没换上」**（2026-10-03 修） | `TranslatedPagePresenter.bypassesEnhancedTrack` + `_inject` 里「先问旁路再判失败」 + `_reassertTranslatedPage` 的旁路闸 + 芯片多一态 `blockedByOriginalPreview` | 已实现，两侧都有单测。**症状**：开着「对比原图」时每页都记 `失败：注入成功但画面没换`，而那三页的翻译（10→10 / 5→5 / 12→12）、擦字、排版、落盘全部成功 —— 旁路按设计不让增强图轨参显（`enhance.rs` 的 `prefers_enhanced` = `!bypass && 有增强图`），所以核对必然回 false，它说的是旁路不是注入。**为什么归属照样要登记**：不登记超分就来抢这一页的轨，用户切回超分时看到的反而是超分图，译文白跑一次。**为什么旁路期间不重注入**：`_reassertTranslatedPage` 若照常按「用的是原图轨」当淘汰证据，每次呈现都会重注一遍成品页 + 一次 PNG 解码，而且永远修不好（下一帧还是旁路）—— 这是 `enhance.rs` 那条「每 15 ms 重采样一次」同型的坑。芯片新增的两条短语**暂未进 i18n**：`ocr` 段里没有对应键，而该段的 JSON 与生成物当时正压在别人的改动里，补键要等那批落地。验收见 `ocr-completed-page-acceptance.md` 第 6a 条。 |
+| 译文页**翻回来就变回原图**（2026-10-03 修） | `gpu_present_controller.dart` 的 `present` 成功路径里加一次无条件 `_reassertTranslatedPage`；重注入**不再挂在超分开关后面** | 已实现 + 单测。**根因是执行者挂错了地方**：全仓只有 `_ensureEnhancedForIndex` 里那一处会重注成品页，而它整条路被 `if (_isUpscaleEnabled)`（`present` 内）与 `_scheduleEnhancementsSafely` 开头的 `if (!_acceptsEnhancement(epoch)) return;` 双重挡住 —— 呈现器按保留集淘汰增强图轨跟超分开没开**毫无关系**，所以那一格子里没有任何人负责把成品页注回来，芯片却继续说「译文页」。**症状**：用户原话「好不容易生成好的翻译，翻个页就没了」；产物其实一直在盘上（再点一次秒命中缓存）。**为什么不能靠 `_reassertTranslatedPage` 原来那个调用点**：它只在超分调度真的跑到那一页时才生效，而 `gpu_present_enhance_part.dart` 里当前页只有一条支路会直接 `await _ensureEnhancedForIndex`（`if (cached)`，要求这一页**已有**超分产物），其余情况被丢进队列后还会被 `replace()` 按同键剔掉。**证伪**：新测试把条件退回 `_isUpscaleEnabled` 立刻红（`test/reader/gpu_present_controller_test.dart`「超分没开：译文页翻回来也必须重新注回」）。 |
+| §4 叠层显示形态（2026-10-03 解冻那一轮，落地） | 图层数据 `translated_page_layer.dart`（早一批已在）+ 绘制入口 `TranslatedPageRenderer.paintLayer`；**画的那一层** `lib/reader/translated_page_overlay.dart`（挂在 `read_mode_image_builder.dart:87` 那个 `RotatedBox` 里面，contain-fit 见 `overlayPaintFit`）；**谁上屏** `lib/reader/page_display_source.dart` 的 `resolvePageDisplaySource`；**开关** `translated_page_display_mode.dart`（键 `ocr_display_choice`，默认烘焙）+ 设置页「成品页显示」那一节；**构建侧** `translated_page_builder.dart` 的叠层分支（不烤 PNG、命中判据换 `overlayDisplayable`）；**芯片那一维** `translated_page_status.dart::translatedPageDisplayOf`（判据就是叠层画去读的那份档名 ⇒ 芯片与画面不可能各说各话）；**采色** `bubble_fill.dart`；**只擦字那一跳** `rust/ocr_core/src/inpaint.rs::mask_from_quads` + `rust/src/api/ocr.rs::ocr_erase_page` | 已实现，Dart/Rust 两侧都有测试（`bubble_fill_test` 10 条、`page_display_source_test` 裁决格 + 几何、`translated_page_layer_scale_test` 倍率、`translated_page_overlay_slice_test` 半页裁剪 6 条、`translated_page_overlay_scale_span_test` 倍率跨度 3 条（含证伪位）、`ocr_setting_page_test` 那三条开关往返）。渲染台那条「整页并集字高比」已从 `qxq` 里摘掉：它量的是并集，最靠边那一框有没有墨就会把比值带走，同一个性质由那份合成数据的跨度判据守（确定、不要权重、带证伪）。**为什么默认还是烘焙**：叠层要求底图要么每框都有平色填充、要么擦字底已在盘上（`overlayDisplayable`），判据就是 §4 那条 0.085 / 0.000 的实测 —— 前提不成立时默认叠层等于默认端出中日文叠在一起的页。**为什么采色全有或全无**：见 §4。**但「每框采到平色」那一半在真页上是死的（2026-10-04 量）**：8 页 121 框可填 **0 框**，同一把尺重算的诊断是每页中位 flatRatio 0.33–0.66、离中位最大偏离 **243–251**（满量程 255）—— 偏离顶到满量程说明那圈带里同时有笔画与气泡底，也就是**真页的框贴着字形、不是贴着气泡**，框内侧没有「气泡自己的底」可采；合成夹具（白底+四周留白）不是这个形状，所以 `bubble_fill` 那 10 条全绿而生产这一档一次没成立过。⇒ 叠层档今天每页都付擦字那 ~4.7 s（`completed_page_overlay_e2e_test.dart` 实测 4698 ms）；要救得把采样**往框外扩**去找气泡底，调阈值只会放墨水的中位色进框。数字与判据在 `test/ocr/bubble_fill_real_page_probe_test.dart`。。第二条尺（往框外扩 1–8 px 的环带）量到更窄的结论：flatRatio 每页中位升到 0.75–0.99（气泡底确实常在框外面），但「离中位色的最大偏离」中位仍是 253–255 ⇒ 挡住这一档的是那条 **max** 判据本身（环带动辄上千像素，一个网点边/冲激就整框作废，而框外环带按定义必蹭画面）。所以修法是两件事且有先后：① 判据按占比说话（上限换高分位数或去掉），② 采样带改框外环带，然后回渲染台重量「填色盖住原文之后还剩多少字压字」—— 原来的 0.085 / 0.000 是在「擦/不擦」两端量的，换成填色要重新立证。第三条尺把这一档判得更死：按框外环带逐框量，候选阈值下框级通过 26–59/121，而生产规则是「有一框不过就整页不填」⇒ 按页只有 **0/8 页**全框通过（三种候选阈值都是 0）。所以这不是差一个阈值，而是差一条页级规则 —— 要么允许同页「能填的填、填不了的擦」（代价就是那条「两种底」的顾虑），要么维持现状（叠层档每页付擦字那 4.7 s，但仍与超分共存）。这条取舍属 §决定 4 的设计决定，不由调参解决。**为什么要新增 `ocr_erase_page`**：叠层必须先看框才能决定擦不擦，重跑 `analyze_page` 会把检测+识别（约 4 s）再付一遍，比省下的 4.2 s 还贵。macOS Debug 包已编出来，包里 `windcore.framework` 有 `wire__crate__api__ocr__ocr_erase_page_impl`（原生那一跳确实链进去了，不只是编过）。⚠️ 真机逐条判据在验收清单 §9c（8 条）。⚠️ **还没进栈的那几块（2026-10-04 逐文件复核）**：① 设置页那一档 —— `ocr_settings_body.dart` 与 `test/ocr/ocr_setting_page_test.dart` 都由 `feat/settings-shared-extraction`（`msm`）建立/改写，而改动又要本链的枚举 ⇒ 本链上没有合法基底；② 5 份 FRB 生成物 —— `lib/src/rust/{api/ocr.dart, frb_generated.dart, frb_generated.io.dart, frb_generated.web.dart}` 加 `rust/src/frb_generated.rs`。整份表是「这条栈应用了哪几条并列栈」的函数，其中 `frb_generated.dart` 与 `rust/src/frb_generated.rs` 的插入点正压在 `h-branch-1`（`mxr`）新增的那几条 API 上（GitButler 报的就是逐行依赖），⇒ 只能等并列栈并起来之后再 codegen 一次（**为什么非并栈不可，是结构性的**：FRB 的 `funcId` 与 Rust 侧 match 分支都按位置分配，插入这几个新 API 会把后面整表重编号 —— 实际 diff 里是 `funcId: 129…` 与 `153 => wire__crate__api__simple__pack_folder_impl` 整段位移，还连带 `rustContentHash` 变更。所以「只插不改」的手工拼法在语义上就是错的（Dart 侧 funcId 会与 Rust 侧错开），而生成物按 AGENTS.md 也不许手改。已穷举全部 15 条含 mxr 的已应用分支：没有一条同时含本链 ⇒ 当前拓扑下无合法落点，只能由人在 GitButler 里把两条栈并起来，或先落一条。）；③ `lib/i18n/strings.g.dart` 头部那两行计数器 —— 记的是全部并列栈合起来的条数（要 `feat/workspace-shelf-timeline-and-cards`）。**两份 locale 生成物已随 `xvp` 的 JSON 进栈**（`strings_{zh_CN,en_US}.g.dart`，逐成员比对过：只动 `display*` 6 条与撤掉的 `chipDegraded`/`degradedHint`）。FRB 那 5 份刻意整批留在工作树：先只把 Dart 侧三份塞进 `rmo` 试过，`oc` 顶端会悬空 —— `api/ocr.dart` 调的 `crateApiOcrOcrErasePage` 声明在被挡住的 `frb_generated.dart` 里，而 io/web 新加的抽象成员（`RustLibApiImplPlatform` 的 `dco/sse_decode_ocr_erase_result`）在那个文件的老版本里没有实现 ⇒ 编不过；已 `uncommit` 撤回，逐符号 `git show` 核对过顶端两边都不悬空（Rust 侧 `ocr_erase_page` 只有源码，没生成物引用它，独立编得过）。代码在工作树里是全的，Debug 包也是从工作树编的（2026-10-04 重编并核过：`nm` 在包内 `windcore.framework/Versions/A/windcore` 命中 `wire__crate__api__ocr__ocr_erase_page_impl` 81 行，`kernel_blob.bin` 里有新的芯片文案 —— **注意别用 `nm -gU`，macOS 上 `-U` 只列 undefined，会把已链进去的符号读成「没有」**）。**并栈之后的落地顺序（一次做完，别再逐文件试姿势）**：① 把 `feat/settings-shared-extraction` 与 `h-branch-1` 并到本链能到的位置；② `flutter_rust_bridge_codegen generate`（5 份 FRB 生成物当场重出，`bin` 在 `~/.cargo/bin`）；③ `FLUTTER_ROOT=/opt/homebrew/share/flutter dart run slang`（`strings.g.dart` 的计数器随之对齐）；④ 生成物整批一笔落在 `rmo` 之上（**别只提 Dart 侧三份**：`api/ocr.dart` 调的 `crateApiOcrOcrErasePage` 与 io/web 新加的抽象成员都靠 `frb_generated.dart` 那一份实现，只提一半会让分支顶端编不过）；⑤ 设置页那两份（`ocr_settings_body.dart` + `ocr_setting_page_test.dart`）落在能同时看到 `TranslatedPageDisplayChoice` 的位置；⑥ 跑 `flutter test test/ocr test/reader` 应当回到「只红那条已结案的历史项」。 || 未决 8「各段实际用了哪条 EP 要看得见」 | 实际值：`OcrPageResult.stage_eps`，从 `Detector` / `Recognizer` / `Inpainter` 各自的 `ep()` 读回（擦字没跑 = `null`）；本机落点：`ocr_stage_ep_plan`。界面两处 —— `lib/debug/ocr_smoke_debug_page.dart`（跑完才出现那一行）、`lib/page/setting/ocr/ocr_setting_page.dart`（推理后端下拉下面） | 已实现，FRB codegen 与 `windcore` dylib 同批重跑。**两处共用 `ocr_core::stage_ep_plan` 这一把尺子**，所以「设置页说将用 X」与「冒烟页说实际用了 X」不会各说各话；本平台构建没有那条 EP 时设置页直接说「选了会报错」，不显示成能用。命中缓存时那一行**不出现** —— 那一次什么都没跑。 |
 | 用户要能自己查出「为什么没出译文」（2026-09-27 追加） | `lib/service/diagnostics/app_log.dart`（**统一的一份机制**：环形 300 条 + 异步整份落盘 + 查看/复制/定位文件），门面 `lib/service/ocr/ocr_log.dart` 落在 `manga_ocr/ocr.log`；写点在 `translated_page_builder.dart`（六道关逐段）与 `translated_page_controller.dart`（注入核对与一切失败）；界面入口「设置 → 漫画翻译 → 诊断 → 翻译日志」 | 已实现。**超分那份日志改为共用同一机制**（`SuperResolutionLog` 只留「写到哪、标题、页脚补哪一行」，文件位置与行为一字未动，`test/real_sr/` 那两组照绿）。与 `logger`（控制台 / Sentry 那条）的分工：这一份是**给用户翻的**。两条口径钉了测试：命中缓存那一条**不许**出现 EP；端点在日志里**只记 host**（base URL 可能夹 token，而日志天生要被复制走）。 |
 | Consequences「退出阅读 / 切章必须取消在途推理」 | `LocalReadSession.setSource` 与 `dispose(expectedPath:)` 都调 `TranslatedPageController.reset()`；在飞的那次构建按 `_generation` 认出自己过期，并且**把 `shouldCancel` 传给构建器**，于是剩下的翻译 / 排版 / 落盘都不再发生 | 已实现。⚠️ 粒度只能是**阶段**：检测+识别+擦字是一次过桥的整段调用，Rust 侧没有协作式取消点，所以「正在跑的那一段」会跑到结束才让出。过期判定、阶段取消、以及 `LocalReadSession` 那两行装配**都有单测**（摘掉路径闸 / 摘掉 `dispose` 里的 `reset()` / 摘掉 `shouldCancel` / 去掉 `_stale`，各有一条会红）；真机判据仍留在验收清单第 7c 条（要看的是 CPU 占用真的回落）。 |
 | 同一条里的「切 lane」那一半 | 查过代码：**它不构成一个场景**。泳道里阅读器只有一条（`workspace/model/workspace_layout_config.dart:14` 三个 LaneId 中只有 `reader` 挂阅读器，`workspace_cubit.dart:124` 的 `readerTarget` 是整体替换的单值），切 lane 只改 `activeLaneId` 并给非活动道套 `AbsorbPointer`（`swimlane_workspace.dart:633`），阅读器**不卸载** → 不存在「旧 lane 的译文状态贴在单例上」。真正的卸载入口只有 `closeReader`、`identityKey` 变更、把阅读器道收成 44 px 轨（`swimlane_column.dart:98`），而第三条会走 `State.dispose` → 正好落在上一行那个钩子上 | 无需改动（登记为查证结果） |
@@ -468,6 +544,8 @@ ADR-0008 的「页面渲染层留一个页后处理位，v0.1 不实现也不固
 2. ~~**manga-ocr 的 encoder/decoder 导出能否在 CoreML EP 上跑**~~ → **已实测，见 §决定 3.2**：
    能跑、无算子硬失败，但**两边都比 CPU 慢**且多付 0.5–3.4 s 建会话；顺带查出这份导出
    **没有 KV cache**（自回归 O(n²)），那是比 EP 更要紧的预算问题。
+   → **2026-10-02 收回后半句**：事实对，判断错。拆开量过之后 decoder 只占识别的 30–33%，
+   而每框平均只有 6.8–7.5 步 —— n≈7 的 O(n²) 不是预算问题。见 **ADR-0019 §实测 ①②**。
 3. ~~**检测件选哪个**~~ → **已由实测决定**，见 §决定 3.3：一期 PP-OCRv4 det（apache-2.0、4.7 MB、~70 ms/页）。
    Apple Vision 那条路**被实测否决**（漫画竖排 0 框），comic-text-detector 因权重源自 GPL 项目不作随包选项。
    **剩下的不是选型问题，而是能力缺口**：手写拟声词三家全漏 → 要补只能自己标数据训一个（另开 ADR）。

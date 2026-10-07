@@ -98,10 +98,11 @@ class _GlobalSettingPageState extends State<GlobalSettingPage> {
                 '${t.reader.readingMode} · ${t.reader.hoverReveal} · ${t.reader.doubleTapAction}',
             onTap: () => showReaderSettingsSheet(context),
           ),
-          // 整页讲的是**工作台**（泳道 / 四边栏 / 唤出区）。本机没有工作台入口时
-          // 不摆这一项 —— 与 `startWithWorkspace` 同一条纪律：不给点了没反应的
-          // 入口（那边连泳道都开不出来）。
-          if (hasWorkspaceEntry(context)) ...[
+          // 整页讲的是**工作台**（泳道 / 四边栏 / 唤出区）。本机用不了工作台时
+          // 不摆这一项（判据与开屏那条同源：`workspaceAvailableOnDevice`）。
+          // 手机端现在摆 —— 那一页顶部就是「进入工作台」的按钮，
+          // 而且切换轨 / 唤出区那些触摸触发的手感都只能在那一页调。
+          if (workspaceAvailableOnDevice(context)) ...[
             const Divider(height: 1, thickness: 0.3),
             settingCategoryTile(
               icon: Icons.view_column_outlined,
@@ -191,26 +192,6 @@ class _GlobalSettingPageState extends State<GlobalSettingPage> {
             title: t.settings.debug,
             subtitle: t.settings.logAddress,
             onTap: () => _openSubPage(const DebugSettingRoute()),
-          ),
-          const Divider(height: 1, thickness: 0.3),
-          settingSectionTitle(
-            context,
-            t.settings.aboutAndMore,
-            icon: Icons.info_outline,
-          ),
-          ListTile(
-            leading: const Icon(Icons.history_outlined),
-            title: Text(t.settings.changelog),
-            subtitle: Text(t.settings.changelogSubtitle),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.pushRoute(ChangelogRoute()),
-          ),
-          ListTile(
-            leading: const Icon(Icons.help_outline),
-            title: Text(t.settings.aboutApp),
-            subtitle: Text(t.settings.aboutAppSubtitle),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.pushRoute(AboutRoute()),
           ),
           const SizedBox(height: 32),
         ],

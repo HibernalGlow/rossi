@@ -13,7 +13,7 @@
 | 不进 v0.1 | 处置 |
 |---|---|
 | 在线源（QuickJS 插件） | 会把验收面从「本地阅读」扩大到网络 + 插件错误处理 + 源站变化 |
-| OCR 翻译 | **已解冻（ADR-0018，2026-09-25）并已实现（逐页，2026-09-26）**：形态是**成品页**（检测→识别→翻译→擦字→回填）。落点 `rust/ocr_core`（rossi_ocr_core）+ `lib/service/ocr/*` + 顶栏每页一颗「译」芯片；产物按页落盘复用，构建在点芯片后异步进行、不进渲染路径，换画面走呈现器增强图轨（与超分互斥）。代码来源走 MIT/Apache 白名单（`xianscan-rust` / `manga-ocr-rs`），**不改仓库许可证**；实测选型见 `docs/REFERENCE_RESEARCH.md` §8.6，真机判据见 `docs/ocr-completed-page-acceptance.md`。一期不做：整本批量、真竖排、拟声词、上色、Android / iOS |
+| OCR 翻译 | **已解冻（ADR-0018，2026-09-25）并已实现（逐页，2026-09-26）**：形态是**成品页**（检测→识别→翻译→擦字→回填）。落点 `rust/ocr_core`（rossi_ocr_core）+ `lib/service/ocr/*` + 顶栏每页一颗「译」芯片；产物按页落盘复用，构建在点芯片后异步进行、不进渲染路径，换画面走呈现器增强图轨（与超分互斥）。代码来源走 MIT/Apache 白名单（`xianscan-rust` / `manga-ocr-rs`），**不改仓库许可证**；实测选型见 `docs/REFERENCE_RESEARCH.md` §8.6，真机判据见 `docs/ocr-completed-page-acceptance.md`。一期不做：整本批量、真竖排、拟声词、上色、Android / iOS。<br>**提速**：三段线程数 / 会话跨页复用 / 擦字边长 768 已落地；识别段还剩一条 **ADR-0019（提案）** —— 目标定在 encoder（占 66–69%），攒批的等价性已证（逐位相同），收益待空载复跑，闸门 0.7 倍 |
 | 上色 | 不进：GPL 参考实现只能读不能抄，且只在黑白页有意义。与 OCR 共用「页后处理」位，但 ADR-0018 **不代为解冻** |
 | Anime4K | 参考实现 GPL；超分统一以 mImageViewer 的 `ort` 核心为准 |
 | 视频播放 | **已解冻（ADR-0016）**：形态是「一页可以是视频」，引擎用 media_kit / libmpv，功能并集见 `docs/video-playback-spec.md` |
@@ -236,6 +236,19 @@ Breeze 是 RealSR / waifu2x），跨平台画质必然不一致，不做画质�
   留待本阶段输入绑定运行时（ADR-0009）补齐后接入。
   `enableBoundaryToast`（边界翻页）已接入（c41995ff）：判据是「loaded 范围到尽头且没有下一话可续」，
   横翻越界与键位/上下翻页两条入口各自在 `row_mode` 与 `ReaderActionController` 上挂。
+- 阅读设置搬进「控制面板」→ **已完成（2026-10-03）**：超分 / 翻译 / 画面调节三节从「阅读设置」面板
+  抽成公开 section（`lib/page/comic_read/widgets/settings/sections/`），面板与工作台卡片渲染
+  **同一份** widget。存储本来就不在面板里：超分与翻译是 `RealSrSettings` / `OcrSettings`
+  （SharedPreferences + 各自的 `ChangeNotifier`），画面调节是 app 级 `GlobalSettingCubit`
+  —— 所以两边**零同步代码**，拨哪边另一边当场跟着变。
+  完整设置（端点 / API Key / 术语表 / 权重、NCNN 模型下载与导入）走 `OcrSettingsBody` 与
+  `RealSrModelManagementSection`：设置页退成壳，卡片就地展开同一份正文（卡片弹不掉路由，
+  给它一条「去设置页」等于没有出口）。
+  「没开书」时「本书超分」那颗**灰显 + 一行说明**，不是消失；顺带修掉
+  `activeLocalBook ?? keyFor(…)` 在「本地书上再 push 一本在线书」时把覆盖写到上一本书上的串书 bug
+  （判据改为只信 `ReaderSessionCoordinator`）。平台判不动的卡（翻译在 Android / iOS）
+  留壳 + 「仅桌面」tag + 不吃点击，不整张从图标轨消失。
+  判据：`test/workspace/control_panel_settings_cards_test.dart`。
 - 输入设备适配 → **已提前到 v0.1**，见 ADR-0009 与判据 E（v0.1 只做键盘 / 鼠标 / 滚轮 / 触屏 / 区域；
   手柄 / 轨迹手势 / 轮盘留 schema 占位，运行时推迟到本阶段）
 

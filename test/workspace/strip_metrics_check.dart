@@ -43,9 +43,12 @@ void main() {
   _collapsedEdgeLaneKeepsTheRemainingHandle();
   _resizerSlotsCarryTheirPair();
   _missingReaderLaneLeavesSlack();
+  _noLaneIsWiderThanTheViewport();
   _soloWithNavigatorRailKeepsStripFitting();
   _soloWithoutNavigatorRailPushesLanesOff();
   _collapsedSoloLaneDoesNotRailOthers();
+  _activationNeverChangesWidths();
+  _activeLaneIsNeverARail();
   print('strip_metrics_check: $_passed checks passed');
 }
 
@@ -58,6 +61,7 @@ WorkspaceStripMetrics _resolve(
   double viewportWidth, {
   WorkspaceLayoutConfig? layout,
   String? soloLaneId,
+  String? activeLaneId,
   bool showLaneNavigatorInSolo = false,
 }) => WorkspaceStripMetrics.resolve(
   layout: layout ?? WorkspaceLayoutConfig.defaults(),
@@ -65,6 +69,7 @@ WorkspaceStripMetrics _resolve(
   availableWidth: _available(viewportWidth),
   resizerWidth: WorkspaceStripMetrics.defaultResizerWidth,
   soloLaneId: soloLaneId,
+  activeLaneId: activeLaneId,
   showLaneNavigatorInSolo: showLaneNavigatorInSolo,
 );
 
@@ -215,6 +220,55 @@ void _narrowWindowScrollsWithoutSquashingLanes() {
   check('contentWidth = 380+450+360+20', m.contentWidth == 1210.0);
   check('可用宽只有 884', available == 884.0);
   _invariants('窄窗口', m, available);
+}
+
+/// 窄视口（手机竖屏）上，**任何一条泳道都不许比视口本身还宽**。
+///
+/// 这条不是审美：一条比屏幕还宽的泳道，滚动余量全花在自己身上，画面上没有任何东西
+/// 提示「外面还有别的泳道」—— 而把相邻泳道呼回来的那条路是**边缘悬停**，
+/// 触摸屏上永不触发。桌面默认的 380/650/360 配 369dp 的视口恰好三条全超。
+///
+/// 同时钉住两处**不该**被夹的：折叠轨（44 是设计值）与独占那条（按定义吃满可用宽）。
+void _noLaneIsWiderThanTheViewport() {
+  const vw = 369.0; // 24129PN74C 竖屏实测逻辑宽（1200px / 3.25）
+  final m = _resolve(vw);
+  final cap = vw * WorkspaceStripMetrics.maxLaneViewportFactor;
+
+  for (final laneId in const [LaneId.left, LaneId.reader, LaneId.right]) {
+    final w = _laneWidth(m, laneId)!;
+    check('$laneId 在窄视口上不超过视口宽', w <= vw + _eps, '$w > $vw');
+    check('$laneId 被夹到上限', (w - cap).abs() < _eps, '$w vs $cap');
+  }
+  // 阳性对照：不夹的话这三条是 380 / 400 / 360 —— 少了这两条，
+  // 「clamp 写了吗」与「clamp 写了但没生效」在判据里长得一样。
+  check('左栏确实被压过（不再保持 380）', _laneWidth(m, LaneId.left) != 380.0);
+  check(
+    '阅读器连 minWidth=400 都让位（地板取 min(minWidth, cap)）',
+    _laneWidth(m, LaneId.reader) == cap,
+  );
+  _invariants('窄视口夹取', m, _available(vw));
+
+  final defaults = WorkspaceLayoutConfig.defaults();
+  final railLayout = defaults.copyWith(
+    lanes: {
+      for (final entry in defaults.lanes.entries)
+        entry.key: entry.value.copyWith(collapsed: entry.key == LaneId.left),
+    },
+  );
+  final rails = _resolve(vw, layout: railLayout);
+  check('折叠轨保持 44，不参与夹取', _laneWidth(rails, LaneId.left) == 44.0);
+
+  final solo = _resolve(vw, soloLaneId: LaneId.reader);
+  check(
+    '独占那条按定义吃满可用宽，不被夹',
+    _laneWidth(solo, LaneId.reader) == _available(vw),
+    '${_laneWidth(solo, LaneId.reader)} vs ${_available(vw)}',
+  );
+
+  // 宽窗口一律不动（回归对）：上限只在「一条就吃满视口」时才够得着。
+  final wide = _resolve(1440.0);
+  check('宽窗口左栏仍是绝对像素 380', _laneWidth(wide, LaneId.left) == 380.0);
+  check('宽窗口右栏仍是绝对像素 360', _laneWidth(wide, LaneId.right) == 360.0);
 }
 
 /// 亚像素差：只多 0.3px 也要从阅读器身上抹平，**不能留着让 Flutter 画斜纹**。
@@ -379,4 +433,94 @@ void _collapsedSoloLaneDoesNotRailOthers() {
   check('独占者自己被折叠时，左泳道不被挤成轨', _laneWidth(m, LaneId.left) == 380.0);
   check('独占者自己被折叠时，右泳道不被挤成轨', _laneWidth(m, LaneId.right) == 360.0);
   _invariants('折叠的独占者 + 切换栏', m, _available(1625.0));
+}
+
+// ── 激活态与宽度的关系（ADR-0014 的修订）──────────────────────────────────
+
+/// **激活不改宽度**。
+///
+/// 这一条钉的是「鼠标移过去卡一下」里最贵的那一下：宽度一变，`ImageSurface` 的
+/// 物理尺寸就变，已上屏的纹理被判废并按新宽重解（`lib/reader/image_surface.dart`
+/// 自己记的数是 300–400 ms/页）。所以「谁被激活」**只能**改变条带停在哪、
+/// 边框亮不亮、哪条收成轨，不许改变 Reader 那条泳道的宽度。
+void _activationNeverChangesWidths() {
+  _widthsStableAcrossActivations('不独占', null);
+  _widthsStableAcrossActivations('独占 + 不显示切换栏', LaneId.reader);
+
+  // 阳性对照：这条尺子得**看得见**真会变宽的情况 —— 独占开关本身必须改变宽度，
+  // 否则上面那一串「没变」可能只是因为宽度根本没被算过。
+  const viewport = 1625.0;
+  final off = _resolve(viewport, activeLaneId: LaneId.reader);
+  final on = _resolve(
+    viewport,
+    soloLaneId: LaneId.reader,
+    activeLaneId: LaneId.reader,
+  );
+  check(
+    '对照：独占**本身**确实把 Reader 撑到可用宽',
+    (_laneWidth(on, LaneId.reader)! - _laneWidth(off, LaneId.reader)!) > 100,
+    '${_laneWidth(on, LaneId.reader)} vs ${_laneWidth(off, LaneId.reader)}',
+  );
+}
+
+/// 在 [soloLaneId] 这一档下，把「谁被激活」四档全跑一遍，逐条比对宽度。
+void _widthsStableAcrossActivations(String label, String? soloLaneId) {
+  const viewport = 1625.0;
+  const lanes = <String>[LaneId.left, LaneId.reader, LaneId.right];
+  final baseline = _resolve(viewport, soloLaneId: soloLaneId);
+
+  for (final active in <String?>[null, LaneId.left, LaneId.reader, LaneId.right]) {
+    final m = _resolve(viewport, soloLaneId: soloLaneId, activeLaneId: active);
+    for (final laneId in lanes) {
+      check(
+        '$label：激活 $active 时 $laneId 的宽度与「还没定」一致',
+        (_laneWidth(m, laneId)! - _laneWidth(baseline, laneId)!).abs() < _eps,
+        '${_laneWidth(m, laneId)} vs ${_laneWidth(baseline, laneId)}',
+      );
+    }
+    _invariants('$label / 激活 $active', m, _available(viewport));
+  }
+}
+
+/// 切换栏只压**没被激活**的那些泳道：激活哪条，哪条展开。
+///
+/// 轨的唯一用途是「点我把交互交给你」（触屏上它是左右泳道**唯一**的把手）。
+/// 交互已经交出去了还把它按回 44px，用户点完轨仍然点不动里面的东西。
+void _activeLaneIsNeverARail() {
+  const rail = WorkspaceLayoutConfig.collapsedLaneWidth;
+  final available = _available(1625.0);
+
+  final m = _resolve(
+    1625.0,
+    soloLaneId: LaneId.reader,
+    activeLaneId: LaneId.left,
+    showLaneNavigatorInSolo: true,
+  );
+
+  check(
+    '激活左泳道：它展开成自己的宽度而不是轨',
+    _laneWidth(m, LaneId.left)! > rail,
+    '${_laneWidth(m, LaneId.left)}',
+  );
+  check('激活左泳道：右泳道仍是轨', _laneWidth(m, LaneId.right) == rail);
+  check(
+    '激活左泳道：Reader 只被**轨**扣宽度，不被展开的那条扣',
+    _laneWidth(m, LaneId.reader) == available - rail,
+    '${_laneWidth(m, LaneId.reader)} vs ${available - rail}',
+  );
+  _invariants('独占 + 切换栏 + 左被激活', m, available);
+
+  // 对照：把激活收回 Reader 之后，左那条又变回轨（这条规则不是单向的）。
+  final backToReader = _resolve(
+    1625.0,
+    soloLaneId: LaneId.reader,
+    activeLaneId: LaneId.reader,
+    showLaneNavigatorInSolo: true,
+  );
+  check('激活回到 Reader：左又收成轨', _laneWidth(backToReader, LaneId.left) == rail);
+  check(
+    '激活回到 Reader：两条都收成轨 ⇒ Reader 比左被激活那次少一条轨宽',
+    _laneWidth(m, LaneId.reader)! - _laneWidth(backToReader, LaneId.reader)! == rail,
+    '${_laneWidth(m, LaneId.reader)} vs ${_laneWidth(backToReader, LaneId.reader)}',
+  );
 }

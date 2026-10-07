@@ -72,8 +72,8 @@ void main() {
       expect(result, isNotNull);
       expect(result!.pluginId, 'bika');
       expect(result.message, '登录已过期');
-      expect(result.scheme?['login'], 'bika://login');
-      expect(result.data?['reason'], '401');
+      // scheme/data 已从载荷里退役（登录页跳转后自己现取 getLoginBundle）：
+      // 旧插件带上这两段时只要求「照样解析成功」，不再读出内容。
     });
 
     test('bundle:…cjs] 前缀的载荷能被正则抠出来', () {

@@ -23,6 +23,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/router/router.dart';
 import 'package:zephyr/config/router/router.gr.dart';
+import 'package:zephyr/cubit/string_select.dart';
+import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_reader_target.dart';
 import 'package:zephyr/workspace/router/workspace_back_interception.dart';
@@ -110,6 +112,41 @@ void main() {
       rect.topLeft,
       Offset.zero,
       reason: '不可见的面板不是落点 ⇒ 不接管 ⇒ 全屏（比「点了没反应」好）',
+    );
+  });
+
+  // 阅读器泳道的**空画布**上那颗「继续阅读」走的就是这条：守卫对 `ComicReadRoute`
+  // 的分支**不需要落点**就能改派进泳道，于是「落点不明」不再退化成全屏盖掉整个工作台。
+  // 上面那条钉的是「其余推入落点不明 ⇒ 全屏」，这一条钉住阅读那一支不受它管。
+  testWidgets('落点不明时阅读推入仍进泳道：守卫的阅读器分支不需要落点', (tester) async {
+    WorkspaceReaderTarget? opened;
+    // 写进那个共享变量里，`tearDown` 才注销得掉 —— 直接传新闭包会漏掉这一次登记
+    // （`detachReader` 只认自己登记的那一个），下一个用例就会以为工作台一直「在场」。
+    onOpenReader = (target) => opened = target;
+    WorkspaceNavigationBridge.instance.attachReader(onOpenReader);
+    await _pumpHost(tester, boxAVisible: false);
+
+    expect(
+      WorkspaceLaneDispatch.instance.resolveTarget(),
+      isNull,
+      reason: '前置条件：这一次推入确实落点不明（不可见的面板不算落点）',
+    );
+
+    // 两块卡片共用同一份假上游页，这颗按钮因此有俩 —— 按卡片收窄到 A（不可见的那块）。
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(_boxAKey),
+        matching: find.text(_openReaderLabel),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(opened, isNotNull, reason: '阅读推入必须交给泳道，而不是放行成整页');
+    expect(opened?.comicId, _readerComicId);
+    expect(
+      find.byType(_FullscreenReaderPage),
+      findsNothing,
+      reason: '改派之后全屏那一页不能同时被推上来（守卫得先 next(false)）',
     );
   });
 
@@ -332,6 +369,10 @@ const _hostChromeText = 'HOST-CHROME';
 const _homeText = 'HOME-PAGE';
 const _openLabelA = 'OPEN-A';
 const _openLabelB = 'OPEN-B';
+
+/// 「点开一本书开始阅读」那颗按钮的标签，以及推上去时带的那本书的 id。
+const _openReaderLabel = 'OPEN-READER';
+const _readerComicId = 'reader-under-test';
 const _targetText = 'TARGET-PAGE';
 
 /// 上游那种**自己画的**返回键的标签（见 `_LaneTargetPage`）。
@@ -393,6 +434,15 @@ class _TestRouter extends RootStackRouter with WorkspaceBackInterceptor {
     ),
     AutoRoute(
       page: PageInfo(_targetName, builder: (_) => const _LaneTargetPage()),
+    ),
+    // 「阅读那一页」。**名字同样必须与真路由表里同一个字符串** —— 守卫的阅读器分支
+    // 比的就是 `ComicReadRoute.name`。换个别名的话它会走「其余」那一支，而这次推入
+    // 落点不明 ⇒ 全屏，用例里那句 `findsNothing` 就会红。
+    AutoRoute(
+      page: PageInfo(
+        ComicReadRoute.name,
+        builder: (_) => const _FullscreenReaderPage(),
+      ),
     ),
     // 「工作台自己那一页」。**名字必须与真路由表里同一个字符串** —— 守卫的放行
     // 判据比的就是 `BreezeWorkspaceRoute.name`，换个名字这条判据就什么都验不到。
@@ -568,6 +618,22 @@ class _FakeUpstreamPage extends StatelessWidget {
             child: Text(label),
           ),
           TextButton(
+            // 「点开一本书开始阅读」（生产里就是空画布那颗「继续阅读」，
+            // 写法与 `startComicQuickRead` 一致：推上游的 `ComicReadRoute`）。
+            onPressed: () => context.router.push(
+              ComicReadRoute(
+                comicId: _readerComicId,
+                order: 0,
+                epsNumber: 1,
+                from: 'local',
+                type: ComicEntryType.normal,
+                comicInfo: _readerComicId,
+                stringSelectCubit: StringSelectCubit(),
+              ),
+            ),
+            child: const Text(_openReaderLabel),
+          ),
+          TextButton(
             // 面板**首页**上的一下 `context.maybePop()`（`login_page.dart` 那种）。
             // 这时局部栈里只有摊在屏幕上的这一页 —— 没得更退，
             // 这一下必须**还回根栈**（= 退出工作台），否则键盘侧没有出口。
@@ -585,6 +651,17 @@ class _FakeUpstreamPage extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// 真 `ComicReadPage` 的替身：存在的唯一理由是**量它有没有被推上根栈**。
+/// 阅读器改派进泳道时，这一页必须一次都不出现。
+class _FullscreenReaderPage extends StatelessWidget {
+  const _FullscreenReaderPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(body: Center(child: Text('FULLSCREEN-READER')));
   }
 }
 

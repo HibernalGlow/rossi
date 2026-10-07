@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
 import 'package:zephyr/service/ocr/ocr_models.dart';
@@ -90,6 +91,39 @@ class OcrService {
           : null,
       erasedOutput: erasedOutput,
       maxNewTokens: maxNewTokens,
+    );
+  }
+
+  /// 只擦字：拿已经算好的 quad 跑 LaMa，**不重跑检测与识别**。
+  ///
+  /// 为什么要有这一条：「先采气泡底色、平色就不擦」那条路必须先看到框才能决定擦不擦，
+  /// 而如果再走一遍 [analyzePage] 就等于把检测+识别（实测约 4 s）再付一次 ——
+  /// 比它想省下的擦字（实测 4.2 s/页）还贵，这笔买卖当场就不成立了。
+  ///
+  /// [quads] 原样传 `OcrBlock.quad`（8 个数，底图物理像素），与 Rust 侧同一把尺子；
+  /// 掩膜的扩边也在 Rust 侧做（与 `analyzePage` 同一段代码），两边不会擦得不一样。
+  Future<OcrEraseResult> erasePage({
+    required String imagePath,
+    required List<Float32List> quads,
+    required String erasedOutput,
+    String ep = 'auto',
+  }) async {
+    if (!await OcrModels.inpaintReady()) {
+      throw OcrModelsMissing([OcrModels.inpaintFile], needsInpaint: true);
+    }
+    _sessionsHeld = true;
+    return ocrErasePage(
+      imagePath: imagePath,
+      models: OcrModelPaths(
+        det: await OcrModels.pathOf(OcrModels.detFile),
+        encoder: await OcrModels.pathOf(OcrModels.encoderFile),
+        decoder: await OcrModels.pathOf(OcrModels.decoderFile),
+        vocab: await OcrModels.pathOf(OcrModels.vocabFile),
+      ),
+      ep: ep,
+      inpaintModel: await OcrModels.pathOf(OcrModels.inpaintFile),
+      erasedOutput: erasedOutput,
+      quads: quads,
     );
   }
 

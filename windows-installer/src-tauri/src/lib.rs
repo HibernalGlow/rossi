@@ -124,6 +124,13 @@ fn create_uninstall_script(install_root: &Path) -> Result<PathBuf, String> {
         "del /f /q \"%PUBLIC%\\Desktop\\Breeze.lnk\" >nul 2>&1\r\n",
         "del /f /q \"%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Breeze.lnk\" >nul 2>&1\r\n",
         "del /f /q \"%ProgramData%\\Microsoft\\Windows\\Start Menu\\Programs\\Breeze.lnk\" >nul 2>&1\r\n",
+        // 右键菜单的注册项：由应用内「设置 → 文件管理器 → 系统集成」写入 HKCU，
+        // 卸载器必须一并清掉，否则菜单里会留下一行指向已删除 exe 的死项。
+        // 键路径与 `lib/platform/desktop/windows_shell_context_menu.dart` 配对，改一边要改两边。
+        "reg delete \"HKCU\\Software\\Classes\\*\\shell\\Rossi\" /f >nul 2>&1\r\n",
+        "reg delete \"HKCU\\Software\\Classes\\Directory\\shell\\Rossi\" /f >nul 2>&1\r\n",
+        "reg delete \"HKCU\\Software\\Classes\\Directory\\Background\\shell\\Rossi\" /f >nul 2>&1\r\n",
+        "reg delete \"HKCU\\Software\\Classes\\Applications\\zephyr.exe\" /f >nul 2>&1\r\n",
         "reg delete \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Breeze\" /f >nul 2>&1\r\n",
         &format!("set \"TARGET_DIR={}\"\r\n", install_root_text),
         "start \"\" powershell -NoProfile -WindowStyle Hidden -Command \"$target=$env:TARGET_DIR; Start-Sleep -Seconds 2; for($i=0;$i -lt 30;$i++){ try { Remove-Item -LiteralPath $target -Recurse -Force -ErrorAction Stop; break } catch { Start-Sleep -Milliseconds 500 } }\"\r\n",

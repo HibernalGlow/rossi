@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/cubit/workspace_state.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
+import 'package:zephyr/workspace/model/workspace_pointer_mode.dart';
 import 'package:zephyr/workspace/model/workspace_reveal_zones.dart';
 
 /// 工作台顶栏的**两种形态** —— 区别不在长相，在**它占不占地方**。
@@ -32,17 +33,15 @@ enum WorkspaceTopChromeMode {
   /// `defaultTargetPlatform` 在浏览器里按宿主系统给答案，手机浏览器 ⇒ 常驻、
   /// 桌面浏览器 ⇒ 揭示），而且判据能用 `debugDefaultTargetPlatformOverride`
   /// 把两种形态都跑一遍，`Platform` 在测试里改不动。
+  ///
+  /// 映射本身交给 [WorkspacePointerMode.forTargetPlatform] —— 「有没有指针」这件事
+  /// 在工作台里不止顶栏一处要问（还有泳道的边缘揭示与切换轨），两处各写一遍
+  /// `switch` 迟早会在某个平台上分叉。
   static WorkspaceTopChromeMode forTargetPlatform(TargetPlatform platform) {
-    switch (platform) {
-      case TargetPlatform.windows:
-      case TargetPlatform.macOS:
-      case TargetPlatform.linux:
-        return WorkspaceTopChromeMode.reveal;
-      case TargetPlatform.android:
-      case TargetPlatform.iOS:
-      case TargetPlatform.fuchsia:
-        return WorkspaceTopChromeMode.persistent;
-    }
+    return switch (WorkspacePointerMode.forTargetPlatform(platform)) {
+      WorkspacePointerMode.hover => WorkspaceTopChromeMode.reveal,
+      WorkspacePointerMode.touchOnly => WorkspaceTopChromeMode.persistent,
+    };
   }
 }
 

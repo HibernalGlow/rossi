@@ -715,12 +715,44 @@ class RealSrSuperResolution {
 
   static bool _missingModelNotified = false;
 
+  /// 同一路径正在超分时，等待方只等这一份；见 [upscaleAndConvertToWebp]。
+  static final Map<String, Future<void>> _upscaleInFlight = {};
+
   /// 对单张图片做超分放大，成功后再转换为 WebP 以节省空间。
   ///
   /// [bookKey] 是这张图所属的**书**（本地路径 / `插件id:漫画id`，见
   /// `RealSrBookScope.keyFor`）：有书就按那本书自己的开关判（覆盖 ?? 全局），
   /// 拿不到才退回全局 —— 在阅读器里关掉一本书的超分，不该把别的书一起关掉。
+  ///
+  /// **同一路径在飞时只跑一遍**：阅读器显示与预取会各自请求同一页，去重只合并
+  /// 「网络取字节」那一段，超分这一段不合并就会同页并发跑两次 —— 实测日志里
+  /// 同一文件两次「推理完成」输出字节数完全相同，而且两次写回同一路径会互相
+  /// 踩（PNG 还没转 WebP 就被另一份盖掉，留下十几 MB 的 PNG）。
   static Future<void> upscaleAndConvertToWebp(
+    String inputPath, {
+    String? bookKey,
+  }) async {
+    final running = _upscaleInFlight[inputPath];
+    if (running != null) {
+      await running;
+      return;
+    }
+    final started = _upscaleAndConvertToWebpOnce(
+      inputPath,
+      bookKey: bookKey,
+    );
+    _upscaleInFlight[inputPath] = started;
+    try {
+      await started;
+    } finally {
+      // 只清理自己登记的那一条，避免把后来者的记录误删。
+      if (identical(_upscaleInFlight[inputPath], started)) {
+        _upscaleInFlight.remove(inputPath);
+      }
+    }
+  }
+
+  static Future<void> _upscaleAndConvertToWebpOnce(
     String inputPath, {
     String? bookKey,
   }) async {
@@ -796,7 +828,19 @@ class RealSrSuperResolution {
       return;
     }
 
-    // Windows / Linux：根据用户选择的策略与降噪档位，解析到具体 CLI 与模型。
+    // 非 Android：产物先落**同目录**的临时文件，转 WebP 后再改名覆盖原图。
+    //
+    // 为什么不能再就地覆写：阅读器显示路径现在不等超分（一页 6–22 s），
+    // 于是「`Image.file` 正在读这张图」和「超分正在写这张图」会并发；
+    // CoreML 与 ncnn 的写出都不是原子的，读到半截文件就是一张坏图。
+    // 改名（同目录）是唯一能让读者要么看到旧版、要么看到完整新版的动作。
+    // 顺带也消掉「转换失败留下十几 MB PNG 盖在原图上」这种状态 —— 现在失败的
+    // 只是临时文件，原图保持不动。
+    //
+    // Windows/Linux 的 ncnn CLI 按**扩展名**判断输出格式（Android 那条注释同），
+    // 所以临时文件必须以 `.png` 结尾。
+    final tempOutput = '$inputPath.sr-${const Uuid().v4()}.png';
+    final bool upscaled;
     if (Platform.isWindows || Platform.isLinux) {
       final mode = await RealSrSettings.loadDesktopNcnnMode();
       final noise = await RealSrSettings.loadDesktopNcnnNoise();
@@ -809,37 +853,53 @@ class RealSrSuperResolution {
         orElse: () => RealSrNoiseLevel.conservative,
       );
 
-      final upscaled = await upscale(
+      upscaled = await upscale(
         inputPath: inputPath,
-        outputPath: inputPath,
+        outputPath: tempOutput,
         executable: variant.displayName,
         modelDir: variant.modelDir,
         scale: variant.scale,
         noiseLevel: noiseLevel,
         tileSize: tileSize,
       );
-      if (!upscaled) return;
     } else {
       final noiseLevel = await RealSrSettings.loadNoiseLevel();
-      final upscaled = await upscale(
+      upscaled = await upscale(
         inputPath: inputPath,
-        outputPath: inputPath,
+        outputPath: tempOutput,
         noiseLevel: noiseLevel,
         tileSize: tileSize,
       );
-      if (!upscaled) return;
     }
 
-    // 超分成功后输出的是 PNG，再转换为 WebP 以节省空间
+    final temporaryFile = File(tempOutput);
+    if (!upscaled) {
+      try {
+        if (temporaryFile.existsSync()) await temporaryFile.delete();
+      } catch (_) {}
+      return;
+    }
+
+    // 超分成功后输出的是 PNG，再转换为 WebP 以节省空间（转不动就保留 PNG，
+    // 反正接下来只是把这一份改名到原图路径）。
     try {
-      await convertImageToWebp(inputPath: inputPath, imageType: 'png');
+      await convertImageToWebp(inputPath: tempOutput, imageType: 'png');
     } catch (e, s) {
       logger.w('WebP 转换失败，保留超分后的原图: $inputPath', error: e, stackTrace: s);
     }
-    // 非 Android 平台（macOS/iOS 走 CoreML，Windows/Linux 走 ncnn CLI）都是把结果
-    // **就地写回 [inputPath]**，所以这张图的落点就是原图路径本身。不登记的话，
-    // 「打开图片文件夹」只会指向呈现器那条链路的 `rossi_sr_cache`，而日志里说的
-    // 图其实在图缓存（或下载）目录里 —— 位置对不上就是这么来的。
+
+    try {
+      await temporaryFile.rename(inputPath);
+    } catch (e, s) {
+      logger.e('超分产物落回原图失败: $inputPath', error: e, stackTrace: s);
+      try {
+        if (temporaryFile.existsSync()) await temporaryFile.delete();
+      } catch (_) {}
+      rethrow;
+    }
+
+    // 落点仍然是原图路径本身。不登记的话，「打开图片文件夹」只会指向呈现器那条
+    // 链路的 `rossi_sr_cache`，而日志里说的图其实在图缓存（或下载）目录里。
     SuperResolutionLog.markOutput(inputPath);
     UpscaledImageCache.notifyReplaced(inputPath);
   }

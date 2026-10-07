@@ -99,6 +99,12 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
   /// 是否正按着指针（按下期间抑制揭示与自动恢复）。
   bool _pointerDown = false;
 
+  /// **预备态**高亮落在哪条泳道（驻留已「停住」、最后那段延时还没走完）。
+  ///
+  /// 它只是边框颜色，不改几何、不改记账，也不进 cubit —— 一次 hover 就把整份
+  /// 状态 emit 一遍，等于把「预备」做成「已经换了人」。
+  String? _armedHoverLaneId;
+
   // ── 每次 build 缓存下来的纯计算结果 ────────────────────────────────────
   //
   // 它们是 `LayoutBuilder` 里那几个纯函数的输出（视口宽、几何记账），
@@ -115,6 +121,48 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
   /// 在竖直方向上整体偏小一圈，表现为「按画布上的位置摆了却命中不了」。
   double _viewportHeight = 0;
   WorkspaceLaneFocusGeometry? _geometry;
+
+  // ── 泳道**内容**的实例缓存 ──────────────────────────────────────────────
+  //
+  // 一次「把交互交给另一条泳道」要重跑的只有外壳（边框、栏头、条带落点）；内容槽位
+  // 拿到的必须是**同一个 widget 实例**。Flutter 在 `Element.updateChild`
+  // （`framework.dart:4027`）见到 `child.widget == newWidget` 时整棵子树直接跳过 ——
+  // 这条不是微优化，是「阅读器有没有被整页重 build」的分水岭：内容实例一换，
+  // `WorkspaceReaderHost` 里那条 `Navigator` 就走到 `changedExternalState`
+  // ⇒ `_forceRebuildPage` ⇒ 上游 `ComicReadPage` 全页重 build。
+  //
+  // 缓存的失效条件用**签名**表达，不靠「我记得哪些字段被读过」：签名 = 除
+  // `activeLaneId` 之外的全部字段，逐字段比。宁可多重建，也不能漏重建。
+  Object? _contentSignature;
+  final Map<String, Widget> _laneContent = <String, Widget>{};
+
+  /// 内容签名（**不含**「谁被激活」）。
+  Object _signatureOf(WorkspaceState state) =>
+      (
+        state.mode,
+        state.layout,
+        state.board,
+        state.readerTarget,
+        state.activePanel,
+        state.interaction,
+        state.isReaderFullscreen,
+      );
+
+  /// 签名变了才重出内容实例；没变就把上次那份交出去（于是子树被整段跳过）。
+  void _syncLaneContent(
+    BuildContext context,
+    WorkspaceState state,
+    WorkspaceCubit cubit,
+  ) {
+    final signature = _signatureOf(state);
+    if (identical(signature, _contentSignature) || signature == _contentSignature) {
+      return;
+    }
+    _contentSignature = signature;
+    for (final laneId in state.layout.laneOrder) {
+      _laneContent[laneId] = _buildLaneContent(context, state, laneId, cubit);
+    }
+  }
 
   @override
   void dispose() {
@@ -212,6 +260,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
 
     final hoveredLane = _hoverDwell.takeDue(now);
     if (hoveredLane != null) cubit.activateLane(hoveredLane);
+    _syncHoverHighlight(now);
 
     final revealSide = _edgeDwell.takeDue(now);
     if (revealSide != null) {
@@ -236,6 +285,23 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
     }
 
     _stopTickerIfIdle();
+  }
+
+  /// 把「已经停住了」这件事翻译成边框上的预备态。
+  ///
+  /// 指针还在动时 [WorkspaceDwell.isArmed] 恒为假 ⇒ 路过一条泳道**不会闪任何东西**；
+  /// 只有真停下来，才先亮边框、再交出交互。那 150ms 因此是「有回应」而不是「没反应」。
+  void _syncHoverHighlight(int now) {
+    final armed = _hoverDwell.isArmed(now) ? _hoverDwell.pendingId : null;
+    if (armed == _armedHoverLaneId) return;
+    setState(() => _armedHoverLaneId = armed);
+  }
+
+  /// 预备态要**当场**撤掉：轮询定时器一停就没人再算了，留着它就是一道赖在边框上的
+  /// 高亮（指针都走了，那条泳道还像是「正准备被激活」）。
+  void _clearHoverHighlight() {
+    if (_armedHoverLaneId == null) return;
+    setState(() => _armedHoverLaneId = null);
   }
 
   // ── 指针 ───────────────────────────────────────────────────────────────
@@ -281,6 +347,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
   void _handleLaneHoverExit(String laneId) {
     if (_hoveredLaneId == laneId) _hoveredLaneId = null;
     _hoverDwell.leave(laneId);
+    _syncHoverHighlight(_nowMs);
     if (laneId == _revealedLaneId) {
       _maybeScheduleRestore(context.read<WorkspaceCubit>().state);
     }
@@ -289,6 +356,14 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
 
   /// 条带范围内的悬停：判定「指针是否停在视口边缘」。
   void _handleStripHover(PointerHoverEvent event) {
+    // **动了就是还没停**。两个驻留的到期点跟着最后一次运动往后推，路过哪条泳道
+    // 都轮不到触发；「延时」于是只承担「停住之后再看一会儿」这一件事。
+    // 揭示也要走这条：契约那句是「指针**停**在视口左右边缘」，横扫过边缘不该把它呼出来。
+    final now = _nowMs;
+    _hoverDwell.noteMotion(now);
+    _edgeDwell.noteMotion(now);
+    _syncHoverHighlight(now);
+
     final state = context.read<WorkspaceCubit>().state;
     final soloArmed =
         state.layout.soloLaneId == LaneId.reader &&
@@ -348,6 +423,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
     _edgeDwell.cancel();
     _hoverDwell.cancel();
     _hoveredLaneId = null;
+    _clearHoverHighlight();
     _maybeScheduleRestore(context.read<WorkspaceCubit>().state);
     _stopTickerIfIdle();
   }
@@ -380,6 +456,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
     _hoverDwell.cancel();
     _edgeDwell.cancel();
     _restoreDwell.cancel();
+    _clearHoverHighlight();
     _stopTickerIfIdle();
 
     if (laneId == _revealedLaneId) {
@@ -429,13 +506,19 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
               viewportWidth: viewportWidth,
               availableWidth: availableWidth,
               resizerWidth: LaneResizer.width,
-              // solo 的生效宽度以「它同时是激活泳道」为前提。
+              // **Reader 的**独占宽度不看激活态（见 `WorkspaceState.effectiveSoloLaneId`）：
+              // 聚焦只移动条带，不把 Reader 按新宽度重排、重解一遍画面。
+              // 面板泳道仍走老契约（生效要同时被激活），那条不对称的理由写在同一个 getter 上。
               soloLaneId: state.effectiveSoloLaneId,
+              // 轨只给「不是当前激活」的那几条 —— 激活哪条，哪条就展开。
+              activeLaneId: state.activeLaneId,
               showLaneNavigatorInSolo:
                   state.interaction.showLaneNavigatorInSolo,
             );
             final geometry = WorkspaceLaneFocusGeometry.fromMetrics(metrics);
             _geometry = geometry;
+            // 内容实例：只在「除激活态之外的任何一项」变了才重出。
+            _syncLaneContent(context, state, context.read<WorkspaceCubit>());
 
             return MouseRegion(
               onHover: _handleStripHover,
@@ -571,6 +654,8 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
       isFullscreen: isFullscreen,
       isActive: isActive,
       isRail: isRail,
+      // 驻留已经「停住」、最后那段延时还在走 —— 先把边框亮起来。
+      focusArmed: _armedHoverLaneId == laneId,
       titleOverride: laneId == LaneId.reader
           ? state.readerTarget?.displayTitle
           : null,
@@ -592,7 +677,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
           : () => cubit.toggleLaneCollapsed(laneId),
       onToggleSolo: () => cubit.toggleSoloLane(laneId),
       onResetWidth: () => cubit.resetLaneWidth(laneId),
-      child: _buildAbsorbingContent(context, state, laneId, cubit, isActive),
+      child: _buildAbsorbingContent(context, laneId, isActive),
     );
 
     return MouseRegion(
@@ -623,16 +708,17 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
   /// 早先版本把这个 `AbsorbPointer` 包在了**整列**外面（含栏头），
   /// 于是非激活泳道上的折叠 / 独占按钮第一下必然哑掉，而注释还写着
   /// 「只包内容」—— 注释与实现不一致本身就是缺陷。
+  ///
+  /// 子节点取的是**缓存住的那一份**（见 [_syncLaneContent]）：聚焦换人只换
+  /// `absorbing` 这个开关，不该顺手把里面的内容重 build 一遍。
   Widget _buildAbsorbingContent(
     BuildContext context,
-    WorkspaceState state,
     String laneId,
-    WorkspaceCubit cubit,
     bool isActive,
   ) {
     return AbsorbPointer(
       absorbing: !isActive,
-      child: _buildLaneContent(context, state, laneId, cubit),
+      child: _laneContent[laneId]!,
     );
   }
 

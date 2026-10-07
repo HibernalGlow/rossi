@@ -49,6 +49,8 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
   skipUpdateCheck: json['skipUpdateCheck'] as bool? ?? true,
   retryDownloadUntilSuccess: json['retryDownloadUntilSuccess'] as bool? ?? true,
   downloadConcurrency: (json['downloadConcurrency'] as num?)?.toInt() ?? 3,
+  downloadTaskConcurrency:
+      (json['downloadTaskConcurrency'] as num?)?.toInt() ?? 2,
   downloadDelayMs: (json['downloadDelayMs'] as num?)?.toInt() ?? 150,
   downloadAutoRetryCount:
       (json['downloadAutoRetryCount'] as num?)?.toInt() ?? 3,
@@ -66,11 +68,11 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
   transparentDesktopTitleBar:
       json['transparentDesktopTitleBar'] as bool? ?? false,
   transparentTitleBarFused: json['transparentTitleBarFused'] as bool? ?? false,
-  searchHistory:
-      (json['searchHistory'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList() ??
-      const [],
+  searchHistory: json['searchHistory'] == null
+      ? const []
+      : searchHistoryFromJson(json['searchHistory']),
+  searchHistoryGroupBySource:
+      json['searchHistoryGroupBySource'] as bool? ?? false,
   proxySetting: json['proxySetting'] == null
       ? const ProxySettingState()
       : ProxySettingState.fromJson(
@@ -181,6 +183,7 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'skipUpdateCheck': instance.skipUpdateCheck,
       'retryDownloadUntilSuccess': instance.retryDownloadUntilSuccess,
       'downloadConcurrency': instance.downloadConcurrency,
+      'downloadTaskConcurrency': instance.downloadTaskConcurrency,
       'downloadDelayMs': instance.downloadDelayMs,
       'downloadAutoRetryCount': instance.downloadAutoRetryCount,
       'oldPageRollbackEnabled': instance.oldPageRollbackEnabled,
@@ -195,7 +198,8 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'startWithWorkspace': instance.startWithWorkspace,
       'transparentDesktopTitleBar': instance.transparentDesktopTitleBar,
       'transparentTitleBarFused': instance.transparentTitleBarFused,
-      'searchHistory': instance.searchHistory,
+      'searchHistory': instance.searchHistory.map((e) => e.toJson()).toList(),
+      'searchHistoryGroupBySource': instance.searchHistoryGroupBySource,
       'proxySetting': instance.proxySetting.toJson(),
       'windowWidth': instance.windowWidth,
       'windowHeight': instance.windowHeight,

@@ -55,7 +55,16 @@ Map<String, String> _extraCargoEnvironmentVariables(
 /// 这里只做透传 —— 仓库里不出现任何机器绝对路径。
 Map<String, String> _hostEnvironmentVariables() {
   const passthrough = ['PKG_CONFIG_PATH', 'PKG_CONFIG', 'VCPKG_ROOT'];
-  final env = <String, String>{};
+  final env = <String, String>{
+    // 这一条不是透传，是**注入**：安卓分支那条 `CARGO_PROFILE_DEV_STRIP: 'none'` 的宿主版。
+    // cargo 的 release 默认往 rustc 传 `-C strip=debuginfo`，rustc 进程内重写 Mach-O 时会把
+    // LINKEDIT 的字符串池落在 4 字节偏移上（`rquickjs-macro` 那个 proc-macro dylib 实测如此），
+    // 而 macOS 27 的 dyld 要求 8 字节对齐 —— 拒载之后 rustc 只报一句 `E0463: can't find crate
+    // for rquickjs_macro`，看不到 dlopen。2026-10-03 单变量对照（同一 `--package windcore` 图，
+    // 只换这个开关）：默认档 stroff mod8=4、编不过；none 后 mod8=0、windcore 编完。
+    // 代价是宿主 release 的 Rust 静态库留着符号（`.a` 201MB，dev 是 242MB）。
+    'CARGO_PROFILE_RELEASE_STRIP': 'none',
+  };
   for (final key in passthrough) {
     final value = Platform.environment[key];
     if (value != null && value.isNotEmpty) {
@@ -172,12 +181,81 @@ Map<String, String> _androidEnvironmentVariables(
       '-isystem ${p.join(llvmBase, 'lib', 'clang', v, 'include').replaceAll('\\', '/')}',
   ].join(' ');
 
-  return <String, String>{
+  // 安卓交叉编译额外要交代给 cargo 的三件事。都在**安卓这一支**里给，
+  // 宿主分支一个字不动（那三样在那边要么不需要、要么会带歪）。
+  final env = <String, String>{
     'CLANG_PATH': clangBinary.replaceAll('\\', '/'),
     'LIBCLANG_PATH': _libClangPath(llvmBase).replaceAll('\\', '/'),
     'BINDGEN_EXTRA_CLANG_ARGS': bindgenArgs,
     'PATH':
         '${p.join(llvmBase, 'bin')}${_pathSep()}${Platform.environment['PATH'] ?? ''}',
+    ..._androidExtraCargoEnv(codeConfig, projectRoot),
+  };
+  return env;
+}
+
+/// 安卓构建要额外交代的三件事（2026-10-02 逐条实测出来的代价，见
+/// `docs/android-build.md`）：
+///
+/// 1. **`PKG_CONFIG_LIBDIR` 指向交叉编出来的 dav1d**。`image` 的 `avif-native`
+///    经 pkg-config 找 dav1d，而 hook 子进程的环境是干净的（宿主分支那份透传就是
+///    为这个存在的），交叉探测还额外要求 `PKG_CONFIG_ALLOW_CROSS` —— 少了任意一个，
+///    `dav1d-sys` 的 build.rs 直接 `pkg-config has not been configured to support
+///    cross-compilation`。用 `LIBDIR` 而不是 `PATH` 是刻意的：`PATH` 是**追加**系统
+///    搜索路径，brew 那份宿主的 `dav1d.pc` 仍会被命中，交叉链接会拿 macOS 的
+///    dylib 去喂 ELF 链接器。目录不存在时（没跑过
+///    `third_party/build_dav1d_android.sh` 的机器）不设，让失败停在原地。
+/// 2. **`CXXFLAGS_<triple>` 里那一个宏**：vendored unrar 的 `ulinks.cpp` 在
+///    `__linux` 下用 `lutimes`，而 bionic 没有这个函数；定义 `UNIX_TIME_NS` 就走它
+///    自己写好的 `utimensat` 分支。补丁进不了 vendor（那是 submodule）。
+/// 3. **关掉 dev profile 的 strip**：`rust-toolchain.toml` 钉的 1.96.1 在这台
+///    macOS 27 上会把 `rquickjs-macro` 那个 proc-macro dylib 改写成 dyld 拒载的
+///    Mach-O，而 rustc 把它报成 `E0463: can't find crate for rquickjs_macro` ——
+///    一句 dlopen 的影子都没有。同工具链 `strip=none` 与 1.98.1 默认都可载。
+Map<String, String> _androidExtraCargoEnv(
+  CodeConfig codeConfig,
+  String projectRoot,
+) {
+  final triple = _rustAndroidTriple(codeConfig.targetArchitecture);
+  final env = <String, String>{
+    'CXXFLAGS_${triple.replaceAll('-', '_')}': '-DUNIX_TIME_NS',
+    'CARGO_PROFILE_DEV_STRIP': 'none',
+  };
+  final sysrootPkgConfig = p.join(
+    projectRoot,
+    'third_party',
+    'android_sysroot',
+    triple,
+    'lib',
+    'pkgconfig',
+  );
+  if (Directory(sysrootPkgConfig).existsSync()) {
+    env['PKG_CONFIG_LIBDIR'] = sysrootPkgConfig;
+    env['PKG_CONFIG_PATH'] = sysrootPkgConfig;
+    env['PKG_CONFIG_ALLOW_CROSS'] = '1';
+  } else {
+    stderr.writeln(
+      '[rossi-hook] 没找到 $sysrootPkgConfig：dav1d 会退回它自己的 meson 兜底'
+      '（那会编出宿主架构，交叉链接时才炸）。先跑 '
+      'third_party/build_dav1d_android.sh。',
+    );
+  }
+  return env;
+}
+
+/// Rust 侧的安卓三元组。
+///
+/// 不从 `CodeConfig` 上读：`code_assets`（2.0.0）只给 `targetOS` +
+/// `targetArchitecture`，没有现成的三元组字段；这里按 Rust 的命名给
+/// （注意 arm 那边是 `armv7-linux-androideabi`，与 NDK 的 `arm-linux-androideabi`
+/// **不同名** —— 上面 `_ndkTargetTriple` 给的是 NDK 那一套，两边不能互相代用）。
+String _rustAndroidTriple(Architecture architecture) {
+  return switch (architecture) {
+    Architecture.arm64 => 'aarch64-linux-android',
+    Architecture.arm => 'armv7-linux-androideabi',
+    Architecture.x64 => 'x86_64-linux-android',
+    Architecture.ia32 => 'i686-linux-android',
+    _ => throw UnsupportedError('Unsupported Android architecture: $architecture'),
   };
 }
 

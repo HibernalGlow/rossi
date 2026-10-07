@@ -1,13 +1,8 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:open_file/open_file.dart';
-import 'package:path/path.dart' as p;
-import 'package:zephyr/config/global/global.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
@@ -17,14 +12,13 @@ import 'package:zephyr/page/bookshelf/service/comic_folder_service.dart';
 import 'package:zephyr/plugin/utils/plugin_display_name.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/comic/comic_quick_read.dart';
-import 'package:zephyr/util/get_path.dart';
-import 'package:zephyr/util/permission.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/widgets/comic_entry/models/models.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/workspace/method/open_comic_item.dart';
 import 'package:zephyr/workspace/method/shelf_entry_actions.dart';
+import 'package:zephyr/workspace/method/shelf_port_flow.dart';
 import 'package:zephyr/workspace/model/bookmark_library_portable.dart';
 import 'package:zephyr/workspace/model/shelf_entry_menu_spec.dart';
 import 'package:zephyr/workspace/model/shelf_library_query.dart';
@@ -32,10 +26,13 @@ import 'package:zephyr/workspace/model/shelf_view_state.dart';
 import 'package:zephyr/workspace/registry/workspace_ids.dart';
 import 'package:zephyr/workspace/service/bookmark_library_service.dart';
 import 'package:zephyr/workspace/service/shelf_view_state_store.dart';
+import 'package:zephyr/workspace/widgets/cards/file_manager_toolbar.dart';
 import 'package:zephyr/workspace/widgets/cards/shelf_entry_context_menu.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view.dart';
+import 'package:zephyr/workspace/widgets/library_view/shelf_list_chip.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_list_toolbar.dart';
+import 'package:zephyr/workspace/widgets/library_view/shelf_timeline_view.dart';
 
 /// 书签面板（库里叫收藏）。
 ///
@@ -84,6 +81,10 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
   List<ComicFolder> _folders = const [];
   bool _busy = false;
 
+  /// 时间线那一档。与 `_viewMode` 各存各的：开着时间线时 `_viewMode` 保持原样，
+  /// 关掉就回到用户上一眼看惯的那一档。
+  bool _timeline = false;
+
   /// 视图档位与排序的落盘，口径与历史卡片一致。
   ///
   /// **刻意不记**当前选中的书签列表：那是一条筛选，恢复回来会让用户以为
@@ -107,6 +108,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
       if (field != null) {
         _sort = ShelfSort(field: field, ascending: saved.sortAscending);
       }
+      _timeline = saved.timeline;
     });
   }
 
@@ -116,6 +118,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
         viewMode: _viewMode.name,
         sortField: _sort.field.name,
         sortAscending: _sort.ascending,
+        timeline: _timeline,
       ),
     );
   }
@@ -196,7 +199,12 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
         for (final item in all) _searchable(item),
       ], memberKeys: memberKeys),
       keyword: _keyword,
-      sort: _sort,
+      // 时间线**固定按时间倒序**（最近的在最上面），不跟着 `_sort` 走：
+      // 一条按标题排好的时间线会切出一堆上下来回的日期段，那不是时间线。
+      // 工具栏里排序那颗键在这时是灰的，所以这里不需要解释「你排的序呢」。
+      sort: _timeline
+          ? const ShelfSort(field: ShelfSortField.time)
+          : _sort,
       normalize: _normalize,
     );
     // 插件 id 是一串 uuid，行上得换成插件自己报的名字（口径见 pluginDisplayNames）。
@@ -225,7 +233,15 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
           searchController: _searchController,
           onKeywordChanged: (value) => setState(() => _keyword = value),
           count: rows.length,
-          trailing: _buildPortActions(context),
+          busy: _busy,
+          portLabel: '书签数据',
+          onExport: _export,
+          onImport: _import,
+          timelineOn: _timeline,
+          onTimeline: () {
+            setState(() => _timeline = !_timeline);
+            _rememberViewState();
+          },
         ),
         const SizedBox(height: 6),
         if (widget.isStandalone)
@@ -242,6 +258,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
     bool libraryEmpty,
     bool menuEnabled,
   ) {
+    if (_timeline) return _buildTimeline(context, rows, libraryEmpty, menuEnabled);
     return LibraryEntryList(
       mode: _viewMode,
       entries: rows,
@@ -282,15 +299,45 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
     );
   }
 
+  /// 时间线档：按「收藏时间」那一天分段。
+  ///
+  /// 行内容仍然由 `ShelfTimelineView` 转给 `LibraryEntrySurface`，这里只供
+  /// 时间与右键壳子 —— 与列表档共用同一套，两档不会长歪。
+  Widget _buildTimeline(
+    BuildContext context,
+    List<LibraryEntry> rows,
+    bool libraryEmpty,
+    bool menuEnabled,
+  ) {
+    final timeline = ShelfTimelineView(
+      entries: rows,
+      standalone: widget.isStandalone,
+      timeOf: (row) => (row.source! as UnifiedComicFavorite).updatedAt,
+      emptyText: libraryEmpty
+          ? '还没有书签，去详情页点收藏吧'
+          : _keyword.trim().isNotEmpty
+          ? '没有匹配的书签'
+          : '这个列表里还没有书签',
+      onTap: (row) => _open(context, row.source! as UnifiedComicFavorite),
+      wrapRow: (context, row, child) => ShelfEntryContextMenuRegion(
+        enabled: menuEnabled,
+        inputBuilder: () => _menuInput(row.source! as UnifiedComicFavorite),
+        onAction: (context, action) =>
+            _onMenuAction(context, row.source! as UnifiedComicFavorite, action),
+        child: child,
+      ),
+    );
+    return widget.isStandalone ? Expanded(child: timeline) : timeline;
+  }
+
   // ── 列表轨 ────────────────────────────────────────────────────────────────
 
   Widget _buildListRail(BuildContext context) {
-    final theme = Theme.of(context);
     final chips = <Widget>[
-      _listChip(context, label: '全部', path: _kAllLists),
-      _listChip(context, label: '未分类', path: kComicFolderRootPath),
+      _listChip(label: '全部', path: _kAllLists),
+      _listChip(label: '未分类', path: kComicFolderRootPath),
       for (final folder in _folders)
-        _listChip(context, label: folder.name, path: '/${folder.name}'),
+        _listChip(label: folder.name, path: '/${folder.name}'),
     ];
 
     return Row(
@@ -306,47 +353,35 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
             ),
           ),
         ),
-        IconButton(
-          icon: const Icon(Icons.playlist_add, size: 18),
+        // 两颗键走本区图标钮的同一份度量（40 见方、图标 20），不再用
+        // `size: 18` + `visualDensity: compact` 的裸 IconButton —— 否则
+        // 列表轨与下面的工具栏是两条不同高度的带，看着就是两个东西。
+        FileManagerToolbarIconButton(
+          icon: Icons.playlist_add_rounded,
           tooltip: '新建书签列表',
-          visualDensity: VisualDensity.compact,
-          onPressed: _busy ? null : () => _editList(null),
+          enabled: !_busy,
+          onPressed: () => _editList(null),
         ),
         if (_selectedList != _kAllLists &&
             _selectedList != kComicFolderRootPath)
-          IconButton(
-            icon: const Icon(Icons.edit_outlined, size: 18),
+          FileManagerToolbarIconButton(
+            icon: Icons.edit_outlined,
             tooltip: '重命名 / 删除当前列表',
-            visualDensity: VisualDensity.compact,
-            onPressed: _busy ? null : () => _editList(_selectedList),
-          )
-        else
-          Icon(
-            Icons.bookmark_added_rounded,
-            size: 16,
-            color: theme.colorScheme.onSurfaceVariant,
+            enabled: !_busy,
+            onPressed: () => _editList(_selectedList),
           ),
       ],
     );
   }
 
-  Widget _listChip(
-    BuildContext context, {
-    required String label,
-    required String path,
-  }) {
-    final selected = path == _selectedList;
-    return Padding(
-      padding: const EdgeInsets.only(right: 6),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: selected,
-        onSelected: (_) => setState(() {
-          _selectedList = path;
-          _folders = BookmarkLibraryService.lists();
-        }),
-        visualDensity: VisualDensity.compact,
-      ),
+  Widget _listChip({required String label, required String path}) {
+    return ShelfListChip(
+      label: label,
+      selected: path == _selectedList,
+      onTap: () => setState(() {
+        _selectedList = path;
+        _folders = BookmarkLibraryService.lists();
+      }),
     );
   }
 
@@ -381,141 +416,54 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
   }
 
   // ── 导入 / 导出 ───────────────────────────────────────────────────────────
+  //
+  // 管路（权限、选目录、iOS 的分享面板回退、确认对话框、忙状态）在
+  // `method/shelf_port_flow.dart`，与历史面板共用一份；这里只剩「书签这一侧
+  // 具体编码什么、怎么落库」。
 
-  Widget _buildPortActions(BuildContext context) {
-    return Row(
-      children: [
-        IconButton(
-          icon: const Icon(Icons.file_download_outlined, size: 18),
-          tooltip: '导出书签为 JSON',
-          visualDensity: VisualDensity.compact,
-          onPressed: _busy ? null : _export,
-        ),
-        IconButton(
-          icon: const Icon(Icons.file_upload_outlined, size: 18),
-          tooltip: '从 JSON 导入书签',
-          visualDensity: VisualDensity.compact,
-          onPressed: _busy ? null : _import,
-        ),
-      ],
-    );
+  void _setBusy(bool busy) {
+    if (mounted) setState(() => _busy = busy);
   }
 
   Future<void> _export() async {
-    // Android 写用户目录要「所有文件访问」权限，否则 Permission denied。
-    final granted = await requestExportPermission();
-    if (!granted) {
-      if (mounted) showErrorToast(t.comicInfo.exportPermissionDenied);
-      return;
-    }
     final items = BookmarkLibraryService.collect();
-    if (items.isEmpty) {
-      if (mounted) showWarningToast('书签还是空的，没有可导出的内容');
-      return;
-    }
-    final fileName =
-        '$appDisplayName-bookmarks-${DateTime.now().millisecondsSinceEpoch}.json';
-    final String target;
-    if (Platform.isIOS) {
-      // iOS 的 file_selector 没有 getDirectoryPath，先写缓存再走分享面板。
-      target = p.join(await getCachePath(), fileName);
-    } else {
-      final dir = await getDirectoryPath();
-      if (dir == null || dir.trim().isEmpty || !mounted) return;
-      target = p.join(dir, fileName);
-    }
-
-    setState(() => _busy = true);
-    try {
-      await File(target).writeAsString(encodeBookmarkLibrary(items));
-      if (!mounted) return;
-      if (Platform.isIOS) {
-        showSuccessToast('已写入缓存，请在分享面板里保存');
-        await OpenFile.open(target);
-      } else {
-        showSuccessToast('已导出 ${items.length} 条书签\n$target');
-      }
-    } on Object catch (e, s) {
-      logger.e('导出书签失败', error: e, stackTrace: s);
-      if (mounted) showErrorToast('导出书签失败：$e');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _import() async {
-    final picked = await openFile(
-      acceptedTypeGroups: const [
-        XTypeGroup(
-          label: '书签文件',
-          extensions: ['json'],
-          mimeTypes: ['application/json'],
-        ),
-      ],
-    );
-    if (picked?.path case final path?) {
-      await _importFrom(path);
-    }
-  }
-
-  Future<void> _importFrom(String path) async {
-    setState(() => _busy = true);
-    try {
-      // 先出计划再落库：用户点完文件至少要看见「要动多少条」。
-      final plan = await BookmarkLibraryService.planFromFile(path);
-      if (!mounted) return;
-      final confirmed = await _confirmImport(plan);
-      if (!confirmed || !mounted) return;
-      BookmarkLibraryService.applyPlan(plan);
-      _loadLists();
-      if (mounted) showSuccessToast(plan.summary);
-    } on BookmarkLibraryFormatException catch (e) {
-      if (mounted) showErrorToast('读不了这个文件：${e.message}');
-    } on Object catch (e, s) {
-      logger.e('导入书签失败', error: e, stackTrace: s);
-      if (mounted) showErrorToast('导入书签失败：$e');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<bool> _confirmImport(BookmarkMergePlan plan) async {
-    final rejected = plan.rejected;
-    final confirmed = await showDialog<bool>(
+    await exportShelfDocument(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('导入书签'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(plan.summary),
-            const SizedBox(height: 8),
-            const Text('只合并，不会删除或覆盖已有的书签。'),
-            if (rejected.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                '跳过的条目：\n${rejected.take(5).map((r) => '· ${r.label} — ${r.reason}').join('\n')}',
-              ),
-            ],
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => dialogContext.pop(false),
-            child: Text(t.common.cancel),
-          ),
-          FilledButton(
-            onPressed: plan.writes.isEmpty
-                ? null
-                : () => dialogContext.pop(true),
-            child: const Text('导入'),
-          ),
-        ],
-      ),
+      label: '书签',
+      fileStem: 'bookmarks',
+      count: items.length,
+      encode: () => encodeBookmarkLibrary(items),
+      onBusyChanged: _setBusy,
     );
-    return confirmed ?? false;
   }
+
+  Future<void> _import() => importShelfDocument(
+    context: context,
+    label: '书签',
+    fileLabel: '书签文件',
+    planFrom: (path) async {
+      final BookmarkMergePlan plan;
+      try {
+        plan = await BookmarkLibraryService.planFromFile(path);
+      } on BookmarkLibraryFormatException catch (e) {
+        throw ShelfFormatException(e.message);
+      }
+      return ShelfImportPlan(
+        summary: plan.summary,
+        writeCount: plan.writes.length,
+        rejectedLines: [
+          for (final rejection in plan.rejected)
+            '${rejection.label} — ${rejection.reason}',
+        ],
+        note: '只合并，不会删除或覆盖已有的书签。',
+        apply: () {
+          BookmarkLibraryService.applyPlan(plan);
+          _loadLists();
+        },
+      );
+    },
+    onBusyChanged: _setBusy,
+  );
 
   // ── 行 ────────────────────────────────────────────────────────────────────
 
@@ -583,11 +531,17 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
       thumbModes: LibraryViewMode.values.toSet(),
       detailCells: [author.isEmpty ? '—' : author, source, time],
       onRead: () => _read(item),
+      // 行上的图标钮走**行档**，不是工具栏那条 40 的带：文件管理器那侧已验收的
+      // 画法就是 28 命中区 + 16~18 图标 + `padding: zero`（见
+      // `parts/file_manager_card_view_part.dart` 的 `_trailing`）。
+      // 原来是 `size: 13`，比行里的正文字还小，读起来不像一个能按的东西。
       trailing: IconButton(
-        icon: const Icon(Icons.arrow_forward_ios_rounded, size: 13),
+        icon: const Icon(Icons.arrow_forward_ios_rounded, size: 18),
         color: theme.colorScheme.onSurfaceVariant,
         tooltip: '打开',
         visualDensity: VisualDensity.compact,
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
         onPressed: () => _open(context, item),
       ),
     );

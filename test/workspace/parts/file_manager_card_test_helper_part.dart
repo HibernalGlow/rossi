@@ -50,6 +50,8 @@ Future<GlobalSettingCubit> _pumpCard(
   WidgetTester tester, {
   double width = 340,
   GlobalSettingCubit? settings,
+  // 遍历进行中的用例要自己控制帧（进度条一直在动，`pumpAndSettle` 永远不落地）。
+  bool settle = true,
 }) async {
   tester.view.physicalSize = const Size(1000, 1100);
   tester.view.devicePixelRatio = 1;
@@ -71,7 +73,7 @@ Future<GlobalSettingCubit> _pumpCard(
       ),
     ),
   );
-  await tester.pumpAndSettle();
+  if (settle) await tester.pumpAndSettle();
   return cubit;
 }
 

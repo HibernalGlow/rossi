@@ -1,7 +1,9 @@
+import 'package:zephyr/main.dart';
 import 'package:zephyr/network/http/plugin/unified_comic_plugin.dart';
 import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
 import 'package:zephyr/page/comic_read/model/comic_read_snapshot.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
+import 'package:zephyr/page/comic_read/model/plugin_read_launch.dart';
 import 'package:zephyr/page/comic_read/type/chapter_extern.dart';
 import 'package:zephyr/page/download/adapters/download_chapter_adapter.dart';
 import 'package:zephyr/page/download/adapters/download_chapter_matcher.dart';
@@ -51,20 +53,38 @@ Future<NormalComicEpInfo> getPluginReadSnapshot(
   }
   candidates.add('');
 
+  final snapshotSw = Stopwatch()..start();
+  var attempts = 0;
   ComicReadSnapshot? snapshot;
-  for (final candidate in candidates) {
-    final current = await _fetchSnapshot(
-      from: from,
-      comicId: comicId,
-      order: order,
-      chapterId: candidate,
-      extern: extern,
-    );
-    snapshot = current;
-    if (current.chapter.pages.isNotEmpty) {
-      break;
+  // 封面「直接阅读」已经把这一章的快照取回来了（那一次同时带回整本目录）。
+  // 章节 key 对得上就复用，对不上照旧回源 —— 所以这条路最差等于改之前。
+  final launch = comicInfo is PluginReadLaunch ? comicInfo : null;
+  final reusedLaunchSnapshot =
+      launch != null && launch.matches(resolvedChapterId);
+  if (reusedLaunchSnapshot) {
+    snapshot = launch.snapshot;
+  } else {
+    for (final candidate in candidates) {
+      attempts++;
+      final current = await _fetchSnapshot(
+        from: from,
+        comicId: comicId,
+        order: order,
+        chapterId: candidate,
+        extern: extern,
+      );
+      snapshot = current;
+      if (current.chapter.pages.isNotEmpty) {
+        break;
+      }
     }
   }
+  logger.d(
+    '[read-start] read-snapshot from=$from '
+    '${reusedLaunchSnapshot ? "复用起读快照" : "候选=$attempts/${candidates.length}"} '
+    '${snapshotSw.elapsedMilliseconds}ms '
+    '页=${snapshot?.chapter.pages.length ?? 0} 章节=${snapshot?.chapters.length ?? 0}',
+  );
 
   snapshot ??= const ComicReadSnapshot(
     source: '',

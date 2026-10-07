@@ -355,57 +355,94 @@ void _trashOutcomeHint() {
 
 // ── 9. 单击的三种含义与它们的优先级 ────────────────────────────────────────
 
+FileManagerEntryTapGesture _tap({
+  bool ctrl = false,
+  bool shift = false,
+  bool mode = false,
+}) => resolveFileManagerEntryTapGesture(
+  toggleModifier: ctrl,
+  extendModifier: shift,
+  selectionMode: mode,
+);
+
 void _tapGesturePrecedence() {
-  // 四个组合一个不落 —— 少一个就会出现「某种按键组合点上去没反应」。
+  // 四个按键组合一个不落 —— 少一个就会出现「某种按键组合点上去没反应」。
   check(
-    '什么都不按 = 打开',
-    resolveFileManagerEntryTapGesture(
-          toggleModifier: false,
-          extendModifier: false,
-        ) ==
-        FileManagerEntryTapGesture.open,
+    '什么都不按、也不在多选模式 = 打开',
+    _tap() == FileManagerEntryTapGesture.open,
   );
   check(
     '按修饰键 = 切换选中',
-    resolveFileManagerEntryTapGesture(
-          toggleModifier: true,
-          extendModifier: false,
-        ) ==
-        FileManagerEntryTapGesture.toggle,
+    _tap(ctrl: true) == FileManagerEntryTapGesture.toggle,
   );
   check(
     '按 Shift = 连选',
-    resolveFileManagerEntryTapGesture(
-          toggleModifier: false,
-          extendModifier: true,
-        ) ==
-        FileManagerEntryTapGesture.extend,
+    _tap(shift: true) == FileManagerEntryTapGesture.extend,
   );
   // 「两个键一起按听谁的」必须钉住。连选需要一个起点，而切换会把起点改掉，
   // 所以连选优先 —— 反过来会让 Shift 变成「把锚点挪到这一项」。
   check(
     'Ctrl 与 Shift 同时按，连选优先',
-    resolveFileManagerEntryTapGesture(
-          toggleModifier: true,
-          extendModifier: true,
-        ) ==
-        FileManagerEntryTapGesture.extend,
+    _tap(ctrl: true, shift: true) == FileManagerEntryTapGesture.extend,
   );
 
-  // 单调性：打开只可能出现在「什么都没按」这一格。
-  final opens = <String>[];
-  for (final toggle in [false, true]) {
-    for (final extend in [false, true]) {
-      final gesture = resolveFileManagerEntryTapGesture(
-        toggleModifier: toggle,
-        extendModifier: extend,
-      );
-      if (gesture == FileManagerEntryTapGesture.open) {
-        opens.add('$toggle/$extend');
+  // 这两格是用户报的那个 bug 的两面：「长按把选中态立起来了，点第二下却进了文件夹」。
+  // 模式位本身由界面层算（`_selectionModeOn` = 摁下了开关 **或** 手里正拿着东西），
+  // 所以「空着集合进模式、点第一下」在这里就是 mode:true —— 它必须算加选。
+  check(
+    '多选模式内 + 直点 = 切换选中（点得上第二项，不分设备）',
+    _tap(mode: true) == FileManagerEntryTapGesture.toggle,
+  );
+  check(
+    '不在模式内 + 直点 = 打开（第一下仍然进得去文件夹）',
+    _tap() == FileManagerEntryTapGesture.open,
+  );
+  // 新规则不能反过来把修饰键盖掉：按住 Shift 要的仍然是**范围**。
+  check(
+    '模式内 + Shift = 连选优先',
+    _tap(shift: true, mode: true) == FileManagerEntryTapGesture.extend,
+  );
+  check(
+    '模式内 + Ctrl = 切换选中',
+    _tap(ctrl: true, mode: true) == FileManagerEntryTapGesture.toggle,
+  );
+
+  // 穷举 8 格（4 个按键组合 ×「在不在模式里」）。三档的计数各自钉死，
+  // 加起来必须正好 8 —— 说明没有任何一格「点了没反应」；
+  // `open` 只剩 1 格：退出模式是「摁回那颗开关 / 操作条的取消选择」，
+  // 不靠双击（`canDoubleTap` 仍然只对压缩包为真）。
+  final tally = <FileManagerEntryTapGesture, List<String>>{};
+  for (final ctrl in [false, true]) {
+    for (final shift in [false, true]) {
+      for (final mode in [false, true]) {
+        final gesture = _tap(ctrl: ctrl, shift: shift, mode: mode);
+        (tally[gesture] ??= []).add('$ctrl/$shift/$mode: $gesture');
       }
     }
   }
-  check('只有什么都不按时才打开', opens.length == 1, 'actual: $opens');
+  final opens = tally[FileManagerEntryTapGesture.open] ?? const [];
+  final toggles = tally[FileManagerEntryTapGesture.toggle] ?? const [];
+  final extends_ = tally[FileManagerEntryTapGesture.extend] ?? const [];
+  check(
+    '只有「不按键且不在模式里」这一格才打开',
+    opens.length == 1 && opens.single.contains('false/false/false'),
+    'actual: $opens',
+  );
+  check(
+    '切换选中恰好 3 格',
+    toggles.length == 3,
+    'actual ${toggles.length}: $toggles',
+  );
+  check(
+    '连选恰好 4 格（按 Shift 的全部）',
+    extends_.length == 4,
+    'actual ${extends_.length}: $extends_',
+  );
+  check(
+    '8 格全部有归属',
+    opens.length + toggles.length + extends_.length == 8,
+    'open=${opens.length} toggle=${toggles.length} extend=${extends_.length}',
+  );
 }
 
 // ── 10. 右键时选中态要不要先收敛 ──────────────────────────────────────────

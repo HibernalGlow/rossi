@@ -10,6 +10,7 @@
 并固定 seed。同一模型的「带术语块 / 不带」是唯一的受控对 —— 那才是术语表这一档的净效应。
 """
 import json
+import os
 import subprocess
 import sys
 import time
@@ -17,7 +18,9 @@ import urllib.request
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-MODELS = HERE / "models"
+# 权重目录可以用环境变量指到仓库外：`docs/mt-bench/models/` **没有进 .gitignore**，
+# 一个 1.3 GB 的 gguf 放在仓库里，随时会被谁的一次 `add -A` 连带提交进去。
+MODELS = Path(os.environ.get("MT_MODELS") or HERE / "models")
 CORPUS = json.loads((HERE / "corpus.json").read_text())
 
 MANGA_INSTRUCTION = (
@@ -35,6 +38,25 @@ MANGA_GLOSSARY = (
     "ノラボス对应“野良波”\n\n"
 )
 BASE_INSTRUCTION = "将以下文本翻译为 `简体中文`，注意只需要输出翻译后的结果，不要额外解释：\n\n"
+
+# 思考块的两端（官方客户端 `strip_think` 用的是同一对）。
+THINK_OPEN = "<" + "think>"
+THINK_CLOSE = "<" + "/think>"
+
+# Index-Translate 的**官方 canonical 提示**（照 `inference/llm/translate.py::trans_prompt`
+# 逐字抄，不自己发挥）：无约束时是「请将以下{源}文本翻译为{目标}，直接输出翻译结果，
+# 不要进行任何解释」；带约束时换成【源文】/【约束要求】那套 instTrans 训练格式，
+# 术语表落成 `专名/术语对照: A→B、C→D` 一条硬性要求。
+INDEX_PLAIN = (
+    "请将以下日语文本翻译为简体中文，直接输出翻译结果，不要进行任何解释。\n\n"
+)
+INDEX_CONSTRAINT = (
+    "请将以下日语文本翻译成简体中文，并且严格遵循所有约束要求。\n\n"
+    "【源文】\n{text}\n\n"
+    "【约束要求】\n1. 【硬性要求】专名/术语对照: "
+    "危機契約→危机契约、ナナ→娜娜、リーリィ→莉莉、ノラボス→野良波\n\n"
+    "只输出译文，不要有任何额外说明。"
+)
 
 SYSTEMS = {
     "hymt2-1.8b-base": {
@@ -65,6 +87,24 @@ SYSTEMS = {
         # 自己编一个会把它测成另一个模型）。
         "instruction": None,
         "sampling": ["--temp", "0", "--seed", "1"],
+    },
+    # B站 Index-Translate-2B（apache-2.0，Qwen3.5 底座）。两档是同一份权重的受控对：
+    # 差别只在「有没有按它自己的 instTrans 格式挂术语表」，与 Hy-MT2 那三行同口径。
+    "index-2b": {
+        "file": "Index-Translate-2B.Q4_K_M.gguf",
+        "instruction": INDEX_PLAIN,
+        "sampling": ["--temp", "0", "--seed", "1"],
+        # 模型卡：Q4_K_M 走 `--jinja` + 显式关思考（enable_thinking=false）。
+        "server": ["--jinja", "--chat-template-kwargs", '{"enable_thinking":false}'],
+    },
+    "index-2b+术语": {
+        "file": "Index-Translate-2B.Q4_K_M.gguf",
+        # instruction=None 只为了顺手把请求侧 temperature 也钉到 0（贪心可复现）；
+        # 真正决定提示内容的是下面的 template。
+        "instruction": None,
+        "template": INDEX_CONSTRAINT,
+        "sampling": ["--temp", "0", "--seed", "1"],
+        "server": ["--jinja", "--chat-template-kwargs", '{"enable_thinking":false}'],
     },
 }
 
@@ -102,7 +142,8 @@ def run_system(name, cfg, port, out_path):
            # ⚠️ `--device MTL0` 是**必需**的，不是优化项：这台机器上 llama.cpp 同时列出
            # BLAS(Accelerate) 与 MTL0，不点名就走 CPU（实测 1.8B 只有 8.9 tok/s，延迟数会低一个数量级）。
            # 名字要写 MTL0 —— 写 "metal" 会 `invalid device` 直接退出。
-           "--device", "MTL0", "-ngl", "99", "-c", "4096", "--no-webui", *cfg["sampling"]]
+           "--device", "MTL0", "-ngl", "99", "-c", "4096", "--no-webui",
+           *cfg.get("server", []), *cfg["sampling"]]
     log = open(f"/tmp/ocr-lab/llama-{name}.log", "w")
     proc = subprocess.Popen(cmd, stdout=log, stderr=log)
     try:
@@ -111,7 +152,12 @@ def run_system(name, cfg, port, out_path):
         rows = []
         for item in CORPUS:
             text = item["ja"]
-            prompt = text if cfg["instruction"] is None else cfg["instruction"] + text
+            if cfg.get("template"):
+                prompt = cfg["template"].format(text=text)
+            else:
+                prompt = (
+                    text if cfg["instruction"] is None else cfg["instruction"] + text
+                )
             t0 = time.time()
             body = {
                 "messages": [{"role": "user", "content": prompt}],
@@ -124,9 +170,17 @@ def run_system(name, cfg, port, out_path):
             r = post(port, body)
             ms = int((time.time() - t0) * 1000)
             u = r.get("usage") or {}
+            raw = (r["choices"][0]["message"]["content"] or "").strip()
+            # 与官方客户端 `strip_think` 同一个安全网：模型自己吐思考块就剥掉。
+            # 「有没有真出现思考块」单独记一格 —— 否则「enable_thinking=false 生效了」
+            # 这句话在这台机器上就没有证据。
+            thought = THINK_CLOSE in raw
+            if thought:
+                raw = raw.split(THINK_CLOSE, 1)[1].strip()
             rows.append({
                 "system": name, "id": item["id"], "kind": item["kind"], "ja": text,
-                "out": (r["choices"][0]["message"]["content"] or "").strip(),
+                "out": raw,
+                "thought_block": thought,
                 "ms": ms,
                 "completion_tokens": u.get("completion_tokens"),
                 "load_s": round(load_s, 1),

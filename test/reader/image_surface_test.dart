@@ -192,6 +192,106 @@ Widget _host(
 }
 
 void main() {
+  // ── 尺寸突变那一段：不许出现「什么都没有」的那一帧 ─────────────────────────
+  //
+  // 为什么这条判据在这儿：泳道宽度会因**用户自己的动作**而变（拖分隔条、开独占、
+  // 折叠一条、改窗口）。宽度一变，`_buildContent` 手里那个「纹理装的是不是本页
+  // 在这个尺寸」就成了假 —— 那一刻要么画留着的那张位图，要么什么都不画。
+  // 「什么都不画」透出来的是阅读底色，用户看到的是一闪黑。
+  //
+  // 两半一起写，因为缺对照的「没闪」不值钱：
+  //  - `holdOwnBitmap: true`（= 「翻页预览」开着，出厂默认）：旧位图先顶着，
+  //    按新宽重解在后台跑，中间那一帧仍然有像素。
+  //  - `holdOwnBitmap: false`（用户自己关掉那档）：同样那一帧**确实**是空的 ——
+  //    这条不是 bug 报告，是「这把尺子看得见空窗」的证明，也是那个开关买到的东西。
+  for (final hold in [true, false]) {
+    testWidgets(
+      hold
+          ? '宽度突变的一瞬：留着位图时仍然画得出旧像素'
+          : '宽度突变的一瞬：不留位图才会露出空窗（这是那个开关的代价）',
+      (tester) async {
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.reset);
+
+        final source = _FakeSource();
+        final presenter = _SizePresenter();
+        addTearDown(presenter.dispose);
+        final sizes = <Size>[];
+
+        Widget host(Size size) => MaterialApp(
+          home: Scaffold(
+            body: SizedBox.fromSize(
+              size: size,
+              child: ImageSurface(
+                source: source,
+                index: 0,
+                presenter: presenter,
+                holdOwnBitmap: hold,
+                onIntrinsicSize: sizes.add,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpWidget(host(const Size(400, 800)));
+        await tester.pumpAndSettle();
+        expect(find.byType(Texture), findsOneWidget, reason: '前置：先按 400 宽上屏');
+
+        if (hold) {
+          // 留着位图那一档：兜底那张是在后台解的。**不能**只等到「请求发出去」——
+          // `loads` 在 `_ensureCpuContent` 开头就记了一笔，那一刻位图还没回来，
+          // 拿它当前置会让下面那条断言在验空气。可靠的信号是位图落地时上报的
+          // **原始尺寸**（CPU 路报 200×200；GPU 路报的是 `sourceSizeFor` 那份）。
+          for (int i = 0; i < 20 && !sizes.contains(const Size(200, 200)); i++) {
+            await tester.pump();
+            await tester.runAsync(
+              () => Future<void>.delayed(const Duration(milliseconds: 10)),
+            );
+          }
+          expect(
+            sizes,
+            contains(const Size(200, 200)),
+            reason: '前置：400 宽那份兜底位图必须真的解出来了，否则下面验的是空气',
+          );
+        }
+
+        // 把下一次上屏卡住：宽度变了，而新的画面还没回来 —— 要验的就是这一段。
+        presenter.presentGate = Completer<bool>();
+
+        await tester.pumpWidget(host(const Size(200, 800)));
+        await tester.pump();
+
+        final pixels =
+            find.byType(RawImage).evaluate().isNotEmpty ||
+            find.byType(Texture).evaluate().isNotEmpty;
+        if (hold) {
+          expect(
+            pixels,
+            isTrue,
+            reason: '按新宽重解还没回来时，必须拿留着的那张位图顶着，不许空',
+          );
+        } else {
+          expect(
+            pixels,
+            isFalse,
+            reason:
+                '对照：不留位图时这段就是空的 —— 上面那条「有像素」是靠这张位图买到的，'
+                '不是计数器坏了。这也是 `holdOwnBitmap` 关掉之后的既有口径（不是本次要改的行为）',
+          );
+        }
+
+        presenter.presentGate!.complete(true);
+        presenter.presentGate = null;
+        await tester.pumpAndSettle();
+        expect(
+          find.byType(Texture),
+          findsOneWidget,
+          reason: '新的宽度上屏之后，两档都必须回到有画面',
+        );
+      },
+    );
+  }
+
   for (final remount in [false, true]) {
     testWidgets('横竖页切换不把共享旧纹理塞进新尺寸（重建节点=$remount）', (tester) async {
       final source = _FakeSource();

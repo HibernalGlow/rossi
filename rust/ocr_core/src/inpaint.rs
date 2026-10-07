@@ -6,7 +6,8 @@
 //!
 //! **成本决定分辨率**：512² 在 CPU 上稳态 1 656 ms（CoreML 反而 3 825 ms，见 §8.6.3），
 //! 而一页 1 500×1 100 是它的 6 倍面积 —— 直接原尺寸跑一页要十几秒。所以默认把页与掩膜一起降到
-//! `max_side`（默认 1 024，对齐 8），推理后再升采样回原尺寸并**只在掩膜内**合成：
+//! `max_side`（默认 **768**，对齐 8；这一档的数在 [`Inpainter::from_file`] 上面那段），
+//! 推理后再升采样回原尺寸并**只在掩膜内**合成：
 //! 掩膜外保持原图逐像素不变（这点与 LaMa 自身的性质一致：它不碰掩膜外的像素）。
 
 use crate::group::TextBlock;
@@ -71,7 +72,13 @@ impl Inpainter {
             session: build_session(model, ep, Stage::Inpaint, intra_threads)?,
             // 记实际生效的 EP，理由同 Detector。
             ep: ep.resolve(Stage::Inpaint),
-            max_side: 1024,
+            // 768 是量出来的，不是拍的（§8.6.14，8 页真页、同页交替 4 轮）：
+            // 相对 1 024 稳态 **0.58 倍**（4 页各自的中位比；`mokuro_000a` 是 3 494 → 2 407 ms），
+            // 而掩膜内残留的中位比值是 **0.98**（8 页里 5 页反而更干净），最差一页 +34%。
+            // 640 更快（0.38 倍）但尾巴是 +52%，多省的那 0.7 s 不值这个风险。
+            // 降分辨率**不会**碰到掩膜外的像素 —— 实测 `newly_dark`/`newly_bright`
+            // 逐页与 1 024 完全相同（合成只往掩膜里写），所以代价被关在填充质量里。
+            max_side: 768,
             crop: CropPolicy::None,
             crop_pad: 32,
         })
@@ -447,9 +454,32 @@ fn dilate_mask(mask: &[u8], w: u32, h: u32, r: i32) -> Vec<u8> {
 
 /// 由文本块生成掩膜：块框并集外扩 `dilate_px`。返回 `w * h` 的 `u8`（255 = 要擦）。
 pub fn mask_from_blocks(blocks: &[TextBlock], w: u32, h: u32, dilate_px: i32) -> Vec<u8> {
+    // 只有一条画掩膜的码路：聚块后的块与「从桥那边递回来的 quad」必须产出同一张掩膜，
+    // 各写一遍就会在扩边、夹取这些细节上悄悄分叉，而分叉的表现是「边缘残留一点原字」。
+    let quads: Vec<Vec<f32>> = blocks
+        .iter()
+        .map(|b| {
+            let mut v = Vec::with_capacity(8);
+            for p in b.quad.0.iter() {
+                v.push(p[0]);
+                v.push(p[1]);
+            }
+            v
+        })
+        .collect();
+    mask_from_quads(&quads, w, h, dilate_px)
+}
+
+/// 由 quad 列表（8 个数：左上/右上/右下/左下）生成掩膜，取每个 quad 的 AABB 外扩 `dilate_px`。
+///
+/// 为什么要这个入口：叠层 + 气泡填色那条路要先看「每框底色是不是平色」才知道要不要擦。
+/// 如果只能整页重跑 `analyze` 才能擦，等于把检测+识别（实测 ~4 s）再付一遍，
+/// 比省下来的擦字（实测 4.2 s/页）还贵 —— 那这笔买卖就不成立了。
+/// 桥那边交回来的就是 quad，所以按 quad 收。
+pub fn mask_from_quads(quads: &[Vec<f32>], w: u32, h: u32, dilate_px: i32) -> Vec<u8> {
     let mut mask = vec![0u8; (w * h) as usize];
-    for b in blocks {
-        let (x0, y0, x1, y1) = b.quad.aabb();
+    for q in quads {
+        let Some((x0, y0, x1, y1)) = quad_aabb(q) else { continue };
         let xs = (x0 as i32 - dilate_px).clamp(0, w as i32 - 1);
         let ys = (y0 as i32 - dilate_px).clamp(0, h as i32 - 1);
         let xe = (x1 as i32 + dilate_px).clamp(0, w as i32 - 1);
@@ -462,6 +492,26 @@ pub fn mask_from_blocks(blocks: &[TextBlock], w: u32, h: u32, dilate_px: i32) ->
         }
     }
     mask
+}
+
+/// 8 个数的 quad 取 AABB。长度不对或含 NaN 时返回 `None`（不画这一块，而不是 panic）。
+///
+/// 从桥那边来的是 `Vec<f32>`，形状错了属于接线问题；但让它 panic 会把整页推理崩成
+/// 一句 Rust 背锅的错误，所以这里静默跳过 —— 调用方按「掩膜有没有像素」就能发现。
+fn quad_aabb(q: &[f32]) -> Option<(u32, u32, u32, u32)> {
+    if q.len() != 8 {
+        return None;
+    }
+    let xs = [q[0], q[2], q[4], q[6]];
+    let ys = [q[1], q[3], q[5], q[7]];
+    if xs.iter().chain(ys.iter()).any(|v| !v.is_finite()) {
+        return None;
+    }
+    let x0 = xs.iter().fold(f32::INFINITY, |a, &b| a.min(b));
+    let y0 = ys.iter().fold(f32::INFINITY, |a, &b| a.min(b));
+    let x1 = xs.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
+    let y1 = ys.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
+    Some((x0 as u32, y0 as u32, x1 as u32, y1 as u32))
 }
 
 #[cfg(test)]

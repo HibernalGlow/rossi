@@ -60,11 +60,16 @@ bool hasComicDownloadTask({required String from, required String comicId}) {
 /// 上游把任务模型改成「一个任务一章」后，这是全仓唯一的章节任务构造点：
 /// 详情页整本下载、阅读器下载按钮、章节选择页的「开始下载」都走这里，
 /// 避免多处字段映射各自漂移。
+///
+/// [taskExtern] 是**调用方**附加的选项（例如详情页胶囊发起的「官方 ZIP 下载」），
+/// 会和插件自己的章节 extern 合并后写进任务，最终原样带回插件的 `getChapter`。
+/// 同名键以调用方的为准 —— 那是这次点击明确要的表达。
 DownloadTaskJson buildChapterDownloadTask({
   required String from,
   required String comicId,
   required String comicName,
   required DownloadChapter chapter,
+  Map<String, dynamic>? taskExtern,
 }) {
   return DownloadTaskJson(
     from: from,
@@ -77,7 +82,7 @@ DownloadTaskJson buildChapterDownloadTask({
       logicalKey: chapter.id,
       title: chapter.displayName,
       order: chapter.order,
-      extern: Map<String, dynamic>.from(chapter.extern),
+      extern: {...chapter.extern, ...?taskExtern},
     ),
   );
 }
@@ -88,6 +93,7 @@ List<DownloadTaskJson> buildDownloadAllTasks({
   required String comicId,
   required String comicName,
   required List<DownloadChapter> chapters,
+  Map<String, dynamic>? taskExtern,
 }) {
   return chapters
       .map(
@@ -96,6 +102,7 @@ List<DownloadTaskJson> buildDownloadAllTasks({
           comicId: comicId,
           comicName: comicName,
           chapter: chapter,
+          taskExtern: taskExtern,
         ),
       )
       .toList();
@@ -140,6 +147,7 @@ Future<bool> startComicDownloadAll({
   dynamic comicInfo,
   List<UnifiedComicChapterRef>? chapterRefs,
   bool autoFavorite = true,
+  Map<String, dynamic>? taskExtern,
 }) async {
   if (autoFavorite) {
     await autoFavoriteComicOnDownloadIfEnabled(
@@ -167,6 +175,7 @@ Future<bool> startComicDownloadAll({
     comicId: comicId,
     comicName: comicName,
     chapters: refs.map(adapter.fromChapterRef).toList(),
+    taskExtern: taskExtern,
   );
   if (tasks.isEmpty) {
     showErrorToast(t.error.operationFailed);

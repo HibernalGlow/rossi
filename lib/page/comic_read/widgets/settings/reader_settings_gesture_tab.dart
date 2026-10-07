@@ -1,9 +1,10 @@
 part of 'reader_settings_sheet.dart';
 
+/// 「手势」这一排：手怎么碰屏幕 —— 点哪儿翻页、点中间干什么、悬停唤出什么。
 class _ReaderSettingsGestureTab extends StatelessWidget {
-  final bool isAndroidPhone;
+  final _ReaderSettingsArgs args;
 
-  const _ReaderSettingsGestureTab({required this.isAndroidPhone});
+  const _ReaderSettingsGestureTab({required this.args});
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +17,7 @@ class _ReaderSettingsGestureTab extends StatelessWidget {
           const _TapBehaviorSection(),
           const SizedBox(height: 14),
           const _HoverRevealSection(),
-          if (isAndroidPhone) ...[
+          if (args.isAndroidPhone) ...[
             const SizedBox(height: 14),
             const _VolumeKeyPageTurnSection(),
           ],
@@ -35,11 +36,11 @@ class _TapPageTurnModeSection extends StatelessWidget {
     final globalSettingCubit = context.read<GlobalSettingCubit>();
     final mode = globalSettingState.readSetting.tapPageTurnMode;
 
-    return _SettingsSection(
+    return SettingsSection(
       title: t.reader.pageMode,
       icon: Icons.touch_app_outlined,
       children: [
-        _SettingsSegmentedTile<ReaderTapPageTurnMode>(
+        SettingsSegmentedTile<ReaderTapPageTurnMode>(
           selected: mode,
           segments: [
             ButtonSegment<ReaderTapPageTurnMode>(
@@ -66,7 +67,7 @@ class _TapPageTurnModeSection extends StatelessWidget {
           },
         ),
         // 上游的「反转左右方向键」：本仓把左右键当空间动作，翻转只在这一层生效。
-        _SettingsSwitchTile(
+        SettingsSwitchTile(
           title: t.reader.reverseHorizontalPageTurn,
           subtitle: t.reader.reverseHorizontalPageTurnSubtitle,
           value: globalSettingState.readSetting.reverseHorizontalPageTurn,
@@ -91,13 +92,13 @@ class _TapBehaviorSection extends StatelessWidget {
     final globalSettingCubit = context.read<GlobalSettingCubit>();
     final readSetting = globalSettingState.readSetting;
 
-    return _SettingsSection(
+    return SettingsSection(
       title: '点击与双击手势',
       icon: Icons.gesture_outlined,
       children: [
-        _SettingsCardGroup(
+        SettingsCardGroup(
           children: [
-            _SettingsSwitchTile(
+            SettingsSwitchTile(
               title: t.reader.centerTapToggleBars,
               subtitle: t.reader.centerTapToggleBarsSubtitle,
               value: readSetting.centerTapToggleBars,
@@ -115,7 +116,7 @@ class _TapBehaviorSection extends StatelessWidget {
                 );
               },
             ),
-            _SettingsSwitchTile(
+            SettingsSwitchTile(
               title: t.reader.enableWebtoonTapPageTurn,
               subtitle: t.reader.webtoonTapPageTurnSubtitle,
               value: readSetting.tapPageTurnInWebtoon,
@@ -125,7 +126,7 @@ class _TapBehaviorSection extends StatelessWidget {
                 );
               },
             ),
-            _SettingsSwitchTile(
+            SettingsSwitchTile(
               title: t.reader.doubleTapZoom,
               subtitle: t.reader.doubleTapZoomSubtitle,
               value: readSetting.doubleTapZoom,
@@ -140,7 +141,7 @@ class _TapBehaviorSection extends StatelessWidget {
                 );
               },
             ),
-            _SettingsSwitchTile(
+            SettingsSwitchTile(
               title: t.reader.doubleTapOpenMenu,
               subtitle: t.reader.doubleTapOpenMenuSubtitle,
               value: readSetting.doubleTapOpenMenu,
@@ -169,13 +170,13 @@ class _VolumeKeyPageTurnSection extends StatelessWidget {
     final globalSettingCubit = context.read<GlobalSettingCubit>();
     final readSetting = globalSettingState.readSetting;
 
-    return _SettingsSection(
+    return SettingsSection(
       title: t.reader.volumeKeyPageTurn,
       icon: Icons.volume_up_outlined,
       children: [
-        _SettingsCardGroup(
+        SettingsCardGroup(
           children: [
-            _SettingsSwitchTile(
+            SettingsSwitchTile(
               title: t.reader.enableVolumeKeyPageTurn,
               subtitle: t.reader.volumeKeyPageTurnSubtitle,
               value: readSetting.volumeKeyPageTurn,
@@ -185,9 +186,9 @@ class _VolumeKeyPageTurnSection extends StatelessWidget {
                 );
               },
             ),
-            _SettingsAnimatedCollapse(
+            SettingsAnimatedCollapse(
               isExpanded: readSetting.volumeKeyPageTurn,
-              child: _SettingsSliderCard(
+              child: SettingsSliderCard(
                 title: t.reader.webtoonScrollDistance,
                 value: readSetting.volumeKeyPageTurnDistancePercent.clamp(
                   10,
@@ -232,13 +233,13 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
     final readSetting = globalSettingState.readSetting;
     final isEnabled = readSetting.hoverRevealEnabled;
 
-    return _SettingsSection(
+    return SettingsSection(
       title: t.reader.hoverReveal,
       icon: Icons.mouse_outlined,
       children: [
-        _SettingsCardGroup(
+        SettingsCardGroup(
           children: [
-            _SettingsSwitchTile(
+            SettingsSwitchTile(
               title: t.reader.hoverRevealEnabled,
               subtitle: t.reader.hoverRevealEnabledSubtitle,
               value: isEnabled,
@@ -248,7 +249,7 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
                 );
               },
             ),
-            _SettingsAnimatedCollapse(
+            SettingsAnimatedCollapse(
               isExpanded: isEnabled,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -257,7 +258,7 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
                     padding: const EdgeInsets.all(12),
                     child: _buildNeoViewAreaPreview(context, readSetting),
                   ),
-                  _SettingsSwitchTile(
+                  SettingsSwitchTile(
                     title: t.reader.hoverRevealTop,
                     subtitle: t.reader.hoverAreaTopHint.replaceAll(
                       '{height}',
@@ -270,9 +271,9 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
                       );
                     },
                   ),
-                  _SettingsAnimatedCollapse(
+                  SettingsAnimatedCollapse(
                     isExpanded: readSetting.hoverRevealTop,
-                    child: _SettingsSliderCard(
+                    child: SettingsSliderCard(
                       title: t.reader.hoverTriggerAreaTop,
                       value: readSetting.hoverTriggerAreaTop.clamp(10, 120),
                       min: 10,
@@ -287,7 +288,7 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
                       },
                     ),
                   ),
-                  _SettingsSwitchTile(
+                  SettingsSwitchTile(
                     title: t.reader.hoverRevealBottom,
                     subtitle: t.reader.hoverAreaBottomHint.replaceAll(
                       '{height}',
@@ -300,9 +301,9 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
                       );
                     },
                   ),
-                  _SettingsAnimatedCollapse(
+                  SettingsAnimatedCollapse(
                     isExpanded: readSetting.hoverRevealBottom,
-                    child: _SettingsSliderCard(
+                    child: SettingsSliderCard(
                       title: t.reader.hoverTriggerAreaBottom,
                       value: readSetting.hoverTriggerAreaBottom.clamp(10, 120),
                       min: 10,
@@ -317,7 +318,7 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
                       },
                     ),
                   ),
-                  _SettingsSliderCard(
+                  SettingsSliderCard(
                     title: t.reader.hoverHideDelay,
                     value: readSetting.hoverHideDelayMs.clamp(100, 2000),
                     min: 100,
@@ -330,7 +331,7 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
                       );
                     },
                   ),
-                  _SettingsSwitchTile(
+                  SettingsSwitchTile(
                     title: t.reader.hoverShowVisualIndicator,
                     subtitle: t.reader.hoverShowVisualIndicatorSubtitle,
                     value: readSetting.hoverShowVisualIndicator,

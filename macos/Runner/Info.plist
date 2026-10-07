@@ -6,6 +6,45 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Rossi</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>漫画容器与压缩包</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>zip</string>
+				<string>cbz</string>
+				<string>cbr</string>
+				<string>rar</string>
+				<string>7z</string>
+				<string>cb7</string>
+				<string>tar</string>
+				<string>gz</string>
+				<string>bz2</string>
+				<string>xz</string>
+				<string>lzh</string>
+				<string>lha</string>
+				<string>pdf</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>文件夹</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.folder</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIconFile</key>

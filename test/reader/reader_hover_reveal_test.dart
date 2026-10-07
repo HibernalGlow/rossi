@@ -32,6 +32,59 @@ Widget _buildHarness({
   );
 }
 
+/// 把感应层放进一个 800x600 的视口，并按宿主会给的两种形态挂上
+/// [ReaderHoverTriggerScope]，返回层里所有 [Positioned] 的几何。
+Future<List<Positioned>> _pumpWithTriggerScope(
+  WidgetTester tester, {
+  required ReaderHoverTriggerRect? bottomRect,
+}) async {
+  final readerCubit = ReaderCubit();
+  final settingCubit = _TestGlobalSettingCubit(
+    readSetting: const ReadSettingState(
+      hoverRevealEnabled: true,
+      hoverRevealTop: true,
+      hoverRevealBottom: true,
+      hoverTriggerAreaTop: 45,
+      hoverTriggerAreaBottom: 50,
+    ),
+  );
+
+  late ReaderHoverController controller;
+
+  await tester.pumpWidget(
+    _buildHarness(
+      readerCubit: readerCubit,
+      settingCubit: settingCubit,
+      child: Builder(
+        builder: (context) {
+          controller = ReaderHoverController(context);
+          return SizedBox(
+            width: 800,
+            height: 600,
+            child: ReaderHoverTriggerScope(
+              bottomRect: bottomRect,
+              child: Stack(
+                children: [ReaderHoverRevealOverlay(controller: controller)],
+              ),
+            ),
+          );
+        },
+      ),
+    ),
+  );
+
+  final positioned = tester
+      .widgetList<Positioned>(
+        find.descendant(
+          of: find.byType(ReaderHoverRevealOverlay),
+          matching: find.byType(Positioned),
+        ),
+      )
+      .toList();
+  controller.dispose();
+  return positioned;
+}
+
 void main() {
   group('ReaderState & ReaderCubit Hover Logic', () {
     test(
@@ -529,6 +582,50 @@ void main() {
         controller.dispose();
       },
     );
+
+    // ── 宿主递进来的下唤出区（ReaderHoverTriggerScope）接管的是**哪一条** ──
+    // 「设置 → 布局」画过下唤出区 ⇒ 按那块矩形摆；没画过（宿主递 null）⇒
+    // 阅读器自己的「底部唤出感应区高度」摆。只测无 scope 的分支会漏掉
+    // 住在泳道里的那条真实路径，而底部设置正是被那条路径盖掉的。
+    testWidgets('宿主画过下唤出区时按那块矩形摆，不再整条底边', (tester) async {
+      final positioned = await _pumpWithTriggerScope(
+        tester,
+        bottomRect: (x: 20, y: 80, width: 60, height: 20),
+      );
+
+      // 视口 800x600 ⇒ 百分比换成像素：左 160、上 480、宽 480、高 120
+      expect(
+        positioned.any(
+          (p) =>
+              p.left == 160 &&
+              p.top == 480 &&
+              p.width == 480 &&
+              p.height == 120,
+        ),
+        isTrue,
+        reason: '$positioned',
+      );
+      expect(
+        positioned.any((p) => p.bottom == 0 && p.height == 50),
+        isFalse,
+        reason: '画过之后就只该有那块矩形，感应区高度让位',
+      );
+    });
+
+    testWidgets('宿主没画下唤出区（bottomRect 为 null）时，底部唤出感应区高度生效', (tester) async {
+      final positioned = await _pumpWithTriggerScope(tester, bottomRect: null);
+
+      expect(
+        positioned.any((p) => p.bottom == 0 && p.height == 50),
+        isTrue,
+        reason: '$positioned',
+      );
+      expect(
+        positioned.any((p) => p.top == 0 && p.height == 45),
+        isTrue,
+        reason: '顶部一直吃自己的设置，不该被 scope 影响',
+      );
+    });
 
     testWidgets(
       'Does not render trigger areas when hoverRevealEnabled is false',

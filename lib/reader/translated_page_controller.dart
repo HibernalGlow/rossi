@@ -2,12 +2,16 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
+import 'package:zephyr/reader/page_display_source.dart';
 import 'package:zephyr/reader/page_source.dart';
+import 'package:zephyr/reader/translated_page_overlay.dart';
 import 'package:zephyr/service/ocr/ocr_log.dart';
 import 'package:zephyr/service/ocr/ocr_models.dart';
 import 'package:zephyr/service/ocr/ocr_service.dart';
 import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
+import 'package:zephyr/service/ocr/translated_page_cache.dart';
+import 'package:zephyr/service/ocr/translated_page_display_mode.dart';
 import 'package:zephyr/service/ocr/translated_page_builder.dart';
 
 enum TranslatedPagePhase {
@@ -33,6 +37,14 @@ abstract interface class TranslatedPagePresenter {
   /// `null` = 呈现器答不上来（不是「没换上」，是「不知道」）。
   Future<bool?> presenterUsesEnhanced(int index);
 
+  /// 呈现器是否正处于「原图对比」旁路。
+  ///
+  /// 必须单独问这一件事：旁路按设计整条屏蔽增强图轨（`enhance.rs` 的
+  /// `prefers_enhanced` = `!bypass && 有增强图`），所以它开着的时候
+  /// [presenterUsesEnhanced] **一定**回 `false`。那一句描述的是旁路，
+  /// 不是「注入没生效」——把它当成失败证据，就会在每一页都谎报译文失败。
+  bool get bypassesEnhancedTrack;
+
   /// 被译文占用的页号；超分调度读它给译文让路（增强图轨一页只有一份）。
   /// 被译文占用的页 → 成品页路径。超分调度读它给译文让路，并在翻回来时用它
   /// 把同一张成品页重新注回去（增强图轨会被呈现器按保留集淘汰）。
@@ -57,6 +69,9 @@ class _GpuPresenter implements TranslatedPagePresenter {
   @override
   Future<bool?> presenterUsesEnhanced(int index) =>
       _c.presenterUsesEnhanced(index);
+
+  @override
+  bool get bypassesEnhancedTrack => _c.isOriginalPreview;
 
   @override
   Map<int, String> get translationOwnedPages => _c.translationOwnedPages;
@@ -108,9 +123,21 @@ class TranslatedPageController extends ChangeNotifier {
   int _generation = 0;
   final Map<int, String> _inputScratch = <int, String>{};
 
-  /// 哪些页显示的是降级产物（原文回填）。**不进缓存，所以这份只能记在会话里** ——
-  /// 芯片要能区分「译文页」与「只是擦了字又画回原文」。
-  final Set<int> _degradedPages = <int>{};
+  /// 哪些页此刻显示的是**叠层**，以及它们的产物在缓存里的档名。
+  ///
+  /// 为什么不复用 `translationOwnedPages`：那张表的含义是「这一页的像素被成品页占了」，
+  /// 超分读它来让路。叠层**不占轨** —— 它要的就是底图照常（超分产物最好），
+  /// 把两件事记进同一张表，等于每次叠层都把超分白白关掉。
+  /// 为什么记在这里而不是让 widget 自己去算档名：档名是**配置**的函数
+  /// （`TranslatedPageCache.describe`），显示侧自己算就是第二个真源 ——
+  /// 切了引擎或改了术语表时两边算出的名字不一致，画面会安静地退回原图。
+  final Map<int, String> _overlayLabels = <int, String>{};
+
+  /// 这一页有没有可画的叠层（有 = 显示侧该画覆盖层）。
+  bool isOverlayActive(int index) => _overlayLabels.containsKey(index);
+
+  /// 这一页叠层产物所在的指纹档名；没登记过就是 null（不画）。
+  String? overlayLabelFor(int index) => _overlayLabels[index];
   Directory? _scratch;
 
   TranslatedPagePhase get phase => _phase;
@@ -118,16 +145,25 @@ class TranslatedPageController extends ChangeNotifier {
   String get lastError => _lastError;
 
   /// 这一页是否归译文管（只给界面用；超分那边直接读呈现器自己那份集合）。
-  bool isDegraded(int index) => _degradedPages.contains(index);
-
   bool isOwned(int index) =>
       _presenter?.translationOwnedPages.containsKey(index) ?? false;
+
+  /// 「对比原图」旁路现在开着吗。叠层那一层要跟着让位。
+  ///
+  /// 为什么单独问一句：旁路屏蔽的是**增强图轨**，烘焙档自然被挡住；而叠层是 Flutter 侧
+  /// 的一层，不占轨、也就不受那道屏蔽 —— 不显式判它，用户按「对比原图」看到的会是
+  /// 「原图 + 中文」，而不是他要的那张原图。
+  bool get bypassesOriginalPreview =>
+      _presenter?.bypassesEnhancedTrack ?? false;
 
   /// 换书 / 换章：清掉所有归属与临时输入，避免拿旧页的产物往新页上贴。
   void reset() {
     _generation++;
     _presenter?.translationOwnedPages.clear();
-    _degradedPages.clear();
+    _overlayLabels.clear();
+    // 图层 JSON 那份 widget 层的缓存也跟着丢掉：键里带了档名（含书与章），
+    // 所以不会画错页，但换书不清就是只涨不降 —— 一份图层是几百 KB 的解析。
+    TranslatedPageOverlay.clearCache();
     try {
       _scratch?.deleteSync(recursive: true);
     } catch (_) {
@@ -169,6 +205,15 @@ class TranslatedPageController extends ChangeNotifier {
       return _fail(index, '权重没下全：缺 ${missing.join('、')}');
     }
 
+    // 来源报得出源身份就带上（在线那一路），报不出就是没有 —— 与加这个概念之前
+    // 逐字一致。用模式匹配而不是 `is` 提升：后者在这一处没把类型收窄。
+    // 不带它的话，「同一份配置 + 同一个页号」在几本书之间是同一个键 ——
+    // 那正是这条链一路在防的静默错页，只是这次错的是**另一本书的画面**。
+    final cacheScope = switch (source) {
+      final TranslationScopeBearing bearing => bearing.translationCacheScope,
+      _ => null,
+    };
+
     final generation = _generation;
     _phase = TranslatedPagePhase.building;
     _index = index;
@@ -177,25 +222,60 @@ class TranslatedPageController extends ChangeNotifier {
 
     try {
       final input = await _inputPathFor(source, index);
+      // 叠层与烘焙抢的不是同一件事：烘焙占掉这一页唯一的像素（所以要压超分），
+      // 叠层只在底图之上盖一层字（超分照常，底图越清晰越好）。
+      final choice = await TranslatedPageDisplayMode.load();
       final out = await _builder.build(
         imagePath: input,
         pageIndex: index,
-        config: config,
+        config: config.copyWith(cacheScope: cacheScope),
         // 换书 / 退出之后，剩下的阶段就不要再跑了：一页要十几秒，
         // 光靠「结果回来再丢弃」是把 CPU 烧完才算完。
         // 粒度只能是阶段 —— Rust 侧一次调用没有协作式取消点。
         shouldCancel: () => _stale(generation),
         force: false,
+        retainErasedBase: choice == TranslatedPageDisplayChoice.overlay,
       );
       if (_stale(generation)) return false; // 书都换了，这份产物没有归属可言
       if (!out.hasText) return _fail(index, '这一页没识别到文字');
-      return await _inject(
-        index,
-        out.path,
-        presenter,
-        showingOnSuccess: true,
-        degraded: out.degraded,
-      );
+      if (choice == TranslatedPageDisplayChoice.overlay &&
+          await TranslatedPageCache.overlayReady(
+            label: out.label,
+            pageIndex: index,
+          )) {
+        // **不注入、不占轨**：底图该是超分产物就是超分产物，字由 `TranslatedPageOverlay`
+        // 画在上面。占轨那条路留给烘焙档 —— 这是「翻译迁移到超分后的图上」的落点。
+        _overlayLabels[index] = out.label;
+        // 命中缓存那一次构建器什么都没算，报不出这一维，于是现读图层是唯一办法 ——
+        // 占不占轨必须是这一页的属性，否则「第一次擦干净了、翻回来又露出日文」。
+        final needsBase = out.overlayNeedsBase ||
+            (out.fromCache &&
+                await TranslatedPageCache.overlayNeedsErasedBase(
+                  label: out.label,
+                  pageIndex: index,
+                ));
+        if (needsBase) {
+          // 这一页的底只能是擦字底图：不占轨就没人把它换上屏，于是中文压在日文下面 ——
+          // 那正是 §决定 4 那条 0.085 / 0.000 判据要避免的画面。
+          // 代价只落在这一页（超分为它让路）；每框都能填色的那些页仍然不占轨。
+          OcrLog.add('${OcrLog.page(index)} 这一页要擦字底图当底，占轨（超分为它让路）');
+          return await _inject(
+            index,
+            out.path,
+            presenter,
+            showingOnSuccess: true,
+          );
+        }
+        _phase = TranslatedPagePhase.showing;
+        _index = index;
+        _lastError = '';
+        notifyListeners();
+        OcrLog.add(
+          '${OcrLog.page(index)} 叠层已就绪（档=${out.label}，不占增强图轨，超分照常）',
+        );
+        return true;
+      }
+      return await _inject(index, out.path, presenter, showingOnSuccess: true);
     } on TranslatedPageCancelled {
       // 自己取消的那次构建不是一条错误，也不该有归属：干净收手。
       return false;
@@ -214,6 +294,18 @@ class TranslatedPageController extends ChangeNotifier {
     TranslatedPagePresenter presenter,
     int generation,
   ) async {
+    // 叠层档的这一页**从没被注入过**增强图轨，所以关掉它只是把这一层的登记摘掉。
+    // 走下面 `_inject(原图)` 那条路会把一张原图硬塞进轨里 —— 那反而盖掉了用户
+    // 本来在看的超分产物：叠层的整个理由就是「底图不动」。
+    if (_overlayLabels.containsKey(index)) {
+      _overlayLabels.remove(index);
+      _phase = TranslatedPagePhase.off;
+      _index = index;
+      _lastError = '';
+      notifyListeners();
+      OcrLog.add('${OcrLog.page(index)} 叠层已关掉（不注原图，底图照常）');
+      return true;
+    }
     final original = await _inputPathFor(source, index);
     // 关的那一路也要认过期：`_inputPathFor` 会问呈现源要路径、必要时落一次临时文件，
     // 这中间换书的话，把旧书的原图注到新书那一页上同样是错的。
@@ -223,7 +315,6 @@ class TranslatedPageController extends ChangeNotifier {
       original,
       presenter,
       showingOnSuccess: false,
-      degraded: false,
     );
     if (ok) {
       presenter.translationOwnedPages.remove(index);
@@ -238,12 +329,15 @@ class TranslatedPageController extends ChangeNotifier {
   ///
   /// 核对不是形式主义：注入成功但画面没换（原图轨被预取线程写回）是真实发生过的，
   /// 那种情况下声称「已显示译文」就是虚报。
+  ///
+  /// 但核对只在**这条轨参显时**才有意义。「原图对比」旁路期间呈现器按设计不碰
+  /// 增强图轨，核对必然回 false —— 那既不是成功也不是失败，是「已注入、被挡住」，
+  /// 所以要先问旁路再判失败（[TranslatedPagePresenter.bypassesEnhancedTrack]）。
   Future<bool> _inject(
     int index,
     String path,
     TranslatedPagePresenter presenter, {
     required bool showingOnSuccess,
-    required bool degraded,
   }) async {
     if (!await File(path).exists()) {
       // 产物在这一步之前被人删了 / 目录被清了：ADR-0018 §决定 3 要的是
@@ -262,16 +356,28 @@ class TranslatedPageController extends ChangeNotifier {
     }
     if (!await presenter.reshowAfterInjection(index)) {
       // 已经注入了：下一次该页上屏自然生效，这里不当失败。
-      OcrLog.add('${OcrLog.page(index)} 已注入 $path（这一页当前没在屏上，下次上屏生效）');
-      _claim(presenter, index, path, showingOnSuccess, degraded);
-      _phase = showingOnSuccess
-          ? TranslatedPagePhase.showing
-          : TranslatedPagePhase.off;
-      _index = index;
-      notifyListeners();
-      return true;
+      return _adopted(
+        presenter,
+        index,
+        path,
+        showingOnSuccess: showingOnSuccess,
+        note: '这一页当前没在屏上，下次上屏生效',
+      );
     }
     final confirmed = await presenter.presenterUsesEnhanced(index);
+    if (confirmed == false && presenter.bypassesEnhancedTrack) {
+      // 这一句 false 是旁路给的，不是注入给的：画面上现在是原图，因为用户要求
+      // 对比原图。成品页已经注进轨里，把旁路切回去的那一帧就是它。
+      // 按失败处理的话有两重错 —— 芯片谎报「译文失败」，而且不登记归属，
+      // 于是超分会抢走这一页的增强图轨，切回超分后显示的反倒是超分图。
+      return _adopted(
+        presenter,
+        index,
+        path,
+        showingOnSuccess: showingOnSuccess,
+        note: '原图对比开着，画面上先显示原图，切回即生效',
+      );
+    }
     if (confirmed == false) {
       return _fail(index, '注入成功但画面没换，这一页再翻回来会重试');
     }
@@ -279,7 +385,30 @@ class TranslatedPageController extends ChangeNotifier {
       '${OcrLog.page(index)} ${showingOnSuccess ? "已显示成品页" : "已关回原图"}'
       '（呈现器核对${confirmed == true ? "通过" : "答不上来，按注入成功算"}）：$path',
     );
-    _claim(presenter, index, path, showingOnSuccess, degraded);
+    _claim(presenter, index, path, showingOnSuccess);
+    _phase = showingOnSuccess
+        ? TranslatedPagePhase.showing
+        : TranslatedPagePhase.off;
+    _index = index;
+    _lastError = '';
+    notifyListeners();
+    return true;
+  }
+
+  /// 「注入这件事已经算数」的收尾：登记归属、定相位、播报。
+  ///
+  /// 三处（没在屏上 / 被原图对比挡住 / 核对通过）走的都是同一套记账，差别只在
+  /// 日志里那句括号。合成一处是因为这几行的顺序本身是判据 —— 少了 `_claim`
+  /// 超分就会来抢轨，少了 `_lastError = ''` 上一次的真失败会继续顶在新页脸上。
+  bool _adopted(
+    TranslatedPagePresenter presenter,
+    int index,
+    String path, {
+    required bool showingOnSuccess,
+    required String note,
+  }) {
+    OcrLog.add('${OcrLog.page(index)} 已注入 $path（$note）');
+    _claim(presenter, index, path, showingOnSuccess);
     _phase = showingOnSuccess
         ? TranslatedPagePhase.showing
         : TranslatedPagePhase.off;
@@ -325,18 +454,11 @@ class TranslatedPageController extends ChangeNotifier {
     int index,
     String path,
     bool showingOnSuccess,
-    bool degraded,
   ) {
     if (showingOnSuccess) {
       presenter.translationOwnedPages[index] = path;
-      if (degraded) {
-        _degradedPages.add(index);
-      } else {
-        _degradedPages.remove(index);
-      }
     } else {
       presenter.translationOwnedPages.remove(index);
-      _degradedPages.remove(index);
     }
   }
 

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:zephyr/util/path_util.dart';
+import 'package:zephyr/workspace/model/shelf_library_query.dart';
 
 /// 历史洞察的**纯聚合**（neoview `cards/insights/reader-history-insights.ts` 的同位物）。
 ///
@@ -15,7 +16,8 @@ class HistoryInsightEvent {
   /// 这一次访问的时间（Rossi 侧即历史条目的 `lastReadAt`）。
   final DateTime at;
 
-  /// 图源标识（插件名或 `local`）。分类见 [classifyHistorySource]。
+  /// 图源标识：本地是 `local`，在线是**插件 uuid**（不是插件名，名字要到界面层
+  /// 才解析得出来，见 [classifyHistorySource] 与 `SourceBreakdownCard`）。
   final String source;
 
   /// 漫画 id；本地条目这里就是路径，[isLocalComicSource] 要靠它认出本地。
@@ -253,6 +255,8 @@ ReadingHeatmapSummary buildReadingHeatmap(List<HistoryInsightEvent> events) {
 // ── 来源拆分 ────────────────────────────────────────────────────────────────
 
 class SourceBreakdownItem {
+  /// [classifyHistorySource] 给的**分组键**（`本地` / `未知` / 归一后的插件 uuid），
+  /// 不是显示名 —— 插件名要问注册表，这里保持不依赖 Flutter。
   final String source;
   final int count;
 
@@ -308,9 +312,12 @@ SourceBreakdownSummary buildSourceBreakdown(List<HistoryInsightEvent> events) {
 /// Rossi 的历史自带图源标识，所以这里拆的是**条目从哪来**：本地是一类，
 /// 每个插件图源各一类。本地判定复用 [isLocalComicSource]，于是
 /// 「`from` 写着插件名、comicId 却是个路径」这类历史不会被算成在线。
+///
+/// 返回的是**分组键**而不是给人看的名字：uuid 先按 [shelfSourceKey] 归一大小写
+/// （同一个插件的 `source` 在库里可能是两种写法），解析成插件名是界面层的事。
 String classifyHistorySource(HistoryInsightEvent event) {
   if (isLocalComicSource(event.source, event.comicId)) return '本地';
-  final source = event.source.trim();
+  final source = shelfSourceKey(event.source);
   return source.isEmpty ? '未知' : source;
 }
 

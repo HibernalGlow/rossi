@@ -86,6 +86,7 @@ class DownloadShelfCard extends StatelessWidget {
                       '已离线漫画',
                       '$downloadedCount 本',
                       Icons.inventory_2_outlined,
+                      onTap: () => context.pushRoute(const DownloadTaskRoute()),
                     ),
                     Container(
                       height: 24,
@@ -155,6 +156,7 @@ class DownloadShelfCard extends StatelessWidget {
                     '已离线漫画',
                     '$downloadedCount 本',
                     Icons.inventory_2_outlined,
+                    onTap: () => context.pushRoute(const DownloadTaskRoute()),
                   ),
                   Container(
                     height: 24,
@@ -236,10 +238,11 @@ class DownloadShelfCard extends StatelessWidget {
     BuildContext context,
     String label,
     String value,
-    IconData icon,
-  ) {
+    IconData icon, {
+    VoidCallback? onTap,
+  }) {
     final theme = Theme.of(context);
-    return Row(
+    final row = Row(
       children: [
         Icon(icon, size: 20, color: theme.colorScheme.primary),
         const SizedBox(width: 8),
@@ -262,6 +265,11 @@ class DownloadShelfCard extends StatelessWidget {
         ),
       ],
     );
+
+    // 「已离线漫画」那一格点下去就是离线清单（下载管理页里的那一区），
+    // 省掉「先找管理按钮再进去」的一步。
+    if (onTap == null) return row;
+    return GestureDetector(onTap: onTap, child: row);
   }
 
   Widget _buildActiveTaskItem(BuildContext context, DownloadTask task) {

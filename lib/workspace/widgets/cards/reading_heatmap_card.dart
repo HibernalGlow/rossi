@@ -43,8 +43,18 @@ class ReadingHeatmapCard extends StatelessWidget {
   }
 }
 
-/// 左侧「周几」那一列的宽度。格子宽度由剩下的空间除以 24 得到。
+/// 左侧「周几」那一列的宽度。24 列格子平分剩下的宽度。
 const double _labelWidth = 18;
+
+/// 格子的最大边长。
+///
+/// 泳道很宽时不封顶的话，格子会跟着列宽长成大方砖，7 行能把整块面板吃掉。
+/// 超过这个值就只压**高度**、宽度照旧铺满 —— 于是格子略扁，但右边不再空一片。
+const double _maxCellSize = 28;
+
+/// 格子高度：列宽，但不超过 [_maxCellSize]、也不小于一个可点的块。
+double _cellHeight(double maxWidth) =>
+    ((maxWidth - _labelWidth) / 24).clamp(4.0, _maxCellSize);
 
 class _Content extends StatelessWidget {
   const _Content({required this.summary});
@@ -81,14 +91,12 @@ class _Content extends StatelessWidget {
           ),
         LayoutBuilder(
           builder: (context, constraints) {
-            // 每格是一个正方形，边长 = 剩下的宽度平分给 24 列。
-            // 取整是为了 24 列不会因为亚像素累加而挤出半像素缝。
-            final cell = ((constraints.maxWidth - _labelWidth) / 24)
-                .floorToDouble()
-                .clamp(3.0, 14.0);
+            // 24 列一律用 Expanded 平分剩下的宽度：交给布局引擎分配才不会有
+            // 亚像素累加挤出的半像素缝，也不会像固定边长那样在右侧留下一段空白。
+            final cell = _cellHeight(constraints.maxWidth);
             return Column(
               children: [
-                _HourRow(cell: cell),
+                const _HourRow(),
                 for (var weekday = 0; weekday < 7; weekday += 1)
                   _HeatRow(weekday: weekday, cell: cell, summary: summary),
               ],
@@ -101,9 +109,7 @@ class _Content extends StatelessWidget {
 }
 
 class _HourRow extends StatelessWidget {
-  const _HourRow({required this.cell});
-
-  final double cell;
+  const _HourRow();
 
   @override
   Widget build(BuildContext context) {
@@ -114,10 +120,9 @@ class _HourRow extends StatelessWidget {
         children: [
           const SizedBox(width: _labelWidth),
           for (var hour = 0; hour < 24; hour += 1)
-            SizedBox(
-              width: cell,
+            Expanded(
+              // 只标 0/6/12/18：24 个数字在一根窄泳道里必然糊成一片。
               child: Text(
-                // 只标 0/6/12/18：24 个数字在一根窄泳道里必然糊成一片。
                 hour % 6 == 0 ? '$hour' : '',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.labelSmall?.copyWith(
@@ -161,10 +166,12 @@ class _HeatRow extends StatelessWidget {
             ),
           ),
           for (var hour = 0; hour < 24; hour += 1)
-            _HeatCell(
-              cell: summary.cells[weekday * 24 + hour],
-              maxCount: summary.maxCount,
-              size: cell,
+            Expanded(
+              child: _HeatCell(
+                cell: summary.cells[weekday * 24 + hour],
+                maxCount: summary.maxCount,
+                size: cell,
+              ),
             ),
         ],
       ),
@@ -181,6 +188,8 @@ class _HeatCell extends StatelessWidget {
 
   final ReadingHeatmapCell cell;
   final int maxCount;
+
+  /// 格子**高度**；宽度由外层 `Expanded` 按列平分，所以宽泳道下格子可以略扁。
   final double size;
 
   @override
@@ -195,7 +204,6 @@ class _HeatCell extends StatelessWidget {
           );
 
     final box = SizedBox(
-      width: size,
       height: size,
       child: Padding(
         padding: const EdgeInsets.all(0.5),

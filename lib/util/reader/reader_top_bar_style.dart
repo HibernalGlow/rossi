@@ -52,6 +52,16 @@ abstract final class ReaderTopBarStyleLimits {
   /// 抓出来过：720 时书名只剩 97px，800 时只剩 177px —— 都比窄档还窄，
   /// 等于「不溢出了，但看不见在读什么」。
   static const double expandedLayoutMinWidth = 880;
+
+  /// 「让位项常驻第二行」的最低窗高。
+  ///
+  /// 把让位项从「更多」菜单搬到常驻第二行，代价是顶栏多吃 52px **竖向**画面 ——
+  /// 阅读器里那是最贵的资源，所以这一行不能只看宽度就给。横屏手机（高 ~390）
+  /// 不该付这个代价，那一档让位项仍然回菜单。
+  ///
+  /// 600 这条线是照设备档位取的：竖屏手机最低也在 ~640，横屏手机最高约 430，
+  /// 桌面窗口只要不是刻意压扁都在 600 以上 —— 也就是说这条线**只挡横屏手机**。
+  static const double secondaryRowMinHeight = 600;
 }
 
 /// 顶栏主行按可用宽度分的那三档。
@@ -65,7 +75,7 @@ enum ReaderToolbarTier {
   /// 中：组还在，但芯片收成图标。
   medium,
 
-  /// 窄：版式组并成一颗循环按钮，低频的窗口控件收进「更多」菜单。
+  /// 窄：版式组并成一颗循环按钮，视图三项与低频的窗口控件整组让出主行。
   narrow;
 
   /// 版式组是否摊开成「条漫胶囊 + 单双页 + 方向」这一排独立控件。
@@ -76,13 +86,20 @@ enum ReaderToolbarTier {
 
   /// 三块面板的入口（视图组）与下载是否还留在主行上。
   ///
-  /// 窄档收进末尾那颗「更多」菜单 —— 不是砍掉，是换个入口。
+  /// 窄档让出去 —— 不是砍掉，是换个落点（第二行或「更多」，见
+  /// [resolveReaderSecondaryRow]）。
   bool get keepsViewControlsInline => this != ReaderToolbarTier.narrow;
 
   /// 「钉住 / 全屏」这两颗窗口控件是否还留在主行上。
   ///
   /// 只有宽档留：它们成对出现、各自 40px，是主行上最贵也最低频的一节。
   bool get keepsWindowControlsInline => this == ReaderToolbarTier.wide;
+
+  /// 这一档有没有把主行上的**整组**让出去 —— 有，才有第二行可住。
+  ///
+  /// 宽档什么都不让，所以宽档永远只有主行（外加临时展开的面板）。
+  bool get demotesAnyGroup =>
+      !keepsViewControlsInline || !keepsWindowControlsInline;
 }
 
 /// 由可用宽度决定主行走哪一档。
@@ -94,6 +111,19 @@ ReaderToolbarTier resolveReaderToolbarTier(double availableWidth) {
     return ReaderToolbarTier.medium;
   }
   return ReaderToolbarTier.narrow;
+}
+
+/// 让位下来的那几组住哪：常驻**第二行**，还是退回末尾的「更多」菜单。
+///
+/// 两个落点**互斥**，同一颗控件永远只有一个入口 —— 与主行那三档「让位不是砍功能」
+/// 的口径一致。竖向空间不够（横屏手机）时才退回菜单，因为那种高度下
+/// 顶栏多一行是在跟画面抢地方。
+bool resolveReaderSecondaryRow({
+  required ReaderToolbarTier tier,
+  required double maxHeight,
+}) {
+  return tier.demotesAnyGroup &&
+      maxHeight >= ReaderTopBarStyleLimits.secondaryRowMinHeight;
 }
 
 /// 一层顶栏的材质规格。

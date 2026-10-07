@@ -215,6 +215,21 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                   ),
                 ),
 
+                // 多选模式那颗开关。书架用的是浮动的 checklist 圆钮，这里跟着本卡
+                // 自己的工具栏走：它管的是**下面这批行的手感**，不是「更多」里那种
+                // 一次性动作。关掉「文件操作」总开关时它整块不出现（那时没有多选）。
+                if (_fileOpsEnabled) ...[
+                  const SizedBox(
+                    width: FileManagerToolbarMetrics.gapWithinGroup,
+                  ),
+                  toggle(
+                    icon: Icons.checklist_rounded,
+                    tooltip: _selectionModeOn ? '退出多选' : '多选',
+                    on: _selectionModeOn,
+                    onPressed: _toggleSelectionMode,
+                  ),
+                ],
+
                 // —— 更多组 ——
                 const SizedBox(
                   width: FileManagerToolbarMetrics.gapBetweenGroups,

@@ -25,7 +25,7 @@ class DowloadTaskBloc extends Bloc<DowloadTaskEvent, DowloadTaskState> {
       started: () => _watchTasks(emit),
       tasksUpdated: (tasks) => _handleTasksUpdated(tasks, emit),
       taskDeleted: (taskId) => _deleteTask(taskId, emit),
-      cancelCurrentTask: () => _cancelCurrentTask(emit),
+      cancelTask: (taskId) => _cancelTask(taskId, emit),
       clearCompleted: () => _clearCompletedTasks(emit),
     );
   }
@@ -77,8 +77,8 @@ class DowloadTaskBloc extends Bloc<DowloadTaskEvent, DowloadTaskState> {
     unawaited(removal.then((_) => objectbox.downloadTaskBox.remove(taskId)));
   }
 
-  void _cancelCurrentTask(Emitter<DowloadTaskState> emit) {
-    DownloadQueueManager.instance.cancelCurrentTask();
+  void _cancelTask(int taskId, Emitter<DowloadTaskState> emit) {
+    DownloadQueueManager.instance.cancelTaskById(taskId);
   }
 
   void _clearCompletedTasks(Emitter<DowloadTaskState> emit) {

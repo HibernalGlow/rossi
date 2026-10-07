@@ -1,7 +1,7 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:scrollview_observer/scrollview_observer.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
@@ -14,7 +14,7 @@ Widget _harness({
   required GlobalSettingCubit globalCubit,
   required ComicReadPreferenceCubit preferenceCubit,
   required ReaderCubit readerCubit,
-  required PageController pageController,
+  ValueChanged<int>? onJumpToSlot,
 }) {
   return MultiBlocProvider(
     providers: [
@@ -26,10 +26,7 @@ Widget _harness({
       home: Scaffold(
         body: Row(
           children: [
-            SliderWidget(
-              observerController: ListObserverController(),
-              pageController: pageController,
-            ),
+            SliderWidget(onJumpToSlot: onJumpToSlot),
           ],
         ),
       ),
@@ -52,7 +49,11 @@ TextDirection _sliderDirection(WidgetTester tester) {
   return nearest!.textDirection;
 }
 
-Future<void> _pumpWithReadMode(WidgetTester tester, int readMode) async {
+Future<ReaderCubit> _pumpHarness(
+  WidgetTester tester, {
+  int readMode = kReadModeRowLtr,
+  ValueChanged<int>? onJumpToSlot,
+}) async {
   final globalCubit = GlobalSettingCubit();
   globalCubit.emit(
     globalCubit.state.copyWith(
@@ -62,28 +63,67 @@ Future<void> _pumpWithReadMode(WidgetTester tester, int readMode) async {
   final readerCubit = ReaderCubit()
     ..updateTotalSlots(10)
     ..updateCurrentSlot(2);
-  final pageController = PageController();
-  addTearDown(pageController.dispose);
 
   await tester.pumpWidget(
     _harness(
       globalCubit: globalCubit,
       preferenceCubit: ComicReadPreferenceCubit(),
       readerCubit: readerCubit,
-      pageController: pageController,
+      onJumpToSlot: onJumpToSlot,
     ),
   );
   await tester.pumpAndSettle();
+  return readerCubit;
 }
 
 void main() {
   testWidgets('单页从左到右：滑杆方向为 ltr', (tester) async {
-    await _pumpWithReadMode(tester, kReadModeRowLtr);
+    await _pumpHarness(tester, readMode: kReadModeRowLtr);
     expect(_sliderDirection(tester), TextDirection.ltr);
   });
 
   testWidgets('单页从右到左：滑杆方向为 rtl', (tester) async {
-    await _pumpWithReadMode(tester, kReadModeRowRtl);
+    await _pumpHarness(tester, readMode: kReadModeRowRtl);
     expect(_sliderDirection(tester), TextDirection.rtl);
+  });
+
+  testWidgets('鼠标点完轨道后再动一下，待提交的跳页不能被取消', (tester) async {
+    final committed = <int>[];
+    final readerCubit = await _pumpHarness(
+      tester,
+      onJumpToSlot: committed.add,
+    );
+
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(gesture.removePointer);
+    final trackCenter = tester.getCenter(find.byType(Slider));
+    await gesture.addPointer(location: trackCenter);
+    await gesture.down(trackCenter);
+    await tester.pump();
+    await gesture.up();
+    await tester.pump();
+
+    // 桌面端点完不可能手不动：指针仍在轨道上，再挪 6px 就会触发 onHover。
+    await gesture.moveTo(trackCenter + const Offset(6, 0));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(committed, isNotEmpty, reason: '进度条动了，但页面一次都没跳');
+    // 提交的目标必须就是滑块现在指着的那一页，否则就是「条与画面各说各话」。
+    expect(
+      committed.last,
+      readerCubit.state.sliderValue.round(),
+      reason: '跳页目标与滑块读数不一致',
+    );
+  });
+
+  testWidgets('第一次 onChanged 就把 isSliderRolling 立起来', (tester) async {
+    final readerCubit = await _pumpHarness(tester);
+
+    await tester.drag(find.byType(Slider), const Offset(120, 0));
+    await tester.pump();
+
+    // 防抖窗口里标记必须已经为真：否则这期间任何 onPageChanged 都会经
+    // updateCurrentSlot 把滑块拽回画面当前那一页（表现为「点完又弹回去」）。
+    expect(readerCubit.state.isSliderRolling, isTrue);
   });
 }

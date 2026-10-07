@@ -12,6 +12,7 @@ import 'package:zephyr/page/setting/real_sr/service/mimage_onnx_model_config.dar
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/mimage_model_settings.dart';
+import 'package:zephyr/src/rust/frb_generated.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/super_resolution_engine_settings.dart';
 import 'package:zephyr/util/coreml_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/super_resolution_log_controls.dart';
@@ -45,6 +46,12 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late Directory root;
   const channel = MethodChannel('plugins.flutter.io/path_provider');
+  setUpAll(() async {
+    // 面板里「画面」那一排含媒体格式表，`VideoSettingsStore.load()` 会经 FRB
+    // 把两张表推给 Rust（同进同出是刻意的，见 `active_video_scope.dart`）。
+    // 不初始化就会在切到那一排时抛「flutter_rust_bridge has not been initialized」。
+    await RustLib.init();
+  });
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     root = await Directory.systemTemp.createTemp('rossi_model_settings_');
@@ -114,8 +121,14 @@ void main() {
     await tester.tap(find.text('打开阅读设置'));
     await tester.pump();
     await _settleFileIO(tester);
+    // 超分那一整段现在住在「画面」排（原来和阅读模式挤第一批，五排分组后按
+    // 「改的是像素本身」归到画面）。这条断言测的是那段控件本身，不是它住在哪一排，
+    // 所以先切过去再验。
+    await tester.tap(find.text('画面'));
+    await _settleFileIO(tester);
     expect(find.byType(MImageModelSettings), findsOneWidget);
     expect(find.text('自定义超分模型'), findsOneWidget);
+    expect(find.text('AI 超分辨率'), findsOneWidget);
     await tester.ensureVisible(
       find.byKey(const ValueKey('mimage-model-selector')),
     );

@@ -129,7 +129,37 @@ String _truncateToUtf16CodeUnits(
   return String.fromCharCodes(runes.take(low)) + suffix;
 }
 
-Future<String> exportComic(
+/// 一次导出的结果，含「该导的页是不是真的都进了归档」。
+///
+/// [_resolveChapterFiles] 对取不到的页是静默跳过的（重试三次后返回 null），
+/// 所以 `exportComic` 没抛异常并不代表归档是完整的。调用方要据此判断能不能
+/// 放心删掉本地下载。
+class ComicExportResult {
+  const ComicExportResult({
+    required this.path,
+    required this.title,
+    required this.exportedPages,
+    required this.missingPages,
+    required this.missingChapters,
+  });
+
+  /// 导出产物路径：zip 是文件本身，文件夹是漫画根目录。
+  final String path;
+  final String title;
+
+  /// 实际打进归档的页数（不含封面）。
+  final int exportedPages;
+
+  /// 数据库记录里应有、但这次没能进归档的页数。
+  final int missingPages;
+
+  /// 有缺页的章节名，用于把「缺在哪」说清楚。
+  final List<String> missingChapters;
+
+  bool get complete => missingPages == 0 && exportedPages > 0;
+}
+
+Future<ComicExportResult> exportComic(
   String comicId,
   ExportType type,
   String from, {
@@ -141,7 +171,33 @@ Future<String> exportComic(
   return _exportComicAsZip(comicId, from: from, exportPath: path);
 }
 
-Future<String> _exportComicAsFolder(
+ComicExportResult _buildExportResult({
+  required String path,
+  required String title,
+  required List<_ExportChapterEntry> entries,
+}) {
+  var exported = 0;
+  var missing = 0;
+  final missingChapters = <String>[];
+  for (final entry in entries) {
+    exported += entry.images.length;
+    final gap = entry.expectedPages - entry.images.length;
+    if (gap > 0) {
+      missing += gap;
+      final label = entry.chapter.displayName.trim();
+      missingChapters.add(label.isEmpty ? entry.folderName : label);
+    }
+  }
+  return ComicExportResult(
+    path: path,
+    title: title,
+    exportedPages: exported,
+    missingPages: missing,
+    missingChapters: missingChapters,
+  );
+}
+
+Future<ComicExportResult> _exportComicAsFolder(
   String comicId, {
   required String from,
   String? exportPath,
@@ -206,10 +262,14 @@ Future<String> _exportComicAsFolder(
   await _copyEpisodeFiles(chapterEntries, comicDir);
 
   showSuccessToast(t.comicInfo.exportFolderComplete(title: title));
-  return comicDir;
+  return _buildExportResult(
+    path: comicDir,
+    title: title,
+    entries: chapterEntries,
+  );
 }
 
-Future<String> _exportComicAsZip(
+Future<ComicExportResult> _exportComicAsZip(
   String comicId, {
   required String from,
   String? exportPath,
@@ -280,7 +340,11 @@ Future<String> _exportComicAsZip(
 
   await packFolderZip(destPath: finalZipPath, packInfo: packInfo);
   showSuccessToast(t.comicInfo.exportZipComplete(title: title));
-  return finalZipPath;
+  return _buildExportResult(
+    path: finalZipPath,
+    title: title,
+    entries: chapterEntries,
+  );
 }
 
 UnifiedComicDownload _getDownload(String comicId, {required String from}) {
@@ -408,6 +472,7 @@ Future<List<_ExportChapterEntry>> _collectChapterEntries(
       chapterId: chapter.effectiveStorageId,
       images: chapter.images,
     );
+    final expectedPages = chapter.images.where(_exportableImage).length;
     final numberedImages = <_ExportImageEntry>[];
     final numberWidth = files.length.toString().length;
     for (var imageIndex = 0; imageIndex < files.length; imageIndex++) {
@@ -426,12 +491,17 @@ Future<List<_ExportChapterEntry>> _collectChapterEntries(
         folderName: folderName,
         images: numberedImages,
         chapter: chapter,
+        expectedPages: expectedPages,
       ),
     );
   }
 
   return result;
 }
+
+/// 这一页是否本该出现在归档里：下载时已确认 404 而跳过的页不算。
+bool _exportableImage(DownloadImage image) =>
+    image.extern['downloadSkipped'] != true;
 
 Future<List<File>> _resolveChapterFiles({
   required String pluginId,
@@ -441,7 +511,7 @@ Future<List<File>> _resolveChapterFiles({
 }) async {
   final futures = images.map((image) async {
     // 下载时已确认 404 的图：没有文件，也不再补下，直接跳过。
-    if (image.extern['downloadSkipped'] == true) return null;
+    if (!_exportableImage(image)) return null;
     for (var attempt = 0; attempt < 3; attempt++) {
       try {
         final downloadedPath = await downloadPicture(
@@ -666,10 +736,14 @@ class _ExportChapterEntry {
     required this.folderName,
     required this.images,
     required this.chapter,
+    required this.expectedPages,
   });
 
   final String folderName;
   final List<_ExportImageEntry> images;
+
+  /// 这一章在本地下载记录里应有多少页（已排除下载时确认 404 而跳过的页）。
+  final int expectedPages;
 
   /// 对应的本地章节（身份），写 processed detail 时按身份配对，不按下标。
   final DownloadChapter chapter;

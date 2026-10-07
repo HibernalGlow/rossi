@@ -10,6 +10,7 @@ import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/page/comic_info/json/normal/normal_comic_all_info.dart'
     as normal;
 import 'package:zephyr/page/download/models/unified_comic_download.dart';
+import 'package:zephyr/page/search/model/search_history_entry.dart';
 import 'package:zephyr/src/rust/api/qjs.dart';
 import 'package:zephyr/util/get_path.dart';
 
@@ -351,7 +352,7 @@ void _migrateLegacySearchHistory(ObjectBox objectbox) {
   final setting = user.globalSetting;
   final migrated = setting.searchHistory
       .map(_migrateSearchHistoryEntry)
-      .where((entry) => entry.trim().isNotEmpty)
+      .where((entry) => entry.keyword.isNotEmpty)
       .toList();
   if (_listEquals(setting.searchHistory, migrated)) {
     return;
@@ -363,17 +364,21 @@ void _migrateLegacySearchHistory(ObjectBox objectbox) {
   objectbox.userSettingBox.put(user);
 }
 
-String _migrateSearchHistoryEntry(String raw) {
-  logger.d("migrateSearchHistoryEntry: $raw");
-  final value = raw.trim();
-  if (value.contains('&&')) {
-    final values = value.split("&&");
-    return values.first;
+/// 老格式是 `关键词&&来源`。来源那半在 v1 时代是 `SourceType` 的名字，对不上
+/// 现在的插件 uuid，所以照旧丢掉 —— 归属只能记成未知（空串），界面归进「未分类」。
+SearchHistoryEntry _migrateSearchHistoryEntry(SearchHistoryEntry entry) {
+  final value = entry.keyword.trim();
+  if (!value.contains('&&')) {
+    return SearchHistoryEntry(keyword: value, source: entry.source);
   }
-  return value;
+  logger.d("migrateSearchHistoryEntry: $value");
+  return SearchHistoryEntry(
+    keyword: value.split('&&').first.trim(),
+    source: entry.source,
+  );
 }
 
-bool _listEquals(List<String> left, List<String> right) {
+bool _listEquals<T>(List<T> left, List<T> right) {
   if (left.length != right.length) {
     return false;
   }

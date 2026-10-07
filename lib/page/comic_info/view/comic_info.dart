@@ -722,34 +722,6 @@ class _ComicInfoState extends State<_ComicInfo>
     return '$safeName.zip';
   }
 
-  Future<ExportType?> _pickExportType() async {
-    if (Platform.isIOS) return ExportType.zip;
-
-    return showDialog<ExportType>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(t.comicInfo.exportTitle),
-          content: Text(t.comicInfo.exportSubtitle),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(null),
-              child: Text(t.common.cancel),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(ExportType.folder),
-              child: Text(t.comicInfo.folder),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(ExportType.zip),
-              child: Text(t.comicInfo.zip),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Future<String?> _pickExportDirectory() async => getDirectoryPath();
 
   Future<String?> _resolveExportDirectory() async {
@@ -794,12 +766,12 @@ class _ComicInfoState extends State<_ComicInfo>
     return normalized;
   }
 
-  void _showExportDirectory(String exportedPath, ExportType exportType) {
+  String? _formatExportDirectory(String exportedPath, ExportType exportType) {
     if (!(Platform.isAndroid ||
         Platform.isMacOS ||
         Platform.isWindows ||
         Platform.isLinux)) {
-      return;
+      return null;
     }
 
     final exportDirectory = exportType == ExportType.zip
@@ -808,10 +780,7 @@ class _ComicInfoState extends State<_ComicInfo>
     final displayPath = Platform.isAndroid
         ? _simplifyAndroidPathForLog(exportDirectory)
         : exportDirectory;
-    showInfoToast(
-      t.comicInfo.exportDirectory(displayPath: displayPath),
-      duration: const Duration(seconds: 5),
-    );
+    return t.comicInfo.exportDirectory(displayPath: displayPath);
   }
 
   // 导出逻辑
@@ -819,8 +788,16 @@ class _ComicInfoState extends State<_ComicInfo>
     try {
       if (!mounted) return;
 
-      final exportType = await _pickExportType();
-      if (exportType == null) return;
+      // iOS 不提供「导出后删除」：分享面板返回时文件是否已存下来并不可知。
+      final choice = Platform.isIOS
+          ? const ExportChoice(type: ExportType.zip, deleteAfterExport: false)
+          : await showExportChoiceDialog(
+              context,
+              title: t.comicInfo.exportTitle,
+              subtitle: t.comicInfo.exportSubtitle,
+            );
+      if (choice == null) return;
+      final exportType = choice.type;
 
       final exportDir = await _resolveExportDirectory();
       if (exportDir == null) return;
@@ -855,14 +832,18 @@ class _ComicInfoState extends State<_ComicInfo>
           ? targetZipPath
           : exportDir;
 
-      final exportedPath = await exportComic(
-        _comicId,
-        exportType,
-        widget.from,
+      final result = await exportComicAndMaybeDelete(
+        comicId: _comicId,
+        type: exportType,
+        from: widget.from,
         path: exportPath,
+        deleteAfterExport: choice.deleteAfterExport,
       );
-      _showExportDirectory(exportedPath, exportType);
-      _logExportPath(exportedPath);
+      _logExportPath(result.export.path);
+      _showExportOutcome(result, exportType: exportType);
+      if (result.deleted && _type == ComicEntryType.download && mounted) {
+        context.pop();
+      }
     } catch (e) {
       final errorMessage = e is StateError
           ? e.message.toString()
@@ -870,6 +851,52 @@ class _ComicInfoState extends State<_ComicInfo>
               error: normalizeSearchErrorMessage(e),
             );
       showErrorToast(errorMessage, duration: const Duration(seconds: 5));
+    }
+  }
+
+  /// 一条 toast 说完「导到哪了」和「删了没、为什么没删」。
+  ///
+  /// toast 走 eventBus，后一条会顶掉前一条，所以这里必须合起来发。
+  void _showExportOutcome(
+    ExportWithDeleteResult result, {
+    required ExportType exportType,
+  }) {
+    final outcome = _deleteOutcomeLine(result);
+    final pathLine = _formatExportDirectory(result.export.path, exportType);
+    final lines = <String>[?pathLine, ?outcome];
+    if (lines.isEmpty) return;
+
+    final message = lines.join('\n');
+    if (result.outcome != ExportDeleteOutcome.notRequested && !result.deleted) {
+      showErrorToast(message, duration: const Duration(seconds: 6));
+    } else {
+      showInfoToast(message, duration: const Duration(seconds: 6));
+    }
+  }
+
+  /// 勾选了「导出后删除」时的结论；没勾选则返回 null。
+  String? _deleteOutcomeLine(ExportWithDeleteResult result) {
+    switch (result.outcome) {
+      case ExportDeleteOutcome.notRequested:
+        return null;
+      case ExportDeleteOutcome.deleted:
+        return t.comicInfo.exportedAndDeleted(title: result.export.title);
+      case ExportDeleteOutcome.incomplete:
+        if (result.export.exportedPages == 0) {
+          return t.comicInfo.exportDeleteSkippedEmpty;
+        }
+        return t.comicInfo.exportDeleteSkippedIncomplete(
+          count: result.export.missingPages,
+          chapters: result.export.missingChapters.join(', '),
+        );
+      case ExportDeleteOutcome.artifactInvalid:
+        return t.comicInfo.exportDeleteSkippedArtifact;
+      case ExportDeleteOutcome.insideDownloadRoot:
+        return t.comicInfo.exportDeleteSkippedInsideRoot;
+      case ExportDeleteOutcome.deleteFailed:
+        return t.comicInfo.exportDeleteFailed(
+          error: result.deleteError?.toString() ?? '',
+        );
     }
   }
 

@@ -746,6 +746,40 @@
         assert!(deep.into_listing().scanned > 0);
     }
 
+    /// 进度计数的接线：遍历自己报的数要和最终结果的 `scanned` 是同一份事实，
+    /// 空查询早退时则一次都不许动（「0 条」在这条链路上意味着「还没开始」）。
+    #[test]
+    fn search_reports_live_scanned_progress() {
+        let dir = tempdir().unwrap();
+        search_fixture(dir.path());
+        let mut state = FileManagerState::new(Some(dir.path().to_path_buf())).unwrap();
+        state.set_search_include_subfolders(true);
+        state.set_search_query("春");
+
+        let scanned = std::sync::atomic::AtomicUsize::new(0);
+        let outcome = search_entries_with_progress(
+            &state.search_request(),
+            &AtomicBool::new(false),
+            &scanned,
+        );
+        assert!(outcome.scanned > 0);
+        assert_eq!(
+            scanned.load(std::sync::atomic::Ordering::Relaxed),
+            outcome.scanned,
+            "实时计数与最终结果必须是同一个数"
+        );
+
+        let idle = std::sync::atomic::AtomicUsize::new(0);
+        state.set_search_query("");
+        let outcome = search_entries_with_progress(
+            &state.search_request(),
+            &AtomicBool::new(false),
+            &idle,
+        );
+        assert_eq!(outcome.scanned, 0);
+        assert_eq!(idle.load(std::sync::atomic::Ordering::Relaxed), 0);
+    }
+
     /// 「默认含子目录」是**新页签的起手值**，不是当前页签的状态：用户手动关掉之后
     /// 不该被这颗默认值翻回来，但下一个新页签仍按默认起手。
     #[test]

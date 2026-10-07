@@ -79,6 +79,8 @@ class _Presenter implements TranslatedPagePresenter {
   Future<bool> reshowAfterInjection(int index) async => true;
   @override
   Future<bool?> presenterUsesEnhanced(int index) async => true;
+  @override
+  bool get bypassesEnhancedTrack => false;
 }
 
 void main() {
@@ -177,7 +179,7 @@ TranslatedPageController _gatedController(Uint8List page) =>
     TranslatedPageController(
       builder: TranslatedPageBuilder(
         analyze: (imagePath, erasedPath, ep) async {
-          await File(erasedPath).writeAsBytes(page, flush: true);
+          await File(erasedPath!).writeAsBytes(page, flush: true);
           return OcrPageResult(
             blocks: [
               OcrBlock(

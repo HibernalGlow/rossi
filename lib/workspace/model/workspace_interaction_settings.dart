@@ -42,9 +42,14 @@ class WorkspaceInteractionSettings {
   final bool panelHoverFocusEnabled;
 
   /// Reader 悬停聚焦的驻留延时（毫秒）。面板泳道共用同一个值。
+  ///
+  /// **口径变了**：这一段是「指针**停住之后**再等多久」，不是「进入泳道之后」。
+  /// 「停住」本身由 `WorkspaceDwell.settleMs` 判定（内部常量，不在这里加第四颗旋钮）。
+  /// 出厂值因此从 420 降到 150 —— 总感受是 `60 + 150 ≈ 0.21s`，比原来「进入即计时
+  /// 的 0.42s」更接近「我一停它就到了」，而误触由那条静置窗口挡住，不再靠拉长它。
   final int hoverFocusDelayMs;
 
-  /// 左右边缘揭示的驻留延时（毫秒）。左右**共用**一个值。
+  /// 左右边缘揭示的驻留延时（毫秒）。左右**共用**一个值。同样是「停住之后」。
   final int edgeRevealDelayMs;
 
   /// 离开未被激活的揭示后，回到 Reader 的延时（毫秒）。
@@ -78,6 +83,11 @@ class WorkspaceInteractionSettings {
   /// 关掉时独占就是字面意思的「只剩一条」：其余泳道被推出视口，只能靠
   /// 左右唤出区调回来。打开时它们各留 `WorkspaceLayoutConfig.collapsedLaneWidth`
   /// 的宽度，等于一条常驻的泳道切换栏。
+  ///
+  /// **当前激活那条永远不收成轨**：轨的语义是「点我把交互交给你」，
+  /// 交互已经在手上了还压回 44px，等于点完轨仍然点不动里面的东西
+  /// （触屏上那是左右泳道唯一把手，见 `SwimlaneWorkspace` 的
+  /// `showLaneNavigatorInSolo: ... || !hasHoverPointer`）。
   final bool showLaneNavigatorInSolo;
 
   /// 是否允许用户**手动横向拖动**整条泳道条带。
@@ -118,8 +128,8 @@ class WorkspaceInteractionSettings {
   const WorkspaceInteractionSettings({
     this.hoverFocusEnabled = true,
     this.panelHoverFocusEnabled = true,
-    this.hoverFocusDelayMs = 420,
-    this.edgeRevealDelayMs = 320,
+    this.hoverFocusDelayMs = 150,
+    this.edgeRevealDelayMs = 120,
     this.edgeRevealRestoreDelayMs = 600,
     this.revealFocusesLane = true,
     this.readerPeekWidth = 56,

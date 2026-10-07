@@ -1,0 +1,95 @@
+<!-- mirror of plugin-architecture.svg — same geometry and palette, English copy only. Keep in sync. -->
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="440" viewBox="0 0 1200 440"
+     role="img" aria-labelledby="title desc">
+  <title id="title">How Rossi comic source plugins run</title>
+  <desc id="desc">Three-stage flow: on the left the comic sources (built-in Bika and JM, plus custom .js plugins),
+  in the middle the Rust-side windcore sandbox, which runs plugin JS on QuickJS, sends requests with reqwest,
+  and handles image decoding, de-obfuscation and archives; on the right, over flutter_rust_bridge, the Flutter UI
+  layer with discovery, aggregate search, bookshelf and reader.</desc>
+
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F5F1EA"/>
+      <stop offset="1" stop-color="#E7DFD3"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9C4B5E"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="440" rx="26" fill="url(#paper)"/>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
+    <text x="64" y="78" font-size="34" font-weight="700" fill="#2A2320">One JS file = one comic source</text>
+    <text x="1136" y="78" font-size="19" text-anchor="end" fill="#8A7A66"
+          font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">windcore · rquickjs</text>
+    <rect x="64" y="94" width="56" height="5" rx="2.5" fill="#762D3F"/>
+
+    <!-- sources -->
+    <g id="sources">
+      <text x="64" y="152" font-size="19" fill="#8A7A66"
+            font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">COMIC SOURCES</text>
+      <g>
+        <rect x="64" y="168" width="240" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+        <circle cx="88" cy="194" r="5" fill="#9C4B5E"/>
+        <text x="106" y="201" font-size="22" fill="#2A2320">Bika (built-in)</text>
+      </g>
+      <g>
+        <rect x="64" y="232" width="240" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+        <circle cx="88" cy="258" r="5" fill="#9C4B5E"/>
+        <text x="106" y="265" font-size="22" fill="#2A2320">JM (built-in)</text>
+      </g>
+      <g>
+        <rect x="64" y="296" width="240" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <circle cx="88" cy="322" r="5" fill="none" stroke="#8A7A66" stroke-width="1.5"/>
+        <text x="106" y="329" font-size="22" fill="#2A2320">Custom .js</text>
+      </g>
+      <text x="64" y="378" font-size="18" fill="#8A7A66">Red dot = bundled at build time</text>
+    </g>
+
+    <line x1="310" y1="258" x2="356" y2="258" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- sandbox -->
+    <g id="runtime">
+      <rect x="362" y="140" width="438" height="244" rx="18" fill="#9C4B5E" fill-opacity="0.07" stroke="#9C4B5E" stroke-width="1.5"/>
+      <text x="386" y="176" font-size="22" font-weight="600" fill="#762D3F">Rust-side sandbox</text>
+      <text x="782" y="176" font-size="18" text-anchor="end" fill="#8A7A66"
+            font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">windcore</text>
+      <line x1="386" y1="192" x2="776" y2="192" stroke="#CFC5B7" stroke-width="1.5"/>
+      <g font-size="21" fill="#2A2320">
+        <text x="386" y="228">· QuickJS runs plugin JS</text>
+        <text x="386" y="264">· reqwest handles HTTP</text>
+        <text x="386" y="300">· Decoding and de-obfuscation</text>
+        <text x="386" y="336">· tar / zip / brotli / zstd</text>
+      </g>
+      <text x="386" y="368" font-size="18" fill="#8A7A66">Memory stats · data backup</text>
+    </g>
+
+    <line x1="806" y1="258" x2="852" y2="258" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="829" y="242" font-size="17" text-anchor="middle" fill="#762D3F"
+          font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">FRB</text>
+
+    <!-- ui -->
+    <g id="ui">
+      <text x="858" y="152" font-size="19" fill="#8A7A66"
+            font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">FLUTTER UI</text>
+      <g>
+        <rect x="858" y="168" width="278" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+        <text x="882" y="201" font-size="22" fill="#2A2320">Discover · Ranking</text>
+      </g>
+      <g>
+        <rect x="858" y="232" width="278" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+        <text x="882" y="265" font-size="22" fill="#2A2320">Aggregate search</text>
+      </g>
+      <g>
+        <rect x="858" y="296" width="278" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+        <text x="882" y="329" font-size="22" fill="#2A2320">Bookshelf · Reader</text>
+      </g>
+    </g>
+  </g>
+
+  <text x="64" y="416" font-size="19" fill="#8A7A66"
+        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">A plugin runs sandboxed, yet still sends requests and touches files — installing one means trusting its code.</text>
+</svg>

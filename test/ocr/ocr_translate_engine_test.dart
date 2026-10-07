@@ -48,11 +48,12 @@ class _FakeAnalyze {
 
   Future<OcrPageResult> call(
     String imagePath,
-    String erasedPath,
+    String? erasedPath,
     String ep,
   ) async {
     calls++;
-    await File(erasedPath).writeAsBytes(await _whitePng(400, 300), flush: true);
+    final erased = erasedPath!;
+    await File(erased).writeAsBytes(await _whitePng(400, 300), flush: true);
     return OcrPageResult(
       blocks: [_block()],
       pageWidth: 400,
@@ -60,7 +61,7 @@ class _FakeAnalyze {
       detectMs: BigInt.from(190),
       recognizeMs: BigInt.from(3700),
       inpaintMs: BigInt.from(1700),
-      erasedPath: erasedPath,
+      erasedPath: erased,
       stageEps: const OcrStageEps(
         detect: 'cpu',
         recognize: 'cpu',

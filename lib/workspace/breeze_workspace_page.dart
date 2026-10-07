@@ -261,14 +261,16 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
   /// 例外只有一条：**焦点在可编辑控件里时不抢** —— 方向键在输入框里是光标移动，
   /// 而文本编辑快捷键在焦点树上比这里更靠上（`DefaultTextEditingShortcuts`），
   /// 不豁免就会把光标移动吃掉。
-  KeyEventResult _handleReaderFirstKeyEvent(
-    KeyEvent event,
-    WorkspaceState state,
-  ) {
+  KeyEventResult _handleReaderFirstKeyEvent(KeyEvent event) {
     final bridge = ReaderInputBridge.instance;
     if (!bridge.hasHandler) return KeyEventResult.ignored;
     // Dart 侧只做 adapter：报告「真实活跃的 context」，判定交给桥（将来是核心，ADR-0015）。
-    bridge.setActiveContexts(_activeContextsFor(state));
+    //
+    // 状态是**现读** `_cubit.state`，不是从 build 里闭包进来的那份 —— 按键回调发生在
+    // build 之后，而那条路上页面层的 `BlocBuilder` 可能压根没重跑（聚焦一类的变化
+    // 被 `buildWhen` 跳过了，见 `build` 里那段说明）。闭包那份会停在旧值上，
+    // 表现成「鼠标已经移到左栏了，方向键还在按阅读器的翻页」。
+    bridge.setActiveContexts(_activeContextsFor(_cubit.state));
     if (_isTextInputFocused()) return KeyEventResult.ignored;
     return bridge.dispatch(event);
   }
@@ -311,6 +313,14 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
     return BlocProvider<WorkspaceCubit>.value(
       value: _cubit,
       child: BlocBuilder<WorkspaceCubit, WorkspaceState>(
+        // **只换了一次激活泳道**就别重 build 这一整层：这一层的产物是 `Scaffold` +
+        // `AnimatedSwitcher` + `SwimlaneWorkspace`，重跑会顺着
+        // `WorkspaceReaderHost` 里的 `Navigator` 走到 `changedExternalState`，
+        // 把上游 `ComicReadPage` **整页**重 build 一遍 —— 而「谁被激活」对它毫无影响。
+        // 判据是字段级的（`WorkspaceState.differsOnlyByActiveLane`），不是「除了
+        // 激活什么都不看」的口头承诺。
+        buildWhen: (previous, next) =>
+            !previous.differsOnlyByActiveLane(next),
         builder: (context, state) {
           final isSwimlane = state.mode == WorkspaceMode.swimlane;
           final chromeMode = _chromeMode;
@@ -341,8 +351,7 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
               // `CallbackShortcuts` 仍会在它们没消费时沿焦点树上冒到这里。
               child: Focus(
                 autofocus: true,
-                onKeyEvent: (_, event) =>
-                    _handleReaderFirstKeyEvent(event, state),
+                onKeyEvent: (_, event) => _handleReaderFirstKeyEvent(event),
                 child: Stack(
                   children: [
                     Positioned.fill(

@@ -13,6 +13,7 @@ import 'package:zephyr/network/sync/s3_sync_service.dart';
 import 'package:zephyr/network/sync/webdav_sync_service.dart';
 import 'package:zephyr/network/sync/workspace_sync_codec.dart';
 import 'package:zephyr/workspace/model/workspace_layout_snapshot.dart';
+import 'package:zephyr/workspace/model/workspace_pointer_mode.dart';
 import 'package:zephyr/workspace/service/workspace_layout_bridge.dart';
 part 'parts/sync_service_rossi_part.dart';
 

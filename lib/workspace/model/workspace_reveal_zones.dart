@@ -302,6 +302,15 @@ class WorkspaceRevealZones {
     RevealEdge.bottom => bottom,
   };
 
+  /// 这条边是否还是出厂值（= 用户没在画布上动过它）。
+  ///
+  /// 画布没有独立的「已编辑」标记，存下来的永远是四条完整矩形，所以「没动过」
+  /// 只能这么判。左右两条喂泳道、顶条喂工作台顶栏，各自只有一个主人，不需要
+  /// 这个判据；只有底条还另有主人（阅读器设置 →「底部唤出感应区高度」），
+  /// 两个主人不能同时说话 —— 出厂那块只有 1% 高，无条件让它接管就会把那条
+  /// 设置变成死代码。
+  bool isAuthored(RevealEdge edge) => this[edge] != defaults[edge];
+
   WorkspaceRevealZones withZone(RevealEdge edge, WorkspaceRevealZone zone) {
     final clamped = zone.clamped();
     return switch (edge) {

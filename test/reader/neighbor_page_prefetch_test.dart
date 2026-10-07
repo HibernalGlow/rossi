@@ -17,6 +17,9 @@ class _FakeSource implements PageSource {
   final String path = r'C:\fake\book.cbz';
 
   @override
+  String? get translationCacheScope => null;
+
+  @override
   final int pageCount = 3;
 
   Never _notForThisProbe() => throw UnimplementedError(

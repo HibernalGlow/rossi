@@ -10,7 +10,7 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, AtomicU64};
+use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, Mutex};
 
 use anyhow::{Error, anyhow};
@@ -57,11 +57,12 @@ lazy_static! {
     /// 面板也不参与事务 —— 它是当前目录的一份投影，读失败顶多少几行，不该让浏览停下。
     static ref FILE_MANAGER_PANES: Mutex<HashMap<u64, FolderPaneState>> =
         Mutex::new(HashMap::new());
-    /// 每个会话**当前**那一次递归搜索的取消旗子。
+    /// 每个会话**当前**那一次递归搜索的把手：取消旗子 + 实时扫过的条目数。
     ///
-    /// 只放旗子不放结果：结果走正常的返回值交回 Dart。新搜索直接替换旗子，
-    /// 上一次那一路遍历就会在下一个个目/目录处停下。
-    static ref FILE_MANAGER_SEARCHES: DashMap<u64, Arc<AtomicBool>> = DashMap::new();
+    /// 只放把手不放结果：结果走正常的返回值交回 Dart。新搜索直接替换把手，
+    /// 上一次那一路遍历就会在下个条目/目录处停下。
+    static ref FILE_MANAGER_SEARCHES: DashMap<u64, Arc<FileManagerSearchHandle>> =
+        DashMap::new();
 }
 
 /// 工具函数：把一条命中投影成列表条目时，顺带算出它在搜索根之下的目录。

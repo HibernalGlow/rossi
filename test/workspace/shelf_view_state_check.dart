@@ -10,7 +10,9 @@
 //      `values.byName` 抛出就是整张卡片红屏；
 //   3. **坏 JSON 与坏记录都只丢那一条** —— 视图状态是可重建的东西，
 //      为它抛异常等于让一次手滑毁掉两张卡片的记忆；
-//   4. 走一遍真 `jsonEncode` / `jsonDecode`，别只测内存里的对象。
+//   4. **时间线开关与视图档分开存** —— 关掉时间线要回到用户上一眼看惯的那一档，
+//      所以两件事不能挤在同一个字段里（理由见 `model/shelf_timeline.dart`）；
+//   5. 走一遍真 `jsonEncode` / `jsonDecode`，别只测内存里的对象。
 //
 // 没有 package:test 依赖（跟 `shelf_library_query_check.dart` 同一套路）。
 //
@@ -44,6 +46,7 @@ void main() {
   _brokenJsonIsNoRecord();
   _oneBadRecordKeepsTheOthers();
   _keyIsTheCardId();
+  _timelineIsRememberedSeparatelyFromTheViewMode();
 
   print('shelf_view_state_check: $_passed checks passed');
 }
@@ -144,5 +147,53 @@ void _keyIsTheCardId() {
   check(
     '写一条不会带上另一条',
     back[WorkspacePanelId.favorite] == null,
+  );
+}
+
+/// 时间线开关与视图档**各存各的**。
+///
+/// 之所以要钉这一条：把时间线塞成 `viewMode: 'timeline'` 看起来更省（少一个字段），
+/// 但那样一开时间线就**丢掉**了用户原来的视图档，关掉之后回不去；
+/// 而且 `'timeline'` 不是 `LibraryViewMode` 里的名字，恢复时会被
+/// `shelfEnumByName` 判成不认识而退回默认 —— 一个静默的记忆丢失。
+void _timelineIsRememberedSeparatelyFromTheViewMode() {
+  const states = <String, ShelfViewState>{
+    WorkspacePanelId.history: ShelfViewState(
+      viewMode: 'details',
+      sortField: 'time',
+      sortAscending: false,
+      timeline: true,
+    ),
+  };
+  final back = _roundTrip(states);
+  final restored = back[WorkspacePanelId.history];
+
+  check('时间线开关能回来', restored?.timeline == true);
+  // 阳性对照：视图档**同时**要还在。只测上一条的话，
+  // 把 timeline 写成 viewMode 的实现同样会让第一条通过。
+  check(
+    '开着时间线时视图档仍然原样记着',
+    restored?.viewMode == 'details',
+    '实际 ${restored?.viewMode}',
+  );
+  check(
+    '排序方向也不受牵连',
+    restored?.sortField == 'time' && restored?.sortAscending == false,
+  );
+
+  // 关掉时不留一个 `false`：偏好文件里不该攒一堆空字段。
+  const off = <String, ShelfViewState>{
+    WorkspacePanelId.history: ShelfViewState(
+      viewMode: 'coverList',
+      sortField: 'title',
+      sortAscending: true,
+    ),
+  };
+  final encoded = jsonDecode(jsonEncode(encodeShelfViewStates(off))) as Map;
+  final record = encoded[WorkspacePanelId.history] as Map;
+  check('关着时不写 t 字段', !record.containsKey('t'), record.toString());
+  check(
+    '缺 t 的老文件读成「没开」',
+    _roundTrip(off)[WorkspacePanelId.history]?.timeline == false,
   );
 }

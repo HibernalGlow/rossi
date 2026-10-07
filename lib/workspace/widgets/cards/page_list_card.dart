@@ -5,6 +5,7 @@ import 'package:zephyr/service/reader/reader_thumbnail_service.dart';
 import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/cards/info_card_kit.dart';
+import 'package:zephyr/workspace/widgets/cards/page_list_row_anchor.dart';
 
 enum PageListViewMode { thumbnails, details, list }
 
@@ -43,6 +44,15 @@ class _PageListCardState extends State<PageListCard> {
   bool _followProgress = true;
   String _searchQuery = '';
   int _lastFollowedSlot = -1;
+  int _pendingFollowSlot = -1;
+  bool _followScheduled = false;
+
+  /// 缩略图模式一行几列。网格的 `crossAxisCount` 与滚动定位必须共用这一个数，
+  /// 否则「第几行」两边各算各的，居中就会落到隔壁行上。
+  static const int _gridCrossAxisCount = 3;
+
+  int get _itemsPerRow =>
+      _viewMode == PageListViewMode.thumbnails ? _gridCrossAxisCount : 1;
 
   @override
   void initState() {
@@ -57,6 +67,21 @@ class _PageListCardState extends State<PageListCard> {
     });
 
     ReaderSessionCoordinator.instance.addListener(_onCoordinatorUpdate);
+    // 打开面板时当前页往往已经在几百页开外，而那一下进度通知早在卡片建出来之前就
+    // 发完了 —— 补一次居中，不然「跟着进度」只剩「从下一页开始才跟」。
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _followCurrent(force: true),
+    );
+  }
+
+  @override
+  void didUpdateWidget(PageListCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 折叠状态下 AnimatedCrossFade 把内容按零高布局，那一次居中量不到有意义的
+    // 可视区；展开这一下按真实的可见高度重新居中。
+    if (!oldWidget.isExpanded && widget.isExpanded) {
+      _followCurrent(force: true);
+    }
   }
 
   @override
@@ -69,45 +94,49 @@ class _PageListCardState extends State<PageListCard> {
   }
 
   void _onCoordinatorUpdate() {
-    final coordinator = ReaderSessionCoordinator.instance;
-    if (_followProgress &&
-        coordinator.hasActiveSession &&
-        _searchQuery.isEmpty &&
-        coordinator.currentSlot != _lastFollowedSlot) {
-      _lastFollowedSlot = coordinator.currentSlot;
-      _scrollToPosition(coordinator.currentSlot);
-    }
+    if (!_followProgress) return;
+    _followCurrent();
   }
 
-  void _scrollToPosition(int position) {
-    if (!_scrollController.hasClients) return;
-    double itemHeight;
-    int itemsPerRow = 1;
+  /// 跟随到当前页。有搜索过滤时列表只剩命中项，槽位和行号已经不再一一对应，
+  /// 所以这时候不跟（跟了会滚到隔壁页）。
+  ///
+  /// [force] 给换视图模式、展开面板、初次建卡这三处用 —— 槽位没变，但可视区或
+  /// 行的排布变了，不重算就会停在一个对不上号的位置。
+  void _followCurrent({bool force = false}) {
+    final coordinator = ReaderSessionCoordinator.instance;
+    if (!coordinator.hasActiveSession || _searchQuery.isNotEmpty) return;
+    _scheduleFollow(coordinator.currentSlot, force: force);
+  }
 
-    switch (_viewMode) {
-      case PageListViewMode.thumbnails:
-        itemHeight = 136.0;
-        itemsPerRow = 3;
-        break;
-      case PageListViewMode.details:
-        itemHeight = 72.0;
-        itemsPerRow = 1;
-        break;
-      case PageListViewMode.list:
-        itemHeight = 38.0;
-        itemsPerRow = 1;
-        break;
-    }
+  void _scheduleFollow(int slot, {required bool force}) {
+    if (!mounted) return;
+    if (!force && slot == _lastFollowedSlot) return;
+    _pendingFollowSlot = slot;
+    if (_followScheduled) return;
+    _followScheduled = true;
+    // 量几何要等这一帧布局完成：动画本身有 260ms，延后一帧看不出来，而在布局
+    // 途中读渲染树则可能拿到上一帧的可视区尺寸。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _followScheduled = false;
+      _followTo(_pendingFollowSlot);
+    });
+  }
 
-    final rowIndex = position ~/ itemsPerRow;
-    final targetOffset = (rowIndex * itemHeight) - 100.0;
-    final clamped = targetOffset.clamp(
-      0.0,
-      _scrollController.position.maxScrollExtent,
+  /// 把 [slot] 所在的那一行滚到可视区正中。
+  ///
+  /// 量不出几何（还没布局好）时不动记账，下一次进度通知会再试一次。
+  void _followTo(int slot) {
+    if (!mounted || slot < 0 || !_scrollController.hasClients) return;
+    final anchor = PageListRowAnchor.measure(
+      _scrollController.position,
+      itemIndex: slot,
+      itemsPerRow: _itemsPerRow,
     );
-
+    if (anchor == null) return;
+    _lastFollowedSlot = slot;
     _scrollController.animateTo(
-      clamped,
+      anchor.centeredOffset,
       duration: const Duration(milliseconds: 260),
       curve: Curves.easeOutCubic,
     );
@@ -407,6 +436,8 @@ class _PageListCardState extends State<PageListCard> {
           break;
       }
     });
+    // 换模式等于换了一套行高与每行项数，旧偏移在新列表里没有意义。
+    _followCurrent(force: true);
   }
 
   IconData _getViewModeIcon() {
@@ -432,7 +463,7 @@ class _PageListCardState extends State<PageListCard> {
           controller: _scrollController,
           padding: const EdgeInsets.all(6),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
+            crossAxisCount: _gridCrossAxisCount,
             childAspectRatio: 0.68,
             crossAxisSpacing: 6,
             mainAxisSpacing: 6,
