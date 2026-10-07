@@ -1888,6 +1888,12 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '控制主泳道独占、切换栏和边缘调阅的响应时机。'
 	String get laneFocusSoloSubtitle => '控制主泳道独占、切换栏和边缘调阅的响应时机。';
 
+	/// zh-CN: '点阅读时跳到阅读器泳道'
+	String get autoFocusReaderOnOpen => '点阅读时跳到阅读器泳道';
+
+	/// zh-CN: '点「阅读」（详情页那颗、封面上那颗都算，是同一个动作）时把视口和交互交给中央阅读器泳道。关掉后书照样开进那条泳道，但条带一动不动 —— 你可以继续在原来那条泳道里翻，想读的时候自己点过去。'
+	String get autoFocusReaderOnOpenSubtitle => '点「阅读」（详情页那颗、封面上那颗都算，是同一个动作）时把视口和交互交给中央阅读器泳道。关掉后书照样开进那条泳道，但条带一动不动 —— 你可以继续在原来那条泳道里翻，想读的时候自己点过去。';
+
 	/// zh-CN: 'Reader 聚焦时自动独占'
 	String get readerSoloOnFocus => 'Reader 聚焦时自动独占';
 
@@ -6938,6 +6944,8 @@ extension on Translations {
 			'settings.startupViewHint' => '下次打开工作台时走哪条呈现。两种呈现共用同一份记账，切换不会重开当前这一本。',
 			'settings.laneFocusSolo' => '泳道焦点与独占',
 			'settings.laneFocusSoloSubtitle' => '控制主泳道独占、切换栏和边缘调阅的响应时机。',
+			'settings.autoFocusReaderOnOpen' => '点阅读时跳到阅读器泳道',
+			'settings.autoFocusReaderOnOpenSubtitle' => '点「阅读」（详情页那颗、封面上那颗都算，是同一个动作）时把视口和交互交给中央阅读器泳道。关掉后书照样开进那条泳道，但条带一动不动 —— 你可以继续在原来那条泳道里翻，想读的时候自己点过去。',
 			'settings.readerSoloOnFocus' => 'Reader 聚焦时自动独占',
 			'settings.readerSoloOnFocusSubtitle' => '把交互交给 Reader 时顺带独占整条可用宽，不必再点一次栏头的独占按钮。',
 			'settings.showLaneNavigatorInSolo' => 'Reader 独占时显示泳道切换栏',

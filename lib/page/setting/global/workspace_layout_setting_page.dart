@@ -214,6 +214,15 @@ class _FocusAndSoloCard extends StatelessWidget {
           subtitle: Text(t.settings.delayRangeHint),
         ),
         SwitchListTile(
+          secondary: const Icon(Icons.arrow_forward_rounded),
+          title: Text(t.settings.autoFocusReaderOnOpen),
+          subtitle: Text(t.settings.autoFocusReaderOnOpenSubtitle),
+          thumbIcon: kSettingSwitchThumbIcon,
+          value: interaction.autoFocusReaderOnOpen,
+          onChanged: (value) =>
+              _patch((c) => c.copyWith(autoFocusReaderOnOpen: value)),
+        ),
+        SwitchListTile(
           secondary: const Icon(Icons.filter_center_focus_outlined),
           title: Text(t.settings.readerSoloOnFocus),
           subtitle: Text(t.settings.readerSoloOnFocusSubtitle),

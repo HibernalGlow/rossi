@@ -597,6 +597,8 @@
     "startupViewHint": "Which presentation the workspace opens with. Both share one set of records, so switching never reopens the current book.",
     "laneFocusSolo": "Lane focus & solo",
     "laneFocusSoloSubtitle": "Controls when the main lane takes over, the switcher rail and edge reveal respond.",
+    "autoFocusReaderOnOpen": "Jump to the reader lane on read",
+    "autoFocusReaderOnOpenSubtitle": "Tapping \"Read\" (on the cover or in the comic info page — the same action) hands the viewport and interaction to the central reader lane. When off, the book still opens in that lane but the strip does not move: keep browsing the lane you were in, and click over to the reader when you want it.",
     "readerSoloOnFocus": "Auto-solo Reader on focus",
     "readerSoloOnFocusSubtitle": "Handing interaction to Reader also lets it take the full available width, without clicking the solo button again.",
     "showLaneNavigatorInSolo": "Show lane switcher while Reader is solo",

@@ -70,6 +70,25 @@ class WorkspaceInteractionSettings {
   /// 契约对它的措辞是 `keeps a narrow portion of Reader visible where possible`。
   final double readerPeekWidth;
 
+  /// 打开一本书时，是否**把交互交给阅读器泳道**。默认开 = 改造前的行为。
+  ///
+  /// 这一颗管的是「点阅读这一下，人要不要跟着过去」：开着时书一开就换激活泳道
+  /// （条带滚向阅读器），关掉时书照样开进中央阅读器泳道，但条带一动不动、
+  /// 激活态留在用户手上那条泳道里 —— 想读的时候自己点一下阅读器泳道（或悬停）才过去。
+  ///
+  /// 为什么值得一颗开关：「从列表点进一本书」本来就有两种人 —— 一种想立刻看这一本，
+  /// 另一种是「先把它挂上，我还要把手里这张列表翻完」。改造前只有前一种
+  /// （`WorkspaceCubit.openReader` 无条件改激活态），后一种每次都得重新把
+  /// 浏览的那条泳道唤回来。
+  ///
+  /// **代价要认**：关掉时若阅读器泳道整个在视口外（窗口窄、或别的泳道独占），
+  /// 这一下点击看起来就像「没反应」，得自己把条带滚过去 —— 那正是改造前无条件
+  /// 激活的理由（见 `WorkspaceCubit.openReader`），所以默认档仍然是**开**。
+  ///
+  /// 与 [autoSoloOnFocus] 是两件事、可以各自成立：这一颗管「开书这一下要不要换
+  /// 激活泳道」，那一颗管「换过去了要不要顺带独占」。
+  final bool autoFocusReaderOnOpen;
+
   /// Reader 被**聚焦**时是否顺带进入独占（neoview `readerSoloOnFocus`）。
   ///
   /// 默认关 —— 这一项与 neoview 的默认值**刻意不同**：本项目的独占此前只能
@@ -133,6 +152,7 @@ class WorkspaceInteractionSettings {
     this.edgeRevealRestoreDelayMs = 600,
     this.revealFocusesLane = true,
     this.readerPeekWidth = 56,
+    this.autoFocusReaderOnOpen = true,
     this.autoSoloOnFocus = false,
     this.showLaneNavigatorInSolo = false,
     this.manualScrollEnabled = true,
@@ -149,6 +169,7 @@ class WorkspaceInteractionSettings {
     int? edgeRevealRestoreDelayMs,
     bool? revealFocusesLane,
     double? readerPeekWidth,
+    bool? autoFocusReaderOnOpen,
     bool? autoSoloOnFocus,
     bool? showLaneNavigatorInSolo,
     bool? manualScrollEnabled,
@@ -166,6 +187,8 @@ class WorkspaceInteractionSettings {
           edgeRevealRestoreDelayMs ?? this.edgeRevealRestoreDelayMs,
       revealFocusesLane: revealFocusesLane ?? this.revealFocusesLane,
       readerPeekWidth: readerPeekWidth ?? this.readerPeekWidth,
+      autoFocusReaderOnOpen:
+          autoFocusReaderOnOpen ?? this.autoFocusReaderOnOpen,
       autoSoloOnFocus: autoSoloOnFocus ?? this.autoSoloOnFocus,
       showLaneNavigatorInSolo:
           showLaneNavigatorInSolo ?? this.showLaneNavigatorInSolo,
@@ -186,6 +209,7 @@ class WorkspaceInteractionSettings {
     'edgeRevealRestoreDelayMs': edgeRevealRestoreDelayMs,
     'revealFocusesLane': revealFocusesLane,
     'readerPeekWidth': readerPeekWidth,
+    'autoFocusReaderOnOpen': autoFocusReaderOnOpen,
     'autoSoloOnFocus': autoSoloOnFocus,
     'showLaneNavigatorInSolo': showLaneNavigatorInSolo,
     'manualScrollEnabled': manualScrollEnabled,
@@ -200,6 +224,8 @@ class WorkspaceInteractionSettings {
   /// 推论要认账：后加的 [panelHoverFocusEnabled] / [revealFocusesLane] 在**老快照**
   /// 里缺键，于是升级之后它们默认生效。这是刻意的（这两项是产品口径，不是
   /// 需要按版本迁移的语义变化），代价见 `WorkspaceLayoutSnapshot` 的同名说明。
+  /// 同样后加的 `autoFocusReaderOnOpen` 缺键时也取默认值 —— 而它的默认值是
+  /// **改造前的行为**（开书就换激活泳道），所以这一项不会改掉任何人的手感。
   factory WorkspaceInteractionSettings.fromJson(Map<String, Object?> json) {
     const fallback = WorkspaceInteractionSettings();
     return WorkspaceInteractionSettings(
@@ -230,6 +256,9 @@ class WorkspaceInteractionSettings {
                 .clamp(0, 400)
                 .toDouble()
           : fallback.readerPeekWidth,
+      autoFocusReaderOnOpen: json['autoFocusReaderOnOpen'] is bool
+          ? json['autoFocusReaderOnOpen']! as bool
+          : fallback.autoFocusReaderOnOpen,
       autoSoloOnFocus: json['autoSoloOnFocus'] is bool
           ? json['autoSoloOnFocus']! as bool
           : fallback.autoSoloOnFocus,
@@ -267,6 +296,7 @@ class WorkspaceInteractionSettings {
       other.edgeRevealRestoreDelayMs == edgeRevealRestoreDelayMs &&
       other.revealFocusesLane == revealFocusesLane &&
       other.readerPeekWidth == readerPeekWidth &&
+      other.autoFocusReaderOnOpen == autoFocusReaderOnOpen &&
       other.autoSoloOnFocus == autoSoloOnFocus &&
       other.showLaneNavigatorInSolo == showLaneNavigatorInSolo &&
       other.manualScrollEnabled == manualScrollEnabled &&
@@ -284,6 +314,7 @@ class WorkspaceInteractionSettings {
     edgeRevealRestoreDelayMs,
     revealFocusesLane,
     readerPeekWidth,
+    autoFocusReaderOnOpen,
     autoSoloOnFocus,
     showLaneNavigatorInSolo,
     manualScrollEnabled,

@@ -3,6 +3,14 @@
 //
 //   dart run test/workspace/layout_snapshot_check.dart
 //
+// 但 `dart run` 会先跑 native-assets 构建钩子，而钩子是按 **SDK 哈希**缓存的
+// （`.dart_tool/hooks_runner/zephyr/<hash>/hook.dill`）：终端里的 dart 和上一次
+// `pub get` 用的不是同一份 SDK 时，加载那份 .dill 直接 `Invalid SDK hash`，
+// 跟这份判据对不对毫无关系。这份文件不碰桥，绕开钩子即可：
+//
+//   dart --packages="$PWD/.dart_tool/package_config.json" \
+//     test/workspace/layout_snapshot_check.dart
+//
 // 断言方式是**深度比较两份 JSON**（而不是逐字段挑几个比）：只比几项的话，
 // 新加一个字段忘了写进 `toJson` 就会静默通过，而它的后果恰恰是
 // 「这个设置重启就没了」—— 也就是本次要修的那个问题本身。
@@ -164,6 +172,7 @@ void _fullCustomStateRoundTrip() {
       edgeRevealRestoreDelayMs: 900,
       revealFocusesLane: false,
       readerPeekWidth: 72,
+      autoFocusReaderOnOpen: false,
       autoSoloOnFocus: true,
       showLaneNavigatorInSolo: true,
       manualScrollEnabled: false,
@@ -206,6 +215,10 @@ void _fullCustomStateRoundTrip() {
         restored.interaction.edgeRevealRestoreDelayMs == 900,
   );
   check('Reader 窄缝宽保住了', restored.interaction.readerPeekWidth == 72);
+  check(
+    '「开书时跳到阅读器泳道」关掉这件事保住了',
+    !restored.interaction.autoFocusReaderOnOpen,
+  );
   check('自动独占开关保住了', restored.interaction.autoSoloOnFocus);
   check('独占时显示切换栏保住了', restored.interaction.showLaneNavigatorInSolo);
   check('「允许手动横向滚动」关掉这件事保住了', !restored.interaction.manualScrollEnabled);
@@ -350,6 +363,7 @@ void _badInteractionFieldsFallBackPerField() {
       'edgeRevealDelayMs': -5,
       'edgeRevealRestoreDelayMs': 640,
       'readerPeekWidth': 9999,
+      'autoFocusReaderOnOpen': 'yes',
       'autoSoloOnFocus': 'yes',
       'showLaneNavigatorInSolo': true,
       'revealZones': '不是对象',
@@ -376,6 +390,12 @@ void _badInteractionFieldsFallBackPerField() {
   );
   check('合法的延时保住', snapshot.interaction.edgeRevealRestoreDelayMs == 640);
   check('越界的缝宽被夹到 400', snapshot.interaction.readerPeekWidth == 400);
+  check(
+    '非布尔的「开书时跳到阅读器泳道」退回默认（开 —— 默认档 = 改造前行为）',
+    snapshot.interaction.autoFocusReaderOnOpen ==
+            fallback.autoFocusReaderOnOpen &&
+        fallback.autoFocusReaderOnOpen,
+  );
   check('非布尔的自动独占退回默认（关）', !snapshot.interaction.autoSoloOnFocus);
   check('合法的切换栏「开」保住', snapshot.interaction.showLaneNavigatorInSolo);
   check(

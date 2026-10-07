@@ -118,17 +118,28 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
 
   /// 在阅读器泳道里打开一本（上游推入 `ComicReadRoute` 时也会走到这里）。
   ///
-  /// 顺带**激活阅读器泳道**：上游的推入可能是用户在左泳道里点出来的，
+  /// **默认顺带激活阅读器泳道**：上游的推入可能是用户在左泳道里点出来的，
   /// 若只把书塞进泳道而不把交互交过去，书就开在一个不在视口里的地方
   /// （现象是「点了书架里的漫画，什么都没发生」）。
+  ///
+  /// 这一下要不要做，由 `WorkspaceInteractionSettings.autoFocusReaderOnOpen` 定
+  /// （设置 → 布局 → 泳道焦点与独占）。关掉时**只有这一点变化**：书照样开进
+  /// 中央阅读器泳道，条带一动不动 —— 用户原来在浏览的那条泳道仍在手上，
+  /// 于是不必每次读完再把它唤回来。代价（阅读器整个在视口外时，这一下看起来
+  /// 像「没反应」）写在那个字段上。
+  ///
+  /// 两条读入口都汇到这里：详情页那颗「阅读」与封面那颗「直接阅读」推的是
+  /// **同一个** `ComicReadRoute`（详情页内那一下只是不经过根路由守卫），
+  /// 所以这颗开关对两者一起生效。
   void openReader(WorkspaceReaderTarget target) {
     final changed = state.readerTarget != target;
-    final activate = state.activeLaneId != LaneId.reader;
+    final focus = state.interaction.autoFocusReaderOnOpen;
+    final activate = focus && state.activeLaneId != LaneId.reader;
     if (!changed && !activate) return;
     emit(
       state.copyWith(
         readerTarget: () => target,
-        activeLaneId: () => LaneId.reader,
+        activeLaneId: activate ? () => LaneId.reader : null,
       ),
     );
   }

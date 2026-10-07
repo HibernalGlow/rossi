@@ -704,6 +704,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get startupViewHint => 'Which presentation the workspace opens with. Both share one set of records, so switching never reopens the current book.';
 	@override String get laneFocusSolo => 'Lane focus & solo';
 	@override String get laneFocusSoloSubtitle => 'Controls when the main lane takes over, the switcher rail and edge reveal respond.';
+	@override String get autoFocusReaderOnOpen => 'Jump to the reader lane on read';
+	@override String get autoFocusReaderOnOpenSubtitle => 'Tapping "Read" (on the cover or in the comic info page — the same action) hands the viewport and interaction to the central reader lane. When off, the book still opens in that lane but the strip does not move: keep browsing the lane you were in, and click over to the reader when you want it.';
 	@override String get readerSoloOnFocus => 'Auto-solo Reader on focus';
 	@override String get readerSoloOnFocusSubtitle => 'Handing interaction to Reader also lets it take the full available width, without clicking the solo button again.';
 	@override String get showLaneNavigatorInSolo => 'Show lane switcher while Reader is solo';
@@ -2997,6 +2999,8 @@ extension on TranslationsEnUs {
 			'settings.startupViewHint' => 'Which presentation the workspace opens with. Both share one set of records, so switching never reopens the current book.',
 			'settings.laneFocusSolo' => 'Lane focus & solo',
 			'settings.laneFocusSoloSubtitle' => 'Controls when the main lane takes over, the switcher rail and edge reveal respond.',
+			'settings.autoFocusReaderOnOpen' => 'Jump to the reader lane on read',
+			'settings.autoFocusReaderOnOpenSubtitle' => 'Tapping "Read" (on the cover or in the comic info page — the same action) hands the viewport and interaction to the central reader lane. When off, the book still opens in that lane but the strip does not move: keep browsing the lane you were in, and click over to the reader when you want it.',
 			'settings.readerSoloOnFocus' => 'Auto-solo Reader on focus',
 			'settings.readerSoloOnFocusSubtitle' => 'Handing interaction to Reader also lets it take the full available width, without clicking the solo button again.',
 			'settings.showLaneNavigatorInSolo' => 'Show lane switcher while Reader is solo',
