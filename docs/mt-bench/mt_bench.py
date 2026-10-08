@@ -18,9 +18,25 @@ import urllib.request
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-# 权重目录可以用环境变量指到仓库外：`docs/mt-bench/models/` **没有进 .gitignore**，
-# 一个 1.3 GB 的 gguf 放在仓库里，随时会被谁的一次 `add -A` 连带提交进去。
-MODELS = Path(os.environ.get("MT_MODELS") or HERE / "models")
+# 权重**不放仓库里**（一个 1.3 GB 的 gguf 进了工作树，随时会被谁的一次 `add -A` 连带提交进去）。
+# 默认落在应用自己下载模型的那个目录（见 _app_model_dir），跟 OCR 权重、超分权重同一个去处；
+# 要指到别处就 `MT_MODELS=/你的目录 python3 docs/mt-bench/mt_bench.py ...`。
+def _app_model_dir() -> Path:
+    """应用自己下载模型会落到的地方 —— 与 `getFilePath()/manga_ocr/`、`super_resolution/` 同级。
+
+    以前这里默认 `docs/mt-bench/models/`，那份权重得单独复制一次；
+    结果就是「跑基准前要先记一个仓外路径」，重装机器后没人知道去哪儿找回它。
+    """
+    if sys.platform == "darwin":
+        base = Path.home() / "Library" / "Application Support" / "com.zephyr.breeze" / "files"
+    elif sys.platform.startswith("win"):
+        base = Path(os.environ.get("APPDATA", "")) / "com.zephyr.breeze" / "files"
+    else:
+        base = Path.home() / ".local" / "share" / "com.zephyr.breeze" / "files"
+    return base / "mt_bench_models"
+
+
+MODELS = Path(os.environ.get("MT_MODELS") or _app_model_dir())
 CORPUS = json.loads((HERE / "corpus.json").read_text())
 
 MANGA_INSTRUCTION = (
