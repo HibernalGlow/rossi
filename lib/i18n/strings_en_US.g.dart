@@ -609,6 +609,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get fileManagerSectionView => 'Browsing view';
 	@override String get fileManagerRememberViewState => 'Remember view and sort per folder';
 	@override String get fileManagerRememberViewStateSubtitle => 'Each folder keeps its own view mode, sort and filter. When off, browsing works as usual but nothing is remembered';
+	@override String get fileManagerWrapGridTitle => 'Wrap file names in cover grid';
+	@override String get fileManagerWrapGridTitleSubtitle => 'Allow file names to wrap across multiple lines instead of being truncated';
 	@override String get fileManagerSectionSearch => 'Search';
 	@override String get fileManagerSearchSubfoldersDefault => 'Include subfolders by default';
 	@override String get fileManagerSearchSubfoldersDefaultSubtitle => 'New tabs start with subfolder search switched on. A whole-library scan takes tens of seconds on a slow drive, so the default stays the current folder; turn this on to skip clicking the chip every time';
@@ -1540,8 +1542,8 @@ class _Translations$ocr$en_US extends Translations$ocr$zh_CN {
 	@override String get displayChoice => 'Display mode';
 	@override String get displayChoiceSubtitle => 'Only pages translated afterwards follow the new mode; tap translate again on a page to rebuild it (a dozen seconds each).';
 	@override String get displayBaked => 'Bake into the image (replaces upscaling on that page)';
-	@override String get displayOverlay => 'Draw as an overlay (keeps upscaling)';
-	@override String get displayOverlayHint => 'The overlay never touches the base image, so the upscaled result stays on screen. Each bubble first samples its own flat fill; a page where any bubble fails that sample still runs inpaint (measured 4.2 s/page) as its base.';
+	@override String get displayOverlay => 'Draw as an overlay (text on the erased base)';
+	@override String get displayOverlayHint => 'Overlay only paints the text on top of the base; but the base has to be the erased one, so such a page claims the enhanced track and upscaling yields for it. The "every bubble has a flat fill, so no inpaint needed" shortcut has never fired: 0 of 121 boxes across 8 real pages (see ADR-0018 §4).';
 	@override String get modelSection => 'Model weights';
 	@override String weightsReady({required Object count}) => 'Weights ready (${count} files)';
 	@override String weightsMissing({required Object missing}) => 'Missing: ${missing}';
@@ -2900,6 +2902,8 @@ extension on TranslationsEnUs {
 			'settings.fileManagerSectionView' => 'Browsing view',
 			'settings.fileManagerRememberViewState' => 'Remember view and sort per folder',
 			'settings.fileManagerRememberViewStateSubtitle' => 'Each folder keeps its own view mode, sort and filter. When off, browsing works as usual but nothing is remembered',
+			'settings.fileManagerWrapGridTitle' => 'Wrap file names in cover grid',
+			'settings.fileManagerWrapGridTitleSubtitle' => 'Allow file names to wrap across multiple lines instead of being truncated',
 			'settings.fileManagerSectionSearch' => 'Search',
 			'settings.fileManagerSearchSubfoldersDefault' => 'Include subfolders by default',
 			'settings.fileManagerSearchSubfoldersDefaultSubtitle' => 'New tabs start with subfolder search switched on. A whole-library scan takes tens of seconds on a slow drive, so the default stays the current folder; turn this on to skip clicking the chip every time',
@@ -2915,10 +2919,10 @@ extension on TranslationsEnUs {
 			'settings.shellIntegrationContextMenuSubtitle' => 'Writes to the current user\'s registry (HKCU), no administrator needed. The entry appears on files, on folders and on a folder\'s background. While Rossi is already running a new folder is not handed to it yet - open a second window instead.',
 			'settings.shellIntegrationRegistered' => 'Added to the context menu',
 			'settings.shellIntegrationUnregistered' => 'Removed from the context menu',
-			'settings.shellIntegrationStalePath' => 'The menu entry points at a different Rossi build; switch it off and on again to fix it',
-			'settings.shellIntegrationRepair' => 'Repair path',
 			_ => null,
 		} ?? switch (path) {
+			'settings.shellIntegrationStalePath' => 'The menu entry points at a different Rossi build; switch it off and on again to fix it',
+			'settings.shellIntegrationRepair' => 'Repair path',
 			'settings.shellIntegrationMacHint' => 'On macOS “Open With ‣ Rossi” comes from the document types the app bundle declares - always available, no switch. This toggle only affects Windows.',
 			'settings.openIntentMissing' => ({required Object path}) => 'This path no longer exists: ${path}',
 			'settings.openIntentMultiSkipped' => ({required Object count}) => 'Only the first item opens; ${count} others were skipped',
@@ -3427,12 +3431,12 @@ extension on TranslationsEnUs {
 			'reader.showInStatusBarSubtitle' => 'Top info bar enters system status bar area',
 			'reader.edgePadding' => 'Edge padding',
 			'reader.infoBarStyle' => 'Info bar style',
+			_ => null,
+		} ?? switch (path) {
 			'reader.backgroundOpacity' => 'Background opacity',
 			'reader.fontSize' => 'Font size',
 			'reader.allHiddenNotice' => 'All hidden, info bar will be completely hidden',
 			'reader.edgePaddingDisabled' => 'Edge padding has no effect when horizontally centered',
-			_ => null,
-		} ?? switch (path) {
 			'reader.bottomProgressBar' => 'Bottom progress bar',
 			'reader.bottomProgressBarSubtitle' => 'Draw a thin always-on bar at the bottom edge of the page. It stays while the top/bottom bars are hidden, and is independent of the info pill',
 			'reader.bottomProgressBarGlow' => 'Progress bar glow',
@@ -3736,8 +3740,8 @@ extension on TranslationsEnUs {
 			'ocr.displayChoice' => 'Display mode',
 			'ocr.displayChoiceSubtitle' => 'Only pages translated afterwards follow the new mode; tap translate again on a page to rebuild it (a dozen seconds each).',
 			'ocr.displayBaked' => 'Bake into the image (replaces upscaling on that page)',
-			'ocr.displayOverlay' => 'Draw as an overlay (keeps upscaling)',
-			'ocr.displayOverlayHint' => 'The overlay never touches the base image, so the upscaled result stays on screen. Each bubble first samples its own flat fill; a page where any bubble fails that sample still runs inpaint (measured 4.2 s/page) as its base.',
+			'ocr.displayOverlay' => 'Draw as an overlay (text on the erased base)',
+			'ocr.displayOverlayHint' => 'Overlay only paints the text on top of the base; but the base has to be the erased one, so such a page claims the enhanced track and upscaling yields for it. The "every bubble has a flat fill, so no inpaint needed" shortcut has never fired: 0 of 121 boxes across 8 real pages (see ADR-0018 §4).',
 			'ocr.modelSection' => 'Model weights',
 			'ocr.weightsReady' => ({required Object count}) => 'Weights ready (${count} files)',
 			'ocr.weightsMissing' => ({required Object missing}) => 'Missing: ${missing}',
@@ -3941,19 +3945,17 @@ extension on TranslationsEnUs {
 			'search.excludeSearchDesc' => 'Show \'colorful\' results excluding \'married\'',
 			'search.fuzzySearchTitle' => 'Fuzzy search (OR)',
 			'search.fuzzySearchExample' => 'colorful married',
+			_ => null,
+		} ?? switch (path) {
 			'search.fuzzySearchDesc' => 'Show results containing any keyword',
 			'search.selectCategory' => 'Select Category',
 			'search.dataSource' => 'Data Source',
 			'search.sortBy' => 'Sort By',
-			_ => null,
-		} ?? switch (path) {
 			'search.newestToOldest' => 'Newest to oldest',
 			'search.oldestToNewest' => 'Oldest to newest',
 			'search.mostLikes' => 'Most likes',
 			'search.mostViews' => 'Most views',
 			'search.selectSourceTooltip' => 'Select source',
-			_ => null,
-		} ?? switch (path) {
 			'search.hasResults' => 'With results',
 			'search.showErrors' => 'Show errors',
 			'search.resultCount' => ({required Object count}) => '${count} results',
