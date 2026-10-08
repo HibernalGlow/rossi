@@ -10,7 +10,7 @@
 use crate::api::ocr_sessions;
 use anyhow::{Context, Result, anyhow};
 use flutter_rust_bridge::frb;
-use rossi_ocr_core::{Ep, GroupParams, group_boxes, mask_from_blocks, mask_from_quads, stage_ep_plan};
+use rossi_ocr_core::{Ep, GroupParams, group_boxes, mask_from_blocks, stage_ep_plan};
 use std::time::Instant;
 
 /// 四个模型文件的路径。检测件与识别件分别来自各自的模型仓库，见 `REFERENCE_RESEARCH.md` §8.6.1。
@@ -57,17 +57,6 @@ pub struct OcrPageResult {
     pub erased_path: Option<String>,
     /// 这三段各自动用了哪条 EP。从各组件身上读回来（它们存的是 resolve 之后的值）。
     pub stage_eps: OcrStageEps,
-}
-
-/// 只擦字那一跳的结果。给 [`ocr_erase_page`] 用 —— 叠层 + 气泡填色那条路会先采色、
-/// 只有采不到平色时才调它，所以它必须能单独被调用、且不重跑检测与识别。
-pub struct OcrEraseResult {
-    /// 擦干净的底图路径；掩膜为空时是 `None`（没有要擦的东西，不是错误）。
-    pub erased_path: Option<String>,
-    pub inpaint_ms: u64,
-    /// 实际生效的 EP；`None` = 这一趟根本没跑擦字。与 `OcrStageEps.inpaint` 同一口径：
-    /// 「选了 GPU 就不许偷偷用 CPU」要核对的是这个回报值。
-    pub ep: Option<String>,
 }
 
 /// 设置页要显示的「本机三段落点」。每段 `None` = 本平台构建里没注册这条 EP，
@@ -223,62 +212,10 @@ pub async fn ocr_analyze_page(
     .context("OCR 分析任务 panic")?
 }
 
-/// 只擦字：拿**已经算好的框**跑 LaMa，不再跑检测与识别。
-#[frb]
-pub async fn ocr_erase_page(
-    image_path: String,
-    models: OcrModelPaths,
-    ep: String,
-    inpaint_model: String,
-    erased_output: String,
-    quads: Vec<Vec<f32>>,
-) -> Result<OcrEraseResult> {
-    tokio::task::spawn_blocking(move || {
-        let ep = Ep::parse(&ep)?;
-        let page = image::open(&image_path)
-            .with_context(|| format!("读图失败：{image_path}"))?
-            .to_rgb8();
-        let (page_w, page_h) = page.dimensions();
-        let mask = mask_from_quads(&quads, page_w, page_h, ERASE_MASK_DILATE_PX);
-        if !mask.iter().any(|v| *v > 0) {
-            // 掩膜是空的：没有要擦的东西。这不是错误 —— 交回 `erased_path = None`，
-            // 由 Dart 侧决定用原图还是报错（与 `ocr_analyze_page` 同一口径）。
-            return Ok(OcrEraseResult {
-                erased_path: None,
-                inpaint_ms: 0,
-                ep: None,
-            });
-        }
-        // 会话键与 `ocr_analyze_page` 同一个算法：两边都得让重下权重能触发重建，
-        // 否则会「静默用旧模型」。这里多带一个 `|erase` 后缀 —— 见 `session_key` 的注释。
-        let key = format!("{}|erase", ocr_sessions::session_key(&models, ep, Some(&inpaint_model)));
-        ocr_sessions::with_sessions(&key, &models, ep, Some(&inpaint_model), |sessions| {
-            let (_, inpainter) = sessions
-                .inpaint
-                .as_mut()
-                .ok_or_else(|| anyhow!("会话缓存里没有擦字会话（内部逻辑错了）"))?;
-            let ep_inpaint = inpainter.ep().label().to_string();
-            let erased = inpainter.inpaint(&page, &mask)?;
-            let ms = erased.preprocess_ms + erased.infer_ms + erased.composite_ms;
-            erased
-                .image
-                .save(&erased_output)
-                .with_context(|| format!("写擦字结果失败：{erased_output}"))?;
-            Ok(OcrEraseResult {
-                erased_path: Some(erased_output),
-                inpaint_ms: ms as u64,
-                ep: Some(ep_inpaint),
-            })
-        })
-    })
-    .await
-    .context("OCR 擦字任务 panic")?
-}
-
 /// 识别时的裁剪外扩：实测 6 px 才能把竖排末字（「出てきなさい」）补全，见 §8.6.6。
 const CROP_PAD: i32 = 6;
 
-/// 擦字掩膜的外扩。**两条入口共用这一个值**（`ocr_analyze_page` 与 `ocr_erase_page`）：
+/// 擦字掩膜的外扩。分析这一条入口用它，气泡填色的 Dart 侧也按同一个值外扩：
 /// 同一个 `dilate_px` 才能保证「叠层补擦出来的底」与「烘焙那一路擦出来的底」是同一张，
 /// 分两处写字面量就会在调这个旋钮时悄悄擦得不一样。
 const ERASE_MASK_DILATE_PX: i32 = 3;

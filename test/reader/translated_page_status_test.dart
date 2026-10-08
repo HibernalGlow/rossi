@@ -117,7 +117,7 @@ void main() {
       );
     });
 
-    test('登记了图层：叠层档 —— 这一页不占轨，译文与超分同时生效', () {
+    test('登记了图层：报叠层 —— 中文是盖上去的那一层', () {
       expect(
         translatedPageDisplayOf(overlayLabel: 'fp|qwen2.5:14b'),
         TranslatedPageDisplay.overlay,

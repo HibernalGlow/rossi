@@ -87,6 +87,9 @@ class _FakeAnalyze {
   String? lastErasedPath;
   String? lastEp;
 
+  /// false = 擦了但什么也没写出来（掩膜为空那一格）。
+  bool writesBase = true;
+
   /// 故意取一组**三段不同**的值（Windows 上 auto 的实际结果），
   /// 好让「编排层把实际生效的 EP 原样透传出来」这条测试能分辨真假。
   final OcrStageEps stageEps = const OcrStageEps(
@@ -103,9 +106,9 @@ class _FakeAnalyze {
     calls++;
     lastEp = ep;
     lastErasedPath = erasedPath;
-    // null = 这一趟**不要**擦字（叠层档要先看框采色），与生产那边 `inpaint: false` 同形：
-    // Rust 那时也不会写底图。假件替它写一张就是替这一档撒谎。
-    if (erasedPath != null) {
+    // `writesBase = false` 与生产那边「掩膜为空」同形：给了 `erased_output` 也不写文件、
+    // 回报 `erasedPath = null`。假件替它写一张就是替这一档撒谎。
+    if (erasedPath != null && writesBase) {
       // 正常链路里这张图是 Rust 写的；这里替它写一张纯白底。
       await File(
         erasedPath,
@@ -121,7 +124,7 @@ class _FakeAnalyze {
       detectMs: BigInt.from(190),
       recognizeMs: BigInt.from(3700),
       inpaintMs: BigInt.from(1700),
-      erasedPath: erasedPath,
+      erasedPath: writesBase ? erasedPath : null,
       stageEps: stageEps,
     );
   }
@@ -167,37 +170,6 @@ Future<Uint8List> _halftonePng(int w, int h) async {
   return data!.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
 }
 
-/// 假「只擦字」那一跳（叠层档采不到平色时才被叫到）。
-class _FakeErase {
-  int calls = 0;
-  List<Float32List>? lastQuads;
-  String? lastOutput;
-
-  /// true = 模拟 Rust 那边**掩膜为空**的回报：不写文件、`erasedPath` 是 null。
-  bool writesNothing = false;
-
-  Future<OcrEraseResult> call(
-    String imagePath,
-    List<Float32List> quads,
-    String erasedOutput,
-    String ep,
-  ) async {
-    calls++;
-    lastQuads = quads;
-    lastOutput = erasedOutput;
-    if (writesNothing) {
-      return OcrEraseResult(inpaintMs: BigInt.zero, ep: 'cpu');
-    }
-    await File(
-      erasedOutput,
-    ).writeAsBytes(await _whitePng(_pageW, _pageH), flush: true);
-    return OcrEraseResult(
-      erasedPath: erasedOutput,
-      inpaintMs: BigInt.from(4200),
-      ep: 'cpu',
-    );
-  }
-}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -479,16 +451,14 @@ void main() {
 
   // ─────────── 叠层档（ADR-0018 §决定 4 解冻那一轮）───────────
 
-  test('叠层档：全页采到平色就一页不擦，也不烤 PNG', () async {
+  test('叠层档：底图是同一次 analyze 擦出来的那张，不烤 PNG，且恒报要占轨', () async {
     final src = await Directory('${root.path}/src').create();
     final pageFile = File('${src.path}/flat.png');
     await pageFile.writeAsBytes(await _whitePng(_pageW, _pageH));
     final analyze = _FakeAnalyze([_block(_boxA)]);
-    final erase = _FakeErase();
 
     final out = await TranslatedPageBuilder(
       analyze: analyze.call,
-      erase: erase.call,
       translate: _FakeTranslate((texts) => ['是蜥蜴啊']).call,
     ).build(
       imagePath: pageFile.path,
@@ -498,83 +468,14 @@ void main() {
     );
 
     expect(
-      erase.calls,
-      0,
-      reason: '每框都能填色时，那 4.2 s 的擦字就该整个跳过 —— 这一档省的时间全在这里',
+      analyze.lastErasedPath,
+      isNotNull,
+      reason: '擦字必须在 analyze 那一趟里跑：今天没有任何一条路绕得开它',
     );
-    expect(
-      out.path,
-      pageFile.path,
-      reason: '底图必须是原图：这一档不占增强图轨，超分产物照常往上面叠',
-    );
-    expect(
-      out.overlayNeedsBase,
-      isFalse,
-      reason: '这一页的底就是画面本来那张 —— 报 true 会把超分白白压掉',
-    );
-    // 这一档的产物只有图层：没有烤好的 PNG，也没有擦字底图。
-    expect(
-      (await (await TranslatedPageCache.directory(out.label))
-              .list()
-              .map((e) => e.uri.pathSegments.last)
-              .toList())
-        ..sort(),
-      ['manifest.json', 'p0.json'],
-    );
-    final layer = TranslatedPageLayer.tryDecode(
-      await (await TranslatedPageCache.layerFile(
-        label: out.label,
-        pageIndex: 0,
-      )).readAsString(),
-    );
-    expect(layer?.boxes.single.fill, isNotNull, reason: '图层没带上采到的底色');
-
-    final logged = OcrLog.log.entries.value.join('\n');
-    expect(logged, contains('全部填色（未跑擦字）'));
-    // 命中判据也必须是叠层那把尺：按 PNG 判就永远 miss，每次上屏重跑十几秒。
-    final again = await TranslatedPageBuilder(
-      analyze: analyze.call,
-      erase: erase.call,
-      translate: _FakeTranslate((texts) => ['是蜥蜴啊']).call,
-    ).build(
-      imagePath: pageFile.path,
-      pageIndex: 0,
-      config: config,
-      retainErasedBase: true,
-    );
-    expect(again.fromCache, isTrue);
-    expect(analyze.calls, 1, reason: '命中缓存不许再跑分析');
-    expect(again.path, pageFile.path);
-  });
-
-  test('叠层档：有一框采不出平色就补擦，底图原子进缓存', () async {
-    final src = await Directory('${root.path}/src').create();
-    final pageFile = File('${src.path}/halftone.png');
-    await pageFile.writeAsBytes(await _halftonePng(_pageW, _pageH));
-    final analyze = _FakeAnalyze([_block(_boxA)]);
-    final erase = _FakeErase();
-
-    final out = await TranslatedPageBuilder(
-      analyze: analyze.call,
-      erase: erase.call,
-      translate: _FakeTranslate((texts) => ['是蜥蜴啊']).call,
-    ).build(
-      imagePath: pageFile.path,
-      pageIndex: 0,
-      config: config,
-      retainErasedBase: true,
-    );
-
-    expect(erase.calls, 1);
     expect(
       out.overlayNeedsBase,
       isTrue,
-      reason: '底只能是擦字底图：不报这一维，控制器就不会替这一页占轨，中文会压在日文下面',
-    );
-    expect(
-      erase.lastQuads?.length,
-      1,
-      reason: '掩膜要按同一批框生成 —— 传错就等于两边擦得不一样',
+      reason: '底图是擦过字的那张，不占轨就会把原日文留在画面上',
     );
     expect(
       out.path,
@@ -587,36 +488,81 @@ void main() {
               .toList())
         ..sort(),
       ['manifest.json', 'p0.base.png', 'p0.json'],
-      reason: '底图必须落在缓存档里（留在临时目录 = 每次上屏重擦一遍）',
+      reason: '只留图层与底图：出现 p0.png 就是走成了烘焙',
     );
-    // 全页不填色（半填半擦会露出两种底），但叠层照样可用：有底图就够了。
     final layer = TranslatedPageLayer.tryDecode(
       await (await TranslatedPageCache.layerFile(
         label: out.label,
         pageIndex: 0,
       )).readAsString(),
     );
-    expect(layer?.boxes.single.fill, isNull);
+    expect(layer?.boxes.single.fill, isNotNull, reason: '图层没带上采到的底色');
+    expect(
+      OcrLog.log.entries.value.join('\n'),
+      contains('底图=擦字底图'),
+      reason: '日志要说清这张底从哪来 —— 旧的「未跑擦字」那一支已经不存在了',
+    );
+
+    final again = await TranslatedPageBuilder(
+      analyze: analyze.call,
+      translate: _FakeTranslate((texts) => ['是蜥蜴啊']).call,
+    ).build(
+      imagePath: pageFile.path,
+      pageIndex: 0,
+      config: config,
+      retainErasedBase: true,
+    );
+    expect(again.fromCache, isTrue);
+    expect(analyze.calls, 1, reason: '命中缓存不许再跑分析');
+  });
+
+  test('叠层档：框里采不出平色也一样 —— 底图仍是擦出来的那张，图层不带 fill', () async {
+    final src = await Directory('${root.path}/src').create();
+    final pageFile = File('${src.path}/halftone.png');
+    await pageFile.writeAsBytes(await _halftonePng(_pageW, _pageH));
+    final analyze = _FakeAnalyze([_block(_boxA)]);
+
+    final out = await TranslatedPageBuilder(
+      analyze: analyze.call,
+      translate: _FakeTranslate((texts) => ['是蜥蜴啊']).call,
+    ).build(
+      imagePath: pageFile.path,
+      pageIndex: 0,
+      config: config,
+      retainErasedBase: true,
+    );
+
+    expect(out.overlayNeedsBase, isTrue);
+    final layer = TranslatedPageLayer.tryDecode(
+      await (await TranslatedPageCache.layerFile(
+        label: out.label,
+        pageIndex: 0,
+      )).readAsString(),
+    );
+    expect(
+      layer?.boxes.single.fill,
+      isNull,
+      reason: '网点底必须判不可填 —— 放行就是拿一团灰盖原文',
+    );
     expect(
       await TranslatedPageCache.overlayDisplayable(
         label: out.label,
         pageIndex: 0,
       ),
       isTrue,
+      reason: '不填色不要紧，有擦干净的底图就叠得成',
     );
-    expect(OcrLog.log.entries.value.join('\n'), contains('已补擦底图'));
   });
 
   test('叠层档：擦字没写出底图就是失败，不许拿原图当底硬画', () async {
     final src = await Directory('${root.path}/src').create();
     final pageFile = File('${src.path}/halftone.png');
     await pageFile.writeAsBytes(await _halftonePng(_pageW, _pageH));
-    final erase = _FakeErase()..writesNothing = true;
+    final analyze = _FakeAnalyze([_block(_boxA)])..writesBase = false;
 
     await expectLater(
       TranslatedPageBuilder(
-        analyze: _FakeAnalyze([_block(_boxA)]).call,
-        erase: erase.call,
+        analyze: analyze.call,
         translate: _FakeTranslate((texts) => ['是蜥蜴啊']).call,
       ).build(
         imagePath: pageFile.path,
@@ -629,7 +575,6 @@ void main() {
           '没有擦字底图时唯一的底就是原图，而叠在未擦字的原图上字压字率实测 0.085 —— '
           '与其画一张糊的冒充成品，不如让界面明说「译文失败」',
     );
-    expect(erase.calls, 1);
     final cacheRoot = Directory('${root.path}/manga_translated');
     final leftovers = cacheRoot.existsSync()
         ? await cacheRoot

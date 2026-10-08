@@ -471,12 +471,7 @@ pub fn mask_from_blocks(blocks: &[TextBlock], w: u32, h: u32, dilate_px: i32) ->
 }
 
 /// 由 quad 列表（8 个数：左上/右上/右下/左下）生成掩膜，取每个 quad 的 AABB 外扩 `dilate_px`。
-///
-/// 为什么要这个入口：叠层 + 气泡填色那条路要先看「每框底色是不是平色」才知道要不要擦。
-/// 如果只能整页重跑 `analyze` 才能擦，等于把检测+识别（实测 ~4 s）再付一遍，
-/// 比省下来的擦字（实测 4.2 s/页）还贵 —— 那这笔买卖就不成立了。
-/// 桥那边交回来的就是 quad，所以按 quad 收。
-pub fn mask_from_quads(quads: &[Vec<f32>], w: u32, h: u32, dilate_px: i32) -> Vec<u8> {
+fn mask_from_quads(quads: &[Vec<f32>], w: u32, h: u32, dilate_px: i32) -> Vec<u8> {
     let mut mask = vec![0u8; (w * h) as usize];
     for q in quads {
         let Some((x0, y0, x1, y1)) = quad_aabb(q) else { continue };

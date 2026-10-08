@@ -271,7 +271,8 @@ class TranslatedPageController extends ChangeNotifier {
         _lastError = '';
         notifyListeners();
         OcrLog.add(
-          '${OcrLog.page(index)} 叠层已就绪（档=${out.label}，不占增强图轨，超分照常）',
+          '${OcrLog.page(index)} 叠层已就绪（档=${out.label}，底图=擦字底图，'
+          '这一页占轨 ⇒ 超分为它让路）',
         );
         return true;
       }
