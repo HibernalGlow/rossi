@@ -288,6 +288,52 @@
   里「比视口宽就对齐最近的边」那一档已成死支。
 - **实机手感未验**（macOS 由用户自己跑，见 `docs/lane-focus-smoothness-acceptance.md`）。
 
+## 后续修订（2026-10-07）：开书这一下要不要把交互交给阅读器泳道
+
+**事实**：两条读入口推的是**同一个** `ComicReadRoute` —— 详情页那颗「阅读」，与封面那颗
+「直接阅读」（`clickCoverToStartReading` 那一档也用它）。工作台在场时根路由守卫把它改派进
+中央阅读器泳道（`workspace_route_guard.dart` 的 `openReaderInLane` → `BreezeWorkspacePage`
+→ `WorkspaceCubit.openReader`），而 `openReader` 除了换 `readerTarget`，还会**顺带把激活态
+交给 reader**。后果是条带滚向阅读器、用户刚才在翻的那条泳道被推出视口；读完想接着翻，
+得先把那条泳道唤回来（边缘揭示 / 悬停 / 点切换轨）。
+
+**决定**：加一颗 `WorkspaceInteractionSettings.autoFocusReaderOnOpen`（默认**开** = 改造前的
+行为）。关掉时 `openReader` 只换 `readerTarget`、**不动** `activeLaneId` —— 书照样开进中央
+阅读器泳道，条带一动不动。判定收在 `openReader` 一处（不是守卫、不是卡片、不是详情页），
+所以两条读入口一起生效，也所以它能在纯 cubit 判据里钉住。
+
+字段落在 `WorkspaceInteractionSettings` 而**不是** `GlobalSettingState`：它与泳道宽度、
+面板记账是同一批「随 `workspace_layout.json` 的 `interaction` 块一起备份 / 一起重置」的东西。
+老快照缺这个键时退回默认值 —— 而默认值就是改造前的行为，所以升级不会改掉任何人的手感。
+
+**代价要认**：关掉时若阅读器泳道整个在视口外（窗口窄 / 别的泳道独占），这一下点击看起来
+就像「没反应」—— 那正是 `openReader` 自改造起就无条件激活的理由（它的注释里一直写着
+`点了书架里的漫画，什么都没发生` 这条症状）。所以默认档是**开**，关它是用户主动的选择。
+UI 上的说明词也照这个口径写。
+
+**明确不做**：
+- 不把「阅读器开在哪条泳道」改成跟着点击位置走 —— `中央泳道 = Reader` 是工作台第一条契约；
+- 关掉时不顺手把条带往阅读器挪一点 —— 用户要的就是「条带不动」；
+- 不动「详情页怎么打开」（卡片点击照旧进详情页）。这一颗只管**阅读那一下**。
+
+### 这一轮的判据（2026-10-07，本机实跑）
+
+- `flutter test test/workspace/open_reader_focus_test.dart` — **7 条（新增，全过）**：
+  拆封默认 = 改造前行为；对照「默认档开书**必须**换激活泳道」（这条不成立就说明尺子看不见
+  激活泳道的变化）；关掉后 `readerTarget` 换了而 `activeLaneId` 仍是 left；同一本书重复开
+  不产生多余 emit；关掉只挡开书那一下（手动 `activateLane` 照样能过去）；老快照缺键 ⇒ 落到
+  默认档；JSON 往返存得下「关」。
+- `test/workspace/layout_snapshot_check.dart` — 新增 2 条（自定义快照里这一位往返无损、
+  非布尔值退回默认）。**本机没跑成**：见下条。
+- `dart analyze lib/` — 只剩既有那条 `curly_braces_in_flow_control_structures`
+  （`service/reader/switch_toast_service.dart`，不是本轮碰的）。
+- 回归：`test/workspace` 261 过 7 红，7 条**都不是本轮引入**——3 条
+  `file_manager_card_test`（文件树 / Rust 投影）、1 条 `control_panel_settings_cards_test`
+  的 `setUpAll`（`RustLib.init()` 载不到 `windcore.framework`，那个文件里 0 次提到
+  `WorkspaceInteractionSettings`）、2 条 `page_list_card*`（框架级断言
+  `ListTile … wrapped in a DecoratedBox`）。`test/network` 3 条（`comic_sync_core` 的
+  ObjectBox + 两条真网络超时）是老基线。
+
 ## 残留（明确记账）
 
 - **手感只能在真机上看。** 这一轮把「事件 → 状态 → 几何」全钉住了，但「顺手不顺手」
