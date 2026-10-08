@@ -22,7 +22,10 @@ enum OcrTranslateEngine {
 
   /// B站 Index-Translate 跑在本机（llama-server 等）。也是「一条一次」，
   /// 但**提示词与术语策略都不同**：它按自己 instTrans 的一句一次格式训练，
-  /// 而实测挂上术语块会把本来翻对的专名串味带崩 —— 见 [OcrTranslateEngine.glossaryApplies]。
+  /// 而实测挂上术语块会把本来翻对的专名带崩：术语表只有 4 条、里面没有 ヤモリ，
+  /// 模型就不自己判断了，抓表里最像的一条（`ノラボス→野良波`）硬套上去
+  /// （33 条同 id 可比、24 条输出不同，坏的都在专名那几条；平均还慢 62 ms）。
+  /// 所以准确的口径是**覆盖不全的术语表比没有术语表更危险**，见 [OcrTranslateEngine.glossaryApplies]。
   /// 所以它是一档独立的码路，不是 `hyMt2Local` 换个模型名。
   indexLocal('index-translate'),
 
