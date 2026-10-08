@@ -79,14 +79,15 @@ class TranslatedPage {
   /// 「选了 GPU 就不许偷偷用 CPU」这条纪律要核对的就是它。
   final OcrStageEps? stageEps;
 
-  /// 叠层这一档：这一页的底**必须**是擦字底图（有框采不出平色）。
+  /// 叠层这一档：这一页的底**必须**是擦字底图。
   ///
-  /// 为什么要把它交回控制器：「叠层不占增强图轨」是这一档的全部理由，但那种必须擦的页
-  /// 不占轨就等于把擦好的底丢在盘上没人换上屏 —— 用户看到的是超分后的原图压在中文下面
-  /// （字压字率 0.085 那一格），正是这条链要避免的画面。
-  /// true 时控制器替**这一页**占轨（超分为它让路），false 时照旧不占，超分照常。
+  /// 为什么要把它交回控制器：画面上的像素必须换成擦干净的那张，否则中文压在日文下面
+  /// （叠在未擦字的原图上字压字率实测 0.085，擦干净是 0.000）。而「换掉这一页的像素」
+  /// 就等于占掉增强图轨那一页唯一的位置 —— 所以报 true 的代价写清楚：这一页的超分让路。
   ///
-  /// 默认 false：只有叠层那条分支会置真；烘焙与未识别到文字的返回都不该走到这个判断。
+  /// 今天叠层分支恒报 true：「每框都采得出平色 ⇒ 不必擦、因此不必占轨」那一支要等
+  /// 气泡级的框才可能触发（8 页真页 121 框可填 0 框、按页 0/8，尺子在
+  /// `test/ocr/bubble_fill_real_page_probe_test.dart`）。烘焙与未识别到文字的返回不走到这里。
   final bool overlayNeedsBase;
 }
 
@@ -113,28 +114,17 @@ class TranslatedPageBuilder {
       String ep,
     )?
     analyze,
-    Future<OcrEraseResult> Function(
-      String imagePath,
-      List<Float32List> quads,
-      String erasedOutput,
-      String ep,
-    )?
-    erase,
     Future<List<String>> Function(
       List<String> texts,
       OcrTranslationConfig config,
     )?
     translate,
   }) : _analyze = analyze ?? _rustAnalyze,
-       _erase = erase ?? _rustErase,
        _translate = translate ?? _dispatchTranslate;
 
-  /// `erasedPath == null` = 这一趟**不要擦字**（叠层档先看框、采完色才决定擦不擦）。
+  /// 一次过桥把检测 / 识别 / 聚块 / 擦字全跑完。`erasedPath` 给了就跑 LaMa。
   final Future<OcrPageResult> Function(String, String?, String) _analyze;
 
-  /// 只擦字那一跳：不重跑检测与识别。见 [OcrService.erasePage] 的理由。
-  final Future<OcrEraseResult> Function(String, List<Float32List>, String, String)
-  _erase;
   final Future<List<String>> Function(List<String>, OcrTranslationConfig)
   _translate;
 
@@ -146,20 +136,6 @@ class TranslatedPageBuilder {
     imagePath: imagePath,
     inpaint: erasedPath != null,
     erasedOutput: erasedPath,
-    ep: ep,
-  );
-
-  /// 只擦字那一跳的默认实现。见 [OcrService.erasePage]：叠层档采不到平色时才走这里，
-  /// 目的是不把这页的检测+识别（实测约 4 s）再付一遍。
-  static Future<OcrEraseResult> _rustErase(
-    String imagePath,
-    List<Float32List> quads,
-    String erasedOutput,
-    String ep,
-  ) => OcrService.instance.erasePage(
-    imagePath: imagePath,
-    quads: quads,
-    erasedOutput: erasedOutput,
     ep: ep,
   );
 
@@ -363,12 +339,11 @@ class TranslatedPageBuilder {
     final scratch = await Directory.systemTemp.createTemp('rossi_ocr_erase_');
     try {
       final erasedPath = p.join(scratch.path, 'erased_p$pageIndex.png');
-      // 叠层档先**不擦**：要看完框、采完色才知道需不需要那 4.2 s。
-      final result = await _analyze(
-        imagePath,
-        retainErasedBase ? null : erasedPath,
-        ep,
-      );
+      // 两档都在这一趟里擦字：`inpaint: true` 走的是**已有**那条 analyze 过桥入口，
+      // 不另开「只擦字」的第二个原生入口。理由见下面叠层分支那段 —— 量过之后
+      // 「整页每框都采得出平色」在真页上是 0/8 页，那条捷径省不了时间，
+      // 却要多养一份 FRB 生成物与一个永不触发的分支。
+      final result = await _analyze(imagePath, erasedPath, ep);
       final eps = result.stageEps;
       OcrLog.add(
         '$page 分析：${result.blocks.length} 块，'
@@ -459,45 +434,29 @@ class TranslatedPageBuilder {
       );
 
       if (retainErasedBase) {
-        // 叠层档：不烤 PNG、不占增强图轨，所以**底图越清晰越好**（超分照常生效）。
-        // 每框都采到平色 → 填色就足够盖住原文，LaMa 那一跳（实测 4.2 s/页）整个跳过；
-        // 有一框采不出 → 老老实实擦，底图落进同一档缓存里给叠层当底。
-        final allFilled = layer.boxes.every((b) => b.fill != null);
-        // 取消点放在**补擦之前**：这一档最贵的一跳还没发生，翻走了就不该再付 4.2 s。
+        // 叠层档：不烤 PNG，中文由 `TranslatedPageOverlay` 盖在底图上。
+        // 底图 = 刚才那一趟擦出来的字干净底（叠在未擦字的原图上字压字率实测 0.085，
+        // 擦干净是 0.000），所以这一页要替自己占一次轨 —— 代价是它的超分让路。
+        // 「每框都采到平色就不必擦」那条捷径今天不走：8 页真页 121 框可填 0 框、
+        // 按页 0/8（数字与尺子在 bubble_fill_real_page_probe_test.dart），
+        // 而要走通它就得再开一条只擦字的原生入口 + 多一份 FRB 生成物 —— 不值。
         check(TranslatedPageStage.typesetting);
         onStage?.call(TranslatedPageStage.typesetting);
-        final base = allFilled
-            ? imagePath
-            : (await TranslatedPageCache.baseFile(
-                label: used.label,
-                pageIndex: pageIndex,
-              )).path;
-        if (!allFilled) {
-          final eraseClock = Stopwatch()..start();
-          // 先擦进临时目录，再由缓存那层原子收进来（`writeBase`）。
-          final erased = await _erase(
-            imagePath,
-            result.blocks.map((b) => b.quad).toList(growable: false),
-            erasedPath,
-            ep,
-          );
-          final written = erased.erasedPath;
-          if (written == null) {
-            // 掩膜为空 = Rust 侧一个字都没擦、也没写底图（框全是退化的那种）。
-            // 这时能拿到的底只有原图，而叠在未擦字的原图上字压字率实测 0.085 ——
-            // 与其画一张糊的冒充成品，不如如实失败，界面会说「译文失败」。
-            throw OcrTranslationException('擦字没有写出底图（掩膜为空），这一页不能叠层');
-          }
-          await TranslatedPageCache.writeBase(
-            label: used.label,
-            pageIndex: pageIndex,
-            erasedFile: File(written),
-          );
-          OcrLog.add(
-            '$page 采不到全平色底，只擦字（不重跑检测/识别）：'
-            '${eraseClock.elapsedMilliseconds} ms，实际生效 EP=${erased.ep ?? '未报'}',
-          );
+        final written = result.erasedPath;
+        if (written == null) {
+          // 掩膜为空 = Rust 侧一个字都没擦、也没写底图（框全是退化的那种）。
+          // 这时能拿到的底只有原图，而叠在它上面就是字压字 —— 如实失败，别画糊的冒充成品。
+          throw OcrTranslationException('擦字没有写出底图（掩膜为空），这一页不能叠层');
         }
+        await TranslatedPageCache.writeBase(
+          label: used.label,
+          pageIndex: pageIndex,
+          erasedFile: File(written),
+        );
+        final base = (await TranslatedPageCache.baseFile(
+          label: used.label,
+          pageIndex: pageIndex,
+        )).path;
         await TranslatedPageCache.writeLayer(
           label: used.label,
           pageIndex: pageIndex,
@@ -505,9 +464,8 @@ class TranslatedPageBuilder {
           fingerprint: used.fingerprint,
         );
         OcrLog.add(
-          '$page 叠层就绪：${layer.boxes.length} 框，'
-          '${allFilled ? "全部填色（未跑擦字）" : "填色不足，已补擦底图"}，'
-          '底图=${allFilled ? "原图" : "擦字底图"} 档=${used.config.engine.id}',
+          '$page 叠层就绪：${layer.boxes.length} 框，底图=擦字底图（同一次 analyze 里擦的），'
+          '档=${used.config.engine.id}',
         );
         return TranslatedPage(
           path: base,
@@ -517,7 +475,7 @@ class TranslatedPageBuilder {
           truncatedCount: layer.boxes.where((b) => b.truncated).length,
           label: used.label,
           stageEps: result.stageEps,
-          overlayNeedsBase: !allFilled,
+          overlayNeedsBase: true,
           elapsed: clock.elapsed,
         );
       }
@@ -619,7 +577,8 @@ class TranslatedPageBuilder {
       return List<ui.Color?>.filled(blocks.length, null);
     }
     OcrLog.add(
-      '$page ${fills.length} 框全部采到平色底（填色可替代擦字，基准 ${pageWidth}x$pageHeight）',
+      '$page ${fills.length} 框全部采到平色底（填色照样画上，但底仍是擦字底图，'
+      '基准 ${pageWidth}x$pageHeight）',
     );
     return fills;
   }
