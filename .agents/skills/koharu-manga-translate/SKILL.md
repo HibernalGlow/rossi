@@ -96,8 +96,38 @@ C 盘小就用 junction 挪走：`mklink /J C:\Users\30902\AppData\Local\koharu 
    这个字段是 fork 加的（`crates/koharu-renderer/src/config.rs` + `renderer.rs`，默认值与上游等价），
    读的是 `config.toml`、带热重载，**不用改命令行**。实测 32 在全页尺度上仍不出框。
    调参顺序：先 24 → 看是否越框 → 不够再加；越小越贴框、越大越可能压到画面。
-3. **要「允许压出气泡」就设强制字号**：同一段 `[typesetting]` 里写 `font_size = 40` ——
-   设了就**完全关掉自动适配**，所有文字按这个字号渲染，放不下也照放（栅格化那层**不裁切文字**，
-   所以溢出是看得见的）。此时 `min_font_size` 不参与。
+3. **框外小字（旁白/拟声/裸字）要「保证字号」就设强制字号**：同一段 `[typesetting]` 里写 `font_size = 64` ——
+   设了就**关掉自动适配**，按这个字号渲染，放不下也照放（栅格化那层**不裁切文字**，溢出是看得见的）。
+   - **为什么非要这一档**：`text_renderer.rs` 的 `automatic_maximum()` 对**非气泡文字**硬编码返回 `24.0`，
+     而 `minimum = min_font_size.min(maximum)` —— 所以那类字的下限被上限掐死，`min_font_size` 抬到 56/200 都**没有任何效果**（27 页实测两轮，1:1 裁切像素完全一致）。只有 `font_size` 能救。
+   - **为什么不能对气泡也强制**：21 页实测 `font_size = 64` 会把气泡里的字撑到画面上。
+     气泡的自动上限本来就是气泡高度，强制它只会溢出 —— 所以 fork 按 `is_bubble` 分流：
+     **旁白/裸字吃 `font_size`，气泡保留上游的自动适配**（提交 `c615631`）。
+   - 2560 px 宽的页面上 64 ≈ 页宽的 2.5%，是「能读」的量级；上游那个 24 只有 0.9%。
    - `min_font_size` 与 `font_size` 的分工：前者是「仍尽量在框内、只是不许缩到看不清以下」（最坏才溢出）；
-     后者是「不管框，保证字号」（出框是常态）。按页型选。
+     后者是「不管框，保证字号」（出框是常态）。
+
+## 换字体（比如霞鹜文楷屏幕阅读版）
+
+`[typesetting] font_families = ["<家族名>"]` 本身是热重载的，但**能不能命中是另一回事**，两条都会踩：
+
+1. **per-user 装的字体 koharu 永远看不见。** Windows 上 koharu 走 `fontique` 0.11.1，
+   其 `src/backend/dwrite.rs:54` 是 `DWriteSystemFonts::new(false)`，这个 `false` 就是
+   `IDWriteFactory::GetSystemFontCollection` 的 `includeCustomCollections` 参数 ——
+   **写死排除自定义/按用户集合**。所以丢进 `%LOCALAPPDATA%\Microsoft\Windows\Fonts` + 写 `HKCU\...\Fonts` 一律无效，
+   而且失败是**静默回退**到兜底黑体（不是 sans 就是没命中，1:1 裁切看笔画对比即可判定）。
+   能生效的落点是**机器级字体表**，文件不必放 `C:\Windows\Fonts`，指哪都行：
+   ```
+   reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts" /v "LXGW WenKai GB Screen (TrueType)" /t REG_SZ /d "D:\fonts\LXGWWenKaiGBScreen.ttf" /f
+   ```
+   回退：`reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts" /v "LXGW WenKai GB Screen (TrueType)" /f`。
+   改完要**新进程**才读得到（字体集合按进程建立）；SSH 进来的会话在这里是完整管理员令牌，`HKLM` 写得进去。
+2. **别照文件名猜家族名。** 用 GDI 读一次内嵌名再决定配置里写什么：
+   `PrivateFontCollection.AddFontFile(...)` → `Families[0].Name`。
+   `LXGWWenKaiGBScreen.ttf` 的 name ID 1 其实是中文「霞鹜文楷 GB 屏幕阅读版」；
+   fontique 会把 `GetFamilyNames()` 的**全部本地化名**注册成别名（`dwrite.rs:56-64`），
+   所以中英文名都能命中。控制台是 GBK，中文家族名打出来是乱码，别被误导。
+3. **别指望它自带。** koharu 的字体档是运行时从 HF dataset `mayocream/fonts` 拉的 `index.json`
+   （本机在 `%LOCALAPPDATA%\koharu` 的 junction 目标下），实测 640 个家族里**没有 LXGW / 霞鹜文楷**，
+   楷体系只有 Adobe 楷体 Std、方正楷体_GBK、華康正顏楷體 这些。要走它自己的下载链路就得换个家族名。
+
