@@ -1603,6 +1603,12 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '每个目录各自记住视图、排序与筛选；关闭后浏览照常，只是不再记忆'
 	String get fileManagerRememberViewStateSubtitle => '每个目录各自记住视图、排序与筛选；关闭后浏览照常，只是不再记忆';
 
+	/// zh-CN: '封面网格完整显示文件名'
+	String get fileManagerWrapGridTitle => '封面网格完整显示文件名';
+
+	/// zh-CN: '允许文件名换行完整展示，避免被省略号截断（开启后封面将自适应高度）'
+	String get fileManagerWrapGridTitleSubtitle => '允许文件名换行完整展示，避免被省略号截断（开启后封面将自适应高度）';
+
 	/// zh-CN: '搜索'
 	String get fileManagerSectionSearch => '搜索';
 
@@ -4204,11 +4210,11 @@ class Translations$ocr$zh_CN {
 	/// zh-CN: '烘焙成图（会压掉这一页的超分）'
 	String get displayBaked => '烘焙成图（会压掉这一页的超分）';
 
-	/// zh-CN: '叠层显示（与超分同时生效）'
-	String get displayOverlay => '叠层显示（与超分同时生效）';
+	/// zh-CN: '叠层显示（中文盖在擦字底图上）'
+	String get displayOverlay => '叠层显示（中文盖在擦字底图上）';
 
-	/// zh-CN: '叠层不改底图一个像素：译文盖在画面上，所以超分产物能留着。每框先按气泡轮廓采底色，采不到平色的那一页仍会跑擦字（实测 4.2 s/页）当底。'
-	String get displayOverlayHint => '叠层不改底图一个像素：译文盖在画面上，所以超分产物能留着。每框先按气泡轮廓采底色，采不到平色的那一页仍会跑擦字（实测 4.2 s/页）当底。';
+	/// zh-CN: '叠层只把中文盖在底图上，不改底图像素；但这一页要用擦干净的字底当底图，所以它会替自己占一次增强图轨 —— 这一页的超分为它让路。「每个气泡采到自己的平色就不必擦」那条捷径今天没走过：8 页真页 121 框可填 0 框（数字见 ADR-0018 §4）。'
+	String get displayOverlayHint => '叠层只把中文盖在底图上，不改底图像素；但这一页要用擦干净的字底当底图，所以它会替自己占一次增强图轨 —— 这一页的超分为它让路。「每个气泡采到自己的平色就不必擦」那条捷径今天没走过：8 页真页 121 框可填 0 框（数字见 ADR-0018 §4）。';
 
 	/// zh-CN: '模型权重'
 	String get modelSection => '模型权重';
@@ -6841,6 +6847,8 @@ extension on Translations {
 			'settings.fileManagerSectionView' => '浏览视图',
 			'settings.fileManagerRememberViewState' => '记住每个目录的视图与排序',
 			'settings.fileManagerRememberViewStateSubtitle' => '每个目录各自记住视图、排序与筛选；关闭后浏览照常，只是不再记忆',
+			'settings.fileManagerWrapGridTitle' => '封面网格完整显示文件名',
+			'settings.fileManagerWrapGridTitleSubtitle' => '允许文件名换行完整展示，避免被省略号截断（开启后封面将自适应高度）',
 			'settings.fileManagerSectionSearch' => '搜索',
 			'settings.fileManagerSearchSubfoldersDefault' => '默认连子目录一起搜',
 			'settings.fileManagerSearchSubfoldersDefaultSubtitle' => '新建页签起手就开着「含子目录」。整库遍历在慢盘上实测要几十秒，所以默认只搜当前这一层；开着这条就不必每次去点那颗开关',
@@ -6856,10 +6864,10 @@ extension on Translations {
 			'settings.shellIntegrationContextMenuSubtitle' => '写当前用户的注册表（HKCU），不需要管理员权限；选中文件、选中文件夹、文件夹空白处三处都会出现。应用已经在运行时暂时不会把新目录递进来，要先开一个新 Rossi 窗口。',
 			'settings.shellIntegrationRegistered' => '已加入右键菜单',
 			'settings.shellIntegrationUnregistered' => '已从右键菜单移除',
-			'settings.shellIntegrationStalePath' => '菜单项指向的已经不是当前这个 Rossi，关掉再打开一次即可修正',
-			'settings.shellIntegrationRepair' => '修正指向',
 			_ => null,
 		} ?? switch (path) {
+			'settings.shellIntegrationStalePath' => '菜单项指向的已经不是当前这个 Rossi，关掉再打开一次即可修正',
+			'settings.shellIntegrationRepair' => '修正指向',
 			'settings.shellIntegrationMacHint' => 'macOS 的「打开方式 → Rossi」由应用包声明的文档类型决定，一直可用、没有开关；这颗开关只管 Windows。',
 			'settings.openIntentMissing' => ({required Object path}) => '这个路径已经不在了：${path}',
 			'settings.openIntentMultiSkipped' => ({required Object count}) => '一次只打开第一项，其余 ${count} 项已忽略',
@@ -7368,12 +7376,12 @@ extension on Translations {
 			'reader.showInStatusBar' => '显示在状态栏',
 			'reader.showInStatusBarSubtitle' => '开启后，顶部信息条会进入系统状态栏区域',
 			'reader.edgePadding' => '边缘间距',
+			_ => null,
+		} ?? switch (path) {
 			'reader.infoBarStyle' => '信息条样式',
 			'reader.backgroundOpacity' => '背景透明度',
 			'reader.fontSize' => '字体大小',
 			'reader.allHiddenNotice' => '当前已全部关闭，阅读页中的信息条会完全隐藏。',
-			_ => null,
-		} ?? switch (path) {
 			'reader.edgePaddingDisabled' => '横向在中间时，边缘间距不会生效。',
 			'reader.bottomProgressBar' => '底部进度条',
 			'reader.bottomProgressBarSubtitle' => '在画面底边画一条常驻细条表示翻页进度。它不随上下栏收起，与左下角信息条各开各的、互不影响',
@@ -7679,8 +7687,8 @@ extension on Translations {
 			'ocr.displayChoice' => '显示方式',
 			'ocr.displayChoiceSubtitle' => '换档只影响之后按「译」的页；已经生成的那一页要重按一次，才会按新档重做（一页十几秒）。',
 			'ocr.displayBaked' => '烘焙成图（会压掉这一页的超分）',
-			'ocr.displayOverlay' => '叠层显示（与超分同时生效）',
-			'ocr.displayOverlayHint' => '叠层不改底图一个像素：译文盖在画面上，所以超分产物能留着。每框先按气泡轮廓采底色，采不到平色的那一页仍会跑擦字（实测 4.2 s/页）当底。',
+			'ocr.displayOverlay' => '叠层显示（中文盖在擦字底图上）',
+			'ocr.displayOverlayHint' => '叠层只把中文盖在底图上，不改底图像素；但这一页要用擦干净的字底当底图，所以它会替自己占一次增强图轨 —— 这一页的超分为它让路。「每个气泡采到自己的平色就不必擦」那条捷径今天没走过：8 页真页 121 框可填 0 框（数字见 ADR-0018 §4）。',
 			'ocr.modelSection' => '模型权重',
 			'ocr.weightsReady' => ({required Object count}) => '权重已就绪（${count} 个文件）',
 			'ocr.weightsMissing' => ({required Object missing}) => '缺少：${missing}',
@@ -7882,19 +7890,17 @@ extension on Translations {
 			'search.excludeSearchTitle' => '排除搜索（不要某类）',
 			'search.excludeSearchExample' => '全彩(空格)-人妻',
 			'search.excludeSearchDesc' => '显示"全彩"但排除含"人妻"的结果',
+			_ => null,
+		} ?? switch (path) {
 			'search.fuzzySearchTitle' => '模糊搜索（包含任一）',
 			'search.fuzzySearchExample' => '全彩(空格)人妻',
 			'search.fuzzySearchDesc' => '显示包含任意一个关键词的结果',
 			'search.selectCategory' => '选择分类',
-			_ => null,
-		} ?? switch (path) {
 			'search.dataSource' => '数据来源',
 			'search.sortBy' => '排序方式',
 			'search.newestToOldest' => '从新到旧',
 			'search.oldestToNewest' => '从旧到新',
 			'search.mostLikes' => '最多点赞',
-			_ => null,
-		} ?? switch (path) {
 			'search.mostViews' => '最多观看',
 			'search.selectSourceTooltip' => '选择漫画源',
 			'search.hasResults' => '有结果',
