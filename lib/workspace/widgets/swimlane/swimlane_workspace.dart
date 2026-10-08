@@ -12,6 +12,7 @@ import 'package:zephyr/workspace/model/workspace_lane_focus.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
 import 'package:zephyr/workspace/model/workspace_panel_bar.dart';
+import 'package:zephyr/workspace/model/workspace_pointer_mode.dart';
 import 'package:zephyr/workspace/model/workspace_reveal_zones.dart';
 import 'package:zephyr/workspace/model/workspace_strip_metrics.dart';
 import 'package:zephyr/workspace/widgets/lane_resizer.dart';
@@ -512,8 +513,14 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
               soloLaneId: state.effectiveSoloLaneId,
               // 轨只给「不是当前激活」的那几条 —— 激活哪条，哪条就展开。
               activeLaneId: state.activeLaneId,
+              // 触摸屏上这条切换轨是左右泳道**唯一**的把手：Reader 独占时其余两条
+              // 被推出视口，而把它们推回来的那两种桌面办法在这边都不成立 ——
+              // 边缘悬停驻留要 `PointerHoverEvent`（永不触发），横扫条带会被阅读器
+              // 的翻页拖吃掉。所以这里按「有没有指针」把轨给出来，而不是去改
+              // `showLaneNavigatorInSolo` 的存值：那是用户在设置里定的偏好，
+              // 与 `WorkspaceTopChromeMode` 同一个口径（形态随设备走，偏好不动）。
               showLaneNavigatorInSolo:
-                  state.interaction.showLaneNavigatorInSolo,
+                  state.interaction.showLaneNavigatorInSolo || !hasHoverPointer,
             );
             final geometry = WorkspaceLaneFocusGeometry.fromMetrics(metrics);
             _geometry = geometry;
