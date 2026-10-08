@@ -21,7 +21,8 @@ import 'package:zephyr/widgets/toast.dart';
 /// # 「译」的字是怎么上屏的（两档，芯片要说得清是哪一档）
 /// 烘焙：擦字 + 画字烤成一张 PNG，注进呈现器的增强图轨 —— 它占掉这一页唯一的像素，
 /// 所以超分为它让路。叠层：底图照旧（原图或超分产物），中文由 `TranslatedPageOverlay`
-/// 盖在上面，不占轨，于是译文与超分同时生效。
+/// 盖在底图上，不是烤进像素的。（占不换轨由控制器的 overlayNeedsBase 决定：今天恒占，
+/// 因为底必须是擦干净的字底 —— 量数见 ADR-0018 §4。）
 /// 哪一档生效由 `TranslatedPageDisplayMode` 决定，而**这一页实际走的是哪一档**问控制器
 /// （`overlayLabelFor`）—— 判据见 [translatedPageDisplayOf]。
 ///
