@@ -11,6 +11,7 @@ import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage(name: 'PluginCommentsScaffoldRoute')
 class PluginCommentsScaffold extends StatefulWidget {
@@ -74,7 +75,7 @@ class _PluginCommentsScaffoldState extends State<PluginCommentsScaffold> {
                       onPressed: state.posting
                           ? null
                           : () => _postComicComment(cubit),
-                      child: const Icon(Icons.comment),
+                      child: const GlyphIcon(AppGlyphs.comment),
                     )
                   : null,
             );
@@ -137,7 +138,7 @@ class _PluginCommentsScaffoldState extends State<PluginCommentsScaffold> {
               child: Center(
                 child: FilledButton.tonalIcon(
                   onPressed: cubit.loadMore,
-                  icon: const Icon(Icons.expand_more_rounded),
+                  icon: const GlyphIcon(AppGlyphs.chevronDown),
                   label: Text(t.comments.loadMore),
                 ),
               ),
@@ -271,8 +272,8 @@ class _PluginCommentsScaffoldState extends State<PluginCommentsScaffold> {
                                 horizontal: 4,
                                 vertical: 2,
                               ),
-                              child: Icon(
-                                Icons.reply_rounded,
+                              child: GlyphIcon(
+                                AppGlyphs.reply,
                                 size: 18,
                                 color: colorScheme.onSurfaceVariant,
                               ),
@@ -345,7 +346,7 @@ class _PluginCommentsScaffoldState extends State<PluginCommentsScaffold> {
     if (item.avatarUrl.trim().isEmpty && item.avatarPath.trim().isEmpty) {
       return CircleAvatar(
         radius: size / 2,
-        child: Icon(Icons.person, size: size * 0.6),
+        child: GlyphIcon(AppGlyphs.touch, size: size * 0.6),
       );
     }
     return ClipOval(

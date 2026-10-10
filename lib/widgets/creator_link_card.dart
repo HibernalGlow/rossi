@@ -10,6 +10,7 @@ import 'package:zephyr/widgets/image_sleep.dart';
 import 'package:zephyr/widgets/picture_bloc/bloc/picture_bloc.dart';
 import 'package:zephyr/widgets/picture_bloc/models/picture_info.dart';
 import 'package:zephyr/type/enum.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class CreatorLinkCard extends StatelessWidget {
   const CreatorLinkCard({
@@ -167,7 +168,7 @@ class _CreatorAvatarImage extends StatelessWidget {
                     onTap: () {
                       context.read<PictureBloc>().add(GetPicture(pictureInfo));
                     },
-                    child: const Icon(Icons.refresh),
+                    child: const GlyphIcon(AppGlyphs.refresh),
                   );
               }
             },

@@ -11,6 +11,7 @@ import 'package:zephyr/network/utils/github_proxy.dart';
 import 'package:zephyr/service/update/json/github_release_json.dart';
 import 'package:zephyr/util/error_filter.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 const _proxyReleasesApiUrl = '$breezeGithubApi/repos/deretame/Breeze/releases';
 const _githubReleasesApiUrl =
@@ -184,7 +185,7 @@ class _ChangelogPageState extends State<ChangelogPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.wifi_off_rounded, size: 64, color: colorScheme.error),
+            GlyphIcon(AppGlyphs.wifiOff, size: 64, color: colorScheme.error),
             const SizedBox(height: 16),
             Text(
               t.changelog.checkNetwork,
@@ -332,7 +333,7 @@ class _ReleaseCard extends StatelessWidget {
               Tooltip(
                 message: t.changelog.viewInBrowser,
                 child: IconButton(
-                  icon: const Icon(Icons.open_in_new_rounded, size: 20),
+                  icon: const GlyphIcon(AppGlyphs.openExternal, size: 20),
                   color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                   visualDensity: VisualDensity.compact,
                   onPressed: () => onLinkTap(release.htmlUrl),
@@ -401,8 +402,8 @@ class _ReleaseCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(
-                          Icons.attach_file_rounded,
+                        GlyphIcon(
+                          AppGlyphs.attach,
                           size: 16,
                           color: colorScheme.primary,
                         ),
@@ -423,8 +424,8 @@ class _ReleaseCard extends StatelessWidget {
                       children: release.assets.map((asset) {
                         return ActionChip(
                           visualDensity: VisualDensity.compact,
-                          avatar: Icon(
-                            Icons.download_rounded,
+                          avatar: GlyphIcon(
+                            AppGlyphs.download,
                             size: 14,
                             color: colorScheme.onSecondaryContainer,
                           ),
