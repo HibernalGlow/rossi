@@ -146,7 +146,7 @@ FTS5 语义可用已实测（真实中文名 + bigram 切分：`MATCH '星空'` 
 |---|---|---|---|---|---|
 | **G-30** | **文件操作：删除（回收站/永久）、复制、移动、重命名、新建** | `delete_worker.rs`（1100）+ `cut_clipboard.rs`（2191）+ `shell_file_ops.rs`（166） | 顶部 `use` 只有 `std`，**函数体内分别有 11 / 21 / 14 处 Windows API**（`IFileOperation`、`hwnd: Option<isize>`） | `trash` crate（macOS `NSFileManager` / Linux `gio trash` / Windows `IFileOperation`）+ 纯 `std::fs` 逐项结果报告，**外面套 G-03 的事务壳** —— **前半已落地（ADR-0017，§4.3.1）；「套 G-03」那一半仍未做** | **A** |
 | **G-31** | **目录监听（外部变化自动刷新）** | 上游用 `notify` crate | Walter 用法散在 `app.rs` 里 | `notify`（MIT/Apache-2.0，跨平台 inotify / FSEvents / ReadDirectoryChangesW） | **A** |
-| G-32 | 用其他程序打开 / 在文件管理器中显示 | `open_with.rs`（1267）+ `explorer_integration.rs`（260） | Windows Shell API | `opener` crate 或各平台 API（`open` / `xdg-open` / `explorer /select`） | B |
+| G-32 | 用其他程序打开 / 在文件管理器中显示（**后一半已落地** 2026-10-09：右键「在访达/资源管理器中显示」，见 M-13；前一半仍缺） | `open_with.rs`（1267）+ `explorer_integration.rs`（260） | Windows Shell API | 未用 `opener` crate，走各平台命令（`open -R` / `explorer /select,` / `xdg-open`） | B |
 | G-33 | 文件拖入 / 拖出 | `file_drag.rs`（504） | `IDataObject` + `SHDoDragDrop` | 只在 Flutter 内做应用内拖拽（卡片之间 / 面板之间），**不做平台原生拖出** | C |
 | G-34 | 单实例（第二次启动唤起已有窗口） | `single_instance.rs`（922） | Windows 命名互斥 + 消息泵 | 锁文件 / 本地 socket（Dart 侧已有 `window_manager` 基建） | C |
 | G-35 | 截图 | `capture.rs`（1212） | Windows 抓窗口/DComp | Flutter `RepaintBoundary` + 平台文件选择 | C |
