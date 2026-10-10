@@ -214,8 +214,9 @@ class RayMenuLayout {
   }) {
     for (final slot in slots) {
       if (slot.ring >= (visibleRings ?? ringCount)) break;
-      if ((slot.selectable || includeEmpty) && slot.path.contains(offset))
+      if ((slot.selectable || includeEmpty) && slot.path.contains(offset)) {
         return slot;
+      }
     }
     return null;
   }
