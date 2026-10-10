@@ -252,9 +252,7 @@ impl HttpClient {
                         "下载停滞：{} ms 没收到新字节（已收 {} 字节{}）",
                         idle.as_millis(),
                         received,
-                        total
-                            .map(|t| format!(" / 共 {t}"))
-                            .unwrap_or_default(),
+                        total.map(|t| format!(" / 共 {t}")).unwrap_or_default(),
                     ));
                 }
             };
@@ -275,9 +273,7 @@ impl HttpClient {
                     // 不把 source 带出来的话，用户分不清该去查网络、查代理还是查源站。
                     return Err(anyhow!(
                         "read download stream failed: {e}{}",
-                        e.source()
-                            .map(|s| format!("（{s}）"))
-                            .unwrap_or_default()
+                        e.source().map(|s| format!("（{s}）")).unwrap_or_default()
                     ));
                 }
             }
