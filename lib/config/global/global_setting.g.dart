@@ -65,6 +65,7 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
   comicInfoInlineReadButton: json['comicInfoInlineReadButton'] as bool? ?? true,
   comicInfoRailLiquidGlass: json['comicInfoRailLiquidGlass'] as bool? ?? true,
   startWithWorkspace: json['startWithWorkspace'] as bool? ?? false,
+  workspaceSleepCoveredUi: json['workspaceSleepCoveredUi'] as bool? ?? true,
   transparentDesktopTitleBar:
       json['transparentDesktopTitleBar'] as bool? ?? false,
   transparentTitleBarFused: json['transparentTitleBarFused'] as bool? ?? false,
@@ -207,6 +208,7 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'comicInfoInlineReadButton': instance.comicInfoInlineReadButton,
       'comicInfoRailLiquidGlass': instance.comicInfoRailLiquidGlass,
       'startWithWorkspace': instance.startWithWorkspace,
+      'workspaceSleepCoveredUi': instance.workspaceSleepCoveredUi,
       'transparentDesktopTitleBar': instance.transparentDesktopTitleBar,
       'transparentTitleBarFused': instance.transparentTitleBarFused,
       'searchHistory': instance.searchHistory.map((e) => e.toJson()).toList(),
