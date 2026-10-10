@@ -13,6 +13,7 @@ import 'package:zephyr/workspace/model/workspace_pointer_mode.dart';
 import 'package:zephyr/workspace/model/workspace_reveal_zones.dart';
 import 'package:zephyr/workspace/model/workspace_startup.dart';
 import 'package:zephyr/workspace/service/workspace_layout_bridge.dart';
+import 'package:zephyr/icons/icons.dart';
 
 // 悬停唤出区：卡片、可拖拽画布编辑器、四个编辑量与画布 CustomPainter。
 part 'parts/workspace_layout_reveal_zone_part.dart';
@@ -86,7 +87,7 @@ class _WorkspaceLayoutSettingPageState
                 settingSectionTitle(
                   context,
                   t.settings.laneAndLayout,
-                  icon: Icons.view_column_outlined,
+                  icon: AppGlyphs.columnsThree,
                 ),
                 // 手机端没有那颗侧栏按钮 —— `hasWorkspaceEntry` 回答的是
                 // 「四边栏布局的 trailing 上有没有按钮」，那边真正的入口就在这一页。
@@ -94,7 +95,7 @@ class _WorkspaceLayoutSettingPageState
                 // 文案不补 i18n 词条（与导航栏上那颗工作台的 tooltip 同一口径）。
                 if (!hasWorkspaceEntry(context)) ...[
                   settingCategoryTile(
-                    icon: Icons.dashboard_customize_outlined,
+                    icon: AppGlyphs.gridPlus,
                     title: '进入工作台',
                     subtitle: '按下面选好的呈现打开；退出用系统返回键',
                     onTap: () => context.pushRoute(BreezeWorkspaceRoute()),
@@ -155,7 +156,7 @@ class _StartupViewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return SettingSectionCard(
       title: t.settings.defaultStartupView,
-      icon: Icons.tab_outlined,
+      icon: AppGlyphs.layoutTabs,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
@@ -169,12 +170,12 @@ class _StartupViewCard extends StatelessWidget {
                   _Segment(
                     WorkspaceMode.edges,
                     t.settings.startupViewEdges,
-                    Icons.vertical_align_center,
+                    AppGlyphs.alignVerticalCenter,
                   ),
                   _Segment(
                     WorkspaceMode.swimlane,
                     t.settings.startupViewSwimlane,
-                    Icons.view_column,
+                    AppGlyphs.columnsThree,
                   ),
                 ],
               ),
@@ -207,14 +208,14 @@ class _FocusAndSoloCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return SettingSectionCard(
       title: t.settings.laneFocusSolo,
-      icon: Icons.center_focus_strong_outlined,
+      icon: AppGlyphs.target,
       children: [
         ListTile(
           title: Text(t.settings.laneFocusSoloSubtitle),
           subtitle: Text(t.settings.delayRangeHint),
         ),
         SwitchListTile(
-          secondary: const Icon(Icons.arrow_forward_rounded),
+          secondary: const GlyphIcon(AppGlyphs.arrowForward),
           title: Text(t.settings.autoFocusReaderOnOpen),
           subtitle: Text(t.settings.autoFocusReaderOnOpenSubtitle),
           thumbIcon: kSettingSwitchThumbIcon,
@@ -223,7 +224,7 @@ class _FocusAndSoloCard extends StatelessWidget {
               _patch((c) => c.copyWith(autoFocusReaderOnOpen: value)),
         ),
         SwitchListTile(
-          secondary: const Icon(Icons.filter_center_focus_outlined),
+          secondary: const GlyphIcon(AppGlyphs.locate),
           title: Text(t.settings.readerSoloOnFocus),
           subtitle: Text(t.settings.readerSoloOnFocusSubtitle),
           thumbIcon: kSettingSwitchThumbIcon,
@@ -232,7 +233,7 @@ class _FocusAndSoloCard extends StatelessWidget {
               _patch((c) => c.copyWith(autoSoloOnFocus: value)),
         ),
         SwitchListTile(
-          secondary: const Icon(Icons.view_kanban_outlined),
+          secondary: const GlyphIcon(AppGlyphs.columnsThree),
           title: Text(t.settings.showLaneNavigatorInSolo),
           subtitle: Text(t.settings.showLaneNavigatorInSoloSubtitle),
           thumbIcon: kSettingSwitchThumbIcon,
@@ -241,7 +242,7 @@ class _FocusAndSoloCard extends StatelessWidget {
               _patch((c) => c.copyWith(showLaneNavigatorInSolo: value)),
         ),
         SwitchListTile(
-          secondary: const Icon(Icons.swipe),
+          secondary: const GlyphIcon(AppGlyphs.gesture),
           title: Text(t.settings.manualScrollEnabled),
           subtitle: Text(t.settings.manualScrollEnabledSubtitle),
           thumbIcon: kSettingSwitchThumbIcon,
@@ -250,7 +251,7 @@ class _FocusAndSoloCard extends StatelessWidget {
               _patch((c) => c.copyWith(manualScrollEnabled: value)),
         ),
         SwitchListTile(
-          secondary: const Icon(Icons.lock_outline),
+          secondary: const GlyphIcon(AppGlyphs.lock),
           title: Text(t.settings.blockManualScrollInReaderFullscreen),
           subtitle: Text(
             t.settings.blockManualScrollInReaderFullscreenSubtitle,
@@ -261,8 +262,24 @@ class _FocusAndSoloCard extends StatelessWidget {
             (c) => c.copyWith(blockManualScrollInReaderFullscreen: value),
           ),
         ),
+        // 面板页签条的两种手势模式。放在这一段是因为它问的也是
+        // 「工作台上手怎么分」而不是「某条泳道长什么样」——
+        // 与上面那几颗（开书要不要跟过去、独占要不要自动、手动滚动）同类。
+        //
+        // 与页签条**右键把手那个菜单**里的是同一颗（同一份
+        // `interaction.panelTabSortMode`）：栏头挂进栏头时把手不画，那边够不着，
+        // 所以设置页这一条不能省。
+        SwitchListTile(
+          secondary: const GlyphIcon(AppGlyphs.sort),
+          title: Text(t.settings.panelTabSortMode),
+          subtitle: Text(t.settings.panelTabSortModeSubtitle),
+          thumbIcon: kSettingSwitchThumbIcon,
+          value: interaction.panelTabSortMode,
+          onChanged: (value) =>
+              _patch((c) => c.copyWith(panelTabSortMode: value)),
+        ),
         _DelayTile(
-          icon: Icons.speed_outlined,
+          icon: AppGlyphs.speed,
           title: t.settings.edgeRevealDelay,
           value: interaction.edgeRevealDelayMs,
           min: 100,
@@ -271,7 +288,7 @@ class _FocusAndSoloCard extends StatelessWidget {
               _patch((c) => c.copyWith(edgeRevealDelayMs: value)),
         ),
         SwitchListTile(
-          secondary: const Icon(Icons.center_focus_weak_outlined),
+          secondary: const GlyphIcon(AppGlyphs.locate),
           title: Text(t.settings.revealFocusesLane),
           subtitle: Text(t.settings.revealFocusesLaneSubtitle),
           thumbIcon: kSettingSwitchThumbIcon,
@@ -280,30 +297,47 @@ class _FocusAndSoloCard extends StatelessWidget {
               _patch((c) => c.copyWith(revealFocusesLane: value)),
         ),
         _DelayTile(
-          icon: Icons.mouse_outlined,
-          title: t.settings.readerHoverFocusDelay,
-          subtitle: t.settings.readerHoverFocusEnable,
+          icon: AppGlyphs.mouse,
+          title: '默认悬停定位延迟',
+          subtitle: '泳道未单独设置延时时使用此值',
           value: interaction.hoverFocusDelayMs,
-          // 下限跟着口径一起降：这一段现在只是「**停住之后**再看多久」，
-          // 「停住」本身由 `WorkspaceDwell.settleMs` 判（60ms，不暴露成旋钮）。
-          // 原来 200 的下限是给「进入即计时」用的，那时它还得兼任挡住路过。
           min: 60,
           max: 5000,
-          enabled: interaction.hoverFocusEnabled,
-          switchValue: interaction.hoverFocusEnabled,
-          onSwitchChanged: (value) =>
-              _patch((c) => c.copyWith(hoverFocusEnabled: value)),
           onChanged: (value) =>
               _patch((c) => c.copyWith(hoverFocusDelayMs: value)),
         ),
+      ],
+    );
+  }
+}
+
+// ── 泳道栏头 ──────────────────────────────────────────────────────────────
+
+/// 栏头这一行的**显示**项（不涉及交互时机，所以与「焦点与独占」那张卡分开）。
+///
+/// 目前只有一颗：宽度徽标。它默认关 —— 栏头那点预算本来就紧，而徽标是让位顺序里
+/// 最先走的（见 `SwimlaneColumn._fitHeader`），默认画它等于「有时有、有时没有」。
+class _LaneHeaderCard extends StatelessWidget {
+  const _LaneHeaderCard({required this.interaction, required this.onChanged});
+
+  final WorkspaceInteractionSettings interaction;
+  final ValueChanged<WorkspaceInteractionSettings> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SettingSectionCard(
+      title: t.settings.laneHeaderChrome,
+      icon: AppGlyphs.resize,
+      children: [
+        ListTile(title: Text(t.settings.laneHeaderChromeSubtitle)),
         SwitchListTile(
-          secondary: const Icon(Icons.view_sidebar_outlined),
-          title: Text(t.settings.panelLaneHoverFocus),
-          subtitle: Text(t.settings.panelLaneHoverFocusSubtitle),
+          secondary: const GlyphIcon(AppGlyphs.resize),
+          title: Text(t.settings.showLaneWidthBadge),
+          subtitle: Text(t.settings.showLaneWidthBadgeSubtitle),
           thumbIcon: kSettingSwitchThumbIcon,
-          value: interaction.panelHoverFocusEnabled,
+          value: interaction.showLaneWidthBadge,
           onChanged: (value) =>
-              _patch((c) => c.copyWith(panelHoverFocusEnabled: value)),
+              onChanged(interaction.copyWith(showLaneWidthBadge: value)),
         ),
       ],
     );
@@ -317,7 +351,7 @@ class _Segment<T> {
 
   final T value;
   final String label;
-  final IconData? icon;
+  final Glyph? icon;
 
   /// 色点：唤出区的四条边靠它把「chip」和「画布上那块颜色」对起来。
   final Color? dot;
@@ -382,7 +416,7 @@ class _SegmentedPicker<T> extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                     ] else if (entry.icon != null) ...[
-                      Icon(entry.icon, size: 15),
+                      GlyphIcon(entry.icon!, size: 15),
                       const SizedBox(width: 6),
                     ],
                     Text(entry.label, style: const TextStyle(fontSize: 13)),
