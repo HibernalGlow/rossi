@@ -17,6 +17,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/error_view.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class ComicFollowPage extends StatefulWidget {
@@ -89,8 +90,8 @@ class _ComicFollowPageContent extends StatelessWidget {
                 color: scheme.primaryContainer,
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Icons.notifications_none_outlined,
+              child: GlyphIcon(
+                AppGlyphs.bell,
                 size: 44,
                 color: scheme.onPrimaryContainer,
               ),
@@ -147,8 +148,8 @@ class _ComicFollowPageContent extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.check_circle_outline,
+          GlyphIcon(
+            AppGlyphs.checkCircle,
             size: 56,
             color: scheme.outlineVariant,
           ),
@@ -201,10 +202,10 @@ class _SummaryBar extends StatelessWidget {
                   : scheme.surfaceContainerHighest,
               shape: BoxShape.circle,
             ),
-            child: Icon(
+            child: GlyphIcon(
               unread > 0
-                  ? Icons.notifications_active_outlined
-                  : Icons.notifications_none_outlined,
+                  ? AppGlyphs.bell
+                  : AppGlyphs.bell,
               size: 20,
               color: unread > 0 ? scheme.onPrimary : scheme.onSurfaceVariant,
             ),
@@ -239,7 +240,7 @@ class _SummaryBar extends StatelessWidget {
           if (!state.isCheckingUpdates && unread > 0)
             IconButton(
               tooltip: t.comicFollow.markAllReadHint,
-              icon: const Icon(Icons.done_all_outlined),
+              icon: const GlyphIcon(AppGlyphs.checkDouble),
               onPressed: () async {
                 await context.read<ComicFollowCubit>().markAllAsRead();
                 if (context.mounted) {
@@ -260,7 +261,7 @@ class _SummaryBar extends StatelessWidget {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.refresh),
+                : const GlyphIcon(AppGlyphs.refresh),
           ),
         ],
       ),
@@ -338,7 +339,7 @@ class _FilterRow extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 4),
-                  const Icon(Icons.sort, size: 18),
+                  const GlyphIcon(AppGlyphs.sort, size: 18),
                 ],
               ),
             ),
@@ -437,7 +438,7 @@ class _FollowCard extends StatelessWidget {
           color: scheme.errorContainer,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Icon(Icons.delete_outline, color: scheme.onErrorContainer),
+        child: GlyphIcon(AppGlyphs.delete, color: scheme.onErrorContainer),
       ),
       confirmDismiss: (_) => _askUnfollow(context),
       onDismissed: (_) => _removeFollow(context),
@@ -577,7 +578,7 @@ class _FollowCard extends StatelessWidget {
         }
         return Row(
           children: [
-            Icon(Icons.source_outlined, size: 13, color: scheme.outline),
+            GlyphIcon(AppGlyphs.globe, size: 13, color: scheme.outline),
             const SizedBox(width: 4),
             Expanded(
               child: Text(
@@ -645,7 +646,7 @@ class _FollowCard extends StatelessWidget {
         onTap: () => _retry(context),
         child: Row(
           children: [
-            Icon(Icons.error_outline, size: 14, color: scheme.error),
+            GlyphIcon(AppGlyphs.error, size: 14, color: scheme.error),
             const SizedBox(width: 4),
             Expanded(
               child: Text(
@@ -671,10 +672,10 @@ class _FollowCard extends StatelessWidget {
           );
     return Row(
       children: [
-        Icon(
+        GlyphIcon(
           hasUnreadUpdate
-              ? Icons.fiber_new_outlined
-              : Icons.check_circle_outline,
+              ? AppGlyphs.sparkle
+              : AppGlyphs.checkCircle,
           size: 14,
           color: hasUnreadUpdate ? scheme.primary : scheme.outline,
         ),
@@ -704,7 +705,7 @@ class _FollowCard extends StatelessWidget {
         : t.comicFollow.lastReadChapter(chapter: chapter);
     return Row(
       children: [
-        Icon(Icons.history_outlined, size: 14, color: scheme.outline),
+        GlyphIcon(AppGlyphs.history, size: 14, color: scheme.outline),
         const SizedBox(width: 4),
         Expanded(
           child: Text(
@@ -879,7 +880,7 @@ class _RetryChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.refresh, size: 13, color: scheme.onErrorContainer),
+            GlyphIcon(AppGlyphs.refresh, size: 13, color: scheme.onErrorContainer),
             const SizedBox(width: 2),
             Text(
               t.comicFollow.retry,
