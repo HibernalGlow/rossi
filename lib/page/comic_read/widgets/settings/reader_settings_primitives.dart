@@ -38,7 +38,7 @@ class SettingsSection extends StatelessWidget {
           child: Row(
             children: [
               if (icon != null) ...[
-                GlyphIcon(icon, size: 16, color: colorScheme.primary),
+                GlyphIcon(icon!, size: 16, color: colorScheme.primary),
                 const SizedBox(width: 6),
               ],
               Text(
