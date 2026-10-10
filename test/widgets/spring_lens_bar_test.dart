@@ -1,0 +1,413 @@
+// 按钮按压形变（`ElasticPress` / `ElasticButton`）与 tab 栏切换（`SpringLensBar`）
+// 的 widget 判据。
+//
+// # 判据钉的是什么
+//
+// 钉**几何与结构**，不钉「动效好不好看」—— 弹簧的手感没有数值判据
+// （同 `navigation_shell_test.dart` 头部那条口径）。具体钉四件事：
+//
+// 1. **lens 落在选中格上**（点击切换后，弹簧静止时那格正中）；
+// 2. **形变只在 paint 层**：按下之后被测按钮的**布局矩形不动**，所以锚在它
+//    上面的 tooltip / popup 不会跟着飘 —— 这是整套交互最容易写坏的一条；
+// 3. **按钮跟手**：按住拖动时 `PressTransform` 的 pull 跟着指针走，松手归零；
+// 4. **`draggable: false` 时不抢手势**（泳道面板页签条那一档的拖排序靠它保住）。
+
+import 'package:material_ui/material_ui.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
+import 'package:zephyr/widgets/spring_lens/spring_lens_bar.dart';
+import 'package:zephyr/widgets/spring_lens/spring_lens_value.dart';
+
+/// 宿主页：一排按钮 + 一个被形变包着的方块。
+Widget _host({
+  required List<String> labels,
+  required int selected,
+  required ValueChanged<int> onSelected,
+  bool draggable = true,
+  List<double>? sizes,
+}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SpringLensBar(
+              tabs: [
+                for (final label in labels)
+                  SpringLensTab(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Text(label),
+                    ),
+                    semanticLabel: label,
+                  ),
+              ],
+              tabSizes: sizes,
+              selectedIndex: selected,
+              onSelected: onSelected,
+              draggable: draggable,
+            ),
+            const SizedBox(height: 40),
+            // 一颗走 `ElasticButton` 的按钮，判据读它被形变包住之后的矩形。
+            ElasticButton(
+              child: IconButton(
+                onPressed: () {},
+                icon: const Icon(Icons.add),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// 重放一遍 painter 内部做的事，算出 lens 真正画在哪。
+///
+/// **不能**直接读 `SpringLensPainter` 上的 `slots`：那是**对齐之前**的原始值。
+/// painter 在 `paint(canvas, size)` 里还会做两件事——`resolvedTo`（补副轴、
+/// 均分档按实长重算）与 `alignedTo`（把内容居中偏移补上）—— 都在外面看不见。
+/// 所以这里照它那两步重放一遍（`alignedTo` 内部就含 `resolvedTo`），
+/// 落点才与真正画出来的那一颗一致。
+Rect _lensRect(WidgetTester tester) {
+  final painters = find.descendant(
+    of: find.byType(SpringLensBar),
+    matching: find.byType(CustomPaint),
+  );
+  // 转型失败说明组件改了画法（例如 lens 不再用 `SpringLensPainter`），
+  // 那时这条判据会立刻报出来，而不是静默比错对象。
+  final painter =
+      tester.widget<CustomPaint>(painters.first).painter!
+          as SpringLensPainter;
+  final size = tester.getSize(painters.first);
+  return lensRect(
+    slots: painter.slots.alignedTo(size)!,
+    position: painter.position,
+    velocity: painter.velocity,
+    lift: painter.lift,
+  );
+}
+
+/// 某一个 tab 文字在**bar 局部坐标系**里的矩形。
+///
+/// 必须换算：lens 是画在 bar 的 `CustomPaint` 上的，它的矩形天然是 bar 局部
+/// 坐标；而 `tester.getRect(find.text(...))` 给的是**屏幕**坐标。两者差一个
+/// bar 的起点 —— 直接比会差出好几十像素（实测 bar 起点 245、tab A 屏幕中心
+/// 275，而它在 bar 局部是 30，正是 lens 的落点）。
+Rect _tabRect(WidgetTester tester, String label) {
+  final bar = tester.getRect(find.byType(SpringLensBar));
+  return tester.getRect(find.text(label)).shift(-bar.topLeft);
+}
+
+/// 均分档下每一格的实际宽度 —— 拖动判据要按它换算位移，否则拖半天也跨不了格。
+double _slotExtent(WidgetTester tester, String first, String second) =>
+    _tabRect(tester, second).center.dx - _tabRect(tester, first).center.dx;
+
+void main() {
+  group('SpringLensBar：点击切换', () {
+    testWidgets('lens 静止后正中落在选中格上', (tester) async {
+      var selected = 0;
+      await tester.pumpWidget(
+        _host(labels: const ['A', 'B', 'C'], selected: 0, onSelected: (i) => selected = i),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
+      // 点第二格。
+      await tester.tap(find.text('B'));
+      await tester.pump();
+      // 弹簧正在飞 —— 此时不该断言落点（动画未结算会污染判据）。
+      await tester.pumpAndSettle();
+
+      expect(selected, 1, reason: '点第二格必须回调 1');
+      // lens 中点应当与第二格的文字中心同 x。
+      final lens = _lensRect(tester);
+      expect(lens.center.dx, closeTo(_tabRect(tester, 'B').center.dx, 1.0));
+    });
+
+    testWidgets('切档后内容跟着换（阳性对照：确实切了，不只是 lens 动了）', (tester) async {
+      var selected = 0;
+      await tester.pumpWidget(
+        _host(labels: const ['A', 'B'], selected: 0, onSelected: (i) => selected = i),
+      );
+      await tester.pumpAndSettle();
+      expect(selected, 0);
+      await tester.tap(find.text('B'));
+      await tester.pumpAndSettle();
+      expect(selected, 1);
+    });
+
+    testWidgets('按内容取宽时 lens 仍落在选中格（不等宽那一档）', (tester) async {
+      var selected = 0;
+      await tester.pumpWidget(
+        _host(
+          labels: const ['短', '长得多得多', '中'],
+          // 三格不等宽：这是 Dock 那份等宽公式会算错的地方。
+          sizes: const [60, 160, 90],
+          selected: 0,
+          onSelected: (i) => selected = i,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('长得多得多'));
+      await tester.pumpAndSettle();
+      expect(selected, 1);
+      final lens = _lensRect(tester);
+      // 用 bar 局部坐标比（`_tabRect` 已换算），见那条注释。
+      final target = _tabRect(tester, '长得多得多');
+      expect(lens.center.dx, closeTo(target.center.dx, 1.0));
+    });
+  });
+
+  group('SpringLensBar：拖动跟手', () {
+    testWidgets('按住横移跨格时逐格选中', (tester) async {
+      final picked = <int>[];
+      await tester.pumpWidget(
+        _host(
+          labels: const ['A', 'B', 'C', 'D'],
+          selected: 0,
+          onSelected: picked.add,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 位移要按**实际格宽**换算：均分档每格是屏宽/4（约 200px），
+      // 按「bar 宽度的百分比」拖会一次跨掉好几格、落点又跳回来。
+      final step = _slotExtent(tester, 'A', 'B');
+      // `startGesture` 要**屏幕**坐标（与 `_tabRect` 的局部坐标差一个 bar 起点）。
+      final barTopLeft = tester.getRect(find.byType(SpringLensBar)).topLeft;
+      final gesture = await tester.startGesture(
+        _tabRect(tester, 'A').center + barTopLeft,
+      );
+      await tester.pump();
+      // 一格一格走过去，最后一步给足 1.0 格确保落进第四格。
+      for (final frac in const [0.9, 0.9, 1.0]) {
+        await gesture.moveBy(Offset(step * frac, 0));
+        await tester.pump();
+      }
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(picked, isNotEmpty, reason: '拖动必须真的换档');
+      expect(picked.last, 3, reason: '拖到第四格就该选中第四格');
+    });
+
+    testWidgets('拖动全程不抛异常，且松手后 lens 落到最终落点', (tester) async {
+      var selected = 0;
+      await tester.pumpWidget(
+        _host(labels: const ['A', 'B', 'C'], selected: 0, onSelected: (i) => selected = i),
+      );
+      await tester.pumpAndSettle();
+      final step = _slotExtent(tester, 'A', 'B');
+      final barTopLeft = tester.getRect(find.byType(SpringLensBar)).topLeft;
+      final gesture = await tester.startGesture(
+        _tabRect(tester, 'A').center + barTopLeft,
+      );
+      for (var i = 0; i < 8; i++) {
+        await gesture.moveBy(Offset(step * 0.12, 0));
+        await tester.pump();
+        expect(tester.takeException(), isNull);
+      }
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      final lens = _lensRect(tester);
+      final target = _tabRect(tester, ['A', 'B', 'C'][selected]);
+      expect(lens.center.dx, closeTo(target.center.dx, 1.0));
+    });
+
+    testWidgets('越过两端不崩，落点夹在合法档内（橡皮筋）', (tester) async {
+      final picked = <int>[];
+      await tester.pumpWidget(
+        _host(labels: const ['A', 'B'], selected: 0, onSelected: picked.add),
+      );
+      await tester.pumpAndSettle();
+      final bar = tester.getRect(find.byType(SpringLensBar));
+      // 故意往左猛拖出轨道。
+      final gesture = await tester.startGesture(
+        Offset(bar.left + 4, bar.center.dy),
+      );
+      for (var i = 0; i < 8; i++) {
+        await gesture.moveBy(const Offset(-30, 0));
+        await tester.pump();
+      }
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(picked, everyElement(inInclusiveRange(0, 1)));
+    });
+  });
+
+  group('手势归属：draggable: false 时不抢', () {
+    testWidgets('关掉拖动跟手后，点击仍然能切档', (tester) async {
+      var selected = 0;
+      await tester.pumpWidget(
+        _host(
+          labels: const ['A', 'B', 'C'],
+          selected: 0,
+          onSelected: (i) => selected = i,
+          draggable: false,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('C'));
+      await tester.pumpAndSettle();
+      expect(selected, 2, reason: '关掉跟手不等于关掉点击');
+    });
+
+    testWidgets('关掉拖动跟手后，横移**不会**触发切档', (tester) async {
+      final picked = <int>[];
+      await tester.pumpWidget(
+        _host(
+          labels: const ['A', 'B', 'C'],
+          selected: 0,
+          onSelected: picked.add,
+          draggable: false,
+        ),
+      );
+      await tester.pumpAndSettle();
+      final bar = tester.getRect(find.byType(SpringLensBar));
+      final gesture = await tester.startGesture(
+        Offset(bar.left + 6, bar.center.dy),
+      );
+      for (var i = 0; i < 8; i++) {
+        await gesture.moveBy(const Offset(20, 0));
+        await tester.pump();
+      }
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(picked, isEmpty, reason: '这一档留给宿主的拖排序，不能被切档抢走');
+    });
+  });
+
+  group('形变只在 paint 层（锚在上面的东西不会飘）', () {
+    testWidgets('按下按钮：布局矩形不动，只有 paint 层在变', (tester) async {
+      await tester.pumpWidget(
+        _host(labels: const ['A'], selected: 0, onSelected: (_) {}),
+      );
+      await tester.pumpAndSettle();
+
+      final button = find.byIcon(Icons.add);
+      final before = tester.getRect(button);
+
+      // 按住那颗按钮并拖动 —— 它应当被拽。
+      final gesture = await tester.startGesture(before.center);
+      await tester.pump();
+      for (var i = 0; i < 5; i++) {
+        await gesture.moveBy(const Offset(4, 4));
+        await tester.pump();
+      }
+      expect(tester.takeException(), isNull);
+
+      // 关键断言：布局矩形**纹丝不动**。
+      final during = tester.getRect(button);
+      expect(during.size, before.size);
+      expect(during.topLeft, before.topLeft);
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      final after = tester.getRect(button);
+      expect(after.topLeft, before.topLeft, reason: '松手弹回后要回到原位');
+    });
+
+    testWidgets('按下再松手：paint 变换确实发生过（阳性对照）', (tester) async {
+      await tester.pumpWidget(
+        _host(labels: const ['A'], selected: 0, onSelected: (_) {}),
+      );
+      await tester.pumpAndSettle();
+
+      final transform = find.descendant(
+        of: find.byType(ElasticButton),
+        matching: find.byType(PressTransform),
+      );
+      expect(transform, findsOneWidget, reason: '按钮必须被 PressTransform 包住');
+
+      final button = tester.getRect(find.byIcon(Icons.add));
+      final gesture = await tester.startGesture(button.center);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+      // 按下时那颗按钮的绘制变换非单位阵（确实在鼓）。
+      // 要 pump 几十毫秒：`SpringLensValue` 的第一帧只启动 ticker，
+      // 立刻读还是0。
+      final pressed = tester.widget<PressTransform>(transform);
+      expect(pressed.lift, greaterThan(0), reason: '按下要鼓');
+      expect(tester.takeException(), isNull);
+
+      // 拖动后 pull 跟着指针走。
+      await gesture.moveBy(const Offset(5, 0));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+      final dragged = tester.widget<PressTransform>(transform);
+      expect(dragged.pull.dx, greaterThan(0), reason: '要跟手：往右拖就该被往右拽');
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+      final released = tester.widget<PressTransform>(transform);
+      expect(released.lift, 0, reason: '松手弹回');
+      expect(released.pull, Offset.zero);
+    });
+
+    testWidgets('禁用态按钮不形变（按一颗按不了的按钮不该鼓）', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: ElasticButton(
+                enabled: false,
+                child: IconButton(onPressed: null, icon: const Icon(Icons.add)),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final transform = find.byType(PressTransform);
+      final before = tester.widget<PressTransform>(transform);
+      expect(before.lift, 0);
+
+      final gesture = await tester.startGesture(
+        tester.getRect(find.byIcon(Icons.add)).center,
+      );
+      await tester.pump();
+      expect(tester.widget<PressTransform>(transform).lift, 0);
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('阳性对照：这个判据本身不是空转的', () {
+    testWidgets('三格都在树上，且都能点到', (tester) async {
+      await tester.pumpWidget(
+        _host(labels: const ['A', 'B', 'C'], selected: 0, onSelected: (_) {}),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('A'), findsOneWidget);
+      expect(find.text('B'), findsOneWidget);
+      expect(find.text('C'), findsOneWidget);
+      // 断言「没变」是空转，必须配一条「真发生」的：这里验 lens 真的挂上了
+      // painter（lens 是画出来的，不是 `DecoratedBox` —— 换画法就会红）。
+      expect(find.byType(CustomPaint), findsWidgets);
+      expect(_lensRect(tester).width, greaterThan(0));
+    });
+
+    testWidgets('空 tab 列表不崩（阳性对照的边界）', (tester) async {
+      await tester.pumpWidget(
+        _host(labels: const [], selected: 0, onSelected: (_) {}),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('越界下标（宿主传错了）被夹住而不是崩', (tester) async {
+      await tester.pumpWidget(
+        _host(labels: const ['A', 'B'], selected: 99, onSelected: (_) {}),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+  });
+}
