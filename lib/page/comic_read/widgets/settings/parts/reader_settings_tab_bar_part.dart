@@ -17,7 +17,7 @@ part of '../reader_settings_sheet.dart';
 enum _ReaderSettingsTab { read, gesture, screen, picture, translate }
 
 extension _ReaderSettingsTabLabel on _ReaderSettingsTab {
-  IconData get icon => switch (this) {
+  Glyph get icon => switch (this) {
     _ReaderSettingsTab.read => AppGlyphs.openBook,
     _ReaderSettingsTab.gesture => AppGlyphs.touch,
     _ReaderSettingsTab.screen => AppGlyphs.gridPlus,

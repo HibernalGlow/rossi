@@ -80,7 +80,7 @@ extension _ComicReadAutoReadPart on _ComicReadPageState {
                   transitionBuilder: (child, animation) {
                     return ScaleTransition(scale: animation, child: child);
                   },
-                  child: Icon(
+                  child: GlyphIcon(
                     _autoReadController.isPaused
                         ? AppGlyphs.play
                         : AppGlyphs.pause,
