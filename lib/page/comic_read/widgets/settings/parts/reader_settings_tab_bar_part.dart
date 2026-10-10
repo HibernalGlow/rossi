@@ -134,30 +134,66 @@ class _ReaderSettingsHeader extends StatelessWidget {
                           labelStyle: labelStyle,
                           scaler: MediaQuery.textScalerOf(context),
                         );
-                    return TabBar(
-                      isScrollable: true,
-                      tabAlignment: TabAlignment.start,
-                      padding: EdgeInsets.zero,
-                      dividerColor: Colors.transparent,
-                      tabs: [
-                        for (final tab in tabs)
-                          if (iconOnly)
-                            Tab(
-                              // 仅图标时无障碍不能只剩「标签 2 / 5」：
-                              // 显式给一条 label 读屏，鼠标悬停再给 tooltip，
-                              // 并把 tooltip 自己的语义关掉，免得读两遍。
-                              icon: Semantics(
-                                label: tab.label,
-                                child: Tooltip(
-                                  message: tab.label,
-                                  excludeFromSemantics: true,
-                                  child: Icon(tab.icon),
+                    final controller = DefaultTabController.of(context);
+                    final widths = [
+                      for (final tab in tabs)
+                        ReaderSettingsTabMetrics.tabNaturalWidth(
+                          labelWidth: iconOnly
+                              ? 0
+                              : ReaderSettingsTabMetrics.measureLabelWidth(
+                                  label: tab.label,
+                                  labelStyle: labelStyle,
+                                  scaler: MediaQuery.textScalerOf(context),
                                 ),
-                              ),
-                            )
-                          else
-                            Tab(icon: Icon(tab.icon), text: tab.label),
-                      ],
+                        ),
+                    ];
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                        height: iconOnly
+                            ? ReaderSettingsTabMetrics.compactTabHeight
+                            : ReaderSettingsTabMetrics.textAndIconTabHeight,
+                        child: AnimatedBuilder(
+                          animation: controller,
+                          builder: (context, _) => SpringLensBar(
+                            tabSizes: widths,
+                            selectedIndex: controller.index,
+                            onSelected: controller.animateTo,
+                            tintColor: colorScheme.onSecondaryContainer,
+                            tabs: [
+                              for (final tab in tabs)
+                                SpringLensTab(
+                                  semanticLabel: tab.label,
+                                  tooltip: iconOnly ? tab.label : null,
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        GlyphIcon(
+                                          tab.icon,
+                                          color: colorScheme.onSurfaceVariant,
+                                        ),
+                                        if (!iconOnly) ...[
+                                          const SizedBox(
+                                            height: ReaderSettingsTabMetrics
+                                                .iconMargin,
+                                          ),
+                                          Text(
+                                            tab.label,
+                                            style: labelStyle.copyWith(
+                                              color:
+                                                  colorScheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
                     );
                   },
                 ),
