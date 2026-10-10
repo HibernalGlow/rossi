@@ -5,11 +5,14 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/cubit/plugin_registry_cubit.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/bookshelf/bookshelf.dart';
 import 'package:zephyr/page/search/widget/search_input_dialog.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/util/debouncer.dart';
+import 'package:zephyr/widgets/action_group.dart';
+import 'package:zephyr/widgets/toast.dart';
 
 @RoutePage()
 class BookshelfPage extends StatelessWidget {
@@ -140,36 +143,93 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent>
     );
   }
 
-  Widget _buildDesktopHeader() {
-    return Row(
-      children: [
-        _buildSleekTabs(),
-        const SizedBox(width: 24),
-        Expanded(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Flexible(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  child: _buildShelfSearchField(autoExpand: false),
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                tooltip: t.bookshelf.filter,
-                icon: const Icon(Icons.tune),
-                onPressed: _openFilter,
-              ),
-            ],
-          ),
-        ),
-      ],
+  /// 扇形按钮直接呈现自己的轮廓，不再套一层圆角底槽。
+  Widget _buildFilterAction() => _buildFilterButton();
+
+  /// 那颗滑块钮本体 —— 弹层从**这颗按钮**的位置飞出来。
+  ///
+  /// 包在 [CommonPopupBox] 里而不是用 `showPopupPanel`：这一条要的是完整观感
+  /// （按钮先被拍成快照、随托盘一起飞），而按钮就在我们手上，锚点现成。
+  /// 种子（当前模式 / 排序 / 图源选择 / 全部可选图源）在 build 里算好 ——
+  /// 面板住在根路由里，够不着 `BookshelfSearchCubit`，也没有「哪些图源可用」
+  /// 这份知识。`_openFilter` 落账时用的是**同一份**种子，两处不各算一次。
+  Widget _buildFilterButton({bool fromSearch = false}) {
+    final seed = _filterSeed();
+    return CommonPopupBox<BookshelfFilterResult>(
+      targetBuilder: (open) => ExpressiveIconButton(
+        shape: ExpressiveButtonShape.fan,
+        active: _isFilterOpen,
+        activeTurns: 0,
+        glyph: AppGlyphs.sliders,
+        tooltip: t.bookshelf.filter,
+        onPressed: () => _openFilter(open, seed: seed, fromSearch: fromSearch),
+      ),
+      popupBuilder: (_) => BookshelfFilterPanel(
+        mode: seed.mode,
+        initialSort: seed.sort,
+        initialSources: seed.sources,
+        sourceOptions: seed.options,
+      ),
     );
   }
 
-  /// 展开移动端搜索栏。挂载的 SearchQueryField 自带 autoExpand，
-  /// 首帧后自动展开浮层并聚焦，键盘随之弹出。
+  /// 打开筛选弹层时的那份「种子」。
+  ///
+  /// 排序菜单是按模式分开记的（收藏 / 历史 / 下载各一套），图源选择也是，
+  /// 所以种子必须先问清楚「现在在哪个模式」——这一份与面板拿到的是同一个
+  /// 对象，落账时不再重算，避免两次 rebuild 之间漂移。
+  _FilterSeed _filterSeed() {
+    final mode = _currentMode();
+    final current = context.read<BookshelfSearchCubit>().state.stateOf(mode);
+    final options = _buildFilterSourceOptions();
+    final available = options.map((option) => option.pluginId).toList();
+    // 一个都没勾（新装的图源、清过设置）时按「全选」起：空着打开筛选、
+    // 一按应用把书架清空，那不是用户按下这颗按钮时想要的。
+    var selected = current.sources.where(available.contains).toSet();
+    if (selected.isEmpty) {
+      selected = available.toSet();
+    }
+    return (
+      mode: mode,
+      sort: switch (mode) {
+        (ShelfPageMode.favorite || ShelfPageMode.download)
+            when current.sort == 'vd' || current.sort == 'va' =>
+          current.sort,
+        _ when current.sort == 'da' => 'da',
+        _ => 'dd',
+      },
+      sources: selected,
+      options: options,
+    );
+  }
+
+  Widget _buildDesktopHeader() {
+    return ActionBubbleRegion(
+      child: Row(
+        children: [
+          _buildPanelTabs(),
+          const SizedBox(width: 24),
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Flexible(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 400),
+                    child: _buildShelfSearchField(autoExpand: false),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _buildFilterAction(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 展开内联输入区域，输入框挂载后直接聚焦。
   void _expandSearch() {
     if (_isSearchExpanded) {
       return;
@@ -205,28 +265,44 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent>
         children: [
           IconButton(
             tooltip: t.common.back,
-            icon: const Icon(Icons.arrow_back),
+            icon: const GlyphIcon(AppGlyphs.arrowBack),
             onPressed: _exitSearch,
           ),
           Expanded(child: _buildShelfSearchField(autoExpand: true)),
-          IconButton(
-            tooltip: t.bookshelf.filter,
-            icon: const Icon(Icons.tune),
-            onPressed: _openFilterFromSearch,
+          ActionGroup(
+            fill: _actionWellFill,
+            children: [
+              ActionIconButton(
+                glyph: AppGlyphs.sliders,
+                tooltip: t.bookshelf.filter,
+                onPressed: _openFilterFromSearch,
+              ),
+            ],
           ),
         ],
       );
     }
 
+    // 右上角那两颗（放大镜 / 滑块）装进**同一只分组槽** —— 这正是 FlClash 顶栏
+    // 右上角的形态：一个胶囊里几颗图标，旁边不再散着一颗。左边的胶囊 tab 不动。
     return Row(
       children: [
         _buildSleekTabs(),
         const Spacer(),
-        IconButton(icon: const Icon(Icons.search), onPressed: _expandSearch),
-        IconButton(
-          tooltip: t.bookshelf.filter,
-          icon: const Icon(Icons.tune),
-          onPressed: _openFilter,
+        ActionGroup(
+          fill: _actionWellFill,
+          children: [
+            ActionIconButton(
+              glyph: AppGlyphs.search,
+              tooltip: t.common.search,
+              onPressed: _expandSearch,
+            ),
+            ActionIconButton(
+              glyph: AppGlyphs.sliders,
+              tooltip: t.bookshelf.filter,
+              onPressed: _openFilter,
+            ),
+          ],
         ),
       ],
     );
@@ -417,9 +493,7 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent>
         .toList();
 
     if (availableSources.isEmpty && currentMode != ShelfPageMode.favorite) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t.bookshelf.noFilterSource)));
+      showInfoToast(t.bookshelf.noFilterSource, context: context);
       return;
     }
 
