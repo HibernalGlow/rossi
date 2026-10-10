@@ -14,6 +14,7 @@ import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/gesture_lock.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/workspace/model/workspace_startup.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class AppBehaviorSettingPage extends StatefulWidget {
@@ -64,7 +65,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
           settingSectionTitle(
             context,
             t.settings.appBehavior,
-            icon: Icons.settings_outlined,
+            icon: AppGlyphs.settings,
           ),
           // 「启动直接打开工作台」并进了这一条的下拉（见 `_splashPage`），
           // 不再单开一栏 —— 两者本来就是同一件事：启动落到哪儿。
@@ -169,7 +170,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     );
 
     return ListTile(
-      leading: const Icon(Icons.rocket_launch_outlined),
+      leading: const GlyphIcon(AppGlyphs.rocket),
       title: Text(t.settings.splashPage),
       subtitle: Text(t.settings.splashPageSubtitle),
       trailing: FluentDropdown<int>(
@@ -201,7 +202,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     GlobalSettingCubit cubit,
   ) {
     return SwitchListTile(
-      secondary: const Icon(Icons.battery_saver_outlined),
+      secondary: const GlyphIcon(AppGlyphs.battery1),
       title: Text(t.settings.workspaceSleepCoveredUi),
       subtitle: Text(t.settings.workspaceSleepCoveredUiSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -219,7 +220,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
   /// 上游，弹窗只会把人引向 deretame/Breeze 的安装包。
   Widget _skipUpdateCheck(GlobalSettingState state, GlobalSettingCubit cubit) {
     return SwitchListTile(
-      secondary: const Icon(Icons.update_disabled),
+      secondary: const GlyphIcon(AppGlyphs.block),
       title: Text(t.settings.skipUpdateCheck),
       subtitle: Text(t.settings.skipUpdateCheckSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -235,7 +236,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
 
   Widget _oldPageRollback(GlobalSettingState state, GlobalSettingCubit cubit) {
     return SwitchListTile(
-      secondary: const Icon(Icons.restore_outlined),
+      secondary: const GlyphIcon(AppGlyphs.reset),
       title: Text(t.settings.oldPageRollback),
       subtitle: Text(t.settings.oldPageRollbackSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -254,7 +255,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     GlobalSettingCubit cubit,
   ) {
     return SwitchListTile(
-      secondary: const Icon(Icons.cloud_outlined),
+      secondary: const GlyphIcon(AppGlyphs.cloud),
       title: Text(t.settings.cloudFavoritePreferred),
       subtitle: Text(t.settings.cloudFavoritePreferredSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -273,7 +274,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     GlobalSettingCubit cubit,
   ) {
     return SwitchListTile(
-      secondary: const Icon(Icons.notifications_active_outlined),
+      secondary: const GlyphIcon(AppGlyphs.bell),
       title: Text(t.settings.autoFollowOnCollect),
       subtitle: Text(t.settings.autoFollowOnCollectSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -292,7 +293,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     GlobalSettingCubit cubit,
   ) {
     return SwitchListTile(
-      secondary: const Icon(Icons.bookmark_add_outlined),
+      secondary: const GlyphIcon(AppGlyphs.bookmark),
       title: Text(t.settings.autoFavoriteOnDownload),
       subtitle: Text(t.settings.autoFavoriteOnDownloadSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -311,7 +312,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     GlobalSettingCubit cubit,
   ) {
     return SwitchListTile(
-      secondary: const Icon(Icons.description_outlined),
+      secondary: const GlyphIcon(AppGlyphs.article),
       title: Text(t.settings.writeDownloadMetadataFile),
       subtitle: Text(t.settings.writeDownloadMetadataFileSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -327,7 +328,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
 
   Widget _leftHandMode(GlobalSettingState state, GlobalSettingCubit cubit) {
     return SwitchListTile(
-      secondary: const Icon(Icons.back_hand_outlined),
+      secondary: const GlyphIcon(AppGlyphs.hand),
       title: Text(t.settings.leftHandMode),
       subtitle: Text(t.settings.leftHandModeSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -346,7 +347,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     GlobalSettingCubit cubit,
   ) {
     return SwitchListTile(
-      secondary: const Icon(Icons.touch_app_outlined),
+      secondary: const GlyphIcon(AppGlyphs.touch),
       title: Text(t.settings.clickCoverToStartReading),
       subtitle: Text(t.settings.clickCoverToStartReadingSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -367,7 +368,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     GlobalSettingCubit cubit,
   ) {
     return SwitchListTile(
-      secondary: const Icon(Icons.category_outlined),
+      secondary: const GlyphIcon(AppGlyphs.category),
       title: Text(t.settings.searchHistoryGroupBySource),
       subtitle: Text(t.settings.searchHistoryGroupBySourceSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -386,7 +387,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     GlobalSettingCubit cubit,
   ) {
     return SwitchListTile(
-      secondary: const Icon(Icons.menu_book_outlined),
+      secondary: const GlyphIcon(AppGlyphs.book),
       title: Text(t.settings.comicInfoInlineReadButton),
       subtitle: Text(t.settings.comicInfoInlineReadButtonSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -407,7 +408,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     GlobalSettingCubit cubit,
   ) {
     return SwitchListTile(
-      secondary: const Icon(Icons.blur_on_outlined),
+      secondary: const GlyphIcon(AppGlyphs.motion),
       title: Text(t.settings.comicInfoRailLiquidGlass),
       subtitle: Text(t.settings.comicInfoRailLiquidGlassSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -423,7 +424,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
 
   Widget _androidKeepAlive(GlobalSettingState state, GlobalSettingCubit cubit) {
     return SwitchListTile(
-      secondary: const Icon(Icons.battery_charging_full_outlined),
+      secondary: const GlyphIcon(AppGlyphs.batteryCharging),
       title: Text(t.settings.androidKeepAlive),
       subtitle: Text(t.settings.androidKeepAliveSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -451,7 +452,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
 
   Widget _backPressExit(GlobalSettingState state, GlobalSettingCubit cubit) {
     return SwitchListTile(
-      secondary: const Icon(Icons.exit_to_app_outlined),
+      secondary: const GlyphIcon(AppGlyphs.openExternal),
       title: Text(t.settings.backPressExit),
       subtitle: Text(t.settings.backPressExitSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -473,7 +474,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     };
 
     return ListTile(
-      leading: const Icon(Icons.close_fullscreen_outlined),
+      leading: const GlyphIcon(AppGlyphs.fullscreenExit),
       title: Text(t.settings.desktopCloseBehavior),
       subtitle: Text(t.settings.desktopCloseBehaviorSubtitle),
       trailing: FluentDropdown<DesktopCloseBehavior>(
@@ -498,7 +499,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     return Column(
       children: [
         SwitchListTile(
-          secondary: const Icon(Icons.lock_outline),
+          secondary: const GlyphIcon(AppGlyphs.lock),
           title: Text(t.settings.appLock),
           subtitle: Text(t.settings.appLockSubtitle),
           thumbIcon: kSettingSwitchThumbIcon,
@@ -525,10 +526,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
           },
         ),
         ListTile(
-          leading: const Icon(Icons.gesture_outlined),
+          leading: const GlyphIcon(AppGlyphs.gesture),
           title: Text(t.settings.appLock),
           subtitle: Text(t.settings.appLockSubtitle),
-          trailing: const Icon(Icons.chevron_right),
+          trailing: const GlyphIcon(AppGlyphs.chevronForward),
           onTap: () async {
             final nextSetting = await _configureAppLock();
             if (nextSetting == null) {
@@ -542,10 +543,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
         ),
         if (isReady)
           ListTile(
-            leading: const Icon(Icons.pin_outlined),
+            leading: const GlyphIcon(AppGlyphs.pin),
             title: Text(t.gestureLock.pinTitle),
             subtitle: Text(t.gestureLock.pinHint),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const GlyphIcon(AppGlyphs.chevronForward),
             onTap: () async {
               final pin = await showPinCodeSetupDialog(
                 context,
@@ -567,10 +568,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
           ),
         if (isReady)
           ListTile(
-            leading: const Icon(Icons.delete_outline),
+            leading: const GlyphIcon(AppGlyphs.delete),
             title: Text(t.common.delete),
             subtitle: Text(t.settings.appLock),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const GlyphIcon(AppGlyphs.chevronForward),
             onTap: () async {
               final shouldDelete = await showDialog<bool>(
                 context: context,

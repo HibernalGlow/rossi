@@ -854,6 +854,7 @@ _DiscoverSettingState _$DiscoverSettingStateFromJson(
       $enumDecodeNullable(_$DiscoverTabBarSideEnumMap, json['tabSide']) ??
       DiscoverTabBarSide.top,
   tabRailWidth: (json['tabRailWidth'] as num?)?.toDouble() ?? 132.0,
+  tabDoubleClickClose: json['tabDoubleClickClose'] as bool? ?? true,
 );
 
 Map<String, dynamic> _$DiscoverSettingStateToJson(
@@ -863,6 +864,7 @@ Map<String, dynamic> _$DiscoverSettingStateToJson(
   'tabPluginShortEnabled': instance.tabPluginShortEnabled,
   'tabSide': _$DiscoverTabBarSideEnumMap[instance.tabSide]!,
   'tabRailWidth': instance.tabRailWidth,
+  'tabDoubleClickClose': instance.tabDoubleClickClose,
 };
 
 const _$DiscoverTabBarSideEnumMap = {

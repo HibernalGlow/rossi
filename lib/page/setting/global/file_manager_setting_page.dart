@@ -9,6 +9,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/page/setting/global/shell_integration_setting_card.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 文件管理器设置：本地文件浏览卡片的跨重启偏好。
 ///
@@ -73,14 +74,14 @@ class FileManagerSettingPage extends StatelessWidget {
           settingSectionTitle(
             context,
             t.settings.fileManagerSectionToolbar,
-            icon: Icons.build_outlined,
+            icon: AppGlyphs.wrench,
           ),
           SettingSectionCard(
             title: t.settings.fileManagerSectionHome,
-            icon: Icons.home_outlined,
+            icon: AppGlyphs.home,
             children: [
               SwitchListTile(
-                secondary: const Icon(Icons.toggle_on_outlined),
+                secondary: const GlyphIcon(AppGlyphs.toggle),
                 title: Text(t.settings.fileManagerHomeEnabled),
                 subtitle: Text(t.settings.fileManagerHomeEnabledSubtitle),
                 thumbIcon: kSettingSwitchThumbIcon,
@@ -91,7 +92,7 @@ class FileManagerSettingPage extends StatelessWidget {
               ),
               ListTile(
                 enabled: setting.homeEnabled,
-                leading: const Icon(Icons.folder_special_outlined),
+                leading: const GlyphIcon(AppGlyphs.folder),
                 title: Text(t.settings.fileManagerHomePath),
                 subtitle: Text(
                   homePath.isEmpty
@@ -111,7 +112,7 @@ class FileManagerSettingPage extends StatelessWidget {
               // 摆一个开不动的开关比不摆更糟（与「清除主页」同口径）。
               if (homePath.isNotEmpty)
                 SwitchListTile(
-                  secondary: const Icon(Icons.rocket_launch_outlined),
+                  secondary: const GlyphIcon(AppGlyphs.rocket),
                   title: Text(t.settings.fileManagerOpenHomeOnStart),
                   subtitle: Text(t.settings.fileManagerOpenHomeOnStartSubtitle),
                   thumbIcon: kSettingSwitchThumbIcon,
@@ -135,7 +136,7 @@ class FileManagerSettingPage extends StatelessWidget {
               if (homePath.isNotEmpty)
                 ListTile(
                   enabled: setting.homeEnabled,
-                  leading: const Icon(Icons.link_off_outlined),
+                  leading: const GlyphIcon(AppGlyphs.lock),
                   title: Text(t.settings.fileManagerHomePathClear),
                   subtitle: stale
                       ? Text(
@@ -162,10 +163,10 @@ class FileManagerSettingPage extends StatelessWidget {
           const SizedBox(height: 12),
           SettingSectionCard(
             title: t.settings.fileManagerSectionView,
-            icon: Icons.grid_view_outlined,
+            icon: AppGlyphs.dashboard,
             children: [
               SwitchListTile(
-                secondary: const Icon(Icons.bookmark_added_outlined),
+                secondary: const GlyphIcon(AppGlyphs.bookmark),
                 title: Text(t.settings.fileManagerRememberViewState),
                 subtitle: Text(t.settings.fileManagerRememberViewStateSubtitle),
                 thumbIcon: kSettingSwitchThumbIcon,
@@ -175,7 +176,7 @@ class FileManagerSettingPage extends StatelessWidget {
                 ),
               ),
               SwitchListTile(
-                secondary: const Icon(Icons.wrap_text_outlined),
+                secondary: const GlyphIcon(AppGlyphs.wrap),
                 title: Text(t.settings.fileManagerWrapGridTitle),
                 subtitle: Text(t.settings.fileManagerWrapGridTitleSubtitle),
                 thumbIcon: kSettingSwitchThumbIcon,
@@ -189,10 +190,10 @@ class FileManagerSettingPage extends StatelessWidget {
           const SizedBox(height: 12),
           SettingSectionCard(
             title: t.settings.fileManagerSectionSearch,
-            icon: Icons.search_outlined,
+            icon: AppGlyphs.search,
             children: [
               SwitchListTile(
-                secondary: const Icon(Icons.account_tree_outlined),
+                secondary: const GlyphIcon(AppGlyphs.tree),
                 title: Text(t.settings.fileManagerSearchSubfoldersDefault),
                 subtitle: Text(
                   t.settings.fileManagerSearchSubfoldersDefaultSubtitle,
@@ -210,10 +211,10 @@ class FileManagerSettingPage extends StatelessWidget {
           const SizedBox(height: 12),
           SettingSectionCard(
             title: t.settings.fileManagerSectionTabs,
-            icon: Icons.tab_outlined,
+            icon: AppGlyphs.layoutTabs,
             children: [
               SwitchListTile(
-                secondary: const Icon(Icons.restore_outlined),
+                secondary: const GlyphIcon(AppGlyphs.reset),
                 title: Text(t.settings.fileManagerRestoreTabs),
                 subtitle: Text(t.settings.fileManagerRestoreTabsSubtitle),
                 thumbIcon: kSettingSwitchThumbIcon,
@@ -236,10 +237,10 @@ class FileManagerSettingPage extends StatelessWidget {
           const SizedBox(height: 12),
           SettingSectionCard(
             title: t.settings.fileManagerSectionFileOps,
-            icon: Icons.drive_file_move_outlined,
+            icon: AppGlyphs.folderCopy,
             children: [
               SwitchListTile(
-                secondary: const Icon(Icons.delete_sweep_outlined),
+                secondary: const GlyphIcon(AppGlyphs.delete),
                 title: Text(t.settings.fileManagerFileOperations),
                 subtitle: Text(t.settings.fileManagerFileOperationsSubtitle),
                 thumbIcon: kSettingSwitchThumbIcon,

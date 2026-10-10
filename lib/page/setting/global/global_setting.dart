@@ -11,6 +11,7 @@ import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dar
 import 'package:zephyr/service/notify/notify_topic.dart';
 import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/workspace/model/workspace_startup.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class GlobalSettingPage extends StatefulWidget {
@@ -80,7 +81,7 @@ class _GlobalSettingPageState extends State<GlobalSettingPage> {
       child: ListView(
         children: [
           settingCategoryTile(
-            icon: Icons.palette_outlined,
+            icon: AppGlyphs.palette,
             title: t.settings.appearance,
             subtitle:
                 '${_languageLabel(state)} · ${_themeLabel(state.themeMode)}',
@@ -88,7 +89,7 @@ class _GlobalSettingPageState extends State<GlobalSettingPage> {
           ),
           const Divider(height: 1, thickness: 0.3),
           settingCategoryTile(
-            icon: Icons.notifications_active_outlined,
+            icon: AppGlyphs.bell,
             title: t.settings.toastStyle,
             subtitle:
                 '${state.toastSetting.position.label} · '
@@ -97,14 +98,14 @@ class _GlobalSettingPageState extends State<GlobalSettingPage> {
           ),
           const Divider(height: 1, thickness: 0.3),
           settingCategoryTile(
-            icon: Icons.filter_alt_outlined,
+            icon: AppGlyphs.sliders,
             title: t.settings.notifyPersonalize,
             subtitle: _notifySummary(state.notifySetting),
             onTap: () => _openSubPage(const NotifySettingRoute()),
           ),
           const Divider(height: 1, thickness: 0.3),
           settingCategoryTile(
-            icon: Icons.folder_special_outlined,
+            icon: AppGlyphs.folder,
             title: t.settings.fileManager,
             subtitle: state.fileManagerSetting.homePath.isEmpty
                 ? t.settings.fileManagerHomePathEmpty
@@ -113,7 +114,7 @@ class _GlobalSettingPageState extends State<GlobalSettingPage> {
           ),
           const Divider(height: 1, thickness: 0.3),
           settingCategoryTile(
-            icon: Icons.menu_book_outlined,
+            icon: AppGlyphs.book,
             title: t.reader.settings,
             subtitle:
                 '${t.reader.readingMode} · ${t.reader.hoverReveal} · ${t.reader.doubleTapAction}',
@@ -126,7 +127,7 @@ class _GlobalSettingPageState extends State<GlobalSettingPage> {
           if (workspaceAvailableOnDevice(context)) ...[
             const Divider(height: 1, thickness: 0.3),
             settingCategoryTile(
-              icon: Icons.view_column_outlined,
+              icon: AppGlyphs.columnsThree,
               title: t.settings.workspaceLayout,
               subtitle: t.settings.workspaceLayoutSubtitle,
               onTap: () => _openSubPage(const WorkspaceLayoutSettingRoute()),
@@ -134,28 +135,28 @@ class _GlobalSettingPageState extends State<GlobalSettingPage> {
           ],
           const Divider(height: 1, thickness: 0.3),
           settingCategoryTile(
-            icon: Icons.sports_esports_outlined,
+            icon: AppGlyphs.gamepad,
             title: t.settings.operationBinding,
             subtitle: t.settings.operationBindingEntrySubtitle,
             onTap: () => _openSubPage(const OperationBindingSettingRoute()),
           ),
           const Divider(height: 1, thickness: 0.3),
           settingCategoryTile(
-            icon: Icons.tune_outlined,
+            icon: AppGlyphs.sliders,
             title: t.settings.contentAndNetwork,
             subtitle: '${t.settings.maskedKeywords} · ${t.settings.proxy}',
             onTap: () => _openSubPage(const ContentNetworkSettingRoute()),
           ),
           const Divider(height: 1, thickness: 0.3),
           settingCategoryTile(
-            icon: Icons.settings_outlined,
+            icon: AppGlyphs.settings,
             title: t.settings.appBehavior,
             subtitle: '${t.settings.splashPage} · ${t.settings.appLock}',
             onTap: () => _openSubPage(const AppBehaviorSettingRoute()),
           ),
           const Divider(height: 1, thickness: 0.3),
           settingCategoryTile(
-            icon: Icons.tablet_mac_outlined,
+            icon: AppGlyphs.devices,
             title: t.settings.eink,
             subtitle: state.eInkSetting.enabled
                 ? '${t.settings.einkEnabled} · ${state.eInkSetting.refreshMode.label}'
@@ -164,14 +165,14 @@ class _GlobalSettingPageState extends State<GlobalSettingPage> {
           ),
           const Divider(height: 1, thickness: 0.3),
           settingCategoryTile(
-            icon: Icons.collections_bookmark_outlined,
+            icon: AppGlyphs.bookmark,
             title: t.settings.bookshelf,
             subtitle: t.settings.bookshelfSubtitle,
             onTap: () => _openSubPage(const BookshelfSettingRoute()),
           ),
           const Divider(height: 1, thickness: 0.3),
           settingCategoryTile(
-            icon: Icons.storage_outlined,
+            icon: AppGlyphs.storage,
             title: t.settings.storage,
             subtitle: '${t.settings.cache} · ${t.settings.dataBackup}',
             onTap: () => _openSubPage(const StorageSettingRoute()),
@@ -187,7 +188,7 @@ class _GlobalSettingPageState extends State<GlobalSettingPage> {
                 children: [
                   const Divider(height: 1, thickness: 0.3),
                   settingCategoryTile(
-                    icon: Icons.auto_fix_high_outlined,
+                    icon: AppGlyphs.wand,
                     title: t.settings.realSr,
                     subtitle: t.settings.realSrSubtitle,
                     onTap: () => _openSubPage(const RealSrSettingRoute()),
@@ -201,7 +202,7 @@ class _GlobalSettingPageState extends State<GlobalSettingPage> {
           // 摆一个点了只会报错的入口比少一个入口更糟。
           if (ocrSupportedHere) ...[
             settingCategoryTile(
-              icon: Icons.translate_outlined,
+              icon: AppGlyphs.translate,
               title: t.settings.ocr,
               subtitle: t.settings.ocrSubtitle,
               onTap: () => _openSubPage(const OcrSettingRoute()),
@@ -209,7 +210,7 @@ class _GlobalSettingPageState extends State<GlobalSettingPage> {
             const Divider(height: 1, thickness: 0.3),
           ],
           settingCategoryTile(
-            icon: Icons.bug_report_outlined,
+            icon: AppGlyphs.bug,
             title: t.settings.debug,
             subtitle: t.settings.logAddress,
             onTap: () => _openSubPage(const DebugSettingRoute()),
