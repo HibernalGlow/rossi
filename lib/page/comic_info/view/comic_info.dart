@@ -35,6 +35,7 @@ import 'package:zephyr/widgets/error_view.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 part 'parts/comic_info_rossi_actions_part.dart';
 
 enum MenuOption { export, cloudCollect, follow }
@@ -186,7 +187,7 @@ class _ComicInfoState extends State<_ComicInfo>
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const GlyphIcon(AppGlyphs.arrowBack),
           // 住在发现页的标签里时，这颗「返回」关的是**当前这条标签**。
           // context.pop() 走的是根路由：那一下弹掉的是压着详情页的那一页，
           // 在工作台里就是整个工作台。
@@ -196,7 +197,7 @@ class _ComicInfoState extends State<_ComicInfo>
         actions: [
           const SizedBox(width: 50),
           IconButton(
-            icon: const Icon(Icons.home),
+            icon: const GlyphIcon(AppGlyphs.home),
             onPressed: () {
               final tabs = DiscoverTabScope.maybeOf(context);
               if (tabs != null) {
@@ -211,10 +212,9 @@ class _ComicInfoState extends State<_ComicInfo>
             selector: (state) => state.isFollowing(widget.from, _comicId),
             builder: (context, isFollowing) {
               return IconButton(
-                icon: Icon(
-                  isFollowing
-                      ? Icons.notifications_active
-                      : Icons.notifications_none,
+                icon: AnimatedGlyph(
+                  glyph: AppGlyphs.bell,
+                  filled: isFollowing,
                 ),
                 tooltip: isFollowing
                     ? t.comicInfo.unfollow
@@ -224,7 +224,7 @@ class _ComicInfoState extends State<_ComicInfo>
             },
           ),
           FluentPopupMenuButton<MenuOption>(
-            icon: const Icon(Icons.more_vert),
+            icon: const GlyphIcon(AppGlyphs.more),
             onSelected: (MenuOption item) {
               switch (item) {
                 case MenuOption.export:
@@ -250,10 +250,8 @@ class _ComicInfoState extends State<_ComicInfo>
               final menuItems = <FluentPopupMenuItem<MenuOption>>[
                 FluentPopupMenuItem<MenuOption>(
                   value: MenuOption.follow,
-                  leading: Icon(
-                    isFollowing
-                        ? Icons.notifications_off
-                        : Icons.notifications_active,
+                  leading: GlyphIcon(
+                    isFollowing ? AppGlyphs.bellOff : AppGlyphs.bell,
                   ),
                   title: Text(
                     isFollowing ? t.comicInfo.unfollow : t.comicInfo.follow,
@@ -265,7 +263,7 @@ class _ComicInfoState extends State<_ComicInfo>
                 menuItems.add(
                   FluentPopupMenuItem<MenuOption>(
                     value: MenuOption.export,
-                    leading: const Icon(Icons.save_alt),
+                    leading: const GlyphIcon(AppGlyphs.download),
                     title: Text(t.comicInfo.exportComic),
                   ),
                 );
@@ -274,10 +272,14 @@ class _ComicInfoState extends State<_ComicInfo>
               menuItems.add(
                 FluentPopupMenuItem<MenuOption>(
                   value: MenuOption.cloudCollect,
-                  leading: Icon(
-                    cloudFavoritePreferred
-                        ? (_isLocalCollected ? Icons.star : Icons.star_border)
-                        : (_isCloudCollected ? Icons.star : Icons.star_border),
+                  leading: GlyphIcon(
+                    AppGlyphs.star,
+                    fill:
+                        (cloudFavoritePreferred
+                            ? _isLocalCollected
+                            : _isCloudCollected)
+                        ? 1
+                        : 0,
                   ),
                   title: Text(
                     cloudFavoritePreferred
@@ -419,7 +421,7 @@ class _ComicInfoState extends State<_ComicInfo>
     return [
       ComicInfoActionEntry(
         actionId: ComicInfoActionIds.back,
-        icon: Icons.arrow_back,
+        icon: AppGlyphs.arrowBack,
         label: t.comicInfo.back,
         onTap: () => actionBack(context),
       ),
@@ -427,7 +429,7 @@ class _ComicInfoState extends State<_ComicInfo>
         actionId: ComicInfoActionIds.home,
         // 「返回首页」这条文案 reader 段里已有，不为了 rail 再造一个新键
         // （造键要重跑 slang，那是全仓共享的生成物）。
-        icon: Icons.home_outlined,
+        icon: AppGlyphs.home,
         label: t.reader.backToHome,
         onTap: () => actionHome(context),
       ),
@@ -436,7 +438,7 @@ class _ComicInfoState extends State<_ComicInfo>
       if (_loadingComplete)
         ComicInfoActionEntry(
           actionId: ComicInfoActionIds.read,
-          icon: hasHistory ? Icons.history_rounded : Icons.menu_book_rounded,
+          icon: hasHistory ? AppGlyphs.history : AppGlyphs.book,
           label: hasHistory ? t.comicInfo.continueRead : t.comicInfo.startRead,
           onTap: () => actionRead(context),
         ),
@@ -607,7 +609,7 @@ class _ComicInfoState extends State<_ComicInfo>
                           label: t.comicInfo.episodeCount(
                             count: normalComicAllInfo.eps.length,
                           ),
-                          icon: _isReversed ? Icons.south : Icons.north,
+                          icon: _isReversed ? AppGlyphs.arrowDown : AppGlyphs.arrowUp,
                           onTap: _toggleOrder,
                         ),
                       ),
@@ -857,7 +859,8 @@ class _ComicInfoState extends State<_ComicInfo>
 
   /// 一条 toast 说完「导到哪了」和「删了没、为什么没删」。
   ///
-  /// toast 走 eventBus，后一条会顶掉前一条，所以这里必须合起来发。
+  /// 提示条同屏有上限（超出挤掉最旧的），而网关对「同事项 + 同标题 + 同正文」
+  /// 在窗口内只放行一条 —— 所以这里必须合起来发一次，分两条发会有可能看不见第二条。
   void _showExportOutcome(
     ExportWithDeleteResult result, {
     required ExportType exportType,
@@ -1185,7 +1188,7 @@ class _EpisodeHeaderBadge extends StatelessWidget {
   });
 
   final String label;
-  final IconData icon;
+  final Glyph icon;
   final VoidCallback? onTap;
 
   @override
@@ -1274,7 +1277,7 @@ class _DescriptionCardState extends State<_DescriptionCard> {
             const SizedBox(height: 10),
             TextButton.icon(
               onPressed: () => setState(() => _expanded = !_expanded),
-              icon: Icon(_expanded ? Icons.expand_less : Icons.expand_more),
+              icon: GlyphIcon(_expanded ? AppGlyphs.chevronUp : AppGlyphs.chevronDown),
               label: Text(
                 _expanded ? t.comicInfo.collapse : t.comicInfo.expandFullText,
               ),
@@ -1590,7 +1593,7 @@ class _SelectionActionBar extends StatelessWidget {
                             visualDensity: VisualDensity.compact,
                             tooltip: t.common.cancel,
                             onPressed: controller.exitSelection,
-                            icon: const Icon(Icons.close),
+                            icon: const GlyphIcon(AppGlyphs.close),
                           ),
                           Text(
                             t.bookshelf.selectedCount(
@@ -1614,8 +1617,8 @@ class _SelectionActionBar extends StatelessWidget {
                                       );
                                     }
                                   },
-                            icon: Icon(
-                              allSelected ? Icons.deselect : Icons.select_all,
+                            icon: GlyphIcon(
+                              allSelected ? AppGlyphs.deselect : AppGlyphs.selectAll,
                             ),
                           ),
                           IconButton(
@@ -1629,7 +1632,7 @@ class _SelectionActionBar extends StatelessWidget {
                                       selected,
                                     );
                                   },
-                            icon: const Icon(Icons.download_outlined),
+                            icon: const GlyphIcon(AppGlyphs.download),
                           ),
                           IconButton(
                             visualDensity: VisualDensity.compact,
@@ -1646,7 +1649,7 @@ class _SelectionActionBar extends StatelessWidget {
                                       }
                                     }
                                   },
-                            icon: const Icon(Icons.delete_outline),
+                            icon: const GlyphIcon(AppGlyphs.delete),
                           ),
                         ],
                       ),
@@ -1673,8 +1676,8 @@ class _ReadActionButton extends StatelessWidget {
     return FloatingActionButton.extended(
       onPressed: onPressed,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      icon: Icon(
-        hasHistory ? Icons.history_rounded : Icons.menu_book_rounded,
+      icon: GlyphIcon(
+        hasHistory ? AppGlyphs.history : AppGlyphs.book,
         size: 18,
       ),
       label: Text(

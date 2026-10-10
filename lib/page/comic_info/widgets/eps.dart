@@ -18,6 +18,7 @@ import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 
 import 'package:zephyr/config/router/router.gr.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 繁简转换缓存：convertChineseForDisplay 底层走 Rust FFI（opencc），
 /// 每行每次 build 都调一次太贵。这里按「模式|原文」缓存，切换设置后自然 miss。
@@ -125,8 +126,8 @@ class EpButtonWidget extends StatelessWidget {
                       padding: const EdgeInsets.only(right: 12),
                       child: Icon(
                         selected
-                            ? Icons.check_circle
-                            : Icons.radio_button_unchecked,
+                            ? AppGlyphs.checkCircle
+                            : AppGlyphs.ring,
                         color: selected
                             ? colorScheme.primary
                             : context.textColor.withValues(alpha: 0.5),
@@ -251,7 +252,7 @@ class _EpisodeTrailing extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!downloadAllowed) {
       // 不允许下载时显示静态按钮，无需订阅，点击后由 onAction 弹出禁用原因。
-      return _slot(context, const Icon(Icons.download_outlined, size: 20));
+      return _slot(context, const GlyphIcon(AppGlyphs.download, size: 20));
     }
     // 只订阅自己这一章的 (status, progress)：别的章节进度变化时不重建。
     return BlocSelector<
@@ -267,10 +268,10 @@ class _EpisodeTrailing extends StatelessWidget {
           case ChapterDownloadStatus.notDownloaded:
             return _slot(
               context,
-              const Icon(Icons.download_outlined, size: 20),
+              const GlyphIcon(AppGlyphs.download, size: 20),
             );
           case ChapterDownloadStatus.queued:
-            return _slot(context, const Icon(Icons.hourglass_empty, size: 20));
+            return _slot(context, const GlyphIcon(AppGlyphs.hourglass, size: 20));
           case ChapterDownloadStatus.downloading:
             return _slot(
               context,
@@ -285,8 +286,8 @@ class _EpisodeTrailing extends StatelessWidget {
           case ChapterDownloadStatus.failed:
             return _slot(
               context,
-              Icon(
-                Icons.error_outline,
+              GlyphIcon(
+                AppGlyphs.error,
                 size: 20,
                 color: context.theme.colorScheme.error,
               ),
@@ -294,8 +295,8 @@ class _EpisodeTrailing extends StatelessWidget {
           case ChapterDownloadStatus.downloaded:
             return _slot(
               context,
-              Icon(
-                Icons.check_circle,
+              GlyphIcon(
+                AppGlyphs.checkCircle,
                 size: 20,
                 color: context.theme.colorScheme.primary,
               ),

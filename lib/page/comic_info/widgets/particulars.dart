@@ -27,6 +27,7 @@ import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/widgets/picture_bloc/models/picture_info.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class ComicParticularsWidget extends StatelessWidget {
   final ComicInfo comicInfo;
@@ -337,8 +338,8 @@ class _InfoColumnState extends State<_InfoColumn> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.storage_rounded,
+                    GlyphIcon(
+                      AppGlyphs.storage,
                       size: 14,
                       color: context.textColor.withValues(alpha: 0.6),
                     ),
@@ -443,8 +444,8 @@ class _ContinueReadingBanner extends StatelessWidget {
                         ),
                         borderRadius: BorderRadius.circular(9),
                       ),
-                      child: Icon(
-                        Icons.history_rounded,
+                      child: GlyphIcon(
+                        AppGlyphs.history,
                         size: 18,
                         color: context.theme.colorScheme.primary,
                       ),
@@ -485,8 +486,8 @@ class _ContinueReadingBanner extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      Icon(
-                        Icons.play_arrow_rounded,
+                      GlyphIcon(
+                        AppGlyphs.play,
                         size: 20,
                         color: context.theme.colorScheme.primary,
                       ),

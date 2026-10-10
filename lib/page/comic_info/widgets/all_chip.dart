@@ -14,6 +14,7 @@ import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/util/layout/quiet_flex.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 分组名（「其他 / 磁力 / 种子」）的最大宽度。
 ///
@@ -152,7 +153,7 @@ class _AllChipWidgetState extends State<AllChipWidget> {
             // 和「收藏的 tag」，所以两颗菜单项各自独立开关，互不覆盖。
             ListTile(
               leading: Icon(
-                isFavoriteTag ? Icons.sell_outlined : Icons.sell,
+                isFavoriteTag ? AppGlyphs.sell : AppGlyphs.sell,
                 color: const Color(0xFFF59E0B),
               ),
               title: Text(
@@ -174,7 +175,7 @@ class _AllChipWidgetState extends State<AllChipWidget> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.copy),
+              leading: const GlyphIcon(AppGlyphs.copy),
               title: Text(t.common.copy),
               onTap: () {
                 // 插件可用 onLongPress 指定「复制的是另一段文本」：胶囊上显示短名，
