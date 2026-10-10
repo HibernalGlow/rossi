@@ -5,6 +5,7 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/service/download/download_queue_manager.dart';
 import 'package:zephyr/service/download/image_download.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 下载管理页顶部的并发与节流设置。
 ///
@@ -34,8 +35,8 @@ class DownloadSettingsCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: Row(
               children: [
-                Icon(
-                  Icons.tune_rounded,
+                GlyphIcon(
+                  AppGlyphs.sliders,
                   size: 18,
                   color: theme.colorScheme.primary,
                 ),

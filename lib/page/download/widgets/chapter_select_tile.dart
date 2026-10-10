@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/download/models/download_chapter.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 章节选择页的单行：左侧勾选状态、中间章节名、右侧「本地已有」标记。
 ///
@@ -43,8 +44,8 @@ class ChapterSelectTile extends StatelessWidget {
         ),
         child: Row(
           children: <Widget>[
-            Icon(
-              selected ? Icons.check_circle : Icons.radio_button_unchecked,
+            GlyphIcon(
+              selected ? AppGlyphs.checkCircle : AppGlyphs.ring,
               color: selected
                   ? colorScheme.primary
                   : colorScheme.onSurfaceVariant,
@@ -66,8 +67,8 @@ class ChapterSelectTile extends StatelessWidget {
             if (downloaded)
               Padding(
                 padding: const EdgeInsets.only(left: 8),
-                child: Icon(
-                  Icons.cloud_done_outlined,
+                child: GlyphIcon(
+                  AppGlyphs.cloudDone,
                   size: 18,
                   color: colorScheme.onSurfaceVariant,
                 ),

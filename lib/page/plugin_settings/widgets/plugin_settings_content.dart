@@ -8,6 +8,8 @@ import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/util/json/json_value.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/multi_choice_list_dialog.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class PluginSettingsContent extends StatelessWidget {
   const PluginSettingsContent({
@@ -81,7 +83,7 @@ class PluginSettingsContent extends StatelessWidget {
     return PluginSettingsFieldRow(
       title: t.plugin.accountLogin,
       subtitle: t.plugin.accountLoginSubtitle,
-      trailing: const Icon(Icons.login, size: 18),
+      trailing: const GlyphIcon(AppGlyphs.touch, size: 18),
       onTap: deleted ? null : onOpenLoginPage,
     );
   }
@@ -91,7 +93,7 @@ class PluginSettingsContent extends StatelessWidget {
     return PluginSettingsFieldRow(
       title: t.plugin.version,
       subtitle: t.plugin.currentVersion(version: version),
-      trailing: const Icon(Icons.info_outline, size: 18),
+      trailing: const GlyphIcon(AppGlyphs.info, size: 18),
       onTap: null,
     );
   }
@@ -100,7 +102,7 @@ class PluginSettingsContent extends StatelessWidget {
     return PluginSettingsFieldRow(
       title: t.plugin.update,
       subtitle: t.plugin.updateSubtitle,
-      trailing: const Icon(Icons.system_update_alt, size: 18),
+      trailing: const GlyphIcon(AppGlyphs.download, size: 18),
       onTap: deleted ? null : onUpdatePlugin,
     );
   }
@@ -126,7 +128,7 @@ class PluginSettingsContent extends StatelessWidget {
     return PluginSettingsFieldRow(
       title: t.plugin.debugAddress,
       subtitle: debugUrl.isNotEmpty ? debugUrl : t.settings.notSet,
-      trailing: const Icon(Icons.edit_outlined, size: 18),
+      trailing: const GlyphIcon(AppGlyphs.edit, size: 18),
       onTap: deleted
           ? null
           : () async {
@@ -149,8 +151,8 @@ class PluginSettingsContent extends StatelessWidget {
     return PluginSettingsFieldRow(
       title: t.plugin.deletePlugin,
       subtitle: t.plugin.deletePluginSubtitle,
-      trailing: Icon(
-        Icons.delete_outline,
+      trailing: GlyphIcon(
+        AppGlyphs.delete,
         size: 18,
         color: deleted ? colorScheme.outline : colorScheme.error,
       ),
@@ -415,7 +417,7 @@ class PluginSettingsContent extends StatelessWidget {
       subtitle: current.isEmpty
           ? t.search.notSelected
           : t.search.selectedCount(count: current.length),
-      trailing: const Icon(Icons.tune, size: 18),
+      trailing: const GlyphIcon(AppGlyphs.sliders, size: 18),
       onTap: () async {
         final picked = await showMultiChoiceListDialog(
           context,
@@ -448,7 +450,7 @@ class PluginSettingsContent extends StatelessWidget {
     return PluginSettingsFieldRow(
       title: label,
       subtitle: _buildTextFieldDisplay(kind, text),
-      trailing: const Icon(Icons.edit_outlined, size: 18),
+      trailing: const GlyphIcon(AppGlyphs.edit, size: 18),
       onTap: () async {
         final next = await _showInputDialog(
           context,
@@ -475,7 +477,7 @@ class PluginSettingsContent extends StatelessWidget {
     return PluginSettingsFieldRow(
       title: title,
       subtitle: fnPath,
-      trailing: const Icon(Icons.play_arrow, size: 18),
+      trailing: const GlyphIcon(AppGlyphs.play, size: 18),
       onTap: fnPath.isEmpty ? null : () => onRunAction(action),
     );
   }

@@ -10,6 +10,7 @@ import 'package:zephyr/page/search_result/bloc/search_bloc.dart';
 import 'package:zephyr/page/search_result/view/search_result_page.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
+import 'package:zephyr/icons/icons.dart';
 
 void onSearch(
   BuildContext context,
@@ -62,7 +63,7 @@ void onSearch(
         label: tabLabel,
         // 聚合结果跨全部插件，不隶属某一个插件，所以标签不带插件来源。
         source: '',
-        icon: Icons.search,
+        icon: AppGlyphs.search,
         content: (context) => page.wrappedRoute(context),
       );
       return;

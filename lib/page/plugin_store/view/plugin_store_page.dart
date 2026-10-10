@@ -9,6 +9,7 @@ import 'package:zephyr/page/plugin_store/widgets/cloud_plugin_card.dart';
 import 'package:zephyr/page/plugin_store/widgets/plugin_store_status_banner.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class PluginStorePage extends StatelessWidget {
@@ -85,7 +86,7 @@ class _PluginStorePageContentState extends State<_PluginStorePageContent> {
       enabled: !installing,
       decoration: InputDecoration(
         hintText: t.plugin.searchHint,
-        prefixIcon: const Icon(Icons.search),
+        prefixIcon: const GlyphIcon(AppGlyphs.search),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -108,12 +109,12 @@ class _PluginStorePageContentState extends State<_PluginStorePageContent> {
       children: [
         OutlinedButton.icon(
           onPressed: installing ? null : _installFromLocal,
-          icon: const Icon(Icons.folder_open_outlined, size: 18),
+          icon: const GlyphIcon(AppGlyphs.folder, size: 18),
           label: Text(t.plugin.localInstall),
         ),
         OutlinedButton.icon(
           onPressed: installing ? null : _installFromNetwork,
-          icon: const Icon(Icons.language_outlined, size: 18),
+          icon: const GlyphIcon(AppGlyphs.translate, size: 18),
           label: Text(t.plugin.networkInstall),
         ),
       ],
@@ -144,7 +145,7 @@ class _PluginStorePageContentState extends State<_PluginStorePageContent> {
         ],
         Row(
           children: [
-            const Icon(Icons.cloud_outlined, size: 18),
+            const GlyphIcon(AppGlyphs.cloud, size: 18),
             const SizedBox(width: 8),
             Text(
               t.plugin.cloudComponents,
@@ -163,7 +164,7 @@ class _PluginStorePageContentState extends State<_PluginStorePageContent> {
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.refresh),
+                  : const GlyphIcon(AppGlyphs.refresh),
             ),
           ],
         ),
@@ -190,7 +191,7 @@ class _PluginStorePageContentState extends State<_PluginStorePageContent> {
                   onPressed: state.cloudLoading
                       ? null
                       : context.read<PluginStoreCubit>().loadCloudPlugins,
-                  icon: const Icon(Icons.refresh),
+                  icon: const GlyphIcon(AppGlyphs.refresh),
                   label: Text(t.common.retry),
                 ),
               ],

@@ -25,6 +25,7 @@ import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/plugin/bridge/plugin_config_bridge.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class PluginSettingsPage extends StatelessWidget {
@@ -475,7 +476,7 @@ class _PluginSettingsPageViewState extends State<_PluginSettingsPageView> {
             IconButton(
               tooltip: t.plugin.sync,
               onPressed: _syncPlugin,
-              icon: const Icon(Icons.sync),
+              icon: const GlyphIcon(AppGlyphs.sync),
             ),
         ],
       ),

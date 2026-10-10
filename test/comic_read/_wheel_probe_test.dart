@@ -119,7 +119,7 @@ void main() {
     // ① 列表中间：纵向滚轮应当滚内容
     final before = vertical.pixels;
     await _wheel(tester, const Offset(0, 120));
-    debugPrint('① 中间纵向滚轮：vertical ${before} → ${vertical.pixels}');
+    debugPrint('① 中间纵向滚轮：vertical $before → ${vertical.pixels}');
     debugPrint('   横向 pixels=${horizontal.pixels} index=${controller.index}');
 
     // ② 滚到底，再滚一次纯纵向
@@ -157,7 +157,7 @@ void main() {
 
     final before = vertical.pixels;
     await _wheel(tester, const Offset(0, 120));
-    debugPrint('① 中间纵向滚轮：vertical ${before} → ${vertical.pixels}');
+    debugPrint('① 中间纵向滚轮：vertical $before → ${vertical.pixels}');
 
     vertical.jumpTo(vertical.maxScrollExtent);
     await tester.pumpAndSettle();

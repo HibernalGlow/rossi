@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:plat/plat.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/discover/service/discover_tabs.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 发现页标签（plat 的 `PlatTabGroup` 薄封装）的判据。
 ///
@@ -16,7 +17,7 @@ DiscoverTabs _tabs() => DiscoverTabs(
     source: '',
     pluginName: '',
     iconUrl: '',
-    icon: Icons.explore,
+    icon: AppGlyphs.compass,
     content: (context) => const SizedBox.shrink(),
   ),
 );
