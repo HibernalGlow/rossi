@@ -199,6 +199,39 @@ class _Translations$navigation$en_US extends Translations$navigation$zh_CN {
 	@override String get loginExpired => 'Login expired, please log in again';
 	@override String get needLoginTitle => 'Login required';
 	@override String get goLogin => 'Log in';
+	@override String get sidebarCollapse => 'Collapse sidebar';
+	@override String get sidebarExpand => 'Expand sidebar';
+	@override String get navigationChrome => 'Navigation';
+	@override String get sidebarEnabled => 'Arc-style sidebar';
+	@override String get sidebarEnabledSubtitle => 'Desktop and tablet navigate from a left sidebar; turn off for the previous rail';
+	@override String get sidebarExpanded => 'Sidebar expanded';
+	@override String get sidebarExpandedSubtitle => 'Expanded rows carry labels, collapsed ones only icons; the button at the top of the sidebar toggles it any time';
+	@override String get dockEnabled => 'Floating dock';
+	@override String get dockEnabledSubtitle => 'Narrow screens get a floating pill at the foot; turn off for the previous bottom bar';
+	@override String get autoNarrowMobileLayout => 'Switch to the mobile layout when narrow';
+	@override String get autoNarrowMobileLayoutSubtitle => 'Below the threshold, the sidebar gives way to the bottom dock (small desktop windows, split-screen tablets)';
+	@override String get narrowNavigationWidth => 'Narrow-screen threshold';
+	@override String get narrowNavigationWidthSubtitle => 'A window narrower than this many logical pixels counts as narrow';
+	@override String narrowNavigationWidthReset({required Object value}) => 'Reset to default (${value})';
+	@override String get moreActions => 'More actions';
+	@override String get customize => 'Customize navigation';
+	@override String get customizeTitle => 'Customize navigation';
+	@override String get customizeHint => 'Drag to reorder each section, add or hide freely; the arrow on an action moves it between the main area and the bottom shortcuts';
+	@override String get customizeMainSection => 'Main area';
+	@override String get customizeActionsSection => 'Bottom shortcuts';
+	@override String get customizeActionsHint => 'Shown at the sidebar foot, or in the dock\'s overflow menu — actions only';
+	@override String get customizeDesktopTab => 'Desktop sidebar';
+	@override String get customizeMobileTab => 'Mobile dock';
+	@override String get customizeReset => 'Reset';
+	@override String get customizeDone => 'Done';
+	@override String get customizeAvailable => 'Available items';
+	@override String get customizeHide => 'Hide';
+	@override String get customizeActionTag => 'Action';
+	@override String get customizeMoveToMain => 'Move to main area';
+	@override String get customizeMoveToActions => 'Move to bottom shortcuts';
+	@override String get workspace => 'Workspace';
+	@override String get openLocalComic => 'Open local comic';
+	@override String get gpuPresent => 'GPU present';
 }
 
 // Path: settings
@@ -408,8 +441,38 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get syncServiceS3 => 'S3';
 	@override String get autoSync => 'Auto sync';
 	@override String get autoSyncSubtitle => 'Sync configuration periodically in background';
-	@override String get syncNotify => 'Sync notifications';
-	@override String get syncNotifySubtitle => 'Notify when sync starts and completes';
+	@override String get notifyPersonalize => 'Toast preferences';
+	@override String get notifyPersonalizeSubtitle => 'Decide which background toasts may interrupt you; responses to your own actions always show';
+	@override String get notifySummaryMasterOff => 'Background toasts are muted';
+	@override String get notifySummaryAllOn => 'Every background toast rings';
+	@override String notifySummaryOffCount({required Object count}) => '${count} silenced';
+	@override String get notifySectionAmbient => 'Background toasts';
+	@override String get notifyMaster => 'Background toasts';
+	@override String get notifyMasterHint => 'Master switch. Turning it off silences everything below; button feedback is unaffected';
+	@override String get notifyMasterOffNote => 'Master switch is off: the values below are kept, but nothing rings right now.';
+	@override String get notifySectionOutside => 'Not covered by this table';
+	@override String get notifySystemChannelNote => 'System tray notifications (download finished, new chapters) are managed by the OS — turn them off in system settings, not here';
+	@override String notifyMergedSuffix({required Object count}) => ' (+${count} more of this kind)';
+	@override String get notifyTopicAction => 'Action feedback';
+	@override String get notifyTopicActionHint => 'The reply after you tap something. Always shown, otherwise the button reads as broken';
+	@override String get notifyTopicReaderSwitch => 'Reader switch toasts';
+	@override String get notifyTopicReaderSwitchHint => 'Book / page / last-page switches live on the workspace\'s "Switch toast" card';
+	@override String get notifyTopicSyncAutoSuccess => 'Auto sync succeeded';
+	@override String get notifyTopicSyncAutoSuccessHint => 'The periodic sync every 5 minutes; identical text is merged within 10 minutes';
+	@override String get notifyTopicSyncAutoFailure => 'Auto sync failed';
+	@override String get notifyTopicSyncAutoFailureHint => 'Used to knock every 5 minutes with no way to silence it; now one merged toast per 10 minutes';
+	@override String get notifyTopicDownloadComplete => 'Download finished';
+	@override String get notifyTopicDownloadCompleteHint => 'Once per comic; repeated callbacks for the same one merge within 60 seconds';
+	@override String get notifyTopicDownloadFailed => 'Download failed';
+	@override String get notifyTopicDownloadFailedHint => 'Different error texts count as different events and never merge';
+	@override String get notifyTopicFollowUpdate => 'New chapters (follow list)';
+	@override String get notifyTopicFollowUpdateHint => 'The automatic check after launch; manual refresh counts as action feedback and is never silenced';
+	@override String get notifyTopicPluginMessage => 'Plugin script messages';
+	@override String get notifyTopicPluginMessageHint => 'Toasts a source plugin raises itself; scripts can loop, so identical text merges within 3 seconds';
+	@override String get notifyTopicIntentOpen => 'Opened from outside';
+	@override String get notifyTopicIntentOpenHint => 'Where a system context-menu or link hand-off landed';
+	@override String get notifyTopicSystemPermission => 'Notification permission';
+	@override String get notifyTopicSystemPermissionHint => 'Shown when the startup request for OS notification permission was denied';
 	@override String get syncSettings => 'Sync settings';
 	@override String get syncSettingsSubtitle => 'Use cloud settings to override local settings';
 	@override String get syncPlugins => 'Sync plugins';
@@ -428,6 +491,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get splashPage => 'Startup page';
 	@override String get splashPageSubtitle => 'Choose startup page to open directly';
 	@override String get startWithWorkspace => 'Workspace';
+	@override String get workspaceSleepCoveredUi => 'Sleep home pages while workspace is open';
+	@override String get workspaceSleepCoveredUiSubtitle => 'Release image memory of covered lists; images reload when you return';
 	@override String get skipUpdateCheck => 'Skip update check';
 	@override String get skipUpdateCheckSubtitle => 'This build is a fork: it won\'t query the upstream release on startup and won\'t show update prompts';
 	@override String get desktopCloseBehavior => 'Close behavior';
@@ -474,6 +539,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get bookshelfRememberDownloadSort => 'Remember download sort';
 	@override String get bookshelfRememberDownloadSortSubtitle => 'Remember the last sort choice for downloads';
 	@override String get customExportPath => 'Custom export path';
+	@override String get exportIncludeCover => 'Include cover image in export';
+	@override String get exportIncludeCoverSubtitle => 'When on, the exported folder or zip also carries a cover image, fetched again at export time. Off by default: the artifact holds the pages plus the two info JSON files, and the cover is still shown online from the URL in that JSON';
 	@override String get storage => 'Storage';
 	@override String get cache => 'Cache';
 	@override String get clearCache => 'Clear cache';
@@ -610,7 +677,7 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get fileManagerRememberViewState => 'Remember view and sort per folder';
 	@override String get fileManagerRememberViewStateSubtitle => 'Each folder keeps its own view mode, sort and filter. When off, browsing works as usual but nothing is remembered';
 	@override String get fileManagerWrapGridTitle => 'Wrap file names in cover grid';
-	@override String get fileManagerWrapGridTitleSubtitle => 'Allow file names to wrap across multiple lines instead of being truncated';
+	@override String get fileManagerWrapGridTitleSubtitle => 'In the cover grid, file names wrap onto up to 6 lines. The tile keeps its height, so more lines squeeze the cover. When off, names are cut to 2 lines with an ellipsis. Either way, hovering anywhere on the tile reveals the full name';
 	@override String get fileManagerSectionSearch => 'Search';
 	@override String get fileManagerSearchSubfoldersDefault => 'Include subfolders by default';
 	@override String get fileManagerSearchSubfoldersDefaultSubtitle => 'New tabs start with subfolder search switched on. A whole-library scan takes tens of seconds on a slow drive, so the default stays the current folder; turn this on to skip clicking the chip every time';
@@ -2041,7 +2108,23 @@ class _Translations$fontSetting$en_US extends Translations$fontSetting$zh_CN {
 	// Translations
 	@override String get title => 'Font Settings';
 	@override String get clear => 'Clear';
-	@override String get hint => 'Select font files for each weight.';
+	@override String get hint => 'Pick one default font to apply everywhere; override individual weights only when needed.';
+	@override String get modeSystem => 'System default';
+	@override String get modeSystemHint => 'Use the app\'s default font stack — no setup needed.';
+	@override String get modeFamily => 'Installed font';
+	@override String get modeFamilyHint => 'Reference a font already installed in the system by family name (e.g. LXGW WenKai); falls back to system default if not found. Most reliable on desktop.';
+	@override String get modeFile => 'Font file';
+	@override String get modeFileHint => 'One file for the whole app; bolder weights are synthesized by the system.';
+	@override String get familyPickPrompt => 'Pick a font family';
+	@override String get familyPickerTitle => 'Choose a system font';
+	@override String get familySearchHint => 'Search font families…';
+	@override String familyManualUse({required Object name}) => 'Use "${name}"';
+	@override String get familyEmpty => 'No matching fonts';
+	@override String get familyLoading => 'Reading system fonts…';
+	@override String get defaultFont => 'Default font';
+	@override String get defaultFontHint => 'One file for the whole app; bolder weights are synthesized by the system.';
+	@override String get overrides => 'Weight overrides';
+	@override String get overridesHint => 'Optional: assign different files to specific weights; uncovered weights fall back to the nearest configured one.';
 	@override String get loadFailed => 'Font load failed';
 	@override String get cleared => 'Cleared';
 	@override String get saved => 'Saved';
@@ -2501,6 +2584,39 @@ extension on TranslationsEnUs {
 			'navigation.loginExpired' => 'Login expired, please log in again',
 			'navigation.needLoginTitle' => 'Login required',
 			'navigation.goLogin' => 'Log in',
+			'navigation.sidebarCollapse' => 'Collapse sidebar',
+			'navigation.sidebarExpand' => 'Expand sidebar',
+			'navigation.navigationChrome' => 'Navigation',
+			'navigation.sidebarEnabled' => 'Arc-style sidebar',
+			'navigation.sidebarEnabledSubtitle' => 'Desktop and tablet navigate from a left sidebar; turn off for the previous rail',
+			'navigation.sidebarExpanded' => 'Sidebar expanded',
+			'navigation.sidebarExpandedSubtitle' => 'Expanded rows carry labels, collapsed ones only icons; the button at the top of the sidebar toggles it any time',
+			'navigation.dockEnabled' => 'Floating dock',
+			'navigation.dockEnabledSubtitle' => 'Narrow screens get a floating pill at the foot; turn off for the previous bottom bar',
+			'navigation.autoNarrowMobileLayout' => 'Switch to the mobile layout when narrow',
+			'navigation.autoNarrowMobileLayoutSubtitle' => 'Below the threshold, the sidebar gives way to the bottom dock (small desktop windows, split-screen tablets)',
+			'navigation.narrowNavigationWidth' => 'Narrow-screen threshold',
+			'navigation.narrowNavigationWidthSubtitle' => 'A window narrower than this many logical pixels counts as narrow',
+			'navigation.narrowNavigationWidthReset' => ({required Object value}) => 'Reset to default (${value})',
+			'navigation.moreActions' => 'More actions',
+			'navigation.customize' => 'Customize navigation',
+			'navigation.customizeTitle' => 'Customize navigation',
+			'navigation.customizeHint' => 'Drag to reorder each section, add or hide freely; the arrow on an action moves it between the main area and the bottom shortcuts',
+			'navigation.customizeMainSection' => 'Main area',
+			'navigation.customizeActionsSection' => 'Bottom shortcuts',
+			'navigation.customizeActionsHint' => 'Shown at the sidebar foot, or in the dock\'s overflow menu — actions only',
+			'navigation.customizeDesktopTab' => 'Desktop sidebar',
+			'navigation.customizeMobileTab' => 'Mobile dock',
+			'navigation.customizeReset' => 'Reset',
+			'navigation.customizeDone' => 'Done',
+			'navigation.customizeAvailable' => 'Available items',
+			'navigation.customizeHide' => 'Hide',
+			'navigation.customizeActionTag' => 'Action',
+			'navigation.customizeMoveToMain' => 'Move to main area',
+			'navigation.customizeMoveToActions' => 'Move to bottom shortcuts',
+			'navigation.workspace' => 'Workspace',
+			'navigation.openLocalComic' => 'Open local comic',
+			'navigation.gpuPresent' => 'GPU present',
 			'settings.title' => 'Settings',
 			'settings.globalTitle' => 'Settings',
 			'settings.appearance' => 'Appearance',
@@ -2701,8 +2817,38 @@ extension on TranslationsEnUs {
 			'settings.syncServiceS3' => 'S3',
 			'settings.autoSync' => 'Auto sync',
 			'settings.autoSyncSubtitle' => 'Sync configuration periodically in background',
-			'settings.syncNotify' => 'Sync notifications',
-			'settings.syncNotifySubtitle' => 'Notify when sync starts and completes',
+			'settings.notifyPersonalize' => 'Toast preferences',
+			'settings.notifyPersonalizeSubtitle' => 'Decide which background toasts may interrupt you; responses to your own actions always show',
+			'settings.notifySummaryMasterOff' => 'Background toasts are muted',
+			'settings.notifySummaryAllOn' => 'Every background toast rings',
+			'settings.notifySummaryOffCount' => ({required Object count}) => '${count} silenced',
+			'settings.notifySectionAmbient' => 'Background toasts',
+			'settings.notifyMaster' => 'Background toasts',
+			'settings.notifyMasterHint' => 'Master switch. Turning it off silences everything below; button feedback is unaffected',
+			'settings.notifyMasterOffNote' => 'Master switch is off: the values below are kept, but nothing rings right now.',
+			'settings.notifySectionOutside' => 'Not covered by this table',
+			'settings.notifySystemChannelNote' => 'System tray notifications (download finished, new chapters) are managed by the OS — turn them off in system settings, not here',
+			'settings.notifyMergedSuffix' => ({required Object count}) => ' (+${count} more of this kind)',
+			'settings.notifyTopicAction' => 'Action feedback',
+			'settings.notifyTopicActionHint' => 'The reply after you tap something. Always shown, otherwise the button reads as broken',
+			'settings.notifyTopicReaderSwitch' => 'Reader switch toasts',
+			'settings.notifyTopicReaderSwitchHint' => 'Book / page / last-page switches live on the workspace\'s "Switch toast" card',
+			'settings.notifyTopicSyncAutoSuccess' => 'Auto sync succeeded',
+			'settings.notifyTopicSyncAutoSuccessHint' => 'The periodic sync every 5 minutes; identical text is merged within 10 minutes',
+			'settings.notifyTopicSyncAutoFailure' => 'Auto sync failed',
+			'settings.notifyTopicSyncAutoFailureHint' => 'Used to knock every 5 minutes with no way to silence it; now one merged toast per 10 minutes',
+			'settings.notifyTopicDownloadComplete' => 'Download finished',
+			'settings.notifyTopicDownloadCompleteHint' => 'Once per comic; repeated callbacks for the same one merge within 60 seconds',
+			'settings.notifyTopicDownloadFailed' => 'Download failed',
+			'settings.notifyTopicDownloadFailedHint' => 'Different error texts count as different events and never merge',
+			'settings.notifyTopicFollowUpdate' => 'New chapters (follow list)',
+			'settings.notifyTopicFollowUpdateHint' => 'The automatic check after launch; manual refresh counts as action feedback and is never silenced',
+			'settings.notifyTopicPluginMessage' => 'Plugin script messages',
+			'settings.notifyTopicPluginMessageHint' => 'Toasts a source plugin raises itself; scripts can loop, so identical text merges within 3 seconds',
+			'settings.notifyTopicIntentOpen' => 'Opened from outside',
+			'settings.notifyTopicIntentOpenHint' => 'Where a system context-menu or link hand-off landed',
+			'settings.notifyTopicSystemPermission' => 'Notification permission',
+			'settings.notifyTopicSystemPermissionHint' => 'Shown when the startup request for OS notification permission was denied',
 			'settings.syncSettings' => 'Sync settings',
 			'settings.syncSettingsSubtitle' => 'Use cloud settings to override local settings',
 			'settings.syncPlugins' => 'Sync plugins',
@@ -2721,6 +2867,8 @@ extension on TranslationsEnUs {
 			'settings.splashPage' => 'Startup page',
 			'settings.splashPageSubtitle' => 'Choose startup page to open directly',
 			'settings.startWithWorkspace' => 'Workspace',
+			'settings.workspaceSleepCoveredUi' => 'Sleep home pages while workspace is open',
+			'settings.workspaceSleepCoveredUiSubtitle' => 'Release image memory of covered lists; images reload when you return',
 			'settings.skipUpdateCheck' => 'Skip update check',
 			'settings.skipUpdateCheckSubtitle' => 'This build is a fork: it won\'t query the upstream release on startup and won\'t show update prompts',
 			'settings.desktopCloseBehavior' => 'Close behavior',
@@ -2767,6 +2915,8 @@ extension on TranslationsEnUs {
 			'settings.bookshelfRememberDownloadSort' => 'Remember download sort',
 			'settings.bookshelfRememberDownloadSortSubtitle' => 'Remember the last sort choice for downloads',
 			'settings.customExportPath' => 'Custom export path',
+			'settings.exportIncludeCover' => 'Include cover image in export',
+			'settings.exportIncludeCoverSubtitle' => 'When on, the exported folder or zip also carries a cover image, fetched again at export time. Off by default: the artifact holds the pages plus the two info JSON files, and the cover is still shown online from the URL in that JSON',
 			'settings.storage' => 'Storage',
 			'settings.cache' => 'Cache',
 			'settings.clearCache' => 'Clear cache',
@@ -2852,6 +3002,8 @@ extension on TranslationsEnUs {
 			'settings.colorPreviewLoadSuccess' => 'Font loaded. Compare different weights.',
 			'settings.colorPreviewLoadFailed' => ({required Object error}) => 'Font load failed: ${error}',
 			'settings.colorRed' => 'Red',
+			_ => null,
+		} ?? switch (path) {
 			'settings.colorPink' => 'Pink',
 			'settings.colorPurple' => 'Purple',
 			'settings.colorDeepPurple' => 'Deep purple',
@@ -2903,7 +3055,7 @@ extension on TranslationsEnUs {
 			'settings.fileManagerRememberViewState' => 'Remember view and sort per folder',
 			'settings.fileManagerRememberViewStateSubtitle' => 'Each folder keeps its own view mode, sort and filter. When off, browsing works as usual but nothing is remembered',
 			'settings.fileManagerWrapGridTitle' => 'Wrap file names in cover grid',
-			'settings.fileManagerWrapGridTitleSubtitle' => 'Allow file names to wrap across multiple lines instead of being truncated',
+			'settings.fileManagerWrapGridTitleSubtitle' => 'In the cover grid, file names wrap onto up to 6 lines. The tile keeps its height, so more lines squeeze the cover. When off, names are cut to 2 lines with an ellipsis. Either way, hovering anywhere on the tile reveals the full name',
 			'settings.fileManagerSectionSearch' => 'Search',
 			'settings.fileManagerSearchSubfoldersDefault' => 'Include subfolders by default',
 			'settings.fileManagerSearchSubfoldersDefaultSubtitle' => 'New tabs start with subfolder search switched on. A whole-library scan takes tens of seconds on a slow drive, so the default stays the current folder; turn this on to skip clicking the chip every time',
@@ -2919,8 +3071,6 @@ extension on TranslationsEnUs {
 			'settings.shellIntegrationContextMenuSubtitle' => 'Writes to the current user\'s registry (HKCU), no administrator needed. The entry appears on files, on folders and on a folder\'s background. While Rossi is already running a new folder is not handed to it yet - open a second window instead.',
 			'settings.shellIntegrationRegistered' => 'Added to the context menu',
 			'settings.shellIntegrationUnregistered' => 'Removed from the context menu',
-			_ => null,
-		} ?? switch (path) {
 			'settings.shellIntegrationStalePath' => 'The menu entry points at a different Rossi build; switch it off and on again to fix it',
 			'settings.shellIntegrationRepair' => 'Repair path',
 			'settings.shellIntegrationMacHint' => 'On macOS “Open With ‣ Rossi” comes from the document types the app bundle declares - always available, no switch. This toggle only affects Windows.',
@@ -3364,6 +3514,8 @@ extension on TranslationsEnUs {
 			'reader.hoverRevealEnabled' => 'Edge Hover Reveal Toolbars',
 			'reader.hoverRevealEnabledSubtitle' => 'Automatically show toolbars when mouse moves to top or bottom edge (NeoView style)',
 			'reader.thumbnailStrip' => 'Bottom thumbnail strip',
+			_ => null,
+		} ?? switch (path) {
 			'reader.thumbnailStripSubtitle' => 'Expand per-page thumbnails in the control bar, fused with the progress bar; stays on across books, chapters and restarts',
 			'reader.transparentTopBar' => 'Transparent top bar',
 			'reader.transparentTopBarSubtitle' => 'Drop the glass material for a translucent scrim so the page shows through (JHenTai style)',
@@ -3431,8 +3583,6 @@ extension on TranslationsEnUs {
 			'reader.showInStatusBarSubtitle' => 'Top info bar enters system status bar area',
 			'reader.edgePadding' => 'Edge padding',
 			'reader.infoBarStyle' => 'Info bar style',
-			_ => null,
-		} ?? switch (path) {
 			'reader.backgroundOpacity' => 'Background opacity',
 			'reader.fontSize' => 'Font size',
 			'reader.allHiddenNotice' => 'All hidden, info bar will be completely hidden',
@@ -3878,6 +4028,8 @@ extension on TranslationsEnUs {
 			'about.disclaimerItem2Title' => '2. Limitation of Liability',
 			'about.disclaimerItem2Content' => 'The developer shall not be liable for any direct, indirect, special, incidental, or consequential damages arising from use, modification, or distribution of this project (including but not limited to direct use, secondary development, or integration into other projects). These damages may include but are not limited to data loss, device damage, business interruption, lost profits, or other economic losses.',
 			'about.disclaimerItem3Title' => '3. User Responsibility',
+			_ => null,
+		} ?? switch (path) {
 			'about.disclaimerItem3Content' => 'Users should evaluate suitability and assume all risks when using this project. Users must ensure their use complies with applicable laws, regulations, and ethical standards. The developer is not responsible for consequences resulting from violations of laws or misuse.',
 			'about.disclaimerItem4Title' => '4. Third-Party Dependencies and Resources',
 			'about.disclaimerItem4Content' => 'This project may depend on or reference third-party libraries, tools, services, or other resources. The developer is not responsible for the content, functionality, security, or legality of these third-party resources. Users should evaluate and assume risks themselves.',
@@ -3945,8 +4097,6 @@ extension on TranslationsEnUs {
 			'search.excludeSearchDesc' => 'Show \'colorful\' results excluding \'married\'',
 			'search.fuzzySearchTitle' => 'Fuzzy search (OR)',
 			'search.fuzzySearchExample' => 'colorful married',
-			_ => null,
-		} ?? switch (path) {
 			'search.fuzzySearchDesc' => 'Show results containing any keyword',
 			'search.selectCategory' => 'Select Category',
 			'search.dataSource' => 'Data Source',
@@ -4106,7 +4256,23 @@ extension on TranslationsEnUs {
 			'login.loginNotSupported' => 'This plugin doesn\'t support the new login page yet. Please fill in your account in plugin settings.',
 			'fontSetting.title' => 'Font Settings',
 			'fontSetting.clear' => 'Clear',
-			'fontSetting.hint' => 'Select font files for each weight.',
+			'fontSetting.hint' => 'Pick one default font to apply everywhere; override individual weights only when needed.',
+			'fontSetting.modeSystem' => 'System default',
+			'fontSetting.modeSystemHint' => 'Use the app\'s default font stack — no setup needed.',
+			'fontSetting.modeFamily' => 'Installed font',
+			'fontSetting.modeFamilyHint' => 'Reference a font already installed in the system by family name (e.g. LXGW WenKai); falls back to system default if not found. Most reliable on desktop.',
+			'fontSetting.modeFile' => 'Font file',
+			'fontSetting.modeFileHint' => 'One file for the whole app; bolder weights are synthesized by the system.',
+			'fontSetting.familyPickPrompt' => 'Pick a font family',
+			'fontSetting.familyPickerTitle' => 'Choose a system font',
+			'fontSetting.familySearchHint' => 'Search font families…',
+			'fontSetting.familyManualUse' => ({required Object name}) => 'Use "${name}"',
+			'fontSetting.familyEmpty' => 'No matching fonts',
+			'fontSetting.familyLoading' => 'Reading system fonts…',
+			'fontSetting.defaultFont' => 'Default font',
+			'fontSetting.defaultFontHint' => 'One file for the whole app; bolder weights are synthesized by the system.',
+			'fontSetting.overrides' => 'Weight overrides',
+			'fontSetting.overridesHint' => 'Optional: assign different files to specific weights; uncovered weights fall back to the nearest configured one.',
 			'fontSetting.loadFailed' => 'Font load failed',
 			'fontSetting.cleared' => 'Cleared',
 			'fontSetting.saved' => 'Saved',
@@ -4376,6 +4542,8 @@ extension on TranslationsEnUs {
 			'bindingEditor.bindings' => 'Bindings',
 			'bindingEditor.restore' => 'Restore defaults',
 			'bindingEditor.resetFilters' => 'Clear filters',
+			_ => null,
+		} ?? switch (path) {
 			'plat.openAbove' => 'Open above',
 			'plat.openBelow' => 'Open below',
 			'plat.openLeft' => 'Open left',
