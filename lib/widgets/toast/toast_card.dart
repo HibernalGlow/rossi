@@ -7,6 +7,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/util/theme/status_accent.dart';
 import 'package:zephyr/util/toast/toast_style.dart';
 import 'package:zephyr/widgets/glass/liquid_glass.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 提示条类型。
 ///
@@ -28,16 +29,16 @@ Color _toastAccentColor(BuildContext context, ToastType type) {
   }
 }
 
-IconData _toastIcon(ToastType type) {
+Glyph _toastIcon(ToastType type) {
   switch (type) {
     case ToastType.info:
-      return Icons.info_outline;
+      return AppGlyphs.info;
     case ToastType.success:
-      return Icons.check_circle_outline;
+      return AppGlyphs.checkCircle;
     case ToastType.warning:
-      return Icons.warning_amber_outlined;
+      return AppGlyphs.error;
     case ToastType.error:
-      return Icons.error_outline;
+      return AppGlyphs.error;
   }
 }
 
@@ -108,7 +109,7 @@ class _ToastCardState extends State<ToastCard>
               if (spec.showIcon) ...[
                 Padding(
                   padding: const EdgeInsets.only(top: 1),
-                  child: Icon(_toastIcon(widget.type), size: 19, color: accent),
+                  child: GlyphIcon(_toastIcon(widget.type), size: 19, color: accent),
                 ),
                 const SizedBox(width: 10),
               ],
@@ -236,8 +237,8 @@ class _ToastCloseButton extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         child: Padding(
           padding: const EdgeInsets.all(4),
-          child: Icon(
-            Icons.close,
+          child: GlyphIcon(
+            AppGlyphs.close,
             size: 15,
             color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
           ),

@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:zephyr/config/global/global.dart';
 import 'package:zephyr/platform/desktop/native_window.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// Material 3 风格的自定义标题栏（仅桌面平台使用）
 ///
@@ -136,21 +137,21 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
           // macOS 的控制按钮在左边，所以右边的自定义按钮应该隐藏
           if (!isMacOS) ...[
             _TitleBarButton(
-              icon: Icons.minimize_rounded,
+              icon: AppGlyphs.windowMinimize,
               onPressed: _minimize,
               hoverColor: colorScheme.onSurface.withValues(alpha: 0.08),
               iconColor: colorScheme.onSurfaceVariant,
             ),
             _TitleBarButton(
               icon: _isMaximized
-                  ? Icons.filter_none_rounded
-                  : Icons.crop_square_rounded,
+                  ? AppGlyphs.windowRestore
+                  : AppGlyphs.windowMaximize,
               onPressed: _toggleMaximize,
               hoverColor: colorScheme.onSurface.withValues(alpha: 0.08),
               iconColor: colorScheme.onSurfaceVariant,
             ),
             _TitleBarButton(
-              icon: Icons.close_rounded,
+              icon: AppGlyphs.close,
               onPressed: _handleClose,
               hoverColor: Colors.red,
               hoverIconColor: Colors.white,
@@ -165,7 +166,7 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
 
 /// 标题栏上的单个按钮
 class _TitleBarButton extends StatefulWidget {
-  final IconData icon;
+  final Glyph icon;
   final VoidCallback onPressed;
   final Color hoverColor;
   final Color iconColor;
@@ -197,7 +198,7 @@ class _TitleBarButtonState extends State<_TitleBarButton> {
           width: 46,
           height: 40,
           color: _isHovered ? widget.hoverColor : Colors.transparent,
-          child: Icon(
+          child: GlyphIcon(
             widget.icon,
             size: 18,
             color: _isHovered

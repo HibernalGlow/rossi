@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class SectionHeader extends StatelessWidget {
   const SectionHeader({
@@ -55,8 +56,8 @@ class SectionHeader extends StatelessWidget {
                   ),
                 ),
               if (canNavigate)
-                Icon(
-                  Icons.arrow_forward_ios,
+                GlyphIcon(
+                  AppGlyphs.chevronForward,
                   size: 16,
                   color: context.theme.colorScheme.onSurface.withValues(
                     alpha: 0.5,
