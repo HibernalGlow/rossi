@@ -23,6 +23,7 @@ dependencies:
   flutter_bloc: ^9.0.0 # 状态: Flutter BLoC 组件
   bloc_concurrency: ^0.3.0 # 状态: 事件并发策略
   event_bus: ^2.0.1 # 事件: 全局事件总线
+  rxdart: ^0.28.0 # 事件: 提示网关的流编排（分组/节流）
 
   # UI 组件与交互
   dynamic_color: ^2.1.0 # UI: 动态取色
@@ -66,6 +67,7 @@ dependencies:
   media_kit_libs_video: ^1.0.7 # 视频: 各平台 libmpv 预编译产物
   path_provider: ^2.1.5 # 文件: 常用目录路径
   path: ^1.9.0 # 文件: 路径处理
+  path_parsing: ^1.1.0 # 图标: 自绘 glyph 里的 SVG path 段（lib/icons/glyph.dart）
   open_file: ^4.0.0 # 文件: 系统打开文件
   gal: ^2.3.2 # 媒体: 保存到系统相册
   pool: ^1.5.2 # 工具: 并发资源池
@@ -104,7 +106,10 @@ dependencies:
   worker_manager: ^7.2.9 # 并发: 全局 Isolate 任务池管理
   coreml_upscale: # MacOS/iOS 超分
     path: packages/coreml_upscale
-  plat: ^0.1.1
+  # Vendored（MIT，溯源与改动见 vendor/plat/VENDORED.md）：
+  # 触摸拖拽在 acceptsDrops:false 的组里纯抢手势，上游无此开关，故走本地副本。
+  plat:
+    path: vendor/plat
 
 dev_dependencies:
   # 测试与规范

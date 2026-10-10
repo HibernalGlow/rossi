@@ -98,6 +98,10 @@ tz-rs = "0.7.3"
 icu_locale = { version = "2.2.0", features = ["compiled_data"] }
 icu_time = "2.2.0"
 terminal_size = "0.4.4"
+# 系统已安装字体家族枚举（字体设置页「系统已装字体」档的选择器数据源）。
+# 按目标平台走原生字体库：macOS/iOS = CoreText，Windows = DirectWrite，Linux = fontconfig。
+# 只开 `source`（枚举），不拉 freetype loader，省掉 Linux 构建的 freetype 依赖。
+font-kit = { version = "0.14", default-features = false, features = ["source"] }
 ferrous-opencc = { version = "0.4.0", features = ["japanese-conversion"] }
 brotli = "8.0.4"
 sevenz-rust = "0.6.1"
