@@ -18,6 +18,7 @@ import 'package:zephyr/service/download/models/download_task_json.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 弹出阅读器下载管理面板
 Future<void> showReaderDownloadSheet(
@@ -186,7 +187,7 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
       padding: const EdgeInsets.fromLTRB(20, 16, 12, 12),
       child: Row(
         children: [
-          Icon(Icons.download_rounded, color: colorScheme.primary),
+          GlyphIcon(AppGlyphs.download, color: colorScheme.primary),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -211,7 +212,7 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close_rounded),
+            icon: const GlyphIcon(AppGlyphs.close),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ],
@@ -235,34 +236,34 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
 
     String statusText;
     Color statusColor;
-    IconData statusIcon;
+    Glyph statusIcon;
 
     // 进行中 / 失败 / 未下载走 M3 角色；暂停与完成没有角色可用，
     // 交给 statusAccent 按亮度取一档能看清的绿/橙。
     if (isDownloading) {
       statusText = t.reader.downloadStatusDownloading;
       statusColor = colorScheme.primary;
-      statusIcon = Icons.downloading_rounded;
+      statusIcon = AppGlyphs.downloading;
     } else if (isPaused) {
       statusText = t.reader.downloadStatusPaused;
       statusColor = statusAccent(context, StatusHue.warning);
-      statusIcon = Icons.pause_circle_outline_rounded;
+      statusIcon = AppGlyphs.pauseCircle;
     } else if (isFailed) {
       statusText = t.reader.downloadStatusFailed;
       statusColor = colorScheme.error;
-      statusIcon = Icons.error_outline_rounded;
+      statusIcon = AppGlyphs.error;
     } else if (isCompleted) {
       statusText = t.reader.downloadStatusCompleted;
       statusColor = statusAccent(context, StatusHue.success);
-      statusIcon = Icons.check_circle_outline_rounded;
+      statusIcon = AppGlyphs.checkCircle;
     } else if (dbTask != null) {
       statusText = t.reader.downloadStatusQueued;
       statusColor = colorScheme.tertiary;
-      statusIcon = Icons.schedule_rounded;
+      statusIcon = AppGlyphs.clock;
     } else {
       statusText = '未下载';
       statusColor = colorScheme.onSurfaceVariant;
-      statusIcon = Icons.cloud_download_outlined;
+      statusIcon = AppGlyphs.cloudDownload;
     }
 
     final fraction = payload == null
@@ -286,7 +287,7 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
         children: [
           Row(
             children: [
-              Icon(statusIcon, color: statusColor, size: 20),
+              GlyphIcon(statusIcon, color: statusColor, size: 20),
               const SizedBox(width: 8),
               Text(
                 statusText,
@@ -360,7 +361,7 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
         // 1. 开始 / 继续 / 暂停 按钮
         if (!hasTask && !isDownloaded)
           FilledButton.icon(
-            icon: const Icon(Icons.download_rounded),
+            icon: const GlyphIcon(AppGlyphs.download),
             label: Text(t.reader.startDownload),
             onPressed: () {
               startComicDownload(
@@ -375,7 +376,7 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
           ),
         if (isDownloading)
           FilledButton.tonalIcon(
-            icon: const Icon(Icons.pause_rounded),
+            icon: const GlyphIcon(AppGlyphs.pause),
             label: Text(t.reader.pauseDownload),
             onPressed: chapterTaskKey == null
                 ? null
@@ -386,7 +387,7 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
           ),
         if (isPaused)
           FilledButton.icon(
-            icon: const Icon(Icons.play_arrow_rounded),
+            icon: const GlyphIcon(AppGlyphs.play),
             label: Text(t.reader.resumeDownload),
             onPressed: chapterTaskKey == null
                 ? null
@@ -397,7 +398,7 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
           ),
         if (isFailed)
           FilledButton.icon(
-            icon: const Icon(Icons.refresh_rounded),
+            icon: const GlyphIcon(AppGlyphs.refresh),
             label: Text(t.common.retry),
             onPressed: () {
               if (dbTask != null) {
@@ -409,7 +410,7 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
         // 2. 重新下载按钮
         if (hasTask || isDownloaded)
           OutlinedButton.icon(
-            icon: const Icon(Icons.replay_rounded),
+            icon: const GlyphIcon(AppGlyphs.reset),
             label: Text(t.reader.restartDownload),
             onPressed: () => _confirmRestartDownload(context),
           ),
@@ -417,7 +418,7 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
         // 3. 删除下载按钮
         if (hasTask || isDownloaded)
           OutlinedButton.icon(
-            icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+            icon: const GlyphIcon(AppGlyphs.delete, color: Colors.red),
             label: Text(
               t.reader.deleteDownload,
               style: const TextStyle(color: Colors.red),
@@ -427,7 +428,7 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
 
         // 4. 查看全部下载任务
         TextButton.icon(
-          icon: const Icon(Icons.list_alt_rounded),
+          icon: const GlyphIcon(AppGlyphs.layoutList),
           label: Text(t.reader.viewAllTasks),
           onPressed: () {
             Navigator.of(context).pop();
@@ -446,7 +447,7 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
       children: [
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
-          secondary: const Icon(Icons.sync_rounded),
+          secondary: const GlyphIcon(AppGlyphs.sync),
           title: Text(t.reader.readWhileDownloading),
           subtitle: Text(t.reader.readWhileDownloadingSubtitle),
           value: globalState.readSetting.readWhileDownloading,
@@ -458,7 +459,7 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
-          secondary: const Icon(Icons.bookmark_add_outlined),
+          secondary: const GlyphIcon(AppGlyphs.bookmark),
           title: Text(t.settings.autoFavoriteOnDownload),
           subtitle: Text(t.settings.autoFavoriteOnDownloadSubtitle),
           value: globalState.autoFavoriteOnDownload,

@@ -23,6 +23,7 @@ import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/reader_hover_reveal_layer.dart';
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class BottomWidget extends StatefulWidget {
   final ComicEntryType type;
@@ -366,22 +367,22 @@ class _BottomWidgetState extends State<BottomWidget> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         ChapterNavigationButton(
-          icon: Icons.skip_previous_rounded,
+          icon: AppGlyphs.skipPrevious,
           tooltip: t.reader.previousChapter,
           isEnabled: jumpChapter.havePrev,
           onTap: () => _jumpToChapter(true),
         ),
         const SizedBox(width: 10),
         FloatingActionIconButton(
-          icon: Icons.home_rounded,
+          icon: AppGlyphs.home,
           tooltip: t.reader.backToHome,
           onPressed: () => popToRoot(context),
         ),
         const SizedBox(width: 10),
         FloatingActionIconButton(
           icon: showThumbnailStrip
-              ? Icons.photo_library_rounded
-              : Icons.photo_library_outlined,
+              ? AppGlyphs.photos
+              : AppGlyphs.photos,
           tooltip: showThumbnailStrip
               ? t.reader.thumbnailStripCollapse
               : t.reader.thumbnailStripExpand,
@@ -393,7 +394,7 @@ class _BottomWidgetState extends State<BottomWidget> {
         // 钉住底栏（neo 的 edge `pinned`）：钉住之后这一条不再被「点中间收起」
         // 或指针离开边缘收走；取消钉住立刻交还给那两套自动收起。
         FloatingActionIconButton(
-          icon: bottomPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+          icon: AppGlyphs.pin,
           tooltip: bottomPinned
               ? t.reader.unpinBottomBar
               : t.reader.pinBottomBar,
@@ -405,20 +406,20 @@ class _BottomWidgetState extends State<BottomWidget> {
         ),
         const SizedBox(width: 10),
         FloatingActionIconButton(
-          icon: Icons.list_alt_rounded,
+          icon: AppGlyphs.layoutList,
           tooltip: t.reader.selectChapter,
           isEnabled: chapterRefs.isNotEmpty,
           onPressed: _selectJumpChapter,
         ),
         const SizedBox(width: 10),
         FloatingActionIconButton(
-          icon: Icons.tune_rounded,
+          icon: AppGlyphs.sliders,
           tooltip: t.reader.settings,
           onPressed: _openSettingsPanel,
         ),
         const SizedBox(width: 10),
         ChapterNavigationButton(
-          icon: Icons.skip_next_rounded,
+          icon: AppGlyphs.skipNext,
           tooltip: t.reader.nextChapter,
           isEnabled: jumpChapter.haveNext,
           onTap: () => _jumpToChapter(false),
@@ -643,8 +644,8 @@ class _ChapterPickerDialogState extends State<_ChapterPickerDialog> {
                   children: [
                     Expanded(child: Text(ref.name)),
                     if (isCurrent)
-                      Icon(
-                        Icons.check_circle_rounded,
+                      GlyphIcon(
+                        AppGlyphs.checkCircle,
                         size: 18,
                         color: colorScheme.primary,
                       ),
@@ -666,7 +667,7 @@ class _ChapterPickerDialogState extends State<_ChapterPickerDialog> {
 }
 
 class ChapterNavigationButton extends StatelessWidget {
-  final IconData icon;
+  final Glyph icon;
   final String tooltip;
   final bool isEnabled;
   final VoidCallback onTap;
@@ -698,7 +699,7 @@ class ChapterNavigationButton extends StatelessWidget {
 }
 
 class FloatingActionIconButton extends StatelessWidget {
-  final IconData icon;
+  final Glyph icon;
   final String tooltip;
   final bool isEnabled;
   final bool isSelected;
@@ -721,6 +722,7 @@ class FloatingActionIconButton extends StatelessWidget {
       isEnabled: isEnabled,
       onPressed: onPressed,
       icon: icon,
+      filled: isSelected,
       foregroundColor: isSelected
           ? colorScheme.onPrimary
           : colorScheme.onPrimaryContainer,
@@ -738,7 +740,7 @@ class _FrostedCircleIconButton extends StatelessWidget {
   final String tooltip;
   final bool isEnabled;
   final VoidCallback onPressed;
-  final IconData icon;
+  final Glyph icon;
   final Color foregroundColor;
   final Color backgroundColor;
   final Color disabledBackgroundColor;
@@ -748,10 +750,14 @@ class _FrostedCircleIconButton extends StatelessWidget {
     required this.isEnabled,
     required this.onPressed,
     required this.icon,
+    this.filled = false,
     required this.foregroundColor,
     required this.backgroundColor,
     required this.disabledBackgroundColor,
   });
+
+  /// 选中即填充：开关那颗（钉住）fill 0→1，与顶栏/侧栏同一口径。
+  final bool filled;
 
   @override
   Widget build(BuildContext context) {
@@ -775,7 +781,7 @@ class _FrostedCircleIconButton extends StatelessWidget {
           ),
           disabledBackgroundColor: disabledBackgroundColor,
         ),
-        icon: Icon(icon),
+        icon: AnimatedGlyph(glyph: icon, filled: filled),
       ),
     );
   }

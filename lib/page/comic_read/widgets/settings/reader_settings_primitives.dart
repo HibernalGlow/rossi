@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 阅读设置那一套**行级控件**的唯一出处。
 ///
@@ -15,7 +16,7 @@ import 'package:zephyr/widgets/fluent_dropdown.dart';
 /// 一节：一个带图标的小标题 + 若干组。
 class SettingsSection extends StatelessWidget {
   final String title;
-  final IconData? icon;
+  final Glyph? icon;
   final List<Widget> children;
 
   const SettingsSection({
@@ -37,7 +38,7 @@ class SettingsSection extends StatelessWidget {
           child: Row(
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 16, color: colorScheme.primary),
+                GlyphIcon(icon, size: 16, color: colorScheme.primary),
                 const SizedBox(width: 6),
               ],
               Text(
@@ -523,8 +524,8 @@ class SettingsNoticeCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.info_outline_rounded,
+          GlyphIcon(
+            AppGlyphs.info,
             size: 18,
             color: colorScheme.onSecondaryContainer,
           ),

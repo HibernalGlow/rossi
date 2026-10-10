@@ -15,6 +15,7 @@ import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/widgets/app_log_dialog.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 阅读时真会去拨的那几颗翻译开关，加一颗按页自动译 —— 面板与卡片共用的一份实现。
 ///
@@ -217,8 +218,8 @@ class TranslateSettingsSectionState extends State<TranslateSettingsSection> {
               color: colorScheme.outlineVariant.withValues(alpha: 0.45),
             ),
           ),
-          leading: Icon(
-            endpointMissing ? Icons.error_outline : Icons.tune_rounded,
+          leading: GlyphIcon(
+            endpointMissing ? AppGlyphs.error : AppGlyphs.sliders,
             color: endpointMissing ? colorScheme.error : colorScheme.primary,
           ),
           title: Text(
@@ -236,12 +237,12 @@ class TranslateSettingsSectionState extends State<TranslateSettingsSection> {
               color: colorScheme.onSurfaceVariant,
             ),
           ),
-          trailing: Icon(
+          trailing: GlyphIcon(
             inline
                 ? (expanded
-                      ? Icons.keyboard_arrow_up_rounded
-                      : Icons.keyboard_arrow_down_rounded)
-                : Icons.chevron_right,
+                      ? AppGlyphs.chevronUp
+                      : AppGlyphs.chevronDown)
+                : AppGlyphs.chevronForward,
           ),
           onTap: inline
               ? () => setState(() => _fullExpanded = !expanded)
@@ -285,7 +286,7 @@ class TranslateSettingsSectionState extends State<TranslateSettingsSection> {
       children: [
         SettingsSection(
           title: t.ocr.title,
-          icon: Icons.translate_outlined,
+          icon: AppGlyphs.translate,
           children: [
             SettingsCardGroup(
               children: [
@@ -334,7 +335,7 @@ class TranslateSettingsSectionState extends State<TranslateSettingsSection> {
         const SizedBox(height: 18),
         SettingsSection(
           title: t.ocr.modelSection,
-          icon: Icons.download_outlined,
+          icon: AppGlyphs.download,
           children: [
             SettingsCardGroup(
               children: [
@@ -369,7 +370,7 @@ class TranslateSettingsSectionState extends State<TranslateSettingsSection> {
         const SizedBox(height: 18),
         SettingsSection(
           title: t.ocr.cacheSection,
-          icon: Icons.inventory_2_outlined,
+          icon: AppGlyphs.box,
           children: [
             SettingsCardGroup(
               children: [
@@ -391,7 +392,7 @@ class TranslateSettingsSectionState extends State<TranslateSettingsSection> {
         const SizedBox(height: 18),
         SettingsSection(
           title: t.ocr.logSection,
-          icon: Icons.article_outlined,
+          icon: AppGlyphs.article,
           children: [
             SettingsCardGroup(
               children: [

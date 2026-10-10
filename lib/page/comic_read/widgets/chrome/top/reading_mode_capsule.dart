@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
 import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 阅读模式胶囊切换器 (条漫 / 单页横向)。
 ///
@@ -28,7 +29,7 @@ class ReadingModeCapsule extends StatelessWidget {
     return ReaderToolbarPill(
       children: [
         ReaderToolbarIconButton(
-          icon: Icons.view_day_outlined,
+          icon: AppGlyphs.rowsTwo,
           tooltip: t.reader.webtoon,
           selected: currentMode == kReadModeColumn,
           onPressed: () {
@@ -38,7 +39,7 @@ class ReadingModeCapsule extends StatelessWidget {
           },
         ),
         ReaderToolbarIconButton(
-          icon: Icons.menu_book_rounded,
+          icon: AppGlyphs.book,
           tooltip: t.reader.singlePageRow,
           selected: currentMode != kReadModeColumn,
           onPressed: () {
@@ -71,8 +72,8 @@ class DoublePageToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     return ReaderToolbarToggleChip(
       icon: isDoublePage
-          ? Icons.auto_stories_rounded
-          : Icons.crop_portrait_rounded,
+          ? AppGlyphs.openBook
+          : AppGlyphs.cropPortrait,
       label: showLabel ? (isDoublePage ? '双页' : '单页') : null,
       tooltip: isDoublePage ? '双页模式（点击切为单页）' : '单页模式（点击切为双页）',
       selected: isDoublePage,
@@ -111,7 +112,7 @@ class ReadingDirectionToggle extends StatelessWidget {
         currentMode == kReadModeRowLtr || currentMode == kReadModeRowRtl;
 
     return ReaderToolbarToggleChip(
-      icon: isLeftOpen ? Icons.arrow_back_rounded : Icons.arrow_forward_rounded,
+      icon: isLeftOpen ? AppGlyphs.arrowBack : AppGlyphs.arrowForward,
       label: showLabel ? t.reader.readingDirectionToggle : null,
       tooltip: !isHorizontal
           ? t.reader.readingDirectionToggleDisabled
@@ -141,22 +142,22 @@ class CompactReadingModeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    IconData icon;
+    Glyph icon;
     String tooltip;
     int nextMode;
 
     if (currentMode == kReadModeColumn) {
-      icon = Icons.view_day_outlined;
+      icon = AppGlyphs.rowsTwo;
       tooltip =
           '${t.reader.webtoon}（点击切为${t.reader.readingDirectionRightOpen}）';
       nextMode = kReadModeRowLtr;
     } else if (currentMode == kReadModeRowLtr) {
-      icon = Icons.arrow_forward_rounded;
+      icon = AppGlyphs.arrowForward;
       tooltip =
           '${t.reader.readingDirectionRightOpen}（点击切为${t.reader.readingDirectionLeftOpen}）';
       nextMode = kReadModeRowRtl;
     } else {
-      icon = Icons.arrow_back_rounded;
+      icon = AppGlyphs.arrowBack;
       tooltip = '${t.reader.readingDirectionLeftOpen}（点击切为${t.reader.webtoon}）';
       nextMode = kReadModeColumn;
     }

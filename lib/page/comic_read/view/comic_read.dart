@@ -35,6 +35,7 @@ import 'package:zephyr/workspace/model/workspace_reader_target.dart';
 import 'package:zephyr/workspace/router/workspace_navigation_bridge.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_fullscreen_scope.dart';
+import 'package:zephyr/icons/icons.dart';
 
 // 自动阅读相关：计时器、暂停/继续、悬浮按钮。
 part 'parts/comic_read_auto_read_part.dart';

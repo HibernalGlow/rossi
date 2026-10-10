@@ -38,24 +38,24 @@ class _TapPageTurnModeSection extends StatelessWidget {
 
     return SettingsSection(
       title: t.reader.pageMode,
-      icon: Icons.touch_app_outlined,
+      icon: AppGlyphs.touch,
       children: [
         SettingsSegmentedTile<ReaderTapPageTurnMode>(
           selected: mode,
           segments: [
             ButtonSegment<ReaderTapPageTurnMode>(
               value: ReaderTapPageTurnMode.fullScreen,
-              icon: const Icon(Icons.fullscreen_rounded, size: 18),
+              icon: const GlyphIcon(AppGlyphs.fullscreen, size: 18),
               label: Text(t.reader.fullscreen),
             ),
             ButtonSegment<ReaderTapPageTurnMode>(
               value: ReaderTapPageTurnMode.leftHand,
-              icon: const Icon(Icons.front_hand_outlined, size: 18),
+              icon: const GlyphIcon(AppGlyphs.hand, size: 18),
               label: Text(t.reader.leftHandMode),
             ),
             ButtonSegment<ReaderTapPageTurnMode>(
               value: ReaderTapPageTurnMode.rightHand,
-              icon: const Icon(Icons.pan_tool_outlined, size: 18),
+              icon: const GlyphIcon(AppGlyphs.hand, size: 18),
               label: Text(t.reader.rightHandMode),
             ),
           ],
@@ -94,7 +94,7 @@ class _TapBehaviorSection extends StatelessWidget {
 
     return SettingsSection(
       title: '点击与双击手势',
-      icon: Icons.gesture_outlined,
+      icon: AppGlyphs.gesture,
       children: [
         SettingsCardGroup(
           children: [
@@ -172,7 +172,7 @@ class _VolumeKeyPageTurnSection extends StatelessWidget {
 
     return SettingsSection(
       title: t.reader.volumeKeyPageTurn,
-      icon: Icons.volume_up_outlined,
+      icon: AppGlyphs.volume,
       children: [
         SettingsCardGroup(
           children: [
@@ -235,7 +235,7 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
 
     return SettingsSection(
       title: t.reader.hoverReveal,
-      icon: Icons.mouse_outlined,
+      icon: AppGlyphs.mouse,
       children: [
         SettingsCardGroup(
           children: [
@@ -377,7 +377,7 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
         children: [
           Row(
             children: [
-              Icon(Icons.preview_rounded, size: 16, color: primaryColor),
+              GlyphIcon(AppGlyphs.eye, size: 16, color: primaryColor),
               const SizedBox(width: 6),
               Text(
                 t.reader.hoverAreaPreview,
@@ -407,8 +407,8 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.menu_book_rounded,
+                      GlyphIcon(
+                        AppGlyphs.book,
                         size: 30,
                         color: colorScheme.onSurfaceVariant.withValues(
                           alpha: 0.25,

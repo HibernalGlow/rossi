@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 顶栏「版式」面板。
 ///
@@ -24,7 +25,7 @@ class ReaderLayoutPanel extends StatelessWidget {
         ReaderToolbarPill(
           children: [
             _Toggle(
-              icon: Icons.view_column_rounded,
+              icon: AppGlyphs.columnsThree,
               tooltip: '消除双页之间的拼接缝隙',
               selected: readSetting.doublePageSeamless,
               onTap: () => context.read<GlobalSettingCubit>().updateReadSetting(
@@ -38,7 +39,7 @@ class ReaderLayoutPanel extends StatelessWidget {
         ReaderToolbarPill(
           children: [
             _Toggle(
-              icon: Icons.motion_photos_on_rounded,
+              icon: AppGlyphs.motion,
               tooltip: readSetting.noAnimation ? '当前已关闭翻页动画' : '当前已开启平滑翻页动画',
               selected: !readSetting.noAnimation,
               onTap: () => context.read<GlobalSettingCubit>().updateReadSetting(
@@ -52,7 +53,7 @@ class ReaderLayoutPanel extends StatelessWidget {
         ReaderToolbarPill(
           children: [
             _Toggle(
-              icon: Icons.aspect_ratio_rounded,
+              icon: AppGlyphs.aspectRatio,
               tooltip: '阅读器两侧是否保留适度安全边距',
               selected: readSetting.sidePaddingEnabled,
               onTap: () => context.read<GlobalSettingCubit>().updateReadSetting(
@@ -67,7 +68,7 @@ class ReaderLayoutPanel extends StatelessWidget {
         ReaderToolbarPill(
           children: [
             _Toggle(
-              icon: Icons.remove_red_eye_outlined,
+              icon: AppGlyphs.eye,
               tooltip: '切换阅读滤镜与护眼遮罩',
               selected: readSetting.readFilterEnabled,
               onTap: () => context.read<GlobalSettingCubit>().updateReadSetting(
@@ -87,7 +88,7 @@ class ReaderLayoutPanel extends StatelessWidget {
 /// 面板里的一颗图标开关（与主行那颗同一份几何与状态层，
 /// 只是语义上是「开/关」而非「展开」）。
 class _Toggle extends StatelessWidget {
-  final IconData icon;
+  final Glyph icon;
   final String tooltip;
   final bool selected;
   final VoidCallback onTap;
@@ -229,19 +230,19 @@ class _Stepper extends StatelessWidget {
               style: theme.textTheme.labelSmall?.copyWith(color: tint),
             ),
           ),
-        _stepButton(Icons.remove_rounded, enabled ? onDecrement : null, tint),
-        _stepButton(Icons.add_rounded, enabled ? onIncrement : null, tint),
+        _stepButton(AppGlyphs.remove, enabled ? onDecrement : null, tint),
+        _stepButton(AppGlyphs.add, enabled ? onIncrement : null, tint),
       ],
     );
   }
 
-  static Widget _stepButton(IconData icon, VoidCallback? onTap, Color color) =>
+  static Widget _stepButton(Glyph icon, VoidCallback? onTap, Color color) =>
       InkWell(
         borderRadius: BorderRadius.circular(999),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(4),
-          child: Icon(icon, size: 15, color: color),
+          child: GlyphIcon(icon, size: 15, color: color),
         ),
       );
 }

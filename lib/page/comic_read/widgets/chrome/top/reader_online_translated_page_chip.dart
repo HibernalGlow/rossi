@@ -10,6 +10,7 @@ import 'package:zephyr/reader/translated_page_controller.dart';
 import 'package:zephyr/reader/translated_page_status.dart';
 import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 顶栏上给**在线图源**用的「这一页译不译」芯片。
 ///
@@ -131,11 +132,11 @@ class ReaderOnlineTranslatedPageChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
+              GlyphIcon(
                 switch (state) {
                   TranslatedPageChipState.building =>
-                    Icons.hourglass_top_outlined,
-                  _ => Icons.translate_outlined,
+                    AppGlyphs.hourglass,
+                  _ => AppGlyphs.translate,
                 },
                 size: 14,
                 color: fg,

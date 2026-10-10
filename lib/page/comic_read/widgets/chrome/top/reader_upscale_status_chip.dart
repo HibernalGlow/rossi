@@ -11,6 +11,7 @@ import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/super_resolution_status.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 顶栏上的「当前页超分」芯片：**状态 + 超分后分辨率 + 超分开关**。
 ///
@@ -172,19 +173,19 @@ class ReaderUpscaleStatusChip extends StatelessWidget {
         ),
       );
     }
-    final IconData icon = switch (phase) {
-      SuperResolutionPagePhase.unsupported => Icons.block_rounded,
-      SuperResolutionPagePhase.disabled => Icons.auto_awesome_outlined,
-      SuperResolutionPagePhase.originalPreview => Icons.image_outlined,
-      SuperResolutionPagePhase.queued => Icons.hourglass_empty_rounded,
-      SuperResolutionPagePhase.running => Icons.auto_awesome,
-      SuperResolutionPagePhase.ready => Icons.auto_awesome,
-      SuperResolutionPagePhase.applied => Icons.auto_awesome,
-      SuperResolutionPagePhase.skipped => Icons.check_circle_outline_rounded,
-      SuperResolutionPagePhase.failed => Icons.error_outline_rounded,
-      SuperResolutionPagePhase.idle => Icons.auto_awesome_outlined,
+    final Glyph icon = switch (phase) {
+      SuperResolutionPagePhase.unsupported => AppGlyphs.block,
+      SuperResolutionPagePhase.disabled => AppGlyphs.sparkle,
+      SuperResolutionPagePhase.originalPreview => AppGlyphs.photos,
+      SuperResolutionPagePhase.queued => AppGlyphs.hourglass,
+      SuperResolutionPagePhase.running => AppGlyphs.sparkle,
+      SuperResolutionPagePhase.ready => AppGlyphs.sparkle,
+      SuperResolutionPagePhase.applied => AppGlyphs.sparkle,
+      SuperResolutionPagePhase.skipped => AppGlyphs.checkCircle,
+      SuperResolutionPagePhase.failed => AppGlyphs.error,
+      SuperResolutionPagePhase.idle => AppGlyphs.sparkle,
     };
-    return Icon(icon, color: color, size: 14);
+    return GlyphIcon(icon, color: color, size: 14);
   }
 
   /// 点主体：开着就切「对比原图」，关着就当按下开关。
@@ -422,8 +423,8 @@ class _ReaderOnlineUpscaleChipState extends State<ReaderOnlineUpscaleChip> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.auto_awesome_rounded,
+            GlyphIcon(
+              AppGlyphs.sparkle,
               size: ReaderToolbarMetrics.iconSize,
               color: fg,
             ),
