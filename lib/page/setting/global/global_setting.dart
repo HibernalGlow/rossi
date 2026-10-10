@@ -8,6 +8,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_sheet.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
+import 'package:zephyr/service/notify/notify_topic.dart';
 import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/workspace/model/workspace_startup.dart';
 
@@ -57,6 +58,19 @@ class _GlobalSettingPageState extends State<GlobalSettingPage> {
     return '${(durationMs / 1000).toStringAsFixed(1)}s';
   }
 
+  /// 入口那一行读的是**当前真状态**，不写死一句介绍词：
+  /// 「总闸关了」和「单独静音了 N 项」是两件不同的事，用户在列表页就该分得清。
+  String _notifySummary(NotifySettingState setting) {
+    if (!setting.enabled) {
+      return t.settings.notifySummaryMasterOff;
+    }
+    final off = NotifyTopic.ambientTopics
+        .where((topic) => !topic.enabledIn(setting))
+        .length;
+    if (off == 0) return t.settings.notifySummaryAllOn;
+    return t.settings.notifySummaryOffCount(count: off);
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = context.watch<GlobalSettingCubit>().state;
@@ -80,6 +94,13 @@ class _GlobalSettingPageState extends State<GlobalSettingPage> {
                 '${state.toastSetting.position.label} · '
                 '${_toastDurationLabel(state.toastSetting.durationMs)}',
             onTap: () => _openSubPage(const ToastSettingRoute()),
+          ),
+          const Divider(height: 1, thickness: 0.3),
+          settingCategoryTile(
+            icon: Icons.filter_alt_outlined,
+            title: t.settings.notifyPersonalize,
+            subtitle: _notifySummary(state.notifySetting),
+            onTap: () => _openSubPage(const NotifySettingRoute()),
           ),
           const Divider(height: 1, thickness: 0.3),
           settingCategoryTile(

@@ -42,8 +42,6 @@ class _SyncSettingPageState extends State<SyncSettingPage> {
           _syncServiceType(state, cubit),
           webdavSync(context, state.syncSetting.syncServiceType),
           if (configuredSync) _autoSync(state, cubit),
-          if (configuredSync && state.syncSetting.autoSync)
-            _syncNotify(state, cubit),
           if (configuredSync) _syncSettings(state, cubit),
           if (configuredSync) _syncPlugins(state, cubit),
           if (configuredSync) ...[
@@ -177,21 +175,6 @@ class _SyncSettingPageState extends State<SyncSettingPage> {
         if (value) {
           eventBus.fire(NoticeSync());
         }
-      },
-    );
-  }
-
-  Widget _syncNotify(GlobalSettingState state, GlobalSettingCubit cubit) {
-    return SwitchListTile(
-      secondary: const Icon(Icons.notifications_active_outlined),
-      title: Text(t.settings.syncNotify),
-      subtitle: Text(t.settings.syncNotifySubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
-      value: state.syncSetting.syncNotify,
-      onChanged: (bool value) {
-        cubit.updateSyncSetting(
-          (current) => current.copyWith(syncNotify: value),
-        );
       },
     );
   }

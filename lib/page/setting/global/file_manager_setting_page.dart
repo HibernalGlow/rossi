@@ -174,6 +174,16 @@ class FileManagerSettingPage extends StatelessWidget {
                   (current) => current.copyWith(rememberViewState: value),
                 ),
               ),
+              SwitchListTile(
+                secondary: const Icon(Icons.wrap_text_outlined),
+                title: Text(t.settings.fileManagerWrapGridTitle),
+                subtitle: Text(t.settings.fileManagerWrapGridTitleSubtitle),
+                thumbIcon: kSettingSwitchThumbIcon,
+                value: setting.wrapGridTitle,
+                onChanged: (value) => cubit.updateFileManagerSetting(
+                  (current) => current.copyWith(wrapGridTitle: value),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),

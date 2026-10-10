@@ -61,6 +61,9 @@ const Map<String, List<String>> _settingsBlockKeys = <String, List<String>>{
     'downloadAutoRetryCount',
     'autoFavoriteOnDownload',
     'writeDownloadMetadataFile',
+    // 导出带不带封面：和上一条同属「落到磁盘上的东西长什么样」的偏好，
+    // 不是本机事实（不同于同页的 customExportPath），所以两台机器一起走。
+    'exportIncludeCover',
     'oldPageRollbackEnabled',
     'cloudFavoritePreferred',
     'autoFollowOnCollect',
@@ -94,6 +97,10 @@ const Map<String, List<String>> _settingsBlockKeys = <String, List<String>>{
     // 透明档的摆放方式（独立行 / 融合浮层），只在开关打开时被读到，
     // 但它是用户偏好不是本机事实 —— 跟主开关一起走，不然两台机器会分裂。
     'transparentTitleBarFused',
+    // 顶部导航栏那整套（侧栏 / Dock 开关、窄屏阈值、两支各自的条目清单）。
+    // 是「用户偏好」不是本机事实：换台机器继续要同一条侧栏、同一份排布，
+    // 所以整块跟着走，不拆字段。
+    'navigationSetting',
   ],
   _toastBlockName: <String>['toastSetting', 'switchToastSetting'],
   _fileManagerBlockName: <String>['fileManagerSetting'],
