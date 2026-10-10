@@ -5,6 +5,7 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/widgets/memory_monitor_widget.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/debug/memory/memory_monitor.dart';
+import 'package:zephyr/icons/icons.dart';
 
 // 使用示例：如何在你的应用中集成内存监控
 
@@ -22,7 +23,7 @@ class MemoryUsageExample extends StatelessWidget {
           title: const Text('内存监控示例'),
           actions: [
             IconButton(
-              icon: const Icon(Icons.memory),
+              icon: const GlyphIcon(AppGlyphs.storage),
               onPressed: () => _showMemoryDialog(context),
             ),
           ],

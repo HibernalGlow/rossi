@@ -10,6 +10,7 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/util/coreml_model_config.dart';
 import 'package:zephyr/util/coreml_model_loader.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class CoreMLUpscaleDebugPage extends StatefulWidget {
@@ -146,7 +147,7 @@ class _CoreMLUpscaleDebugPageState extends State<CoreMLUpscaleDebugPage> {
         children: [
           // 模型族选择：速度优先 / 质量优先
           ListTile(
-            leading: const Icon(Icons.speed),
+            leading: const GlyphIcon(AppGlyphs.speed),
             title: Text(t.realSr.model),
             trailing: FluentDropdown<CoreMLModelFamily>(
               value: _selectedFamily,
@@ -173,7 +174,7 @@ class _CoreMLUpscaleDebugPageState extends State<CoreMLUpscaleDebugPage> {
           // 模型专有选项：降噪级别 / 变体
           if (_selectedVariant != null)
             ListTile(
-              leading: const Icon(Icons.healing),
+              leading: const GlyphIcon(AppGlyphs.wand),
               title: Text(t.realSr.coremlModelOption),
               trailing: FluentDropdown<CoreMLModelVariant>(
                 value: _selectedVariant!,
@@ -191,12 +192,12 @@ class _CoreMLUpscaleDebugPageState extends State<CoreMLUpscaleDebugPage> {
             )
           else
             ListTile(
-              leading: const Icon(Icons.error_outline),
+              leading: const GlyphIcon(AppGlyphs.error),
               title: Text(t.realSr.coremlStatusNoModelFile),
             ),
           // 通用选项：放大倍率（当前所有模型都是 2×）
           ListTile(
-            leading: const Icon(Icons.zoom_in),
+            leading: const GlyphIcon(AppGlyphs.zoomIn),
             title: Text(t.realSr.coremlGeneralOption),
             trailing: FluentDropdown<int>(
               value: _scale,
@@ -212,14 +213,14 @@ class _CoreMLUpscaleDebugPageState extends State<CoreMLUpscaleDebugPage> {
           // 分块信息（只读）
           if (_selectedVariant != null)
             ListTile(
-              leading: const Icon(Icons.grid_view),
+              leading: const GlyphIcon(AppGlyphs.dashboard),
               title: Text(t.realSr.coremlTileInfo),
               subtitle: Text(_blockInfo(_selectedVariant!)),
               trailing: Tooltip(
                 triggerMode: TooltipTriggerMode.tap,
                 showDuration: const Duration(seconds: 5),
                 message: t.realSr.blockInfoTooltip,
-                child: const Icon(Icons.help_outline),
+                child: const GlyphIcon(AppGlyphs.info),
               ),
             ),
           const SizedBox(height: 12),

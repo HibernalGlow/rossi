@@ -74,7 +74,7 @@ class _VolumePanel extends StatelessWidget {
         child: Row(
           children: <Widget>[
             IconButton(
-              icon: Icon(snapshot.muted ? Icons.volume_off : Icons.volume_up),
+              icon: GlyphIcon(snapshot.muted ? AppGlyphs.volumeOff : AppGlyphs.volume),
               onPressed: () => controller.toggleMute(),
             ),
             Expanded(
@@ -121,10 +121,10 @@ class _SubtitlePanel extends StatelessWidget {
             ListTile(
               dense: true,
               title: Text(labels.subtitleOff),
-              leading: Icon(
+              leading: GlyphIcon(
                 selectedId == null
-                    ? Icons.radio_button_checked
-                    : Icons.radio_button_off,
+                    ? AppGlyphs.radioChecked
+                    : AppGlyphs.ring,
               ),
               onTap: () => onSelected(null),
             ),
@@ -133,10 +133,10 @@ class _SubtitlePanel extends StatelessWidget {
                 dense: true,
                 title: Text(track.title),
                 subtitle: track.language == null ? null : Text(track.language!),
-                leading: Icon(
+                leading: GlyphIcon(
                   track.id == selectedId
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_off,
+                      ? AppGlyphs.radioChecked
+                      : AppGlyphs.ring,
                 ),
                 onTap: () => onSelected(track.id),
               ),
@@ -264,8 +264,8 @@ class _ColorDot extends StatelessWidget {
       selectedIcon: CircleAvatar(
         radius: 12,
         backgroundColor: color,
-        child: Icon(
-          Icons.check,
+        child: GlyphIcon(
+          AppGlyphs.check,
           size: 18,
           color: ThemeData.estimateBrightnessForColor(color) == Brightness.light
               ? Colors.black

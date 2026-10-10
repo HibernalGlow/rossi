@@ -7,6 +7,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
+import 'package:zephyr/icons/icons.dart';
 
 const _defaultFontPath =
     r'C:\Users\windy\Downloads\zip\03_NotoSerifCJK-TTF-VF\Variable\TTF\Subset\NotoSerifSC-VF.ttf';
@@ -166,12 +167,12 @@ class _ShowColorPageState extends State<ShowColorPage> {
                   onPressed: _loading
                       ? null
                       : () => _loadFontFromPath(_defaultFontPath),
-                  icon: const Icon(Icons.science_outlined),
+                  icon: const GlyphIcon(AppGlyphs.science),
                   label: Text(t.settings.colorPreviewLoadRecommended),
                 ),
                 OutlinedButton.icon(
                   onPressed: _loading ? null : _pickFontFile,
-                  icon: const Icon(Icons.upload_file_outlined),
+                  icon: const GlyphIcon(AppGlyphs.arrowUp),
                   label: Text(t.settings.colorPreviewSelectFont),
                 ),
               ],

@@ -31,6 +31,7 @@ import 'package:zephyr/video/subtitle/video_subtitle.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
 import 'package:zephyr/video/view/video_control_overlay.dart';
 import 'package:zephyr/video/view/video_info_sheet.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 一个视频页的取数描述。
 ///
@@ -752,7 +753,7 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
                     tooltip: MaterialLocalizations.of(
                       context,
                     ).closeButtonTooltip,
-                    icon: const Icon(Icons.close),
+                    icon: const GlyphIcon(AppGlyphs.close),
                     onPressed: () => setState(() => _pip = false),
                   ),
                 ),

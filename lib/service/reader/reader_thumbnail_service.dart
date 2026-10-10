@@ -14,6 +14,7 @@ import 'package:zephyr/video/model/video_media_kind.dart';
 import 'package:zephyr/video/service/video_poster_service.dart';
 import 'package:zephyr/widgets/picture_bloc/bloc/picture_bloc.dart';
 import 'package:zephyr/widgets/picture_bloc/models/picture_info.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 缩略图内存缓存与加载服务（完全采用 mImageViewer SQLite CatalogDb 架构与 SIMD WebP 管线）。
 class ReaderThumbnailService {
@@ -448,8 +449,8 @@ class _ReaderThumbnailWidgetState extends State<ReaderThumbnailWidget> {
     return Container(
       color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.8),
       child: Center(
-        child: Icon(
-          Icons.broken_image_rounded,
+        child: GlyphIcon(
+          AppGlyphs.brokenImage,
           size: 16,
           color: theme.colorScheme.error.withValues(alpha: 0.6),
         ),

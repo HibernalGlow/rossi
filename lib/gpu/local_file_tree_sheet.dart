@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:zephyr/src/rust/api/local.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 记录最近一次访问的目录路径（应用生命周期内保持），方便连续调试与选漫画。
 String? _lastVisitedDirectory;
@@ -155,8 +156,8 @@ class _LocalFileTreePaneState extends State<LocalFileTreePane> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.folder_open_rounded,
+                    const GlyphIcon(
+                      AppGlyphs.folder,
                       color: Color(0xFF8B5CF6),
                       size: 22,
                     ),
@@ -181,13 +182,13 @@ class _LocalFileTreePaneState extends State<LocalFileTreePane> {
                         ),
                         visualDensity: VisualDensity.compact,
                       ),
-                      icon: const Icon(Icons.check_circle_outline, size: 16),
+                      icon: const GlyphIcon(AppGlyphs.checkCircle, size: 16),
                       label: const Text('打开当前文件夹'),
                       onPressed: () => widget.onSelect(_currentPath),
                     ),
                     const SizedBox(width: 6),
                     IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white70),
+                      icon: const GlyphIcon(AppGlyphs.close, color: Colors.white70),
                       onPressed: () => Navigator.of(context).pop(),
                       tooltip: '关闭',
                     ),
@@ -212,10 +213,10 @@ class _LocalFileTreePaneState extends State<LocalFileTreePane> {
                 final isSelected = _currentPath.startsWith(r.path);
                 return ActionChip(
                   label: Text(r.label),
-                  avatar: Icon(
+                  avatar: GlyphIcon(
                     r.label.contains('卷') || r.label.contains('磁盘')
-                        ? Icons.storage_rounded
-                        : Icons.home_rounded,
+                        ? AppGlyphs.storage
+                        : AppGlyphs.home,
                     size: 16,
                     color: isSelected
                         ? const Color(0xFF8B5CF6)
@@ -251,14 +252,14 @@ class _LocalFileTreePaneState extends State<LocalFileTreePane> {
           child: Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.arrow_upward_rounded, size: 18),
+                icon: const GlyphIcon(AppGlyphs.arrowUp, size: 18),
                 color: Colors.white70,
                 tooltip: '上一级',
                 onPressed: _goUp,
                 visualDensity: VisualDensity.compact,
               ),
               IconButton(
-                icon: const Icon(Icons.refresh_rounded, size: 18),
+                icon: const GlyphIcon(AppGlyphs.refresh, size: 18),
                 color: Colors.white70,
                 tooltip: '刷新当前目录',
                 onPressed: () => _loadDirectory(_currentPath),
@@ -279,16 +280,16 @@ class _LocalFileTreePaneState extends State<LocalFileTreePane> {
                             horizontal: 4,
                             vertical: 2,
                           ),
-                          child: Icon(
-                            Icons.dns_rounded,
+                          child: GlyphIcon(
+                            AppGlyphs.dns,
                             size: 14,
                             color: Colors.white54,
                           ),
                         ),
                       ),
                       for (int i = 0; i < segments.length; i++) ...[
-                        const Icon(
-                          Icons.chevron_right,
+                        const GlyphIcon(
+                          AppGlyphs.chevronForward,
                           size: 14,
                           color: Colors.white24,
                         ),
@@ -343,8 +344,8 @@ class _LocalFileTreePaneState extends State<LocalFileTreePane> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.error_outline_rounded,
+                        const GlyphIcon(
+                          AppGlyphs.error,
                           color: Colors.amber,
                           size: 36,
                         ),
@@ -360,7 +361,7 @@ class _LocalFileTreePaneState extends State<LocalFileTreePane> {
                         const SizedBox(height: 12),
                         ElevatedButton.icon(
                           onPressed: () => _loadDirectory(_currentPath),
-                          icon: const Icon(Icons.refresh, size: 16),
+                          icon: const GlyphIcon(AppGlyphs.refresh, size: 16),
                           label: const Text('重试'),
                         ),
                       ],
@@ -384,8 +385,8 @@ class _LocalFileTreePaneState extends State<LocalFileTreePane> {
 
                     if (item.isDir) {
                       return ListTile(
-                        leading: const Icon(
-                          Icons.folder_rounded,
+                        leading: const GlyphIcon(
+                          AppGlyphs.folder,
                           color: Color(0xFFFBBF24),
                           size: 24,
                         ),
@@ -400,13 +401,13 @@ class _LocalFileTreePaneState extends State<LocalFileTreePane> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.check, size: 16),
+                              icon: const GlyphIcon(AppGlyphs.check, size: 16),
                               color: const Color(0xFF38BDF8),
                               tooltip: '直接打开此文件夹',
                               onPressed: () => widget.onSelect(item.path),
                             ),
-                            const Icon(
-                              Icons.chevron_right,
+                            const GlyphIcon(
+                              AppGlyphs.chevronForward,
                               color: Colors.white30,
                               size: 18,
                             ),
@@ -426,8 +427,8 @@ class _LocalFileTreePaneState extends State<LocalFileTreePane> {
                             ).withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Icon(
-                            Icons.auto_stories_rounded,
+                          child: const GlyphIcon(
+                            AppGlyphs.openBook,
                             color: Color(0xFFA78BFA),
                             size: 20,
                           ),
@@ -447,8 +448,8 @@ class _LocalFileTreePaneState extends State<LocalFileTreePane> {
                             fontSize: 11,
                           ),
                         ),
-                        trailing: const Icon(
-                          Icons.play_circle_fill_rounded,
+                        trailing: const GlyphIcon(
+                          AppGlyphs.playCircle,
                           color: Color(0xFF8B5CF6),
                           size: 24,
                         ),
@@ -458,8 +459,8 @@ class _LocalFileTreePaneState extends State<LocalFileTreePane> {
                     } else {
                       // 单张图片
                       return ListTile(
-                        leading: const Icon(
-                          Icons.image_outlined,
+                        leading: const GlyphIcon(
+                          AppGlyphs.photos,
                           color: Color(0xFF34D399),
                           size: 20,
                         ),

@@ -11,6 +11,7 @@ import 'package:zephyr/reader/local_page_source.dart';
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/gpu/local_file_tree_sheet.dart';
 import 'package:zephyr/src/rust/api/local.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// GPU 上屏调试页（Windows）。
 ///
@@ -303,7 +304,7 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
           IconButton(
             tooltip: '刷新统计',
             onPressed: _refreshCounters,
-            icon: const Icon(Icons.refresh),
+            icon: const GlyphIcon(AppGlyphs.refresh),
           ),
         ],
       ),
@@ -396,7 +397,7 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
                   backgroundColor: const Color(0xFF7C3AED),
                 ),
                 onPressed: _busy ? null : _browseLocalTree,
-                icon: const Icon(Icons.folder_open_rounded, size: 18),
+                icon: const GlyphIcon(AppGlyphs.folder, size: 18),
                 label: const Text('浏览...'),
               ),
               const SizedBox(width: 8),
