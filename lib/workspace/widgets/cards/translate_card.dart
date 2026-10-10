@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/sections/translate_section.dart';
 import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 「翻译」卡片 —— 阅读设置「翻译」那一排搬进控制面板。
 ///
@@ -50,7 +51,7 @@ class TranslateCard extends StatelessWidget {
     return CollapsibleCard(
       cardId: WorkspaceCardRegistry.translate,
       title: '翻译',
-      icon: Icons.translate_outlined,
+      icon: AppGlyphs.translate,
       isExpanded: isExpanded,
       onToggle: onToggle,
       onMoveUp: onMoveUp,

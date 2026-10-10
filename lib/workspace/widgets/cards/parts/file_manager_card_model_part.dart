@@ -34,8 +34,8 @@ class _ErrorState extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          Icons.error_outline_rounded,
+        GlyphIcon(
+          AppGlyphs.error,
           color: Theme.of(context).colorScheme.error,
         ),
         const SizedBox(height: 6),
@@ -48,7 +48,7 @@ class _ErrorState extends StatelessWidget {
         const SizedBox(height: 8),
         OutlinedButton.icon(
           onPressed: onRetry,
-          icon: const Icon(Icons.refresh_rounded, size: 16),
+          icon: const GlyphIcon(AppGlyphs.refresh, size: 16),
           label: const Text('重试'),
         ),
       ],

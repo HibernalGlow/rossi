@@ -6,15 +6,37 @@ import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/model/workspace_panel_bar.dart';
 import 'package:zephyr/workspace/registry/workspace_panel_registry.dart';
 import 'package:zephyr/workspace/widgets/panels/panel_bar_positioner.dart';
+import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/spring_lens/spring_lens_bar.dart';
 
 /// **面板操作栏** —— 泳道里的那一条面板页签。
 ///
 /// 它同时是三件事：
 ///
-/// 1. **面板切换**：左键点页签；
-/// 2. **面板搬运**：按住页签拖动 —— 轨内换位，或拖到**另一条泳道**的页签条上；
+/// 1. **面板切换**：点页签；常态下**按住横移**也能切（弹簧 lens 跟手）；
+/// 2. **面板搬运**：**排序模式**下长按页签拖动 —— 轨内换位，或拖到**另一条
+///    泳道**的页签条上；
 /// 3. **它自己的摆放**：按住把手拖动 = 钉到某条边或转成悬浮（neoview 的
 ///    `ReaderPanelBar`）；右键把手 = 切换「钉住 / 悬浮」与「是否限制在本泳道内」。
+///
+/// ## 两种模式的手势是**相反**的（`interaction.panelTabSortMode`）
+///
+/// | | 常态（默认） | 排序模式 |
+/// |---|---|---|
+/// | 点页签 | 切换面板 | 切换面板 |
+/// | 按住横移 | **切面板**（lens 跟手，跨格触感） | 什么都不做 |
+/// | 长按拖动 | 什么都不做 | **拖排序 / 拖到另一条泳道** |
+///
+/// 这么分是因为拖排序**低频且带破坏性**（拖错了要把面板搬回来）。它在默认
+/// 路径上就意味着每次切面板都得先想「我现在是想切还是想搬」。反过来之后，
+/// 日常那一下永远是最轻的那条路径，想搬面板时主动开一档 —— 动作与意图对齐。
+///
+/// 为什么不能两档同时开：`LongPressDraggable`（220ms 延时）与lens 的跟手拖动
+/// 抢的是**同一片手势区**，物理互斥。排序模式下必须把跟手整个关掉
+/// （`SpringLensBar.draggable: false`），跨泳道搬运也只在这一档有 —— 那条路要
+/// 离开当前泳道，落点语义与 lens 的横向落点不同，两条同时认领会打架。
+///
+/// 切档入口在**右键把手那个菜单**里（栏头挂进去时把手不画，那边走设置页）。
 ///
 /// ## 挂进栏头 vs 自己浮着
 ///
@@ -157,6 +179,52 @@ class PanelTabStrip extends StatefulWidget {
   State<PanelTabStrip> createState() => _PanelTabStripState();
 }
 
+String _tooltipFor(WorkspacePanelDefinition panel) =>
+    '${panel.title}'
+    '${panel.canMove ? '（长按拖动可排序 / 拖到另一条泳道的页签条可换泳道）' : ''}'
+    '${panel.canHide ? '　右键收起' : ''}';
+
+/// 一颗页签的本体（不含拖动外壳）。常态与排序模式共用同一份画法。
+class _TabBody extends StatelessWidget {
+  const _TabBody({
+    required this.panel,
+    required this.active,
+    required this.onTap,
+    this.onSecondaryTap,
+  });
+
+  final WorkspacePanelDefinition panel;
+  final bool active;
+  final VoidCallback onTap;
+  final VoidCallback? onSecondaryTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Tooltip(
+      message: _tooltipFor(panel),
+      waitDuration: const Duration(milliseconds: 450),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: onTap,
+        onSecondaryTap: onSecondaryTap,
+        child: SizedBox(
+          width: PanelTabStrip.tabSize,
+          height: PanelTabStrip.tabSize,
+          // 选中时的图标色：lens 底在下面，所以前景要换成 `onPrimary`。
+          child: GlyphIcon(
+            panel.icon,
+            size: 16,
+            color: active
+                ? theme.colorScheme.onPrimary
+                : theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _PanelTabStripState extends State<PanelTabStrip> {
   String? _dragging;
   int? _hoverIndex;
@@ -193,10 +261,13 @@ class _PanelTabStripState extends State<PanelTabStrip> {
         state.activePanel[widget.side.laneId] ??
         (panels.isEmpty ? null : panels.first.id);
 
+    // 排序模式：拖排序 + 跨泳道搬运（`LongPressDraggable` 占住手势区）。
+    final sortMode = state.interaction.panelTabSortMode;
+
     final tabs = <Widget>[];
     for (var i = 0; i < panels.length; i++) {
       tabs.add(_buildDropSlot(i, theme));
-      tabs.add(_buildTab(panels[i], activeId, i, theme, cubit));
+      tabs.add(_buildTab(panels[i], activeId, i, theme, cubit, sortMode));
     }
     tabs.add(_buildDropSlot(panels.length, theme));
 
@@ -209,19 +280,25 @@ class _PanelTabStripState extends State<PanelTabStrip> {
         ),
       ],
       Flexible(
-        // 用 `ListView` 而不是 `SingleChildScrollView`：只有前者能 `shrinkWrap`。
-        // **内联**（挂进栏头 / 抽屉，`bounds == null`）时必须按内容取宽 ——
-        // 视口默认**撑满**给它的主轴宽度，于是 2 个页签也要掉 260px，
-        // 而栏头那一行总共只有 340–380px：页签条把预算吃光，
-        // 栏头再多加一颗按钮就顶出黄黑斜纹。
-        // 自己摆放（钉边 / 悬浮）那一档不收缩：那里的宽度是摆位算出来的，
-        // 撑满才是想要的（拖动时落点要铺满整根轨）。
-        child: ListView(
-          scrollDirection: widget.vertical ? Axis.vertical : Axis.horizontal,
-          primary: false,
-          shrinkWrap: widget.bounds == null,
-          children: tabs,
-        ),
+        child: sortMode
+            // 排序模式：**原样**保留 `ListView` 那条路（含插缝、含
+            // `LongPressDraggable`）。插缝在拖动时会亮起来给插入位提示，
+            // 所以这一档不能换成 lens —— lens 是「按格位」的，插缝不占格位。
+            ? ListView(
+                scrollDirection: widget.vertical
+                    ? Axis.vertical
+                    : Axis.horizontal,
+                primary: false,
+                shrinkWrap: widget.bounds == null,
+                children: tabs,
+              )
+            // 常态：选中态交给弹簧 lens，按住横移切面板。
+            //
+            // 插缝**不进 lens**（它不是目的地，只是拖动时的插入位提示；
+            // 常态没有拖动，于是那一格让给它）。所以这里走
+            // `SpringLensBar`，它的格位与内容自己排，插缝那一档仍在
+            // 排序模式下才出现。
+            : _buildSpringTabs(panels, activeId, cubit),
       ),
       if (hidden.isNotEmpty) _buildHiddenMenu(theme, hidden, cubit),
     ];
@@ -341,10 +418,8 @@ class _PanelTabStripState extends State<PanelTabStrip> {
           waitDuration: const Duration(milliseconds: 500),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 6),
-            child: Icon(
-              widget.vertical
-                  ? Icons.drag_indicator_rounded
-                  : Icons.drag_handle_rounded,
+            child: GlyphIcon(
+              AppGlyphs.dragHandle,
               size: 15,
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -449,10 +524,9 @@ class _PanelTabStripState extends State<PanelTabStrip> {
       items: [
         FluentPopupMenuItem<_PanelBarAction>(
           value: _PanelBarAction.toggleMode,
-          leading: Icon(
-            bar.mode == PanelBarMode.pinned
-                ? Icons.push_pin_outlined
-                : Icons.push_pin,
+          leading: GlyphIcon(
+            AppGlyphs.pin,
+            fill: bar.mode == PanelBarMode.pinned ? 1 : 0,
             size: 16,
           ),
           title: Text(
@@ -461,17 +535,32 @@ class _PanelTabStripState extends State<PanelTabStrip> {
         ),
         FluentPopupMenuItem<_PanelBarAction>(
           value: _PanelBarAction.toggleConstrained,
-          leading: Icon(
-            bar.constrained ? Icons.lock_outline : Icons.lock_open_outlined,
+          leading: GlyphIcon(
+            bar.constrained ? AppGlyphs.lock : AppGlyphs.lockOpen,
             size: 16,
           ),
           title: Text(bar.constrained ? '允许移出泳道' : '限制在本泳道'),
         ),
         const FluentPopupMenuItem<_PanelBarAction>.divider(),
+        FluentPopupMenuItem<_PanelBarAction>(
+          value: _PanelBarAction.toggleSortMode,
+          leading: GlyphIcon(
+            AppGlyphs.sort,
+            fill: cubit.state.interaction.panelTabSortMode ? 1 : 0,
+            size: 16,
+          ),
+          title: Text(
+            cubit.state.interaction.panelTabSortMode
+                ? '退出排序模式（恢复横移切面板）'
+                : '排序模式（长按拖动排序 / 换泳道）',
+          ),
+          selected: cubit.state.interaction.panelTabSortMode,
+        ),
+        const FluentPopupMenuItem<_PanelBarAction>.divider(),
         for (final dock in PanelBarDock.values)
           FluentPopupMenuItem<_PanelBarAction>(
             value: _PanelBarAction.dockTo(dock),
-            leading: Icon(_dockIcon(dock), size: 16),
+            leading: GlyphIcon(_dockIcon(dock), size: 16),
             title: Text('停靠到${_dockLabel(dock)}'),
             selected: bar.mode == PanelBarMode.pinned && bar.dock == dock,
           ),
@@ -498,6 +587,16 @@ class _PanelTabStripState extends State<PanelTabStrip> {
           widget.side.laneId,
           bar.copyWith(constrained: !bar.constrained),
         );
+      case _PanelBarActionKind.toggleSortMode:
+        // 排序模式是**工作台交互**设置（不是本条 bar 的摆放），所以走
+        // `updateInteraction` 而不是 `setLanePanelBar` —— 它管的是「所有泳道
+        // 的页签条」，跟着 `workspace_layout.json` 的 `interaction` 块走。
+        final interaction = cubit.state.interaction;
+        cubit.setInteraction(
+          interaction.copyWith(
+            panelTabSortMode: !interaction.panelTabSortMode,
+          ),
+        );
       case _PanelBarActionKind.dock:
         cubit.setLanePanelBar(
           widget.side.laneId,
@@ -510,11 +609,11 @@ class _PanelTabStripState extends State<PanelTabStrip> {
   // `PopupMenuItem` 的 `child`；换成 [FluentPopupMenuItem] 之后图标归
   // `leading`、勾归 `selected`，不必再自己画一遍。
 
-  static IconData _dockIcon(PanelBarDock dock) => switch (dock) {
-    PanelBarDock.left => Icons.vertical_split_rounded,
-    PanelBarDock.right => Icons.vertical_split_rounded,
-    PanelBarDock.top => Icons.horizontal_split_rounded,
-    PanelBarDock.bottom => Icons.horizontal_split_rounded,
+  static Glyph _dockIcon(PanelBarDock dock) => switch (dock) {
+    PanelBarDock.left => AppGlyphs.columnsTwo,
+    PanelBarDock.right => AppGlyphs.columnsTwo,
+    PanelBarDock.top => AppGlyphs.rowsTwo,
+    PanelBarDock.bottom => AppGlyphs.rowsTwo,
   };
 
   static String _dockLabel(PanelBarDock dock) => switch (dock) {
@@ -605,18 +704,71 @@ class _PanelTabStripState extends State<PanelTabStrip> {
 
   // ── 页签 ───────────────────────────────────────────────────────────────
 
-  Widget _buildTab(
+  /// 常态那一档：页签排给弹簧 lens，按住横移 = 切面板。
+///
+/// 与排序模式的差别有三条，都在这一处：
+///
+/// 1. **选中态**是 lens（`SpringLensBar`），不是 `Material(primary)`；
+/// 2. **不带插缝** —— 插缝只在拖动时才有意义，而常态没有拖动；
+/// 3. **不带 `LongPressDraggable`** —— 手势位让给 lens 的跟手拖动，
+///    `draggable: true`。
+///
+/// `shrinkWrap` 那份语义照旧：内联（挂进栏头 / 抽屉，`bounds == null`）按内容
+/// 取宽 —— 视口默认**撑满**给它的主轴宽度，于是 2 个页签也要掉 260px，
+/// 而栏头那一行总共只有 340–380px。
+Widget _buildSpringTabs(
+  List<WorkspacePanelDefinition> panels,
+  String? activeId,
+  WorkspaceCubit cubit,
+) {
+  final activeIndex = activeId == null
+      ? 0
+      : panels.indexWhere((p) => p.id == activeId).clamp(0, panels.length - 1);
+  return SpringLensBar(
+    axis: widget.vertical ? Axis.vertical : Axis.horizontal,
+    tabs: [
+      for (final panel in panels)
+        SpringLensTab(
+          tooltip: _tooltipFor(panel),
+          semanticLabel: panel.title,
+          child: _TabBody(
+            panel: panel,
+            active: panel.id == activeId,
+            onTap: () => cubit.setActivePanel(widget.side.laneId, panel.id),
+            onSecondaryTap: panel.canHide
+                ? () => _hide(cubit, panel)
+                : null,
+          ),
+        ),
+    ],
+    selectedIndex: activeIndex,
+    // 常态：跟手拖动就是「切面板」，与 Dock 那套同一根弹簧。
+    // 点击那条路 `_TabBody` 自己带着（`InkWell.onTap`），拖动这条路走这里。
+    onSelected: (index) =>
+        cubit.setActivePanel(widget.side.laneId, panels[index].id),
+    draggable: true,
+    // lens 的底色取主色 —— 与排序模式下那个 `Material(color: primary)` 同色，
+    // 两档切换时选中块的颜色不跳。
+    lensColor: Theme.of(context).colorScheme.primary,
+    lensCorner: 6,
+    padding: EdgeInsets.symmetric(
+      horizontal: widget.vertical ? 0 : PanelTabStrip.stripHPadding,
+      vertical: widget.vertical ? PanelTabStrip.stripHPadding : 0,
+    ),
+  );
+}
+
+
+Widget _buildTab(
     WorkspacePanelDefinition panel,
     String? activeId,
     int index,
     ThemeData theme,
     WorkspaceCubit cubit,
+    bool sortMode,
   ) {
     final active = panel.id == activeId;
-    final tooltip =
-        '${panel.title}'
-        '${panel.canMove ? '（按住拖动可排序 / 拖到另一条泳道的页签条可换泳道）' : ''}'
-        '${panel.canHide ? '　右键收起' : ''}';
+    final tooltip = _tooltipFor(panel);
 
     final button = Tooltip(
       message: tooltip,
@@ -636,7 +788,7 @@ class _PanelTabStripState extends State<PanelTabStrip> {
             child: SizedBox(
               width: PanelTabStrip.tabSize,
               height: PanelTabStrip.tabSize,
-              child: Icon(
+              child: GlyphIcon(
                 panel.icon,
                 size: 16,
                 color: active
@@ -670,7 +822,10 @@ class _PanelTabStripState extends State<PanelTabStrip> {
       ),
     );
 
-    if (!panel.canMove) return dropBefore;
+    // **只有排序模式才装拖动外壳。** 常态的手势位让给 lens 的跟手拖动
+    // （两片区域物理互斥）；而这一档常态根本不会走到这里 —— 见 `build`
+    // 里按 `sortMode` 分流的那一段。
+    if (!panel.canMove || !sortMode) return dropBefore;
 
     return LongPressDraggable<String>(
       data: panel.id,
@@ -702,7 +857,7 @@ class _PanelTabStripState extends State<PanelTabStrip> {
         for (final panel in hidden)
           FluentPopupMenuItem<String>(
             value: panel.id,
-            leading: Icon(
+            leading: GlyphIcon(
               panel.icon,
               size: 16,
               color: theme.colorScheme.primary,
@@ -718,8 +873,8 @@ class _PanelTabStripState extends State<PanelTabStrip> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.visibility_off_rounded,
+            GlyphIcon(
+              AppGlyphs.eyeOff,
               size: PanelTabStrip.hiddenIconWidth,
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -751,7 +906,7 @@ class _PanelTabStripState extends State<PanelTabStrip> {
 }
 
 /// 右键菜单的动作。
-enum _PanelBarActionKind { toggleMode, toggleConstrained, dock }
+enum _PanelBarActionKind { toggleMode, toggleConstrained, toggleSortMode, dock }
 
 class _PanelBarAction {
   const _PanelBarAction._(this.kind, this.dock);
@@ -762,6 +917,10 @@ class _PanelBarAction {
   );
   static const _PanelBarAction toggleConstrained = _PanelBarAction._(
     _PanelBarActionKind.toggleConstrained,
+    null,
+  );
+  static const _PanelBarAction toggleSortMode = _PanelBarAction._(
+    _PanelBarActionKind.toggleSortMode,
     null,
   );
 
@@ -793,7 +952,7 @@ class _DragChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
+          GlyphIcon(
             panel.icon,
             size: 14,
             color: theme.colorScheme.onPrimaryContainer,

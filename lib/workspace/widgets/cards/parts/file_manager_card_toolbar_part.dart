@@ -37,7 +37,7 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
     };
 
     Widget toggle({
-      IconData? icon,
+      Glyph? icon,
       Glyph? glyph,
       required String tooltip,
       required bool on,

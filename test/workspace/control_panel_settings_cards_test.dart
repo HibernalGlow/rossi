@@ -29,6 +29,7 @@ import 'package:zephyr/workspace/widgets/cards/image_tuning_card.dart';
 import 'package:zephyr/workspace/widgets/cards/super_resolution_card.dart';
 import 'package:zephyr/workspace/widgets/cards/translate_card.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class _InMemoryGlobalSettingCubit extends GlobalSettingCubit {
   @override
@@ -110,7 +111,7 @@ void main() {
             child: CollapsibleCard(
               cardId: 'probe',
               title: '探针卡',
-              icon: Icons.build_rounded,
+              icon: AppGlyphs.wrench,
               isExpanded: true,
               onToggle: () {},
               disabledHint: disabledHint,

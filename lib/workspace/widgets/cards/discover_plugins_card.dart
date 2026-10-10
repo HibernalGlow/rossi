@@ -6,6 +6,7 @@ import 'package:zephyr/cubit/plugin_registry_cubit.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 真实发现与插件图源卡片（读取 PluginRegistryService 已注册的图源插件）
 class DiscoverPluginsCard extends StatelessWidget {
@@ -47,8 +48,8 @@ class DiscoverPluginsCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.extension_rounded,
+                  GlyphIcon(
+                    AppGlyphs.puzzle,
                     size: 18,
                     color: theme.colorScheme.primary,
                   ),
@@ -61,7 +62,7 @@ class DiscoverPluginsCard extends StatelessWidget {
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.search_rounded, size: 18),
+                    icon: const GlyphIcon(AppGlyphs.search, size: 18),
                     tooltip: '跨图源聚合搜索',
                     onPressed: () {
                       context.pushRoute(
@@ -76,7 +77,7 @@ class DiscoverPluginsCard extends StatelessWidget {
                   TextButton.icon(
                     onPressed: () =>
                         context.pushRoute(const PluginStoreRoute()),
-                    icon: const Icon(Icons.storefront_rounded, size: 14),
+                    icon: const GlyphIcon(AppGlyphs.storefront, size: 14),
                     label: const Text('市场'),
                     style: TextButton.styleFrom(
                       visualDensity: VisualDensity.compact,
@@ -118,7 +119,7 @@ class DiscoverPluginsCard extends StatelessWidget {
     return CollapsibleCard(
       cardId: 'discover_plugins',
       title: '图源与扩展 (Extensions)',
-      icon: Icons.extension_rounded,
+      icon: AppGlyphs.puzzle,
       isExpanded: isExpanded,
       onToggle: onToggle,
       onMoveUp: onMoveUp,
@@ -128,7 +129,7 @@ class DiscoverPluginsCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            icon: const Icon(Icons.search_rounded, size: 18),
+            icon: const GlyphIcon(AppGlyphs.search, size: 18),
             tooltip: '跨图源聚合搜索',
             onPressed: () {
               context.pushRoute(
@@ -142,7 +143,7 @@ class DiscoverPluginsCard extends StatelessWidget {
           ),
           TextButton.icon(
             onPressed: () => context.pushRoute(const PluginStoreRoute()),
-            icon: const Icon(Icons.storefront_rounded, size: 14),
+            icon: const GlyphIcon(AppGlyphs.storefront, size: 14),
             label: const Text('市场'),
             style: TextButton.styleFrom(
               visualDensity: VisualDensity.compact,
@@ -208,7 +209,7 @@ class DiscoverPluginsCard extends StatelessWidget {
               backgroundColor: theme.colorScheme.primaryContainer.withValues(
                 alpha: 0.6,
               ),
-              child: Icon(
+              child: GlyphIcon(
                 _pluginIcon(plugin.uuid),
                 size: 18,
                 color: theme.colorScheme.primary,
@@ -242,7 +243,7 @@ class DiscoverPluginsCard extends StatelessWidget {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+              icon: const GlyphIcon(AppGlyphs.chevronForward, size: 14),
               color: theme.colorScheme.onSurfaceVariant,
               onPressed: () {
                 context.pushRoute(
@@ -259,11 +260,11 @@ class DiscoverPluginsCard extends StatelessWidget {
     );
   }
 
-  IconData _pluginIcon(String uuid) {
+  Glyph _pluginIcon(String uuid) {
     final lower = uuid.toLowerCase();
-    if (lower.contains('bika')) return Icons.filter_vintage_rounded;
-    if (lower.contains('jm')) return Icons.auto_stories_rounded;
-    if (lower.contains('local')) return Icons.folder_special_rounded;
-    return Icons.extension_rounded;
+    if (lower.contains('bika')) return AppGlyphs.sparkle;
+    if (lower.contains('jm')) return AppGlyphs.openBook;
+    if (lower.contains('local')) return AppGlyphs.folder;
+    return AppGlyphs.puzzle;
   }
 }

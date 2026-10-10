@@ -347,7 +347,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
     return CollapsibleCard(
       cardId: WorkspaceCardRegistry.localFolder,
       title: '文件浏览',
-      icon: Icons.folder_copy_rounded,
+      icon: AppGlyphs.folderCopy,
       isExpanded: widget.isExpanded,
       onToggle: widget.onToggle,
       onMoveUp: widget.onMoveUp,

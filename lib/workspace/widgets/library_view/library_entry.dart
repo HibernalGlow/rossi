@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'package:zephyr/workspace/widgets/library_view/library_view_mode.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 缩略图槽的构造器：由**数据源**提供，尺寸与圆角由布局决定。
 ///
@@ -27,7 +28,7 @@ class LibrarySubLine {
   });
 
   final String label;
-  final IconData icon;
+  final Glyph icon;
   final VoidCallback? onTap;
   final VoidCallback? onDoubleTap;
 }

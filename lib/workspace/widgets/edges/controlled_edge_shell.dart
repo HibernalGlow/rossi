@@ -7,6 +7,7 @@ import 'package:zephyr/workspace/widgets/edges/edge_drawer_panel.dart';
 import 'package:zephyr/workspace/widgets/panels/lane_panel_host.dart';
 import 'package:zephyr/workspace/widgets/panels/panel_tab_strip.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_host.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 四边栏沉浸容器：**中央还是 Reader**，四边是悬浮滑出的抽屉。
 ///
@@ -47,7 +48,7 @@ class ControlledEdgeShell extends StatelessWidget {
                 child: Center(
                   child: _buildEdgeTriggerButton(
                     context,
-                    icon: Icons.chevron_right_rounded,
+                    icon: AppGlyphs.chevronForward,
                     tooltip: '展开书架与收藏 (左侧栏)',
                     onTap: () => cubit.toggleEdgeDrawer('left'),
                   ),
@@ -63,7 +64,7 @@ class ControlledEdgeShell extends StatelessWidget {
                 child: Center(
                   child: _buildEdgeTriggerButton(
                     context,
-                    icon: Icons.chevron_left_rounded,
+                    icon: AppGlyphs.chevronBack,
                     tooltip: '展开图源与本地 (右侧栏)',
                     onTap: () => cubit.toggleEdgeDrawer('right'),
                   ),
@@ -80,7 +81,7 @@ class ControlledEdgeShell extends StatelessWidget {
               width: _drawerWidth,
               child: EdgeDrawerPanel(
                 title: '左侧面板（书架）',
-                icon: Icons.auto_stories_rounded,
+                icon: AppGlyphs.openBook,
                 onClose: () => cubit.toggleEdgeDrawer('left'),
                 panelTabs: const PanelTabStrip(side: WorkspacePanelSide.left),
                 child: const LanePanelHost(side: WorkspacePanelSide.left),
@@ -97,7 +98,7 @@ class ControlledEdgeShell extends StatelessWidget {
               width: _drawerWidth,
               child: EdgeDrawerPanel(
                 title: '右侧面板（发现与图源）',
-                icon: Icons.tune_rounded,
+                icon: AppGlyphs.sliders,
                 onClose: () => cubit.toggleEdgeDrawer('right'),
                 panelTabs: const PanelTabStrip(side: WorkspacePanelSide.right),
                 child: const LanePanelHost(side: WorkspacePanelSide.right),
@@ -111,7 +112,7 @@ class ControlledEdgeShell extends StatelessWidget {
 
   Widget _buildEdgeTriggerButton(
     BuildContext context, {
-    required IconData icon,
+    required Glyph icon,
     required String tooltip,
     required VoidCallback onTap,
   }) {
@@ -139,7 +140,7 @@ class ControlledEdgeShell extends StatelessWidget {
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
             ),
           ),
-          child: Icon(icon, size: 18, color: theme.colorScheme.primary),
+          child: GlyphIcon(icon, size: 18, color: theme.colorScheme.primary),
         ),
       ),
     );

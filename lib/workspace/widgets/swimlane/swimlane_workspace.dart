@@ -20,6 +20,7 @@ import 'package:zephyr/workspace/widgets/panels/panel_bar_positioner.dart';
 import 'package:zephyr/workspace/widgets/panels/panel_tab_strip.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_host.dart';
 import 'package:zephyr/workspace/widgets/swimlane/swimlane_column.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 水平泳道工作区：**一条平面条带**，左面板 / 阅读器 / 右面板依次排列。
 ///
@@ -764,8 +765,8 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
     final isSwimlane = state.mode == WorkspaceMode.swimlane;
     return [
       IconButton(
-        icon: Icon(
-          isSwimlane ? Icons.dock_rounded : Icons.view_column_rounded,
+        icon: GlyphIcon(
+          isSwimlane ? AppGlyphs.columnsTwo : AppGlyphs.columnsThree,
           size: 18,
         ),
         tooltip: isSwimlane ? '切换为沉浸四边栏 (Edges)' : '切换为多列泳道 (Swimlane)',
@@ -774,7 +775,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
       ),
       if (state.readerTarget != null)
         IconButton(
-          icon: const Icon(Icons.close_rounded, size: 18),
+          icon: const GlyphIcon(AppGlyphs.close, size: 18),
           tooltip: '关闭当前漫画 (回到空态)',
           visualDensity: VisualDensity.compact,
           onPressed: () => cubit.closeReader(),

@@ -29,6 +29,7 @@ import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_list_toolbar.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_timeline_view.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 阅读历史面板。视图部分与书签面板、文件管理器共用一套（`library_view`）。
 ///
@@ -162,7 +163,7 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
         return CollapsibleCard(
           cardId: 'history',
           title: '阅读历史 (History)',
-          icon: Icons.history_rounded,
+          icon: AppGlyphs.history,
           isExpanded: widget.isExpanded,
           onToggle: widget.onToggle,
           onMoveUp: widget.onMoveUp,
@@ -417,14 +418,14 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
               height: height,
             ),
           ),
-      badge: Icon(Icons.menu_book_rounded, color: theme.colorScheme.primary),
+      badge: GlyphIcon(AppGlyphs.book, color: theme.colorScheme.primary),
       thumbModes: LibraryViewMode.values.toSet(),
       detailCells: [chapter.isEmpty ? '—' : chapter, source, time],
       onRead: () => _read(item),
       // 行档图标钮：28 命中区 + 18 图标，与书签卡、文件管理器同一口径
       // （原来是 22，比工具栏那 20 还大，一行里最抢眼的成了次要动作）。
       trailing: IconButton(
-        icon: const Icon(Icons.play_circle_outline_rounded, size: 18),
+        icon: const GlyphIcon(AppGlyphs.playCircle, size: 18),
         color: theme.colorScheme.primary,
         tooltip: t.comicEntry.resumeRead,
         visualDensity: VisualDensity.compact,

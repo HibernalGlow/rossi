@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 边缘滑出抽屉容器面板。
 ///
@@ -7,7 +8,7 @@ import 'package:material_ui/material_ui.dart';
 /// 同一个图标轨、同一批卡片：「这张卡属于哪个面板」永远只有一处可改。
 class EdgeDrawerPanel extends StatelessWidget {
   final String title;
-  final IconData icon;
+  final Glyph icon;
   final VoidCallback onClose;
   final Widget child;
 
@@ -69,7 +70,7 @@ class EdgeDrawerPanel extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(icon, size: 20, color: theme.colorScheme.primary),
+                GlyphIcon(icon, size: 20, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -86,7 +87,7 @@ class EdgeDrawerPanel extends StatelessWidget {
                   const SizedBox(width: 4),
                 ],
                 IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 20),
+                  icon: const GlyphIcon(AppGlyphs.close, size: 20),
                   tooltip: '关闭边栏 (Close)',
                   onPressed: onClose,
                   visualDensity: VisualDensity.compact,

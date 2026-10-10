@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/workspace/model/history_insights.dart';
 import 'package:zephyr/workspace/widgets/cards/history_insights_window.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 星期 × 小时阅读热力（neoview `ReadingHeatmapCard` 的同位物）。
 ///
@@ -28,7 +29,7 @@ class ReadingHeatmapCard extends StatelessWidget {
     return CollapsibleCard(
       cardId: 'reading_heatmap',
       title: '阅读热力',
-      icon: Icons.calendar_month_rounded,
+      icon: AppGlyphs.calendar,
       isExpanded: isExpanded,
       onToggle: onToggle,
       onMoveUp: onMoveUp,

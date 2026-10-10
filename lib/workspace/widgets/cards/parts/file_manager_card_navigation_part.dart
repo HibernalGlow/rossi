@@ -60,7 +60,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
             IconButton(
               tooltip: '转到目录',
               onPressed: _busy ? null : _submitPath,
-              icon: const Icon(Icons.check, size: 18),
+              icon: const GlyphIcon(AppGlyphs.check, size: 18),
             ),
             IconButton(
               tooltip: '取消路径编辑',
@@ -68,7 +68,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
                   ? null
                   // ignore: invalid_use_of_protected_member
                   : () => setState(() => _editingPath = false),
-              icon: const Icon(Icons.close, size: 18),
+              icon: const GlyphIcon(AppGlyphs.close, size: 18),
             ),
           ],
         ),
@@ -92,7 +92,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
               child: Row(
                 children: [
                   for (final part in snapshot.breadcrumbs) ...[
-                    if (!part.isRoot) const Icon(Icons.chevron_right, size: 14),
+                    if (!part.isRoot) const GlyphIcon(AppGlyphs.chevronForward, size: 14),
                     Tooltip(
                       message: part.path,
                       child: TextButton(
@@ -262,8 +262,8 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
                                         ),
                                         dense: true,
                                         selected: entry.selected,
-                                        leading: const Icon(
-                                          Icons.folder_outlined,
+                                        leading: const GlyphIcon(
+                                          AppGlyphs.folder,
                                           size: 18,
                                         ),
                                         title: Text(
@@ -337,7 +337,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
                                   fileManagerCloseTab(id: id, tabId: tab.id),
                             )
                           : null,
-                      deleteIcon: const Icon(Icons.close, size: 13),
+                      deleteIcon: const GlyphIcon(AppGlyphs.close, size: 13),
                     ),
                   ],
                 );
@@ -351,7 +351,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
                 !_busy &&
                 snapshot.canCreateTab &&
                 snapshot.recentlyClosed.isNotEmpty,
-            icon: const Icon(Icons.history_rounded, size: 18),
+            icon: const GlyphIcon(AppGlyphs.history, size: 18),
             onSelected: (tabId) => _apply(
               (id) => fileManagerReopenClosedTab(id: id, tabId: tabId),
             ),
@@ -374,7 +374,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
             onPressed: _busy || !snapshot.canCreateTab
                 ? null
                 : () => _apply((id) => fileManagerNewTab(id: id)),
-            icon: const Icon(Icons.add_rounded),
+            icon: const GlyphIcon(AppGlyphs.add),
           ),
         ],
       ),
@@ -385,8 +385,8 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
       tooltip: '页签操作：${tab.title}',
       visualDensity: VisualDensity.compact,
       enabled: !_busy,
-      icon: Icon(
-        tab.pinned ? Icons.push_pin_rounded : Icons.more_vert_rounded,
+      icon: GlyphIcon(
+        tab.pinned ? AppGlyphs.pin : AppGlyphs.more,
         size: 16,
       ),
       onSelected: (action) => _apply(
@@ -446,8 +446,8 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
           final selected = snapshot.activePath == root.path;
           return ActionChip(
             label: Text(root.label, style: const TextStyle(fontSize: 11)),
-            avatar: Icon(
-              selected ? Icons.storage_rounded : Icons.folder_outlined,
+            avatar: GlyphIcon(
+              selected ? AppGlyphs.storage : AppGlyphs.folder,
               size: 15,
             ),
             visualDensity: VisualDensity.compact,

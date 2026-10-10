@@ -13,8 +13,8 @@ extension _FileManagerCardViewPart on _FileManagerCardState {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.error_outline,
+          GlyphIcon(
+            AppGlyphs.error,
             size: 15,
             color: theme.colorScheme.onErrorContainer,
           ),
@@ -30,7 +30,7 @@ extension _FileManagerCardViewPart on _FileManagerCardState {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close, size: 15),
+            icon: const GlyphIcon(AppGlyphs.close, size: 15),
             visualDensity: VisualDensity.compact,
             // ignore: invalid_use_of_protected_member
             onPressed: () => setState(() => _error = null),
@@ -70,7 +70,7 @@ extension _FileManagerCardViewPart on _FileManagerCardState {
     if (mode == LibraryViewMode.compact) {
       if (!entry.isDir) return null;
       return IconButton(
-        icon: const Icon(Icons.folder_open_rounded, size: 16),
+        icon: const GlyphIcon(AppGlyphs.folder, size: 16),
         tooltip: '进入文件夹',
         visualDensity: VisualDensity.compact,
         padding: EdgeInsets.zero,
@@ -81,7 +81,7 @@ extension _FileManagerCardViewPart on _FileManagerCardState {
     if (mode == LibraryViewMode.coverList) {
       if (entry.isDir) {
         return IconButton(
-          icon: const Icon(Icons.folder_open_rounded, size: 18),
+          icon: const GlyphIcon(AppGlyphs.folder, size: 18),
           tooltip: '进入文件夹',
           visualDensity: VisualDensity.compact,
           onPressed: _busy ? null : () => _openEntry(entry, forceEnter: true),
@@ -89,7 +89,7 @@ extension _FileManagerCardViewPart on _FileManagerCardState {
       }
       return const Padding(
         padding: EdgeInsets.only(top: 4),
-        child: Icon(Icons.play_circle_outline_rounded, size: 18),
+        child: GlyphIcon(AppGlyphs.playCircle, size: 18),
       );
     }
     return null;
@@ -98,8 +98,8 @@ extension _FileManagerCardViewPart on _FileManagerCardState {
     return LibrarySubLine(
       label: child.name,
       icon: child.isDir
-          ? Icons.folder_outlined
-          : Icons.subdirectory_arrow_right,
+          ? AppGlyphs.folder
+          : AppGlyphs.arrowForward,
       onTap: _busy ? null : () => _openChild(child),
       onDoubleTap: child.isArchive && !_busy
           ? () => _openArchiveChild(child)
@@ -109,15 +109,15 @@ extension _FileManagerCardViewPart on _FileManagerCardState {
   /// 语义图标不带尺寸：每档视图要多大由 `LibraryViewLayout.badgeSize` 决定。
   Widget _semanticIcon(BuildContext context, FileManagerEntry entry) {
     final colors = Theme.of(context).colorScheme;
-    final (IconData icon, Color color) = switch (entry) {
-      _ when entry.isDir => (Icons.folder_rounded, colors.primary),
-      _ when entry.isArchive => (Icons.auto_stories_rounded, colors.primary),
-      _ when entry.isImage => (Icons.image_outlined, colors.secondary),
-      _ when entry.isVideo => (Icons.movie_outlined, colors.secondary),
-      _ when entry.isAudio => (Icons.audio_file_outlined, colors.secondary),
-      _ => (Icons.insert_drive_file_outlined, colors.outline),
+    final (Glyph icon, Color color) = switch (entry) {
+      _ when entry.isDir => (AppGlyphs.folder, colors.primary),
+      _ when entry.isArchive => (AppGlyphs.openBook, colors.primary),
+      _ when entry.isImage => (AppGlyphs.photos, colors.secondary),
+      _ when entry.isVideo => (AppGlyphs.playCircle, colors.secondary),
+      _ when entry.isAudio => (AppGlyphs.music, colors.secondary),
+      _ => (AppGlyphs.article, colors.outline),
     };
-    return Icon(icon, color: color);
+    return GlyphIcon(icon, color: color);
   }
   Future<void> _toggleSort(
     FileManagerSnapshot snapshot,

@@ -21,6 +21,7 @@ import 'package:zephyr/workspace/widgets/cards/daily_trend_card.dart';
 import 'package:zephyr/workspace/widgets/cards/reading_streak_card.dart';
 import 'package:zephyr/workspace/widgets/cards/reading_heatmap_card.dart';
 import 'package:zephyr/workspace/widgets/cards/source_breakdown_card.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 卡片外壳交给卡片自己的那点上下文。
 ///
@@ -43,13 +44,22 @@ class WorkspaceCardChrome {
   final bool standalone;
 
   /// 这张卡在**当前这台机器**上能不能用（`false` = 灰显 + 一颗 [unsupportedHint] tag）。
-  ///
-  /// 由宿主按 [WorkspaceCardDefinition.supportedHere] 算好传进来 —— 卡片自己
-  /// 不该各写一遍平台判据，那样加一张卡就多一处会漏判的地方。
   final bool supported;
 
   /// [supported] 为 `false` 时挂在标题行上的那句说明（例如「仅桌面」）。
   final String? unsupportedHint;
+
+  /// 卡片在网格布局中的跨度宽度（1..4，默认 4 为全宽）。
+  final int widthSpan;
+
+  /// 卡片在网格布局中的跨度高度（1..4，默认 2 为双高，1 为紧凑/半高）。
+  final int heightSpan;
+
+  /// 是否处于编辑排版模式。
+  final bool isEditing;
+
+  /// 调整卡片尺寸的回调。
+  final void Function(int widthSpan, int heightSpan)? onResize;
 
   const WorkspaceCardChrome({
     required this.expanded,
@@ -62,6 +72,10 @@ class WorkspaceCardChrome {
     this.standalone = false,
     this.supported = true,
     this.unsupportedHint,
+    this.widthSpan = 4,
+    this.heightSpan = 2,
+    this.isEditing = false,
+    this.onResize,
   });
 }
 
@@ -73,7 +87,7 @@ typedef WorkspaceCardBuilder =
 class WorkspaceCardDefinition {
   final String id;
   final String title;
-  final IconData icon;
+  final Glyph icon;
 
   /// 默认住在哪个面板里。卡片是**跨呈现共享**的：泳道与四边栏读的是同一份定义。
   final String defaultPanelId;
@@ -82,13 +96,16 @@ class WorkspaceCardDefinition {
   final bool defaultVisible;
   final bool defaultExpanded;
 
+  /// 默认跨度宽度（1..4）。
+  final int defaultWidthSpan;
+
+  /// 默认跨度高度（1..4）。
+  final int defaultHeightSpan;
+
   /// 是否允许用户把它收起来（`false` = 面板的固定主体）。
   final bool canHide;
 
   /// 这张卡在**当前这台机器**上能不能用；`null` = 哪儿都能用。
-  ///
-  /// 为 `false` 时**不**把卡摘掉，而是灰显 + 挂一颗 [unsupportedHint] tag：
-  /// 面板「一张卡都没有就不上图标轨」，藏起来等于让用户以为这个功能不存在。
   final bool Function()? supportedHere;
 
   /// [supportedHere] 判不动时挂在标题行上的那句说明（例如「仅桌面」）。
@@ -105,6 +122,8 @@ class WorkspaceCardDefinition {
     required this.builder,
     this.defaultVisible = true,
     this.defaultExpanded = true,
+    this.defaultWidthSpan = 4,
+    this.defaultHeightSpan = 2,
     this.canHide = true,
     this.supportedHere,
     this.unsupportedHint,
@@ -151,7 +170,7 @@ class WorkspaceCardRegistry {
     WorkspaceCardDefinition(
       id: favorite,
       title: '书签',
-      icon: Icons.bookmark_added_rounded,
+      icon: AppGlyphs.bookmark,
       defaultPanelId: WorkspacePanelId.favorite,
       defaultOrder: 0,
       builder: (context, chrome) => FavoriteShelfCard(
@@ -166,7 +185,7 @@ class WorkspaceCardRegistry {
     WorkspaceCardDefinition(
       id: history,
       title: '阅读历史',
-      icon: Icons.history_rounded,
+      icon: AppGlyphs.history,
       defaultPanelId: WorkspacePanelId.history,
       defaultOrder: 0,
       builder: (context, chrome) => HistoryShelfCard(
@@ -181,7 +200,7 @@ class WorkspaceCardRegistry {
     WorkspaceCardDefinition(
       id: download,
       title: '下载与离线',
-      icon: Icons.download_done_rounded,
+      icon: AppGlyphs.downloadDone,
       defaultPanelId: WorkspacePanelId.download,
       defaultOrder: 0,
       builder: (context, chrome) => DownloadShelfCard(
@@ -196,7 +215,7 @@ class WorkspaceCardRegistry {
     WorkspaceCardDefinition(
       id: plugins,
       title: '图源与扩展',
-      icon: Icons.extension_rounded,
+      icon: AppGlyphs.puzzle,
       defaultPanelId: WorkspacePanelId.plugins,
       defaultOrder: 0,
       builder: (context, chrome) => DiscoverPluginsCard(
@@ -211,7 +230,7 @@ class WorkspaceCardRegistry {
     WorkspaceCardDefinition(
       id: localFolder,
       title: '本地漫画',
-      icon: Icons.folder_copy_rounded,
+      icon: AppGlyphs.folderCopy,
       defaultPanelId: WorkspacePanelId.fileManager,
       defaultOrder: 0,
       builder: (context, chrome) => FileManagerCard(
@@ -226,7 +245,7 @@ class WorkspaceCardRegistry {
     WorkspaceCardDefinition(
       id: pageList,
       title: '页面导航',
-      icon: Icons.view_carousel_rounded,
+      icon: AppGlyphs.cardMedium,
       defaultPanelId: WorkspacePanelId.pageList,
       defaultOrder: 0,
       builder: (context, chrome) => PageListCard(
@@ -243,7 +262,7 @@ class WorkspaceCardRegistry {
     WorkspaceCardDefinition(
       id: bookInformation,
       title: '书籍信息',
-      icon: Icons.menu_book_rounded,
+      icon: AppGlyphs.book,
       defaultPanelId: WorkspacePanelId.info,
       defaultOrder: 0,
       // 信息面板的固定主体：收掉它面板就空了，Neo 同款纪律（canHide: false）。
@@ -260,7 +279,7 @@ class WorkspaceCardRegistry {
     WorkspaceCardDefinition(
       id: imageInformation,
       title: '图像信息',
-      icon: Icons.image_rounded,
+      icon: AppGlyphs.photos,
       defaultPanelId: WorkspacePanelId.info,
       defaultOrder: 1,
       builder: (context, chrome) => ImageInformationCard(
@@ -275,7 +294,7 @@ class WorkspaceCardRegistry {
     WorkspaceCardDefinition(
       id: storageInformation,
       title: '存储信息',
-      icon: Icons.sd_storage_rounded,
+      icon: AppGlyphs.storage,
       defaultPanelId: WorkspacePanelId.info,
       defaultOrder: 2,
       builder: (context, chrome) => StorageInformationCard(
@@ -290,7 +309,7 @@ class WorkspaceCardRegistry {
     WorkspaceCardDefinition(
       id: timeInformation,
       title: '时间信息',
-      icon: Icons.schedule_rounded,
+      icon: AppGlyphs.clock,
       defaultPanelId: WorkspacePanelId.info,
       defaultOrder: 3,
       builder: (context, chrome) => TimeInformationCard(
@@ -305,7 +324,7 @@ class WorkspaceCardRegistry {
     WorkspaceCardDefinition(
       id: preloadStatus,
       title: '预加载状态',
-      icon: Icons.bolt_rounded,
+      icon: AppGlyphs.bolt,
       defaultPanelId: WorkspacePanelId.info,
       defaultOrder: 4,
       builder: (context, chrome) => PreloadStatusCard(
@@ -320,7 +339,7 @@ class WorkspaceCardRegistry {
     WorkspaceCardDefinition(
       id: switchToast,
       title: '切换提示',
-      icon: Icons.notifications_active_rounded,
+      icon: AppGlyphs.bell,
       defaultPanelId: WorkspacePanelId.control,
       defaultOrder: 0,
       builder: (context, chrome) => SwitchToastCard(
@@ -339,7 +358,7 @@ class WorkspaceCardRegistry {
     WorkspaceCardDefinition(
       id: superResolution,
       title: 'AI 超分辨率',
-      icon: Icons.auto_awesome_outlined,
+      icon: AppGlyphs.sparkle,
       defaultPanelId: WorkspacePanelId.control,
       defaultOrder: 1,
       builder: (context, chrome) => SuperResolutionCard(
@@ -355,7 +374,7 @@ class WorkspaceCardRegistry {
     WorkspaceCardDefinition(
       id: translate,
       title: '翻译',
-      icon: Icons.translate_outlined,
+      icon: AppGlyphs.translate,
       defaultPanelId: WorkspacePanelId.control,
       defaultOrder: 2,
       // Android / iOS 是 ADR-0018 §决定 6 的排除项：`ort` 那两端没注册加速器 EP，
@@ -376,7 +395,7 @@ class WorkspaceCardRegistry {
     WorkspaceCardDefinition(
       id: imageTuning,
       title: '画面调节',
-      icon: Icons.auto_fix_high_outlined,
+      icon: AppGlyphs.wand,
       defaultPanelId: WorkspacePanelId.control,
       defaultOrder: 3,
       builder: (context, chrome) => ImageTuningCard(
@@ -396,9 +415,11 @@ class WorkspaceCardRegistry {
     WorkspaceCardDefinition(
       id: dailyTrend,
       title: '近 7 日阅读趋势',
-      icon: Icons.trending_up_rounded,
+      icon: AppGlyphs.trend,
       defaultPanelId: WorkspacePanelId.insights,
       defaultOrder: 0,
+      defaultWidthSpan: 2,
+      defaultHeightSpan: 2,
       builder: (context, chrome) => DailyTrendCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
@@ -410,9 +431,11 @@ class WorkspaceCardRegistry {
     WorkspaceCardDefinition(
       id: readingStreak,
       title: '连续阅读',
-      icon: Icons.local_fire_department_rounded,
+      icon: AppGlyphs.fire,
       defaultPanelId: WorkspacePanelId.insights,
       defaultOrder: 1,
+      defaultWidthSpan: 2,
+      defaultHeightSpan: 1,
       builder: (context, chrome) => ReadingStreakCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
@@ -424,9 +447,11 @@ class WorkspaceCardRegistry {
     WorkspaceCardDefinition(
       id: readingHeatmap,
       title: '阅读热力',
-      icon: Icons.calendar_month_rounded,
+      icon: AppGlyphs.calendar,
       defaultPanelId: WorkspacePanelId.insights,
       defaultOrder: 2,
+      defaultWidthSpan: 4,
+      defaultHeightSpan: 2,
       builder: (context, chrome) => ReadingHeatmapCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
@@ -438,9 +463,11 @@ class WorkspaceCardRegistry {
     WorkspaceCardDefinition(
       id: sourceBreakdown,
       title: '来源拆分',
-      icon: Icons.pie_chart_outline_rounded,
+      icon: AppGlyphs.pieChart,
       defaultPanelId: WorkspacePanelId.insights,
       defaultOrder: 3,
+      defaultWidthSpan: 2,
+      defaultHeightSpan: 2,
       builder: (context, chrome) => SourceBreakdownCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
@@ -485,13 +512,21 @@ class WorkspaceCardRegistry {
     WorkspaceCardDefinition card,
     WorkspaceBoardLayout board,
   ) {
-    return board.cardLayout(card.id) ??
-        CardLayout(
-          panelId: card.defaultPanelId,
-          visible: card.defaultVisible,
-          order: card.defaultOrder,
-          expanded: card.defaultExpanded,
-        );
+    final existing = board.cardLayout(card.id);
+    if (existing != null) {
+      return existing.copyWith(
+        widthSpan: existing.widthSpan ?? card.defaultWidthSpan,
+        heightSpan: existing.heightSpan ?? card.defaultHeightSpan,
+      );
+    }
+    return CardLayout(
+      panelId: card.defaultPanelId,
+      visible: card.defaultVisible,
+      order: card.defaultOrder,
+      expanded: card.defaultExpanded,
+      widthSpan: card.defaultWidthSpan,
+      heightSpan: card.defaultHeightSpan,
+    );
   }
 
   /// 某个面板里**用户隐藏掉**的卡片（面板底部的「恢复」入口用）。

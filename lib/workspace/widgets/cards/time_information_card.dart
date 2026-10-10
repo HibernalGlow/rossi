@@ -6,6 +6,7 @@ import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/cards/info_card_kit.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 时间信息卡（对齐 Neo 的 `time-information`）：
 /// 来源文件与当前页文件的修改 / 访问 / 变更时间。
@@ -132,7 +133,7 @@ class _TimeInformationCardState extends State<TimeInformationCard> {
         return CollapsibleCard(
           cardId: 'time_information',
           title: '时间信息',
-          icon: Icons.schedule_rounded,
+          icon: AppGlyphs.clock,
           isExpanded: widget.isExpanded,
           onToggle: widget.onToggle,
           onMoveUp: widget.onMoveUp,
@@ -140,11 +141,11 @@ class _TimeInformationCardState extends State<TimeInformationCard> {
           onHide: widget.onHide,
           child: !hasSession
               ? const InfoEmpty(
-                  icon: Icons.history_toggle_off_rounded,
+                  icon: AppGlyphs.history,
                   text: '打开书本后显示文件时间',
                 )
               : facts?.rootPath == null
-              ? const InfoEmpty(icon: Icons.cloud_rounded, text: '在线图源没有本地文件时间')
+              ? const InfoEmpty(icon: AppGlyphs.cloud, text: '在线图源没有本地文件时间')
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [

@@ -267,6 +267,39 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
     );
   }
 
+  /// 调整卡片的尺寸跨度。
+  void resizeCardInPanel(String cardId, int widthSpan, int heightSpan) {
+    final card = WorkspaceCardRegistry.I.find(cardId);
+    if (card == null) return;
+    final effective = WorkspaceCardRegistry.I.effectiveLayout(
+      card,
+      state.board,
+    );
+    emit(
+      state.copyWith(
+        board: state.board.resizeCard(
+          cardId: cardId,
+          panelId: effective.panelId,
+          order: effective.order,
+          widthSpan: widthSpan,
+          heightSpan: heightSpan,
+        ),
+      ),
+    );
+  }
+
+  /// 批量重排面板内的卡片次序。
+  void reorderCardsInPanel(String panelId, List<String> orderedCardIds) {
+    emit(
+      state.copyWith(
+        board: state.board.reorderCards(
+          panelId: panelId,
+          orderedCardIds: orderedCardIds,
+        ),
+      ),
+    );
+  }
+
   /// 显示 / 隐藏一张卡。
   void setCardVisible(String cardId, bool visible) {
     final card = WorkspaceCardRegistry.I.find(cardId);

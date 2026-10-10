@@ -125,6 +125,27 @@ class WorkspaceInteractionSettings {
   /// 上下两条决定顶栏与阅读器底栏的唤出带摆在哪儿。
   final WorkspaceRevealZones revealZones;
 
+  /// 面板页签条是否处于**排序模式**。默认关。
+  ///
+  /// 两种模式下页签条的手势**完全相反**，所以它必须是**一个显式档**：
+  ///
+  /// - **关（常态）**：按住页签横移 = 切换面板，选中态是弹簧 lens 跟手
+  ///   （跨格有触感、越过两端橡皮筋）。这是使用面板最频繁的动作，不该被
+  ///   「先按住 220ms」挡住。
+  /// - **开（排序模式）**：长按页签 = 拖动排序 / 拖到另一条泳道（跨泳道搬运
+  ///   只在这一档有），而**横移不再切面板** —— 于是拖排序与拖切换不会互相
+  ///   抢手势。
+  ///
+  /// 为什么不反过来（常态拖排序、按住切面板）：拖排序是**低频且带破坏性**
+  /// 的动作（拖错了要把面板搬回来），把它放在默认路径上意味着每次想切面板
+  /// 都得先想一下「我现在是想切还是想搬」。反过来之后，日常那一下永远是最
+  /// 轻的那条路径，而想搬面板时用户主动开一档排序模式 —— 动作与意图对齐。
+  ///
+  /// 跨泳道搬运**只在这一档有**：那条路要离开当前泳道，松手落点按「落在哪条
+  /// 泳道」判定，与 lens 的横向落点语义不同，两条同时开会在拖出泳道边界时
+  /// 打架（谁先认领落点）。
+  final bool panelTabSortMode;
+
   const WorkspaceInteractionSettings({
     this.hoverFocusEnabled = true,
     this.panelHoverFocusEnabled = true,
@@ -139,6 +160,7 @@ class WorkspaceInteractionSettings {
     this.blockManualScrollInReaderFullscreen = true,
     this.showTopChrome = false,
     this.revealZones = WorkspaceRevealZones.defaults,
+    this.panelTabSortMode = false,
   });
 
   WorkspaceInteractionSettings copyWith({
@@ -155,6 +177,7 @@ class WorkspaceInteractionSettings {
     bool? blockManualScrollInReaderFullscreen,
     bool? showTopChrome,
     WorkspaceRevealZones? revealZones,
+    bool? panelTabSortMode,
   }) {
     return WorkspaceInteractionSettings(
       hoverFocusEnabled: hoverFocusEnabled ?? this.hoverFocusEnabled,
@@ -175,6 +198,7 @@ class WorkspaceInteractionSettings {
           this.blockManualScrollInReaderFullscreen,
       showTopChrome: showTopChrome ?? this.showTopChrome,
       revealZones: revealZones ?? this.revealZones,
+      panelTabSortMode: panelTabSortMode ?? this.panelTabSortMode,
     );
   }
 
@@ -192,6 +216,7 @@ class WorkspaceInteractionSettings {
     'blockManualScrollInReaderFullscreen': blockManualScrollInReaderFullscreen,
     'showTopChrome': showTopChrome,
     'revealZones': revealZones.toJson(),
+    'panelTabSortMode': panelTabSortMode,
   };
 
   /// 从 JSON 还原；**任何一项缺失或非法都退回该项的默认值**，绝不抛异常、
@@ -247,6 +272,9 @@ class WorkspaceInteractionSettings {
           ? json['showTopChrome']! as bool
           : fallback.showTopChrome,
       revealZones: WorkspaceRevealZones.fromJson(json['revealZones']),
+      panelTabSortMode: json['panelTabSortMode'] is bool
+          ? json['panelTabSortMode']! as bool
+          : fallback.panelTabSortMode,
     );
   }
 
@@ -273,7 +301,8 @@ class WorkspaceInteractionSettings {
       other.blockManualScrollInReaderFullscreen ==
           blockManualScrollInReaderFullscreen &&
       other.showTopChrome == showTopChrome &&
-      other.revealZones == revealZones;
+      other.revealZones == revealZones &&
+      other.panelTabSortMode == panelTabSortMode;
 
   @override
   int get hashCode => Object.hash(
@@ -290,5 +319,6 @@ class WorkspaceInteractionSettings {
     blockManualScrollInReaderFullscreen,
     showTopChrome,
     revealZones,
+    panelTabSortMode,
   );
 }

@@ -361,17 +361,17 @@ extension _FileManagerCardFileOpsPart on _FileManagerCardState {
     final scheme = Theme.of(context).colorScheme;
     final ops = _ops;
     return [
-      _selectionAction(Icons.select_all_rounded, '全选', _selectAll),
-      _selectionAction(Icons.swap_horiz_rounded, '反选', _invertSelection),
+      _selectionAction(AppGlyphs.selectAll, '全选', _selectAll),
+      _selectionAction(AppGlyphs.flip, '反选', _invertSelection),
       _selectionAction(
-        Icons.content_copy_rounded,
+        AppGlyphs.copy,
         '复制',
         () => unawaited(
           _copyToClipboard(cut: false, paths: _selectedPaths.toList()),
         ),
       ),
       _selectionAction(
-        Icons.content_cut_rounded,
+        AppGlyphs.cut,
         '剪切',
         () => unawaited(
           _copyToClipboard(cut: true, paths: _selectedPaths.toList()),
@@ -381,40 +381,40 @@ extension _FileManagerCardFileOpsPart on _FileManagerCardState {
       // 没有可右键的落点）。所以它只在剪贴板非空时出现。
       if (ops?.canPaste ?? false)
         _selectionAction(
-          Icons.content_paste_rounded,
+          AppGlyphs.paste,
           '粘贴到当前目录',
           () => unawaited(_pasteInto(null)),
         ),
       if (ops?.canUndo ?? false)
         _selectionAction(
-          Icons.undo_rounded,
+          AppGlyphs.undo,
           '撤销上一步',
           () => unawaited(_undoLastOperation()),
         ),
       _selectionAction(
-        Icons.delete_outline_rounded,
+        AppGlyphs.delete,
         (_ops?.trashRestoreSupported ?? false) ? '移到回收站' : '移到回收站（无法撤销）',
         () => unawaited(_trashSelection()),
         color: scheme.error,
       ),
       _selectionAction(
-        Icons.delete_forever_rounded,
+        AppGlyphs.delete,
         '永久删除',
         () => unawaited(_deleteSelectionPermanently()),
         color: scheme.error,
       ),
-      _selectionAction(Icons.deselect_rounded, '取消选择', _clearSelection),
+      _selectionAction(AppGlyphs.deselect, '取消选择', _clearSelection),
     ];
   }
 
   Widget _selectionAction(
-    IconData icon,
+    Glyph icon,
     String tooltip,
     VoidCallback onPressed, {
     Color? color,
   }) {
     return IconButton(
-      icon: Icon(icon, size: 18, color: color),
+      icon: GlyphIcon(icon, size: 18, color: color),
       tooltip: tooltip,
       // 与工具栏其余图标键同一套密度，别让这一条比上面那排胖一圈。
       visualDensity: VisualDensity.compact,

@@ -8,6 +8,7 @@ import 'package:zephyr/workspace/registry/workspace_panel_registry.dart';
 import 'package:zephyr/workspace/router/workspace_lane_dispatch.dart';
 import 'package:zephyr/workspace/widgets/containers/embedded_upstream_page.dart';
 import 'package:zephyr/workspace/widgets/panels/panel_card_list.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// **一条面板泳道的内容宿主**：只画「当前面板是什么」。
 ///
@@ -180,7 +181,7 @@ class PanelHeaderBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(panel.icon, size: 14, color: theme.colorScheme.primary),
+          GlyphIcon(panel.icon, size: 14, color: theme.colorScheme.primary),
           const SizedBox(width: 7),
           Expanded(
             child: Text(
@@ -200,7 +201,7 @@ class PanelHeaderBar extends StatelessWidget {
                 for (final card in hidden)
                   FluentPopupMenuItem<String>(
                     value: card.id,
-                    leading: Icon(
+                    leading: GlyphIcon(
                       card.icon,
                       size: 16,
                       color: theme.colorScheme.primary,
@@ -212,8 +213,8 @@ class PanelHeaderBar extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.visibility_off_rounded,
+                    GlyphIcon(
+                      AppGlyphs.eyeOff,
                       size: 13,
                       color: theme.colorScheme.onSurfaceVariant,
                     ),

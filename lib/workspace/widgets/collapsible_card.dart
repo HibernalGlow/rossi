@@ -19,7 +19,7 @@ const Curve _m3EmphasizedDecelerate = Cubic(0.05, 0.7, 0.1, 1.0);
 class CollapsibleCard extends StatelessWidget {
   final String cardId;
   final String title;
-  final IconData icon;
+  final Glyph icon;
   final bool isExpanded;
   final VoidCallback onToggle;
   final Widget? trailing;
@@ -89,7 +89,7 @@ class CollapsibleCard extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(
+                    GlyphIcon(
                       icon,
                       size: 18,
                       color: theme.colorScheme.onSurfaceVariant,
@@ -120,8 +120,8 @@ class CollapsibleCard extends StatelessWidget {
                       duration: const Duration(milliseconds: 200),
                       // MD3 动效档位：会停下来的变换走 decelerate，不用裸的 easeOutCubic。
                       curve: _m3EmphasizedDecelerate,
-                      child: Icon(
-                        Icons.keyboard_arrow_down_rounded,
+                      child: GlyphIcon(
+                        AppGlyphs.chevronDown,
                         size: 20,
                         color: theme.colorScheme.onSurfaceVariant,
                       ),

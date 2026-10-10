@@ -5,6 +5,7 @@ import 'package:zephyr/widgets/comic_simplify_entry/comic_read_button.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_entry.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view_layout.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view_mode.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 一行条目在某一档视图下的样子。
 ///
@@ -93,7 +94,7 @@ class LibraryEntrySurface extends StatelessWidget {
     if (badge == null) return null;
     final target = size ?? LibraryViewLayout.badgeSize(mode);
     if (badge is Icon) {
-      return Icon(badge.icon, size: target, color: badge.color);
+      return GlyphIcon(badge.icon, size: target, color: badge.color);
     }
     return badge;
   }
@@ -126,7 +127,7 @@ class LibraryEntrySurface extends StatelessWidget {
             onDoubleTap: line.onDoubleTap,
             child: Row(
               children: [
-                Icon(
+                GlyphIcon(
                   line.icon,
                   size: 12,
                   color: theme.colorScheme.onSurfaceVariant,
