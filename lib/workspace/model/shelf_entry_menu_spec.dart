@@ -53,7 +53,7 @@ enum ShelfEntryAction {
 
 /// 一个菜单项**规格**：只说「是哪个动作、能不能点、是不是破坏性的」。
 ///
-/// 不含图标与文案 —— 那两样要 Flutter 的 `IconData` 与 slang 的 `t`，
+/// 不含图标与文案 —— 那两样要 Flutter 的 `Glyph` 与 slang 的 `t`，
 /// 放进来这份文件就不能被 `dart run` 直接跑了。
 class ShelfEntryMenuItemSpec {
   final ShelfEntryAction action;

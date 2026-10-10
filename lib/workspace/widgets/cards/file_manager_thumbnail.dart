@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/service/reader/reader_thumbnail_service.dart';
 import 'package:zephyr/src/rust/api/file_manager/types.dart';
 import 'package:zephyr/video/service/video_poster_service.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 参考 NeoView 与 mImageViewer 设计的文件管理器条目缩略图展示组件。
 ///
@@ -150,7 +151,7 @@ class _FileManagerThumbnailWidgetState
     return Center(
       child: Opacity(
         opacity: 0.45,
-        child: Icon(
+        child: GlyphIcon(
           _entryIcon(widget.entry),
           size: iconSize,
           color: _entryColor(context, widget.entry),
@@ -162,7 +163,7 @@ class _FileManagerThumbnailWidgetState
   Widget _buildFallback(BuildContext context) {
     final iconSize = (widget.height * 0.52).clamp(16.0, 26.0);
     return Center(
-      child: Icon(
+      child: GlyphIcon(
         _entryIcon(widget.entry),
         size: iconSize,
         color: _entryColor(context, widget.entry),
@@ -170,13 +171,13 @@ class _FileManagerThumbnailWidgetState
     );
   }
 
-  IconData _entryIcon(FileManagerEntry entry) {
-    if (entry.isDir) return Icons.folder_rounded;
-    if (entry.isArchive) return Icons.auto_stories_rounded;
-    if (entry.isImage) return Icons.image_outlined;
-    if (entry.isVideo) return Icons.movie_outlined;
-    if (entry.isAudio) return Icons.audio_file_outlined;
-    return Icons.insert_drive_file_outlined;
+  Glyph _entryIcon(FileManagerEntry entry) {
+    if (entry.isDir) return AppGlyphs.folder;
+    if (entry.isArchive) return AppGlyphs.openBook;
+    if (entry.isImage) return AppGlyphs.photos;
+    if (entry.isVideo) return AppGlyphs.playCircle;
+    if (entry.isAudio) return AppGlyphs.music;
+    return AppGlyphs.article;
   }
 
   Color _entryColor(BuildContext context, FileManagerEntry entry) {

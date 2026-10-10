@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/platform/desktop/reveal_in_file_manager.dart';
 import 'package:zephyr/workspace/model/file_manager_entry_menu_spec.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 文件管理器**一个条目**的右键菜单宿主，按 Material Design 3 规格实现。
 ///
@@ -156,7 +157,7 @@ class _FileManagerEntryMenuAnchorState
           : null,
       // MD3 的单行菜单项：24dp 前置图标、48dp 行高、12dp 内边距，
       // `MenuItemButton` 已经是这套默认值，这里只给颜色。
-      leadingIcon: Icon(
+      leadingIcon: GlyphIcon(
         fileManagerEntryActionIcon(spec.action),
         size: 24,
         color: color,
@@ -226,7 +227,7 @@ class FileManagerEntrySelectionShell extends StatelessWidget {
           color: scheme.primary,
           shape: BoxShape.circle,
         ),
-        child: Icon(Icons.check_rounded, size: 12, color: scheme.onPrimary),
+        child: GlyphIcon(AppGlyphs.check, size: 12, color: scheme.onPrimary),
       ),
     );
   }
@@ -302,29 +303,29 @@ String fileManagerEntryActionLabel(
   }
 }
 
-IconData fileManagerEntryActionIcon(FileManagerEntryAction action) {
+Glyph fileManagerEntryActionIcon(FileManagerEntryAction action) {
   switch (action) {
     case FileManagerEntryAction.open:
-      return Icons.open_in_new_rounded;
+      return AppGlyphs.openExternal;
     case FileManagerEntryAction.openInNewTab:
-      return Icons.tab_rounded;
+      return AppGlyphs.layoutTabs;
     case FileManagerEntryAction.revealInFileManager:
-      return Icons.folder_open_rounded;
+      return AppGlyphs.folder;
     case FileManagerEntryAction.copy:
-      return Icons.content_copy_rounded;
+      return AppGlyphs.copy;
     case FileManagerEntryAction.cut:
-      return Icons.content_cut_rounded;
+      return AppGlyphs.cut;
     case FileManagerEntryAction.paste:
-      return Icons.content_paste_rounded;
+      return AppGlyphs.paste;
     case FileManagerEntryAction.copyPath:
-      return Icons.link_rounded;
+      return AppGlyphs.link;
     case FileManagerEntryAction.rename:
-      return Icons.drive_file_rename_outline_rounded;
+      return AppGlyphs.edit;
     case FileManagerEntryAction.createFolder:
-      return Icons.create_new_folder_outlined;
+      return AppGlyphs.folderPlus;
     case FileManagerEntryAction.trash:
-      return Icons.delete_outline_rounded;
+      return AppGlyphs.delete;
     case FileManagerEntryAction.deletePermanently:
-      return Icons.delete_forever_rounded;
+      return AppGlyphs.delete;
   }
 }

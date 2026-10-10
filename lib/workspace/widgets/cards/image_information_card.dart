@@ -5,6 +5,7 @@ import 'package:zephyr/reader/super_resolution_status.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/cards/info_card_kit.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 图像信息卡（对齐 Neo 的 `image-information`）：
 /// 当前页的文件名 / 格式 / 编码大小 / 像素尺寸 / 呈现路径。
@@ -46,7 +47,7 @@ class ImageInformationCard extends StatelessWidget {
         return CollapsibleCard(
           cardId: 'image_information',
           title: '图像信息',
-          icon: Icons.image_rounded,
+          icon: AppGlyphs.photos,
           isExpanded: isExpanded,
           onToggle: onToggle,
           onMoveUp: onMoveUp,
@@ -55,10 +56,7 @@ class ImageInformationCard extends StatelessWidget {
           trailing: hasSession ? InfoCardCounter('#${slot + 1}') : null,
           child: hasSession
               ? _buildRows(coordinator, presenter, slot)
-              : const InfoEmpty(
-                  icon: Icons.image_rounded,
-                  text: '打开书本后显示当前页信息',
-                ),
+              : const InfoEmpty(icon: AppGlyphs.photos, text: '打开书本后显示当前页信息'),
         );
       },
     );

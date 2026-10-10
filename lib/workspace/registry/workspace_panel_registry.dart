@@ -5,6 +5,7 @@ import 'package:zephyr/workspace/registry/workspace_ids.dart';
 import 'package:zephyr/workspace/widgets/containers/embedded_auxiliary_lane.dart';
 import 'package:zephyr/workspace/widgets/containers/embedded_bookshelf_lane.dart';
 import 'package:zephyr/workspace/widgets/containers/embedded_discover_lane.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 一个**面板**的定义 —— 与 neoview 的 `ReaderPanelDefinition` 同构。
 ///
@@ -22,7 +23,7 @@ import 'package:zephyr/workspace/widgets/containers/embedded_discover_lane.dart'
 class WorkspacePanelDefinition {
   final String id;
   final String title;
-  final IconData icon;
+  final Glyph icon;
   final WorkspacePanelSide side;
 
   /// 同侧内的默认次序（小者在前）。
@@ -72,7 +73,7 @@ class WorkspacePanelRegistry {
       WorkspacePanelDefinition(
         id: WorkspacePanelId.bookshelf,
         title: '书架（上游原版）',
-        icon: Icons.menu_book_rounded,
+        icon: AppGlyphs.book,
         side: WorkspacePanelSide.left,
         defaultOrder: 0,
         exclusive: true,
@@ -84,7 +85,7 @@ class WorkspacePanelRegistry {
       WorkspacePanelDefinition(
         id: WorkspacePanelId.favorite,
         title: '书签',
-        icon: Icons.bookmark_added_rounded,
+        icon: AppGlyphs.bookmark,
         side: WorkspacePanelSide.left,
         defaultOrder: 1,
         exclusive: true,
@@ -92,7 +93,7 @@ class WorkspacePanelRegistry {
       WorkspacePanelDefinition(
         id: WorkspacePanelId.history,
         title: '阅读历史',
-        icon: Icons.history_rounded,
+        icon: AppGlyphs.history,
         side: WorkspacePanelSide.left,
         defaultOrder: 2,
         exclusive: true,
@@ -100,7 +101,7 @@ class WorkspacePanelRegistry {
       WorkspacePanelDefinition(
         id: WorkspacePanelId.download,
         title: '下载与离线',
-        icon: Icons.download_done_rounded,
+        icon: AppGlyphs.downloadDone,
         side: WorkspacePanelSide.left,
         defaultOrder: 3,
         exclusive: true,
@@ -108,7 +109,7 @@ class WorkspacePanelRegistry {
       WorkspacePanelDefinition(
         id: WorkspacePanelId.shelf,
         title: '书架聚合卡片',
-        icon: Icons.dashboard_customize_rounded,
+        icon: AppGlyphs.gridPlus,
         side: WorkspacePanelSide.left,
         defaultOrder: 4,
         defaultVisible: false,
@@ -118,7 +119,7 @@ class WorkspacePanelRegistry {
       WorkspacePanelDefinition(
         id: WorkspacePanelId.insights,
         title: '阅读洞察',
-        icon: Icons.insights_rounded,
+        icon: AppGlyphs.trend,
         side: WorkspacePanelSide.left,
         defaultOrder: 5,
       ),
@@ -130,14 +131,14 @@ class WorkspacePanelRegistry {
       WorkspacePanelDefinition(
         id: WorkspacePanelId.info,
         title: '信息',
-        icon: Icons.info_outline_rounded,
+        icon: AppGlyphs.info,
         side: WorkspacePanelSide.right,
         defaultOrder: 0,
       ),
       WorkspacePanelDefinition(
         id: WorkspacePanelId.discover,
         title: '发现（上游原版）',
-        icon: Icons.explore_rounded,
+        icon: AppGlyphs.compass,
         side: WorkspacePanelSide.right,
         defaultOrder: 1,
         exclusive: true,
@@ -149,7 +150,7 @@ class WorkspacePanelRegistry {
       WorkspacePanelDefinition(
         id: WorkspacePanelId.fileManager,
         title: '文件管理',
-        icon: Icons.folder_copy_rounded,
+        icon: AppGlyphs.folderCopy,
         side: WorkspacePanelSide.right,
         defaultOrder: 2,
         exclusive: true,
@@ -157,7 +158,7 @@ class WorkspacePanelRegistry {
       WorkspacePanelDefinition(
         id: WorkspacePanelId.pageList,
         title: '页面导航',
-        icon: Icons.view_carousel_rounded,
+        icon: AppGlyphs.cardMedium,
         side: WorkspacePanelSide.right,
         defaultOrder: 3,
         exclusive: true,
@@ -165,7 +166,7 @@ class WorkspacePanelRegistry {
       WorkspacePanelDefinition(
         id: WorkspacePanelId.plugins,
         title: '图源扩展',
-        icon: Icons.extension_rounded,
+        icon: AppGlyphs.puzzle,
         side: WorkspacePanelSide.right,
         defaultOrder: 4,
         exclusive: true,
@@ -173,7 +174,7 @@ class WorkspacePanelRegistry {
       WorkspacePanelDefinition(
         id: WorkspacePanelId.sources,
         title: '图源本地聚合',
-        icon: Icons.auto_awesome_motion_rounded,
+        icon: AppGlyphs.sparkle,
         side: WorkspacePanelSide.right,
         defaultOrder: 5,
         defaultVisible: false,
@@ -181,7 +182,7 @@ class WorkspacePanelRegistry {
       WorkspacePanelDefinition(
         id: WorkspacePanelId.tools,
         title: '工具与设置（上游原版）',
-        icon: Icons.tune_rounded,
+        icon: AppGlyphs.sliders,
         side: WorkspacePanelSide.right,
         defaultOrder: 6,
         exclusive: true,
@@ -196,7 +197,7 @@ class WorkspacePanelRegistry {
       WorkspacePanelDefinition(
         id: WorkspacePanelId.control,
         title: '控制面板',
-        icon: Icons.dashboard_rounded,
+        icon: AppGlyphs.dashboard,
         side: WorkspacePanelSide.right,
         defaultOrder: 7,
       ),

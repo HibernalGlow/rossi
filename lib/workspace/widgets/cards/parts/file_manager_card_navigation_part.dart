@@ -60,7 +60,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
             IconButton(
               tooltip: '转到目录',
               onPressed: _busy ? null : _submitPath,
-              icon: const Icon(Icons.check, size: 18),
+              icon: const GlyphIcon(AppGlyphs.check, size: 18),
             ),
             IconButton(
               tooltip: '取消路径编辑',
@@ -68,7 +68,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
                   ? null
                   // ignore: invalid_use_of_protected_member
                   : () => setState(() => _editingPath = false),
-              icon: const Icon(Icons.close, size: 18),
+              icon: const GlyphIcon(AppGlyphs.close, size: 18),
             ),
           ],
         ),
@@ -92,7 +92,8 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
               child: Row(
                 children: [
                   for (final part in snapshot.breadcrumbs) ...[
-                    if (!part.isRoot) const Icon(Icons.chevron_right, size: 14),
+                    if (!part.isRoot)
+                      const GlyphIcon(AppGlyphs.chevronForward, size: 14),
                     Tooltip(
                       message: part.path,
                       child: TextButton(
@@ -262,8 +263,8 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
                                         ),
                                         dense: true,
                                         selected: entry.selected,
-                                        leading: const Icon(
-                                          Icons.folder_outlined,
+                                        leading: const GlyphIcon(
+                                          AppGlyphs.folder,
                                           size: 18,
                                         ),
                                         title: Text(
@@ -301,47 +302,103 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
       child: Row(
         children: [
           Expanded(
-            child: ListView.separated(
+            child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              itemCount: snapshot.tabs.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 4),
-              itemBuilder: (context, index) {
-                final tab = snapshot.tabs[index];
-                final selected = tab.id == snapshot.activeTabId;
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildTabMenu(snapshot, tab),
-                    InputChip(
-                      selected: selected,
-                      label: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 130),
-                        child: Text(tab.title, overflow: TextOverflow.ellipsis),
+              child: SpringLensBar(
+                lensCorner: ControlShape.corner,
+                tabSizes: [
+                  for (final tab in snapshot.tabs) _tabExtent(context, tab),
+                ],
+                selectedIndex: snapshot.tabs.indexWhere(
+                  (tab) => tab.id == snapshot.activeTabId,
+                ),
+                draggable: !_busy,
+                semanticContainer: false,
+                onSelected: (index) {
+                  if (!_busy) {
+                    _apply(
+                      (id) => fileManagerActivateTab(
+                        id: id,
+                        tabId: snapshot.tabs[index].id,
                       ),
-                      labelStyle: TextStyle(
-                        fontSize: 11,
-                        color: selected
-                            ? theme.colorScheme.onSecondaryContainer
-                            : theme.colorScheme.onSurfaceVariant,
-                      ),
-                      visualDensity: VisualDensity.compact,
-                      onPressed: _busy
-                          ? null
-                          : () => _apply(
-                              (id) =>
-                                  fileManagerActivateTab(id: id, tabId: tab.id),
+                    );
+                  }
+                },
+                tabs: [
+                  for (final tab in snapshot.tabs)
+                    SpringLensTab(
+                      child: _buildTabContextMenu(
+                        context,
+                        snapshot,
+                        tab,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Theme(
+                                // RawChip 的 Material 会读取 canvasColor；透明 Ink
+                                // 本身不足以去掉它那层底，背景只由切换条绘制。
+                                data: theme.copyWith(
+                                  canvasColor: Colors.transparent,
+                                ),
+                                child: InputChip(
+                                  shape: ControlShape.withCorner(
+                                    ControlShape.compactCorner,
+                                  ),
+                                  color: const WidgetStatePropertyAll(
+                                    Colors.transparent,
+                                  ),
+                                  surfaceTintColor: Colors.transparent,
+                                  elevation: 0,
+                                  pressElevation: 0,
+                                  avatar: tab.pinned
+                                      ? const GlyphIcon(AppGlyphs.pin, size: 12)
+                                      : null,
+                                  selected: tab.id == snapshot.activeTabId,
+                                  showCheckmark: false,
+                                  selectedColor: Colors.transparent,
+                                  backgroundColor: Colors.transparent,
+                                  side: BorderSide.none,
+                                  label: Text(
+                                    tab.title,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  labelStyle: TextStyle(
+                                    fontSize: 11,
+                                    color: tab.id == snapshot.activeTabId
+                                        ? theme.colorScheme.onSecondaryContainer
+                                        : theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: _busy
+                                      ? null
+                                      : () => _apply(
+                                          (id) => fileManagerActivateTab(
+                                            id: id,
+                                            tabId: tab.id,
+                                          ),
+                                        ),
+                                  onDeleted: !_busy && tab.canClose
+                                      ? () => _apply(
+                                          (id) => fileManagerCloseTab(
+                                            id: id,
+                                            tabId: tab.id,
+                                          ),
+                                        )
+                                      : null,
+                                  deleteIcon: const GlyphIcon(
+                                    AppGlyphs.close,
+                                    size: 13,
+                                  ),
+                                ),
+                              ),
                             ),
-                      onDeleted: !_busy && tab.canClose
-                          ? () => _apply(
-                              (id) =>
-                                  fileManagerCloseTab(id: id, tabId: tab.id),
-                            )
-                          : null,
-                      deleteIcon: const Icon(Icons.close, size: 13),
+                            const SizedBox(width: 4),
+                          ],
+                        ),
+                      ),
                     ),
-                  ],
-                );
-              },
+                ],
+              ),
             ),
           ),
           FluentPopupMenuButton<BigInt>(
@@ -351,7 +408,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
                 !_busy &&
                 snapshot.canCreateTab &&
                 snapshot.recentlyClosed.isNotEmpty,
-            icon: const Icon(Icons.history_rounded, size: 18),
+            icon: const GlyphIcon(AppGlyphs.history, size: 18),
             onSelected: (tabId) => _apply(
               (id) => fileManagerReopenClosedTab(id: id, tabId: tabId),
             ),
@@ -374,65 +431,106 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
             onPressed: _busy || !snapshot.canCreateTab
                 ? null
                 : () => _apply((id) => fileManagerNewTab(id: id)),
-            icon: const Icon(Icons.add_rounded),
+            icon: const GlyphIcon(AppGlyphs.add),
           ),
         ],
       ),
     );
   }
-  Widget _buildTabMenu(FileManagerSnapshot snapshot, FileManagerTab tab) {
-    return FluentPopupMenuButton<String>(
-      tooltip: '页签操作：${tab.title}',
-      visualDensity: VisualDensity.compact,
-      enabled: !_busy,
-      icon: Icon(
-        tab.pinned ? Icons.push_pin_rounded : Icons.more_vert_rounded,
-        size: 16,
+
+  double _tabExtent(BuildContext context, FileManagerTab tab) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: tab.title,
+        style: DefaultTextStyle.of(context).style.copyWith(fontSize: 11),
       ),
-      onSelected: (action) => _apply(
-        (id) => switch (action) {
-          'pin' => fileManagerToggleTabPinned(id: id, tabId: tab.id),
-          'duplicate' => fileManagerDuplicateTab(id: id, tabId: tab.id),
-          'others' => fileManagerCloseOtherTabs(id: id, tabId: tab.id),
-          'left' => fileManagerCloseTabsLeft(id: id, tabId: tab.id),
-          'right' => fileManagerCloseTabsRight(id: id, tabId: tab.id),
-          _ => fileManagerCloseTab(id: id, tabId: tab.id),
+      textScaler: MediaQuery.textScalerOf(context),
+      textDirection: Directionality.of(context),
+      maxLines: 1,
+    )..layout(maxWidth: 130);
+    final width = painter.width;
+    painter.dispose();
+    // 标签内边距、固定标记与关闭键也属于这一格；操作菜单不再占位。
+    return width.clamp(30, 130) +
+        32 +
+        (tab.canClose ? 24 : 0) +
+        (tab.pinned ? 18 : 0);
+  }
+
+  Widget _buildTabContextMenu(
+    BuildContext context,
+    FileManagerSnapshot snapshot,
+    FileManagerTab tab, {
+    required Widget child,
+  }) {
+    void openAt(Offset position) {
+      if (_busy || !mounted) return;
+      FluentPopupMenu.show<String>(
+        context: context,
+        anchor: Rect.fromLTWH(position.dx, position.dy, 0, 0),
+        onSelected: (action) {
+          if (!mounted || _busy) return;
+          _apply(
+            (id) => switch (action) {
+              'pin' => fileManagerToggleTabPinned(id: id, tabId: tab.id),
+              'duplicate' => fileManagerDuplicateTab(id: id, tabId: tab.id),
+              'others' => fileManagerCloseOtherTabs(id: id, tabId: tab.id),
+              'left' => fileManagerCloseTabsLeft(id: id, tabId: tab.id),
+              'right' => fileManagerCloseTabsRight(id: id, tabId: tab.id),
+              _ => fileManagerCloseTab(id: id, tabId: tab.id),
+            },
+          );
         },
-      ),
-      itemBuilder: (_) => [
-        FluentPopupMenuItem(
-          value: 'pin',
-          title: Text(tab.pinned ? '取消固定' : '固定页签'),
-        ),
-        FluentPopupMenuItem(
-          value: 'duplicate',
-          enabled: snapshot.canCreateTab,
-          title: const Text('复制页签'),
-        ),
-        const FluentPopupMenuItem.divider(),
-        FluentPopupMenuItem(
-          value: 'close',
-          enabled: tab.canClose,
-          title: const Text('关闭页签'),
-        ),
-        FluentPopupMenuItem(
-          value: 'others',
-          enabled: tab.canCloseOthers,
-          title: const Text('关闭其他页签'),
-        ),
-        FluentPopupMenuItem(
-          value: 'left',
-          enabled: tab.canCloseLeft,
-          title: const Text('关闭左侧页签'),
-        ),
-        FluentPopupMenuItem(
-          value: 'right',
-          enabled: tab.canCloseRight,
-          title: const Text('关闭右侧页签'),
-        ),
-      ],
+        items: [
+          FluentPopupMenuItem(
+            value: 'pin',
+            title: Text(tab.pinned ? '取消固定' : '固定页签'),
+          ),
+          FluentPopupMenuItem(
+            value: 'duplicate',
+            enabled: snapshot.canCreateTab,
+            title: const Text('复制页签'),
+          ),
+          const FluentPopupMenuItem.divider(),
+          FluentPopupMenuItem(
+            value: 'close',
+            enabled: tab.canClose,
+            title: const Text('关闭页签'),
+          ),
+          FluentPopupMenuItem(
+            value: 'others',
+            enabled: tab.canCloseOthers,
+            title: const Text('关闭其他页签'),
+          ),
+          FluentPopupMenuItem(
+            value: 'left',
+            enabled: tab.canCloseLeft,
+            title: const Text('关闭左侧页签'),
+          ),
+          FluentPopupMenuItem(
+            value: 'right',
+            enabled: tab.canCloseRight,
+            title: const Text('关闭右侧页签'),
+          ),
+        ],
+      );
+    }
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onSecondaryTapUp: _busy
+          ? null
+          : (details) => openAt(details.globalPosition),
+      onLongPressStart: _busy
+          ? null
+          : (details) {
+              HapticFeedback.selectionClick();
+              openAt(details.globalPosition);
+            },
+      child: child,
     );
   }
+
   Widget _buildRoots(BuildContext context, FileManagerSnapshot snapshot) {
     if (snapshot.roots.isEmpty) return const SizedBox.shrink();
     return SizedBox(
@@ -446,8 +544,8 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
           final selected = snapshot.activePath == root.path;
           return ActionChip(
             label: Text(root.label, style: const TextStyle(fontSize: 11)),
-            avatar: Icon(
-              selected ? Icons.storage_rounded : Icons.folder_outlined,
+            avatar: GlyphIcon(
+              selected ? AppGlyphs.storage : AppGlyphs.folder,
               size: 15,
             ),
             visualDensity: VisualDensity.compact,

@@ -19,7 +19,7 @@ const Curve _m3EmphasizedDecelerate = Cubic(0.05, 0.7, 0.1, 1.0);
 class CollapsibleCard extends StatelessWidget {
   final String cardId;
   final String title;
-  final IconData icon;
+  final Glyph icon;
   final bool isExpanded;
   final VoidCallback onToggle;
   final Widget? trailing;
@@ -73,117 +73,234 @@ class CollapsibleCard extends StatelessWidget {
         color: theme.colorScheme.surfaceContainerHigh,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radius),
+          side: layout?.resizing == true || layout?.dragging == true
+              ? BorderSide(color: theme.colorScheme.primary, width: 2)
+              : layout?.editing == true
+              ? BorderSide(color: theme.colorScheme.outlineVariant)
+              : BorderSide.none,
+        ),
+        animationDuration: ExpressiveMotion.duration(
+          context,
+          ExpressiveMotion.effectDuration,
         ),
         clipBehavior: Clip.antiAlias,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Stack(
+          fit: StackFit.passthrough,
           children: [
-            // Header
-            InkWell(
-              onTap: onToggle,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 2,
+                  ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final narrow = constraints.maxWidth < 300;
+                      final titleRegion = Semantics(
+                        button: true,
+                        expanded: isExpanded,
+                        hint: isExpanded ? '点击折叠' : '点击展开',
+                        child: InkWell(
+                          onTap: onToggle,
+                          borderRadius: BorderRadius.circular(10),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(minHeight: 36),
+                            child: LayoutBuilder(
+                              builder: (context, titleConstraints) => Row(
+                                children: [
+                                  if (titleConstraints.maxWidth >= 64) ...[
+                                    GlyphIcon(
+                                      icon,
+                                      size: 17,
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(width: 8),
+                                  ],
+                                  Expanded(
+                                    child: Text(
+                                      title,
+                                      style: theme.textTheme.titleSmall,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                      final titleRow = Row(
+                        children: [
+                          Expanded(
+                            child:
+                                layout?.wrapHeader(titleRegion) ?? titleRegion,
+                          ),
+                          if (!narrow && trailing != null) ...[
+                            Flexible(child: trailing!),
+                            const SizedBox(width: 6),
+                          ],
+                          if (!narrow && disabledHint != null) ...[
+                            Flexible(child: _DisabledTag(text: disabledHint!)),
+                            const SizedBox(width: 6),
+                          ],
+                          if (showLayoutControls &&
+                              (layout?.onResize != null ||
+                                  layout?.onHide != null ||
+                                  onMoveUp != null ||
+                                  onMoveDown != null ||
+                                  onHide != null))
+                            _buildTrackMenu(context, layout),
+                          if (showLayoutControls)
+                            ExpressiveIconButton(
+                              tooltip: isExpanded ? '折叠$title' : '展开$title',
+                              glyph: AppGlyphs.chevronDown,
+                              active: isExpanded,
+                              activeTurns: .5,
+                              size: 32,
+                              onPressed: onToggle,
+                            ),
+                        ],
+                      );
+                      if (!narrow ||
+                          (trailing == null && disabledHint == null)) {
+                        return titleRow;
+                      }
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          titleRow,
+                          const SizedBox(height: 4),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: [
+                              if (trailing != null)
+                                ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    maxWidth: constraints.maxWidth,
+                                  ),
+                                  child: trailing!,
+                                ),
+                              if (disabledHint case final hint?)
+                                _DisabledTag(text: hint),
+                            ],
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      icon,
-                      size: 18,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: theme.textTheme.titleSmall,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (trailing != null) ...[
-                      trailing!,
-                      const SizedBox(width: 8),
+                // Content
+                AnimatedCrossFade(
+                  firstChild: const SizedBox.shrink(),
+                  secondChild: Padding(
+                    padding:
+                        contentPadding ??
+                        const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    child: applyCardGate(child, disabledHint: disabledHint),
+                  ),
+                  crossFadeState: isExpanded
+                      ? CrossFadeState.showSecond
+                      : CrossFadeState.showFirst,
+                  duration: ExpressiveMotion.duration(
+                    context,
+                    ExpressiveMotion.spatialDuration,
+                  ),
+                  // 透明度有界，尺寸用弹簧；系统减少动画时直接到达终态。
+                  firstCurve: Curves.easeOut,
+                  secondCurve: Curves.easeOut,
+                  sizeCurve: ExpressiveMotion.spatialCurve,
+                ),
+                if (isExpanded && layout?.resizeHandle != null)
+                  const SizedBox(height: 36),
+              ],
+            ),
+            if (isExpanded && layout?.resizeHandle != null)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Row(
+                    children: [
+                      if (layout?.resizing == true)
+                        Expanded(
+                          child: Text(
+                            '${layout!.previewSize?.width.round()} × ${layout.previewSize?.height.round()} · 松开保存',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        )
+                      else
+                        const Spacer(),
+                      layout!.resizeHandle!,
                     ],
-                    if (disabledHint case final hint?) ...[
-                      _DisabledTag(text: hint),
-                      const SizedBox(width: 6),
-                    ],
-                    if (onMoveUp != null ||
-                        onMoveDown != null ||
-                        onHide != null)
-                      _buildTrackMenu(context),
-                    AnimatedRotation(
-                      turns: isExpanded ? 0.5 : 0.0,
-                      duration: const Duration(milliseconds: 200),
-                      // MD3 动效档位：会停下来的变换走 decelerate，不用裸的 easeOutCubic。
-                      curve: _m3EmphasizedDecelerate,
-                      child: Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        size: 20,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-            // Content
-            AnimatedCrossFade(
-              firstChild: const SizedBox.shrink(),
-              secondChild: Padding(
-                padding:
-                    contentPadding ?? const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                child: applyCardGate(child, disabledHint: disabledHint),
-              ),
-              crossFadeState: isExpanded
-                  ? CrossFadeState.showSecond
-                  : CrossFadeState.showFirst,
-              duration: const Duration(milliseconds: 200),
-              // 淡入淡出走 standard，容器尺寸变化走 emphasized —— M3 的分工。
-              firstCurve: _m3Standard,
-              secondCurve: _m3Standard,
-              sizeCurve: _m3Standard,
-            ),
           ],
         ),
       ),
     );
   }
 
-  /// 卡片在轨道上的位置菜单（上移 / 下移 / 收起）。
+  /// 卡片尺寸预设与收起入口；网格内排序由标题拖动完成。
   ///
   /// 放在卡片的**标题栏里**而不是卡内：这几个动作改的是「卡片在面板里的位置」，
   /// 与卡片内容无关；收进一个菜单也让标题栏在窄泳道里不至于被按钮挤爆。
   ///
-  /// 走 [ShelfMenuButton] 而不是 `PopupMenuButton`：后者在这个 `material_ui`
-  /// 里仍按 M2 的 `PopupMenuTheme` 画菜单面，拿不到 MD3 的 `surfaceContainer` +
-  /// 4dp 圆角。触发键也并入本区图标钮的 40/20 口径，于是标题栏里不会再同时
-  /// 出现 32 与 40 两种高度。
-  Widget _buildTrackMenu(BuildContext context) {
+  /// 与内容工具栏共享 Expressive 操作入口、分组表面和菜单动画。
+  Widget _buildTrackMenu(BuildContext context, CardLayoutScope? layout) {
+    final hide = layout?.onHide ?? onHide;
     return ShelfMenuButton(
-      tooltip: '卡片位置',
-      glyph: AppGlyphs.more,
+      tooltip: layout == null ? '卡片位置' : '卡片布局',
+      glyph: layout?.editing == true ? AppGlyphs.gridPlus : AppGlyphs.more,
+      size: 32,
+      shape: ExpressiveButtonShape.roundedSquare,
       menuChildren: [
-        ShelfMenuItem(
-          label: '上移',
-          glyph: AppGlyphs.arrowUp,
-          // `onPressed: null` 就是 MD3 的禁用态：项永远在场，只是点不动。
-          onPressed: onMoveUp,
-        ),
-        ShelfMenuItem(
-          label: '下移',
-          glyph: AppGlyphs.arrowDown,
-          onPressed: onMoveDown,
-        ),
-        if (onHide != null) ...[
+        if (layout?.onResize != null) ...[
+          for (final preset in [
+            (1, 1, '1×1'),
+            (2, 1, '2×1'),
+            (2, 2, '2×2'),
+            (4, 2, '全宽'),
+          ])
+            ShelfMenuItem(
+              label: preset.$3,
+              selected:
+                  layout!.widthSpan == preset.$1 &&
+                  layout.heightSpan == preset.$2,
+              onPressed: () => layout.onResize!(preset.$1, preset.$2),
+            ),
+        ],
+        // 没有网格宿主的独立卡片仍可使用旧的排序回调。
+        if (layout == null) ...[
+          ShelfMenuItem(
+            label: '上移',
+            glyph: AppGlyphs.arrowUp,
+            onPressed: onMoveUp,
+          ),
+          ShelfMenuItem(
+            label: '下移',
+            glyph: AppGlyphs.arrowDown,
+            onPressed: onMoveDown,
+          ),
+        ],
+        if (hide != null) ...[
           const ShelfMenuDivider(),
           ShelfMenuItem(
             label: '从该面板收起',
             glyph: AppGlyphs.eyeOff,
-            onPressed: onHide,
+            onPressed: hide,
             destructive: true,
           ),
         ],

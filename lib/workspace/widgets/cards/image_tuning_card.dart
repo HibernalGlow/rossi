@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/sections/image_tuning_section.dart';
 import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 「画面调节」卡片 —— 滤镜 / 墨水屏 / 禁用动画。
 ///
@@ -47,7 +48,7 @@ class ImageTuningCard extends StatelessWidget {
     return CollapsibleCard(
       cardId: WorkspaceCardRegistry.imageTuning,
       title: '画面调节',
-      icon: Icons.auto_fix_high_outlined,
+      icon: AppGlyphs.wand,
       isExpanded: isExpanded,
       onToggle: onToggle,
       onMoveUp: onMoveUp,

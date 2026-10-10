@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/workspace/model/history_insights.dart';
 import 'package:zephyr/workspace/widgets/cards/history_insights_window.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 连续阅读（neoview `ReadingStreakCard` 的同位物）。
 ///
@@ -28,7 +29,7 @@ class ReadingStreakCard extends StatelessWidget {
     return CollapsibleCard(
       cardId: 'reading_streak',
       title: '连续阅读',
-      icon: Icons.local_fire_department_rounded,
+      icon: AppGlyphs.fire,
       isExpanded: isExpanded,
       onToggle: onToggle,
       onMoveUp: onMoveUp,

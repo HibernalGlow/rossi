@@ -73,12 +73,16 @@ class CardLayout {
   final bool visible;
   final int order;
   final bool expanded;
+  final int? widthSpan;
+  final int? heightSpan;
 
   const CardLayout({
     required this.panelId,
     required this.visible,
     required this.order,
     this.expanded = true,
+    this.widthSpan,
+    this.heightSpan,
   });
 
   CardLayout copyWith({
@@ -86,12 +90,16 @@ class CardLayout {
     bool? visible,
     int? order,
     bool? expanded,
+    int? widthSpan,
+    int? heightSpan,
   }) {
     return CardLayout(
       panelId: panelId ?? this.panelId,
       visible: visible ?? this.visible,
       order: order ?? this.order,
       expanded: expanded ?? this.expanded,
+      widthSpan: widthSpan ?? this.widthSpan,
+      heightSpan: heightSpan ?? this.heightSpan,
     );
   }
 
@@ -101,14 +109,23 @@ class CardLayout {
       other.panelId == panelId &&
       other.visible == visible &&
       other.order == order &&
-      other.expanded == expanded;
+      other.expanded == expanded &&
+      other.widthSpan == widthSpan &&
+      other.heightSpan == heightSpan;
 
   @override
-  int get hashCode => Object.hash(panelId, visible, order, expanded);
+  int get hashCode => Object.hash(
+        panelId,
+        visible,
+        order,
+        expanded,
+        widthSpan,
+        heightSpan,
+      );
 
   @override
   String toString() =>
-      'CardLayout(panelId: $panelId, visible: $visible, order: $order, expanded: $expanded)';
+      'CardLayout(panelId: $panelId, visible: $visible, order: $order, expanded: $expanded, widthSpan: $widthSpan, heightSpan: $heightSpan)';
 }
 
 /// 面板 + 卡片布局的**完整记账**。
@@ -285,6 +302,36 @@ class WorkspaceBoardLayout {
     );
   }
 
+  /// 调整卡片的尺寸跨度 (widthSpan, heightSpan)。
+  WorkspaceBoardLayout resizeCard({
+    required String cardId,
+    required String panelId,
+    required int order,
+    required int widthSpan,
+    required int heightSpan,
+  }) {
+    return withCard(
+      cardId,
+      (cards[cardId] ??
+              CardLayout(panelId: panelId, visible: true, order: order))
+          .copyWith(widthSpan: widthSpan, heightSpan: heightSpan),
+    );
+  }
+
+  /// 批量重排同一个面板里的卡片次序。
+  WorkspaceBoardLayout reorderCards({
+    required String panelId,
+    required List<String> orderedCardIds,
+  }) {
+    final updated = Map<String, CardLayout>.from(cards);
+    for (var i = 0; i < orderedCardIds.length; i++) {
+      final id = orderedCardIds[i];
+      final current = updated[id] ?? _defaultCardLayoutFor(id);
+      updated[id] = current.copyWith(panelId: panelId, order: i);
+    }
+    return WorkspaceBoardLayout(panels: panels, cards: updated);
+  }
+
   /// 只用于「这张卡第一次被拖动、布局里还没有它的记录」时的兜底值。
   /// 真正的默认值来自卡片注册表；这里只需要一个不会崩的占位。
   static CardLayout _defaultCardLayoutFor(String cardId) {
@@ -307,6 +354,8 @@ class WorkspaceBoardLayout {
           'visible': entry.value.visible,
           'order': entry.value.order,
           'expanded': entry.value.expanded,
+          if (entry.value.widthSpan != null) 'widthSpan': entry.value.widthSpan,
+          if (entry.value.heightSpan != null) 'heightSpan': entry.value.heightSpan,
         },
     },
   };
@@ -343,12 +392,16 @@ class WorkspaceBoardLayout {
         final visible = value['visible'];
         final order = value['order'];
         final expanded = value['expanded'];
+        final widthSpan = value['widthSpan'];
+        final heightSpan = value['heightSpan'];
         if (panelId is! String || visible is! bool || order is! int) continue;
         cards[key] = CardLayout(
           panelId: panelId,
           visible: visible,
           order: order,
           expanded: expanded is bool ? expanded : true,
+          widthSpan: widthSpan is int ? widthSpan : null,
+          heightSpan: heightSpan is int ? heightSpan : null,
         );
       }
     }

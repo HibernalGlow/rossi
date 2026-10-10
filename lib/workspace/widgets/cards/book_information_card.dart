@@ -4,6 +4,7 @@ import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/cards/info_card_kit.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 书籍信息卡（对齐 Neo 信息面板的 `book-information`）：
 /// 书名 / 类型 / 图源 / 章节 / 页码与进度。
@@ -45,7 +46,7 @@ class BookInformationCard extends StatelessWidget {
         return CollapsibleCard(
           cardId: 'book_information',
           title: '书籍信息',
-          icon: Icons.menu_book_rounded,
+          icon: AppGlyphs.book,
           isExpanded: isExpanded,
           onToggle: onToggle,
           onMoveUp: onMoveUp,
@@ -56,10 +57,7 @@ class BookInformationCard extends StatelessWidget {
               : null,
           child: hasSession
               ? _buildRows(coordinator, target)
-              : const InfoEmpty(
-                  icon: Icons.auto_stories_rounded,
-                  text: '打开一本书后显示书籍信息',
-                ),
+              : const InfoEmpty(icon: AppGlyphs.openBook, text: '打开一本书后显示书籍信息'),
         );
       },
     );

@@ -235,11 +235,11 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
       decoration: InputDecoration(
         isDense: true,
         hintText: '名称与路径 · 空格分词 · -排除 · “短语”',
-        prefixIcon: const Icon(Icons.search, size: 18),
+        prefixIcon: const GlyphIcon(AppGlyphs.search, size: 18),
         suffixIcon: _searchRunning
             ? IconButton(
                 tooltip: '中止递归搜索（保留已找到的结果）',
-                icon: const Icon(Icons.stop_rounded, size: 16),
+                icon: const GlyphIcon(AppGlyphs.stopCircle, size: 16),
                 onPressed: _cancelSearch,
               )
             : _searchPending
@@ -249,7 +249,7 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
               )
             : IconButton(
                 tooltip: '清除搜索并收起',
-                icon: const Icon(Icons.clear, size: 16),
+                icon: const GlyphIcon(AppGlyphs.close, size: 16),
                 onPressed: () {
                   _submitSearch('');
                   // ignore: invalid_use_of_protected_member

@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:path/path.dart' as p;
+import 'package:zephyr/icons/icons.dart';
 
 /// 信息面板卡片的公共零碎：一行「键 : 值」与几个诚实的格式化函数。
 ///
@@ -142,7 +143,7 @@ class InfoCardCounter extends StatelessWidget {
 class InfoEmpty extends StatelessWidget {
   const InfoEmpty({super.key, required this.icon, required this.text});
 
-  final IconData icon;
+  final Glyph icon;
   final String text;
 
   @override
@@ -152,7 +153,7 @@ class InfoEmpty extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: theme.colorScheme.onSurfaceVariant),
+          GlyphIcon(icon, size: 16, color: theme.colorScheme.onSurfaceVariant),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

@@ -603,7 +603,7 @@ class SwimlaneColumn extends StatelessWidget {
   }
 
   /// 紧凑轨顶部那颗身份图标（也是重排把手）：每条泳道一种 glyph。
-  /// 图标语汇只有一份 —— 这张表不再返回 Material `IconData`。
+  /// 图标语汇只有一份 —— 这张表不再返回 Material `Glyph`。
   static Glyph laneGlyph(String id) {
     switch (id) {
       case LaneId.left:

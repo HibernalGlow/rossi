@@ -173,7 +173,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
         return CollapsibleCard(
           cardId: 'favorite',
           title: '书签 (Favorites)',
-          icon: Icons.bookmark_added_rounded,
+          icon: AppGlyphs.bookmark,
           isExpanded: widget.isExpanded,
           onToggle: widget.onToggle,
           onMoveUp: widget.onMoveUp,
@@ -502,7 +502,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
               height: height,
             ),
           ),
-      badge: Icon(Icons.menu_book_rounded, color: theme.colorScheme.primary),
+      badge: GlyphIcon(AppGlyphs.book, color: theme.colorScheme.primary),
       // 书签一共就几百条，每一档都值得画封面；文件管理器不这么想。
       thumbModes: LibraryViewMode.values.toSet(),
       detailCells: [author.isEmpty ? '—' : author, source, time],
@@ -512,7 +512,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
       // `parts/file_manager_card_view_part.dart` 的 `_trailing`）。
       // 原来是 `size: 13`，比行里的正文字还小，读起来不像一个能按的东西。
       trailing: IconButton(
-        icon: const Icon(Icons.arrow_forward_ios_rounded, size: 18),
+        icon: const GlyphIcon(AppGlyphs.chevronForward, size: 18),
         color: theme.colorScheme.onSurfaceVariant,
         tooltip: '打开',
         visualDensity: VisualDensity.compact,
