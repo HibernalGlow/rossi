@@ -1,8 +1,10 @@
+import 'package:flutter/gestures.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:plat/plat.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 
-/// 给 plat 的一条标签套上「右键 / 长按 → 换边打开 + 关闭」「中键 → 直接关闭」。
+/// 给 plat 的一条标签套上「右键 / 长按 → 换边打开 + 关闭」「中键 → 直接关闭」
+/// 「双击 → 宿主自己决定干什么（发现页用它关标签）」。
 ///
 /// # 换边是**移动**，不是复制
 ///
@@ -34,7 +36,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 /// `!_debugDuringDeviceUpdate` 直到卡死」—— 本应用已经为它付过一次学费。
 /// 所以这里按 [paneSize] 与 [minPaneWidth] / [minPaneHeight] 把摆不下的方向**置灰**，
 /// 而不是让用户点出一个必炸的布局。
-class RossiPlatTabMenuRegion extends StatelessWidget {
+class RossiPlatTabMenuRegion extends StatefulWidget {
   const RossiPlatTabMenuRegion({
     super.key,
     required this.controller,
@@ -42,6 +44,7 @@ class RossiPlatTabMenuRegion extends StatelessWidget {
     required this.duplicateTab,
     required this.child,
     this.onClose,
+    this.onDoubleTap,
     this.detachable = true,
     this.paneSize,
     this.minPaneWidth = rossiPlatMinPaneWidth,
@@ -66,6 +69,17 @@ class RossiPlatTabMenuRegion extends StatelessWidget {
   /// 关掉这条标签；`null` = 菜单里不给「关闭」那一项。
   final VoidCallback? onClose;
 
+  /// 双击（鼠标双击 / 触摸双击）回调；`null` = 不观察双击。
+  ///
+  /// **故意不走 `GestureDetector.onDoubleTap`**：那个识别器会在第一击抬起时
+  /// `arena.hold` 扣住手势竞技场（SDK `DoubleTapGestureRecognizer` 就这么写的），
+  /// 内层的每次单击都得先等 ~300ms 分辨「是不是双击的第一下」—— 切标签、点 ×
+  /// 全部变肉。这里用 [Listener] **旁路观察** down→up 对，不进竞技场：
+  /// 两次「短促、几乎没动」的抬起落在 [kDoubleTapTimeout] 窗口内即算双击，
+  /// 内层点按照常立即生效。长按菜单与拖拽天然被时长/位移门槛排除
+  /// （见 [_RossiPlatTabMenuRegionState._onPointerUp]）。
+  final VoidCallback? onDoubleTap;
+
   /// 现问「这一格现在多大」。**是个回调而不是一个值**：菜单项的 enabled 在 build
   /// 时就定下了，而格子的真实大小要到布局之后才知道 —— 等到用户右键那一下再问，
   /// 拿到的才是眼前这一格。`null` = 宿主不知道（不做置灰判断，方向项都给）。
@@ -85,18 +99,98 @@ class RossiPlatTabMenuRegion extends StatelessWidget {
   static const double rossiPlatMinPaneHeight = 200;
 
   @override
+  State<RossiPlatTabMenuRegion> createState() =>
+      _RossiPlatTabMenuRegionState();
+}
+
+class _RossiPlatTabMenuRegionState extends State<RossiPlatTabMenuRegion> {
+  /// 在途指针：同时只跟踪一根手指（第二根手指的多点触控不参与双击判定）。
+  int? _activePointer;
+  Offset? _downPosition;
+  Duration _downStamp = Duration.zero;
+
+  /// 这次按下是否够格当「双击的第二下」（上一记 tap 的窗口内、位置够近）。
+  bool _secondCandidate = false;
+
+  /// 上一记「够格的 tap」的抬起时刻与位置；下次按下时用来判定双击。
+  Duration? _lastTapUpStamp;
+  Offset? _lastTapUpPosition;
+
+  PlatController get controller => widget.controller;
+  String get tabId => widget.tabId;
+  VoidCallback? get onClose => widget.onClose;
+  PlatTab? Function() get duplicateTab => widget.duplicateTab;
+  bool get detachable => widget.detachable;
+  Size? Function()? get paneSize => widget.paneSize;
+  double get minPaneWidth => widget.minPaneWidth;
+  double get minPaneHeight => widget.minPaneHeight;
+
+  void _onPointerDown(PointerDownEvent event) {
+    if (_activePointer != null) return;
+    _activePointer = event.pointer;
+    _downPosition = event.position;
+    _downStamp = event.timeStamp;
+    final last = _lastTapUpStamp;
+    _secondCandidate = last != null &&
+        event.timeStamp - last >= kDoubleTapMinTime &&
+        event.timeStamp - last <= kDoubleTapTimeout &&
+        (event.position - _lastTapUpPosition!).distance <= kDoubleTapSlop;
+  }
+
+  void _onPointerUp(PointerUpEvent event) {
+    if (event.pointer != _activePointer) return;
+    _activePointer = null;
+    final down = _downPosition;
+    _downPosition = null;
+    if (down == null) return;
+
+    // 「这是一记 tap」的门槛：
+    // - 时长 < kLongPressTimeout ⇒ 长按菜单（≥500ms 才开）与 vendored 触摸拖拽
+    //   （按满 kLongPressTimeout 才起手）的抬起天然出局；
+    // - 位移 ≤ 2×kTouchSlop ⇒ 鼠标立即拖拽（位移虽小但明显在拖）与手滑出局。
+    final qualifiesAsTap = event.timeStamp - _downStamp < kLongPressTimeout &&
+        (event.position - down).distance <= kTouchSlop * 2;
+    if (!qualifiesAsTap) {
+      _lastTapUpStamp = null;
+      return;
+    }
+    if (_secondCandidate) {
+      _lastTapUpStamp = null;
+      _secondCandidate = false;
+      widget.onDoubleTap?.call();
+      return;
+    }
+    _lastTapUpStamp = event.timeStamp;
+    _lastTapUpPosition = event.position;
+  }
+
+  void _onPointerCancel(PointerCancelEvent event) {
+    if (event.pointer != _activePointer) return;
+    _activePointer = null;
+    _downPosition = null;
+    _lastTapUpStamp = null;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.deferToChild,
-      // 桌面右键 + 触摸长按，两个都挂、不按平台分叉：
-      // 分叉会在「带触摸屏的桌面」上错（平台说是桌面，用户却在长按）。
-      onSecondaryTapUp: (details) => _open(context, details.globalPosition),
-      onLongPressStart: (details) => _open(context, details.globalPosition),
-      // 中键 = 直接关闭（浏览器标签条的同款惯例）：比「右键 → 菜单 → 关闭」
-      // 快两步。只在 onClose 给得出时挂；首页那条 locked 没有 onClose，
-      // 中键点了也不该有任何反应。
-      onTertiaryTapUp: onClose == null ? null : (_) => onClose!(),
-      child: child,
+    return Listener(
+      // 旁路观察（不进手势竞技场）：Listener 收事件不参赛，单击的裁决
+      // 与没有这层时完全一致。
+      onPointerDown: _onPointerDown,
+      onPointerUp: _onPointerUp,
+      onPointerCancel: _onPointerCancel,
+      child: GestureDetector(
+        behavior: HitTestBehavior.deferToChild,
+        // 桌面右键 + 触摸长按，两个都挂、不按平台分叉：
+        // 分叉会在「带触摸屏的桌面」上错（平台说是桌面，用户却在长按）。
+        onSecondaryTapUp: (details) => _open(context, details.globalPosition),
+        onLongPressStart: (details) => _open(context, details.globalPosition),
+        // 中键 = 直接关闭（浏览器标签条的同款惯例）：比「右键 → 菜单 → 关闭」
+        // 快两步。只在 onClose 给得出时挂；首页那条 locked 没有 onClose，
+        // 中键点了也不该有任何反应。
+        onTertiaryTapUp: onClose == null ? null : (_) => onClose!(),
+        child: widget.child,
+      ),
     );
   }
 

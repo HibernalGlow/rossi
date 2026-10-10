@@ -40,6 +40,7 @@ import 'package:zephyr/widgets/navigation/navigation_entries.dart';
 import 'package:zephyr/widgets/navigation/navigation_sidebar.dart';
 import 'package:zephyr/workspace/model/workspace_presence.dart';
 import 'package:zephyr/workspace/model/workspace_startup.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class NavigationBar extends StatefulWidget {
@@ -579,8 +580,8 @@ class _NavigationBarState extends State<NavigationBar> {
                   destinations: [
                     for (final id in pages)
                       NavigationRailDestination(
-                        icon: Icon(id.legacyIcon),
-                        selectedIcon: Icon(id.legacySelectedIcon),
+                        icon: GlyphIcon(id.legacyIcon),
+                        selectedIcon: GlyphIcon(id.legacySelectedIcon),
                         label: Text(id.label),
                       ),
                   ],
@@ -596,7 +597,7 @@ class _NavigationBarState extends State<NavigationBar> {
                       children: <Widget>[
                         for (final id in actions)
                           IconButton(
-                            icon: Icon(id.legacyIcon),
+                            icon: GlyphIcon(id.legacyIcon),
                             tooltip: id.tooltip,
                             onPressed: () => _invokeAction(id),
                           ),
@@ -608,7 +609,7 @@ class _NavigationBarState extends State<NavigationBar> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: IconButton(
-                  icon: const Icon(Icons.search),
+                  icon: const GlyphIcon(AppGlyphs.search),
                   tooltip: t.common.search,
                   onPressed: _openSearch,
                 ),
@@ -654,7 +655,7 @@ class _NavigationBarState extends State<NavigationBar> {
       items: [
         for (final id in pages)
           PersistentBottomNavBarItem(
-            icon: Icon(id.legacyIcon),
+            icon: GlyphIcon(id.legacyIcon),
             title: id.label,
             activeColorPrimary: activeColor,
             inactiveColorPrimary: inactiveColor,

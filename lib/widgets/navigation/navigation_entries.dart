@@ -158,30 +158,30 @@ extension NavigationEntryIdX on NavigationEntryId {
   ///
   /// 动作条目在旧版**移动**布局里不出现（`PersistentTabView` 只认得页面），
   /// 这里给它们配图标只是为了那个 switch 完整 —— 免得将来有人加条目时忘掉。
-  IconData get legacyIcon => switch (this) {
-    NavigationEntryId.bookshelf => Icons.menu_book_outlined,
-    NavigationEntryId.discover => Icons.explore_outlined,
-    NavigationEntryId.more => Icons.apps_outlined,
-    NavigationEntryId.oldHome => Icons.home_outlined,
-    NavigationEntryId.oldRank => Icons.leaderboard_outlined,
-    NavigationEntryId.workspace => Icons.dashboard_customize_outlined,
-    NavigationEntryId.openLocalComic => Icons.folder_open_outlined,
-    NavigationEntryId.gpuPresent => Icons.memory_outlined,
-    NavigationEntryId.search => Icons.search,
-    NavigationEntryId.customizeNavigation => Icons.tune,
+  Glyph get legacyIcon => switch (this) {
+    NavigationEntryId.bookshelf => AppGlyphs.book,
+    NavigationEntryId.discover => AppGlyphs.compass,
+    NavigationEntryId.more => AppGlyphs.apps,
+    NavigationEntryId.oldHome => AppGlyphs.home,
+    NavigationEntryId.oldRank => AppGlyphs.trophy,
+    NavigationEntryId.workspace => AppGlyphs.gridPlus,
+    NavigationEntryId.openLocalComic => AppGlyphs.folder,
+    NavigationEntryId.gpuPresent => AppGlyphs.storage,
+    NavigationEntryId.search => AppGlyphs.search,
+    NavigationEntryId.customizeNavigation => AppGlyphs.sliders,
   };
 
-  IconData get legacySelectedIcon => switch (this) {
-    NavigationEntryId.bookshelf => Icons.menu_book_sharp,
-    NavigationEntryId.discover => Icons.explore,
-    NavigationEntryId.more => Icons.apps,
-    NavigationEntryId.oldHome => Icons.home,
-    NavigationEntryId.oldRank => Icons.leaderboard,
-    NavigationEntryId.workspace => Icons.dashboard_customize,
-    NavigationEntryId.openLocalComic => Icons.folder_open,
-    NavigationEntryId.gpuPresent => Icons.memory,
-    NavigationEntryId.search => Icons.search,
-    NavigationEntryId.customizeNavigation => Icons.tune,
+  Glyph get legacySelectedIcon => switch (this) {
+    NavigationEntryId.bookshelf => AppGlyphs.book,
+    NavigationEntryId.discover => AppGlyphs.compass,
+    NavigationEntryId.more => AppGlyphs.apps,
+    NavigationEntryId.oldHome => AppGlyphs.home,
+    NavigationEntryId.oldRank => AppGlyphs.trophy,
+    NavigationEntryId.workspace => AppGlyphs.gridPlus,
+    NavigationEntryId.openLocalComic => AppGlyphs.folder,
+    NavigationEntryId.gpuPresent => AppGlyphs.storage,
+    NavigationEntryId.search => AppGlyphs.search,
+    NavigationEntryId.customizeNavigation => AppGlyphs.sliders,
   };
 
   Widget build() => switch (this) {

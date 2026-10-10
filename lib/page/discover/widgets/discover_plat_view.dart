@@ -14,7 +14,11 @@ import 'package:zephyr/widgets/plat/rossi_plat_tab_menu.dart';
 import 'package:zephyr/widgets/plat/rossi_plat_theme.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
 import 'package:zephyr/page/search/view/search_page.dart';
+import 'package:zephyr/widgets/action_group.dart';
+import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/plugin_icon.dart';
+import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 发现页的标签宿主：一个 plat 的 `PlatTabGroup`。
 ///
@@ -350,6 +354,11 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
       detachable: !tab.snapshot.locked,
       duplicateTab: () => tabs.duplicateTabOf(tab.snapshot.id),
       onClose: tab.snapshot.locked ? null : () => tabs.close(tab.snapshot.id),
+      // 双击直接关闭（开关在「显示选项」菜单）：locked 的首页同样不给。
+      // 旁路观察不给单击加延迟 —— 见 RossiPlatTabMenuRegion.onDoubleTap。
+      onDoubleTap: tab.snapshot.locked || !setting.tabDoubleClickClose
+          ? null
+          : () => tabs.close(tab.snapshot.id),
       // 切一半之后每格还剩多宽/多高，决定四个方向里哪些点了会炸。
       paneSize: () => _paneSizeOf(tab.snapshot.id),
       // 结构恒定的 rossi chip（见 RossiPlatTabChip 类注释）：plat 自带的
@@ -385,7 +394,7 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
     if (leaf.source.isEmpty) {
       // 不给 color：让 plat 的 IconTheme 把标签前景色传下来，
       // 于是选中/未选中、以及竖轨那块 secondaryContainer 底板上的字色都自动跟着走。
-      return Icon(leaf.icon ?? Icons.explore, size: size);
+      return GlyphIcon(leaf.icon ?? AppGlyphs.compass, size: size);
     }
     return ClipRRect(
       borderRadius: BorderRadius.circular(4),
@@ -422,49 +431,51 @@ class _BarActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final children = <Widget>[
-      // 「自定义插件顺序」改的是首页那张列表，只在首页摆出来。
-      if (onHome)
-        _barIcon(
-          tooltip: t.discover.customOrder,
-          icon: Icons.reorder,
-          onPressed: onCustomizeOrder,
+    // `ActionGroup` 不负责组内间距，由调用方插 —— 与 `navigation_bar.dart` 的
+    // Dock 尾部同一口径（组内 4、组间 12，间距分级就是分组本身）。
+    Widget gap() => SizedBox(
+      width: vertical ? 0 : ActionGroupMetrics.gapWithinGroup,
+      height: vertical ? ActionGroupMetrics.gapWithinGroup : 0,
+    );
+
+    return ActionGroup(
+      axis: vertical ? Axis.vertical : Axis.horizontal,
+      children: [
+        // 「自定义插件顺序」改的是首页那张列表，只在首页摆出来。
+        if (onHome) ...[
+          ActionIconButton(
+            glyph: AppGlyphs.sort,
+            tooltip: t.discover.customOrder,
+            onPressed: onCustomizeOrder,
+          ),
+          gap(),
+        ],
+        ActionIconButton(
+          glyph: AppGlyphs.search,
+          tooltip: t.discover.search,
+          onPressed: onSearch,
         ),
-      _barIcon(
-        tooltip: t.discover.search,
-        icon: Icons.search,
-        onPressed: onSearch,
-      ),
-      _DisplayOptionsButton(tabs: tabs),
-    ];
-    // 横向档那一行只有 40 高，竖着叠三颗按钮必然溢出 —— 朝向跟着标签条走。
-    return vertical
-        ? Column(mainAxisSize: MainAxisSize.min, children: children)
-        : Row(mainAxisSize: MainAxisSize.min, children: children);
+        gap(),
+        _DisplayOptionsButton(tabs: tabs),
+      ],
+    );
   }
 }
 
-/// 标签条上的那颗图标按钮。默认 `IconButton` 是 48 见方的，塞不进 40 高的横条。
-Widget _barIcon({
-  required String tooltip,
-  required IconData icon,
-  required VoidCallback? onPressed,
-}) {
-  return IconButton(
-    tooltip: tooltip,
-    onPressed: onPressed,
-    icon: Icon(icon, size: 18),
-    iconSize: 18,
-    padding: EdgeInsets.zero,
-    visualDensity: VisualDensity.compact,
-    constraints: const BoxConstraints.tightFor(width: 32, height: 32),
-  );
-}
-
-/// 「标签上显示什么」：图标、缩写两颗开关，加一档朝向。
+/// 「标签上显示什么 + 怎么关」：图标、缩写、双击关闭三颗开关，加一档朝向。
 ///
-/// 为什么不搬去设置页：这几颗改的是**眼前这一条**标签条的长相，就地调、就地看到。
-/// 值本身仍写进全局设置（见 `DiscoverSettingState`），所以跨重启留着。
+/// 为什么不搬去设置页：这几颗改的是**眼前这一条**标签条的长相与手感，就地调、
+/// 就地看到。值本身仍写进全局设置（见 `DiscoverSettingState`），所以跨重启留着。
+///
+/// 用 [FluentPopupMenuButton] 而不是 M2 的 `PopupMenuButton`：本仓的弹出菜单
+/// **只有一份动画**（淡入 + 从锚点缩放，见 `common_popup.dart`）。与旁边两颗
+/// 动作键一样，触发键也套 [ElasticButton]，于是按压手感三颗同源。
+///
+/// 顺带修掉一处地雷：旧版给 `PopupMenuButton` 传了 `constraints: 32×32`，
+/// 而那个参数是**菜单**的尺寸约束（SDK 原文 "Optional size constraints for the
+/// menu"，直接转给 `showMenu(constraints:)`）—— 菜单被掐成 32×32、五项内容
+/// 当场撑破布局，而布局异常会跳过 `MouseTracker` 复位，点一下之后每帧刷断言
+/// 直到卡死（见 `2026-10-10.md`）。换成这一套之后没有那个参数了。
 class _DisplayOptionsButton extends StatelessWidget {
   const _DisplayOptionsButton({required this.tabs});
 
@@ -474,19 +485,13 @@ class _DisplayOptionsButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final cubit = context.read<GlobalSettingCubit>();
     final setting = context.watch<GlobalSettingCubit>().state.discoverSetting;
-    return SizedBox(
-      width: 32,
-      height: 32,
-      child: PopupMenuButton<Object>(
+    return ElasticButton(
+      // 触发键与同一排另外两颗共用一份度量（`ActionIconButton.style`）：
+      // 少传这一档它会退回 48 的缺省档，把整行顶高（而这一排横向只有 48）。
+      child: FluentPopupMenuButton<Object>(
         tooltip: t.discover.tabDisplay,
-        icon: const Icon(Icons.tune_rounded, size: 18),
-        iconSize: 18,
-        padding: EdgeInsets.zero,
-        // 这里**不要**设 `constraints`：`PopupMenuButton.constraints` 是**菜单**的
-        // 尺寸，不是这颗按钮的（SDK 原文「Optional size constraints for the menu」，
-        // 直接转给 `showMenu(constraints:)`）。先前按按钮尺寸填了 32×32，
-        // 菜单被掐成 32×32、五项内容当场撑破布局 —— 而那一帧的布局异常就是
-        // MouseTracker 不复位的引信：点这颗按钮之后每帧刷断言直到界面卡死。
+        icon: const GlyphIcon(AppGlyphs.sliders),
+        style: ActionIconButton.style(context),
         onSelected: (value) {
           if (value == _TabDisplayOption.icon) {
             cubit.updateDiscoverSetting(
@@ -503,6 +508,14 @@ class _DisplayOptionsButton extends StatelessWidget {
             );
             return;
           }
+          if (value == _TabDisplayOption.doubleClickClose) {
+            cubit.updateDiscoverSetting(
+              (current) => current.copyWith(
+                tabDoubleClickClose: !current.tabDoubleClickClose,
+              ),
+            );
+            return;
+          }
           if (value is DiscoverTabBarSide) {
             cubit.updateDiscoverSetting(
               (current) => current.copyWith(tabSide: value),
@@ -512,23 +525,30 @@ class _DisplayOptionsButton extends StatelessWidget {
             tabs.setSide(value);
           }
         },
+        // 不打 `leading`：勾会占住开头那一格（`FluentPopupMenuItem.selected`
+        // 的画法与 M2 的 `CheckedPopupMenuItem` 一致，于是这一段的观感没变）。
         itemBuilder: (context) => [
-          CheckedPopupMenuItem(
+          FluentPopupMenuItem<Object>(
             value: _TabDisplayOption.icon,
-            checked: setting.tabIconEnabled,
-            child: Text(t.discover.tabShowIcon),
+            title: Text(t.discover.tabShowIcon),
+            selected: setting.tabIconEnabled,
           ),
-          CheckedPopupMenuItem(
+          FluentPopupMenuItem<Object>(
             value: _TabDisplayOption.pluginShort,
-            checked: setting.tabPluginShortEnabled,
-            child: Text(t.discover.tabShowPluginShort),
+            title: Text(t.discover.tabShowPluginShort),
+            selected: setting.tabPluginShortEnabled,
           ),
-          const PopupMenuDivider(),
+          FluentPopupMenuItem<Object>(
+            value: _TabDisplayOption.doubleClickClose,
+            title: Text(t.discover.tabDoubleClickClose),
+            selected: setting.tabDoubleClickClose,
+          ),
+          const FluentPopupMenuItem<Object>.divider(),
           for (final side in DiscoverTabBarSide.values)
-            CheckedPopupMenuItem(
+            FluentPopupMenuItem<Object>(
               value: side,
-              checked: setting.tabSide == side,
-              child: Text(side.label),
+              title: Text(side.label),
+              selected: setting.tabSide == side,
             ),
         ],
       ),
@@ -536,7 +556,7 @@ class _DisplayOptionsButton extends StatelessWidget {
   }
 }
 
-enum _TabDisplayOption { icon, pluginShort }
+enum _TabDisplayOption { icon, pluginShort, doubleClickClose }
 
 /// 每个叶子内容拿到的那份把手（见 [DiscoverTabScope]）。
 class _LeafActions implements DiscoverTabActions {
@@ -576,7 +596,7 @@ class _LeafActions implements DiscoverTabActions {
     required String label,
     required String source,
     required WidgetBuilder content,
-    IconData? icon,
+    Glyph? icon,
   }) {
     tabs.open(label: label, source: source, content: content, icon: icon);
   }
@@ -587,7 +607,7 @@ class _LeafActions implements DiscoverTabActions {
       label: t.discover.search,
       // 聚合搜索跨全部插件，不隶属某一个插件（与发现页顶栏那颗同口径）。
       source: aggregateMode ? '' : source,
-      icon: aggregateMode ? Icons.search : null,
+      icon: aggregateMode ? AppGlyphs.search : null,
       content: (context) =>
           SearchPage(searchState: state, aggregateMode: aggregateMode),
     );
