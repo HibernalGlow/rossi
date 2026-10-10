@@ -5616,7 +5616,9 @@ as bool,
 mixin _$DiscoverSettingState {
 
  bool get tabIconEnabled; bool get tabPluginShortEnabled; DiscoverTabBarSide get tabSide;/// 竖向轨的厚度（像素）。拖动轨内侧那条边即改这个值。
- double get tabRailWidth;
+ double get tabRailWidth;/// 双击标签直接关闭。默认开：用户明确要这条路径；开关挂在发现页标签条
+/// 的「显示选项」菜单里，随时可关（关掉后旁路观察器直接不注册，零开销）。
+ bool get tabDoubleClickClose;
 /// Create a copy of DiscoverSettingState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -5630,20 +5632,20 @@ $DiscoverSettingStateCopyWith<DiscoverSettingState> get copyWith => _$DiscoverSe
 @override
 bool operator ==(Object other) {
   final _this = this as DiscoverSettingState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DiscoverSettingState&&(identical(other.tabIconEnabled, _this.tabIconEnabled) || other.tabIconEnabled == _this.tabIconEnabled)&&(identical(other.tabPluginShortEnabled, _this.tabPluginShortEnabled) || other.tabPluginShortEnabled == _this.tabPluginShortEnabled)&&(identical(other.tabSide, _this.tabSide) || other.tabSide == _this.tabSide)&&(identical(other.tabRailWidth, _this.tabRailWidth) || other.tabRailWidth == _this.tabRailWidth));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DiscoverSettingState&&(identical(other.tabIconEnabled, _this.tabIconEnabled) || other.tabIconEnabled == _this.tabIconEnabled)&&(identical(other.tabPluginShortEnabled, _this.tabPluginShortEnabled) || other.tabPluginShortEnabled == _this.tabPluginShortEnabled)&&(identical(other.tabSide, _this.tabSide) || other.tabSide == _this.tabSide)&&(identical(other.tabRailWidth, _this.tabRailWidth) || other.tabRailWidth == _this.tabRailWidth)&&(identical(other.tabDoubleClickClose, _this.tabDoubleClickClose) || other.tabDoubleClickClose == _this.tabDoubleClickClose));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as DiscoverSettingState;
-  return Object.hash(runtimeType,_this.tabIconEnabled,_this.tabPluginShortEnabled,_this.tabSide,_this.tabRailWidth);
+  return Object.hash(runtimeType,_this.tabIconEnabled,_this.tabPluginShortEnabled,_this.tabSide,_this.tabRailWidth,_this.tabDoubleClickClose);
 }
 
 @override
 String toString() {
   final _this = this as DiscoverSettingState;
-  return 'DiscoverSettingState(tabIconEnabled: ${_this.tabIconEnabled}, tabPluginShortEnabled: ${_this.tabPluginShortEnabled}, tabSide: ${_this.tabSide}, tabRailWidth: ${_this.tabRailWidth})';
+  return 'DiscoverSettingState(tabIconEnabled: ${_this.tabIconEnabled}, tabPluginShortEnabled: ${_this.tabPluginShortEnabled}, tabSide: ${_this.tabSide}, tabRailWidth: ${_this.tabRailWidth}, tabDoubleClickClose: ${_this.tabDoubleClickClose})';
 }
 
 
@@ -5654,7 +5656,7 @@ abstract mixin class $DiscoverSettingStateCopyWith<$Res>  {
   factory $DiscoverSettingStateCopyWith(DiscoverSettingState value, $Res Function(DiscoverSettingState) _then) = _$DiscoverSettingStateCopyWithImpl;
 @useResult
 $Res call({
- bool tabIconEnabled, bool tabPluginShortEnabled, DiscoverTabBarSide tabSide, double tabRailWidth
+ bool tabIconEnabled, bool tabPluginShortEnabled, DiscoverTabBarSide tabSide, double tabRailWidth, bool tabDoubleClickClose
 });
 
 
@@ -5671,13 +5673,14 @@ class _$DiscoverSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of DiscoverSettingState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? tabIconEnabled = null,Object? tabPluginShortEnabled = null,Object? tabSide = null,Object? tabRailWidth = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? tabIconEnabled = null,Object? tabPluginShortEnabled = null,Object? tabSide = null,Object? tabRailWidth = null,Object? tabDoubleClickClose = null,}) {
   return _then(DiscoverSettingState(
 tabIconEnabled: null == tabIconEnabled ? _self.tabIconEnabled : tabIconEnabled // ignore: cast_nullable_to_non_nullable
 as bool,tabPluginShortEnabled: null == tabPluginShortEnabled ? _self.tabPluginShortEnabled : tabPluginShortEnabled // ignore: cast_nullable_to_non_nullable
 as bool,tabSide: null == tabSide ? _self.tabSide : tabSide // ignore: cast_nullable_to_non_nullable
 as DiscoverTabBarSide,tabRailWidth: null == tabRailWidth ? _self.tabRailWidth : tabRailWidth // ignore: cast_nullable_to_non_nullable
-as double,
+as double,tabDoubleClickClose: null == tabDoubleClickClose ? _self.tabDoubleClickClose : tabDoubleClickClose // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -5762,10 +5765,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool tabIconEnabled,  bool tabPluginShortEnabled,  DiscoverTabBarSide tabSide,  double tabRailWidth)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool tabIconEnabled,  bool tabPluginShortEnabled,  DiscoverTabBarSide tabSide,  double tabRailWidth,  bool tabDoubleClickClose)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DiscoverSettingState() when $default != null:
-return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide,_that.tabRailWidth);case _:
+return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide,_that.tabRailWidth,_that.tabDoubleClickClose);case _:
   return orElse();
 
 }
@@ -5783,10 +5786,10 @@ return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool tabIconEnabled,  bool tabPluginShortEnabled,  DiscoverTabBarSide tabSide,  double tabRailWidth)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool tabIconEnabled,  bool tabPluginShortEnabled,  DiscoverTabBarSide tabSide,  double tabRailWidth,  bool tabDoubleClickClose)  $default,) {final _that = this;
 switch (_that) {
 case _DiscoverSettingState():
-return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide,_that.tabRailWidth);case _:
+return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide,_that.tabRailWidth,_that.tabDoubleClickClose);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -5803,10 +5806,10 @@ return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool tabIconEnabled,  bool tabPluginShortEnabled,  DiscoverTabBarSide tabSide,  double tabRailWidth)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool tabIconEnabled,  bool tabPluginShortEnabled,  DiscoverTabBarSide tabSide,  double tabRailWidth,  bool tabDoubleClickClose)?  $default,) {final _that = this;
 switch (_that) {
 case _DiscoverSettingState() when $default != null:
-return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide,_that.tabRailWidth);case _:
+return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide,_that.tabRailWidth,_that.tabDoubleClickClose);case _:
   return null;
 
 }
@@ -5818,7 +5821,7 @@ return $default(_that.tabIconEnabled,_that.tabPluginShortEnabled,_that.tabSide,_
 @JsonSerializable()
 
 class _DiscoverSettingState implements DiscoverSettingState {
-  const _DiscoverSettingState({this.tabIconEnabled = true, this.tabPluginShortEnabled = true, this.tabSide = DiscoverTabBarSide.top, this.tabRailWidth = 132.0});
+  const _DiscoverSettingState({this.tabIconEnabled = true, this.tabPluginShortEnabled = true, this.tabSide = DiscoverTabBarSide.top, this.tabRailWidth = 132.0, this.tabDoubleClickClose = true});
   factory _DiscoverSettingState.fromJson(Map<String, dynamic> json) => _$DiscoverSettingStateFromJson(json);
 
 @override@JsonKey() final  bool tabIconEnabled;
@@ -5826,6 +5829,9 @@ class _DiscoverSettingState implements DiscoverSettingState {
 @override@JsonKey() final  DiscoverTabBarSide tabSide;
 /// 竖向轨的厚度（像素）。拖动轨内侧那条边即改这个值。
 @override@JsonKey() final  double tabRailWidth;
+/// 双击标签直接关闭。默认开：用户明确要这条路径；开关挂在发现页标签条
+/// 的「显示选项」菜单里，随时可关（关掉后旁路观察器直接不注册，零开销）。
+@override@JsonKey() final  bool tabDoubleClickClose;
 
 /// Create a copy of DiscoverSettingState
 /// with the given fields replaced by the non-null parameter values.
@@ -5840,18 +5846,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _DiscoverSettingState&&(identical(other.tabIconEnabled, tabIconEnabled) || other.tabIconEnabled == tabIconEnabled)&&(identical(other.tabPluginShortEnabled, tabPluginShortEnabled) || other.tabPluginShortEnabled == tabPluginShortEnabled)&&(identical(other.tabSide, tabSide) || other.tabSide == tabSide)&&(identical(other.tabRailWidth, tabRailWidth) || other.tabRailWidth == tabRailWidth));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _DiscoverSettingState&&(identical(other.tabIconEnabled, tabIconEnabled) || other.tabIconEnabled == tabIconEnabled)&&(identical(other.tabPluginShortEnabled, tabPluginShortEnabled) || other.tabPluginShortEnabled == tabPluginShortEnabled)&&(identical(other.tabSide, tabSide) || other.tabSide == tabSide)&&(identical(other.tabRailWidth, tabRailWidth) || other.tabRailWidth == tabRailWidth)&&(identical(other.tabDoubleClickClose, tabDoubleClickClose) || other.tabDoubleClickClose == tabDoubleClickClose));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,tabIconEnabled,tabPluginShortEnabled,tabSide,tabRailWidth);
+    return Object.hash(runtimeType,tabIconEnabled,tabPluginShortEnabled,tabSide,tabRailWidth,tabDoubleClickClose);
 }
 
 @override
 String toString() {
-    return 'DiscoverSettingState(tabIconEnabled: $tabIconEnabled, tabPluginShortEnabled: $tabPluginShortEnabled, tabSide: $tabSide, tabRailWidth: $tabRailWidth)';
+    return 'DiscoverSettingState(tabIconEnabled: $tabIconEnabled, tabPluginShortEnabled: $tabPluginShortEnabled, tabSide: $tabSide, tabRailWidth: $tabRailWidth, tabDoubleClickClose: $tabDoubleClickClose)';
 }
 
 
@@ -5862,7 +5868,7 @@ abstract mixin class _$DiscoverSettingStateCopyWith<$Res> implements $DiscoverSe
   factory _$DiscoverSettingStateCopyWith(_DiscoverSettingState value, $Res Function(_DiscoverSettingState) _then) = __$DiscoverSettingStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool tabIconEnabled, bool tabPluginShortEnabled, DiscoverTabBarSide tabSide, double tabRailWidth
+ bool tabIconEnabled, bool tabPluginShortEnabled, DiscoverTabBarSide tabSide, double tabRailWidth, bool tabDoubleClickClose
 });
 
 
@@ -5879,13 +5885,14 @@ class __$DiscoverSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of DiscoverSettingState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? tabIconEnabled = null,Object? tabPluginShortEnabled = null,Object? tabSide = null,Object? tabRailWidth = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? tabIconEnabled = null,Object? tabPluginShortEnabled = null,Object? tabSide = null,Object? tabRailWidth = null,Object? tabDoubleClickClose = null,}) {
   return _then(_DiscoverSettingState(
 tabIconEnabled: null == tabIconEnabled ? _self.tabIconEnabled : tabIconEnabled // ignore: cast_nullable_to_non_nullable
 as bool,tabPluginShortEnabled: null == tabPluginShortEnabled ? _self.tabPluginShortEnabled : tabPluginShortEnabled // ignore: cast_nullable_to_non_nullable
 as bool,tabSide: null == tabSide ? _self.tabSide : tabSide // ignore: cast_nullable_to_non_nullable
 as DiscoverTabBarSide,tabRailWidth: null == tabRailWidth ? _self.tabRailWidth : tabRailWidth // ignore: cast_nullable_to_non_nullable
-as double,
+as double,tabDoubleClickClose: null == tabDoubleClickClose ? _self.tabDoubleClickClose : tabDoubleClickClose // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

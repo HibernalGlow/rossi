@@ -10,6 +10,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class StorageSettingPage extends StatefulWidget {
@@ -96,7 +97,7 @@ class _StorageSettingPageState extends State<StorageSettingPage> {
   Widget _customExportPath(GlobalSettingState state, GlobalSettingCubit cubit) {
     final exportPath = state.customExportPath.trim();
     return ListTile(
-      leading: const Icon(Icons.folder_outlined),
+      leading: const GlyphIcon(AppGlyphs.folder),
       title: Text(t.settings.customExportPath),
       subtitle: Text(
         exportPath.isEmpty ? t.settings.notSet : exportPath,
@@ -108,7 +109,7 @@ class _StorageSettingPageState extends State<StorageSettingPage> {
         children: [
           if (exportPath.isNotEmpty)
             IconButton(
-              icon: const Icon(Icons.clear, size: 20),
+              icon: const GlyphIcon(AppGlyphs.close, size: 20),
               tooltip: t.common.clear,
               onPressed: () {
                 cubit.updateState(
@@ -117,7 +118,7 @@ class _StorageSettingPageState extends State<StorageSettingPage> {
                 showSuccessToast(t.common.settingSaved);
               },
             ),
-          const Icon(Icons.chevron_right),
+          const GlyphIcon(AppGlyphs.chevronForward),
         ],
       ),
       onTap: () async {
@@ -137,7 +138,7 @@ class _StorageSettingPageState extends State<StorageSettingPage> {
     GlobalSettingCubit cubit,
   ) {
     return SwitchListTile(
-      secondary: const Icon(Icons.image_outlined),
+      secondary: const GlyphIcon(AppGlyphs.photos),
       title: Text(t.settings.exportIncludeCover),
       subtitle: Text(t.settings.exportIncludeCoverSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -166,23 +167,23 @@ class _StorageSettingPageState extends State<StorageSettingPage> {
           settingSectionTitle(
             context,
             t.settings.storage,
-            icon: Icons.storage_outlined,
+            icon: AppGlyphs.storage,
           ),
           ListTile(
-            leading: const Icon(Icons.cleaning_services_outlined),
+            leading: const GlyphIcon(AppGlyphs.broom),
             title: Text(t.settings.cache),
             subtitle: Text(sizeText.isEmpty ? t.settings.cache : sizeText),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const GlyphIcon(AppGlyphs.chevronForward),
             onTap: () async {
               await context.pushRoute(const CacheSettingRoute());
               if (mounted) await _loadCacheSize();
             },
           ),
           ListTile(
-            leading: const Icon(Icons.import_export_outlined),
+            leading: const GlyphIcon(AppGlyphs.arrowUp),
             title: Text(t.settings.dataBackup),
             subtitle: Text(t.settings.dataBackupSubtitle),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const GlyphIcon(AppGlyphs.chevronForward),
             onTap: () => context.pushRoute(const DataBackupRoute()),
           ),
           if (!Platform.isIOS) _customExportPath(state, cubit),

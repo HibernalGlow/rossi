@@ -81,6 +81,11 @@ enum DiscoverTabBarSide {
 /// - [tabSide]：标签条的朝向与靠边（见 [DiscoverTabBarSide]）。
 /// - [tabRailWidth]：竖向轨的厚度。轨从内容区里扣宽度，所以它是个用户可调的取舍
 ///   （见 `DiscoverPlatView` 的拖拽把手），不是一个我们自己拍死的常量。
+/// - [tabDoubleClickClose]：双击标签直接关闭（鼠标双击与触摸双击同一颗开关）。
+///   用户 2026-10-10 拍板要的第三条关闭路径 —— × 太小、长按要等，双击最快。
+///   实现是旁路观察（`RossiPlatTabMenuRegion` 的 Listener），**不给单击加延迟**：
+///   这是它不走 `onDoubleTap` 的原因（那个要扣住手势竞技场，单击得先等 300ms
+///   分辨「是不是双击的第一下」，切标签会明显变肉）。
 @freezed
 abstract class DiscoverSettingState with _$DiscoverSettingState {
   const factory DiscoverSettingState({
@@ -90,6 +95,10 @@ abstract class DiscoverSettingState with _$DiscoverSettingState {
 
     /// 竖向轨的厚度（像素）。拖动轨内侧那条边即改这个值。
     @Default(132.0) double tabRailWidth,
+
+    /// 双击标签直接关闭。默认开：用户明确要这条路径；开关挂在发现页标签条
+    /// 的「显示选项」菜单里，随时可关（关掉后旁路观察器直接不注册，零开销）。
+    @Default(true) bool tabDoubleClickClose,
   }) = _DiscoverSettingState;
 
   factory DiscoverSettingState.fromJson(Map<String, dynamic> json) =>
