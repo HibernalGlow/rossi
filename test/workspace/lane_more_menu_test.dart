@@ -30,6 +30,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_layout_snapshot.dart';
@@ -83,6 +84,12 @@ Finder _laneScope(String title) =>
 Finder _laneIcon(String title, IconData icon) =>
     find.descendant(of: _laneScope(title), matching: find.byIcon(icon));
 
+/// 按 glyph 找栏头里的图标（glyph 化之后栏头图标不再是 Material `Icon`）。
+Finder _laneGlyph(String title, Glyph glyph) => find.descendant(
+  of: _laneScope(title),
+  matching: find.byWidgetPredicate((w) => w is GlyphIcon && w.glyph == glyph),
+);
+
 Future<WorkspaceCubit> _pumpWorkspace(WidgetTester tester) async {
   tester.view.physicalSize = _windowSize;
   tester.view.devicePixelRatio = 1.0;
@@ -108,7 +115,7 @@ Future<WorkspaceCubit> _pumpWorkspace(WidgetTester tester) async {
 
 /// 打开某条泳道栏头的「更多」菜单。
 Future<void> _openMenu(WidgetTester tester, String title) async {
-  await tester.tap(_laneIcon(title, Icons.more_vert_rounded));
+  await tester.tap(_laneGlyph(title, AppGlyphs.more));
   await tester.pumpAndSettle();
 }
 
@@ -211,7 +218,7 @@ void main() {
     await _pumpWorkspace(tester);
 
     await tester.tap(
-      _laneIcon(_leftTitle, Icons.vertical_align_center_rounded),
+      _laneGlyph(_leftTitle, AppGlyphs.fold),
       buttons: kSecondaryButton,
     );
     await tester.pumpAndSettle();
@@ -229,7 +236,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      _laneIcon(_leftTitle, Icons.more_vert_rounded),
+      _laneGlyph(_leftTitle, AppGlyphs.more),
       findsNothing,
       reason: '前置：紧凑轨这一档根本没有那颗按钮（44px 塞不下）',
     );

@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/workspace/widgets/cards/file_manager_toolbar.dart';
 
 /// 文件管理器的五向导航掌（**窄卡片上的收起形态**，对齐 NeoView 的 `FolderNavigationPad`）。
@@ -143,7 +144,7 @@ class FileManagerNavigationPad extends StatelessWidget {
                     child: const SizedBox(
                       width: 18,
                       height: 18,
-                      child: Icon(Icons.refresh_rounded, size: 11),
+                      child: GlyphIcon(AppGlyphs.refresh, size: 11),
                     ),
                   ),
                 ),
@@ -156,8 +157,8 @@ class FileManagerNavigationPad extends StatelessWidget {
                   _hint(
                     alignment: Alignment.centerLeft,
                     inset: 3,
-                    child: Icon(
-                      Icons.chevron_left_rounded,
+                    child: GlyphIcon(
+                      AppGlyphs.chevronBack,
                       size: 10,
                       color: canGoBack && !busy ? idle : disabled,
                     ),
@@ -165,8 +166,8 @@ class FileManagerNavigationPad extends StatelessWidget {
                   _hint(
                     alignment: Alignment.centerRight,
                     inset: 3,
-                    child: Icon(
-                      Icons.chevron_right_rounded,
+                    child: GlyphIcon(
+                      AppGlyphs.chevronForward,
                       size: 10,
                       color: canGoForward && !busy ? idle : disabled,
                     ),
@@ -174,8 +175,8 @@ class FileManagerNavigationPad extends StatelessWidget {
                   _hint(
                     alignment: Alignment.topCenter,
                     inset: 3,
-                    child: Icon(
-                      Icons.expand_less_rounded,
+                    child: GlyphIcon(
+                      AppGlyphs.chevronUp,
                       size: 10,
                       color: canGoUp && !busy ? idle : disabled,
                     ),

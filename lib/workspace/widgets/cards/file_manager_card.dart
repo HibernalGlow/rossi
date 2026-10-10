@@ -8,6 +8,8 @@ import 'package:path/path.dart' as p;
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/cubit/string_select.dart';
+import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/platform/desktop/reveal_in_file_manager.dart';
 import 'package:zephyr/service/reader/local_book_navigation_controller.dart';
 import 'package:zephyr/src/rust/api/file_manager/types.dart';
 import 'package:zephyr/src/rust/api/file_ops.dart';
@@ -24,6 +26,7 @@ import 'package:zephyr/workspace/widgets/cards/file_manager_thumbnail.dart';
 import 'package:zephyr/workspace/widgets/cards/file_manager_toolbar.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view.dart';
+import 'package:zephyr/widgets/common_popup.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/src/rust/api/file_manager/browse.dart';
@@ -464,6 +467,11 @@ class _FileManagerCardState extends State<FileManagerCard> {
 
   Widget _buildEntries(BuildContext context, FileManagerSnapshot snapshot) {
     final mode = fileManagerLibraryMode(snapshot.viewMode);
+    // 「完整显示文件名」那一档由设置页决定，这张卡片是它接到浏览面上的落点：
+    // 共享视图层不读设置，所以在这里读一次再传下去。
+    final wrapTitle = context.select<GlobalSettingCubit, bool>(
+      (cubit) => cubit.state.fileManagerSetting.wrapGridTitle,
+    );
     final searching =
         snapshot.searchQuery.isNotEmpty ||
         snapshot.entryFilter != FileManagerEntryFilter.all;
@@ -488,6 +496,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
       enabled: !_busy,
       busy: _busy,
       standalone: widget.isStandalone,
+      wrapTitle: wrapTitle,
       // 关掉「文件操作」时整块不挂：连右键手势都没有，列表回到纯浏览。
       wrapRow: _fileOpsEnabled ? _wrapEntryRow : null,
       onTap: (row) => _onEntryTap(row.source! as FileManagerEntry),

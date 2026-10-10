@@ -1,7 +1,7 @@
 //! 递归搜索：搜索条件设置、遍历执行与取消、搜索历史。
 
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use anyhow::Error;
 use flutter_rust_bridge::frb;

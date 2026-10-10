@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
@@ -13,6 +14,7 @@ import 'package:zephyr/plugin/utils/plugin_display_name.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/comic/comic_quick_read.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
+import 'package:zephyr/widgets/action_group.dart';
 import 'package:zephyr/widgets/comic_entry/models/models.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
 import 'package:zephyr/widgets/toast.dart';
@@ -26,7 +28,6 @@ import 'package:zephyr/workspace/model/shelf_view_state.dart';
 import 'package:zephyr/workspace/registry/workspace_ids.dart';
 import 'package:zephyr/workspace/service/bookmark_library_service.dart';
 import 'package:zephyr/workspace/service/shelf_view_state_store.dart';
-import 'package:zephyr/workspace/widgets/cards/file_manager_toolbar.dart';
 import 'package:zephyr/workspace/widgets/cards/shelf_entry_context_menu.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view.dart';
@@ -353,23 +354,33 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
             ),
           ),
         ),
-        // 两颗键走本区图标钮的同一份度量（40 见方、图标 20），不再用
-        // `size: 18` + `visualDensity: compact` 的裸 IconButton —— 否则
-        // 列表轨与下面的工具栏是两条不同高度的带，看着就是两个东西。
-        FileManagerToolbarIconButton(
-          icon: Icons.playlist_add_rounded,
-          tooltip: '新建书签列表',
-          enabled: !_busy,
-          onPressed: () => _editList(null),
+        // 列表管理那两颗键装进一只**下沉槽** —— 与工具栏上那两槽、书架页右上角、
+        // 侧栏底部同一个语言（`ActionGroup`）。它们走本区图标钮的同一份度量
+        // （40 见方、图标 20），不再用 `size: 18` + `visualDensity: compact`
+        // 的裸 IconButton —— 否则列表轨与下面的工具栏是两条不同高度的带，
+        // 看着就是两个东西。
+        //
+        // 只剩一颗时槽就是一颗独立圆（「全部 / 未分类」这两档没有可重命名的
+        // 列表），这正是 FlClash 顶栏那颗 ⋮ 的形态，不是漏了配对。
+        ActionGroup(
+          children: [
+            ActionIconButton(
+              glyph: AppGlyphs.listAdd,
+              tooltip: '新建书签列表',
+              enabled: !_busy,
+              onPressed: () => _editList(null),
+            ),
+            const SizedBox(width: ActionGroupMetrics.gapWithinGroup),
+            if (_selectedList != _kAllLists &&
+                _selectedList != kComicFolderRootPath)
+              ActionIconButton(
+                glyph: AppGlyphs.edit,
+                tooltip: '重命名 / 删除当前列表',
+                enabled: !_busy,
+                onPressed: () => _editList(_selectedList),
+              ),
+          ],
         ),
-        if (_selectedList != _kAllLists &&
-            _selectedList != kComicFolderRootPath)
-          FileManagerToolbarIconButton(
-            icon: Icons.edit_outlined,
-            tooltip: '重命名 / 删除当前列表',
-            enabled: !_busy,
-            onPressed: () => _editList(_selectedList),
-          ),
       ],
     );
   }

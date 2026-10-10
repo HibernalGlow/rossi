@@ -13,6 +13,7 @@ import 'package:zephyr/util/input/reader_input_context.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
+import 'package:zephyr/workspace/model/workspace_presence.dart';
 import 'package:zephyr/workspace/model/workspace_reader_target.dart';
 import 'package:zephyr/workspace/router/workspace_navigation_bridge.dart';
 import 'package:zephyr/workspace/service/workspace_layout_bridge.dart';
@@ -92,6 +93,13 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
   /// 在那一刻才该由泳道接管（见 `WorkspaceNavigationBridge.handleBackInLane`）。
   ModalRoute<dynamic>? _workspaceRoute;
 
+  /// 在场宣告的守卫：`didChangeDependencies` 可能来多次（依赖变化），
+  /// status listener 只挂一次。
+  bool _presenceAnnounced = false;
+
+  /// 进场后宣告「在场」的一次性计时器（见 `didChangeDependencies` 的说明）。
+  Timer? _presenceTimer;
+
   /// 正在用读回来的快照替换状态：这一轮**不要再存一遍**（刚读完就写回去
   /// 是纯浪费，而且在慢盘上会与下一次真实改动抢同一个文件）。
   ///
@@ -130,7 +138,30 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
     if (route != null) {
       _workspaceRoute = route;
       WorkspaceNavigationBridge.instance.attachWorkspaceRoute(route);
+      // 进场动画**结束后**才宣告「工作台在场」：过渡期间底下那页还看得见，
+      // 这时把它换灰块会闪一下。这里的 `ModalRoute` 名字被 auto_route 的
+      // 同名类遮着（拿不到 status listener），所以用一条一次性延时对齐
+      // 转场时长 —— 提早一点点宣告无害，只是底下那页提前半秒变灰。
+      if (!_presenceAnnounced) {
+        _presenceAnnounced = true;
+        _presenceTimer = Timer(_presenceAnnounceDelay, _announcePresence);
+      }
     }
+  }
+
+  /// 比默认页面转场（300ms）宽裕一点的宣告延时。
+  static const Duration _presenceAnnounceDelay = Duration(milliseconds: 700);
+
+  void _announcePresence() {
+    if (!mounted) return;
+    WorkspacePresence.present.value = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!WorkspacePresence.present.value) return;
+      // 占位的重建在同一帧里已经跑完（scope 的 dependOn 通知），
+      // 此时无监听的条目才能被 clearLiveImages 放掉。
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+    });
   }
 
   @override
@@ -139,6 +170,10 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
     if (route != null) {
       WorkspaceNavigationBridge.instance.detachWorkspaceRoute(route);
     }
+    // 进了工作台又立刻退出（计时器还没到）：取消，别把「在场」宣告给一具尸体。
+    _presenceTimer?.cancel();
+    // 退场即解除在场宣告：首页壳把占位换回图片（按文件重新解码）。
+    WorkspacePresence.present.value = false;
     _stateSubscription?.cancel();
     WorkspaceLayoutBridge.instance.detach(_cubit);
     WorkspaceNavigationBridge.instance.detachWorkspaceExit(_exitTearOff);

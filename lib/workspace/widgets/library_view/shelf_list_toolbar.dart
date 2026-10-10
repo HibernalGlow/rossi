@@ -1,7 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/action_group.dart';
 import 'package:zephyr/workspace/model/shelf_library_query.dart';
-import 'package:zephyr/workspace/widgets/cards/file_manager_toolbar.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view_mode.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_menu_button.dart';
 
@@ -12,13 +13,16 @@ import 'package:zephyr/workspace/widgets/library_view/shelf_menu_button.dart';
 /// 状态住在 Rust 会话里；两张工具栏长得像，但语义不是一回事。
 ///
 /// **语义分开，度量与配色只有一份**：图标钮几何、分组间距、选中态一律走
-/// [FileManagerToolbarMetrics] 与它的按钮（图标钮 40 见方、图标 20、组内 4、
-/// 组间 12、选中 `secondaryContainer`、禁用 `onSurfaceVariant` 38%）。
-/// 那一份住在 `cards/` 下而不是这里，是因为它先为文件管理器而生；两处各写一份
-/// 常数的好下场就是同一条工具栏里长出两种高度。
+/// [ActionGroupMetrics]（图标钮 40 见方、图标 20、组内 4、组间 12、选中
+/// `secondaryContainer`、禁用 `onSurfaceVariant` 38%）。这一份就是
+/// `FileManagerToolbarMetrics` 转发的那一份，也是侧栏底部与书架页右上角那份 ——
+/// 几处各写一份常数的好下场，就是同一条工具栏里长出两种高度。
 ///
-/// 分组**只靠间距分级，不画分隔线、也不套下沉槽**：文件管理器那边同样只有
-/// 「导航」那一组用了 `FileManagerToolbarGroup`，主工具组是散着的。
+/// **分组画成下沉槽**（[ActionGroup]）：一组可操作区一只槽，组与组之间只剩间距，
+/// 不画分隔线。这与文件管理器的「导航」组、书架页右上角那两颗是同一个语言 ——
+/// 统一的目的就在这里：同一屏上并排看，圆角、内边距、图标尺寸不再各处各漂一点。
+/// 所以槽本身不另传 [ActionGroup.fill]，用默认那档（`surfaceContainer`，比卡片
+/// 底低一档，读作「这一片是可操作区」而不是又加一层海拔）。
 class ShelfListToolbar extends StatefulWidget {
   const ShelfListToolbar({
     super.key,
@@ -108,8 +112,8 @@ class _ShelfListToolbarState extends State<ShelfListToolbar> {
     final theme = Theme.of(context);
     final mode = widget.viewMode;
     final searchOn = _searchExpanded || widget.searchController.text.isNotEmpty;
-    const within = SizedBox(width: FileManagerToolbarMetrics.gapWithinGroup);
-    const between = SizedBox(width: FileManagerToolbarMetrics.gapBetweenGroups);
+    const within = SizedBox(width: ActionGroupMetrics.gapWithinGroup);
+    const between = SizedBox(width: ActionGroupMetrics.gapBetweenGroups);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -120,117 +124,124 @@ class _ShelfListToolbarState extends State<ShelfListToolbar> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                // —— 「怎么看」这一组：视图 / 排序 / 时间线 / 搜索，组内 4 ——
-                ShelfMenuButton(
-                  tooltip: widget.timelineOn
-                      ? '视图模式（时间线下不适用）'
-                      : '视图模式：${mode.label}',
-                  icon: mode.icon,
-                  // 时间线开着时灰着而不是藏起来：MD3 的禁用态就是
-                  // `onPressed: null`，用户看得见「有这件事，只是现在做不了」。
-                  enabled: !widget.timelineOn,
-                  menuChildren: [
-                    for (final option in LibraryViewMode.values)
-                      ShelfMenuItem(
-                        label: option.label,
-                        icon: option.icon,
-                        selected: option == mode,
-                        onPressed: () => widget.onViewMode(option),
-                      ),
-                  ],
-                ),
-                within,
-                ShelfMenuButton(
-                  tooltip: widget.timelineOn
-                      ? '排序（时间线固定按时间排）'
-                      : '排序：${widget.sort.field.label} · '
-                            '${widget.sort.ascending ? '升序' : '降序'}',
-                  icon: Icons.sort_rounded,
-                  enabled: !widget.timelineOn,
-                  menuChildren: [
-                    for (final field in ShelfSortField.values)
-                      ShelfMenuItem(
-                        label: field.label,
-                        selected: field == widget.sort.field,
-                        onPressed: () =>
-                            widget.onSort(widget.sort.toggled(field)),
-                      ),
-                    const ShelfMenuDivider(),
-                    ShelfMenuItem(
-                      label: widget.sort.ascending ? '切换为降序' : '切换为升序',
-                      icon: widget.sort.ascending
-                          ? Icons.arrow_downward_rounded
-                          : Icons.arrow_upward_rounded,
-                      onPressed: () => widget.onSort(
-                        ShelfSort(
-                          field: widget.sort.field,
-                          ascending: !widget.sort.ascending,
+                // —— 「怎么看」这一槽：视图 / 排序 / 时间线 / 搜索，槽内 4 ——
+                ActionGroup(
+                  children: [
+                    ShelfMenuButton(
+                      tooltip: widget.timelineOn
+                          ? '视图模式（时间线下不适用）'
+                          : '视图模式：${mode.label}',
+                      glyph: mode.icon,
+                      // 时间线开着时灰着而不是藏起来：MD3 的禁用态就是
+                      // `onPressed: null`，用户看得见「有这件事，只是现在做不了」。
+                      enabled: !widget.timelineOn,
+                      menuChildren: [
+                        for (final option in LibraryViewMode.values)
+                          ShelfMenuItem(
+                            label: option.label,
+                            glyph: option.icon,
+                            selected: option == mode,
+                            onPressed: () => widget.onViewMode(option),
+                          ),
+                      ],
+                    ),
+                    within,
+                    ShelfMenuButton(
+                      tooltip: widget.timelineOn
+                          ? '排序（时间线固定按时间排）'
+                          : '排序：${widget.sort.field.label} · '
+                                '${widget.sort.ascending ? '升序' : '降序'}',
+                      glyph: AppGlyphs.sort,
+                      enabled: !widget.timelineOn,
+                      menuChildren: [
+                        for (final field in ShelfSortField.values)
+                          ShelfMenuItem(
+                            label: field.label,
+                            selected: field == widget.sort.field,
+                            onPressed: () =>
+                                widget.onSort(widget.sort.toggled(field)),
+                          ),
+                        const ShelfMenuDivider(),
+                        ShelfMenuItem(
+                          label: widget.sort.ascending ? '切换为降序' : '切换为升序',
+                          glyph: widget.sort.ascending
+                              ? AppGlyphs.arrowDown
+                              : AppGlyphs.arrowUp,
+                          onPressed: () => widget.onSort(
+                            ShelfSort(
+                              field: widget.sort.field,
+                              ascending: !widget.sort.ascending,
+                            ),
+                          ),
                         ),
+                      ],
+                    ),
+                    within,
+                    // 时间线：这一侧没有这个能力时（`onTimeline` 不给）整颗不出现，
+                    // 与导入导出那一组同一个口径。
+                    //
+                    // 分隔符跟着这一颗一起进 `if`：留在外面会让「没有时间线」那档
+                    // 叠出两个 4 —— 排序与搜索之间变成 8，槽内间距就不止一个数了。
+                    if (widget.onTimeline != null) ...[
+                      ActionToggleButton(
+                        glyph: AppGlyphs.clock,
+                        tooltip: widget.timelineOn ? '退出时间线' : '按天看时间线',
+                        on: widget.timelineOn,
+                        onPressed: widget.onTimeline,
                       ),
+                      within,
+                    ],
+                    // 搜索键不参与 busy 门控：展开/收起只是 UI 状态切换，不碰数据。
+                    ActionToggleButton(
+                      glyph: AppGlyphs.search,
+                      tooltip: _searchExpanded ? '收起搜索' : '搜索',
+                      on: searchOn,
+                      onPressed: () =>
+                          setState(() => _searchExpanded = !_searchExpanded),
                     ),
                   ],
                 ),
-                within,
-                // 时间线：这一侧没有这个能力时（`onTimeline` 不给）整颗不出现，
-                // 与导入导出那一组同一个口径。
-                if (widget.onTimeline != null)
-                  FileManagerToolbarToggleButton(
-                    icon: Icons.timeline_rounded,
-                    tooltip: widget.timelineOn ? '退出时间线' : '按天看时间线',
-                    on: widget.timelineOn,
-                    onPressed: widget.onTimeline,
-                  ),
-                within,
-                // 搜索键不参与 busy 门控：展开/收起只是 UI 状态切换，不碰数据。
-                FileManagerToolbarToggleButton(
-                  icon: Icons.search_rounded,
-                  tooltip: _searchExpanded ? '收起搜索' : '搜索',
-                  on: searchOn,
-                  onPressed: () =>
-                      setState(() => _searchExpanded = !_searchExpanded),
-                ),
 
-                // —— 「数据」这一组：组间 12 ——
+                // —— 「数据」这一槽：导出 / 导入收在一颗菜单键里 ——
                 if (_hasPort) ...[
                   between,
-                  ShelfMenuButton(
-                    tooltip: widget.portLabel,
-                    icon: Icons.import_export_rounded,
-                    enabled: !widget.busy,
-                    menuChildren: [
-                      ShelfMenuItem(
-                        label: '导出为 JSON',
-                        icon: Icons.file_download_outlined,
-                        onPressed: widget.busy
-                            ? null
-                            : widget.onExport,
-                      ),
-                      ShelfMenuItem(
-                        label: '从 JSON 导入',
-                        icon: Icons.file_upload_outlined,
-                        onPressed: widget.busy ? null : widget.onImport,
+                  ActionGroup(
+                    children: [
+                      ShelfMenuButton(
+                        tooltip: widget.portLabel,
+                        glyph: AppGlyphs.export,
+                        enabled: !widget.busy,
+                        menuChildren: [
+                          ShelfMenuItem(
+                            label: '导出为 JSON',
+                            glyph: AppGlyphs.cloudDownload,
+                            onPressed: widget.busy
+                                ? null
+                                : widget.onExport,
+                          ),
+                          ShelfMenuItem(
+                            label: '从 JSON 导入',
+                            glyph: AppGlyphs.upload,
+                            onPressed: widget.busy ? null : widget.onImport,
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ],
                 between,
-                // 计数坐在与图标钮同一条 40 的高度带的垂直中心，而不是贴着
-                // 行的基线 —— 之前它跟着 18dp 的图标走，整行看着矮一截。
+                // 计数**不进槽**：槽是「一组可按的东西」，一段数字坐进去会读成
+                // 一颗按不动的键。它跟整行共用同一条 40 的高度带，靠 Row 的
+                // 居中把它摆在这条带的中线上。
                 //
                 // 字号写死：这套 `material_ui` 的 textTheme token 不带
                 // fontSize（见 `widgets/plat/rossi_plat_theme.dart` 的说明），
                 // 只给 `labelSmall` 等于什么都没设。
-                SizedBox(
-                  height: FileManagerToolbarMetrics.buttonSize,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      '${widget.count} 项',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        fontSize: 12,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
+                Text(
+                  '${widget.count} 项',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontSize: 12,
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],

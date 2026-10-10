@@ -53,13 +53,21 @@ fn fm_search_probe() {
     let root = temp.path();
 
     // 阳性对照：同文种、逐字相同的名字
-    touch(&root.join("三上ミカ").join("[DL版] がっこうの時間 第1話.zip"));
+    touch(
+        &root
+            .join("三上ミカ")
+            .join("[DL版] がっこうの時間 第1話.zip"),
+    );
     // NFC 存储的 kana（濁点合成的が）
     touch(&root.join("nfc").join("がっこうの時間 第1話.zip"));
     // NFD 存储的 kana（か + U+3099），macOS 之外的来源常是这个形态
     touch(&root.join("nfd").join("か\u{3099}っこうの時間 第1話.zip"));
     // 全角括号
-    touch(&root.join("full").join("[サークル (作者)] タイトル（DL版）.zip"));
+    touch(
+        &root
+            .join("full")
+            .join("[サークル (作者)] タイトル（DL版）.zip"),
+    );
     // 日文汉字标题
     touch(&root.join("kanji").join("進撃の巨人 第01巻.zip"));
     // 非媒体扩展名
@@ -73,14 +81,29 @@ fn fm_search_probe() {
     // 读回 nfd 目录的实际字节，证明盘上存的是分解形态
     for entry in fs::read_dir(root.join("nfd")).unwrap() {
         let name = entry.unwrap().file_name();
-        println!("nfd 盘上名称: {:?}", name.to_string_lossy().escape_debug().to_string());
+        println!(
+            "nfd 盘上名称: {:?}",
+            name.to_string_lossy().escape_debug().to_string()
+        );
     }
 
     println!("\n=== 1. 同文种阳性对照 ===");
     report("三上ミカ (目录名)", root, "三上", true, 6);
     report("NFC がっこう (盘上NFC)", root, "がっこう", true, 6);
-    report("NFC がっこう 只在 nfd 子树", &root.join("nfd"), "がっこう", true, 6);
-    report("NFD がっこう 只在 nfd 子树", &root.join("nfd"), "か\u{3099}っこう", true, 6);
+    report(
+        "NFC がっこう 只在 nfd 子树",
+        &root.join("nfd"),
+        "がっこう",
+        true,
+        6,
+    );
+    report(
+        "NFD がっこう 只在 nfd 子树",
+        &root.join("nfd"),
+        "か\u{3099}っこう",
+        true,
+        6,
+    );
 
     println!("\n=== 2. 全角/半角 ===");
     report("半角括号查询", root, "(DL版)", true, 6);
@@ -120,8 +143,7 @@ fn fm_search_typed_query_probe() {
     state.set_search_query("すごい");
 
     let started = Instant::now();
-    let listing =
-        search_entries(&state.search_request(), &AtomicBool::new(false)).into_listing();
+    let listing = search_entries(&state.search_request(), &AtomicBool::new(false)).into_listing();
     let scan = (started.elapsed(), listing.matched, listing.scanned);
     state.set_search_listing(listing);
     println!(
@@ -189,7 +211,12 @@ fn fm_search_probe_real_library() {
     timed("NFC すごい", "す\u{3054}\u{3044}", true, 6);
     timed("NFD すごい", "す\u{3053}\u{3099}\u{3044}", true, 6);
     timed("NFC おっぱい", "お\u{3063}\u{3071}\u{3044}", true, 6);
-    timed("NFD おっぱい", "お\u{3063}\u{306F}\u{309A}\u{3044}", true, 6);
+    timed(
+        "NFD おっぱい",
+        "お\u{3063}\u{306F}\u{309A}\u{3044}",
+        true,
+        6,
+    );
     // 全角与半角括号
     timed("半角 (DL版)", "(DL版)", true, 6);
     timed("全角 （DL版）", "（DL版）", true, 6);

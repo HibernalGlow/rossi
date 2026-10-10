@@ -6,7 +6,7 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `cancel_flag`, `execute_batch`, `finish_write`, `new`, `project_items`, `read_listing`, `refresh_listing`, `report_for`, `selection_mutations`, `snapshot_for`, `summary_for`, `with_ops`
+// These functions are ignored because they are not marked as `pub`: `cancel_flag`, `execute_batch`, `finish_write`, `new`, `project_items`, `read_listing`, `refresh_listing`, `report_for`, `scoped_sources`, `snapshot_for`, `summary_for`, `with_ops`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `FILE_OPS_CANCEL`, `FILE_OPS_SESSIONS`, `FileOpsSession`, `ListingSnapshot`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `deref`, `deref`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `initialize`, `initialize`
 
@@ -55,13 +55,18 @@ Future<FileOpsSnapshot> fileOpsInvertSelection({required BigInt id}) =>
 Future<FileOpsSnapshot> fileOpsClearSelection({required BigInt id}) =>
     RustLib.instance.api.crateApiFileOpsFileOpsClearSelection(id: id);
 
-/// 把当前选中项放进剪贴板。[cut] 为真时是剪切（粘贴时走 move）。
+/// 把[paths]这些条目放进剪贴板。[cut] 为真时是剪切（粘贴时走 move）。
+///
+/// 目标同样由调用方显式给出（见 [`file_ops_trash_paths`] 的口径说明）：
+/// 右键一个没选中的文件时，「复制」就该只装进那一项。
 Future<FileOpsSnapshot> fileOpsCopyToClipboard({
   required BigInt id,
   required bool cut,
+  required List<String> paths,
 }) => RustLib.instance.api.crateApiFileOpsFileOpsCopyToClipboard(
   id: id,
   cut: cut,
+  paths: paths,
 );
 
 Future<FileOpsSnapshot> fileOpsClearClipboard({required BigInt id}) =>
@@ -75,11 +80,22 @@ Future<FileOpsReport> fileOpsPaste({required BigInt id, String? destination}) =>
       destination: destination,
     );
 
-Future<FileOpsReport> fileOpsTrashSelection({required BigInt id}) =>
-    RustLib.instance.api.crateApiFileOpsFileOpsTrashSelection(id: id);
+/// 把[paths]里这些条目移到回收站。目标由调用方显式给出，**不读选中集合** ——
+/// 右键一个没选中的文件时，动作就该只落在它身上（见 Dart 侧 `_actionTargets`）。
+Future<FileOpsReport> fileOpsTrashPaths({
+  required BigInt id,
+  required List<String> paths,
+}) =>
+    RustLib.instance.api.crateApiFileOpsFileOpsTrashPaths(id: id, paths: paths);
 
-Future<FileOpsReport> fileOpsDeleteSelection({required BigInt id}) =>
-    RustLib.instance.api.crateApiFileOpsFileOpsDeleteSelection(id: id);
+/// 把[paths]里这些条目永久删除。目标口径与 [`file_ops_trash_paths`] 同一条。
+Future<FileOpsReport> fileOpsDeletePaths({
+  required BigInt id,
+  required List<String> paths,
+}) => RustLib.instance.api.crateApiFileOpsFileOpsDeletePaths(
+  id: id,
+  paths: paths,
+);
 
 /// 重命名一个条目。[new_name] 是新的**名字**，不是路径 —— 与上游一样要求同目录。
 Future<FileOpsReport> fileOpsRenameEntry({

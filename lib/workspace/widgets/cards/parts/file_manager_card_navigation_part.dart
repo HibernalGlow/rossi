@@ -143,58 +143,50 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
     required bool showTabActions,
   }) {
     final withTabActions = showTabActions && snapshot.canCreateTab;
-    return FluentPopupMenuButton<String>(
-      tooltip: '路径操作',
-      visualDensity: VisualDensity.compact,
-      enabled: !_busy,
-      icon: const Icon(Icons.more_horiz_rounded, size: 18),
-      onSelected: (value) {
-        if (value.startsWith('reopen:')) {
-          final tabId = BigInt.tryParse(value.substring('reopen:'.length));
-          if (tabId == null) return;
-          _apply((id) => fileManagerReopenClosedTab(id: id, tabId: tabId));
-          return;
-        }
-        switch (value) {
-          case 'new-tab':
-            _apply((id) => fileManagerNewTab(id: id));
-          case 'columns':
-            _apply(
+    // 与工具栏那三颗同一套弹出器：托盘从这颗键长出来（FlClash 的
+    // `CommonPopupRoute`），项集在 build 时构造好。
+    return CommonPopupBox(
+      targetBuilder: (open) => IconButton(
+        tooltip: '路径操作',
+        visualDensity: VisualDensity.compact,
+        onPressed: !_busy ? open : null,
+        icon: const GlyphIcon(AppGlyphs.more, size: 18),
+      ),
+      popupBuilder: (_) => CommonPopupMenu(
+        items: [
+          if (withTabActions) ...[
+            CommonPopupMenuItem(
+              label: '新建页签',
+              glyph: AppGlyphs.add,
+              onPressed: () => _apply((id) => fileManagerNewTab(id: id)),
+            ),
+            for (final tab in snapshot.recentlyClosed.reversed)
+              CommonPopupMenuItem(
+                label: '恢复页签：${tab.title}',
+                glyph: AppGlyphs.history,
+                onPressed: () => _apply(
+                  (id) => fileManagerReopenClosedTab(id: id, tabId: tab.id),
+                ),
+              ),
+            const CommonPopupMenuItem.divider(),
+          ],
+          CommonPopupMenuItem(
+            label: snapshot.directoryColumnsEnabled ? '收起目录列' : '展开目录列',
+            glyph: AppGlyphs.columnsTwo,
+            onPressed: () => _apply(
               (id) => fileManagerSetDirectoryColumns(
                 id: id,
                 enabled: !snapshot.directoryColumnsEnabled,
               ),
-            );
-          case 'edit':
-            _editPath(snapshot);
-        }
-      },
-      itemBuilder: (_) => [
-        if (withTabActions) ...[
-          const FluentPopupMenuItem(
-            value: 'new-tab',
-            leading: Icon(Icons.add_rounded, size: 16),
-            title: Text('新建页签'),
-          ),
-          for (final tab in snapshot.recentlyClosed.reversed)
-            FluentPopupMenuItem(
-              value: 'reopen:${tab.id}',
-              leading: const Icon(Icons.history_rounded, size: 16),
-              title: Text('恢复页签：${tab.title}'),
             ),
-          const FluentPopupMenuItem.divider(),
+          ),
+          CommonPopupMenuItem(
+            label: '编辑路径',
+            glyph: AppGlyphs.edit,
+            onPressed: () => _editPath(snapshot),
+          ),
         ],
-        FluentPopupMenuItem(
-          value: 'columns',
-          leading: const Icon(Icons.view_column_outlined, size: 16),
-          title: Text(snapshot.directoryColumnsEnabled ? '收起目录列' : '展开目录列'),
-        ),
-        const FluentPopupMenuItem(
-          value: 'edit',
-          leading: Icon(Icons.edit_outlined, size: 16),
-          title: Text('编辑路径'),
-        ),
-      ],
+      ),
     );
   }
   Widget _buildDirectoryColumns(

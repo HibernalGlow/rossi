@@ -146,42 +146,44 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
   /// 为什么不直接把右键当「设为主页」：那样「回主页」和「清除主页」在卡片上
   /// 都没有入口，用户只能去设置页里翻。菜单让三个动作都出现在它们作用的那个按钮上，
   /// 并且每一项按当前能力置灰（已在主页时不能重复设、没设过时不能清除）。
+  ///
+  /// 弹出器是 FlClash 那份（`CommonPopupRoute.overAnchorEnd`）：托盘从主页键
+  /// 的胶囊长出来 —— 与工具栏其余三个菜单同一套动画。
   Future<void> _openHomeMenu(FileManagerSnapshot snapshot) async {
     if (_busy) return;
     final box = _homeButtonKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null) return;
     final hasHome = snapshot.homePath != null;
-    final selected = await FluentPopupMenu.show<_HomeAction>(
-      context: context,
-      anchor: box.localToGlobal(Offset.zero) & box.size,
-      items: [
-        FluentPopupMenuItem(
-          value: _HomeAction.goHome,
-          enabled: hasHome && !snapshot.isHome,
-          title: const Text('回到主页'),
+    final homeRect = box.localToGlobal(Offset.zero) & box.size;
+    await Navigator.of(context).push(
+      CommonPopupRoute<void>(
+        barrierLabel:
+            MaterialLocalizations.of(context).modalBarrierDismissLabel,
+        anchorOf: () => homeRect,
+        builder: (_) => CommonPopupMenu(
+          items: [
+            CommonPopupMenuItem(
+              label: '回到主页',
+              onPressed:
+                  hasHome && !snapshot.isHome
+                  ? () => _apply((id) => fileManagerGoHome(id: id))
+                  : null,
+            ),
+            CommonPopupMenuItem(
+              label: '把当前目录设为主页',
+              onPressed: snapshot.canSetHome
+                  ? () => _setHomePath(snapshot.activePath)
+                  : null,
+            ),
+            const CommonPopupMenuItem.divider(),
+            CommonPopupMenuItem(
+              label: '清除主页',
+              onPressed: hasHome ? () => _clearHomePath() : null,
+            ),
+          ],
         ),
-        FluentPopupMenuItem(
-          value: _HomeAction.setHome,
-          enabled: snapshot.canSetHome,
-          title: const Text('把当前目录设为主页'),
-        ),
-        const FluentPopupMenuItem.divider(),
-        FluentPopupMenuItem(
-          value: _HomeAction.clearHome,
-          enabled: hasHome,
-          title: const Text('清除主页'),
-        ),
-      ],
+      ),
     );
-    if (!mounted || selected == null) return;
-    switch (selected) {
-      case _HomeAction.goHome:
-        await _apply((id) => fileManagerGoHome(id: id));
-      case _HomeAction.setHome:
-        await _setHomePath(snapshot.activePath);
-      case _HomeAction.clearHome:
-        await _clearHomePath();
-    }
   }
 
   Future<void> _reload() async {

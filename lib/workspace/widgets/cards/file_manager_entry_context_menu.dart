@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/platform/desktop/reveal_in_file_manager.dart';
 import 'package:zephyr/workspace/model/file_manager_entry_menu_spec.dart';
 
 /// 文件管理器**一个条目**的右键菜单宿主，按 Material Design 3 规格实现。
@@ -31,13 +32,18 @@ import 'package:zephyr/workspace/model/file_manager_entry_menu_spec.dart';
 /// 两个手势都挂，不按平台分叉。理由：桌面端长按弹菜单无害，而**按
 /// `defaultTargetPlatform` 分叉会在「带触摸屏的桌面」上错** —— 平台说 desktop、
 /// 用户却用触控笔长按，于是菜单永远出不来。
+///
+/// 两个手势都**只请菜单，不碰选中集合**。这里曾经是「先异步收敛一次选中态、
+/// 再弹菜单」（`onBeforeOpen`），因为桥那侧的复制 / 回收站 / 永久删除只读选中
+/// 集合；现在它们收调用方显式报的路径（`file_ops_trash_paths` 等），目标在动作
+/// 开始时由 `_actionTargets` 算一次，于是「右键一个没选中的文件 = 对这一个」
+/// 不需要把高亮和操作条一起立起来。
 class FileManagerEntryContextMenuRegion extends StatelessWidget {
   const FileManagerEntryContextMenuRegion({
     super.key,
     required this.child,
     required this.inputBuilder,
     required this.onAction,
-    this.onBeforeOpen,
     this.enabled = true,
   });
 
@@ -54,16 +60,6 @@ class FileManagerEntryContextMenuRegion extends StatelessWidget {
   final void Function(BuildContext context, FileManagerEntryAction action)
   onAction;
 
-  /// **菜单弹出来之前**要做的事，会等它做完再弹。
-  ///
-  /// 存在的理由只有一个：右键一个**没被选中**的行时，选中态要先收敛到它，
-  /// 否则菜单会以「这 3 项」为主语，而用户一项都没选过。这一步要走一次桥调用，
-  /// 所以必须是异步的。
-  ///
-  /// 时序是安全的：`await` 之后才 `open()`，而菜单面的第一次构建必然晚于
-  /// `open()` —— 于是它看到的一定是收敛之后的选中态，不会闪一下旧文案。
-  final Future<void> Function()? onBeforeOpen;
-
   /// 关掉时整块直通 —— 连手势都不挂（挂着手势会让长按变得「有反应」，
   /// 而它明明什么都不该发生）。
   final bool enabled;
@@ -74,7 +70,6 @@ class FileManagerEntryContextMenuRegion extends StatelessWidget {
     return _FileManagerEntryMenuAnchor(
       inputBuilder: inputBuilder,
       onAction: onAction,
-      onBeforeOpen: onBeforeOpen,
       child: child,
     );
   }
@@ -87,14 +82,12 @@ class _FileManagerEntryMenuAnchor extends StatefulWidget {
     required this.child,
     required this.inputBuilder,
     required this.onAction,
-    this.onBeforeOpen,
   });
 
   final Widget child;
   final FileManagerEntryMenuInput Function() inputBuilder;
   final void Function(BuildContext context, FileManagerEntryAction action)
   onAction;
-  final Future<void> Function()? onBeforeOpen;
 
   @override
   State<_FileManagerEntryMenuAnchor> createState() =>
@@ -111,13 +104,7 @@ class _FileManagerEntryMenuAnchorState
     super.dispose();
   }
 
-  Future<void> _openAt(Offset localPosition) async {
-    final before = widget.onBeforeOpen;
-    if (before != null) {
-      await before();
-      // 等这一次桥调用的过程里卡片可能已经被换掉了（切布局、关面板）。
-      if (!mounted) return;
-    }
+  void _openAt(Offset localPosition) {
     // MD3 的惯例是菜单左上角落在指针处。`MenuAnchor` 的 `position` 用的是
     // 锚点自己的坐标系，所以直接用 `localPosition`，不要换算全局坐标。
     _controller.open(position: localPosition);
@@ -287,6 +274,11 @@ String fileManagerEntryActionLabel(
       return '打开';
     case FileManagerEntryAction.openInNewTab:
       return '在新页签打开';
+    case FileManagerEntryAction.revealInFileManager:
+      // 词跟着平台变（访达 / 资源管理器 / 打开所在目录）—— Linux 那边做不到
+      // 「选中这一项」，就不能写成和前两家一样。措辞的单一出处在
+      // `reveal_in_file_manager.dart::revealMenuLabel`。
+      return revealMenuLabel(currentRevealHost());
     case FileManagerEntryAction.copy:
       return '复制';
     case FileManagerEntryAction.cut:
@@ -316,6 +308,8 @@ IconData fileManagerEntryActionIcon(FileManagerEntryAction action) {
       return Icons.open_in_new_rounded;
     case FileManagerEntryAction.openInNewTab:
       return Icons.tab_rounded;
+    case FileManagerEntryAction.revealInFileManager:
+      return Icons.folder_open_rounded;
     case FileManagerEntryAction.copy:
       return Icons.content_copy_rounded;
     case FileManagerEntryAction.cut:

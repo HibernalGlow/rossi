@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
@@ -370,13 +371,12 @@ class SwimlaneColumn extends StatelessWidget {
             const SizedBox(width: 4),
           ],
 
-          // Solo 独占按钮
+          // Solo 独占按钮。开/关同一颗 target 符号：状态由颜色与是否点亮表达，
+          // 不再是两颗近似符号换来换去（与菜单里那一项同一个口径）。
           if (fit.showSolo)
             IconButton(
-              icon: Icon(
-                isSolo
-                    ? Icons.center_focus_strong_rounded
-                    : Icons.center_focus_weak_rounded,
+              icon: GlyphIcon(
+                AppGlyphs.target,
                 size: 20,
                 color: isSolo
                     ? theme.colorScheme.primary
@@ -389,7 +389,7 @@ class SwimlaneColumn extends StatelessWidget {
           // 折叠泳道按钮
           if (fit.showCollapse)
             IconButton(
-              icon: const Icon(Icons.vertical_align_center_rounded, size: 18),
+              icon: const GlyphIcon(AppGlyphs.fold, size: 18),
               tooltip: '折叠为紧凑条 (Collapse)',
               onPressed: onToggleCollapse,
               visualDensity: VisualDensity.compact,
@@ -477,8 +477,8 @@ class SwimlaneColumn extends StatelessWidget {
   /// 平时就是这条泳道的图标；**按住**才变成可拖动的把手 ——
   /// 于是「重排泳道」不需要额外占位，也不会误触（拖动与点击是两个手势）。
   Widget _buildLaneHandle(BuildContext context, ThemeData theme) {
-    final icon = Icon(
-      laneIcon(laneId),
+    final icon = GlyphIcon(
+      laneGlyph(laneId),
       size: 18,
       color: theme.colorScheme.primary,
     );
@@ -510,8 +510,8 @@ class SwimlaneColumn extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  laneIcon(laneId),
+                GlyphIcon(
+                  laneGlyph(laneId),
                   size: 16,
                   color: theme.colorScheme.onPrimaryContainer,
                 ),
@@ -547,8 +547,8 @@ class SwimlaneColumn extends StatelessWidget {
         children: [
           const SizedBox(height: 10),
           IconButton(
-            icon: Icon(
-              laneIcon(laneId),
+            icon: GlyphIcon(
+              laneGlyph(laneId),
               size: 18,
               color: theme.colorScheme.primary,
             ),
@@ -570,7 +570,7 @@ class SwimlaneColumn extends StatelessWidget {
           ),
           const Spacer(),
           IconButton(
-            icon: const Icon(Icons.unfold_more_rounded, size: 16),
+            icon: const GlyphIcon(AppGlyphs.unfold, size: 16),
             tooltip: '展开泳道',
             onPressed: onToggleCollapse,
             visualDensity: VisualDensity.compact,
@@ -581,16 +581,18 @@ class SwimlaneColumn extends StatelessWidget {
     );
   }
 
-  static IconData laneIcon(String id) {
+  /// 紧凑轨顶部那颗身份图标（也是重排把手）：每条泳道一种 glyph。
+  /// 图标语汇只有一份 —— 这张表不再返回 Material `IconData`。
+  static Glyph laneGlyph(String id) {
     switch (id) {
       case LaneId.left:
-        return Icons.menu_book_rounded;
+        return AppGlyphs.book;
       case LaneId.reader:
-        return Icons.auto_stories_rounded;
+        return AppGlyphs.photos;
       case LaneId.right:
-        return Icons.explore_rounded;
+        return AppGlyphs.tools;
       default:
-        return Icons.view_column_rounded;
+        return AppGlyphs.columnsThree;
     }
   }
 }

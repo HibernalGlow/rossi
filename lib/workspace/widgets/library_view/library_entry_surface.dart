@@ -21,12 +21,19 @@ class LibraryEntrySurface extends StatelessWidget {
     required this.entry,
     this.onTap,
     this.onDoubleTap,
+    this.wrapTitle = false,
   });
 
   final LibraryViewMode mode;
   final LibraryEntry entry;
   final VoidCallback? onTap;
   final VoidCallback? onDoubleTap;
+
+  /// 封面网格的标题是否换行铺满（而不是截成两行加省略号）。
+  ///
+  /// 由宿主读设置后传进来 —— 这一层不认识 `GlobalSettingCubit`，
+  /// 和它不认识 ObjectBox、不认识 FRB 是同一条口径。
+  final bool wrapTitle;
 
   static const _cardRadius = 8.0;
 
@@ -196,11 +203,15 @@ class LibraryEntrySurface extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    entry.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall,
+                  Tooltip(
+                    message: entry.title,
+                    waitDuration: const Duration(milliseconds: 300),
+                    child: Text(
+                      entry.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall,
+                    ),
                   ),
                   if (entry.subLines.isNotEmpty) _subLines(context),
                 ],
@@ -233,12 +244,16 @@ class LibraryEntrySurface extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    entry.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
+                  Tooltip(
+                    message: entry.title,
+                    waitDuration: const Duration(milliseconds: 300),
+                    child: Text(
+                      entry.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -309,12 +324,16 @@ class LibraryEntrySurface extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      entry.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
+                    Tooltip(
+                      message: entry.title,
+                      waitDuration: const Duration(milliseconds: 300),
+                      child: Text(
+                        entry.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                     const Spacer(),
@@ -371,11 +390,15 @@ class LibraryEntrySurface extends StatelessWidget {
                 children: [
                   if (leading != null) ...[leading, const SizedBox(width: 6)],
                   Expanded(
-                    child: Text(
-                      entry.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall,
+                    child: Tooltip(
+                      message: entry.title,
+                      waitDuration: const Duration(milliseconds: 300),
+                      child: Text(
+                        entry.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall,
+                      ),
                     ),
                   ),
                 ],
@@ -413,78 +436,91 @@ class LibraryEntrySurface extends StatelessWidget {
   // ── 5. 封面网格：竖版海报 + 两行标题 ─────────────────────────────────────
   Widget _buildCoverGrid(BuildContext context) {
     final theme = Theme.of(context);
-    return InkWell(
-      borderRadius: BorderRadius.circular(_cardRadius),
-      onTap: onTap,
-      onDoubleTap: onDoubleTap,
-      child: Container(
-        decoration: _cardDecoration(context),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  _cellMedia(context),
-                  if (entry.overlayText != null)
-                    Positioned(
-                      left: 2,
-                      right: 2,
-                      bottom: 2,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 1,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.65),
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                        child: Text(
-                          entry.overlayText!,
-                          maxLines: 1,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
+    // 气泡套在整格上，不套在那条 12px 的题字上：鼠标停在封面上也要能认出
+    // 是哪个文件。题字自己那层 Tooltip 撤掉，否则两层气泡会互相抢 hover。
+    return Tooltip(
+      message: entry.title,
+      waitDuration: const Duration(milliseconds: 300),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(_cardRadius),
+        onTap: onTap,
+        onDoubleTap: onDoubleTap,
+        child: Container(
+          decoration: _cardDecoration(context),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _cellMedia(context),
+                    if (entry.overlayText != null)
+                      Positioned(
+                        left: 2,
+                        right: 2,
+                        bottom: 2,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.65),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: Text(
+                            entry.overlayText!,
+                            maxLines: 1,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                            ),
                           ),
                         ),
+                      ),
+                    ?_readOverlay(),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(5),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Flexible：换行档把格子剩下的额度给题字，超出的部分由
+                    // Clip.antiAlias 裁掉，而不是让 Column 撑破格子报溢出。
+                    Flexible(
+                      child: Row(
+                        children: [
+                          if (_badge() != null) ...[
+                            _badge()!,
+                            const SizedBox(width: 3),
+                          ],
+                          Expanded(
+                            child: Text(
+                              entry.title,
+                              maxLines: wrapTitle ? 6 : 2,
+                              overflow: wrapTitle
+                                  ? TextOverflow.clip
+                                  : TextOverflow.ellipsis,
+                              softWrap: true,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ?_readOverlay(),
-                ],
+                    ?_metaText(context, fontSize: 9),
+                  ],
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(5),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      if (_badge() != null) ...[
-                        _badge()!,
-                        const SizedBox(width: 3),
-                      ],
-                      Expanded(
-                        child: Text(
-                          entry.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  ?_metaText(context, fontSize: 9),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -511,13 +547,17 @@ class LibraryEntrySurface extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-              child: Text(
-                entry.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w500,
+              child: Tooltip(
+                message: entry.title,
+                waitDuration: const Duration(milliseconds: 300),
+                child: Text(
+                  entry.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ),

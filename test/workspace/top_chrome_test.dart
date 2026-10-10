@@ -48,6 +48,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/workspace/breeze_workspace_page.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_interaction_settings.dart';
@@ -141,7 +142,7 @@ Finder _laneMoreButton(String title) => find.descendant(
     of: find.text(title),
     matching: find.byType(SwimlaneColumn),
   ),
-  matching: find.byIcon(Icons.more_vert_rounded),
+  matching: find.byWidgetPredicate((w) => w is GlyphIcon && w.glyph == AppGlyphs.more),
 );
 
 /// 顶栏与内容各自的矩形 —— 两种形态的全部差别都在这里。

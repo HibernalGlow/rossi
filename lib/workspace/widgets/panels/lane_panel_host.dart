@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
@@ -192,24 +193,19 @@ class PanelHeaderBar extends StatelessWidget {
             ),
           ),
           if (hidden.isNotEmpty)
-            PopupMenuButton<String>(
+            FluentPopupMenuButton<String>(
               tooltip: '恢复被收起的卡片',
               onSelected: (cardId) => cubit.setCardVisible(cardId, true),
               itemBuilder: (context) => [
                 for (final card in hidden)
-                  PopupMenuItem<String>(
+                  FluentPopupMenuItem<String>(
                     value: card.id,
-                    child: Row(
-                      children: [
-                        Icon(
-                          card.icon,
-                          size: 16,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(card.title, style: theme.textTheme.bodySmall),
-                      ],
+                    leading: Icon(
+                      card.icon,
+                      size: 16,
+                      color: theme.colorScheme.primary,
                     ),
+                    title: Text(card.title, style: theme.textTheme.bodySmall),
                   ),
               ],
               child: Padding(

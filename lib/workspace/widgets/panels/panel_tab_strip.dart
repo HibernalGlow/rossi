@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/model/workspace_panel_bar.dart';
@@ -436,42 +437,43 @@ class _PanelTabStripState extends State<PanelTabStrip> {
     final lane = cubit.state.layout.lanes[widget.side.laneId];
     if (lane == null) return;
     final bar = lane.panelBar;
-    final overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox?;
-    if (overlay == null) return;
 
-    final action = await showMenu<_PanelBarAction>(
+    // 走 [FluentPopupMenu] 而不是 `showMenu`：后者的展开只有淡入，而这一条
+    // 把手上的菜单、栏头那颗 ⋮ 与文件管理器那张「更多」现在共用同一份
+    // 「淡入 + 从锚点缩放开」。锚点用右键/长按那一点，宽度给 0 —— 菜单会从
+    // 这一点所在的角长出来（`FluentPopupMenu` 自己按锚点算 `scaleAlignment`，
+    // 也在贴边时朝上/朝左翻）。
+    final action = await FluentPopupMenu.show<_PanelBarAction>(
       context: context,
-      position: RelativeRect.fromRect(
-        globalPosition & const Size(1, 1),
-        Offset.zero & overlay.size,
-      ),
+      anchor: globalPosition & Size.zero,
       items: [
-        PopupMenuItem<_PanelBarAction>(
+        FluentPopupMenuItem<_PanelBarAction>(
           value: _PanelBarAction.toggleMode,
-          child: _menuRow(
+          leading: Icon(
             bar.mode == PanelBarMode.pinned
                 ? Icons.push_pin_outlined
                 : Icons.push_pin,
+            size: 16,
+          ),
+          title: Text(
             bar.mode == PanelBarMode.pinned ? '改为悬浮' : '固定到当前位置',
           ),
         ),
-        PopupMenuItem<_PanelBarAction>(
+        FluentPopupMenuItem<_PanelBarAction>(
           value: _PanelBarAction.toggleConstrained,
-          child: _menuRow(
+          leading: Icon(
             bar.constrained ? Icons.lock_outline : Icons.lock_open_outlined,
-            bar.constrained ? '允许移出泳道' : '限制在本泳道',
+            size: 16,
           ),
+          title: Text(bar.constrained ? '允许移出泳道' : '限制在本泳道'),
         ),
-        const PopupMenuDivider(),
+        const FluentPopupMenuItem<_PanelBarAction>.divider(),
         for (final dock in PanelBarDock.values)
-          PopupMenuItem<_PanelBarAction>(
+          FluentPopupMenuItem<_PanelBarAction>(
             value: _PanelBarAction.dockTo(dock),
-            child: _menuRow(
-              _dockIcon(dock),
-              '停靠到${_dockLabel(dock)}',
-              checked: bar.mode == PanelBarMode.pinned && bar.dock == dock,
-            ),
+            leading: Icon(_dockIcon(dock), size: 16),
+            title: Text('停靠到${_dockLabel(dock)}'),
+            selected: bar.mode == PanelBarMode.pinned && bar.dock == dock,
           ),
       ],
     );
@@ -504,16 +506,9 @@ class _PanelTabStripState extends State<PanelTabStrip> {
     }
   }
 
-  Widget _menuRow(IconData icon, String label, {bool checked = false}) {
-    return Row(
-      children: [
-        Icon(icon, size: 16),
-        const SizedBox(width: 8),
-        Expanded(child: Text(label, style: const TextStyle(fontSize: 12))),
-        if (checked) const Icon(Icons.check_rounded, size: 15),
-      ],
-    );
-  }
+  // `_menuRow` 退役了：那一版是自己拼「图标 + 文字 + 勾」的一行，喂给
+  // `PopupMenuItem` 的 `child`；换成 [FluentPopupMenuItem] 之后图标归
+  // `leading`、勾归 `selected`，不必再自己画一遍。
 
   static IconData _dockIcon(PanelBarDock dock) => switch (dock) {
     PanelBarDock.left => Icons.vertical_split_rounded,
@@ -697,7 +692,7 @@ class _PanelTabStripState extends State<PanelTabStrip> {
     List<WorkspacePanelDefinition> hidden,
     WorkspaceCubit cubit,
   ) {
-    return PopupMenuButton<String>(
+    return FluentPopupMenuButton<String>(
       tooltip: '已收起的面板',
       onSelected: (id) {
         cubit.setPanelVisible(id, true);
@@ -705,15 +700,14 @@ class _PanelTabStripState extends State<PanelTabStrip> {
       },
       itemBuilder: (context) => [
         for (final panel in hidden)
-          PopupMenuItem<String>(
+          FluentPopupMenuItem<String>(
             value: panel.id,
-            child: Row(
-              children: [
-                Icon(panel.icon, size: 16, color: theme.colorScheme.primary),
-                const SizedBox(width: 8),
-                Text(panel.title, style: theme.textTheme.bodySmall),
-              ],
+            leading: Icon(
+              panel.icon,
+              size: 16,
+              color: theme.colorScheme.primary,
             ),
+            title: Text(panel.title, style: theme.textTheme.bodySmall),
           ),
       ],
       child: Padding(
