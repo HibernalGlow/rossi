@@ -134,9 +134,7 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
       listener: (context, state) {
         final error = state.error;
         if (error != null && error.isNotEmpty) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(error)));
+          showErrorToast(error, context: context);
         }
       },
       builder: (context, state) {
@@ -1269,9 +1267,7 @@ Future<void> _batchExportSelected(
       .toList();
 
   if (selectedComics.isEmpty) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(t.bookshelf.noExportableComics)));
+    showInfoToast(t.bookshelf.noExportableComics, context: context);
     return;
   }
 
