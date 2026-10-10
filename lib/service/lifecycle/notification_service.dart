@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:permission_guard/permission_guard.dart';
 import 'package:zephyr/config/global/global.dart';
 import 'package:zephyr/main.dart';
+import 'package:zephyr/service/notify/notify_topic.dart';
 import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/toast.dart';
@@ -65,7 +66,11 @@ Future<void> initializeNotifications() async {
           >()
           ?.requestPermissions(alert: true, badge: true, sound: true);
       if (granted != true) {
-        showErrorToast(t.notification.macPermissionRequired);
+        notifyAmbient(
+          NotifyTopic.systemPermission,
+          t.notification.macPermissionRequired,
+          type: ToastType.error,
+        );
       }
     } else if (Platform.isIOS) {
       final bool? granted = await flutterLocalNotificationsPlugin
@@ -74,12 +79,20 @@ Future<void> initializeNotifications() async {
           >()
           ?.requestPermissions(alert: true, badge: true, sound: true);
       if (granted != true) {
-        showErrorToast(t.notification.permissionRequired);
+        notifyAmbient(
+          NotifyTopic.systemPermission,
+          t.notification.permissionRequired,
+          type: ToastType.error,
+        );
       }
     } else if (Platform.isAndroid) {
       final status = await Permission.notification.request();
       if (!status.isGranted) {
-        showErrorToast(t.notification.permissionRequired);
+        notifyAmbient(
+          NotifyTopic.systemPermission,
+          t.notification.permissionRequired,
+          type: ToastType.error,
+        );
       }
     }
   } catch (e, stackTrace) {
