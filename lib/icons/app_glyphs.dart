@@ -3382,6 +3382,541 @@ abstract final class AppGlyphs {
     GlyphCircle(12, 13.8, 0.9, role: GlyphRole.detail, solid: true),
   ]);
 
+  /// 奖杯（排行榜）。
+  static const trophy = Glyph([
+    // 杯体
+    GlyphPath('M7 4 L17 4 L17 9 C17 12 14.9 14 12 14 C9.1 14 7 12 7 9 Z'),
+    // 双耳
+    GlyphPath('M7 5.6 L4.4 5.6 L4.4 8 A3.4 3.4 0 0 0 7.2 11.2', role: GlyphRole.line),
+    GlyphPath('M17 5.6 L19.6 5.6 L19.6 8 A3.4 3.4 0 0 1 16.8 11.2', role: GlyphRole.line),
+    // 柄与座
+    GlyphPolyline([
+      GlyphVertex(12, 14),
+      GlyphVertex(12, 17.6),
+    ], role: GlyphRole.line),
+    GlyphPolyline([
+      GlyphVertex(8.6, 20.5),
+      GlyphVertex(15.4, 20.5),
+    ], role: GlyphRole.line),
+    GlyphPolyline([
+      GlyphVertex(9.6, 17.6),
+      GlyphVertex(14.4, 17.6, 0.6),
+    ], role: GlyphRole.line),
+  ]);
+
+  /// 火焰（热度 / 爆款）。
+  static const fire = Glyph([
+    GlyphPath(
+      'M12 3.2 C9.4 6.2 6.8 9.4 6.8 13.2 '
+      'A5.2 5.2 0 0 0 17.2 13.2 '
+      'C17.2 10.8 16.2 8.9 14.9 7.3 '
+      'C14.5 8.5 13.8 9.1 13.2 8.9 '
+      'C12.3 8.6 12.5 6.2 12 3.2 Z',
+    ),
+    // 内焰
+    GlyphPath(
+      'M12 12.2 C10.9 13.4 10.6 14.2 10.6 15 '
+      'A1.9 1.9 0 0 0 13.4 15 '
+      'C13.4 14.1 12.9 13.2 12 12.2 Z',
+      role: GlyphRole.detail,
+    ),
+  ]);
+
+  /// 骰子（随机）。
+  static const dice = Glyph([
+    GlyphBox(4, 4, 20, 20, 3.2),
+    GlyphCircle(9, 9, 1.15, role: GlyphRole.detail, solid: true),
+    GlyphCircle(12, 12, 1.15, role: GlyphRole.detail, solid: true),
+    GlyphCircle(15, 15, 1.15, role: GlyphRole.detail, solid: true),
+  ]);
+
+  /// 指南针（探索 / 发现）。
+  static const compass = Glyph([
+    GlyphCircle(12, 12, 8.4),
+    GlyphPolyline([
+      GlyphVertex(15.4, 8.6),
+      GlyphVertex(13.2, 13.2, 0.5),
+      GlyphVertex(8.6, 15.4, 0.5),
+      GlyphVertex(10.8, 10.8, 0.5),
+      GlyphVertex(15.4, 8.6, 0.5),
+    ], closed: true, role: GlyphRole.detail),
+  ]);
+
+  /// 店面（插件商店 / 市集）。
+  static const storefront = Glyph([
+    // 雨棚
+    GlyphPolyline([
+      GlyphVertex(4.6, 8),
+      GlyphVertex(5.6, 4, 0.6),
+      GlyphVertex(18.4, 4, 0.6),
+      GlyphVertex(19.4, 8, 0.6),
+    ], role: GlyphRole.line),
+    // 棚沿波浪
+    GlyphPolyline([
+      GlyphVertex(4.6, 8),
+      GlyphVertex(8.2, 8, 0.5),
+      GlyphVertex(8.2, 9.4, 0.5),
+      GlyphVertex(12, 9.4, 0.5),
+      GlyphVertex(12, 8, 0.5),
+      GlyphVertex(15.8, 8, 0.5),
+      GlyphVertex(15.8, 9.4, 0.5),
+      GlyphVertex(19.4, 9.4, 0.5),
+    ], role: GlyphRole.detail),
+    // 店身
+    GlyphPolyline([
+      GlyphVertex(5.6, 11.4),
+      GlyphVertex(5.6, 20),
+      GlyphVertex(18.4, 20),
+      GlyphVertex(18.4, 11.4),
+    ], role: GlyphRole.line),
+    // 门
+    GlyphPolyline([
+      GlyphVertex(10.2, 20),
+      GlyphVertex(10.2, 14.8, 0.6),
+      GlyphVertex(13.8, 14.8, 0.6),
+      GlyphVertex(13.8, 20),
+    ], role: GlyphRole.detail),
+  ]);
+
+  /// 应用矩阵（插件 / 功能集合的兜底）：三行三列实心圆点。
+  static const apps = Glyph([
+    GlyphCircle(5.6, 5.6, 1.5, solid: true),
+    GlyphCircle(12.0, 5.6, 1.5, solid: true),
+    GlyphCircle(18.4, 5.6, 1.5, solid: true),
+    GlyphCircle(5.6, 12.0, 1.5, solid: true),
+    GlyphCircle(12.0, 12.0, 1.5, solid: true),
+    GlyphCircle(18.4, 12.0, 1.5, solid: true),
+    GlyphCircle(5.6, 18.4, 1.5, solid: true),
+    GlyphCircle(12.0, 18.4, 1.5, solid: true),
+    GlyphCircle(18.4, 18.4, 1.5, solid: true),
+  ]);
+
+  /// 分类（圈 + 方 + 三角，三种形并列）。
+  static const category = Glyph([
+    GlyphCircle(12, 6.9, 3.3),
+    GlyphBox(3.4, 13.6, 10.2, 20.4, 1.6),
+    GlyphPolyline([
+      GlyphVertex(14.2, 20.2),
+      GlyphVertex(17.8, 13.8, 0.5),
+      GlyphVertex(21.4, 20.2, 0.5),
+    ], closed: true),
+  ]);
+
+  /// 轮盘（径向菜单）：带缺口的外环 + 中心点。
+  static const donut = Glyph([
+    GlyphPath('M17.2 5.9 A8 8 0 1 0 19.9 10.5'),
+    GlyphCircle(12, 12, 2.2, solid: true),
+  ]);
+
+  /// 字幕（视频画面 + 底部两行字）。
+  static const subtitles = Glyph([
+    GlyphBox(3.5, 4.5, 20.5, 19.5, 2),
+    GlyphPolyline([
+      GlyphVertex(7, 13.5),
+      GlyphVertex(17, 13.5),
+    ], role: GlyphRole.detail),
+    GlyphPolyline([
+      GlyphVertex(7, 16.3),
+      GlyphVertex(12.5, 16.3),
+    ], role: GlyphRole.detail),
+  ]);
+
+  /// 手柄（游戏手柄输入）。
+  static const gamepad = Glyph([
+    GlyphBox(3, 7.2, 21, 16.8, 4.8),
+    GlyphPolyline([
+      GlyphVertex(7.2, 9.6),
+      GlyphVertex(7.2, 14.4),
+    ], role: GlyphRole.detail),
+    GlyphPolyline([
+      GlyphVertex(4.8, 12),
+      GlyphVertex(9.6, 12),
+    ], role: GlyphRole.detail),
+    GlyphCircle(15.6, 10.8, 1.05, role: GlyphRole.detail, solid: true),
+    GlyphCircle(18.4, 13.2, 1.05, role: GlyphRole.detail, solid: true),
+  ]);
+
+  /// 火箭（性能 / 实验特性）。
+  static const rocket = Glyph([
+    GlyphPath(
+      'M12 2.8 C14.4 4.8 15.6 7.6 15.6 10.8 L15.6 14.2 '
+      'L8.4 14.2 L8.4 10.8 C8.4 7.6 9.6 4.8 12 2.8 Z',
+    ),
+    GlyphCircle(12, 9.2, 1.5, role: GlyphRole.detail),
+    GlyphPolyline([
+      GlyphVertex(8.4, 11.4),
+      GlyphVertex(5.8, 15.4, 0.5),
+      GlyphVertex(8.4, 16.4),
+    ], role: GlyphRole.line),
+    GlyphPolyline([
+      GlyphVertex(15.6, 11.4),
+      GlyphVertex(18.2, 15.4, 0.5),
+      GlyphVertex(15.6, 16.4),
+    ], role: GlyphRole.line),
+    GlyphPath(
+      'M10.4 16 C10.4 18 11.2 19.3 12 20.8 '
+      'C12.8 19.3 13.6 18 13.6 16',
+      role: GlyphRole.detail,
+    ),
+  ]);
+
+  /// 荧光笔（内容高亮）。
+  static const highlight = Glyph([
+    GlyphPolyline([
+      GlyphVertex(14.6, 3.6),
+      GlyphVertex(20.4, 9.4, 0.6),
+      GlyphVertex(12, 17.8, 0.6),
+      GlyphVertex(6.2, 12, 0.6),
+    ], closed: true),
+    GlyphPolyline([
+      GlyphVertex(6.2, 12),
+      GlyphVertex(4, 20.2, 0.5),
+      GlyphVertex(12, 17.8, 0.5),
+    ], closed: true, role: GlyphRole.detail),
+  ]);
+
+  /// 甲虫（调试）。
+  static const bug = Glyph([
+    GlyphPath(
+      'M12 7.6 C14.6 7.6 16.4 9.6 16.4 12.6 '
+      'C16.4 15.8 14.4 18.2 12 18.2 '
+      'C9.6 18.2 7.6 15.8 7.6 12.6 C7.6 9.6 9.4 7.6 12 7.6 Z',
+    ),
+    GlyphPath('M9.6 7 A2.6 2.6 0 0 1 14.4 7', role: GlyphRole.detail),
+    GlyphPolyline([
+      GlyphVertex(10.5, 5),
+      GlyphVertex(9.6, 3.4),
+    ], role: GlyphRole.detail),
+    GlyphPolyline([
+      GlyphVertex(13.5, 5),
+      GlyphVertex(14.4, 3.4),
+    ], role: GlyphRole.detail),
+    GlyphPolyline([
+      GlyphVertex(7.6, 10.4),
+      GlyphVertex(4.8, 9.2),
+    ], role: GlyphRole.detail),
+    GlyphPolyline([
+      GlyphVertex(7.6, 13.4),
+      GlyphVertex(4.6, 13.4),
+    ], role: GlyphRole.detail),
+    GlyphPolyline([
+      GlyphVertex(7.6, 16),
+      GlyphVertex(5, 17.4),
+    ], role: GlyphRole.detail),
+    GlyphPolyline([
+      GlyphVertex(16.4, 10.4),
+      GlyphVertex(19.2, 9.2),
+    ], role: GlyphRole.detail),
+    GlyphPolyline([
+      GlyphVertex(16.4, 13.4),
+      GlyphVertex(19.4, 13.4),
+    ], role: GlyphRole.detail),
+    GlyphPolyline([
+      GlyphVertex(16.4, 16),
+      GlyphVertex(19, 17.4),
+    ], role: GlyphRole.detail),
+    GlyphPolyline([
+      GlyphVertex(12, 8.8),
+      GlyphVertex(12, 18.2),
+    ], role: GlyphRole.detail),
+  ]);
+
+  /// 静音（喇叭 + 叉）。
+  static const volumeOff = Glyph([
+    GlyphPolyline([
+      GlyphVertex(4, 9.4),
+      GlyphVertex(7.6, 9.4, 0.8),
+      GlyphVertex(12.2, 5.4, 0.8),
+      GlyphVertex(12.2, 18.6, 0.8),
+      GlyphVertex(7.6, 14.6, 0.8),
+      GlyphVertex(4, 14.6),
+    ], closed: true),
+    GlyphPolyline([
+      GlyphVertex(15.8, 9.6),
+      GlyphVertex(19.8, 14.4),
+    ], role: GlyphRole.detail),
+    GlyphPolyline([
+      GlyphVertex(19.8, 9.6),
+      GlyphVertex(15.8, 14.4),
+    ], role: GlyphRole.detail),
+  ]);
+
+  /// 对比度（半实心圆）。
+  static const contrast = Glyph([
+    GlyphCircle(12, 12, 8.4),
+    GlyphPath('M12 3.6 A8.4 8.4 0 0 1 12 20.4 Z', solid: true),
+  ]);
+
+  /// 循环（重复播放）。
+  static const loop = Glyph([
+    GlyphPath('M5.6 10.2 C5.6 6.9 8.2 4.9 11.4 4.9 L17.6 4.9'),
+    GlyphPolyline([
+      GlyphVertex(15.2, 2.4),
+      GlyphVertex(17.8, 4.9, 0.4),
+      GlyphVertex(15.2, 7.4),
+    ], role: GlyphRole.line),
+    GlyphPath('M18.4 13.8 C18.4 17.1 15.8 19.1 12.6 19.1 L6.4 19.1'),
+    GlyphPolyline([
+      GlyphVertex(8.8, 16.6),
+      GlyphVertex(6.2, 19.1, 0.4),
+      GlyphVertex(8.8, 21.6),
+    ], role: GlyphRole.line),
+  ]);
+
+  /// 电源。
+  static const power = Glyph([
+    GlyphPolyline([
+      GlyphVertex(12, 3.6),
+      GlyphVertex(12, 11),
+    ], role: GlyphRole.line),
+    GlyphPath('M8.2 6.1 A7.5 7.5 0 1 0 15.8 6.1'),
+  ]);
+
+  /// 搜索无果（放大镜 + 斜杠）。
+  static const searchOff = Glyph([
+    GlyphCircle(10.3, 10.3, 6.9, role: GlyphRole.line),
+    GlyphPolyline([
+      GlyphVertex(15.18, 15.18),
+      GlyphVertex(20.6, 20.6),
+    ], role: GlyphRole.line),
+    GlyphPolyline([
+      GlyphVertex(4.2, 4.2),
+      GlyphVertex(19.8, 19.8),
+    ], role: GlyphRole.detail),
+  ]);
+
+  /// 盾牌（安全 / 防护）。
+  static const shield = Glyph([
+    GlyphPath(
+      'M12 3.4 L19.6 6.4 L19.6 11.4 '
+      'C19.6 16.4 16.5 19.7 12 21.1 '
+      'C7.5 19.7 4.4 16.4 4.4 11.4 L4.4 6.4 Z',
+    ),
+  ]);
+
+  /// 趋势折线（统计 / 热度走向）。
+  static const trend = Glyph([
+    GlyphPolyline([
+      GlyphVertex(3.6, 17.4),
+      GlyphVertex(9, 11.4, 0.6),
+      GlyphVertex(13, 14.4, 0.6),
+      GlyphVertex(20.4, 5.8),
+    ], role: GlyphRole.line),
+    GlyphPolyline([
+      GlyphVertex(15.8, 5.8),
+      GlyphVertex(20.4, 5.8, 0.5),
+      GlyphVertex(20.4, 10.4),
+    ], role: GlyphRole.detail),
+  ]);
+
+  /// 日历。
+  static const calendar = Glyph([
+    GlyphBox(3.8, 5, 20.2, 20, 2.2),
+    GlyphPolyline([
+      GlyphVertex(3.8, 9.6),
+      GlyphVertex(20.2, 9.6),
+    ], role: GlyphRole.detail),
+    GlyphPolyline([
+      GlyphVertex(8, 3),
+      GlyphVertex(8, 7),
+    ], role: GlyphRole.line),
+    GlyphPolyline([
+      GlyphVertex(16, 3),
+      GlyphVertex(16, 7),
+    ], role: GlyphRole.line),
+  ]);
+
+  /// 饼图（占比）。
+  static const pieChart = Glyph([
+    GlyphCircle(12, 12, 8.4),
+    GlyphPath('M12 3.6 L12 12 L19.6 15.5', role: GlyphRole.detail),
+  ]);
+
+  /// 音符（音频文件）。
+  static const music = Glyph([
+    GlyphPolyline([
+      GlyphVertex(9.6, 17.8),
+      GlyphVertex(9.6, 4.6),
+      GlyphVertex(18.4, 3),
+      GlyphVertex(18.4, 16),
+    ], role: GlyphRole.line),
+    GlyphCircle(7.2, 17.8, 2.4),
+    GlyphCircle(16, 16, 2.4),
+  ]);
+
+  /// 新建文件夹（文件夹 + 加号）。
+  static const folderPlus = Glyph([
+    GlyphPolyline([
+      GlyphVertex(3.6, 19.6),
+      GlyphVertex(3.6, 5),
+      GlyphVertex(9.2, 5, 0.8),
+      GlyphVertex(11.4, 7.2, 0.8),
+      GlyphVertex(20.4, 7.2),
+      GlyphVertex(20.4, 19.6, 0.8),
+    ], closed: true),
+    GlyphPolyline([
+      GlyphVertex(12, 11),
+      GlyphVertex(12, 16),
+    ], role: GlyphRole.detail),
+    GlyphPolyline([
+      GlyphVertex(9.5, 13.5),
+      GlyphVertex(14.5, 13.5),
+    ], role: GlyphRole.detail),
+  ]);
+
+  /// 菜单（三条横线）。
+  static const menu = Glyph([
+    GlyphPolyline([
+      GlyphVertex(4, 6.6),
+      GlyphVertex(20, 6.6),
+    ], role: GlyphRole.line),
+    GlyphPolyline([
+      GlyphVertex(4, 12),
+      GlyphVertex(20, 12),
+    ], role: GlyphRole.line),
+    GlyphPolyline([
+      GlyphVertex(4, 17.4),
+      GlyphVertex(20, 17.4),
+    ], role: GlyphRole.line),
+  ]);
+
+  /// 收拢（两支相向箭头，与 [openInFull] 成对）。
+  static const compress = Glyph([
+    GlyphPolyline([
+      GlyphVertex(9.4, 9.4),
+      GlyphVertex(4.8, 4.8),
+    ], role: GlyphRole.line),
+    GlyphPolyline([
+      GlyphVertex(4.8, 8.2),
+      GlyphVertex(4.8, 4.8, 0.6),
+      GlyphVertex(8.6, 4.8),
+    ], role: GlyphRole.line),
+    GlyphPolyline([
+      GlyphVertex(14.6, 14.6),
+      GlyphVertex(19.2, 19.2),
+    ], role: GlyphRole.line),
+    GlyphPolyline([
+      GlyphVertex(19.2, 15.4),
+      GlyphVertex(19.2, 19.2, 0.6),
+      GlyphVertex(15.4, 19.2),
+    ], role: GlyphRole.line),
+  ]);
+
+  /// 画中画（大框内嵌实心小框）。
+  static const pip = Glyph([
+    GlyphBox(3.2, 5, 20.8, 19, 2),
+    GlyphPath('M12.2 11.2 L19.4 11.2 L19.4 16.6 L12.2 16.6 Z', role: GlyphRole.detail, solid: true),
+  ]);
+
+  /// 窗口最小化（下横线）。
+  static const windowMinimize = Glyph([
+    GlyphPolyline([
+      GlyphVertex(5, 17.4),
+      GlyphVertex(19, 17.4),
+    ], role: GlyphRole.line),
+  ]);
+
+  /// 窗口最大化（方框）。
+  static const windowMaximize = Glyph([
+    GlyphBox(4.4, 6, 19.6, 18, 1.8),
+  ]);
+
+  /// 窗口还原（前后两个方框）。
+  static const windowRestore = Glyph([
+    GlyphPolyline([
+      GlyphVertex(8, 8),
+      GlyphVertex(8, 4.6, 0.8),
+      GlyphVertex(19.4, 4.6, 0.8),
+      GlyphVertex(19.4, 16, 0.8),
+      GlyphVertex(16, 16),
+    ], role: GlyphRole.line),
+    GlyphBox(4.6, 8, 16, 19.4, 1.8),
+  ]);
+
+  /// 破图（相框 + 山形裂口 + 叉）。
+  static const brokenImage = Glyph([
+    GlyphBox(3.4, 4.6, 20.6, 19.4, 2),
+    GlyphPath(
+      'M3.4 15.6 L8 11.2 L12.4 15.4',
+      role: GlyphRole.detail,
+    ),
+    GlyphPolyline([
+      GlyphVertex(15.4, 9.4),
+      GlyphVertex(19.4, 13.4),
+    ], role: GlyphRole.detail),
+    GlyphPolyline([
+      GlyphVertex(19.4, 9.4),
+      GlyphVertex(15.4, 13.4),
+    ], role: GlyphRole.detail),
+  ]);
+
+  /// 实验（烧瓶）。
+  static const science = Glyph([
+    GlyphPolyline([
+      GlyphVertex(9.6, 3.6),
+      GlyphVertex(9.6, 10),
+      GlyphVertex(4.6, 17.8, 0.6),
+      GlyphVertex(6.4, 20.4, 0.6),
+      GlyphVertex(17.6, 20.4, 0.6),
+      GlyphVertex(19.4, 17.8, 0.6),
+      GlyphVertex(14.4, 10),
+      GlyphVertex(14.4, 3.6),
+    ], closed: true),
+    GlyphPolyline([
+      GlyphVertex(8.2, 3.6),
+      GlyphVertex(15.8, 3.6),
+    ], role: GlyphRole.line),
+    GlyphPolyline([
+      GlyphVertex(7.4, 14.4),
+      GlyphVertex(16.6, 14.4),
+    ], role: GlyphRole.detail),
+  ]);
+
+  /// 回复（左转箭头）。
+  static const reply = Glyph([
+    GlyphPolyline([
+      GlyphVertex(9.4, 5.4),
+      GlyphVertex(4, 10.8, 0.6),
+      GlyphVertex(9.4, 16.2),
+    ], role: GlyphRole.line),
+    GlyphPath(
+      'M4 10.8 L13.4 10.8 C17.4 10.8 20 13.4 20 17.4 L20 18.6',
+      role: GlyphRole.line,
+    ),
+  ]);
+
+  /// 附件（回形针）。
+  static const attach = Glyph([
+    GlyphPath(
+      'M15.8 11.2 L9.2 17.8 C7.4 19.6 4.6 19.6 2.9 17.8 '
+      'C1.2 16.1 1.2 13.3 2.9 11.6 L10.9 3.6 '
+      'C12 2.5 13.9 2.5 15 3.6 C16.1 4.7 16.1 6.6 15 7.7 '
+      'L7.8 14.9 C7.3 15.4 6.4 15.4 5.9 14.9',
+      role: GlyphRole.line,
+    ),
+  ]);
+
+  /// 单选选中（环 + 实心点）。
+  static const radioChecked = Glyph([
+    GlyphCircle(12, 12, 8.4),
+    GlyphCircle(12, 12, 3.4, role: GlyphRole.detail, solid: true),
+  ]);
+
+  /// 清除图层（层 + 斜杠）。
+  static const layersClear = Glyph([
+    GlyphPolyline([
+      GlyphVertex(12, 3.4),
+      GlyphVertex(20.6, 8),
+      GlyphVertex(12, 12.6),
+      GlyphVertex(3.4, 8, 0.8),
+    ], closed: true),
+    GlyphPath('M6.4 12.4 L3.4 14 L12 18.6 L15.4 16.8', role: GlyphRole.detail),
+    GlyphPolyline([
+      GlyphVertex(4.6, 4.6),
+      GlyphVertex(19.4, 19.4),
+    ], role: GlyphRole.detail),
+  ]);
+
   static Glyph backFor(TargetPlatform platform) {
     if (kIsWeb) {
       return arrowBack;
