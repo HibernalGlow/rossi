@@ -382,14 +382,58 @@ double _calculatePopupMenuWidth<T>(
   return contentWidth.clamp(triggerWidth, 340.0);
 }
 
+/// 从 [widget] 里挖出**最长的那条文本**，用来估菜单该多宽。
+///
+/// 早就只认顶层的 `Text`／`RichText`。标题一旦是「一行标签 + 一行小字提示」
+/// 这种 `Column`（见泳道栏头那份菜单 `LaneMenu`），就一条都量不到，
+/// [_calculatePopupMenuWidth] 于是退回 120 的兜底值 —— 中文标签直接折行。
+///
+/// 这里往下走一层常见容器，取最长的一条：菜单宽度只要「最宽的那行放得下」，
+/// 短的那行自然会跟着排。
 String? _extractText(Widget widget) {
+  final texts = <String>[];
+  _collectTexts(widget, texts);
+  if (texts.isEmpty) return null;
+  return texts.reduce((a, b) => a.length >= b.length ? a : b);
+}
+
+/// [_extractText] 的递归体。只认「结构容器」，不认具体叶子控件 ——
+/// 认多了会把角标、计数器之类的东西也算进来。
+void _collectTexts(Widget widget, List<String> out) {
   if (widget is Text) {
-    return widget.data ?? widget.textSpan?.toPlainText();
+    final data = widget.data ?? widget.textSpan?.toPlainText();
+    if (data != null && data.isNotEmpty) out.add(data);
+    return;
   }
   if (widget is RichText) {
-    return widget.text.toPlainText();
+    out.add(widget.text.toPlainText());
+    return;
   }
-  return null;
+  if (widget is Column) {
+    for (final child in widget.children) {
+      _collectTexts(child, out);
+    }
+    return;
+  }
+  if (widget is Row) {
+    for (final child in widget.children) {
+      _collectTexts(child, out);
+    }
+    return;
+  }
+  // 单孩子容器：`child` 在这套 widgets 里是可空的（`Flexible` 那支不空，
+  // 但统一按可空处理，省得每加一类都要回去查签名）。
+  final Widget? child = switch (widget) {
+    // `Expanded` 是 `Flexible` 的子类，一条就够；`Center` 是 `Align` 的子类。
+    Flexible(:final child) => child,
+    Padding(:final child) => child,
+    SizedBox(:final child) => child,
+    Align(:final child) => child,
+    DefaultTextStyle(:final child) => child,
+    DecoratedBox(:final child) => child,
+    _ => null,
+  };
+  if (child != null) _collectTexts(child, out);
 }
 
 class _HoverableMenuItem extends StatefulWidget {
