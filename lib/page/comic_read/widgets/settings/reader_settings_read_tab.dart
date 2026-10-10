@@ -543,17 +543,17 @@ class _ReadBackgroundSection extends StatelessWidget {
             ),
             ButtonSegment<ReaderBackgroundMode>(
               value: ReaderBackgroundMode.black,
-              icon: const Icon(Icons.circle, size: 12, color: Colors.black),
+              icon: const GlyphIcon(AppGlyphs.dot, size: 12, color: Colors.black),
               label: Text(t.reader.black),
             ),
             ButtonSegment<ReaderBackgroundMode>(
               value: ReaderBackgroundMode.white,
-              icon: const Icon(Icons.circle, size: 12, color: Colors.white),
+              icon: const GlyphIcon(AppGlyphs.dot, size: 12, color: Colors.white),
               label: Text(t.reader.white),
             ),
             ButtonSegment<ReaderBackgroundMode>(
               value: ReaderBackgroundMode.grey,
-              icon: const Icon(Icons.circle, size: 12, color: Colors.grey),
+              icon: const GlyphIcon(AppGlyphs.dot, size: 12, color: Colors.grey),
               label: Text(t.reader.grey),
             ),
           ],

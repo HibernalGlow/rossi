@@ -151,12 +151,12 @@ class _ReaderSettingsHeader extends StatelessWidget {
                                 child: Tooltip(
                                   message: tab.label,
                                   excludeFromSemantics: true,
-                                  child: Icon(tab.icon),
+                                  child: GlyphIcon(tab.icon),
                                 ),
                               ),
                             )
                           else
-                            Tab(icon: Icon(tab.icon), text: tab.label),
+                            Tab(icon: GlyphIcon(tab.icon), text: tab.label),
                       ],
                     );
                   },
