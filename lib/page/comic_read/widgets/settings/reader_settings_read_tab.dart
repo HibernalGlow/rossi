@@ -354,7 +354,7 @@ class _AutoReadSection extends StatelessWidget {
 
     return SettingsSection(
       title: t.reader.autoRead,
-      icon: Icons.play_circle_outline_rounded,
+      icon: AppGlyphs.playCircle,
       children: [
         SettingsCardGroup(
           children: [

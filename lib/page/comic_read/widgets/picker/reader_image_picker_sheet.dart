@@ -359,7 +359,7 @@ class _ReaderImagePickerSheetState extends State<_ReaderImagePickerSheet> {
           ),
           IconButton(
             tooltip: isAllSelected ? t.reader.deselectAll : t.reader.selectAll,
-            icon: Icon(
+            icon: GlyphIcon(
               isAllSelected
                   ? AppGlyphs.checkBox
                   : AppGlyphs.selectAll,
@@ -503,7 +503,7 @@ class _ReaderImagePickerSheetState extends State<_ReaderImagePickerSheet> {
                 : null,
           ),
           FilledButton.icon(
-            icon: Icon(
+            icon: GlyphIcon(
               isMobile
                   ? AppGlyphs.photos
                   : AppGlyphs.folder,
@@ -642,8 +642,8 @@ class _PickerTileState extends State<_PickerTile> {
                       : Colors.black.withValues(alpha: 0.4),
                 ),
                 padding: const EdgeInsets.all(2),
-                child: Icon(
-                  isSelected ? AppGlyphs.check : Icons.circle_outlined,
+                child: GlyphIcon(
+                  isSelected ? AppGlyphs.check : AppGlyphs.ring,
                   size: 16,
                   color: Colors.white,
                 ),
