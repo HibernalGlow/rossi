@@ -1,6 +1,6 @@
 part of '../reader_settings_sheet.dart';
-// rossi
 
+// rossi
 
 /// 视频播放设置。
 ///
@@ -14,7 +14,6 @@ class _VideoSection extends StatefulWidget {
   @override
   State<_VideoSection> createState() => _VideoSectionState();
 }
-
 
 class _VideoSectionState extends State<_VideoSection> {
   VideoSettings _settings = const VideoSettings();
@@ -40,7 +39,7 @@ class _VideoSectionState extends State<_VideoSection> {
   Widget build(BuildContext context) {
     return SettingsSection(
       title: t.video.settingsSection,
-      icon: Icons.video_settings_rounded,
+      icon: AppGlyphs.settings,
       children: [
         SettingsCardGroup(
           children: [
@@ -153,7 +152,6 @@ class _VideoSectionState extends State<_VideoSection> {
   );
 }
 
-
 /// 自定义后缀列表的编辑器（neoview `MediaSettingsCard.tsx:155-283` 那三档里的字符串列表档）。
 ///
 /// 校验由调用方给：别名有「不许与图片后缀重叠」这类硬规则，关键字没有。
@@ -199,7 +197,7 @@ class _StringListTile extends StatelessWidget {
           color: context.theme.colorScheme.onSurfaceVariant,
         ),
       ),
-      trailing: const Icon(Icons.edit_outlined, size: 20),
+      trailing: const GlyphIcon(AppGlyphs.edit, size: 20),
       onTap: () => _edit(context),
     );
   }
@@ -244,9 +242,7 @@ class _StringListTile extends StatelessWidget {
     final problems = validate?.call(saved) ?? const <String>[];
     if (problems.isNotEmpty) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(problems.join('；'))));
+        showWarningToast(problems.join('；'), context: context);
       }
       return;
     }
