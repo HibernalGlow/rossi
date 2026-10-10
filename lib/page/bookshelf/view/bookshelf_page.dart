@@ -5,11 +5,14 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/cubit/plugin_registry_cubit.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/bookshelf/bookshelf.dart';
 import 'package:zephyr/page/search/widget/search_input_dialog.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/util/debouncer.dart';
+import 'package:zephyr/widgets/action_group.dart';
+import 'package:zephyr/widgets/toast.dart';
 
 @RoutePage()
 class BookshelfPage extends StatelessWidget {
@@ -140,6 +143,30 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent>
     );
   }
 
+  /// 右上角那一组图标钮的底色。
+  ///
+  /// 与左边那条胶囊 tab（[_buildSleekTabs] 的容器）**同一个色** —— 同一条栏上
+  /// 两个容器读作同一种「可点区」，而不是两种灰。数值也是照抄那边的，改动要一起改。
+  Color get _actionWellFill =>
+      context.theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5);
+
+  /// 筛选键：全应用同一颗 [ActionIconButton]，装在与搜索同一档的分组槽里。
+  ///
+  /// 桌面端搜索是一个**输入框**（`SearchQueryField`），与这颗不同质，所以不并进
+  /// 同一只槽；窄屏那一支两颗都是图标，才合成一条（见 [_buildMobileHeader]）。
+  Widget _buildFilterAction() {
+    return ActionGroup(
+      fill: _actionWellFill,
+      children: [
+        ActionIconButton(
+          glyph: AppGlyphs.sliders,
+          tooltip: t.bookshelf.filter,
+          onPressed: _openFilter,
+        ),
+      ],
+    );
+  }
+
   Widget _buildDesktopHeader() {
     return Row(
       children: [
@@ -156,11 +183,7 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent>
                 ),
               ),
               const SizedBox(width: 8),
-              IconButton(
-                tooltip: t.bookshelf.filter,
-                icon: const Icon(Icons.tune),
-                onPressed: _openFilter,
-              ),
+              _buildFilterAction(),
             ],
           ),
         ),
@@ -205,28 +228,44 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent>
         children: [
           IconButton(
             tooltip: t.common.back,
-            icon: const Icon(Icons.arrow_back),
+            icon: const GlyphIcon(AppGlyphs.arrowBack),
             onPressed: _exitSearch,
           ),
           Expanded(child: _buildShelfSearchField(autoExpand: true)),
-          IconButton(
-            tooltip: t.bookshelf.filter,
-            icon: const Icon(Icons.tune),
-            onPressed: _openFilterFromSearch,
+          ActionGroup(
+            fill: _actionWellFill,
+            children: [
+              ActionIconButton(
+                glyph: AppGlyphs.sliders,
+                tooltip: t.bookshelf.filter,
+                onPressed: _openFilterFromSearch,
+              ),
+            ],
           ),
         ],
       );
     }
 
+    // 右上角那两颗（放大镜 / 滑块）装进**同一只分组槽** —— 这正是 FlClash 顶栏
+    // 右上角的形态：一个胶囊里几颗图标，旁边不再散着一颗。左边的胶囊 tab 不动。
     return Row(
       children: [
         _buildSleekTabs(),
         const Spacer(),
-        IconButton(icon: const Icon(Icons.search), onPressed: _expandSearch),
-        IconButton(
-          tooltip: t.bookshelf.filter,
-          icon: const Icon(Icons.tune),
-          onPressed: _openFilter,
+        ActionGroup(
+          fill: _actionWellFill,
+          children: [
+            ActionIconButton(
+              glyph: AppGlyphs.search,
+              tooltip: t.common.search,
+              onPressed: _expandSearch,
+            ),
+            ActionIconButton(
+              glyph: AppGlyphs.sliders,
+              tooltip: t.bookshelf.filter,
+              onPressed: _openFilter,
+            ),
+          ],
         ),
       ],
     );
@@ -417,9 +456,7 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent>
         .toList();
 
     if (availableSources.isEmpty && currentMode != ShelfPageMode.favorite) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t.bookshelf.noFilterSource)));
+      showInfoToast(t.bookshelf.noFilterSource, context: context);
       return;
     }
 
