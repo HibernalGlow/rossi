@@ -6,8 +6,8 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `compute_tiles`, `coreml_cache_dir`, `init_ort`, `model_kind_file`
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `TileRect`
+// These functions are ignored because they are not marked as `pub`: `compute_tiles`, `coreml_cache_dir`, `ensure_session_sweeper`, `init_ort`, `model_kind_file`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `CachedSession`, `TileRect`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`
 
 /// Run one mImage ONNX model and write a PNG. `model_path` must be a real
@@ -25,3 +25,13 @@ Future<String> mimageOnnxUpscale({
   modelId: modelId,
   tileSize: tileSize,
 );
+
+/// 主动交还全部 mImage ONNX 会话（含正在被后台清扫线程盯着的那份表）。
+///
+/// 调用时机 = **离开阅读器**（Dart 侧 `LocalReadSession.dispose`，与
+/// `ocr_release_sessions` 同点）：换章不调，人还在读，下一页省下的模型
+/// 加载才是应得的。返回释放的模型字节数合计（0 = 本进程没建过会话），
+/// Dart 侧据此打日志。CoreML 的编译产物落在磁盘 `.coreml_cache`，
+/// 这里放掉的只是内存里的模型，重载不需要重新编译。
+Future<BigInt> mimageOnnxReleaseSessions() =>
+    RustLib.instance.api.crateApiMimageOnnxMimageOnnxReleaseSessions();

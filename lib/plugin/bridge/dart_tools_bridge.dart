@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:zephyr/i18n/i18n_helper.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/i18n/system_locale_service.dart';
+import 'package:zephyr/service/notify/notify_topic.dart';
 import 'package:zephyr/service/update/check_update.dart';
 import 'package:zephyr/src/rust/api/localization.dart';
 import 'package:zephyr/src/rust/api/qjs.dart';
@@ -55,23 +56,22 @@ void registerDartTools() {
       seconds: customSeconds ?? (level == 'error' ? 5 : 2),
     );
 
-    switch (level) {
-      case 'info':
-        showInfoToast(message, title: title, duration: duration);
-        break;
-      case 'success':
-        showSuccessToast(message, title: title, duration: duration);
-        break;
-      case 'warning':
-        showWarningToast(message, title: title, duration: duration);
-        break;
-      case 'error':
-        showErrorToast(message, title: title, duration: duration);
-        break;
-      default:
-        showInfoToast(message, title: title, duration: duration);
-        break;
-    }
+    // 插件脚本可以在一次抓取的循环里逐章调这个桥，所以登记成
+    // [NotifyTopic.pluginMessage]（后台事项：可关、3 秒同文本合并）。
+    // 改造前这条通道一条去重都没有。
+    final type = switch (level) {
+      'success' => ToastType.success,
+      'warning' => ToastType.warning,
+      'error' => ToastType.error,
+      _ => ToastType.info,
+    };
+    notifyAmbient(
+      NotifyTopic.pluginMessage,
+      message,
+      type: type,
+      title: title,
+      duration: duration,
+    );
 
     return '';
   });

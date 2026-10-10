@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/setting/real_sr/service/super_resolution_log.dart';
 import 'package:zephyr/widgets/app_log_dialog.dart';
+import 'package:zephyr/widgets/toast.dart';
 
 class SuperResolutionLogControls extends StatelessWidget {
   const SuperResolutionLogControls({super.key});
@@ -9,9 +10,7 @@ class SuperResolutionLogControls extends StatelessWidget {
   Future<void> _copy(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: SuperResolutionLog.text));
     if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('超分日志已复制')));
+      showSuccessToast('超分日志已复制', context: context);
     }
   }
 
@@ -19,15 +18,11 @@ class SuperResolutionLogControls extends StatelessWidget {
     try {
       final message = await SuperResolutionLog.openOutputFolder();
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
+        showInfoToast(message, context: context);
       }
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('$error')));
+        showErrorToast('$error', context: context);
       }
     }
   }

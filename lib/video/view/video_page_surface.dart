@@ -348,7 +348,7 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
       return File(direct).existsSync() ? direct : null;
     }
     _isArchive = true;
-    final materializer = widget.materializer ?? _sharedMaterializer;
+    final materializer = widget.materializer ?? VideoMaterializer.shared;
     final file = await materializer.materialize(
       sourcePath: target.sourcePath,
       pageIndex: target.pageIndex,
@@ -360,8 +360,6 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
   }
 
   bool _isArchive = false;
-
-  static final VideoMaterializer _sharedMaterializer = VideoMaterializer();
 
   /// 外挂字幕：同目录/同归档里同名的 srt/ass 直接挂上，第一条自动选中。
   Future<void> _attachSidecarSubtitles(
@@ -488,7 +486,7 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
     final entry = archiveMarker.substring(separator + 1);
     final bytes = await widget.target.readBytes();
     if (bytes == null) return null;
-    final file = await _sharedMaterializer.materialize(
+    final file = await VideoMaterializer.shared.materialize(
       sourcePath: widget.target.sourcePath,
       pageIndex: -1,
       entryName: entry,

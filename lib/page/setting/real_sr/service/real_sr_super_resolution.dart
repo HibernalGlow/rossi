@@ -19,6 +19,7 @@ import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/upscaled_image_cache.dart';
 import 'package:zephyr/page/setting/real_sr/service/mimage_onnx_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/service/super_resolution_policy_service.dart';
+import 'package:zephyr/page/setting/real_sr/service/sr_session_guard.dart';
 import 'package:zephyr/reader/page_animation.dart';
 import 'package:zephyr/src/rust/api/image.dart';
 import 'package:zephyr/src/rust/api/mimage_onnx.dart';
@@ -1021,6 +1022,9 @@ class RealSrSuperResolution {
               variant.fileName,
             );
             SuperResolutionLog.add('Rossi 原生 CoreML 模型=$modelPath');
+            // 即将加载的 MLModel 会常驻插件侧缓存（读书期间跨页复用），
+            // 记一笔账，退出阅读器时由 SrSessionGuard 交还。
+            SrSessionGuard.markCoremlHeld();
             await CoreMLUpscale.upscale(
               inputPath: pngInputPath,
               outputPath: out,
@@ -1186,6 +1190,9 @@ class RealSrSuperResolution {
     final model = mImageModel ?? await RealSrSettings.loadMImageModel();
     final root = Directory(p.join(await _modelDirectory, 'mimage_onnx'));
     final modelPath = await MImageOnnxModelConfig.path(root, model);
+    // 会话将在 Rust 侧建起并常驻（读书期间跨页复用，10 分钟空闲也会被
+    // Rust 侧清扫），记一笔账，退出阅读器时由 SrSessionGuard 主动交还。
+    SrSessionGuard.markOnnxHeld();
     try {
       final result = await mimageOnnxUpscale(
         inputPath: inputPath,
