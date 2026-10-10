@@ -2,7 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:plat/plat.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 
-/// 给 plat 的一条标签套上「右键 / 长按 → 换边打开 + 关闭」。
+/// 给 plat 的一条标签套上「右键 / 长按 → 换边打开 + 关闭」「中键 → 直接关闭」。
 ///
 /// # 换边是**移动**，不是复制
 ///
@@ -92,6 +92,10 @@ class RossiPlatTabMenuRegion extends StatelessWidget {
       // 分叉会在「带触摸屏的桌面」上错（平台说是桌面，用户却在长按）。
       onSecondaryTapUp: (details) => _open(context, details.globalPosition),
       onLongPressStart: (details) => _open(context, details.globalPosition),
+      // 中键 = 直接关闭（浏览器标签条的同款惯例）：比「右键 → 菜单 → 关闭」
+      // 快两步。只在 onClose 给得出时挂；首页那条 locked 没有 onClose，
+      // 中键点了也不该有任何反应。
+      onTertiaryTapUp: onClose == null ? null : (_) => onClose!(),
       child: child,
     );
   }
