@@ -9,6 +9,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/service/download/download_queue_manager.dart';
 import 'package:zephyr/service/download/download_task_progress.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class DownloadTaskPage extends StatelessWidget {
@@ -211,7 +212,7 @@ class _DownloadingTaskTile extends StatelessWidget {
           children: [
             IconButton(
               tooltip: t.reader.pauseDownload,
-              icon: const Icon(Icons.pause_rounded, color: Colors.blue),
+              icon: const GlyphIcon(AppGlyphs.pause, color: Colors.blue),
               onPressed: payload == null
                   ? null
                   : () {
@@ -220,7 +221,7 @@ class _DownloadingTaskTile extends StatelessWidget {
                     },
             ),
             IconButton(
-              icon: const Icon(Icons.cancel_outlined, color: Colors.blue),
+              icon: const GlyphIcon(AppGlyphs.close, color: Colors.blue),
               onPressed: () {
                 final bloc = context.read<DowloadTaskBloc>();
                 showDialog(
@@ -289,8 +290,8 @@ class _PendingTaskTile extends StatelessWidget {
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: Colors.orange,
-          child: Icon(
-            isPaused ? Icons.pause_rounded : Icons.hourglass_empty,
+          child: GlyphIcon(
+            isPaused ? AppGlyphs.pause : AppGlyphs.hourglass,
             color: Colors.white,
           ),
         ),
@@ -333,7 +334,7 @@ class _PendingTaskTile extends StatelessWidget {
             if (isPaused)
               IconButton(
                 tooltip: t.reader.resumeDownload,
-                icon: const Icon(Icons.play_arrow_rounded),
+                icon: const GlyphIcon(AppGlyphs.play),
                 onPressed: () {
                   final taskKey = payload?.taskKey;
                   if (taskKey == null) return;
@@ -344,11 +345,11 @@ class _PendingTaskTile extends StatelessWidget {
             if (onRetry != null)
               IconButton(
                 tooltip: t.common.retry,
-                icon: const Icon(Icons.refresh),
+                icon: const GlyphIcon(AppGlyphs.refresh),
                 onPressed: onRetry,
               ),
             IconButton(
-              icon: const Icon(Icons.delete_outline),
+              icon: const GlyphIcon(AppGlyphs.delete),
               onPressed: onDelete,
             ),
           ],

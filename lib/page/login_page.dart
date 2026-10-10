@@ -9,6 +9,7 @@ import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/util/error_filter.dart';
 import 'package:zephyr/util/json/json_value.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class LoginPage extends StatefulWidget {
@@ -305,7 +306,7 @@ class _LoginPageState extends State<LoginPage> {
         title: Text(title.isEmpty ? t.login.title : title),
         actions: [
           IconButton(
-            icon: Icon(Icons.settings),
+            icon: GlyphIcon(AppGlyphs.settings),
             onPressed: () => context.pushRoute(GlobalSettingRoute()),
           ),
         ],

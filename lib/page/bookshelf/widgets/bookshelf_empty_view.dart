@@ -1,16 +1,17 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class BookshelfEmptyView extends StatelessWidget {
   const BookshelfEmptyView({
     super.key,
     this.title = '',
-    this.icon = Icons.folder_open_outlined,
+    this.icon = AppGlyphs.folder,
     this.onRefresh,
   });
 
   final String title;
-  final IconData icon;
+  final Glyph icon;
   final VoidCallback? onRefresh;
 
   @override
@@ -28,7 +29,7 @@ class BookshelfEmptyView extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
+                    GlyphIcon(
                       icon,
                       size: 72,
                       color: theme.colorScheme.onSurfaceVariant,
@@ -44,7 +45,7 @@ class BookshelfEmptyView extends StatelessWidget {
                       const SizedBox(height: 24),
                       FilledButton.icon(
                         onPressed: onRefresh,
-                        icon: const Icon(Icons.refresh),
+                        icon: const GlyphIcon(AppGlyphs.refresh),
                         label: Text(t.common.refresh),
                       ),
                     ],

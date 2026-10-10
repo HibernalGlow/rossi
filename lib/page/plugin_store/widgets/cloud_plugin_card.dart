@@ -3,6 +3,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/plugin_store/models/cloud_plugin_item.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
 import 'package:zephyr/widgets/plugin_icon.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class CloudPluginCard extends StatelessWidget {
   const CloudPluginCard({
@@ -211,8 +212,8 @@ class _InstalledChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.check_circle_outline,
+          GlyphIcon(
+            AppGlyphs.checkCircle,
             size: 12,
             color: colorScheme.onSurfaceVariant,
           ),
@@ -247,8 +248,8 @@ class _CloudPluginIcon extends StatelessWidget {
         alignment: Alignment.center,
         child: PluginIcon(
           url: iconUrl,
-          placeholder: Icon(
-            Icons.extension_outlined,
+          placeholder: GlyphIcon(
+            AppGlyphs.puzzle,
             size: 20,
             color: colorScheme.onSurfaceVariant,
           ),

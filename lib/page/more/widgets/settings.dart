@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_follow/cubit/comic_follow_cubit.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class SettingsWidget extends StatelessWidget {
   const SettingsWidget({super.key});
@@ -14,30 +15,30 @@ class SettingsWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle(context, t.more.common, Icons.widgets_outlined),
+        _buildSectionTitle(context, t.more.common, AppGlyphs.apps),
         ListTile(
-          leading: const Icon(Icons.download_outlined),
+          leading: const GlyphIcon(AppGlyphs.download),
           title: Text(t.more.downloadTasks),
-          trailing: const Icon(Icons.chevron_right),
+          trailing: const GlyphIcon(AppGlyphs.chevronForward),
           onTap: () => context.pushRoute(DownloadTaskRoute()),
         ),
         ListTile(
-          leading: const Icon(Icons.sync_outlined),
+          leading: const GlyphIcon(AppGlyphs.sync),
           title: Text(t.more.sync),
-          trailing: const Icon(Icons.chevron_right),
+          trailing: const GlyphIcon(AppGlyphs.chevronForward),
           onTap: () => context.pushRoute(SyncSettingRoute()),
         ),
         BlocSelector<ComicFollowCubit, ComicFollowState, int>(
           selector: (state) => state.updateCount,
           builder: (context, updateCount) {
             return ListTile(
-              leading: const Icon(Icons.notifications_active_outlined),
+              leading: const GlyphIcon(AppGlyphs.bell),
               title: Text(t.more.comicFollow),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (updateCount > 0) _UpdateBadge(count: updateCount),
-                  const Icon(Icons.chevron_right),
+                  const GlyphIcon(AppGlyphs.chevronForward),
                 ],
               ),
               onTap: () => context.pushRoute(ComicFollowRoute()),
@@ -45,36 +46,36 @@ class SettingsWidget extends StatelessWidget {
           },
         ),
         ListTile(
-          leading: const Icon(Icons.settings_outlined),
+          leading: const GlyphIcon(AppGlyphs.settings),
           title: Text(t.settings.globalTitle),
-          trailing: const Icon(Icons.chevron_right),
+          trailing: const GlyphIcon(AppGlyphs.chevronForward),
           onTap: () => context.pushRoute(GlobalSettingRoute()),
         ),
         const SizedBox(height: 8),
         const Divider(height: 1, thickness: 0.3),
-        _buildSectionTitle(context, t.more.others, Icons.more_horiz),
+        _buildSectionTitle(context, t.more.others, AppGlyphs.more),
         ListTile(
-          leading: const Icon(Icons.history),
+          leading: const GlyphIcon(AppGlyphs.history),
           title: Text(t.more.changelog),
-          trailing: const Icon(Icons.chevron_right),
+          trailing: const GlyphIcon(AppGlyphs.chevronForward),
           onTap: () => context.pushRoute(ChangelogRoute()),
         ),
         ListTile(
-          leading: const Icon(Icons.info_outline),
+          leading: const GlyphIcon(AppGlyphs.info),
           title: Text(t.about.title),
-          trailing: const Icon(Icons.chevron_right),
+          trailing: const GlyphIcon(AppGlyphs.chevronForward),
           onTap: () => context.pushRoute(AboutRoute()),
         ),
       ],
     );
   }
 
-  Widget _buildSectionTitle(BuildContext context, String title, IconData icon) {
+  Widget _buildSectionTitle(BuildContext context, String title, Glyph icon) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+          GlyphIcon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 8),
           Text(
             title,

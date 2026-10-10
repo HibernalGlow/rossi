@@ -9,6 +9,7 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_sheet.dart';
 import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/src/rust/frb_generated.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 「点空白收回」与五排标签布局的回归用例。
 ///
@@ -196,19 +197,24 @@ void main() {
       findsNothing,
       reason: '放不下文字时必须收成仅图标，而不是溢出成没人知道能滑的横滚',
     );
-    // 图标只能限定在 tab 里找：`auto_stories` 同时是「阅读模式」那段的段落图标，
+    // 图标只能限定在 tab 里找：`openBook` 同时是「阅读模式」那段的段落图标，
     // 全树去数会得到 2 颗 —— 那是这把尺子量错了对象，不是排版重复。
-    for (final icon in [
-      Icons.auto_stories_outlined,
-      Icons.touch_app_outlined,
-      Icons.dashboard_customize_outlined,
-      Icons.high_quality_outlined,
-      Icons.translate_outlined,
+    for (final glyph in [
+      AppGlyphs.openBook,
+      AppGlyphs.touch,
+      AppGlyphs.gridPlus,
+      AppGlyphs.quality,
+      AppGlyphs.translate,
     ]) {
       expect(
-        find.descendant(of: find.byType(Tab), matching: find.byIcon(icon)),
+        find.descendant(
+          of: find.byType(Tab),
+          matching: find.byWidgetPredicate(
+            (w) => w is GlyphIcon && w.glyph == glyph,
+          ),
+        ),
         findsOneWidget,
-        reason: '$icon 这一排的图标必须还在 tab 里',
+        reason: '$glyph 这一排的图标必须还在 tab 里',
       );
     }
   });

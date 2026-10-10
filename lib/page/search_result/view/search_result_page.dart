@@ -11,6 +11,7 @@ import 'package:zephyr/page/search/model/search_history_entry.dart';
 import 'package:zephyr/page/search_result/search_result.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_mapper.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class SearchResultPage extends StatelessWidget implements AutoRouteWrapper {
@@ -127,15 +128,14 @@ class _SearchResultPageState extends State<_SearchResultPage>
           childrenButtonSize: const Size(56, 56),
           backgroundColor: colorScheme.primaryContainer,
           foregroundColor: colorScheme.onPrimaryContainer,
-          icon: Icons.menu,
-          activeIcon: Icons.close,
+          activeChild: const GlyphIcon(AppGlyphs.close),
           useRotationAnimation: true,
           animationDuration: const Duration(milliseconds: 300),
           spacing: 12,
           spaceBetweenChildren: 8,
           children: [
             SpeedDialChild(
-              child: const Icon(Icons.vertical_align_top),
+              child: const GlyphIcon(AppGlyphs.vAlignTop),
               label: t.searchResult.returnToTop,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -151,7 +151,7 @@ class _SearchResultPageState extends State<_SearchResultPage>
               },
             ),
             SpeedDialChild(
-              child: const Icon(Icons.shortcut),
+              child: const GlyphIcon(AppGlyphs.openExternal),
               label: t.searchResult.jumpToPage,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -176,6 +176,7 @@ class _SearchResultPageState extends State<_SearchResultPage>
               },
             ),
           ],
+          child: const GlyphIcon(AppGlyphs.menu),
         ),
       ),
     );

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widget_previews.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class SearchQueryField extends StatefulWidget {
   const SearchQueryField({
@@ -448,8 +449,8 @@ class _SearchQueryFieldState extends State<SearchQueryField>
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.search,
+                GlyphIcon(
+                  AppGlyphs.search,
                   color: isEmpty
                       ? colorScheme.onSurfaceVariant
                       : colorScheme.onSurface,
@@ -508,7 +509,7 @@ class _SearchQueryFieldState extends State<SearchQueryField>
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Icon(Icons.search, color: colorScheme.onSurfaceVariant),
+                    GlyphIcon(AppGlyphs.search, color: colorScheme.onSurfaceVariant),
                     const SizedBox(width: 8),
                     Expanded(
                       child: TextField(
@@ -555,7 +556,7 @@ class _SearchQueryFieldState extends State<SearchQueryField>
                     IconButton(
                       tooltip: hasText ? t.common.clear : t.common.close,
                       visualDensity: VisualDensity.compact,
-                      icon: Icon(hasText ? Icons.clear : Icons.close),
+                      icon: GlyphIcon(hasText ? AppGlyphs.close : AppGlyphs.close),
                       onPressed: hasText ? _clear : _dismissOverlay,
                     ),
                   ],

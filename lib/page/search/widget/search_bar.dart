@@ -14,6 +14,7 @@ import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:zephyr/util/debouncer.dart';
 import 'package:zephyr/widgets/multi_choice_list_dialog.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class SearchBar extends StatefulWidget {
   const SearchBar({super.key, this.aggregateMode = true});
@@ -69,7 +70,7 @@ class _SearchBarState extends State<SearchBar> {
         child: Row(
           children: [
             IconButton(
-              icon: const Icon(Icons.arrow_back),
+              icon: const GlyphIcon(AppGlyphs.arrowBack),
               onPressed: () =>
                   popTabOrClose(context, otherwise: () => context.maybePop()),
             ),
@@ -112,7 +113,7 @@ class _SearchBarState extends State<SearchBar> {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.tune),
+              icon: const GlyphIcon(AppGlyphs.sliders),
               onPressed: () async {
                 // dialog 回写前丢弃残留输入同步，避免旧防抖把 dialog 回写盖掉。
                 _keywordDebouncer.cancel();

@@ -15,6 +15,7 @@ import 'package:zephyr/page/search/cubit/search_cubit.dart';
 import 'package:zephyr/page/search/view/search_page.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class DiscoverPage extends StatelessWidget {
@@ -49,7 +50,7 @@ class _DiscoverTabsHostState extends State<_DiscoverTabsHost> {
       source: '',
       pluginName: '',
       iconUrl: '',
-      icon: Icons.explore,
+      icon: AppGlyphs.compass,
       content: (context) => _PluginHome(tabs: _tabs),
     ),
   );
@@ -89,7 +90,7 @@ class _DiscoverTabsHostState extends State<_DiscoverTabsHost> {
             ? FloatingActionButton(
                 tooltip: t.discover.search,
                 onPressed: () => _openAggregateSearch(context),
-                child: const Icon(Icons.search),
+                child: const GlyphIcon(AppGlyphs.search),
               )
             : null,
       ),
@@ -108,7 +109,7 @@ class _DiscoverTabsHostState extends State<_DiscoverTabsHost> {
     _tabs.open(
       label: t.discover.search,
       source: '',
-      icon: Icons.search,
+      icon: AppGlyphs.search,
       content: (context) =>
           SearchPage(searchState: searchState, aggregateMode: true),
     );
@@ -244,8 +245,8 @@ class _PluginHome extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Row(
           children: [
-            Icon(
-              Icons.storefront_outlined,
+            GlyphIcon(
+              AppGlyphs.storefront,
               size: 22,
               color: colorScheme.primary,
             ),
@@ -267,8 +268,8 @@ class _PluginHome extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
-            Icon(
-              Icons.chevron_right,
+            GlyphIcon(
+              AppGlyphs.chevronForward,
               size: 20,
               color: colorScheme.onSurfaceVariant,
             ),

@@ -30,6 +30,7 @@ import 'package:zephyr/widgets/comic_simplify_entry/comic_translation_badge.dart
 import 'package:zephyr/widgets/comic_simplify_entry/comic_unread_indicator.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/favorite_tag_badge.dart';
+import 'package:zephyr/icons/icons.dart';
 
 const double kComicCardBorderRadius = 5.0;
 
@@ -724,8 +725,8 @@ class ComicSimplifyEntry extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: Icon(
-                    isSelected ? Icons.check : Icons.radio_button_unchecked,
+                  child: GlyphIcon(
+                    isSelected ? AppGlyphs.check : AppGlyphs.ring,
                     color: isSelected ? Colors.white : Colors.black54,
                     size: 20,
                   ),

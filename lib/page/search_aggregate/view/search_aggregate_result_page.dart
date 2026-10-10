@@ -19,6 +19,7 @@ import 'package:zephyr/widgets/section_header.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/search_aggregate/cubit/search_aggregate_cubit.dart';
 import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class SearchAggregateResultPage extends StatelessWidget
@@ -174,7 +175,7 @@ class _SearchBarTrigger extends StatelessWidget {
           IconButton(
             tooltip: t.search.selectSourceTooltip,
             onPressed: () => _showSourceDialog(context),
-            icon: const Icon(Icons.tune),
+            icon: const GlyphIcon(AppGlyphs.sliders),
           ),
         ],
       ),
@@ -359,7 +360,7 @@ class _ResultList extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
             child: Card(
               child: ListTile(
-                leading: const Icon(Icons.error_outline),
+                leading: const GlyphIcon(AppGlyphs.error),
                 title: Text(
                   t.search.loadFailedForSource(source: _sourceTitle(pluginId)),
                 ),
@@ -376,7 +377,7 @@ class _ResultList extends StatelessWidget {
                       )
                     : IconButton(
                         tooltip: t.common.refresh,
-                        icon: const Icon(Icons.refresh),
+                        icon: const GlyphIcon(AppGlyphs.refresh),
                         onPressed: () => context
                             .read<AggregateSearchCubit>()
                             .refreshSource(pluginId),
