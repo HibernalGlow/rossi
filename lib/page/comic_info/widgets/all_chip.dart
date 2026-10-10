@@ -123,8 +123,9 @@ class _AllChipWidgetState extends State<AllChipWidget> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Icon(
-                isFavoriteArtist ? Icons.favorite_border : Icons.favorite,
+              leading: GlyphIcon(
+                AppGlyphs.heart,
+                fill: isFavoriteArtist ? 1 : 0,
                 color: const Color(0xFFDC2626),
               ),
               title: Text(
