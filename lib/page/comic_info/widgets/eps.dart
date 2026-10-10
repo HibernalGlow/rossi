@@ -124,7 +124,7 @@ class EpButtonWidget extends StatelessWidget {
                   if (selectionMode)
                     Padding(
                       padding: const EdgeInsets.only(right: 12),
-                      child: Icon(
+                      child: GlyphIcon(
                         selected
                             ? AppGlyphs.checkCircle
                             : AppGlyphs.ring,
