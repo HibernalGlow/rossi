@@ -8,6 +8,7 @@ import 'package:zephyr/plugin/bridge/plugin_config_bridge.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/util/json/json_value.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class PluginSettingSchemeSection extends StatefulWidget {
   const PluginSettingSchemeSection({
@@ -59,7 +60,7 @@ class _PluginSettingSchemeSectionState
             title: Text(t.plugin.pluginSettingsLoadFailed),
             subtitle: Text(snapshot.error.toString()),
             trailing: IconButton(
-              icon: const Icon(Icons.refresh),
+              icon: const GlyphIcon(AppGlyphs.refresh),
               onPressed: () => setState(() => _future = _load()),
             ),
           );
@@ -139,7 +140,7 @@ class _PluginSettingSchemeSectionState
     return ListTile(
       title: Text(label),
       subtitle: Text(value?.toString() ?? ''),
-      trailing: const Icon(Icons.edit_outlined),
+      trailing: const GlyphIcon(AppGlyphs.edit),
       onTap: () async {
         final next = await _showInputDialog(
           context,
@@ -218,7 +219,7 @@ class _PluginAdvancedActionSectionState
             final title = action['title']?.toString() ?? t.plugin.unnamedAction;
             final fnPath = action['fnPath']?.toString() ?? '';
             return ListTile(
-              leading: const Icon(Icons.extension_outlined),
+              leading: const GlyphIcon(AppGlyphs.puzzle),
               title: Text(title),
               subtitle: Text(fnPath),
               onTap: () async {

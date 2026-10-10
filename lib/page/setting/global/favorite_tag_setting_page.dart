@@ -10,6 +10,7 @@ import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/util/comic/favorite_tag_matcher.dart';
 import 'package:zephyr/util/text/tag_text.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 收藏 tag 管理页。
 ///
@@ -347,7 +348,7 @@ class _FavoriteTagSettingPageState extends State<FavoriteTagSettingPage> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
           SwitchListTile(
-            secondary: const Icon(Icons.sell, color: Color(0xFFF59E0B)),
+            secondary: const GlyphIcon(AppGlyphs.sell, color: Color(0xFFF59E0B)),
             title: Text(t.settings.favoriteTagHighlight),
             subtitle: Text(t.settings.favoriteTagHighlightSubtitle),
             thumbIcon: kSettingSwitchThumbIcon,
@@ -365,7 +366,7 @@ class _FavoriteTagSettingPageState extends State<FavoriteTagSettingPage> {
                   controller: _addController,
                   decoration: InputDecoration(
                     hintText: t.settings.favoriteTagInputHint,
-                    prefixIcon: const Icon(Icons.sell_outlined),
+                    prefixIcon: const GlyphIcon(AppGlyphs.sell),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -388,7 +389,7 @@ class _FavoriteTagSettingPageState extends State<FavoriteTagSettingPage> {
                     vertical: 14,
                   ),
                 ),
-                icon: const Icon(Icons.add),
+                icon: const GlyphIcon(AppGlyphs.add),
                 label: Text(t.settings.favoriteTagAdd),
                 onPressed: () => _handleAdd(context),
               ),
@@ -413,7 +414,7 @@ class _FavoriteTagSettingPageState extends State<FavoriteTagSettingPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                icon: const Icon(Icons.edit_note, size: 18),
+                icon: const GlyphIcon(AppGlyphs.compose, size: 18),
                 label: Text(t.settings.favoriteTagBatchImport),
                 onPressed: () => _showBatchImportDialog(context, tags),
               ),
@@ -423,7 +424,7 @@ class _FavoriteTagSettingPageState extends State<FavoriteTagSettingPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                icon: const Icon(Icons.upload_file, size: 18),
+                icon: const GlyphIcon(AppGlyphs.arrowUp, size: 18),
                 label: const Text('导入文件 (TXT/JSON/EMM setting.json)'),
                 onPressed: () => _importFromFile(context),
               ),
@@ -435,7 +436,7 @@ class _FavoriteTagSettingPageState extends State<FavoriteTagSettingPage> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  icon: const Icon(Icons.delete_sweep_outlined, size: 18),
+                  icon: const GlyphIcon(AppGlyphs.delete, size: 18),
                   label: Text(t.settings.favoriteTagClear),
                   onPressed: () => _confirmClearAll(context),
                 ),
@@ -460,10 +461,10 @@ class _FavoriteTagSettingPageState extends State<FavoriteTagSettingPage> {
                     controller: _filterController,
                     decoration: InputDecoration(
                       hintText: t.settings.favoriteTagSearchHint,
-                      prefixIcon: const Icon(Icons.search, size: 18),
+                      prefixIcon: const GlyphIcon(AppGlyphs.search, size: 18),
                       suffixIcon: keyword.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.clear, size: 16),
+                              icon: const GlyphIcon(AppGlyphs.close, size: 16),
                               onPressed: () {
                                 _filterController.clear();
                                 setState(() => _filterKeyword = '');
@@ -490,8 +491,8 @@ class _FavoriteTagSettingPageState extends State<FavoriteTagSettingPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.sell_outlined,
+                  GlyphIcon(
+                    AppGlyphs.sell,
                     size: 48,
                     color: theme.colorScheme.onSurfaceVariant.withValues(
                       alpha: 0.4,
@@ -582,7 +583,7 @@ class _FavoriteTagRow extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.sell, size: 16, color: Color(0xFFB45309)),
+              const GlyphIcon(AppGlyphs.sell, size: 16, color: Color(0xFFB45309)),
               const SizedBox(width: 6),
               // Flexible 而不是 Expanded：本名很长时也要给右边两颗按钮留出位置，
               // 但不能把按钮顶出屏幕。
@@ -601,12 +602,12 @@ class _FavoriteTagRow extends StatelessWidget {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.add, size: 16),
+                icon: const GlyphIcon(AppGlyphs.add, size: 16),
                 tooltip: t.settings.favoriteTagAliasAdd,
                 onPressed: onAddAlias,
               ),
               IconButton(
-                icon: const Icon(Icons.delete_outline, size: 18),
+                icon: const GlyphIcon(AppGlyphs.delete, size: 18),
                 tooltip: t.common.delete,
                 onPressed: onRemove,
               ),
@@ -659,8 +660,8 @@ class _FavoriteTagRow extends StatelessWidget {
                           onTap: () => onRemoveAlias(alias),
                           child: Padding(
                             padding: const EdgeInsets.all(2),
-                            child: Icon(
-                              Icons.close,
+                            child: GlyphIcon(
+                              AppGlyphs.close,
                               size: 13,
                               color: theme.colorScheme.onSurfaceVariant,
                             ),

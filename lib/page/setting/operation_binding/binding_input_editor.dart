@@ -6,6 +6,7 @@ import 'package:zephyr/service/operation_binding/binding_doc.dart';
 import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
 import 'package:zephyr/page/setting/operation_binding/binding_editor_labels.dart';
 import 'package:zephyr/page/setting/operation_binding/binding_input_recorder.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 描述符表单只编辑文档；匹配与冲突判定由核心处理。
 class BindingInputEditor extends StatelessWidget {
@@ -25,7 +26,7 @@ class BindingInputEditor extends StatelessWidget {
     if (device == InputDevice.radial || device == InputDevice.command) {
       return ListTile(
         contentPadding: EdgeInsets.zero,
-        leading: Icon(bindingDeviceIcon(device)),
+        leading: GlyphIcon(bindingDeviceIcon(device)),
         title: Text(bindingInputSummary(input)),
         subtitle: Text(t.bindingEditor.managedInput),
       );
@@ -123,7 +124,7 @@ class BindingInputEditor extends StatelessWidget {
                           (input['directions'] as List).length - 1,
                         ),
                       ),
-                icon: const Icon(Icons.undo),
+                icon: const GlyphIcon(AppGlyphs.undo),
               ),
             ],
           ),
@@ -221,7 +222,7 @@ class BindingInputEditor extends StatelessWidget {
               );
               if (captured != null && context.mounted) onChanged(captured);
             },
-            icon: const Icon(Icons.sensors, size: 18),
+            icon: const GlyphIcon(AppGlyphs.motion, size: 18),
             label: Text(t.bindingEditor.record),
           ),
         ],

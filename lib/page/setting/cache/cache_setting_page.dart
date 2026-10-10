@@ -11,6 +11,7 @@ import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 import 'package:zephyr/page/setting/common/setting_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 
 const Map<int, String> _cacheLimitLabels = {
   536870912: '512 MB',
@@ -158,7 +159,7 @@ class _CacheSettingPageState extends State<CacheSettingPage> {
             children: [
               _buildSectionTitle(context, t.cache.currentCache),
               ListTile(
-                leading: const Icon(Icons.storage_outlined),
+                leading: const GlyphIcon(AppGlyphs.storage),
                 title: Text(t.cache.cacheSize),
                 subtitle: Text(
                   _calculating
@@ -172,19 +173,19 @@ class _CacheSettingPageState extends State<CacheSettingPage> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : IconButton(
-                        icon: const Icon(Icons.refresh, size: 20),
+                        icon: const GlyphIcon(AppGlyphs.refresh, size: 20),
                         tooltip: t.cache.recalculate,
                         onPressed: _calculateCacheSize,
                       ),
               ),
               const Divider(height: 1, thickness: 0.3),
               ListTile(
-                leading: const Icon(Icons.cleaning_services_outlined),
+                leading: const GlyphIcon(AppGlyphs.broom),
                 title: Text(t.cache.manualClear),
                 subtitle: Text(t.cache.manualClearSubtitle),
                 trailing: FilledButton.tonalIcon(
                   onPressed: _handleClearCache,
-                  icon: const Icon(Icons.delete_outline, size: 18),
+                  icon: const GlyphIcon(AppGlyphs.delete, size: 18),
                   label: Text(t.cache.clear),
                 ),
               ),
@@ -193,7 +194,7 @@ class _CacheSettingPageState extends State<CacheSettingPage> {
               const Divider(height: 1, thickness: 0.3),
               _buildSectionTitle(context, t.cache.cacheLimit),
               ListTile(
-                leading: const Icon(Icons.data_thresholding_outlined),
+                leading: const GlyphIcon(AppGlyphs.dataUsage),
                 title: Text(t.cache.sizeLimit),
                 subtitle: Text(t.cache.sizeLimitSubtitle),
                 trailing: Builder(
@@ -222,7 +223,7 @@ class _CacheSettingPageState extends State<CacheSettingPage> {
               const Divider(height: 1, thickness: 0.3),
               _buildSectionTitle(context, t.cache.autoClean),
               SwitchListTile(
-                secondary: const Icon(Icons.auto_delete_outlined),
+                secondary: const GlyphIcon(AppGlyphs.broom),
                 title: Text(t.cache.autoClean),
                 subtitle: Text(t.cache.autoCleanSubtitle),
                 thumbIcon: kSettingSwitchThumbIcon,

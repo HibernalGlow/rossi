@@ -6,6 +6,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class BookshelfSettingPage extends StatefulWidget {
@@ -35,12 +36,12 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
           settingSectionTitle(
             context,
             t.settings.bookshelf,
-            icon: Icons.collections_bookmark_outlined,
+            icon: AppGlyphs.bookmark,
           ),
           _homePageTile(state, cubit),
           const Divider(height: 1, thickness: 0.3),
           _switchTile(
-            icon: Icons.favorite_outline,
+            icon: AppGlyphs.heart,
             title: t.settings.bookshelfRememberFavoriteSort,
             subtitle: t.settings.bookshelfRememberFavoriteSortSubtitle,
             value: state.rememberFavoriteSort,
@@ -50,7 +51,7 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
           ),
           const Divider(height: 1, thickness: 0.3),
           _switchTile(
-            icon: Icons.history_outlined,
+            icon: AppGlyphs.history,
             title: t.settings.bookshelfRememberHistorySort,
             subtitle: t.settings.bookshelfRememberHistorySortSubtitle,
             value: state.rememberHistorySort,
@@ -60,7 +61,7 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
           ),
           const Divider(height: 1, thickness: 0.3),
           _switchTile(
-            icon: Icons.download_outlined,
+            icon: AppGlyphs.download,
             title: t.settings.bookshelfRememberDownloadSort,
             subtitle: t.settings.bookshelfRememberDownloadSortSubtitle,
             value: state.rememberDownloadSort,
@@ -74,10 +75,10 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
           settingSectionTitle(
             context,
             t.settings.cardBadges,
-            icon: Icons.style_outlined,
+            icon: AppGlyphs.palette,
           ),
           _switchTile(
-            icon: Icons.cloud_download_outlined,
+            icon: AppGlyphs.cloudDownload,
             title: t.settings.cardDownloadBadge,
             subtitle: t.settings.cardDownloadBadgeSubtitle,
             value: cardSetting.downloadBadgeEnabled,
@@ -87,7 +88,7 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
           ),
           const Divider(height: 1, thickness: 0.3),
           _switchTile(
-            icon: Icons.translate_outlined,
+            icon: AppGlyphs.translate,
             title: t.settings.cardTranslationBadge,
             subtitle: t.settings.cardTranslationBadgeSubtitle,
             value: cardSetting.translationBadgeEnabled,
@@ -97,7 +98,7 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
           ),
           const Divider(height: 1, thickness: 0.3),
           _switchTile(
-            icon: Icons.play_circle_outline_rounded,
+            icon: AppGlyphs.playCircle,
             title: t.settings.cardReadButton,
             subtitle: t.settings.cardReadButtonSubtitle,
             value: cardSetting.readButtonEnabled,
@@ -107,7 +108,7 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
           ),
           const Divider(height: 1, thickness: 0.3),
           _switchTile(
-            icon: Icons.sell_outlined,
+            icon: AppGlyphs.sell,
             title: t.settings.cardFavoriteTagBadge,
             subtitle: t.settings.cardFavoriteTagBadgeSubtitle,
             value: cardSetting.favoriteTagBadgeEnabled,
@@ -117,7 +118,7 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
           ),
           const Divider(height: 1, thickness: 0.3),
           _switchTile(
-            icon: Icons.radio_button_checked,
+            icon: AppGlyphs.ring,
             title: t.settings.cardUnreadIndicator,
             subtitle: t.settings.cardUnreadIndicatorSubtitle,
             value: cardSetting.unreadIndicatorEnabled,
@@ -137,10 +138,10 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
           settingSectionTitle(
             context,
             t.settings.cardInteraction,
-            icon: Icons.touch_app_outlined,
+            icon: AppGlyphs.touch,
           ),
           _switchTile(
-            icon: Icons.menu_open_rounded,
+            icon: AppGlyphs.unfold,
             title: t.settings.shelfCardContextMenu,
             subtitle: t.settings.shelfCardContextMenuSubtitle,
             value: state.shelfCardContextMenu,
@@ -161,7 +162,7 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
     };
 
     return ListTile(
-      leading: const Icon(Icons.home_outlined),
+      leading: const GlyphIcon(AppGlyphs.home),
       title: Text(t.settings.bookshelfHomePage),
       subtitle: Text(t.settings.bookshelfHomePageSubtitle),
       trailing: FluentDropdown<int>(
@@ -189,7 +190,7 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
     final labels = _unreadIndicatorStyleLabels;
 
     return ListTile(
-      leading: const Icon(Icons.palette_outlined),
+      leading: const GlyphIcon(AppGlyphs.palette),
       title: Text(t.settings.cardUnreadIndicatorStyle),
       subtitle: Text(t.settings.cardUnreadIndicatorStyleSubtitle),
       trailing: FluentDropdown<ComicUnreadIndicatorStyle>(
@@ -218,14 +219,14 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
   /// 本页所有开关都走这里：翻转即保存 + 弹「已保存」提示，
   /// 新增开关时不必再抄一遍 toast。
   Widget _switchTile({
-    required IconData icon,
+    required Glyph icon,
     required String title,
     required String subtitle,
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
     return SwitchListTile(
-      secondary: Icon(icon),
+      secondary: GlyphIcon(icon),
       title: Text(title),
       subtitle: Text(subtitle),
       thumbIcon: kSettingSwitchThumbIcon,

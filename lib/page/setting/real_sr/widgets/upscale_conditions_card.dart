@@ -8,6 +8,7 @@ import 'package:zephyr/page/setting/real_sr/service/real_sr_book_scope.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 // 条件条目的增删改、排序与导入导出对话框。
 part 'parts/upscale_conditions_card_crud_part.dart';
@@ -88,7 +89,7 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
           // 顶部主开关
           Row(
             children: [
-              const Icon(Icons.rule_folder_outlined, size: 22),
+              const GlyphIcon(AppGlyphs.rules, size: 22),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -131,8 +132,8 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.info_outline,
+                  GlyphIcon(
+                    AppGlyphs.info,
                     size: 14,
                     color: colorScheme.onErrorContainer,
                   ),
@@ -171,10 +172,10 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                   visualDensity: VisualDensity.compact,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                 ),
-                icon: Icon(
+                icon: GlyphIcon(
                   _expanded
-                      ? Icons.keyboard_arrow_up
-                      : Icons.keyboard_arrow_down,
+                      ? AppGlyphs.chevronUp
+                      : AppGlyphs.chevronDown,
                   size: 18,
                 ),
                 label: Text(
@@ -241,7 +242,7 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
             runSpacing: 6,
             children: [
               OutlinedButton.icon(
-                icon: const Icon(Icons.add, size: 14),
+                icon: const GlyphIcon(AppGlyphs.add, size: 14),
                 label: const Text('添加条件', style: TextStyle(fontSize: 11)),
                 style: OutlinedButton.styleFrom(
                   visualDensity: VisualDensity.compact,
@@ -249,7 +250,7 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                 onPressed: _addCondition,
               ),
               OutlinedButton.icon(
-                icon: const Icon(Icons.copy, size: 14),
+                icon: const GlyphIcon(AppGlyphs.copy, size: 14),
                 label: const Text('复制', style: TextStyle(fontSize: 11)),
                 style: OutlinedButton.styleFrom(
                   visualDensity: VisualDensity.compact,
@@ -257,13 +258,13 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                 onPressed: _duplicateCondition,
               ),
               IconButton.outlined(
-                icon: const Icon(Icons.arrow_upward, size: 14),
+                icon: const GlyphIcon(AppGlyphs.arrowUp, size: 14),
                 tooltip: '上移优先级',
                 visualDensity: VisualDensity.compact,
                 onPressed: _selectedIndex > 0 ? () => _moveCondition(-1) : null,
               ),
               IconButton.outlined(
-                icon: const Icon(Icons.arrow_downward, size: 14),
+                icon: const GlyphIcon(AppGlyphs.arrowDown, size: 14),
                 tooltip: '下移优先级',
                 visualDensity: VisualDensity.compact,
                 onPressed: _selectedIndex < _conditions.length - 1
@@ -271,8 +272,8 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                     : null,
               ),
               IconButton.outlined(
-                icon: Icon(
-                  Icons.delete_outline,
+                icon: GlyphIcon(
+                  AppGlyphs.delete,
                   size: 14,
                   color: colorScheme.error,
                 ),
@@ -281,7 +282,7 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                 onPressed: _conditions.length > 1 ? _removeCondition : null,
               ),
               OutlinedButton.icon(
-                icon: const Icon(Icons.file_upload_outlined, size: 14),
+                icon: const GlyphIcon(AppGlyphs.arrowUp, size: 14),
                 label: const Text('导入', style: TextStyle(fontSize: 11)),
                 style: OutlinedButton.styleFrom(
                   visualDensity: VisualDensity.compact,
@@ -289,7 +290,7 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                 onPressed: _showImportDialog,
               ),
               OutlinedButton.icon(
-                icon: const Icon(Icons.file_download_outlined, size: 14),
+                icon: const GlyphIcon(AppGlyphs.download, size: 14),
                 label: const Text('导出', style: TextStyle(fontSize: 11)),
                 style: OutlinedButton.styleFrom(
                   visualDensity: VisualDensity.compact,
@@ -297,7 +298,7 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                 onPressed: _showExportDialog,
               ),
               OutlinedButton.icon(
-                icon: const Icon(Icons.refresh, size: 14),
+                icon: const GlyphIcon(AppGlyphs.refresh, size: 14),
                 label: const Text('重置', style: TextStyle(fontSize: 11)),
                 style: OutlinedButton.styleFrom(
                   visualDensity: VisualDensity.compact,

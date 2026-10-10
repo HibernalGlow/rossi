@@ -6,6 +6,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/util/toast/toast_style.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 提示样式设置：位置、时长、尺寸、外观。
 ///
@@ -32,11 +33,11 @@ class ToastSettingPage extends StatelessWidget {
           settingSectionTitle(
             context,
             t.settings.toastSectionLayout,
-            icon: Icons.grid_view_outlined,
+            icon: AppGlyphs.dashboard,
           ),
           SettingSectionCard(
             title: t.settings.toastPosition,
-            icon: Icons.place_outlined,
+            icon: AppGlyphs.place,
             children: [
               _PositionPicker(
                 value: setting.position,
@@ -44,7 +45,7 @@ class ToastSettingPage extends StatelessWidget {
                     update((current) => current.copyWith(position: value)),
               ),
               _IntSliderTile(
-                icon: Icons.space_bar_outlined,
+                icon: AppGlyphs.passThrough,
                 title: t.settings.toastEdgePadding,
                 subtitle: t.settings.toastEdgePaddingSubtitle,
                 value: setting.edgePadding,
@@ -56,7 +57,7 @@ class ToastSettingPage extends StatelessWidget {
                     update((current) => current.copyWith(edgePadding: value)),
               ),
               _IntSliderTile(
-                icon: Icons.straighten_outlined,
+                icon: AppGlyphs.linearScale,
                 title: t.settings.toastMaxWidth,
                 subtitle: t.settings.toastMaxWidthSubtitle,
                 value: setting.maxWidth,
@@ -68,7 +69,7 @@ class ToastSettingPage extends StatelessWidget {
                     update((current) => current.copyWith(maxWidth: value)),
               ),
               _IntSliderTile(
-                icon: Icons.layers_outlined,
+                icon: AppGlyphs.layers,
                 title: t.settings.toastMaxVisible,
                 subtitle: t.settings.toastMaxVisibleSubtitle,
                 value: setting.maxVisible,
@@ -85,14 +86,14 @@ class ToastSettingPage extends StatelessWidget {
           settingSectionTitle(
             context,
             t.settings.toastSectionAppearance,
-            icon: Icons.auto_awesome_outlined,
+            icon: AppGlyphs.sparkle,
           ),
           SettingSectionCard(
             title: t.settings.toastSectionBehavior,
-            icon: Icons.timer_outlined,
+            icon: AppGlyphs.hourglass,
             children: [
               _IntSliderTile(
-                icon: Icons.hourglass_empty_outlined,
+                icon: AppGlyphs.hourglass,
                 title: t.settings.toastDuration,
                 subtitle: t.settings.toastDurationSubtitle,
                 value: setting.durationMs,
@@ -106,7 +107,7 @@ class ToastSettingPage extends StatelessWidget {
                     update((current) => current.copyWith(durationMs: value)),
               ),
               _IntSliderTile(
-                icon: Icons.opacity_outlined,
+                icon: AppGlyphs.contrast,
                 title: t.settings.toastOpacity,
                 subtitle: t.settings.toastOpacitySubtitle,
                 value: setting.opacityPercent,
@@ -122,7 +123,7 @@ class ToastSettingPage extends StatelessWidget {
                 ),
               ),
               _IntSliderTile(
-                icon: Icons.animation_outlined,
+                icon: AppGlyphs.motion,
                 title: t.settings.toastAnimation,
                 subtitle: t.settings.toastAnimationSubtitle,
                 value: setting.animationDurationMs,
@@ -138,10 +139,10 @@ class ToastSettingPage extends StatelessWidget {
           ),
           SettingSectionCard(
             title: t.settings.toastSectionStyle,
-            icon: Icons.palette_outlined,
+            icon: AppGlyphs.palette,
             children: [
               SwitchListTile(
-                secondary: const Icon(Icons.blur_on_outlined),
+                secondary: const GlyphIcon(AppGlyphs.motion),
                 title: Text(t.settings.toastLiquidGlass),
                 subtitle: Text(t.settings.toastLiquidGlassSubtitle),
                 thumbIcon: kSettingSwitchThumbIcon,
@@ -150,7 +151,7 @@ class ToastSettingPage extends StatelessWidget {
                     update((current) => current.copyWith(liquidGlass: value)),
               ),
               SwitchListTile(
-                secondary: const Icon(Icons.linear_scale_outlined),
+                secondary: const GlyphIcon(AppGlyphs.linearScale),
                 title: Text(t.settings.toastShowProgressBar),
                 subtitle: Text(t.settings.toastShowProgressBarSubtitle),
                 thumbIcon: kSettingSwitchThumbIcon,
@@ -160,7 +161,7 @@ class ToastSettingPage extends StatelessWidget {
                 ),
               ),
               SwitchListTile(
-                secondary: const Icon(Icons.emoji_emotions_outlined),
+                secondary: const GlyphIcon(AppGlyphs.sparkle),
                 title: Text(t.settings.toastShowIcon),
                 subtitle: Text(t.settings.toastShowIconSubtitle),
                 thumbIcon: kSettingSwitchThumbIcon,
@@ -169,7 +170,7 @@ class ToastSettingPage extends StatelessWidget {
                     update((current) => current.copyWith(showIcon: value)),
               ),
               SwitchListTile(
-                secondary: const Icon(Icons.close_outlined),
+                secondary: const GlyphIcon(AppGlyphs.close),
                 title: Text(t.settings.toastShowCloseButton),
                 subtitle: Text(t.settings.toastShowCloseButtonSubtitle),
                 thumbIcon: kSettingSwitchThumbIcon,
@@ -189,7 +190,7 @@ class ToastSettingPage extends StatelessWidget {
                 context: context,
               );
             },
-            icon: const Icon(Icons.play_circle_outline),
+            icon: const GlyphIcon(AppGlyphs.playCircle),
             label: Text(t.settings.toastPreview),
           ),
           const SizedBox(height: 10),
@@ -199,7 +200,7 @@ class ToastSettingPage extends StatelessWidget {
               cubit.updateToastSetting((_) => defaults);
               showInfoToast(t.settings.toastResetDone, context: context);
             },
-            icon: const Icon(Icons.restart_alt_outlined),
+            icon: const GlyphIcon(AppGlyphs.reset),
             label: Text(t.settings.toastReset),
           ),
           const SizedBox(height: 32),
@@ -309,7 +310,7 @@ class _IntSliderTile extends StatelessWidget {
     required this.onChanged,
   });
 
-  final IconData icon;
+  final Glyph icon;
   final String title;
   final String subtitle;
   final int value;
@@ -328,7 +329,7 @@ class _IntSliderTile extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ListTile(
-          leading: Icon(icon),
+          leading: GlyphIcon(icon),
           title: Text(title),
           subtitle: Text(subtitle),
           trailing: Text(

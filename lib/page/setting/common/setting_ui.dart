@@ -1,7 +1,11 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 
 const EdgeInsets kSettingPagePadding = EdgeInsets.fromLTRB(16, 12, 16, 24);
 
+// Switch.thumbIcon 的签名锁死 `WidgetStateProperty<Icon>`（Material Icon widget，
+// 内部要 IconData）—— glyph 体系覆盖不到这个槽位，是框架 API 的硬限制，
+// 这两颗保留 Material 图标（全仓仅此一处豁免）。
 const WidgetStateProperty<Icon> kSettingSwitchThumbIcon =
     WidgetStateProperty<Icon>.fromMap(<WidgetStatesConstraint, Icon>{
       WidgetState.selected: Icon(Icons.check),
@@ -46,14 +50,14 @@ class SettingPageShell extends StatelessWidget {
 Widget settingSectionTitle(
   BuildContext context,
   String title, {
-  IconData? icon,
+  Glyph? icon,
 }) {
   return Padding(
     padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
     child: Row(
       children: [
         if (icon != null) ...[
-          Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+          GlyphIcon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 8),
         ],
         Text(
@@ -71,16 +75,16 @@ Widget settingSectionTitle(
 }
 
 Widget settingCategoryTile({
-  required IconData icon,
+  required Glyph icon,
   required String title,
   required String subtitle,
   required VoidCallback onTap,
 }) {
   return ListTile(
-    leading: Icon(icon),
+    leading: GlyphIcon(icon),
     title: Text(title),
     subtitle: Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
-    trailing: const Icon(Icons.chevron_right),
+    trailing: const GlyphIcon(AppGlyphs.chevronForward),
     onTap: onTap,
   );
 }
@@ -94,7 +98,7 @@ class SettingSectionCard extends StatelessWidget {
   });
 
   final String title;
-  final IconData icon;
+  final Glyph icon;
   final List<Widget> children;
 
   @override
@@ -105,7 +109,7 @@ class SettingSectionCard extends StatelessWidget {
       child: Column(
         children: [
           ListTile(
-            leading: Icon(icon),
+            leading: GlyphIcon(icon),
             title: Text(
               title,
               style: const TextStyle(fontWeight: FontWeight.w600),

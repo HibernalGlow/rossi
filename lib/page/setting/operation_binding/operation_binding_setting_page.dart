@@ -14,6 +14,7 @@ import 'package:zephyr/service/operation_binding/binding_doc.dart';
 import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
 import 'package:zephyr/service/operation_binding/radial_doc.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 「操作绑定」设置页（ADR-0015 的外壳那一半）。
 ///
@@ -402,12 +403,12 @@ class _OperationBindingSettingPageState
                   segments: [
                     ButtonSegment(
                       value: false,
-                      icon: const Icon(Icons.keyboard_outlined, size: 18),
+                      icon: const GlyphIcon(AppGlyphs.key, size: 18),
                       label: Text(t.settings.operationBindingTabKeyboard),
                     ),
                     ButtonSegment(
                       value: true,
-                      icon: const Icon(Icons.donut_large, size: 18),
+                      icon: const GlyphIcon(AppGlyphs.donut, size: 18),
                       label: Text(t.settings.operationBindingTabRadial),
                     ),
                   ],
@@ -442,17 +443,17 @@ class _OperationBindingSettingPageState
                   children: [
                     TextButton.icon(
                       onPressed: _import,
-                      icon: const Icon(Icons.upload_outlined, size: 16),
+                      icon: const GlyphIcon(AppGlyphs.arrowUp, size: 16),
                       label: Text(t.settings.operationBindingImport),
                     ),
                     TextButton.icon(
                       onPressed: _export,
-                      icon: const Icon(Icons.download_outlined, size: 16),
+                      icon: const GlyphIcon(AppGlyphs.download, size: 16),
                       label: Text(t.settings.operationBindingExport),
                     ),
                     OutlinedButton.icon(
                       onPressed: _restoreFactory,
-                      icon: const Icon(Icons.restart_alt, size: 16),
+                      icon: const GlyphIcon(AppGlyphs.reset, size: 16),
                       label: Text(t.bindingEditor.restore),
                     ),
                   ],

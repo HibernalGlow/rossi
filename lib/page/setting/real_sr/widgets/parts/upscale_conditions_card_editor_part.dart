@@ -325,8 +325,8 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
             ),
             child: Row(
               children: [
-                Icon(
-                  action.skip ? Icons.block : Icons.play_arrow_outlined,
+                GlyphIcon(
+                  action.skip ? AppGlyphs.block : AppGlyphs.play,
                   size: 18,
                   color: action.skip ? colorScheme.error : colorScheme.primary,
                 ),

@@ -6,6 +6,7 @@ import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
 import 'package:zephyr/page/setting/operation_binding/binding_action_presentation.dart';
 import 'package:zephyr/page/setting/operation_binding/binding_editor_labels.dart';
 import 'package:zephyr/page/setting/operation_binding/binding_input_editor.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 动作分类导航 + 绑定摘要；编辑时仍使用核心的同一份平面绑定表。
 class InputBindingsEditor extends StatefulWidget {
@@ -176,7 +177,7 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
-                    const Icon(Icons.search_off, size: 32),
+                    const GlyphIcon(AppGlyphs.searchOff, size: 32),
                     const SizedBox(height: 12),
                     Text(t.bindingEditor.noResults),
                     TextButton(
@@ -222,7 +223,7 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.list_alt_outlined, size: 20),
+                        const GlyphIcon(AppGlyphs.layoutList, size: 20),
                         const SizedBox(width: 8),
                         Flexible(child: Text(t.bindingEditor.actionList)),
                         const SizedBox(width: 8),
@@ -234,7 +235,7 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.tune, size: 20),
+                        const GlyphIcon(AppGlyphs.sliders, size: 20),
                         const SizedBox(width: 8),
                         Flexible(child: Text(t.bindingEditor.bindingDetails)),
                       ],
@@ -269,7 +270,7 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
         child: SearchBar(
           controller: _search,
           hintText: t.bindingEditor.searchAll,
-          leading: const Icon(Icons.search),
+          leading: const GlyphIcon(AppGlyphs.search),
           elevation: const WidgetStatePropertyAll(0),
           backgroundColor: WidgetStatePropertyAll(
             Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -282,7 +283,7 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                   _search.clear();
                   _showList();
                 }),
-                icon: const Icon(Icons.close),
+                icon: const GlyphIcon(AppGlyphs.close),
               ),
           ],
           onChanged: (_) => setState(_showList),
@@ -293,7 +294,7 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
         tooltip: t.bindingEditor.allContexts,
         icon: Badge(
           isLabelVisible: _context.isNotEmpty || _boundOnly,
-          child: const Icon(Icons.filter_list),
+          child: const GlyphIcon(AppGlyphs.sliders),
         ),
         onSelected: (value) => setState(() {
           if (value == 'bound-only') {
@@ -336,7 +337,7 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                 padding: const EdgeInsets.only(right: 8),
                 child: ChoiceChip(
                   key: ValueKey('action-group:${group?.name ?? 'all'}'),
-                  avatar: Icon(group?.icon ?? Icons.apps, size: 18),
+                  avatar: GlyphIcon(group?.icon ?? AppGlyphs.apps, size: 18),
                   label: Text(group?.label ?? t.bindingEditor.allActions),
                   shape: const StadiumBorder(),
                   showCheckmark: false,
@@ -379,7 +380,7 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
             padding: const EdgeInsets.only(right: 8),
             child: ChoiceChip(
               key: ValueKey('video-group:${group.name}'),
-              avatar: Icon(group.icon, size: 16),
+              avatar: GlyphIcon(group.icon, size: 16),
               label: Text(group.label),
               selected: _videoGroup == group,
               shape: const StadiumBorder(),
@@ -439,7 +440,7 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                   ),
                   child: Row(
                     children: [
-                      Icon(
+                      GlyphIcon(
                         bindingActionIcon(action.id),
                         size: 24,
                         color: selected
@@ -498,10 +499,10 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                           message: conflict
                               ? t.bindingEditor.conflictHint
                               : t.settings.operationBindingUnimplemented,
-                          child: Icon(
+                          child: GlyphIcon(
                             conflict
-                                ? Icons.warning_amber_rounded
-                                : Icons.hourglass_empty,
+                                ? AppGlyphs.error
+                                : AppGlyphs.hourglass,
                             size: 18,
                             color: conflict
                                 ? theme.colorScheme.error
@@ -509,7 +510,7 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                           ),
                         ),
                       ],
-                      if (compact) const Icon(Icons.chevron_right, size: 18),
+                      if (compact) const GlyphIcon(AppGlyphs.chevronForward, size: 18),
                     ],
                   ),
                 ),
@@ -542,7 +543,7 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
             mainAxisSize: MainAxisSize.min,
             children: [
               if (showDevice) ...[
-                Icon(
+                GlyphIcon(
                   bindingDeviceIcon(input['device'] as String),
                   size: 14,
                   color: theme.colorScheme.onSurfaceVariant,
@@ -582,7 +583,7 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
           children: [
             Row(
               children: [
-                Icon(
+                GlyphIcon(
                   bindingActionIcon(action.id),
                   color: theme.colorScheme.primary,
                   size: 28,
@@ -607,7 +608,7 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                 ),
                 PopupMenuButton<String>(
                   tooltip: t.bindingEditor.addBinding,
-                  icon: const Icon(Icons.add),
+                  icon: const GlyphIcon(AppGlyphs.add),
                   style: IconButton.styleFrom(
                     backgroundColor: theme.colorScheme.primaryContainer,
                     foregroundColor: theme.colorScheme.onPrimaryContainer,
@@ -619,7 +620,7 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                         value: device.key,
                         child: Row(
                           children: [
-                            Icon(bindingDeviceIcon(device.key), size: 20),
+                            GlyphIcon(bindingDeviceIcon(device.key), size: 20),
                             const SizedBox(width: 12),
                             Text(device.value),
                           ],
@@ -643,8 +644,8 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                 padding: const EdgeInsets.symmetric(vertical: 32),
                 child: Column(
                   children: [
-                    Icon(
-                      Icons.add_link,
+                    GlyphIcon(
+                      AppGlyphs.link,
                       size: 32,
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -698,7 +699,7 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
               padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
               child: Row(
                 children: [
-                  Icon(
+                  GlyphIcon(
                     bindingDeviceIcon(device),
                     size: 24,
                     color: theme.colorScheme.primary,
@@ -728,8 +729,8 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(
-                                      Icons.format_list_numbered,
+                                    const GlyphIcon(
+                                      AppGlyphs.sortAlpha,
                                       size: 14,
                                     ),
                                     Text(
@@ -744,8 +745,8 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                               const SizedBox(width: 6),
                               Tooltip(
                                 message: t.bindingEditor.conflictHint,
-                                child: Icon(
-                                  Icons.warning_amber_rounded,
+                                child: GlyphIcon(
+                                  AppGlyphs.error,
                                   size: 16,
                                   color: theme.colorScheme.error,
                                 ),
@@ -766,8 +767,8 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                         ? t.bindingEditor.collapse
                         : t.bindingEditor.expand,
                     onPressed: toggle,
-                    icon: Icon(
-                      expanded ? Icons.expand_less : Icons.expand_more,
+                    icon: GlyphIcon(
+                      expanded ? AppGlyphs.chevronUp : AppGlyphs.chevronDown,
                       size: 20,
                     ),
                   ),
@@ -838,17 +839,17 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.copy_outlined, size: 18),
+                                const GlyphIcon(AppGlyphs.copy, size: 18),
                                 const SizedBox(width: 8),
                                 Text(t.bindingEditor.copyTo),
-                                const Icon(Icons.arrow_drop_down, size: 18),
+                                const GlyphIcon(AppGlyphs.chevronDown, size: 18),
                               ],
                             ),
                           ),
                         ),
                         IconButton(
                           tooltip: t.settings.operationBindingRemove,
-                          icon: const Icon(Icons.delete_outline, size: 20),
+                          icon: const GlyphIcon(AppGlyphs.delete, size: 20),
                           onPressed: () => widget.onChanged(
                             removeBindingById(widget.bindings, id),
                           ),
@@ -885,7 +886,7 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
         children: [
           Row(
             children: [
-              const Icon(Icons.format_list_numbered, size: 18),
+              const GlyphIcon(AppGlyphs.sortAlpha, size: 18),
               const SizedBox(width: 8),
               Expanded(child: Text(t.bindingEditor.followUps)),
               Text('${actions.length}/7'),
@@ -893,7 +894,7 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                 onPressed: actions.length >= 7
                     ? null
                     : () => change([...actions, BindingAction.nextPage]),
-                icon: const Icon(Icons.add, size: 16),
+                icon: const GlyphIcon(AppGlyphs.add, size: 16),
                 label: Text(t.bindingEditor.add),
               ),
             ],
@@ -920,7 +921,7 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                   IconButton(
                     tooltip: t.bindingEditor.moveUp,
                     onPressed: i == 0 ? null : () => move(i, -1),
-                    icon: const Icon(Icons.arrow_upward, size: 16),
+                    icon: const GlyphIcon(AppGlyphs.arrowUp, size: 16),
                     visualDensity: VisualDensity.compact,
                   ),
                   IconButton(
@@ -928,13 +929,13 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                     onPressed: i == actions.length - 1
                         ? null
                         : () => move(i, 1),
-                    icon: const Icon(Icons.arrow_downward, size: 16),
+                    icon: const GlyphIcon(AppGlyphs.arrowDown, size: 16),
                     visualDensity: VisualDensity.compact,
                   ),
                   IconButton(
                     tooltip: t.common.delete,
                     onPressed: () => change([...actions]..removeAt(i)),
-                    icon: const Icon(Icons.close, size: 16),
+                    icon: const GlyphIcon(AppGlyphs.close, size: 16),
                     visualDensity: VisualDensity.compact,
                   ),
                 ],

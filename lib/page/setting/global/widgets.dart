@@ -9,13 +9,14 @@ import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/src/rust/api/qjs.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 Widget changeThemeColor(BuildContext context) {
   return ListTile(
-    leading: const Icon(Icons.palette_outlined),
+    leading: const GlyphIcon(AppGlyphs.palette),
     title: Text(t.settings.themeColor),
     subtitle: Text(t.settings.themeColorSubtitle),
-    trailing: const Icon(Icons.chevron_right),
+    trailing: const GlyphIcon(AppGlyphs.chevronForward),
     onTap: () {
       AutoRouter.of(context).push(const ThemeColorRoute());
     },
@@ -32,7 +33,7 @@ Widget proxyToggle(
     mainAxisSize: MainAxisSize.min,
     children: [
       SwitchListTile(
-        secondary: const Icon(Icons.router_outlined),
+        secondary: const GlyphIcon(AppGlyphs.router),
         title: Text(t.settings.proxy),
         subtitle: Text(t.settings.proxyEnabledSubtitle),
         thumbIcon: kSettingSwitchThumbIcon,
@@ -67,7 +68,7 @@ Widget proxyTypeEdit(BuildContext context, ProxyType type) {
     ProxyType.socks5: t.settings.proxyTypeSocks5,
   };
   return ListTile(
-    leading: const Icon(Icons.lan_outlined),
+    leading: const GlyphIcon(AppGlyphs.router),
     title: Text(t.settings.proxyType),
     subtitle: Text(t.settings.proxyTypeSubtitle),
     trailing: FluentDropdown<ProxyType>(
@@ -90,7 +91,7 @@ Widget proxyTypeEdit(BuildContext context, ProxyType type) {
 
 Widget proxyAddressEdit(BuildContext context, String currentProxy) {
   return ListTile(
-    leading: const Icon(Icons.link_outlined),
+    leading: const GlyphIcon(AppGlyphs.link),
     title: Text(t.settings.proxyAddress),
     subtitle: Text(
       currentProxy.isEmpty
@@ -99,7 +100,7 @@ Widget proxyAddressEdit(BuildContext context, String currentProxy) {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
     ),
-    trailing: const Icon(Icons.chevron_right),
+    trailing: const GlyphIcon(AppGlyphs.chevronForward),
     onTap: () async {
       final globalSettingCubit = context.read<GlobalSettingCubit>();
       var inputValue = currentProxy;
@@ -155,10 +156,10 @@ Widget webdavSync(BuildContext context, SyncServiceType syncServiceType) {
   };
 
   return ListTile(
-    leading: const Icon(Icons.cloud_outlined),
+    leading: const GlyphIcon(AppGlyphs.cloud),
     title: Text(title),
     subtitle: Text(t.settings.syncConfigSubtitle),
-    trailing: const Icon(Icons.chevron_right),
+    trailing: const GlyphIcon(AppGlyphs.chevronForward),
     onTap: () {
       AutoRouter.of(context).push(const WebDavSyncRoute());
     },
@@ -167,10 +168,10 @@ Widget webdavSync(BuildContext context, SyncServiceType syncServiceType) {
 
 Widget editMaskedKeywords(BuildContext context) {
   return ListTile(
-    leading: const Icon(Icons.shield_outlined),
+    leading: const GlyphIcon(AppGlyphs.shield),
     title: Text(t.settings.maskedKeywords),
     subtitle: Text(t.settings.maskedKeywordsSubtitle),
-    trailing: const Icon(Icons.chevron_right),
+    trailing: const GlyphIcon(AppGlyphs.chevronForward),
     onTap: () {
       showDialog(
         context: context,
@@ -309,8 +310,8 @@ class _KeywordManagementDialogState extends State<_KeywordManagementDialog> {
                                               ),
                                             );
                                           },
-                                          child: Icon(
-                                            Icons.close,
+                                          child: GlyphIcon(
+                                            AppGlyphs.close,
                                             size: 14,
                                             color: Theme.of(context)
                                                 .colorScheme
@@ -359,7 +360,7 @@ class _KeywordManagementDialogState extends State<_KeywordManagementDialog> {
                     const SizedBox(width: 8),
                     IconButton.filledTonal(
                       onPressed: () => _addKeyword(globalSettingCubit, state),
-                      icon: const Icon(Icons.add, size: 20),
+                      icon: const GlyphIcon(AppGlyphs.add, size: 20),
                     ),
                   ],
                 ),

@@ -13,6 +13,7 @@ import 'package:zephyr/page/setting/real_sr/widgets/super_resolution_engine_sett
 import 'package:zephyr/page/setting/real_sr/widgets/upscale_conditions_card.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
+import 'package:zephyr/icons/icons.dart';
 
 final Map<int, String> _concurrencyLabels = {
   1: '1',
@@ -152,7 +153,7 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
     if (Platform.isAndroid) {
       return [
         ListTile(
-          leading: const Icon(Icons.info_outline),
+          leading: const GlyphIcon(AppGlyphs.info),
           title: Text(t.realSr.androidSuperResolution),
           subtitle: Text(t.realSr.androidSuperResolutionSubtitle),
         ),
@@ -168,7 +169,7 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
     return [
       const SuperResolutionEngineSettings(),
       ListTile(
-        leading: const Icon(Icons.zoom_out_map_outlined),
+        leading: const GlyphIcon(AppGlyphs.openInFull),
         title: const Text('输出倍率'),
         subtitle: const Text('桌面 NCNN 模型的实际倍率设置'),
         trailing: FluentDropdown<RealSrScale>(
@@ -179,7 +180,7 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
         ),
       ),
       ListTile(
-        leading: const Icon(Icons.speed_outlined),
+        leading: const GlyphIcon(AppGlyphs.speed),
         title: Text(t.realSr.desktopStrategy),
         subtitle: Text(t.realSr.desktopStrategySubtitle),
         trailing: FluentDropdown<AndroidNcnnMode>(
@@ -190,7 +191,7 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
         ),
       ),
       ListTile(
-        leading: const Icon(Icons.healing_outlined),
+        leading: const GlyphIcon(AppGlyphs.wand),
         title: Text(t.realSr.desktopNoiseLevel),
         subtitle: Text(t.realSr.desktopNoiseLevelSubtitle),
         trailing: FluentDropdown<AndroidNcnnNoise>(
@@ -221,7 +222,7 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
               children: [
                 settingSectionTitle(context, t.realSr.autoUpscaleSection),
                 SwitchListTile(
-                  secondary: const Icon(Icons.auto_fix_high_outlined),
+                  secondary: const GlyphIcon(AppGlyphs.wand),
                   title: Text(t.realSr.autoUpscale),
                   subtitle: Text(
                     !_isAvailable
@@ -237,7 +238,7 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
                 const Divider(height: 1, thickness: 0.3),
                 settingSectionTitle(context, t.realSr.conditionSection),
                 ListTile(
-                  leading: const Icon(Icons.hd_outlined),
+                  leading: const GlyphIcon(AppGlyphs.quality),
                   title: Text(t.realSr.resolutionThreshold),
                   subtitle: Text(t.realSr.resolutionThresholdSubtitle),
                   trailing: FluentDropdown<RealSrResolutionThreshold>(
@@ -265,7 +266,7 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
                         ? _concurrency
                         : RealSrSettings.defaultConcurrency;
                     return ListTile(
-                      leading: const Icon(Icons.speed_outlined),
+                      leading: const GlyphIcon(AppGlyphs.speed),
                       title: Text(t.realSr.concurrency),
                       subtitle: Text(t.realSr.concurrencySubtitle),
                       trailing: FluentDropdown<int>(
@@ -299,7 +300,7 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
                       final isMImageOnnx =
                           _engine == SuperResolutionEngine.mimageOnnx;
                       return ListTile(
-                        leading: const Icon(Icons.grid_on_outlined),
+                        leading: const GlyphIcon(AppGlyphs.dashboard),
                         title: Text(t.realSr.tileSize),
                         // ONNX 那侧 0 不是「不分块」，照抄旧文案等于在界面上撒谎。
                         subtitle: Text(

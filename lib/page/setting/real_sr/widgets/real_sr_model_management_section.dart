@@ -4,6 +4,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_primitives.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
@@ -199,7 +200,7 @@ class _RealSrModelManagementSectionState
   Widget _modelTile() {
     if (_downloading) {
       return ListTile(
-        leading: const Icon(Icons.downloading_outlined),
+        leading: const GlyphIcon(AppGlyphs.downloading),
         title: Text(t.realSr.downloadingModel),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -215,8 +216,8 @@ class _RealSrModelManagementSectionState
 
     if (_isAvailable) {
       return ListTile(
-        leading: Icon(
-          Icons.check_circle,
+        leading: GlyphIcon(
+          AppGlyphs.checkCircle,
           color: Theme.of(context).colorScheme.primary,
         ),
         title: Text(t.realSr.modelReady),
@@ -237,7 +238,7 @@ class _RealSrModelManagementSectionState
     }
 
     return ListTile(
-      leading: const Icon(Icons.warning_amber_rounded),
+      leading: const GlyphIcon(AppGlyphs.error),
       title: Text(t.realSr.modelNotDownloaded),
       subtitle: Text(t.realSr.modelNotDownloadedSubtitle),
       trailing: ElevatedButton(
@@ -251,13 +252,13 @@ class _RealSrModelManagementSectionState
     final url = RealSrSuperResolution.manualDownloadUrl;
     if (url == null) {
       return ListTile(
-        leading: const Icon(Icons.open_in_browser_outlined),
+        leading: const GlyphIcon(AppGlyphs.openExternal),
         title: Text(t.realSr.manualDownload),
         subtitle: Text(t.realSr.manualDownloadUnsupported),
       );
     }
     return ListTile(
-      leading: const Icon(Icons.open_in_browser_outlined),
+      leading: const GlyphIcon(AppGlyphs.openExternal),
       title: Text(t.realSr.manualDownload),
       subtitle: Text(url, maxLines: 2, overflow: TextOverflow.ellipsis),
       trailing: TextButton(
@@ -269,7 +270,7 @@ class _RealSrModelManagementSectionState
 
   Widget _importTile() {
     return ListTile(
-      leading: const Icon(Icons.file_open_outlined),
+      leading: const GlyphIcon(AppGlyphs.folder),
       title: Text(t.realSr.importModel),
       subtitle: Text(t.realSr.importModelSubtitle),
       trailing: _importing
@@ -303,7 +304,7 @@ class _RealSrModelManagementSectionState
 
     return SettingsSection(
       title: t.realSr.modelManagementSection,
-      icon: Icons.inventory_2_outlined,
+      icon: AppGlyphs.box,
       children: [SettingsCardGroup(children: _tiles())],
     );
   }

@@ -7,6 +7,7 @@ import 'package:zephyr/page/setting/real_sr/service/mimage_onnx_model_config.dar
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/super_resolution_log_controls.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 阅读器和全局设置共用的模型配置，关闭超分时也能选择、下载模型。
 class MImageModelSettings extends StatefulWidget {
@@ -170,12 +171,12 @@ class _MImageModelSettingsState extends State<MImageModelSettings> {
                           },
                         ),
                       ),
-                icon: const Icon(Icons.download_outlined),
+                icon: const GlyphIcon(AppGlyphs.download),
                 label: Text(_available ? '重新下载当前模型' : '下载当前模型'),
               ),
               OutlinedButton.icon(
                 onPressed: _busy ? null : () => _run(_import),
-                icon: const Icon(Icons.file_open_outlined),
+                icon: const GlyphIcon(AppGlyphs.folder),
                 label: const Text('导入本地 ONNX'),
               ),
               TextButton(

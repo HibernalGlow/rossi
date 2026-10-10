@@ -11,6 +11,7 @@ import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:flutter_ray_menu/flutter_ray_menu.dart';
 import 'package:zephyr/widgets/radial/reader_ray_menu_adapter.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 点空格时新建条目默认绑的动作（neoview `DEFAULT_NEW_ITEM_ACTION`）。
 const String kRadialDefaultNewItemAction = BindingAction.nextPage;
@@ -365,27 +366,27 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
         ),
         FilledButton.tonalIcon(
           onPressed: _addMenu,
-          icon: const Icon(Icons.add),
+          icon: const GlyphIcon(AppGlyphs.add),
           label: Text(t.settings.operationBindingRadialNew),
         ),
         IconButton(
           tooltip: t.settings.operationBindingRadialDelete,
-          icon: const Icon(Icons.delete_outline),
+          icon: const GlyphIcon(AppGlyphs.delete),
           onPressed: _deleteMenu,
         ),
         IconButton(
           tooltip: t.settings.operationBindingRadialPreview,
-          icon: const Icon(Icons.visibility_outlined),
+          icon: const GlyphIcon(AppGlyphs.eye),
           onPressed: _preview,
         ),
         IconButton(
           tooltip: t.settings.operationBindingRadialReset,
-          icon: const Icon(Icons.restart_alt_outlined),
+          icon: const GlyphIcon(AppGlyphs.reset),
           onPressed: _resetSlots,
         ),
         FilledButton.icon(
           onPressed: widget.onSave,
-          icon: const Icon(Icons.save_outlined),
+          icon: const GlyphIcon(AppGlyphs.save),
           label: Text(t.settings.operationBindingSave),
         ),
       ],
@@ -419,14 +420,14 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
   Widget _appearanceCard() {
     return SettingSectionCard(
       title: t.settings.operationBindingRadialAppearance,
-      icon: Icons.tune_outlined,
+      icon: AppGlyphs.sliders,
       children: [
         ListTile(
           title: Text(t.settings.operationBindingRadialAppearance),
           subtitle: Text(
             '${t.settings.operationBindingRadialRadius}: ${_doc.radius.round()}',
           ),
-          trailing: Icon(_geometryOpen ? Icons.expand_less : Icons.expand_more),
+          trailing: GlyphIcon(_geometryOpen ? AppGlyphs.chevronUp : AppGlyphs.chevronDown),
           onTap: () => setState(() => _geometryOpen = !_geometryOpen),
         ),
         if (_geometryOpen) ...[
@@ -510,7 +511,7 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
     };
     return SettingSectionCard(
       title: t.settings.operationBindingRadialSlots,
-      icon: Icons.radio_button_checked_outlined,
+      icon: AppGlyphs.ring,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -622,17 +623,17 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
               children: [
                 IconButton(
                   tooltip: t.settings.operationBindingRadialMoveUp,
-                  icon: const Icon(Icons.arrow_back),
+                  icon: const GlyphIcon(AppGlyphs.arrowBack),
                   onPressed: () => _shiftItem(-1),
                 ),
                 IconButton(
                   tooltip: t.settings.operationBindingRadialMoveDown,
-                  icon: const Icon(Icons.arrow_forward),
+                  icon: const GlyphIcon(AppGlyphs.arrowForward),
                   onPressed: () => _shiftItem(1),
                 ),
                 IconButton(
                   tooltip: t.settings.operationBindingRadialDeleteItem,
-                  icon: const Icon(Icons.delete_outline),
+                  icon: const GlyphIcon(AppGlyphs.delete),
                   onPressed: _deleteItem,
                 ),
               ],
