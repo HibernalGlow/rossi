@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/icons/icons.dart';
 
 Future<List<int>?> showGesturePasswordSetupDialog(
   BuildContext context, {
@@ -361,8 +362,8 @@ class _PinCodeSetupDialogState extends State<_PinCodeSetupDialog> {
                       _obscureText = !_obscureText;
                     });
                   },
-                  icon: Icon(
-                    _obscureText ? Icons.visibility_off : Icons.visibility,
+                  icon: GlyphIcon(
+                    _obscureText ? AppGlyphs.eyeOff : AppGlyphs.eye,
                   ),
                 ),
               ),
@@ -478,8 +479,8 @@ class _PinVerifyDialogState extends State<_PinVerifyDialog> {
                       _obscureText = !_obscureText;
                     });
                   },
-                  icon: Icon(
-                    _obscureText ? Icons.visibility_off : Icons.visibility,
+                  icon: GlyphIcon(
+                    _obscureText ? AppGlyphs.eyeOff : AppGlyphs.eye,
                   ),
                 ),
               ),

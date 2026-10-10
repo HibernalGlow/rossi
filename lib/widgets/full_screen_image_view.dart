@@ -13,6 +13,7 @@ import 'package:zephyr/util/error_filter.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 import 'package:zephyr/main.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class FullScreenImagePage extends StatelessWidget {
@@ -39,7 +40,7 @@ class FullScreenImagePage extends StatelessWidget {
             top: 40,
             left: 20,
             child: IconButton(
-              icon: const Icon(Icons.close, color: Colors.white),
+              icon: const GlyphIcon(AppGlyphs.close, color: Colors.white),
               onPressed: () => context.pop(),
             ),
           ),
@@ -49,7 +50,7 @@ class FullScreenImagePage extends StatelessWidget {
             bottom: 20,
             right: 20,
             child: IconButton(
-              icon: const Icon(Icons.download, color: Colors.white),
+              icon: const GlyphIcon(AppGlyphs.download, color: Colors.white),
               onPressed: () async {
                 logger.d("download image");
 
