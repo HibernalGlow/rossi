@@ -10,6 +10,7 @@ import 'package:zephyr/network/http/wind_http.dart';
 import 'package:zephyr/network/utils/github_proxy.dart';
 import 'package:zephyr/service/update/json/github_release_json.dart';
 import 'package:zephyr/util/error_filter.dart';
+import 'package:zephyr/widgets/toast.dart';
 
 const _proxyReleasesApiUrl = '$breezeGithubApi/repos/deretame/Breeze/releases';
 const _githubReleasesApiUrl =
@@ -126,8 +127,9 @@ class _ChangelogPageState extends State<ChangelogPage> {
           });
         } else {
           // 如果是加载更多时出错，提示 Toast 或在底部显示失败
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(t.changelog.loadFailedWithError(error: e))),
+          showErrorToast(
+            t.changelog.loadFailedWithError(error: e),
+            context: context,
           );
         }
       }
@@ -143,8 +145,9 @@ class _ChangelogPageState extends State<ChangelogPage> {
     final Uri url = Uri.parse(urlString);
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(t.changelog.cannotOpenLink(url: urlString))),
+        showErrorToast(
+          t.changelog.cannotOpenLink(url: urlString),
+          context: context,
         );
       }
     }

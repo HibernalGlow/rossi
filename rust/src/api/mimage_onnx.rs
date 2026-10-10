@@ -17,7 +17,62 @@ use std::time::{Duration, Instant};
 static ORT_READY: OnceLock<Result<(), String>> = OnceLock::new();
 /// A CoreML session is expensive to compile. Keep one session per model so
 /// turning pages does not rebuild the graph for every image.
-static SESSIONS: OnceLock<Mutex<HashMap<String, Session>>> = OnceLock::new();
+///
+/// 值不是裸 `Session`：释放/驱逐时要向日志报「放掉了多少」（模型字节数），
+/// 空闲驱逐需要「最近一次使用时刻」。会话空闲超过 [`SESSION_IDLE_TTL`]
+/// 会被清掉（每次推理进锁时顺路清 + [`session_sweeper`] 周期兜底），
+/// 用户换书后旧模型不再无限常驻。
+static SESSIONS: OnceLock<Mutex<HashMap<String, CachedSession>>> = OnceLock::new();
+
+struct CachedSession {
+    session: Session,
+    model_bytes: u64,
+    last_used: Instant,
+}
+
+/// 会话空闲多久后释放。超分是逐页就地替换，翻页密集期重建会把每页多付一次
+/// 模型加载（OCR 那边实测复用 15–103 ms vs 每页重建 1793–2381 ms，同一个理），
+/// 所以阈值取 10 分钟：一卷读完歇下来的空档足够长，连续翻页又不会踩到重建。
+const SESSION_IDLE_TTL: Duration = Duration::from_secs(10 * 60);
+
+/// 周期清扫线程：每次驱逐只做一件事 —— 把空闲超时的会话从表里摘掉，
+/// `Session` 一 drop，CoreML/DirectML 的模型资源就还给系统。
+///
+/// 为什么不能只靠「下次推理进锁时顺路清」：用户退出阅读器后可能再也不推理，
+/// 那条路没人触发，几百 MB 就一直挂着（2026-10-10 用户反馈的正是这个）。
+/// 线程在表空时退出，下一次建会话时重新拉起。
+fn ensure_session_sweeper() {
+    static SWEEPER_RUNNING: OnceLock<()> = OnceLock::new();
+    if SWEEPER_RUNNING.set(()).is_err() {
+        return;
+    }
+    std::thread::Builder::new()
+        .name("mimage-onnx-session-sweeper".to_string())
+        .spawn(|| loop {
+            std::thread::sleep(Duration::from_secs(60));
+            let Some(sessions) = SESSIONS.get() else {
+                continue;
+            };
+            let mut guard = match sessions.lock() {
+                Ok(guard) => guard,
+                Err(_) => continue,
+            };
+            let before = guard.len();
+            guard.retain(|_, cached| cached.last_used.elapsed() <= SESSION_IDLE_TTL);
+            if guard.is_empty() {
+                if before > 0 {
+                    log::info!(
+                        "mImage ONNX: released {before} idle session(s) after {:?}",
+                        SESSION_IDLE_TTL
+                    );
+                }
+                // 表空了就不空转：让下一次建会话重新拉起清扫线程。
+                break;
+            }
+        })
+        .map(|_| ())
+        .ok();
+}
 const TILE_OVERLAP: u32 = 32;
 
 #[derive(Clone, Copy)]
@@ -182,6 +237,10 @@ pub async fn mimage_onnx_upscale(
         let mut sessions = sessions
             .lock()
             .map_err(|_| anyhow!("mImage ONNX session cache poisoned"))?;
+        // 进锁先清一轮空闲超时的会话：无后台触发时这里就是唯一的清扫时机
+        // （后台清扫线程见 `ensure_session_sweeper`）。持锁清是安全的 ——
+        // 锁覆盖整个推理过程，不会打断进行中的推理。
+        sessions.retain(|_, cached| cached.last_used.elapsed() <= SESSION_IDLE_TTL);
         let session_created = if !sessions.contains_key(&session_key) {
             // 本地重新导入同名模型后释放旧 session，避免反复安装积累内存。
             let prefix = format!("{model_path}:");
@@ -195,14 +254,24 @@ pub async fn mimage_onnx_upscale(
             let session = builder
                 .commit_from_file(&model_path)
                 .map_err(|e| anyhow!("load model with ONNX Runtime: {e:?}"))?;
-            sessions.insert(session_key.clone(), session);
+            ensure_session_sweeper();
+            sessions.insert(
+                session_key.clone(),
+                CachedSession {
+                    session,
+                    model_bytes: meta.len(),
+                    last_used: Instant::now(),
+                },
+            );
             true
         } else {
             false
         };
-        let session = sessions
+        let cached = sessions
             .get_mut(&session_key)
             .ok_or_else(|| anyhow!("mImage ONNX session cache insert failed"))?;
+        cached.last_used = Instant::now();
+        let session = &mut cached.session;
         // Use the model's declared fixed input size when present. Dynamic
         // models use mImage's recommended tile size unless the user selected
         // another valid tile in the RealSR settings.
@@ -361,6 +430,37 @@ pub async fn mimage_onnx_upscale(
             encode_start.elapsed().as_millis(),
             started.elapsed().as_millis(),
         ))
+    })
+    .await
+    .map_err(|e| anyhow!(e.to_string()))?
+}
+
+/// 主动交还全部 mImage ONNX 会话（含正在被后台清扫线程盯着的那份表）。
+///
+/// 调用时机 = **离开阅读器**（Dart 侧 `LocalReadSession.dispose`，与
+/// `ocr_release_sessions` 同点）：换章不调，人还在读，下一页省下的模型
+/// 加载才是应得的。返回释放的模型字节数合计（0 = 本进程没建过会话），
+/// Dart 侧据此打日志。CoreML 的编译产物落在磁盘 `.coreml_cache`，
+/// 这里放掉的只是内存里的模型，重载不需要重新编译。
+#[frb]
+pub async fn mimage_onnx_release_sessions() -> Result<u64> {
+    tokio::task::spawn_blocking(move || {
+        let Some(sessions) = SESSIONS.get() else {
+            return Ok(0);
+        };
+        let mut guard = sessions
+            .lock()
+            .map_err(|_| anyhow!("mImage ONNX session cache poisoned"))?;
+        let freed: u64 = guard.values().map(|cached| cached.model_bytes).sum();
+        if freed > 0 {
+            log::info!(
+                "mImage ONNX: released {} session(s), {} bytes of models",
+                guard.len(),
+                freed
+            );
+        }
+        guard.clear();
+        Ok(freed)
     })
     .await
     .map_err(|e| anyhow!(e.to_string()))?

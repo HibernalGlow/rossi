@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/service/diagnostics/app_log.dart';
+import 'package:zephyr/widgets/toast.dart';
 
 /// 弹出某一份 [AppLog] 的查看框：正文可选中、可整份复制，附带一个「打开位置」。
 ///
@@ -42,9 +43,7 @@ Future<void> showAppLogDialog(
         onPressed: () async {
           await Clipboard.setData(ClipboardData(text: log.text));
           if (context.mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(copiedToast)));
+            showSuccessToast(copiedToast, context: context);
           }
         },
         child: Text(copyLabel),
@@ -54,15 +53,11 @@ Future<void> showAppLogDialog(
           try {
             final message = await (openAction ?? log.revealFile)();
             if (context.mounted) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(message)));
+              showInfoToast(message, context: context);
             }
           } catch (error) {
             if (context.mounted) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('$error')));
+              showErrorToast('$error', context: context);
             }
           }
         },

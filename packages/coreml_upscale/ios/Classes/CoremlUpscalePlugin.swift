@@ -47,6 +47,15 @@ public class CoremlUpscalePlugin: NSObject, FlutterPlugin {
                     result(FlutterError(code: "UPSCALE_FAILED", message: error.localizedDescription, details: nil))
                 }
             }
+        case "releaseModels":
+            // 释放内存里常驻的 MLModel（ModelManager.imageModelCache）。
+            // 调用时机 = 离开阅读器：模型加载不便宜，读书期间留着是为了翻页复用；
+            // 人走了就没有下一页要省这几秒。磁盘上的编译产物
+            // （CompiledModelCache）不动 —— 重载不需要重新编译。
+            Task {
+                await ModelManager.shared.clearCache()
+                result(nil)
+            }
         default:
             result(FlutterMethodNotImplemented)
         }

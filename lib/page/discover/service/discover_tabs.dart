@@ -52,8 +52,12 @@ class DiscoverLeafSpec {
 /// 默认就一个组（[groupId]）：发现页要的是「多条同类页面切换」，不是「任意切分的
 /// 工作区」。横向档下右键标签「在上/下/左/右打开」会经 `moveTabBeside` 把**这一条
 /// 标签挪**到新窗格里（移动，不是复制），于是树上会出现 split；竖向轨那一档不分屏，
-/// 新标签直接落在轨里（见 `RossiPlatTabMenuRegion`）。两条路都不开放拖拽落点
-/// （`acceptsDrops: false`），免得随手一拖就把列表切成两半。
+/// 新标签直接落在轨里（见 `RossiPlatTabMenuRegion`）。
+///
+/// 拖拽落点（`acceptsDrops: true`）是用户 2026-10-10 拍板打开的：拖标签到条上换序、
+/// 拖到内容区边缘分屏，都要真的有用。触摸档的拖拽由 vendored plat 改成了
+/// 「按满长按时限才起手」（见 `vendor/plat/VENDORED.md`），静止按住永远给长按
+/// 菜单，不会回到「随手一拖就把列表切成两半」。
 ///
 /// # 不去重
 ///
@@ -76,9 +80,9 @@ class DiscoverTabs {
            ],
            id: groupId,
            side: platSideOf(side),
-           // 整页只有一组：拖进来的落点会造出第二个组或分栏，那不在设计里。
-           // 关掉它不影响轨内换序（plat 的轨道拖拽不走这个开关）。
-           acceptsDrops: false,
+           // 拖拽落点开着（用户 2026-10-10 拍板）：条内换序 + 拖到内容区分屏。
+           // 触摸档的误拖由 vendored plat 的「按满长按时限才起手」兜住。
+           acceptsDrops: true,
          ),
        );
 

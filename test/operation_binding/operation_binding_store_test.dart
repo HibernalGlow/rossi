@@ -55,6 +55,8 @@ class _FakeApi implements RustLibApi {
         return true;
       case #crateApiOperationBindingOperationBindingConflicts:
         return '[]';
+      case #crateApiFontListSystemFontFamilies:
+        return Future.value(const <String>[]);
     }
     throw UnsupportedError('这个引擎调用没被替身覆盖：${invocation.memberName}');
   }

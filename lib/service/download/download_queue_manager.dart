@@ -12,6 +12,7 @@ import 'package:zephyr/service/download/download_asset_store.dart';
 import 'package:zephyr/service/download/download_cancel_signal.dart';
 import 'package:zephyr/service/download/download_notification_reporter.dart';
 import 'package:zephyr/service/download/download_retry.dart';
+import 'package:zephyr/service/notify/notify_topic.dart';
 import 'package:zephyr/service/download/download_task_repository.dart';
 import 'package:zephyr/service/download/download_task_scheduler.dart';
 import 'package:zephyr/service/download/models/download_task_json.dart';
@@ -368,8 +369,10 @@ class DownloadQueueManager {
       );
 
       if (!Platform.isAndroid) {
-        showSuccessToast(
+        notifyAmbient(
+          NotifyTopic.downloadComplete,
           t.download.toastDownloadComplete(comicName: displayName),
+          type: ToastType.success,
         );
       }
       await reporter.sendNotification(
@@ -503,11 +506,13 @@ class DownloadQueueManager {
           error: e,
         );
         if (!failureDialogShown && !Platform.isAndroid) {
-          showErrorToast(
+          notifyAmbient(
+            NotifyTopic.downloadFailed,
             t.download.toastDownloadFailed(
               comicName: displayName,
               error: normalizeSearchErrorMessage(e),
             ),
+            type: ToastType.error,
           );
         }
         await reporter.sendNotification(
@@ -665,11 +670,7 @@ class DownloadQueueManager {
   /// 「边下边读」的目录同步用它判断要不要把图片同步到下载目录。
   bool taskExists(String from, String comicId) {
     return _taskRepository
-        .findTasksForComic(
-          from: from,
-          comicId: comicId,
-          incompleteOnly: true,
-        )
+        .findTasksForComic(from: from, comicId: comicId, incompleteOnly: true)
         .isNotEmpty;
   }
 

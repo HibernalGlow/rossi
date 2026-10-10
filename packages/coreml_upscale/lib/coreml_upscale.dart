@@ -26,4 +26,13 @@ class CoreMLUpscale {
       'config': config,
     });
   }
+
+  /// 释放原生侧常驻的模型实例（`ModelManager.imageModelCache`）。
+  ///
+  /// 调用时机 = 离开阅读器（`LocalReadSession.dispose`，与 ONNX 侧
+  /// `mimageOnnxReleaseSessions` 同点）。磁盘上的编译产物不受影响，
+  /// 下次 `upscale` 重载即可。没建过模型的进程调用它没有副作用。
+  static Future<void> releaseModels() async {
+    await _channel.invokeMethod('releaseModels');
+  }
 }

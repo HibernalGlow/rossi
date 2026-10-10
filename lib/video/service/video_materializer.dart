@@ -43,6 +43,11 @@ class VideoMaterializer {
   VideoMaterializer({Duration? keepAlive})
     : _keepAlive = keepAlive ?? const Duration(minutes: 2);
 
+  /// 进程级共享实例：阅读会话里的视频页共用一份物化账本。
+  /// 交还时机 = 离开阅读器（`LocalReadSession.dispose` 调 [clearAll]），
+  /// 否则最多 4 GiB 的临时文件只在「下一次物化」时才被清理。
+  static final VideoMaterializer shared = VideoMaterializer();
+
   static const int maxItemBytes = 2 * 1024 * 1024 * 1024;
   static const int maxTotalBytes = 4 * 1024 * 1024 * 1024;
 

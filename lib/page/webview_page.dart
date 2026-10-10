@@ -10,6 +10,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/util/event/event.dart';
 import 'package:zephyr/util/event/webview_observe_bus.dart';
+import 'package:zephyr/widgets/toast.dart';
 
 @RoutePage()
 class WebViewPage extends StatefulWidget {
@@ -115,8 +116,9 @@ class _WebViewPageState extends State<WebViewPage> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(t.webview.cannotOpenLink(uri: uri.toString()))),
+      showErrorToast(
+        t.webview.cannotOpenLink(uri: uri.toString()),
+        context: context,
       );
     }
   }

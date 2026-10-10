@@ -80,6 +80,7 @@ class _Api implements RustLibApi {
     #crateApiOperationBindingOperationBindingRadialDefaultConfig =>
       '{"enabled":true,"activeMenuId":"default","menus":[]}',
     #crateApiOperationBindingOperationBindingRadialLayout => '[]',
+    #crateApiFontListSystemFontFamilies => Future.value(const <String>[]),
     _ => throw UnsupportedError('${call.memberName}'),
   };
 }

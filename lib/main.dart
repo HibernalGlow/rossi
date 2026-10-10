@@ -341,12 +341,21 @@ Future<(GlobalSettingCubit, PluginRegistryCubit)> _initServices() async {
     ),
   );
 
-  final isWin = Platform.isWindows;
   final cache = PaintingBinding.instance.imageCache;
 
-  // 设置图片缓存数量和内存占用大小（桌面端设置的稍微大点）
-  cache.maximumSizeBytes = 200 * 1024 * 1024 * (isWin ? 3 : 1);
-  cache.maximumSize = 50 * (isWin ? 3 : 1);
+  // 设置图片缓存数量和内存占用大小。
+  //
+  // 上限是「允许占用」：吃到上限才驱逐，不是泄漏，但它决定了常驻内存一直往
+  // 哪里涨。原值 200MB + 50 条、Windows ×3（=600MB / 150 条）：50 条对封面
+  // 网格太小（一张解码位图 ~0.5MB，50 条约 25MB 就先撞条数上限，来回重解码），
+  // 600MB 对 32GB 的 Windows 无感、对 Mac 太大方 —— 2026-10-10 用户反馈内存
+  // 占用高：条数放宽到 200（真正起作用的是它），字节上限 Windows 撤 ×3，
+  // macOS 单独收到 100MB（统一内存 8–16GB，列表封面为主，够用）。
+  cache.maximumSizeBytes = 200 * 1024 * 1024;
+  if (Platform.isMacOS) {
+    cache.maximumSizeBytes = 100 * 1024 * 1024;
+  }
+  cache.maximumSize = 200;
 
   // 如果是手机的话就固定为只能使用横屏模式
   if (!isTabletWithOutContext()) {

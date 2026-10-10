@@ -4,6 +4,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/router/router.gr.dart';
+import 'package:zephyr/widgets/image_sleep.dart';
 import 'package:zephyr/widgets/picture_bloc/bloc/picture_bloc.dart';
 import 'package:zephyr/widgets/picture_bloc/models/picture_info.dart';
 
@@ -44,9 +45,11 @@ class UserAvatar extends StatelessWidget {
                               'asset/image/assets/default_cover.png',
                               fit: BoxFit.cover,
                             )
-                          : Image.file(
-                              File(state.imagePath!),
-                              fit: BoxFit.cover,
+                          : ImageSleep(
+                              child: Image.file(
+                                File(state.imagePath!),
+                                fit: BoxFit.cover,
+                              ),
                             ),
                     ),
                   ),
