@@ -11,6 +11,7 @@ import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class FavoriteArtistSettingPage extends StatefulWidget {
@@ -226,7 +227,7 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
           SwitchListTile(
-            secondary: const Icon(Icons.star_rounded, color: Color(0xFFF59E0B)),
+            secondary: const GlyphIcon(AppGlyphs.star, color: Color(0xFFF59E0B)),
             title: Text(t.settings.favoriteArtistHighlight),
             subtitle: Text(t.settings.favoriteArtistHighlightSubtitle),
             thumbIcon: kSettingSwitchThumbIcon,
@@ -237,8 +238,8 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
           ),
           const SizedBox(height: 12),
           ListTile(
-            leading: const Icon(
-              Icons.groups_outlined,
+            leading: const GlyphIcon(
+              AppGlyphs.touch,
               color: Color(0xFFF59E0B),
             ),
             title: Text(t.settings.favoriteArtistCircleMode),
@@ -264,7 +265,7 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
                   controller: _addController,
                   decoration: InputDecoration(
                     hintText: t.settings.favoriteArtistInputHint,
-                    prefixIcon: const Icon(Icons.person_add_alt_1_outlined),
+                    prefixIcon: const GlyphIcon(AppGlyphs.touch),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -287,7 +288,7 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
                     vertical: 14,
                   ),
                 ),
-                icon: const Icon(Icons.add),
+                icon: const GlyphIcon(AppGlyphs.add),
                 label: Text(t.settings.favoriteArtistAdd),
                 onPressed: () => _handleAdd(context),
               ),
@@ -306,7 +307,7 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                icon: const Icon(Icons.edit_note, size: 18),
+                icon: const GlyphIcon(AppGlyphs.compose, size: 18),
                 label: Text(t.settings.favoriteArtistBatchImport),
                 onPressed: () => _showBatchImportDialog(context, artists),
               ),
@@ -316,7 +317,7 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                icon: const Icon(Icons.upload_file, size: 18),
+                icon: const GlyphIcon(AppGlyphs.arrowUp, size: 18),
                 label: const Text('导入文件 (TXT/JSON)'),
                 onPressed: () => _importFromFile(context),
               ),
@@ -328,7 +329,7 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  icon: const Icon(Icons.delete_sweep_outlined, size: 18),
+                  icon: const GlyphIcon(AppGlyphs.delete, size: 18),
                   label: Text(t.settings.favoriteArtistClear),
                   onPressed: () => _confirmClearAll(context),
                 ),
@@ -354,10 +355,10 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
                     controller: _filterController,
                     decoration: InputDecoration(
                       hintText: '搜索画师...',
-                      prefixIcon: const Icon(Icons.search, size: 18),
+                      prefixIcon: const GlyphIcon(AppGlyphs.search, size: 18),
                       suffixIcon: _filterKeyword.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.clear, size: 16),
+                              icon: const GlyphIcon(AppGlyphs.close, size: 16),
                               onPressed: () {
                                 _filterController.clear();
                                 setState(() => _filterKeyword = '');
@@ -385,8 +386,8 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.favorite_border_rounded,
+                  GlyphIcon(
+                    AppGlyphs.heart,
                     size: 48,
                     color: theme.colorScheme.onSurfaceVariant.withValues(
                       alpha: 0.4,
@@ -444,8 +445,8 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.favorite,
+                      const GlyphIcon(
+                        AppGlyphs.heart,
                         size: 14,
                         color: Color(0xFFDC2626),
                       ),
@@ -471,8 +472,8 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
                         },
                         child: Padding(
                           padding: const EdgeInsets.all(2.0),
-                          child: Icon(
-                            Icons.close,
+                          child: GlyphIcon(
+                            AppGlyphs.close,
                             size: 16,
                             color: isDark
                                 ? const Color(0xFFFDE68A).withValues(alpha: 0.8)

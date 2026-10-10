@@ -5,6 +5,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/platform/desktop/windows_shell_context_menu.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 「系统集成」卡片：从文件管理器的右键菜单直接打开本地漫画。
 ///
@@ -90,10 +91,10 @@ class _ShellIntegrationSettingCardState
 
     return SettingSectionCard(
       title: t.settings.shellIntegration,
-      icon: Icons.desktop_windows_outlined,
+      icon: AppGlyphs.devices,
       children: [
         SwitchListTile(
-          secondary: const Icon(Icons.mouse_outlined),
+          secondary: const GlyphIcon(AppGlyphs.mouse),
           title: Text(t.settings.shellIntegrationContextMenu),
           subtitle: Text(t.settings.shellIntegrationContextMenuSubtitle),
           thumbIcon: kSettingSwitchThumbIcon,
@@ -102,8 +103,8 @@ class _ShellIntegrationSettingCardState
         ),
         if (stale)
           ListTile(
-            leading: Icon(
-              Icons.link_off_outlined,
+            leading: GlyphIcon(
+              AppGlyphs.lock,
               color: Theme.of(context).colorScheme.error,
             ),
             title: Text(t.settings.shellIntegrationStalePath),
@@ -124,10 +125,10 @@ class _ShellIntegrationSettingCardState
   Widget _buildMacOS() {
     return SettingSectionCard(
       title: t.settings.shellIntegration,
-      icon: Icons.desktop_mac_outlined,
+      icon: AppGlyphs.devices,
       children: [
         ListTile(
-          leading: const Icon(Icons.mouse_outlined),
+          leading: const GlyphIcon(AppGlyphs.mouse),
           title: Text(t.settings.shellIntegrationContextMenu),
           subtitle: Text(t.settings.shellIntegrationMacHint),
         ),

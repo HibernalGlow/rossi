@@ -7,6 +7,7 @@ import 'package:zephyr/page/setting/operation_binding/binding_input_recorder.dar
 import 'package:zephyr/page/setting/operation_binding/input_bindings_editor.dart';
 import 'package:zephyr/service/operation_binding/binding_doc.dart';
 import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
+import 'package:zephyr/icons/icons.dart';
 
 const catalog = [
   BindingActionInfo(
@@ -119,7 +120,10 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('视频：播放/暂停'), findsNothing);
-    expect(find.byIcon(Icons.play_circle_outline), findsWidgets);
+    expect(
+      find.byWidgetPredicate((w) => w is GlyphIcon && w.glyph == AppGlyphs.playCircle),
+      findsWidgets,
+    );
     await tester.tap(find.byKey(const ValueKey('video-group:audio')));
     await tester.pumpAndSettle();
     expect(

@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
 import 'package:zephyr/type/enum.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class PluginUserInfoCard extends StatelessWidget {
   const PluginUserInfoCard({
@@ -56,7 +57,7 @@ class PluginUserInfoCard extends StatelessWidget {
 
   Widget _buildAvatar() {
     if (avatarUrl.trim().isEmpty && avatarPath.trim().isEmpty) {
-      return const CircleAvatar(radius: 34, child: Icon(Icons.person));
+      return const CircleAvatar(radius: 34, child: GlyphIcon(AppGlyphs.touch));
     }
     return ClipOval(
       child: CoverWidget(

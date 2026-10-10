@@ -21,7 +21,7 @@ class _DelayTile extends StatelessWidget {
     this.onSwitchChanged,
   });
 
-  final IconData icon;
+  final Glyph icon;
   final String title;
   final String? subtitle;
   final int value;
@@ -35,7 +35,7 @@ class _DelayTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(
+      leading: GlyphIcon(
         icon,
         color: enabled ? null : Theme.of(context).disabledColor,
       ),

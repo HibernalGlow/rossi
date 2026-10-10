@@ -4,6 +4,7 @@ import 'package:zephyr/page/setting/real_sr/widgets/mimage_model_settings.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/super_resolution_log_controls.dart';
 import 'package:zephyr/util/coreml_model_config.dart';
 import 'package:zephyr/util/coreml_model_loader.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 阅读器与全局设置共用；两个引擎各自保留模型选择。
 class SuperResolutionEngineSettings extends StatefulWidget {
@@ -137,7 +138,7 @@ class _SuperResolutionEngineSettingsState
           key: const ValueKey('apple-sr-engine'),
           value: _engine,
           isExpanded: true,
-          icon: const Icon(Icons.keyboard_arrow_down_rounded),
+          icon: const GlyphIcon(AppGlyphs.chevronDown),
           items: [
             for (final engine in availableEngines)
               DropdownMenuItem(
@@ -312,7 +313,7 @@ class _SuperResolutionEngineSettingsState
                     key: const ValueKey('breeze-coreml-model'),
                     value: _family,
                     isExpanded: true,
-                    icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                    icon: const GlyphIcon(AppGlyphs.chevronDown),
                     items: [
                       for (final family in CoreMLModelConfig.families)
                         DropdownMenuItem(
@@ -424,7 +425,7 @@ class _SuperResolutionEngineSettingsState
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
                   onPressed: _downloading ? null : _download,
-                  icon: const Icon(Icons.download_outlined, size: 18),
+                  icon: const GlyphIcon(AppGlyphs.download, size: 18),
                   label: const Text('下载 Rossi 原生模型'),
                   style: OutlinedButton.styleFrom(
                     visualDensity: VisualDensity.compact,

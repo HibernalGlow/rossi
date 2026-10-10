@@ -1,7 +1,7 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/service/operation_binding/action_labels.dart';
 import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 仅用于浏览的分组，不改变核心动作目录或持久化的 category。
 enum BindingActionGroup {
@@ -19,12 +19,12 @@ enum BindingActionGroup {
     radial => t.bindingEditor.radial,
   };
 
-  IconData get icon => switch (this) {
-    navigation => Icons.auto_stories_outlined,
-    view => Icons.crop_free,
-    video => Icons.play_circle_outline,
-    interface => Icons.dashboard_outlined,
-    radial => Icons.donut_large,
+  Glyph get icon => switch (this) {
+    navigation => AppGlyphs.openBook,
+    view => AppGlyphs.cropFree,
+    video => AppGlyphs.playCircle,
+    interface => AppGlyphs.dashboard,
+    radial => AppGlyphs.donut,
   };
 }
 
@@ -54,10 +54,10 @@ enum BindingVideoGroup {
     display => t.bindingEditor.videoDisplay,
   };
 
-  IconData get icon => switch (this) {
-    playback => Icons.play_arrow_outlined,
-    audio => Icons.volume_up_outlined,
-    display => Icons.subtitles_outlined,
+  Glyph get icon => switch (this) {
+    playback => AppGlyphs.play,
+    audio => AppGlyphs.volume,
+    display => AppGlyphs.subtitles,
   };
 }
 
@@ -79,50 +79,50 @@ String bindingActionTitle(BindingActionInfo action) => actionLabel(
   action,
 ).replaceFirst(RegExp(r'^(视频：\s*|Video:\s*)', caseSensitive: false), '');
 
-IconData bindingActionIcon(String id) => switch (id) {
-  'reader.previous-page' => Icons.navigate_before,
-  'reader.next-page' => Icons.navigate_next,
-  'reader.first-page' => Icons.first_page,
-  'reader.last-page' => Icons.last_page,
-  'reader.page-left' => Icons.arrow_back,
-  'reader.page-right' => Icons.arrow_forward,
+Glyph bindingActionIcon(String id) => switch (id) {
+  'reader.previous-page' => AppGlyphs.chevronBack,
+  'reader.next-page' => AppGlyphs.chevronForward,
+  'reader.first-page' => AppGlyphs.chevronBack,
+  'reader.last-page' => AppGlyphs.chevronForward,
+  'reader.page-left' => AppGlyphs.arrowBack,
+  'reader.page-right' => AppGlyphs.arrowForward,
   'reader.previous-book' ||
-  'video.previous-chapter' => Icons.skip_previous_outlined,
-  'reader.next-book' || 'video.next-chapter' => Icons.skip_next_outlined,
-  'reader.zoom-in' => Icons.zoom_in,
-  'reader.zoom-out' => Icons.zoom_out,
-  'reader.fit-window' => Icons.fit_screen,
-  'reader.actual-size' => Icons.aspect_ratio,
-  'reader.reset-view' => Icons.restart_alt,
-  'reader.rotate-clockwise' => Icons.rotate_right,
-  'reader.rotate-180' => Icons.flip_camera_android_outlined,
-  'reader.toggle-reading-direction' => Icons.swap_horiz,
-  'reader.toggle-book-mode' => Icons.menu_book_outlined,
-  'reader.fullscreen' || 'video.toggle-fullscreen' => Icons.fullscreen,
-  'reader.toggle-controls' || 'video.toggle-controls' => Icons.tune,
-  'reader.open-settings' => Icons.settings_outlined,
-  'reader.toggle-library' => Icons.library_books_outlined,
-  'radial.open-default' => Icons.donut_large,
-  'radial.confirm' => Icons.check_circle_outline,
-  'video.play-pause' => Icons.play_circle_outline,
-  'video.seek-backward' => Icons.replay_10,
-  'video.seek-forward' => Icons.forward_10,
-  'video.seek-mode-toggle' => Icons.fast_forward_outlined,
-  'video.frame-step' => Icons.keyboard_double_arrow_right,
-  'video.frame-step-back' => Icons.keyboard_double_arrow_left,
-  'video.speed-up' => Icons.fast_forward,
-  'video.speed-down' => Icons.fast_rewind,
-  'video.toggle-speed' => Icons.speed,
-  'video.volume-up' => Icons.volume_up_outlined,
-  'video.volume-down' => Icons.volume_down_outlined,
-  'video.toggle-mute' => Icons.volume_off_outlined,
-  'video.toggle-audio-only' => Icons.headphones_outlined,
-  'video.cycle-loop' => Icons.repeat,
-  'video.ab-loop-tap' => Icons.loop,
-  'video.ab-loop-clear' => Icons.clear_all,
-  'video.screenshot' => Icons.photo_camera_outlined,
-  'video.toggle-subtitle' => Icons.subtitles_outlined,
-  'video.subtitle-delay-up' => Icons.more_time,
-  'video.subtitle-delay-down' => Icons.timer_outlined,
-  _ => Icons.touch_app_outlined,
+  'video.previous-chapter' => AppGlyphs.skipPrevious,
+  'reader.next-book' || 'video.next-chapter' => AppGlyphs.skipNext,
+  'reader.zoom-in' => AppGlyphs.zoomIn,
+  'reader.zoom-out' => AppGlyphs.zoomIn,
+  'reader.fit-window' => AppGlyphs.fitScreen,
+  'reader.actual-size' => AppGlyphs.aspectRatio,
+  'reader.reset-view' => AppGlyphs.reset,
+  'reader.rotate-clockwise' => AppGlyphs.rotateRight,
+  'reader.rotate-180' => AppGlyphs.flip,
+  'reader.toggle-reading-direction' => AppGlyphs.flip,
+  'reader.toggle-book-mode' => AppGlyphs.book,
+  'reader.fullscreen' || 'video.toggle-fullscreen' => AppGlyphs.fullscreen,
+  'reader.toggle-controls' || 'video.toggle-controls' => AppGlyphs.sliders,
+  'reader.open-settings' => AppGlyphs.settings,
+  'reader.toggle-library' => AppGlyphs.book,
+  'radial.open-default' => AppGlyphs.donut,
+  'radial.confirm' => AppGlyphs.checkCircle,
+  'video.play-pause' => AppGlyphs.playCircle,
+  'video.seek-backward' => AppGlyphs.skipPrevious,
+  'video.seek-forward' => AppGlyphs.skipNext,
+  'video.seek-mode-toggle' => AppGlyphs.skipNext,
+  'video.frame-step' => AppGlyphs.skipNext,
+  'video.frame-step-back' => AppGlyphs.skipPrevious,
+  'video.speed-up' => AppGlyphs.skipNext,
+  'video.speed-down' => AppGlyphs.skipPrevious,
+  'video.toggle-speed' => AppGlyphs.speed,
+  'video.volume-up' => AppGlyphs.volume,
+  'video.volume-down' => AppGlyphs.volume,
+  'video.toggle-mute' => AppGlyphs.volumeOff,
+  'video.toggle-audio-only' => AppGlyphs.volume,
+  'video.cycle-loop' => AppGlyphs.loop,
+  'video.ab-loop-tap' => AppGlyphs.loop,
+  'video.ab-loop-clear' => AppGlyphs.clearAll,
+  'video.screenshot' => AppGlyphs.camera,
+  'video.toggle-subtitle' => AppGlyphs.subtitles,
+  'video.subtitle-delay-up' => AppGlyphs.hourglass,
+  'video.subtitle-delay-down' => AppGlyphs.hourglass,
+  _ => AppGlyphs.touch,
 };
