@@ -479,7 +479,9 @@ pub fn mask_from_blocks(blocks: &[TextBlock], w: u32, h: u32, dilate_px: i32) ->
 pub fn mask_from_quads(quads: &[Vec<f32>], w: u32, h: u32, dilate_px: i32) -> Vec<u8> {
     let mut mask = vec![0u8; (w * h) as usize];
     for q in quads {
-        let Some((x0, y0, x1, y1)) = quad_aabb(q) else { continue };
+        let Some((x0, y0, x1, y1)) = quad_aabb(q) else {
+            continue;
+        };
         let xs = (x0 as i32 - dilate_px).clamp(0, w as i32 - 1);
         let ys = (y0 as i32 - dilate_px).clamp(0, h as i32 - 1);
         let xe = (x1 as i32 + dilate_px).clamp(0, w as i32 - 1);
