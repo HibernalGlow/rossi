@@ -4,6 +4,7 @@ import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_grid.da
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_info.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/type/enum.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class PluginComicGridSliver extends StatelessWidget {
   const PluginComicGridSliver({
@@ -109,7 +110,7 @@ class PluginComicGridSliver extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 14, top: 6),
                 child: TextButton.icon(
                   onPressed: onLoadMore,
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                  icon: const GlyphIcon(AppGlyphs.chevronDown),
                   label: Text(t.oldHome.loadMore),
                 ),
               ),

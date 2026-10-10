@@ -6,6 +6,7 @@ import 'package:zephyr/page/discover/service/plugin_function_kind.dart';
 import 'package:zephyr/type/pipe.dart';
 import 'package:zephyr/util/json/json_value.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 插件卡上那一排功能胶囊。
 ///
@@ -91,7 +92,7 @@ class PluginFunctionChips extends StatelessWidget {
         : BorderSide.none;
 
     return ActionChip(
-      avatar: Icon(_iconOf(kind), size: 16, color: foreground),
+      avatar: GlyphIcon(_iconOf(kind), size: 16, color: foreground),
       label: ConstrainedBox(
         // 标题是插件作者写的，长度没有上限；不给个顶，一颗长名胶囊就能把整排撑成
         // 一行一个，比原来那排药丸还难扫。
@@ -122,19 +123,19 @@ class PluginFunctionChips extends StatelessWidget {
     );
   }
 
-  IconData _iconOf(PluginFunctionKind kind) {
+  Glyph _iconOf(PluginFunctionKind kind) {
     return switch (kind) {
-      PluginFunctionKind.latest => Icons.schedule,
-      PluginFunctionKind.ranking => Icons.leaderboard,
-      PluginFunctionKind.popular => Icons.local_fire_department,
-      PluginFunctionKind.recommend => Icons.auto_awesome,
-      PluginFunctionKind.random => Icons.casino_outlined,
-      PluginFunctionKind.favorite => Icons.favorite_border,
-      PluginFunctionKind.cloudFavorite => Icons.cloud_outlined,
-      PluginFunctionKind.history => Icons.history,
-      PluginFunctionKind.search => Icons.search,
-      PluginFunctionKind.category => Icons.category_outlined,
-      PluginFunctionKind.unknown => Icons.apps_outlined,
+      PluginFunctionKind.latest => AppGlyphs.clock,
+      PluginFunctionKind.ranking => AppGlyphs.trophy,
+      PluginFunctionKind.popular => AppGlyphs.fire,
+      PluginFunctionKind.recommend => AppGlyphs.sparkle,
+      PluginFunctionKind.random => AppGlyphs.dice,
+      PluginFunctionKind.favorite => AppGlyphs.heart,
+      PluginFunctionKind.cloudFavorite => AppGlyphs.cloud,
+      PluginFunctionKind.history => AppGlyphs.history,
+      PluginFunctionKind.search => AppGlyphs.search,
+      PluginFunctionKind.category => AppGlyphs.category,
+      PluginFunctionKind.unknown => AppGlyphs.apps,
     };
   }
 }

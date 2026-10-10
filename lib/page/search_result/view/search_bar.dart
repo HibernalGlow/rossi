@@ -12,6 +12,7 @@ import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:zephyr/widgets/multi_choice_list_dialog.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class SearchResultBar extends StatelessWidget implements PreferredSizeWidget {
   final SearchEvent searchEvent;
@@ -35,7 +36,7 @@ class SearchResultBar extends StatelessWidget implements PreferredSizeWidget {
           children: [
             // 左侧返回按钮
             IconButton(
-              icon: const Icon(Icons.arrow_back),
+              icon: const GlyphIcon(AppGlyphs.arrowBack),
               onPressed: () =>
                   popTabOrClose(context, otherwise: () => context.maybePop()),
             ),
@@ -54,7 +55,7 @@ class SearchResultBar extends StatelessWidget implements PreferredSizeWidget {
 
             // 右侧高级搜索按钮
             IconButton(
-              icon: const Icon(Icons.tune),
+              icon: const GlyphIcon(AppGlyphs.sliders),
               onPressed: () {
                 _search(context);
               },

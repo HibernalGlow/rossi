@@ -6,6 +6,8 @@ import 'package:zephyr/page/comic_list/models/comic_list_scene.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_list/scene_filter/plugin_list_filter_dialog.dart';
 import 'package:zephyr/page/comic_list/view/plugin_paged_comic_list_view.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class ComicListPage extends StatelessWidget {
@@ -66,7 +68,7 @@ class _ComicListViewState extends State<_ComicListView>
             actions: [
               if (state.requiresFilter)
                 IconButton(
-                  icon: const Icon(Icons.filter_alt),
+                  icon: const GlyphIcon(AppGlyphs.sliders),
                   onPressed: () => _openFilterDialog(context),
                 ),
             ],

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:zephyr/icons/icons.dart';
+
 import 'package:zephyr/page/comic_info/action/comic_info_action_entry.dart';
 import 'package:zephyr/page/comic_info/action/comic_info_action_scope.dart';
 import 'package:zephyr/widgets/glass/liquid_glass.dart';
@@ -219,7 +221,7 @@ class _PillButton extends StatelessWidget {
       onPressed: enabled
           ? () => dispatchComicInfoAction(scope, item.actionId, context)
           : null,
-      icon: Icon(item.icon),
+      icon: GlyphIcon(item.icon),
     );
     return Tooltip(
       // triggerMode 用默认值：有指针时悬停出提示，触屏上长按出提示。rail 上只有图标，

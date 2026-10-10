@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/comic_info/action/comic_info_action_entry.dart';
 import 'package:zephyr/page/comic_info/action/comic_info_action_scope.dart';
 import 'package:zephyr/page/comic_info/widgets/comic_info_action_rail.dart';
@@ -42,7 +43,7 @@ ComicInfoActionEntry _entry(
   bool enabled = true,
 }) => ComicInfoActionEntry(
   actionId: id,
-  icon: Icons.bug_report_outlined,
+  icon: AppGlyphs.code,
   label: 'label-$id',
   onTap: onTap,
   enabled: enabled,
@@ -61,9 +62,9 @@ void main() {
     );
 
     expect(find.byType(IconButton), findsNWidgets(2));
-    await tester.tap(find.byIcon(Icons.bug_report_outlined).first);
+    await tester.tap(find.byWidgetPredicate((w) => w is GlyphIcon && w.glyph == AppGlyphs.code).first);
     expect(scope.dispatched, [ComicInfoActionIds.back]);
-    await tester.tap(find.byIcon(Icons.bug_report_outlined).last);
+    await tester.tap(find.byWidgetPredicate((w) => w is GlyphIcon && w.glyph == AppGlyphs.code).last);
     expect(scope.dispatched, [
       ComicInfoActionIds.back,
       ComicInfoActionIds.read,

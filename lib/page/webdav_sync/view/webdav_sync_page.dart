@@ -20,6 +20,8 @@ class WebDavSyncPage extends StatefulWidget {
 }
 
 class _WebDavSyncPageState extends State<WebDavSyncPage> {
+  // Switch.thumbIcon 的签名锁死 WidgetStateProperty<Icon>（Material Icon），
+  // glyph 进不去 —— 与 setting_ui.dart 同款豁免（全仓仅两处）。
   static const WidgetStateProperty<Icon> _thumbIcon =
       WidgetStateProperty<Icon>.fromMap(<WidgetStatesConstraint, Icon>{
         WidgetState.selected: Icon(Icons.check),

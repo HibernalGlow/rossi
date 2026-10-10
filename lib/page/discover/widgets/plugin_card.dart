@@ -6,6 +6,7 @@ import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
 import 'package:zephyr/util/json/json_value.dart';
 import 'package:zephyr/widgets/plugin_icon.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class PluginCard extends StatelessWidget {
   const PluginCard({
@@ -78,8 +79,8 @@ class PluginCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
-              child: Icon(
-                Icons.error_outline,
+              child: GlyphIcon(
+                AppGlyphs.error,
                 color: Theme.of(context).colorScheme.error,
               ),
             ),
@@ -160,12 +161,12 @@ class PluginCard extends StatelessWidget {
               children: [
                 IconButton(
                   tooltip: t.common.search,
-                  icon: const Icon(Icons.search, size: 20),
+                  icon: const GlyphIcon(AppGlyphs.search, size: 20),
                   onPressed: isEnabled ? onSearch : null,
                 ),
                 IconButton(
                   tooltip: t.discover.settings,
-                  icon: const Icon(Icons.settings_outlined, size: 20),
+                  icon: const GlyphIcon(AppGlyphs.settings, size: 20),
                   onPressed: () => onSettings(title),
                 ),
                 isToggling

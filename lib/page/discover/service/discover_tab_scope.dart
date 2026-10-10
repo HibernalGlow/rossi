@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 发现页发给**标签内容**的把手：「你现在住在一个标签里，要开东西请开成标签」。
 ///
@@ -67,7 +68,7 @@ abstract class DiscoverTabActions {
     required String label,
     required String source,
     required WidgetBuilder content,
-    IconData? icon,
+    Glyph? icon,
   });
 
   /// 详情页里那颗「主页」：切回首页标签，而不是把根路由栈弹到底。

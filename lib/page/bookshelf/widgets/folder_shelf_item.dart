@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/type/pipe.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry.dart'
     show kComicCardBorderRadius;
 
@@ -76,8 +77,8 @@ class FolderShelfItem extends StatelessWidget {
                   children: [
                     // 文件夹图标
                     Center(
-                      child: Icon(
-                        Icons.folder_rounded,
+                      child: GlyphIcon(
+                        AppGlyphs.folder,
                         size: width * 0.42,
                         color: colorScheme.primary.withValues(alpha: 0.72),
                       ),
@@ -152,10 +153,10 @@ class FolderShelfItem extends StatelessWidget {
                               ),
                             ],
                           ),
-                          child: Icon(
+                          child: GlyphIcon(
                             isSelected
-                                ? Icons.check_rounded
-                                : Icons.radio_button_unchecked_rounded,
+                                ? AppGlyphs.check
+                                : AppGlyphs.ring,
                             color: isSelected
                                 ? colorScheme.onPrimary
                                 : colorScheme.onSurfaceVariant,

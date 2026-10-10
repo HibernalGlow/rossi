@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/comic_info/models/read_entry_placement.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 封面正中间的「直接阅读」按钮：点它就不进详情页，直接起读。
 ///
@@ -147,8 +148,8 @@ class _ComicReadButtonState extends State<ComicReadButton> {
                     ),
                   ),
                 )
-              : Icon(
-                  Icons.play_arrow_rounded,
+              : GlyphIcon(
+                  AppGlyphs.play,
                   size: diameter * 0.62,
                   color: colorScheme.onInverseSurface,
                 ),

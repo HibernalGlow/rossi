@@ -1,9 +1,12 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
+import 'package:zephyr/icons/icons.dart';
 
 Future<void> showPluginOrderDialog(BuildContext context) async {
-  await showDialog<void>(
+  await showPopupPanel<void>(
+    presentation: PopupPresentation.relative,
     context: context,
     builder: (_) => PluginOrderDialog(
       initialPlugins: PluginRegistryService.I.orderedPlugins(),
@@ -56,7 +59,7 @@ class _PluginOrderDialogState extends State<PluginOrderDialog> {
                 index: index,
                 child: const Padding(
                   padding: EdgeInsets.all(8),
-                  child: Icon(Icons.drag_handle),
+                  child: GlyphIcon(AppGlyphs.dragHandle),
                 ),
               ),
             );

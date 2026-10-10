@@ -6,6 +6,7 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/network/utils/github_proxy.dart';
 
 import 'package:zephyr/service/update/check_update.dart';
+import 'package:zephyr/icons/icons.dart';
 
 // --- 风格常量 ---
 const Color kBgColor = Color(0xFF12121C); // --bg-color
@@ -475,7 +476,7 @@ class _AboutPageState extends State<AboutPage> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: kSecondaryText),
+                    icon: const GlyphIcon(AppGlyphs.close, color: kSecondaryText),
                     onPressed: () => Navigator.pop(ctx),
                   ),
                 ],

@@ -19,6 +19,7 @@ import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_mapper.
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class OldHomePage extends StatefulWidget {
@@ -87,7 +88,7 @@ class _OldHomePageState extends State<OldHomePage> {
               actions: [
                 IconButton(
                   tooltip: t.oldHome.search,
-                  icon: const Icon(Icons.search),
+                  icon: const GlyphIcon(AppGlyphs.search),
                   onPressed: () => context.pushRoute(
                     SearchRoute(
                       searchState: SearchStates.initial(),
@@ -112,7 +113,7 @@ class _OldHomePageState extends State<OldHomePage> {
                   _tabIndex = effectiveIndex == 0 ? 1 : 0;
                 });
               },
-              child: const Icon(Icons.swap_horiz),
+              child: const GlyphIcon(AppGlyphs.flip),
             )
           : null,
     );
@@ -545,7 +546,7 @@ class _InlineLatestListState extends State<_InlineLatestList>
             padding: const EdgeInsets.only(bottom: 14, top: 6),
             child: TextButton.icon(
               onPressed: () => _cubit.loadMore(),
-              icon: const Icon(Icons.keyboard_arrow_down_rounded),
+              icon: const GlyphIcon(AppGlyphs.chevronDown),
               label: Text(t.oldHome.loadMore),
             ),
           ),

@@ -6,6 +6,7 @@ import 'package:zephyr/cubit/plugin_registry_cubit.dart';
 import 'package:zephyr/page/comic_list/models/comic_list_scene.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_list/view/comic_list_page.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class OldRankingPage extends StatefulWidget {
@@ -126,7 +127,7 @@ class _OldRankingPageState extends State<OldRankingPage> {
                 });
               },
               tooltip: t.oldRanking.switchSource,
-              child: const Icon(Icons.swap_horiz),
+              child: const GlyphIcon(AppGlyphs.flip),
             )
           : null,
     );

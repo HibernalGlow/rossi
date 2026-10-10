@@ -4,6 +4,7 @@ import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/page/download/method/comic_download_entry.dart';
 import 'package:zephyr/service/download/download_queue_manager.dart';
 import 'package:zephyr/service/download/download_task_progress.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 列表卡片封面右上角的下载角标。
 ///
@@ -97,29 +98,29 @@ class _ComicDownloadBadgeState extends State<ComicDownloadBadge> {
     final colorScheme = Theme.of(context).colorScheme;
     final payload = task?.taskInfo;
 
-    final (IconData icon, String label, Color background) = switch (state) {
+    final (Glyph icon, String label, Color background) = switch (state) {
       ComicDownloadVisualState.downloading => (
-        Icons.downloading_rounded,
+        AppGlyphs.downloading,
         t.reader.downloadStatusDownloading,
         colorScheme.primary,
       ),
       ComicDownloadVisualState.paused => (
-        Icons.pause_rounded,
+        AppGlyphs.pause,
         t.reader.downloadStatusPaused,
         Colors.orange,
       ),
       ComicDownloadVisualState.failed => (
-        Icons.error_outline_rounded,
+        AppGlyphs.error,
         t.reader.downloadStatusFailed,
         Colors.red,
       ),
       ComicDownloadVisualState.completed => (
-        Icons.download_done_rounded,
+        AppGlyphs.downloadDone,
         t.reader.downloadManage,
         Colors.green,
       ),
       ComicDownloadVisualState.notDownloaded => (
-        Icons.download_rounded,
+        AppGlyphs.download,
         t.comicInfo.download,
         Colors.black.withValues(alpha: 0.55),
       ),
@@ -169,7 +170,7 @@ class _ComicDownloadBadgeState extends State<ComicDownloadBadge> {
                       ),
                     ),
                   )
-                : Icon(icon, size: widget.size * 0.6, color: Colors.white),
+                : GlyphIcon(icon, size: widget.size * 0.6, color: Colors.white),
           ),
         ),
       ),

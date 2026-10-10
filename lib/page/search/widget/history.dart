@@ -8,6 +8,7 @@ import 'package:zephyr/plugin/utils/plugin_display_name.dart';
 import 'package:zephyr/type/pipe.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/workspace/model/shelf_library_query.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class HistoryWidget extends StatefulWidget {
   const HistoryWidget({super.key, this.aggregateMode = true});
@@ -61,10 +62,10 @@ class _HistoryWidgetState extends State<HistoryWidget> {
                 // 用户找不到，而它改的又确实是持久设置（同一份字段，见设置页
                 // 「搜索历史按插件分时间线」）。
                 IconButton(
-                  icon: Icon(
+                  icon: GlyphIcon(
                     groupBySource
-                        ? Icons.view_agenda
-                        : Icons.format_list_bulleted,
+                        ? AppGlyphs.viewAgenda
+                        : AppGlyphs.layoutList,
                     size: 20,
                   ),
                   color: groupBySource
@@ -85,7 +86,7 @@ class _HistoryWidgetState extends State<HistoryWidget> {
                 _buildSortButton(),
 
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 20),
+                  icon: const GlyphIcon(AppGlyphs.delete, size: 20),
                   tooltip: t.search.clearHistory,
                   color: colorScheme.onSurfaceVariant,
                   onPressed: _resetHistory,
@@ -115,8 +116,8 @@ class _HistoryWidgetState extends State<HistoryWidget> {
           padding: const EdgeInsets.symmetric(horizontal: 8),
           minimumSize: const Size(0, 36),
         ),
-        icon: Icon(
-          _isNewestFirst ? Icons.history : Icons.history_toggle_off, // 图标随状态变
+        icon: GlyphIcon(
+          _isNewestFirst ? AppGlyphs.history : AppGlyphs.history, // 图标随状态变
           size: 18,
           color: colorScheme.primary,
         ),
@@ -138,8 +139,8 @@ class _HistoryWidgetState extends State<HistoryWidget> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.manage_search,
+          GlyphIcon(
+            AppGlyphs.search,
             size: 64,
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
           ),
@@ -213,7 +214,7 @@ class _HistoryWidgetState extends State<HistoryWidget> {
       padding: const EdgeInsets.only(top: 8, bottom: 8),
       child: Row(
         children: [
-          Icon(
+          GlyphIcon(
             _groupIcon(source),
             size: 16,
             color: colorScheme.onSurfaceVariant,
@@ -235,10 +236,10 @@ class _HistoryWidgetState extends State<HistoryWidget> {
     );
   }
 
-  IconData _groupIcon(String source) {
-    if (source == kAggregateSearchSource) return Icons.public;
-    if (source.isEmpty) return Icons.help_outline;
-    return Icons.extension_outlined;
+  Glyph _groupIcon(String source) {
+    if (source == kAggregateSearchSource) return AppGlyphs.globe;
+    if (source.isEmpty) return AppGlyphs.info;
+    return AppGlyphs.puzzle;
   }
 
   /// 组标题：插件名解析走书签/历史那一套（一次取全表，别每行问一遍数据库）。

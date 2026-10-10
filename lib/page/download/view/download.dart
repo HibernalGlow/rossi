@@ -19,6 +19,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 import 'package:zephyr/page/comments/widgets/title.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class DownloadPage extends StatefulWidget {
@@ -117,7 +118,7 @@ class _DownloadPageState extends State<DownloadPage> {
         actions: [
           // 动态切换全选/取消全选按钮
           IconButton(
-            icon: Icon(isAllSelected ? Icons.deselect : Icons.select_all),
+            icon: GlyphIcon(isAllSelected ? AppGlyphs.deselect : AppGlyphs.selectAll),
             onPressed: toggleSelectAll,
           ),
         ],
@@ -153,7 +154,7 @@ class _DownloadPageState extends State<DownloadPage> {
           ? FloatingActionButtonLocation.startFloat
           : FloatingActionButtonLocation.endFloat,
       floatingActionButton: FloatingActionButton.extended(
-        icon: const Icon(Icons.download),
+        icon: const GlyphIcon(AppGlyphs.download),
         label: Text(t.download.startDownload),
         onPressed: () {
           logger.d("开始下载");

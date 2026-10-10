@@ -16,6 +16,7 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/util/theme/tweakcn_theme.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @immutable
 class TweakcnImportCard extends StatefulWidget {
@@ -90,7 +91,7 @@ class _TweakcnImportCardState extends State<TweakcnImportCard> {
     // 头部 ListTile + Divider）。自己再造一张 Card 就会和同页其它卡片两套样子。
     return SettingSectionCard(
       title: t.settings.tweakcnTitle,
-      icon: Icons.colorize_outlined,
+      icon: AppGlyphs.eyedropper,
       children: [
         if (!library.isEmpty)
           _EntryList(
@@ -246,10 +247,10 @@ class _EntryList extends StatelessWidget {
             child: ListTile(
               dense: true,
               selected: entry.id == library.activeId,
-              leading: Icon(
+              leading: GlyphIcon(
                 entry.id == library.activeId
-                    ? Icons.check_circle
-                    : Icons.circle_outlined,
+                    ? AppGlyphs.checkCircle
+                    : AppGlyphs.ring,
                 color: entry.id == library.activeId ? scheme.primary : null,
               ),
               title: Text(entry.name),
@@ -263,7 +264,7 @@ class _EntryList extends StatelessWidget {
               ),
               trailing: IconButton(
                 tooltip: t.settings.tweakcnDelete,
-                icon: const Icon(Icons.delete_outline),
+                icon: const GlyphIcon(AppGlyphs.delete),
                 onPressed: () => onDelete(entry.id),
               ),
               onTap: () => onPick(entry.id),
