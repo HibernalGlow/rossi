@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/widgets/toast.dart';
 
 /// 顶栏二级面板的名单。
 ///
@@ -355,13 +356,10 @@ class ReaderToolbarToggleChip extends StatelessWidget {
 /// 保留占位是**刻意的**：顶栏的形状与 neo 对齐，将来做出一块就点亮一块。
 /// 但它不能是静默失效的一颗 —— 点了要给一句话，否则人只会以为是自己点歪了。
 void showReaderToolbarComingSoon(BuildContext context, String name) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text('$name 还没接进本仓的阅读器'),
-      behavior: SnackBarBehavior.floating,
-      width: 280,
-      duration: const Duration(milliseconds: 1800),
-    ),
+  showInfoToast(
+    '$name 还没接进本仓的阅读器',
+    duration: const Duration(milliseconds: 1800),
+    context: context,
   );
 }
 

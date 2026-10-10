@@ -23,6 +23,10 @@ import 'package:zephyr/video/view/active_video_scope.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/util/debouncer.dart';
 import 'package:zephyr/util/reader/reader_top_bar_style.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
+import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/widgets/spring_lens/spring_lens_bar.dart';
+import 'package:zephyr/icons/icons.dart';
 
 part 'reader_settings_gesture_tab.dart';
 part 'reader_settings_picture_tab.dart';

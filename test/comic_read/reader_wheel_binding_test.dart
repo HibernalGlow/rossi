@@ -82,6 +82,9 @@ class _Api implements RustLibApi {
       }
       return null;
     }
+    if (call.memberName == #crateApiFontListSystemFontFamilies) {
+      return Future.value(const <String>[]);
+    }
     throw UnsupportedError('${call.memberName}');
   }
 }
