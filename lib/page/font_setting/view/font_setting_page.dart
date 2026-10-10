@@ -5,6 +5,7 @@ import 'package:path/path.dart' as path;
 import 'package:zephyr/util/font/font_profile.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class FontSettingPage extends StatefulWidget {
@@ -107,7 +108,7 @@ class _FontSettingPageState extends State<FontSettingPage> {
           IconButton(
             tooltip: t.fontSetting.clear,
             onPressed: _clearAll,
-            icon: const Icon(Icons.restart_alt_outlined),
+            icon: const GlyphIcon(AppGlyphs.reset),
           ),
         ],
       ),
@@ -196,12 +197,12 @@ class _FontSettingPageState extends State<FontSettingPage> {
                                 await controller.setSystemFamily('');
                                 showSuccessToast(t.fontSetting.cleared);
                               },
-                              icon: const Icon(Icons.close_outlined),
+                              icon: const GlyphIcon(AppGlyphs.close),
                             ),
                           IconButton(
                             tooltip: t.fontSetting.familyPickPrompt,
                             onPressed: _pickSystemFamily,
-                            icon: const Icon(Icons.list_outlined),
+                            icon: const GlyphIcon(AppGlyphs.layoutList),
                           ),
                         ],
                       ),
@@ -239,10 +240,10 @@ class _FontSettingPageState extends State<FontSettingPage> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                trailing: Icon(
+                trailing: GlyphIcon(
                   overridesExpanded
-                      ? Icons.expand_less_outlined
-                      : Icons.expand_more_outlined,
+                      ? AppGlyphs.chevronUp
+                      : AppGlyphs.chevronDown,
                 ),
                 onTap: () =>
                     setState(() => _overridesExpanded = !_overridesExpanded),
@@ -351,12 +352,12 @@ class _FontTile extends StatelessWidget {
             IconButton(
               tooltip: t.fontSetting.clearFile,
               onPressed: onClear,
-              icon: const Icon(Icons.close_outlined),
+              icon: const GlyphIcon(AppGlyphs.close),
             ),
           IconButton(
             tooltip: t.fontSetting.selectFile,
             onPressed: onPick,
-            icon: const Icon(Icons.folder_open_outlined),
+            icon: const GlyphIcon(AppGlyphs.folder),
           ),
         ],
       ),
@@ -401,7 +402,7 @@ class _SystemFamilyPickerDialogState extends State<_SystemFamilyPickerDialog> {
               autofocus: true,
               decoration: InputDecoration(
                 hintText: t.fontSetting.familySearchHint,
-                prefixIcon: const Icon(Icons.search_outlined),
+                prefixIcon: const GlyphIcon(AppGlyphs.search),
                 isDense: true,
                 border: const OutlineInputBorder(),
               ),
@@ -442,7 +443,7 @@ class _SystemFamilyPickerDialogState extends State<_SystemFamilyPickerDialog> {
             if (manualEntry)
               ListTile(
                 dense: true,
-                leading: const Icon(Icons.edit_outlined),
+                leading: const GlyphIcon(AppGlyphs.edit),
                 title: Text(
                   t.fontSetting.familyManualUse(name: _query),
                   maxLines: 1,
@@ -472,7 +473,7 @@ class _SystemFamilyPickerDialogState extends State<_SystemFamilyPickerDialog> {
                             style: TextStyle(fontFamily: family, fontSize: 12),
                           ),
                           trailing: selected
-                              ? const Icon(Icons.check_outlined)
+                              ? const GlyphIcon(AppGlyphs.check)
                               : null,
                           onTap: () => Navigator.of(context).pop(family),
                         );
