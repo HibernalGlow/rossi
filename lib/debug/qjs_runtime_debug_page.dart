@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/src/rust/api/qjs.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class QjsRuntimeDebugPage extends StatefulWidget {
@@ -123,7 +124,7 @@ class _QjsRuntimeDebugPageState extends State<QjsRuntimeDebugPage> {
                     children: [
                       FilledButton.icon(
                         onPressed: _loading ? null : _loadSnapshot,
-                        icon: const Icon(Icons.play_arrow_outlined),
+                        icon: const GlyphIcon(AppGlyphs.play),
                         label: Text(
                           _loading
                               ? t.settings.qjsRuntimeCapturing
@@ -132,7 +133,7 @@ class _QjsRuntimeDebugPageState extends State<QjsRuntimeDebugPage> {
                       ),
                       OutlinedButton.icon(
                         onPressed: _loading ? null : _copyOutput,
-                        icon: const Icon(Icons.copy_all_outlined),
+                        icon: const GlyphIcon(AppGlyphs.copy),
                         label: Text(t.settings.qjsRuntimeCopyOutput),
                       ),
                     ],

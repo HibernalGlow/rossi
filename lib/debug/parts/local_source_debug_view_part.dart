@@ -12,17 +12,17 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
         children: [
           FilledButton.icon(
             onPressed: _busy ? null : _pickFolder,
-            icon: const Icon(Icons.folder_open_outlined, size: 18),
+            icon: const GlyphIcon(AppGlyphs.folder, size: 18),
             label: const Text('打开文件夹'),
           ),
           FilledButton.tonalIcon(
             onPressed: _busy ? null : _pickArchive,
-            icon: const Icon(Icons.archive_outlined, size: 18),
+            icon: const GlyphIcon(AppGlyphs.archive, size: 18),
             label: const Text('打开 CBZ / CBR'),
           ),
           OutlinedButton.icon(
             onPressed: _busy || _sessionId == null ? null : _sweep,
-            icon: const Icon(Icons.timer_outlined, size: 18),
+            icon: const GlyphIcon(AppGlyphs.hourglass, size: 18),
             label: const Text('逐页计时'),
           ),
           Tooltip(
@@ -31,10 +31,10 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
                 : '当前：按归档里的原始尺寸解码（44.8 MPix 会解出 179 MB 位图）。',
             child: FilterChip(
               selected: _displaySizedDecode,
-              avatar: Icon(
+              avatar: GlyphIcon(
                 _displaySizedDecode
-                    ? Icons.fit_screen_outlined
-                    : Icons.photo_size_select_actual_outlined,
+                    ? AppGlyphs.fitScreen
+                    : AppGlyphs.cropFree,
                 size: 18,
               ),
               label: Text(_displaySizedDecode ? '尺寸：显示' : '尺寸：全尺寸'),
@@ -55,7 +55,7 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
                 'Rust = 只走 Rust 解码器（avif 唯一能出图的形态）；\n'
                 '外壳 = 编码字节过桥交给引擎，只有引擎认识的格式能出图。',
             child: ActionChip(
-              avatar: const Icon(Icons.memory_outlined, size: 18),
+              avatar: const GlyphIcon(AppGlyphs.storage, size: 18),
               label: Text(_decoderMode.label),
               onPressed: () {
                 final next = switch (_decoderMode) {
@@ -83,10 +83,10 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
                       '所以「翻页 < 200 ms」只能靠预取把解码挪出翻页路径。',
             child: FilterChip(
               selected: _prefetchEnabled,
-              avatar: Icon(
+              avatar: GlyphIcon(
                 _prefetchEnabled
-                    ? Icons.bolt_outlined
-                    : Icons.hourglass_empty_outlined,
+                    ? AppGlyphs.bolt
+                    : AppGlyphs.hourglass,
                 size: 18,
               ),
               label: Text(_prefetchEnabled ? '预取：开' : '预取：关'),
@@ -105,12 +105,12 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
             onPressed: _busy || _sessionId == null
                 ? null
                 : () => _loadPage(_current, force: true),
-            icon: const Icon(Icons.refresh, size: 18),
+            icon: const GlyphIcon(AppGlyphs.refresh, size: 18),
             label: const Text('重读本页'),
           ),
           OutlinedButton.icon(
             onPressed: _sessionId == null ? null : () => _closeCurrent(),
-            icon: const Icon(Icons.close, size: 18),
+            icon: const GlyphIcon(AppGlyphs.close, size: 18),
             label: const Text('关闭会话'),
           ),
           OutlinedButton.icon(
@@ -131,7 +131,7 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
               debugPrint('closeAll released $n session(s)');
               await _refreshProbe();
             },
-            icon: const Icon(Icons.layers_clear_outlined, size: 18),
+            icon: const GlyphIcon(AppGlyphs.layersClear, size: 18),
             label: const Text('关闭全部'),
           ),
           if (_busy)
@@ -449,14 +449,14 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
             children: [
               IconButton(
                 onPressed: _current > 0 ? () => _loadPage(_current - 1) : null,
-                icon: const Icon(Icons.chevron_left),
+                icon: const GlyphIcon(AppGlyphs.chevronBack),
               ),
               Text('${_current + 1} / ${_pages.length}'),
               IconButton(
                 onPressed: _current < _pages.length - 1
                     ? () => _loadPage(_current + 1)
                     : null,
-                icon: const Icon(Icons.chevron_right),
+                icon: const GlyphIcon(AppGlyphs.chevronForward),
               ),
             ],
           ),
@@ -511,24 +511,24 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
   Widget _rejectionView(LocalRejection r) {
     final (icon, hint) = switch (r.kind) {
       LocalRejectionKind.unknownFormat => (
-        Icons.help_outline,
+        AppGlyphs.info,
         '支持图片 / 视频文件、文件夹及 CBZ / CBR；暂不支持 7z、PDF。',
       ),
       LocalRejectionKind.rarSolid => (
-        Icons.compress,
+        AppGlyphs.compress,
         '固实压缩：读第 N 页要先解压前 N-1 页，与「翻页 p95 ≤ 16.7ms」不相容。'
             '可用其它工具重新打包为 CBZ（zip）后重试。',
       ),
       LocalRejectionKind.rarNestedArchive => (
-        Icons.account_tree_outlined,
+        AppGlyphs.tree,
         '归档里套了归档。v0.1 明确不展开嵌套——这是唯一会需要临时文件的场景。',
       ),
       LocalRejectionKind.rarEncrypted => (
-        Icons.lock_outline,
+        AppGlyphs.lock,
         '加密归档：v0.1 不提供密码输入。',
       ),
-      LocalRejectionKind.notFound => (Icons.link_off, '路径不存在或不可读。'),
-      LocalRejectionKind.io => (Icons.error_outline, 'IO 或解析失败（含归档损坏）。'),
+      LocalRejectionKind.notFound => (AppGlyphs.lock, '路径不存在或不可读。'),
+      LocalRejectionKind.io => (AppGlyphs.error, 'IO 或解析失败（含归档损坏）。'),
     };
 
     return Center(
@@ -537,7 +537,7 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 44),
+            GlyphIcon(icon, size: 44),
             const SizedBox(height: 12),
             Text(
               '已被拒绝（${r.kind.name}）',

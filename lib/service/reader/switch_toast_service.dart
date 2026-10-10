@@ -196,8 +196,9 @@ class SwitchToastService {
     if (local == null) return '在线';
     final file = local.path.split(RegExp(r'[/\\]')).last;
     final dot = file.lastIndexOf('.');
-    if (dot > 0 && dot < file.length - 1)
+    if (dot > 0 && dot < file.length - 1) {
       return file.substring(dot + 1).toUpperCase();
+    }
     return '目录';
   }
 }

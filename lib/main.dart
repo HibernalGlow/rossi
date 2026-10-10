@@ -60,6 +60,8 @@ import 'package:zephyr/util/rust_loader.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
 import 'package:zephyr/widgets/desktop/desktop_shell_frame.dart';
 import 'package:zephyr/widgets/desktop/intent.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
+import 'package:zephyr/icons/icons.dart';
 
 export 'package:zephyr/network/http/wind_http.dart'
     show WindHttp, FetchResponse, fetch, fetchDirect;

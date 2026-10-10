@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:file_selector/file_selector.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/src/rust/api/local.dart';
+import 'package:zephyr/icons/icons.dart';
 part 'parts/local_source_debug_models_part.dart';
 part 'parts/local_source_debug_load_part.dart';
 part 'parts/local_source_debug_prefetch_part.dart';

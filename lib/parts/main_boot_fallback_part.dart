@@ -52,8 +52,8 @@ void _runBootFailureApp(String stage, Object error, StackTrace stack) {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  const Icon(
-                    Icons.error_outline,
+                  const GlyphIcon(
+                    AppGlyphs.error,
                     color: Color(0xFFFF6B6B),
                     size: 44,
                   ),

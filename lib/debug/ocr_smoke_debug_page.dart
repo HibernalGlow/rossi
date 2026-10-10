@@ -9,6 +9,7 @@ import 'package:zephyr/service/ocr/ocr_service.dart';
 import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_builder.dart';
 import 'package:zephyr/src/rust/frb_generated.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// OCR 成品页的**应用内冒烟页**：选一张页 → 跑完整链路 → 看耗时、块数与画出来的图。
 ///
@@ -138,7 +139,7 @@ class _OcrSmokeDebugPageState extends State<OcrSmokeDebugPage> {
         padding: const EdgeInsets.all(12),
         children: [
           ListTile(
-            leading: const Icon(Icons.storage_outlined),
+            leading: const GlyphIcon(AppGlyphs.storage),
             title: Text(
               _weightsLoading
                   ? '权重状态查询中…'
@@ -155,19 +156,19 @@ class _OcrSmokeDebugPageState extends State<OcrSmokeDebugPage> {
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.memory_outlined),
+            leading: const GlyphIcon(AppGlyphs.storage),
             // 这一行是**请求值**（设置里选的那个），不是实际跑的：三段各用哪条 EP
             // 由 Rust 按平台与段落 resolve，跑完一遍后由下面那种「各段实际生效」如实回报。
             title: Text('推理后端（请求值）：$_ep'),
             subtitle: const Text('各段实际用了哪条，跑一遍看结果里那一行'),
           ),
           ListTile(
-            leading: const Icon(Icons.image_outlined),
+            leading: const GlyphIcon(AppGlyphs.photos),
             title: Text(_imagePath == null ? '还没选页' : _imagePath!),
             trailing: TextButton(onPressed: _pick, child: const Text('选一张页')),
           ),
           ListTile(
-            leading: const Icon(Icons.play_arrow_outlined),
+            leading: const GlyphIcon(AppGlyphs.play),
             title: Text(_running ? (_stage ?? '跑着') : '跑一遍完整链路'),
             subtitle: const Text('检测 → 识别 → 聚块 → 擦字 → 翻译 → 回填（force，不读缓存）'),
             trailing: FilledButton(
@@ -185,7 +186,7 @@ class _OcrSmokeDebugPageState extends State<OcrSmokeDebugPage> {
             ),
           if (result != null) ...[
             ListTile(
-              leading: const Icon(Icons.timer_outlined),
+              leading: const GlyphIcon(AppGlyphs.hourglass),
               title: Text(
                 '${result.elapsed.inMilliseconds} ms · ${result.blockCount} 块'
                 '${result.truncatedCount > 0 ? ' · ${result.truncatedCount} 块被截断（可疑）' : ''}'
@@ -198,7 +199,7 @@ class _OcrSmokeDebugPageState extends State<OcrSmokeDebugPage> {
               // 「选了 GPU 就不许偷偷用 CPU」这条纪律核对的就是这一行；
               // 命中缓存时不显示 —— 那一次什么都没跑，拿旧值顶替等于谎报。
               ListTile(
-                leading: const Icon(Icons.developer_board_outlined),
+                leading: const GlyphIcon(AppGlyphs.cpu),
                 title: Text(
                   '各段实际生效：检测 ${eps.detect} · 识别 ${eps.recognize} '
                   '· 擦字 ${eps.inpaint ?? '未跑'}',
