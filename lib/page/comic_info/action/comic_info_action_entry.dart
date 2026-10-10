@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import 'package:zephyr/icons/icons.dart';
+
 /// 详情页一条动作的**渲染 + 执行**数据。
 ///
 /// 存在的理由：rail（车道 E）、移动端底部条（车道 G）、封面下方那横排操作行
@@ -36,7 +38,7 @@ class ComicInfoActionEntry {
   /// `test/operation_binding/comic_info_catalog_bridge_test.dart` 会红。
   final String actionId;
 
-  final IconData icon;
+  final Glyph icon;
 
   /// **当前状态下的**文字（「继续阅读」而不是注册表里中性的「开始或继续阅读」）。
   final String label;
