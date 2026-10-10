@@ -14,6 +14,7 @@ import 'api/file_manager/settings.dart';
 import 'api/file_manager/tree.dart';
 import 'api/file_manager/types.dart';
 import 'api/file_ops.dart';
+import 'api/font.dart';
 import 'api/http.dart';
 import 'api/image.dart';
 import 'api/local.dart';
