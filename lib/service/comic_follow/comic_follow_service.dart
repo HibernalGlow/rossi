@@ -3,6 +3,7 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
+import 'package:zephyr/service/notify/notify_topic.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/toast.dart';
 
@@ -101,8 +102,19 @@ class ComicFollowService {
     return null;
   }
 
-  /// 发送更新通知与应用内提示
-  Future<void> notifyUpdate(int updateCount) async {
+  /// 发送更新通知与应用内提示。
+  ///
+  /// 两半各走各的通道，**口径不同且刻意如此**：
+  /// - 系统通知栏那一条本轮不动（`flutter_local_notifications`，见 ADR-0020 的
+  ///   「明确不做」）；
+  /// - 应用内那一条登记成 [NotifyTopic.followUpdate]，于是它能被逐事项开关关掉。
+  ///   关掉之后下拉栏仍会响 —— 这不是漏了一半，是两条通道的分界。
+  ///
+  /// [userInitiated] 由「手动刷新追更」传 `true`：那一次的提示是按钮的回应。
+  Future<void> notifyUpdate(
+    int updateCount, {
+    bool userInitiated = false,
+  }) async {
     final title = t.comicFollow.updateTitle;
     final body = updateCount == 1
         ? t.comicFollow.updateBodySingle
@@ -119,18 +131,13 @@ class ComicFollowService {
       logger.e('追更通知发送失败', error: e, stackTrace: s);
     }
 
-    try {
-      eventBus.fire(
-        ToastEvent(
-          type: ToastType.info,
-          title: title,
-          message: body,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    } catch (e, s) {
-      logger.e('追更 Toast 发送失败', error: e, stackTrace: s);
-    }
+    notifyAmbient(
+      NotifyTopic.followUpdate,
+      body,
+      title: title,
+      duration: const Duration(seconds: 3),
+      userInitiated: userInitiated,
+    );
   }
 
   NotificationDetails _notificationDetails() {
