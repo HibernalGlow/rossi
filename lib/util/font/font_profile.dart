@@ -4,9 +4,21 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr/src/rust/api/font.dart' as rust_font;
 import 'package:zephyr/util/get_path.dart';
 
-const _fontSettingKeys = <int, String>{
+/// 默认字体（整个字体家族共用一个文件）。
+const _fontDefaultKey = 'font_profile_default';
+
+/// 默认字体来源模式：system = 应用默认字体栈（零配置）；
+/// family = 系统已安装字体（按家族名引用）；file = 导入的字体文件。
+const _fontModeKey = 'font_profile_mode';
+
+/// 系统已安装字体的家族名（mode = family 时生效）。
+const _fontFamilyKey = 'font_profile_family';
+
+/// 字重覆盖键（可选；沿用旧版逐字重键名，老数据无需迁移即成为覆盖项）。
+const _fontOverrideKeys = <int, String>{
   100: 'font_profile_w100',
   200: 'font_profile_w200',
   300: 'font_profile_w300',
@@ -30,49 +42,210 @@ const fontWeightLabels = <int, String>{
   900: 'Black',
 };
 
+/// 纯函数：从已配置的字重里挑离 [target] 最近的；同距取较小字重。
+/// 没有任何候选时返回 null。
+int? nearestConfiguredWeight(int target, Iterable<int> configured) {
+  int? best;
+  int bestDistance = 0;
+  for (final weight in configured) {
+    final distance = (weight - target).abs();
+    if (best == null ||
+        distance < bestDistance ||
+        (distance == bestDistance && weight < best)) {
+      best = weight;
+      bestDistance = distance;
+    }
+  }
+  return best;
+}
+
+/// 纯函数：字重 → 字体家族名的解析规则。
+/// 优先精确命中的覆盖项，其次最近的覆盖项，最后回落到默认字体。
+/// 都没有时返回空串（调用方保持原 TextStyle 不动）。
+String resolveFontFamily({
+  required String? defaultFamily,
+  required Map<int, String> overrideFamilies,
+  FontWeight? weight,
+}) {
+  if (overrideFamilies.isNotEmpty) {
+    final normalized = _normalizeWeightStatic(weight);
+    final exact = overrideFamilies[normalized];
+    if (exact != null) return exact;
+    final nearest = nearestConfiguredWeight(normalized, overrideFamilies.keys);
+    if (nearest != null) return overrideFamilies[nearest]!;
+  }
+  return defaultFamily ?? '';
+}
+
+int _normalizeWeightStatic(FontWeight? weight) {
+  if (weight == null) return 400;
+  return weight.value.clamp(100, 900) ~/ 100 * 100;
+}
+
 class FontProfileController extends ChangeNotifier {
   FontProfileController._();
 
   static final FontProfileController instance = FontProfileController._();
 
+  static const modeSystem = 'system';
+  static const modeFamily = 'family';
+  static const modeFile = 'file';
+
   SharedPreferences? _prefs;
+  String _mode = modeSystem;
+  String _systemFamily = '';
+  String? _defaultPath;
+  String? _defaultFamily;
   Map<int, String> _paths = const {};
   Map<int, String> _families = const {};
 
+  /// 默认字体来源模式。
+  String get mode => _mode;
+
+  /// 系统已安装字体的家族名（mode = family 时生效）。
+  String get systemFamily => _systemFamily;
+
+  /// 默认字体文件路径（null = 未设置）。
+  String? get defaultPath => _defaultPath;
+
+  /// 字重覆盖文件路径（键为字重值）。
   Map<int, String> get paths => _paths;
+
+  bool get hasOverrides => _paths.isNotEmpty;
+
+  /// 当前模式下默认字体对应的家族名（空串 = 用应用默认字体栈）。
+  String get _effectiveDefaultFamily {
+    switch (_mode) {
+      case modeFamily:
+        return _systemFamily;
+      case modeFile:
+        return _defaultFamily ?? '';
+      default:
+        return '';
+    }
+  }
 
   Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
     final nextPaths = <int, String>{};
     final nextFamilies = <int, String>{};
-    for (final entry in _fontSettingKeys.entries) {
+
+    _systemFamily = _prefs!.getString(_fontFamilyKey)?.trim() ?? '';
+    final storedMode = _prefs!.getString(_fontModeKey)?.trim() ?? '';
+    final storedDefault = _prefs!.getString(_fontDefaultKey)?.trim() ?? '';
+    if (storedDefault.isNotEmpty) {
+      final family = await _registerFont(storedDefault, tag: 'default');
+      if (family != null) {
+        _defaultPath = storedDefault;
+        _defaultFamily = family;
+      }
+    }
+    // 旧数据没有模式键：有默认文件即视为 file，否则出厂 system（零操作）。
+    _mode = switch (storedMode) {
+      modeFamily => modeFamily,
+      modeFile => modeFile,
+      modeSystem => modeSystem,
+      _ => storedDefault.isNotEmpty ? modeFile : modeSystem,
+    };
+
+    for (final entry in _fontOverrideKeys.entries) {
       final path = _prefs!.getString(entry.value)?.trim() ?? '';
       if (path.isEmpty) continue;
-      final family = await _registerFont(entry.key, path);
+      final family = await _registerFont(path, tag: 'w${entry.key}');
       if (family == null) continue;
       nextPaths[entry.key] = path;
       nextFamilies[entry.key] = family;
     }
     _paths = nextPaths;
     _families = nextFamilies;
+    notifyListeners();
   }
 
   String? pathForWeight(int weight) => _paths[weight];
 
   String familyForWeight(FontWeight? weight) {
-    final normalized = _normalizeWeight(weight);
-    return _families[normalized] ?? _families[400] ?? '';
+    return resolveFontFamily(
+      defaultFamily: _effectiveDefaultFamily,
+      overrideFamilies: _families,
+      weight: weight,
+    );
   }
 
-  Future<bool> setPath(int weight, String path) async {
+  /// 切换默认字体来源模式（文件与家族名都保留，可随时切回）。
+  Future<void> setMode(String mode) async {
+    _prefs ??= await SharedPreferences.getInstance();
+    _mode = mode;
+    await _prefs!.setString(_fontModeKey, mode);
+    notifyListeners();
+  }
+
+  /// 设置系统已安装字体的家族名（空串 = 清除，回退系统默认）。
+  Future<void> setSystemFamily(String name) async {
+    _prefs ??= await SharedPreferences.getInstance();
+    final normalized = name.trim();
+    _systemFamily = normalized;
+    if (normalized.isEmpty) {
+      await _prefs!.remove(_fontFamilyKey);
+    } else {
+      await _prefs!.setString(_fontFamilyKey, normalized);
+    }
+    notifyListeners();
+  }
+
+  /// 枚举系统已安装字体的家族名（桥到 Rust font-kit：
+  /// macOS/iOS = CoreText，Windows = DirectWrite，Linux = fontconfig）。
+  /// 失败回空表，由调用方给出「手动输入」兜底。
+  Future<List<String>> listSystemFontFamilies() async {
+    try {
+      final families = await rust_font.listSystemFontFamilies();
+      return families;
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  /// 设置默认字体（传空串清除）。整个家族共用这一个文件；
+  /// 引擎会对粗体字重做模拟加粗。
+  Future<bool> setDefaultPath(String path) async {
     _prefs ??= await SharedPreferences.getInstance();
     final normalizedPath = path.trim();
-    final nextPaths = Map<int, String>.from(_paths);
-    final nextFamilies = Map<int, String>.from(_families);
-    final key = _fontSettingKeys[weight]!;
+    final previousPath = _defaultPath;
+
+    if (normalizedPath.isEmpty) {
+      await _prefs!.remove(_fontDefaultKey);
+      await _deleteIfManaged(previousPath);
+      _defaultPath = null;
+      _defaultFamily = null;
+      notifyListeners();
+      return true;
+    }
+
+    final storedPath = await _copyToManagedFonts('default', normalizedPath);
+    final family = await _registerFont(storedPath, tag: 'default');
+    if (family == null) {
+      await _deleteIfManaged(storedPath);
+      return false;
+    }
+    await _prefs!.setString(_fontDefaultKey, storedPath);
+    if (previousPath != null && previousPath != storedPath) {
+      await _deleteIfManaged(previousPath);
+    }
+    _defaultPath = storedPath;
+    _defaultFamily = family;
+    notifyListeners();
+    return true;
+  }
+
+  /// 设置某字重的覆盖文件（传空串清除该字重的覆盖）。
+  Future<bool> setOverridePath(int weight, String path) async {
+    _prefs ??= await SharedPreferences.getInstance();
+    final normalizedPath = path.trim();
+    final key = _fontOverrideKeys[weight]!;
     final previousPath = _paths[weight];
 
     if (normalizedPath.isEmpty) {
+      final nextPaths = Map<int, String>.from(_paths);
+      final nextFamilies = Map<int, String>.from(_families);
       nextPaths.remove(weight);
       nextFamilies.remove(weight);
       await _prefs!.remove(key);
@@ -83,13 +256,15 @@ class FontProfileController extends ChangeNotifier {
       return true;
     }
 
-    final storedPath = await _copyToManagedFonts(weight, normalizedPath);
-    final family = await _registerFont(weight, storedPath);
+    final storedPath = await _copyToManagedFonts('w$weight', normalizedPath);
+    final family = await _registerFont(storedPath, tag: 'w$weight');
     if (family == null) {
       await _deleteIfManaged(storedPath);
       return false;
     }
 
+    final nextPaths = Map<int, String>.from(_paths);
+    final nextFamilies = Map<int, String>.from(_families);
     nextPaths[weight] = storedPath;
     nextFamilies[weight] = family;
     await _prefs!.setString(key, storedPath);
@@ -104,10 +279,20 @@ class FontProfileController extends ChangeNotifier {
 
   Future<void> clearAll() async {
     _prefs ??= await SharedPreferences.getInstance();
-    final managedPaths = _paths.values.toList(growable: false);
-    for (final key in _fontSettingKeys.values) {
+    final managedPaths = <String>[
+      ?_defaultPath,
+      ..._paths.values,
+    ];
+    await _prefs!.remove(_fontDefaultKey);
+    await _prefs!.remove(_fontModeKey);
+    await _prefs!.remove(_fontFamilyKey);
+    for (final key in _fontOverrideKeys.values) {
       await _prefs!.remove(key);
     }
+    _mode = modeSystem;
+    _systemFamily = '';
+    _defaultPath = null;
+    _defaultFamily = null;
     _paths = {};
     _families = {};
     for (final path in managedPaths) {
@@ -138,7 +323,13 @@ class FontProfileController extends ChangeNotifier {
 
   TextStyle? applyStyleForWeight(TextStyle? style, int weight) {
     if (style == null) return null;
-    final family = _families[weight] ?? _families[400] ?? '';
+    final family = resolveFontFamily(
+      defaultFamily: _effectiveDefaultFamily,
+      overrideFamilies: _families,
+      weight: FontWeight.values
+          .where((w) => w.value == weight)
+          .firstOrNull,
+    );
     if (family.isEmpty) return style;
     return style.copyWith(fontFamily: family);
   }
@@ -150,12 +341,12 @@ class FontProfileController extends ChangeNotifier {
     return style.copyWith(fontFamily: family);
   }
 
-  Future<String?> _registerFont(int weight, String path) async {
+  Future<String?> _registerFont(String path, {required String tag}) async {
     try {
       final file = File(path);
       if (!await file.exists()) return null;
       final bytes = await file.readAsBytes();
-      final family = 'user-font-$weight-${path.hashCode}';
+      final family = 'user-font-$tag-${path.hashCode}';
       final loader = FontLoader(family);
       loader.addFont(
         Future.value(
@@ -169,7 +360,7 @@ class FontProfileController extends ChangeNotifier {
     }
   }
 
-  Future<String> _copyToManagedFonts(int weight, String sourcePath) async {
+  Future<String> _copyToManagedFonts(String tag, String sourcePath) async {
     final fileRoot = await getFilePath();
     final fontsDir = Directory(p.join(fileRoot, 'fonts'));
     if (!await fontsDir.exists()) {
@@ -178,7 +369,7 @@ class FontProfileController extends ChangeNotifier {
 
     final originalName = p.basename(sourcePath);
     final sanitizedName = originalName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
-    final targetPath = p.join(fontsDir.path, 'w${weight}_$sanitizedName');
+    final targetPath = p.join(fontsDir.path, '${tag}_$sanitizedName');
     final sourceFile = File(sourcePath);
     final targetFile = File(targetPath);
 
@@ -204,19 +395,5 @@ class FontProfileController extends ChangeNotifier {
     if (await file.exists()) {
       await file.delete();
     }
-  }
-
-  int _normalizeWeight(FontWeight? weight) {
-    if (weight == null) return 400;
-    final value = weight.value;
-    if (value <= 100) return 100;
-    if (value == 200) return 200;
-    if (value == 300) return 300;
-    if (value == 400) return 400;
-    if (value == 500) return 500;
-    if (value == 600) return 600;
-    if (value == 700) return 700;
-    if (value == 800) return 800;
-    return 900;
   }
 }
