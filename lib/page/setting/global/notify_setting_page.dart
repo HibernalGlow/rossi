@@ -6,6 +6,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/service/notify/notify_topic.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 提示个性化：哪些**后台自己冒出来**的应用内提示允许打扰你。
 ///
@@ -30,10 +31,10 @@ class NotifySettingPage extends StatelessWidget {
           settingSectionTitle(
             context,
             t.settings.notifySectionAmbient,
-            icon: Icons.notifications_active_outlined,
+            icon: AppGlyphs.bell,
           ),
           SwitchListTile(
-            secondary: const Icon(Icons.notifications_off_outlined),
+            secondary: const GlyphIcon(AppGlyphs.bellOff),
             title: Text(t.settings.notifyMaster),
             subtitle: Text(t.settings.notifyMasterHint),
             thumbIcon: kSettingSwitchThumbIcon,
@@ -49,12 +50,12 @@ class NotifySettingPage extends StatelessWidget {
           // 安排好是合理操作，禁掉等于逼用户两步走。
           if (!setting.enabled)
             _Note(
-              icon: Icons.info_outline_rounded,
+              icon: AppGlyphs.info,
               text: t.settings.notifyMasterOffNote,
             ),
           for (final topic in NotifyTopic.ambientTopics)
             SwitchListTile(
-              secondary: Icon(_topicIcon(topic)),
+              secondary: GlyphIcon(_topicIcon(topic)),
               title: Text(topic.label),
               subtitle: Text(topic.hint),
               thumbIcon: kSettingSwitchThumbIcon,
@@ -65,32 +66,32 @@ class NotifySettingPage extends StatelessWidget {
           settingSectionTitle(
             context,
             t.settings.notifySectionOutside,
-            icon: Icons.block_outlined,
+            icon: AppGlyphs.block,
           ),
           _Note(
-            icon: Icons.touch_app_outlined,
+            icon: AppGlyphs.touch,
             text: '${NotifyTopic.action.label}：${NotifyTopic.action.hint}',
           ),
           _Note(
-            icon: Icons.auto_stories_outlined,
+            icon: AppGlyphs.openBook,
             text:
                 '${NotifyTopic.readerSwitch.label}：${NotifyTopic.readerSwitch.hint}',
           ),
           _Note(
-            icon: Icons.notifications_active_outlined,
+            icon: AppGlyphs.bell,
             text: t.settings.notifySystemChannelNote,
           ),
           const SizedBox(height: 16),
           SettingSectionCard(
             title: t.settings.notifyPersonalize,
-            icon: Icons.restart_alt_outlined,
+            icon: AppGlyphs.reset,
             children: [
               TextButton.icon(
                 onPressed: () {
                   cubit.updateNotifySetting((_) => const NotifySettingState());
                   showInfoToast(t.settings.toastResetDone, context: context);
                 },
-                icon: const Icon(Icons.restart_alt_outlined),
+                icon: const GlyphIcon(AppGlyphs.reset),
                 label: Text(t.settings.toastReset),
               ),
             ],
@@ -117,17 +118,17 @@ class NotifySettingPage extends StatelessWidget {
     });
   }
 
-  IconData _topicIcon(NotifyTopic topic) => switch (topic) {
-    NotifyTopic.syncAutoSuccess => Icons.cloud_done_outlined,
-    NotifyTopic.syncAutoFailure => Icons.cloud_off_outlined,
-    NotifyTopic.downloadComplete => Icons.download_done_outlined,
-    NotifyTopic.downloadFailed => Icons.download_outlined,
-    NotifyTopic.followUpdate => Icons.movie_filter_outlined,
-    NotifyTopic.pluginMessage => Icons.extension_outlined,
-    NotifyTopic.intentOpen => Icons.open_in_new,
-    NotifyTopic.systemPermission => Icons.admin_panel_settings_outlined,
-    NotifyTopic.action => Icons.touch_app_outlined,
-    NotifyTopic.readerSwitch => Icons.auto_stories_outlined,
+  Glyph _topicIcon(NotifyTopic topic) => switch (topic) {
+    NotifyTopic.syncAutoSuccess => AppGlyphs.cloudDone,
+    NotifyTopic.syncAutoFailure => AppGlyphs.wifiOff,
+    NotifyTopic.downloadComplete => AppGlyphs.downloadDone,
+    NotifyTopic.downloadFailed => AppGlyphs.download,
+    NotifyTopic.followUpdate => AppGlyphs.playCircle,
+    NotifyTopic.pluginMessage => AppGlyphs.puzzle,
+    NotifyTopic.intentOpen => AppGlyphs.openExternal,
+    NotifyTopic.systemPermission => AppGlyphs.shield,
+    NotifyTopic.action => AppGlyphs.touch,
+    NotifyTopic.readerSwitch => AppGlyphs.openBook,
   };
 }
 
@@ -138,13 +139,13 @@ class NotifySettingPage extends StatelessWidget {
 class _Note extends StatelessWidget {
   const _Note({required this.icon, required this.text});
 
-  final IconData icon;
+  final Glyph icon;
   final String text;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon, size: 20),
+      leading: GlyphIcon(icon, size: 20),
       title: Text(
         text,
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
