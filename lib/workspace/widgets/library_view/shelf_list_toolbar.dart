@@ -277,10 +277,10 @@ class _ShelfListToolbarState extends State<ShelfListToolbar> {
         isDense: true,
         hintText: widget.searchHint,
         // MD3 文本框的前后置图标是 24dp，不是压到 18。
-        prefixIcon: const Icon(Icons.search_rounded),
+        prefixIcon: const GlyphIcon(AppGlyphs.search),
         suffixIcon: IconButton(
           tooltip: '清除搜索并收起',
-          icon: const Icon(Icons.close_rounded),
+          icon: const GlyphIcon(AppGlyphs.close),
           onPressed: () {
             widget.searchController.clear();
             widget.onKeywordChanged('');

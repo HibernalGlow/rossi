@@ -9,6 +9,7 @@ import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/comic/comic_quick_read.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_reader_target.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 阅读器泳道**空态**：还没打开任何一本时的画板。
 ///
@@ -119,7 +120,7 @@ class _WorkspaceReaderEmptyCanvasState
               ),
             ),
             child: _EmptyBadge(
-              icon: Icons.auto_stories_outlined,
+              icon: AppGlyphs.openBook,
               iconColor: scheme.primary,
             ),
           ),
@@ -161,18 +162,18 @@ class _WorkspaceReaderEmptyCanvasState
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Icon(Icons.play_arrow_rounded, size: 18),
+                      : const GlyphIcon(AppGlyphs.play, size: 18),
                   label: const Text('继续阅读'),
                 ),
                 OutlinedButton.icon(
                   onPressed: _openLocalPicker,
-                  icon: const Icon(Icons.folder_open_rounded, size: 18),
+                  icon: const GlyphIcon(AppGlyphs.folder, size: 18),
                   label: const Text('打开本地漫画'),
                 ),
               ] else
                 FilledButton.icon(
                   onPressed: _openLocalPicker,
-                  icon: const Icon(Icons.folder_open_rounded, size: 18),
+                  icon: const GlyphIcon(AppGlyphs.folder, size: 18),
                   label: const Text('打开本地漫画'),
                 ),
             ],
@@ -234,7 +235,7 @@ class _WorkspaceReaderEmptyCanvasState
 class _EmptyBadge extends StatelessWidget {
   const _EmptyBadge({required this.icon, required this.iconColor});
 
-  final IconData icon;
+  final Glyph icon;
   final Color iconColor;
 
   @override
@@ -255,7 +256,7 @@ class _EmptyBadge extends StatelessWidget {
           ),
         ],
       ),
-      child: Icon(icon, size: 40, color: iconColor),
+      child: GlyphIcon(icon, size: 40, color: iconColor),
     );
   }
 }
@@ -275,8 +276,8 @@ class _LastReadCaption extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.schedule_rounded,
+          GlyphIcon(
+            AppGlyphs.clock,
             size: 14,
             color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
           ),

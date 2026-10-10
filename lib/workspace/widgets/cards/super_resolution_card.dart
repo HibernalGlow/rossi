@@ -3,6 +3,7 @@ import 'package:zephyr/page/comic_read/widgets/settings/sections/super_resolutio
 import 'package:zephyr/page/setting/real_sr/widgets/real_sr_model_management_section.dart';
 import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 「AI 超分辨率」卡片 —— 阅读设置「画面」那一排里的超分节搬进控制面板。
 ///
@@ -53,7 +54,7 @@ class SuperResolutionCard extends StatelessWidget {
     return CollapsibleCard(
       cardId: WorkspaceCardRegistry.superResolution,
       title: 'AI 超分辨率',
-      icon: Icons.auto_awesome_outlined,
+      icon: AppGlyphs.sparkle,
       isExpanded: isExpanded,
       onToggle: onToggle,
       onMoveUp: onMoveUp,

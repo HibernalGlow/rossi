@@ -5,6 +5,7 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 「切换提示」卡片 —— neoview「控制」面板的 `SwitchToastCard` 的 Flutter 重建。
 ///
@@ -90,7 +91,7 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
         const SizedBox(height: 4),
         _Section(
           title: '触发条件',
-          icon: Icons.notifications_active_rounded,
+          icon: AppGlyphs.bell,
           children: [
             _toggle(
               '切换书籍时显示提示',
@@ -119,7 +120,7 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
         ),
         _TemplateSection(
           title: '书籍提示模板',
-          icon: Icons.menu_book_rounded,
+          icon: AppGlyphs.book,
           titleLabel: '书籍标题模板',
           titleValue: setting.bookTitleTemplate,
           titlePlaceholder: '例如：已切换到 {{book.displayName}}',
@@ -138,7 +139,7 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
         ),
         _TemplateSection(
           title: '页面提示模板',
-          icon: Icons.image_rounded,
+          icon: AppGlyphs.photos,
           titleLabel: '页面标题模板',
           titleValue: setting.pageTitleTemplate,
           titlePlaceholder: '例如：第 {{page.indexDisplay}} 页',
@@ -161,7 +162,7 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
         ),
         _Section(
           title: '边界提示文案',
-          icon: Icons.last_page_rounded,
+          icon: AppGlyphs.chevronForward,
           children: [
             const SizedBox(height: 2),
             _DraftField(
@@ -190,7 +191,7 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
     return CollapsibleCard(
       cardId: WorkspaceCardRegistry.switchToast,
       title: '切换提示',
-      icon: Icons.notifications_active_rounded,
+      icon: AppGlyphs.bell,
       isExpanded: widget.isExpanded,
       onToggle: widget.onToggle,
       onMoveUp: widget.onMoveUp,
@@ -213,7 +214,7 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
 
 class _Section extends StatelessWidget {
   final String title;
-  final IconData icon;
+  final Glyph icon;
   final List<Widget> children;
 
   const _Section({
@@ -232,7 +233,7 @@ class _Section extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 14, color: theme.colorScheme.primary),
+              GlyphIcon(icon, size: 14, color: theme.colorScheme.primary),
               const SizedBox(width: 4),
               Text(
                 title,
@@ -254,7 +255,7 @@ class _Section extends StatelessWidget {
 
 class _TemplateSection extends StatelessWidget {
   final String title;
-  final IconData icon;
+  final Glyph icon;
   final String titleLabel;
   final String titleValue;
   final String titlePlaceholder;

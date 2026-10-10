@@ -195,10 +195,13 @@ extension _FileManagerCardTreePart on _FileManagerCardState {
                 iconSize: 16,
                 tooltip: row.expanded ? '收起' : '展开',
                 onPressed: _busy ? null : () => _toggleTreeNode(row.path),
-                icon: Icon(
-                  row.expanded
-                      ? Icons.expand_more_rounded
-                      : Icons.chevron_right_rounded,
+                // 展开/收起是同一颗箭头转 90°（chevronForward → chevronDown），
+                // 不是两颗图标 —— 词表铁律：同一语义只许一颗。
+                icon: MorphingGlyph(
+                  on: row.expanded,
+                  glyph: AppGlyphs.chevronForward,
+                  turns: 0.25,
+                  size: 16,
                 ),
               ),
       ),
@@ -212,8 +215,8 @@ extension _FileManagerCardTreePart on _FileManagerCardState {
       ),
       trailing: row.error == null
           ? null
-          : Icon(
-              Icons.error_outline_rounded,
+          : GlyphIcon(
+              AppGlyphs.error,
               size: 14,
               color: theme.colorScheme.error,
             ),

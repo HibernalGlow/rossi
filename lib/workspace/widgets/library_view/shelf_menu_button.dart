@@ -103,7 +103,7 @@ class ShelfMenuItem extends StatelessWidget {
     this.destructive = false,
   }) : assert(
          glyph == null || icon == null,
-         '图标只给一个：glyph（Glyph）或 icon（IconData）',
+         '图标只给一个：glyph（Glyph）或 icon（Glyph）',
        );
 
   final String label;
@@ -115,7 +115,7 @@ class ShelfMenuItem extends StatelessWidget {
   /// Material 的兜底 —— glyph 词表里没有对应符号的动作（如「打开」的书）
   /// 暂走 icon，等词表补齐再换。不给就没有这一列。
   final Glyph? glyph;
-  final IconData? icon;
+  final Glyph? icon;
 
   /// 单选菜单里当前选中的那一项。勾一律画在**右侧**：这一层只有一条规则，
   /// 「有勾的就是当前值」，不需要按有没有前置图标换位置。
@@ -134,9 +134,9 @@ class ShelfMenuItem extends StatelessWidget {
           ? GlyphIcon(glyph, size: 24, color: color)
           : icon == null
           ? null
-          : Icon(icon, size: 24, color: color),
+          : GlyphIcon(icon!, size: 24, color: color),
       trailingIcon: selected
-          ? Icon(Icons.check_rounded, size: 24, color: color)
+          ? GlyphIcon(AppGlyphs.check, size: 24, color: color)
           : null,
       child: Text(label, style: TextStyle(color: color)),
     );

@@ -7,6 +7,7 @@ import 'package:zephyr/src/rust/api/memory.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/cards/info_card_kit.dart';
 import 'package:path/path.dart' as p;
+import 'package:zephyr/icons/icons.dart';
 
 /// 存储信息卡（对齐 Neo 的 `storage-information`）：
 /// 来源根路径 / 归档类型 / 页表总量 + Rust 侧内存占用。
@@ -103,7 +104,7 @@ class _StorageInformationCardState extends State<StorageInformationCard> {
         return CollapsibleCard(
           cardId: 'storage_information',
           title: '存储信息',
-          icon: Icons.sd_storage_rounded,
+          icon: AppGlyphs.storage,
           isExpanded: widget.isExpanded,
           onToggle: widget.onToggle,
           onMoveUp: widget.onMoveUp,
@@ -111,10 +112,7 @@ class _StorageInformationCardState extends State<StorageInformationCard> {
           onHide: widget.onHide,
           child: hasSession
               ? _buildRows(source)
-              : const InfoEmpty(
-                  icon: Icons.inventory_2_outlined,
-                  text: '打开书本后显示存储信息',
-                ),
+              : const InfoEmpty(icon: AppGlyphs.box, text: '打开书本后显示存储信息'),
         );
       },
     );

@@ -6,6 +6,7 @@ import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/cards/info_card_kit.dart';
 import 'package:zephyr/workspace/widgets/cards/page_list_row_anchor.dart';
+import 'package:zephyr/icons/icons.dart';
 
 enum PageListViewMode { thumbnails, details, list }
 
@@ -181,7 +182,7 @@ class _PageListCardState extends State<PageListCard> {
         return CollapsibleCard(
           cardId: WorkspaceCardRegistry.pageList,
           title: '页面导航 (${hasSession ? "$totalPages P" : "空闲"})',
-          icon: Icons.view_carousel_rounded,
+          icon: AppGlyphs.cardMedium,
           isExpanded: widget.isExpanded,
           onToggle: widget.onToggle,
           onMoveUp: widget.onMoveUp,
@@ -207,8 +208,8 @@ class _PageListCardState extends State<PageListCard> {
     final emptyWidget = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          Icons.auto_stories_outlined,
+        GlyphIcon(
+          AppGlyphs.openBook,
           size: 38,
           color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
         ),
@@ -300,7 +301,7 @@ class _PageListCardState extends State<PageListCard> {
                         fontSize: 11,
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
-                      prefixIcon: const Icon(Icons.search, size: 16),
+                      prefixIcon: const GlyphIcon(AppGlyphs.search, size: 16),
                       contentPadding: EdgeInsets.zero,
                       filled: true,
                       fillColor: theme.colorScheme.surfaceContainerHighest
@@ -333,7 +334,7 @@ class _PageListCardState extends State<PageListCard> {
                     _followProgress = !_followProgress;
                   });
                 },
-                icon: const Icon(Icons.gps_fixed_rounded),
+                icon: const GlyphIcon(AppGlyphs.target),
               ),
               // 模式切换
               IconButton(
@@ -341,7 +342,7 @@ class _PageListCardState extends State<PageListCard> {
                 visualDensity: VisualDensity.compact,
                 tooltip: '视图模式',
                 onPressed: _cycleViewMode,
-                icon: Icon(_getViewModeIcon()),
+                icon: GlyphIcon(_getViewModeIcon()),
               ),
             ],
           ),
@@ -440,14 +441,14 @@ class _PageListCardState extends State<PageListCard> {
     _followCurrent(force: true);
   }
 
-  IconData _getViewModeIcon() {
+  Glyph _getViewModeIcon() {
     switch (_viewMode) {
       case PageListViewMode.thumbnails:
-        return Icons.grid_view_rounded;
+        return AppGlyphs.dashboard;
       case PageListViewMode.details:
-        return Icons.view_agenda_rounded;
+        return AppGlyphs.viewAgenda;
       case PageListViewMode.list:
-        return Icons.view_list_rounded;
+        return AppGlyphs.layoutList;
     }
   }
 
@@ -746,8 +747,8 @@ class _PageListCardState extends State<PageListCard> {
                 ),
               ),
               if (isActive)
-                Icon(
-                  Icons.check_circle_rounded,
+                GlyphIcon(
+                  AppGlyphs.checkCircle,
                   size: 14,
                   color: theme.colorScheme.onSecondaryContainer,
                 ),

@@ -5,6 +5,7 @@ import 'package:zephyr/cubit/string_select.dart';
 import 'package:zephyr/gpu/local_file_tree_sheet.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 真实本地漫画目录卡片（支持直接选择本地文件夹并使用 Breeze 原版阅读器/GPU 零拷贝打开）
 class LocalFolderCard extends StatelessWidget {
@@ -32,7 +33,7 @@ class LocalFolderCard extends StatelessWidget {
     return CollapsibleCard(
       cardId: 'local_folder',
       title: '本地漫画 (Local Manga)',
-      icon: Icons.folder_copy_rounded,
+      icon: AppGlyphs.folderCopy,
       isExpanded: isExpanded,
       onToggle: onToggle,
       onMoveUp: onMoveUp,
@@ -40,7 +41,7 @@ class LocalFolderCard extends StatelessWidget {
       onHide: onHide,
       trailing: FilledButton.tonalIcon(
         onPressed: () => _openLocalPicker(context),
-        icon: const Icon(Icons.folder_open_rounded, size: 16),
+        icon: const GlyphIcon(AppGlyphs.folder, size: 16),
         label: const Text('打开本地'),
         style: FilledButton.styleFrom(
           visualDensity: VisualDensity.compact,
@@ -64,8 +65,8 @@ class LocalFolderCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(
-                      Icons.bolt_rounded,
+                    GlyphIcon(
+                      AppGlyphs.bolt,
                       size: 18,
                       color: theme.colorScheme.primary,
                     ),
@@ -90,8 +91,8 @@ class LocalFolderCard extends StatelessWidget {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: () => _openLocalPicker(context),
-                    icon: const Icon(
-                      Icons.drive_folder_upload_rounded,
+                    icon: const GlyphIcon(
+                      AppGlyphs.importFile,
                       size: 16,
                     ),
                     label: const Text('从本地磁盘选择漫画文件夹'),

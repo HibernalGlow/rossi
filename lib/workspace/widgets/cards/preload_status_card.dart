@@ -6,6 +6,7 @@ import 'package:zephyr/reader/super_resolution_status.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/cards/info_card_kit.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 预加载状态卡（对齐 Neo 的 `preload-status`）：
 /// 呈现器就绪状态、已呈现页数、最近一次交页耗时、当前页超分阶段。
@@ -46,7 +47,7 @@ class PreloadStatusCard extends StatelessWidget {
         return CollapsibleCard(
           cardId: 'preload_status',
           title: '预加载状态',
-          icon: Icons.bolt_rounded,
+          icon: AppGlyphs.bolt,
           isExpanded: isExpanded,
           onToggle: onToggle,
           onMoveUp: onMoveUp,
@@ -59,10 +60,7 @@ class PreloadStatusCard extends StatelessWidget {
                 )
               : null,
           child: !hasSession
-              ? const InfoEmpty(
-                  icon: Icons.bolt_rounded,
-                  text: '打开书本后显示呈现与预取状态',
-                )
+              ? const InfoEmpty(icon: AppGlyphs.bolt, text: '打开书本后显示呈现与预取状态')
               : _buildRows(coordinator, presenter),
         );
       },

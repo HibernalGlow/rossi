@@ -4,6 +4,7 @@ import 'package:zephyr/workspace/model/history_insights.dart';
 import 'package:zephyr/workspace/model/shelf_library_query.dart';
 import 'package:zephyr/workspace/widgets/cards/history_insights_window.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 来源拆分（neoview `SourceBreakdownCard` 的同位物）。
 ///
@@ -33,7 +34,7 @@ class SourceBreakdownCard extends StatelessWidget {
     return CollapsibleCard(
       cardId: 'source_breakdown',
       title: '来源拆分',
-      icon: Icons.pie_chart_outline_rounded,
+      icon: AppGlyphs.pieChart,
       isExpanded: isExpanded,
       onToggle: onToggle,
       onMoveUp: onMoveUp,

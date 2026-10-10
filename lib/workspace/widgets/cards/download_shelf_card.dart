@@ -5,6 +5,7 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 真实下载卡片（监听 ObjectBox 下载任务库与已下载离线统计）
 class DownloadShelfCard extends StatelessWidget {
@@ -85,7 +86,7 @@ class DownloadShelfCard extends StatelessWidget {
                       context,
                       '已离线漫画',
                       '$downloadedCount 本',
-                      Icons.inventory_2_outlined,
+                      AppGlyphs.box,
                       onTap: () => context.pushRoute(const DownloadTaskRoute()),
                     ),
                     Container(
@@ -99,7 +100,7 @@ class DownloadShelfCard extends StatelessWidget {
                       context,
                       '进行中任务',
                       '${activeTasks.length + pendingTasks.length} 个',
-                      Icons.downloading_rounded,
+                      AppGlyphs.downloading,
                     ),
                   ],
                 ),
@@ -119,7 +120,7 @@ class DownloadShelfCard extends StatelessWidget {
                     TextButton.icon(
                       onPressed: () =>
                           context.pushRoute(const DownloadTaskRoute()),
-                      icon: const Icon(Icons.open_in_new_rounded, size: 14),
+                      icon: const GlyphIcon(AppGlyphs.openExternal, size: 14),
                       label: const Text('全部管理'),
                       style: TextButton.styleFrom(
                         visualDensity: VisualDensity.compact,
@@ -155,7 +156,7 @@ class DownloadShelfCard extends StatelessWidget {
                     context,
                     '已离线漫画',
                     '$downloadedCount 本',
-                    Icons.inventory_2_outlined,
+                    AppGlyphs.box,
                     onTap: () => context.pushRoute(const DownloadTaskRoute()),
                   ),
                   Container(
@@ -169,7 +170,7 @@ class DownloadShelfCard extends StatelessWidget {
                     context,
                     '进行中任务',
                     '${activeTasks.length + pendingTasks.length} 个',
-                    Icons.downloading_rounded,
+                    AppGlyphs.downloading,
                   ),
                 ],
               ),
@@ -215,7 +216,7 @@ class DownloadShelfCard extends StatelessWidget {
     return CollapsibleCard(
       cardId: 'download',
       title: '下载与离线 (Downloads)',
-      icon: Icons.download_done_rounded,
+      icon: AppGlyphs.downloadDone,
       isExpanded: isExpanded,
       onToggle: onToggle,
       onMoveUp: onMoveUp,
@@ -223,7 +224,7 @@ class DownloadShelfCard extends StatelessWidget {
       onHide: onHide,
       trailing: TextButton.icon(
         onPressed: () => context.pushRoute(const DownloadTaskRoute()),
-        icon: const Icon(Icons.open_in_new_rounded, size: 14),
+        icon: const GlyphIcon(AppGlyphs.openExternal, size: 14),
         label: const Text('管理'),
         style: TextButton.styleFrom(
           visualDensity: VisualDensity.compact,
@@ -238,13 +239,13 @@ class DownloadShelfCard extends StatelessWidget {
     BuildContext context,
     String label,
     String value,
-    IconData icon, {
+    Glyph icon, {
     VoidCallback? onTap,
   }) {
     final theme = Theme.of(context);
     final row = Row(
       children: [
-        Icon(icon, size: 20, color: theme.colorScheme.primary),
+        GlyphIcon(icon, size: 20, color: theme.colorScheme.primary),
         const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,

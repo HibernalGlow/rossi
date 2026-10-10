@@ -8,6 +8,7 @@ import 'package:zephyr/workspace/registry/workspace_panel_registry.dart';
 import 'package:zephyr/workspace/router/workspace_lane_dispatch.dart';
 import 'package:zephyr/workspace/widgets/containers/embedded_upstream_page.dart';
 import 'package:zephyr/workspace/widgets/panels/panel_card_list.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// **一条面板泳道的内容宿主**：只画「当前面板是什么」。
 ///
@@ -155,81 +156,215 @@ class _LanePanelHostState extends State<LanePanelHost> {
 ///
 /// 注意：这是**面板**的标题行，不是泳道的顶栏 —— 泳道顶栏在 `SwimlaneColumn`。
 class PanelHeaderBar extends StatelessWidget {
-  const PanelHeaderBar({super.key, required this.panelId, required this.board});
+  const PanelHeaderBar({
+    super.key,
+    required this.panelId,
+    required this.board,
+    required this.isEditing,
+    required this.onToggleEditing,
+  });
 
   final String panelId;
   final WorkspaceBoardLayout board;
+  final bool isEditing;
+  final VoidCallback onToggleEditing;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final cubit = context.read<WorkspaceCubit>();
     final panel = WorkspacePanelRegistry.I.find(panelId);
     final hidden = WorkspaceCardRegistry.I.hiddenCardsForPanel(panelId, board);
     if (panel == null) return const SizedBox.shrink();
 
-    return Container(
-      height: 32,
-      padding: const EdgeInsets.only(left: 12, right: 6),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(panel.icon, size: 14, color: theme.colorScheme.primary),
-          const SizedBox(width: 7),
-          Expanded(
-            child: Text(
-              panel.title,
-              style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final iconOnly = width < 360;
+        final showHiddenCount = width >= 420;
+
+        final hiddenButton = FluentPopupMenuButton<String>(
+          tooltip: '恢复被收起的卡片',
+          onSelected: (cardId) => cubit.setCardVisible(cardId, true),
+          itemBuilder: (context) => [
+            for (final card in hidden)
+              FluentPopupMenuItem<String>(
+                value: card.id,
+                leading: GlyphIcon(card.icon, size: 18, color: scheme.primary),
+                title: Text(card.title, style: theme.textTheme.bodySmall),
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          ],
+          child: Container(
+            width: showHiddenCount ? 52 : 40,
+            height: 36,
+            padding: EdgeInsets.symmetric(horizontal: showHiddenCount ? 8 : 0),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(14),
             ),
-          ),
-          if (hidden.isNotEmpty)
-            FluentPopupMenuButton<String>(
-              tooltip: '恢复被收起的卡片',
-              onSelected: (cardId) => cubit.setCardVisible(cardId, true),
-              itemBuilder: (context) => [
-                for (final card in hidden)
-                  FluentPopupMenuItem<String>(
-                    value: card.id,
-                    leading: Icon(
-                      card.icon,
-                      size: 16,
-                      color: theme.colorScheme.primary,
+            child: Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                GlyphIcon(
+                  AppGlyphs.eyeOff,
+                  size: 19,
+                  color: scheme.onSurfaceVariant,
+                ),
+                Positioned(
+                  right: showHiddenCount ? -2 : -5,
+                  top: -4,
+                  child: Container(
+                    constraints: const BoxConstraints(minWidth: 16),
+                    height: 16,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: scheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    title: Text(card.title, style: theme.textTheme.bodySmall),
-                  ),
-              ],
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.visibility_off_rounded,
-                      size: 13,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 3),
-                    Text(
+                    child: Text(
                       '${hidden.length}',
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                        color: scheme.onSecondaryContainer,
+                        fontWeight: FontWeight.w700,
+                        height: 1,
                       ),
                     ),
-                  ],
+                  ),
                 ),
+              ],
+            ),
+          ),
+        );
+
+        final editButton = iconOnly
+            ? Tooltip(
+                message: isEditing ? '完成布局' : '自定义布局',
+                child: IconButton.filledTonal(
+                  onPressed: onToggleEditing,
+                  icon: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 220),
+                    reverseDuration: const Duration(milliseconds: 140),
+                    switchInCurve: Curves.easeOutBack,
+                    switchOutCurve: Curves.easeIn,
+                    child: GlyphIcon(
+                      isEditing ? AppGlyphs.checkCircle : AppGlyphs.gridPlus,
+                      key: ValueKey<bool>(isEditing),
+                      size: 19,
+                    ),
+                  ),
+                  style: IconButton.styleFrom(
+                    minimumSize: const Size.square(36),
+                    fixedSize: const Size.square(36),
+                    padding: EdgeInsets.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    backgroundColor: isEditing
+                        ? scheme.primaryContainer
+                        : scheme.secondaryContainer,
+                    foregroundColor: isEditing
+                        ? scheme.onPrimaryContainer
+                        : scheme.onSecondaryContainer,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(isEditing ? 16 : 14),
+                    ),
+                  ),
+                ),
+              )
+            : FilledButton.tonalIcon(
+                onPressed: onToggleEditing,
+                icon: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  reverseDuration: const Duration(milliseconds: 140),
+                  switchInCurve: Curves.easeOutBack,
+                  switchOutCurve: Curves.easeIn,
+                  child: GlyphIcon(
+                    isEditing ? AppGlyphs.checkCircle : AppGlyphs.gridPlus,
+                    key: ValueKey<bool>(isEditing),
+                    size: 18,
+                  ),
+                ),
+                label: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 180),
+                  child: Text(
+                    isEditing ? '完成布局' : '自定义布局',
+                    key: ValueKey<bool>(isEditing),
+                  ),
+                ),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 36),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  backgroundColor: isEditing
+                      ? scheme.primaryContainer
+                      : scheme.secondaryContainer,
+                  foregroundColor: isEditing
+                      ? scheme.onPrimaryContainer
+                      : scheme.onSecondaryContainer,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(isEditing ? 16 : 14),
+                  ),
+                ),
+              );
+
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOutCubic,
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: isEditing
+                ? scheme.primaryContainer.withValues(alpha: 0.28)
+                : scheme.surfaceContainer,
+            border: Border(
+              bottom: BorderSide(
+                color: isEditing
+                    ? scheme.primary.withValues(alpha: 0.42)
+                    : scheme.outlineVariant.withValues(alpha: 0.28),
               ),
             ),
-        ],
-      ),
+          ),
+          child: Row(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeOutBack,
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: isEditing ? scheme.primary : scheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(isEditing ? 14 : 11),
+                ),
+                child: GlyphIcon(
+                  panel.icon,
+                  size: 18,
+                  color: isEditing
+                      ? scheme.onPrimary
+                      : scheme.onPrimaryContainer,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  panel.title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.05,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (hidden.isNotEmpty) ...[
+                hiddenButton,
+                const SizedBox(width: 6),
+              ],
+              editButton,
+            ],
+          ),
+        );
+      },
     );
   }
 }

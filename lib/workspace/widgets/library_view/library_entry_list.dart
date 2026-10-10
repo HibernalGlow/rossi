@@ -4,6 +4,7 @@ import 'package:zephyr/workspace/widgets/library_view/library_entry.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_entry_surface.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view_layout.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view_mode.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 六档视图的宿主。对应 neoview 的 `ReaderLibraryList`：
 /// 只负责「按当前视图模式把行排出来 + 边框 + 忙遮罩 + 空态」，
@@ -265,10 +266,10 @@ class LibraryEntryList extends StatelessWidget {
             ),
             if (isActive) ...[
               const SizedBox(width: 2),
-              Icon(
+              GlyphIcon(
                 sortAscending
-                    ? Icons.arrow_upward_rounded
-                    : Icons.arrow_downward_rounded,
+                    ? AppGlyphs.arrowUp
+                    : AppGlyphs.arrowDown,
                 size: 13,
                 color: theme.colorScheme.primary,
               ),
