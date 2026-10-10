@@ -7,6 +7,7 @@ import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/widgets/image_sleep.dart';
 import 'package:zephyr/widgets/picture_bloc/bloc/picture_bloc.dart';
 import 'package:zephyr/widgets/picture_bloc/models/picture_info.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class UserAvatar extends StatelessWidget {
   final PictureInfo pictureInfo;
@@ -68,7 +69,7 @@ class UserAvatar extends StatelessWidget {
                   onTap: () {
                     context.read<PictureBloc>().add(GetPicture(pictureInfo));
                   },
-                  child: Icon(Icons.refresh),
+                  child: GlyphIcon(AppGlyphs.refresh),
                 );
             }
           },

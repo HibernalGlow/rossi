@@ -4,6 +4,7 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/discover/service/plugin_display_label.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
 import 'package:zephyr/util/json/json_value.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 一条标签的内容规格。塞进 `PlatLeaf.data`，`leafBuilder` 按它分发。
 @immutable
@@ -27,7 +28,7 @@ class DiscoverLeafSpec {
   final String iconUrl;
 
   /// 没有插件来源时标签上画的那颗图标。
-  final IconData? icon;
+  final Glyph? icon;
 
   final WidgetBuilder content;
 
@@ -193,7 +194,7 @@ class DiscoverTabs {
     required String label,
     required String source,
     required WidgetBuilder content,
-    IconData? icon,
+    Glyph? icon,
   }) {
     final trimmed = label.trim();
     final (pluginName, iconUrl) = _pluginDisplay(source);
