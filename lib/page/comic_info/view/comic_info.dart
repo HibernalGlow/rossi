@@ -1209,7 +1209,7 @@ class _EpisodeHeaderBadge extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
+              GlyphIcon(
                 icon,
                 size: 18,
                 color: context.textColor.withValues(alpha: 0.75),
