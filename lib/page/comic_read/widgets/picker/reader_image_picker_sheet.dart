@@ -10,6 +10,7 @@ import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/widgets/full_screen_image_view.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 Future<void> showReaderImagePickerSheet(
   BuildContext context, {
@@ -329,7 +330,7 @@ class _ReaderImagePickerSheetState extends State<_ReaderImagePickerSheet> {
       padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
       child: Row(
         children: [
-          const Icon(Icons.checklist_rounded, size: 24),
+          const GlyphIcon(AppGlyphs.checklist, size: 24),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -360,23 +361,23 @@ class _ReaderImagePickerSheetState extends State<_ReaderImagePickerSheet> {
             tooltip: isAllSelected ? t.reader.deselectAll : t.reader.selectAll,
             icon: Icon(
               isAllSelected
-                  ? Icons.check_box_rounded
-                  : Icons.select_all_rounded,
+                  ? AppGlyphs.checkBox
+                  : AppGlyphs.selectAll,
             ),
             onPressed: _items.isEmpty ? null : _toggleSelectAll,
           ),
           IconButton(
             tooltip: t.reader.invertSelection,
-            icon: const Icon(Icons.flip_rounded),
+            icon: const GlyphIcon(AppGlyphs.flip),
             onPressed: _items.isEmpty ? null : _invertSelection,
           ),
           IconButton(
             tooltip: t.reader.rangeSelect,
-            icon: const Icon(Icons.tune_rounded),
+            icon: const GlyphIcon(AppGlyphs.sliders),
             onPressed: _items.isEmpty ? null : _showRangeSelectDialog,
           ),
           IconButton(
-            icon: const Icon(Icons.close_rounded),
+            icon: const GlyphIcon(AppGlyphs.close),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ],
@@ -488,14 +489,14 @@ class _ReaderImagePickerSheetState extends State<_ReaderImagePickerSheet> {
         alignment: WrapAlignment.end,
         children: [
           OutlinedButton.icon(
-            icon: const Icon(Icons.download_rounded, size: 18),
+            icon: const GlyphIcon(AppGlyphs.download, size: 18),
             label: Text(t.reader.downloadSelected),
             onPressed: hasSelection
                 ? () => _executeExport(ReaderExportAction.downloadSelected)
                 : null,
           ),
           OutlinedButton.icon(
-            icon: const Icon(Icons.archive_outlined, size: 18),
+            icon: const GlyphIcon(AppGlyphs.archive, size: 18),
             label: Text(t.reader.exportZip),
             onPressed: hasSelection
                 ? () => _executeExport(ReaderExportAction.exportZip)
@@ -504,8 +505,8 @@ class _ReaderImagePickerSheetState extends State<_ReaderImagePickerSheet> {
           FilledButton.icon(
             icon: Icon(
               isMobile
-                  ? Icons.photo_library_outlined
-                  : Icons.folder_open_outlined,
+                  ? AppGlyphs.photos
+                  : AppGlyphs.folder,
               size: 18,
             ),
             label: Text(
@@ -603,7 +604,7 @@ class _PickerTileState extends State<_PickerTile> {
               )
             else
               const Center(
-                child: Icon(Icons.image_outlined, size: 28, color: Colors.grey),
+                child: GlyphIcon(AppGlyphs.photos, size: 28, color: Colors.grey),
               ),
             if (isSelected)
               Container(
@@ -642,7 +643,7 @@ class _PickerTileState extends State<_PickerTile> {
                 ),
                 padding: const EdgeInsets.all(2),
                 child: Icon(
-                  isSelected ? Icons.check : Icons.circle_outlined,
+                  isSelected ? AppGlyphs.check : Icons.circle_outlined,
                   size: 16,
                   color: Colors.white,
                 ),

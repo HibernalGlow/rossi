@@ -51,7 +51,7 @@ class _MediaFormatSectionState extends State<_MediaFormatSection> {
   Widget build(BuildContext context) {
     return SettingsSection(
       title: t.video.mediaSection,
-      icon: Icons.folder_copy_rounded,
+      icon: AppGlyphs.folderCopy,
       children: [
         SettingsCardGroup(
           children: [

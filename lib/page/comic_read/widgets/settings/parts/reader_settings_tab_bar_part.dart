@@ -18,11 +18,11 @@ enum _ReaderSettingsTab { read, gesture, screen, picture, translate }
 
 extension _ReaderSettingsTabLabel on _ReaderSettingsTab {
   IconData get icon => switch (this) {
-    _ReaderSettingsTab.read => Icons.auto_stories_outlined,
-    _ReaderSettingsTab.gesture => Icons.touch_app_outlined,
-    _ReaderSettingsTab.screen => Icons.dashboard_customize_outlined,
-    _ReaderSettingsTab.picture => Icons.high_quality_outlined,
-    _ReaderSettingsTab.translate => Icons.translate_outlined,
+    _ReaderSettingsTab.read => AppGlyphs.openBook,
+    _ReaderSettingsTab.gesture => AppGlyphs.touch,
+    _ReaderSettingsTab.screen => AppGlyphs.gridPlus,
+    _ReaderSettingsTab.picture => AppGlyphs.quality,
+    _ReaderSettingsTab.translate => AppGlyphs.translate,
   };
 
   String get label => switch (this) {
@@ -164,7 +164,7 @@ class _ReaderSettingsHeader extends StatelessWidget {
               ),
               IconButton(
                 tooltip: t.common.close,
-                icon: const Icon(Icons.close, size: 20),
+                icon: const GlyphIcon(AppGlyphs.close, size: 20),
                 style: IconButton.styleFrom(
                   backgroundColor: colorScheme.surfaceContainerHighest
                       .withValues(alpha: 0.4),

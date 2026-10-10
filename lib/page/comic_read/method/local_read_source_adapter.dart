@@ -8,6 +8,7 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_book_scope.dart';
+import 'package:zephyr/page/setting/real_sr/service/sr_session_guard.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/translated_page_controller.dart';
 import 'package:zephyr/reader/local_page_source.dart';
@@ -17,6 +18,7 @@ import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/util/path_util.dart';
 import 'package:zephyr/video/model/animated_video_mode.dart';
 import 'package:zephyr/video/model/video_media_kind.dart';
+import 'package:zephyr/video/service/video_materializer.dart';
 import 'package:zephyr/video/service/video_poster_service.dart';
 import 'package:zephyr/video/service/video_waveform_service.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
@@ -76,6 +78,12 @@ class LocalReadSession {
     // 换章（上面 `setSource` 那条 `reset()`）**不**跟着交 —— 人还在读，下一张多半还要译，
     // 那一页省下的 ~2 s 才是应得的。
     OcrService.instance.releaseSessions();
+    // 超分两条原生引擎的模型同理：mImage ONNX 的 CoreML/DirectML 会话与
+    // CoreML 插件的 MLModel 在读书期间跨页复用，人走了就交还
+    // （Rust 侧另有 10 分钟空闲清扫兜底，这里是「退出即还」的快路径）。
+    // 视频物化账本一并清：4 GiB 磁盘额度不该陪着一个已经关掉的书。
+    unawaited(SrSessionGuard.release());
+    unawaited(VideoMaterializer.shared.clearAll());
     // 先摘走旧引用，再异步释放；换书期间不能把新来源/新纹理一并清掉。
     presenter?.dispose();
     // 呈现器**没了之后**再撤「当前这本书」：反过来的话，还活着的呈现器会收到一条

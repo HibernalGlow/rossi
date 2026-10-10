@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 /// 顶栏二级面板的名单。
@@ -156,7 +157,7 @@ class ReaderToolbarLabel extends StatelessWidget {
 /// 悬停/按压的水波纹由 `IconButton` 按角色自己算，之前手写 `InkWell` 时
 /// 这层是没有的。
 class ReaderToolbarIconButton extends StatelessWidget {
-  final IconData icon;
+  final Glyph icon;
   final String tooltip;
   final bool selected;
   final bool enabled;
@@ -233,14 +234,15 @@ class ReaderToolbarIconButton extends StatelessWidget {
           return Colors.transparent;
         }),
       ),
-      icon: Icon(icon),
+      // 选中态除了底色还有填充：fill 0→1 涨成实心，与侧栏同一口径。
+      icon: AnimatedGlyph(glyph: icon, filled: selected),
     );
   }
 }
 
 /// neo 主行上有、本仓还没有对应能力的那几颗占位按钮。
 class ReaderToolbarComingSoonButton extends StatelessWidget {
-  final IconData icon;
+  final Glyph icon;
   final String name;
 
   const ReaderToolbarComingSoonButton({
@@ -264,7 +266,7 @@ class ReaderToolbarComingSoonButton extends StatelessWidget {
 /// 开 = `secondaryContainer` 实色底；关 = 只描一条 `outline`。
 /// 两态只差**一处**（底色 vs 描边），不要既填主色又描主色。
 class ReaderToolbarToggleChip extends StatelessWidget {
-  final IconData icon;
+  final Glyph icon;
   final String tooltip;
 
   /// null 或空串 = 只画图标（窄档把文字收成图标）。
@@ -335,7 +337,7 @@ class ReaderToolbarToggleChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: ReaderToolbarMetrics.iconSize, color: fg),
+              GlyphIcon(icon, size: ReaderToolbarMetrics.iconSize, color: fg),
               if (hasLabel) ...[
                 const SizedBox(width: 6),
                 Text(

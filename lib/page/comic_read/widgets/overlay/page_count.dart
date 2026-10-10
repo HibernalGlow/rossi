@@ -9,6 +9,7 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class PageCountWidget extends StatefulWidget {
   final String epPages;
@@ -82,18 +83,18 @@ class _PageCountWidgetState extends State<PageCountWidget> {
     } catch (_) {}
   }
 
-  IconData getBatteryIcon() {
+  Glyph getBatteryIcon() {
     if (_batteryState == BatteryState.charging) {
-      return Icons.battery_charging_full;
+      return AppGlyphs.batteryCharging;
     }
-    if (_batteryLevel >= 95) return Icons.battery_full;
-    if (_batteryLevel >= 80) return Icons.battery_6_bar;
-    if (_batteryLevel >= 60) return Icons.battery_5_bar;
-    if (_batteryLevel >= 50) return Icons.battery_4_bar;
-    if (_batteryLevel >= 30) return Icons.battery_3_bar;
-    if (_batteryLevel >= 20) return Icons.battery_2_bar;
-    if (_batteryLevel >= 10) return Icons.battery_1_bar;
-    return Icons.battery_alert;
+    if (_batteryLevel >= 95) return AppGlyphs.battery6;
+    if (_batteryLevel >= 80) return AppGlyphs.battery6;
+    if (_batteryLevel >= 60) return AppGlyphs.battery5;
+    if (_batteryLevel >= 50) return AppGlyphs.battery4;
+    if (_batteryLevel >= 30) return AppGlyphs.battery3;
+    if (_batteryLevel >= 20) return AppGlyphs.battery2;
+    if (_batteryLevel >= 10) return AppGlyphs.battery1;
+    return AppGlyphs.batteryAlert;
   }
 
   void _initConnectivity() async {
@@ -142,24 +143,24 @@ class _PageCountWidgetState extends State<PageCountWidget> {
   }
 
   // 获取网络状态图标
-  IconData _getNetworkStatusIcon(ConnectivityResult result) {
+  Glyph _getNetworkStatusIcon(ConnectivityResult result) {
     switch (result) {
       case ConnectivityResult.bluetooth:
-        return Icons.bluetooth;
+        return AppGlyphs.bluetooth;
       case ConnectivityResult.wifi:
-        return Icons.wifi;
+        return AppGlyphs.wifi;
       case ConnectivityResult.ethernet:
-        return Icons.router;
+        return AppGlyphs.router;
       case ConnectivityResult.mobile:
-        return Icons.network_cell;
+        return AppGlyphs.signalBars;
       case ConnectivityResult.satellite:
-        return Icons.satellite_alt;
+        return AppGlyphs.satellite;
       case ConnectivityResult.none:
-        return Icons.signal_wifi_off;
+        return AppGlyphs.wifiOff;
       case ConnectivityResult.vpn:
-        return Icons.vpn_key;
+        return AppGlyphs.key;
       case ConnectivityResult.other:
-        return Icons.signal_cellular_off;
+        return AppGlyphs.signalBarsOff;
     }
   }
 
@@ -311,8 +312,8 @@ class _PageInfoPanel extends StatelessWidget {
   final bool showTime;
   final String currentTime;
   final int batteryLevel;
-  final IconData networkIcon;
-  final IconData batteryIcon;
+  final Glyph networkIcon;
+  final Glyph batteryIcon;
   final int opacityPercent;
   final double fontSize;
 
@@ -343,7 +344,7 @@ class _PageInfoPanel extends StatelessWidget {
     }
     if (showNetwork) {
       items.add(
-        Icon(
+        GlyphIcon(
           networkIcon,
           color: Colors.white,
           size: (fontSize + 1).clamp(10, 24),
@@ -355,7 +356,7 @@ class _PageInfoPanel extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
+            GlyphIcon(
               batteryIcon,
               color: Colors.white,
               size: (fontSize + 1).clamp(10, 24),

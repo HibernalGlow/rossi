@@ -71,7 +71,7 @@ extension _ComicReadEinkPart on _ComicReadPageState {
                 heroTag: 'comic_eink_refresh',
                 tooltip: t.settings.einkRefreshNow,
                 onPressed: _onEinkRefreshButtonTap,
-                child: const Icon(Icons.refresh),
+                child: const GlyphIcon(AppGlyphs.refresh),
               ),
             );
           },

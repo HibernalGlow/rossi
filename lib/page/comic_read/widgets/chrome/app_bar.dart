@@ -25,6 +25,7 @@ import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
 import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/reader_hover_reveal_layer.dart';
 import 'package:zephyr/widgets/glass/liquid_glass.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// NeoView 风格的专业阅读器顶栏 (ReaderViewToolbar)。
 ///
@@ -290,7 +291,7 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
           children: [
             // 导航
             ReaderToolbarIconButton(
-              icon: Icons.arrow_back_rounded,
+              icon: AppGlyphs.arrowBack,
               tooltip: t.common.back,
               onPressed: () => Navigator.maybePop(context),
             ),
@@ -354,8 +355,8 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
                 if (inlineWindow && widget.onToggleFullscreen != null)
                   ReaderToolbarIconButton(
                     icon: widget.isDesktopFullscreen
-                        ? Icons.fullscreen_exit_rounded
-                        : Icons.fullscreen_rounded,
+                        ? AppGlyphs.fullscreenExit
+                        : AppGlyphs.fullscreen,
                     tooltip: widget.isDesktopFullscreen
                         ? t.reader.exitFullscreen
                         : t.reader.enterFullscreen,
@@ -365,9 +366,7 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
                 // 「点中间收起」或指针离开边缘收走；取消钉住立刻交还给那两套自动收起。
                 if (inlineWindow)
                   ReaderToolbarIconButton(
-                    icon: readSetting.topBarPinned
-                        ? Icons.push_pin_rounded
-                        : Icons.push_pin_outlined,
+                    icon: AppGlyphs.pin,
                     tooltip: readSetting.topBarPinned
                         ? t.reader.unpinTopBar
                         : t.reader.pinTopBar,
@@ -392,7 +391,7 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
                   ),
                 ),
                 ReaderToolbarIconButton(
-                  icon: Icons.tune_rounded,
+                  icon: AppGlyphs.sliders,
                   tooltip: t.reader.settings,
                   onPressed: () => showReaderSettingsSheet(
                     context,
@@ -460,8 +459,8 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
       if (!tier.keepsWindowControlsInline && widget.onToggleFullscreen != null)
         ReaderToolbarIconButton(
           icon: widget.isDesktopFullscreen
-              ? Icons.fullscreen_exit_rounded
-              : Icons.fullscreen_rounded,
+              ? AppGlyphs.fullscreenExit
+              : AppGlyphs.fullscreen,
           tooltip: widget.isDesktopFullscreen
               ? t.reader.exitFullscreen
               : t.reader.enterFullscreen,
@@ -469,9 +468,7 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
         ),
       if (!tier.keepsWindowControlsInline)
         ReaderToolbarIconButton(
-          icon: readSetting.topBarPinned
-              ? Icons.push_pin_rounded
-              : Icons.push_pin_outlined,
+          icon: AppGlyphs.pin,
           tooltip: readSetting.topBarPinned
               ? t.reader.unpinTopBar
               : t.reader.pinTopBar,
@@ -605,8 +602,8 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
     return [
       // 自动滚屏按用户的口径常驻二级（「不常用」）：这一项在所有档位都在。
       MenuItemButton(
-        leadingIcon: const Icon(Icons.play_circle_outline_rounded),
-        trailingIcon: readSetting.autoScroll ? const Icon(Icons.check) : null,
+        leadingIcon: const GlyphIcon(AppGlyphs.playCircle),
+        trailingIcon: readSetting.autoScroll ? const GlyphIcon(AppGlyphs.check) : null,
         onPressed: () => _toggleReaderAutoScroll(
           isEnabled: readSetting.autoScroll,
           isPaused: isAutoScrollPaused,
@@ -618,7 +615,7 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
       ),
       if (readSetting.autoScroll)
         MenuItemButton(
-          leadingIcon: const Icon(Icons.stop_circle_outlined),
+          leadingIcon: const GlyphIcon(AppGlyphs.stopCircle),
           onPressed: () =>
               cubit.updateReadSetting((s) => s.copyWith(autoScroll: false)),
           child: const Text('关闭自动滚屏'),
@@ -628,7 +625,7 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
         // 超分芯片不参与让位 —— 用户口径是它最常用，必须留在第一行。
         if (showDownloadEntry)
           MenuItemButton(
-            leadingIcon: const Icon(Icons.download_rounded),
+            leadingIcon: const GlyphIcon(AppGlyphs.download),
             onPressed: () => showReaderDownloadSheet(
               context,
               from: widget.from,
@@ -641,9 +638,9 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
           ),
         for (final panel in ReaderToolbarPanel.values)
           MenuItemButton(
-            leadingIcon: Icon(_readerPanelIcon(panel, fitMode)),
+            leadingIcon: GlyphIcon(_readerPanelIcon(panel, fitMode)),
             trailingIcon: _expandedPanel == panel
-                ? const Icon(Icons.check)
+                ? const GlyphIcon(AppGlyphs.check)
                 : null,
             onPressed: () => _togglePanel(panel),
             child: Text(_readerPanelLabel(panel, fitMode)),
@@ -653,10 +650,10 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
       if (!inlineWindow && !secondaryRow) ...[
         if (widget.onToggleFullscreen != null)
           MenuItemButton(
-            leadingIcon: Icon(
+            leadingIcon: GlyphIcon(
               widget.isDesktopFullscreen
-                  ? Icons.fullscreen_exit_rounded
-                  : Icons.fullscreen_rounded,
+                  ? AppGlyphs.fullscreenExit
+                  : AppGlyphs.fullscreen,
             ),
             onPressed: widget.onToggleFullscreen,
             child: Text(
@@ -666,9 +663,9 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
             ),
           ),
         MenuItemButton(
-          leadingIcon: const Icon(Icons.push_pin_outlined),
+          leadingIcon: const GlyphIcon(AppGlyphs.pin),
           trailingIcon: readSetting.topBarPinned
-              ? const Icon(Icons.check)
+              ? const GlyphIcon(AppGlyphs.check)
               : null,
           onPressed: () => cubit.updateReadSetting(
             (s) => s.copyWith(topBarPinned: !s.topBarPinned),
@@ -681,7 +678,7 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
       MenuItemButton(onPressed: null, child: const Text('以下尚未接进本仓')),
       for (final (icon, name) in _kReaderComingSoon)
         MenuItemButton(
-          leadingIcon: Icon(icon),
+          leadingIcon: GlyphIcon(icon),
           onPressed: () => showReaderToolbarComingSoon(context, name),
           child: Text(name),
         ),
@@ -694,12 +691,12 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
 /// 保留入口是**刻意的**：将来做出一块就把那颗从菜单搬回主行对应的那一组，
 /// 不用重排列。它们不占主行宽度（改造前靠 `availableWidth >= 900` 决定摆不摆全，
 /// 于是主行的形状跟着窗口宽度跳），统一住在「更多」里。
-const List<(IconData, String)> _kReaderComingSoon = [
-  (Icons.sort_rounded, '页面排序'),
-  (Icons.panorama_wide_angle_rounded, '全景模式'),
-  (Icons.mouse_rounded, '悬停滚动'),
-  (Icons.slideshow_rounded, '幻灯片'),
-  (Icons.zoom_in_map_rounded, '放大镜'),
+const List<(Glyph, String)> _kReaderComingSoon = [
+  (AppGlyphs.sort, '页面排序'),
+  (AppGlyphs.panorama, '全景模式'),
+  (AppGlyphs.mouse, '悬停滚动'),
+  (AppGlyphs.slideshow, '幻灯片'),
+  (AppGlyphs.zoomIn, '放大镜'),
 ];
 
 /// 自动滚屏那颗开关的**分派**：没开就开启，开着就暂停（没有暂停回调时直接关掉）。
@@ -722,11 +719,11 @@ void _toggleReaderAutoScroll({
   }
 }
 
-IconData _readerPanelIcon(ReaderToolbarPanel panel, ReaderFitMode fitMode) =>
+Glyph _readerPanelIcon(ReaderToolbarPanel panel, ReaderFitMode fitMode) =>
     switch (panel) {
       ReaderToolbarPanel.zoom => kReaderFitModeIcons[fitMode]!,
-      ReaderToolbarPanel.rotate => Icons.rotate_right_rounded,
-      ReaderToolbarPanel.layout => Icons.dashboard_customize_outlined,
+      ReaderToolbarPanel.rotate => AppGlyphs.rotateRight,
+      ReaderToolbarPanel.layout => AppGlyphs.gridPlus,
     };
 
 String _readerPanelLabel(ReaderToolbarPanel panel, ReaderFitMode fitMode) =>
@@ -748,7 +745,7 @@ class _ReaderToolbarOverflowButton extends StatelessWidget {
       alignmentOffset: const Offset(0, 6),
       menuChildren: items,
       builder: (context, controller, child) => ReaderToolbarIconButton(
-        icon: Icons.more_vert_rounded,
+        icon: AppGlyphs.more,
         tooltip: '更多',
         selected: controller.isOpen,
         onPressed: () =>

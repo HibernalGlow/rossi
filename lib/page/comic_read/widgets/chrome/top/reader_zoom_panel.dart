@@ -5,19 +5,20 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_presentation_cubit.dart';
 import 'package:zephyr/page/comic_read/model/reader_presentation.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 缩放模式对应的图标与中文名（逐条照 neoview 的 `FIT_MODE_ICONS` / `FIT_MODES`）。
 ///
 /// 顶栏主行那颗按钮也要按当前档位换图标，所以放在面板文件里对外暴露，
 /// 而不是藏在私有实现中。
-const Map<ReaderFitMode, IconData> kReaderFitModeIcons = {
-  ReaderFitMode.fit: Icons.fit_screen_outlined,
-  ReaderFitMode.fill: Icons.open_in_full_rounded,
-  ReaderFitMode.fitWidth: Icons.width_full_outlined,
-  ReaderFitMode.fitHeight: Icons.height_outlined,
-  ReaderFitMode.original: Icons.crop_free_outlined,
-  ReaderFitMode.fitLeft: Icons.format_align_left_rounded,
-  ReaderFitMode.fitRight: Icons.format_align_right_rounded,
+const Map<ReaderFitMode, Glyph> kReaderFitModeIcons = {
+  ReaderFitMode.fit: AppGlyphs.fitScreen,
+  ReaderFitMode.fill: AppGlyphs.openInFull,
+  ReaderFitMode.fitWidth: AppGlyphs.resize,
+  ReaderFitMode.fitHeight: AppGlyphs.height,
+  ReaderFitMode.original: AppGlyphs.cropFree,
+  ReaderFitMode.fitLeft: AppGlyphs.alignLeft,
+  ReaderFitMode.fitRight: AppGlyphs.alignRight,
 };
 
 const Map<ReaderFitMode, String> kReaderFitModeLabels = {
@@ -69,7 +70,7 @@ class ReaderZoomPanel extends StatelessWidget {
         ReaderToolbarPill(
           children: [
             ReaderToolbarIconButton(
-              icon: Icons.splitscreen_outlined,
+              icon: AppGlyphs.rowsTwo,
               tooltip: readSetting.splitLandscapePages
                   ? '自动分割横向页：开'
                   : '自动分割横向页：关',
@@ -87,7 +88,7 @@ class ReaderZoomPanel extends StatelessWidget {
         ReaderToolbarPill(
           children: [
             ReaderToolbarIconButton(
-              icon: Icons.skip_previous_outlined,
+              icon: AppGlyphs.skipPrevious,
               tooltip: readSetting.doublePageLeadingBlank
                   ? '首页独立显示：开'
                   : '首页独立显示：关',
@@ -123,10 +124,10 @@ class ReaderZoomPanel extends StatelessWidget {
   }
 }
 
-IconData _widePageStretchIcon(ReaderWidePageStretch mode) => switch (mode) {
-  ReaderWidePageStretch.none => Icons.equalizer_rounded,
-  ReaderWidePageStretch.uniformHeight => Icons.align_vertical_center_rounded,
-  ReaderWidePageStretch.uniformWidth => Icons.align_horizontal_center_rounded,
+Glyph _widePageStretchIcon(ReaderWidePageStretch mode) => switch (mode) {
+  ReaderWidePageStretch.none => AppGlyphs.equalizer,
+  ReaderWidePageStretch.uniformHeight => AppGlyphs.alignVerticalCenter,
+  ReaderWidePageStretch.uniformWidth => AppGlyphs.alignHorizontalCenter,
 };
 
 String _widePageStretchLabel(ReaderWidePageStretch mode) => switch (mode) {

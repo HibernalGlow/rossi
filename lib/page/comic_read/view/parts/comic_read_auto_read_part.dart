@@ -82,8 +82,8 @@ extension _ComicReadAutoReadPart on _ComicReadPageState {
                   },
                   child: Icon(
                     _autoReadController.isPaused
-                        ? Icons.play_arrow_rounded
-                        : Icons.pause_rounded,
+                        ? AppGlyphs.play
+                        : AppGlyphs.pause,
                     key: ValueKey(_autoReadController.isPaused),
                   ),
                 ),
