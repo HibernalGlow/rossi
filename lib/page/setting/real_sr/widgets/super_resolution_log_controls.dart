@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/setting/real_sr/service/super_resolution_log.dart';
 import 'package:zephyr/widgets/app_log_dialog.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class SuperResolutionLogControls extends StatelessWidget {
   const SuperResolutionLogControls({super.key});
@@ -51,17 +52,17 @@ class SuperResolutionLogControls extends StatelessWidget {
         children: [
           OutlinedButton.icon(
             onPressed: () => _showLog(context),
-            icon: const Icon(Icons.article_outlined),
+            icon: const GlyphIcon(AppGlyphs.article),
             label: const Text('查看超分日志'),
           ),
           TextButton.icon(
             onPressed: () => _copy(context),
-            icon: const Icon(Icons.copy_outlined),
+            icon: const GlyphIcon(AppGlyphs.copy),
             label: const Text('复制日志'),
           ),
           TextButton.icon(
             onPressed: () => _openFolder(context),
-            icon: const Icon(Icons.folder_open_outlined),
+            icon: const GlyphIcon(AppGlyphs.folder),
             label: const Text('打开图片文件夹'),
           ),
         ],

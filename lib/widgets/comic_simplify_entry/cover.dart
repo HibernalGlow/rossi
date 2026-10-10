@@ -11,6 +11,7 @@ import 'package:zephyr/widgets/picture_bloc/models/picture_info.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry.dart';
 import 'package:zephyr/widgets/image_sleep.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class CoverWidget extends StatelessWidget {
   final String fileServer;
@@ -74,7 +75,7 @@ class CoverWidget extends StatelessWidget {
                     ),
                   ),
                   child: Center(
-                    child: Icon(Icons.image, color: Colors.grey[300], size: 30),
+                    child: GlyphIcon(AppGlyphs.photos, color: Colors.grey[300], size: 30),
                   ),
                 );
               case PictureLoadStatus.success:
@@ -136,7 +137,7 @@ class CoverWidget extends StatelessWidget {
                       padding: EdgeInsets.only(top: 6),
                       child: Align(
                         alignment: Alignment.topCenter,
-                        child: Icon(Icons.refresh, size: 20),
+                        child: GlyphIcon(AppGlyphs.refresh, size: 20),
                       ),
                     ),
                   );

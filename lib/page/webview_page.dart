@@ -11,6 +11,7 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/util/event/event.dart';
 import 'package:zephyr/util/event/webview_observe_bus.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class WebViewPage extends StatefulWidget {
@@ -274,7 +275,7 @@ class _WebViewPageState extends State<WebViewPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.link_off, size: 44, color: Colors.grey),
+            const GlyphIcon(AppGlyphs.lock, size: 44, color: Colors.grey),
             const SizedBox(height: 12),
             Text(t.webview.invalidLink),
             const SizedBox(height: 8),
@@ -297,7 +298,7 @@ class _WebViewPageState extends State<WebViewPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 44, color: Colors.orange),
+            const GlyphIcon(AppGlyphs.error, size: 44, color: Colors.orange),
             const SizedBox(height: 12),
             Text(_mainFrameError ?? t.webview.loadFailed),
             const SizedBox(height: 16),
@@ -319,7 +320,7 @@ class _WebViewPageState extends State<WebViewPage> {
                 if (uri != null)
                   FilledButton.tonalIcon(
                     onPressed: () => _openExternal(uri),
-                    icon: const Icon(Icons.open_in_browser),
+                    icon: const GlyphIcon(AppGlyphs.openExternal),
                     label: Text(t.webview.openInExternalBrowser),
                   ),
               ],
@@ -335,8 +336,8 @@ class _WebViewPageState extends State<WebViewPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            _isWebviewClosed ? Icons.check_circle_outline : Icons.open_in_new,
+          GlyphIcon(
+            _isWebviewClosed ? AppGlyphs.checkCircle : AppGlyphs.openExternal,
             size: 48,
             color: Colors.grey,
           ),
@@ -507,7 +508,7 @@ class _WebViewPageState extends State<WebViewPage> {
         actions: <Widget>[
           if (Platform.isLinux && !_isWebviewClosed)
             IconButton(
-              icon: const Icon(Icons.close),
+              icon: const GlyphIcon(AppGlyphs.close),
               tooltip: t.webview.closeWindow,
               onPressed: () {
                 _linuxWebview?.close();
@@ -518,7 +519,7 @@ class _WebViewPageState extends State<WebViewPage> {
             ),
           if (uri != null)
             IconButton(
-              icon: const Icon(Icons.open_in_browser),
+              icon: const GlyphIcon(AppGlyphs.openExternal),
               onPressed: () => _openExternal(uri),
             ),
         ],
