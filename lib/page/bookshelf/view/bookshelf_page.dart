@@ -12,6 +12,7 @@ import 'package:zephyr/plugin/plugin_registry_service.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/util/debouncer.dart';
 import 'package:zephyr/widgets/action_group.dart';
+import 'package:zephyr/widgets/spring_lens/spring_lens_bar.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 @RoutePage()
@@ -271,56 +272,80 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent>
     );
   }
 
-  Widget _buildSleekTabs() {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.theme.colorScheme.surfaceContainerHighest.withValues(
-          alpha: 0.5,
-        ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      padding: const EdgeInsets.all(4),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: List.generate(_labels.length, (index) {
-          final isSelected = _currentIndex == index;
-          return GestureDetector(
-            onTap: () => _onTabChanged(index),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOutCubic,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? context.theme.colorScheme.surface
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 4,
-                          offset: const Offset(0, 1),
-                        ),
-                      ]
-                    : [],
-              ),
-              child: Text(
-                _labels[index],
-                style: TextStyle(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                  fontSize: 14,
-                  color: isSelected
-                      ? context.textColor
-                      : context.textColor.withValues(alpha: 0.6),
-                ),
-              ),
-            ),
-          );
-        }),
-      ),
-    );
+  /// 书架顶栏那排胶囊 tab（收藏 / 历史 / 下载）。
+///
+/// # 为什么用 [SpringLensBar] 而不是自己排一个 Row
+///
+/// 选中态改由 Dock 那一套弹簧 lens 接管（见 `widgets/spring_lens/`）：点一下
+/// 时它是**弹**过去的，不是 `AnimatedContainer` 那样 180ms 线性淡入；按下会鼓、
+/// 跟着手指走、跨格有触感回馈。切换的**内容**（`TabBarView` 与三个
+/// `FolderShelfPage`）完全没动，仍由 [_tabController] 驱动 —— 这里换的只是
+/// 「选中态画成什么样」。
+///
+/// # 为什么要自己量宽度（[tabSizes]）
+///
+/// 这一排是**按文字取宽**的（「收藏」两字比「下载」两字宽，中英文差得更多），
+/// 而 Dock 那边 lens 建立在等宽假设上。所以这里按渲染出来的那一份样式量出每格
+/// 宽度喂给组件，lens 的落点与宽度才与实际排出来的那几格对得上。
+///
+/// 量宽度要量**真正渲染的那一份**（理由同 `reader_settings_tab_bar_part.dart`
+/// 那一段：本仓主题的字体档位可能只改字族、把 fontSize 留成 null）。
+Widget _buildSleekTabs() {
+  // 量宽度用的那份样式必须与 `_SleekTabLabel` **渲染的那一份**同源 ——
+  // 拿 token 直接量、在 fontSize 为 null 的档位上量到的是回落值，
+  // 于是「每格多宽」与实际排出来的宽度对不上，lens 的落点会偏。
+  final labelStyle = DefaultTextStyle.of(context).style.merge(
+    context.theme.textTheme.titleSmall,
+  );
+
+  // 量每格宽度：文字实测宽 + 左右内边距。与 `_Slot` 里那个
+  // `SizedBox(width: extent)` 用的是同一个数。
+  final sizes = <double>[];
+  for (final label in _labels) {
+    final painter = TextPainter(
+      text: TextSpan(text: label, style: labelStyle),
+      textScaler: MediaQuery.textScalerOf(context),
+      textDirection: Directionality.of(context),
+      maxLines: 1,
+    )..layout();
+    sizes.add(painter.width + _SleekTabLabel.hPadding * 2);
+    painter.dispose();
   }
+
+  return Container(
+    // 底板与右边那颗筛选钮的 `_actionWellFill` **同一个色** —— 判据见上面
+    // `_actionWellFill` 的注释（两条栏上两个容器读作同一种「可点区」）。
+    decoration: BoxDecoration(
+      color: context.theme.colorScheme.surfaceContainerHighest.withValues(
+        alpha: 0.5,
+      ),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    padding: const EdgeInsets.all(4),
+    child: SpringLensBar(
+      tabs: [
+        for (var i = 0; i < _labels.length; i++)
+          SpringLensTab(
+            // 文字色/字重仍按选中态分档（lens 只接管**底色**那块方块）。
+            // 两件事分开：`lensColor` 给 secondaryContainer 那一档，
+            // 于是选中块是「灰胶囊里的一块浅色」，与右边筛选钮那一档同族。
+            child: _SleekTabLabel(
+              text: _labels[i],
+              selected: i == _currentIndex,
+              baseStyle: labelStyle,
+            ),
+            semanticLabel: _labels[i],
+          ),
+      ],
+      tabSizes: sizes,
+      selectedIndex: _currentIndex,
+      onSelected: _onTabChanged,
+      // lens 圆角跟原来那个选中块的 16 一致，不是全圆 —— 顶栏这排是「胶囊里
+      // 几块」，全圆会让两端贴到容器边上。
+      lensCorner: 16,
+    ),
+  );
+}
 
   /// 关键词防抖写入。mode 在调用时快照，避免防抖期间切 tab 把词写到别的 tab。
   void _setKeywordDebounced(ShelfPageMode mode, String keyword) {
@@ -560,6 +585,52 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent>
             .toList()
           ..sort();
     return entries.join('|');
+  }
+}
+
+/// 顶栏那一排 tab 的文字。选中与否只影响字重与颜色，**内边距两档相同** ——
+/// 内边距参与「每格多宽」的计算（见 [_BookshelfPageContentState._buildSleekTabs]），
+/// 两档若不同，切档时 lens 的落点就会偏一点。
+class _SleekTabLabel extends StatelessWidget {
+  const _SleekTabLabel({
+    required this.text,
+    required this.selected,
+    required this.baseStyle,
+  });
+
+  /// 文字左右各留的内边距。
+  ///
+  /// **量与画必须读同一份**：`_buildSleekTabs` 量每格宽度时用它算总宽，
+  /// 这里用它排版。两处各写一个数的话，lens 的落点会与实际排出来的位置差
+  /// 那一点点 —— 按内容取宽的档位最怕这个。
+  static const double hPadding = 16;
+
+  /// 文字上下的内边距（不参与宽度计算）。
+  static const double vPadding = 6;
+
+  final String text;
+  final bool selected;
+
+  /// 由 [_buildSleekTabs] 量宽度时用的**那一份**样式传进来 —— 量与画必须同源。
+  final TextStyle baseStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: hPadding,
+        vertical: vPadding,
+      ),
+      child: Text(
+        text,
+        style: baseStyle.copyWith(
+          fontWeight: selected ? FontWeight.bold : FontWeight.w600,
+          color: selected
+              ? context.textColor
+              : context.textColor.withValues(alpha: 0.6),
+        ),
+      ),
+    );
   }
 }
 

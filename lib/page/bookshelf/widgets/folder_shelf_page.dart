@@ -32,6 +32,7 @@ import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_grid.da
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_info.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class FolderShelfPage extends StatelessWidget {
   const FolderShelfPage({
@@ -266,7 +267,7 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
             children: [
               IconButton(
                 visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.arrow_back),
+                icon: const GlyphIcon(AppGlyphs.arrowBack),
                 tooltip: t.common.back,
                 onPressed: () => context.read<FolderShelfBloc>().add(
                   const FolderShelfGoBack(),
@@ -282,7 +283,7 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
               ),
               IconButton(
                 visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.home),
+                icon: const GlyphIcon(AppGlyphs.home),
                 onPressed: () => context.read<FolderShelfBloc>().add(
                   const FolderShelfGoHome(),
                 ),
@@ -326,7 +327,7 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
         onPressed: () => context.read<FolderShelfBloc>().add(
           const FolderShelfEnterSelectionMode(),
         ),
-        child: const Icon(Icons.checklist),
+        child: const GlyphIcon(AppGlyphs.checklist),
       );
     }
     return SpeedDial(
@@ -335,37 +336,39 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
       childrenButtonSize: const Size(56, 56),
       backgroundColor: colorScheme.primaryContainer,
       foregroundColor: colorScheme.onPrimaryContainer,
-      icon: Icons.menu,
-      activeIcon: Icons.close,
+      activeChild: const GlyphIcon(AppGlyphs.close),
       useRotationAnimation: true,
       animationDuration: const Duration(milliseconds: 300),
       spacing: 12,
       spaceBetweenChildren: 8,
       children: [
         menuChild(
-          child: const Icon(Icons.checklist),
+          child: const GlyphIcon(AppGlyphs.checklist),
           label: t.bookshelf.multiSelect,
           onTap: () => context.read<FolderShelfBloc>().add(
             const FolderShelfEnterSelectionMode(),
           ),
         ),
         menuChild(
-          child: const Icon(Icons.create_new_folder_outlined),
+          child: const GlyphIcon(AppGlyphs.folderPlus),
           label: t.bookshelf.newFolder,
           onTap: () => _showCreateFolderDialog(context),
         ),
         if (state.mode == ShelfPageMode.download)
           menuChild(
-            child: const Icon(Icons.file_download_outlined),
+            child: const GlyphIcon(AppGlyphs.download),
             label: t.bookshelf.importComic,
             onTap: () => _importComic(context),
           ),
         menuChild(
-          child: const Icon(Icons.help_outline),
+          child: const GlyphIcon(AppGlyphs.info),
           label: t.common.help,
           onTap: () => _showShelfHelpDialog(context),
         ),
       ],
+      // SpeedDial 的 icon:/activeIcon: 锁 Glyph，child:/activeChild: 吃 Widget，
+      // 用后者才能上 glyph（旋转动画仍由包内 Transform 处理）。
+      child: const GlyphIcon(AppGlyphs.menu),
     );
   }
 
@@ -592,7 +595,7 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
                             onPressed: () => context
                                 .read<FolderShelfBloc>()
                                 .add(const FolderShelfExitSelectionMode()),
-                            icon: const Icon(Icons.close),
+                            icon: const GlyphIcon(AppGlyphs.close),
                           ),
                           Text(
                             t.bookshelf.selectedCount(
@@ -620,7 +623,7 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
                                       },
                                     )
                                   : null,
-                              icon: const Icon(Icons.drive_file_move_outline),
+                              icon: const GlyphIcon(AppGlyphs.folderCopy),
                             ),
                           if (state.mode != ShelfPageMode.history)
                             IconButton(
@@ -636,7 +639,7 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
                                       },
                                     )
                                   : null,
-                              icon: const Icon(Icons.folder_copy_outlined),
+                              icon: const GlyphIcon(AppGlyphs.folderCopy),
                             ),
                           if (state.mode == ShelfPageMode.download)
                             IconButton(
@@ -645,7 +648,7 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
                               onPressed: state.hasSelection
                                   ? () => _batchExportSelected(context, state)
                                   : null,
-                              icon: const Icon(Icons.file_upload_outlined),
+                              icon: const GlyphIcon(AppGlyphs.arrowUp),
                             ),
                           IconButton(
                             visualDensity: VisualDensity.compact,
@@ -653,7 +656,7 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
                             onPressed: state.hasSelection
                                 ? () => _confirmDeleteSelected(context)
                                 : null,
-                            icon: const Icon(Icons.delete_outline),
+                            icon: const GlyphIcon(AppGlyphs.delete),
                           ),
                         ],
                       ),
@@ -718,17 +721,17 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
       items: [
         FluentPopupMenuItem(
           value: 'rename',
-          leading: const Icon(Icons.drive_file_rename_outline),
+          leading: const GlyphIcon(AppGlyphs.edit),
           title: Text(t.common.rename),
         ),
         FluentPopupMenuItem(
           value: 'move',
-          leading: const Icon(Icons.drive_file_move_outline),
+          leading: const GlyphIcon(AppGlyphs.folderCopy),
           title: Text(t.bookshelf.moveTo),
         ),
         FluentPopupMenuItem(
           value: 'delete',
-          leading: const Icon(Icons.delete_outline),
+          leading: const GlyphIcon(AppGlyphs.delete),
           title: Text(t.common.delete),
         ),
       ],
@@ -859,12 +862,12 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
       items: [
         FluentPopupMenuItem(
           value: 'multi_select',
-          leading: const Icon(Icons.checklist),
+          leading: const GlyphIcon(AppGlyphs.checklist),
           title: Text(t.bookshelf.multiSelect),
         ),
         FluentPopupMenuItem(
           value: 'delete',
-          leading: const Icon(Icons.delete_outline),
+          leading: const GlyphIcon(AppGlyphs.delete),
           title: Text(t.common.delete),
         ),
       ],
@@ -1137,8 +1140,8 @@ Widget _buildFolderTreeTile({
         contentPadding: EdgeInsets.zero,
         leading: hasChildren
             ? IconButton(
-                icon: Icon(
-                  isExpanded ? Icons.expand_more : Icons.chevron_right,
+                icon: GlyphIcon(
+                  isExpanded ? AppGlyphs.chevronDown : AppGlyphs.chevronForward,
                 ),
                 onPressed: () => onToggleExpand(path),
               )
