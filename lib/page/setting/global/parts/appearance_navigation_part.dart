@@ -32,11 +32,11 @@ List<Widget> navigationChromeTiles({
     settingSectionTitle(
       context,
       t.navigation.navigationChrome,
-      icon: Icons.view_sidebar_outlined,
+      icon: AppGlyphs.layoutTabs,
     ),
     if (sidebarCapable)
       SwitchListTile(
-        secondary: const Icon(Icons.view_sidebar_outlined),
+        secondary: const GlyphIcon(AppGlyphs.layoutTabs),
         title: Text(t.navigation.sidebarEnabled),
         subtitle: Text(t.navigation.sidebarEnabledSubtitle),
         thumbIcon: kSettingSwitchThumbIcon,
@@ -47,7 +47,7 @@ List<Widget> navigationChromeTiles({
     // 展开态只在侧栏开着时才需要回答 —— 关着时摆出来只会让人犹豫。
     if (sidebarCapable && nav.sidebarEnabled)
       SwitchListTile(
-        secondary: const Icon(Icons.unfold_more),
+        secondary: const GlyphIcon(AppGlyphs.unfold),
         title: Text(t.navigation.sidebarExpanded),
         subtitle: Text(t.navigation.sidebarExpandedSubtitle),
         thumbIcon: kSettingSwitchThumbIcon,
@@ -58,7 +58,7 @@ List<Widget> navigationChromeTiles({
     // Dock 那一支在手机上就是主力，所以这一项不按平台收 ——
     // 它在桌面上也不是摆设：窗口被拉窄（见下面那条阈值）时露出的就是它。
     SwitchListTile(
-      secondary: const Icon(Icons.space_dashboard_outlined),
+      secondary: const GlyphIcon(AppGlyphs.dashboard),
       title: Text(t.navigation.dockEnabled),
       subtitle: Text(t.navigation.dockEnabledSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -68,7 +68,7 @@ List<Widget> navigationChromeTiles({
     ),
     if (sidebarCapable)
       SwitchListTile(
-        secondary: const Icon(Icons.straighten_outlined),
+        secondary: const GlyphIcon(AppGlyphs.linearScale),
         title: Text(t.navigation.autoNarrowMobileLayout),
         subtitle: Text(t.navigation.autoNarrowMobileLayoutSubtitle),
         thumbIcon: kSettingSwitchThumbIcon,
@@ -84,10 +84,10 @@ List<Widget> navigationChromeTiles({
             patch((current) => current.copyWith(narrowNavigationWidth: value)),
       ),
     ListTile(
-      leading: const Icon(Icons.tune),
+      leading: const GlyphIcon(AppGlyphs.sliders),
       title: Text(t.navigation.customize),
       subtitle: Text(t.navigation.customizeHint),
-      trailing: const Icon(Icons.chevron_right),
+      trailing: const GlyphIcon(AppGlyphs.chevronForward),
       onTap: () => showCustomNavigationDialogFor(
         context,
         storedDesktopPageIds: nav.desktopPageIds,
@@ -135,7 +135,7 @@ class _NarrowWidthTile extends StatelessWidget {
     final isDefault = clamped == kDefaultNarrowNavigationWidth;
     final theme = Theme.of(context);
     return ListTile(
-      leading: const Icon(Icons.photo_size_select_small_outlined),
+      leading: const GlyphIcon(AppGlyphs.resize),
       title: Text(t.navigation.narrowNavigationWidth),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,7 +167,7 @@ class _NarrowWidthTile extends StatelessWidget {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.restart_alt),
+                icon: const GlyphIcon(AppGlyphs.reset),
                 tooltip: t.navigation.narrowNavigationWidthReset(
                   value: kDefaultNarrowNavigationWidth.round(),
                 ),

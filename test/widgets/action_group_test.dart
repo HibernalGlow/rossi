@@ -31,12 +31,12 @@ Widget _harness(Widget child) => MaterialApp(
 /// 两颗图标键 + 组内间距的**标准一组**。
 List<Widget> _twoIcons() => [
   ActionIconButton(
-    icon: Icons.search_rounded,
+    glyph: AppGlyphs.search,
     tooltip: '第一颗',
     onPressed: () {},
   ),
   const SizedBox(width: ActionGroupMetrics.gapWithinGroup),
-  ActionIconButton(icon: Icons.tune, tooltip: '第二颗', onPressed: () {}),
+  ActionIconButton(glyph: AppGlyphs.sliders, tooltip: '第二颗', onPressed: () {}),
 ];
 
 void main() {
@@ -69,13 +69,13 @@ void main() {
           axis: Axis.vertical,
           children: [
             ActionIconButton(
-              icon: Icons.search_rounded,
+              glyph: AppGlyphs.search,
               tooltip: '第一颗',
               onPressed: () {},
             ),
             const SizedBox(height: ActionGroupMetrics.gapWithinGroup),
             ActionIconButton(
-              icon: Icons.tune,
+              glyph: AppGlyphs.sliders,
               tooltip: '第二颗',
               onPressed: () {},
             ),
@@ -109,13 +109,13 @@ void main() {
           mainAxisSize: MainAxisSize.min,
           children: [
             ActionIconButton(
-              icon: Icons.search_rounded,
+              glyph: AppGlyphs.search,
               tooltip: '可用',
               onPressed: () {},
             ),
             const SizedBox(width: ActionGroupMetrics.gapWithinGroup),
             ActionIconButton(
-              icon: Icons.search_rounded,
+              glyph: AppGlyphs.search,
               tooltip: '不可用',
               enabled: false,
               onPressed: () {},
@@ -123,7 +123,7 @@ void main() {
             const SizedBox(width: ActionGroupMetrics.gapWithinGroup),
             // 「在这儿了，点了也没去处」：画成禁用色但仍然可点。
             ActionIconButton(
-              icon: Icons.search_rounded,
+              glyph: AppGlyphs.search,
               tooltip: '暗着但可点',
               muted: true,
               onPressed: () {},
@@ -143,7 +143,7 @@ void main() {
       );
       expect(
         tester.getSize(
-          find.descendant(of: trigger, matching: find.byType(Icon)),
+          find.descendant(of: trigger, matching: find.byType(GlyphIcon)),
         ),
         const Size.square(ActionGroupMetrics.iconSize),
         reason: '$tooltip 的图标不是 20 —— 缺省是 24，那会把整条顶高',
@@ -180,7 +180,7 @@ void main() {
         builder: (context) {
           scheme = Theme.of(context).colorScheme;
           return ActionToggleButton(
-            icon: Icons.timeline_rounded,
+            glyph: AppGlyphs.clock,
             tooltip: '开关',
             on: on,
             onPressed: () {},

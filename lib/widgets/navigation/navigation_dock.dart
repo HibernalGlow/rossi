@@ -30,8 +30,14 @@
 //    `SafeArea` 与 `padding: null` 的滚动视图都会照它让位。
 //    文件本身为此一行未改：`insetOf` 留在那里给「要自己算留位」的页用。
 // 5. **尺寸**：见下面那一组常量前的注释（整体收小，是本仓唯一的纯观感改动）。
+// 6. `ElasticPress` / `ElasticButton` / 按压形变那一层**搬去了共享件**
+//    `widgets/spring_lens/elastic_press.dart`：它们原先是本文件的私有实现，
+//    而工具条上每颗图标钮（`widgets/action_group.dart`）现在也用同一份，
+//    于是「Dock 上的按钮」与「顶栏右上角那颗」手感是同一条曲线。
+//    留一份在这里就等于两套形变各改各的，所以转发到共享件而不是复制。
+//    上游那份的实现见那个文件的头注释。
 //
-// `_HitSlop` / `_RenderPressTransform` / `_RenderLensTint` 这三个自绘层原样保留：
+// `_HitSlop` / `_RenderLensTint` 这两个自绘层原样保留：
 // 触摸离胶囊边缘 8 px 以内仍然算命中（圆角端会把命中区切掉一块），
 // 按压的形变与 lens 的裁切/染色都在 paint 里做，不动布局。
 
@@ -49,6 +55,7 @@ import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/navigation/navigation_context.dart';
 import 'package:zephyr/widgets/navigation/navigation_shape.dart';
 import 'package:zephyr/widgets/navigation/spring_curve.dart';
+import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
 
 // 尺寸。原文那一套是给「整条底栏独占一行」的 FlClash 调的，本仓的页面普遍
 // 更密（书架是一格格的封面），照原尺寸胶囊显得压人 —— 于是整体收了约 15%：
@@ -510,214 +517,6 @@ class _SlotMaterialize extends StatelessWidget {
   }
 }
 
-/// Grows under a press and stretches after a dragging finger, springing back
-/// on release, as the bar's lens does.
-///
-/// The press only paints: layout, hit testing, and anything anchored to the
-/// child, such as a popup menu or a tooltip, see it at rest.
-class ElasticPress extends StatefulWidget {
-  const ElasticPress({super.key, this.enabled = true, required this.child});
-
-  /// Leaves a press on the button inside to the swell alone.
-  static const buttonStyle = ButtonStyle(
-    splashFactory: NoSplash.splashFactory,
-    overlayColor: WidgetStateMapper<Color?>({
-      WidgetState.pressed: Colors.transparent,
-    }),
-  );
-
-  final bool enabled;
-  final Widget child;
-
-  @override
-  State<ElasticPress> createState() => _ElasticPressState();
-}
-
-class _ElasticPressState extends State<ElasticPress>
-    with TickerProviderStateMixin {
-  late final _Spring _lift = _Spring(this, 0);
-  late final _Spring _pullX = _Spring(this, 0);
-  late final _Spring _pullY = _Spring(this, 0);
-  late final Listenable _motion = Listenable.merge([_lift, _pullX, _pullY]);
-  int? _pointer;
-  Offset _origin = Offset.zero;
-
-  @override
-  void dispose() {
-    _lift.dispose();
-    _pullX.dispose();
-    _pullY.dispose();
-    super.dispose();
-  }
-
-  void _handlePointerDown(PointerDownEvent event) {
-    if (!widget.enabled ||
-        _pointer != null ||
-        event.buttons & kPrimaryButton == 0) {
-      return;
-    }
-    _pointer = event.pointer;
-    _origin = event.localPosition;
-    _lift.springTo(1, _liftSpring);
-  }
-
-  void _handlePointerMove(PointerMoveEvent event) {
-    if (event.pointer != _pointer) {
-      return;
-    }
-    final limit = context.size!.shortestSide * _pullLimit;
-    final pull = event.localPosition - _origin;
-    _pullX.springTo(_rubberBand(pull.dx, limit), _trackSpring);
-    _pullY.springTo(_rubberBand(pull.dy, limit), _trackSpring);
-  }
-
-  void _handlePointerEnd(PointerEvent event) {
-    if (event.pointer != _pointer) {
-      return;
-    }
-    _pointer = null;
-    _lift.springTo(0, _settleSpring);
-    _pullX.springTo(0, _settleSpring);
-    _pullY.springTo(0, _settleSpring);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Listener(
-      onPointerDown: _handlePointerDown,
-      onPointerMove: _handlePointerMove,
-      onPointerUp: _handlePointerEnd,
-      onPointerCancel: _handlePointerEnd,
-      child: AnimatedBuilder(
-        animation: _motion,
-        builder: (_, child) => _PressTransform(
-          lift: _lift.value,
-          pull: Offset(_pullX.value, _pullY.value),
-          child: child,
-        ),
-        child: widget.child,
-      ),
-    );
-  }
-}
-
-/// Leaves a press on the filled button or FAB inside to [ElasticPress]; one
-/// whose style sets a foreground color merges [ElasticPress.buttonStyle].
-class ElasticButton extends StatelessWidget {
-  const ElasticButton({super.key, this.enabled = true, required this.child});
-
-  final bool enabled;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return ElasticPress(
-      enabled: enabled,
-      child: Theme(
-        data: theme.copyWith(
-          splashFactory: NoSplash.splashFactory,
-          highlightColor: Colors.transparent,
-        ),
-        child: IconTheme(
-          data: IconTheme.of(context),
-          child: IconButtonTheme(
-            data: IconButtonThemeData(
-              style: ElasticPress.buttonStyle.merge(
-                IconButtonTheme.of(context).style,
-              ),
-            ),
-            child: FilledButtonTheme(
-              data: FilledButtonThemeData(
-                style: ElasticPress.buttonStyle.merge(
-                  FilledButtonTheme.of(context).style,
-                ),
-              ),
-              child: child,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PressTransform extends SingleChildRenderObjectWidget {
-  const _PressTransform({required this.lift, required this.pull, super.child});
-
-  final double lift;
-  final Offset pull;
-
-  @override
-  RenderObject createRenderObject(BuildContext context) {
-    return _RenderPressTransform(lift: lift, pull: pull);
-  }
-
-  @override
-  void updateRenderObject(
-    BuildContext context,
-    _RenderPressTransform renderObject,
-  ) {
-    renderObject
-      ..lift = lift
-      ..pull = pull;
-  }
-}
-
-class _RenderPressTransform extends RenderProxyBox {
-  _RenderPressTransform({required double lift, required Offset pull})
-    : _lift = lift,
-      _pull = pull;
-
-  double _lift;
-  Offset _pull;
-
-  set lift(double value) {
-    if (value == _lift) {
-      return;
-    }
-    _lift = value;
-    markNeedsPaint();
-  }
-
-  set pull(Offset value) {
-    if (value == _pull) {
-      return;
-    }
-    _pull = value;
-    markNeedsPaint();
-  }
-
-  Matrix4 get _transform {
-    final swell =
-        1 +
-        _lift * math.min(_pressGrowth * 2, _maxPressGrowth / size.longestSide);
-    final scaleX = swell * (1 + _pull.dx.abs() / size.width * _pullStretch);
-    final scaleY = swell * (1 + _pull.dy.abs() / size.height * _pullStretch);
-    final center = size.center(Offset.zero);
-    return Matrix4.diagonal3Values(scaleX, scaleY, 1)..setTranslationRaw(
-      center.dx * (1 - scaleX) + _pull.dx,
-      center.dy * (1 - scaleY) + _pull.dy,
-      0,
-    );
-  }
-
-  @override
-  void paint(PaintingContext context, Offset offset) {
-    if (child == null || size.isEmpty || (_lift == 0 && _pull == .zero)) {
-      layer = null;
-      super.paint(context, offset);
-      return;
-    }
-    layer = context.pushTransform(
-      needsCompositing,
-      offset,
-      _transform,
-      super.paint,
-      oldLayer: layer is TransformLayer ? layer as TransformLayer? : null,
-    );
-  }
-}
 
 /// A floating pill of destinations whose selection is a lens that springs
 /// between them, after iOS's tab bar. Pressing swells the bar as
@@ -1101,7 +900,7 @@ class _FloatingNavigationBarState extends State<FloatingNavigationBar>
     );
     return AnimatedBuilder(
       animation: _barMotion,
-      builder: (_, child) => _PressTransform(
+      builder: (_, child) => PressTransform(
         lift: _swell.value,
         pull: Offset(_stretch.value, 0),
         child: child,
@@ -1388,18 +1187,13 @@ class _LensTint extends SingleChildRenderObjectWidget {
 
 class _RenderLensTint extends RenderProxyBox {
   _RenderLensTint({
-    required _Spring lens,
+    required this._lens,
     required ValueListenable<double> lift,
-    required ValueListenable<double> parallax,
-    required int index,
-    required Color color,
-    required TextDirection textDirection,
-  }) : _lens = lens,
-       _lift = lift,
-       _parallax = parallax,
-       _index = index,
-       _color = color,
-       _textDirection = textDirection;
+    required this._parallax,
+    required this._index,
+    required this._color,
+    required this._textDirection,
+  }) : _lift = lift;
 
   final _outside = LayerHandle<ClipPathLayer>();
   final _inside = LayerHandle<ClipPathLayer>();
