@@ -86,6 +86,7 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
       ? const ReadSettingState()
       : ReadSettingState.fromJson(json['readSetting'] as Map<String, dynamic>),
   customExportPath: json['customExportPath'] as String? ?? '',
+  exportIncludeCover: json['exportIncludeCover'] as bool? ?? false,
   appLockSetting: json['appLockSetting'] == null
       ? const AppLockSettingState()
       : AppLockSettingState.fromJson(
@@ -133,6 +134,11 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
       : SwitchToastSettingState.fromJson(
           json['switchToastSetting'] as Map<String, dynamic>,
         ),
+  notifySetting: json['notifySetting'] == null
+      ? const NotifySettingState()
+      : NotifySettingState.fromJson(
+          json['notifySetting'] as Map<String, dynamic>,
+        ),
   fileManagerSetting: json['fileManagerSetting'] == null
       ? const FileManagerSettingState()
       : FileManagerSettingState.fromJson(
@@ -151,6 +157,11 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
   eInkSetting: json['eInkSetting'] == null
       ? const EInkSettingState()
       : EInkSettingState.fromJson(json['eInkSetting'] as Map<String, dynamic>),
+  navigationSetting: json['navigationSetting'] == null
+      ? const NavigationSettingState()
+      : NavigationSettingState.fromJson(
+          json['navigationSetting'] as Map<String, dynamic>,
+        ),
 );
 
 Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
@@ -207,6 +218,7 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'windowY': instance.windowY,
       'readSetting': instance.readSetting.toJson(),
       'customExportPath': instance.customExportPath,
+      'exportIncludeCover': instance.exportIncludeCover,
       'appLockSetting': instance.appLockSetting.toJson(),
       'compatibleVersion': instance.compatibleVersion,
       'cacheSetting': instance.cacheSetting.toJson(),
@@ -218,10 +230,12 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'comicCardSetting': instance.comicCardSetting.toJson(),
       'toastSetting': instance.toastSetting.toJson(),
       'switchToastSetting': instance.switchToastSetting.toJson(),
+      'notifySetting': instance.notifySetting.toJson(),
       'fileManagerSetting': instance.fileManagerSetting.toJson(),
       'discoverSetting': instance.discoverSetting.toJson(),
       'operationBindingSetting': instance.operationBindingSetting.toJson(),
       'eInkSetting': instance.eInkSetting.toJson(),
+      'navigationSetting': instance.navigationSetting.toJson(),
     };
 
 const _$ThemeModeEnumMap = {
@@ -337,7 +351,6 @@ _SyncSettingState _$SyncSettingStateFromJson(Map<String, dynamic> json) =>
       syncSettings: json['syncSettings'] as bool? ?? false,
       syncPlugins: json['syncPlugins'] as bool? ?? false,
       autoSync: json['autoSync'] as bool? ?? true,
-      syncNotify: json['syncNotify'] as bool? ?? true,
       settingsSyncTime: (json['settingsSyncTime'] as num?)?.toInt() ?? 0,
     );
 
@@ -349,7 +362,6 @@ Map<String, dynamic> _$SyncSettingStateToJson(_SyncSettingState instance) =>
       'syncSettings': instance.syncSettings,
       'syncPlugins': instance.syncPlugins,
       'autoSync': instance.autoSync,
-      'syncNotify': instance.syncNotify,
       'settingsSyncTime': instance.settingsSyncTime,
     };
 
@@ -735,6 +747,19 @@ Map<String, dynamic> _$SwitchToastSettingStateToJson(
   'lastPageMessage': instance.lastPageMessage,
 };
 
+_NotifySettingState _$NotifySettingStateFromJson(Map<String, dynamic> json) =>
+    _NotifySettingState(
+      enabled: json['enabled'] as bool? ?? true,
+      topics:
+          (json['topics'] as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, e as bool),
+          ) ??
+          const <String, bool>{},
+    );
+
+Map<String, dynamic> _$NotifySettingStateToJson(_NotifySettingState instance) =>
+    <String, dynamic>{'enabled': instance.enabled, 'topics': instance.topics};
+
 _FavoriteArtistSettingState _$FavoriteArtistSettingStateFromJson(
   Map<String, dynamic> json,
 ) => _FavoriteArtistSettingState(
@@ -802,6 +827,7 @@ _FileManagerSettingState _$FileManagerSettingStateFromJson(
   restoreTabs: json['restoreTabs'] as bool? ?? true,
   fileOperations: json['fileOperations'] as bool? ?? true,
   searchSubfoldersDefault: json['searchSubfoldersDefault'] as bool? ?? false,
+  wrapGridTitle: json['wrapGridTitle'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$FileManagerSettingStateToJson(
@@ -814,6 +840,7 @@ Map<String, dynamic> _$FileManagerSettingStateToJson(
   'restoreTabs': instance.restoreTabs,
   'fileOperations': instance.fileOperations,
   'searchSubfoldersDefault': instance.searchSubfoldersDefault,
+  'wrapGridTitle': instance.wrapGridTitle,
 };
 
 _DiscoverSettingState _$DiscoverSettingStateFromJson(
@@ -892,4 +919,46 @@ const _$ComicUnreadIndicatorStyleEnumMap = {
   ComicUnreadIndicatorStyle.dot: 'dot',
   ComicUnreadIndicatorStyle.disc: 'disc',
   ComicUnreadIndicatorStyle.label: 'label',
+};
+
+_NavigationSettingState _$NavigationSettingStateFromJson(
+  Map<String, dynamic> json,
+) => _NavigationSettingState(
+  sidebarEnabled: json['sidebarEnabled'] as bool? ?? true,
+  sidebarExpanded: json['sidebarExpanded'] as bool? ?? false,
+  dockEnabled: json['dockEnabled'] as bool? ?? true,
+  autoNarrowMobileLayout: json['autoNarrowMobileLayout'] as bool? ?? true,
+  narrowNavigationWidth:
+      (json['narrowNavigationWidth'] as num?)?.toDouble() ??
+      kDefaultNarrowNavigationWidth,
+  desktopPageIds:
+      (json['desktopPageIds'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const [],
+  mobilePageIds:
+      (json['mobilePageIds'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const [],
+  desktopActionIds: (json['desktopActionIds'] as List<dynamic>?)
+      ?.map((e) => e as String)
+      .toList(),
+  mobileActionIds: (json['mobileActionIds'] as List<dynamic>?)
+      ?.map((e) => e as String)
+      .toList(),
+);
+
+Map<String, dynamic> _$NavigationSettingStateToJson(
+  _NavigationSettingState instance,
+) => <String, dynamic>{
+  'sidebarEnabled': instance.sidebarEnabled,
+  'sidebarExpanded': instance.sidebarExpanded,
+  'dockEnabled': instance.dockEnabled,
+  'autoNarrowMobileLayout': instance.autoNarrowMobileLayout,
+  'narrowNavigationWidth': instance.narrowNavigationWidth,
+  'desktopPageIds': instance.desktopPageIds,
+  'mobilePageIds': instance.mobilePageIds,
+  'desktopActionIds': instance.desktopActionIds,
+  'mobileActionIds': instance.mobileActionIds,
 };

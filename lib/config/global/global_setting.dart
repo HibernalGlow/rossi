@@ -15,12 +15,18 @@ import 'package:zephyr/util/json/converter.dart';
 import 'package:zephyr/util/layout/layout_overflow_guard.dart';
 import 'package:zephyr/util/text/tag_text.dart';
 import 'package:zephyr/util/text/tag_translation.dart';
+// 只是为了 `kDefaultNarrowNavigationWidth` 这个默认值 —— 判定层的常量，
+// 设置层引用它，避免「默认值」与「判定用的阈值」各存一个数（见
+// `navigation_layout.dart` 顶部说明）。
+import 'package:zephyr/widgets/navigation/navigation_layout.dart';
 
 part 'global_setting.freezed.dart';
 part 'global_setting.g.dart';
 part 'parts/global_setting_toast_part.dart';
+part 'parts/global_setting_notify_part.dart';
 part 'parts/global_setting_favorite_part.dart';
 part 'parts/global_setting_workspace_part.dart';
+part 'parts/global_setting_navigation_part.dart';
 part 'parts/global_setting_read_extras_part.dart';
 
 enum ReaderInfoVerticalPosition { top, bottom }
@@ -235,6 +241,11 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     // 只在**真有工作台入口**的布局（平板 / 桌面四边栏）落地，手机端忽略 ——
     // 判定收在 `lib/workspace/model/workspace_startup.dart`。
     @Default(false) bool startWithWorkspace,
+    // 工作台在场时，被盖住的首页壳要不要「休眠」：内容里的图片换成纯色占位，
+    // 让出 imageCache 里的解码位图（live image 随 widget 卸载而释放），
+    // 退场后按磁盘文件重新解码。默认开 —— 首页壳被盖住期间那些位图本来
+    // 一帧都画不上，属于纯内存成本；关掉 = 保持位图常驻（回首页更快，但更吃内存）。
+    @Default(true) bool workspaceSleepCoveredUi,
     // 桌面端自制标题栏（`lib/widgets/desktop/custom_title_bar.dart`）改不改成
     // **透明浮层**：不再占那 40px，内容顶到窗口顶部，标题栏只把应用名与窗口按钮
     // 浮在画面上。口径照 JHenTai 桌面端的 `TitleBarStyle.hidden` + 透明窗口背景。
@@ -264,6 +275,15 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     @Default(0) double windowY,
     @Default(ReadSettingState()) ReadSettingState readSetting,
     @Default('') String customExportPath,
+    // 导出的产物（文件夹 / zip）里要不要带上封面图。默认关。
+    //
+    // 关的理由不是「省那一张图」：导出侧的封面**不是本地已有的一份拷贝**，而是
+    // `_tryDownloadCover` 走 `downloadPicture(pictureType: cover)` 现场再取一次
+    // （见 `export_comic.dart`）。导出要保证的是该导的页都进了归档，一张封面属于
+    // 顺手塞进来的额外内容。
+    // 关掉后 `original_comic_info.json` 里仍有封面地址，书架卡片与详情页展示的
+    // 也是同一个 `downloadPicture`，本地没有就按地址在线取，不会因为不打包而空白。
+    @Default(false) bool exportIncludeCover,
     @Default(AppLockSettingState()) AppLockSettingState appLockSetting,
     @Default("") String compatibleVersion,
     @Default(CacheSettingState()) CacheSettingState cacheSetting,
@@ -277,12 +297,17 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     @Default(ToastSettingState()) ToastSettingState toastSetting,
     @Default(SwitchToastSettingState())
     SwitchToastSettingState switchToastSetting,
+    @Default(NotifySettingState()) NotifySettingState notifySetting,
     @Default(FileManagerSettingState())
     FileManagerSettingState fileManagerSetting,
     @Default(DiscoverSettingState()) DiscoverSettingState discoverSetting,
     @Default(OperationBindingSettingState())
     OperationBindingSettingState operationBindingSetting,
     @Default(EInkSettingState()) EInkSettingState eInkSetting,
+    // 顶部导航栏（Arc 侧栏 / 悬浮 Dock）的偏好。默认值全在
+    // `parts/global_setting_navigation_part.dart` 里带说明。
+    @Default(NavigationSettingState())
+    NavigationSettingState navigationSetting,
   }) = _GlobalSettingState;
 
   factory GlobalSettingState.fromJson(Map<String, dynamic> json) =>
@@ -370,7 +395,6 @@ abstract class SyncSettingState with _$SyncSettingState {
     @Default(false) bool syncSettings,
     @Default(false) bool syncPlugins,
     @Default(true) bool autoSync,
-    @Default(true) bool syncNotify,
     @Default(0) int settingsSyncTime,
   }) = _SyncSettingState;
 
@@ -671,6 +695,28 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
       (current) => current.copyWith(
         switchToastSetting: updates(current.switchToastSetting),
       ),
+    );
+  }
+
+  void updateNotifySetting(
+    NotifySettingState Function(NotifySettingState current) updates,
+  ) {
+    updateState(
+      (current) =>
+          current.copyWith(notifySetting: updates(current.notifySetting)),
+    );
+  }
+
+  /// 改导航栏偏好（侧栏 / Dock 开关、阈值、两支各自的条目清单）。
+  ///
+  /// 走一个具名入口而不是让调用方自己 `copyWith`：导航栏那两处（布局分支与
+  /// 弹窗）都要写它，收在一处省得将来加字段时漏改一边。
+  void updateNavigationSetting(
+    NavigationSettingState Function(NavigationSettingState current) updates,
+  ) {
+    updateState(
+      (current) =>
+          current.copyWith(navigationSetting: updates(current.navigationSetting)),
     );
   }
 

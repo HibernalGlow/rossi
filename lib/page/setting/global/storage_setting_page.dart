@@ -132,6 +132,25 @@ class _StorageSettingPageState extends State<StorageSettingPage> {
     );
   }
 
+  Widget _exportIncludeCover(
+    GlobalSettingState state,
+    GlobalSettingCubit cubit,
+  ) {
+    return SwitchListTile(
+      secondary: const Icon(Icons.image_outlined),
+      title: Text(t.settings.exportIncludeCover),
+      subtitle: Text(t.settings.exportIncludeCoverSubtitle),
+      thumbIcon: kSettingSwitchThumbIcon,
+      value: state.exportIncludeCover,
+      onChanged: (bool value) {
+        cubit.updateState(
+          (current) => current.copyWith(exportIncludeCover: value),
+        );
+        showSuccessToast(t.common.settingSaved);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cubit = context.watch<GlobalSettingCubit>();
@@ -167,6 +186,8 @@ class _StorageSettingPageState extends State<StorageSettingPage> {
             onTap: () => context.pushRoute(const DataBackupRoute()),
           ),
           if (!Platform.isIOS) _customExportPath(state, cubit),
+          // 不跟着上一条一起被 iOS 挡掉：iOS 导出的就是 zip，这一样照样生效。
+          _exportIncludeCover(state, cubit),
           const SizedBox(height: 32),
         ],
       ),

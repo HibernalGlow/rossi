@@ -5,6 +5,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/page/setting/common/setting_entry.dart';
+import 'package:zephyr/page/setting/common/setting_entry_list.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/platform/desktop/window_logic.dart';
 import 'package:zephyr/service/lifecycle/foreground_task/foreground_task_service.dart';
@@ -58,7 +60,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
 
     return SettingPageShell(
       title: t.settings.appBehavior,
-      child: ListView(
+      child: SettingEntryList(
         children: [
           settingSectionTitle(
             context,
@@ -67,24 +69,75 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
           ),
           // 「启动直接打开工作台」并进了这一条的下拉（见 `_splashPage`），
           // 不再单开一栏 —— 两者本来就是同一件事：启动落到哪儿。
-          _splashPage(state, cubit),
-          _skipUpdateCheck(state, cubit),
-          if (isDesktop) _desktopCloseBehaviorTile(),
-          if (Platform.isAndroid) _androidKeepAlive(state, cubit),
-          if (Platform.isAndroid) _backPressExit(state, cubit),
-          _appLockSetting(state, cubit),
-          _oldPageRollback(state, cubit),
-          _cloudFavoritePreferred(state, cubit),
-          _autoFollowOnCollect(state, cubit),
-          _autoFavoriteOnDownload(state, cubit),
-          _writeDownloadMetadataFile(state, cubit),
-          _leftHandMode(state, cubit),
-          _clickCoverToStartReading(state, cubit),
-          _searchHistoryGroupBySource(state, cubit),
+          settingEntry('behavior.splashPage', _splashPage(state, cubit)),
+          if (workspaceAvailableOnDevice(context))
+            settingEntry(
+              'behavior.workspaceSleepCoveredUi',
+              _workspaceSleepCoveredUi(state, cubit),
+            ),
+          settingEntry(
+            'behavior.skipUpdateCheck',
+            _skipUpdateCheck(state, cubit),
+          ),
+          if (isDesktop)
+            settingEntry(
+              'behavior.desktopCloseBehavior',
+              _desktopCloseBehaviorTile(),
+            ),
+          if (Platform.isAndroid)
+            settingEntry(
+              'behavior.androidKeepAlive',
+              _androidKeepAlive(state, cubit),
+            ),
+          if (Platform.isAndroid)
+            settingEntry(
+              'behavior.backPressExit',
+              _backPressExit(state, cubit),
+            ),
+          // 这一块展开时有 2~4 行，但它们是同一件事（手势锁 + PIN + 删除），
+          // 所以整块只给一个 id：落点停在开关那一行就够了。
+          settingEntry('behavior.appLock', _appLockSetting(state, cubit)),
+          settingEntry(
+            'behavior.oldPageRollback',
+            _oldPageRollback(state, cubit),
+          ),
+          settingEntry(
+            'behavior.cloudFavoritePreferred',
+            _cloudFavoritePreferred(state, cubit),
+          ),
+          settingEntry(
+            'behavior.autoFollowOnCollect',
+            _autoFollowOnCollect(state, cubit),
+          ),
+          settingEntry(
+            'behavior.autoFavoriteOnDownload',
+            _autoFavoriteOnDownload(state, cubit),
+          ),
+          settingEntry(
+            'behavior.writeDownloadMetadataFile',
+            _writeDownloadMetadataFile(state, cubit),
+          ),
+          settingEntry('behavior.leftHandMode', _leftHandMode(state, cubit)),
+          settingEntry(
+            'behavior.clickCoverToStartReading',
+            _clickCoverToStartReading(state, cubit),
+          ),
+          settingEntry(
+            'behavior.searchHistoryGroupBySource',
+            _searchHistoryGroupBySource(state, cubit),
+          ),
           // 只在桌面端给这个开关：触摸端只有右下角悬浮按钮一种落点，
           // 摆一个点了没反应的开关比不摆更糟（与 `_desktopCloseBehaviorTile` 同口径）。
-          if (isDesktop) _comicInfoInlineReadButton(state, cubit),
-          if (isDesktop) _comicInfoRailLiquidGlass(state, cubit),
+          if (isDesktop)
+            settingEntry(
+              'behavior.comicInfoInlineReadButton',
+              _comicInfoInlineReadButton(state, cubit),
+            ),
+          if (isDesktop)
+            settingEntry(
+              'behavior.comicInfoRailLiquidGlass',
+              _comicInfoRailLiquidGlass(state, cubit),
+            ),
           const SizedBox(height: 32),
         ],
       ),
@@ -139,6 +192,27 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
           showSuccessToast(t.common.restartToTakeEffect);
         },
       ),
+    );
+  }
+
+  /// 工作台在场时被盖住的首页壳要不要休眠（图片让出解码位图）。
+  /// 判据与落点见 `ImageSleep` / `WorkspacePresence`。
+  Widget _workspaceSleepCoveredUi(
+    GlobalSettingState state,
+    GlobalSettingCubit cubit,
+  ) {
+    return SwitchListTile(
+      secondary: const Icon(Icons.battery_saver_outlined),
+      title: Text(t.settings.workspaceSleepCoveredUi),
+      subtitle: Text(t.settings.workspaceSleepCoveredUiSubtitle),
+      thumbIcon: kSettingSwitchThumbIcon,
+      value: state.workspaceSleepCoveredUi,
+      onChanged: (bool value) {
+        cubit.updateState(
+          (current) => current.copyWith(workspaceSleepCoveredUi: value),
+        );
+        showSuccessToast(t.common.settingSaved);
+      },
     );
   }
 
