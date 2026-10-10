@@ -9,6 +9,7 @@ import 'package:zephyr/service/download/download_queue_manager.dart';
 import 'package:zephyr/service/download/download_task_progress.dart';
 import 'package:zephyr/service/download/models/download_task_json.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 阅读器顶部工具栏下载快捷按钮
 ///
@@ -58,7 +59,7 @@ class ReaderDownloadButton extends StatelessWidget {
             null;
         final isCompleted = (dbTask?.isCompleted ?? false) || isDownloaded;
 
-        IconData iconData;
+        Glyph iconData;
         Color iconColor;
         String tooltip;
         double? progress;
@@ -66,26 +67,26 @@ class ReaderDownloadButton extends StatelessWidget {
         // 颜色一律取角色：MD3 的盘里没有「成功绿」这一档，完成与进行中同用
         // `primary`，靠图标区分；暂停用 `tertiary`，失败用 `error`。
         if (isDownloading) {
-          iconData = Icons.downloading_rounded;
+          iconData = AppGlyphs.downloading;
           iconColor = colorScheme.primary;
           tooltip = t.reader.downloadStatusDownloading;
           if (payload != null) {
             progress = downloadTaskPayloadProgressFraction(payload);
           }
         } else if (isPaused) {
-          iconData = Icons.pause_circle_outline_rounded;
+          iconData = AppGlyphs.pauseCircle;
           iconColor = colorScheme.tertiary;
           tooltip = t.reader.downloadStatusPaused;
         } else if (isFailed) {
-          iconData = Icons.error_outline_rounded;
+          iconData = AppGlyphs.error;
           iconColor = colorScheme.error;
           tooltip = t.reader.downloadStatusFailed;
         } else if (isCompleted) {
-          iconData = Icons.download_done_rounded;
+          iconData = AppGlyphs.downloadDone;
           iconColor = colorScheme.primary;
           tooltip = t.reader.downloadStatusCompleted;
         } else {
-          iconData = Icons.download_rounded;
+          iconData = AppGlyphs.download;
           iconColor = colorScheme.onSurfaceVariant;
           tooltip = t.reader.startDownload;
         }

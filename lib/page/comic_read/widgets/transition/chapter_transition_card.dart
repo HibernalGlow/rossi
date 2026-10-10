@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/model/seamless_transition_state.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class ChapterTransitionCard extends StatelessWidget {
   const ChapterTransitionCard({
@@ -125,7 +126,7 @@ class ChapterTransitionCard extends StatelessWidget {
         return _TransitionStatusMeta(
           message: t.reader.transitionSwipeToLoad,
           canTap: true,
-          leading: Icon(Icons.arrow_forward, size: 16),
+          leading: GlyphIcon(AppGlyphs.arrowForward, size: 16),
         );
       case SeamlessTransitionStatus.loading:
         return _TransitionStatusMeta(
@@ -144,13 +145,13 @@ class ChapterTransitionCard extends StatelessWidget {
         return _TransitionStatusMeta(
           message: t.reader.transitionLoaded,
           canTap: false,
-          leading: Icon(Icons.check_circle_outline, size: 16),
+          leading: GlyphIcon(AppGlyphs.checkCircle, size: 16),
         );
       case SeamlessTransitionStatus.error:
         return _TransitionStatusMeta(
           message: t.reader.transitionLoadFailedRetry,
           canTap: true,
-          leading: Icon(Icons.refresh, size: 16),
+          leading: GlyphIcon(AppGlyphs.refresh, size: 16),
         );
     }
   }

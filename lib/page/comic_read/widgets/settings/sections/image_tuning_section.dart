@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_primitives.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 滤镜 / 墨水屏 / 禁用动画：三颗都会让画面和原图不一样。
 ///
@@ -18,7 +19,7 @@ class ImageTuningSection extends StatelessWidget {
 
     return SettingsSection(
       title: t.reader.tuningSection,
-      icon: Icons.auto_fix_high_outlined,
+      icon: AppGlyphs.wand,
       children: [
         SettingsCardGroup(
           children: [

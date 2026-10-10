@@ -40,7 +40,7 @@ class _BottomProgressBarSection extends StatelessWidget {
 
     return SettingsSection(
       title: t.reader.bottomProgressBar,
-      icon: Icons.linear_scale_rounded,
+      icon: AppGlyphs.linearScale,
       children: [
         SettingsCardGroup(
           children: [
@@ -90,7 +90,7 @@ class _PageInfoVisibilitySection extends StatelessWidget {
 
     return SettingsSection(
       title: t.reader.infoDisplay,
-      icon: Icons.info_outline_rounded,
+      icon: AppGlyphs.info,
       children: [
         SettingsCardGroup(
           children: [
@@ -156,19 +156,19 @@ class _PageInfoPlacementSection extends StatelessWidget {
 
     return SettingsSection(
       title: t.reader.infoBarPosition,
-      icon: Icons.place_outlined,
+      icon: AppGlyphs.place,
       children: [
         SettingsSegmentedTile<ReaderInfoVerticalPosition>(
           selected: readSetting.pageInfoVerticalPosition,
           segments: [
             ButtonSegment<ReaderInfoVerticalPosition>(
               value: ReaderInfoVerticalPosition.top,
-              icon: const Icon(Icons.vertical_align_top_rounded, size: 18),
+              icon: const GlyphIcon(AppGlyphs.vAlignTop, size: 18),
               label: Text(t.reader.verticalPositionTop),
             ),
             ButtonSegment<ReaderInfoVerticalPosition>(
               value: ReaderInfoVerticalPosition.bottom,
-              icon: const Icon(Icons.vertical_align_bottom_rounded, size: 18),
+              icon: const GlyphIcon(AppGlyphs.vAlignBottom, size: 18),
               label: Text(t.reader.verticalPositionBottom),
             ),
           ],
@@ -204,17 +204,17 @@ class _PageInfoPlacementSection extends StatelessWidget {
           segments: [
             ButtonSegment<ReaderInfoHorizontalPosition>(
               value: ReaderInfoHorizontalPosition.left,
-              icon: const Icon(Icons.format_align_left_rounded, size: 18),
+              icon: const GlyphIcon(AppGlyphs.alignLeft, size: 18),
               label: Text(t.reader.horizontalPositionLeft),
             ),
             ButtonSegment<ReaderInfoHorizontalPosition>(
               value: ReaderInfoHorizontalPosition.center,
-              icon: const Icon(Icons.format_align_center_rounded, size: 18),
+              icon: const GlyphIcon(AppGlyphs.alignCenter, size: 18),
               label: Text(t.reader.horizontalPositionCenter),
             ),
             ButtonSegment<ReaderInfoHorizontalPosition>(
               value: ReaderInfoHorizontalPosition.right,
-              icon: const Icon(Icons.format_align_right_rounded, size: 18),
+              icon: const GlyphIcon(AppGlyphs.alignRight, size: 18),
               label: Text(t.reader.horizontalPositionRight),
             ),
           ],
@@ -260,7 +260,7 @@ class _PageInfoAppearanceSection extends StatelessWidget {
 
     return SettingsSection(
       title: t.reader.infoBarStyle,
-      icon: Icons.format_size_rounded,
+      icon: AppGlyphs.textSize,
       children: [
         SettingsCardGroup(
           children: [
@@ -312,7 +312,7 @@ class _ReaderChromeSection extends StatelessWidget {
 
     return SettingsSection(
       title: t.reader.chromeSection,
-      icon: Icons.crop_din_outlined,
+      icon: AppGlyphs.cropSquare,
       children: [
         SettingsCardGroup(
           children: [

@@ -10,6 +10,7 @@ import 'package:zephyr/reader/translated_page_status.dart';
 import 'package:zephyr/reader/translated_page_controller.dart';
 import 'package:zephyr/service/ocr/ocr_settings.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 顶栏上的「这一页译不译」芯片。
 ///
@@ -147,20 +148,20 @@ class ReaderTranslatedPageChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
+              GlyphIcon(
                 switch (state) {
                   TranslatedPageChipState.building =>
-                    Icons.hourglass_top_outlined,
+                    AppGlyphs.hourglass,
                   // 「注进去了但这会儿看不见」——窄屏上不显示文字时，图标是这一态
                   // 唯一和「译」「译文页」区分得开的东西。
                   TranslatedPageChipState.blockedByOriginalPreview =>
-                    Icons.visibility_off_outlined,
+                    AppGlyphs.eyeOff,
                   // 窄屏上文字位被门槛砍掉，叠层与烘焙只剩图标能分 ——
                   // 而这一维正是用户判断「超分还在不在」的唯一线索。
                   TranslatedPageChipState.showing
                       when display == TranslatedPageDisplay.overlay =>
-                    Icons.layers_outlined,
-                  _ => Icons.translate_outlined,
+                    AppGlyphs.layers,
+                  _ => AppGlyphs.translate,
                 },
                 size: 14,
                 color: fg,

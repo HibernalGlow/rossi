@@ -11,6 +11,7 @@ import 'package:zephyr/page/setting/real_sr/widgets/super_resolution_engine_sett
 import 'package:zephyr/page/setting/real_sr/widgets/upscale_conditions_card.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/type/enum.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 「AI 超分辨率」这一节 —— 阅读设置面板与工作台控制面板卡片**共用的一份实现**。
 ///
@@ -169,7 +170,7 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
 
       return SettingsSection(
         title: 'AI 超分辨率',
-        icon: Icons.auto_awesome_outlined,
+        icon: AppGlyphs.sparkle,
         children: [
           SettingsCardGroup(children: cardItems),
           if (hasEngineChoice) ...[

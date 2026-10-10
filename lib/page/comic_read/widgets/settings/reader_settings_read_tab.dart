@@ -62,7 +62,7 @@ class _ReadModeSection extends StatelessWidget {
 
     return SettingsSection(
       title: t.reader.readingMode,
-      icon: Icons.auto_stories_outlined,
+      icon: AppGlyphs.openBook,
       children: [
         // 上游的「本漫独立阅读模式」：开关 + 展开的本漫选项，只在阅读页入口出现。
         if (perComicAvailable) ...[
@@ -103,12 +103,12 @@ class _ReadModeSection extends StatelessWidget {
           segments: [
             ButtonSegment<int>(
               value: 0,
-              icon: const Icon(Icons.view_agenda_outlined, size: 18),
+              icon: const GlyphIcon(AppGlyphs.viewAgenda, size: 18),
               label: Text(t.reader.webtoon),
             ),
             ButtonSegment<int>(
               value: 1,
-              icon: const Icon(Icons.arrow_back_rounded, size: 18),
+              icon: const GlyphIcon(AppGlyphs.arrowBack, size: 18),
               label: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(t.reader.readingDirectionRightOpen),
@@ -117,7 +117,7 @@ class _ReadModeSection extends StatelessWidget {
             ),
             ButtonSegment<int>(
               value: 2,
-              icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+              icon: const GlyphIcon(AppGlyphs.arrowForward, size: 18),
               label: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(t.reader.readingDirectionLeftOpen),
@@ -311,24 +311,24 @@ class _ThemeModeSection extends StatelessWidget {
 
     return SettingsSection(
       title: t.reader.themeMode,
-      icon: Icons.light_mode_outlined,
+      icon: AppGlyphs.sun,
       children: [
         SettingsSegmentedTile<ThemeMode>(
           selected: globalSettingState.themeMode,
           segments: [
             ButtonSegment<ThemeMode>(
               value: ThemeMode.light,
-              icon: const Icon(Icons.light_mode_outlined, size: 18),
+              icon: const GlyphIcon(AppGlyphs.sun, size: 18),
               label: Text(t.common.lightMode),
             ),
             ButtonSegment<ThemeMode>(
               value: ThemeMode.dark,
-              icon: const Icon(Icons.dark_mode_outlined, size: 18),
+              icon: const GlyphIcon(AppGlyphs.moon, size: 18),
               label: Text(t.common.darkMode),
             ),
             ButtonSegment<ThemeMode>(
               value: ThemeMode.system,
-              icon: const Icon(Icons.brightness_auto_outlined, size: 18),
+              icon: const GlyphIcon(AppGlyphs.brightnessAuto, size: 18),
               label: Text(t.common.followSystem),
             ),
           ],
@@ -471,7 +471,7 @@ class _PreloadSection extends StatelessWidget {
 
     return SettingsSection(
       title: t.reader.preload,
-      icon: Icons.downloading_rounded,
+      icon: AppGlyphs.downloading,
       children: [
         SettingsCardGroup(
           children: [
@@ -531,14 +531,14 @@ class _ReadBackgroundSection extends StatelessWidget {
 
     return SettingsSection(
       title: t.reader.background,
-      icon: Icons.palette_outlined,
+      icon: AppGlyphs.palette,
       children: [
         SettingsSegmentedTile<ReaderBackgroundMode>(
           selected: baseMode,
           segments: [
             ButtonSegment<ReaderBackgroundMode>(
               value: ReaderBackgroundMode.auto,
-              icon: const Icon(Icons.brightness_auto_outlined, size: 18),
+              icon: const GlyphIcon(AppGlyphs.brightnessAuto, size: 18),
               label: Text(t.reader.auto),
             ),
             ButtonSegment<ReaderBackgroundMode>(
@@ -587,12 +587,12 @@ class _ReadBackgroundSection extends StatelessWidget {
                 segments: [
                   ButtonSegment<ReaderBackgroundMode>(
                     value: ReaderBackgroundMode.adaptive,
-                    icon: const Icon(Icons.gradient_outlined, size: 18),
+                    icon: const GlyphIcon(AppGlyphs.gradient, size: 18),
                     label: Text(t.reader.adaptive),
                   ),
                   ButtonSegment<ReaderBackgroundMode>(
                     value: ReaderBackgroundMode.adaptiveEdge,
-                    icon: const Icon(Icons.gradient, size: 18),
+                    icon: const GlyphIcon(AppGlyphs.gradient, size: 18),
                     label: Text(t.reader.adaptiveEdge),
                   ),
                 ],

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_presentation_cubit.dart';
 import 'package:zephyr/page/comic_read/model/reader_presentation.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 顶栏「旋转」面板 —— neoview `RotatePanel` 的对应物。
 ///
@@ -23,12 +24,12 @@ class ReaderRotatePanel extends StatelessWidget {
         ReaderToolbarPill(
           children: [
             ReaderToolbarIconButton(
-              icon: Icons.rotate_right_rounded,
+              icon: AppGlyphs.rotateRight,
               tooltip: '顺时针旋转 90°',
               onPressed: () => cubit.rotate(1),
             ),
             ReaderToolbarIconButton(
-              icon: Icons.rotate_left_rounded,
+              icon: AppGlyphs.rotateLeft,
               tooltip: '逆时针旋转 90°',
               onPressed: () => cubit.rotate(-1),
             ),
@@ -91,14 +92,14 @@ class _AutoRotationPill extends StatelessWidget {
     );
   }
 
-  static IconData _icon(ReaderAutoRotation mode) => switch (mode) {
-    ReaderAutoRotation.none => Icons.block_rounded,
+  static Glyph _icon(ReaderAutoRotation mode) => switch (mode) {
+    ReaderAutoRotation.none => AppGlyphs.block,
     ReaderAutoRotation.left ||
     ReaderAutoRotation.horizontalLeft ||
-    ReaderAutoRotation.forcedLeft => Icons.rotate_left_rounded,
+    ReaderAutoRotation.forcedLeft => AppGlyphs.rotateLeft,
     ReaderAutoRotation.right ||
     ReaderAutoRotation.horizontalRight ||
-    ReaderAutoRotation.forcedRight => Icons.rotate_right_rounded,
+    ReaderAutoRotation.forcedRight => AppGlyphs.rotateRight,
   };
 
   static String _label(ReaderAutoRotation mode) => switch (mode) {
