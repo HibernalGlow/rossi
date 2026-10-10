@@ -390,6 +390,105 @@ class Translations$navigation$zh_CN {
 
 	/// zh-CN: '去登录'
 	String get goLogin => '去登录';
+
+	/// zh-CN: '收起侧栏'
+	String get sidebarCollapse => '收起侧栏';
+
+	/// zh-CN: '展开侧栏'
+	String get sidebarExpand => '展开侧栏';
+
+	/// zh-CN: '导航栏'
+	String get navigationChrome => '导航栏';
+
+	/// zh-CN: 'Arc 风格侧栏'
+	String get sidebarEnabled => 'Arc 风格侧栏';
+
+	/// zh-CN: '桌面与平板用左侧侧栏导航；关掉回到改造前的旧侧栏'
+	String get sidebarEnabledSubtitle => '桌面与平板用左侧侧栏导航；关掉回到改造前的旧侧栏';
+
+	/// zh-CN: '侧栏展开'
+	String get sidebarExpanded => '侧栏展开';
+
+	/// zh-CN: '展开时每条带文案，收起时只有图标；侧栏顶部那颗按钮随时可切'
+	String get sidebarExpandedSubtitle => '展开时每条带文案，收起时只有图标；侧栏顶部那颗按钮随时可切';
+
+	/// zh-CN: '悬浮 Dock 栏'
+	String get dockEnabled => '悬浮 Dock 栏';
+
+	/// zh-CN: '窄屏用底部悬浮胶囊导航；关掉回到改造前的底部导航栏'
+	String get dockEnabledSubtitle => '窄屏用底部悬浮胶囊导航；关掉回到改造前的底部导航栏';
+
+	/// zh-CN: '窄屏自动切移动端布局'
+	String get autoNarrowMobileLayout => '窄屏自动切移动端布局';
+
+	/// zh-CN: '窗口窄于下面的阈值时从侧栏切到底部 Dock（桌面小窗、平板分屏）'
+	String get autoNarrowMobileLayoutSubtitle => '窗口窄于下面的阈值时从侧栏切到底部 Dock（桌面小窗、平板分屏）';
+
+	/// zh-CN: '窄屏阈值'
+	String get narrowNavigationWidth => '窄屏阈值';
+
+	/// zh-CN: '窗口宽度（逻辑像素）小于这个值就算窄屏'
+	String get narrowNavigationWidthSubtitle => '窗口宽度（逻辑像素）小于这个值就算窄屏';
+
+	/// zh-CN: '恢复默认（$value）'
+	String narrowNavigationWidthReset({required Object value}) => '恢复默认（${value}）';
+
+	/// zh-CN: '更多动作'
+	String get moreActions => '更多动作';
+
+	/// zh-CN: '自定义导航'
+	String get customize => '自定义导航';
+
+	/// zh-CN: '自定义导航栏'
+	String get customizeTitle => '自定义导航栏';
+
+	/// zh-CN: '两段各自拖拽排序、自由添加 / 隐藏；动作行上的箭头在「主区」与「底部快捷区」之间搬'
+	String get customizeHint => '两段各自拖拽排序、自由添加 / 隐藏；动作行上的箭头在「主区」与「底部快捷区」之间搬';
+
+	/// zh-CN: '主区'
+	String get customizeMainSection => '主区';
+
+	/// zh-CN: '底部快捷区'
+	String get customizeActionsSection => '底部快捷区';
+
+	/// zh-CN: '侧栏底部那一排 / Dock 尾部溢出菜单里的入口，只放动作'
+	String get customizeActionsHint => '侧栏底部那一排 / Dock 尾部溢出菜单里的入口，只放动作';
+
+	/// zh-CN: '桌面侧栏'
+	String get customizeDesktopTab => '桌面侧栏';
+
+	/// zh-CN: '移动端 Dock'
+	String get customizeMobileTab => '移动端 Dock';
+
+	/// zh-CN: '恢复默认'
+	String get customizeReset => '恢复默认';
+
+	/// zh-CN: '完成'
+	String get customizeDone => '完成';
+
+	/// zh-CN: '待添加项目'
+	String get customizeAvailable => '待添加项目';
+
+	/// zh-CN: '隐藏'
+	String get customizeHide => '隐藏';
+
+	/// zh-CN: '动作'
+	String get customizeActionTag => '动作';
+
+	/// zh-CN: '移到主区'
+	String get customizeMoveToMain => '移到主区';
+
+	/// zh-CN: '移到底部快捷区'
+	String get customizeMoveToActions => '移到底部快捷区';
+
+	/// zh-CN: '工作台'
+	String get workspace => '工作台';
+
+	/// zh-CN: '打开本地漫画'
+	String get openLocalComic => '打开本地漫画';
+
+	/// zh-CN: 'GPU 上屏'
+	String get gpuPresent => 'GPU 上屏';
 }
 
 // Path: settings
@@ -1000,11 +1099,101 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '开启后在后台定期同步配置'
 	String get autoSyncSubtitle => '开启后在后台定期同步配置';
 
-	/// zh-CN: '自动同步通知'
-	String get syncNotify => '自动同步通知';
+	/// zh-CN: '提示个性化'
+	String get notifyPersonalize => '提示个性化';
 
-	/// zh-CN: '开启后在同步开始与完成时提醒'
-	String get syncNotifySubtitle => '开启后在同步开始与完成时提醒';
+	/// zh-CN: '决定哪些后台提示会打扰你；你主动操作的回应始终会显示'
+	String get notifyPersonalizeSubtitle => '决定哪些后台提示会打扰你；你主动操作的回应始终会显示';
+
+	/// zh-CN: '后台提示总闸已关'
+	String get notifySummaryMasterOff => '后台提示总闸已关';
+
+	/// zh-CN: '后台提示全部会响'
+	String get notifySummaryAllOn => '后台提示全部会响';
+
+	/// zh-CN: '已静音 $count 项'
+	String notifySummaryOffCount({required Object count}) => '已静音 ${count} 项';
+
+	/// zh-CN: '后台自动提示'
+	String get notifySectionAmbient => '后台自动提示';
+
+	/// zh-CN: '自动提示'
+	String get notifyMaster => '自动提示';
+
+	/// zh-CN: '总闸。关掉后下面这些全部静默；按钮的操作反馈不受影响'
+	String get notifyMasterHint => '总闸。关掉后下面这些全部静默；按钮的操作反馈不受影响';
+
+	/// zh-CN: '总闸已关：下面这些值给你留着，但现在一律不响。'
+	String get notifyMasterOffNote => '总闸已关：下面这些值给你留着，但现在一律不响。';
+
+	/// zh-CN: '这两类不归这张表管'
+	String get notifySectionOutside => '这两类不归这张表管';
+
+	/// zh-CN: '系统通知栏那一路（下载完成、追更）由系统管，要关去系统设置里关，这里关不掉它'
+	String get notifySystemChannelNote => '系统通知栏那一路（下载完成、追更）由系统管，要关去系统设置里关，这里关不掉它';
+
+	/// zh-CN: '（另有 $count 次同类提示）'
+	String notifyMergedSuffix({required Object count}) => '（另有 ${count} 次同类提示）';
+
+	/// zh-CN: '操作反馈'
+	String get notifyTopicAction => '操作反馈';
+
+	/// zh-CN: '点了按钮之后的回应，永远会显示，否则读起来像按钮坏了'
+	String get notifyTopicActionHint => '点了按钮之后的回应，永远会显示，否则读起来像按钮坏了';
+
+	/// zh-CN: '阅读器切换提示'
+	String get notifyTopicReaderSwitch => '阅读器切换提示';
+
+	/// zh-CN: '切书 / 翻页 / 触到最后一页那三条开关，在工作台的「切换提示」卡片里'
+	String get notifyTopicReaderSwitchHint => '切书 / 翻页 / 触到最后一页那三条开关，在工作台的「切换提示」卡片里';
+
+	/// zh-CN: '自动同步完成'
+	String get notifyTopicSyncAutoSuccess => '自动同步完成';
+
+	/// zh-CN: '每 5 分钟一次的定期同步；同一句话 10 分钟内最多响一次'
+	String get notifyTopicSyncAutoSuccessHint => '每 5 分钟一次的定期同步；同一句话 10 分钟内最多响一次';
+
+	/// zh-CN: '自动同步失败'
+	String get notifyTopicSyncAutoFailure => '自动同步失败';
+
+	/// zh-CN: '配错或断网时过去每 5 分钟敲一次且关不掉；现在同一类错误 10 分钟合并成一条'
+	String get notifyTopicSyncAutoFailureHint => '配错或断网时过去每 5 分钟敲一次且关不掉；现在同一类错误 10 分钟合并成一条';
+
+	/// zh-CN: '下载完成'
+	String get notifyTopicDownloadComplete => '下载完成';
+
+	/// zh-CN: '每完成一本报一次；同一本的重复回调 60 秒内合并'
+	String get notifyTopicDownloadCompleteHint => '每完成一本报一次；同一本的重复回调 60 秒内合并';
+
+	/// zh-CN: '下载失败'
+	String get notifyTopicDownloadFailed => '下载失败';
+
+	/// zh-CN: '报错文案不同算不同的事，不互相合并'
+	String get notifyTopicDownloadFailedHint => '报错文案不同算不同的事，不互相合并';
+
+	/// zh-CN: '追更更新'
+	String get notifyTopicFollowUpdate => '追更更新';
+
+	/// zh-CN: '启动后那一次自动检查；手动刷新追更算操作反馈，不会被静音'
+	String get notifyTopicFollowUpdateHint => '启动后那一次自动检查；手动刷新追更算操作反馈，不会被静音';
+
+	/// zh-CN: '插件脚本报信'
+	String get notifyTopicPluginMessage => '插件脚本报信';
+
+	/// zh-CN: '图源插件自己调出来的提示；脚本能在循环里连发，同一句话 3 秒内合并'
+	String get notifyTopicPluginMessageHint => '图源插件自己调出来的提示；脚本能在循环里连发，同一句话 3 秒内合并';
+
+	/// zh-CN: '外部打开'
+	String get notifyTopicIntentOpen => '外部打开';
+
+	/// zh-CN: '从系统右键菜单或链接调起时的落点提示'
+	String get notifyTopicIntentOpenHint => '从系统右键菜单或链接调起时的落点提示';
+
+	/// zh-CN: '通知权限'
+	String get notifyTopicSystemPermission => '通知权限';
+
+	/// zh-CN: '启动时申请系统通知权限被拒的那条提示'
+	String get notifyTopicSystemPermissionHint => '启动时申请系统通知权限被拒的那条提示';
 
 	/// zh-CN: '同步设置'
 	String get syncSettings => '同步设置';
@@ -1059,6 +1248,12 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '工作台'
 	String get startWithWorkspace => '工作台';
+
+	/// zh-CN: '工作台盖住首页时休眠'
+	String get workspaceSleepCoveredUi => '工作台盖住首页时休眠';
+
+	/// zh-CN: '进工作台后释放底下列表的图片内存，退回时重新加载'
+	String get workspaceSleepCoveredUiSubtitle => '进工作台后释放底下列表的图片内存，退回时重新加载';
 
 	/// zh-CN: '跳过更新检查'
 	String get skipUpdateCheck => '跳过更新检查';
@@ -1197,6 +1392,12 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '自定义导出路径'
 	String get customExportPath => '自定义导出路径';
+
+	/// zh-CN: '导出包含封面图'
+	String get exportIncludeCover => '导出包含封面图';
+
+	/// zh-CN: '打开后，导出的文件夹或 zip 里会额外带一张封面图（导出时要现场再取一次封面）。默认关：产物里只有该导的页和两份信息 JSON，封面仍按 JSON 里的地址在线显示'
+	String get exportIncludeCoverSubtitle => '打开后，导出的文件夹或 zip 里会额外带一张封面图（导出时要现场再取一次封面）。默认关：产物里只有该导的页和两份信息 JSON，封面仍按 JSON 里的地址在线显示';
 
 	/// zh-CN: '存储'
 	String get storage => '存储';
@@ -1606,8 +1807,8 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '封面网格完整显示文件名'
 	String get fileManagerWrapGridTitle => '封面网格完整显示文件名';
 
-	/// zh-CN: '允许文件名换行完整展示，避免被省略号截断（开启后封面将自适应高度）'
-	String get fileManagerWrapGridTitleSubtitle => '允许文件名换行完整展示，避免被省略号截断（开启后封面将自适应高度）';
+	/// zh-CN: '封面网格里的文件名按词换行，最多铺 6 行；格子的总高度不变，行数多了就把封面挤小。关闭时截成 2 行加省略号。两种状态下，鼠标停在整格上都会浮出完整文件名'
+	String get fileManagerWrapGridTitleSubtitle => '封面网格里的文件名按词换行，最多铺 6 行；格子的总高度不变，行数多了就把封面挤小。关闭时截成 2 行加省略号。两种状态下，鼠标停在整格上都会浮出完整文件名';
 
 	/// zh-CN: '搜索'
 	String get fileManagerSectionSearch => '搜索';
@@ -5437,8 +5638,56 @@ class Translations$fontSetting$zh_CN {
 	/// zh-CN: '清空'
 	String get clear => '清空';
 
-	/// zh-CN: '按字重分别选择字体文件。'
-	String get hint => '按字重分别选择字体文件。';
+	/// zh-CN: '选一个默认字体即可应用到全局；需要微调个别字重时再单独覆盖。'
+	String get hint => '选一个默认字体即可应用到全局；需要微调个别字重时再单独覆盖。';
+
+	/// zh-CN: '系统默认'
+	String get modeSystem => '系统默认';
+
+	/// zh-CN: '使用应用默认字体栈，无需任何操作。'
+	String get modeSystemHint => '使用应用默认字体栈，无需任何操作。';
+
+	/// zh-CN: '系统已装字体'
+	String get modeFamily => '系统已装字体';
+
+	/// zh-CN: '输入系统里已安装字体的家族名（如 LXGW WenKai）直接引用，未命中时回退系统默认；桌面端最可靠。'
+	String get modeFamilyHint => '输入系统里已安装字体的家族名（如 LXGW WenKai）直接引用，未命中时回退系统默认；桌面端最可靠。';
+
+	/// zh-CN: '字体文件'
+	String get modeFile => '字体文件';
+
+	/// zh-CN: '整个应用共用这一个文件，粗体等字重由系统模拟。'
+	String get modeFileHint => '整个应用共用这一个文件，粗体等字重由系统模拟。';
+
+	/// zh-CN: '选择字体家族'
+	String get familyPickPrompt => '选择字体家族';
+
+	/// zh-CN: '选择系统字体'
+	String get familyPickerTitle => '选择系统字体';
+
+	/// zh-CN: '搜索字体家族…'
+	String get familySearchHint => '搜索字体家族…';
+
+	/// zh-CN: '使用「$name」'
+	String familyManualUse({required Object name}) => '使用「${name}」';
+
+	/// zh-CN: '没有匹配的字体'
+	String get familyEmpty => '没有匹配的字体';
+
+	/// zh-CN: '正在读取系统字体…'
+	String get familyLoading => '正在读取系统字体…';
+
+	/// zh-CN: '默认字体'
+	String get defaultFont => '默认字体';
+
+	/// zh-CN: '整个应用共用这一个文件，粗体等字重由系统模拟。'
+	String get defaultFontHint => '整个应用共用这一个文件，粗体等字重由系统模拟。';
+
+	/// zh-CN: '字重覆盖'
+	String get overrides => '字重覆盖';
+
+	/// zh-CN: '可选：为个别字重指定不同文件，未覆盖的字重使用最接近的已配置字体。'
+	String get overridesHint => '可选：为个别字重指定不同文件，未覆盖的字重使用最接近的已配置字体。';
 
 	/// zh-CN: '字体加载失败'
 	String get loadFailed => '字体加载失败';
@@ -6446,6 +6695,39 @@ extension on Translations {
 			'navigation.loginExpired' => '登录过期，请重新登录',
 			'navigation.needLoginTitle' => '需要登录',
 			'navigation.goLogin' => '去登录',
+			'navigation.sidebarCollapse' => '收起侧栏',
+			'navigation.sidebarExpand' => '展开侧栏',
+			'navigation.navigationChrome' => '导航栏',
+			'navigation.sidebarEnabled' => 'Arc 风格侧栏',
+			'navigation.sidebarEnabledSubtitle' => '桌面与平板用左侧侧栏导航；关掉回到改造前的旧侧栏',
+			'navigation.sidebarExpanded' => '侧栏展开',
+			'navigation.sidebarExpandedSubtitle' => '展开时每条带文案，收起时只有图标；侧栏顶部那颗按钮随时可切',
+			'navigation.dockEnabled' => '悬浮 Dock 栏',
+			'navigation.dockEnabledSubtitle' => '窄屏用底部悬浮胶囊导航；关掉回到改造前的底部导航栏',
+			'navigation.autoNarrowMobileLayout' => '窄屏自动切移动端布局',
+			'navigation.autoNarrowMobileLayoutSubtitle' => '窗口窄于下面的阈值时从侧栏切到底部 Dock（桌面小窗、平板分屏）',
+			'navigation.narrowNavigationWidth' => '窄屏阈值',
+			'navigation.narrowNavigationWidthSubtitle' => '窗口宽度（逻辑像素）小于这个值就算窄屏',
+			'navigation.narrowNavigationWidthReset' => ({required Object value}) => '恢复默认（${value}）',
+			'navigation.moreActions' => '更多动作',
+			'navigation.customize' => '自定义导航',
+			'navigation.customizeTitle' => '自定义导航栏',
+			'navigation.customizeHint' => '两段各自拖拽排序、自由添加 / 隐藏；动作行上的箭头在「主区」与「底部快捷区」之间搬',
+			'navigation.customizeMainSection' => '主区',
+			'navigation.customizeActionsSection' => '底部快捷区',
+			'navigation.customizeActionsHint' => '侧栏底部那一排 / Dock 尾部溢出菜单里的入口，只放动作',
+			'navigation.customizeDesktopTab' => '桌面侧栏',
+			'navigation.customizeMobileTab' => '移动端 Dock',
+			'navigation.customizeReset' => '恢复默认',
+			'navigation.customizeDone' => '完成',
+			'navigation.customizeAvailable' => '待添加项目',
+			'navigation.customizeHide' => '隐藏',
+			'navigation.customizeActionTag' => '动作',
+			'navigation.customizeMoveToMain' => '移到主区',
+			'navigation.customizeMoveToActions' => '移到底部快捷区',
+			'navigation.workspace' => '工作台',
+			'navigation.openLocalComic' => '打开本地漫画',
+			'navigation.gpuPresent' => 'GPU 上屏',
 			'settings.title' => '设置',
 			'settings.globalTitle' => '设置',
 			'settings.appearance' => '外观与显示',
@@ -6646,8 +6928,38 @@ extension on Translations {
 			'settings.syncServiceS3' => 'S3',
 			'settings.autoSync' => '自动同步',
 			'settings.autoSyncSubtitle' => '开启后在后台定期同步配置',
-			'settings.syncNotify' => '自动同步通知',
-			'settings.syncNotifySubtitle' => '开启后在同步开始与完成时提醒',
+			'settings.notifyPersonalize' => '提示个性化',
+			'settings.notifyPersonalizeSubtitle' => '决定哪些后台提示会打扰你；你主动操作的回应始终会显示',
+			'settings.notifySummaryMasterOff' => '后台提示总闸已关',
+			'settings.notifySummaryAllOn' => '后台提示全部会响',
+			'settings.notifySummaryOffCount' => ({required Object count}) => '已静音 ${count} 项',
+			'settings.notifySectionAmbient' => '后台自动提示',
+			'settings.notifyMaster' => '自动提示',
+			'settings.notifyMasterHint' => '总闸。关掉后下面这些全部静默；按钮的操作反馈不受影响',
+			'settings.notifyMasterOffNote' => '总闸已关：下面这些值给你留着，但现在一律不响。',
+			'settings.notifySectionOutside' => '这两类不归这张表管',
+			'settings.notifySystemChannelNote' => '系统通知栏那一路（下载完成、追更）由系统管，要关去系统设置里关，这里关不掉它',
+			'settings.notifyMergedSuffix' => ({required Object count}) => '（另有 ${count} 次同类提示）',
+			'settings.notifyTopicAction' => '操作反馈',
+			'settings.notifyTopicActionHint' => '点了按钮之后的回应，永远会显示，否则读起来像按钮坏了',
+			'settings.notifyTopicReaderSwitch' => '阅读器切换提示',
+			'settings.notifyTopicReaderSwitchHint' => '切书 / 翻页 / 触到最后一页那三条开关，在工作台的「切换提示」卡片里',
+			'settings.notifyTopicSyncAutoSuccess' => '自动同步完成',
+			'settings.notifyTopicSyncAutoSuccessHint' => '每 5 分钟一次的定期同步；同一句话 10 分钟内最多响一次',
+			'settings.notifyTopicSyncAutoFailure' => '自动同步失败',
+			'settings.notifyTopicSyncAutoFailureHint' => '配错或断网时过去每 5 分钟敲一次且关不掉；现在同一类错误 10 分钟合并成一条',
+			'settings.notifyTopicDownloadComplete' => '下载完成',
+			'settings.notifyTopicDownloadCompleteHint' => '每完成一本报一次；同一本的重复回调 60 秒内合并',
+			'settings.notifyTopicDownloadFailed' => '下载失败',
+			'settings.notifyTopicDownloadFailedHint' => '报错文案不同算不同的事，不互相合并',
+			'settings.notifyTopicFollowUpdate' => '追更更新',
+			'settings.notifyTopicFollowUpdateHint' => '启动后那一次自动检查；手动刷新追更算操作反馈，不会被静音',
+			'settings.notifyTopicPluginMessage' => '插件脚本报信',
+			'settings.notifyTopicPluginMessageHint' => '图源插件自己调出来的提示；脚本能在循环里连发，同一句话 3 秒内合并',
+			'settings.notifyTopicIntentOpen' => '外部打开',
+			'settings.notifyTopicIntentOpenHint' => '从系统右键菜单或链接调起时的落点提示',
+			'settings.notifyTopicSystemPermission' => '通知权限',
+			'settings.notifyTopicSystemPermissionHint' => '启动时申请系统通知权限被拒的那条提示',
 			'settings.syncSettings' => '同步设置',
 			'settings.syncSettingsSubtitle' => '开启后使用云端设置覆盖本地设置',
 			'settings.syncPlugins' => '同步插件',
@@ -6666,6 +6978,8 @@ extension on Translations {
 			'settings.splashPage' => '开屏页',
 			'settings.splashPageSubtitle' => '选择启动页，打开应用直达目标',
 			'settings.startWithWorkspace' => '工作台',
+			'settings.workspaceSleepCoveredUi' => '工作台盖住首页时休眠',
+			'settings.workspaceSleepCoveredUiSubtitle' => '进工作台后释放底下列表的图片内存，退回时重新加载',
 			'settings.skipUpdateCheck' => '跳过更新检查',
 			'settings.skipUpdateCheckSubtitle' => '本构建是 fork 版本，启动时不再请求上游最新版本，也不再弹出更新提示',
 			'settings.desktopCloseBehavior' => '关闭行为',
@@ -6712,6 +7026,8 @@ extension on Translations {
 			'settings.bookshelfRememberDownloadSort' => '下载记忆排序',
 			'settings.bookshelfRememberDownloadSortSubtitle' => '开启后，下载页会记住你最后一次选择的排序',
 			'settings.customExportPath' => '自定义导出路径',
+			'settings.exportIncludeCover' => '导出包含封面图',
+			'settings.exportIncludeCoverSubtitle' => '打开后，导出的文件夹或 zip 里会额外带一张封面图（导出时要现场再取一次封面）。默认关：产物里只有该导的页和两份信息 JSON，封面仍按 JSON 里的地址在线显示',
 			'settings.storage' => '存储',
 			'settings.cache' => '缓存',
 			'settings.clearCache' => '清理缓存',
@@ -6797,6 +7113,8 @@ extension on Translations {
 			'settings.colorPreviewLoadSuccess' => '加载成功，可以直接对比不同字重。',
 			'settings.colorPreviewLoadFailed' => ({required Object error}) => '加载失败: ${error}',
 			'settings.colorRed' => '红色',
+			_ => null,
+		} ?? switch (path) {
 			'settings.colorPink' => '粉色',
 			'settings.colorPurple' => '紫色',
 			'settings.colorDeepPurple' => '深紫色',
@@ -6848,7 +7166,7 @@ extension on Translations {
 			'settings.fileManagerRememberViewState' => '记住每个目录的视图与排序',
 			'settings.fileManagerRememberViewStateSubtitle' => '每个目录各自记住视图、排序与筛选；关闭后浏览照常，只是不再记忆',
 			'settings.fileManagerWrapGridTitle' => '封面网格完整显示文件名',
-			'settings.fileManagerWrapGridTitleSubtitle' => '允许文件名换行完整展示，避免被省略号截断（开启后封面将自适应高度）',
+			'settings.fileManagerWrapGridTitleSubtitle' => '封面网格里的文件名按词换行，最多铺 6 行；格子的总高度不变，行数多了就把封面挤小。关闭时截成 2 行加省略号。两种状态下，鼠标停在整格上都会浮出完整文件名',
 			'settings.fileManagerSectionSearch' => '搜索',
 			'settings.fileManagerSearchSubfoldersDefault' => '默认连子目录一起搜',
 			'settings.fileManagerSearchSubfoldersDefaultSubtitle' => '新建页签起手就开着「含子目录」。整库遍历在慢盘上实测要几十秒，所以默认只搜当前这一层；开着这条就不必每次去点那颗开关',
@@ -6864,8 +7182,6 @@ extension on Translations {
 			'settings.shellIntegrationContextMenuSubtitle' => '写当前用户的注册表（HKCU），不需要管理员权限；选中文件、选中文件夹、文件夹空白处三处都会出现。应用已经在运行时暂时不会把新目录递进来，要先开一个新 Rossi 窗口。',
 			'settings.shellIntegrationRegistered' => '已加入右键菜单',
 			'settings.shellIntegrationUnregistered' => '已从右键菜单移除',
-			_ => null,
-		} ?? switch (path) {
 			'settings.shellIntegrationStalePath' => '菜单项指向的已经不是当前这个 Rossi，关掉再打开一次即可修正',
 			'settings.shellIntegrationRepair' => '修正指向',
 			'settings.shellIntegrationMacHint' => 'macOS 的「打开方式 → Rossi」由应用包声明的文档类型决定，一直可用、没有开关；这颗开关只管 Windows。',
@@ -7309,6 +7625,8 @@ extension on Translations {
 			'reader.hoverReveal' => '悬停唤出',
 			'reader.hoverRevealEnabled' => '边缘悬停唤出控制栏',
 			'reader.hoverRevealEnabledSubtitle' => '鼠标移至屏幕顶部或底部边缘时自动浮现对应工具栏（参考 NeoView）',
+			_ => null,
+		} ?? switch (path) {
 			'reader.thumbnailStrip' => '底部缩略图条',
 			'reader.thumbnailStripSubtitle' => '在控制栏展开每页缩略图，与进度条并成同一块面板；换书、换章、重启后保持',
 			'reader.transparentTopBar' => '透明顶栏',
@@ -7376,8 +7694,6 @@ extension on Translations {
 			'reader.showInStatusBar' => '显示在状态栏',
 			'reader.showInStatusBarSubtitle' => '开启后，顶部信息条会进入系统状态栏区域',
 			'reader.edgePadding' => '边缘间距',
-			_ => null,
-		} ?? switch (path) {
 			'reader.infoBarStyle' => '信息条样式',
 			'reader.backgroundOpacity' => '背景透明度',
 			'reader.fontSize' => '字体大小',
@@ -7823,6 +8139,8 @@ extension on Translations {
 			'about.disclaimerItem1Title' => '1. 项目性质与声明',
 			'about.disclaimerItem1Content' => '本项目为开源软件，由本人独立开发并维护。项目以"原样"形式提供，开发者不对项目的功能完整性、稳定性、安全性或适用性作出任何明示或暗示的担保。',
 			'about.disclaimerItem2Title' => '2. 责任限制',
+			_ => null,
+		} ?? switch (path) {
 			'about.disclaimerItem2Content' => '开发者对因使用、修改或分发本项目（包括但不限于直接使用、二次开发或集成至其他项目）而导致的任何直接、间接、特殊、附带或后果性损害不承担任何责任。这些损害可能包括但不限于数据丢失、设备损坏、业务中断、利润损失或其他经济损失。',
 			'about.disclaimerItem3Title' => '3. 用户责任',
 			'about.disclaimerItem3Content' => '用户在使用本项目时，应自行评估其适用性并承担所有风险。用户须确保其使用行为符合所在国家或地区的法律法规及道德规范。开发者不对用户因违反法律法规或不当使用本项目而导致的任何后果负责。',
@@ -7890,8 +8208,6 @@ extension on Translations {
 			'search.excludeSearchTitle' => '排除搜索（不要某类）',
 			'search.excludeSearchExample' => '全彩(空格)-人妻',
 			'search.excludeSearchDesc' => '显示"全彩"但排除含"人妻"的结果',
-			_ => null,
-		} ?? switch (path) {
 			'search.fuzzySearchTitle' => '模糊搜索（包含任一）',
 			'search.fuzzySearchExample' => '全彩(空格)人妻',
 			'search.fuzzySearchDesc' => '显示包含任意一个关键词的结果',
@@ -8053,7 +8369,23 @@ extension on Translations {
 			'login.loginNotSupported' => '该插件暂未适配新版登录页，请前往插件设置中填写账号信息',
 			'fontSetting.title' => '字体设置',
 			'fontSetting.clear' => '清空',
-			'fontSetting.hint' => '按字重分别选择字体文件。',
+			'fontSetting.hint' => '选一个默认字体即可应用到全局；需要微调个别字重时再单独覆盖。',
+			'fontSetting.modeSystem' => '系统默认',
+			'fontSetting.modeSystemHint' => '使用应用默认字体栈，无需任何操作。',
+			'fontSetting.modeFamily' => '系统已装字体',
+			'fontSetting.modeFamilyHint' => '输入系统里已安装字体的家族名（如 LXGW WenKai）直接引用，未命中时回退系统默认；桌面端最可靠。',
+			'fontSetting.modeFile' => '字体文件',
+			'fontSetting.modeFileHint' => '整个应用共用这一个文件，粗体等字重由系统模拟。',
+			'fontSetting.familyPickPrompt' => '选择字体家族',
+			'fontSetting.familyPickerTitle' => '选择系统字体',
+			'fontSetting.familySearchHint' => '搜索字体家族…',
+			'fontSetting.familyManualUse' => ({required Object name}) => '使用「${name}」',
+			'fontSetting.familyEmpty' => '没有匹配的字体',
+			'fontSetting.familyLoading' => '正在读取系统字体…',
+			'fontSetting.defaultFont' => '默认字体',
+			'fontSetting.defaultFontHint' => '整个应用共用这一个文件，粗体等字重由系统模拟。',
+			'fontSetting.overrides' => '字重覆盖',
+			'fontSetting.overridesHint' => '可选：为个别字重指定不同文件，未覆盖的字重使用最接近的已配置字体。',
 			'fontSetting.loadFailed' => '字体加载失败',
 			'fontSetting.cleared' => '已清除',
 			'fontSetting.saved' => '已保存',
@@ -8321,6 +8653,8 @@ extension on Translations {
 			'bindingEditor.actionList' => '动作列表',
 			'bindingEditor.bindingDetails' => '绑定详情',
 			'bindingEditor.bindings' => '绑定',
+			_ => null,
+		} ?? switch (path) {
 			'bindingEditor.restore' => '恢复默认',
 			'bindingEditor.resetFilters' => '清除筛选',
 			'plat.openAbove' => '在上方打开',
