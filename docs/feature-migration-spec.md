@@ -38,7 +38,7 @@
 
 | # | 边界 | 内容 | 违反的后果 |
 |---|---|---|---|
-| B1 | **许可** | mImageViewer 是 MIT ⇒ 可原文拷入（保留版权与来源声明，每个文件头都要写）。**neoview 是自有项目**，许可不构成障碍，其代码可读可翻译（翻译形态见 T3 与 B3）。GPL-3.0 的 Venera-SSR / ntrn 只能读不能抄 | 混入 GPL 源码会让整仓分发被拖成 GPL |
+| B1 | **许可** | mImageViewer 是 MIT ⇒ 可原文拷入（保留版权与来源声明，每个文件头都要写）。**neoview 是自有项目**，许可不构成障碍，其代码可读可翻译（翻译形态见 T3 与 B3）。GPL-3.0 的 Venera-SSR / ntrn 只能读不能抄 | 混入 GPL 源码会让整仓分发被拖成 GPL。**这条已有一个例外**：FlClash 的导航壳（ADR-0021），处置未决 |
 | B2 | **平台** | Rossi 跨平台（Windows / macOS / Linux 为桌面主战场，Android / iOS 仅最低适配）。mImageViewer 大量代码是 Windows 专有：`IFileOperation`、WIC、D3D11、`SHDoDragDrop`、Susie `.spi`（32bit）、DPAPI、WASAPI | 直接搬 = 编译不过，或把跨平台产品锁死在 Windows |
 | B3 | **架构与技术栈** | 两侧各有各的墙：mImageViewer 是单体 Egui 应用（`src/app.rs` 3.5 MB、`src/ui_fullscreen.rs` 3 MB），**只能搬纯函数 / 纯策略 / 无 UI 模块**，不能整体依赖（ADR-0005 的「适配层」定义）；neoview 是 **React / TypeScript**，而 Rossi 的 UI 是 Flutter / Dart，ADR-0003 明确「**技术栈不取**」⇒ **组件不能搬，纯逻辑可逐行翻译**。UI 一律在 Flutter 侧重建 | 把 egui 或 React 拖进来等于在 Rossi 里重建一个 App |
 | B4 | **依赖树** | `local_core` 当前依赖刻意保持克制：`anyhow / image / zune-* / zip / unrar(patched) / rusqlite / sha2 / webp / fast_image_resize / jxl`。上游带的 `ffmpeg / pdfium / ort / tantivy / eframe` **不进这一层** | 依赖爆炸会拖垮编译时间与本机调试路径 |
@@ -500,7 +500,13 @@ src/nodes/neoview/features/             React UI       ← 只取视觉语言与
 
 - **上游出处**：`open_with.rs`、`explorer_integration.rs`
 - **跨平台等效**：`opener` crate 或各平台 API（`open` / `xdg-open` / `explorer /select`）
-- **Rossi 现状**：无
+- **Rossi 现状**：**「在文件管理器中显示」已落地**（2026-10-09）——右键菜单项
+  `FileManagerEntryAction.revealInFileManager`，命令在
+  `lib/platform/desktop/reveal_in_file_manager.dart` 里按「可执行文件 + 参数数组」拼，
+  不经过 shell；三家的差别照实分开：访达 `open -R` 与资源管理器 `/select,<路径>` 是**选中这一项**，
+  Linux 的 `xdg-open` 只能打开所在目录，文案也跟着这么写。
+  判据：`dart run test/workspace/reveal_in_file_manager_check.dart`
+  **仍缺**：「用其他程序打开」（选应用、记默认应用）
 - **价值档**：**B**
 
 #### M-14 移动端存储访问（Android SAF / iOS 安全作用域）

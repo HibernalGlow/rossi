@@ -349,6 +349,132 @@ Android 与 iOS 不是当前投入方向，只做最低程度适配：
 
 代价与对策：桌面与移动端会长期并存两条显示实现，页面尺寸计算、缩放语义、超分注入时序可能在两端产生差异行为。需把显示层抽象成同一套上层语义（见 `docs/RESEARCH.md` R5）。
 
+## 提示个性化（ADR-0020，2026-10-08 已落地）
+
+立项症状是可定位的一条 bug，不是观感：自动同步的成功分支过 `syncNotify` 门禁、
+**失败分支裸奔**（改造前 `navigation_bar.dart:478` 过 / `:485` 不过），于是同步配错或断网时每 5 分钟敲一次且关不掉。
+
+交付的三层：
+
+- **判定层** `lib/service/notify/`：`NotifyGateway`（rxdart `PublishSubject` 传输 + 同步门禁与节流）
+  → 唯一渲染器（`main()` 里 `attachToastRenderer()` 挂一次）。
+  `widgets/toast.dart` 四个 `show*Toast` 签名未动，约 322 处调用点零改动；
+  `ToastEvent` 与 eventBus 那一跳、根页面那条 2 秒手写去重，一并删除。
+- **事项登记表** `NotifyTopic`：`actionFeedback`（谁也都关不掉，否则按钮看起来是坏的）/
+  `ambient`（总闸 + 逐事项 + 节流窗口，八条）/ `selfManaged`（阅读器切换提示，真源仍在 `SwitchToastSettingState`）。
+  合并键是「事项 + 标题 + 正文」，被窗口压掉的条数挂到下一条尾部；不排总结弹窗。
+- **存储** `NotifySettingState`（全局设置块的一个 part）：只存用户的**偏离**，
+  稳定字符串键（枚举键会在云同步里 `$enumDecode` 抛），默认值住在登记表。
+
+配套：15 处裸 SnackBar 收编进同一入口（量过——没有一处带 `action:`，不丢按钮能力）；
+`syncNotify` 退役（老载荷里多出的键被 `fromJson` 忽略；关过它的人升级后「自动同步完成」会回到开，一次性代价）；
+设置 → 提示个性化（八项 + 总闸 + 恢复默认），入口副标题读的是当前真状态。
+
+判据：`test/service/notify_gateway_test.dart` 12 条（含阳性对照，以及一条**源码哨兵**——
+钉住 `_autoSync` 的两条腿都过网关、方法体内不得再出现裸的 `show*Toast`，防同类漏法复发）。
+`test/workspace/switch_toast_test.dart` 的收信方式改为挂在网关出口上（原来听的是 eventBus 的 `ToastEvent`）。
+
+**本轮明确不做**（理由与后果都写在 ADR-0020）：系统通知栏那一路不动 → 关掉「下载完成/追更」只安静应用内那半条；
+不做前台/后台路由；`notifySetting` 不进云同步名单；不换 `toastification` 当渲染层。
+
+## 导航壳换新（ADR-0021，2026-10-09 已落地）
+
+用户点名的诉求：把 Gilberta 里对 FlClash 优化过的**桌面侧栏**与**移动端 Dock** 搬来直接用，
+连**自定义导航**一起；追加三条 —— 窄屏自动切移动端、做成可开关、窄屏阈值可自定义。
+
+交付的形态：
+
+- **桌面 / 平板**：左列 `NavigationSidebar`（Arc 化，收起时 48 px、展开 220 px，
+  够宽就地撑开、不够宽走浮层）。底部是**底部快捷区**（默认：打开本地漫画 / GPU 上屏 /
+  搜索 / 自定义导航）—— 原来挂在 `NavigationRail.trailing` 的那几颗按钮有了新家。
+  **2026-10-10 起画成一只竖排分组槽**（`ActionGroup(axis: Axis.vertical)`，图标键 + tooltip）。
+- **移动端 / 窄屏**：底部 `NavigationDock` 悬浮胶囊，选中态是一颗在目的地之间弹跳的
+  lens（`SpringCurve` + 半隐式欧拉弹簧），可拖拽滑选、惯性投射、两端橡皮筋、
+  指针悬停磁吸与视差。底部快捷区 2026-10-10 起直接横排在胶囊尾部
+  （`ActionGroup(axis: Axis.horizontal)`；清单为空时整槽不出现 ——
+  先前「尾部 FAB 弹底部弹层」的那支已退役）。
+- **两支各自两段清单**，用户都能增删排序（`CustomNavigationDialog` 两张页签，
+  每张里两段可拖拽列表 + 一个待添加池，每次编辑立即落进全局设置）：
+  - **主区**：页面与动作混排，顺序即显示顺序；
+  - **底部快捷区**（2026-10-10 追加）：**只放动作**，藏得掉、排得了序 ——
+    这一块过去是写死的固定区，用户点名要它可编辑。
+
+  条目有**两种**：**页面**（书架 / 发现 / 更多 / 旧首页 / 旧排行）与**动作**
+  （工作台 / 打开本地漫画 / GPU 上屏 / 搜索 / **自定义导航**）—— 动作点一下推路由、
+  **不换当前视图**，Dock 那颗 lens 留在原地。「自定义导航」本身也降格成一条普通动作：
+  设置里已经有入口，没必要钉在侧栏底部（用户 2026-10-10 提的）。
+  两段互斥（主区已有的不在底部再出现一次）；底部那段的出厂值是 `null`（= 没设置过，
+  用出厂那四条），所以老用户读到的仍是与改造前一致的那一块。
+- **开关与阈值**在「设置 → 外观 → 导航栏」：侧栏开 / 侧栏展开 / Dock 开 /
+  窄屏自动切 / 窄屏阈值（滑块 320–1600，可恢复默认）。
+
+判据：`test/widgets/navigation_pure_test.dart` 22 条（阈值的开闭区间、越界夹取、
+平台能力先于宽度、两段清单的容错、主区「两条页面」的下限、底部那段的 `null` / `[]`
+之分、动作与页面混排、排序），`test/widgets/navigation_shell_test.dart` 5 条
+（侧栏 / Dock 能挂起来能点、点动作不换页、`extendBody` 那条「内容铺到屏幕底部 +
+拿到底栏高度」的框架契约、弹窗两段都在且能搬能藏），以及 2026-10-10 起的
+`test/widgets/action_group_test.dart` 5 条（横竖两档分组槽的几何：槽厚 / 槽壁 /
+组内间距 / 竖排不锁高不溢出 / 槽真的画了底色）。
+组件动效不在这里 —— 那要真帧，`dart analyze lib/` 是这一轮的编译口径（0 error）。
+
+## 工作台与书架的 UI 统一（2026-10-10，ADR-0021 延伸）
+
+用户拿 FlClash 截图点名的四件事，全部围绕同一只组件收口 —— `ActionGroup`
+（`widgets/action_group.dart`，FlClash 药丸槽的移植，GPL 边界同 ADR-0021）：
+
+1. **书架页右上角**：筛选（桌面）与「放大镜 + 滑块」（移动）装进分组槽，
+   槽底色与左侧胶囊 tab 同为 `surfaceContainerHighest @ 50%`；左侧 tab 不动。
+2. **侧栏底部 / Dock 尾部**：同一份清单、同一只槽，只换 `axis`（见上节）。
+3. **工作台「书签」「阅读历史」两面板内部**：共用的 `ShelfListToolbar`
+   从「只靠间距分级」改成**两只下沉槽**（「怎么看」一组 + 导入导出一组）；
+   书签面板的列表轨两颗键换 `ActionIconButton` 并装进槽。顺手修了
+   没有时间线档时「排序 ↔ 搜索」叠出两个组内间距的旧账。
+4. **文件管理器操作栏**：主工具组（视图 / 排序 / 搜索 / 文件树 / 穿透 / 多选）
+   与「更多」组各装一只槽；`FileManagerToolbarMetrics` 改为转发
+   `ActionGroupMetrics`（常数只此一份），三个旧类名降为 `typedef` 别名，
+   调用点零改动。
+
+**弹出菜单动画统一（2026-10-10 晚间修订）**：第一轮曾把手搓的 `FluentPopupMenu`
+（淡入 + 从锚点缩放）铺到全部弹层 —— 用户指出那不是 FlClash 的动画。
+**原文搬入 `lib/widgets/common_popup.dart`**（FlClash `popup.dart`，GPL 同源）：
+`CommonPopupRoute` 的托盘从锚点胶囊沿弧线飞出、长成卡片，内容在里面缩放 /
+淡入 / 由糊变清，关闭先收缩再飞回（iOS 26 菜单手感）；`CommonPopupBox` 负责把
+触发键拍成快照随托盘一起飞；`CommonPopupMenu` 支持多级原地展开。已接入
+**泳道栏头 ⋮（左键 + 右键两条路）与文件管理器工具栏的视图 / 排序 / 更多 /
+主页 / 路径操作五个菜单**。面板级菜单（`panel_tab_strip` / `lane_panel_host`）、
+书架文件夹页与漫画详情的弹层还在 `FluentPopupMenu` 上，是后续独立一步。
+
+**图标语汇统一（2026-10-10，晚间补齐）**：动作面上的 Material 图标换成自绘 glyph
+（`AppGlyphs` / `GlyphIcon`，与侧栏同一套形状语言）：书签·历史面板工具栏、
+书架页右上角、书签列表轨、文件管理器工具栏（含导航五颗键与掌形控件）、
+泳道栏头三颗键与紧凑轨、泳道「更多」菜单、卡片位置菜单与书架条目右键菜单。
+**第一轮对词表缺的语义留过 Material 兜底，用户否决（不许新旧混用）** ⇒
+按词表画风新增 10 个符号（`arrowForward` / `home` / `folder` / `book` / `tree` /
+`passThrough` / `fold` / `unfold` / `rowsTwo` / `resize`，见 `app_glyphs.dart`
+尾部「本仓新增」），动作面上的 Material 兜底清零；时间线用词表既有的
+`clock`、停靠左右用 `columnsTwo`、展开用新 `unfold`。**约束写进词表注释：
+词表已有同语义符号时复用旧符号，不许同一语义长两颗图标**。视图模式图标
+词表 `LibraryViewModeX.icon` 保持 `Glyph` 型，文件管理器与书架共用。
+
+判据：`test/workspace/shelf_list_toolbar_test.dart` 14 条、
+`test/widgets/action_group_test.dart` 5 条、
+`test/workspace/lane_more_menu_test.dart` 11 条（弹出器换 `CommonPopupMenu` 后
+重写 finder，项集与分派断言逐条保留）、`lane_header_fit_test.dart` 5 条、
+`top_chrome_test.dart` / `layout_persistence_test.dart` / `swimlane_runtime_test.dart`
+随栏头图标 glyph 化同步换 finder。`dart analyze lib/` 0 error（17 条基线 info）。
+顺带修复（10-03 滚动跟随判据踩出来的框架断言）：
+`page_list_card.dart` 详细列表行给 `ListTile` 套透明 `Material` ——
+带 active 底色的 `Container` 包着 `ListTile` 会报
+「ListTile background color or ink splashes may be invisible」。
+
+**这一轮把状态记账从「下标」改成「身份（id）」**：两支布局的清单能被用户改，
+同一页在两边下标不同，记下标会在切布局或改清单时指到别的页上。动作进来之后这条
+更要紧 —— 「当前页」的下标必须永远落在页面上。
+
+**许可待决**：这批代码是 FlClash 的 **GPL-3.0** 正文，`LICENSE` 暂不改 ⇒
+仓库当前处于**已知的许可不一致状态**。退出条件（转 GPL-3.0 / 撤出重写）与
+「在决出之前不新增 GPL 源码」的栅栏写在 ADR-0021。
+
 ## 明确不做
 
 - 不做 v0.1 冻结线之外的能力（在线源 / 上色 / Anime4K，见 ADR-0008）。
@@ -356,6 +482,10 @@ Android 与 iOS 不是当前投入方向，只做最低程度适配：
 - 不引入 GPL-3.0 源码（Venera-SSR / ntrn / comic-text-detector / manga-image-translator / Mekuru / Frank Yomik /
   Chimahon / mokuro / yomitan），也不为此把仓库改为 GPL。
   **权重按 ADR-0018 §决定 5 一律首下、不随包**；字体是 OFL 可随包，与权重是两回事
+  > **例外（ADR-0021，2026-10-09）**：FlClash（GPL-3.0）的桌面侧栏与悬浮 Dock 已原文搬入
+  > （`lib/icons/` + `lib/widgets/navigation/` 里那批有来源声明的文件），`LICENSE` 暂不改 ⇒
+  > 仓库当前是**已知的许可不一致状态**。退出条件见 ADR-0021；
+  > **在 A/B 决出之前不新增任何 GPL 源码**。上面这份名单其余部分照旧。
 - 不为省掉一次上屏拷贝去 fork `wgpu-hal`（Gate A-W 实测：4K 单页 0.348 ms，占帧预算 2.1%）
 - 不把 mImageViewer 的显示管线照抄进来（decode → CPU RGBA → `load_texture`）
 - 不先重写整个 Breeze UI
@@ -365,6 +495,8 @@ Android 与 iOS 不是当前投入方向，只做最低程度适配：
 - 不为 Android / iOS 实现 GPU texture / external surface 后端
 - 不把所有图片转成 Dart `Uint8List` 后再交给 Flutter
 - 不在没有 PoC 数据的情况下宣称「追平 mImageViewer」
+- 不在「提示个性化」里管系统通知栏那一路（`flutter_local_notifications` / Android 通知渠道不动，ADR-0020 §明确不做 1）
+- 不为省掉自研提示条而换 `toastification` 当渲染层，除非点名要做（ADR-0020 §明确不做 4：换了并不减少弹窗骚扰，代价是五端视觉无法本机回读）
 
 ## 决策门
 
