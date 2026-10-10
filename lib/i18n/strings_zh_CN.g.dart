@@ -2119,6 +2119,12 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '全屏时横向手势只用于翻页，不再把整条泳道条带拽动（那会连阅读器一起拖动）。关掉后全屏与平时一样可拖。'
 	String get blockManualScrollInReaderFullscreenSubtitle => '全屏时横向手势只用于翻页，不再把整条泳道条带拽动（那会连阅读器一起拖动）。关掉后全屏与平时一样可拖。';
 
+	/// zh-CN: '面板页签条排序模式'
+	String get panelTabSortMode => '面板页签条排序模式';
+
+	/// zh-CN: '开启后长按页签可拖动排序、拖到另一条泳道换位；关闭时按住页签横移就是切换面板（选中态随手指滑动）。'
+	String get panelTabSortModeSubtitle => '开启后长按页签可拖动排序、拖到另一条泳道换位；关闭时按住页签横移就是切换面板（选中态随手指滑动）。';
+
 	/// zh-CN: '左右泳道展开延迟'
 	String get edgeRevealDelay => '左右泳道展开延迟';
 
@@ -5185,6 +5191,9 @@ class Translations$discover$zh_CN {
 	/// zh-CN: '显示插件名缩写'
 	String get tabShowPluginShort => '显示插件名缩写';
 
+	/// zh-CN: '双击关闭标签'
+	String get tabDoubleClickClose => '双击关闭标签';
+
 	/// zh-CN: '网页'
 	String get webPage => '网页';
 
@@ -7270,6 +7279,8 @@ extension on Translations {
 			'settings.manualScrollEnabledSubtitle' => '关掉之后条带仍会按激活与揭示自己滚到该看的位置，只是不再响应自己伸手的拖动与滚轮。',
 			'settings.blockManualScrollInReaderFullscreen' => '阅读器全屏时禁止横向拖动泳道',
 			'settings.blockManualScrollInReaderFullscreenSubtitle' => '全屏时横向手势只用于翻页，不再把整条泳道条带拽动（那会连阅读器一起拖动）。关掉后全屏与平时一样可拖。',
+			'settings.panelTabSortMode' => '面板页签条排序模式',
+			'settings.panelTabSortModeSubtitle' => '开启后长按页签可拖动排序、拖到另一条泳道换位；关闭时按住页签横移就是切换面板（选中态随手指滑动）。',
 			'settings.edgeRevealDelay' => '左右泳道展开延迟',
 			'settings.readerHoverFocusDelay' => 'Reader 悬停重新聚焦延迟',
 			'settings.readerHoverFocusEnable' => '启用 Reader 悬停重新聚焦',
@@ -7623,10 +7634,10 @@ extension on Translations {
 			'reader.splitDirectionLtr' => '左起（左→右）',
 			'reader.splitDirectionRtl' => '右起（右→左）',
 			'reader.hoverReveal' => '悬停唤出',
-			'reader.hoverRevealEnabled' => '边缘悬停唤出控制栏',
-			'reader.hoverRevealEnabledSubtitle' => '鼠标移至屏幕顶部或底部边缘时自动浮现对应工具栏（参考 NeoView）',
 			_ => null,
 		} ?? switch (path) {
+			'reader.hoverRevealEnabled' => '边缘悬停唤出控制栏',
+			'reader.hoverRevealEnabledSubtitle' => '鼠标移至屏幕顶部或底部边缘时自动浮现对应工具栏（参考 NeoView）',
 			'reader.thumbnailStrip' => '底部缩略图条',
 			'reader.thumbnailStripSubtitle' => '在控制栏展开每页缩略图，与进度条并成同一块面板；换书、换章、重启后保持',
 			'reader.transparentTopBar' => '透明顶栏',
@@ -8137,10 +8148,10 @@ extension on Translations {
 			'about.disclaimer' => '免责声明',
 			'about.disclaimerTitle' => '开源项目免责声明',
 			'about.disclaimerItem1Title' => '1. 项目性质与声明',
-			'about.disclaimerItem1Content' => '本项目为开源软件，由本人独立开发并维护。项目以"原样"形式提供，开发者不对项目的功能完整性、稳定性、安全性或适用性作出任何明示或暗示的担保。',
-			'about.disclaimerItem2Title' => '2. 责任限制',
 			_ => null,
 		} ?? switch (path) {
+			'about.disclaimerItem1Content' => '本项目为开源软件，由本人独立开发并维护。项目以"原样"形式提供，开发者不对项目的功能完整性、稳定性、安全性或适用性作出任何明示或暗示的担保。',
+			'about.disclaimerItem2Title' => '2. 责任限制',
 			'about.disclaimerItem2Content' => '开发者对因使用、修改或分发本项目（包括但不限于直接使用、二次开发或集成至其他项目）而导致的任何直接、间接、特殊、附带或后果性损害不承担任何责任。这些损害可能包括但不限于数据丢失、设备损坏、业务中断、利润损失或其他经济损失。',
 			'about.disclaimerItem3Title' => '3. 用户责任',
 			'about.disclaimerItem3Content' => '用户在使用本项目时，应自行评估其适用性并承担所有风险。用户须确保其使用行为符合所在国家或地区的法律法规及道德规范。开发者不对用户因违反法律法规或不当使用本项目而导致的任何后果负责。',
@@ -8245,6 +8256,7 @@ extension on Translations {
 			'discover.tabDisplay' => '标签显示',
 			'discover.tabShowIcon' => '显示插件图标',
 			'discover.tabShowPluginShort' => '显示插件名缩写',
+			'discover.tabDoubleClickClose' => '双击关闭标签',
 			'discover.webPage' => '网页',
 			'discover.comicDetail' => '详情',
 			'searchResult.enterPageNumber' => '输入页数',
@@ -8650,11 +8662,11 @@ extension on Translations {
 			'bindingEditor.collapse' => '收起绑定',
 			'bindingEditor.expand' => '展开绑定',
 			'bindingEditor.actions' => '动作',
+			_ => null,
+		} ?? switch (path) {
 			'bindingEditor.actionList' => '动作列表',
 			'bindingEditor.bindingDetails' => '绑定详情',
 			'bindingEditor.bindings' => '绑定',
-			_ => null,
-		} ?? switch (path) {
 			'bindingEditor.restore' => '恢复默认',
 			'bindingEditor.resetFilters' => '清除筛选',
 			'plat.openAbove' => '在上方打开',
