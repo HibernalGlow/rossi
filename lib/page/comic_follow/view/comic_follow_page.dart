@@ -251,7 +251,9 @@ class _SummaryBar extends StatelessWidget {
             tooltip: t.common.refresh,
             onPressed: state.isCheckingUpdates
                 ? null
-                : () => context.read<ComicFollowCubit>().checkUpdates(),
+                : () => context.read<ComicFollowCubit>().checkUpdates(
+                    userInitiated: true,
+                  ),
             icon: state.isCheckingUpdates
                 ? const SizedBox(
                     width: 20,
@@ -357,7 +359,8 @@ class _FollowList extends StatelessWidget {
   Widget build(BuildContext context) {
     // 外层已用 ConstrainedBox(768) 居中，这里只留固定边距。
     return RefreshIndicator(
-      onRefresh: () => context.read<ComicFollowCubit>().checkUpdates(),
+      onRefresh: () =>
+          context.read<ComicFollowCubit>().checkUpdates(userInitiated: true),
       child: BlocBuilder<ComicFollowCubit, ComicFollowState>(
         builder: (context, state) {
           return ListView.separated(

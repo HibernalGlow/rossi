@@ -324,7 +324,9 @@ class ComicFollowCubit extends Cubit<ComicFollowState> {
     emit(state.copyWith(items: newItems));
   }
 
-  Future<int> checkUpdates() async {
+  /// [userInitiated] 区分两条来路：启动后那一次自动检查是后台行为（可被逐事项开关
+  /// 静音、并按事项窗口合并），追更页里点「刷新」或下拉刷新是用户主动要的回应。
+  Future<int> checkUpdates({bool userInitiated = false}) async {
     if (state.isCheckingUpdates) {
       return 0;
     }
@@ -343,7 +345,10 @@ class ComicFollowCubit extends Cubit<ComicFollowState> {
     emit(state.copyWith(isCheckingUpdates: false));
 
     if (updateCount > 0) {
-      await ComicFollowService.instance.notifyUpdate(updateCount);
+      await ComicFollowService.instance.notifyUpdate(
+        updateCount,
+        userInitiated: userInitiated,
+      );
     }
 
     return updateCount;
@@ -353,7 +358,7 @@ class ComicFollowCubit extends Cubit<ComicFollowState> {
   Future<bool> checkUpdateForItem(ComicFollow follow) async {
     final hasUpdate = await _checkSingleUpdate(follow);
     if (hasUpdate) {
-      await ComicFollowService.instance.notifyUpdate(1);
+      await ComicFollowService.instance.notifyUpdate(1, userInitiated: true);
     }
     return hasUpdate;
   }
