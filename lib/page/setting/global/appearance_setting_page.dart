@@ -18,6 +18,7 @@ import 'package:zephyr/widgets/navigation/navigation_layout.dart';
 import 'package:zephyr/widgets/navigation/navigation_entries.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/workspace/model/workspace_startup.dart';
+import 'package:zephyr/icons/icons.dart';
 
 // 「导航栏」那一段：两个壳的开关、窄屏自动切与阈值、自定义导航入口。
 part 'parts/appearance_navigation_part.dart';
@@ -44,7 +45,7 @@ class AppearanceSettingPage extends StatelessWidget {
           settingSectionTitle(
             context,
             t.settings.appearance,
-            icon: Icons.palette_outlined,
+            icon: AppGlyphs.palette,
           ),
           _languageTile(context, state, cubit),
           _systemTheme(state, cubit),
@@ -90,7 +91,7 @@ class AppearanceSettingPage extends StatelessWidget {
     final currentLabel = labels[currentValue]!;
 
     return ListTile(
-      leading: const Icon(Icons.language_outlined),
+      leading: const GlyphIcon(AppGlyphs.translate),
       title: Text(t.settings.language),
       subtitle: Text(t.settings.languageSubtitle),
       trailing: FluentDropdown<Locale?>(
@@ -121,7 +122,7 @@ class AppearanceSettingPage extends StatelessWidget {
     };
 
     return ListTile(
-      leading: const Icon(Icons.dark_mode_outlined),
+      leading: const GlyphIcon(AppGlyphs.moon),
       title: Text(t.settings.theme),
       subtitle: Text(t.settings.themeSubtitle),
       trailing: FluentDropdown<ThemeMode>(
@@ -137,7 +138,7 @@ class AppearanceSettingPage extends StatelessWidget {
 
   Widget _dynamicColor(GlobalSettingState state, GlobalSettingCubit cubit) {
     return SwitchListTile(
-      secondary: const Icon(Icons.color_lens_outlined),
+      secondary: const GlyphIcon(AppGlyphs.palette),
       title: Text(t.settings.dynamicColor),
       subtitle: Text(t.settings.dynamicColorSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -150,10 +151,10 @@ class AppearanceSettingPage extends StatelessWidget {
 
   Widget _fontSettings(BuildContext context) {
     return ListTile(
-      leading: const Icon(Icons.font_download_outlined),
+      leading: const GlyphIcon(AppGlyphs.textSize),
       title: Text(t.settings.fontSettings),
       subtitle: Text(t.settings.fontSettingsSubtitle),
-      trailing: const Icon(Icons.chevron_right),
+      trailing: const GlyphIcon(AppGlyphs.chevronForward),
       onTap: () {
         Navigator.of(
           context,
@@ -164,7 +165,7 @@ class AppearanceSettingPage extends StatelessWidget {
 
   Widget _isAMOLED(GlobalSettingState state, GlobalSettingCubit cubit) {
     return SwitchListTile(
-      secondary: const Icon(Icons.contrast_outlined),
+      secondary: const GlyphIcon(AppGlyphs.contrast),
       title: Text(t.settings.amoled),
       subtitle: Text(t.settings.amoledSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -181,7 +182,7 @@ class AppearanceSettingPage extends StatelessWidget {
     GlobalSettingCubit cubit,
   ) {
     return SwitchListTile(
-      secondary: const Icon(Icons.web_asset_outlined),
+      secondary: const GlyphIcon(AppGlyphs.openExternal),
       title: Text(t.settings.transparentDesktopTitleBar),
       subtitle: Text(t.settings.transparentDesktopTitleBarSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -235,7 +236,7 @@ class AppearanceSettingPage extends StatelessWidget {
     GlobalSettingCubit cubit,
   ) {
     return SwitchListTile(
-      secondary: const Icon(Icons.smartphone_outlined),
+      secondary: const GlyphIcon(AppGlyphs.devices),
       title: Text(t.settings.notchAdaptation),
       subtitle: Text(t.settings.notchAdaptationSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,

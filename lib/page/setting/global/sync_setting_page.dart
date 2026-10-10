@@ -11,6 +11,7 @@ import 'package:zephyr/page/setting/global/widgets.dart';
 import 'package:zephyr/util/event/event.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class SyncSettingPage extends StatefulWidget {
@@ -37,7 +38,7 @@ class _SyncSettingPageState extends State<SyncSettingPage> {
           settingSectionTitle(
             context,
             t.settings.sync,
-            icon: Icons.sync_outlined,
+            icon: AppGlyphs.sync,
           ),
           _syncServiceType(state, cubit),
           webdavSync(context, state.syncSetting.syncServiceType),
@@ -49,7 +50,7 @@ class _SyncSettingPageState extends State<SyncSettingPage> {
             const Divider(height: 1, thickness: 0.3),
             settingSectionTitle(context, t.settings.manualSyncSection),
             _buildManualSyncTile(
-              icon: Icons.upload_outlined,
+              icon: AppGlyphs.arrowUp,
               title: t.settings.uploadToCloud,
               subtitle: t.settings.uploadToCloudSubtitle,
               actionLabel: t.settings.manualUpload,
@@ -57,7 +58,7 @@ class _SyncSettingPageState extends State<SyncSettingPage> {
               onPressed: _manualUpload,
             ),
             _buildManualSyncTile(
-              icon: Icons.download_outlined,
+              icon: AppGlyphs.download,
               title: t.settings.downloadFromCloud,
               subtitle: t.settings.downloadFromCloudSubtitle,
               actionLabel: t.settings.manualDownload,
@@ -112,7 +113,7 @@ class _SyncSettingPageState extends State<SyncSettingPage> {
   }
 
   Widget _buildManualSyncTile({
-    required IconData icon,
+    required Glyph icon,
     required String title,
     required String subtitle,
     required String actionLabel,
@@ -120,7 +121,7 @@ class _SyncSettingPageState extends State<SyncSettingPage> {
     required VoidCallback onPressed,
   }) {
     return ListTile(
-      leading: Icon(icon),
+      leading: GlyphIcon(icon),
       title: Text(title),
       subtitle: Text(subtitle),
       trailing: busy
@@ -141,7 +142,7 @@ class _SyncSettingPageState extends State<SyncSettingPage> {
     };
 
     return ListTile(
-      leading: const Icon(Icons.storage_outlined),
+      leading: const GlyphIcon(AppGlyphs.storage),
       title: Text(t.settings.syncService),
       subtitle: Text(t.settings.syncServiceSubtitle),
       trailing: FluentDropdown<SyncServiceType>(
@@ -165,7 +166,7 @@ class _SyncSettingPageState extends State<SyncSettingPage> {
 
   Widget _autoSync(GlobalSettingState state, GlobalSettingCubit cubit) {
     return SwitchListTile(
-      secondary: const Icon(Icons.cloud_sync_outlined),
+      secondary: const GlyphIcon(AppGlyphs.cloudSync),
       title: Text(t.settings.autoSync),
       subtitle: Text(t.settings.autoSyncSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -181,7 +182,7 @@ class _SyncSettingPageState extends State<SyncSettingPage> {
 
   Widget _syncSettings(GlobalSettingState state, GlobalSettingCubit cubit) {
     return SwitchListTile(
-      secondary: const Icon(Icons.tune_outlined),
+      secondary: const GlyphIcon(AppGlyphs.sliders),
       title: Text(t.settings.syncSettings),
       subtitle: Text(t.settings.syncSettingsSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -196,7 +197,7 @@ class _SyncSettingPageState extends State<SyncSettingPage> {
 
   Widget _syncPlugins(GlobalSettingState state, GlobalSettingCubit cubit) {
     return SwitchListTile(
-      secondary: const Icon(Icons.extension_outlined),
+      secondary: const GlyphIcon(AppGlyphs.puzzle),
       title: Text(t.settings.syncPlugins),
       subtitle: Text(t.settings.syncPluginsSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
