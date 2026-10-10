@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:mime/mime.dart';
 import 'package:path/path.dart' as p;
 import 'package:zephyr/config/global/global.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/network/http/picture/picture.dart';
 import 'package:zephyr/object_box/model.dart';
@@ -401,6 +402,12 @@ Future<String?> _tryDownloadCover(
   String comicId, {
   required String from,
 }) async {
+  // 「导出包含封面图」这一档关掉时（默认就是关），文件夹与 zip 都不带封面。
+  // 拦在这里而不是两个调用点：它是两种格式唯一的取封面入口，往下就是
+  // [downloadPicture] 的现场网络请求，短路一次连那张图都不必再取。
+  if (!globalSetting.exportIncludeCover) {
+    return null;
+  }
   final cover = _decodeMap(download.cover);
   final ext = Map<String, dynamic>.from(cover['extern'] as Map? ?? const {});
   final url = cover['url']?.toString() ?? '';

@@ -21,6 +21,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 
 import 'package:zephyr/widgets/dialog.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class ComicOperationWidget extends StatefulWidget {
   final NormalComicAllInfo normalInfo;
@@ -140,8 +141,8 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
     final collectItem = cloudFavoritePreferred
         ? _OperationItemData(
             icon: isCloudCollected
-                ? Icons.cloud_done_outlined
-                : Icons.cloud_outlined,
+                ? AppGlyphs.cloudDone
+                : AppGlyphs.cloud,
             text: isCloudCollected
                 ? t.comicInfo.collected
                 : t.comicInfo.collectToCloud,
@@ -169,7 +170,7 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
         onTap: _toggleCloudLike,
       ),
       _OperationItemData(
-        icon: Icons.mode_comment_outlined,
+        icon: AppGlyphs.comment,
         text: t.comicInfo.comments(count: normalInfo.totalComments),
         enabled: normalInfo.allowComments,
         onTap: _openComments,
@@ -180,8 +181,8 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
       if (widget.onRead != null)
         _OperationItemData(
           icon: widget.hasHistory
-              ? Icons.history_rounded
-              : Icons.menu_book_rounded,
+              ? AppGlyphs.history
+              : AppGlyphs.book,
           text: widget.hasHistory
               ? t.comicInfo.continueRead
               : t.comicInfo.startRead,
@@ -189,7 +190,7 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
         ),
       _OperationItemData(
         kind: _OperationKind.download,
-        icon: Icons.cloud_download_outlined,
+        icon: AppGlyphs.cloudDownload,
         text: normalInfo.allowDownload
             ? t.comicInfo.download
             : t.comicInfo.downloadForbidden,
@@ -202,7 +203,7 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
       // 没有磁力的图源这里恒为空、这一项整个不渲染。
       if (magnet.isNotEmpty)
         _OperationItemData(
-          icon: Icons.copy_all_rounded,
+          icon: AppGlyphs.copy,
           text: t.common.copy,
           enabled: true,
           onTap: _copyMagnet,
@@ -213,7 +214,7 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
       // 长按给「外部浏览器打开 / 复制链接」。
       if (_sourcePageUrl.isNotEmpty)
         _OperationItemData(
-          icon: Icons.public_rounded,
+          icon: AppGlyphs.globe,
           text: t.comicInfo.openOnSource,
           onTap: _openSourcePageInWebView,
           onLongPress: _showSourcePageMenu,
@@ -676,7 +677,7 @@ class _DownloadOperationCard extends StatelessWidget {
 
     final (IconData icon, String text, Color? iconColor) = switch (state) {
       ComicDownloadVisualState.downloading => (
-        Icons.downloading_rounded,
+        AppGlyphs.downloading,
         t.reader.downloadStatusDownloading,
         colorScheme.primary,
       ),
@@ -686,17 +687,17 @@ class _DownloadOperationCard extends StatelessWidget {
         Colors.orange,
       ),
       ComicDownloadVisualState.failed => (
-        Icons.error_outline_rounded,
+        AppGlyphs.error,
         t.reader.downloadStatusFailed,
         Colors.red,
       ),
       ComicDownloadVisualState.completed => (
-        Icons.download_done_rounded,
+        AppGlyphs.downloadDone,
         t.reader.downloadManage,
         Colors.green,
       ),
       ComicDownloadVisualState.notDownloaded => (
-        Icons.cloud_download_outlined,
+        AppGlyphs.cloudDownload,
         t.comicInfo.download,
         null,
       ),
