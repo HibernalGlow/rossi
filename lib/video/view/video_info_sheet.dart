@@ -14,6 +14,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/video/controller/reader_video_controller.dart';
 import 'package:zephyr/video/subtitle/video_subtitle.dart';
 import 'package:zephyr/video/view/video_control_overlay.dart';
+import 'package:zephyr/icons/icons.dart';
 
 Future<void> showVideoInfoSheet(
   BuildContext context, {
@@ -81,7 +82,7 @@ class _VideoInfoSheetState extends State<_VideoInfoSheet> {
             ListTile(
               title: Text(labels.info),
               trailing: IconButton(
-                icon: const Icon(Icons.close),
+                icon: const GlyphIcon(AppGlyphs.close),
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ),

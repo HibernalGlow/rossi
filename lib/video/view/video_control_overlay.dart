@@ -21,6 +21,7 @@ import 'package:flutter/material.dart';
 import 'package:zephyr/video/controller/reader_video_controller.dart';
 import 'package:zephyr/video/controller/video_transport.dart';
 import 'package:zephyr/video/service/video_frame_preview.dart';
+import 'package:zephyr/icons/icons.dart';
 
 // 进度与拖动预览：位置构建器、拖动条、进度条、波形与帧预览气泡。
 part 'parts/video_overlay_scrub_part.dart';
@@ -116,10 +117,10 @@ class _TrackPanel extends StatelessWidget {
             ListTile(
               dense: true,
               title: Text(offLabel),
-              leading: Icon(
+              leading: GlyphIcon(
                 selectedId == null
-                    ? Icons.radio_button_checked
-                    : Icons.radio_button_off,
+                    ? AppGlyphs.radioChecked
+                    : AppGlyphs.ring,
               ),
               onTap: () => onSelected(null),
             ),
@@ -128,10 +129,10 @@ class _TrackPanel extends StatelessWidget {
                 dense: true,
                 title: Text(track.title),
                 subtitle: track.language == null ? null : Text(track.language!),
-                leading: Icon(
+                leading: GlyphIcon(
                   track.id == selectedId
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_off,
+                      ? AppGlyphs.radioChecked
+                      : AppGlyphs.ring,
                 ),
                 onTap: () => onSelected(track.id),
               ),
@@ -237,23 +238,23 @@ class VideoControlOverlay extends StatelessWidget {
     final tracks = <VideoMediaTrack>[...engineTracks, ...extraSubtitleTracks];
     final audioTracks = transport?.audioTracks ?? const <VideoMediaTrack>[];
     final filterState = filter;
-    final loops = <ReaderVideoLoopMode, (IconData, String)>{
-      ReaderVideoLoopMode.list: (Icons.repeat, labels.loop),
-      ReaderVideoLoopMode.single: (Icons.repeat_one, labels.loopSingle),
-      ReaderVideoLoopMode.none: (Icons.repeat_on, labels.loopOff),
+    final loops = <ReaderVideoLoopMode, (Glyph, String)>{
+      ReaderVideoLoopMode.list: (AppGlyphs.loop, labels.loop),
+      ReaderVideoLoopMode.single: (AppGlyphs.loop, labels.loopSingle),
+      ReaderVideoLoopMode.none: (AppGlyphs.loop, labels.loopOff),
     };
     final loop = loops[snapshot.loopMode]!;
 
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     Widget menuAction(
-      IconData icon,
+      Glyph icon,
       String label,
       VoidCallback? action, {
       bool selected = false,
     }) => MenuItemButton(
-      leadingIcon: Icon(icon),
-      trailingIcon: selected ? const Icon(Icons.check, size: 20) : null,
+      leadingIcon: GlyphIcon(icon),
+      trailingIcon: selected ? const GlyphIcon(AppGlyphs.check, size: 20) : null,
       onPressed: action,
       child: Text(label),
     );
@@ -304,20 +305,20 @@ class VideoControlOverlay extends StatelessWidget {
                 children: <Widget>[
                   IconButton.filled(
                     tooltip: snapshot.playing ? labels.pause : labels.play,
-                    icon: Icon(
+                    icon: GlyphIcon(
                       snapshot.playing
-                          ? Icons.pause_rounded
-                          : Icons.play_arrow_rounded,
+                          ? AppGlyphs.pause
+                          : AppGlyphs.play,
                     ),
                     onPressed: () => controller.togglePlay(),
                   ),
                   _IconButton(
-                    icon: Icons.replay_10_rounded,
+                    icon: AppGlyphs.skipPrevious,
                     tooltip: labels.backward,
                     onPressed: () => controller.seekBackward(),
                   ),
                   _IconButton(
-                    icon: Icons.forward_10_rounded,
+                    icon: AppGlyphs.skipNext,
                     tooltip: labels.forward,
                     onPressed: () => controller.seekForward(),
                   ),
@@ -412,14 +413,14 @@ class VideoControlOverlay extends StatelessWidget {
                       ),
                     ),
                   _IconButton(
-                    icon: Icons.fullscreen_rounded,
+                    icon: AppGlyphs.fullscreen,
                     tooltip: labels.fullscreen,
                     onPressed: onFullscreen,
                   ),
                   _IconButton(
                     buttonKey: const ValueKey('video-pin-controls'),
-                    icon: Icons.push_pin_outlined,
-                    selectedIcon: Icons.push_pin_rounded,
+                    icon: AppGlyphs.pin,
+                    selectedIcon: AppGlyphs.pin,
                     tooltip: pinned ? t.reader.unpinBottomBar : labels.pin,
                     active: pinned,
                     onPressed: onTogglePin,
@@ -427,19 +428,19 @@ class VideoControlOverlay extends StatelessWidget {
                   _TextButton(
                     label: t.common.more,
                     tooltip: t.common.more,
-                    icon: Icons.more_horiz_rounded,
+                    icon: AppGlyphs.more,
                     panelsOpen: panelsOpen,
                     builder: (context) => Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: <Widget>[
                         menuAction(
-                          Icons.skip_previous_rounded,
+                          AppGlyphs.skipPrevious,
                           labels.frameStepBackward,
                           () => controller.stepFrame(-1),
                         ),
                         menuAction(
-                          Icons.skip_next_rounded,
+                          AppGlyphs.skipNext,
                           labels.frameStepForward,
                           () => controller.stepFrame(1),
                         ),
@@ -451,7 +452,7 @@ class VideoControlOverlay extends StatelessWidget {
                               snapshot.loopMode != ReaderVideoLoopMode.none,
                         ),
                         menuAction(
-                          Icons.repeat_rounded,
+                          AppGlyphs.loop,
                           labels.abLoop,
                           controller.tapAbLoop,
                           selected:
@@ -461,36 +462,36 @@ class VideoControlOverlay extends StatelessWidget {
                         if (snapshot.abLoop != null ||
                             controller.markedPointA != null)
                           menuAction(
-                            Icons.clear,
+                            AppGlyphs.close,
                             labels.abClear,
                             controller.clearAbLoop,
                           ),
                         const Divider(),
                         menuAction(
-                          Icons.photo_camera_outlined,
+                          AppGlyphs.camera,
                           labels.screenshot,
                           onScreenshot == null ? null : () => onScreenshot!(),
                         ),
                         menuAction(
-                          Icons.fast_forward_rounded,
+                          AppGlyphs.skipNext,
                           labels.seekMode,
                           controller.toggleSeekMode,
                           selected: snapshot.seekMode,
                         ),
                         if (audioOnlyAvailable)
                           menuAction(
-                            Icons.music_note_rounded,
+                            AppGlyphs.music,
                             labels.audioOnly,
                             () => controller.setAudioOnly(!snapshot.audioOnly),
                             selected: snapshot.audioOnly,
                           ),
                         menuAction(
-                          Icons.picture_in_picture_alt_rounded,
+                          AppGlyphs.pip,
                           labels.pip,
                           onTogglePip,
                         ),
                         menuAction(
-                          Icons.info_outline_rounded,
+                          AppGlyphs.info,
                           labels.info,
                           onOpenInfo,
                         ),
@@ -521,8 +522,8 @@ class _IconButton extends StatelessWidget {
     this.buttonKey,
   });
 
-  final IconData icon;
-  final IconData? selectedIcon;
+  final Glyph icon;
+  final Glyph? selectedIcon;
   final String tooltip;
   final VoidCallback? onPressed;
   final bool active;
@@ -535,15 +536,15 @@ class _IconButton extends StatelessWidget {
         key: buttonKey,
         tooltip: tooltip,
         isSelected: active,
-        icon: Icon(icon),
-        selectedIcon: Icon(selectedIcon),
+        icon: AnimatedGlyph(glyph: icon, filled: active),
+        selectedIcon: GlyphIcon(selectedIcon!),
         onPressed: onPressed,
       );
     }
     return IconButton(
       key: buttonKey,
       tooltip: tooltip,
-      icon: Icon(icon),
+      icon: GlyphIcon(icon),
       onPressed: onPressed,
     );
   }
@@ -564,7 +565,7 @@ class _TextButton extends StatefulWidget {
   final WidgetBuilder builder;
   final VideoPanelController panelsOpen;
   final bool active;
-  final IconData? icon;
+  final Glyph? icon;
 
   @override
   State<_TextButton> createState() => _TextButtonState();
@@ -643,7 +644,7 @@ class _TextButtonState extends State<_TextButton> {
           return IconButton(
             focusNode: _focus,
             tooltip: widget.tooltip,
-            icon: Icon(widget.icon),
+            icon: GlyphIcon(widget.icon!),
             onPressed: toggle,
           );
         }
