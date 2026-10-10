@@ -781,6 +781,12 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get manualScrollEnabledSubtitle => 'When off the strip still scrolls itself to the active or revealed lane; only your own drags and the wheel are ignored.';
 	@override String get blockManualScrollInReaderFullscreen => 'Block horizontal lane dragging in fullscreen';
 	@override String get blockManualScrollInReaderFullscreenSubtitle => 'While the Reader is fullscreen, horizontal gestures only turn pages and no longer pan the swimlane strip (which drags the Reader along). Turn it off to keep dragging available, same as usual.';
+	@override String get laneHeaderChrome => 'Lane header';
+	@override String get laneHeaderChromeSubtitle => 'What the lane header row draws. Only the header itself — nothing inside the lane changes.';
+	@override String get showLaneWidthBadge => 'Show lane width badge';
+	@override String get showLaneWidthBadgeSubtitle => 'Draws the current width as a "400px" badge next to the lane title. Off by default — set the width from the lane menu\'s "Lane width" field; while off, that width goes back to the title and tab strip.';
+	@override String get panelTabSortMode => 'Panel tab sort mode';
+	@override String get panelTabSortModeSubtitle => 'When on, long-press a tab to drag it to reorder or move it to another lane; when off, dragging across the strip switches panels and the selection follows your finger.';
 	@override String get edgeRevealDelay => 'Side lane reveal delay';
 	@override String get readerHoverFocusDelay => 'Reader hover refocus delay';
 	@override String get readerHoverFocusEnable => 'Enable Reader hover refocus';
@@ -1903,6 +1909,7 @@ class _Translations$discover$en_US extends Translations$discover$zh_CN {
 	@override String get tabDisplay => 'Tab display';
 	@override String get tabShowIcon => 'Show plugin icon';
 	@override String get tabShowPluginShort => 'Show plugin short name';
+	@override String get tabDoubleClickClose => 'Double-click to close tab';
 	@override String get webPage => 'Web page';
 	@override String get comicDetail => 'Details';
 }
@@ -3159,6 +3166,12 @@ extension on TranslationsEnUs {
 			'settings.manualScrollEnabledSubtitle' => 'When off the strip still scrolls itself to the active or revealed lane; only your own drags and the wheel are ignored.',
 			'settings.blockManualScrollInReaderFullscreen' => 'Block horizontal lane dragging in fullscreen',
 			'settings.blockManualScrollInReaderFullscreenSubtitle' => 'While the Reader is fullscreen, horizontal gestures only turn pages and no longer pan the swimlane strip (which drags the Reader along). Turn it off to keep dragging available, same as usual.',
+			'settings.laneHeaderChrome' => 'Lane header',
+			'settings.laneHeaderChromeSubtitle' => 'What the lane header row draws. Only the header itself — nothing inside the lane changes.',
+			'settings.showLaneWidthBadge' => 'Show lane width badge',
+			'settings.showLaneWidthBadgeSubtitle' => 'Draws the current width as a "400px" badge next to the lane title. Off by default — set the width from the lane menu\'s "Lane width" field; while off, that width goes back to the title and tab strip.',
+			'settings.panelTabSortMode' => 'Panel tab sort mode',
+			'settings.panelTabSortModeSubtitle' => 'When on, long-press a tab to drag it to reorder or move it to another lane; when off, dragging across the strip switches panels and the selection follows your finger.',
 			'settings.edgeRevealDelay' => 'Side lane reveal delay',
 			'settings.readerHoverFocusDelay' => 'Reader hover refocus delay',
 			'settings.readerHoverFocusEnable' => 'Enable Reader hover refocus',
@@ -3508,14 +3521,14 @@ extension on TranslationsEnUs {
 			'reader.splitLandscapePagesSubtitle' => 'Automatically split wide double-page images into left and right halves',
 			'reader.landscapeSplitDirection' => 'Split reading order',
 			'reader.splitDirectionAuto' => 'Follow reading direction',
+			_ => null,
+		} ?? switch (path) {
 			'reader.splitDirectionLtr' => 'Left to right (left first)',
 			'reader.splitDirectionRtl' => 'Right to left (right first)',
 			'reader.hoverReveal' => 'Hover Reveal',
 			'reader.hoverRevealEnabled' => 'Edge Hover Reveal Toolbars',
 			'reader.hoverRevealEnabledSubtitle' => 'Automatically show toolbars when mouse moves to top or bottom edge (NeoView style)',
 			'reader.thumbnailStrip' => 'Bottom thumbnail strip',
-			_ => null,
-		} ?? switch (path) {
 			'reader.thumbnailStripSubtitle' => 'Expand per-page thumbnails in the control bar, fused with the progress bar; stays on across books, chapters and restarts',
 			'reader.transparentTopBar' => 'Transparent top bar',
 			'reader.transparentTopBarSubtitle' => 'Drop the glass material for a translucent scrim so the page shows through (JHenTai style)',
@@ -4022,14 +4035,14 @@ extension on TranslationsEnUs {
 			'about.contributorsCount' => ({required Object count}) => '${count}',
 			'about.contributionsTooltip' => ({required Object login, required Object count}) => '${login} (${count} commits)',
 			'about.disclaimer' => 'Disclaimer',
+			_ => null,
+		} ?? switch (path) {
 			'about.disclaimerTitle' => 'Open Source Disclaimer',
 			'about.disclaimerItem1Title' => '1. Nature and Statement',
 			'about.disclaimerItem1Content' => 'This project is open-source software, independently developed and maintained by the author. It is provided "as-is". The developer makes no express or implied warranties regarding functionality, stability, security, or fitness for purpose.',
 			'about.disclaimerItem2Title' => '2. Limitation of Liability',
 			'about.disclaimerItem2Content' => 'The developer shall not be liable for any direct, indirect, special, incidental, or consequential damages arising from use, modification, or distribution of this project (including but not limited to direct use, secondary development, or integration into other projects). These damages may include but are not limited to data loss, device damage, business interruption, lost profits, or other economic losses.',
 			'about.disclaimerItem3Title' => '3. User Responsibility',
-			_ => null,
-		} ?? switch (path) {
 			'about.disclaimerItem3Content' => 'Users should evaluate suitability and assume all risks when using this project. Users must ensure their use complies with applicable laws, regulations, and ethical standards. The developer is not responsible for consequences resulting from violations of laws or misuse.',
 			'about.disclaimerItem4Title' => '4. Third-Party Dependencies and Resources',
 			'about.disclaimerItem4Content' => 'This project may depend on or reference third-party libraries, tools, services, or other resources. The developer is not responsible for the content, functionality, security, or legality of these third-party resources. Users should evaluate and assume risks themselves.',
@@ -4132,6 +4145,7 @@ extension on TranslationsEnUs {
 			'discover.tabDisplay' => 'Tab display',
 			'discover.tabShowIcon' => 'Show plugin icon',
 			'discover.tabShowPluginShort' => 'Show plugin short name',
+			'discover.tabDoubleClickClose' => 'Double-click to close tab',
 			'discover.webPage' => 'Web page',
 			'discover.comicDetail' => 'Details',
 			'searchResult.enterPageNumber' => 'Enter page number',
@@ -4539,11 +4553,11 @@ extension on TranslationsEnUs {
 			'bindingEditor.actions' => 'Actions',
 			'bindingEditor.actionList' => 'Actions',
 			'bindingEditor.bindingDetails' => 'Bindings',
+			_ => null,
+		} ?? switch (path) {
 			'bindingEditor.bindings' => 'Bindings',
 			'bindingEditor.restore' => 'Restore defaults',
 			'bindingEditor.resetFilters' => 'Clear filters',
-			_ => null,
-		} ?? switch (path) {
 			'plat.openAbove' => 'Open above',
 			'plat.openBelow' => 'Open below',
 			'plat.openLeft' => 'Open left',
