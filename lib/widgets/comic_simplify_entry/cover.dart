@@ -10,6 +10,7 @@ import 'package:zephyr/widgets/picture_bloc/bloc/picture_bloc.dart';
 import 'package:zephyr/widgets/picture_bloc/models/picture_info.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry.dart';
+import 'package:zephyr/widgets/image_sleep.dart';
 
 class CoverWidget extends StatelessWidget {
   final String fileServer;
@@ -78,7 +79,8 @@ class CoverWidget extends StatelessWidget {
                 );
               case PictureLoadStatus.success:
                 return RepaintBoundary(
-                  child: Container(
+                  child: ImageSleep(
+                    child: Container(
                     width: width,
                     height: height,
                     decoration: BoxDecoration(
@@ -106,6 +108,7 @@ class CoverWidget extends StatelessWidget {
                           );
                         },
                       ),
+                    ),
                     ),
                   ),
                 );

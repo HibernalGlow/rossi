@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/discover/service/plugin_display_label.dart';
 import 'package:zephyr/type/enum.dart';
+import 'package:zephyr/widgets/image_sleep.dart';
 import 'package:zephyr/widgets/picture_bloc/picture_bloc.dart';
 
 /// 发现页和插件商店共用的图标，按 URL 缓存，不依赖插件是否已安装。
@@ -38,10 +39,12 @@ class PluginIcon extends StatelessWidget {
             case PictureLoadStatus.failure:
               return placeholder;
             case PictureLoadStatus.success:
-              return Image.file(
-                File(state.imagePath!),
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => placeholder,
+              return ImageSleep(
+                child: Image.file(
+                  File(state.imagePath!),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => placeholder,
+                ),
               );
           }
         },

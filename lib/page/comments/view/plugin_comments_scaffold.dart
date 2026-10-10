@@ -9,6 +9,8 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/type/pipe.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
+import 'package:zephyr/widgets/toast.dart';
 
 @RoutePage(name: 'PluginCommentsScaffoldRoute')
 class PluginCommentsScaffold extends StatefulWidget {
@@ -54,9 +56,7 @@ class _PluginCommentsScaffoldState extends State<PluginCommentsScaffold> {
             previous.noticeId != current.noticeId &&
             current.noticeMessage.trim().isNotEmpty,
         listener: (context, state) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(state.noticeMessage)));
+          showInfoToast(state.noticeMessage, context: context);
         },
         child: BlocBuilder<CommentsCubit, CommentsViewState>(
           builder: (context, state) {

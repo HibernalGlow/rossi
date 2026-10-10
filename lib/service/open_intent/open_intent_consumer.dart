@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/cubit/string_select.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/service/notify/notify_topic.dart';
 import 'package:zephyr/service/open_intent/open_intents.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/widgets/toast.dart';
@@ -25,11 +26,18 @@ StreamSubscription<List<String>> bindOpenIntents(BuildContext context) {
 
     final target = paths.first;
     if (paths.length > 1) {
-      showInfoToast(t.settings.openIntentMultiSkipped(count: paths.length - 1));
+      notifyAmbient(
+        NotifyTopic.intentOpen,
+        t.settings.openIntentMultiSkipped(count: paths.length - 1),
+      );
     }
 
     if (FileSystemEntity.typeSync(target) == FileSystemEntityType.notFound) {
-      showErrorToast(t.settings.openIntentMissing(path: target));
+      notifyAmbient(
+        NotifyTopic.intentOpen,
+        t.settings.openIntentMissing(path: target),
+        type: ToastType.error,
+      );
       return;
     }
 
