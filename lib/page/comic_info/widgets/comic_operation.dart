@@ -611,7 +611,7 @@ class _OperationItemData {
     this.iconColor,
   });
 
-  final IconData icon;
+  final Glyph icon;
   final String text;
 
   /// 下载项要额外接下载状态流，单独渲染。
@@ -677,14 +677,14 @@ class _DownloadOperationCard extends StatelessWidget {
       hasRecord: hasComicDownloadRecord(from: from, comicId: comicId),
     );
 
-    final (IconData icon, String text, Color? iconColor) = switch (state) {
+    final (Glyph icon, String text, Color? iconColor) = switch (state) {
       ComicDownloadVisualState.downloading => (
         AppGlyphs.downloading,
         t.reader.downloadStatusDownloading,
         colorScheme.primary,
       ),
       ComicDownloadVisualState.paused => (
-        Icons.pause_circle_outline_rounded,
+        AppGlyphs.pauseCircle,
         t.reader.downloadStatusPaused,
         Colors.orange,
       ),
@@ -758,7 +758,7 @@ class _OperationCard extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
+              GlyphIcon(
                 item.icon,
                 size: compact ? 18 : 20,
                 color: item.iconColor ?? foreground,

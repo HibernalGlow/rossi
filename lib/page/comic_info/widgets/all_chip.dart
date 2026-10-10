@@ -152,8 +152,8 @@ class _AllChipWidgetState extends State<AllChipWidget> {
             // 收藏 tag 与收藏画师是两件事：同一颗胶囊可以同时是「喜欢的画师」
             // 和「收藏的 tag」，所以两颗菜单项各自独立开关，互不覆盖。
             ListTile(
-              leading: Icon(
-                isFavoriteTag ? AppGlyphs.sell : AppGlyphs.sell,
+              leading: GlyphIcon(
+                AppGlyphs.sell,
                 color: const Color(0xFFF59E0B),
               ),
               title: Text(
