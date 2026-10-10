@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/src/rust/api/file_ops.dart';
+import 'package:zephyr/platform/desktop/reveal_in_file_manager.dart';
 import 'package:zephyr/workspace/model/file_manager_entry_menu_spec.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
@@ -113,6 +114,7 @@ Future<FileManagerActionCall?> planFileManagerEntryAction(
 
     case FileManagerEntryAction.open:
     case FileManagerEntryAction.openInNewTab:
+    case FileManagerEntryAction.revealInFileManager:
     case FileManagerEntryAction.copy:
     case FileManagerEntryAction.cut:
     case FileManagerEntryAction.paste:
@@ -281,6 +283,37 @@ Future<void> copyFileManagerPathsToClipboard(
     title: '已复制路径',
     context: context,
   );
+}
+
+// ── 在系统文件管理器里显示这一项 ────────────────────────────────────────────
+
+/// 请**外部**的文件管理器把这一项露出来，并把结果说给用户。
+///
+/// 与 [copyFileManagerPathsToClipboard] 同一档：不动盘、不经核心，所以既不进卡片的
+/// `_busy`，也不占撤销栈 —— 它没有可撤销的东西。真正拼命令与执行在
+/// `lib/platform/desktop/reveal_in_file_manager.dart`（那份是纯的，三平台一台机器上就能测）。
+Future<void> revealFileManagerEntry(
+  BuildContext context, {
+  required String path,
+}) async {
+  final host = currentRevealHost();
+  if (host == RevealHost.unsupported) {
+    if (!context.mounted) return;
+    showErrorToast('这个平台没有可调用的文件管理器', context: context);
+    return;
+  }
+  try {
+    final outcome = await revealInFileManager(path, host: host);
+    if (!context.mounted) return;
+    showSuccessToast(outcome, title: '已打开文件管理器', context: context);
+  } on UnsupportedError catch (error) {
+    if (!context.mounted) return;
+    showErrorToast('${error.message}', context: context);
+  } catch (error) {
+    // `ProcessException`（可执行文件起不来）与 `StateError`（命令报了失败）。
+    if (!context.mounted) return;
+    showErrorToast('打不开文件管理器：$error', context: context);
+  }
 }
 
 // ── 说结果 ──────────────────────────────────────────────────────────────────

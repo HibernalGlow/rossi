@@ -22,16 +22,22 @@ void _selectionTapTests(_FileManagerApi Function() getApi) {
     await tester.pumpAndSettle();
   }
 
-  /// 长按**文件夹**那一行：菜单宿主先把选中态收敛到它（`onBeforeOpen`），再弹菜单。
+  /// 鼠标**长按**一行。
   ///
-  /// 挑文件夹这行下手有两个理由：它排在最后，菜单是**向下**铺开的，于是上面那行
-  /// 不会被菜单盖住（否则第二下点到的会是菜单项）；而且它就是用户说的那种
-  /// 「点一下就进去了」的东西。
-  Future<void> longPressFolderRow(WidgetTester tester) async {
-    await tester.longPress(
-      find.text(_folderRow),
+  /// 挑文件夹那行的菜单是**向下**铺开的，于是上面那行不会被菜单盖住。
+  Future<void> longPressRow(WidgetTester tester, String label) async {
+    await tester.longPress(find.text(label), kind: PointerDeviceKind.mouse);
+    await tester.pumpAndSettle();
+  }
+
+  /// 鼠标**右键**一行：只请菜单。
+  Future<void> rightClickRow(WidgetTester tester, String label) async {
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text(label)),
       kind: PointerDeviceKind.mouse,
+      buttons: kSecondaryButton,
     );
+    await gesture.up();
     await tester.pumpAndSettle();
   }
 
@@ -70,56 +76,55 @@ void _selectionTapTests(_FileManagerApi Function() getApi) {
     expect(find.text('已选 1 项'), findsOneWidget);
   });
 
-  testWidgets('长按把选中立起来之后，点另一行是加进选中而不是进文件夹', (tester) async {
+  testWidgets('长按只请菜单：不把选中立起来、不叫出操作条', (tester) async {
     final api = getApi();
     await _pumpCard(tester, width: 700);
-    // 按用户原话的形状来：长按**文件**那一行，然后点**文件夹**那一行。
-    await tester.longPress(
-      find.text(_archiveRow),
-      kind: PointerDeviceKind.mouse,
-    );
-    await tester.pumpAndSettle();
 
-    final names = api.calls.map((call) => call.memberName.toString()).join(', ');
-    // 这条就是用户报的那一步：长按之后操作条出现，界面上已经是多选。
+    await longPressRow(tester, _archiveRow);
+
+    // 阳性对照：菜单真的弹了，说明这一行确实被手势命中 —— 下面那几条零断言
+    // 才有意义（否则它们只是在测「什么都没发生」）。
+    expect(find.text('移到回收站'), findsOneWidget);
     expect(
       api.callsTo(#crateApiFileOpsFileOpsSelectSingle).length,
-      1,
-      reason: '桥调用清单：$names',
+      0,
+      reason: '长按不该替用户把选中集合搬到这一行',
     );
-    expect(find.text('已选 1 项'), findsOneWidget);
-    // 菜单确实弹出来了 —— 不然这条链和真实操作不是同一回事。
-    expect(find.text('移到回收站'), findsOneWidget);
+    expect(find.text('已选 1 项'), findsNothing);
+  });
 
-    // 先把菜单收掉再点第二行：菜单是十来项高的一个面，压在行上，
-    // 第二下会点到菜单项而不是那一行。
-    //
-    // 不能用 Esc 收：这条路上焦点根本没进菜单（`SingleActivator(escape)` 挂在菜单
-    // 自己的 `Shortcuts` 里）。点**卡片外面**那块空白才是用户真正会做的动作，
-    // 而 `TapRegion.onTapOutside` 只观察不吃事件。
-    // 视口 1000x1100、卡片宽 700 且左上对齐，(900, 1050) 落在卡片之外。
-    await tester.tapAt(const Offset(900, 1050), kind: PointerDeviceKind.mouse);
+  testWidgets('右键没选中的项：回收站只打中那一项，而不是手里正拿着的那批', (tester) async {
+    final api = getApi();
+    await _pumpCard(tester, width: 700);
+    // 先进模式、把**另一行**（文件夹）选上，于是「整批」与「这一个」分得开。
+    await tapToggle(tester, '多选');
+    await tester.tap(find.text(_folderRow), kind: PointerDeviceKind.mouse);
     await tester.pumpAndSettle();
-    expect(find.text('移到回收站'), findsNothing);
-    // 收菜单不该顺手把选中清掉 —— 「刚才那一批还拿着」是这个状态的本职。
     expect(find.text('已选 1 项'), findsOneWidget);
     api.calls.clear();
 
-    await tester.tap(find.text(_folderRow), kind: PointerDeviceKind.mouse);
+    await rightClickRow(tester, _archiveRow);
+    expect(find.text('移到回收站'), findsOneWidget);
+    // 右键同样不搬选中集合：那一批仍然只有文件夹一项。
+    expect(api.callsTo(#crateApiFileOpsFileOpsSelectSingle).length, 0);
+    expect(find.text('已选 2 项'), findsNothing);
+
+    await tester.tap(find.text('移到回收站'));
     await tester.pumpAndSettle();
 
-    expect(api.callsTo(#crateApiFileOpsFileOpsSelectToggle).length, 1);
-    expect(
-      api.callsTo(#crateApiFileManagerEntryOpsFileManagerOpenEntry).length,
-      0,
-    );
-    expect(find.text('已选 2 项'), findsOneWidget);
+    // 这条才是本次改动真正的安全闸门。回收站从前在桥那侧只读选中集合，
+    // 「右键一个没选中的文件 → 移到回收站」会把**另一批**送进回收站，
+    // 而确认框上写的数量是 1。现在目标必须显式跟着这一次调用走。
+    final call = api.callsTo(#crateApiFileOpsFileOpsTrashPaths).single;
+    expect(call.namedArguments[#paths], ['/books/$_archiveRow']);
   });
 
   testWidgets('摁「退出多选」清空选中，单击回到打开', (tester) async {
     final api = getApi();
     await _pumpCard(tester, width: 700);
-    await longPressFolderRow(tester);
+    await tapToggle(tester, '多选');
+    await tester.tap(find.text(_folderRow), kind: PointerDeviceKind.mouse);
+    await tester.pumpAndSettle();
     expect(find.text('已选 1 项'), findsOneWidget);
 
     api.calls.clear();

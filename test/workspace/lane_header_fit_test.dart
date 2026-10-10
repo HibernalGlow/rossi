@@ -43,6 +43,7 @@ import 'package:zephyr/workspace/model/workspace_layout_snapshot.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
 import 'package:zephyr/workspace/registry/workspace_panel_registry.dart';
 import 'package:zephyr/workspace/widgets/panels/panel_tab_strip.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/workspace/widgets/swimlane/lane_more_menu.dart';
 import 'package:zephyr/workspace/widgets/swimlane/swimlane_column.dart';
 import 'package:zephyr/workspace/widgets/swimlane/swimlane_workspace.dart';
@@ -149,10 +150,16 @@ Finder _tab(String panelId) => find.descendant(
 /// 独占只认 `center_focus_weak_rounded`：这几条判据从不把泳道设成独占，而图标
 /// 换成 `strong` 恰恰是「它此刻是独占」的记账 —— 两种都认会把「根本没画」
 /// 误判成「画了，只是另一颗图标」。
-Finder _solo() => _inLeftLane(find.byIcon(Icons.center_focus_weak_rounded));
+Finder _solo() => _inLeftLane(
+  find.byWidgetPredicate((w) => w is GlyphIcon && w.glyph == AppGlyphs.target),
+);
 Finder _collapse() =>
-    _inLeftLane(find.byIcon(Icons.vertical_align_center_rounded));
-Finder _more() => _inLeftLane(find.byIcon(Icons.more_vert_rounded));
+    _inLeftLane(
+  find.byWidgetPredicate((w) => w is GlyphIcon && w.glyph == AppGlyphs.fold),
+);
+Finder _more() => _inLeftLane(
+  find.byWidgetPredicate((w) => w is GlyphIcon && w.glyph == AppGlyphs.more),
+);
 Finder _badge() => _inLeftLane(find.textContaining(RegExp(r'^\d+px$')));
 
 bool _shown(Finder finder) => finder.evaluate().isNotEmpty;

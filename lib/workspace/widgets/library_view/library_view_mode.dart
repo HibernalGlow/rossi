@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 与 Rust 侧 `FileManagerViewMode` 一一对应的 Dart 视图模式。
 ///
@@ -33,20 +33,23 @@ extension LibraryViewModeX on LibraryViewMode {
     }
   }
 
-  IconData get icon {
+  /// 图标走本仓自绘 glyph（`lib/icons/`），与侧栏、工具条同一套形状语言。
+  /// 六档按「行的密度 × 列的形态」选：紧凑行 → 单列线；封面列表 → 小卡；
+  /// 横幅 → 中卡；详细信息 → 多列；网格 → 四宫格；缩略图 → 图库。
+  Glyph get icon {
     switch (this) {
       case LibraryViewMode.compact:
-        return Icons.view_headline_rounded;
+        return AppGlyphs.layoutList;
       case LibraryViewMode.coverList:
-        return Icons.table_rows_rounded;
+        return AppGlyphs.cardSmall;
       case LibraryViewMode.mosaicList:
-        return Icons.view_agenda_rounded;
+        return AppGlyphs.cardMedium;
       case LibraryViewMode.details:
-        return Icons.table_chart_rounded;
+        return AppGlyphs.columnsThree;
       case LibraryViewMode.coverGrid:
-        return Icons.grid_view_rounded;
+        return AppGlyphs.dashboard;
       case LibraryViewMode.mosaicGrid:
-        return Icons.grid_on_rounded;
+        return AppGlyphs.photos;
     }
   }
 }

@@ -31,6 +31,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_layout_snapshot.dart';
@@ -105,6 +106,12 @@ Finder _laneScope(String title) =>
 
 Finder _laneIcon(String title, IconData icon) =>
     find.descendant(of: _laneScope(title), matching: find.byIcon(icon));
+
+/// 按 glyph 找（栏头图标 glyph 化之后的 finder）。
+Finder _laneGlyph(String title, Glyph glyph) => find.descendant(
+  of: _laneScope(title),
+  matching: find.byWidgetPredicate((w) => w is GlyphIcon && w.glyph == glyph),
+);
 
 Future<WorkspaceCubit> _pumpWorkspace(WidgetTester tester) async {
   tester.view.physicalSize = _windowSize;
@@ -285,7 +292,7 @@ void main() {
     );
 
     await tester.tap(
-      _laneIcon(_rightTitle, Icons.vertical_align_center_rounded),
+      _laneGlyph(_rightTitle, AppGlyphs.fold),
     );
     await tester.pumpAndSettle();
 

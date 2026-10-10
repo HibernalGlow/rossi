@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/config/global/theme_shape.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_menu_button.dart';
 
@@ -164,24 +165,24 @@ class CollapsibleCard extends StatelessWidget {
   Widget _buildTrackMenu(BuildContext context) {
     return ShelfMenuButton(
       tooltip: '卡片位置',
-      icon: Icons.more_vert_rounded,
+      glyph: AppGlyphs.more,
       menuChildren: [
         ShelfMenuItem(
           label: '上移',
-          icon: Icons.arrow_upward_rounded,
+          glyph: AppGlyphs.arrowUp,
           // `onPressed: null` 就是 MD3 的禁用态：项永远在场，只是点不动。
           onPressed: onMoveUp,
         ),
         ShelfMenuItem(
           label: '下移',
-          icon: Icons.arrow_downward_rounded,
+          glyph: AppGlyphs.arrowDown,
           onPressed: onMoveDown,
         ),
         if (onHide != null) ...[
           const ShelfMenuDivider(),
           ShelfMenuItem(
             label: '从该面板收起',
-            icon: Icons.visibility_off_rounded,
+            glyph: AppGlyphs.eyeOff,
             onPressed: onHide,
             destructive: true,
           ),

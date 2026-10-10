@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/service/notify/notify_gateway.dart';
 import 'package:zephyr/util/toast/toast_style.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/widgets/toast/toast_card.dart';
@@ -11,8 +12,16 @@ import 'package:zephyr/widgets/toast/toast_card.dart';
 /// pazzimo [ZZR个人汉化] 下载完成`）在旧实现里因为正文 ≥ 30 字被换成了
 /// 「成功 / 取消 / 确定」的模态对话框。现在必须一律是提示条，且正文自己换行。
 void main() {
-  setUp(ToastOverlayController.instance.resetForTest);
-  tearDown(ToastOverlayController.instance.resetForTest);
+  setUp(() {
+    ToastOverlayController.instance.resetForTest();
+    // 清同文本合并窗口：上一条用例留下的 2 秒窗口会吃掉这一条的同名提示，
+    // 那测的就不是渲染而是记账了。出口默认就是提示条，不需要在这里挂东西。
+    NotifyGateway.instance.resetForTest();
+  });
+  tearDown(() {
+    ToastOverlayController.instance.resetForTest();
+    NotifyGateway.instance.detach();
+  });
 
   testWidgets('长正文在提示条内换行，不再截断', (tester) async {
     const message = '[Fanbox(Normal) & Pixiv] pazzimo [ZZR个人汉化] 下载完成';

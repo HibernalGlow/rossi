@@ -1,62 +1,78 @@
 import 'package:flutter/widgets.dart';
 
-import 'package:zephyr/main.dart';
-import 'package:zephyr/widgets/toast/toast_card.dart';
-import 'package:zephyr/widgets/toast/toast_overlay.dart';
+import 'package:zephyr/service/notify/notify_gateway.dart';
+import 'package:zephyr/service/notify/notify_topic.dart';
+// `export` 只把名字传给使用方，本文件自己的签名与默认值要用还得 import 一遍。
+import 'package:zephyr/widgets/toast/toast_card.dart' show ToastType;
 
 /// 类型从卡片模块导出，历史调用点（`ToastType.xxx`）无需改动。
 export 'package:zephyr/widgets/toast/toast_card.dart' show ToastType;
 
-/// 宿主控制器：给「手上已经有一条 [ToastEvent]、要按事件里的类型原样弹出来」的
-/// 调用点用（例如前台监听 `eventBus` 的那个页面）。
+/// 宿主控制器：给「手上已经有一条要按原样弹出来的提示」的调用点用
+/// （以及测试里直接摸 Overlay 的用例）。
 export 'package:zephyr/widgets/toast/toast_overlay.dart'
     show ToastOverlayController;
 
-/// 应用内提示（toast）的统一入口。
+/// 应用内提示的统一入口。
 ///
-/// 位置、时长、宽度、透明度等外观由「设置 → 提示样式」决定
-/// （见 `ToastSettingState` 与 `resolveToastOverlaySpec`），
-/// 调用点只说「提示什么 / 什么类型」即可。
+/// 分成两层，别把它们混起来：
+/// - **判定**在 `NotifyGateway`（能不能弹、同类压成一条，出口默认是提示条）——见
+///   `lib/service/notify/notify_gateway.dart`；
+/// - **外观**由「设置 → 提示样式」决定（`ToastSettingState` +
+///   `resolveToastOverlaySpec`），位置、时长、宽度、透明度都在那儿。
 ///
-/// 拿得到 `context` 就立刻弹；拿不到（后台任务、服务层）就发一条
-/// [ToastEvent] 到 [eventBus]，由前台监听者补弹。
-void _showToast({
+/// 调用点只说「提示什么 / 什么类型 / 是哪一事项」。
+///
+/// 三百多处历史调用点走下面四个 `show*Toast`，它们登记为
+/// [NotifyTopic.action]（操作反馈，永不被逐事项开关静音）。
+/// **后台自己冒出来的**提示不要再用这四个函数，改用 [notifyAmbient] 并带上事项，
+/// 否则它游离在个性化表外、用户关不掉。
+
+void _submit({
+  required NotifyTopic topic,
   required ToastType type,
   required String message,
   String? title,
   Duration? duration,
   BuildContext? context,
+  bool userInitiated = false,
 }) {
-  if (context != null && context.mounted) {
-    ToastOverlayController.instance.show(
-      context,
+  NotifyGateway.instance.submit(
+    NotifyEvent(
+      topic: topic,
       type: type,
-      message: message,
       title: title,
+      message: message,
       duration: duration,
-    );
-    return;
-  }
-
-  eventBus.fire(
-    ToastEvent(type: type, title: title, message: message, duration: duration),
+      context: context,
+      userInitiated: userInitiated,
+    ),
   );
 }
 
-class ToastEvent {
-  ToastType type;
-  String? title;
-  String message;
-
-  /// `null` 表示「用设置里的时长」。
-  Duration? duration;
-
-  ToastEvent({
-    required this.type,
-    this.title,
-    required this.message,
-    this.duration,
-  });
+/// 后台自动提示：必须登记事项，逐事项开关才管得到它。
+///
+/// [userInitiated] 留给「同一件事既可能由定时器触发、也可能由用户点按钮触发」
+/// 的调用点（例如手动刷新追更）：置 `true` 时这一次不被总闸与逐事项开关静音
+/// （同文本的合并窗口照旧要过 —— 连点两次不该出两条一样的提示）。
+void notifyAmbient(
+  NotifyTopic topic,
+  String message, {
+  ToastType type = ToastType.info,
+  String? title,
+  Duration? duration,
+  BuildContext? context,
+  bool userInitiated = false,
+}) {
+  _submit(
+    topic: topic,
+    type: type,
+    title: title,
+    message: message,
+    duration: duration,
+    context: context,
+    userInitiated: userInitiated,
+  );
 }
 
 void showInfoToast(
@@ -65,7 +81,8 @@ void showInfoToast(
   Duration? duration,
   BuildContext? context,
 }) {
-  _showToast(
+  _submit(
+    topic: NotifyTopic.action,
     type: ToastType.info,
     title: title,
     message: message,
@@ -80,7 +97,8 @@ void showSuccessToast(
   Duration? duration,
   BuildContext? context,
 }) {
-  _showToast(
+  _submit(
+    topic: NotifyTopic.action,
     type: ToastType.success,
     title: title,
     message: message,
@@ -95,7 +113,8 @@ void showWarningToast(
   Duration? duration,
   BuildContext? context,
 }) {
-  _showToast(
+  _submit(
+    topic: NotifyTopic.action,
     type: ToastType.warning,
     title: title,
     message: message,
@@ -110,7 +129,8 @@ void showErrorToast(
   Duration? duration,
   BuildContext? context,
 }) {
-  _showToast(
+  _submit(
+    topic: NotifyTopic.action,
     type: ToastType.error,
     title: title,
     message: message,

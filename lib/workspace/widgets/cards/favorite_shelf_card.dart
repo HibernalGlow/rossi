@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
@@ -13,8 +14,10 @@ import 'package:zephyr/plugin/utils/plugin_display_name.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/comic/comic_quick_read.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
+import 'package:zephyr/widgets/expressive/shelf_list_editor.dart';
 import 'package:zephyr/widgets/comic_entry/models/models.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/workspace/method/open_comic_item.dart';
 import 'package:zephyr/workspace/method/shelf_entry_actions.dart';
@@ -26,7 +29,6 @@ import 'package:zephyr/workspace/model/shelf_view_state.dart';
 import 'package:zephyr/workspace/registry/workspace_ids.dart';
 import 'package:zephyr/workspace/service/bookmark_library_service.dart';
 import 'package:zephyr/workspace/service/shelf_view_state_store.dart';
-import 'package:zephyr/workspace/widgets/cards/file_manager_toolbar.dart';
 import 'package:zephyr/workspace/widgets/cards/shelf_entry_context_menu.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view.dart';
@@ -332,47 +334,21 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
 
   // ── 列表轨 ────────────────────────────────────────────────────────────────
 
-  Widget _buildListRail(BuildContext context) {
-    final chips = <Widget>[
+  Widget _buildListRail(BuildContext context) => ShelfListRail(
+    onCreate: _busy ? null : () => _editList(null),
+    onEdit:
+        !_busy &&
+            _selectedList != _kAllLists &&
+            _selectedList != kComicFolderRootPath
+        ? () => _editList(_selectedList)
+        : null,
+    children: [
       _listChip(label: '全部', path: _kAllLists),
       _listChip(label: '未分类', path: kComicFolderRootPath),
       for (final folder in _folders)
         _listChip(label: folder.name, path: '/${folder.name}'),
-    ];
-
-    return Row(
-      children: [
-        Expanded(
-          child: ScrollConfiguration(
-            behavior: ScrollConfiguration.of(
-              context,
-            ).copyWith(scrollbars: false),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(children: chips),
-            ),
-          ),
-        ),
-        // 两颗键走本区图标钮的同一份度量（40 见方、图标 20），不再用
-        // `size: 18` + `visualDensity: compact` 的裸 IconButton —— 否则
-        // 列表轨与下面的工具栏是两条不同高度的带，看着就是两个东西。
-        FileManagerToolbarIconButton(
-          icon: Icons.playlist_add_rounded,
-          tooltip: '新建书签列表',
-          enabled: !_busy,
-          onPressed: () => _editList(null),
-        ),
-        if (_selectedList != _kAllLists &&
-            _selectedList != kComicFolderRootPath)
-          FileManagerToolbarIconButton(
-            icon: Icons.edit_outlined,
-            tooltip: '重命名 / 删除当前列表',
-            enabled: !_busy,
-            onPressed: () => _editList(_selectedList),
-          ),
-      ],
-    );
-  }
+    ],
+  );
 
   Widget _listChip({required String label, required String path}) {
     return ShelfListChip(

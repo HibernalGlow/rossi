@@ -24,6 +24,12 @@ enum FileManagerEntryAction {
   /// 在新页签打开（目录才有意义）。
   openInNewTab,
 
+  /// 在**系统**文件管理器里显示这一项（访达 / 资源管理器 / 打开所在目录）。
+  ///
+  /// 它只请外部程序把路径露出来，不动盘，所以归在「打开」那一组，
+  /// 而不是剪贴板或危险组。
+  revealInFileManager,
+
   /// 复制到内部剪贴板（两步式的第一步）。
   copy,
 
@@ -95,7 +101,8 @@ class FileManagerEntryMenuInput {
   /// 右键的那一项**在不在选中集合里**。
   ///
   /// 用它决定菜单是「对这一个」还是「对选中的这一批」：在选中集合里右键
-  /// = 对整批操作，在集合外右键 = 对这一个（UI 会顺手把选中态收敛到它）。
+  /// = 对整批操作，在集合外右键 = 对这一个（[`effectiveCount`] 直接算成 1，
+  /// **不需要**把选中态搬到那一项上）。
   final bool inSelection;
 
   /// 这一项能不能打开（目录、归档、图片、视频都能；不认识的格式不能）。
@@ -110,6 +117,13 @@ class FileManagerEntryMenuInput {
   /// 「移到回收站」在这个平台上能不能撤销。**macOS 为 false**（没有程序化恢复接口）。
   final bool trashRestoreSupported;
 
+  /// 这个平台做不做得到「在系统文件管理器里显示」。
+  ///
+  /// 默认**为假**：这一项要靠外部程序（`open` / `explorer.exe` / `xdg-open`），
+  /// 移动端没有。忘记传的时候宁可画成灰的（看得见、点不动），
+  /// 也不要画成能点、点下去什么都不知道。
+  final bool canReveal;
+
   const FileManagerEntryMenuInput({
     required this.isDirectory,
     this.selectionCount = 0,
@@ -118,6 +132,7 @@ class FileManagerEntryMenuInput {
     this.canCreateFolder = true,
     this.canPaste = false,
     this.trashRestoreSupported = false,
+    this.canReveal = false,
   });
 
   /// 这一批操作到底作用在几项上。
@@ -146,6 +161,11 @@ List<FileManagerEntryMenuItemSpec> buildFileManagerEntryMenuItems(
     FileManagerEntryMenuItemSpec(
       action: FileManagerEntryAction.openInNewTab,
       enabled: !batch && input.isDirectory,
+    ),
+    FileManagerEntryMenuItemSpec(
+      action: FileManagerEntryAction.revealInFileManager,
+      // 批量「显示」没有定义（一次弹 12 个访达窗口？），而且它只对桌面平台存在。
+      enabled: !batch && input.canReveal,
     ),
 
     // ── 剪贴板 ──
@@ -223,12 +243,11 @@ enum FileManagerEntryTapGesture {
 ///   用户按住两个键时得到的是**范围**而不是「把起点换到这一项」。
 /// - **[selectionMode] 为真时，什么都不按也算 [toggle]**，不分设备。这是书架那套
 ///   「多选模式」的口径（`FolderShelfState.selectionMode`）：**模式是一个明确的
-///   状态**，不是「碰巧有几点选中」。改之前只有后一种，于是长按/右键把选中态立起来
-///   （`onBeforeOpen` 收敛到那一项、操作条出现「已选 1 项」）之后，点第二下仍按
-///   「什么都不按 = 打开」裁决 —— 用户看见一个挂着的多选状态点进了文件夹，
-///   这就是那条 bug。
-///   进模式两条路：工具栏那颗「多选」开关（集合可以还是空的），或长按/右键把
-///   某一项选上（界面层把「手里正拿着东西」也算在模式里）。
+///   状态**，不是「碰巧有几点选中」。只认后一种，会让界面上已经挂着「已选 1 项」
+///   的时候那一下点成「打开」—— 当初那条 bug 就是这个形状（那时右键还会顺手把
+///   选中态立起来，所以「挂着多选」是很容易撞见的）。
+///   进模式看工具栏那颗「多选」开关（集合可以还是空的）；界面层另外把
+///   「手里正拿着东西」也算在模式里。右键与长按都**不**制造选中。
 ///   不在模式里时单击照旧打开，所以**不必为打开让出双击**。
 FileManagerEntryTapGesture resolveFileManagerEntryTapGesture({
   required bool toggleModifier,
@@ -240,17 +259,6 @@ FileManagerEntryTapGesture resolveFileManagerEntryTapGesture({
   if (selectionMode) return FileManagerEntryTapGesture.toggle;
   return FileManagerEntryTapGesture.open;
 }
-
-/// 右键（长按）一行时，选中态要不要先收敛到它。
-///
-/// 收敛 = 先把选中集合清掉、只选这一行。规则取自 neoview：**在选中集合里右键
-/// 是对整批操作，在集合外右键是对这一个**。少了这一步，右键一个没选中的文件
-/// 会看见菜单以「这 3 项」为主语 —— 而用户根本没选过哪怕一项。
-///
-/// 这个判断必须是纯的，因为它决定了「菜单弹出来之前要不要先等一次桥调用」，
-/// 而那一步是有时序的（见 `FileManagerEntryContextMenuRegion.beforeOpen`）。
-bool shouldConvergeFileManagerSelectionOnMenu({required bool inSelection}) =>
-    !inSelection;
 
 /// 二次确认要问哪一句。返回 `null` = 不需要确认。
 ///

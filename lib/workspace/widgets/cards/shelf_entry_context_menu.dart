@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/workspace/model/shelf_entry_menu_spec.dart';
 import 'package:zephyr/workspace/widgets/cards/file_manager_entry_context_menu.dart'
@@ -145,7 +146,19 @@ class _ShelfEntryMenuAnchorState extends State<_ShelfEntryMenuAnchor> {
             kind: input.kind,
             isFavorite: input.isFavorite,
           ),
-          icon: shelfEntryActionIcon(spec.action, kind: input.kind),
+          // 动作 → glyph 一张表拍平：词表（含本仓补的 book / folder）里
+          // 每个动作都有符号，不再留 Material `icon:` 兜底 —— 图标语汇只有一份。
+          glyph: switch (spec.action) {
+            ShelfEntryAction.open => AppGlyphs.book,
+            ShelfEntryAction.openInFileManagerTab => AppGlyphs.folder,
+            ShelfEntryAction.copyTitle => AppGlyphs.copy,
+            ShelfEntryAction.copyLink => AppGlyphs.link,
+            ShelfEntryAction.toggleFavorite ||
+            ShelfEntryAction.remove when input.kind == ShelfEntryKind.favorite =>
+              AppGlyphs.star,
+            ShelfEntryAction.remove => AppGlyphs.delete,
+            _ => null,
+          },
           // `onPressed: null` 就是 MD3 的禁用态：菜单项**永远在场**，
           // 只是有的不可点。
           onPressed: spec.enabled
@@ -191,24 +204,3 @@ String shelfEntryActionLabel(
   }
 }
 
-IconData shelfEntryActionIcon(
-  ShelfEntryAction action, {
-  required ShelfEntryKind kind,
-}) {
-  switch (action) {
-    case ShelfEntryAction.open:
-      return Icons.menu_book_rounded;
-    case ShelfEntryAction.openInFileManagerTab:
-      return Icons.folder_open_rounded;
-    case ShelfEntryAction.copyTitle:
-      return Icons.text_fields_rounded;
-    case ShelfEntryAction.copyLink:
-      return Icons.link_rounded;
-    case ShelfEntryAction.toggleFavorite:
-      return Icons.star_border_rounded;
-    case ShelfEntryAction.remove:
-      return kind == ShelfEntryKind.favorite
-          ? Icons.star_outline_rounded
-          : Icons.delete_outline_rounded;
-  }
-}
