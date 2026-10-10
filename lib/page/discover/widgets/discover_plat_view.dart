@@ -9,6 +9,7 @@ import 'package:zephyr/page/discover/service/discover_router.dart';
 import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:zephyr/page/discover/service/discover_tabs.dart';
 import 'package:zephyr/widgets/plat/rossi_plat_pane_probe.dart';
+import 'package:zephyr/widgets/plat/rossi_plat_tab_chip.dart';
 import 'package:zephyr/widgets/plat/rossi_plat_tab_menu.dart';
 import 'package:zephyr/widgets/plat/rossi_plat_theme.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
@@ -351,7 +352,12 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
       onClose: tab.snapshot.locked ? null : () => tabs.close(tab.snapshot.id),
       // 切一半之后每格还剩多宽/多高，决定四个方向里哪些点了会炸。
       paneSize: () => _paneSizeOf(tab.snapshot.id),
-      child: PlatTabChip(
+      // 结构恒定的 rossi chip（见 RossiPlatTabChip 类注释）：plat 自带的
+      // PlatTabChip 会在按下/悬停时翻转 foregroundDecoration，导致内容子树
+      // 在按住期间重挂 —— 触摸上点 × 十次九空就是它。
+      child: RossiPlatTabChip(
+        states: tab.states,
+        side: tabs.side,
         leading: setting.tabIconEnabled ? _chipLeading(context, leaf) : null,
         gap: _vertical ? 4 : 8,
         // 这里**不放 Tooltip**：它是这条标签条里唯一会在 hover 回调里往 Overlay
@@ -360,7 +366,14 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
         label: labelWidget,
         // 首页那条是 locked 的：它关不掉，plat 只会把那颗钮画成灰的（禁用态），
         // 于是白占 22 宽摆着一个永远点不动的 ×。不给 trailing 才是「没有这个操作」。
-        trailing: tab.snapshot.locked ? null : const PlatTabCloseButton(),
+        // 横向档把命中区从 16 提到 20：修复重挂之后这是第二道保险 —— 触摸目标
+        // 本来也该比 16 大；竖向轨每一像素都从内容区扣，维持原尺寸。
+        trailing: tab.snapshot.locked
+            ? null
+            : PlatTabCloseButton(
+                size: _vertical ? 16 : 20,
+                iconSize: _vertical ? 12 : 13,
+              ),
       ),
     );
   }

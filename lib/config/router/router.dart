@@ -54,6 +54,7 @@ class AppRouter extends RootStackRouter with WorkspaceBackInterceptor {
     AutoRoute(page: GlobalSettingRoute.page),
     AutoRoute(page: AppearanceSettingRoute.page),
     AutoRoute(page: ToastSettingRoute.page),
+    AutoRoute(page: NotifySettingRoute.page),
     AutoRoute(page: WorkspaceLayoutSettingRoute.page),
     AutoRoute(page: FileManagerSettingRoute.page),
     AutoRoute(page: ContentNetworkSettingRoute.page),
