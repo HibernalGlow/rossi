@@ -56,7 +56,10 @@ pub(super) fn resolve_penetration_inner(
     PenetrationResult::Branch
 }
 
-pub(super) fn describe_children(path: &Path, settings: &FileManagerSettings) -> Vec<FileManagerChild> {
+pub(super) fn describe_children(
+    path: &Path,
+    settings: &FileManagerSettings,
+) -> Vec<FileManagerChild> {
     let Ok(entries) = list_directory_with_hidden(path, settings.show_hidden_files) else {
         return Vec::new();
     };

@@ -647,7 +647,13 @@ class _PageListCardState extends State<PageListCard> {
               )
             : null,
       ),
-      child: ListTile(
+      // ListTile 把底色与水波纹画在**最近的 Material 祖先**上；外面这层
+      // Container 带 active 底色时，框架断言会报「ListTile background color or
+      // ink splashes may be invisible」（10-03 的滚动跟随判据让当前行真正
+      // active 后踩出来的）。套一层透明 Material：水波纹有地方画，视觉不变。
+      child: Material(
+        type: MaterialType.transparency,
+        child: ListTile(
         dense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         leading: SizedBox(
@@ -690,6 +696,7 @@ class _PageListCardState extends State<PageListCard> {
               )
             : null,
         onTap: () => coordinator.jumpTo(pageIndex),
+        ),
       ),
     );
   }

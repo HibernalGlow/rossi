@@ -6,7 +6,8 @@
 //   这里对同一份总线字段做同样的差分（`comicId` / `currentSlot`）；
 // - 上游 Store 的 `show` 带「同文 500ms 去重」，语义原样保留；
 // - 弹出不走自己那套按窗口坐标摆位的 Host，而是走应用统一的提示条
-//   （`showInfoToast` → 无 context 时经 `eventBus` 由前台补弹），
+//   （`showInfoToast` → `NotifyGateway`，登记为 `NotifyTopic.readerSwitch`：
+//   逐事项开关不管它，节流也不管，去重就是下面这 500ms），
 //   位置 / 时长 / 外观全部沿用「设置 → 提示样式」（`ToastSettingState`）。
 //
 // 上游的 enableAction（按键操作提示）需要按键执行处的统一挂点，本轮未搬

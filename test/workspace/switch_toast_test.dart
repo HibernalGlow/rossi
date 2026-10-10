@@ -4,13 +4,11 @@
 // 与 `ReaderSwitchToastStore.ts` 的 `show`（同文 500ms 去重、全空即丢弃）。
 // 模板引擎本身的逐条对照判据在 `switch_toast_template_test.dart`。
 
-import 'dart:async';
-
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
-import 'package:zephyr/main.dart';
+import 'package:zephyr/service/notify/notify_gateway.dart';
 import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
@@ -29,24 +27,26 @@ class _InMemoryGlobalSettingCubit extends GlobalSettingCubit {
   }
 }
 
-/// 收 eventBus 上的 [ToastEvent]（服务层没有 context，走的就是这条路）。
+/// 收**网关放行的**提示。
+///
+/// 服务层没有 context，改造前这条路是 eventBus 上的 `ToastEvent`；现在判定
+/// （门禁 + 节流）全在 `NotifyGateway` 出口之前完成，所以判据挂在网关上。
+/// [attach] 与 [dispose] 必须成对：`detach` 顺带清掉节流记账，否则上一条用例
+/// 留下的 2 秒同文本窗口会把这一条用例的提示吞掉（那就不是被测语义在变了）。
 class _InMemoryEvents {
   _InMemoryEvents() {
-    // 订阅必须在构造时**真的建立**：`late final` 的初始化器只在首次读取时才跑，
-    // 而这里直到 dispose 才会读到它 —— 那之前事件全部漏听。
-    _sub = eventBus.on<ToastEvent>().listen(received.add);
+    NotifyGateway.instance.attach(received.add);
   }
 
   SwitchToastSettingState settings = const SwitchToastSettingState();
-  final List<ToastEvent> received = [];
-  late final StreamSubscription<ToastEvent> _sub;
+  final List<NotifyEvent> received = [];
 
   Future<void> pump() async {
     await Future<void>.delayed(Duration.zero);
   }
 
   void dispose() {
-    _sub.cancel();
+    NotifyGateway.instance.detach();
   }
 }
 
@@ -197,10 +197,14 @@ void main() {
     setUp(() {
       cubit = _InMemoryGlobalSettingCubit();
       ToastOverlayController.instance.resetForTest();
+      // 「测试提示」那颗按钮走网关，出口默认就是提示条；这里只需清掉合并窗口，
+      // 免得上一条用例留下的 2 秒窗口吃掉这一条。
+      NotifyGateway.instance.resetForTest();
     });
 
     tearDown(() {
       ToastOverlayController.instance.resetForTest();
+      NotifyGateway.instance.detach();
     });
 
     testWidgets('渲染四要素：触发开关、两本模板、变量表、测试按钮', (tester) async {

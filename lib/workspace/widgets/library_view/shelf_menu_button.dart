@@ -1,32 +1,23 @@
 import 'package:material_ui/material_ui.dart';
 
-import 'package:zephyr/workspace/widgets/cards/file_manager_entry_context_menu.dart'
-    show md3MenuStyle;
-import 'package:zephyr/workspace/widgets/cards/file_manager_toolbar.dart';
+import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/expressive/expressive_icon_button.dart';
+import 'package:zephyr/widgets/navigation/navigation_shape.dart';
+import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
 
-/// 工具栏里的一颗「按下弹菜单」的键，菜单面按 Material Design 3 规格画。
-///
-/// 为什么不用 `FluentPopupMenuButton`：那一套是本仓自己搓的浮层，菜单面走
-/// Fluent 的底色与圆角。MD3 的菜单面是 **`surfaceContainer` 底色 + 2dp 高度 +
-/// 4dp 圆角 + 上下 8dp 内边距**，规格收在 [md3MenuStyle] 一份。
-///
-/// 也不用 `PopupMenuButton`：这个版本的 `material_ui` 里它仍然走 M2 的
-/// `PopupMenuTheme` 那条路（源码注释自己写着「配置为 Material 3 时推荐改用
-/// [MenuAnchor]」），换不到 MD3 的菜单面。
-///
-/// 触发键本身的几何不另立口径，直接用文件管理器工具栏那一份
-/// （[FileManagerToolbarIconButton.style]：图标钮 40 见方、图标 20），
-/// 否则同一条带上会同时出现 40 和 32 两种高度。
+/// Expressive 操作菜单：形变入口、连续圆角容器和分组操作面。
 class ShelfMenuButton extends StatefulWidget {
   const ShelfMenuButton({
     super.key,
-    required this.icon,
+    required this.glyph,
     required this.tooltip,
     required this.menuChildren,
     this.enabled = true,
   });
 
-  final IconData icon;
+  /// 触发键的图标：本仓自绘 glyph（`lib/icons/`），与侧栏、文件管理器工具条
+  /// 同一套形状语言。
+  final Glyph glyph;
   final String tooltip;
 
   /// 菜单项。
@@ -56,15 +47,41 @@ class _ShelfMenuButtonState extends State<ShelfMenuButton> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final maxWidth = (MediaQuery.sizeOf(context).width - 32).clamp(0.0, 300.0);
     return MenuAnchor(
       controller: _controller,
-      style: md3MenuStyle(context),
+      animated: !MediaQuery.disableAnimationsOf(context),
+      consumeOutsideTap: true,
+      onOpen: () => setState(() => _open = true),
+      onClose: () {
+        if (mounted) setState(() => _open = false);
+      },
+      style: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(scheme.surfaceContainer),
+        elevation: const WidgetStatePropertyAll(3),
+        shape: const WidgetStatePropertyAll(AppShape.xxl),
+        padding: const WidgetStatePropertyAll(EdgeInsets.all(8)),
+        maximumSize: WidgetStatePropertyAll(Size(maxWidth, double.infinity)),
+      ),
       menuChildren: widget.menuChildren,
-      child: IconButton(
+      child: ExpressiveIconButton(
         tooltip: widget.tooltip,
-        onPressed: widget.enabled ? () => _controller.open() : null,
-        style: FileManagerToolbarIconButton.style(context),
-        icon: Icon(widget.icon),
+        glyph: widget.glyph,
+        active: _open,
+        activeGlyph: AppGlyphs.close,
+        activeTurns: .5,
+        size: widget.size,
+        shape: widget.shape,
+        onPressed: widget.enabled
+            ? () {
+                if (_controller.isOpen) {
+                  _controller.close();
+                } else {
+                  _controller.open();
+                }
+              }
+            : null,
       ),
     );
   }
@@ -80,17 +97,24 @@ class ShelfMenuItem extends StatelessWidget {
     super.key,
     required this.label,
     required this.onPressed,
+    this.glyph,
     this.icon,
     this.selected = false,
     this.destructive = false,
-  });
+  }) : assert(
+         glyph == null || icon == null,
+         '图标只给一个：glyph（Glyph）或 icon（IconData）',
+       );
 
   final String label;
 
   /// `null` = 灰掉。
   final VoidCallback? onPressed;
 
-  /// 前置图标，MD3 的 24dp。不给就没有这一列。
+  /// 前置图标，MD3 的 24dp。glyph 是本仓自绘那套（`lib/icons/`），icon 是
+  /// Material 的兜底 —— glyph 词表里没有对应符号的动作（如「打开」的书）
+  /// 暂走 icon，等词表补齐再换。不给就没有这一列。
+  final Glyph? glyph;
   final IconData? icon;
 
   /// 单选菜单里当前选中的那一项。勾一律画在**右侧**：这一层只有一条规则，
@@ -103,9 +127,14 @@ class ShelfMenuItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = destructive ? Theme.of(context).colorScheme.error : null;
+    final glyph = this.glyph;
     return MenuItemButton(
       onPressed: onPressed,
-      leadingIcon: icon == null ? null : Icon(icon, size: 24, color: color),
+      leadingIcon: glyph != null
+          ? GlyphIcon(glyph, size: 24, color: color)
+          : icon == null
+          ? null
+          : Icon(icon, size: 24, color: color),
       trailingIcon: selected
           ? Icon(Icons.check_rounded, size: 24, color: color)
           : null,

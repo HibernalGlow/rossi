@@ -287,17 +287,16 @@ impl Default for SystemTrashBackend {
 #[cfg(any(target_os = "android", target_os = "ios"))]
 impl TrashBackend for SystemTrashBackend {
     fn trash(&self, path: &Path) -> FileOpResult<TrashItemReceipt> {
-        let name = path.file_name().map(|name| name.to_string_lossy().into_owned())
+        let name = path
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned())
             .ok_or_else(|| {
                 FileOpError::new("EINVAL", format!("拿不到文件名: {}", path.display()))
             })?;
         let parent = path.parent().map(Path::to_path_buf).unwrap_or_default();
         let rail = parent.join(LOCAL_TRASH_DIR_NAME);
         fs::create_dir_all(&rail).map_err(|error| {
-            FileOpError::new(
-                "EIO",
-                format!("建回收轨失败 {}: {error}", rail.display()),
-            )
+            FileOpError::new("EIO", format!("建回收轨失败 {}: {error}", rail.display()))
         })?;
         // 同一秒里删掉两个同名项（比如来回改名）要各自留得住，所以往后顶序号；
         // 顶不出去就**报错**，静默覆盖等于把用户刚删的那一项弄没了。
@@ -315,10 +314,7 @@ impl TrashBackend for SystemTrashBackend {
             }
         }
         fs::rename(path, rail.join(&slot)).map_err(|error| {
-            FileOpError::new(
-                "EIO",
-                format!("移入回收轨失败 {}: {error}", path.display()),
-            )
+            FileOpError::new("EIO", format!("移入回收轨失败 {}: {error}", path.display()))
         })?;
         Ok(TrashItemReceipt {
             id: Some(slot),
@@ -333,9 +329,10 @@ impl TrashBackend for SystemTrashBackend {
     }
 
     fn restore(&self, item: &TrashItemReceipt) -> FileOpResult<()> {
-        let slot = item.id.as_deref().ok_or_else(|| {
-            FileOpError::new("EINVAL", "回执里没有回收轨内的文件名，无法恢复")
-        })?;
+        let slot = item
+            .id
+            .as_deref()
+            .ok_or_else(|| FileOpError::new("EINVAL", "回执里没有回收轨内的文件名，无法恢复"))?;
         let from = item.original_parent.join(LOCAL_TRASH_DIR_NAME).join(slot);
         let target = item.original_parent.join(&item.name);
         if target.exists() {

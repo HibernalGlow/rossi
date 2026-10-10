@@ -4,7 +4,7 @@
 //
 // 断言五件事，它们各自都曾经以「看起来没问题」的方式错过：
 //
-//   1. **菜单有哪些项** —— 十个动作一个都不能少（用户要求「这几个操作都在右键里」）；
+//   1. **菜单有哪些项** —— 十一个动作一个都不能少（用户要求「这几个操作都在右键里」）；
 //   2. **哪一项是灰的、但必须在场** —— 多选时「重命名」没有定义，可它不能消失；
 //   3. **危险组的位置** —— 破坏性动作必须在最后，且「永久删除」在「回收站」之后；
 //   4. **确认只给不可撤销的那一个** —— 回收站的保护是撤销通道，不是确认框；
@@ -45,6 +45,7 @@ FileManagerEntryMenuInput _input({
   bool canCreateFolder = true,
   bool canPaste = false,
   bool trashRestoreSupported = false,
+  bool canReveal = false,
 }) => FileManagerEntryMenuInput(
   isDirectory: isDirectory,
   selectionCount: selectionCount,
@@ -53,10 +54,12 @@ FileManagerEntryMenuInput _input({
   canCreateFolder: canCreateFolder,
   canPaste: canPaste,
   trashRestoreSupported: trashRestoreSupported,
+  canReveal: canReveal,
 );
 
 void main() {
   _everyActionIsPresent();
+  _revealNeedsADesktopHost();
   _batchGreysOutWhatHasNoMeaning();
   _pasteRequiresADirectory();
   _dangerousGroupIsLast();
@@ -65,7 +68,7 @@ void main() {
   _deletePromptValues();
   _trashOutcomeHint();
   _tapGesturePrecedence();
-  _contextMenuConvergence();
+  _menuTargetsOneWithoutTouchingSelection();
 
   print('file_manager_entry_menu_check: $_passed checks passed');
 }
@@ -84,6 +87,7 @@ void _everyActionIsPresent() {
       canPaste: true,
     ),
     _input(canOpen: false, canCreateFolder: false),
+    _input(isDirectory: true, canReveal: true),
   ]) {
     final items = buildFileManagerEntryMenuItems(input);
     for (final action in FileManagerEntryAction.values) {
@@ -96,12 +100,53 @@ void _everyActionIsPresent() {
   }
 }
 
+// ── 1b. 「在系统文件管理器里显示」：只有桌面能点，移动端在场但灰 ────────────
+
+void _revealNeedsADesktopHost() {
+  final desktop = buildFileManagerEntryMenuItems(
+    _input(isDirectory: false, canReveal: true),
+  );
+  final mobile = buildFileManagerEntryMenuItems(_input(isDirectory: false));
+
+  check(
+    '桌面宿主上这一项可以点（右键一个文件也该够得着）',
+    _item(desktop, FileManagerEntryAction.revealInFileManager).enabled,
+  );
+  check(
+    '这个平台做不到时它仍在场',
+    mobile.any((item) => item.action == FileManagerEntryAction.revealInFileManager),
+    '隐藏等于让人以为没这功能',
+  );
+  check(
+    '这个平台做不到时它是灰的',
+    !_item(mobile, FileManagerEntryAction.revealInFileManager).enabled,
+  );
+  check(
+    '显示这一项不弹二次确认（它不动盘）',
+    !requiresConfirmation(FileManagerEntryAction.revealInFileManager),
+  );
+
+  final order = desktop.map((item) => item.action).toList();
+  check(
+    '它排在「打开」那一组里、危险组之前',
+    order.indexOf(FileManagerEntryAction.open) <
+        order.indexOf(FileManagerEntryAction.revealInFileManager),
+    '$order',
+  );
+  check(
+    '它在回收站之前',
+    order.indexOf(FileManagerEntryAction.revealInFileManager) <
+        order.indexOf(FileManagerEntryAction.trash),
+    '$order',
+  );
+}
+
 // ── 2. 多选：没有定义的动作置灰、但在场 ────────────────────────────────────
 
 void _batchGreysOutWhatHasNoMeaning() {
   // 单选那一侧必须把 canPaste 打开，否则「粘贴可点」这条断言测的是剪贴板为空的情形。
   final single = buildFileManagerEntryMenuItems(
-    _input(isDirectory: true, canPaste: true),
+    _input(isDirectory: true, canPaste: true, canReveal: true),
   );
   final batch = buildFileManagerEntryMenuItems(
     _input(
@@ -109,12 +154,14 @@ void _batchGreysOutWhatHasNoMeaning() {
       selectionCount: 3,
       inSelection: true,
       canPaste: true,
+      canReveal: true,
     ),
   );
 
   for (final action in <FileManagerEntryAction>[
     FileManagerEntryAction.open,
     FileManagerEntryAction.openInNewTab,
+    FileManagerEntryAction.revealInFileManager,
     FileManagerEntryAction.rename,
     FileManagerEntryAction.createFolder,
     FileManagerEntryAction.paste,
@@ -308,6 +355,7 @@ void _deletePromptValues() {
     FileManagerEntryAction.copyPath: null,
     FileManagerEntryAction.open: null,
     FileManagerEntryAction.openInNewTab: null,
+    FileManagerEntryAction.revealInFileManager: null,
     FileManagerEntryAction.createFolder: null,
   };
   cases.forEach((action, expected) {
@@ -445,17 +493,27 @@ void _tapGesturePrecedence() {
   );
 }
 
-// ── 10. 右键时选中态要不要先收敛 ──────────────────────────────────────────
+// ── 10. 右键不动选中集合：目标口径只由 effectiveCount 算 ────────────────────
 
-void _contextMenuConvergence() {
-  // 在选中集合里右键 = 对整批；在集合外右键 = 对这一个 —— 后者必须先把
-  // 选中态收敛到这一行，否则菜单会以「这 3 项」为主语，而用户一项都没选过。
+void _menuTargetsOneWithoutTouchingSelection() {
+  // 「在选中集合里右键 = 对整批，在集合外右键 = 对这一个」这条规则取自 neoview，
+  // 它以前是**先收敛选中态**再弹菜单来实现的 —— 于是右键一个没选中的文件会顺手
+  // 把那一行画成选中、操作条跟着出现。现在它只算数、不改状态：
+  // 下面三条缺任何一条，要么整批操作缩成一项，要么右键变成选中。
   check(
-    '右键没选中的项 → 先收敛',
-    shouldConvergeFileManagerSelectionOnMenu(inSelection: false),
+    '右键没选中的项（别处已经选了 3 项）→ 只作用这一个',
+    _input(selectionCount: 3, inSelection: false).effectiveCount == 1,
   );
   check(
-    '右键已选中的项 → 不收敛（否则整批操作只剩一项）',
-    !shouldConvergeFileManagerSelectionOnMenu(inSelection: true),
+    '右键已选中的项 → 作用整批（不能被算成 1）',
+    _input(selectionCount: 3, inSelection: true).effectiveCount == 3,
+  );
+  // 阳性对照：一个都没选、也不在集合里，计数必须是 1 而不是 0 ——
+  // 0 会让「对这一个」的动作变成「对空集合」。
+  check('空集合 + 集合外 → 仍然算 1 项', _input().effectiveCount == 1);
+  check(
+    '集合外那一项不该被当成批量（批量会把打开/重命名灰掉）',
+    !_input(selectionCount: 3, inSelection: false).batch &&
+        _input(selectionCount: 3, inSelection: true).batch,
   );
 }

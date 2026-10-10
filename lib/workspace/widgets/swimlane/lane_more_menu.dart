@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/common_popup.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
@@ -29,6 +31,10 @@ const Key laneWidthFieldKey = ValueKey<String>('lane-width-field');
 /// [`LaneMoreMenu`] 按钮（左键），以及右键栏头的任意一处。后者要的正是
 /// 「按钮被挤掉 / 看不见时也能改回来」那条退路，所以两条路必须是同一份项集
 /// 与同一套分派，不能各写一遍。
+///
+/// 弹出动画是 FlClash 那份（`common_popup.dart` 的 `CommonPopupRoute`）：
+/// 一块托盘从锚点沿弧线飞出、长成卡片，内容在里面由糊变清 —— 与文件管理器
+/// 那排「更多」菜单同一套，不再是 Fluent 的原地淡入缩放。
 ///
 /// ## 为什么面板栏那一节要搬进这里
 ///
@@ -85,121 +91,185 @@ class LaneMenu {
   final bool showsAsRail;
 
   /// 在**全局坐标** [position] 处弹出这份菜单（右键栏头那条路）。
+  ///
+  /// 走 [CommonPopupRoute] 的 `belowPoint` 摆位直接推路由：锚点是右键那一点，
+  /// 托盘从这一点长出来，放不下会自己朝上翻。项的回调在 [buildItems] 里
+  /// 已经闭包了这里的 `context`（页面的 context，`BlocProvider` 够得着），
+  /// 所以路由里不再需要拿任何东西。
   Future<void> show(BuildContext context, Offset position) async {
-    final overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox?;
-    if (overlay == null) return;
     final items = buildItems(context);
-    // `showMenu` 不接受空列表（路由里 assert），泳道刚被摘掉时就是这样。
+    // 空清单不弹：泳道刚被摘掉时就是这样。
     if (items.isEmpty) return;
 
-    final value = await showMenu<String>(
-      context: context,
-      position: RelativeRect.fromRect(
-        position & const Size(1, 1),
-        Offset.zero & overlay.size,
+    await Navigator.of(context).push(
+      CommonPopupRoute<void>(
+        barrierLabel: MaterialLocalizations.of(
+          context,
+        ).modalBarrierDismissLabel,
+        anchorOf: () => position & Size.zero,
+        placement: PopupPlacement.belowPoint,
+        builder: (_) => CommonPopupMenu(items: items),
       ),
-      items: items,
     );
-    if (value == null || !context.mounted) return;
-    apply(context, value);
   }
 
-  List<PopupMenuEntry<String>> buildItems(BuildContext context) {
+  /// 这一份菜单的项集。**在页面的 context 里构造**（两个入口都是）：
+  /// 每一项的回调闭包这里的 `context`，弹出之后项住在根路由里，
+  /// 那边反而找不到 `BlocProvider<WorkspaceCubit>`。
+  List<CommonPopupMenuItem> buildItems(BuildContext context) {
     final cubit = context.read<WorkspaceCubit>();
     final state = cubit.state;
     final lane = state.layout.lanes[laneId];
-    if (lane == null) return const <PopupMenuEntry<String>>[];
+    if (lane == null) return const <CommonPopupMenuItem>[];
 
     final solo = state.layout.soloLaneId == laneId;
     final bar = lane.panelBar;
     final collapsed = lane.collapsed || showsAsRail;
     final chrome = state.interaction.showTopChrome;
 
+    CommonPopupMenuItem item({
+      required String value,
+      Glyph? glyph,
+      required String label,
+      bool enabled = true,
+      bool checked = false,
+      String? hint,
+    }) {
+      return CommonPopupMenuItem(
+        label: label,
+        glyph: glyph,
+        checked: checked,
+        onPressed: enabled ? () => apply(context, value) : null,
+        // 带次要说明的项用两行正文；说明是补充信息，不该把它塞进
+        // 单行 `label` 里截断。
+        content: hint == null ? null : _LaneMenuTitle(label: label, hint: hint),
+      );
+    }
+
     return [
-      _item(
+      item(
+        value: 'panelEditMode',
+        glyph: AppGlyphs.sort,
+        label: state.interaction.panelTabSortMode ? '完成编辑' : '编辑布局',
+        checked: state.interaction.panelTabSortMode,
+        hint: '编辑时长按页签排序、跨泳道移动，或长按栏头图标重排泳道',
+      ),
+      item(
         value: 'solo',
-        icon: solo
-            ? Icons.center_focus_strong_rounded
-            : Icons.center_focus_weak_rounded,
+        glyph: AppGlyphs.target,
         label: solo ? '退出独占' : '独占该栏',
         checked: solo,
       ),
-      const PopupMenuDivider(),
-      // 宽度这一项点下去**不能**收起菜单（里面住着输入框）。
-      //
-      // `BlocProvider.value` 不是多余的：菜单项被挂进 `Overlay` 那条路由，
-      // 而 `Overlay` 在页面的 `BlocProvider<WorkspaceCubit>` **之上** ——
-      // 从输入框自己的 context 往上找是找不到的（`itemBuilder` 收的是按钮的
-      // context，所以列表本身建得出来，只有项内部的查找会炸）。
-      _StaticMenuItem(
-        child: BlocProvider<WorkspaceCubit>.value(
-          value: cubit,
-          child: _LaneWidthField(laneId: laneId, viewportWidth: viewportWidth),
-        ),
-      ),
-      _item(
-        value: 'reset',
-        icon: Icons.replay_rounded,
-        label: '恢复默认宽度',
-        enabled: onResetWidth != null,
-        hint: '与双击栏头标题同一条路',
-      ),
-      if (panelSide != null) ...[
-        const PopupMenuDivider(),
-        _item(
-          value: 'barMode',
-          icon: bar.mode == PanelBarMode.pinned
-              ? Icons.push_pin_outlined
-              : Icons.push_pin,
-          label: bar.mode == PanelBarMode.pinned ? '面板栏改为悬浮' : '面板栏固定到当前位置',
-        ),
-        _item(
-          value: 'barConstrained',
-          icon: bar.constrained ? Icons.lock_outline : Icons.lock_open_outlined,
-          label: bar.constrained ? '允许面板栏移出泳道' : '把面板栏限制在泳道内',
-          checked: !bar.constrained,
-        ),
-        for (final dock in PanelBarDock.values)
-          _item(
-            value: 'dock:${dock.name}',
-            icon: _dockIcon(dock),
-            label: '面板栏停靠${_dockLabel(dock)}',
-            checked: bar.mode == PanelBarMode.pinned && bar.dock == dock,
-          ),
-        _item(
-          value: 'barReset',
-          icon: Icons.undo_rounded,
-          label: '恢复面板栏默认位置',
-          hint: '回到「挂进栏头」这个默认形态',
-        ),
-      ],
-      const PopupMenuDivider(),
-      _item(
+      item(
         value: 'collapse',
-        icon: Icons.vertical_align_center_rounded,
+        glyph: AppGlyphs.fold,
         label: collapsed ? '展开泳道' : '折叠为紧凑条',
         checked: collapsed,
       ),
+      const CommonPopupMenuItem.divider(),
+      // 二级分类：宽度那一组与面板栏那一组各收成一个父行。全展开时这张菜单
+      // 有 15 行（其中四行还带次要说明），高度已经越过一屏菜单的量。
+      // 父行标签必须带当前值 —— 子菜单行画的是箭头而不是勾选标记
+      // （`common_popup.dart` 的 `_buildRow` 里 subItems 优先），
+      // 收起之后父行就是唯一的状态出口；子项也不再重复组名。
+      CommonPopupMenuItem(
+        label: '泳道宽度：${lane.resolveWidth(viewportWidth).round()}px',
+        glyph: AppGlyphs.resize,
+        subItems: [
+          // 宽度这一项点下去**不能**收起菜单：里面住着输入框。
+          //
+          // 在这一份弹出器里这是自然成立的 —— 行的 `onTap` 为 null（有 `content`
+          // 的行只保留亮色，不挂点击），菜单卡片自己也不吃「点空白即关」
+          // （dismiss 层在卡片**后面**），所以点输入框不会冒到任何关闭逻辑上。
+          //
+          // `BlocProvider.value` 仍是必须的：菜单卡片住在**根**路由里，
+          // 那棵子树往上找不到页面的 `BlocProvider<WorkspaceCubit>`，
+          // 而输入框内部的 `context.select` 要用它。
+          CommonPopupMenuItem(
+            glyph: AppGlyphs.resize,
+            content: BlocProvider<WorkspaceCubit>.value(
+              value: cubit,
+              child: _LaneWidthField(
+                laneId: laneId,
+                viewportWidth: viewportWidth,
+              ),
+            ),
+          ),
+          item(
+            value: 'reset',
+            glyph: AppGlyphs.reset,
+            label: '恢复默认宽度',
+            enabled: onResetWidth != null,
+            hint: '与双击栏头标题同一条路',
+          ),
+        ],
+      ),
+      if (panelSide != null)
+        CommonPopupMenuItem(
+          label: bar.mode == PanelBarMode.pinned
+              ? '面板栏：停靠${_dockLabel(bar.dock)}'
+              : '面板栏：悬浮',
+          glyph: bar.mode == PanelBarMode.pinned
+              ? _dockGlyph(bar.dock)
+              : AppGlyphs.pip,
+          subItems: [
+            item(
+              value: 'barMode',
+              glyph: AppGlyphs.pin,
+              label:
+                  bar.mode == PanelBarMode.pinned
+                      ? '改为悬浮'
+                      : '固定到当前位置',
+            ),
+            item(
+              value: 'barConstrained',
+              glyph: bar.constrained ? AppGlyphs.lockOpen : AppGlyphs.lock,
+              label: bar.constrained ? '允许移出泳道' : '限制在泳道内',
+              checked: !bar.constrained,
+            ),
+            for (final dock in PanelBarDock.values)
+              item(
+                value: 'dock:${dock.name}',
+                glyph: _dockGlyph(dock),
+                label: '停靠${_dockLabel(dock)}',
+                checked:
+                    bar.mode == PanelBarMode.pinned && bar.dock == dock,
+              ),
+            item(
+              value: 'barReset',
+              glyph: AppGlyphs.undo,
+              label: '恢复面板栏默认位置',
+              hint: '回到「挂进栏头」这个默认形态',
+            ),
+          ],
+        ),
       // ── 工作台级的那一节 ────────────────────────────────────────────────
       //
       // 顶栏默认不画（`WorkspaceInteractionSettings.showTopChrome`），于是「退出」
       // 与「把顶栏叫回来」这两件事在界面上只剩这里。它们出现在**每一条**泳道的
       // 菜单里，而不是只在哪一条：独占与折叠都会让别的栏头从视口里消失，
       // 出口不该跟着一起消失。
-      const PopupMenuDivider(),
-      _item(
+      const CommonPopupMenuItem.divider(),
+      // 栏头宽度徽标的总开关（默认关）。与「顶栏」同一节：
+      // 两者都是「栏头 / 工作台那一层画什么」，不是某条泳道自己的记账 ——
+      // 所以它出现在每一条泳道的菜单里，改的是同一个值。
+      item(
+        value: 'widthBadge',
+        glyph: AppGlyphs.resize,
+        label: widthBadge ? '隐藏泳道宽度徽标' : '显示泳道宽度徽标',
+        checked: widthBadge,
+        hint: '栏头标题右边那颗「400px」',
+      ),
+      item(
         value: 'topChrome',
-        icon: chrome
-            ? Icons.visibility_off_outlined
-            : Icons.visibility_outlined,
+        glyph: chrome ? AppGlyphs.eye : AppGlyphs.eyeOff,
         label: chrome ? '隐藏工作台顶栏' : '显示工作台顶栏',
         checked: chrome,
         hint: '顶栏 = 退出 / 书名 / 切模式 / 重置布局那一行',
       ),
-      _item(
+      item(
         value: 'exit',
-        icon: Icons.arrow_back_rounded,
+        glyph: AppGlyphs.arrowBack,
         label: '退出工作台',
         hint: '与 Esc、系统返回键同一条路',
       ),
@@ -262,29 +332,10 @@ class LaneMenu {
     }
   }
 
-  PopupMenuItem<String> _item({
-    required String value,
-    required IconData icon,
-    required String label,
-    bool enabled = true,
-    bool checked = false,
-    String? hint,
-  }) {
-    return PopupMenuItem<String>(
-      value: value,
-      enabled: enabled,
-      child: _LaneMenuRow(
-        icon: icon,
-        label: label,
-        checked: checked,
-        hint: hint,
-      ),
-    );
-  }
-
-  static IconData _dockIcon(PanelBarDock dock) => switch (dock) {
-    PanelBarDock.left || PanelBarDock.right => Icons.vertical_split_rounded,
-    PanelBarDock.top || PanelBarDock.bottom => Icons.horizontal_split_rounded,
+  /// 停靠左右 = 竖分两栏，停靠上下 = 横分两行（`rowsTwo` 是本仓给词表补的）。
+  static Glyph _dockGlyph(PanelBarDock dock) => switch (dock) {
+    PanelBarDock.left || PanelBarDock.right => AppGlyphs.columnsTwo,
+    PanelBarDock.top || PanelBarDock.bottom => AppGlyphs.rowsTwo,
   };
 
   static String _dockLabel(PanelBarDock dock) => switch (dock) {
@@ -296,6 +347,12 @@ class LaneMenu {
 }
 
 /// 栏头那颗「更多」按钮：[LaneMenu] 的左键入口。
+///
+/// 走 [CommonPopupBox]：托盘从这颗按钮的位置长出来（按钮先被拍成快照、
+/// 随托盘一起飞），与右键栏头那条路同一份动画、同一份项集。
+/// 按钮本体刻意不用 `IconButton`：栏头那一行的预算已经很紧（见
+/// `SwimlaneColumn._buildHeader` 里给页签条算宽的那段），
+/// 这颗按钮只值 24px —— 与 `PanelTabStrip` 的「已收起」入口同一档。
 class LaneMoreMenu extends StatelessWidget {
   const LaneMoreMenu({super.key, required this.menu});
 
@@ -303,36 +360,48 @@ class LaneMoreMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      tooltip: '该泳道 (More)',
-      itemBuilder: menu.buildItems,
-      onSelected: (value) => menu.apply(context, value),
-      child: Padding(
-        // 刻意不用 `IconButton`：栏头那一行的预算已经很紧（见
-        // `SwimlaneColumn._buildHeader` 里给页签条算宽的那段），
-        // 这颗按钮只值 24px —— 与 `PanelTabStrip` 的「已收起」入口同一档。
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-        child: Icon(
-          Icons.more_vert_rounded,
-          size: 16,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
+    // 项集在页面的 context 里构造好再交给弹出器：`CommonPopupMenu` 住在
+    // 路由里，从它的 context 往上找不到 `BlocProvider<WorkspaceCubit>`。
+    final items = menu.buildItems(context);
+    return CommonPopupBox(
+      targetBuilder: (open) => Tooltip(
+        message:
+            context.watch<WorkspaceCubit>().state.interaction.panelTabSortMode
+            ? '正在编辑布局 · 菜单内完成编辑'
+            : '该泳道 (More) · 编辑布局',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: open,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            child: GlyphIcon(
+              AppGlyphs.more,
+              size: 16,
+              color:
+                  context
+                      .watch<WorkspaceCubit>()
+                      .state
+                      .interaction
+                      .panelTabSortMode
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
         ),
       ),
+      popupBuilder: (_) => CommonPopupMenu(items: items),
     );
   }
 }
 
-class _LaneMenuRow extends StatelessWidget {
-  const _LaneMenuRow({
-    required this.icon,
-    required this.label,
-    this.checked = false,
-    this.hint,
-  });
+/// 菜单项的正文：一行标签，底下一行可选的次要说明。
+///
+/// 图标与勾选钮不在这里 —— 它们分别是 [CommonPopupMenuItem] 的 `glyph`
+/// 与行尾按 `checked` 画的那枚勾，这里只管文案。
+class _LaneMenuTitle extends StatelessWidget {
+  const _LaneMenuTitle({required this.label, this.hint});
 
-  final IconData icon;
   final String label;
-  final bool checked;
 
   /// 次要说明：只在「这条动作另有入口」时给一句（比如双击标题）。
   final String? hint;
@@ -340,50 +409,20 @@ class _LaneMenuRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: theme.colorScheme.onSurfaceVariant),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(label, style: theme.textTheme.bodySmall),
-              if (hint != null)
-                Text(
-                  hint!,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-            ],
+        Text(label, style: theme.textTheme.bodySmall),
+        if (hint != null)
+          Text(
+            hint!,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
-        ),
-        if (checked) const Icon(Icons.check_rounded, size: 15),
       ],
     );
-  }
-}
-
-/// 一项**点了不收起菜单**的菜单项。
-///
-/// `PopupMenuItemState.handleTap` 无条件 `Navigator.pop`，与 `value` 是否为空
-/// **无关** —— 于是「不给 value」并不是「这一项不选中」，而是「选中并关掉菜单、
-/// 什么也没返回」。放进输入框的那一项上，症状是鼠标点上去菜单先消失，
-/// 文本框连焦点都拿不到。
-class _StaticMenuItem extends PopupMenuItem<String> {
-  const _StaticMenuItem({required super.child});
-
-  @override
-  PopupMenuItemState<String, PopupMenuItem<String>> createState() =>
-      _StaticMenuItemState();
-}
-
-class _StaticMenuItemState extends PopupMenuItemState<String, _StaticMenuItem> {
-  @override
-  void handleTap() {
-    // 什么都不做：这一项的内容（输入框）自己处理指针事件。
   }
 }
 
@@ -442,7 +481,7 @@ class _LaneWidthFieldState extends State<_LaneWidthField> {
     final laneId = widget.laneId;
     final viewportWidth = widget.viewportWidth;
     // emit 推到**下一帧**：这两条路都可能在菜单路由被摘掉的那一帧里走到
-    // （`Overlay` 在自己的 build 里摘节点，失焦也发生在那前后），
+    // （路由在自己的 build 里摘节点，失焦也发生在那前后），
     // 在那里同步改状态会撞上「build 期间 markNeedsBuild」的断言。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _cubit.setLaneWidth(laneId, px.toDouble(), viewportWidth);
@@ -458,43 +497,49 @@ class _LaneWidthFieldState extends State<_LaneWidthField> {
     final min = lane?.minWidth ?? 0;
     final max = lane?.maxWidth ?? 0;
 
-    return Row(
+    // 两行，与菜单里其余各项同构（第一行正文、第二行小字）。
+    // 菜单卡的宽度被 `CommonPopupMenu` 的 min/max（160/280）夹着，
+    // 一行塞下「标签 + 输入框 + px + 范围」就要溢出；夹取范围因此下移到
+    // 第二行 —— 它本来就是补充信息。
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          Icons.straighten_rounded,
-          size: 16,
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
-        const SizedBox(width: 8),
-        Text('常规宽度', style: theme.textTheme.bodySmall),
-        const Spacer(),
-        SizedBox(
-          width: 62,
-          child: TextField(
-            key: laneWidthFieldKey,
-            controller: _controller,
-            focusNode: _focusNode,
-            keyboardType: TextInputType.number,
-            textAlign: TextAlign.right,
-            style: theme.textTheme.bodySmall,
-            decoration: const InputDecoration(
-              isDense: true,
-              contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-              border: OutlineInputBorder(),
+        Row(
+          children: [
+            Text('常规宽度', style: theme.textTheme.bodySmall),
+            const Spacer(),
+            SizedBox(
+              width: 56,
+              child: TextField(
+                key: laneWidthFieldKey,
+                controller: _controller,
+                focusNode: _focusNode,
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.right,
+                style: theme.textTheme.bodySmall,
+                decoration: const InputDecoration(
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 5,
+                  ),
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (_) => setState(() => _committed = false),
+                onSubmitted: (_) {
+                  _commit();
+                  _focusNode.unfocus();
+                },
+              ),
             ),
-            onChanged: (_) => setState(() => _committed = false),
-            onSubmitted: (_) {
-              _commit();
-              _focusNode.unfocus();
-            },
-          ),
+            const SizedBox(width: 4),
+            Text('px', style: theme.textTheme.labelSmall),
+          ],
         ),
-        const SizedBox(width: 4),
-        Text('px', style: theme.textTheme.labelSmall),
-        const SizedBox(width: 6),
         // 夹取范围是这条泳道自己记的 min/max（`setLaneWidth` 按它夹）。
         Text(
-          '${min.round()}–${max.round()}',
+          '允许 ${min.round()}–${max.round()}',
           style: theme.textTheme.labelSmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),

@@ -26,6 +26,7 @@ class LibraryEntryList extends StatelessWidget {
     this.enabled = true,
     this.busy = false,
     this.standalone = false,
+    this.wrapTitle = false,
   });
 
   final LibraryViewMode mode;
@@ -58,6 +59,9 @@ class LibraryEntryList extends StatelessWidget {
 
   /// 独占整个面板时不再套 120~440 的高度限制。
   final bool standalone;
+
+  /// 封面网格的标题是否换行铺满。宿主读设置传下来，这一层自己不碰设置。
+  final bool wrapTitle;
 
   static const double _borderRadius = 8;
 
@@ -132,6 +136,7 @@ class LibraryEntryList extends StatelessWidget {
       onDoubleTap: enabled && (canDoubleTap?.call(entry) ?? false)
           ? () => onDoubleTap?.call(entry)
           : null,
+      wrapTitle: wrapTitle,
     );
     return wrapRow?.call(context, entry, row) ?? row;
   }

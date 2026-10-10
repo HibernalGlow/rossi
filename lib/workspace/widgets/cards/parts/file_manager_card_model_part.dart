@@ -1,5 +1,5 @@
 part of '../file_manager_card.dart';
-// 视图模式映射、错误态与主页动作枚举
+// 视图模式映射与错误态
 
 
 extension FileManagerViewModeX on FileManagerViewMode {
@@ -7,7 +7,7 @@ extension FileManagerViewModeX on FileManagerViewMode {
   /// 共用同一套视图模式，工具栏 tooltip 与视图菜单不会长出两种叫法。
   String get label => fileManagerLibraryMode(this).label;
 
-  IconData get icon => fileManagerLibraryMode(this).icon;
+  Glyph get icon => fileManagerLibraryMode(this).icon;
 }
 
 
@@ -57,5 +57,5 @@ class _ErrorState extends StatelessWidget {
 }
 
 
-/// 主页键长按 / 右键菜单的三个动作。
-enum _HomeAction { goHome, setHome, clearHome }
+/// 主页键长按 / 右键菜单的三个动作，现在以「菜单项各自的 onPressed 闭包」
+/// 直接分派（`_openHomeMenu`），不再需要一个中间枚举。

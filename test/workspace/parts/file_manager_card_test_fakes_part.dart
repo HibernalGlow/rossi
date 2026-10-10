@@ -82,6 +82,8 @@ class _FileManagerApi implements RustLibApi {
   dynamic noSuchMethod(Invocation invocation) {
     calls.add(invocation);
     switch (invocation.memberName) {
+      case #crateApiFontListSystemFontFamilies:
+        return Future.value(const <String>[]);
       case #crateApiFileManagerBrowseFileManagerCreate:
         return Future.value(BigInt.one);
       case #crateApiFileManagerSearchFileManagerSetSearchQuery:
@@ -139,8 +141,8 @@ class _FileManagerApi implements RustLibApi {
         return Future.value(ops);
       // 真的落盘的那几个，回一份回执（回执里带着刷新后的快照）。
       case #crateApiFileOpsFileOpsPaste:
-      case #crateApiFileOpsFileOpsTrashSelection:
-      case #crateApiFileOpsFileOpsDeleteSelection:
+      case #crateApiFileOpsFileOpsTrashPaths:
+      case #crateApiFileOpsFileOpsDeletePaths:
       case #crateApiFileOpsFileOpsRenameEntry:
       case #crateApiFileOpsFileOpsCreateDirectory:
       case #crateApiFileOpsFileOpsUndo:

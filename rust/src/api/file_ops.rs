@@ -7,6 +7,8 @@
 //!    generation —— 选中是按**列表下标**表达的，下标只在某一份 `entries()` 上有意义。
 //!    所以这里直接读 `file_manager` 的会话真本（`FILE_MANAGER_SESSIONS`），
 //!    而不是自己再列一遍目录（那会让两边各有各的时序，选中项指到别的条目上）。
+//!    注意选中集合只负责**高亮与计数**：写操作（复制/回收站/永久删除）的目标由 UI
+//!    显式报路径，因为「右键一个没选中的项 = 对这一个」不该靠改动选中态来实现。
 //! 2. **把报告摊平成可序列化的形状**（逐条结果 + 聚合计数 + 一句摘要）。
 //! 3. **在写操作之后把列表刷新一次**。用户改完盘上的东西，卡片上的列表必须跟着变；
 //!    让 Dart 侧自己记得「删完要刷新」迟早会漏（当前有七八个改目录的入口）。
@@ -502,23 +504,21 @@ pub async fn file_ops_clear_selection(id: u64) -> Result<FileOpsSnapshot, Error>
 // 剪贴板
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// 把当前选中项放进剪贴板。[cut] 为真时是剪切（粘贴时走 move）。
+/// 把[paths]这些条目放进剪贴板。[cut] 为真时是剪切（粘贴时走 move）。
+///
+/// 目标同样由调用方显式给出（见 [`file_ops_trash_paths`] 的口径说明）：
+/// 右键一个没选中的文件时，「复制」就该只装进那一项。
 #[frb]
-pub async fn file_ops_copy_to_clipboard(id: u64, cut: bool) -> Result<FileOpsSnapshot, Error> {
+pub async fn file_ops_copy_to_clipboard(
+    id: u64,
+    cut: bool,
+    paths: Vec<String>,
+) -> Result<FileOpsSnapshot, Error> {
     rquickjs_playground::global_handle()
         .spawn_blocking(move || {
             let listing = read_listing(id)?;
             with_ops(id, |session| {
-                let selection = if session.selection.generation == listing.generation {
-                    session.selection.clone()
-                } else {
-                    rebase_directory_selection(&session.selection, listing.generation)
-                };
-                let sources = selection
-                    .selected_paths(&listing.paths)
-                    .into_iter()
-                    .map(PathBuf::from)
-                    .collect::<Vec<_>>();
+                let sources = scoped_sources(&listing, &paths);
                 session.clipboard = DirectoryClipboard::new(
                     if cut {
                         ClipboardMode::Move
@@ -600,24 +600,30 @@ pub async fn file_ops_paste(id: u64, destination: Option<String>) -> Result<File
 // 写操作
 // ─────────────────────────────────────────────────────────────────────────────
 
-fn selection_mutations(id: u64) -> Result<Vec<PathBuf>, Error> {
-    let listing = read_listing(id)?;
-    let paths = with_ops(id, |session| {
-        let selection = if session.selection.generation == listing.generation {
-            session.selection.clone()
-        } else {
-            rebase_directory_selection(&session.selection, listing.generation)
-        };
-        selection.selected_paths(&listing.paths)
-    })?;
-    Ok(paths.into_iter().map(PathBuf::from).collect())
+/// 把调用方报上来的路径**限制在当前列表里**。
+///
+/// UI 传的是它自己那份快照里的路径，可能已经比核心慢一代（列表刚刷新、目录刚换）。
+/// 走选中集合那条路时核心会先 `rebase_directory_selection` 降级，把这层保护挡在前面；
+/// 显式传路径就把它丢了，所以在算变更之前先按当前列表过一遍 ——
+/// 一次删除打到用户已经看不见的目录上，是不能发生的事。
+fn scoped_sources(listing: &ListingSnapshot, paths: &[String]) -> Vec<PathBuf> {
+    let in_listing: std::collections::HashSet<&str> =
+        listing.paths.iter().map(String::as_str).collect();
+    paths
+        .iter()
+        .filter(|path| in_listing.contains(path.as_str()))
+        .map(PathBuf::from)
+        .collect()
 }
 
+/// 把[paths]里这些条目移到回收站。目标由调用方显式给出，**不读选中集合** ——
+/// 右键一个没选中的文件时，动作就该只落在它身上（见 Dart 侧 `_actionTargets`）。
 #[frb]
-pub async fn file_ops_trash_selection(id: u64) -> Result<FileOpsReport, Error> {
+pub async fn file_ops_trash_paths(id: u64, paths: Vec<String>) -> Result<FileOpsReport, Error> {
     rquickjs_playground::global_handle()
         .spawn_blocking(move || {
-            let mutations: Vec<FileMutation> = selection_mutations(id)?
+            let listing = read_listing(id)?;
+            let mutations: Vec<FileMutation> = scoped_sources(&listing, &paths)
                 .into_iter()
                 .map(|source_path| FileMutation::Trash { source_path })
                 .collect();
@@ -626,11 +632,13 @@ pub async fn file_ops_trash_selection(id: u64) -> Result<FileOpsReport, Error> {
         .await?
 }
 
+/// 把[paths]里这些条目永久删除。目标口径与 [`file_ops_trash_paths`] 同一条。
 #[frb]
-pub async fn file_ops_delete_selection(id: u64) -> Result<FileOpsReport, Error> {
+pub async fn file_ops_delete_paths(id: u64, paths: Vec<String>) -> Result<FileOpsReport, Error> {
     rquickjs_playground::global_handle()
         .spawn_blocking(move || {
-            let mutations: Vec<FileMutation> = selection_mutations(id)?
+            let listing = read_listing(id)?;
+            let mutations: Vec<FileMutation> = scoped_sources(&listing, &paths)
                 .into_iter()
                 .map(|source_path| FileMutation::Delete { source_path })
                 .collect();
@@ -648,7 +656,7 @@ fn report_for(id: u64, mutations: Vec<FileMutation>) -> Result<FileOpsReport, Er
             failed: 0,
             cancelled: 0,
             undoable: 0,
-            summary: "没有选中任何条目".to_string(),
+            summary: "没有可操作的条目".to_string(),
             items: Vec::new(),
             snapshot,
         });

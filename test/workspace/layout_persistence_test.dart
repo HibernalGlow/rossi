@@ -28,6 +28,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/workspace/breeze_workspace_page.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_interaction_settings.dart';
@@ -127,6 +128,15 @@ Finder _laneButton(String laneTitle, IconData icon) => find.descendant(
     matching: find.byType(SwimlaneColumn),
   ),
   matching: find.byIcon(icon),
+);
+
+/// 按 glyph 找栏头按钮（栏头图标 glyph 化之后的 finder）。
+Finder _laneGlyphButton(String laneTitle, Glyph glyph) => find.descendant(
+  of: find.ancestor(
+    of: find.text(laneTitle),
+    matching: find.byType(SwimlaneColumn),
+  ),
+  matching: find.byWidgetPredicate((w) => w is GlyphIcon && w.glyph == glyph),
 );
 
 void main() {
@@ -269,7 +279,7 @@ void main() {
 
     // 真的在界面上改：点右泳道栏头的折叠按钮。
     await tester.tap(
-      _laneButton(_restoredRightTitle, Icons.vertical_align_center_rounded),
+      _laneGlyphButton(_restoredRightTitle, AppGlyphs.fold),
     );
     await tester.pump();
 
