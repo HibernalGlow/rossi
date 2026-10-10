@@ -176,8 +176,9 @@ class RayMenuState extends State<RayMenu> with SingleTickerProviderStateMixin {
   void didUpdateWidget(RayMenu oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
-      if (oldWidget.controller?._state == this)
+      if (oldWidget.controller?._state == this) {
         oldWidget.controller?._state = null;
+      }
       widget.controller?._attach(this);
     }
     if (oldWidget.rings != widget.rings ||
@@ -340,8 +341,9 @@ class RayMenuState extends State<RayMenu> with SingleTickerProviderStateMixin {
   }
 
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent && event is! KeyRepeatEvent)
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
       return KeyEventResult.handled;
+    }
     final key = event.logicalKey;
     if (key == LogicalKeyboardKey.escape) {
       widget.onDismiss();

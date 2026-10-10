@@ -604,7 +604,10 @@ final class _RossiTabDraggable<T extends Object> extends Draggable<T> {
 /// 的「移动超 slop 即放弃」，拖拽会在移动意图下永远起不来。
 final class _RossiTabMultiDragGestureRecognizer
     extends MultiDragGestureRecognizer {
-  _RossiTabMultiDragGestureRecognizer({super.allowedButtonsFilter});
+  _RossiTabMultiDragGestureRecognizer({
+    super.debugOwner,
+    super.allowedButtonsFilter,
+  });
 
   @override
   MultiDragPointerState createNewPointerState(PointerDownEvent event) {
