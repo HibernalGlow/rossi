@@ -8,6 +8,7 @@ import 'package:zephyr/platform/eink/eink_device.dart';
 import 'package:zephyr/platform/eink/eink_refresh.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class EInkSettingPage extends StatefulWidget {
@@ -39,15 +40,15 @@ class _EInkSettingPageState extends State<EInkSettingPage> {
           settingSectionTitle(
             context,
             t.settings.eink,
-            icon: Icons.tablet_mac_outlined,
+            icon: AppGlyphs.devices,
           ),
           FutureBuilder<bool>(
             future: _detected,
             builder: (context, snapshot) {
               final detected = snapshot.data ?? false;
               return ListTile(
-                leading: Icon(
-                  detected ? Icons.check_circle_outline : Icons.help_outline,
+                leading: GlyphIcon(
+                  detected ? AppGlyphs.checkCircle : AppGlyphs.info,
                 ),
                 title: Text(
                   detected
@@ -58,7 +59,7 @@ class _EInkSettingPageState extends State<EInkSettingPage> {
             },
           ),
           SwitchListTile(
-            secondary: const Icon(Icons.power_settings_new_outlined),
+            secondary: const GlyphIcon(AppGlyphs.power),
             title: Text(t.settings.einkEnabled),
             subtitle: Text(t.settings.einkEnabledSubtitle),
             thumbIcon: kSettingSwitchThumbIcon,
@@ -84,10 +85,10 @@ class _EInkSettingPageState extends State<EInkSettingPage> {
             settingSectionTitle(
               context,
               t.settings.einkSectionAnimation,
-              icon: Icons.animation_outlined,
+              icon: AppGlyphs.motion,
             ),
             SwitchListTile(
-              secondary: const Icon(Icons.arrow_back_outlined),
+              secondary: const GlyphIcon(AppGlyphs.arrowBack),
               title: Text(t.settings.einkNoRouteTransition),
               subtitle: Text(t.settings.einkNoRouteTransitionSubtitle),
               thumbIcon: kSettingSwitchThumbIcon,
@@ -97,7 +98,7 @@ class _EInkSettingPageState extends State<EInkSettingPage> {
               ),
             ),
             SwitchListTile(
-              secondary: const Icon(Icons.vertical_align_bottom_outlined),
+              secondary: const GlyphIcon(AppGlyphs.vAlignBottom),
               title: Text(t.settings.einkNoScrollBounce),
               subtitle: Text(t.settings.einkNoScrollBounceSubtitle),
               thumbIcon: kSettingSwitchThumbIcon,
@@ -109,10 +110,10 @@ class _EInkSettingPageState extends State<EInkSettingPage> {
             settingSectionTitle(
               context,
               t.settings.einkSectionLoading,
-              icon: Icons.download_outlined,
+              icon: AppGlyphs.download,
             ),
             SwitchListTile(
-              secondary: const Icon(Icons.hourglass_empty_outlined),
+              secondary: const GlyphIcon(AppGlyphs.hourglass),
               title: Text(t.settings.einkNoSpinner),
               subtitle: Text(t.settings.einkNoSpinnerSubtitle),
               thumbIcon: kSettingSwitchThumbIcon,
@@ -124,10 +125,10 @@ class _EInkSettingPageState extends State<EInkSettingPage> {
             settingSectionTitle(
               context,
               t.settings.einkSectionRefresh,
-              icon: Icons.autorenew_outlined,
+              icon: AppGlyphs.reset,
             ),
             _dropdownTile<EinkRefreshMode>(
-              icon: Icons.refresh_outlined,
+              icon: AppGlyphs.refresh,
               title: t.settings.einkRefreshMode,
               subtitle: t.settings.einkRefreshHint,
               value: eink.refreshMode,
@@ -138,7 +139,7 @@ class _EInkSettingPageState extends State<EInkSettingPage> {
               ),
             ),
             _dropdownTile(
-              icon: Icons.repeat_outlined,
+              icon: AppGlyphs.loop,
               title: t.settings.einkAutoRefreshTurns,
               value: eink.autoRefreshEveryNTurns,
               values: _autoRefreshOptions,
@@ -149,7 +150,7 @@ class _EInkSettingPageState extends State<EInkSettingPage> {
               ),
             ),
             SwitchListTile(
-              secondary: const Icon(Icons.control_camera_outlined),
+              secondary: const GlyphIcon(AppGlyphs.target),
               title: Text(t.settings.einkShowRefreshButton),
               subtitle: Text(t.settings.einkShowRefreshButtonSubtitle),
               thumbIcon: kSettingSwitchThumbIcon,
@@ -160,9 +161,9 @@ class _EInkSettingPageState extends State<EInkSettingPage> {
             ),
             if (eink.canFullRefresh)
               ListTile(
-                leading: const Icon(Icons.flash_on_outlined),
+                leading: const GlyphIcon(AppGlyphs.bolt),
                 title: Text(t.settings.einkRefreshNow),
-                trailing: const Icon(Icons.play_arrow),
+                trailing: const GlyphIcon(AppGlyphs.play),
                 onTap: () async {
                   await EinkRefresh.run(
                     eink.refreshMode,
@@ -181,7 +182,7 @@ class _EInkSettingPageState extends State<EInkSettingPage> {
   static const List<int> _autoRefreshOptions = <int>[0, 2, 3, 5, 8, 10, 15, 20];
 
   Widget _dropdownTile<T>({
-    required IconData icon,
+    required Glyph icon,
     required String title,
     String? subtitle,
     required T value,
@@ -191,7 +192,7 @@ class _EInkSettingPageState extends State<EInkSettingPage> {
   }) {
     final safeValue = values.contains(value) ? value : values.first;
     return ListTile(
-      leading: Icon(icon),
+      leading: GlyphIcon(icon),
       title: Text(title),
       subtitle: subtitle == null ? null : Text(subtitle),
       trailing: FluentDropdown<T>(

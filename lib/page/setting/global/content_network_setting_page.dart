@@ -7,6 +7,7 @@ import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/page/setting/global/widgets.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class ContentNetworkSettingPage extends StatelessWidget {
@@ -24,11 +25,11 @@ class ContentNetworkSettingPage extends StatelessWidget {
           settingSectionTitle(
             context,
             t.settings.content,
-            icon: Icons.filter_alt_outlined,
+            icon: AppGlyphs.sliders,
           ),
           editMaskedKeywords(context),
           ListTile(
-            leading: const Icon(Icons.star_rounded, color: Color(0xFFF59E0B)),
+            leading: const GlyphIcon(AppGlyphs.star, color: Color(0xFFF59E0B)),
             title: Text(t.settings.favoriteArtistManagement),
             subtitle: Text(
               state.favoriteArtistSetting.artists.isEmpty
@@ -37,13 +38,13 @@ class ContentNetworkSettingPage extends StatelessWidget {
                       count: state.favoriteArtistSetting.artists.length,
                     ),
             ),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const GlyphIcon(AppGlyphs.chevronForward),
             onTap: () {
               context.pushRoute(const FavoriteArtistSettingRoute());
             },
           ),
           SwitchListTile(
-            secondary: const Icon(Icons.highlight_outlined),
+            secondary: const GlyphIcon(AppGlyphs.highlight),
             title: Text(t.settings.favoriteArtistHighlight),
             subtitle: Text(t.settings.favoriteArtistHighlightSubtitle),
             thumbIcon: kSettingSwitchThumbIcon,
@@ -53,7 +54,7 @@ class ContentNetworkSettingPage extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.sell, color: Color(0xFFF59E0B)),
+            leading: const GlyphIcon(AppGlyphs.sell, color: Color(0xFFF59E0B)),
             title: Text(t.settings.favoriteTagManagement),
             subtitle: Text(
               state.favoriteTagSetting.tags.isEmpty
@@ -62,13 +63,13 @@ class ContentNetworkSettingPage extends StatelessWidget {
                       count: state.favoriteTagSetting.tags.length,
                     ),
             ),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const GlyphIcon(AppGlyphs.chevronForward),
             onTap: () {
               context.pushRoute(const FavoriteTagSettingRoute());
             },
           ),
           SwitchListTile(
-            secondary: const Icon(Icons.highlight_outlined),
+            secondary: const GlyphIcon(AppGlyphs.highlight),
             title: Text(t.settings.favoriteTagHighlight),
             subtitle: Text(t.settings.favoriteTagHighlightSubtitle),
             thumbIcon: kSettingSwitchThumbIcon,
@@ -84,7 +85,7 @@ class ContentNetworkSettingPage extends StatelessWidget {
           settingSectionTitle(
             context,
             t.settings.network,
-            icon: Icons.wifi_outlined,
+            icon: AppGlyphs.wifi,
           ),
           proxyToggle(
             context,
@@ -93,7 +94,7 @@ class ContentNetworkSettingPage extends StatelessWidget {
             currentProxy: state.proxySetting.address,
           ),
           SwitchListTile(
-            secondary: const Icon(Icons.download_outlined),
+            secondary: const GlyphIcon(AppGlyphs.download),
             title: Text(t.settings.retryDownloadUntilSuccess),
             subtitle: Text(t.settings.retryDownloadUntilSuccessSubtitle),
             thumbIcon: kSettingSwitchThumbIcon,
@@ -122,7 +123,7 @@ class ContentNetworkSettingPage extends StatelessWidget {
     };
 
     return ListTile(
-      leading: const Icon(Icons.translate_outlined),
+      leading: const GlyphIcon(AppGlyphs.translate),
       title: Text(t.settings.chineseConvert),
       subtitle: Text(t.settings.chineseConvertSubtitle),
       trailing: FluentDropdown<ChineseConvertMode>(
@@ -141,7 +142,7 @@ class ContentNetworkSettingPage extends StatelessWidget {
 
   // Widget _updateAccelerate(GlobalSettingState state, GlobalSettingCubit cubit) {
   //   return SwitchListTile(
-  //     secondary: const Icon(Icons.rocket_launch_outlined),
+  //     secondary: const GlyphIcon(AppGlyphs.rocket),
   //     title: Text(t.settings.updateAccelerate),
   //     subtitle: Text(t.settings.updateAccelerateSubtitle),
   //     thumbIcon: kSettingSwitchThumbIcon,

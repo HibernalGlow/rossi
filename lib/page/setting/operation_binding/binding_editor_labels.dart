@@ -1,6 +1,6 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/service/operation_binding/binding_doc.dart';
+import 'package:zephyr/icons/icons.dart';
 
 Map<String, String> get bindingDeviceLabels => {
   'keyboard': t.bindingEditor.keyboard,
@@ -57,16 +57,16 @@ const bindingDirectionSymbols = {
   'down': '↓',
 };
 
-IconData bindingDeviceIcon(String device) => switch (device) {
-  'mouse' => Icons.mouse_outlined,
-  'mouse-gesture' => Icons.gesture,
-  'wheel' => Icons.swap_vert,
-  'touch' => Icons.touch_app_outlined,
-  'gamepad' => Icons.sports_esports_outlined,
-  'area' => Icons.grid_on_outlined,
-  'radial' => Icons.donut_large,
-  'command' => Icons.terminal,
-  _ => Icons.keyboard_outlined,
+Glyph bindingDeviceIcon(String device) => switch (device) {
+  'mouse' => AppGlyphs.mouse,
+  'mouse-gesture' => AppGlyphs.gesture,
+  'wheel' => AppGlyphs.flip,
+  'touch' => AppGlyphs.touch,
+  'gamepad' => AppGlyphs.gamepad,
+  'area' => AppGlyphs.dashboard,
+  'radial' => AppGlyphs.donut,
+  'command' => AppGlyphs.code,
+  _ => AppGlyphs.key,
 };
 
 String bindingInputSummary(Map<String, dynamic> input) {

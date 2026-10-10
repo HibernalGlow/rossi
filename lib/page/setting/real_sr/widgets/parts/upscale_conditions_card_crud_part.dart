@@ -134,7 +134,7 @@ extension _UpscaleConditionsCardCrudPart on _UpscaleConditionsCardState {
             child: const Text('关闭'),
           ),
           FilledButton.icon(
-            icon: const Icon(Icons.copy, size: 16),
+            icon: const GlyphIcon(AppGlyphs.copy, size: 16),
             label: const Text('复制到剪贴板'),
             onPressed: () {
               Clipboard.setData(ClipboardData(text: jsonStr));

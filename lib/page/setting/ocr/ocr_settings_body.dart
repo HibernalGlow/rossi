@@ -16,6 +16,7 @@ import 'package:zephyr/widgets/app_log_dialog.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 漫画翻译（成品页）的**完整**设置正文：端点、推理后端、术语表、权重、缓存、日志。
 ///
@@ -293,20 +294,20 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
   }
 
   Widget _tile({
-    required IconData icon,
+    required Glyph icon,
     required String label,
     required String value,
     String? subtitle,
     VoidCallback? onTap,
   }) => ListTile(
-    leading: Icon(icon),
+    leading: GlyphIcon(icon),
     title: Text(label),
     subtitle: Text(
       subtitle == null ? value : '$value\n$subtitle',
       maxLines: subtitle == null ? 1 : 2,
       overflow: TextOverflow.ellipsis,
     ),
-    trailing: const Icon(Icons.chevron_right),
+    trailing: const GlyphIcon(AppGlyphs.chevronForward),
     onTap: onTap,
   );
 
@@ -328,7 +329,7 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
     final children = <Widget>[
       settingSectionTitle(context, t.ocr.endpointSection),
       ListTile(
-        leading: const Icon(Icons.alt_route_outlined),
+        leading: const GlyphIcon(AppGlyphs.split),
         title: Text(t.ocr.engine),
         subtitle: Text(t.ocr.engineSubtitle),
         trailing: FluentDropdown<String>(
@@ -359,12 +360,12 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
         ),
       if (!_configured)
         ListTile(
-          leading: const Icon(Icons.info_outline),
+          leading: const GlyphIcon(AppGlyphs.info),
           title: Text(t.ocr.notConfigured),
         ),
       if (_endpointOnly) ...[
         _tile(
-          icon: Icons.link_outlined,
+          icon: AppGlyphs.link,
           label: t.ocr.baseUrl,
           value: _draft.baseUrl.isEmpty ? t.ocr.baseUrlNone : _draft.baseUrl,
           onTap: () => _edit(
@@ -375,7 +376,7 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
           ),
         ),
         _tile(
-          icon: Icons.model_training_outlined,
+          icon: AppGlyphs.sparkle,
           label: t.ocr.model,
           value: _draft.model.isEmpty ? '-' : _draft.model,
           onTap: () => _edit(
@@ -386,7 +387,7 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
           ),
         ),
         _tile(
-          icon: Icons.key_outlined,
+          icon: AppGlyphs.key,
           label: t.ocr.apiKey,
           value: _draft.apiKey.isEmpty ? '-' : '••••••',
           subtitle: t.ocr.apiKeySubtitle,
@@ -401,7 +402,7 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
         ),
       ],
       _tile(
-        icon: Icons.translate_outlined,
+        icon: AppGlyphs.translate,
         label: t.ocr.targetLanguage,
         value: _draft.targetLanguage,
         onTap: () => _edit(
@@ -413,7 +414,7 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
       ),
       if (_glossaryApplies)
         _tile(
-          icon: Icons.book_outlined,
+          icon: AppGlyphs.book,
           label: t.ocr.glossary,
           value: _glossarySummary,
           subtitle: t.ocr.glossarySubtitle,
@@ -428,7 +429,7 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
         )
       else
         ListTile(
-          leading: const Icon(Icons.book_outlined),
+          leading: const GlyphIcon(AppGlyphs.book),
           title: Text(t.ocr.glossary),
           subtitle: Text(t.ocr.glossaryIgnoredOnApple),
         ),
@@ -437,7 +438,7 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
       const Divider(height: 1, thickness: 0.3),
       settingSectionTitle(context, t.ocr.epSection),
       ListTile(
-        leading: const Icon(Icons.memory_outlined),
+        leading: const GlyphIcon(AppGlyphs.storage),
         title: Text(t.ocr.ep),
         subtitle: Text(t.ocr.epSubtitle),
         trailing: FluentDropdown<String>(
@@ -463,7 +464,7 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
       const Divider(height: 1, thickness: 0.3),
       settingSectionTitle(context, t.ocr.displaySection),
       ListTile(
-        leading: const Icon(Icons.layers_outlined),
+        leading: const GlyphIcon(AppGlyphs.layers),
         title: Text(t.ocr.displayChoice),
         subtitle: Text(t.ocr.displayChoiceSubtitle),
         trailing: FluentDropdown<String>(
@@ -497,7 +498,7 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
       const Divider(height: 1, thickness: 0.3),
       settingSectionTitle(context, t.ocr.modelSection),
       ListTile(
-        leading: const Icon(Icons.download_outlined),
+        leading: const GlyphIcon(AppGlyphs.download),
         title: Text(
           _missing.isEmpty
               ? t.ocr.weightsReady(count: _readyCount)
@@ -516,7 +517,7 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
       const Divider(height: 1, thickness: 0.3),
       settingSectionTitle(context, t.ocr.cacheSection),
       ListTile(
-        leading: const Icon(Icons.cleaning_services_outlined),
+        leading: const GlyphIcon(AppGlyphs.broom),
         title: Text(t.ocr.clearCache),
         subtitle: Text(
           _cacheCount == 0
@@ -529,7 +530,7 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
         ),
       ),
       ListTile(
-        leading: const Icon(Icons.touch_app_outlined),
+        leading: const GlyphIcon(AppGlyphs.touch),
         title: Text(t.ocr.readerHint),
       ),
 
@@ -537,7 +538,7 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
       const Divider(height: 1, thickness: 0.3),
       settingSectionTitle(context, t.ocr.logSection),
       ListTile(
-        leading: const Icon(Icons.article_outlined),
+        leading: const GlyphIcon(AppGlyphs.article),
         title: Text(t.ocr.viewLog),
         subtitle: Text(t.ocr.logHint),
         trailing: TextButton(

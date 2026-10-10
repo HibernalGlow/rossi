@@ -11,7 +11,7 @@ class _RevealZoneCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return SettingSectionCard(
       title: t.settings.hoverRevealZones,
-      icon: Icons.dashboard_customize_outlined,
+      icon: AppGlyphs.gridPlus,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
@@ -274,7 +274,7 @@ class _RevealZoneEditorState extends State<_RevealZoneEditor> {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.restart_alt),
+              icon: const GlyphIcon(AppGlyphs.reset),
               tooltip: t.settings.revealReset,
               onPressed: _resetToDefaults,
             ),

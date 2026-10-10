@@ -16,6 +16,7 @@ import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 import 'package:zephyr/page/setting/data_backup/method.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class DataBackupPage extends StatefulWidget {
@@ -49,10 +50,10 @@ class _DataBackupPageState extends State<DataBackupPage> {
               _buildSectionTitle(
                 context,
                 t.dataBackup.exportSection,
-                Icons.file_upload_outlined,
+                AppGlyphs.arrowUp,
               ),
               SwitchListTile(
-                secondary: const Icon(Icons.folder_outlined),
+                secondary: const GlyphIcon(AppGlyphs.folder),
                 title: Text(t.dataBackup.includeDownloads),
                 subtitle: Text(t.dataBackup.includeDownloadsSubtitle),
                 thumbIcon: kSettingSwitchThumbIcon,
@@ -63,10 +64,10 @@ class _DataBackupPageState extends State<DataBackupPage> {
               ),
               const Divider(height: 1, thickness: 0.3),
               ListTile(
-                leading: const Icon(Icons.archive_outlined),
+                leading: const GlyphIcon(AppGlyphs.archive),
                 title: Text(t.dataBackup.exportData),
                 subtitle: Text(t.dataBackup.exportDataSubtitle),
-                trailing: const Icon(Icons.chevron_right),
+                trailing: const GlyphIcon(AppGlyphs.chevronForward),
                 onTap: _busy ? null : _exportData,
               ),
               const SizedBox(height: 8),
@@ -74,13 +75,13 @@ class _DataBackupPageState extends State<DataBackupPage> {
               _buildSectionTitle(
                 context,
                 t.dataBackup.importSection,
-                Icons.file_download_outlined,
+                AppGlyphs.download,
               ),
               ListTile(
-                leading: const Icon(Icons.unarchive_outlined),
+                leading: const GlyphIcon(AppGlyphs.archive),
                 title: Text(t.dataBackup.importData),
                 subtitle: Text(t.dataBackup.importDataSubtitle),
-                trailing: const Icon(Icons.chevron_right),
+                trailing: const GlyphIcon(AppGlyphs.chevronForward),
                 onTap: _busy ? null : _importData,
               ),
               const SizedBox(height: 32),
@@ -234,12 +235,12 @@ class _DataBackupPageState extends State<DataBackupPage> {
     if (mounted) setState(() => _busy = value);
   }
 
-  Widget _buildSectionTitle(BuildContext context, String title, IconData icon) {
+  Widget _buildSectionTitle(BuildContext context, String title, Glyph icon) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+          GlyphIcon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 8),
           Text(
             title,

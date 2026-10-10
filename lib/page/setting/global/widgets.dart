@@ -10,13 +10,14 @@ import 'package:zephyr/src/rust/api/qjs.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 Widget changeThemeColor(BuildContext context) {
   return ListTile(
-    leading: const Icon(Icons.palette_outlined),
+    leading: const GlyphIcon(AppGlyphs.palette),
     title: Text(t.settings.themeColor),
     subtitle: Text(t.settings.themeColorSubtitle),
-    trailing: const Icon(Icons.chevron_right),
+    trailing: const GlyphIcon(AppGlyphs.chevronForward),
     onTap: () {
       AutoRouter.of(context).push(const ThemeColorRoute());
     },
@@ -33,7 +34,7 @@ Widget proxyToggle(
     mainAxisSize: MainAxisSize.min,
     children: [
       SwitchListTile(
-        secondary: const Icon(Icons.router_outlined),
+        secondary: const GlyphIcon(AppGlyphs.router),
         title: Text(t.settings.proxy),
         subtitle: Text(t.settings.proxyEnabledSubtitle),
         thumbIcon: kSettingSwitchThumbIcon,
@@ -68,7 +69,7 @@ Widget proxyTypeEdit(BuildContext context, ProxyType type) {
     ProxyType.socks5: t.settings.proxyTypeSocks5,
   };
   return ListTile(
-    leading: const Icon(Icons.lan_outlined),
+    leading: const GlyphIcon(AppGlyphs.router),
     title: Text(t.settings.proxyType),
     subtitle: Text(t.settings.proxyTypeSubtitle),
     trailing: FluentDropdown<ProxyType>(
@@ -91,7 +92,7 @@ Widget proxyTypeEdit(BuildContext context, ProxyType type) {
 
 Widget proxyAddressEdit(BuildContext context, String currentProxy) {
   return ListTile(
-    leading: const Icon(Icons.link_outlined),
+    leading: const GlyphIcon(AppGlyphs.link),
     title: Text(t.settings.proxyAddress),
     subtitle: Text(
       currentProxy.isEmpty
@@ -100,7 +101,7 @@ Widget proxyAddressEdit(BuildContext context, String currentProxy) {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
     ),
-    trailing: const Icon(Icons.chevron_right),
+    trailing: const GlyphIcon(AppGlyphs.chevronForward),
     onTap: () async {
       final globalSettingCubit = context.read<GlobalSettingCubit>();
       var inputValue = currentProxy;
@@ -157,10 +158,10 @@ Widget webdavSync(BuildContext context, SyncServiceType syncServiceType) {
   };
 
   return ListTile(
-    leading: const Icon(Icons.cloud_outlined),
+    leading: const GlyphIcon(AppGlyphs.cloud),
     title: Text(title),
     subtitle: Text(t.settings.syncConfigSubtitle),
-    trailing: const Icon(Icons.chevron_right),
+    trailing: const GlyphIcon(AppGlyphs.chevronForward),
     onTap: () {
       AutoRouter.of(context).push(const WebDavSyncRoute());
     },
@@ -169,10 +170,10 @@ Widget webdavSync(BuildContext context, SyncServiceType syncServiceType) {
 
 Widget editMaskedKeywords(BuildContext context) {
   return ListTile(
-    leading: const Icon(Icons.shield_outlined),
+    leading: const GlyphIcon(AppGlyphs.shield),
     title: Text(t.settings.maskedKeywords),
     subtitle: Text(t.settings.maskedKeywordsSubtitle),
-    trailing: const Icon(Icons.chevron_right),
+    trailing: const GlyphIcon(AppGlyphs.chevronForward),
     onTap: () {
       showPopupPanel(
         context: context,
@@ -208,185 +209,159 @@ class _KeywordManagementDialogState extends State<_KeywordManagementDialog> {
 
     return BlocBuilder<GlobalSettingCubit, GlobalSettingState>(
       builder: (context, state) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Container(
-            width: double.maxFinite,
-            constraints: const BoxConstraints(maxWidth: 400),
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  t.settings.maskedKeywords,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
+        return PopupPanel(
+          title: Text(t.settings.maskedKeywords),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                t.settings.maskedKeywordsSubtitle,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  t.settings.maskedKeywordsSubtitle,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(height: 20),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest
-                        .withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.all(12),
-                  constraints: const BoxConstraints(
-                    minHeight: 120,
-                    maxHeight: 240,
-                  ),
-                  width: double.infinity,
-                  child: SingleChildScrollView(
-                    child: state.maskedKeywords.isEmpty
-                        ? Center(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 36),
-                              child: Text(
-                                t.settings.maskedKeywordsEmpty,
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 13,
-                                ),
+                padding: const EdgeInsets.all(12),
+                constraints: const BoxConstraints(
+                  minHeight: 120,
+                  maxHeight: 240,
+                ),
+                width: double.infinity,
+                child: SingleChildScrollView(
+                  child: state.maskedKeywords.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 36),
+                            child: Text(
+                              t.settings.maskedKeywordsEmpty,
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 13,
                               ),
                             ),
-                          )
-                        : Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: List.generate(
-                              state.maskedKeywords.length,
-                              (index) {
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primaryContainer,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  constraints: const BoxConstraints(
-                                    maxWidth: 280,
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Flexible(
-                                        child: Text(
-                                          state.maskedKeywords[index],
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onPrimaryContainer,
-                                          ),
+                          ),
+                        )
+                      : Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: List.generate(
+                            state.maskedKeywords.length,
+                            (index) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.primaryContainer,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                constraints: const BoxConstraints(
+                                  maxWidth: 280,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        state.maskedKeywords[index],
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onPrimaryContainer,
                                         ),
                                       ),
-                                      const SizedBox(width: 4),
-                                      MouseRegion(
-                                        cursor: SystemMouseCursors.click,
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            final newList = List<String>.from(
-                                              state.maskedKeywords,
-                                            );
-                                            newList.removeAt(index);
-                                            globalSettingCubit.updateState(
-                                              (current) => current.copyWith(
-                                                maskedKeywords: newList,
-                                              ),
-                                            );
-                                          },
-                                          child: Icon(
-                                            Icons.close,
-                                            size: 14,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onPrimaryContainer
-                                                .withValues(alpha: 0.7),
-                                          ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    MouseRegion(
+                                      cursor: SystemMouseCursors.click,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          final newList = List<String>.from(
+                                            state.maskedKeywords,
+                                          );
+                                          newList.removeAt(index);
+                                          globalSettingCubit.updateState(
+                                            (current) => current.copyWith(
+                                              maskedKeywords: newList,
+                                            ),
+                                          );
+                                        },
+                                        child: GlyphIcon(
+                                          AppGlyphs.close,
+                                          size: 14,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onPrimaryContainer
+                                              .withValues(alpha: 0.7),
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _controller,
-                        style: const TextStyle(fontSize: 14),
-                        decoration: InputDecoration(
-                          hintText: t.settings.maskedKeywordsInputHint,
-                          hintStyle: const TextStyle(fontSize: 14),
-                          filled: true,
-                          fillColor: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest
-                              .withValues(alpha: 0.5),
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
                           ),
                         ),
-                        onSubmitted: (_) =>
-                            _addKeyword(globalSettingCubit, state),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton.filledTonal(
-                      onPressed: () => _addKeyword(globalSettingCubit, state),
-                      icon: const Icon(Icons.add, size: 20),
-                    ),
-                  ],
                 ),
-                const SizedBox(height: 24),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      style: const TextStyle(fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: t.settings.maskedKeywordsInputHint,
+                        hintStyle: const TextStyle(fontSize: 14),
+                        filled: true,
+                        fillColor: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.5),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                      onSubmitted: (_) =>
+                          _addKeyword(globalSettingCubit, state),
                     ),
-                    child: Text(t.common.done),
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 8),
+                  IconButton.filledTonal(
+                    onPressed: () => _addKeyword(globalSettingCubit, state),
+                    icon: const GlyphIcon(AppGlyphs.add, size: 20),
+                  ),
+                ],
+              ),
+            ],
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(t.common.done),
+            ),
+          ],
         );
       },
     );

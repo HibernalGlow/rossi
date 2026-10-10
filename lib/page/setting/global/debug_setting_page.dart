@@ -13,6 +13,7 @@ import 'package:zephyr/src/rust/api/qjs.dart';
 import 'package:zephyr/util/impeller_config.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class DebugSettingPage extends StatefulWidget {
@@ -57,7 +58,7 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
           settingSectionTitle(
             context,
             t.settings.debug,
-            icon: Icons.bug_report_outlined,
+            icon: AppGlyphs.bug,
           ),
           _logAddress(state, cubit),
           _enableMemoryDebug(state, cubit),
@@ -67,24 +68,24 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
             _forceEnableImpeller(state, cubit),
           if (kDebugMode) ...[
             ListTile(
-              leading: const Icon(Icons.colorize_outlined),
+              leading: const GlyphIcon(AppGlyphs.eyedropper),
               title: Text(t.settings.colorPreview),
               subtitle: Text(t.settings.colorPreviewSubtitle),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const GlyphIcon(AppGlyphs.chevronForward),
               onTap: () => context.pushRoute(const ShowColorRoute()),
             ),
             ListTile(
-              leading: const Icon(Icons.developer_mode_outlined),
+              leading: const GlyphIcon(AppGlyphs.code),
               title: Text(t.settings.qjsRuntimeDebug),
               subtitle: Text(t.settings.qjsRuntimeDebugSubtitle),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const GlyphIcon(AppGlyphs.chevronForward),
               onTap: () => context.pushRoute(const QjsRuntimeDebugRoute()),
             ),
             ListTile(
-              leading: const Icon(Icons.memory_outlined),
+              leading: const GlyphIcon(AppGlyphs.storage),
               title: Text(t.settings.coremlDebug),
               subtitle: Text(t.settings.coremlDebugSubtitle),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const GlyphIcon(AppGlyphs.chevronForward),
               onTap: () => context.pushRoute(const CoreMLUpscaleDebugRoute()),
             ),
           ],
@@ -93,10 +94,10 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
           // 就等于「量不到」。它是诊断工具而不是功能特性，所以无 i18n 词条，
           // 并走 MaterialPageRoute 直连而不是 @RoutePage（不触发全量 codegen）。
           ListTile(
-            leading: const Icon(Icons.collections_bookmark_outlined),
+            leading: const GlyphIcon(AppGlyphs.bookmark),
             title: const Text('本地来源读取（判据 A）'),
             subtitle: const Text('散图文件夹 / CBZ / CBR 直读，含逐页耗时与拒绝类别'),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const GlyphIcon(AppGlyphs.chevronForward),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (_) => const LocalSourceDebugPage(),
@@ -109,19 +110,19 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
           // OCR 成品页冒烟：整条链路六道关，任何一道错了在阅读器的表现都只是「按了没反应」。
           // 同样刻意不放进 kDebugMode —— 要判的是发出去的构建对不对，只有 Release 的数作数。
           ListTile(
-            leading: const Icon(Icons.translate_outlined),
+            leading: const GlyphIcon(AppGlyphs.translate),
             title: const Text('OCR 成品页冒烟'),
             subtitle: const Text('选一张页 → 检测/识别/擦字/翻译/回填，逐段看耗时与产物'),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const GlyphIcon(AppGlyphs.chevronForward),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const OcrSmokeDebugPage()),
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.memory_outlined),
+            leading: const GlyphIcon(AppGlyphs.storage),
             title: const Text('GPU 上屏（D3D12 共享纹理）'),
             subtitle: const Text('Rust 解码 → wgpu → GPU 拷贝 → 共享纹理，像素不过桥'),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const GlyphIcon(AppGlyphs.chevronForward),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const GpuPresentPage()),
             ),
@@ -137,7 +138,7 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
     GlobalSettingCubit cubit,
   ) {
     return SwitchListTile(
-      secondary: const Icon(Icons.memory_outlined),
+      secondary: const GlyphIcon(AppGlyphs.storage),
       title: Text(t.settings.memoryDebug),
       subtitle: Text(t.settings.memoryDebugSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -153,14 +154,14 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
   Widget _logAddress(GlobalSettingState state, GlobalSettingCubit cubit) {
     final logAddress = state.logAddress.trim();
     return ListTile(
-      leading: const Icon(Icons.link_outlined),
+      leading: const GlyphIcon(AppGlyphs.link),
       title: Text(t.settings.logAddress),
       subtitle: Text(
         logAddress.isEmpty ? t.settings.logAddressSubtitle : logAddress,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: const Icon(Icons.chevron_right),
+      trailing: const GlyphIcon(AppGlyphs.chevronForward),
       onTap: () async {
         var inputValue = logAddress;
         final result = await showPopupPanel<String>(
@@ -203,7 +204,7 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
     GlobalSettingCubit cubit,
   ) {
     return SwitchListTile(
-      secondary: const Icon(Icons.cloud_off_outlined),
+      secondary: const GlyphIcon(AppGlyphs.wifiOff),
       title: Text(t.settings.blockRustHttpRequests),
       subtitle: Text(t.settings.blockRustHttpRequestsSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -230,7 +231,7 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
     GlobalSettingCubit cubit,
   ) {
     return SwitchListTile(
-      secondary: const Icon(Icons.warning_amber_outlined),
+      secondary: const GlyphIcon(AppGlyphs.error),
       title: Text(t.settings.showLayoutOverflowStripes),
       subtitle: Text(t.settings.showLayoutOverflowStripesSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
@@ -250,7 +251,7 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
     GlobalSettingCubit cubit,
   ) {
     return SwitchListTile(
-      secondary: const Icon(Icons.auto_awesome_outlined),
+      secondary: const GlyphIcon(AppGlyphs.sparkle),
       title: Text(t.settings.forceEnableImpeller),
       subtitle: Text(t.settings.forceEnableImpellerSubtitle),
       thumbIcon: kSettingSwitchThumbIcon,
