@@ -30,6 +30,8 @@ part of '../global_setting.dart';
 ///   不是「一样一样地关」（那样关到一半是最糟的状态）。
 /// - [searchSubfoldersDefault]：新建页签起手就开着「含子目录」。默认关：一次整库遍历
 ///   在慢盘上实测要几十秒，「要不要等这个时间」是用户的取舍，不该由我们替他翻上去。
+/// - [wrapGridTitle]：封面网格下是否换行完整显示文件名。默认关（截断为两行）；
+///   开之后文件名允许多行完整展示，避免被省略号截断。
 @freezed
 abstract class FileManagerSettingState with _$FileManagerSettingState {
   const factory FileManagerSettingState({
@@ -40,6 +42,7 @@ abstract class FileManagerSettingState with _$FileManagerSettingState {
     @Default(true) bool restoreTabs,
     @Default(true) bool fileOperations,
     @Default(false) bool searchSubfoldersDefault,
+    @Default(false) bool wrapGridTitle,
   }) = _FileManagerSettingState;
 
   factory FileManagerSettingState.fromJson(Map<String, dynamic> json) =>

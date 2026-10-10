@@ -13,7 +13,14 @@ import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/page/setting/global/widgets.dart';
 import 'package:zephyr/page/theme_color/theme_color.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
+import 'package:zephyr/widgets/navigation/navigation_customization_dialog.dart';
+import 'package:zephyr/widgets/navigation/navigation_layout.dart';
+import 'package:zephyr/widgets/navigation/navigation_entries.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/workspace/model/workspace_startup.dart';
+
+// 「导航栏」那一段：两个壳的开关、窄屏自动切与阈值、自定义导航入口。
+part 'parts/appearance_navigation_part.dart';
 
 /// 桌面三平台。自制标题栏只在这三个平台上有（见 `main.dart` 里
 /// `DesktopShellFrame` 的挂载条件），所以这一项也只在这三个平台上出现 ——
@@ -56,6 +63,9 @@ class AppearanceSettingPage extends StatelessWidget {
           // 摆放方式只在开关打开时才需要回答 —— 关着时摆出来只会让人犹豫。
           if (_isDesktopPlatform && state.transparentDesktopTitleBar)
             _transparentTitleBarMode(state, cubit),
+          // 导航栏那一段摆在「外观」这一屏：它和主题、标题栏一样是
+          // 「应用外壳长什么样」，而不是工作台内部的事。
+          ...navigationChromeTiles(context: context, state: state, cubit: cubit),
           _fontSettings(context),
           const SizedBox(height: 32),
         ],
