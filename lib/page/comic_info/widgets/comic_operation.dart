@@ -152,7 +152,8 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
             onTap: _toggleCloudFavorite,
           )
         : _OperationItemData(
-            icon: isCollected ? Icons.star : Icons.star_border,
+            icon: AppGlyphs.star,
+            fillsWhenHighlighted: true,
             text: isCollected ? t.comicInfo.collected : t.comicInfo.collect,
             highlighted: isCollected,
             accentColor: const Color(0xFFE6A700),
@@ -162,7 +163,8 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
     final magnet = comicMagnetOf(normalInfo);
     final actions = [
       _OperationItemData(
-        icon: isLiked ? Icons.favorite : Icons.favorite_border,
+        icon: AppGlyphs.heart,
+        fillsWhenHighlighted: true,
         text: t.comicInfo.likes(count: normalInfo.totalLikes),
         highlighted: isLiked,
         accentColor: Colors.red,
@@ -605,6 +607,9 @@ class _OperationItemData {
     this.onLongPressTooltip,
     this.enabled = true,
     this.highlighted = false,
+
+    /// 高亮时图标填充成实心（收藏的星、点赞的心这类「开/关」语义）。
+    this.fillsWhenHighlighted = false,
     this.accentColor,
     this.iconColor,
   });
@@ -624,6 +629,7 @@ class _OperationItemData {
   final String? onLongPressTooltip;
   final bool enabled;
   final bool highlighted;
+  final bool fillsWhenHighlighted;
   final Color? accentColor;
 
   /// 覆盖图标颜色（用于下载状态的语义色）。
@@ -760,6 +766,8 @@ class _OperationCard extends StatelessWidget {
                 item.icon,
                 size: compact ? 18 : 20,
                 color: item.iconColor ?? foreground,
+                fill:
+                    item.fillsWhenHighlighted && item.highlighted ? 1 : 0,
               ),
               const SizedBox(width: 8),
               Flexible(
