@@ -13,8 +13,19 @@
 //
 // 这一份只给「横向排的图标组」用。竖排那一档（侧栏底部在窄侧栏里的样子）见
 // `ActionGroup` 的 `axis` —— 同一个组换个方向，槽与间距口径不变。
+//
+// # 按压反馈也是这一份的职责
+//
+// 组里的每颗钮都套 [ElasticButton]（`widgets/spring_lens/elastic_press.dart`，
+// 与 Dock 的 lens 同一份弹簧）：按下时鼓一下、按住拖会朝手指方向被拽一点并沿
+// 那一轴拉长。所以「全应用按钮的手感」只需在这一处调 —— 不必每条工具条各自
+// 决定要不要形变、以及形变成什么样。官方 `IconButton` 的按压水波纹相应抹平
+// （见 `ActionIconButton.style`）：两套反馈叠在一起会让按钮看起来脏。
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/control_shape.dart';
+import 'package:zephyr/widgets/motion/action_bubble.dart';
+import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
 
 /// 工具条分组槽的度量：**全应用一份**。
 ///
@@ -128,12 +139,18 @@ class ActionGroup extends StatelessWidget {
 /// [ActionToggleButton]。
 ///
 /// 配色：常态 `onSurfaceVariant` 图标 + 无底；禁用 `onSurfaceVariant` 38%
-/// （MD3 的禁用档就是这个数）。悬停/按压的水波纹由官方 `IconButton` 的状态层承担。
+/// （MD3 的禁用档就是这个数）。
 ///
-/// 图标给两档：[icon] 收 `IconData`（Material 图标），[glyph] 收本仓自绘的
-/// `Glyph`（`lib/icons/`）—— 导航栏那一份动作用的是后者。两者只给一个。
-/// `GlyphIcon` 自己读 `IconTheme`，而 `IconButton` 会把这一档 [style] 里的
-/// `iconSize` 与前景色包成 `IconTheme` 传下去，所以两条路的尺寸与颜色同源。
+/// # 按压反馈是**形变**，不是水波纹
+///
+/// 外层套了 [ElasticPress]：按下时鼓一下，手指按住拖会把它朝手指方向拽一点
+/// 并沿那一轴拉长，松手弹回（与 Dock 的 lens 同一份弹簧）。因此
+/// [style] 里的 `overlayColor` 按压档被抹平 —— 官方 `IconButton` 那层圆形
+/// 水波纹与形变叠在一起会让按钮看起来脏，「被按下了」由形变独占表达。
+///
+/// 这一处是**全应用工具条按钮的手感来源**：书架右上角的搜索 / 筛选、Dock 旁
+/// 那颗「更多」、文件管理器工具栏、侧栏底部动作区、书签与历史工具条都走它，
+/// 所以不必各处再各自调一次动效。
 class ActionIconButton extends StatelessWidget {
   const ActionIconButton({
     super.key,
@@ -146,10 +163,10 @@ class ActionIconButton extends StatelessWidget {
     this.onLongPress,
   }) : assert(
          (icon == null) != (glyph == null),
-         '图标只给一个：icon（IconData）或 glyph（Glyph）',
+         '图标只给一个：icon（Glyph）或 glyph（Glyph）',
        );
 
-  final IconData? icon;
+  final Glyph? icon;
   final Glyph? glyph;
   final String tooltip;
   final bool enabled;
@@ -196,8 +213,10 @@ class ActionIconButton extends StatelessWidget {
         return fg;
       }),
       overlayColor: WidgetStateProperty.resolveWith((states) {
+        // 按压档留空：按压反馈由 [ElasticPress] 的形变承担（见类注释）。
+        // 悬停与聚焦仍要官方的水波纹 —— 那两档不与形变打架。
         if (states.contains(WidgetState.pressed)) {
-          return fg.withValues(alpha: 0.12);
+          return Colors.transparent;
         }
         if (states.contains(WidgetState.hovered)) {
           return ActionBubbleRegion.contains(context)
@@ -216,18 +235,23 @@ class ActionIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final glyph = this.glyph;
-    return IconButton(
-      tooltip: tooltip,
-      onPressed: enabled ? onPressed : null,
-      onLongPress: enabled ? onLongPress : null,
-      style: style(context).copyWith(
-        foregroundColor: muted
-            ? WidgetStatePropertyAll(
-                colorScheme.onSurfaceVariant.withValues(alpha: 0.38),
-              )
-            : null,
+    // 禁用时连形变一起关掉：按一颗按不了的按钮不该鼓。
+    final pressed = enabled && !muted;
+    return ElasticButton(
+      enabled: pressed,
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: enabled ? onPressed : null,
+        onLongPress: enabled ? onLongPress : null,
+        style: style(context).copyWith(
+          foregroundColor: muted
+              ? WidgetStatePropertyAll(
+                  colorScheme.onSurfaceVariant.withValues(alpha: 0.38),
+                )
+              : null,
+        ),
+        icon: glyph != null ? GlyphIcon(glyph) : GlyphIcon(icon!),
       ),
-      icon: glyph != null ? GlyphIcon(glyph) : Icon(icon),
     );
   }
 }
@@ -240,6 +264,9 @@ class ActionIconButton extends StatelessWidget {
 /// 选中态除了底色还有**填充**：glyph 走 [AnimatedGlyph]，`on` 时描边图标
 /// 涨成实心（fill 0→1 的 350ms 过渡 + 一记弹跳），与侧栏选中目的地
 /// 同一个口径 —— 只变底色的话，开与关看起来只差一层淡底，太含糊。
+///
+/// 按压形变与 [ActionIconButton] 同一份 [ElasticButton]：这一支虽然有
+/// 「开 / 关」两态，但按下去的那一下反馈不该与瞬时动作键不同。
 class ActionToggleButton extends StatelessWidget {
   const ActionToggleButton({
     super.key,
@@ -251,10 +278,10 @@ class ActionToggleButton extends StatelessWidget {
     this.enabled = true,
   }) : assert(
          (icon == null) != (glyph == null),
-         '图标只给一个：icon（IconData）或 glyph（Glyph）',
+         '图标只给一个：icon（Glyph）或 glyph（Glyph）',
        );
 
-  final IconData? icon;
+  final Glyph? icon;
   final Glyph? glyph;
   final String tooltip;
   final bool on;
@@ -264,14 +291,17 @@ class ActionToggleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final glyph = this.glyph;
-    return IconButton(
-      isSelected: on,
-      tooltip: tooltip,
-      onPressed: enabled ? onPressed : null,
-      style: ActionIconButton.style(context, selected: on),
-      icon: glyph != null
-          ? AnimatedGlyph(glyph: glyph, filled: on)
-          : Icon(icon),
+    return ElasticButton(
+      enabled: enabled,
+      child: IconButton(
+        isSelected: on,
+        tooltip: tooltip,
+        onPressed: enabled ? onPressed : null,
+        style: ActionIconButton.style(context, selected: on),
+        icon: glyph != null
+            ? AnimatedGlyph(glyph: glyph, filled: on)
+            : GlyphIcon(icon!),
+      ),
     );
   }
 }

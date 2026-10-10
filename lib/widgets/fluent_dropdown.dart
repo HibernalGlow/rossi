@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// A single entry in a fluent popup menu.
 class FluentPopupMenuItem<T> {
@@ -230,7 +231,7 @@ class _FluentPopupMenuButtonState<T> extends State<FluentPopupMenuButton<T>>
       );
     }
     return IconButton(
-      icon: widget.icon ?? const Icon(Icons.more_vert),
+      icon: widget.icon ?? const GlyphIcon(AppGlyphs.more),
       tooltip: widget.tooltip,
       visualDensity: widget.visualDensity,
       style: widget.style,
@@ -327,8 +328,8 @@ class _FluentDropdownState<T> extends State<FluentDropdown<T>>
             AnimatedRotation(
               turns: menuIsOpen ? 0.5 : 0,
               duration: const Duration(milliseconds: 200),
-              child: Icon(
-                Icons.keyboard_arrow_down,
+              child: GlyphIcon(
+                AppGlyphs.chevronDown,
                 size: 18,
                 color: textColor.withValues(alpha: 0.5),
               ),
@@ -567,8 +568,8 @@ class _MenuPanel<T> extends StatelessWidget {
                           );
                         },
                         child: showLeadingCheck
-                            ? Icon(
-                                Icons.check,
+                            ? GlyphIcon(
+                                AppGlyphs.check,
                                 key: const ValueKey('check'),
                                 size: 18,
                                 color: colorScheme.primary,
@@ -596,8 +597,8 @@ class _MenuPanel<T> extends StatelessWidget {
                         ),
                         child:
                             entry.trailing ??
-                            Icon(
-                              Icons.check,
+                            GlyphIcon(
+                              AppGlyphs.check,
                               size: 18,
                               color: colorScheme.primary,
                             ),

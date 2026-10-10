@@ -460,24 +460,18 @@ class _PopupMorph extends SingleChildRenderObjectWidget {
 /// fading and sharpening in; closing shrinks it first and flies it back.
 class _RenderPopupMorph extends RenderProxyBox {
   _RenderPopupMorph({
-    required Rect anchor,
+    required this._anchor,
     required Animation<double> animation,
     required this.grow,
     required this.moveX,
     required this.moveY,
     required this.content,
-    required ValueListenable<bool> unfolded,
-    required Color sourceColor,
-    required ValueListenable<ui.Image?>? sourceImage,
-    required Color surfaceColor,
-    required List<BoxShadow> shadows,
-  }) : _anchor = anchor,
-       _animation = animation,
-       _unfolded = unfolded,
-       _sourceColor = sourceColor,
-       _sourceImage = sourceImage,
-       _surfaceColor = surfaceColor,
-       _shadows = shadows;
+    required this._unfolded,
+    required this._sourceColor,
+    required this._sourceImage,
+    required this._surfaceColor,
+    required this._shadows,
+  }) : _animation = animation;
 
   Animation<double> grow;
   Animation<double> moveX;

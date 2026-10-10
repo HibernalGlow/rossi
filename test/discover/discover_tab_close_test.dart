@@ -1,5 +1,6 @@
 // 只用 material_ui：与主应用同一套 MaterialApp / Scaffold / Icons。
-import 'package:flutter/gestures.dart' show PointerDeviceKind;
+import 'package:flutter/gestures.dart'
+    show PointerDeviceKind, PointerDownEvent, PointerUpEvent;
 import 'package:material_ui/material_ui.dart';
 import 'package:plat/plat.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,8 +21,11 @@ import 'package:zephyr/page/discover/widgets/discover_plat_view.dart';
 /// 这组判据把各条关闭路径钉住：
 /// - **点 ×**（干净点按、指尖漂移、按住期间渲染帧）必须都能关；
 /// - **长按 → 菜单 → 关闭** 必须通；
-/// - **长按中漂移超过触控 slop** 不许起拖拽 —— vendored plat 在
-///   `acceptsDrops: false` 的组里摘除了 `Draggable`（vendor/plat/VENDORED.md）。
+/// - **长按中漂移**：vendored plat 把触摸档拖拽改成「按满 kLongPressTimeout
+///   才起手且不因移动放弃」（vendor/plat/VENDORED.md），时限内的短漂移
+///   既不起拖拽也不弹菜单；按满时限 + 移动 = 真拖拽（分屏 / 换序可用）；
+/// - **双击关闭**（默认开）与**关掉开关后双击不动作**（旁路观察，
+///   `RossiPlatTabMenuRegion` 的 Listener，不给单击加延迟）。
 DiscoverTabs _tabs() => DiscoverTabs(
   side: DiscoverTabBarSide.top,
   home: DiscoverLeafSpec(
@@ -37,6 +41,7 @@ Future<void> _pump(
   WidgetTester tester,
   DiscoverTabs tabs, {
   Size surface = const Size(800, 600),
+  DiscoverSettingState setting = const DiscoverSettingState(),
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -54,7 +59,7 @@ Future<void> _pump(
               height: surface.height,
               child: DiscoverPlatView(
                 tabs: tabs,
-                setting: const DiscoverSettingState(),
+                setting: setting,
                 onSearch: () {},
                 onCustomizeOrder: () {},
               ),
@@ -100,6 +105,41 @@ Future<void> _touchSwipe(
     await tester.pump();
   }
   await gesture.up();
+  await tester.pumpAndSettle();
+}
+
+/// 双击：两记 down→up，间隔 100ms（落在 kDoubleTapMinTime 40 与
+/// kDoubleTapTimeout 300 的窗口里）。
+///
+/// **不用 `tester.tap`**：TestPointer 的事件时间戳恒为 0（测试脚手架不随
+/// `pump` 推进），旁路双击观察的「间隔 ≥ kDoubleTapMinTime」会永远不成立 ——
+/// 实机事件带真实时间戳，无此问题。这里显式给时间戳。
+Future<void> _doubleTap(WidgetTester tester, Finder target) async {
+  final center = tester.getCenter(target);
+  await tester.sendEventToBinding(
+    PointerDownEvent(position: center),
+  );
+  await tester.pump();
+  await tester.sendEventToBinding(
+    PointerUpEvent(
+      position: center,
+      timeStamp: const Duration(milliseconds: 60),
+    ),
+  );
+  await tester.pump(const Duration(milliseconds: 100));
+  await tester.sendEventToBinding(
+    PointerDownEvent(
+      position: center,
+      timeStamp: const Duration(milliseconds: 160),
+    ),
+  );
+  await tester.pump();
+  await tester.sendEventToBinding(
+    PointerUpEvent(
+      position: center,
+      timeStamp: const Duration(milliseconds: 220),
+    ),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -173,7 +213,7 @@ void main() {
     tabs.dispose();
   });
 
-  testWidgets('长按中漂移超过触控 slop：不再起拖拽（vendored plat，acceptsDrops:false）', (
+  testWidgets('长按中漂移（时限内）：不起拖拽也不弹菜单', (
     tester,
   ) async {
     final tabs = _tabs();
@@ -183,8 +223,9 @@ void main() {
     // 按住 60ms 后移动 30px。修复前：plat 的 ImmediateMultiDrag 在超过触控
     // slop 的那一刻接管 —— `childWhenDragging` 把 chip 换成空盒、chip 从条上
     // 消失，长按菜单根本不出现（用户说的「稍微一动就变成拖拽」）。vendored
-    // plat 在 acceptsDrops:false 的组里不再包 Draggable（vendor/plat/VENDORED.md），
-    // 拖拽不该再起：chip 必须原地不动地留在条上。
+    // plat 把触摸档拖拽改成「按满 kLongPressTimeout 才起手」（VENDORED.md），
+    // 时限内的短漂移两样都不该发生：chip 必须原地不动地留在条上。
+    // 真拖拽（按满时限 + 移动）另由分屏判据覆盖。
     await _touchSwipe(
       tester,
       find.text('排行').first,
@@ -195,8 +236,38 @@ void main() {
     expect(find.text(t.plat.closeTab), findsNothing,
         reason: '漂移超 slop 会取消长按，菜单不该弹');
     expect(find.text('排行'), findsWidgets,
-        reason: '拖拽不许起手 —— 起手会把 chip 换成 childWhenDragging 空盒');
+        reason: '时限内不许起拖拽 —— 起手会把 chip 换成 childWhenDragging 空盒');
     expect(_tabAlive(tabs, '排行'), isTrue, reason: '漂移不关标签 —— 关闭只能靠点 × 或菜单');
+    expect(tester.takeException(), isNull);
+    tabs.dispose();
+  });
+
+  testWidgets('双击标签（默认开）：第二次抬起后关闭', (tester) async {
+    final tabs = _tabs();
+    await _openTab(tabs, '排行');
+    await _pump(tester, tabs);
+
+    // 两记 down→up 间隔 100ms。旁路观察看的是 down→up 对，内层的单击照常
+    // 立即生效 —— 所以这同时也是「单击零延迟」的回归。
+    await _doubleTap(tester, find.text('排行').first);
+
+    expect(_tabAlive(tabs, '排行'), isFalse, reason: '双击必须关掉这条标签');
+    expect(tester.takeException(), isNull);
+    tabs.dispose();
+  });
+
+  testWidgets('双击关闭开关关掉后：双击不动作，标签活着', (tester) async {
+    final tabs = _tabs();
+    await _openTab(tabs, '排行');
+    await _pump(
+      tester,
+      tabs,
+      setting: const DiscoverSettingState(tabDoubleClickClose: false),
+    );
+
+    await _doubleTap(tester, find.text('排行').first);
+
+    expect(_tabAlive(tabs, '排行'), isTrue, reason: '开关关掉后双击不许关标签');
     expect(tester.takeException(), isNull);
     tabs.dispose();
   });

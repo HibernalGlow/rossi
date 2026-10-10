@@ -321,7 +321,7 @@ void main() {
             desktop: initial,
             mobile: initial,
             availableItems: availableNavigationEntries(false),
-            onChanged: (_, __) {},
+            onChanged: (_, _) {},
           ),
         ),
       ),
@@ -329,8 +329,14 @@ void main() {
 
     // 按住「发现」行的拖拽手柄起手：`ReorderableDragStartListener` 在
     // pointer down 那一刻就把整行提进根 Overlay，异常就在下一帧抛出。
-    final handle = find.ancestor(
+    // 手柄在行尾的 trailing 里，是 ListTile 标题的**兄弟**不是祖先，
+    // 所以先圈行、再下行找手柄。
+    final row = find.ancestor(
       of: find.text(t.navigation.discover),
+      matching: find.byType(ListTile),
+    );
+    final handle = find.descendant(
+      of: row,
       matching: find.byType(ReorderableDragStartListener),
     );
     expect(handle, findsOneWidget);
