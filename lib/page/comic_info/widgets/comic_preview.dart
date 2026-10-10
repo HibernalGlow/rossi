@@ -13,9 +13,11 @@ import 'package:zephyr/page/comic_info/models/unified_plugin_preview.dart';
 import 'package:zephyr/page/search_result/widgets/bottom_loader.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
+import 'package:zephyr/widgets/image_sleep.dart';
 import 'package:zephyr/widgets/picture_bloc/bloc/picture_bloc.dart';
 import 'package:zephyr/widgets/picture_bloc/models/picture_info.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class ComicPreviewSliver extends StatelessWidget {
   const ComicPreviewSliver({super.key});
@@ -139,7 +141,7 @@ class ComicPreviewSliver extends StatelessWidget {
             onPressed: () => context.read<ComicPreviewBloc>().add(
               const LoadComicPreview(loadMore: true),
             ),
-            icon: const Icon(Icons.keyboard_arrow_down_rounded),
+            icon: const GlyphIcon(AppGlyphs.chevronDown),
             label: Text(t.oldHome.loadMore),
           ),
         ),
@@ -200,10 +202,12 @@ class _ComicPreviewTile extends StatelessWidget {
                   children: [
                     _tileBackground(
                       context,
-                      Image.file(
-                        File(state.imagePath!),
-                        fit: BoxFit.contain,
-                        cacheWidth: 360,
+                      ImageSleep(
+                        child: Image.file(
+                          File(state.imagePath!),
+                          fit: BoxFit.contain,
+                          cacheWidth: 360,
+                        ),
                       ),
                     ),
                     if (magnet.isNotEmpty)
@@ -220,8 +224,8 @@ class _ComicPreviewTile extends StatelessWidget {
                               onTap: _copyMagnet,
                               child: Padding(
                                 padding: const EdgeInsets.all(6),
-                                child: Icon(
-                                  Icons.copy_all_rounded,
+                                child: GlyphIcon(
+                                  AppGlyphs.copy,
                                   size: 16,
                                   color: context
                                       .theme
@@ -240,7 +244,7 @@ class _ComicPreviewTile extends StatelessWidget {
               return InkWell(
                 onTap: () =>
                     context.read<PictureBloc>().add(GetPicture(pictureInfo)),
-                child: _tileBackground(context, const Icon(Icons.refresh)),
+                child: _tileBackground(context, const GlyphIcon(AppGlyphs.refresh)),
               );
           }
         },

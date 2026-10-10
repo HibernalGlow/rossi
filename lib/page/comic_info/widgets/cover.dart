@@ -5,10 +5,12 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
+import 'package:zephyr/widgets/image_sleep.dart';
 import 'package:zephyr/widgets/picture_bloc/models/picture_info.dart';
 
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/widgets/picture_bloc/bloc/picture_bloc.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class Cover extends StatelessWidget {
   final PictureInfo pictureInfo;
@@ -65,11 +67,13 @@ class Cover extends StatelessWidget {
                       },
                   child: ClipRRect(
                     borderRadius: radius,
-                    child: Image.file(
-                      File(state.imagePath!),
-                      fit: BoxFit.cover,
-                      width: width,
-                      height: height,
+                    child: ImageSleep(
+                      child: Image.file(
+                        File(state.imagePath!),
+                        fit: BoxFit.cover,
+                        width: width,
+                        height: height,
+                      ),
                     ),
                   ),
                 );
@@ -93,7 +97,7 @@ class Cover extends StatelessWidget {
                         color:
                             context.theme.colorScheme.surfaceContainerHighest,
                       ),
-                      child: const Center(child: Icon(Icons.refresh)),
+                      child: const Center(child: GlyphIcon(AppGlyphs.refresh)),
                     ),
                   );
                 }
