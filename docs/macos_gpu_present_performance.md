@@ -77,7 +77,18 @@ Flutter 取纹理、合成或物理屏幕刷新。** `cachedWithClear` 额外包
   本次预取关闭且每次清缓存，该阶段主要是解码。
 - `renderMs` 包含渲染器锁等待、上传、mip / 缩放提交、同步回读、CPU 复制和视口缓存保存。
   缓存命中时则主要是复制视口帧。它不是 GPU 时间戳查询结果。
-- macOS 当前 `submitMs` 是 `renderMs` 的兼容别名，不能解读为单独的命令提交时间。
+- macOS 当前 `submitMs` 是 `renderMs` 的兼容别名，不能解读为单独的命令提交时间；
+  `queueSubmitMs` 才是 mip、主渲染和 readback 三次 `queue.submit` 的 CPU 调用耗时之和。
+- `rendererLockMs` 是前台等待共享 wgpu 渲染器锁的时间；`cachedCopyMs` 是命中预渲染视口后
+  写入 CVPixelBuffer 的复制时间；`frameCaptureMs` 与 `frameCachePublishMs` 是冷页把本次结果
+  保存到视口缓存的 CPU 时间。
+- `targetSetupMs` / `sourceSetupMs` / `uploadMs` / `mipmapEncodeMs` / `mipmapSubmitMs` /
+  `renderEncodeMs` / `renderSubmitMs` / `readbackEncodeMs` / `readbackSubmitMs` 分别覆盖
+  目标与源纹理准备、源上传、mip 命令准备与提交、主渲染命令准备与提交、回读命令准备与提交。
+- `gpuWaitMs` 是 `map_async` 后调用 `device.poll(wait_indefinitely())` 直到 map 回调完成的墙钟时间，
+  包含 GPU 排队、执行与同步开销，不能解释为 shader 独占时间；`cpuCopyMs` 是映射 staging
+  缓冲复制到 CVPixelBuffer 及行尾 padding 清零的时间。
+- 缓存命中时这些 GPU 分段为 0；统计在每次前台呈现开始时清空，失败不会继续显示上一帧的旧阶段。
 - `showBridgeMs` 也仍然不包含 Flutter 合成；`showQueueWaitMs` 只计 Swift 调度队列。
 
 ## 内存与占用
@@ -102,8 +113,8 @@ CVPixelBuffer 池、临时解码数据、正在执行任务持有的 Arc、Flutt
    的同帧关联；分别测首屏、缓存翻页、连翻和缩放。物理显示延迟还需要显示侧测量。
 2. 降低未缓存页的等待：测量实际 PNG / JPEG / AVIF 的解码档位，结合预取命中率和邻页
    准备耗时选择策略。不能为了减少 RGBA 字节而无条件牺牲放大后的细节。
-3. 分解 `renderMs`：增加上传 / 编码、等待 GPU、映射、CPU 复制和缓存保存的分段统计。
-   先量清哪部分主要花时间，再考虑源纹理内容复用和只生成实际读取的 mip 等级。
+3. 已完成 `renderMs` 的阶段分解：当前可以直接区分 renderer 锁等待、命令准备与提交、
+   同步回读等待、CPU 行复制和视口缓存保存；下一步用真实图片和应用链路样本确认瓶颈占比。
 4. 管理全部缓冲区的占用：结合系统内存压力收紧缓存，评估空闲时释放大源纹理，验证连翻
    中的瞬时峰值与重新分配代价。用实测选择容量，不把缓存预算当作总内存约束。
 5. 评估 Metal 直接写 IOSurface / CVPixelBuffer，避免当前同步回读及 CPU 搬运。
@@ -202,3 +213,44 @@ swiftc -O script/probe_macos_gpu_present.swift -o /tmp/rossi-gpu-probe
 [`GpuPresentBridgeMac.swift`](../macos/Runner/GpuPresentBridgeMac.swift)、
 [`mac_presenter/methods.rs`](../rust/gpu_present/src/mac_presenter/methods.rs)、
 [`wgpu_resampler/render.rs`](../rust/gpu_present/src/wgpu_resampler/render.rs)。
+
+
+## 后续诊断：前台呈现阶段拆分
+
+2026-10-11 追加：分段直接作为一次 `resample_to_buffer_timed` 的返回值带回前台。
+不保存共享渲染器的“最近一次耗时”，因此后台预取不会覆盖已呈现一帧的归因。
+缓存命中不调用渲染器，上传、GPU 等待及 staging 行复制等阶段均为 0。
+每次 show 开始清空旧耗时；失败后的 0 表示本次没有完成统计，不应解读为成功呈现。
+
+新增测试确认阶段有限且非负、阶段合计不超过所在墙钟区间、后台渲染不覆盖前台统计，
+以及缓存与首次呈现逐字节一致。45 项原生测试通过，Release 构建及 Swift 探针编译通过。
+小尺寸双 Release 库对照也通过逐字节校验；该冒烟对照不作为性能证据。
+
+新增原始报告：
+
+- `benchmarks/macos-gpu-present-2026-10-11/phases-12mp-2560x1600.json`
+- `benchmarks/macos-gpu-present-2026-10-11/phases-60mp-3840x2160.json`
+
+每组 8 个冷样本、24 个缓存样本，增加 `cachedPhases` 保存每个缓存样本的原生阶段。
+这轮测量期间另有应用、Flutter 测试与视频处理任务占用资源，没有隔离竞争负载。
+绝对时间明显偏离前面的报告，且缓存复制同样变慢，**不用于判断优化的速度收益或回退**。
+也不能由这些耗时推导应用独占时的 CPU / GPU 利用率或功耗。
+
+| 阶段中位数 | 12.6 MP / 2560×1600 | 60.2 MP / 3840×2160 |
+|---|---:|---:|
+| decodeMs | 377.74 ms | 1259.69 ms |
+| renderMs | 164.09 ms | 740.61 ms |
+| uploadMs | 51.46 ms | 231.61 ms |
+| queueSubmitMs | 0.13 ms | 0.35 ms |
+| gpuWaitMs | 91.46 ms | 297.88 ms |
+| cpuCopyMs | 5.59 ms | 26.33 ms |
+| frameCaptureMs | 3.37 ms | 21.14 ms |
+
+阶段中位数来自不同样本，不能相加还原 renderMs 的中位数。
+所有缓存样本的上传、GPU 等待、staging 行复制和视口捕获阶段均为 0；
+缓存复制中位数分别为 2.07 / 5.07 ms，完整缓存输出均通过逐字节一致性检查。
+
+这些数据支持下一步优先检查解码、源图上传以及 GPU 完成等待，而非队列提交调用本身。
+`gpuWaitMs` 包含着色器执行和排队，尚不能证明 readback 传输占主导。
+直接输出 IOSurface 的潜在收益仍须结合 GPU 时间戳、独占负载的对照和应用级取帧验证；
+当前 Flutter 应用级测试仍受启动异常阻碍，不能把独立探针视为完整上屏测试。
