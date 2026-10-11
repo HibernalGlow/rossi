@@ -161,9 +161,8 @@ pub(super) struct PageCache {
     pub(super) hits: u64,
     pub(super) misses: u64,
     pub(super) prefetched: u64,
-    pub(super) stale: u64,
     pub(super) evicted: u64,
-    pub(super) in_flight: Option<usize>,
+    pub(super) in_flight: std::collections::HashSet<(usize, u64)>,
     pinned: Option<(usize, u64)>,
     limits: CacheLimits,
 }
@@ -257,7 +256,7 @@ impl PageCache {
     /// 与 in-flight 回填。而超分图是**另一条线程**异步填进**同一个 `(index, epoch)`
     /// 条目**的（Dart 侧超分跑完 → `set_enhanced_pixels`）。两边并发时会出现这个时序：
     ///
-    /// 1. 预取线程选中第 7 页，`in_flight = Some(7)`，开始解原图（几百毫秒）；
+    /// 1. 预取线程选中第 7 页，`in_flight` 登记第 7 页，开始解原图（几百毫秒）；
     /// 2. 超分注入完成，页 7 条目带上 `enhanced_pixels` + `pre_rendered_enhanced`；
     /// 3. 预取线程解完，`insert(CachedPage::new_raw(7, …))`。
     ///
@@ -305,8 +304,14 @@ impl PageCache {
 
     pub(super) fn clear(&mut self) {
         self.entries.clear();
-        self.in_flight = None;
+        self.in_flight.clear();
         self.pinned = None;
+    }
+
+    #[cfg(test)]
+    pub(super) fn set_test_budget(&mut self, bytes: usize) {
+        self.limits.bytes = bytes;
+        self.enforce_limits();
     }
 
     pub(super) fn budget_bytes(&self) -> usize {
