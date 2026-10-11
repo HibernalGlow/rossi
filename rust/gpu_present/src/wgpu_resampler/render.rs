@@ -46,10 +46,7 @@ impl WgpuResampler {
         let offset_x = (target_w.saturating_sub(render_w)) / 2;
         let offset_y = (target_h.saturating_sub(render_h)) / 2;
 
-        // 滤波模式选择：
-        // 如果强制开启 Anime4K -> 2
-        // 大比例下采样（缩放到 1/3 以下）采用快速自然双线性滤波 -> 0
-        // 其余采用高质量 Lanczos3 滤波 -> 1
+        // 滤波模式：强制 Anime4K 时为 2，其余为 mip 预滤后的 Lanczos3（1）。
         // ── 缩小重建：先把采样率降到合适档位，再做重建 ──
         //
         // 这里以前是 `scale < 0.35 → 单点双线性`，而那是欠采样：一个输出像素只读源上
@@ -107,8 +104,12 @@ impl WgpuResampler {
         let mip_w = (src_w >> mip_shift).max(1);
         let mip_h = (src_h >> mip_shift).max(1);
 
+        // Anime4K 在 shader 中只取第 0 级；Lanczos 的 textureLoad 只读整数 mip_shift。
+        // 保留原有采样几何与滤波，不分配或生成采样级之后的 mip。
+        let last_sampled_level = if force_anime4k { 0 } else { mip_shift };
+
         // ① 上传源图像到 GPU 纹理
-        self.get_or_create_source_texture(src_w, src_h);
+        self.get_or_create_source_texture(src_w, src_h, last_sampled_level + 1);
         let src_texture = &self.source_cache.as_ref().unwrap().texture;
         self.queue.write_texture(
             wgpu::TexelCopyTextureInfo {
@@ -130,14 +131,17 @@ impl WgpuResampler {
             },
         );
 
-        // 第 0 级刚写进去，紧接着把下游各级补出来 —— **但只在真的要读它们时**。
-        // 单级宽核那条路（`sample_lod == 0`）根本不碰 mip，白生成一整条链
-        // 在一张 9504×6336 上要一百多毫秒，是最容易漏掉的一笔纯浪费。
-        if sample_lod > 0.0 {
-            self.generate_mipmaps(src_w, src_h);
+        if last_sampled_level > 0 {
+            self.generate_mipmaps(src_w, src_h, last_sampled_level);
         }
+        self.source_cache.as_mut().unwrap().generated_mip_levels = last_sampled_level + 1;
 
-        let src_view = src_texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let src_view = self
+            .source_cache
+            .as_ref()
+            .unwrap()
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
 
         // ② 准备 Uniforms
         let uniforms = ResampleUniforms {
