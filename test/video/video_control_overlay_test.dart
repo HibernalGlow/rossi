@@ -211,6 +211,31 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  for (final width in [320.0, 360.0, 600.0, 1100.0]) {
+    testWidgets('${width.toInt()}px：上一段、播放、下一段居中，时间在右侧', (tester) async {
+      await tester.binding.setSurfaceSize(Size(width, 640));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        const _ControlsHarness(brightness: Brightness.dark),
+      );
+      await tester.pumpAndSettle();
+      final labels = videoLabels();
+      final previous = tester.getRect(find.byTooltip(labels.backward));
+      final play = tester.getRect(find.byTooltip(labels.pause));
+      final next = tester.getRect(find.byTooltip(labels.forward));
+      final clock = tester.getRect(
+        find.byKey(const ValueKey('video-progress-time')),
+      );
+      expect(play.center.dx, closeTo(width / 2, 1));
+      expect(previous.center.dx, lessThan(play.center.dx));
+      expect(next.center.dx, greaterThan(play.center.dx));
+      expect(clock.left, greaterThanOrEqualTo(next.right));
+      expect(clock.right, lessThanOrEqualTo(width));
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
+
   testWidgets('窄泳道菜单不会越界，音量和倍速即时刷新，开着菜单也能安全退出', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 640));
     addTearDown(() => tester.binding.setSurfaceSize(null));
