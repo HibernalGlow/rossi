@@ -255,6 +255,13 @@ impl MacPresenter {
         if dst_ptr.is_null() {
             return Err(anyhow!("目标像素缓冲区指针为空"));
         }
+        if dst_stride < target_width as usize * 4 {
+            return Err(anyhow!(
+                "目标跨步不足: {} < {}",
+                dst_stride,
+                target_width as usize * 4
+            ));
+        }
         let source = self.source.clone().ok_or_else(|| anyhow!("尚未打开来源"))?;
         if index >= self.page_count {
             return Err(anyhow!("页索引越界: {} >= {}", index, self.page_count));
@@ -391,33 +398,16 @@ impl MacPresenter {
                 dst_stride,
                 false,
             )?;
-            // 现场渲染后，将当前视口尺寸保存到该页预渲染缓存中，后续再次访问即可瞬间命中
-            let stride = target_width as usize * 4;
-            let mut bgra = vec![0u8; stride * target_height as usize];
-            if r.resample_to_buffer(
-                &pixels.rgba,
-                pixels.width,
-                pixels.height,
-                target_width,
-                target_height,
-                bgra.as_mut_ptr(),
-                stride,
-                false,
-            )
-            .is_ok()
-            {
-                if let Ok(mut c) = self.shared_cache.cache.lock() {
-                    let frame = PreRenderedFrame {
-                        target_w: target_width,
-                        target_h: target_height,
-                        bgra: Arc::new(bgra),
-                        stride,
-                    };
-                    if rendered_enhanced {
-                        c.add_pre_rendered_enhanced(index, self.source_epoch, frame);
-                    } else {
-                        c.add_pre_rendered(index, self.source_epoch, frame);
-                    }
+            // 缓存直接取自本次显示结果，避免为同一视口再做一遍 GPU 渲染与回读。
+            drop(r);
+            let frame = unsafe {
+                PreRenderedFrame::capture(dst_ptr, dst_stride, target_width, target_height)
+            };
+            if let Ok(mut c) = self.shared_cache.cache.lock() {
+                if rendered_enhanced {
+                    c.add_pre_rendered_enhanced(index, self.source_epoch, frame);
+                } else {
+                    c.add_pre_rendered(index, self.source_epoch, frame);
                 }
             }
         } else if let Some(ref p) = pixels_opt {
