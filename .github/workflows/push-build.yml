@@ -324,6 +324,14 @@ jobs:
           $pkgconfig = Get-ChildItem -Path $installed -Include 'pkg-config.exe', 'pkgconf.exe' -Recurse -ErrorAction SilentlyContinue |
                        Select-Object -First 1 -ExpandProperty FullName
           if ($pkgconfig) { Add-Content -Path $env:GITHUB_ENV -Value "PKG_CONFIG=$pkgconfig" }
+          # 两份都要写：仓库根那份只对 cwd 在仓库内的 cargo 调用生效；
+          # flutter 的 native-assets 钩子把 cargo 的 cwd 放在构建目录，够不到仓库根的 .cargo/config.toml
+          # （实测：步骤里直连 `cargo build -p windcore` 能过，钩子里同一个 crate 却回退去跑 meson）。
+          # 用户级 $env:USERPROFILE\.cargo\config.toml 与 cwd 无关，cargo 必读 ⇒ 钩子才拿得到 PKG_CONFIG_PATH。
+          $userCargo = Join-Path $env:USERPROFILE '.cargo'
+          New-Item -ItemType Directory -Force -Path $userCargo | Out-Null
+          $tomlBody = '[env]' + "`n" + 'PKG_CONFIG_PATH = { value = "' + ($pcdir -replace '\\','/') + '", force = false }' + "`n"
+          [IO.File]::WriteAllText((Join-Path $userCargo 'config.toml'), $tomlBody)
           New-Item -ItemType Directory -Force -Path '.cargo' | Out-Null
           $fwd = $pcdir -replace '\\', '/'
           $toml = '[env]' + "`n" + 'PKG_CONFIG_PATH = { value = "' + $fwd + '", force = false }' + "`n"
