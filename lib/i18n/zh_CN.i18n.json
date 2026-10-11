@@ -661,7 +661,7 @@
     "workspaceLayoutSubtitle": "默认启动视图 · 泳道焦点与独占 · 悬停唤出区",
     "laneAndLayout": "泳道与布局",
     "defaultStartupView": "默认启动视图",
-    "startupViewEdges": "四边栏",
+    "startupViewEdges": "工作孔",
     "startupViewSwimlane": "泳道",
     "startupViewHint": "下次打开工作台时走哪条呈现。两种呈现共用同一份记账，切换不会重开当前这一本。",
     "laneFocusSolo": "泳道焦点与独占",

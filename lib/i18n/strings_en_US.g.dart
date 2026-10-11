@@ -768,7 +768,7 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get workspaceLayoutSubtitle => 'Startup view · lane focus & solo · hover reveal zones';
 	@override String get laneAndLayout => 'Lanes & Layout';
 	@override String get defaultStartupView => 'Default startup view';
-	@override String get startupViewEdges => 'Four edges';
+	@override String get startupViewEdges => 'Workhole';
 	@override String get startupViewSwimlane => 'Swimlane';
 	@override String get startupViewHint => 'Which presentation the workspace opens with. Both share one set of records, so switching never reopens the current book.';
 	@override String get laneFocusSolo => 'Lane focus & solo';
@@ -3157,7 +3157,7 @@ extension on TranslationsEnUs {
 			'settings.workspaceLayoutSubtitle' => 'Startup view · lane focus & solo · hover reveal zones',
 			'settings.laneAndLayout' => 'Lanes & Layout',
 			'settings.defaultStartupView' => 'Default startup view',
-			'settings.startupViewEdges' => 'Four edges',
+			'settings.startupViewEdges' => 'Workhole',
 			'settings.startupViewSwimlane' => 'Swimlane',
 			'settings.startupViewHint' => 'Which presentation the workspace opens with. Both share one set of records, so switching never reopens the current book.',
 			'settings.laneFocusSolo' => 'Lane focus & solo',
@@ -4555,12 +4555,12 @@ extension on TranslationsEnUs {
 			'bindingEditor.editor' => 'Editor',
 			'bindingEditor.modal' => 'Dialog',
 			'bindingEditor.moveUp' => 'Move up',
+			_ => null,
+		} ?? switch (path) {
 			'bindingEditor.moveDown' => 'Move down',
 			'bindingEditor.collapse' => 'Collapse binding',
 			'bindingEditor.expand' => 'Expand binding',
 			'bindingEditor.actions' => 'Actions',
-			_ => null,
-		} ?? switch (path) {
 			'bindingEditor.actionList' => 'Actions',
 			'bindingEditor.bindingDetails' => 'Bindings',
 			'bindingEditor.bindings' => 'Bindings',

@@ -661,7 +661,7 @@
     "workspaceLayoutSubtitle": "Startup view · lane focus & solo · hover reveal zones",
     "laneAndLayout": "Lanes & Layout",
     "defaultStartupView": "Default startup view",
-    "startupViewEdges": "Four edges",
+    "startupViewEdges": "Workhole",
     "startupViewSwimlane": "Swimlane",
     "startupViewHint": "Which presentation the workspace opens with. Both share one set of records, so switching never reopens the current book.",
     "laneFocusSolo": "Lane focus & solo",
