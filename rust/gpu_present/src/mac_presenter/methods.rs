@@ -205,10 +205,8 @@ impl MacPresenter {
         let mut bgra = vec![0u8; stride * target_height as usize];
         let rendered = {
             let mut r = self.resampler.lock().unwrap_or_else(|p| p.into_inner());
-            r.resample_to_buffer(
-                &pixels.rgba,
-                pixels.width,
-                pixels.height,
+            r.resample_page_to_buffer_timed(
+                &pixels,
                 target_width,
                 target_height,
                 bgra.as_mut_ptr(),
@@ -395,10 +393,8 @@ impl MacPresenter {
             let lock_wait = Instant::now();
             let mut r = self.resampler.lock().unwrap_or_else(|p| p.into_inner());
             present_timings.renderer_lock_ms = lock_wait.elapsed().as_secs_f64() * 1000.0;
-            present_timings.resample = r.resample_to_buffer_timed(
-                &pixels.rgba,
-                pixels.width,
-                pixels.height,
+            present_timings.resample = r.resample_page_to_buffer_timed(
+                &pixels,
                 target_width,
                 target_height,
                 dst_ptr,
@@ -539,10 +535,8 @@ impl MacPresenter {
 
         if target_width > 0 && target_height > 0 {
             if let Ok(mut r) = self.resampler.lock() {
-                if r.resample_to_buffer(
-                    &pixels.rgba,
-                    pixels.width,
-                    pixels.height,
+                if r.resample_page_to_buffer_timed(
+                    &pixels,
                     target_width,
                     target_height,
                     bgra.as_mut_ptr(),
@@ -674,6 +668,9 @@ impl MacPresenter {
               \"targetSetupMs\":{:.2},\
               \"sourceSetupMs\":{:.2},\
               \"uploadMs\":{:.2},\
+              \"uploadedBytes\":{},\
+              \"sourceReused\":{},\
+              \"mipmapGeneratedLevels\":{},\
               \"mipmapEncodeMs\":{:.2},\
               \"mipmapSubmitMs\":{:.2},\
               \"renderEncodeMs\":{:.2},\
@@ -723,6 +720,9 @@ impl MacPresenter {
             self.last.resample.target_setup_ms,
             self.last.resample.source_setup_ms,
             self.last.resample.upload_ms,
+            self.last.resample.uploaded_bytes,
+            self.last.resample.source_reused,
+            self.last.resample.mipmap_generated_levels,
             self.last.resample.mipmap_encode_ms,
             self.last.resample.mipmap_submit_ms,
             self.last.resample.render_encode_ms,

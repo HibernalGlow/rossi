@@ -14,9 +14,11 @@ impl WgpuResampler {
         force_anime4k: bool,
     ) -> Result<()> {
         self.render_to_view_timed(
-            src_rgba,
-            src_w,
-            src_h,
+            SourceInput::Slice {
+                rgba: src_rgba,
+                width: src_w,
+                height: src_h,
+            },
             target_view,
             target_w,
             target_h,
@@ -27,9 +29,7 @@ impl WgpuResampler {
 
     fn render_to_view_timed(
         &mut self,
-        src_rgba: &[u8],
-        src_w: u32,
-        src_h: u32,
+        source_input: SourceInput<'_>,
         target_view: &wgpu::TextureView,
         target_w: u32,
         target_h: u32,
@@ -40,6 +40,7 @@ impl WgpuResampler {
             return Ok(timings);
         }
 
+        let (src_w, src_h) = source_input.dimensions();
         let src_w = src_w.max(1);
         let src_h = src_h.max(1);
 
@@ -136,35 +137,12 @@ impl WgpuResampler {
         let source_setup = Instant::now();
         self.get_or_create_source_texture(src_w, src_h, last_sampled_level + 1);
         timings.source_setup_ms = source_setup.elapsed().as_secs_f64() * 1000.0;
-        let src_texture = &self.source_cache.as_ref().unwrap().texture;
-        let upload = Instant::now();
-        self.queue.write_texture(
-            wgpu::TexelCopyTextureInfo {
-                texture: src_texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-            },
-            src_rgba,
-            wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(src_w * 4),
-                rows_per_image: Some(src_h),
-            },
-            wgpu::Extent3d {
-                width: src_w,
-                height: src_h,
-                depth_or_array_layers: 1,
-            },
-        );
-        timings.upload_ms = upload.elapsed().as_secs_f64() * 1000.0;
+        self.upload_source(source_input, src_w, src_h, &mut timings);
 
-        if last_sampled_level > 0 {
-            let mip = self.generate_mipmaps(src_w, src_h, last_sampled_level);
-            timings.mipmap_encode_ms = mip.0;
-            timings.mipmap_submit_ms = mip.1;
-        }
-        self.source_cache.as_mut().unwrap().generated_mip_levels = last_sampled_level + 1;
+        let mip = self.generate_mipmaps(src_w, src_h, last_sampled_level);
+        timings.mipmap_encode_ms = mip.0;
+        timings.mipmap_submit_ms = mip.1;
+        timings.mipmap_generated_levels = mip.2;
 
         let render_encode = Instant::now();
         let src_view = self
@@ -294,6 +272,50 @@ impl WgpuResampler {
         dst_stride: usize,
         force_anime4k: bool,
     ) -> Result<ResampleTimings> {
+        self.resample_source_to_buffer(
+            SourceInput::Slice {
+                rgba: src_rgba,
+                width: src_w,
+                height: src_h,
+            },
+            target_w,
+            target_h,
+            dst_ptr,
+            dst_stride,
+            force_anime4k,
+        )
+    }
+
+    /// 不可变共享像素允许复用上次上传的内容。纹理只保存 Weak 身份。
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn resample_page_to_buffer_timed(
+        &mut self,
+        pixels: &Arc<rossi_local_core::decode::PagePixels>,
+        target_w: u32,
+        target_h: u32,
+        dst_ptr: *mut u8,
+        dst_stride: usize,
+        force_anime4k: bool,
+    ) -> Result<ResampleTimings> {
+        self.resample_source_to_buffer(
+            SourceInput::Page(pixels),
+            target_w,
+            target_h,
+            dst_ptr,
+            dst_stride,
+            force_anime4k,
+        )
+    }
+
+    fn resample_source_to_buffer(
+        &mut self,
+        source_input: SourceInput<'_>,
+        target_w: u32,
+        target_h: u32,
+        dst_ptr: *mut u8,
+        dst_stride: usize,
+        force_anime4k: bool,
+    ) -> Result<ResampleTimings> {
         let total = Instant::now();
         if target_w == 0 || target_h == 0 {
             return Ok(ResampleTimings::default());
@@ -307,9 +329,7 @@ impl WgpuResampler {
         let target_setup_ms = target_setup.elapsed().as_secs_f64() * 1000.0;
 
         let mut timings = self.render_to_view_timed(
-            src_rgba,
-            src_w,
-            src_h,
+            source_input,
             &target_view,
             target_w,
             target_h,

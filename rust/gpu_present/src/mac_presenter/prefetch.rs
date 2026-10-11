@@ -153,7 +153,7 @@ fn render(
     view: &View,
     hub: &PrefetchHub,
     resampler: &Mutex<WgpuResampler>,
-    pixels: &PagePixels,
+    pixels: &Arc<PagePixels>,
 ) -> Option<PreRenderedFrame> {
     let mut r = resampler.lock().unwrap_or_else(|p| p.into_inner());
     // 已经解完原图也不能抢在当前页前面渲染；拿到 GPU 锁后再检查一次。
@@ -162,10 +162,8 @@ fn render(
     }
     let stride = view.width as usize * 4;
     let mut bgra = vec![0; stride * view.height as usize];
-    r.resample_to_buffer(
-        &pixels.rgba,
-        pixels.width,
-        pixels.height,
+    r.resample_page_to_buffer_timed(
+        pixels,
         view.width,
         view.height,
         bgra.as_mut_ptr(),
