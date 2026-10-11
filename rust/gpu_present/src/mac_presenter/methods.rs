@@ -249,6 +249,8 @@ impl MacPresenter {
         target_height: u32,
     ) -> Result<()> {
         let t_total = Instant::now();
+        // 新一帧开始就清空上一帧分段，避免本次失败或缓存命中时继续显示旧 GPU 阶段。
+        self.last = PresentTimings::default();
         let _foreground = self.hub.foreground();
         if dst_ptr.is_null() {
             return Err(anyhow!("目标像素缓冲区指针为空"));
@@ -342,11 +344,13 @@ impl MacPresenter {
 
         // ② 呈现阶段：优先使用后台已预渲染好的最终视口帧（< 0.5 ms 零开销内存直拷）
         let t_render = Instant::now();
+        let mut present_timings = PresentTimings::default();
         if let Some(ref frame) = pre_rendered_opt {
             if (frame.target_w as i64 - target_width as i64).abs() <= 3
                 && (frame.target_h as i64 - target_height as i64).abs() <= 3
             {
                 prerender_hit = true;
+                let cached_copy = Instant::now();
                 unsafe {
                     copy_pre_rendered_frame(
                         frame,
@@ -356,6 +360,7 @@ impl MacPresenter {
                         target_height,
                     );
                 }
+                present_timings.cached_copy_ms = cached_copy.elapsed().as_secs_f64() * 1000.0;
             }
         }
 
@@ -387,8 +392,10 @@ impl MacPresenter {
             self.last_decoded_width = pixels.width;
             self.last_decoded_height = pixels.height;
 
+            let lock_wait = Instant::now();
             let mut r = self.resampler.lock().unwrap_or_else(|p| p.into_inner());
-            r.resample_to_buffer(
+            present_timings.renderer_lock_ms = lock_wait.elapsed().as_secs_f64() * 1000.0;
+            present_timings.resample = r.resample_to_buffer_timed(
                 &pixels.rgba,
                 pixels.width,
                 pixels.height,
@@ -400,9 +407,12 @@ impl MacPresenter {
             )?;
             // 缓存直接取自本次显示结果，避免为同一视口再做一遍 GPU 渲染与回读。
             drop(r);
+            let frame_capture = Instant::now();
             let frame = unsafe {
                 PreRenderedFrame::capture(dst_ptr, dst_stride, target_width, target_height)
             };
+            present_timings.frame_capture_ms = frame_capture.elapsed().as_secs_f64() * 1000.0;
+            let frame_cache_publish = Instant::now();
             if let Ok(mut c) = self.shared_cache.cache.lock() {
                 if rendered_enhanced {
                     c.add_pre_rendered_enhanced(index, self.source_epoch, frame);
@@ -410,6 +420,8 @@ impl MacPresenter {
                     c.add_pre_rendered(index, self.source_epoch, frame);
                 }
             }
+            present_timings.frame_cache_publish_ms =
+                frame_cache_publish.elapsed().as_secs_f64() * 1000.0;
         } else if let Some(ref p) = pixels_opt {
             self.last_source_width = p.source_width;
             self.last_source_height = p.source_height;
@@ -482,11 +494,10 @@ impl MacPresenter {
         self.presents += 1;
 
         let total_ms = t_total.elapsed().as_secs_f64() * 1000.0;
-        self.last = PresentTimings {
-            decode_ms,
-            render_ms,
-            total_ms,
-        };
+        present_timings.decode_ms = decode_ms;
+        present_timings.render_ms = render_ms;
+        present_timings.total_ms = total_ms;
+        self.last = present_timings;
 
         // ③ 投递新锚点与最新视口尺寸，驱动后续全尺寸原图预取与后台预渲染流水线
         self.hub.set_anchor(
@@ -626,6 +637,8 @@ impl MacPresenter {
                 .unwrap_or_else(|| "null".into())
         };
 
+        // `submitMs` 是旧字段，继续保留其历史语义；`queueSubmitMs` 才是 wgpu
+        // 三次 queue.submit 调用的 CPU 墙钟总和。
         format!(
             "{{\"backend\":\"macos/metal-uma\",\
               \"width\":{},\
@@ -654,6 +667,22 @@ impl MacPresenter {
               \"decodeMs\":{:.2},\
               \"renderMs\":{:.2},\
               \"submitMs\":{:.2},\
+              \"rendererLockMs\":{:.2},\
+              \"cachedCopyMs\":{:.2},\
+              \"frameCaptureMs\":{:.2},\
+              \"frameCachePublishMs\":{:.2},\
+              \"targetSetupMs\":{:.2},\
+              \"sourceSetupMs\":{:.2},\
+              \"uploadMs\":{:.2},\
+              \"mipmapEncodeMs\":{:.2},\
+              \"mipmapSubmitMs\":{:.2},\
+              \"renderEncodeMs\":{:.2},\
+              \"renderSubmitMs\":{:.2},\
+              \"readbackEncodeMs\":{:.2},\
+              \"readbackSubmitMs\":{:.2},\
+              \"gpuWaitMs\":{:.2},\
+              \"cpuCopyMs\":{:.2},\
+              \"queueSubmitMs\":{:.2},\
               \"totalMs\":{:.2}}}",
             self.target_width,
             self.target_height,
@@ -685,7 +714,26 @@ impl MacPresenter {
             self.init_ms,
             self.last.decode_ms,
             self.last.render_ms,
+            // 历史字段，保持与旧版兼容；它仍表示 presenter 的 render 墙钟时间。
             self.last.render_ms,
+            self.last.renderer_lock_ms,
+            self.last.cached_copy_ms,
+            self.last.frame_capture_ms,
+            self.last.frame_cache_publish_ms,
+            self.last.resample.target_setup_ms,
+            self.last.resample.source_setup_ms,
+            self.last.resample.upload_ms,
+            self.last.resample.mipmap_encode_ms,
+            self.last.resample.mipmap_submit_ms,
+            self.last.resample.render_encode_ms,
+            self.last.resample.render_submit_ms,
+            self.last.resample.readback_encode_ms,
+            self.last.resample.readback_submit_ms,
+            self.last.resample.gpu_wait_ms,
+            self.last.resample.cpu_copy_ms,
+            self.last.resample.mipmap_submit_ms
+                + self.last.resample.render_submit_ms
+                + self.last.resample.readback_submit_ms,
             self.last.total_ms,
         )
     }

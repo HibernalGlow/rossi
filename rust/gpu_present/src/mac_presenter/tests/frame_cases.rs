@@ -96,6 +96,17 @@ fn show_cache_reuses_the_exact_rendered_pixels_with_strided_destination() {
         .show_into_buffer(0, second.as_mut_ptr(), stride, 7, 5)
         .unwrap();
     assert!(presenter.last_prerender_hit);
+    let stats = presenter.stats_json();
+    for key in [
+        "rendererLockMs",
+        "frameCaptureMs",
+        "targetSetupMs",
+        "uploadMs",
+        "gpuWaitMs",
+        "cpuCopyMs",
+    ] {
+        assert!(stats.contains(&format!("\"{key}\":0.00")), "{key}: {stats}");
+    }
     assert_eq!(
         first, second,
         "缓存命中与首次渲染应逐字节一致，包括透明行尾"

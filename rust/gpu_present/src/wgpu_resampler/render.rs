@@ -1,4 +1,5 @@
 use super::*;
+use std::time::Instant;
 
 impl WgpuResampler {
     /// 核心 GPU 着色器渲染函数：在 GPU 上完成等比缩放、Letterbox 居中对齐、着色器滤波，输出到任意给定的 TextureView（支持 WebGPU Surface / 离屏纹理）
@@ -12,8 +13,31 @@ impl WgpuResampler {
         target_h: u32,
         force_anime4k: bool,
     ) -> Result<()> {
+        self.render_to_view_timed(
+            src_rgba,
+            src_w,
+            src_h,
+            target_view,
+            target_w,
+            target_h,
+            force_anime4k,
+        )?;
+        Ok(())
+    }
+
+    fn render_to_view_timed(
+        &mut self,
+        src_rgba: &[u8],
+        src_w: u32,
+        src_h: u32,
+        target_view: &wgpu::TextureView,
+        target_w: u32,
+        target_h: u32,
+        force_anime4k: bool,
+    ) -> Result<ResampleTimings> {
+        let mut timings = ResampleTimings::default();
         if target_w == 0 || target_h == 0 {
-            return Ok(());
+            return Ok(timings);
         }
 
         let src_w = src_w.max(1);
@@ -109,8 +133,11 @@ impl WgpuResampler {
         let last_sampled_level = if force_anime4k { 0 } else { mip_shift };
 
         // ① 上传源图像到 GPU 纹理
+        let source_setup = Instant::now();
         self.get_or_create_source_texture(src_w, src_h, last_sampled_level + 1);
+        timings.source_setup_ms = source_setup.elapsed().as_secs_f64() * 1000.0;
         let src_texture = &self.source_cache.as_ref().unwrap().texture;
+        let upload = Instant::now();
         self.queue.write_texture(
             wgpu::TexelCopyTextureInfo {
                 texture: src_texture,
@@ -130,12 +157,16 @@ impl WgpuResampler {
                 depth_or_array_layers: 1,
             },
         );
+        timings.upload_ms = upload.elapsed().as_secs_f64() * 1000.0;
 
         if last_sampled_level > 0 {
-            self.generate_mipmaps(src_w, src_h, last_sampled_level);
+            let mip = self.generate_mipmaps(src_w, src_h, last_sampled_level);
+            timings.mipmap_encode_ms = mip.0;
+            timings.mipmap_submit_ms = mip.1;
         }
         self.source_cache.as_mut().unwrap().generated_mip_levels = last_sampled_level + 1;
 
+        let render_encode = Instant::now();
         let src_view = self
             .source_cache
             .as_ref()
@@ -219,8 +250,12 @@ impl WgpuResampler {
             pass.draw(0..3, 0..1); // 绘制全屏三角形
         }
 
-        self.queue.submit(std::iter::once(encoder.finish()));
-        Ok(())
+        let command_buffer = encoder.finish();
+        timings.render_encode_ms = render_encode.elapsed().as_secs_f64() * 1000.0;
+        let render_submit = Instant::now();
+        self.queue.submit(std::iter::once(command_buffer));
+        timings.render_submit_ms = render_submit.elapsed().as_secs_f64() * 1000.0;
+        Ok(timings)
     }
 
     /// 离屏重采样：在 GPU 上渲染完成后，将结果写出到内存缓冲区（如 CVPixelBuffer / 共享内存）
@@ -235,16 +270,43 @@ impl WgpuResampler {
         dst_stride: usize,
         force_anime4k: bool,
     ) -> Result<()> {
+        self.resample_to_buffer_timed(
+            src_rgba,
+            src_w,
+            src_h,
+            target_w,
+            target_h,
+            dst_ptr,
+            dst_stride,
+            force_anime4k,
+        )?;
+        Ok(())
+    }
+
+    pub fn resample_to_buffer_timed(
+        &mut self,
+        src_rgba: &[u8],
+        src_w: u32,
+        src_h: u32,
+        target_w: u32,
+        target_h: u32,
+        dst_ptr: *mut u8,
+        dst_stride: usize,
+        force_anime4k: bool,
+    ) -> Result<ResampleTimings> {
+        let total = Instant::now();
         if target_w == 0 || target_h == 0 {
-            return Ok(());
+            return Ok(ResampleTimings::default());
         }
 
+        let target_setup = Instant::now();
         let target = self.get_or_create_target(target_w, target_h);
         let target_view = target
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
+        let target_setup_ms = target_setup.elapsed().as_secs_f64() * 1000.0;
 
-        self.render_to_view(
+        let mut timings = self.render_to_view_timed(
             src_rgba,
             src_w,
             src_h,
@@ -253,9 +315,11 @@ impl WgpuResampler {
             target_h,
             force_anime4k,
         )?;
+        timings.target_setup_ms = target_setup_ms;
 
         // ④ 从 GPU target_texture 拷入 staging_buffer
         let target = self.target_cache.as_ref().unwrap();
+        let readback_encode = Instant::now();
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -282,11 +346,16 @@ impl WgpuResampler {
                 depth_or_array_layers: 1,
             },
         );
+        let command_buffer = encoder.finish();
+        timings.readback_encode_ms = readback_encode.elapsed().as_secs_f64() * 1000.0;
+        let readback_submit = Instant::now();
+        self.queue.submit(std::iter::once(command_buffer));
+        timings.readback_submit_ms = readback_submit.elapsed().as_secs_f64() * 1000.0;
 
-        self.queue.submit(std::iter::once(encoder.finish()));
-
-        // ⑤ 映射 staging_buffer 并高速写入目标 CVPixelBuffer 内存（Apple Silicon UMA 物理总线极速直通）
+        // ⑤ 同步等待 staging_buffer 可读，再由 CPU 复制到目标 CVPixelBuffer。
+        // UMA 也仍然有 GPU 完成等待与逐行 CPU 复制，不能视为零拷贝。
         let buffer_slice = target.staging_buffer.slice(..);
+        let wait = Instant::now();
         let (tx, rx) = std::sync::mpsc::channel();
         buffer_slice.map_async(wgpu::MapMode::Read, move |res| {
             let _ = tx.send(res);
@@ -297,8 +366,10 @@ impl WgpuResampler {
         rx.recv()
             .map_err(|e| anyhow!("接收 buffer map 信号失败: {e}"))?
             .map_err(|e| anyhow!("映射 staging buffer 失败: {e:?}"))?;
+        timings.gpu_wait_ms = wait.elapsed().as_secs_f64() * 1000.0;
 
         {
+            let cpu_copy = Instant::now();
             let mapped = buffer_slice.get_mapped_range();
             let row_bytes = (target_w * 4) as usize;
             let padded_stride = target.padded_bytes_per_row as usize;
@@ -320,9 +391,11 @@ impl WgpuResampler {
                     }
                 }
             }
+            timings.cpu_copy_ms = cpu_copy.elapsed().as_secs_f64() * 1000.0;
         }
 
         target.staging_buffer.unmap();
-        Ok(())
+        timings.total_ms = total.elapsed().as_secs_f64() * 1000.0;
+        Ok(timings)
     }
 }
