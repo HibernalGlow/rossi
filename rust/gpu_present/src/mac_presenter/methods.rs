@@ -95,8 +95,7 @@ impl MacPresenter {
         self.last_ambient = None;
 
         if let Ok(mut c) = self.shared_cache.cache.lock() {
-            c.entries.clear();
-            c.in_flight = None;
+            c.clear();
         }
         self.hub.clear_source();
         Ok(count)
@@ -219,26 +218,22 @@ impl MacPresenter {
 
         if let Ok(mut c) = self.shared_cache.cache.lock() {
             c.in_flight = None;
-            if c.has(index, self.source_epoch) {
-                c.set_pixels(index, self.source_epoch, pixels);
-            } else {
-                c.insert(CachedPage::new_raw(index, self.source_epoch, Some(pixels)));
+            if rendered.is_ok() {
+                c.store_raw_render(
+                    index,
+                    self.source_epoch,
+                    pixels,
+                    PreRenderedFrame {
+                        target_w: target_width,
+                        target_h: target_height,
+                        bgra: Arc::new(bgra),
+                        stride,
+                    },
+                );
             }
         }
+        self.shared_cache.cv.notify_all();
         rendered?;
-
-        if let Ok(mut c) = self.shared_cache.cache.lock() {
-            c.add_pre_rendered(
-                index,
-                self.source_epoch,
-                PreRenderedFrame {
-                    target_w: target_width,
-                    target_h: target_height,
-                    bgra: Arc::new(bgra),
-                    stride,
-                },
-            );
-        }
         Ok(())
     }
 
@@ -281,6 +276,7 @@ impl MacPresenter {
         let mut used_enhanced = false;
         let (pixels_opt, pre_rendered_opt) = {
             let mut c = self.shared_cache.cache.lock().unwrap();
+            c.pin(index, self.source_epoch);
             // 先尝试从缓存直接拿（对齐 mImageViewer 级联规则）
             if let Some((p, r)) = c.get(
                 index,
@@ -545,21 +541,21 @@ impl MacPresenter {
             }
         }
 
-        if let Ok(mut c) = self.shared_cache.cache.lock() {
-            c.set_enhanced_pixels(index, self.source_epoch, pixels.clone());
-            if prerendered {
-                c.add_pre_rendered_enhanced(
-                    index,
-                    self.source_epoch,
-                    PreRenderedFrame {
-                        target_w: target_width,
-                        target_h: target_height,
-                        bgra: Arc::new(bgra),
-                        stride,
-                    },
-                );
-            }
+        let frame = prerendered.then(|| PreRenderedFrame {
+            target_w: target_width,
+            target_h: target_height,
+            bgra: Arc::new(bgra),
+            stride,
+        });
+        let mut c = self
+            .shared_cache
+            .cache
+            .lock()
+            .map_err(|_| anyhow!("页面缓存锁不可用"))?;
+        if !c.store_enhanced_render(index, self.source_epoch, pixels.clone(), frame) {
+            return Err(anyhow!("超分缓存超出预算，第 {} 页未保留", index));
         }
+        drop(c);
         eprintln!(
             "[Rossi GPU] set_enhanced_pixels: index={}, prerendered={}, w={}, h={}",
             index, prerendered, pixels.width, pixels.height
@@ -596,12 +592,21 @@ impl MacPresenter {
     }
 
     pub fn stats_json(&self) -> String {
-        let (hits, misses, prefetched, bytes) = self
+        let (hits, misses, prefetched, bytes, budget, over_budget) = self
             .shared_cache
             .cache
             .lock()
-            .map(|c| (c.hits, c.misses, c.prefetched, c.bytes()))
-            .unwrap_or((0, 0, 0, 0));
+            .map(|c| {
+                (
+                    c.hits,
+                    c.misses,
+                    c.prefetched,
+                    c.bytes(),
+                    c.budget_bytes(),
+                    c.over_budget_bytes(),
+                )
+            })
+            .unwrap_or((0, 0, 0, 0, 0, 0));
 
         format!(
             "{{\"backend\":\"macos/metal-uma\",\
@@ -617,6 +622,8 @@ impl MacPresenter {
               \"cacheMisses\":{},\
               \"cachePrefetched\":{},\
               \"cacheBytes\":{},\
+              \"cacheBudgetBytes\":{},\
+              \"cacheOverBudgetBytes\":{},\
               \"sourceWidth\":{},\
               \"sourceHeight\":{},\
               \"decodedWidth\":{},\
@@ -639,6 +646,8 @@ impl MacPresenter {
             misses,
             prefetched,
             bytes,
+            budget,
+            over_budget,
             self.last_source_width,
             self.last_source_height,
             self.last_decoded_width,
