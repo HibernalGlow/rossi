@@ -290,6 +290,16 @@ jobs:
           $vcpkg = if ($env:VCPKG_ROOT) { $env:VCPKG_ROOT } else { $env:VCPKG_INSTALLATION_ROOT }
           if (-not $vcpkg) { "::error::runner 上没有 VCPKG_ROOT / VCPKG_INSTALLATION_ROOT"; exit 1 }
           & (Join-Path $vcpkg 'vcpkg.exe') install dav1d:x64-windows pkgconf:x64-windows
+          # dav1d-sys 0.8.3 的 build.rs 不是「链接现成 dav1d」，而是解包 dav1d 源码自己编
+          # （失败时日志里能看到 dav1d-1.5.4.tar.gz），x86 汇编要 nasm、配置要 meson+ninja，
+          # GitHub 的 Windows 镜像这三样都没有 ⇒ 只补 pkg-config 仍然编不过。
+          choco install nasm -y --no-progress
+          python -m pip install --quiet --disable-pip-version-check meson ninja
+          $nasmDir = Split-Path (Get-Command nasm -ErrorAction SilentlyContinue).Source
+          if ($nasmDir) { Add-Content -Path $env:GITHUB_PATH -Value $nasmDir }
+          $scripts = (python -c "import os,sysconfig;print(os.path.join(sysconfig.get_path('scripts')))").Trim()
+          if (Test-Path $scripts) { Add-Content -Path $env:GITHUB_PATH -Value $scripts }
+          "::notice::nasm=$nasmDir scripts=$scripts meson=$((Get-Command meson -ErrorAction SilentlyContinue).Source) ninja=$((Get-Command ninja -ErrorAction SilentlyContinue).Source)"
           $installed = Join-Path $vcpkg 'installed'
           $pcdir = Get-ChildItem -Path $installed -Filter dav1d.pc -Recurse -ErrorAction SilentlyContinue |
                    Where-Object { $_.Directory.Name -eq 'pkgconfig' } |
