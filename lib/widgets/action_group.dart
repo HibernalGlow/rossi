@@ -237,20 +237,24 @@ class ActionIconButton extends StatelessWidget {
     final glyph = this.glyph;
     // 禁用时连形变一起关掉：按一颗按不了的按钮不该鼓。
     final pressed = enabled && !muted;
-    return ElasticButton(
+    return ActionBubbleTarget(
+      corner: ControlShape.corner,
       enabled: pressed,
-      child: IconButton(
-        tooltip: tooltip,
-        onPressed: enabled ? onPressed : null,
-        onLongPress: enabled ? onLongPress : null,
-        style: style(context).copyWith(
-          foregroundColor: muted
-              ? WidgetStatePropertyAll(
-                  colorScheme.onSurfaceVariant.withValues(alpha: 0.38),
-                )
-              : null,
+      child: ElasticButton(
+        enabled: pressed,
+        child: IconButton(
+          tooltip: tooltip,
+          onPressed: enabled ? onPressed : null,
+          onLongPress: enabled ? onLongPress : null,
+          style: style(context).copyWith(
+            foregroundColor: muted
+                ? WidgetStatePropertyAll(
+                    colorScheme.onSurfaceVariant.withValues(alpha: 0.38),
+                  )
+                : null,
+          ),
+          icon: glyph != null ? GlyphIcon(glyph) : GlyphIcon(icon!),
         ),
-        icon: glyph != null ? GlyphIcon(glyph) : GlyphIcon(icon!),
       ),
     );
   }
@@ -291,16 +295,19 @@ class ActionToggleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final glyph = this.glyph;
-    return ElasticButton(
-      enabled: enabled,
-      child: IconButton(
-        isSelected: on,
-        tooltip: tooltip,
-        onPressed: enabled ? onPressed : null,
-        style: ActionIconButton.style(context, selected: on),
-        icon: glyph != null
-            ? AnimatedGlyph(glyph: glyph, filled: on)
-            : GlyphIcon(icon!),
+    return ActionBubbleTarget(
+      enabled: enabled && onPressed != null,
+      child: ElasticButton(
+        enabled: enabled,
+        child: IconButton(
+          isSelected: on,
+          tooltip: tooltip,
+          onPressed: enabled ? onPressed : null,
+          style: ActionIconButton.style(context, selected: on),
+          icon: glyph != null
+              ? AnimatedGlyph(glyph: glyph, filled: on)
+              : GlyphIcon(icon!),
+        ),
       ),
     );
   }

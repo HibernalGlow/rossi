@@ -518,7 +518,6 @@ class _SlotMaterialize extends StatelessWidget {
   }
 }
 
-
 /// A floating pill of destinations whose selection is a lens that springs
 /// between them, after iOS's tab bar. Pressing swells the bar as
 /// [ElasticPress] does and lifts the lens under the finger; dragging slides

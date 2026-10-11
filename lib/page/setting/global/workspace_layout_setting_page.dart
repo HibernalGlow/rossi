@@ -7,6 +7,7 @@ import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/workspace/model/workspace_interaction_settings.dart';
+import 'package:zephyr/workspace/model/workspace_lane_interaction.dart';
 import 'package:zephyr/workspace/model/workspace_layout_snapshot.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
 import 'package:zephyr/workspace/model/workspace_pointer_mode.dart';
@@ -19,6 +20,7 @@ import 'package:zephyr/icons/icons.dart';
 part 'parts/workspace_layout_reveal_zone_part.dart';
 // 毫秒级驻留延时条目与整数数字框。
 part 'parts/workspace_layout_delay_controls_part.dart';
+part 'parts/workspace_layout_lane_interaction_part.dart';
 
 /// 「设置 → 布局」：工作台走哪条呈现、焦点与独占什么时候响应、
 /// 以及**悬停唤出区**那块可以拖的画布。
@@ -111,6 +113,38 @@ class _WorkspaceLayoutSettingPageState
                 ),
                 const SizedBox(height: 12),
                 _FocusAndSoloCard(
+                  interaction: snapshot.interaction,
+                  onChanged: (next) {
+                    setState(
+                      () => _snapshot = _snapshot!.copyWithInteraction(next),
+                    );
+                    _write(interaction: next);
+                  },
+                ),
+                const SizedBox(height: 12),
+                _LaneInteractionCard(
+                  laneIds: snapshot.layout.laneOrder,
+                  laneTitles: {
+                    for (final entry in snapshot.layout.lanes.entries)
+                      entry.key: entry.value.title,
+                  },
+                  interaction: snapshot.interaction,
+                  onChanged: (laneId, value) {
+                    final current = _snapshot!.interaction;
+                    final next = current.copyWith(
+                      laneInteractions: {
+                        ...current.laneInteractions,
+                        laneId: value,
+                      },
+                    );
+                    setState(
+                      () => _snapshot = _snapshot!.copyWithInteraction(next),
+                    );
+                    _write(interaction: next);
+                  },
+                ),
+                const SizedBox(height: 12),
+                _LaneHeaderCard(
                   interaction: snapshot.interaction,
                   onChanged: (next) {
                     setState(

@@ -21,9 +21,10 @@ Future<void> showAppLogDialog(
   required String copiedToast,
   required String closeLabel,
   Future<String> Function()? openAction,
-}) => showDialog<void>(
+}) => showPopupPanel<void>(
+  presentation: PopupPresentation.relative,
   context: context,
-  builder: (context) => AlertDialog(
+  builder: (context) => PopupPanel(
     title: Text(title),
     content: SizedBox(
       width: 720,

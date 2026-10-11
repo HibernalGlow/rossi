@@ -5,15 +5,16 @@ import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 
 Future<List<int>?> showGesturePasswordSetupDialog(
   BuildContext context, {
   required String title,
   required String confirmTitle,
 }) {
-  return showDialog<List<int>>(
+  return showPopupPanel<List<int>>(
     context: context,
-    barrierDismissible: false,
+    // 原 barrierDismissible: false（点遮罩不可关）—— 新入口无此参数，遮罩现可点击关闭
     builder: (context) =>
         _GesturePasswordSetupDialog(title: title, confirmTitle: confirmTitle),
   );
@@ -26,9 +27,9 @@ Future<GestureUnlockResult?> showGestureUnlockDialog(
   String hint = '',
   bool showForgotPassword = false,
 }) {
-  return showDialog<GestureUnlockResult>(
+  return showPopupPanel<GestureUnlockResult>(
     context: context,
-    barrierDismissible: false,
+    // 原 barrierDismissible: false（点遮罩不可关）—— 新入口无此参数，遮罩现可点击关闭
     builder: (context) => _GestureUnlockDialog(
       expectedHash: expectedHash,
       title: title,
@@ -51,9 +52,9 @@ Future<String?> showPinCodeSetupDialog(
   required String title,
   required String confirmTitle,
 }) {
-  return showDialog<String>(
+  return showPopupPanel<String>(
     context: context,
-    barrierDismissible: false,
+    // 原 barrierDismissible: false（点遮罩不可关）—— 新入口无此参数，遮罩现可点击关闭
     builder: (context) =>
         _PinCodeSetupDialog(title: title, confirmTitle: confirmTitle),
   );
@@ -65,9 +66,9 @@ Future<bool?> showPinVerifyDialog(
   String title = '',
   String hint = '',
 }) {
-  return showDialog<bool>(
+  return showPopupPanel<bool>(
     context: context,
-    barrierDismissible: false,
+    // 原 barrierDismissible: false（点遮罩不可关）—— 新入口无此参数，遮罩现可点击关闭
     builder: (context) =>
         _PinVerifyDialog(expectedHash: expectedHash, title: title, hint: hint),
   );
@@ -185,7 +186,7 @@ class _GesturePasswordSetupDialogState
         ? t.gestureLock.setupHintFirst
         : t.gestureLock.setupHintConfirm;
 
-    return AlertDialog(
+    return PopupPanel(
       title: Text(title),
       content: SizedBox(
         width: 320,
@@ -268,7 +269,7 @@ class _GestureUnlockDialogState extends State<_GestureUnlockDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return PopupPanel(
       title: Text(widget.title),
       content: SizedBox(
         width: 320,
@@ -340,7 +341,7 @@ class _PinCodeSetupDialogState extends State<_PinCodeSetupDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return PopupPanel(
       title: Text(widget.title),
       content: SizedBox(
         width: 320,
@@ -455,7 +456,7 @@ class _PinVerifyDialogState extends State<_PinVerifyDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return PopupPanel(
       title: Text(widget.title),
       content: SizedBox(
         width: 320,

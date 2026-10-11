@@ -519,9 +519,10 @@ class PluginSettingsContent extends StatelessWidget {
     required bool obscure,
   }) {
     final controller = TextEditingController(text: initialValue);
-    return showDialog<String>(
+    return showPopupPanel<String>(
+      presentation: PopupPresentation.relative,
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => PopupPanel(
         title: Text(title),
         content: TextField(
           controller: controller,

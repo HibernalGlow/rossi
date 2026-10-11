@@ -414,6 +414,16 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
 }
 
 /// 标签条末尾那一组动作。横向档排在行的最右，竖向档排在轨的最下。
+///
+/// 走全应用统一的那一份（`widgets/action_group.dart`）：药丸槽 +
+/// `ActionIconButton`（内含 `ElasticButton` 的跟手形变）。
+///
+/// **别在这里写裸 `IconButton`** —— 那样这一组就没有「按住鼓一下、按住拖会跟着
+/// 手指走」的动效，见方与圆角也与别的工具条各漂一点（2026-10-11 用户指出：
+/// 发现页右上角没统一）。
+///
+/// 两种朝向只是**换一个 `axis`**：横条里三颗横排、竖轨里三颗竖排；
+/// 槽的圆角、槽壁厚度、组内间距都由 `ActionGroup` 给，不另写一套。
 class _BarActions extends StatelessWidget {
   const _BarActions({
     required this.vertical,

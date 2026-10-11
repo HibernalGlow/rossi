@@ -33,7 +33,7 @@ class _PluginOrderDialogState extends State<PluginOrderDialog> {
         .clamp(220.0, 560.0)
         .toDouble();
 
-    return AlertDialog(
+    return PopupPanel(
       title: Text(t.discover.customOrder),
       content: SizedBox(
         width: 420,

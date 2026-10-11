@@ -188,7 +188,8 @@ class _ComicListViewState extends State<_ComicListView>
       return;
     }
 
-    final result = await showDialog<Map<String, String>>(
+    final result = await showPopupPanel<Map<String, String>>(
+      presentation: PopupPresentation.relative,
       context: context,
       builder: (context) => PluginListFilterDialog(
         scheme: bundle.scheme,
