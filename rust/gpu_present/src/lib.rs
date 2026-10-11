@@ -49,6 +49,7 @@ pub use presenter::Readback;
 // ───────────────────────── Windows 实现 ─────────────────────────
 
 #[cfg(target_os = "windows")]
+#[path = "platform_windows.rs"]
 mod platform;
 
 #[cfg(target_os = "windows")]
