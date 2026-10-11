@@ -344,6 +344,15 @@ jobs:
           Get-ChildItem "$env:CARGO_TARGET_DIR\release\rossi_gpu_present.dll" -ErrorAction SilentlyContinue |
             Select-Object -ExpandProperty FullName
 
+          # MSBuild 会把 build script 的 stderr 整段吞掉，只剩下
+          # "CUSTOMBUILD : error : failed to run custom build command for dav1d-sys v0.8.3"。
+          # 这里绕开 MSBuild 直接编 windcore（native-assets hook 编的就是它），
+          # 让 cargo 自己把缺什么打在步骤日志里；失败也让它停在这一步，
+          # 这样上面紧挨着的就是原始报错。
+          $env:CARGO_TARGET_DIR = (Resolve-Path '.').Path + '\rust\target'
+          cargo build --release --manifest-path rust/Cargo.toml -p windcore
+          if ($LASTEXITCODE -ne 0) { "::error::cargo 预编 windcore 失败，退出码 $LASTEXITCODE（原始报错见上）"; exit 1 }
+
       - name: 运行 Windows 构建脚本
         run: |
           fvm flutter pub get
