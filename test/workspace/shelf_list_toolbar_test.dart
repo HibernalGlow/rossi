@@ -34,7 +34,10 @@ import 'package:zephyr/workspace/widgets/library_view/shelf_menu_button.dart';
 Widget _harness(ShelfListToolbar toolbar) {
   return MaterialApp(
     home: Scaffold(
-      body: SizedBox(width: 900, child: Align(alignment: Alignment.topLeft, child: toolbar)),
+      body: SizedBox(
+        width: 900,
+        child: Align(alignment: Alignment.topLeft, child: toolbar),
+      ),
     ),
   );
 }
@@ -79,9 +82,33 @@ void main() {
   setUp(() => controller = TextEditingController());
   tearDown(() => controller.dispose());
 
+  testWidgets('首次点击空搜索框会展开并获得焦点，选区变化不会将它收起', (tester) async {
+    await tester.pumpWidget(_harness(_toolbar(controller: controller)));
+    await tester.tap(find.byTooltip('搜索'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsOneWidget);
+    expect(
+      tester.widget<EditableText>(find.byType(EditableText)).focusNode.hasFocus,
+      isTrue,
+    );
+    controller.selection = const TextSelection.collapsed(offset: 0);
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsOneWidget);
+    await tester.enterText(find.byType(TextField), '测试');
+    await tester.tap(find.byTooltip('收起搜索'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsNothing);
+    await tester.tap(find.byTooltip('搜索'));
+    await tester.pumpAndSettle();
+    expect(find.text('测试'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('图标钮 40 见方、图标 20 —— 与文件管理器同一份度量档', (tester) async {
     await tester.pumpWidget(
-      _harness(_toolbar(controller: controller, onExport: () {}, onImport: () {})),
+      _harness(
+        _toolbar(controller: controller, onExport: () {}, onImport: () {}),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -126,7 +153,9 @@ void main() {
 
   testWidgets('分组画成下沉槽：槽内 4、槽与槽之间 12，且两个值真的不同', (tester) async {
     await tester.pumpWidget(
-      _harness(_toolbar(controller: controller, onExport: () {}, onImport: () {})),
+      _harness(
+        _toolbar(controller: controller, onExport: () {}, onImport: () {}),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -160,11 +189,7 @@ void main() {
 
     // 断言这两个值互不相等：分组这件事的全部含义就是「组间比组内松」。
     // 如果哪天两处都写成同一个数，这条会红，而上面两条会一起绿着骗人。
-    expect(
-      within,
-      isNot(between),
-      reason: '组内与组间同一个间距，等于没有分组',
-    );
+    expect(within, isNot(between), reason: '组内与组间同一个间距，等于没有分组');
 
     // 阳性对照：槽得是**画出来的**，不是一只透明的 Container —— 上面三条
     // 全靠间距，间距对了但槽没画照样会全绿。
@@ -296,7 +321,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final chips = tester.widgetList<ChoiceChip>(find.byType(ChoiceChip)).toList();
+    final chips = tester
+        .widgetList<ChoiceChip>(find.byType(ChoiceChip))
+        .toList();
     expect(chips, hasLength(2));
     final selectedChip = chips.first;
     final unselectedChip = chips.last;
@@ -308,13 +335,13 @@ void main() {
     expect(selectedChip.selectedColor, scheme.secondaryContainer);
     expect(selectedChip.labelStyle!.color, scheme.onSecondaryContainer);
     // 选中时不描边：MD3 的 chip 靠底色分层，不靠「底色 + 一圈线」。
-    expect(selectedChip.side!.color.a, 0);
+    expect(selectedChip.side, BorderSide.none);
     // 3. 未选中也得有自己的容器底色：全局 chipTheme 把 backgroundColor 覆成了
     //    surface，在 useMaterial3 下它会盖过 M3 默认的 surfaceContainerLow，
     //    于是那颗 chip 只剩一圈描边、读起来不像可点的档。
-    expect(unselectedChip.backgroundColor, scheme.surfaceContainerLow);
+    expect(unselectedChip.backgroundColor, scheme.surfaceContainer);
     expect(unselectedChip.labelStyle!.color, scheme.onSurfaceVariant);
-    expect(unselectedChip.side!.color, scheme.outlineVariant);
+    expect(unselectedChip.side, BorderSide.none);
   });
 
   testWidgets('阳性对照：不写 showCheckmark 时默认档是会画勾的', (tester) async {
@@ -324,7 +351,11 @@ void main() {
           body: Column(
             children: [
               // 与 ShelfListChip 唯一的差别就是不传 showCheckmark。
-              ChoiceChip(label: const Text('全部'), selected: true, onSelected: (_) {}),
+              ChoiceChip(
+                label: const Text('全部'),
+                selected: true,
+                onSelected: (_) {},
+              ),
             ],
           ),
         ),

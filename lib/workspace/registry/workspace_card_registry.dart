@@ -102,6 +102,9 @@ class WorkspaceCardDefinition {
   /// 默认跨度高度（1..4）。
   final int defaultHeightSpan;
 
+  /// 卡片内容需要的最小宽度；窄面板自动减少同一行的卡片数。
+  final double minimumWidth;
+
   /// 是否允许用户把它收起来（`false` = 面板的固定主体）。
   final bool canHide;
 
@@ -124,6 +127,7 @@ class WorkspaceCardDefinition {
     this.defaultExpanded = true,
     this.defaultWidthSpan = 4,
     this.defaultHeightSpan = 2,
+    this.minimumWidth = 240,
     this.canHide = true,
     this.supportedHere,
     this.unsupportedHint,
@@ -282,6 +286,7 @@ class WorkspaceCardRegistry {
       icon: AppGlyphs.photos,
       defaultPanelId: WorkspacePanelId.info,
       defaultOrder: 1,
+      defaultWidthSpan: 2,
       builder: (context, chrome) => ImageInformationCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
@@ -297,6 +302,7 @@ class WorkspaceCardRegistry {
       icon: AppGlyphs.storage,
       defaultPanelId: WorkspacePanelId.info,
       defaultOrder: 2,
+      defaultWidthSpan: 2,
       builder: (context, chrome) => StorageInformationCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
@@ -312,6 +318,7 @@ class WorkspaceCardRegistry {
       icon: AppGlyphs.clock,
       defaultPanelId: WorkspacePanelId.info,
       defaultOrder: 3,
+      defaultWidthSpan: 2,
       builder: (context, chrome) => TimeInformationCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
@@ -327,6 +334,7 @@ class WorkspaceCardRegistry {
       icon: AppGlyphs.bolt,
       defaultPanelId: WorkspacePanelId.info,
       defaultOrder: 4,
+      defaultWidthSpan: 2,
       builder: (context, chrome) => PreloadStatusCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
@@ -361,6 +369,8 @@ class WorkspaceCardRegistry {
       icon: AppGlyphs.sparkle,
       defaultPanelId: WorkspacePanelId.control,
       defaultOrder: 1,
+      defaultWidthSpan: 2,
+      minimumWidth: 320,
       builder: (context, chrome) => SuperResolutionCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
@@ -377,6 +387,8 @@ class WorkspaceCardRegistry {
       icon: AppGlyphs.translate,
       defaultPanelId: WorkspacePanelId.control,
       defaultOrder: 2,
+      defaultWidthSpan: 2,
+      minimumWidth: 320,
       // Android / iOS 是 ADR-0018 §决定 6 的排除项：`ort` 那两端没注册加速器 EP，
       // 识别模型还是 fp32 的 441 MB。入口画出来却必然报错比不画更坏 ——
       // 但整张卡凭空消失又会被读成「没有这个功能」，所以留壳、灰显、说明。
@@ -398,6 +410,8 @@ class WorkspaceCardRegistry {
       icon: AppGlyphs.wand,
       defaultPanelId: WorkspacePanelId.control,
       defaultOrder: 3,
+      defaultWidthSpan: 2,
+      minimumWidth: 320,
       builder: (context, chrome) => ImageTuningCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,

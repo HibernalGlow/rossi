@@ -33,6 +33,7 @@ import 'package:zephyr/workspace/widgets/cards/shelf_entry_context_menu.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_list_chip.dart';
+import 'package:zephyr/workspace/widgets/library_view/shelf_list_rail.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_list_toolbar.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_timeline_view.dart';
 
@@ -204,9 +205,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
       // 时间线**固定按时间倒序**（最近的在最上面），不跟着 `_sort` 走：
       // 一条按标题排好的时间线会切出一堆上下来回的日期段，那不是时间线。
       // 工具栏里排序那颗键在这时是灰的，所以这里不需要解释「你排的序呢」。
-      sort: _timeline
-          ? const ShelfSort(field: ShelfSortField.time)
-          : _sort,
+      sort: _timeline ? const ShelfSort(field: ShelfSortField.time) : _sort,
       normalize: _normalize,
     );
     // 插件 id 是一串 uuid，行上得换成插件自己报的名字（口径见 pluginDisplayNames）。
@@ -260,7 +259,9 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
     bool libraryEmpty,
     bool menuEnabled,
   ) {
-    if (_timeline) return _buildTimeline(context, rows, libraryEmpty, menuEnabled);
+    if (_timeline) {
+      return _buildTimeline(context, rows, libraryEmpty, menuEnabled);
+    }
     return LibraryEntryList(
       mode: _viewMode,
       entries: rows,
@@ -365,11 +366,18 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
   Future<void> _editList(String? selected) async {
     final editing = selected != null && selected != _kAllLists;
     final current = editing ? selected : null;
-    final result = await showDialog<_ListEditorResult>(
+    final result = await showPopupPanel<_ListEditorResult>(
+      presentation: PopupPresentation.relative,
       context: context,
-      builder: (context) => _ListEditorDialog(
+      builder: (context) => ShelfListEditor(
+        title: current != null ? '重命名书签列表' : '新建书签列表',
+        label: '列表名称',
+        description: '按主题整理书签。创建后可以把书签移动到这个列表。',
         initialName: current?.split('/').last ?? '',
-        editing: current != null,
+        onSave: (name) => context.pop(_ListEditorResult(name)),
+        onDelete: current == null
+            ? null
+            : () => context.pop(const _ListEditorResult('', delete: true)),
       ),
     );
     if (result == null || !mounted) return;
@@ -583,53 +591,4 @@ class _ListEditorResult {
 
   final String name;
   final bool delete;
-}
-
-class _ListEditorDialog extends StatefulWidget {
-  const _ListEditorDialog({required this.initialName, required this.editing});
-
-  final String initialName;
-  final bool editing;
-
-  @override
-  State<_ListEditorDialog> createState() => _ListEditorDialogState();
-}
-
-class _ListEditorDialogState extends State<_ListEditorDialog> {
-  late final _controller = TextEditingController(text: widget.initialName);
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.editing ? '重命名书签列表' : '新建书签列表'),
-      content: TextField(
-        controller: _controller,
-        autofocus: true,
-        decoration: const InputDecoration(labelText: '列表名称', isDense: true),
-        onSubmitted: (value) => context.pop(_ListEditorResult(value)),
-      ),
-      actions: [
-        if (widget.editing)
-          TextButton(
-            onPressed: () =>
-                context.pop(const _ListEditorResult('', delete: true)),
-            child: const Text('删除列表'),
-          ),
-        TextButton(
-          onPressed: () => context.pop(),
-          child: Text(t.common.cancel),
-        ),
-        FilledButton(
-          onPressed: () => context.pop(_ListEditorResult(_controller.text)),
-          child: Text(t.common.save),
-        ),
-      ],
-    );
-  }
 }

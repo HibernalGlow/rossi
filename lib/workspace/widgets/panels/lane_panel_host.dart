@@ -9,6 +9,7 @@ import 'package:zephyr/workspace/router/workspace_lane_dispatch.dart';
 import 'package:zephyr/workspace/widgets/containers/embedded_upstream_page.dart';
 import 'package:zephyr/workspace/widgets/panels/panel_card_list.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/workspace/widgets/panels/retained_panel_switcher.dart';
 
 /// **一条面板泳道的内容宿主**：只画「当前面板是什么」。
 ///
@@ -34,6 +35,27 @@ class LanePanelHost extends StatefulWidget {
 class _LanePanelHostState extends State<LanePanelHost> {
   /// 已经访问过的面板 id（只有访问过的才真正被构建）。
   final Set<String> _visited = <String>{};
+
+  /// 每个面板独立保存编辑态。用 ValueNotifier 让已经挂在局部 Navigator
+  /// 里的卡片内容也能立刻收到标题栏的状态变化。
+  final Map<String, ValueNotifier<bool>> _editingPanels =
+      <String, ValueNotifier<bool>>{};
+
+  ValueNotifier<bool> _editingNotifierFor(String panelId) {
+    return _editingPanels.putIfAbsent(
+      panelId,
+      () => ValueNotifier<bool>(false),
+    );
+  }
+
+  @override
+  void dispose() {
+    for (final notifier in _editingPanels.values) {
+      notifier.dispose();
+    }
+    _editingPanels.clear();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,26 +83,23 @@ class _LanePanelHostState extends State<LanePanelHost> {
     if (active < 0) active = 0;
     final activePanel = panels[active];
 
-    // 访问过就留着：首次可见时登记，之后不再从 IndexedStack 里摘掉。
+    // 访问过就留着：切换只做视觉过渡，不摘掉面板的导航和业务状态。
     _visited.add(activePanel.id);
 
-    return IndexedStack(
-      index: active,
-      sizing: StackFit.expand,
-      children: [
+    return RetainedPanelSwitcher(
+      selectedId: activePanel.id,
+      children: {
         for (final panel in panels)
           if (_visited.contains(panel.id))
-            _buildPanelContent(
+            panel.id: _buildPanelContent(
               context,
               panel,
               board,
               cubit,
               // 只有**本泳道当前显示的那一个**面板才是推入的候选落点。
               isVisible: panel.id == activePanel.id,
-            )
-          else
-            const SizedBox.shrink(),
-      ],
+            ),
+      },
     );
   }
 
@@ -92,6 +111,7 @@ class _LanePanelHostState extends State<LanePanelHost> {
     required bool isVisible,
   }) {
     final page = panel.page;
+    final editing = _editingNotifierFor(panel.id);
     if (!panel.acceptsCards && page != null) {
       // 整页复用：面板不多画标题，上游页面自带 chrome。
       // 外面这层负责「从这里点开的东西开在这里」（局部导航栈）。
@@ -113,20 +133,42 @@ class _LanePanelHostState extends State<LanePanelHost> {
           // 非独占面板才画标题行（独占面板的内容自带 chrome）。
           // 标题行留在导航栈**外面**：它是这块面板自己的 chrome，
           // 不该被推进来的页面盖住（用户还得靠它换面板 / 恢复卡片）。
-          if (!panel.exclusive) PanelHeaderBar(panelId: panel.id, board: board),
+          if (!panel.exclusive)
+            PanelHeaderBar(
+              panelId: panel.id,
+              board: board,
+              isEditing: editing.value,
+              onToggleEditing: () {
+                setState(() {
+                  editing.value = !editing.value;
+                });
+              },
+            ),
           Expanded(
             child: EmbeddedUpstreamPage(
               host: WorkspaceLaneHost(widget.side.laneId, panel.id),
               instanceKey: '${panel.id}:cards',
               isVisible: isVisible,
-              builder: (context) => PanelCardList(
-                panelId: panel.id,
-                board: board,
-                onSetExpanded: (cardId, expanded) =>
-                    cubit.setCardExpanded(cardId, expanded),
-                onMoveCard: (cardId, direction) =>
-                    cubit.moveCardInPanel(panel.id, cardId, direction),
-                onHideCard: (cardId) => cubit.setCardVisible(cardId, false),
+              builder: (context) => ValueListenableBuilder<bool>(
+                valueListenable: editing,
+                builder: (context, isEditing, _) {
+                  // 局部 Navigator 的首页不会因为宿主 rebuild 自动重建；
+                  // 在卡片子树里订阅布局，拖拽结束后的尺寸和排序才能即时更新。
+                  final currentBoard = context
+                      .select<WorkspaceCubit, WorkspaceBoardLayout>(
+                        (c) => c.state.board,
+                      );
+                  return PanelCardList(
+                    panelId: panel.id,
+                    board: currentBoard,
+                    isEditing: isEditing,
+                    onSetExpanded: (cardId, expanded) =>
+                        cubit.setCardExpanded(cardId, expanded),
+                    onMoveCard: (cardId, direction) =>
+                        cubit.moveCardInPanel(panel.id, cardId, direction),
+                    onHideCard: (cardId) => cubit.setCardVisible(cardId, false),
+                  );
+                },
               ),
             ),
           ),

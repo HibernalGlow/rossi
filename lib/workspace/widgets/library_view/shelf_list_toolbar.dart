@@ -87,12 +87,25 @@ class ShelfListToolbar extends StatefulWidget {
 
 class _ShelfListToolbarState extends State<ShelfListToolbar> {
   bool _searchExpanded = false;
+  late String _lastSearchText;
 
   @override
   void initState() {
     super.initState();
-    _searchExpanded = widget.searchController.text.isNotEmpty;
+    _lastSearchText = widget.searchController.text;
+    _searchExpanded = _lastSearchText.isNotEmpty;
     widget.searchController.addListener(_onTextChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant ShelfListToolbar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.searchController != widget.searchController) {
+      oldWidget.searchController.removeListener(_onTextChanged);
+      widget.searchController.addListener(_onTextChanged);
+      _lastSearchText = widget.searchController.text;
+      _searchExpanded = _lastSearchText.isNotEmpty;
+    }
   }
 
   @override
@@ -102,8 +115,12 @@ class _ShelfListToolbarState extends State<ShelfListToolbar> {
   }
 
   void _onTextChanged() {
-    // 外部清空搜索（比如切列表）时把搜索条一起收掉。
-    if (widget.searchController.text.isEmpty && mounted) {
+    // 聚焦也会发送选区变化；只有文本从非空变为空才算清空。
+    final text = widget.searchController.text;
+    if (text == _lastSearchText) return;
+    final wasNotEmpty = _lastSearchText.isNotEmpty;
+    _lastSearchText = text;
+    if (wasNotEmpty && text.isEmpty && mounted) {
       setState(() => _searchExpanded = false);
     }
   }
@@ -276,7 +293,12 @@ class _ShelfListToolbarState extends State<ShelfListToolbar> {
       decoration: InputDecoration(
         isDense: true,
         hintText: widget.searchHint,
-        // MD3 文本框的前后置图标是 24dp，不是压到 18。
+        filled: true,
+        fillColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         prefixIcon: const GlyphIcon(AppGlyphs.search),
         suffixIcon: IconButton(
           tooltip: '清除搜索并收起',
@@ -287,7 +309,21 @@ class _ShelfListToolbarState extends State<ShelfListToolbar> {
             setState(() => _searchExpanded = false);
           },
         ),
-        border: const OutlineInputBorder(),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.primary,
+            width: 2,
+          ),
+        ),
       ),
       onChanged: widget.onKeywordChanged,
     );

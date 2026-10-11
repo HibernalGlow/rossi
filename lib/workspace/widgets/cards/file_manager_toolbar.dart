@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/action_group.dart';
+import 'package:zephyr/widgets/motion/action_bubble.dart';
 import 'package:zephyr/workspace/widgets/cards/file_manager_navigation_pad.dart';
 
 /// 文件管理器工具栏的度量档：**画图与「摊开还是收成掌」的判断读同一份常数**。
@@ -125,22 +126,25 @@ class FileManagerNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!expanded) {
-      return FileManagerNavigationPad(
-        busy: busy,
-        loading: loading,
-        canGoBack: canGoBack,
-        canGoForward: canGoForward,
-        canGoUp: canGoUp,
-        homeKey: homeKey,
-        homeEnabled: homeEnabled,
-        atHome: atHome,
-        hasHome: hasHome,
-        onNavigateBack: onNavigateBack,
-        onNavigateForward: onNavigateForward,
-        onNavigateUp: onNavigateUp,
-        onGoHome: onGoHome,
-        onHomeMenu: onHomeMenu,
-        onRefresh: onRefresh,
+      return ActionBubbleTarget(
+        enabled: !busy,
+        child: FileManagerNavigationPad(
+          busy: busy,
+          loading: loading,
+          canGoBack: canGoBack,
+          canGoForward: canGoForward,
+          canGoUp: canGoUp,
+          homeKey: homeKey,
+          homeEnabled: homeEnabled,
+          atHome: atHome,
+          hasHome: hasHome,
+          onNavigateBack: onNavigateBack,
+          onNavigateForward: onNavigateForward,
+          onNavigateUp: onNavigateUp,
+          onGoHome: onGoHome,
+          onHomeMenu: onHomeMenu,
+          onRefresh: onRefresh,
+        ),
       );
     }
     final gap = const SizedBox(width: FileManagerToolbarMetrics.gapWithinGroup);

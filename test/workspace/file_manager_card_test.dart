@@ -19,6 +19,7 @@ part 'parts/file_manager_card_test_fakes_part.dart';
 part 'parts/file_manager_card_test_fixture_part.dart';
 part 'parts/file_manager_card_test_helper_part.dart';
 part 'parts/file_manager_card_test_selection_part.dart';
+part 'parts/file_manager_card_test_tabs_part.dart';
 
 // Fake only the FRB boundary. Render the real card with the same Material
 // library as main.dart and no Scaffold/Material supplied by its host.
@@ -52,6 +53,7 @@ void main() {
   // 宿主函数的局部变量对 part 不可见，所以把「当前这一个 api」以取值函数的形式递进去
   // （直接传实例会传错 —— `setUp` 每个用例换一个新的）。
   _selectionTapTests(() => api);
+  _tabMenuTests(() => api);
 
   for (final width in [260.0, 340.0, 700.0]) {
     for (final mode in FileManagerViewMode.values) {
@@ -63,7 +65,7 @@ void main() {
         expect(find.byType(ActionChip), findsOneWidget);
         expect(find.text('book.cbz'), findsOneWidget);
         // The popup also needs matching MaterialLocalizations, not SDK ones.
-        await tester.tap(find.byTooltip('页签操作：books'));
+        await _openTabMenu(tester, 'books');
         await tester.pumpAndSettle();
         expect(find.text('固定页签'), findsOneWidget);
         expect(tester.takeException(), isNull);
@@ -833,17 +835,24 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('类型筛选移入更多菜单并提交到 Rust', (tester) async {
+  testWidgets('类型筛选在更多菜单的二级里，点开父行才提交到 Rust', (tester) async {
     await _pumpCard(tester);
     final more = find.byTooltip('更多');
     await tester.ensureVisible(more);
     await tester.tap(more);
     await tester.pumpAndSettle();
 
+    // 顶层只剩带当前值的那一行父项。三条负断言是 subItems 折叠的证伪：
+    // 二级要是没真收起来（或者父行标签没接到当前快照），这里当场红。
     expect(find.text('类型：全部'), findsOneWidget);
-    expect(find.text('类型：图片'), findsOneWidget);
+    expect(find.text('类型：图片'), findsNothing);
+    expect(find.text('图片'), findsNothing);
 
-    await tester.tap(find.text('类型：图片'), warnIfMissed: false);
+    await tester.tap(find.text('类型：全部'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(find.text('图片'), findsOneWidget);
+
+    await tester.tap(find.text('图片'), warnIfMissed: false);
     await tester.pumpAndSettle();
     expect(
       api
@@ -921,33 +930,6 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('页签操作与恢复把目标 ID 交给 Rust', (tester) async {
-    await _pumpCard(tester);
-    await tester.tap(find.byTooltip('页签操作：books'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('复制页签'));
-    await tester.pumpAndSettle();
-    expect(
-      api
-          .callsTo(#crateApiFileManagerBrowseFileManagerDuplicateTab)
-          .single
-          .namedArguments[#tabId],
-      BigInt.one,
-    );
-    await tester.tap(find.byTooltip('恢复已关闭页签'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('closed'));
-    await tester.pumpAndSettle();
-    expect(
-      api
-          .callsTo(#crateApiFileManagerBrowseFileManagerReopenClosedTab)
-          .single
-          .namedArguments[#tabId],
-      BigInt.from(3),
-    );
-    await tester.pumpWidget(const SizedBox.shrink());
-  });
-
   testWidgets('路径分段、列目录均采用 Rust 快照，编辑失败保留输入', (tester) async {
     api.snapshot = _snapshot(columnsEnabled: true);
     await _pumpCard(tester, width: 260);
@@ -1006,7 +988,14 @@ void main() {
     expect(
       tester
           .widget<IconButton>(
-            find.widgetWithIcon(IconButton, Icons.add_rounded),
+            // 「新建页签」按钮已换成自绘 `GlyphIcon(AppGlyphs.add)`，
+            // `find.widgetWithIcon` 只认 Material `Icon` ⇒ 从 glyph 往上找这颗按钮。
+            find.ancestor(
+              of: find.byWidgetPredicate(
+                (w) => w is GlyphIcon && w.glyph == AppGlyphs.add,
+              ),
+              matching: find.byType(IconButton),
+            ),
           )
           .onPressed,
       isNull,
@@ -1040,8 +1029,18 @@ void main() {
   testWidgets('文件与文件夹缩略图组件存在且平滑回退语义图标', (tester) async {
     await _pumpCard(tester);
     expect(find.byType(FileManagerThumbnailWidget), findsWidgets);
-    expect(find.byIcon(Icons.auto_stories_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.folder_rounded), findsOneWidget);
+    // 语义图标已换成自绘 `GlyphIcon`：归档 → openBook、目录 → folder。
+    // `find.byIcon` 只认 Material `Icon`；而迁移把「同一语义只许一颗图标」落到了
+    // 实处 —— 这颗 folder 现在还被「进入文件夹」按钮与条目徽标共用（全树 3 处）
+    // ⇒ 断言**限定在缩略图子树内**，认的仍是「缩略图回退成语义图标」这件事。
+    Finder fallback(Glyph glyph) => find.descendant(
+      of: find.byType(FileManagerThumbnailWidget),
+      matching: find.byWidgetPredicate(
+        (w) => w is GlyphIcon && w.glyph == glyph,
+      ),
+    );
+    expect(fallback(AppGlyphs.openBook), findsOneWidget);
+    expect(fallback(AppGlyphs.folder), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

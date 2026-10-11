@@ -92,8 +92,7 @@ class ImageInformationCard extends StatelessWidget {
         ? '${stats.width}×${stats.height}'
         : null;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return InfoFacts(
       children: [
         InfoRow(label: '页码', value: '${slot + 1} / ${coordinator.totalSlots}'),
         InfoRow(label: '文件名', value: name),

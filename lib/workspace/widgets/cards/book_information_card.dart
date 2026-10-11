@@ -78,8 +78,7 @@ class BookInformationCard extends StatelessWidget {
       return (v == null || v.isEmpty) ? null : v;
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return InfoFacts(
       children: [
         InfoRow(label: '书名', value: coordinator.displayTitle, emphasis: true),
         if (infoField('author') != null)
