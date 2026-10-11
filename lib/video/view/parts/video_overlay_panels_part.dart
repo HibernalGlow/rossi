@@ -1,4 +1,5 @@
 part of '../video_control_overlay.dart';
+
 // 弹层面板：倍速、音量、字幕、滤镜，以及配套的色点与带标签滑杆
 
 class _RatePanel extends StatelessWidget {
@@ -74,7 +75,10 @@ class _VolumePanel extends StatelessWidget {
         child: Row(
           children: <Widget>[
             IconButton(
-              icon: GlyphIcon(snapshot.muted ? AppGlyphs.volumeOff : AppGlyphs.volume),
+              key: const ValueKey('video-toggle-mute'),
+              icon: GlyphIcon(
+                snapshot.muted ? AppGlyphs.volumeOff : AppGlyphs.volume,
+              ),
               onPressed: () => controller.toggleMute(),
             ),
             Expanded(
@@ -122,9 +126,7 @@ class _SubtitlePanel extends StatelessWidget {
               dense: true,
               title: Text(labels.subtitleOff),
               leading: GlyphIcon(
-                selectedId == null
-                    ? AppGlyphs.radioChecked
-                    : AppGlyphs.ring,
+                selectedId == null ? AppGlyphs.radioChecked : AppGlyphs.ring,
               ),
               onTap: () => onSelected(null),
             ),
