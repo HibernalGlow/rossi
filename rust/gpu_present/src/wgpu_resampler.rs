@@ -10,6 +10,13 @@ use anyhow::{anyhow, Result};
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
 mod render;
+mod source;
+
+use source::CachedSource;
+pub use source::SourceTextureInfo;
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod mip_tests;
 
 /// 与 WGSL 对齐的 Uniform 结构
 #[repr(C)]
@@ -24,7 +31,7 @@ pub struct ResampleUniforms {
     pub target_width: f32,
     pub target_height: f32,
     pub scale: f32,
-    pub filter_mode: u32, // 0: 缩小（mip 采样）, 1: Lanczos3, 2: Anime4K
+    pub filter_mode: u32, // 0: mip 预滤 pass, 1: Lanczos3, 2: Anime4K
     pub _pad1: f32,
     pub _pad2: f32,
     /// 缩小路径使用的 mip 等级，由 Rust 侧按 `log2(1/scale)` 算好。
@@ -53,7 +60,7 @@ pub struct WgpuResampler {
 
     // 缓存的目标纹理与读取缓冲（按 target_w x target_h 复用）
     target_cache: Option<CachedTarget>,
-    // 缓存的源纹理（按 src_w x src_h 复用）
+    // 源纹理复用已有 mip 容量，只在尺寸变化或需要更深的 mip 时重建。
     source_cache: Option<CachedSource>,
 }
 
@@ -63,13 +70,6 @@ struct CachedTarget {
     texture: wgpu::Texture,
     staging_buffer: wgpu::Buffer,
     padded_bytes_per_row: u32,
-}
-
-struct CachedSource {
-    width: u32,
-    height: u32,
-    mip_levels: u32,
-    texture: wgpu::Texture,
 }
 
 /// 设备要申请的纹理单边上限。
@@ -221,9 +221,8 @@ impl WgpuResampler {
             address_mode_w: wgpu::AddressMode::ClampToEdge,
             mag_filter: wgpu::FilterMode::Linear,
             min_filter: wgpu::FilterMode::Linear,
-            // **Linear 而不是 Nearest**：缩小路径靠它在相邻两级 mip 之间插值，
-            // 等效于在整块覆盖区域上做面积平均。Nearest 会出现明显的「档位跳变」，
-            // 扫线密集的画面会看到一层一层的色块。
+            // mip 生成与 Anime4K 使用线性采样。Lanczos 用 textureLoad 读取
+            // 指定的整数 mip，不依赖相邻级之间的插值。
             mipmap_filter: wgpu::FilterMode::Linear,
             ..Default::default()
         });
@@ -238,159 +237,6 @@ impl WgpuResampler {
             target_cache: None,
             source_cache: None,
         })
-    }
-
-    /// 获取或创建匹配尺寸的源纹理
-    fn get_or_create_source_texture(&mut self, width: u32, height: u32) -> &wgpu::Texture {
-        let need_recreate = match &self.source_cache {
-            Some(c) => c.width != width || c.height != height,
-            None => true,
-        };
-
-        if need_recreate {
-            let mip_levels = full_mip_levels(width, height);
-            let texture = self.device.create_texture(&wgpu::TextureDescriptor {
-                label: Some("rossi_source_texture"),
-                size: wgpu::Extent3d {
-                    width,
-                    height,
-                    depth_or_array_layers: 1,
-                },
-                // 完整的 mip 链：缩小时的正确重建全靠它。
-                mip_level_count: mip_levels,
-                sample_count: 1,
-                dimension: wgpu::TextureDimension::D2,
-                format: wgpu::TextureFormat::Rgba8Unorm,
-                usage: wgpu::TextureUsages::TEXTURE_BINDING
-                    | wgpu::TextureUsages::COPY_DST
-                    // 逐级降采样是渲染进它的第 1..n 级，所以要有 RENDER_ATTACHMENT。
-                    | wgpu::TextureUsages::RENDER_ATTACHMENT,
-                view_formats: &[],
-            });
-            self.source_cache = Some(CachedSource {
-                width,
-                height,
-                mip_levels,
-                texture,
-            });
-        }
-
-        &self.source_cache.as_ref().unwrap().texture
-    }
-
-    /// 把已上传到第 0 级的源纹理逐级降采样，补全整条 mip 链。
-    ///
-    /// # 为什么必须有这一步
-    ///
-    /// 缩小（`scale < 1`）本质上要问「一个输出像素盖住了源上哪一块，那块的平均值是多少」。
-    /// 只在第 0 级上取一两个点回答这个问题就是**欠采样** —— 结果就是锯齿与闪烁。
-    /// mip 链把「平均」这件事提前做成金字塔，采样时按 `log2(1/scale)` 取级，
-    /// 就变成硬件本来就擅长、而且正确的面积平均。
-    ///
-    /// 每级只做一次 2×2 盒式降采样并渲染进下一级，成本是整条链加起来约等于
-    /// 一级的 1/3 个全尺寸 pass —— 相对于每个页面只跑一次，可以忽略。
-    fn generate_mipmaps(&self, width: u32, height: u32) {
-        let Some(source) = self.source_cache.as_ref() else {
-            return;
-        };
-        if source.mip_levels <= 1 {
-            return;
-        }
-
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("rossi_mipgen_encoder"),
-            });
-
-        let mut level = 1u32;
-        while level < source.mip_levels {
-            let src_view = source.texture.create_view(&wgpu::TextureViewDescriptor {
-                label: Some("rossi_mip_src_view"),
-                base_mip_level: level - 1,
-                mip_level_count: Some(1),
-                ..Default::default()
-            });
-            let dst_view = source.texture.create_view(&wgpu::TextureViewDescriptor {
-                label: Some("rossi_mip_dst_view"),
-                base_mip_level: level,
-                mip_level_count: Some(1),
-                ..Default::default()
-            });
-
-            // `fs_mip` 依据 `uniforms.src_width/src_height` 算 ±0.5 texel 的偏移，
-            // 所以这里给的是**上一级**的尺寸。
-            let prev_w = (width >> (level - 1)).max(1);
-            let prev_h = (height >> (level - 1)).max(1);
-            let uniforms = ResampleUniforms {
-                src_width: prev_w as f32,
-                src_height: prev_h as f32,
-                render_offset_x: 0.0,
-                render_offset_y: 0.0,
-                render_width: prev_w as f32,
-                render_height: prev_h as f32,
-                target_width: prev_w as f32,
-                target_height: prev_h as f32,
-                scale: 0.5,
-                filter_mode: 0,
-                _pad1: 0.0,
-                _pad2: 0.0,
-                sample_lod: 0.0,
-                residual_scale: 0.5,
-                _pad3: 0.0,
-                _pad5: 0.0,
-            };
-            let uniform_buffer =
-                self.device
-                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: Some("rossi_mip_uniform_buf"),
-                        contents: bytemuck::bytes_of(&uniforms),
-                        usage: wgpu::BufferUsages::UNIFORM,
-                    });
-            let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("rossi_mip_bg"),
-                layout: &self.bind_group_layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::TextureView(&src_view),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::Sampler(&self.sampler),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 2,
-                        resource: uniform_buffer.as_entire_binding(),
-                    },
-                ],
-            });
-
-            {
-                let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some("rossi_mipgen_pass"),
-                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                        view: &dst_view,
-                        resolve_target: None,
-                        depth_slice: None,
-                        ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
-                            store: wgpu::StoreOp::Store,
-                        },
-                    })],
-                    depth_stencil_attachment: None,
-                    timestamp_writes: None,
-                    occlusion_query_set: None,
-                });
-                pass.set_pipeline(&self.mip_pipeline);
-                pass.set_bind_group(0, &bind_group, &[]);
-                pass.draw(0..3, 0..1);
-            }
-
-            level += 1;
-        }
-
-        self.queue.submit(std::iter::once(encoder.finish()));
     }
 
     /// 获取或创建匹配目标视口尺寸的 Target 纹理和读取 Staging Buffer
@@ -439,7 +285,6 @@ impl WgpuResampler {
 
         self.target_cache.as_ref().unwrap()
     }
-
 }
 
 #[cfg(test)]

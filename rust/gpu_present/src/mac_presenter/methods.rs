@@ -613,6 +613,19 @@ impl MacPresenter {
             })
             .unwrap_or((0, 0, 0, 0, 0, 0));
 
+        // 统计不等待正在执行的后台渲染；拿不到锁时新增纹理指标为 null。
+        // 缓存锁已释放，避免与预取的渲染/缓存发布形成锁顺序交叉。
+        let texture = self
+            .resampler
+            .try_lock()
+            .ok()
+            .map(|r| r.source_texture_info());
+        let number_or_null = |value: Option<u64>| {
+            value
+                .map(|n| n.to_string())
+                .unwrap_or_else(|| "null".into())
+        };
+
         format!(
             "{{\"backend\":\"macos/metal-uma\",\
               \"width\":{},\
@@ -629,6 +642,9 @@ impl MacPresenter {
               \"cacheBytes\":{},\
               \"cacheBudgetBytes\":{},\
               \"cacheOverBudgetBytes\":{},\
+              \"sourceMipLevels\":{},\
+              \"sourceGeneratedMipLevels\":{},\
+              \"sourceTextureTexelBytes\":{},\
               \"sourceWidth\":{},\
               \"sourceHeight\":{},\
               \"decodedWidth\":{},\
@@ -653,6 +669,9 @@ impl MacPresenter {
             bytes,
             budget,
             over_budget,
+            number_or_null(texture.map(|t| u64::from(t.mip_levels))),
+            number_or_null(texture.map(|t| u64::from(t.generated_mip_levels))),
+            number_or_null(texture.map(|t| t.texel_bytes)),
             self.last_source_width,
             self.last_source_height,
             self.last_decoded_width,

@@ -110,4 +110,5 @@ mod tests {
 
     mod frame_cases;
     mod gpu_cases;
+    mod texture_cases;
 }
