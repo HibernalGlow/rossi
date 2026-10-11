@@ -30,6 +30,26 @@ import CoreML
     return sign | UInt16(half & 0x7FFF)
 }
 
+
+// 读取侧同样不能依赖 stdlib 的 Float16 —— SDK 26.2 里它被标成 'Float16' is unavailable in macOS。
+// 与 stdlib `Float(Float16(bitPattern:))` 穷举对拍 65536 个位型，0 处不一致（含次规格数、±inf、NaN）。
+@inline(__always) func rossiHalfBitsToFloat(_ h: UInt16) -> Float {
+    let sign = UInt32(h & 0x8000) << 16
+    let exp = UInt32((h >> 10) & 0x1F)
+    let frac = UInt32(h & 0x03FF)
+    if exp == 0 {
+        if frac == 0 { return Float(bitPattern: sign) }
+        var e: UInt32 = 0
+        var m = frac
+        while (m & 0x0400) == 0 { m <<= 1; e += 1 }
+        let normFrac = (m & 0x03FF) << 13
+        let biased = 127 - 14 - e
+        return Float(bitPattern: sign | (biased << 23) | normFrac)
+    }
+    if exp == 31 { return Float(bitPattern: sign | 0x7F800000 | (frac << 13)) }
+    return Float(bitPattern: sign | ((exp + 112) << 23) | (frac << 13))
+}
+
 class MultiArrayModel: ImageProcessingModel {
     private let mlmodel: MLModel
     private let inputName: String
@@ -255,7 +275,7 @@ class MultiArrayModel: ImageProcessingModel {
             let originX = Int(rect.origin.x) * outScale
             let originY = Int(rect.origin.y) * outScale
             let data = prediction.dataPointer.assumingMemoryBound(to: Float32.self)
-            let halfData = prediction.dataPointer.assumingMemoryBound(to: Float16.self)
+            let halfData = prediction.dataPointer.assumingMemoryBound(to: UInt16.self)
             let channelStride = strides[1]
             let rowStride = strides[2]
             let pixelStride = strides[3]
@@ -268,7 +288,7 @@ class MultiArrayModel: ImageProcessingModel {
                             ((originY + y) * outWidth + originX) * channels + channel)
                         if prediction.dataType == .float16 {
                             for x in 0..<outBlockSize {
-                                multiplied[x] = Float32(halfData[sourceOffset + x * pixelStride]) * multiplier
+                                multiplied[x] = rossiHalfBitsToFloat(halfData[sourceOffset + x * pixelStride]) * multiplier
                             }
                         } else {
                             vDSP_vsmul(source, vDSP_Stride(pixelStride), &multiplier,
