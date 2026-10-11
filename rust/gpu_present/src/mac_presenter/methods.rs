@@ -94,10 +94,10 @@ impl MacPresenter {
         // 换了来源，页号的含义就变了：上一本书那一页的调色板不能留给这一本用。
         self.last_ambient = None;
 
+        self.hub.clear_source(self.source_epoch);
         if let Ok(mut c) = self.shared_cache.cache.lock() {
             c.clear();
         }
-        self.hub.clear_source();
         Ok(count)
     }
 
@@ -115,7 +115,7 @@ impl MacPresenter {
     }
 
     pub fn set_prefetch(&self, enabled: bool) {
-        self.hub.enabled.store(enabled, Ordering::Relaxed);
+        self.hub.set_enabled(enabled);
     }
 
     pub fn generation(&self) -> u64 {
@@ -165,10 +165,10 @@ impl MacPresenter {
             }
             // ② 已有别的线程在解这一页 → 交给它。重复解会争抢磁盘与 CPU，
             //    而它解完会自己预渲染（预取线程的阶段 2 就是干这个的）。
-            if c.in_flight == Some(index) {
+            if c.in_flight.contains(&(index, self.source_epoch)) {
                 return Ok(());
             }
-            c.in_flight = Some(index);
+            c.in_flight.insert((index, self.source_epoch));
         }
 
         // ③ 解码（缓存里有原图时只是取一份 Arc）
@@ -193,8 +193,9 @@ impl MacPresenter {
             Err(e) => {
                 // 解码失败也必须清掉 in_flight，否则这一页永远没人再试。
                 if let Ok(mut c) = self.shared_cache.cache.lock() {
-                    c.in_flight = None;
+                    c.in_flight.remove(&(index, self.source_epoch));
                 }
+                self.shared_cache.cv.notify_all();
                 return Err(anyhow!("解码第 {} 页失败: {e}", index));
             }
         };
@@ -217,7 +218,7 @@ impl MacPresenter {
         };
 
         if let Ok(mut c) = self.shared_cache.cache.lock() {
-            c.in_flight = None;
+            c.in_flight.remove(&(index, self.source_epoch));
             if rendered.is_ok() {
                 c.store_raw_render(
                     index,
@@ -233,6 +234,7 @@ impl MacPresenter {
             }
         }
         self.shared_cache.cv.notify_all();
+        self.hub.wake();
         rendered?;
         Ok(())
     }
@@ -247,6 +249,7 @@ impl MacPresenter {
         target_height: u32,
     ) -> Result<()> {
         let t_total = Instant::now();
+        let _foreground = self.hub.foreground();
         if dst_ptr.is_null() {
             return Err(anyhow!("目标像素缓冲区指针为空"));
         }
@@ -288,10 +291,11 @@ impl MacPresenter {
                 decode_hit = true;
                 used_enhanced = c.prefers_enhanced(index, self.source_epoch, bypass_enhanced);
                 (p, r)
-            } else if c.in_flight == Some(index) {
+            } else if c.in_flight.contains(&(index, self.source_epoch)) {
                 // 后台预取线程恰好正在解码这一页！等待后台完成，避免前台重复解引发 CPU/磁盘 IO 争抢
                 let deadline = Instant::now() + Duration::from_millis(3000);
-                while c.in_flight == Some(index) && Instant::now() < deadline {
+                while c.in_flight.contains(&(index, self.source_epoch)) && Instant::now() < deadline
+                {
                     let timeout = deadline.saturating_duration_since(Instant::now());
                     let (guard, _) = self.shared_cache.cv.wait_timeout(c, timeout).unwrap();
                     c = guard;
@@ -556,6 +560,7 @@ impl MacPresenter {
             return Err(anyhow!("超分缓存超出预算，第 {} 页未保留", index));
         }
         drop(c);
+        self.hub.wake();
         eprintln!(
             "[Rossi GPU] set_enhanced_pixels: index={}, prerendered={}, w={}, h={}",
             index, prerendered, pixels.width, pixels.height
@@ -669,8 +674,7 @@ impl MacPresenter {
 
 impl Drop for MacPresenter {
     fn drop(&mut self) {
-        self.hub.stop.store(true, Ordering::Relaxed);
-        self.hub.cv.notify_all();
+        self.hub.shutdown();
         if let Some(h) = self.prefetch_thread.take() {
             let _ = h.join();
         }
