@@ -202,7 +202,11 @@ var coldPhases: [[String: Any]] = []
 var referenceCold: [Double] = []
 var referencePhases: [[String: Any]] = []
 var expected: [Int: Data] = [:]
-let phaseKeys = ["decodeMs", "renderMs", "totalMs", "cacheBytes", "cacheHit", "prerenderHit",
+let phaseKeys = ["decodeMs", "renderMs", "submitMs", "totalMs", "cacheBytes", "cacheHit", "prerenderHit",
+                 "rendererLockMs", "cachedCopyMs", "frameCaptureMs", "frameCachePublishMs",
+                 "targetSetupMs", "sourceSetupMs", "uploadMs", "mipmapEncodeMs", "mipmapSubmitMs",
+                 "renderEncodeMs", "renderSubmitMs", "readbackEncodeMs", "readbackSubmitMs",
+                 "gpuWaitMs", "cpuCopyMs", "queueSubmitMs",
                  "sourceMipLevels", "sourceGeneratedMipLevels", "sourceTextureTexelBytes"]
 for i in 0..<coldCount {
     let index = i % 2
@@ -227,6 +231,7 @@ for i in 0..<coldCount {
 _ = openSource()
 for i in 0..<2 { _ = present(i) }
 var warm: [Double] = []
+var warmPhases: [[String: Any]] = []
 var warmWithClear: [Double] = []
 for i in 0..<warmCount {
     let index = i % 2
@@ -235,7 +240,9 @@ for i in 0..<warmCount {
     for clear in modes {
         let elapsed = present(index, clear: clear)
         if clear { warmWithClear.append(elapsed) } else { warm.append(elapsed) }
-        precondition((probe()["prerenderHit"] as? Int) == 1)
+        let detail = probe()
+        precondition((detail["prerenderHit"] as? Int) == 1)
+        if !clear { warmPhases.append(detail.filter { phaseKeys.contains($0.key) }) }
         if i < 2 { precondition(snapshot() == expected[index], "Cached pixels differ") }
     }
 }
@@ -250,7 +257,7 @@ var report: [String: Any] = [
     "coldFrameSHA256": Dictionary(uniqueKeysWithValues: expected.map { index, data in
         (String(index), SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined())
     }),
-    "cold": distribution(cold), "coldPhases": coldPhases, "cached": distribution(warm), "probe": probe(),
+    "cold": distribution(cold), "coldPhases": coldPhases, "cached": distribution(warm), "cachedPhases": warmPhases, "probe": probe(),
     "operatingSystem": ProcessInfo.processInfo.operatingSystemVersionString,
 ]
 if compareClear { report["cachedWithClear"] = distribution(warmWithClear) }
