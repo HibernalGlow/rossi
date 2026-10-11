@@ -330,11 +330,15 @@ jobs:
           # 用户级 $env:USERPROFILE\.cargo\config.toml 与 cwd 无关，cargo 必读 ⇒ 钩子才拿得到 PKG_CONFIG_PATH。
           $userCargo = Join-Path $env:USERPROFILE '.cargo'
           New-Item -ItemType Directory -Force -Path $userCargo | Out-Null
-          $tomlBody = '[env]' + "`n" + 'PKG_CONFIG_PATH = { value = "' + ($pcdir -replace '\\','/') + '", force = false }' + "`n"
+          $tomlBody = $toml
           [IO.File]::WriteAllText((Join-Path $userCargo 'config.toml'), $tomlBody)
           New-Item -ItemType Directory -Force -Path '.cargo' | Out-Null
           $fwd = $pcdir -replace '\\', '/'
+          # 两条都要：pkg-config-rs 先看 PKG_CONFIG，再看 PATH；vcpkg 的 pkgconf.exe 不在 PATH 上，
+          # 而 native-assets 钩子的子进程环境是干净的 ⇒ 只给 PKG_CONFIG_PATH 时它会找不到可执行文件，
+          # 探测失败就回退去跑 meson（实测：同一步里直连 cargo 能过，钩子里同一 crate 失败）。
           $toml = '[env]' + "`n" + 'PKG_CONFIG_PATH = { value = "' + $fwd + '", force = false }' + "`n"
+          if ($pkgconfig) { $toml += 'PKG_CONFIG = { value = "' + ($pkgconfig -replace '\\','/') + '", force = false }' + "`n" }
           [IO.File]::WriteAllText((Join-Path (Get-Location) '.cargo/config.toml'), $toml)
           # 光有 [env] 段不够：windows/runner/CMakeLists.txt 用 `cmake -E env` 单独调 cargo 编
           # rossi_gpu_present.dll，而 cargo 的 [env] 是按**当前工作目录**向上找配置的 —— 那次调用的
