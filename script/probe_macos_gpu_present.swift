@@ -3,6 +3,7 @@
 // 测量 Release 原生库写入真实 IOSurface CVPixelBuffer 的时间，不含 Flutter 合成或屏幕刷新。
 import AppKit
 import CoreVideo
+import CryptoKit
 import Darwin
 import Foundation
 
@@ -17,14 +18,15 @@ typealias FnDestroy = @convention(c) (UnsafeMutableRawPointer?) -> Void
 private let usage = """
 Usage: rossi-gpu-probe [--library path] [--output report.json] [--source folder-or-cbz]
                        [--target WIDTHxHEIGHT] [--source-size WIDTHxHEIGHT]
-                       [--cold count] [--warm count] [--compare-clear]
+                       [--cold count] [--warm count] [--compare-clear] [--compare-library path]
 Defaults: Release dylib, /tmp/rossi-gpu-probe.json, two synthetic 4096x3072 PNGs,
           target 2560x1600, 8 cold samples, 60 cached samples.
 --compare-clear alternates cached shows with/without the old full-buffer clear.
+--compare-library alternates cold shows with a reference dylib and compares pixels.
 """
 if CommandLine.arguments.contains("--help") { print(usage); exit(0) }
 private var options: [String: String] = [:]
-private let valueOptions = ["--library", "--output", "--source", "--target", "--source-size", "--cold", "--warm"]
+private let valueOptions = ["--library", "--output", "--source", "--target", "--source-size", "--cold", "--warm", "--compare-library"]
 private var argumentIndex = 1
 while argumentIndex < CommandLine.arguments.count {
     let key = CommandLine.arguments[argumentIndex]
@@ -95,26 +97,50 @@ let (sourceWidth, sourceHeight) = size(argument("--source-size", default: "4096x
 let coldCount = sampleCount("--cold", default: "8")
 let warmCount = sampleCount("--warm", default: "60")
 let compareClear = options["--compare-clear"] == "true"
-guard let dylib = dlopen(library, RTLD_NOW | RTLD_LOCAL) else { fatalError(String(cString: dlerror())) }
-defer { dlclose(dylib) }
-func symbol<T>(_ name: String, _ type: T.Type) -> T {
-    guard let pointer = dlsym(dylib, name) else { fatalError("Missing symbol: \(name)") }
-    return unsafeBitCast(pointer, to: type)
+// 每个库持有自己的设备和缓存；两边同步完成后才切到另一边，不并发跑 GPU。
+final class NativePresenter {
+    let dylib: UnsafeMutableRawPointer
+    let handle: UnsafeMutableRawPointer
+    let open: FnOpen
+    let show: FnShow
+    let stats: FnStats
+    let destroy: FnDestroy
+    var error = [UInt8](repeating: 0, count: 4096)
+    private var closed = false
+    init(library: String, width: Int, height: Int) {
+        guard let loaded = dlopen(library, RTLD_NOW | RTLD_LOCAL) else { fatalError(String(cString: dlerror())) }
+        dylib = loaded
+        func symbol<T>(_ name: String, _ type: T.Type) -> T {
+            guard let pointer = dlsym(loaded, name) else { fatalError("Missing symbol: \(name)") }
+            return unsafeBitCast(pointer, to: type)
+        }
+        open = symbol("rossi_gpu_present_open", FnOpen.self)
+        show = symbol("rossi_gpu_present_show_into_buffer", FnShow.self)
+        stats = symbol("rossi_gpu_present_stats", FnStats.self)
+        destroy = symbol("rossi_gpu_present_destroy", FnDestroy.self)
+        let create = symbol("rossi_gpu_present_create", FnCreate.self)
+        let status = symbol("rossi_gpu_present_status", FnStatus.self)
+        let prefetch = symbol("rossi_gpu_present_set_prefetch", FnPrefetch.self)
+        guard let pointer = create(UInt32(width), UInt32(height), &error, error.count) else { fatalError("Create failed") }
+        handle = pointer
+        let deadline = Date().addingTimeInterval(10)
+        while status(handle, &error, error.count) == 0 && Date() < deadline { Thread.sleep(forTimeInterval: 0.01) }
+        precondition(status(handle, &error, error.count) == 1, String(cString: error))
+        precondition(prefetch(handle, 0) == 0)
+    }
+    func close() {
+        guard !closed else { return }
+        closed = true
+        destroy(handle)
+        dlclose(dylib)
+    }
+    deinit { close() }
 }
-let create = symbol("rossi_gpu_present_create", FnCreate.self)
-let status = symbol("rossi_gpu_present_status", FnStatus.self)
-let open = symbol("rossi_gpu_present_open", FnOpen.self)
-let show = symbol("rossi_gpu_present_show_into_buffer", FnShow.self)
-let prefetch = symbol("rossi_gpu_present_set_prefetch", FnPrefetch.self)
-let stats = symbol("rossi_gpu_present_stats", FnStats.self)
-let destroy = symbol("rossi_gpu_present_destroy", FnDestroy.self)
-var error = [UInt8](repeating: 0, count: 4096)
-guard let presenter = create(UInt32(width), UInt32(height), &error, error.count) else { fatalError("Create failed") }
-defer { destroy(presenter) }
-let deadline = Date().addingTimeInterval(10)
-while status(presenter, &error, error.count) == 0 && Date() < deadline { Thread.sleep(forTimeInterval: 0.01) }
-precondition(status(presenter, &error, error.count) == 1, String(cString: error))
-precondition(prefetch(presenter, 0) == 0)
+let primary = NativePresenter(library: library, width: width, height: height)
+defer { primary.close() }
+let referenceLibrary = argument("--compare-library", default: "")
+let reference = referenceLibrary.isEmpty ? nil : NativePresenter(library: referenceLibrary, width: width, height: height)
+defer { reference?.close() }
 
 let temporary = FileManager.default.temporaryDirectory.appendingPathComponent("rossi-gpu-probe-\(UUID().uuidString)")
 let input = argument("--source", default: "")
@@ -130,10 +156,10 @@ if input.isEmpty {
     source = URL(fileURLWithPath: input)
 }
 defer { if input.isEmpty { try? FileManager.default.removeItem(at: temporary) } }
-func openSource() -> Int {
+func openSource(_ runtime: NativePresenter = primary) -> Int {
     let path = Array(source.path.utf8)
-    let count = open(presenter, path, path.count, &error, error.count)
-    precondition(count >= 2, "Need two raster pages: \(String(cString: error))")
+    let count = runtime.open(runtime.handle, path, path.count, &runtime.error, runtime.error.count)
+    precondition(count >= 2, "Need two raster pages: \(String(cString: runtime.error))")
     return Int(count)
 }
 let pageCount = openSource()
@@ -148,22 +174,22 @@ precondition(CVPixelBufferCreate(kCFAllocatorDefault, width, height, kCVPixelFor
     attributes as CFDictionary, &optionalBuffer) == kCVReturnSuccess)
 let buffer = optionalBuffer!
 precondition(CVPixelBufferGetIOSurface(buffer) != nil, "Expected IOSurface-backed buffer")
-func probe() -> [String: Any] {
+func probe(_ runtime: NativePresenter = primary) -> [String: Any] {
     var bytes = [UInt8](repeating: 0, count: 8192)
-    precondition(stats(presenter, &bytes, bytes.count) > 0)
+    precondition(runtime.stats(runtime.handle, &bytes, bytes.count) > 0)
     return try! JSONSerialization.jsonObject(with: Data(String(cString: bytes).utf8)) as! [String: Any]
 }
-func present(_ index: Int, clear: Bool = false) -> Double {
+func present(_ index: Int, clear: Bool = false, runtime: NativePresenter = primary) -> Double {
     let start = DispatchTime.now().uptimeNanoseconds
     precondition(CVPixelBufferLockBaseAddress(buffer, []) == kCVReturnSuccess)
     let pointer = CVPixelBufferGetBaseAddress(buffer)!.assumingMemoryBound(to: UInt8.self)
     let stride = CVPixelBufferGetBytesPerRow(buffer)
     // 可选复现旧桥的重复整帧清零，交替测量以减小不同运行之间的偏差。
     if clear { memset(pointer, 0, stride * height) }
-    let result = show(presenter, UInt32(index), pointer, stride, UInt32(width), UInt32(height), &error, error.count)
+    let result = runtime.show(runtime.handle, UInt32(index), pointer, stride, UInt32(width), UInt32(height), &runtime.error, runtime.error.count)
     precondition(CVPixelBufferUnlockBaseAddress(buffer, []) == kCVReturnSuccess)
     let ms = Double(DispatchTime.now().uptimeNanoseconds - start) / 1_000_000
-    precondition(result == 0, String(cString: error))
+    precondition(result == 0, String(cString: runtime.error))
     return ms
 }
 func snapshot() -> Data {
@@ -173,15 +199,30 @@ func snapshot() -> Data {
 }
 var cold: [Double] = []
 var coldPhases: [[String: Any]] = []
+var referenceCold: [Double] = []
+var referencePhases: [[String: Any]] = []
 var expected: [Int: Data] = [:]
+let phaseKeys = ["decodeMs", "renderMs", "totalMs", "cacheBytes", "cacheHit", "prerenderHit",
+                 "sourceMipLevels", "sourceGeneratedMipLevels", "sourceTextureTexelBytes"]
 for i in 0..<coldCount {
-    _ = openSource() // 清页面缓存；操作系统文件缓存及 wgpu 管线可保持热态。
     let index = i % 2
-    cold.append(present(index))
-    let detail = probe()
-    precondition((detail["prerenderHit"] as? Int) == 0)
-    coldPhases.append(detail.filter { ["decodeMs", "renderMs", "totalMs", "cacheBytes", "cacheHit", "prerenderHit"].contains($0.key) })
-    if i < 2 { expected[index] = snapshot() }
+    let runs = reference.map { i % 2 == 0 ? [primary, $0] : [$0, primary] } ?? [primary]
+    var pairedFrame: Data?
+    for runtime in runs {
+        _ = openSource(runtime) // 清页面缓存；操作系统文件缓存及 wgpu 管线可保持热态。
+        let elapsed = present(index, runtime: runtime)
+        let detail = probe(runtime)
+        precondition((detail["prerenderHit"] as? Int) == 0)
+        let phases = detail.filter { phaseKeys.contains($0.key) }
+        if runtime === primary { cold.append(elapsed); coldPhases.append(phases) }
+        else { referenceCold.append(elapsed); referencePhases.append(phases) }
+        if i < 2 || reference != nil {
+            let frame = snapshot()
+            if let other = pairedFrame { precondition(frame == other, "Reference library pixels differ") }
+            pairedFrame = frame
+            if runtime === primary && i < 2 { expected[index] = frame }
+        }
+    }
 }
 _ = openSource()
 for i in 0..<2 { _ = present(i) }
@@ -206,10 +247,18 @@ var report: [String: Any] = [
     "scope": "CVPixelBuffer lock + native show + unlock; optional cachedWithClear also includes full clear; excludes buffer allocation, Swift queue, MethodChannel, Flutter texture acquisition, composition and physical display",
     "coldDefinition": "page cache cleared per sample; file cache and GPU pipelines may be warm",
     "prefetchEnabled": false, "cachedPixelsEqual": true,
+    "coldFrameSHA256": Dictionary(uniqueKeysWithValues: expected.map { index, data in
+        (String(index), SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined())
+    }),
     "cold": distribution(cold), "coldPhases": coldPhases, "cached": distribution(warm), "probe": probe(),
     "operatingSystem": ProcessInfo.processInfo.operatingSystemVersionString,
 ]
 if compareClear { report["cachedWithClear"] = distribution(warmWithClear) }
+if let reference {
+    report["reference"] = ["library": referenceLibrary, "cold": distribution(referenceCold),
+        "coldPhases": referencePhases, "probe": probe(reference), "allPairedColdPixelsEqual": true,
+        "method": "AB/BA alternating cold shows, same source and CVPixelBuffer, separate native devices/caches, no concurrent GPU jobs"] as [String: Any]
+}
 let json = try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
 try json.write(to: URL(fileURLWithPath: output))
 let coldSummary = distribution(cold)
