@@ -2325,6 +2325,8 @@ class _Translations$video$en_US extends Translations$video$zh_CN {
 	@override String get hwDecodeDesc => 'Turn off to work around green/torn frames, at the cost of CPU';
 	@override String get deinterlace => 'Deinterlace';
 	@override String get deinterlaceDesc => 'Enable for interlaced DVD / tape sources with combing';
+	@override String get integrateBottomBar => 'Integrate video controls into bottom bar';
+	@override String get integrateBottomBarDesc => 'Show playback progress and video controls inside the reader bottom bar';
 	@override String get pinDesc => 'Keep the control bar visible instead of hiding it after a few seconds';
 	@override String get animatedVideo => 'Play animated images as video';
 	@override String get animatedVideoDesc => 'Hand GIF / APNG to the video controller for pause, frame stepping and scrubbing';
@@ -4417,6 +4419,8 @@ extension on TranslationsEnUs {
 			'video.hwDecodeDesc' => 'Turn off to work around green/torn frames, at the cost of CPU',
 			'video.deinterlace' => 'Deinterlace',
 			'video.deinterlaceDesc' => 'Enable for interlaced DVD / tape sources with combing',
+			'video.integrateBottomBar' => 'Integrate video controls into bottom bar',
+			'video.integrateBottomBarDesc' => 'Show playback progress and video controls inside the reader bottom bar',
 			'video.pinDesc' => 'Keep the control bar visible instead of hiding it after a few seconds',
 			'video.animatedVideo' => 'Play animated images as video',
 			'video.animatedVideoDesc' => 'Hand GIF / APNG to the video controller for pause, frame stepping and scrubbing',
@@ -4551,10 +4555,10 @@ extension on TranslationsEnUs {
 			'bindingEditor.collapse' => 'Collapse binding',
 			'bindingEditor.expand' => 'Expand binding',
 			'bindingEditor.actions' => 'Actions',
-			'bindingEditor.actionList' => 'Actions',
-			'bindingEditor.bindingDetails' => 'Bindings',
 			_ => null,
 		} ?? switch (path) {
+			'bindingEditor.actionList' => 'Actions',
+			'bindingEditor.bindingDetails' => 'Bindings',
 			'bindingEditor.bindings' => 'Bindings',
 			'bindingEditor.restore' => 'Restore defaults',
 			'bindingEditor.resetFilters' => 'Clear filters',

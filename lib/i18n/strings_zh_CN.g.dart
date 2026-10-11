@@ -6163,6 +6163,12 @@ class Translations$video$zh_CN {
 	/// zh-CN: '老录像带 / DVD 抓取源有横向梳状纹时打开'
 	String get deinterlaceDesc => '老录像带 / DVD 抓取源有横向梳状纹时打开';
 
+	/// zh-CN: '视频控制条融入底栏'
+	String get integrateBottomBar => '视频控制条融入底栏';
+
+	/// zh-CN: '将播放进度和视频控制整合进阅读底栏，随底栏一起呼出和收起'
+	String get integrateBottomBarDesc => '将播放进度和视频控制整合进阅读底栏，随底栏一起呼出和收起';
+
 	/// zh-CN: '控制条常显，不再在播放几秒后自动收起'
 	String get pinDesc => '控制条常显，不再在播放几秒后自动收起';
 
@@ -8544,6 +8550,8 @@ extension on Translations {
 			'video.hwDecodeDesc' => '关闭可排查花屏与绿屏，代价是 CPU 占用上升',
 			'video.deinterlace' => '去隔行',
 			'video.deinterlaceDesc' => '老录像带 / DVD 抓取源有横向梳状纹时打开',
+			'video.integrateBottomBar' => '视频控制条融入底栏',
+			'video.integrateBottomBarDesc' => '将播放进度和视频控制整合进阅读底栏，随底栏一起呼出和收起',
 			'video.pinDesc' => '控制条常显，不再在播放几秒后自动收起',
 			'video.animatedVideo' => '动图当视频播',
 			'video.animatedVideoDesc' => '把 GIF / APNG 交给视频控制器，获得暂停、逐帧与进度拖动',
@@ -8676,10 +8684,10 @@ extension on Translations {
 			'bindingEditor.moveUp' => '上移',
 			'bindingEditor.moveDown' => '下移',
 			'bindingEditor.collapse' => '收起绑定',
-			'bindingEditor.expand' => '展开绑定',
-			'bindingEditor.actions' => '动作',
 			_ => null,
 		} ?? switch (path) {
+			'bindingEditor.expand' => '展开绑定',
+			'bindingEditor.actions' => '动作',
 			'bindingEditor.actionList' => '动作列表',
 			'bindingEditor.bindingDetails' => '绑定详情',
 			'bindingEditor.bindings' => '绑定',

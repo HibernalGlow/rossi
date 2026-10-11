@@ -1987,6 +1987,8 @@
     "hwDecodeDesc": "Turn off to work around green/torn frames, at the cost of CPU",
     "deinterlace": "Deinterlace",
     "deinterlaceDesc": "Enable for interlaced DVD / tape sources with combing",
+    "integrateBottomBar": "Integrate video controls into bottom bar",
+    "integrateBottomBarDesc": "Show playback progress and video controls inside the reader bottom bar",
     "pinDesc": "Keep the control bar visible instead of hiding it after a few seconds",
     "animatedVideo": "Play animated images as video",
     "animatedVideoDesc": "Hand GIF / APNG to the video controller for pause, frame stepping and scrubbing",
