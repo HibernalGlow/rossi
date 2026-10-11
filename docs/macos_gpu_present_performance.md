@@ -110,6 +110,62 @@ CVPixelBuffer 池、临时解码数据、正在执行任务持有的 Arc、Flutt
    这需要验证 wgpu 互操作、Flutter 取帧期间的缓冲生命周期与 GPU 完成同步，尚未实现。
    也不能假定它会消除解码和着色器本身的耗时。
 
+## 后续优化：按实际采样级生成与分配 mip
+
+2026-10-11 同日追加：源纹理不再默认分配完整 mip 链。Lanczos 继续读取原有整数
+`floor(log2(1/scale))` 等级，保留第 0 级到该级；Anime4K 仅读第 0 级，省去 mip 分配和生成。
+已有同尺寸纹理容量足够时继续复用；需要更深等级或源尺寸变化时重建。
+已经分配的较深 mip 不会在每次放大时立即释放，避免缩放切换反复重新分配纹理。
+
+mip 相关源代码拆到 `wgpu_resampler/source.rs`。macOS 原生诊断增加：
+
+- `sourceMipLevels`：共享渲染器当前源纹理的分配级数。
+- `sourceGeneratedMipLevels`：最近一次源图上传后，为该次绘制准备的级数，包含第 0 级。
+- `sourceTextureTexelBytes`：上述纹理按 RGBA8 texel 计算的字节数，**不是实际驱动常驻量**。
+
+共享渲染器也用于后台预取，指标不保证属于当前显示页。统计查询用 `try_lock`；
+后台渲染占锁时这三个新增字段为 `null`，不会为获取诊断阻塞等待 GPU。
+PageCache 的 `cacheBytes` / 预算口径保持不变，未把 GPU 纹理字节混入其中。
+
+### 同进程 Release 库对照
+
+探针增加 `--compare-library`。参考库是在此项修改前保留的 Release dylib；两边分别持有
+设备与缓存，使用同一份输入、同一个 CVPixelBuffer，AB / BA 交替同步执行冷页。
+每对冷样本之后整块逐字节比较输出；全部 16 对均一致。报告还保存两页的整帧 SHA256。
+这套对照使用两份设备资源，会增加测试进程占用，不能替代单呈现器的内存峰值测量。
+
+| 输入 / 视口 | 修改前冷页 p50 | 修改后冷页 p50 | 修改前 renderMs 中位数 | 修改后 renderMs 中位数 | 配对 renderMs 差的中位数（后减前） |
+|---|---:|---:|---:|---:|---:|
+| 60.2 MP / 3840×2160 | 342.45 ms | 339.15 ms | 91.27 ms | 87.84 ms | -5.80 ms |
+| 12.6 MP / 2560×1600 | 88.23 ms | 86.20 ms | 35.21 ms | 34.76 ms | -0.12 ms |
+
+原始报告包含全部样本。4K 冷页 p95 前 / 后为 542.01 / 586.93 ms；12.6 MP 为
+134.30 / 174.10 ms，长尾仍不稳定，不能据此宣布稳定的总体提速。
+独立进程的初次前后测量连解码阶段也发生大幅波动，未拿那组差异作为收益证据。
+当前结论是减少无用工作与按 texel 计算的容量，渲染阶段的测量显示局部收益迹象。
+
+| 源纹理 | 修改前完整链（按 texel 计算） | 本次实际分配 | 减少容量 |
+|---|---:|---:|---:|
+| 9504×6336，当前读取第 1 级 | 14 级，约 306.28 MiB | 2 级，287.14 MiB | 约 19.14 MiB |
+| 4096×3072，当前读取第 0 级 | 13 级，约 64 MiB | 1 级，48 MiB | 约 16 MiB |
+
+本轮 44 项原生测试通过。新增测试覆盖非整齐尺寸、多个缩放等级、Anime4K、同尺寸换页、
+从较深 mip 切回第 0 级再切回缩小，以及源尺寸变化；复用结果与新建纹理结果逐字节一致。
+另验证诊断在渲染器锁被占用时及时返回 `null`。
+
+复现时先在修改 mip 之前保留参考 Release 库（仅复制到临时路径，不修改源文件）：
+
+```sh
+cp rust/gpu_present/target/release/librossi_gpu_present.dylib /tmp/rossi-gpu-reference.dylib
+# 更新至 mip 优化版本后，按上文命令构建 Release 库并编译探针。
+/tmp/rossi-gpu-probe --compare-library /tmp/rossi-gpu-reference.dylib --source-size 9504x6336 --target 3840x2160 --cold 16 --warm 60 --output /tmp/rossi-gpu-mip-paired.json
+```
+
+原始对照报告：
+
+- [60.2 MP / 4K 配对](benchmarks/macos-gpu-present-2026-10-11/mip-paired-60mp-3840x2160.json)
+- [12.6 MP / 2560 配对](benchmarks/macos-gpu-present-2026-10-11/mip-paired-12mp-2560x1600.json)
+
 ## 验证与限制
 
 本轮此前的原生测试为 40 项通过，Dart 阅读控制器测试 27 项通过；Swift 调度测试验证了
