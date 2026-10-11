@@ -1,0 +1,37 @@
+name: CI Probe — Windows dav1d/pkgconf 现场
+on:
+  workflow_dispatch:
+
+jobs:
+  probe-windows:
+    runs-on: windows-latest
+    steps:
+      - name: 读取构建前置现场
+        shell: pwsh
+        run: |
+          "VCPKG_ROOT = [$env:VCPKG_ROOT]"
+          "VCPKG_INSTALLATION_ROOT = [$env:VCPKG_INSTALLATION_ROOT]"
+          $root = if ($env:VCPKG_ROOT) { $env:VCPKG_ROOT } else { $env:VCPKG_INSTALLATION_ROOT }
+          if ($root) {
+            "vcpkg exe exists: $(Test-Path (Join-Path $root 'vcpkg.exe'))"
+            Get-ChildItem (Join-Path $root 'installed') -ErrorAction SilentlyContinue | Select-Object -First 5 Name
+            Get-ChildItem (Join-Path $root 'installed\*\lib\pkgconfig') -ErrorAction SilentlyContinue | Select-Object -First 10 Name
+          } else { "no vcpkg root in env" }
+          "--- pkg-config 可见性 ---"
+          foreach ($c in 'pkg-config','pkgconf','pkg-config.exe') {
+            $p = (Get-Command $c -ErrorAction SilentlyContinue)
+            "$c => $(if ($p) { $p.Source } else { 'NOT FOUND' })"
+          }
+          "--- 已装的 dav1d.pc（只扫可能的落点）---"
+          foreach ($dir in @("$root\installed", 'C:\vcpkg\installed', 'C:\tools', "$env:GITHUB_WORKSPACE")) {
+            if ($dir -and (Test-Path $dir)) {
+              Get-ChildItem -Path $dir -Filter dav1d.pc -Recurse -ErrorAction SilentlyContinue -Depth 5 |
+                Select-Object -First 5 FullName
+            }
+          }
+          "--- msys / choco 里有没有 pkg-config ---"
+          Get-ChildItem 'C:\msys64\usr\bin\pkg-config.exe','C:\ProgramData\chocolatey\bin\pkg-config.exe' -ErrorAction SilentlyContinue |
+            Select-Object FullName
+          "--- toolchain ---"
+          (cargo --version) ; (rustc --version)
+          Get-ChildItem env: | Where-Object { $_.Name -match 'PKG|VCPKG|CARGO|RUSTUP' } | ForEach-Object { "$($_.Name)=$($_.Value)" }
