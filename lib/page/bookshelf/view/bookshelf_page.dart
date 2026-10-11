@@ -67,8 +67,7 @@ class _BookshelfPageContent extends StatefulWidget {
   State<_BookshelfPageContent> createState() => _BookshelfPageContentState();
 }
 
-class _BookshelfPageContentState extends State<_BookshelfPageContent>
-    with SingleTickerProviderStateMixin {
+class _BookshelfPageContentState extends State<_BookshelfPageContent> {
   late final List<String> _labels = [
     t.bookshelf.favorite,
     t.bookshelf.history,
@@ -76,7 +75,6 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent>
   ];
 
   late int _currentIndex;
-  late final TabController _tabController;
   final List<int> _refreshSignals = [0, 0, 0];
   final FocusNode _searchFocusNode = FocusNode();
   // 关键词防抖：短时间内连续输入只保留最后一次，停顿后才真正写入过滤；
@@ -84,24 +82,17 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent>
   final _keywordDebouncer = Debouncer(milliseconds: 500);
   List<String> _lastAvailableSources = const <String>[];
   bool _isSearchExpanded = false;
+  bool _isFilterOpen = false;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex.clamp(0, _labels.length - 1);
-    _tabController = TabController(
-      initialIndex: _currentIndex,
-      length: _labels.length,
-      vsync: this,
-    )..addListener(_handleTabControllerChanged);
     _syncSourcesFromRegistry(context.read<PluginRegistryCubit>().state);
   }
 
   @override
   void dispose() {
-    _tabController
-      ..removeListener(_handleTabControllerChanged)
-      ..dispose();
     _searchFocusNode.dispose();
     _keywordDebouncer.cancel();
     super.dispose();
@@ -124,23 +115,36 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent>
           titleSpacing: isDesktop ? 16 : 8,
           title: isDesktop ? _buildDesktopHeader() : _buildMobileHeader(),
         ),
-        body: TabBarView(
-          controller: _tabController,
+        body: Column(
           children: [
-            FolderShelfPage(
-              mode: ShelfPageMode.favorite,
-              refreshSignal: _refreshSignals[0],
-              isActive: _currentIndex == 0,
-            ),
-            FolderShelfPage(
-              mode: ShelfPageMode.history,
-              refreshSignal: _refreshSignals[1],
-              isActive: _currentIndex == 1,
-            ),
-            FolderShelfPage(
-              mode: ShelfPageMode.download,
-              refreshSignal: _refreshSignals[2],
-              isActive: _currentIndex == 2,
+            if (!isDesktop)
+              ShelfSearchRegion(
+                expanded: _isSearchExpanded,
+                padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
+                child: _buildShelfSearchField(autoExpand: true),
+              ),
+            Expanded(
+              child: BookshelfPanels(
+                selectedIndex: _currentIndex,
+                onSelected: _onTabChanged,
+                children: [
+                  FolderShelfPage(
+                    mode: ShelfPageMode.favorite,
+                    refreshSignal: _refreshSignals[0],
+                    isActive: _currentIndex == 0,
+                  ),
+                  FolderShelfPage(
+                    mode: ShelfPageMode.history,
+                    refreshSignal: _refreshSignals[1],
+                    isActive: _currentIndex == 1,
+                  ),
+                  FolderShelfPage(
+                    mode: ShelfPageMode.download,
+                    refreshSignal: _refreshSignals[2],
+                    isActive: _currentIndex == 2,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -256,137 +260,21 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent>
     }
   }
 
-  /// 展开态打开筛选：弹窗会抢走焦点，关闭后若还在搜索态则恢复聚焦，键盘回来接着输。
-  Future<void> _openFilterFromSearch() async {
-    await _openFilter();
-    if (mounted && _isSearchExpanded) {
-      _searchFocusNode.requestFocus();
-    }
-  }
-
   Widget _buildMobileHeader() {
-    if (_isSearchExpanded) {
-      return Row(
-        children: [
-          IconButton(
-            tooltip: t.common.back,
-            icon: const GlyphIcon(AppGlyphs.arrowBack),
-            onPressed: _exitSearch,
-          ),
-          Expanded(child: _buildShelfSearchField(autoExpand: true)),
-          ActionGroup(
-            fill: _actionWellFill,
-            children: [
-              ActionIconButton(
-                glyph: AppGlyphs.sliders,
-                tooltip: t.bookshelf.filter,
-                onPressed: _openFilterFromSearch,
-              ),
-            ],
-          ),
-        ],
-      );
-    }
-
-    // 右上角那两颗（放大镜 / 滑块）装进**同一只分组槽** —— 这正是 FlClash 顶栏
-    // 右上角的形态：一个胶囊里几颗图标，旁边不再散着一颗。左边的胶囊 tab 不动。
-    return Row(
-      children: [
-        _buildSleekTabs(),
-        const Spacer(),
-        ActionGroup(
-          fill: _actionWellFill,
-          children: [
-            ActionIconButton(
-              glyph: AppGlyphs.search,
-              tooltip: t.common.search,
-              onPressed: _expandSearch,
-            ),
-            ActionIconButton(
-              glyph: AppGlyphs.sliders,
-              tooltip: t.bookshelf.filter,
-              onPressed: _openFilter,
-            ),
-          ],
-        ),
-      ],
+    return ShelfSearchHeader(
+      expanded: _isSearchExpanded,
+      tabs: ActionBubbleRegion(child: _buildPanelTabs()),
+      filter: _buildFilterButton(fromSearch: _isSearchExpanded),
+      onExpand: _expandSearch,
+      onClose: _exitSearch,
     );
   }
 
-  /// 书架顶栏那排胶囊 tab（收藏 / 历史 / 下载）。
-///
-/// # 为什么用 [SpringLensBar] 而不是自己排一个 Row
-///
-/// 选中态改由 Dock 那一套弹簧 lens 接管（见 `widgets/spring_lens/`）：点一下
-/// 时它是**弹**过去的，不是 `AnimatedContainer` 那样 180ms 线性淡入；按下会鼓、
-/// 跟着手指走、跨格有触感回馈。切换的**内容**（`TabBarView` 与三个
-/// `FolderShelfPage`）完全没动，仍由 [_tabController] 驱动 —— 这里换的只是
-/// 「选中态画成什么样」。
-///
-/// # 为什么要自己量宽度（[tabSizes]）
-///
-/// 这一排是**按文字取宽**的（「收藏」两字比「下载」两字宽，中英文差得更多），
-/// 而 Dock 那边 lens 建立在等宽假设上。所以这里按渲染出来的那一份样式量出每格
-/// 宽度喂给组件，lens 的落点与宽度才与实际排出来的那几格对得上。
-///
-/// 量宽度要量**真正渲染的那一份**（理由同 `reader_settings_tab_bar_part.dart`
-/// 那一段：本仓主题的字体档位可能只改字族、把 fontSize 留成 null）。
-Widget _buildSleekTabs() {
-  // 量宽度用的那份样式必须与 `_SleekTabLabel` **渲染的那一份**同源 ——
-  // 拿 token 直接量、在 fontSize 为 null 的档位上量到的是回落值，
-  // 于是「每格多宽」与实际排出来的宽度对不上，lens 的落点会偏。
-  final labelStyle = DefaultTextStyle.of(context).style.merge(
-    context.theme.textTheme.titleSmall,
+  Widget _buildPanelTabs() => PanelSwitcherTabs(
+    items: [for (final label in _labels) PanelSwitcherItem(label: label)],
+    selectedIndex: _currentIndex,
+    onSelected: _onTabChanged,
   );
-
-  // 量每格宽度：文字实测宽 + 左右内边距。与 `_Slot` 里那个
-  // `SizedBox(width: extent)` 用的是同一个数。
-  final sizes = <double>[];
-  for (final label in _labels) {
-    final painter = TextPainter(
-      text: TextSpan(text: label, style: labelStyle),
-      textScaler: MediaQuery.textScalerOf(context),
-      textDirection: Directionality.of(context),
-      maxLines: 1,
-    )..layout();
-    sizes.add(painter.width + _SleekTabLabel.hPadding * 2);
-    painter.dispose();
-  }
-
-  return Container(
-    // 底板与右边那颗筛选钮的 `_actionWellFill` **同一个色** —— 判据见上面
-    // `_actionWellFill` 的注释（两条栏上两个容器读作同一种「可点区」）。
-    decoration: BoxDecoration(
-      color: context.theme.colorScheme.surfaceContainerHighest.withValues(
-        alpha: 0.5,
-      ),
-      borderRadius: BorderRadius.circular(20),
-    ),
-    padding: const EdgeInsets.all(4),
-    child: SpringLensBar(
-      tabs: [
-        for (var i = 0; i < _labels.length; i++)
-          SpringLensTab(
-            // 文字色/字重仍按选中态分档（lens 只接管**底色**那块方块）。
-            // 两件事分开：`lensColor` 给 secondaryContainer 那一档，
-            // 于是选中块是「灰胶囊里的一块浅色」，与右边筛选钮那一档同族。
-            child: _SleekTabLabel(
-              text: _labels[i],
-              selected: i == _currentIndex,
-              baseStyle: labelStyle,
-            ),
-            semanticLabel: _labels[i],
-          ),
-      ],
-      tabSizes: sizes,
-      selectedIndex: _currentIndex,
-      onSelected: _onTabChanged,
-      // lens 圆角跟原来那个选中块的 16 一致，不是全圆 —— 顶栏这排是「胶囊里
-      // 几块」，全圆会让两端贴到容器边上。
-      lensCorner: 16,
-    ),
-  );
-}
 
   /// 关键词防抖写入。mode 在调用时快照，避免防抖期间切 tab 把词写到别的 tab。
   void _setKeywordDebounced(ShelfPageMode mode, String keyword) {
@@ -402,44 +290,57 @@ Widget _buildSleekTabs() {
     });
   }
 
-  /// 书架搜索框：复用搜索页的 SearchQueryField（浮层展开、多行展示、回车即搜）。
+  /// 书架搜索框：移动端内联展开，桌面端复用 SearchQueryField。
   /// 非空输入经 500ms 防抖写入 cubit（列表按 keyword 做 BlocBuilder 实时过滤）；
   /// 清空（删到空/点 ×）是明确的单次操作，立即生效；
-  /// 回车提交立即生效、保持浮层展开并回到顶部，方便继续改词。桌面端常驻显示（autoExpand 关），
-  /// 移动端在展开时挂载（autoExpand 开，首帧自动聚焦弹键盘）。
+  /// 回车提交立即生效、保留输入焦点并回到顶部。移动端展开时直接挂载输入框。
   Widget _buildShelfSearchField({required bool autoExpand}) {
     return BlocBuilder<BookshelfSearchCubit, BookshelfSearchState>(
       buildWhen: (prev, curr) =>
           prev.stateOf(_currentMode()).keyword !=
           curr.stateOf(_currentMode()).keyword,
       builder: (context, state) {
+        void onChanged(String keyword) {
+          if (autoExpand && !_isSearchExpanded) return;
+          if (keyword.isEmpty) {
+            _keywordDebouncer.cancel();
+            if (_currentSearchState().keyword.isNotEmpty) {
+              _setKeyword('');
+              _triggerRefresh(goTop: true);
+            }
+            return;
+          }
+          _setKeywordDebounced(_currentMode(), keyword);
+        }
+
+        void onSubmitted(String keyword) {
+          if (autoExpand && !_isSearchExpanded) return;
+          _keywordDebouncer.cancel();
+          _setKeyword(keyword.trim());
+          _triggerRefresh(goTop: true);
+        }
+
+        final key = ValueKey('shelf_search_$_currentIndex');
+        final query = state.stateOf(_currentMode()).keyword;
+        if (autoExpand) {
+          return ShelfSearchField(
+            key: key,
+            query: query,
+            focusNode: _searchFocusNode,
+            hintText: t.bookshelf.searchList,
+            onChanged: onChanged,
+            onSubmitted: onSubmitted,
+          );
+        }
         return SearchQueryField(
-          // 按 tab 区分 element：切 tab 时重建，保证各 tab 关键词独立，
-          // 且展开中的浮层不会串词。
-          key: ValueKey('shelf_search_$_currentIndex'),
-          query: state.stateOf(_currentMode()).keyword,
-          autoExpand: autoExpand,
+          key: key,
+          query: query,
           focusNode: _searchFocusNode,
           closeOnSubmit: false,
           hintText: t.bookshelf.searchList,
           semanticLabel: t.bookshelf.searchList,
-          onChanged: (keyword) {
-            if (keyword.isEmpty) {
-              // 清空是明确的单次操作，立即生效，不走防抖。
-              _keywordDebouncer.cancel();
-              if (_currentSearchState().keyword.isNotEmpty) {
-                _setKeyword('');
-                _triggerRefresh(goTop: true);
-              }
-              return;
-            }
-            _setKeywordDebounced(_currentMode(), keyword);
-          },
-          onSubmitted: (keyword) {
-            _keywordDebouncer.cancel();
-            _setKeyword(keyword.trim());
-            _triggerRefresh(goTop: true);
-          },
+          onChanged: onChanged,
+          onSubmitted: onSubmitted,
         );
       },
     );
@@ -447,16 +348,7 @@ Widget _buildSleekTabs() {
 
   void _onTabChanged(int index) {
     if (index == _currentIndex) return;
-    _tabController.animateTo(index);
-  }
-
-  void _handleTabControllerChanged() {
-    if (!mounted || _currentIndex == _tabController.index) {
-      return;
-    }
-    setState(() {
-      _currentIndex = _tabController.index;
-    });
+    setState(() => _currentIndex = index);
   }
 
   ShelfPageMode _currentMode() {
@@ -512,55 +404,49 @@ Widget _buildSleekTabs() {
     });
   }
 
-  Future<void> _openFilter() async {
-    final searchCubit = context.read<BookshelfSearchCubit>();
-    final currentMode = _currentMode();
-    final current = searchCubit.state.stateOf(currentMode);
-    final sourceOptions = _buildFilterSourceOptions();
-    final availableSources = sourceOptions
-        .map((source) => source.pluginId)
-        .toList();
-
-    if (availableSources.isEmpty && currentMode != ShelfPageMode.favorite) {
+  /// 弹出筛选并把结果落账。
+  ///
+  /// [seed] 是 build 那一刻算好的种子（面板拿到的就是它），所以这里**不再重算**
+  /// 一遍当前选择 —— 重算会多读一次 cubit，两次之间但凡有个 rebuild，
+  /// 面板里的勾选与落账的基准就会错开一格。
+  ///
+  /// [fromSearch] 走的是「搜索展开态打开筛选」那条路：弹层会抢走焦点，
+  /// 关掉之后若还在搜索态就把焦点还回去，键盘接着输。
+  Future<void> _openFilter(
+    PopupOpen<BookshelfFilterResult> open, {
+    required _FilterSeed seed,
+    bool fromSearch = false,
+  }) async {
+    if (seed.options.isEmpty && seed.mode != ShelfPageMode.favorite) {
       showInfoToast(t.bookshelf.noFilterSource, context: context);
       return;
     }
 
-    var selectedSources = current.sources
-        .where(availableSources.contains)
-        .toSet();
-    if (selectedSources.isEmpty) {
-      selectedSources = availableSources.toSet();
+    // cubit 在 await 之前就抓在手里：`await open()` 之后 `context` 已经跨了
+    // 一次异步间隙，那时再读会踩 `use_build_context_synchronously`。
+    final searchCubit = context.read<BookshelfSearchCubit>();
+
+    if (_isFilterOpen) return;
+    setState(() => _isFilterOpen = true);
+    BookshelfFilterResult? result;
+    try {
+      result = await open();
+    } finally {
+      if (mounted) setState(() => _isFilterOpen = false);
     }
 
-    final result = await showDialog<_BookshelfFilterResult>(
-      context: context,
-      builder: (_) => _BookshelfFilterDialog(
-        mode: currentMode,
-        initialSort: switch (currentMode) {
-          (ShelfPageMode.favorite || ShelfPageMode.download)
-              when current.sort == 'vd' || current.sort == 'va' =>
-            current.sort,
-          _ when current.sort == 'da' => 'da',
-          _ => 'dd',
-        },
-        initialSources: selectedSources,
-        availableSources: availableSources,
-        sourceOptions: sourceOptions,
-      ),
-    );
-
+    if (mounted && fromSearch && _isSearchExpanded) {
+      _searchFocusNode.requestFocus();
+    }
     if (result == null) return;
 
-    searchCubit.setSort(currentMode, result.sort);
-    _maybePersistSort(currentMode, result.sort);
-
-    final nextSources = result.sources.toList();
-    searchCubit.setSources(currentMode, nextSources);
+    searchCubit.setSort(seed.mode, result.sort);
+    _maybePersistSort(seed.mode, result.sort);
+    searchCubit.setSources(seed.mode, result.sources.toList());
     _triggerRefresh(goTop: true);
   }
 
-  List<_FilterSourceOption> _buildFilterSourceOptions() {
+  List<FilterSourceOption> _buildFilterSourceOptions() {
     final pluginStates = context.read<PluginRegistryCubit>().state;
     final sourceOptions = PluginRegistryService.I.sortPlugins(
       pluginStates.values.where(
@@ -569,14 +455,14 @@ Widget _buildSleekTabs() {
     );
     final list = sourceOptions
         .map(
-          (plugin) => _FilterSourceOption(
+          (plugin) => FilterSourceOption(
             pluginId: plugin.uuid,
             title: _sourceTitle(plugin.uuid),
           ),
         )
         .toList();
     list.add(
-      _FilterSourceOption(pluginId: 'local', title: _sourceTitle('local')),
+      FilterSourceOption(pluginId: 'local', title: _sourceTitle('local')),
     );
     return list;
   }
@@ -629,226 +515,15 @@ Widget _buildSleekTabs() {
   }
 }
 
-/// 顶栏那一排 tab 的文字。选中与否只影响字重与颜色，**内边距两档相同** ——
-/// 内边距参与「每格多宽」的计算（见 [_BookshelfPageContentState._buildSleekTabs]），
-/// 两档若不同，切档时 lens 的落点就会偏一点。
-class _SleekTabLabel extends StatelessWidget {
-  const _SleekTabLabel({
-    required this.text,
-    required this.selected,
-    required this.baseStyle,
-  });
-
-  /// 文字左右各留的内边距。
-  ///
-  /// **量与画必须读同一份**：`_buildSleekTabs` 量每格宽度时用它算总宽，
-  /// 这里用它排版。两处各写一个数的话，lens 的落点会与实际排出来的位置差
-  /// 那一点点 —— 按内容取宽的档位最怕这个。
-  static const double hPadding = 16;
-
-  /// 文字上下的内边距（不参与宽度计算）。
-  static const double vPadding = 6;
-
-  final String text;
-  final bool selected;
-
-  /// 由 [_buildSleekTabs] 量宽度时用的**那一份**样式传进来 —— 量与画必须同源。
-  final TextStyle baseStyle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: hPadding,
-        vertical: vPadding,
-      ),
-      child: Text(
-        text,
-        style: baseStyle.copyWith(
-          fontWeight: selected ? FontWeight.bold : FontWeight.w600,
-          color: selected
-              ? context.textColor
-              : context.textColor.withValues(alpha: 0.6),
-        ),
-      ),
-    );
-  }
-}
-
-class _BookshelfFilterDialog extends StatefulWidget {
-  const _BookshelfFilterDialog({
-    required this.mode,
-    required this.initialSort,
-    required this.initialSources,
-    required this.availableSources,
-    required this.sourceOptions,
-  });
-
-  final ShelfPageMode mode;
-  final String initialSort;
-  final Set<String> initialSources;
-  final List<String> availableSources;
-  final List<_FilterSourceOption> sourceOptions;
-
-  @override
-  State<_BookshelfFilterDialog> createState() => _BookshelfFilterDialogState();
-}
-
-class _BookshelfFilterDialogState extends State<_BookshelfFilterDialog> {
-  late String _selectedSort;
-  late Set<String> _selectedSources;
-
-  bool get _isFavoriteMode => widget.mode == ShelfPageMode.favorite;
-  bool get _isDownloadMode => widget.mode == ShelfPageMode.download;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedSort = widget.initialSort;
-    _selectedSources = Set<String>.from(widget.initialSources);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(t.bookshelf.filter),
-      content: SizedBox(
-        width: 420,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSortSection(context),
-              const SizedBox(height: 16),
-              _buildSourceSection(context),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(t.common.cancel),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(
-            _BookshelfFilterResult(
-              sort: _selectedSort,
-              sources: _selectedSources,
-            ),
-          ),
-          child: Text(t.common.apply),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSortSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(t.bookshelf.sort, style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            ChoiceChip(
-              showCheckmark: false,
-              label: Text(t.bookshelf.sortDesc),
-              selected: _selectedSort == 'dd',
-              onSelected: (_) => setState(() => _selectedSort = 'dd'),
-            ),
-            ChoiceChip(
-              showCheckmark: false,
-              label: Text(t.bookshelf.sortAsc),
-              selected: _selectedSort == 'da',
-              onSelected: (_) => setState(() => _selectedSort = 'da'),
-            ),
-            if (_isFavoriteMode || _isDownloadMode) ...[
-              ChoiceChip(
-                showCheckmark: false,
-                label: Text(t.bookshelf.viewSortDesc),
-                selected: _selectedSort == 'vd',
-                onSelected: (_) => setState(() => _selectedSort = 'vd'),
-              ),
-              ChoiceChip(
-                showCheckmark: false,
-                label: Text(t.bookshelf.viewSortAsc),
-                selected: _selectedSort == 'va',
-                onSelected: (_) => setState(() => _selectedSort = 'va'),
-              ),
-            ],
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSourceSection(BuildContext context) {
-    final isAllSelected =
-        _selectedSources.length == widget.availableSources.length;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              t.bookshelf.source,
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(width: 8),
-            TextButton(
-              onPressed: () => setState(() {
-                if (isAllSelected) {
-                  _selectedSources.clear();
-                } else {
-                  _selectedSources = widget.availableSources.toSet();
-                }
-              }),
-              child: Text(
-                isAllSelected ? t.bookshelf.deselectAll : t.common.selectAll,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final source in widget.sourceOptions)
-              FilterChip(
-                showCheckmark: false,
-                label: Text(source.title),
-                selected: _selectedSources.contains(source.pluginId),
-                onSelected: (selected) => setState(() {
-                  if (selected) {
-                    _selectedSources.add(source.pluginId);
-                  } else {
-                    _selectedSources.remove(source.pluginId);
-                  }
-                }),
-              ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _BookshelfFilterResult {
-  _BookshelfFilterResult({required this.sort, required Set<String> sources})
-    : sources = Set<String>.from(sources);
-
-  final String sort;
-  final Set<String> sources;
-}
-
-class _FilterSourceOption {
-  const _FilterSourceOption({required this.pluginId, required this.title});
-
-  final String pluginId;
-  final String title;
-}
+/// 打开筛选时算好的那一份「种子」。
+///
+/// 排序与图源选择都是**按模式分开记**的（收藏 / 历史 / 下载各一套），
+/// 所以面板必须连「现在在哪个模式」一起拿到，不能只给它两个值。
+/// 用记录类型而不是再定义一个类：它是三个字段的一次性打包，
+/// 生命周期只到这一次弹出结束。
+typedef _FilterSeed = ({
+  ShelfPageMode mode,
+  String sort,
+  Set<String> sources,
+  List<FilterSourceOption> options,
+});

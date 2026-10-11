@@ -6,7 +6,6 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:zephyr/config/global/global_setting.dart';
@@ -25,12 +24,15 @@ import 'package:zephyr/page/bookshelf/widgets/bookshelf_empty_view.dart';
 import 'package:zephyr/page/bookshelf/widgets/bookshelf_grid_shimmer.dart';
 import 'package:zephyr/page/bookshelf/widgets/bookshelf_loading_view.dart';
 import 'package:zephyr/page/bookshelf/widgets/folder_shelf_item.dart';
+import 'package:zephyr/page/bookshelf/widgets/shelf_floating_actions.dart';
+import 'package:zephyr/widgets/expressive/shelf_list_editor.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_grid.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_info.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/icons/icons.dart';
 
@@ -204,7 +206,7 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
 
   /// 悬浮物拆成两个独立 Positioned：
   /// - 面包屑置顶（只在子文件夹出现，滑入淡出）；
-  /// - 菜单为右下角 SpeedDial（与搜索结果页同款），跟随滚动显隐。
+  /// - 菜单为右下角 Expressive 花瓣按钮，跟随滚动显隐。
   List<Widget> _buildFloatingNav(BuildContext context, FolderShelfState state) {
     // 面包屑：子文件夹 + 未上滑隐藏时才出现；右下角菜单：只跟随滚动显隐。
     final pillHidden = state.isRoot || !_navVisible;
@@ -606,36 +608,16 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
   }
 
   Future<void> _showCreateFolderDialog(BuildContext context) async {
-    final controller = TextEditingController();
-    final name = await showDialog<String>(
+    final name = await showPopupPanel<String>(
+      presentation: PopupPresentation.relative,
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(t.bookshelf.createFolder),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            decoration: InputDecoration(hintText: t.bookshelf.folderName),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(t.common.cancel),
-            ),
-            TextButton(
-              onPressed: () {
-                final text = controller.text.trim();
-                if (text.isNotEmpty) {
-                  Navigator.of(dialogContext).pop(text);
-                }
-              },
-              child: Text(t.common.ok),
-            ),
-          ],
-        );
-      },
+      builder: (dialogContext) => ShelfListEditor(
+        title: t.bookshelf.createFolder,
+        label: t.bookshelf.folderName,
+        description: '把相关漫画放在一起，方便下次找到。',
+        onSave: (name) => Navigator.of(dialogContext).pop(name),
+      ),
     );
-    controller.dispose();
     if (name != null && name.isNotEmpty && context.mounted) {
       context.read<FolderShelfBloc>().add(FolderShelfCreateFolder(name));
     }
@@ -699,10 +681,11 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
     BuildContext context,
     String path,
   ) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showPopupPanel<bool>(
       context: context,
+      presentation: PopupPresentation.modal,
       builder: (dialogContext) {
-        return AlertDialog(
+        return PopupPanel(
           title: Text(t.bookshelf.confirmDeleteFolderTitle),
           content: Text(t.bookshelf.confirmDeleteFolderContent),
           actions: [
@@ -729,10 +712,11 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
     String folderPath,
   ) async {
     final controller = TextEditingController(text: folder.name);
-    final name = await showDialog<String>(
+    final name = await showPopupPanel<String>(
+      presentation: PopupPresentation.relative,
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
+        return PopupPanel(
           title: Text(t.bookshelf.renameFolder),
           content: TextField(
             controller: controller,
@@ -822,10 +806,11 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
     BuildContext context,
     ComicSimplifyEntryInfo info,
   ) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showPopupPanel<bool>(
       context: context,
+      presentation: PopupPresentation.modal,
       builder: (dialogContext) {
-        return AlertDialog(
+        return PopupPanel(
           title: Text(t.bookshelf.confirmRemoveComicTitle),
           content: Text(
             t.bookshelf.confirmRemoveComicContent(title: info.title),
@@ -915,7 +900,8 @@ Future<void> _showTargetFolderDialog(
 
   final selectedPaths = <String>{};
 
-  await showDialog<void>(
+  await showPopupPanel<void>(
+    presentation: PopupPresentation.relative,
     context: context,
     builder: (dialogContext) {
       final expandedPaths = <String>{};
@@ -931,7 +917,7 @@ Future<void> _showTargetFolderDialog(
             });
           }
 
-          return AlertDialog(
+          return PopupPanel(
             title: Text(t.bookshelf.selectTargetFolder),
             content: SizedBox(
               width: 380,
@@ -1173,9 +1159,10 @@ Future<bool> _confirmComicImportOverwrite(
   BuildContext context,
   String title,
 ) async {
-  final result = await showDialog<bool>(
+  final result = await showPopupPanel<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    presentation: PopupPresentation.modal,
+    builder: (dialogContext) => PopupPanel(
       title: Text(t.bookshelf.comicExists),
       content: Text(t.bookshelf.confirmOverwriteImport(title: title)),
       actions: [
@@ -1246,10 +1233,11 @@ Future<void> _batchExportSelected(
 }
 
 Future<void> _confirmDeleteSelected(BuildContext context) async {
-  final confirmed = await showDialog<bool>(
+  final confirmed = await showPopupPanel<bool>(
     context: context,
+    presentation: PopupPresentation.modal,
     builder: (dialogContext) {
-      return AlertDialog(
+      return PopupPanel(
         title: Text(t.bookshelf.confirmDeleteSelectedTitle),
         content: Text(t.bookshelf.confirmDeleteSelectedContent),
         actions: [

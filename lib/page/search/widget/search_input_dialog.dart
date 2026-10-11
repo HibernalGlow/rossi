@@ -7,6 +7,8 @@ import 'package:flutter/widget_previews.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/motion/action_bubble.dart';
+import 'package:zephyr/widgets/motion/expressive_motion.dart';
 
 class SearchQueryField extends StatefulWidget {
   const SearchQueryField({
@@ -43,8 +45,17 @@ class SearchQueryField extends StatefulWidget {
 }
 
 class _SearchQueryFieldState extends State<SearchQueryField>
-    with WidgetsBindingObserver, AutoRouteAwareStateMixin<SearchQueryField> {
+    with
+        WidgetsBindingObserver,
+        AutoRouteAwareStateMixin<SearchQueryField>,
+        SingleTickerProviderStateMixin {
   final _targetKey = GlobalKey();
+  late final _expansion = AnimationController(
+    vsync: this,
+    duration: ExpressiveMotion.spatialDuration,
+    reverseDuration: ExpressiveMotion.exitDuration,
+  );
+  bool _closing = false;
   late final TextEditingController _controller;
   FocusNode? _internalFocusNode;
 
@@ -56,12 +67,14 @@ class _SearchQueryFieldState extends State<SearchQueryField>
   OverlayState? _overlayState;
   Timer? _autoExpandFallbackTimer;
   bool _isExpanded = false;
+
   /// 最近一次读到的所在 tab 是否活跃。切 tab 时本页不卸载、
   /// 收不到路由回调：桌面端 IndexedStack 只翻转 Visibility
   /// （见 SDK IndexedStack 的 _VisibilityScope），移动端 tab 则被
   /// Offstage 藏起并关掉 TickerMode。任一变假都算切走；
   /// null 表示还没读到过。
   bool? _lastTabActive;
+
   /// 新路由盖住本页时焦点被抢走（如搜索页输入框 autofocus），
   /// 失焦即收起浮层，否则返回后旧浮层悬在新页上层。
   /// 书架回车（closeOnSubmit=false）焦点不动，不受影响。
@@ -159,6 +172,7 @@ class _SearchQueryFieldState extends State<SearchQueryField>
     _cancelPendingExpand();
     _removeOverlay();
     _unwatchFocusLoss();
+    _expansion.dispose();
     _controller.dispose();
     _internalFocusNode?.dispose();
     _internalFocusNode = null;
@@ -294,6 +308,12 @@ class _SearchQueryFieldState extends State<SearchQueryField>
     });
     _overlayEntry = OverlayEntry(builder: _buildOverlay);
     _overlayState!.insert(_overlayEntry!);
+    _closing = false;
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _expansion.value = 1;
+    } else {
+      _expansion.forward(from: 0);
+    }
     _watchFocusLoss();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _isExpanded) {
@@ -309,6 +329,8 @@ class _SearchQueryFieldState extends State<SearchQueryField>
     _overlayEntry = null;
     _overlayState = null;
     _isExpanded = false;
+    _closing = false;
+    _expansion.stop();
   }
 
   /// 只收视觉浮层，不向父级回写。路由切换（didPushNext/didPop）用：
@@ -385,15 +407,23 @@ class _SearchQueryFieldState extends State<SearchQueryField>
     );
   }
 
-  void _closeOverlay() {
-    if (!_isExpanded) {
-      return;
-    }
+  Future<void> _closeOverlay() async {
+    if (!_isExpanded || _closing) return;
     widget.onChanged?.call(_controller.text);
-    _removeOverlay();
-    if (mounted) {
-      setState(() {});
+    _closing = true;
+    _unwatchFocusLoss();
+    _focusNode.unfocus();
+    _overlayEntry?.markNeedsBuild();
+    if (!MediaQuery.disableAnimationsOf(context)) {
+      try {
+        await _expansion.reverse().orCancel;
+      } on TickerCanceled {
+        return;
+      }
     }
+    if (!mounted || !_closing) return;
+    _removeOverlay();
+    setState(() {});
   }
 
   /// 用户主动关浮层（点 ×/关闭、点外部）：同时取消待触发的 autoExpand，
@@ -439,13 +469,13 @@ class _SearchQueryFieldState extends State<SearchQueryField>
         color: Colors.transparent,
         child: InkWell(
           onTap: widget.onTap ?? _openOverlay,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(16),
           child: Container(
             height: 48,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
               children: [
@@ -481,14 +511,31 @@ class _SearchQueryFieldState extends State<SearchQueryField>
     final colorScheme = Theme.of(context).colorScheme;
     final hasText = _controller.text.isNotEmpty;
 
-    return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOutCubic,
-      tween: Tween(begin: 0, end: 1),
-      builder: (context, value, child) => Align(
-        alignment: Alignment.topCenter,
-        heightFactor: value,
-        child: child,
+    return AnimatedBuilder(
+      animation: _expansion,
+      builder: (context, child) => IgnorePointer(
+        ignoring: _closing,
+        child: FadeTransition(
+          opacity: _expansion.drive(CurveTween(curve: Curves.easeOut)),
+          child: Transform.scale(
+            alignment: Alignment.topCenter,
+            scale:
+                .96 +
+                .04 * ExpressiveMotion.spatialCurve.transform(_expansion.value),
+            child: ClipRect(
+              child: Align(
+                alignment: Alignment.topCenter,
+                heightFactor:
+                    .7 +
+                    .3 *
+                        ExpressiveMotion.spatialCurve.transform(
+                          _expansion.value,
+                        ),
+                child: child,
+              ),
+            ),
+          ),
+        ),
       ),
       child: TextFieldTapRegion(
         // TextField 内部的选词菜单、复制粘贴手柄等也在 EditableText 组里；
@@ -499,9 +546,9 @@ class _SearchQueryFieldState extends State<SearchQueryField>
           color: colorScheme.surfaceContainerHighest,
           elevation: 3,
           shadowColor: colorScheme.shadow.withValues(alpha: 0.28),
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(16),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(16),
             child: Padding(
               padding: const EdgeInsets.only(left: 14, right: 6),
               child: ConstrainedBox(
@@ -576,7 +623,9 @@ class _SearchQueryFieldState extends State<SearchQueryField>
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(key: _targetKey, child: _buildCollapsedField(context));
+    return ActionBubbleTarget(
+      child: SizedBox(key: _targetKey, child: _buildCollapsedField(context)),
+    );
   }
 }
 

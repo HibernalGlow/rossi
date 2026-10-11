@@ -201,9 +201,10 @@ class _MImageModelSettingsState extends State<MImageModelSettings> {
                   onPressed: _busy
                       ? null
                       : () async {
-                          final confirmed = await showDialog<bool>(
+                          final confirmed = await showPopupPanel<bool>(
                             context: context,
-                            builder: (context) => AlertDialog(
+                            presentation: PopupPresentation.modal,
+                            builder: (context) => PopupPanel(
                               title: const Text('删除当前模型'),
                               content: Text('删除 ${_model.label}？需要时可以重新下载。'),
                               actions: [

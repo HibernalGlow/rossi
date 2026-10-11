@@ -3431,6 +3431,8 @@ abstract final class AppGlyphs {
   ]);
 
   /// 指南针（探索 / 发现）。
+  /// 末点原先又写了一遍首点：`closed: true` 已经闭合，重复顶点会让
+  /// `GlyphPolyline._corner` 除以长度 0 的两个向量，算出 NaN 路径。
   static const compass = Glyph([
     GlyphCircle(12, 12, 8.4),
     GlyphPolyline([
@@ -3438,7 +3440,6 @@ abstract final class AppGlyphs {
       GlyphVertex(13.2, 13.2, 0.5),
       GlyphVertex(8.6, 15.4, 0.5),
       GlyphVertex(10.8, 10.8, 0.5),
-      GlyphVertex(15.4, 8.6, 0.5),
     ], closed: true, role: GlyphRole.detail),
   ]);
 
@@ -3674,6 +3675,9 @@ abstract final class AppGlyphs {
 
   /// 搜索无果（放大镜 + 斜杠）。
   static const searchOff = Glyph([
+    // 这颗不转 body：斜杠伸出镜片之外。`detail` 在 fill>0.5 之后是**挖空**，
+    // 出界那两段会被擦掉；留 `line` 又会被实心镜片同色吞掉（出图两条都验过）。
+    // 它是状态符号，不是选中态，没有要填充的地方。
     GlyphCircle(10.3, 10.3, 6.9, role: GlyphRole.line),
     GlyphPolyline([
       GlyphVertex(15.18, 15.18),

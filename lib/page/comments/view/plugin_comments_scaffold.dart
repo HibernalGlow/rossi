@@ -392,10 +392,11 @@ class _PluginCommentsScaffoldState extends State<PluginCommentsScaffold> {
     required String hint,
   }) async {
     final controller = TextEditingController();
-    final result = await showDialog<String>(
+    final result = await showPopupPanel<String>(
+      presentation: PopupPresentation.relative,
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
+        return PopupPanel(
           title: Text(title),
           content: TextField(
             controller: controller,

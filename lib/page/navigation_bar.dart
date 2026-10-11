@@ -26,6 +26,7 @@ import 'package:zephyr/cubit/string_select.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/widgets/memory/memory_overlay_widget.dart';
 import 'package:zephyr/widgets/image_sleep.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 import 'package:zephyr/main.dart';
@@ -866,9 +867,10 @@ class _NavigationBarState extends State<NavigationBar> {
     if (!mounted) {
       return;
     }
-    final goLogin = await showDialog<bool>(
+    final goLogin = await showPopupPanel<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      presentation: PopupPresentation.modal,
+      builder: (dialogContext) => PopupPanel(
         title: Text(t.navigation.needLoginTitle),
         content: Text(message ?? t.navigation.loginExpired),
         actions: [

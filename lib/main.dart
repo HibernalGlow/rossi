@@ -709,13 +709,16 @@ class _MyAppState extends State<MyApp>
         await _forceExit();
         return;
       }
-      showDialog(
+      showPopupPanel(
         context: dialogContext,
+        // 关窗口这一步要人先看清三个选项再决定，不该长得像一次随手点击 ——
+        // 保持改造前的「全屏遮罩 + 居中卡片」。
+        presentation: PopupPresentation.modal,
         builder: (context) {
           var rememberChoice = false;
           return StatefulBuilder(
             builder: (context, setDialogState) {
-              return AlertDialog(
+              return PopupPanel(
                 title: const Text('提示'),
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -915,6 +918,10 @@ class _MyAppState extends State<MyApp>
 
                   content = Listener(
                     onPointerDown: (PointerDownEvent event) {
+                      // 弹出层的托盘要有「从哪儿长出来」的原点，而没有触发钮
+                      // 的调用点（右键菜单项、长按、服务层）手边一个矩形也没有
+                      // —— 那时退回这里。见 `PopupPointerOrigin`。
+                      PopupPointerOrigin.record(event.position);
                       if (event.buttons & kBackMouseButton != 0) {
                         appRouter.maybePop();
                       }

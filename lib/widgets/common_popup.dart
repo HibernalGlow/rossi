@@ -467,11 +467,13 @@ class _RenderPopupMorph extends RenderProxyBox {
     required this.moveY,
     required this.content,
     required this._unfolded,
+    required double endRadius,
     required this._sourceColor,
     required this._sourceImage,
     required this._surfaceColor,
     required this._shadows,
-  }) : _animation = animation;
+  }) : _animation = animation,
+       _endRadius = endRadius;
 
   Animation<double> grow;
   Animation<double> moveX;
