@@ -23,6 +23,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          submodules: recursive
+        with:
           fetch-depth: 0
 
       # - name: 克隆 rquickjs_playground
@@ -164,6 +166,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          submodules: recursive
+        with:
           fetch-depth: 0
 
       # - name: 克隆 rquickjs_playground
@@ -235,6 +239,8 @@ jobs:
       - name: 关闭 Git CRLF 转换
         run: git config --global core.autocrlf false
       - uses: actions/checkout@v5
+        with:
+          submodules: recursive
         with:
           fetch-depth: 0
 
@@ -428,6 +434,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          submodules: recursive
+        with:
           fetch-depth: 0
 
       - name: Set up Xcode
@@ -567,6 +575,8 @@ jobs:
       RUSTUP_HOME: ${{ github.workspace }}/.rustup
     steps:
       - uses: actions/checkout@v5
+        with:
+          submodules: recursive
         with:
           fetch-depth: 0
 
