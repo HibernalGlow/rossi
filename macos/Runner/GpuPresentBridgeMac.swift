@@ -2,7 +2,7 @@ import Cocoa
 import FlutterMacOS
 import CoreVideo
 
-/// Rossi macOS GPU 上屏桥（IOSurface / Metal 零拷贝外部纹理）。
+/// Rossi macOS GPU 上屏桥（wgpu 回读到 IOSurface 支撑的外部纹理）。
 ///
 /// 实现了 `FlutterTexture` 协议，并对外承接 `rossi/gpu_present` MethodChannel，
 /// 与 Windows 端 C++ 实现完全对齐：
@@ -22,7 +22,9 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
     private var currentPixelBuffer: CVPixelBuffer?
     private let bufferLock = NSLock()
 
-    private let workerQueue = DispatchQueue(label: "rossi.gpu_present.mac.worker", qos: .userInitiated)
+    private let workerQueue = GpuPresentWorkScheduler()
+    private var lastShowQueueWaitMs: Double = 0
+    private var lastShowBridgeMs: Double = 0
     private var isDisposed = false
 
     // FFI 函数指针
@@ -391,7 +393,7 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
             return
         }
 
-        workerQueue.async { [weak self] in
+        workerQueue.async { [weak self] _ in
             guard let self = self, !self.isDisposed else { return }
             let pathUtf8 = Array(path.utf8)
             var err = [UInt8](repeating: 0, count: 1024)
@@ -416,8 +418,10 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
         let width = targetWidth
         let height = targetHeight
 
-        workerQueue.async { [weak self] in
+        workerQueue.async(kind: .display) { [weak self] waitMs in
             guard let self = self, !self.isDisposed else { return }
+            let startedAt = DispatchTime.now().uptimeNanoseconds
+            self.lastShowQueueWaitMs = waitMs
 
             var pixelBuffer: CVPixelBuffer?
             let status = CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &pixelBuffer)
@@ -443,6 +447,8 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
             var err = [UInt8](repeating: 0, count: 1024)
             let rc = showInto(pres, index, baseAddress, bytesPerRow, UInt32(width), UInt32(height), &err, err.count)
             CVPixelBufferUnlockBaseAddress(buffer, [])
+
+            self.lastShowBridgeMs = Double(DispatchTime.now().uptimeNanoseconds - startedAt) / 1_000_000
 
             if rc == 0 {
                 self.bufferLock.lock()
@@ -477,7 +483,7 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
             result(false)
             return
         }
-        workerQueue.async { [weak self] in
+        workerQueue.async { [weak self] _ in
             guard let self = self, !self.isDisposed else { return }
             guard let pathData = path.data(using: .utf8) else {
                 result(FlutterError(code: "bad-path", message: "路径无法转为 UTF-8", details: nil))
@@ -505,7 +511,7 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
 
     /// 只预取某一页：解码 + 生成当前视口尺寸的预渲染帧，**不碰上屏缓冲区**。
     ///
-    /// 与 `show` 走同一条工作队列，但**不通知引擎取帧**：它不改变正在显示的内容，
+    /// 与 `show` 保持串行，未开始的预取可被翻页优先执行，但**不通知引擎取帧**：它不改变正在显示的内容，
     /// 所以不调 `textureFrameAvailable`。位置在这里（而不是让 Dart 去 show 一下）
     /// 就是为了这个区别 —— 邻页 show 会抢走当前页的纹理，那是红黄闪的成因。
     private func handlePrepare(index: UInt32, width: Int, height: Int, result: @escaping FlutterResult) {
@@ -513,7 +519,7 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
             result(false)
             return
         }
-        workerQueue.async { [weak self] in
+        workerQueue.async(kind: .prepare) { [weak self] _ in
             guard let self = self, !self.isDisposed else { return }
             var err = [UInt8](repeating: 0, count: 512)
             let rc = prepare(pres, index, UInt32(width), UInt32(height), &err, err.count)
@@ -536,11 +542,21 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
         }
         // show/setEnhanced 都在这条队列上执行。stats 也必须排队，否则 Dart
         // 在 show 的回调刚返回时读取到的是上一帧的 usedEnhanced。
-        workerQueue.async { [weak self] in
+        workerQueue.async { [weak self] _ in
             guard let self = self, !self.isDisposed else { return }
             var buf = [UInt8](repeating: 0, count: 4096)
             let written = stats(pres, &buf, buf.count)
-            let jsonStr = written > 0 ? String(cString: buf) : "{}"
+            let rawJson = written > 0 ? String(cString: buf) : "{}"
+            var probe = (rawJson.data(using: .utf8).flatMap {
+                try? JSONSerialization.jsonObject(with: $0) as? [String: Any]
+            }) ?? [:]
+            // 这两个指标只到原生缓冲写入完成，不能当作实际屏幕呈现时间。
+            probe["showQueueWaitMs"] = self.lastShowQueueWaitMs
+            probe["showBridgeMs"] = self.lastShowBridgeMs
+            let frameStats = self.frameTracker.snapshot()
+            probe.merge(frameStats) { _, current in current }
+            let jsonStr = (try? JSONSerialization.data(withJSONObject: probe))
+                .flatMap { String(data: $0, encoding: .utf8) } ?? rawJson
 
             result([
                 "ok": true,
