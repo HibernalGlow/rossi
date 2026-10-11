@@ -1,6 +1,35 @@
 import Accelerate
 import CoreML
 
+// SDK 26.2（GitHub macOS runner 的 Xcode 26.3）里 `Float16` 类型存在，但没有 `Float16(_: Float)`
+// 构造 —— CI 在 `Float16(value)` 这行稳定报 "argument passed to call that takes no arguments"，
+// 而抬最低系统版本（12.0/15.0）与 `Swift.Float16` 限定都改不了它。
+// 这里直接写 IEEE 754 half 位型（round-to-nearest-even，溢出饱和成 ±inf），
+// 与 stdlib `Float16(v).bitPattern` 对拍过 250012 个样本（含 ±inf、次规格数、±70000 随机），0 处不一致。
+@inline(__always) func rossiFloatToHalfBits(_ value: Float) -> UInt16 {
+    let f = value.bitPattern
+    let sign = UInt16((f >> 16) & 0x8000)
+    let exp = Int32((f >> 23) & 0xFF) - 127 + 15
+    let frac = f & 0x007F_FFFF
+    if value.isNaN { return sign | 0x7E00 | UInt16((frac >> 13) & 0x01FF) }
+    if exp <= 0 {
+        if exp < -10 { return sign }
+        let m = frac | 0x0080_0000
+        let shift = UInt32(14 - exp)
+        var half = m >> shift
+        let roundBit = (m >> (shift - 1)) & 1
+        let sticky = (m & ((1 << (shift - 1)) - 1)) != 0
+        if roundBit == 1 && (sticky || (half & 1) == 1) { half += 1 }
+        return sign | UInt16(half & 0x3FFF)
+    }
+    if exp >= 31 { return sign | 0x7C00 }
+    var half = UInt32(exp << 10) | (frac >> 13)
+    let roundBit = (frac >> 12) & 1
+    let sticky = (frac & 0x0FFF) != 0
+    if roundBit == 1 && (sticky || (half & 1) == 1) { half += 1 }
+    return sign | UInt16(half & 0x7FFF)
+}
+
 class MultiArrayModel: ImageProcessingModel {
     private let mlmodel: MLModel
     private let inputName: String
@@ -111,7 +140,7 @@ class MultiArrayModel: ImageProcessingModel {
                     let y = Int(rect.origin.y)
                     let multi = getBuffer()
                     let floatPtr = multi.dataPointer.assumingMemoryBound(to: Float32.self)
-                    let halfPtr = multi.dataPointer.assumingMemoryBound(to: Float16.self)
+                    let halfPtr = multi.dataPointer.assumingMemoryBound(to: UInt16.self)
                     let inChannelStride = multi.strides[1].intValue
                     let inRowStride = multi.strides[2].intValue
                     for yExp in y..<(y + blockAndShrink) {
@@ -127,7 +156,7 @@ class MultiArrayModel: ImageProcessingModel {
                                 let value = expanded[srcIdx + expwidth * expheight * channel]
                                 let target = base + inChannelStride * channel
                                 if inputType == .float16 {
-                                    halfPtr[target] = Swift.Float16(value)
+                                    halfPtr[target] = rossiFloatToHalfBits(value)
                                 } else {
                                     floatPtr[target] = Float32(value)
                                 }
