@@ -1,5 +1,51 @@
 use super::*;
+#[cfg(not(target_arch = "wasm32"))]
+use rossi_local_core::decode::PagePixels;
+#[cfg(not(target_arch = "wasm32"))]
+use std::sync::Weak;
 use std::time::Instant;
+
+/// Slice 调用不具备不可变所有权保证，每次上传；Page 调用才可识别内容。
+#[derive(Clone, Copy)]
+pub(super) enum SourceInput<'a> {
+    Slice {
+        rgba: &'a [u8],
+        width: u32,
+        height: u32,
+    },
+    #[cfg(not(target_arch = "wasm32"))]
+    Page(&'a Arc<PagePixels>),
+}
+
+impl<'a> SourceInput<'a> {
+    pub(super) fn dimensions(self) -> (u32, u32) {
+        match self {
+            Self::Slice { width, height, .. } => (width, height),
+            #[cfg(not(target_arch = "wasm32"))]
+            Self::Page(page) => (page.width, page.height),
+        }
+    }
+
+    fn rgba(self) -> &'a [u8] {
+        match self {
+            Self::Slice { rgba, .. } => rgba,
+            #[cfg(not(target_arch = "wasm32"))]
+            Self::Page(page) => &page.rgba,
+        }
+    }
+
+    fn matches(self, cached: &CachedSource) -> bool {
+        match self {
+            Self::Slice { .. } => false,
+            #[cfg(not(target_arch = "wasm32"))]
+            Self::Page(page) => cached
+                .owner
+                .as_ref()
+                .and_then(Weak::upgrade)
+                .is_some_and(|previous| Arc::ptr_eq(&previous, page)),
+        }
+    }
+}
 
 pub(super) struct CachedSource {
     pub(super) width: u32,
@@ -7,9 +53,13 @@ pub(super) struct CachedSource {
     pub(super) mip_levels: u32,
     pub(super) generated_mip_levels: u32,
     pub(super) texture: wgpu::Texture,
+    // Weak 不延长 PagePixels.rgba 的寿命；缓存驱逐后不会偷偷留住整张解码图。
+    // PagePixels 没有内部可变性；get_mut 被 Weak 阻止，make_mut 会换身份。
+    #[cfg(not(target_arch = "wasm32"))]
+    owner: Option<Weak<PagePixels>>,
 }
 
-/// 渲染器当前源纹理的 mip 容量与最近一次绘制准备的级数。
+/// 渲染器当前源纹理的 mip 容量与当前内容已初始化的级数。
 /// 后台预取也可更新源纹理；它不保证对应显示页。字节数只按 RGBA8 texel 计算，
 /// 不含 GPU 驱动对齐、分配器及纹理元数据，不代表系统测得的显存常驻量。
 #[derive(Debug, Clone, Copy, Default)]
@@ -73,15 +123,62 @@ impl WgpuResampler {
                 width,
                 height,
                 mip_levels,
-                generated_mip_levels: 1,
+                generated_mip_levels: 0,
                 texture,
+                #[cfg(not(target_arch = "wasm32"))]
+                owner: None,
             });
         }
 
         &self.source_cache.as_ref().unwrap().texture
     }
 
-    /// 把第 0 级逐级降采样到本次读取的等级，不生成更小的无用等级。
+    /// 跟踪纹理中实际上传的不可变像素，而不是页号、裸地址或最近显示页。
+    pub(super) fn upload_source(
+        &mut self,
+        input: SourceInput<'_>,
+        width: u32,
+        height: u32,
+        timings: &mut ResampleTimings,
+    ) {
+        let source = self.source_cache.as_mut().unwrap();
+        if input.matches(source) {
+            timings.source_reused = true;
+            return;
+        }
+        let upload = Instant::now();
+        self.queue.write_texture(
+            wgpu::TexelCopyTextureInfo {
+                texture: &source.texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            input.rgba(),
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(width * 4),
+                rows_per_image: Some(height),
+            },
+            wgpu::Extent3d {
+                width,
+                height,
+                depth_or_array_layers: 1,
+            },
+        );
+        timings.upload_ms = upload.elapsed().as_secs_f64() * 1000.0;
+        timings.uploaded_bytes = u64::from(width) * u64::from(height) * 4;
+        source.generated_mip_levels = 1;
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            source.owner = match input {
+                SourceInput::Page(page) => Some(Arc::downgrade(page)),
+                SourceInput::Slice { .. } => None,
+            };
+        }
+    }
+
+    /// 从已初始化的最后一级继续降采样，不生成更小的无用等级。
     ///
     /// # 为什么必须有这一步
     ///
@@ -91,13 +188,19 @@ impl WgpuResampler {
     /// 再由该级上的 Lanczos 重建，减少大幅缩小时所需的采样量。
     ///
     /// 每级的输入仍是前一级，保持原有 2×2 盒式预滤与重建结果。
-    pub(super) fn generate_mipmaps(&self, width: u32, height: u32, last_level: u32) -> (f64, f64) {
+    pub(super) fn generate_mipmaps(
+        &mut self,
+        width: u32,
+        height: u32,
+        last_level: u32,
+    ) -> (f64, f64, u32) {
         let Some(source) = self.source_cache.as_ref() else {
-            return (0.0, 0.0);
+            return (0.0, 0.0, 0);
         };
         let last_level = last_level.min(source.mip_levels.saturating_sub(1));
-        if last_level == 0 {
-            return (0.0, 0.0);
+        let first_level = source.generated_mip_levels.max(1);
+        if first_level > last_level {
+            return (0.0, 0.0, 0);
         }
 
         let encode = Instant::now();
@@ -107,7 +210,7 @@ impl WgpuResampler {
                 label: Some("rossi_mipgen_encoder"),
             });
 
-        let mut level = 1u32;
+        let mut level = first_level;
         while level <= last_level {
             let src_view = source.texture.create_view(&wgpu::TextureViewDescriptor {
                 label: Some("rossi_mip_src_view"),
@@ -199,6 +302,7 @@ impl WgpuResampler {
         let submit = Instant::now();
         self.queue.submit(std::iter::once(command_buffer));
         let submit_ms = submit.elapsed().as_secs_f64() * 1000.0;
-        (encode_ms, submit_ms)
+        self.source_cache.as_mut().unwrap().generated_mip_levels = last_level + 1;
+        (encode_ms, submit_ms, last_level - first_level + 1)
     }
 }

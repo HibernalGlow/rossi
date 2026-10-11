@@ -12,8 +12,8 @@ use wgpu::util::DeviceExt;
 mod render;
 mod source;
 
-use source::CachedSource;
 pub use source::SourceTextureInfo;
+use source::{CachedSource, SourceInput};
 
 /// 一次离屏重采样的 CPU 墙钟分段。
 ///
@@ -24,6 +24,9 @@ pub struct ResampleTimings {
     pub target_setup_ms: f64,
     pub source_setup_ms: f64,
     pub upload_ms: f64,
+    pub uploaded_bytes: u64,
+    pub source_reused: bool,
+    pub mipmap_generated_levels: u32,
     pub mipmap_encode_ms: f64,
     pub mipmap_submit_ms: f64,
     pub render_encode_ms: f64,
@@ -37,6 +40,8 @@ pub struct ResampleTimings {
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod mip_tests;
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod reuse_tests;
 
 /// 与 WGSL 对齐的 Uniform 结构
 #[repr(C)]

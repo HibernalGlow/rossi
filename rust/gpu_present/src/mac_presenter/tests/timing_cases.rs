@@ -88,3 +88,53 @@ fn foreground_timings_survive_background_render_and_reset_on_cache_hit_or_failur
     drop(presenter);
     std::fs::remove_dir_all(directory).unwrap();
 }
+
+#[test]
+fn presenter_resize_reuses_source_and_cached_frames_reset_upload_counters() {
+    let directory = std::env::temp_dir().join(format!("rossi_resize_{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    image::RgbaImage::from_fn(129, 97, |x, y| {
+        image::Rgba([(x * 7) as u8, (y * 9) as u8, 80, 255])
+    })
+    .save(directory.join("000.png"))
+    .unwrap();
+    let mut presenter = MacPresenter::new(64, 48).unwrap();
+    presenter.set_prefetch(false);
+    presenter.open(&directory).unwrap();
+    let mut output = vec![0xaa; 64 * 48 * 4];
+    presenter
+        .show_into_buffer(0, output.as_mut_ptr(), 256, 64, 48)
+        .unwrap();
+    assert_eq!(presenter.last.resample.uploaded_bytes, 129 * 97 * 4);
+    assert!(!presenter.last.resample.source_reused);
+    let mut resized = vec![0; 68 * 52 * 4];
+    presenter
+        .show_into_buffer(0, resized.as_mut_ptr(), 272, 68, 52)
+        .unwrap();
+    assert!(presenter.last.resample.source_reused);
+    assert_eq!(presenter.last.resample.uploaded_bytes, 0);
+    assert_eq!(presenter.last.resample.mipmap_generated_levels, 0);
+    let stats = presenter.stats_json();
+    assert!(stats.contains("\"sourceReused\":true"));
+    assert!(stats.contains("\"uploadedBytes\":0"));
+    let mut reference = MacPresenter::new(68, 52).unwrap();
+    reference.set_prefetch(false);
+    reference.open(&directory).unwrap();
+    let mut expected = vec![0; resized.len()];
+    reference
+        .show_into_buffer(0, expected.as_mut_ptr(), 272, 68, 52)
+        .unwrap();
+    assert_eq!(resized, expected);
+    expected.fill(0);
+    presenter
+        .show_into_buffer(0, expected.as_mut_ptr(), 272, 68, 52)
+        .unwrap();
+    assert_eq!(resized, expected);
+    assert!(presenter.last_prerender_hit);
+    assert!(!presenter.last.resample.source_reused);
+    assert_eq!(presenter.last.resample.uploaded_bytes, 0);
+    assert_eq!(presenter.last.resample.mipmap_generated_levels, 0);
+    drop(presenter);
+    drop(reference);
+    std::fs::remove_dir_all(directory).unwrap();
+}
