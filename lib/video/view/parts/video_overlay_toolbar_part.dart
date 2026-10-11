@@ -1,6 +1,6 @@
 part of '../video_control_overlay.dart';
 
-/// 把播放操作和时间作为一组，设置作为另一组；更多永远留在播放操作旁。
+/// 播放组始终居中，时间靠右；空间不足时设置成组换行。
 class _AdaptiveVideoToolbar extends StatelessWidget {
   const _AdaptiveVideoToolbar({
     required this.children,
@@ -44,14 +44,14 @@ class _AdaptiveVideoToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      final transport = children.take(3).toList();
+      final transport = [
+        for (final button in [children[1], children[0], children[2]])
+          SizedBox(width: 48, child: button),
+      ];
       final clock = children[3];
       final more = children.last;
       final settings = children.sublist(4, children.length - 1);
-      final settingWidth = settings.fold<double>(
-        0,
-        (width, child) => width + _width(context, child) + 2,
-      );
+      const transportWidth = 148.0;
       final clockPainter = TextPainter(
         text: TextSpan(
           text: clockText,
@@ -62,16 +62,43 @@ class _AdaptiveVideoToolbar extends StatelessWidget {
       )..layout();
       final clockWidth = clockPainter.width + 16;
       clockPainter.dispose();
-      if (constraints.maxWidth >= 192 + 4 + clockWidth + settingWidth + 16) {
+      final split = (settings.length / 2).ceil();
+      final leftSettings = settings.take(split).toList();
+      final rightSettings = [...settings.skip(split), more];
+      double groupWidth(List<Widget> buttons) => buttons.fold<double>(
+        0,
+        (width, child) => width + _width(context, child) + 2,
+      );
+      final sideWidth = math.max(
+        groupWidth(leftSettings),
+        groupWidth(rightSettings) + clockWidth + 8,
+      );
+      Widget sizedGroup(List<Widget> buttons) => _group(context, [
+        for (final button in buttons)
+          SizedBox(width: _width(context, button), child: button),
+      ]);
+      if (constraints.maxWidth >= sideWidth * 2 + transportWidth + 16) {
         return Row(
           children: [
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: sizedGroup(leftSettings),
+              ),
+            ),
+            const SizedBox(width: 8),
             _group(context, transport),
-            Expanded(child: Center(child: clock)),
-            _group(context, [
-              for (final setting in settings)
-                SizedBox(width: _width(context, setting), child: setting),
-              SizedBox(width: 48, child: more),
-            ]),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  sizedGroup(rightSettings),
+                  const SizedBox(width: 8),
+                  SizedBox(width: clockWidth, child: clock),
+                ],
+              ),
+            ),
           ],
         );
       }
@@ -98,11 +125,15 @@ class _AdaptiveVideoToolbar extends StatelessWidget {
         children: [
           Row(
             children: [
-              _group(context, transport),
               Expanded(
-                child: FittedBox(fit: BoxFit.scaleDown, child: clock),
+                child: Align(alignment: Alignment.centerLeft, child: more),
               ),
-              more,
+              const SizedBox(width: 8),
+              _group(context, transport),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Align(alignment: Alignment.centerRight, child: clock),
+              ),
             ],
           ),
           for (final group in groups) ...[
@@ -110,6 +141,43 @@ class _AdaptiveVideoToolbar extends StatelessWidget {
             Center(child: _group(context, group)),
           ],
         ],
+      );
+    },
+  );
+}
+
+/// 狭窄的右侧区域把时间分成两行，保留正常字号与完整时长。
+class _VideoClock extends StatelessWidget {
+  const _VideoClock({required this.current, required this.duration});
+  final Duration current;
+  final Duration duration;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final style = Theme.of(context).textTheme.labelLarge?.copyWith(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      );
+      final currentText = formatVideoTime(current);
+      final durationText = formatVideoTime(duration);
+      final fullText = '$currentText / $durationText';
+      final painter = TextPainter(
+        text: TextSpan(text: fullText, style: style),
+        textDirection: Directionality.of(context),
+        textScaler: MediaQuery.textScalerOf(context),
+      )..layout();
+      final stacked = painter.width > constraints.maxWidth;
+      painter.dispose();
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerRight,
+        child: Text(
+          stacked ? '$currentText\n/ $durationText' : fullText,
+          key: const ValueKey('video-progress-time'),
+          textAlign: TextAlign.right,
+          style: style,
+        ),
       );
     },
   );

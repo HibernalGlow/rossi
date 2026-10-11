@@ -331,23 +331,15 @@ class VideoControlOverlay extends StatelessWidget {
                     tooltip: labels.forward,
                     onPressed: () => controller.seekForward(),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: _PositionBuilder(
-                      controller: controller,
-                      initialSnapshot: snapshot,
-                      enabled: progressUpdates,
-                      interval: const Duration(seconds: 1),
-                      builder: (context, current) => RepaintBoundary(
-                        child: Text(
-                          '${formatVideoTime(current.currentTime)} / ${formatVideoTime(current.duration)}',
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: colors.onSurfaceVariant,
-                            fontFeatures: const <FontFeature>[
-                              FontFeature.tabularFigures(),
-                            ],
-                          ),
-                        ),
+                  _PositionBuilder(
+                    controller: controller,
+                    initialSnapshot: snapshot,
+                    enabled: progressUpdates,
+                    interval: const Duration(seconds: 1),
+                    builder: (context, current) => RepaintBoundary(
+                      child: _VideoClock(
+                        current: current.currentTime,
+                        duration: current.duration,
                       ),
                     ),
                   ),
