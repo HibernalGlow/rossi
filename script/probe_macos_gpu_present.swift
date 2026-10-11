@@ -18,15 +18,16 @@ typealias FnDestroy = @convention(c) (UnsafeMutableRawPointer?) -> Void
 private let usage = """
 Usage: rossi-gpu-probe [--library path] [--output report.json] [--source folder-or-cbz]
                        [--target WIDTHxHEIGHT] [--source-size WIDTHxHEIGHT]
-                       [--cold count] [--warm count] [--compare-clear] [--compare-library path]
+                       [--cold count] [--warm count] [--resize-count count] [--compare-clear] [--compare-library path]
 Defaults: Release dylib, /tmp/rossi-gpu-probe.json, two synthetic 4096x3072 PNGs,
           target 2560x1600, 8 cold samples, 60 cached samples.
 --compare-clear alternates cached shows with/without the old full-buffer clear.
 --compare-library alternates cold shows with a reference dylib and compares pixels.
+--resize-count adds same-page renders at unique widths (target width minus 4, 8, ... 4*count).
 """
 if CommandLine.arguments.contains("--help") { print(usage); exit(0) }
 private var options: [String: String] = [:]
-private let valueOptions = ["--library", "--output", "--source", "--target", "--source-size", "--cold", "--warm", "--compare-library"]
+private let valueOptions = ["--library", "--output", "--source", "--target", "--source-size", "--cold", "--warm", "--resize-count", "--compare-library"]
 private var argumentIndex = 1
 while argumentIndex < CommandLine.arguments.count {
     let key = CommandLine.arguments[argumentIndex]
@@ -97,9 +98,12 @@ let (sourceWidth, sourceHeight) = size(argument("--source-size", default: "4096x
 let coldCount = sampleCount("--cold", default: "8")
 let warmCount = sampleCount("--warm", default: "60")
 let compareClear = options["--compare-clear"] == "true"
+let resizeCount = options["--resize-count"] == nil ? 0 : sampleCount("--resize-count", default: "16")
+precondition(resizeCount == 0 || resizeCount * 4 < width, "Resize count * 4 must be smaller than target width")
 // 每个库持有自己的设备和缓存；两边同步完成后才切到另一边，不并发跑 GPU。
 final class NativePresenter {
     let dylib: UnsafeMutableRawPointer
+    let librarySHA256: String
     let handle: UnsafeMutableRawPointer
     let open: FnOpen
     let show: FnShow
@@ -108,6 +112,7 @@ final class NativePresenter {
     var error = [UInt8](repeating: 0, count: 4096)
     private var closed = false
     init(library: String, width: Int, height: Int) {
+        librarySHA256 = try! libraryHash(library)
         guard let loaded = dlopen(library, RTLD_NOW | RTLD_LOCAL) else { fatalError(String(cString: dlerror())) }
         dylib = loaded
         func symbol<T>(_ name: String, _ type: T.Type) -> T {
@@ -163,23 +168,30 @@ func openSource(_ runtime: NativePresenter = primary) -> Int {
     return Int(count)
 }
 let pageCount = openSource()
-let attributes: [CFString: Any] = [
-    kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_32BGRA,
-    kCVPixelBufferWidthKey: width, kCVPixelBufferHeightKey: height,
-    kCVPixelBufferIOSurfacePropertiesKey: [:] as [String: Any],
-    kCVPixelBufferMetalCompatibilityKey: true,
-]
-var optionalBuffer: CVPixelBuffer?
-precondition(CVPixelBufferCreate(kCFAllocatorDefault, width, height, kCVPixelFormatType_32BGRA,
-    attributes as CFDictionary, &optionalBuffer) == kCVReturnSuccess)
-let buffer = optionalBuffer!
-precondition(CVPixelBufferGetIOSurface(buffer) != nil, "Expected IOSurface-backed buffer")
+func makeBuffer(width: Int, height: Int) -> CVPixelBuffer {
+    let attributes: [CFString: Any] = [
+        kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_32BGRA,
+        kCVPixelBufferWidthKey: width, kCVPixelBufferHeightKey: height,
+        kCVPixelBufferIOSurfacePropertiesKey: [:] as [String: Any],
+        kCVPixelBufferMetalCompatibilityKey: true,
+    ]
+    var result: CVPixelBuffer?
+    precondition(CVPixelBufferCreate(kCFAllocatorDefault, width, height, kCVPixelFormatType_32BGRA,
+        attributes as CFDictionary, &result) == kCVReturnSuccess)
+    precondition(CVPixelBufferGetIOSurface(result!) != nil, "Expected IOSurface-backed buffer")
+    return result!
+}
+let buffer = makeBuffer(width: width, height: height)
 func probe(_ runtime: NativePresenter = primary) -> [String: Any] {
     var bytes = [UInt8](repeating: 0, count: 8192)
     precondition(runtime.stats(runtime.handle, &bytes, bytes.count) > 0)
     return try! JSONSerialization.jsonObject(with: Data(String(cString: bytes).utf8)) as! [String: Any]
 }
-func present(_ index: Int, clear: Bool = false, runtime: NativePresenter = primary) -> Double {
+func present(_ index: Int, clear: Bool = false, runtime: NativePresenter = primary,
+             destination: CVPixelBuffer? = nil) -> Double {
+    let buffer = destination ?? buffer
+    let width = CVPixelBufferGetWidth(buffer)
+    let height = CVPixelBufferGetHeight(buffer)
     let start = DispatchTime.now().uptimeNanoseconds
     precondition(CVPixelBufferLockBaseAddress(buffer, []) == kCVReturnSuccess)
     let pointer = CVPixelBufferGetBaseAddress(buffer)!.assumingMemoryBound(to: UInt8.self)
@@ -192,7 +204,9 @@ func present(_ index: Int, clear: Bool = false, runtime: NativePresenter = prima
     precondition(result == 0, String(cString: runtime.error))
     return ms
 }
-func snapshot() -> Data {
+func snapshot(destination: CVPixelBuffer? = nil) -> Data {
+    let buffer = destination ?? buffer
+    let height = CVPixelBufferGetHeight(buffer)
     precondition(CVPixelBufferLockBaseAddress(buffer, .readOnly) == kCVReturnSuccess)
     defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
     return Data(bytes: CVPixelBufferGetBaseAddress(buffer)!, count: CVPixelBufferGetBytesPerRow(buffer) * height)
@@ -204,7 +218,7 @@ var referencePhases: [[String: Any]] = []
 var expected: [Int: Data] = [:]
 let phaseKeys = ["decodeMs", "renderMs", "submitMs", "totalMs", "cacheBytes", "cacheHit", "prerenderHit",
                  "rendererLockMs", "cachedCopyMs", "frameCaptureMs", "frameCachePublishMs",
-                 "targetSetupMs", "sourceSetupMs", "uploadMs", "mipmapEncodeMs", "mipmapSubmitMs",
+                 "targetSetupMs", "sourceSetupMs", "uploadMs", "uploadedBytes", "sourceReused", "mipmapGeneratedLevels", "mipmapEncodeMs", "mipmapSubmitMs",
                  "renderEncodeMs", "renderSubmitMs", "readbackEncodeMs", "readbackSubmitMs",
                  "gpuWaitMs", "cpuCopyMs", "queueSubmitMs",
                  "sourceMipLevels", "sourceGeneratedMipLevels", "sourceTextureTexelBytes"]
@@ -246,8 +260,59 @@ for i in 0..<warmCount {
         if i < 2 { precondition(snapshot() == expected[index], "Cached pixels differ") }
     }
 }
+var resize: [Double] = []
+var resizePhases: [[String: Any]] = []
+var referenceResize: [Double] = []
+var referenceResizePhases: [[String: Any]] = []
+if resizeCount > 0 {
+    // 解码/首帧在计时外。每个尺寸首次显示，保证不命中已有视口帧。
+    for runtime in [primary] + (reference.map { [$0] } ?? []) {
+        _ = openSource(runtime)
+        _ = present(0, runtime: runtime)
+    }
+    for i in 0..<resizeCount {
+        autoreleasepool {
+            let resized = makeBuffer(width: width - (i + 1) * 4, height: height)
+            let runs = reference.map { i % 2 == 0 ? [primary, $0] : [$0, primary] } ?? [primary]
+            var pairedFrame: Data?
+            for runtime in runs {
+                let elapsed = present(0, runtime: runtime, destination: resized)
+                let detail = probe(runtime)
+                precondition((detail["prerenderHit"] as? Int) == 0)
+                precondition((detail["cacheHit"] as? Int) == 1, "Resize must reuse decoded pixels")
+                let phases = detail.filter { phaseKeys.contains($0.key) }
+                if runtime === primary {
+                    resize.append(elapsed); resizePhases.append(phases)
+                    // 更深 mip 可能重建纹理并重新上传，按实际诊断记录。
+                    if (detail["sourceReused"] as? Bool) == true {
+                        precondition((detail["uploadedBytes"] as? Int) == 0)
+                    }
+                } else {
+                    referenceResize.append(elapsed); referenceResizePhases.append(phases)
+                }
+                if reference != nil {
+                    let frame = snapshot(destination: resized)
+                    if let other = pairedFrame { precondition(frame == other, "Resized reference pixels differ") }
+                    pairedFrame = frame
+                }
+            }
+        }
+    }
+}
+func libraryHash(_ path: String) throws -> String {
+    SHA256.hash(data: try Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe))
+        .map { String(format: "%02x", $0) }.joined()
+}
+let finalLibraryHash = try libraryHash(library)
+precondition(finalLibraryHash == primary.librarySHA256,
+    "Primary library changed during probe; use a fixed copy")
+if let reference {
+    let finalReferenceHash = try libraryHash(referenceLibrary)
+    precondition(finalReferenceHash == reference.librarySHA256,
+        "Reference library changed during probe; use a fixed copy")
+}
 var report: [String: Any] = [
-    "timestamp": ISO8601DateFormatter().string(from: Date()), "library": library,
+    "timestamp": ISO8601DateFormatter().string(from: Date()), "library": library, "librarySHA256": primary.librarySHA256,
     "source": input.isEmpty ? "synthetic PNG, two patterned pages" : source.path,
     "sourceSize": input.isEmpty ? "\(sourceWidth)x\(sourceHeight)" : "see probe.sourceWidth/sourceHeight",
     "pageCount": pageCount, "targetSize": "\(width)x\(height)",
@@ -260,11 +325,20 @@ var report: [String: Any] = [
     "cold": distribution(cold), "coldPhases": coldPhases, "cached": distribution(warm), "cachedPhases": warmPhases, "probe": probe(),
     "operatingSystem": ProcessInfo.processInfo.operatingSystemVersionString,
 ]
+if resizeCount > 0 {
+    report["resize"] = ["timing": distribution(resize), "phases": resizePhases,
+        "definition": "same decoded page, unique target widths: base width minus 4, 8, ... 4*count (outside 3px frame tolerance); buffer allocation and initial show excluded; prefetch disabled"] as [String: Any]
+}
 if compareClear { report["cachedWithClear"] = distribution(warmWithClear) }
 if let reference {
-    report["reference"] = ["library": referenceLibrary, "cold": distribution(referenceCold),
+    var referenceReport: [String: Any] = ["library": referenceLibrary, "librarySHA256": reference.librarySHA256, "cold": distribution(referenceCold),
         "coldPhases": referencePhases, "probe": probe(reference), "allPairedColdPixelsEqual": true,
         "method": "AB/BA alternating cold shows, same source and CVPixelBuffer, separate native devices/caches, no concurrent GPU jobs"] as [String: Any]
+    if resizeCount > 0 {
+        referenceReport["resize"] = ["timing": distribution(referenceResize),
+            "phases": referenceResizePhases, "allPairedResizePixelsEqual": true] as [String: Any]
+    }
+    report["reference"] = referenceReport
 }
 let json = try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
 try json.write(to: URL(fileURLWithPath: output))
