@@ -2080,8 +2080,8 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '默认启动视图'
 	String get defaultStartupView => '默认启动视图';
 
-	/// zh-CN: '四边栏'
-	String get startupViewEdges => '四边栏';
+	/// zh-CN: '工作孔'
+	String get startupViewEdges => '工作孔';
 
 	/// zh-CN: '泳道'
 	String get startupViewSwimlane => '泳道';
@@ -7290,7 +7290,7 @@ extension on Translations {
 			'settings.workspaceLayoutSubtitle' => '默认启动视图 · 泳道焦点与独占 · 悬停唤出区',
 			'settings.laneAndLayout' => '泳道与布局',
 			'settings.defaultStartupView' => '默认启动视图',
-			'settings.startupViewEdges' => '四边栏',
+			'settings.startupViewEdges' => '工作孔',
 			'settings.startupViewSwimlane' => '泳道',
 			'settings.startupViewHint' => '下次打开工作台时走哪条呈现。两种呈现共用同一份记账，切换不会重开当前这一本。',
 			'settings.laneFocusSolo' => '泳道焦点与独占',
@@ -8688,12 +8688,12 @@ extension on Translations {
 			'bindingEditor.panel' => '面板',
 			'bindingEditor.shell' => '界面栏',
 			'bindingEditor.editor' => '编辑器',
+			_ => null,
+		} ?? switch (path) {
 			'bindingEditor.modal' => '对话框',
 			'bindingEditor.moveUp' => '上移',
 			'bindingEditor.moveDown' => '下移',
 			'bindingEditor.collapse' => '收起绑定',
-			_ => null,
-		} ?? switch (path) {
 			'bindingEditor.expand' => '展开绑定',
 			'bindingEditor.actions' => '动作',
 			'bindingEditor.actionList' => '动作列表',
