@@ -79,6 +79,13 @@ class _VideoSectionState extends State<_VideoSection> {
                 onChanged: (next) => _write(_copy(animatedVideoKeywords: next)),
               ),
             SettingsSwitchTile(
+              title: t.video.integrateBottomBar,
+              subtitle: t.video.integrateBottomBarDesc,
+              value: _settings.integrateControlsWithBottomBar,
+              onChanged: (value) =>
+                  _write(_copy(integrateControlsWithBottomBar: value)),
+            ),
+            SettingsSwitchTile(
               title: t.video.pin,
               subtitle: t.video.pinDesc,
               value: _settings.controlsPinned,
@@ -129,6 +136,7 @@ class _VideoSectionState extends State<_VideoSection> {
 
   VideoSettings _copy({
     bool? controlsPinned,
+    bool? integrateControlsWithBottomBar,
     bool? hardwareDecode,
     bool? autoPlay,
     double? maxRate,
@@ -140,6 +148,7 @@ class _VideoSectionState extends State<_VideoSection> {
     List<String>? animatedVideoKeywords,
   }) => _settings.copyWith(
     controlsPinned: controlsPinned,
+    integrateControlsWithBottomBar: integrateControlsWithBottomBar,
     hardwareDecode: hardwareDecode,
     autoPlay: autoPlay,
     maxRate: maxRate,

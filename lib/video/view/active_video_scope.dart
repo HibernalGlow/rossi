@@ -73,6 +73,10 @@ class VideoSettingsStore {
   final String key;
   static const VideoSettingsStore instance = VideoSettingsStore();
 
+  /// 只广播底栏融合开关，避免倍速、音量等设置牵动整棵阅读界面。
+  static final ValueNotifier<bool> integrateControlsWithBottomBar =
+      ValueNotifier(true);
+
   Future<VideoSettings> load() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(key);
@@ -97,6 +101,8 @@ class VideoSettingsStore {
   /// 两张表的家也在这里：`apply` 是唯一一处能同时看到两张表的地方，
   /// 分成两个 setter 迟早会推漏一张 —— 那症状是图片档生效、视频档没生效。
   void _apply(VideoSettings settings) {
+    integrateControlsWithBottomBar.value =
+        settings.integrateControlsWithBottomBar;
     VideoAliasRegistry.instance.update(settings.extraVideoExtensions);
     mediaFormatsSet(
       image: settings.imageFormats,
@@ -109,6 +115,7 @@ class VideoSettingsStore {
 class VideoSettings {
   const VideoSettings({
     this.controlsPinned = false,
+    this.integrateControlsWithBottomBar = true,
     this.hardwareDecode = true,
     this.autoPlay = true,
     this.minRate = 0.25,
@@ -128,6 +135,7 @@ class VideoSettings {
   /// 控制条图钉。上游同样持久化它（`videoControlsPinned`），
   /// 因为「每次重开都要重新钉一次」会让桌面端用户直接把这条功能当摆设。
   final bool controlsPinned;
+  final bool integrateControlsWithBottomBar;
   final bool hardwareDecode;
   final bool autoPlay;
   final double minRate;
@@ -183,6 +191,7 @@ class VideoSettings {
   /// 手写字段列表时漏一条的症状是「调音量把硬解开关悄悄关掉」，很难查。
   VideoSettings copyWith({
     bool? controlsPinned,
+    bool? integrateControlsWithBottomBar,
     bool? hardwareDecode,
     bool? autoPlay,
     double? minRate,
@@ -199,6 +208,8 @@ class VideoSettings {
     VideoSubtitleStyle? subtitleStyle,
   }) => VideoSettings(
     controlsPinned: controlsPinned ?? this.controlsPinned,
+    integrateControlsWithBottomBar:
+        integrateControlsWithBottomBar ?? this.integrateControlsWithBottomBar,
     hardwareDecode: hardwareDecode ?? this.hardwareDecode,
     autoPlay: autoPlay ?? this.autoPlay,
     minRate: minRate ?? this.minRate,
@@ -217,6 +228,7 @@ class VideoSettings {
 
   String encode() => <String, String>{
     'pinned': '$controlsPinned',
+    'bottomBarControls': '$integrateControlsWithBottomBar',
     'hw': '$hardwareDecode',
     'autoPlay': '$autoPlay',
     'minRate': '$minRate',
@@ -267,6 +279,8 @@ class VideoSettings {
 
     return VideoSettings(
       controlsPinned: b('pinned') ?? base.controlsPinned,
+      integrateControlsWithBottomBar:
+          b('bottomBarControls') ?? base.integrateControlsWithBottomBar,
       hardwareDecode: b('hw') ?? base.hardwareDecode,
       autoPlay: b('autoPlay') ?? base.autoPlay,
       minRate: d('minRate') ?? base.minRate,

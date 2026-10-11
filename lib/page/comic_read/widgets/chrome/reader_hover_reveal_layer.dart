@@ -307,6 +307,7 @@ class ReaderHoverRevealOverlay extends StatelessWidget {
             height: topAreaHeight,
             child: MouseRegion(
               hitTestBehavior: HitTestBehavior.translucent,
+              opaque: false,
               onEnter: (_) => controller.onEnterTopTrigger(),
               onExit: (_) => controller.onExitTopTrigger(),
               child: (readSetting.hoverShowVisualIndicator && !showTopAppBar)
@@ -335,6 +336,7 @@ class ReaderHoverRevealOverlay extends StatelessWidget {
                 final rect = ReaderHoverTriggerScope.bottomRectOf(context);
                 final band = MouseRegion(
                   hitTestBehavior: HitTestBehavior.translucent,
+                  opaque: false,
                   onEnter: (_) => controller.onEnterBottomTrigger(),
                   onExit: (_) => controller.onExitBottomTrigger(),
                   child:

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -24,6 +25,9 @@ import 'package:zephyr/page/comic_read/widgets/chrome/reader_hover_reveal_layer.
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/video/view/reader_video_controls_scope.dart';
+
+part 'bottom_controls_layout_part.dart';
 
 class BottomWidget extends StatefulWidget {
   final ComicEntryType type;
@@ -113,13 +117,39 @@ class _BottomWidgetState extends State<BottomWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final scope = ReaderVideoControlsScope.of(context);
+    if (scope == null) return _buildBottomBar(context);
+    return ValueListenableBuilder<ReaderVideoControls?>(
+      valueListenable: scope.slot,
+      builder: (context, controls, _) => ListenableBuilder(
+        listenable: controls?.panelsOpen ?? scope.slot,
+        builder: (context, _) => _buildBottomBar(
+          context,
+          videoControls: controls?.isCurrent() == true ? controls : null,
+          integrateVideo: scope.enabled,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomBar(
+    BuildContext context, {
+    ReaderVideoControls? videoControls,
+    bool integrateVideo = false,
+  }) {
     final pinned = context.select(
       (GlobalSettingCubit c) => c.state.readSetting.bottomBarPinned,
     );
     // `pinned` 放进选择器**里面**：只在这个 bool 翻转时重建，不被翻页带着走。
-    final showBottomBar = context.select(
+    final readerBottomVisible = context.select(
       (ReaderCubit cubit) => cubit.state.showBottomBar(pinned: pinned),
     );
+    final showVideoControls =
+        videoControls != null &&
+        (videoControls.pinned ||
+            videoControls.panelsOpen.value ||
+            (!integrateVideo && videoControls.visible));
+    final showBottomBar = readerBottomVisible || showVideoControls;
     final hoverController = ReaderHoverScope.of(context);
     final currentSlot = context.select(
       (ReaderCubit cubit) => cubit.state.currentSlot,
@@ -144,14 +174,6 @@ class _BottomWidgetState extends State<BottomWidget> {
         ? Duration.zero
         : _animationDuration;
     final bottomSafeHeight = context.bottomSafeHeight;
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final isWideLayout = screenWidth >= 840;
-    final topMaxWidth = (screenWidth * 0.56).clamp(380.0, 720.0).toDouble();
-    final bottomMaxWidth = (screenWidth * (screenWidth >= 1200 ? 0.62 : 0.74))
-        .clamp(560.0, 980.0)
-        .toDouble();
-    final isCompactLayout =
-        screenWidth >= 600 && MediaQuery.sizeOf(context).height <= 600;
 
     final coordinator = ReaderSessionCoordinator.instance;
     final localSource = LocalReadSession.instance.currentSource;
@@ -161,197 +183,79 @@ class _BottomWidgetState extends State<BottomWidget> {
       bottom: 0,
       left: 0,
       right: 0,
-      child: IgnorePointer(
-        ignoring: !showBottomBar,
-        child: AnimatedSlide(
-          duration: animationDuration,
-          curve: Curves.easeOutCubic,
-          offset: showBottomBar ? Offset.zero : const Offset(0, 1),
-          child: MouseRegion(
-            onEnter: (_) => hoverController?.onEnterBottomBar(),
-            onExit: (_) => hoverController?.onExitBottomBar(),
-            child: Padding(
-              padding: EdgeInsets.only(bottom: 6 + bottomSafeHeight),
-              child: isCompactLayout
-                  ? _buildCompactControls(
-                      maxWidth: bottomMaxWidth,
-                      isWideLayout: isWideLayout,
-                      totalSlots: totalSlots,
-                      currentSlot: currentSlot,
-                      localSource: localSource,
-                      docs: docs,
-                      showThumbnailStrip: showThumbnailStrip,
-                      rightToLeft: rightToLeft,
-                    )
-                  : _buildRegularControls(
-                      topMaxWidth: topMaxWidth,
-                      bottomMaxWidth: bottomMaxWidth,
-                      isWideLayout: isWideLayout,
-                      totalSlots: totalSlots,
-                      currentSlot: currentSlot,
-                      localSource: localSource,
-                      docs: docs,
-                      showThumbnailStrip: showThumbnailStrip,
-                      rightToLeft: rightToLeft,
-                    ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final screenWidth = constraints.maxWidth;
+          final isWideLayout = screenWidth >= 840;
+          final topMaxWidth = (screenWidth * 0.56)
+              .clamp(380.0, 720.0)
+              .toDouble();
+          final bottomMaxWidth =
+              (screenWidth * (screenWidth >= 1200 ? 0.62 : 0.74))
+                  .clamp(560.0, 980.0)
+                  .toDouble();
+          final isCompactLayout =
+              screenWidth >= 600 && MediaQuery.sizeOf(context).height <= 600;
 
-  Widget _buildRegularControls({
-    required double topMaxWidth,
-    required double bottomMaxWidth,
-    required bool isWideLayout,
-    required int totalSlots,
-    required int currentSlot,
-    required PageSource? localSource,
-    required List<Doc> docs,
-    required bool showThumbnailStrip,
-    required bool rightToLeft,
-  }) {
-    final showStrip = showThumbnailStrip && totalSlots > 0;
-
-    return AnimatedSize(
-      // 展开/收起时让面板「长出来」，而不是整块跳一下。
-      duration: const Duration(milliseconds: 240),
-      curve: Curves.easeOutCubic,
-      alignment: Alignment.bottomCenter,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Align(
-              alignment: Alignment.center,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: isWideLayout ? topMaxWidth : double.infinity,
-                ),
-                child: _buildControlButtons(
-                  totalSlots: totalSlots,
-                  showThumbnailStrip: showThumbnailStrip,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Align(
-              alignment: Alignment.center,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: isWideLayout ? bottomMaxWidth : double.infinity,
-                ),
-                child: showStrip
-                    // 缩略图条与进度条同处一块玻璃：不再往控制栏上面
-                    // 另起一栏（那正是用户要消掉的东西）。
-                    ? LiquidGlassSurface(
-                        thickness: LiquidGlassThickness.thick,
-                        radius: 24,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            BottomThumbnailStrip(
-                              embedded: true,
-                              height: _fusedStripHeight,
-                              totalPages: totalSlots,
-                              currentSlot: currentSlot,
-                              comicId: comicId,
-                              from: widget.from,
-                              localSource: localSource,
-                              docs: docs,
-                              onSelectPage: _jumpToSlot,
-                              rightToLeft: rightToLeft,
-                            ),
-                            Divider(
-                              height: 1,
-                              thickness: 1,
-                              indent: 10,
-                              endIndent: 10,
-                              color: context.theme.colorScheme.outlineVariant
-                                  .withValues(alpha: 0.4),
-                            ),
-                            Row(children: [widget.sliderBuilder(true)]),
-                          ],
-                        ),
-                      )
-                    : Row(children: [widget.sliderBuilder(false)]),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCompactControls({
-    required double maxWidth,
-    required bool isWideLayout,
-    required int totalSlots,
-    required int currentSlot,
-    required PageSource? localSource,
-    required List<Doc> docs,
-    required bool showThumbnailStrip,
-    required bool rightToLeft,
-  }) {
-    // 紧凑横屏（宽 ≥600 且高 ≤600）里按钮与进度条被迫同排，玻璃没法只包住
-    // 进度条那一半 —— 强行合并会把按钮也糊进面板。这里让缩略图条保持
-    // 独立浮条，只有显隐状态跟着全局设置走。
-    final showStrip = showThumbnailStrip && totalSlots > 0;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (showStrip) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Align(
-              alignment: Alignment.center,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: isWideLayout ? maxWidth : double.infinity,
-                ),
-                child: BottomThumbnailStrip(
-                  totalPages: totalSlots,
-                  currentSlot: currentSlot,
-                  comicId: comicId,
-                  from: widget.from,
-                  localSource: localSource,
-                  docs: docs,
-                  onSelectPage: _jumpToSlot,
-                  rightToLeft: rightToLeft,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Align(
-            alignment: Alignment.center,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: isWideLayout ? maxWidth : double.infinity,
-              ),
-              child: Row(
-                children: [
-                  _buildControlButtons(
-                    totalSlots: totalSlots,
-                    showThumbnailStrip: showThumbnailStrip,
+          return IgnorePointer(
+            ignoring: !showBottomBar,
+            child: ExcludeFocus(
+              excluding: !showBottomBar,
+              child: AnimatedSlide(
+                duration: animationDuration,
+                curve: Curves.easeOutCubic,
+                offset: showBottomBar ? Offset.zero : const Offset(0, 1),
+                child: MouseRegion(
+                  onEnter: (_) => hoverController?.onEnterBottomBar(),
+                  onExit: (_) => hoverController?.onExitBottomBar(),
+                  child: Padding(
+                    padding: EdgeInsets.only(bottom: 6 + bottomSafeHeight),
+                    child: videoControls != null
+                        ? _buildHostedVideoControls(
+                            controls: videoControls,
+                            integrated: integrateVideo,
+                            visible: showBottomBar,
+                            showReaderControls: readerBottomVisible,
+                            maxWidth: bottomMaxWidth,
+                            isWideLayout: isWideLayout,
+                            totalSlots: totalSlots,
+                            currentSlot: currentSlot,
+                            localSource: localSource,
+                            docs: docs,
+                            showThumbnailStrip: showThumbnailStrip,
+                            rightToLeft: rightToLeft,
+                            isCompactLayout: isCompactLayout,
+                            topMaxWidth: topMaxWidth,
+                          )
+                        : isCompactLayout
+                        ? _buildCompactControls(
+                            maxWidth: bottomMaxWidth,
+                            isWideLayout: isWideLayout,
+                            totalSlots: totalSlots,
+                            currentSlot: currentSlot,
+                            localSource: localSource,
+                            docs: docs,
+                            showThumbnailStrip: showThumbnailStrip,
+                            rightToLeft: rightToLeft,
+                          )
+                        : _buildRegularControls(
+                            topMaxWidth: topMaxWidth,
+                            bottomMaxWidth: bottomMaxWidth,
+                            isWideLayout: isWideLayout,
+                            totalSlots: totalSlots,
+                            currentSlot: currentSlot,
+                            localSource: localSource,
+                            docs: docs,
+                            showThumbnailStrip: showThumbnailStrip,
+                            rightToLeft: rightToLeft,
+                          ),
                   ),
-                  const SizedBox(width: 12),
-                  widget.sliderBuilder(false),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
-      ],
+          );
+        },
+      ),
     );
   }
 
@@ -359,72 +263,87 @@ class _BottomWidgetState extends State<BottomWidget> {
     required int totalSlots,
     required bool showThumbnailStrip,
   }) {
-    final bottomPinned = context.select(
-      (GlobalSettingCubit c) => c.state.readSetting.bottomBarPinned,
-    );
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        ChapterNavigationButton(
-          icon: AppGlyphs.skipPrevious,
-          tooltip: t.reader.previousChapter,
-          isEnabled: jumpChapter.havePrev,
-          onTap: () => _jumpToChapter(true),
-        ),
-        const SizedBox(width: 10),
-        FloatingActionIconButton(
-          icon: AppGlyphs.home,
-          tooltip: t.reader.backToHome,
-          onPressed: () => popToRoot(context),
-        ),
-        const SizedBox(width: 10),
-        FloatingActionIconButton(
-          icon: showThumbnailStrip
-              ? AppGlyphs.photos
-              : AppGlyphs.photos,
-          tooltip: showThumbnailStrip
-              ? t.reader.thumbnailStripCollapse
-              : t.reader.thumbnailStripExpand,
-          isEnabled: totalSlots > 0,
-          isSelected: showThumbnailStrip,
-          onPressed: () => _setThumbnailStripVisible(!showThumbnailStrip),
-        ),
-        const SizedBox(width: 10),
-        // 钉住底栏（neo 的 edge `pinned`）：钉住之后这一条不再被「点中间收起」
-        // 或指针离开边缘收走；取消钉住立刻交还给那两套自动收起。
-        FloatingActionIconButton(
-          icon: AppGlyphs.pin,
-          tooltip: bottomPinned
-              ? t.reader.unpinBottomBar
-              : t.reader.pinBottomBar,
-          isSelected: bottomPinned,
-          onPressed: () => context.read<GlobalSettingCubit>().updateReadSetting(
-            (current) =>
-                current.copyWith(bottomBarPinned: !current.bottomBarPinned),
-          ),
-        ),
-        const SizedBox(width: 10),
-        FloatingActionIconButton(
-          icon: AppGlyphs.layoutList,
-          tooltip: t.reader.selectChapter,
-          isEnabled: chapterRefs.isNotEmpty,
-          onPressed: _selectJumpChapter,
-        ),
-        const SizedBox(width: 10),
-        FloatingActionIconButton(
-          icon: AppGlyphs.sliders,
-          tooltip: t.reader.settings,
-          onPressed: _openSettingsPanel,
-        ),
-        const SizedBox(width: 10),
-        ChapterNavigationButton(
-          icon: AppGlyphs.skipNext,
-          tooltip: t.reader.nextChapter,
-          isEnabled: jumpChapter.haveNext,
-          onTap: () => _jumpToChapter(false),
-        ),
-      ],
+    return BlocSelector<GlobalSettingCubit, GlobalSettingState, bool>(
+      selector: (state) => state.readSetting.bottomBarPinned,
+      builder: (context, bottomPinned) => LayoutBuilder(
+        builder: (context, constraints) {
+          final gap = constraints.maxWidth.isFinite
+              ? ((constraints.maxWidth - 7 * 48) / 6).clamp(0.0, 10.0)
+              : 10.0;
+          final buttons = [
+            ChapterNavigationButton(
+              icon: AppGlyphs.skipPrevious,
+              tooltip: t.reader.previousChapter,
+              isEnabled: jumpChapter.havePrev,
+              onTap: () => _jumpToChapter(true),
+            ),
+            FloatingActionIconButton(
+              icon: AppGlyphs.home,
+              tooltip: t.reader.backToHome,
+              onPressed: () => popToRoot(context),
+            ),
+            FloatingActionIconButton(
+              icon: showThumbnailStrip ? AppGlyphs.photos : AppGlyphs.photos,
+              tooltip: showThumbnailStrip
+                  ? t.reader.thumbnailStripCollapse
+                  : t.reader.thumbnailStripExpand,
+              isEnabled: totalSlots > 1,
+              isSelected: showThumbnailStrip && totalSlots > 1,
+              onPressed: () => _setThumbnailStripVisible(!showThumbnailStrip),
+            ),
+            // 钉住底栏（neo 的 edge `pinned`）：钉住之后这一条不再被「点中间收起」
+            // 或指针离开边缘收走；取消钉住立刻交还给那两套自动收起。
+            FloatingActionIconButton(
+              icon: AppGlyphs.pin,
+              tooltip: bottomPinned
+                  ? t.reader.unpinBottomBar
+                  : t.reader.pinBottomBar,
+              isSelected: bottomPinned,
+              onPressed: () =>
+                  context.read<GlobalSettingCubit>().updateReadSetting(
+                    (current) => current.copyWith(
+                      bottomBarPinned: !current.bottomBarPinned,
+                    ),
+                  ),
+            ),
+            FloatingActionIconButton(
+              icon: AppGlyphs.layoutList,
+              tooltip: t.reader.selectChapter,
+              isEnabled: chapterRefs.isNotEmpty,
+              onPressed: _selectJumpChapter,
+            ),
+            FloatingActionIconButton(
+              icon: AppGlyphs.sliders,
+              tooltip: t.reader.settings,
+              onPressed: _openSettingsPanel,
+            ),
+            ChapterNavigationButton(
+              icon: AppGlyphs.skipNext,
+              tooltip: t.reader.nextChapter,
+              isEnabled: jumpChapter.haveNext,
+              onTap: () => _jumpToChapter(false),
+            ),
+          ];
+          if (constraints.maxWidth < 7 * 48) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final group in [buttons.take(4), buttons.skip(4)])
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: group.toList(),
+                  ),
+              ],
+            );
+          }
+          return Wrap(
+            alignment: WrapAlignment.center,
+            spacing: gap,
+            runSpacing: 4,
+            children: buttons,
+          );
+        },
+      ),
     );
   }
 
@@ -772,7 +691,7 @@ class _FrostedCircleIconButton extends StatelessWidget {
         tooltip: tooltip,
         onPressed: isEnabled ? onPressed : null,
         style: IconButton.styleFrom(
-          fixedSize: const Size(44, 44),
+          fixedSize: const Size(48, 48),
           shape: const CircleBorder(),
           foregroundColor: foregroundColor,
           backgroundColor: backgroundColor,

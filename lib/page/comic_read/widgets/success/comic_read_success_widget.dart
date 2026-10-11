@@ -14,6 +14,7 @@ import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/reader_hover_reveal_layer.dart';
 import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
 import 'package:zephyr/reader/reader_ambient_background.dart';
+import 'package:zephyr/video/view/reader_video_controls_scope.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 
 class ComicReadSuccessWidget extends StatefulWidget {
@@ -122,75 +123,78 @@ class _ComicReadSuccessWidgetState extends State<ComicReadSuccessWidget> {
           _hoverController ??= ReaderHoverController(innerContext);
           _hoverController!.updateContext(innerContext);
 
-          return ReaderHoverScope(
-            controller: _hoverController!,
-            child: BlocListener<ReaderCubit, ReaderState>(
-              // 悬停唤出的「锁」一解除（菜单收起 / 滑块松手），就用指针此刻的
-              // 实际位置把两侧悬停标记重新对一次账。
-              //
-              // 锁着的时候 `_checkScheduleHide*` 故意不排收起定时器（那是对的），
-              // 可 `setTopHovered(false)` / `setBottomHovered(false)` **也只有
-              // 那条定时器会调** —— 于是「指针在锁着的时候离开唤出区」这一下会被
-              // 整个丢掉，标记永久为真，被它 OR 住的那条栏再也收不起来
-              // （症状：点中间收起菜单，顶栏正常滑走、底栏不动）。补的就是这次
-              // 对账，见 `ReaderHoverController.syncHoveredWithPointer`。
-              listenWhen: isHoverRevealLockReleased,
-              listener: (context, state) =>
-                  _hoverController?.syncHoveredWithPointer(),
-              child: BlocListener<ReaderSeamlessCubit, ReaderSeamlessState>(
-                listenWhen: (previous, current) =>
-                    previous.loadedChapters.length !=
-                    current.loadedChapters.length,
-                listener: _onSeamlessChaptersChanged,
-                child: Container(
-                  // 这一层静态底色**保留**，它是自适应背景的兜底：
-                  // 取色还没到 / 这一页没采到 / 不是本地漫画（取色那条路不适用）时，
-                  // 露出来的就是它。自适应颜色只叠在它上面、在页面之下。
-                  color: backgroundColor,
-                  child: Stack(
-                    children: [
-                      // 阅读背景的**最底层**。它被 `RepaintBoundary` 圈住、
-                      // 且只监听一个独立的调色板通知 —— 每次取色到达只重绘它自己，
-                      // 上面那棵阅读子树（`InteractiveViewer` 与所有页面节点）
-                      // 一次都不重建。这正是「不能影响阅读」在界面侧的落点。
-                      Positioned.fill(
-                        child: ReaderAmbientBackground(
-                          baseColor: backgroundColor,
-                          palette: ReaderAmbientStore.instance.palette,
-                          enabled: readSetting.readerAmbientEnabled,
-                          edgeMode: readSetting.readerAmbientEdge,
-                          dimPercent: readSetting.readerAmbientDimPercent,
-                          // 全局关了动画就直切：那 300 ms 的插值也是开销，
-                          // 既然用户已经表态不要动画，就一起省掉。
-                          animate: !readSetting.noAnimation,
-                        ),
-                      ),
-                      Positioned.fill(
-                        child: widget.buildInteractiveViewer(innerContext),
-                      ),
-                      if (enableReaderFilter)
+          return ReaderVideoControlsHost(
+            onToggleControls: () => cubit.updateMenuVisible(),
+            child: ReaderHoverScope(
+              controller: _hoverController!,
+              child: BlocListener<ReaderCubit, ReaderState>(
+                // 悬停唤出的「锁」一解除（菜单收起 / 滑块松手），就用指针此刻的
+                // 实际位置把两侧悬停标记重新对一次账。
+                //
+                // 锁着的时候 `_checkScheduleHide*` 故意不排收起定时器（那是对的），
+                // 可 `setTopHovered(false)` / `setBottomHovered(false)` **也只有
+                // 那条定时器会调** —— 于是「指针在锁着的时候离开唤出区」这一下会被
+                // 整个丢掉，标记永久为真，被它 OR 住的那条栏再也收不起来
+                // （症状：点中间收起菜单，顶栏正常滑走、底栏不动）。补的就是这次
+                // 对账，见 `ReaderHoverController.syncHoveredWithPointer`。
+                listenWhen: isHoverRevealLockReleased,
+                listener: (context, state) =>
+                    _hoverController?.syncHoveredWithPointer(),
+                child: BlocListener<ReaderSeamlessCubit, ReaderSeamlessState>(
+                  listenWhen: (previous, current) =>
+                      previous.loadedChapters.length !=
+                      current.loadedChapters.length,
+                  listener: _onSeamlessChaptersChanged,
+                  child: Container(
+                    // 这一层静态底色**保留**，它是自适应背景的兜底：
+                    // 取色还没到 / 这一页没采到 / 不是本地漫画（取色那条路不适用）时，
+                    // 露出来的就是它。自适应颜色只叠在它上面、在页面之下。
+                    color: backgroundColor,
+                    child: Stack(
+                      children: [
+                        // 阅读背景的**最底层**。它被 `RepaintBoundary` 圈住、
+                        // 且只监听一个独立的调色板通知 —— 每次取色到达只重绘它自己，
+                        // 上面那棵阅读子树（`InteractiveViewer` 与所有页面节点）
+                        // 一次都不重建。这正是「不能影响阅读」在界面侧的落点。
                         Positioned.fill(
-                          child: IgnorePointer(
-                            ignoring: true,
-                            child: Container(
-                              color: Colors.black.withValues(
-                                alpha: filterOpacityPercent / 100,
+                          child: ReaderAmbientBackground(
+                            baseColor: backgroundColor,
+                            palette: ReaderAmbientStore.instance.palette,
+                            enabled: readSetting.readerAmbientEnabled,
+                            edgeMode: readSetting.readerAmbientEdge,
+                            dimPercent: readSetting.readerAmbientDimPercent,
+                            // 全局关了动画就直切：那 300 ms 的插值也是开销，
+                            // 既然用户已经表态不要动画，就一起省掉。
+                            animate: !readSetting.noAnimation,
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: widget.buildInteractiveViewer(innerContext),
+                        ),
+                        if (enableReaderFilter)
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              ignoring: true,
+                              child: Container(
+                                color: Colors.black.withValues(
+                                  alpha: filterOpacityPercent / 100,
+                                ),
                               ),
                             ),
                           ),
+                        Positioned.fill(
+                          child: ReaderHoverRevealOverlay(
+                            controller: _hoverController!,
+                          ),
                         ),
-                      Positioned.fill(
-                        child: ReaderHoverRevealOverlay(
-                          controller: _hoverController!,
-                        ),
-                      ),
-                      widget.buildProgressBar(innerContext),
-                      widget.buildPageCount(innerContext),
-                      widget.buildAppBar(innerContext),
-                      widget.buildBottom(innerContext),
-                      widget.buildAutoReadControl(innerContext),
-                      widget.buildEinkControl(innerContext),
-                    ],
+                        widget.buildProgressBar(innerContext),
+                        widget.buildPageCount(innerContext),
+                        widget.buildAppBar(innerContext),
+                        widget.buildBottom(innerContext),
+                        widget.buildAutoReadControl(innerContext),
+                        widget.buildEinkControl(innerContext),
+                      ],
+                    ),
                   ),
                 ),
               ),
