@@ -1,16 +1,8 @@
 //! Rossi macOS GPU 呈现器后端。
 //!
-//! 在 macOS 统一内存架构（UMA）下，通过与 `IOSurface` 支撑的 `CVPixelBuffer` 配合，
-//! 实现真正的零额外拷贝上屏：
-//!
-//! 1. `LocalSource` 归档直读（CBZ / CBR / 散图文件夹）；
-//! 2. 100% 全尺寸原图解码（无损画质，绝不降采样压缩原图）；
-//! 3. 极速 zune-jpeg 原生直出 RGBA 像素矩阵，消除中间分配与单线程慢拷贝；
-//! 4. 后台线程 0 延迟即时预取 + 前向 4 页深度流水线；
-//! 5. 前后台 In-Flight 协同等待，杜绝并发磁盘 IO 争抢与重复解码；
-//! 6. 采用 `fast_image_resize`（Lanczos3 滤波）高质量平滑抗锯齿缩放到视口；
-//! 7. 转换 BGRA 零拷贝直接写入 `CVPixelBuffer` 物理内存；
-//! 8. Flutter Impeller (Metal) 零拷贝直接作为 Metal 纹理硬件合成上屏。
+//! 全尺寸解码与邻页预渲染复用双轨缓存；wgpu 完成视口缩放后同步回读，
+//! 将 BGRA 结果写入 IOSurface 支撑的 CVPixelBuffer，交给 Flutter 合成。
+//! 缓存命中时只复制已生成的视口像素，原图对比可旁路超分轨。
 
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
@@ -27,11 +19,10 @@ use rossi_local_core::{
     compute_final_pipeline_keep_set, interleaved_prefetch_positions, LocalSource, PagePixels,
 };
 
+mod frame;
 mod methods;
 
-
-/// 图片外透明，由 Flutter 绘制阅读器背景；预渲染帧补边也遵守同一约定。
-pub const BACKGROUND_BGRA: [u8; 4] = [0, 0, 0, 0];
+use frame::{copy_pre_rendered_frame, PreRenderedFrame};
 
 const PREFETCH_CAPACITY: usize = 16; // 视口预渲染帧保留 16 页（约 80 MB 内存，对齐 mImageViewer）
 const MAX_RAW_PIXELS_COUNT: usize = 3; // 240 MB 的全尺寸原图只保留最近 3 页，防内存溢出
@@ -45,16 +36,6 @@ pub struct PresentTimings {
     pub decode_ms: f64,
     pub render_ms: f64,
     pub total_ms: f64,
-}
-
-/// 预渲染的最终 Letterbox 视口帧（含留白背景）。
-#[derive(Clone)]
-pub struct PreRenderedFrame {
-    pub target_w: u32,
-    pub target_h: u32,
-    // 缓存命中只增加引用计数；不能在持缓存锁时深拷贝整张视口。
-    pub bgra: Arc<Vec<u8>>,
-    pub stride: usize,
 }
 
 /// 缓存页面结构（对齐 mImageViewer 双轨缓存设计）。
@@ -806,51 +787,10 @@ pub struct MacPresenter {
     last: PresentTimings,
 }
 
-
-/// 极速内存直拷：将预渲染好的视口帧直接写入 CVPixelBuffer 物理内存（< 0.5 ms 零开销）。
-/// 支持目标微小尺寸差异（<= 3 像素容差）时的裁切与留白填补，避免因微小抖动产生昂贵的重新渲染。
-unsafe fn copy_pre_rendered_frame(
-    frame: &PreRenderedFrame,
-    dst_ptr: *mut u8,
-    dst_stride: usize,
-    target_w: u32,
-    target_h: u32,
-) {
-    let copy_w = frame.target_w.min(target_w) as usize;
-    let copy_h = frame.target_h.min(target_h) as usize;
-    let copy_bytes = copy_w * 4;
-    let src_stride = frame.stride;
-
-    if frame.target_w == target_w
-        && frame.target_h == target_h
-        && src_stride == dst_stride
-        && src_stride == copy_bytes
-    {
-        // 尺寸与跨步完全一致且连续对齐，直接整块单次 memcpy
-        std::ptr::copy_nonoverlapping(frame.bgra.as_ptr(), dst_ptr, src_stride * copy_h);
-    } else {
-        let bg_pixel = u32::from_ne_bytes(BACKGROUND_BGRA);
-        for y in 0..target_h as usize {
-            let dst_row = dst_ptr.add(y * dst_stride);
-            if y < copy_h {
-                let src_row = frame.bgra.as_ptr().add(y * src_stride);
-                std::ptr::copy_nonoverlapping(src_row, dst_row, copy_bytes);
-                if (target_w as usize) > copy_w {
-                    let fill_ptr = (dst_row as *mut u32).add(copy_w);
-                    std::slice::from_raw_parts_mut(fill_ptr, (target_w as usize) - copy_w)
-                        .fill(bg_pixel);
-                }
-            } else {
-                let fill_ptr = dst_row as *mut u32;
-                std::slice::from_raw_parts_mut(fill_ptr, target_w as usize).fill(bg_pixel);
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    mod frame_cases;
     mod gpu_cases;
 }
