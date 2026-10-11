@@ -75,8 +75,7 @@ class PreloadStatusCard extends StatelessWidget {
 
     if (presenter == null) {
       // 网络 / CPU 路径没有呈现器：页表与槽位是真的，其余显示 —。
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      return InfoFacts(
         children: [
           InfoRow(label: '路径', value: 'CPU 解码 / 图片缓存预加载'),
           InfoRow(
@@ -91,8 +90,7 @@ class PreloadStatusCard extends StatelessWidget {
     final lastIsCurrent = presenter.lastPresentIndex == slot;
     final status = presenter.currentPageUpscaleStatus;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return InfoFacts(
       children: [
         InfoRow(
           label: '呈现器',

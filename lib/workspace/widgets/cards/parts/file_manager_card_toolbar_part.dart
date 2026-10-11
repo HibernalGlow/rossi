@@ -20,21 +20,30 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
     final activeTab = snapshot.tabs.firstWhere(
       (tab) => tab.id == snapshot.activeTabId,
     );
+    // 文案与图标成对存放：一个语义只有一份，菜单项与 tooltip 不会各说各话。
+    // 类型过滤的图标直接沿用 `file_manager_thumbnail.dart` 里条目本来的类型图标，
+    // 同一颗图形在列表行和过滤菜单里指同一种文件。「全部」用九宫格，避免和
+    // 二级菜单父行那颗 `category` 撞成同一选择。
     const filters = {
-      FileManagerEntryFilter.all: '全部',
-      FileManagerEntryFilter.folders: '文件夹',
-      FileManagerEntryFilter.archives: '归档',
-      FileManagerEntryFilter.images: '图片',
-      FileManagerEntryFilter.video: '视频',
-      FileManagerEntryFilter.audio: '音频',
+      FileManagerEntryFilter.all: ('全部', AppGlyphs.apps),
+      FileManagerEntryFilter.folders: ('文件夹', AppGlyphs.folder),
+      FileManagerEntryFilter.archives: ('归档', AppGlyphs.openBook),
+      FileManagerEntryFilter.images: ('图片', AppGlyphs.photos),
+      FileManagerEntryFilter.video: ('视频', AppGlyphs.playCircle),
+      FileManagerEntryFilter.audio: ('音频', AppGlyphs.music),
     };
     const fields = {
-      FileManagerSortField.name: '名称',
-      FileManagerSortField.type: '类型',
-      FileManagerSortField.size: '大小',
-      FileManagerSortField.date: '修改日期',
-      FileManagerSortField.random: '随机',
+      FileManagerSortField.name: ('名称', AppGlyphs.textShort),
+      FileManagerSortField.type: ('类型', AppGlyphs.category),
+      FileManagerSortField.size: ('大小', AppGlyphs.resize),
+      FileManagerSortField.date: ('修改日期', AppGlyphs.calendar),
+      FileManagerSortField.random: ('随机', AppGlyphs.dice),
     };
+    // 深度只有一个写法：父行与子项共用，收起与展开时读到的字不会变样。
+    String depthLabel(int depth) => depth == 32 ? '最多 32 层' : '$depth 层';
+    // 二级菜单收起时父行是唯一的状态出口（子菜单的箭头会顶掉勾选标记），
+    // 于是把当前值写进父行标签，而不是留一个光秃秃的组名。
+    final filterLabel = '类型：${filters[snapshot.entryFilter]!.$1}';
 
     Widget toggle({
       Glyph? icon,
@@ -96,6 +105,7 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                 // 窄下来才把五个方向收成一颗掌形控件（NeoView 的 FolderNavigationPad）。
                 // 两种画法都坐在同一颗下沉槽里，组与组之间只靠 gapBetweenGroups 分开。
                 FileManagerToolbarGroup(
+                  bubbleTargets: false,
                   children: [
                     FileManagerNavigation(
                       expanded: expandedNavigation,
@@ -112,7 +122,8 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                           _apply((id) => fileManagerGoBack(id: id)),
                       onNavigateForward: () =>
                           _apply((id) => fileManagerGoForward(id: id)),
-                      onNavigateUp: () => _apply((id) => fileManagerGoUp(id: id)),
+                      onNavigateUp: () =>
+                          _apply((id) => fileManagerGoUp(id: id)),
                       // 设过主页 = 单击回主页；没设过 = 单击把当前目录设为主页，
                       // 这样第一次用的人不必先猜「要长按/右键」。
                       onGoHome: snapshot.homePath != null

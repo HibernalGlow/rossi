@@ -13,6 +13,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
     // ignore: invalid_use_of_protected_member
     setState(() => _editingPath = true);
   }
+
   Future<void> _submitPath() async {
     final accepted = await _apply(
       (id) => fileManagerNavigateText(id: id, text: _pathController.text),
@@ -20,6 +21,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
     // ignore: invalid_use_of_protected_member
     if (accepted && mounted) setState(() => _editingPath = false);
   }
+
   /// 把一条横向滚动的行停在「开头，除非放不下才滚到末尾」。
   ///
   /// 帧后是因为要等布局完成才知道 `maxScrollExtent` 是多少；内容放得下时它是 0，
@@ -30,6 +32,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
       controller.jumpTo(controller.position.maxScrollExtent);
     });
   }
+
   Widget _buildBreadcrumbs(BuildContext context, FileManagerSnapshot snapshot) {
     if (_editingPath) {
       return CallbackShortcuts(
@@ -132,6 +135,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
       ],
     );
   }
+
   /// 面包屑行尾唯一的那颗键：路径与（页签行收起时的）页签动作都收在这里，
   /// 对齐 neo 的「路径操作」菜单。
   ///
@@ -190,6 +194,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
       ),
     );
   }
+
   Widget _buildDirectoryColumns(
     BuildContext context,
     FileManagerSnapshot snapshot,
@@ -295,6 +300,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
       },
     );
   }
+
   Widget _buildTabs(BuildContext context, FileManagerSnapshot snapshot) {
     final theme = Theme.of(context);
     return SizedBox(

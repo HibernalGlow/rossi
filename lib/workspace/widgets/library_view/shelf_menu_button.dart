@@ -13,6 +13,8 @@ class ShelfMenuButton extends StatefulWidget {
     required this.tooltip,
     required this.menuChildren,
     this.enabled = true,
+    this.size = 40,
+    this.shape = ExpressiveButtonShape.cookie4Sided,
   });
 
   /// 触发键的图标：本仓自绘 glyph（`lib/icons/`），与侧栏、文件管理器工具条
@@ -27,17 +29,16 @@ class ShelfMenuButton extends StatefulWidget {
   /// 手里已经有的状态，不许在这里查库或发桥调用。
   final List<Widget> menuChildren;
   final bool enabled;
+  final double size;
+  final ExpressiveButtonShape shape;
 
   @override
   State<ShelfMenuButton> createState() => _ShelfMenuButtonState();
 }
 
 class _ShelfMenuButtonState extends State<ShelfMenuButton> {
-  /// `MenuController` 只能由 State 持有（在 `attach` 之前调 `open()` 会断言失败），
-  /// 所以触发键是有状态的。这个版本的 `material_ui` 没有 `MenuAnchor.builder`，
-  /// 拿不到 `controller.isOpen` —— 但也不需要：菜单在外面盖了一层 barrier，
-  /// 第二次点触发键先被 barrier 吃掉并关掉菜单，「再点一次收起」是白拿的。
   final MenuController _controller = MenuController();
+  bool _open = false;
 
   @override
   void dispose() {
@@ -126,19 +127,64 @@ class ShelfMenuItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = destructive ? Theme.of(context).colorScheme.error : null;
-    final glyph = this.glyph;
-    return MenuItemButton(
-      onPressed: onPressed,
-      leadingIcon: glyph != null
-          ? GlyphIcon(glyph, size: 24, color: color)
-          : icon == null
-          ? null
-          : GlyphIcon(icon!, size: 24, color: color),
-      trailingIcon: selected
-          ? GlyphIcon(AppGlyphs.check, size: 24, color: color)
-          : null,
-      child: Text(label, style: TextStyle(color: color)),
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final color = onPressed == null
+        ? scheme.onSurface.withValues(alpha: .38)
+        : destructive
+        ? scheme.error
+        : selected
+        ? scheme.onSecondaryContainer
+        : scheme.onSurface;
+    return ElasticButton(
+      enabled: onPressed != null && !MediaQuery.disableAnimationsOf(context),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: MenuItemButton(
+          onPressed: onPressed,
+          style: ButtonStyle(
+            minimumSize: const WidgetStatePropertyAll(Size(0, 48)),
+            padding: const WidgetStatePropertyAll(
+              EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            shape: WidgetStateProperty.resolveWith(
+              (states) => AppShape.all(
+                states.contains(WidgetState.pressed)
+                    ? 12
+                    : states.contains(WidgetState.hovered) ||
+                          states.contains(WidgetState.focused)
+                    ? 24
+                    : 16,
+              ),
+            ),
+            backgroundColor: WidgetStateProperty.resolveWith((states) {
+              if (onPressed == null) return Colors.transparent;
+              if (destructive) {
+                return scheme.errorContainer.withValues(alpha: .5);
+              }
+              if (selected ||
+                  states.contains(WidgetState.hovered) ||
+                  states.contains(WidgetState.focused)) {
+                return scheme.secondaryContainer;
+              }
+              return scheme.surfaceContainerHigh;
+            }),
+            foregroundColor: WidgetStatePropertyAll(color),
+          ),
+          leadingIcon: glyph != null || icon != null
+              ? GlyphIcon((glyph ?? icon)!, size: 20, color: color)
+              : null,
+          trailingIcon: selected
+              ? GlyphIcon(AppGlyphs.check, size: 20, color: color)
+              : null,
+          child: Text(
+            label,
+            style: theme.textTheme.labelLarge?.copyWith(color: color),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
     );
   }
 }

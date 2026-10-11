@@ -1,15 +1,10 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/config/global/theme_shape.dart';
+import 'package:zephyr/widgets/expressive/expressive_icon_button.dart';
+import 'package:zephyr/widgets/motion/expressive_motion.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_menu_button.dart';
-
-/// M3 的动效缓动档。这个版本的 `material_ui` / Flutter 都没有导出
-/// `MaterialCurves`（`Curves` 上也没有 `emphasized*` / `standard*`），
-/// 所以按规范给的 cubic-bezier 自己声明，避免继续用 M2 的裸 easeOut*。
-/// 规范里 emphasized 与 standard 是同一条曲线，差异只在各自的 decelerate /
-/// accelerate 变体，因此这里不复制出两个同名常量。
-const Curve _m3Standard = Cubic(0.2, 0.0, 0.0, 1.0);
-const Curve _m3EmphasizedDecelerate = Cubic(0.05, 0.7, 0.1, 1.0);
+import 'package:zephyr/workspace/widgets/grid/card_layout_scope.dart';
 
 /// 通用可折叠卡片组件外壳（支持泳道与边栏中 100% 复用）
 ///
@@ -61,8 +56,10 @@ class CollapsibleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final layout = CardLayoutScope.maybeOf(context);
     // MD3 的 filled 卡片靠**容器色**分层，不描边、不投影；圆角跟主题的形状档走。
     final radius = themeRadius(context, fallback: 12);
+    final showLayoutControls = layout?.editing == true;
 
     // 卡片可直接挂在泳道/抽屉里，由自身提供与应用同库的 Material。
     // 用 Material 绘制背景并裁剪，保证标题栏和内容的墨水反馈也在圆角内。

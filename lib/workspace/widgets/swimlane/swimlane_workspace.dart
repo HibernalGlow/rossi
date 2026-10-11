@@ -13,6 +13,9 @@ import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
 import 'package:zephyr/workspace/model/workspace_panel_bar.dart';
 import 'package:zephyr/workspace/model/workspace_pointer_mode.dart';
+import 'package:zephyr/workspace/input/workspace_lane_input_router.dart';
+import 'package:zephyr/workspace/input/workspace_lane_input_region.dart';
+import 'package:zephyr/page/comic_read/widgets/radial/reader_radial_menu_overlay.dart';
 import 'package:zephyr/workspace/model/workspace_reveal_zones.dart';
 import 'package:zephyr/workspace/model/workspace_strip_metrics.dart';
 import 'package:zephyr/workspace/widgets/lane_resizer.dart';
@@ -22,6 +25,10 @@ import 'package:zephyr/workspace/widgets/panels/panel_tab_strip.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_host.dart';
 import 'package:zephyr/workspace/widgets/swimlane/swimlane_column.dart';
 import 'package:zephyr/icons/icons.dart';
+
+import 'package:zephyr/workspace/widgets/swimlane/workspace_lane_scroll_controller.dart';
+
+part 'swimlane_workspace_interaction.dart';
 
 /// 水平泳道工作区：**一条平面条带**，左面板 / 阅读器 / 右面板依次排列。
 ///
@@ -42,7 +49,7 @@ class SwimlaneWorkspace extends StatefulWidget {
   /// **判据用**的泳道内容替身；`null` = 真内容。
   ///
   /// 与 `BreezeWorkspacePage.store` 同一条理由（那个口子也是这样来的）：
-  /// 泳道的**结构行为** —— 吃第一下点击、悬停驻留聚焦、边缘驻留揭示、
+  /// 泳道的**结构行为** —— 首个输入直接执行、悬停驻留定位、边缘驻留揭示、
   /// 条带滚到哪儿 —— 全都住在这一层，是框架层的事，与引擎无关，本该能断言；
   /// 而真内容（上游 `BookshelfPage` / `ComicReadPage`）需要整个应用的依赖
   /// （ObjectBox、图源注册表、应用数据目录），widget 判据里根本建不起来。
@@ -66,53 +73,20 @@ class SwimlaneWorkspace extends StatefulWidget {
   /// 只有**同一个常量**才能保证两边算的是同一件事。
   static const double _stripPadding = WorkspaceStripMetrics.defaultPadding;
 
-  /// 让滑条 / 轨道动起来的时长。
-  static const Duration _scrollDuration = Duration(milliseconds: 220);
-
   @override
   State<SwimlaneWorkspace> createState() => _SwimlaneWorkspaceState();
 }
 
-class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
-  final ScrollController _scroll = ScrollController();
-
-  /// 单调时钟。用 [Stopwatch] 而不是 `DateTime.now()`：系统时间被改（或 NTP
-  /// 校正）时 wall clock 会跳，而 dwell 的「够久了没有」经不起一次向后跳
-  /// —— 那会让计时器一直不触发，表现为「悬停聚焦偶尔失灵」。
-  final Stopwatch _clock = Stopwatch()..start();
-
-  /// 三个驻留计时器：悬停聚焦 / 边缘揭示 / 揭示后恢复。
-  final WorkspaceDwell _hoverDwell = WorkspaceDwell();
-  final WorkspaceDwell _edgeDwell = WorkspaceDwell();
-  final WorkspaceDwell _restoreDwell = WorkspaceDwell();
-
-  Timer? _ticker;
-
-  /// **瞬态**的边缘揭示目标（不是持久化项，也不进 cubit）。
-  ///
-  /// 契约要求揭示「transient and does not change the active lane」，
-  /// 所以它不进状态记账 —— 进了就会被一起存盘 / 被别处读到，
-  /// 于是「指针不在旁边时仍然揭示着」这种状态就有了存在的可能。
-  String? _revealedLaneId;
-
-  /// 指针当前在哪条泳道（用于判断「离开了被揭示的泳道没有」）。
-  String? _hoveredLaneId;
-
-  /// 是否正按着指针（按下期间抑制揭示与自动恢复）。
-  bool _pointerDown = false;
-
-  /// **预备态**高亮落在哪条泳道（驻留已「停住」、最后那段延时还没走完）。
-  ///
-  /// 它只是边框颜色，不改几何、不改记账，也不进 cubit —— 一次 hover 就把整份
-  /// 状态 emit 一遍，等于把「预备」做成「已经换了人」。
-  String? _armedHoverLaneId;
-
+class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace>
+    with _SwimlaneWorkspaceInteraction {
   // ── 每次 build 缓存下来的纯计算结果 ────────────────────────────────────
   //
   // 它们是 `LayoutBuilder` 里那几个纯函数的输出（视口宽、几何记账），
   // 而触发时机在 build 之外（定时器、指针回调、状态变化）。缓存一次纯函数
   // 的结果是安全的：同样的输入必然得到同样的输出。
+  @override
   double _viewportWidth = 0;
+  @override
   double _availableWidth = 0;
   double _availableHeight = 0;
 
@@ -121,7 +95,9 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
   /// 不能拿 [_availableHeight] 顶替：那个值已经扣掉了条带内边距，而指针坐标
   /// 是相对整个 `MouseRegion` 的（内边距不吃指针）。两者混用会让唤出区
   /// 在竖直方向上整体偏小一圈，表现为「按画布上的位置摆了却命中不了」。
+  @override
   double _viewportHeight = 0;
+  @override
   WorkspaceLaneFocusGeometry? _geometry;
 
   // ── 泳道**内容**的实例缓存 ──────────────────────────────────────────────
@@ -139,16 +115,15 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
   final Map<String, Widget> _laneContent = <String, Widget>{};
 
   /// 内容签名（**不含**「谁被激活」）。
-  Object _signatureOf(WorkspaceState state) =>
-      (
-        state.mode,
-        state.layout,
-        state.board,
-        state.readerTarget,
-        state.activePanel,
-        state.interaction,
-        state.isReaderFullscreen,
-      );
+  Object _signatureOf(WorkspaceState state) => (
+    state.mode,
+    state.layout,
+    state.board,
+    state.readerTarget,
+    state.activePanel,
+    state.interaction,
+    state.isReaderFullscreen,
+  );
 
   /// 签名变了才重出内容实例；没变就把上次那份交出去（于是子树被整段跳过）。
   void _syncLaneContent(
@@ -157,319 +132,14 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
     WorkspaceCubit cubit,
   ) {
     final signature = _signatureOf(state);
-    if (identical(signature, _contentSignature) || signature == _contentSignature) {
+    if (identical(signature, _contentSignature) ||
+        signature == _contentSignature) {
       return;
     }
     _contentSignature = signature;
     for (final laneId in state.layout.laneOrder) {
       _laneContent[laneId] = _buildLaneContent(context, state, laneId, cubit);
     }
-  }
-
-  @override
-  void dispose() {
-    _ticker?.cancel();
-    _scroll.dispose();
-    super.dispose();
-  }
-
-  // ── 状态变化 → 移动条带 ────────────────────────────────────────────────
-
-  /// 「激活泳道 / solo 偏好变了」⇒ 条带该重新选址。
-  ///
-  /// 用 post-frame 而不是当场滚：这次状态变化正处在 build 中间，
-  /// 几何（`_geometry`）要等这次 build 结束才是新的。
-  void _scheduleFocus() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _applyOffset();
-    });
-  }
-
-  /// 把条带滚到「当前该在的位置」。
-  void _applyOffset() {
-    final geometry = _geometry;
-    if (geometry == null || !_scroll.hasClients || _viewportWidth <= 0) return;
-    final state = context.read<WorkspaceCubit>().state;
-    final target = _targetOffset(state, geometry);
-    if ((_scroll.offset - target).abs() < 0.5) return;
-    _scroll.animateTo(
-      target,
-      duration: SwimlaneWorkspace._scrollDuration,
-      curve: Curves.easeOutCubic,
-    );
-  }
-
-  /// 当前该停在哪：揭示优先于激活泳道。
-  double _targetOffset(
-    WorkspaceState state,
-    WorkspaceLaneFocusGeometry geometry,
-  ) {
-    final revealed = _revealedLaneId;
-    if (revealed != null && revealed != state.activeLaneId) {
-      return geometry.revealOffset(
-        laneId: revealed,
-        viewportWidth: _viewportWidth,
-      );
-    }
-
-    final active = state.activeLaneId;
-    if (active == null || !geometry.containsLane(active)) {
-      return geometry.clampOffset(_scroll.offset, _viewportWidth);
-    }
-
-    return geometry.focusOffset(
-      laneId: active,
-      viewportWidth: _viewportWidth,
-      currentOffset: _scroll.offset,
-      readerLaneId: LaneId.reader,
-      readerPeekWidth: state.interaction.readerPeekWidth,
-      // 用户开着 Reader 独占偏好、但激活的是别的泳道时，给 Reader 留一条缝
-      // —— 契约：`keeps a narrow portion of Reader visible where possible
-      // so a single Reader click can restore the solo view`。
-      keepReaderVisible:
-          state.layout.soloLaneId == LaneId.reader && active != LaneId.reader,
-    );
-  }
-
-  // ── 时钟循环 ───────────────────────────────────────────────────────────
-
-  int get _nowMs => _clock.elapsedMilliseconds;
-
-  /// 只有真的有待发项时才开着 —— 一个永久 60Hz 的定时器会让工作台
-  /// 一直占着一份 CPU，便携机上直接表现为续航变差。
-  void _ensureTicker() {
-    _ticker ??= Timer.periodic(
-      const Duration(milliseconds: 16),
-      (_) => _pollDwells(),
-    );
-  }
-
-  void _stopTickerIfIdle() {
-    if (_hoverDwell.isPending ||
-        _edgeDwell.isPending ||
-        _restoreDwell.isPending) {
-      return;
-    }
-    _ticker?.cancel();
-    _ticker = null;
-  }
-
-  void _pollDwells() {
-    if (!mounted) return;
-    final now = _nowMs;
-    final cubit = context.read<WorkspaceCubit>();
-
-    final hoveredLane = _hoverDwell.takeDue(now);
-    if (hoveredLane != null) cubit.activateLane(hoveredLane);
-    _syncHoverHighlight(now);
-
-    final revealSide = _edgeDwell.takeDue(now);
-    if (revealSide != null) {
-      if (cubit.state.interaction.revealFocusesLane) {
-        // 揭示即聚焦：交互交给被揭示的泳道，揭示这个**瞬态**当场结束。
-        // 不自己算落点 —— `activateLane` 会经 `BlocListener` 走 post-frame 的
-        // `_scheduleFocus`，那条路径用的是**聚焦**几何（最小移动 + 给 Reader
-        // 留一条缝），而不是揭示几何（整条推进视口、Reader 该挤多少挤多少）。
-        // 留着那条缝才谈得上「点一下回独占」，否则自动聚焦等于把独占弄丢。
-        cubit.activateLane(revealSide);
-        if (_revealedLaneId != null) setState(() => _revealedLaneId = null);
-      } else {
-        // 契约的原味：揭示只是看清楚，不动激活泳道。
-        setState(() => _revealedLaneId = revealSide);
-        _applyOffset();
-      }
-    }
-
-    if (_restoreDwell.takeDue(now) != null) {
-      setState(() => _revealedLaneId = null);
-      _applyOffset();
-    }
-
-    _stopTickerIfIdle();
-  }
-
-  /// 把「已经停住了」这件事翻译成边框上的预备态。
-  ///
-  /// 指针还在动时 [WorkspaceDwell.isArmed] 恒为假 ⇒ 路过一条泳道**不会闪任何东西**；
-  /// 只有真停下来，才先亮边框、再交出交互。那 150ms 因此是「有回应」而不是「没反应」。
-  void _syncHoverHighlight(int now) {
-    final armed = _hoverDwell.isArmed(now) ? _hoverDwell.pendingId : null;
-    if (armed == _armedHoverLaneId) return;
-    setState(() => _armedHoverLaneId = armed);
-  }
-
-  /// 预备态要**当场**撤掉：轮询定时器一停就没人再算了，留着它就是一道赖在边框上的
-  /// 高亮（指针都走了，那条泳道还像是「正准备被激活」）。
-  void _clearHoverHighlight() {
-    if (_armedHoverLaneId == null) return;
-    setState(() => _armedHoverLaneId = null);
-  }
-
-  // ── 指针 ───────────────────────────────────────────────────────────────
-
-  /// 悬停驻留聚焦：非激活泳道停够久就把交互交给它。
-  ///
-  /// 开关分两颗 —— Reader 用 `hoverFocusEnabled`，左/右面板用
-  /// `panelHoverFocusEnabled`（契约只把这项能力定义在 Reader 上：`a dwell
-  /// inside an inactive **Reader** lane activates it`；面板那侧默认也给，
-  /// 但留一颗独立的退回口）。两者**共用**同一段延时，因为差别在「吃不吃」
-  /// 而不在「多久」，多一套延时只会让手感有第四个要对着表的旋钮。
-  ///
-  /// [isRail] 的泳道**一律跳过**：44px 的紧凑轨（用户折叠的、或 Reader 独占时
-  /// 的切换栏轨）已经在当「切换把手」用了，读数时指针扫过去是常事，
-  /// 停一下就跳焦点会把这条把手变成陷阱。
-  void _handleLaneHoverEnter(
-    String laneId,
-    WorkspaceState state, {
-    required bool isRail,
-  }) {
-    _hoveredLaneId = laneId;
-    // 进了被揭示的那条泳道 ⇒ 取消「回到 Reader」的计时（用户在看它）。
-    if (laneId == _revealedLaneId) {
-      _restoreDwell.cancel();
-    }
-
-    if (isRail) return;
-    final enabled = laneId == LaneId.reader
-        ? state.interaction.hoverFocusEnabled
-        : state.interaction.panelHoverFocusEnabled;
-    if (!enabled) return;
-    if (laneId == state.activeLaneId) return;
-    if (_pointerDown) return;
-
-    _hoverDwell.enter(
-      laneId,
-      nowMs: _nowMs,
-      delayMs: state.interaction.hoverFocusDelayMs,
-    );
-    _ensureTicker();
-  }
-
-  void _handleLaneHoverExit(String laneId) {
-    if (_hoveredLaneId == laneId) _hoveredLaneId = null;
-    _hoverDwell.leave(laneId);
-    _syncHoverHighlight(_nowMs);
-    if (laneId == _revealedLaneId) {
-      _maybeScheduleRestore(context.read<WorkspaceCubit>().state);
-    }
-    _stopTickerIfIdle();
-  }
-
-  /// 条带范围内的悬停：判定「指针是否停在视口边缘」。
-  void _handleStripHover(PointerHoverEvent event) {
-    // **动了就是还没停**。两个驻留的到期点跟着最后一次运动往后推，路过哪条泳道
-    // 都轮不到触发；「延时」于是只承担「停住之后再看一会儿」这一件事。
-    // 揭示也要走这条：契约那句是「指针**停**在视口左右边缘」，横扫过边缘不该把它呼出来。
-    final now = _nowMs;
-    _hoverDwell.noteMotion(now);
-    _edgeDwell.noteMotion(now);
-    _syncHoverHighlight(now);
-
-    final state = context.read<WorkspaceCubit>().state;
-    final soloArmed =
-        state.layout.soloLaneId == LaneId.reader &&
-        state.activeLaneId == LaneId.reader;
-
-    // 抑制条件（契约：`Reader pointer capture, an active drag, composition,
-    // a modal, or a floating menu suppresses edge reveal and automatic
-    // restoration`）。这里覆盖的是「指针按着 / 正在拖动」与「没有独占可回」；
-    // 弹层与输入法组合由下面 `_handleLanePointerDown` 的按下抑制间接覆盖。
-    if (!soloArmed || _pointerDown || _viewportWidth <= 0) {
-      _edgeDwell.cancel();
-      _maybeScheduleRestore(state);
-      _stopTickerIfIdle();
-      return;
-    }
-
-    final x = event.localPosition.dx;
-    final y = event.localPosition.dy;
-    // 命中判定交给**唤出区自己**（「设置 → 布局」里画的那几块）：
-    // 指针落在左右哪一块里，就为揭示那一条泳道开始计时。
-    // 上下两条边不归这里 —— 它们管的是顶栏与阅读器底栏的悬停唤出。
-    final hit = state.interaction.revealZones.edgeAt(
-      xPercent: _percentOf(x, _viewportWidth),
-      yPercent: _percentOf(y, _viewportHeight),
-    );
-    String? candidate = switch (hit) {
-      RevealEdge.left => LaneId.left,
-      RevealEdge.right => LaneId.right,
-      _ => null,
-    };
-    if (candidate != null && !state.layout.lanes.containsKey(candidate)) {
-      candidate = null;
-    }
-    // 揭示 Reader 自己没有意义（它已经在视口里）。
-    if (candidate == LaneId.reader) candidate = null;
-
-    if (candidate != null) {
-      _restoreDwell.cancel();
-      _edgeDwell.enter(
-        candidate,
-        nowMs: _nowMs,
-        delayMs: state.interaction.edgeRevealDelayMs,
-      );
-      _ensureTicker();
-      return;
-    }
-
-    _edgeDwell.cancel();
-    // 指针还在被揭示的那条泳道里 ⇒ 不是「离开」，别急着收回。
-    if (_revealedLaneId != null && _hoveredLaneId != _revealedLaneId) {
-      _maybeScheduleRestore(state);
-    }
-    _stopTickerIfIdle();
-  }
-
-  void _handleStripExit() {
-    _edgeDwell.cancel();
-    _hoverDwell.cancel();
-    _hoveredLaneId = null;
-    _clearHoverHighlight();
-    _maybeScheduleRestore(context.read<WorkspaceCubit>().state);
-    _stopTickerIfIdle();
-  }
-
-  /// 离开一条**未被激活**的揭示 ⇒ 延时回到 Reader。
-  ///
-  /// `revealFocusesLane` 打开时这条路径基本走不到（揭示到点就被激活了，
-  /// 于是 `revealed == activeLaneId` 的守卫直接返回）—— 那是自洽的：
-  /// 「收回 Reader」是为了不留下一个没人认领的瞬态，而它现在已经是激活泳道了。
-  /// 回 Reader 改由悬停聚焦或点那条 Reader 窄缝负责。
-  void _maybeScheduleRestore(WorkspaceState state) {
-    final revealed = _revealedLaneId;
-    if (revealed == null) return;
-    if (revealed == state.activeLaneId) return;
-    _restoreDwell.enter(
-      'restore',
-      nowMs: _nowMs,
-      delayMs: state.interaction.edgeRevealRestoreDelayMs,
-    );
-    _ensureTicker();
-  }
-
-  /// 泳道内容上的指针按下。
-  ///
-  /// 两件事一起做：**激活这条泳道**，以及把待发的驻留全部作废
-  /// （用户已经用一次点击明确表达了他的意图，不该再过一会儿又自己动一下）。
-  void _handleLanePointerDown(String laneId) {
-    final cubit = context.read<WorkspaceCubit>();
-    _pointerDown = true;
-    _hoverDwell.cancel();
-    _edgeDwell.cancel();
-    _restoreDwell.cancel();
-    _clearHoverHighlight();
-    _stopTickerIfIdle();
-
-    if (laneId == _revealedLaneId) {
-      // 在被揭示的泳道里交互 ⇒ 它变成真正的激活，揭示结束（条带留在原地）。
-      setState(() => _revealedLaneId = null);
-    }
-    cubit.activateLane(laneId);
-  }
-
-  void _handlePointerUp() {
-    _pointerDown = false;
   }
 
   @override
@@ -480,7 +150,12 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
           previous.layout.soloLaneId != next.layout.soloLaneId ||
           previous.layout.laneOrder != next.layout.laneOrder ||
           previous.layout.lanes != next.layout.lanes,
-      listener: (context, state) => _scheduleFocus(),
+      listener: (context, state) {
+        if (!_activatingFromHover) {
+          _inputRouter.selectExplicitly(state.activeLaneId ?? LaneId.reader);
+        }
+        _scheduleFocus();
+      },
       child: BlocBuilder<WorkspaceCubit, WorkspaceState>(
         builder: (context, state) => LayoutBuilder(
           builder: (context, constraints) {
@@ -532,8 +207,10 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
               onHover: _handleStripHover,
               onExit: (_) => _handleStripExit(),
               child: Listener(
-                onPointerUp: (_) => _handlePointerUp(),
-                onPointerCancel: (_) => _handlePointerUp(),
+                onPointerDown: (event) =>
+                    _inputRouter.trackPointer(event.pointer),
+                onPointerUp: (event) => _handlePointerUp(event.pointer),
+                onPointerCancel: (event) => _handlePointerUp(event.pointer),
                 child: Padding(
                   padding: EdgeInsets.all(stripPadding),
                   child: Stack(
@@ -598,7 +275,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
             laneId,
             viewportWidth,
             resolvedWidth: slot.width,
-            isActive: activeLaneId == laneId,
+            isActive: (_inputRouter.targetLaneId ?? activeLaneId) == laneId,
             // 这条泳道**按紧凑轨来画**（自己折叠，或独占泳道旁边的切换栏）。
             // 用槽位的结果而不是 `config.collapsed`：后者只记用户折叠了谁，
             // 不知道「这一档它被挤到 44px 了」。
@@ -685,50 +362,27 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
           : () => cubit.toggleLaneCollapsed(laneId),
       onToggleSolo: () => cubit.toggleSoloLane(laneId),
       onResetWidth: () => cubit.resetLaneWidth(laneId),
-      child: _buildAbsorbingContent(context, laneId, isActive),
+      child: _buildInteractiveContent(laneId),
     );
 
     return MouseRegion(
       onEnter: (_) => _handleLaneHoverEnter(laneId, state, isRail: isRail),
       onExit: (_) => _handleLaneHoverExit(laneId),
       child: Listener(
-        // 在**整条泳道**上听按下：栏头里的控件（折叠 / 独占 / 宽度）也要算
-        // 「用户把交互交给了这条泳道」。被吃掉的只有内容区，见下。
-        onPointerDown: (_) => _handleLanePointerDown(laneId),
+        // 只记操作归属；第一下由命中的内容直接执行。
+        onPointerDown: (event) => _handleLanePointerDown(laneId, event.pointer),
         child: _buildLaneDragTarget(context, cubit, laneId, column),
       ),
     );
   }
 
-  /// 非激活泳道的**内容**吃掉第一下点击。
-  ///
-  /// 契约原文：`That click is consumed by the workspace and must not reach
-  /// Reader area bindings, page navigation, video controls, or the radial menu`。
-  ///
-  /// 用 `AbsorbPointer` 而不是在外层拦手势：它让子树的命中测试整个失败，
-  /// 于是「是不是被吞了」只有一个是非项，不依赖任何子控件恰好没注册某个
-  /// 手势识别器。激活之后立刻恢复派发。
-  ///
-  /// **只包内容、不包栏头**（这是本方法的全部意义）。
-  /// 栏头的按钮是这条泳道**自己的**控件，第一下点击就该生效 —— 用户按
-  /// 「折叠」而什么都没发生，比「按了但先激活了泳道」难解释得多。
-  /// 两条都靠外层那个 `Listener.onPointerDown` 顺带完成激活，彼此不冲突。
-  /// 早先版本把这个 `AbsorbPointer` 包在了**整列**外面（含栏头），
-  /// 于是非激活泳道上的折叠 / 独占按钮第一下必然哑掉，而注释还写着
-  /// 「只包内容」—— 注释与实现不一致本身就是缺陷。
-  ///
-  /// 子节点取的是**缓存住的那一份**（见 [_syncLaneContent]）：聚焦换人只换
-  /// `absorbing` 这个开关，不该顺手把里面的内容重 build 一遍。
-  Widget _buildAbsorbingContent(
-    BuildContext context,
-    String laneId,
-    bool isActive,
-  ) {
-    return AbsorbPointer(
-      absorbing: !isActive,
-      child: _laneContent[laneId]!,
-    );
-  }
+  /// 命中内容直接执行。信号层只保护连续滚轮的归属，不拦点击。
+  Widget _buildInteractiveContent(String laneId) => WorkspaceLaneInputRegion(
+    acceptWheel: () => _handleLaneWheel(laneId),
+    onPanZoomStart: (pointer) => _handleLanePointerDown(laneId, pointer),
+    onPanZoomEnd: _handlePointerUp,
+    child: _laneContent[laneId]!,
+  );
 
   /// 栏头图标是**泳道重排**的把手：按住它拖到另一条泳道上，两条互换位置。
   /// （neoview：lane header owns collapse, reorder, focus, width。）
@@ -776,7 +430,7 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace> {
           isSwimlane ? AppGlyphs.columnsTwo : AppGlyphs.columnsThree,
           size: 18,
         ),
-        tooltip: isSwimlane ? '切换为沉浸四边栏 (Edges)' : '切换为多列泳道 (Swimlane)',
+        tooltip: isSwimlane ? '切换为沉浸工作孔 (Workhole)' : '切换为多列泳道 (Swimlane)',
         visualDensity: VisualDensity.compact,
         onPressed: () => cubit.toggleMode(),
       ),

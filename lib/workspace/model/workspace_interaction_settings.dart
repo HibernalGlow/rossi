@@ -1,5 +1,7 @@
 // 本文件**刻意不 import Flutter**：它要能被 JSON 往返（持久化判据）与
 // `dart run` 直接断言。见 `workspace_layout_config.dart` 顶部的同一说明。
+import 'package:zephyr/workspace/model/workspace_lane_interaction.dart';
+import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_reveal_zones.dart';
 
 /// 工作台的**交互延时与开关** —— 与几何分开记账（neoview：`Reader hover-focus
@@ -138,6 +140,18 @@ class WorkspaceInteractionSettings {
   /// **代价要认**：沉浸四边栏模式没有泳道栏头，于是那边只剩 `Esc` 与系统返回键。
   final bool showTopChrome;
 
+  /// 泳道栏头是否画**宽度徽标**（标题右侧那颗 `400px`）。默认**关**。
+  ///
+  /// 它是个**读数**不是动作：改宽度走栏头的右键菜单（或那颗「更多」按钮）里的
+  /// 「常规宽度」输入框、以及双击标题重置宽度，徽标本身点不动。
+  ///
+  /// 默认关的两个理由：
+  /// - 它是栏头预算里**最先让位**的一项（见 `SwimlaneColumn._fitHeader` 的让位顺序），
+  ///   也就是说在窄泳道上本来十有八九看不见 —— 默认画它等于「有时有、有时没有」。
+  /// - 不画时那 78px 是**还给标题与页签条**的（[showLaneWidthBadge] 为假时
+  ///   `_fitHeader` 根本不把 `_LaneChrome.badge` 从余量里扣掉），而不是留一段空档。
+  final bool showLaneWidthBadge;
+
   /// 四条边的悬停唤出区（neoview `edgeRevealZones`）。
   ///
   /// 左右两条决定「指针停在离边缘多远的地方」开始为揭示计时；
@@ -165,6 +179,22 @@ class WorkspaceInteractionSettings {
   /// 打架（谁先认领落点）。
   final bool panelTabSortMode;
 
+  /// 按泳道 ID 保存的交互覆盖值；没有记录时沿用旧类别的自动定位开关。
+  /// 这份配置只选择输入泳道，不保存快捷键或 contexts 映射。
+  final Map<String, WorkspaceLaneInteraction> laneInteractions;
+
+  WorkspaceLaneInteraction interactionForLane(String laneId) =>
+      laneInteractions[laneId] ??
+      WorkspaceLaneInteraction(
+        autoReveal: laneId == LaneId.reader
+            ? hoverFocusEnabled
+            : panelHoverFocusEnabled,
+      );
+
+  /// 在使用时解析继承，避免把全局延迟固化进每条泳道的快照。
+  int hoverDelayForLane(String laneId) =>
+      interactionForLane(laneId).hoverDelayMs ?? hoverFocusDelayMs;
+
   const WorkspaceInteractionSettings({
     this.hoverFocusEnabled = true,
     this.panelHoverFocusEnabled = true,
@@ -179,8 +209,10 @@ class WorkspaceInteractionSettings {
     this.manualScrollEnabled = true,
     this.blockManualScrollInReaderFullscreen = true,
     this.showTopChrome = false,
+    this.showLaneWidthBadge = false,
     this.revealZones = WorkspaceRevealZones.defaults,
     this.panelTabSortMode = false,
+    this.laneInteractions = const {},
   });
 
   WorkspaceInteractionSettings copyWith({
@@ -197,8 +229,10 @@ class WorkspaceInteractionSettings {
     bool? manualScrollEnabled,
     bool? blockManualScrollInReaderFullscreen,
     bool? showTopChrome,
+    bool? showLaneWidthBadge,
     WorkspaceRevealZones? revealZones,
     bool? panelTabSortMode,
+    Map<String, WorkspaceLaneInteraction>? laneInteractions,
   }) {
     return WorkspaceInteractionSettings(
       hoverFocusEnabled: hoverFocusEnabled ?? this.hoverFocusEnabled,
@@ -220,8 +254,10 @@ class WorkspaceInteractionSettings {
           blockManualScrollInReaderFullscreen ??
           this.blockManualScrollInReaderFullscreen,
       showTopChrome: showTopChrome ?? this.showTopChrome,
+      showLaneWidthBadge: showLaneWidthBadge ?? this.showLaneWidthBadge,
       revealZones: revealZones ?? this.revealZones,
       panelTabSortMode: panelTabSortMode ?? this.panelTabSortMode,
+      laneInteractions: laneInteractions ?? this.laneInteractions,
     );
   }
 
@@ -239,8 +275,13 @@ class WorkspaceInteractionSettings {
     'manualScrollEnabled': manualScrollEnabled,
     'blockManualScrollInReaderFullscreen': blockManualScrollInReaderFullscreen,
     'showTopChrome': showTopChrome,
+    'showLaneWidthBadge': showLaneWidthBadge,
     'revealZones': revealZones.toJson(),
     'panelTabSortMode': panelTabSortMode,
+    'laneInteractions': {
+      for (final entry in laneInteractions.entries)
+        entry.key: entry.value.toJson(),
+    },
   };
 
   /// 从 JSON 还原；**任何一项缺失或非法都退回该项的默认值**，绝不抛异常、
@@ -253,13 +294,30 @@ class WorkspaceInteractionSettings {
   /// **改造前的行为**（开书就换激活泳道），所以这一项不会改掉任何人的手感。
   factory WorkspaceInteractionSettings.fromJson(Map<String, Object?> json) {
     const fallback = WorkspaceInteractionSettings();
+    final readerAutoReveal = json['hoverFocusEnabled'] is bool
+        ? json['hoverFocusEnabled']! as bool
+        : fallback.hoverFocusEnabled;
+    final panelAutoReveal = json['panelHoverFocusEnabled'] is bool
+        ? json['panelHoverFocusEnabled']! as bool
+        : fallback.panelHoverFocusEnabled;
+    final laneInteractions = <String, WorkspaceLaneInteraction>{};
+    final rawLanes = json['laneInteractions'];
+    if (rawLanes is Map) {
+      for (final entry in rawLanes.entries) {
+        final laneId = entry.key;
+        final value = entry.value;
+        if (laneId is! String || laneId.isEmpty || value is! Map) continue;
+        laneInteractions[laneId] = WorkspaceLaneInteraction.fromJson(
+          {for (final key in value.keys.whereType<String>()) key: value[key]},
+          defaultAutoReveal: laneId == LaneId.reader
+              ? readerAutoReveal
+              : panelAutoReveal,
+        );
+      }
+    }
     return WorkspaceInteractionSettings(
-      hoverFocusEnabled: json['hoverFocusEnabled'] is bool
-          ? json['hoverFocusEnabled']! as bool
-          : fallback.hoverFocusEnabled,
-      panelHoverFocusEnabled: json['panelHoverFocusEnabled'] is bool
-          ? json['panelHoverFocusEnabled']! as bool
-          : fallback.panelHoverFocusEnabled,
+      hoverFocusEnabled: readerAutoReveal,
+      panelHoverFocusEnabled: panelAutoReveal,
       hoverFocusDelayMs: _positiveInt(
         json['hoverFocusDelayMs'],
         fallback.hoverFocusDelayMs,
@@ -300,10 +358,16 @@ class WorkspaceInteractionSettings {
       showTopChrome: json['showTopChrome'] is bool
           ? json['showTopChrome']! as bool
           : fallback.showTopChrome,
+      // 老快照里没有这个键 ⇒ 徽标不画。与 `showTopChrome` 一样，缺键即取默认
+      // 「不画」，所以升级之后没有任何人的栏头会因为这一项变样。
+      showLaneWidthBadge: json['showLaneWidthBadge'] is bool
+          ? json['showLaneWidthBadge']! as bool
+          : fallback.showLaneWidthBadge,
       revealZones: WorkspaceRevealZones.fromJson(json['revealZones']),
       panelTabSortMode: json['panelTabSortMode'] is bool
           ? json['panelTabSortMode']! as bool
           : fallback.panelTabSortMode,
+      laneInteractions: Map.unmodifiable(laneInteractions),
     );
   }
 
@@ -354,7 +418,11 @@ class WorkspaceInteractionSettings {
     manualScrollEnabled,
     blockManualScrollInReaderFullscreen,
     showTopChrome,
+    showLaneWidthBadge,
     revealZones,
     panelTabSortMode,
+    Object.hashAllUnordered(
+      laneInteractions.entries.map((entry) => Object.hash(entry.key, entry.value)),
+    ),
   );
 }

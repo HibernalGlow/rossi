@@ -150,8 +150,7 @@ class _StorageInformationCardState extends State<StorageInformationCard> {
                 .join(' · ');
           }();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return InfoFacts(
       children: [
         InfoRow(label: '来源类型', value: isLocal ? kindLabel : '在线图源'),
         if (isLocal) InfoRow(label: '根路径', value: path),

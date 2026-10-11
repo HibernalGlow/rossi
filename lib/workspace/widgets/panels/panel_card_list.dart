@@ -28,6 +28,7 @@ class PanelCardList extends StatelessWidget {
 
   final String panelId;
   final WorkspaceBoardLayout board;
+  final bool isEditing;
 
   final void Function(String cardId, bool expanded) onSetExpanded;
   final void Function(String cardId, int direction) onMoveCard;

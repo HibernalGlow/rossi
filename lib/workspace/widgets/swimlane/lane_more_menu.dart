@@ -126,6 +126,7 @@ class LaneMenu {
     final bar = lane.panelBar;
     final collapsed = lane.collapsed || showsAsRail;
     final chrome = state.interaction.showTopChrome;
+    final widthBadge = state.interaction.showLaneWidthBadge;
 
     CommonPopupMenuItem item({
       required String value,
@@ -302,6 +303,11 @@ class LaneMenu {
         onToggleCollapse();
       case 'reset':
         onResetWidth?.call();
+      case 'panelEditMode':
+        final interaction = cubit.state.interaction;
+        cubit.setInteraction(
+          interaction.copyWith(panelTabSortMode: !interaction.panelTabSortMode),
+        );
       case 'barMode':
         cubit.setLanePanelBar(
           laneId,
@@ -320,6 +326,13 @@ class LaneMenu {
         // 「默认」取的是**本项目**的默认（钉在顶部 = 挂进栏头），不是参考里那个
         // 悬浮默认值 —— 见 `PanelBarDock.defaultDock` 的说明。
         cubit.setLanePanelBar(laneId, const PanelBarLayout());
+      case 'widthBadge':
+        final badgeSettings = cubit.state.interaction;
+        cubit.setInteraction(
+          badgeSettings.copyWith(
+            showLaneWidthBadge: !badgeSettings.showLaneWidthBadge,
+          ),
+        );
       case 'topChrome':
         final interaction = cubit.state.interaction;
         cubit.setInteraction(

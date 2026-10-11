@@ -38,13 +38,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
+import 'package:zephyr/workspace/model/workspace_interaction_settings.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_layout_snapshot.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
 import 'package:zephyr/workspace/registry/workspace_panel_registry.dart';
 import 'package:zephyr/workspace/widgets/panels/panel_tab_strip.dart';
 import 'package:zephyr/icons/icons.dart';
-import 'package:zephyr/workspace/widgets/swimlane/lane_more_menu.dart';
 import 'package:zephyr/workspace/widgets/swimlane/swimlane_column.dart';
 import 'package:zephyr/workspace/widgets/swimlane/swimlane_workspace.dart';
 
@@ -90,7 +90,13 @@ List<WorkspacePanelDefinition> _tabsOn(WorkspaceCubit cubit) =>
       cubit.state.board,
     );
 
-Future<WorkspaceCubit> _pumpWorkspace(WidgetTester tester) async {
+/// 夹具默认**打开**宽度徽标（`WorkspaceInteractionSettings.showLaneWidthBadge`
+/// 出厂是**关**的）：这一份判据测的正是「徽标与三颗按钮谁先让位」，关着的话
+/// 徽标永远不会存在，那几条让位判据就成了空转。默认档单独有一条判据。
+Future<WorkspaceCubit> _pumpWorkspace(
+  WidgetTester tester, {
+  bool showLaneWidthBadge = true,
+}) async {
   tester.view.physicalSize = _windowSize;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
@@ -98,7 +104,13 @@ Future<WorkspaceCubit> _pumpWorkspace(WidgetTester tester) async {
   final cubit = WorkspaceCubit();
   addTearDown(cubit.close);
   cubit.restore(
-    WorkspaceLayoutSnapshot(mode: WorkspaceMode.swimlane, layout: _testLayout),
+    WorkspaceLayoutSnapshot(
+      mode: WorkspaceMode.swimlane,
+      layout: _testLayout,
+      interaction: WorkspaceInteractionSettings(
+        showLaneWidthBadge: showLaneWidthBadge,
+      ),
+    ),
   );
 
   await tester.pumpWidget(
@@ -142,7 +154,13 @@ Finder _strip() => _inLeftLane(find.byType(PanelTabStrip));
 /// 也是「书架」面板的页签图标，按泳道那一条找会一颗命中两个。
 Finder _tab(String panelId) => find.descendant(
   of: _strip(),
-  matching: find.byIcon(WorkspacePanelRegistry.I.find(panelId)!.icon),
+  matching: find.byWidgetPredicate(
+    // 页签图标已换成自绘 `GlyphIcon`，`find.byIcon` 只认 Material `Icon`，
+    // 所以这里按 glyph 值认，仍然读注册表里那份定义、不写死图标。
+    (w) =>
+        w is GlyphIcon &&
+        w.glyph == WorkspacePanelRegistry.I.find(panelId)!.icon,
+  ),
 );
 
 /// 栏头右侧那三颗，以及宽度徽标。
@@ -177,6 +195,29 @@ void main() {
     expect(_solo(), findsOneWidget);
     expect(_collapse(), findsOneWidget);
     expect(_more(), findsOneWidget);
+  });
+
+  testWidgets('宽度徽标默认不画；打开开关才画，两种档位都不溢出', (tester) async {
+    final cubit = await _pumpWorkspace(tester, showLaneWidthBadge: false);
+    await _setWidth(tester, cubit, 600);
+    expect(_badge(), findsNothing, reason: '默认档：栏头不该有 px 徽标');
+
+    cubit.setInteraction(
+      cubit.state.interaction.copyWith(showLaneWidthBadge: true),
+    );
+    await tester.pumpAndSettle();
+    expect(_badge(), findsOneWidget, reason: '打开开关之后徽标必须出现');
+
+    cubit.setInteraction(
+      cubit.state.interaction.copyWith(showLaneWidthBadge: false),
+    );
+    await tester.pumpAndSettle();
+    expect(_badge(), findsNothing, reason: '再关回去，徽标要立刻消失');
+
+    // 关掉时那一段宽度是**还给**标题与页签条的（`_fitHeader` 根本不扣它）：
+    // 窄泳道上也不许因为「留了一段空档」而溢出。
+    await _setWidth(tester, cubit, 200);
+    expect(tester.takeException(), isNull, reason: '关掉徽标时栏头整行溢出');
   });
 
   // 这条就是用户报的那个症状：389px 的泳道上最后一个图标被裁掉半截。
@@ -307,16 +348,26 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(laneWidthFieldKey),
+      find.textContaining('泳道宽度：'),
       findsOneWidget,
       reason: '按钮让位之后，这条泳道的动作全靠右键这一条路',
     );
-    for (final label in ['独占该栏', '折叠为紧凑条', '面板栏停靠左侧']) {
+    for (final label in ['独占该栏', '折叠为紧凑条']) {
       expect(
         find.text(label),
         findsOneWidget,
         reason: '$label 只在菜单里有 —— 菜单打不开它就是永久不可达',
       );
     }
+
+    // 面板栏那一组收在二级里，右键这条路也得能点进去（宽度输入框同理，
+    // 它就住在这下面，所以这里展开的就是那条能力的入口本身）。
+    await tester.tap(find.textContaining('面板栏：'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(
+      find.text('停靠左侧'),
+      findsOneWidget,
+      reason: '二级打不开，挪面板栏这条动作在窄栏头下就永久不可达',
+    );
   });
 }

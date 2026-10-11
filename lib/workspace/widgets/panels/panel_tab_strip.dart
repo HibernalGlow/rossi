@@ -101,7 +101,7 @@ class PanelTabStrip extends StatefulWidget {
   final double maxWidth;
 
   /// 页签尺寸（neoview title-mounted 的 `size-7`）。
-  static const double tabSize = 28.0;
+  static const double tabSize = PanelSwitcherTabs.iconSize;
 
   /// 拖动判定为「真的拖了」的最小位移（防误触：手抖一下不该换停靠边）。
   static const double dragSlop = 4.0;
@@ -114,7 +114,7 @@ class PanelTabStrip extends StatefulWidget {
   // 最后一个图标被齐根裁掉。
 
   /// 页签左右各 1.5 的内边距。
-  static const double tabHPadding = 1.5;
+  static const double tabHPadding = PanelSwitcherTabs.iconPadding;
 
   /// 插缝自身的宽（拖动时亮成 2.5，那 1px 不记账）。
   static const double dropSlotWidth = 1.5;
@@ -156,8 +156,9 @@ class PanelTabStrip extends StatefulWidget {
   /// `build` 直接 `SizedBox.shrink()`，这里也返回 0。
   static double titleMountedWidth(
     WorkspacePanelSide side,
-    WorkspaceBoardLayout board,
-  ) {
+    WorkspaceBoardLayout board, {
+    bool sortMode = false,
+  }) {
     final registry = WorkspacePanelRegistry.I;
     final tabs = registry.panelsForSide(side, board).length;
     final hidden = registry
@@ -168,8 +169,9 @@ class PanelTabStrip extends StatefulWidget {
 
     final width =
         stripHPadding * 2 +
-        tabStride * tabs +
-        trailingSlotWidth +
+        (sortMode
+            ? tabStride * tabs + trailingSlotWidth
+            : (tabSize + tabHPadding * 2) * tabs) +
         (hidden > 0 ? hiddenMenuWidth(hidden) : 0);
     // 向上取整：栏头拿它判「装不装得下」，宁可提前一档让位，
     // 也不要差半个像素把最后一个图标裁掉。
@@ -558,9 +560,7 @@ class _PanelTabStripState extends State<PanelTabStrip> {
         // 的页签条」，跟着 `workspace_layout.json` 的 `interaction` 块走。
         final interaction = cubit.state.interaction;
         cubit.setInteraction(
-          interaction.copyWith(
-            panelTabSortMode: !interaction.panelTabSortMode,
-          ),
+          interaction.copyWith(panelTabSortMode: !interaction.panelTabSortMode),
         );
       case _PanelBarActionKind.dock:
         cubit.setLanePanelBar(
@@ -669,62 +669,7 @@ class _PanelTabStripState extends State<PanelTabStrip> {
 
   // ── 页签 ───────────────────────────────────────────────────────────────
 
-  /// 常态那一档：页签排给弹簧 lens，按住横移 = 切面板。
-///
-/// 与排序模式的差别有三条，都在这一处：
-///
-/// 1. **选中态**是 lens（`SpringLensBar`），不是 `Material(primary)`；
-/// 2. **不带插缝** —— 插缝只在拖动时才有意义，而常态没有拖动；
-/// 3. **不带 `LongPressDraggable`** —— 手势位让给 lens 的跟手拖动，
-///    `draggable: true`。
-///
-/// `shrinkWrap` 那份语义照旧：内联（挂进栏头 / 抽屉，`bounds == null`）按内容
-/// 取宽 —— 视口默认**撑满**给它的主轴宽度，于是 2 个页签也要掉 260px，
-/// 而栏头那一行总共只有 340–380px。
-Widget _buildSpringTabs(
-  List<WorkspacePanelDefinition> panels,
-  String? activeId,
-  WorkspaceCubit cubit,
-) {
-  final activeIndex = activeId == null
-      ? 0
-      : panels.indexWhere((p) => p.id == activeId).clamp(0, panels.length - 1);
-  return SpringLensBar(
-    axis: widget.vertical ? Axis.vertical : Axis.horizontal,
-    tabs: [
-      for (final panel in panels)
-        SpringLensTab(
-          tooltip: _tooltipFor(panel),
-          semanticLabel: panel.title,
-          child: _TabBody(
-            panel: panel,
-            active: panel.id == activeId,
-            onTap: () => cubit.setActivePanel(widget.side.laneId, panel.id),
-            onSecondaryTap: panel.canHide
-                ? () => _hide(cubit, panel)
-                : null,
-          ),
-        ),
-    ],
-    selectedIndex: activeIndex,
-    // 常态：跟手拖动就是「切面板」，与 Dock 那套同一根弹簧。
-    // 点击那条路 `_TabBody` 自己带着（`InkWell.onTap`），拖动这条路走这里。
-    onSelected: (index) =>
-        cubit.setActivePanel(widget.side.laneId, panels[index].id),
-    draggable: true,
-    // lens 的底色取主色 —— 与排序模式下那个 `Material(color: primary)` 同色，
-    // 两档切换时选中块的颜色不跳。
-    lensColor: Theme.of(context).colorScheme.primary,
-    lensCorner: 6,
-    padding: EdgeInsets.symmetric(
-      horizontal: widget.vertical ? 0 : PanelTabStrip.stripHPadding,
-      vertical: widget.vertical ? PanelTabStrip.stripHPadding : 0,
-    ),
-  );
-}
-
-
-Widget _buildTab(
+  Widget _buildTab(
     WorkspacePanelDefinition panel,
     String? activeId,
     int index,
@@ -753,8 +698,9 @@ Widget _buildTab(
             child: SizedBox(
               width: PanelTabStrip.tabSize,
               height: PanelTabStrip.tabSize,
-              child: GlyphIcon(
+              child: AnimatedGlyphIcon(
                 panel.icon,
+                filled: active,
                 size: 16,
                 color: active
                     ? theme.colorScheme.onPrimary
