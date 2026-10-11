@@ -2,8 +2,9 @@
 
 ## 当前判断
 
-视口预渲染缓存命中后的原生缓冲区写入已在毫秒以内；未缓存的大图仍有明显等待，
-解码与上传、渲染、同步回读两部分都值得继续优化。当前 macOS 路径不是端到端零拷贝。
+早先样本中，视口缓存命中后的原生缓冲区写入 p50 低于 1 ms；竞争负载下仍会变慢。
+未缓存的大图仍有明显等待，解码、渲染与同步回读都值得继续优化。
+同一份不可变像素换视口可跳过整图上传及已有 mip 的生成。当前 macOS 路径不是端到端零拷贝。
 以下数据来自本机 Release 原生库，不能当作 Flutter 完整翻页时间或物理屏幕刷新延迟。
 
 本轮已完成：
@@ -15,6 +16,8 @@
   已运行的解码或 GPU 工作仍不能被即时抢占。
 - Swift 串行调度让显示任务优先于尚未执行的准备任务，保持来源切换等操作的顺序。
   增加 `showQueueWaitMs` 和 `showBridgeMs`，便于区分排队与桥内处理时间。
+- 源纹理只分配实际需要的 mip。按共享像素对象复用已上传内容，保留弱引用而不额外持有
+  解码像素；后台覆盖、增强替换、可变 slice 调用与纹理重建均使内容复用失效。
 - 移除 Swift 上屏前的整帧清零。Rust 首次渲染与缓存复制均写满目标像素及行尾补边；
   原生调用失败时不会发布该缓冲区。
 
@@ -29,6 +32,7 @@ macOS 未缓存页：
 ```
 
 缓存页跳过重新解码、上传和渲染，将已保存的 BGRA 视口帧复制到 CVPixelBuffer。
+视口帧未命中但源纹理仍对应同一份像素时，复用已上传内容，仍执行缩放、同步回读及视口缓存保存。
 Windows 使用另一套 D3D12 共享纹理及 GPU→GPU CopyResource 路径，不能套用这里的回读结论。
 本次没有测 Windows、移动端或 Web。
 
@@ -131,7 +135,7 @@ CVPixelBuffer 池、临时解码数据、正在执行任务持有的 Arc、Flutt
 mip 相关源代码拆到 `wgpu_resampler/source.rs`。macOS 原生诊断增加：
 
 - `sourceMipLevels`：共享渲染器当前源纹理的分配级数。
-- `sourceGeneratedMipLevels`：最近一次源图上传后，为该次绘制准备的级数，包含第 0 级。
+- `sourceGeneratedMipLevels`：当前源纹理内容已初始化的级数，包含第 0 级；内容复用后可高于本次采样需要的级数。
 - `sourceTextureTexelBytes`：上述纹理按 RGBA8 texel 计算的字节数，**不是实际驱动常驻量**。
 
 共享渲染器也用于后台预取，指标不保证属于当前显示页。统计查询用 `try_lock`；
@@ -254,3 +258,78 @@ swiftc -O script/probe_macos_gpu_present.swift -o /tmp/rossi-gpu-probe
 `gpuWaitMs` 包含着色器执行和排队，尚不能证明 readback 传输占主导。
 直接输出 IOSurface 的潜在收益仍须结合 GPU 时间戳、独占负载的对照和应用级取帧验证；
 当前 Flutter 应用级测试仍受启动异常阻碍，不能把独立探针视为完整上屏测试。
+
+
+## 后续优化：复用不可变源像素的上传内容
+
+2026-10-11 追加：此前虽然复用了纹理分配，同一张图改变视口仍会每次执行
+`queue.write_texture`，并从第 1 级重新生成所需 mip。现在 macOS 的 show、prepare、
+增强注入及后台预取均通过 `Arc<PagePixels>` 调用渲染器，跟踪纹理中实际保存的对象身份。
+只有对象相同、尺寸相同且纹理容量足够时跳过上传；已生成的 mip 保留，仅补缺少的级数。
+需要更深 mip 而原容量不足时仍重建纹理并完整上传，避免读取未初始化层。
+
+纹理身份只保存 `Weak<PagePixels>`，不在 PageCache 预算之外额外留住大图的 RGBA Vec。
+`PagePixels` 没有内部可变性：Weak 存在时 `Arc::get_mut` 不会给出可变引用，
+`Arc::make_mut` 会复制或解除旧 Weak 关联；修改后的对象必须重新上传。
+普通 `&[u8]` 接口每次上传并清除旧身份，不能根据裸指针地址认定内容没变。
+后台绘制另一页、原图/增强图替换、切换来源产生新对象，都会更新实际纹理身份。
+它不会把“最近显示的是这页”误当成“GPU 中还保留这页”。
+
+一次 show 的诊断新增：
+
+- `sourceReused`：本次 GPU 绘制是否跳过已有源内容的上传。
+- `uploadedBytes`：本次向 `write_texture` 提交的有效 RGBA 字节数；不是硬件总线流量。
+- `mipmapGeneratedLevels`：本次新生成的下游 mip 数，不含第 0 级。
+
+命中视口缓存时不执行 GPU 绘制，以上计数均为 0，`sourceReused` 为 false。
+`sourceGeneratedMipLevels` 则描述共享源纹理已有内容；放大视口不会将已有级数减少。
+
+### 连续调整视口的配对样本
+
+新增 `--resize-count 16`：同一页先解码并显示一次，随后每次将目标宽度减少 4 像素，
+高度固定；保证超出已有视口帧的 3 像素容差。16 个不同尺寸首次显示，均命中解码像素，
+均未命中预渲染帧。参考库是内容复用修改前的 Release 库，已包含前一轮 mip 容量优化
+与分段计时；每对使用同一个真实 IOSurface CVPixelBuffer，按 AB / BA 交替顺序执行。
+报告保存两库 SHA256、全部耗时及阶段，不仅保存汇总数字。探针另校验运行前后的库哈希，防止共享构建目录更新后误记产物。
+
+| 原图 / 基础视口 | 修改前 resize p50 | 修改后 resize p50 | 修改前 p95 | 修改后 p95 | 配对总耗时差中位数（后减前） |
+|---|---:|---:|---:|---:|---:|
+| 4096×3072 / 2560×1600 | 115.05 ms | 93.67 ms | 408.50 ms | 266.29 ms | -30.33 ms |
+| 9504×6336 / 3840×2160 | 360.28 ms | 201.60 ms | 1409.14 ms | 804.71 ms | -150.73 ms |
+
+每组 16 对 resize，额外 4 对冷页及 16 个缓存页用于验证。全部配对输出逐字节一致。
+新版本的 resize 样本 `uploadedBytes`、`uploadMs` 和 `mipmapGeneratedLevels` 均为 0，
+对应每次跳过提交 48.00 MiB / 229.71 MiB 源 RGBA；16 次分别少提交 0.75 GiB / 3.59 GiB。
+这两组视口变化没有跨越需要更深 mip 的边界；不能据此认定所有窗口大小变化均无需重建。
+另有小尺寸跨边界对照，18 次调整中 17 次复用、1 次容量增长重新上传，输出仍逐字节一致。
+
+这轮仍未隔离系统负载：前后进程快照存在 ffmpeg、WindowServer 与视频编码等任务，
+测量前 `memory_pressure -Q` 返回系统空闲百分比 44%。它不是本进程内存或独占资源指标。
+长尾明显，16 对样本不足以稳定估计 p95；以上只报告这轮条件下的配对观察，
+不作为独占性能、稳定改善幅度或完整 Flutter 翻页速度的保证。
+两个 presenter 的资源仍同时保留，所以这也不是单呈现器内存峰值测试。
+没有测量 GPU 利用率、功耗或实际显示时刻；同步 GPU 等待和 CPU 回读复制仍然存在。
+
+51 项原生测试通过，Release 构建与 Swift 探针编译通过。新增测试覆盖同对象换视口、
+已有容量内只补缺少的 mip、容量增长、尺寸变化、后台覆盖、增强对象替换、可变 slice
+同地址改写、Weak 不延长 RGBA 寿命及 `make_mut` 后重新上传。实际 MacPresenter 的
+视口调整和缓存计数复位也有像素对照。完整 Flutter macOS 集成测试的启动阻碍仍未解除。
+
+原始记录：
+
+- [12.6 MP 连续调整视口](benchmarks/macos-gpu-present-2026-10-11/reuse-paired-12mp-2560x1600.json)
+- [60.2 MP / 4K 连续调整视口](benchmarks/macos-gpu-present-2026-10-11/reuse-paired-60mp-3840x2160.json)
+- [跨 mip 容量边界的小尺寸对照](benchmarks/macos-gpu-present-2026-10-11/reuse-growth-513x385-128x96.json)
+- [测量前后系统上下文](benchmarks/macos-gpu-present-2026-10-11/reuse-system-context.json)
+
+复现时在本项修改前保留参考库，更新后构建 Release 和探针：
+
+```sh
+cp rust/gpu_present/target/release/librossi_gpu_present.dylib /tmp/rossi-before-source-reuse.dylib
+# 更新代码后构建，宿主不加 --target。
+CARGO_TARGET_DIR="$PWD/rust/gpu_present/target" cargo build --manifest-path rust/Cargo.toml -p rossi_gpu_present --lib --release --locked
+cp rust/gpu_present/target/release/librossi_gpu_present.dylib /tmp/rossi-source-reuse-current.dylib
+swiftc -O script/probe_macos_gpu_present.swift -o /tmp/rossi-gpu-probe
+/tmp/rossi-gpu-probe --library /tmp/rossi-source-reuse-current.dylib --compare-library /tmp/rossi-before-source-reuse.dylib --source-size 4096x3072 --target 2560x1600 --cold 4 --warm 16 --resize-count 16 --output /tmp/rossi-reuse-12mp.json
+/tmp/rossi-gpu-probe --library /tmp/rossi-source-reuse-current.dylib --compare-library /tmp/rossi-before-source-reuse.dylib --source-size 9504x6336 --target 3840x2160 --cold 4 --warm 16 --resize-count 16 --output /tmp/rossi-reuse-60mp.json
+```

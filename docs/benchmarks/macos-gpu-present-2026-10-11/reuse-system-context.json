@@ -1,0 +1,137 @@
+{
+  "before": {
+    "timestamp": "2026-10-11T11:46:04.971523+00:00",
+    "psTopCpu": [
+      {
+        "pid": 81737,
+        "cpuPercent": 100.5,
+        "processName": "ffmpeg"
+      },
+      {
+        "pid": 170,
+        "cpuPercent": 36.7,
+        "processName": "WindowServer"
+      },
+      {
+        "pid": 714,
+        "cpuPercent": 27.1,
+        "processName": "docktor"
+      },
+      {
+        "pid": 17631,
+        "cpuPercent": 23.1,
+        "processName": "Qoder CN Helper (Renderer)"
+      },
+      {
+        "pid": 17481,
+        "cpuPercent": 20.8,
+        "processName": "Qoder CN"
+      },
+      {
+        "pid": 5087,
+        "cpuPercent": 16.2,
+        "processName": "starCore"
+      },
+      {
+        "pid": 17492,
+        "cpuPercent": 14.2,
+        "processName": "Qoder CN Helper"
+      },
+      {
+        "pid": 42377,
+        "cpuPercent": 9.4,
+        "processName": "Codex (Renderer)"
+      },
+      {
+        "pid": 305,
+        "cpuPercent": 9.1,
+        "processName": "com.apple.DriverKit-AppleBCMWLAN"
+      },
+      {
+        "pid": 5088,
+        "cpuPercent": 7.1,
+        "processName": "VTEncoderXPCService"
+      },
+      {
+        "pid": 11929,
+        "cpuPercent": 4.3,
+        "processName": "FlClashCore"
+      },
+      {
+        "pid": 42335,
+        "cpuPercent": 3.8,
+        "processName": "Codex (Service)"
+      }
+    ],
+    "memoryPressure": "The system has 17179869184 (1048576 pages with a page size of 16384).\nSystem-wide memory free percentage: 44%\n",
+    "vmStat": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                     8448.\nPages active:                                 221172.\nPages inactive:                               211053.\nPages speculative:                              9274.\nPages throttled:                                   0.\nPages wired down:                             228766.\nPages purgeable:                               15716.\n\"Translation faults\":                      817390962.\nPages copy-on-write:                        38057661.\nPages zero filled:                         420055294.\nPages reactivated:                         197421380.\nPages purged:                               27243267.\nFile-backed pages:                            150285.\nAnonymous pages:                              291214.\nPages stored in compressor:                   629843.\nPages occupied by compressor:                 331158.\nDecompressions:                            157898822.\nCompressions:                              190495363.\nPageins:                                    40326377.\nPageouts:                                      90593.\nSwapins:                                     2319426.\nSwapouts:                                    3598434.\n"
+  },
+  "after": {
+    "timestamp": "2026-10-11T11:52:23.833537+00:00",
+    "psTopCpu": [
+      {
+        "pid": 5780,
+        "cpuPercent": 147.7,
+        "processName": "node"
+      },
+      {
+        "pid": 6177,
+        "cpuPercent": 92.4,
+        "processName": "dartvm"
+      },
+      {
+        "pid": 17631,
+        "cpuPercent": 87.8,
+        "processName": "Qoder CN Helper (Renderer)"
+      },
+      {
+        "pid": 170,
+        "cpuPercent": 55.0,
+        "processName": "WindowServer"
+      },
+      {
+        "pid": 714,
+        "cpuPercent": 33.4,
+        "processName": "docktor"
+      },
+      {
+        "pid": 17492,
+        "cpuPercent": 31.2,
+        "processName": "Qoder CN Helper"
+      },
+      {
+        "pid": 5087,
+        "cpuPercent": 25.4,
+        "processName": "starCore"
+      },
+      {
+        "pid": 42377,
+        "cpuPercent": 17.5,
+        "processName": "Codex (Renderer)"
+      },
+      {
+        "pid": 17481,
+        "cpuPercent": 12.0,
+        "processName": "Qoder CN"
+      },
+      {
+        "pid": 5088,
+        "cpuPercent": 9.4,
+        "processName": "VTEncoderXPCService"
+      },
+      {
+        "pid": 305,
+        "cpuPercent": 7.1,
+        "processName": "com.apple.DriverKit-AppleBCMWLAN"
+      },
+      {
+        "pid": 701,
+        "cpuPercent": 5.4,
+        "processName": "stable"
+      }
+    ],
+    "memoryPressure": "The system has 17179869184 (1048576 pages with a page size of 16384).\nSystem-wide memory free percentage: 40%\n",
+    "vmStat": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                     4332.\nPages active:                                 205540.\nPages inactive:                               201242.\nPages speculative:                              2669.\nPages throttled:                                   0.\nPages wired down:                             235928.\nPages purgeable:                                   0.\n\"Translation faults\":                      829718457.\nPages copy-on-write:                        38571509.\nPages zero filled:                         427896946.\nPages reactivated:                         200768539.\nPages purged:                               27622096.\nFile-backed pages:                            153623.\nAnonymous pages:                              255828.\nPages stored in compressor:                   653734.\nPages occupied by compressor:                 360096.\nDecompressions:                            160784619.\nCompressions:                              194038767.\nPageins:                                    40899022.\nPageouts:                                      91063.\nSwapins:                                     2405397.\nSwapouts:                                    3659216.\n"
+  },
+  "scope": "Context snapshots for sequential source reuse benchmarks; not process utilization, power or peak memory measurements. ps %CPU is not a continuous benchmark trace; vm_stat counts are cumulative. Other user processes were left running."
+}
