@@ -127,7 +127,7 @@ class MultiArrayModel: ImageProcessingModel {
                                 let value = expanded[srcIdx + expwidth * expheight * channel]
                                 let target = base + inChannelStride * channel
                                 if inputType == .float16 {
-                                    halfPtr[target] = Float16(value)
+                                    halfPtr[target] = Swift.Float16(value)
                                 } else {
                                     floatPtr[target] = Float32(value)
                                 }
