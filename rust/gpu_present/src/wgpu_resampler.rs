@@ -15,6 +15,26 @@ mod source;
 use source::CachedSource;
 pub use source::SourceTextureInfo;
 
+/// 一次离屏重采样的 CPU 墙钟分段。
+///
+/// 这些字段描述命令准备、提交、GPU 完成等待和映射后的 CPU 拷贝；
+/// 它们不是 GPU shader 的独占执行时间。
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ResampleTimings {
+    pub target_setup_ms: f64,
+    pub source_setup_ms: f64,
+    pub upload_ms: f64,
+    pub mipmap_encode_ms: f64,
+    pub mipmap_submit_ms: f64,
+    pub render_encode_ms: f64,
+    pub render_submit_ms: f64,
+    pub readback_encode_ms: f64,
+    pub readback_submit_ms: f64,
+    pub gpu_wait_ms: f64,
+    pub cpu_copy_ms: f64,
+    pub total_ms: f64,
+}
+
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod mip_tests;
 

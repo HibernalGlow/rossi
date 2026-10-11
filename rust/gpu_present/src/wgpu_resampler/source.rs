@@ -1,4 +1,5 @@
 use super::*;
+use std::time::Instant;
 
 pub(super) struct CachedSource {
     pub(super) width: u32,
@@ -90,15 +91,16 @@ impl WgpuResampler {
     /// 再由该级上的 Lanczos 重建，减少大幅缩小时所需的采样量。
     ///
     /// 每级的输入仍是前一级，保持原有 2×2 盒式预滤与重建结果。
-    pub(super) fn generate_mipmaps(&self, width: u32, height: u32, last_level: u32) {
+    pub(super) fn generate_mipmaps(&self, width: u32, height: u32, last_level: u32) -> (f64, f64) {
         let Some(source) = self.source_cache.as_ref() else {
-            return;
+            return (0.0, 0.0);
         };
         let last_level = last_level.min(source.mip_levels.saturating_sub(1));
         if last_level == 0 {
-            return;
+            return (0.0, 0.0);
         }
 
+        let encode = Instant::now();
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -192,6 +194,11 @@ impl WgpuResampler {
             level += 1;
         }
 
-        self.queue.submit(std::iter::once(encoder.finish()));
+        let command_buffer = encoder.finish();
+        let encode_ms = encode.elapsed().as_secs_f64() * 1000.0;
+        let submit = Instant::now();
+        self.queue.submit(std::iter::once(command_buffer));
+        let submit_ms = submit.elapsed().as_secs_f64() * 1000.0;
+        (encode_ms, submit_ms)
     }
 }

@@ -12,7 +12,7 @@ use std::time::{Duration, Instant};
 
 use crate::ambient::{sample_edge_palette, AmbientPalette};
 use crate::enhance;
-use crate::wgpu_resampler::WgpuResampler;
+use crate::wgpu_resampler::{ResampleTimings, WgpuResampler};
 use anyhow::{anyhow, Context, Result};
 use rossi_local_core::{
     compute_final_pipeline_keep_set, interleaved_prefetch_positions, LocalSource, PagePixels,
@@ -32,6 +32,11 @@ pub struct PresentTimings {
     pub decode_ms: f64,
     pub render_ms: f64,
     pub total_ms: f64,
+    pub renderer_lock_ms: f64,
+    pub cached_copy_ms: f64,
+    pub frame_capture_ms: f64,
+    pub frame_cache_publish_ms: f64,
+    pub resample: ResampleTimings,
 }
 
 struct SharedCache {
@@ -111,4 +116,5 @@ mod tests {
     mod frame_cases;
     mod gpu_cases;
     mod texture_cases;
+    mod timing_cases;
 }
