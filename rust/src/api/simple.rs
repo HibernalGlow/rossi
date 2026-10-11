@@ -19,11 +19,6 @@ static ANTI_OBFUSCATION_SEMAPHORE: Semaphore =
 
 #[frb(init)]
 pub fn init_app() {
-    if cfg!(debug_assertions) {
-        println!("Debug model");
-    } else {
-        println!("Release model");
-    }
     INIT_ONCE.call_once(|| {
         crate::api::user_utils::setup_default_user_utils();
         let mut config = current_http_client_config();
@@ -134,7 +129,6 @@ pub fn enable_stacktrace(enabled: bool) {
 
 #[frb(sync)]
 pub fn enable_rust_log(enabled: bool) {
-    println!("enable_log : {enabled}");
     ENABLE_LOG.call_once(|| {
         crate::api::user_utils::setup_log_to_console(enabled);
         crate::api::logger::FLUTTER_KDEBUGMOD.store(enabled, Ordering::Relaxed);

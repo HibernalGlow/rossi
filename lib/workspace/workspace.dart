@@ -1,4 +1,5 @@
 export 'model/workspace_mode.dart';
+export 'model/workspace_workhole.dart';
 export 'model/workspace_layout_config.dart';
 export 'model/workspace_reader_target.dart';
 export 'model/workspace_board_layout.dart';
@@ -36,4 +37,5 @@ export 'widgets/reader/workspace_reader_empty_canvas.dart';
 export 'widgets/swimlane/swimlane_workspace.dart';
 export 'widgets/swimlane/swimlane_column.dart';
 export 'widgets/edges/controlled_edge_shell.dart';
+export 'widgets/edges/workhole_panel.dart';
 export 'breeze_workspace_page.dart';

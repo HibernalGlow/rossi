@@ -206,9 +206,9 @@ class _StringListTile extends StatelessWidget {
 
   Future<void> _edit(BuildContext context) async {
     final controller = TextEditingController(text: values.join(', '));
-    final saved = await showDialog<List<String>>(
+    final saved = await showPopupPanel<List<String>>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => PopupPanel(
         title: Text(title),
         content: Column(
           mainAxisSize: MainAxisSize.min,

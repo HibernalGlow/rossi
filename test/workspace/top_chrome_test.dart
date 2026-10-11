@@ -127,7 +127,11 @@ Future<void> _openWorkspace(
 
 Finder get _bar => find.byType(WorkspaceTopChrome);
 Finder get _content => find.byType(SwimlaneWorkspace);
-Finder get _exitButton => find.byIcon(Icons.arrow_back_rounded);
+// 顶栏图标统一走自绘 `AppGlyphs`（`GlyphIcon`），`find.byIcon` 只认 Material
+// `Icon` ⇒ 按 glyph 值认，别再退回图标名。
+Finder get _exitButton => find.byWidgetPredicate(
+  (w) => w is GlyphIcon && w.glyph == AppGlyphs.arrowBack,
+);
 
 /// 默认出厂布局里左泳道的标题（`WorkspaceLayoutConfig.defaults()`）。
 const String _shelfLaneTitle = '书架 (Bookshelf)';

@@ -145,7 +145,8 @@ abstract final class WorkspaceSyncCodec {
     }
 
     return WorkspaceLayoutSnapshot(
-      mode: (!adoptDesktopGeometry ? null : _parseMode(data['mode'])) ??
+      mode:
+          (!adoptDesktopGeometry ? null : _parseMode(data['mode'])) ??
           base.mode,
       layout: layout,
       board: board,
@@ -183,6 +184,10 @@ abstract final class WorkspaceSyncCodec {
       laneOrder: local.laneOrder,
       lanes: lanes,
       soloLaneId: () => local.soloLaneId,
+      edgeLeftSize: local.edgeLeftSize,
+      edgeRightSize: local.edgeRightSize,
+      edgeLeftWidth: () => local.edgeLeftWidth,
+      edgeRightWidth: () => local.edgeRightWidth,
     );
   }
 

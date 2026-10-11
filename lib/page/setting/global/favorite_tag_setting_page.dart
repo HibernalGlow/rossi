@@ -9,6 +9,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/util/comic/favorite_tag_matcher.dart';
 import 'package:zephyr/util/text/tag_text.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 /// 收藏 tag 管理页。
@@ -148,9 +149,10 @@ class _FavoriteTagSettingPageState extends State<FavoriteTagSettingPage> {
         )
         .join('\n');
     final controller = TextEditingController(text: asText);
-    final result = await showDialog<String>(
+    final result = await showPopupPanel<String>(
+      presentation: PopupPresentation.relative,
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => PopupPanel(
         title: Text(t.settings.favoriteTagBatchImport),
         content: SizedBox(
           width: 480,
@@ -236,9 +238,10 @@ class _FavoriteTagSettingPageState extends State<FavoriteTagSettingPage> {
   }
 
   Future<void> _confirmClearAll(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showPopupPanel<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      presentation: PopupPresentation.modal,
+      builder: (dialogContext) => PopupPanel(
         title: Text(t.settings.favoriteTagClear),
         content: Text(t.settings.favoriteTagClearConfirm),
         actions: [
@@ -264,9 +267,10 @@ class _FavoriteTagSettingPageState extends State<FavoriteTagSettingPage> {
 
   Future<void> _showAliasDialog(BuildContext context, FavoriteTag tag) async {
     final controller = TextEditingController();
-    final result = await showDialog<String>(
+    final result = await showPopupPanel<String>(
+      presentation: PopupPresentation.relative,
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => PopupPanel(
         title: Text('${t.settings.favoriteTagAliasAdd} · ${tag.name}'),
         content: SizedBox(
           width: 420,

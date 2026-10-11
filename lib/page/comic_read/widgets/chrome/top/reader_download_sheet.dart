@@ -16,6 +16,7 @@ import 'package:zephyr/service/download/download_queue_manager.dart';
 import 'package:zephyr/service/download/download_task_progress.dart';
 import 'package:zephyr/service/download/models/download_task_json.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 /// 弹出阅读器下载管理面板
@@ -470,9 +471,10 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
   }
 
   Future<void> _confirmRestartDownload(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showPopupPanel<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      presentation: PopupPresentation.modal,
+      builder: (ctx) => PopupPanel(
         title: Text(t.reader.restartDownload),
         content: Text('确认要重置进度并重新下载本漫画吗？'),
         actions: [
@@ -497,9 +499,10 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
   }
 
   Future<void> _confirmDeleteDownload(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showPopupPanel<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      presentation: PopupPresentation.modal,
+      builder: (ctx) => PopupPanel(
         title: Text(t.reader.confirmDeleteDownloadTitle),
         content: Text(t.reader.confirmDeleteDownload),
         actions: [

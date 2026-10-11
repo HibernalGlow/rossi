@@ -414,6 +414,10 @@ class SwimlaneColumn extends StatelessWidget {
   /// 这一档不需要判据；徽标是硬的，所以要单独判。三颗按钮让出去不等于失去功能 ——
   /// 那几件事全在右键栏头弹出的同一份菜单里（见 `LaneMenu`、[_withLaneContextMenu]）。
   ///
+  /// 徽标还多一道**总开关**：`WorkspaceInteractionSettings.showLaneWidthBadge`
+  /// 默认关，关着时这一项连预算都不参与（见方法体里那段），于是栏头等于回到
+  /// 「没有徽标」的那套账 —— 判据里要测让位顺序，得先把这颗开关打开。
+  ///
   /// 只有连「把手 + 页签条」都塞不下时，才让页签条自己滚（它本来就是滚动视口）——
   /// 那是最后一档，不是默认档。早先版本恰好相反：先给标题预留 75，剩下的封顶给
   /// 页签条，于是 389px 的泳道上只剩 158，而五个图标加「已收起」入口要 210 上下，
@@ -434,6 +438,9 @@ class SwimlaneColumn extends StatelessWidget {
             side,
             context.select<WorkspaceCubit, WorkspaceBoardLayout>(
               (c) => c.state.board,
+            ),
+            sortMode: context.select<WorkspaceCubit, bool>(
+              (c) => c.state.interaction.panelTabSortMode,
             ),
           )
         : 0.0;
@@ -457,7 +464,13 @@ class SwimlaneColumn extends StatelessWidget {
     final showSolo = rest >= _LaneChrome.soloButton;
     if (showSolo) rest -= _LaneChrome.soloButton;
 
-    final showBadge = rest >= _LaneChrome.badge;
+    // 宽度徽标默认**不画**（`WorkspaceInteractionSettings.showLaneWidthBadge`）。
+    // 关掉时连预算都不占：那 `badge + 6` 是**还给**标题与页签条的，
+    // 而不是留一段空档 —— 这也是这一项敢默认关的前提。
+    final badgeEnabled = context.select<WorkspaceCubit, bool>(
+      (c) => c.state.interaction.showLaneWidthBadge,
+    );
+    final showBadge = badgeEnabled && rest >= _LaneChrome.badge;
     if (showBadge) rest -= _LaneChrome.badge;
 
     return _LaneHeaderFit(
@@ -483,8 +496,16 @@ class SwimlaneColumn extends StatelessWidget {
       color: theme.colorScheme.primary,
     );
 
-    if (isSolo) {
-      return Tooltip(message: config.title, child: icon);
+    final editing = context
+        .watch<WorkspaceCubit>()
+        .state
+        .interaction
+        .panelTabSortMode;
+    if (isSolo || !editing) {
+      return Tooltip(
+        message: '${titleOverride ?? config.title}（在泳道菜单中选择“编辑布局”可排序）',
+        child: icon,
+      );
     }
 
     return Tooltip(

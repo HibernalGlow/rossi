@@ -9,6 +9,8 @@ import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/cubit/workspace_state.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/util/input/reader_input_bridge.dart';
+import 'package:zephyr/util/input/reader_input_guard.dart';
+import 'package:zephyr/page/comic_read/widgets/radial/reader_radial_menu_overlay.dart';
 import 'package:zephyr/util/input/reader_input_context.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
@@ -271,19 +273,15 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
     // 被 `buildWhen` 跳过了，见 `build` 里那段说明）。闭包那份会停在旧值上，
     // 表现成「鼠标已经移到左栏了，方向键还在按阅读器的翻页」。
     bridge.setActiveContexts(_activeContextsFor(_cubit.state));
-    if (_isTextInputFocused()) return KeyEventResult.ignored;
+    if (ReaderInputGuard.blocksKeyboard ||
+        ReaderRadialMenu.isOpen ||
+        (_workspaceRoute != null && !_workspaceRoute!.isCurrent)) {
+      return KeyEventResult.ignored;
+    }
     return bridge.dispatch(event);
   }
 
-  /// **context adapter（Dart 侧）**：把工作台的真实状态翻译成 neoview 的 context 词汇。
-  ///
-  /// - 阅读器泳道在场（或尚无泳道被激活）→ `reader`；
-  /// - 其它泳道被激活 → 那块内容按 `panel` 计，阅读器让位（不抢它的方向键）。
-  ///
-  /// **刻意不把「阅读器自己打开了设置面板」记成 `modal`**：那是阅读器自己的 UI，
-  /// 不引入任何与 `reader` 竞争的绑定，于是左右键仍由 `reader` context 解析 ——
-  /// 这正是它不该被设置面板抢走的原因；而真正的对话框（将来的 `modal`）若也绑了同一输入，
-  /// 才会按 neoview 的优先级赢过 `reader`。
+  /// 非泳道模式的上下文回退；泳道模式由即时目标 source 提供同一套 context。
   Set<ReaderInputContext> _activeContextsFor(WorkspaceState state) {
     final activeLaneId = state.activeLaneId;
     if (activeLaneId == null || activeLaneId == LaneId.reader) {
@@ -298,14 +296,6 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
           : const <ReaderInputContext>{ReaderInputContext.reader};
     }
     return const <ReaderInputContext>{ReaderInputContext.panel};
-  }
-
-  /// 主焦点是否落在可编辑文本里（`TextField` / `TextFormField` 等）。
-  bool _isTextInputFocused() {
-    final focusContext = FocusManager.instance.primaryFocus?.context;
-    if (focusContext == null) return false;
-    return focusContext.widget is EditableText ||
-        focusContext.findAncestorWidgetOfExactType<EditableText>() != null;
   }
 
   @override
@@ -344,8 +334,12 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
           return Scaffold(
             body: CallbackShortcuts(
               bindings: {
-                const SingleActivator(LogicalKeyboardKey.escape):
-                    _exitWorkspace,
+                const SingleActivator(LogicalKeyboardKey.escape): () {
+                  if (!ReaderInputGuard.blocksKeyboard &&
+                      !ReaderRadialMenu.isOpen) {
+                    _exitWorkspace();
+                  }
+                },
               },
               // 有焦点才收得到按键；泳道里的输入框拿到焦点时，
               // `CallbackShortcuts` 仍会在它们没消费时沿焦点树上冒到这里。

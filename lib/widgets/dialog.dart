@@ -1,13 +1,14 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 
 Future<void> nothingDialog(BuildContext context) async {
-  return showDialog<void>(
+  return showPopupPanel<void>(
     context: context,
-    barrierDismissible: false, // user must tap button!
+    // 原 barrierDismissible: false（点遮罩不可关）—— 新入口无此参数，遮罩现可点击关闭
     builder: (BuildContext context) {
-      return AlertDialog(
+      return PopupPanel(
         title: Text(t.common.underConstruction),
         content: SingleChildScrollView(
           child: ListBody(children: <Widget>[Text(t.common.comingSoon)]),
@@ -32,11 +33,12 @@ Future<void> commonDialog(
   String title,
   String content,
 ) async {
-  return showDialog<void>(
+  return showPopupPanel<void>(
     context: context,
-    barrierDismissible: false, // user must tap button!
+    presentation: PopupPresentation.modal,
+    // 原 barrierDismissible: false（点遮罩不可关）—— 新入口无此参数，遮罩现可点击关闭
     builder: (BuildContext context) {
-      return AlertDialog(
+      return PopupPanel(
         title: Text(title),
         content: SingleChildScrollView(
           child: ListBody(children: <Widget>[SelectableText(content)]),

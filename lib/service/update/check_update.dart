@@ -15,6 +15,7 @@ import 'package:zephyr/type/pipe.dart';
 import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/network/utils/github_proxy.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 import 'package:zephyr/main.dart';
@@ -214,10 +215,10 @@ Future<void> checkUpdate(BuildContext context) async {
     var releasePageUrl = url;
 
     if (!context.mounted) return;
-    showDialog(
+    showPopupPanel(
       context: context,
       builder: (context) {
-        return AlertDialog(
+        return PopupPanel(
           title: Text(t.update.newVersion),
           content: SingleChildScrollView(
             child: MarkdownBlock(data: '# $cloudVersion\n$releaseNotes'),

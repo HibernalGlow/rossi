@@ -4,6 +4,7 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/network/http/plugin/unified_plugin_envelope.dart';
 import 'package:zephyr/network/http/plugin/unified_comic_plugin.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 import 'package:zephyr/config/router/router.gr.dart';
@@ -194,11 +195,11 @@ class _LoginPageState extends State<LoginPage> {
 
     if (!mounted) return;
 
-    return showDialog<void>(
+    return showPopupPanel<void>(
       context: context,
-      barrierDismissible: false, // user must tap button!
+      // 原来 barrierDismissible: false（必须点按钮关闭），新入口不支持该参数，点遮罩即可关闭
       builder: (BuildContext context) {
-        return AlertDialog(
+        return PopupPanel(
           title: Text(title),
           content: SingleChildScrollView(
             child: ListBody(children: <Widget>[Text(message)]),

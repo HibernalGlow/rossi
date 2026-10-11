@@ -9,6 +9,7 @@ import 'package:zephyr/workspace/model/workspace_layout_snapshot.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
 import 'package:zephyr/workspace/model/workspace_panel_bar.dart';
 import 'package:zephyr/workspace/model/workspace_reader_target.dart';
+import 'package:zephyr/workspace/model/workspace_workhole.dart';
 import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
 import 'package:zephyr/workspace/registry/workspace_panel_registry.dart';
 
@@ -482,6 +483,58 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
   }
 
   // ── 卡片与四边栏（edges 模式） ─────────────────────────────────────────
+
+  /// 设置左右 Workhole 的展开状态。
+  void setEdgeWorkholeOpen(WorkspacePanelSide side, bool open) {
+    final current = switch (side) {
+      WorkspacePanelSide.left => state.layout.edgeLeftOpen,
+      WorkspacePanelSide.right => state.layout.edgeRightOpen,
+    };
+    if (current == open) return;
+
+    emit(
+      state.copyWith(
+        layout: switch (side) {
+          WorkspacePanelSide.left => state.layout.copyWith(edgeLeftOpen: open),
+          WorkspacePanelSide.right => state.layout.copyWith(
+            edgeRightOpen: open,
+          ),
+        },
+      ),
+    );
+  }
+
+  /// 记录左右 Workhole 的档位，或记录用户拖拽得到的自定义宽度。
+  void setEdgeWorkholeSize(
+    WorkspacePanelSide side,
+    WorkspaceWorkholeSize size, {
+    double? width,
+  }) {
+    final normalizedWidth = width != null && width.isFinite && width > 0
+        ? width
+        : null;
+    final layout = switch (side) {
+      WorkspacePanelSide.left => state.layout.copyWith(
+        edgeLeftOpen: true,
+        edgeLeftSize: size,
+        edgeLeftWidth: () =>
+            size == WorkspaceWorkholeSize.custom ? normalizedWidth : null,
+      ),
+      WorkspacePanelSide.right => state.layout.copyWith(
+        edgeRightOpen: true,
+        edgeRightSize: size,
+        edgeRightWidth: () =>
+            size == WorkspaceWorkholeSize.custom ? normalizedWidth : null,
+      ),
+    };
+    if (layout == state.layout) return;
+    emit(state.copyWith(layout: layout));
+  }
+
+  /// 将 Workhole 恢复到默认的 workbench 档位。
+  void resetEdgeWorkholeSize(WorkspacePanelSide side) {
+    setEdgeWorkholeSize(side, WorkspaceWorkholeSize.workbench);
+  }
 
   /// 切换四边栏边缘抽屉
   void toggleEdgeDrawer(String edgeKey) {

@@ -13,6 +13,7 @@ import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/json/json_value.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 import 'package:zephyr/page/discover/view/plugin_function_dialog.dart';
@@ -214,8 +215,10 @@ class DiscoverRouter {
     final mediaSize = MediaQuery.sizeOf(context);
     final dialogWidth = (mediaSize.width * 0.9).clamp(280.0, 560.0).toDouble();
 
-    await showDialog<void>(
+    await showPopupPanel<void>(
       context: context,
+      // 插件功能表单：宽屏上从触发处飞出来，窄屏照旧居中。
+      presentation: PopupPresentation.relative,
       builder: (context) => PluginFunctionDialog(
         from: source,
         functionId: functionId,

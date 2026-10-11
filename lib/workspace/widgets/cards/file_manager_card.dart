@@ -26,6 +26,10 @@ import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/widgets/motion/action_bubble.dart';
+import 'package:zephyr/widgets/motion/expressive_motion.dart';
+import 'package:zephyr/widgets/control_shape.dart';
+import 'package:zephyr/widgets/spring_lens/spring_lens_bar.dart';
 import 'package:zephyr/src/rust/api/file_manager/browse.dart';
 import 'package:zephyr/src/rust/api/file_manager/entry_ops.dart';
 import 'package:zephyr/src/rust/api/file_manager/search.dart';
@@ -375,42 +379,50 @@ class _FileManagerCardState extends State<FileManagerCard> {
       }
       return SizedBox(height: 180, child: loadingWidget);
     }
-    final controls = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // 只有一个页签时整行没有信息量（对齐 neo 的 tabs-single-hidden）：
-        // 新建与恢复改由面包屑的「路径操作」菜单承担，见 [_buildPathActionsMenu]。
-        if (snapshot.tabs.length > 1) ...[
-          _buildTabs(context, snapshot),
-          const SizedBox(height: 6),
-        ],
-        _buildToolbar(context, snapshot),
-        _buildBreadcrumbs(context, snapshot),
-        if (snapshot.directoryColumnsEnabled)
-          _buildDirectoryColumns(context, snapshot),
-        if (_treeEnabled) _buildFileTree(context),
-        const SizedBox(height: 6),
-        if (_searchExpanded || snapshot.searchQuery.isNotEmpty) ...[
-          _buildSearchField(context, snapshot),
-          // 引导条紧贴输入框：这一行永远与框同宽可见，而下面那行选项是横向滚动的，
-          // 窄卡片上它会跑出视口 —— 「看不到任何动画，以为自己搜错了」就是这么来的。
-          if (_searchSlow) ...[
+    final controls = ActionBubbleRegion(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 只有一个页签时整行没有信息量（对齐 neo 的 tabs-single-hidden）：
+          // 新建与恢复改由面包屑的「路径操作」菜单承担，见 [_buildPathActionsMenu]。
+          if (snapshot.tabs.length > 1) ...[
+            _buildTabs(context, snapshot),
             const SizedBox(height: 6),
-            _buildSearchProgress(context),
           ],
-          const SizedBox(height: 4),
-          _buildSearchOptions(context, snapshot),
+          _buildToolbar(context, snapshot),
+          _buildBreadcrumbs(context, snapshot),
+          if (snapshot.directoryColumnsEnabled)
+            _buildDirectoryColumns(context, snapshot),
+          if (_treeEnabled) _buildFileTree(context),
+          const SizedBox(height: 6),
+          ExpressiveReveal(
+            visible: _searchExpanded || snapshot.searchQuery.isNotEmpty,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ActionBubbleTarget(child: _buildSearchField(context, snapshot)),
+                // 引导条紧贴输入框：这一行永远与框同宽可见，而下面那行选项是横向滚动的，
+                // 窄卡片上它会跑出视口 —— 「看不到任何动画，以为自己搜错了」就是这么来的。
+                if (_searchSlow) ...[
+                  const SizedBox(height: 6),
+                  _buildSearchProgress(context),
+                ],
+                const SizedBox(height: 4),
+                _buildSearchOptions(context, snapshot),
+                const SizedBox(height: 6),
+              ],
+            ),
+          ),
+          _buildRoots(context, snapshot),
+          if (_error != null) _buildInlineError(context),
+          // 操作条紧贴列表上方：它管的就是下面那一批行。
+          if (_fileOpsEnabled && _selectedPaths.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            _buildSelectionBar(context, snapshot),
+          ],
           const SizedBox(height: 6),
         ],
-        _buildRoots(context, snapshot),
-        if (_error != null) _buildInlineError(context),
-        // 操作条紧贴列表上方：它管的就是下面那一批行。
-        if (_fileOpsEnabled && _selectedPaths.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          _buildSelectionBar(context, snapshot),
-        ],
-        const SizedBox(height: 6),
-      ],
+      ),
     );
     if (!widget.isStandalone) {
       return Column(

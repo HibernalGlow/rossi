@@ -8,6 +8,8 @@ import 'package:zephyr/page/comic_read/controller/reader_action_controller.dart'
 import 'package:zephyr/page/comic_read/controller/reader_action_dispatcher.dart';
 import 'package:zephyr/page/comic_read/widgets/radial/reader_radial_menu_overlay.dart';
 import 'package:zephyr/service/operation_binding/binding_doc.dart';
+import 'package:zephyr/util/input/reader_input_bridge.dart';
+import 'package:zephyr/util/input/reader_input_context.dart';
 import 'package:zephyr/src/rust/frb_generated.dart';
 import 'package:flutter_ray_menu/flutter_ray_menu.dart';
 
@@ -15,6 +17,7 @@ class _Api implements RustLibApi {
   _Api({this.submenu = false});
 
   final bool submenu;
+  final resolvedContexts = <List<String>>[];
 
   @override
   dynamic noSuchMethod(Invocation call) {
@@ -41,6 +44,9 @@ class _Api implements RustLibApi {
     }
     if (call.memberName ==
         #crateApiOperationBindingOperationBindingResolveBinding) {
+      resolvedContexts.add(
+        List<String>.from(call.namedArguments[#contexts] as List),
+      );
       final input =
           jsonDecode(call.namedArguments[#inputJson] as String) as Map;
       final action = input['device'] == 'radial'
@@ -303,7 +309,13 @@ void main() {
   });
 
   testWidgets('确认轮盘走可编辑绑定，改绑后空格不会继续硬编码确认', (tester) async {
-    RustLib.initMock(api: _Api());
+    final api = _Api();
+    RustLib.initMock(api: api);
+    addTearDown(
+      () => ReaderInputBridge.instance.setActiveContexts(const {
+        ReaderInputContext.reader,
+      }),
+    );
     final scroll = ScrollController();
     final pages = PageController();
     final readerFocus = FocusNode();
@@ -369,6 +381,9 @@ void main() {
       find.byKey(const ValueKey('ray-item:settings')),
     );
     expect(selected.properties.selected, isTrue);
+    ReaderInputBridge.instance.setActiveContexts(const {
+      ReaderInputContext.panel,
+    });
     await tester.sendKeyEvent(LogicalKeyboardKey.space);
     expect(ReaderRadialMenu.isOpen, true);
     expect(executed, 0);
@@ -377,6 +392,14 @@ void main() {
     expect(executed, 1);
     expect(ReaderRadialMenu.isOpen, false);
     expect(readerKeyEvents, 0);
+    expect(api.resolvedContexts, isNotEmpty);
+    expect(
+      api.resolvedContexts.every(
+        (contexts) => contexts.length == 1 && contexts.single == 'reader',
+      ),
+      isTrue,
+      reason: '键盘确认和轮盘动作都保持唤出时的上下文',
+    );
     expect(readerFocus.hasFocus, isTrue);
     expect(tester.takeException(), isNull);
   });

@@ -33,6 +33,7 @@ import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/widgets/comic_entry/models/models.dart';
 import 'package:zephyr/widgets/error_view.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 part 'parts/comic_info_rossi_actions_part.dart';
 
@@ -960,9 +961,10 @@ class _ComicInfoState extends State<_ComicInfo>
   }
 
   Future<void> _confirmAndRemoveFollow(String title) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showPopupPanel<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      presentation: PopupPresentation.modal,
+      builder: (dialogContext) => PopupPanel(
         title: Text(t.comicInfo.confirmUnfollowTitle),
         content: Text(t.comicInfo.confirmUnfollowContent(title: title)),
         actions: [
@@ -1068,10 +1070,11 @@ class _ComicInfoState extends State<_ComicInfo>
   }
 
   Future<bool> _showLocalUncollectConfirmDialog() async {
-    final result = await showDialog<bool>(
+    final result = await showPopupPanel<bool>(
       context: context,
+      presentation: PopupPresentation.modal,
       builder: (dialogContext) {
-        return AlertDialog(
+        return PopupPanel(
           title: Text(t.comicInfo.confirmUncollectTitle),
           content: Text(t.comicInfo.confirmUncollectContent),
           actions: [

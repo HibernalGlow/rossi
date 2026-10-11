@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/src/rust/api/file_ops.dart';
 import 'package:zephyr/workspace/model/file_manager_entry_menu_spec.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 /// 文件管理器右键菜单里那些动作的**问与答**。
@@ -151,9 +152,10 @@ Future<bool> confirmFileManagerDestructive(
       ? '$subject将被永久删除，不进入回收站，也无法撤销。'
       : '$subject将被删除。${trashOutcomeHint(restoreSupported: prompt.restoreSupported)}。';
 
-  final confirmed = await showDialog<bool>(
+  final confirmed = await showPopupPanel<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    presentation: PopupPresentation.modal,
+    builder: (dialogContext) => PopupPanel(
       title: Text(prompt.permanent ? '永久删除？' : '删除？'),
       content: Text(body),
       actions: [
@@ -185,7 +187,8 @@ Future<String?> _promptName(
   required String initial,
   required String confirmLabel,
 }) async {
-  final name = await showDialog<String>(
+  final name = await showPopupPanel<String>(
+    presentation: PopupPresentation.relative,
     context: context,
     builder: (dialogContext) => _NameInputDialog(
       title: title,
@@ -238,7 +241,7 @@ class _NameInputDialogState extends State<_NameInputDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return PopupPanel(
       title: Text(widget.title),
       content: TextField(
         controller: _controller,

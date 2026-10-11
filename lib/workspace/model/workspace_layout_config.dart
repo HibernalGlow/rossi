@@ -7,6 +7,7 @@
 // 代价仅仅是少一个 lint 标注，所有字段本来就是 final。
 
 import 'package:zephyr/workspace/model/workspace_panel_bar.dart';
+import 'package:zephyr/workspace/model/workspace_workhole.dart';
 
 /// 泳道 ID 常量
 class LaneId {
@@ -129,6 +130,11 @@ class LaneConfig {
   }
 }
 
+double? _positiveWidth(Object? value) =>
+    value is num && value.isFinite && value.toDouble() > 0
+    ? value.toDouble()
+    : null;
+
 /// 工作区整体布局配置
 class WorkspaceLayoutConfig {
   /// 折叠状态下的紧凑宽度（neoview 的 `COLLAPSED_WIDTH = 44`）
@@ -143,11 +149,20 @@ class WorkspaceLayoutConfig {
   /// 当前独占（Solo）的泳道 ID，为空表示常规多栏并排
   final String? soloLaneId;
 
-  /// 四边栏抽屉展开状态（在 edges 模式下有效）
+  /// Workhole 展开状态（在 edges 模式下有效）。
   final bool edgeLeftOpen;
   final bool edgeRightOpen;
   final bool edgeTopOpen;
   final bool edgeBottomOpen;
+
+  /// 左右 Workhole 的吸附档位与自定义宽度。
+  ///
+  /// 宽度只记录用户主动拖拽后的自定义值；三档宽度会根据当前视口动态计算，
+  /// 这样窗口缩放后仍然保持 `peek / workbench / takeover` 的比例语义。
+  final WorkspaceWorkholeSize edgeLeftSize;
+  final WorkspaceWorkholeSize edgeRightSize;
+  final double? edgeLeftWidth;
+  final double? edgeRightWidth;
 
   const WorkspaceLayoutConfig({
     required this.laneOrder,
@@ -157,6 +172,10 @@ class WorkspaceLayoutConfig {
     this.edgeRightOpen = false,
     this.edgeTopOpen = false,
     this.edgeBottomOpen = false,
+    this.edgeLeftSize = WorkspaceWorkholeSize.workbench,
+    this.edgeRightSize = WorkspaceWorkholeSize.workbench,
+    this.edgeLeftWidth,
+    this.edgeRightWidth,
   });
 
   factory WorkspaceLayoutConfig.defaults() {
@@ -196,6 +215,10 @@ class WorkspaceLayoutConfig {
     bool? edgeRightOpen,
     bool? edgeTopOpen,
     bool? edgeBottomOpen,
+    WorkspaceWorkholeSize? edgeLeftSize,
+    WorkspaceWorkholeSize? edgeRightSize,
+    double? Function()? edgeLeftWidth,
+    double? Function()? edgeRightWidth,
   }) {
     return WorkspaceLayoutConfig(
       laneOrder: laneOrder ?? this.laneOrder,
@@ -205,6 +228,14 @@ class WorkspaceLayoutConfig {
       edgeRightOpen: edgeRightOpen ?? this.edgeRightOpen,
       edgeTopOpen: edgeTopOpen ?? this.edgeTopOpen,
       edgeBottomOpen: edgeBottomOpen ?? this.edgeBottomOpen,
+      edgeLeftSize: edgeLeftSize ?? this.edgeLeftSize,
+      edgeRightSize: edgeRightSize ?? this.edgeRightSize,
+      edgeLeftWidth: edgeLeftWidth != null
+          ? edgeLeftWidth()
+          : this.edgeLeftWidth,
+      edgeRightWidth: edgeRightWidth != null
+          ? edgeRightWidth()
+          : this.edgeRightWidth,
     );
   }
 
@@ -218,6 +249,10 @@ class WorkspaceLayoutConfig {
     'edgeRightOpen': edgeRightOpen,
     'edgeTopOpen': edgeTopOpen,
     'edgeBottomOpen': edgeBottomOpen,
+    'edgeLeftSize': edgeLeftSize.name,
+    'edgeRightSize': edgeRightSize.name,
+    if (edgeLeftWidth != null) 'edgeLeftWidth': edgeLeftWidth,
+    if (edgeRightWidth != null) 'edgeRightWidth': edgeRightWidth,
   };
 
   /// 从 JSON 还原几何记账。
@@ -274,6 +309,10 @@ class WorkspaceLayoutConfig {
       edgeRightOpen: flag('edgeRightOpen'),
       edgeTopOpen: flag('edgeTopOpen'),
       edgeBottomOpen: flag('edgeBottomOpen'),
+      edgeLeftSize: WorkspaceWorkholeSize.fromJson(json['edgeLeftSize']),
+      edgeRightSize: WorkspaceWorkholeSize.fromJson(json['edgeRightSize']),
+      edgeLeftWidth: _positiveWidth(json['edgeLeftWidth']),
+      edgeRightWidth: _positiveWidth(json['edgeRightWidth']),
     );
   }
 }

@@ -8,6 +8,7 @@ import 'package:zephyr/page/webdav_sync/webdav_sync.dart';
 
 import 'package:zephyr/main.dart';
 import 'package:zephyr/widgets/dialog.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/util/event/event.dart';
 
 @RoutePage()
@@ -294,11 +295,11 @@ class _WebDavSyncPageState extends State<WebDavSyncPage> {
   }
 
   Future<void> _testWebDavServer() async {
-    showDialog(
+    showPopupPanel(
       context: context,
-      barrierDismissible: false,
+      // 原来 barrierDismissible: false（连接结果返回前不可关闭），新入口不支持该参数，点遮罩即可关闭
       builder: (BuildContext context) {
-        return AlertDialog(
+        return PopupPanel(
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -363,11 +364,11 @@ class _WebDavSyncPageState extends State<WebDavSyncPage> {
       return;
     }
 
-    showDialog(
+    showPopupPanel(
       context: context,
-      barrierDismissible: false,
+      // 原来 barrierDismissible: false（连接结果返回前不可关闭），新入口不支持该参数，点遮罩即可关闭
       builder: (BuildContext context) {
-        return AlertDialog(
+        return PopupPanel(
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -436,10 +437,10 @@ class _WebDavSyncPageState extends State<WebDavSyncPage> {
   void _showQA(BuildContext context) {
     final String disclaimerMarkdown = t.webdavSync.faqMarkdown;
 
-    showDialog(
+    showPopupPanel(
       context: context,
       builder: (context) {
-        return AlertDialog(
+        return PopupPanel(
           content: SingleChildScrollView(
             child: MarkdownBlock(data: disclaimerMarkdown),
           ),

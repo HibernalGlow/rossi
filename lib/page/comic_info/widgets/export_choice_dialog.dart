@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/type/enum.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 
 /// 导出对话框的一次选择：格式，以及导出成功后要不要删掉本地下载。
 class ExportChoice {
@@ -19,7 +20,8 @@ Future<ExportChoice?> showExportChoiceDialog(
   required String title,
   required String subtitle,
 }) {
-  return showDialog<ExportChoice>(
+  return showPopupPanel<ExportChoice>(
+    presentation: PopupPresentation.relative,
     context: context,
     builder: (context) => _ExportChoiceDialog(title: title, subtitle: subtitle),
   );
@@ -47,7 +49,7 @@ class _ExportChoiceDialogState extends State<_ExportChoiceDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return PopupPanel(
       title: Text(widget.title),
       content: Column(
         mainAxisSize: MainAxisSize.min,

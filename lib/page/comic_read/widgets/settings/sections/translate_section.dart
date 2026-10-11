@@ -13,6 +13,7 @@ import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_cache.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/widgets/app_log_dialog.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 /// 阅读时真会去拨的那几颗翻译开关，加一颗按页自动译 —— 面板与卡片共用的一份实现。
@@ -158,9 +159,10 @@ class TranslateSettingsSectionState extends State<TranslateSettingsSection> {
   }
 
   Future<void> _clearCache() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showPopupPanel<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      presentation: PopupPresentation.modal,
+      builder: (context) => PopupPanel(
         title: Text(t.ocr.clearCache),
         content: Text(t.ocr.clearCacheSubtitle),
         actions: [

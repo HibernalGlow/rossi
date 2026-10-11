@@ -385,11 +385,13 @@ Map<String, dynamic> _buildSettingsPayload(
     syncSetting: globalSetting.syncSetting.copyWith(settingsSyncTime: 0),
   );
 
+  // 顶层 `globalSetting` 只是**老客户端**的兜底形状（`_snapshotFromPayload`
+  // 在块为空时才去读它），所以这里剔掉的仍是同一批「本机事实 / 安全」项。
+  // 喜欢画师名单不在其中：它已改判为跨端偏好，跟收藏 tag 一样走 `library` 块。
   final globalSettingJson = sanitizedGlobal.toJson();
   globalSettingJson.remove('customExportPath');
   globalSettingJson.remove('appLockSetting');
   globalSettingJson.remove('cacheSetting');
-  globalSettingJson.remove('favoriteArtistSetting');
 
   final pluginBlock = snapshot.blocks[_pluginsBlockName];
   final pluginConfigs = pluginBlock == null
@@ -811,9 +813,12 @@ GlobalSettingState _applySyncableBlocksToState(
   // 同步设置时，以下本地/安全相关配置保持本地值不变：
   // - 自定义导出路径、文件管理器主页路径、开屏密码/PIN、缓存管理配置：
   //   都是**本机事实**（路径在对方机器上多半不存在），不进云端；
-  // - 收藏作者名单：属于本地私有偏好，不参与多端云同步；
   // - 同步配置本身、调试日志开关/地址：仍可能出现在旧版或未来的云端块中，
   //   这里显式跳过覆盖，确保本地值不被同步下来的内容修改。
+  //
+  // 喜欢画师名单**不在这份名单里**：它已改判为跨端偏好，与收藏 tag 一起走
+  // `library` 块（见 `_settingsBlockKeys` 与 `docs/settings-sync-scope.md`）。
+  // 与它相对的那一条不受影响：开屏密码仍属安全项，任何块都不进。
   final merged = GlobalSettingState.fromJson(json);
   return merged.copyWith(
     syncSetting: localState.syncSetting,
@@ -827,7 +832,6 @@ GlobalSettingState _applySyncableBlocksToState(
     // （它不在 `_settingsBlockKeys` 里，本来就同步不出去；这里显式写回是为了
     // 不依赖「块里恰好没这个键」这种巧合 —— 同上一条 `homePath` 的理由）。
     showLayoutOverflowStripes: localState.showLayoutOverflowStripes,
-    favoriteArtistSetting: localState.favoriteArtistSetting,
     // 文件管理器那块只有 `homePath` 不同步（见 `_settingsBlockKeys`）。
     // 这里**显式**按本位写回，而不是依赖上面那次逐键覆盖的巧合 ——
     // 那条路保住 homePath 只是因为块里恰好没这个键，太隐晦：

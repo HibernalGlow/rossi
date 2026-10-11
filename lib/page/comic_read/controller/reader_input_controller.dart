@@ -21,6 +21,8 @@ import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
 import 'package:zephyr/service/operation_binding/binding_doc.dart';
 import 'package:zephyr/util/input/binding_input_capture.dart';
 import 'package:zephyr/util/input/binding_pointer_tracker.dart';
+import 'package:zephyr/util/input/reader_input_bridge.dart';
+import 'package:zephyr/util/input/binding_pointer_signal_guard.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_fullscreen_scope.dart';
 
@@ -335,8 +337,8 @@ class ReaderInputController {
   ///
   /// 它有两个入口，逻辑**只有这一处**：① 挂在本子树的 `Focus` 上
   /// （见 [buildInteractiveViewer]）；② 经 `ReaderInputBridge` 登记给工作台 ——
-  /// 当焦点离开阅读器子树时（例如打开阅读设置面板，模态路由会把主焦点拿走），
-  /// 由工作台把冒泡上来的按键转交到这里。于是「左右键被设置面板吃掉」不再发生。
+  /// 普通泳道间切换由工作台转发；编辑、模态面板与轮盘保留自己的键盘。
+  /// 两个入口及长按定时器统一检查当前目标，不能由旧的真实焦点绕过保护。
   ///
   /// 「这个键是什么动作」的判断有两份，按开关切换：绑定表在位时是 **Rust 引擎**
   /// （`operation_binding`，改绑定不重新编译即生效）；表不可用时是 `key.dart` 里
@@ -346,6 +348,14 @@ class ReaderInputController {
     final bindings = _runtimeBindings;
     if (event is KeyUpEvent) {
       _keyHolds.remove(event.physicalKey)?.cancel();
+      return KeyEventResult.ignored;
+    }
+    if (!ReaderInputBridge.instance.acceptsReaderKeyboard ||
+        ReaderRadialMenu.isOpen) {
+      for (final timer in _keyHolds.values) {
+        timer.cancel();
+      }
+      _keyHolds.clear();
       return KeyEventResult.ignored;
     }
     if (bindings != null) {
@@ -363,7 +373,13 @@ class ReaderInputController {
             ...Map<String, dynamic>.from(jsonDecode(json) as Map),
             'trigger': 'hold',
           };
-          final hold = _actionDispatcher.resolveInput(holdInput, bindings);
+          final hold = _actionDispatcher.resolveInput(
+            holdInput,
+            bindings,
+            contexts: ReaderInputBridge.instance.activeContexts
+                .map((c) => c.name)
+                .toList(),
+          );
           if (hold != null) {
             final input = hold['input'] as Map;
             _keyHolds[event.physicalKey]?.cancel();
@@ -375,6 +391,8 @@ class ReaderInputController {
               ),
               () {
                 if (!context.mounted ||
+                    !ReaderInputBridge.instance.acceptsReaderKeyboard ||
+                    ReaderRadialMenu.isOpen ||
                     !HardwareKeyboard.instance.physicalKeysPressed.contains(
                       event.physicalKey,
                     )) {
@@ -659,6 +677,13 @@ class ReaderInputController {
   }
 
   void _onPointerSignal(PointerSignalEvent event) {
+    if (BindingPointerSignalGuard.isRejected(event)) {
+      final before = transformationController.value.clone();
+      BindingPointerSignalGuard.afterRejected(event, () {
+        transformationController.value = before;
+      });
+      return;
+    }
     if (event is! PointerScrollEvent || !_isDesktopPlatform) return;
     if (_dispatchWheelDelta(event.scrollDelta.dy, signalEvent: event)) {
       return;
@@ -685,11 +710,12 @@ class ReaderInputController {
     final readMode = context.readEffectiveReadMode();
     if (!newCtrlPressed && readMode != 0) {
       // 与采集口同一个方向判定：关掉总开关不该让滚轮的手势方向变掉。
-      final dy = OperationBindingStore.wheelDirectionFollowsHand(
-        context.read<GlobalSettingCubit>().state.operationBindingSetting,
-      )
-        ? -event.scrollDelta.dy
-        : event.scrollDelta.dy;
+      final dy =
+          OperationBindingStore.wheelDirectionFollowsHand(
+            context.read<GlobalSettingCubit>().state.operationBindingSetting,
+          )
+          ? -event.scrollDelta.dy
+          : event.scrollDelta.dy;
       if (dy > 0) {
         actionController.onPageActionNext();
       } else if (dy < 0) {

@@ -10,6 +10,7 @@ import 'package:zephyr/platform/desktop/window_logic.dart';
 import 'package:zephyr/service/lifecycle/foreground_task/foreground_task_service.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/gesture_lock.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/workspace/model/workspace_startup.dart';
 
@@ -498,9 +499,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
             subtitle: Text(t.settings.appLock),
             trailing: const Icon(Icons.chevron_right),
             onTap: () async {
-              final shouldDelete = await showDialog<bool>(
+              final shouldDelete = await showPopupPanel<bool>(
                 context: context,
-                builder: (context) => AlertDialog(
+                presentation: PopupPresentation.modal,
+                builder: (context) => PopupPanel(
                   title: Text(t.common.delete),
                   content: Text(t.settings.appLockSubtitle),
                   actions: [

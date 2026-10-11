@@ -91,6 +91,8 @@ class WindowLogic {
       if (wasMaximized) {
         await windowManager.maximize();
       }
+      // 等 Flutter 的加载页完成首帧再显示原生窗口，避免用户先看到一片黑。
+      await WidgetsBinding.instance.endOfFrame;
       await windowManager.show();
       await windowManager.focus();
 

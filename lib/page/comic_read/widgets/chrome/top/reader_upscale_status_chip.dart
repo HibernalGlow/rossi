@@ -9,6 +9,7 @@ import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/super_resolution_status.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 /// 顶栏上的「当前页超分」芯片：**状态 + 超分后分辨率 + 超分开关**。
@@ -260,9 +261,10 @@ Future<bool> ensureSuperResolutionModel(BuildContext context) async {
   if (await RealSrSuperResolution.isAvailable) return true;
   // 上面那一次 await 之后再用 context：窗口可能已经拆了。
   if (!context.mounted) return false;
-  final bool? confirm = await showDialog<bool>(
+  final bool? confirm = await showPopupPanel<bool>(
     context: context,
-    builder: (ctx) => AlertDialog(
+    presentation: PopupPresentation.modal,
+    builder: (ctx) => PopupPanel(
       title: const Text('下载 AI 超分模型'),
       content: const Text('当前设备尚未下载 mImage ONNX 超分模型（约 5.4 MB），是否立即下载并启用？'),
       actions: [

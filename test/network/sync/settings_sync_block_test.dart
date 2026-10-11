@@ -1,18 +1,24 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/network/sync/sync_service.dart';
+// `FavoriteArtistCircleMode` 是 `FavoriteArtistSettingState` 的字段类型，
+// 但 `global_setting.dart` 只是 import 它、没有 export ⇒ 这里得单独引。
+import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
 
-/// 绝不允许出现在**任何**同步块里的键。
+/// 绝不允许出现在**任何**同步块里的**顶层**键。
 ///
-/// 它们要么是**本机事实**（绝对路径、窗口几何、代理），要么是**安全/私有**
-/// （开屏密码、收藏作者名单、调试日志地址），要么是**瞬态**（缓存标记）。
+/// 它们要么是**本机事实**（绝对路径、窗口几何、代理），要么是**安全**
+/// （开屏密码、调试日志地址），要么是**瞬态**（缓存标记）。
 /// 逐块扫一遍而不是只看几个已知块：真正的失败方式是「往某个块里顺手多加了一个键」，
 /// 那时没人会回来读这段名单。
+///
+/// `artists` 留在名单里的理由与从前不同：画师名单**已经**是跨端偏好，但只能作为
+/// `favoriteArtistSetting` 这个顶层键的子字段走 —— 它若独立出现在块顶，
+/// 说明有人绕过 `_settingsBlockKeys` 手工铺了一份「半个设置」，正是这张表要拦的写法。
 const List<String> _mustNotSync = <String>[
   'customExportPath',
   'appLockSetting',
   'cacheSetting',
-  'favoriteArtistSetting',
   'artists',
   'enableMemoryDebug',
   'blockRustHttpRequests',
@@ -51,6 +57,10 @@ void main() {
       'extracts newly added download, library and appearance settings into blocks',
       () {
         const state = GlobalSettingState(
+          favoriteTagSetting: FavoriteTagSettingState(
+            highlightEnabled: true,
+            tags: [FavoriteTag(name: 'loli')],
+          ),
           localeFollowsSystem: false,
           chineseConvertMode: ChineseConvertMode.traditional,
           downloadConcurrency: 5,
@@ -96,74 +106,86 @@ void main() {
         expect(library['clickCoverToStartReading'], isTrue);
         expect(library['bookshelfSetting'], isNotNull);
         expect((library['bookshelfSetting'] as Map)['homePageIndex'], 1);
+        // 喜欢画师名单与收藏 tag 一起走 library 块（两者都是跨端偏好）
+        expect(
+          (library['favoriteArtistSetting'] as Map)['artists'],
+          ['ArtistA', 'ArtistB'],
+        );
+        expect(
+          (library['favoriteArtistSetting'] as Map)['highlightEnabled'],
+          isTrue,
+        );
+        expect((library['favoriteTagSetting'] as Map)['highlightEnabled'], isTrue);
 
         final reader = blocks['reader']!;
         expect(reader['readWhileDownloading'], isFalse);
 
         _expectNoLocalOnlyKeys(blocks);
 
-        // 明确断言：收藏作者名单绝对不出现在任何同步块中
+        // 画师名单只作为 `favoriteArtistSetting` 的**子字段**走：摊成块顶层的
+        // `artists` 意味着有人绕过 `_settingsBlockKeys` 手工铺了一份「半个设置」。
         for (final blockEntry in blocks.entries) {
-          expect(
-            blockEntry.value.containsKey('favoriteArtistSetting'),
-            isFalse,
-            reason:
-                'favoriteArtistSetting should NOT be in block ${blockEntry.key}',
-          );
           expect(
             blockEntry.value.containsKey('artists'),
             isFalse,
-            reason: 'artists should NOT be in block ${blockEntry.key}',
+            reason: 'artists 不该作为顶层键出现在块 ${blockEntry.key} 里',
           );
         }
       },
     );
 
-    test(
-      'applies remote sync blocks while preserving local favoriteArtistSetting',
-      () {
-        const localState = GlobalSettingState(
-          downloadConcurrency: 2,
-          downloadDelayMs: 100,
-          chineseConvertMode: ChineseConvertMode.off,
-          favoriteArtistSetting: FavoriteArtistSettingState(
-            highlightEnabled: true,
-            artists: ['MySecretArtist'],
-          ),
-        );
+    test('远端块覆盖本机：设置生效，喜欢画师名单也跟着走', () {
+      const localState = GlobalSettingState(
+        downloadConcurrency: 2,
+        downloadDelayMs: 100,
+        chineseConvertMode: ChineseConvertMode.off,
+        favoriteArtistSetting: FavoriteArtistSettingState(
+          highlightEnabled: true,
+          artists: ['LocalArtist'],
+        ),
+      );
 
-        final remoteBlocks = <String, Map<String, dynamic>>{
-          'appearance': {
-            'dynamicColor': false,
-            'themeMode': 'dark',
-            'chineseConvertMode': 'simplified',
-            'localeFollowsSystem': false,
+      final remoteBlocks = <String, Map<String, dynamic>>{
+        'appearance': {
+          'dynamicColor': false,
+          'themeMode': 'dark',
+          'chineseConvertMode': 'simplified',
+          'localeFollowsSystem': false,
+        },
+        'library': {
+          'downloadConcurrency': 6,
+          'downloadDelayMs': 300,
+          'autoFavoriteOnDownload': true,
+          'leftHandModeEnabled': true,
+          'favoriteArtistSetting': {
+            'highlightEnabled': false,
+            'artists': ['RemoteArtist'],
+            'circleMode': 'independent',
           },
-          'library': {
-            'downloadConcurrency': 6,
-            'downloadDelayMs': 300,
-            'autoFavoriteOnDownload': true,
-            'leftHandModeEnabled': true,
-          },
-          'reader': {'readWhileDownloading': false},
-        };
+        },
+        'reader': {'readWhileDownloading': false},
+      };
 
-        final merged = applySyncableBlockDataForTest(localState, remoteBlocks);
+      final merged = applySyncableBlockDataForTest(localState, remoteBlocks);
 
-        // 远端新设置成功生效
-        expect(merged.downloadConcurrency, 6);
-        expect(merged.downloadDelayMs, 300);
-        expect(merged.autoFavoriteOnDownload, isTrue);
-        expect(merged.leftHandModeEnabled, isTrue);
-        expect(merged.chineseConvertMode, ChineseConvertMode.simplified);
-        expect(merged.localeFollowsSystem, isFalse);
-        expect(merged.readSetting.readWhileDownloading, isFalse);
+      // 远端新设置成功生效
+      expect(merged.downloadConcurrency, 6);
+      expect(merged.downloadDelayMs, 300);
+      expect(merged.autoFavoriteOnDownload, isTrue);
+      expect(merged.leftHandModeEnabled, isTrue);
+      expect(merged.chineseConvertMode, ChineseConvertMode.simplified);
+      expect(merged.localeFollowsSystem, isFalse);
+      expect(merged.readSetting.readWhileDownloading, isFalse);
 
-        // 本地私有的收藏作者名单不受任何影响，原样保留
-        expect(merged.favoriteArtistSetting.artists, ['MySecretArtist']);
-        expect(merged.favoriteArtistSetting.highlightEnabled, isTrue);
-      },
-    );
+      // 喜欢画师名单是跨端偏好：云端那份覆盖本机那份（整块，三个字段一起）。
+      // 只搬 `artists` 会让两台设备的开关 / 社团档分裂。
+      expect(merged.favoriteArtistSetting.artists, ['RemoteArtist']);
+      expect(merged.favoriteArtistSetting.highlightEnabled, isFalse);
+      expect(
+        merged.favoriteArtistSetting.circleMode,
+        FavoriteArtistCircleMode.independent,
+      );
+    });
   });
 
   group('同步块表的覆盖范围', () {
@@ -197,7 +219,7 @@ void main() {
     });
 
     test('收藏 tag（含别名）走 library 块，下载时覆盖本机那份', () {
-      // 与画师名单相反：tag 集是跨端偏好，用户明确要求同步。
+      // 收藏 tag 与喜欢画师名单同属**跨端偏好**（人的口味），走同一块。
       const state = GlobalSettingState(
         favoriteTagSetting: FavoriteTagSettingState(
           highlightEnabled: true,
@@ -219,19 +241,25 @@ void main() {
 
       const localState = GlobalSettingState(
         favoriteTagSetting: FavoriteTagSettingState(tags: []),
+        favoriteArtistSetting: FavoriteArtistSettingState(
+          artists: ['LocalArtist'],
+        ),
       );
       final merged = applySyncableBlockDataForTest(localState, {
-        'library': {'favoriteTagSetting': payload},
+        'library': {
+          'favoriteTagSetting': payload,
+          'favoriteArtistSetting': {
+            'highlightEnabled': true,
+            'artists': ['RemoteArtist'],
+          },
+        },
       });
 
       final applied = merged.favoriteTagSetting.tags.single;
       expect(applied.name, 'school_lolita');
       expect(applied.aliases, ['学校萝莉']);
-      // 同一次合并里画师名单照旧原样保留（本机私有）
-      expect(
-        merged.favoriteArtistSetting.artists,
-        const GlobalSettingState().favoriteArtistSetting.artists,
-      );
+      // 同一块里的画师名单同样以云端为准（不再是「本机私有、原样保留」）
+      expect(merged.favoriteArtistSetting.artists, ['RemoteArtist']);
     });
 
     test('文件管理器块不带 homePath（本机绝对路径）', () {

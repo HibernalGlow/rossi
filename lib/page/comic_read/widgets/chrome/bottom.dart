@@ -12,6 +12,7 @@ import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_sheet.da
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/widgets/glass/liquid_glass.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/config/router/router.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
@@ -445,11 +446,12 @@ class _BottomWidgetState extends State<BottomWidget> {
     String title,
     String content,
   ) async {
-    return await showDialog<bool>(
+    return await showPopupPanel<bool>(
           context: context,
-          barrierDismissible: false, // 不允许点击外部区域关闭对话框
+          // 新入口没有 barrierDismissible：原来禁止点外部关闭，现在点外部也会关掉。
+          presentation: PopupPresentation.modal,
           builder: (BuildContext context) {
-            return AlertDialog(
+            return PopupPanel(
               title: Text(title),
               content: Text(content),
               actions: [
@@ -489,9 +491,10 @@ class _BottomWidgetState extends State<BottomWidget> {
   Future<void> _selectJumpChapter() async {
     final router = AutoRouter.of(context);
     final initialIndex = jumpChapter.currentChapterIndexIn(chapterRefs);
-    final result = await showDialog<UnifiedComicChapterRef?>(
+    final result = await showPopupPanel<UnifiedComicChapterRef?>(
+      presentation: PopupPresentation.relative,
       context: context,
-      barrierDismissible: false, // 不允许点击外部区域关闭对话框
+      // 新入口没有 barrierDismissible：原来禁止点外部关闭，现在点外部也会关掉。
       builder: (BuildContext context) {
         return _ChapterPickerDialog(
           refs: chapterRefs,
@@ -619,7 +622,7 @@ class _ChapterPickerDialogState extends State<_ChapterPickerDialog> {
     // 桌面端别撑满：最多 440，手机上占 90% 屏宽。
     final listWidth = (screenSize.width * 0.9).clamp(0.0, 440.0).toDouble();
 
-    return AlertDialog(
+    return PopupPanel(
       title: Text(t.reader.selectChapter),
       content: SizedBox(
         width: listWidth,

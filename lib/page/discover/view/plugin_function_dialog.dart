@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/page/discover/view/discover_scheme_renderer.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/plugin_function/cubit/plugin_function_cubit.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 
 class PluginFunctionDialog extends StatelessWidget {
   const PluginFunctionDialog({
@@ -25,9 +26,8 @@ class PluginFunctionDialog extends StatelessWidget {
     return BlocProvider(
       create: (_) =>
           PluginFunctionCubit()..load(from: from, functionId: functionId),
-      child: AlertDialog(
+      child: PopupPanel(
         title: Text(title),
-        contentPadding: const EdgeInsets.only(top: 8),
         content: SizedBox(
           width: dialogWidth,
           height: 320,

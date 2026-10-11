@@ -29,42 +29,88 @@ class InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 76,
-            child: Text(
-              label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+    final labelText = Text(
+      label,
+      style: theme.textTheme.labelSmall?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
+    );
+    final content =
+        valueWidget ??
+        SelectionArea(
+          child: Text(
+            value ?? '—',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface,
+              fontWeight: emphasis ? FontWeight.w600 : null,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
-          Expanded(
-            // 用 SelectionArea 包 Text 而不是 SelectableText：后者会按 maxLines
-            // 预留整块高度，于是一行键值占了四行，面板被撑得七零八落。
-            child:
-                valueWidget ??
-                SelectionArea(
-                  child: Text(
-                    value ?? '—',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface,
-                      fontWeight: emphasis ? FontWeight.w500 : null,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                    maxLines: 4,
-                    // 路径与 ID 宁可换行也不要省略号 —— 截掉一半的抄不出来。
-                  ),
-                ),
-          ),
-        ],
+        );
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // 路径和日期在窄卡里独占一行，跟随卡片宽度而非整个窗口。
+          if (constraints.maxWidth < 260 ||
+              MediaQuery.textScalerOf(context).scale(12) > 18) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [labelText, const SizedBox(height: 3), content],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(width: 80, child: labelText),
+              const SizedBox(width: 8),
+              Expanded(child: content),
+            ],
+          );
+        },
       ),
     );
   }
+}
+
+/// 信息小组件的事实区：宽卡分两列，窄卡纵向排列，长路径保留全文。
+class InfoFacts extends StatelessWidget {
+  const InfoFacts({super.key, required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final twoColumns =
+          constraints.maxWidth >= 560 &&
+          MediaQuery.textScalerOf(context).scale(12) <= 18;
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: LayoutBuilder(
+            builder: (context, inner) => Wrap(
+              spacing: 16,
+              runSpacing: 2,
+              children: [
+                for (final child in children)
+                  SizedBox(
+                    width: twoColumns
+                        ? (inner.maxWidth - 16) / 2
+                        : inner.maxWidth,
+                    child: child,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
 }
 
 /// 卡片标题行右侧的计数 / 状态。

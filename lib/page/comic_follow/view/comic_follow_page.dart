@@ -15,6 +15,7 @@ import 'package:zephyr/widgets/comic_simplify_entry/comic_read_button.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/error_view.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 @RoutePage()
@@ -802,9 +803,10 @@ class _FollowCard extends StatelessWidget {
   }
 
   Future<bool?> _askUnfollow(BuildContext context) {
-    return showDialog<bool>(
+    return showPopupPanel<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      presentation: PopupPresentation.modal,
+      builder: (dialogContext) => PopupPanel(
         title: Text(t.comicFollow.unfollow),
         content: Text(t.comicFollow.unfollowConfirm(title: follow.title)),
         actions: [

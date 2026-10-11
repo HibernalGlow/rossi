@@ -8,6 +8,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/src/rust/api/qjs.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 Widget changeThemeColor(BuildContext context) {
@@ -104,9 +105,10 @@ Widget proxyAddressEdit(BuildContext context, String currentProxy) {
       final globalSettingCubit = context.read<GlobalSettingCubit>();
       var inputValue = currentProxy;
 
-      final result = await showDialog<String>(
+      final result = await showPopupPanel<String>(
+        presentation: PopupPresentation.relative,
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (context) => PopupPanel(
           title: Text(t.settings.proxyAddress),
           content: TextFormField(
             initialValue: currentProxy,
@@ -172,8 +174,10 @@ Widget editMaskedKeywords(BuildContext context) {
     subtitle: Text(t.settings.maskedKeywordsSubtitle),
     trailing: const Icon(Icons.chevron_right),
     onTap: () {
-      showDialog(
+      showPopupPanel(
         context: context,
+        // 设置里的一条表单：宽屏上从这一行设置项飞出来。
+        presentation: PopupPresentation.relative,
         builder: (context) => const _KeywordManagementDialog(),
       );
     },

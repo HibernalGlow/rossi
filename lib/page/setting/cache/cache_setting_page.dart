@@ -8,6 +8,7 @@ import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/util/manage_cache.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 import 'package:zephyr/page/setting/common/setting_ui.dart';
@@ -106,9 +107,10 @@ class _CacheSettingPageState extends State<CacheSettingPage> {
   }
 
   Future<void> _handleClearCache() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showPopupPanel<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      presentation: PopupPresentation.modal,
+      builder: (context) => PopupPanel(
         title: Text(t.cache.clearCache),
         content: Text(t.cache.clearCacheConfirm),
         actions: [

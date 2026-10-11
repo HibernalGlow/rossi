@@ -13,6 +13,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:zephyr/util/debouncer.dart';
 import 'package:zephyr/widgets/multi_choice_list_dialog.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 class SearchBar extends StatefulWidget {
@@ -168,7 +169,8 @@ class _SearchBarState extends State<SearchBar> {
       return;
     }
 
-    final newStates = await showDialog<SearchStates>(
+    final newStates = await showPopupPanel<SearchStates>(
+      presentation: PopupPresentation.relative,
       context: context,
       builder: (context) =>
           _PluginAdvancedSearchDialog(initialState: state, scheme: scheme),
@@ -281,7 +283,7 @@ class _PluginAdvancedSearchDialogState
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return PopupPanel(
       title: Text(t.search.advancedSearchOptions),
       scrollable: true,
       content: Column(

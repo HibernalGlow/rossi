@@ -324,6 +324,11 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
     ],
   );
 
+  /// 分组是否选中：搜索框有字时强制落在「全部」，否则落在当前分组。
+  /// 抽成一处，是因为 chip 的 `selected` 与头像的填充必须读同一个判断。
+  bool _groupSelected(BindingActionGroup? group) =>
+      _search.text.trim().isNotEmpty ? group == null : _group == group;
+
   Widget _groupNavigation() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [

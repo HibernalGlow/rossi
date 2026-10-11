@@ -9,6 +9,7 @@ import 'package:zephyr/page/comic_read/widgets/picker/reader_image_export_servic
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/widgets/full_screen_image_view.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 Future<void> showReaderImagePickerSheet(
@@ -158,9 +159,10 @@ class _ReaderImagePickerSheetState extends State<_ReaderImagePickerSheet> {
 
   Future<void> _showRangeSelectDialog() async {
     final controller = TextEditingController();
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showPopupPanel<bool>(
+      presentation: PopupPresentation.relative,
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => PopupPanel(
         title: Text(t.reader.rangeSelect),
         content: Column(
           mainAxisSize: MainAxisSize.min,

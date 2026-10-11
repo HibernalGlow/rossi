@@ -13,6 +13,7 @@ import 'package:zephyr/page/setting/operation_binding/input_bindings_editor.dart
 import 'package:zephyr/service/operation_binding/binding_doc.dart';
 import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
 import 'package:zephyr/service/operation_binding/radial_doc.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 /// 「操作绑定」设置页（ADR-0015 的外壳那一半）。
@@ -186,9 +187,9 @@ class _OperationBindingSettingPageState
   }
 
   Future<void> _showConflicts(List<BindingConflict> conflicts) async {
-    await showDialog<void>(
+    await showPopupPanel<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => PopupPanel(
         title: Text(t.settings.operationBindingConflictTitle),
         content: SizedBox(
           width: 460,
@@ -255,9 +256,10 @@ class _OperationBindingSettingPageState
   }
 
   Future<bool> _confirm({required String title, required String body}) async {
-    final result = await showDialog<bool>(
+    final result = await showPopupPanel<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      presentation: PopupPresentation.modal,
+      builder: (dialogContext) => PopupPanel(
         title: Text(title),
         content: Text(body),
         actions: [
@@ -276,7 +278,8 @@ class _OperationBindingSettingPageState
   }
 
   Future<void> _export() async {
-    final text = await showDialog<String>(
+    final text = await showPopupPanel<String>(
+      presentation: PopupPresentation.relative,
       context: context,
       builder: (dialogContext) => _JsonDialog(
         title: t.settings.operationBindingExport,
@@ -293,7 +296,8 @@ class _OperationBindingSettingPageState
   }
 
   Future<void> _import() async {
-    final text = await showDialog<String>(
+    final text = await showPopupPanel<String>(
+      presentation: PopupPresentation.relative,
       context: context,
       builder: (dialogContext) => _JsonDialog(
         title: t.settings.operationBindingImport,
@@ -549,7 +553,7 @@ class _JsonDialogState extends State<_JsonDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return PopupPanel(
       title: Text(widget.title),
       content: SizedBox(
         width: 520,

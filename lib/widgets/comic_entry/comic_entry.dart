@@ -10,6 +10,7 @@ import 'package:zephyr/widgets/comic_entry/models/models.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/favorite_tag_badge.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 import 'package:zephyr/main.dart';
@@ -282,9 +283,10 @@ class ComicEntryWidget extends StatelessWidget {
       return;
     }
 
-    await showDialog(
+    await showPopupPanel(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      presentation: PopupPresentation.modal,
+      builder: (dialogContext) => PopupPanel(
         title: Text(title),
         content: Text(content),
         actions: [

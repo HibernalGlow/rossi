@@ -172,7 +172,7 @@ class WorkspaceTopChrome extends StatelessWidget {
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
-              isSwimlane ? '多列泳道' : '沉浸四边栏',
+              isSwimlane ? '多列泳道' : '沉浸工作孔',
               style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -208,7 +208,7 @@ class WorkspaceTopChrome extends StatelessWidget {
               isSwimlane ? Icons.dock_rounded : Icons.view_column_rounded,
               size: 18,
             ),
-            tooltip: isSwimlane ? '切换为沉浸四边栏' : '切换为多列泳道',
+            tooltip: isSwimlane ? '切换为沉浸工作孔' : '切换为多列泳道',
             visualDensity: VisualDensity.compact,
             onPressed: cubit.toggleMode,
           ),

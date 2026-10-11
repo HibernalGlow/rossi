@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/type/pipe.dart';
 import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 import 'package:zephyr/main.dart';
@@ -794,9 +795,10 @@ class ComicSimplifyEntry extends StatelessWidget {
   Future<void> _showDeleteDialog(BuildContext context) async {
     final (title, content) = _getDialogContent();
 
-    return showDialog(
+    return showPopupPanel(
       context: context,
-      builder: (context) => AlertDialog(
+      presentation: PopupPresentation.modal,
+      builder: (context) => PopupPanel(
         title: Text(title),
         content: Text(content),
         actions: [

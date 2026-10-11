@@ -11,6 +11,7 @@ import 'package:zephyr/page/comic_read/model/reader_presentation.dart';
 import 'package:zephyr/service/operation_binding/binding_doc.dart';
 import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
 import 'package:zephyr/util/input/reader_input_bridge.dart';
+import 'package:zephyr/video/view/active_video_scope.dart';
 import 'package:zephyr/video/controller/video_action_dispatch.dart';
 
 /// 把引擎解析出的 **action id 落到执行体**（ADR-0015 §5 的第 ③ 件事）。
@@ -99,6 +100,10 @@ class ReaderActionDispatcher {
     fromKeyboard: false,
   );
 
+  List<String> get pointerContexts => ActiveVideoScope.instance.hasTarget
+      ? const ['reader', 'video']
+      : const ['reader'];
+
   Map<String, dynamic>? resolveInput(
     Map<String, dynamic> input,
     String bindingsArrayJson, {
@@ -106,11 +111,7 @@ class ReaderActionDispatcher {
   }) => OperationBindingStore.resolveBinding(
     bindingsArrayJson: bindingsArrayJson,
     inputJson: jsonEncode(input),
-    contexts:
-        contexts ??
-        ReaderInputBridge.instance.activeContexts
-            .map((context) => context.name)
-            .toList(growable: false),
+    contexts: contexts ?? pointerContexts,
   );
 
   bool dispatchInput(
@@ -129,9 +130,11 @@ class ReaderActionDispatcher {
       // 指针入口提供命中区域的上下文，键盘入口使用工作台报告的焦点上下文。
       contexts:
           contexts ??
-          ReaderInputBridge.instance.activeContexts
-              .map((context) => context.name)
-              .toList(growable: false),
+          (fromKeyboard
+              ? ReaderInputBridge.instance.activeContexts
+                    .map((context) => context.name)
+                    .toList(growable: false)
+              : pointerContexts),
     );
     if (binding == null) return false;
     return dispatchBindingActions(

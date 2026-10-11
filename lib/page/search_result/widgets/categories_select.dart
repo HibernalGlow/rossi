@@ -4,6 +4,7 @@ import 'package:zephyr/type/pipe.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 
 Future<Map<String, bool>?> showCategoryDialog(
   BuildContext context,
@@ -11,10 +12,11 @@ Future<Map<String, bool>?> showCategoryDialog(
 ) {
   final Map<String, bool> tempMap = Map<String, bool>.from(initialMap);
 
-  return showDialog<Map<String, bool>>(
+  return showPopupPanel<Map<String, bool>>(
+    presentation: PopupPresentation.relative,
     context: context,
     builder: (BuildContext context) {
-      return AlertDialog(
+      return PopupPanel(
         title: Text(t.search.selectCategory),
         content: StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {

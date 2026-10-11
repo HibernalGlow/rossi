@@ -6,6 +6,7 @@ import 'package:zephyr/network/http/plugin/unified_plugin_envelope.dart';
 import 'package:zephyr/network/http/plugin/unified_comic_plugin.dart';
 import 'package:zephyr/plugin/bridge/plugin_config_bridge.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/util/json/json_value.dart';
 
@@ -237,9 +238,10 @@ class _PluginAdvancedActionSectionState
                   );
 
                   if (!dialogContext.mounted) return;
-                  await showDialog<void>(
+                  await showPopupPanel<void>(
+                    presentation: PopupPresentation.relative,
                     context: dialogContext,
-                    builder: (context) => AlertDialog(
+                    builder: (context) => PopupPanel(
                       title: Text(title),
                       content: SingleChildScrollView(
                         child: SelectableText(
@@ -273,9 +275,10 @@ Future<String?> _showInputDialog(
   required bool obscure,
 }) async {
   final controller = TextEditingController(text: initialValue);
-  final value = await showDialog<String>(
+  final value = await showPopupPanel<String>(
+    presentation: PopupPresentation.relative,
     context: context,
-    builder: (context) => AlertDialog(
+    builder: (context) => PopupPanel(
       title: Text(title),
       content: TextField(
         controller: controller,
