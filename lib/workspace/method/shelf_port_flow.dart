@@ -10,6 +10,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/util/permission.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 /// 书签 / 历史面板共用的导入导出管路：权限 → 选位置 → 读写文件 → 说结果。
@@ -156,9 +157,9 @@ Future<bool> _confirmImport(
   required String label,
   required ShelfImportPlan plan,
 }) async {
-  final confirmed = await showDialog<bool>(
+  final confirmed = await showPopupPanel<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => PopupPanel(
       title: Text('导入$label'),
       content: Column(
         mainAxisSize: MainAxisSize.min,

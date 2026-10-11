@@ -1,4 +1,5 @@
 export 'package:zephyr/page/bookshelf/widgets/bookshelf_empty_view.dart';
+export 'package:zephyr/page/bookshelf/widgets/bookshelf_filter_panel.dart';
 export 'package:zephyr/page/bookshelf/widgets/bookshelf_grid_shimmer.dart';
 export 'package:zephyr/page/bookshelf/widgets/bookshelf_loading_view.dart';
 export 'package:zephyr/page/bookshelf/widgets/folder_shelf_item.dart';

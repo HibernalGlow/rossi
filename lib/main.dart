@@ -320,8 +320,9 @@ Future<(GlobalSettingCubit, PluginRegistryCubit)> _initServices() async {
 
   if (kDebugMode) {
     setQjsErrorStackEnabled(enabled: true);
-    // 配置http代理，方便开发测试
-    await _tryApplyHttpProxyFromEnv();
+    // 代理探测可能等到连接超时；它只影响开发期网络请求，不应阻塞桌面首屏。
+    // 插件预热已经移到 AppBootstrap 的后台路径，探测完成后会自动影响后续请求。
+    unawaited(_tryApplyHttpProxyFromEnv());
   } else {
     setQjsErrorStackEnabled(enabled: false);
   }

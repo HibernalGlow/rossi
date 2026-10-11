@@ -168,6 +168,9 @@ void _fullCustomStateRoundTrip() {
       showLaneNavigatorInSolo: true,
       manualScrollEnabled: false,
       showTopChrome: true,
+      // 宽度徽标出厂**不画**，这里刻意写成「打开」—— 否则往返断言两边都是默认值，
+      // 等于没测到这一项（`_sameJson` 比的是整份 JSON，但逐项断言得有个真值）。
+      showLaneWidthBadge: true,
       revealZones: _richZones,
     ),
   );
@@ -210,6 +213,7 @@ void _fullCustomStateRoundTrip() {
   check('独占时显示切换栏保住了', restored.interaction.showLaneNavigatorInSolo);
   check('「允许手动横向滚动」关掉这件事保住了', !restored.interaction.manualScrollEnabled);
   check('「顶栏画出来」这件事保住了（出厂默认是不画）', restored.interaction.showTopChrome);
+  check('「泳道宽度徽标画出来」这件事保住了', restored.interaction.showLaneWidthBadge);
   check(
     '四条唤出区整体保住（含 0.1 的百分比精度）',
     restored.interaction.revealZones == _richZones,
@@ -389,6 +393,10 @@ void _badInteractionFieldsFallBackPerField() {
   check(
     '缺项的「顶栏」退回默认（关）—— 老快照里没有这个键，升级之后顶栏就是不画',
     !snapshot.interaction.showTopChrome,
+  );
+  check(
+    '缺项的「泳道宽度徽标」退回默认（关）—— 老快照里没有这个键，升级之后栏头就是不画它',
+    !snapshot.interaction.showLaneWidthBadge,
   );
   check(
     '唤出区整块不是对象时回默认，且不牵连别的项',

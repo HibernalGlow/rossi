@@ -13,6 +13,7 @@ import 'package:zephyr/page/comic_info/json/normal/normal_comic_all_info.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/page/comic_follow/cubit/comic_follow_cubit.dart';
 import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 part 'parts/collect_comic_rossi_part.dart';
@@ -452,7 +453,7 @@ Future<Map<String, dynamic>?> _showFavoriteWorkflowSelect(
       .map((option) => option.id)
       .toSet();
   final createController = TextEditingController();
-  final result = await showDialog<Map<String, dynamic>>(
+  final result = await showPopupPanel<Map<String, dynamic>>(
     context: context,
     builder: (dialogContext) {
       return StatefulBuilder(
@@ -460,7 +461,7 @@ Future<Map<String, dynamic>?> _showFavoriteWorkflowSelect(
           final createdName = createController.text.trim();
           final canConfirm =
               !input.required || selected.isNotEmpty || createdName.isNotEmpty;
-          return AlertDialog(
+          return PopupPanel(
             title: Text(input.title ?? t.comicInfo.addToCustomFolder),
             content: ConstrainedBox(
               constraints: BoxConstraints(
@@ -581,14 +582,14 @@ Future<Map<String, dynamic>?> _showFavoriteWorkflowText(
   FavoriteWorkflowInput input,
 ) async {
   final controller = TextEditingController();
-  final result = await showDialog<Map<String, dynamic>>(
+  final result = await showPopupPanel<Map<String, dynamic>>(
     context: context,
     builder: (dialogContext) {
       return StatefulBuilder(
         builder: (ctx, setState) {
           final canConfirm =
               !input.required || controller.text.trim().isNotEmpty;
-          return AlertDialog(
+          return PopupPanel(
             title: Text(input.title ?? ''),
             content: TextField(
               controller: controller,
@@ -632,10 +633,11 @@ Future<Map<String, dynamic>?> _showFavoriteWorkflowConfirm(
   BuildContext context,
   FavoriteWorkflowInput input,
 ) {
-  return showDialog<Map<String, dynamic>>(
+  return showPopupPanel<Map<String, dynamic>>(
     context: context,
+    presentation: PopupPresentation.modal,
     builder: (dialogContext) {
-      return AlertDialog(
+      return PopupPanel(
         title: Text(input.title ?? t.common.confirm),
         content: input.description == null ? null : Text(input.description!),
         actions: [
@@ -774,12 +776,12 @@ Future<Map<String, dynamic>?> _showFavoriteWorkflowForm(
     }
   }
 
-  final result = await showDialog<Map<String, dynamic>>(
+  final result = await showPopupPanel<Map<String, dynamic>>(
     context: context,
     builder: (dialogContext) {
       return StatefulBuilder(
         builder: (ctx, setState) {
-          return AlertDialog(
+          return PopupPanel(
             title: Text(input.title ?? t.common.confirm),
             content: ConstrainedBox(
               constraints: BoxConstraints(
@@ -889,12 +891,13 @@ Future<_FavoriteFolder?> _showFolderSelectionDialog(
   List<_FavoriteFolder> folders,
 ) {
   _FavoriteFolder? selected;
-  return showDialog<_FavoriteFolder>(
+  return showPopupPanel<_FavoriteFolder>(
+    presentation: PopupPresentation.relative,
     context: context,
     builder: (dialogContext) {
       return StatefulBuilder(
         builder: (ctx, setState) {
-          return AlertDialog(
+          return PopupPanel(
             title: Text(t.comicInfo.addToCustomFolder),
             content: ConstrainedBox(
               constraints: BoxConstraints(

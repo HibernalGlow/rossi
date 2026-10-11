@@ -12,6 +12,7 @@ import 'package:zephyr/service/update/check_update.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/util/permission.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 import 'package:zephyr/page/setting/data_backup/method.dart';
@@ -285,12 +286,13 @@ class _DataBackupPageState extends State<DataBackupPage> {
   }
 
   void _showLoadingDialog(String message) {
-    showDialog<void>(
+    showPopupPanel<void>(
       context: context,
-      barrierDismissible: false,
+      // 原 showDialog 的 barrierDismissible: false 新入口没有，已删除；
+      // 新弹层遮罩恒可点关，这个加载层从此也能点外面关掉。
       builder: (context) => PopScope(
         canPop: false,
-        child: AlertDialog(
+        child: PopupPanel(
           content: Row(
             children: [
               const SizedBox(
@@ -309,9 +311,9 @@ class _DataBackupPageState extends State<DataBackupPage> {
 
   Future<void> _showResultDialog(String title, String message) async {
     if (!mounted) return;
-    await showDialog<void>(
+    await showPopupPanel<void>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => PopupPanel(
         title: Text(title),
         content: Text(message),
         actions: [
@@ -332,9 +334,9 @@ class _DataBackupPageState extends State<DataBackupPage> {
     if (!mounted) return false;
     final versionMismatch = exportedVersion != currentVersion;
 
-    final result = await showDialog<bool>(
+    final result = await showPopupPanel<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => PopupPanel(
         title: Text(t.dataBackup.importTitle),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 400),
@@ -381,9 +383,9 @@ class _DataBackupPageState extends State<DataBackupPage> {
 
   Future<void> _showRestartDialog() async {
     if (!mounted) return;
-    await showDialog<void>(
+    await showPopupPanel<void>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => PopupPanel(
         title: Text(t.dataBackup.importSuccess),
         content: Text(t.dataBackup.restartPrompt),
         actions: [

@@ -8,6 +8,7 @@ import 'package:zephyr/page/donwload_task/widgets/offline_comic_section.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/service/download/download_queue_manager.dart';
 import 'package:zephyr/service/download/download_task_progress.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 @RoutePage()
@@ -223,9 +224,10 @@ class _DownloadingTaskTile extends StatelessWidget {
               icon: const Icon(Icons.cancel_outlined, color: Colors.blue),
               onPressed: () {
                 final bloc = context.read<DowloadTaskBloc>();
-                showDialog(
+                showPopupPanel(
                   context: context,
-                  builder: (dialogContext) => AlertDialog(
+                  presentation: PopupPresentation.modal,
+                  builder: (dialogContext) => PopupPanel(
                     title: Text(t.download.cancelTask),
                     content: Text(
                       t.download.cancelTaskConfirm(comicName: task.comicName),
@@ -371,9 +373,9 @@ String _chapterTaskTitle(DownloadTask task) {
 }
 
 void _showDownloadFailureDetails(BuildContext context, String message) {
-  showDialog<void>(
+  showPopupPanel<void>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => PopupPanel(
       title: Text(t.download.notificationFailedTitle),
       content: SizedBox(
         width: 720,

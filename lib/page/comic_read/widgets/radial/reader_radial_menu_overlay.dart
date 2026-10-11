@@ -17,6 +17,7 @@ abstract final class ReaderRadialMenu {
   static _ReaderRadialMenuViewState? _current;
 
   static bool get isOpen => _entry != null;
+  static final openState = ValueNotifier<bool>(false);
 
   /// 在 [globalCenter]（**全局**坐标）处开出轮盘。
   ///
@@ -31,6 +32,7 @@ abstract final class ReaderRadialMenu {
     int? openingPointer,
   }) {
     dismiss();
+    final contexts = List<String>.unmodifiable(dispatcher.pointerContexts);
     late final OverlayEntry entry;
     entry = OverlayEntry(
       builder: (overlayContext) => _ReaderRadialMenuView(
@@ -39,12 +41,14 @@ abstract final class ReaderRadialMenu {
         configJson: configJson,
         bindingsArrayJson: bindingsArrayJson,
         dispatcher: dispatcher,
+        contexts: contexts,
         onClose: () {
           if (identical(_entry, entry)) dismiss();
         },
       ),
     );
     _entry = entry;
+    openState.value = true;
     Overlay.of(context, rootOverlay: true).insert(entry);
   }
 
@@ -68,6 +72,7 @@ abstract final class ReaderRadialMenu {
   static void dismiss() {
     final entry = _entry;
     _entry = null;
+    openState.value = false;
     _current = null;
     if (entry != null) {
       entry.remove();
@@ -83,6 +88,7 @@ class _ReaderRadialMenuView extends StatefulWidget {
     required this.configJson,
     required this.bindingsArrayJson,
     required this.dispatcher,
+    required this.contexts,
     required this.onClose,
   });
 
@@ -91,6 +97,7 @@ class _ReaderRadialMenuView extends StatefulWidget {
   final String configJson;
   final String bindingsArrayJson;
   final ReaderActionDispatcher dispatcher;
+  final List<String> contexts;
   final VoidCallback onClose;
 
   @override
@@ -172,6 +179,7 @@ class _ReaderRadialMenuViewState extends State<_ReaderRadialMenuView> {
       radialInputJson(menuId: slot.menuId, itemId: slot.itemId!),
       widget.bindingsArrayJson,
       fromKeyboard: false,
+      contexts: widget.contexts,
     );
     if (!handled && slot.legacyAction != null) {
       widget.dispatcher.dispatch(slot.legacyAction!, fromKeyboard: false);
@@ -203,6 +211,7 @@ class _ReaderRadialMenuViewState extends State<_ReaderRadialMenuView> {
         : OperationBindingStore.resolveBinding(
             bindingsArrayJson: widget.bindingsArrayJson,
             inputJson: inputJson,
+            contexts: widget.contexts,
           );
     if (binding != null &&
         (binding['action'] == BindingAction.confirmRadialMenu ||

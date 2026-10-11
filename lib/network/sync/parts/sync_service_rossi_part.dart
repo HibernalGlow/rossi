@@ -73,8 +73,14 @@ const Map<String, List<String>> _settingsBlockKeys = <String, List<String>>{
     'bookshelfSetting',
     'comicCardSetting',
     'discoverSetting',
-    // 收藏 tag（含别名）与画师名单不同，是**跨端偏好**：换设备继续要同一份标签集。
+    // 收藏 tag（含别名）是**跨端偏好**：换设备继续要同一份标签集。
     'favoriteTagSetting',
+    // 喜欢画师名单（连同高亮开关与社团档）**改判为跨端偏好**（2026-10-11）。
+    // 它从前被排除在外，理由是「本地私有偏好，用户明确要求不出本机」——
+    // 那条口径已作废：喜欢谁不随机器走，换台设备不该重新喜欢一遍。
+    // 整块一起走（三个字段都是偏好）：只搬 `artists` 会让两台设备的「高亮开关 /
+    // 社团档」分裂，而它们在 `FavoriteArtistSettingState` 里本来就是一条设置。
+    'favoriteArtistSetting',
   ],
   _shellBlockName: <String>[
     // 启动落点。手机端没有工作台入口时会自己忽略（`resolveStartupLanding`），

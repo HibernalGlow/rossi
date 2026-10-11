@@ -14,6 +14,7 @@ import 'package:zephyr/service/download/download_delete_service.dart';
 import 'package:zephyr/service/download/download_queue_manager.dart';
 import 'package:zephyr/service/download/download_task_repository.dart';
 import 'package:zephyr/service/download/models/download_task_json.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 /// 漫画详情页章节下载状态 + 长按多选控制器。
@@ -380,9 +381,10 @@ class EpisodeDownloadController {
     String title,
     String content,
   ) async {
-    final result = await showDialog<bool>(
+    final result = await showPopupPanel<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      presentation: PopupPresentation.modal,
+      builder: (dialogContext) => PopupPanel(
         title: Text(title),
         content: Text(content),
         actions: [

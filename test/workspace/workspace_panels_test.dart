@@ -25,6 +25,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/model/workspace_panel_bar.dart';
@@ -37,10 +38,13 @@ import 'package:zephyr/workspace/widgets/panels/panel_tab_strip.dart';
 
 /// 页签上的图标 —— 用**注册表里那份定义**的图标来认页签。
 /// 写死图标名会让「注册表换了图标」变成判据失败，而那不是我们想断言的事。
-IconData _tabIcon(String panelId) {
+///
+/// 页签图标已换成自绘 `GlyphIcon`，`find.byIcon` 只认 Material `Icon`，
+/// 所以这里直接返回按 glyph 值认的 Finder。
+Finder _tabIcon(String panelId) {
   final panel = WorkspacePanelRegistry.I.find(panelId);
   expect(panel, isNotNull, reason: '夹具前提：$panelId 必须在注册表里');
-  return panel!.icon;
+  return find.byWidgetPredicate((w) => w is GlyphIcon && w.glyph == panel!.icon);
 }
 
 /// 某一侧**当前**显示的面板序列（就是记账算给用户看的那个次序）。
@@ -59,6 +63,14 @@ Future<WorkspaceCubit> _pumpStrips(WidgetTester tester) async {
 
   final cubit = WorkspaceCubit();
   addTearDown(cubit.close);
+
+  // 这几条验的是「拖到哪一格」的**落点记账**，必须跑在**排序模式**下：
+  // 常态（lens）档把手势位让给了「按住横移切面板」的跟手拖动，既没有
+  // `LongPressDraggable`（220ms 延时），也没有插缝 —— 两档互斥，见
+  // `PanelTabStrip` 里 `sortMode` 的那段分流。
+  cubit.setInteraction(
+    cubit.state.interaction.copyWith(panelTabSortMode: true),
+  );
 
   await tester.pumpWidget(
     MaterialApp(
@@ -106,8 +118,8 @@ Future<void> _dragTabOnto(
   required String ontoPanelId,
 }) async {
   // 先把两个坐标取好：拖动期间浮层里也有一份图标，事后再找会找到两个。
-  final from = tester.getCenter(find.byIcon(_tabIcon(panelId)));
-  final onto = tester.getCenter(find.byIcon(_tabIcon(ontoPanelId)));
+  final from = tester.getCenter(_tabIcon(panelId));
+  final onto = tester.getCenter(_tabIcon(ontoPanelId));
 
   final gesture = await tester.startGesture(from);
   await tester.pump(const Duration(milliseconds: 280));

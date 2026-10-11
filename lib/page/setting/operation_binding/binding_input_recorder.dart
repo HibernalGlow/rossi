@@ -6,6 +6,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/service/operation_binding/binding_doc.dart';
 import 'package:zephyr/util/input/binding_input_capture.dart';
 import 'package:zephyr/page/setting/operation_binding/binding_editor_labels.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 
 class BindingInputRecorder extends StatefulWidget {
   const BindingInputRecorder({
@@ -27,7 +28,7 @@ class BindingInputRecorder extends StatefulWidget {
     BuildContext context,
     Map<String, dynamic> input, {
     bool wheelFollowsHand = false,
-  }) => showDialog<Map<String, dynamic>>(
+  }) => showPopupPanel<Map<String, dynamic>>(
     context: context,
     builder: (_) => BindingInputRecorder(
       input: input,
@@ -179,7 +180,7 @@ class _BindingInputRecorderState extends State<BindingInputRecorder> {
   @override
   Widget build(BuildContext context) {
     final activeDevice = _captured?['device'] as String? ?? _device;
-    return AlertDialog(
+    return PopupPanel(
       title: Text(
         '${t.bindingEditor.record} · ${bindingDeviceLabels[activeDevice] ?? activeDevice}',
       ),

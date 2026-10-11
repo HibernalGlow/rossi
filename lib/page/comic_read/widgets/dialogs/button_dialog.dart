@@ -1,16 +1,18 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 
 Future<bool> buttonDialog(
   BuildContext context,
   String title,
   String content,
 ) async {
-  return await showDialog<bool>(
+  return await showPopupPanel<bool>(
         context: context,
-        barrierDismissible: false, // 不允许点击外部区域关闭对话框
+        // 新入口没有 barrierDismissible：原来禁止点外部关闭，现在点外部也会关掉。
+        presentation: PopupPresentation.modal,
         builder: (BuildContext context) {
-          return AlertDialog(
+          return PopupPanel(
             title: Text(title),
             content: Text(content),
             actions: [

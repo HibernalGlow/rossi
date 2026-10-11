@@ -81,9 +81,10 @@ extension _UpscaleConditionsCardCrudPart on _UpscaleConditionsCardState {
   }
 
   void _resetConditions() {
-    showDialog(
+    showPopupPanel(
       context: context,
-      builder: (ctx) => AlertDialog(
+      presentation: PopupPresentation.modal,
+      builder: (ctx) => PopupPanel(
         title: const Text('重置条件超分'),
         content: const Text('确定将所有条件恢复为出厂默认设置吗？现有规则将被清除。'),
         actions: [
@@ -113,9 +114,10 @@ extension _UpscaleConditionsCardCrudPart on _UpscaleConditionsCardState {
       }).toList(),
     );
 
-    showDialog(
+    showPopupPanel(
+      presentation: PopupPresentation.relative,
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => PopupPanel(
         title: const Text('导出条件超分配置 (JSON)'),
         content: SizedBox(
           width: 500,
@@ -147,9 +149,10 @@ extension _UpscaleConditionsCardCrudPart on _UpscaleConditionsCardState {
 
   void _showImportDialog() {
     final controller = TextEditingController();
-    showDialog(
+    showPopupPanel(
+      presentation: PopupPresentation.relative,
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => PopupPanel(
         title: const Text('导入条件超分配置'),
         content: SizedBox(
           width: 500,

@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 
 Future<Map<String, bool>?> showSourceSelectDialog(
   BuildContext context, {
@@ -7,12 +8,13 @@ Future<Map<String, bool>?> showSourceSelectDialog(
   required List<({String pluginId, String title})> sourceOptions,
 }) {
   final next = Map<String, bool>.from(initial);
-  return showDialog<Map<String, bool>>(
+  return showPopupPanel<Map<String, bool>>(
+    presentation: PopupPresentation.relative,
     context: context,
     builder: (dialogContext) {
       return StatefulBuilder(
         builder: (context, setState) {
-          return AlertDialog(
+          return PopupPanel(
             title: Text(t.search.selectSource),
             content: SizedBox(
               width: 320,

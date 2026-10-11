@@ -8,6 +8,7 @@ import 'package:zephyr/service/operation_binding/binding_doc.dart';
 import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
 import 'package:zephyr/service/operation_binding/radial_doc.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:flutter_ray_menu/flutter_ray_menu.dart';
 import 'package:zephyr/widgets/radial/reader_ray_menu_adapter.dart';
 import 'package:zephyr/widgets/toast.dart';
@@ -127,9 +128,10 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
       );
       return;
     }
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showPopupPanel<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      presentation: PopupPresentation.modal,
+      builder: (dialogContext) => PopupPanel(
         title: Text(t.settings.operationBindingRadialDelete),
         content: Text(
           t.settings.operationBindingRadialDeleteConfirm(name: menu.name),
@@ -170,7 +172,8 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
     );
   }
 
-  Future<void> _preview() => showDialog<void>(
+  Future<void> _preview() => showPopupPanel<void>(
+    presentation: PopupPresentation.relative,
     context: context,
     builder: (dialogContext) => RadialWheelPreviewDialog(doc: _doc),
   );
@@ -658,7 +661,7 @@ class RadialWheelPreviewDialog extends StatelessWidget {
       menuId: menu?.id ?? '',
     );
     void close() => Navigator.of(context).pop();
-    return AlertDialog(
+    return PopupPanel(
       title: Text(t.settings.operationBindingRadialPreview),
       content: SizedBox(
         width: 460,

@@ -1,4 +1,4 @@
-// 泳道**运行时**行为的判据：激活泳道 / 非激活泳道第一下点击被吃掉 /
+// 泳道**运行时**行为的判据：激活泳道 / 非激活泳道第一下点击直接执行 /
 // 悬停驻留聚焦 / 边缘驻留揭示。
 //
 //   env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy \
@@ -22,7 +22,7 @@
 // 2. **泳道内容用替身**（`debugLaneContentBuilder`）。真内容是上游
 //    `BookshelfPage` / `ComicReadPage`，要 ObjectBox、图源注册表、应用数据
 //    目录，在这里根本建不起来。替身只换「内容由谁构造」，泳道结构
-//    （栏头、次序、吃点击、驻留）一字未动 —— 被测的正是后者。
+//    （栏头、次序、首次点击派发、驻留）一字未动 —— 被测的正是后者。
 //
 // ignore_for_file: avoid_print
 import 'package:flutter/foundation.dart'
@@ -228,9 +228,9 @@ const TargetPlatform _pointerPlatform = TargetPlatform.macOS;
 void main() {
   setUp(_contentTaps.clear);
 
-  // ── 1 / 2：激活泳道 + 第一下点击被吃掉 ────────────────────────────────────
+  // ── 1 / 2：首击立即执行 + 后续连续派发 ────────────────────────────────────
 
-  testWidgetsOn(_pointerPlatform, '非激活泳道的第一下点击被吃掉，同时完成激活', (tester) async {
+  testWidgetsOn(_pointerPlatform, '非激活泳道的第一下点击执行内容，同时完成激活', (tester) async {
     final cubit = await _pumpWorkspace(tester);
     expect(
       cubit.state.activeLaneId,
@@ -244,15 +244,11 @@ void main() {
     expect(
       cubit.state.activeLaneId,
       LaneId.right,
-      reason: '这一下点击的**全部**作用就是把交互交给这条泳道',
+      reason: '点击内容的同时确认泳道，不要求二次点击',
     );
-    expect(
-      _contentTaps,
-      isEmpty,
-      reason:
-          '契约：`That click is consumed by the workspace and must not reach '
-          'Reader area bindings, page navigation, video controls, or the radial menu`',
-    );
+    expect(_contentTaps, <String>[
+      LaneId.right,
+    ], reason: 'ADR-0022：第一下点击直接执行命中内容');
   });
 
   testWidgetsOn(_pointerPlatform, '激活之后，落在这条泳道上的点击恢复正常派发', (tester) async {
@@ -261,18 +257,15 @@ void main() {
 
     await tester.tapAt(spot);
     await tester.pumpAndSettle();
-    expect(_contentTaps, isEmpty, reason: '前置：第一下确实被吃掉了');
+    expect(_contentTaps, <String>[LaneId.right], reason: '第一下已执行');
 
     await tester.tapAt(spot);
     await tester.pumpAndSettle();
 
-    expect(
-      _contentTaps,
-      <String>[LaneId.right],
-      reason:
-          '吃掉只该发生**一次**：激活之后内容必须照常收到点击，'
-          '否则用户每点两下才生效一下',
-    );
+    expect(_contentTaps, <String>[
+      LaneId.right,
+      LaneId.right,
+    ], reason: '每次点击都直接执行，不区分激活前后');
     expect(cubit.state.activeLaneId, LaneId.right);
   });
 
@@ -282,9 +275,12 @@ void main() {
     final cubit = await _pumpWorkspace(tester);
     expect(cubit.state.activeLaneId, isNull, reason: '前置：右泳道此刻是非激活的');
 
+    // 前置改成读**记账**而不是找那颗 px 徽标：徽标现在默认不画
+    // （`WorkspaceInteractionSettings.showLaneWidthBadge`），拿它当哨兵会变成
+    // 「永远为真」的空转断言。
     expect(
-      find.descendant(of: _laneScope(_rightTitle), matching: find.text('44px')),
-      findsNothing,
+      cubit.state.layout.lanes[LaneId.right]!.collapsed,
+      isFalse,
       reason: '前置：还没折叠',
     );
 
@@ -373,7 +369,7 @@ void main() {
     );
   });
 
-  testWidgetsOn(_pointerPlatform, '停住之后先进入预备态（边框亮），交互随后才交出；一路动则什么都不亮', (
+  testWidgetsOn(_pointerPlatform, '停住之后先进入预备态（边框亮），视觉随后激活；一路动不预备定位', (
     tester,
   ) async {
     final cubit = await _pumpWorkspace(tester);

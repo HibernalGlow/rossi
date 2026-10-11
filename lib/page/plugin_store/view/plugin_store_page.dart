@@ -7,6 +7,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/plugin_store/cubit/plugin_store_cubit.dart';
 import 'package:zephyr/page/plugin_store/widgets/cloud_plugin_card.dart';
 import 'package:zephyr/page/plugin_store/widgets/plugin_store_status_banner.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 @RoutePage()
@@ -305,9 +306,10 @@ class _PluginStorePageContentState extends State<_PluginStorePageContent> {
     required String hintText,
   }) {
     final controller = TextEditingController();
-    return showDialog<String>(
+    return showPopupPanel<String>(
+      presentation: PopupPresentation.relative,
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => PopupPanel(
         title: Text(title),
         content: TextField(
           controller: controller,

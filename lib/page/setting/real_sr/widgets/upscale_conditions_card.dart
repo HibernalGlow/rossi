@@ -7,6 +7,7 @@ import 'package:zephyr/page/setting/real_sr/model/upscale_condition_import.dart'
 import 'package:zephyr/page/setting/real_sr/service/real_sr_book_scope.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 // 条件条目的增删改、排序与导入导出对话框。

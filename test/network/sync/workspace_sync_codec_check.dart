@@ -24,6 +24,7 @@ import 'package:zephyr/workspace/model/workspace_layout_snapshot.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
 import 'package:zephyr/workspace/model/workspace_panel_bar.dart';
 import 'package:zephyr/workspace/model/workspace_reveal_zones.dart';
+import 'package:zephyr/workspace/model/workspace_workhole.dart';
 
 int _passed = 0;
 
@@ -93,6 +94,9 @@ WorkspaceLayoutSnapshot _deviceA() => WorkspaceLayoutSnapshot(
       LaneId.right: LaneConfig(width: 322.5, title: '工具'),
     },
     soloLaneId: LaneId.right,
+    edgeLeftSize: WorkspaceWorkholeSize.takeover,
+    edgeRightSize: WorkspaceWorkholeSize.custom,
+    edgeRightWidth: 513.25,
   ),
   board: const WorkspaceBoardLayout(
     panels: {
@@ -144,6 +148,9 @@ WorkspaceLayoutSnapshot _deviceB() => WorkspaceLayoutSnapshot(
     edgeRightOpen: true,
     edgeTopOpen: true,
     edgeBottomOpen: true,
+    edgeLeftSize: WorkspaceWorkholeSize.custom,
+    edgeRightSize: WorkspaceWorkholeSize.peek,
+    edgeLeftWidth: () => 244.5,
   ),
   board: const WorkspaceBoardLayout(),
   activePanel: const {LaneId.reader: 'page-list'},
@@ -202,6 +209,16 @@ void _touchDevicesKeepTheirOwnGeometry() {
     '${decoded.layout.soloLaneId}',
   );
   check(
+    '触屏不采纳 Workhole 档位',
+    decoded.layout.edgeLeftSize == WorkspaceWorkholeSize.custom &&
+        decoded.layout.edgeRightSize == WorkspaceWorkholeSize.peek,
+  );
+  check(
+    '触屏不采纳 Workhole 自定义宽度',
+    decoded.layout.edgeLeftWidth == 244.5 &&
+        decoded.layout.edgeRightWidth == null,
+  );
+  check(
     '触屏不采纳边缘唤出区（那是悬停的几何，退回本机默认的 1% 宽带）',
     decoded.interaction.revealZones.left.width == 1.0,
     '${decoded.interaction.revealZones.left.width}',
@@ -215,8 +232,7 @@ void _touchDevicesKeepTheirOwnGeometry() {
   check(
     '面板操作栏摆放仍然采纳云端（A 机是悬浮+停靠下边）',
     decoded.layout.lanes[LaneId.left]!.panelBar.mode == PanelBarMode.floating &&
-        decoded.layout.lanes[LaneId.left]!.panelBar.dock ==
-            PanelBarDock.bottom,
+        decoded.layout.lanes[LaneId.left]!.panelBar.dock == PanelBarDock.bottom,
   );
   check(
     '卡片记账仍然采纳云端',
@@ -252,7 +268,6 @@ void _touchDevicesKeepTheirOwnGeometry() {
         decoded.interaction.revealZones.left.width == 1.0,
   );
 }
-
 
 // ── 1. 该带走的都带走 ────────────────────────────────────────────────────
 
@@ -292,6 +307,12 @@ void _roundTripKeepsEverything() {
     !decoded.layout.lanes[LaneId.left]!.panelBar.constrained,
   );
   check('solo 取云端', decoded.layout.soloLaneId == LaneId.right);
+  check(
+    'Workhole 档位取云端',
+    decoded.layout.edgeLeftSize == WorkspaceWorkholeSize.takeover &&
+        decoded.layout.edgeRightSize == WorkspaceWorkholeSize.custom,
+  );
+  check('Workhole 自定义宽度取云端', decoded.layout.edgeRightWidth == 513.25);
 
   check(
     '面板位置取云端',

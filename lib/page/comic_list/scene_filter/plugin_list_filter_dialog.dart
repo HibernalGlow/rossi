@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/comic_list/scene_filter/plugin_list_filter_schema.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 
 class PluginListFilterDialog extends StatefulWidget {
   const PluginListFilterDialog({
@@ -28,20 +29,24 @@ class _PluginListFilterDialogState extends State<PluginListFilterDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    // 形态（宽屏托盘卡片 / 窄屏全屏）由推出它的那条路由决定，
+    // 这里只是同一份内容结构 —— 见 `popup_panel.dart` 文件头。
+    return PopupPanel(
       title: Text(
         widget.scheme.title.isNotEmpty
             ? widget.scheme.title
             : t.comicList.filter,
       ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: widget.scheme.fields
-              .map((field) => _buildField(context, field))
-              .toList(),
-        ),
+      // 内容本身不套滚动视图：全屏外壳的正文区已经是滚动视图，套两层
+      // 会让内层拿不到有界高度。要滚就交给 `scrollable`（与
+      // `AlertDialog.scrollable` 同义）。
+      scrollable: true,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: widget.scheme.fields
+            .map((field) => _buildField(context, field))
+            .toList(),
       ),
       actions: [
         TextButton(

@@ -9,6 +9,7 @@ import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_primitiv
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 /// 桌面 NCNN 的模型管理三行：下载 / 手动下载 / 导入。
@@ -115,9 +116,10 @@ class _RealSrModelManagementSectionState
   }
 
   Future<void> _deleteModel() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showPopupPanel<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      presentation: PopupPresentation.modal,
+      builder: (context) => PopupPanel(
         title: Text(t.realSr.deleteModel),
         content: Text(t.realSr.deleteModelConfirm),
         actions: [

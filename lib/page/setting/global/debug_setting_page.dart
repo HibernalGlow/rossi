@@ -11,6 +11,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/src/rust/api/qjs.dart';
 import 'package:zephyr/util/impeller_config.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 @RoutePage()
@@ -162,9 +163,10 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
       trailing: const Icon(Icons.chevron_right),
       onTap: () async {
         var inputValue = logAddress;
-        final result = await showDialog<String>(
+        final result = await showPopupPanel<String>(
+          presentation: PopupPresentation.relative,
           context: context,
-          builder: (context) => AlertDialog(
+          builder: (context) => PopupPanel(
             title: Text(t.settings.logAddress),
             content: TextFormField(
               initialValue: logAddress,

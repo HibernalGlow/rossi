@@ -17,6 +17,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view.dart';
 
 class _Marker extends StatelessWidget {
@@ -201,7 +202,13 @@ void main() {
     expect(sorted, 'source');
 
     // 当前排序列带方向箭头，别的列不带 —— 用户靠它认出现在排的是哪一列。
-    expect(find.byIcon(Icons.arrow_upward_rounded), findsOneWidget);
+    // 表头箭头已换成自绘 `GlyphIcon`，`find.byIcon` 只认 Material `Icon`。
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is GlyphIcon && w.glyph == AppGlyphs.arrowUp,
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('sortable=false 的列表头不接排序', (tester) async {

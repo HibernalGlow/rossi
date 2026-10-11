@@ -9,6 +9,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 @RoutePage()
@@ -56,9 +57,10 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
     List<String> currentArtists,
   ) async {
     final controller = TextEditingController(text: currentArtists.join('\n'));
-    final result = await showDialog<String>(
+    final result = await showPopupPanel<String>(
+      presentation: PopupPresentation.relative,
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => PopupPanel(
         title: Text(t.settings.favoriteArtistBatchImport),
         content: SizedBox(
           width: 480,
@@ -167,9 +169,10 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
   }
 
   Future<void> _confirmClearAll(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showPopupPanel<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      presentation: PopupPresentation.modal,
+      builder: (dialogContext) => PopupPanel(
         title: Text(t.settings.favoriteArtistClear),
         content: Text(t.settings.favoriteArtistClearConfirm),
         actions: [

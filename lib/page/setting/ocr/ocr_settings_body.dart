@@ -14,6 +14,7 @@ import 'package:zephyr/service/ocr/translated_page_display_mode.dart';
 import 'package:zephyr/src/rust/api/ocr.dart';
 import 'package:zephyr/widgets/app_log_dialog.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 /// 漫画翻译（成品页）的**完整**设置正文：端点、推理后端、术语表、权重、缓存、日志。
@@ -142,11 +143,12 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
     bool obscure = false,
     required void Function(String result) apply,
   }) async {
-    final result = await showDialog<String>(
+    final result = await showPopupPanel<String>(
+      presentation: PopupPresentation.relative,
       context: context,
       builder: (context) {
         var input = value;
-        return AlertDialog(
+        return PopupPanel(
           title: Text(label),
           content: SizedBox(
             width: 420,
@@ -210,9 +212,10 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
   }
 
   Future<void> _clearCache() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showPopupPanel<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      presentation: PopupPresentation.modal,
+      builder: (context) => PopupPanel(
         title: Text(t.ocr.clearCache),
         content: Text(t.ocr.clearCacheSubtitle),
         actions: [

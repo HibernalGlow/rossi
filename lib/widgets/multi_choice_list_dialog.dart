@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/type/pipe.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 
 class MultiChoiceDialogOption {
   const MultiChoiceDialogOption({required this.label, required this.value});
@@ -27,12 +28,12 @@ Future<Set<String>?> showMultiChoiceListDialog(
   // 的 controller 没有 ScrollPosition 附着，抛
   // "The Scrollbar's ScrollController has no ScrollPosition attached"。
   final scrollController = ScrollController();
-  return showDialog<Set<String>>(
+  return showPopupPanel<Set<String>>(
     context: context,
     builder: (dialogContext) {
       return StatefulBuilder(
         builder: (context, setState) {
-          return AlertDialog(
+          return PopupPanel(
             title: Text(title),
             content: SizedBox(
               width: width,

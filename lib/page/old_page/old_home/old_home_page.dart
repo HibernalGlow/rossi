@@ -17,6 +17,7 @@ import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_grid.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_mapper.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 @RoutePage()
@@ -250,11 +251,11 @@ class _OldHomePageState extends State<OldHomePage> {
 
     final mediaSize = MediaQuery.sizeOf(context);
     final dialogWidth = (mediaSize.width * 0.9).clamp(280.0, 560.0).toDouble();
-    await showDialog<void>(
+    await showPopupPanel<void>(
+      presentation: PopupPresentation.relative,
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => PopupPanel(
         title: Text(title),
-        contentPadding: const EdgeInsets.only(top: 8),
         content: SizedBox(
           width: dialogWidth,
           height: 320,

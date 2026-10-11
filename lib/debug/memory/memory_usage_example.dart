@@ -3,6 +3,7 @@ import 'package:zephyr/config/global/global.dart';
 import 'package:zephyr/main.dart';
 
 import 'package:zephyr/widgets/memory_monitor_widget.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/debug/memory/memory_monitor.dart';
 
 // 使用示例：如何在你的应用中集成内存监控
@@ -70,9 +71,10 @@ class MemoryUsageExample extends StatelessWidget {
     final memoryInfo = await MemoryMonitor.getMemoryInfo();
 
     if (context.mounted) {
-      showDialog(
+      showPopupPanel(
+        presentation: PopupPresentation.relative,
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (context) => PopupPanel(
           title: const Text('内存使用详情'),
           content: SingleChildScrollView(
             child: Text(

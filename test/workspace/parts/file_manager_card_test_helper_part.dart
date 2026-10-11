@@ -1,4 +1,5 @@
 part of '../file_manager_card_test.dart';
+
 // 打点与
 
 /// 主页不再是独立的 IconButton，而是导航掌里的一片多边形热区。
@@ -10,13 +11,11 @@ Finder _homeRegion() => find.byWidgetPredicate(
   (widget) => widget is Tooltip && (widget.message ?? '').startsWith('主页'),
 );
 
-
 /// 主页热区（掌形下部的梯形）里的一个点：宽度的中间、高度的 85%。
 Offset _homeRegionPoint(WidgetTester tester) {
   final rect = tester.getRect(_homeRegion());
   return Offset(rect.center.dx, rect.top + rect.height * 0.85);
 }
-
 
 Future<void> _tapHomeRegion(WidgetTester tester) async {
   final target = _homeRegion();
@@ -26,7 +25,6 @@ Future<void> _tapHomeRegion(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-
 Future<void> _longPressHomeRegion(WidgetTester tester) async {
   final target = _homeRegion();
   await tester.ensureVisible(target);
@@ -34,7 +32,6 @@ Future<void> _longPressHomeRegion(WidgetTester tester) async {
   await tester.longPressAt(_homeRegionPoint(tester));
   await tester.pumpAndSettle();
 }
-
 
 /// 掌形里某个方向的落点：把归一化坐标映射到掌的矩形上。
 Offset _padPoint(WidgetTester tester, Offset normalized) {
@@ -44,7 +41,6 @@ Offset _padPoint(WidgetTester tester, Offset normalized) {
     rect.top + rect.height * normalized.dy,
   );
 }
-
 
 Future<GlobalSettingCubit> _pumpCard(
   WidgetTester tester, {
@@ -77,11 +73,30 @@ Future<GlobalSettingCubit> _pumpCard(
   return cubit;
 }
 
-
 /// 工具栏横向滚动，窄卡片下「文件树」那颗按钮先要滚进视口才点得到。
 Future<void> _openTree(WidgetTester tester) async {
   final toggle = find.byTooltip('文件树');
   await tester.ensureVisible(toggle);
   await tester.tap(toggle);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _openTabMenu(
+  WidgetTester tester,
+  String title, {
+  bool longPress = false,
+}) async {
+  final tab = find.widgetWithText(InputChip, title);
+  await tester.ensureVisible(tab);
+  await tester.pumpAndSettle();
+  if (longPress) {
+    await tester.longPress(tab);
+  } else {
+    await tester.tap(
+      tab,
+      kind: PointerDeviceKind.mouse,
+      buttons: kSecondaryMouseButton,
+    );
+  }
   await tester.pumpAndSettle();
 }

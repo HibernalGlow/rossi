@@ -6,6 +6,7 @@ import 'package:zephyr/plugin/plugin_registry_service.dart';
 import 'package:zephyr/type/pipe.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 
 class AdvancedSearchDialog extends StatefulWidget {
   final SearchStates initialState;
@@ -32,7 +33,7 @@ class _AdvancedSearchDialogState extends State<AdvancedSearchDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return PopupPanel(
       title: Text(t.search.advancedSearchOptions),
       scrollable: true,
       content: Column(

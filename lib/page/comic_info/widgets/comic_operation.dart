@@ -20,6 +20,7 @@ import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 
 import 'package:zephyr/widgets/dialog.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 class ComicOperationWidget extends StatefulWidget {
@@ -533,10 +534,11 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
   }
 
   Future<bool> _showUncollectConfirmDialog() async {
-    final result = await showDialog<bool>(
+    final result = await showPopupPanel<bool>(
       context: context,
+      presentation: PopupPresentation.modal,
       builder: (dialogContext) {
-        return AlertDialog(
+        return PopupPanel(
           title: Text(t.comicInfo.confirmUncollectTitle),
           content: Text(t.comicInfo.confirmUncollectContent),
           actions: [

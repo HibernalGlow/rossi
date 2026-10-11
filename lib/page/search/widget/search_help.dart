@@ -1,53 +1,46 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 
+/// 搜索语法速查。
+///
+/// 走弹层面板的默认形态（全屏遮罩 + 居中卡片）：这是「看一遍再回来」的须知，
+/// 不是随手用一下的筛选面板，所以它不该从触发处飞出来。
 void showSearchHelp(BuildContext context) {
-  showDialog(
+  showPopupPanel<void>(
     context: context,
-    builder: (ctx) => Center(
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          margin: EdgeInsets.symmetric(horizontal: 24),
-          padding: EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius: BorderRadius.circular(12),
+    builder: (ctx) => PopupPanel(
+      title: Text(t.search.tipsTitle),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildTipCard(
+            title: t.search.exactSearchTitle,
+            example: t.search.exactSearchExample,
+            desc: t.search.exactSearchDesc,
+            color: Colors.blue[100]!,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                t.search.tipsTitle,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 16),
-              _buildTipCard(
-                title: t.search.exactSearchTitle,
-                example: t.search.exactSearchExample,
-                desc: t.search.exactSearchDesc,
-                color: Colors.blue[100]!,
-              ),
-              _buildTipCard(
-                title: t.search.excludeSearchTitle,
-                example: t.search.excludeSearchExample,
-                desc: t.search.excludeSearchDesc,
-                color: Colors.red[100]!,
-              ),
-              _buildTipCard(
-                title: t.search.fuzzySearchTitle,
-                example: t.search.fuzzySearchExample,
-                desc: t.search.fuzzySearchDesc,
-                color: Colors.green[100]!,
-              ),
-            ],
+          _buildTipCard(
+            title: t.search.excludeSearchTitle,
+            example: t.search.excludeSearchExample,
+            desc: t.search.excludeSearchDesc,
+            color: Colors.red[100]!,
           ),
-        ),
+          _buildTipCard(
+            title: t.search.fuzzySearchTitle,
+            example: t.search.fuzzySearchExample,
+            desc: t.search.fuzzySearchDesc,
+            color: Colors.green[100]!,
+          ),
+        ],
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(t.common.gotIt),
+        ),
+      ],
     ),
   );
 }

@@ -202,7 +202,8 @@ class GpuPresentBridge {
     return count;
   }
 
-  /// 呈现第 [index] 页。返回即表示像素已经落在共享纹理里，且引擎已被通知来取。
+  /// 呈现第 [index] 页。返回表示原生输出完成，并已发出或排队安排取帧通知。
+  /// 引擎是否实际取帧须另查 [GpuPresentStats.handleOpened]。
   Future<void> show(int index) async {
     _trace('show-enter idx=$index');
     try {
@@ -386,10 +387,10 @@ class GpuPresentStats {
   /// 我们通知引擎来取帧的次数。
   final int framesMarked;
 
-  /// **引擎打开共享句柄的次数**。
+  /// 引擎打开共享句柄的次数（Windows），或实际取过的不同纹理帧数（macOS）。
   ///
-  /// 这是"链路真的通了"的唯一硬证据：引擎只有确实把这张纹理拿去合成了，
-  /// 才会去打开句柄。`framesMarked` 只说明我们通知了，不说明有人来取。
+  /// `framesMarked` 只说明通知已发出；此处由引擎的取帧回调计数。
+  /// 取帧证明缓冲区交给了引擎，不代表物理屏幕已经完成呈现。
   final int handleOpened;
 
   /// 呈现目标被重建的次数（拖动窗口会增长）。

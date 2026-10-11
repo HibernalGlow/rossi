@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
@@ -283,10 +284,17 @@ ScrollPosition _gridPosition(WidgetTester tester) => tester
     )
     .position;
 
+/// 按 glyph 值找一颗自绘图标（`find.byIcon` 只认 Material `Icon`，换 `GlyphIcon`
+/// 之后旧断言会静默失败）。
+Finder _glyphBadge(Glyph glyph) =>
+    find.byWidgetPredicate((w) => w is GlyphIcon && w.glyph == glyph);
+
 /// 当前页那一行的矩形；这一行没被建出来时直接判定失败（= 它已经不在可视区里）。
 Rect _rowRect(WidgetTester tester, _Probe probe) {
   final Finder badge = switch (probe) {
-    _Probe.compact => find.byIcon(Icons.check_circle_rounded),
+    // 紧凑档的「当前页」徽标已换成自绘 `GlyphIcon`（`AppGlyphs.checkCircle`），
+    // `find.byIcon` 只认 Material `Icon` ⇒ 按 glyph 值认。
+    _Probe.compact => _glyphBadge(AppGlyphs.checkCircle),
     _ => find.text('当前'),
   };
   final Finder row = find.ancestor(

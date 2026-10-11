@@ -94,8 +94,7 @@ class WorkspaceLaneFocusGeometry {
   ///
   /// [keepReaderVisible] 打开时额外约束：Reader 泳道要**留一条窄缝**
   /// （[readerPeekWidth]）在视口里 —— 这样用户点一下那条缝就能回到 solo。
-  /// 它是**在最小移动之上**再叠的一层，所以可能把目标泳道挤出去一点；
-  /// 契约对此的措辞是「where possible」，即缝优先于「完整可见」。
+  /// 仅在目标仍完整可见时保留窄缝；完整显示优先（ADR-0022）。
   double focusOffset({
     required String laneId,
     required double viewportWidth,
@@ -143,12 +142,18 @@ class WorkspaceLaneFocusGeometry {
       );
       final readerStart = start[readerLaneId]!;
       final readerEnd = readerStart + readerWidth;
+      var candidate = target;
       if (readerEnd <= laneStart) {
         // Reader 在左边：偏移不能大到把它整条推出视口。
-        target = math.min(target, readerEnd - peek);
+        candidate = math.min(target, readerEnd - peek);
       } else if (readerStart >= laneEnd) {
         // Reader 在右边：偏移不能小到让它只剩不到一条缝。
-        target = math.max(target, readerStart - (viewportWidth - peek));
+        candidate = math.max(target, readerStart - (viewportWidth - peek));
+      }
+      if (laneWidth <= viewportWidth &&
+          candidate <= laneStart &&
+          laneEnd <= candidate + viewportWidth) {
+        target = candidate;
       }
     }
 

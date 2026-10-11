@@ -87,8 +87,17 @@ class _AppBootstrapViewState extends State<AppBootstrapView> {
     if (mounted) await ensureCompatibleMigration(context);
 
     updateStatus(t.appBootstrap.initializing);
+    // 注册表本身只是从 ObjectBox 读取本地状态，保留在首屏前完成；插件的
+    // QuickJS runtime 与 getInfo 可能触发较慢的初始化/网络请求，放到后台，
+    // 主页先用持久化的 getInfo 缓存绘制，避免每次启动都卡在加载页。
     await PluginRegistryService.I.init();
-    await PluginRegistryService.I.warmupPluginInfos();
+    unawaited(() async {
+      try {
+        await PluginRegistryService.I.warmupPluginInfos();
+      } catch (e, stackTrace) {
+        logger.w('插件信息后台预热失败', error: e, stackTrace: stackTrace);
+      }
+    }());
     PluginCloudUpdateService.I.scheduleSilentCloudUpdate(
       delay: const Duration(minutes: 1),
     );
@@ -104,12 +113,8 @@ class _AppBootstrapViewState extends State<AppBootstrapView> {
       }
     }());
 
+    // 不再人为停留 200ms。加载页已经提供了明确反馈，初始化完成后立即进入主页。
     stopwatch.stop();
-    final int delayTime = (200 - stopwatch.elapsedMilliseconds).clamp(0, 200);
-
-    if (delayTime > 0) {
-      await Future.delayed(Duration(milliseconds: delayTime));
-    }
 
     if (!mounted) return;
 

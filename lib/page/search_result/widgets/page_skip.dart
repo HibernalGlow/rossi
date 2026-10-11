@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 
 Future<int?> showNumberInputDialog({
   required BuildContext context,
@@ -13,14 +14,15 @@ Future<int?> showNumberInputDialog({
   );
   final FocusNode focusNode = FocusNode();
 
-  return showDialog<int?>(
+  return showPopupPanel<int?>(
+    presentation: PopupPresentation.relative,
     context: context,
     builder: (BuildContext innerContext) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         focusNode.requestFocus();
       });
 
-      return AlertDialog(
+      return PopupPanel(
         title: Text(title ?? t.searchResult.enterPageNumber),
         content: TextField(
           focusNode: focusNode,

@@ -12,6 +12,7 @@ import 'package:zephyr/workspace/model/shelf_entry_menu_spec.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/registry/workspace_ids.dart';
 import 'package:zephyr/workspace/service/file_manager_tab_bridge.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 /// 收藏 / 历史卡片右键菜单里那些动作的**落地实现**。
@@ -114,9 +115,10 @@ Future<bool> confirmShelfEntryRemoval(
   required String title,
 }) async {
   final isFavorite = kind == ShelfEntryKind.favorite;
-  final confirmed = await showDialog<bool>(
+  final confirmed = await showPopupPanel<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    presentation: PopupPresentation.modal,
+    builder: (dialogContext) => PopupPanel(
       title: Text(
         isFavorite
             ? t.shelfMenu.removeFavoriteConfirmTitle

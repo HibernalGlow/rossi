@@ -23,6 +23,7 @@ import 'package:zephyr/util/event/webview_observe_bus.dart';
 import 'package:zephyr/util/json/json_value.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/plugin/bridge/plugin_config_bridge.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 @RoutePage()
@@ -527,9 +528,10 @@ class _PluginSettingsPageViewState extends State<_PluginSettingsPageView> {
   }
 
   Future<void> _updatePlugin() async {
-    final choice = await showDialog<String>(
+    final choice = await showPopupPanel<String>(
+      presentation: PopupPresentation.relative,
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => PopupPanel(
         title: Text(t.plugin.updateChooseSource),
         actions: [
           TextButton(
@@ -596,9 +598,10 @@ class _PluginSettingsPageViewState extends State<_PluginSettingsPageView> {
     required String hintText,
   }) {
     final controller = TextEditingController();
-    return showDialog<String>(
+    return showPopupPanel<String>(
+      presentation: PopupPresentation.relative,
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => PopupPanel(
         title: Text(title),
         content: TextField(
           controller: controller,
@@ -658,9 +661,10 @@ class _PluginSettingsPageViewState extends State<_PluginSettingsPageView> {
   }
 
   Future<void> _confirmDeletePlugin() async {
-    final ok = await showDialog<bool>(
+    final ok = await showPopupPanel<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      presentation: PopupPresentation.modal,
+      builder: (context) => PopupPanel(
         title: Text(t.plugin.deletePlugin),
         content: Text(t.plugin.confirmDeletePlugin),
         actions: [

@@ -20,6 +20,7 @@ import 'package:zephyr/service/lifecycle/foreground_task/foreground_task_service
 import 'package:zephyr/util/error_filter.dart';
 import 'package:zephyr/util/macos_activity.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 const _kQjsRuntimeCancelledMessage = '__QJS_RUNTIME_CANCELLED__';
@@ -545,9 +546,10 @@ class DownloadQueueManager {
 
     _failureDialogShowing = true;
     try {
-      final shouldRetry = await showDialog<bool>(
+      final shouldRetry = await showPopupPanel<bool>(
         context: context,
-        builder: (dialogContext) => AlertDialog(
+        presentation: PopupPresentation.modal,
+        builder: (dialogContext) => PopupPanel(
           title: Text(t.download.notificationFailedTitle),
           content: Text(
             t.download.toastDownloadFailed(
