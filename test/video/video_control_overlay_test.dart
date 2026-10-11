@@ -234,9 +234,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip(videoLabels().volume));
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.volume_up));
+    await tester.tap(find.byKey(const ValueKey('video-toggle-mute')));
     await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.volume_off), findsOneWidget);
+    expect(key.currentState!.controller.snapshot.muted, isTrue);
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip(videoLabels().subtitles));

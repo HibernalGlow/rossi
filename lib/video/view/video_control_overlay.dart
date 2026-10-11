@@ -27,6 +27,8 @@ import 'package:zephyr/icons/icons.dart';
 part 'parts/video_overlay_scrub_part.dart';
 // 弹层面板：倍速、音量、字幕、滤镜与滑杆行。
 part 'parts/video_overlay_panels_part.dart';
+part 'parts/video_overlay_toolbar_part.dart';
+part 'parts/video_expressive_track_part.dart';
 
 /// 控制条文案。由上层从 i18n 构造，控件本身不碰 `context.t` ——
 /// 这样这块 UI 可以脱离 App 的本地化管线被测试和预览。
@@ -118,9 +120,7 @@ class _TrackPanel extends StatelessWidget {
               dense: true,
               title: Text(offLabel),
               leading: GlyphIcon(
-                selectedId == null
-                    ? AppGlyphs.radioChecked
-                    : AppGlyphs.ring,
+                selectedId == null ? AppGlyphs.radioChecked : AppGlyphs.ring,
               ),
               onTap: () => onSelected(null),
             ),
@@ -195,6 +195,8 @@ class VideoControlOverlay extends StatelessWidget {
     this.audioOnlyAvailable = true,
     this.progressUpdates = true,
     this.controlUpdates,
+    this.embedded = false,
+    this.onScrubChanged,
   });
 
   final ReaderVideoSnapshot snapshot;
@@ -229,6 +231,9 @@ class VideoControlOverlay extends StatelessWidget {
   /// 非进度状态的通知，打开倍速/音量面板时也不随位置反复刷新。
   final Listenable? controlUpdates;
 
+  final bool embedded;
+  final ValueChanged<bool>? onScrubChanged;
+
   @override
   Widget build(BuildContext context) {
     final transport = controller.transport;
@@ -254,7 +259,9 @@ class VideoControlOverlay extends StatelessWidget {
       bool selected = false,
     }) => MenuItemButton(
       leadingIcon: GlyphIcon(icon),
-      trailingIcon: selected ? const GlyphIcon(AppGlyphs.check, size: 20) : null,
+      trailingIcon: selected
+          ? const GlyphIcon(AppGlyphs.check, size: 20)
+          : null,
       onPressed: action,
       child: Text(label),
     );
@@ -263,7 +270,7 @@ class VideoControlOverlay extends StatelessWidget {
       data: theme.copyWith(
         sliderTheme: theme.sliderTheme.copyWith(
           trackHeight: 8,
-          trackShape: const GappedSliderTrackShape(),
+          trackShape: const _ExpressiveVideoTrackShape(),
           thumbShape: const HandleThumbShape(),
           thumbSize: const WidgetStatePropertyAll(Size(4, 28)),
           trackGap: 4,
@@ -273,8 +280,8 @@ class VideoControlOverlay extends StatelessWidget {
       ),
       child: Material(
         key: const ValueKey('video-controls-surface'),
-        color: colors.surfaceContainerHigh,
-        elevation: 3,
+        color: embedded ? Colors.transparent : colors.surfaceContainerHigh,
+        elevation: embedded ? 0 : 3,
         shadowColor: colors.shadow.withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(24),
         textStyle: theme.textTheme.bodyMedium!.copyWith(
@@ -285,30 +292,32 @@ class VideoControlOverlay extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              _PositionBuilder(
-                controller: controller,
-                initialSnapshot: snapshot,
-                enabled: progressUpdates,
-                builder: (context, current) => RepaintBoundary(
-                  child: _ScrubBar(
-                    snapshot: current,
-                    controller: controller,
-                    framePreview: framePreview,
-                    waveform: waveform,
+              if (!embedded)
+                _PositionBuilder(
+                  controller: controller,
+                  initialSnapshot: snapshot,
+                  enabled: progressUpdates,
+                  builder: (context, current) => RepaintBoundary(
+                    child: _ScrubBar(
+                      snapshot: current,
+                      controller: controller,
+                      framePreview: framePreview,
+                      waveform: waveform,
+                      onScrubChanged: onScrubChanged,
+                    ),
                   ),
                 ),
-              ),
-              Wrap(
-                spacing: 4,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
+              _AdaptiveVideoToolbar(
+                clockText:
+                    '${formatVideoTime(snapshot.duration)} / ${formatVideoTime(snapshot.duration)}',
                 children: <Widget>[
                   IconButton.filled(
                     tooltip: snapshot.playing ? labels.pause : labels.play,
-                    icon: GlyphIcon(
-                      snapshot.playing
-                          ? AppGlyphs.pause
-                          : AppGlyphs.play,
+                    // 词表里早就有 `playPause(t)`：三角形的两条边各自长成一根竖条。
+                    // 原先这一档在两颗图标之间硬切，那个函数全仓没人调用。
+                    icon: MorphingGlyph(
+                      on: snapshot.playing,
+                      builder: AppGlyphs.playPause,
                     ),
                     onPressed: () => controller.togglePlay(),
                   ),
@@ -485,21 +494,28 @@ class VideoControlOverlay extends StatelessWidget {
                             () => controller.setAudioOnly(!snapshot.audioOnly),
                             selected: snapshot.audioOnly,
                           ),
-                        menuAction(
-                          AppGlyphs.pip,
-                          labels.pip,
-                          onTogglePip,
-                        ),
-                        menuAction(
-                          AppGlyphs.info,
-                          labels.info,
-                          onOpenInfo,
-                        ),
+                        menuAction(AppGlyphs.pip, labels.pip, onTogglePip),
+                        menuAction(AppGlyphs.info, labels.info, onOpenInfo),
                       ],
                     ),
                   ),
                 ],
               ),
+              if (embedded)
+                _PositionBuilder(
+                  controller: controller,
+                  initialSnapshot: snapshot,
+                  enabled: progressUpdates,
+                  builder: (context, current) => RepaintBoundary(
+                    child: _ScrubBar(
+                      snapshot: current,
+                      controller: controller,
+                      framePreview: framePreview,
+                      waveform: waveform,
+                      onScrubChanged: onScrubChanged,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -666,7 +682,10 @@ class _TextButtonState extends State<_TextButton> {
             backgroundColor: widget.active || menu.isOpen
                 ? colors.secondaryContainer
                 : Colors.transparent,
-            minimumSize: const Size(48, 40),
+            minimumSize: const Size(48, 48),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
           ),
           child: Tooltip(message: widget.tooltip, child: Text(widget.label)),
         );

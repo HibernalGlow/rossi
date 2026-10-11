@@ -1,4 +1,5 @@
 part of '../video_control_overlay.dart';
+
 // 进度与拖动预览：位置节流构建器、拖动条、进度条与波形、帧预览气泡
 
 /// 播放时进度最多 10 Hz、时钟最多 1 Hz；暂停定位与操作状态改变立即更新。
@@ -71,6 +72,7 @@ class _ScrubBar extends StatefulWidget {
     required this.snapshot,
     required this.controller,
     this.framePreview,
+    this.onScrubChanged,
     this.waveform = VideoWaveformStrip.empty,
   });
 
@@ -78,12 +80,20 @@ class _ScrubBar extends StatefulWidget {
   final ReaderVideoController controller;
   final VideoFramePreviewProvider? framePreview;
   final VideoWaveformStrip waveform;
+  final ValueChanged<bool>? onScrubChanged;
 
   @override
   State<_ScrubBar> createState() => _ScrubBarState();
 }
 
 class _ScrubBarState extends State<_ScrubBar> {
+  bool _scrubbing = false;
+
+  void _setScrubbing(bool value) {
+    _scrubbing = value;
+    widget.onScrubChanged?.call(value);
+  }
+
   Duration? _hoverAt;
   Offset? _hoverLocal;
   VideoFramePreview? _previewFrame;
@@ -96,6 +106,10 @@ class _ScrubBarState extends State<_ScrubBar> {
   @override
   void dispose() {
     _previewDebounce?.cancel();
+    if (_scrubbing) {
+      final callback = widget.onScrubChanged;
+      scheduleMicrotask(() => callback?.call(false));
+    }
     super.dispose();
   }
 
@@ -185,6 +199,7 @@ class _ScrubBarState extends State<_ScrubBar> {
                       chapters: chapters,
                       waveform: widget.waveform,
                       onChanged: widget.controller.seekFraction,
+                      onScrubChanged: _setScrubbing,
                     ),
                   ),
                   if (_hoverAt != null && snapshot.duration > Duration.zero)
@@ -216,12 +231,14 @@ class _ProgressBar extends StatelessWidget {
     required this.snapshot,
     required this.chapters,
     required this.onChanged,
+    this.onScrubChanged,
     this.waveform = VideoWaveformStrip.empty,
   });
 
   final ReaderVideoSnapshot snapshot;
   final List<VideoChapter> chapters;
   final ValueChanged<double> onChanged;
+  final ValueChanged<bool>? onScrubChanged;
   final VideoWaveformStrip waveform;
 
   @override
@@ -280,6 +297,8 @@ class _ProgressBar extends StatelessWidget {
         Slider(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           value: snapshot.progress,
+          onChangeStart: (_) => onScrubChanged?.call(true),
+          onChangeEnd: (_) => onScrubChanged?.call(false),
           onChanged: snapshot.duration > Duration.zero ? onChanged : null,
           semanticFormatterCallback: (value) =>
               formatVideoTime(snapshot.duration * value),

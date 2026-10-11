@@ -31,7 +31,10 @@ import 'package:zephyr/video/subtitle/video_subtitle.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
 import 'package:zephyr/video/view/video_control_overlay.dart';
 import 'package:zephyr/video/view/video_info_sheet.dart';
+import 'package:zephyr/video/view/reader_video_controls_scope.dart';
 import 'package:zephyr/icons/icons.dart';
+
+part 'parts/video_page_controls_part.dart';
 
 /// 一个视频页的取数描述。
 ///
@@ -168,6 +171,8 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
   String? _materializedPath;
   StreamSubscription<String>? _uiSub;
   bool _claimed = false;
+  ReaderVideoControlsScope? _bottomControlsScope;
+  final Object _scrubPanel = Object();
 
   /// 登记成「当前活动视频」，并让 `video` context 进活跃集合。
   void _claimActive() {
@@ -181,6 +186,7 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
   void _releaseInactive() {
     if (!_claimed) return;
     _claimed = false;
+    _bottomControlsScope?.slot.release(this);
     final controller = _controller;
     if (controller != null) ActiveVideoScope.instance.release(controller);
     widget.onActiveChanged?.call(false);
@@ -191,6 +197,10 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
     if (!mounted) return;
     switch (actionId) {
       case BindingVideoAction.toggleControls:
+        if (widget.active && _bottomControlsScope?.enabled == true) {
+          _bottomControlsScope!.onToggleControls();
+          return;
+        }
         setState(() => _controlsVisible = !_controlsVisible);
         if (_controlsVisible) _armHideTimer();
       case BindingVideoAction.toggleFullscreen:
@@ -208,6 +218,16 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _resetForNewTarget();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final scope = ReaderVideoControlsScope.of(context);
+    if (_bottomControlsScope?.slot != scope?.slot) {
+      _bottomControlsScope?.slot.release(this);
+    }
+    _bottomControlsScope = scope;
   }
 
   @override
@@ -553,13 +573,6 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
     if (mounted) setState(() {});
   }
 
-  void _togglePin() {
-    setState(() => _pinned = !_pinned);
-    // 取消固定、关弹层、恢复播放都必须重新计时，不能依赖下一次鼠标移动。
-    _revealControls();
-    unawaited(_persistPinned(_pinned));
-  }
-
   void _armHideTimer() {
     _hideTimer?.cancel();
     if (!mounted ||
@@ -595,6 +608,7 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
   @override
   void dispose() {
     ++_generation;
+    _bottomControlsScope?.slot.release(this);
     _hideTimer?.cancel();
     _panelsOpen.removeListener(_onPanelsChanged);
     _panelsOpen.dispose();
@@ -615,16 +629,6 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
       await transport?.close();
     }());
     super.dispose();
-  }
-
-  Future<void> _persistPinned(bool value) async {
-    final store = VideoSettingsStore.instance;
-    await store.save((await store.load()).copyWith(controlsPinned: value));
-  }
-
-  Future<void> _persistSubtitleStyle(VideoSubtitleStyle style) async {
-    final store = VideoSettingsStore.instance;
-    await store.save((await store.load()).copyWith(subtitleStyle: style));
   }
 
   Future<void> _showInfo() async {
@@ -766,126 +770,5 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
   }
 
   @override
-  Widget build(BuildContext context) {
-    final controller = _controller;
-    final transport = _transport;
-    if (_error != null) {
-      return ColoredBox(
-        color: Colors.black,
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(
-              _error!,
-              style: const TextStyle(color: Colors.white70),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ),
-      );
-    }
-    if (controller == null || transport == null) {
-      return const ColoredBox(
-        color: Colors.black,
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    return Listener(
-      onPointerDown: (_) => _revealControls(),
-      child: ColoredBox(
-        color: Colors.black,
-        child: MouseRegion(
-          onHover: (_) => _revealControls(),
-          child: ListenableBuilder(
-            listenable: _controlsState,
-            // 位置更新不重建画面、按钮与菜单，只刷新控制条里的进度和时间。
-            child: _videoBody(transport),
-            builder: (context, videoBody) {
-              final snapshot = controller.snapshot;
-              final showControls =
-                  _controlsVisible ||
-                  !snapshot.playing ||
-                  _pinned ||
-                  _panelsOpen.value;
-              return Stack(
-                fit: StackFit.expand,
-                children: <Widget>[
-                  if (!_pip) videoBody!,
-                  if (snapshot.phase == VideoEnginePhase.prerolling &&
-                      snapshot.duration <= Duration.zero)
-                    const Center(child: CircularProgressIndicator()),
-                  if (snapshot.phase == VideoEnginePhase.failed)
-                    ColoredBox(
-                      color: Colors.black,
-                      child: Center(
-                        child: Text(
-                          snapshot.failureReason ?? t.video.cannotPlay,
-                          style: const TextStyle(color: Colors.white70),
-                        ),
-                      ),
-                    ),
-                  Positioned(
-                    left: 12,
-                    right: 12,
-                    bottom: 12,
-                    child: IgnorePointer(
-                      ignoring: !showControls,
-                      child: ExcludeFocus(
-                        excluding: !showControls,
-                        child: AnimatedOpacity(
-                          key: const ValueKey('video-controls-visibility'),
-                          opacity: showControls ? 1 : 0,
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeOutCubic,
-                          child: Align(
-                            alignment: Alignment.bottomCenter,
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 1080),
-                              child: VideoControlOverlay(
-                                snapshot: snapshot,
-                                progressUpdates: showControls,
-                                controlUpdates: _controlsState,
-                                controller: controller,
-                                labels: widget.labels,
-                                pinned: _pinned,
-                                panelsOpen: _panelsOpen,
-                                framePreview: _preview,
-                                filter: _filter,
-                                subtitleStyle: _subtitleStyle,
-                                onFilterChanged: (next) {
-                                  setState(() => _filter = next);
-                                  transport.setFilter(next);
-                                },
-                                onSubtitleStyleChanged: (next) {
-                                  setState(() => _subtitleStyle = next);
-                                  transport.setSubtitleStyle(next);
-                                  // 字号/颜色/位置是「读下一本也想保持」的偏好，上游同样持久化。
-                                  unawaited(_persistSubtitleStyle(next));
-                                },
-                                onTogglePin: _togglePin,
-                                onScreenshot: _screenshot,
-                                onFullscreen: widget.onFullscreen,
-                                onTogglePip: () => setState(() => _pip = !_pip),
-                                onOpenInfo: _showInfo,
-                                extraSubtitleTracks: _subtitleOptions,
-                                onSubtitleSelected: _chooseSubtitle,
-                                waveform: _waveform,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  if (_pip) videoBody!,
-                ],
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => _buildVideoPage(context);
 }
