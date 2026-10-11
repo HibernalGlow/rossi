@@ -304,12 +304,32 @@ jobs:
           $fwd = $pcdir -replace '\\', '/'
           $toml = '[env]' + "`n" + 'PKG_CONFIG_PATH = { value = "' + $fwd + '", force = false }' + "`n"
           [IO.File]::WriteAllText((Join-Path (Get-Location) '.cargo/config.toml'), $toml)
+          # 光有 [env] 段不够：windows/runner/CMakeLists.txt 用 `cmake -E env` 单独调 cargo 编
+          # rossi_gpu_present.dll，而 cargo 的 [env] 是按**当前工作目录**向上找配置的 —— 那次调用的
+          # cwd 是构建目录，够不到仓库根这份 config.toml（该文件 126-133 行自己写明了这点）。
+          # 它只在 ENV{PKG_CONFIG_PATH} 存在时才把变量递给 cargo，所以这里必须同时把它放进作业环境，
+          # 否则 local_core 的 dav1d-sys 找不到 pkg-config，cargo 以 101 退出且 MSBuild 不给输出。
+          Add-Content -Path $env:GITHUB_ENV -Value "PKG_CONFIG_PATH=$fwd"
           $dll = Get-ChildItem -Path $installed -Filter dav1d.dll -Recurse -ErrorAction SilentlyContinue |
                  Where-Object { $_.Directory.Name -eq 'bin' } |
                  Select-Object -First 1 -ExpandProperty FullName
           if ($dll) { Add-Content -Path $env:GITHUB_ENV -Value "DAV1D_DLL=$dll" }
           else { "::warning::未找到 dav1d.dll —— 产物会缺 AVIF 运行时依赖（构建本身不受影响）" }
           "::notice::PKG_CONFIG_PATH=$fwd / PKG_CONFIG=$pkgconfig / DAV1D_DLL=$dll"
+
+      - name: 预编 rust/gpu_present（把 cargo 的真实报错放到日志上）
+        shell: pwsh
+        run: |
+          # windows/runner/CMakeLists.txt 用 `cmake -E env` 调 cargo 编 rossi_gpu_present.dll；
+          # 它失败时 MSBuild 只报 MSB8066 退出码 101，cargo 自己的输出一个字都不出现
+          # （该文件 118-133 行把这个指纹写得很清楚）。这里按同一套环境变量直接跑 cargo，
+          # 产物落点也和 CMake 一致（<crate>/target），这样要么看见真错误，
+          # 要么让那条自定义命令本来就是 up-to-date。
+          $env:CARGO_TARGET_DIR = (Resolve-Path '.').Path + '\rust\gpu_present\target'
+          cargo build --release --manifest-path rust/gpu_present/Cargo.toml
+          if ($LASTEXITCODE -ne 0) { "::error::cargo 预编 gpu_present 失败，退出码 $LASTEXITCODE"; exit 1 }
+          Get-ChildItem "$env:CARGO_TARGET_DIR\release\rossi_gpu_present.dll" -ErrorAction SilentlyContinue |
+            Select-Object -ExpandProperty FullName
 
       - name: 运行 Windows 构建脚本
         run: |
@@ -479,6 +499,22 @@ jobs:
         run: |
           export PATH="$CARGO_HOME/bin:$PATH"
           rustup toolchain list
+          # 镜像默认 Xcode 比本机低一档：coreml_upscale 里 Float16(...)/dataType 比较这类写法
+          # 在 Xcode 26.3 + macOS 26.2 SDK 上报 "argument passed to call that takes no arguments"
+          # 并连带崩掉类型推断，而本机 Xcode 27 编得过（同一份源码）。
+          # Flutter 只读 `xcode-select --print-path`、不读 DEVELOPER_DIR，所以这里必须真的切过去。
+          BEST_DIR=""; BEST_VER=""
+          for X in /Applications/Xcode*.app; do
+            V=$(DEVELOPER_DIR="$X/Contents/Developer" xcodebuild -version 2>/dev/null | awk 'NR==1{print $2}')
+            [ -z "$V" ] && continue
+            if [ -z "$BEST_VER" ] || [ "$(printf '%s\n%s\n' "$BEST_VER" "$V" | sort -V | tail -1)" = "$V" ]; then
+              BEST_VER="$V"; BEST_DIR="$X"
+            fi
+          done
+          echo "[rossi-macos] Xcode 候选: $(ls -d /Applications/Xcode*.app | tr '\n' ' ') | 选中: ${BEST_DIR:-无} (${BEST_VER:-未知})"
+          if [ -n "$BEST_DIR" ]; then sudo xcode-select -s "$BEST_DIR/Contents/Developer"; fi
+          xcode-select -p
+          xcodebuild -version
           rm -rf build/macos dist/macos
           mkdir -p dist/macos
           fvm flutter build macos --release --split-debug-info="build/symbols/macos-${{ matrix.arch }}"
