@@ -301,9 +301,20 @@ jobs:
           if (Test-Path $scripts) { Add-Content -Path $env:GITHUB_PATH -Value $scripts }
           "::notice::nasm=$nasmDir scripts=$scripts meson=$((Get-Command meson -ErrorAction SilentlyContinue).Source) ninja=$((Get-Command ninja -ErrorAction SilentlyContinue).Source)"
           $installed = Join-Path $vcpkg 'installed'
-          $pcdir = Get-ChildItem -Path $installed -Filter dav1d.pc -Recurse -ErrorAction SilentlyContinue |
+          # 必须优先 release：vcpkg 会把 dav1d.pc 同时放进 lib/pkgconfig 与 debug/lib/pkgconfig，
+          # 早期版本这里用 -Recurse 取第一个命中，拿到了 debug 那份 ⇒ pkg-config 探不到可用库，
+          # system-deps 于是回退去跑 meson（本机文档记过 meson 探测 MSVC 也会断）。
+          $pcs = @(Get-ChildItem -Path $installed -Filter dav1d.pc -Recurse -ErrorAction SilentlyContinue |
                    Where-Object { $_.Directory.Name -eq 'pkgconfig' } |
-                   Select-Object -First 1 -ExpandProperty DirectoryName
+                   Select-Object -ExpandProperty DirectoryName)
+          $pcdir = @($pcs | Where-Object { $_ -notmatch '\\debug\\' })[0]
+          if (-not $pcdir) { $pcdir = $pcs[0] }
+          if (-not $pcdir) {
+            "::error::装完 dav1d 仍找不到 dav1d.pc，当前 .pc 落点："
+            Get-ChildItem -Path $installed -Filter '*.pc' -Recurse -ErrorAction SilentlyContinue |
+              Select-Object -First 20 -ExpandProperty FullName
+            exit 1
+          }
           if (-not $pcdir) {
             "::error::装完 dav1d 仍找不到 dav1d.pc，当前 .pc 落点："
             Get-ChildItem -Path $installed -Filter '*.pc' -Recurse -ErrorAction SilentlyContinue |
@@ -323,9 +334,11 @@ jobs:
           # 它只在 ENV{PKG_CONFIG_PATH} 存在时才把变量递给 cargo，所以这里必须同时把它放进作业环境，
           # 否则 local_core 的 dav1d-sys 找不到 pkg-config，cargo 以 101 退出且 MSBuild 不给输出。
           Add-Content -Path $env:GITHUB_ENV -Value "PKG_CONFIG_PATH=$fwd"
-          $dll = Get-ChildItem -Path $installed -Filter dav1d.dll -Recurse -ErrorAction SilentlyContinue |
-                 Where-Object { $_.Directory.Name -eq 'bin' } |
-                 Select-Object -First 1 -ExpandProperty FullName
+          $dlls = @(Get-ChildItem -Path $installed -Filter dav1d.dll -Recurse -ErrorAction SilentlyContinue |
+                   Where-Object { $_.Directory.Name -eq 'bin' } |
+                   Select-Object -ExpandProperty FullName)
+          $dll = @($dlls | Where-Object { $_ -notmatch '\\debug\\' })[0]
+          if (-not $dll) { $dll = $dlls[0] }
           if ($dll) { Add-Content -Path $env:GITHUB_ENV -Value "DAV1D_DLL=$dll" }
           else { "::warning::未找到 dav1d.dll —— 产物会缺 AVIF 运行时依赖（构建本身不受影响）" }
           "::notice::PKG_CONFIG_PATH=$fwd / PKG_CONFIG=$pkgconfig / DAV1D_DLL=$dll"
@@ -533,6 +546,15 @@ jobs:
             -import-objc-header /dev/null \
             packages/coreml_upscale/macos/Classes/*.swift 2>&1 | head -80
           echo "[rossi-diag] exit=$?"
+
+      - name: 准备 dav1d 与 pkg-config（macOS 原生资产前置）
+        run: |
+          # 干净 runner 上没有 dav1d ⇒ dav1d-sys 探不到库就回退 meson，
+          # 表现为 "failed to run custom build command for dav1d-sys v0.8.3"（本机装了 brew dav1d 所以编得过）。
+          brew install dav1d pkg-config
+          BP="$(brew --prefix)"
+          echo "PKG_CONFIG_PATH=$BP/lib/pkgconfig:$BP/opt/dav1d/lib/pkgconfig" >> "$GITHUB_ENV"
+          echo "[rossi-macos] brew prefix=$BP dav1d=$(brew --prefix dav1d 2>/dev/null) pc文件=$(ls "$BP"/opt/dav1d/lib/pkgconfig/dav1d.pc 2>/dev/null || ls "$BP"/lib/pkgconfig/dav1d.pc 2>/dev/null || echo 缺)"
 
       - name: 编译 macOS 产物
         run: |
