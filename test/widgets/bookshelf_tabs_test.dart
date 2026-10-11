@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:zephyr/page/bookshelf/widgets/bookshelf_tabs.dart';
+import 'package:zephyr/widgets/navigation/panel_switcher_tabs.dart';
 import 'package:zephyr/widgets/motion/action_bubble.dart';
 import 'package:zephyr/widgets/spring_lens/spring_lens_bar.dart';
 
@@ -14,8 +14,12 @@ void main() {
           body: Center(
             child: StatefulBuilder(
               builder: (context, setState) => ActionBubbleRegion(
-                child: BookshelfTabs(
-                  labels: const ['收藏', '历史', '下载'],
+                child: PanelSwitcherTabs(
+                  items: const [
+                    PanelSwitcherItem(label: '收藏'),
+                    PanelSwitcherItem(label: '历史'),
+                    PanelSwitcherItem(label: '下载'),
+                  ],
                   selectedIndex: selected,
                   onSelected: (value) => setState(() => selected = value),
                 ),

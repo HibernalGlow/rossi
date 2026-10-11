@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/bookshelf/widgets/bookshelf_panels.dart';
-import 'package:zephyr/page/bookshelf/widgets/bookshelf_tabs.dart';
+import 'package:zephyr/widgets/navigation/panel_switcher_tabs.dart';
 import 'package:zephyr/widgets/motion/retained_panel_switcher.dart';
 
 class _ShelfProbe extends StatefulWidget {
@@ -42,8 +42,12 @@ void main() {
               update = setState;
               return Column(
                 children: [
-                  BookshelfTabs(
-                    labels: const ['收藏', '历史', '下载'],
+                  PanelSwitcherTabs(
+                    items: const [
+                      PanelSwitcherItem(label: '收藏'),
+                      PanelSwitcherItem(label: '历史'),
+                      PanelSwitcherItem(label: '下载'),
+                    ],
                     selectedIndex: selected,
                     onSelected: (value) => setState(() => selected = value),
                   ),
