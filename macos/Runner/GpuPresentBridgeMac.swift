@@ -149,7 +149,7 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
         fnDestroy = unsafeBitCast(dlsym(h, "rossi_gpu_present_destroy"), to: FnDestroy?.self)
     }
 
-    private var framesMarked: Int = 0
+    private let frameTracker = GpuPresentFrameTracker()
     private var currentPageCount: Int = 0
     private var currentDisplayedIndex: UInt32?
 
@@ -158,6 +158,7 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
         bufferLock.lock()
         defer { bufferLock.unlock() }
         guard let buffer = currentPixelBuffer else { return nil }
+        frameTracker.acquire(at: DispatchTime.now().uptimeNanoseconds)
         return Unmanaged.passRetained(buffer)
     }
 
@@ -417,6 +418,7 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
 
         let width = targetWidth
         let height = targetHeight
+        let requestedAt = DispatchTime.now().uptimeNanoseconds
 
         workerQueue.async(kind: .display) { [weak self] waitMs in
             guard let self = self, !self.isDisposed else { return }
@@ -447,16 +449,19 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
                 self.bufferLock.lock()
                 self.currentPixelBuffer = buffer
                 self.currentDisplayedIndex = index
+                let serial = self.frameTracker.publish(
+                    index: index, requestedAt: requestedAt,
+                    at: DispatchTime.now().uptimeNanoseconds
+                )
                 self.bufferLock.unlock()
-
-                self.framesMarked += 1
-                NSLog("[GpuPresentBridgeMac] handleShow 成功 index=\(index), framesMarked=\(self.framesMarked)")
 
                 // 通知 Flutter 引擎新帧到达（必须在主线程调度，确保事件泵送与 Metal 视图重绘）
                 if self.textureId >= 0 {
                     let tid = self.textureId
                     DispatchQueue.main.async {
-                        self.textureRegistry?.textureFrameAvailable(tid)
+                        guard !self.isDisposed, let registry = self.textureRegistry,
+                              self.frameTracker.notify(serial: serial, at: DispatchTime.now().uptimeNanoseconds) else { return }
+                        registry.textureFrameAvailable(tid)
                     }
                 }
 
@@ -559,8 +564,9 @@ class GpuPresentBridgeMac: NSObject, FlutterTexture {
                 "height": self.targetHeight,
                 "adapter": "Apple Silicon (Metal UMA)",
                 "luidKnown": true,
-                "framesMarked": self.framesMarked,
-                "handleOpened": self.framesMarked,
+                "framesMarked": frameStats["framesMarked"] ?? 0,
+                // 与 Windows 字段兼容；macOS 统计被引擎实际取过的不同帧。
+                "handleOpened": frameStats["textureFramesAcquired"] ?? 0,
                 "resizes": 0,
                 "pageCount": self.currentPageCount,
                 "showAsync": true,
