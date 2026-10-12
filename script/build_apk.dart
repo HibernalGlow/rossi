@@ -229,15 +229,18 @@ Future<void> main(List<String> args) async {
     _printColor('工作目录: $projectRoot', _yellow);
 
     if (isDebugMode) {
-      _printColor('\n⚡ 启动快速调试构建 (仅限 arm64 & x64)...', _magenta);
+      _printColor('\n⚡ 启动快速调试构建 (仅限 arm64)...', _magenta);
 
+      // 只出 arm64：ort-sys 2.0.0-rc.13 没有 x86_64-linux-android 的 ONNX Runtime 预编译产物
+      // （CI 实测 `no prebuilt binaries available for target x86_64-linux-android`），
+      // 带上 android-x64 会让整条 native-assets 链路在编 windcore 时直接失败。
       exitCode = await _runCommand(
         flutterExecutable,
         [
           'build',
           'apk',
           '--debug',
-          '--target-platform=android-arm64,android-x64',
+          '--target-platform=android-arm64',
           '--dart-define=sentry_dsn=$sentryDsn',
         ],
         workingDirectory: projectRoot,
@@ -245,7 +248,7 @@ Future<void> main(List<String> args) async {
       );
 
       if (exitCode == 0) {
-        _printColor('\n✅ Debug 构建成功 (arm64/x64)！', _green);
+        _printColor('\n✅ Debug 构建成功 (arm64)！', _green);
       } else {
         _printColor('\n❌ Debug 构建失败，请检查 Rust 代码错误。', _red);
       }
