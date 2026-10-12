@@ -118,6 +118,11 @@ install(DIRECTORY "${NATIVE_ASSETS_DIR}"
 if(NOT DAV1D_DLL)
   set(DAV1D_DLL "$ENV{DAV1D_DLL}")
 endif()
+# 环境变量给的是反斜杠路径（CI 里 DAV1D_DLL=C:\vcpkg\installed\x64-windows\bin\dav1d.dll），
+# 而 install(FILES) 会把它原样抄进生成的 cmake_install.cmake —— `\v` 当场是非法转义。
+# 实测：cmake_install.cmake:414 报 "Invalid escape sequence \v"，宽松的 CMake 只给
+# warning（诊断步骤里同一条命令重跑 rc=0），构建用的 VS CMake 4.3 直接把 INSTALL 弄成 exit 1。
+file(TO_CMAKE_PATH "${DAV1D_DLL}" DAV1D_DLL)
 if(DAV1D_DLL AND EXISTS "${DAV1D_DLL}")
   message(STATUS "dav1d: 随包安装 ${DAV1D_DLL}")
   install(FILES "${DAV1D_DLL}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
