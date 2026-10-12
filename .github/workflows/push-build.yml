@@ -593,12 +593,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # 只有 arm64：GitHub 已不再提供 Intel 机器，标签 macos-15-intel 实际解析到 arm64 的
+          # macos-15 镜像（job 日志自报 Image: macos-15），钩子于是按宿主要 aarch64-apple-darwin，
+          # 而 rustup host 是 x86_64 —— pkg-config 面对真交叉合法拒答，dav1d-sys 直接 panic。
+          # 出货的 release.yml 本来就只有一个 macos-latest 任务、没有 x64 腿，这里与它对齐。
           - arch: arm64
             runner: macos-15
             rust_target: aarch64-apple-darwin
-          - arch: x64
-            runner: macos-15-intel
-            rust_target: x86_64-apple-darwin
     runs-on: ${{ matrix.runner }}
     env:
       CARGO_HOME: ${{ github.workspace }}/.cargo
