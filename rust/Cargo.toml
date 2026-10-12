@@ -101,7 +101,6 @@ terminal_size = "0.4.4"
 # 系统已安装字体家族枚举（字体设置页「系统已装字体」档的选择器数据源）。
 # 按目标平台走原生字体库：macOS/iOS = CoreText，Windows = DirectWrite，Linux = fontconfig。
 # 只开 `source`（枚举），不拉 freetype loader，省掉 Linux 构建的 freetype 依赖。
-font-kit = { version = "0.14", default-features = false, features = ["source"] }
 ferrous-opencc = { version = "0.4.0", features = ["japanese-conversion"] }
 brotli = "8.0.4"
 sevenz-rust = "0.6.1"
@@ -115,6 +114,12 @@ xxhash-rust = { version = "0.8.15", features = ["xxh3"] }
 # Neural Engine + GPU），其他平台回退到 ONNX Runtime CPU。
 # `coreml` 的按目标拆分见下方两个 `[target.*]` 段。
 ndarray = "0.17"
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+# 安卓不用 font-kit：它在 Rust 里同为 target_os="linux"，会去要 bionic 根本不存在的
+# fontconfig（CI 上的表现是 dav1d 修好之后改红在 yeslogic-fontconfig-sys 的 build script）。
+# 安卓走下面的目录扫描，见 rust/src/api/font.rs 的模块注释。
+font-kit = { version = "0.14", default-features = false, features = ["source"] }
 
 [dev-dependencies]
 # 只给 `api::local` 的会话层测试造 CBZ 夹具用。
