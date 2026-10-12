@@ -43,12 +43,25 @@ jobs:
           sudo apt-get install -y llvm-dev libclang-dev clang
 
       - name: 解密敏感文件 (git-crypt)
+        id: crypt
         env:
           GIT_CRYPT_KEY: ${{ secrets.GIT_CRYPT_KEY }}
         run: |
+          # release 的 keyAlias/keyPassword/storeFile/storePassword 全在 android/key.properties 里，
+          # 而它在本仓是 git-crypt 密文（头 10 字节 \0GITCRYPT\0）；没有 GIT_CRYPT_KEY 就签不出 release 包。
+          # 没有钥匙时明确降级为 debug 构建（debug 用 SDK 自带 debug keystore，不需要钥匙），
+          # 并把 flavor 写进产物名 —— 绝不拿 debug 包冒充正式包。
+          if [ -z "$GIT_CRYPT_KEY" ]; then
+            echo "::warning::未配置 GIT_CRYPT_KEY，本次安卓改出 debug 签名包（不可用于覆盖升级正式版）"
+            echo "android_flavor=debug" >> "$GITHUB_OUTPUT"
+            echo "ANDROID_FLAVOR=debug" >> "$GITHUB_ENV"
+            exit 0
+          fi
           sudo apt-get update && sudo apt-get install -y git-crypt
           echo "$GIT_CRYPT_KEY" | base64 -d > ./git-crypt-key
           git-crypt unlock ./git-crypt-key && rm ./git-crypt-key
+          echo "android_flavor=release" >> "$GITHUB_OUTPUT"
+          echo "ANDROID_FLAVOR=release" >> "$GITHUB_ENV"
 
       - name: 设置 Java 21 & SDK
         uses: actions/setup-java@v5
@@ -147,15 +160,19 @@ jobs:
 
       - name: 运行 Android 构建脚本
         run: |
-          fvm dart ./script/build_apk.dart
+          # build_apk.dart 无参数=release 分 ABI；带任意参数=debug（--target-platform=android-arm64,android-x64）
+          if [ "${ANDROID_FLAVOR:-release}" = debug ]; then
+            fvm dart ./script/build_apk.dart debug
+          else
+            fvm dart ./script/build_apk.dart
+          fi
 
       - name: 上传 Android 产物
         uses: actions/upload-artifact@v6
         with:
-          name: android-apks
+          name: android-apks-${{ env.ANDROID_FLAVOR || 'release' }}
           path: |
-            build/app/outputs/flutter-apk/*.apk
-            build/app/outputs/apk/skia/*.apk
+            build/app/outputs/**/*.apk
 
   # ══════════════════════════════════════════
   # 2. Linux 构建
