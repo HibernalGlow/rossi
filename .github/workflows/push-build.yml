@@ -158,6 +158,70 @@ jobs:
         run: |
           python3 script/build_waifu2x_cli_android.py
 
+      - name: 准备 Android dav1d 交叉静态库
+        run: |
+          # 依据 docs/android-build.md §2/§2.1 与 third_party/build_dav1d_android.sh 的配方（那份脚本写死了
+          # 本机 macOS 路径，CI 用不了）。要点三条：
+          #  1. dav1d-sys 的兜底是「clone + meson setup（不带 cross file）」，会编出宿主架构的 .a，
+          #     staticlib 不解析符号，要到最终链接才炸 ⇒ 必须自己用 NDK clang 的 cross file 编；
+          #  2. 装进 third_party/android_sysroot/<triple>/{lib,include}，hook/build.dart 看到
+          #     lib/pkgconfig 就会自己设 PKG_CONFIG_LIBDIR/PATH/ALLOW_CROSS（PKG_CONFIG_PATH 不够，
+          #     它是追加，宿主那份 .pc 仍会被命中）；
+          #  3. bionic 没有 libpthread.so，ort-sys 却发 -lpthread ⇒ 在自己的 sysroot 里放链接脚本。
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq meson ninja-build nasm pkg-config
+          NDK_VER=$(grep "ndkVersion" android/app/build.gradle.kts | awk -F'"' '{print $2}')
+          NDK="$ANDROID_HOME/ndk/$NDK_VER"
+          BIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          [ -d "$BIN" ] || { echo "::error::找不到 NDK 工具链目录 $BIN"; exit 1; }
+          SRC="$PWD/third_party/dav1d-src"
+          if [ ! -d "$SRC/.git" ]; then
+            git clone --depth 1 -b 1.5.0 https://code.videolan.org/videolan/dav1d.git "$SRC"
+          fi
+          for T in aarch64-linux-android x86_64-linux-android; do
+            case "$T" in
+              aarch64-linux-android) FAM=aarch64; CPU=aarch64 ;;
+              x86_64-linux-android)  FAM=x86_64; CPU=x86_64 ;;
+            esac
+            PREFIX="$PWD/third_party/android_sysroot/$T"
+            INI="$PWD/third_party/meson-android-$FAM.ini"
+            cat > "$INI" <<EOF
+          [binaries]
+          c = '$BIN/${T}21-clang'
+          cpp = '$BIN/${T}21-clang++'
+          ar = '$BIN/llvm-ar'
+          strip = '$BIN/llvm-strip'
+          ranlib = '$BIN/llvm-ranlib'
+          pkgconfig = 'pkg-config'
+
+          [properties]
+          sys_root = '$BIN/../sysroot'
+          needs_exe_wrapper = true
+
+          [host_machine]
+          system = 'android'
+          cpu_family = '$FAM'
+          cpu = '$CPU'
+          endian = 'little'
+          EOF
+            rm -rf "$SRC/build-cross-$FAM" "$PREFIX"
+            meson setup "$SRC/build-cross-$FAM" "$SRC" \
+              --cross-file "$INI" \
+              --prefix "$PREFIX" \
+              --libdir lib \
+              --default-library=static \
+              -Denable_tests=false -Denable_examples=false -Denable_tools=false \
+              -Dbitdepths="['8', '16']"
+            ninja -C "$SRC/build-cross-$FAM"
+            ninja -C "$SRC/build-cross-$FAM" install
+            printf 'INPUT(-lc)\n' > "$PREFIX/lib/libpthread.so"
+            echo "== $T =="
+            find "$PREFIX" -name '*.pc' -o -name '*.a' | sort
+            "$BIN/llvm-readelf" -h "$PREFIX/lib/libdav1d.a" 2>/dev/null | head -3 || true
+            PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig" pkg-config --modversion --define-prefix dav1d || true
+          done
+
       - name: 运行 Android 构建脚本
         run: |
           # build_apk.dart 无参数=release 分 ABI；带任意参数=debug（--target-platform=android-arm64,android-x64）
