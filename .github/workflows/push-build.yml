@@ -464,6 +464,47 @@ jobs:
           fvm flutter pub get
           fvm dart ./script/build_windows.dart
 
+      # flutter build windows 失败在 INSTALL.vcxproj 时，MSBuild 只把整条命令回显出来，
+      # cmake_install.cmake 真正的报错（哪一行、拷不到哪个文件）被吞掉，日志里查不到原因。
+      # 这里在失败后把同一件事直接跑一遍，让 cmake 自己把话说完整。
+      - name: 诊断 cmake install 的真实报错（构建失败时）
+        if: failure()
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $root = Join-Path $env:GITHUB_WORKSPACE 'build\windows\x64'
+          if (-not (Test-Path $root)) { Write-Host "::error::没有 $root（没走到 CMake 生成阶段）"; exit 0 }
+          Write-Host "=== 可疑的安装来源是否存在 ==="
+          foreach ($p in @(
+              (Join-Path $root 'native_assets\windows'),
+              (Join-Path $root 'flutter_assets'),
+              (Join-Path $root 'runner\Release'))) {
+            if (Test-Path $p) {
+              Write-Host "EXIST $p  条目数=$((Get-ChildItem -Recurse -File -ErrorAction SilentlyContinue $p).Count)"
+            } else {
+              Write-Host "MISSING $p"
+            }
+          }
+          Write-Host "=== CMakeCache 里与 install 相关的键 ==="
+          Select-String -Path (Join-Path $root 'CMakeCache.txt') `
+            -Pattern 'AOT_LIBRARY|NATIVE_ASSETS|DAV1D|CMAKE_INSTALL_PREFIX|FLUTTER_LIBRARY|BUILD_TYPE' `
+            -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_.Line }
+          $cmake = (Get-Command cmake -ErrorAction SilentlyContinue).Source
+          if (-not $cmake) {
+            $cmake = 'C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe'
+          }
+          Write-Host "=== 用 cmake=$cmake 直接重跑 install ==="
+          Push-Location $root
+          & $cmake -DBUILD_TYPE=Release -P cmake_install.cmake 2>&1 | ForEach-Object { Write-Host $_ }
+          Write-Host "CMAKE_INSTALL_RC=$LASTEXITCODE"
+          # 报错会给出行号，这里把脚本连行号一起打出来，行号就能直接对上内容。
+          Write-Host "=== cmake_install.cmake（带行号） ==="
+          Select-String -Path (Join-Path $root 'cmake_install.cmake') -Pattern '.' `
+            -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "$($_.LineNumber): $($_.Line)" }
+          Write-Host "=== native_assets 目录实际内容 ==="
+          Get-ChildItem -Recurse -File (Join-Path $root 'native_assets') -ErrorAction SilentlyContinue |
+            ForEach-Object { Write-Host $_.FullName }
+          Pop-Location
+
       - name: 上传 Windows 产物
         uses: actions/upload-artifact@v6
         with:
