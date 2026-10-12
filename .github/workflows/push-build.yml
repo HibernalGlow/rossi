@@ -488,7 +488,16 @@ jobs:
           Select-String -Path (Join-Path $root 'CMakeCache.txt') `
             -Pattern 'AOT_LIBRARY|NATIVE_ASSETS|DAV1D|CMAKE_INSTALL_PREFIX|FLUTTER_LIBRARY|BUILD_TYPE' `
             -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_.Line }
-          $cmake = (Get-Command cmake -ErrorAction SilentlyContinue).Source
+          $vsCmake = Get-ChildItem 'C:\Program Files\Microsoft Visual Studio' -Recurse -Filter cmake.exe -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match '\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe$' } |
+            Select-Object -First 1
+          if ($vsCmake) {
+            # 构建用的是 VS 自带的 CMake。上一版诊断让 PATH 上的 cmake 抢了（实际是 C:\Strawberry\c\bin），
+            # 于是同一段脚本报成 warning、rc=0，与 MSBuild 里的 exit 1 对不上 —— 复现必须用同一个二进制。
+            $cmake = $vsCmake.FullName
+          } else {
+            $cmake = (Get-Command cmake -ErrorAction SilentlyContinue).Source
+          }
           if (-not $cmake) {
             $cmake = 'C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe'
           }
