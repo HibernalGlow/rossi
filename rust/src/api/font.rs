@@ -35,7 +35,7 @@ pub fn list_system_font_families() -> Vec<String> {
         let Ok(entries) = std::fs::read_dir(dir) else {
             continue;
         };
-        for entry in entries.flattened() {
+        for entry in entries.flatten() {
             let path = entry.path();
             let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
                 continue;
