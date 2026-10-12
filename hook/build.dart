@@ -54,7 +54,16 @@ Map<String, String> _extraCargoEnvironmentVariables(
 /// 变量本身仍由构建环境提供（`docs/windows-build/win-baseline-env.sh` 负责 export），
 /// 这里只做透传 —— 仓库里不出现任何机器绝对路径。
 Map<String, String> _hostEnvironmentVariables() {
-  const passthrough = ['PKG_CONFIG_PATH', 'PKG_CONFIG', 'VCPKG_ROOT'];
+  // `PKG_CONFIG_ALLOW_CROSS` 必须在列：macOS 的 x64 job（Intel runner）上，
+  // hook 实际按 aarch64-apple-darwin 出货，dav1d-sys 的 pkg-config 探测因此判定为交叉并直接拒答
+  // （PkgConfig(pkg-config has not been configured to support cross-compilation.)）。
+  // 而 CI 里把它写进 $GITHUB_ENV 是无效的 —— hook 子进程环境是干净的，只有这里透传得到的才会进 cargo。
+  const passthrough = [
+    'PKG_CONFIG_PATH',
+    'PKG_CONFIG',
+    'PKG_CONFIG_ALLOW_CROSS',
+    'VCPKG_ROOT',
+  ];
   final env = <String, String>{
     // 这一条不是透传，是**注入**：安卓分支那条 `CARGO_PROFILE_DEV_STRIP: 'none'` 的宿主版。
     // cargo 的 release 默认往 rustc 传 `-C strip=debuginfo`，rustc 进程内重写 Mach-O 时会把
