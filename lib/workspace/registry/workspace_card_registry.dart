@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/workspace/widgets/cards/reading_activity_card.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/registry/workspace_ids.dart';
 import 'package:zephyr/workspace/widgets/cards/discover_plugins_card.dart';
@@ -164,7 +165,12 @@ class WorkspaceCardRegistry {
   static const String timeInformation = 'time_information';
   static const String preloadStatus = 'preload_status';
 
-  /// 洞察面板四张卡 —— 与 neoview `insights` 面板的同名卡片一一对应。
+  static const String readingOverview = 'reading_overview';
+  static const String activityCalendar = 'activity_calendar';
+  static const String weeklyRhythm = 'weekly_rhythm';
+  static const String readingPeriods = 'reading_periods';
+
+  /// 洞察面板的原四张卡 —— 与 neoview `insights` 面板的同名卡片一一对应。
   static const String dailyTrend = 'daily_trend';
   static const String readingStreak = 'reading_streak';
   static const String readingHeatmap = 'reading_heatmap';
@@ -423,9 +429,89 @@ class WorkspaceCardRegistry {
       ),
     ),
     // ── 洞察 ──────────────────────────────────────────────────────────────
-    // 四张卡都只在**有历史**时才有内容，所以窗口为空时各自画一行提示而不是空板。
+    // 洞察卡都只在**有历史**时才有内容，所以窗口为空时各自画一行提示而不是空板。
     // 归属刻意不散到 favorite / history 那些独占面板里：洞察是「读历史的另一双眼睛」，
     // 与 neoview 一样独立成一张面板，用户想拆再拖。
+    WorkspaceCardDefinition(
+      id: readingOverview,
+      title: '阅读概览',
+      icon: AppGlyphs.openBook,
+      defaultPanelId: WorkspacePanelId.insights,
+      defaultOrder: -1,
+      defaultWidthSpan: 4,
+      defaultHeightSpan: 2,
+      builder: (context, chrome) => ReadingActivityCard(
+        kind: ReadingActivityKind.overview,
+        cardId: readingOverview,
+        title: '阅读概览',
+        icon: AppGlyphs.openBook,
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
+      ),
+    ),
+    WorkspaceCardDefinition(
+      id: activityCalendar,
+      title: '近 28 日活跃',
+      icon: AppGlyphs.calendar,
+      defaultPanelId: WorkspacePanelId.insights,
+      defaultOrder: 4,
+      defaultWidthSpan: 2,
+      defaultHeightSpan: 3,
+      builder: (context, chrome) => ReadingActivityCard(
+        kind: ReadingActivityKind.calendar,
+        cardId: activityCalendar,
+        title: '近 28 日活跃',
+        icon: AppGlyphs.calendar,
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
+      ),
+    ),
+    WorkspaceCardDefinition(
+      id: weeklyRhythm,
+      title: '每周阅读节奏',
+      icon: AppGlyphs.trend,
+      defaultPanelId: WorkspacePanelId.insights,
+      defaultOrder: 5,
+      defaultWidthSpan: 2,
+      defaultHeightSpan: 3,
+      builder: (context, chrome) => ReadingActivityCard(
+        kind: ReadingActivityKind.rhythm,
+        cardId: weeklyRhythm,
+        title: '每周阅读节奏',
+        icon: AppGlyphs.trend,
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
+      ),
+    ),
+    WorkspaceCardDefinition(
+      id: readingPeriods,
+      title: '阅读时段',
+      icon: AppGlyphs.clock,
+      defaultPanelId: WorkspacePanelId.insights,
+      defaultOrder: 6,
+      defaultWidthSpan: 4,
+      defaultHeightSpan: 2,
+      builder: (context, chrome) => ReadingActivityCard(
+        kind: ReadingActivityKind.periods,
+        cardId: readingPeriods,
+        title: '阅读时段',
+        icon: AppGlyphs.clock,
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
+      ),
+    ),
     WorkspaceCardDefinition(
       id: dailyTrend,
       title: '近 7 日阅读趋势',
@@ -433,7 +519,7 @@ class WorkspaceCardRegistry {
       defaultPanelId: WorkspacePanelId.insights,
       defaultOrder: 0,
       defaultWidthSpan: 2,
-      defaultHeightSpan: 2,
+      defaultHeightSpan: 3,
       builder: (context, chrome) => DailyTrendCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
@@ -449,7 +535,7 @@ class WorkspaceCardRegistry {
       defaultPanelId: WorkspacePanelId.insights,
       defaultOrder: 1,
       defaultWidthSpan: 2,
-      defaultHeightSpan: 1,
+      defaultHeightSpan: 3,
       builder: (context, chrome) => ReadingStreakCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
@@ -465,7 +551,7 @@ class WorkspaceCardRegistry {
       defaultPanelId: WorkspacePanelId.insights,
       defaultOrder: 2,
       defaultWidthSpan: 4,
-      defaultHeightSpan: 2,
+      defaultHeightSpan: 3,
       builder: (context, chrome) => ReadingHeatmapCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
@@ -481,7 +567,7 @@ class WorkspaceCardRegistry {
       defaultPanelId: WorkspacePanelId.insights,
       defaultOrder: 3,
       defaultWidthSpan: 2,
-      defaultHeightSpan: 2,
+      defaultHeightSpan: 3,
       builder: (context, chrome) => SourceBreakdownCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
