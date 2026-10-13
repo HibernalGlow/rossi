@@ -16,6 +16,9 @@ import 'package:zephyr/widgets/multi_choice_list_dialog.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/page/search/model/search_history_entry.dart';
+import 'package:zephyr/page/search/model/plugin_search_history_store.dart';
 
 class SearchBar extends StatefulWidget {
   const SearchBar({super.key, this.aggregateMode = true});
@@ -76,6 +79,10 @@ class _SearchBarState extends State<SearchBar> {
             Expanded(
               child: SearchQueryField(
                 query: state.searchKeyword,
+                history: PluginSearchHistoryStore(
+                  context.read<GlobalSettingCubit>(),
+                  widget.aggregateMode ? kAggregateSearchSource : state.from,
+                ),
                 autoExpand: true,
                 hintText: t.search.searchHint,
                 semanticLabel: t.search.title,

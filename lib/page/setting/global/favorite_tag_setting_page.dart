@@ -12,6 +12,8 @@ import 'package:zephyr/util/text/tag_text.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/search/search_history_field.dart';
+import 'package:zephyr/widgets/search/search_history_store.dart';
 
 /// 收藏 tag 管理页。
 ///
@@ -461,7 +463,8 @@ class _FavoriteTagSettingPageState extends State<FavoriteTagSettingPage> {
                 SizedBox(
                   width: 160,
                   height: 36,
-                  child: TextField(
+                  child: SearchHistoryField(
+                    history: SearchHistoryStore.local('favorite-tags'),
                     controller: _filterController,
                     decoration: InputDecoration(
                       hintText: t.settings.favoriteTagSearchHint,

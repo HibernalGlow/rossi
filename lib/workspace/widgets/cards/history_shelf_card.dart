@@ -216,6 +216,7 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
             _rememberViewState();
           },
           searchController: _searchController,
+          historyScope: 'reading-history',
           onKeywordChanged: (value) => setState(() => _keyword = value),
           count: rows.length,
           busy: _busy,
