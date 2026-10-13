@@ -3445,6 +3445,24 @@ class Translations$reader$zh_CN {
 	/// zh-CN: '阅读体验'
 	String get readingExperience => '阅读体验';
 
+	/// zh-CN: '连续翻页速度'
+	String get keyboardPageTurnSpeed => '连续翻页速度';
+
+	/// zh-CN: '横向阅读时，按下立即翻一页，持续按住翻页键后按此速度连续翻页。动画自动适配速度，松手后只完成当前页；双页模式每次翻一个画面。'
+	String get keyboardPageTurnSpeedSubtitle => '横向阅读时，按下立即翻一页，持续按住翻页键后按此速度连续翻页。动画自动适配速度，松手后只完成当前页；双页模式每次翻一个画面。';
+
+	/// zh-CN: '页/秒'
+	String get pagesPerSecond => '页/秒';
+
+	/// zh-CN: '长按翻页高级选项'
+	String get keyboardPageTurnAdvanced => '长按翻页高级选项';
+
+	/// zh-CN: '长按启动延迟'
+	String get keyboardPageTurnHoldDelay => '长按启动延迟';
+
+	/// zh-CN: '按住多久后开始连续翻页。仅影响启动等待，持续翻页速度由上面的页/秒决定。'
+	String get keyboardPageTurnHoldDelaySubtitle => '按住多久后开始连续翻页。仅影响启动等待，持续翻页速度由上面的页/秒决定。';
+
 	/// zh-CN: '关闭翻页动画'
 	String get disableAnimation => '关闭翻页动画';
 
@@ -7819,6 +7837,12 @@ extension on Translations {
 			'reader.ambientDim' => '背景压暗',
 			'reader.ambientDimSubtitle' => '把取自画面的颜色压暗后再铺成背景，越大越不刺眼；仅在本地漫画生效',
 			'reader.readingExperience' => '阅读体验',
+			'reader.keyboardPageTurnSpeed' => '连续翻页速度',
+			'reader.keyboardPageTurnSpeedSubtitle' => '横向阅读时，按下立即翻一页，持续按住翻页键后按此速度连续翻页。动画自动适配速度，松手后只完成当前页；双页模式每次翻一个画面。',
+			'reader.pagesPerSecond' => '页/秒',
+			'reader.keyboardPageTurnAdvanced' => '长按翻页高级选项',
+			'reader.keyboardPageTurnHoldDelay' => '长按启动延迟',
+			'reader.keyboardPageTurnHoldDelaySubtitle' => '按住多久后开始连续翻页。仅影响启动等待，持续翻页速度由上面的页/秒决定。',
 			'reader.disableAnimation' => '关闭翻页动画',
 			'reader.disableAnimationSubtitle' => '关闭整页翻页动画，小幅滚动动画不受影响',
 			'reader.readFilter' => '阅读滤镜（仅深色模式）',

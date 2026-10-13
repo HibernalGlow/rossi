@@ -461,6 +461,20 @@ class _ReadExperienceSection extends StatelessWidget {
             );
           },
         ),
+        if (effective.readMode != 0)
+          ReaderKeyboardRepeatSettings(
+            pagesPerSecond: effective.keyboardPageTurnPagesPerSecond,
+            holdDelayMs: effective.keyboardPageTurnHoldDelayMs,
+            onSpeedChanged: (value) => context.updateEffectiveReadSetting(
+              effective,
+              (current) =>
+                  current.copyWith(keyboardPageTurnPagesPerSecond: value),
+            ),
+            onDelayChanged: (value) => context.updateEffectiveReadSetting(
+              effective,
+              (current) => current.copyWith(keyboardPageTurnHoldDelayMs: value),
+            ),
+          ),
         _SettingsSwitchTile(
           title: t.reader.readFilter,
           subtitle: t.reader.readFilterSubtitle,
