@@ -59,8 +59,12 @@ class IndexTranslator {
   /// 两端标签写成相邻字面量（`'<' 'think>'`）：这一对标签在文档与工具链里容易被
   /// 当成标记语法吞掉，拼写法多一个引号，但复制粘贴不会把语义改没。
   static String stripThinking(String raw) {
-    const open = '<' 'think>';
-    const close = '<' '/think>';
+    const open =
+        '<'
+        'think>';
+    const close =
+        '<'
+        '/think>';
     var t = raw.trim();
     final at = t.indexOf(close);
     if (at >= 0) {
@@ -90,9 +94,7 @@ class IndexTranslator {
       while (true) {
         final i = next++;
         if (i >= texts.length) return;
-        out[i] = stripThinking(
-          await send(prompt(texts[i], target), config),
-        );
+        out[i] = stripThinking(await send(prompt(texts[i], target), config));
       }
     }
 
@@ -105,9 +107,7 @@ class IndexTranslator {
     for (var i = 0; i < texts.length; i++) {
       final t = out[i];
       if (t == null || t.isEmpty) {
-        throw OcrTranslationException(
-          '第 ${i + 1} 块翻出来是空的（原文「${texts[i]}」）',
-        );
+        throw OcrTranslationException('第 ${i + 1} 块翻出来是空的（原文「${texts[i]}」）');
       }
     }
     return out.cast<String>();
@@ -121,7 +121,8 @@ class IndexTranslator {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        if (config.apiKey.isNotEmpty) 'authorization': 'Bearer ${config.apiKey}',
+        if (config.apiKey.isNotEmpty)
+          'authorization': 'Bearer ${config.apiKey}',
       },
       body: jsonEncode({
         'model': config.model,
@@ -160,7 +161,5 @@ class IndexTranslator {
 }
 
 /// 供测试与日志复用：这一档到底发出去的是什么提示词。
-String indexPrompt(String text, String targetTag) => IndexTranslator.prompt(
-  text,
-  HyMt2Translator.languageName(targetTag),
-);
+String indexPrompt(String text, String targetTag) =>
+    IndexTranslator.prompt(text, HyMt2Translator.languageName(targetTag));

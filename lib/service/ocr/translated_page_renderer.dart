@@ -153,7 +153,13 @@ class TranslatedPageRenderer {
           ui.Paint()..color = fill,
         );
       }
-      _paintText(canvas, _quadRect(box.quad), text, padding: padding, minFontSize: minFontSize);
+      _paintText(
+        canvas,
+        _quadRect(box.quad),
+        text,
+        padding: padding,
+        minFontSize: minFontSize,
+      );
     }
     canvas.restore();
   }
@@ -207,7 +213,13 @@ class TranslatedPageRenderer {
     String text, {
     required double padding,
     required double minFontSize,
-  }) => _paintFitted(canvas, rect, text, padding: padding, minFontSize: minFontSize);
+  }) => _paintFitted(
+    canvas,
+    rect,
+    text,
+    padding: padding,
+    minFontSize: minFontSize,
+  );
 
   static ui.Rect _quadRect(List<double> q) {
     if (q.length != 8) {

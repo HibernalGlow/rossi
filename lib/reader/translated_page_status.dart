@@ -60,6 +60,7 @@ TranslatedPageChipState translatedPageChipState({
 
 /// 点击该做什么。同样是纯函数：UI 只负责照做，不自己判断。
 enum TranslatedPageTap { wait, toggle }
+
 TranslatedPageTap translatedPageTapFor(TranslatedPageChipState state) =>
     switch (state) {
       TranslatedPageChipState.building => TranslatedPageTap.wait,
@@ -89,7 +90,8 @@ enum TranslatedPageDisplay { baked, overlay }
 ///
 /// 两类叠层页都算 [overlay]：每框都有填色的那一页（不占轨）与需要补擦字底图的那一页
 /// （占轨）—— 两者都是「底图 + 上面盖字」，区别只在底图从哪来，芯片不必展开到那一层。
-TranslatedPageDisplay translatedPageDisplayOf({required String? overlayLabel}) =>
-    overlayLabel == null
-        ? TranslatedPageDisplay.baked
-        : TranslatedPageDisplay.overlay;
+TranslatedPageDisplay translatedPageDisplayOf({
+  required String? overlayLabel,
+}) => overlayLabel == null
+    ? TranslatedPageDisplay.baked
+    : TranslatedPageDisplay.overlay;

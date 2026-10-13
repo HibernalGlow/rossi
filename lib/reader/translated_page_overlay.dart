@@ -98,10 +98,12 @@ class _TranslatedPageOverlayState extends State<TranslatedPageOverlay> {
     final key = _key();
     if (key == null) {
       if (_layer != null || _loadedKey != null) {
-        _schedule(() => setState(() {
-          _layer = null;
-          _loadedKey = null;
-        }));
+        _schedule(
+          () => setState(() {
+            _layer = null;
+            _loadedKey = null;
+          }),
+        );
       }
       return;
     }
@@ -259,12 +261,8 @@ class _OverlayPainter extends CustomPainter {
   final PageSlice slice;
 
   @override
-  void paint(ui.Canvas canvas, ui.Size size) => paintTranslatedPageLayer(
-    canvas,
-    layer: layer,
-    size: size,
-    slice: slice,
-  );
+  void paint(ui.Canvas canvas, ui.Size size) =>
+      paintTranslatedPageLayer(canvas, layer: layer, size: size, slice: slice);
 
   @override
   bool shouldRepaint(_OverlayPainter old) =>

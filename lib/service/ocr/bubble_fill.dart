@@ -18,7 +18,11 @@ import 'dart:ui' as ui;
 /// 采到的像素不够一致就交回 null，由调用方退回擦字那一条。
 /// 判据是量出来的，不是感觉：`flatRatio` 与 `spread` 两条一起看（见 [sampleBoxFill]）。
 class BoxFill {
-  const BoxFill({required this.color, required this.flatRatio, required this.spread});
+  const BoxFill({
+    required this.color,
+    required this.flatRatio,
+    required this.spread,
+  });
 
   /// 采样得到的底色。
   final ui.Color color;
@@ -124,7 +128,9 @@ BoxFill? sampleBoxFill({
     flatRatio: ratio,
     spread: hi.toDouble(),
   );
-  return fill.flatRatio >= _minFlatRatio && fill.spread <= _maxSpread ? fill : null;
+  return fill.flatRatio >= _minFlatRatio && fill.spread <= _maxSpread
+      ? fill
+      : null;
 }
 
 /// 中位数（四舍五入成 0–255 的整数）。
@@ -132,5 +138,7 @@ int _medianOf(Iterable<int> values) {
   final sorted = values.toList()..sort();
   final n = sorted.length;
   if (n == 0) return 0;
-  return n.isOdd ? sorted[n ~/ 2] : ((sorted[n ~/ 2 - 1] + sorted[n ~/ 2]) / 2).round();
+  return n.isOdd
+      ? sorted[n ~/ 2]
+      : ((sorted[n ~/ 2 - 1] + sorted[n ~/ 2]) / 2).round();
 }

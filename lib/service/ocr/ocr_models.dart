@@ -19,7 +19,8 @@ class OcrModels {
   static const vocabFile = 'vocab.txt';
   static const inpaintFile = 'lama-manga-dynamic.onnx';
 
-  static const _hfOcr = 'https://huggingface.co/mayocream/manga-ocr-onnx/resolve/main';
+  static const _hfOcr =
+      'https://huggingface.co/mayocream/manga-ocr-onnx/resolve/main';
   static const detUrl =
       'https://huggingface.co/breezedeus/cnstd-ppocr-ch_PP-OCRv4_det/resolve/main/$detFile';
   static const encoderUrl = '$_hfOcr/$encoderFile';
@@ -59,7 +60,13 @@ class OcrModels {
   static Future<(List<String> ready, List<String> missing)> status() async {
     final ready = <String>[];
     final missing = <String>[];
-    for (final f in [detFile, encoderFile, decoderFile, vocabFile, inpaintFile]) {
+    for (final f in [
+      detFile,
+      encoderFile,
+      decoderFile,
+      vocabFile,
+      inpaintFile,
+    ]) {
       (await _valid(f) ? ready : missing).add(f);
     }
     return (ready, missing);

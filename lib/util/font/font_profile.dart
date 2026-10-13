@@ -279,10 +279,7 @@ class FontProfileController extends ChangeNotifier {
 
   Future<void> clearAll() async {
     _prefs ??= await SharedPreferences.getInstance();
-    final managedPaths = <String>[
-      ?_defaultPath,
-      ..._paths.values,
-    ];
+    final managedPaths = <String>[?_defaultPath, ..._paths.values];
     await _prefs!.remove(_fontDefaultKey);
     await _prefs!.remove(_fontModeKey);
     await _prefs!.remove(_fontFamilyKey);
@@ -326,9 +323,7 @@ class FontProfileController extends ChangeNotifier {
     final family = resolveFontFamily(
       defaultFamily: _effectiveDefaultFamily,
       overrideFamilies: _families,
-      weight: FontWeight.values
-          .where((w) => w.value == weight)
-          .firstOrNull,
+      weight: FontWeight.values.where((w) => w.value == weight).firstOrNull,
     );
     if (family.isEmpty) return style;
     return style.copyWith(fontFamily: family);
