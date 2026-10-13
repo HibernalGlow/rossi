@@ -738,10 +738,7 @@ class RealSrSuperResolution {
       await running;
       return;
     }
-    final started = _upscaleAndConvertToWebpOnce(
-      inputPath,
-      bookKey: bookKey,
-    );
+    final started = _upscaleAndConvertToWebpOnce(inputPath, bookKey: bookKey);
     _upscaleInFlight[inputPath] = started;
     try {
       await started;

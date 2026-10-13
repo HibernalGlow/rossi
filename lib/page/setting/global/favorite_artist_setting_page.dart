@@ -229,7 +229,10 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
           SwitchListTile(
-            secondary: const GlyphIcon(AppGlyphs.star, color: Color(0xFFF59E0B)),
+            secondary: const GlyphIcon(
+              AppGlyphs.star,
+              color: Color(0xFFF59E0B),
+            ),
             title: Text(t.settings.favoriteArtistHighlight),
             subtitle: Text(t.settings.favoriteArtistHighlightSubtitle),
             thumbIcon: kSettingSwitchThumbIcon,
@@ -240,10 +243,7 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
           ),
           const SizedBox(height: 12),
           ListTile(
-            leading: const GlyphIcon(
-              AppGlyphs.touch,
-              color: Color(0xFFF59E0B),
-            ),
+            leading: const GlyphIcon(AppGlyphs.touch, color: Color(0xFFF59E0B)),
             title: Text(t.settings.favoriteArtistCircleMode),
             subtitle: Text(t.settings.favoriteArtistCircleModeSubtitle),
             trailing: FluentDropdown<FavoriteArtistCircleMode>(

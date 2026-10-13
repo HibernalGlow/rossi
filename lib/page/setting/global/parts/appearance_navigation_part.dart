@@ -73,9 +73,8 @@ List<Widget> navigationChromeTiles({
         subtitle: Text(t.navigation.autoNarrowMobileLayoutSubtitle),
         thumbIcon: kSettingSwitchThumbIcon,
         value: nav.autoNarrowMobileLayout,
-        onChanged: (value) => patch(
-          (current) => current.copyWith(autoNarrowMobileLayout: value),
-        ),
+        onChanged: (value) =>
+            patch((current) => current.copyWith(autoNarrowMobileLayout: value)),
       ),
     if (sidebarCapable && nav.autoNarrowMobileLayout)
       _NarrowWidthTile(

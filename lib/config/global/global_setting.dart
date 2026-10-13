@@ -308,8 +308,7 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     @Default(EInkSettingState()) EInkSettingState eInkSetting,
     // 顶部导航栏（Arc 侧栏 / 悬浮 Dock）的偏好。默认值全在
     // `parts/global_setting_navigation_part.dart` 里带说明。
-    @Default(NavigationSettingState())
-    NavigationSettingState navigationSetting,
+    @Default(NavigationSettingState()) NavigationSettingState navigationSetting,
   }) = _GlobalSettingState;
 
   factory GlobalSettingState.fromJson(Map<String, dynamic> json) =>
@@ -506,8 +505,9 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
     NavigationSettingState Function(NavigationSettingState current) updates,
   ) {
     updateState(
-      (current) =>
-          current.copyWith(navigationSetting: updates(current.navigationSetting)),
+      (current) => current.copyWith(
+        navigationSetting: updates(current.navigationSetting),
+      ),
     );
   }
 

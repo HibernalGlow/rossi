@@ -56,11 +56,7 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
       title: t.settings.debug,
       child: ListView(
         children: [
-          settingSectionTitle(
-            context,
-            t.settings.debug,
-            icon: AppGlyphs.bug,
-          ),
+          settingSectionTitle(context, t.settings.debug, icon: AppGlyphs.bug),
           _logAddress(state, cubit),
           _enableMemoryDebug(state, cubit),
           _blockRustHttpRequests(state, cubit),

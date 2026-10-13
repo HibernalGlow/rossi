@@ -155,9 +155,8 @@ abstract final class OperationBindingStore {
   ///
   /// 判定**只有这一处**：运行时采集、录制器采集，以及绑定表没启用时那条旧硬编码滚轮
   /// 都读它 —— 三处不同意的话，同一个手势会在「翻页 / 录键 / 关掉总开关」下走出三种方向。
-  static bool wheelDirectionFollowsHand(
-    OperationBindingSettingState setting,
-  ) => setting.invertWheelDirection ?? (!kIsWeb && Platform.isMacOS);
+  static bool wheelDirectionFollowsHand(OperationBindingSettingState setting) =>
+      setting.invertWheelDirection ?? (!kIsWeb && Platform.isMacOS);
 
   /// 这份表能不能用（导入的第一道关）。
   static bool isValid(List<Map<String, dynamic>> bindings) =>
