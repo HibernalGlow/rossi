@@ -354,7 +354,10 @@ class _FavoriteTagSettingPageState extends State<FavoriteTagSettingPage> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
           SwitchListTile(
-            secondary: const GlyphIcon(AppGlyphs.sell, color: Color(0xFFF59E0B)),
+            secondary: const GlyphIcon(
+              AppGlyphs.sell,
+              color: Color(0xFFF59E0B),
+            ),
             title: Text(t.settings.favoriteTagHighlight),
             subtitle: Text(t.settings.favoriteTagHighlightSubtitle),
             thumbIcon: kSettingSwitchThumbIcon,
@@ -590,7 +593,11 @@ class _FavoriteTagRow extends StatelessWidget {
         children: [
           Row(
             children: [
-              const GlyphIcon(AppGlyphs.sell, size: 16, color: Color(0xFFB45309)),
+              const GlyphIcon(
+                AppGlyphs.sell,
+                size: 16,
+                color: Color(0xFFB45309),
+              ),
               const SizedBox(width: 6),
               // Flexible 而不是 Expanded：本名很长时也要给右边两颗按钮留出位置，
               // 但不能把按钮顶出屏幕。

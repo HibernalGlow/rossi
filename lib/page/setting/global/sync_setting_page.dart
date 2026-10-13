@@ -35,11 +35,7 @@ class _SyncSettingPageState extends State<SyncSettingPage> {
       title: t.settings.sync,
       child: ListView(
         children: [
-          settingSectionTitle(
-            context,
-            t.settings.sync,
-            icon: AppGlyphs.sync,
-          ),
+          settingSectionTitle(context, t.settings.sync, icon: AppGlyphs.sync),
           _syncServiceType(state, cubit),
           webdavSync(context, state.syncSetting.syncServiceType),
           if (configuredSync) _autoSync(state, cubit),

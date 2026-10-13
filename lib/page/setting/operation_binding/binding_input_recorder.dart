@@ -30,10 +30,8 @@ class BindingInputRecorder extends StatefulWidget {
     bool wheelFollowsHand = false,
   }) => showPopupPanel<Map<String, dynamic>>(
     context: context,
-    builder: (_) => BindingInputRecorder(
-      input: input,
-      wheelFollowsHand: wheelFollowsHand,
-    ),
+    builder: (_) =>
+        BindingInputRecorder(input: input, wheelFollowsHand: wheelFollowsHand),
   );
 
   @override

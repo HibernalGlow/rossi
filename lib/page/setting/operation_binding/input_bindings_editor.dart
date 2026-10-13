@@ -510,9 +510,7 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                               ? t.bindingEditor.conflictHint
                               : t.settings.operationBindingUnimplemented,
                           child: GlyphIcon(
-                            conflict
-                                ? AppGlyphs.error
-                                : AppGlyphs.hourglass,
+                            conflict ? AppGlyphs.error : AppGlyphs.hourglass,
                             size: 18,
                             color: conflict
                                 ? theme.colorScheme.error
@@ -520,7 +518,8 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                           ),
                         ),
                       ],
-                      if (compact) const GlyphIcon(AppGlyphs.chevronForward, size: 18),
+                      if (compact)
+                        const GlyphIcon(AppGlyphs.chevronForward, size: 18),
                     ],
                   ),
                 ),
@@ -854,7 +853,10 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                                 const GlyphIcon(AppGlyphs.copy, size: 18),
                                 const SizedBox(width: 8),
                                 Text(t.bindingEditor.copyTo),
-                                const GlyphIcon(AppGlyphs.chevronDown, size: 18),
+                                const GlyphIcon(
+                                  AppGlyphs.chevronDown,
+                                  size: 18,
+                                ),
                               ],
                             ),
                           ),

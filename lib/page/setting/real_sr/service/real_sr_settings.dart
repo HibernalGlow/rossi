@@ -588,8 +588,9 @@ class RealSrSettings {
   /// [autoUpscaleEnabled] 给「已经在阅读某本书」的调用方传**这本书的有效值**
   /// （书级覆盖 ?? 全局）：条件超分的第一条判据就是它，传全局的话，一本被单独
   /// 打开超分的书会因为全局关着而在条件那一步被跳过 —— 开关看起来就没生效。
-  static Future<SuperResolutionPolicyPreferences>
-  loadPolicyPreferences({bool? autoUpscaleEnabled}) async {
+  static Future<SuperResolutionPolicyPreferences> loadPolicyPreferences({
+    bool? autoUpscaleEnabled,
+  }) async {
     final autoUpscale = autoUpscaleEnabled ?? await loadAutoUpscale();
     final prefetch = await loadPrefetch();
     final preUpscaleEnabled = prefetch.$1 > 0;

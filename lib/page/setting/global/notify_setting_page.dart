@@ -49,10 +49,7 @@ class NotifySettingPage extends StatelessWidget {
           // 不说会被读成设置自相矛盾；也不把它们禁成灰块 —— 关着总闸时先把某一项
           // 安排好是合理操作，禁掉等于逼用户两步走。
           if (!setting.enabled)
-            _Note(
-              icon: AppGlyphs.info,
-              text: t.settings.notifyMasterOffNote,
-            ),
+            _Note(icon: AppGlyphs.info, text: t.settings.notifyMasterOffNote),
           for (final topic in NotifyTopic.ambientTopics)
             SwitchListTile(
               secondary: GlyphIcon(_topicIcon(topic)),
@@ -77,10 +74,7 @@ class NotifySettingPage extends StatelessWidget {
             text:
                 '${NotifyTopic.readerSwitch.label}：${NotifyTopic.readerSwitch.hint}',
           ),
-          _Note(
-            icon: AppGlyphs.bell,
-            text: t.settings.notifySystemChannelNote,
-          ),
+          _Note(icon: AppGlyphs.bell, text: t.settings.notifySystemChannelNote),
           const SizedBox(height: 16),
           SettingSectionCard(
             title: t.settings.notifyPersonalize,
