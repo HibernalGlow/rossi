@@ -1,8 +1,11 @@
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
+import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_disclosure.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/motion/expressive_motion.dart';
 
 /// 阅读设置那一套**行级控件**的唯一出处。
 ///
@@ -11,19 +14,21 @@ import 'package:zephyr/icons/icons.dart';
 /// 重抄一遍（两处必然漂移），或者把它们提出来。这里走第二条 ——
 /// 面板与卡片渲染的是**同一份** section，所以拨哪边另一边当场跟着变。
 ///
-/// 命名去掉下划线是为了跨库可见，语义与几何一个字都没改。
+/// 工作台保留原有密度，阅读面板由 SettingsPresentationScope 启用渐进说明。
 
 /// 一节：一个带图标的小标题 + 若干组。
 class SettingsSection extends StatelessWidget {
   final String title;
   final Glyph? icon;
   final List<Widget> children;
+  final Widget? trailing;
 
   const SettingsSection({
     super.key,
     required this.title,
     this.icon,
     required this.children,
+    this.trailing,
   });
 
   @override
@@ -41,14 +46,16 @@ class SettingsSection extends StatelessWidget {
                 GlyphIcon(icon!, size: 16, color: colorScheme.primary),
                 const SizedBox(width: 6),
               ],
-              Text(
-                title,
-                style: context.theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: colorScheme.primary,
-                  letterSpacing: 0.2,
+              Expanded(
+                child: Text(
+                  title,
+                  style: context.theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
+                  ),
                 ),
               ),
+              ?trailing,
             ],
           ),
         ),
@@ -77,18 +84,23 @@ class SettingsCardGroup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.theme.colorScheme;
+    final expressive = SettingsPresentationScope.maybeOf(context) != null;
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.45),
-          width: 1,
-        ),
+        borderRadius: BorderRadius.circular(expressive ? 24 : 20),
+        border: expressive
+            ? null
+            : Border.all(
+                color: colorScheme.outlineVariant.withValues(alpha: 0.45),
+                width: 1,
+              ),
       ),
       clipBehavior: Clip.antiAlias,
       child: Material(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        color: expressive
+            ? colorScheme.surfaceContainer
+            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
         type: MaterialType.canvas,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,8 +183,12 @@ class SettingsAnimatedCollapse extends StatelessWidget {
     final colorScheme = context.theme.colorScheme;
 
     return AnimatedSize(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeInOutCubic,
+      duration:
+          (SettingsPresentationScope.maybeOf(context)?.animate ?? true) &&
+              !MediaQuery.disableAnimationsOf(context)
+          ? ExpressiveMotion.spatialDuration
+          : Duration.zero,
+      curve: ExpressiveMotion.spatialCurve,
       alignment: Alignment.topCenter,
       child: isExpanded
           ? Column(
@@ -260,6 +276,24 @@ class SettingsSwitchTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = context.theme.colorScheme;
 
+    if (SettingsPresentationScope.maybeOf(context) != null) {
+      return SettingsDetailTile(
+        title: title,
+        description: subtitle,
+        enabled: !disabled,
+        trailing: M3ESwitch(
+          semanticLabel: title,
+          value: value,
+          selectedIcon: const Icon(Icons.check, size: 16),
+          onChanged: disabled ? null : onChanged,
+        ),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onChanged(!value);
+        },
+      );
+    }
+
     final tile = ListTile(
       dense: true,
       visualDensity: VisualDensity.compact,
@@ -319,6 +353,23 @@ class SettingsDropdownTile<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.theme.colorScheme;
+
+    if (SettingsPresentationScope.maybeOf(context) != null) {
+      return SettingsDetailTile(
+        title: title,
+        description: subtitle,
+        stackControlOnNarrow: true,
+        trailing: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48),
+          child: FluentDropdown<T>(
+            value: value,
+            displayValue: labelOf(value),
+            items: {for (final option in values) option: labelOf(option)},
+            onChanged: onChanged,
+          ),
+        ),
+      );
+    }
 
     return ListTile(
       dense: true,
@@ -475,6 +526,16 @@ class SettingsActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.theme.colorScheme;
+
+    if (SettingsPresentationScope.maybeOf(context) != null) {
+      return SettingsDetailTile(
+        title: title,
+        description: subtitle,
+        trailing: trailing,
+        enabled: enabled,
+        stackControlOnNarrow: true,
+      );
+    }
 
     return Opacity(
       opacity: enabled ? 1 : 0.55,

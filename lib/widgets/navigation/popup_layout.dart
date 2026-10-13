@@ -78,7 +78,7 @@ class _PopupLayoutDelegate extends SingleChildLayoutDelegate {
   /// 全屏形态不吃安全区：那一份留给内容自己（外壳里的 `SafeArea`），
   /// 因为安全区在整屏上是「内容的内边距」，不是「弹层的外边距」。
   EdgeInsets get _insets =>
-      fullscreen
+      fullscreen || placement == PopupPlacement.bottomCenter
       ? EdgeInsets.zero
       : safeInsets + const EdgeInsets.all(_screenMargin);
 
@@ -112,6 +112,7 @@ class _PopupLayoutDelegate extends SingleChildLayoutDelegate {
         anchor.right - childSize.width,
         anchor.top - _anchorOverlap,
       ),
+      PopupPlacement.bottomCenter => ((size.width - childSize.width) / 2, maxY),
       PopupPlacement.center => (
         insets.left + (size.width - insets.horizontal - childSize.width) / 2,
         insets.top + (size.height - insets.vertical - childSize.height) / 2,

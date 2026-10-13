@@ -101,6 +101,7 @@ class _ReadModeSection extends StatelessWidget {
           children: [
             _SettingsChoiceChip(
               title: t.reader.webtoon,
+              icon: AppGlyphs.layoutList,
               selected: readMode == 0,
               onTap: () => selectReadMode(0),
             ),

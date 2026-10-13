@@ -19,7 +19,14 @@ class _ReaderSettingsGestureTab extends StatelessWidget {
           const SizedBox(height: 18),
           const _CenterTapSection(),
           const SizedBox(height: 18),
-          const _HoverRevealSection(),
+          SettingsFoldout(
+            title: t.reader.hoverReveal,
+            icon: AppGlyphs.mouse,
+            summary: context.watchTargetReadSetting().hoverRevealEnabled
+                ? t.common.enabled
+                : t.common.disabled,
+            child: const _HoverRevealSection(),
+          ),
           if (isAndroidPhone) const SizedBox(height: 18),
           if (isAndroidPhone) const _VolumeKeyPageTurnSection(),
         ],
@@ -139,36 +146,40 @@ class _DoubleTapSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final effective = context.watchTargetReadSetting();
 
+    void selectAction(int action) => context.updateEffectiveReadSetting(
+      effective,
+      (current) => current.copyWith(
+        doubleTapZoom: action == 1,
+        doubleTapOpenMenu: action == 2,
+      ),
+    );
     return _SettingsSection(
       title: t.reader.doubleTapAction,
       children: [
-        _SettingsSwitchTile(
-          title: t.reader.doubleTapZoom,
-          subtitle: t.reader.doubleTapZoomSubtitle,
-          value: effective.doubleTapZoom,
-          onChanged: (value) {
-            context.updateEffectiveReadSetting(
-              effective,
-              (current) => current.copyWith(
-                doubleTapZoom: value,
-                doubleTapOpenMenu: value ? false : current.doubleTapOpenMenu,
-              ),
-            );
-          },
+        Wrap(
+          children: [
+            _SettingsChoiceChip(
+              title: t.common.off,
+              selected:
+                  !effective.doubleTapZoom && !effective.doubleTapOpenMenu,
+              onTap: () => selectAction(0),
+            ),
+            _SettingsChoiceChip(
+              title: t.reader.doubleTapZoom,
+              selected: effective.doubleTapZoom,
+              onTap: () => selectAction(1),
+            ),
+            _SettingsChoiceChip(
+              title: t.reader.doubleTapOpenMenu,
+              selected: effective.doubleTapOpenMenu,
+              onTap: () => selectAction(2),
+            ),
+          ],
         ),
-        _SettingsSwitchTile(
-          title: t.reader.doubleTapOpenMenu,
-          subtitle: t.reader.doubleTapOpenMenuSubtitle,
-          value: effective.doubleTapOpenMenu,
-          onChanged: (value) {
-            context.updateEffectiveReadSetting(
-              effective,
-              (current) => current.copyWith(
-                doubleTapOpenMenu: value,
-                doubleTapZoom: value ? false : current.doubleTapZoom,
-              ),
-            );
-          },
+        SettingsDetailTile(
+          title: t.common.help,
+          description:
+              '${t.reader.doubleTapZoomSubtitle}\n${t.reader.doubleTapOpenMenuSubtitle}',
         ),
       ],
     );
