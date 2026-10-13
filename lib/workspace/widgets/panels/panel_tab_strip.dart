@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zephyr/widgets/common_popup.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
@@ -481,98 +482,69 @@ class _PanelTabStripState extends State<PanelTabStrip> {
     final lane = cubit.state.layout.lanes[widget.side.laneId];
     if (lane == null) return;
     final bar = lane.panelBar;
+    final pinned = bar.mode == PanelBarMode.pinned;
+    final sortMode = cubit.state.interaction.panelTabSortMode;
 
-    // 走 [FluentPopupMenu] 而不是 `showMenu`：后者的展开只有淡入，而这一条
-    // 把手上的菜单、栏头那颗 ⋮ 与文件管理器那张「更多」现在共用同一份
-    // 「淡入 + 从锚点缩放开」。锚点用右键/长按那一点，宽度给 0 —— 菜单会从
-    // 这一点所在的角长出来（`FluentPopupMenu` 自己按锚点算 `scaleAlignment`，
-    // 也在贴边时朝上/朝左翻）。
-    final action = await FluentPopupMenu.show<_PanelBarAction>(
+    void setBar(PanelBarLayout next) =>
+        cubit.setLanePanelBar(widget.side.laneId, next);
+
+    // 走 [showCommonPopupMenu]（[CommonPopupRoute] 那份 FlClash 动画）——
+    // 与栏头那颗 ⋮、文件管理器那张「更多」同一套：托盘从右键 / 长按那一点
+    // 长出来、放不下时自己朝上翻，不再是 Fluent 的原地淡入缩放。
+    await showCommonPopupMenu(
       context: context,
-      anchor: globalPosition & Size.zero,
+      position: globalPosition,
       items: [
-        FluentPopupMenuItem<_PanelBarAction>(
-          value: _PanelBarAction.toggleMode,
-          leading: GlyphIcon(
-            AppGlyphs.pin,
-            fill: bar.mode == PanelBarMode.pinned ? 1 : 0,
-            size: 16,
+        CommonPopupMenuItem(
+          label: pinned ? '改为悬浮' : '固定到当前位置',
+          glyph: AppGlyphs.pin,
+          checked: pinned,
+          onPressed: () => setBar(
+            bar.copyWith(
+              mode: pinned ? PanelBarMode.floating : PanelBarMode.pinned,
+            ),
           ),
-          title: Text(bar.mode == PanelBarMode.pinned ? '改为悬浮' : '固定到当前位置'),
         ),
-        FluentPopupMenuItem<_PanelBarAction>(
-          value: _PanelBarAction.toggleConstrained,
-          leading: GlyphIcon(
-            bar.constrained ? AppGlyphs.lock : AppGlyphs.lockOpen,
-            size: 16,
-          ),
-          title: Text(bar.constrained ? '允许移出泳道' : '限制在本泳道'),
+        CommonPopupMenuItem(
+          label: bar.constrained ? '允许移出泳道' : '限制在本泳道',
+          glyph: bar.constrained ? AppGlyphs.lock : AppGlyphs.lockOpen,
+          onPressed: () => setBar(bar.copyWith(constrained: !bar.constrained)),
         ),
-        const FluentPopupMenuItem<_PanelBarAction>.divider(),
-        FluentPopupMenuItem<_PanelBarAction>(
-          value: _PanelBarAction.toggleSortMode,
-          leading: GlyphIcon(
-            AppGlyphs.sort,
-            fill: cubit.state.interaction.panelTabSortMode ? 1 : 0,
-            size: 16,
+        const CommonPopupMenuItem.divider(),
+        CommonPopupMenuItem(
+          // 父行只留短名，解释下移到第二行 —— 菜单宽只由 `label` 定，
+          // 整段塞进单行会被截断。
+          label: '排序模式',
+          glyph: AppGlyphs.sort,
+          checked: sortMode,
+          content: CommonPopupMenuTitle(
+            label: '排序模式',
+            hint: sortMode ? '退出后恢复横移切面板' : '长按拖动排序 / 换泳道',
           ),
-          title: Text(
-            cubit.state.interaction.panelTabSortMode
-                ? '退出排序模式（恢复横移切面板）'
-                : '排序模式（长按拖动排序 / 换泳道）',
-          ),
-          selected: cubit.state.interaction.panelTabSortMode,
+          onPressed: () {
+            // 排序模式是**工作台交互**设置（不是本条 bar 的摆放），所以走
+            // `setInteraction` 而不是 `setLanePanelBar` —— 它管的是「所有
+            // 泳道的页签条」，跟着 `workspace_layout.json` 的 `interaction` 块走。
+            final interaction = cubit.state.interaction;
+            cubit.setInteraction(
+              interaction.copyWith(
+                panelTabSortMode: !interaction.panelTabSortMode,
+              ),
+            );
+          },
         ),
-        const FluentPopupMenuItem<_PanelBarAction>.divider(),
+        const CommonPopupMenuItem.divider(),
         for (final dock in PanelBarDock.values)
-          FluentPopupMenuItem<_PanelBarAction>(
-            value: _PanelBarAction.dockTo(dock),
-            leading: GlyphIcon(_dockIcon(dock), size: 16),
-            title: Text('停靠到${_dockLabel(dock)}'),
-            selected: bar.mode == PanelBarMode.pinned && bar.dock == dock,
+          CommonPopupMenuItem(
+            label: '停靠到${_dockLabel(dock)}',
+            glyph: _dockIcon(dock),
+            checked: pinned && bar.dock == dock,
+            onPressed: () =>
+                setBar(bar.copyWith(mode: PanelBarMode.pinned, dock: dock)),
           ),
       ],
     );
-    if (action == null) return;
-
-    switch (action.kind) {
-      case _PanelBarActionKind.toggleMode:
-        if (bar.mode == PanelBarMode.pinned) {
-          cubit.setLanePanelBar(
-            widget.side.laneId,
-            bar.copyWith(mode: PanelBarMode.floating),
-          );
-        } else {
-          // 「固定到当前位置」= 钉回它记录下来的那条边。
-          cubit.setLanePanelBar(
-            widget.side.laneId,
-            bar.copyWith(mode: PanelBarMode.pinned),
-          );
-        }
-      case _PanelBarActionKind.toggleConstrained:
-        cubit.setLanePanelBar(
-          widget.side.laneId,
-          bar.copyWith(constrained: !bar.constrained),
-        );
-      case _PanelBarActionKind.toggleSortMode:
-        // 排序模式是**工作台交互**设置（不是本条 bar 的摆放），所以走
-        // `updateInteraction` 而不是 `setLanePanelBar` —— 它管的是「所有泳道
-        // 的页签条」，跟着 `workspace_layout.json` 的 `interaction` 块走。
-        final interaction = cubit.state.interaction;
-        cubit.setInteraction(
-          interaction.copyWith(panelTabSortMode: !interaction.panelTabSortMode),
-        );
-      case _PanelBarActionKind.dock:
-        cubit.setLanePanelBar(
-          widget.side.laneId,
-          bar.copyWith(mode: PanelBarMode.pinned, dock: action.dock!),
-        );
-    }
   }
-
-  // `_menuRow` 退役了：那一版是自己拼「图标 + 文字 + 勾」的一行，喂给
-  // `PopupMenuItem` 的 `child`；换成 [FluentPopupMenuItem] 之后图标归
-  // `leading`、勾归 `selected`，不必再自己画一遍。
 
   static Glyph _dockIcon(PanelBarDock dock) => switch (dock) {
     PanelBarDock.left => AppGlyphs.columnsTwo,
@@ -814,32 +786,6 @@ class _PanelTabStripState extends State<PanelTabStrip> {
       cubit.setActivePanel(widget.side.laneId, fallback.id);
     }
   }
-}
-
-/// 右键菜单的动作。
-enum _PanelBarActionKind { toggleMode, toggleConstrained, toggleSortMode, dock }
-
-class _PanelBarAction {
-  const _PanelBarAction._(this.kind, this.dock);
-
-  static const _PanelBarAction toggleMode = _PanelBarAction._(
-    _PanelBarActionKind.toggleMode,
-    null,
-  );
-  static const _PanelBarAction toggleConstrained = _PanelBarAction._(
-    _PanelBarActionKind.toggleConstrained,
-    null,
-  );
-  static const _PanelBarAction toggleSortMode = _PanelBarAction._(
-    _PanelBarActionKind.toggleSortMode,
-    null,
-  );
-
-  static _PanelBarAction dockTo(PanelBarDock dock) =>
-      _PanelBarAction._(_PanelBarActionKind.dock, dock);
-
-  final _PanelBarActionKind kind;
-  final PanelBarDock? dock;
 }
 
 /// 拖动时跟着光标走的小标签。

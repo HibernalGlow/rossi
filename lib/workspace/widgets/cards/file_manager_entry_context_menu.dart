@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/platform/desktop/reveal_in_file_manager.dart';
 import 'package:zephyr/workspace/model/file_manager_entry_menu_spec.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/common_popup.dart';
 
-/// 文件管理器**一个条目**的右键菜单宿主，按 Material Design 3 规格实现。
+/// 文件管理器**一个条目**的右键菜单宿主。
 ///
 /// 三件事分开：
 ///
@@ -14,19 +17,14 @@ import 'package:zephyr/icons/icons.dart';
 /// - **动作怎么落地** —— `lib/workspace/method/file_manager_actions.dart`
 ///   （问参数、说结果）加卡片里的桥调用（那一层才有会话 id 与忙状态）。
 ///
-/// # 为什么用 `MenuAnchor` 而不是 `showMenu` / `PopupMenuButton`
+/// # 弹出动画与工作台那排「更多」同源
 ///
-/// `showMenu` 走的是 M2 的 `PopupMenuTheme`：2dp 圆角、8dp 高度、`surface` 底色。
-/// MD3 的菜单面是 **`surfaceContainer` 底色 + 2dp 高度 + 4dp 圆角 + 8dp 纵向内边距**，
-/// 条目 48dp 高、左右 12dp 内边距、图标与文字间距 12dp。这些在 `MenuItemButton`
-/// 里已经是默认值，只有菜单面本身要显式给一份 [md3MenuStyle]。
-///
-/// 同仓的 `shelf_entry_context_menu.dart` 用的仍是 `showMenu`；那一份没动 ——
-/// 收藏 / 历史菜单是既成的，改它的观感不在这次的范围里。
-///
-/// 也**不用** `PopupMenuButton`：那个组件要的是「自己就是那个按钮」，而这里整行
-/// 已经是可点的 `InkWell`，再套一层按钮会让「点一下」与「右键一下」落到两个
-/// 不同的响应区。
+/// 这一份曾经走 MD3 的 `MenuAnchor`（Material 自己的淡入缩放），与栏头 ⋮、
+/// 文件管理器「更多」的 FlClash 托盘动画不是一套。现在统一走
+/// [showCommonPopupMenu]：托盘从右键 / 长按那一点长出来、放不下时自己朝上翻，
+/// 全仓菜单只有一份弹出动画。菜单面也随之换成 [CommonPopupSurface]
+/// （superellipse 卡片），与工作台其余菜单同貌 —— 顺带把那份只为
+/// `MenuAnchor` 存在的 `md3MenuStyle` 一并去掉。
 ///
 /// # 触发方式：桌面右键 + 触摸长按
 ///
@@ -52,8 +50,7 @@ class FileManagerEntryContextMenuRegion extends StatelessWidget {
 
   /// 造出这一次菜单要用的输入。
   ///
-  /// **必须是 O(1) 的**：`menuChildren` 是 `MenuAnchor` 的普通字段，随这一行
-  /// 一起重建（构造的是 widget 对象，不是布局）。所以这里只许读卡片手里
+  /// **必须是 O(1) 的**：它在右键 / 长按那一下被调一次，只许读卡片手里
   /// **已有的**缓存（最近一次快照 + 选中态投影），不许查一次库、发一次桥调用。
   final FileManagerEntryMenuInput Function() inputBuilder;
 
@@ -65,107 +62,46 @@ class FileManagerEntryContextMenuRegion extends StatelessWidget {
   /// 而它明明什么都不该发生）。
   final bool enabled;
 
+  void _openAt(BuildContext context, Offset globalPosition) {
+    final input = inputBuilder();
+    final specs = buildFileManagerEntryMenuItems(input);
+    final items = <CommonPopupMenuItem>[];
+    for (var index = 0; index < specs.length; index += 1) {
+      final spec = specs[index];
+      // 分组：相关动作要成组，组间用分隔线。前两组（打开 / 剪贴板+编辑）
+      // 与危险组之间必须隔开 —— 挨在一起最容易点错。
+      if (index > 0 && spec.dangerous && !specs[index - 1].dangerous) {
+        items.add(const CommonPopupMenuItem.divider());
+      }
+      items.add(
+        CommonPopupMenuItem(
+          label: fileManagerEntryActionLabel(spec.action, input: input),
+          glyph: fileManagerEntryActionIcon(spec.action),
+          // `onPressed: null` 就是禁用态：菜单项**永远在场**，只是有的不可点。
+          danger: spec.dangerous,
+          onPressed: spec.enabled ? () => onAction(context, spec.action) : null,
+        ),
+      );
+    }
+    // 路由自己会在选中 / 点空白时关掉，不必等它。
+    unawaited(
+      showCommonPopupMenu(
+        context: context,
+        position: globalPosition,
+        items: items,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!enabled) return child;
-    return _FileManagerEntryMenuAnchor(
-      inputBuilder: inputBuilder,
-      onAction: onAction,
+    return GestureDetector(
+      // `deferToChild`：手势只在这一行本身吃掉了事件时才认，不抢上层滚动的。
+      behavior: HitTestBehavior.deferToChild,
+      onSecondaryTapUp: (details) => _openAt(context, details.globalPosition),
+      onLongPressStart: (details) => _openAt(context, details.globalPosition),
       child: child,
-    );
-  }
-}
-
-/// `MenuAnchor` 需要 `MenuController`，而 `MenuController` 只能在 State 里持有一个
-/// （它在 `attach` 之前调 `open()` 会断言失败）。所以外壳是 Stateless、内核是 Stateful。
-class _FileManagerEntryMenuAnchor extends StatefulWidget {
-  const _FileManagerEntryMenuAnchor({
-    required this.child,
-    required this.inputBuilder,
-    required this.onAction,
-  });
-
-  final Widget child;
-  final FileManagerEntryMenuInput Function() inputBuilder;
-  final void Function(BuildContext context, FileManagerEntryAction action)
-  onAction;
-
-  @override
-  State<_FileManagerEntryMenuAnchor> createState() =>
-      _FileManagerEntryMenuAnchorState();
-}
-
-class _FileManagerEntryMenuAnchorState
-    extends State<_FileManagerEntryMenuAnchor> {
-  final MenuController _controller = MenuController();
-
-  @override
-  void dispose() {
-    _controller.close();
-    super.dispose();
-  }
-
-  void _openAt(Offset localPosition) {
-    // MD3 的惯例是菜单左上角落在指针处。`MenuAnchor` 的 `position` 用的是
-    // 锚点自己的坐标系，所以直接用 `localPosition`，不要换算全局坐标。
-    _controller.open(position: localPosition);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return MenuAnchor(
-      controller: _controller,
-      style: md3MenuStyle(context),
-      menuChildren: _buildItems(context),
-      child: GestureDetector(
-        // `deferToChild`：手势只在这一行本身吃掉了事件时才认，不抢上层滚动的。
-        behavior: HitTestBehavior.deferToChild,
-        onSecondaryTapUp: (details) => _openAt(details.localPosition),
-        onLongPressStart: (details) => _openAt(details.localPosition),
-        child: widget.child,
-      ),
-    );
-  }
-
-  List<Widget> _buildItems(BuildContext context) {
-    final input = widget.inputBuilder();
-    final items = buildFileManagerEntryMenuItems(input);
-    final widgets = <Widget>[];
-    for (var index = 0; index < items.length; index += 1) {
-      // 分组：MD3 说菜单里相关动作要成组，组间用分隔线。前两组（打开 / 剪贴板+编辑）
-      // 与危险组之间必须隔开 —— 挨在一起最容易点错。
-      if (index > 0 && items[index].dangerous && !items[index - 1].dangerous) {
-        widgets.add(const Divider(height: 9, thickness: 1));
-      }
-      widgets.add(_buttonFor(context, items[index], input));
-    }
-    return widgets;
-  }
-
-  Widget _buttonFor(
-    BuildContext context,
-    FileManagerEntryMenuItemSpec spec,
-    FileManagerEntryMenuInput input,
-  ) {
-    final scheme = Theme.of(context).colorScheme;
-    final color = spec.dangerous ? scheme.error : null;
-    return MenuItemButton(
-      // `onPressed: null` 就是 MD3 的禁用态（置灰、不可聚焦、点击不响应）。
-      // 菜单项**永远在场**，只是有的不可点。
-      onPressed: spec.enabled
-          ? () => widget.onAction(context, spec.action)
-          : null,
-      // MD3 的单行菜单项：24dp 前置图标、48dp 行高、12dp 内边距，
-      // `MenuItemButton` 已经是这套默认值，这里只给颜色。
-      leadingIcon: GlyphIcon(
-        fileManagerEntryActionIcon(spec.action),
-        size: 24,
-        color: color,
-      ),
-      child: Text(
-        fileManagerEntryActionLabel(spec.action, input: input),
-        style: TextStyle(color: color),
-      ),
     );
   }
 }
@@ -231,31 +167,6 @@ class FileManagerEntrySelectionShell extends StatelessWidget {
       ),
     );
   }
-}
-
-/// MD3 的菜单面规格。
-///
-/// 抽成函数而不是散在 widget 里：文件管理器里会用到菜单的不止这一处
-/// （目录列的右键、工具栏菜单），规格只该有一份。
-MenuStyle md3MenuStyle(BuildContext context) {
-  final scheme = Theme.of(context).colorScheme;
-  return MenuStyle(
-    // MD3: 菜单面用 surfaceContainer，不是 surface。
-    backgroundColor: WidgetStatePropertyAll(scheme.surfaceContainer),
-    elevation: const WidgetStatePropertyAll(2),
-    // MD3: 4dp 圆角。
-    shape: const WidgetStatePropertyAll(
-      RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(4)),
-      ),
-    ),
-    // MD3: 菜单上下各 8dp 内边距。
-    padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: 8)),
-    // MD3: 菜单最小 112dp、最大 280dp 宽。
-    minimumSize: const WidgetStatePropertyAll(Size(112, 0)),
-    maximumSize: const WidgetStatePropertyAll(Size(280, double.infinity)),
-    alignment: AlignmentDirectional.topStart,
-  );
 }
 
 /// 一个动作对应哪句话。

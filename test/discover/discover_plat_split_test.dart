@@ -82,18 +82,16 @@ Future<void> _rightTap(WidgetTester tester, String title) async {
 
 /// 菜单里某一项当前可不可点。
 ///
-/// 用 `byWidgetPredicate` + `is PopupMenuItem<dynamic>`：`find.byType` 比的是
-/// **精确 runtimeType**，写 `PopupMenuItem<Object?>` 永远匹配不到泛型实参那一种。
+/// 菜单行由 `CommonPopupMenu` 画：可点与否落在那一行 `InkWell` 的 `onTap`
+/// 上（`onPressed: null` 的项就是 `onTap == null`）。`find.text` 只看得到
+/// 文案，所以往上找**最近**的那只 `InkWell` 读它的状态。
 bool _itemEnabled(String title) {
-  final widget = find
-      .ancestor(
-        of: find.text(title),
-        matching: find.byWidgetPredicate((w) => w is PopupMenuItem<dynamic>),
-      )
+  final row = find
+      .ancestor(of: find.text(title), matching: find.byType(InkWell))
       .evaluate()
-      .single
+      .first
       .widget;
-  return (widget as PopupMenuItem<dynamic>).enabled;
+  return (row as InkWell).onTap != null;
 }
 
 void main() {

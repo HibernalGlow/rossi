@@ -92,24 +92,15 @@ class LaneMenu {
 
   /// 在**全局坐标** [position] 处弹出这份菜单（右键栏头那条路）。
   ///
-  /// 走 [CommonPopupRoute] 的 `belowPoint` 摆位直接推路由：锚点是右键那一点，
+  /// 走 [showCommonPopupMenu] 的 `belowPoint` 摆位：锚点是右键那一点，
   /// 托盘从这一点长出来，放不下会自己朝上翻。项的回调在 [buildItems] 里
   /// 已经闭包了这里的 `context`（页面的 context，`BlocProvider` 够得着），
   /// 所以路由里不再需要拿任何东西。
   Future<void> show(BuildContext context, Offset position) async {
-    final items = buildItems(context);
-    // 空清单不弹：泳道刚被摘掉时就是这样。
-    if (items.isEmpty) return;
-
-    await Navigator.of(context).push(
-      CommonPopupRoute<void>(
-        barrierLabel: MaterialLocalizations.of(
-          context,
-        ).modalBarrierDismissLabel,
-        anchorOf: () => position & Size.zero,
-        placement: PopupPlacement.belowPoint,
-        builder: (_) => CommonPopupMenu(items: items),
-      ),
+    await showCommonPopupMenu(
+      context: context,
+      position: position,
+      items: buildItems(context),
     );
   }
 
@@ -143,7 +134,9 @@ class LaneMenu {
         onPressed: enabled ? () => apply(context, value) : null,
         // 带次要说明的项用两行正文；说明是补充信息，不该把它塞进
         // 单行 `label` 里截断。
-        content: hint == null ? null : _LaneMenuTitle(label: label, hint: hint),
+        content: hint == null
+            ? null
+            : CommonPopupMenuTitle(label: label, hint: hint),
       );
     }
 
@@ -217,10 +210,7 @@ class LaneMenu {
             item(
               value: 'barMode',
               glyph: AppGlyphs.pin,
-              label:
-                  bar.mode == PanelBarMode.pinned
-                      ? '改为悬浮'
-                      : '固定到当前位置',
+              label: bar.mode == PanelBarMode.pinned ? '改为悬浮' : '固定到当前位置',
             ),
             item(
               value: 'barConstrained',
@@ -233,8 +223,7 @@ class LaneMenu {
                 value: 'dock:${dock.name}',
                 glyph: _dockGlyph(dock),
                 label: '停靠${_dockLabel(dock)}',
-                checked:
-                    bar.mode == PanelBarMode.pinned && bar.dock == dock,
+                checked: bar.mode == PanelBarMode.pinned && bar.dock == dock,
               ),
             item(
               value: 'barReset',
@@ -403,38 +392,6 @@ class LaneMoreMenu extends StatelessWidget {
         ),
       ),
       popupBuilder: (_) => CommonPopupMenu(items: items),
-    );
-  }
-}
-
-/// 菜单项的正文：一行标签，底下一行可选的次要说明。
-///
-/// 图标与勾选钮不在这里 —— 它们分别是 [CommonPopupMenuItem] 的 `glyph`
-/// 与行尾按 `checked` 画的那枚勾，这里只管文案。
-class _LaneMenuTitle extends StatelessWidget {
-  const _LaneMenuTitle({required this.label, this.hint});
-
-  final String label;
-
-  /// 次要说明：只在「这条动作另有入口」时给一句（比如双击标题）。
-  final String? hint;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(label, style: theme.textTheme.bodySmall),
-        if (hint != null)
-          Text(
-            hint!,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-      ],
     );
   }
 }
