@@ -403,6 +403,27 @@ PORTS = [
         "upstream_strip": [],
         "drop_lines": ["use unicode_normalization::UnicodeNormalization;"],
     },
+    {
+        "upstream": "src/margin_fit.rs",
+        "local": "rust/local_core/src/margin_fit.rs",
+        "pinned_at": "bb6ca0c6",
+        "upstream_normalize": [
+            # 偏离 2: 上游测试用 egui::ColorImage 的结构体字面量（带 source_size: egui::vec2）。
+            # 本仓替身 ColorImage 没有 source_size 字段（检测算法从不读它）⇒ 改成构造函数调用。
+            (
+                r"ColorImage \{\s*size: \[width, height\],\s*pixels,\s*"
+                r"source_size: egui::vec2\(width as f32, height as f32\),\s*\}",
+                "ColorImage::new([width, height], pixels)",
+            ),
+        ],
+        "local_strip": [
+            # 偏离 1: B3 替身模块（Color32/ColorImage 就地实现 + 几何类型转发 page_split）
+            # 与它的别名 import。算法主体与上游逐字相同，只有类型来源变了。
+            (r"pub mod egui_compat \{[\s\S]*?\nuse egui_compat as egui;\n\n", ""),
+        ],
+        "upstream_strip": [],
+        "drop_lines": [],
+    },
 ]
 
 # 原文件引用与构建期源码切片：函数体只存在于 vendor，不再维护第二份。

@@ -5,6 +5,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:zephyr/gpu/gpu_present_bridge.dart';
 import 'package:zephyr/page/comic_read/model/page_split.dart';
+import 'package:zephyr/page/comic_read/model/page_trim.dart';
+import 'package:zephyr/reader/margin_fit_cache.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/page_source.dart';
 
@@ -80,6 +82,8 @@ class ImageSurface extends StatefulWidget {
     this.onIntrinsicSize,
     this.slice = PageSlice.full,
     this.ambientEnabled = false,
+    this.autoTrimMargins = false,
+    this.verticalScroll = false,
   });
 
   /// 已打开的页面来源。
@@ -93,6 +97,19 @@ class ImageSurface extends StatefulWidget {
 
   /// 当前阅读页的有效自适应背景开关（包含本漫画覆盖设置）。
   final bool ambientEnabled;
+
+  /// 是否**显示时**裁掉这一页四周的白/黑余白（自动裁边）。
+  ///
+  /// 只改可见区域与缩放，像素一律不动 —— 检测算法是 mImageViewer
+  /// `margin_fit.rs` 的移植（Rust 侧 `rossi_local_core::margin_fit`），
+  /// 检测说「裁不动」就照原样画。
+  final bool autoTrimMargins;
+
+  /// 这一页是不是**纵向滚动**（条漫/列模式）里的一段。
+  ///
+  /// 纵向滚动时分段图的上下边可能就是连续画面的接缝，逐张独立裁上下会跳画面，
+  /// 所以只允许裁左右（判定在 `trimRectForScroll`，理由与实测口径见那里）。
+  final bool verticalScroll;
 
   /// GPU 呈现器的就绪状态与呈现目标。由调用方创建并 [GpuPresentController.start]。
   final GpuPresentController presenter;
@@ -513,6 +530,12 @@ class _ImageSurfaceState extends State<ImageSurface> {
               sourceHeight.toDouble(),
             ),
           });
+          // 裁边检测：半页不接（分割页要另按半页各自检测），开关关着不跑。
+          if (widget.autoTrimMargins && !widget.slice.isHalf) {
+            unawaited(
+              _resolveTrim(source, index, rgba, pixelWidth, pixelHeight),
+            );
+          }
           // 先换再释放：反过来会让这一帧的绘制拿到一个已 dispose 的位图。
           if (stale != null && !identical(stale, image)) {
             stale.dispose();
@@ -537,6 +560,37 @@ class _ImageSurfaceState extends State<ImageSurface> {
         _loadingWidth = null;
       }
     }
+  }
+
+  /// 问一次「这一页的内容矩形在哪」，把结果挂成这一页自己的显示裁切。
+  ///
+  /// 走 `MarginFitCache`：同一页同一尺寸只分析一次，翻页来回不重算。
+  /// 结果回来时**这一页可能早就被翻走了** —— 用 [_trimToken] 判定过期，
+  /// 过期就整段作废，绝不把旧页的矩形挂到新页上。
+  Future<void> _resolveTrim(
+    PageSource source,
+    int index,
+    Uint8List rgba,
+    int width,
+    int height,
+  ) async {
+    final int token = ++_trimToken;
+    final Rect? detected = await MarginFitCache.instance.bboxFor(
+      source: source,
+      pageIndex: index,
+      rgba: rgba,
+      width: width,
+      height: height,
+    );
+    // 条漫（纵向滚动）只裁左右：分段图的上下边可能就是连续画面的接缝。
+    final Rect? applied = trimRectForScroll(
+      detected: detected,
+      verticalScroll: widget.verticalScroll,
+    );
+    if (!mounted || token != _trimToken) return;
+    setState(() {
+      _trimRect = applied;
+    });
   }
 
   Future<ui.Image> _decodeRgba(Uint8List rgba, int width, int height) {
@@ -626,11 +680,14 @@ class _ImageSurfaceState extends State<ImageSurface> {
       // 纹理铺满整个盒子是**故意**的：页的等比缩放与留边在 Rust 侧的着色器里
       // 完成，所以这张纹理本来就已经是"屏幕上的那一幅"。
       // 这里再套一层 AspectRatio 或 BoxFit 只会引入第二次缩放。
-      return _wrapSlice(
-        SizedBox(
-          width: constraints.maxWidth,
-          height: constraints.maxHeight,
-          child: Texture(textureId: frame.textureId),
+      return _wrapTrim(
+        _wrapSlice(
+          SizedBox(
+            width: constraints.maxWidth,
+            height: constraints.maxHeight,
+            child: Texture(textureId: frame.textureId),
+          ),
+          constraints,
         ),
         constraints,
       );
@@ -648,15 +705,18 @@ class _ImageSurfaceState extends State<ImageSurface> {
     }
     // 位图路没有着色器，留边只能交给 `BoxFit.contain` —— 用同一个语义
     // （等比缩放 + 留边），这样两条路切换时画面不会跳。
-    return _wrapSlice(
-      SizedBox(
-        width: constraints.maxWidth,
-        height: constraints.maxHeight,
-        child: RawImage(
-          image: image,
-          fit: BoxFit.contain,
-          filterQuality: FilterQuality.medium,
+    return _wrapTrim(
+      _wrapSlice(
+        SizedBox(
+          width: constraints.maxWidth,
+          height: constraints.maxHeight,
+          child: RawImage(
+            image: image,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.medium,
+          ),
         ),
+        constraints,
       ),
       constraints,
     );
@@ -678,6 +738,65 @@ class _ImageSurfaceState extends State<ImageSurface> {
           alignment: widget.slice == PageSlice.left
               ? Alignment.centerLeft
               : Alignment.centerRight,
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  /// 非破坏式裁边：把已经画好的那一幅**放大并平移**，一个像素都不改。
+  ///
+  /// 四条硬保险，任一条不满足就照原样交出去（宁可看到整图，也不切掉画面）：
+  /// - 开关关着；
+  /// - 这一页是横长页分割出来的**半页**（半页的内容矩形要另按半页检测，现在没有，
+  ///   把整页的矩形套在半页上就是错位）；
+  /// - 没有可信的内容矩形（上游算法说「裁不动」就是没有，不许猜）；
+  /// - 盒子尺寸无界（列模式在 `paintSize` 到位之前根本没有可裁的盒子）。
+  ///
+  /// 语义与 `draw_fs_image` 的「余白分ズームインして再センタリングする」一致：
+  /// 内容矩形按 contain 重新铺满整页原本占的那块，所以留边比例仍按**整页**纵横比，
+  /// 不会因为裁边把画面拉变形。
+  Widget _wrapTrim(Widget child, BoxConstraints constraints) {
+    final Rect? trim = _trimRect;
+    final Size? imageSize = _loadedImageSize;
+    if (!widget.autoTrimMargins ||
+        widget.slice.isHalf ||
+        trim == null ||
+        imageSize == null ||
+        !constraints.hasBoundedWidth ||
+        !constraints.hasBoundedHeight) {
+      return child;
+    }
+    final PageTrimGeometry? geometry = computePageTrim(
+      boxSize: Size(constraints.maxWidth, constraints.maxHeight),
+      imageSize: imageSize,
+      contentRect: trim,
+    );
+    if (geometry == null) return child;
+    return ClipRect(
+      child: SizedBox(
+        width: constraints.maxWidth,
+        height: constraints.maxHeight,
+        child: Transform(
+          // 列主序仿射矩阵：p' = scale * p + translate。
+          transform: Matrix4(
+            geometry.scale,
+            0,
+            0,
+            0,
+            0,
+            geometry.scale,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            geometry.dx,
+            geometry.dy,
+            0,
+            1,
+          ),
           child: child,
         ),
       ),

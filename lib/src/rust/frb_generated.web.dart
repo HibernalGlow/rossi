@@ -21,6 +21,7 @@ import 'api/local.dart';
 import 'api/local_thumbnail.dart';
 import 'api/localization.dart';
 import 'api/logger.dart';
+import 'api/margin_fit.dart';
 import 'api/memory.dart';
 import 'api/mimage_onnx.dart';
 import 'api/ocr.dart';
@@ -123,6 +124,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool dco_decode_box_autoadd_bool(dynamic raw);
 
   @protected
+  ContentBBox dco_decode_box_autoadd_content_b_box(dynamic raw);
+
+  @protected
   FetchInit dco_decode_box_autoadd_fetch_init(dynamic raw);
 
   @protected
@@ -182,6 +186,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt dco_decode_box_autoadd_u_64(dynamic raw);
+
+  @protected
+  int dco_decode_box_autoadd_u_8(dynamic raw);
+
+  @protected
+  ContentBBox dco_decode_content_b_box(dynamic raw);
 
   @protected
   double dco_decode_f_32(dynamic raw);
@@ -437,6 +447,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool? dco_decode_opt_box_autoadd_bool(dynamic raw);
 
   @protected
+  ContentBBox? dco_decode_opt_box_autoadd_content_b_box(dynamic raw);
+
+  @protected
   FetchInit? dco_decode_opt_box_autoadd_fetch_init(dynamic raw);
 
   @protected
@@ -606,6 +619,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool sse_decode_box_autoadd_bool(SseDeserializer deserializer);
 
   @protected
+  ContentBBox sse_decode_box_autoadd_content_b_box(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   FetchInit sse_decode_box_autoadd_fetch_init(SseDeserializer deserializer);
 
   @protected
@@ -679,6 +697,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_box_autoadd_u_8(SseDeserializer deserializer);
+
+  @protected
+  ContentBBox sse_decode_content_b_box(SseDeserializer deserializer);
 
   @protected
   double sse_decode_f_32(SseDeserializer deserializer);
@@ -1010,6 +1034,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer);
 
   @protected
+  ContentBBox? sse_decode_opt_box_autoadd_content_b_box(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   FetchInit? sse_decode_opt_box_autoadd_fetch_init(
     SseDeserializer deserializer,
   );
@@ -1220,6 +1249,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_content_b_box(
+    ContentBBox self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_fetch_init(
     FetchInit self,
     SseSerializer serializer,
@@ -1314,6 +1349,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_u_8(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_content_b_box(ContentBBox self, SseSerializer serializer);
 
   @protected
   void sse_encode_f_32(double self, SseSerializer serializer);
@@ -1728,6 +1769,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_content_b_box(
+    ContentBBox? self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_opt_box_autoadd_fetch_init(

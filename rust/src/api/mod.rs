@@ -8,6 +8,7 @@ pub mod local;
 pub mod local_thumbnail;
 pub mod localization;
 pub mod logger;
+pub mod margin_fit;
 pub mod memory;
 pub mod mimage_onnx;
 pub mod ocr;
