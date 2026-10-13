@@ -73,7 +73,7 @@ void main() {
         lessThanOrEqualTo(tester.getRect(thumbnails).top),
       );
       final play = find.byTooltip(videoLabels().pause);
-      final more = find.byTooltip(t.common.more);
+      final more = find.byTooltip(t.common.more).last;
       expect(
         (tester.getCenter(play).dy - tester.getCenter(more).dy).abs(),
         lessThan(1),

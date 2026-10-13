@@ -6,6 +6,7 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/widgets/controls/slider.dart';
+import 'package:zephyr/widgets/common_popup.dart';
 import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
 
 /// 直接 emit 预设 state，不走 updateReadSetting（后者会写 ObjectBox，
@@ -125,5 +126,30 @@ void main() {
     // 防抖窗口里标记必须已经为真：否则这期间任何 onPageChanged 都会经
     // updateCurrentSlot 把滑块拽回画面当前那一页（表现为「点完又弹回去」）。
     expect(readerCubit.state.isSliderRolling, isTrue);
+  });
+
+  testWidgets('进度悬停连续更新保留同一浮层，退出先播统一收回动画', (tester) async {
+    await _pumpHarness(tester);
+    final track = tester.getCenter(find.byType(Slider));
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: Offset.zero);
+    await mouse.moveTo(track);
+    await mouse.moveTo(track + const Offset(10, 0));
+    await tester.pump(const Duration(milliseconds: 80));
+    final preview = find.byType(CommonPopupOverlayMotion);
+    expect(preview, findsOneWidget);
+    final retained = tester.state(preview);
+    await mouse.moveTo(track + const Offset(40, 0));
+    await tester.pump(const Duration(milliseconds: 80));
+    expect(tester.state(preview), same(retained), reason: '不能每次 hover 重建并重启入场');
+    await mouse.moveTo(Offset.zero);
+    await tester.pump();
+    expect(preview, findsOneWidget, reason: '退出不能瞬间移除托盘');
+    expect(tester.widget<CommonPopupOverlayMotion>(preview).visible, isFalse);
+    await tester.pump(const Duration(milliseconds: 450));
+    await tester.pump();
+    expect(preview, findsNothing);
+    await mouse.removePointer();
+    expect(tester.takeException(), isNull);
   });
 }

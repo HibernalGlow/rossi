@@ -16,8 +16,15 @@ extension _BottomControlsLayoutPart on _BottomWidgetState {
 
     return AnimatedSize(
       // 展开/收起时让面板「长出来」，而不是整块跳一下。
-      duration: const Duration(milliseconds: 240),
-      curve: Curves.easeOutCubic,
+      duration:
+          context.read<GlobalSettingCubit>().state.readSetting.noAnimation ||
+              context.read<GlobalSettingCubit>().state.eInkSetting.enabled
+          ? Duration.zero
+          : ExpressiveMotion.duration(
+              context,
+              ExpressiveMotion.spatialDuration,
+            ),
+      curve: ExpressiveMotion.spatialCurve,
       alignment: Alignment.bottomCenter,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -48,11 +55,12 @@ extension _BottomControlsLayoutPart on _BottomWidgetState {
                     maxWidth: isWideLayout ? bottomMaxWidth : double.infinity,
                   ),
                   child: showStrip
-                      // 缩略图条与进度条同处一块玻璃：不再往控制栏上面
-                      // 另起一栏（那正是用户要消掉的东西）。
-                      ? LiquidGlassSurface(
-                          thickness: LiquidGlassThickness.thick,
-                          radius: 24,
+                      // 缩略图与进度共用 Expressive 表面，保留两份操作入口。
+                      ? Material(
+                          color: context.theme.colorScheme.surfaceContainerLow,
+                          elevation: 3,
+                          borderRadius: BorderRadius.circular(28),
+                          clipBehavior: Clip.antiAlias,
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -235,10 +243,12 @@ extension _BottomControlsLayoutPart on _BottomWidgetState {
           constraints: BoxConstraints(
             maxWidth: isWideLayout ? maxWidth : double.infinity,
           ),
-          child: LiquidGlassSurface(
+          child: Material(
             key: const ValueKey('reader-video-bottom-bar'),
-            thickness: LiquidGlassThickness.thick,
-            radius: 24,
+            color: context.theme.colorScheme.surfaceContainerLow,
+            elevation: 3,
+            borderRadius: BorderRadius.circular(28),
+            clipBehavior: Clip.antiAlias,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [

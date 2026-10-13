@@ -29,6 +29,7 @@ import 'package:zephyr/widgets/navigation/navigation_shape.dart';
 import 'package:zephyr/widgets/navigation/spring_curve.dart';
 
 part 'navigation/popup_layout.dart';
+part 'navigation/popup_overlay_motion.dart';
 
 typedef PopupAnchorResolver = Rect? Function();
 
