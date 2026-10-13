@@ -18,7 +18,6 @@ import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 part 'parts/collect_comic_rossi_part.dart';
 
-
 Future<bool> isLocalComicCollected({
   required String from,
   required String comicId,
@@ -315,7 +314,10 @@ Future<FavoriteWorkflowExecutionResult> _runFavoriteWorkflow({
       case FavoriteWorkflowStatus.cancelled:
         final executionResult = _toExecutionResult(result);
         if (result.status == FavoriteWorkflowStatus.failed) {
-          throw StateError(result.message ?? t.error.operationFailed);
+          final message = result.message?.trim() ?? '';
+          throw StateError(
+            message.isNotEmpty ? message : t.error.executionFailed,
+          );
         }
         throw FavoriteWorkflowIncompleteException(executionResult);
       case FavoriteWorkflowStatus.awaitingInput:

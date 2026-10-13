@@ -2,19 +2,17 @@ part of '../reader_settings_sheet.dart';
 
 /// 面板里的标签分组：按「用户到这排来找什么」分，不按代码里 section 的书写顺序分。
 ///
-/// # 为什么停在 5 排
+/// # 本漫设置沿用上游的独立 tab
 ///
-/// MD3 把 tab 定位成**同一抽象层级上的 2–5 个视图**；超过这个数就该换成 rail
-/// 或 drawer，而不是把 tab 越挤越窄、最后退化成没人认得的图标串。所以
-/// [_visibleReaderSettingsTabs] 之外的分组需求一律往这五排里塞，或者去
-/// 「设置」页，而不是在这儿加第六排。
+/// 阅读页带 source/comicId 时增加上游的本漫 tab，全局入口隐藏它。
+/// 标签继续由可滚动宿主承载，读写目标由上游 _PerComicScope 决定。
 ///
 /// # 翻译排为什么可以整排不见
 ///
 /// OCR 翻译在 Android / iOS 是**排除项而不是待办**（ADR-0018 §决定 6：本仓 `ort`
 /// 的 android/linux 那两段没注册任何加速器 EP，识别模型还是 fp32 的 441 MB）。
 /// 入口画出来却必然报错，比不画更坏，所以那一排在移动端整个不出现。
-enum _ReaderSettingsTab { read, gesture, screen, picture, translate }
+enum _ReaderSettingsTab { read, gesture, screen, picture, translate, perComic }
 
 extension _ReaderSettingsTabLabel on _ReaderSettingsTab {
   Glyph get icon => switch (this) {
@@ -23,6 +21,7 @@ extension _ReaderSettingsTabLabel on _ReaderSettingsTab {
     _ReaderSettingsTab.screen => AppGlyphs.gridPlus,
     _ReaderSettingsTab.picture => AppGlyphs.quality,
     _ReaderSettingsTab.translate => AppGlyphs.translate,
+    _ReaderSettingsTab.perComic => AppGlyphs.openBook,
   };
 
   String get label => switch (this) {
@@ -31,24 +30,42 @@ extension _ReaderSettingsTabLabel on _ReaderSettingsTab {
     _ReaderSettingsTab.screen => t.reader.tabScreen,
     _ReaderSettingsTab.picture => t.reader.tabPicture,
     _ReaderSettingsTab.translate => t.reader.tabTranslate,
+    _ReaderSettingsTab.perComic => t.reader.perComicThisComic,
   };
 
   Widget body(_ReaderSettingsArgs args) => switch (this) {
-    _ReaderSettingsTab.read => _ReaderSettingsReadTab(args: args),
-    _ReaderSettingsTab.gesture => _ReaderSettingsGestureTab(args: args),
-    _ReaderSettingsTab.screen => _ReaderSettingsScreenTab(args: args),
+    _ReaderSettingsTab.read => _ReaderSettingsReadTab(
+      changePageIndex: args.changePageIndex,
+      onLandscapeChanged: args.onLandscapeChanged,
+      source: args.source,
+      comicId: args.comicId,
+    ),
+    _ReaderSettingsTab.gesture => _ReaderSettingsGestureTab(
+      isAndroidPhone: args.isAndroidPhone,
+    ),
+    _ReaderSettingsTab.screen => const _ReaderSettingsInfoTab(),
     _ReaderSettingsTab.picture => const _ReaderSettingsPictureTab(),
     _ReaderSettingsTab.translate => const _ReaderSettingsTranslateTab(),
+    _ReaderSettingsTab.perComic => _ReaderSettingsPerComicTab(
+      changePageIndex: args.changePageIndex,
+      onLandscapeChanged: args.onLandscapeChanged,
+      source: args.source,
+      comicId: args.comicId,
+      isAndroidPhone: args.isAndroidPhone,
+    ),
   };
 }
 
 /// 这一次真正要画出来的几排。
 List<_ReaderSettingsTab> _visibleReaderSettingsTabs({
   required bool translateAvailable,
+  required bool perComicAvailable,
 }) {
   return [
     for (final tab in _ReaderSettingsTab.values)
-      if (tab != _ReaderSettingsTab.translate || translateAvailable) tab,
+      if ((tab != _ReaderSettingsTab.translate || translateAvailable) &&
+          (tab != _ReaderSettingsTab.perComic || perComicAvailable))
+        tab,
   ];
 }
 

@@ -1015,6 +1015,9 @@ class _Translations$comicInfo$en_US extends Translations$comicInfo$zh_CN {
 	@override String episodeCount({required Object count}) => '${count} Episodes';
 	@override String episodeFallback({required Object index}) => '${index}';
 	@override String episodeLabel({required Object index}) => '${index}';
+	@override String groupEpisodeCount({required Object count}) => '${count} Episodes';
+	@override String get untitledGroup => 'Ungrouped';
+	@override String get downloadGroup => 'Download group';
 	@override String get author => 'Author';
 	@override String get tags => 'Tags';
 	@override String get works => 'Works';
@@ -1304,6 +1307,8 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get radialMenuHintMove => 'Move to choose';
 	@override String get radialMenuHintRelease => 'Release to run';
 	@override String get radialMenuHintSwitch => 'Release to switch wheel';
+	@override String get singlePageLtr => 'Single page (LTR)';
+	@override String get singlePageRtl => 'Single page (RTL)';
 }
 
 // Path: plugin
@@ -1341,6 +1346,8 @@ class _Translations$plugin$en_US extends Translations$plugin$zh_CN {
 	@override String get debugMode => 'Debug mode';
 	@override String get accountLoginSubtitle => 'Go to login';
 	@override String get accountLogin => 'Account login';
+	@override String get pluginDetail => 'Plugin detail';
+	@override String get pluginDetailSubtitle => 'View description and homepage';
 	@override String get pluginSettings => 'Plugin settings';
 	@override String get noUserInfo => 'No user info';
 	@override String get operations => 'Operations';
@@ -1997,7 +2004,7 @@ class _Translations$comicFollow$en_US extends Translations$comicFollow$zh_CN {
 	@override String get unread => 'Updated and unread';
 	@override String get sort => 'Sort';
 	@override String get lastRead => 'Last read';
-	@override String get lastUpdate => 'Latest update check';
+	@override String get lastUpdate => 'Latest check';
 	@override String checkTime({required Object time}) => 'Check time: ${time}';
 	@override String get notRead => 'Not read yet';
 	@override String lastReadChapter({required Object chapter}) => 'Read to: ${chapter}';
@@ -2015,10 +2022,10 @@ class _Translations$comicFollow$en_US extends Translations$comicFollow$zh_CN {
 	@override String get retry => 'Retry';
 	@override String readProgress({required Object read, required Object total}) => '${read} of ${total} read';
 	@override String readProgressUnknown({required Object total}) => '${total} total';
-	@override String get updatedJustNow => 'Just updated';
-	@override String updatedMinutesAgo({required Object minutes}) => 'Updated ${minutes} min ago';
-	@override String updatedHoursAgo({required Object hours}) => 'Updated ${hours} h ago';
-	@override String updatedDaysAgo({required Object days}) => 'Updated ${days} d ago';
+	@override String get updatedJustNow => 'Just checked';
+	@override String updatedMinutesAgo({required Object minutes}) => 'Checked ${minutes} min ago';
+	@override String updatedHoursAgo({required Object hours}) => 'Checked ${hours} h ago';
+	@override String updatedDaysAgo({required Object days}) => 'Checked ${days} d ago';
 	@override String lastReadMinutesAgo({required Object minutes}) => 'Read ${minutes} min ago';
 	@override String lastReadHoursAgo({required Object hours}) => 'Read ${hours} h ago';
 	@override String lastReadDaysAgo({required Object days}) => 'Read ${days} d ago';
@@ -2106,6 +2113,9 @@ class _Translations$login$en_US extends Translations$login$zh_CN {
 	@override String get retry => 'Retry';
 	@override String requiredFieldEmpty({required Object label}) => 'Please fill in ${label}';
 	@override String get loginNotSupported => 'This plugin doesn\'t support the new login page yet. Please fill in your account in plugin settings.';
+	@override String get captchaTapToRefresh => 'Can\'t see? Tap to refresh';
+	@override String get captchaLoading => 'Loading captcha...';
+	@override String get captchaLoadFailed => 'Failed to load captcha, tap to retry';
 }
 
 // Path: fontSetting
@@ -3386,6 +3396,9 @@ extension on TranslationsEnUs {
 			'comicInfo.episodeCount' => ({required Object count}) => '${count} Episodes',
 			'comicInfo.episodeFallback' => ({required Object index}) => '${index}',
 			'comicInfo.episodeLabel' => ({required Object index}) => '${index}',
+			'comicInfo.groupEpisodeCount' => ({required Object count}) => '${count} Episodes',
+			'comicInfo.untitledGroup' => 'Ungrouped',
+			'comicInfo.downloadGroup' => 'Download group',
 			'comicInfo.author' => 'Author',
 			'comicInfo.tags' => 'Tags',
 			'comicInfo.works' => 'Works',
@@ -3524,11 +3537,11 @@ extension on TranslationsEnUs {
 			'reader.doublePageLeadingBlank' => 'Leading blank',
 			'reader.doublePageLeadingBlankSubtitle' => 'Insert a blank page at the start of each chapter to shift page pairing',
 			'reader.splitLandscapePages' => 'Split landscape pages',
+			_ => null,
+		} ?? switch (path) {
 			'reader.splitLandscapePagesSubtitle' => 'Automatically split wide double-page images into left and right halves',
 			'reader.landscapeSplitDirection' => 'Split reading order',
 			'reader.splitDirectionAuto' => 'Follow reading direction',
-			_ => null,
-		} ?? switch (path) {
 			'reader.splitDirectionLtr' => 'Left to right (left first)',
 			'reader.splitDirectionRtl' => 'Right to left (right first)',
 			'reader.hoverReveal' => 'Hover Reveal',
@@ -3668,6 +3681,8 @@ extension on TranslationsEnUs {
 			'reader.radialMenuHintMove' => 'Move to choose',
 			'reader.radialMenuHintRelease' => 'Release to run',
 			'reader.radialMenuHintSwitch' => 'Release to switch wheel',
+			'reader.singlePageLtr' => 'Single page (LTR)',
+			'reader.singlePageRtl' => 'Single page (RTL)',
 			'plugin.store' => 'Plugin Store',
 			'plugin.searchHint' => 'Search plugin name or author...',
 			'plugin.localInstall' => 'Local install',
@@ -3696,6 +3711,8 @@ extension on TranslationsEnUs {
 			'plugin.debugMode' => 'Debug mode',
 			'plugin.accountLoginSubtitle' => 'Go to login',
 			'plugin.accountLogin' => 'Account login',
+			'plugin.pluginDetail' => 'Plugin detail',
+			'plugin.pluginDetailSubtitle' => 'View description and homepage',
 			'plugin.pluginSettings' => 'Plugin settings',
 			'plugin.noUserInfo' => 'No user info',
 			'plugin.operations' => 'Operations',
@@ -4034,6 +4051,8 @@ extension on TranslationsEnUs {
 			'about.projectLink' => 'Go to GitHub repo (deretame/Breeze) ⭐',
 			'about.contact' => 'Contact',
 			'about.contactDesc' => 'Have ideas or questions? Feel free to reach out~',
+			_ => null,
+		} ?? switch (path) {
 			'about.feedback' => 'Feedback',
 			'about.feedbackDesc' => 'Found a bug or have a new idea?',
 			'about.feedbackLink' => 'Open a GitHub Issue',
@@ -4041,8 +4060,6 @@ extension on TranslationsEnUs {
 			'about.contributorsCount' => ({required Object count}) => '${count}',
 			'about.contributionsTooltip' => ({required Object login, required Object count}) => '${login} (${count} commits)',
 			'about.disclaimer' => 'Disclaimer',
-			_ => null,
-		} ?? switch (path) {
 			'about.disclaimerTitle' => 'Open Source Disclaimer',
 			'about.disclaimerItem1Title' => '1. Nature and Statement',
 			'about.disclaimerItem1Content' => 'This project is open-source software, independently developed and maintained by the author. It is provided "as-is". The developer makes no express or implied warranties regarding functionality, stability, security, or fitness for purpose.',
@@ -4201,7 +4218,7 @@ extension on TranslationsEnUs {
 			'comicFollow.unread' => 'Updated and unread',
 			'comicFollow.sort' => 'Sort',
 			'comicFollow.lastRead' => 'Last read',
-			'comicFollow.lastUpdate' => 'Latest update check',
+			'comicFollow.lastUpdate' => 'Latest check',
 			'comicFollow.checkTime' => ({required Object time}) => 'Check time: ${time}',
 			'comicFollow.notRead' => 'Not read yet',
 			'comicFollow.lastReadChapter' => ({required Object chapter}) => 'Read to: ${chapter}',
@@ -4219,10 +4236,10 @@ extension on TranslationsEnUs {
 			'comicFollow.retry' => 'Retry',
 			'comicFollow.readProgress' => ({required Object read, required Object total}) => '${read} of ${total} read',
 			'comicFollow.readProgressUnknown' => ({required Object total}) => '${total} total',
-			'comicFollow.updatedJustNow' => 'Just updated',
-			'comicFollow.updatedMinutesAgo' => ({required Object minutes}) => 'Updated ${minutes} min ago',
-			'comicFollow.updatedHoursAgo' => ({required Object hours}) => 'Updated ${hours} h ago',
-			'comicFollow.updatedDaysAgo' => ({required Object days}) => 'Updated ${days} d ago',
+			'comicFollow.updatedJustNow' => 'Just checked',
+			'comicFollow.updatedMinutesAgo' => ({required Object minutes}) => 'Checked ${minutes} min ago',
+			'comicFollow.updatedHoursAgo' => ({required Object hours}) => 'Checked ${hours} h ago',
+			'comicFollow.updatedDaysAgo' => ({required Object days}) => 'Checked ${days} d ago',
 			'comicFollow.lastReadMinutesAgo' => ({required Object minutes}) => 'Read ${minutes} min ago',
 			'comicFollow.lastReadHoursAgo' => ({required Object hours}) => 'Read ${hours} h ago',
 			'comicFollow.lastReadDaysAgo' => ({required Object days}) => 'Read ${days} d ago',
@@ -4274,6 +4291,9 @@ extension on TranslationsEnUs {
 			'login.retry' => 'Retry',
 			'login.requiredFieldEmpty' => ({required Object label}) => 'Please fill in ${label}',
 			'login.loginNotSupported' => 'This plugin doesn\'t support the new login page yet. Please fill in your account in plugin settings.',
+			'login.captchaTapToRefresh' => 'Can\'t see? Tap to refresh',
+			'login.captchaLoading' => 'Loading captcha...',
+			'login.captchaLoadFailed' => 'Failed to load captcha, tap to retry',
 			'fontSetting.title' => 'Font Settings',
 			'fontSetting.clear' => 'Clear',
 			'fontSetting.hint' => 'Pick one default font to apply everywhere; override individual weights only when needed.',
@@ -4545,6 +4565,8 @@ extension on TranslationsEnUs {
 			'bindingEditor.wheel' => 'Wheel',
 			'bindingEditor.touch' => 'Touch',
 			'bindingEditor.gamepad' => 'Gamepad',
+			_ => null,
+		} ?? switch (path) {
 			'bindingEditor.radial' => 'Radial',
 			'bindingEditor.command' => 'Command',
 			'bindingEditor.global' => 'Global',
@@ -4555,8 +4577,6 @@ extension on TranslationsEnUs {
 			'bindingEditor.editor' => 'Editor',
 			'bindingEditor.modal' => 'Dialog',
 			'bindingEditor.moveUp' => 'Move up',
-			_ => null,
-		} ?? switch (path) {
 			'bindingEditor.moveDown' => 'Move down',
 			'bindingEditor.collapse' => 'Collapse binding',
 			'bindingEditor.expand' => 'Expand binding',

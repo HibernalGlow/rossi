@@ -141,9 +141,7 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
         .cloudFavoritePreferred;
     final collectItem = cloudFavoritePreferred
         ? _OperationItemData(
-            icon: isCloudCollected
-                ? AppGlyphs.cloudDone
-                : AppGlyphs.cloud,
+            icon: isCloudCollected ? AppGlyphs.cloudDone : AppGlyphs.cloud,
             text: isCloudCollected
                 ? t.comicInfo.collected
                 : t.comicInfo.collectToCloud,
@@ -183,9 +181,7 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
       // `read_entry_placement.dart`）。触摸端 onRead 为空，这一项不出现。
       if (widget.onRead != null)
         _OperationItemData(
-          icon: widget.hasHistory
-              ? AppGlyphs.history
-              : AppGlyphs.book,
+          icon: widget.hasHistory ? AppGlyphs.history : AppGlyphs.book,
           text: widget.hasHistory
               ? t.comicInfo.continueRead
               : t.comicInfo.startRead,
@@ -532,7 +528,10 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
       if (!mounted) {
         return;
       }
-      showErrorToast(t.error.operationFailed);
+      showErrorToast(
+        normalizeSearchErrorMessage(error),
+        duration: const Duration(seconds: 5),
+      );
     }
   }
 

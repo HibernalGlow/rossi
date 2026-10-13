@@ -1,4 +1,5 @@
 #!/usr/bin/env dart
+
 // ignore_for_file: avoid_print
 
 import 'dart:async';
@@ -108,9 +109,22 @@ Future<void> main() async {
     final String projectRoot = Directory(scriptDir).parent.path;
 
     _printColor('项目根目录: $projectRoot', _cyan);
+    // 步骤计数：新增步骤时只需改 totalSteps，无需手动重排编号
+    var step = 0;
+    const totalSteps = 5;
+    String stepLabel(String title) => '--- (${++step}/$totalSteps) $title ---';
 
-    // --- 2. 运行 build_runner ---
-    _printColor('--- (1/4) 正在运行 build_runner ---', _green);
+    // --- 2. 生成 slang 国际化代码 ---
+    _printColor(stepLabel('正在生成 slang 国际化代码'), _green);
+    // 必须走 flutter 通道：纯 dart 命令在 Flutter 工程里解析不了 SDK 依赖（如 integration_test）
+    await _runCommand('flutter', [
+      'pub',
+      'run',
+      'slang',
+    ], workingDirectory: projectRoot);
+
+    // --- 3. 运行 build_runner ---
+    _printColor(stepLabel('正在运行 build_runner'), _green);
     // 使用 flutter pub run build_runner
     await _runCommand('flutter', [
       'pub',
@@ -120,27 +134,50 @@ Future<void> main() async {
       '--delete-conflicting-outputs',
     ], workingDirectory: projectRoot);
 
-    // --- 3. 智能安装/检查 flutter_rust_bridge_codegen ---
-    _printColor('--- (2/4) 检查 flutter_rust_bridge_codegen ---', _green);
-    const codegenTool = 'flutter_rust_bridge_codegen';
-
-    // 优化：先检查是否存在，避免每次都运行 cargo install
-    if (await _isCommandAvailable(codegenTool)) {
-      _printColor('检测到工具已安装，跳过安装步骤。', _magenta);
-    } else {
-      _printColor('未检测到工具，正在通过 cargo 安装...', _yellow);
+    // --- 4. 智能安装/检查 flutter_rust_bridge_codegen ---
+    _printColor(stepLabel('检查 flutter_rust_bridge_codegen'), _green);
+    const codegenName = 'flutter_rust_bridge_codegen';
+    // 必须与项目依赖同版；不加 --version 会静默安装最新版并生成不兼容绑定。
+    final manifest = File('$projectRoot/pubspec.yaml').readAsStringSync();
+    final codegenVersion = RegExp(
+      r'^  flutter_rust_bridge: (\d+\.\d+\.\d+)\b',
+      multiLine: true,
+    ).firstMatch(manifest)?.group(1);
+    if (codegenVersion == null) {
+      throw StateError('pubspec.yaml 必须精确锁定 flutter_rust_bridge 版本');
+    }
+    final cargoHome =
+        Platform.environment['CARGO_HOME'] ??
+        '${Platform.environment[Platform.isWindows ? 'USERPROFILE' : 'HOME']}/.cargo';
+    final installedCodegen =
+        '$cargoHome/bin/$codegenName${Platform.isWindows ? '.exe' : ''}';
+    var codegenTool = await _isCommandAvailable(codegenName)
+        ? codegenName
+        : installedCodegen;
+    final version = await _isCommandAvailable(codegenTool)
+        ? await Process.run(codegenTool, ['--version'])
+        : null;
+    if (version == null ||
+        !version.stdout.toString().contains(' $codegenVersion')) {
+      _printColor('正在安装与项目一致的 FRB codegen $codegenVersion...', _yellow);
       await _runCommand('cargo', [
         'install',
-        'flutter_rust_bridge_codegen',
+        codegenName,
+        '--version',
+        codegenVersion,
+        '--locked',
       ], workingDirectory: projectRoot);
+      codegenTool = installedCodegen;
+    } else {
+      _printColor('检测到同版本工具，跳过安装步骤。', _magenta);
     }
 
-    // --- 4. 运行 codegen ---
-    _printColor('--- (3/4) 正在生成 Rust Bridge 代码 ---', _green);
+    // --- 5. 运行 codegen ---
+    _printColor(stepLabel('正在生成 Rust Bridge 代码'), _green);
     await _runCommand(codegenTool, ['generate'], workingDirectory: projectRoot);
 
-    // --- 5. 格式化代码 ---
-    _printColor('--- (4/4) 正在格式化代码 ---', _green);
+    // --- 6. 格式化代码 ---
+    _printColor(stepLabel('正在格式化代码'), _green);
     await _runCommand(
       'dart',
       ['format', './lib/'], // 只格式化 lib 目录，节省时间

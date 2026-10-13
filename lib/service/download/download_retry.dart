@@ -23,15 +23,10 @@ Future<T> retryDownloadOperation<T>({
   bool Function()? shouldRetryUntilSuccess,
   Duration retryDelay = const Duration(seconds: 1),
 }) async {
-  Object? lastError;
-  StackTrace? lastStackTrace;
-
-  for (
-    var attempt = 0;
-    (shouldRetryUntilSuccess?.call() ?? false) ||
-        attempt <= downloadSilentRetryCount;
-    attempt++
-  ) {
+  var attempt = 0;
+  // 开启“失败后持续重试”时不设尝试上限：退出只靠取消、
+  // 不可重试错误（404/空数据），或开关关闭且打满静默次数。
+  while (true) {
     // 取消检查放在 try 外，取消不会被当成普通网络错误再次重试。
     await ensureTaskRunning();
     try {
@@ -44,37 +39,18 @@ Future<T> retryDownloadOperation<T>({
         Error.throwWithStackTrace(error, stackTrace);
       }
 
-      lastError = error;
-      lastStackTrace = stackTrace;
       final retryNumber = attempt + 1;
-      final isRateLimit = isRateLimitedError(error);
-
-      // 测试或特殊调用传入 Duration.zero 时直接零等待；
-      // 限流错误退避 3s, 5s, 7s...；普通网络错误指数退避 1s, 2s, 4s...
-      final actualDelay = retryDelay == Duration.zero
-          ? Duration.zero
-          : (isRateLimit
-                ? Duration(seconds: 3 + attempt * 2)
-                : Duration(
-                    milliseconds: (retryDelay.inMilliseconds * (1 << attempt))
-                        .clamp(1000, 5000),
-                  ));
-
+      attempt += 1;
       logger.w(
         retryForever
-            ? '$operation 失败${isRateLimit ? " [风控限流]" : ""}，准备持续重试 (第 $retryNumber 次，等待 ${actualDelay.inSeconds}s)'
-            : '$operation 失败${isRateLimit ? " [风控限流]" : ""}，准备静默重试 ($retryNumber/$downloadSilentRetryCount，等待 ${actualDelay.inSeconds}s)',
+            ? '$operation 失败，准备持续重试 (第 $retryNumber 次)'
+            : '$operation 失败，准备静默重试 ($retryNumber/$downloadSilentRetryCount)',
         error: error,
         stackTrace: stackTrace,
       );
-      if (actualDelay > Duration.zero) {
-        await Future<void>.delayed(actualDelay);
-      }
+      await Future<void>.delayed(retryDelay);
     }
   }
-
-  // 逻辑上不会到达这里；保留栈信息，避免错误被意外吞掉。
-  Error.throwWithStackTrace(lastError!, lastStackTrace!);
 }
 
 bool _isDownloadCancellation(Object error) {

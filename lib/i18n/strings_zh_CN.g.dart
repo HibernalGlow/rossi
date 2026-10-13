@@ -2788,6 +2788,15 @@ class Translations$comicInfo$zh_CN {
 	/// zh-CN: '$index'
 	String episodeLabel({required Object index}) => '${index}';
 
+	/// zh-CN: '$count 话'
+	String groupEpisodeCount({required Object count}) => '${count} 话';
+
+	/// zh-CN: '未分组'
+	String get untitledGroup => '未分组';
+
+	/// zh-CN: '下载本组'
+	String get downloadGroup => '下载本组';
+
 	/// zh-CN: '作者'
 	String get author => '作者';
 
@@ -3636,6 +3645,12 @@ class Translations$reader$zh_CN {
 
 	/// zh-CN: '松手切换轮盘'
 	String get radialMenuHintSwitch => '松手切换轮盘';
+
+	/// zh-CN: '单页式（从左到右）'
+	String get singlePageLtr => '单页式（从左到右）';
+
+	/// zh-CN: '单页式（从右到左）'
+	String get singlePageRtl => '单页式（从右到左）';
 }
 
 // Path: plugin
@@ -3732,6 +3747,12 @@ class Translations$plugin$zh_CN {
 
 	/// zh-CN: '前往登录'
 	String get accountLoginSubtitle => '前往登录';
+
+	/// zh-CN: '插件详情'
+	String get pluginDetail => '插件详情';
+
+	/// zh-CN: '查看插件介绍与主页'
+	String get pluginDetailSubtitle => '查看插件介绍与主页';
 
 	/// zh-CN: '插件设置'
 	String get pluginSettings => '插件设置';
@@ -5395,8 +5416,8 @@ class Translations$comicFollow$zh_CN {
 	/// zh-CN: '最后阅读'
 	String get lastRead => '最后阅读';
 
-	/// zh-CN: '最近检测更新'
-	String get lastUpdate => '最近检测更新';
+	/// zh-CN: '最近检测'
+	String get lastUpdate => '最近检测';
 
 	/// zh-CN: '检测时间：$time'
 	String checkTime({required Object time}) => '检测时间：${time}';
@@ -5449,17 +5470,17 @@ class Translations$comicFollow$zh_CN {
 	/// zh-CN: '共 $total 话'
 	String readProgressUnknown({required Object total}) => '共 ${total} 话';
 
-	/// zh-CN: '刚刚更新'
-	String get updatedJustNow => '刚刚更新';
+	/// zh-CN: '刚刚检测'
+	String get updatedJustNow => '刚刚检测';
 
-	/// zh-CN: '$minutes 分钟前更新'
-	String updatedMinutesAgo({required Object minutes}) => '${minutes} 分钟前更新';
+	/// zh-CN: '$minutes 分钟前检测'
+	String updatedMinutesAgo({required Object minutes}) => '${minutes} 分钟前检测';
 
-	/// zh-CN: '$hours 小时前更新'
-	String updatedHoursAgo({required Object hours}) => '${hours} 小时前更新';
+	/// zh-CN: '$hours 小时前检测'
+	String updatedHoursAgo({required Object hours}) => '${hours} 小时前检测';
 
-	/// zh-CN: '$days 天前更新'
-	String updatedDaysAgo({required Object days}) => '${days} 天前更新';
+	/// zh-CN: '$days 天前检测'
+	String updatedDaysAgo({required Object days}) => '${days} 天前检测';
 
 	/// zh-CN: '$minutes 分钟前读过'
 	String lastReadMinutesAgo({required Object minutes}) => '${minutes} 分钟前读过';
@@ -5649,6 +5670,15 @@ class Translations$login$zh_CN {
 
 	/// zh-CN: '该插件暂未适配新版登录页，请前往插件设置中填写账号信息'
 	String get loginNotSupported => '该插件暂未适配新版登录页，请前往插件设置中填写账号信息';
+
+	/// zh-CN: '看不清？点击刷新'
+	String get captchaTapToRefresh => '看不清？点击刷新';
+
+	/// zh-CN: '验证码加载中...'
+	String get captchaLoading => '验证码加载中...';
+
+	/// zh-CN: '验证码加载失败，点击重试'
+	String get captchaLoadFailed => '验证码加载失败，点击重试';
 }
 
 // Path: fontSetting
@@ -7520,6 +7550,9 @@ extension on Translations {
 			'comicInfo.episodeCount' => ({required Object count}) => '${count} 话',
 			'comicInfo.episodeFallback' => ({required Object index}) => '${index}',
 			'comicInfo.episodeLabel' => ({required Object index}) => '${index}',
+			'comicInfo.groupEpisodeCount' => ({required Object count}) => '${count} 话',
+			'comicInfo.untitledGroup' => '未分组',
+			'comicInfo.downloadGroup' => '下载本组',
 			'comicInfo.author' => '作者',
 			'comicInfo.tags' => '标签',
 			'comicInfo.works' => '作品',
@@ -7657,11 +7690,11 @@ extension on Translations {
 			'reader.doublePageSeamlessSubtitle' => '左右各占一半宽度，按图片比例独立显示并消除中间留白',
 			'reader.doublePageLeadingBlank' => '首页留白',
 			'reader.doublePageLeadingBlankSubtitle' => '在每章最前插入一页空白，使配对整体错一位',
+			_ => null,
+		} ?? switch (path) {
 			'reader.splitLandscapePages' => '横长页左右分割',
 			'reader.splitLandscapePagesSubtitle' => '自动将跨页横长图切分为左右两半阅读',
 			'reader.landscapeSplitDirection' => '分割阅读顺序',
-			_ => null,
-		} ?? switch (path) {
 			'reader.splitDirectionAuto' => '跟随阅读方向',
 			'reader.splitDirectionLtr' => '左起（左→右）',
 			'reader.splitDirectionRtl' => '右起（右→左）',
@@ -7802,6 +7835,8 @@ extension on Translations {
 			'reader.radialMenuHintMove' => '移动以选择',
 			'reader.radialMenuHintRelease' => '松手执行',
 			'reader.radialMenuHintSwitch' => '松手切换轮盘',
+			'reader.singlePageLtr' => '单页式（从左到右）',
+			'reader.singlePageRtl' => '单页式（从右到左）',
 			'plugin.store' => '插件商店',
 			'plugin.searchHint' => '搜索插件名称或作者...',
 			'plugin.localInstall' => '本地安装',
@@ -7831,6 +7866,8 @@ extension on Translations {
 			'plugin.debugAddress' => '调试地址',
 			'plugin.accountLogin' => '账号登录',
 			'plugin.accountLoginSubtitle' => '前往登录',
+			'plugin.pluginDetail' => '插件详情',
+			'plugin.pluginDetailSubtitle' => '查看插件介绍与主页',
 			'plugin.pluginSettings' => '插件设置',
 			'plugin.noUserInfo' => '暂无用户信息',
 			'plugin.operations' => '操作',
@@ -8167,6 +8204,8 @@ extension on Translations {
 			'about.projectAddress' => '项目地址',
 			'about.projectAddressDesc' => '喜欢这个项目吗？点个star支持一下吧！',
 			'about.projectLink' => '前往 GitHub 仓库 (deretame/Breeze) ⭐',
+			_ => null,
+		} ?? switch (path) {
 			'about.contact' => '联系方式',
 			'about.contactDesc' => '有任何想法或问题，欢迎来找我聊聊~',
 			'about.feedback' => '反馈与建议',
@@ -8174,8 +8213,6 @@ extension on Translations {
 			'about.feedbackLink' => '在 GitHub Issues 中提出',
 			'about.contributors' => '贡献者',
 			'about.contributorsCount' => ({required Object count}) => '${count}人',
-			_ => null,
-		} ?? switch (path) {
 			'about.contributionsTooltip' => ({required Object login, required Object count}) => '${login} (${count} 次提交)',
 			'about.disclaimer' => '免责声明',
 			'about.disclaimerTitle' => '开源项目免责声明',
@@ -8336,7 +8373,7 @@ extension on Translations {
 			'comicFollow.unread' => '已更新未看',
 			'comicFollow.sort' => '排序',
 			'comicFollow.lastRead' => '最后阅读',
-			'comicFollow.lastUpdate' => '最近检测更新',
+			'comicFollow.lastUpdate' => '最近检测',
 			'comicFollow.checkTime' => ({required Object time}) => '检测时间：${time}',
 			'comicFollow.notRead' => '尚未阅读',
 			'comicFollow.lastReadChapter' => ({required Object chapter}) => '看到：${chapter}',
@@ -8354,10 +8391,10 @@ extension on Translations {
 			'comicFollow.retry' => '重试',
 			'comicFollow.readProgress' => ({required Object read, required Object total}) => '已看 ${read} / 共 ${total} 话',
 			'comicFollow.readProgressUnknown' => ({required Object total}) => '共 ${total} 话',
-			'comicFollow.updatedJustNow' => '刚刚更新',
-			'comicFollow.updatedMinutesAgo' => ({required Object minutes}) => '${minutes} 分钟前更新',
-			'comicFollow.updatedHoursAgo' => ({required Object hours}) => '${hours} 小时前更新',
-			'comicFollow.updatedDaysAgo' => ({required Object days}) => '${days} 天前更新',
+			'comicFollow.updatedJustNow' => '刚刚检测',
+			'comicFollow.updatedMinutesAgo' => ({required Object minutes}) => '${minutes} 分钟前检测',
+			'comicFollow.updatedHoursAgo' => ({required Object hours}) => '${hours} 小时前检测',
+			'comicFollow.updatedDaysAgo' => ({required Object days}) => '${days} 天前检测',
 			'comicFollow.lastReadMinutesAgo' => ({required Object minutes}) => '${minutes} 分钟前读过',
 			'comicFollow.lastReadHoursAgo' => ({required Object hours}) => '${hours} 小时前读过',
 			'comicFollow.lastReadDaysAgo' => ({required Object days}) => '${days} 天前读过',
@@ -8409,6 +8446,9 @@ extension on Translations {
 			'login.retry' => '重试',
 			'login.requiredFieldEmpty' => ({required Object label}) => '请填写 ${label}',
 			'login.loginNotSupported' => '该插件暂未适配新版登录页，请前往插件设置中填写账号信息',
+			'login.captchaTapToRefresh' => '看不清？点击刷新',
+			'login.captchaLoading' => '验证码加载中...',
+			'login.captchaLoadFailed' => '验证码加载失败，点击重试',
 			'fontSetting.title' => '字体设置',
 			'fontSetting.clear' => '清空',
 			'fontSetting.hint' => '选一个默认字体即可应用到全局；需要微调个别字重时再单独覆盖。',
@@ -8678,6 +8718,8 @@ extension on Translations {
 			'bindingEditor.mouse' => '鼠标',
 			'bindingEditor.mouseGesture' => '鼠标轨迹',
 			'bindingEditor.wheel' => '滚轮',
+			_ => null,
+		} ?? switch (path) {
 			'bindingEditor.touch' => '触控',
 			'bindingEditor.gamepad' => '手柄',
 			'bindingEditor.radial' => '轮盘',
@@ -8688,8 +8730,6 @@ extension on Translations {
 			'bindingEditor.panel' => '面板',
 			'bindingEditor.shell' => '界面栏',
 			'bindingEditor.editor' => '编辑器',
-			_ => null,
-		} ?? switch (path) {
 			'bindingEditor.modal' => '对话框',
 			'bindingEditor.moveUp' => '上移',
 			'bindingEditor.moveDown' => '下移',

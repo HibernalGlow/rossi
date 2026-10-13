@@ -12,6 +12,8 @@ import 'package:zephyr/service/ocr/ocr_settings.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:zephyr/main.dart';
+import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -31,6 +33,11 @@ import 'package:zephyr/icons/icons.dart';
 part 'reader_settings_gesture_tab.dart';
 part 'reader_settings_picture_tab.dart';
 part 'reader_settings_read_tab.dart';
+part 'reader_settings_read_extras.dart';
+part 'reader_settings_info_tab.dart';
+part 'reader_settings_per_comic_tab.dart';
+part 'reader_settings_hover_section.dart';
+part 'reader_settings_target.dart';
 part 'reader_settings_screen_tab.dart';
 part 'reader_settings_translate_tab.dart';
 part 'parts/reader_settings_media_format_part.dart';
@@ -54,11 +61,14 @@ Future<void> showReaderSettingsSheet(
     enableDrag: true,
     builder: (context) {
       return _ReaderSettingsSheetEscScope(
-        child: _ReaderSettingsSheet(
-          changePageIndex: changePageIndex ?? (_) {},
-          onLandscapeChanged: onLandscapeChanged,
-          source: source,
-          comicId: comicId,
+        child: _PerComicScope(
+          perComic: false,
+          child: _ReaderSettingsSheet(
+            changePageIndex: changePageIndex ?? (_) {},
+            onLandscapeChanged: onLandscapeChanged,
+            source: source,
+            comicId: comicId,
+          ),
         ),
       );
     },
@@ -197,6 +207,7 @@ class _ReaderSettingsCard extends StatelessWidget {
     final colorScheme = context.theme.colorScheme;
     final tabs = _visibleReaderSettingsTabs(
       translateAvailable: ocrSupportedHere,
+      perComicAvailable: args.perComicAvailable,
     );
 
     return Material(
