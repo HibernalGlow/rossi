@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:zephyr/page/comic_read/controller/reader_action_controller.dart';
+import 'package:zephyr/service/operation_binding/binding_doc.dart';
 
 /// 全局按键处理函数
 /// 返回 true 表示：事件已处理，不要再发给 ListView 了（彻底屏蔽默认行为）
@@ -25,8 +26,30 @@ bool handleGlobalKeyEvent(
   ReaderActionController actionController, {
   bool reverseHorizontal = false,
 }) {
+  switch (resolveGlobalPageKeyAction(
+    event,
+    reverseHorizontal: reverseHorizontal,
+  )) {
+    case BindingAction.nextPage:
+      actionController.onKeyScrollNext();
+    case BindingAction.previousPage:
+      actionController.onKeyScrollPrev();
+    case BindingAction.pageRight:
+      actionController.onSpatialPageRight();
+    case BindingAction.pageLeft:
+      actionController.onSpatialPageLeft();
+    default:
+      return false;
+  }
+  return true;
+}
+
+String? resolveGlobalPageKeyAction(
+  KeyEvent event, {
+  bool reverseHorizontal = false,
+}) {
   // 只响应按下瞬间 (KeyDown) 和 长按重复 (KeyRepeat)
-  if (event is! KeyDownEvent && event is! KeyRepeatEvent) return false;
+  if (event is! KeyDownEvent && event is! KeyRepeatEvent) return null;
 
   final key = event.logicalKey;
 
@@ -58,24 +81,20 @@ bool handleGlobalKeyEvent(
   }
 
   if (isNextVertical) {
-    actionController.onKeyScrollNext();
-    return true; // 拦截！ListView 也就是这一刻收不到事件了，也就不会跳页了
+    return BindingAction.nextPage; // 拦截！ListView 也就是这一刻收不到事件了，也就不会跳页了
   }
 
   if (isPrevVertical) {
-    actionController.onKeyScrollPrev();
-    return true; // 拦截！
+    return BindingAction.previousPage; // 拦截！
   }
 
   if (isSpatialRight) {
-    actionController.onSpatialPageRight();
-    return true;
+    return BindingAction.pageRight;
   }
 
   if (isSpatialLeft) {
-    actionController.onSpatialPageLeft();
-    return true;
+    return BindingAction.pageLeft;
   }
 
-  return false; // 其他键（比如音量键）放行
+  return null; // 其他键（比如音量键）放行
 }

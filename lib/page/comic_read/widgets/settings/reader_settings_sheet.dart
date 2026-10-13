@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:auto_route/auto_route.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_primitives.dart';
+import 'package:zephyr/page/comic_read/widgets/settings/reader_keyboard_repeat_settings.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_disclosure.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_3_expressive/components/bottom_sheets/controllers/m3e_bottom_sheet_scroll_controller.dart'

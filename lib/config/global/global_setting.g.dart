@@ -376,6 +376,10 @@ const _$SyncServiceTypeEnumMap = {
 _ReadSettingState _$ReadSettingStateFromJson(Map<String, dynamic> json) =>
     _ReadSettingState(
       noAnimation: json['noAnimation'] as bool? ?? false,
+      keyboardPageTurnPagesPerSecond:
+          (json['keyboardPageTurnPagesPerSecond'] as num?)?.toDouble() ?? 4.0,
+      keyboardPageTurnHoldDelayMs:
+          (json['keyboardPageTurnHoldDelayMs'] as num?)?.toInt() ?? 350,
       comicReadTopContainer: json['comicReadTopContainer'] as bool? ?? true,
       readMode: (json['readMode'] as num?)?.toInt() ?? 0,
       tapPageTurnMode:
@@ -491,6 +495,8 @@ Map<String, dynamic> _$ReadSettingStateToJson(
   _ReadSettingState instance,
 ) => <String, dynamic>{
   'noAnimation': instance.noAnimation,
+  'keyboardPageTurnPagesPerSecond': instance.keyboardPageTurnPagesPerSecond,
+  'keyboardPageTurnHoldDelayMs': instance.keyboardPageTurnHoldDelayMs,
   'comicReadTopContainer': instance.comicReadTopContainer,
   'readMode': instance.readMode,
   'tapPageTurnMode': _$ReaderTapPageTurnModeEnumMap[instance.tapPageTurnMode]!,

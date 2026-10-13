@@ -33,6 +33,21 @@ class ReaderActionController {
 
   ReadSettingState get _readSetting => context.readEffectiveReadSetting();
 
+  Duration? _keyboardAnimationDuration;
+  int? _pendingPageTarget;
+  int _pageTurnGeneration = 0;
+
+  /// 仅本次同步键盘动作使用长按周期，点击与自动阅读保持原动画时长。
+  void withKeyboardPageTurnDuration(Duration duration, void Function() action) {
+    final previous = _keyboardAnimationDuration;
+    _keyboardAnimationDuration = duration;
+    try {
+      action();
+    } finally {
+      _keyboardAnimationDuration = previous;
+    }
+  }
+
   int get _readMode => _readSetting.readMode;
 
   int get _currentSlot => context.read<ReaderCubit>().state.currentSlot;
@@ -300,32 +315,32 @@ class ReaderActionController {
       }
     }
 
-    final shouldGoForward = isNext;
-    final noAnimation = _noAnimation;
-
-    if (noAnimation) {
-      final totalSlots = _totalSlots;
-      if (totalSlots <= 0) return;
-
-      final currentSlot = _currentSlot;
-      final targetSlot = (currentSlot + (shouldGoForward ? 1 : -1)).clamp(
-        0,
-        totalSlots - 1,
-      );
+    final totalSlots = _totalSlots;
+    if (totalSlots <= 0) return;
+    // 明确维护目标：动画中途取 page.round() 会反复翻向同一页。
+    final current =
+        _pendingPageTarget ?? pageController.page?.round() ?? _currentSlot;
+    // 带动画的首尾越界仍交给 RowMode 的章节衔接；无动画沿用原来的夹取。
+    final targetSlot = (current + (isNext ? 1 : -1)).clamp(
+      _noAnimation ? 0 : -1,
+      _noAnimation ? totalSlots - 1 : totalSlots,
+    );
+    if (targetSlot == current) return;
+    final generation = ++_pageTurnGeneration;
+    if (_noAnimation) {
+      _pendingPageTarget = null;
       pageController.jumpToPage(targetSlot);
       return;
     }
-
-    if (shouldGoForward) {
-      pageController.nextPage(
-        duration: kReaderAnimationDuration,
-        curve: Curves.easeInOut,
-      );
-    } else {
-      pageController.previousPage(
-        duration: kReaderAnimationDuration,
-        curve: Curves.easeInOut,
-      );
-    }
+    _pendingPageTarget = targetSlot;
+    pageController
+        .animateToPage(
+          targetSlot,
+          duration: _keyboardAnimationDuration ?? kReaderAnimationDuration,
+          curve: Curves.easeInOut,
+        )
+        .whenComplete(() {
+          if (generation == _pageTurnGeneration) _pendingPageTarget = null;
+        });
   }
 }

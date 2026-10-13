@@ -1240,6 +1240,12 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get ambientDim => 'Background dimming';
 	@override String get ambientDimSubtitle => 'Dim the colour sampled from the page before using it as the backdrop; higher is easier on the eyes. Local comics only';
 	@override String get readingExperience => 'Reading experience';
+	@override String get keyboardPageTurnSpeed => 'Continuous page turn speed';
+	@override String get keyboardPageTurnSpeedSubtitle => 'In horizontal reading, pressing turns one page immediately. Holding a page turn key then repeats at this speed. Animation adapts to the speed; releasing only finishes the current turn. Each turn advances one spread in double-page mode.';
+	@override String get pagesPerSecond => 'pages/s';
+	@override String get keyboardPageTurnAdvanced => 'Advanced key hold options';
+	@override String get keyboardPageTurnHoldDelay => 'Hold start delay';
+	@override String get keyboardPageTurnHoldDelaySubtitle => 'How long to hold a key before continuous page turning starts. This only changes the initial wait; pages/s controls the continuous speed.';
 	@override String get disableAnimation => 'Disable page animation';
 	@override String get disableAnimationSubtitle => 'Disable full-page turn animation';
 	@override String get readFilter => 'Read filter (dark mode only)';
@@ -3631,6 +3637,12 @@ extension on TranslationsEnUs {
 			'reader.ambientDim' => 'Background dimming',
 			'reader.ambientDimSubtitle' => 'Dim the colour sampled from the page before using it as the backdrop; higher is easier on the eyes. Local comics only',
 			'reader.readingExperience' => 'Reading experience',
+			'reader.keyboardPageTurnSpeed' => 'Continuous page turn speed',
+			'reader.keyboardPageTurnSpeedSubtitle' => 'In horizontal reading, pressing turns one page immediately. Holding a page turn key then repeats at this speed. Animation adapts to the speed; releasing only finishes the current turn. Each turn advances one spread in double-page mode.',
+			'reader.pagesPerSecond' => 'pages/s',
+			'reader.keyboardPageTurnAdvanced' => 'Advanced key hold options',
+			'reader.keyboardPageTurnHoldDelay' => 'Hold start delay',
+			'reader.keyboardPageTurnHoldDelaySubtitle' => 'How long to hold a key before continuous page turning starts. This only changes the initial wait; pages/s controls the continuous speed.',
 			'reader.disableAnimation' => 'Disable page animation',
 			'reader.disableAnimationSubtitle' => 'Disable full-page turn animation',
 			'reader.readFilter' => 'Read filter (dark mode only)',
