@@ -571,44 +571,52 @@ class _SearchQueryFieldState extends State<SearchQueryField>
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: SearchHistoryField(
-                        history:
-                            widget.history ??
-                            SearchHistoryStore.local('search'),
-                        recordOnBlur: widget.recordHistoryOnBlur,
-                        controller: _controller,
-                        focusNode: _focusNode,
-                        autofocus: true,
-                        // 多行展示 + 回车即搜：keyboardType 必须用 text，不能用 multiline。
-                        // multiline 会让 Android IME 直接忽略 textInputAction.search、
-                        // 把回车当换行（且各家输入法行为不一致），这就是 a45ae20 回退单行的原因；
-                        // 但单行只能显示一行，长词只能左右滚，展示需求就没了。
-                        // text + maxLines 6：engine 下发 inputType=TYPE_CLASS_TEXT
-                        // （无 MULTILINE flag）+ imeOptions=actionSearch，
-                        // 软键盘回车即 search（桌面端硬件回车同样走 performAction）；
-                        // 长文本靠软换行撑到最多 6 行展示，singleLineFormatter 只拦硬换行
-                        // （粘贴带 \n 时），不影响软换行。
-                        minLines: 1,
-                        maxLines: 6,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.singleLineFormatter,
-                        ],
-                        textAlignVertical: TextAlignVertical.center,
-                        onChanged: (value) {
-                          widget.onChanged?.call(value);
-                          _overlayEntry?.markNeedsBuild();
-                        },
-                        onSubmitted: (_) => _submit(),
-                        decoration: InputDecoration(
-                          hintText: widget.hintText ?? t.search.searchHint,
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 8,
-                          ),
-                          hintStyle: TextStyle(
-                            color: colorScheme.onSurfaceVariant.withValues(
-                              alpha: 0.7,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) => SearchHistoryField(
+                          history:
+                              widget.history ??
+                              SearchHistoryStore.local('search'),
+                          recordOnBlur: widget.recordHistoryOnBlur,
+                          controller: _controller,
+                          focusNode: _focusNode,
+                          autofocus: true,
+                          // 多行展示 + 回车即搜：keyboardType 必须用 text，不能用 multiline。
+                          // multiline 会让 Android IME 直接忽略 textInputAction.search、
+                          // 把回车当换行（且各家输入法行为不一致），这就是 a45ae20 回退单行的原因；
+                          // 但单行只能显示一行，长词只能左右滚，展示需求就没了。
+                          // text + maxLines 6：engine 下发 inputType=TYPE_CLASS_TEXT
+                          // （无 MULTILINE flag）+ imeOptions=actionSearch，
+                          // 软键盘回车即 search（桌面端硬件回车同样走 performAction）；
+                          // 长文本靠软换行撑到最多 6 行展示，singleLineFormatter 只拦硬换行
+                          // （粘贴带 \n 时），不影响软换行。
+                          minLines: 1,
+                          // 窄面板里保留单行搜索栏，避免提示文字被压成竖排；
+                          // 足够宽时才允许长关键词软换行。
+                          maxLines: constraints.maxWidth < 240
+                              ? 1
+                              : constraints.maxWidth < 320
+                              ? 2
+                              : 6,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.singleLineFormatter,
+                          ],
+                          textAlignVertical: TextAlignVertical.center,
+                          onChanged: (value) {
+                            widget.onChanged?.call(value);
+                            _overlayEntry?.markNeedsBuild();
+                          },
+                          onSubmitted: (_) => _submit(),
+                          decoration: InputDecoration(
+                            hintText: widget.hintText ?? t.search.searchHint,
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 8,
+                            ),
+                            hintStyle: TextStyle(
+                              color: colorScheme.onSurfaceVariant.withValues(
+                                alpha: 0.7,
+                              ),
                             ),
                           ),
                         ),
