@@ -77,51 +77,8 @@ fn ensure_session_sweeper() {
 }
 const TILE_OVERLAP: u32 = 32;
 
-#[derive(Clone, Copy)]
-struct TileRect {
-    x: u32,
-    y: u32,
-    w: u32,
-    h: u32,
-}
-
-/// Match mImageViewer's overlapping tile layout. The overlap removes seams
-/// caused by convolution context at tile boundaries while retaining fixed
-/// input shapes for CoreML.
-fn compute_tiles(img_w: u32, img_h: u32, tile_size: u32) -> Vec<TileRect> {
-    let mut tiles = Vec::new();
-    let step = tile_size.saturating_sub(TILE_OVERLAP).max(1);
-    let mut y = 0;
-    loop {
-        let h = tile_size.min(img_h.saturating_sub(y));
-        if h == 0 {
-            break;
-        }
-        let mut x = 0;
-        loop {
-            let w = tile_size.min(img_w.saturating_sub(x));
-            if w == 0 {
-                break;
-            }
-            tiles.push(TileRect { x, y, w, h });
-            if x + w >= img_w {
-                break;
-            }
-            x += step;
-            if x + tile_size > img_w {
-                x = img_w.saturating_sub(tile_size);
-            }
-        }
-        if y + h >= img_h {
-            break;
-        }
-        y += step;
-        if y + tile_size > img_h {
-            y = img_h.saturating_sub(tile_size);
-        }
-    }
-    tiles
-}
+// tile 布局直接编译 mImageViewer 源码；保持 Rossi 的 overlap=32。
+use rossi_local_core::ai_tiles::{compute_tiles, extract_tile};
 
 /// 日志里报的后端名，必须与 `init_ort` 实际注册的 EP 一致。
 ///
@@ -305,28 +262,18 @@ pub async fn mimage_onnx_upscale(
         let out_h = ih.saturating_mul(4);
         let mut out = ImageBuffer::<Rgb<u8>, Vec<u8>>::new(out_w, out_h);
         let mut weights = vec![0.0f32; (out_w as usize).saturating_mul(out_h as usize)];
-        let tiles = compute_tiles(iw, ih, tile as u32);
+        let tiles = compute_tiles(iw, ih, tile as u32, TILE_OVERLAP);
         let tile_count = tiles.len();
-        // 单 worker 复用输入存储，ORT 只借用本次切片，避免逐块分配和清零。
-        let mut data = vec![0.0f32; 3 * tile * tile];
         for tile_rect in tiles {
             let prepare_start = Instant::now();
             let x = tile_rect.x;
             let y = tile_rect.y;
             let tw = tile_rect.w as usize;
             let th = tile_rect.h as usize;
-            if tw < tile || th < tile {
-                data.fill(0.0);
-            }
-            for dy in 0..th {
-                for dx in 0..tw {
-                    let p = rgb.get_pixel(x + dx as u32, y + dy as u32).0;
-                    for c in 0..3 {
-                        data[c * tile * tile + dy * tile + dx] = p[c] as f32 / 255.0;
-                    }
-                }
-            }
-            let tensor = TensorRef::from_array_view(([1usize, 3, tile, tile], data.as_slice()))
+            // 直接使用上游 NCHW 与固定 tile 零填充；ORT 借用本次 tensor。
+            let input = extract_tile(&rgb, &tile_rect, tile as u32);
+            let data = input.as_slice().expect("upstream tile tensor is contiguous NCHW");
+            let tensor = TensorRef::from_array_view(([1usize, 3, tile, tile], data))
                 .map_err(|e| anyhow!("tensor: {e:?}"))?;
             prepare_time += prepare_start.elapsed();
             let inference_start = Instant::now();

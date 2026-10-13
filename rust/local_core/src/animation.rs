@@ -1,9 +1,9 @@
 //! 动图容器嗅探：不像素解码，只看容器结构。
 //!
-//! 判定的字节扫描移植自 mImageViewer 的
+//! 构建时直接编译 mImageViewer 的流式扫描函数：
 //! `canonical_image_loader.rs::probe_static_animation` /
-//! `apng_has_multiple_frames` / `webp_has_animation`（那里还有一条
-//! `gif_has_multiple_frames`，见下）。
+//! `apng_has_multiple_frames` / `webp_has_animation` / `gif_has_multiple_frames`。
+//! 本地只用 Cursor 将字节接口适配为 Read。
 //!
 //! # 为什么这条判定必须存在
 //!
@@ -35,82 +35,27 @@
 /// 传入的字节数不必是完整文件：读个几 KB 就够（Dart 侧的口径是
 /// `page_animation.dart` 的 `sniffHeadBytes = 4096`），不足时返回 `false`。
 pub fn animated_container(bytes: &[u8]) -> bool {
-    apng_has_multiple_frames(bytes) || webp_has_animation(bytes)
+    apng_has_multiple_frames(&mut Cursor::new(bytes))
+        || webp_has_animation(&mut Cursor::new(bytes))
+        || webp_head_has_animation_flag(bytes)
 }
 
-fn u32_be(bytes: &[u8]) -> Option<u32> {
-    Some(u32::from_be_bytes(*bytes.first_chunk::<4>()?))
+// Dart 只送头部 4096 字节；大 ICCP 块可能把 ANIM 推到这个窗口之外。
+// 上游扫描实际 ANIM/ANMF，本地保留 VP8X 标志作为头部接口适配。
+fn webp_head_has_animation_flag(bytes: &[u8]) -> bool {
+    bytes.len() >= 21
+        && &bytes[..4] == b"RIFF"
+        && &bytes[8..12] == b"WEBP"
+        && &bytes[12..16] == b"VP8X"
+        && bytes[20] & 0x02 != 0
 }
 
-fn u32_le(bytes: &[u8]) -> Option<u32> {
-    Some(u32::from_le_bytes(*bytes.first_chunk::<4>()?))
-}
+use std::io::{Cursor, Read};
+include!(concat!(env!("OUT_DIR"), "/animation_probe.rs"));
 
-/// PNG：`acTL` 块存在且 `num_frames > 1` 才算动图（APNG）。
-///
-/// 单帧 `acTL` 是合法的（编码器写成 1 帧），那种图与静图无异，不能因为
-/// 「有 acTL」就换渲染路径。
-fn apng_has_multiple_frames(bytes: &[u8]) -> bool {
-    let mut rest = match bytes.strip_prefix(b"\x89PNG\r\n\x1a\n") {
-        Some(rest) => rest,
-        None => return false,
-    };
-    loop {
-        // 块头 = 4 字节长度 + 4 字节类型；后面还有 payload 与 4 字节 CRC。
-        if rest.len() < 8 {
-            return false;
-        }
-        let Some(len) = u32_be(&rest[..4]) else {
-            return false;
-        };
-        let kind = &rest[4..8];
-        let len = len as usize;
-        rest = &rest[8..];
-        if kind == b"acTL" {
-            // num_frames 是 acTL 的前 4 字节。
-            return len >= 8 && u32_be(rest).is_some_and(|frames| frames > 1);
-        }
-        // 走到 IDAT 之后 acTL 已经不可能出现（规范允许它的位置只有图像数据之前）。
-        if kind == b"IDAT" || kind == b"IEND" {
-            return false;
-        }
-        let skipped = len + 4;
-        if rest.len() < skipped {
-            return false;
-        }
-        rest = &rest[skipped..];
-    }
-}
-
-/// WebP：VP8X 的 animation 标志位，或出现 `ANIM` / `ANMF` 块。
-///
-/// 查标志位而不是只查块名，是因为仓库里现有的那条判定（按偏移 12 找 `ANIM`）
-/// 结构上永远命中不了：动图 WebP 的**第一个块必须是 VP8X**，`ANIM` 在它后面。
-fn webp_has_animation(bytes: &[u8]) -> bool {
-    if bytes.len() < 12 || &bytes[..4] != b"RIFF" || &bytes[8..12] != b"WEBP" {
-        return false;
-    }
-    let mut rest = &bytes[12..];
-    while rest.len() >= 8 {
-        let Some(len) = u32_le(&rest[4..8]).map(|len| len as usize) else {
-            return false;
-        };
-        let kind = &rest[..4];
-        let payload = &rest[8..];
-        if kind == b"ANIM" || kind == b"ANMF" {
-            return true;
-        }
-        // VP8X 的 flags 字节里 bit1 = animation（规范：本块必须是第一个块）。
-        if kind == b"VP8X" {
-            return payload.first().is_some_and(|flags| flags & 0x02 != 0);
-        }
-        let padded = len + (len & 1);
-        if rest.len() < 8 + padded {
-            return false;
-        }
-        rest = &rest[8 + padded..];
-    }
-    false
+/// 静图解码的 EXIF 闸门，与上游 canonical loader 的 first-frame 行为一致。
+pub fn is_animated_image(bytes: &[u8]) -> bool {
+    animated_container(bytes) || gif_has_multiple_frames(&mut Cursor::new(bytes))
 }
 
 #[cfg(test)]
@@ -120,7 +65,7 @@ mod tests {
     fn chunk(fourcc: &[u8; 4], payload: &[u8]) -> Vec<u8> {
         let mut out = Vec::new();
         out.extend_from_slice(fourcc);
-        out.extend_from_slice(&(payload.len() as u32).to_be_bytes());
+        out.extend_from_slice(&(payload.len() as u32).to_le_bytes());
         out.extend_from_slice(payload);
         if payload.len() & 1 != 0 {
             out.push(0);

@@ -13,7 +13,7 @@
 //!   page_bytes(i) → decode::decode_rgba(i) → PagePixels
 //! ```
 //!
-//! ## 这一层**不**做什么
+//! ## `LocalSource` 来源协议**不**做什么
 //!
 //! - 不持有会话状态、不持有归档句柄、不做缓存淘汰（那属于 Reader 层）；
 //! - 不做上屏、不认识 wgpu / Flutter；
@@ -41,15 +41,17 @@ pub mod book_navigation;
 pub mod catalog;
 pub mod decode;
 pub mod entry_name;
+pub mod exif_orientation;
 pub mod fast_resize;
 pub mod file_manager;
 pub mod file_ops;
 pub mod file_tree;
 pub mod folder_source;
-// The file browser reuses the original mImageViewer Rust sources directly.  These
-// modules intentionally keep the upstream names so future mImageViewer updates can
-// be diffed and applied without reimplementing the platform rules in Rossi.
+// 文件浏览器混合使用上游源码与 Rossi 适配；具体复用范围及缺口
+// 以 docs/mimageviewer-reuse-inventory.json 为准，同名不代表完整复用。
 pub mod activity_gate;
+pub mod ai_size_limit;
+pub mod ai_tiles;
 pub mod animation;
 pub mod archive_converter;
 pub mod auto_aspect;
@@ -118,7 +120,7 @@ use anyhow::{Context, Result};
 pub use decode::{PagePixels, ShellOnlyFormat, decode_rgba, decode_rgba_scaled, probe_size};
 pub use file_manager::{
     EntryFilter, FileManagerChild, FileManagerEntry, FileManagerSettings, FileManagerState,
-    FileManagerTab, FileManagerViewState, InternalItemsMode, MAX_FILE_MANAGER_TABS,
+    FileManagerTab, FileManagerViewState, InternalItemsMode, LayoutMode, MAX_FILE_MANAGER_TABS,
     MAX_PENETRATION_DEPTH, MAX_RECENTLY_CLOSED_TABS, OpenEntryResult, PenetrationResult, SortField,
     SortOrder, ViewMode,
 };

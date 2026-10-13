@@ -1,12 +1,13 @@
 //! 归档条目名：规范化与同名去重。
 //!
-//! 移植自 mImageViewer `archive_converter` 里的 `normalize_entry_name` /
-//! `dedup_entry_name`（MIT），语义保持一致，因为它决定了两件事：
+//! `dedup_entry_name` 直接复用 mImageViewer 源码（MIT）；规范化是本地更严格的
+//! 适配，拒绝空路径段与 `.` / `..`。两者决定了两件事：
 //!
 //! 1. **页序的输入**——规范化之后才排序，所以 `a\b.jpg` 与 `a/b.jpg` 是同一条；
 //! 2. **页的可寻址性**——归档里两条不同原始名可能规范化成同一个名字
 //!    （`a\b.jpg` 与 `a/b.jpg`），如果 UI 用名字当句柄，其中一条就永远读不到。
 
+#[cfg(test)]
 use std::collections::HashSet;
 
 /// 把条目名规范成 ZIP 标准的相对路径，并拒绝危险形式。
@@ -31,26 +32,8 @@ pub fn normalize_entry_name(raw: &str) -> Option<String> {
     Some(s.to_string())
 }
 
-/// 与已出现过的名字冲突时，在扩展名前插入 ` (N)` 使其唯一。
-///
-/// 返回的可能是**新名字**，所以调用方必须把返回值当作真正的页名使用。
-pub fn dedup_entry_name(name: String, seen: &mut HashSet<String>) -> String {
-    if seen.insert(name.clone()) {
-        return name;
-    }
-    let (stem, ext) = match name.rfind('.') {
-        Some(i) => (&name[..i], &name[i..]), // ext 含前导点
-        None => (name.as_str(), ""),
-    };
-    let mut n = 2usize;
-    loop {
-        let candidate = format!("{stem} ({n}){ext}");
-        if seen.insert(candidate.clone()) {
-            return candidate;
-        }
-        n += 1;
-    }
-}
+// 唯一化函数体直接来自上游；pub(crate) 仅在构建边界提升为 pub。
+include!(concat!(env!("OUT_DIR"), "/entry_dedup.rs"));
 
 #[cfg(test)]
 mod tests {

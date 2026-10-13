@@ -1,0 +1,155 @@
+[
+  {
+    "id": "archive_metadata",
+    "upstream": "src/archive_converter.rs",
+    "local": "rust/local_core/src/archive_converter.rs",
+    "items": [
+      "enum ArchiveFormat",
+      "impl ArchiveFormat",
+      "fn looks_like_non_first_rar_part"
+    ],
+    "omit_methods": {
+      "impl ArchiveFormat": [
+        "temp_suffix"
+      ]
+    }
+  },
+  {
+    "id": "ai_size_limit",
+    "upstream": "src/ai/upscale.rs",
+    "local": "rust/local_core/src/ai_size_limit.rs",
+    "items": [
+      "struct AiProcessSizeLimit",
+      "impl AiProcessSizeLimit",
+      "fn should_process_rect"
+    ]
+  },
+  {
+    "id": "entry_dedup",
+    "upstream": "src/archive_converter.rs",
+    "local": "rust/local_core/src/entry_name.rs",
+    "items": [
+      "fn dedup_entry_name"
+    ],
+    "public": [
+      "fn dedup_entry_name"
+    ]
+  },
+  {
+    "id": "fast_resize",
+    "upstream": "src/fast_resize.rs",
+    "local": "rust/local_core/src/fast_resize.rs",
+    "items": [
+      "enum Quality",
+      "impl From<Quality> for FilterType",
+      "fn resize_rgba8_exact",
+      "fn resize_rgb8_exact",
+      "fn resize_dynamic_exact",
+      "fn resize_dynamic_fit",
+      "const THUMBNAIL_ASPECT_ERROR_TARGET",
+      "fn aspect_accurate_fit_dimensions",
+      "fn resize_dynamic_fit_with_source_aspect"
+    ]
+  },
+  {
+    "id": "natural_sort",
+    "upstream": "src/ui_helpers.rs",
+    "local": "rust/local_core/src/ui_helpers.rs",
+    "items": [
+      "fn natural_sort_key",
+      "fn natural_digit_value"
+    ]
+  },
+  {
+    "id": "rotation",
+    "upstream": "src/rotation_db.rs",
+    "local": "rust/local_core/src/rotation.rs",
+    "items": [
+      "enum Rotation",
+      "impl Rotation"
+    ]
+  },
+  {
+    "id": "rotation_uv",
+    "upstream": "src/displayed_image_transform.rs",
+    "local": "rust/local_core/src/rotation.rs",
+    "items": [
+      "fn inverse_uv",
+      "fn forward_uv"
+    ],
+    "public": [
+      "fn inverse_uv",
+      "fn forward_uv"
+    ]
+  },
+  {
+    "id": "ai_tiles",
+    "upstream": "src/ai/upscale.rs",
+    "local": "rust/local_core/src/ai_tiles.rs",
+    "items": [
+      "struct TileRect",
+      "fn compute_tiles"
+    ],
+    "public": [
+      "struct TileRect",
+      "fn compute_tiles"
+    ],
+    "fields_public": [
+      "struct TileRect"
+    ]
+  },
+  {
+    "id": "animation_probe",
+    "upstream": "src/canonical_image_loader.rs",
+    "local": "rust/local_core/src/animation.rs",
+    "items": [
+      "fn read_byte",
+      "fn skip_bytes",
+      "fn skip_gif_sub_blocks",
+      "fn gif_has_multiple_frames",
+      "fn apng_has_multiple_frames",
+      "fn webp_has_animation"
+    ]
+  },
+  {
+    "id": "exif_orientation",
+    "upstream": "src/thumb_loader.rs",
+    "local": "rust/local_core/src/exif_orientation.rs",
+    "items": [
+      "fn apply_exif_orientation_from_bytes",
+      "fn read_exif_orientation_from_bytes",
+      "fn orientation_from_rexif_entry",
+      "fn orientation_from_text",
+      "fn apply_orientation"
+    ],
+    "public": [
+      "fn read_exif_orientation_from_bytes"
+    ]
+  },
+  {
+    "id": "ai_tensor",
+    "upstream": "src/ai/upscale.rs",
+    "local": "rust/local_core/src/ai_tiles.rs",
+    "items": [
+      "fn extract_tile"
+    ],
+    "public": [
+      "fn extract_tile"
+    ]
+  },
+  {
+    "id": "prefetch_policy",
+    "upstream": "src/app/prefetch_policy.rs",
+    "local": "rust/local_core/src/prefetch_policy.rs",
+    "whole_file": true
+  },
+  {
+    "id": "path_key",
+    "upstream": "src/path_key.rs",
+    "local": "rust/local_core/src/path_key.rs",
+    "whole_file": true,
+    "omit_items": [
+      "fn is_drive_or_share_root"
+    ]
+  }
+]

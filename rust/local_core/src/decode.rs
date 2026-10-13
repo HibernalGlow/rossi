@@ -79,15 +79,18 @@ pub fn decode(bytes: &[u8]) -> Result<DynamicImage> {
     }
     #[cfg(any(feature = "jxl-rs-mt", feature = "jxl-rs-1t", feature = "jxl-oxide"))]
     if crate::jxl_backend::sniff_jxl(bytes) {
-        return crate::jxl_backend::decode_dispatch(bytes);
+        return crate::jxl_backend::decode_dispatch(bytes)
+            .map(|image| crate::exif_orientation::orient_still(image, bytes));
     }
-    image::load_from_memory(bytes).with_context(|| {
-        format!(
-            "解码失败（{} 字节，头部 {:02X?}）",
-            bytes.len(),
-            &bytes[..bytes.len().min(8)]
-        )
-    })
+    image::load_from_memory(bytes)
+        .map(|image| crate::exif_orientation::orient_still(image, bytes))
+        .with_context(|| {
+            format!(
+                "解码失败（{} 字节，头部 {:02X?}）",
+                bytes.len(),
+                &bytes[..bytes.len().min(8)]
+            )
+        })
 }
 
 /// 按目标宽度算出解出尺寸。不放大。
@@ -163,11 +166,22 @@ fn try_decode_jpeg_rgba(bytes: &[u8]) -> Result<PagePixels> {
     let (width, height) = decoder
         .dimensions()
         .ok_or_else(|| anyhow!("无法获取 JPEG 尺寸信息"))?;
+    let (width, height, rgba) = if crate::exif_orientation::read_exif_orientation_from_bytes(bytes)
+        == 1
+    {
+        (width as u32, height as u32, rgba)
+    } else {
+        let image = image::RgbaImage::from_raw(width as u32, height as u32, rgba)
+            .ok_or_else(|| anyhow!("JPEG RGBA 缓冲尺寸不一致"))?;
+        let image = crate::exif_orientation::orient_still(DynamicImage::ImageRgba8(image), bytes)
+            .to_rgba8();
+        (image.width(), image.height(), image.into_raw())
+    };
     Ok(PagePixels {
-        width: width as u32,
-        height: height as u32,
-        source_width: width as u32,
-        source_height: height as u32,
+        width,
+        height,
+        source_width: width,
+        source_height: height,
         rgba,
     })
 }
@@ -220,17 +234,41 @@ pub fn decode_rgba(bytes: &[u8]) -> Result<PagePixels> {
 pub fn probe_size(bytes: &[u8]) -> Result<(u32, u32)> {
     #[cfg(any(feature = "jxl-rs-mt", feature = "jxl-rs-1t", feature = "jxl-oxide"))]
     if crate::jxl_backend::sniff_jxl(bytes) {
-        return crate::jxl_backend::probe_size_dispatch(bytes);
+        return crate::jxl_backend::probe_size_dispatch(bytes)
+            .map(|(w, h)| crate::exif_orientation::oriented_dimensions(w, h, bytes));
     }
     let reader = image::ImageReader::new(std::io::Cursor::new(bytes))
         .with_guessed_format()
         .context("无法从内容判断图片格式")?;
-    reader.into_dimensions().context("读取图片尺寸失败")
+    reader
+        .into_dimensions()
+        .map(|(w, h)| crate::exif_orientation::oriented_dimensions(w, h, bytes))
+        .context("读取图片尺寸失败")
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn oriented_jpeg_fast_path_scaled_path_and_probe_agree() {
+        for orientation in 1..=8 {
+            let bytes = crate::exif_orientation::jpeg_with_orientation(orientation);
+            let expected = if orientation >= 5 { (2, 3) } else { (3, 2) };
+            let full = decode_rgba(&bytes).unwrap();
+            let normal = decode_rgba_scaled(&bytes, Some(0)).unwrap();
+            assert_eq!((full.width, full.height), expected);
+            assert_eq!((normal.width, normal.height), expected);
+            assert_eq!(
+                full.rgba, normal.rgba,
+                "JPEG fast path orientation={orientation}"
+            );
+            assert_eq!(probe_size(&bytes).unwrap(), expected);
+            let scaled = decode_rgba_scaled(&bytes, Some(1)).unwrap();
+            assert_eq!((scaled.source_width, scaled.source_height), expected);
+            assert_eq!(scaled.width, 1);
+        }
+    }
 
     /// 现造一张 PNG，避免依赖仓库里的二进制样本。
     fn png_bytes(width: u32, height: u32, rgba: [u8; 4]) -> Vec<u8> {
