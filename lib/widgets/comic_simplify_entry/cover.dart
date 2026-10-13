@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:zephyr/widgets/library_image_geometry.dart';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -75,41 +76,51 @@ class CoverWidget extends StatelessWidget {
                     ),
                   ),
                   child: Center(
-                    child: GlyphIcon(AppGlyphs.photos, color: Colors.grey[300], size: 30),
+                    child: GlyphIcon(
+                      AppGlyphs.photos,
+                      color: Colors.grey[300],
+                      size: 30,
+                    ),
                   ),
                 );
               case PictureLoadStatus.success:
-                return RepaintBoundary(
-                  child: ImageSleep(
-                    child: Container(
-                    width: width,
-                    height: height,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(
-                        roundedCorner ? 5.0 : 0.0,
-                      ),
-                      image: DecorationImage(
-                        fit: BoxFit.cover,
-                        image: ResizeImage(
-                          FileImage(File(state.imagePath!)),
-                          width: decodeWidth < 1 ? 1 : decodeWidth,
-                          height: decodeHeight < 1 ? 1 : decodeHeight,
-                          // ResizeImage 默认 exact：位图被解成槽位的宽高，
-                          // 比例不合时**图本身先被拉扁**，下面 BoxFit.cover 裁的
-                          // 就是这张变形位图。fit 保比例塞进同一个盒子，
-                          // 把「填满并裁切」留给 cover —— 与文件管理器的缩略图一致。
-                          policy: ResizeImagePolicy.fit,
+                final provider = ResizeImage(
+                  FileImage(File(state.imagePath!)),
+                  width: decodeWidth < 1 ? 1 : decodeWidth,
+                  height: decodeHeight < 1 ? 1 : decodeHeight,
+                  policy: ResizeImagePolicy.fit,
+                );
+                return LibraryImageGeometryReporter(
+                  provider: provider,
+                  child: RepaintBoundary(
+                    child: ImageSleep(
+                      child: Container(
+                        width: width,
+                        height: height,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(
+                            roundedCorner ? 5.0 : 0.0,
+                          ),
+                          image: DecorationImage(
+                            fit:
+                                LibraryImageGeometryScope.maybeOf(
+                                      context,
+                                    )?.keepFullImage ==
+                                    true
+                                ? BoxFit.contain
+                                : BoxFit.cover,
+                            image: provider,
+                            onError: (error, stackTrace) {
+                              logger.d(
+                                '图片解码失败: ${state.imagePath}',
+                                error: error,
+                                stackTrace: stackTrace,
+                              );
+                            },
+                          ),
                         ),
-                        onError: (error, stackTrace) {
-                          logger.d(
-                            '图片解码失败: ${state.imagePath}',
-                            error: error,
-                            stackTrace: stackTrace,
-                          );
-                        },
                       ),
-                    ),
                     ),
                   ),
                 );
