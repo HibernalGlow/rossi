@@ -11,7 +11,6 @@ part 'parts/local_source_debug_load_part.dart';
 part 'parts/local_source_debug_prefetch_part.dart';
 part 'parts/local_source_debug_view_part.dart';
 
-
 /// 本地来源（判据 A）的调试页：把 `rossi_local_core` 的读取路径真正跑起来。
 ///
 /// 四条边界，写在这里免得以后误读：
@@ -294,6 +293,4 @@ class _LocalSourceDebugPageState extends State<LocalSourceDebugPage> {
       ),
     );
   }
-
 }
-

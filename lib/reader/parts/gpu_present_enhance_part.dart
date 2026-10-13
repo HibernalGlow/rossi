@@ -28,6 +28,7 @@ extension GpcEnhancePart on GpuPresentController {
       await setUpscaleEnabled(enabled);
     }
   }
+
   void _onModelChanged() {
     if (_disposed) return;
     SuperResolutionLog.add('模型配置变化：清除旧增强轨，重新处理当前页。');
@@ -45,6 +46,7 @@ extension GpcEnhancePart on GpuPresentController {
     });
     unawaited(_refreshModel());
   }
+
   Future<void> _refreshModel() async {
     if (_disposed || _syncing || !_modelRefreshPending) return;
     final source = _lastPushedSource;
@@ -53,6 +55,7 @@ extension GpcEnhancePart on GpuPresentController {
     if (source == null || index == null || size == null) return;
     await present(source: source, index: index, physicalSize: size);
   }
+
   bool _acceptsEnhancement(int epoch) =>
       !_disposed &&
       epoch == _enhancementEpoch &&
@@ -71,6 +74,7 @@ extension GpcEnhancePart on GpuPresentController {
       _watchdogRunning = false;
     }
   }
+
   /// 超分替换和原图对比也会覆写共享纹理，必须与翻页/调整画布共用上屏锁。
   Future<bool> _redrawCurrentPage(int index) async {
     if (_disposed ||
@@ -90,6 +94,7 @@ extension GpcEnhancePart on GpuPresentController {
       if (_modelRefreshPending) unawaited(_refreshModel());
     }
   }
+
   Future<bool> _enqueueOriginalPreview(
     bool active, {
     bool ensureEnhanced = true,
@@ -100,6 +105,7 @@ extension GpcEnhancePart on GpuPresentController {
     _previewQueue = operation.then<void>((_) {}).catchError((_) {});
     return operation;
   }
+
   /// 写入一页的阶段。同值不写 —— 免得流水线里的重复打点变成一次界面重建。
   void _markPhase(int index, SuperResolutionPagePhase phase) {
     if (_pagePhases[index] == phase) return;
@@ -108,6 +114,7 @@ extension GpcEnhancePart on GpuPresentController {
       _pageStatusRevision++;
     });
   }
+
   /// 记下一页的原图尺寸（量到了才记）。
   void _markSourceSize(int index, Size? size) {
     if (_sourceSizeProbed.contains(index) && size == null) return;
@@ -118,6 +125,7 @@ extension GpcEnhancePart on GpuPresentController {
       _pageStatusRevision++;
     });
   }
+
   /// 量一次超分产物的尺寸并记账。**每页只量一次** —— 量的是图片头，
   /// 但 `ImmutableBuffer.fromFilePath` 会把整个文件读进来，重复量等于重复读盘。
   Future<void> _recordEnhancedSize(int index, String outPath) async {
@@ -130,6 +138,7 @@ extension GpcEnhancePart on GpuPresentController {
       _pageStatusRevision++;
     });
   }
+
   /// 记账整体作废：换了来源或换了模型时页号/缓存键的含义都变了。
   ///
   /// 必须在 `_mutate` 里调 —— 它要顺带把版本号推一格，界面才知道要重新读。
@@ -141,6 +150,7 @@ extension GpcEnhancePart on GpuPresentController {
     _enhancedSizeProbed.clear();
     _pageStatusRevision++;
   }
+
   Future<void> _setUpscaleEnabled(bool enabled) async {
     // 必须等待旁路切换及当前页重绘完成，再启动超分注入。否则 native
     // 仍处于 bypass_enhanced=true 时，超分图虽已注入也会被原图帧覆盖。
@@ -159,6 +169,7 @@ extension GpcEnhancePart on GpuPresentController {
       );
     }
   }
+
   void _onPrefetchChanged() {
     final source = _lastPushedSource;
     final index = _pushedIndex;
@@ -173,6 +184,7 @@ extension GpcEnhancePart on GpuPresentController {
       );
     }
   }
+
   Future<void> _scheduleEnhancements(
     PageSource source,
     int index,
@@ -185,6 +197,7 @@ extension GpcEnhancePart on GpuPresentController {
       () => _enhancementSchedules.remove(operation),
     );
   }
+
   Future<void> _scheduleEnhancementsSafely(
     PageSource source,
     int index,
@@ -256,6 +269,7 @@ extension GpcEnhancePart on GpuPresentController {
       }
     }
   }
+
   Future<Directory> _srCacheDir() async {
     final Directory? cached = _srCacheDirCache;
     if (cached != null && cached.existsSync()) {
@@ -266,6 +280,7 @@ extension GpcEnhancePart on GpuPresentController {
     _srCacheDirCache = srCacheDir;
     return srCacheDir;
   }
+
   /// 把超分产物交给呈现器，并**按实际结果**汇报。
   ///
   /// # 为什么要拆成两段、为什么两段都要看返回值
@@ -360,6 +375,7 @@ extension GpcEnhancePart on GpuPresentController {
     SuperResolutionLog.add('第 ${index + 1} 页：文件已生成，但呈现器仍显示原图，替换失败。');
     return false;
   }
+
   /// 问呈现器：「第 [index] 页现在用的是超分轨吗？」
   ///
   /// `null` = **判不了**（呈现器没就绪、或上一次呈现已经不是这一页了）。判不了时

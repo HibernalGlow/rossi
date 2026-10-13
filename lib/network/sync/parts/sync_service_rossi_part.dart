@@ -1,4 +1,5 @@
 part of '../sync_service.dart';
+
 // rossi
 
 const String _shellBlockName = 'shell';
@@ -9,7 +10,6 @@ const String _fileManagerBlockName = 'fileManager';
 
 const String _operationBindingBlockName = 'operationBinding';
 
-
 /// 工作台布局（泳道 / 面板 / 卡片 / 交互）那一块。
 ///
 /// 它的数据源不在 `GlobalSettingState` 里 —— 布局的真相是磁盘上的
@@ -17,7 +17,6 @@ const String _operationBindingBlockName = 'operationBinding';
 /// [_applySyncableBlocksToState] 的那次「平铺回状态」，而是自己走一条
 /// 读文件 / 改写文件的路（[_applyWorkspaceBlockData]）。
 const String _workspaceBlockName = 'workspace';
-
 
 /// 「块 → `GlobalSettingState` **顶层键**」的唯一真相。
 ///
@@ -113,7 +112,6 @@ const Map<String, List<String>> _settingsBlockKeys = <String, List<String>>{
   _operationBindingBlockName: <String>['operationBindingSetting'],
 };
 
-
 /// 块里**带走整个子对象、但要剔掉其中几项**的顶层键。
 ///
 /// 与 `_settingsBlockKeys` 的分工：那张表管「哪些顶层键进哪个块」，这张管
@@ -135,7 +133,6 @@ const Map<String, List<String>> _blockNestedKeyExclusions =
       'operationBindingSetting': <String>['bindingsMigrationBackupJson'],
     };
 
-
 /// 上面那张表里**住在 `GlobalSettingState` 内**的块名。
 const List<String> _settingsStateBlockNames = <String>[
   _appearanceBlockName,
@@ -147,7 +144,6 @@ const List<String> _settingsStateBlockNames = <String>[
   _operationBindingBlockName,
 ];
 
-
 /// 本机那份布局**就是出厂值**时写在块上的时间戳。
 ///
 /// 用 0 而不是「现在」：合并时 `_pickPreferredBlock` 判的是大小，0 一定输给
@@ -157,7 +153,6 @@ const List<String> _settingsStateBlockNames = <String>[
 /// 沿用「本机 = 现在」的老口径，不去动它们（那是另一件事，见 `docs/settings-sync-scope.md`）。
 const int _factoryEqualBlockTimestamp = 0;
 
-
 /// 出厂布局编码后的内容哈希 —— 「本机这份布局动过没有」的判据。
 ///
 /// 与块哈希走**同一个**编码函数（`WorkspaceSyncCodec.encode`）：
@@ -165,7 +160,6 @@ const int _factoryEqualBlockTimestamp = 0;
 final String _workspaceFactoryHash = _calculateStructuredMd5(
   WorkspaceSyncCodec.encode(WorkspaceLayoutSnapshot.defaults()),
 );
-
 
 /// 把本机布局作为一块补进本轮快照。
 ///
@@ -207,7 +201,6 @@ Future<void> _appendLocalWorkspaceBlock(
   );
 }
 
-
 /// 布局块的 `updatedAt`（**纯函数**，判据直接跑它 —— 验的就是上线跑的这段）。
 ///
 /// 三种情况：
@@ -229,7 +222,6 @@ int _resolveWorkspaceBlockUpdatedAt({
   return previous.hash == hash ? previous.updatedAt : nowMs;
 }
 
-
 /// 本机布局 → 块数据；**读不到就返回空表**（调用方据此整块不带）。
 ///
 /// 这里刻意用 `readIfAvailable` 而不是 `read`：后者的兜底是「给出厂值」，
@@ -249,7 +241,6 @@ Future<Map<String, dynamic>> _buildLocalWorkspaceBlockData() async {
     return const <String, dynamic>{};
   }
 }
-
 
 /// 云端布局块 → 本机（本机独有的字段按本位保留，见 `WorkspaceSyncCodec.decode`）。
 ///
@@ -286,7 +277,6 @@ Future<void> _applyWorkspaceBlockData(Map<String, dynamic> data) async {
   }
 }
 
-
 /// 把某个顶层键的值里、登记为「本机事实」的内层字段剔掉
 /// （名单见 `_blockNestedKeyExclusions`）。
 ///
@@ -305,12 +295,10 @@ Object? _stripNestedExclusions(String topLevelKey, Object? value) {
   return copy;
 }
 
-
 @visibleForTesting
 Map<String, Map<String, dynamic>> extractSyncableSettingsBlocksForTest(
   GlobalSettingState state,
 ) => _extractSyncableSettingsBlocks(state);
-
 
 /// 「块 → 顶层键」那张表（判据用）。
 ///
@@ -320,16 +308,13 @@ Map<String, Map<String, dynamic>> extractSyncableSettingsBlocksForTest(
 @visibleForTesting
 Map<String, List<String>> settingsBlockKeysForTest() => _settingsBlockKeys;
 
-
 /// 受「同步设置」总开关统辖的全部块名（判据用）。
 @visibleForTesting
 List<String> syncableSettingsBlockNamesForTest() => _syncableSettingsBlockNames;
 
-
 /// 布局**出厂值**的块哈希（判据用它构造「本机没动过」这一情形）。
 @visibleForTesting
 String workspaceFactoryHashForTest() => _workspaceFactoryHash;
-
 
 /// 布局块 `updatedAt` 的判定（判据用）。
 ///
@@ -350,7 +335,6 @@ int resolveWorkspaceBlockUpdatedAtForTest({
         ),
   nowMs: nowMs,
 );
-
 
 @visibleForTesting
 GlobalSettingState applySyncableBlockDataForTest(

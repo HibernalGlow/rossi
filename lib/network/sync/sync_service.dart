@@ -22,7 +22,6 @@ part 'parts/sync_service_rossi_part.dart';
 part 'parts/sync_service_library_presentation_part.dart';
 part 'parts/sync_service_settings_models_part.dart';
 
-
 const String _settingsSyncSchemaVersion = 'v2';
 const String _settingsBlockMetaPrefsKey = 'sync.settings.block.meta.v3';
 
@@ -1559,4 +1558,3 @@ class _RemoteSettingsData {
   final List<int> bytes;
   final int timestamp;
 }
-

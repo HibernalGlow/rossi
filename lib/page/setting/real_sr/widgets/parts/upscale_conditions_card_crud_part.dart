@@ -1,4 +1,5 @@
 part of '../upscale_conditions_card.dart';
+
 // 条件条目操作：落盘保存、新增/复制/删除/移动、重置与导入导出对话框
 extension _UpscaleConditionsCardCrudPart on _UpscaleConditionsCardState {
   Future<void> _saveConditions(List<SuperResolutionCondition> list) async {
