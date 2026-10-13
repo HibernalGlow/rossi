@@ -18,6 +18,7 @@ import 'api/local.dart';
 import 'api/local_thumbnail.dart';
 import 'api/localization.dart';
 import 'api/logger.dart';
+import 'api/margin_fit.dart';
 import 'api/memory.dart';
 import 'api/mimage_onnx.dart';
 import 'api/ocr.dart';
@@ -172,6 +173,13 @@ abstract class RustLibApi extends BaseApi {
   });
 
   Future<Uint8List> crateApiSimpleDecompressExtreme({required List<int> data});
+
+  Future<ContentBBox?> crateApiMarginFitDetectPageContentBbox({
+    required List<int> rgba,
+    required int width,
+    required int height,
+    int? tolerance,
+  });
 
   void crateApiSimpleEnableRustLog({required bool enabled});
 
@@ -1570,6 +1578,45 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiSimpleDecompressExtremeConstMeta =>
       const TaskConstMeta(debugName: "decompress_extreme", argNames: ["data"]);
+
+  @override
+  Future<ContentBBox?> crateApiMarginFitDetectPageContentBbox({
+    required List<int> rgba,
+    required int width,
+    required int height,
+    int? tolerance,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_list_prim_u_8_loose(rgba, serializer);
+          sse_encode_u_32(width, serializer);
+          sse_encode_u_32(height, serializer);
+          sse_encode_opt_box_autoadd_u_8(tolerance, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 19,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_content_b_box,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiMarginFitDetectPageContentBboxConstMeta,
+        argValues: [rgba, width, height, tolerance],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiMarginFitDetectPageContentBboxConstMeta =>
+      const TaskConstMeta(
+        debugName: "detect_page_content_bbox",
+        argNames: ["rgba", "width", "height", "tolerance"],
+      );
 
   @override
   void crateApiSimpleEnableRustLog({required bool enabled}) {
@@ -7911,6 +7958,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ContentBBox dco_decode_box_autoadd_content_b_box(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_content_b_box(raw);
+  }
+
+  @protected
   FetchInit dco_decode_box_autoadd_fetch_init(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_fetch_init(raw);
@@ -8020,6 +8073,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BigInt dco_decode_box_autoadd_u_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_u_64(raw);
+  }
+
+  @protected
+  int dco_decode_box_autoadd_u_8(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
+  }
+
+  @protected
+  ContentBBox dco_decode_content_b_box(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return ContentBBox(
+      left: dco_decode_f_32(arr[0]),
+      top: dco_decode_f_32(arr[1]),
+      right: dco_decode_f_32(arr[2]),
+      bottom: dco_decode_f_32(arr[3]),
+    );
   }
 
   @protected
@@ -8895,6 +8968,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ContentBBox? dco_decode_opt_box_autoadd_content_b_box(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_content_b_box(raw);
+  }
+
+  @protected
   FetchInit? dco_decode_opt_box_autoadd_fetch_init(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_fetch_init(raw);
@@ -9281,6 +9360,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ContentBBox sse_decode_box_autoadd_content_b_box(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_content_b_box(deserializer));
+  }
+
+  @protected
   FetchInit sse_decode_box_autoadd_fetch_init(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_fetch_init(deserializer));
@@ -9404,6 +9491,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_u_64(deserializer));
+  }
+
+  @protected
+  int sse_decode_box_autoadd_u_8(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_u_8(deserializer));
+  }
+
+  @protected
+  ContentBBox sse_decode_content_b_box(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_left = sse_decode_f_32(deserializer);
+    var var_top = sse_decode_f_32(deserializer);
+    var var_right = sse_decode_f_32(deserializer);
+    var var_bottom = sse_decode_f_32(deserializer);
+    return ContentBBox(
+      left: var_left,
+      top: var_top,
+      right: var_right,
+      bottom: var_bottom,
+    );
   }
 
   @protected
@@ -10586,6 +10694,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ContentBBox? sse_decode_opt_box_autoadd_content_b_box(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_content_b_box(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   FetchInit? sse_decode_opt_box_autoadd_fetch_init(
     SseDeserializer deserializer,
   ) {
@@ -11110,6 +11231,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_content_b_box(
+    ContentBBox self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_content_b_box(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_fetch_init(
     FetchInit self,
     SseSerializer serializer,
@@ -11254,6 +11384,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_u_64(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_u_8(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_8(self, serializer);
+  }
+
+  @protected
+  void sse_encode_content_b_box(ContentBBox self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_f_32(self.left, serializer);
+    sse_encode_f_32(self.top, serializer);
+    sse_encode_f_32(self.right, serializer);
+    sse_encode_f_32(self.bottom, serializer);
   }
 
   @protected
@@ -12191,6 +12336,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_bool(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_content_b_box(
+    ContentBBox? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_content_b_box(self, serializer);
     }
   }
 
