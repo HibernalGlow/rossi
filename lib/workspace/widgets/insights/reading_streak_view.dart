@@ -23,7 +23,8 @@ class ReadingStreakView extends StatelessWidget {
         full: _FullStreakView(summary: summary),
         fullHeight: (columns == 1 ? 430 : 330) * scale,
         detailTitle: '连续阅读',
-        tinySummary: '当前 ${summary.currentStreak} 天 · 展开查看',
+        tinySummary: '当前 ${summary.currentStreak} 天',
+        dataRevision: summary,
       );
     },
   );
