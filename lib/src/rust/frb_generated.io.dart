@@ -124,6 +124,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   FetchInit dco_decode_box_autoadd_fetch_init(dynamic raw);
 
   @protected
+  FileManagerEntry dco_decode_box_autoadd_file_manager_entry(dynamic raw);
+
+  @protected
+  FileManagerNewTabOptions dco_decode_box_autoadd_file_manager_new_tab_options(
+    dynamic raw,
+  );
+
+  @protected
   FileOpsClipboardMode dco_decode_box_autoadd_file_ops_clipboard_mode(
     dynamic raw,
   );
@@ -214,6 +222,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   FileManagerInternalItemsMode dco_decode_file_manager_internal_items_mode(
     dynamic raw,
   );
+
+  @protected
+  FileManagerLayoutMode dco_decode_file_manager_layout_mode(dynamic raw);
+
+  @protected
+  FileManagerNewTabOptions dco_decode_file_manager_new_tab_options(dynamic raw);
+
+  @protected
+  FileManagerNewTabPolicy dco_decode_file_manager_new_tab_policy(dynamic raw);
 
   @protected
   FileManagerSnapshot dco_decode_file_manager_snapshot(dynamic raw);
@@ -421,6 +438,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   FetchInit? dco_decode_opt_box_autoadd_fetch_init(dynamic raw);
 
   @protected
+  FileManagerEntry? dco_decode_opt_box_autoadd_file_manager_entry(dynamic raw);
+
+  @protected
+  FileManagerNewTabOptions?
+  dco_decode_opt_box_autoadd_file_manager_new_tab_options(dynamic raw);
+
+  @protected
   FileOpsClipboardMode? dco_decode_opt_box_autoadd_file_ops_clipboard_mode(
     dynamic raw,
   );
@@ -583,6 +607,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   FetchInit sse_decode_box_autoadd_fetch_init(SseDeserializer deserializer);
 
   @protected
+  FileManagerEntry sse_decode_box_autoadd_file_manager_entry(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileManagerNewTabOptions sse_decode_box_autoadd_file_manager_new_tab_options(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   FileOpsClipboardMode sse_decode_box_autoadd_file_ops_clipboard_mode(
     SseDeserializer deserializer,
   );
@@ -689,6 +723,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   FileManagerInternalItemsMode sse_decode_file_manager_internal_items_mode(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileManagerLayoutMode sse_decode_file_manager_layout_mode(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileManagerNewTabOptions sse_decode_file_manager_new_tab_options(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileManagerNewTabPolicy sse_decode_file_manager_new_tab_policy(
     SseDeserializer deserializer,
   );
 
@@ -964,6 +1013,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  FileManagerEntry? sse_decode_opt_box_autoadd_file_manager_entry(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileManagerNewTabOptions?
+  sse_decode_opt_box_autoadd_file_manager_new_tab_options(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   FileOpsClipboardMode? sse_decode_opt_box_autoadd_file_ops_clipboard_mode(
     SseDeserializer deserializer,
   );
@@ -1164,6 +1224,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_file_manager_entry(
+    FileManagerEntry self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_file_manager_new_tab_options(
+    FileManagerNewTabOptions self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_file_ops_clipboard_mode(
     FileOpsClipboardMode self,
     SseSerializer serializer,
@@ -1298,6 +1370,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_file_manager_internal_items_mode(
     FileManagerInternalItemsMode self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_manager_layout_mode(
+    FileManagerLayoutMode self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_manager_new_tab_options(
+    FileManagerNewTabOptions self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_manager_new_tab_policy(
+    FileManagerNewTabPolicy self,
     SseSerializer serializer,
   );
 
@@ -1640,6 +1730,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_fetch_init(
     FetchInit? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_file_manager_entry(
+    FileManagerEntry? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_file_manager_new_tab_options(
+    FileManagerNewTabOptions? self,
     SseSerializer serializer,
   );
 

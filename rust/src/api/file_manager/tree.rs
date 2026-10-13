@@ -12,8 +12,32 @@ use rossi_local_core::{
     folder_tree::path_eq as pane_path_eq,
 };
 
+use super::types::FileManagerTreeRow;
 use super::types::FileManagerTreeSnapshot;
-use super::{FILE_MANAGER_PANES, FILE_MANAGER_SESSIONS, pane_inputs, project_pane};
+use super::{
+    FILE_MANAGER_PANES, FILE_MANAGER_SESSIONS, map_entry, pane_inputs, project_pane, with_session,
+};
+
+fn search_tree(state: &rossi_local_core::FileManagerState) -> FileManagerTreeSnapshot {
+    FileManagerTreeSnapshot {
+        rows: state
+            .search_hierarchy()
+            .into_iter()
+            .map(|row| FileManagerTreeRow {
+                path: row.path.to_string_lossy().into_owned(),
+                name: row.name,
+                depth: row.depth as u32,
+                entry: row.entry.map(map_entry),
+                expanded: row.expanded,
+                loading: false,
+                may_have_children: row.has_children,
+                is_active: false,
+                error: None,
+            })
+            .collect(),
+        has_pending: false,
+    }
+}
 
 // ── 文件树面板 ─────────────────────────────────────────────────────────────
 //
@@ -45,10 +69,19 @@ where
                 .lock()
                 .map_err(|_| anyhow!("文件树面板的锁已中毒"))?;
             let pane = panes.entry(id).or_default();
+            let follow_active = pane
+                .active_path()
+                .is_none_or(|old| !pane_path_eq(old, &active));
             pane.sync_to_active(
                 Some(active.as_path()),
                 FolderPaneListingOptions::new(sort_order, show_hidden),
             );
+            if follow_active {
+                // 树现在就是内容区，首次定位到目录时应展开其文件；同一路径的后续
+                // 轮询不重新展开，用户主动收起仍由 FolderPaneState 记账。
+                pane.set_cursor(active);
+                pane.handle_tree_key(FolderPaneTreeKey::Right);
+            }
             pane.poll_pending();
             operation(pane)
         })
@@ -57,7 +90,18 @@ where
 
 #[frb]
 pub async fn file_manager_tree_snapshot(id: u64) -> Result<FileManagerTreeSnapshot, Error> {
-    with_pane(id, |pane| Ok(project_pane(pane))).await
+    let search = with_session(id, |state| {
+        Ok(state.search_listing().map(|_| search_tree(state)))
+    })
+    .await?;
+    if let Some(tree) = search {
+        return Ok(tree);
+    }
+    let tree = with_pane(id, |pane| Ok(project_pane(pane))).await?;
+    with_session(id, move |state| {
+        Ok(super::tree_content::integrate_tree_content(state, tree))
+    })
+    .await
 }
 
 /// 展开/收起某一行。核心没有「按路径直接改展开态」的入口，于是把游标挪过去、
@@ -68,7 +112,19 @@ pub async fn file_manager_tree_toggle(
     id: u64,
     path: String,
 ) -> Result<FileManagerTreeSnapshot, Error> {
-    with_pane(id, move |pane| {
+    let target = PathBuf::from(&path);
+    let search = with_session(id, move |state| {
+        if state.search_listing().is_none() {
+            return Ok(None);
+        }
+        state.toggle_search_tree(&target);
+        Ok(Some(search_tree(state)))
+    })
+    .await?;
+    if let Some(tree) = search {
+        return Ok(tree);
+    }
+    let tree = with_pane(id, move |pane| {
         let target = PathBuf::from(path);
         pane.set_cursor(target.clone());
         let expanded = pane
@@ -81,6 +137,10 @@ pub async fn file_manager_tree_toggle(
             FolderPaneTreeKey::Right
         });
         Ok(project_pane(pane))
+    })
+    .await?;
+    with_session(id, move |state| {
+        Ok(super::tree_content::integrate_tree_content(state, tree))
     })
     .await
 }

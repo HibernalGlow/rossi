@@ -176,128 +176,12 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
             const CommonPopupMenuItem.divider(),
           ],
           CommonPopupMenuItem(
-            label: snapshot.directoryColumnsEnabled ? '收起目录列' : '展开目录列',
-            glyph: AppGlyphs.columnsTwo,
-            onPressed: () => _apply(
-              (id) => fileManagerSetDirectoryColumns(
-                id: id,
-                enabled: !snapshot.directoryColumnsEnabled,
-              ),
-            ),
-          ),
-          CommonPopupMenuItem(
             label: '编辑路径',
             glyph: AppGlyphs.edit,
             onPressed: () => _editPath(snapshot),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildDirectoryColumns(
-    BuildContext context,
-    FileManagerSnapshot snapshot,
-  ) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = (constraints.maxWidth / 2).clamp(150.0, 240.0);
-        if (_columnsRevealedPath != snapshot.activePath) {
-          _columnsRevealedPath = snapshot.activePath;
-          _revealTail(_directoryColumnScroll);
-        }
-        return SizedBox(
-          height: 200,
-          child: SingleChildScrollView(
-            controller: _directoryColumnScroll,
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final column in snapshot.directoryColumns)
-                  SizedBox(
-                    width: width,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Theme.of(context).dividerColor,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          TextButton(
-                            onPressed: _busy
-                                ? null
-                                : () => _apply(
-                                    (id) => fileManagerNavigate(
-                                      id: id,
-                                      path: column.path,
-                                    ),
-                                  ),
-                            child: Text(
-                              column.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Expanded(
-                            child: column.error != null
-                                ? SingleChildScrollView(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8),
-                                      child: Text(
-                                        column.error!,
-                                        style: TextStyle(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.error,
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                : column.entries.isEmpty
-                                ? const Center(child: Text('没有子目录'))
-                                : ListView.builder(
-                                    itemCount: column.entries.length,
-                                    itemBuilder: (context, index) {
-                                      final entry = column.entries[index];
-                                      return ListTile(
-                                        key: ValueKey(
-                                          'file-manager-column:${entry.path}',
-                                        ),
-                                        dense: true,
-                                        selected: entry.selected,
-                                        leading: const GlyphIcon(
-                                          AppGlyphs.folder,
-                                          size: 18,
-                                        ),
-                                        title: Text(
-                                          entry.name,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        onTap: _busy
-                                            ? null
-                                            : () => _apply(
-                                                (id) => fileManagerNavigate(
-                                                  id: id,
-                                                  path: entry.path,
-                                                ),
-                                              ),
-                                      );
-                                    },
-                                  ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 
@@ -479,6 +363,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
           _apply(
             (id) => switch (action) {
               'pin' => fileManagerToggleTabPinned(id: id, tabId: tab.id),
+              'new' => fileManagerNewTab(id: id, path: tab.path, sourceTabId: tab.id),
               'duplicate' => fileManagerDuplicateTab(id: id, tabId: tab.id),
               'others' => fileManagerCloseOtherTabs(id: id, tabId: tab.id),
               'left' => fileManagerCloseTabsLeft(id: id, tabId: tab.id),
@@ -491,6 +376,11 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
           FluentPopupMenuItem(
             value: 'pin',
             title: Text(tab.pinned ? '取消固定' : '固定页签'),
+          ),
+          FluentPopupMenuItem(
+            value: 'new',
+            enabled: snapshot.canCreateTab,
+            title: const Text('从此页签新建'),
           ),
           FluentPopupMenuItem(
             value: 'duplicate',

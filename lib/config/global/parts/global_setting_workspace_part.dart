@@ -2,6 +2,15 @@ part of '../global_setting.dart';
 
 // 工作台/发现页/操作绑定/卡片外观（rossi）
 
+enum FileManagerTabStartupPolicy {
+  defaults('使用预设默认值'),
+  recent('继承最近使用的页签'),
+  triggering('继承触发页签');
+
+  const FileManagerTabStartupPolicy(this.label);
+  final String label;
+}
+
 /// 文件管理器卡片（工作台里的本地文件浏览）的跨重启偏好。
 ///
 /// 为什么这些不放卡片的 State，而放全局设置：工作台的卡片会被整棵重建
@@ -43,6 +52,14 @@ abstract class FileManagerSettingState with _$FileManagerSettingState {
     @Default(true) bool fileOperations,
     @Default(false) bool searchSubfoldersDefault,
     @Default(false) bool wrapGridTitle,
+    @Default(FileManagerTabStartupPolicy.triggering)
+    @JsonKey(unknownEnumValue: FileManagerTabStartupPolicy.triggering)
+    FileManagerTabStartupPolicy newTabPolicy,
+    @Default('compact') String newTabViewMode,
+    @Default('content') String newTabLayoutMode,
+    @Default(false) bool newTabPenetration,
+    @Default(false) bool newTabShowHidden,
+    @Default(true) bool newTabShowChildNames,
   }) = _FileManagerSettingState;
 
   factory FileManagerSettingState.fromJson(Map<String, dynamic> json) =>

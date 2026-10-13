@@ -7,6 +7,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
+import 'package:zephyr/page/setting/global/file_manager_new_tab_settings.dart';
 import 'package:zephyr/page/setting/global/shell_integration_setting_card.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/icons/icons.dart';
@@ -251,6 +252,8 @@ class FileManagerSettingPage extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          const FileManagerNewTabSettings(),
           const SizedBox(height: 12),
           const ShellIntegrationSettingCard(),
           const SizedBox(height: 12),

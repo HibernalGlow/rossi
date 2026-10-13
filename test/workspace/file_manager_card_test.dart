@@ -14,12 +14,15 @@ import 'package:zephyr/src/rust/frb_generated.dart';
 import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/workspace/widgets/cards/file_manager_card.dart';
 import 'package:zephyr/workspace/widgets/cards/file_manager_navigation_pad.dart';
+import 'package:zephyr/workspace/widgets/cards/file_manager_content_layout.dart';
+import 'package:zephyr/workspace/widgets/library_view/library_view.dart';
 import 'package:zephyr/workspace/widgets/cards/file_manager_thumbnail.dart';
 part 'parts/file_manager_card_test_fakes_part.dart';
 part 'parts/file_manager_card_test_fixture_part.dart';
 part 'parts/file_manager_card_test_helper_part.dart';
 part 'parts/file_manager_card_test_selection_part.dart';
 part 'parts/file_manager_card_test_tabs_part.dart';
+part 'parts/file_manager_card_test_layout_part.dart';
 
 // Fake only the FRB boundary. Render the real card with the same Material
 // library as main.dart and no Scaffold/Material supplied by its host.
@@ -54,6 +57,7 @@ void main() {
   // （直接传实例会传错 —— `setUp` 每个用例换一个新的）。
   _selectionTapTests(() => api);
   _tabMenuTests(() => api);
+  _layoutTests(() => api);
 
   for (final width in [260.0, 340.0, 700.0]) {
     for (final mode in FileManagerViewMode.values) {
@@ -74,6 +78,34 @@ void main() {
     }
   }
 
+  testWidgets('「显示快速切换栏」收掉那一排胶囊，再开立刻回来', (tester) async {
+    await _pumpCard(tester, settings: settings);
+    // 证伪前提：夹具的快照里真有一个 root，默认开着时它必须画得出来。
+    // 少了这一句，下面的 `findsNothing` 有可能只是「从来就没画过」。
+    expect(find.byType(ActionChip), findsOneWidget);
+
+    final more = find.byTooltip('更多');
+    await tester.ensureVisible(more);
+    await tester.tap(more);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('显示快速切换栏'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    expect(settings.state.fileManagerSetting.showRootsBar, isFalse);
+    expect(find.byType(ActionChip), findsNothing);
+    // 收掉的只是卡片外壳上那一行，浏览本身照常。
+    expect(find.text('book.cbz'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('更多'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('显示快速切换栏'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    expect(settings.state.fileManagerSetting.showRootsBar, isTrue);
+    expect(find.byType(ActionChip), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('搜索框默认折叠，展开后提交到 Rust，切换页签后输入框采用 Rust 快照', (tester) async {
     await _pumpCard(tester);
     // 默认折叠：没有搜索输入框。
@@ -90,7 +122,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       api
-          .callsTo(#crateApiFileManagerSearchFileManagerSetSearchQuery)
+          .callsTo(#crateApiFileManagerSearchFileManagerSearchInNewTab)
           .single
           .namedArguments[#query],
       'book',
@@ -370,7 +402,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       api
-          .callsTo(#crateApiFileManagerSearchFileManagerSetSearchQuery)
+          .callsTo(#crateApiFileManagerSearchFileManagerSearchInNewTab)
           .single
           .namedArguments[#query],
       '旧词',
@@ -542,10 +574,10 @@ void main() {
     for (final tip in [
       '后退',
       '刷新',
-      '视图模式：封面列表',
+      '条目样式：封面列表',
       '排序：名称',
       '搜索（空格分词，-排除）',
-      '文件树',
+      '内容布局：内容视图',
       '关闭穿透模式',
       '更多',
     ]) {
@@ -930,58 +962,6 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('路径分段、列目录均采用 Rust 快照，编辑失败保留输入', (tester) async {
-    api.snapshot = _snapshot(columnsEnabled: true);
-    await _pumpCard(tester, width: 260);
-    final rootCrumb = find.byKey(const ValueKey('file-manager-breadcrumb:/'));
-    await tester.ensureVisible(rootCrumb);
-    await tester.pumpAndSettle();
-    await tester.tap(rootCrumb);
-    await tester.pumpAndSettle();
-    expect(
-      api
-          .callsTo(#crateApiFileManagerBrowseFileManagerNavigate)
-          .last
-          .namedArguments[#path],
-      '/',
-    );
-    await tester.tap(
-      find.byKey(const ValueKey('file-manager-column:/books/series')),
-    );
-    await tester.pumpAndSettle();
-    expect(
-      api
-          .callsTo(#crateApiFileManagerBrowseFileManagerNavigate)
-          .last
-          .namedArguments[#path],
-      '/books/series',
-    );
-    await tester.tap(find.byTooltip('路径操作'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('编辑路径'));
-    await tester.pumpAndSettle();
-    final editor = find.byKey(const ValueKey('file-manager-path-input'));
-    await tester.enterText(editor, '  "../书籍"  ');
-    api.snapshotError = StateError('无法打开目录');
-    await tester.testTextInput.receiveAction(TextInputAction.go);
-    await tester.pumpAndSettle();
-    expect(
-      api
-          .callsTo(#crateApiFileManagerBrowseFileManagerNavigateText)
-          .single
-          .namedArguments[#text],
-      '  "../书籍"  ',
-    );
-    expect(tester.widget<TextField>(editor).controller!.text, '  "../书籍"  ');
-    expect(find.textContaining('无法打开目录'), findsOneWidget);
-    api.snapshotError = null;
-    await tester.tap(find.byTooltip('转到目录'));
-    await tester.pumpAndSettle();
-    expect(editor, findsNothing);
-    expect(tester.takeException(), isNull);
-    await tester.pumpWidget(const SizedBox.shrink());
-  });
-
   testWidgets('按钮是否可用直接使用 Rust 能力，不在 Dart 重算页签规则', (tester) async {
     api.snapshot = _snapshot(canCreate: false, canClose: false);
     await _pumpCard(tester);
@@ -1046,7 +1026,7 @@ void main() {
 
   testWidgets('工具栏包含 NeoView 风格视图模式菜单并支持切换', (tester) async {
     await _pumpCard(tester);
-    final menuButton = find.byTooltip('视图模式：封面列表');
+    final menuButton = find.byTooltip('条目样式：封面列表');
     expect(menuButton, findsOneWidget);
 
     await tester.tap(menuButton);
@@ -1102,138 +1082,6 @@ void main() {
           .last
           .namedArguments[#field],
       FileManagerSortField.date,
-    );
-    await tester.pumpWidget(const SizedBox.shrink());
-  });
-
-  // ── 文件树 ────────────────────────────────────────────────────────────────
-
-  testWidgets('文件树默认关闭，打开后按 Rust 投影渲染缩进与箭头', (tester) async {
-    await _pumpCard(tester);
-    expect(
-      find.byKey(const ValueKey('file-manager-tree:/books')),
-      findsNothing,
-    );
-
-    await _openTree(tester);
-
-    expect(
-      api.callsTo(#crateApiFileManagerTreeFileManagerTreeSnapshot),
-      hasLength(1),
-    );
-    // 深度来自核心的 `visible_rows`，Dart 不自己数层。
-    expect(
-      tester
-          .widget<ListTile>(
-            find.byKey(const ValueKey('file-manager-tree:/books/series')),
-          )
-          .contentPadding,
-      const EdgeInsets.only(left: 32, right: 8),
-    );
-    // 确认是空目录的行不给箭头，否则点开只会是空的。
-    expect(
-      find.byKey(const ValueKey('file-manager-tree-toggle:/books/loose')),
-      findsNothing,
-    );
-    expect(
-      find.byKey(const ValueKey('file-manager-tree-toggle:/books/series')),
-      findsOneWidget,
-    );
-    await tester.pumpWidget(const SizedBox.shrink());
-  });
-
-  testWidgets('打开文件树把当前目录那一行搬进视口', (tester) async {
-    api.tree = _deepTreeSnapshot();
-    await _pumpCard(tester);
-    // 当前目录在链的最深处：树没开时它连被建出来都没有。
-    const activeRow = ValueKey('file-manager-tree:/n12');
-    expect(find.byKey(activeRow), findsNothing);
-
-    await _openTree(tester);
-
-    expect(find.byKey(activeRow), findsOneWidget);
-    final viewport = tester.getRect(
-      find.byKey(const ValueKey('file-manager-tree-list')),
-    );
-    final row = tester.getRect(find.byKey(activeRow));
-    expect(row.top, greaterThanOrEqualTo(viewport.top));
-    expect(row.bottom, lessThanOrEqualTo(viewport.bottom));
-    // 这一句是上面两条的对照：链头那行已经被滚出视口（连建都没建出来），
-    // 说明视口确实搬过，而不是「行数本来就少、全都看得见」蒙对的。
-    expect(find.byKey(const ValueKey('file-manager-tree:/')), findsNothing);
-    await tester.pumpWidget(const SizedBox.shrink());
-  });
-
-  testWidgets('树里点箭头只展开节点，点行才提交跳转目录', (tester) async {
-    await _pumpCard(tester);
-    await _openTree(tester);
-
-    await tester.tap(
-      find.byKey(const ValueKey('file-manager-tree-toggle:/books/series')),
-    );
-    await tester.pumpAndSettle();
-    expect(
-      api
-          .callsTo(#crateApiFileManagerTreeFileManagerTreeToggle)
-          .single
-          .namedArguments[#path],
-      '/books/series',
-    );
-    expect(api.callsTo(#crateApiFileManagerBrowseFileManagerNavigate), isEmpty);
-
-    await tester.tap(find.byKey(const ValueKey('file-manager-tree:/')));
-    await tester.pumpAndSettle();
-    expect(
-      api
-          .callsTo(#crateApiFileManagerBrowseFileManagerNavigate)
-          .single
-          .namedArguments[#path],
-      '/',
-    );
-    await tester.pumpWidget(const SizedBox.shrink());
-  });
-
-  testWidgets('打开文件树时顺手关掉目录列，两者不同时占位', (tester) async {
-    api.snapshot = _snapshot(columnsEnabled: true);
-    await _pumpCard(tester);
-    // 目录列里那一项，此时还没有树。
-    expect(
-      find.byKey(const ValueKey('file-manager-column:/books/series')),
-      findsOneWidget,
-    );
-
-    await _openTree(tester);
-
-    expect(
-      api
-          .callsTo(#crateApiFileManagerBrowseFileManagerSetDirectoryColumns)
-          .single
-          .namedArguments[#enabled],
-      isFalse,
-    );
-    expect(
-      find.byKey(const ValueKey('file-manager-tree:/books')),
-      findsOneWidget,
-    );
-    await tester.pumpWidget(const SizedBox.shrink());
-  });
-
-  testWidgets('目录列只有一颗开关，藏在面包屑的路径操作菜单里', (tester) async {
-    await _pumpCard(tester);
-    // 工具栏上那颗（view_week）与行尾的编辑键都并进了这一颗菜单。
-    expect(find.byIcon(Icons.view_week_rounded), findsNothing);
-    expect(find.byTooltip('编辑目录路径'), findsNothing);
-
-    await tester.tap(find.byTooltip('路径操作'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('展开目录列'));
-    await tester.pumpAndSettle();
-    expect(
-      api
-          .callsTo(#crateApiFileManagerBrowseFileManagerSetDirectoryColumns)
-          .single
-          .namedArguments[#enabled],
-      isTrue,
     );
     await tester.pumpWidget(const SizedBox.shrink());
   });

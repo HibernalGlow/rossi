@@ -14,12 +14,14 @@ Future<BigInt> fileManagerCreate({
   String? settingsDbPath,
   required bool rememberViewState,
   required bool searchSubfoldersDefault,
+  FileManagerNewTabOptions? newTabOptions,
 }) => RustLib.instance.api.crateApiFileManagerBrowseFileManagerCreate(
   initialPath: initialPath,
   homePath: homePath,
   settingsDbPath: settingsDbPath,
   rememberViewState: rememberViewState,
   searchSubfoldersDefault: searchSubfoldersDefault,
+  newTabOptions: newTabOptions,
 );
 
 Future<FileManagerSnapshot> fileManagerSnapshot({required BigInt id}) =>
@@ -78,9 +80,11 @@ Future<FileManagerSnapshot> fileManagerSetHomePath({
 Future<FileManagerSnapshot> fileManagerNewTab({
   required BigInt id,
   String? path,
+  BigInt? sourceTabId,
 }) => RustLib.instance.api.crateApiFileManagerBrowseFileManagerNewTab(
   id: id,
   path: path,
+  sourceTabId: sourceTabId,
 );
 
 Future<FileManagerSnapshot> fileManagerActivateTab({

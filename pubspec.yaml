@@ -110,6 +110,7 @@ dependencies:
   plat:
     path: vendor/plat
   flutter_sticky_header: ^0.8.0 # UI: 分组吸顶组头
+  multi_split_view: ^3.6.2
 
 dev_dependencies:
   # 测试与规范

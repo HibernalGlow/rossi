@@ -62,6 +62,24 @@ Future<FileManagerSnapshot> fileManagerSetSearchMaxDepth({
 Future<FileManagerSnapshot> fileManagerSearch({required BigInt id}) =>
     RustLib.instance.api.crateApiFileManagerSearchFileManagerSearch(id: id);
 
+/// 回车搜索：先原子创建独立页签，保留源页签的目录与布局。
+Future<FileManagerSnapshot> fileManagerSearchInNewTab({
+  required BigInt id,
+  required String query,
+}) => RustLib.instance.api.crateApiFileManagerSearchFileManagerSearchInNewTab(
+  id: id,
+  query: query,
+);
+
+Future<FileManagerSnapshot> fileManagerSelectSearchDirectory({
+  required BigInt id,
+  required String path,
+}) => RustLib.instance.api
+    .crateApiFileManagerSearchFileManagerSelectSearchDirectory(
+      id: id,
+      path: path,
+    );
+
 /// 把当前搜索结果另存成一个页签（NeoView 的「保存搜索到页签」）。
 Future<FileManagerSnapshot> fileManagerSaveSearchAsTab({required BigInt id}) =>
     RustLib.instance.api.crateApiFileManagerSearchFileManagerSaveSearchAsTab(

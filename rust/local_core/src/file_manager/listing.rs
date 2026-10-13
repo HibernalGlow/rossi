@@ -115,3 +115,52 @@ pub(super) fn describe_children(
         })
         .collect()
 }
+
+impl FileManagerState {
+    pub fn entries(&self) -> Result<Vec<FileManagerEntry>> {
+        // 搜索结果页签：列表就是上一次遍历交出的命中，不再枚举当前目录。
+        // 「列表只有一份真本」是这里的目的 —— UI 不再自己揣一份结果数组。
+        if let Some(search) = &self.tabs[self.active_tab].search {
+            return Ok(search.entries.clone());
+        }
+        self.entries_in_directory(self.active_path())
+    }
+
+    /// 树和分栏复用当前会话的枚举、筛选、排序和条目描述，不改变路径或导航历史。
+    pub fn entries_in_directory(&self, root: &Path) -> Result<Vec<FileManagerEntry>> {
+        self.layout_entries_in_directory(root, false)
+    }
+
+    /// 目录节点承担层级导航，按文件类型筛选时仍保留它们；文件沿用同一筛选规则。
+    pub fn hierarchy_entries_in_directory(&self, root: &Path) -> Result<Vec<FileManagerEntry>> {
+        self.layout_entries_in_directory(root, true)
+    }
+
+    fn layout_entries_in_directory(
+        &self,
+        root: &Path,
+        keep_directories: bool,
+    ) -> Result<Vec<FileManagerEntry>> {
+        let settings = self.settings();
+        // 词元在整份列表上复用，只在解析查询时 lowercase 一次；逐条目再解析会把
+        // O(条目) 变成 O(条目 × 查询长度) 的分配。
+        let tokens = crate::search_query::parse(&settings.search_query);
+        let mut nodes = list_directory_with_hidden(root, settings.show_hidden_files)?;
+        nodes.retain(|node| {
+            (keep_directories && node.is_dir) || matches_entry(settings, node, &tokens, root)
+        });
+        nodes.sort_by(|left, right| compare_entries(settings, left, right));
+        Ok(nodes
+            .into_iter()
+            .map(|node| {
+                let children =
+                    if node.is_dir && settings.penetration_enabled && settings.show_child_names {
+                        describe_children(Path::new(&node.path), settings)
+                    } else {
+                        Vec::new()
+                    };
+                FileManagerEntry { node, children }
+            })
+            .collect())
+    }
+}
