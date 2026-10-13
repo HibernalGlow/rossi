@@ -12,7 +12,7 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_read/controller/reader_action_controller.dart';
 import 'package:zephyr/page/comic_read/controller/reader_action_dispatcher.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
-import 'package:zephyr/page/comic_read/method/key.dart';
+import 'package:zephyr/page/comic_read/controller/reader_keyboard_controller.dart';
 import 'package:zephyr/page/comic_read/method/reader_gesture_logic.dart';
 import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
 import 'package:zephyr/page/comic_read/widgets/radial/reader_radial_menu_overlay.dart';
@@ -21,7 +21,6 @@ import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
 import 'package:zephyr/service/operation_binding/binding_doc.dart';
 import 'package:zephyr/util/input/binding_input_capture.dart';
 import 'package:zephyr/util/input/binding_pointer_tracker.dart';
-import 'package:zephyr/util/input/reader_input_bridge.dart';
 import 'package:zephyr/util/input/binding_pointer_signal_guard.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_fullscreen_scope.dart';
@@ -109,7 +108,15 @@ class ReaderInputController {
     );
   }
 
-  final _keyHolds = <PhysicalKeyboardKey, Timer>{};
+  ReaderKeyboardController? _keyboard;
+  ReaderKeyboardController get _keyboardController =>
+      _keyboard ??= ReaderKeyboardController(
+        context: context,
+        actions: actionController,
+        dispatcher: _actionDispatcher,
+        runtimeBindings: () => _runtimeBindings,
+        onToggleFullscreen: toggleReaderFullscreen,
+      );
   Size _inputSize = Size.zero;
   late final _pointerBindings = BindingPointerTracker(
     deferAreaClicks: true,
@@ -237,10 +244,7 @@ class ReaderInputController {
   void dispose() {
     // 阅读器整棵拆掉时轮盘还开着，会留下一层没人收的遮罩。
     ReaderRadialMenu.dismiss();
-    for (final timer in _keyHolds.values) {
-      timer.cancel();
-    }
-    _keyHolds.clear();
+    _keyboard?.dispose();
     _pointerBindings.dispose();
     transformationController.removeListener(_onTransformationChanged);
     focusNode.dispose();
@@ -265,6 +269,9 @@ class ReaderInputController {
 
     return Focus(
       focusNode: focusNode,
+      onFocusChange: (focused) {
+        if (!focused) _keyboard?.cancel();
+      },
       autofocus: true,
       onKeyEvent: _onKeyEvent,
       child: Listener(
@@ -344,107 +351,8 @@ class ReaderInputController {
   /// （`operation_binding`，改绑定不重新编译即生效）；表不可用时是 `key.dart` 里
   /// 改造前的硬编码名单。两份**不叠加**：表在位时没人认的键一律放行，
   /// 不回落名单 —— 回落等于「把一条绑定删掉它还在生效」。
-  KeyEventResult handleKeyEvent(KeyEvent event) {
-    final bindings = _runtimeBindings;
-    if (event is KeyUpEvent) {
-      _keyHolds.remove(event.physicalKey)?.cancel();
-      return KeyEventResult.ignored;
-    }
-    if (!ReaderInputBridge.instance.acceptsReaderKeyboard ||
-        ReaderRadialMenu.isOpen) {
-      for (final timer in _keyHolds.values) {
-        timer.cancel();
-      }
-      _keyHolds.clear();
-      return KeyEventResult.ignored;
-    }
-    if (bindings != null) {
-      // 上游的「反转左右方向键」在绑定表这条路上同样要生效：派发时换键名，
-      // 表里的数据不动（见 `keyboardInputJsonOf` 的 swapHorizontal）。
-      final swapHorizontal = context
-          .read<GlobalSettingCubit>()
-          .state
-          .readSetting
-          .reverseHorizontalPageTurn;
-      if (event is KeyDownEvent) {
-        final json = keyboardInputJsonOf(event, swapHorizontal: swapHorizontal);
-        if (json != null) {
-          final holdInput = {
-            ...Map<String, dynamic>.from(jsonDecode(json) as Map),
-            'trigger': 'hold',
-          };
-          final hold = _actionDispatcher.resolveInput(
-            holdInput,
-            bindings,
-            contexts: ReaderInputBridge.instance.activeContexts
-                .map((c) => c.name)
-                .toList(),
-          );
-          if (hold != null) {
-            final input = hold['input'] as Map;
-            _keyHolds[event.physicalKey]?.cancel();
-            _keyHolds[event.physicalKey] = Timer(
-              Duration(
-                milliseconds: (input['durationMs'] as num? ?? 450)
-                    .toInt()
-                    .clamp(100, 5000),
-              ),
-              () {
-                if (!context.mounted ||
-                    !ReaderInputBridge.instance.acceptsReaderKeyboard ||
-                    ReaderRadialMenu.isOpen ||
-                    !HardwareKeyboard.instance.physicalKeysPressed.contains(
-                      event.physicalKey,
-                    )) {
-                  return;
-                }
-                final current = _runtimeBindings;
-                if (current != null) {
-                  _actionDispatcher.dispatchInput(
-                    jsonEncode(holdInput),
-                    current,
-                    fromKeyboard: true,
-                  );
-                }
-              },
-            );
-            return KeyEventResult.handled;
-          }
-        }
-      }
-      if (event is KeyRepeatEvent && _keyHolds.containsKey(event.physicalKey)) {
-        return KeyEventResult.handled;
-      }
-      // 只处理按下与长按重复：抬起/修饰键独立事件不该触发动作（与旧名单同一口径）。
-      if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
-        return KeyEventResult.ignored;
-      }
-      return _actionDispatcher.dispatchKeyEvent(
-            event,
-            bindings,
-            swapHorizontal: context
-                .read<GlobalSettingCubit>()
-                .state
-                .readSetting
-                .reverseHorizontalPageTurn,
-          )
-          ? KeyEventResult.handled
-          : KeyEventResult.ignored;
-    }
-
-    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.f11) {
-      unawaited(toggleReaderFullscreen());
-      return KeyEventResult.handled;
-    }
-    final handled = handleGlobalKeyEvent(
-      event,
-      actionController,
-      reverseHorizontal: context
-          .readEffectiveReadSetting()
-          .reverseHorizontalPageTurn,
-    );
-    return handled ? KeyEventResult.handled : KeyEventResult.ignored;
-  }
+  KeyEventResult handleKeyEvent(KeyEvent event) =>
+      _keyboardController.handleKeyEvent(event);
 
   Future<void> _onTap() async {
     // 延迟一帧处理，减少单击和双击的手势竞争。
