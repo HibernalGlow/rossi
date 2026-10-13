@@ -181,7 +181,7 @@ class WorkspacePanelRegistry {
       ),
       WorkspacePanelDefinition(
         id: WorkspacePanelId.tools,
-        title: '工具与设置（上游原版）',
+        title: '设置与工具',
         icon: AppGlyphs.sliders,
         side: WorkspacePanelSide.right,
         defaultOrder: 6,
