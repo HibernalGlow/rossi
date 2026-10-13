@@ -27,12 +27,14 @@ class AllChipWidget extends StatefulWidget {
   final String comicId;
   final ComicInfoMetadata metadata;
   final String from;
+  final bool inline;
 
   const AllChipWidget({
     super.key,
     required this.comicId,
     required this.metadata,
     required this.from,
+    this.inline = false,
   });
 
   @override
@@ -56,53 +58,63 @@ class _AllChipWidgetState extends State<AllChipWidget> {
         ? FavoriteTagMatcher.buildAliasIndex(favoriteTagSetting.tags)
         : const <String, FavoriteTag>{};
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(height: runSpacings),
-        // QuietRow（不是 Row）：chip 的文案来自插件（种子标题、磁力串…），长度不可控，
-        // 万一再溢出，宁可省略也不要在内容上盖一条黄黑斜纹。见 util/layout/。
-        QuietRow(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _LabelChip(label: processedTitle),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Wrap(
-                spacing: 10,
-                runSpacing: runSpacings,
-                children: items.map((item) {
-                  final isFavorite =
-                      favoriteSetting.highlightEnabled &&
-                      FavoriteArtistMatcher.chipIsFavorite(
-                        label: item.name,
-                        namespaceType: widget.metadata.type,
-                        namespaceName: widget.metadata.name,
-                        favoriteArtists: favoriteSetting.artists,
-                        circleMode: favoriteSetting.circleMode,
-                      );
-                  final isFavoriteTag = FavoriteTagMatcher.hitInIndex(
-                    tagIndex,
-                    item.name,
-                  );
-                  return AllChipItem(
-                    label: processText(item.name).let(convertChineseForDisplay),
-                    isFavorite: isFavorite,
-                    isFavoriteTag: isFavoriteTag,
-                    onTap: () => _onTap(item),
-                    onLongPress: () => _showChipMenu(
-                      context,
-                      item,
-                      isFavoriteArtist: isFavorite,
-                      isFavoriteTag: isFavoriteTag,
-                    ),
-                  );
-                }).toList(),
-              ),
+    final chips = Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: items.map((item) {
+        final isFavorite =
+            favoriteSetting.highlightEnabled &&
+            FavoriteArtistMatcher.chipIsFavorite(
+              label: item.name,
+              namespaceType: widget.metadata.type,
+              namespaceName: widget.metadata.name,
+              favoriteArtists: favoriteSetting.artists,
+              circleMode: favoriteSetting.circleMode,
+            );
+        final isFavoriteTag = FavoriteTagMatcher.hitInIndex(
+          tagIndex,
+          item.name,
+        );
+        return AllChipItem(
+          label: processText(item.name).let(convertChineseForDisplay),
+          isFavorite: isFavorite,
+          isFavoriteTag: isFavoriteTag,
+          expressive: widget.inline,
+          onTap: () => _onTap(item),
+          onLongPress: () => _showChipMenu(
+            context,
+            item,
+            isFavoriteArtist: isFavorite,
+            isFavoriteTag: isFavoriteTag,
+          ),
+        );
+      }).toList(),
+    );
+    if (widget.inline) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            processedTitle,
+            style: context.theme.textTheme.labelLarge?.copyWith(
+              color: context.theme.colorScheme.onSurfaceVariant,
             ),
-          ],
-        ),
-      ],
+          ),
+          const SizedBox(height: 8),
+          chips,
+        ],
+      );
+    }
+    return Padding(
+      padding: EdgeInsets.only(top: runSpacings),
+      child: QuietRow(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _LabelChip(label: processedTitle),
+          const SizedBox(width: 10),
+          Expanded(child: chips),
+        ],
+      ),
     );
   }
 
@@ -264,6 +276,7 @@ class AllChipItem extends StatefulWidget {
   final bool isFavoriteTag;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
+  final bool expressive;
 
   const AllChipItem({
     super.key,
@@ -272,6 +285,7 @@ class AllChipItem extends StatefulWidget {
     this.isFavoriteTag = false,
     required this.onTap,
     required this.onLongPress,
+    this.expressive = false,
   });
 
   @override
@@ -284,6 +298,36 @@ class _AllChipItemState extends State<AllChipItem> {
   @override
   Widget build(BuildContext context) {
     final scheme = context.theme.colorScheme;
+    if (widget.expressive) {
+      return Tooltip(
+        message: widget.label,
+        triggerMode: TooltipTriggerMode.manual,
+        child: GestureDetector(
+          onLongPress: widget.onLongPress,
+          child: ActionChip(
+            label: Text(
+              widget.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            avatar: widget.isFavorite
+                ? const GlyphIcon(AppGlyphs.heart, size: 18)
+                : widget.isFavoriteTag
+                ? const Text('#')
+                : null,
+            backgroundColor: widget.isFavorite
+                ? scheme.secondaryContainer
+                : widget.isFavoriteTag
+                ? scheme.tertiaryContainer
+                : scheme.surfaceContainerLow,
+            shape: const StadiumBorder(),
+            side: BorderSide.none,
+            materialTapTargetSize: MaterialTapTargetSize.padded,
+            onPressed: widget.onTap,
+          ),
+        ),
+      );
+    }
     final primary = scheme.primary;
     final background = context.backgroundColor;
     // 画师与 tag 按 M3 角色色分家：画师 = errorContainer（♥ 的红色语义），
@@ -294,8 +338,12 @@ class _AllChipItemState extends State<AllChipItem> {
     final mark = widget.isFavorite
         ? '♥ '
         : (widget.isFavoriteTag ? '# ' : null);
-    final highlightContainer = isArtist ? scheme.errorContainer : scheme.tertiaryContainer;
-    final highlightText = isArtist ? scheme.onErrorContainer : scheme.onTertiaryContainer;
+    final highlightContainer = isArtist
+        ? scheme.errorContainer
+        : scheme.tertiaryContainer;
+    final highlightText = isArtist
+        ? scheme.onErrorContainer
+        : scheme.onTertiaryContainer;
 
     final borderColor = highlighted
         ? highlightContainer

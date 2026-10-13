@@ -18,6 +18,7 @@ extension _ComicInfoRossiActionsPart on _ComicInfoState {
   /// 几何不在这里算 —— 交给 [ComicInfoActionOverlay]，那样那份 `Positioned` 的落点
   /// 才测得到（第一版写在这里，右边那颗被裁到窗口外没被发现）。
   Widget _withActionRails({required Widget child}) {
+    if (widget.onClose != null) return child;
     if (!comicInfoPlatformHasPointer(defaultTargetPlatform)) {
       return child;
     }

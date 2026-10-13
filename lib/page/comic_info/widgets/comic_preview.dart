@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:zephyr/page/comic_info/widgets/comic_inline_details_surface.dart';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/services.dart';
@@ -244,7 +245,10 @@ class _ComicPreviewTile extends StatelessWidget {
               return InkWell(
                 onTap: () =>
                     context.read<PictureBloc>().add(GetPicture(pictureInfo)),
-                child: _tileBackground(context, const GlyphIcon(AppGlyphs.refresh)),
+                child: _tileBackground(
+                  context,
+                  const GlyphIcon(AppGlyphs.refresh),
+                ),
               );
           }
         },
@@ -266,4 +270,43 @@ class _ComicPreviewTile extends StatelessWidget {
     await Clipboard.setData(ClipboardData(text: magnet));
     showSuccessToast(t.comicInfo.copiedToClipboard(name: magnet));
   }
+}
+
+/// 原位详情使用横向轨道，复用相同的插件分页、图片缓存和打开原图动作。
+class ComicInlinePreview extends StatelessWidget {
+  const ComicInlinePreview({super.key});
+  @override
+  Widget build(BuildContext context) =>
+      BlocBuilder<ComicPreviewBloc, ComicPreviewState>(
+        builder: (context, state) {
+          final bloc = context.read<ComicPreviewBloc>();
+          final busy =
+              state.status == ComicPreviewStatus.initial ||
+              state.status == ComicPreviewStatus.loadingMore;
+          if (state.items.isEmpty &&
+              state.status == ComicPreviewStatus.success &&
+              state.hasReachedMax) {
+            return const SizedBox.shrink();
+          }
+          final failure =
+              state.status == ComicPreviewStatus.failure ||
+              state.status == ComicPreviewStatus.getMoreFailure;
+          return ComicInlinePreviewGallery(
+            count: state.items.length,
+            loading: busy,
+            error: failure ? '预览加载失败' : null,
+            onRetry: () =>
+                bloc.add(LoadComicPreview(loadMore: state.items.isNotEmpty)),
+            onMore: !busy && !state.hasReachedMax && !failure
+                ? () => bloc.add(const LoadComicPreview(loadMore: true))
+                : null,
+            itemBuilder: (_, index) => _ComicPreviewTile(
+              key: ValueKey('inline:${state.items[index].id}:$index'),
+              item: state.items[index],
+              comicId: bloc.comicId,
+              from: bloc.from,
+            ),
+          );
+        },
+      );
 }

@@ -20,6 +20,7 @@ import 'package:zephyr/page/comic_info/action/comic_info_action_entry.dart';
 import 'package:zephyr/page/comic_info/action/comic_info_action_scope.dart';
 import 'package:zephyr/page/comic_info/json/normal/normal_comic_all_info.dart';
 import 'package:zephyr/page/comic_info/models/read_entry_placement.dart';
+import 'package:zephyr/page/comic_info/widgets/comic_inline_details_surface.dart';
 import 'package:zephyr/page/comic_info/widgets/comic_info_action_rail.dart';
 import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:zephyr/page/download/models/download_chapter.dart';
@@ -39,6 +40,9 @@ import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/icons/icons.dart';
 part 'parts/comic_info_rossi_actions_part.dart';
 part 'parts/comic_info_chapter_groups_part.dart';
+part 'parts/comic_info_content_part.dart';
+part 'parts/comic_info_sections_part.dart';
+part 'parts/comic_info_inline_part.dart';
 
 enum MenuOption { export, cloudCollect, follow }
 
@@ -91,7 +95,42 @@ class ComicInfoPage extends StatelessWidget {
   }
 }
 
+/// 原位详情复用同一套加载、章节与下载状态；关闭只作用于所在展墙。
+class EmbeddedComicInfo extends StatelessWidget {
+  const EmbeddedComicInfo({
+    super.key,
+    required this.comicId,
+    required this.from,
+    required this.type,
+    required this.onClose,
+  });
+  final String comicId;
+  final String from;
+  final ComicEntryType type;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) => MultiBlocProvider(
+    providers: [
+      BlocProvider(
+        create: (_) => GetComicInfoBloc()
+          ..add(
+            GetComicInfoEvent(comicId: comicId, from: from.trim(), type: type),
+          ),
+      ),
+      BlocProvider(create: (_) => StringSelectCubit()),
+    ],
+    child: _ComicInfo(
+      comicId: comicId,
+      type: type,
+      from: from.trim(),
+      onClose: onClose,
+    ),
+  );
+}
+
 class _ComicInfo extends StatefulWidget {
+  final VoidCallback? onClose;
   final String comicId;
   final ComicEntryType type;
   final String from;
@@ -100,6 +139,7 @@ class _ComicInfo extends StatefulWidget {
   final String? collectionTargetName;
 
   const _ComicInfo({
+    this.onClose,
     required this.comicId,
     required this.type,
     required this.from,
@@ -179,6 +219,7 @@ class _ComicInfoState extends State<_ComicInfo>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    if (widget.onClose != null) return _buildInlineDetails();
     // 开启「优先云端收藏」后，页面收藏按钮与菜单项的本地/云端收藏行为互换
     final globalSetting = context.watch<GlobalSettingCubit>().state;
     final cloudFavoritePreferred = globalSetting.cloudFavoritePreferred;
@@ -188,6 +229,7 @@ class _ComicInfoState extends State<_ComicInfo>
       inlineReadEntryEnabled: globalSetting.comicInfoInlineReadButton,
     );
     final showInlineReadEntry =
+        widget.onClose != null ||
         readEntryPlacement == ComicInfoReadEntryPlacement.inlineCard;
     return Scaffold(
       appBar: AppBar(
@@ -196,14 +238,17 @@ class _ComicInfoState extends State<_ComicInfo>
           // 住在发现页的标签里时，这颗「返回」关的是**当前这条标签**。
           // context.pop() 走的是根路由：那一下弹掉的是压着详情页的那一页，
           // 在工作台里就是整个工作台。
-          onPressed: () =>
-              popTabOrClose(context, otherwise: () => context.pop()),
+          onPressed: () => actionBack(context),
         ),
         actions: [
           const SizedBox(width: 50),
           IconButton(
             icon: const GlyphIcon(AppGlyphs.home),
             onPressed: () {
+              if (widget.onClose != null) {
+                widget.onClose!();
+                return;
+              }
               final tabs = DiscoverTabScope.maybeOf(context);
               if (tabs != null) {
                 tabs.goHome();
@@ -322,10 +367,7 @@ class _ComicInfoState extends State<_ComicInfo>
                             ),
                             SizedBox(height: 10),
                             ElevatedButton(
-                              onPressed: () => popTabOrClose(
-                                context,
-                                otherwise: () => context.pop(),
-                              ),
+                              onPressed: () => actionBack(context),
                               child: Text(t.comicInfo.back),
                             ),
                           ],
@@ -450,10 +492,16 @@ class _ComicInfoState extends State<_ComicInfo>
   @override
   void actionBack(BuildContext context) =>
       // 与左上角那颗箭头**同一条**行为：住在标签里时关的是那条标签。
-      popTabOrClose(context, otherwise: () => context.pop());
+      widget.onClose != null
+      ? widget.onClose!()
+      : popTabOrClose(context, otherwise: () => context.pop());
 
   @override
   void actionHome(BuildContext context) {
+    if (widget.onClose != null) {
+      widget.onClose!();
+      return;
+    }
     final tabs = DiscoverTabScope.maybeOf(context);
     if (tabs != null) {
       tabs.goHome();
@@ -464,242 +512,6 @@ class _ComicInfoState extends State<_ComicInfo>
 
   @override
   void actionRead(BuildContext context) => _startReading(widget.type);
-
-  Widget _infoView(
-    NormalComicAllInfo normalComicAllInfo, {
-    required bool showInlineReadEntry,
-  }) {
-    final comicInfo = normalComicAllInfo.comicInfo;
-    _title = comicInfo.title;
-    final clickCoverToStartReading = context
-        .watch<GlobalSettingCubit>()
-        .state
-        .clickCoverToStartReading;
-
-    if (!_loadingComplete) {
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => setState(() => _loadingComplete = true),
-      );
-    }
-
-    // 带缓存：bloc 同实例 + 倒序开关不变时零计算，直接复用上次结果。
-    final displayEps = _resolveDisplayEps(normalComicAllInfo.eps);
-    // 下载类型进来的一定是本地记录（只含已下载章节）；在线页插件允许下载时
-    // 才显示章节下载按钮。
-    final showDownloadUi =
-        normalComicAllInfo.allowDownload || _type == ComicEntryType.download;
-    // controller 绑定（key 不变时内部早退，零成本）；漫画切换时清空折叠态。
-    _dlController.attach(
-      from: widget.from,
-      comicId: _comicId,
-      comicTitle: comicInfo.title,
-      allowDownload: showDownloadUi,
-    );
-    final comicKey = '${widget.from}:$_comicId';
-    if (_collapsedForComic != comicKey) {
-      _collapsedForComic = comicKey;
-      _collapsedGroups.clear();
-    }
-    final previewCapability = ComicPreviewCapability.fromInfo(
-      normalComicAllInfo,
-    );
-    final showPreview =
-        _type != ComicEntryType.download && previewCapability.enabled;
-
-    return BlocSelector<StringSelectCubit, String, bool>(
-      selector: (state) => state.isNotEmpty,
-      builder: (context, hasHistory) {
-        final refreshable = RefreshIndicator(
-          onRefresh: () async {
-            _type = ComicEntryType.normal;
-            _isReversed = false;
-
-            context.read<GetComicInfoBloc>().add(
-              GetComicInfoEvent(
-                comicId: _comicId,
-                from: widget.from,
-                type: _type,
-                extern: widget.extern,
-              ),
-            );
-            setState(() {
-              _loadingComplete = false;
-            });
-          },
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.only(top: 8),
-                sliver: _constrainedSliver(
-                  SliverToBoxAdapter(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ComicParticularsWidget(
-                          comicInfo: comicInfo,
-                          from: widget.from,
-                          type: _type,
-                          onCoverTap: clickCoverToStartReading
-                              ? () => _startReading(_type)
-                              : null,
-                          onContinueRead: hasHistory
-                              ? () => _startReading(_type)
-                              : null,
-                        ),
-                        _buildDivider(context),
-                        ComicOperationWidget(
-                          normalInfo: normalComicAllInfo,
-                          from: widget.from,
-                          collectionTargetId: widget.collectionTargetId,
-                          collectionTargetName: widget.collectionTargetName,
-                          comicInfo: comicInfoDyn,
-                          hasHistory: hasHistory,
-                          // 桌面端：贴上「下载」旁边的那张阅读卡片；
-                          // 触摸端为空（悬浮按钮才是它的落点）。
-                          onRead: showInlineReadEntry
-                              ? () => _startReading(widget.type)
-                              : null,
-                        ),
-                        if (comicInfo.metadata.isNotEmpty ||
-                            comicInfo.description.trim().isNotEmpty) ...[
-                          _buildDivider(context),
-                          _SectionCard(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                for (final meta in comicInfo.metadata) ...[
-                                  AllChipWidget(
-                                    comicId: comicInfo.id,
-                                    metadata: meta,
-                                    from: widget.from,
-                                  ),
-                                  const SizedBox(height: 6),
-                                ],
-                                if (comicInfo.description.trim().isNotEmpty)
-                                  _DescriptionCard(
-                                    description: comicInfo.description.let(
-                                      convertChineseForDisplay,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
-                        if (comicInfo.creator.name.trim().isNotEmpty ||
-                            comicInfo.creator.avatar.url.trim().isNotEmpty) ...[
-                          _buildDivider(context),
-                          _SectionCard(
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 460,
-                                ),
-                                child: CreatorInfoWidget(
-                                  creator: comicInfo.creator,
-                                  from: widget.from,
-                                  imageKey: comicInfo.id,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              // 章节头：标题 + 计数/倒序 badge（虚拟化列表的 header sliver）。
-              _constrainedSliver(
-                SliverToBoxAdapter(
-                  child: Column(
-                    children: [
-                      _buildDivider(context),
-                      _EpisodeHeader(
-                        title: t.comicInfo.chapterList,
-                        trailing: _EpisodeHeaderBadge(
-                          label: _chapterCountLabel(displayEps),
-                          icon: _isReversed
-                              ? AppGlyphs.arrowDown
-                              : AppGlyphs.arrowUp,
-                          onTap: _toggleOrder,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              // 章节列表：单组走扁平 Sliver，多组直接展开为多个顶层 sliver
-              // （组头 pinned + 组内容），后组吸顶时自然顶掉前组。
-              ..._buildEpisodeSlivers(
-                context: context,
-                displayEps: displayEps,
-                showDownloadUi: showDownloadUi,
-                allInfo: comicInfoDyn,
-                epsLength: normalComicAllInfo.eps.length,
-                downloadDisabledReason: normalComicAllInfo.allowDownloadReason,
-              ),
-              if (normalComicAllInfo.recommend.isNotEmpty &&
-                  _resolveRecommendItems(
-                    normalComicAllInfo.recommend,
-                  ).isNotEmpty)
-                _constrainedSliver(
-                  SliverToBoxAdapter(
-                    child: Column(
-                      children: [
-                        _buildDivider(context),
-                        _SectionCard(
-                          title: t.comicInfo.related,
-                          child: RecommendWidget(
-                            comicList: _resolveRecommendItems(
-                              normalComicAllInfo.recommend,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              if (showPreview) ...[
-                _constrainedSliver(const ComicPreviewSliver()),
-              ],
-              const SliverPadding(
-                padding: EdgeInsets.only(bottom: 180),
-                sliver: SliverToBoxAdapter(child: SizedBox.shrink()),
-              ),
-            ],
-          ),
-        );
-
-        if (!showPreview) return refreshable;
-
-        return BlocProvider(
-          key: ValueKey('preview:${widget.from}:$_comicId'),
-          create: (_) => ComicPreviewBloc(
-            comicId: _comicId,
-            from: widget.from,
-            capability: previewCapability,
-            extern: widget.extern ?? const <String, dynamic>{},
-          )..add(const LoadComicPreview()),
-          child: Builder(
-            builder: (context) => NotificationListener<ScrollNotification>(
-              onNotification: (notification) {
-                if (notification.metrics.pixels >=
-                    notification.metrics.maxScrollExtent * 0.9) {
-                  context.read<ComicPreviewBloc>().add(
-                    const LoadComicPreview(loadMore: true),
-                  );
-                }
-                return false;
-              },
-              child: refreshable,
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   Widget _constrainedSliver(Widget sliver) {
     return SliverLayoutBuilder(
@@ -852,7 +664,7 @@ class _ComicInfoState extends State<_ComicInfo>
       _logExportPath(result.export.path);
       _showExportOutcome(result, exportType: exportType);
       if (result.deleted && _type == ComicEntryType.download && mounted) {
-        context.pop();
+        actionBack(context);
       }
     } catch (e) {
       final errorMessage = e is StateError
@@ -1166,351 +978,4 @@ class _ComicInfoState extends State<_ComicInfo>
   }
 
   void _updateChapterGroups(VoidCallback update) => setState(update);
-}
-
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.child, this.title});
-
-  final String? title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (title != null) ...[
-            Text(
-              title!,
-              style: context.theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _EpisodeHeaderBadge extends StatelessWidget {
-  const _EpisodeHeaderBadge({
-    required this.label,
-    required this.icon,
-    this.onTap,
-  });
-
-  final String label;
-  final Glyph icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: context.theme.colorScheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: context.theme.colorScheme.outlineVariant.withValues(
-                alpha: 0.3,
-              ),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              GlyphIcon(
-                icon,
-                size: 18,
-                color: context.textColor.withValues(alpha: 0.75),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: context.theme.textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: context.textColor.withValues(alpha: 0.82),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DescriptionCard extends StatefulWidget {
-  const _DescriptionCard({required this.description});
-
-  final String description;
-
-  @override
-  State<_DescriptionCard> createState() => _DescriptionCardState();
-}
-
-class _DescriptionCardState extends State<_DescriptionCard> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final descriptionStyle = context.theme.textTheme.bodyMedium?.copyWith(
-      height: 1.65,
-      color: context.textColor.withValues(alpha: 0.9),
-    );
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.only(top: 8, bottom: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            t.comicInfo.description,
-            style: context.theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 10),
-          SelectionArea(
-            child: Text(
-              widget.description,
-              style: descriptionStyle,
-              maxLines: _expanded ? null : 5,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (widget.description.length > 90) ...[
-            const SizedBox(height: 10),
-            TextButton.icon(
-              onPressed: () => setState(() => _expanded = !_expanded),
-              icon: GlyphIcon(
-                _expanded ? AppGlyphs.chevronUp : AppGlyphs.chevronDown,
-              ),
-              label: Text(
-                _expanded ? t.comicInfo.collapse : t.comicInfo.expandFullText,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// 内容区水平边距：与 _ComicInfoState._constrainedSliver 同一份算法，
-/// 章节 sliver 自带 SliverLayoutBuilder，用它算出内容宽度后再选单列/网格。
-double _constrainedHorizontalPadding(double crossAxisExtent) =>
-    ((crossAxisExtent - 1120) / 2).clamp(20.0, double.infinity).toDouble();
-
-/// displayEps（已全局排序）按 groupTitle 切段，组顺序=首次出现顺序。
-/// 单组/空组时返回至多一组，调用方走现有扁平路径。
-List<ChapterGroup<Ep>> groupDisplayEps(List<dynamic> displayEps) {
-  return groupChaptersByTitle<Ep>(
-    displayEps.cast<Ep>(),
-    (ep) => resolveChapterGroupTitle(groupTitle: ep.groupTitle),
-  );
-}
-
-/// 章节列表头（标题 + 计数/倒序 badge），与 _SectionCard 的标题区同样式，
-/// 虚拟化后作为独立 sliver，列表本体是下面的 _EpisodeBoard。
-class _EpisodeHeader extends StatelessWidget {
-  const _EpisodeHeader({required this.title, this.trailing});
-
-  final String title;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.only(top: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: context.theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          if (trailing != null) ...[const SizedBox(width: 10), trailing!],
-        ],
-      ),
-    );
-  }
-}
-
-/// 分组吸顶头：组名 + 计数 + 下载本组。背景不透明，吸顶时内容从下方滑过。
-///
-/// 普通 widget（高度自适应），交给 flutter_sticky_header 的
-/// [SliverStickyHeader] 处理吸顶与顶替，不再手写 delegate 高度。
-/// 与章节内容区同一套居中（窄屏左右 20，宽屏与章节行对齐）。
-
-class _SelectionActionBar extends StatelessWidget {
-  const _SelectionActionBar({
-    required this.controller,
-    required this.isDownloadType,
-  });
-
-  final EpisodeDownloadController controller;
-  final bool isDownloadType;
-
-  @override
-  Widget build(BuildContext context) {
-    final chapters = controller.lastChapters;
-    final selected = chapters
-        .where((c) => controller.selectedIds.contains(c.id))
-        .toList();
-    final downloadable = controller.downloadableOf(selected);
-    final deletable = controller.downloadedOf(selected);
-    final allSelected =
-        chapters.isNotEmpty && selected.length >= chapters.length;
-
-    final inSelection = controller.selectionMode;
-    return Positioned(
-      bottom: 8,
-      left: 8,
-      right: 8,
-      child: IgnorePointer(
-        ignoring: !inSelection,
-        child: AnimatedSlide(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          offset: inSelection ? Offset.zero : const Offset(0, 1.0),
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 160),
-            opacity: inSelection ? 1 : 0,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 520),
-                child: Material(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  elevation: 4,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 6,
-                    ),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      reverse: true,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            visualDensity: VisualDensity.compact,
-                            tooltip: t.common.cancel,
-                            onPressed: controller.exitSelection,
-                            icon: const GlyphIcon(AppGlyphs.close),
-                          ),
-                          Text(
-                            t.bookshelf.selectedCount(
-                              count: controller.selectedIds.length,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            visualDensity: VisualDensity.compact,
-                            tooltip: allSelected
-                                ? t.bookshelf.deselectAll
-                                : t.common.selectAll,
-                            onPressed: chapters.isEmpty
-                                ? null
-                                : () {
-                                    if (allSelected) {
-                                      controller.clearSelection();
-                                    } else {
-                                      controller.selectAll(
-                                        chapters.map((c) => c.id),
-                                      );
-                                    }
-                                  },
-                            icon: GlyphIcon(
-                              allSelected
-                                  ? AppGlyphs.deselect
-                                  : AppGlyphs.selectAll,
-                            ),
-                          ),
-                          IconButton(
-                            visualDensity: VisualDensity.compact,
-                            tooltip: t.comicInfo.download,
-                            onPressed: downloadable.isEmpty
-                                ? null
-                                : () async {
-                                    await controller.downloadChapters(
-                                      context,
-                                      selected,
-                                    );
-                                  },
-                            icon: const GlyphIcon(AppGlyphs.download),
-                          ),
-                          IconButton(
-                            visualDensity: VisualDensity.compact,
-                            tooltip: t.common.delete,
-                            onPressed: deletable.isEmpty
-                                ? null
-                                : () async {
-                                    final wholeDeleted = await controller
-                                        .deleteChapters(context, selected);
-                                    if (wholeDeleted) {
-                                      controller.exitSelection();
-                                      if (isDownloadType && context.mounted) {
-                                        context.pop();
-                                      }
-                                    }
-                                  },
-                            icon: const GlyphIcon(AppGlyphs.delete),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ReadActionButton extends StatelessWidget {
-  const _ReadActionButton({required this.hasHistory, required this.onPressed});
-
-  final bool hasHistory;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return FloatingActionButton.extended(
-      // 禁用 Hero 动画：详情页从带 FAB 的页面（发现页/书架历史等）push 进来时，
-      // 路由过渡收集期新旧路由的默认 FAB tag 会撞车（全库默认 tag 共享同一对象）。
-      heroTag: null,
-      onPressed: onPressed,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      icon: GlyphIcon(
-        hasHistory ? AppGlyphs.history : AppGlyphs.book,
-        size: 18,
-      ),
-      label: Text(
-        hasHistory ? t.comicInfo.continueRead : t.comicInfo.startRead,
-      ),
-    );
-  }
 }
