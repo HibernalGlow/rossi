@@ -10,7 +10,8 @@ import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/service/reader/reader_thumbnail_service.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
-import 'package:zephyr/widgets/glass/liquid_glass.dart';
+import 'package:zephyr/widgets/common_popup.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 
 class SliderWidget extends StatefulWidget {
   final int Function()? getCurrentChapterSlotCount;
@@ -23,11 +24,7 @@ class SliderWidget extends StatefulWidget {
   /// 滑块自己 `jumpToPage` 会静默不落地（见 `didLandOnSlot`）。
   final ValueChanged<int>? onJumpToSlot;
 
-  /// 是否嵌进**别人的**玻璃面板。
-  ///
-  /// `true` 时不套自己的 [LiquidGlassSurface]，只留内容 —— 底部控制栏把
-  /// 缩略图条与进度条并成一块面板（见 `chrome/bottom.dart`）时必须这样，
-  /// 否则玻璃叠玻璃、圆角互相切。
+  /// 嵌入底部缩略图/进度组合面板时，复用父级材质和圆角。
   final bool embedded;
 
   const SliderWidget({
@@ -51,7 +48,10 @@ class _SliderWidgetState extends State<SliderWidget> {
   Timer? _overlayHideTimer; // 悬停提示的延时收起
   Timer? _jumpTimer; // 拖动防抖后提交跳页
   Timer? _comicRollingTimer; // 漫画本身是否在滚动
-  OverlayEntry? _overlayEntry; // 用于存储 OverlayEntry
+  OverlayEntry? _overlayEntry;
+  String _previewMessage = '';
+  int? _previewSlot;
+  bool _previewVisible = false;
   int? _lastHapticStep;
 
   @override
@@ -71,124 +71,163 @@ class _SliderWidgetState extends State<SliderWidget> {
       child: _SliderContents(configuration: widget, owner: this),
     );
 
-    // 已经被父级那块玻璃装着（缩略图条 + 进度条同一面板）时不再自带材质。
+    // 与缩略图同处一张面板时复用父级材质。
     if (widget.embedded) return Expanded(child: content);
 
     return Expanded(
-      // 底部控制条主体：统一玻璃材质（贴在漫画上，走最实的一档）。
-      child: LiquidGlassSurface(
-        thickness: LiquidGlassThickness.thick,
-        radius: 24,
+      // 独立进度面板使用主题的 Expressive 实色表面。
+      child: Material(
+        key: const ValueKey('reader-progress-surface'),
+        color: context.theme.colorScheme.surfaceContainerLow,
+        elevation: 3,
+        borderRadius: BorderRadius.circular(28),
+        clipBehavior: Clip.antiAlias,
         child: content,
       ),
     );
   }
 
   void _showOverlayToast(String message, {int? slotIndex}) {
-    // 移除之前的 Overlay
+    _previewMessage = message;
+    _previewSlot = slotIndex;
+    _previewVisible = true;
+    if (_overlayEntry != null) {
+      // 悬停/拖动只更新内容，保留正在进行的托盘入场和物理速度。
+      _overlayEntry!.markNeedsBuild();
+      return;
+    }
+    _overlayEntry = OverlayEntry(builder: _buildPreviewOverlay);
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _hidePreview() {
+    if (_overlayEntry == null) return;
+    _previewVisible = false;
+    _overlayEntry!.markNeedsBuild();
+  }
+
+  void _removeHiddenPreview() {
+    if (_previewVisible || !mounted) return;
     _overlayEntry?.remove();
+    _overlayEntry?.dispose();
+    _overlayEntry = null;
+  }
 
+  Widget _buildPreviewOverlay(BuildContext overlayContext) {
     final coordinator = ReaderSessionCoordinator.instance;
-    final hasThumbnail = slotIndex != null && coordinator.hasActiveSession;
-
-    // 创建新的 OverlayEntry
-    _overlayEntry = OverlayEntry(
-      builder: (context) {
-        if (hasThumbnail) {
-          final docs = coordinator.docs;
-          final doc = slotIndex < docs.length ? docs[slotIndex] : null;
-
-          return Positioned(
-            bottom: 84.0 + context.bottomSafeHeight,
-            left: 0,
-            right: 0,
-            child: Center(
-              // 缩略图预览窗走统一玻璃材质；primary 描边是「当前页」的
-              // 功能性高亮，画在玻璃表面保留。
-              child: LiquidGlassSurface(
-                thickness: LiquidGlassThickness.thick,
-                radius: 12,
-                child: Container(
-                  width: 104,
-                  height: 148,
+    final slot = _previewSlot;
+    final thumbnail = slot != null && coordinator.hasActiveSession;
+    final size = thumbnail ? const Size(104, 148) : const Size(280, 128);
+    final overlayBox =
+        Overlay.of(context).context.findRenderObject()! as RenderBox;
+    final sourceBox = context.findRenderObject()! as RenderBox;
+    final source = overlayBox.globalToLocal(
+      sourceBox.localToGlobal(sourceBox.size.center(Offset.zero)),
+    );
+    final bottom = 84.0 + overlayContext.bottomSafeHeight;
+    final previewOrigin = Offset(
+      (overlayBox.size.width - size.width) / 2,
+      overlayBox.size.height - bottom - size.height,
+    );
+    final setting = context.read<GlobalSettingCubit>().state;
+    final reduced =
+        setting.readSetting.noAnimation ||
+        setting.eInkSetting.enabled ||
+        MediaQuery.disableAnimationsOf(context);
+    final doc = thumbnail && slot < coordinator.docs.length
+        ? coordinator.docs[slot]
+        : null;
+    return Positioned(
+      bottom: bottom,
+      left: 0,
+      right: 0,
+      child: IgnorePointer(
+        child: Center(
+          child: MediaQuery(
+            data: MediaQuery.of(
+              overlayContext,
+            ).copyWith(disableAnimations: reduced),
+            child: CommonPopupOverlayMotion(
+              size: size,
+              anchor: Rect.fromCenter(
+                center: source - previewOrigin,
+                width: 48,
+                height: 24,
+              ),
+              visible: _previewVisible,
+              onDismissed: _removeHiddenPreview,
+              child: Material(
+                color: overlayContext.theme.colorScheme.surfaceContainerHigh,
+                elevation: 3,
+                borderRadius: BorderRadius.circular(24),
+                clipBehavior: Clip.antiAlias,
+                child: Padding(
                   padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: context.theme.colorScheme.primary.withValues(
-                        alpha: 0.6,
-                      ),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: ReaderThumbnailWidget(
-                            index: slotIndex,
-                            doc: doc,
-                            localSource: coordinator.localSource,
-                            comicId: coordinator.comicId ?? '',
-                            from: coordinator.from ?? '',
-                            fit: BoxFit.cover,
+                  child: thumbnail
+                      ? Column(
+                          children: [
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(18),
+                                child: ReaderThumbnailWidget(
+                                  index: slot,
+                                  doc: doc,
+                                  localSource: coordinator.localSource,
+                                  comicId: coordinator.comicId ?? '',
+                                  from: coordinator.from ?? '',
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _previewMessage.startsWith('#') ||
+                                      _previewMessage.contains('章')
+                                  ? _previewMessage
+                                  : '第 $_previewMessage 页',
+                              style: overlayContext.theme.textTheme.labelSmall
+                                  ?.copyWith(
+                                    color: overlayContext
+                                        .theme
+                                        .colorScheme
+                                        .primary,
+                                    fontFeatures: const [
+                                      FontFeature.tabularFigures(),
+                                    ],
+                                  ),
+                            ),
+                          ],
+                        )
+                      : Center(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              child: Text(
+                                _previewMessage,
+                                style: TextStyle(
+                                  fontSize:
+                                      int.tryParse(_previewMessage) != null
+                                      ? 60
+                                      : 34,
+                                  color: overlayContext
+                                      .theme
+                                      .colorScheme
+                                      .onSurface,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        message.startsWith('#') || message.contains('章')
-                            ? message
-                            : '第 $message 页',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: context.theme.colorScheme.primary,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
             ),
-          );
-        }
-
-        final isNumeric = int.tryParse(message) != null;
-        final fontSize = isNumeric ? 60.0 : 34.0;
-        return Stack(
-          children: [
-            Center(
-              // 跳页大字提示：深色漫画上要压得住白字，走最实的一档。
-              child: LiquidGlassSurface(
-                thickness: LiquidGlassThickness.thick,
-                radius: 10,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 48.0,
-                    vertical: 24.0,
-                  ),
-                  child: RichText(
-                    text: TextSpan(
-                      text: message,
-                      style: TextStyle(
-                        fontSize: fontSize,
-                        color: context.textColor.withValues(alpha: 0.8),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
+          ),
+        ),
+      ),
     );
-
-    // 插入 Overlay
-    Overlay.of(context).insert(_overlayEntry!);
   }
 }
 
@@ -256,15 +295,16 @@ class _SliderContents extends StatelessWidget {
     }
 
     // 从右到左阅读时反转滑杆：起始页落在右侧，拖动方向与翻页方向一致。
-    return SliderTheme(
+    final track = SliderTheme(
       data: SliderTheme.of(context).copyWith(
-        trackHeight: 6,
-        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+        trackHeight: 16,
+        thumbShape: const HandleThumbShape(),
+        thumbSize: const WidgetStatePropertyAll(Size(4, 36)),
+        trackShape: const GappedSliderTrackShape(),
+        trackGap: 6,
         overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
         activeTrackColor: context.theme.colorScheme.primary,
-        inactiveTrackColor: context.theme.colorScheme.primary.withValues(
-          alpha: 0.22,
-        ),
+        inactiveTrackColor: context.theme.colorScheme.secondaryContainer,
         thumbColor: context.theme.colorScheme.primary,
         overlayColor: context.theme.colorScheme.primary.withValues(alpha: 0.16),
         showValueIndicator: ShowValueIndicator.never,
@@ -300,15 +340,13 @@ class _SliderContents extends StatelessWidget {
               owner._overlayHideTimer = Timer(
                 const Duration(milliseconds: 1400),
                 () {
-                  owner._overlayEntry?.remove();
-                  owner._overlayEntry = null;
+                  owner._hidePreview();
                 },
               );
             },
             onExit: (_) {
               owner._overlayHideTimer?.cancel();
-              owner._overlayEntry?.remove();
-              owner._overlayEntry = null;
+              owner._hidePreview();
             },
             // 镜像轨道与命中：Slider 自己认 Directionality（轨道从哪头填、拖拽
             // 坐标怎么换算都在内部反好），所以这里只换方向，不动 value。
@@ -380,8 +418,7 @@ class _SliderContents extends StatelessWidget {
                         () {
                           cubit.updateSliderRolling(false);
                           cubit.updateIsComicRolling(false);
-                          owner._overlayEntry?.remove();
-                          owner._overlayEntry = null;
+                          owner._hidePreview();
                         },
                       );
                     },
@@ -395,6 +432,32 @@ class _SliderContents extends StatelessWidget {
           );
         },
       ),
+    );
+    return Row(
+      children: [
+        Expanded(child: track),
+        const SizedBox(width: 8),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 100),
+          child: Container(
+            key: const ValueKey('reader-progress-count'),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: context.theme.colorScheme.secondaryContainer,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '$sliderLabelText / $currentChapterSlotCount',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.theme.textTheme.labelMedium?.copyWith(
+                color: context.theme.colorScheme.onSecondaryContainer,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

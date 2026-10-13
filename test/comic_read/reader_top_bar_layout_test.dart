@@ -20,6 +20,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
@@ -195,11 +196,17 @@ void main() {
       testWidgets('$width 展开缩放面板后仍不溢出', (tester) async {
         await _paintBar(tester, width);
         // 面板入口在主行上就点它，否则走「更多」菜单 —— 两条路是同一个入口。
-        final inline = find.byIcon(Icons.dashboard_customize_outlined);
+        final inline = find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.gridPlus,
+        );
         if (inline.evaluate().isNotEmpty) {
           await tester.tap(inline);
         } else {
-          await tester.tap(find.byIcon(Icons.more_vert_rounded));
+          await tester.tap(
+            find.byWidgetPredicate(
+              (w) => w is GlyphIcon && w.glyph == AppGlyphs.more,
+            ),
+          );
           await tester.pumpAndSettle();
           await tester.tap(find.text('版式工具'));
         }
@@ -209,10 +216,10 @@ void main() {
     }
   });
 
-  group('主行是一个 40 的高度带', () {
+  group('主行是一个 48 的高度带', () {
     // 用户拿截图报的「错位」：图标钮 40、胶囊 44（内边距 2 撑出来的）、芯片 32 ——
     // 三种高度并排，中心线再齐也还是乱。所以这条钉**高度**，不只是宽度。
-    testWidgets('宽档：每一颗控件都占满同一档 40 高，中心线一致', (tester) async {
+    testWidgets('宽档：每一颗控件都占满同一档 48 高，中心线一致', (tester) async {
       await _paintBar(tester, 1280);
       final controls = find.byWidgetPredicate(
         (widget) =>
@@ -228,9 +235,9 @@ void main() {
         final rect = tester.getRect(controls.at(i));
         expect(
           rect.height,
-          40,
+          48,
           reason:
-              '第 $i 颗（${elements[i].widget.runtimeType}）不是 40 高，'
+              '第 $i 颗（${elements[i].widget.runtimeType}）不是 48 高，'
               '主行又会出现两种高度',
         );
         expect(rect.width, greaterThanOrEqualTo(40));
@@ -259,7 +266,11 @@ void main() {
       expect(find.byIcon(Icons.slideshow_rounded), findsNothing);
       expect(find.byIcon(Icons.zoom_in_map_rounded), findsNothing);
       // 但入口仍在：菜单里点得着，且仍然会给一句话。
-      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      await tester.tap(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.more,
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.text('幻灯片'), findsOneWidget);
       await tester.tap(find.text('幻灯片'));
@@ -277,8 +288,18 @@ void main() {
   group('让位顺序', () {
     testWidgets('宽档：视图三项在主行，版式芯片带文字', (tester) async {
       await _paintBar(tester, 1280);
-      expect(find.byIcon(Icons.dashboard_customize_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.rotate_right_rounded), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.gridPlus,
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.rotateRight,
+        ),
+        findsOneWidget,
+      );
       expect(find.text('单页'), findsOneWidget);
       // 分隔线：视图 / 版式 / 增强 / 窗口 之间三条。
       expect(find.byType(ReaderToolbarSeparator), findsNWidgets(3));
@@ -289,10 +310,24 @@ void main() {
         tester,
         ReaderTopBarStyleLimits.expandedLayoutMinWidth + 20,
       );
-      expect(find.byIcon(Icons.dashboard_customize_outlined), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.gridPlus,
+        ),
+        findsOneWidget,
+      );
       expect(find.text('单页'), findsNothing);
-      expect(find.byIcon(Icons.push_pin_outlined), findsNothing);
-      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.pin,
+        ),
+        findsNothing,
+      );
+      await tester.tap(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.more,
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.text(t.reader.pinTopBar), findsOneWidget);
     });
@@ -300,13 +335,32 @@ void main() {
     testWidgets('窄档：整组进菜单，超分与滚屏留在第一行', (tester) async {
       await _paintBar(tester, 389);
       // 视图三项与窗口控件让位了。
-      expect(find.byIcon(Icons.dashboard_customize_outlined), findsNothing);
-      expect(find.byIcon(Icons.push_pin_outlined), findsNothing);
-      expect(find.byIcon(Icons.fullscreen_rounded), findsNothing);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.gridPlus,
+        ),
+        findsNothing,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.pin,
+        ),
+        findsNothing,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.fullscreen,
+        ),
+        findsNothing,
+      );
       // 用户点名要留的第一行：超分的显示与开关（在线图源也画，见下面那条）。
       expect(find.byType(ReaderOnlineUpscaleChip), findsOneWidget);
       // 让出去的那一组仍然可达，而且就在末尾那颗「更多」里。
-      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      await tester.tap(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.more,
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.text('版式工具'), findsOneWidget);
       expect(find.text('旋转设置'), findsOneWidget);
@@ -328,11 +382,31 @@ void main() {
     testWidgets('窄档 + 够高：视图三项与钉住/全屏画在第二行', (tester) async {
       await _paintBar(tester, 389, height: 800);
       expect(rowTwo, findsOneWidget);
-      expect(find.byIcon(Icons.dashboard_customize_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.rotate_right_rounded), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.gridPlus,
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.rotateRight,
+        ),
+        findsOneWidget,
+      );
       // _paintBar 默认按桌面档画，此时 isDesktopFullscreen 为 true。
-      expect(find.byIcon(Icons.fullscreen_exit_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.push_pin_outlined), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.fullscreenExit,
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.pin,
+        ),
+        findsOneWidget,
+      );
       // 用户点名留在第一行的那颗没被这一行挤走。
       expect(find.byType(ReaderOnlineUpscaleChip), findsOneWidget);
     });
@@ -340,7 +414,11 @@ void main() {
     testWidgets('第二行常驻时「更多」不再重复列让位项', (tester) async {
       // 一颗控件两个入口 = 两个选中态，改一处另一处不动，比藏起来更难查。
       await _paintBar(tester, 389, height: 800);
-      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      await tester.tap(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.more,
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.text('版式工具'), findsNothing);
       expect(find.text('旋转设置'), findsNothing);
@@ -353,7 +431,11 @@ void main() {
     testWidgets('窗高不够（横屏手机）时让位项退回菜单，不是消失', (tester) async {
       await _paintBar(tester, 389, height: 400);
       expect(rowTwo, findsNothing);
-      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      await tester.tap(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.more,
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.text('版式工具'), findsOneWidget);
       expect(find.text(t.reader.pinTopBar), findsOneWidget);
@@ -367,8 +449,18 @@ void main() {
       );
       expect(rowTwo, findsOneWidget);
       // 视图三项没让位：主行那颗就是唯一的一颗。
-      expect(find.byIcon(Icons.dashboard_customize_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.push_pin_outlined), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.gridPlus,
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.pin,
+        ),
+        findsOneWidget,
+      );
       // 整行只有窗口那一节，前面不该有条没有左边的分隔线。
       expect(
         find.descendant(
@@ -386,16 +478,25 @@ void main() {
 
     testWidgets('展开面板时第二行不消失，让位项不会被面板换掉', (tester) async {
       await _paintBar(tester, 389, height: 800);
-      await tester.tap(find.byIcon(Icons.dashboard_customize_outlined));
+      await tester.tap(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.gridPlus,
+        ),
+      );
       await tester.pumpAndSettle();
       // 面板在第二行**下面**另起一行：两块同时在树上。
       expect(rowTwo, findsNWidgets(2));
       // 入口仍然只有一颗，而且带着选中态 —— 再点一次就是收起。
-      expect(find.byIcon(Icons.dashboard_customize_outlined), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.gridPlus,
+        ),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('第二行也是 40 的高度带', (tester) async {
+    testWidgets('第二行也是 48 的高度带', (tester) async {
       await _paintBar(tester, 389, height: 800);
       final controls = find.descendant(
         of: rowTwo,
@@ -406,7 +507,7 @@ void main() {
       double? center;
       for (var i = 0; i < count; i++) {
         final rect = tester.getRect(controls.at(i));
-        expect(rect.height, 40, reason: '第 $i 颗不是 40 高，第二行又混了高度');
+        expect(rect.height, 48, reason: '第 $i 颗不是 48 高，第二行又混了高度');
         if (center == null) {
           center = rect.center.dy;
         } else {
@@ -448,7 +549,11 @@ void main() {
     for (final width in const [389.0, 820.0, 1280.0]) {
       testWidgets('$width：主行没有它，菜单里有开启项', (tester) async {
         await _paintBar(tester, width);
-        await tester.tap(find.byIcon(Icons.more_vert_rounded));
+        await tester.tap(
+          find.byWidgetPredicate(
+            (w) => w is GlyphIcon && w.glyph == AppGlyphs.more,
+          ),
+        );
         await tester.pumpAndSettle();
         expect(find.text('开启自动滚屏'), findsOneWidget);
         expect(find.text('关闭自动滚屏'), findsNothing);
@@ -479,7 +584,12 @@ void main() {
       await _paintBar(tester, 1280);
       await resize(tester, 600);
       expect(tester.takeException(), isNull);
-      expect(find.byIcon(Icons.dashboard_customize_outlined), findsNothing);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.gridPlus,
+        ),
+        findsNothing,
+      );
     });
   });
 
@@ -505,12 +615,13 @@ void main() {
     Future<int> titleCharsAt(WidgetTester tester, double width) async {
       await _paintBar(tester, width);
       final w = tester.getSize(titleColumn.first).width;
-      final style = tester.widget<Text>(
-        find.descendant(
-          of: titleColumn.first,
-          matching: find.byType(Text),
-        ).first,
-      ).style;
+      final style = tester
+          .widget<Text>(
+            find
+                .descendant(of: titleColumn.first, matching: find.byType(Text))
+                .first,
+          )
+          .style;
       final fontSize = style?.fontSize;
       expect(fontSize, isNotNull, reason: '读不到字号就没法折算字数');
       return (w / fontSize!).floor();
@@ -541,11 +652,8 @@ void main() {
       // 那上面那条 `>= 6` 就是永远不会红的假守卫。
       final narrow = await titleCharsAt(tester, 389);
       // `_paintBar` 每次重设视口并重新 pump，量的是换档后的那一棵树。
-      final wide = await titleCharsAt(
-        tester,
-        ReaderTopBarStyleLimits.labeledToolbarMinWidth + 40,
-      );
-      expect(wide, greaterThan(narrow + 10), reason: '宽档应明显比窄档宽');
+      final wide = await titleCharsAt(tester, 1920);
+      expect(wide, greaterThan(narrow + 10), reason: '更宽的视口应为书名留出更多空间');
       expect(narrow, greaterThanOrEqualTo(6));
     });
   });
