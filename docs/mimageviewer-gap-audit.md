@@ -100,7 +100,7 @@ Rossi 要的是「阅读器」。所以下面每条候选的价值由
 | **G-02** | 归档转换缓存：转换产物的 SQLite 索引（SHA-256 key），命中即免转换 | `src/archive_cache.rs`（824） | 无 | 无（`rusqlite`/`sha2` 已在） | **A**（随 G-01） |
 | **G-03** | **crash-safe 文件操作事务层**：把移动/复制拆成幂等的 forward/rollback 步骤，每步从路径（复制场景再加 SHA-256）**自证状态** | `src/book_fs_journal.rs`（1253） | 无 | 无（纯 `std` + `serde` + `sha2`，**实测零 Windows API**） | **A** |
 | G-04 | IO 信号量与索引优先级（保索引不抢前台 IO） | `src/io_semaphore.rs`（488） | 无 | 无（`std`） | C |
-| G-05 | 图片后处理滤镜链（`post_filter.rs`） | `src/post_filter.rs`（2100） | 无 | 待核 | C |
+| G-05 | 图片后处理滤镜链（`post_filter.rs`） | `src/post_filter.rs`（2100） | **已采纳（ADR-0024，2026-10-14）**：只取阅读语境那 11 项滤镜，算法以这份为参考正本 | 待核 | **A**（原 C） |
 
 > **G-01 是当前最刺眼的一条**：`file-manager-parity.md` 已明写「双击返回 7z/LZH/PDF 路径
 > **不代表** Reader 已能读取它们」；`lib/reader/page_source.dart:152` 更是把 7z / PDF
@@ -124,7 +124,7 @@ Rossi 要的是「阅读器」。所以下面每条候选的价值由
 | G-21 | 显示后处理（边距适配 / 裁边 / 形状适配 / 最终合成 / 3×3 显示矩阵） | `margin_fit.rs`（653）+ `view_trim.rs`（709）+ `shape_fit.rs`（1502）+ `final_composite.rs`（396）+ `displayed_image_transform.rs`（3035） | 部分：`rotation.rs` 已取 `inverse_uv`/`forward_uv`；其余无 | C |
 | G-22 | GPU 侧：Lanczos 重采样 / VRAM 预算 / GPU 信息 | `gpu_lanczos.rs`（3270）+ `vram_budget.rs`（342）+ `gpu_info.rs`（654） | 无（Rossi 用 `fast_image_resize` 走 CPU 侧） | C |
 | G-23 | 元数据读写（XMP / PNG prompt / EXIF / sidecar） | `xmp_writer.rs`（2069）+ `xmp_reader.rs`（1761）+ `png_metadata.rs`(3443) + `exif_reader.rs`（1538）+ `sidecar.rs`（3551）+ `sidecar_import.rs`(2711) + `save_with_metadata.rs`(1622) + `metadata_transfer.rs`（9942） | 无 | C（图库/编辑语境，见 §6） |
-| G-24 | 编辑与标注（补正 / 遮罩 / 擦除 / 矢量编辑 / 裁切导出 / LUT / 上色） | `adjustment*.rs`、`mask_db.rs`（3252）、`conceal*.rs`、`vector_edit.rs`（1597）、`export_crop.rs`（1791）、`creative_lut.rs`（1139）、`colorize.rs`（1842）… | 无 | **排除**（见 §6），此处只登记体量 |
+| G-24 | 编辑与标注（补正 / 遮罩 / 擦除 / 矢量编辑 / 裁切导出 / LUT / 上色） | `adjustment*.rs`、`mask_db.rs`（3252）、`conceal*.rs`、`vector_edit.rs`（1597）、`export_crop.rs`（1791）、`creative_lut.rs`（1139）、`colorize.rs`（1842）… | **部分推翻（ADR-0024，2026-10-14）**：**局部调整层已采纳**（走 `crates/local-adjust-core`，不搬 `mask_db.rs`）、**基础滤镜已采纳**（G-05）。擦除/克隆/矢量编辑/裁切导出/LUT/上色**仍排除** | B（原 §6 排除） |
 
 **G-12 的引擎选择（2026-09-19 实测，两条路并列，不替用户拍板）**
 
@@ -204,7 +204,7 @@ G-03（`book_fs_journal.rs`，crash-safe 的 forward/rollback 自证）是**另�
 | PDF | `pdf_loader.rs`（6722） | 需要 `pdfium`（B4）。Rossi 现状是「`folder_tree::is_pdf_extension` 认识它、Reader 打不开它」——**要做得先过依赖边界这一关**，不是纯移植 |
 | 360° 全景 | `panorama.rs`（1859）+ `panorama_wgpu.rs`（1033） | 与漫画阅读无关；WGSL 渲染在 Flutter 侧无落脚点 |
 | 重复检测 / 相似图 / 颜色搜索 | `dupe/`（2945）+ `similar_*.rs` + `color_search.rs`（699） | 需要索引层（B4） |
-| 编辑与标注全家桶 | `mask_db.rs`、`conceal*.rs`、`vector_edit.rs`、`export_crop.rs`、`creative_lut.rs`、`ui_erase.rs`… | Rossi 是**阅读器**不是编辑器；且会拖进 `ort`（B4） |
+| 编辑与标注全家桶 | `mask_db.rs`、`conceal*.rs`、`vector_edit.rs`、`export_crop.rs`、`creative_lut.rs`、`ui_erase.rs`… | Rossi 是**阅读器**不是编辑器；且会拖进 `ort`（B4）<br>**⚠ 2026-10-14 部分推翻（ADR-0024）**：放行的只有「局部调整层 + 阅读语境的 11 项滤镜 + 1× 降噪阶段」，落点是**显示期的非破坏式处理链**，不写回原图。本行其余部分（擦除/克隆/矢量编辑/**裁切导出**/LUT/上色/undo-redo）**继续排除** —— 清单里第 3、5、8 项用户明确不做 |
 | AI 上色 | `colorize.rs`（1842） | ADR-0008 冻结线外 |
 | 音乐视图 / 音频分析 / VST3 宿主 | `crates/music-core`、`crates/vst3-host`、`ui_music_*.rs` | 超出定位（B5） |
 | Web Remote（三进程 + HLS 转码） | `crates/remote-web`、`src/remote_ipc/`（34 977） | 需 `ffmpeg`（B4） |

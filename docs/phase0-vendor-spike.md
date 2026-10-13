@@ -101,11 +101,18 @@
 | **`unrar-patched`** | 7 | **0** |
 | `music-core` | 6 | 0 |
 | `susie-worker` / `remote-ipc` / `remote-web` / `launcher` | 5 / 4 / 13 / 3 | 0 |
-| `local-adjust-core` | 2 | 2 |
+| `local-adjust-core` | 2 | ~~2~~ **0**（2026-10-14 实测更正） |
 | `comic-core` | 7 | 3 |
 | `vst3-host-tester` | 5 | 1 |
 
 → **`unrar-patched` 完全干净**，这就是「CBR 能力直接复用它的实现、而不是重写」的依据（ADR-0011 第 6 条）。
+
+> **2026-10-14 更正**：本表 `local-adjust-core` 那一行的「碰 egui = 2」是**假阳性** ——
+> 实测该 crate 只有两个文件（`src/lib.rs` 24351 行、`src/mask_codec.rs` 754 行），
+> `egui` 一词各出现 **1 次**，而 `Cargo.toml` 的依赖只有 `base64 / flate2 / rayon / serde`
+> （源码里的 `use` 只有 `std` + `rayon` + `serde`）。**它是一个真正无 UI 耦合的独立核心**，
+> 这也是 ADR-0024 把「局部调整层」判为最适合独立接入的那一项的依据。
+> 下一个人别再按原来那行绕开它。
 
 ## 2. spike 2：`[patch.crates-io]` 不跨 workspace 传递，而且**不报错**
 
