@@ -23,9 +23,12 @@ import 'package:flutter/foundation.dart' show ValueListenable, listEquals;
 import 'package:flutter/rendering.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/widgets/navigation/navigation_context.dart';
 import 'package:zephyr/widgets/navigation/navigation_shape.dart';
 import 'package:zephyr/widgets/navigation/spring_curve.dart';
+
+part 'navigation/popup_layout.dart';
 
 typedef PopupAnchorResolver = Rect? Function();
 
@@ -37,7 +40,7 @@ typedef PopupAnchorResolver = Rect? Function();
 /// 返回 `Future` 的函数可以当 `VoidCallback` 用。
 typedef PopupOpen<T> = Future<T?> Function({Offset offset});
 
-enum PopupPlacement { overAnchorEnd, belowPoint }
+enum PopupPlacement { overAnchorEnd, belowPoint, center }
 
 const _screenMargin = 16.0;
 
@@ -192,6 +195,7 @@ class PopupFormScope extends InheritedWidget {
 
 class CommonPopupRoute<T> extends PopupRoute<T> {
   CommonPopupRoute({
+    super.settings,
     required this.builder,
     required this.anchorOf,
     required this.barrierLabel,
@@ -202,6 +206,7 @@ class CommonPopupRoute<T> extends PopupRoute<T> {
     this.modal = true,
     this.avoid,
     this.fullscreen = false,
+    this.scrimColor,
   }) : super(requestFocus: modal ? null : false);
 
   final WidgetBuilder builder;
@@ -241,17 +246,26 @@ class CommonPopupRoute<T> extends PopupRoute<T> {
   @override
   final String? barrierLabel;
 
+  final Color? scrimColor;
+
   @override
-  Color? get barrierColor => null;
+  Color? get barrierColor => scrimColor;
 
   @override
   bool get barrierDismissible => true;
 
-  @override
-  Duration get transitionDuration => _openDuration;
+  bool get _reduceMotion =>
+      eInkInstantRoutes ||
+      (navigator != null &&
+          (MediaQuery.maybeDisableAnimationsOf(navigator!.context) ?? false));
 
   @override
-  Duration get reverseTransitionDuration => _closeDuration;
+  Duration get transitionDuration =>
+      !_reduceMotion ? _openDuration : Duration.zero;
+
+  @override
+  Duration get reverseTransitionDuration =>
+      !_reduceMotion ? _closeDuration : Duration.zero;
 
   late final CurvedAnimation _grow = CurvedAnimation(
     parent: animation!,
@@ -335,6 +349,8 @@ class CommonPopupRoute<T> extends PopupRoute<T> {
     Widget child,
   ) {
     final colorScheme = context.colorScheme;
+    final reduced =
+        eInkInstantRoutes || MediaQuery.disableAnimationsOf(context);
     return Stack(
       children: [
         Positioned.fill(child: _buildDismissLayer()),
@@ -348,21 +364,23 @@ class CommonPopupRoute<T> extends PopupRoute<T> {
               avoid: avoid,
               fullscreen: fullscreen,
             ),
-            child: _PopupMorph(
-              anchor: anchor,
-              animation: animation,
-              grow: _grow,
-              moveX: _moveX,
-              moveY: _moveY,
-              content: _content,
-              unfolded: _unfolded,
-              endRadius: fullscreen ? _fullscreenRadius : _cardRadius,
-              sourceColor: sourceColor,
-              sourceImage: sourceImage,
-              surfaceColor: colorScheme.surfaceContainer,
-              shadows: _cardShadows(colorScheme),
-              child: child,
-            ),
+            child: reduced
+                ? child
+                : _PopupMorph(
+                    anchor: anchor,
+                    animation: animation,
+                    grow: _grow,
+                    moveX: _moveX,
+                    moveY: _moveY,
+                    content: _content,
+                    unfolded: _unfolded,
+                    endRadius: fullscreen ? _fullscreenRadius : _cardRadius,
+                    sourceColor: sourceColor,
+                    sourceImage: sourceImage,
+                    surfaceColor: colorScheme.surfaceContainer,
+                    shadows: _cardShadows(colorScheme),
+                    child: child,
+                  ),
           ),
           child: NotificationListener<_PopupUnfoldNotification>(
             onNotification: (_) {
@@ -724,156 +742,6 @@ class _RenderPopupMorph extends RenderProxyBox {
     return Matrix4.translationValues(rect.center.dx, rect.center.dy, 0)
       ..scaleByDouble(scale, scale, 1, 1)
       ..translateByDouble(-size.width / 2, -size.height / 2, 0, 1);
-  }
-}
-
-class _PopupAnchorTracker extends StatefulWidget {
-  const _PopupAnchorTracker({
-    required this.anchorOf,
-    required this.builder,
-    required this.child,
-  });
-
-  final PopupAnchorResolver anchorOf;
-  final Widget Function(Rect anchor, EdgeInsets safeInsets, Widget child)
-  builder;
-  final Widget child;
-
-  @override
-  State<_PopupAnchorTracker> createState() => _PopupAnchorTrackerState();
-}
-
-class _PopupAnchorTrackerState extends State<_PopupAnchorTracker> {
-  Rect? _anchor;
-  bool _syncScheduled = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _scheduleSync();
-  }
-
-  void _scheduleSync() {
-    if (_syncScheduled) {
-      return;
-    }
-    _syncScheduled = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _syncScheduled = false;
-      if (!mounted) {
-        return;
-      }
-      final anchor = widget.anchorOf();
-      if (anchor == null || anchor == _anchor) {
-        return;
-      }
-      setState(() {
-        _anchor = anchor;
-      });
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    final anchor = _anchor ??= widget.anchorOf() ?? Rect.zero;
-    // padding already gives up the part of the bottom inset the keyboard
-    // covers, so the sum keeps clear of the taller of the two.
-    return widget.builder(
-      anchor,
-      mediaQuery.padding + mediaQuery.viewInsets,
-      widget.child,
-    );
-  }
-}
-
-class _PopupLayoutDelegate extends SingleChildLayoutDelegate {
-  const _PopupLayoutDelegate({
-    required this.anchor,
-    required this.safeInsets,
-    required this.placement,
-    this.avoid,
-    this.fullscreen = false,
-  });
-
-  final Rect anchor;
-  final EdgeInsets safeInsets;
-  final PopupPlacement placement;
-  final Rect? avoid;
-  final bool fullscreen;
-
-  /// 全屏形态不吃安全区：那一份留给内容自己（外壳里的 `SafeArea`），
-  /// 因为安全区在整屏上是「内容的内边距」，不是「弹层的外边距」。
-  EdgeInsets get _insets => fullscreen
-      ? EdgeInsets.zero
-      : safeInsets + const EdgeInsets.all(_screenMargin);
-
-  @override
-  Size getSize(BoxConstraints constraints) => constraints.biggest;
-
-  @override
-  BoxConstraints getConstraintsForChild(BoxConstraints constraints) {
-    if (fullscreen) {
-      return BoxConstraints.tight(constraints.biggest);
-    }
-    final insets = _insets;
-    return BoxConstraints.loose(
-      Size(
-        math.max(0.0, constraints.maxWidth - insets.horizontal),
-        math.max(0.0, constraints.maxHeight - insets.vertical),
-      ),
-    );
-  }
-
-  @override
-  Offset getPositionForChild(Size size, Size childSize) {
-    if (fullscreen) {
-      return Offset.zero;
-    }
-    final insets = _insets;
-    final maxX = size.width - insets.right - childSize.width;
-    final maxY = size.height - insets.bottom - childSize.height;
-    final (x, y) = switch (placement) {
-      PopupPlacement.overAnchorEnd => (
-        anchor.right - childSize.width,
-        anchor.top - _anchorOverlap,
-      ),
-      PopupPlacement.belowPoint => (
-        anchor.left,
-        _yBelowPoint(childSize.height, insets.top, maxY),
-      ),
-    };
-    return Offset(
-      x.clamp(insets.left, math.max(insets.left, maxX)),
-      y.clamp(insets.top, math.max(insets.top, maxY)),
-    );
-  }
-
-  double _yBelowPoint(double height, double minY, double maxY) {
-    final avoid = this.avoid;
-    if (avoid != null) {
-      final above = avoid.top - _avoidGap - height;
-      if (above >= minY) {
-        return above;
-      }
-      final below = avoid.bottom + _avoidGap;
-      if (below <= maxY) {
-        return below;
-      }
-    }
-    if (anchor.bottom > maxY && anchor.top - height >= minY) {
-      return anchor.top - height;
-    }
-    return anchor.bottom;
-  }
-
-  @override
-  bool shouldRelayout(_PopupLayoutDelegate oldDelegate) {
-    return oldDelegate.anchor != anchor ||
-        oldDelegate.safeInsets != safeInsets ||
-        oldDelegate.placement != placement ||
-        oldDelegate.avoid != avoid ||
-        oldDelegate.fullscreen != fullscreen;
   }
 }
 

@@ -499,6 +499,33 @@ class Translations$settings$zh_CN {
 
 	// Translations
 
+	/// zh-CN: '让 Rossi 更合你的习惯'
+	String get overviewSubtitle => '让 Rossi 更合你的习惯';
+
+	/// zh-CN: '搜索设置分类'
+	String get searchCategories => '搜索设置分类';
+
+	/// zh-CN: '没有匹配的分类，请尝试其他关键词'
+	String get noMatchingCategories => '没有匹配的分类，请尝试其他关键词';
+
+	/// zh-CN: '外观与反馈'
+	String get personalizationGroup => '外观与反馈';
+
+	/// zh-CN: '阅读与画面'
+	String get readingGroup => '阅读与画面';
+
+	/// zh-CN: '文件、书架与数据'
+	String get libraryGroup => '文件、书架与数据';
+
+	/// zh-CN: '应用与操作'
+	String get applicationGroup => '应用与操作';
+
+	/// zh-CN: '窗口'
+	String get windowGroup => '窗口';
+
+	/// zh-CN: '同步服务 · 云端备份'
+	String get syncDestinationsSubtitle => '同步服务 · 云端备份';
+
 	/// zh-CN: '设置'
 	String get title => '设置';
 
@@ -6791,6 +6818,15 @@ extension on Translations {
 			'navigation.workspace' => '工作台',
 			'navigation.openLocalComic' => '打开本地漫画',
 			'navigation.gpuPresent' => 'GPU 上屏',
+			'settings.overviewSubtitle' => '让 Rossi 更合你的习惯',
+			'settings.searchCategories' => '搜索设置分类',
+			'settings.noMatchingCategories' => '没有匹配的分类，请尝试其他关键词',
+			'settings.personalizationGroup' => '外观与反馈',
+			'settings.readingGroup' => '阅读与画面',
+			'settings.libraryGroup' => '文件、书架与数据',
+			'settings.applicationGroup' => '应用与操作',
+			'settings.windowGroup' => '窗口',
+			'settings.syncDestinationsSubtitle' => '同步服务 · 云端备份',
 			'settings.title' => '设置',
 			'settings.globalTitle' => '设置',
 			'settings.appearance' => '外观与显示',
@@ -7167,6 +7203,8 @@ extension on Translations {
 			'settings.colorPreviewVariableFont' => 'Variable Font 测试',
 			'settings.colorPreviewFontLoaded' => ({required Object path}) => '已加载: ${path}',
 			'settings.colorPreviewNoFont' => '还没加载字体，先试推荐样本或者手动选一个 TTF/OTF 文件。',
+			_ => null,
+		} ?? switch (path) {
 			'settings.colorPreviewLoadRecommended' => '加载推荐样本',
 			'settings.colorPreviewSelectFont' => '选择字体文件',
 			'settings.colorPreviewByWeight' => '按 fontWeight 渲染',
@@ -7176,8 +7214,6 @@ extension on Translations {
 			'settings.colorPreviewLoadSuccess' => '加载成功，可以直接对比不同字重。',
 			'settings.colorPreviewLoadFailed' => ({required Object error}) => '加载失败: ${error}',
 			'settings.colorRed' => '红色',
-			_ => null,
-		} ?? switch (path) {
 			'settings.colorPink' => '粉色',
 			'settings.colorPurple' => '紫色',
 			'settings.colorDeepPurple' => '深紫色',
@@ -7681,6 +7717,8 @@ extension on Translations {
 			'reader.readingDirectionToggleLeftOpen' => '当前左开（下一页在左）· 点按切换为右开',
 			'reader.readingDirectionToggleRightOpen' => '当前右开（下一页在右）· 点按切换为左开',
 			'reader.readingDirectionToggleDisabled' => '条漫模式没有左右翻页方向',
+			_ => null,
+		} ?? switch (path) {
 			'reader.readingDirectionToggleSetting' => '顶栏显示阅读方向切换',
 			'reader.swipePreview' => '翻页预览',
 			'reader.swipePreviewSubtitle' => '翻页时两侧直接显示画面，不再先用大字页码占位（每页多解一张视口宽度的位图）',
@@ -7690,8 +7728,6 @@ extension on Translations {
 			'reader.doublePageSeamlessSubtitle' => '左右各占一半宽度，按图片比例独立显示并消除中间留白',
 			'reader.doublePageLeadingBlank' => '首页留白',
 			'reader.doublePageLeadingBlankSubtitle' => '在每章最前插入一页空白，使配对整体错一位',
-			_ => null,
-		} ?? switch (path) {
 			'reader.splitLandscapePages' => '横长页左右分割',
 			'reader.splitLandscapePagesSubtitle' => '自动将跨页横长图切分为左右两半阅读',
 			'reader.landscapeSplitDirection' => '分割阅读顺序',
@@ -8195,6 +8231,8 @@ extension on Translations {
 			'realSr.coremlStatusFailed' => ({required Object error}) => '失败: ${error}',
 			'realSr.coremlModelOption' => '模型选项（降噪级别）',
 			'realSr.coremlGeneralOption' => '通用选项（放大倍率）',
+			_ => null,
+		} ?? switch (path) {
 			'realSr.coremlTileInfo' => '分块信息',
 			'about.title' => '关于应用',
 			'about.version' => ({required Object version}) => '版本号: ${version}',
@@ -8204,8 +8242,6 @@ extension on Translations {
 			'about.projectAddress' => '项目地址',
 			'about.projectAddressDesc' => '喜欢这个项目吗？点个star支持一下吧！',
 			'about.projectLink' => '前往 GitHub 仓库 (deretame/Breeze) ⭐',
-			_ => null,
-		} ?? switch (path) {
 			'about.contact' => '联系方式',
 			'about.contactDesc' => '有任何想法或问题，欢迎来找我聊聊~',
 			'about.feedback' => '反馈与建议',
@@ -8709,6 +8745,8 @@ extension on Translations {
 			'bindingEditor.topCenter' => '中上',
 			'bindingEditor.topRight' => '右上',
 			'bindingEditor.middleLeft' => '左中',
+			_ => null,
+		} ?? switch (path) {
 			'bindingEditor.middleCenter' => '中心',
 			'bindingEditor.middleRight' => '右中',
 			'bindingEditor.bottomLeft' => '左下',
@@ -8718,8 +8756,6 @@ extension on Translations {
 			'bindingEditor.mouse' => '鼠标',
 			'bindingEditor.mouseGesture' => '鼠标轨迹',
 			'bindingEditor.wheel' => '滚轮',
-			_ => null,
-		} ?? switch (path) {
 			'bindingEditor.touch' => '触控',
 			'bindingEditor.gamepad' => '手柄',
 			'bindingEditor.radial' => '轮盘',

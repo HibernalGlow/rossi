@@ -8,7 +8,7 @@ library;
 
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,10 +17,12 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_entry.dart';
 import 'package:zephyr/page/setting/common/setting_entry_list.dart';
 import 'package:zephyr/page/setting/global/app_behavior_setting_page.dart';
+import 'package:zephyr/workspace/model/workspace_startup.dart';
 
 /// 页面上声明过的全部 id（含被平台条件挡掉的那几条）。
 const _declaredIds = <String>[
   'behavior.splashPage',
+  'behavior.workspaceSleepCoveredUi',
   'behavior.skipUpdateCheck',
   'behavior.desktopCloseBehavior',
   'behavior.androidKeepAlive',
@@ -40,7 +42,10 @@ const _declaredIds = <String>[
 
 /// 只有这一页会因平台条件缺席的行。桌面测试机上 16 条里少这两条，
 /// 不是漏登记 —— 所以期望值要按同样的条件筛一遍。
-const _androidOnlyIds = <String>['behavior.androidKeepAlive', 'behavior.backPressExit'];
+const _androidOnlyIds = <String>[
+  'behavior.androidKeepAlive',
+  'behavior.backPressExit',
+];
 
 /// 未登记 id 的行，只允许是这两种装饰行：章节标题、尾部留白。
 /// 别的类型冒出来就是有人新加了一行没给 id。
@@ -55,7 +60,9 @@ List<Widget> _unregisteredRows(List<Widget> children) {
 }
 
 List<Widget> _childrenOfPage(WidgetTester tester) {
-  return tester.widget<SettingEntryList>(find.byType(SettingEntryList)).children;
+  return tester
+      .widget<SettingEntryList>(find.byType(SettingEntryList))
+      .children;
 }
 
 Future<void> _pumpPage(WidgetTester tester) async {
@@ -84,9 +91,16 @@ void main() {
     );
 
     final ids = settingEntryIds(children);
-    final expected = Platform.isAndroid
-        ? _declaredIds
-        : _declaredIds.where((id) => !_androidOnlyIds.contains(id)).toList();
+    final workspaceAvailable = workspaceAvailableOnDevice(
+      tester.element(find.byType(SettingEntryList)),
+    );
+    final expected = _declaredIds
+        .where(
+          (id) =>
+              (Platform.isAndroid || !_androidOnlyIds.contains(id)) &&
+              (workspaceAvailable || id != 'behavior.workspaceSleepCoveredUi'),
+        )
+        .toList();
     expect(ids, expected, reason: '登记的 id 应与这一页真正渲染出来的行一一对应');
     expect(ids.toSet().length, ids.length, reason: 'id 撞了的话定位只会跳到先出现的那一行');
   });
@@ -136,12 +150,19 @@ void main() {
     await _pumpPage(tester);
     final splashRow = find.byKey(const SettingEntryKey('behavior.splashPage'));
     final before = tester.getRect(splashRow);
-    expect(find.byKey(const SettingEntryKey('behavior.searchHistoryGroupBySource')), findsNothing);
+    expect(
+      find.byKey(const SettingEntryKey('behavior.searchHistoryGroupBySource')),
+      findsNothing,
+    );
 
     settingFocusRequest.value = 'behavior.definitelyNotARow';
     await tester.pumpAndSettle(const Duration(milliseconds: 300));
 
-    expect(settingFocusRequest.value, 'behavior.definitelyNotARow', reason: '别人的请求要留着');
+    expect(
+      settingFocusRequest.value,
+      'behavior.definitelyNotARow',
+      reason: '别人的请求要留着',
+    );
     expect(tester.getRect(splashRow), before);
   });
 }

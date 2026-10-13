@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/router/router.gr.dart';
+import 'package:zephyr/page/setting/common/setting_route.dart';
 import 'package:zephyr/workspace/router/workspace_back_interception.dart';
 import 'package:zephyr/workspace/router/workspace_route_guard.dart';
 
@@ -51,23 +52,74 @@ class AppRouter extends RootStackRouter with WorkspaceBackInterceptor {
     AutoRoute(page: PluginCommentsScaffoldRoute.page),
     AutoRoute(page: ComicReadRoute.page),
     AutoRoute(page: WebViewRoute.page),
-    AutoRoute(page: GlobalSettingRoute.page),
-    AutoRoute(page: AppearanceSettingRoute.page),
-    AutoRoute(page: ToastSettingRoute.page),
-    AutoRoute(page: NotifySettingRoute.page),
-    AutoRoute(page: WorkspaceLayoutSettingRoute.page),
-    AutoRoute(page: FileManagerSettingRoute.page),
-    AutoRoute(page: ContentNetworkSettingRoute.page),
-    AutoRoute(page: FavoriteArtistSettingRoute.page),
-    AutoRoute(page: FavoriteTagSettingRoute.page),
-    AutoRoute(page: SyncSettingRoute.page),
-    AutoRoute(page: AppBehaviorSettingRoute.page),
-    AutoRoute(page: EInkSettingRoute.page),
-    AutoRoute(page: StorageSettingRoute.page),
-    AutoRoute(page: DebugSettingRoute.page),
-    AutoRoute(page: ThemeColorRoute.page),
-    AutoRoute(page: WebDavSyncRoute.page),
-    AutoRoute(page: ShowColorRoute.page),
+    CustomRoute(
+      page: GlobalSettingRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
+      page: AppearanceSettingRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
+      page: ToastSettingRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
+      page: NotifySettingRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
+      page: WorkspaceLayoutSettingRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
+      page: FileManagerSettingRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
+      page: ContentNetworkSettingRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
+      page: FavoriteArtistSettingRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
+      page: FavoriteTagSettingRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
+      page: SyncSettingRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
+      page: AppBehaviorSettingRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
+      page: EInkSettingRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
+      page: StorageSettingRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
+      page: DebugSettingRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
+      page: ThemeColorRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
+      page: WebDavSyncRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
+      page: ShowColorRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
     AutoRoute(page: AboutRoute.page),
     AutoRoute(page: FullRouteImageRoute.page),
     AutoRoute(page: ChangelogRoute.page),
@@ -82,12 +134,30 @@ class AppRouter extends RootStackRouter with WorkspaceBackInterceptor {
     AutoRoute(page: OldRankingRoute.page),
     AutoRoute(page: MoreRoute.page),
     AutoRoute(page: QjsRuntimeDebugRoute.page),
-    AutoRoute(page: CacheSettingRoute.page),
-    AutoRoute(page: RealSrSettingRoute.page),
-    AutoRoute(page: OcrSettingRoute.page),
-    AutoRoute(page: BookshelfSettingRoute.page),
-    AutoRoute(page: OperationBindingSettingRoute.page),
-    AutoRoute(page: DataBackupRoute.page),
+    CustomRoute(
+      page: CacheSettingRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
+      page: RealSrSettingRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
+      page: OcrSettingRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
+      page: BookshelfSettingRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
+      page: OperationBindingSettingRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
+      page: DataBackupRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
     AutoRoute(page: ComicFollowRoute.page),
   ];
 
