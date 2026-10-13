@@ -203,9 +203,7 @@ class _SummaryBar extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: GlyphIcon(
-              unread > 0
-                  ? AppGlyphs.bell
-                  : AppGlyphs.bell,
+              unread > 0 ? AppGlyphs.bell : AppGlyphs.bell,
               size: 20,
               color: unread > 0 ? scheme.onPrimary : scheme.onSurfaceVariant,
             ),
@@ -540,20 +538,6 @@ class _FollowCard extends StatelessWidget {
         if (hasUnreadUpdate) ...[
           const SizedBox(width: 8),
           _UnreadPill(count: unreadChapterCount),
-        ] else if (follow.hasUpdate && follow.detectedChapterCount > 0) ...[
-          // 已读完最新：小圆点表示“刚更新过”，不抢视觉。
-          const SizedBox(width: 8),
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
         ],
       ],
     );
@@ -673,9 +657,7 @@ class _FollowCard extends StatelessWidget {
     return Row(
       children: [
         GlyphIcon(
-          hasUnreadUpdate
-              ? AppGlyphs.sparkle
-              : AppGlyphs.checkCircle,
+          hasUnreadUpdate ? AppGlyphs.sparkle : AppGlyphs.checkCircle,
           size: 14,
           color: hasUnreadUpdate ? scheme.primary : scheme.outline,
         ),
@@ -880,7 +862,11 @@ class _RetryChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            GlyphIcon(AppGlyphs.refresh, size: 13, color: scheme.onErrorContainer),
+            GlyphIcon(
+              AppGlyphs.refresh,
+              size: 13,
+              color: scheme.onErrorContainer,
+            ),
             const SizedBox(width: 2),
             Text(
               t.comicFollow.retry,

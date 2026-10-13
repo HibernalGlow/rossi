@@ -4,6 +4,7 @@ import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
 import 'package:zephyr/service/notify/notify_topic.dart';
+import 'package:zephyr/page/comic_info/method/chapter_group.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/toast.dart';
 
@@ -84,9 +85,17 @@ class ComicFollowService {
             : eps.reduce(
                 (left, right) => left.order >= right.order ? left : right,
               );
+        final latestGroup = latest == null
+            ? ''
+            : resolveChapterGroupTitle(groupTitle: latest.groupTitle);
         return ComicFollowDetection(
           chapterCount: eps.length,
-          latestChapterTitle: latest?.name ?? '',
+          latestChapterTitle: latest == null
+              ? ''
+              : chapterQualifiedName(
+                  name: latest.name,
+                  groupTitle: latestGroup,
+                ),
         );
       } catch (e, s) {
         logger.w(

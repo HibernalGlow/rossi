@@ -67,9 +67,7 @@ class _ImageDisplayState extends State<ImageDisplay> {
       _onImageReplaced,
     );
     _resolveImageMeta();
-    _startEinkDelayIfNeeded(
-      context.read<GlobalSettingCubit>().state.readSetting,
-    );
+    _startEinkDelayIfNeeded(context.readEffectiveReadSetting());
   }
 
   @override
@@ -91,9 +89,7 @@ class _ImageDisplayState extends State<ImageDisplay> {
       return;
     }
 
-    _startEinkDelayIfNeeded(
-      context.read<GlobalSettingCubit>().state.readSetting,
-    );
+    _startEinkDelayIfNeeded(context.readEffectiveReadSetting());
   }
 
   void _startEinkDelayIfNeeded(ReadSettingState readSetting) {
@@ -202,9 +198,7 @@ class _ImageDisplayState extends State<ImageDisplay> {
 
   @override
   Widget build(BuildContext context) {
-    final readSetting = context.select(
-      (GlobalSettingCubit c) => c.state.readSetting,
-    );
+    final readSetting = context.watchEffectiveReadSetting();
     final showStaticPlaceholder = context.select(
       (GlobalSettingCubit c) => c.state.eInkSetting.shouldRemoveLoadingSpinner,
     );

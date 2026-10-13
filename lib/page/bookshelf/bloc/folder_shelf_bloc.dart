@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 
 import 'package:bloc/bloc.dart';
 import 'package:zephyr/i18n/strings.g.dart';
-import 'package:equatable/equatable.dart';
 import 'package:worker_manager/worker_manager.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/widgets/comic_entry/models/models.dart';
@@ -17,237 +16,11 @@ import 'package:zephyr/page/bookshelf/service/comic_link_service.dart';
 import 'package:zephyr/util/rust_loader.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/util/worker_isolate.dart';
+import 'package:zephyr/page/bookshelf/bloc/folder_shelf_event.dart';
+import 'package:zephyr/page/bookshelf/bloc/folder_shelf_state.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_info.dart';
-
-const String kFolderShelfRootPath = '';
-
-class FolderShelfState extends Equatable {
-  const FolderShelfState({
-    required this.mode,
-    this.currentPath = kFolderShelfRootPath,
-    this.folders = const <ComicFolder>[],
-    this.comics = const <ComicSimplifyEntryInfo>[],
-    this.comicSearchTexts = const <String, String>{},
-    this.unreadComicKeys = const <String>{},
-    this.search,
-    this.isLoading = false,
-    this.error,
-    this.sortAscending = false,
-    this.selectionMode = false,
-    this.selectedFolderPaths = const <String>{},
-    this.selectedComicKeys = const <String>{},
-  });
-
-  final ShelfPageMode mode;
-  final String currentPath;
-  final List<ComicFolder> folders;
-  final List<ComicSimplifyEntryInfo> comics;
-  final Map<String, String> comicSearchTexts;
-
-  /// 「已下载但未读」的漫画键（`'from:comicId'`）。
-  ///
-  /// 只在下载书架模式下计算，其余模式恒为空集：那里每一本都有下载记录，
-  /// 「未读」就等价于「没有任何阅读记录」，语义与这个键集的名字一致。
-  final Set<String> unreadComicKeys;
-  final SearchStatusState? search;
-  final bool isLoading;
-  final String? error;
-  final bool sortAscending;
-  final bool selectionMode;
-  final Set<String> selectedFolderPaths;
-  final Set<String> selectedComicKeys;
-
-  bool get isRoot => currentPath == kFolderShelfRootPath;
-
-  bool get hasSelection =>
-      selectedFolderPaths.isNotEmpty || selectedComicKeys.isNotEmpty;
-
-  int get selectedCount =>
-      selectedFolderPaths.length + selectedComicKeys.length;
-
-  String get breadcrumbTitle {
-    if (currentPath.isEmpty) {
-      return _modeLabel(mode);
-    }
-    final parts = currentPath.split('/')..removeWhere((e) => e.isEmpty);
-    return '${_modeLabel(mode)} > ${parts.join(' > ')}';
-  }
-
-  FolderShelfState copyWith({
-    ShelfPageMode? mode,
-    String? currentPath,
-    List<ComicFolder>? folders,
-    List<ComicSimplifyEntryInfo>? comics,
-    Map<String, String>? comicSearchTexts,
-    Set<String>? unreadComicKeys,
-    SearchStatusState? search,
-    bool? isLoading,
-    String? error,
-    bool? sortAscending,
-    bool? selectionMode,
-    Set<String>? selectedFolderPaths,
-    Set<String>? selectedComicKeys,
-  }) {
-    return FolderShelfState(
-      mode: mode ?? this.mode,
-      currentPath: currentPath ?? this.currentPath,
-      folders: folders ?? this.folders,
-      comics: comics ?? this.comics,
-      comicSearchTexts: comicSearchTexts ?? this.comicSearchTexts,
-      unreadComicKeys: unreadComicKeys ?? this.unreadComicKeys,
-      search: search ?? this.search,
-      isLoading: isLoading ?? this.isLoading,
-      error: error,
-      sortAscending: sortAscending ?? this.sortAscending,
-      selectionMode: selectionMode ?? this.selectionMode,
-      selectedFolderPaths: selectedFolderPaths ?? this.selectedFolderPaths,
-      selectedComicKeys: selectedComicKeys ?? this.selectedComicKeys,
-    );
-  }
-
-  @override
-  List<Object?> get props => [
-    mode,
-    currentPath,
-    folders,
-    comics,
-    comicSearchTexts,
-    unreadComicKeys,
-    search,
-    isLoading,
-    error,
-    sortAscending,
-    selectionMode,
-    selectedFolderPaths,
-    selectedComicKeys,
-  ];
-
-  static String _modeLabel(ShelfPageMode mode) {
-    return switch (mode) {
-      ShelfPageMode.favorite => t.bookshelf.favorite,
-      ShelfPageMode.history => t.bookshelf.history,
-      ShelfPageMode.download => t.bookshelf.download,
-    };
-  }
-}
-
-sealed class FolderShelfEvent extends Equatable {
-  const FolderShelfEvent();
-
-  @override
-  List<Object?> get props => [];
-}
-
-class FolderShelfLoadRequested extends FolderShelfEvent {
-  const FolderShelfLoadRequested({this.search});
-
-  final SearchStatusState? search;
-
-  @override
-  List<Object?> get props => [search];
-}
-
-class FolderShelfEnterFolder extends FolderShelfEvent {
-  const FolderShelfEnterFolder(this.path);
-
-  final String path;
-
-  @override
-  List<Object?> get props => [path];
-}
-
-class FolderShelfGoBack extends FolderShelfEvent {
-  const FolderShelfGoBack();
-}
-
-class FolderShelfGoHome extends FolderShelfEvent {
-  const FolderShelfGoHome();
-}
-
-class FolderShelfToggleSort extends FolderShelfEvent {
-  const FolderShelfToggleSort();
-}
-
-class FolderShelfCreateFolder extends FolderShelfEvent {
-  const FolderShelfCreateFolder(this.name);
-
-  final String name;
-
-  @override
-  List<Object?> get props => [name];
-}
-
-class FolderShelfDeleteFolder extends FolderShelfEvent {
-  const FolderShelfDeleteFolder(this.path);
-
-  final String path;
-
-  @override
-  List<Object?> get props => [path];
-}
-
-class FolderShelfRenameFolder extends FolderShelfEvent {
-  const FolderShelfRenameFolder(this.path, this.newName);
-
-  final String path;
-  final String newName;
-
-  @override
-  List<Object?> get props => [path, newName];
-}
-
-class FolderShelfEnterSelectionMode extends FolderShelfEvent {
-  const FolderShelfEnterSelectionMode();
-}
-
-class FolderShelfExitSelectionMode extends FolderShelfEvent {
-  const FolderShelfExitSelectionMode();
-}
-
-class FolderShelfToggleFolderSelection extends FolderShelfEvent {
-  const FolderShelfToggleFolderSelection(this.path);
-
-  final String path;
-
-  @override
-  List<Object?> get props => [path];
-}
-
-class FolderShelfToggleComicSelection extends FolderShelfEvent {
-  const FolderShelfToggleComicSelection(this.comicUniqueKey);
-
-  final String comicUniqueKey;
-
-  @override
-  List<Object?> get props => [comicUniqueKey];
-}
-
-class FolderShelfSelectAll extends FolderShelfEvent {
-  const FolderShelfSelectAll();
-}
-
-class FolderShelfMoveSelected extends FolderShelfEvent {
-  const FolderShelfMoveSelected(this.targetPaths, {this.sourceFolderPaths});
-
-  final Set<String> targetPaths;
-  final Set<String>? sourceFolderPaths;
-
-  @override
-  List<Object?> get props => [targetPaths, sourceFolderPaths];
-}
-
-class FolderShelfCopySelected extends FolderShelfEvent {
-  const FolderShelfCopySelected(this.targetPaths);
-
-  final Set<String> targetPaths;
-
-  @override
-  List<Object?> get props => [targetPaths];
-}
-
-class FolderShelfDeleteSelected extends FolderShelfEvent {
-  const FolderShelfDeleteSelected();
-}
+export 'folder_shelf_event.dart';
+export 'folder_shelf_state.dart';
 
 class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
   FolderShelfBloc({required ShelfPageMode mode})
@@ -335,7 +108,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
     Emitter<FolderShelfState> emit,
   ) async {
     if (_isHistoryMode) return;
-    emit(state.copyWith(currentPath: event.path));
+    emit(state.copyWith(currentPath: event.path, error: null));
     add(const FolderShelfLoadRequested());
   }
 
@@ -348,7 +121,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
     final parentPath = lastIndex <= 0
         ? kFolderShelfRootPath
         : state.currentPath.substring(0, lastIndex);
-    emit(state.copyWith(currentPath: parentPath));
+    emit(state.copyWith(currentPath: parentPath, error: null));
     add(const FolderShelfLoadRequested());
   }
 
@@ -357,7 +130,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
     Emitter<FolderShelfState> emit,
   ) async {
     if (state.isRoot) return;
-    emit(state.copyWith(currentPath: kFolderShelfRootPath));
+    emit(state.copyWith(currentPath: kFolderShelfRootPath, error: null));
     add(const FolderShelfLoadRequested());
   }
 
@@ -365,7 +138,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
     FolderShelfToggleSort event,
     Emitter<FolderShelfState> emit,
   ) async {
-    emit(state.copyWith(sortAscending: !state.sortAscending));
+    emit(state.copyWith(sortAscending: !state.sortAscending, error: null));
     add(const FolderShelfLoadRequested());
   }
 
@@ -417,7 +190,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
     FolderShelfEnterSelectionMode event,
     Emitter<FolderShelfState> emit,
   ) async {
-    emit(state.copyWith(selectionMode: true));
+    emit(state.copyWith(selectionMode: true, error: null));
   }
 
   Future<void> _onExitSelectionMode(
@@ -429,6 +202,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
         selectionMode: false,
         selectedFolderPaths: const <String>{},
         selectedComicKeys: const <String>{},
+        error: null,
       ),
     );
   }
@@ -444,7 +218,13 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
     } else {
       selected.add(event.path);
     }
-    emit(state.copyWith(selectionMode: true, selectedFolderPaths: selected));
+    emit(
+      state.copyWith(
+        selectionMode: true,
+        selectedFolderPaths: selected,
+        error: null,
+      ),
+    );
   }
 
   Future<void> _onToggleComicSelection(
@@ -457,7 +237,13 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
     } else {
       selected.add(event.comicUniqueKey);
     }
-    emit(state.copyWith(selectionMode: true, selectedComicKeys: selected));
+    emit(
+      state.copyWith(
+        selectionMode: true,
+        selectedComicKeys: selected,
+        error: null,
+      ),
+    );
   }
 
   Future<void> _onSelectAll(
@@ -483,6 +269,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
         selectionMode: true,
         selectedFolderPaths: allFolders,
         selectedComicKeys: allComics,
+        error: null,
       ),
     );
   }

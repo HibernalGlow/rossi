@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -15,10 +18,41 @@ env:
     secrets.BREEZE_PLUGIN_GITHUB_TOKEN || github.token }}
 
 jobs:
+  # secrets 上下文在 job 层 if 中不可用（该层只认 github/vars/needs 等），
+  # 所以先用一个轻量 job 在 step 内检测 secret，再经 needs 输出给下游 job 做 if 判断
+  check-android-secret:
+    runs-on: ubuntu-latest
+    outputs:
+      has_key: ${{ steps.check.outputs.has_key }}
+    steps:
+      - name: 检查 GIT_CRYPT_KEY 是否存在
+        id: check
+        env:
+          GIT_CRYPT_KEY: ${{ secrets.GIT_CRYPT_KEY }}
+        run: |
+          if [ -z "$GIT_CRYPT_KEY" ]; then
+            echo "has_key=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_key=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Fork 仓库 / Fork PR 拿不到 secrets，直接提示跳过原因，避免 UI 上只有一排灰色 Skipped 让人困惑
+  android-skip-notice:
+    runs-on: ubuntu-latest
+    needs: check-android-secret
+    if: ${{ needs.check-android-secret.outputs.has_key != 'true' }}
+    steps:
+      - name: 提示跳过 Android 构建
+        run: |
+          echo "跳过 Android 构建：未检测到 GIT_CRYPT_KEY（Fork 仓库推送 / Fork PR 无此 secret），其他平台正常构建。"
+
   # ══════════════════════════════════════════
   # 1. Android 构建
   # ══════════════════════════════════════════
   build-android:
+    # 需要 git-crypt 解密签名文件，无 GIT_CRYPT_KEY（Fork 仓库推送 / Fork PR）时直接跳过整个 job
+    needs: check-android-secret
+    if: ${{ needs.check-android-secret.outputs.has_key == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -47,16 +81,6 @@ jobs:
         env:
           GIT_CRYPT_KEY: ${{ secrets.GIT_CRYPT_KEY }}
         run: |
-          # release 的 keyAlias/keyPassword/storeFile/storePassword 全在 android/key.properties 里，
-          # 而它在本仓是 git-crypt 密文（头 10 字节 \0GITCRYPT\0）；没有 GIT_CRYPT_KEY 就签不出 release 包。
-          # 没有钥匙时明确降级为 debug 构建（debug 用 SDK 自带 debug keystore，不需要钥匙），
-          # 并把 flavor 写进产物名 —— 绝不拿 debug 包冒充正式包。
-          if [ -z "$GIT_CRYPT_KEY" ]; then
-            echo "::warning::未配置 GIT_CRYPT_KEY，本次安卓改出 debug 签名包（不可用于覆盖升级正式版）"
-            echo "android_flavor=debug" >> "$GITHUB_OUTPUT"
-            echo "ANDROID_FLAVOR=debug" >> "$GITHUB_ENV"
-            exit 0
-          fi
           sudo apt-get update && sudo apt-get install -y git-crypt
           echo "$GIT_CRYPT_KEY" | base64 -d > ./git-crypt-key
           git-crypt unlock ./git-crypt-key && rm ./git-crypt-key

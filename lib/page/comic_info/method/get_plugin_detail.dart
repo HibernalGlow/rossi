@@ -50,6 +50,7 @@ class UnifiedComicChapterRef {
     this.requestId = '',
     this.storageChapterId = '',
     this.logicalKey = '',
+    this.groupTitle = '',
     this.extern = const <String, dynamic>{},
   });
 
@@ -59,6 +60,7 @@ class UnifiedComicChapterRef {
   final String requestId;
   final String storageChapterId;
   final String logicalKey;
+  final String groupTitle;
   final Map<String, dynamic> extern;
 }
 
@@ -169,6 +171,7 @@ List<UnifiedComicChapterRef> resolveUnifiedComicChapters(
           requestId: ep.requestId.trim(),
           storageChapterId: ep.storageChapterId.trim(),
           logicalKey: ep.logicalKey.trim(),
+          groupTitle: ep.groupTitle.trim(),
           extern: extern,
         );
       }).toList(),
@@ -209,6 +212,7 @@ List<UnifiedComicChapterRef> resolveUnifiedComicChapters(
         requestId: rawRequestId.isNotEmpty ? rawRequestId : rawTaskChapterId,
         storageChapterId: storageChapterId,
         logicalKey: rawLogicalKey,
+        groupTitle: ep['groupTitle']?.toString().trim() ?? '',
         extern: asJsonMap(ep['extern']),
       );
     }).toList();

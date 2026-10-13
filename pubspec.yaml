@@ -35,7 +35,7 @@ dependencies:
   flutter_animate: ^4.5.2 # UI: 链式动画
   flutter_colorpicker: ^1.1.0 # UI: 颜色选择器
   flutter_speed_dial: ^7.0.0 # UI: 速拨 FAB
-  easy_refresh: ^3.4.0 # UI: 下拉刷新
+  easy_refresh: ^4.0.0 # UI: 下拉刷新
   scrollview_observer: ^1.26.3 # UI: 滚动监听
   material_ui: ^1.0.1 # UI: Flutter 官方 Material 组件
   material_new_shapes: ^1.0.0 # UI: Expressive 形状目录与连续路径变形
@@ -93,7 +93,6 @@ dependencies:
   logger: ^2.5.0 # 工具: 日志输出
   stack_trace: ^1.12.0 # 工具: 堆栈处理
   collection: ^1.18.0 # 工具: 集合扩展
-  equatable: ^2.0.3 # 工具: 值相等比较
   stream_transform: ^2.1.1 # 工具: Stream 变换
   intl: ^0.20.2 # 国际化: 文案与格式化
   code_assets: ^2.0.0 # FFI: hooks/build.dart 使用的目标平台配置类型
@@ -101,7 +100,7 @@ dependencies:
   hooks: ^2.1.0 # FFI: Dart 构建钩子
   flutter_rust_bridge: 2.12.0 # FFI: Flutter-Rust 桥接
   ffi: ^2.2.0 # FFI: Dart 原生互操作
-  sentry_flutter: ^10.0.0-alpha.5 # 监控: 崩溃与异常上报
+  sentry_flutter: ^10.0.0 # 监控: 崩溃与异常上报
   vm_service: ^15.0.2 # 监控: 运行时内存监控
   worker_manager: ^7.2.9 # 并发: 全局 Isolate 任务池管理
   coreml_upscale: # MacOS/iOS 超分
@@ -110,6 +109,7 @@ dependencies:
   # 触摸拖拽在 acceptsDrops:false 的组里纯抢手势，上游无此开关，故走本地副本。
   plat:
     path: vendor/plat
+  flutter_sticky_header: ^0.8.0 # UI: 分组吸顶组头
 
 dev_dependencies:
   # 测试与规范

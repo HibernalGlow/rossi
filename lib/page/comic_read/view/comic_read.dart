@@ -204,6 +204,7 @@ class _ComicReadPageState extends State<_ComicReadPage>
   final TransformationController _transformationController =
       TransformationController();
   StreamSubscription<bool>? _volumeKeyPageTurnSubscription;
+  StreamSubscription<dynamic>? _perComicVolumeKeySubscription;
   StreamSubscription<ReaderState>? _einkRefreshSubscription;
   int _einkLastSlot = -1;
   int _einkTurnCount = 0;
@@ -282,6 +283,7 @@ class _ComicReadPageState extends State<_ComicReadPage>
     if (readerKeyDispatch != null) {
       ReaderInputBridge.instance.detach(readerKeyDispatch);
     }
+    _perComicVolumeKeySubscription?.cancel();
     _einkRefreshSubscription?.cancel();
     _inputController.dispose();
     _bookNavigation?.dispose();

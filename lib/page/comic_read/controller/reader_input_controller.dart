@@ -7,8 +7,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_read/controller/reader_action_controller.dart';
 import 'package:zephyr/page/comic_read/controller/reader_action_dispatcher.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
@@ -440,9 +440,7 @@ class ReaderInputController {
       event,
       actionController,
       reverseHorizontal: context
-          .read<GlobalSettingCubit>()
-          .state
-          .readSetting
+          .readEffectiveReadSetting()
           .reverseHorizontalPageTurn,
     );
     return handled ? KeyEventResult.handled : KeyEventResult.ignored;
@@ -471,7 +469,7 @@ class ReaderInputController {
     }
     _tap = null;
 
-    final readSetting = context.read<GlobalSettingCubit>().state.readSetting;
+    final readSetting = context.readEffectiveReadSetting();
     // 落点与尺码都取这次点击**自己**那一对（[ReaderTapSample]）：前者相对接收手势的
     // 那个盒子，后者是那个盒子量出来的尺寸。它们同一个坐标系，分区才分得对；
     // 换成 `details.globalPosition`（窗口坐标）会让分区整体平移「泳道左边缘」
@@ -498,7 +496,7 @@ class ReaderInputController {
     if (!context.mounted) return;
     _tap = null;
     if (_runtimeBindings != null && _pointerBindings.claimed) return;
-    final readSetting = context.read<GlobalSettingCubit>().state.readSetting;
+    final readSetting = context.readEffectiveReadSetting();
     if (readSetting.doubleTapZoom) {
       _onDoubleTapZoom();
       return;
