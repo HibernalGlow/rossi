@@ -2,10 +2,11 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/workspace/model/history_insights.dart';
+import 'package:zephyr/workspace/widgets/insights/insight_components.dart';
 
 /// 洞察卡片共用的**历史样本窗口**（neoview 里每张卡各自 `listRecent(0, 500)` 的同位物）。
 ///
-/// 四张卡读的是同一份数据、同一套三态（在加载 / 出错 / 一条都没有），
+/// 洞察卡读的是同一份数据、同一套三态（在加载 / 出错 / 一条都没有），
 /// 所以这三态只在这里处理一次：卡片拿到的永远是**非空**事件列表，只管画。
 ///
 /// 窗口有界不是省时间那么简单：洞察问的是「最近在读什么」，
@@ -159,7 +160,7 @@ class _HistoryInsightsWindowState extends State<HistoryInsightsWindow> {
   }
 }
 
-/// 一根柱：高度按 `value / maxValue` 归一，**最低留 4%**（与 neoview 一样），
+/// 一根柱：零值不画柱，有记录的高度按比例归一，最低留 4%。
 /// 否则「读过但只有 1 次」的那根会彻底看不见，图上就少了事实。
 ///
 /// 只在**有界高度**里用（`SizedBox(height: …)` 或 `Expanded` 的定高槽位）：
@@ -173,17 +174,20 @@ class InsightBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: FractionallySizedBox(
-        widthFactor: 1,
-        heightFactor: ratio.clamp(0.04, 1.0),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: highlighted
-                ? theme.colorScheme.primary
-                : theme.colorScheme.primary.withValues(alpha: 0.7),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
+    return InsightSpringValue(
+      value: ratio <= 0 ? 0 : ratio.clamp(0.04, 1),
+      builder: (value) => Align(
+        alignment: Alignment.bottomCenter,
+        child: FractionallySizedBox(
+          widthFactor: 1,
+          heightFactor: value,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: highlighted
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.primary.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         ),
       ),

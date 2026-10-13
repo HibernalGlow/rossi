@@ -223,20 +223,13 @@ class RenderGrid extends RenderBox
         childMainAxisExtent =
             (mainAxisExtent ?? stride) * childParentData.mainAxisCellCount! -
             mainAxisSpacing;
-        // A span is a minimum slot size. Let the card grow when its content
-        // needs more room; forcing a tight height is what caused the visible
-        // bottom overflow in the dashboard cards.
-        final childConstraints = mainAxis == Axis.vertical
-            ? BoxConstraints(
-                minWidth: childCrossAxisExtent,
-                maxWidth: childCrossAxisExtent,
-                minHeight: childMainAxisExtent,
-              )
-            : BoxConstraints(
-                minWidth: childMainAxisExtent,
-                minHeight: childCrossAxisExtent,
-                maxHeight: childCrossAxisExtent,
-              );
+        // 显式跨度就是槽位尺寸，不能被内容反向撑大。
+        // 有内容溢出的卡片在内部提供滚动，而不是改变同排卡片的几何。
+        final childConstraints = BoxConstraints.tight(
+          mainAxis == Axis.vertical
+              ? Size(childCrossAxisExtent, childMainAxisExtent)
+              : Size(childMainAxisExtent, childCrossAxisExtent),
+        );
         _layoutChild(child, childConstraints, parentUsesSize: true);
         childMainAxisExtent = mainAxis == Axis.vertical
             ? child.size.height
