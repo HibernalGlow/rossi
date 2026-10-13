@@ -52,6 +52,9 @@ abstract class FileManagerSettingState with _$FileManagerSettingState {
     @Default(true) bool fileOperations,
     @Default(false) bool searchSubfoldersDefault,
     @Default(false) bool wrapGridTitle,
+    @Default(BreadcrumbStyle.restrained)
+    @JsonKey(unknownEnumValue: BreadcrumbStyle.restrained)
+    BreadcrumbStyle breadcrumbStyle,
     @Default(FileManagerTabStartupPolicy.triggering)
     @JsonKey(unknownEnumValue: FileManagerTabStartupPolicy.triggering)
     FileManagerTabStartupPolicy newTabPolicy,

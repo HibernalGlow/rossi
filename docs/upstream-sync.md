@@ -88,3 +88,14 @@ Material Theme（包含动态取色与导入主题），按设置面板的实际
 设置动效继续使用本仓统一组件：`CommonPopupRoute` 承担设置子页面、居中确认框和下拉菜单的进出场；`ActionBubbleRegion` / `ActionBubbleTarget` 在分类、主题预览与分组条目之间连续移动悬停高亮；`RetainedPanelSwitcher` 用 `SpringLensValue` 与 `LensMetrics` 承接连续切换的当前位置和速度，并保留已访问详情的滚动与输入状态。没有引入另一套弹出曲线。输入绑定仍经 auto_route 守卫与 PopScope 保存保护；墨水屏和系统减少动画模式跳过空间动画。
 
 验证：设置导航、搜索、主题持久化、键盘导航、字号缩放、连续悬停与反向、保留详情、PopScope 返回保护、共享弹层返回值、菜单根层摆位与关闭生命周期、子菜单及保留面板绘制预算的 widget 测试；Flutter 3.47.4 / Dart 3.13.3 环境运行（仓库锁定 Flutter 3.47.6）。
+
+## 文件管理器面包屑展示适配（2026-10-13）
+
+两种样式共用 `PathBreadcrumb`，继续消费 Rust 快照中的 breadcrumbs；不维护第二套
+路径状态或祖先推导。克制型采用规整圆角与当前项文字强调，强表现型在轮廓带加入
+轻微起伏，根节点及当前项使用 `material_3_expressive` 的形状。宽度不足时保留首尾，
+中间祖先在现有 `CommonPopupBox` / `CommonPopupRoute` 中跳转；当前项仍编辑完整路径。
+按压和跨项悬停复用 `ElasticPress` 与 `ActionBubbleRegion` 的物理弹簧，减少动画及墨水屏
+模式遵守原开关。样式写入原 `FileManagerSettingState`，旧数据及未知枚举值降级为克制型。
+该功能仅是现有文件管理导航上的 Flutter 展示扩展；mImageViewer 的原生文件管理界面
+不能直接作为 Flutter 控件使用，Breeze 没有该工作台文件管理组件。
