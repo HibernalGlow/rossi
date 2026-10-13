@@ -59,7 +59,11 @@ class ColorThemeItem extends StatelessWidget {
                     ),
                     // 勾的颜色按样本自身亮度算，浅底配深色才不会看不见。
                     child: selected
-                        ? GlyphIcon(AppGlyphs.check, size: 18, color: contrastOn(swatch))
+                        ? GlyphIcon(
+                            AppGlyphs.check,
+                            size: 18,
+                            color: contrastOn(swatch),
+                          )
                         : null,
                   ),
                 ),
