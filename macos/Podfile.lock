@@ -43,7 +43,7 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/objectbox_flutter_libs/macos
 
 SPEC CHECKSUMS:
-  coreml_upscale: 8f07ea8c6ebbd7b1cd4606c483f88f150337ee24
+  coreml_upscale: 88235e9de1a5ed0710ac72228589b3ce46e66562
   flutter_inappwebview_macos: c2d68649f9f8f1831bfcd98d73fd6256366d9d1d
   FlutterMacOS: c232990155153907050900a2e175c7773903ba4e
   media_kit_libs_macos_video: 85a23e549b5f480e72cae3e5634b5514bc692f65
