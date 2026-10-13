@@ -1,4 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
+import 'package:zephyr/widgets/motion/action_bubble.dart';
+import 'package:zephyr/widgets/motion/expressive_motion.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/toast.dart';
 
@@ -18,10 +21,10 @@ enum ReaderToolbarPanel { zoom, rotate, layout }
 /// 尺寸与间距收进一处之后，主行的宽度预算才算得清。
 abstract final class ReaderToolbarMetrics {
   /// 主行高度（含上下内边距由外层给）。
-  static const double rowHeight = 48;
+  static const double rowHeight = 56;
 
   /// 图标按钮的见方边长 —— MD3 图标按钮的规范尺寸。
-  static const double buttonSize = 40;
+  static const double buttonSize = 48;
 
   /// 图标本身的边长。MD3 的图标按钮缺省是 24，但顶栏压在漫画上、一行要塞
   /// 十几颗控件，24 会把整条拉得比内容还抢眼，所以统一按 20 走。
@@ -45,11 +48,11 @@ abstract final class ReaderToolbarMetrics {
   static const double pillPadding = 0;
 
   /// 芯片（带文字的开关）与状态芯片的高度：与 [buttonSize] 同档。
-  static const double chipHeight = 40;
+  static const double chipHeight = 48;
 
   /// 顶栏自身的圆角：贴边浮层组件的造型，**不走主题圆角**
   /// （见 `lib/config/global/theme_shape.dart` 里那条「组件自身造型不该被主题拉走」）。
-  static const double barRadius = 16;
+  static const double barRadius = 28;
 
   /// 全圆角（胶囊 / 圆钮）。
   static const double fullRadius = 999;
@@ -191,51 +194,36 @@ class ReaderToolbarIconButton extends StatelessWidget {
             : colorScheme.onSurfaceVariant);
     final bg = selected ? colorScheme.secondaryContainer : Colors.transparent;
 
-    return IconButton(
-      isSelected: selected,
-      tooltip: tooltip,
-      onPressed: enabled ? onPressed : null,
-      onLongPress: enabled ? onLongPress : null,
-      iconSize: ReaderToolbarMetrics.iconSize,
-      style: ButtonStyle(
-        fixedSize: WidgetStatePropertyAll(
-          const Size.square(ReaderToolbarMetrics.buttonSize),
+    return ActionBubbleTarget(
+      enabled: enabled && onPressed != null,
+      child: ElasticButton(
+        enabled:
+            enabled &&
+            onPressed != null &&
+            !MediaQuery.disableAnimationsOf(context),
+        child: GestureDetector(
+          onLongPress: enabled ? onLongPress : null,
+          child: IconButton(
+            isSelected: selected,
+            tooltip: tooltip,
+            onPressed: enabled ? onPressed : null,
+            style: IconButton.styleFrom(
+              fixedSize: const Size.square(ReaderToolbarMetrics.buttonSize),
+              minimumSize: const Size.square(ReaderToolbarMetrics.buttonSize),
+              padding: EdgeInsets.zero,
+              backgroundColor: bg,
+              foregroundColor: fg,
+              disabledForegroundColor: colorScheme.onSurfaceVariant.withValues(
+                alpha: .38,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(selected ? 16 : 24),
+              ),
+            ).merge(ElasticPress.buttonStyle),
+            icon: AnimatedGlyph(glyph: icon, filled: selected),
+          ),
         ),
-        minimumSize: WidgetStatePropertyAll(
-          const Size.square(ReaderToolbarMetrics.buttonSize),
-        ),
-        maximumSize: WidgetStatePropertyAll(
-          const Size.square(ReaderToolbarMetrics.buttonSize),
-        ),
-        padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-        // 见方的可点区缩到画出来的这一圈：顶栏一行要塞十几颗，
-        // MD3 的 48 触摸外扩留给正文里的按钮，不留在这条带上。
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        shape: const WidgetStatePropertyAll(
-          CircleBorder(side: BorderSide.none),
-        ),
-        backgroundColor: WidgetStatePropertyAll(bg),
-        foregroundColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.disabled)) {
-            return colorScheme.onSurfaceVariant.withValues(alpha: 0.38);
-          }
-          return fg;
-        }),
-        overlayColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.pressed)) {
-            return fg.withValues(alpha: 0.12);
-          }
-          if (states.contains(WidgetState.hovered)) {
-            return fg.withValues(alpha: 0.08);
-          }
-          if (states.contains(WidgetState.focused)) {
-            return fg.withValues(alpha: 0.12);
-          }
-          return Colors.transparent;
-        }),
       ),
-      // 选中态除了底色还有填充：fill 0→1 涨成实心，与侧栏同一口径。
-      icon: AnimatedGlyph(glyph: icon, filled: selected),
     );
   }
 }
@@ -306,46 +294,62 @@ class ReaderToolbarToggleChip extends StatelessWidget {
 
     return Tooltip(
       message: tooltip,
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        onLongPress: enabled ? onLongPress : null,
-        borderRadius: BorderRadius.circular(ReaderToolbarMetrics.fullRadius),
-        customBorder: const StadiumBorder(),
-        // 约束两态必须**同一形状**：写 `width: hasLabel ? null : 40` 会从
-        // `maxWidth: Infinity` 插值到一个有限值，AnimatedContainer 直接抛
-        // 「Cannot interpolate between finite and unbounded constraints」——
-        // 窗口拖过标签阈值那一下顶栏整条停止布局。所以宽度只给下限，
-        // 让内容自己撑：图标态落在 40，带字态按文字走。
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          curve: Curves.easeOut,
-          constraints: const BoxConstraints(
-            minWidth: ReaderToolbarMetrics.buttonSize,
-            minHeight: ReaderToolbarMetrics.chipHeight,
-            maxHeight: ReaderToolbarMetrics.chipHeight,
-          ),
-          padding: EdgeInsets.symmetric(horizontal: hasLabel ? 12 : 0),
-          decoration: BoxDecoration(
-            color: selected
-                ? colorScheme.secondaryContainer
-                : Colors.transparent,
-            border: Border.all(color: border),
+      child: ActionBubbleTarget(
+        enabled: enabled,
+        corner: 24,
+        child: ElasticButton(
+          enabled: enabled,
+          child: InkWell(
+            onTap: enabled ? onTap : null,
+            onLongPress: enabled ? onLongPress : null,
             borderRadius: BorderRadius.circular(
               ReaderToolbarMetrics.fullRadius,
             ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              GlyphIcon(icon, size: ReaderToolbarMetrics.iconSize, color: fg),
-              if (hasLabel) ...[
-                const SizedBox(width: 6),
-                Text(
-                  label!,
-                  style: theme.textTheme.labelMedium?.copyWith(color: fg),
+            customBorder: const StadiumBorder(),
+            // 约束两态必须**同一形状**：写 `width: hasLabel ? null : 40` 会从
+            // `maxWidth: Infinity` 插值到一个有限值，AnimatedContainer 直接抛
+            // 「Cannot interpolate between finite and unbounded constraints」——
+            // 窗口拖过标签阈值那一下顶栏整条停止布局。所以宽度只给下限，
+            // 让内容自己撑：图标态落在 40，带字态按文字走。
+            child: AnimatedContainer(
+              duration: ExpressiveMotion.duration(
+                context,
+                ExpressiveMotion.effectDuration,
+              ),
+              curve: Curves.easeOut,
+              constraints: const BoxConstraints(
+                minWidth: ReaderToolbarMetrics.buttonSize,
+                minHeight: ReaderToolbarMetrics.chipHeight,
+                maxHeight: ReaderToolbarMetrics.chipHeight,
+              ),
+              padding: EdgeInsets.symmetric(horizontal: hasLabel ? 12 : 0),
+              decoration: BoxDecoration(
+                color: selected
+                    ? colorScheme.secondaryContainer
+                    : Colors.transparent,
+                border: Border.all(color: border),
+                borderRadius: BorderRadius.circular(
+                  ReaderToolbarMetrics.fullRadius,
                 ),
-              ],
-            ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GlyphIcon(
+                    icon,
+                    size: ReaderToolbarMetrics.iconSize,
+                    color: fg,
+                  ),
+                  if (hasLabel) ...[
+                    const SizedBox(width: 6),
+                    Text(
+                      label!,
+                      style: theme.textTheme.labelMedium?.copyWith(color: fg),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

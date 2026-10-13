@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:zephyr/widgets/motion/expressive_motion.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -10,6 +11,8 @@ import 'package:zephyr/page/download/adapters/download_chapter_adapter.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/method/jump_chapter.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_sheet.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/reader_bottom_toolbar.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/reader_chrome_transition.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/widgets/glass/liquid_glass.dart';
@@ -71,8 +74,6 @@ class _BottomWidgetState extends State<BottomWidget> {
       widget.type == ComicEntryType.historyAndDownload;
 
   JumpChapter get jumpChapter => widget.jumpChapter;
-
-  final Duration _animationDuration = const Duration(milliseconds: 300); // 动画时长
 
   /// 缩略图条的展开高度。并进控制栏面板后比独立浮条矮一点，
   /// 免得「一块面板顶掉半屏漫画」。
@@ -167,12 +168,11 @@ class _BottomWidgetState extends State<BottomWidget> {
       (cubit) => isReverseRowReadMode(cubit.state.readSetting.readMode),
     );
     // 墨水屏：控制条滑动的中间帧只会攒成残影，直接出图。
-    final animationDuration =
-        context.select(
-          (GlobalSettingCubit cubit) => cubit.state.eInkSetting.enabled,
-        )
-        ? Duration.zero
-        : _animationDuration;
+    final animate = context.select(
+      (GlobalSettingCubit cubit) =>
+          !cubit.state.eInkSetting.enabled &&
+          !cubit.state.readSetting.noAnimation,
+    );
     final bottomSafeHeight = context.bottomSafeHeight;
 
     final coordinator = ReaderSessionCoordinator.instance;
@@ -201,10 +201,9 @@ class _BottomWidgetState extends State<BottomWidget> {
             ignoring: !showBottomBar,
             child: ExcludeFocus(
               excluding: !showBottomBar,
-              child: AnimatedSlide(
-                duration: animationDuration,
-                curve: Curves.easeOutCubic,
-                offset: showBottomBar ? Offset.zero : const Offset(0, 1),
+              child: ReaderChromeTransition(
+                visible: showBottomBar,
+                animate: animate,
                 child: MouseRegion(
                   onEnter: (_) => hoverController?.onEnterBottomBar(),
                   onExit: (_) => hoverController?.onExitBottomBar(),
@@ -262,90 +261,25 @@ class _BottomWidgetState extends State<BottomWidget> {
   Widget _buildControlButtons({
     required int totalSlots,
     required bool showThumbnailStrip,
-  }) {
-    return BlocSelector<GlobalSettingCubit, GlobalSettingState, bool>(
-      selector: (state) => state.readSetting.bottomBarPinned,
-      builder: (context, bottomPinned) => LayoutBuilder(
-        builder: (context, constraints) {
-          final gap = constraints.maxWidth.isFinite
-              ? ((constraints.maxWidth - 7 * 48) / 6).clamp(0.0, 10.0)
-              : 10.0;
-          final buttons = [
-            ChapterNavigationButton(
-              icon: AppGlyphs.skipPrevious,
-              tooltip: t.reader.previousChapter,
-              isEnabled: jumpChapter.havePrev,
-              onTap: () => _jumpToChapter(true),
-            ),
-            FloatingActionIconButton(
-              icon: AppGlyphs.home,
-              tooltip: t.reader.backToHome,
-              onPressed: () => popToRoot(context),
-            ),
-            FloatingActionIconButton(
-              icon: showThumbnailStrip ? AppGlyphs.photos : AppGlyphs.photos,
-              tooltip: showThumbnailStrip
-                  ? t.reader.thumbnailStripCollapse
-                  : t.reader.thumbnailStripExpand,
-              isEnabled: totalSlots > 1,
-              isSelected: showThumbnailStrip && totalSlots > 1,
-              onPressed: () => _setThumbnailStripVisible(!showThumbnailStrip),
-            ),
-            // 钉住底栏（neo 的 edge `pinned`）：钉住之后这一条不再被「点中间收起」
-            // 或指针离开边缘收走；取消钉住立刻交还给那两套自动收起。
-            FloatingActionIconButton(
-              icon: AppGlyphs.pin,
-              tooltip: bottomPinned
-                  ? t.reader.unpinBottomBar
-                  : t.reader.pinBottomBar,
-              isSelected: bottomPinned,
-              onPressed: () =>
-                  context.read<GlobalSettingCubit>().updateReadSetting(
-                    (current) => current.copyWith(
-                      bottomBarPinned: !current.bottomBarPinned,
-                    ),
-                  ),
-            ),
-            FloatingActionIconButton(
-              icon: AppGlyphs.layoutList,
-              tooltip: t.reader.selectChapter,
-              isEnabled: chapterRefs.isNotEmpty,
-              onPressed: _selectJumpChapter,
-            ),
-            FloatingActionIconButton(
-              icon: AppGlyphs.sliders,
-              tooltip: t.reader.settings,
-              onPressed: _openSettingsPanel,
-            ),
-            ChapterNavigationButton(
-              icon: AppGlyphs.skipNext,
-              tooltip: t.reader.nextChapter,
-              isEnabled: jumpChapter.haveNext,
-              onTap: () => _jumpToChapter(false),
-            ),
-          ];
-          if (constraints.maxWidth < 7 * 48) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final group in [buttons.take(4), buttons.skip(4)])
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: group.toList(),
-                  ),
-              ],
-            );
-          }
-          return Wrap(
-            alignment: WrapAlignment.center,
-            spacing: gap,
-            runSpacing: 4,
-            children: buttons,
-          );
-        },
+  }) => BlocSelector<GlobalSettingCubit, GlobalSettingState, bool>(
+    selector: (state) => state.readSetting.bottomBarPinned,
+    builder: (context, bottomPinned) => ReaderBottomToolbar(
+      previousChapter: jumpChapter.havePrev ? () => _jumpToChapter(true) : null,
+      nextChapter: jumpChapter.haveNext ? () => _jumpToChapter(false) : null,
+      selectChapter: chapterRefs.isNotEmpty ? _selectJumpChapter : null,
+      openSettings: _openSettingsPanel,
+      goHome: () => popToRoot(context),
+      toggleThumbnails: totalSlots > 1
+          ? () => _setThumbnailStripVisible(!showThumbnailStrip)
+          : null,
+      togglePinned: () => context.read<GlobalSettingCubit>().updateReadSetting(
+        (current) =>
+            current.copyWith(bottomBarPinned: !current.bottomBarPinned),
       ),
-    );
-  }
+      thumbnailsVisible: showThumbnailStrip && totalSlots > 1,
+      pinned: bottomPinned,
+    ),
+  );
 
   void _openSettingsPanel() {
     final readerCubit = context.read<ReaderCubit>();

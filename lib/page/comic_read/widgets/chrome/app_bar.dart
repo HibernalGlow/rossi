@@ -5,7 +5,6 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_presentation_cubit.dart';
 import 'package:zephyr/page/comic_read/model/reader_presentation.dart';
-import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_download_button.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_online_translated_page_chip.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_download_sheet.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_layout_panel.dart';
@@ -24,42 +23,17 @@ import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
 import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/reader_hover_reveal_layer.dart';
-import 'package:zephyr/widgets/glass/liquid_glass.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/reader_chrome_transition.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_download_button.dart';
+import 'package:zephyr/widgets/common_popup.dart';
+import 'package:zephyr/widgets/motion/action_bubble.dart';
+import 'package:zephyr/widgets/motion/expressive_motion.dart';
 
-/// NeoView 风格的专业阅读器顶栏 (ReaderViewToolbar)。
-///
-/// 两行结构照 neoview 的 `ReaderViewToolbar.tsx`，但主行按 **MD3 的分组口径**
-/// 排布：一组一职责，组间一条分隔线，宽度不够就整组让位（不是把图标挤在一起）。
-///
-/// - **主行**：导航（返回）｜ 标题 ｜ 视图（缩放·旋转·版式工具三块面板的入口）｜
-///   版式（条漫⇄单页 · 单双页 · 阅读方向）｜ 增强（下载 · 超分状态 · 自动滚屏）｜
-///   窗口（全屏 · 钉住 · 设置 · 更多）。
-///   缩放那颗的图标跟着当前缩放模式换，不点开也看得见现在怎么铺。
-/// - **三档宽度**（[resolveReaderToolbarTier]，纯函数、有判据）：
-///   宽 = 芯片带文字；中 = 芯片收成图标；窄 = 版式组并成一颗循环按钮，
-///   并把**视图三项 + 下载**让出主行；中档以下再搭上**钉住 + 全屏**。
-///   让位顺序是「标题先省略到 0，再整组让位」，主行那颗 `Row` 从不折行。
-/// - **第二行（让位行）**：让出去的那几组原样搬来常驻，用的就是主行那一份构造
-///   （[ReaderToolbarPanelRow] 的 `Wrap`，窄到放不下会换行而不是溢出）。
-///   落点由 [resolveReaderSecondaryRow] 定：**有让位项且窗高够**才常驻这一行，
-///   否则（横屏手机）退回末尾的「更多」菜单 —— 两者互斥，同一颗控件不会有两个入口。
-/// - **展开区**：一次只挂一块面板（[ReaderZoomPanel] / [ReaderRotatePanel] /
-///   [ReaderLayoutPanel]），互斥，再点一次收起。它在第二行**下面**新开一行，
-///   所以让位行不会在面板展开时被换掉、把控件藏回看不见的位置。
-///
-/// 几何与配色只有一处口径：见 `top/reader_toolbar_shell.dart` 的
-/// [ReaderToolbarMetrics] 与 [ReaderToolbarIconButton] —— 改造前那三种
-/// 边长（30 圆钮 / 40 方钮 / 36 自绘框）并排，就是「图标堆在一起」的成因。
-///
-/// 其余子件：
-/// - [ReadingModeCapsule] & [DoublePageToggle]：阅读模式与单双页胶囊
-/// - [CompactReadingModeButton]：窄档的循环切换按钮
-/// - [ReaderUpscaleStatusChip]：当前页超分状态（状态字 + 超分后分辨率 + 超分开关）
-/// - [ReaderDownloadButton]：在线漫画边看边下载快捷入口与状态指示
-///
-/// 自动滚屏按用户口径**只住二级**（「不常用」）：主行三档都不画它，
-/// 入口是「更多」菜单的第一项，见 [_toggleReaderAutoScroll]。
+part 'reader_toolbar_rows_part.dart';
+
+/// 阅读器主行、常驻二级工具栏与互斥展开面板。
+/// 根据可用空间移动控件，保留全部入口与原有回调。
 class ComicReadAppBar extends StatefulWidget {
   final String title;
   final String? comicTitle;
@@ -135,9 +109,7 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
           cubit.state.showTopAppBar(pinned: readSetting.topBarPinned),
     );
     final hoverController = ReaderHoverScope.of(context);
-    const appBarShape = BorderRadius.vertical(
-      bottom: Radius.circular(ReaderToolbarMetrics.barRadius),
-    );
+    final appBarShape = BorderRadius.circular(ReaderToolbarMetrics.barRadius);
     // 顶栏材质：玻璃（改造前那一档）或「透明档」的半透明蒙层。
     // 判定与钳制都在 `resolveReaderTopBarSpec` 里，这里只照着画。
     final topBarSpec = resolveReaderTopBarSpec(
@@ -162,55 +134,54 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
         !isLocalComicSource(widget.from, widget.comicId);
 
     // 顶栏本体（两种材质共用同一份内容，只有外面那层材质不同）。
-    final barContent = SafeArea(
-      top: true,
-      bottom: false,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          // 只看可用宽度分档：桌面端能把窗口拖到 400 宽，平板能把阅读器
-          // 给到 900 宽，按设备类型判断在这两头都会骗人。
-          final tier = resolveReaderToolbarTier(constraints.maxWidth);
-          // 让位项住哪：竖向空间够就常驻第二行，不够才退回「更多」。
-          final secondaryRow = resolveReaderSecondaryRow(
-            tier: tier,
-            maxHeight: MediaQuery.sizeOf(context).height,
-          );
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildPrimaryToolbar(
+    final barContent = LayoutBuilder(
+      builder: (context, constraints) {
+        // 只看可用宽度分档：桌面端能把窗口拖到 400 宽，平板能把阅读器
+        // 给到 900 宽，按设备类型判断在这两头都会骗人。
+        final tier = resolveReaderToolbarTier(constraints.maxWidth);
+        final secondaryRow = resolveReaderSecondaryRow(
+          tier: tier,
+          maxHeight: MediaQuery.sizeOf(context).height,
+        );
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildPrimaryToolbar(
+              context: context,
+              readSetting: readSetting,
+              cubit: globalSettingCubit,
+              tier: tier,
+              secondaryRow: secondaryRow,
+              fitMode: fitMode,
+              bookTitle: bookTitle,
+              showDownloadEntry: showDownloadEntry,
+              // 芯片要按可用宽度决定写不写分辨率：窄屏硬塞会撑爆这一行。
+              availableWidth: constraints.maxWidth,
+            ),
+            if (secondaryRow)
+              _buildSecondaryToolbar(
                 context: context,
                 readSetting: readSetting,
                 cubit: globalSettingCubit,
                 tier: tier,
-                secondaryRow: secondaryRow,
                 fitMode: fitMode,
                 bookTitle: bookTitle,
                 showDownloadEntry: showDownloadEntry,
-                // 芯片要按可用宽度决定写不写分辨率：窄屏硬塞会撑爆这一行。
-                availableWidth: constraints.maxWidth,
               ),
-              if (secondaryRow)
-                _buildSecondaryToolbar(
-                  context: context,
-                  readSetting: readSetting,
-                  cubit: globalSettingCubit,
-                  tier: tier,
-                  fitMode: fitMode,
-                  bookTitle: bookTitle,
-                  showDownloadEntry: showDownloadEntry,
-                ),
-              // 展开区一次只挂一个面板（neo 的 `ExpandedPanel` 同一互斥口径）。
-              AnimatedSize(
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutCubic,
-                alignment: Alignment.topCenter,
-                child: _buildExpandedPanel(),
-              ),
-            ],
-          );
-        },
-      ),
+            // 展开区一次只挂一个面板（neo 的 `ExpandedPanel` 同一互斥口径）。
+            AnimatedSize(
+              duration:
+                  readSetting.noAnimation ||
+                      globalSettingState.eInkSetting.enabled
+                  ? Duration.zero
+                  : ExpressiveMotion.spatialDuration,
+              curve: ExpressiveMotion.spatialCurve,
+              alignment: Alignment.topCenter,
+              child: _buildExpandedPanel(),
+            ),
+          ],
+        );
+      },
     );
     // 墨水屏：工具栏滑入滑出的中间帧只会攒成残影，直接出图。
     final eInkInstant = context.select(
@@ -218,28 +189,27 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
     );
 
     return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
+      top: MediaQuery.paddingOf(context).top + 8,
+      left: 8,
+      right: 8,
       child: IgnorePointer(
         ignoring: !showTopAppBar,
-        child: AnimatedSlide(
-          duration: eInkInstant
-              ? Duration.zero
-              : const Duration(milliseconds: 320),
-          curve: Curves.easeOutCubic,
-          offset: showTopAppBar ? Offset.zero : const Offset(0, -1),
+        child: ReaderChromeTransition(
+          visible: showTopAppBar,
+          top: true,
+          animate: !eInkInstant && !readSetting.noAnimation,
           child: MouseRegion(
             onEnter: (_) => hoverController?.onEnterTopBar(),
             onExit: (_) => hoverController?.onExitTopBar(),
             child: topBarSpec.liquidGlass
                 // 顶栏压在漫画内容上，前景必须永远读得清，走最实的一档；
                 // 贴着屏幕顶，阴影按体量收小。
-                ? LiquidGlassSurface(
-                    thickness: LiquidGlassThickness.thick,
+                ? Material(
+                    color: Theme.of(context).colorScheme.surfaceContainerLow,
+                    elevation: 3,
                     borderRadius: appBarShape,
-                    shadowScale: topBarSpec.shadowScale,
-                    child: barContent,
+                    clipBehavior: Clip.antiAlias,
+                    child: ActionBubbleRegion(child: barContent),
                   )
                 // 透明档：只有一层蒙层铺在画面上，不模糊、不带阴影。
                 // 颜色是主题 `surface` 加透明度，所以顶栏里的文字与图标
@@ -249,237 +219,12 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
                       color: topBarSpec.scrim,
                       borderRadius: appBarShape,
                     ),
-                    child: barContent,
+                    child: ActionBubbleRegion(child: barContent),
                   ),
           ),
         ),
       ),
     );
-  }
-
-  /// 顶栏主操作行 (Primary Row)。
-  ///
-  /// 排布口径：**一组一职责，组间一条分隔线**，宽度不够就整组让位。
-  /// 改造前这里是一条平铺的 `Row`，三种边长的图标钮（30 圆 / 40 方 / 36 自绘框）
-  /// 混在一行里、彼此只差 2~4px，那就是「功能图标堆在一起」的成因。
-  /// 分组 + 统一几何才是解法，少摆几颗只是把问题挪走。
-  Widget _buildPrimaryToolbar({
-    required BuildContext context,
-    required ReadSettingState readSetting,
-    required GlobalSettingCubit cubit,
-    required ReaderToolbarTier tier,
-    required bool secondaryRow,
-    required ReaderFitMode fitMode,
-    required String? bookTitle,
-    required bool showDownloadEntry,
-    required double availableWidth,
-  }) {
-    // 让位分两级：中档以下「视图三项 + 下载」让出主行，宽档以下再搭上
-    // 「钉住 + 全屏」。让出去的那一组住第二行（窗高够）或「更多」菜单，
-    // 两个落点互斥。neo 占位的那五颗**永远**在菜单里，主行不为它们让宽度。
-    final inlineView = tier.keepsViewControlsInline;
-    final inlineWindow = tier.keepsWindowControlsInline;
-    // 超分芯片的让位判断按「没有下载那颗时的可用宽度」算：两者互斥，
-    // 一起记账会把芯片压成永远不写文字的哑巴。
-    final chipWidth = availableWidth - (showDownloadEntry ? 44 : 0);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: SizedBox(
-        height: ReaderToolbarMetrics.rowHeight,
-        child: Row(
-          children: [
-            // 导航
-            ReaderToolbarIconButton(
-              icon: AppGlyphs.arrowBack,
-              tooltip: t.common.back,
-              onPressed: () => Navigator.maybePop(context),
-            ),
-            const SizedBox(width: 8),
-
-            // 标题：这一行唯一的弹性项，所以「谁先让位」的答案就是它先省略到 0。
-            Expanded(child: _buildTitle(context, bookTitle: bookTitle)),
-
-            // 视图组：三块二级面板的入口。
-            if (inlineView) ...[
-              const ReaderToolbarSeparator(),
-              ReaderToolbarGroup(
-                children: [
-                  for (final panel in ReaderToolbarPanel.values)
-                    ReaderToolbarIconButton(
-                      icon: _readerPanelIcon(panel, fitMode),
-                      tooltip: '${_readerPanelLabel(panel, fitMode)}（点击展开面板）',
-                      selected: _expandedPanel == panel,
-                      onPressed: () => _togglePanel(panel),
-                    ),
-                ],
-              ),
-            ],
-
-            // 版式组。
-            _buildLayoutGroup(
-              context,
-              readSetting: readSetting,
-              cubit: cubit,
-              tier: tier,
-            ),
-            // 窄档这一组只剩一颗循环按钮，标题本身就是分隔，不再补第二条线
-            // ——每少一条线就是 13px 留给书名。
-            if (tier.expandsLayoutGroup)
-              const ReaderToolbarSeparator()
-            else
-              const SizedBox(width: ReaderToolbarMetrics.gapBetweenGroups),
-
-            // 增强组：下载 / 超分状态 / 自动滚屏。
-            //
-            // 这一组**永不折叠**：超分那颗既是状态显示也是开关，用户口径是
-            // 「最常用的那一档」，收进菜单就等于看不见了。而且它与下载互斥
-            // （下载只在在线图源出现，超分芯片只在本地 GPU 会话出现），
-            // 这一组的最坏情况就是「芯片 + 滚屏」，比视图三项窄得多。
-            ReaderToolbarGroup(
-              children: [
-                if (showDownloadEntry && inlineView)
-                  _buildDownloadEntry(bookTitle),
-                ReaderUpscaleStatusChip(availableWidth: chipWidth),
-                ReaderTranslatedPageChip(availableWidth: chipWidth),
-                ReaderOnlineTranslatedPageChip(availableWidth: chipWidth),
-                // 自动滚屏按用户口径放**二级**：主行不画它，入口与开/关状态
-                // 在「更多」菜单的第一项（所有档位都在那里）。
-              ],
-            ),
-
-            // 窗口组 + 更多。
-            const ReaderToolbarSeparator(),
-            ReaderToolbarGroup(
-              children: [
-                if (inlineWindow && widget.onToggleFullscreen != null)
-                  ReaderToolbarIconButton(
-                    icon: widget.isDesktopFullscreen
-                        ? AppGlyphs.fullscreenExit
-                        : AppGlyphs.fullscreen,
-                    tooltip: widget.isDesktopFullscreen
-                        ? t.reader.exitFullscreen
-                        : t.reader.enterFullscreen,
-                    onPressed: widget.onToggleFullscreen,
-                  ),
-                // 钉住顶栏（neo 的 edge `pinned`）：钉住之后这一条不再被
-                // 「点中间收起」或指针离开边缘收走；取消钉住立刻交还给那两套自动收起。
-                if (inlineWindow)
-                  ReaderToolbarIconButton(
-                    icon: AppGlyphs.pin,
-                    tooltip: readSetting.topBarPinned
-                        ? t.reader.unpinTopBar
-                        : t.reader.pinTopBar,
-                    selected: readSetting.topBarPinned,
-                    onPressed: () => cubit.updateReadSetting(
-                      (s) => s.copyWith(topBarPinned: !s.topBarPinned),
-                    ),
-                  ),
-                _ReaderToolbarOverflowButton(
-                  items: _buildOverflowItems(
-                    context,
-                    readSetting: readSetting,
-                    cubit: cubit,
-                    fitMode: fitMode,
-                    inlineView: inlineView,
-                    inlineWindow: inlineWindow,
-                    secondaryRow: secondaryRow,
-                    isAutoScrollPaused:
-                        widget.isAutoReadPaused?.call() ?? false,
-                    showDownloadEntry: showDownloadEntry,
-                    bookTitle: bookTitle,
-                  ),
-                ),
-                ReaderToolbarIconButton(
-                  icon: AppGlyphs.sliders,
-                  tooltip: t.reader.settings,
-                  onPressed: () => showReaderSettingsSheet(
-                    context,
-                    changePageIndex: widget.changePageIndex,
-                    onLandscapeChanged: widget.onLandscapeChanged,
-                    // 顶栏这个入口也在阅读页里：带上本漫身份，否则「启用本漫画设置」不会出现。
-                    source: widget.from,
-                    comicId: widget.comicId,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 第二行：这一档从主行让出去的那几组，原样搬来常驻。
-  ///
-  /// 这里**不新造控件**：视图三项、下载、全屏、钉住用的就是主行那一份构造与
-  /// 同一套回调，所以「在第二行点钉住」和「在主行点钉住」是同一件事、同一个状态。
-  /// 外层 [ReaderToolbarPanelRow] 走 `Wrap`：窄到放不下就换行摊开，既不折成
-  /// 溢出菜单，也不会挤黄黑斜纹。
-  Widget _buildSecondaryToolbar({
-    required BuildContext context,
-    required ReadSettingState readSetting,
-    required GlobalSettingCubit cubit,
-    required ReaderToolbarTier tier,
-    required ReaderFitMode fitMode,
-    required String? bookTitle,
-    required bool showDownloadEntry,
-  }) {
-    final children = <Widget>[];
-
-    // 整节为空时连它前面那条分隔线一起省掉：这一行是按档位凑出来的，
-    // 中档就只有窗口那一节，不该凭空多一条没有左边的线。
-    void addSection(List<Widget> section) {
-      if (section.isEmpty) return;
-      if (children.isNotEmpty) children.add(const ReaderToolbarSeparator());
-      children.addAll(section);
-    }
-
-    // 让位的第一批：三块面板的入口 + 下载。条件与主行那颗 `if (inlineView)`
-    // 严格同源，两边不会一处画一处不画。
-    addSection([
-      if (!tier.keepsViewControlsInline)
-        ReaderToolbarGroup(
-          children: [
-            for (final panel in ReaderToolbarPanel.values)
-              ReaderToolbarIconButton(
-                icon: _readerPanelIcon(panel, fitMode),
-                tooltip: '${_readerPanelLabel(panel, fitMode)}（点击展开面板）',
-                selected: _expandedPanel == panel,
-                onPressed: () => _togglePanel(panel),
-              ),
-          ],
-        ),
-      if (!tier.keepsViewControlsInline && showDownloadEntry)
-        _buildDownloadEntry(bookTitle),
-    ]);
-
-    // 让位的第二批：全屏 + 钉住。
-    addSection([
-      if (!tier.keepsWindowControlsInline && widget.onToggleFullscreen != null)
-        ReaderToolbarIconButton(
-          icon: widget.isDesktopFullscreen
-              ? AppGlyphs.fullscreenExit
-              : AppGlyphs.fullscreen,
-          tooltip: widget.isDesktopFullscreen
-              ? t.reader.exitFullscreen
-              : t.reader.enterFullscreen,
-          onPressed: widget.onToggleFullscreen,
-        ),
-      if (!tier.keepsWindowControlsInline)
-        ReaderToolbarIconButton(
-          icon: AppGlyphs.pin,
-          tooltip: readSetting.topBarPinned
-              ? t.reader.unpinTopBar
-              : t.reader.pinTopBar,
-          selected: readSetting.topBarPinned,
-          onPressed: () => cubit.updateReadSetting(
-            (s) => s.copyWith(topBarPinned: !s.topBarPinned),
-          ),
-        ),
-    ]);
-
-    return ReaderToolbarPanelRow(children: children);
   }
 
   /// 标题两行：页面标题在上，书名在下（与上面对得上的那一份就不重复写）。
@@ -493,7 +238,8 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
           widget.title.isEmpty ? t.common.unknown : widget.title,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.titleSmall?.copyWith(
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
             color: theme.colorScheme.onSurface,
           ),
         ),
@@ -572,6 +318,8 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
     );
   }
 
+  /// 「更多」菜单的项集：让位收进来的那些 + neo 有、本仓还没有的那五颗占位。
+  ///
   /// 下载快捷入口。主行与窄档的「更多」菜单共用这一份构造。
   Widget _buildDownloadEntry(String? bookTitle) {
     return ReaderDownloadButton(
@@ -735,28 +483,36 @@ String _readerPanelLabel(ReaderToolbarPanel panel, ReaderFitMode fitMode) =>
 
 /// 主行末尾的「更多」（MD3 `MenuAnchor`）。
 class _ReaderToolbarOverflowButton extends StatelessWidget {
+  const _ReaderToolbarOverflowButton({required this.items});
   final List<Widget> items;
 
-  const _ReaderToolbarOverflowButton({required this.items});
-
   @override
-  Widget build(BuildContext context) {
-    return MenuAnchor(
-      alignmentOffset: const Offset(0, 6),
-      menuChildren: items,
-      builder: (context, controller, child) => ReaderToolbarIconButton(
-        icon: AppGlyphs.more,
-        tooltip: '更多',
-        selected: controller.isOpen,
-        onPressed: () =>
-            controller.isOpen ? controller.close() : controller.open(),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => CommonPopupBox<void>(
+    targetBuilder: (open) => ReaderToolbarIconButton(
+      icon: AppGlyphs.more,
+      tooltip: t.common.more,
+      onPressed: () => open(),
+    ),
+    popupBuilder: (context) => CommonPopupMenu(
+      maxWidth: 320,
+      items: [
+        for (final item in items)
+          if (item is MenuItemButton)
+            CommonPopupMenuItem(
+              label: item.child is Text ? (item.child as Text).data ?? '' : '',
+              glyph: item.leadingIcon is GlyphIcon
+                  ? (item.leadingIcon as GlyphIcon).glyph
+                  : null,
+              checked: item.trailingIcon != null ? true : null,
+              onPressed: item.onPressed,
+            )
+          else
+            const CommonPopupMenuItem.divider(),
+      ],
+    ),
+  );
 }
 
-/// 菜单里两节之间的那条线（material_ui 的这份 `MenuAnchor` 没有 `MenuGroup`，
-/// 分隔线自己画一条，颜色用 MD3 的 divider 角色）。
 class _ReaderMenuDivider extends StatelessWidget {
   const _ReaderMenuDivider();
 
