@@ -134,6 +134,15 @@
     "gpuPresent": "GPU present"
   },
   "settings": {
+    "overviewSubtitle": "Make Rossi feel like yours",
+    "searchCategories": "Search settings categories",
+    "noMatchingCategories": "No matching categories. Try another keyword.",
+    "personalizationGroup": "Appearance & feedback",
+    "readingGroup": "Reading & image",
+    "libraryGroup": "Files, library & data",
+    "applicationGroup": "App & controls",
+    "windowGroup": "Window",
+    "syncDestinationsSubtitle": "Sync service · Cloud backup",
     "title": "Settings",
     "globalTitle": "Settings",
     "appearance": "Appearance",

@@ -134,6 +134,15 @@
     "gpuPresent": "GPU 上屏"
   },
   "settings": {
+    "overviewSubtitle": "让 Rossi 更合你的习惯",
+    "searchCategories": "搜索设置分类",
+    "noMatchingCategories": "没有匹配的分类，请尝试其他关键词",
+    "personalizationGroup": "外观与反馈",
+    "readingGroup": "阅读与画面",
+    "libraryGroup": "文件、书架与数据",
+    "applicationGroup": "应用与操作",
+    "windowGroup": "窗口",
+    "syncDestinationsSubtitle": "同步服务 · 云端备份",
     "title": "设置",
     "globalTitle": "设置",
     "appearance": "外观与显示",
