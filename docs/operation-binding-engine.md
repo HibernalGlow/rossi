@@ -1,5 +1,41 @@
 # 操作绑定引擎落地设计（ADR-0015）
 
+## 当前实现：独立核心与 v2 协议（2026-10-13）
+
+公共引擎位于 `rust/operation_binding_core`，只依赖 serde、serde_json、anyhow。
+框架事件采集、控件命中、动作执行由宿主负责；Rossi 的动作目录、默认表、九宫格几何、
+阅读方向、轮盘配置仍在 `rossi_local_core::operation_binding`。FRB 是其薄入口。
+
+- [公共 API、匹配契约与迁移说明](../rust/operation_binding_core/README.md)
+- [v2 JSON Schema](../rust/operation_binding_core/schema.v2.json)
+- [独立非 Flutter 测试宿主](../rust/operation_binding_core/examples/json_host.rs)
+- [Rust 生态复用评估](operation-binding-rust-library-review.md)
+
+当前持久化格式是 `format: "operation-bindings"`、`format_version: 2`。
+`area` 不再是一种设备；鼠标和触屏描述符都可带区域，分别配置自己的 click / tap / double-tap /
+long-press / swipe。核心只认识宿主提供的区域 ID，不硬编码九宫格。
+Context 定义支持任意 ID、priority、parent、global、isolatesGlobal。
+先比较上下文优先级，再比较区域精度；精确区域没有匹配才考虑通用输入，设备之间不回退。
+冲突清单与匹配诊断由核心产生，编辑器拒绝保存冲突草稿。
+
+未版本化数组/文档作为 v1，在启动、同步/恢复、导入边界统一迁移：
+旧区域转为 mouse+area；旧主键区域单击复制为独立 touch+tap+area。只有完整、未修改的
+Neo 出厂表使用独立触屏默认表；自定义、删除、禁用和扩展字段保留，不强行补回默认值。
+失败保留原文，成功后绑定与 `bindingsMigrationBackupJson` 一次写入；备份只留本机。
+运行时仅接收 v2，旧格式不保留第二条执行路径。
+
+Flutter 单击等 Reader 赢得手势竞争后再派发，避免与视频按钮等子控件重复执行。
+触屏顶部/底部感应带使用“确保显示控制栏”的语义，独立于鼠标悬停开关；中央、左右等
+其余区域按用户触屏绑定执行。鼠标和触屏分别使用实际事件来源，不依据屏幕尺寸猜设备。
+
+本轮只提供 Rust API 和 Rossi FRB 适配器。后续实际需要 NAPI-RS、C ABI、WASM 时新增
+独立薄包装，不向公共核心加入对应运行时，也不复制匹配算法。
+
+## 历史设计与落地记录
+
+下文保留最初草案及历史交互记录，用于追溯；其中 Area 设备、v1 格式、会话 API 草案和
+未来待办不代表当前协议。现行规范以上面的 v2 文档与实际源码为准。
+
 本文是 ADR-0015 的**落地设计**：引擎住 `rossi_local_core`（纯 Rust），FRB 薄入口在
 `rust/src/api/operation_binding.rs`，UI 只做「采集事件 → 问核心 → 执行动作」。
 形状照文件管理器（`local_core/src/file_manager.rs` + `src/api/file_manager.rs`）。

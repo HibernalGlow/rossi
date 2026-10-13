@@ -1,5 +1,16 @@
 # 上游同步记录
 
+## 操作绑定 v2 与公共 Rust 核心（2026-10-13）
+
+Breeze 与 mImageViewer 当前可用实现没有同时覆盖 Rossi 的区域触屏、多上下文、轮盘与
+配置迁移链路。继续沿用 Rossi 现有绑定实现，将通用模型、Context、匹配、冲突、诊断和
+迁移抽为 `rust/operation_binding_core`；动作目录、九宫格和默认值升级保留薄适配。
+不另建 Dart 解析器，不引入 Bevy，不实现 Node 适配器。Rust 生态库的实际适配边界与
+keybinds 隔离实验见 `docs/operation-binding-rust-library-review.md`。
+
+未版本化设置统一迁移为 v2，保留扩展字段、禁用与自定义操作，失败不覆盖原文；本机备份
+不随云同步。鼠标和触屏区域分别配置，Flutter 胜出的单击一次交给 Rust 匹配。
+
 ## 2026-10-13
 
 | 来源 | 先前内容基准 | 本次内容基准 |
