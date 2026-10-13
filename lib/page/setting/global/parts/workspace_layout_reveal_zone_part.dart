@@ -1,4 +1,5 @@
 part of '../workspace_layout_setting_page.dart';
+
 // ── 悬停唤出区：卡片、可拖拽画布编辑器、四个编辑量与画布 CustomPainter ──
 
 class _RevealZoneCard extends StatelessWidget {
@@ -22,7 +23,6 @@ class _RevealZoneCard extends StatelessWidget {
   }
 }
 
-
 /// 每条边的颜色（与 neoview 的 cyan / amber / emerald / fuchsia-400 对齐）。
 ///
 /// 用固定色而不是 `ColorScheme` 的槽位：这四块是**并列的四个类别**，
@@ -34,14 +34,12 @@ const Map<RevealEdge, Color> _kEdgeColors = <RevealEdge, Color>{
   RevealEdge.bottom: Color(0xFFE879F9),
 };
 
-
 String _edgeLabel(RevealEdge edge) => switch (edge) {
   RevealEdge.left => t.settings.revealEdgeLeft,
   RevealEdge.right => t.settings.revealEdgeRight,
   RevealEdge.top => t.settings.revealEdgeTop,
   RevealEdge.bottom => t.settings.revealEdgeBottom,
 };
-
 
 /// 一次拖拽：要么在空处**画框**，要么抓住选中的那块**拖某个角**。
 class _ZoneDrag {
@@ -69,7 +67,6 @@ class _ZoneDrag {
   bool get isResize => corner != null;
 }
 
-
 class _RevealZoneEditor extends StatefulWidget {
   const _RevealZoneEditor({required this.zones, required this.onChange});
 
@@ -79,7 +76,6 @@ class _RevealZoneEditor extends StatefulWidget {
   @override
   State<_RevealZoneEditor> createState() => _RevealZoneEditorState();
 }
-
 
 class _RevealZoneEditorState extends State<_RevealZoneEditor> {
   static const double _handleHitRadius = 12;
@@ -348,7 +344,6 @@ class _RevealZoneEditorState extends State<_RevealZoneEditor> {
   }
 }
 
-
 /// 唤出区的四个可编辑量。
 enum RevealZoneField {
   x,
@@ -372,7 +367,6 @@ enum RevealZoneField {
     RevealZoneField.height => zone.height,
   };
 }
-
 
 /// 画布下方的小数字框（X / Y / 宽 / 高）。
 class _LabeledNumberField extends StatelessWidget {
@@ -398,7 +392,6 @@ class _LabeledNumberField extends StatelessWidget {
   }
 }
 
-
 /// 百分比数字框：0..99，0.1 步进，同样只在回车 / 失焦时提交。
 class _PercentBox extends StatefulWidget {
   const _PercentBox({required this.value, required this.onCommit});
@@ -409,7 +402,6 @@ class _PercentBox extends StatefulWidget {
   @override
   State<_PercentBox> createState() => _PercentBoxState();
 }
-
 
 class _PercentBoxState extends State<_PercentBox> {
   late final TextEditingController _controller = TextEditingController(
@@ -473,7 +465,6 @@ class _PercentBoxState extends State<_PercentBox> {
     );
   }
 }
-
 
 /// 画布：虚线十字参考线 + 四块唤出区 + 选中那块的四个角手柄。
 ///

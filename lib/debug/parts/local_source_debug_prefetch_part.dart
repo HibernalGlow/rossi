@@ -8,6 +8,7 @@ extension _LocalSourceDebugPrefetchPart on _LocalSourceDebugPageState {
     // 刻意不 setState：在帧回调里重建会自己制造抖动，量具就成了噪声源。
     // 这个数在下一次由别的原因触发的重建里顺带显示出来。
   }
+
   /// 一帧的耗时分解，一行字。
   String _frameCostLabel() {
     final t = _lastTiming;
@@ -16,6 +17,7 @@ extension _LocalSourceDebugPrefetchPart on _LocalSourceDebugPageState {
         'raster ${t.rasterDuration.inMilliseconds} '
         'vsync ${t.vsyncOverhead.inMilliseconds} ms';
   }
+
   /// 把当前页的相邻页排进预取队列。
   ///
   /// **判决在 Rust 侧**（`local_prefetch_decision` → 上游 `decide_prefetch_allowed`），
@@ -35,6 +37,7 @@ extension _LocalSourceDebugPrefetchPart on _LocalSourceDebugPageState {
     final generation = ++_prefetchGeneration;
     unawaited(_prefetchNeighbors(id, generation));
   }
+
   Future<void> _prefetchNeighbors(BigInt id, int generation) async {
     // 等放行。上游是每帧问一次 `decide_prefetch_allowed`；宿主从 egui 的帧循环
     // 换成 Flutter 之后，改成每 50 ms 问一次 —— 同一个门槛，只是问的节奏变了。
@@ -131,6 +134,7 @@ extension _LocalSourceDebugPrefetchPart on _LocalSourceDebugPageState {
       await _prefetchPage(id, target);
     }
   }
+
   /// 解好并建好一页，收进预取缓存。任何失败都**静默放弃**：
   /// 预取是机会主义行为，它失败不该在界面上留下错误，更不能顶掉当前页。
   Future<void> _prefetchPage(BigInt id, int index) async {
@@ -147,6 +151,7 @@ extension _LocalSourceDebugPrefetchPart on _LocalSourceDebugPageState {
       _prefetchInFlight.remove(index);
     }
   }
+
   Future<void> _prefetchPageTask(BigInt id, int index) async {
     final targetWidth = _targetDecodeWidth();
     final stale = _prefetch[index];
@@ -207,8 +212,10 @@ extension _LocalSourceDebugPrefetchPart on _LocalSourceDebugPageState {
       '${pixels.width}x${pixels.height}',
     );
   }
+
   int _totalPrefetchBytes() =>
       _prefetch.values.fold(0, (sum, p) => sum + p.bytes);
+
   /// 取走一页预取结果。尺寸对不上就丢掉（宁可重解也不能显示错尺寸）。
   _PrefetchedPage? _takePrefetch(int index) {
     final hit = _prefetch.remove(index);
@@ -219,6 +226,7 @@ extension _LocalSourceDebugPrefetchPart on _LocalSourceDebugPageState {
     }
     return hit;
   }
+
   /// 丢掉全部预取。翻页宽度、解码器开关、会话变化之后都要走这一趟 ——
   /// 拿着旧尺寸的位图显示，比慢更糟。
   void _clearPrefetch() {
@@ -228,6 +236,7 @@ extension _LocalSourceDebugPrefetchPart on _LocalSourceDebugPageState {
     }
     _prefetch.clear();
   }
+
   /// 逐页读一遍并计时。这条曲线是 `docs/v0.1-local-core.md` §7 那把尺子：
   /// 近似常量 ⇒ 归档支持按需 seek；随 N 线性增长 ⇒ 实际在解压整段。
   ///

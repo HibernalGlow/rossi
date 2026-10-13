@@ -114,6 +114,7 @@ class PageListRowAnchor {
       }
       node.visitChildren(walk);
     }
+
     walk(root);
     return found;
   }

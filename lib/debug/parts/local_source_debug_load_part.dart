@@ -19,11 +19,13 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
 
     _clearPrefetch();
   }
+
   Future<void> _refreshProbe() async {
     final n = localOpenSessionCount();
     // ignore: invalid_use_of_protected_member
     if (mounted) setState(() => _probeCount = n);
   }
+
   Future<void> _closeCurrent({bool silent = false}) async {
     final id = _sessionId;
     if (id == null) return;
@@ -46,6 +48,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
     });
     await _refreshProbe();
   }
+
   Future<void> _openPath(String path) async {
     // 打点的目的是**让下一次原生崩溃有现场**。
     // 起因：一次 `zephyr has stopped working` 在 flutter run 控制台里
@@ -132,11 +135,13 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
       if (mounted) setState(() => _busy = false);
     }
   }
+
   Future<void> _pickFolder() async {
     final path = await getDirectoryPath();
     if (path == null || path.isEmpty) return;
     await _openPath(path);
   }
+
   Future<void> _pickArchive() async {
     const group = XTypeGroup(
       label: '漫画归档',
@@ -146,6 +151,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
     if (file == null) return;
     await _openPath(file.path);
   }
+
   /// 目标解码宽度（物理像素）。
   ///
   /// 取预览区宽度 × 设备像素比；还没布局过就退回窗口宽度的估算值。
@@ -158,6 +164,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
     final px = (logical * media.devicePixelRatio).round();
     return px.clamp(64, 8192);
   }
+
   /// 翻页入口：按 `_decoderMode` 决定让谁解。
   ///
   Future<void> _loadPage(int index, {bool force = false}) async {
@@ -194,6 +201,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
       if (!force) _turnInFlight.remove(index);
     }
   }
+
   /// `auto` 的语义是「**Rust 优先，格式归外壳时退回**」，不是「随便挑一个能用的」。
   /// 只有 Rust 明确回答 `shellOnlyFormat` 才算「这页归外壳」；解码失败是另一回事，
   /// 那种情况就地报错 —— 偷偷换条路会把失败藏起来，而失败正是这张页面要显示的东西。
@@ -286,6 +294,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
       unawaited(_refreshLoadStats());
     }
   }
+
   /// 外壳路径：把**编码字节**交给 Flutter 引擎解。
   ///
   /// 这是最早的形态，留着有两个理由：引擎认识的格式（jpg / png / …）走这条更省内存
@@ -420,6 +429,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
     );
     stream.addListener(listener);
   }
+
   /// Rust 路径：`local_page_pixels` —— Rust 解码后把 RGBA 交给 Dart 上屏。
   ///
   /// 返回值是「这件事办完了吗」：`false` 表示 Rust **明确回答这页归外壳**
@@ -570,6 +580,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
     });
     return true;
   }
+
   /// 预取命中：翻页路径上没有任何解码、没有 `decodeImageFromPixels`。
   ///
   /// 这条路径**只可能出现在 Rust 解码路径上**：预取本身走的就是 `local_page_pixels`。
@@ -630,6 +641,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
       _schedulePrefetch();
     });
   }
+
   Future<ui.Image> _imageFromRgba(Uint8List rgba, int width, int height) {
     final done = Completer<ui.Image>();
     ui.decodeImageFromPixels(
@@ -641,6 +653,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
     );
     return done.future;
   }
+
   /// 刷新调度器快照。翻完一页调一次就够 —— 它不是实时表，是「此刻许可怎么分的」。
   Future<void> _refreshLoadStats() async {
     final stats = await localPageLoadStats();
@@ -648,6 +661,7 @@ extension _LocalSourceDebugLoadPart on _LocalSourceDebugPageState {
     // ignore: invalid_use_of_protected_member
     setState(() => _loadStats = stats);
   }
+
   String _loadStatsLabel() {
     final stats = _loadStats;
     if (stats == null) return '—';

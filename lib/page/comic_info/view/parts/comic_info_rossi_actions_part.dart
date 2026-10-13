@@ -10,6 +10,7 @@ extension _ComicInfoRossiActionsPart on _ComicInfoState {
   void _startReading(ComicEntryType entryType) {
     goToComicRead(context, _comicId, entryType, comicInfoDyn, widget.from);
   }
+
   /// 有指针 ⇒ 正文左右各浮一颗胶囊；触摸端原样返回（底部条是车道 G）。
   ///
   /// 判据用指针而不是视口宽度（口径 4）：带触摸屏的 Windows 笔记本仍然有指针，
