@@ -69,6 +69,23 @@ Flutter 树视口采用 SDK 的 `TreeSliver`，目录展开与后台扫描仍由
 2 项通过；Rust 原有回归 47 项、布局集成回归 8 项通过。静态分析无问题。
 尚未执行桌面交互验收。
 
+## 阅读器展示适配（2026-10-13）
+
+阅读设置继续复用上游设置读取、回调与本漫稀疏
+覆盖写入，顶栏主行和二级行保留原有档位和全部功能入口。仅呈现层改为主题实色
+Expressive 工具栏、进度轨道、缩略图选中形状与分组设置；宽屏分类使用现有
+NavigationSidebar，窄屏使用 NavigationDock，分类、滚动位置和本漫写入目标在
+窗口变化时保留。弹层进出和进度预览使用 CommonPopupRoute 的同一套托盘动画；
+按压、悬停和选项切换复用 ElasticButton / ActionBubbleRegion / SpringLensBar。
+
+阅读设置的拖动/滚动交接直接使用 material_3_expressive 的
+M3EBottomSheetScrollController。该版本 Frame 必带全屏标题和关闭按钮，没有
+自定义标题接口，因此外壳采用薄适配：共享一套标题和关闭入口，以实际可见高度
+布局正文，上拖先连续展开到全屏、之后滚正文，下拖收回；落位复用项目
+SpringLensValue 与 LensMetrics，保留墨水屏、阅读无动画与系统减少动画设置。
+技能安装在 .agents/skills/material3-expressive-flutter，来源提交记录在 SOURCE.json。
+验证见阅读设置、顶栏布局、缩略图、进度方向/防抖、视频组合底栏及共享弹层测试。
+
 ## 设置展示适配（2026-10-13）
 
 设置仍采用 Breeze 的分类页、状态和持久化接口。其总览为单栏列表，没有可直接

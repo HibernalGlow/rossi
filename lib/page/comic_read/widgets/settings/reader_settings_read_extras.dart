@@ -7,45 +7,40 @@ class _ReaderReadExtras extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final setting = context.watchTargetReadSetting();
-    return Column(
-      children: [
+    return _settingsToggleGroup([
+      _SettingsSwitchTile(
+        title: t.reader.readingDirectionToggleSetting,
+        subtitle: setting.readMode == 0
+            ? t.reader.readingDirectionToggleDisabled
+            : (setting.readMode == 2
+                  ? t.reader.readingDirectionToggleLeftOpen
+                  : t.reader.readingDirectionToggleRightOpen),
+        value: setting.readingDirectionToggle,
+        onChanged: (value) => context.updateEffectiveReadSetting(
+          setting,
+          (current) => current.copyWith(readingDirectionToggle: value),
+        ),
+      ),
+      if (setting.readMode != 0)
         _SettingsSwitchTile(
-          title: t.reader.readingDirectionToggleSetting,
-          subtitle: setting.readMode == 0
-              ? t.reader.readingDirectionToggleDisabled
-              : (setting.readMode == 2
-                    ? t.reader.readingDirectionToggleLeftOpen
-                    : t.reader.readingDirectionToggleRightOpen),
-          value: setting.readingDirectionToggle,
+          title: t.reader.swipePreview,
+          subtitle: t.reader.swipePreviewSubtitle,
+          value: setting.swipePreviewEnabled,
           onChanged: (value) => context.updateEffectiveReadSetting(
             setting,
-            (current) => current.copyWith(readingDirectionToggle: value),
+            (current) => current.copyWith(swipePreviewEnabled: value),
           ),
         ),
-        if (setting.readMode != 0) ...[
-          const SizedBox(height: 10),
-          _SettingsSwitchTile(
-            title: t.reader.swipePreview,
-            subtitle: t.reader.swipePreviewSubtitle,
-            value: setting.swipePreviewEnabled,
-            onChanged: (value) => context.updateEffectiveReadSetting(
-              setting,
-              (current) => current.copyWith(swipePreviewEnabled: value),
-            ),
-          ),
-        ],
-        const SizedBox(height: 10),
-        _SettingsSwitchTile(
-          title: t.reader.readWhileDownloading,
-          subtitle: t.reader.readWhileDownloadingSubtitle,
-          value: setting.readWhileDownloading,
-          onChanged: (value) => context.updateEffectiveReadSetting(
-            setting,
-            (current) => current.copyWith(readWhileDownloading: value),
-          ),
+      _SettingsSwitchTile(
+        title: t.reader.readWhileDownloading,
+        subtitle: t.reader.readWhileDownloadingSubtitle,
+        value: setting.readWhileDownloading,
+        onChanged: (value) => context.updateEffectiveReadSetting(
+          setting,
+          (current) => current.copyWith(readWhileDownloading: value),
         ),
-      ],
-    );
+      ),
+    ]);
   }
 }
 

@@ -95,140 +95,80 @@ class _ReaderSettingsArgs {
       source.trim().isNotEmpty && comicId.trim().isNotEmpty;
 }
 
-/// 面板头部：拖拽条 + MD3 图标文字标签栏 + 关闭。
+/// 只保留一套标题与关闭入口，展开前后共享同一份工具栏。
 class _ReaderSettingsHeader extends StatelessWidget {
-  const _ReaderSettingsHeader({required this.tabs});
-
-  final List<_ReaderSettingsTab> tabs;
+  const _ReaderSettingsHeader({
+    required this.expanded,
+    required this.onToggleExpanded,
+    required this.onDragUpdate,
+    required this.onDragEnd,
+    required this.showDescriptions,
+    required this.onToggleDescriptions,
+  });
+  final bool expanded;
+  final VoidCallback onToggleExpanded;
+  final ValueChanged<double> onDragUpdate;
+  final ValueChanged<double> onDragEnd;
+  final bool showDescriptions;
+  final VoidCallback onToggleDescriptions;
 
   @override
-  Widget build(BuildContext context) {
-    final colorScheme = context.theme.colorScheme;
-    // MD3 主标签栏的文字档位就是 titleSmall；不覆盖字重，交给主题默认值
-    // （选中 primary / 未选中 onSurfaceVariant / 指示条 primary 3dp）。
-    //
-    // 量宽度要用**真正渲染那一份**样式：`Text`（inherit: true）是把自己的 style
-    // 合进 DefaultTextStyle 的，而本仓主题是 `withConfiguredFonts(...)` 出来的 ——
-    // 字体档位那条链可能只改字族、把 fontSize 留成 null。拿原始 token 直接量，
-    // 在 fontSize 为 null 那一档上量到的是回落值，和画出来的宽度不是一回事，
-    // 「什么时候收成仅图标」就会在某个没人注意的字号上开始说假话。
-    final labelStyle = DefaultTextStyle.of(
-      context,
-    ).style.merge(context.theme.textTheme.titleSmall);
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => Navigator.of(context).maybePop(),
-          child: Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(top: 10, bottom: 6),
-              decoration: BoxDecoration(
-                color: colorScheme.outlineVariant.withValues(alpha: 0.8),
-                borderRadius: BorderRadius.circular(999),
+  Widget build(BuildContext context) => ActionBubbleRegion(
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      key: const ValueKey('reader-settings-drag-handle'),
+      onVerticalDragUpdate: (details) => onDragUpdate(details.delta.dy),
+      onVerticalDragEnd: (details) =>
+          onDragEnd(-details.velocity.pixelsPerSecond.dy),
+      onVerticalDragCancel: () => onDragEnd(0),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                t.reader.settings,
+                style: context.theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(8, 0, 8, 2),
-          child: Row(
-            children: [
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    // 挤不下「图标+文字」时只留图标。判据是这一排实测的自然宽度，
-                    // 不是写死的 dp：中文「阅读」两颗字和英文 "Interface" 差一倍多，
-                    // 再加上用户开的字号缩放，任何固定数字都会在某一档说假话。
-                    final iconOnly =
-                        ReaderSettingsTabMetrics.shouldShowIconOnly(
-                          availableWidth: constraints.maxWidth,
-                          labels: [for (final tab in tabs) tab.label],
-                          labelStyle: labelStyle,
-                          scaler: MediaQuery.textScalerOf(context),
-                        );
-                    final controller = DefaultTabController.of(context);
-                    final widths = [
-                      for (final tab in tabs)
-                        ReaderSettingsTabMetrics.tabNaturalWidth(
-                          labelWidth: iconOnly
-                              ? 0
-                              : ReaderSettingsTabMetrics.measureLabelWidth(
-                                  label: tab.label,
-                                  labelStyle: labelStyle,
-                                  scaler: MediaQuery.textScalerOf(context),
-                                ),
-                        ),
-                    ];
-                    return SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: SizedBox(
-                        height: iconOnly
-                            ? ReaderSettingsTabMetrics.compactTabHeight
-                            : ReaderSettingsTabMetrics.textAndIconTabHeight,
-                        child: AnimatedBuilder(
-                          animation: controller,
-                          builder: (context, _) => SpringLensBar(
-                            tabSizes: widths,
-                            selectedIndex: controller.index,
-                            onSelected: controller.animateTo,
-                            tintColor: colorScheme.onSecondaryContainer,
-                            tabs: [
-                              for (final tab in tabs)
-                                SpringLensTab(
-                                  semanticLabel: tab.label,
-                                  tooltip: iconOnly ? tab.label : null,
-                                  child: Center(
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        GlyphIcon(
-                                          tab.icon,
-                                          color: colorScheme.onSurfaceVariant,
-                                        ),
-                                        if (!iconOnly) ...[
-                                          const SizedBox(
-                                            height: ReaderSettingsTabMetrics
-                                                .iconMargin,
-                                          ),
-                                          Text(
-                                            tab.label,
-                                            style: labelStyle.copyWith(
-                                              color:
-                                                  colorScheme.onSurfaceVariant,
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+            ActionBubbleTarget(
+              child: ElasticButton(
+                child: IconButton(
+                  tooltip: t.common.help,
+                  isSelected: showDescriptions,
+                  icon: const GlyphIcon(AppGlyphs.info, size: 20),
+                  onPressed: onToggleDescriptions,
                 ),
               ),
-              IconButton(
-                tooltip: t.common.close,
-                icon: const GlyphIcon(AppGlyphs.close, size: 20),
-                style: IconButton.styleFrom(
-                  backgroundColor: colorScheme.surfaceContainerHighest
-                      .withValues(alpha: 0.4),
-                  visualDensity: VisualDensity.compact,
+            ),
+            ActionBubbleTarget(
+              child: ElasticButton(
+                child: IconButton(
+                  key: const ValueKey('reader-settings-expand'),
+                  tooltip: expanded ? t.common.back : t.reader.fullscreen,
+                  icon: GlyphIcon(
+                    expanded ? AppGlyphs.fullscreenExit : AppGlyphs.fullscreen,
+                    size: 20,
+                  ),
+                  onPressed: onToggleExpanded,
                 ),
+              ),
+            ),
+            ActionBubbleTarget(
+              child: ExpressiveIconButton(
+                key: const ValueKey('reader-settings-close'),
+                glyph: AppGlyphs.close,
+                tooltip: t.common.close,
+                size: 48,
+                shape: ExpressiveButtonShape.circle,
                 onPressed: () => Navigator.of(context).pop(),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ],
-    );
-  }
+      ),
+    ),
+  );
 }

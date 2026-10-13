@@ -53,11 +53,10 @@ class _PerComicScope extends InheritedWidget {
   }
 }
 
+/// 上游 Section 的呈现适配；业务回调与本漫写入路由仍来自原调用方。
 class _SettingsSection extends StatelessWidget {
   final String title;
   final List<Widget> children;
-
-  /// 标题行右侧动作（如本漫 tab 阅读模式旁的“跟随全局”）。
   final Widget? trailing;
 
   const _SettingsSection({
@@ -68,28 +67,38 @@ class _SettingsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                title,
-                style: context.theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            ...?trailing != null ? [trailing!] : null,
-          ],
-        ),
-        const SizedBox(height: 10),
-        for (int i = 0; i < children.length; i++) ...[
-          children[i],
-          if (i != children.length - 1) const SizedBox(height: 10),
-        ],
-      ],
+    final content = <Widget>[];
+    for (var i = 0; i < children.length;) {
+      final child = children[i];
+      if (child is _SettingsSwitchTile) {
+        final toggles = <_SettingsSwitchTile>[];
+        while (i < children.length && children[i] is _SettingsSwitchTile) {
+          toggles.add(children[i++] as _SettingsSwitchTile);
+        }
+        content.add(
+          toggles.length == 1 ? toggles.single : _settingsToggleGroup(toggles),
+        );
+      } else {
+        i++;
+        content.add(
+          child is Wrap && child.children.every((w) => w is _SettingsChoiceChip)
+              ? Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: _SettingsChoiceGroup(
+                    choices: child.children.cast<_SettingsChoiceChip>(),
+                  ),
+                )
+              : child is _SettingsDropdownTile || child is _SettingsSliderCard
+              ? child
+              : Padding(padding: const EdgeInsets.all(12), child: child),
+        );
+      }
+    }
+    return SettingsSection(
+      title: title,
+      icon: _settingsGlyph(title),
+      trailing: trailing,
+      children: [SettingsCardGroup(children: content)],
     );
   }
 }
@@ -98,51 +107,130 @@ class _SettingsChoiceChip extends StatelessWidget {
   final String title;
   final bool selected;
   final VoidCallback onTap;
+  final Glyph? icon;
 
   const _SettingsChoiceChip({
     required this.title,
     required this.selected,
     required this.onTap,
+    this.icon,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final colorScheme = context.theme.colorScheme;
+  Widget build(BuildContext context) =>
+      SettingsChoiceChip(title: title, selected: selected, onTap: onTap);
+}
 
-    return ChoiceChip(
-      label: Text(title),
-      selected: selected,
-      showCheckmark: false,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      visualDensity: VisualDensity.compact,
-      backgroundColor: colorScheme.surfaceContainerHighest.withValues(
-        alpha: 0.45,
-      ),
-      selectedColor: colorScheme.primaryContainer.withValues(alpha: 0.92),
-      side: BorderSide(
-        color: selected
-            ? colorScheme.primary
-            : colorScheme.outlineVariant.withValues(alpha: 0.7),
-        width: selected ? 1.4 : 1,
-      ),
-      labelStyle: context.theme.textTheme.bodyMedium?.copyWith(
-        fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-        color: selected
-            ? colorScheme.onPrimaryContainer
-            : colorScheme.onSurface,
-      ),
-      onSelected: (_) => onTap(),
-    );
-  }
+/// 互斥选项共享 Dock 的惯性 lens；窄屏改为竖轨，避免文字被截断。
+class _SettingsChoiceGroup extends StatelessWidget {
+  const _SettingsChoiceGroup({required this.choices});
+  final List<_SettingsChoiceChip> choices;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final scaler = MediaQuery.textScalerOf(context);
+      final style = DefaultTextStyle.of(
+        context,
+      ).style.merge(context.theme.textTheme.labelLarge);
+      var naturalWidth = 0.0;
+      for (final choice in choices) {
+        final painter = TextPainter(
+          text: TextSpan(text: choice.title, style: style),
+          textScaler: scaler,
+          textDirection: Directionality.of(context),
+        )..layout();
+        final choiceWidth = painter.width + 60;
+        if (choiceWidth > naturalWidth) naturalWidth = choiceWidth;
+        painter.dispose();
+      }
+      // lens 槽位等宽，按最长标签决定横排容量，避免短标签挤出长标签的空间。
+      final vertical = naturalWidth * choices.length > constraints.maxWidth - 8;
+      final extent = (scaler.scale(20) + 32).clamp(52.0, 100.0);
+      return Container(
+        decoration: BoxDecoration(
+          color: context.theme.colorScheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        padding: const EdgeInsets.all(4),
+        child: SizedBox(
+          height: vertical ? choices.length * extent : extent,
+          child: SpringLensBar(
+            axis: vertical ? Axis.vertical : Axis.horizontal,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            selectedIndex: choices.indexWhere((choice) => choice.selected),
+            onSelected: (index) => choices[index].onTap(),
+            lensCorner: 20,
+            tintColor: context.theme.colorScheme.onSecondaryContainer,
+            tabs: [
+              for (final choice in choices)
+                SpringLensTab(
+                  semanticLabel: choice.title,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Center(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          GlyphIcon(
+                            choice.icon ?? _settingsGlyph(choice.title),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              choice.title,
+                              style: style,
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+Glyph _settingsGlyph(String title) {
+  final icons = <String, Glyph>{
+    t.reader.readingMode: AppGlyphs.openBook,
+    t.reader.webtoon: AppGlyphs.layoutList,
+    t.reader.singlePageLtr: AppGlyphs.chevronForward,
+    t.reader.singlePageRtl: AppGlyphs.chevronBack,
+    t.reader.doublePage: AppGlyphs.layers,
+    t.reader.doublePageSeamless: AppGlyphs.link,
+    t.reader.doublePageLeadingBlank: AppGlyphs.add,
+    t.reader.readingDirectionToggleSetting: AppGlyphs.sync,
+    t.reader.swipePreview: AppGlyphs.photos,
+    t.reader.readWhileDownloading: AppGlyphs.cloudDownload,
+    t.reader.themeMode: AppGlyphs.palette,
+    t.common.lightMode: AppGlyphs.sun,
+    t.common.darkMode: AppGlyphs.moon,
+    t.common.followSystem: AppGlyphs.themeAuto,
+    t.reader.pageNumber: AppGlyphs.openBook,
+    t.reader.networkStatus: AppGlyphs.networkCheck,
+    t.reader.battery: AppGlyphs.battery6,
+    t.reader.time: AppGlyphs.clock,
+    t.reader.infoDisplay: AppGlyphs.info,
+    t.reader.preload: AppGlyphs.cloudDownload,
+    t.reader.autoRead: AppGlyphs.playCircle,
+    t.reader.background: AppGlyphs.palette,
+    t.reader.readingExperience: AppGlyphs.sparkle,
+    t.reader.disableAnimation: AppGlyphs.motion,
+    t.reader.readFilter: AppGlyphs.eye,
+    t.reader.einkOptimization: AppGlyphs.openBook,
+    t.reader.sidePadding: AppGlyphs.layers,
+  };
+  return icons[title] ?? AppGlyphs.sliders;
 }
 
 class _SettingsSwitchTile extends StatelessWidget {
-  static const WidgetStateProperty<Icon> _thumbIcon =
-      WidgetStateProperty<Icon>.fromMap(<WidgetStatesConstraint, Icon>{
-        WidgetState.selected: Icon(Icons.check),
-        WidgetState.any: Icon(Icons.close),
-      });
-
   final String title;
   final String subtitle;
   final bool value;
@@ -156,36 +244,12 @@ class _SettingsSwitchTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final colorScheme = context.theme.colorScheme;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.7),
-        ),
-      ),
-      child: ListTile(
-        dense: true,
-        visualDensity: VisualDensity.compact,
-        contentPadding: const EdgeInsets.only(left: 12, right: 8),
-        title: Text(title),
-        subtitle: Text(
-          subtitle,
-          style: context.theme.textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-        trailing: Switch.adaptive(
-          thumbIcon: _thumbIcon,
-          value: value,
-          onChanged: onChanged,
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => SettingsSwitchTile(
+    title: title,
+    subtitle: subtitle,
+    value: value,
+    onChanged: onChanged,
+  );
 }
 
 class _SettingsDropdownTile extends StatelessWidget {
@@ -204,37 +268,13 @@ class _SettingsDropdownTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final colorScheme = context.theme.colorScheme;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.7),
-        ),
-      ),
-      child: ListTile(
-        dense: true,
-        visualDensity: VisualDensity.compact,
-        contentPadding: const EdgeInsets.only(left: 12, right: 8),
-        title: Text(title),
-        subtitle: Text(
-          subtitle,
-          style: context.theme.textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-        trailing: FluentDropdown<int>(
-          value: value,
-          displayValue: value.toString(),
-          items: {for (final option in values) option: option.toString()},
-          onChanged: onChanged,
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => SettingsDropdownTile<int>(
+    title: title,
+    subtitle: subtitle,
+    value: value,
+    values: values,
+    onChanged: onChanged,
+  );
 }
 
 class _SettingsSliderCard extends StatelessWidget {
@@ -259,84 +299,35 @@ class _SettingsSliderCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final colorScheme = context.theme.colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(
-          alpha: enabled ? 0.45 : 0.28,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.7),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(title, style: context.theme.textTheme.bodyMedium),
-              const Spacer(),
-              Text(
-                '$value $suffix',
-                style: context.theme.textTheme.bodyMedium?.copyWith(
-                  color: enabled
-                      ? colorScheme.onSurface
-                      : colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-          Slider(
-            min: min.toDouble(),
-            max: max.toDouble(),
-            divisions: divisions,
-            value: value.clamp(min, max).toDouble(),
-            label: '$value$suffix',
-            onChanged: !enabled
-                ? null
-                : (newValue) {
-                    final nextValue = newValue.round().clamp(min, max);
-                    if (nextValue != value) {
-                      HapticFeedback.selectionClick();
-                      onChanged(nextValue);
-                    }
-                  },
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => SettingsSliderCard(
+    title: title,
+    value: value,
+    min: min,
+    max: max,
+    divisions: divisions,
+    suffix: suffix,
+    enabled: enabled,
+    onChanged: onChanged,
+  );
 }
 
 class _SettingsNoticeCard extends StatelessWidget {
   final String text;
-
   const _SettingsNoticeCard({required this.text});
-
   @override
-  Widget build(BuildContext context) {
-    final colorScheme = context.theme.colorScheme;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: colorScheme.secondaryContainer.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.6),
-        ),
-      ),
-      child: Text(
-        text,
-        style: context.theme.textTheme.bodySmall?.copyWith(
-          color: colorScheme.onSecondaryContainer,
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => SettingsNoticeCard(text: text);
 }
+
+Widget _settingsToggleGroup(List<_SettingsSwitchTile> toggles) =>
+    SettingsToggleGroup(
+      options: [
+        for (final toggle in toggles)
+          SettingsToggleOption(
+            title: toggle.title,
+            description: toggle.subtitle,
+            icon: _settingsGlyph(toggle.title),
+            selected: toggle.value,
+            onChanged: toggle.onChanged,
+          ),
+      ],
+    );
