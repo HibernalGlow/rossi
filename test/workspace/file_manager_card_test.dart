@@ -17,6 +17,7 @@ import 'package:zephyr/workspace/widgets/cards/file_manager_navigation_pad.dart'
 import 'package:zephyr/workspace/widgets/cards/file_manager_content_layout.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view.dart';
 import 'package:zephyr/workspace/widgets/cards/file_manager_thumbnail.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 part 'parts/file_manager_card_test_fakes_part.dart';
 part 'parts/file_manager_card_test_fixture_part.dart';
 part 'parts/file_manager_card_test_helper_part.dart';
@@ -413,14 +414,19 @@ void main() {
       hasLength(1),
     );
 
-    await tester.tap(find.text('清空历史'));
+    await tester.tap(find.byTooltip(t.search.history));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(t.search.clearHistory));
     await tester.pumpAndSettle();
     expect(
       api.callsTo(#crateApiFileManagerSearchFileManagerClearSearchHistory),
       hasLength(1),
     );
     await tester.pumpAndSettle();
-    expect(find.text('旧词'), findsNothing);
+    expect(api.history, isEmpty);
+    await tester.tap(find.byTooltip(t.search.history));
+    await tester.pumpAndSettle();
+    expect(find.text(t.search.noHistory), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
