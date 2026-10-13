@@ -29,6 +29,7 @@ class ReadingStreakCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return CollapsibleCard(
       expressive: true,
+      scrollContent: false,
       cardId: 'reading_streak',
       title: '连续阅读',
       icon: AppGlyphs.fire,
