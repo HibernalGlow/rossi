@@ -400,6 +400,7 @@ void main() {
         'fileManager',
         'operationBinding',
         'workspace',
+        'libraryPresentation',
       ]);
     });
 
