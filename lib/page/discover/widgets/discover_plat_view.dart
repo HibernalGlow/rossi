@@ -8,6 +8,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/discover/service/discover_router.dart';
 import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:zephyr/page/discover/service/discover_tabs.dart';
+import 'package:zephyr/page/discover/service/discover_tab_toolbar.dart';
 import 'package:zephyr/widgets/plat/rossi_plat_pane_probe.dart';
 import 'package:zephyr/widgets/plat/rossi_plat_tab_chip.dart';
 import 'package:zephyr/widgets/plat/rossi_plat_tab_menu.dart';
@@ -79,6 +80,10 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
   /// 还剩多少」。分屏之后每一格宽度都不一样，拿整页尺寸判断「还能不能再切一刀」会对
   /// 已经切过的那一格放行，切出一个摆不下的布局。
   final Map<String, Size> _paneSizes = {};
+  final Map<String, DiscoverTabToolbarController> _tabToolbars = {};
+
+  DiscoverTabToolbarController _toolbarOf(String tabId) =>
+      _tabToolbars.putIfAbsent(tabId, DiscoverTabToolbarController.new);
 
   @override
   void initState() {
@@ -103,6 +108,9 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
   @override
   void dispose() {
     widget.tabs.controller.removeListener(_onTabsChanged);
+    for (final toolbar in _tabToolbars.values) {
+      toolbar.dispose();
+    }
     super.dispose();
   }
 
@@ -238,10 +246,11 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
         tabBuilder: _buildChip,
         trailing: _BarActions(
           vertical: _vertical,
-          onHome: tabs.onHome,
           onSearch: onSearch,
           onCustomizeOrder: onCustomizeOrder,
           tabs: tabs,
+          toolbar: _toolbarOf(tabs.controller.activeTabId(group.id) ?? ''),
+          onHome: tabs.controller.activeTabId(group.id) == DiscoverTabs.homeId,
         ),
       ),
     );
@@ -286,9 +295,16 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
       onSize: (size) {
         if (groupId != null) _paneSizes[groupId] = size;
       },
-      child: DiscoverTabScope(
-        actions: _LeafActions(tabs: tabs, leafId: leaf.id, source: spec.source),
-        child: _leafShortcuts(context, spec.content),
+      child: DiscoverTabToolbarScope(
+        controller: _toolbarOf(leaf.id),
+        child: DiscoverTabScope(
+          actions: _LeafActions(
+            tabs: tabs,
+            leafId: leaf.id,
+            source: spec.source,
+          ),
+          child: _leafShortcuts(context, spec.content),
+        ),
       ),
     );
   }
@@ -427,6 +443,7 @@ class _BarActions extends StatelessWidget {
     required this.onSearch,
     required this.onCustomizeOrder,
     required this.tabs,
+    required this.toolbar,
   });
 
   final bool vertical;
@@ -434,6 +451,7 @@ class _BarActions extends StatelessWidget {
   final VoidCallback onSearch;
   final VoidCallback onCustomizeOrder;
   final DiscoverTabs tabs;
+  final DiscoverTabToolbarController toolbar;
 
   @override
   Widget build(BuildContext context) {
@@ -444,26 +462,39 @@ class _BarActions extends StatelessWidget {
       height: vertical ? ActionGroupMetrics.gapWithinGroup : 0,
     );
 
-    return ActionGroup(
-      axis: vertical ? Axis.vertical : Axis.horizontal,
-      children: [
-        // 「自定义插件顺序」改的是首页那张列表，只在首页摆出来。
-        if (onHome) ...[
+    return ListenableBuilder(
+      listenable: toolbar,
+      builder: (context, _) => ActionGroup(
+        axis: vertical ? Axis.vertical : Axis.horizontal,
+        children: [
+          if (toolbar.presentation != null) ...[
+            Builder(
+              builder: (anchor) => ActionIconButton(
+                glyph: AppGlyphs.palette,
+                tooltip: '展墙设置',
+                onPressed: () => toolbar.presentation?.call(anchor),
+              ),
+            ),
+            gap(),
+          ],
+          // 「自定义插件顺序」改的是首页那张列表，只在首页摆出来。
+          if (onHome) ...[
+            ActionIconButton(
+              glyph: AppGlyphs.sort,
+              tooltip: t.discover.customOrder,
+              onPressed: onCustomizeOrder,
+            ),
+            gap(),
+          ],
           ActionIconButton(
-            glyph: AppGlyphs.sort,
-            tooltip: t.discover.customOrder,
-            onPressed: onCustomizeOrder,
+            glyph: AppGlyphs.search,
+            tooltip: t.discover.search,
+            onPressed: onSearch,
           ),
           gap(),
+          _DisplayOptionsButton(tabs: tabs),
         ],
-        ActionIconButton(
-          glyph: AppGlyphs.search,
-          tooltip: t.discover.search,
-          onPressed: onSearch,
-        ),
-        gap(),
-        _DisplayOptionsButton(tabs: tabs),
-      ],
+      ),
     );
   }
 }
