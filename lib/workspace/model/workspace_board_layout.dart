@@ -114,14 +114,8 @@ class CardLayout {
       other.heightSpan == heightSpan;
 
   @override
-  int get hashCode => Object.hash(
-        panelId,
-        visible,
-        order,
-        expanded,
-        widthSpan,
-        heightSpan,
-      );
+  int get hashCode =>
+      Object.hash(panelId, visible, order, expanded, widthSpan, heightSpan);
 
   @override
   String toString() =>
@@ -355,7 +349,8 @@ class WorkspaceBoardLayout {
           'order': entry.value.order,
           'expanded': entry.value.expanded,
           if (entry.value.widthSpan != null) 'widthSpan': entry.value.widthSpan,
-          if (entry.value.heightSpan != null) 'heightSpan': entry.value.heightSpan,
+          if (entry.value.heightSpan != null)
+            'heightSpan': entry.value.heightSpan,
         },
     },
   };

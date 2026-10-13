@@ -30,8 +30,8 @@ class _DeferredPointerScope extends InheritedWidget {
   const _DeferredPointerScope({required this.targets, required super.child});
 
   static List<_RenderDeferPointer> of(BuildContext context) {
-    final scope =
-        context.dependOnInheritedWidgetOfExactType<_DeferredPointerScope>();
+    final scope = context
+        .dependOnInheritedWidgetOfExactType<_DeferredPointerScope>();
     assert(
       scope != null,
       'DeferPointer needs a DeferredPointerHandler above in the widget tree.',
@@ -102,8 +102,9 @@ class DeferPointer extends SingleChildRenderObjectWidget {
 
   @override
   void updateRenderObject(BuildContext context, RenderObject renderObject) {
-    (renderObject as _RenderDeferPointer).targets =
-        _DeferredPointerScope.of(context);
+    (renderObject as _RenderDeferPointer).targets = _DeferredPointerScope.of(
+      context,
+    );
   }
 }
 

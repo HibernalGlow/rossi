@@ -16,10 +16,7 @@ library;
 
 /// 一个「按本地日历日」切出来的段。
 class ShelfTimelineDay {
-  const ShelfTimelineDay({
-    required this.dayStart,
-    required this.indexes,
-  });
+  const ShelfTimelineDay({required this.dayStart, required this.indexes});
 
   /// 这一天的本地零点。用来算文案与比较，不拿它当键（`DateTime` 相等比较带微秒）。
   final DateTime dayStart;
@@ -78,12 +75,11 @@ String shelfTimelineDayLabel(
   // 有夏令时的时区里「昨天到今天」可能是 23 或 25 小时，`inDays` 向下取整
   // 就把「昨天」读成「今天」。按年月日重建 UTC 零点，差值永远是 24 的整数倍，
   // 与本机时区无关。
-  final daysApart =
-      DateTime.utc(reference.year, reference.month, reference.day)
-          .difference(
-            DateTime.utc(target.year, target.month, target.day),
-          )
-          .inDays;
+  final daysApart = DateTime.utc(
+    reference.year,
+    reference.month,
+    reference.day,
+  ).difference(DateTime.utc(target.year, target.month, target.day)).inDays;
   if (daysApart == 0) return today;
   if (daysApart == 1) return yesterday;
   // 往前跨到去年、或者往后（导入了一条未来时间的记录）都要能认出「不是今年」。

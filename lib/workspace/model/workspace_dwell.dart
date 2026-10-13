@@ -63,11 +63,7 @@ class WorkspaceDwell {
   /// [delayMs] 必须为正：0 延时等于「一停就触发」，指针扫过时画面会横跳，
   /// 那不是「更快」而是「更坏」。非法值按 1ms 处理，把它变成一个「几乎是立刻」
   /// 但仍然过一次事件循环的延时。
-  void enter(
-    String id, {
-    required int nowMs,
-    required int delayMs,
-  }) {
+  void enter(String id, {required int nowMs, required int delayMs}) {
     if (_pendingId == id) return;
     _pendingId = id;
     _delayMs = math.max(1, delayMs);

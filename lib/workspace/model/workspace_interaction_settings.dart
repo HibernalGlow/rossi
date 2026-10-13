@@ -422,7 +422,9 @@ class WorkspaceInteractionSettings {
     revealZones,
     panelTabSortMode,
     Object.hashAllUnordered(
-      laneInteractions.entries.map((entry) => Object.hash(entry.key, entry.value)),
+      laneInteractions.entries.map(
+        (entry) => Object.hash(entry.key, entry.value),
+      ),
     ),
   );
 }

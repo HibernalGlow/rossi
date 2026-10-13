@@ -91,10 +91,7 @@ class LocalFolderCard extends StatelessWidget {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: () => _openLocalPicker(context),
-                    icon: const GlyphIcon(
-                      AppGlyphs.importFile,
-                      size: 16,
-                    ),
+                    icon: const GlyphIcon(AppGlyphs.importFile, size: 16),
                     label: const Text('从本地磁盘选择漫画文件夹'),
                   ),
                 ),
