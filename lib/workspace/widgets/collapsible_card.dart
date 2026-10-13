@@ -1,8 +1,13 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
+import 'package:zephyr/widgets/motion/action_bubble.dart';
+import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/config/global/theme_shape.dart';
 import 'package:zephyr/widgets/expressive/expressive_icon_button.dart';
 import 'package:zephyr/widgets/motion/expressive_motion.dart';
+import 'package:zephyr/widgets/motion/retained_panel_switcher.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_menu_button.dart';
 import 'package:zephyr/workspace/widgets/grid/card_layout_scope.dart';
 
@@ -19,6 +24,7 @@ class CollapsibleCard extends StatelessWidget {
   final VoidCallback onToggle;
   final Widget? trailing;
   final Widget child;
+  final bool expressive;
   final EdgeInsetsGeometry? margin;
   final EdgeInsetsGeometry? contentPadding;
 
@@ -45,6 +51,7 @@ class CollapsibleCard extends StatelessWidget {
     required this.onToggle,
     this.trailing,
     required this.child,
+    this.expressive = false,
     this.margin,
     this.contentPadding,
     this.onMoveUp,
@@ -60,6 +67,10 @@ class CollapsibleCard extends StatelessWidget {
     // MD3 的 filled 卡片靠**容器色**分层，不描边、不投影；圆角跟主题的形状档走。
     final radius = themeRadius(context, fallback: 12);
     final showLayoutControls = layout?.editing == true;
+    final content = Padding(
+      padding: contentPadding ?? const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      child: applyCardGate(child, disabledHint: disabledHint),
+    );
 
     // 卡片可直接挂在泳道/抽屉里，由自身提供与应用同库的 Material。
     // 用 Material 绘制背景并裁剪，保证标题栏和内容的墨水反馈也在圆角内。
@@ -69,7 +80,14 @@ class CollapsibleCard extends StatelessWidget {
       child: Material(
         color: theme.colorScheme.surfaceContainerHigh,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radius),
+          borderRadius: expressive
+              ? const BorderRadius.only(
+                  topLeft: Radius.circular(28),
+                  topRight: Radius.circular(28),
+                  bottomLeft: Radius.circular(12),
+                  bottomRight: Radius.circular(28),
+                )
+              : BorderRadius.circular(radius),
           side: layout?.resizing == true || layout?.dragging == true
               ? BorderSide(color: theme.colorScheme.primary, width: 2)
               : layout?.editing == true
@@ -84,138 +102,208 @@ class CollapsibleCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.passthrough,
           children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 2,
-                  ),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final narrow = constraints.maxWidth < 300;
-                      final titleRegion = Semantics(
-                        button: true,
-                        expanded: isExpanded,
-                        hint: isExpanded ? '点击折叠' : '点击展开',
-                        child: InkWell(
-                          onTap: onToggle,
-                          borderRadius: BorderRadius.circular(10),
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(minHeight: 36),
-                            child: LayoutBuilder(
-                              builder: (context, titleConstraints) => Row(
-                                children: [
-                                  if (titleConstraints.maxWidth >= 64) ...[
-                                    GlyphIcon(
-                                      icon,
-                                      size: 17,
-                                      color: theme.colorScheme.onSurfaceVariant,
+            LayoutBuilder(
+              builder: (context, bounds) => Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 2,
+                    ),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final narrow = constraints.maxWidth < 300;
+                        final titleRegion = Semantics(
+                          button: true,
+                          expanded: isExpanded,
+                          hint: isExpanded ? '点击折叠' : '点击展开',
+                          child: InkWell(
+                            onTap: onToggle,
+                            splashFactory: expressive
+                                ? NoSplash.splashFactory
+                                : null,
+                            overlayColor: expressive
+                                ? const WidgetStatePropertyAll(
+                                    Colors.transparent,
+                                  )
+                                : null,
+                            borderRadius: BorderRadius.circular(10),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: expressive ? 48 : 36,
+                              ),
+                              child: LayoutBuilder(
+                                builder: (context, titleConstraints) => Row(
+                                  children: [
+                                    if (titleConstraints.maxWidth >= 64) ...[
+                                      if (expressive)
+                                        SizedBox(
+                                          width: 36,
+                                          height: 36,
+                                          child: M3EShapeContainer(
+                                            kind: M3EShapeKind.cookie4Sided,
+                                            color: theme
+                                                .colorScheme
+                                                .primaryContainer,
+                                            child: Center(
+                                              child: GlyphIcon(
+                                                icon,
+                                                size: 20,
+                                                color: theme
+                                                    .colorScheme
+                                                    .onPrimaryContainer,
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                      else
+                                        GlyphIcon(
+                                          icon,
+                                          size: 17,
+                                          color: theme
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                        ),
+                                      const SizedBox(width: 8),
+                                    ],
+                                    Expanded(
+                                      child: Text(
+                                        title,
+                                        style: expressive
+                                            ? theme.textTheme.titleMedium
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w700,
+                                                  )
+                                            : theme.textTheme.titleSmall,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
-                                    const SizedBox(width: 8),
                                   ],
-                                  Expanded(
-                                    child: Text(
-                                      title,
-                                      style: theme.textTheme.titleSmall,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      );
-                      final titleRow = Row(
-                        children: [
-                          Expanded(
-                            child:
-                                layout?.wrapHeader(titleRegion) ?? titleRegion,
-                          ),
-                          if (!narrow && trailing != null) ...[
-                            Flexible(child: trailing!),
-                            const SizedBox(width: 6),
-                          ],
-                          if (!narrow && disabledHint != null) ...[
-                            Flexible(child: _DisabledTag(text: disabledHint!)),
-                            const SizedBox(width: 6),
-                          ],
-                          if (showLayoutControls &&
-                              (layout?.onResize != null ||
-                                  layout?.onHide != null ||
-                                  onMoveUp != null ||
-                                  onMoveDown != null ||
-                                  onHide != null))
-                            _buildTrackMenu(context, layout),
-                          if (showLayoutControls)
-                            ExpressiveIconButton(
-                              tooltip: isExpanded ? '折叠$title' : '展开$title',
-                              glyph: AppGlyphs.chevronDown,
-                              active: isExpanded,
-                              activeTurns: .5,
-                              size: 32,
-                              onPressed: onToggle,
-                            ),
-                        ],
-                      );
-                      if (!narrow ||
-                          (trailing == null && disabledHint == null)) {
-                        return titleRow;
-                      }
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          titleRow,
-                          const SizedBox(height: 4),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 4,
-                            children: [
-                              if (trailing != null)
-                                ConstrainedBox(
-                                  constraints: BoxConstraints(
-                                    maxWidth: constraints.maxWidth,
+                        );
+                        final header = expressive
+                            ? ActionBubbleRegion(
+                                child: ActionBubbleTarget(
+                                  enabled: !eInkInstantRoutes,
+                                  child: ElasticPress(
+                                    enabled:
+                                        !eInkInstantRoutes &&
+                                        !MediaQuery.disableAnimationsOf(
+                                          context,
+                                        ),
+                                    child: titleRegion,
                                   ),
-                                  child: trailing!,
                                 ),
-                              if (disabledHint case final hint?)
-                                _DisabledTag(text: hint),
+                              )
+                            : titleRegion;
+                        final titleRow = Row(
+                          children: [
+                            Expanded(
+                              child: layout?.wrapHeader(header) ?? header,
+                            ),
+                            if (!narrow && trailing != null) ...[
+                              Flexible(child: trailing!),
+                              const SizedBox(width: 6),
                             ],
+                            if (!narrow && disabledHint != null) ...[
+                              Flexible(
+                                child: _DisabledTag(text: disabledHint!),
+                              ),
+                              const SizedBox(width: 6),
+                            ],
+                            if (showLayoutControls &&
+                                (layout?.onResize != null ||
+                                    layout?.onHide != null ||
+                                    onMoveUp != null ||
+                                    onMoveDown != null ||
+                                    onHide != null))
+                              _buildTrackMenu(context, layout),
+                            if (showLayoutControls)
+                              ExpressiveIconButton(
+                                tooltip: isExpanded ? '折叠$title' : '展开$title',
+                                glyph: AppGlyphs.chevronDown,
+                                active: isExpanded,
+                                activeTurns: .5,
+                                size: 32,
+                                onPressed: onToggle,
+                              ),
+                          ],
+                        );
+                        if (!narrow ||
+                            (trailing == null && disabledHint == null)) {
+                          return titleRow;
+                        }
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            titleRow,
+                            const SizedBox(height: 4),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 4,
+                              children: [
+                                if (trailing != null)
+                                  ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                      maxWidth: constraints.maxWidth,
+                                    ),
+                                    child: trailing!,
+                                  ),
+                                if (disabledHint case final hint?)
+                                  _DisabledTag(text: hint),
+                              ],
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                  // 网格槽位的尺寸由跨度决定；长内容在卡片内部滚动，标题与手柄留在原位。
+                  if (bounds.hasBoundedHeight)
+                    Expanded(
+                      child: RetainedPanelSwitcher(
+                        selectedId: isExpanded ? 'content' : 'collapsed',
+                        children: {
+                          'content': SingleChildScrollView(
+                            primary: false,
+                            child: content,
                           ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-                // Content
-                AnimatedCrossFade(
-                  firstChild: const SizedBox.shrink(),
-                  secondChild: Padding(
-                    padding:
-                        contentPadding ??
-                        const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                    child: applyCardGate(child, disabledHint: disabledHint),
-                  ),
-                  crossFadeState: isExpanded
-                      ? CrossFadeState.showSecond
-                      : CrossFadeState.showFirst,
-                  duration: ExpressiveMotion.duration(
-                    context,
-                    ExpressiveMotion.spatialDuration,
-                  ),
-                  // 透明度有界，尺寸用弹簧；系统减少动画时直接到达终态。
-                  firstCurve: Curves.easeOut,
-                  secondCurve: Curves.easeOut,
-                  sizeCurve: ExpressiveMotion.spatialCurve,
-                ),
-                if (isExpanded && layout?.resizeHandle != null)
-                  const SizedBox(height: 36),
-              ],
+                          'collapsed': const SizedBox.expand(),
+                        },
+                      ),
+                    )
+                  else
+                    AnimatedCrossFade(
+                      firstChild: const SizedBox.shrink(),
+                      secondChild: content,
+                      crossFadeState: isExpanded
+                          ? CrossFadeState.showSecond
+                          : CrossFadeState.showFirst,
+                      duration: eInkInstantRoutes
+                          ? Duration.zero
+                          : ExpressiveMotion.duration(
+                              context,
+                              ExpressiveMotion.spatialDuration,
+                            ),
+                      firstCurve: Curves.easeOut,
+                      secondCurve: Curves.easeOut,
+                      sizeCurve: ExpressiveMotion.spatialCurve,
+                    ),
+                  if (isExpanded && layout?.resizeHandle != null)
+                    SizedBox(
+                      height: bounds.hasBoundedHeight
+                          ? (bounds.maxHeight * .2).clamp(0, 36)
+                          : 36,
+                    ),
+                ],
+              ),
             ),
             if (isExpanded && layout?.resizeHandle != null)
               Positioned(

@@ -3,6 +3,7 @@ import 'package:zephyr/workspace/model/history_insights.dart';
 import 'package:zephyr/workspace/widgets/cards/history_insights_window.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/workspace/widgets/insights/trend_views.dart';
 
 /// 近 7 日阅读趋势（neoview `DailyTrendCard` 的同位物）。
 ///
@@ -27,6 +28,7 @@ class DailyTrendCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CollapsibleCard(
+      expressive: true,
       cardId: 'daily_trend',
       title: '近 7 日阅读趋势',
       icon: AppGlyphs.trend,
@@ -37,86 +39,8 @@ class DailyTrendCard extends StatelessWidget {
       onHide: onHide,
       child: HistoryInsightsWindow(
         builder: (context, events) =>
-            _Content(summary: buildDailyTrend(events)),
+            DailyTrendView(summary: buildDailyTrend(events)),
       ),
-    );
-  }
-}
-
-class _Content extends StatelessWidget {
-  const _Content({required this.summary});
-
-  final DailyTrendSummary summary;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final up = summary.deltaPercent >= 0;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                '本周共 ${summary.currentWeek} 次访问',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Text(
-              '${up ? '+' : ''}${summary.deltaPercent}% 对比上周',
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: up ? theme.colorScheme.primary : theme.colorScheme.error,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: 82,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (final day in summary.days)
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: Tooltip(
-                      message: '${day.key}：${day.count} 次',
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: InsightBar(
-                              ratio: day.count / summary.maxCount,
-                              // 只有「就是最高那天」才描实色，全 0 时不该有一根是实的。
-                              highlighted:
-                                  day.count > 0 &&
-                                  day.count == summary.maxCount,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            day.label,
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

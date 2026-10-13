@@ -5,6 +5,7 @@ import 'package:zephyr/workspace/model/shelf_library_query.dart';
 import 'package:zephyr/workspace/widgets/cards/history_insights_window.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/workspace/widgets/insights/source_mix_view.dart';
 
 /// 来源拆分（neoview `SourceBreakdownCard` 的同位物）。
 ///
@@ -32,6 +33,7 @@ class SourceBreakdownCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CollapsibleCard(
+      expressive: true,
       cardId: 'source_breakdown',
       title: '来源拆分',
       icon: AppGlyphs.pieChart,
@@ -42,82 +44,14 @@ class SourceBreakdownCard extends StatelessWidget {
       onHide: onHide,
       child: HistoryInsightsWindow(
         skeletonHeight: 72,
-        builder: (context, events) =>
-            _Content(summary: buildSourceBreakdown(events)),
+        builder: (context, events) {
+          final names = pluginDisplayNames();
+          return SourceMixView(
+            summary: buildSourceBreakdown(events),
+            sourceLabel: (key) => _sourceLabel(names, key),
+          );
+        },
       ),
-    );
-  }
-}
-
-class _Content extends StatelessWidget {
-  const _Content({required this.summary});
-
-  final SourceBreakdownSummary summary;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    // 插件 id 是一串 uuid，摆在行上等于没显示；一次取全表，别让每行去问数据库。
-    final pluginNames = pluginDisplayNames();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                '样本窗口',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-            Text(
-              '${summary.total} 条',
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        for (final item in summary.items)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _sourceLabel(pluginNames, item.source),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ),
-                    Text(
-                      '${item.count} (${item.percent}%)',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: LinearProgressIndicator(
-                    value: item.percent / 100,
-                    minHeight: 6,
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
     );
   }
 }

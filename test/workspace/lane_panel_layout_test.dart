@@ -21,6 +21,7 @@ void main() {
     final cubit = WorkspaceCubit();
     addTearDown(cubit.close);
     cubit.setActivePanel(LaneId.left, WorkspacePanelId.insights);
+    cubit.resizeCardInPanel('daily_trend', 2, 1);
     await tester.pumpWidget(
       MaterialApp(
         home: BlocProvider.value(
@@ -37,7 +38,7 @@ void main() {
     // ObjectBox 查询由真实 IO 派发，让占位加载先到达稳定状态。
     for (
       var i = 0;
-      i < 50 && find.text('暂无历史访问记录').evaluate().length < 4;
+      i < 50 && find.text('暂无历史访问记录').evaluate().length < 8;
       i++
     ) {
       await tester.runAsync(
@@ -45,7 +46,7 @@ void main() {
       );
       await tester.pump();
     }
-    expect(find.text('暂无历史访问记录'), findsNWidgets(4));
+    expect(find.text('暂无历史访问记录'), findsNWidgets(8));
     await tester.pumpAndSettle();
     final card = find.byWidgetPredicate(
       (widget) => widget is CollapsibleCard && widget.cardId == 'daily_trend',
