@@ -29,6 +29,7 @@ class ReadingHeatmapCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return CollapsibleCard(
       expressive: true,
+      scrollContent: false,
       cardId: 'reading_heatmap',
       title: '阅读热力',
       icon: AppGlyphs.calendar,

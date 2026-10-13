@@ -4,6 +4,8 @@ import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/common_popup.dart';
 import 'package:zephyr/workspace/model/history_insights.dart';
 import 'package:zephyr/workspace/model/history_insight_activity.dart';
+import 'package:zephyr/workspace/model/heatmap_buckets.dart';
+import 'package:zephyr/workspace/widgets/insights/insight_sections.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/grid/grid.dart';
 import 'package:zephyr/workspace/widgets/grid/card_layout_scope.dart';
@@ -29,6 +31,7 @@ Widget shell(Widget child) => CollapsibleCard(
   isExpanded: true,
   onToggle: () {},
   expressive: true,
+  scrollContent: child is! ReadingStreakView && child is! ReadingHeatmapView,
   margin: EdgeInsets.zero,
   child: child,
 );
@@ -62,6 +65,88 @@ Map<String, Widget Function()> views() {
 }
 
 void main() {
+  test('热力时段汇总保留七个星期和全部记录', () {
+    final heatmap = buildReadingHeatmap(samples);
+    for (final hours in [1, 2, 6]) {
+      final buckets = heatmapBuckets(heatmap, hours);
+      expect(buckets.length, 7 * 24 ~/ hours);
+      expect(buckets.map((bucket) => bucket.weekday).toSet().length, 7);
+      expect(
+        buckets.fold(0, (sum, bucket) => sum + bucket.count),
+        heatmap.cells.fold(0, (sum, cell) => sum + cell.count),
+      );
+      for (final bucket in buckets) {
+        expect(
+          bucket.count,
+          heatmap.cells
+              .where(
+                (cell) =>
+                    cell.weekday == bucket.weekday &&
+                    cell.hour >= bucket.firstHour &&
+                    cell.hour < bucket.firstHour + hours,
+              )
+              .fold(0, (sum, cell) => sum + cell.count),
+        );
+      }
+    }
+  });
+  testWidgets('连续阅读按语义上下切段，切换和调整宽度不滚动、不改外框', (tester) async {
+    Widget card(double width) => host(
+      SizedBox(
+        width: width,
+        height: 288,
+        child: shell(
+          ReadingStreakView(summary: buildReadingStreak(samples, now: now)),
+        ),
+      ),
+      animations: true,
+    );
+    await tester.pumpWidget(card(400));
+    await tester.pumpAndSettle();
+    expect(find.text('摘要 · 1/2'), findsOneWidget);
+    expect(find.byType(SingleChildScrollView), findsNothing);
+    final rect = tester.getRect(find.byType(CollapsibleCard));
+    await tester.tap(find.byTooltip('下一段'));
+    await tester.pump(const Duration(milliseconds: 80));
+    expect(tester.getRect(find.byType(CollapsibleCard)), rect);
+    await tester.pumpAndSettle();
+    expect(find.text('趋势 · 2/2'), findsOneWidget);
+    await tester.pumpWidget(card(240));
+    await tester.pumpAndSettle();
+    expect(find.text('趋势 · 2/2'), findsOneWidget);
+    await tester.tap(find.byTooltip('上一段'));
+    await tester.pumpAndSettle();
+    expect(find.text('摘要 · 1/2'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('小热力图保留完整七行，极小卡片通过统一弹层展开详情', (tester) async {
+    Widget card(Size size) => host(
+      SizedBox(
+        width: size.width,
+        height: size.height,
+        child: shell(ReadingHeatmapView(summary: buildReadingHeatmap(samples))),
+      ),
+    );
+    await tester.pumpWidget(card(const Size(240, 384)));
+    await tester.pumpAndSettle();
+    expect(find.byType(SingleChildScrollView), findsNothing);
+    expect(find.textContaining('6 小时/格'), findsOneWidget);
+    for (final day in weekdayLabels) {
+      expect(find.text(day), findsOneWidget);
+    }
+    await tester.pumpWidget(card(const Size(240, 192)));
+    await tester.pumpAndSettle();
+    expect(find.byType(SingleChildScrollView), findsNothing);
+    final rect = tester.getRect(find.byType(CollapsibleCard));
+    await tester.tap(find.byType(InsightDetailButton));
+    await tester.pumpAndSettle();
+    expect(find.text('关闭'), findsOneWidget);
+    expect(find.byType(ReadingHeatmapView), findsNWidgets(2));
+    await tester.tap(find.text('关闭'));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(find.byType(CollapsibleCard)), rect);
+    expect(tester.takeException(), isNull);
+  });
   for (final entry in views().entries) {
     testWidgets('${entry.key} 窄宽卡片、大字号和不同槽高保持外框不变', (tester) async {
       for (final size in [
