@@ -7,6 +7,8 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/search/search_history_field.dart';
+import 'package:zephyr/widgets/search/search_history_store.dart';
 
 @RoutePage()
 class FontSettingPage extends StatefulWidget {
@@ -400,7 +402,8 @@ class _SystemFamilyPickerDialogState extends State<_SystemFamilyPickerDialog> {
         height: 420,
         child: Column(
           children: [
-            TextField(
+            SearchHistoryField(
+              history: SearchHistoryStore.local('font-family'),
               autofocus: true,
               decoration: InputDecoration(
                 hintText: t.fontSetting.familySearchHint,

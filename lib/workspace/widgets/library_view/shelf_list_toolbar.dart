@@ -8,6 +8,8 @@ import 'package:zephyr/widgets/motion/expressive_motion.dart';
 import 'package:zephyr/workspace/model/shelf_library_query.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view_mode.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_menu_button.dart';
+import 'package:zephyr/widgets/search/search_history_field.dart';
+import 'package:zephyr/widgets/search/search_history_store.dart';
 
 /// 书签 / 历史面板的工具栏：视图模式 + 排序 + 搜索 + 导入导出 + 计数。
 ///
@@ -42,6 +44,7 @@ class ShelfListToolbar extends StatefulWidget {
     this.timelineOn = false,
     this.onTimeline,
     this.busy = false,
+    this.historyScope = 'library-filter',
     this.searchHint = '搜索标题 / 作者 / 来源',
   });
 
@@ -80,6 +83,7 @@ class ShelfListToolbar extends StatefulWidget {
   /// 有请求在飞（正在读写文件）：整组禁用，避免叠动作。
   final bool busy;
   final String searchHint;
+  final String historyScope;
 
   @override
   State<ShelfListToolbar> createState() => _ShelfListToolbarState();
@@ -285,10 +289,10 @@ class _ShelfListToolbarState extends State<ShelfListToolbar> {
 
   /// 搜索独立向下展开；填充圆角容器承接焦点，不画移动椭圆。
   Widget _buildSearchField(BuildContext context) {
-    return TextField(
+    return SearchHistoryField(
+      history: SearchHistoryStore.local(widget.historyScope),
       controller: widget.searchController,
       autofocus: true,
-      textInputAction: TextInputAction.search,
       style: Theme.of(context).textTheme.bodySmall,
       decoration: InputDecoration(
         isDense: true,

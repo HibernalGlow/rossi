@@ -18,6 +18,7 @@ import 'package:zephyr/widgets/common_popup.dart';
 import 'package:zephyr/widgets/navigation/panel_switcher_tabs.dart';
 import 'package:zephyr/page/bookshelf/widgets/bookshelf_panels.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/widgets/search/search_history_store.dart';
 
 @RoutePage()
 class BookshelfPage extends StatelessWidget {
@@ -326,6 +327,7 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent> {
           return ShelfSearchField(
             key: key,
             query: query,
+            historyScope: 'bookshelf.${_currentMode().name}',
             focusNode: _searchFocusNode,
             hintText: t.bookshelf.searchList,
             onChanged: onChanged,
@@ -333,6 +335,8 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent> {
           );
         }
         return SearchQueryField(
+          history: SearchHistoryStore.local('bookshelf.${_currentMode().name}'),
+          recordHistoryOnBlur: true,
           key: key,
           query: query,
           focusNode: _searchFocusNode,

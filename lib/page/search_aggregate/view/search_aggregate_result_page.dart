@@ -20,6 +20,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/search_aggregate/cubit/search_aggregate_cubit.dart';
 import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/page/search/model/plugin_search_history_store.dart';
 
 @RoutePage()
 class SearchAggregateResultPage extends StatelessWidget
@@ -89,18 +90,10 @@ class _SearchAggregateResultPageState
       }
       final historyItem = _buildHistoryItem(widget.searchEvent);
       final settingCubit = context.read<GlobalSettingCubit>();
-      final history = settingCubit.state.searchHistory.toList();
-      history
-        ..remove(historyItem)
-        ..insert(0, historyItem);
-      await Future.delayed(const Duration(milliseconds: 200));
-      if (!mounted) {
-        return;
-      }
-      settingCubit.updateState(
-        (current) =>
-            current.copyWith(searchHistory: history.take(200).toList()),
-      );
+      await PluginSearchHistoryStore(
+        settingCubit,
+        historyItem.source,
+      ).record(historyItem.keyword);
     });
   }
 
@@ -167,6 +160,10 @@ class _SearchBarTrigger extends StatelessWidget {
           Expanded(
             child: SearchQueryField(
               query: searchEvent.searchStates.searchKeyword,
+              history: PluginSearchHistoryStore(
+                context.read<GlobalSettingCubit>(),
+                kAggregateSearchSource,
+              ),
               hintText: t.search.searchHint,
               semanticLabel: t.search.title,
               onTap: () => _openSearchPage(context),

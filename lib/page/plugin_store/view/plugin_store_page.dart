@@ -10,6 +10,8 @@ import 'package:zephyr/page/plugin_store/widgets/plugin_store_status_banner.dart
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/search/search_history_field.dart';
+import 'package:zephyr/widgets/search/search_history_store.dart';
 
 @RoutePage()
 class PluginStorePage extends StatelessWidget {
@@ -81,7 +83,8 @@ class _PluginStorePageContentState extends State<_PluginStorePageContent> {
   }
 
   Widget _buildSearchCard(ColorScheme colorScheme, bool installing) {
-    return TextField(
+    return SearchHistoryField(
+      history: SearchHistoryStore.local('plugin-store'),
       controller: _searchController,
       enabled: !installing,
       decoration: InputDecoration(

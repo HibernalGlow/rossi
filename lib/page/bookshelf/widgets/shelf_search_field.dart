@@ -5,12 +5,15 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/navigation/navigation_shape.dart';
+import 'package:zephyr/widgets/search/search_history_field.dart';
+import 'package:zephyr/widgets/search/search_history_store.dart';
 
 /// 书架内联搜索框。随工具栏展开直接挂载输入框，不等待浮层或路由动画。
 class ShelfSearchField extends StatefulWidget {
   const ShelfSearchField({
     super.key,
     required this.query,
+    this.historyScope = 'bookshelf',
     required this.focusNode,
     required this.hintText,
     required this.onChanged,
@@ -18,6 +21,7 @@ class ShelfSearchField extends StatefulWidget {
   });
 
   final String query;
+  final String historyScope;
   final FocusNode focusNode;
   final String hintText;
   final ValueChanged<String> onChanged;
@@ -65,12 +69,11 @@ class _ShelfSearchFieldState extends State<ShelfSearchField> {
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: TextField(
+              child: SearchHistoryField(
+                history: SearchHistoryStore.local(widget.historyScope),
                 controller: _controller,
                 focusNode: widget.focusNode,
                 autofocus: true,
-                keyboardType: TextInputType.text,
-                textInputAction: TextInputAction.search,
                 minLines: 1,
                 maxLines: 6,
                 inputFormatters: [
@@ -81,7 +84,6 @@ class _ShelfSearchFieldState extends State<ShelfSearchField> {
                   widget.onChanged(value);
                 },
                 // 默认 search 动作会先失焦；书架提交后继续输入。
-                onEditingComplete: () {},
                 onSubmitted: (value) {
                   widget.onSubmitted(value.trim());
                   widget.focusNode.requestFocus();

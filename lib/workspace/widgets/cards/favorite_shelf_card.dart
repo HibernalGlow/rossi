@@ -232,6 +232,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
             _rememberViewState();
           },
           searchController: _searchController,
+          historyScope: 'bookmarks',
           onKeywordChanged: (value) => setState(() => _keyword = value),
           count: rows.length,
           busy: _busy,

@@ -12,6 +12,7 @@ import 'package:zephyr/page/search_result/search_result.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_mapper.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/page/search/model/plugin_search_history_store.dart';
 
 @RoutePage()
 class SearchResultPage extends StatelessWidget implements AutoRouteWrapper {
@@ -88,15 +89,10 @@ class _SearchResultPageState extends State<_SearchResultPage>
       if (keyword.isEmpty) return;
       final historyItem = _buildHistoryItem(widget.searchEvent);
       final settingCubit = context.read<GlobalSettingCubit>();
-      final history = settingCubit.state.searchHistory.toList();
-      history
-        ..remove(historyItem)
-        ..insert(0, historyItem);
-      await Future.delayed(const Duration(milliseconds: 200));
-      settingCubit.updateState(
-        (current) =>
-            current.copyWith(searchHistory: history.take(300).toList()),
-      );
+      await PluginSearchHistoryStore(
+        settingCubit,
+        historyItem.source,
+      ).record(historyItem.keyword);
     });
   }
 

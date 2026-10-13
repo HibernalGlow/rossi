@@ -13,6 +13,8 @@ import 'package:zephyr/widgets/multi_choice_list_dialog.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/page/search/model/plugin_search_history_store.dart';
 
 class SearchResultBar extends StatelessWidget implements PreferredSizeWidget {
   final SearchEvent searchEvent;
@@ -46,6 +48,10 @@ class SearchResultBar extends StatelessWidget implements PreferredSizeWidget {
               child: BlocBuilder<SearchCubit, SearchStates>(
                 builder: (context, state) => SearchQueryField(
                   query: state.searchKeyword,
+                  history: PluginSearchHistoryStore(
+                    context.read<GlobalSettingCubit>(),
+                    state.from,
+                  ),
                   hintText: t.search.searchHint,
                   semanticLabel: t.search.title,
                   onTap: () => _openSearchPage(context),
