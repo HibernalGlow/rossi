@@ -1822,6 +1822,24 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '工具栏'
 	String get fileManagerSectionToolbar => '工具栏';
 
+	/// zh-CN: '面包屑样式'
+	String get breadcrumbStyle => '面包屑样式';
+
+	/// zh-CN: '克制型'
+	String get breadcrumbRestrained => '克制型';
+
+	/// zh-CN: '规整圆角与轻量强调，适合日常浏览'
+	String get breadcrumbRestrainedHint => '规整圆角与轻量强调，适合日常浏览';
+
+	/// zh-CN: '强表现型'
+	String get breadcrumbExpressive => '强表现型';
+
+	/// zh-CN: '柔和起伏与异形端点，突出当前目录'
+	String get breadcrumbExpressiveHint => '柔和起伏与异形端点，突出当前目录';
+
+	/// zh-CN: '展开上级路径'
+	String get breadcrumbAncestors => '展开上级路径';
+
 	/// zh-CN: '浏览视图'
 	String get fileManagerSectionView => '浏览视图';
 
@@ -7261,6 +7279,12 @@ extension on Translations {
 			'settings.fileManagerOpenHomeOnStart' => '启动时默认打开主页',
 			'settings.fileManagerOpenHomeOnStartSubtitle' => '文件管理器打开时直接落在主页目录；该目录已不存在时回退到就近还在的目录',
 			'settings.fileManagerSectionToolbar' => '工具栏',
+			'settings.breadcrumbStyle' => '面包屑样式',
+			'settings.breadcrumbRestrained' => '克制型',
+			'settings.breadcrumbRestrainedHint' => '规整圆角与轻量强调，适合日常浏览',
+			'settings.breadcrumbExpressive' => '强表现型',
+			'settings.breadcrumbExpressiveHint' => '柔和起伏与异形端点，突出当前目录',
+			'settings.breadcrumbAncestors' => '展开上级路径',
 			'settings.fileManagerSectionView' => '浏览视图',
 			'settings.fileManagerRememberViewState' => '记住每个目录的视图与排序',
 			'settings.fileManagerRememberViewStateSubtitle' => '每个目录各自记住视图、排序与筛选；关闭后浏览照常，只是不再记忆',

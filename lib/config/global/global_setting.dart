@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:zephyr/i18n/i18n_helper.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/type/breadcrumb_style.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/page/comic_read/model/reader_presentation.dart';
 import 'package:zephyr/page/search/model/search_history_entry.dart';

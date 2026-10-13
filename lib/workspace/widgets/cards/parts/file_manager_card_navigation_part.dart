@@ -77,62 +77,37 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
         ),
       );
     }
-    if (_breadcrumbRevealedPath != snapshot.activePath) {
-      _breadcrumbRevealedPath = snapshot.activePath;
-      _revealTail(_breadcrumbScroll);
-    }
-    return Row(
-      children: [
-        Expanded(
-          child: ScrollConfiguration(
-            behavior: ScrollConfiguration.of(
-              context,
-            ).copyWith(scrollbars: false),
-            child: SingleChildScrollView(
-              key: const ValueKey('file-manager-breadcrumb-scroll'),
-              controller: _breadcrumbScroll,
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  for (final part in snapshot.breadcrumbs) ...[
-                    if (!part.isRoot)
-                      const GlyphIcon(AppGlyphs.chevronForward, size: 14),
-                    Tooltip(
-                      message: part.path,
-                      child: TextButton(
-                        key: ValueKey('file-manager-breadcrumb:${part.path}'),
-                        onPressed: _busy
-                            ? null
-                            : part.isCurrent
-                            ? () => _editPath(snapshot)
-                            : () => _apply(
-                                (id) => fileManagerNavigate(
-                                  id: id,
-                                  path: part.path,
-                                ),
-                              ),
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 160),
-                          child: Text(
-                            part.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
+    final style = context.select<GlobalSettingCubit, BreadcrumbStyle>(
+      (cubit) => cubit.state.fileManagerSetting.breadcrumbStyle,
+    );
+    return PathBreadcrumb(
+      style: style,
+      enabled: !_busy,
+      animate: !eInkInstantRoutes,
+      overflowLabel: t.settings.breadcrumbAncestors,
+      viewportKey: const ValueKey('file-manager-breadcrumb-scroll'),
+      itemKey: (entry) => ValueKey('file-manager-breadcrumb:${entry.id}'),
+      entries: [
+        for (final part in snapshot.breadcrumbs)
+          PathCrumb(
+            id: part.path,
+            label: part.name,
+            isRoot: part.isRoot,
+            isCurrent: part.isCurrent,
           ),
-        ),
-        _buildPathActionsMenu(
-          context,
-          snapshot,
-          showTabActions: snapshot.tabs.length <= 1,
-        ),
       ],
+      onSelected: (entry) {
+        if (entry.isCurrent) {
+          _editPath(snapshot);
+        } else {
+          _apply((id) => fileManagerNavigate(id: id, path: entry.id));
+        }
+      },
+      trailing: _buildPathActionsMenu(
+        context,
+        snapshot,
+        showTabActions: snapshot.tabs.length <= 1,
+      ),
     );
   }
 
@@ -153,9 +128,9 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
     return CommonPopupBox(
       targetBuilder: (open) => IconButton(
         tooltip: '路径操作',
-        visualDensity: VisualDensity.compact,
+        style: ElasticPress.buttonStyle,
         onPressed: !_busy ? open : null,
-        icon: const GlyphIcon(AppGlyphs.more, size: 18),
+        icon: const GlyphIcon(AppGlyphs.chevronDown, size: 20),
       ),
       popupBuilder: (_) => CommonPopupMenu(
         items: [
