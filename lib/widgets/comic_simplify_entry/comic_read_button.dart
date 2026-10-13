@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/comic_info/models/read_entry_placement.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/motion/expressive_motion.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 封面正中间的「直接阅读」按钮：点它就不进详情页，直接起读。
 ///
@@ -27,6 +29,8 @@ class ComicReadButton extends StatefulWidget {
     required this.onTap,
     this.onHover,
     this.size,
+    this.alignment = Alignment.center,
+    this.padding = EdgeInsets.zero,
   });
 
   /// 起读动作。返回的 Future 结束前按钮保持转圈，所以远程漫画回源那一次
@@ -41,6 +45,8 @@ class ComicReadButton extends StatefulWidget {
 
   /// 圆圈直径。null 表示按所在盒子的短边自己算 —— 库视图的格子多大只有布局时才知道。
   final double? size;
+  final Alignment alignment;
+  final EdgeInsets padding;
 
   @override
   State<ComicReadButton> createState() => _ComicReadButtonState();
@@ -48,6 +54,7 @@ class ComicReadButton extends StatefulWidget {
 
 class _ComicReadButtonState extends State<ComicReadButton> {
   bool _hovered = false;
+  bool _focused = false;
 
   /// 远程漫画要先回源问一次插件详情，转圈表示「正在起读」，同时挡住连点。
   bool _busy = false;
@@ -55,7 +62,7 @@ class _ComicReadButtonState extends State<ComicReadButton> {
   /// 桌面端悬停才浮出；触屏端常显。忙的时候一律显形，否则进度圈看不见。
   bool get _revealed => shouldRevealComicReadButton(
     hasPointer: comicInfoPlatformHasPointer(defaultTargetPlatform),
-    hovered: _hovered,
+    hovered: _hovered || _focused,
     busy: _busy,
   );
 
@@ -88,6 +95,7 @@ class _ComicReadButtonState extends State<ComicReadButton> {
   }
 
   Widget _buildReveal(BuildContext context, double diameter) {
+    final reduced = MediaQuery.disableAnimationsOf(context);
     return MouseRegion(
       hitTestBehavior: HitTestBehavior.translucent,
       onEnter: (_) {
@@ -100,13 +108,19 @@ class _ComicReadButtonState extends State<ComicReadButton> {
       child: IgnorePointer(
         ignoring: !_revealed,
         child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 120),
+          duration: reduced ? Duration.zero : ExpressiveMotion.effectDuration,
           opacity: _revealed ? 1 : 0,
           child: AnimatedScale(
-            duration: const Duration(milliseconds: 120),
+            duration: reduced ? Duration.zero : ExpressiveMotion.effectDuration,
             // 只靠透明度浮出会显得「闪了一下」，配一点缩放像按钮弹出来。
             scale: _revealed ? 1 : 0.82,
-            child: Center(child: _buildCircle(context, diameter)),
+            child: Padding(
+              padding: widget.padding,
+              child: Align(
+                alignment: widget.alignment,
+                child: _buildCircle(context, diameter),
+              ),
+            ),
           ),
         ),
       ),
@@ -115,44 +129,43 @@ class _ComicReadButtonState extends State<ComicReadButton> {
 
   Widget _buildCircle(BuildContext context, double diameter) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(diameter),
-        onTap: _onTap,
-        child: Container(
-          width: diameter,
-          height: diameter,
-          decoration: BoxDecoration(
-            color: colorScheme.scrim.withValues(alpha: 0.55),
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: colorScheme.onInverseSurface.withValues(alpha: 0.85),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.scrim.withValues(alpha: 0.35),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: _busy
-              ? Padding(
-                  padding: EdgeInsets.all(diameter * 0.26),
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      colorScheme.onInverseSurface,
-                    ),
+    return Semantics(
+      button: true,
+      label: t.comicInfo.startRead,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(diameter),
+          onTap: _onTap,
+          onFocusChange: (v) => setState(() => _focused = v),
+          child: SizedBox.square(
+            dimension: diameter < 24 ? diameter : math.max(48, diameter),
+            child: Center(
+              child: Container(
+                width: diameter,
+                height: diameter,
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer.withValues(
+                    alpha: _busy || _hovered || _focused ? .92 : .60,
                   ),
-                )
-              : GlyphIcon(
-                  AppGlyphs.play,
-                  size: diameter * 0.62,
-                  color: colorScheme.onInverseSurface,
+                  shape: BoxShape.circle,
                 ),
+                child: _busy
+                    ? Padding(
+                        padding: EdgeInsets.all(diameter * .26),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: colorScheme.onPrimaryContainer,
+                        ),
+                      )
+                    : GlyphIcon(
+                        AppGlyphs.play,
+                        size: diameter * .62,
+                        color: colorScheme.onPrimaryContainer,
+                      ),
+              ),
+            ),
+          ),
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'package:zephyr/widgets/library_image_geometry.dart';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -359,18 +360,32 @@ class _ReaderThumbnailWidgetState extends State<ReaderThumbnailWidget> {
       if (_isLoadingLocal) {
         content = _buildPlaceholder(theme);
       } else if (_archiveBytes != null) {
-        content = Image.memory(
-          _archiveBytes!,
-          fit: widget.fit,
-          cacheWidth: 320,
-          errorBuilder: (_, _, _) => _buildError(theme),
+        content = LibraryImageGeometryReporter(
+          provider: ResizeImage.resizeIfNeeded(
+            320,
+            null,
+            MemoryImage(_archiveBytes!),
+          ),
+          child: Image.memory(
+            _archiveBytes!,
+            fit: widget.fit,
+            cacheWidth: 320,
+            errorBuilder: (_, _, _) => _buildError(theme),
+          ),
         );
       } else if (_localDirectPath != null) {
-        content = Image.file(
-          File(_localDirectPath!),
-          fit: widget.fit,
-          cacheWidth: 320,
-          errorBuilder: (_, _, _) => _buildError(theme),
+        content = LibraryImageGeometryReporter(
+          provider: ResizeImage.resizeIfNeeded(
+            320,
+            null,
+            FileImage(File(_localDirectPath!)),
+          ),
+          child: Image.file(
+            File(_localDirectPath!),
+            fit: widget.fit,
+            cacheWidth: 320,
+            errorBuilder: (_, _, _) => _buildError(theme),
+          ),
         );
       } else {
         content = _buildError(theme);
@@ -401,11 +416,18 @@ class _ReaderThumbnailWidgetState extends State<ReaderThumbnailWidget> {
               case PictureLoadStatus.success:
                 final imagePath = state.imagePath;
                 if (imagePath != null && File(imagePath).existsSync()) {
-                  return Image.file(
-                    File(imagePath),
-                    fit: widget.fit,
-                    cacheWidth: 320,
-                    errorBuilder: (_, _, _) => _buildError(theme),
+                  return LibraryImageGeometryReporter(
+                    provider: ResizeImage.resizeIfNeeded(
+                      320,
+                      null,
+                      FileImage(File(imagePath)),
+                    ),
+                    child: Image.file(
+                      File(imagePath),
+                      fit: widget.fit,
+                      cacheWidth: 320,
+                      errorBuilder: (_, _, _) => _buildError(theme),
+                    ),
                   );
                 }
                 return _buildError(theme);

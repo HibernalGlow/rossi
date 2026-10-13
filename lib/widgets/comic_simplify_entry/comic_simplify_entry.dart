@@ -1,117 +1,27 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:zephyr/config/global/global_setting.dart';
-import 'package:zephyr/config/global/theme_shape.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:uuid/uuid.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/type/pipe.dart';
-import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
+import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 import 'package:zephyr/main.dart';
-import 'package:zephyr/network/http/plugin/qjs_download_runtime.dart';
 import 'package:zephyr/network/http/picture/picture.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/cubit/string_select.dart';
-import 'package:zephyr/util/comic/chinese_translation_matcher.dart';
-import 'package:zephyr/util/comic/comic_card_badge_policy.dart';
-import 'package:zephyr/util/comic/comic_quick_read.dart';
-import 'package:zephyr/util/comic/favorite_tag_matcher.dart';
 import 'package:zephyr/util/path_util.dart';
-import 'package:zephyr/util/text/chinese_convert.dart';
-import 'package:zephyr/widgets/comic_simplify_entry/comic_download_badge.dart';
-import 'package:zephyr/widgets/comic_simplify_entry/comic_read_button.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_info.dart';
-import 'package:zephyr/widgets/comic_simplify_entry/comic_translation_badge.dart';
-import 'package:zephyr/widgets/comic_simplify_entry/comic_unread_indicator.dart';
-import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
-import 'package:zephyr/widgets/comic_simplify_entry/favorite_tag_badge.dart';
-import 'package:zephyr/icons/icons.dart';
 
-const double kComicCardBorderRadius = 5.0;
+import 'package:zephyr/widgets/comic_simplify_entry/comic_cover_surface.dart';
 
-/// 这张卡是否命中收藏 tag（边框与角标共用同一个判断）。
-///
-/// 抽成函数是因为网格卡与横滑卡两份 `build` 必须给出**完全一样**的结论，
-/// 两边各写一遍迟早会漂（横滑卡此前就漏过多选态那道闸门）。
-FavoriteTagMatchResult _favoriteTagMatch(
-  GlobalSettingState globalSetting,
-  ComicCardBadgePolicy badgePolicy,
-  ComicSimplifyEntryInfo info,
-) {
-  final setting = globalSetting.favoriteTagSetting;
-  if (!badgePolicy.showFavoriteTagBadge(
-    highlightEnabled: setting.highlightEnabled,
-  )) {
-    return FavoriteTagMatchResult.notMatched;
-  }
-  if (setting.tags.isEmpty) return FavoriteTagMatchResult.notMatched;
-  return FavoriteTagMatcher.match(
-    tags: info.tags,
-    title: info.title,
-    favoriteTags: setting.tags,
-  );
-}
-
-/// 封面左上角的「喜欢画师」角标。
-///
-/// 按 M3 的色调容器走：画师用 `errorContainer`/`onErrorContainer`（♥ 的
-/// 红色语义），与 [FavoriteTagBadge] 的 tertiary 一家分家。
-class FavoriteArtistBadge extends StatelessWidget {
-  final String? artistName;
-
-  const FavoriteArtistBadge({super.key, this.artistName});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-      decoration: BoxDecoration(
-        color: scheme.errorContainer,
-        borderRadius: BorderRadius.circular(4),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 3,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '♥',
-            style: TextStyle(
-              color: scheme.onErrorContainer,
-              fontSize: 10,
-              fontWeight: FontWeight.w900,
-              height: 1.1,
-            ),
-          ),
-          const SizedBox(width: 3),
-          Text(
-            artistName?.isNotEmpty == true
-                ? artistName!
-                : t.settings.favoriteArtistBadge,
-            style: TextStyle(
-              color: scheme.onErrorContainer,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              height: 1.1,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+export 'package:zephyr/widgets/comic_simplify_entry/favorite_artist_badge.dart';
+export 'package:zephyr/widgets/comic_simplify_entry/comic_cover_surface.dart'
+    show kComicCardBorderRadius;
 
 class ComicFixedSizeHorizontalList extends StatelessWidget {
   final List<ComicSimplifyEntryInfo> entries;
@@ -199,171 +109,16 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
     double width,
     double height,
     Key coverKey,
-  ) {
-    final circular = roundedCorner
-        ? themeRadius(context, fallback: kComicCardBorderRadius)
-        : 0.0;
-    final globalSetting = context.watch<GlobalSettingCubit>().state;
-    final pluginId = (info.source.trim().isNotEmpty ? info.source : info.from)
-        .trim();
-    final badgePolicy = ComicCardBadgePolicy(
-      downloadBadgeEnabled: globalSetting.comicCardSetting.downloadBadgeEnabled,
-      translationBadgeEnabled:
-          globalSetting.comicCardSetting.translationBadgeEnabled,
-      readButtonEnabled: globalSetting.comicCardSetting.readButtonEnabled,
-      favoriteTagBadgeEnabled:
-          globalSetting.comicCardSetting.favoriteTagBadgeEnabled,
-    );
-    // 本地漫画本来就在盘上，不给下载角标。
-    final showDownloadBadge = badgePolicy.showDownloadBadge(
-      pluginId: pluginId,
-      comicId: info.id,
-      cardEnabled: showDownloadAction,
-    );
-    // 横滑卡没有多选态，但同一份策略要过同样的三道闸门（见 ComicCardBadgePolicy）。
-    final showReadButton = badgePolicy.showReadButton(
-      pluginId: pluginId,
-      comicId: info.id,
-      cardEnabled: showReadAction,
-    );
-    final favoriteSetting = globalSetting.favoriteArtistSetting;
-    final matchResult = favoriteSetting.highlightEnabled
-        ? FavoriteArtistMatcher.match(
-            title: info.title,
-            artistTags: info.artistTags,
-            circleTags: info.circleTags,
-            favoriteArtists: favoriteSetting.artists,
-            circleMode: favoriteSetting.circleMode,
-          )
-        : null;
-    final isFavoriteArtist = matchResult?.isMatched ?? false;
-    final isFavoriteTag = _favoriteTagMatch(
-      globalSetting,
-      badgePolicy,
-      info,
-    ).isMatched;
-    final canShowTranslation = badgePolicy.showTranslationBadge(
-      cardEnabled: showTranslationBadge,
-    );
-    final translationMatch = canShowTranslation
-        ? ChineseTranslationMatcher.match(title: info.title, tags: info.tags)
-        : ChineseTranslationMatch.none;
-
-    // 描边按 M3 角色色分家：画师 = error、tag = tertiary；两者都命中时
-    // 画师优先（与角标堆叠的先后一致）。
-    final highlightEdge = isFavoriteArtist
-        ? Theme.of(context).colorScheme.error
-        : Theme.of(context).colorScheme.tertiary;
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(circular),
-      child: Container(
-        foregroundDecoration: (isFavoriteArtist || isFavoriteTag)
-            ? BoxDecoration(
-                border: Border.all(color: highlightEdge, width: 2.5),
-                borderRadius: BorderRadius.circular(circular),
-              )
-            : null,
-        child: Stack(
-          children: [
-            // 1. 底层封面图
-            CoverWidget(
-              key: coverKey,
-              fileServer: info.fileServer,
-              path: info.path,
-              id: info.id,
-              pictureType: info.pictureType,
-              from: info.from,
-              roundedCorner: roundedCorner,
-              width: width,
-              height: height,
-            ),
-            if (showDownloadBadge)
-              Positioned(
-                top: 6,
-                right: 6,
-                child: ComicDownloadBadge(
-                  from: pluginId,
-                  comicId: info.id,
-                  title: info.title,
-                  size: width < 110 ? 24 : 28,
-                ),
-              ),
-            if (canShowTranslation && translationMatch.hasBadge)
-              Positioned(
-                top: 6,
-                left: 6,
-                child: ComicTranslationBadge(
-                  match: translationMatch,
-                  compact: width < 110,
-                ),
-              ),
-
-            // 2. 顶部阴影与标题
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.7),
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    stops: const [0.0, 0.7],
-                  ),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(circular),
-                    bottomRight: Radius.circular(circular),
-                  ),
-                ),
-                padding: const EdgeInsets.fromLTRB(5.0, 20.0, 5.0, 5.0),
-                child: Text(
-                  info.title.let(convertChineseForDisplay),
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12.0,
-                    fontWeight: FontWeight.w500,
-                    shadows: [
-                      Shadow(
-                        offset: const Offset(0, 1),
-                        blurRadius: 2,
-                        color: Colors.black.withValues(alpha: 0.5),
-                      ),
-                    ],
-                  ),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.start,
-                ),
-              ),
-            ),
-
-            // 3. 正中那颗「直接阅读」：压在标题渐变之上才看得清。
-            if (showReadButton)
-              Positioned.fill(
-                child: ComicReadButton(
-                  onTap: () => startComicQuickRead(
-                    context,
-                    comicId: info.id,
-                    from: pluginId,
-                  ),
-                  // 本地漫画没有插件 runtime 可建，预热带过去只会每次悬停报一次
-                  // `plugin_not_found:local`。
-                  onHover: isLocalComicSource(pluginId, info.id)
-                      ? null
-                      : () => prewarmQjsRuntime(pluginId),
-                  size: comicReadButtonSize(width),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
+  ) => ComicCoverSurface(
+    info: info,
+    width: width,
+    height: height,
+    roundedCorner: roundedCorner,
+    showDownloadAction: showDownloadAction,
+    showTranslationBadge: showTranslationBadge,
+    showReadAction: showReadAction,
+    coverKey: coverKey,
+  );
 
   // 点击跳转逻辑 (需要把当前的 info 传进来)
   void _navigateToComicInfo(BuildContext context, ComicSimplifyEntryInfo info) {
@@ -462,6 +217,9 @@ class ComicSimplifyEntry extends StatelessWidget {
     this.collectionTargetName,
   });
 
+  /// 展墙等呈现层复用原卡片的来源判断、发现页签与合集目标导航。
+  void openDetails(BuildContext context) => _navigateToComicInfo(context);
+
   @override
   Widget build(BuildContext context) {
     if (info.title == "无数据") {
@@ -510,234 +268,18 @@ class ComicSimplifyEntry extends StatelessWidget {
     BuildContext context,
     double width,
     double height,
-  ) {
-    final circular = roundedCorner
-        ? themeRadius(context, fallback: kComicCardBorderRadius)
-        : 0.0;
-    final primary = Theme.of(context).colorScheme.primary;
-    final pluginId = (info.source.trim().isNotEmpty ? info.source : info.from)
-        .trim();
-    final globalSetting = context.watch<GlobalSettingCubit>().state;
-    final badgePolicy = ComicCardBadgePolicy(
-      downloadBadgeEnabled: globalSetting.comicCardSetting.downloadBadgeEnabled,
-      translationBadgeEnabled:
-          globalSetting.comicCardSetting.translationBadgeEnabled,
-      readButtonEnabled: globalSetting.comicCardSetting.readButtonEnabled,
-      favoriteTagBadgeEnabled:
-          globalSetting.comicCardSetting.favoriteTagBadgeEnabled,
-      unreadIndicatorEnabled:
-          globalSetting.comicCardSetting.unreadIndicatorEnabled,
-    );
-    // 本地漫画本来就在盘上；多选模式下右上角让给勾选圈。
-    final showDownloadBadge = badgePolicy.showDownloadBadge(
-      pluginId: pluginId,
-      comicId: info.id,
-      cardEnabled: showDownloadAction,
-      selectionMode: selectionMode,
-    );
-    final showReadButton = badgePolicy.showReadButton(
-      pluginId: pluginId,
-      comicId: info.id,
-      cardEnabled: showReadAction,
-      selectionMode: selectionMode,
-    );
-    // 下载角标的尺寸未读标识也要用（决定它贴在角标下方多远），两处写死迟早对不上。
-    final double downloadBadgeSize = width < 110 ? 24 : 28;
-    final showUnreadIndicator = badgePolicy.showUnreadIndicator(
-      unread: unread,
-      selectionMode: selectionMode,
-    );
-    final favoriteSetting = globalSetting.favoriteArtistSetting;
-    final matchResult = favoriteSetting.highlightEnabled
-        ? FavoriteArtistMatcher.match(
-            title: info.title,
-            artistTags: info.artistTags,
-            circleTags: info.circleTags,
-            favoriteArtists: favoriteSetting.artists,
-            circleMode: favoriteSetting.circleMode,
-          )
-        : null;
-    final isFavoriteArtist = matchResult?.isMatched ?? false;
-    final tagMatchResult = _favoriteTagMatch(globalSetting, badgePolicy, info);
-    final isFavoriteTag = tagMatchResult.isMatched;
-    final canShowTranslation = badgePolicy.showTranslationBadge(
-      cardEnabled: showTranslationBadge,
-    );
-    final translationMatch = canShowTranslation
-        ? ChineseTranslationMatcher.match(title: info.title, tags: info.tags)
-        : ChineseTranslationMatch.none;
-
-    // 同网格卡片：画师 = error、tag = tertiary，都命中时画师优先。
-    final highlightEdge = isFavoriteArtist
-        ? Theme.of(context).colorScheme.error
-        : Theme.of(context).colorScheme.tertiary;
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(circular),
-      child: Container(
-        foregroundDecoration: isSelected && selectionMode
-            ? BoxDecoration(
-                border: Border.all(color: primary, width: 4),
-                borderRadius: BorderRadius.circular(circular),
-              )
-            : ((isFavoriteArtist || isFavoriteTag)
-                  ? BoxDecoration(
-                      border: Border.all(color: highlightEdge, width: 2.5),
-                      borderRadius: BorderRadius.circular(circular),
-                    )
-                  : null),
-        child: Stack(
-          children: [
-            CoverWidget(
-              fileServer: info.fileServer,
-              path: info.path,
-              id: info.id,
-              pictureType: info.pictureType,
-              from: info.from,
-              roundedCorner: roundedCorner,
-              width: width,
-              height: height,
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.7),
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    stops: [0.0, 0.7],
-                  ),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(circular),
-                    bottomRight: Radius.circular(circular),
-                  ),
-                ),
-                padding: const EdgeInsets.fromLTRB(5.0, 20.0, 5.0, 5.0),
-                child: Text(
-                  info.title.let(convertChineseForDisplay),
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12.0,
-                    fontWeight: FontWeight.w500,
-                    shadows: [
-                      Shadow(
-                        offset: const Offset(0, 1),
-                        blurRadius: 2,
-                        color: Colors.black.withValues(alpha: 0.5),
-                      ),
-                    ],
-                  ),
-                  maxLines: 3, // 最多显示3行
-                  overflow: TextOverflow.ellipsis, // 超出部分显示省略号
-                  textAlign:
-                      TextAlign.start, // 文字对齐方式，也可以用 TextAlign.center 居中显示
-                ),
-              ),
-            ),
-            if (showDownloadBadge)
-              Positioned(
-                top: 6,
-                right: 6,
-                child: ComicDownloadBadge(
-                  from: pluginId,
-                  comicId: info.id,
-                  title: info.title,
-                  size: downloadBadgeSize,
-                ),
-              ),
-            // 未读标识贴在下载角标正下方、与它共用右边缘：右上角这一列是「状态」，
-            // 左上角那一列留给内容属性（画师 / tag / 语言），两边不互相挤。
-            // 三档样式的宽度差很多，所以靠右对齐而不是与下载角标居中对齐。
-            if (showUnreadIndicator)
-              Positioned(
-                top: 6 + (showDownloadBadge ? downloadBadgeSize + 5 : 0),
-                right: 6,
-                child: ComicUnreadIndicator(
-                  style: globalSetting.comicCardSetting.unreadIndicatorStyle,
-                  compact: width < 110,
-                ),
-              ),
-            // 左上角角标族：喜欢画师、收藏 tag、语言/汉化，纵向排开。
-            // 都画成独立的 Positioned 会互相盖住（同是 top:6,left:6）。
-            if (isFavoriteArtist || isFavoriteTag || translationMatch.hasBadge)
-              Positioned(
-                top: 6,
-                left: 6,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (isFavoriteArtist)
-                      FavoriteArtistBadge(artistName: matchResult?.matchedName),
-                    if (isFavoriteTag) ...[
-                      if (isFavoriteArtist) const SizedBox(height: 4),
-                      FavoriteTagBadge(tagName: tagMatchResult.label),
-                    ],
-                    if (translationMatch.hasBadge) ...[
-                      if (isFavoriteArtist || isFavoriteTag)
-                        const SizedBox(height: 4),
-                      ComicTranslationBadge(
-                        match: translationMatch,
-                        compact: width < 110,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            // 正中那颗「直接阅读」：压在标题渐变之上才看得清。
-            if (showReadButton)
-              Positioned.fill(
-                child: ComicReadButton(
-                  onTap: () => startComicQuickRead(
-                    context,
-                    comicId: info.id,
-                    from: pluginId,
-                  ),
-                  // 本地漫画没有插件 runtime 可建，预热带过去只会每次悬停报一次
-                  // `plugin_not_found:local`。
-                  onHover: isLocalComicSource(pluginId, info.id)
-                      ? null
-                      : () => prewarmQjsRuntime(pluginId),
-                  size: comicReadButtonSize(width),
-                ),
-              ),
-            if (selectionMode)
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: isSelected ? primary : Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2.5),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black87,
-                        blurRadius: 6,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: GlyphIcon(
-                    isSelected ? AppGlyphs.check : AppGlyphs.ring,
-                    color: isSelected ? Colors.white : Colors.black54,
-                    size: 20,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
+  ) => ComicCoverSurface(
+    info: info,
+    width: width,
+    height: height,
+    roundedCorner: roundedCorner,
+    showDownloadAction: showDownloadAction,
+    showTranslationBadge: showTranslationBadge,
+    showReadAction: showReadAction,
+    isSelected: isSelected,
+    selectionMode: selectionMode,
+    unread: unread,
+  );
 
   void _navigateToComicInfo(BuildContext context) {
     final pluginId = (info.source.trim().isNotEmpty ? info.source : info.from)

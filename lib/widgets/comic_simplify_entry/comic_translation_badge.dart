@@ -28,20 +28,28 @@ class ComicTranslationBadge extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final (String label, Color background) = switch (match.kind) {
+    final scheme = Theme.of(context).colorScheme;
+    final (
+      String label,
+      Color background,
+      Color foreground,
+    ) = switch (match.kind) {
       ChineseTranslationKind.translated => (
         t.comicEntry.translationBadgeTranslated,
-        const Color(0xFF10B981),
+        scheme.tertiaryContainer,
+        scheme.onTertiaryContainer,
       ),
       ChineseTranslationKind.chinese => (
         t.comicEntry.translationBadgeChinese,
-        const Color(0xFF3B82F6),
+        scheme.primaryContainer,
+        scheme.onPrimaryContainer,
       ),
       ChineseTranslationKind.raw => (
         t.comicEntry.translationBadgeRaw,
-        const Color(0xFF64748B),
+        scheme.surfaceContainerHighest,
+        scheme.onSurfaceVariant,
       ),
-      ChineseTranslationKind.none => ('', Colors.transparent),
+      ChineseTranslationKind.none => ('', Colors.transparent, scheme.onSurface),
     };
 
     final keyword = match.matchedText ?? '';
@@ -60,21 +68,16 @@ class ComicTranslationBadge extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: compact ? 4 : 5, vertical: 2),
         decoration: BoxDecoration(
           color: background,
-          borderRadius: BorderRadius.circular(4),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.35),
-              blurRadius: 3,
-              offset: const Offset(0, 1),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
-          label,
+          '${match.kind == ChineseTranslationKind.raw ? '文' : '译'} $label',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            color: Colors.white,
+            color: foreground,
             fontSize: compact ? 9 : 10,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w600,
             height: 1.1,
           ),
         ),

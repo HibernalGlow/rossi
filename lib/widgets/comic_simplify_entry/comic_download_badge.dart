@@ -95,85 +95,15 @@ class _ComicDownloadBadgeState extends State<ComicDownloadBadge> {
     DownloadTask? task,
     ComicDownloadVisualState state,
   ) {
-    final colorScheme = Theme.of(context).colorScheme;
     final payload = task?.taskInfo;
-
-    final (Glyph icon, String label, Color background) = switch (state) {
-      ComicDownloadVisualState.downloading => (
-        AppGlyphs.downloading,
-        t.reader.downloadStatusDownloading,
-        colorScheme.primary,
-      ),
-      ComicDownloadVisualState.paused => (
-        AppGlyphs.pause,
-        t.reader.downloadStatusPaused,
-        Colors.orange,
-      ),
-      ComicDownloadVisualState.failed => (
-        AppGlyphs.error,
-        t.reader.downloadStatusFailed,
-        Colors.red,
-      ),
-      ComicDownloadVisualState.completed => (
-        AppGlyphs.downloadDone,
-        t.reader.downloadManage,
-        Colors.green,
-      ),
-      ComicDownloadVisualState.notDownloaded => (
-        AppGlyphs.download,
-        t.comicInfo.download,
-        Colors.black.withValues(alpha: 0.55),
-      ),
-    };
-
-    final progress =
-        state == ComicDownloadVisualState.downloading && payload != null
-        ? downloadTaskPayloadProgressFraction(payload)
-        : null;
-
-    return Tooltip(
-      message: label,
-      // triggerMode 必须是 manual：默认的 longPress 触发会跟卡片的
-      // 长按（多选 / 右键菜单）抢同一个手势。桌面悬停提示不受影响。
-      triggerMode: TooltipTriggerMode.manual,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(widget.size),
-          onTap: () => _onTap(state),
-          child: Container(
-            width: widget.size,
-            height: widget.size,
-            decoration: BoxDecoration(
-              color: background,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.85),
-                width: 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.35),
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            child: progress != null
-                ? Padding(
-                    padding: EdgeInsets.all(widget.size * 0.24),
-                    child: CircularProgressIndicator(
-                      value: progress,
-                      strokeWidth: 2,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Colors.white,
-                      ),
-                    ),
-                  )
-                : GlyphIcon(icon, size: widget.size * 0.6, color: Colors.white),
-          ),
-        ),
-      ),
+    return ComicDownloadStatusButton(
+      state: state,
+      progress: state == ComicDownloadVisualState.downloading && payload != null
+          ? downloadTaskPayloadProgressFraction(payload)
+          : null,
+      busy: _busy,
+      size: widget.size,
+      onPressed: () => _onTap(state),
     );
   }
 
@@ -204,5 +134,104 @@ class _ComicDownloadBadgeState extends State<ComicDownloadBadge> {
         setState(() => _busy = false);
       }
     }
+  }
+}
+
+/// 下载状态的纯展示表面，任务订阅与排队仍由 ComicDownloadBadge 管理。
+class ComicDownloadStatusButton extends StatelessWidget {
+  const ComicDownloadStatusButton({
+    super.key,
+    required this.state,
+    required this.onPressed,
+    this.progress,
+    this.busy = false,
+    this.size = 32,
+  });
+  final ComicDownloadVisualState state;
+  final VoidCallback? onPressed;
+  final double? progress;
+  final bool busy;
+  final double size;
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    final (Glyph icon, String label) = switch (state) {
+      ComicDownloadVisualState.downloading => (
+        AppGlyphs.downloading,
+        t.reader.downloadStatusDownloading,
+      ),
+      ComicDownloadVisualState.paused => (
+        AppGlyphs.pause,
+        t.reader.downloadStatusPaused,
+      ),
+      ComicDownloadVisualState.failed => (
+        AppGlyphs.error,
+        t.reader.downloadStatusFailed,
+      ),
+      ComicDownloadVisualState.completed => (
+        AppGlyphs.downloadDone,
+        t.reader.downloadManage,
+      ),
+      ComicDownloadVisualState.notDownloaded => (
+        AppGlyphs.download,
+        t.comicInfo.download,
+      ),
+    };
+    final background = state == ComicDownloadVisualState.failed
+        ? colorScheme.errorContainer
+        : colorScheme.surfaceContainerHigh;
+    final foreground = state == ComicDownloadVisualState.failed
+        ? colorScheme.onErrorContainer
+        : state == ComicDownloadVisualState.notDownloaded
+        ? colorScheme.onSurfaceVariant
+        : colorScheme.primary;
+
+    return Semantics(
+      label: label,
+      button: true,
+      value: progress == null ? null : '${(progress! * 100).round()}%',
+      child: Tooltip(
+        message: label,
+        triggerMode: TooltipTriggerMode.manual,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: busy ? null : onPressed,
+            child: SizedBox.square(
+              dimension: 48,
+              child: Center(
+                child: Container(
+                  width: size,
+                  height: size,
+                  decoration: BoxDecoration(
+                    color: background,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      GlyphIcon(icon, size: size * .52, color: foreground),
+                      if (busy || progress != null)
+                        Positioned.fill(
+                          child: Padding(
+                            padding: const EdgeInsets.all(2),
+                            child: CircularProgressIndicator(
+                              value: busy ? null : progress,
+                              strokeWidth: 2,
+                              color: foreground,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

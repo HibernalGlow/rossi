@@ -164,7 +164,7 @@ pub fn get_or_create_file_manager_thumbnail(
             )
         });
         // 合成策略与尺寸独立入键，旧单图缓存不会盖住新封面。
-        format!("{auto_key}:mosaic4:s{long_side}")
+        format!("{auto_key}:fitted4-v2:s{long_side}")
     } else if is_archive {
         let filename = entry_path
             .file_name()
@@ -254,7 +254,7 @@ fn compose_folder_cover(
     }
     let size = long_side.max(2);
     let half = size / 2;
-    // 两图左右铺满；三图左一右二；四图 2×2。不会重复图片或留下空格。
+    // 两图并排；三图左一右二；四图 2×2。每张图保留自身比例。
     let cells = match tiles.len() {
         2 => vec![(0, 0, half, size), (half, 0, size - half, size)],
         3 => vec![
@@ -269,29 +269,33 @@ fn compose_folder_cover(
             (half, half, size - half, size - half),
         ],
     };
+    // 先铺每张图的低对比底色，再把完整图片等比置入自己的区域。
+    // 不在生成阶段破坏原图边缘；Flutter 侧同样使用 contain。
     let mut cover = image::RgbImage::new(size, size);
     for (tile, (x, y, width, height)) in tiles.into_iter().zip(cells) {
-        let (tw, th) = (tile.width(), tile.height());
-        let (cw, ch) = if u64::from(tw) * u64::from(height) > u64::from(th) * u64::from(width) {
-            (
-                ((u64::from(th) * u64::from(width) / u64::from(height)) as u32).max(1),
-                th,
-            )
-        } else {
-            (
-                tw,
-                ((u64::from(tw) * u64::from(height) / u64::from(width)) as u32).max(1),
-            )
-        };
-        let cropped = tile.crop_imm((tw - cw) / 2, (th - ch) / 2, cw, ch);
-        let resized = crate::fast_resize::resize_dynamic_exact(
-            &cropped,
+        let resized = crate::fast_resize::resize_dynamic_fit(
+            &tile,
             width,
             height,
             crate::fast_resize::Quality::Lanczos3,
         )
         .to_rgb8();
-        image::imageops::replace(&mut cover, &resized, i64::from(x), i64::from(y));
+        let average = tile.thumbnail(1, 1).to_rgb8();
+        let pixel = average.get_pixel(0, 0);
+        let backdrop = image::Rgb(pixel.0.map(|channel| (u16::from(channel) / 4 + 18) as u8));
+        for cy in y..y + height {
+            for cx in x..x + width {
+                cover.put_pixel(cx, cy, backdrop);
+            }
+        }
+        let inset_x = (width - resized.width()) / 2;
+        let inset_y = (height - resized.height()) / 2;
+        image::imageops::replace(
+            &mut cover,
+            &resized,
+            i64::from(x + inset_x),
+            i64::from(y + inset_y),
+        );
     }
     Some(image::DynamicImage::ImageRgb8(cover))
 }
@@ -469,7 +473,7 @@ mod tests {
     }
 
     #[test]
-    fn folder_thumbnail_fills_two_and_three_tiles_at_odd_sizes() {
+    fn folder_thumbnail_contains_two_and_three_tiles_at_odd_sizes() {
         let tmp = tempfile::tempdir().unwrap();
         let cache = tmp.path().join("cache");
         for count in [2, 3] {
@@ -483,17 +487,53 @@ mod tests {
             let bytes = folder_thumbnail(&cache, &folder, 0, 65).unwrap();
             let image = image::load_from_memory(&bytes).unwrap().to_rgb8();
             assert_eq!(image.dimensions(), (65, 65));
-            assert!(
-                image
-                    .pixels()
-                    .all(|pixel| pixel.0.into_iter().max().unwrap() > 100)
-            );
+            // 区域外的留白是暗色背景，不能靠裁切来强行铺满。
+            assert!(image.get_pixel(0, 0).0.into_iter().max().unwrap() < 120);
             let left = image.get_pixel(16, 32);
             assert!(left[0] > 200 && left[1] < 60);
             let top_right = image.get_pixel(48, 16);
             assert!(top_right[1] > 200 && top_right[0] < 60);
             let bottom_right = image.get_pixel(48, 48);
             assert!(bottom_right[if count == 2 { 1 } else { 2 }] > 200);
+        }
+    }
+
+    #[test]
+    fn folder_composite_preserves_landscape_and_portrait_edges() {
+        // 各图边缘带色标；中心裁剪会丢掉它们。
+        for (width, height) in [(120, 40), (40, 120)] {
+            let mut input = image::RgbImage::from_pixel(width, height, image::Rgb([255, 255, 255]));
+            for y in 0..height {
+                for x in 0..width {
+                    if x < width / 5 {
+                        input.put_pixel(x, y, image::Rgb([240, 0, 0]));
+                    }
+                    if x >= width * 4 / 5 {
+                        input.put_pixel(x, y, image::Rgb([0, 0, 240]));
+                    }
+                    if y < height / 5 {
+                        input.put_pixel(x, y, image::Rgb([0, 240, 0]));
+                    }
+                    if y >= height * 4 / 5 {
+                        input.put_pixel(x, y, image::Rgb([240, 240, 0]));
+                    }
+                }
+            }
+            for count in [2, 3, 4] {
+                let images = vec![image::DynamicImage::ImageRgb8(input.clone()); count];
+                let output = compose_folder_cover(images, 192).unwrap().to_rgb8();
+                for test in [0, 1, 2, 3] {
+                    assert!(
+                        output.pixels().any(|p| match test {
+                            0 => p[0] > 190 && p[1] < 60 && p[2] < 60,
+                            1 => p[2] > 190 && p[0] < 60 && p[1] < 60,
+                            2 => p[1] > 190 && p[0] < 60 && p[2] < 60,
+                            _ => p[0] > 190 && p[1] > 190 && p[2] < 60,
+                        }),
+                        "lost edge marker {test} for {width}x{height}, {count} tiles"
+                    );
+                }
+            }
         }
     }
 
