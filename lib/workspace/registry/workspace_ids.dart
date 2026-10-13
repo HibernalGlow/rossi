@@ -43,7 +43,7 @@ class WorkspacePanelId {
   /// 右泳道：图源与本地卡片
   static const String sources = 'sources';
 
-  /// 右泳道：完整复用上游 `MorePage`
+  /// 右泳道：设置优先的工具入口，功能页面复用原路由
   static const String tools = 'tools';
 
   /// 右泳道：**信息面板**（对齐 neoview 的 `panel("info", "信息")` ——
