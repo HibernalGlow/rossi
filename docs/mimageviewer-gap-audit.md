@@ -1,3 +1,10 @@
+> **2026-10-13 复核说明**：当前子模块已为 v4.6.0 `bb6ca0c6`；当前实现与直接源码接入见
+> [mimageviewer-reuse-audit.md](mimageviewer-reuse-audit.md)，逐项维护清单见
+> [mimageviewer-reuse-inventory.json](mimageviewer-reuse-inventory.json)。下面保留历史核对，
+> 其行数、10 条 PORTS、未登记切片、旧冻结范围与 T1/T2 分类不代表当前状态。
+> 特别是完整转换器需要适配 cache/origin/tree/logger 接口，并非零依赖纯模块；
+> Windows/egui 的整体架构不能作为拒绝抽取纯逻辑的统一理由。OCR 与工作区结构也已变化。
+
 # Rossi × mImageViewer 差距核对（2026-09-20）
 
 上游：`MikageSawatari/mimageviewer`，MIT，检出在 `vendor/mimageviewer/`，

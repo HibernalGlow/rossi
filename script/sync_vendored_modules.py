@@ -1,25 +1,12 @@
 #!/usr/bin/env python3
 """检查 rust/local_core 里「搬进来」的 mImageViewer 模块与上游的偏离。
 
-为什么需要这个脚本
-------------------
-`rust/local_core` 里有六个模块是从 `vendor/mimageviewer` **逐字搬来**的，
-而不是 path 依赖 —— 因为上游把它们放在私有 `mod app;` / 私有
-`mod fs_page_load_scheduler;` 之下、通体 `pub(crate)`，跨 crate 根本 use 不到：
-
-    rust/local_core/src/page_load_scheduler.rs   <-  src/fs_page_load_scheduler.rs
-    rust/local_core/src/prefetch_policy.rs       <-  src/app/prefetch_policy.rs
-    rust/local_core/src/folder_tree.rs           <-  src/folder_tree.rs
-    rust/local_core/src/fs_entry.rs              <-  src/fs_entry.rs
-    rust/local_core/src/filename_sort.rs         <-  src/filename_sort.rs
-    rust/local_core/src/auto_aspect.rs           <-  src/auto_aspect.rs
-
-
-搬运时刻意保住了上游的**函数名 / 类型名 / 常量名 / 测试名**，只做少量必要偏离
-（清单见下面的 `PORTS`，理由见 `docs/local-core-vendored-modules.md`）。
-保住名字就是为了今天：上游更新时，这份代码还能跟。
-
-本脚本回答一个问题：**上游动了，我这份要不要跟着改？**
+直接编译的纯模块与 AST 切片不保存本地函数体副本；上游源码选择在
+rust/local_core/upstream_sources.json 中，Cargo 负责接口校验。
+人工移植在 PORTS 中登记归一化偏离，按行比较。
+所有能力的来源/差异/责任登记在 docs/mimageviewer-reuse-inventory.json 中：
+改写、切片和未实现模块也从 reviewed_at 追踪上游变更，新能力漏登记会失败。
+比较通过不证明完整后端链路等价；详见 docs/mimageviewer-reuse-audit.md。
 
 用法
 ----
@@ -38,6 +25,10 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+
+import json
+
+from mimage_reuse_inventory import check_inventory
 
 REPO = Path(__file__).resolve().parent.parent
 VENDOR = REPO / "vendor" / "mimageviewer"
@@ -380,8 +371,7 @@ PORTS = [
             "use crate::perf_sink::PerfValue;",
         ],
     },
-    # 搜索查询语法与归一化：上游这两个文件通体 `pub`、只依赖 std、自带单测，
-    # 因此是**零偏离**的逐字拷贝（只换了文件头的溯源注释，注释差异不参与代码比较）。
+    # 搜索查询语法与归一化：保留上游 API，NFKC 扩展明确登记。
     {
         "upstream": "src/search_query.rs",
         "local": "rust/local_core/src/search_query.rs",
@@ -415,6 +405,20 @@ PORTS = [
     },
 ]
 
+# 原文件引用与构建期源码切片：函数体只存在于 vendor，不再维护第二份。
+for port in PORTS:
+    if port["upstream"] in {"src/filename_sort.rs", "src/auto_aspect.rs"}:
+        port["binding"] = "path"
+PORTS.append({
+    "upstream": "src/path_key.rs", "local": "rust/local_core/src/path_key.rs",
+    "pinned_at": "bb6ca0c6", "upstream_normalize": [], "drop_lines": [],
+    "local_strip": [(r"pub fn is_drive_or_share_root\(path: &Path\) -> bool \{[\s\S]*?\n\}\n", "")],
+    "upstream_strip": [(r"pub fn is_drive_or_share_root\(path: &Path\) -> bool \{[\s\S]*?\n\}\n", "")],
+})
+SOURCE_SPECS = json.loads((REPO / "rust/local_core/upstream_sources.json").read_text(encoding="utf-8"))
+generated_locals = {spec["local"] for spec in SOURCE_SPECS}
+PORTS = [port for port in PORTS if port["local"] not in generated_locals]
+PORTS.extend({**spec, "pinned_at": "bb6ca0c6", "binding": "generated"} for spec in SOURCE_SPECS)
 
 
 def git(*args: str, text: bool = True):
@@ -522,6 +526,8 @@ def report_port(port: dict, show_raw_diff: bool, head: str) -> bool:
     print(f"上游 {upstream_path}")
     print(f"本地 {port['local']}")
     print(f"pin  {pin}  →  HEAD {head[:12]}")
+    if port.get("items"):
+        print(f"范围：源码切片 {', '.join(port['items'])}（不代表完整上游模块）")
     print("=" * 76)
 
     if not local_path.exists():
@@ -543,12 +549,27 @@ def report_port(port: dict, show_raw_diff: bool, head: str) -> bool:
     head_src = show_at(head, upstream_path)
     local_src = local_path.read_text(encoding="utf-8")
 
+    if port.get("binding"):
+        if port["binding"] == "path":
+            expected = f'#[path = "../../../vendor/mimageviewer/{upstream_path}"]'
+        else:
+            expected = f'include!(concat!(env!("OUT_DIR"), "/{port["id"]}.rs"));'
+        if expected not in local_src or pinned_src is None or head_src is None:
+            print("  [!!] 直接源码引用断开或上游文件缺失")
+            return True
+        print("  [OK] 直接引用上游源码；不保存本地函数体副本。请结合 Cargo 编译与契约测试复核。")
+        return dirty
+
     if pinned_src is None or head_src is None:
         print(f"  !! 取不到上游内容（路径变了吗？）")
         return True
 
-    base = normalize(pinned_src, port, "upstream")
-    mine = normalize(local_src, port, "local")
+    try:
+        base = normalize(pinned_src, port, "upstream")
+        mine = normalize(local_src, port, "local")
+    except ValueError as error:
+        print(f"  !! 无法定位已登记源码切片：{error}")
+        return True
 
     base_code, base_notes = split_code_and_notes(base)
     mine_code, mine_notes = split_code_and_notes(mine)
@@ -630,28 +651,32 @@ def main() -> int:
         return 2
 
     if args.bump:
+        resolved = git("rev-parse", "--verify", f"{args.bump}^{{commit}}").strip()
         target = Path(__file__).resolve()
         text = target.read_text(encoding="utf-8")
         text = re.sub(
             r'("pinned_at":\s*")[0-9a-f]{7,40}(")',
-            rf"\g<1>{args.bump}\g<2>",
+            rf"\g<1>{resolved}\g<2>",
             text,
         )
         target.write_text(text, encoding="utf-8", newline="\n")
-        print(f"已把 pinned_at 更新为 {args.bump}（记得同时更新 docs/local-core-vendored-modules.md）")
+        print(f"已把 pinned_at 更新为 {resolved}（记得同时更新 docs/local-core-vendored-modules.md）")
+        print("未修改能力台账 reviewed_at；该字段必须逐项完成来源/差异/验证复核后手动更新。")
         return 0
 
     head = git("rev-parse", "HEAD").strip()
     dirty = False
     for port in PORTS:
         dirty |= report_port(port, args.diff, head)
+    dirty |= check_inventory(REPO, PORTS, head, git)
 
     print(f"\n{'=' * 76}")
     if dirty:
         print("结论：有东西需要人看（上游变了 / 或本地偏离没记全）。")
-        print("处理完之后：python script/sync_vendored_modules.py --bump <新的上游 commit>")
+        print("源码同步后可 --bump 更新 PORTS；能力台账 reviewed_at 必须逐项人工复核后更新。")
         return 1
-    print("结论：本地与 pin 版一致，上游也没动过这些文件。无需处理。")
+    print("结论：直接源码引用与登记移植检查通过，人工复核清单未发现上游变更。")
+    print("这不证明未实现或兼容改写的链路与上游等价；验证缺口见复用审计台账。")
     return 0
 
 

@@ -1,0 +1,1289 @@
+{
+  "schema_version": 1,
+  "rust_roots": [
+    "rust/local_core/src",
+    "rust/gpu_present/src",
+    "rust/ocr_core/src",
+    "rust/src"
+  ],
+  "entries": [
+    {
+      "id": "folder_tree",
+      "classification": "source_port",
+      "local": [
+        "rust/local_core/src/folder_tree.rs",
+        "rust/local_core/src/folder_tree"
+      ],
+      "upstream": [
+        "src/folder_tree.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "保留 Unix 大小写/符号链接与共享 SortOrder；未接入 EPUB/RAW/转换缓存的新导航层",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "folder_tree 内置回归测试",
+        "sync_vendored_modules.py 源码对比"
+      ],
+      "parity_gaps": [
+        "Windows 特有分支需要原生运行；源码一致只限 PORTS 已声明范围"
+      ],
+      "parity": "登记范围内源码对比通过",
+      "action": "继续同步 PORTS，逐项审查被剥离区域"
+    },
+    {
+      "id": "fs_entry",
+      "classification": "source_port",
+      "local": [
+        "rust/local_core/src/fs_entry.rs"
+      ],
+      "upstream": [
+        "src/fs_entry.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "Unix 符号链接分类和目录 visit key 有平台差异",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "fs_entry 内置回归测试",
+        "sync_vendored_modules.py 源码对比"
+      ],
+      "parity_gaps": [
+        "Windows 特有分支需要原生运行；源码一致只限 PORTS 已声明范围"
+      ],
+      "parity": "登记范围内源码对比通过",
+      "action": "继续同步 PORTS，逐项审查被剥离区域"
+    },
+    {
+      "id": "page_load_scheduler",
+      "classification": "source_port",
+      "local": [
+        "rust/local_core/src/page_load_scheduler.rs",
+        "rust/local_core/src/page_load_scheduler"
+      ],
+      "upstream": [
+        "src/fs_page_load_scheduler.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "公开调度诊断并接本地 perf_sink；测试拆文件",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "page_load_scheduler 内置回归测试",
+        "sync_vendored_modules.py 源码对比"
+      ],
+      "parity_gaps": [
+        "Windows 特有分支需要原生运行；源码一致只限 PORTS 已声明范围"
+      ],
+      "parity": "登记范围内源码对比通过",
+      "action": "继续同步 PORTS，逐项审查被剥离区域"
+    },
+    {
+      "id": "prefetch_policy",
+      "classification": "direct_source",
+      "local": [
+        "rust/local_core/src/prefetch_policy.rs"
+      ],
+      "upstream": [
+        "src/app/prefetch_policy.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "整个纯预取策略模块在构建期直接编译，只提升 pub(crate) 可见性；原来没搬的指示器策略也随上游加入，不引入 egui",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "保留预取准入/目标顺序/水位契约测试",
+        "Cargo 直接源码编译与同步引用门禁"
+      ],
+      "parity_gaps": [
+        "Windows 特有分支需要原生运行；源码一致只限 PORTS 已声明范围"
+      ],
+      "parity": "完整纯策略模块直接编译",
+      "action": "子模块更新自动采用所有纯函数，保留本地契约测试与 Flutter 执行边界"
+    },
+    {
+      "id": "page_split",
+      "classification": "source_port",
+      "local": [
+        "rust/local_core/src/page_split.rs"
+      ],
+      "upstream": [
+        "src/page_split.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "剥离 egui 几何类型，使用本地 Rotation 接口",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "page_split 内置回归测试",
+        "sync_vendored_modules.py 源码对比"
+      ],
+      "parity_gaps": [
+        "Windows 特有分支需要原生运行；源码一致只限 PORTS 已声明范围"
+      ],
+      "parity": "登记范围内源码对比通过",
+      "action": "继续同步 PORTS，逐项审查被剥离区域"
+    },
+    {
+      "id": "folder_pane",
+      "classification": "source_port",
+      "local": [
+        "rust/local_core/src/folder_pane.rs"
+      ],
+      "upstream": [
+        "src/folder_pane.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "平台根目录和 perf 适配；本地文件管理器拥有设置与会话",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "folder_pane 内置回归测试",
+        "sync_vendored_modules.py 源码对比"
+      ],
+      "parity_gaps": [
+        "Windows 特有分支需要原生运行；源码一致只限 PORTS 已声明范围"
+      ],
+      "parity": "登记范围内源码对比通过",
+      "action": "继续同步 PORTS，逐项审查被剥离区域"
+    },
+    {
+      "id": "search_query",
+      "classification": "source_port",
+      "local": [
+        "rust/local_core/src/search_query.rs"
+      ],
+      "upstream": [
+        "src/search_query.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "NFKC 在分词前应用，hay 走同一个 normalize_for_match，保持 macOS NFD 搜索",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "search_query 内置回归测试",
+        "sync_vendored_modules.py 源码对比"
+      ],
+      "parity_gaps": [
+        "Windows 特有分支需要原生运行；源码一致只限 PORTS 已声明范围"
+      ],
+      "parity": "登记范围内源码对比通过",
+      "action": "继续同步 PORTS，逐项审查被剥离区域"
+    },
+    {
+      "id": "search_norm",
+      "classification": "source_port",
+      "local": [
+        "rust/local_core/src/search_norm.rs"
+      ],
+      "upstream": [
+        "src/search_norm.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "上游只 lowercase，Rossi 保留 NFKC/ASCII 快路径，避免全角和组合字符漏检",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "search_norm 内置回归测试",
+        "sync_vendored_modules.py 源码对比"
+      ],
+      "parity_gaps": [
+        "Windows 特有分支需要原生运行；源码一致只限 PORTS 已声明范围"
+      ],
+      "parity": "登记范围内源码对比通过",
+      "action": "继续同步 PORTS，逐项审查被剥离区域"
+    },
+    {
+      "id": "path_key",
+      "classification": "direct_source",
+      "local": [
+        "rust/local_core/src/path_key.rs"
+      ],
+      "upstream": [
+        "src/path_key.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "整个路径身份模块直接编译（提升可见性），只替换 is_drive_or_share_root 的 Unix 上 Windows 根识别，Catalog 现有语义保持",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "上游 path_key 内置测试",
+        "Catalog Windows 盘符根与缓存路径回归"
+      ],
+      "parity_gaps": [
+        "Windows 特有分支需要原生运行；源码一致只限 PORTS 已声明范围"
+      ],
+      "parity": "上游原模块直接编译，单一平台策略有意不同",
+      "action": "上游新增路径策略随模块编译；仅维护盘符根判定适配"
+    },
+    {
+      "id": "filename_sort",
+      "classification": "direct_source",
+      "local": [
+        "rust/local_core/src/filename_sort.rs"
+      ],
+      "upstream": [
+        "src/filename_sort.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "#[path] 直接编译上游原文件及其测试；crate 引用由本地兼容模块提供",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "上游 filename_sort 全部内置测试"
+      ],
+      "parity_gaps": [
+        "filename_sort 的 Windows API 需 Windows 验证"
+      ],
+      "parity": "上游原文件直接编译",
+      "action": "不再维护本地函数体，子模块更新后编译并跑契约测试"
+    },
+    {
+      "id": "auto_aspect",
+      "classification": "direct_source",
+      "local": [
+        "rust/local_core/src/auto_aspect.rs"
+      ],
+      "upstream": [
+        "src/auto_aspect.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "#[path] 直接编译上游原文件及其测试；crate 引用由本地兼容模块提供",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "上游 auto_aspect 全部内置测试"
+      ],
+      "parity_gaps": [
+        "ThumbAspect/Settings 接口新增字段时需适配"
+      ],
+      "parity": "上游原文件直接编译",
+      "action": "不再维护本地函数体，子模块更新后编译并跑契约测试"
+    },
+    {
+      "id": "archive_metadata",
+      "classification": "direct_source",
+      "local": [
+        "rust/local_core/src/archive_converter.rs"
+      ],
+      "upstream": [
+        "src/archive_converter.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "构建期 AST 提取格式、别名、标签和分卷候选函数；只排除转换专用 temp_suffix",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "ZIP 原生/嵌套分类",
+        "part04/11/111 与首卷/旧命名回归"
+      ],
+      "parity_gaps": [
+        "文件名只是候选；真实 RAR 头判定仍由 rar_source 承担"
+      ],
+      "parity": "选中符号直接编译",
+      "action": "直接使用上游源码，完整转换另见 archive_conversion_missing"
+    },
+    {
+      "id": "archive_conversion_missing",
+      "classification": "not_implemented",
+      "local": [],
+      "upstream": [
+        "src/archive_converter.rs",
+        "src/archive_cache.rs",
+        "src/archive_origin.rs",
+        "src/zip_tree.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "完整递归转换、进度、取消、上限保护、原子替换和转换产物缓存尚未接入；不是 Windows 阻碍导致无法复用",
+      "owner": "Rust 核心维护者",
+      "tests": [],
+      "parity_gaps": [
+        "7z/LZH/固实与加密 RAR/嵌套归档、失败恢复、缓存失效和清理均未验证"
+      ],
+      "parity": "未实现",
+      "action": "后续优先抽取上游 ConvertCtx/scan/expand 流程；注入 logger、文件类型判定、ZIP 输入与缓存接口"
+    },
+    {
+      "id": "entry_name",
+      "classification": "direct_source",
+      "local": [
+        "rust/local_core/src/entry_name.rs"
+      ],
+      "upstream": [
+        "src/archive_converter.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "dedup_entry_name 直接编译上游；normalize_entry_name 保留更严格的空段、点段拒绝",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "名称规范化与重名碰撞回归"
+      ],
+      "parity_gaps": [
+        "上游 normalize_entry_name 改动需人工决定是否影响本地安全相对名契约"
+      ],
+      "parity": "去重符号直接编译；规范化有意不同",
+      "action": "保留规范化适配，唯一化函数不另存副本"
+    },
+    {
+      "id": "ai_size_limit",
+      "classification": "direct_source",
+      "local": [
+        "rust/local_core/src/ai_size_limit.rs"
+      ],
+      "upstream": [
+        "src/ai/upscale.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "上游尺寸策略直接编译，Rossi 仅增加 Default=4096",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "长短边互换、横竖、严格边界回归"
+      ],
+      "parity_gaps": [
+        "不覆盖 tensor/推理/输出"
+      ],
+      "parity": "选中符号直接编译",
+      "action": "子模块更新自动进入尺寸策略"
+    },
+    {
+      "id": "ai_tiles",
+      "classification": "direct_source",
+      "local": [
+        "rust/local_core/src/ai_tiles.rs"
+      ],
+      "upstream": [
+        "src/ai/upscale.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "TileRect/compute_tiles 原函数体直接编译，只公开类型和字段；overlap 由调用者传入；extract_tile 的 NCHW/零填充直接编译，取代本地循环",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "空图/小图",
+        "固定布局与全图覆盖/边缘贴合",
+        "RGB 通道/子区域/固定 tensor/零填充回归"
+      ],
+      "parity_gaps": [
+        "不覆盖 blend、scale 后处理或 EP；由重复输入 buffer 改为每 tile 固定分配，需实机性能对照"
+      ],
+      "parity": "选中符号直接编译",
+      "action": "ONNX 调用该上游布局，保留 Rossi overlap=32"
+    },
+    {
+      "id": "fast_resize",
+      "classification": "direct_source",
+      "local": [
+        "rust/local_core/src/fast_resize.rs"
+      ],
+      "upstream": [
+        "src/fast_resize.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "直接提取 RGB/RGBA/DynamicImage 的 SIMD 缩放与比例策略，不搬 RAW 尺寸探测和 LibRaw",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "常量 RGBA 缩放、边界与不放大回归",
+        "现有 Catalog/缩略图测试"
+      ],
+      "parity_gaps": [
+        "RAW 不具备；跨机器 SIMD 像素容差需要基准样本"
+      ],
+      "parity": "选中符号直接编译",
+      "action": "缩放函数体直接采用上游，探测入口由当前 decoder 提供"
+    },
+    {
+      "id": "natural_sort",
+      "classification": "direct_source",
+      "local": [
+        "rust/local_core/src/ui_helpers.rs"
+      ],
+      "upstream": [
+        "src/ui_helpers.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "natural_sort_key/natural_digit_value 直接编译；保留 Rossi NaturalChunk::Num 在前的已有顺序，避免改变文件列表约定",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "数字优先文本回归",
+        "filename_sort 上游回归"
+      ],
+      "parity_gaps": [
+        "上游 Text 在前，与本地排序契约有意不同；非数字混合文件名需对照"
+      ],
+      "parity": "选中函数直接编译；枚举顺序有意不同",
+      "action": "保留一个枚举适配；其余排序算法直接复用"
+    },
+    {
+      "id": "rotation",
+      "classification": "direct_source",
+      "local": [
+        "rust/local_core/src/rotation.rs"
+      ],
+      "upstream": [
+        "src/rotation_db.rs",
+        "src/displayed_image_transform.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "只提取 Rotation/impl 与 forward_uv/inverse_uv；补 Default，不引入旋转 DB 和 egui 布局",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "角度步进、负角度与 UV 双向逆映射"
+      ],
+      "parity_gaps": [
+        "旋转持久化、整套 displayed_image_transform 布局不在本地实现"
+      ],
+      "parity": "选中符号直接编译",
+      "action": "类型和纯几何直接采用上游"
+    },
+    {
+      "id": "catalog",
+      "classification": "source_slice",
+      "local": [
+        "rust/local_core/src/catalog.rs",
+        "rust/local_core/src/catalog"
+      ],
+      "upstream": [
+        "src/catalog.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "SQLite schema/缓存 CRUD 部分源自上游并拆分；本地不含 pin/selection-proof、编辑源/EPUB/RAW 完整缓存链",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "Catalog schema/迁移、WAL、缓存淘汰与尺寸回归"
+      ],
+      "parity_gaps": [
+        "固定代表图、source identity/selection proof、跨源缓存失效和旧 schema 样本"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "优先拆可复用的缓存 schema/CRUD；复杂改写先做契约对照"
+    },
+    {
+      "id": "thumb_loader",
+      "classification": "source_slice",
+      "local": [
+        "rust/local_core/src/thumb_loader.rs"
+      ],
+      "upstream": [
+        "src/thumb_loader.rs",
+        "src/folder_thumb_pins.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "裁剪的文件夹代表图算法；Rossi 目录块优先、多候选/归档、失败回退及循环上限不同于上游 direct-image-first",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "排序不泄漏进代表图 key、递归/失败/符号链接回归"
+      ],
+      "parity_gaps": [
+        "固定封面/pin、selection-proof、EPUB/RAW 缓存并未接入；不可声称同一代表图策略"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "保留产品差异；抽取共有 cache key/候选过滤前先对照两套黄金样本"
+    },
+    {
+      "id": "thumbnail_pipeline",
+      "classification": "adapter",
+      "local": [
+        "rust/local_core/src/thumbnail_pipeline.rs"
+      ],
+      "upstream": [
+        "src/thumb_loader.rs",
+        "src/catalog.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "组合本地 LocalSource、尺寸缓存与四格目录封面；上游单代表图不提供相同产品行为",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "四格不同尺寸、失败回退、嵌套目录、缓存命中回归"
+      ],
+      "parity_gaps": [
+        "同一源失效/尺寸变化/并发请求跨链路对照"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "保留 Rossi 四图组合，仅将共有底层逻辑交给上游"
+    },
+    {
+      "id": "decode",
+      "classification": "compatibility_rewrite",
+      "local": [
+        "rust/local_core/src/decode.rs",
+        "rust/local_core/src/jxl_backend.rs"
+      ],
+      "upstream": [
+        "src/canonical_image_loader.rs",
+        "src/wic_decoder.rs",
+        "src/exif_reader.rs",
+        "src/fast_resize.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "跨平台 image/zune-JPEG/JXL 后端保留；字节流 EXIF 朝向已委托直接上游切片，快路/降采样/布局尺寸一致。WIC/Susie/RAW/ICC 等完整 canonical 链未对齐",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "decode 内置格式/尺寸/缩放回归",
+        "EXIF 1-8 的像素位置、JPEG 快路/缩放/尺寸一致"
+      ],
+      "parity_gaps": [
+        "ICC/CMYK/16bit/alpha，JXL 元数据，多格式动画，错误输入，降采样/取消与平台后端端到端对照"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "保留解码后端适配；EXIF 不再维护副本，颜色处理按样本继续提取上游"
+    },
+    {
+      "id": "zip_source",
+      "classification": "compatibility_rewrite",
+      "local": [
+        "rust/local_core/src/zip_source.rs",
+        "rust/local_core/src/zip_loader.rs"
+      ],
+      "upstream": [
+        "src/zip_loader.rs",
+        "src/zip_tree.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "ZIP 中央目录 index 是真正定位符，展示名独立规范化/去重；避免同名条目 by_name 读错。zip_loader 只是自有首图扫描",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "重名条目、自然序、元数据过滤、按 index 读回"
+      ],
+      "parity_gaps": [
+        "密码、嵌套转换与原上游 zip cache/tree 全功能未覆盖"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "保留 index 寻址，评估抽取上游枚举过滤与嵌套扫描"
+    },
+    {
+      "id": "rar_source",
+      "classification": "adapter",
+      "local": [
+        "rust/local_core/src/rar_source.rs",
+        "rust/local_core/src/rar_loader.rs"
+      ],
+      "upstream": [
+        "src/rar_loader.rs",
+        "src/archive_converter.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "实际解压委托上游 unrar-patched；本地按需直读、检查头并类型化拒绝固实/加密/嵌套，rar_loader 仅适配",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "真实 RAR 夹具/分卷与名称、unsupported reason 回归"
+      ],
+      "parity_gaps": [
+        "固实/加密/嵌套没有转换兜底；完整上游 RAR loader 不等价"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "继续直接依赖 patched crate，转换能力优先接上游"
+    },
+    {
+      "id": "unrar_dependency",
+      "classification": "direct_dependency",
+      "local": [
+        "rust/local_core/Cargo.toml"
+      ],
+      "upstream": [
+        "crates/unrar-patched"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "Cargo path 依赖使用子模块原 crate，不维护本地解压器副本",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "patched crate 6 项测试（前次同步）",
+        "本地 RAR 样本测试"
+      ],
+      "parity_gaps": [
+        "Windows 链接/平台回调需原生测试"
+      ],
+      "parity": "同一个上游 crate",
+      "action": "随子模块同步并运行真实样本"
+    },
+    {
+      "id": "source_and_navigation",
+      "classification": "adapter",
+      "local": [
+        "rust/local_core/src/lib.rs",
+        "rust/local_core/src/folder_source.rs",
+        "rust/local_core/src/book_navigation.rs",
+        "rust/local_core/src/page_order.rs",
+        "rust/local_core/src/media_formats.rs"
+      ],
+      "upstream": [
+        "src/books.rs",
+        "src/folder_tree.rs",
+        "src/fs_entry.rs",
+        "src/zip_loader.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "LocalSource 统一 folders/media/ZIP/RAR；无驻留归档句柄，media_formats 是本地格式支持表。导航产品状态不同",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "LocalSource 开源/读末页、导航、扩展名与页序测试"
+      ],
+      "parity_gaps": [
+        "7z/LZH/PDF 识别不代表可读；EPUB/RAW 不具备"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "保留来源协议和 UI 边界；规则优先调用已复用模块"
+    },
+    {
+      "id": "file_browser",
+      "classification": "adapter",
+      "local": [
+        "rust/local_core/src/file_manager.rs",
+        "rust/local_core/src/file_manager",
+        "rust/local_core/src/file_tree.rs"
+      ],
+      "upstream": [
+        "src/folder_tree.rs",
+        "src/folder_pane.rs",
+        "src/search_query.rs",
+        "src/search_norm.rs",
+        "src/app.rs",
+        "src/ui_main.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "本地 headless 页签/浏览状态对应上游 egui App；枚举/排序/搜索已委托可复用模块，根目录按平台处理",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "file_manager/file_tree 的页签、过滤、搜索、穿透测试"
+      ],
+      "parity_gaps": [
+        "整套 UI 状态不等价；Windows 特有枚举与路径仍需实机"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "保留会话模型，继续下沉共有纯函数"
+    },
+    {
+      "id": "file_ops",
+      "classification": "compatibility_rewrite",
+      "local": [
+        "rust/local_core/src/file_ops"
+      ],
+      "upstream": [
+        "src/delete_worker.rs",
+        "src/cut_clipboard.rs",
+        "src/shell_file_ops.rs",
+        "src/book_fs_journal.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "std/fs 与 trash 后端替代 Windows IFileOperation/剪贴板；平台后端不能跨平台直接搬，但纯 book_fs_journal 没有这个障碍",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "文件操作批次、错误/取消、复制移动回归"
+      ],
+      "parity_gaps": [
+        "崩溃恢复/持久幂等 journal 缺失；跨平台回收站/撤销实机验证"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "平台调用保留适配；事务层优先抽取上游 book_fs_journal"
+    },
+    {
+      "id": "journal_missing",
+      "classification": "not_implemented",
+      "local": [],
+      "upstream": [
+        "src/book_fs_journal.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "本地文件操作未接入上游 crash-safe 日志；纯 Rust 可抽取，不能以 Windows 单体为不复用理由",
+      "owner": "Rust 核心维护者",
+      "tests": [],
+      "parity_gaps": [
+        "每步故障注入、重启恢复、冲突/rollback/哈希校验"
+      ],
+      "parity": "未实现",
+      "action": "优先复用原事务模型并适配 UI 进度与路径所有权"
+    },
+    {
+      "id": "settings",
+      "classification": "compatibility_rewrite",
+      "local": [
+        "rust/local_core/src/settings.rs",
+        "rust/local_core/src/settings_db.rs"
+      ],
+      "upstream": [
+        "src/settings.rs",
+        "src/settings_db.rs",
+        "src/favorite_view_state.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "缩减的本地 Settings/收藏视图 SQLite；与 Breeze GlobalSetting 与 Rossi 会话一起工作，没有上游全量 schema",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "settings_db 持久化、视图恢复回归"
+      ],
+      "parity_gaps": [
+        "旧上游设置迁移、未提供字段与默认值一致性"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "保留设置边界；新增能力需适配真实默认值/版本"
+    },
+    {
+      "id": "activity_gate",
+      "classification": "adapter",
+      "local": [
+        "rust/local_core/src/activity_gate.rs"
+      ],
+      "upstream": [
+        "src/activity_gate.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "wait_until_idle 是 no-op，不具备上游活动门控",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "由消费者编译/核心回归覆盖"
+      ],
+      "parity_gaps": [
+        "不能当作上游同名能力已实现"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "保持 shim 明示；有消费者需要全能力时优先接上游"
+    },
+    {
+      "id": "susie_loader",
+      "classification": "adapter",
+      "local": [
+        "rust/local_core/src/susie_loader.rs"
+      ],
+      "upstream": [
+        "src/susie_loader.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "supports_extension 固定 false，没有 Susie host",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "由消费者编译/核心回归覆盖"
+      ],
+      "parity_gaps": [
+        "不能当作上游同名能力已实现"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "保持 shim 明示；有消费者需要全能力时优先接上游"
+    },
+    {
+      "id": "books",
+      "classification": "adapter",
+      "local": [
+        "rust/local_core/src/books.rs"
+      ],
+      "upstream": [
+        "src/books.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "仅 path.starts_with 判定，不是书库/收藏管理",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "由消费者编译/核心回归覆盖"
+      ],
+      "parity_gaps": [
+        "不能当作上游同名能力已实现"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "保持 shim 明示；有消费者需要全能力时优先接上游"
+    },
+    {
+      "id": "final_pipeline",
+      "classification": "compatibility_rewrite",
+      "local": [
+        "rust/local_core/src/final_pipeline.rs"
+      ],
+      "upstream": [
+        "src/ai/final_pipeline.rs",
+        "src/ai/model_manager.rs",
+        "src/ai/upscale.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "本地模型/输出类型和连续邻页 keep-set；只尺寸策略已直接复用，不含上游最终执行管线",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "尺寸 re-export、邻页保留集回归"
+      ],
+      "parity_gaps": [
+        "分类/调整/模型管理/执行调度/显存预算与最终输出对照未完成"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "保留兼容输出协议，逐项接上游纯策略；勿称完整 final pipeline"
+    },
+    {
+      "id": "animation",
+      "classification": "direct_source",
+      "local": [
+        "rust/local_core/src/animation.rs"
+      ],
+      "upstream": [
+        "src/canonical_image_loader.rs",
+        "src/fs_animation.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "直接编译 canonical loader 的流式 PNG/WebP/GIF 扫描；本地 Cursor 字节适配及 VP8X 标志保留头部4096字节接口，避免 ANIM 在窗口外漏判",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "animation 内置帧/时序回归"
+      ],
+      "parity_gaps": [
+        "帧处置、循环次数、损坏输入和内存限制与上游对照",
+        "头部窗口的 VP8X 标志兜底与上游完整流扫描有意不同"
+      ],
+      "parity": "选中扫描函数直接编译；不包含动画像素播放",
+      "action": "扫描随子模块更新；动画播放由 Dart/Skia 承担"
+    },
+    {
+      "id": "perf_sink",
+      "classification": "adapter",
+      "local": [
+        "rust/local_core/src/perf_sink.rs"
+      ],
+      "upstream": [
+        "src/perf.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "小型事件 sink 替代 JSONL/stall/进程日志完整服务",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "调度消费者回归"
+      ],
+      "parity_gaps": [
+        "上游完整性能诊断不具备"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "保留低依赖边界"
+    },
+    {
+      "id": "operation_binding",
+      "classification": "independent",
+      "local": [
+        "rust/local_core/src/operation_binding"
+      ],
+      "upstream": [
+        "src/keymap.rs",
+        "src/ring_shortcut.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "Rossi 操作模型与 Flutter 快捷键/轮盘 schema，不是上游 Rust keymap 的复制；业务动作集合不同",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "operation_binding 的解析、冲突、轮盘布局测试"
+      ],
+      "parity_gaps": [
+        "上游新增操作/冲突规则需逐项映射"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "共有冲突策略可提取，操作身份及 UI 保留"
+    },
+    {
+      "id": "wave_peaks",
+      "classification": "compatibility_rewrite",
+      "local": [
+        "rust/local_core/src/wave_peaks.rs"
+      ],
+      "upstream": [
+        "src/video/seek_strip_wave.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "symphonia 窗口 RMS 为 media_kit UI 服务；上游 music_core+wgpu+SQLite 音频 tile 架构不同",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "波形窗口、绝对尺度与错误回归"
+      ],
+      "parity_gaps": [
+        "上游音频解码/tile 缓存/增量分析不等价"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "保留播放边界；上游音频纯策略新增时复核"
+    },
+    {
+      "id": "local_probes",
+      "classification": "independent",
+      "local": [
+        "rust/local_core/src/bin"
+      ],
+      "upstream": [],
+      "repository": "none",
+      "reviewed_at": null,
+      "reason": "本地性能/解码探针，不是产品后端复用",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "探针按需运行"
+      ],
+      "parity_gaps": [
+        "不计入复用比例"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "按诊断需要维护"
+    },
+    {
+      "id": "onnx_execution",
+      "classification": "compatibility_rewrite",
+      "local": [
+        "rust/src/api/mimage_onnx.rs"
+      ],
+      "upstream": [
+        "src/ai/upscale.rs",
+        "src/ai/runtime.rs",
+        "src/ai/final_pipeline.rs",
+        "src/ai/mod.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "tile 布局及 NCHW/零填充直接编译上游；blend/会话和 EP 仍为本地 CoreML/DirectML/CPU 适配。上游 blend 使用整图 float 累积，本地使用 u8 增量合并，内存与取整契约不同",
+      "owner": "推理/平台维护者",
+      "tests": [
+        "local_core ai_tiles/ai_size_limit 回归",
+        "windcore 编译检查"
+      ],
+      "parity_gaps": [
+        "固定 tensor shape/零填充、alpha、重叠 seam、倍率和像素容差；内存/取消/CPU 与 CoreML/DirectML 模型端到端对照"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "下一步先固定模型黄金样本与内存预算，再接上游 build_tile_output/blend 及会话纯策略"
+    },
+    {
+      "id": "gpu_present",
+      "classification": "compatibility_rewrite",
+      "local": [
+        "rust/gpu_present/src/lib.rs",
+        "rust/gpu_present/src/presenter.rs",
+        "rust/gpu_present/src/presenter",
+        "rust/gpu_present/src/platform_windows.rs",
+        "rust/gpu_present/src/web_presenter.rs"
+      ],
+      "upstream": [
+        "src/gpu_lanczos.rs",
+        "src/wgpu_backend_policy.rs",
+        "src/video/native_presenter"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "Flutter C ABI + DXGI/共享纹理呈现，生命周期与 egui 或上游视频 window 不同",
+      "owner": "GPU/平台维护者",
+      "tests": [
+        "gpu_present 纯状态测试与呈现探针（按平台）"
+      ],
+      "parity_gaps": [
+        "Windows texture lease/fence、重开会话、设备丢失与真实 GPU 输出"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "呈现后端保留；GPU 纯预算/滤镜策略可提取"
+    },
+    {
+      "id": "mac_present",
+      "classification": "independent",
+      "local": [
+        "rust/gpu_present/src/mac_presenter.rs",
+        "rust/gpu_present/src/mac_presenter",
+        "rust/gpu_present/src/mac_platform.rs"
+      ],
+      "upstream": [
+        "src/video/native_presenter"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "macOS IOSurface/Flutter texture 与时间序列没有上游 Windows 直接实现",
+      "owner": "GPU/平台维护者",
+      "tests": [
+        "mac_presenter 时序/纹理/缓存回归"
+      ],
+      "parity_gaps": [
+        "Apple GPU 实机完整帧生命周期/清理"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "保留平台实现，审查可共享调度策略"
+    },
+    {
+      "id": "gpu_resample",
+      "classification": "compatibility_rewrite",
+      "local": [
+        "rust/gpu_present/src/wgpu_resampler.rs",
+        "rust/gpu_present/src/wgpu_resampler",
+        "rust/gpu_present/src/enhance.rs",
+        "rust/gpu_present/src/ambient.rs"
+      ],
+      "upstream": [
+        "src/gpu_lanczos.rs",
+        "src/gpu_lanczos_spike.wgsl",
+        "src/gpu_anime4k.rs",
+        "src/post_filter.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "本地 wgpu 输入/缓存/输出与 Flutter 窗口，shader/增强近似能力；不能按相同算法名视作源码复用",
+      "owner": "GPU/平台维护者",
+      "tests": [
+        "resampler 尺寸/mip/复用与缓存 tests"
+      ],
+      "parity_gaps": [
+        "GPU 像素容差、颜色空间/alpha、滤镜次序和平台兼容"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "先对照 shader 与共享参数策略，保留呈现接口"
+    },
+    {
+      "id": "gpu_probe",
+      "classification": "independent",
+      "local": [
+        "rust/gpu_present/src/bin"
+      ],
+      "upstream": [],
+      "repository": "none",
+      "reviewed_at": null,
+      "reason": "本地呈现诊断探针",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "按平台手动运行"
+      ],
+      "parity_gaps": [
+        "不计入复用比例"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "按诊断需要维护"
+    },
+    {
+      "id": "ocr",
+      "classification": "independent",
+      "local": [
+        "rust/ocr_core/src/detect.rs",
+        "rust/ocr_core/src/group.rs",
+        "rust/ocr_core/src/inpaint.rs",
+        "rust/ocr_core/src/lib.rs",
+        "rust/ocr_core/src/postprocess.rs",
+        "rust/ocr_core/src/recognize.rs",
+        "rust/ocr_core/src/session.rs",
+        "rust/ocr_core/src/types.rs"
+      ],
+      "upstream": [],
+      "repository": "none",
+      "reviewed_at": null,
+      "reason": "PP-OCR/manga-ocr/LaMa 的独立 ONNX 管线，与 Dart 字体排版配合；未主张 mImageViewer 实现复用",
+      "owner": "OCR 维护者",
+      "tests": [
+        "现有 OCR 管线/模型探针"
+      ],
+      "parity_gaps": [
+        "独立模型正确性、硬件端到端，不属于上游对拍"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "继续独立维护，避免挂上错误来源标签"
+    },
+    {
+      "id": "ocr_probes",
+      "classification": "independent",
+      "local": [
+        "rust/ocr_core/src/bin"
+      ],
+      "upstream": [],
+      "repository": "none",
+      "reviewed_at": null,
+      "reason": "模型与性能诊断程序",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "按模型运行"
+      ],
+      "parity_gaps": [
+        "不计入复用比例"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "按诊断需要维护"
+    },
+    {
+      "id": "local_ffi",
+      "classification": "adapter",
+      "local": [
+        "rust/src/api/local.rs",
+        "rust/src/api/local_thumbnail.rs",
+        "rust/src/api/file_manager.rs",
+        "rust/src/api/file_manager",
+        "rust/src/api/file_ops.rs",
+        "rust/src/api/operation_binding.rs"
+      ],
+      "upstream": [
+        "src/catalog.rs",
+        "src/thumb_loader.rs",
+        "src/folder_pane.rs",
+        "src/keymap.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "FRB 传输/会话/取消与 DTO 连接 Flutter；实际纯逻辑在 local_core",
+      "owner": "FRB/Flutter 维护者",
+      "tests": [
+        "现有 Flutter 文件管理与缩略图测试",
+        "windcore 编译"
+      ],
+      "parity_gaps": [
+        "过桥生命周期/取消、并发与平台验证"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "保持薄桥接，新增共享逻辑放 local_core"
+    },
+    {
+      "id": "ocr_ffi",
+      "classification": "independent",
+      "local": [
+        "rust/src/api/ocr.rs",
+        "rust/src/api/ocr_sessions.rs"
+      ],
+      "upstream": [],
+      "repository": "none",
+      "reviewed_at": null,
+      "reason": "独立 OCR 会话 FRB 包装",
+      "owner": "OCR/FRB 维护者",
+      "tests": [
+        "OCR 端到端探针"
+      ],
+      "parity_gaps": [
+        "模型、过桥生命周期"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "保留薄桥接"
+    },
+    {
+      "id": "breeze_windcore",
+      "classification": "independent",
+      "local": [
+        "rust/src/api/data_backup.rs",
+        "rust/src/api/font.rs",
+        "rust/src/api/http.rs",
+        "rust/src/api/image.rs",
+        "rust/src/api/localization.rs",
+        "rust/src/api/logger.rs",
+        "rust/src/api/memory.rs",
+        "rust/src/api/mod.rs",
+        "rust/src/api/qjs.rs",
+        "rust/src/api/simple.rs",
+        "rust/src/api/system.rs",
+        "rust/src/api/user_utils.rs",
+        "rust/src/api/webdav.rs",
+        "rust/src/lib.rs",
+        "rust/src/qjs",
+        "rust/src/compressed",
+        "rust/src/decode",
+        "rust/src/memory"
+      ],
+      "upstream": [],
+      "repository": "breeze",
+      "reviewed_at": null,
+      "reason": "Breeze/windcore 插件运行时、网络、备份、JM 解码及平台 API；不是 mImageViewer 后端重写",
+      "owner": "Breeze/FFI 维护者",
+      "tests": [
+        "前次 Breeze 同步 QuickJS native 31 tests",
+        "本次 windcore 编译"
+      ],
+      "parity_gaps": [
+        "Breeze 内容基线同步另见 docs/upstream-sync.md"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "按 Breeze 内容基线同步，mImageViewer 台账不虚构来源"
+    },
+    {
+      "id": "frb_generated",
+      "classification": "generated",
+      "local": [
+        "rust/src/frb_generated.rs"
+      ],
+      "upstream": [],
+      "repository": "none",
+      "reviewed_at": null,
+      "reason": "FRB 2.12 生成物；不是手写后端逻辑",
+      "owner": "FRB 维护者",
+      "tests": [
+        "内容 hash/过桥检查"
+      ],
+      "parity_gaps": [
+        "生成器变更需重跑项目脚本"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "仅由 script/code_generate.dart 生成"
+    },
+    {
+      "id": "extended_documents_missing",
+      "classification": "not_implemented",
+      "local": [],
+      "upstream": [
+        "src/pdf_loader.rs",
+        "src/epub_convert.rs",
+        "src/epub_cache.rs",
+        "src/raw"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "PDF/EPUB/RAW 原生文档/显影未接入 LocalSource；格式识别表不得当作支持证明",
+      "owner": "Rust 核心维护者",
+      "tests": [],
+      "parity_gaps": [
+        "PDF 页尺寸/密码/渲染，EPUB 转换和 RAW 显影/色彩均无 parity"
+      ],
+      "parity": "未实现",
+      "action": "有产品消费者后优先抽取上游 runtime 接口与纯策略"
+    },
+    {
+      "id": "exif_orientation",
+      "classification": "direct_source",
+      "local": [
+        "rust/local_core/src/exif_orientation.rs"
+      ],
+      "upstream": [
+        "src/thumb_loader.rs",
+        "src/canonical_image_loader.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "rexif 朝向读取和 image 旋转/镜像直接编译上游。Rossi 适配朝向后的布局尺寸及动画第一帧跳过策略；字节入口不依赖 WIC",
+      "owner": "Rust 解码维护者",
+      "tests": [
+        "EXIF 1-8 黄金像素位置",
+        "JPEG 快路/缩放/尺寸回归"
+      ],
+      "parity_gaps": [
+        "RAW 文件/WIC 元数据兜底、ICC 不在此范围"
+      ],
+      "parity": "选中 EXIF 符号直接编译",
+      "action": "随子模块更新，所有解码入口委托相同上游策略"
+    },
+    {
+      "id": "upstream_build_boundary",
+      "classification": "adapter",
+      "local": [
+        "rust/local_core/build.rs",
+        "rust/local_core/build_support",
+        "rust/local_core/upstream_sources.json"
+      ],
+      "upstream": [],
+      "repository": "none",
+      "reviewed_at": null,
+      "reason": "构建时按 Rust AST 提取上游源码，公开边界适配；没有本地函数体副本，也不依赖 Python/egui/Windows runtime",
+      "owner": "Rust 构建维护者",
+      "tests": [
+        "upstream_source_extraction 5 tests"
+      ],
+      "parity_gaps": [
+        "上游符号/依赖变化须编译和复核；新切片需要明确注册"
+      ],
+      "parity": "构建边界测试通过",
+      "action": "维护源码选择器与最小边界适配，禁止在产物里复制手改函数"
+    }
+  ]
+}
