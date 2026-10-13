@@ -82,13 +82,7 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
 
   Future<void> _recordSearchHistory(String query) async {
     try {
-      final history = await fileManagerRecordSearchHistory(query: query);
-      if (!mounted || history.isEmpty) return;
-      // ignore: invalid_use_of_protected_member
-      setState(() {
-        _searchHistory = history;
-        _searchHistoryLoaded = true;
-      });
+      await fileManagerRecordSearchHistory(query: query);
     } catch (_) {
       // 历史是辅助信息：写不进去（SQLite 被占、路径没解析出来）不该让刚出结果的
       // 搜索冒一个红条，更不该把已经拿到的命中丢掉。
@@ -99,8 +93,6 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
     try {
       await fileManagerClearSearchHistory();
       if (!mounted) return;
-      // ignore: invalid_use_of_protected_member
-      setState(() => _searchHistory = const []);
       showInfoToast('已清空搜索历史', context: context);
     } catch (error) {
       if (mounted) _showError(error);
@@ -257,15 +249,21 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
 
   /// 可折叠搜索框：由工具栏的搜索键展开；已有生效查询时强制显示。
   ///
-  /// 输入即搜（防抖 [_searchDebounceDuration]），回车只是把这一次提前提交。
+  /// 输入即搜（防抖 [_searchDebounceDuration]），回车或历史点选创建独立结果页签。
   /// 匹配语法由 Rust 侧的 `search_query` 定义：空格分词求交、`-词` 排除、
   /// `"带空格"` 当一个词。
   Widget _buildSearchField(BuildContext context, FileManagerSnapshot snapshot) {
-    return TextField(
+    return SearchHistoryField(
+      history: CallbackSearchHistoryStore(
+        scope: 'file-manager',
+        read: () => fileManagerSearchHistory(limit: 32),
+        write: (_) {}, // 搜索成功创建页签后，由 _openSearchTab 记录。
+        reset: _clearSearchHistory,
+      ),
+      recordOnBlur: false,
       controller: _searchController,
       focusNode: _searchFocus,
       autofocus: snapshot.searchQuery.isEmpty,
-      textInputAction: TextInputAction.search,
       style: Theme.of(context).textTheme.bodySmall,
       decoration: InputDecoration(
         isDense: true,
@@ -361,27 +359,6 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          // 还没下查询时，这一行先当历史下拉用；一旦开始打字就让位给条件开关，
-          // 否则边打边看会被一排旧词挤掉。
-          if (snapshot.searchQuery.isEmpty && _searchHistory.isNotEmpty) ...[
-            for (final history in _searchHistory) ...[
-              ChoiceChip(
-                label: Text(history),
-                tooltip: '再搜一次「$history」',
-                selected: false,
-                visualDensity: VisualDensity.compact,
-                onSelected: (_) => _openSearchTab(history),
-              ),
-              const SizedBox(width: 6),
-            ],
-            ChoiceChip(
-              label: const Text('清空历史'),
-              selected: false,
-              visualDensity: VisualDensity.compact,
-              onSelected: (_) => _clearSearchHistory(),
-            ),
-            const SizedBox(width: 6),
-          ],
           ChoiceChip(
             label: const Text('含子目录'),
             tooltip: '向下递归搜索，层数上限由 Rust 侧夹紧',

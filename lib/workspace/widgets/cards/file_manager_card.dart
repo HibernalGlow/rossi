@@ -39,6 +39,8 @@ import 'package:zephyr/src/rust/api/file_manager/entry_ops.dart';
 import 'package:zephyr/src/rust/api/file_manager/search.dart';
 import 'package:zephyr/src/rust/api/file_manager/settings.dart';
 import 'package:zephyr/src/rust/api/file_manager/tree.dart';
+import 'package:zephyr/widgets/search/search_history_field.dart';
+import 'package:zephyr/widgets/search/search_history_store.dart';
 part 'parts/file_manager_card_model_part.dart';
 part 'parts/file_manager_card_session_part.dart';
 part 'parts/file_manager_card_navigation_part.dart';
@@ -134,11 +136,6 @@ class _FileManagerCardState extends State<FileManagerCard> {
 
   /// 上一次为「搜索条件签名」跑过遍历的签名，见 [_searchSignatureOf]。
   String _searchSignature = '';
-
-  /// 最近搜索词。正本在 `settings.db`，这里只是这一屏的缓存。
-  List<String> _searchHistory = const [];
-  bool _searchHistoryLoaded = false;
-  static const _searchHistoryLimit = 8;
 
   /// 「上次打开的页签」的读写口（落盘在 SharedPreferences）。
   ///
@@ -292,20 +289,6 @@ class _FileManagerCardState extends State<FileManagerCard> {
   //   `dart run test/workspace/file_manager_entry_menu_check.dart`）；
   // - **问用户要参数、把结果说给他听** —— `lib/workspace/method/file_manager_actions.dart`；
   // - **把动作发给核心** —— 只有这里知道会话 id、忙状态与请求序号，所以桥调用留在这一层。
-
-  Future<void> _loadSearchHistory() async {
-    if (_searchHistoryLoaded || _disposed) return;
-    _searchHistoryLoaded = true;
-    try {
-      final history = await fileManagerSearchHistory(
-        limit: _searchHistoryLimit,
-      );
-      if (!mounted || history.isEmpty) return;
-      setState(() => _searchHistory = history);
-    } catch (_) {
-      // 同上：读不到就当这次没有历史。
-    }
-  }
 
   /// 输入即搜：防抖到 [_searchDebounceDuration]，回车走 `_submitSearch` 立即提交。
   void _scheduleSearch(String query) {

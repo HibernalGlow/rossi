@@ -226,7 +226,6 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                       onPressed: () {
                         // ignore: invalid_use_of_protected_member
                         setState(() => _searchExpanded = !_searchExpanded);
-                        if (_searchExpanded) _loadSearchHistory();
                       },
                     ),
                     within,
