@@ -12,7 +12,7 @@ const String _operationBindingBlockName = 'operationBinding';
 
 /// 工作台布局（泳道 / 面板 / 卡片 / 交互）那一块。
 ///
-/// 它是**唯一**一个数据源不在 `GlobalSettingState` 里的块 —— 布局的真相是磁盘上的
+/// 它的数据源不在 `GlobalSettingState` 里 —— 布局的真相是磁盘上的
 /// `workspace_layout.json`（见 `WorkspaceSyncCodec`）。因此它不参与
 /// [_applySyncableBlocksToState] 的那次「平铺回状态」，而是自己走一条
 /// 读文件 / 改写文件的路（[_applyWorkspaceBlockData]）。

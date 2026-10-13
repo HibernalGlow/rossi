@@ -15,7 +15,7 @@
 ## 2. 同步块一览
 
 设置类的载荷是 `blocks`：一个块名 → `{updatedAt, data}` 的映射。
-每个块**独立**做 Last-Write-Wins（比 `updatedAt`，谁新用谁）——比字段级合并好解释，
+普通设置块**独立**做 Last-Write-Wins（比 `updatedAt`，谁新用谁）——比字段级合并好解释，
 也避免了「两个字段来自两台设备」的中间态。
 
 | 块 | 内容 | 落点 |
@@ -27,10 +27,26 @@
 | `toast` | 提示条（位置 / 时长 / 尺寸 / 透明度 / 玻璃）与切换提示 | 顶层字段 |
 | `fileManager` | 文件管理器卡片：主页键、启动落主页、记住视图状态、**写操作总开关** | `fileManagerSetting` 子对象（**不含 `homePath`**） |
 | `operationBinding` | 操作绑定表、轮盘形状、绑定总开关（ADR-0015） | `operationBindingSetting` 子对象 |
-| `workspace` | 工作台布局：呈现模式、泳道顺序 / 宽度 / 折叠 / 面板操作栏、**面板与卡片记账**（谁在哪个面板、次序、可见、展开）、每条泳道激活的面板、交互延时与唤出区 | `workspace_layout.json`（**唯一**数据源不在 `GlobalSettingState` 里的块） |
+| `workspace` | 工作台布局：呈现模式、泳道顺序 / 宽度 / 折叠 / 面板操作栏、**面板与卡片记账**（谁在哪个面板、次序、可见、展开）、每条泳道激活的面板、交互延时与唤出区 | `workspace_layout.json` |
+| `libraryPresentation` | 各位置的展墙开关、主视觉、分区、不对称、面积依据、强调程度、递归统计、卡片宽高、间距、图片比例与标签权重 | SharedPreferences 的 `rossi.library.presentation.*`，**每个位置独立记时与合并** |
 | `plugins` | 插件信息与插件配置（独立开关 `syncPlugins`） | ObjectBox + 插件注册表 |
 
-`syncSetting.syncSettings` 统辖前八块；`syncSetting.syncPlugins` 单独管插件。
+`syncSetting.syncSettings` 统辖前九块；`syncSetting.syncPlugins` 单独管插件。
+
+### 展墙的按位置合并
+
+`libraryPresentation.data.scopes` 的每一项是 `{updatedAt, presentation}`。首页各分类、
+书签面板、历史面板、文件管理器、页面列表与发现页各图源列表沿用自己的 scope；
+所有已有 scope 自动收集，后续新增位置无需往同步表逐项登记。文件管理器与其搜索
+目前共用同一 scope，同步保持这一既有关系。
+
+同位置采用完整偏好的 Last-Write-Wins，不同位置取并集；同毫秒冲突采用规范化内容
+比较，保证两端收敛。时间来自设置实际保存，重复同步和远端应用不刷新它。
+旧版已保存的偏好首次收集时补一次时间；没有保存过的默认值不上传。
+旧云端缺块或缺位置、损坏记录都不清空本机。手动下载覆盖云端存在的位置，并保留
+本机其他位置。同步写回存储后通知已打开的展墙，不同步展开条目或滚动位置。
+展墙开关独立于底层列表样式的恢复；仅手动选择普通视图时关闭展墙，避免启动恢复
+书签、历史和页面列表样式时将已保存的开启状态覆盖掉。
 
 > **一处口径变更（2026-10-11）**：`favoriteArtistSetting`（喜欢画师）原在第 3 节
 > 「显式不同步」那张表里，理由是「本地私有偏好，用户明确要求不出本机」。

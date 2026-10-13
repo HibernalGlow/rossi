@@ -15,7 +15,11 @@ import 'package:zephyr/network/sync/workspace_sync_codec.dart';
 import 'package:zephyr/workspace/model/workspace_layout_snapshot.dart';
 import 'package:zephyr/workspace/model/workspace_pointer_mode.dart';
 import 'package:zephyr/workspace/service/workspace_layout_bridge.dart';
+import 'package:zephyr/workspace/model/library_presentation_preferences.dart';
+import 'package:zephyr/workspace/service/library_presentation_store.dart';
 part 'parts/sync_service_rossi_part.dart';
+part 'parts/sync_service_library_presentation_part.dart';
+part 'parts/sync_service_settings_models_part.dart';
 
 
 const String _settingsSyncSchemaVersion = 'v2';
@@ -31,6 +35,7 @@ const String _pluginsBlockName = 'plugins';
 const List<String> _syncableSettingsBlockNames = <String>[
   ..._settingsStateBlockNames,
   _workspaceBlockName,
+  _libraryPresentationBlockName,
 ];
 
 bool isSyncServiceConfigured(GlobalSettingState state) {
@@ -238,6 +243,14 @@ Future<void> _manualDownloadSettings(
     await _applyWorkspaceBlockData(workspaceBlock.data);
   }
 
+  final presentationBlock = blocksToApply[_libraryPresentationBlockName];
+  if (presentationBlock != null) {
+    await _applyLibraryPresentationBlockData(
+      presentationBlock.data,
+      force: true,
+    );
+  }
+
   await _persistLocalSettingsBlockMeta({
     for (final entry in blocksToApply.entries)
       entry.key: _LocalSettingsBlockMeta.fromBlock(entry.value),
@@ -349,6 +362,12 @@ Future<void> _syncSettings(
     await _applyWorkspaceBlockData(mergeResult.workspaceBlockData);
   }
 
+  if (localGlobal.syncSetting.syncSettings) {
+    final block =
+        mergeResult.mergedSnapshot.blocks[_libraryPresentationBlockName];
+    if (block != null) await _applyLibraryPresentationBlockData(block.data);
+  }
+
   await _persistLocalSettingsBlockMeta(mergeResult.localBlockMeta);
 
   final mergedPayload = _buildSettingsPayload(
@@ -457,6 +476,12 @@ Future<_SettingsSnapshot> _buildLocalSettingsSnapshot(
       existingMeta: existingMeta,
       nowMs: nowMs,
     );
+    final presentationBlock = await _buildLocalLibraryPresentationBlock();
+    if (presentationBlock != null) {
+      blockPayloads[_libraryPresentationBlockName] = presentationBlock;
+      nextMeta[_libraryPresentationBlockName] =
+          _LocalSettingsBlockMeta.fromBlock(presentationBlock);
+    }
   }
 
   if (globalSetting.syncSetting.syncPlugins) {
@@ -681,6 +706,20 @@ Future<_SettingsMergeResult> _mergeSettingsSnapshots(
     // 关着同步设置时，云端那块原样带回去再传（与另外几块同一条 passthrough），
     // 但**不**动本机布局。
     mergedBlocks[_workspaceBlockName] = remoteWorkspaceBlock;
+  }
+
+  final presentationBlock = localGlobal.syncSetting.syncSettings
+      ? _mergeLibraryPresentationBlocks(
+          localSnapshot.blocks[_libraryPresentationBlockName],
+          remoteSnapshot.blocks[_libraryPresentationBlockName],
+        )
+      : remoteSnapshot.blocks[_libraryPresentationBlockName];
+  if (presentationBlock != null) {
+    mergedBlocks[_libraryPresentationBlockName] = presentationBlock;
+    if (localGlobal.syncSetting.syncSettings) {
+      nextMeta[_libraryPresentationBlockName] =
+          _LocalSettingsBlockMeta.fromBlock(presentationBlock);
+    }
   }
 
   final syncTimeBlocks = <String, _SettingsBlockPayload>{
@@ -1498,83 +1537,6 @@ int _normalizeTimestamp(int? timestamp, {required int fallback}) {
 
 String get _remoteSettingsMd5Path =>
     '${ComicSyncCore.syncRemoteRootName}/${ComicSyncCore.settingsMd5FileName}';
-
-class _SettingsSnapshot {
-  const _SettingsSnapshot({required this.blocks});
-
-  final Map<String, _SettingsBlockPayload> blocks;
-
-  int get syncTime => _computeSnapshotSyncTime(blocks);
-}
-
-class _SettingsBlockPayload {
-  _SettingsBlockPayload({
-    required this.name,
-    required this.updatedAt,
-    required this.data,
-  }) : contentMd5 = _calculateStructuredMd5(data);
-
-  final String name;
-  final int updatedAt;
-  final Map<String, dynamic> data;
-  final String contentMd5;
-
-  Map<String, dynamic> toJson() {
-    return {'updatedAt': updatedAt, 'data': data};
-  }
-}
-
-class _LocalSettingsBlockMeta {
-  const _LocalSettingsBlockMeta({required this.updatedAt, required this.hash});
-
-  factory _LocalSettingsBlockMeta.fromBlock(_SettingsBlockPayload block) {
-    return _LocalSettingsBlockMeta(
-      updatedAt: block.updatedAt,
-      hash: block.contentMd5,
-    );
-  }
-
-  factory _LocalSettingsBlockMeta.fromJson(Map<String, dynamic> json) {
-    return _LocalSettingsBlockMeta(
-      updatedAt: int.tryParse(json['updatedAt']?.toString() ?? '') ?? 0,
-      hash: json['hash']?.toString() ?? '',
-    );
-  }
-
-  final int updatedAt;
-  final String hash;
-
-  Map<String, dynamic> toJson() {
-    return {'updatedAt': updatedAt, 'hash': hash};
-  }
-}
-
-class _SettingsMergeResult {
-  const _SettingsMergeResult({
-    required this.mergedState,
-    required this.mergedSnapshot,
-    required this.syncTime,
-    required this.shouldApplyLocalState,
-    required this.shouldApplyPluginData,
-    required this.pluginBlockData,
-    required this.shouldApplyWorkspace,
-    required this.workspaceBlockData,
-    required this.localBlockMeta,
-  });
-
-  final GlobalSettingState mergedState;
-  final _SettingsSnapshot mergedSnapshot;
-  final int syncTime;
-  final bool shouldApplyLocalState;
-  final bool shouldApplyPluginData;
-  final Map<String, dynamic> pluginBlockData;
-
-  /// 云端那份布局赢了、且与本机不同 ⇒ 要把 [workspaceBlockData] 落到布局上。
-  final bool shouldApplyWorkspace;
-  final Map<String, dynamic> workspaceBlockData;
-
-  final Map<String, _LocalSettingsBlockMeta> localBlockMeta;
-}
 
 class _RemoteSettingsData {
   const _RemoteSettingsData({required this.bytes, required this.timestamp});
