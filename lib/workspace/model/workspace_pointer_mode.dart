@@ -18,8 +18,9 @@ enum WorkspacePointerMode {
 
   static WorkspacePointerMode forTargetPlatform(TargetPlatform platform) {
     return switch (platform) {
-      TargetPlatform.windows || TargetPlatform.macOS || TargetPlatform.linux =>
-        WorkspacePointerMode.hover,
+      TargetPlatform.windows ||
+      TargetPlatform.macOS ||
+      TargetPlatform.linux => WorkspacePointerMode.hover,
       TargetPlatform.android ||
       TargetPlatform.iOS ||
       TargetPlatform.fuchsia => WorkspacePointerMode.touchOnly,

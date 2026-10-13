@@ -141,7 +141,8 @@ class RealSrBookScope {
   }
 
   /// 当前阅读会话里那本书最终该不该超分（呈现器与芯片用这个）。
-  static Future<bool> enabledForActiveLocalBook() => enabledFor(_activeLocalBook);
+  static Future<bool> enabledForActiveLocalBook() =>
+      enabledFor(_activeLocalBook);
 
   /// 阅读器里拨「本书」开关用的一步到位入口（当前会话那本本地书）。
   static Future<void> setForActiveLocalBook(bool value) =>

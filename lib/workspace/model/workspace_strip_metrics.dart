@@ -177,8 +177,7 @@ class WorkspaceStripMetrics {
       // **激活哪条，哪条就展开**：切换栏的用途是「把交互交给别处」，
       // 而交互已经在那条泳道里了还把它压回 44px，等于用户点完轨之后
       // 点的东西仍然被吞（触屏上那是唯一把手）。
-      final isRail =
-          railsArmed && laneId != activeLaneId && laneId != solo;
+      final isRail = railsArmed && laneId != activeLaneId && laneId != solo;
       // 折叠态优先 —— 折叠是用户更明确的意图（自己就被折叠的泳道，
       // 切换栏里它长得一模一样，不需要再判一次）。
       final isCollapsed = lane.collapsed || isRail;

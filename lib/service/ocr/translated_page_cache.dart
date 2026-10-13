@@ -143,7 +143,8 @@ class TranslatedPageCache {
   static Future<File> baseFile({
     required String label,
     required int pageIndex,
-  }) async => File(p.join((await directory(label)).path, 'p$pageIndex.base.png'));
+  }) async =>
+      File(p.join((await directory(label)).path, 'p$pageIndex.base.png'));
 
   /// 把刚擦好的底图收进缓存目录（沿用成品页那套原子写：半张 PNG 比没有更糟）。
   static Future<void> writeBase({

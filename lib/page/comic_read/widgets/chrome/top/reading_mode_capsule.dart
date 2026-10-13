@@ -71,9 +71,7 @@ class DoublePageToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ReaderToolbarToggleChip(
-      icon: isDoublePage
-          ? AppGlyphs.openBook
-          : AppGlyphs.cropPortrait,
+      icon: isDoublePage ? AppGlyphs.openBook : AppGlyphs.cropPortrait,
       label: showLabel ? (isDoublePage ? '双页' : '单页') : null,
       tooltip: isDoublePage ? '双页模式（点击切为单页）' : '单页模式（点击切为双页）',
       selected: isDoublePage,

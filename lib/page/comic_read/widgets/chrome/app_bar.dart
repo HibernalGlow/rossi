@@ -353,7 +353,9 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
       // 自动滚屏按用户的口径常驻二级（「不常用」）：这一项在所有档位都在。
       MenuItemButton(
         leadingIcon: const GlyphIcon(AppGlyphs.playCircle),
-        trailingIcon: readSetting.autoScroll ? const GlyphIcon(AppGlyphs.check) : null,
+        trailingIcon: readSetting.autoScroll
+            ? const GlyphIcon(AppGlyphs.check)
+            : null,
         onPressed: () => _toggleReaderAutoScroll(
           isEnabled: readSetting.autoScroll,
           isPaused: isAutoScrollPaused,

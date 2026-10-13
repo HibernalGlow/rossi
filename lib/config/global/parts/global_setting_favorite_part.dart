@@ -1,6 +1,6 @@
 part of '../global_setting.dart';
-// 喜欢画师与收藏
 
+// 喜欢画师与收藏
 
 @freezed
 abstract class FavoriteArtistSettingState with _$FavoriteArtistSettingState {
@@ -16,7 +16,6 @@ abstract class FavoriteArtistSettingState with _$FavoriteArtistSettingState {
   factory FavoriteArtistSettingState.fromJson(Map<String, dynamic> json) =>
       _$FavoriteArtistSettingStateFromJson(json);
 }
-
 
 /// 一条收藏的 tag。
 ///
@@ -39,7 +38,6 @@ abstract class FavoriteTag with _$FavoriteTag {
       _$FavoriteTagFromJson(json);
 }
 
-
 @freezed
 abstract class FavoriteTagSettingState with _$FavoriteTagSettingState {
   const factory FavoriteTagSettingState({
@@ -50,7 +48,6 @@ abstract class FavoriteTagSettingState with _$FavoriteTagSettingState {
   factory FavoriteTagSettingState.fromJson(Map<String, dynamic> json) =>
       _$FavoriteTagSettingStateFromJson(json);
 }
-
 
 /// 归一化键 → 条目，用于收藏 tag 的去重与定位。
 ///
@@ -66,7 +63,6 @@ int? _indexOfFavoriteTag(List<FavoriteTag> tags, String key) {
   }
   return null;
 }
-
 
 /// 洗一条别名列表：去空白、按归一化键去重、丢掉与本名同形的那条。
 List<String> _cleanTagAliases(
@@ -85,7 +81,6 @@ List<String> _cleanTagAliases(
   }
   return cleaned;
 }
-
 
 /// 整表规整：同名（归一化后）条目合并成一条，后来的那条只并进它的别名，空名条目丢弃。
 List<FavoriteTag> _dedupeFavoriteTags(Iterable<FavoriteTag> input) {

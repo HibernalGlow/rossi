@@ -102,9 +102,11 @@ enum TranslatedPageDisplayChoice { baked, overlay }
 ///    于是超分照样生效，两条需求一起满足），不可用就退回烘焙。
 /// 3. 超分 > 原图。
 PageDisplaySource resolvePageDisplaySource(PageDisplayFacts f) {
-  if (f.bypassesEnhancedTrack) return PageDisplaySource.blockedByOriginalPreview;
+  if (f.bypassesEnhancedTrack)
+    return PageDisplaySource.blockedByOriginalPreview;
 
-  final wantsOverlay = f.translationChoice == TranslatedPageDisplayChoice.overlay;
+  final wantsOverlay =
+      f.translationChoice == TranslatedPageDisplayChoice.overlay;
   if (f.hasBakedPage) return PageDisplaySource.bakedPage;
   if (wantsOverlay && f.hasTranslationLayer && f.hasOverlayBase) {
     return PageDisplaySource.overlayOnBase;

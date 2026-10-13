@@ -265,11 +265,10 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
 
   /// 两档的中文说法。**只有这一处**把它们翻成人话 ——
   /// 裁决那边读的是枚举，这里读的是同一份枚举，不会各说各的。
-  String _displayLabel(TranslatedPageDisplayChoice choice) =>
-      switch (choice) {
-        TranslatedPageDisplayChoice.baked => t.ocr.displayBaked,
-        TranslatedPageDisplayChoice.overlay => t.ocr.displayOverlay,
-      };
+  String _displayLabel(TranslatedPageDisplayChoice choice) => switch (choice) {
+    TranslatedPageDisplayChoice.baked => t.ocr.displayBaked,
+    TranslatedPageDisplayChoice.overlay => t.ocr.displayOverlay,
+  };
 
   /// 「本机各段会用哪条」。同一个 EP 同时作用于三段，所以三段要么都有落点、
   /// 要么都没有 —— 只要有一段空着，就是本平台构建没注册这条 EP，

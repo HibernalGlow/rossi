@@ -436,8 +436,7 @@ class _OperationBindingSettingPageState
                   children: [
                     BlocBuilder<GlobalSettingCubit, GlobalSettingState>(
                       builder: (context, state) => Tooltip(
-                        message:
-                            t.settings.operationBindingInvertWheelSubtitle,
+                        message: t.settings.operationBindingInvertWheelSubtitle,
                         child: Switch(
                           value:
                               OperationBindingStore.wheelDirectionFollowsHand(
