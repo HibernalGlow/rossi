@@ -101,6 +101,8 @@ abstract class ReadSettingState with _$ReadSettingState {
     // 甚至同一本换章都会重建，开关会被「重置」回默认值。放这里则跟其他阅读
     // 设置一样持久化、跨书跨重启保持。
     @Default(false) bool showThumbnailStrip,
+    // 默认统一竖向卡片；开启后完整显示原图比例，跨书、重启与同步保持。
+    @Default(false) bool thumbnailStripOriginalAspectRatio,
     // 顶栏「透明」档：跳过液态玻璃，改为一层半透明蒙层铺在画面上
     // （口径照 JHenTai 阅读页的 `readPageMenuColor = black 85%`），
     // 画面从顶栏底下透出来，顶栏不再是一块「材质」。

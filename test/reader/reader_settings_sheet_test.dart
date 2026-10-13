@@ -511,6 +511,52 @@ void main() {
     expect(find.text('AI 超分辨率'), findsOneWidget);
   });
 
+  for (final laneWidth in [1200.0, 430.0]) {
+    testWidgets('缩略图比例在界面设置中修改，关闭胶卷不丢偏好：宽度=$laneWidth', (tester) async {
+      tester.view.physicalSize = const Size(1600, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(_harness(laneWidth: laneWidth, fullWidth: 1600));
+      await openSheet(tester);
+      await tester.tap(find.text('界面'));
+      await _settle(tester);
+      final thumbnails = find.text(t.reader.thumbnailStrip);
+      final cubit = tester.element(thumbnails).read<GlobalSettingCubit>();
+      expect(
+        cubit.state.readSetting.thumbnailStripOriginalAspectRatio,
+        isFalse,
+      );
+      await tester.ensureVisible(thumbnails);
+      await tester.pumpAndSettle();
+      await tester.tap(thumbnails);
+      await _settle(tester);
+      final originalRatio = find.text(
+        t.reader.thumbnailStripOriginalAspectRatio,
+      );
+      await tester.ensureVisible(originalRatio);
+      await tester.pumpAndSettle();
+      await tester.tap(originalRatio);
+      await _settle(tester);
+      expect(cubit.state.readSetting.thumbnailStripOriginalAspectRatio, isTrue);
+      expect(
+        find.byKey(const ValueKey('reader-thumbnail-aspect-toggle')),
+        findsNothing,
+      );
+      await tester.ensureVisible(thumbnails);
+      await tester.pumpAndSettle();
+      await tester.tap(thumbnails);
+      await _settle(tester);
+      expect(cubit.state.readSetting.showThumbnailStrip, isFalse);
+      expect(cubit.state.readSetting.thumbnailStripOriginalAspectRatio, isTrue);
+      await tester.tap(thumbnails);
+      await _settle(tester);
+      expect(cubit.state.readSetting.showThumbnailStrip, isTrue);
+      expect(cubit.state.readSetting.thumbnailStripOriginalAspectRatio, isTrue);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('翻译排里有自动译开关、引擎与日志入口', (tester) async {
     tester.view.physicalSize = const Size(1600, 900);
     tester.view.devicePixelRatio = 1;
