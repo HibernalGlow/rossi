@@ -83,7 +83,13 @@ void main() {
     expect(find.byType(Switch), findsNWidgets(2));
     await tester.tap(find.byTooltip(t.settings.operationBindingRadialPreview));
     await tester.pumpAndSettle();
-    expect(find.byType(RayMenu), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(RadialWheelPreviewDialog),
+        matching: find.byType(RayMenu),
+      ),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 }

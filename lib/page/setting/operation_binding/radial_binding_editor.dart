@@ -9,8 +9,9 @@ import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
 import 'package:zephyr/service/operation_binding/radial_doc.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
-import 'package:flutter_ray_menu/flutter_ray_menu.dart';
 import 'package:zephyr/widgets/radial/reader_ray_menu_adapter.dart';
+import 'package:zephyr/widgets/radial/expressive_ray_menu.dart';
+import 'package:zephyr/page/setting/operation_binding/radial_icon_picker.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/icons/icons.dart';
 
@@ -176,7 +177,8 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
   Future<void> _preview() => showPopupPanel<void>(
     presentation: PopupPresentation.relative,
     context: context,
-    builder: (dialogContext) => RadialWheelPreviewDialog(doc: _doc),
+    builder: (dialogContext) =>
+        RadialWheelPreviewDialog(doc: _doc, bindings: widget.bindings),
   );
 
   // ── 轮盘上的点击：选中 / 就地添加 ─────────────────────────────────────────
@@ -401,8 +403,13 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
     if (menu == null) return const SizedBox.shrink();
     return SizedBox(
       height: 480,
-      child: RayMenu(
-        rings: readerRayRings(layout, editing: true),
+      child: ExpressiveRayMenu(
+        rings: readerRayRings(
+          layout,
+          editing: true,
+          doc: _doc,
+          bindings: widget.bindings,
+        ),
         geometry: readerRayGeometry(_doc),
         style: readerRayStyle(context, embedded: true),
         centerLabel: menu.name,
@@ -430,7 +437,9 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
           subtitle: Text(
             '${t.settings.operationBindingRadialRadius}: ${_doc.radius.round()}',
           ),
-          trailing: GlyphIcon(_geometryOpen ? AppGlyphs.chevronUp : AppGlyphs.chevronDown),
+          trailing: GlyphIcon(
+            _geometryOpen ? AppGlyphs.chevronUp : AppGlyphs.chevronDown,
+          ),
           onTap: () => setState(() => _geometryOpen = !_geometryOpen),
         ),
         if (_geometryOpen) ...[
@@ -442,25 +451,11 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
             onChanged: (value) => _emit(_doc.copyWith(radius: value)),
           ),
           _sliderTile(
-            label: t.settings.operationBindingRadialInnerRadius,
-            value: _doc.innerRadius,
-            min: 0,
-            max: 100,
-            onChanged: (value) => _emit(_doc.copyWith(innerRadius: value)),
-          ),
-          _sliderTile(
             label: t.settings.operationBindingRadialStartAngle,
             value: _doc.startAngle,
             min: -180,
             max: 180,
             onChanged: (value) => _emit(_doc.copyWith(startAngle: value)),
-          ),
-          _sliderTile(
-            label: t.settings.operationBindingRadialSweepAngle,
-            value: _doc.sweepAngle,
-            min: 90,
-            max: 360,
-            onChanged: (value) => _emit(_doc.copyWith(sweepAngle: value)),
           ),
           ListTile(
             title: Text(t.settings.operationBindingRadialVariant),
@@ -609,6 +604,13 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
               ),
             ),
           ),
+          RadialIconPickerTile(
+            iconId: item.iconId,
+            action: boundAction,
+            menuJump: item.isMoveTo,
+            onChanged: (value) =>
+                _patchItem((entry) => entry.copyWith(iconId: value)),
+          ),
           ListTile(
             title: Text(t.settings.operationBindingRadialItemEnabled),
             trailing: Switch(
@@ -650,9 +652,14 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
 
 /// 交互预览与阅读器使用同一组件；选择仅关闭预览，不执行业务动作。
 class RadialWheelPreviewDialog extends StatelessWidget {
-  const RadialWheelPreviewDialog({super.key, required this.doc});
+  const RadialWheelPreviewDialog({
+    super.key,
+    required this.doc,
+    this.bindings = const [],
+  });
 
   final RadialDoc doc;
+  final List<Map<String, dynamic>> bindings;
 
   @override
   Widget build(BuildContext context) {
@@ -667,8 +674,8 @@ class RadialWheelPreviewDialog extends StatelessWidget {
       content: SizedBox(
         width: 460,
         height: 460,
-        child: RayMenu(
-          rings: readerRayRings(layout),
+        child: ExpressiveRayMenu(
+          rings: readerRayRings(layout, doc: doc, bindings: bindings),
           geometry: readerRayGeometry(doc),
           style: readerRayStyle(context, embedded: true),
           centerLabel: menu?.name ?? '',

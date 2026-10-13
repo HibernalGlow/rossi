@@ -2311,8 +2311,8 @@ class Translations$settings$zh_CN {
 	/// zh-CN: 'r$radius · 内$inner · $variant'
 	String operationBindingRadialGeometrySummary({required Object radius, required Object inner, required Object variant}) => 'r${radius} · 内${inner} · ${variant}';
 
-	/// zh-CN: '外半径'
-	String get operationBindingRadialRadius => '外半径';
+	/// zh-CN: '轮盘尺寸'
+	String get operationBindingRadialRadius => '轮盘尺寸';
 
 	/// zh-CN: '内半径（中心空洞）'
 	String get operationBindingRadialInnerRadius => '内半径（中心空洞）';
@@ -2374,6 +2374,12 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '目标轮盘'
 	String get operationBindingRadialTargetWheel => '目标轮盘';
 
+	/// zh-CN: '图标'
+	String get operationBindingRadialIcon => '图标';
+
+	/// zh-CN: '按操作自动匹配'
+	String get operationBindingRadialIconAuto => '按操作自动匹配';
+
 	/// zh-CN: '显示文字'
 	String get operationBindingRadialLabel => '显示文字';
 
@@ -2392,8 +2398,8 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '删除这一格'
 	String get operationBindingRadialDeleteItem => '删除这一格';
 
-	/// zh-CN: '起始角'
-	String get operationBindingRadialStartAngle => '起始角';
+	/// zh-CN: '旋转角度'
+	String get operationBindingRadialStartAngle => '旋转角度';
 
 	/// zh-CN: '扫过角'
 	String get operationBindingRadialSweepAngle => '扫过角';
@@ -2401,11 +2407,11 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '样式'
 	String get operationBindingRadialVariant => '样式';
 
-	/// zh-CN: '扇区'
-	String get operationBindingRadialVariantSlice => '扇区';
+	/// zh-CN: '圆角按钮'
+	String get operationBindingRadialVariantSlice => '圆角按钮';
 
-	/// zh-CN: '气泡'
-	String get operationBindingRadialVariantBubble => '气泡';
+	/// zh-CN: '圆形按钮'
+	String get operationBindingRadialVariantBubble => '圆形按钮';
 
 	/// zh-CN: '第 $n 层'
 	String operationBindingRadialLayerN({required Object n}) => '第 ${n} 层';
@@ -7442,7 +7448,7 @@ extension on Translations {
 			'settings.operationBindingRadialHintDisabled' => '已停用 · 阅读时不会唤出轮盘',
 			'settings.operationBindingRadialAppearance' => '外观与几何',
 			'settings.operationBindingRadialGeometrySummary' => ({required Object radius, required Object inner, required Object variant}) => 'r${radius} · 内${inner} · ${variant}',
-			'settings.operationBindingRadialRadius' => '外半径',
+			'settings.operationBindingRadialRadius' => '轮盘尺寸',
 			'settings.operationBindingRadialInnerRadius' => '内半径（中心空洞）',
 			'settings.operationBindingRadialSectors' => '每层格数',
 			'settings.operationBindingRadialSlots' => '槽位',
@@ -7463,17 +7469,19 @@ extension on Translations {
 			'settings.operationBindingRadialKindAction' => '执行动作',
 			'settings.operationBindingRadialKindMove' => '跳转轮盘',
 			'settings.operationBindingRadialTargetWheel' => '目标轮盘',
+			'settings.operationBindingRadialIcon' => '图标',
+			'settings.operationBindingRadialIconAuto' => '按操作自动匹配',
 			'settings.operationBindingRadialLabel' => '显示文字',
 			'settings.operationBindingRadialSlotIndex' => '槽位',
 			'settings.operationBindingRadialItemEnabled' => '启用这一格',
 			'settings.operationBindingRadialMoveUp' => '前移',
 			'settings.operationBindingRadialMoveDown' => '后移',
 			'settings.operationBindingRadialDeleteItem' => '删除这一格',
-			'settings.operationBindingRadialStartAngle' => '起始角',
+			'settings.operationBindingRadialStartAngle' => '旋转角度',
 			'settings.operationBindingRadialSweepAngle' => '扫过角',
 			'settings.operationBindingRadialVariant' => '样式',
-			'settings.operationBindingRadialVariantSlice' => '扇区',
-			'settings.operationBindingRadialVariantBubble' => '气泡',
+			'settings.operationBindingRadialVariantSlice' => '圆角按钮',
+			'settings.operationBindingRadialVariantBubble' => '圆形按钮',
 			'settings.operationBindingRadialLayerN' => ({required Object n}) => '第 ${n} 层',
 			'settings.operationBindingRadialSelectedSlot' => '选中的槽位',
 			'settings.operationBindingRadialPickHint' => '点轮盘上的一格来选它；空格会画成 +',
@@ -7733,6 +7741,8 @@ extension on Translations {
 			'reader.readingDirectionLtr' => '从左到右',
 			'reader.readingDirectionRtl' => '从右到左',
 			'reader.readingDirectionVertical' => '从上到下',
+			_ => null,
+		} ?? switch (path) {
 			'reader.webtoon' => '条漫',
 			'reader.singlePageRow' => '单页式（横向翻页）',
 			'reader.readingDirectionLeftOpen' => '左开模式 · 下一页在左',
@@ -7741,8 +7751,6 @@ extension on Translations {
 			'reader.readingDirectionToggleLeftOpen' => '当前左开（下一页在左）· 点按切换为右开',
 			'reader.readingDirectionToggleRightOpen' => '当前右开（下一页在右）· 点按切换为左开',
 			'reader.readingDirectionToggleDisabled' => '条漫模式没有左右翻页方向',
-			_ => null,
-		} ?? switch (path) {
 			'reader.readingDirectionToggleSetting' => '顶栏显示阅读方向切换',
 			'reader.swipePreview' => '翻页预览',
 			'reader.swipePreviewSubtitle' => '翻页时两侧直接显示画面，不再先用大字页码占位（每页多解一张视口宽度的位图）',
@@ -8241,6 +8249,8 @@ extension on Translations {
 			'realSr.noise3' => '降噪 3',
 			'realSr.variantWaifu2xAnime' => 'waifu2x upconv 动漫',
 			'realSr.variantRealCuganDenoise' => ({required Object noise}) => 'Real-CUGAN 降噪 ${noise}',
+			_ => null,
+		} ?? switch (path) {
 			'realSr.coremlSpeed' => '速度优先 (waifu2x)',
 			'realSr.coremlQuality' => '质量优先 (Real-CUGAN)',
 			'realSr.coremlNoise0' => '降噪 0',
@@ -8255,8 +8265,6 @@ extension on Translations {
 			'realSr.coremlStatusFailed' => ({required Object error}) => '失败: ${error}',
 			'realSr.coremlModelOption' => '模型选项（降噪级别）',
 			'realSr.coremlGeneralOption' => '通用选项（放大倍率）',
-			_ => null,
-		} ?? switch (path) {
 			'realSr.coremlTileInfo' => '分块信息',
 			'about.title' => '关于应用',
 			'about.version' => ({required Object version}) => '版本号: ${version}',
@@ -8755,6 +8763,8 @@ extension on Translations {
 			'bindingEditor.swipeRight' => '右滑',
 			'bindingEditor.swipeUp' => '上滑',
 			'bindingEditor.swipeDown' => '下滑',
+			_ => null,
+		} ?? switch (path) {
 			'bindingEditor.tap' => '点击',
 			'bindingEditor.longPress' => '长按',
 			'bindingEditor.fingers' => '手指数',
@@ -8769,8 +8779,6 @@ extension on Translations {
 			'bindingEditor.topCenter' => '中上',
 			'bindingEditor.topRight' => '右上',
 			'bindingEditor.middleLeft' => '左中',
-			_ => null,
-		} ?? switch (path) {
 			'bindingEditor.middleCenter' => '中心',
 			'bindingEditor.middleRight' => '右中',
 			'bindingEditor.bottomLeft' => '左下',

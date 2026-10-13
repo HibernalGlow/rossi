@@ -107,6 +107,9 @@ pub struct RadialMenuItem {
     pub id: String,
     /// 显示文字。neoview 在绑动作时让它自动跟随动作名，之后可手改。
     pub label: String,
+    /// 可选的展示图标标识；没有覆盖时外壳按绑定动作匹配，不参与动作解析。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon_id: Option<String>,
     /// 这一层里的第几格（0..63）。空槽不落进文档，由几何推出（见 [`layer_slot_count`]）。
     pub slot_index: usize,
     /// 遗留的直连动作：新条目一律走绑定，这里只为读得懂老包而保留。
@@ -124,6 +127,7 @@ impl Default for RadialMenuItem {
         Self {
             id: String::new(),
             label: String::new(),
+            icon_id: None,
             slot_index: 0,
             action: None,
             move_to_menu_id: None,

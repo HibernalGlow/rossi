@@ -403,6 +403,28 @@ fn config_round_trips_and_keeps_unknown_and_missing_fields() {
 }
 
 #[test]
+fn icon_override_round_trips_without_changing_actions_or_slot_identity() {
+    let mut config = default_config();
+    let row = &mut config.menus[0].layers[0][0];
+    let identity = (row.id.clone(), row.slot_index, row.action.clone());
+    row.icon_id = Some("reader.fullscreen".into());
+    let encoded = serde_json::to_string(&config).unwrap();
+    assert!(encoded.contains("\"iconId\":\"reader.fullscreen\""));
+    let restored: RadialConfig = serde_json::from_str(&encoded).unwrap();
+    let row = &restored.menus[0].layers[0][0];
+    assert_eq!(row.icon_id.as_deref(), Some("reader.fullscreen"));
+    assert_eq!(
+        (row.id.clone(), row.slot_index, row.action.clone()),
+        identity
+    );
+    assert!(validate(&restored).is_empty());
+    let old = serde_json::to_string(&default_config()).unwrap();
+    assert!(!old.contains("iconId"));
+    let old: RadialConfig = serde_json::from_str(&old).unwrap();
+    assert!(old.menus[0].layers[0][0].icon_id.is_none());
+}
+
+#[test]
 fn legacy_inline_action_and_move_to_survive_the_layout() {
     // 遗留直连动作与「跳转轮盘」都要随布局带回外壳：前者是派发不到时的回落，
     // 后者决定松手是执行还是换轮盘。

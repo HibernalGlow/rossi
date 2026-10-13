@@ -257,6 +257,7 @@ class RadialItemDoc {
   /// = 绑定包里的 `itemId`。用户数据会引用它，**只能追加不能重排**。
   String get id => raw['id'] as String? ?? '';
   String get label => raw['label'] as String? ?? '';
+  String? get iconId => raw['iconId'] as String?;
   int get slotIndex => (raw['slotIndex'] as num? ?? 0).toInt();
 
   /// 遗留的直连动作：新条目一律走绑定，这里只为读得懂老包而保留。
@@ -274,12 +275,20 @@ class RadialItemDoc {
 
   RadialItemDoc copyWith({
     String? label,
+    String? iconId,
     int? slotIndex,
     String? moveToMenuId,
     bool? disabled,
   }) {
     final next = Map<String, dynamic>.from(raw);
     if (label != null) next['label'] = label;
+    if (iconId != null) {
+      if (iconId.isEmpty) {
+        next.remove('iconId');
+      } else {
+        next['iconId'] = iconId;
+      }
+    }
     if (slotIndex != null) next['slotIndex'] = slotIndex;
     if (moveToMenuId != null) next['moveToMenuId'] = moveToMenuId;
     if (disabled != null) {

@@ -121,3 +121,21 @@ Material Theme（包含动态取色与导入主题），按设置面板的实际
 模式遵守原开关。样式写入原 `FileManagerSettingState`，旧数据及未知枚举值降级为克制型。
 该功能仅是现有文件管理导航上的 Flutter 展示扩展；mImageViewer 的原生文件管理界面
 不能直接作为 Flutter 控件使用，Breeze 没有该工作台文件管理组件。
+
+## 阅读轮盘蜂窝展示适配（2026-10-13）
+
+继续使用本仓 `flutter_ray_menu` 的条目、槽位和指针/键盘流程，以及原 Rust
+操作绑定解析器；新增 surfaceBuilder、visualHitTest 和指针观察接口承载 Flutter
+展示。按用户确定的 Apple Watch 应用视图方向，从中心填满紧凑蜂窝格点，
+阅读时不为空槽保留视觉占位。逻辑 id、层号和槽位不变，视觉位置不再表达旧
+扇区方向；编辑器仍能选择空槽。Breeze 没有可直接复用的上述 Flutter 展示。
+
+指针局部放大、有限平移与选中态沿用 SpringLensValue/LensMetrics，浮层进出
+沿用 CommonPopupOverlayMotion，图标选择器沿用 CommonPopupRoute。实际绘制
+与命中共用变形几何；按下冻结几何，原指针路由继续负责松手去重与动作派发。
+阅读图标通过原解析器按 reader/video 上下文匹配，编辑器提供可选的 iconId
+展示覆盖，随 JSON 保存。Rust 的 NeoView 轮盘文档仅增加可选展示字段，未改变
+槽位、动作与验证规则；该模型不是 mImageViewer 的直接源码或 PORTS 移植模块。
+
+验证记录见 docs/design/reader-radial-menu-expressive.md 与 operation_binding 下的
+聚焦几何、展示、图标、编辑器和阅读浮层回归，以及原 RayMenu 与 Rust 轮盘测试。
