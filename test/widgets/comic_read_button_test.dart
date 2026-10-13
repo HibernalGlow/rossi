@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart'
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_read_button.dart';
 
 /// 封面「直接阅读」按钮自己的规矩：什么时候显形、什么时候根本不画、
@@ -134,7 +135,11 @@ void main() {
     expect(revealOpacity(tester), 1);
     expect(tapReachesButton(tester), isTrue);
 
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.tap(
+      find.byWidgetPredicate(
+        (w) => w is GlyphIcon && w.glyph == AppGlyphs.play,
+      ),
+    );
     await tester.pump();
     expect(calls, 1);
   });
@@ -183,9 +188,17 @@ void main() {
     var prewarm = 0;
     await pumpCover(tester, onTap: () async {}, onHover: () => prewarm++);
 
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.tap(
+      find.byWidgetPredicate(
+        (w) => w is GlyphIcon && w.glyph == AppGlyphs.play,
+      ),
+    );
     await tester.pump();
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.tap(
+      find.byWidgetPredicate(
+        (w) => w is GlyphIcon && w.glyph == AppGlyphs.play,
+      ),
+    );
     await tester.pump();
 
     expect(prewarm, 0);
@@ -195,22 +208,40 @@ void main() {
     final gate = _Gate();
     await pumpCover(tester, onTap: gate.wait);
 
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.tap(
+      find.byWidgetPredicate(
+        (w) => w is GlyphIcon && w.glyph == AppGlyphs.play,
+      ),
+    );
     await tester.pump();
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is GlyphIcon && w.glyph == AppGlyphs.play,
+      ),
+      findsNothing,
+    );
 
     gate.finish();
     await tester.pumpAndSettle();
     expect(find.byType(CircularProgressIndicator), findsNothing);
-    expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is GlyphIcon && w.glyph == AppGlyphs.play,
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('等待期间连点只触发一次', (tester) async {
     final gate = _Gate();
     await pumpCover(tester, onTap: gate.wait);
 
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.tap(
+      find.byWidgetPredicate(
+        (w) => w is GlyphIcon && w.glyph == AppGlyphs.play,
+      ),
+    );
     await tester.pump();
     await tester.tapAt(tester.getCenter(find.byType(ComicReadButton)));
     await tester.tapAt(tester.getCenter(find.byType(ComicReadButton)));
@@ -224,7 +255,12 @@ void main() {
   testWidgets('格子太小就不画（44 的封面槽摆一颗圆圈等于糊住封面）', (tester) async {
     await pumpCover(tester, onTap: () async {}, coverSize: const Size(44, 44));
 
-    expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is GlyphIcon && w.glyph == AppGlyphs.play,
+      ),
+      findsNothing,
+    );
   });
 
   testWidgets('调用方指定直径时照画不误，且就用这个直径', (tester) async {
