@@ -492,6 +492,38 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('横向阅读的速度和高级延迟输入框在设置弹层内可编辑', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(_harness(laneWidth: 1200, fullWidth: 1200));
+    final cubit = tester.element(find.text('open')).read<GlobalSettingCubit>();
+    cubit.updateReadSetting((current) => current.copyWith(readMode: 1));
+    await openSheet(tester);
+    final speed = find.byType(TextField).first;
+    await tester.ensureVisible(speed);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.enterText(speed, '7.3');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await _settle(tester);
+    expect(cubit.state.readSetting.keyboardPageTurnPagesPerSecond, 7.3);
+    final advanced = find.text(t.reader.keyboardPageTurnAdvanced);
+    await tester.ensureVisible(advanced);
+    await tester.pumpAndSettle();
+    await tester.tap(advanced);
+    await _settle(tester);
+    final delay = find.byType(TextField).last;
+    await tester.ensureVisible(delay);
+    await tester.pumpAndSettle();
+    await tester.enterText(delay, '600');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await _settle(tester);
+    expect(cubit.state.readSetting.keyboardPageTurnHoldDelayMs, 600);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('界面与画面两排各拿到该走的那几段', (tester) async {
     tester.view.physicalSize = const Size(1600, 900);
     tester.view.devicePixelRatio = 1;
