@@ -79,6 +79,7 @@ class ImageSurface extends StatefulWidget {
     this.onPathChanged,
     this.onIntrinsicSize,
     this.slice = PageSlice.full,
+    this.ambientEnabled = false,
   });
 
   /// 已打开的页面来源。
@@ -89,6 +90,9 @@ class ImageSurface extends StatefulWidget {
 
   /// 横长页分割切片。
   final PageSlice slice;
+
+  /// 当前阅读页的有效自适应背景开关（包含本漫画覆盖设置）。
+  final bool ambientEnabled;
 
   /// GPU 呈现器的就绪状态与呈现目标。由调用方创建并 [GpuPresentController.start]。
   final GpuPresentController presenter;
@@ -317,6 +321,7 @@ class _ImageSurfaceState extends State<ImageSurface> {
       _syncing = true;
       final bool ready;
       try {
+        presenter.setAmbientEnabled(widget.ambientEnabled);
         ready = await presenter.present(
           source: source,
           index: index,

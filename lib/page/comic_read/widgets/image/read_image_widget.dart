@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -12,6 +14,7 @@ import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
+import 'package:zephyr/reader/ambient_image_sampler.dart';
 import 'package:zephyr/reader/online_translated_page_track.dart';
 import 'package:zephyr/reader/animated_local_page.dart';
 import 'package:zephyr/reader/image_surface.dart';
@@ -222,6 +225,7 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
                     // 半页的裁剪在 `ImageSurface` 里做（它自己那两条子路都要裁）。
                     slice: widget.slice,
                     presenter: presenter,
+                    ambientEnabled: readSetting.readerAmbientEnabled,
                     // 只有当前页推共享纹理：两个 slot 都推就是 Ping-Pong 拔河
                     // （同一张纹理被交替覆写）—— 那就是红黄闪的成因。
                     drivesPresentation: isActiveSlot,
@@ -260,7 +264,9 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
       // 动图走到那里不会报错，只会安静地变成一张不会动的图。
       // 判定没回来之前先照常画 staticRoute，所以这里没有黑屏空窗。
       return Container(
-        color: backgroundColor,
+        color: readSetting.readerAmbientEnabled
+            ? Colors.transparent
+            : backgroundColor,
         child: source == null
             ? staticRoute
             : AnimatedLocalPage(
@@ -385,24 +391,31 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
     BuildContext context,
     String imagePath,
     Color backgroundColor,
-  ) => GestureDetector(
-    onLongPress: () =>
-        context.pushRoute(FullRouteImageRoute(imagePath: imagePath)),
-    child: Container(
-      color: backgroundColor,
-      child: ImageDisplay(
-        imagePath: imagePath,
-        isColumn: isColumn,
-        pageSlotIndex: widget.index,
-        sizeCacheIndex: cacheIndex,
-        imageAlignment: widget.imageAlignment,
-        paintSize: widget.paintSize,
-        // 这条路没有着色器，半页只能由 `ImageDisplay` 自己裁。
-        // 成品页与原图同像素尺寸，所以这一刀对它同样成立。
-        slice: widget.slice,
+  ) {
+    if (context.readEffectiveReadSetting().readerAmbientEnabled) {
+      unawaited(ReaderAmbientImageSampler.sampleFile(imagePath));
+    }
+    return GestureDetector(
+      onLongPress: () =>
+          context.pushRoute(FullRouteImageRoute(imagePath: imagePath)),
+      child: Container(
+        color: context.readEffectiveReadSetting().readerAmbientEnabled
+            ? Colors.transparent
+            : backgroundColor,
+        child: ImageDisplay(
+          imagePath: imagePath,
+          isColumn: isColumn,
+          pageSlotIndex: widget.index,
+          sizeCacheIndex: cacheIndex,
+          imageAlignment: widget.imageAlignment,
+          paintSize: widget.paintSize,
+          // 这条路没有着色器，半页只能由 `ImageDisplay` 自己裁。
+          // 成品页与原图同像素尺寸，所以这一刀对它同样成立。
+          slice: widget.slice,
+        ),
       ),
-    ),
-  );
+    );
+  }
 
   Widget placeholder({
     required Color backgroundColor,

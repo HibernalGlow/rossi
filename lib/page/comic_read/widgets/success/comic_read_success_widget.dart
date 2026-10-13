@@ -67,6 +67,9 @@ class _ComicReadSuccessWidgetState extends State<ComicReadSuccessWidget> {
   void initState() {
     super.initState();
     _pageKeys = _buildPageKeys();
+    // 在线页的取色不经过 LocalReadSession；进入新阅读页时先丢掉上一页的调色板，
+    // 避免新图还没落盘取样前短暂显示旧漫画的背景色。
+    ReaderAmbientStore.instance.clear();
   }
 
   @override
