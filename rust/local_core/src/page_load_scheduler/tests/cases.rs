@@ -1,8 +1,46 @@
-// 搬家接线（非搬动内容）：本文件挂在 `tests` 模块下，`super::*` 够不到宿主模块，
-// 用绝对路径补一条与原先 `use super::*` 等价的 glob；可见性按 Rust 作用域规则取最小。
-use crate::page_load_scheduler::*;
-
-use super::*;
+#[test]
+fn latest_seek_page_keeps_both_raw_requests_and_other_contexts() {
+    let scheduler = FsPageLoadScheduler::with_limits(1, 0);
+    let preview = scheduler.request(
+        11,
+        4,
+        FsPageLoadPriority::High,
+        FsPageLoadContract::Sequential,
+        None,
+        0,
+    );
+    let preparation = scheduler.request(
+        11,
+        4,
+        FsPageLoadPriority::Normal,
+        FsPageLoadContract::Sequential,
+        None,
+        0,
+    );
+    let old = scheduler.request(
+        11,
+        3,
+        FsPageLoadPriority::Normal,
+        FsPageLoadContract::Sequential,
+        None,
+        0,
+    );
+    let sibling = scheduler.request(
+        12,
+        3,
+        FsPageLoadPriority::Normal,
+        FsPageLoadContract::Sequential,
+        None,
+        0,
+    );
+    scheduler.supersede_waiting_for_latest_seek_page(11, 4);
+    assert!(old.cancel_token().load(Ordering::Relaxed));
+    for ticket in [&preview, &preparation, &sibling] {
+        assert!(!ticket.cancel_token().load(Ordering::Relaxed));
+    }
+    assert_eq!(scheduler.stats().waiting, 3);
+}
+use super::super::*;
 use std::sync::atomic::AtomicUsize;
 use std::sync::mpsc;
 use std::time::Duration;
@@ -67,7 +105,9 @@ fn slow_read_and_decode_stay_within_process_budget() {
 
     wait_until(|| {
         let stats = scheduler.stats();
-        stats.running + stats.cancelling == 3
+        // Admission precedes the worker's active/peak accounting. Keep the
+        // gate closed until all three admitted workers have entered it.
+        stats.running + stats.cancelling == 3 && active.load(Ordering::SeqCst) == 3
     });
     let stats = scheduler.stats();
     assert_eq!(stats.running, 3);
@@ -236,6 +276,27 @@ fn permit_drop_returns_budget_on_error() {
     );
     assert!(next.waiter().acquire_cancellable().is_some());
     drop((failed, next));
+}
+
+#[test]
+fn cancel_after_permit_drop_sets_flag_without_changing_accounting() {
+    let scheduler = FsPageLoadScheduler::with_limits(1, 0);
+    let ticket = test_ticket(
+        &scheduler,
+        1,
+        0,
+        FsPageLoadPriority::High,
+        FsPageLoadContract::Sequential,
+    );
+    let permit = ticket.waiter().acquire_cancellable().unwrap();
+    assert_eq!(scheduler.stats().running, 1);
+    drop(permit);
+    let before = scheduler.stats();
+    assert_eq!(before, FsPageLoadSchedulerStats::default());
+    assert!(!ticket.is_cancelled());
+    ticket.cancel();
+    assert!(ticket.is_cancelled());
+    assert_eq!(scheduler.stats(), before);
 }
 
 #[test]
