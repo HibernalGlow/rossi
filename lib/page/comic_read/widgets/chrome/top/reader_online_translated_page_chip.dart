@@ -1,9 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/widgets/expressive/expressive_shape.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
-import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_feature_button.dart';
 import 'package:zephyr/reader/online_translated_page_surface.dart';
 import 'package:zephyr/reader/online_translated_page_track.dart';
 import 'package:zephyr/reader/translated_page_controller.dart';
@@ -72,94 +73,52 @@ class ReaderOnlineTranslatedPageChip extends StatelessWidget {
     TranslatedPageChipState state,
     OnlineTranslatedPageTrack track,
   ) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final (Color bg, Color fg) = switch (state) {
-      TranslatedPageChipState.failed => (
-        scheme.errorContainer,
-        scheme.onErrorContainer,
-      ),
-      TranslatedPageChipState.showing => (
-        scheme.secondaryContainer,
-        scheme.onSecondaryContainer,
-      ),
-      _ => (scheme.surfaceContainerHigh, scheme.onSurfaceVariant),
-    };
-    final showLabel = availableWidth >= 620;
     // 这一页还没解析出磁盘路径 —— 只有正文还没画过它才会这样（路径是显示端
     // 上报的）。这时点它只会得到一句「取不到图像字节」，不如当场说清楚。
     final inputReady = track.sourcePathFor(index) != null;
 
-    return Tooltip(
-      message: switch (state) {
+    return ReaderToolbarFeatureButton(
+      shape: ExpressiveButtonShape.slanted,
+      tooltip: switch (state) {
         TranslatedPageChipState.failed => controller.lastError,
         TranslatedPageChipState.showing => t.ocr.chipOn,
         TranslatedPageChipState.building => t.ocr.building,
-        _ => inputReady ? t.ocr.chipOff : '这一页还没加载出来，稍等一下再译',
+        _ => inputReady ? t.reader.tabTranslate : '这一页还没加载出来，稍等一下再译',
       },
-      child: InkWell(
-        borderRadius: BorderRadius.circular(ReaderToolbarMetrics.fullRadius),
-        onTap: () async {
-          switch (translatedPageTapFor(state)) {
-            case TranslatedPageTap.wait:
-              showInfoToast(t.ocr.busyToast);
-              return;
-            case TranslatedPageTap.toggle:
-              break;
-          }
-          if (!inputReady) {
-            showErrorToast('这一页还没加载出来，稍等一下再译');
+      onPressed: () async {
+        switch (translatedPageTapFor(state)) {
+          case TranslatedPageTap.wait:
+            showInfoToast(t.ocr.busyToast);
             return;
-          }
-          final ok = await controller.toggle(
-            source: _input,
-            presenter: _surface,
-            index: index,
-          );
-          if (!ok && controller.lastError.isNotEmpty) {
-            showErrorToast(controller.lastError);
-          }
-        },
-        child: Container(
-          height: ReaderToolbarMetrics.chipHeight,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(
-              ReaderToolbarMetrics.fullRadius,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              GlyphIcon(
-                switch (state) {
-                  TranslatedPageChipState.building =>
-                    AppGlyphs.hourglass,
-                  _ => AppGlyphs.translate,
-                },
-                size: 14,
-                color: fg,
-              ),
-              if (showLabel) ...[
-                const SizedBox(width: 4),
-                Text(
-                  switch (state) {
-                    TranslatedPageChipState.building => t.ocr.building,
-                    TranslatedPageChipState.failed => t.ocr.failedShort,
-                    TranslatedPageChipState.showing => t.ocr.chipOn,
-                    _ => t.ocr.chipOff,
-                  },
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: fg,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
+          case TranslatedPageTap.toggle:
+            break;
+        }
+        if (!inputReady) {
+          showErrorToast('这一页还没加载出来，稍等一下再译');
+          return;
+        }
+        final ok = await controller.toggle(
+          source: _input,
+          presenter: _surface,
+          index: index,
+        );
+        if (!ok && controller.lastError.isNotEmpty) {
+          showErrorToast(controller.lastError);
+        }
+      },
+      icon: state == TranslatedPageChipState.failed
+          ? AppGlyphs.error
+          : AppGlyphs.translate,
+      label: switch (state) {
+        TranslatedPageChipState.building => t.ocr.building,
+        TranslatedPageChipState.failed => t.ocr.failedShort,
+        TranslatedPageChipState.showing => t.ocr.chipOn,
+        _ => t.reader.tabTranslate,
+      },
+      selected: state == TranslatedPageChipState.showing,
+      busy: state == TranslatedPageChipState.building,
+      failed: state == TranslatedPageChipState.failed,
+      showLabel: availableWidth >= 720 || state == TranslatedPageChipState.off,
     );
   }
 }

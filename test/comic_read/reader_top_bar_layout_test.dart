@@ -16,6 +16,12 @@
 // 只 pump 顶栏本体：`from` 留空 ⇒ 下载那颗不出现，不牵 ObjectBox 与下载队列；
 // `LocalReadSession.instance.presenter` 默认为 null ⇒ 超分芯片走 shrink 分支。
 
+import 'dart:io';
+import 'dart:ui' as ui;
+
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:zephyr/reader/online_translated_page_track.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr/i18n/strings.g.dart';
@@ -30,6 +36,7 @@ import 'package:zephyr/page/comic_read/widgets/chrome/app_bar.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_upscale_status_chip.dart';
 import 'package:zephyr/util/reader/reader_top_bar_style.dart';
+import 'package:zephyr/widgets/expressive/expressive_shape.dart';
 
 /// 把顶栏按给定宽度画出来。
 ///
@@ -43,6 +50,9 @@ Future<void> _paintBar(
   // 的判据继续量它们本来要量的那一档。测第二行就显式传 800，别抬默认值 ——
   // 那样一半测试会静默换掉自己被测的那条分支。
   double height = 400,
+  bool withTranslation = false,
+  bool dark = false,
+  double textScale = 1,
 }) async {
   // 把**视口**改成这个尺寸：默认测试画布只有 800×600，用 SizedBox 撑到 1280
   // 会被画布夹回 800，宽档与中档就成了同一档 —— 那样这条扫描什么也没验。
@@ -50,6 +60,13 @@ Future<void> _paintBar(
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 
+  if (withTranslation) {
+    OnlineTranslatedPageTrack.instance.displayPathFor(
+      scope: 'preview|book|chapter',
+      index: 0,
+      sourcePath: '/tmp/reader-preview-page.png',
+    );
+  }
   final settings = GlobalSettingCubit();
   final presentation = ReaderPresentationCubit(settings: settings);
   await tester.pumpWidget(
@@ -64,17 +81,36 @@ Future<void> _paintBar(
         BlocProvider.value(value: presentation),
       ],
       child: MaterialApp(
-        home: Scaffold(
-          body: Stack(
-            children: [
-              ComicReadAppBar(
-                title: '第 3 话',
-                comicTitle: '这是用来验证省略的一本很长的书名',
-                changePageIndex: (_) {},
-                onToggleFullscreen: withFullscreen ? () {} : null,
-                isDesktopFullscreen: withFullscreen,
-              ),
-            ],
+        theme: ThemeData(
+          fontFamily:
+              const String.fromEnvironment('READER_TOP_BAR_PREVIEW_DIR').isEmpty
+              ? null
+              : 'ReaderToolbarPreview',
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xff98616f),
+            brightness: dark ? Brightness.dark : Brightness.light,
+          ),
+        ),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
+        ),
+        home: RepaintBoundary(
+          key: const ValueKey('reader-top-bar-preview'),
+          child: Scaffold(
+            body: Stack(
+              children: [
+                ComicReadAppBar(
+                  title: '第 3 话',
+                  comicTitle: '这是用来验证省略的一本很长的书名',
+                  changePageIndex: (_) {},
+                  onToggleFullscreen: withFullscreen ? () {} : null,
+                  isDesktopFullscreen: withFullscreen,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -89,7 +125,91 @@ Finder _barButtons() => find.byType(ReaderToolbarIconButton);
 void main() {
   // 超分总闸存在 SharedPreferences 里：不给 mock，那颗芯片会永远停在「还在读」
   // 的那一帧，测试看到的就是一颗没有内容的空壳。
-  setUpAll(() => SharedPreferences.setMockInitialValues({}));
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+
+    if (const String.fromEnvironment('READER_TOP_BAR_PREVIEW_DIR').isNotEmpty) {
+      await (FontLoader(
+            'ReaderToolbarPreview',
+          )..addFont(rootBundle.load('asset/fonts/LXGWWenKaiLite-Regular.ttf')))
+          .load();
+    }
+  });
+
+  for (final width in [
+    320.0,
+    519.0,
+    520.0,
+    600.0,
+    720.0,
+    880.0,
+    1060.0,
+    1099.0,
+    1100.0,
+    1280.0,
+  ]) {
+    for (final scale in [1.0, 1.3]) {
+      testWidgets('超分与翻译同时显示 $width 字号 $scale', (tester) async {
+        await _paintBar(
+          tester,
+          width,
+          height: 800,
+          withTranslation: true,
+          textScale: scale,
+        );
+        expect(find.text(t.reader.tabTranslate), findsOneWidget);
+        expect(find.text('超分'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        if (scale == 1) await _captureTop(tester, 'top-${width.toInt()}');
+      });
+    }
+  }
+
+  testWidgets('深色顶栏预览', (tester) async {
+    await _paintBar(
+      tester,
+      600,
+      height: 800,
+      withTranslation: true,
+      dark: true,
+    );
+    expect(tester.takeException(), isNull);
+    await _captureTop(tester, 'top-dark-600');
+  });
+
+  testWidgets('二级工具栏独立悬浮，背景不覆盖主行与两侧留白', (tester) async {
+    await _paintBar(tester, 700, height: 800, withTranslation: true);
+    final secondary = find.byType(ReaderToolbarPanelRow);
+    final secondarySurface = find
+        .descendant(of: secondary, matching: find.byType(Material))
+        .first;
+    final primarySurface = find
+        .ancestor(of: find.text('第 3 话'), matching: find.byType(Material))
+        .first;
+    final first = tester.getRect(primarySurface);
+    final second = tester.getRect(secondarySurface);
+    expect(second.top - first.bottom, greaterThanOrEqualTo(8));
+    expect(second.width, lessThan(first.width - 32));
+    expect(second.center.dx, closeTo(first.center.dx, .01));
+    final controls = find.descendant(
+      of: secondary,
+      matching: find.byType(ReaderToolbarIconButton),
+    );
+    expect(controls, findsNWidgets(5));
+    for (var i = 0; i < 5; i++) {
+      expect(tester.getSize(controls.at(i)), const Size(48, 48));
+    }
+    // 超分与翻译采用不同轮廓，仍是可聚焦的原生按钮。
+    final buttons = tester.widgetList<FilledButton>(find.byType(FilledButton));
+    final shapes = buttons
+        .map((button) => button.style?.shape?.resolve({}))
+        .whereType<ExpressiveMorphBorder>()
+        .map((border) => border.from)
+        .toList();
+    expect(shapes, contains(ExpressiveButtonShape.cookie4Sided));
+    expect(shapes, contains(ExpressiveButtonShape.slanted));
+    expect(tester.takeException(), isNull);
+  });
 
   group('宽度分档是纯函数', () {
     test('三档的边界各只有一条线', () {
@@ -301,8 +421,8 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('单页'), findsOneWidget);
-      // 分隔线：视图 / 版式 / 增强 / 窗口 之间三条。
-      expect(find.byType(ReaderToolbarSeparator), findsNWidgets(3));
+      // 组间留白与容器层级替代竖分隔线。
+      expect(find.byType(ReaderToolbarSeparator), findsNothing);
     });
 
     testWidgets('中档：视图组还在、文字收成图标，钉住与全屏先让位', (tester) async {
@@ -657,4 +777,34 @@ void main() {
       expect(narrow, greaterThanOrEqualTo(6));
     });
   });
+}
+
+Future<void> _captureTop(WidgetTester tester, String name) async {
+  const directory = String.fromEnvironment('READER_TOP_BAR_PREVIEW_DIR');
+  if (directory.isEmpty) return;
+  final boundary = tester.renderObject<RenderRepaintBoundary>(
+    find.byKey(const ValueKey('reader-top-bar-preview')),
+  );
+  final savedShadows = debugDisableShadows;
+  try {
+    debugDisableShadows = false;
+    void repaint(RenderObject object) {
+      object.visitChildren(repaint);
+      object.markNeedsPaint();
+    }
+
+    repaint(boundary);
+    await tester.pump();
+    await tester.runAsync(() async {
+      final image = await boundary.toImage();
+      final data = await image.toByteData(format: ui.ImageByteFormat.png);
+      await Directory(directory).create(recursive: true);
+      await File(
+        '$directory/$name.png',
+      ).writeAsBytes(data!.buffer.asUint8List());
+      image.dispose();
+    });
+  } finally {
+    debugDisableShadows = savedShadows;
+  }
 }

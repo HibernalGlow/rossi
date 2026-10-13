@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_feature_button.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
 import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_book_scope.dart';
@@ -13,33 +14,8 @@ import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/icons/icons.dart';
 
-/// 顶栏上的「当前页超分」芯片：**状态 + 超分后分辨率 + 超分开关**。
-///
-/// # 三块，各自回答一个问题
-///
-/// | 位置 | 回答 | 依据 |
-/// |---|---|---|
-/// | 图标 + 状态字 | 这一页现在到哪一步了 | `GpuPresentController.currentPageUpscaleStatus` |
-/// | 分辨率 | 超分之后是多少像素 | 量超分产物的图片头（量不出就不显示） |
-/// | 右侧开关 | 超分开着没有 | `isUpscaleEnabled`（与阅读设置面板同一个） |
-///
-/// # 为什么不是一个按钮
-///
-/// 从前这枚胶囊是「点一下切原图对比、长按关闭超分」，两件事都藏在手势里：
-/// 用户既不知道现在超分到底跑没跑（状态不可见），也不知道开关在哪（手势不可见）。
-/// 现在**开关是看得见的控件**，手势只保留一件事：点主体切「对比原图」。
-/// 长按不再是「关闭超分」—— 那件事现在由开关承担，留着只会让人误触。
-///
-/// # 为什么窄屏不写文字
-///
-/// 顶栏其他控件的固定宽度之和已经占掉六百多逻辑像素，再硬塞十多字的分辨率，
-/// `Row` 就会溢出（黄黑斜纹）。所以**状态字**在
-/// [superResolutionLabelMinWidth] 以上才写、分辨率文字在
-/// [superResolutionSizeMinWidth] 以上才写，**窄屏仍然能在 tooltip 里看到两者**。
-/// 判据在 `super_resolution_status.dart` 里，是纯函数，有单测钉着。
-///
-/// 网络来源（插件漫画）没有呈现器 —— 那条路的超分在文件下载层发生，没有「当前页」
-/// 可言，所以这里整块不显示（它的总闸在阅读设置面板与全局设置里）。
+/// 当前页超分状态与本书启停。主体切换原图对比，电源独立启停；
+/// 分辨率和阶段保留在详情及悬停提示中，在线来源回退到本书开关。
 class ReaderUpscaleStatusChip extends StatelessWidget {
   const ReaderUpscaleStatusChip({
     super.key,
@@ -55,7 +31,7 @@ class ReaderUpscaleStatusChip extends StatelessWidget {
     if (presenter == null) {
       // 在线图源没有呈现器 —— 超分在取图/解码层发生，没有「当前页」可言。
       // 但按用户的口径「超分的显示与开关留在第一行」，这里仍然给一颗绑到
-      // 总闸（`RealSrSettings.autoUpscale`）的简版芯片，而不是整块不画。
+      // 本书覆盖的简版按钮，而不是整块不画。
       return ReaderOnlineUpscaleChip(availableWidth: availableWidth);
     }
     return ListenableBuilder(
@@ -70,122 +46,45 @@ class ReaderUpscaleStatusChip extends StatelessWidget {
   }
 
   Widget _buildChip(BuildContext context, GpuPresentController presenter) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final SuperResolutionPageStatus status = presenter.currentPageUpscaleStatus;
-    final bool enabled = presenter.isUpscaleEnabled;
-    final String? sizeText = superResolutionSizeText(status, availableWidth);
-    final bool showLabel = superResolutionShowsLabel(availableWidth);
-
-    // 三档容器角色，宁可少也不要花：**失败**必须一眼看出来（errorContainer），
-    // **有超分产物 / 正在跑**才配强调（secondaryContainer），其余一律中性实色。
-    // 这里一个 `withValues` 都没有 —— MD3 的 container 角色本就是拿来直接用的。
-    final bool hasResult = superResolutionPhaseHasEnhancedResult(status.phase);
-    final bool busy = superResolutionPhaseIsBusy(status.phase);
-    final (Color bg, Color fg) = switch (status.phase) {
-      SuperResolutionPagePhase.failed => (
-        colorScheme.errorContainer,
-        colorScheme.onErrorContainer,
-      ),
-      _ when hasResult || busy => (
-        colorScheme.secondaryContainer,
-        colorScheme.onSecondaryContainer,
-      ),
-      _ => (colorScheme.surfaceContainerHigh, colorScheme.onSurfaceVariant),
-    };
-
-    return Tooltip(
-      message:
-          '${superResolutionTooltip(status)}\n'
-          '开关：只影响本书（其它书按全局设置）',
-      child: Container(
-        height: ReaderToolbarMetrics.chipHeight,
-        padding: const EdgeInsets.only(left: 10, right: 2),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(ReaderToolbarMetrics.fullRadius),
+    final status = presenter.currentPageUpscaleStatus;
+    final enabled = presenter.isUpscaleEnabled;
+    final sizeText = superResolutionSizeText(status, availableWidth);
+    // 主体继续负责原图对比；独立电源按钮负责本书启停，两个目标都保持 48dp。
+    return ReaderToolbarGroup(
+      children: [
+        ReaderToolbarFeatureButton(
+          icon: switch (status.phase) {
+            SuperResolutionPagePhase.originalPreview => AppGlyphs.photos,
+            SuperResolutionPagePhase.failed => AppGlyphs.error,
+            SuperResolutionPagePhase.unsupported => AppGlyphs.block,
+            _ => AppGlyphs.sparkle,
+          },
+          label: '超分',
+          shape: ExpressiveButtonShape.cookie4Sided,
+          detail:
+              sizeText ??
+              (availableWidth >= 880
+                  ? superResolutionPhaseLabel(status.phase)
+                  : null),
+          tooltip: '${superResolutionTooltip(status)}\n点击对比原图；右侧电源只影响本书',
+          selected: enabled && !presenter.isOriginalPreview,
+          showSelection: false,
+          busy: superResolutionPhaseIsBusy(status.phase),
+          failed: status.phase == SuperResolutionPagePhase.failed,
+          showLabel: true,
+          onPressed: () => _onBodyTap(context, presenter, status, enabled),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 主体：状态 + 分辨率。点它只做一件事 —— 对比原图（开着时）。
-            InkWell(
-              borderRadius: BorderRadius.circular(
-                ReaderToolbarMetrics.fullRadius,
-              ),
-              onTap: () => _onBodyTap(context, presenter, status, enabled),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildLeading(context, status.phase, fg),
-                    if (showLabel) ...[
-                      const SizedBox(width: 4),
-                      Text(
-                        superResolutionPhaseLabel(status.phase),
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: fg,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                    if (sizeText != null) ...[
-                      const SizedBox(width: 5),
-                      // 分辨率是**事实**，弱一档：状态字才是主角。
-                      Text(
-                        sizeText,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: fg.withValues(alpha: 0.85),
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 2),
-            _UpscaleSwitch(
-              value: enabled,
-              onChanged: (value) =>
-                  value ? _enable(context, presenter) : _disable(presenter),
-            ),
-          ],
+        ReaderToolbarFeatureButton(
+          icon: AppGlyphs.power,
+          label: '超分',
+          tooltip: enabled ? '关闭本书超分' : '开启本书超分',
+          selected: enabled,
+          showLabel: false,
+          onPressed: () =>
+              enabled ? _disable(presenter) : _enable(context, presenter),
         ),
-      ),
+      ],
     );
-  }
-
-  /// 图标：**忙的时候转圈**，好过换一个「转」的图标 —— 一眼就知道还在跑。
-  Widget _buildLeading(
-    BuildContext context,
-    SuperResolutionPagePhase phase,
-    Color color,
-  ) {
-    if (phase == SuperResolutionPagePhase.running) {
-      return SizedBox(
-        width: ReaderToolbarMetrics.iconSize,
-        height: ReaderToolbarMetrics.iconSize,
-        child: CircularProgressIndicator(
-          strokeWidth: 1.8,
-          valueColor: AlwaysStoppedAnimation<Color>(color),
-        ),
-      );
-    }
-    final Glyph icon = switch (phase) {
-      SuperResolutionPagePhase.unsupported => AppGlyphs.block,
-      SuperResolutionPagePhase.disabled => AppGlyphs.sparkle,
-      SuperResolutionPagePhase.originalPreview => AppGlyphs.photos,
-      SuperResolutionPagePhase.queued => AppGlyphs.hourglass,
-      SuperResolutionPagePhase.running => AppGlyphs.sparkle,
-      SuperResolutionPagePhase.ready => AppGlyphs.sparkle,
-      SuperResolutionPagePhase.applied => AppGlyphs.sparkle,
-      SuperResolutionPagePhase.skipped => AppGlyphs.checkCircle,
-      SuperResolutionPagePhase.failed => AppGlyphs.error,
-      SuperResolutionPagePhase.idle => AppGlyphs.sparkle,
-    };
-    return GlyphIcon(icon, color: color, size: 14);
   }
 
   /// 点主体：开着就切「对比原图」，关着就当按下开关。
@@ -226,34 +125,6 @@ class ReaderUpscaleStatusChip extends StatelessWidget {
   }
 }
 
-/// 顶栏里那个放得下的开关。
-///
-/// 单独包的唯一理由是**尺寸**：`Switch` 自带 48 逻辑像素的最小点击目标，
-/// 直接放进 48 高的顶栏行里会把它撑爆（纵向溢出同样画黄黑斜纹）。
-/// 用 [FittedBox] 按比例缩到 ~22 高，命中区域跟着一起缩 —— 顶栏本来就密，
-/// 这里不能再要 48。
-class _UpscaleSwitch extends StatelessWidget {
-  const _UpscaleSwitch({required this.value, required this.onChanged});
-
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 22,
-      child: FittedBox(
-        fit: BoxFit.contain,
-        child: Switch(
-          value: value,
-          onChanged: onChanged,
-          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-      ),
-    );
-  }
-}
-
 /// 让超分模型就绪：已下载直接返回 true；没下载则**先问一句再下**。
 ///
 /// 抽出来是因为顶栏那两条路（本地呈现器的开关 / 在线图源的总闸开关）都得
@@ -291,9 +162,9 @@ Future<bool> ensureSuperResolutionModel(BuildContext context) async {
   }
 }
 
-/// 在线图源的超分芯片：**总闸的开关 + 开着没有**，没有逐页状态。
+/// 在线图源的超分入口：本书启停与选中状态，没有逐页状态。
 ///
-/// 与本地那颗同外形同高度（40 的芯片档），开着 = `secondaryContainer`，
+/// 与本地入口使用同一套 48dp 按钮，开着 = `secondaryContainer`，
 /// 关着 = `surfaceContainerHigh`；文字仍然按 [superResolutionShowsLabel] 让位。
 /// 状态之所以只有「开/关」：在线那条路的超分发生在取图/解码层，
 /// 呈现器不在场，问不出「这一页跑到哪一步」。
@@ -392,58 +263,20 @@ class _ReaderOnlineUpscaleChipState extends State<ReaderOnlineUpscaleChip> {
     await RealSrBookScope.save(_bookKey, value);
     if (!mounted) return;
     setState(() => _bookEnabled = value);
-    showInfoToast(
-      value
-          ? '本书已开启超分（后续取图在取图层处理）'
-          : '本书已关闭超分（其它书仍按全局设置）',
-    );
+    showInfoToast(value ? '本书已开启超分（后续取图在取图层处理）' : '本书已关闭超分（其它书仍按全局设置）');
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final bool? value = _bookEnabled;
+    final value = _bookEnabled;
     if (value == null) return const SizedBox.shrink();
-
-    final bool showLabel = superResolutionShowsLabel(widget.availableWidth);
-    final (Color bg, Color fg) = value
-        ? (colorScheme.secondaryContainer, colorScheme.onSecondaryContainer)
-        : (colorScheme.surfaceContainerHigh, colorScheme.onSurfaceVariant);
-
-    return Tooltip(
-      message: _tooltip,
-      child: Container(
-        height: ReaderToolbarMetrics.chipHeight,
-        padding: const EdgeInsets.only(left: 10, right: 4),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(ReaderToolbarMetrics.fullRadius),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            GlyphIcon(
-              AppGlyphs.sparkle,
-              size: ReaderToolbarMetrics.iconSize,
-              color: fg,
-            ),
-            if (showLabel) ...[
-              const SizedBox(width: 4),
-              Text(
-                '超分',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: fg,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-            // 开关与前面的内容之间留一口呼吸：挤在一起时看着像两个控件叠了。
-            const SizedBox(width: 6),
-            _UpscaleSwitch(value: value, onChanged: _toggle),
-          ],
-        ),
-      ),
+    return ReaderToolbarFeatureButton(
+      icon: AppGlyphs.sparkle,
+      label: '超分',
+      shape: ExpressiveButtonShape.cookie4Sided,
+      tooltip: _tooltip,
+      selected: value,
+      onPressed: () => _toggle(!value),
     );
   }
 }
