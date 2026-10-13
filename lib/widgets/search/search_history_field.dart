@@ -2,9 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/search/search_history_popup.dart';
 import 'package:zephyr/widgets/search/search_history_store.dart';
+import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
 
 typedef HistorySearchFieldBuilder =
     Widget Function(
@@ -16,7 +19,7 @@ typedef HistorySearchFieldBuilder =
       Widget historyButton,
     );
 
-/// Flutter 官方 Autocomplete 的存储适配；建议列表、滚动和选择由组件构建。
+/// 官方 Autocomplete 管理建议和键盘选择，统一弹层呈现两个历史入口。
 class SearchHistoryAutocomplete extends StatefulWidget {
   const SearchHistoryAutocomplete({
     super.key,
@@ -56,6 +59,20 @@ class _SearchHistoryAutocompleteState extends State<SearchHistoryAutocomplete> {
   bool _selectedOnSubmit = false;
   int _generation = 0;
   int _loadSerial = 0;
+  final _fieldKey = GlobalKey();
+  final _buttonKey = GlobalKey();
+  final _buttonOwner = Object();
+  late final _popup = SearchHistoryPopup(
+    fieldKey: _fieldKey,
+    onDismissed: () {
+      _manualHistory = false;
+      _dismissed = true;
+    },
+  );
+  bool _manualHistory = false;
+  bool _dismissed = false;
+  SearchHistorySuggestions? _suggestions;
+  Object? _suggestionsOwner;
 
   @override
   void initState() {
@@ -72,19 +89,25 @@ class _SearchHistoryAutocompleteState extends State<SearchHistoryAutocomplete> {
       _focus.addListener(_focusChanged);
     }
     if (oldWidget.history.scope != widget.history.scope) {
+      _closeHistory();
+      _suggestions = null;
+      _dismissed = false;
       _edited = false;
       _history = const [];
       _generation++;
       unawaited(_reload());
     }
+    if (!widget.enabled) _closeHistory();
   }
 
   void _focusChanged() {
     if (_focus.hasFocus) {
+      _dismissed = false;
       _keyboardSelection = false;
       unawaited(_reload());
-    } else if (widget.recordOnBlur && _edited) {
-      _record(_controller.text);
+    } else {
+      _closeHistory();
+      if (widget.recordOnBlur && _edited) _record(_controller.text);
     }
   }
 
@@ -114,12 +137,15 @@ class _SearchHistoryAutocompleteState extends State<SearchHistoryAutocomplete> {
   }
 
   void _changed(String value) {
+    _manualHistory = false;
+    _dismissed = false;
     _edited = true;
     _keyboardSelection = false;
     widget.onChanged?.call(value);
   }
 
   void _selected(String query) {
+    _closeHistory();
     _selectedOnSubmit = true;
     _keyboardSelection = false;
     _record(query);
@@ -139,6 +165,7 @@ class _SearchHistoryAutocompleteState extends State<SearchHistoryAutocomplete> {
     // 普通回车仍搜索用户原词；方向键选中历史后回车才接受建议。
     if (_keyboardSelection) selectHighlighted();
     if (!_selectedOnSubmit) {
+      _closeHistory();
       _record(query);
       unawaited(_deliverSubmission(query));
     }
@@ -146,6 +173,7 @@ class _SearchHistoryAutocompleteState extends State<SearchHistoryAutocomplete> {
   }
 
   Future<void> _clearHistory() async {
+    _closeHistory();
     _edited = false;
     try {
       await widget.history.clear();
@@ -159,44 +187,97 @@ class _SearchHistoryAutocompleteState extends State<SearchHistoryAutocomplete> {
     }
   }
 
+  void _closeHistory() {
+    _manualHistory = false;
+    _dismissed = true;
+    _popup.dismiss();
+  }
+
+  void _showSuggestions(SearchHistorySuggestions value, Object owner) {
+    _suggestions = value;
+    _suggestionsOwner = owner;
+    if (!mounted ||
+        !widget.enabled ||
+        !_focus.hasFocus ||
+        _manualHistory ||
+        _dismissed) {
+      return;
+    }
+    _popup.show(context, value, owner);
+  }
+
+  void _replay(String query) {
+    _controller.value = TextEditingValue(
+      text: query,
+      selection: TextSelection.collapsed(offset: query.length),
+    );
+    _selected(query);
+  }
+
+  Future<void> _openHistory({bool filter = false}) async {
+    _manualHistory = true;
+    await _reload();
+    if (!mounted || !widget.enabled || !_manualHistory) return;
+    _popup.show(
+      context,
+      SearchHistorySuggestions(
+        queries: _history
+            .where(
+              (entry) =>
+                  !filter ||
+                  entry.toLowerCase().contains(
+                    _controller.text.trim().toLowerCase(),
+                  ),
+            )
+            .take(filter ? 8 : 12)
+            .toList(),
+        onSelected: _replay,
+        onClear: () => unawaited(_clearHistory()),
+      ),
+      _buttonOwner,
+      sourceKey: filter ? _fieldKey : _buttonKey,
+    );
+  }
+
+  void _fieldTapped(PointerDownEvent event) {
+    final button = _buttonKey.currentContext?.findRenderObject();
+    if (button is RenderBox &&
+        (button.localToGlobal(Offset.zero) & button.size).contains(
+          event.position,
+        )) {
+      return;
+    }
+    // 输入框已持有焦点时再次点击也应打开历史，不让用户先失焦再回来。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.enabled && _focus.hasFocus && _dismissed) {
+        unawaited(_openHistory(filter: true));
+      }
+    });
+  }
+
   Widget _historyButton() => Focus(
     canRequestFocus: false,
     descendantsAreTraversable: false,
     child: TextFieldTapRegion(
-      child: PopupMenuButton<_HistoryChoice>(
-        tooltip: t.search.history,
-        requestFocus: false,
-        enabled: widget.enabled,
-        icon: const GlyphIcon(AppGlyphs.history, size: 18),
-        onOpened: () => unawaited(_reload()),
-        onSelected: (choice) {
-          if (choice.query == null) {
-            unawaited(_clearHistory());
-            return;
-          }
-          final query = choice.query!;
-          _controller.value = TextEditingValue(
-            text: query,
-            selection: TextSelection.collapsed(offset: query.length),
-          );
-          _selected(query);
-        },
-        itemBuilder: (context) => [
-          if (_history.isEmpty)
-            PopupMenuItem(enabled: false, child: Text(t.search.noHistory)),
-          for (final query in _history.take(12))
-            PopupMenuItem(
-              value: _HistoryChoice(query),
-              child: TextFieldTapRegion(child: Text(query)),
+      child: ElasticPress(
+        key: _buttonKey,
+        enabled:
+            widget.enabled &&
+            !eInkInstantRoutes &&
+            !MediaQuery.disableAnimationsOf(context),
+        child: IconButton.filledTonal(
+          tooltip: t.search.history,
+          style: ElasticPress.buttonStyle.merge(
+            IconButton.styleFrom(
+              minimumSize: const Size(48, 48),
+              backgroundColor: Colors.transparent,
+              foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+              shape: const StadiumBorder(),
             ),
-          if (_history.isNotEmpty) ...[
-            const PopupMenuDivider(),
-            PopupMenuItem(
-              value: const _HistoryChoice(null),
-              child: TextFieldTapRegion(child: Text(t.search.clearHistory)),
-            ),
-          ],
-        ],
+          ),
+          onPressed: widget.enabled ? () => unawaited(_openHistory()) : null,
+          icon: const GlyphIcon(AppGlyphs.history, size: 18),
+        ),
       ),
     ),
   );
@@ -220,9 +301,27 @@ class _SearchHistoryAutocompleteState extends State<SearchHistoryAutocomplete> {
       }
     },
     onSelected: _selected,
+    optionsViewBuilder: (context, selected, options) =>
+        SearchHistoryOptionsBridge(
+          suggestions: SearchHistorySuggestions(
+            queries: options.toList(),
+            onSelected: selected,
+            onClear: () => unawaited(_clearHistory()),
+          ),
+          onShow: _showSuggestions,
+          onHide: (owner) {
+            if (identical(owner, _suggestionsOwner)) _suggestions = null;
+            _popup.dismiss(owner: owner);
+          },
+        ),
     fieldViewBuilder: (context, controller, focus, selectHighlighted) => Focus(
+      key: _fieldKey,
       canRequestFocus: false,
       onKeyEvent: (_, event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.escape) {
+          _closeHistory();
+        }
         if (event is KeyDownEvent &&
             const [
               LogicalKeyboardKey.arrowDown,
@@ -231,22 +330,31 @@ class _SearchHistoryAutocompleteState extends State<SearchHistoryAutocomplete> {
               LogicalKeyboardKey.pageUp,
             ].contains(event.logicalKey)) {
           _keyboardSelection = true;
+          if (_manualHistory && _suggestions != null) {
+            _manualHistory = false;
+            _dismissed = false;
+            _popup.show(this.context, _suggestions!, _suggestionsOwner!);
+          }
         }
         return KeyEventResult.ignored;
       },
-      child: widget.fieldBuilder(
-        context,
-        controller,
-        focus,
-        _changed,
-        (value) => _submit(value, selectHighlighted),
-        _historyButton(),
+      child: Listener(
+        onPointerDown: _fieldTapped,
+        child: widget.fieldBuilder(
+          context,
+          controller,
+          focus,
+          _changed,
+          (value) => _submit(value, selectHighlighted),
+          _historyButton(),
+        ),
       ),
     ),
   );
 
   @override
   void dispose() {
+    _popup.dismiss();
     if (widget.recordOnBlur && _edited) _record(_controller.text);
     _focus.removeListener(_focusChanged);
     _ownedController?.dispose();
@@ -255,12 +363,7 @@ class _SearchHistoryAutocompleteState extends State<SearchHistoryAutocomplete> {
   }
 }
 
-class _HistoryChoice {
-  const _HistoryChoice(this.query);
-  final String? query;
-}
-
-/// 保留现有 TextField 参数，增加官方自动完成及历史菜单。
+/// 保留现有 TextField 参数，增加官方自动完成及 Expressive 历史弹层。
 class SearchHistoryField extends StatelessWidget {
   const SearchHistoryField({
     super.key,
