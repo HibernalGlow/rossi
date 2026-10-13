@@ -1069,6 +1069,8 @@
     "transparentTopBarOpacity": "Top bar scrim opacity",
     "thumbnailStripExpand": "Show thumbnails",
     "thumbnailStripCollapse": "Hide thumbnails",
+    "thumbnailStripOriginalAspectRatio": "Use original thumbnail proportions",
+    "thumbnailStripOriginalAspectRatioSubtitle": "Off: uniform portrait thumbnails. On: show each image fully at its original proportions",
     "thumbnailStripCurrent": "Now",
     "thumbnailStripJumpToPage": "Jump to page $page",
     "hoverRevealTop": "Top Edge Reveals Header",

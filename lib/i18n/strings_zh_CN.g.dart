@@ -3316,6 +3316,12 @@ class Translations$reader$zh_CN {
 	/// zh-CN: '收起缩略图'
 	String get thumbnailStripCollapse => '收起缩略图';
 
+	/// zh-CN: '缩略图按原图比例显示'
+	String get thumbnailStripOriginalAspectRatio => '缩略图按原图比例显示';
+
+	/// zh-CN: '关闭时统一竖屏显示，开启后按每张图片的比例完整显示'
+	String get thumbnailStripOriginalAspectRatioSubtitle => '关闭时统一竖屏显示，开启后按每张图片的比例完整显示';
+
 	/// zh-CN: '当前'
 	String get thumbnailStripCurrent => '当前';
 
@@ -7794,6 +7800,8 @@ extension on Translations {
 			'reader.transparentTopBarOpacity' => '顶栏蒙层不透明度',
 			'reader.thumbnailStripExpand' => '展开缩略图',
 			'reader.thumbnailStripCollapse' => '收起缩略图',
+			'reader.thumbnailStripOriginalAspectRatio' => '缩略图按原图比例显示',
+			'reader.thumbnailStripOriginalAspectRatioSubtitle' => '关闭时统一竖屏显示，开启后按每张图片的比例完整显示',
 			'reader.thumbnailStripCurrent' => '当前',
 			'reader.thumbnailStripJumpToPage' => ({required Object page}) => '跳转到第 ${page} 页',
 			'reader.hoverRevealTop' => '顶部边缘唤出顶栏',

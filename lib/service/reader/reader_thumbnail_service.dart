@@ -33,6 +33,7 @@ class ReaderThumbnailService {
   final Map<String, String> _filePathCache = <String, String>{};
 
   String? _catalogCacheDir;
+  final Map<String, Future<Uint8List?>> _localInFlight = {};
 
   /// 获取 mImageViewer SQLite 目录数据库存储目录
   Future<String> getCatalogCacheDir() async {
@@ -63,6 +64,28 @@ class ReaderThumbnailService {
       return value;
     }
 
+    final pending = _localInFlight[key];
+    if (pending != null) return pending;
+    final future = _loadLocalThumbnailBytes(
+      source: source,
+      index: index,
+      maxLongSide: maxLongSide,
+      key: key,
+    );
+    _localInFlight[key] = future;
+    try {
+      return await future;
+    } finally {
+      if (identical(_localInFlight[key], future)) _localInFlight.remove(key);
+    }
+  }
+
+  Future<Uint8List?> _loadLocalThumbnailBytes({
+    required PageSource source,
+    required int index,
+    required int maxLongSide,
+    required String key,
+  }) async {
     try {
       final cacheDir = await getCatalogCacheDir();
       final pages = source.pages;

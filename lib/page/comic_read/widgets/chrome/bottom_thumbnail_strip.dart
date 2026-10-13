@@ -1,5 +1,8 @@
+import 'dart:math' as math;
 import 'dart:ui' show PointerDeviceKind;
 
+import 'package:flutter/rendering.dart' show ScrollDirection;
+import 'package:zephyr/widgets/library_image_geometry.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
@@ -21,6 +24,7 @@ class BottomThumbnailStrip extends StatefulWidget {
   final List<Doc> docs;
   final ValueChanged<int> onSelectPage;
   final double height;
+  final bool originalAspectRatio;
 
   /// 是否**从右往左**排 —— 跟着阅读方向走（左开时下页在左，第 1 页贴在右边）。
   ///
@@ -41,6 +45,7 @@ class BottomThumbnailStrip extends StatefulWidget {
     this.docs = const <Doc>[],
     required this.onSelectPage,
     this.height = 104,
+    this.originalAspectRatio = false,
     this.rightToLeft = false,
     this.embedded = false,
   });
@@ -54,11 +59,62 @@ class _BottomThumbnailStripState extends State<BottomThumbnailStrip> {
 
   static const double _tileWidth = 72.0;
   static const double _tileSpacing = 8.0;
+  final Map<int, double> _ratios = {};
+  double _tileHeight = 92;
+  double _maxTileWidth = 320;
+  bool _followCurrent = true;
+  bool _centerScheduled = false;
+  bool _centerAnimate = false;
+
+  double _widthFor(int index) => widget.originalAspectRatio
+      ? (_tileHeight * (_ratios[index] ?? _tileWidth / _tileHeight)).clamp(
+          40.0,
+          _maxTileWidth,
+        )
+      : _tileWidth;
+
+  void _scheduleCenter({bool animate = false}) {
+    _centerAnimate = _centerAnimate || animate;
+    if (!_followCurrent || _centerScheduled) return;
+    _centerScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _centerScheduled = false;
+      final animate = _centerAnimate;
+      _centerAnimate = false;
+      if (mounted && _followCurrent) {
+        _scrollToSlot(widget.currentSlot, animate: animate);
+      }
+    });
+  }
+
+  void _reportRatio(int index, double ratio) {
+    if (!ratio.isFinite || ratio <= 0 || _ratios[index] == ratio) return;
+    setState(() => _ratios[index] = ratio);
+    if (widget.originalAspectRatio) _scheduleCenter();
+  }
+
+  Future<void> _loadCachedRatios() async {
+    final source = widget.localSource;
+    if (source == null) return;
+    final dimensions = await ReaderThumbnailService.instance
+        .getBookPageDimensions(bookPath: source.path);
+    if (!mounted || widget.localSource != source) return;
+    setState(() {
+      for (final page in source.pages) {
+        final size = dimensions[page.name];
+        if (size != null && size.$1 > 0 && size.$2 > 0) {
+          _ratios[page.index] = size.$1 / size.$2;
+        }
+      }
+    });
+    _scheduleCenter();
+  }
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    if (widget.originalAspectRatio) _loadCachedRatios();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToSlot(widget.currentSlot, animate: false);
     });
@@ -67,16 +123,23 @@ class _BottomThumbnailStripState extends State<BottomThumbnailStrip> {
   @override
   void didUpdateWidget(covariant BottomThumbnailStrip oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.currentSlot != widget.currentSlot) {
-      _scrollToSlot(widget.currentSlot, animate: true);
+    final changedBook =
+        oldWidget.localSource != widget.localSource ||
+        oldWidget.comicId != widget.comicId ||
+        oldWidget.from != widget.from ||
+        oldWidget.docs != widget.docs;
+    if (changedBook) _ratios.clear();
+    if (widget.originalAspectRatio &&
+        (changedBook || !oldWidget.originalAspectRatio)) {
+      _loadCachedRatios();
     }
-    if (oldWidget.rightToLeft != widget.rightToLeft) {
-      // 换向等于整条胶卷镜像，同一个槽位对应的偏移完全变了。等这一帧排布
-      // 完成后再归位 —— 在 build 里直接跳，量到的还是旧方向的 viewport。
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _scrollToSlot(widget.currentSlot, animate: false);
-      });
+    if (oldWidget.currentSlot != widget.currentSlot ||
+        oldWidget.rightToLeft != widget.rightToLeft ||
+        oldWidget.originalAspectRatio != widget.originalAspectRatio ||
+        oldWidget.totalPages != widget.totalPages ||
+        changedBook) {
+      _followCurrent = true;
+      _scheduleCenter(animate: oldWidget.currentSlot != widget.currentSlot);
     }
   }
 
@@ -89,8 +152,15 @@ class _BottomThumbnailStripState extends State<BottomThumbnailStrip> {
   void _scrollToSlot(int slot, {bool animate = true}) {
     if (!_scrollController.hasClients) return;
     final viewportWidth = _scrollController.position.viewportDimension;
-    final itemExtent = _tileWidth + _tileSpacing;
-    final targetOffset = (slot * itemExtent) - (viewportWidth - _tileWidth) / 2;
+    if (slot < 0 || slot >= widget.totalPages) return;
+    // 未测量页沿用竖屏估算；已加载尺寸只修正其前缀，不解码不可见页。
+    var itemStart = 4.0 + slot * (_tileWidth + _tileSpacing);
+    if (widget.originalAspectRatio) {
+      for (final index in _ratios.keys) {
+        if (index < slot) itemStart += _widthFor(index) - _tileWidth;
+      }
+    }
+    final targetOffset = itemStart + _widthFor(slot) / 2 - viewportWidth / 2;
     final clampedOffset = targetOffset.clamp(
       0.0,
       _scrollController.position.maxScrollExtent,
@@ -116,35 +186,48 @@ class _BottomThumbnailStripState extends State<BottomThumbnailStrip> {
     // 换向走 Directionality 而不是 ListView(reverse:)：除了把整条胶卷镜像过来，
     // 它还会把格子里的 EdgeInsetsDirectional / PositionedDirectional 一起翻过去，
     // 于是「页往哪边走」和「角标在哪一角」都跟着阅读方向同构。
-    final reel = Directionality(
-      textDirection: widget.rightToLeft ? TextDirection.rtl : TextDirection.ltr,
-      child: ScrollConfiguration(
-        behavior: ScrollConfiguration.of(context).copyWith(
-          dragDevices: {
-            PointerDeviceKind.touch,
-            PointerDeviceKind.mouse,
-            PointerDeviceKind.trackpad,
-          },
-        ),
-        child: ListView.builder(
-          controller: _scrollController,
-          scrollDirection: Axis.horizontal,
-          itemCount: widget.totalPages,
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          itemBuilder: (context, index) {
-            final isActive = index == widget.currentSlot;
-            final doc = index < widget.docs.length ? widget.docs[index] : null;
+    final reel = NotificationListener<UserScrollNotification>(
+      onNotification: (notification) {
+        if (notification.direction != ScrollDirection.idle) {
+          _followCurrent = false;
+        }
+        return false;
+      },
+      child: Directionality(
+        textDirection: widget.rightToLeft
+            ? TextDirection.rtl
+            : TextDirection.ltr,
+        child: ScrollConfiguration(
+          behavior: ScrollConfiguration.of(context).copyWith(
+            dragDevices: {
+              PointerDeviceKind.touch,
+              PointerDeviceKind.mouse,
+              PointerDeviceKind.trackpad,
+            },
+          ),
+          child: ListView.builder(
+            controller: _scrollController,
+            scrollDirection: Axis.horizontal,
+            itemCount: widget.totalPages,
+            itemExtentBuilder: (index, _) => _widthFor(index) + _tileSpacing,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            itemBuilder: (context, index) {
+              final isActive = index == widget.currentSlot;
+              final doc = index < widget.docs.length
+                  ? widget.docs[index]
+                  : null;
 
-            return Padding(
-              padding: const EdgeInsetsDirectional.only(end: _tileSpacing),
-              child: _buildTile(
-                theme: theme,
-                index: index,
-                doc: doc,
-                isActive: isActive,
-              ),
-            );
-          },
+              return Padding(
+                padding: const EdgeInsetsDirectional.only(end: _tileSpacing),
+                child: _buildTile(
+                  theme: theme,
+                  index: index,
+                  doc: doc,
+                  isActive: isActive,
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -155,7 +238,19 @@ class _BottomThumbnailStripState extends State<BottomThumbnailStrip> {
           // 嵌进父级面板：横向留出与父级圆角相称的边距，底部少留（下面就是进度条）。
           ? const EdgeInsets.fromLTRB(8, 8, 8, 2)
           : const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-      child: ActionBubbleRegion(child: reel),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final viewportWidth = constraints.maxWidth;
+          final maxTileWidth = math.max(72.0, viewportWidth * .85);
+          if (_tileHeight != constraints.maxHeight ||
+              _maxTileWidth != maxTileWidth) {
+            _tileHeight = constraints.maxHeight;
+            _maxTileWidth = maxTileWidth;
+            _scheduleCenter();
+          }
+          return ActionBubbleRegion(child: reel);
+        },
+      ),
     );
 
     if (widget.embedded) return content;
@@ -196,7 +291,8 @@ class _BottomThumbnailStripState extends State<BottomThumbnailStrip> {
                   ExpressiveMotion.spatialDuration,
                 ),
                 curve: ExpressiveMotion.spatialCurve,
-                width: _tileWidth,
+                key: ValueKey('reader-thumbnail-tile-$index'),
+                width: _widthFor(index),
                 height: double.infinity,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(isActive ? 20 : 12),
@@ -214,13 +310,19 @@ class _BottomThumbnailStripState extends State<BottomThumbnailStrip> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      ReaderThumbnailWidget(
-                        index: index,
-                        doc: doc,
-                        localSource: widget.localSource,
-                        comicId: widget.comicId,
-                        from: widget.from,
-                        fit: BoxFit.cover,
+                      LibraryImageGeometryScope(
+                        onRatio: (ratio) => _reportRatio(index, ratio),
+                        keepFullImage: widget.originalAspectRatio,
+                        child: ReaderThumbnailWidget(
+                          index: index,
+                          doc: doc,
+                          localSource: widget.localSource,
+                          comicId: widget.comicId,
+                          from: widget.from,
+                          fit: widget.originalAspectRatio
+                              ? BoxFit.contain
+                              : BoxFit.cover,
+                        ),
                       ),
                       // 底部页码条
                       Positioned(

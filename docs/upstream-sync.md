@@ -100,6 +100,11 @@ M3EBottomSheetScrollController。该版本 Frame 必带全屏标题和关闭按�
 布局正文，上拖先连续展开到全屏、之后滚正文，下拖收回；落位复用项目
 SpringLensValue 与 LensMetrics，保留墨水屏、阅读无动画与系统减少动画设置。
 技能安装在 .agents/skills/material3-expressive-flutter，来源提交记录在 SOURCE.json。
+缩略图比例开关放在阅读设置的「界面 → 上下栏与边距」中，胶卷仅显示缩略图。
+开关作为全局阅读偏好扩展，默认统一竖向卡片；开启后按原图比例
+排列，极端长宽比保留完整图片。复用页面列表的 ReaderThumbnailWidget、共享
+图片尺寸报告、320px 缩略图 LRU 与 Flutter ImageCache；本地同页生成请求合并。
+可变宽胶卷使用 ListView 的 itemExtentBuilder 保留虚拟化与双向当前页居中。
 验证见阅读设置、顶栏布局、缩略图、进度方向/防抖、视频组合底栏及共享弹层测试。
 
 ## 设置展示适配（2026-10-13）

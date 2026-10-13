@@ -162,6 +162,10 @@ class _BottomWidgetState extends State<BottomWidget> {
     final showThumbnailStrip = context.select<GlobalSettingCubit, bool>(
       (cubit) => cubit.state.readSetting.showThumbnailStrip,
     );
+    // 比例属于全局阅读偏好，任一布局的缩略图栏都跟随它重建。
+    context.select<GlobalSettingCubit, bool>(
+      (cubit) => cubit.state.readSetting.thumbnailStripOriginalAspectRatio,
+    );
     // 底栏的胶卷与进度条跟着阅读方向镜像：左开（下一页在左）时第 1 页贴在右边，
     // 往左走才是往后翻 —— 与画面上翻页的方向同一套坐标系。
     final rightToLeft = context.select<GlobalSettingCubit, bool>(
