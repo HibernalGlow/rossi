@@ -40,7 +40,7 @@ typedef PopupAnchorResolver = Rect? Function();
 /// 返回 `Future` 的函数可以当 `VoidCallback` 用。
 typedef PopupOpen<T> = Future<T?> Function({Offset offset});
 
-enum PopupPlacement { overAnchorEnd, belowPoint, center }
+enum PopupPlacement { overAnchorEnd, belowPoint, bottomCenter, center }
 
 const _screenMargin = 16.0;
 
@@ -206,6 +206,7 @@ class CommonPopupRoute<T> extends PopupRoute<T> {
     this.modal = true,
     this.avoid,
     this.fullscreen = false,
+    this.animate = true,
     this.scrimColor,
   }) : super(requestFocus: modal ? null : false);
 
@@ -243,6 +244,9 @@ class CommonPopupRoute<T> extends PopupRoute<T> {
   /// 面板不必自己去猜宽度。
   final bool fullscreen;
 
+  /// 阅读器的无动画设置仍走统一弹层，直接到达终点。
+  final bool animate;
+
   @override
   final String? barrierLabel;
 
@@ -261,11 +265,11 @@ class CommonPopupRoute<T> extends PopupRoute<T> {
 
   @override
   Duration get transitionDuration =>
-      !_reduceMotion ? _openDuration : Duration.zero;
+      animate && !_reduceMotion ? _openDuration : Duration.zero;
 
   @override
   Duration get reverseTransitionDuration =>
-      !_reduceMotion ? _closeDuration : Duration.zero;
+      animate && !_reduceMotion ? _closeDuration : Duration.zero;
 
   late final CurvedAnimation _grow = CurvedAnimation(
     parent: animation!,
@@ -350,7 +354,9 @@ class CommonPopupRoute<T> extends PopupRoute<T> {
   ) {
     final colorScheme = context.colorScheme;
     final reduced =
-        eInkInstantRoutes || MediaQuery.disableAnimationsOf(context);
+        !animate ||
+        eInkInstantRoutes ||
+        MediaQuery.disableAnimationsOf(context);
     return Stack(
       children: [
         Positioned.fill(child: _buildDismissLayer()),
