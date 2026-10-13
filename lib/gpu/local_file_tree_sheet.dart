@@ -188,7 +188,10 @@ class _LocalFileTreePaneState extends State<LocalFileTreePane> {
                     ),
                     const SizedBox(width: 6),
                     IconButton(
-                      icon: const GlyphIcon(AppGlyphs.close, color: Colors.white70),
+                      icon: const GlyphIcon(
+                        AppGlyphs.close,
+                        color: Colors.white70,
+                      ),
                       onPressed: () => Navigator.of(context).pop(),
                       tooltip: '关闭',
                     ),

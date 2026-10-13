@@ -118,7 +118,9 @@ class _DownloadPageState extends State<DownloadPage> {
         actions: [
           // 动态切换全选/取消全选按钮
           IconButton(
-            icon: GlyphIcon(isAllSelected ? AppGlyphs.deselect : AppGlyphs.selectAll),
+            icon: GlyphIcon(
+              isAllSelected ? AppGlyphs.deselect : AppGlyphs.selectAll,
+            ),
             onPressed: toggleSelectAll,
           ),
         ],

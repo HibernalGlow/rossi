@@ -54,6 +54,7 @@ class NavigationBar extends StatefulWidget {
 class _NavigationBarState extends State<NavigationBar> {
   // _controller 控制底部导航栏 / 底栏插槽与页面切换
   late PersistentTabController _controller;
+
   /// 当前页的**身份**，不是下标。
   ///
   /// 侧栏与底部 Dock 各有自己的条目清单（用户在「自定义导航」里能增删排序），
@@ -64,9 +65,11 @@ class _NavigationBarState extends State<NavigationBar> {
   /// `null` = 还没定：`build` 会把它落到清单里第一条页面（开屏页见
   /// `_entryForWelcomeIndex`）。
   NavigationEntryId? _currentPageId;
+
   /// 当前这一支布局的条目清单（身份，按显示顺序）。由 `build` 每帧刷新，
   /// 供 `_handleExitOnBack` 这类离 build 很远的回调把身份换算成下标。
   List<NavigationEntryId> _activePageIds = const [];
+
   /// 去过哪些页。
   ///
   /// `IndexedStack` 会把所有页一次建起来（改造前手机那支是懒建的），而开屏
@@ -359,12 +362,11 @@ class _NavigationBarState extends State<NavigationBar> {
   /// （「关掉开关 = 回到改造前那一屏」，且主区里的动作在旧布局里没有位置）。
   /// 唯一的例外是「搜索」—— 那一支在栏底单独挂了它一颗按钮（改造前就是
   /// 这样），全量传进去会画两遍。
-  List<NavigationEntryId> _legacyRailActions(
-    List<NavigationEntryId> allowed,
-  ) => [
-    for (final id in allowed)
-      if (id.isAction && id != NavigationEntryId.search) id,
-  ];
+  List<NavigationEntryId> _legacyRailActions(List<NavigationEntryId> allowed) =>
+      [
+        for (final id in allowed)
+          if (id.isAction && id != NavigationEntryId.search) id,
+      ];
 
   /// 当前页在 [pages] 里的下标（旧布局用 —— 那边的下标空间是「只有页面」）。
   int _indexInPages(List<NavigationEntryId> pages) {
@@ -522,9 +524,7 @@ class _NavigationBarState extends State<NavigationBar> {
                 children: [
                   for (final (index, id) in bottomEntries.indexed) ...[
                     if (index > 0)
-                      const SizedBox(
-                        width: ActionGroupMetrics.gapWithinGroup,
-                      ),
+                      const SizedBox(width: ActionGroupMetrics.gapWithinGroup),
                     ActionIconButton(
                       glyph: id.glyph,
                       tooltip: id.label,
@@ -575,7 +575,8 @@ class _NavigationBarState extends State<NavigationBar> {
               Expanded(
                 child: NavigationRail(
                   selectedIndex: selectedIndex,
-                  onDestinationSelected: (index) => _handleToEntry(pages[index]),
+                  onDestinationSelected: (index) =>
+                      _handleToEntry(pages[index]),
                   labelType: NavigationRailLabelType.all,
                   backgroundColor: context.backgroundColor,
                   destinations: [
@@ -717,9 +718,9 @@ class _NavigationBarState extends State<NavigationBar> {
 
   /// GPU 上屏（D3D12 共享纹理）：像素从 Rust 侧直接进合成链，
   /// 不再经 `ui.decodeImageFromPixels`。
-  void _openGpuPresent() => Navigator.of(context).push(
-    MaterialPageRoute<void>(builder: (_) => const GpuPresentPage()),
-  );
+  void _openGpuPresent() => Navigator.of(
+    context,
+  ).push(MaterialPageRoute<void>(builder: (_) => const GpuPresentPage()));
 
   void _openSearch() => context.pushRoute(
     SearchRoute(searchState: SearchStates.initial(), aggregateMode: true),

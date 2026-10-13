@@ -260,9 +260,9 @@ class _CustomNavigationDialogState extends State<CustomNavigationDialog> {
   void _reset() {
     setState(() {
       final desktop = NavigationLayoutDraft(
-        main: defaultNavigationEntries(true)
-            .where(widget.availableItems.contains)
-            .toList(),
+        main: defaultNavigationEntries(
+          true,
+        ).where(widget.availableItems.contains).toList(),
         actions: defaultNavigationActions(widget.availableItems),
       );
       _desktop = desktop;
@@ -339,10 +339,7 @@ class _CustomNavigationDialogState extends State<CustomNavigationDialog> {
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: _reset,
-          child: Text(t.navigation.customizeReset),
-        ),
+        TextButton(onPressed: _reset, child: Text(t.navigation.customizeReset)),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(),
           child: Text(t.navigation.customizeDone),
@@ -374,7 +371,8 @@ class _LayoutTab extends StatelessWidget {
   final List<NavigationEntryId> availableItems;
   final void Function(_NavSection section, NavigationEntryId id) onAdd;
   final void Function(_NavSection section, NavigationEntryId id) onRemove;
-  final void Function(_NavSection section, int oldIndex, int newIndex) onReorder;
+  final void Function(_NavSection section, int oldIndex, int newIndex)
+  onReorder;
   final void Function(_NavSection section, NavigationEntryId id) onMove;
 
   /// 待添加池里的胶囊往哪儿落：按**类型的自然归属**。
@@ -594,9 +592,9 @@ class _ActionTag extends StatelessWidget {
       ),
       child: Text(
         t.navigation.customizeActionTag,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: scheme.onSecondaryContainer,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.labelSmall?.copyWith(color: scheme.onSecondaryContainer),
       ),
     );
   }

@@ -73,9 +73,7 @@ List<Widget> offlineComicSlivers(
           final record = records[index];
           return ComicSimplifyEntry(
             key: ValueKey('offline-${record.uniqueKey}'),
-            info: unifiedComicFromUnifiedDownload(
-              record,
-            ).toSimplifyEntryInfo(),
+            info: unifiedComicFromUnifiedDownload(record).toSimplifyEntryInfo(),
             type: ComicEntryType.download,
           );
         }, childCount: records.length),
