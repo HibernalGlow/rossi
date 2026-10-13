@@ -4,6 +4,8 @@
 > 减少后续维护。共享业务定期同步并使用上游接口、状态和测试；保留 Rossi 独有功能及
 > 跨平台适配，将差异集中在薄适配层并登记。以下正文保留原始决策背景，
 > “仅作为参考、只人工挑选运行时修复”不再是当前同步范围。
+> **该口径的判据、例外与登记要求已独立成 [ADR-0023](0023-upstream-implementation-first-for-overlap.md)，以它为准；
+> 本 ADR 继续有效的部分是「允许破坏性变更、不承诺可上游化、不向上游提 PR」。**
 > 本次同步基准与验证见 [上游同步记录](../upstream-sync.md)。
 
 Rossi 是 `deretame/Breeze` 的 fork，但改动方向（Flutter UI 重建、Reader 换 RenderBackend、

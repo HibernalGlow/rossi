@@ -36,8 +36,11 @@ _See_: ADR-0011
 _Avoid_: 用它表示「本地核心的来源」；也不要再说「用 ComicRD 做 Reader」
 
 **上游同步**（upstream sync）:
-Rossi 保留从 Breeze 与 mImageViewer 拉取上游改动的能力，但**不对齐**它们：允许破坏性变更，不向上游提 PR。
-_See_: ADR-0002
+Rossi 保留从 Breeze 与 mImageViewer 拉取上游改动的能力。**重叠功能以上游实现为正本**——
+上游已有同一目标的实现且这份实现在本仓可用时，不保留本仓的平行实现；Rossi 独有功能与
+跨平台差异保留在薄适配层并登记。允许破坏性变更，不承诺改动可上游化，不向上游提 PR。
+_See_: ADR-0002、ADR-0023
+_Avoid_: 「对齐上游」（只在重叠判据成立时才谈采用）、「参考来源」（ADR-0002 的旧措辞，已收窄）
 
 **Venera-SSR**:
 `Kiastr/Venera-SSR`——**Flutter + Rust 的多平台改版漫画阅读器**（含 android/ios/linux/macos/windows/debian）。
