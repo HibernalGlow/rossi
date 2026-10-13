@@ -34,7 +34,7 @@ extension _ComicInfoChapterGroupsPart on _ComicInfoState {
       case ChapterDownloadStatus.downloaded:
         final wholeDeleted = await _dlController.deleteSingle(context, chapter);
         if (wholeDeleted && _type == ComicEntryType.download) {
-          if (context.mounted) context.pop();
+          if (context.mounted) actionBack(context);
         }
         break;
     }
