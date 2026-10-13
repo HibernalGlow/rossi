@@ -110,9 +110,8 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
             _toggle(
               '到达最后一页时显示提示',
               setting.enableBoundaryToast,
-              (v) => context
-                  .read<GlobalSettingCubit>()
-                  .updateSwitchToastSetting(
+              (v) =>
+                  context.read<GlobalSettingCubit>().updateSwitchToastSetting(
                     (c) => c.copyWith(enableBoundaryToast: v),
                   ),
             ),

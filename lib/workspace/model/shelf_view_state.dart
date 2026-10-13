@@ -67,12 +67,7 @@ class ShelfViewState {
       other.timeline == timeline;
 
   @override
-  int get hashCode => Object.hash(
-    viewMode,
-    sortField,
-    sortAscending,
-    timeline,
-  );
+  int get hashCode => Object.hash(viewMode, sortField, sortAscending, timeline);
 
   @override
   String toString() =>
