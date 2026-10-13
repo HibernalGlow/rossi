@@ -186,7 +186,9 @@ class PopupFormScope extends InheritedWidget {
 
   /// 不在弹出路由里的子树（面板被直接塞进某个页面）按卡片形态画。
   static bool fullscreenOf(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<PopupFormScope>()?.fullscreen ??
+      context
+          .dependOnInheritedWidgetOfExactType<PopupFormScope>()
+          ?.fullscreen ??
       false;
 
   @override
@@ -980,6 +982,39 @@ class CommonPopupSurface extends StatelessWidget {
   }
 }
 
+/// 菜单项的正文：一行标签，底下一行可选的次要说明。
+///
+/// 带次要说明的项用两行正文（把 `CommonPopupMenuItem.content` 换成它）——
+/// 说明是补充信息，不该塞进单行 `label` 里被截断。`label` 仍要照给：
+/// 菜单的量宽逻辑只读 `label`，`content` 行贡献不了宽度。
+class CommonPopupMenuTitle extends StatelessWidget {
+  const CommonPopupMenuTitle({super.key, required this.label, this.hint});
+
+  final String label;
+
+  /// 次要说明：只在「这条动作另有含义 / 另有入口」时给一句。
+  final String? hint;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(label, style: theme.textTheme.bodySmall),
+        if (hint != null)
+          Text(
+            hint!,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class CommonPopupMenu extends StatefulWidget {
   const CommonPopupMenu({
     super.key,
@@ -1403,6 +1438,44 @@ class _CommonPopupMenuState extends State<CommonPopupMenu>
       ),
     );
   }
+}
+
+/// 在**全局坐标** [position] 处弹出一份菜单：托盘从那一点沿弧线长出来
+/// （[PopupPlacement.belowPoint]），放不下时自己朝上 / 朝左翻。
+///
+/// 给**没有触发钮**的入口用 —— 右键、长按、菜单键。有触发钮的用
+/// [`CommonPopupBox`]：那一条会把按钮拍成快照随托盘一起飞，观感更完整。
+/// 两条路最终都推 [`CommonPopupRoute`]，全仓的菜单因此只有一份弹出动画，
+/// 不论入口是一颗按钮还是一次右键。
+///
+/// 项集在**调用方**的 context 里构造好再传进来：菜单卡片住在根路由里，
+/// 从它的 context 往上找不到页面自己的 `BlocProvider` / `Cubit`，
+/// 所以每一项的回调要在调用点就闭包好那里的 context。
+Future<void> showCommonPopupMenu({
+  required BuildContext context,
+  required Offset position,
+  required List<CommonPopupMenuItem> items,
+}) async {
+  // 空清单不弹：泳道刚被摘掉、一块面板都不该右键时就是这样。
+  if (items.isEmpty) {
+    return;
+  }
+  final navigator = Navigator.of(context);
+  // 锚点与 [`CommonPopupBox`] 同口径：那边给的是 Navigator 局部坐标
+  // （`localToGlobal(ancestor: navigatorBox)`），这里把全局落点换算过去，
+  // 免得外层有位移时托盘从错的地方长出来。
+  final renderObject = navigator.context.findRenderObject();
+  final local = renderObject is RenderBox && renderObject.attached
+      ? renderObject.globalToLocal(position)
+      : position;
+  await navigator.push<void>(
+    CommonPopupRoute<void>(
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      anchorOf: () => local & Size.zero,
+      placement: PopupPlacement.belowPoint,
+      builder: (_) => CommonPopupMenu(items: items),
+    ),
+  );
 }
 
 /// 原文从 `fl_clash/common/color.dart` 拿的两档透明度；本仓没有那份扩展，

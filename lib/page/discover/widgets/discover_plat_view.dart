@@ -287,11 +287,7 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
         if (groupId != null) _paneSizes[groupId] = size;
       },
       child: DiscoverTabScope(
-        actions: _LeafActions(
-          tabs: tabs,
-          leafId: leaf.id,
-          source: spec.source,
-        ),
+        actions: _LeafActions(tabs: tabs, leafId: leaf.id, source: spec.source),
         child: _leafShortcuts(context, spec.content),
       ),
     );
@@ -477,9 +473,14 @@ class _BarActions extends StatelessWidget {
 /// 为什么不搬去设置页：这几颗改的是**眼前这一条**标签条的长相与手感，就地调、
 /// 就地看到。值本身仍写进全局设置（见 `DiscoverSettingState`），所以跨重启留着。
 ///
-/// 用 [FluentPopupMenuButton] 而不是 M2 的 `PopupMenuButton`：本仓的弹出菜单
-/// **只有一份动画**（淡入 + 从锚点缩放，见 `common_popup.dart`）。与旁边两颗
-/// 动作键一样，触发键也套 [ElasticButton]，于是按压手感三颗同源。
+/// 用 [FluentPopupMenuButton] 而不是 M2 的 `PopupMenuButton`：后者的展开只有
+/// 纯淡入，Fluent 这一份至少是「淡入 + 从锚点缩放」
+/// （`lib/widgets/fluent_dropdown.dart`）。与旁边两颗动作键一样，触发键也套
+/// [ElasticButton]，于是按压手感三颗同源。
+///
+/// 注意：这一颗仍是**旧动画**。本仓的弹出菜单正在向 `common_popup.dart` 的
+/// FlClash 托盘动画（托盘从锚点长出来、内容由糊变清）统一 —— 工作台那排「更多」、
+/// 书架 / 页签的右键都已换过去；这颗左键菜单待收敛。
 ///
 /// 顺带修掉一处地雷：旧版给 `PopupMenuButton` 传了 `constraints: 32×32`，
 /// 而那个参数是**菜单**的尺寸约束（SDK 原文 "Optional size constraints for the

@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:plat/plat.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/widgets/common_popup.dart';
 
 /// 给 plat 的一条标签套上「右键 / 长按 → 换边打开 + 关闭」「中键 → 直接关闭」
 /// 「双击 → 宿主自己决定干什么（发现页用它关标签）」。
@@ -99,8 +100,7 @@ class RossiPlatTabMenuRegion extends StatefulWidget {
   static const double rossiPlatMinPaneHeight = 200;
 
   @override
-  State<RossiPlatTabMenuRegion> createState() =>
-      _RossiPlatTabMenuRegionState();
+  State<RossiPlatTabMenuRegion> createState() => _RossiPlatTabMenuRegionState();
 }
 
 class _RossiPlatTabMenuRegionState extends State<RossiPlatTabMenuRegion> {
@@ -131,7 +131,8 @@ class _RossiPlatTabMenuRegionState extends State<RossiPlatTabMenuRegion> {
     _downPosition = event.position;
     _downStamp = event.timeStamp;
     final last = _lastTapUpStamp;
-    _secondCandidate = last != null &&
+    _secondCandidate =
+        last != null &&
         event.timeStamp - last >= kDoubleTapMinTime &&
         event.timeStamp - last <= kDoubleTapTimeout &&
         (event.position - _lastTapUpPosition!).distance <= kDoubleTapSlop;
@@ -148,7 +149,8 @@ class _RossiPlatTabMenuRegionState extends State<RossiPlatTabMenuRegion> {
     // - 时长 < kLongPressTimeout ⇒ 长按菜单（≥500ms 才开）与 vendored 触摸拖拽
     //   （按满 kLongPressTimeout 才起手）的抬起天然出局；
     // - 位移 ≤ 2×kTouchSlop ⇒ 鼠标立即拖拽（位移虽小但明显在拖）与手滑出局。
-    final qualifiesAsTap = event.timeStamp - _downStamp < kLongPressTimeout &&
+    final qualifiesAsTap =
+        event.timeStamp - _downStamp < kLongPressTimeout &&
         (event.position - down).distance <= kTouchSlop * 2;
     if (!qualifiesAsTap) {
       _lastTapUpStamp = null;
@@ -221,80 +223,56 @@ class _RossiPlatTabMenuRegionState extends State<RossiPlatTabMenuRegion> {
     if (index < 0) return;
     final rail = group.side != TabBarSide.top;
 
-    final overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox?;
-    if (overlay == null) return;
-
     final close = onClose;
-    final entries = <PopupMenuEntry<_RossiPlatMenuChoice>>[
+    // 走 [showCommonPopupMenu]（[CommonPopupRoute] 那份 FlClash 动画）：
+    // 托盘从右键 / 长按那一点长出来，与工作台那排「更多」菜单同一套，
+    // 不再是 M2 `showMenu` 的纯淡入。
+    final items = <CommonPopupMenuItem>[
       if (rail)
         for (final (label, at) in [
           (RossiPlatMenuLabel.above, index),
           (RossiPlatMenuLabel.below, index + 1),
         ])
-          PopupMenuItem(
-            value: _RossiPlatMenuChoice.insertRail(at),
-            enabled: detachable,
-            child: Text(rossiPlatMenuLabel(label)),
+          CommonPopupMenuItem(
+            label: rossiPlatMenuLabel(label),
+            onPressed: detachable
+                ? () {
+                    final tab = duplicateTab();
+                    if (tab == null) return;
+                    controller.insertTab(
+                      tabGroupId: groupId,
+                      tab: tab,
+                      index: at,
+                    );
+                  }
+                : null,
           )
       else
         for (final entry in rossiPlatSplitSides.entries)
-          PopupMenuItem(
-            value: _RossiPlatMenuChoice.move(entry.value),
-            enabled: _canMove(entry.value, group),
-            child: Text(rossiPlatMenuLabel(entry.key)),
+          CommonPopupMenuItem(
+            label: rossiPlatMenuLabel(entry.key),
+            // 目标是**装这条标签的那个组**，不是标签自己：plat 的 `split` 拿
+            // leaf id 会返回 true 却什么也不改（实测树仍是 TabGroupSnapshot）。
+            onPressed: _canMove(entry.value, group)
+                ? () => controller.moveTabBeside(
+                    tabId: tabId,
+                    targetId: groupId,
+                    side: entry.value,
+                  )
+                : null,
           ),
       if (close != null) ...[
-        const PopupMenuDivider(),
-        PopupMenuItem(
-          value: const _RossiPlatMenuChoice.close(),
-          child: Text(t.plat.closeTab),
-        ),
+        const CommonPopupMenuItem.divider(),
+        CommonPopupMenuItem(label: t.plat.closeTab, onPressed: close),
       ],
     ];
 
-    final choice = await showMenu<_RossiPlatMenuChoice>(
+    await showCommonPopupMenu(
       context: context,
-      position: RelativeRect.fromRect(
-        globalPosition & const Size(1, 1),
-        Offset.zero & overlay.size,
-      ),
-      items: entries,
+      position: globalPosition,
+      items: items,
     );
-    if (choice == null || !context.mounted) return;
-
-    final side = choice.side;
-    if (side != null) {
-      // 目标是**装这条标签的那个组**，不是标签自己：plat 的 `split` 拿 leaf id
-      // 会返回 true 却什么也不改（实测树仍是 TabGroupSnapshot）。
-      controller.moveTabBeside(tabId: tabId, targetId: groupId, side: side);
-      return;
-    }
-    final at = choice.railIndex;
-    if (at != null) {
-      final tab = duplicateTab();
-      if (tab == null) return;
-      controller.insertTab(tabGroupId: groupId, tab: tab, index: at);
-      return;
-    }
-    close?.call();
   }
-}
-
-/// 菜单里被选中的那一项：挪到某侧 / 在轨里第 [railIndex] 位多开一条 / 关闭。
-@immutable
-class _RossiPlatMenuChoice {
-  const _RossiPlatMenuChoice.move(PlatSide this.side)
-    : railIndex = null,
-      isClose = false;
-
-  const _RossiPlatMenuChoice.insertRail(int this.railIndex) : side = null, isClose = false;
-
-  const _RossiPlatMenuChoice.close() : side = null, railIndex = null, isClose = true;
-
-  final PlatSide? side;
-  final int? railIndex;
-  final bool isClose;
 }
 
 /// 四个方向的菜单项，顺序即菜单顺序（上 / 下 / 左 / 右）。

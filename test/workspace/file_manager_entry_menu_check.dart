@@ -458,7 +458,7 @@ void _tapGesturePrecedence() {
   // 穷举 8 格（4 个按键组合 ×「在不在模式里」）。三档的计数各自钉死，
   // 加起来必须正好 8 —— 说明没有任何一格「点了没反应」；
   // `open` 只剩 1 格：退出模式是「摁回那颗开关 / 操作条的取消选择」，
-  // 不靠双击（`canDoubleTap` 仍然只对压缩包为真）。
+  // 不靠双击（`canDoubleTap` 只对压缩包、以及穿透模式下的文件夹为真）。
   final tally = <FileManagerEntryTapGesture, List<String>>{};
   for (final ctrl in [false, true]) {
     for (final shift in [false, true]) {
