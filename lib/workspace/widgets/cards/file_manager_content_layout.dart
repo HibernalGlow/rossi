@@ -249,6 +249,7 @@ class FileManagerHierarchyView extends StatelessWidget {
             size: BigInt.zero,
             modifiedSecs: 0,
             hasChildren: row.mayHaveChildren,
+            penetratable: false,
             childNames: const [],
           ),
     ),

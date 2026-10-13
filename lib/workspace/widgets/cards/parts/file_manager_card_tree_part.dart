@@ -9,23 +9,24 @@ extension _FileManagerCardTreePart on _FileManagerCardState {
   /// （页签、面包屑、导航掌、根目录、条目双击、收藏/历史卡片的「新页签打开」），
   /// 而核心保证每个生效的动作都推进 `generation`。
   void _followTreeOn(BigInt generation) {
-    if (!_treeEnabled || _treeGeneration == generation) return;
+    if (!_treeRequested || _treeGeneration == generation) return;
     _treeGeneration = generation;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _treeEnabled) _loadTree();
+      if (mounted && _treeRequested) _loadTree();
     });
   }
 
   Future<void> _loadTree() async {
     final id = _sessionId;
-    if (id == null || _disposed || !_treeEnabled) return;
+    if (id == null || _disposed || !_treeRequested) return;
     final serial = ++_treeSerial;
     try {
       final tree = await fileManagerTreeSnapshot(id: id);
-      if (!mounted || serial != _treeSerial || !_treeEnabled) return;
+      if (!mounted || serial != _treeSerial || !_treeRequested) return;
       // ignore: invalid_use_of_protected_member
       setState(() => _tree = tree);
       _scheduleTreePoll(tree);
+      _ensurePreviewExpanded(tree);
     } catch (error) {
       if (!mounted || serial != _treeSerial) return;
       // ignore: invalid_use_of_protected_member
@@ -62,7 +63,7 @@ extension _FileManagerCardTreePart on _FileManagerCardState {
     final serial = ++_treeSerial;
     try {
       final tree = await fileManagerTreeToggle(id: id, path: path);
-      if (!mounted || serial != _treeSerial || !_treeEnabled) return;
+      if (!mounted || serial != _treeSerial || !_treeRequested) return;
       // ignore: invalid_use_of_protected_member
       setState(() => _tree = tree);
       _scheduleTreePoll(tree);
@@ -235,6 +236,7 @@ extension _FileManagerCardTreePart on _FileManagerCardState {
         size: BigInt.zero,
         modifiedSecs: 0,
         hasChildren: true,
+        penetratable: false,
         childNames: const [],
       );
 

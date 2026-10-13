@@ -15,10 +15,17 @@ extension _FileManagerCardOpenPart on _FileManagerCardState {
       requestedPath: entry.path,
     );
   }
+
   Future<void> _openArchive(FileManagerEntry entry) async {
     if (!entry.isArchive) return;
     await _openAction((id) => fileManagerOpenArchive(id: id, path: entry.path));
   }
+
+  /// 双击一行。压缩包交给「不动位置直接开」的归档动作；目录只在**单击会被穿透劫走**
+  /// 的那些行才轮得到双击（`canDoubleTap` 已按核心的 `penetratable` 夹过），所以这里
+  /// 走核心的 `force_enter`，把「进这一层」还回来。
+  Future<void> _onEntryDoubleTap(FileManagerEntry entry) =>
+      entry.isDir ? _openEntry(entry, forceEnter: true) : _openArchive(entry);
   Future<void> _openAction(
     Future<FileManagerActionResult> Function(BigInt id) action, {
     String? requestedPath,
@@ -57,13 +64,16 @@ extension _FileManagerCardOpenPart on _FileManagerCardState {
       _showError(error);
     }
   }
+
   Future<void> _openChild(FileManagerChild child) async {
     await _openEntry(_entryFromChild(child));
   }
+
   Future<void> _openArchiveChild(FileManagerChild child) async {
     if (!child.isArchive) return;
     await _openArchive(_entryFromChild(child));
   }
+
   FileManagerEntry _entryFromChild(FileManagerChild child) {
     return FileManagerEntry(
       path: child.path,
@@ -76,9 +86,13 @@ extension _FileManagerCardOpenPart on _FileManagerCardState {
       size: BigInt.zero,
       modifiedSecs: 0,
       hasChildren: false,
+      // 子行是核心的投影，不是列表里的一行：它没有「这一层会不会被穿透」的判决，
+      // 所以这一族行不挂双击（与搜索命中页签同一口径）。
+      penetratable: false,
       childNames: const [],
     );
   }
+
   Future<void> _openReader(
     String path,
     String? navigationJson,
