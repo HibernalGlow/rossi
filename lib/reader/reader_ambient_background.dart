@@ -24,8 +24,8 @@ import 'package:zephyr/reader/ambient_palette.dart';
 /// 每次取色到达都会让**图片节点重建一次** —— 那正是「不能影响阅读」要防的事。
 /// 分开一个 notifier 之后，颜色变化只惊动背景层那一棵子树。
 ///
-/// 另外它还是**非本平台（Linux / 移动端 / 在线漫画）**的兜底：那些情况下没人往里写，
-/// `value` 恒为 `null`，背景层照常画静态底色，功能自然失效而不是报错。
+/// 在没有 GPU 呈现器的场景，在线图片取样器也会写入同一份状态；取样失败时
+/// `value` 才保持为 `null`，背景层照常画静态底色。
 class ReaderAmbientStore {
   ReaderAmbientStore._();
 

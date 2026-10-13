@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/model/reader_frame.dart';
@@ -47,6 +49,13 @@ Widget buildReadModeSlot({
     '必须且只能传入 singleItem 或 doublePageSlot 之一',
   );
 
+  // 图片槽位不能再铺一层静态底色，否则会把阅读器底下的自适应背景完全遮住。
+  // 章节过渡卡片仍保留自己的静态底色。
+  final imageBackgroundColor =
+      context.readEffectiveReadSetting().readerAmbientEnabled
+      ? Colors.transparent
+      : backgroundColor;
+
   if (singleItem != null) {
     final entry = singleItem.entry;
     if (entry.type == ReadModeEntryType.transition) {
@@ -71,7 +80,7 @@ Widget buildReadModeSlot({
         contentWidth: contentWidth,
         viewportHeight: viewportHeight,
         presentation: presentation,
-        backgroundColor: backgroundColor,
+        backgroundColor: imageBackgroundColor,
         comicId: comicId,
         from: from,
       );
@@ -85,7 +94,7 @@ Widget buildReadModeSlot({
       contentWidth: contentWidth,
       viewportHeight: viewportHeight,
       presentation: presentation,
-      backgroundColor: backgroundColor,
+      backgroundColor: imageBackgroundColor,
       isRtl: isRtl,
       comicId: comicId,
       from: from,
@@ -117,7 +126,7 @@ Widget buildReadModeSlot({
       slotIndex: slotIndex,
       containerWidth: containerWidth,
       contentWidth: contentWidth,
-      backgroundColor: backgroundColor,
+      backgroundColor: imageBackgroundColor,
       isRtl: isRtl,
       comicId: comicId,
       from: from,
@@ -138,7 +147,7 @@ Widget buildReadModeSlot({
     contentWidth: contentWidth,
     viewportHeight: viewportHeight,
     presentation: presentation,
-    backgroundColor: backgroundColor,
+    backgroundColor: imageBackgroundColor,
     isRtl: isRtl,
     comicId: comicId,
     from: from,

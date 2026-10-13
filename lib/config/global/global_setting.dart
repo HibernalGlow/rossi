@@ -38,9 +38,8 @@ enum ReaderInfoHorizontalPosition { left, center, right }
 /// `auto` 是「跟随主题明暗」，`adaptive` / `adaptiveEdge` 是「从当前画面取色」——
 /// 两者不是一回事，所以 `adaptive` **不能**复用 `auto` 这个名字。
 ///
-/// 后两档只在**本地漫画（GPU 上屏那条路）**生效：取色要的是已经解出来的页面像素，
-/// 而那批像素只在呈现器里。在线漫画回落成 `auto` 的底色，见
-/// [ReadSettingStateBackgroundColor.resolveReaderBackgroundColor]。
+/// 后两档优先使用本地漫画的 GPU 页缓存；在线漫画在图片落盘后走轻量文件取样。
+/// 两条链路都异步更新背景，首帧仍使用静态兜底色。
 enum ReaderBackgroundMode { auto, black, white, grey, adaptive, adaptiveEdge }
 
 enum ReaderTapPageTurnMode { fullScreen, leftHand, rightHand }

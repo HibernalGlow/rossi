@@ -147,6 +147,19 @@ class GpuPresentController extends ChangeNotifier {
   /// native 侧的诊断快照（界面用）。
   GpuPresentStats? get stats => _stats;
 
+  bool? _ambientEnabledOverride;
+
+  /// 写入当前阅读页的有效自适应背景开关。
+  ///
+  /// 不能让控制器自己只读全局设置，因为本漫画设置会覆盖全局值。
+  void setAmbientEnabled(bool enabled) {
+    final changed = _ambientEnabledOverride != enabled;
+    _ambientEnabledOverride = enabled;
+    if (changed && enabled && _pushedIndex != null) {
+      unawaited(_refreshAmbientPalette(_pushedIndex!));
+    }
+  }
+
   /// 最近一次真把一页交出去的 [present] 往返耗时（毫秒）。`null` = 还没交出去过。
   int? get lastPresentMs => _lastPresentMs;
 
@@ -438,7 +451,9 @@ class GpuPresentController extends ChangeNotifier {
 
       // 阅读背景的取色。放在**这一页真的交出去之后**，而且下面那次探针读取
       // 刻意不 await：它不该把 `present` 的往返时间拖长 —— 那个数正是翻页延迟。
-      if (readSettingSnapshot.readerAmbientEnabled) {
+      // 正常阅读时由调用方传入「全局设置 + 本漫画覆盖」后的有效值。
+      // 只读全局快照会让本漫画设置里的自适应选项看似开启，却永远不读取调色板。
+      if (_ambientEnabledOverride ?? readSettingSnapshot.readerAmbientEnabled) {
         unawaited(_refreshAmbientPalette(index));
       }
 
