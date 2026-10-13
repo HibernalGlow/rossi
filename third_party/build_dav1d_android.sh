@@ -54,6 +54,12 @@ meson setup "$SRC/build-cross" "$SRC" \
 ninja -C "$SRC/build-cross"
 ninja -C "$SRC/build-cross" install
 
+# bionic 没有独立的 libpthread（已并进 libc），而 dav1d.pc 带 `-pthread`：
+# rustc 把它翻成 `-lpthread`，ld.lld 当场报 "unable to find library -lpthread"，
+# 症状是 windcore 链接失败、看着像 Rust 侧的问题。造一个转发到 libc 的链接脚本，
+# 与 CI 的 android dav1d 步骤同一手法。
+printf 'INPUT(-lc)\n' > "$PREFIX/lib/libpthread.so"
+
 echo "=== installed ==="
 find "$PREFIX" -name "*.pc" -o -name "*.a" | sort
 pkg-config --modversion --define-prefix dav1d 2>/dev/null || true
