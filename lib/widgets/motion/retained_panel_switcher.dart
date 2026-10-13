@@ -9,10 +9,12 @@ class RetainedPanelSwitcher extends StatefulWidget {
     super.key,
     required this.selectedId,
     required this.children,
+    this.axis = Axis.horizontal,
   });
 
   final String selectedId;
   final Map<String, Widget> children;
+  final Axis axis;
 
   @override
   State<RetainedPanelSwitcher> createState() => _RetainedPanelSwitcherState();
@@ -134,7 +136,7 @@ class _RetainedPanelSwitcherState extends State<RetainedPanelSwitcher>
           child: ExcludeSemantics(
             excluding: !selected,
             child: SlideTransition(
-              position: motion.position,
+              position: motion.position(widget.axis),
               child: FadeTransition(
                 opacity: motion.opacity,
                 child: RepaintBoundary(child: child),
@@ -158,9 +160,13 @@ class _PanelMotion {
     alpha,
     transformer: (value) => value.clamp(0, 1),
   );
-  late final position = Animation<double>.fromValueListenable(
-    offset,
-  ).drive(Tween<Offset>(begin: Offset.zero, end: const Offset(1, 0)));
+  Animation<Offset> position(Axis axis) =>
+      Animation<double>.fromValueListenable(offset).drive(
+        Tween<Offset>(
+          begin: Offset.zero,
+          end: axis == Axis.vertical ? const Offset(0, 1) : const Offset(1, 0),
+        ),
+      );
   void dispose() {
     alpha.dispose();
     offset.dispose();

@@ -185,6 +185,10 @@ Breeze 没有该工作台统计面板；mImageViewer 的原生统计面板统计
 按压、悬停与数据变化使用 `ElasticPress`、`ActionBubbleRegion` 和
 `SpringLensValue`，减少动画和墨水屏时跳过新增空间动画。
 
+小尺寸连续阅读改用摘要 / 趋势分段；热力图按宽度汇总时段并保留全七行，
+极小槽位显示摘要和统一弹层展开入口。两者通过内容适配消费实际高度，
+不在卡片内嵌套滚动。设计与数据边界见 [洞察卡片内容适配](design/insight-card-content.md)。
+
 显式网格跨度现在使用紧约束，固定宽高不再因内容多少改变。
 `CollapsibleCard` 在有界槽位中保留标题和调整手柄，内容在内部滚动；
 折叠复用 `RetainedPanelSwitcher` 的可重定向弹簧，保留内容状态和历史订阅，

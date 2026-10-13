@@ -25,6 +25,9 @@ class CollapsibleCard extends StatelessWidget {
   final Widget? trailing;
   final Widget child;
   final bool expressive;
+
+  /// 由内容自己适配有界槽位（分段、紧凑图表），不再套滚动视图。
+  final bool scrollContent;
   final EdgeInsetsGeometry? margin;
   final EdgeInsetsGeometry? contentPadding;
 
@@ -52,6 +55,7 @@ class CollapsibleCard extends StatelessWidget {
     this.trailing,
     required this.child,
     this.expressive = false,
+    this.scrollContent = true,
     this.margin,
     this.contentPadding,
     this.onMoveUp,
@@ -265,16 +269,18 @@ class CollapsibleCard extends StatelessWidget {
                       },
                     ),
                   ),
-                  // 网格槽位的尺寸由跨度决定；长内容在卡片内部滚动，标题与手柄留在原位。
+                  // 网格槽位由跨度决定；正文滚动或自行适配，标题与手柄留在原位。
                   if (bounds.hasBoundedHeight)
                     Expanded(
                       child: RetainedPanelSwitcher(
                         selectedId: isExpanded ? 'content' : 'collapsed',
                         children: {
-                          'content': SingleChildScrollView(
-                            primary: false,
-                            child: content,
-                          ),
+                          'content': scrollContent
+                              ? SingleChildScrollView(
+                                  primary: false,
+                                  child: content,
+                                )
+                              : content,
                           'collapsed': const SizedBox.expand(),
                         },
                       ),

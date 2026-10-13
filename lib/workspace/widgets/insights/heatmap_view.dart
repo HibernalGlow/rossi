@@ -5,16 +5,22 @@ import 'package:zephyr/workspace/model/history_insights.dart';
 import 'package:zephyr/workspace/widgets/insights/insight_components.dart';
 import 'package:zephyr/widgets/common_popup.dart';
 import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
+import 'package:zephyr/workspace/widgets/insights/compact_heatmap_view.dart';
 
 class ReadingHeatmapView extends StatefulWidget {
-  const ReadingHeatmapView({super.key, required this.summary});
+  const ReadingHeatmapView({
+    super.key,
+    required this.summary,
+    this.initialSelection,
+  });
   final ReadingHeatmapSummary summary;
+  final int? initialSelection;
   @override
   State<ReadingHeatmapView> createState() => _ReadingHeatmapViewState();
 }
 
 class _ReadingHeatmapViewState extends State<ReadingHeatmapView> {
-  int? _selected;
+  late int? _selected = widget.initialSelection;
   @override
   Widget build(BuildContext context) {
     final summary = widget.summary;
@@ -59,7 +65,7 @@ class _ReadingHeatmapViewState extends State<ReadingHeatmapView> {
         ),
       ),
     );
-    return Column(
+    final full = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (top != null)
@@ -193,6 +199,24 @@ class _ReadingHeatmapViewState extends State<ReadingHeatmapView> {
         ),
         const InsightFootnote(),
       ],
+    );
+    return LayoutBuilder(
+      builder: (context, bounds) {
+        final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+        if (!bounds.hasBoundedHeight ||
+            (bounds.maxHeight >= 460 * scale &&
+                bounds.maxWidth >= 380 * scale)) {
+          return full;
+        }
+        return CompactHeatmapView(
+          summary: summary,
+          selected:
+              _selected ?? (top == null ? 0 : top.weekday * 24 + top.hour),
+          onSelect: (index) => setState(() => _selected = index),
+          detailBuilder: (_) =>
+              ReadingHeatmapView(summary: summary, initialSelection: _selected),
+        );
+      },
     );
   }
 }
