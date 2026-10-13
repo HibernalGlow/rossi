@@ -10,6 +10,7 @@ import 'package:zephyr/widgets/motion/expressive_motion.dart';
 import 'package:zephyr/widgets/motion/retained_panel_switcher.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_menu_button.dart';
 import 'package:zephyr/workspace/widgets/grid/card_layout_scope.dart';
+import 'package:zephyr/workspace/widgets/card_header_actions.dart';
 
 /// 通用可折叠卡片组件外壳（支持泳道与边栏中 100% 复用）
 ///
@@ -78,267 +79,272 @@ class CollapsibleCard extends StatelessWidget {
 
     // 卡片可直接挂在泳道/抽屉里，由自身提供与应用同库的 Material。
     // 用 Material 绘制背景并裁剪，保证标题栏和内容的墨水反馈也在圆角内。
-    return Padding(
-      padding:
-          margin ?? const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      child: Material(
-        color: theme.colorScheme.surfaceContainerHigh,
-        shape: RoundedRectangleBorder(
-          borderRadius: expressive
-              ? const BorderRadius.only(
-                  topLeft: Radius.circular(28),
-                  topRight: Radius.circular(28),
-                  bottomLeft: Radius.circular(12),
-                  bottomRight: Radius.circular(28),
-                )
-              : BorderRadius.circular(radius),
-          side: layout?.resizing == true || layout?.dragging == true
-              ? BorderSide(color: theme.colorScheme.primary, width: 2)
-              : layout?.editing == true
-              ? BorderSide(color: theme.colorScheme.outlineVariant)
-              : BorderSide.none,
-        ),
-        animationDuration: ExpressiveMotion.duration(
-          context,
-          ExpressiveMotion.effectDuration,
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          fit: StackFit.passthrough,
-          children: [
-            LayoutBuilder(
-              builder: (context, bounds) => Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 2,
-                    ),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final narrow = constraints.maxWidth < 300;
-                        final titleRegion = Semantics(
-                          button: true,
-                          expanded: isExpanded,
-                          hint: isExpanded ? '点击折叠' : '点击展开',
-                          child: InkWell(
-                            onTap: onToggle,
-                            splashFactory: expressive
-                                ? NoSplash.splashFactory
-                                : null,
-                            overlayColor: expressive
-                                ? const WidgetStatePropertyAll(
-                                    Colors.transparent,
-                                  )
-                                : null,
-                            borderRadius: BorderRadius.circular(10),
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                minHeight: expressive ? 48 : 36,
-                              ),
-                              child: LayoutBuilder(
-                                builder: (context, titleConstraints) => Row(
-                                  children: [
-                                    if (titleConstraints.maxWidth >= 64) ...[
-                                      if (expressive)
-                                        SizedBox(
-                                          width: 36,
-                                          height: 36,
-                                          child: M3EShapeContainer(
-                                            kind: M3EShapeKind.cookie4Sided,
-                                            color: theme
-                                                .colorScheme
-                                                .primaryContainer,
-                                            child: Center(
-                                              child: GlyphIcon(
-                                                icon,
-                                                size: 20,
-                                                color: theme
-                                                    .colorScheme
-                                                    .onPrimaryContainer,
+    return CardHeaderActionsHost(
+      builder: (context, headerActions) => Padding(
+        padding:
+            margin ?? const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Material(
+          color: theme.colorScheme.surfaceContainerHigh,
+          shape: RoundedRectangleBorder(
+            borderRadius: expressive
+                ? const BorderRadius.only(
+                    topLeft: Radius.circular(28),
+                    topRight: Radius.circular(28),
+                    bottomLeft: Radius.circular(12),
+                    bottomRight: Radius.circular(28),
+                  )
+                : BorderRadius.circular(radius),
+            side: layout?.resizing == true || layout?.dragging == true
+                ? BorderSide(color: theme.colorScheme.primary, width: 2)
+                : layout?.editing == true
+                ? BorderSide(color: theme.colorScheme.outlineVariant)
+                : BorderSide.none,
+          ),
+          animationDuration: ExpressiveMotion.duration(
+            context,
+            ExpressiveMotion.effectDuration,
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            fit: StackFit.passthrough,
+            children: [
+              LayoutBuilder(
+                builder: (context, bounds) => Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 2,
+                      ),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final narrow = constraints.maxWidth < 300;
+                          final titleRegion = Semantics(
+                            button: true,
+                            expanded: isExpanded,
+                            hint: isExpanded ? '点击折叠' : '点击展开',
+                            child: InkWell(
+                              onTap: onToggle,
+                              splashFactory: expressive
+                                  ? NoSplash.splashFactory
+                                  : null,
+                              overlayColor: expressive
+                                  ? const WidgetStatePropertyAll(
+                                      Colors.transparent,
+                                    )
+                                  : null,
+                              borderRadius: BorderRadius.circular(10),
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minHeight: expressive ? 48 : 36,
+                                ),
+                                child: LayoutBuilder(
+                                  builder: (context, titleConstraints) => Row(
+                                    children: [
+                                      if (titleConstraints.maxWidth >= 64) ...[
+                                        if (expressive)
+                                          SizedBox(
+                                            width: 36,
+                                            height: 36,
+                                            child: M3EShapeContainer(
+                                              kind: M3EShapeKind.cookie4Sided,
+                                              color: theme
+                                                  .colorScheme
+                                                  .primaryContainer,
+                                              child: Center(
+                                                child: GlyphIcon(
+                                                  icon,
+                                                  size: 20,
+                                                  color: theme
+                                                      .colorScheme
+                                                      .onPrimaryContainer,
+                                                ),
                                               ),
                                             ),
+                                          )
+                                        else
+                                          GlyphIcon(
+                                            icon,
+                                            size: 17,
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
                                           ),
-                                        )
-                                      else
-                                        GlyphIcon(
-                                          icon,
-                                          size: 17,
-                                          color: theme
-                                              .colorScheme
-                                              .onSurfaceVariant,
+                                        const SizedBox(width: 8),
+                                      ],
+                                      Expanded(
+                                        child: Text(
+                                          title,
+                                          style: expressive
+                                              ? theme.textTheme.titleMedium
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                    )
+                                              : theme.textTheme.titleSmall,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                      const SizedBox(width: 8),
-                                    ],
-                                    Expanded(
-                                      child: Text(
-                                        title,
-                                        style: expressive
-                                            ? theme.textTheme.titleMedium
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.w700,
-                                                  )
-                                            : theme.textTheme.titleSmall,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                        final header = expressive
-                            ? ActionBubbleRegion(
-                                child: ActionBubbleTarget(
-                                  enabled: !eInkInstantRoutes,
-                                  child: ElasticPress(
-                                    enabled:
-                                        !eInkInstantRoutes &&
-                                        !MediaQuery.disableAnimationsOf(
-                                          context,
-                                        ),
-                                    child: titleRegion,
+                                    ],
                                   ),
                                 ),
-                              )
-                            : titleRegion;
-                        final titleRow = Row(
-                          children: [
-                            Expanded(
-                              child: layout?.wrapHeader(header) ?? header,
+                              ),
                             ),
-                            if (!narrow && trailing != null) ...[
-                              Flexible(child: trailing!),
-                              const SizedBox(width: 6),
-                            ],
-                            if (!narrow && disabledHint != null) ...[
-                              Flexible(
-                                child: _DisabledTag(text: disabledHint!),
-                              ),
-                              const SizedBox(width: 6),
-                            ],
-                            if (showLayoutControls &&
-                                (layout?.onResize != null ||
-                                    layout?.onHide != null ||
-                                    onMoveUp != null ||
-                                    onMoveDown != null ||
-                                    onHide != null))
-                              _buildTrackMenu(context, layout),
-                            if (showLayoutControls)
-                              ExpressiveIconButton(
-                                tooltip: isExpanded ? '折叠$title' : '展开$title',
-                                glyph: AppGlyphs.chevronDown,
-                                active: isExpanded,
-                                activeTurns: .5,
-                                size: 32,
-                                onPressed: onToggle,
-                              ),
-                          ],
-                        );
-                        if (!narrow ||
-                            (trailing == null && disabledHint == null)) {
-                          return titleRow;
-                        }
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            titleRow,
-                            const SizedBox(height: 4),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 4,
-                              children: [
-                                if (trailing != null)
-                                  ConstrainedBox(
-                                    constraints: BoxConstraints(
-                                      maxWidth: constraints.maxWidth,
+                          );
+                          final header = expressive
+                              ? ActionBubbleRegion(
+                                  child: ActionBubbleTarget(
+                                    enabled: !eInkInstantRoutes,
+                                    child: ElasticPress(
+                                      enabled:
+                                          !eInkInstantRoutes &&
+                                          !MediaQuery.disableAnimationsOf(
+                                            context,
+                                          ),
+                                      child: titleRegion,
                                     ),
-                                    child: trailing!,
                                   ),
-                                if (disabledHint case final hint?)
-                                  _DisabledTag(text: hint),
-                              ],
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                  // 网格槽位由跨度决定；正文滚动或自行适配，标题与手柄留在原位。
-                  if (bounds.hasBoundedHeight)
-                    Expanded(
-                      child: RetainedPanelSwitcher(
-                        selectedId: isExpanded ? 'content' : 'collapsed',
-                        children: {
-                          'content': scrollContent
-                              ? SingleChildScrollView(
-                                  primary: false,
-                                  child: content,
                                 )
-                              : content,
-                          'collapsed': const SizedBox.expand(),
+                              : titleRegion;
+                          final titleRow = Row(
+                            children: [
+                              Expanded(
+                                child: layout?.wrapHeader(header) ?? header,
+                              ),
+                              if (isExpanded && headerActions != null)
+                                Flexible(child: headerActions),
+                              if (!narrow && trailing != null) ...[
+                                Flexible(child: trailing!),
+                                const SizedBox(width: 6),
+                              ],
+                              if (!narrow && disabledHint != null) ...[
+                                Flexible(
+                                  child: _DisabledTag(text: disabledHint!),
+                                ),
+                                const SizedBox(width: 6),
+                              ],
+                              if (showLayoutControls &&
+                                  (layout?.onResize != null ||
+                                      layout?.onHide != null ||
+                                      onMoveUp != null ||
+                                      onMoveDown != null ||
+                                      onHide != null))
+                                _buildTrackMenu(context, layout),
+                              if (showLayoutControls)
+                                ExpressiveIconButton(
+                                  tooltip: isExpanded ? '折叠$title' : '展开$title',
+                                  glyph: AppGlyphs.chevronDown,
+                                  active: isExpanded,
+                                  activeTurns: .5,
+                                  size: 32,
+                                  onPressed: onToggle,
+                                ),
+                            ],
+                          );
+                          if (!narrow ||
+                              (trailing == null && disabledHint == null)) {
+                            return titleRow;
+                          }
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              titleRow,
+                              const SizedBox(height: 4),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 4,
+                                children: [
+                                  if (trailing != null)
+                                    ConstrainedBox(
+                                      constraints: BoxConstraints(
+                                        maxWidth: constraints.maxWidth,
+                                      ),
+                                      child: trailing!,
+                                    ),
+                                  if (disabledHint case final hint?)
+                                    _DisabledTag(text: hint),
+                                ],
+                              ),
+                            ],
+                          );
                         },
                       ),
-                    )
-                  else
-                    AnimatedCrossFade(
-                      firstChild: const SizedBox.shrink(),
-                      secondChild: content,
-                      crossFadeState: isExpanded
-                          ? CrossFadeState.showSecond
-                          : CrossFadeState.showFirst,
-                      duration: eInkInstantRoutes
-                          ? Duration.zero
-                          : ExpressiveMotion.duration(
-                              context,
-                              ExpressiveMotion.spatialDuration,
-                            ),
-                      firstCurve: Curves.easeOut,
-                      secondCurve: Curves.easeOut,
-                      sizeCurve: ExpressiveMotion.spatialCurve,
                     ),
-                  if (isExpanded && layout?.resizeHandle != null)
-                    SizedBox(
-                      height: bounds.hasBoundedHeight
-                          ? (bounds.maxHeight * .2).clamp(0, 36)
-                          : 36,
-                    ),
-                ],
-              ),
-            ),
-            if (isExpanded && layout?.resizeHandle != null)
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Row(
-                    children: [
-                      if (layout?.resizing == true)
-                        Expanded(
-                          child: Text(
-                            '${layout!.previewSize?.width.round()} × ${layout.previewSize?.height.round()} · 松开保存',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        )
-                      else
-                        const Spacer(),
-                      layout!.resizeHandle!,
-                    ],
-                  ),
+                    // 网格槽位由跨度决定；正文滚动或自行适配，标题与手柄留在原位。
+                    if (bounds.hasBoundedHeight)
+                      Expanded(
+                        child: RetainedPanelSwitcher(
+                          selectedId: isExpanded ? 'content' : 'collapsed',
+                          children: {
+                            'content': scrollContent
+                                ? SingleChildScrollView(
+                                    primary: false,
+                                    child: content,
+                                  )
+                                : content,
+                            'collapsed': const SizedBox.expand(),
+                          },
+                        ),
+                      )
+                    else
+                      AnimatedCrossFade(
+                        firstChild: const SizedBox.shrink(),
+                        secondChild: content,
+                        crossFadeState: isExpanded
+                            ? CrossFadeState.showSecond
+                            : CrossFadeState.showFirst,
+                        duration: eInkInstantRoutes
+                            ? Duration.zero
+                            : ExpressiveMotion.duration(
+                                context,
+                                ExpressiveMotion.spatialDuration,
+                              ),
+                        firstCurve: Curves.easeOut,
+                        secondCurve: Curves.easeOut,
+                        sizeCurve: ExpressiveMotion.spatialCurve,
+                      ),
+                    if (isExpanded && layout?.resizeHandle != null)
+                      SizedBox(
+                        height: bounds.hasBoundedHeight
+                            ? (bounds.maxHeight * .2).clamp(0, 36)
+                            : 36,
+                      ),
+                  ],
                 ),
               ),
-          ],
+              if (isExpanded && layout?.resizeHandle != null)
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Row(
+                      children: [
+                        if (layout?.resizing == true)
+                          Expanded(
+                            child: Text(
+                              '${layout!.previewSize?.width.round()} × ${layout.previewSize?.height.round()} · 松开保存',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.primary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          )
+                        else
+                          const Spacer(),
+                        layout!.resizeHandle!,
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

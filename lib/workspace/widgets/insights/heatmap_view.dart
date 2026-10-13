@@ -6,6 +6,9 @@ import 'package:zephyr/workspace/widgets/insights/insight_components.dart';
 import 'package:zephyr/widgets/common_popup.dart';
 import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
 import 'package:zephyr/workspace/widgets/insights/compact_heatmap_view.dart';
+import 'package:zephyr/workspace/widgets/card_header_actions.dart';
+import 'package:zephyr/workspace/widgets/insights/insight_header_controls.dart';
+import 'package:zephyr/widgets/motion/action_bubble.dart';
 
 class ReadingHeatmapView extends StatefulWidget {
   const ReadingHeatmapView({
@@ -206,7 +209,21 @@ class _ReadingHeatmapViewState extends State<ReadingHeatmapView> {
         if (!bounds.hasBoundedHeight ||
             (bounds.maxHeight >= 460 * scale &&
                 bounds.maxWidth >= 380 * scale)) {
-          return full;
+          return CardHeaderActions(
+            revision: (summary, _selected, 'full'),
+            actions: ActionBubbleRegion(
+              child: InsightDetailButton(
+                label: '',
+                title: '阅读热力',
+                detailBuilder: (_) => ReadingHeatmapView(
+                  summary: summary,
+                  initialSelection: _selected,
+                ),
+                iconOnly: true,
+              ),
+            ),
+            child: full,
+          );
         }
         return CompactHeatmapView(
           summary: summary,
