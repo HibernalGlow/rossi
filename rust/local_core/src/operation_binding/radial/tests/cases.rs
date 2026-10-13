@@ -508,8 +508,8 @@ fn radial_bindings_do_not_shadow_click_bindings() {
     assert_eq!(wheel.action, action::NEXT_PAGE);
     let tap = resolve(
         &bindings,
-        &InputDescriptor::Area {
-            area: ReaderViewArea::MiddleRight,
+        &InputDescriptor::Mouse {
+            area: Some(ReaderViewArea::MiddleRight.as_str().into()),
             button: 0,
             action: PointerAction::Click,
         },

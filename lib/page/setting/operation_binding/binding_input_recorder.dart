@@ -47,6 +47,8 @@ class _BindingInputRecorderState extends State<BindingInputRecorder> {
   final _directions = <String>[];
   Offset? _last;
   Duration? _pressedAt;
+  Duration? _previousTapAt;
+  Offset? _previousTapPosition;
   int _button = 0;
   int _fingers = 0;
   double _panZoomDyAccumulator = 0;
@@ -116,16 +118,28 @@ class _BindingInputRecorderState extends State<BindingInputRecorder> {
     if (start == null || _starts.isNotEmpty) return;
     final elapsed =
         (event.timeStamp - (_pressedAt ?? event.timeStamp)).inMilliseconds;
-    Map<String, dynamic>? result;
-    if (_directions.isNotEmpty) {
+    Map<String, dynamic> result;
+    if (!isBindingTouchPointer(event.kind) && _directions.isNotEmpty) {
       result = {
         'device': InputDevice.mouseGesture,
         'button': _button,
         'directions': [..._directions],
         'trigger': widget.input['trigger'] ?? 'instant',
       };
-    } else if (event.kind == PointerDeviceKind.touch) {
+    } else if (isBindingTouchPointer(event.kind)) {
       final delta = event.localPosition - start;
+      final isTap = delta.distance < 40 && elapsed < 500 && _fingers == 1;
+      final sinceTap = _previousTapAt == null
+          ? null
+          : event.timeStamp - _previousTapAt!;
+      final isDoubleTap =
+          isTap &&
+          sinceTap != null &&
+          sinceTap >= kDoubleTapMinTime &&
+          sinceTap <= kDoubleTapTimeout &&
+          (start - _previousTapPosition!).distance <= kDoubleTapSlop;
+      _previousTapAt = isTap && !isDoubleTap ? event.timeStamp : null;
+      _previousTapPosition = isTap && !isDoubleTap ? start : null;
       result = {
         'device': InputDevice.touch,
         'fingers': _fingers.clamp(1, 3),
@@ -133,6 +147,8 @@ class _BindingInputRecorderState extends State<BindingInputRecorder> {
             ? 'swipe-${bindingDirection(delta)}'
             : elapsed >= 500
             ? 'long-press'
+            : isDoubleTap
+            ? 'double-tap'
             : 'tap',
       };
     } else {
@@ -141,6 +157,11 @@ class _BindingInputRecorderState extends State<BindingInputRecorder> {
         'button': _button,
         'action': widget.input['action'] ?? 'click',
       };
+    }
+    if ((result['device'] == InputDevice.mouse ||
+            result['device'] == InputDevice.touch) &&
+        widget.input['area'] != null) {
+      result['area'] = widget.input['area'];
     }
     setState(() => _captured = result);
   }
@@ -198,6 +219,8 @@ class _BindingInputRecorderState extends State<BindingInputRecorder> {
             onPointerCancel: (_) {
               _starts.clear();
               _ends.clear();
+              _previousTapAt = null;
+              _previousTapPosition = null;
             },
             onPointerSignal: (event) {
               if (event is PointerScrollEvent) {

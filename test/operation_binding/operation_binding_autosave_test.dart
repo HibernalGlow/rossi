@@ -167,6 +167,9 @@ void main() {
       )!.single['id'],
       'factory-key',
     );
+    // 先让整组页签回到 AppBar 下方，避免 ensureVisible 把文字顶到遮挡区。
+    pageScroll.jumpTo(0);
+    await tester.pumpAndSettle();
     final radialTab = find.text(t.settings.operationBindingTabRadial);
     await tester.ensureVisible(radialTab);
     await tester.tap(radialTab);

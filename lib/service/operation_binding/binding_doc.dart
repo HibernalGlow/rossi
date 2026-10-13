@@ -6,7 +6,7 @@
 //
 // ## 为什么 Dart 侧只当 Map 拿着
 //
-// schema 的唯一权威是 `rossi_local_core::operation_binding`（ADR-0015）。Dart 一旦建
+// schema 的唯一权威是 `operation_binding_core`（ADR-0015）。Dart 一旦建
 // 一套强类型镜像，schema 每次演进都要两边同步改生成物 —— 而这里要的恰恰是
 // 「换外壳时绑定表零改动」。所以下面每一个函数都只认**字段名**，不认类型。
 
@@ -22,12 +22,11 @@ abstract final class InputDevice {
   static const wheel = 'wheel';
   static const touch = 'touch';
   static const gamepad = 'gamepad';
-  static const area = 'area';
   static const radial = 'radial';
   static const command = 'command';
 }
 
-/// 画面九宫格里**运行时真会产出的那三格**（中排）。
+/// 旧版三分区回退使用的中排格子；绑定运行时使用核心的完整九宫格。
 ///
 /// 点击分区在改造前就是「左半 / 正中 / 右半」三档（上下两排跟中排同动作），
 /// 所以采集端把落点归一到中排三格 —— 上/下排那六格是 schema 里的合法值，
@@ -82,6 +81,22 @@ abstract final class BindingAction {
 /// 否则一个开关会把用户的键盘/点击定制一起洗掉。
 const String kTapPresetIdPrefix = 'preset-tap-';
 
+const kBindingsFormat = 'operation-bindings';
+const kBindingsVersion = 2;
+
+/// 运行时只接受当前版本。历史格式由核心的迁移入口转换后落盘。
+bool isCurrentBindingsDoc(String raw) {
+  try {
+    final doc = jsonDecode(raw);
+    return doc is Map &&
+        doc['format'] == kBindingsFormat &&
+        doc['format_version'] == kBindingsVersion &&
+        parseBindings(raw) != null;
+  } on FormatException {
+    return false;
+  }
+}
+
 /// 解析绑定文档，取出绑定数组。
 ///
 /// 两种形状都吃：
@@ -116,16 +131,38 @@ List<Map<String, dynamic>>? parseBindings(String docJson) {
 }
 
 /// 绑定数组 → 持久化形状（`InputBindingsConfig`）。
-String encodeBindingsDoc(List<Map<String, dynamic>> bindings) =>
-    jsonEncode({'bindings': bindings});
+Map<String, dynamic> bindingsDocument(
+  List<Map<String, dynamic>> bindings, {
+  String? sourceDocument,
+}) {
+  var extras = <String, dynamic>{};
+  if (sourceDocument != null && isCurrentBindingsDoc(sourceDocument)) {
+    extras = Map<String, dynamic>.from(jsonDecode(sourceDocument) as Map);
+  }
+  return {
+    ...extras,
+    'format': kBindingsFormat,
+    'format_version': kBindingsVersion,
+    'bindings': bindings,
+  };
+}
+
+String encodeBindingsDoc(
+  List<Map<String, dynamic>> bindings, {
+  String? sourceDocument,
+}) => jsonEncode(bindingsDocument(bindings, sourceDocument: sourceDocument));
 
 /// 绑定数组 → 引擎要的裸数组 JSON（`operation_binding_*` 的 `bindings_json` 参数）。
 String encodeBindingsArray(List<Map<String, dynamic>> bindings) =>
     jsonEncode(bindings);
 
 /// 人类可读的导出文本（缩进过，直接可以贴进文件 / 发给别人）。
-String prettyBindingsDoc(List<Map<String, dynamic>> bindings) =>
-    const JsonEncoder.withIndent('  ').convert({'bindings': bindings});
+String prettyBindingsDoc(
+  List<Map<String, dynamic>> bindings, {
+  String? sourceDocument,
+}) => const JsonEncoder.withIndent(
+  '  ',
+).convert(bindingsDocument(bindings, sourceDocument: sourceDocument));
 
 /// 一次键盘按下 → descriptor 的 JSON。
 String keyboardInputJson({
@@ -162,7 +199,7 @@ String areaInputJson({
   int button = 0,
   String action = 'click',
 }) => jsonEncode({
-  'device': InputDevice.area,
+  'device': InputDevice.mouse,
   'area': area,
   'button': button,
   'action': action,
@@ -207,18 +244,8 @@ Map<String, dynamic> defaultBindingInput(String device) => switch (device) {
     'trigger': 'instant',
   },
   InputDevice.wheel => {'device': device, 'direction': 'down'},
-  InputDevice.touch => {
-    'device': device,
-    'gesture': 'swipe-left',
-    'fingers': 1,
-  },
+  InputDevice.touch => {'device': device, 'gesture': 'tap', 'fingers': 1},
   InputDevice.gamepad => {'device': device, 'button': 5},
-  InputDevice.area => {
-    'device': device,
-    'area': 'middle-center',
-    'button': 0,
-    'action': 'click',
-  },
   _ => throw ArgumentError.value(device, 'device'),
 };
 
@@ -352,10 +379,8 @@ String describeInput(Map<String, dynamic> input) {
       ];
       final code = input['code'] as String? ?? '?';
       return modifiers.isEmpty ? code : '${modifiers.join('+')}+$code';
-    case InputDevice.area:
-      return 'area:${input['area'] ?? '?'}:${input['action'] ?? 'click'}';
     case InputDevice.mouse:
-      return 'mouse:${input['button'] ?? '?'}:${input['action'] ?? 'click'}';
+      return 'mouse:${input['button'] ?? '?'}:${input['action'] ?? 'click'}${input['area'] == null ? '' : ':${input['area']}'}';
     case InputDevice.radial:
       return 'radial:${input['menuId'] ?? '?'}:${input['itemId'] ?? '?'}';
     default:
@@ -449,7 +474,11 @@ List<Map<String, dynamic>> bindArea(
 String? _areaOf(Map<String, dynamic> binding) {
   final input = binding['input'];
   if (input is! Map) return null;
-  if (input['device'] != InputDevice.area) return null;
+  if (input['device'] != InputDevice.mouse ||
+      input['button'] != 0 ||
+      input['action'] != 'click') {
+    return null;
+  }
   return input['area'] as String?;
 }
 

@@ -11,7 +11,7 @@ void main() {
       deferAreaClicks: true,
       lookup: (_) => null,
       dispatch: (input) {
-        if (input['device'] != 'area' || input['action'] != 'click') {
+        if (input['device'] != 'touch' || input['gesture'] != 'tap') {
           return false;
         }
         events.add(input['area'] as String);
@@ -145,7 +145,7 @@ void main() {
       ),
     );
     expect(inputs, [
-      {'device': 'touch', 'gesture': 'swipe-left', 'fingers': 2},
+      {'device': 'touch', 'gesture': 'swipe-left', 'fingers': 2, 'area': 'middle-right'},
     ]);
     tracker.down(
       const PointerDownEvent(

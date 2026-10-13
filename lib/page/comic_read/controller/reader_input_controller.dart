@@ -14,6 +14,7 @@ import 'package:zephyr/page/comic_read/controller/reader_action_dispatcher.dart'
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/controller/reader_keyboard_controller.dart';
 import 'package:zephyr/page/comic_read/method/reader_gesture_logic.dart';
+import 'package:zephyr/page/comic_read/method/reader_touch_controls.dart';
 import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
 import 'package:zephyr/page/comic_read/widgets/radial/reader_radial_menu_overlay.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_sheet.dart';
@@ -72,7 +73,9 @@ class ReaderInputController {
   /// 中间唤不出上下栏、左边点不出上一页**的原因。现在它们被同一个不可变值绑在一起，
   /// 落点与尺码不可能来自不同的两次时机。
   ReaderTapSample? _tap;
+  PointerDeviceKind? _tapKind;
   TapDownDetails? _doubleTapDownDetails;
+  PointerDeviceKind? _doubleTapKind;
   bool _isCtrlPressed = false;
   bool _customTouchDrag = false;
 
@@ -263,7 +266,11 @@ class ReaderInputController {
             )?.any(
               (row) =>
                   row['enabled'] == true &&
-                  (row['input'] as Map)['action'] == 'double-click',
+                      (row['input'] as Map)['device'] == InputDevice.mouse &&
+                      (row['input'] as Map)['action'] == 'double-click' ||
+                  row['enabled'] == true &&
+                      (row['input'] as Map)['device'] == InputDevice.touch &&
+                      (row['input'] as Map)['gesture'] == 'double-tap',
             ) ??
             false);
 
@@ -303,12 +310,18 @@ class ReaderInputController {
               _inputSize = surface;
               return GestureDetector(
                 onTap: _onTap,
-                onTapDown: (details) => _tap = ReaderTapSample(
-                  localPosition: details.localPosition,
-                  viewportSize: surface,
-                ),
+                onTapDown: (details) {
+                  _tapKind = details.kind;
+                  _tap = ReaderTapSample(
+                    localPosition: details.localPosition,
+                    viewportSize: surface,
+                  );
+                },
                 onDoubleTapDown: isDoubleTapActionEnabled
-                    ? (details) => _doubleTapDownDetails = details
+                    ? (details) {
+                        _doubleTapDownDetails = details;
+                        _doubleTapKind = details.kind;
+                      }
                     : null,
                 onDoubleTap: isDoubleTapActionEnabled ? _onDoubleTap : null,
                 child: InteractiveViewer(
@@ -355,18 +368,30 @@ class ReaderInputController {
       _keyboardController.handleKeyEvent(event);
 
   Future<void> _onTap() async {
-    // 延迟一帧处理，减少单击和双击的手势竞争。
-    await Future.delayed(Duration.zero);
     final tap = _tap;
+    final kind = _tapKind;
+    _tap = null;
+    // 子 GestureDetector 可能先于父 Listener 收到 up，等采集器记录本次点击。
+    await Future.delayed(Duration.zero);
+    final input = _pointerBindings.deferredAreaClick;
+    final claimed = _pointerBindings.claimed;
     if (tap == null || !context.mounted) return;
+    final readSetting = context.readEffectiveReadSetting();
+    if (!claimed &&
+        kind != null &&
+        isBindingTouchPointer(kind) &&
+        input?['fingers'] == 1 &&
+        isReaderTouchControlsEdge(tap, readSetting)) {
+      if (!readerCubit.state.isMenuVisible) onToggleMenu();
+      return;
+    }
     final bindings = _runtimeBindings;
     if (bindings != null) {
       // 手势竞争胜出后，执行指针采集器记录的真实格子。视频子控件赢得点击时
       // 不会走到这里，避免它自己的暂停/跳转与外层重复触发。未绑定格子也到此结束，
       // 不能再回退到旧三分区，否则 Neo 留空的左上格会被当成左中格翻页。
       _tap = null;
-      final input = _pointerBindings.deferredAreaClick;
-      if (!_pointerBindings.claimed && input != null) {
+      if (!claimed && input != null) {
         _actionDispatcher.dispatchInput(
           jsonEncode(input),
           bindings,
@@ -377,7 +402,6 @@ class ReaderInputController {
     }
     _tap = null;
 
-    final readSetting = context.readEffectiveReadSetting();
     // 落点与尺码都取这次点击**自己**那一对（[ReaderTapSample]）：前者相对接收手势的
     // 那个盒子，后者是那个盒子量出来的尺寸。它们同一个坐标系，分区才分得对；
     // 换成 `details.globalPosition`（窗口坐标）会让分区整体平移「泳道左边缘」
@@ -403,7 +427,36 @@ class ReaderInputController {
   void _onDoubleTap() {
     if (!context.mounted) return;
     _tap = null;
-    if (_runtimeBindings != null && _pointerBindings.claimed) return;
+    final bindings = _runtimeBindings;
+    final details = _doubleTapDownDetails;
+    final kind = _doubleTapKind;
+    if (bindings != null &&
+        details != null &&
+        kind != null &&
+        !_pointerBindings.claimed) {
+      final input = {
+        if (isBindingTouchPointer(kind)) ...{
+          'device': InputDevice.touch,
+          'gesture': 'double-tap',
+          'fingers': 1,
+        } else ...{
+          'device': InputDevice.mouse,
+          'action': 'double-click',
+          'button': 0,
+        },
+        'area': ?_areaAt(details.localPosition),
+      };
+      if (_actionDispatcher.resolveInput(input, bindings) != null) {
+        _actionDispatcher.dispatchInput(
+          jsonEncode(input),
+          bindings,
+          fromKeyboard: false,
+        );
+        _doubleTapDownDetails = null;
+        return;
+      }
+    }
+    if (bindings != null && _pointerBindings.claimed) return;
     final readSetting = context.readEffectiveReadSetting();
     if (readSetting.doubleTapZoom) {
       _onDoubleTapZoom();
@@ -456,7 +509,7 @@ class ReaderInputController {
     _lastPointerGlobal = event.position;
     _pointerBindings.down(event, _areaAt(event.localPosition));
 
-    if (!_isTouchPointer(event.kind)) return;
+    if (!isBindingTouchPointer(event.kind)) return;
     _activeTouchPointers.add(event.pointer);
     final bindings = _runtimeBindings;
     _customTouchDrag =
@@ -467,6 +520,7 @@ class ReaderInputController {
                 'device': 'touch',
                 'gesture': 'swipe-$direction',
                 'fingers': _activeTouchPointers.length,
+                'area': ?_areaAt(event.localPosition),
               }, bindings) !=
               null,
         );
@@ -483,16 +537,10 @@ class ReaderInputController {
     } else if (event is PointerUpEvent) {
       _pointerBindings.up(event);
     }
-    if (!_isTouchPointer(event.kind)) return;
+    if (!isBindingTouchPointer(event.kind)) return;
     _activeTouchPointers.remove(event.pointer);
     if (_activeTouchPointers.isEmpty) _customTouchDrag = false;
     _updateMultiTouchScrollLock();
-  }
-
-  bool _isTouchPointer(PointerDeviceKind kind) {
-    return kind == PointerDeviceKind.touch ||
-        kind == PointerDeviceKind.stylus ||
-        kind == PointerDeviceKind.invertedStylus;
   }
 
   double _trackpadPanAccumulator = 0;

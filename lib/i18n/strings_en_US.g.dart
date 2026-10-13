@@ -2411,6 +2411,8 @@ class _Translations$bindingEditor$en_US extends Translations$bindingEditor$zh_CN
 	final TranslationsEnUs _root; // ignore: unused_field
 
 	// Translations
+	@override String get anyArea => 'Any area';
+	@override String get migrationFailed => 'The old bindings could not be migrated. Your original configuration is preserved. Export it for inspection or import a valid configuration.';
 	@override String get groupNavigation => 'Pages';
 	@override String get groupView => 'View';
 	@override String get groupInterface => 'Interface';
@@ -4533,6 +4535,8 @@ extension on TranslationsEnUs {
 			'video.animatedKeywords' => 'Motion keywords',
 			'video.animatedKeywordsHint' => 'Comma separated, e.g. [#dyna], [#motion]',
 			'video.rotation' => 'Rotation',
+			'bindingEditor.anyArea' => 'Any area',
+			'bindingEditor.migrationFailed' => 'The old bindings could not be migrated. Your original configuration is preserved. Export it for inspection or import a valid configuration.',
 			'bindingEditor.groupNavigation' => 'Pages',
 			'bindingEditor.groupView' => 'View',
 			'bindingEditor.groupInterface' => 'Interface',

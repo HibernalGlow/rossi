@@ -9,6 +9,7 @@ import 'package:zephyr/i18n/i18n_helper.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/type/breadcrumb_style.dart';
 import 'package:zephyr/main.dart';
+import 'package:zephyr/service/operation_binding/operation_binding_migration.dart';
 import 'package:zephyr/page/comic_read/model/reader_presentation.dart';
 import 'package:zephyr/page/search/model/search_history_entry.dart';
 import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
@@ -414,7 +415,9 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
     // 收藏 tag 的自动别名要靠 EhTagTranslation 表；不 await —— 加载失败或
     // 没加载完都只是退回「只有登记别名」，不该拖住设置的首帧。
     TagTranslation.ensureLoaded();
-    final persisted = objectbox.userSettingBox.get(1)!.globalSetting;
+    final original = objectbox.userSettingBox.get(1)!.globalSetting;
+    final persisted = migrateOperationBindingsInSettings(original);
+    if (!identical(original, persisted)) _updateDataBase(persisted);
     _applyLayoutOverflowGuard(persisted);
     _syncRuntimeFlags(persisted);
     emit(persisted);
@@ -763,7 +766,12 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
   }
 
   void _persistAndEmit(GlobalSettingState newState) {
-    final normalizedState = _preserveCompatibleVersion(newState, state);
+    final incoming =
+        newState.operationBindingSetting.bindingsJson ==
+            state.operationBindingSetting.bindingsJson
+        ? newState
+        : migrateOperationBindingsInSettings(newState, fallback: state);
+    final normalizedState = _preserveCompatibleVersion(incoming, state);
     _syncRuntimeFlags(normalizedState);
     if (_withoutSettingsSyncTime(normalizedState) ==
         _withoutSettingsSyncTime(state)) {
@@ -782,7 +790,10 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
   }
 
   void applySyncedState(GlobalSettingState value) {
-    final normalized = _preserveCompatibleVersion(value, state);
+    final normalized = _preserveCompatibleVersion(
+      migrateOperationBindingsInSettings(value, fallback: state),
+      state,
+    );
     _syncRuntimeFlags(normalized);
     _updateDataBase(normalized);
     _applyLayoutOverflowGuard(normalized);

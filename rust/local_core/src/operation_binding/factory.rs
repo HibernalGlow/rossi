@@ -37,8 +37,40 @@ pub fn input_bindings() -> Vec<InputBinding> {
 
 pub fn bindings() -> Vec<InputBinding> {
     let mut bindings = input_bindings();
+    bindings.extend(touch_bindings());
     bindings.extend(radial::preset_bindings(radial::DEFAULT_RADIAL_MENU_ID));
     bindings
+}
+
+/// 触屏默认区域与鼠标独立，沿用同一份九宫格几何与空间翻页语义。
+pub fn touch_bindings() -> Vec<InputBinding> {
+    use super::{InputContext, InputDescriptor, ReaderViewArea};
+    ReaderViewArea::ALL
+        .into_iter()
+        .map(|area| InputBinding {
+            id: format!("default-touch-{area}"),
+            action: match area {
+                ReaderViewArea::MiddleCenter => action::TOGGLE_CONTROLS,
+                ReaderViewArea::TopLeft
+                | ReaderViewArea::MiddleLeft
+                | ReaderViewArea::BottomLeft => action::PAGE_LEFT,
+                ReaderViewArea::TopRight
+                | ReaderViewArea::MiddleRight
+                | ReaderViewArea::BottomRight => action::PAGE_RIGHT,
+                _ => action::TOGGLE_CONTROLS,
+            }
+            .into(),
+            context: InputContext::Reader.as_str().into(),
+            enabled: true,
+            ignore_repeat: false,
+            follow_up_actions: Vec::new(),
+            input: InputDescriptor::Touch {
+                area: Some(area.as_str().into()),
+                gesture: model::TouchGesture::Tap,
+                fingers: 1,
+            },
+        })
+        .collect()
 }
 
 /// 出厂数据的两处演进：整表未改动的旧默认表升级成 Neo 默认表；自定义表只换还留着
@@ -117,7 +149,7 @@ fn upgrade_legacy_defaults(rows: &[Value]) -> Option<Vec<Value>> {
         .then_some(upgraded)
 }
 
-fn known_fields_only(raw: &Value, normalized: &Value) -> bool {
+pub(super) fn known_fields_only(raw: &Value, normalized: &Value) -> bool {
     match (raw, normalized) {
         (Value::Object(raw), Value::Object(normalized)) => raw.iter().all(|(key, value)| {
             normalized
@@ -150,7 +182,7 @@ mod tests {
 
     #[test]
     fn neo_grid_keeps_blank_cells_and_video_overrides() {
-        let click = |area| json!({"device":"area","area":area,"button":0,"action":"click"});
+        let click = |area| json!({"device":"mouse","area":area,"button":0,"action":"click"});
         for (area, expected) in [
             ("top-left", None),
             ("top-center", Some(action::PREVIOUS_BOOK)),

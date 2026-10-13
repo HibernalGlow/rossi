@@ -89,13 +89,30 @@ String operationBindingKeyPreset() =>
 String operationBindingFactoryPreset() => RustLib.instance.api
     .crateApiOperationBindingOperationBindingFactoryPreset();
 
-/// 未改动的旧默认输入表升级到 Neo 默认值；自定义配置里**只有还留着旧口径的出厂滚轮行**
-/// 会被换成语义动作（下滚=下一页），其余原样保留，轮盘行不动。没有可演进项时返回 None。
-String? operationBindingUpgradeDefaults({required String bindingsJson}) =>
+/// 启动、恢复/同步与导入共用的版本升级入口。失败返回错误，调用方保留原始文档。
+String operationBindingMigrateDocument({required String documentJson}) =>
     RustLib.instance.api
-        .crateApiOperationBindingOperationBindingUpgradeDefaults(
-          bindingsJson: bindingsJson,
+        .crateApiOperationBindingOperationBindingMigrateDocument(
+          documentJson: documentJson,
         );
+
+/// 包含原始文档与逐项迁移报告；普通迁移入口仍只返回升级文档。
+String operationBindingMigrationReport({required String documentJson}) =>
+    RustLib.instance.api
+        .crateApiOperationBindingOperationBindingMigrationReport(
+          documentJson: documentJson,
+        );
+
+/// 诊断与正常解析使用同一算法；不执行动作，由宿主处理命中测试和事件消费。
+String operationBindingDiagnose({
+  required String bindingsJson,
+  required String inputJson,
+  required List<String> contexts,
+}) => RustLib.instance.api.crateApiOperationBindingOperationBindingDiagnose(
+  bindingsJson: bindingsJson,
+  inputJson: inputJson,
+  contexts: contexts,
+);
 
 /// 动作注册表（`id` / `label` / `category` / `categoryLabel` / `implemented`），JSON 数组。
 ///

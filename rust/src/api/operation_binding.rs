@@ -114,16 +114,36 @@ pub fn operation_binding_key_preset() -> String {
 /// Neo 默认九宫格、滚轮、键盘、鼠标绑定，以及本仓默认轮盘槽位。
 #[frb(sync)]
 pub fn operation_binding_factory_preset() -> String {
-    serde_json::to_string(&engine::factory::bindings()).expect("默认绑定必须能序列化")
+    let mut config = engine::InputBindingsConfig::new(engine::factory::bindings());
+    config.contexts = engine::resolve::context_definitions();
+    serde_json::to_string(&config).expect("默认绑定必须能序列化")
 }
 
-/// 未改动的旧默认输入表升级到 Neo 默认值；自定义配置里**只有还留着旧口径的出厂滚轮行**
-/// 会被换成语义动作（下滚=下一页），其余原样保留，轮盘行不动。没有可演进项时返回 None。
+/// 启动、恢复/同步与导入共用的版本升级入口。失败返回错误，调用方保留原始文档。
 #[frb(sync)]
-pub fn operation_binding_upgrade_defaults(bindings_json: String) -> Option<String> {
-    let rows: Vec<serde_json::Value> = serde_json::from_str(&bindings_json).ok()?;
-    engine::factory::upgrade_defaults(&rows)
-        .and_then(|upgraded| serde_json::to_string(&upgraded).ok())
+pub fn operation_binding_migrate_document(document_json: String) -> Result<String, anyhow::Error> {
+    engine::migration::migrate_json(&document_json)
+}
+
+/// 包含原始文档与逐项迁移报告；普通迁移入口仍只返回升级文档。
+#[frb(sync)]
+pub fn operation_binding_migration_report(document_json: String) -> Result<String, anyhow::Error> {
+    let report = engine::migration::migrate_with_report(serde_json::from_str(&document_json)?)?;
+    Ok(serde_json::to_string(&report)?)
+}
+
+/// 诊断与正常解析使用同一算法；不执行动作，由宿主处理命中测试和事件消费。
+#[frb(sync)]
+pub fn operation_binding_diagnose(
+    bindings_json: String,
+    input_json: String,
+    contexts: Vec<String>,
+) -> Result<String, anyhow::Error> {
+    let bindings: Vec<engine::InputBinding> = serde_json::from_str(&bindings_json)?;
+    let input: engine::InputDescriptor = serde_json::from_str(&input_json)?;
+    Ok(serde_json::to_string(&engine::diagnose(
+        &bindings, &input, &contexts,
+    ))?)
 }
 
 /// 动作注册表（`id` / `label` / `category` / `categoryLabel` / `implemented`），JSON 数组。

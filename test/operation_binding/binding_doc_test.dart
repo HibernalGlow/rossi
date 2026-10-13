@@ -67,7 +67,7 @@ void main() {
     test('裸数组也吃得下（引擎预设导出的就是这个形状）', () {
       const bare =
           '[{"id":"p1","action":"reader.page-left","context":"reader",'
-          '"enabled":true,"input":{"device":"area","area":"middle-left",'
+          '"enabled":true,"input":{"device":"mouse","area":"middle-left",'
           '"button":0,"action":"click"}}]';
       final bindings = parseBindings(bare);
       expect(bindings, hasLength(1));
@@ -159,7 +159,7 @@ void main() {
         'meta': false,
       });
       expect(jsonDecodeMap(areaInputJson(area: TapArea.middleCenter)), {
-        'device': 'area',
+        'device': 'mouse',
         'area': 'middle-center',
         'button': 0,
         'action': 'click',
@@ -258,7 +258,7 @@ void main() {
   group('点击分区的读写（设置页那一侧的表操作）', () {
     final table = parseBindings(
       '[{"id":"preset-tap-advance","action":"reader.page-right","context":"reader",'
-      '"enabled":true,"input":{"device":"area","area":"middle-right","button":0,"action":"click"}}]',
+      '"enabled":true,"input":{"device":"mouse","area":"middle-right","button":0,"action":"click"}}]',
     )!;
 
     test('同一格只留一条：改写而不是追加（追加会立刻造出冲突）', () {

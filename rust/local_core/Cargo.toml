@@ -6,6 +6,7 @@ description = "Rossi 本地漫画核心：散图文件夹 / CBZ / CBR 的直读�
 license = "MIT"
 
 [dependencies]
+operation_binding_core = { path = "../operation_binding_core" }
 anyhow = "1"
 # 与 windcore 同版本同特性集：两处都是 0.25.10，feature 合并后不会出现双份编译。
 image = { version = "0.25.10", default-features = false, features = [

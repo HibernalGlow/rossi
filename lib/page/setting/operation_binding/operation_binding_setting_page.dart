@@ -46,6 +46,8 @@ class _OperationBindingSettingPageState
   Timer? _autosave;
   var _conflicts = const <BindingConflict>[];
   String? _saveError;
+  var _migrationBlocked = false;
+  var _documentSource = '';
 
   /// 轮盘的**形状**工作副本（槽位的动作在 `_bindings` 里，与运行时同一张表）。
   late RadialDoc _radialDoc;
@@ -58,12 +60,22 @@ class _OperationBindingSettingPageState
   void initState() {
     super.initState();
     final state = context.read<GlobalSettingCubit>().state;
-    // 表为空 / 读不出（比如还没播种）时，编辑区先摆一份出厂表 —— 但**不落盘**，
-    // 用户不保存就什么都不变。
-    _bindings =
-        parseBindings(state.operationBindingSetting.bindingsJson) ??
-        parseBindings(OperationBindingStore.factoryBindingsJson()) ??
-        const [];
+    final raw = state.operationBindingSetting.bindingsJson;
+    _documentSource = raw;
+    if (raw.trim().isEmpty) {
+      _documentSource = OperationBindingStore.factoryBindingsJson();
+      _bindings = parseBindings(_documentSource)!;
+    } else if (isCurrentBindingsDoc(raw)) {
+      _bindings = parseBindings(raw)!;
+    } else {
+      try {
+        _documentSource = OperationBindingStore.migrateBindingsDocument(raw);
+        _bindings = parseBindings(_documentSource)!;
+      } catch (_) {
+        _migrationBlocked = true;
+        _saveError = t.bindingEditor.migrationFailed;
+      }
+    }
     _radialDoc =
         parseRadialDoc(state.operationBindingSetting.radialJson) ??
         parseRadialDoc(OperationBindingStore.radialFactoryJson())!;
@@ -93,7 +105,7 @@ class _OperationBindingSettingPageState
     setState(() {
       _bindings = next;
       _dirty = true;
-      _saveError = null;
+      _saveError = _migrationBlocked ? t.bindingEditor.migrationFailed : null;
       _refreshValidation();
     });
     _scheduleSave();
@@ -108,7 +120,7 @@ class _OperationBindingSettingPageState
 
   Future<void> _save({bool automatic = false}) async {
     _autosave?.cancel();
-    if (!mounted || !_dirty) return;
+    if (!mounted || !_dirty || _migrationBlocked) return;
     if (automatic &&
         (!OperationBindingStore.radialIsValid(_radialDoc.encode()) ||
             !OperationBindingStore.isValid(_bindings))) {
@@ -145,7 +157,15 @@ class _OperationBindingSettingPageState
     }
     context.read<GlobalSettingCubit>().updateOperationBindingSetting(
       (current) => current.copyWith(
-        bindingsJson: encodeBindingsDoc(_bindings),
+        bindingsJson: encodeBindingsDoc(
+          _bindings,
+          sourceDocument: _documentSource,
+        ),
+        bindingsMigrationBackupJson:
+            !isCurrentBindingsDoc(current.bindingsJson) &&
+                current.bindingsJson.trim().isNotEmpty
+            ? current.bindingsJson
+            : current.bindingsMigrationBackupJson,
         radialJson: _radialDoc.encode(),
       ),
     );
@@ -162,12 +182,18 @@ class _OperationBindingSettingPageState
         .state
         .operationBindingSetting;
     setState(() {
-      _bindings = parseBindings(persisted.bindingsJson) ?? const [];
+      _documentSource = persisted.bindingsJson;
+      _migrationBlocked =
+          _documentSource.trim().isNotEmpty &&
+          !isCurrentBindingsDoc(_documentSource);
+      _bindings = _migrationBlocked
+          ? const []
+          : parseBindings(persisted.bindingsJson) ?? const [];
       _radialDoc =
           parseRadialDoc(persisted.radialJson) ??
           parseRadialDoc(OperationBindingStore.radialFactoryJson())!;
       _dirty = false;
-      _saveError = null;
+      _saveError = _migrationBlocked ? t.bindingEditor.migrationFailed : null;
       _refreshValidation();
     });
     showInfoToast(t.settings.operationBindingDiscarded, context: context);
@@ -181,6 +207,8 @@ class _OperationBindingSettingPageState
     if (!confirmed) return;
     if (!mounted) return;
     _inputEditorRevision++;
+    _migrationBlocked = false;
+    _documentSource = OperationBindingStore.factoryBindingsJson();
     _editRadial(
       parseRadialDoc(OperationBindingStore.radialFactoryJson())!,
       parseBindings(OperationBindingStore.factoryBindingsJson()) ?? const [],
@@ -284,7 +312,9 @@ class _OperationBindingSettingPageState
       context: context,
       builder: (dialogContext) => _JsonDialog(
         title: t.settings.operationBindingExport,
-        initialText: prettyBindingsDoc(_bindings),
+        initialText: _migrationBlocked
+            ? _documentSource
+            : prettyBindingsDoc(_bindings, sourceDocument: _documentSource),
         readOnly: true,
         actionLabel: t.settings.operationBindingCopy,
       ),
@@ -302,12 +332,26 @@ class _OperationBindingSettingPageState
       context: context,
       builder: (dialogContext) => _JsonDialog(
         title: t.settings.operationBindingImport,
-        initialText: prettyBindingsDoc(_bindings),
+        initialText: _migrationBlocked
+            ? _documentSource
+            : prettyBindingsDoc(_bindings, sourceDocument: _documentSource),
         actionLabel: t.settings.operationBindingImportConfirm,
       ),
     );
     if (text == null) return;
-    final bindings = parseBindings(text);
+    String migrated;
+    try {
+      migrated = OperationBindingStore.migrateBindingsDocument(text);
+    } catch (_) {
+      if (mounted) {
+        showErrorToast(
+          t.settings.operationBindingInvalidTable,
+          context: context,
+        );
+      }
+      return;
+    }
+    final bindings = parseBindings(migrated);
     if (bindings == null || !OperationBindingStore.isValid(bindings)) {
       if (mounted) {
         showErrorToast(
@@ -318,6 +362,8 @@ class _OperationBindingSettingPageState
       return;
     }
     // 导入的表允许暂时带着冲突（用户可能只想先看一眼），但「保存」那一关照样挡。
+    _migrationBlocked = false;
+    _documentSource = migrated;
     _edit(bindings);
     if (mounted) {
       showInfoToast(
@@ -351,6 +397,14 @@ class _OperationBindingSettingPageState
         child: ListView(
           padding: kSettingPagePadding,
           children: [
+            if (_migrationBlocked)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  t.bindingEditor.migrationFailed,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
             Wrap(
               alignment: WrapAlignment.spaceBetween,
               crossAxisAlignment: WrapCrossAlignment.center,

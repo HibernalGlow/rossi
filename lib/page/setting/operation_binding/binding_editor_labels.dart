@@ -9,7 +9,6 @@ Map<String, String> get bindingDeviceLabels => {
   'wheel': t.bindingEditor.wheel,
   'touch': t.bindingEditor.touch,
   'gamepad': t.bindingEditor.gamepad,
-  'area': t.bindingEditor.area,
 };
 
 Map<String, String> get bindingContextLabels => {
@@ -47,6 +46,7 @@ Map<String, String> get bindingTouchGestures => {
   'swipe-up': t.bindingEditor.swipeUp,
   'swipe-down': t.bindingEditor.swipeDown,
   'tap': t.bindingEditor.tap,
+  'double-tap': t.bindingEditor.doubleClick,
   'long-press': t.bindingEditor.longPress,
 };
 
@@ -89,14 +89,14 @@ String bindingInputSummary(Map<String, dynamic> input) {
     'touch' =>
       '${input['fingers']} · ${bindingTouchGestures[input['gesture']] ?? input['gesture']}',
     'gamepad' => '${t.bindingEditor.gamepad} ${input['button']}',
-    'area' =>
-      '${bindingAreaLabels[input['area']] ?? input['area']} · ${bindingPointerActions[input['action']] ?? input['action']}',
     'radial' =>
       '${t.bindingEditor.radial} ${input['menuId']} / ${input['itemId']}',
     'command' => '${input['command']}',
     _ => describeInput(input),
   };
-  return summary;
+  return input['area'] == null
+      ? summary
+      : '$summary · ${bindingAreaLabels[input["area"]] ?? input["area"]}';
 }
 
 /// 只缩短展示文字；录制、匹配和导出的 code 保持原样。
@@ -130,7 +130,6 @@ String bindingInputBadgeLabel(Map<String, dynamic> input) {
       4 => t.bindingEditor.forwardButton,
       _ => '${input['button']}',
     },
-    'area' => bindingAreaLabels[input['area']] ?? '${input['area']}',
     'mouse-gesture' =>
       (input['directions'] as List? ?? [])
           .map((d) => bindingDirectionSymbols[d] ?? d)
@@ -150,6 +149,8 @@ String bindingInputBadgeLabel(Map<String, dynamic> input) {
     }.entries)
       if (input[modifier.key] == true) modifier.value,
     label,
+    if (input['area'] != null)
+      bindingAreaLabels[input['area']] ?? '${input['area']}',
     if (input['trigger'] == 'hold' || input['action'] == 'hold')
       t.bindingEditor.hold,
     if (input['action'] == 'double-click') '×2',
