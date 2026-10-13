@@ -73,11 +73,12 @@ Future<GlobalSettingCubit> _pumpCard(
   return cubit;
 }
 
-/// 工具栏横向滚动，窄卡片下「文件树」那颗按钮先要滚进视口才点得到。
 Future<void> _openTree(WidgetTester tester) async {
-  final toggle = find.byTooltip('文件树');
-  await tester.ensureVisible(toggle);
-  await tester.tap(toggle);
+  final menu = find.byTooltip('内容布局：内容视图');
+  await tester.ensureVisible(menu);
+  await tester.tap(menu);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('树形视图'));
   await tester.pumpAndSettle();
 }
 

@@ -8,6 +8,8 @@ import '../local.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'types.dart';
 
+// These functions are ignored because they are not marked as `pub`: `configure_new_tab_options`
+
 Future<FileManagerSnapshot> fileManagerSetPenetration({
   required BigInt id,
   required bool enabled,
@@ -46,6 +48,14 @@ Future<FileManagerSnapshot> fileManagerSetViewMode({
   required BigInt id,
   required FileManagerViewMode mode,
 }) => RustLib.instance.api.crateApiFileManagerSettingsFileManagerSetViewMode(
+  id: id,
+  mode: mode,
+);
+
+Future<FileManagerSnapshot> fileManagerSetLayoutMode({
+  required BigInt id,
+  required FileManagerLayoutMode mode,
+}) => RustLib.instance.api.crateApiFileManagerSettingsFileManagerSetLayoutMode(
   id: id,
   mode: mode,
 );
@@ -107,6 +117,16 @@ Future<FileManagerSnapshot> fileManagerSetDirectoriesFirst({
     .crateApiFileManagerSettingsFileManagerSetDirectoriesFirst(
       id: id,
       enabled: enabled,
+    );
+
+/// 只更新未来页签的创建策略，不修改当前页签。
+Future<void> fileManagerConfigureNewTabs({
+  required BigInt id,
+  required FileManagerNewTabOptions options,
+}) =>
+    RustLib.instance.api.crateApiFileManagerSettingsFileManagerConfigureNewTabs(
+      id: id,
+      options: options,
     );
 
 bool fileManagerClose({required BigInt id}) =>

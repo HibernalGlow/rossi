@@ -46,6 +46,40 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
     }
   }
 
+  Future<void> _openSearchTab(String query) async {
+    final id = _sessionId;
+    if (id == null || _disposed || query.trim().isEmpty || _busy) return;
+    _cancelPendingSearch();
+    ++_searchSerial;
+    final serial = ++_requestSerial;
+    // ignore: invalid_use_of_protected_member
+    setState(() {
+      _busy = true;
+      _searchPending = true;
+      _searchRunning = false;
+      _endSearchFeedback();
+    });
+    try {
+      await fileManagerCancelSearch(id: id);
+      await _configureNewTabs(id);
+      final next = await fileManagerSearchInNewTab(id: id, query: query);
+      if (!mounted || serial != _requestSerial) return;
+      // ignore: invalid_use_of_protected_member
+      setState(() {
+        _busy = false;
+        _searchPending = false;
+        _acceptSnapshot(next);
+      });
+      if (!_isRecursiveSearch(next)) await _runSearch(next);
+      await _recordSearchHistory(query);
+    } catch (error) {
+      if (!mounted || serial != _requestSerial) return;
+      // ignore: invalid_use_of_protected_member
+      setState(() => _searchPending = false);
+      _showError(error);
+    }
+  }
+
   Future<void> _recordSearchHistory(String query) async {
     try {
       final history = await fileManagerRecordSearchHistory(query: query);
@@ -78,7 +112,8 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
   /// 只搜当前一层时不需要另一套结果列表 —— 那一层的过滤已经由 Rust 的 `entries`
   /// 做完并带着子文件名/穿透投影，另起一份只会让两种视图各说各话。
   bool _isRecursiveSearch(FileManagerSnapshot snapshot) =>
-      snapshot.searchQuery.isNotEmpty && snapshot.searchIncludeSubfolders;
+      snapshot.searchQuery.isNotEmpty &&
+      (snapshot.searchIncludeSubfolders || snapshot.searchActive);
 
   /// 会让一次递归搜索作废的条件集合。
   ///
@@ -259,7 +294,7 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
         border: const OutlineInputBorder(),
       ),
       onChanged: _scheduleSearch,
-      onSubmitted: _submitSearch,
+      onSubmitted: (query) => _openSearchTab(query),
     );
   }
 
@@ -335,7 +370,7 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
                 tooltip: '再搜一次「$history」',
                 selected: false,
                 visualDensity: VisualDensity.compact,
-                onSelected: (_) => _submitSearch(history, commit: true),
+                onSelected: (_) => _openSearchTab(history),
               ),
               const SizedBox(width: 6),
             ],

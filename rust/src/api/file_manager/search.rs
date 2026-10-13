@@ -1,5 +1,6 @@
 //! 递归搜索：搜索条件设置、遍历执行与取消、搜索历史。
 
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
@@ -121,11 +122,11 @@ pub async fn file_manager_search(id: u64) -> Result<FileManagerSnapshot, Error> 
         if state.try_refine_search_listing() {
             Ok(None)
         } else {
-            Ok(Some(state.search_request()))
+            Ok(Some((state.active_tab_id(), state.search_request())))
         }
     })
     .await?;
-    let Some(request) = request else {
+    let Some((tab_id, request)) = request else {
         // 捷径成立：还在跑的那一次遍历就该停下，它的结果已经被这批命中取代了。
         cancel_registered_search(id);
         return with_session(id, move |state| snapshot_for(id, state)).await;
@@ -151,9 +152,39 @@ pub async fn file_manager_search(id: u64) -> Result<FileManagerSnapshot, Error> 
         // 回声判定放在写入这一刻：遍历跑在别的线程上，期间用户可能已经改了词、
         // 切了页签或换了筛选条件。条件已经不是这一次的了就直接丢掉，让更新的那一次
         // 去写（它必然排在后面）。
-        if state.search_request() == expected {
+        let mut current = state.search_request();
+        // 布局、条目样式与旧辅助面板开关不参与搜索范围；遍历期间切换这些不丢结果。
+        current.settings.layout_mode = expected.settings.layout_mode;
+        current.settings.view_mode = expected.settings.view_mode;
+        current.settings.directory_columns_enabled = expected.settings.directory_columns_enabled;
+        if state.active_tab_id() == tab_id && current == expected {
             state.set_search_listing(listing);
         }
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+/// 回车搜索：先原子创建独立页签，保留源页签的目录与布局。
+#[frb]
+pub async fn file_manager_search_in_new_tab(
+    id: u64,
+    query: String,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.search_in_new_tab(query)?;
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+#[frb]
+pub async fn file_manager_select_search_directory(
+    id: u64,
+    path: String,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.select_search_directory(PathBuf::from(path))?;
         snapshot_for(id, state)
     })
     .await

@@ -2,11 +2,14 @@
 
 use anyhow::Error;
 use flutter_rust_bridge::frb;
-use rossi_local_core::{EntryFilter, InternalItemsMode, SortField, SortOrder, ViewMode};
+use rossi_local_core::{
+    EntryFilter, InternalItemsMode, LayoutMode, SortField, SortOrder, ViewMode,
+};
 
 use super::types::{
-    FileManagerEntryFilter, FileManagerInternalItemsMode, FileManagerSnapshot,
-    FileManagerSortField, FileManagerSortOrder, FileManagerViewMode,
+    FileManagerEntryFilter, FileManagerInternalItemsMode, FileManagerLayoutMode,
+    FileManagerNewTabOptions, FileManagerNewTabPolicy, FileManagerSnapshot, FileManagerSortField,
+    FileManagerSortOrder, FileManagerViewMode,
 };
 use super::{FILE_MANAGER_PANES, FILE_MANAGER_SESSIONS, snapshot_for, with_session};
 
@@ -71,6 +74,22 @@ pub async fn file_manager_set_view_mode(
             FileManagerViewMode::Details => ViewMode::Details,
             FileManagerViewMode::CoverGrid => ViewMode::CoverGrid,
             FileManagerViewMode::MosaicGrid => ViewMode::MosaicGrid,
+        });
+        snapshot_for(id, state)
+    })
+    .await
+}
+
+#[frb]
+pub async fn file_manager_set_layout_mode(
+    id: u64,
+    mode: FileManagerLayoutMode,
+) -> Result<FileManagerSnapshot, Error> {
+    with_session(id, move |state| {
+        state.set_layout_mode(match mode {
+            FileManagerLayoutMode::Content => LayoutMode::Content,
+            FileManagerLayoutMode::Tree => LayoutMode::Tree,
+            FileManagerLayoutMode::Columns => LayoutMode::Columns,
         });
         snapshot_for(id, state)
     })
@@ -172,6 +191,56 @@ pub async fn file_manager_set_directories_first(
         snapshot_for(id, state)
     })
     .await
+}
+
+/// 只更新未来页签的创建策略，不修改当前页签。
+#[frb]
+pub async fn file_manager_configure_new_tabs(
+    id: u64,
+    options: FileManagerNewTabOptions,
+) -> Result<(), Error> {
+    with_session(id, move |state| {
+        configure_new_tab_options(state, options);
+        Ok(())
+    })
+    .await
+}
+
+/// 创建会话和调整未来页签策略共用同一份映射。
+pub(super) fn configure_new_tab_options(
+    state: &mut rossi_local_core::FileManagerState,
+    options: FileManagerNewTabOptions,
+) {
+    let mut defaults = rossi_local_core::file_manager::FileManagerSettings::default();
+    defaults.view_mode = match options.view_mode {
+        FileManagerViewMode::Compact => ViewMode::Compact,
+        FileManagerViewMode::CoverList => ViewMode::CoverList,
+        FileManagerViewMode::MosaicList => ViewMode::MosaicList,
+        FileManagerViewMode::Details => ViewMode::Details,
+        FileManagerViewMode::CoverGrid => ViewMode::CoverGrid,
+        FileManagerViewMode::MosaicGrid => ViewMode::MosaicGrid,
+    };
+    defaults.layout_mode = match options.layout_mode {
+        FileManagerLayoutMode::Content => LayoutMode::Content,
+        FileManagerLayoutMode::Tree => LayoutMode::Tree,
+        FileManagerLayoutMode::Columns => LayoutMode::Columns,
+    };
+    defaults.penetration_enabled = options.penetration_enabled;
+    defaults.show_hidden_files = options.show_hidden_files;
+    defaults.show_child_names = options.show_child_names;
+    defaults.search_include_subfolders = options.search_include_subfolders;
+    state.configure_new_tabs(
+        match options.policy {
+            FileManagerNewTabPolicy::Defaults => {
+                rossi_local_core::file_manager::NewTabPolicy::Defaults
+            }
+            FileManagerNewTabPolicy::Recent => rossi_local_core::file_manager::NewTabPolicy::Recent,
+            FileManagerNewTabPolicy::Triggering => {
+                rossi_local_core::file_manager::NewTabPolicy::Triggering
+            }
+        },
+        defaults,
+    );
 }
 
 #[frb(sync)]

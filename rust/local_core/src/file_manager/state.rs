@@ -6,7 +6,9 @@ use super::*;
 pub struct FileManagerState {
     pub(super) tabs: Vec<FileManagerTab>,
     pub(super) active_tab: usize,
-    next_tab_id: u64,
+    pub(super) next_tab_id: u64,
+    pub(super) tab_defaults: FileManagerSettings,
+    pub(super) tab_policy: NewTabPolicy,
     recently_closed: Vec<FileManagerTab>,
     generation: u64,
     /// 目录 → 该目录的视图与排序。键来自 [`crate::settings_db::view_state_key`]。
@@ -17,7 +19,7 @@ pub struct FileManagerState {
     dirty_view_states: std::collections::BTreeSet<String>,
     remember_view_state: bool,
     /// 新建页签默认要不要连子目录一起搜（建会话时从全局设置注入一次）。
-    search_subfolders_default: bool,
+    pub(super) search_subfolders_default: bool,
     /// 用户指定的「主页」。跨页签共享，未设置时导航掌的主页键不可点（与 NeoView 一致）。
     home_path: Option<PathBuf>,
 }
@@ -36,6 +38,8 @@ impl FileManagerState {
             tabs: vec![FileManagerTab::new(1, path)],
             active_tab: 0,
             next_tab_id: 2,
+            tab_defaults: FileManagerSettings::default(),
+            tab_policy: NewTabPolicy::Defaults,
             recently_closed: Vec::new(),
             generation: 1,
             view_states: std::collections::HashMap::new(),
@@ -189,60 +193,6 @@ impl FileManagerState {
             .collect()
     }
 
-    /// Neo 列导航只展开当前路径最后三层，关闭时完全不读取列目录。
-    /// 枚举/隐藏规则/自然排序继续复用 mImageViewer 适配层；搜索不会隐藏导航目录。
-    pub fn directory_columns(&self) -> Vec<FileManagerDirectoryColumn> {
-        if !self.settings().directory_columns_enabled {
-            return Vec::new();
-        }
-        let breadcrumbs = self.breadcrumbs();
-        breadcrumbs
-            .iter()
-            .skip(breadcrumbs.len().saturating_sub(3))
-            .map(|segment| {
-                let (entries, error) = match list_directory_with_hidden(
-                    &segment.path,
-                    self.settings().show_hidden_files,
-                ) {
-                    Ok(nodes) => (
-                        nodes
-                            .into_iter()
-                            .filter(|node| node.is_dir)
-                            .map(|node| FileManagerDirectoryChoice {
-                                selected: breadcrumbs
-                                    .iter()
-                                    .any(|part| same_path(&part.path, Path::new(&node.path))),
-                                path: PathBuf::from(node.path),
-                                name: node.name,
-                            })
-                            .collect(),
-                        None,
-                    ),
-                    Err(error) => (Vec::new(), Some(error.to_string())),
-                };
-                FileManagerDirectoryColumn {
-                    path: segment.path.clone(),
-                    name: segment.name.clone(),
-                    entries,
-                    error,
-                }
-            })
-            .collect()
-    }
-
-    pub fn set_directory_columns_enabled(&mut self, enabled: bool) {
-        if self.tabs[self.active_tab]
-            .settings
-            .directory_columns_enabled
-            != enabled
-        {
-            self.tabs[self.active_tab]
-                .settings
-                .directory_columns_enabled = enabled;
-            self.bump_generation();
-        }
-    }
-
     /// 编辑框的文本解析也属于核心。相对路径以当前页签为基准；成功跳转统一进入后退栈。
     pub fn navigate_text(&mut self, text: &str) -> Result<()> {
         let text = text.trim();
@@ -290,6 +240,9 @@ impl FileManagerState {
             return;
         }
         let tab = &mut self.tabs[self.active_tab];
+        // 层级布局里的条目样式是整棵树/各栏的共同呈现，导航不退回公共列表样式。
+        let hierarchy_style =
+            (tab.settings.layout_mode != LayoutMode::Content).then_some(tab.settings.view_mode);
         // 1. 如果之前有 active_view_state_id，保存当前活跃修改
         if let Some(id) = tab.active_view_state_id.take() {
             let base = self
@@ -314,6 +267,9 @@ impl FileManagerState {
         {
             tab.active_view_state_id = Some(id);
             state.apply_to_settings(&mut tab.settings);
+        }
+        if let Some(style) = hierarchy_style {
+            tab.settings.view_mode = style;
         }
     }
 
@@ -392,6 +348,13 @@ impl FileManagerState {
         if self.tabs[self.active_tab].settings.view_mode != mode {
             self.tabs[self.active_tab].settings.view_mode = mode;
             self.capture_active_view_state();
+            self.bump_generation();
+        }
+    }
+
+    pub fn set_layout_mode(&mut self, mode: LayoutMode) {
+        if self.tabs[self.active_tab].settings.layout_mode != mode {
+            self.tabs[self.active_tab].settings.layout_mode = mode;
             self.bump_generation();
         }
     }
@@ -528,6 +491,7 @@ impl FileManagerState {
         // 导航即离开搜索结果：命中列表属于「上一次搜索的那个根」，跟着新目录走
         // 会让人以为搜遍全盘只有一本。
         tab.search = None;
+        tab.detached_search = false;
         let current_path = self.tabs[self.active_tab].path.clone();
         self.transition_view_state_for_path(&current_path);
         self.bump_generation();
@@ -545,6 +509,7 @@ impl FileManagerState {
         // 导航即离开搜索结果：命中列表属于「上一次搜索的那个根」，跟着新目录走
         // 会让人以为搜遍全盘只有一本。
         tab.search = None;
+        tab.detached_search = false;
         let current_path = self.tabs[self.active_tab].path.clone();
         self.transition_view_state_for_path(&current_path);
         self.bump_generation();
@@ -562,6 +527,7 @@ impl FileManagerState {
         // 导航即离开搜索结果：命中列表属于「上一次搜索的那个根」，跟着新目录走
         // 会让人以为搜遍全盘只有一本。
         tab.search = None;
+        tab.detached_search = false;
         let current_path = self.tabs[self.active_tab].path.clone();
         self.transition_view_state_for_path(&current_path);
         self.bump_generation();
@@ -584,28 +550,6 @@ impl FileManagerState {
             self.tabs[self.active_tab].settings.shuffle_seed = fresh_shuffle_seed();
         }
         self.bump_generation();
-    }
-
-    pub fn new_tab(&mut self, path: Option<PathBuf>) -> Result<u64> {
-        if self.tabs.len() >= MAX_FILE_MANAGER_TABS {
-            return Err(anyhow!("页签数量已达到上限 ({MAX_FILE_MANAGER_TABS})"));
-        }
-        let target = path
-            .and_then(|path| crate::folder_tree::resolve_openable_path(&path))
-            .and_then(normalize_initial_directory)
-            .unwrap_or_else(|| self.active_path().to_path_buf());
-        if !target.is_dir() {
-            return Err(anyhow!("路径不是有效目录: {}", target.display()));
-        }
-        let id = self.next_tab_id;
-        self.next_tab_id = self.next_tab_id.saturating_add(1);
-        self.tabs.push(FileManagerTab::new(id, target));
-        let index = self.tabs.len() - 1;
-        // 新页签按会话的默认范围起手（判据见 [`Self::set_search_subfolders_default`]）。
-        self.tabs[index].settings.search_include_subfolders = self.search_subfolders_default;
-        self.active_tab = index;
-        self.bump_generation();
-        Ok(id)
     }
 
     pub fn duplicate_tab(&mut self, id: u64) -> Result<u64> {
@@ -859,34 +803,6 @@ impl FileManagerState {
         )
     }
 
-    pub fn entries(&self) -> Result<Vec<FileManagerEntry>> {
-        let settings = &self.tabs[self.active_tab].settings;
-        // 搜索结果页签：列表就是上一次遍历交出的命中，不再枚举当前目录。
-        // 「列表只有一份真本」是这里的目的 —— UI 不再自己揣一份结果数组。
-        if let Some(search) = &self.tabs[self.active_tab].search {
-            return Ok(search.entries.clone());
-        }
-        // 词元在整份列表上复用，只在解析查询时 lowercase 一次；逐条目再解析会把
-        // O(条目) 变成 O(条目 × 查询长度) 的分配。
-        let tokens = crate::search_query::parse(&settings.search_query);
-        let root = self.active_path();
-        let mut nodes = list_directory_with_hidden(root, settings.show_hidden_files)?;
-        nodes.retain(|node| matches_entry(settings, node, &tokens, root));
-        nodes.sort_by(|left, right| compare_entries(settings, left, right));
-        Ok(nodes
-            .into_iter()
-            .map(|node| {
-                let children =
-                    if node.is_dir && settings.penetration_enabled && settings.show_child_names {
-                        describe_children(Path::new(&node.path), settings)
-                    } else {
-                        Vec::new()
-                    };
-                FileManagerEntry { node, children }
-            })
-            .collect())
-    }
-
     /// 把「当前生效的搜索条件」打包成一次可以脱离会话独立执行的请求。
     ///
     /// 递归遍历跑在 `spawn_blocking` 的线程上，不能拿着 `DashMap` 会话的借用
@@ -952,6 +868,7 @@ impl FileManagerState {
         let mut copy = source.clone();
         copy.id = id;
         copy.pinned = false;
+        copy.detached_search = true;
         self.tabs.push(copy);
         self.active_tab = self.tabs.len() - 1;
         self.bump_generation();
@@ -963,7 +880,7 @@ impl FileManagerState {
         self.tabs[self.active_tab].search.as_ref()
     }
 
-    fn bump_generation(&mut self) {
+    pub(super) fn bump_generation(&mut self) {
         self.generation = self.generation.wrapping_add(1).max(1);
     }
 }

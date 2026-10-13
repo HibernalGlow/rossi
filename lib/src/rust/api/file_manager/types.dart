@@ -7,7 +7,7 @@ import '../../frb_generated.dart';
 import '../local.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 class FileManagerActionResult {
   final FileManagerSnapshot snapshot;
@@ -110,24 +110,28 @@ class FileManagerChild {
 }
 
 class FileManagerDirectoryChoice {
+  final FileManagerEntry? entry;
   final String path;
   final String name;
   final bool selected;
 
   const FileManagerDirectoryChoice({
+    this.entry,
     required this.path,
     required this.name,
     required this.selected,
   });
 
   @override
-  int get hashCode => path.hashCode ^ name.hashCode ^ selected.hashCode;
+  int get hashCode =>
+      entry.hashCode ^ path.hashCode ^ name.hashCode ^ selected.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is FileManagerDirectoryChoice &&
           runtimeType == other.runtimeType &&
+          entry == other.entry &&
           path == other.path &&
           name == other.name &&
           selected == other.selected;
@@ -234,6 +238,53 @@ enum FileManagerEntryFilter { all, folders, archives, images, video, audio }
 
 enum FileManagerInternalItemsMode { single, all }
 
+enum FileManagerLayoutMode { content, tree, columns }
+
+class FileManagerNewTabOptions {
+  final FileManagerNewTabPolicy policy;
+  final FileManagerViewMode viewMode;
+  final FileManagerLayoutMode layoutMode;
+  final bool penetrationEnabled;
+  final bool showHiddenFiles;
+  final bool showChildNames;
+  final bool searchIncludeSubfolders;
+
+  const FileManagerNewTabOptions({
+    required this.policy,
+    required this.viewMode,
+    required this.layoutMode,
+    required this.penetrationEnabled,
+    required this.showHiddenFiles,
+    required this.showChildNames,
+    required this.searchIncludeSubfolders,
+  });
+
+  @override
+  int get hashCode =>
+      policy.hashCode ^
+      viewMode.hashCode ^
+      layoutMode.hashCode ^
+      penetrationEnabled.hashCode ^
+      showHiddenFiles.hashCode ^
+      showChildNames.hashCode ^
+      searchIncludeSubfolders.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is FileManagerNewTabOptions &&
+          runtimeType == other.runtimeType &&
+          policy == other.policy &&
+          viewMode == other.viewMode &&
+          layoutMode == other.layoutMode &&
+          penetrationEnabled == other.penetrationEnabled &&
+          showHiddenFiles == other.showHiddenFiles &&
+          showChildNames == other.showChildNames &&
+          searchIncludeSubfolders == other.searchIncludeSubfolders;
+}
+
+enum FileManagerNewTabPolicy { defaults, recent, triggering }
+
 class FileManagerSnapshot {
   final BigInt sessionId;
   final int maxTabs;
@@ -254,6 +305,10 @@ class FileManagerSnapshot {
   final FileManagerInternalItemsMode internalItemsMode;
   final int maxDepth;
   final FileManagerViewMode viewMode;
+  final FileManagerLayoutMode layoutMode;
+
+  /// 搜索分栏的游标；只影响展示，不改变搜索根或命中集合。
+  final String? searchColumnPath;
   final bool showHiddenFiles;
   final String searchQuery;
 
@@ -327,6 +382,8 @@ class FileManagerSnapshot {
     required this.internalItemsMode,
     required this.maxDepth,
     required this.viewMode,
+    required this.layoutMode,
+    this.searchColumnPath,
     required this.showHiddenFiles,
     required this.searchQuery,
     required this.searchInPath,
@@ -374,6 +431,8 @@ class FileManagerSnapshot {
       internalItemsMode.hashCode ^
       maxDepth.hashCode ^
       viewMode.hashCode ^
+      layoutMode.hashCode ^
+      searchColumnPath.hashCode ^
       showHiddenFiles.hashCode ^
       searchQuery.hashCode ^
       searchInPath.hashCode ^
@@ -423,6 +482,8 @@ class FileManagerSnapshot {
           internalItemsMode == other.internalItemsMode &&
           maxDepth == other.maxDepth &&
           viewMode == other.viewMode &&
+          layoutMode == other.layoutMode &&
+          searchColumnPath == other.searchColumnPath &&
           showHiddenFiles == other.showHiddenFiles &&
           searchQuery == other.searchQuery &&
           searchInPath == other.searchInPath &&
@@ -513,6 +574,9 @@ class FileManagerTreeRow {
   final String path;
   final String name;
   final int depth;
+
+  /// 搜索命中引用；祖先分组节点为 None。
+  final FileManagerEntry? entry;
   final bool expanded;
 
   /// 子目录正在后台枚举：这一行的箭头该转圈。
@@ -527,6 +591,7 @@ class FileManagerTreeRow {
     required this.path,
     required this.name,
     required this.depth,
+    this.entry,
     required this.expanded,
     required this.loading,
     required this.mayHaveChildren,
@@ -539,6 +604,7 @@ class FileManagerTreeRow {
       path.hashCode ^
       name.hashCode ^
       depth.hashCode ^
+      entry.hashCode ^
       expanded.hashCode ^
       loading.hashCode ^
       mayHaveChildren.hashCode ^
@@ -553,6 +619,7 @@ class FileManagerTreeRow {
           path == other.path &&
           name == other.name &&
           depth == other.depth &&
+          entry == other.entry &&
           expanded == other.expanded &&
           loading == other.loading &&
           mayHaveChildren == other.mayHaveChildren &&

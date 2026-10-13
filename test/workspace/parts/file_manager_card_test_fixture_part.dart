@@ -7,6 +7,7 @@ FileManagerTreeSnapshot _treeSnapshot() => const FileManagerTreeSnapshot(
     FileManagerTreeRow(
       path: '/',
       name: '/',
+      entry: null,
       depth: 0,
       expanded: true,
       loading: false,
@@ -16,6 +17,7 @@ FileManagerTreeSnapshot _treeSnapshot() => const FileManagerTreeSnapshot(
     FileManagerTreeRow(
       path: '/books',
       name: 'books',
+      entry: null,
       depth: 1,
       expanded: true,
       loading: false,
@@ -25,15 +27,17 @@ FileManagerTreeSnapshot _treeSnapshot() => const FileManagerTreeSnapshot(
     FileManagerTreeRow(
       path: '/books/series',
       name: 'series',
+      entry: null,
       depth: 2,
       expanded: false,
-      loading: true,
+      loading: false,
       mayHaveChildren: true,
       isActive: false,
     ),
     FileManagerTreeRow(
       path: '/books/loose',
       name: 'loose',
+      entry: null,
       depth: 2,
       expanded: false,
       loading: false,
@@ -59,6 +63,7 @@ FileManagerTreeSnapshot _deepTreeSnapshot({int depth = 12}) {
       FileManagerTreeRow(
         path: level == 0 ? '/' : '/n$level',
         name: level == 0 ? '/' : 'n$level',
+        entry: null,
         depth: level,
         expanded: true,
         loading: false,
@@ -69,6 +74,7 @@ FileManagerTreeSnapshot _deepTreeSnapshot({int depth = 12}) {
       FileManagerTreeRow(
         path: '/n$depth/c$leaf',
         name: 'c$leaf',
+        entry: null,
         depth: depth + 1,
         expanded: false,
         loading: false,
@@ -103,8 +109,9 @@ FileManagerEntry _entry(
   bool directory = false,
   int children = 0,
   String? searchDirectory,
+  String? path,
 }) => FileManagerEntry(
-  path: '/books/$name',
+  path: path ?? '/books/$name',
   name: name,
   isDir: directory,
   isArchive: !directory,
@@ -130,6 +137,7 @@ FileManagerEntry _entry(
 );
 
 FileManagerSnapshot _snapshot({
+  FileManagerLayoutMode layoutMode = FileManagerLayoutMode.content,
   FileManagerViewMode viewMode = FileManagerViewMode.coverList,
   String query = '',
   bool canCreate = true,
@@ -137,6 +145,7 @@ FileManagerSnapshot _snapshot({
   bool canGoBack = false,
   bool canGoForward = false,
   bool columnsEnabled = false,
+  List<FileManagerDirectoryColumn>? columns,
   String? homePath,
   bool isHome = false,
   bool canSetHome = true,
@@ -166,21 +175,23 @@ FileManagerSnapshot _snapshot({
     ),
   ],
   directoryColumnsEnabled: columnsEnabled,
-  directoryColumns: columnsEnabled
-      ? const [
-          FileManagerDirectoryColumn(
-            path: '/books',
-            name: 'books',
-            entries: [
-              FileManagerDirectoryChoice(
-                path: '/books/series',
-                name: 'series',
-                selected: false,
+  directoryColumns:
+      columns ??
+      (columnsEnabled
+          ? const [
+              FileManagerDirectoryColumn(
+                path: '/books',
+                name: 'books',
+                entries: [
+                  FileManagerDirectoryChoice(
+                    path: '/books/series',
+                    name: 'series',
+                    selected: false,
+                  ),
+                ],
               ),
-            ],
-          ),
-        ]
-      : const [],
+            ]
+          : const []),
   tabs: [
     _tab(
       1,
@@ -211,6 +222,8 @@ FileManagerSnapshot _snapshot({
   internalItemsMode: FileManagerInternalItemsMode.all,
   maxDepth: 3,
   viewMode: viewMode,
+  layoutMode: layoutMode,
+  searchColumnPath: null,
   showHiddenFiles: false,
   searchQuery: query,
   searchInPath: true,

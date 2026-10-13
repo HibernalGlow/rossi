@@ -19,6 +19,31 @@ pub enum FileManagerViewMode {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FileManagerLayoutMode {
+    Content,
+    Tree,
+    Columns,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FileManagerNewTabPolicy {
+    Defaults,
+    Recent,
+    Triggering,
+}
+
+#[derive(Debug, Clone)]
+pub struct FileManagerNewTabOptions {
+    pub policy: FileManagerNewTabPolicy,
+    pub view_mode: FileManagerViewMode,
+    pub layout_mode: FileManagerLayoutMode,
+    pub penetration_enabled: bool,
+    pub show_hidden_files: bool,
+    pub show_child_names: bool,
+    pub search_include_subfolders: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileManagerSortField {
     Name,
     Type,
@@ -98,6 +123,7 @@ pub struct FileManagerBreadcrumb {
 
 #[derive(Debug, Clone)]
 pub struct FileManagerDirectoryChoice {
+    pub entry: Option<FileManagerEntry>,
     pub path: String,
     pub name: String,
     pub selected: bool,
@@ -132,6 +158,9 @@ pub struct FileManagerSnapshot {
     pub internal_items_mode: FileManagerInternalItemsMode,
     pub max_depth: u8,
     pub view_mode: FileManagerViewMode,
+    pub layout_mode: FileManagerLayoutMode,
+    /// 搜索分栏的游标；只影响展示，不改变搜索根或命中集合。
+    pub search_column_path: Option<String>,
     pub show_hidden_files: bool,
     pub search_query: String,
     /// 名称之外是否连同「相对搜索根的路径」一起匹配。
@@ -187,6 +216,8 @@ pub struct FileManagerTreeRow {
     pub path: String,
     pub name: String,
     pub depth: u32,
+    /// 搜索命中引用；祖先分组节点为 None。
+    pub entry: Option<FileManagerEntry>,
     pub expanded: bool,
     /// 子目录正在后台枚举：这一行的箭头该转圈。
     pub loading: bool,

@@ -144,7 +144,7 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                 FileManagerToolbarGroup(
                   children: [
                     popupTrigger(
-                      tooltip: '视图模式：${snapshot.viewMode.label}',
+                      tooltip: '条目样式：${snapshot.viewMode.label}',
                       icon: GlyphIcon(snapshot.viewMode.icon),
                       items: [
                         for (final mode in FileManagerViewMode.values)
@@ -230,11 +230,21 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                       },
                     ),
                     within,
-                    toggle(
-                      glyph: AppGlyphs.tree,
-                      tooltip: _treeEnabled ? '关闭文件树' : '文件树',
-                      on: _treeEnabled,
-                      onPressed: () => _setTreeEnabled(!_treeEnabled),
+                    popupTrigger(
+                      tooltip: '内容布局：${snapshot.layoutMode.label}',
+                      icon: GlyphIcon(snapshot.layoutMode.icon),
+                      items: [
+                        for (final mode in FileManagerLayoutMode.values)
+                          CommonPopupMenuItem(
+                            label: mode.label,
+                            glyph: mode.icon,
+                            checked: mode == snapshot.layoutMode,
+                            onPressed: () => _apply(
+                              (id) =>
+                                  fileManagerSetLayoutMode(id: id, mode: mode),
+                            ),
+                          ),
+                      ],
                     ),
                     within,
                     toggle(

@@ -1,6 +1,6 @@
 part of '../file_manager_card_test.dart';
-// 测试替身：全局设置
 
+// 测试替身：全局设置
 
 /// 卡片现在要读写「文件管理器」全局设置（主页开关与路径）。
 ///
@@ -51,7 +51,8 @@ class _FileManagerApi implements RustLibApi {
     // 这批里有没有目录，照当前列表现算 —— 它是核心的真实读数，写死成 false
     // 会让「粘贴到这一项」这类门控在测试里拿到假值。
     selectionHasDirectory: selectedPaths.any(
-      (path) => snapshot.entries.any((entry) => entry.path == path && entry.isDir),
+      (path) =>
+          snapshot.entries.any((entry) => entry.path == path && entry.isDir),
     ),
   );
 
@@ -68,6 +69,7 @@ class _FileManagerApi implements RustLibApi {
   /// 非空时，`setSearchQuery` 的回复挂在这个 Completer 上。用来造一个「请求还在
   /// 飞行中」的时刻 —— 增量搜索的关键判据（输入框不能因此禁打）只能在那一刻测。
   Completer<FileManagerSnapshot>? searchReply;
+  Completer<bool>? cancelSearchReply;
 
   /// 非空时，**递归那一次遍历**（`fileManagerSearch`）的回复挂在这个 Completer 上。
   ///
@@ -82,6 +84,17 @@ class _FileManagerApi implements RustLibApi {
   dynamic noSuchMethod(Invocation invocation) {
     calls.add(invocation);
     switch (invocation.memberName) {
+      case #crateApiFileManagerSettingsFileManagerSetLayoutMode:
+        snapshot = _snapshot(
+          viewMode: snapshot.viewMode,
+          layoutMode: invocation.namedArguments[#mode] as FileManagerLayoutMode,
+          columnsEnabled: true,
+        );
+        return Future.value(snapshot);
+      case #crateApiFileManagerSettingsFileManagerConfigureNewTabs:
+        return Future<void>.value();
+      case #crateApiFileManagerSearchFileManagerCancelSearch:
+        return cancelSearchReply?.future ?? Future.value(true);
       case #crateApiFontListSystemFontFamilies:
         return Future.value(const <String>[]);
       case #crateApiFileManagerBrowseFileManagerCreate:

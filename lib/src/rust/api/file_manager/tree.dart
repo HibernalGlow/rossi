@@ -7,7 +7,7 @@ import '../../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'types.dart';
 
-// These functions are ignored because they are not marked as `pub`: `with_pane`
+// These functions are ignored because they are not marked as `pub`: `search_tree`, `with_pane`
 
 Future<FileManagerTreeSnapshot> fileManagerTreeSnapshot({required BigInt id}) =>
     RustLib.instance.api.crateApiFileManagerTreeFileManagerTreeSnapshot(id: id);

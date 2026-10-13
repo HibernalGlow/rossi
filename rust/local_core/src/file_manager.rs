@@ -18,11 +18,15 @@ use crate::file_tree::{FileTreeNode, list_directory_with_hidden};
 
 // 拆出的子模块：item 原样搬过去，这里声明并引回名字，
 // 子模块之间通过 `use super::*` 互相可见。
+mod columns;
+mod hierarchy;
 mod listing;
 mod search;
 mod state;
+mod tab_defaults;
 mod types;
 mod util;
+pub use hierarchy::*;
 pub use listing::*;
 pub use search::*;
 pub use state::*;

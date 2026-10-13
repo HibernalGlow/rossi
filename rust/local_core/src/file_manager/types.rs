@@ -32,6 +32,21 @@ pub enum ViewMode {
     MosaicGrid,
 }
 
+/// 页签内容布局负责目录关系的呈现，独立于控制每张条目卡片外观的 `ViewMode`。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum LayoutMode {
+    Content,
+    Tree,
+    Columns,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NewTabPolicy {
+    Defaults,
+    Recent,
+    Triggering,
+}
+
 /// 字段级排序沿用 NeoView 文件卡片的可切换排序模型。名称排序本身仍交给
 /// mImageViewer 的 `filename_sort`，所以 Windows 与其它平台不会各自出现一套自然排序。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -128,6 +143,8 @@ pub struct FileManagerSettings {
     pub internal_items_mode: InternalItemsMode,
     pub max_depth: usize,
     pub view_mode: ViewMode,
+    /// 当前页签的内容布局，不进入目录级视图偏好。
+    pub layout_mode: LayoutMode,
     pub show_hidden_files: bool,
     pub search_query: String,
     /// 查询词元在「条目名 + 相对根目录的路径」上匹配，还是只看条目名。
@@ -160,6 +177,7 @@ impl Default for FileManagerSettings {
             internal_items_mode: InternalItemsMode::Single,
             max_depth: 3,
             view_mode: ViewMode::Compact,
+            layout_mode: LayoutMode::Content,
             show_hidden_files: false,
             search_query: String::new(),
             search_in_path: true,
@@ -222,6 +240,8 @@ pub struct FileManagerBreadcrumb {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileManagerDirectoryChoice {
+    /// 真实条目复用普通内容视图的数据；搜索祖先分组无条目。
+    pub entry: Option<FileManagerEntry>,
     pub path: PathBuf,
     pub name: String,
     pub selected: bool,
@@ -242,6 +262,10 @@ pub struct FileManagerTab {
     pub back: Vec<PathBuf>,
     pub forward: Vec<PathBuf>,
     pub pinned: bool,
+    /// 已确认为独立搜索页签；再次搜索时保留这份页签的结果。
+    pub detached_search: bool,
+    pub search_tree_collapsed: HashSet<PathBuf>,
+    pub search_column_path: Option<PathBuf>,
     pub settings: FileManagerSettings,
     pub common_settings: FileManagerSettings,
     pub active_view_state_id: Option<String>,
@@ -283,6 +307,9 @@ impl FileManagerTab {
             back: Vec::new(),
             forward: Vec::new(),
             pinned: false,
+            detached_search: false,
+            search_tree_collapsed: HashSet::new(),
+            search_column_path: None,
             settings: FileManagerSettings::default(),
             common_settings: FileManagerSettings::default(),
             active_view_state_id: None,

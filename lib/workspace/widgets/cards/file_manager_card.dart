@@ -23,6 +23,7 @@ import 'package:zephyr/workspace/service/file_manager_tab_bridge.dart';
 import 'package:zephyr/workspace/service/file_manager_tab_session_store.dart';
 import 'package:zephyr/workspace/widgets/cards/file_manager_entry_context_menu.dart';
 import 'package:zephyr/workspace/widgets/cards/file_manager_thumbnail.dart';
+import 'package:zephyr/workspace/widgets/cards/file_manager_content_layout.dart';
 import 'package:zephyr/workspace/widgets/cards/file_manager_toolbar.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view.dart';
@@ -145,6 +146,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
   /// 换布局把卡片重建一次，那份签名就该重来（理由同 `ShelfViewMemory`）。
   final _tabMemory = FileManagerTabMemory();
 
+  FileManagerNewTabOptions? _newTabOptions;
   BigInt? _sessionId;
   FileManagerSnapshot? _snapshot;
   String? _error;
@@ -185,7 +187,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
 
   /// 文件树面板。展开/懒扫描/游标的正本在 Rust 的 `FolderPaneState` 里，
   /// 这里只有「开没开」与最近一次投影。
-  bool _treeEnabled = false;
+  bool get _treeEnabled => _snapshot?.layoutMode == FileManagerLayoutMode.tree;
   FileManagerTreeSnapshot? _tree;
   BigInt? _treeGeneration;
   Timer? _treePoll;
@@ -394,9 +396,6 @@ class _FileManagerCardState extends State<FileManagerCard> {
           ],
           _buildToolbar(context, snapshot),
           _buildBreadcrumbs(context, snapshot),
-          if (snapshot.directoryColumnsEnabled)
-            _buildDirectoryColumns(context, snapshot),
-          if (_treeEnabled) _buildFileTree(context),
           const SizedBox(height: 6),
           ExpressiveReveal(
             visible: _searchExpanded || snapshot.searchQuery.isNotEmpty,
@@ -430,7 +429,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
     if (!widget.isStandalone) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [controls, _buildEntries(context, snapshot)],
+        children: [controls, _buildContent(context, snapshot)],
       );
     }
     // 上/下边栏可能很矮：控件区域可滚动，始终给目录内容保留可用高度。
@@ -449,7 +448,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
               ),
               child: SingleChildScrollView(child: controls),
             ),
-            Expanded(child: _buildEntries(context, snapshot)),
+            Expanded(child: _buildContent(context, snapshot)),
           ],
         );
       },
@@ -477,7 +476,14 @@ class _FileManagerCardState extends State<FileManagerCard> {
     LibraryColumn(key: 'date', label: '修改时间', width: 110),
   ];
 
-  Widget _buildEntries(BuildContext context, FileManagerSnapshot snapshot) {
+  Widget _buildEntries(
+    BuildContext context,
+    FileManagerSnapshot snapshot, {
+    List<FileManagerEntry>? entries,
+    bool? standalone,
+    ValueChanged<FileManagerEntry>? onEntryTap,
+    Widget Function(BuildContext, LibraryEntry, Widget)? decorateRow,
+  }) {
     final mode = fileManagerLibraryMode(snapshot.viewMode);
     // 「完整显示文件名」那一档由设置页决定，这张卡片是它接到浏览面上的落点：
     // 共享视图层不读设置，所以在这里读一次再传下去。
@@ -493,7 +499,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
     return LibraryEntryList(
       mode: mode,
       entries: [
-        for (final entry in snapshot.entries)
+        for (final entry in entries ?? snapshot.entries)
           _libraryEntry(context, entry, mode),
       ],
       emptyText: _searchSlow
@@ -507,11 +513,17 @@ class _FileManagerCardState extends State<FileManagerCard> {
           : '当前目录没有可浏览的漫画或媒体文件',
       enabled: !_busy,
       busy: _busy,
-      standalone: widget.isStandalone,
+      standalone: standalone ?? widget.isStandalone,
       wrapTitle: wrapTitle,
       // 关掉「文件操作」时整块不挂：连右键手势都没有，列表回到纯浏览。
-      wrapRow: _fileOpsEnabled ? _wrapEntryRow : null,
-      onTap: (row) => _onEntryTap(row.source! as FileManagerEntry),
+      wrapRow: (context, row, child) {
+        final surface = _fileOpsEnabled
+            ? _wrapEntryRow(context, row, child)
+            : child;
+        return decorateRow?.call(context, row, surface) ?? surface;
+      },
+      onTap: (row) =>
+          (onEntryTap ?? _onEntryTap)(row.source! as FileManagerEntry),
       // 双击只对压缩包有意义：多选模式下「打开」由那颗模式开关管着（不在模式里时
       // 单击就够得着打开），不必为此把每一行的双击都改成打开。
       canDoubleTap: (row) => (row.source! as FileManagerEntry).isArchive,

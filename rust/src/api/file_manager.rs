@@ -18,7 +18,7 @@ use dashmap::DashMap;
 use lazy_static::lazy_static;
 use rossi_local_core::{
     EntryFilter, FileManagerEntry as CoreEntry, FileManagerState, FolderPaneState,
-    InternalItemsMode, SettingsDb, SortField, SortOrder, ViewMode, folder_label,
+    InternalItemsMode, LayoutMode, SettingsDb, SortField, SortOrder, ViewMode, folder_label,
     settings::SortOrder as PaneSortOrder,
 };
 
@@ -29,6 +29,7 @@ pub mod entry_ops;
 pub mod search;
 pub mod settings;
 pub mod tree;
+mod tree_content;
 pub mod types;
 
 pub use self::browse::*;
@@ -185,6 +186,7 @@ fn project_pane(pane: &FolderPaneState) -> FileManagerTreeSnapshot {
                 path: row.path.to_string_lossy().into_owned(),
                 name: folder_label(&row.path),
                 depth: row.depth as u32,
+                entry: None,
                 expanded: row.expanded,
                 loading: row.loading,
                 may_have_children: row.has_children_or_unknown,
@@ -290,6 +292,7 @@ fn snapshot_for(id: u64, state: &mut FileManagerState) -> Result<FileManagerSnap
                     .entries
                     .into_iter()
                     .map(|entry| FileManagerDirectoryChoice {
+                        entry: entry.entry.map(map_entry),
                         path: entry.path.to_string_lossy().into_owned(),
                         name: entry.name,
                         selected: entry.selected,
@@ -316,6 +319,16 @@ fn snapshot_for(id: u64, state: &mut FileManagerState) -> Result<FileManagerSnap
             ViewMode::CoverGrid => FileManagerViewMode::CoverGrid,
             ViewMode::MosaicGrid => FileManagerViewMode::MosaicGrid,
         },
+        layout_mode: match settings.layout_mode {
+            LayoutMode::Content => FileManagerLayoutMode::Content,
+            LayoutMode::Tree => FileManagerLayoutMode::Tree,
+            LayoutMode::Columns => FileManagerLayoutMode::Columns,
+        },
+        search_column_path: state
+            .active_tab()
+            .search_column_path
+            .as_ref()
+            .map(|p| p.to_string_lossy().into_owned()),
         show_hidden_files: settings.show_hidden_files,
         search_query: settings.search_query.clone(),
         search_in_path: settings.search_in_path,

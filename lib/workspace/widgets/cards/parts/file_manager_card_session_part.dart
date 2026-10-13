@@ -36,6 +36,7 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
       // 那一份的第一个目录来建，省掉「先开默认目录、再搬过去」的那一下闪动。
       final restored = await _tabMemory.restore(enabled: _persistedRestoreTabs);
       if (_disposed) return;
+      final startup = _currentNewTabOptions();
       final id = await fileManagerCreate(
         // 「启动时默认打开主页」：开着时首个页签直接落在主页目录，
         // 关掉 / 没设主页时不传这个参数（判据见 [_startPath]）。
@@ -49,6 +50,7 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
         // 建会话时交一次「默认含子目录」，之后由核心发给每个新建页签（判据见
         // [_persistedSearchSubfoldersDefault]）。
         searchSubfoldersDefault: _persistedSearchSubfoldersDefault,
+        newTabOptions: startup,
       );
       if (_disposed) {
         fileManagerClose(id: id);
@@ -57,6 +59,7 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
       // 会话已经带着这个值建起来了，别再补发一次。
       _syncedRememberViewState = remember;
       _sessionId = id;
+      _newTabOptions = startup;
       if (restored != null) await _restoreTabs(id, restored);
       // 会话一就绪就登记进「新页签」通道：别的地方（收藏 / 历史卡片的右键菜单）
       // 只有从这里才能拿到这个会话。登记的是 `this`，`dispose` 时按同一个对象注销。
@@ -224,6 +227,7 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
     final id = _sessionId;
     if (id == null || _disposed) return FileManagerTabOpenOutcome.noSession;
     try {
+      await _configureNewTabs(id);
       final snapshot = await fileManagerNewTab(id: id, path: path);
       if (!mounted || _disposed) return FileManagerTabOpenOutcome.failed;
       // ignore: invalid_use_of_protected_member
@@ -248,6 +252,7 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
       _error = null;
     });
     try {
+      await _configureNewTabs(id);
       final snapshot = await action(id);
       if (!mounted || serial != _requestSerial) return false;
       // ignore: invalid_use_of_protected_member
@@ -263,7 +268,46 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
     }
   }
 
+  FileManagerNewTabOptions _currentNewTabOptions() {
+    final setting = context.read<GlobalSettingCubit>().state.fileManagerSetting;
+    return FileManagerNewTabOptions(
+      policy: switch (setting.newTabPolicy) {
+        FileManagerTabStartupPolicy.defaults =>
+          FileManagerNewTabPolicy.defaults,
+        FileManagerTabStartupPolicy.recent => FileManagerNewTabPolicy.recent,
+        FileManagerTabStartupPolicy.triggering =>
+          FileManagerNewTabPolicy.triggering,
+      },
+      viewMode:
+          FileManagerViewMode.values
+              .where((v) => v.name == setting.newTabViewMode)
+              .firstOrNull ??
+          FileManagerViewMode.compact,
+      layoutMode:
+          FileManagerLayoutMode.values
+              .where((v) => v.name == setting.newTabLayoutMode)
+              .firstOrNull ??
+          FileManagerLayoutMode.content,
+      penetrationEnabled: setting.newTabPenetration,
+      showHiddenFiles: setting.newTabShowHidden,
+      showChildNames: setting.newTabShowChildNames,
+      searchIncludeSubfolders: setting.searchSubfoldersDefault,
+    );
+  }
+
+  Future<void> _configureNewTabs(BigInt id) async {
+    final options = _currentNewTabOptions();
+    if (options == _newTabOptions) return;
+    await fileManagerConfigureNewTabs(id: id, options: options);
+    _newTabOptions = options;
+  }
+
   void _acceptSnapshot(FileManagerSnapshot snapshot) {
+    if (_snapshot?.activeTabId != snapshot.activeTabId) {
+      _tree = null;
+      _treeGeneration = null;
+      _treeRevealedPath = null;
+    }
     _snapshot = snapshot;
     _rememberOpenTabs(snapshot);
     // 列表换代了，选中态要跟着重读 —— 否则界面上会拿旧代的下标去标新代的行。

@@ -40,7 +40,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1413123307;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1261741937;
 
 // Section: executor
 
@@ -1379,6 +1379,51 @@ fn wire__crate__api__file_manager__browse__file_manager_close_tabs_right_impl(
         },
     )
 }
+fn wire__crate__api__file_manager__settings__file_manager_configure_new_tabs_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "file_manager_configure_new_tabs",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_id = <u64>::sse_decode(&mut deserializer);
+            let api_options =
+                <crate::api::file_manager::types::FileManagerNewTabOptions>::sse_decode(
+                    &mut deserializer,
+                );
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok =
+                            crate::api::file_manager::settings::file_manager_configure_new_tabs(
+                                api_id,
+                                api_options,
+                            )
+                            .await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__file_manager__browse__file_manager_create_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -1406,6 +1451,9 @@ fn wire__crate__api__file_manager__browse__file_manager_create_impl(
             let api_settings_db_path = <Option<String>>::sse_decode(&mut deserializer);
             let api_remember_view_state = <bool>::sse_decode(&mut deserializer);
             let api_search_subfolders_default = <bool>::sse_decode(&mut deserializer);
+            let api_new_tab_options = <Option<
+                crate::api::file_manager::types::FileManagerNewTabOptions,
+            >>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
@@ -1416,6 +1464,7 @@ fn wire__crate__api__file_manager__browse__file_manager_create_impl(
                             api_settings_db_path,
                             api_remember_view_state,
                             api_search_subfolders_default,
+                            api_new_tab_options,
                         )
                         .await?;
                         Ok(output_ok)
@@ -1721,12 +1770,15 @@ fn wire__crate__api__file_manager__browse__file_manager_new_tab_impl(
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_id = <u64>::sse_decode(&mut deserializer);
             let api_path = <Option<String>>::sse_decode(&mut deserializer);
+            let api_source_tab_id = <Option<u64>>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::file_manager::browse::file_manager_new_tab(
-                            api_id, api_path,
+                            api_id,
+                            api_path,
+                            api_source_tab_id,
                         )
                         .await?;
                         Ok(output_ok)
@@ -2057,6 +2109,47 @@ fn wire__crate__api__file_manager__search__file_manager_search_history_impl(
         },
     )
 }
+fn wire__crate__api__file_manager__search__file_manager_search_in_new_tab_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "file_manager_search_in_new_tab",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_id = <u64>::sse_decode(&mut deserializer);
+            let api_query = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok =
+                            crate::api::file_manager::search::file_manager_search_in_new_tab(
+                                api_id, api_query,
+                            )
+                            .await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__file_manager__search__file_manager_search_progress_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -2087,6 +2180,47 @@ fn wire__crate__api__file_manager__search__file_manager_search_progress_impl(
                         let output_ok =
                             crate::api::file_manager::search::file_manager_search_progress(api_id)
                                 .await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__file_manager__search__file_manager_select_search_directory_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "file_manager_select_search_directory",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_id = <u64>::sse_decode(&mut deserializer);
+            let api_path = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok =
+                            crate::api::file_manager::search::file_manager_select_search_directory(
+                                api_id, api_path,
+                            )
+                            .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -2278,6 +2412,49 @@ let api_mode = <crate::api::file_manager::types::FileManagerInternalItemsMode>::
                          let output_ok = crate::api::file_manager::settings::file_manager_set_internal_items_mode(api_id, api_mode).await?;   Ok(output_ok)
                     })().await)
                 } })
+}
+fn wire__crate__api__file_manager__settings__file_manager_set_layout_mode_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "file_manager_set_layout_mode",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_id = <u64>::sse_decode(&mut deserializer);
+            let api_mode = <crate::api::file_manager::types::FileManagerLayoutMode>::sse_decode(
+                &mut deserializer,
+            );
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok =
+                            crate::api::file_manager::settings::file_manager_set_layout_mode(
+                                api_id, api_mode,
+                            )
+                            .await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
 }
 fn wire__crate__api__file_manager__settings__file_manager_set_max_depth_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -7459,10 +7636,13 @@ impl SseDecode for crate::api::file_manager::types::FileManagerChild {
 impl SseDecode for crate::api::file_manager::types::FileManagerDirectoryChoice {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_entry =
+            <Option<crate::api::file_manager::types::FileManagerEntry>>::sse_decode(deserializer);
         let mut var_path = <String>::sse_decode(deserializer);
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_selected = <bool>::sse_decode(deserializer);
         return crate::api::file_manager::types::FileManagerDirectoryChoice {
+            entry: var_entry,
             path: var_path,
             name: var_name,
             selected: var_selected,
@@ -7553,6 +7733,57 @@ impl SseDecode for crate::api::file_manager::types::FileManagerInternalItemsMode
     }
 }
 
+impl SseDecode for crate::api::file_manager::types::FileManagerLayoutMode {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::file_manager::types::FileManagerLayoutMode::Content,
+            1 => crate::api::file_manager::types::FileManagerLayoutMode::Tree,
+            2 => crate::api::file_manager::types::FileManagerLayoutMode::Columns,
+            _ => unreachable!("Invalid variant for FileManagerLayoutMode: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::file_manager::types::FileManagerNewTabOptions {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_policy =
+            <crate::api::file_manager::types::FileManagerNewTabPolicy>::sse_decode(deserializer);
+        let mut var_viewMode =
+            <crate::api::file_manager::types::FileManagerViewMode>::sse_decode(deserializer);
+        let mut var_layoutMode =
+            <crate::api::file_manager::types::FileManagerLayoutMode>::sse_decode(deserializer);
+        let mut var_penetrationEnabled = <bool>::sse_decode(deserializer);
+        let mut var_showHiddenFiles = <bool>::sse_decode(deserializer);
+        let mut var_showChildNames = <bool>::sse_decode(deserializer);
+        let mut var_searchIncludeSubfolders = <bool>::sse_decode(deserializer);
+        return crate::api::file_manager::types::FileManagerNewTabOptions {
+            policy: var_policy,
+            view_mode: var_viewMode,
+            layout_mode: var_layoutMode,
+            penetration_enabled: var_penetrationEnabled,
+            show_hidden_files: var_showHiddenFiles,
+            show_child_names: var_showChildNames,
+            search_include_subfolders: var_searchIncludeSubfolders,
+        };
+    }
+}
+
+impl SseDecode for crate::api::file_manager::types::FileManagerNewTabPolicy {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::file_manager::types::FileManagerNewTabPolicy::Defaults,
+            1 => crate::api::file_manager::types::FileManagerNewTabPolicy::Recent,
+            2 => crate::api::file_manager::types::FileManagerNewTabPolicy::Triggering,
+            _ => unreachable!("Invalid variant for FileManagerNewTabPolicy: {}", inner),
+        };
+    }
+}
+
 impl SseDecode for crate::api::file_manager::types::FileManagerSnapshot {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -7585,6 +7816,9 @@ impl SseDecode for crate::api::file_manager::types::FileManagerSnapshot {
         let mut var_maxDepth = <u8>::sse_decode(deserializer);
         let mut var_viewMode =
             <crate::api::file_manager::types::FileManagerViewMode>::sse_decode(deserializer);
+        let mut var_layoutMode =
+            <crate::api::file_manager::types::FileManagerLayoutMode>::sse_decode(deserializer);
+        let mut var_searchColumnPath = <Option<String>>::sse_decode(deserializer);
         let mut var_showHiddenFiles = <bool>::sse_decode(deserializer);
         let mut var_searchQuery = <String>::sse_decode(deserializer);
         let mut var_searchInPath = <bool>::sse_decode(deserializer);
@@ -7632,6 +7866,8 @@ impl SseDecode for crate::api::file_manager::types::FileManagerSnapshot {
             internal_items_mode: var_internalItemsMode,
             max_depth: var_maxDepth,
             view_mode: var_viewMode,
+            layout_mode: var_layoutMode,
+            search_column_path: var_searchColumnPath,
             show_hidden_files: var_showHiddenFiles,
             search_query: var_searchQuery,
             search_in_path: var_searchInPath,
@@ -7721,6 +7957,8 @@ impl SseDecode for crate::api::file_manager::types::FileManagerTreeRow {
         let mut var_path = <String>::sse_decode(deserializer);
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_depth = <u32>::sse_decode(deserializer);
+        let mut var_entry =
+            <Option<crate::api::file_manager::types::FileManagerEntry>>::sse_decode(deserializer);
         let mut var_expanded = <bool>::sse_decode(deserializer);
         let mut var_loading = <bool>::sse_decode(deserializer);
         let mut var_mayHaveChildren = <bool>::sse_decode(deserializer);
@@ -7730,6 +7968,7 @@ impl SseDecode for crate::api::file_manager::types::FileManagerTreeRow {
             path: var_path,
             name: var_name,
             depth: var_depth,
+            entry: var_entry,
             expanded: var_expanded,
             loading: var_loading,
             may_have_children: var_mayHaveChildren,
@@ -8596,6 +8835,34 @@ impl SseDecode for Option<crate::api::http::FetchInit> {
     }
 }
 
+impl SseDecode for Option<crate::api::file_manager::types::FileManagerEntry> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(
+                <crate::api::file_manager::types::FileManagerEntry>::sse_decode(deserializer),
+            );
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::api::file_manager::types::FileManagerNewTabOptions> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(
+                <crate::api::file_manager::types::FileManagerNewTabOptions>::sse_decode(
+                    deserializer,
+                ),
+            );
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<crate::api::file_ops::FileOpsClipboardMode> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -8984,169 +9251,193 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        35 => wire__crate__api__file_manager__browse__file_manager_create_impl(
+        35 => wire__crate__api__file_manager__settings__file_manager_configure_new_tabs_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        36 => wire__crate__api__file_manager__browse__file_manager_duplicate_tab_impl(
+        36 => wire__crate__api__file_manager__browse__file_manager_create_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        37 => wire__crate__api__file_manager__browse__file_manager_go_back_impl(
+        37 => wire__crate__api__file_manager__browse__file_manager_duplicate_tab_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        38 => wire__crate__api__file_manager__browse__file_manager_go_forward_impl(
+        38 => wire__crate__api__file_manager__browse__file_manager_go_back_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        39 => wire__crate__api__file_manager__browse__file_manager_go_home_impl(
+        39 => wire__crate__api__file_manager__browse__file_manager_go_forward_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        40 => wire__crate__api__file_manager__browse__file_manager_go_up_impl(
+        40 => wire__crate__api__file_manager__browse__file_manager_go_home_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        41 => wire__crate__api__file_manager__browse__file_manager_navigate_impl(
+        41 => wire__crate__api__file_manager__browse__file_manager_go_up_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        42 => wire__crate__api__file_manager__browse__file_manager_navigate_text_impl(
+        42 => wire__crate__api__file_manager__browse__file_manager_navigate_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        43 => wire__crate__api__file_manager__browse__file_manager_new_tab_impl(
+        43 => wire__crate__api__file_manager__browse__file_manager_navigate_text_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        44 => wire__crate__api__file_manager__entry_ops__file_manager_open_archive_impl(
+        44 => wire__crate__api__file_manager__browse__file_manager_new_tab_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        45 => wire__crate__api__file_manager__entry_ops__file_manager_open_entry_impl(
+        45 => wire__crate__api__file_manager__entry_ops__file_manager_open_archive_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        46 => wire__crate__api__file_manager__search__file_manager_record_search_history_impl(
+        46 => wire__crate__api__file_manager__entry_ops__file_manager_open_entry_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        47 => wire__crate__api__file_manager__browse__file_manager_refresh_impl(
+        47 => wire__crate__api__file_manager__search__file_manager_record_search_history_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        48 => wire__crate__api__file_manager__browse__file_manager_reopen_closed_tab_impl(
+        48 => wire__crate__api__file_manager__browse__file_manager_refresh_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        49 => wire__crate__api__file_manager__search__file_manager_save_search_as_tab_impl(
+        49 => wire__crate__api__file_manager__browse__file_manager_reopen_closed_tab_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        50 => wire__crate__api__file_manager__search__file_manager_search_impl(
+        50 => wire__crate__api__file_manager__search__file_manager_save_search_as_tab_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        51 => wire__crate__api__file_manager__search__file_manager_search_history_impl(
+        51 => wire__crate__api__file_manager__search__file_manager_search_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        52 => wire__crate__api__file_manager__search__file_manager_search_progress_impl(
+        52 => wire__crate__api__file_manager__search__file_manager_search_history_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        53 => wire__crate__api__file_manager__settings__file_manager_set_directories_first_impl(
+        53 => wire__crate__api__file_manager__search__file_manager_search_in_new_tab_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        54 => wire__crate__api__file_manager__browse__file_manager_set_directory_columns_impl(
+        54 => wire__crate__api__file_manager__search__file_manager_search_progress_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        55 => wire__crate__api__file_manager__settings__file_manager_set_entry_filter_impl(
+        55 => wire__crate__api__file_manager__search__file_manager_select_search_directory_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        56 => wire__crate__api__file_manager__browse__file_manager_set_home_path_impl(
+        56 => wire__crate__api__file_manager__settings__file_manager_set_directories_first_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        57 => wire__crate__api__file_manager__settings__file_manager_set_internal_items_mode_impl(
+        57 => wire__crate__api__file_manager__browse__file_manager_set_directory_columns_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        58 => wire__crate__api__file_manager__settings__file_manager_set_max_depth_impl(
+        58 => wire__crate__api__file_manager__settings__file_manager_set_entry_filter_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        59 => wire__crate__api__file_manager__settings__file_manager_set_penetration_impl(
+        59 => wire__crate__api__file_manager__browse__file_manager_set_home_path_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        60 => wire__crate__api__file_manager__settings__file_manager_set_remember_view_state_impl(
+        60 => wire__crate__api__file_manager__settings__file_manager_set_internal_items_mode_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        61 => wire__crate__api__file_manager__search__file_manager_set_search_in_path_impl(
+        61 => wire__crate__api__file_manager__settings__file_manager_set_layout_mode_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        62 => {
+        62 => wire__crate__api__file_manager__settings__file_manager_set_max_depth_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        63 => wire__crate__api__file_manager__settings__file_manager_set_penetration_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        64 => wire__crate__api__file_manager__settings__file_manager_set_remember_view_state_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        65 => wire__crate__api__file_manager__search__file_manager_set_search_in_path_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        66 => {
             wire__crate__api__file_manager__search__file_manager_set_search_include_subfolders_impl(
                 port,
                 ptr,
@@ -9154,318 +9445,318 @@ fn pde_ffi_dispatcher_primary_impl(
                 data_len,
             )
         }
-        63 => wire__crate__api__file_manager__search__file_manager_set_search_max_depth_impl(
+        67 => wire__crate__api__file_manager__search__file_manager_set_search_max_depth_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        64 => wire__crate__api__file_manager__search__file_manager_set_search_or_mode_impl(
+        68 => wire__crate__api__file_manager__search__file_manager_set_search_or_mode_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        65 => wire__crate__api__file_manager__search__file_manager_set_search_query_impl(
+        69 => wire__crate__api__file_manager__search__file_manager_set_search_query_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        66 => wire__crate__api__file_manager__settings__file_manager_set_show_child_names_impl(
+        70 => wire__crate__api__file_manager__settings__file_manager_set_show_child_names_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        67 => wire__crate__api__file_manager__settings__file_manager_set_show_hidden_files_impl(
+        71 => wire__crate__api__file_manager__settings__file_manager_set_show_hidden_files_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        68 => wire__crate__api__file_manager__settings__file_manager_set_sort_impl(
+        72 => wire__crate__api__file_manager__settings__file_manager_set_sort_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        69 => wire__crate__api__file_manager__settings__file_manager_set_sort_temporary_impl(
+        73 => wire__crate__api__file_manager__settings__file_manager_set_sort_temporary_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        70 => wire__crate__api__file_manager__settings__file_manager_set_view_mode_impl(
+        74 => wire__crate__api__file_manager__settings__file_manager_set_view_mode_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        71 => wire__crate__api__file_manager__browse__file_manager_snapshot_impl(
+        75 => wire__crate__api__file_manager__browse__file_manager_snapshot_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        72 => wire__crate__api__file_manager__browse__file_manager_toggle_tab_pinned_impl(
+        76 => wire__crate__api__file_manager__browse__file_manager_toggle_tab_pinned_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        73 => wire__crate__api__file_manager__tree__file_manager_tree_snapshot_impl(
+        77 => wire__crate__api__file_manager__tree__file_manager_tree_snapshot_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        74 => wire__crate__api__file_manager__tree__file_manager_tree_toggle_impl(
+        78 => wire__crate__api__file_manager__tree__file_manager_tree_toggle_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        75 => wire__crate__api__file_ops__file_ops_cancel_impl(port, ptr, rust_vec_len, data_len),
-        76 => wire__crate__api__file_ops__file_ops_clear_clipboard_impl(
+        79 => wire__crate__api__file_ops__file_ops_cancel_impl(port, ptr, rust_vec_len, data_len),
+        80 => wire__crate__api__file_ops__file_ops_clear_clipboard_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        77 => wire__crate__api__file_ops__file_ops_clear_selection_impl(
+        81 => wire__crate__api__file_ops__file_ops_clear_selection_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        78 => wire__crate__api__file_ops__file_ops_close_impl(port, ptr, rust_vec_len, data_len),
-        79 => wire__crate__api__file_ops__file_ops_copy_to_clipboard_impl(
+        82 => wire__crate__api__file_ops__file_ops_close_impl(port, ptr, rust_vec_len, data_len),
+        83 => wire__crate__api__file_ops__file_ops_copy_to_clipboard_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        80 => wire__crate__api__file_ops__file_ops_create_directory_impl(
+        84 => wire__crate__api__file_ops__file_ops_create_directory_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        81 => wire__crate__api__file_ops__file_ops_delete_paths_impl(
+        85 => wire__crate__api__file_ops__file_ops_delete_paths_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        82 => wire__crate__api__file_ops__file_ops_invert_selection_impl(
+        86 => wire__crate__api__file_ops__file_ops_invert_selection_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        83 => wire__crate__api__file_ops__file_ops_paste_impl(port, ptr, rust_vec_len, data_len),
-        84 => wire__crate__api__file_ops__file_ops_rename_entry_impl(
+        87 => wire__crate__api__file_ops__file_ops_paste_impl(port, ptr, rust_vec_len, data_len),
+        88 => wire__crate__api__file_ops__file_ops_rename_entry_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        85 => {
+        89 => {
             wire__crate__api__file_ops__file_ops_select_all_impl(port, ptr, rust_vec_len, data_len)
         }
-        86 => wire__crate__api__file_ops__file_ops_select_chain_impl(
+        90 => wire__crate__api__file_ops__file_ops_select_chain_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        87 => wire__crate__api__file_ops__file_ops_select_single_impl(
+        91 => wire__crate__api__file_ops__file_ops_select_single_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        88 => wire__crate__api__file_ops__file_ops_select_toggle_impl(
+        92 => wire__crate__api__file_ops__file_ops_select_toggle_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        89 => wire__crate__api__file_ops__file_ops_snapshot_impl(port, ptr, rust_vec_len, data_len),
-        90 => {
+        93 => wire__crate__api__file_ops__file_ops_snapshot_impl(port, ptr, rust_vec_len, data_len),
+        94 => {
             wire__crate__api__file_ops__file_ops_trash_paths_impl(port, ptr, rust_vec_len, data_len)
         }
-        91 => wire__crate__api__file_ops__file_ops_trash_restore_supported_impl(
+        95 => wire__crate__api__file_ops__file_ops_trash_restore_supported_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        92 => wire__crate__api__file_ops__file_ops_undo_impl(port, ptr, rust_vec_len, data_len),
-        94 => wire__crate__api__local_thumbnail__get_cached_book_auto_aspect_impl(
+        96 => wire__crate__api__file_ops__file_ops_undo_impl(port, ptr, rust_vec_len, data_len),
+        98 => wire__crate__api__local_thumbnail__get_cached_book_auto_aspect_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        95 => wire__crate__api__local_thumbnail__get_cached_book_page_dimensions_impl(
+        99 => wire__crate__api__local_thumbnail__get_cached_book_page_dimensions_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        96 => wire__crate__api__local_thumbnail__get_file_manager_entry_thumbnail_impl(
+        100 => wire__crate__api__local_thumbnail__get_file_manager_entry_thumbnail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        98 => wire__crate__api__local_thumbnail__get_local_thumbnail_impl(
+        102 => wire__crate__api__local_thumbnail__get_local_thumbnail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        99 => {
+        103 => {
             wire__crate__api__memory__get_rust_memory_info_impl(port, ptr, rust_vec_len, data_len)
         }
-        100 => wire__crate__api__memory__get_rust_memory_summary_impl(
+        104 => wire__crate__api__memory__get_rust_memory_summary_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        107 => wire__crate__api__http__http_client_options_default_impl(
+        111 => wire__crate__api__http__http_client_options_default_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        108 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
-        111 => wire__crate__api__qjs__is_qjs_runtime_initialized_impl(
+        112 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
+        115 => wire__crate__api__qjs__is_qjs_runtime_initialized_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        113 => wire__crate__api__font__list_system_font_families_impl(
+        117 => wire__crate__api__font__list_system_font_families_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        114 => wire__crate__api__file_manager__entry_ops__local_book_adjacent_impl(
+        118 => wire__crate__api__file_manager__entry_ops__local_book_adjacent_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        118 => {
+        122 => {
             wire__crate__api__local__local_list_directory_impl(port, ptr, rust_vec_len, data_len)
         }
-        120 => wire__crate__api__local__local_page_bytes_impl(port, ptr, rust_vec_len, data_len),
-        121 => {
+        124 => wire__crate__api__local__local_page_bytes_impl(port, ptr, rust_vec_len, data_len),
+        125 => {
             wire__crate__api__local__local_page_load_stats_impl(port, ptr, rust_vec_len, data_len)
         }
-        122 => wire__crate__api__local__local_page_pixels_impl(port, ptr, rust_vec_len, data_len),
-        123 => {
+        126 => wire__crate__api__local__local_page_pixels_impl(port, ptr, rust_vec_len, data_len),
+        127 => {
             wire__crate__api__local__local_prefetch_decision_impl(port, ptr, rust_vec_len, data_len)
         }
-        124 => {
+        128 => {
             wire__crate__api__local__local_prefetch_targets_impl(port, ptr, rust_vec_len, data_len)
         }
-        125 => wire__crate__api__local__local_source_pages_impl(port, ptr, rust_vec_len, data_len),
-        126 => {
+        129 => wire__crate__api__local__local_source_pages_impl(port, ptr, rust_vec_len, data_len),
+        130 => {
             wire__crate__api__local__local_video_wave_peaks_impl(port, ptr, rust_vec_len, data_len)
         }
-        128 => wire__crate__api__mimage_onnx__mimage_onnx_release_sessions_impl(
+        132 => wire__crate__api__mimage_onnx__mimage_onnx_release_sessions_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        129 => wire__crate__api__mimage_onnx__mimage_onnx_upscale_impl(
+        133 => wire__crate__api__mimage_onnx__mimage_onnx_upscale_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        130 => wire__crate__api__ocr__ocr_analyze_page_impl(port, ptr, rust_vec_len, data_len),
-        133 => wire__crate__api__local__open_local_source_impl(port, ptr, rust_vec_len, data_len),
-        155 => wire__crate__api__simple__pack_folder_impl(port, ptr, rust_vec_len, data_len),
-        156 => wire__crate__api__simple__pack_folder_zip_impl(port, ptr, rust_vec_len, data_len),
-        157 => {
+        134 => wire__crate__api__ocr__ocr_analyze_page_impl(port, ptr, rust_vec_len, data_len),
+        137 => wire__crate__api__local__open_local_source_impl(port, ptr, rust_vec_len, data_len),
+        159 => wire__crate__api__simple__pack_folder_impl(port, ptr, rust_vec_len, data_len),
+        160 => wire__crate__api__simple__pack_folder_zip_impl(port, ptr, rust_vec_len, data_len),
+        161 => {
             wire__crate__api__qjs__qjs_cancel_tasks_by_group_impl(port, ptr, rust_vec_len, data_len)
         }
-        158 => wire__crate__api__qjs__qjs_clear_bundle_impl(port, ptr, rust_vec_len, data_len),
-        159 => wire__crate__api__qjs__qjs_current_bundle_impl(port, ptr, rust_vec_len, data_len),
-        160 => wire__crate__api__qjs__qjs_debug_snapshot_impl(port, ptr, rust_vec_len, data_len),
-        161 => wire__crate__api__qjs__qjs_drop_runtime_impl(port, ptr, rust_vec_len, data_len),
-        162 => wire__crate__api__qjs__qjs_fetch_image_impl(port, ptr, rust_vec_len, data_len),
-        163 => wire__crate__api__qjs__qjs_replace_bundle_impl(port, ptr, rust_vec_len, data_len),
-        164 => wire__crate__api__qjs__qjs_task_call_impl(port, ptr, rust_vec_len, data_len),
-        165 => wire__crate__api__data_backup__read_data_backup_config_impl(
+        162 => wire__crate__api__qjs__qjs_clear_bundle_impl(port, ptr, rust_vec_len, data_len),
+        163 => wire__crate__api__qjs__qjs_current_bundle_impl(port, ptr, rust_vec_len, data_len),
+        164 => wire__crate__api__qjs__qjs_debug_snapshot_impl(port, ptr, rust_vec_len, data_len),
+        165 => wire__crate__api__qjs__qjs_drop_runtime_impl(port, ptr, rust_vec_len, data_len),
+        166 => wire__crate__api__qjs__qjs_fetch_image_impl(port, ptr, rust_vec_len, data_len),
+        167 => wire__crate__api__qjs__qjs_replace_bundle_impl(port, ptr, rust_vec_len, data_len),
+        168 => wire__crate__api__qjs__qjs_task_call_impl(port, ptr, rust_vec_len, data_len),
+        169 => wire__crate__api__data_backup__read_data_backup_config_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        167 => wire__crate__api__memory__reset_rust_memory_stats_impl(
+        171 => wire__crate__api__memory__reset_rust_memory_stats_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        176 => wire__crate__api__user_utils__setup_default_user_utils_impl(
+        180 => wire__crate__api__user_utils__setup_default_user_utils_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        177 => wire__crate__api__simple__sleep_test_impl(port, ptr, rust_vec_len, data_len),
-        178 => wire__crate__api__system__start_shutdown_listener_impl(
+        181 => wire__crate__api__simple__sleep_test_impl(port, ptr, rust_vec_len, data_len),
+        182 => wire__crate__api__system__start_shutdown_listener_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        179 => wire__crate__api__simple__stream_test_impl(port, ptr, rust_vec_len, data_len),
-        180 => wire__crate__api__webdav__webdav_delete_remote_files_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        181 => {
-            wire__crate__api__webdav__webdav_download_file_impl(port, ptr, rust_vec_len, data_len)
-        }
-        182 => {
-            wire__crate__api__webdav__webdav_download_text_impl(port, ptr, rust_vec_len, data_len)
-        }
-        183 => wire__crate__api__webdav__webdav_ensure_remote_ready_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        184 => wire__crate__api__webdav__webdav_list_remote_data_files_impl(
+        183 => wire__crate__api__simple__stream_test_impl(port, ptr, rust_vec_len, data_len),
+        184 => wire__crate__api__webdav__webdav_delete_remote_files_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
         185 => {
-            wire__crate__api__webdav__webdav_test_connection_impl(port, ptr, rust_vec_len, data_len)
+            wire__crate__api__webdav__webdav_download_file_impl(port, ptr, rust_vec_len, data_len)
         }
         186 => {
+            wire__crate__api__webdav__webdav_download_text_impl(port, ptr, rust_vec_len, data_len)
+        }
+        187 => wire__crate__api__webdav__webdav_ensure_remote_ready_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        188 => wire__crate__api__webdav__webdav_list_remote_data_files_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        189 => {
+            wire__crate__api__webdav__webdav_test_connection_impl(port, ptr, rust_vec_len, data_len)
+        }
+        190 => {
             wire__crate__api__webdav__webdav_upload_bytes_impl(port, ptr, rust_vec_len, data_len)
         }
-        187 => wire__crate__api__webdav__webdav_upload_text_impl(port, ptr, rust_vec_len, data_len),
-        188 => {
+        191 => wire__crate__api__webdav__webdav_upload_text_impl(port, ptr, rust_vec_len, data_len),
+        192 => {
             wire__crate__api__simple__zstd_compress_bytes_impl(port, ptr, rust_vec_len, data_len)
         }
-        189 => {
+        193 => {
             wire__crate__api__simple__zstd_decompress_bytes_impl(port, ptr, rust_vec_len, data_len)
         }
         _ => unreachable!(),
@@ -9494,146 +9785,146 @@ fn pde_ffi_dispatcher_sync_impl(
             rust_vec_len,
             data_len,
         ),
-        93 => wire__crate__api__localization__format_locale_bcp47_impl(ptr, rust_vec_len, data_len),
-        97 => wire__crate__api__qjs__get_js_bundle_impl(ptr, rust_vec_len, data_len),
-        101 => {
+        97 => wire__crate__api__localization__format_locale_bcp47_impl(ptr, rust_vec_len, data_len),
+        101 => wire__crate__api__qjs__get_js_bundle_impl(ptr, rust_vec_len, data_len),
+        105 => {
             wire__crate__api__localization__get_system_language_impl(ptr, rust_vec_len, data_len)
         }
-        102 => {
+        106 => {
             wire__crate__api__localization__get_system_languages_impl(ptr, rust_vec_len, data_len)
         }
-        103 => wire__crate__api__simple__get_system_time_zone_impl(ptr, rust_vec_len, data_len),
-        104 => {
+        107 => wire__crate__api__simple__get_system_time_zone_impl(ptr, rust_vec_len, data_len),
+        108 => {
             wire__crate__api__localization__get_system_timezone_impl(ptr, rust_vec_len, data_len)
         }
-        105 => wire__crate__api__localization__get_system_timezone_offset_impl(
+        109 => wire__crate__api__localization__get_system_timezone_offset_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        106 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
-        109 => wire__crate__api__qjs__init_rust_functions_impl(ptr, rust_vec_len, data_len),
-        110 => wire__crate__api__qjs__is_host_cache_gc_enabled_impl(ptr, rust_vec_len, data_len),
-        112 => wire__crate__api__qjs__is_tls_verify_enabled_impl(ptr, rust_vec_len, data_len),
-        115 => wire__crate__api__local__local_close_impl(ptr, rust_vec_len, data_len),
-        116 => wire__crate__api__local__local_close_all_impl(ptr, rust_vec_len, data_len),
-        117 => wire__crate__api__local__local_get_available_roots_impl(ptr, rust_vec_len, data_len),
-        119 => wire__crate__api__local__local_open_session_count_impl(ptr, rust_vec_len, data_len),
-        127 => wire__crate__api__local__media_formats_set_impl(ptr, rust_vec_len, data_len),
-        131 => wire__crate__api__ocr__ocr_release_sessions_impl(ptr, rust_vec_len, data_len),
-        132 => wire__crate__api__ocr__ocr_stage_ep_plan_impl(ptr, rust_vec_len, data_len),
-        134 => wire__crate__api__qjs__opencc_convert_impl(ptr, rust_vec_len, data_len),
-        135 => wire__crate__api__operation_binding__operation_binding_action_catalog_impl(
+        110 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
+        113 => wire__crate__api__qjs__init_rust_functions_impl(ptr, rust_vec_len, data_len),
+        114 => wire__crate__api__qjs__is_host_cache_gc_enabled_impl(ptr, rust_vec_len, data_len),
+        116 => wire__crate__api__qjs__is_tls_verify_enabled_impl(ptr, rust_vec_len, data_len),
+        119 => wire__crate__api__local__local_close_impl(ptr, rust_vec_len, data_len),
+        120 => wire__crate__api__local__local_close_all_impl(ptr, rust_vec_len, data_len),
+        121 => wire__crate__api__local__local_get_available_roots_impl(ptr, rust_vec_len, data_len),
+        123 => wire__crate__api__local__local_open_session_count_impl(ptr, rust_vec_len, data_len),
+        131 => wire__crate__api__local__media_formats_set_impl(ptr, rust_vec_len, data_len),
+        135 => wire__crate__api__ocr__ocr_release_sessions_impl(ptr, rust_vec_len, data_len),
+        136 => wire__crate__api__ocr__ocr_stage_ep_plan_impl(ptr, rust_vec_len, data_len),
+        138 => wire__crate__api__qjs__opencc_convert_impl(ptr, rust_vec_len, data_len),
+        139 => wire__crate__api__operation_binding__operation_binding_action_catalog_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        136 => wire__crate__api__operation_binding__operation_binding_area_at_point_impl(
+        140 => wire__crate__api__operation_binding__operation_binding_area_at_point_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        137 => wire__crate__api__operation_binding__operation_binding_conflicts_impl(
+        141 => wire__crate__api__operation_binding__operation_binding_conflicts_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        138 => wire__crate__api__operation_binding__operation_binding_factory_preset_impl(
+        142 => wire__crate__api__operation_binding__operation_binding_factory_preset_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        139 => wire__crate__api__operation_binding__operation_binding_key_preset_impl(
+        143 => wire__crate__api__operation_binding__operation_binding_key_preset_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        140 => wire__crate__api__operation_binding__operation_binding_radial_default_config_impl(
+        144 => wire__crate__api__operation_binding__operation_binding_radial_default_config_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        141 => wire__crate__api__operation_binding__operation_binding_radial_layout_impl(
+        145 => wire__crate__api__operation_binding__operation_binding_radial_layout_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        142 => wire__crate__api__operation_binding__operation_binding_radial_new_item_id_impl(
+        146 => wire__crate__api__operation_binding__operation_binding_radial_new_item_id_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        143 => wire__crate__api__operation_binding__operation_binding_radial_new_menu_impl(
+        147 => wire__crate__api__operation_binding__operation_binding_radial_new_menu_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        144 => wire__crate__api__operation_binding__operation_binding_radial_preset_impl(
+        148 => wire__crate__api__operation_binding__operation_binding_radial_preset_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        145 => wire__crate__api__operation_binding__operation_binding_radial_problems_impl(
+        149 => wire__crate__api__operation_binding__operation_binding_radial_problems_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        146 => wire__crate__api__operation_binding__operation_binding_radial_prune_impl(
+        150 => wire__crate__api__operation_binding__operation_binding_radial_prune_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        147 => wire__crate__api__operation_binding__operation_binding_radial_slot_impl(
+        151 => wire__crate__api__operation_binding__operation_binding_radial_slot_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        148 => wire__crate__api__operation_binding__operation_binding_radial_validate_impl(
+        152 => wire__crate__api__operation_binding__operation_binding_radial_validate_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        149 => wire__crate__api__operation_binding__operation_binding_resolve_impl(
+        153 => wire__crate__api__operation_binding__operation_binding_resolve_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        150 => wire__crate__api__operation_binding__operation_binding_resolve_binding_impl(
+        154 => wire__crate__api__operation_binding__operation_binding_resolve_binding_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        151 => wire__crate__api__operation_binding__operation_binding_resolve_page_turn_impl(
+        155 => wire__crate__api__operation_binding__operation_binding_resolve_page_turn_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        152 => wire__crate__api__operation_binding__operation_binding_tap_preset_impl(
+        156 => wire__crate__api__operation_binding__operation_binding_tap_preset_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        153 => wire__crate__api__operation_binding__operation_binding_upgrade_defaults_impl(
+        157 => wire__crate__api__operation_binding__operation_binding_upgrade_defaults_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        154 => wire__crate__api__operation_binding__operation_binding_validate_impl(
+        158 => wire__crate__api__operation_binding__operation_binding_validate_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        166 => wire__crate__api__qjs__register_function_impl(ptr, rust_vec_len, data_len),
-        168 => wire__crate__api__qjs__set_host_cache_gc_enabled_impl(ptr, rust_vec_len, data_len),
-        169 => wire__crate__api__qjs__set_http_proxy_impl(ptr, rust_vec_len, data_len),
-        170 => wire__crate__api__qjs__set_http_requests_blocked_impl(ptr, rust_vec_len, data_len),
-        171 => wire__crate__api__qjs__set_log_http_forward_impl(ptr, rust_vec_len, data_len),
-        172 => {
+        170 => wire__crate__api__qjs__register_function_impl(ptr, rust_vec_len, data_len),
+        172 => wire__crate__api__qjs__set_host_cache_gc_enabled_impl(ptr, rust_vec_len, data_len),
+        173 => wire__crate__api__qjs__set_http_proxy_impl(ptr, rust_vec_len, data_len),
+        174 => wire__crate__api__qjs__set_http_requests_blocked_impl(ptr, rust_vec_len, data_len),
+        175 => wire__crate__api__qjs__set_log_http_forward_impl(ptr, rust_vec_len, data_len),
+        176 => {
             wire__crate__api__qjs__set_qjs_error_message_language_impl(ptr, rust_vec_len, data_len)
         }
-        173 => wire__crate__api__qjs__set_qjs_error_stack_enabled_impl(ptr, rust_vec_len, data_len),
-        174 => wire__crate__api__qjs__set_socks5_proxy_impl(ptr, rust_vec_len, data_len),
-        175 => wire__crate__api__qjs__set_tls_verify_enabled_impl(ptr, rust_vec_len, data_len),
+        177 => wire__crate__api__qjs__set_qjs_error_stack_enabled_impl(ptr, rust_vec_len, data_len),
+        178 => wire__crate__api__qjs__set_socks5_proxy_impl(ptr, rust_vec_len, data_len),
+        179 => wire__crate__api__qjs__set_tls_verify_enabled_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -9793,6 +10084,7 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::file_manager::types::FileMana
 impl flutter_rust_bridge::IntoDart for crate::api::file_manager::types::FileManagerDirectoryChoice {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
+            self.entry.into_into_dart().into_dart(),
             self.path.into_into_dart().into_dart(),
             self.name.into_into_dart().into_dart(),
             self.selected.into_into_dart().into_dart(),
@@ -9915,6 +10207,76 @@ impl
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::file_manager::types::FileManagerLayoutMode {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Content => 0.into_dart(),
+            Self::Tree => 1.into_dart(),
+            Self::Columns => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::file_manager::types::FileManagerLayoutMode
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::file_manager::types::FileManagerLayoutMode>
+    for crate::api::file_manager::types::FileManagerLayoutMode
+{
+    fn into_into_dart(self) -> crate::api::file_manager::types::FileManagerLayoutMode {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::file_manager::types::FileManagerNewTabOptions {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.policy.into_into_dart().into_dart(),
+            self.view_mode.into_into_dart().into_dart(),
+            self.layout_mode.into_into_dart().into_dart(),
+            self.penetration_enabled.into_into_dart().into_dart(),
+            self.show_hidden_files.into_into_dart().into_dart(),
+            self.show_child_names.into_into_dart().into_dart(),
+            self.search_include_subfolders.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::file_manager::types::FileManagerNewTabOptions
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::file_manager::types::FileManagerNewTabOptions>
+    for crate::api::file_manager::types::FileManagerNewTabOptions
+{
+    fn into_into_dart(self) -> crate::api::file_manager::types::FileManagerNewTabOptions {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::file_manager::types::FileManagerNewTabPolicy {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Defaults => 0.into_dart(),
+            Self::Recent => 1.into_dart(),
+            Self::Triggering => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::file_manager::types::FileManagerNewTabPolicy
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::file_manager::types::FileManagerNewTabPolicy>
+    for crate::api::file_manager::types::FileManagerNewTabPolicy
+{
+    fn into_into_dart(self) -> crate::api::file_manager::types::FileManagerNewTabPolicy {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::file_manager::types::FileManagerSnapshot {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -9937,6 +10299,8 @@ impl flutter_rust_bridge::IntoDart for crate::api::file_manager::types::FileMana
             self.internal_items_mode.into_into_dart().into_dart(),
             self.max_depth.into_into_dart().into_dart(),
             self.view_mode.into_into_dart().into_dart(),
+            self.layout_mode.into_into_dart().into_dart(),
+            self.search_column_path.into_into_dart().into_dart(),
             self.show_hidden_files.into_into_dart().into_dart(),
             self.search_query.into_into_dart().into_dart(),
             self.search_in_path.into_into_dart().into_dart(),
@@ -10057,6 +10421,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::file_manager::types::FileMana
             self.path.into_into_dart().into_dart(),
             self.name.into_into_dart().into_dart(),
             self.depth.into_into_dart().into_dart(),
+            self.entry.into_into_dart().into_dart(),
             self.expanded.into_into_dart().into_dart(),
             self.loading.into_into_dart().into_dart(),
             self.may_have_children.into_into_dart().into_dart(),
@@ -11132,6 +11497,9 @@ impl SseEncode for crate::api::file_manager::types::FileManagerChild {
 impl SseEncode for crate::api::file_manager::types::FileManagerDirectoryChoice {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<crate::api::file_manager::types::FileManagerEntry>>::sse_encode(
+            self.entry, serializer,
+        );
         <String>::sse_encode(self.path, serializer);
         <String>::sse_encode(self.name, serializer);
         <bool>::sse_encode(self.selected, serializer);
@@ -11208,6 +11576,62 @@ impl SseEncode for crate::api::file_manager::types::FileManagerInternalItemsMode
     }
 }
 
+impl SseEncode for crate::api::file_manager::types::FileManagerLayoutMode {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::file_manager::types::FileManagerLayoutMode::Content => 0,
+                crate::api::file_manager::types::FileManagerLayoutMode::Tree => 1,
+                crate::api::file_manager::types::FileManagerLayoutMode::Columns => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::file_manager::types::FileManagerNewTabOptions {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::file_manager::types::FileManagerNewTabPolicy>::sse_encode(
+            self.policy,
+            serializer,
+        );
+        <crate::api::file_manager::types::FileManagerViewMode>::sse_encode(
+            self.view_mode,
+            serializer,
+        );
+        <crate::api::file_manager::types::FileManagerLayoutMode>::sse_encode(
+            self.layout_mode,
+            serializer,
+        );
+        <bool>::sse_encode(self.penetration_enabled, serializer);
+        <bool>::sse_encode(self.show_hidden_files, serializer);
+        <bool>::sse_encode(self.show_child_names, serializer);
+        <bool>::sse_encode(self.search_include_subfolders, serializer);
+    }
+}
+
+impl SseEncode for crate::api::file_manager::types::FileManagerNewTabPolicy {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::file_manager::types::FileManagerNewTabPolicy::Defaults => 0,
+                crate::api::file_manager::types::FileManagerNewTabPolicy::Recent => 1,
+                crate::api::file_manager::types::FileManagerNewTabPolicy::Triggering => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
 impl SseEncode for crate::api::file_manager::types::FileManagerSnapshot {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -11248,6 +11672,11 @@ impl SseEncode for crate::api::file_manager::types::FileManagerSnapshot {
             self.view_mode,
             serializer,
         );
+        <crate::api::file_manager::types::FileManagerLayoutMode>::sse_encode(
+            self.layout_mode,
+            serializer,
+        );
+        <Option<String>>::sse_encode(self.search_column_path, serializer);
         <bool>::sse_encode(self.show_hidden_files, serializer);
         <String>::sse_encode(self.search_query, serializer);
         <bool>::sse_encode(self.search_in_path, serializer);
@@ -11341,6 +11770,9 @@ impl SseEncode for crate::api::file_manager::types::FileManagerTreeRow {
         <String>::sse_encode(self.path, serializer);
         <String>::sse_encode(self.name, serializer);
         <u32>::sse_encode(self.depth, serializer);
+        <Option<crate::api::file_manager::types::FileManagerEntry>>::sse_encode(
+            self.entry, serializer,
+        );
         <bool>::sse_encode(self.expanded, serializer);
         <bool>::sse_encode(self.loading, serializer);
         <bool>::sse_encode(self.may_have_children, serializer);
@@ -12019,6 +12451,28 @@ impl SseEncode for Option<crate::api::http::FetchInit> {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <crate::api::http::FetchInit>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::api::file_manager::types::FileManagerEntry> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::file_manager::types::FileManagerEntry>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::api::file_manager::types::FileManagerNewTabOptions> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::file_manager::types::FileManagerNewTabOptions>::sse_encode(
+                value, serializer,
+            );
         }
     }
 }

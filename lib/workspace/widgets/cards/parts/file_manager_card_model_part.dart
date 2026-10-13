@@ -1,6 +1,18 @@
 part of '../file_manager_card.dart';
-// 视图模式映射与错误态
 
+// 视图模式映射与错误态
+extension FileManagerLayoutModeX on FileManagerLayoutMode {
+  String get label => switch (this) {
+    FileManagerLayoutMode.content => '内容视图',
+    FileManagerLayoutMode.tree => '树形视图',
+    FileManagerLayoutMode.columns => '分栏视图',
+  };
+  Glyph get icon => switch (this) {
+    FileManagerLayoutMode.content => AppGlyphs.layoutList,
+    FileManagerLayoutMode.tree => AppGlyphs.tree,
+    FileManagerLayoutMode.columns => AppGlyphs.columnsTwo,
+  };
+}
 
 extension FileManagerViewModeX on FileManagerViewMode {
   /// 文案与图标只有一份，住在 `LibraryViewModeX`：文件管理器与书签/历史面板
@@ -9,7 +21,6 @@ extension FileManagerViewModeX on FileManagerViewMode {
 
   Glyph get icon => fileManagerLibraryMode(this).icon;
 }
-
 
 LibraryViewMode fileManagerLibraryMode(FileManagerViewMode mode) {
   return switch (mode) {
@@ -22,7 +33,6 @@ LibraryViewMode fileManagerLibraryMode(FileManagerViewMode mode) {
   };
 }
 
-
 class _ErrorState extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
@@ -34,10 +44,7 @@ class _ErrorState extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        GlyphIcon(
-          AppGlyphs.error,
-          color: Theme.of(context).colorScheme.error,
-        ),
+        GlyphIcon(AppGlyphs.error, color: Theme.of(context).colorScheme.error),
         const SizedBox(height: 6),
         Text(
           message,
@@ -55,7 +62,6 @@ class _ErrorState extends StatelessWidget {
     );
   }
 }
-
 
 /// 主页键长按 / 右键菜单的三个动作，现在以「菜单项各自的 onPressed 闭包」
 /// 直接分派（`_openHomeMenu`），不再需要一个中间枚举。

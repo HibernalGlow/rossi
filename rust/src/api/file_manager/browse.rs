@@ -7,7 +7,7 @@ use anyhow::{Error, anyhow};
 use flutter_rust_bridge::frb;
 use rossi_local_core::FileManagerState;
 
-use super::types::FileManagerSnapshot;
+use super::types::{FileManagerNewTabOptions, FileManagerSnapshot};
 use super::{
     FILE_MANAGER_SESSIONS, NEXT_FILE_MANAGER_ID, attached_store, hydrate_view_states_from,
     seed_home_path, snapshot_for, with_session,
@@ -20,6 +20,7 @@ pub async fn file_manager_create(
     settings_db_path: Option<String>,
     remember_view_state: bool,
     search_subfolders_default: bool,
+    new_tab_options: Option<FileManagerNewTabOptions>,
 ) -> Result<u64, Error> {
     let path = initial_path.map(PathBuf::from);
     let home = home_path.map(PathBuf::from);
@@ -29,6 +30,10 @@ pub async fn file_manager_create(
             let mut state = FileManagerState::new(path)?;
             state.set_remember_view_state(remember_view_state);
             state.set_search_subfolders_default(search_subfolders_default);
+            if let Some(options) = new_tab_options {
+                super::settings::configure_new_tab_options(&mut state, options);
+                state.initialize_tab_defaults();
+            }
             seed_home_path(&mut state, home);
             let store = attached_store(db_path.as_deref());
             hydrate_view_states_from(store.as_deref(), &mut state);
@@ -140,9 +145,13 @@ pub async fn file_manager_set_home_path(
 pub async fn file_manager_new_tab(
     id: u64,
     path: Option<String>,
+    source_tab_id: Option<u64>,
 ) -> Result<FileManagerSnapshot, Error> {
     with_session(id, move |state| {
-        state.new_tab(path.map(PathBuf::from))?;
+        state.new_tab_from(
+            path.map(PathBuf::from),
+            source_tab_id.unwrap_or_else(|| state.active_tab_id()),
+        )?;
         snapshot_for(id, state)
     })
     .await

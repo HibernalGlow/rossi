@@ -830,6 +830,18 @@ _FileManagerSettingState _$FileManagerSettingStateFromJson(
   fileOperations: json['fileOperations'] as bool? ?? true,
   searchSubfoldersDefault: json['searchSubfoldersDefault'] as bool? ?? false,
   wrapGridTitle: json['wrapGridTitle'] as bool? ?? false,
+  newTabPolicy:
+      $enumDecodeNullable(
+        _$FileManagerTabStartupPolicyEnumMap,
+        json['newTabPolicy'],
+        unknownValue: FileManagerTabStartupPolicy.triggering,
+      ) ??
+      FileManagerTabStartupPolicy.triggering,
+  newTabViewMode: json['newTabViewMode'] as String? ?? 'compact',
+  newTabLayoutMode: json['newTabLayoutMode'] as String? ?? 'content',
+  newTabPenetration: json['newTabPenetration'] as bool? ?? false,
+  newTabShowHidden: json['newTabShowHidden'] as bool? ?? false,
+  newTabShowChildNames: json['newTabShowChildNames'] as bool? ?? true,
 );
 
 Map<String, dynamic> _$FileManagerSettingStateToJson(
@@ -843,6 +855,18 @@ Map<String, dynamic> _$FileManagerSettingStateToJson(
   'fileOperations': instance.fileOperations,
   'searchSubfoldersDefault': instance.searchSubfoldersDefault,
   'wrapGridTitle': instance.wrapGridTitle,
+  'newTabPolicy': _$FileManagerTabStartupPolicyEnumMap[instance.newTabPolicy]!,
+  'newTabViewMode': instance.newTabViewMode,
+  'newTabLayoutMode': instance.newTabLayoutMode,
+  'newTabPenetration': instance.newTabPenetration,
+  'newTabShowHidden': instance.newTabShowHidden,
+  'newTabShowChildNames': instance.newTabShowChildNames,
+};
+
+const _$FileManagerTabStartupPolicyEnumMap = {
+  FileManagerTabStartupPolicy.defaults: 'defaults',
+  FileManagerTabStartupPolicy.recent: 'recent',
+  FileManagerTabStartupPolicy.triggering: 'triggering',
 };
 
 _DiscoverSettingState _$DiscoverSettingStateFromJson(
