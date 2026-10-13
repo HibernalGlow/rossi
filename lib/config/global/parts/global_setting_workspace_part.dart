@@ -41,6 +41,9 @@ enum FileManagerTabStartupPolicy {
 ///   在慢盘上实测要几十秒，「要不要等这个时间」是用户的取舍，不该由我们替他翻上去。
 /// - [wrapGridTitle]：封面网格下是否换行完整显示文件名。默认关（截断为两行）；
 ///   开之后文件名允许多行完整展示，避免被省略号截断。
+/// - [showRootsBar]：是否画面包屑下面那一排「快速切换」胶囊（挂载卷 / 根目录 / 主目录）。
+///   默认开。关掉只是不画这一行 —— 卷列表照样由核心每轮重扫，重新打开立刻就在，
+///   导航本身不受影响（页签、面包屑、主页键、右键「路径操作」都还在原处）。
 @freezed
 abstract class FileManagerSettingState with _$FileManagerSettingState {
   const factory FileManagerSettingState({
@@ -52,6 +55,7 @@ abstract class FileManagerSettingState with _$FileManagerSettingState {
     @Default(true) bool fileOperations,
     @Default(false) bool searchSubfoldersDefault,
     @Default(false) bool wrapGridTitle,
+    @Default(true) bool showRootsBar,
     @Default(BreadcrumbStyle.restrained)
     @JsonKey(unknownEnumValue: BreadcrumbStyle.restrained)
     BreadcrumbStyle breadcrumbStyle,

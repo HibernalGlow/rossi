@@ -5324,7 +5324,7 @@ as List<FavoriteTag>,
 /// @nodoc
 mixin _$FileManagerSettingState {
 
- bool get homeEnabled; String get homePath; bool get openHomeOnStart; bool get rememberViewState; bool get restoreTabs; bool get fileOperations; bool get searchSubfoldersDefault; bool get wrapGridTitle;@JsonKey(unknownEnumValue: BreadcrumbStyle.restrained) BreadcrumbStyle get breadcrumbStyle;@JsonKey(unknownEnumValue: FileManagerTabStartupPolicy.triggering) FileManagerTabStartupPolicy get newTabPolicy; String get newTabViewMode; String get newTabLayoutMode; bool get newTabPenetration; bool get newTabShowHidden; bool get newTabShowChildNames;
+ bool get homeEnabled; String get homePath; bool get openHomeOnStart; bool get rememberViewState; bool get restoreTabs; bool get fileOperations; bool get searchSubfoldersDefault; bool get wrapGridTitle; bool get showRootsBar;@JsonKey(unknownEnumValue: BreadcrumbStyle.restrained) BreadcrumbStyle get breadcrumbStyle;@JsonKey(unknownEnumValue: FileManagerTabStartupPolicy.triggering) FileManagerTabStartupPolicy get newTabPolicy; String get newTabViewMode; String get newTabLayoutMode; bool get newTabPenetration; bool get newTabShowHidden; bool get newTabShowChildNames;
 /// Create a copy of FileManagerSettingState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -5338,20 +5338,20 @@ $FileManagerSettingStateCopyWith<FileManagerSettingState> get copyWith => _$File
 @override
 bool operator ==(Object other) {
   final _this = this as FileManagerSettingState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileManagerSettingState&&(identical(other.homeEnabled, _this.homeEnabled) || other.homeEnabled == _this.homeEnabled)&&(identical(other.homePath, _this.homePath) || other.homePath == _this.homePath)&&(identical(other.openHomeOnStart, _this.openHomeOnStart) || other.openHomeOnStart == _this.openHomeOnStart)&&(identical(other.rememberViewState, _this.rememberViewState) || other.rememberViewState == _this.rememberViewState)&&(identical(other.restoreTabs, _this.restoreTabs) || other.restoreTabs == _this.restoreTabs)&&(identical(other.fileOperations, _this.fileOperations) || other.fileOperations == _this.fileOperations)&&(identical(other.searchSubfoldersDefault, _this.searchSubfoldersDefault) || other.searchSubfoldersDefault == _this.searchSubfoldersDefault)&&(identical(other.wrapGridTitle, _this.wrapGridTitle) || other.wrapGridTitle == _this.wrapGridTitle)&&(identical(other.breadcrumbStyle, _this.breadcrumbStyle) || other.breadcrumbStyle == _this.breadcrumbStyle)&&(identical(other.newTabPolicy, _this.newTabPolicy) || other.newTabPolicy == _this.newTabPolicy)&&(identical(other.newTabViewMode, _this.newTabViewMode) || other.newTabViewMode == _this.newTabViewMode)&&(identical(other.newTabLayoutMode, _this.newTabLayoutMode) || other.newTabLayoutMode == _this.newTabLayoutMode)&&(identical(other.newTabPenetration, _this.newTabPenetration) || other.newTabPenetration == _this.newTabPenetration)&&(identical(other.newTabShowHidden, _this.newTabShowHidden) || other.newTabShowHidden == _this.newTabShowHidden)&&(identical(other.newTabShowChildNames, _this.newTabShowChildNames) || other.newTabShowChildNames == _this.newTabShowChildNames));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileManagerSettingState&&(identical(other.homeEnabled, _this.homeEnabled) || other.homeEnabled == _this.homeEnabled)&&(identical(other.homePath, _this.homePath) || other.homePath == _this.homePath)&&(identical(other.openHomeOnStart, _this.openHomeOnStart) || other.openHomeOnStart == _this.openHomeOnStart)&&(identical(other.rememberViewState, _this.rememberViewState) || other.rememberViewState == _this.rememberViewState)&&(identical(other.restoreTabs, _this.restoreTabs) || other.restoreTabs == _this.restoreTabs)&&(identical(other.fileOperations, _this.fileOperations) || other.fileOperations == _this.fileOperations)&&(identical(other.searchSubfoldersDefault, _this.searchSubfoldersDefault) || other.searchSubfoldersDefault == _this.searchSubfoldersDefault)&&(identical(other.wrapGridTitle, _this.wrapGridTitle) || other.wrapGridTitle == _this.wrapGridTitle)&&(identical(other.showRootsBar, _this.showRootsBar) || other.showRootsBar == _this.showRootsBar)&&(identical(other.breadcrumbStyle, _this.breadcrumbStyle) || other.breadcrumbStyle == _this.breadcrumbStyle)&&(identical(other.newTabPolicy, _this.newTabPolicy) || other.newTabPolicy == _this.newTabPolicy)&&(identical(other.newTabViewMode, _this.newTabViewMode) || other.newTabViewMode == _this.newTabViewMode)&&(identical(other.newTabLayoutMode, _this.newTabLayoutMode) || other.newTabLayoutMode == _this.newTabLayoutMode)&&(identical(other.newTabPenetration, _this.newTabPenetration) || other.newTabPenetration == _this.newTabPenetration)&&(identical(other.newTabShowHidden, _this.newTabShowHidden) || other.newTabShowHidden == _this.newTabShowHidden)&&(identical(other.newTabShowChildNames, _this.newTabShowChildNames) || other.newTabShowChildNames == _this.newTabShowChildNames));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as FileManagerSettingState;
-  return Object.hash(runtimeType,_this.homeEnabled,_this.homePath,_this.openHomeOnStart,_this.rememberViewState,_this.restoreTabs,_this.fileOperations,_this.searchSubfoldersDefault,_this.wrapGridTitle,_this.breadcrumbStyle,_this.newTabPolicy,_this.newTabViewMode,_this.newTabLayoutMode,_this.newTabPenetration,_this.newTabShowHidden,_this.newTabShowChildNames);
+  return Object.hash(runtimeType,_this.homeEnabled,_this.homePath,_this.openHomeOnStart,_this.rememberViewState,_this.restoreTabs,_this.fileOperations,_this.searchSubfoldersDefault,_this.wrapGridTitle,_this.showRootsBar,_this.breadcrumbStyle,_this.newTabPolicy,_this.newTabViewMode,_this.newTabLayoutMode,_this.newTabPenetration,_this.newTabShowHidden,_this.newTabShowChildNames);
 }
 
 @override
 String toString() {
   final _this = this as FileManagerSettingState;
-  return 'FileManagerSettingState(homeEnabled: ${_this.homeEnabled}, homePath: ${_this.homePath}, openHomeOnStart: ${_this.openHomeOnStart}, rememberViewState: ${_this.rememberViewState}, restoreTabs: ${_this.restoreTabs}, fileOperations: ${_this.fileOperations}, searchSubfoldersDefault: ${_this.searchSubfoldersDefault}, wrapGridTitle: ${_this.wrapGridTitle}, breadcrumbStyle: ${_this.breadcrumbStyle}, newTabPolicy: ${_this.newTabPolicy}, newTabViewMode: ${_this.newTabViewMode}, newTabLayoutMode: ${_this.newTabLayoutMode}, newTabPenetration: ${_this.newTabPenetration}, newTabShowHidden: ${_this.newTabShowHidden}, newTabShowChildNames: ${_this.newTabShowChildNames})';
+  return 'FileManagerSettingState(homeEnabled: ${_this.homeEnabled}, homePath: ${_this.homePath}, openHomeOnStart: ${_this.openHomeOnStart}, rememberViewState: ${_this.rememberViewState}, restoreTabs: ${_this.restoreTabs}, fileOperations: ${_this.fileOperations}, searchSubfoldersDefault: ${_this.searchSubfoldersDefault}, wrapGridTitle: ${_this.wrapGridTitle}, showRootsBar: ${_this.showRootsBar}, breadcrumbStyle: ${_this.breadcrumbStyle}, newTabPolicy: ${_this.newTabPolicy}, newTabViewMode: ${_this.newTabViewMode}, newTabLayoutMode: ${_this.newTabLayoutMode}, newTabPenetration: ${_this.newTabPenetration}, newTabShowHidden: ${_this.newTabShowHidden}, newTabShowChildNames: ${_this.newTabShowChildNames})';
 }
 
 
@@ -5362,7 +5362,7 @@ abstract mixin class $FileManagerSettingStateCopyWith<$Res>  {
   factory $FileManagerSettingStateCopyWith(FileManagerSettingState value, $Res Function(FileManagerSettingState) _then) = _$FileManagerSettingStateCopyWithImpl;
 @useResult
 $Res call({
- bool homeEnabled, String homePath, bool openHomeOnStart, bool rememberViewState, bool restoreTabs, bool fileOperations, bool searchSubfoldersDefault, bool wrapGridTitle,@JsonKey(unknownEnumValue: BreadcrumbStyle.restrained) BreadcrumbStyle breadcrumbStyle,@JsonKey(unknownEnumValue: FileManagerTabStartupPolicy.triggering) FileManagerTabStartupPolicy newTabPolicy, String newTabViewMode, String newTabLayoutMode, bool newTabPenetration, bool newTabShowHidden, bool newTabShowChildNames
+ bool homeEnabled, String homePath, bool openHomeOnStart, bool rememberViewState, bool restoreTabs, bool fileOperations, bool searchSubfoldersDefault, bool wrapGridTitle, bool showRootsBar,@JsonKey(unknownEnumValue: BreadcrumbStyle.restrained) BreadcrumbStyle breadcrumbStyle,@JsonKey(unknownEnumValue: FileManagerTabStartupPolicy.triggering) FileManagerTabStartupPolicy newTabPolicy, String newTabViewMode, String newTabLayoutMode, bool newTabPenetration, bool newTabShowHidden, bool newTabShowChildNames
 });
 
 
@@ -5379,7 +5379,7 @@ class _$FileManagerSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of FileManagerSettingState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? homeEnabled = null,Object? homePath = null,Object? openHomeOnStart = null,Object? rememberViewState = null,Object? restoreTabs = null,Object? fileOperations = null,Object? searchSubfoldersDefault = null,Object? wrapGridTitle = null,Object? breadcrumbStyle = null,Object? newTabPolicy = null,Object? newTabViewMode = null,Object? newTabLayoutMode = null,Object? newTabPenetration = null,Object? newTabShowHidden = null,Object? newTabShowChildNames = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? homeEnabled = null,Object? homePath = null,Object? openHomeOnStart = null,Object? rememberViewState = null,Object? restoreTabs = null,Object? fileOperations = null,Object? searchSubfoldersDefault = null,Object? wrapGridTitle = null,Object? showRootsBar = null,Object? breadcrumbStyle = null,Object? newTabPolicy = null,Object? newTabViewMode = null,Object? newTabLayoutMode = null,Object? newTabPenetration = null,Object? newTabShowHidden = null,Object? newTabShowChildNames = null,}) {
   return _then(FileManagerSettingState(
 homeEnabled: null == homeEnabled ? _self.homeEnabled : homeEnabled // ignore: cast_nullable_to_non_nullable
 as bool,homePath: null == homePath ? _self.homePath : homePath // ignore: cast_nullable_to_non_nullable
@@ -5389,6 +5389,7 @@ as bool,restoreTabs: null == restoreTabs ? _self.restoreTabs : restoreTabs // ig
 as bool,fileOperations: null == fileOperations ? _self.fileOperations : fileOperations // ignore: cast_nullable_to_non_nullable
 as bool,searchSubfoldersDefault: null == searchSubfoldersDefault ? _self.searchSubfoldersDefault : searchSubfoldersDefault // ignore: cast_nullable_to_non_nullable
 as bool,wrapGridTitle: null == wrapGridTitle ? _self.wrapGridTitle : wrapGridTitle // ignore: cast_nullable_to_non_nullable
+as bool,showRootsBar: null == showRootsBar ? _self.showRootsBar : showRootsBar // ignore: cast_nullable_to_non_nullable
 as bool,breadcrumbStyle: null == breadcrumbStyle ? _self.breadcrumbStyle : breadcrumbStyle // ignore: cast_nullable_to_non_nullable
 as BreadcrumbStyle,newTabPolicy: null == newTabPolicy ? _self.newTabPolicy : newTabPolicy // ignore: cast_nullable_to_non_nullable
 as FileManagerTabStartupPolicy,newTabViewMode: null == newTabViewMode ? _self.newTabViewMode : newTabViewMode // ignore: cast_nullable_to_non_nullable
@@ -5481,10 +5482,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool homeEnabled,  String homePath,  bool openHomeOnStart,  bool rememberViewState,  bool restoreTabs,  bool fileOperations,  bool searchSubfoldersDefault,  bool wrapGridTitle, @JsonKey(unknownEnumValue: BreadcrumbStyle.restrained)  BreadcrumbStyle breadcrumbStyle, @JsonKey(unknownEnumValue: FileManagerTabStartupPolicy.triggering)  FileManagerTabStartupPolicy newTabPolicy,  String newTabViewMode,  String newTabLayoutMode,  bool newTabPenetration,  bool newTabShowHidden,  bool newTabShowChildNames)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool homeEnabled,  String homePath,  bool openHomeOnStart,  bool rememberViewState,  bool restoreTabs,  bool fileOperations,  bool searchSubfoldersDefault,  bool wrapGridTitle,  bool showRootsBar, @JsonKey(unknownEnumValue: BreadcrumbStyle.restrained)  BreadcrumbStyle breadcrumbStyle, @JsonKey(unknownEnumValue: FileManagerTabStartupPolicy.triggering)  FileManagerTabStartupPolicy newTabPolicy,  String newTabViewMode,  String newTabLayoutMode,  bool newTabPenetration,  bool newTabShowHidden,  bool newTabShowChildNames)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _FileManagerSettingState() when $default != null:
-return $default(_that.homeEnabled,_that.homePath,_that.openHomeOnStart,_that.rememberViewState,_that.restoreTabs,_that.fileOperations,_that.searchSubfoldersDefault,_that.wrapGridTitle,_that.breadcrumbStyle,_that.newTabPolicy,_that.newTabViewMode,_that.newTabLayoutMode,_that.newTabPenetration,_that.newTabShowHidden,_that.newTabShowChildNames);case _:
+return $default(_that.homeEnabled,_that.homePath,_that.openHomeOnStart,_that.rememberViewState,_that.restoreTabs,_that.fileOperations,_that.searchSubfoldersDefault,_that.wrapGridTitle,_that.showRootsBar,_that.breadcrumbStyle,_that.newTabPolicy,_that.newTabViewMode,_that.newTabLayoutMode,_that.newTabPenetration,_that.newTabShowHidden,_that.newTabShowChildNames);case _:
   return orElse();
 
 }
@@ -5502,10 +5503,10 @@ return $default(_that.homeEnabled,_that.homePath,_that.openHomeOnStart,_that.rem
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool homeEnabled,  String homePath,  bool openHomeOnStart,  bool rememberViewState,  bool restoreTabs,  bool fileOperations,  bool searchSubfoldersDefault,  bool wrapGridTitle, @JsonKey(unknownEnumValue: BreadcrumbStyle.restrained)  BreadcrumbStyle breadcrumbStyle, @JsonKey(unknownEnumValue: FileManagerTabStartupPolicy.triggering)  FileManagerTabStartupPolicy newTabPolicy,  String newTabViewMode,  String newTabLayoutMode,  bool newTabPenetration,  bool newTabShowHidden,  bool newTabShowChildNames)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool homeEnabled,  String homePath,  bool openHomeOnStart,  bool rememberViewState,  bool restoreTabs,  bool fileOperations,  bool searchSubfoldersDefault,  bool wrapGridTitle,  bool showRootsBar, @JsonKey(unknownEnumValue: BreadcrumbStyle.restrained)  BreadcrumbStyle breadcrumbStyle, @JsonKey(unknownEnumValue: FileManagerTabStartupPolicy.triggering)  FileManagerTabStartupPolicy newTabPolicy,  String newTabViewMode,  String newTabLayoutMode,  bool newTabPenetration,  bool newTabShowHidden,  bool newTabShowChildNames)  $default,) {final _that = this;
 switch (_that) {
 case _FileManagerSettingState():
-return $default(_that.homeEnabled,_that.homePath,_that.openHomeOnStart,_that.rememberViewState,_that.restoreTabs,_that.fileOperations,_that.searchSubfoldersDefault,_that.wrapGridTitle,_that.breadcrumbStyle,_that.newTabPolicy,_that.newTabViewMode,_that.newTabLayoutMode,_that.newTabPenetration,_that.newTabShowHidden,_that.newTabShowChildNames);case _:
+return $default(_that.homeEnabled,_that.homePath,_that.openHomeOnStart,_that.rememberViewState,_that.restoreTabs,_that.fileOperations,_that.searchSubfoldersDefault,_that.wrapGridTitle,_that.showRootsBar,_that.breadcrumbStyle,_that.newTabPolicy,_that.newTabViewMode,_that.newTabLayoutMode,_that.newTabPenetration,_that.newTabShowHidden,_that.newTabShowChildNames);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -5522,10 +5523,10 @@ return $default(_that.homeEnabled,_that.homePath,_that.openHomeOnStart,_that.rem
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool homeEnabled,  String homePath,  bool openHomeOnStart,  bool rememberViewState,  bool restoreTabs,  bool fileOperations,  bool searchSubfoldersDefault,  bool wrapGridTitle, @JsonKey(unknownEnumValue: BreadcrumbStyle.restrained)  BreadcrumbStyle breadcrumbStyle, @JsonKey(unknownEnumValue: FileManagerTabStartupPolicy.triggering)  FileManagerTabStartupPolicy newTabPolicy,  String newTabViewMode,  String newTabLayoutMode,  bool newTabPenetration,  bool newTabShowHidden,  bool newTabShowChildNames)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool homeEnabled,  String homePath,  bool openHomeOnStart,  bool rememberViewState,  bool restoreTabs,  bool fileOperations,  bool searchSubfoldersDefault,  bool wrapGridTitle,  bool showRootsBar, @JsonKey(unknownEnumValue: BreadcrumbStyle.restrained)  BreadcrumbStyle breadcrumbStyle, @JsonKey(unknownEnumValue: FileManagerTabStartupPolicy.triggering)  FileManagerTabStartupPolicy newTabPolicy,  String newTabViewMode,  String newTabLayoutMode,  bool newTabPenetration,  bool newTabShowHidden,  bool newTabShowChildNames)?  $default,) {final _that = this;
 switch (_that) {
 case _FileManagerSettingState() when $default != null:
-return $default(_that.homeEnabled,_that.homePath,_that.openHomeOnStart,_that.rememberViewState,_that.restoreTabs,_that.fileOperations,_that.searchSubfoldersDefault,_that.wrapGridTitle,_that.breadcrumbStyle,_that.newTabPolicy,_that.newTabViewMode,_that.newTabLayoutMode,_that.newTabPenetration,_that.newTabShowHidden,_that.newTabShowChildNames);case _:
+return $default(_that.homeEnabled,_that.homePath,_that.openHomeOnStart,_that.rememberViewState,_that.restoreTabs,_that.fileOperations,_that.searchSubfoldersDefault,_that.wrapGridTitle,_that.showRootsBar,_that.breadcrumbStyle,_that.newTabPolicy,_that.newTabViewMode,_that.newTabLayoutMode,_that.newTabPenetration,_that.newTabShowHidden,_that.newTabShowChildNames);case _:
   return null;
 
 }
@@ -5537,7 +5538,7 @@ return $default(_that.homeEnabled,_that.homePath,_that.openHomeOnStart,_that.rem
 @JsonSerializable()
 
 class _FileManagerSettingState implements FileManagerSettingState {
-  const _FileManagerSettingState({this.homeEnabled = true, this.homePath = '', this.openHomeOnStart = false, this.rememberViewState = true, this.restoreTabs = true, this.fileOperations = true, this.searchSubfoldersDefault = false, this.wrapGridTitle = false, @JsonKey(unknownEnumValue: BreadcrumbStyle.restrained) this.breadcrumbStyle = BreadcrumbStyle.restrained, @JsonKey(unknownEnumValue: FileManagerTabStartupPolicy.triggering) this.newTabPolicy = FileManagerTabStartupPolicy.triggering, this.newTabViewMode = 'compact', this.newTabLayoutMode = 'content', this.newTabPenetration = false, this.newTabShowHidden = false, this.newTabShowChildNames = true});
+  const _FileManagerSettingState({this.homeEnabled = true, this.homePath = '', this.openHomeOnStart = false, this.rememberViewState = true, this.restoreTabs = true, this.fileOperations = true, this.searchSubfoldersDefault = false, this.wrapGridTitle = false, this.showRootsBar = true, @JsonKey(unknownEnumValue: BreadcrumbStyle.restrained) this.breadcrumbStyle = BreadcrumbStyle.restrained, @JsonKey(unknownEnumValue: FileManagerTabStartupPolicy.triggering) this.newTabPolicy = FileManagerTabStartupPolicy.triggering, this.newTabViewMode = 'compact', this.newTabLayoutMode = 'content', this.newTabPenetration = false, this.newTabShowHidden = false, this.newTabShowChildNames = true});
   factory _FileManagerSettingState.fromJson(Map<String, dynamic> json) => _$FileManagerSettingStateFromJson(json);
 
 @override@JsonKey() final  bool homeEnabled;
@@ -5548,6 +5549,7 @@ class _FileManagerSettingState implements FileManagerSettingState {
 @override@JsonKey() final  bool fileOperations;
 @override@JsonKey() final  bool searchSubfoldersDefault;
 @override@JsonKey() final  bool wrapGridTitle;
+@override@JsonKey() final  bool showRootsBar;
 @override@JsonKey(unknownEnumValue: BreadcrumbStyle.restrained) final  BreadcrumbStyle breadcrumbStyle;
 @override@JsonKey(unknownEnumValue: FileManagerTabStartupPolicy.triggering) final  FileManagerTabStartupPolicy newTabPolicy;
 @override@JsonKey() final  String newTabViewMode;
@@ -5569,18 +5571,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _FileManagerSettingState&&(identical(other.homeEnabled, homeEnabled) || other.homeEnabled == homeEnabled)&&(identical(other.homePath, homePath) || other.homePath == homePath)&&(identical(other.openHomeOnStart, openHomeOnStart) || other.openHomeOnStart == openHomeOnStart)&&(identical(other.rememberViewState, rememberViewState) || other.rememberViewState == rememberViewState)&&(identical(other.restoreTabs, restoreTabs) || other.restoreTabs == restoreTabs)&&(identical(other.fileOperations, fileOperations) || other.fileOperations == fileOperations)&&(identical(other.searchSubfoldersDefault, searchSubfoldersDefault) || other.searchSubfoldersDefault == searchSubfoldersDefault)&&(identical(other.wrapGridTitle, wrapGridTitle) || other.wrapGridTitle == wrapGridTitle)&&(identical(other.breadcrumbStyle, breadcrumbStyle) || other.breadcrumbStyle == breadcrumbStyle)&&(identical(other.newTabPolicy, newTabPolicy) || other.newTabPolicy == newTabPolicy)&&(identical(other.newTabViewMode, newTabViewMode) || other.newTabViewMode == newTabViewMode)&&(identical(other.newTabLayoutMode, newTabLayoutMode) || other.newTabLayoutMode == newTabLayoutMode)&&(identical(other.newTabPenetration, newTabPenetration) || other.newTabPenetration == newTabPenetration)&&(identical(other.newTabShowHidden, newTabShowHidden) || other.newTabShowHidden == newTabShowHidden)&&(identical(other.newTabShowChildNames, newTabShowChildNames) || other.newTabShowChildNames == newTabShowChildNames));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _FileManagerSettingState&&(identical(other.homeEnabled, homeEnabled) || other.homeEnabled == homeEnabled)&&(identical(other.homePath, homePath) || other.homePath == homePath)&&(identical(other.openHomeOnStart, openHomeOnStart) || other.openHomeOnStart == openHomeOnStart)&&(identical(other.rememberViewState, rememberViewState) || other.rememberViewState == rememberViewState)&&(identical(other.restoreTabs, restoreTabs) || other.restoreTabs == restoreTabs)&&(identical(other.fileOperations, fileOperations) || other.fileOperations == fileOperations)&&(identical(other.searchSubfoldersDefault, searchSubfoldersDefault) || other.searchSubfoldersDefault == searchSubfoldersDefault)&&(identical(other.wrapGridTitle, wrapGridTitle) || other.wrapGridTitle == wrapGridTitle)&&(identical(other.showRootsBar, showRootsBar) || other.showRootsBar == showRootsBar)&&(identical(other.breadcrumbStyle, breadcrumbStyle) || other.breadcrumbStyle == breadcrumbStyle)&&(identical(other.newTabPolicy, newTabPolicy) || other.newTabPolicy == newTabPolicy)&&(identical(other.newTabViewMode, newTabViewMode) || other.newTabViewMode == newTabViewMode)&&(identical(other.newTabLayoutMode, newTabLayoutMode) || other.newTabLayoutMode == newTabLayoutMode)&&(identical(other.newTabPenetration, newTabPenetration) || other.newTabPenetration == newTabPenetration)&&(identical(other.newTabShowHidden, newTabShowHidden) || other.newTabShowHidden == newTabShowHidden)&&(identical(other.newTabShowChildNames, newTabShowChildNames) || other.newTabShowChildNames == newTabShowChildNames));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,homeEnabled,homePath,openHomeOnStart,rememberViewState,restoreTabs,fileOperations,searchSubfoldersDefault,wrapGridTitle,breadcrumbStyle,newTabPolicy,newTabViewMode,newTabLayoutMode,newTabPenetration,newTabShowHidden,newTabShowChildNames);
+    return Object.hash(runtimeType,homeEnabled,homePath,openHomeOnStart,rememberViewState,restoreTabs,fileOperations,searchSubfoldersDefault,wrapGridTitle,showRootsBar,breadcrumbStyle,newTabPolicy,newTabViewMode,newTabLayoutMode,newTabPenetration,newTabShowHidden,newTabShowChildNames);
 }
 
 @override
 String toString() {
-    return 'FileManagerSettingState(homeEnabled: $homeEnabled, homePath: $homePath, openHomeOnStart: $openHomeOnStart, rememberViewState: $rememberViewState, restoreTabs: $restoreTabs, fileOperations: $fileOperations, searchSubfoldersDefault: $searchSubfoldersDefault, wrapGridTitle: $wrapGridTitle, breadcrumbStyle: $breadcrumbStyle, newTabPolicy: $newTabPolicy, newTabViewMode: $newTabViewMode, newTabLayoutMode: $newTabLayoutMode, newTabPenetration: $newTabPenetration, newTabShowHidden: $newTabShowHidden, newTabShowChildNames: $newTabShowChildNames)';
+    return 'FileManagerSettingState(homeEnabled: $homeEnabled, homePath: $homePath, openHomeOnStart: $openHomeOnStart, rememberViewState: $rememberViewState, restoreTabs: $restoreTabs, fileOperations: $fileOperations, searchSubfoldersDefault: $searchSubfoldersDefault, wrapGridTitle: $wrapGridTitle, showRootsBar: $showRootsBar, breadcrumbStyle: $breadcrumbStyle, newTabPolicy: $newTabPolicy, newTabViewMode: $newTabViewMode, newTabLayoutMode: $newTabLayoutMode, newTabPenetration: $newTabPenetration, newTabShowHidden: $newTabShowHidden, newTabShowChildNames: $newTabShowChildNames)';
 }
 
 
@@ -5591,7 +5593,7 @@ abstract mixin class _$FileManagerSettingStateCopyWith<$Res> implements $FileMan
   factory _$FileManagerSettingStateCopyWith(_FileManagerSettingState value, $Res Function(_FileManagerSettingState) _then) = __$FileManagerSettingStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool homeEnabled, String homePath, bool openHomeOnStart, bool rememberViewState, bool restoreTabs, bool fileOperations, bool searchSubfoldersDefault, bool wrapGridTitle,@JsonKey(unknownEnumValue: BreadcrumbStyle.restrained) BreadcrumbStyle breadcrumbStyle,@JsonKey(unknownEnumValue: FileManagerTabStartupPolicy.triggering) FileManagerTabStartupPolicy newTabPolicy, String newTabViewMode, String newTabLayoutMode, bool newTabPenetration, bool newTabShowHidden, bool newTabShowChildNames
+ bool homeEnabled, String homePath, bool openHomeOnStart, bool rememberViewState, bool restoreTabs, bool fileOperations, bool searchSubfoldersDefault, bool wrapGridTitle, bool showRootsBar,@JsonKey(unknownEnumValue: BreadcrumbStyle.restrained) BreadcrumbStyle breadcrumbStyle,@JsonKey(unknownEnumValue: FileManagerTabStartupPolicy.triggering) FileManagerTabStartupPolicy newTabPolicy, String newTabViewMode, String newTabLayoutMode, bool newTabPenetration, bool newTabShowHidden, bool newTabShowChildNames
 });
 
 
@@ -5608,7 +5610,7 @@ class __$FileManagerSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of FileManagerSettingState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? homeEnabled = null,Object? homePath = null,Object? openHomeOnStart = null,Object? rememberViewState = null,Object? restoreTabs = null,Object? fileOperations = null,Object? searchSubfoldersDefault = null,Object? wrapGridTitle = null,Object? breadcrumbStyle = null,Object? newTabPolicy = null,Object? newTabViewMode = null,Object? newTabLayoutMode = null,Object? newTabPenetration = null,Object? newTabShowHidden = null,Object? newTabShowChildNames = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? homeEnabled = null,Object? homePath = null,Object? openHomeOnStart = null,Object? rememberViewState = null,Object? restoreTabs = null,Object? fileOperations = null,Object? searchSubfoldersDefault = null,Object? wrapGridTitle = null,Object? showRootsBar = null,Object? breadcrumbStyle = null,Object? newTabPolicy = null,Object? newTabViewMode = null,Object? newTabLayoutMode = null,Object? newTabPenetration = null,Object? newTabShowHidden = null,Object? newTabShowChildNames = null,}) {
   return _then(_FileManagerSettingState(
 homeEnabled: null == homeEnabled ? _self.homeEnabled : homeEnabled // ignore: cast_nullable_to_non_nullable
 as bool,homePath: null == homePath ? _self.homePath : homePath // ignore: cast_nullable_to_non_nullable
@@ -5618,6 +5620,7 @@ as bool,restoreTabs: null == restoreTabs ? _self.restoreTabs : restoreTabs // ig
 as bool,fileOperations: null == fileOperations ? _self.fileOperations : fileOperations // ignore: cast_nullable_to_non_nullable
 as bool,searchSubfoldersDefault: null == searchSubfoldersDefault ? _self.searchSubfoldersDefault : searchSubfoldersDefault // ignore: cast_nullable_to_non_nullable
 as bool,wrapGridTitle: null == wrapGridTitle ? _self.wrapGridTitle : wrapGridTitle // ignore: cast_nullable_to_non_nullable
+as bool,showRootsBar: null == showRootsBar ? _self.showRootsBar : showRootsBar // ignore: cast_nullable_to_non_nullable
 as bool,breadcrumbStyle: null == breadcrumbStyle ? _self.breadcrumbStyle : breadcrumbStyle // ignore: cast_nullable_to_non_nullable
 as BreadcrumbStyle,newTabPolicy: null == newTabPolicy ? _self.newTabPolicy : newTabPolicy // ignore: cast_nullable_to_non_nullable
 as FileManagerTabStartupPolicy,newTabViewMode: null == newTabViewMode ? _self.newTabViewMode : newTabViewMode // ignore: cast_nullable_to_non_nullable
