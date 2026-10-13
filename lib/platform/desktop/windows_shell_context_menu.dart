@@ -316,7 +316,6 @@ class WindowsShellIntegrationException implements Exception {
   final int? errorCode;
 
   @override
-  String toString() => errorCode == null
-      ? '$action 失败'
-      : '$action 失败（Win32 错误码 $errorCode）';
+  String toString() =>
+      errorCode == null ? '$action 失败' : '$action 失败（Win32 错误码 $errorCode）';
 }

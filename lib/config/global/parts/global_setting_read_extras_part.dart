@@ -1,6 +1,6 @@
 part of '../global_setting.dart';
-// 阅读快照与环境光暗度常量（rossi）
 
+// 阅读快照与环境光暗度常量（rossi）
 
 /// 自适应背景的**压暗程度**允许范围与默认值。
 ///
@@ -13,7 +13,6 @@ const int readerAmbientDimPercentMin = 0;
 const int readerAmbientDimPercentMax = 85;
 
 const int readerAmbientDimPercentDefault = 45;
-
 
 /// 阅读设置的读入口（**不依赖 `BuildContext`**）。
 ///

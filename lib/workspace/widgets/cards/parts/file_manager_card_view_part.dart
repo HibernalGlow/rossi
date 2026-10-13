@@ -39,6 +39,7 @@ extension _FileManagerCardViewPart on _FileManagerCardState {
       ),
     );
   }
+
   /// 封面列表的第二行带修改日期，横幅那一行不带 —— 沿用原来两档各自的写法。
   ///
   /// 搜索结果里的同名条目只能靠**来自哪个子目录**区分，所以那段相对路径排在
@@ -62,6 +63,7 @@ extension _FileManagerCardViewPart on _FileManagerCardState {
     }
     return buffer.toString();
   }
+
   Widget? _trailing(
     BuildContext context,
     FileManagerEntry entry,
@@ -94,18 +96,18 @@ extension _FileManagerCardViewPart on _FileManagerCardState {
     }
     return null;
   }
+
   LibrarySubLine _subLine(FileManagerChild child) {
     return LibrarySubLine(
       label: child.name,
-      icon: child.isDir
-          ? AppGlyphs.folder
-          : AppGlyphs.arrowForward,
+      icon: child.isDir ? AppGlyphs.folder : AppGlyphs.arrowForward,
       onTap: _busy ? null : () => _openChild(child),
       onDoubleTap: child.isArchive && !_busy
           ? () => _openArchiveChild(child)
           : null,
     );
   }
+
   /// 语义图标不带尺寸：每档视图要多大由 `LibraryViewLayout.badgeSize` 决定。
   Widget _semanticIcon(BuildContext context, FileManagerEntry entry) {
     final colors = Theme.of(context).colorScheme;
@@ -119,6 +121,7 @@ extension _FileManagerCardViewPart on _FileManagerCardState {
     };
     return GlyphIcon(icon, color: color);
   }
+
   Future<void> _toggleSort(
     FileManagerSnapshot snapshot,
     FileManagerSortField field,
@@ -132,6 +135,7 @@ extension _FileManagerCardViewPart on _FileManagerCardState {
       (id) => fileManagerSetSort(id: id, field: field, order: order),
     );
   }
+
   String _formatDate(int secs) {
     if (secs <= 0) return '';
     final dt = DateTime.fromMillisecondsSinceEpoch(secs * 1000);
@@ -142,6 +146,7 @@ extension _FileManagerCardViewPart on _FileManagerCardState {
     final min = dt.minute.toString().padLeft(2, '0');
     return '$year/$month/$day $hour:$min';
   }
+
   String _formatType(FileManagerEntry entry) {
     if (entry.isDir) return '文件夹';
     final lower = entry.name.toLowerCase();
@@ -163,6 +168,7 @@ extension _FileManagerCardViewPart on _FileManagerCardState {
     }
     return '文件';
   }
+
   String _formatSize(BigInt bytes) {
     if (bytes <= BigInt.zero) return '';
     const suffixes = ['B', 'KiB', 'MiB', 'GiB'];

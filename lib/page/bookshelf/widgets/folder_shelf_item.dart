@@ -154,9 +154,7 @@ class FolderShelfItem extends StatelessWidget {
                             ],
                           ),
                           child: GlyphIcon(
-                            isSelected
-                                ? AppGlyphs.check
-                                : AppGlyphs.ring,
+                            isSelected ? AppGlyphs.check : AppGlyphs.ring,
                             color: isSelected
                                 ? colorScheme.onPrimary
                                 : colorScheme.onSurfaceVariant,

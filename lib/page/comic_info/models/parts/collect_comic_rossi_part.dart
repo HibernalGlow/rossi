@@ -1,6 +1,6 @@
 part of '../collect_comic.dart';
-// rossi
 
+// rossi
 
 /// 确保漫画已添加到本地收藏；若未收藏则将其添加，并根据全局配置联动自动追更。
 /// 返回 true 表示新添加了收藏，false 表示此前已收藏。
@@ -79,7 +79,6 @@ Future<bool> ensureLocalComicCollected({
 
   return true;
 }
-
 
 /// 当开启了“点击下载自动收藏”时，在下载时自动将漫画加入本地收藏。
 Future<void> autoFavoriteComicOnDownloadIfEnabled({

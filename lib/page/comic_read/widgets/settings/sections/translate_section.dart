@@ -239,9 +239,7 @@ class TranslateSettingsSectionState extends State<TranslateSettingsSection> {
           ),
           trailing: GlyphIcon(
             inline
-                ? (expanded
-                      ? AppGlyphs.chevronUp
-                      : AppGlyphs.chevronDown)
+                ? (expanded ? AppGlyphs.chevronUp : AppGlyphs.chevronDown)
                 : AppGlyphs.chevronForward,
           ),
           onTap: inline

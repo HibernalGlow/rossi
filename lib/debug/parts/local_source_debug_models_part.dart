@@ -1,6 +1,6 @@
 part of '../local_source_debug_page.dart';
-// 调试页的数据模型（翻页分段记录、预取页、解码器模式）与图片格式嗅探
 
+// 调试页的数据模型（翻页分段记录、预取页、解码器模式）与图片格式嗅探
 
 /// 一次翻页的分段记录。留着历史才能对比「全尺寸 vs 显示尺寸」。
 class _StageRow {
@@ -83,7 +83,6 @@ class _StageRow {
   }
 }
 
-
 /// 预取好的一页：已经解完码、已经建成 `ui.Image`，翻到它时零解码零建图。
 ///
 /// 为什么必须有这个：这本 AVIF 单页冷解码的地板是 **270 ms**
@@ -125,7 +124,6 @@ class _PrefetchedPage {
   void dispose() => image.dispose();
 }
 
-
 /// 这一页让谁来解码。
 ///
 /// 这一维是 `avif` 逼出来的：Windows 引擎（`flutter_windows.dll`）没有链入 AV1
@@ -145,7 +143,6 @@ enum _DecoderMode {
 
   final String label;
 }
-
 
 /// 从编码字节的魔数判断格式。
 ///

@@ -174,9 +174,7 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                 ),
                 icon: GlyphIcon(
-                  _expanded
-                      ? AppGlyphs.chevronUp
-                      : AppGlyphs.chevronDown,
+                  _expanded ? AppGlyphs.chevronUp : AppGlyphs.chevronDown,
                   size: 18,
                 ),
                 label: Text(
@@ -325,5 +323,4 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
       ),
     );
   }
-
 }

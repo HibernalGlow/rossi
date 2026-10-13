@@ -1,6 +1,6 @@
 part of '../workspace_layout_setting_page.dart';
-// 驻留延时条目（_DelayTile）与整数数字框（_NumberBox / _NumberBoxState）
 
+// 驻留延时条目（_DelayTile）与整数数字框（_NumberBox / _NumberBoxState）
 
 /// 一个毫秒级的驻留延时：标题 + 数字框（+ 可选的启用开关）。
 ///
@@ -65,7 +65,6 @@ class _DelayTile extends StatelessWidget {
   }
 }
 
-
 /// 整数数字框：**回车或失焦才提交**，边打字边提交会让延时这种值每敲一下
 /// 就生效一次（100 → 1 → 10 → 100 中间那几步都是无意义的抖动）。
 class _NumberBox extends StatefulWidget {
@@ -89,7 +88,6 @@ class _NumberBox extends StatefulWidget {
   @override
   State<_NumberBox> createState() => _NumberBoxState();
 }
-
 
 class _NumberBoxState extends State<_NumberBox> {
   late final TextEditingController _controller = TextEditingController(

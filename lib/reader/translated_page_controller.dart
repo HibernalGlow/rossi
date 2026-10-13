@@ -248,7 +248,8 @@ class TranslatedPageController extends ChangeNotifier {
         _overlayLabels[index] = out.label;
         // 命中缓存那一次构建器什么都没算，报不出这一维，于是现读图层是唯一办法 ——
         // 占不占轨必须是这一页的属性，否则「第一次擦干净了、翻回来又露出日文」。
-        final needsBase = out.overlayNeedsBase ||
+        final needsBase =
+            out.overlayNeedsBase ||
             (out.fromCache &&
                 await TranslatedPageCache.overlayNeedsErasedBase(
                   label: out.label,

@@ -344,8 +344,7 @@ class _BreezeWorkspacePageState extends State<BreezeWorkspacePage> {
         // 把上游 `ComicReadPage` **整页**重 build 一遍 —— 而「谁被激活」对它毫无影响。
         // 判据是字段级的（`WorkspaceState.differsOnlyByActiveLane`），不是「除了
         // 激活什么都不看」的口头承诺。
-        buildWhen: (previous, next) =>
-            !previous.differsOnlyByActiveLane(next),
+        buildWhen: (previous, next) => !previous.differsOnlyByActiveLane(next),
         builder: (context, state) {
           final isSwimlane = state.mode == WorkspaceMode.swimlane;
           final chromeMode = _chromeMode;

@@ -1,6 +1,6 @@
 part of '../global_setting.dart';
-// 提示条与切换提示的设置（rossi）
 
+// 提示条与切换提示的设置（rossi）
 
 /// 提示条（toast）在屏幕上的停靠位置，九宫格。
 ///
@@ -17,7 +17,6 @@ enum ToastPosition {
   bottomCenter,
   bottomRight,
 }
-
 
 extension ToastPositionExtension on ToastPosition {
   String get label {
@@ -44,7 +43,6 @@ extension ToastPositionExtension on ToastPosition {
   }
 }
 
-
 /// 提示条设置的读入口。
 ///
 /// 提示（toast）会在**任意时刻**被触发（后台下载完成、同步失败……），
@@ -59,7 +57,6 @@ ToastSettingState get toastSetting {
     return const ToastSettingState();
   }
 }
-
 
 /// 提示条（toast）的位置、时长与外观。
 ///
@@ -91,7 +88,6 @@ abstract class ToastSettingState with _$ToastSettingState {
   factory ToastSettingState.fromJson(Map<String, dynamic> json) =>
       _$ToastSettingStateFromJson(json);
 }
-
 
 /// 「切换提示」（neoview N-17 switch-toast）的触发开关与文案模板。
 ///
@@ -134,7 +130,6 @@ abstract class SwitchToastSettingState with _$SwitchToastSettingState {
   factory SwitchToastSettingState.fromJson(Map<String, dynamic> json) =>
       _$SwitchToastSettingStateFromJson(json);
 }
-
 
 /// 切换提示设置的读入口（非 widget 上下文也能读）。
 ///

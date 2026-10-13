@@ -1,7 +1,6 @@
 part of '../gpu_present_controller.dart';
+
 // 呈现帧数据类
-
-
 
 /// 一次完成呈现的身份与画布尺寸；共享纹理 id 本身不能证明里面是哪一页。
 @immutable

@@ -63,9 +63,7 @@ class _HistoryWidgetState extends State<HistoryWidget> {
                 // 「搜索历史按插件分时间线」）。
                 IconButton(
                   icon: GlyphIcon(
-                    groupBySource
-                        ? AppGlyphs.viewAgenda
-                        : AppGlyphs.layoutList,
+                    groupBySource ? AppGlyphs.viewAgenda : AppGlyphs.layoutList,
                     size: 20,
                   ),
                   color: groupBySource
