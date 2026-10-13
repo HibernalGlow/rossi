@@ -24,17 +24,12 @@
 //! 3. `stats()` 从上游的 `#[cfg(test)]` 提升为 `pub`：FRB 层要在调试页显示
 //!    「此刻在跑几个解码」，这是上游只在自己测试里看的数据。
 //! 4. 补了 `impl Default`（clippy 的 `new_without_default`）。
-//! 5. 多一行 `use crate::perf_sink::PerfValue;`（上游没有 `perf_sink` 这个模块）。
-//!
-//! 除这些，**函数名、类型名、常量名、测试名全部与上游一致** —— 为的是上游更新后
-//! 能机械同步。同步步骤与偏离理由见 `docs/local-core-vendored-modules.md`。
-
+//! 5. 多一行 `use crate::perf_sink::PerfValue;
+use crate::perf_sink::PerfValue;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::Instant;
-
-use crate::perf_sink::PerfValue;
 
 pub const FS_PAGE_LOAD_TOTAL_PERMITS: usize = 6;
 pub const FS_PAGE_LOAD_HIGH_RESERVED_PERMITS: usize = 2;
@@ -62,7 +57,7 @@ impl FsPageLoadScheduler {
         )
     }
 
-    fn with_limits(total: usize, high_reserved: usize) -> Self {
+    pub fn with_limits(total: usize, high_reserved: usize) -> Self {
         assert!(total >= 1, "page-load permits must be non-zero");
         assert!(
             high_reserved < total,
@@ -107,6 +102,27 @@ impl FsPageLoadScheduler {
         let (superseded, stats) = {
             let mut state = self.inner.state.lock().unwrap();
             let superseded = state.remove_waiting_superseded_by_seek(owner_context, None);
+            let stats = state.stats();
+            self.inner.changed.notify_all();
+            (superseded, stats)
+        };
+        for request in superseded {
+            emit_scheduler_event(
+                "scheduler_cancel_waiting",
+                &request.perf,
+                request.priority,
+                request.contract,
+                stats,
+                None,
+            );
+        }
+    }
+
+    /// RAW owns two source requests for one target page.
+    pub fn supersede_waiting_for_latest_seek_page(&self, owner_context: u64, idx: usize) {
+        let (superseded, stats) = {
+            let mut state = self.inner.state.lock().unwrap();
+            let superseded = state.remove_waiting_superseded(owner_context, SeekRetain::Page(idx));
             let stats = state.stats();
             self.inner.changed.notify_all();
             (superseded, stats)
@@ -205,16 +221,8 @@ impl FsPageLoadScheduler {
         self.request_with_cancel(owner_context, idx, priority, contract, None, 0, cancel)
     }
 
-    /// 此刻的调度快照。上游是 `#[cfg(test)]`，这里提升为 `pub`（偏离 3）：
-    /// FRB 层要在调试页显示在跑/在等的解码数。
     pub fn stats(&self) -> FsPageLoadSchedulerStats {
         self.inner.state.lock().unwrap().stats()
-    }
-}
-
-impl Default for FsPageLoadScheduler {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -240,6 +248,10 @@ impl FsPageLoadTicket {
     }
 
     pub fn cancel(&self) {
+        // The permit can finish before a RAW development job does. Its drop
+        // removes the scheduler record, but the ticket still owns the job's
+        // shared cancellation flag.
+        self.cancel.store(true, Ordering::Relaxed);
         cancel_request(&self.inner, self.request_id, "scheduler_cancel");
     }
 
@@ -603,12 +615,26 @@ impl SchedulerState {
         owner_context: u64,
         except_request_id: Option<u64>,
     ) -> Vec<RequestRecord> {
+        self.remove_waiting_superseded(
+            owner_context,
+            except_request_id.map_or(SeekRetain::Nothing, SeekRetain::Request),
+        )
+    }
+
+    fn remove_waiting_superseded(
+        &mut self,
+        owner_context: u64,
+        retain: SeekRetain,
+    ) -> Vec<RequestRecord> {
         let superseded = self
             .requests
             .iter()
             .filter_map(|(&id, request)| {
-                (Some(id) != except_request_id
-                    && request.perf.owner_context == owner_context
+                (!match retain {
+                    SeekRetain::Nothing => false,
+                    SeekRetain::Request(keep) => id == keep,
+                    SeekRetain::Page(idx) => request.perf.idx == idx,
+                } && request.perf.owner_context == owner_context
                     && request.phase == RequestPhase::Waiting)
                     .then_some(id)
             })
@@ -621,6 +647,19 @@ impl SchedulerState {
                 Some(request)
             })
             .collect()
+    }
+}
+
+#[derive(Clone, Copy)]
+enum SeekRetain {
+    Nothing,
+    Request(u64),
+    Page(usize),
+}
+
+impl Default for FsPageLoadScheduler {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

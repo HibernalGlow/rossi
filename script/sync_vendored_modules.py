@@ -57,7 +57,7 @@ PORTS = [
     {
         "upstream": "src/folder_tree.rs",
         "local": "rust/local_core/src/folder_tree.rs",
-        "pinned_at": "8d95fffe",
+        "pinned_at": "bb6ca0c6",
         "upstream_normalize": [
             (r"\bpub\(crate\)", "pub"),
             # v4.1.0：上游把导航用的 bool 换成 NavigationArchivePolicy 三值枚举；
@@ -73,6 +73,25 @@ PORTS = [
             (r"archive_policy: NavigationArchivePolicy::IgnoreConvertible,", "include_convertible_archives: false,"),
             # 导航层未搬 ⇒ 它带来的 import 也不在本地（区间丢弃后仍留在文件头）。
             (r"use std::cell::RefCell;\nuse std::collections::\{HashMap, HashSet\};", "use std::collections::HashSet;"),
+            # v4.6：Windows 路径比较复用上游 separator-aware 身份键；Unix 保留大小写。
+            (
+                r"pub use crate::path_key::eq_keep_drive as path_eq;",
+                "pub fn path_eq(a: &Path, b: &Path) -> bool {\n"
+                "#[cfg(windows)] { crate::path_key::eq_keep_drive(a, b) }\n"
+                "#[cfg(not(windows))] { a == b }\n}",
+            ),
+            (r"#\[derive\(Clone, Debug, PartialEq\)\]\npub struct FolderTreeOptions", "#[derive(Clone, Copy, Debug, PartialEq)]\npub struct FolderTreeOptions"),
+            (r"\b(options|opts)\.clone\(\)", r"\1"),
+            (r"#\[test\]\n    fn path_eq_ignores_separator", "#[cfg(windows)]\n    #[test]\n    fn path_eq_ignores_separator"),
+            # EPUB/LibRaw 与上游持久化的类型可见性尚未接入本仓运行时。
+            (r"    pub file_type_visibility: crate::file_type_visibility::FileTypeVisibility,\n", ""),
+            (r"    pub skip_epub_if_pdf_exists: bool,\n", ""),
+            (r"    pub include_epub: bool,\n", ""),
+            (r"            file_type_visibility: [^\n]*\n", ""),
+            (r"            skip_epub_if_pdf_exists: [^\n]*\n", ""),
+            (r"            include_epub: [^\n]*\n", ""),
+            (r"pub fn is_paged_document_path\(path: &Path\) -> bool \{[\s\S]*?\n\}\n", ""),
+            (r"is_zip_extension\(&ext\) \|\| is_paged_document_path\(path\)", "is_zip_extension(&ext) || is_pdf_extension(&ext)"),
             # Unix 的反斜杠/大小写不能使用 Catalog 的 Windows 风格归一化键。
             (r"crate::path_key::normalize_keep_drive", "crate::fs_entry::directory_visit_key"),
             (
@@ -149,6 +168,9 @@ PORTS = [
                 r"(pub fn is_convertible_archive_path\(path: &Path\) -> bool \{[\s\S]*?\n\}\n)[\s\S]*?(\npub fn path_eq)",
                 r"\1\2",
             ),
+            # EPUB 和新 visibility 的回归依赖本仓没有的运行时边界，随能力一起未搬。
+            (r"\n\s*#\[test\]\n\s*fn (?:epub_file_is_resolved_as_openable_without_parent_fallback|paged_document_navigation_skips_same_name_epub_with_pdf|epub_ignore_removes_epub_but_keeps_pdf_and_archive_navigation_candidates)\(\)[\s\S]*?\n    \}\n", ""),
+            (r"\n#\[cfg\(test\)\]\nmod file_type_visibility_navigation_tests \{[\s\S]*", ""),
             # 上游为导航层新增的 11 个 rar_nav_* 用例（真实 RAR 夹具 + 独立窗口），随实现一起未搬。
             (r"\n\s*#\[test\]\n\s*fn rar_nav_[\s\S]*?\n    \}\n", ""),
         ],
@@ -157,19 +179,18 @@ PORTS = [
     {
         "upstream": "src/fs_entry.rs",
         "local": "rust/local_core/src/fs_entry.rs",
-        "pinned_at": "8d95fffe",
+        "pinned_at": "bb6ca0c6",
         "upstream_normalize": [
             (r"\bpub\(crate\)", "pub"),
             (
-                r"fn classify_special_dir_entry\(_entry: &DirEntry, _file_type: &FileType\) -> DirEntryKind \{\s*DirEntryKind::Other\s*\}",
-                """fn classify_special_dir_entry(entry: &DirEntry, file_type: &FileType) -> DirEntryKind {
+                r"fn classify_special_dir_entry\(\s*_entry: &DirEntry,\s*_file_type: &FileType,?\s*\) -> std::io::Result<DirEntryKind> \{\s*Ok\(DirEntryKind::Other\)\s*\}",
+                """fn classify_special_dir_entry(entry: &DirEntry, file_type: &FileType) -> std::io::Result<DirEntryKind> {
                     if file_type.is_symlink() {
-                        if let Ok(metadata) = std::fs::metadata(entry.path()) {
-                            if metadata.is_dir() { return DirEntryKind::ReparseDirectory; }
-                            if metadata.is_file() { return DirEntryKind::File; }
-                        }
+                        let metadata = std::fs::metadata(entry.path())?;
+                        if metadata.is_dir() { return Ok(DirEntryKind::ReparseDirectory); }
+                        if metadata.is_file() { return Ok(DirEntryKind::File); }
                     }
-                    DirEntryKind::Other
+                    Ok(DirEntryKind::Other)
                 }""",
             ),
             (
@@ -185,7 +206,7 @@ PORTS = [
     {
         "upstream": "src/filename_sort.rs",
         "local": "rust/local_core/src/filename_sort.rs",
-        "pinned_at": "8d95fffe",
+        "pinned_at": "bb6ca0c6",
         "upstream_normalize": [(r"\bpub\(crate\)", "pub")],
         "local_strip": [],
         "upstream_strip": [],
@@ -194,7 +215,7 @@ PORTS = [
     {
         "upstream": "src/fs_page_load_scheduler.rs",
         "local": "rust/local_core/src/page_load_scheduler.rs",
-        "pinned_at": "8d95fffe",
+        "pinned_at": "bb6ca0c6",
         "upstream_normalize": [
             # 偏离 1：跨 crate 必须 pub。上游一律 pub(crate)。
             (r"\bpub\(crate\)", "pub"),
@@ -230,7 +251,7 @@ PORTS = [
     {
         "upstream": "src/app/prefetch_policy.rs",
         "local": "rust/local_core/src/prefetch_policy.rs",
-        "pinned_at": "8d95fffe",
+        "pinned_at": "bb6ca0c6",
         "upstream_normalize": [
             (r"\bpub\(crate\)", "pub"),
         ],
@@ -252,7 +273,7 @@ PORTS = [
     {
         "upstream": "src/auto_aspect.rs",
         "local": "rust/local_core/src/auto_aspect.rs",
-        "pinned_at": "8d95fffe",
+        "pinned_at": "bb6ca0c6",
         "upstream_normalize": [
             (r"\bpub\(crate\)", "pub"),
             # 偏离 2：测试里的行尾注释翻成中文（行尾带注释的行算代码行，不参与注释差异）。
@@ -269,7 +290,7 @@ PORTS = [
     {
         "upstream": "src/page_split.rs",
         "local": "rust/local_core/src/page_split.rs",
-        "pinned_at": "8d95fffe",
+        "pinned_at": "bb6ca0c6",
         "upstream_normalize": [
             # 偏离 1: B3 几何解耦，替换 eframe::egui 为本地无依赖纯几何类型与别名
             (r"use eframe::egui;", "use egui_compat as egui;"),
@@ -296,7 +317,7 @@ PORTS = [
     {
         "upstream": "src/folder_pane.rs",
         "local": "rust/local_core/src/folder_pane.rs",
-        "pinned_at": "8d95fffe",
+        "pinned_at": "bb6ca0c6",
         "upstream_normalize": [
             # 偏离 1：跨 crate 必须 pub。上游一律 pub(crate)。
             (r"\bpub\(crate\)", "pub"),
@@ -364,20 +385,33 @@ PORTS = [
     {
         "upstream": "src/search_query.rs",
         "local": "rust/local_core/src/search_query.rs",
-        "pinned_at": "8d95fffe",
-        "upstream_normalize": [],
-        "local_strip": [],
+        "pinned_at": "bb6ca0c6",
+        "upstream_normalize": [
+            (r"let chars: Vec<char> = query.chars\(\).collect\(\);", "let folded = crate::search_norm::normalize_for_match(query);\nlet chars: Vec<char> = folded.chars().collect();"),
+            (r"let needle = raw.to_lowercase\(\);", "let needle = raw.to_owned();"),
+            (r"let hay_lower = hay.to_lowercase\(\);", "let hay_lower = crate::search_norm::normalize_for_match(hay);"),
+            (r"let hay_lower = hay_so_far.to_lowercase\(\);", "let hay_lower = crate::search_norm::normalize_for_match(hay_so_far);"),
+        ],
+        "local_strip": [
+            (r"\n\s*#\[test\]\n\s*fn parse_folds_width_before_tokenizing\(\)[\s\S]*?\n    \}\n", ""),
+        ],
         "upstream_strip": [],
         "drop_lines": [],
     },
     {
         "upstream": "src/search_norm.rs",
         "local": "rust/local_core/src/search_norm.rs",
-        "pinned_at": "8d95fffe",
-        "upstream_normalize": [],
-        "local_strip": [],
+        "pinned_at": "bb6ca0c6",
+        "upstream_normalize": [
+            (r"s.to_lowercase\(\)", 'if s.is_ascii() { return s.to_ascii_lowercase(); } s.nfkc().collect::<String>().to_lowercase()'),
+            (r"fn normalize_fullwidth_ascii_lowercases\(\) \{[\s\S]*?\n    \}", ""),
+        ],
+        "local_strip": [
+            (r"fn normalize_folds_fullwidth_into_ascii\(\) \{[\s\S]*?\n    \}", ""),
+            (r"\n\s*#\[test\]\n\s*fn normalize_folds_decomposed_into_composed_kana\(\) \{[\s\S]*?\n    \}", ""),
+        ],
         "upstream_strip": [],
-        "drop_lines": [],
+        "drop_lines": ["use unicode_normalization::UnicodeNormalization;"],
     },
 ]
 
@@ -417,6 +451,12 @@ def normalize(text: str, port: dict, side: str) -> str:
     side="local"：套 local_strip（删掉本地独有的段）。
     两侧都先丢掉 `drop_lines`（本地为可用性新增的 import 之类）。
     """
+    if side == "local" and port["upstream"] == "src/folder_tree.rs":
+        tests = (REPO / "rust/local_core/src/folder_tree/tests.rs").read_text(encoding="utf-8")
+        text = text.replace(
+            '#[cfg(test)]\n#[path = "folder_tree/tests.rs"]\nmod tests;',
+            '#[cfg(test)]\nmod tests {\n' + tests + '\n}',
+        )
     kept = [line for line in text.splitlines() if line.strip() not in port["drop_lines"]]
     text = "\n".join(kept)
     if side == "upstream":

@@ -28,10 +28,10 @@
 
 | 本地 | 上游 | 当前对齐的上游 commit |
 |---|---|---|
-| `rust/local_core/src/page_load_scheduler.rs` | `src/fs_page_load_scheduler.rs` | `8d95fffe` |
-| `rust/local_core/src/prefetch_policy.rs` | `src/app/prefetch_policy.rs` | `8d95fffe` |
-| `rust/local_core/src/auto_aspect.rs` | `src/auto_aspect.rs` | `8d95fffe` |
-| `rust/local_core/src/page_split.rs` | `src/page_split.rs` | `8d95fffe` |
+| `rust/local_core/src/page_load_scheduler.rs` | `src/fs_page_load_scheduler.rs` | `bb6ca0c6` |
+| `rust/local_core/src/prefetch_policy.rs` | `src/app/prefetch_policy.rs` | `bb6ca0c6` |
+| `rust/local_core/src/auto_aspect.rs` | `src/auto_aspect.rs` | `bb6ca0c6` |
+| `rust/local_core/src/page_split.rs` | `src/page_split.rs` | `bb6ca0c6` |
 | `rust/local_core/src/perf_sink.rs` | —— **本地新增**，上游对应物是 `src/perf.rs`（完整 JSONL 性能日志系统） | —— |
 
 
@@ -48,12 +48,30 @@
 | `rust/local_core/src/search_query.rs` | `src/search_query.rs` | 搜索查询语法：空格分词 AND、`-` 否定、`"..."` 短语、`MatchMode`、`decide_partial` |
 | `rust/local_core/src/search_norm.rs` | `src/search_norm.rs` | 匹配用文本归一化 `normalize_for_match`（查询期 / 后置过滤同一函数）|
 
-这两份搜索源码是**零偏离逐字拷贝**：上游本就通体 `pub`、只依赖 `std`、文件内自带单测，
-所以 `PORTS` 里两条规则的四个字段全空（M-15，见 [迁移清单](feature-migration-spec.md)）。
+这两份搜索源码保留上游 API；Rossi 的全角/半角 NFKC 与分词边界扩展
+已登记到 `PORTS`，同步时仍逐行比较归一化后的其余代码。
 `search_norm::zip_entry_key` 在 Rossi 侧暂时无人调用 —— 它属于索引层（M-18），
 按「保住上游名字」的原则一并搬入，为将来的索引留接口；`pub` 项不会触发 `dead_code`。
 
 这七份里**有六份**纳入 `sync_vendored_modules.py`。
+
+**2026-10-13 同步到上游 `bb6ca0c6`（v4.6.0，子模块从 `8d95fffe` 快进 895 个提交）**：
+十份 `PORTS` 的 `pinned_at` 全部更新，同步脚本 `exit 0`，本地核心 462 项测试通过。
+
+- 页加载调度直接采用上游实现及回归测试：精确 seek 保留集合、等待请求取消、permit
+  释放后的取消标记；只保留公开接口和 `perf_sink` 适配。
+- `fs_entry` 采用上游可返回错误的目录分类与 `.miv-part-*` 临时文件过滤，保留 Unix
+  符号链接与大小写语义。`path_key` 更新输入路径、包含关系与物理路径拼写工具，
+  保留 macOS/Linux 上识别 Windows 盘符根的旧行为（Catalog 测试依赖它）。
+- `folder_tree` 跟进扩展名与路径归一化，并拆出测试文件；新导航层所依赖的 EPUB、
+  LibRaw、转换缓存及文件类型可见性仍未接入 Rossi，相关差异继续明确登记。
+- 唯一路径依赖 `unrar-patched` 自动跟进 RAR/CBR 首卷文件名的大小写识别修复。
+- 人工审查未登记切片：`thumb_loader` / `catalog` 新增的固定代表图、selection-proof、
+  EPUB/RAW 缓存链尚无本地消费者；保留 Rossi 多图封面与缓存策略。`fast_resize` 新增
+  LibRaw 分支亦未引入。`displayed_image_transform` 的 `inverse_uv` / `forward_uv`
+  在该窗口内未变，现有移植无需修改。
+
+以下是历史同步记录，当前 pin 以上表与本段为准。
 
 **2026-09-28 同步到上游 `8d95fffe`（v4.1.0，子模块 pin 从 `1ffce811` 快进 70 个提交）**：
 十份 `PORTS` 的 `pinned_at` 全部跟到 `8d95fffe`，脚本一条命令跑完 `exit 0`。

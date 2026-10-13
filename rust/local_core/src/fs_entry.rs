@@ -16,8 +16,8 @@ use std::path::Path;
 
 pub const PORTABLE_METADATA_BUNDLE_DIRNAME: &str = "mimageviewer.meta.miv";
 
-/// mIV 自身生成的可携带 bundle 不依赖 Hidden 属性或「显示隐藏文件」设置，
-/// 在普通列表、递归视图与文件夹导航中始终予以排除。
+/// mIV自身が作る持ち運び用bundleは、Hidden属性や「隠しファイルを表示」の設定に
+/// 依存せず、通常一覧・再帰ビュー・フォルダナビから常に除外する。
 pub fn is_internal_app_entry_name(name: &OsStr) -> bool {
     let name = name.to_string_lossy();
     if name.eq_ignore_ascii_case(PORTABLE_METADATA_BUNDLE_DIRNAME) {
@@ -25,7 +25,22 @@ pub fn is_internal_app_entry_name(name: &OsStr) -> bool {
     }
 
     let name = name.to_ascii_lowercase();
-    name.starts_with(&format!(".{PORTABLE_METADATA_BUNDLE_DIRNAME}.")) && name.ends_with(".tmp")
+    if name.starts_with(&format!(".{PORTABLE_METADATA_BUNDLE_DIRNAME}.")) && name.ends_with(".tmp")
+    {
+        return true;
+    }
+    // Also hide old .pdf leftovers from development builds of sibling saving.
+    for extension in [".tmp", ".pdf"] {
+        if let Some(token) = name
+            .strip_prefix(".miv-part-")
+            .and_then(|rest| rest.strip_suffix(extension))
+            && token.len() == 64
+            && token.bytes().all(|byte| byte.is_ascii_hexdigit())
+        {
+            return true;
+        }
+    }
+    false
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -47,11 +62,26 @@ impl DirEntryKind {
 }
 
 pub fn classify_dir_entry(entry: &DirEntry, file_type: &FileType) -> DirEntryKind {
+    try_classify_dir_entry(entry, file_type).unwrap_or_else(|_| {
+        if file_type.is_symlink() {
+            DirEntryKind::File
+        } else {
+            DirEntryKind::Other
+        }
+    })
+}
+
+/// Walkers that infer absence must retain classification failures instead of
+/// treating an unobserved entry as an unsupported item.
+pub fn try_classify_dir_entry(
+    entry: &DirEntry,
+    file_type: &FileType,
+) -> std::io::Result<DirEntryKind> {
     if file_type.is_dir() {
-        return DirEntryKind::Directory;
+        return Ok(DirEntryKind::Directory);
     }
     if file_type.is_file() {
-        return DirEntryKind::File;
+        return Ok(DirEntryKind::File);
     }
     classify_special_dir_entry(entry, file_type)
 }
@@ -59,20 +89,20 @@ pub fn classify_dir_entry(entry: &DirEntry, file_type: &FileType) -> DirEntryKin
 const FILE_ATTRIBUTE_HIDDEN: u32 = 0x2;
 const FILE_ATTRIBUTE_SYSTEM: u32 = 0x4;
 
-/// 纯函数：根据 Windows 文件属性判定某条目是否应从列表排除。
+/// Windows のファイル属性から、一覧で除外すべきエントリかを判定する純関数。
 ///
-/// Hidden + System 作为受保护的 OS 文件始终隐藏，仅 Hidden 的条目
-/// 只在 show_hidden_files 为 false 时隐藏。
+/// Hidden + System は保護された OS ファイルとして常に隠し、Hidden のみは
+/// show_hidden_files が false のときだけ隠す。
 pub fn should_hide_dir_entry(attributes: u32, show_hidden_files: bool) -> bool {
     let hidden = attributes & FILE_ATTRIBUTE_HIDDEN != 0;
     let system = attributes & FILE_ATTRIBUTE_SYSTEM != 0;
     hidden && (system || !show_hidden_files)
 }
 
-/// 只使用 DirEntry 已缓存的信息判定列表中的显示与否。
+/// DirEntry のキャッシュ済み情報だけを使って一覧の表示可否を判定する。
 ///
-/// Windows 上 entry.metadata() 会复用 FindFirstFile / FindNextFile 的结果，
-/// 不产生逐条目的额外 syscall。取不到属性时照旧交给显示侧判断。
+/// Windows の entry.metadata() は FindFirstFile / FindNextFile の結果を再利用するため、
+/// エントリごとの追加 syscall は発生しない。属性を取得できない場合は従来どおり表示側へ倒す。
 #[cfg(windows)]
 pub fn should_hide_fs_entry(entry: &DirEntry, show_hidden_files: bool) -> bool {
     use std::os::windows::fs::MetadataExt;
@@ -82,59 +112,56 @@ pub fn should_hide_fs_entry(entry: &DirEntry, show_hidden_files: bool) -> bool {
     })
 }
 
-/// Unix 系没有 Windows 属性，因此把开头的 . 按等同 Hidden 处理。
+/// Unix 系では Windows 属性がないため、先頭 . を Hidden 相当として扱う。
 #[cfg(not(windows))]
 pub fn should_hide_fs_entry(entry: &DirEntry, show_hidden_files: bool) -> bool {
     !show_hidden_files && entry.file_name().to_string_lossy().starts_with('.')
 }
 
 #[cfg(windows)]
-fn classify_special_dir_entry(entry: &DirEntry, file_type: &FileType) -> DirEntryKind {
+fn classify_special_dir_entry(
+    entry: &DirEntry,
+    file_type: &FileType,
+) -> std::io::Result<DirEntryKind> {
     use std::os::windows::fs::{FileTypeExt, MetadataExt};
 
     if file_type.is_symlink_dir() {
-        return DirEntryKind::ReparseDirectory;
+        return Ok(DirEntryKind::ReparseDirectory);
     }
     if file_type.is_symlink_file() {
-        return DirEntryKind::File;
+        return Ok(DirEntryKind::File);
     }
 
     const FILE_ATTRIBUTE_DIRECTORY: u32 = 0x10;
     const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
 
-    let Ok(meta) = entry.metadata() else {
-        return if file_type.is_symlink() {
-            DirEntryKind::File
-        } else {
-            DirEntryKind::Other
-        };
-    };
+    let meta = entry.metadata()?;
     let attrs = meta.file_attributes();
     let is_reparse = file_type.is_symlink() || attrs & FILE_ATTRIBUTE_REPARSE_POINT != 0;
-    if is_reparse && attrs & FILE_ATTRIBUTE_DIRECTORY != 0 {
+    Ok(if is_reparse && attrs & FILE_ATTRIBUTE_DIRECTORY != 0 {
         DirEntryKind::ReparseDirectory
     } else if is_reparse {
         DirEntryKind::File
     } else {
         DirEntryKind::Other
-    }
+    })
 }
 
 #[cfg(not(windows))]
-fn classify_special_dir_entry(entry: &DirEntry, file_type: &FileType) -> DirEntryKind {
-    // 上游只处理 Windows reparse point；Unix 链接在此跟随目标分类。
-    // 递归遍历仍由 directory_visit_key 的 canonicalize 保护循环。
+fn classify_special_dir_entry(
+    entry: &DirEntry,
+    file_type: &FileType,
+) -> std::io::Result<DirEntryKind> {
     if file_type.is_symlink() {
-        if let Ok(metadata) = std::fs::metadata(entry.path()) {
-            if metadata.is_dir() {
-                return DirEntryKind::ReparseDirectory;
-            }
-            if metadata.is_file() {
-                return DirEntryKind::File;
-            }
+        let metadata = std::fs::metadata(entry.path())?;
+        if metadata.is_dir() {
+            return Ok(DirEntryKind::ReparseDirectory);
+        }
+        if metadata.is_file() {
+            return Ok(DirEntryKind::File);
         }
     }
-    DirEntryKind::Other
+    Ok(DirEntryKind::Other)
 }
 
 pub fn directory_visit_key(path: &Path) -> String {
@@ -185,6 +212,19 @@ mod tests {
             ".mimageviewer.meta.miv.tmp.jpg"
         )));
         assert!(!is_internal_app_entry_name(OsStr::new("photos")));
+    }
+
+    #[test]
+    fn sibling_output_temp_names_are_internal_even_without_hidden_attribute() {
+        let token = "a".repeat(64);
+        for extension in ["tmp", "pdf"] {
+            assert!(is_internal_app_entry_name(OsStr::new(&format!(
+                ".miv-part-{token}.{extension}"
+            ))));
+        }
+        assert!(!is_internal_app_entry_name(OsStr::new(
+            ".miv-part-short.pdf"
+        )));
     }
 
     #[test]
