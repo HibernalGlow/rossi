@@ -77,6 +77,11 @@ Expressive 工具栏、进度轨道、缩略图选中形状与分组设置；宽
 NavigationSidebar，窄屏使用 NavigationDock，分类、滚动位置和本漫写入目标在
 窗口变化时保留。弹层进出和进度预览使用 CommonPopupRoute 的同一套托盘动画；
 按压、悬停和选项切换复用 ElasticButton / ActionBubbleRegion / SpringLensBar。
+增强入口统一采用 48dp tonal 按钮；超分保留本书启停与独立原图对比，翻译仍按
+当前页归属、烘焙/叠层与原图旁路显示状态。超分、翻译与设置分别采用
+cookie、slanted 与四瓣形状，沿用现有 Morph 路径和弹簧动效。二级工具栏
+独立悬浮并按内容收紧，主行与二级行之间、工具栏两侧保留阅读画面；底栏
+钉住常驻并移出更多菜单；窗口变化只调整排布，业务回调与存储作用域沿用原实现。
 
 阅读设置的拖动/滚动交接直接使用 material_3_expressive 的
 M3EBottomSheetScrollController。该版本 Frame 必带全屏标题和关闭按钮，没有

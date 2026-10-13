@@ -22,7 +22,10 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
     // 一起记账会把芯片压成永远不写文字的哑巴。
     final chipWidth = availableWidth - (showDownloadEntry ? 44 : 0);
 
-    if (availableWidth < 600) {
+    // 手机先保住标题；中档控件摊开时单独给标题一行。
+    // 其余宽度将增强入口与标题并排，减少工具栏占用的阅读高度。
+    if (availableWidth < 520 ||
+        (tier != ReaderToolbarTier.narrow && availableWidth < 1100)) {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -39,6 +42,7 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
                 Expanded(child: _buildTitle(context, bookTitle: bookTitle)),
                 ReaderToolbarIconButton(
                   icon: AppGlyphs.sliders,
+                  expressiveShape: ExpressiveButtonShape.cookie4Sided,
                   tooltip: t.reader.settings,
                   onPressed: () => showReaderSettingsSheet(
                     context,
@@ -54,8 +58,8 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
                     readSetting: readSetting,
                     cubit: cubit,
                     fitMode: fitMode,
-                    inlineView: false,
-                    inlineWindow: false,
+                    inlineView: inlineView,
+                    inlineWindow: inlineWindow,
                     secondaryRow: secondaryRow,
                     isAutoScrollPaused:
                         widget.isAutoReadPaused?.call() ?? false,
@@ -67,13 +71,27 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
             child: Wrap(
-              spacing: 12,
+              spacing: 8,
               runSpacing: 4,
               crossAxisAlignment: WrapCrossAlignment.center,
               alignment: WrapAlignment.center,
               children: [
+                if (inlineView)
+                  ReaderToolbarGroup(
+                    children: [
+                      for (final panel in ReaderToolbarPanel.values)
+                        ReaderToolbarIconButton(
+                          icon: _readerPanelIcon(panel, fitMode),
+                          tooltip:
+                              '${_readerPanelLabel(panel, fitMode)}（点击展开面板）',
+                          selected: _expandedPanel == panel,
+                          onPressed: () => _togglePanel(panel),
+                        ),
+                      if (showDownloadEntry) _buildDownloadEntry(bookTitle),
+                    ],
+                  ),
                 _buildLayoutGroup(
                   context,
                   readSetting: readSetting,
@@ -83,6 +101,27 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
                 ReaderUpscaleStatusChip(availableWidth: chipWidth),
                 ReaderTranslatedPageChip(availableWidth: chipWidth),
                 ReaderOnlineTranslatedPageChip(availableWidth: chipWidth),
+                if (inlineWindow && widget.onToggleFullscreen != null)
+                  ReaderToolbarIconButton(
+                    icon: widget.isDesktopFullscreen
+                        ? AppGlyphs.fullscreenExit
+                        : AppGlyphs.fullscreen,
+                    tooltip: widget.isDesktopFullscreen
+                        ? t.reader.exitFullscreen
+                        : t.reader.enterFullscreen,
+                    onPressed: widget.onToggleFullscreen,
+                  ),
+                if (inlineWindow)
+                  ReaderToolbarIconButton(
+                    icon: AppGlyphs.pin,
+                    tooltip: readSetting.topBarPinned
+                        ? t.reader.unpinTopBar
+                        : t.reader.pinTopBar,
+                    selected: readSetting.topBarPinned,
+                    onPressed: () => cubit.updateReadSetting(
+                      (s) => s.copyWith(topBarPinned: !s.topBarPinned),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -109,7 +148,7 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
 
             // 视图组：三块二级面板的入口。
             if (inlineView) ...[
-              const ReaderToolbarSeparator(),
+              const SizedBox(width: ReaderToolbarMetrics.gapBetweenGroups),
               ReaderToolbarGroup(
                 children: [
                   for (final panel in ReaderToolbarPanel.values)
@@ -130,19 +169,11 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
               cubit: cubit,
               tier: tier,
             ),
-            // 窄档这一组只剩一颗循环按钮，标题本身就是分隔，不再补第二条线
-            // ——每少一条线就是 13px 留给书名。
-            if (tier.expandsLayoutGroup)
-              const ReaderToolbarSeparator()
-            else
-              const SizedBox(width: ReaderToolbarMetrics.gapBetweenGroups),
+            const SizedBox(width: ReaderToolbarMetrics.gapBetweenGroups),
 
-            // 增强组：下载 / 超分状态 / 自动滚屏。
+            // 增强组：下载、当前页超分与翻译。
             //
-            // 这一组**永不折叠**：超分那颗既是状态显示也是开关，用户口径是
-            // 「最常用的那一档」，收进菜单就等于看不见了。而且它与下载互斥
-            // （下载只在在线图源出现，超分芯片只在本地 GPU 会话出现），
-            // 这一组的最坏情况就是「芯片 + 滚屏」，比视图三项窄得多。
+            // 增强入口始终可见；自动滚屏沿用原菜单入口。
             ReaderToolbarGroup(
               children: [
                 if (showDownloadEntry && inlineView)
@@ -156,7 +187,7 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
             ),
 
             // 窗口组 + 更多。
-            const ReaderToolbarSeparator(),
+            const SizedBox(width: ReaderToolbarMetrics.gapBetweenGroups),
             ReaderToolbarGroup(
               children: [
                 if (inlineWindow && widget.onToggleFullscreen != null)
@@ -199,6 +230,7 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
                 ),
                 ReaderToolbarIconButton(
                   icon: AppGlyphs.sliders,
+                  expressiveShape: ExpressiveButtonShape.cookie4Sided,
                   tooltip: t.reader.settings,
                   onPressed: () => showReaderSettingsSheet(
                     context,
@@ -238,7 +270,11 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
     // 中档就只有窗口那一节，不该凭空多一条没有左边的线。
     void addSection(List<Widget> section) {
       if (section.isEmpty) return;
-      if (children.isNotEmpty) children.add(const ReaderToolbarSeparator());
+      if (children.isNotEmpty) {
+        children.add(
+          const SizedBox(width: ReaderToolbarMetrics.gapBetweenGroups),
+        );
+      }
       children.addAll(section);
     }
 
@@ -286,6 +322,6 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
         ),
     ]);
 
-    return ReaderToolbarPanelRow(children: children);
+    return ReaderToolbarPanelRow(floating: true, children: children);
   }
 }

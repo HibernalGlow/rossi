@@ -4,6 +4,10 @@ import 'package:zephyr/widgets/motion/action_bubble.dart';
 import 'package:zephyr/widgets/motion/expressive_motion.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/widgets/expressive/expressive_icon_button.dart';
+
+export 'package:zephyr/widgets/expressive/expressive_shape.dart'
+    show ExpressiveButtonShape;
 
 /// 顶栏二级面板的名单。
 ///
@@ -172,6 +176,7 @@ class ReaderToolbarIconButton extends StatelessWidget {
   /// null = 按 [selected] 那两档配色。状态芯片（下载失败要红、暂停要三级色）
   /// 需要自己指定图标颜色时才传，且**只传角色色**。
   final Color? tint;
+  final ExpressiveButtonShape? expressiveShape;
 
   const ReaderToolbarIconButton({
     super.key,
@@ -182,17 +187,37 @@ class ReaderToolbarIconButton extends StatelessWidget {
     this.enabled = true,
     this.onLongPress,
     this.tint,
+    this.expressiveShape,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (expressiveShape != null) {
+      return ActionBubbleTarget(
+        enabled: enabled && onPressed != null,
+        child: GestureDetector(
+          onLongPress: enabled ? onLongPress : null,
+          child: ExpressiveIconButton(
+            glyph: icon,
+            tooltip: tooltip,
+            onPressed: enabled ? onPressed : null,
+            active: selected,
+            activeTurns: 0,
+            size: ReaderToolbarMetrics.buttonSize,
+            shape: expressiveShape!,
+          ),
+        ),
+      );
+    }
     final colorScheme = Theme.of(context).colorScheme;
     final fg =
         tint ??
         (selected
             ? colorScheme.onSecondaryContainer
             : colorScheme.onSurfaceVariant);
-    final bg = selected ? colorScheme.secondaryContainer : Colors.transparent;
+    final bg = selected
+        ? colorScheme.secondaryContainer
+        : colorScheme.surfaceContainerHigh;
 
     return ActionBubbleTarget(
       enabled: enabled && onPressed != null,
@@ -369,34 +394,41 @@ void showReaderToolbarComingSoon(BuildContext context, String name) {
   );
 }
 
-/// 展开区的一行面板（neo 的 `data-reader-toolbar-row="expanded"`：
-/// 顶边一条分隔线 + 居中换行排布的控件）。
+/// 二级工具栏与展开面板采用居中的紧凑停靠容器，窄屏自动换行。
 class ReaderToolbarPanelRow extends StatelessWidget {
   final List<Widget> children;
+  final bool floating;
 
-  const ReaderToolbarPanelRow({super.key, required this.children});
+  const ReaderToolbarPanelRow({
+    super.key,
+    required this.children,
+    this.floating = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(
-            color: colorScheme.outlineVariant,
-            width: ReaderToolbarMetrics.separatorThickness,
+    return Padding(
+      padding: EdgeInsets.fromLTRB(8, floating ? 10 : 6, 8, 0),
+      child: Center(
+        child: Material(
+          color: floating
+              ? Theme.of(context).colorScheme.surfaceContainerLow
+              : Theme.of(context).colorScheme.surfaceContainerHigh,
+          elevation: floating ? 3 : 0,
+          borderRadius: BorderRadius.circular(28),
+          child: ActionBubbleRegion(
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Wrap(
+                spacing: 4,
+                runSpacing: 6,
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: children,
+              ),
+            ),
           ),
         ),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      // 与 neo 同一处理：窄屏不折叠成溢出菜单，而是**换行摊开**。
-      child: Wrap(
-        spacing: 2,
-        runSpacing: 6,
-        alignment: WrapAlignment.center,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: children,
       ),
     );
   }
