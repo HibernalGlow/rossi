@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/service/operation_binding/binding_doc.dart';
 import 'package:zephyr/service/operation_binding/radial_doc.dart';
+import 'package:zephyr/service/operation_binding/operation_binding_migration.dart';
 import 'package:zephyr/src/rust/api/operation_binding.dart';
 
 /// 操作绑定引擎（Rust / ADR-0015）在 Dart 侧的**唯一出入口**。
@@ -30,8 +31,12 @@ abstract final class OperationBindingStore {
 
   /// Neo 默认九宫格、滚轮、键盘、鼠标及默认轮盘槽位。
   /// 默认值由核心统一提供，与旧版左右手点击模式独立。
-  static String factoryBindingsJson() =>
-      encodeBindingsDoc(_decodeArray(operationBindingFactoryPreset()));
+  static String factoryBindingsJson() {
+    final raw = operationBindingFactoryPreset();
+    return isCurrentBindingsDoc(raw)
+        ? raw
+        : encodeBindingsDoc(_decodeArray(raw));
+  }
 
   /// 旧版左右手 / 全屏档对应的兼容预设名；Neo 默认表不按此设置改写。
   static String tapPresetOf(ReaderTapPageTurnMode mode) => switch (mode) {
@@ -40,65 +45,33 @@ abstract final class OperationBindingStore {
     ReaderTapPageTurnMode.fullScreen => 'right-hand',
   };
 
-  /// 首次启动播种；完整未修改的旧出厂输入表自动升级。自定义表里**只有还留着旧口径的
-  /// 出厂滚轮行**会被换成语义动作（判据与 id 全在 Rust `factory.rs`），其余自定义行保留。
-  ///
-  /// 在 `RustLib.init()` 之后调用（`GlobalSettingCubit.initBox`），因为出厂预设由
-  /// Rust 侧生成 —— 「默认值是数据，不是 Dart 里的 if」（ADR-0015）。
-  ///
-  /// 轮盘文档单独判空：它和绑定表是两份东西，用户可能只有一份是坏的（比如手改了
-  /// 绑定 JSON 把轮盘文档留了下来），一起重置等于顺手清掉另一份的用户数据。
+  /// 启动时一次性升级。只有空串代表首次安装；损坏、未知版本不重置用户配置。
+  /// 迁移与导入共用核心入口，先校验成功再保存新文档和原文备份。
   static void seedIfNeeded(GlobalSettingCubit cubit) {
     final setting = cubit.state.operationBindingSetting;
-    final existing = parseBindings(setting.bindingsJson);
-    final upgraded = existing == null
-        ? null
-        : operationBindingUpgradeDefaults(
-            bindingsJson: encodeBindingsArray(existing),
-          );
-    final needsRadial = parseRadialDoc(setting.radialJson) == null;
-    String? nextBindings;
-    if (existing == null) {
-      nextBindings = factoryBindingsJson();
-    } else if (upgraded != null) {
-      final rows = _decodeArray(upgraded);
-      // 轮盘加入之前的旧默认表没有槽位；首次创建轮盘文档时补齐槽位绑定。
-      // 已有合法轮盘文档时，即便用户删光了槽位绑定也保持原状。
-      if (needsRadial &&
-          !rows.any(
-            (row) => (row['input'] as Map)['device'] == InputDevice.radial,
-          )) {
-        rows.addAll(radialPresetBindings(kRadialDefaultMenuId));
-      }
-      nextBindings = encodeBindingsDoc(rows);
-    } else {
-      // 用户已有自定义配置但历史表完全缺少滚轮绑定时，自动补全出厂滚轮行，
-      // 避免老用户在滚轮引入后因未重置出厂而完全无法使用滚轮。
-      final rows = List<Map<String, dynamic>>.from(existing);
-      if (!rows.any(
-        (row) => (row['input'] as Map)['device'] == InputDevice.wheel,
-      )) {
-        final factoryRows = _decodeArray(operationBindingFactoryPreset());
-        final wheelRows = factoryRows
-            .where(
-              (row) => (row['input'] as Map)['device'] == InputDevice.wheel,
-            )
-            .toList();
-        // 出厂表里没有滚轮行时不落这一笔 —— 重写一遍同样的 JSON 只是白脏一次配置。
-        if (wheelRows.isNotEmpty) {
-          rows.addAll(wheelRows);
-          nextBindings = encodeBindingsDoc(rows);
-        }
-      }
+    final migrated = migrateOperationBindingSetting(setting);
+    if (setting.bindingsJson.trim().isNotEmpty &&
+        !isCurrentBindingsDoc(migrated.bindingsJson)) {
+      return;
     }
+    final nextBindings = setting.bindingsJson.trim().isEmpty
+        ? factoryBindingsJson()
+        : migrated.bindingsJson != setting.bindingsJson
+        ? migrated.bindingsJson
+        : null;
+    final needsRadial = setting.radialJson.trim().isEmpty;
     if (nextBindings == null && !needsRadial) return;
     cubit.updateOperationBindingSetting(
       (current) => current.copyWith(
         bindingsJson: nextBindings ?? current.bindingsJson,
+        bindingsMigrationBackupJson: migrated.bindingsMigrationBackupJson,
         radialJson: needsRadial ? radialFactoryJson() : current.radialJson,
       ),
     );
   }
+
+  static String migrateBindingsDocument(String raw) =>
+      operationBindingMigrateDocument(documentJson: raw);
 
   /// 按当前左右手预设重置点击那几条，键盘与用户自加的绑定原样保留。
   static List<Map<String, dynamic>> resetTapRows(
@@ -114,11 +87,19 @@ abstract final class OperationBindingStore {
   ///
   /// 返回 `null` = 这份表**不能用**（没播种、被用户导坏了）。调用方（按键/点击路径）
   /// 拿 null 时回退到改造前的硬编码分区，而不是「什么都不做」—— 后者等于阅读器打不开。
+  static String? _validatedDocument;
+  static String? _validatedArray;
+
   static String? runtimeBindingsJson(OperationBindingSettingState setting) {
     if (!setting.bindingsRuntime) return null;
-    final bindings = parseBindings(setting.bindingsJson);
-    if (bindings == null) return null;
-    return encodeBindingsArray(bindings);
+    final raw = setting.bindingsJson;
+    if (_validatedDocument == raw) return _validatedArray;
+    _validatedDocument = raw;
+    _validatedArray = null;
+    if (!isCurrentBindingsDoc(raw)) return null;
+    final bindings = parseBindings(raw);
+    if (bindings == null || !isValid(bindings)) return null;
+    return _validatedArray = encodeBindingsArray(bindings);
   }
 
   /// 一次输入命中了哪个动作（没人认领返回 `null`，事件照常往下冒泡）。

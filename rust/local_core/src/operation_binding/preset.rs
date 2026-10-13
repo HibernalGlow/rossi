@@ -204,7 +204,7 @@ fn video_key_binding(index: usize, code: &str, action_id: &str) -> InputBinding 
         id: format!("preset-video-key-{index}-{code}"),
         action: action_id.into(),
         follow_up_actions: Vec::new(),
-        context: InputContext::Video,
+        context: InputContext::Video.as_str().into(),
         enabled: true,
         ignore_repeat: false,
         input: InputDescriptor::Keyboard {
@@ -228,10 +228,11 @@ fn mouse_binding(
         id: format!("preset-mouse-{index}-b{button}"),
         action: action_id.into(),
         follow_up_actions: Vec::new(),
-        context: InputContext::Reader,
+        context: InputContext::Reader.as_str().into(),
         enabled: true,
         ignore_repeat: false,
         input: InputDescriptor::Mouse {
+            area: None,
             button,
             action: action_kind,
         },
@@ -243,7 +244,7 @@ fn key_binding(index: usize, code: &str, action_id: &str) -> InputBinding {
         id: format!("preset-key-{index}-{code}"),
         action: action_id.into(),
         follow_up_actions: Vec::new(),
-        context: InputContext::Reader,
+        context: InputContext::Reader.as_str().into(),
         enabled: true,
         ignore_repeat: false,
         input: InputDescriptor::Keyboard {
@@ -262,11 +263,11 @@ fn area_binding(id: &str, area: ReaderViewArea, action_id: &str) -> InputBinding
         id: id.into(),
         action: action_id.into(),
         follow_up_actions: Vec::new(),
-        context: InputContext::Reader,
+        context: InputContext::Reader.as_str().into(),
         enabled: true,
         ignore_repeat: false,
-        input: InputDescriptor::Area {
-            area,
+        input: InputDescriptor::Mouse {
+            area: Some(area.as_str().into()),
             button: 0,
             action: PointerAction::Click,
         },
@@ -281,8 +282,8 @@ mod tests {
     use crate::operation_binding::vocabulary::ReadingDirection;
 
     fn area_click(area: ReaderViewArea) -> InputDescriptor {
-        InputDescriptor::Area {
-            area,
+        InputDescriptor::Mouse {
+            area: Some(area.as_str().into()),
             button: 0,
             action: PointerAction::Click,
         }
@@ -495,10 +496,10 @@ mod tests {
     fn key_preset_covers_every_key_the_legacy_reader_knew() {
         // 绑定表接管运行时之后就是**唯一**判定处：这里少一个键，那个键就当场失效。
         // 名单 = 改造前 `lib/page/comic_read/method/key.dart` 认的全集 + F11。
-        let keys: Vec<(&'static str, String)> = key_preset_bindings()
+        let keys: Vec<(String, String)> = key_preset_bindings()
             .into_iter()
             .filter_map(|binding| {
-                let context = binding.context.as_str();
+                let context = binding.context;
                 match binding.input {
                     InputDescriptor::Keyboard { code, .. } => Some((context, code)),
                     _ => None,
@@ -535,8 +536,10 @@ mod tests {
         // neoview 的 `readerInputConflictKey` 就是 `${context}:${descriptorKey}`：
         // `video` 档把 ArrowRight 再绑一次是**设计**（视频页里右箭头是 +10 秒），
         // 只按裸键名去重会把这种合法的跨档覆盖判成冲突。
-        let unique: std::collections::HashSet<(&str, &str)> =
-            keys.iter().map(|(c, code)| (*c, code.as_str())).collect();
+        let unique: std::collections::HashSet<(&str, &str)> = keys
+            .iter()
+            .map(|(c, code)| (c.as_str(), code.as_str()))
+            .collect();
         assert_eq!(
             unique.len(),
             keys.len(),

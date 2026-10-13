@@ -5939,7 +5939,8 @@ as bool,
 mixin _$OperationBindingSettingState {
 
 /// 总开关：开=按键/点击经绑定表解析；关=走改造前的硬编码判断。
- bool get bindingsRuntime; String get bindingsJson;/// 轮盘的**形状**（核心 `RadialConfig` 的 JSON：几个轮盘 / 几层 / 半径 /
+ bool get bindingsRuntime; String get bindingsJson;/// 升级前的原始绑定文档，失败不覆盖；用于手动恢复与排查。
+ String get bindingsMigrationBackupJson;/// 轮盘的**形状**（核心 `RadialConfig` 的 JSON：几个轮盘 / 几层 / 半径 /
 /// 生效项，外加轮盘自己的总开关）。
 ///
 /// 为什么不并进 [bindingsJson]：两者是两件事 —— 这份只有形状，槽位「干什么」
@@ -5965,20 +5966,20 @@ $OperationBindingSettingStateCopyWith<OperationBindingSettingState> get copyWith
 @override
 bool operator ==(Object other) {
   final _this = this as OperationBindingSettingState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OperationBindingSettingState&&(identical(other.bindingsRuntime, _this.bindingsRuntime) || other.bindingsRuntime == _this.bindingsRuntime)&&(identical(other.bindingsJson, _this.bindingsJson) || other.bindingsJson == _this.bindingsJson)&&(identical(other.radialJson, _this.radialJson) || other.radialJson == _this.radialJson)&&(identical(other.invertWheelDirection, _this.invertWheelDirection) || other.invertWheelDirection == _this.invertWheelDirection));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OperationBindingSettingState&&(identical(other.bindingsRuntime, _this.bindingsRuntime) || other.bindingsRuntime == _this.bindingsRuntime)&&(identical(other.bindingsJson, _this.bindingsJson) || other.bindingsJson == _this.bindingsJson)&&(identical(other.bindingsMigrationBackupJson, _this.bindingsMigrationBackupJson) || other.bindingsMigrationBackupJson == _this.bindingsMigrationBackupJson)&&(identical(other.radialJson, _this.radialJson) || other.radialJson == _this.radialJson)&&(identical(other.invertWheelDirection, _this.invertWheelDirection) || other.invertWheelDirection == _this.invertWheelDirection));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as OperationBindingSettingState;
-  return Object.hash(runtimeType,_this.bindingsRuntime,_this.bindingsJson,_this.radialJson,_this.invertWheelDirection);
+  return Object.hash(runtimeType,_this.bindingsRuntime,_this.bindingsJson,_this.bindingsMigrationBackupJson,_this.radialJson,_this.invertWheelDirection);
 }
 
 @override
 String toString() {
   final _this = this as OperationBindingSettingState;
-  return 'OperationBindingSettingState(bindingsRuntime: ${_this.bindingsRuntime}, bindingsJson: ${_this.bindingsJson}, radialJson: ${_this.radialJson}, invertWheelDirection: ${_this.invertWheelDirection})';
+  return 'OperationBindingSettingState(bindingsRuntime: ${_this.bindingsRuntime}, bindingsJson: ${_this.bindingsJson}, bindingsMigrationBackupJson: ${_this.bindingsMigrationBackupJson}, radialJson: ${_this.radialJson}, invertWheelDirection: ${_this.invertWheelDirection})';
 }
 
 
@@ -5989,7 +5990,7 @@ abstract mixin class $OperationBindingSettingStateCopyWith<$Res>  {
   factory $OperationBindingSettingStateCopyWith(OperationBindingSettingState value, $Res Function(OperationBindingSettingState) _then) = _$OperationBindingSettingStateCopyWithImpl;
 @useResult
 $Res call({
- bool bindingsRuntime, String bindingsJson, String radialJson, bool? invertWheelDirection
+ bool bindingsRuntime, String bindingsJson, String bindingsMigrationBackupJson, String radialJson, bool? invertWheelDirection
 });
 
 
@@ -6006,10 +6007,11 @@ class _$OperationBindingSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of OperationBindingSettingState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? bindingsRuntime = null,Object? bindingsJson = null,Object? radialJson = null,Object? invertWheelDirection = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? bindingsRuntime = null,Object? bindingsJson = null,Object? bindingsMigrationBackupJson = null,Object? radialJson = null,Object? invertWheelDirection = freezed,}) {
   return _then(OperationBindingSettingState(
 bindingsRuntime: null == bindingsRuntime ? _self.bindingsRuntime : bindingsRuntime // ignore: cast_nullable_to_non_nullable
 as bool,bindingsJson: null == bindingsJson ? _self.bindingsJson : bindingsJson // ignore: cast_nullable_to_non_nullable
+as String,bindingsMigrationBackupJson: null == bindingsMigrationBackupJson ? _self.bindingsMigrationBackupJson : bindingsMigrationBackupJson // ignore: cast_nullable_to_non_nullable
 as String,radialJson: null == radialJson ? _self.radialJson : radialJson // ignore: cast_nullable_to_non_nullable
 as String,invertWheelDirection: freezed == invertWheelDirection ? _self.invertWheelDirection : invertWheelDirection // ignore: cast_nullable_to_non_nullable
 as bool?,
@@ -6097,10 +6099,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool bindingsRuntime,  String bindingsJson,  String radialJson,  bool? invertWheelDirection)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool bindingsRuntime,  String bindingsJson,  String bindingsMigrationBackupJson,  String radialJson,  bool? invertWheelDirection)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OperationBindingSettingState() when $default != null:
-return $default(_that.bindingsRuntime,_that.bindingsJson,_that.radialJson,_that.invertWheelDirection);case _:
+return $default(_that.bindingsRuntime,_that.bindingsJson,_that.bindingsMigrationBackupJson,_that.radialJson,_that.invertWheelDirection);case _:
   return orElse();
 
 }
@@ -6118,10 +6120,10 @@ return $default(_that.bindingsRuntime,_that.bindingsJson,_that.radialJson,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool bindingsRuntime,  String bindingsJson,  String radialJson,  bool? invertWheelDirection)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool bindingsRuntime,  String bindingsJson,  String bindingsMigrationBackupJson,  String radialJson,  bool? invertWheelDirection)  $default,) {final _that = this;
 switch (_that) {
 case _OperationBindingSettingState():
-return $default(_that.bindingsRuntime,_that.bindingsJson,_that.radialJson,_that.invertWheelDirection);case _:
+return $default(_that.bindingsRuntime,_that.bindingsJson,_that.bindingsMigrationBackupJson,_that.radialJson,_that.invertWheelDirection);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -6138,10 +6140,10 @@ return $default(_that.bindingsRuntime,_that.bindingsJson,_that.radialJson,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool bindingsRuntime,  String bindingsJson,  String radialJson,  bool? invertWheelDirection)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool bindingsRuntime,  String bindingsJson,  String bindingsMigrationBackupJson,  String radialJson,  bool? invertWheelDirection)?  $default,) {final _that = this;
 switch (_that) {
 case _OperationBindingSettingState() when $default != null:
-return $default(_that.bindingsRuntime,_that.bindingsJson,_that.radialJson,_that.invertWheelDirection);case _:
+return $default(_that.bindingsRuntime,_that.bindingsJson,_that.bindingsMigrationBackupJson,_that.radialJson,_that.invertWheelDirection);case _:
   return null;
 
 }
@@ -6153,12 +6155,14 @@ return $default(_that.bindingsRuntime,_that.bindingsJson,_that.radialJson,_that.
 @JsonSerializable()
 
 class _OperationBindingSettingState implements OperationBindingSettingState {
-  const _OperationBindingSettingState({this.bindingsRuntime = true, this.bindingsJson = '', this.radialJson = '', this.invertWheelDirection});
+  const _OperationBindingSettingState({this.bindingsRuntime = true, this.bindingsJson = '', this.bindingsMigrationBackupJson = '', this.radialJson = '', this.invertWheelDirection});
   factory _OperationBindingSettingState.fromJson(Map<String, dynamic> json) => _$OperationBindingSettingStateFromJson(json);
 
 /// 总开关：开=按键/点击经绑定表解析；关=走改造前的硬编码判断。
 @override@JsonKey() final  bool bindingsRuntime;
 @override@JsonKey() final  String bindingsJson;
+/// 升级前的原始绑定文档，失败不覆盖；用于手动恢复与排查。
+@override@JsonKey() final  String bindingsMigrationBackupJson;
 /// 轮盘的**形状**（核心 `RadialConfig` 的 JSON：几个轮盘 / 几层 / 半径 /
 /// 生效项，外加轮盘自己的总开关）。
 ///
@@ -6187,18 +6191,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _OperationBindingSettingState&&(identical(other.bindingsRuntime, bindingsRuntime) || other.bindingsRuntime == bindingsRuntime)&&(identical(other.bindingsJson, bindingsJson) || other.bindingsJson == bindingsJson)&&(identical(other.radialJson, radialJson) || other.radialJson == radialJson)&&(identical(other.invertWheelDirection, invertWheelDirection) || other.invertWheelDirection == invertWheelDirection));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _OperationBindingSettingState&&(identical(other.bindingsRuntime, bindingsRuntime) || other.bindingsRuntime == bindingsRuntime)&&(identical(other.bindingsJson, bindingsJson) || other.bindingsJson == bindingsJson)&&(identical(other.bindingsMigrationBackupJson, bindingsMigrationBackupJson) || other.bindingsMigrationBackupJson == bindingsMigrationBackupJson)&&(identical(other.radialJson, radialJson) || other.radialJson == radialJson)&&(identical(other.invertWheelDirection, invertWheelDirection) || other.invertWheelDirection == invertWheelDirection));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,bindingsRuntime,bindingsJson,radialJson,invertWheelDirection);
+    return Object.hash(runtimeType,bindingsRuntime,bindingsJson,bindingsMigrationBackupJson,radialJson,invertWheelDirection);
 }
 
 @override
 String toString() {
-    return 'OperationBindingSettingState(bindingsRuntime: $bindingsRuntime, bindingsJson: $bindingsJson, radialJson: $radialJson, invertWheelDirection: $invertWheelDirection)';
+    return 'OperationBindingSettingState(bindingsRuntime: $bindingsRuntime, bindingsJson: $bindingsJson, bindingsMigrationBackupJson: $bindingsMigrationBackupJson, radialJson: $radialJson, invertWheelDirection: $invertWheelDirection)';
 }
 
 
@@ -6209,7 +6213,7 @@ abstract mixin class _$OperationBindingSettingStateCopyWith<$Res> implements $Op
   factory _$OperationBindingSettingStateCopyWith(_OperationBindingSettingState value, $Res Function(_OperationBindingSettingState) _then) = __$OperationBindingSettingStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool bindingsRuntime, String bindingsJson, String radialJson, bool? invertWheelDirection
+ bool bindingsRuntime, String bindingsJson, String bindingsMigrationBackupJson, String radialJson, bool? invertWheelDirection
 });
 
 
@@ -6226,10 +6230,11 @@ class __$OperationBindingSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of OperationBindingSettingState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? bindingsRuntime = null,Object? bindingsJson = null,Object? radialJson = null,Object? invertWheelDirection = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? bindingsRuntime = null,Object? bindingsJson = null,Object? bindingsMigrationBackupJson = null,Object? radialJson = null,Object? invertWheelDirection = freezed,}) {
   return _then(_OperationBindingSettingState(
 bindingsRuntime: null == bindingsRuntime ? _self.bindingsRuntime : bindingsRuntime // ignore: cast_nullable_to_non_nullable
 as bool,bindingsJson: null == bindingsJson ? _self.bindingsJson : bindingsJson // ignore: cast_nullable_to_non_nullable
+as String,bindingsMigrationBackupJson: null == bindingsMigrationBackupJson ? _self.bindingsMigrationBackupJson : bindingsMigrationBackupJson // ignore: cast_nullable_to_non_nullable
 as String,radialJson: null == radialJson ? _self.radialJson : radialJson // ignore: cast_nullable_to_non_nullable
 as String,invertWheelDirection: freezed == invertWheelDirection ? _self.invertWheelDirection : invertWheelDirection // ignore: cast_nullable_to_non_nullable
 as bool?,

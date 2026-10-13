@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/main.dart';
+import 'package:zephyr/service/operation_binding/operation_binding_migration.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/page/comic_follow/cubit/comic_follow_cubit.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
@@ -858,6 +859,17 @@ GlobalSettingState _applySyncableBlocksToState(
   // 喜欢画师名单**不在这份名单里**：它已改判为跨端偏好，与收藏 tag 一起走
   // `library` 块（见 `_settingsBlockKeys` 与 `docs/settings-sync-scope.md`）。
   // 与它相对的那一条不受影响：开屏密码仍属安全项，任何块都不进。
+  // 同步块整对象覆盖时，仍显式保留本机恢复数据等排除项。
+  final localJson = localState.toJson();
+  for (final entry in _blockNestedKeyExclusions.entries) {
+    final incoming = json[entry.key];
+    final local = localJson[entry.key];
+    if (incoming is! Map || local is! Map) continue;
+    json[entry.key] = <String, dynamic>{
+      ...Map<String, dynamic>.from(incoming),
+      for (final key in entry.value) key: local[key],
+    };
+  }
   final merged = GlobalSettingState.fromJson(json);
   return merged.copyWith(
     syncSetting: localState.syncSetting,
@@ -892,7 +904,10 @@ Future<void> _applyMergedGlobalState(
 
   final user = objectbox.userSettingBox.get(1);
   if (user != null) {
-    user.globalSetting = value;
+    user.globalSetting = migrateOperationBindingsInSettings(
+      value,
+      fallback: user.globalSetting,
+    );
     objectbox.userSettingBox.put(user);
   }
 }

@@ -82,3 +82,9 @@ bool isBindingModifier(LogicalKeyboardKey key) => {
   LogicalKeyboardKey.metaLeft,
   LogicalKeyboardKey.metaRight,
 }.contains(key);
+
+/// 触屏与触控笔共用触屏绑定；按实际输入来源分流，桌面触屏也适用。
+bool isBindingTouchPointer(PointerDeviceKind kind) =>
+    kind == PointerDeviceKind.touch ||
+    kind == PointerDeviceKind.stylus ||
+    kind == PointerDeviceKind.invertedStylus;

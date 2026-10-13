@@ -1,0 +1,20 @@
+{
+  "format": "operation-bindings",
+  "format_version": 2,
+  "contexts": [
+    {"id": "app", "priority": 0, "global": true},
+    {"id": "canvas", "priority": 100},
+    {"id": "selection", "priority": 150, "parent": "canvas"},
+    {"id": "rename", "priority": 300, "parent": "canvas", "isolatesGlobal": true}
+  ],
+  "bindings": [
+    {"id":"canvas-tap", "context":"canvas", "action":"canvas.inspect", "enabled":true,
+      "input":{"device":"touch", "gesture":"tap", "fingers":1}},
+    {"id":"canvas-tool", "context":"canvas", "action":"canvas.select-tool", "enabled":true,
+      "input":{"device":"touch", "gesture":"tap", "fingers":1, "area":"tool-palette"}},
+    {"id":"canvas-mouse", "context":"canvas", "action":"canvas.draw", "enabled":true,
+      "input":{"device":"mouse", "action":"click", "button":0, "area":"tool-palette"}},
+    {"id":"app-open", "context":"app", "action":"app.open", "enabled":true,
+      "input":{"device":"keyboard", "code":"KeyO"}}
+  ]
+}

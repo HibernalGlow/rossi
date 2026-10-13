@@ -2068,6 +2068,8 @@
     "rotation": "旋转"
   },
   "bindingEditor": {
+    "anyArea": "任意区域",
+    "migrationFailed": "旧操作绑定迁移失败，原配置已保留。可导出原文检查，或导入有效配置后重试。",
     "groupNavigation": "翻页",
     "groupView": "画面",
     "groupInterface": "界面",

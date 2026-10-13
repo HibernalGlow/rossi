@@ -18,6 +18,7 @@
 //! [`model::InputDescriptor`]、报告活跃 context、把解析出的 action id 映射到执行体。
 
 pub mod factory;
+pub mod migration;
 pub mod model;
 pub mod preset;
 pub mod radial;
@@ -34,3 +35,17 @@ pub use vocabulary::{
     ActionCatalogEntry, InputContext, ReaderViewArea, ReadingDirection, action,
     action_catalog_entries, action_definition,
 };
+
+/// Rossi 宿主的诊断入口，公共引擎不认识 Reader 等业务名。
+pub fn diagnose(
+    bindings: &[InputBinding],
+    input: &InputDescriptor,
+    contexts: &[String],
+) -> operation_binding_core::resolve::MatchDiagnostic {
+    operation_binding_core::resolve::diagnose(
+        bindings,
+        input,
+        &resolve::context_definitions(),
+        contexts,
+    )
+}

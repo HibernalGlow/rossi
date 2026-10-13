@@ -6403,6 +6403,12 @@ class Translations$bindingEditor$zh_CN {
 
 	// Translations
 
+	/// zh-CN: '任意区域'
+	String get anyArea => '任意区域';
+
+	/// zh-CN: '旧操作绑定迁移失败，原配置已保留。可导出原文检查，或导入有效配置后重试。'
+	String get migrationFailed => '旧操作绑定迁移失败，原配置已保留。可导出原文检查，或导入有效配置后重试。';
+
 	/// zh-CN: '翻页'
 	String get groupNavigation => '翻页';
 
@@ -8738,6 +8744,8 @@ extension on Translations {
 			'video.animatedKeywords' => '动画化关键字',
 			'video.animatedKeywordsHint' => '逗号分隔，例如：[#dyna], [#动]',
 			'video.rotation' => '旋转',
+			'bindingEditor.anyArea' => '任意区域',
+			'bindingEditor.migrationFailed' => '旧操作绑定迁移失败，原配置已保留。可导出原文检查，或导入有效配置后重试。',
 			'bindingEditor.groupNavigation' => '翻页',
 			'bindingEditor.groupView' => '画面',
 			'bindingEditor.groupInterface' => '界面',

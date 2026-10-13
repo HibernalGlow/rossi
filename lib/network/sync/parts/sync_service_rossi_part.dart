@@ -119,11 +119,12 @@ const Map<String, List<String>> _settingsBlockKeys = <String, List<String>>{
 /// 与 `_settingsBlockKeys` 的分工：那张表管「哪些顶层键进哪个块」，这张管
 /// 「某个子对象内部哪几项是本机事实、不许跟着走」。
 ///
-/// 现在只有一条 —— 文件管理器的 `homePath`：它是本机绝对路径（Windows 与 macOS
+/// 文件管理器的 `homePath`：它是本机绝对路径（Windows 与 macOS
 /// 上对方的用户目录根本不存在），同步过去只会得到「主页键点了没反应」；
 /// 而 Rust 侧 `set_home_path` 只接受真实存在的目录，等于每同步一次就把对方
 /// 的主页路径清空一次。与 `customExportPath` 同一条口径：**路径是本机事实，
 /// 不是偏好**。
+/// 操作绑定迁移备份同样只属于本机恢复数据，不随配置同步。
 ///
 /// 这一层必须是**显式**的名单，而不是「反正 `_applySyncableBlocksToState` 会
 /// 按本位写回」：那条写回只能护住 `homePath` 一个字段，而这里要表达的是一条
@@ -131,6 +132,7 @@ const Map<String, List<String>> _settingsBlockKeys = <String, List<String>>{
 const Map<String, List<String>> _blockNestedKeyExclusions =
     <String, List<String>>{
       'fileManagerSetting': <String>['homePath'],
+      'operationBindingSetting': <String>['bindingsMigrationBackupJson'],
     };
 
 

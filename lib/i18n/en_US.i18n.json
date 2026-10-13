@@ -2066,6 +2066,8 @@
     "rotation": "Rotation"
   },
   "bindingEditor": {
+    "anyArea": "Any area",
+    "migrationFailed": "The old bindings could not be migrated. Your original configuration is preserved. Export it for inspection or import a valid configuration.",
     "groupNavigation": "Pages",
     "groupView": "View",
     "groupInterface": "Interface",

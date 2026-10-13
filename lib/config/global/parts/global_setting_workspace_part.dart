@@ -147,6 +147,9 @@ abstract class OperationBindingSettingState
     @Default(true) bool bindingsRuntime,
     @Default('') String bindingsJson,
 
+    /// 升级前的原始绑定文档，失败不覆盖；用于手动恢复与排查。
+    @Default('') String bindingsMigrationBackupJson,
+
     /// 轮盘的**形状**（核心 `RadialConfig` 的 JSON：几个轮盘 / 几层 / 半径 /
     /// 生效项，外加轮盘自己的总开关）。
     ///

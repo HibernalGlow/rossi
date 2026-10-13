@@ -30,12 +30,13 @@ class BindingPointerTracker {
   int _fingers = 0;
   String? _area;
   bool claimed = false;
+  bool _movedBeyondTap = false;
   Timer? _click;
   int? _clickButton;
   Offset? _clickPosition;
 
   Map<String, dynamic> _pointer(String action, {bool area = false}) => {
-    'device': area ? 'area' : 'mouse',
+    'device': 'mouse',
     if (area) 'area': _area,
     'button': _button,
     'action': action,
@@ -44,6 +45,7 @@ class BindingPointerTracker {
     'device': 'touch',
     'gesture': gesture,
     'fingers': _fingers,
+    if (_area != null) 'area': _area,
   };
   Map<String, dynamic> _gesture(String trigger) => {
     'device': 'mouse-gesture',
@@ -67,10 +69,11 @@ class BindingPointerTracker {
       _positions.clear();
       _directions.clear();
       claimed = false;
+      _movedBeyondTap = false;
       deferredAreaClick = null;
       _fingers = 0;
       _last = event.localPosition;
-      _touch = event.kind == PointerDeviceKind.touch;
+      _touch = isBindingTouchPointer(event.kind);
       _button = bindingMouseButton(event.buttons) ?? 0;
       _area = area;
     }
@@ -81,13 +84,11 @@ class BindingPointerTracker {
     _cancelHolds();
     if (claimed) return;
     if (!_touch) {
-      if (dispatch(_pointer('press')) ||
-          (_area != null && dispatch(_pointer('press', area: true)))) {
+      if (dispatch(_pointer('press', area: _area != null))) {
         claimed = true;
         return;
       }
-      _scheduleHold(_pointer('hold'));
-      if (_area != null) _scheduleHold(_pointer('hold', area: true));
+      _scheduleHold(_pointer('hold', area: _area != null));
     } else {
       _scheduleHold(_touchInput('long-press'));
     }
@@ -121,6 +122,9 @@ class BindingPointerTracker {
   void move(PointerMoveEvent event) {
     if (!_active.contains(event.pointer)) return;
     _positions[event.pointer] = event.localPosition;
+    if ((event.localPosition - _starts[event.pointer]!).distance >= 12) {
+      _movedBeyondTap = true;
+    }
     for (final entry in _holdOrigins.entries) {
       final start = entry.value.$1[event.pointer];
       if (start != null &&
@@ -155,11 +159,9 @@ class BindingPointerTracker {
     if (_touch) {
       if (delta.distance >= 40) {
         claimed = dispatch(_touchInput('swipe-${bindingDirection(delta)}'));
-      } else if (delta.distance < 12) {
-        claimed = dispatch(_touchInput('tap'));
-        if (!claimed && _area != null) {
-          claimed = _areaClick(_pointer('click', area: true));
-        }
+      } else if (delta.distance < 12 && !_movedBeyondTap) {
+        // 区域条件与通用 tap 由核心一次解析；触屏绝不回退到鼠标区域。
+        claimed = _areaClick(_touchInput('tap'));
       }
       return;
     }
@@ -168,43 +170,41 @@ class BindingPointerTracker {
       return;
     }
     if (delta.distance > 12) return;
-    final click = _pointer('click');
-    final areaClick = _area == null ? null : _pointer('click', area: true);
-    final doubleClick = _pointer('double-click');
-    final areaDouble = _area == null
-        ? null
-        : _pointer('double-click', area: true);
-    final hasDouble =
-        lookup(doubleClick) != null ||
-        (areaDouble != null && lookup(areaDouble) != null);
-    if (hasDouble) {
+    final click = _pointer('click', area: _area != null);
+    final doubleClick = _pointer('double-click', area: _area != null);
+    if (deferAreaClicks && _button == 0) {
+      _areaClick(click);
+      return;
+    }
+    if (lookup(doubleClick) != null) {
       claimed = true;
       if (_click?.isActive == true &&
           _clickButton == _button &&
           (event.localPosition - _clickPosition!).distance <= 24) {
         _click?.cancel();
-        if (!dispatch(doubleClick) && areaDouble != null) dispatch(areaDouble);
+        dispatch(doubleClick);
       } else {
         _click?.cancel();
         _clickButton = _button;
         _clickPosition = event.localPosition;
-        _click = Timer(kDoubleTapTimeout, () {
-          if (!dispatch(click) && areaClick != null) dispatch(areaClick);
-        });
+        _click = Timer(kDoubleTapTimeout, () => dispatch(click));
       }
     } else {
-      claimed = dispatch(click) || (areaClick != null && _areaClick(areaClick));
+      claimed = _areaClick(click);
     }
   }
 
   bool _areaClick(Map<String, dynamic> input) {
-    if (!deferAreaClicks || input['button'] != 0) return dispatch(input);
+    if (!deferAreaClicks || (!_touch && input['button'] != 0)) {
+      return dispatch(input);
+    }
     deferredAreaClick = input;
     return false;
   }
 
   void cancel() {
     deferredAreaClick = null;
+    _click?.cancel();
     _cancelHolds();
     _active.clear();
     _starts.clear();

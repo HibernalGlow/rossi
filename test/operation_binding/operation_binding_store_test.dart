@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/service/operation_binding/binding_doc.dart';
 import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
+import 'package:zephyr/service/operation_binding/operation_binding_migration.dart';
+import 'package:zephyr/network/sync/sync_service.dart';
 import 'package:zephyr/src/rust/frb_generated.dart';
 
 /// 跨 FRB 那一层的判据（用 `RustLib.initMock` 顶掉原生库，测的是**转发**本身）。
@@ -13,6 +15,7 @@ import 'package:zephyr/src/rust/frb_generated.dart';
 class _FakeApi implements RustLibApi {
   final calls = <Invocation>[];
   String? upgraded;
+  bool failMigration = false;
 
   static const catalogJson =
       '[{"id":"reader.next-page","label":"下一页","category":"navigation",'
@@ -43,8 +46,16 @@ class _FakeApi implements RustLibApi {
         return keyPresetJson;
       case #crateApiOperationBindingOperationBindingFactoryPreset:
         return keyPresetJson;
-      case #crateApiOperationBindingOperationBindingUpgradeDefaults:
-        return upgraded;
+      case #crateApiOperationBindingOperationBindingMigrateDocument:
+        if (failMigration) {
+          throw const FormatException('Invalid binding document');
+        }
+        return upgraded ??
+            encodeBindingsDoc(
+              parseBindings(
+                invocation.namedArguments[#documentJson] as String,
+              )!,
+            );
       case #crateApiOperationBindingOperationBindingTapPreset:
         return tapPresetJson;
       case #crateApiOperationBindingOperationBindingRadialPreset:
@@ -173,7 +184,7 @@ void main() {
     expect(cubit.saves, 1);
   });
 
-  test('旧默认配置升级落盘；核心判为自定义时逐字保留', () {
+  test('旧配置升级后保存版本和原文备份，再次启动不重复写入', () {
     const radial = '{"enabled":true,"menus":[]}';
     final cubit = _MemorySettings(
       const OperationBindingSettingState(
@@ -182,20 +193,108 @@ void main() {
       ),
     );
     addTearDown(cubit.close);
-    OperationBindingStore.seedIfNeeded(cubit);
-    expect(cubit.saves, 0);
-    expect(
-      cubit.state.operationBindingSetting.bindingsJson,
-      _FakeApi.tapPresetJson,
-    );
-    api.upgraded = _FakeApi.keyPresetJson;
+    api.upgraded = encodeBindingsDoc(parseBindings(_FakeApi.keyPresetJson)!);
     OperationBindingStore.seedIfNeeded(cubit);
     expect(cubit.saves, 1);
     expect(
-      parseBindings(cubit.state.operationBindingSetting.bindingsJson),
-      parseBindings(_FakeApi.keyPresetJson),
+      isCurrentBindingsDoc(cubit.state.operationBindingSetting.bindingsJson),
+      isTrue,
+    );
+    expect(
+      cubit.state.operationBindingSetting.bindingsMigrationBackupJson,
+      _FakeApi.tapPresetJson,
     );
     expect(cubit.state.operationBindingSetting.radialJson, radial);
+    OperationBindingStore.seedIfNeeded(cubit);
+    expect(cubit.saves, 1);
+  });
+
+  test('迁移失败或版本未知时保留原始配置，不重置默认表', () {
+    api.failMigration = true;
+    const raw =
+        '{"format":"operation-bindings","format_version":99,"bindings":[]}';
+    final cubit = _MemorySettings(
+      const OperationBindingSettingState(bindingsJson: raw),
+    );
+    addTearDown(cubit.close);
+    OperationBindingStore.seedIfNeeded(cubit);
+    expect(cubit.saves, 0);
+    expect(cubit.state.operationBindingSetting.bindingsJson, raw);
+    expect(
+      OperationBindingStore.runtimeBindingsJson(
+        cubit.state.operationBindingSetting,
+      ),
+      isNull,
+    );
+  });
+
+  test('同步块不上传本机迁移备份，旧云端块也不能覆盖本机备份', () {
+    const settings = GlobalSettingState(
+      operationBindingSetting: OperationBindingSettingState(
+        bindingsJson: '{"bindings":[]}',
+        bindingsMigrationBackupJson: 'local-backup',
+      ),
+    );
+    final blocks = extractSyncableSettingsBlocksForTest(settings);
+    expect(
+      (blocks['operationBinding']!['operationBindingSetting'] as Map)
+          .containsKey('bindingsMigrationBackupJson'),
+      isFalse,
+    );
+    final merged = applySyncableBlockDataForTest(settings, {
+      'operationBinding': {
+        'operationBindingSetting': {
+          'bindingsJson': '{"bindings":[]}',
+          'bindingsMigrationBackupJson': 'remote-backup',
+        },
+      },
+    });
+    expect(
+      merged.operationBindingSetting.bindingsMigrationBackupJson,
+      'local-backup',
+    );
+    final migrated = migrateOperationBindingsInSettings(merged);
+    expect(
+      isCurrentBindingsDoc(migrated.operationBindingSetting.bindingsJson),
+      isTrue,
+    );
+    expect(
+      migrated.operationBindingSetting.bindingsMigrationBackupJson,
+      '{"bindings":[]}',
+    );
+    expect(
+      identical(migrateOperationBindingsInSettings(migrated), migrated),
+      isTrue,
+    );
+  });
+
+  test('同步或恢复迁移失败时保留已有本机绑定，其他全局设置仍可更新', () {
+    final local = GlobalSettingState(
+      operationBindingSetting: OperationBindingSettingState(
+        bindingsJson: encodeBindingsDoc([]),
+        bindingsMigrationBackupJson: 'local-backup',
+      ),
+    );
+    final incoming = local.copyWith(
+      downloadConcurrency: 7,
+      operationBindingSetting: local.operationBindingSetting.copyWith(
+        bindingsJson: '{"bad":true}',
+      ),
+    );
+    api.failMigration = true;
+    final normalized = migrateOperationBindingsInSettings(
+      incoming,
+      fallback: local,
+    );
+    expect(normalized.operationBindingSetting, local.operationBindingSetting);
+    expect(normalized.downloadConcurrency, 7);
+    expect(
+      migrateOperationBindingsInSettings(
+        incoming,
+      ).operationBindingSetting.bindingsJson,
+      '{"bad":true}',
+      reason: '启动失败保留自身原文，不用默认表替换',
+    );
   });
 
   test('用户主动清空的绑定表不重新播种', () {
@@ -207,7 +306,12 @@ void main() {
     );
     addTearDown(cubit.close);
     OperationBindingStore.seedIfNeeded(cubit);
-    expect(cubit.saves, 0);
-    expect(cubit.state.operationBindingSetting.bindingsJson, '{"bindings":[]}');
+    expect(cubit.saves, 1);
+    expect(
+      parseBindings(cubit.state.operationBindingSetting.bindingsJson),
+      isEmpty,
+    );
+    OperationBindingStore.seedIfNeeded(cubit);
+    expect(cubit.saves, 1);
   });
 }

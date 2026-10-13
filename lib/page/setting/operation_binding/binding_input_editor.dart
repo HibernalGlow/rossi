@@ -39,11 +39,29 @@ class BindingInputEditor extends StatelessWidget {
       label: t.bindingEditor.device,
       value: device,
       options: bindingDeviceLabels,
-      onChanged: (value) => onChanged(defaultBindingInput(value)),
+      onChanged: (value) => onChanged({
+        ...defaultBindingInput(value),
+        if ((value == InputDevice.mouse || value == InputDevice.touch) &&
+            input['area'] != null)
+          'area': input['area'],
+      }),
     );
     final fields = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (device == InputDevice.mouse || device == InputDevice.touch) ...[
+          BindingSelect<String>(
+            label: t.bindingEditor.area,
+            value: input['area'] as String? ?? '',
+            options: {'': t.bindingEditor.anyArea, ...bindingAreaLabels},
+            onChanged: (value) {
+              final next = {...input}..remove('area');
+              if (value.isNotEmpty) next['area'] = value;
+              onChanged(next);
+            },
+          ),
+          const SizedBox(height: 8),
+        ],
         if (device == InputDevice.keyboard)
           Row(
             children: [
@@ -59,8 +77,7 @@ class BindingInputEditor extends StatelessWidget {
             ],
           ),
         if (device == InputDevice.mouse ||
-            device == InputDevice.mouseGesture ||
-            device == InputDevice.area) ...[
+            device == InputDevice.mouseGesture) ...[
           BindingSelect<int>(
             label: t.bindingEditor.button,
             value: input['button'] as int? ?? 0,
@@ -68,20 +85,15 @@ class BindingInputEditor extends StatelessWidget {
               0: t.bindingEditor.leftButton,
               1: t.bindingEditor.middleButton,
               2: t.bindingEditor.rightButton,
-              if (device != InputDevice.area) 3: t.bindingEditor.backButton,
-              if (device != InputDevice.area) 4: t.bindingEditor.forwardButton,
-              if (device != InputDevice.area)
-                for (var i = 5; i < 8; i++) i: '$i',
+              3: t.bindingEditor.backButton,
+              4: t.bindingEditor.forwardButton,
+              for (var i = 5; i < 8; i++) i: '$i',
             },
             onChanged: (value) => _patch('button', value),
           ),
           const SizedBox(height: 8),
           if (device != InputDevice.mouseGesture)
             _select('action', t.bindingEditor.trigger, bindingPointerActions),
-        ],
-        if (device == InputDevice.area) ...[
-          const SizedBox(height: 8),
-          _select('area', t.bindingEditor.area, bindingAreaLabels),
         ],
         if (device == InputDevice.mouseGesture) ...[
           _select('trigger', t.bindingEditor.trigger, {
@@ -167,7 +179,10 @@ class BindingInputEditor extends StatelessWidget {
                 child: BindingSelect<int>(
                   label: t.bindingEditor.fingers,
                   value: input['fingers'] as int,
-                  options: const {1: '1', 2: '2', 3: '3'},
+                  options: {
+                    1: '1',
+                    if (input['gesture'] != 'double-tap') ...{2: '2', 3: '3'},
+                  },
                   onChanged: (value) => _patch('fingers', value),
                 ),
               ),
@@ -203,7 +218,7 @@ class BindingInputEditor extends StatelessWidget {
             ),
           ],
         ],
-        if (device != InputDevice.area && device != InputDevice.gamepad) ...[
+        if (device != InputDevice.gamepad) ...[
           const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: () async {
@@ -257,7 +272,9 @@ class BindingInputEditor extends StatelessWidget {
     label: label,
     value: input[field] as String? ?? fallback ?? options.keys.first,
     options: options,
-    onChanged: (value) => _patch(field, value),
+    onChanged: (value) => field == 'gesture' && value == 'double-tap'
+        ? onChanged({...input, 'gesture': value, 'fingers': 1})
+        : _patch(field, value),
   );
 
   Widget _text(BuildContext context, String field, String label) =>

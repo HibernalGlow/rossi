@@ -388,7 +388,7 @@ pub fn preset_bindings(menu_id: &str) -> Vec<InputBinding> {
             id: format!("{RADIAL_PRESET_ID_PREFIX}{DEFAULT_RADIAL_MENU_ID}-{item_id}"),
             action: (*action_id).into(),
             follow_up_actions: Vec::new(),
-            context: InputContext::Reader,
+            context: InputContext::Reader.as_str().into(),
             enabled: true,
             ignore_repeat: false,
             input: radial_input(DEFAULT_RADIAL_MENU_ID, item_id),

@@ -1,288 +1,42 @@
-//! 解析器：冲突检测 + 「输入事件 → 该触发哪条绑定」——**本模块全部是纯函数**。
-//!
-//! 算法逐行对齐 neoview `packages/nodes/neoview/src/domain/input/ReaderInputBindings.ts`
-//! 的 `readerInputConflictKey` / `readerInputConflicts` / `matchingReaderInputBinding`，
-//! 以及 `features/input/ReaderInputActionExecutor.ts` 里那两行**空间动作**的解释。
-//!
-//! 「换外壳也能用」的接缝就在这里（ADR-0015 §5）：UI 只做三件事 ——
-//! ① 把真实事件归一化成 [`InputDescriptor`]；② 报告当前活跃的 context 集合；
-//! ③ 把解析出的 action id 映射到自己的执行体。**解析框架无关，执行必然框架绑定。**
-
-use super::model::{GestureTrigger, InputBinding, InputDescriptor, KeyTrigger, PointerAction};
+//! Rossi 上下文与几何适配。匹配、具体度和冲突算法由独立公共 crate 实现。
+use super::model::{InputBinding, InputDescriptor};
 use super::vocabulary::{InputContext, ReaderViewArea, ReadingDirection, action};
+pub use operation_binding_core::descriptor::descriptor_key;
+pub use operation_binding_core::resolve::{InputConflict, conflicts};
 
-/// 冲突：同一个 `context + 输入` 上挂了多条**启用**的绑定。
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct InputConflict {
-    pub key: String,
-    pub binding_ids: Vec<String>,
-}
-
-/// 冲突键 = `context:输入键`（neoview `readerInputConflictKey`）。
 pub fn conflict_key(context: InputContext, input: &InputDescriptor) -> String {
-    format!("{}:{}", context.as_str(), descriptor_key(input))
+    operation_binding_core::resolve::conflict_key(context.as_str(), input)
 }
 
-/// 输入键：**同样的输入必须产生同样的字符串**，否则冲突检测与绑定包 diff 都会失真。
-///
-/// 逐条对齐 neoview `readerInputDescriptorKey`，含修饰键的 `C-A-S-M` 四段格式与
-/// `trigger` 的缺省值（`down`）。
-pub fn descriptor_key(input: &InputDescriptor) -> String {
-    match input {
-        InputDescriptor::Keyboard {
-            code,
-            trigger,
-            ctrl,
-            alt,
-            shift,
-            meta,
-        } => format!(
-            "keyboard:{}:{code}:{}",
-            modifiers(*ctrl, *alt, *shift, *meta),
-            key_trigger_str(*trigger)
-        ),
-        InputDescriptor::Mouse { button, action } => {
-            format!("mouse:{button}:{}", pointer_action_str(*action))
-        }
-        InputDescriptor::MouseGesture {
-            button,
-            directions,
-            trigger,
-        } => {
-            let joined = directions
-                .iter()
-                .map(|direction| gesture_direction_str(*direction))
-                .collect::<Vec<_>>()
-                .join("-");
-            format!(
-                "mouse-gesture:{button}:{}:{joined}",
-                gesture_trigger_str(*trigger)
-            )
-        }
-        InputDescriptor::Wheel {
-            direction,
-            ctrl,
-            alt,
-            shift,
-            meta,
-        } => format!(
-            "wheel:{}:{}",
-            modifiers(*ctrl, *alt, *shift, *meta),
-            wheel_direction_str(*direction)
-        ),
-        InputDescriptor::Touch { gesture, fingers } => {
-            format!("touch:{fingers}:{}", touch_gesture_str(*gesture))
-        }
-        InputDescriptor::Gamepad { button } => format!("gamepad:{button}"),
-        InputDescriptor::Area {
-            area,
-            button,
-            action,
-        } => format!("area:{area}:{button}:{}", pointer_action_str(*action)),
-        InputDescriptor::Radial { menu_id, item_id } => format!("radial:{menu_id}:{item_id}"),
-        InputDescriptor::Command { command } => format!("command:{command}"),
-    }
-}
-
-/// 两条输入是否**等价**（同 device 且逐字段相等；`trigger` 缺省按 `down` 处理）。
-///
-/// 注意：**不比较 `durationMs` / `moveTolerancePx`** —— 与 neoview 一致。那两个是
-/// 识别器的容忍参数，不进冲突键，也不该让「同一次点击」因容忍度不同而算成两条输入。
 pub fn descriptors_equal(left: &InputDescriptor, right: &InputDescriptor) -> bool {
-    match (left, right) {
-        (
-            InputDescriptor::Keyboard {
-                code: left_code,
-                trigger: left_trigger,
-                ctrl: left_ctrl,
-                alt: left_alt,
-                shift: left_shift,
-                meta: left_meta,
-            },
-            InputDescriptor::Keyboard {
-                code: right_code,
-                trigger: right_trigger,
-                ctrl: right_ctrl,
-                alt: right_alt,
-                shift: right_shift,
-                meta: right_meta,
-            },
-        ) => {
-            left_code == right_code
-                && left_trigger == right_trigger
-                && same_modifiers(
-                    (*left_ctrl, *left_alt, *left_shift, *left_meta),
-                    (*right_ctrl, *right_alt, *right_shift, *right_meta),
-                )
-        }
-        (
-            InputDescriptor::Mouse {
-                button: left_button,
-                action: left_action,
-            },
-            InputDescriptor::Mouse {
-                button: right_button,
-                action: right_action,
-            },
-        ) => left_button == right_button && left_action == right_action,
-        (
-            InputDescriptor::MouseGesture {
-                button: left_button,
-                directions: left_directions,
-                trigger: left_trigger,
-            },
-            InputDescriptor::MouseGesture {
-                button: right_button,
-                directions: right_directions,
-                trigger: right_trigger,
-            },
-        ) => {
-            left_button == right_button
-                && left_trigger == right_trigger
-                && left_directions == right_directions
-        }
-        (
-            InputDescriptor::Wheel {
-                direction: left_direction,
-                ctrl: left_ctrl,
-                alt: left_alt,
-                shift: left_shift,
-                meta: left_meta,
-            },
-            InputDescriptor::Wheel {
-                direction: right_direction,
-                ctrl: right_ctrl,
-                alt: right_alt,
-                shift: right_shift,
-                meta: right_meta,
-            },
-        ) => {
-            left_direction == right_direction
-                && same_modifiers(
-                    (*left_ctrl, *left_alt, *left_shift, *left_meta),
-                    (*right_ctrl, *right_alt, *right_shift, *right_meta),
-                )
-        }
-        (
-            InputDescriptor::Touch {
-                gesture: left_gesture,
-                fingers: left_fingers,
-            },
-            InputDescriptor::Touch {
-                gesture: right_gesture,
-                fingers: right_fingers,
-            },
-        ) => left_gesture == right_gesture && left_fingers == right_fingers,
-        (
-            InputDescriptor::Gamepad {
-                button: left_button,
-            },
-            InputDescriptor::Gamepad {
-                button: right_button,
-            },
-        ) => left_button == right_button,
-        (
-            InputDescriptor::Area {
-                area: left_area,
-                button: left_button,
-                action: left_action,
-            },
-            InputDescriptor::Area {
-                area: right_area,
-                button: right_button,
-                action: right_action,
-            },
-        ) => left_area == right_area && left_button == right_button && left_action == right_action,
-        (
-            InputDescriptor::Radial {
-                menu_id: left_menu,
-                item_id: left_item,
-            },
-            InputDescriptor::Radial {
-                menu_id: right_menu,
-                item_id: right_item,
-            },
-        ) => left_menu == right_menu && left_item == right_item,
-        (
-            InputDescriptor::Command {
-                command: left_command,
-            },
-            InputDescriptor::Command {
-                command: right_command,
-            },
-        ) => left_command == right_command,
-        _ => false,
-    }
+    left == right
 }
 
-/// 找出所有冲突（同 `context + 输入` 上多于一条启用绑定）。
-///
-/// **冲突阻止保存**（neoview 同语义）：一个输入只能有一条生效绑定，多条并存意味着
-/// 解析结果取决于注册顺序 —— 那是用户没法自查的错。所以这里把冲突**全列出来**，
-/// 由设置页挡在保存之前，而不是安静地取第一条。
-pub fn conflicts(bindings: &[InputBinding]) -> Vec<InputConflict> {
-    let mut groups: Vec<(String, Vec<String>)> = Vec::new();
-    for binding in bindings {
-        if !binding.enabled {
-            continue;
-        }
-        let key = conflict_key(binding.context, &binding.input);
-        match groups.iter_mut().find(|(existing, _)| *existing == key) {
-            Some((_, ids)) => ids.push(binding.id.clone()),
-            None => groups.push((key, vec![binding.id.clone()])),
-        }
-    }
-    groups
+pub fn context_definitions() -> Vec<operation_binding_core::context::ContextDefinition> {
+    super::vocabulary::READER_INPUT_CONTEXTS
         .into_iter()
-        .filter(|(_, ids)| ids.len() > 1)
-        .map(|(key, binding_ids)| InputConflict { key, binding_ids })
+        .map(
+            |context| operation_binding_core::context::ContextDefinition {
+                id: context.as_str().into(),
+                priority: context.priority(),
+                global: context == InputContext::Global,
+                isolates_global: context.isolates_global(),
+                parent: None,
+            },
+        )
         .collect()
 }
 
-/// 解析一次输入事件：返回**该触发哪条绑定**。
-///
-/// 规则（逐条照抄 neoview）：
-/// 1. 跳过错用（`enabled == false`）；
-/// 2. `context == global` 的绑定在**存在隔离 context**（`shell` / `editor` / `modal`）时
-///    一律跳过 —— 隔离不是「优先级更低」，是「不生效」；
-/// 3. 其余 context 必须在**活跃集合**里；
-/// 4. 输入必须与绑定等价；
-/// 5. 优先级**严格更大**才顶替 ⇒ 同优先级时**先注册者胜**。
-///
-/// 返回 `None` = 「没人认这个输入」，调用方照常往下冒泡（例如让方向键去做焦点遍历）。
 pub fn resolve<'a>(
     bindings: &'a [InputBinding],
     input: &InputDescriptor,
     contexts: &[InputContext],
 ) -> Option<&'a InputBinding> {
-    let isolates_global = contexts.iter().any(|context| context.isolates_global());
-    let mut matched: Option<&InputBinding> = None;
-    let mut matched_priority = i32::MIN;
-
-    for candidate in bindings {
-        if !candidate.enabled {
-            continue;
-        }
-        if candidate.context == InputContext::Global {
-            if isolates_global {
-                continue;
-            }
-        } else if !contexts.contains(&candidate.context) {
-            continue;
-        }
-        if !descriptors_equal(&candidate.input, input) {
-            continue;
-        }
-
-        let priority = candidate.context.priority();
-        if priority > matched_priority {
-            matched = Some(candidate);
-            matched_priority = priority;
-        }
-    }
-
-    matched
+    let active: Vec<String> = contexts
+        .iter()
+        .map(|context| context.as_str().into())
+        .collect();
+    operation_binding_core::resolve::resolve(bindings, input, &context_definitions(), &active)
 }
 
 /// 一次点击落在九宫格的哪一格（neoview `readerViewAreaAtPoint`）。
@@ -350,75 +104,10 @@ pub fn resolve_page_turn(action_id: &str, direction: ReadingDirection) -> Option
     }
 }
 
-fn same_modifiers(left: (bool, bool, bool, bool), right: (bool, bool, bool, bool)) -> bool {
-    left == right
-}
-
-fn modifiers(ctrl: bool, alt: bool, shift: bool, meta: bool) -> String {
-    format!(
-        "{}{}{}{}",
-        if ctrl { "C" } else { "-" },
-        if alt { "A" } else { "-" },
-        if shift { "S" } else { "-" },
-        if meta { "M" } else { "-" },
-    )
-}
-
-fn key_trigger_str(trigger: KeyTrigger) -> &'static str {
-    match trigger {
-        KeyTrigger::Down => "down",
-        KeyTrigger::Hold => "hold",
-    }
-}
-
-fn pointer_action_str(action: PointerAction) -> &'static str {
-    match action {
-        PointerAction::Click => "click",
-        PointerAction::DoubleClick => "double-click",
-        PointerAction::Press => "press",
-        PointerAction::Hold => "hold",
-    }
-}
-
-fn wheel_direction_str(direction: super::model::WheelDirection) -> &'static str {
-    match direction {
-        super::model::WheelDirection::Up => "up",
-        super::model::WheelDirection::Down => "down",
-    }
-}
-
-fn touch_gesture_str(gesture: super::model::TouchGesture) -> &'static str {
-    use super::model::TouchGesture;
-    match gesture {
-        TouchGesture::SwipeLeft => "swipe-left",
-        TouchGesture::SwipeRight => "swipe-right",
-        TouchGesture::SwipeUp => "swipe-up",
-        TouchGesture::SwipeDown => "swipe-down",
-        TouchGesture::Tap => "tap",
-        TouchGesture::LongPress => "long-press",
-    }
-}
-
-fn gesture_direction_str(direction: super::model::GestureDirection) -> &'static str {
-    use super::model::GestureDirection;
-    match direction {
-        GestureDirection::Left => "left",
-        GestureDirection::Right => "right",
-        GestureDirection::Up => "up",
-        GestureDirection::Down => "down",
-    }
-}
-
-fn gesture_trigger_str(trigger: GestureTrigger) -> &'static str {
-    match trigger {
-        GestureTrigger::Instant => "instant",
-        GestureTrigger::Hold => "hold",
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::operation_binding::model::{GestureTrigger, KeyTrigger, PointerAction};
     use crate::operation_binding::preset::TapPreset;
     use crate::operation_binding::preset::tap_preset_bindings;
     use crate::operation_binding::vocabulary::InputContext as Context;
@@ -434,11 +123,11 @@ mod tests {
             id: id.into(),
             action: action_id.into(),
             follow_up_actions: Vec::new(),
-            context,
+            context: context.as_str().into(),
             enabled: true,
             ignore_repeat: false,
-            input: InputDescriptor::Area {
-                area,
+            input: InputDescriptor::Mouse {
+                area: Some(area.as_str().into()),
                 button: 0,
                 action: PointerAction::Click,
             },
@@ -450,7 +139,7 @@ mod tests {
             id: id.into(),
             action: action_id.into(),
             follow_up_actions: Vec::new(),
-            context,
+            context: context.as_str().into(),
             enabled: true,
             ignore_repeat: false,
             input: InputDescriptor::Keyboard {
@@ -465,8 +154,8 @@ mod tests {
     }
 
     fn area_click(area: ReaderViewArea) -> InputDescriptor {
-        InputDescriptor::Area {
-            area,
+        InputDescriptor::Mouse {
+            area: Some(area.as_str().into()),
             button: 0,
             action: PointerAction::Click,
         }
@@ -570,7 +259,10 @@ mod tests {
         ];
         let found = conflicts(&bindings);
         assert_eq!(found.len(), 1, "只有右中格重复：{found:?}");
-        assert_eq!(found[0].key, "reader:area:middle-right:0:click");
+        assert_eq!(
+            found[0].key,
+            conflict_key(Context::Reader, &area_click(ReaderViewArea::MiddleRight))
+        );
         assert_eq!(found[0].binding_ids, vec!["a", "b"]);
 
         // 关掉一条，冲突消失（禁用绑定不参与冲突）。
@@ -604,6 +296,7 @@ mod tests {
         // 每一类都要有稳定的键（否则冲突检测对那一类静默失效）。
         let samples = vec![
             InputDescriptor::Mouse {
+                area: None,
                 button: 3,
                 action: PointerAction::Click,
             },
@@ -623,6 +316,7 @@ mod tests {
                 meta: false,
             },
             InputDescriptor::Touch {
+                area: None,
                 gesture: crate::operation_binding::model::TouchGesture::SwipeLeft,
                 fingers: 1,
             },

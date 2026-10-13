@@ -927,6 +927,8 @@ _OperationBindingSettingState _$OperationBindingSettingStateFromJson(
 ) => _OperationBindingSettingState(
   bindingsRuntime: json['bindingsRuntime'] as bool? ?? true,
   bindingsJson: json['bindingsJson'] as String? ?? '',
+  bindingsMigrationBackupJson:
+      json['bindingsMigrationBackupJson'] as String? ?? '',
   radialJson: json['radialJson'] as String? ?? '',
   invertWheelDirection: json['invertWheelDirection'] as bool?,
 );
@@ -936,6 +938,7 @@ Map<String, dynamic> _$OperationBindingSettingStateToJson(
 ) => <String, dynamic>{
   'bindingsRuntime': instance.bindingsRuntime,
   'bindingsJson': instance.bindingsJson,
+  'bindingsMigrationBackupJson': instance.bindingsMigrationBackupJson,
   'radialJson': instance.radialJson,
   'invertWheelDirection': instance.invertWheelDirection,
 };
