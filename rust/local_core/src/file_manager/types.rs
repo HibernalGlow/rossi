@@ -227,6 +227,13 @@ pub struct FileManagerChild {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileManagerEntry {
     pub node: FileTreeNode,
+    /// 单击这一行时穿透会不会把请求劫走（即核心的 `open_entry(_, false)` 会交出
+    /// 链末那个终点，而不是进入这一层）。只在 `penetration_enabled` 时求过，
+    /// 其余情况恒为 `false`。
+    ///
+    /// UI 用它决定文件夹行挂不挂双击：挂上就意味着每一次单击都要等满双击窗口，
+    /// 所以只有单击与双击确实是两件事的那些行才值得付这个延迟。
+    pub penetratable: bool,
     pub children: Vec<FileManagerChild>,
 }
 

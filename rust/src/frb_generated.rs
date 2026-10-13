@@ -7682,6 +7682,7 @@ impl SseDecode for crate::api::file_manager::types::FileManagerEntry {
         let mut var_size = <u64>::sse_decode(deserializer);
         let mut var_modifiedSecs = <i64>::sse_decode(deserializer);
         let mut var_hasChildren = <bool>::sse_decode(deserializer);
+        let mut var_penetratable = <bool>::sse_decode(deserializer);
         let mut var_childNames =
             <Vec<crate::api::file_manager::types::FileManagerChild>>::sse_decode(deserializer);
         let mut var_searchDirectory = <Option<String>>::sse_decode(deserializer);
@@ -7696,6 +7697,7 @@ impl SseDecode for crate::api::file_manager::types::FileManagerEntry {
             size: var_size,
             modified_secs: var_modifiedSecs,
             has_children: var_hasChildren,
+            penetratable: var_penetratable,
             child_names: var_childNames,
             search_directory: var_searchDirectory,
         };
@@ -10140,6 +10142,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::file_manager::types::FileMana
             self.size.into_into_dart().into_dart(),
             self.modified_secs.into_into_dart().into_dart(),
             self.has_children.into_into_dart().into_dart(),
+            self.penetratable.into_into_dart().into_dart(),
             self.child_names.into_into_dart().into_dart(),
             self.search_directory.into_into_dart().into_dart(),
         ]
@@ -11532,6 +11535,7 @@ impl SseEncode for crate::api::file_manager::types::FileManagerEntry {
         <u64>::sse_encode(self.size, serializer);
         <i64>::sse_encode(self.modified_secs, serializer);
         <bool>::sse_encode(self.has_children, serializer);
+        <bool>::sse_encode(self.penetratable, serializer);
         <Vec<crate::api::file_manager::types::FileManagerChild>>::sse_encode(
             self.child_names,
             serializer,

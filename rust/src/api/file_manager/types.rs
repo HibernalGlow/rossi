@@ -105,6 +105,11 @@ pub struct FileManagerEntry {
     pub size: u64,
     pub modified_secs: i64,
     pub has_children: bool,
+    /// 单击这一行会不会被穿透劫走（核心 `open_entry(_, false)` 交出的是链末的终点，
+    /// 而不是进入这一层）。UI 用它决定文件夹行挂不挂双击 —— 只有穿透模式开着、
+    /// 且这一层真的判成终点的目录才为真；搜索结果页签里的条目一律为假（见
+    /// `crate::file_manager` 的投影口径）。
+    pub penetratable: bool,
     /// NeoView 的「显示内部条目」投影。它不改变父目录列表，只为 UI 提供一小段
     /// 可点击的上下文提示。
     pub child_names: Vec<FileManagerChild>,

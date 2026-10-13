@@ -166,7 +166,8 @@ impl FileManagerSearchOutcome {
     /// 把一次遍历的结果变成页签上的搜索列表。
     ///
     /// 命中不带子文件名投影：那需要逐条目录再读一次盘，而结果页要的是「哪些条目命中了」，
-    /// 不是每本的完整上下文。
+    /// 不是每本的完整上下文。`penetratable` 同理留 `false` —— 结果页因此不给文件夹行挂
+    /// 双击（单击该穿透的还是穿透，与投影缺席前的行为一致）。
     pub fn into_listing(self) -> FileManagerSearchListing {
         FileManagerSearchListing {
             root: self.root,
@@ -176,6 +177,7 @@ impl FileManagerSearchOutcome {
                 .into_iter()
                 .map(|node| FileManagerEntry {
                     node,
+                    penetratable: false,
                     children: Vec::new(),
                 })
                 .collect(),
