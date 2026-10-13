@@ -830,6 +830,13 @@ _FileManagerSettingState _$FileManagerSettingStateFromJson(
   fileOperations: json['fileOperations'] as bool? ?? true,
   searchSubfoldersDefault: json['searchSubfoldersDefault'] as bool? ?? false,
   wrapGridTitle: json['wrapGridTitle'] as bool? ?? false,
+  breadcrumbStyle:
+      $enumDecodeNullable(
+        _$BreadcrumbStyleEnumMap,
+        json['breadcrumbStyle'],
+        unknownValue: BreadcrumbStyle.restrained,
+      ) ??
+      BreadcrumbStyle.restrained,
   newTabPolicy:
       $enumDecodeNullable(
         _$FileManagerTabStartupPolicyEnumMap,
@@ -855,12 +862,18 @@ Map<String, dynamic> _$FileManagerSettingStateToJson(
   'fileOperations': instance.fileOperations,
   'searchSubfoldersDefault': instance.searchSubfoldersDefault,
   'wrapGridTitle': instance.wrapGridTitle,
+  'breadcrumbStyle': _$BreadcrumbStyleEnumMap[instance.breadcrumbStyle]!,
   'newTabPolicy': _$FileManagerTabStartupPolicyEnumMap[instance.newTabPolicy]!,
   'newTabViewMode': instance.newTabViewMode,
   'newTabLayoutMode': instance.newTabLayoutMode,
   'newTabPenetration': instance.newTabPenetration,
   'newTabShowHidden': instance.newTabShowHidden,
   'newTabShowChildNames': instance.newTabShowChildNames,
+};
+
+const _$BreadcrumbStyleEnumMap = {
+  BreadcrumbStyle.restrained: 'restrained',
+  BreadcrumbStyle.expressive: 'expressive',
 };
 
 const _$FileManagerTabStartupPolicyEnumMap = {

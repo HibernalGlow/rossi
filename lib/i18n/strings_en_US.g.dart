@@ -682,6 +682,12 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get fileManagerOpenHomeOnStart => 'Open the home folder on start';
 	@override String get fileManagerOpenHomeOnStartSubtitle => 'The file manager starts in the home folder. Falls back to the nearest folder that still exists when that path is gone';
 	@override String get fileManagerSectionToolbar => 'Toolbar';
+	@override String get breadcrumbStyle => 'Breadcrumb style';
+	@override String get breadcrumbRestrained => 'Restrained';
+	@override String get breadcrumbRestrainedHint => 'Rounded track and subtle emphasis for everyday browsing';
+	@override String get breadcrumbExpressive => 'Expressive';
+	@override String get breadcrumbExpressiveHint => 'Organic contours and shaped endpoints highlight the current folder';
+	@override String get breadcrumbAncestors => 'Show parent folders';
 	@override String get fileManagerSectionView => 'Browsing view';
 	@override String get fileManagerRememberViewState => 'Remember view and sort per folder';
 	@override String get fileManagerRememberViewStateSubtitle => 'Each folder keeps its own view mode, sort and filter. When off, browsing works as usual but nothing is remembered';
@@ -3090,6 +3096,12 @@ extension on TranslationsEnUs {
 			'settings.fileManagerOpenHomeOnStart' => 'Open the home folder on start',
 			'settings.fileManagerOpenHomeOnStartSubtitle' => 'The file manager starts in the home folder. Falls back to the nearest folder that still exists when that path is gone',
 			'settings.fileManagerSectionToolbar' => 'Toolbar',
+			'settings.breadcrumbStyle' => 'Breadcrumb style',
+			'settings.breadcrumbRestrained' => 'Restrained',
+			'settings.breadcrumbRestrainedHint' => 'Rounded track and subtle emphasis for everyday browsing',
+			'settings.breadcrumbExpressive' => 'Expressive',
+			'settings.breadcrumbExpressiveHint' => 'Organic contours and shaped endpoints highlight the current folder',
+			'settings.breadcrumbAncestors' => 'Show parent folders',
 			'settings.fileManagerSectionView' => 'Browsing view',
 			'settings.fileManagerRememberViewState' => 'Remember view and sort per folder',
 			'settings.fileManagerRememberViewStateSubtitle' => 'Each folder keeps its own view mode, sort and filter. When off, browsing works as usual but nothing is remembered',

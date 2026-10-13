@@ -41,6 +41,10 @@ import 'package:zephyr/src/rust/api/file_manager/settings.dart';
 import 'package:zephyr/src/rust/api/file_manager/tree.dart';
 import 'package:zephyr/widgets/search/search_history_field.dart';
 import 'package:zephyr/widgets/search/search_history_store.dart';
+import 'package:zephyr/widgets/navigation/path_breadcrumb.dart';
+import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
+import 'package:zephyr/type/breadcrumb_style.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 part 'parts/file_manager_card_model_part.dart';
 part 'parts/file_manager_card_session_part.dart';
 part 'parts/file_manager_card_navigation_part.dart';
@@ -98,12 +102,8 @@ class _FileManagerCardState extends State<FileManagerCard> {
   final _pathController = TextEditingController();
   final _homeButtonKey = GlobalKey();
 
-  /// 面包屑的横向位置。路径放不下时滚到**末尾**（最深那层可见），放得下就停在开头 ——
-  /// 用 `reverse` 达不到这个区别，它会把短路径也顶到右边，看着像整条右对齐。
-  /// 目录列那一行同一个毛病，用同一套画法。
-  final _breadcrumbScroll = ScrollController();
+  /// 目录列路径放不下时定位到最深一层。
   final _directoryColumnScroll = ScrollController();
-  String? _breadcrumbRevealedPath;
   String? _columnsRevealedPath;
 
   bool _editingPath = false;
@@ -194,7 +194,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
   /// 只有这一层做得动 —— 核心只投影行，不知道视口有多高。
   final _treeScroll = ScrollController();
 
-  /// 已经为哪一条当前目录定位过，口径同 [_breadcrumbRevealedPath]。
+  /// 已经为哪一条当前目录定位过，路径变化时才重新定位。
   ///
   /// 不按投影次数搬视口：懒扫描期间树每 80ms 重来一份，那样会把视口一直往中间拽，
   /// 用户正低头看哪儿都被抢走。
@@ -219,7 +219,6 @@ class _FileManagerCardState extends State<FileManagerCard> {
     _searchController.dispose();
     _searchFocus.dispose();
     _pathController.dispose();
-    _breadcrumbScroll.dispose();
     _directoryColumnScroll.dispose();
     final id = _sessionId;
     if (id != null) {
@@ -378,6 +377,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
             const SizedBox(height: 6),
           ],
           _buildToolbar(context, snapshot),
+          const SizedBox(height: 6),
           _buildBreadcrumbs(context, snapshot),
           const SizedBox(height: 6),
           ExpressiveReveal(
