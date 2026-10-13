@@ -1197,6 +1197,8 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get transparentTopBarOpacity => 'Top bar scrim opacity';
 	@override String get thumbnailStripExpand => 'Show thumbnails';
 	@override String get thumbnailStripCollapse => 'Hide thumbnails';
+	@override String get thumbnailStripOriginalAspectRatio => 'Use original thumbnail proportions';
+	@override String get thumbnailStripOriginalAspectRatioSubtitle => 'Off: uniform portrait thumbnails. On: show each image fully at its original proportions';
 	@override String get thumbnailStripCurrent => 'Now';
 	@override String thumbnailStripJumpToPage({required Object page}) => 'Jump to page ${page}';
 	@override String get hoverRevealTop => 'Top Edge Reveals Header';
@@ -3594,6 +3596,8 @@ extension on TranslationsEnUs {
 			'reader.transparentTopBarOpacity' => 'Top bar scrim opacity',
 			'reader.thumbnailStripExpand' => 'Show thumbnails',
 			'reader.thumbnailStripCollapse' => 'Hide thumbnails',
+			'reader.thumbnailStripOriginalAspectRatio' => 'Use original thumbnail proportions',
+			'reader.thumbnailStripOriginalAspectRatioSubtitle' => 'Off: uniform portrait thumbnails. On: show each image fully at its original proportions',
 			'reader.thumbnailStripCurrent' => 'Now',
 			'reader.thumbnailStripJumpToPage' => ({required Object page}) => 'Jump to page ${page}',
 			'reader.hoverRevealTop' => 'Top Edge Reveals Header',

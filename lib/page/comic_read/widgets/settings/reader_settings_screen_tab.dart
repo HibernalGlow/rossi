@@ -69,6 +69,21 @@ class _ReaderChromeSection extends StatelessWidget {
                 );
               },
             ),
+            SettingsAnimatedCollapse(
+              isExpanded: readSetting.showThumbnailStrip,
+              child: SettingsSwitchTile(
+                title: t.reader.thumbnailStripOriginalAspectRatio,
+                subtitle: t.reader.thumbnailStripOriginalAspectRatioSubtitle,
+                value: readSetting.thumbnailStripOriginalAspectRatio,
+                onChanged: (value) {
+                  globalSettingCubit.updateReadSetting(
+                    (current) => current.copyWith(
+                      thumbnailStripOriginalAspectRatio: value,
+                    ),
+                  );
+                },
+              ),
+            ),
             // 顶栏「透明」档：跳过玻璃，只留一层半透明蒙层。
             // 住在全局设置里，换书 / 换章 / 重启都保持。
             SettingsSwitchTile(

@@ -1070,6 +1070,8 @@
     "transparentTopBarOpacity": "顶栏蒙层不透明度",
     "thumbnailStripExpand": "展开缩略图",
     "thumbnailStripCollapse": "收起缩略图",
+    "thumbnailStripOriginalAspectRatio": "缩略图按原图比例显示",
+    "thumbnailStripOriginalAspectRatioSubtitle": "关闭时统一竖屏显示，开启后按每张图片的比例完整显示",
     "thumbnailStripCurrent": "当前",
     "thumbnailStripJumpToPage": "跳转到第 $page 页",
     "hoverRevealTop": "顶部边缘唤出顶栏",

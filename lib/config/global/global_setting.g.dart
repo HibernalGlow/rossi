@@ -469,6 +469,8 @@ _ReadSettingState _$ReadSettingStateFromJson(Map<String, dynamic> json) =>
       topBarPinned: json['topBarPinned'] as bool? ?? false,
       bottomBarPinned: json['bottomBarPinned'] as bool? ?? false,
       showThumbnailStrip: json['showThumbnailStrip'] as bool? ?? false,
+      thumbnailStripOriginalAspectRatio:
+          json['thumbnailStripOriginalAspectRatio'] as bool? ?? false,
       transparentTopBar: json['transparentTopBar'] as bool? ?? false,
       topBarScrimOpacityPercent:
           (json['topBarScrimOpacityPercent'] as num?)?.toInt() ?? 85,
@@ -556,6 +558,8 @@ Map<String, dynamic> _$ReadSettingStateToJson(
   'topBarPinned': instance.topBarPinned,
   'bottomBarPinned': instance.bottomBarPinned,
   'showThumbnailStrip': instance.showThumbnailStrip,
+  'thumbnailStripOriginalAspectRatio':
+      instance.thumbnailStripOriginalAspectRatio,
   'transparentTopBar': instance.transparentTopBar,
   'topBarScrimOpacityPercent': instance.topBarScrimOpacityPercent,
   'readingDirectionToggle': instance.readingDirectionToggle,

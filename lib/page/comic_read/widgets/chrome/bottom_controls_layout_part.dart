@@ -1,6 +1,43 @@
 part of 'bottom.dart';
 
 extension _BottomControlsLayoutPart on _BottomWidgetState {
+  Widget _buildThumbnailStrip({
+    required int totalPages,
+    required int currentSlot,
+    required String comicId,
+    required String from,
+    required PageSource? localSource,
+    required List<Doc> docs,
+    required ValueChanged<int> onSelectPage,
+    required bool rightToLeft,
+    bool embedded = false,
+    double height = 104,
+  }) {
+    final settings = context.read<GlobalSettingCubit>().state;
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(
+        disableAnimations:
+            MediaQuery.disableAnimationsOf(context) ||
+            settings.readSetting.noAnimation ||
+            settings.eInkSetting.enabled,
+      ),
+      child: BottomThumbnailStrip(
+        totalPages: totalPages,
+        currentSlot: currentSlot,
+        comicId: comicId,
+        from: from,
+        localSource: localSource,
+        docs: docs,
+        onSelectPage: onSelectPage,
+        rightToLeft: rightToLeft,
+        embedded: embedded,
+        height: height,
+        originalAspectRatio:
+            settings.readSetting.thumbnailStripOriginalAspectRatio,
+      ),
+    );
+  }
+
   Widget _buildRegularControls({
     required double topMaxWidth,
     required double bottomMaxWidth,
@@ -64,7 +101,7 @@ extension _BottomControlsLayoutPart on _BottomWidgetState {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              BottomThumbnailStrip(
+                              _buildThumbnailStrip(
                                 embedded: true,
                                 height: _BottomWidgetState._fusedStripHeight,
                                 totalPages: totalSlots,
@@ -125,7 +162,7 @@ extension _BottomControlsLayoutPart on _BottomWidgetState {
                 constraints: BoxConstraints(
                   maxWidth: isWideLayout ? maxWidth : double.infinity,
                 ),
-                child: BottomThumbnailStrip(
+                child: _buildThumbnailStrip(
                   totalPages: totalSlots,
                   currentSlot: currentSlot,
                   comicId: comicId,
@@ -262,7 +299,7 @@ extension _BottomControlsLayoutPart on _BottomWidgetState {
                 ),
                 controls.builder(true, visible),
                 if (showThumbnailStrip && totalSlots > 1)
-                  BottomThumbnailStrip(
+                  _buildThumbnailStrip(
                     embedded: true,
                     height: _BottomWidgetState._fusedStripHeight,
                     totalPages: totalSlots,
