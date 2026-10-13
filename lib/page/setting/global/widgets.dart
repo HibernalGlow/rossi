@@ -225,8 +225,9 @@ class _KeywordManagementDialogState extends State<_KeywordManagementDialog> {
               const SizedBox(height: 20),
               Container(
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest
-                      .withValues(alpha: 0.5),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 padding: const EdgeInsets.all(12),
@@ -252,69 +253,66 @@ class _KeywordManagementDialogState extends State<_KeywordManagementDialog> {
                       : Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: List.generate(
-                            state.maskedKeywords.length,
-                            (index) {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.primaryContainer,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                constraints: const BoxConstraints(
-                                  maxWidth: 280,
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        state.maskedKeywords[index],
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onPrimaryContainer,
-                                        ),
+                          children: List.generate(state.maskedKeywords.length, (
+                            index,
+                          ) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              constraints: const BoxConstraints(maxWidth: 280),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      state.maskedKeywords[index],
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onPrimaryContainer,
                                       ),
                                     ),
-                                    const SizedBox(width: 4),
-                                    MouseRegion(
-                                      cursor: SystemMouseCursors.click,
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          final newList = List<String>.from(
-                                            state.maskedKeywords,
-                                          );
-                                          newList.removeAt(index);
-                                          globalSettingCubit.updateState(
-                                            (current) => current.copyWith(
-                                              maskedKeywords: newList,
-                                            ),
-                                          );
-                                        },
-                                        child: GlyphIcon(
-                                          AppGlyphs.close,
-                                          size: 14,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onPrimaryContainer
-                                              .withValues(alpha: 0.7),
-                                        ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        final newList = List<String>.from(
+                                          state.maskedKeywords,
+                                        );
+                                        newList.removeAt(index);
+                                        globalSettingCubit.updateState(
+                                          (current) => current.copyWith(
+                                            maskedKeywords: newList,
+                                          ),
+                                        );
+                                      },
+                                      child: GlyphIcon(
+                                        AppGlyphs.close,
+                                        size: 14,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimaryContainer
+                                            .withValues(alpha: 0.7),
                                       ),
                                     ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
                         ),
                 ),
               ),

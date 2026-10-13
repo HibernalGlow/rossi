@@ -8,6 +8,8 @@ import 'package:zephyr/page/setting/common/setting_detail_scope.dart';
 import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
 import 'package:zephyr/widgets/motion/action_bubble.dart';
 import 'package:zephyr/widgets/motion/retained_panel_switcher.dart';
+import 'package:zephyr/widgets/search/search_history_field.dart';
+import 'package:zephyr/widgets/search/search_history_store.dart';
 
 /// 入口只描述展示与挂点，不维护第二份设置值或导航栈。
 class SettingDestination {
@@ -198,7 +200,8 @@ class _SettingBrowserState extends State<SettingBrowser> {
                   ),
                 ),
               ),
-            TextField(
+            SearchHistoryField(
+              history: SearchHistoryStore.local('settings-categories'),
               key: const ValueKey('settings-category-search'),
               controller: _search,
               onChanged: (value) => setState(() => _query = value),
