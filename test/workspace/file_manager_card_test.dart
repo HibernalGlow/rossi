@@ -962,6 +962,60 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('会穿透的文件夹行：双击只发一次强制进入，单击仍是穿透打开', (tester) async {
+    api.snapshot = _snapshot(folderPenetratable: true);
+    await _pumpCard(tester);
+    final openEntry = #crateApiFileManagerEntryOpsFileManagerOpenEntry;
+    final folder = find.text('series with a long name');
+
+    await tester.tap(folder);
+    await tester.pump(const Duration(milliseconds: 70));
+    await tester.tap(folder);
+    await tester.pumpAndSettle();
+    final forced = api.callsTo(openEntry).toList();
+    expect(forced, hasLength(1));
+    expect(
+      forced.single.namedArguments[#forceEnter],
+      isTrue,
+      reason: '双击的含义是「进这一层」，必须把穿透绕过去',
+    );
+    expect(
+      api.callsTo(#crateApiFileManagerEntryOpsFileManagerOpenArchive),
+      isEmpty,
+    );
+
+    // 单击：等满双击窗口才是「穿透打开」，窗口内一条桥都不许发出去。
+    await tester.tap(folder);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(
+      api.callsTo(openEntry),
+      hasLength(1),
+      reason: '第一击要等第二击的判决，不能抢先把书打开',
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+    final tapped = api.callsTo(openEntry).toList();
+    expect(tapped, hasLength(2));
+    expect(
+      tapped.last.namedArguments[#forceEnter],
+      isFalse,
+      reason: '单击保持原样：交出去的还是穿透后的那一本',
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('判成不可穿透的文件夹行不挂双击：单击不等双击窗口', (tester) async {
+    await _pumpCard(tester);
+    await tester.tap(find.text('series with a long name'));
+    await tester.pump(const Duration(milliseconds: 100));
+    // 与上一条同一把尺的反面：这里 100ms 就必须已经发出去 ——
+    // 挂上双击识别器的代价是那 300ms，双击没意义的行不该替它付。
+    final call = api
+        .callsTo(#crateApiFileManagerEntryOpsFileManagerOpenEntry)
+        .single;
+    expect(call.namedArguments[#forceEnter], isFalse);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('按钮是否可用直接使用 Rust 能力，不在 Dart 重算页签规则', (tester) async {
     api.snapshot = _snapshot(canCreate: false, canClose: false);
     await _pumpCard(tester);

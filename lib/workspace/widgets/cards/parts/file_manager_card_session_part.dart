@@ -144,6 +144,17 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
     if (!enabled) await _clearSelection();
   }
 
+  /// 面包屑下面那排「快速切换」胶囊（挂载卷 / 根目录 / 主目录）的显隐。
+  ///
+  /// 纯 Dart 侧的显示偏好，不碰核心：卷列表照样每次快照重扫，所以重新打开立刻就在。
+  /// 之所以不放 Rust 的每目录视图状态里：这一行是**卡片的外壳**，不属于任何一个目录，
+  /// 存成按目录记会让「换个目录它又冒出来」变成用户没提过的行为。
+  void _setShowRootsBar(bool enabled) {
+    context.read<GlobalSettingCubit>().updateFileManagerSetting(
+      (current) => current.copyWith(showRootsBar: enabled),
+    );
+  }
+
   /// 主页菜单：把「回主页 / 设为主页 / 清除主页」三个动作收在主页键自己身上。
   ///
   /// 为什么不直接把右键当「设为主页」：那样「回主页」和「清除主页」在卡片上
@@ -160,16 +171,16 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
     final homeRect = box.localToGlobal(Offset.zero) & box.size;
     await Navigator.of(context).push(
       CommonPopupRoute<void>(
-        barrierLabel:
-            MaterialLocalizations.of(context).modalBarrierDismissLabel,
+        barrierLabel: MaterialLocalizations.of(
+          context,
+        ).modalBarrierDismissLabel,
         anchorOf: () => homeRect,
         builder: (_) => CommonPopupMenu(
           items: [
             CommonPopupMenuItem(
               label: '回到主页',
               glyph: AppGlyphs.home,
-              onPressed:
-                  hasHome && !snapshot.isHome
+              onPressed: hasHome && !snapshot.isHome
                   ? () => _apply((id) => fileManagerGoHome(id: id))
                   : null,
             ),
@@ -303,6 +314,16 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
   }
 
   void _acceptSnapshot(FileManagerSnapshot snapshot) {
+    if (_snapshot?.activeTabId != snapshot.activeTabId ||
+        _snapshot?.activePath != snapshot.activePath ||
+        _snapshot?.layoutMode != snapshot.layoutMode) {
+      _previewPath = null;
+      _previewAutoExpanded = null;
+      if (snapshot.layoutMode == FileManagerLayoutMode.content)
+        _treePoll?.cancel();
+    } else if (_snapshot?.generation != snapshot.generation) {
+      _fileStatistics.invalidate();
+    }
     if (_snapshot?.activeTabId != snapshot.activeTabId) {
       _tree = null;
       _treeGeneration = null;

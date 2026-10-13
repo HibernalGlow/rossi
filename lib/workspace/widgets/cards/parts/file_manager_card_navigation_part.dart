@@ -353,62 +353,81 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
     FileManagerTab tab, {
     required Widget child,
   }) {
+    void run(Future<FileManagerSnapshot> Function(BigInt id) action) {
+      if (!mounted || _busy) return;
+      unawaited(_apply(action));
+    }
+
     void openAt(Offset position) {
       if (_busy || !mounted) return;
-      FluentPopupMenu.show<String>(
-        context: context,
-        anchor: Rect.fromLTWH(position.dx, position.dy, 0, 0),
-        onSelected: (action) {
-          if (!mounted || _busy) return;
-          _apply(
-            (id) => switch (action) {
-              'pin' => fileManagerToggleTabPinned(id: id, tabId: tab.id),
-              'new' => fileManagerNewTab(id: id, path: tab.path, sourceTabId: tab.id),
-              'duplicate' => fileManagerDuplicateTab(id: id, tabId: tab.id),
-              'others' => fileManagerCloseOtherTabs(id: id, tabId: tab.id),
-              'left' => fileManagerCloseTabsLeft(id: id, tabId: tab.id),
-              'right' => fileManagerCloseTabsRight(id: id, tabId: tab.id),
-              _ => fileManagerCloseTab(id: id, tabId: tab.id),
-            },
-          );
-        },
-        items: [
-          FluentPopupMenuItem(
-            value: 'pin',
-            title: Text(tab.pinned ? '取消固定' : '固定页签'),
-          ),
-          FluentPopupMenuItem(
-            value: 'new',
-            enabled: snapshot.canCreateTab,
-            title: const Text('从此页签新建'),
-          ),
-          FluentPopupMenuItem(
-            value: 'duplicate',
-            enabled: snapshot.canCreateTab,
-            title: const Text('复制页签'),
-          ),
-          const FluentPopupMenuItem.divider(),
-          FluentPopupMenuItem(
-            value: 'close',
-            enabled: tab.canClose,
-            title: const Text('关闭页签'),
-          ),
-          FluentPopupMenuItem(
-            value: 'others',
-            enabled: tab.canCloseOthers,
-            title: const Text('关闭其他页签'),
-          ),
-          FluentPopupMenuItem(
-            value: 'left',
-            enabled: tab.canCloseLeft,
-            title: const Text('关闭左侧页签'),
-          ),
-          FluentPopupMenuItem(
-            value: 'right',
-            enabled: tab.canCloseRight,
-            title: const Text('关闭右侧页签'),
-          ),
-        ],
+      // 走 [showCommonPopupMenu]（[CommonPopupRoute] 那份 FlClash 动画）——
+      // 与本卡那张「路径操作」同一套：托盘从右键 / 长按那一点长出来、
+      // 放不下时自己朝上翻，不再是 Fluent 的原地淡入缩放。
+      unawaited(
+        showCommonPopupMenu(
+          context: context,
+          position: position,
+          items: [
+            CommonPopupMenuItem(
+              label: tab.pinned ? '取消固定' : '固定页签',
+              onPressed: () => run(
+                (id) => fileManagerToggleTabPinned(id: id, tabId: tab.id),
+              ),
+            ),
+            CommonPopupMenuItem(
+              label: '从此页签新建',
+              onPressed: snapshot.canCreateTab
+                  ? () => run(
+                      (id) => fileManagerNewTab(
+                        id: id,
+                        path: tab.path,
+                        sourceTabId: tab.id,
+                      ),
+                    )
+                  : null,
+            ),
+            CommonPopupMenuItem(
+              label: '复制页签',
+              onPressed: snapshot.canCreateTab
+                  ? () => run(
+                      (id) => fileManagerDuplicateTab(id: id, tabId: tab.id),
+                    )
+                  : null,
+            ),
+            const CommonPopupMenuItem.divider(),
+            CommonPopupMenuItem(
+              label: '关闭页签',
+              onPressed: tab.canClose
+                  ? () =>
+                        run((id) => fileManagerCloseTab(id: id, tabId: tab.id))
+                  : null,
+            ),
+            CommonPopupMenuItem(
+              label: '关闭其他页签',
+              onPressed: tab.canCloseOthers
+                  ? () => run(
+                      (id) => fileManagerCloseOtherTabs(id: id, tabId: tab.id),
+                    )
+                  : null,
+            ),
+            CommonPopupMenuItem(
+              label: '关闭左侧页签',
+              onPressed: tab.canCloseLeft
+                  ? () => run(
+                      (id) => fileManagerCloseTabsLeft(id: id, tabId: tab.id),
+                    )
+                  : null,
+            ),
+            CommonPopupMenuItem(
+              label: '关闭右侧页签',
+              onPressed: tab.canCloseRight
+                  ? () => run(
+                      (id) => fileManagerCloseTabsRight(id: id, tabId: tab.id),
+                    )
+                  : null,
+            ),
+          ],
+        ),
       );
     }
 
