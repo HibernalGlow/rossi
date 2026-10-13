@@ -23,9 +23,37 @@
 //! 注意 `cargo:rustc-link-lib` 是会被记录进 crate 元数据并**向上传播**的，
 //! 所以这一条同时修好了本 crate 的 test/bin 目标与将来 windcore 的 cdylib。
 
+#[path = "build_support/upstream.rs"]
+mod upstream;
+
 fn main() {
     if std::env::var("CARGO_CFG_WINDOWS").is_ok() {
         println!("cargo:rustc-link-lib=advapi32");
     }
     println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=build_support/upstream.rs");
+    println!("cargo:rerun-if-changed=upstream_sources.json");
+    let manifest = std::path::PathBuf::from(std::env::var_os("CARGO_MANIFEST_DIR").unwrap());
+    let specs: Vec<serde_json::Value> = serde_json::from_str(
+        &std::fs::read_to_string(manifest.join("upstream_sources.json")).unwrap(),
+    )
+    .unwrap();
+    let out = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
+    let mut ids = std::collections::HashSet::new();
+    for spec in specs {
+        let id = spec["id"].as_str().expect("源码选择清单缺少 id");
+        assert!(ids.insert(id.to_owned()), "重复源码选择 id: {id}");
+        let path = manifest
+            .join("../../vendor/mimageviewer")
+            .join(spec["upstream"].as_str().unwrap());
+        println!("cargo:rerun-if-changed={}", path.display());
+        let source = std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("{}: {e}; 请初始化 mImageViewer 子模块", path.display()));
+        let extracted =
+            upstream::extract(&source, &spec).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+        let target = out.join(format!("{id}.rs"));
+        if std::fs::read_to_string(&target).ok().as_deref() != Some(&extracted) {
+            std::fs::write(target, extracted).unwrap();
+        }
+    }
 }

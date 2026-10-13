@@ -100,6 +100,9 @@ jpegxl-rs = { version = "0.15", optional = true, default-features = false, featu
     "vendored",
 ] }
 unicode-normalization = "0.1"
+# 上游 EXIF 与 AI tensor 切片的纯 Rust 依赖；ndarray 与 windcore 同版本。
+rexif = "0.7"
+ndarray = "0.17"
 
 # ── 仅 Windows 需要的依赖 ──
 # 只给 `src/file_tree.rs` 的 `get_available_roots()` 枚举本机盘符用：
@@ -156,6 +159,15 @@ jxl-probe = ["jxl-rs-mt", "jxl-rs-1t", "jxl-oxide"]
 jxl-probe-libjxl = ["dep:jpegxl-rs"]
 
 [dev-dependencies]
+syn = { version = "2", features = ["full", "extra-traits", "visit-mut"] }
+quote = "1"
+prettyplease = "0.2"
 tempfile = "3"
 # 只给测试用：RAR 夹具是 mImageViewer 源码里内嵌的 base64 块（见 rar_source.rs 的注释）。
 base64 = "0.22"
+
+[build-dependencies]
+syn = { version = "2", features = ["full", "extra-traits", "visit-mut"] }
+quote = "1"
+prettyplease = "0.2"
+serde_json = "1"

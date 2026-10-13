@@ -4563,6 +4563,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "rexif"
+version = "0.7.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be932047c168919c8d5af065b16fa7d4bd24835ffa256bf0cf1ff463f91c15df"
+
+[[package]]
 name = "ring"
 version = "0.17.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4636,12 +4642,17 @@ dependencies = [
  "jxl",
  "jxl-image-rs-integration",
  "jxl-oxide",
+ "ndarray",
+ "prettyplease 0.2.37",
+ "quote",
  "rayon",
+ "rexif",
  "rusqlite",
  "serde",
  "serde_json",
  "sha2",
  "symphonia",
+ "syn 2.0.117",
  "tempfile",
  "trash",
  "unicode-normalization",

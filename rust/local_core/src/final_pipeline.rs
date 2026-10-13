@@ -1,4 +1,6 @@
-//! 最终呈现与 AI 超分增强流水线（复用自 mImageViewer `src/ai/final_pipeline.rs` 与 `src/ai/upscale.rs`）。
+//! Rossi 的 AI 兼容类型与显存保留窗口；不是 mImageViewer 完整 final pipeline 的移植。
+//! AI 尺寸判定直接复用 `ai_size_limit` 的上游切片；ModelKind、输出类型与邻页保留集
+//! 是 Rossi 适配，维护责任见 docs/mimageviewer-reuse-inventory.json。
 //!
 //! 提供：
 //! 1. `ModelKind`：超分/增强模型种类定义；
@@ -7,9 +9,10 @@
 //! 4. `compute_final_pipeline_keep_set`：保留集计算（用于显存淘汰控制）。
 
 use crate::PagePixels;
+pub use crate::ai_size_limit::{AiProcessSizeLimit, should_process_rect};
 use std::sync::Arc;
 
-/// 可用的 AI 模型种类（对齐 mImageViewer `ModelKind`）。
+/// Rossi 可选模型标识，参照上游模型名称并含本地 CoreML 选项。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ModelKind {
     /// Real-ESRGAN x4plus（照片、CG，降噪强）
@@ -54,42 +57,7 @@ impl ModelKind {
     }
 }
 
-/// AI 处理对象尺寸上限（长边 / 短边，对齐 mImageViewer `AiProcessSizeLimit`）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AiProcessSizeLimit {
-    pub long_edge_px: u32,
-    pub short_edge_px: u32,
-}
-
-impl AiProcessSizeLimit {
-    /// 以正方形尺寸构建上限。
-    pub fn square(px: u32) -> Self {
-        Self {
-            long_edge_px: px,
-            short_edge_px: px,
-        }
-    }
-}
-
-impl Default for AiProcessSizeLimit {
-    fn default() -> Self {
-        // 默认 4096 x 4096，大于此尺寸的图片通常无需超分
-        Self::square(4096)
-    }
-}
-
-/// 判定图像长边与短边是否都在处理上限之内（对齐 mImageViewer `should_process_rect`）。
-///
-/// 无论横图还是竖图，均归一化为长边/短边比对。
-pub fn should_process_rect(width: u32, height: u32, limit: AiProcessSizeLimit) -> bool {
-    let long = width.max(height);
-    let short = width.min(height);
-    let limit_long = limit.long_edge_px.max(limit.short_edge_px);
-    let limit_short = limit.long_edge_px.min(limit.short_edge_px);
-    long < limit_long && short < limit_short
-}
-
-/// final pipeline 超分执行产出结果（对齐 mImageViewer `FinalAiExecutionOutput`）。
+/// Rossi 阅读器的超分输出协议；不是上游执行器的类型移植。
 #[derive(Clone)]
 pub struct FinalAiExecutionOutput {
     pub pixels: Arc<PagePixels>,
@@ -100,7 +68,7 @@ pub struct FinalAiExecutionOutput {
     pub model_kind: ModelKind,
 }
 
-/// 计算 final_pipeline 的保留集页码列表（对齐 mImageViewer 保留集机制）。
+/// 计算 Rossi 连续邻页窗口的保留集页码。
 ///
 /// 保留当前停驻页及其前后 `radius` 页的超分结果，其余页面的超分大图自动释放以控制显存。
 pub fn compute_final_pipeline_keep_set(
