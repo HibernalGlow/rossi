@@ -6,6 +6,7 @@ import 'package:zephyr/workspace/model/history_insights.dart';
 import 'package:zephyr/workspace/model/history_insight_activity.dart';
 import 'package:zephyr/workspace/model/heatmap_buckets.dart';
 import 'package:zephyr/workspace/widgets/insights/insight_sections.dart';
+import 'package:zephyr/workspace/widgets/card_header_actions.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/grid/grid.dart';
 import 'package:zephyr/workspace/widgets/grid/card_layout_scope.dart';
@@ -103,20 +104,43 @@ void main() {
     );
     await tester.pumpWidget(card(400));
     await tester.pumpAndSettle();
-    expect(find.text('摘要 · 1/2'), findsOneWidget);
+    expect(find.byTooltip('摘要 · 1/2 · 展开连续阅读'), findsOneWidget);
     expect(find.byType(SingleChildScrollView), findsNothing);
     final rect = tester.getRect(find.byType(CollapsibleCard));
+    for (final control in [
+      find.byTooltip('上一段'),
+      find.byType(InsightDetailButton),
+      find.byTooltip('下一段'),
+    ]) {
+      expect(
+        tester.getCenter(control).dy,
+        closeTo(tester.getCenter(find.text('阅读洞察')).dy, 1),
+      );
+      expect(
+        tester.getRect(control).bottom,
+        lessThanOrEqualTo(tester.getRect(find.byType(CardHeaderActions)).top),
+      );
+    }
     await tester.tap(find.byTooltip('下一段'));
     await tester.pump(const Duration(milliseconds: 80));
     expect(tester.getRect(find.byType(CollapsibleCard)), rect);
     await tester.pumpAndSettle();
-    expect(find.text('趋势 · 2/2'), findsOneWidget);
+    expect(find.byTooltip('趋势 · 2/2 · 展开连续阅读'), findsOneWidget);
     await tester.pumpWidget(card(240));
     await tester.pumpAndSettle();
-    expect(find.text('趋势 · 2/2'), findsOneWidget);
+    expect(find.byTooltip('趋势 · 2/2 · 展开连续阅读'), findsOneWidget);
+    expect(
+      tester.getCenter(find.byType(InsightDetailButton)).dy,
+      closeTo(tester.getCenter(find.text('阅读洞察')).dy, 1),
+    );
+    await tester.tap(find.byType(InsightDetailButton));
+    await tester.pumpAndSettle();
+    expect(find.text('关闭'), findsOneWidget);
+    await tester.tap(find.text('关闭'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('上一段'));
     await tester.pumpAndSettle();
-    expect(find.text('摘要 · 1/2'), findsOneWidget);
+    expect(find.byTooltip('摘要 · 1/2 · 展开连续阅读'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
   testWidgets('小热力图保留完整七行，极小卡片通过统一弹层展开详情', (tester) async {
@@ -130,7 +154,15 @@ void main() {
     await tester.pumpWidget(card(const Size(240, 384)));
     await tester.pumpAndSettle();
     expect(find.byType(SingleChildScrollView), findsNothing);
-    expect(find.textContaining('6 小时/格'), findsOneWidget);
+    expect(find.text('6 小时/格'), findsOneWidget);
+    expect(
+      tester.getCenter(find.byType(InsightDetailButton)).dy,
+      closeTo(tester.getCenter(find.text('阅读洞察')).dy, 1),
+    );
+    expect(
+      tester.getRect(find.byType(InsightDetailButton)).bottom,
+      lessThanOrEqualTo(tester.getRect(find.byType(CardHeaderActions)).top),
+    );
     for (final day in weekdayLabels) {
       expect(find.text(day), findsOneWidget);
     }
@@ -145,6 +177,26 @@ void main() {
     await tester.tap(find.text('关闭'));
     await tester.pumpAndSettle();
     expect(tester.getRect(find.byType(CollapsibleCard)), rect);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('移除、替换正文和销毁卡片会清理标题操作', (tester) async {
+    final summary = buildReadingStreak(samples, now: now);
+    Widget card(Widget child) =>
+        host(SizedBox(width: 240, height: 288, child: shell(child)));
+    await tester.pumpWidget(card(ReadingStreakView(summary: summary)));
+    // 注册尚未完成时直接替换正文，旧发布不能重新挂回标题。
+    await tester.pumpWidget(card(const Text('加载中')));
+    await tester.pumpAndSettle();
+    expect(find.byType(InsightDetailButton), findsNothing);
+    await tester.pumpWidget(card(ReadingStreakView(summary: summary)));
+    await tester.pumpAndSettle();
+    expect(find.byType(InsightDetailButton), findsOneWidget);
+    await tester.pumpWidget(card(const Text('没有记录')));
+    await tester.pumpAndSettle();
+    expect(find.byType(InsightDetailButton), findsNothing);
+    await tester.pumpWidget(card(ReadingStreakView(summary: summary)));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
   for (final entry in views().entries) {
@@ -168,6 +220,10 @@ void main() {
           );
           await tester.pumpAndSettle();
           expect(tester.getSize(find.byType(CollapsibleCard)), size);
+          if (size == const Size(180, 96) &&
+              (entry.key == 'streak' || entry.key == 'heatmap')) {
+            expect(tester.getSize(find.byType(InsightDetailButton)).width, 32);
+          }
           expect(
             tester.takeException(),
             isNull,
