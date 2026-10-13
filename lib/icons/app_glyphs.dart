@@ -67,7 +67,14 @@ abstract final class AppGlyphs {
   /// 箭头沿用 `sync` 的写法：弧在左上留 90° 缺口，短折线接出角点，
   /// 角点的两条臂正好从缺口里穿过圆周，所以不会和环本身叠成一团。
   static const history = Glyph([
-    GlyphArc(12, 12, 7.07, math.pi * 0.8611, math.pi * -1.6111, role: GlyphRole.line),
+    GlyphArc(
+      12,
+      12,
+      7.07,
+      math.pi * 0.8611,
+      math.pi * -1.6111,
+      role: GlyphRole.line,
+    ),
     GlyphPolyline([
       GlyphVertex(7, 7),
       GlyphVertex(5.5, 8.5),
@@ -2289,20 +2296,36 @@ abstract final class AppGlyphs {
   /// 圈内播放。fill 时圆涨成实心、三角挖空。
   static const playCircle = Glyph([
     GlyphCircle(12, 12, 8.8),
-    GlyphPath('M10.1 8.7 L15.8 12 L10.1 15.3 Z', role: GlyphRole.detail, solid: true),
+    GlyphPath(
+      'M10.1 8.7 L15.8 12 L10.1 15.3 Z',
+      role: GlyphRole.detail,
+      solid: true,
+    ),
   ]);
 
   /// 圈内暂停。fill 时圆涨成实心、两根竖条挖空。
   static const pauseCircle = Glyph([
     GlyphCircle(12, 12, 8.8),
-    GlyphPath('M9.1 8.7 L10.9 8.7 L10.9 15.3 L9.1 15.3 Z', role: GlyphRole.detail, solid: true),
-    GlyphPath('M13.1 8.7 L14.9 8.7 L14.9 15.3 L13.1 15.3 Z', role: GlyphRole.detail, solid: true),
+    GlyphPath(
+      'M9.1 8.7 L10.9 8.7 L10.9 15.3 L9.1 15.3 Z',
+      role: GlyphRole.detail,
+      solid: true,
+    ),
+    GlyphPath(
+      'M13.1 8.7 L14.9 8.7 L14.9 15.3 L13.1 15.3 Z',
+      role: GlyphRole.detail,
+      solid: true,
+    ),
   ]);
 
   /// 圈内停止。fill 时圆涨成实心、方挖空。
   static const stopCircle = Glyph([
     GlyphCircle(12, 12, 8.8),
-    GlyphPath('M8.9 8.9 L15.1 8.9 L15.1 15.1 L8.9 15.1 Z', role: GlyphRole.detail, solid: true),
+    GlyphPath(
+      'M8.9 8.9 L15.1 8.9 L15.1 15.1 L8.9 15.1 Z',
+      role: GlyphRole.detail,
+      solid: true,
+    ),
   ]);
 
   /// 下一曲 / 下一段（三角 + 竖条，朝右）。
@@ -2527,7 +2550,11 @@ abstract final class AppGlyphs {
   /// 幻灯片（框 + 播放三角）。fill 时三角挖空。
   static const slideshow = Glyph([
     GlyphBox(3.5, 5, 20.5, 19, 2.5),
-    GlyphPath('M10.2 8.9 L15.6 12 L10.2 15.1 Z', role: GlyphRole.detail, solid: true),
+    GlyphPath(
+      'M10.2 8.9 L15.6 12 L10.2 15.1 Z',
+      role: GlyphRole.detail,
+      solid: true,
+    ),
   ]);
 
   /// 顺时针旋转。
@@ -2535,7 +2562,14 @@ abstract final class AppGlyphs {
   /// 角点的两条臂（下、左）正好从弧的缺口（225°..315°）里穿过圆周，
   /// 所以头不会压在环上（旧稿的头浮在环外、角点离环心线只有 0.5）。
   static const rotateRight = Glyph([
-    GlyphArc(12, 12.6, 7.07, math.pi * 1.75, math.pi * 1.5, role: GlyphRole.line),
+    GlyphArc(
+      12,
+      12.6,
+      7.07,
+      math.pi * 1.75,
+      math.pi * 1.5,
+      role: GlyphRole.line,
+    ),
     GlyphPolyline([
       GlyphVertex(7, 7.6),
       GlyphVertex(8.48, 6.12),
@@ -2549,7 +2583,14 @@ abstract final class AppGlyphs {
 
   /// 逆时针旋转。[rotateRight] 的水平镜像。
   static const rotateLeft = Glyph([
-    GlyphArc(12, 12.6, 7.07, math.pi * 1.25, math.pi * -1.5, role: GlyphRole.line),
+    GlyphArc(
+      12,
+      12.6,
+      7.07,
+      math.pi * 1.25,
+      math.pi * -1.5,
+      role: GlyphRole.line,
+    ),
     GlyphPolyline([
       GlyphVertex(17, 7.6),
       GlyphVertex(15.52, 6.12),
@@ -2608,7 +2649,10 @@ abstract final class AppGlyphs {
       GlyphVertex(7.2, 4.6),
       GlyphVertex(7.2, 7.4),
     ], role: GlyphRole.line),
-    GlyphPath('M4.4 17.2 Q6.6 12.6 7.2 10.4 Q7.8 12.6 10 17.2', role: GlyphRole.line),
+    GlyphPath(
+      'M4.4 17.2 Q6.6 12.6 7.2 10.4 Q7.8 12.6 10 17.2',
+      role: GlyphRole.line,
+    ),
     GlyphPolyline([
       GlyphVertex(14.6, 16.6),
       GlyphVertex(17.9, 7.4, 0.5),
@@ -2644,7 +2688,14 @@ abstract final class AppGlyphs {
   /// 点按（指尖 + 波纹）。
   static const touch = Glyph([
     GlyphCircle(12, 10.4, 2.3),
-    GlyphArc(12, 10.4, 5.4, math.pi * 0.78, math.pi * 1.44, role: GlyphRole.line),
+    GlyphArc(
+      12,
+      10.4,
+      5.4,
+      math.pi * 0.78,
+      math.pi * 1.44,
+      role: GlyphRole.line,
+    ),
     GlyphPolyline([
       GlyphVertex(12, 13),
       GlyphVertex(12, 16.4),
@@ -2697,8 +2748,12 @@ abstract final class AppGlyphs {
     GlyphPath(
       'M9.8 4.2 C7.6 5.1 6.4 7.1 6.4 9.4 L6.4 13.4 L4.7 16.3 '
       'C4.3 17 4.8 17.9 5.6 17.9 L15.5 17.9',
-      role: GlyphRole.line),
-    GlyphPath('M17.6 12.6 L17.6 9.4 C17.6 6 15.4 3.6 12 3.6', role: GlyphRole.line),
+      role: GlyphRole.line,
+    ),
+    GlyphPath(
+      'M17.6 12.6 L17.6 9.4 C17.6 6 15.4 3.6 12 3.6',
+      role: GlyphRole.line,
+    ),
     GlyphPolyline([
       GlyphVertex(4.5, 4),
       GlyphVertex(19.5, 20.5),
@@ -2877,18 +2932,22 @@ abstract final class AppGlyphs {
   /// 画质（框内一颗星）。
   static const quality = Glyph([
     GlyphBox(2.8, 5.6, 21.2, 18.4, 3),
-    GlyphPolyline([
-      GlyphVertex(12, 8.8),
-      GlyphVertex(12.9, 10.9, 0.4),
-      GlyphVertex(15.2, 11.1, 0.4),
-      GlyphVertex(13.5, 12.6, 0.4),
-      GlyphVertex(14, 14.9, 0.4),
-      GlyphVertex(12, 13.7, 0.4),
-      GlyphVertex(10, 14.9, 0.4),
-      GlyphVertex(10.5, 12.6, 0.4),
-      GlyphVertex(8.8, 11.1, 0.4),
-      GlyphVertex(11.1, 10.9, 0.4),
-    ], closed: true, role: GlyphRole.detail),
+    GlyphPolyline(
+      [
+        GlyphVertex(12, 8.8),
+        GlyphVertex(12.9, 10.9, 0.4),
+        GlyphVertex(15.2, 11.1, 0.4),
+        GlyphVertex(13.5, 12.6, 0.4),
+        GlyphVertex(14, 14.9, 0.4),
+        GlyphVertex(12, 13.7, 0.4),
+        GlyphVertex(10, 14.9, 0.4),
+        GlyphVertex(10.5, 12.6, 0.4),
+        GlyphVertex(8.8, 11.1, 0.4),
+        GlyphVertex(11.1, 10.9, 0.4),
+      ],
+      closed: true,
+      role: GlyphRole.detail,
+    ),
   ]);
 
   /// 线性刻度（一线三点）。
@@ -3359,15 +3418,19 @@ abstract final class AppGlyphs {
   static const batteryCharging = Glyph([
     GlyphBox(9.8, 2.8, 14.2, 4.6, 0.8),
     GlyphBox(7, 4.6, 17, 21.2, 2),
-    GlyphPolyline([
-      GlyphVertex(12.9, 7.4),
-      GlyphVertex(9.7, 13.1, 0.4),
-      GlyphVertex(11.9, 13.1, 0.4),
-      GlyphVertex(11.1, 17.2, 0.4),
-      GlyphVertex(14.5, 11.1, 0.4),
-      GlyphVertex(12.3, 11.1, 0.4),
-      GlyphVertex(13.1, 7.4),
-    ], closed: true, role: GlyphRole.detail),
+    GlyphPolyline(
+      [
+        GlyphVertex(12.9, 7.4),
+        GlyphVertex(9.7, 13.1, 0.4),
+        GlyphVertex(11.9, 13.1, 0.4),
+        GlyphVertex(11.1, 17.2, 0.4),
+        GlyphVertex(14.5, 11.1, 0.4),
+        GlyphVertex(12.3, 11.1, 0.4),
+        GlyphVertex(13.1, 7.4),
+      ],
+      closed: true,
+      role: GlyphRole.detail,
+    ),
   ]);
 
   /// 电量告急（一格 + 感叹号）。
@@ -3387,8 +3450,14 @@ abstract final class AppGlyphs {
     // 杯体
     GlyphPath('M7 4 L17 4 L17 9 C17 12 14.9 14 12 14 C9.1 14 7 12 7 9 Z'),
     // 双耳
-    GlyphPath('M7 5.6 L4.4 5.6 L4.4 8 A3.4 3.4 0 0 0 7.2 11.2', role: GlyphRole.line),
-    GlyphPath('M17 5.6 L19.6 5.6 L19.6 8 A3.4 3.4 0 0 1 16.8 11.2', role: GlyphRole.line),
+    GlyphPath(
+      'M7 5.6 L4.4 5.6 L4.4 8 A3.4 3.4 0 0 0 7.2 11.2',
+      role: GlyphRole.line,
+    ),
+    GlyphPath(
+      'M17 5.6 L19.6 5.6 L19.6 8 A3.4 3.4 0 0 1 16.8 11.2',
+      role: GlyphRole.line,
+    ),
     // 柄与座
     GlyphPolyline([
       GlyphVertex(12, 14),
@@ -3435,12 +3504,16 @@ abstract final class AppGlyphs {
   /// `GlyphPolyline._corner` 除以长度 0 的两个向量，算出 NaN 路径。
   static const compass = Glyph([
     GlyphCircle(12, 12, 8.4),
-    GlyphPolyline([
-      GlyphVertex(15.4, 8.6),
-      GlyphVertex(13.2, 13.2, 0.5),
-      GlyphVertex(8.6, 15.4, 0.5),
-      GlyphVertex(10.8, 10.8, 0.5),
-    ], closed: true, role: GlyphRole.detail),
+    GlyphPolyline(
+      [
+        GlyphVertex(15.4, 8.6),
+        GlyphVertex(13.2, 13.2, 0.5),
+        GlyphVertex(8.6, 15.4, 0.5),
+        GlyphVertex(10.8, 10.8, 0.5),
+      ],
+      closed: true,
+      role: GlyphRole.detail,
+    ),
   ]);
 
   /// 店面（插件商店 / 市集）。
@@ -3569,11 +3642,15 @@ abstract final class AppGlyphs {
       GlyphVertex(12, 17.8, 0.6),
       GlyphVertex(6.2, 12, 0.6),
     ], closed: true),
-    GlyphPolyline([
-      GlyphVertex(6.2, 12),
-      GlyphVertex(4, 20.2, 0.5),
-      GlyphVertex(12, 17.8, 0.5),
-    ], closed: true, role: GlyphRole.detail),
+    GlyphPolyline(
+      [
+        GlyphVertex(6.2, 12),
+        GlyphVertex(4, 20.2, 0.5),
+        GlyphVertex(12, 17.8, 0.5),
+      ],
+      closed: true,
+      role: GlyphRole.detail,
+    ),
   ]);
 
   /// 甲虫（调试）。
@@ -3720,10 +3797,7 @@ abstract final class AppGlyphs {
       GlyphVertex(3.8, 9.6),
       GlyphVertex(20.2, 9.6),
     ], role: GlyphRole.detail),
-    GlyphPolyline([
-      GlyphVertex(8, 3),
-      GlyphVertex(8, 7),
-    ], role: GlyphRole.line),
+    GlyphPolyline([GlyphVertex(8, 3), GlyphVertex(8, 7)], role: GlyphRole.line),
     GlyphPolyline([
       GlyphVertex(16, 3),
       GlyphVertex(16, 7),
@@ -3809,7 +3883,11 @@ abstract final class AppGlyphs {
   /// 画中画（大框内嵌实心小框）。
   static const pip = Glyph([
     GlyphBox(3.2, 5, 20.8, 19, 2),
-    GlyphPath('M12.2 11.2 L19.4 11.2 L19.4 16.6 L12.2 16.6 Z', role: GlyphRole.detail, solid: true),
+    GlyphPath(
+      'M12.2 11.2 L19.4 11.2 L19.4 16.6 L12.2 16.6 Z',
+      role: GlyphRole.detail,
+      solid: true,
+    ),
   ]);
 
   /// 窗口最小化（下横线）。
@@ -3821,9 +3899,7 @@ abstract final class AppGlyphs {
   ]);
 
   /// 窗口最大化（方框）。
-  static const windowMaximize = Glyph([
-    GlyphBox(4.4, 6, 19.6, 18, 1.8),
-  ]);
+  static const windowMaximize = Glyph([GlyphBox(4.4, 6, 19.6, 18, 1.8)]);
 
   /// 窗口还原（前后两个方框）。
   static const windowRestore = Glyph([
@@ -3840,10 +3916,7 @@ abstract final class AppGlyphs {
   /// 破图（相框 + 山形裂口 + 叉）。
   static const brokenImage = Glyph([
     GlyphBox(3.4, 4.6, 20.6, 19.4, 2),
-    GlyphPath(
-      'M3.4 15.6 L8 11.2 L12.4 15.4',
-      role: GlyphRole.detail,
-    ),
+    GlyphPath('M3.4 15.6 L8 11.2 L12.4 15.4', role: GlyphRole.detail),
     GlyphPolyline([
       GlyphVertex(15.4, 9.4),
       GlyphVertex(19.4, 13.4),

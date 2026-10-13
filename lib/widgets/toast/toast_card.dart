@@ -109,7 +109,11 @@ class _ToastCardState extends State<ToastCard>
               if (spec.showIcon) ...[
                 Padding(
                   padding: const EdgeInsets.only(top: 1),
-                  child: GlyphIcon(_toastIcon(widget.type), size: 19, color: accent),
+                  child: GlyphIcon(
+                    _toastIcon(widget.type),
+                    size: 19,
+                    color: accent,
+                  ),
                 ),
                 const SizedBox(width: 10),
               ],

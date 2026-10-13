@@ -194,7 +194,10 @@ class PressTransform extends SingleChildRenderObjectWidget {
   }
 
   @override
-  void updateRenderObject(BuildContext context, RenderPressTransform renderObject) {
+  void updateRenderObject(
+    BuildContext context,
+    RenderPressTransform renderObject,
+  ) {
     renderObject
       ..lift = lift
       ..pull = pull;
@@ -233,15 +236,16 @@ class RenderPressTransform extends RenderProxyBox {
               LensMetrics.pressGrowth * 2,
               LensMetrics.maxPressGrowth / size.longestSide,
             );
-    final scaleX = swell * (1 + _pull.dx.abs() / size.width * LensMetrics.pullStretch);
-    final scaleY = swell * (1 + _pull.dy.abs() / size.height * LensMetrics.pullStretch);
+    final scaleX =
+        swell * (1 + _pull.dx.abs() / size.width * LensMetrics.pullStretch);
+    final scaleY =
+        swell * (1 + _pull.dy.abs() / size.height * LensMetrics.pullStretch);
     final center = size.center(Offset.zero);
-    return Matrix4.diagonal3Values(scaleX, scaleY, 1)
-      ..setTranslationRaw(
-        center.dx * (1 - scaleX) + _pull.dx,
-        center.dy * (1 - scaleY) + _pull.dy,
-        0,
-      );
+    return Matrix4.diagonal3Values(scaleX, scaleY, 1)..setTranslationRaw(
+      center.dx * (1 - scaleX) + _pull.dx,
+      center.dy * (1 - scaleY) + _pull.dy,
+      0,
+    );
   }
 
   @override

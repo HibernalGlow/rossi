@@ -33,7 +33,8 @@ class _FontSettingPageState extends State<FontSettingPage> {
     final selected = await showPopupPanel<String>(
       presentation: PopupPresentation.relative,
       context: context,
-      builder: (_) => _SystemFamilyPickerDialog(initial: controller.systemFamily),
+      builder: (_) =>
+          _SystemFamilyPickerDialog(initial: controller.systemFamily),
     );
     if (selected == null || selected == controller.systemFamily) return;
     await controller.setSystemFamily(selected);
@@ -64,8 +65,10 @@ class _FontSettingPageState extends State<FontSettingPage> {
   }
 
   Future<void> _saveWeight(int weight, String filePath) async {
-    final ok =
-        await FontProfileController.instance.setOverridePath(weight, filePath);
+    final ok = await FontProfileController.instance.setOverridePath(
+      weight,
+      filePath,
+    );
     if (!ok) {
       showErrorToast(t.fontSetting.loadFailed);
       return;
@@ -168,10 +171,8 @@ class _FontSettingPageState extends State<FontSettingPage> {
                         width: 86,
                         child: Text(
                           t.fontSetting.modeFamily,
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                       ),
                       title: Text(
@@ -225,8 +226,7 @@ class _FontSettingPageState extends State<FontSettingPage> {
                     400,
                   ),
                   onPick: _pickDefault,
-                  onClear:
-                      defaultPath.isEmpty ? null : () => _saveDefault(''),
+                  onClear: defaultPath.isEmpty ? null : () => _saveDefault(''),
                 ),
               const Divider(height: 24, indent: 16, endIndent: 16),
               ListTile(
@@ -235,8 +235,8 @@ class _FontSettingPageState extends State<FontSettingPage> {
                   child: Text(
                     t.fontSetting.overrides,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 title: Text(
@@ -282,10 +282,10 @@ class _FontSettingPageState extends State<FontSettingPage> {
   }
 
   FontWeight _toFontWeight(int weight) {
-    return FontWeight
-        .values
-        .where((value) => value.value == weight)
-        .firstOrNull ?? FontWeight.w400;
+    return FontWeight.values
+            .where((value) => value.value == weight)
+            .firstOrNull ??
+        FontWeight.w400;
   }
 }
 
@@ -334,10 +334,7 @@ class _FontTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (description != null && description!.isNotEmpty)
-              Text(
-                description!,
-                style: theme.textTheme.bodySmall,
-              ),
+              Text(description!, style: theme.textTheme.bodySmall),
             if (filePath.isNotEmpty)
               Text(
                 filePath,

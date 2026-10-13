@@ -32,9 +32,7 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
             child: FilterChip(
               selected: _displaySizedDecode,
               avatar: GlyphIcon(
-                _displaySizedDecode
-                    ? AppGlyphs.fitScreen
-                    : AppGlyphs.cropFree,
+                _displaySizedDecode ? AppGlyphs.fitScreen : AppGlyphs.cropFree,
                 size: 18,
               ),
               label: Text(_displaySizedDecode ? '尺寸：显示' : '尺寸：全尺寸'),
@@ -84,9 +82,7 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
             child: FilterChip(
               selected: _prefetchEnabled,
               avatar: GlyphIcon(
-                _prefetchEnabled
-                    ? AppGlyphs.bolt
-                    : AppGlyphs.hourglass,
+                _prefetchEnabled ? AppGlyphs.bolt : AppGlyphs.hourglass,
                 size: 18,
               ),
               label: Text(_prefetchEnabled ? '预取：开' : '预取：关'),
@@ -144,6 +140,7 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
       ),
     );
   }
+
   Widget _body() {
     final rejection = _rejection;
     if (rejection != null) return _rejectionView(rejection);
@@ -189,6 +186,7 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
       ],
     );
   }
+
   Widget _infoBar(LocalSourceInfo info) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
@@ -211,8 +209,10 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
       ),
     );
   }
+
   static String _fmtMs(Duration d) =>
       (d.inMicroseconds / 1000.0).toStringAsFixed(1);
+
   /// 分段耗时面板 —— 本页存在的主要理由。
   ///
   /// 一个数字不够：`读页 60 ms` 看着没事，`解码 500 ms` 才是手感。三段分开才归得了因。
@@ -373,6 +373,7 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
       ),
     );
   }
+
   Widget _pageList() {
     return ListView.builder(
       itemCount: _pages.length,
@@ -399,6 +400,7 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
       },
     );
   }
+
   Widget _viewer() {
     // 0 页时**不要**留一个转圈：那看起来像「还在加载」，实际是「这本没页可看」。
     // 触发过一次真实误判 —— 归档里 30 张全是 `.avif`（v0.1 当时不认），
@@ -464,6 +466,7 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
       ],
     );
   }
+
   Widget _sweepView() {
     final ms = _sweepMs!;
     final sorted = [...ms]..sort();
@@ -508,6 +511,7 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
       ),
     );
   }
+
   Widget _rejectionView(LocalRejection r) {
     final (icon, hint) = switch (r.kind) {
       LocalRejectionKind.unknownFormat => (
@@ -523,10 +527,7 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
         AppGlyphs.tree,
         '归档里套了归档。v0.1 明确不展开嵌套——这是唯一会需要临时文件的场景。',
       ),
-      LocalRejectionKind.rarEncrypted => (
-        AppGlyphs.lock,
-        '加密归档：v0.1 不提供密码输入。',
-      ),
+      LocalRejectionKind.rarEncrypted => (AppGlyphs.lock, '加密归档：v0.1 不提供密码输入。'),
       LocalRejectionKind.notFound => (AppGlyphs.lock, '路径不存在或不可读。'),
       LocalRejectionKind.io => (AppGlyphs.error, 'IO 或解析失败（含归档损坏）。'),
     };
@@ -562,6 +563,7 @@ extension _LocalSourceDebugViewPart on _LocalSourceDebugPageState {
       ),
     );
   }
+
   String _kindLabel(LocalSourceKind kind) => switch (kind) {
     LocalSourceKind.folder => '散图文件夹',
     LocalSourceKind.zip => 'ZIP 归档',

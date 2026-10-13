@@ -21,7 +21,11 @@ import 'package:flutter/widgets.dart';
 /// 菜单侧按「现问」拿（见 `RossiPlatTabMenuRegion.paneSize`）。在布局相里 setState
 /// 是另一类自激：那一帧正在排布，重排请求会把它拖成无限重建。
 class RossiPlatPaneProbe extends SingleChildRenderObjectWidget {
-  const RossiPlatPaneProbe({super.key, required this.onSize, required super.child});
+  const RossiPlatPaneProbe({
+    super.key,
+    required this.onSize,
+    required super.child,
+  });
 
   /// 约束变了才调（同一格反复布局不会重复报）。
   final ValueChanged<Size> onSize;

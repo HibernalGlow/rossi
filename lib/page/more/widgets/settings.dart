@@ -75,7 +75,11 @@ class SettingsWidget extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
       child: Row(
         children: [
-          GlyphIcon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+          GlyphIcon(
+            icon,
+            size: 18,
+            color: Theme.of(context).colorScheme.primary,
+          ),
           const SizedBox(width: 8),
           Text(
             title,

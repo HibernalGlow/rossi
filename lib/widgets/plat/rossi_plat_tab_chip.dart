@@ -184,10 +184,7 @@ class RossiPlatTabChip extends StatelessWidget {
     return selected ? colors.surfaceContainerHigh : colors.surface;
   }
 
-  static TextStyle? _materialLabelStyle(
-    TabBarThemeData theme,
-    bool selected,
-  ) {
+  static TextStyle? _materialLabelStyle(TabBarThemeData theme, bool selected) {
     if (selected) return theme.labelStyle;
     return theme.unselectedLabelStyle ?? theme.labelStyle;
   }
@@ -208,7 +205,8 @@ class RossiPlatTabChip extends StatelessWidget {
     if (theme.indicatorWeight <= 0) return null;
 
     final borderSide = BorderSide(
-      color: theme.indicatorColor ??
+      color:
+          theme.indicatorColor ??
           TabBarTheme.of(context).indicatorColor ??
           Theme.of(context).colorScheme.primary,
       width: theme.indicatorWeight,
@@ -234,8 +232,7 @@ class RossiPlatTabChip extends StatelessWidget {
     if (theme.indicatorWeight <= 0) return child;
 
     final decoration =
-        theme.indicator ??
-        BoxDecoration(color: _indicatorColor(context));
+        theme.indicator ?? BoxDecoration(color: _indicatorColor(context));
     final insets = theme.indicatorPadding.resolve(
       Directionality.maybeOf(context),
     );

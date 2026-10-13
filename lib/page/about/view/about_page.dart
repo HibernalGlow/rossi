@@ -476,7 +476,10 @@ class _AboutPageState extends State<AboutPage> {
                     ),
                   ),
                   IconButton(
-                    icon: const GlyphIcon(AppGlyphs.close, color: kSecondaryText),
+                    icon: const GlyphIcon(
+                      AppGlyphs.close,
+                      color: kSecondaryText,
+                    ),
                     onPressed: () => Navigator.pop(ctx),
                   ),
                 ],
