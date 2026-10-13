@@ -5,7 +5,7 @@ import 'package:zephyr/widgets/expressive/expressive_icon_button.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/icons/icons.dart';
 
-/// 五个高频入口停靠在同一条浮动工具栏，设备与辅助动作收进菜单。
+/// 阅读操作与钉住直接停靠在浮动工具栏，辅助动作收进菜单。
 class ReaderBottomToolbar extends StatelessWidget {
   const ReaderBottomToolbar({
     super.key,
@@ -37,6 +37,7 @@ class ReaderBottomToolbar extends StatelessWidget {
       String label,
       VoidCallback? callback, {
       bool prominent = false,
+      bool active = false,
     }) => ActionBubbleTarget(
       enabled: callback != null,
       child: ExpressiveIconButton(
@@ -44,6 +45,8 @@ class ReaderBottomToolbar extends StatelessWidget {
         tooltip: label,
         onPressed: callback,
         size: 48,
+        active: active,
+        activeTurns: 0,
         shape: prominent
             ? ExpressiveButtonShape.cookie4Sided
             : ExpressiveButtonShape.circle,
@@ -55,7 +58,7 @@ class ReaderBottomToolbar extends StatelessWidget {
         elevation: 3,
         borderRadius: BorderRadius.circular(28),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -76,6 +79,12 @@ class ReaderBottomToolbar extends StatelessWidget {
                 prominent: true,
               ),
               action(AppGlyphs.skipNext, t.reader.nextChapter, nextChapter),
+              action(
+                AppGlyphs.pin,
+                pinned ? t.reader.unpinBottomBar : t.reader.pinBottomBar,
+                togglePinned,
+                active: pinned,
+              ),
               CommonPopupBox<void>(
                 targetBuilder: (open) =>
                     action(AppGlyphs.more, t.common.more, () => open()),
@@ -88,14 +97,6 @@ class ReaderBottomToolbar extends StatelessWidget {
                           : t.reader.thumbnailStripExpand,
                       checked: thumbnailsVisible,
                       onPressed: toggleThumbnails,
-                    ),
-                    CommonPopupMenuItem(
-                      glyph: AppGlyphs.pin,
-                      label: pinned
-                          ? t.reader.unpinBottomBar
-                          : t.reader.pinBottomBar,
-                      checked: pinned,
-                      onPressed: togglePinned,
                     ),
                     CommonPopupMenuItem(
                       glyph: AppGlyphs.home,

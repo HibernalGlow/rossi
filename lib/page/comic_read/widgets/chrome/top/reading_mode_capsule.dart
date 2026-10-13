@@ -112,7 +112,7 @@ class ReadingDirectionToggle extends StatelessWidget {
         currentMode == kReadModeRowLtr || currentMode == kReadModeRowRtl;
 
     return ReaderToolbarToggleChip(
-      icon: isLeftOpen ? AppGlyphs.arrowBack : AppGlyphs.arrowForward,
+      icon: isLeftOpen ? AppGlyphs.chevronBack : AppGlyphs.chevronForward,
       label: showLabel ? t.reader.readingDirectionToggle : null,
       tooltip: !isHorizontal
           ? t.reader.readingDirectionToggleDisabled
@@ -152,12 +152,12 @@ class CompactReadingModeButton extends StatelessWidget {
           '${t.reader.webtoon}（点击切为${t.reader.readingDirectionRightOpen}）';
       nextMode = kReadModeRowLtr;
     } else if (currentMode == kReadModeRowLtr) {
-      icon = AppGlyphs.arrowForward;
+      icon = AppGlyphs.chevronForward;
       tooltip =
           '${t.reader.readingDirectionRightOpen}（点击切为${t.reader.readingDirectionLeftOpen}）';
       nextMode = kReadModeRowRtl;
     } else {
-      icon = AppGlyphs.arrowBack;
+      icon = AppGlyphs.chevronBack;
       tooltip = '${t.reader.readingDirectionLeftOpen}（点击切为${t.reader.webtoon}）';
       nextMode = kReadModeColumn;
     }

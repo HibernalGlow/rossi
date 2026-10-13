@@ -133,6 +133,25 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
         widget.from.isNotEmpty &&
         !isLocalComicSource(widget.from, widget.comicId);
 
+    Widget surface(Widget child) {
+      final content = ActionBubbleRegion(child: child);
+      return topBarSpec.liquidGlass
+          ? Material(
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
+              elevation: 3,
+              borderRadius: appBarShape,
+              clipBehavior: Clip.antiAlias,
+              child: content,
+            )
+          : DecoratedBox(
+              decoration: BoxDecoration(
+                color: topBarSpec.scrim,
+                borderRadius: appBarShape,
+              ),
+              child: content,
+            );
+    }
+
     // 顶栏本体（两种材质共用同一份内容，只有外面那层材质不同）。
     final barContent = LayoutBuilder(
       builder: (context, constraints) {
@@ -146,17 +165,19 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildPrimaryToolbar(
-              context: context,
-              readSetting: readSetting,
-              cubit: globalSettingCubit,
-              tier: tier,
-              secondaryRow: secondaryRow,
-              fitMode: fitMode,
-              bookTitle: bookTitle,
-              showDownloadEntry: showDownloadEntry,
-              // 芯片要按可用宽度决定写不写分辨率：窄屏硬塞会撑爆这一行。
-              availableWidth: constraints.maxWidth,
+            surface(
+              _buildPrimaryToolbar(
+                context: context,
+                readSetting: readSetting,
+                cubit: globalSettingCubit,
+                tier: tier,
+                secondaryRow: secondaryRow,
+                fitMode: fitMode,
+                bookTitle: bookTitle,
+                showDownloadEntry: showDownloadEntry,
+                // 芯片要按可用宽度决定写不写分辨率：窄屏硬塞会撑爆这一行。
+                availableWidth: constraints.maxWidth,
+              ),
             ),
             if (secondaryRow)
               _buildSecondaryToolbar(
@@ -201,26 +222,7 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
           child: MouseRegion(
             onEnter: (_) => hoverController?.onEnterTopBar(),
             onExit: (_) => hoverController?.onExitTopBar(),
-            child: topBarSpec.liquidGlass
-                // 顶栏压在漫画内容上，前景必须永远读得清，走最实的一档；
-                // 贴着屏幕顶，阴影按体量收小。
-                ? Material(
-                    color: Theme.of(context).colorScheme.surfaceContainerLow,
-                    elevation: 3,
-                    borderRadius: appBarShape,
-                    clipBehavior: Clip.antiAlias,
-                    child: ActionBubbleRegion(child: barContent),
-                  )
-                // 透明档：只有一层蒙层铺在画面上，不模糊、不带阴影。
-                // 颜色是主题 `surface` 加透明度，所以顶栏里的文字与图标
-                // 一个都不用改色（`onSurface` 对 `surface` 的对比度天然成立）。
-                : DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: topBarSpec.scrim,
-                      borderRadius: appBarShape,
-                    ),
-                    child: ActionBubbleRegion(child: barContent),
-                  ),
+            child: barContent,
           ),
         ),
       ),

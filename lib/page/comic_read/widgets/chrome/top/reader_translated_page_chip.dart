@@ -1,9 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/widgets/expressive/expressive_shape.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
-import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_feature_button.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/reader/translated_page_status.dart';
@@ -78,8 +79,6 @@ class ReaderTranslatedPageChip extends StatelessWidget {
     int index,
     TranslatedPageChipState state,
   ) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     // 这一页的字是叠上去的还是烤进像素的 —— 与叠层画的是同一本账（见 [translatedPageDisplayOf]）。
     final display = translatedPageDisplayOf(
       overlayLabel: controller.overlayLabelFor(index),
@@ -87,27 +86,9 @@ class ReaderTranslatedPageChip extends StatelessWidget {
     final onLabel = display == TranslatedPageDisplay.overlay
         ? t.ocr.chipOnOverlay
         : t.ocr.chipOn;
-    final (Color bg, Color fg) = switch (state) {
-      TranslatedPageChipState.failed => (
-        scheme.errorContainer,
-        scheme.onErrorContainer,
-      ),
-      TranslatedPageChipState.showing => (
-        scheme.secondaryContainer,
-        scheme.onSecondaryContainer,
-      ),
-      // 被原图对比挡住：既不能用失败色（没失败），也不能用 showing 的强调色
-      // （画面上此刻就是原图）。给它中性色 + 一个「看不见」的图标。
-      TranslatedPageChipState.blockedByOriginalPreview => (
-        scheme.surfaceContainerHighest,
-        scheme.onSurfaceVariant,
-      ),
-      _ => (scheme.surfaceContainerHigh, scheme.onSurfaceVariant),
-    };
-    final showLabel = availableWidth >= 620;
-
-    return Tooltip(
-      message: switch (state) {
+    return ReaderToolbarFeatureButton(
+      shape: ExpressiveButtonShape.slanted,
+      tooltip: switch (state) {
         TranslatedPageChipState.failed => controller.lastError,
         TranslatedPageChipState.showing => onLabel,
         TranslatedPageChipState.building => t.ocr.building,
@@ -116,78 +97,44 @@ class ReaderTranslatedPageChip extends StatelessWidget {
         // 本来也是原文。要补 i18n 就在 `ocr` 段加两个键，别在这里另起一套。
         TranslatedPageChipState.blockedByOriginalPreview =>
           '译文已经生成并注入，正被「对比原图」挡着：切回超分就显示译文',
-        _ => t.ocr.chipOff,
+        _ => t.reader.tabTranslate,
       },
-      child: InkWell(
-        borderRadius: BorderRadius.circular(ReaderToolbarMetrics.fullRadius),
-        onTap: () async {
-          switch (translatedPageTapFor(state)) {
-            case TranslatedPageTap.wait:
-              showInfoToast(t.ocr.busyToast);
-              return;
-            case TranslatedPageTap.toggle:
-              break;
-          }
-          final ok = await controller.toggle(
-            source: source,
-            presenter: TranslatedPagePresenter.of(presenter),
-            index: index,
-          );
-          if (!ok && controller.lastError.isNotEmpty) {
-            showErrorToast(controller.lastError);
-          }
-        },
-        child: Container(
-          height: ReaderToolbarMetrics.chipHeight,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(
-              ReaderToolbarMetrics.fullRadius,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              GlyphIcon(
-                switch (state) {
-                  TranslatedPageChipState.building =>
-                    AppGlyphs.hourglass,
-                  // 「注进去了但这会儿看不见」——窄屏上不显示文字时，图标是这一态
-                  // 唯一和「译」「译文页」区分得开的东西。
-                  TranslatedPageChipState.blockedByOriginalPreview =>
-                    AppGlyphs.eyeOff,
-                  // 窄屏上文字位被门槛砍掉，叠层与烘焙只剩图标能分 ——
-                  // 而这一维正是用户判断「超分还在不在」的唯一线索。
-                  TranslatedPageChipState.showing
-                      when display == TranslatedPageDisplay.overlay =>
-                    AppGlyphs.layers,
-                  _ => AppGlyphs.translate,
-                },
-                size: 14,
-                color: fg,
-              ),
-              if (showLabel) ...[
-                const SizedBox(width: 4),
-                Text(
-                  switch (state) {
-                    TranslatedPageChipState.building => t.ocr.building,
-                    TranslatedPageChipState.failed => t.ocr.failedShort,
-                    TranslatedPageChipState.showing => onLabel,
-                    TranslatedPageChipState.blockedByOriginalPreview =>
-                      '原图对比中',
-                    TranslatedPageChipState.off => t.ocr.chipOff,
-                  },
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: fg,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
+      onPressed: () async {
+        switch (translatedPageTapFor(state)) {
+          case TranslatedPageTap.wait:
+            showInfoToast(t.ocr.busyToast);
+            return;
+          case TranslatedPageTap.toggle:
+            break;
+        }
+        final ok = await controller.toggle(
+          source: source,
+          presenter: TranslatedPagePresenter.of(presenter),
+          index: index,
+        );
+        if (!ok && controller.lastError.isNotEmpty) {
+          showErrorToast(controller.lastError);
+        }
+      },
+      icon: switch (state) {
+        TranslatedPageChipState.blockedByOriginalPreview => AppGlyphs.eyeOff,
+        TranslatedPageChipState.showing
+            when display == TranslatedPageDisplay.overlay =>
+          AppGlyphs.layers,
+        TranslatedPageChipState.failed => AppGlyphs.error,
+        _ => AppGlyphs.translate,
+      },
+      label: switch (state) {
+        TranslatedPageChipState.building => t.ocr.building,
+        TranslatedPageChipState.failed => t.ocr.failedShort,
+        TranslatedPageChipState.showing => onLabel,
+        TranslatedPageChipState.blockedByOriginalPreview => '原图对比中',
+        _ => t.reader.tabTranslate,
+      },
+      selected: state == TranslatedPageChipState.showing,
+      busy: state == TranslatedPageChipState.building,
+      failed: state == TranslatedPageChipState.failed,
+      showLabel: availableWidth >= 720 || state == TranslatedPageChipState.off,
     );
   }
 }
