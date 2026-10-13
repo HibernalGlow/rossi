@@ -389,6 +389,7 @@ fn map_entry(entry: CoreEntry) -> FileManagerEntry {
         size: entry.node.size,
         modified_secs: entry.node.modified_secs,
         has_children: entry.node.has_children,
+        penetratable: entry.penetratable,
         child_names: entry
             .children
             .into_iter()

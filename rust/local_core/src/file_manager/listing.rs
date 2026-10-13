@@ -18,6 +18,27 @@ pub(super) fn resolve_penetration_inner(
         Ok(entries) => entries,
         Err(_) => return PenetrationResult::Blocked,
     };
+    judge_penetration(path, &entries, depth, max_depth, show_hidden_files, visited)
+}
+
+/// 拿着「已经列好的这一层」判决穿透。与 [`resolve_penetration_inner`] 同一套规则，
+/// 只是目录内容现成传入 —— `describe_children` 本来就要读这一层，父目录该不该被
+/// 穿透（UI 用它决定双击有没有意义）于是不用多开一次盘。
+///
+/// 层数闸门在这里重复一遍是有意的：`resolve_penetration_inner` 在**读盘之前**就要它，
+/// 好让走到上限的那条链不去枚举最后一层；这里再要一次，是为了单独调用本函数的人也
+/// 拿到同一个判决，而不必先自己判。
+pub(super) fn judge_penetration(
+    path: &Path,
+    entries: &[FileTreeNode],
+    depth: usize,
+    max_depth: usize,
+    show_hidden_files: bool,
+    visited: &mut HashSet<String>,
+) -> PenetrationResult {
+    if depth > max_depth || depth >= MAX_PENETRATION_DEPTH {
+        return PenetrationResult::Blocked;
+    }
     if entries.is_empty() {
         return PenetrationResult::Empty;
     }
@@ -59,15 +80,29 @@ pub(super) fn resolve_penetration_inner(
 pub(super) fn describe_children(
     path: &Path,
     settings: &FileManagerSettings,
-) -> Vec<FileManagerChild> {
+) -> (bool, Vec<FileManagerChild>) {
     let Ok(entries) = list_directory_with_hidden(path, settings.show_hidden_files) else {
-        return Vec::new();
+        return (false, Vec::new());
     };
+    // 这一层的判决要在**截断之前**用整份列表算：`internal_items_mode = Single` 只截
+    // 要展示的条数，「只有一个归档」这种判据看的是全部。
+    let penetratable = settings.penetration_enabled
+        && matches!(
+            judge_penetration(
+                path,
+                &entries,
+                0,
+                settings.max_depth.min(MAX_PENETRATION_DEPTH),
+                settings.show_hidden_files,
+                &mut HashSet::new(),
+            ),
+            PenetrationResult::Terminal(_)
+        );
     let limit = match settings.internal_items_mode {
         InternalItemsMode::Single => 1,
         InternalItemsMode::All => entries.len(),
     };
-    entries
+    let children: Vec<FileManagerChild> = entries
         .into_iter()
         .take(limit)
         .map(|entry| {
@@ -113,7 +148,8 @@ pub(super) fn describe_children(
                 is_audio: entry.is_audio,
             }
         })
-        .collect()
+        .collect();
+    (penetratable, children)
 }
 
 impl FileManagerState {
@@ -153,13 +189,28 @@ impl FileManagerState {
         Ok(nodes
             .into_iter()
             .map(|node| {
-                let children =
-                    if node.is_dir && settings.penetration_enabled && settings.show_child_names {
-                        describe_children(Path::new(&node.path), settings)
-                    } else {
-                        Vec::new()
-                    };
-                FileManagerEntry { node, children }
+                // 「这一行的单击会不会被穿透劫走」和子文件名共用同一次列目录（见
+                // `describe_children`）。UI 需要它才敢给文件夹行挂双击：挂上就要为
+                // 每一次单击付一个 kDoubleTapTimeout，所以只该挂在**真的**有两种含义
+                // 的那些行上。
+                let (penetratable, children) = if node.is_dir && settings.penetration_enabled {
+                    let (penetratable, listed) = describe_children(Path::new(&node.path), settings);
+                    (
+                        penetratable,
+                        if settings.show_child_names {
+                            listed
+                        } else {
+                            Vec::new()
+                        },
+                    )
+                } else {
+                    (false, Vec::new())
+                };
+                FileManagerEntry {
+                    node,
+                    penetratable,
+                    children,
+                }
             })
             .collect())
     }

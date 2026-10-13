@@ -8066,8 +8066,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   FileManagerEntry dco_decode_file_manager_entry(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 12)
-      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
+    if (arr.length != 13)
+      throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
     return FileManagerEntry(
       path: dco_decode_String(arr[0]),
       name: dco_decode_String(arr[1]),
@@ -8079,8 +8079,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       size: dco_decode_u_64(arr[7]),
       modifiedSecs: dco_decode_i_64(arr[8]),
       hasChildren: dco_decode_bool(arr[9]),
-      childNames: dco_decode_list_file_manager_child(arr[10]),
-      searchDirectory: dco_decode_opt_String(arr[11]),
+      penetratable: dco_decode_bool(arr[10]),
+      childNames: dco_decode_list_file_manager_child(arr[11]),
+      searchDirectory: dco_decode_opt_String(arr[12]),
     );
   }
 
@@ -9478,6 +9479,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_size = sse_decode_u_64(deserializer);
     var var_modifiedSecs = sse_decode_i_64(deserializer);
     var var_hasChildren = sse_decode_bool(deserializer);
+    var var_penetratable = sse_decode_bool(deserializer);
     var var_childNames = sse_decode_list_file_manager_child(deserializer);
     var var_searchDirectory = sse_decode_opt_String(deserializer);
     return FileManagerEntry(
@@ -9491,6 +9493,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       size: var_size,
       modifiedSecs: var_modifiedSecs,
       hasChildren: var_hasChildren,
+      penetratable: var_penetratable,
       childNames: var_childNames,
       searchDirectory: var_searchDirectory,
     );
@@ -11285,6 +11288,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_u_64(self.size, serializer);
     sse_encode_i_64(self.modifiedSecs, serializer);
     sse_encode_bool(self.hasChildren, serializer);
+    sse_encode_bool(self.penetratable, serializer);
     sse_encode_list_file_manager_child(self.childNames, serializer);
     sse_encode_opt_String(self.searchDirectory, serializer);
   }

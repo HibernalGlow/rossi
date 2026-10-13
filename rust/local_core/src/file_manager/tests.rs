@@ -213,6 +213,106 @@ fn penetration_resolves_unique_nested_archive_and_rejects_branch() {
     assert_eq!(state.resolve_penetration(&root), PenetrationResult::Branch);
 }
 
+/// 双击文件夹依赖的契约：`force_enter` 让穿透让位，浏览位置真的进这一层。
+///
+/// 之所以两条都要断言：只测「强制进入会导航」看不出穿透还在不在 —— 前一段就是
+/// 穿透本身（位置不动、交出链末那本书），它必须继续成立。
+#[test]
+fn force_enter_gives_a_penetratable_folder_back_to_the_browser() {
+    let dir = tempdir().unwrap();
+    let root = dir.path().join("root");
+    let nested = root.join("nested");
+    fs::create_dir(&root).unwrap();
+    fs::create_dir(&nested).unwrap();
+    touch(&nested.join("book.cbz"));
+    let mut state = FileManagerState::new(Some(root.clone())).unwrap();
+    state.set_penetration_enabled(true);
+
+    assert_eq!(
+        state.open_entry(&nested, false).unwrap(),
+        OpenEntryResult::Opened(nested.join("book.cbz"))
+    );
+    assert_eq!(state.active_path(), root);
+
+    assert_eq!(
+        state.open_entry(&nested, true).unwrap(),
+        OpenEntryResult::Entered(nested.clone())
+    );
+    assert_eq!(state.active_path(), nested);
+    assert!(state.go_back());
+    assert_eq!(state.active_path(), root);
+}
+
+/// 列表上的 `penetratable` 必须和「单击这一行会怎样」是同一件事，否则 UI 挂双击
+/// 的判据就是猜的：这条测试用 `open_entry(_, false)` 当尺去对每个目录。
+#[test]
+fn entry_penetratable_flag_agrees_with_what_a_click_would_do() {
+    let dir = tempdir().unwrap();
+    let root = dir.path().join("root");
+    let single = root.join("single");
+    let branch = root.join("branch");
+    fs::create_dir(&root).unwrap();
+    fs::create_dir(&single).unwrap();
+    fs::create_dir(&branch).unwrap();
+    touch(&single.join("book.cbz"));
+    touch(&branch.join("a.cbz"));
+    touch(&branch.join("b.cbz"));
+
+    // 每一次探测另开一份会话：Branch 那一格的单击会真的导航，不能让上一格把位置
+    // 搬走了以后，下一格问的已经是另一个目录。
+    let listed_with = |penetration: bool| {
+        let mut state = FileManagerState::new(Some(root.clone())).unwrap();
+        state.set_penetration_enabled(penetration);
+        let entries = state.entries().unwrap();
+        entries
+            .into_iter()
+            .map(|entry| {
+                let mut probe = FileManagerState::new(Some(root.clone())).unwrap();
+                probe.set_penetration_enabled(penetration);
+                let clicked = probe
+                    .open_entry(Path::new(&entry.node.path), false)
+                    .unwrap();
+                (
+                    entry.node.name.clone(),
+                    entry.penetratable,
+                    matches!(clicked, OpenEntryResult::Opened(_)),
+                )
+            })
+            .collect::<Vec<_>>()
+    };
+
+    let listed = listed_with(true);
+    assert_eq!(listed.len(), 2);
+    for (name, flag, click_opens_reader) in &listed {
+        assert_eq!(
+            flag, click_opens_reader,
+            "标记必须说出「单击这一行会不会被穿透劫走」：{name}"
+        );
+    }
+    // 两条各自站住的期望：只有一个是真的时候，上面那句差集断言也才不是在自我循环。
+    assert!(
+        listed
+            .iter()
+            .any(|(name, flag, _)| name == "single" && *flag),
+        "只有一个归档的目录必须判成可穿透（阳性对照）"
+    );
+    assert!(
+        listed
+            .iter()
+            .any(|(name, flag, _)| name == "branch" && !*flag),
+        "两个候选的目录必须判成不可穿透（阴性对照）"
+    );
+
+    // 穿透关闭时这条判据根本不参与，标记一律为假、单击一律按「进这一层」走。
+    let listed = listed_with(false);
+    assert!(
+        listed
+            .iter()
+            .all(|(_, flag, click_opens_reader)| !flag && !click_opens_reader),
+        "穿透关闭时不该有任何一行被标成可穿透：{listed:?}"
+    );
+}
+
 #[test]
 fn child_name_projection_supports_single_and_all_modes() {
     let dir = tempdir().unwrap();
