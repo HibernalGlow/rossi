@@ -67,7 +67,10 @@ class ReaderActionDispatcher {
     String bindingsArrayJson, {
     bool swapHorizontal = false,
   }) {
-    final inputJson = keyboardInputJsonOf(event, swapHorizontal: swapHorizontal);
+    final inputJson = keyboardInputJsonOf(
+      event,
+      swapHorizontal: swapHorizontal,
+    );
     if (inputJson == null) return false;
     return dispatchInput(
       inputJson,

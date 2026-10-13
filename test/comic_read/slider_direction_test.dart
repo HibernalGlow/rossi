@@ -25,11 +25,7 @@ Widget _harness({
     ],
     child: MaterialApp(
       home: Scaffold(
-        body: Row(
-          children: [
-            SliderWidget(onJumpToSlot: onJumpToSlot),
-          ],
-        ),
+        body: Row(children: [SliderWidget(onJumpToSlot: onJumpToSlot)]),
       ),
     ),
   );
@@ -90,10 +86,7 @@ void main() {
 
   testWidgets('鼠标点完轨道后再动一下，待提交的跳页不能被取消', (tester) async {
     final committed = <int>[];
-    final readerCubit = await _pumpHarness(
-      tester,
-      onJumpToSlot: committed.add,
-    );
+    final readerCubit = await _pumpHarness(tester, onJumpToSlot: committed.add);
 
     final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
     addTearDown(gesture.removePointer);

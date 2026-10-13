@@ -99,7 +99,10 @@ Widget buildReadModeImage({
 
   Widget withOverlay(Widget child) => Stack(
     fit: StackFit.passthrough,
-    children: [child, Positioned.fill(child: overlay)],
+    children: [
+      child,
+      Positioned.fill(child: overlay),
+    ],
   );
 
   if (effectivePlaced.quarterTurns == 0) {
@@ -113,10 +116,7 @@ Widget buildReadModeImage({
     width: effectivePlaced.boxSize.width,
     height: effectivePlaced.boxSize.height,
     child: withOverlay(
-      RotatedBox(
-        quarterTurns: effectivePlaced.quarterTurns,
-        child: image,
-      ),
+      RotatedBox(quarterTurns: effectivePlaced.quarterTurns, child: image),
     ),
   );
 }

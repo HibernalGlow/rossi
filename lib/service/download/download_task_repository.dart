@@ -250,8 +250,7 @@ class DownloadTaskRepository {
   ///
   /// 只摘取消态的行：完成/失败/暂停的行是给用户看的，不动。
   List<String> removeCancelledTaskRecords() {
-    final orphans = objectbox
-        .downloadTaskBox
+    final orphans = objectbox.downloadTaskBox
         .getAll()
         .where((task) => task.isCompleted && _isCancelledRecord(task))
         .toList();

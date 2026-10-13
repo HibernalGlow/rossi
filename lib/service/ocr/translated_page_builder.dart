@@ -554,7 +554,10 @@ class TranslatedPageBuilder {
       OcrLog.add('$page 原图解不出字节，这一页不采底色（继续用擦字底图叠）');
       return List<ui.Color?>.filled(blocks.length, null);
     }
-    final rgba = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+    final rgba = data.buffer.asUint8List(
+      data.offsetInBytes,
+      data.lengthInBytes,
+    );
     final fills = <ui.Color?>[];
     for (final b in blocks) {
       final sampled = sampleBoxFill(

@@ -37,12 +37,10 @@ class TagTranslation {
   }
 
   static Future<void> _load() async {
-    final data = await rootBundle.load(
-      'asset/tag_translation/etht.json.gz',
-    );
-    final decoded = jsonDecode(
-      utf8.decode(gzip.decode(data.buffer.asUint8List())),
-    ) as Map<String, dynamic>;
+    final data = await rootBundle.load('asset/tag_translation/etht.json.gz');
+    final decoded =
+        jsonDecode(utf8.decode(gzip.decode(data.buffer.asUint8List())))
+            as Map<String, dynamic>;
     final toChinese = <String, List<String>>{};
     final toEnglish = <String, List<String>>{};
     for (final ns in decoded.entries) {
