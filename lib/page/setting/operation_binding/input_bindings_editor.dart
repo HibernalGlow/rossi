@@ -7,6 +7,7 @@ import 'package:zephyr/page/setting/operation_binding/binding_action_presentatio
 import 'package:zephyr/page/setting/operation_binding/binding_editor_labels.dart';
 import 'package:zephyr/page/setting/operation_binding/binding_input_editor.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/page/setting/operation_binding/binding_search_field.dart';
 
 /// 动作分类导航 + 绑定摘要；编辑时仍使用核心的同一份平面绑定表。
 class InputBindingsEditor extends StatefulWidget {
@@ -267,14 +268,9 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
   Widget _toolbar() => Row(
     children: [
       Expanded(
-        child: SearchBar(
+        child: BindingSearchField(
           controller: _search,
           hintText: t.bindingEditor.searchAll,
-          leading: const GlyphIcon(AppGlyphs.search),
-          elevation: const WidgetStatePropertyAll(0),
-          backgroundColor: WidgetStatePropertyAll(
-            Theme.of(context).colorScheme.surfaceContainerHighest,
-          ),
           trailing: [
             if (_search.text.isNotEmpty)
               IconButton(

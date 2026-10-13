@@ -12,6 +12,8 @@ import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/search/search_history_field.dart';
+import 'package:zephyr/widgets/search/search_history_store.dart';
 
 @RoutePage()
 class FavoriteArtistSettingPage extends StatefulWidget {
@@ -351,7 +353,8 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
                 SizedBox(
                   width: 160,
                   height: 36,
-                  child: TextField(
+                  child: SearchHistoryField(
+                    history: SearchHistoryStore.local('favorite-artists'),
                     controller: _filterController,
                     decoration: InputDecoration(
                       hintText: '搜索画师...',

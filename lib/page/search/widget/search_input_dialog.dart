@@ -9,6 +9,8 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/motion/action_bubble.dart';
 import 'package:zephyr/widgets/motion/expressive_motion.dart';
+import 'package:zephyr/widgets/search/search_history_field.dart';
+import 'package:zephyr/widgets/search/search_history_store.dart';
 
 class SearchQueryField extends StatefulWidget {
   const SearchQueryField({
@@ -22,9 +24,13 @@ class SearchQueryField extends StatefulWidget {
     this.semanticLabel,
     this.focusNode,
     this.closeOnSubmit = true,
+    this.history,
+    this.recordHistoryOnBlur = false,
   });
 
   final String query;
+  final SearchHistoryStore? history;
+  final bool recordHistoryOnBlur;
   final FutureOr<void> Function(String query)? onSubmitted;
   final ValueChanged<String>? onChanged;
   final VoidCallback? onTap;
@@ -122,6 +128,9 @@ class _SearchQueryFieldState extends State<SearchQueryField>
     super.didUpdateWidget(oldWidget);
     if (!_isExpanded && oldWidget.query != widget.query) {
       _setControllerText(widget.query);
+    }
+    if (oldWidget.history?.scope != widget.history?.scope) {
+      _overlayEntry?.markNeedsBuild();
     }
     if (!oldWidget.autoExpand && widget.autoExpand) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -562,7 +571,11 @@ class _SearchQueryFieldState extends State<SearchQueryField>
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: TextField(
+                      child: SearchHistoryField(
+                        history:
+                            widget.history ??
+                            SearchHistoryStore.local('search'),
+                        recordOnBlur: widget.recordHistoryOnBlur,
                         controller: _controller,
                         focusNode: _focusNode,
                         autofocus: true,
@@ -575,8 +588,6 @@ class _SearchQueryFieldState extends State<SearchQueryField>
                         // 软键盘回车即 search（桌面端硬件回车同样走 performAction）；
                         // 长文本靠软换行撑到最多 6 行展示，singleLineFormatter 只拦硬换行
                         // （粘贴带 \n 时），不影响软换行。
-                        keyboardType: TextInputType.text,
-                        textInputAction: TextInputAction.search,
                         minLines: 1,
                         maxLines: 6,
                         inputFormatters: [
