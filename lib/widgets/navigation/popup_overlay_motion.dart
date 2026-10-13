@@ -10,6 +10,8 @@ class CommonPopupOverlayMotion extends StatefulWidget {
     required this.visible,
     required this.onDismissed,
     required this.child,
+    this.surfaceColor,
+    this.drawShadow = true,
   });
 
   final Size size;
@@ -17,6 +19,8 @@ class CommonPopupOverlayMotion extends StatefulWidget {
   final bool visible;
   final VoidCallback onDismissed;
   final Widget child;
+  final Color? surfaceColor;
+  final bool drawShadow;
 
   @override
   State<CommonPopupOverlayMotion> createState() =>
@@ -116,8 +120,12 @@ class _CommonPopupOverlayMotionState extends State<CommonPopupOverlayMotion>
               endRadius: _cardRadius,
               sourceColor: Colors.transparent,
               sourceImage: null,
-              surfaceColor: context.colorScheme.surfaceContainerHigh,
-              shadows: _cardShadows(context.colorScheme),
+              surfaceColor:
+                  widget.surfaceColor ??
+                  context.colorScheme.surfaceContainerHigh,
+              shadows: widget.drawShadow
+                  ? _cardShadows(context.colorScheme)
+                  : const [],
               child: widget.child,
             ),
           ),

@@ -2,13 +2,30 @@ import 'package:flutter_ray_menu/flutter_ray_menu.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
 import 'package:zephyr/service/operation_binding/radial_doc.dart';
+import 'package:zephyr/widgets/radial/radial_action_icons.dart';
 
 /// 阅读器文档适配仅留在应用内；flutter_ray_menu 不依赖 Rust、绑定表和本地化。
 List<RayMenuRing> readerRayRings(
   List<RadialSlotPaint> slots, {
   bool editing = false,
+  RadialDoc? doc,
+  List<Map<String, dynamic>> bindings = const [],
+  Map<String, dynamic>? Function(RadialSlotRef slot)? resolveBinding,
 }) {
   final levels = slots.map((slot) => slot.level).toSet().toList()..sort();
+  Widget iconFor(RadialSlotPaint slot) {
+    final ref = slot.slot!;
+    final binding = resolveBinding != null
+        ? resolveBinding(ref)
+        : bindings.where((row) => slotOfBinding(row) == ref).firstOrNull;
+    return radialActionIcon(
+      item: doc?.menu(slot.menuId)?.item(slot.itemId!),
+      action: binding?['action'] as String? ?? slot.legacyAction,
+      menuJump: slot.moveToMenuId != null,
+      chained: (binding?['followUpActions'] as List? ?? const []).isNotEmpty,
+    );
+  }
+
   return [
     for (final level in levels)
       RayMenuRing(
@@ -21,6 +38,7 @@ List<RayMenuRing> readerRayRings(
                 label: slot.label ?? slot.itemId!,
                 slot: slot.index,
                 enabled: editing || (slot.selectable && !slot.disabled),
+                icon: iconFor(slot),
               ),
         ],
       ),
@@ -37,10 +55,9 @@ RayMenuGeometry readerRayGeometry(RadialDoc doc) => RayMenuGeometry(
       : RayMenuVariant.slice,
 );
 
-/// 轮盘的 MD3 取色。按 M3「菜单」这一档来对：容器用 `surfaceContainer`，格子上浮一档
-/// 用 `surfaceContainerHigh`，指针下那一格是**选中态**而不是「描个边」——
-/// `secondaryContainer` 填充 + `onSecondaryContainer` 文字（M3 里 primary 留给按钮，
-/// 菜单/列表的选中一律 secondary 系）。整张盘靠投影与色差分层，不再画一圈圈描边。
+/// 轮盘的 MD3 取色。蜂窝按钮用 `surfaceContainerHigh` 独立表面，
+/// 指针下的按钮用 `secondaryContainer` / `onSecondaryContainer` 表达选中。
+/// 阅读浮层保留轻遮罩，嵌入编辑器时透明；不再绘制整块圆盘底板。
 RayMenuStyle readerRayStyle(BuildContext context, {bool embedded = false}) {
   final theme = Theme.of(context);
   final colors = theme.colorScheme;

@@ -845,7 +845,7 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get operationBindingRadialHintDisabled => 'Off · the wheel will not open while reading';
 	@override String get operationBindingRadialAppearance => 'Appearance & geometry';
 	@override String operationBindingRadialGeometrySummary({required Object radius, required Object inner, required Object variant}) => 'r${radius} · inner ${inner} · ${variant}';
-	@override String get operationBindingRadialRadius => 'Outer radius';
+	@override String get operationBindingRadialRadius => 'Wheel size';
 	@override String get operationBindingRadialInnerRadius => 'Inner radius (hole)';
 	@override String get operationBindingRadialSectors => 'Sectors per layer';
 	@override String get operationBindingRadialSlots => 'Slots';
@@ -866,17 +866,19 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get operationBindingRadialKindAction => 'Run action';
 	@override String get operationBindingRadialKindMove => 'Jump to wheel';
 	@override String get operationBindingRadialTargetWheel => 'Target wheel';
+	@override String get operationBindingRadialIcon => 'Icon';
+	@override String get operationBindingRadialIconAuto => 'Match action automatically';
 	@override String get operationBindingRadialLabel => 'Label';
 	@override String get operationBindingRadialSlotIndex => 'Slot';
 	@override String get operationBindingRadialItemEnabled => 'This slot is enabled';
 	@override String get operationBindingRadialMoveUp => 'Move earlier';
 	@override String get operationBindingRadialMoveDown => 'Move later';
 	@override String get operationBindingRadialDeleteItem => 'Delete this slot';
-	@override String get operationBindingRadialStartAngle => 'Start angle';
+	@override String get operationBindingRadialStartAngle => 'Rotation';
 	@override String get operationBindingRadialSweepAngle => 'Sweep angle';
 	@override String get operationBindingRadialVariant => 'Style';
-	@override String get operationBindingRadialVariantSlice => 'Slices';
-	@override String get operationBindingRadialVariantBubble => 'Bubbles';
+	@override String get operationBindingRadialVariantSlice => 'Rounded buttons';
+	@override String get operationBindingRadialVariantBubble => 'Round buttons';
 	@override String operationBindingRadialLayerN({required Object n}) => 'Layer ${n}';
 	@override String get operationBindingRadialSelectedSlot => 'Selected slot';
 	@override String get operationBindingRadialPickHint => 'Tap a sector on the wheel to pick it; empty ones show +';
@@ -3259,7 +3261,7 @@ extension on TranslationsEnUs {
 			'settings.operationBindingRadialHintDisabled' => 'Off · the wheel will not open while reading',
 			'settings.operationBindingRadialAppearance' => 'Appearance & geometry',
 			'settings.operationBindingRadialGeometrySummary' => ({required Object radius, required Object inner, required Object variant}) => 'r${radius} · inner ${inner} · ${variant}',
-			'settings.operationBindingRadialRadius' => 'Outer radius',
+			'settings.operationBindingRadialRadius' => 'Wheel size',
 			'settings.operationBindingRadialInnerRadius' => 'Inner radius (hole)',
 			'settings.operationBindingRadialSectors' => 'Sectors per layer',
 			'settings.operationBindingRadialSlots' => 'Slots',
@@ -3280,17 +3282,19 @@ extension on TranslationsEnUs {
 			'settings.operationBindingRadialKindAction' => 'Run action',
 			'settings.operationBindingRadialKindMove' => 'Jump to wheel',
 			'settings.operationBindingRadialTargetWheel' => 'Target wheel',
+			'settings.operationBindingRadialIcon' => 'Icon',
+			'settings.operationBindingRadialIconAuto' => 'Match action automatically',
 			'settings.operationBindingRadialLabel' => 'Label',
 			'settings.operationBindingRadialSlotIndex' => 'Slot',
 			'settings.operationBindingRadialItemEnabled' => 'This slot is enabled',
 			'settings.operationBindingRadialMoveUp' => 'Move earlier',
 			'settings.operationBindingRadialMoveDown' => 'Move later',
 			'settings.operationBindingRadialDeleteItem' => 'Delete this slot',
-			'settings.operationBindingRadialStartAngle' => 'Start angle',
+			'settings.operationBindingRadialStartAngle' => 'Rotation',
 			'settings.operationBindingRadialSweepAngle' => 'Sweep angle',
 			'settings.operationBindingRadialVariant' => 'Style',
-			'settings.operationBindingRadialVariantSlice' => 'Slices',
-			'settings.operationBindingRadialVariantBubble' => 'Bubbles',
+			'settings.operationBindingRadialVariantSlice' => 'Rounded buttons',
+			'settings.operationBindingRadialVariantBubble' => 'Round buttons',
 			'settings.operationBindingRadialLayerN' => ({required Object n}) => 'Layer ${n}',
 			'settings.operationBindingRadialSelectedSlot' => 'Selected slot',
 			'settings.operationBindingRadialPickHint' => 'Tap a sector on the wheel to pick it; empty ones show +',
@@ -3550,6 +3554,8 @@ extension on TranslationsEnUs {
 			'reader.readingDirectionRtl' => 'Right to left',
 			'reader.readingDirectionVertical' => 'Top to bottom',
 			'reader.webtoon' => 'Webtoon',
+			_ => null,
+		} ?? switch (path) {
 			'reader.singlePageRow' => 'Single page (horizontal)',
 			'reader.readingDirectionLeftOpen' => 'Left-opening · next page on the left',
 			'reader.readingDirectionRightOpen' => 'Right-opening · next page on the right',
@@ -3558,8 +3564,6 @@ extension on TranslationsEnUs {
 			'reader.readingDirectionToggleRightOpen' => 'Right-opening now (next page on the right) · tap for left-opening',
 			'reader.readingDirectionToggleDisabled' => 'Webtoon mode has no horizontal reading direction',
 			'reader.readingDirectionToggleSetting' => 'Show reading direction toggle in top bar',
-			_ => null,
-		} ?? switch (path) {
 			'reader.swipePreview' => 'Page-turn preview',
 			'reader.swipePreviewSubtitle' => 'Show the actual image on both sides while turning, instead of a large page-number placeholder (decodes one extra viewport-width bitmap per page)',
 			'reader.doublePage' => 'Double page',
@@ -4058,6 +4062,8 @@ extension on TranslationsEnUs {
 			'realSr.variantRealCuganDenoise' => ({required Object noise}) => 'Real-CUGAN denoise ${noise}',
 			'realSr.coremlSpeed' => 'Speed priority (waifu2x)',
 			'realSr.coremlQuality' => 'Quality priority (Real-CUGAN)',
+			_ => null,
+		} ?? switch (path) {
 			'realSr.coremlNoise0' => 'Denoise 0',
 			'realSr.coremlNoDenoise' => 'No denoise',
 			'realSr.coremlInputHint' => 'Enter input image absolute path or asset path',
@@ -4072,8 +4078,6 @@ extension on TranslationsEnUs {
 			'realSr.coremlGeneralOption' => 'General option (scale)',
 			'realSr.coremlTileInfo' => 'Tile info',
 			'about.title' => 'About app',
-			_ => null,
-		} ?? switch (path) {
 			'about.version' => ({required Object version}) => 'Version: ${version}',
 			'about.loading' => 'Loading...',
 			'about.fetchFailed' => 'Failed to load',
@@ -4572,6 +4576,8 @@ extension on TranslationsEnUs {
 			'bindingEditor.swipeDown' => 'Swipe down',
 			'bindingEditor.tap' => 'Tap',
 			'bindingEditor.longPress' => 'Long press',
+			_ => null,
+		} ?? switch (path) {
 			'bindingEditor.fingers' => 'Fingers',
 			'bindingEditor.gesture' => 'Touch gesture',
 			'bindingEditor.directions' => 'Gesture direction sequence',
@@ -4586,8 +4592,6 @@ extension on TranslationsEnUs {
 			'bindingEditor.middleLeft' => 'Middle left',
 			'bindingEditor.middleCenter' => 'Center',
 			'bindingEditor.middleRight' => 'Middle right',
-			_ => null,
-		} ?? switch (path) {
 			'bindingEditor.bottomLeft' => 'Bottom left',
 			'bindingEditor.bottomCenter' => 'Bottom center',
 			'bindingEditor.bottomRight' => 'Bottom right',

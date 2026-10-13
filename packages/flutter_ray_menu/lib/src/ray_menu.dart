@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'ray_menu_geometry.dart';
 import 'ray_menu_models.dart';
 import 'ray_menu_surface.dart';
+import 'package:flutter_ray_menu/src/ray_menu_presentation.dart';
 
 /// Controls a single mounted menu. The owner disposes this controller.
 class RayMenuController extends ChangeNotifier {
@@ -85,6 +86,10 @@ class RayMenu extends StatefulWidget {
     this.centerLabel = '',
     this.cancelLabel = 'Cancel',
     this.onEmptySelected,
+    this.surfaceBuilder,
+    this.visualHitTest,
+    this.onPointerPosition,
+    this.animate = true,
   });
 
   final List<RayMenuRing> rings;
@@ -109,6 +114,11 @@ class RayMenu extends StatefulWidget {
 
   /// Optional editor mode. Empty sectors become accessible add-item targets.
   final void Function(int ring, int slot)? onEmptySelected;
+
+  final RayMenuSurfaceBuilder? surfaceBuilder;
+  final RayMenuVisualHitTest? visualHitTest;
+  final RayMenuPointerObserver? onPointerPosition;
+  final bool animate;
 
   @override
   State<RayMenu> createState() => RayMenuState();
@@ -263,12 +273,15 @@ class RayMenuState extends State<RayMenu> with SingleTickerProviderStateMixin {
       final box = context.findRenderObject();
       if (box is! RenderBox || !box.hasSize) return;
       final local = box.globalToLocal(event.position);
+      widget.onPointerPosition?.call(local, event);
       _select(
-        _layout.hitTest(
-          _placement.toMenu(local),
-          visibleRings: _visibleRings,
-          includeEmpty: widget.onEmptySelected != null,
-        ),
+        widget.visualHitTest != null
+            ? widget.visualHitTest!(local)
+            : _layout.hitTest(
+                _placement.toMenu(local),
+                visibleRings: _visibleRings,
+                includeEmpty: widget.onEmptySelected != null,
+              ),
       );
     }
     if (event is PointerUpEvent) {
@@ -407,20 +420,38 @@ class RayMenuState extends State<RayMenu> with SingleTickerProviderStateMixin {
                 onPointerMove: _handlePointer,
                 onPointerUp: _handlePointer,
                 onPointerCancel: _handlePointer,
-                child: RayMenuSurface(
-                  layout: _layout,
-                  placement: _placement,
-                  style: widget.style,
-                  visibleRings: _visibleRings,
-                  selected: _selected,
-                  centerLabel: widget.centerLabel,
-                  cancelLabel: widget.cancelLabel,
-                  editEmpty: widget.onEmptySelected != null,
-                  onSelected: (slot) {
-                    _select(slot);
-                    _confirm();
-                  },
-                ),
+                child:
+                    widget.surfaceBuilder?.call(
+                      context,
+                      RayMenuPresentation(
+                        layout: _layout,
+                        placement: _placement,
+                        size: constraints.biggest,
+                        style: widget.style,
+                        visibleRings: _visibleRings,
+                        selected: _selected,
+                        centerLabel: widget.centerLabel,
+                        editEmpty: widget.onEmptySelected != null,
+                        onSelected: (slot) {
+                          _select(slot);
+                          _confirm();
+                        },
+                      ),
+                    ) ??
+                    RayMenuSurface(
+                      layout: _layout,
+                      placement: _placement,
+                      style: widget.style,
+                      visibleRings: _visibleRings,
+                      selected: _selected,
+                      centerLabel: widget.centerLabel,
+                      cancelLabel: widget.cancelLabel,
+                      editEmpty: widget.onEmptySelected != null,
+                      onSelected: (slot) {
+                        _select(slot);
+                        _confirm();
+                      },
+                    ),
               );
             },
           );
@@ -428,7 +459,9 @@ class RayMenuState extends State<RayMenu> with SingleTickerProviderStateMixin {
       focusNode: _focusNode,
       canRequestFocus: widget.keyboardEnabled,
       onKeyEvent: widget.keyboardEnabled ? _onKey : null,
-      child: FadeTransition(opacity: _opacity, child: surface),
+      child: widget.animate
+          ? FadeTransition(opacity: _opacity, child: surface)
+          : surface,
     );
   }
 }
