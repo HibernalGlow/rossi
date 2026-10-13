@@ -4,7 +4,7 @@
 
 ---
 
-我在开发 **HibernalGlow/rossi**（fork 自 `deretame/Breeze`，MPL-2.0）：本地漫画阅读器，v0.1 = 散图/CBZ/CBR → 归档直读 → 解码 → GPU 上屏 → 超分 + 操作绑定。纪律：与上游可同步、不对齐、不 PR；**先不推远端**；分支名扁平；判据 A–E 只在 Release 成立、只看帧时间不看平均 FPS、用真实内容不用低熵图。**Windows 是第一验收平台**，macOS 的 Gate A-M 未验、不阻塞 Phase 1–2。权威文档在仓内：`CONTEXT.md`、`docs/adr/0001–0011`、`ROADMAP`、`v0.1_acceptance.md`、`docs/texture-bridge-integration.md`、`docs/windows-build/`、`.workbuddy/memory/ENV-AND-BUILD.md`（踩坑先读它）。
+我在开发 **HibernalGlow/rossi**（fork 自 `deretame/Breeze`，MPL-2.0）：本地漫画阅读器，v0.1 = 散图/CBZ/CBR → 归档直读 → 解码 → GPU 上屏 → 超分 + 操作绑定。纪律：与上游可同步、**重叠功能优先用上游实现（ADR-0023，2026-10-13 起）**、不承诺可上游化、不 PR；**先不推远端**；分支名扁平；判据 A–E 只在 Release 成立、只看帧时间不看平均 FPS、用真实内容不用低熵图。**Windows 是第一验收平台**，macOS 的 Gate A-M 未验、不阻塞 Phase 1–2。权威文档在仓内：`CONTEXT.md`、`docs/adr/0001–0023`、`ROADMAP`、`v0.1_acceptance.md`、`docs/texture-bridge-integration.md`、`docs/windows-build/`、`.workbuddy/memory/ENV-AND-BUILD.md`（踩坑先读它）。
 
 ## 我刚做完的事（Windows 机器上，未提交）
 

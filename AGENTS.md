@@ -418,6 +418,7 @@ Android 端已彻底从 JNI + ncnn 共享库方案切换到 **waifu2x CLI** 方�
 - **README.md**：用户安装指南与免责声明。
 - **CHANGELOG.md**：版本发布日志。
 - **Android RealSR 构建文档**：`docs/android_realsr_build.md`
+- **上游优先口径**：`docs/adr/0023-upstream-implementation-first-for-overlap.md`（判定与例外）、`docs/upstream-sync.md`（每轮同步基准与验证）、`docs/local-core-vendored-modules.md`（vendored 模块台账）
 - **Flutter Rust Bridge 文档**：<https://cjycode.com/flutter_rust_bridge/>
 
 ---
@@ -461,3 +462,32 @@ Android 端已彻底从 JNI + ncnn 共享库方案切换到 **waifu2x CLI** 方�
 - Split generated output, docs-only edits, or mechanical cleanup into separate commits when each commit remains coherent on its own.
 - If the split is ambiguous, summarize the options before committing.
 <!-- gitbutler-agent-setup:end -->
+
+---
+
+## 13. 上游优先（重叠功能的取舍口径）
+
+本仓有两个上游：`deretame/Breeze`（Dart 侧 fork 来源）与 `MikageSawatari/mimageviewer`
+（`rust/local_core` 的策略模块来源）。**上游已经实现、且这份实现在本仓可用的重叠功能，一律用上游那份**，
+不要新写第二套平行实现——理由是维护成本：两套同功能实现各自演化，每次同步都要重判一遍，
+而且本地那份吃不到上游对判决逻辑的修正。决策记录见 `docs/adr/0023-upstream-implementation-first-for-overlap.md`。
+
+动 `lib/` 或 `rust/local_core` 前按这三句判：
+
+1. **上游有没有达成同一功能目标的实现、且在本仓可用？** 可用 → 采用上游的接口、状态与测试，
+   不保留本仓那份（判据是**功能目标**，不是文件名或数据结构）。
+2. **本仓需要的行为比上游多？** → 把多出来的行为做成挂在上游实现上的**薄适配或扩展点**，
+   并登记偏离：Rust 侧写进 `script/sync_vendored_modules.py` 的 `PORTS`，Dart 侧写进 `docs/upstream-sync.md`。
+3. **上游那份在本仓不可用？** → **不算重叠**，保留本地实现并在文档写明理由。不可用的三种形态：
+   依赖本仓没有的能力（上游导航层查转换缓存）、平台编不过（上游文件操作里的 Windows API）、
+   没有生产消费者（搬来即死代码）。已定先例：`folder_tree` 导航层、文件夹代表图顺序、`file_ops` 三份——
+   **别把这三条当成漂移「修回去」**，细节见 `docs/local-core-vendored-modules.md` §2.1 / §8。
+
+硬规矩：
+
+- **优先上游 ≠ 允许缩功能。** 换成上游实现后，本仓独有行为必须有回归测试兜住，缺测试就先别换；
+  这条与「安全合并而不是跳过功能」「移植取并集」同向。
+- **不追溯排查。** 已有的平行实现在下次同步、或下次因别的任务碰到该模块时顺带收敛，
+  不专门发起一轮全仓清理。
+- 若确实要另起一份上游已有的功能，在提交信息里写清**上游那份为什么不可用**，否则下次同步会被重复评估。
+- 同步口径不变的部分：允许破坏性重构、不承诺改动可上游化、不向上游提 PR（ADR-0002）。
