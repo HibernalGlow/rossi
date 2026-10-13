@@ -2,6 +2,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/service/operation_binding/action_labels.dart';
 import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/icons/reader_action_glyphs.dart';
 
 /// 仅用于浏览的分组，不改变核心动作目录或持久化的 category。
 enum BindingActionGroup {
@@ -82,15 +83,14 @@ String bindingActionTitle(BindingActionInfo action) => actionLabel(
 Glyph bindingActionIcon(String id) => switch (id) {
   'reader.previous-page' => AppGlyphs.chevronBack,
   'reader.next-page' => AppGlyphs.chevronForward,
-  'reader.first-page' => AppGlyphs.chevronBack,
-  'reader.last-page' => AppGlyphs.chevronForward,
+  'reader.first-page' => ReaderActionGlyphs.firstPage,
+  'reader.last-page' => ReaderActionGlyphs.lastPage,
   'reader.page-left' => AppGlyphs.arrowBack,
   'reader.page-right' => AppGlyphs.arrowForward,
-  'reader.previous-book' ||
-  'video.previous-chapter' => AppGlyphs.skipPrevious,
+  'reader.previous-book' || 'video.previous-chapter' => AppGlyphs.skipPrevious,
   'reader.next-book' || 'video.next-chapter' => AppGlyphs.skipNext,
   'reader.zoom-in' => AppGlyphs.zoomIn,
-  'reader.zoom-out' => AppGlyphs.zoomIn,
+  'reader.zoom-out' => ReaderActionGlyphs.zoomOut,
   'reader.fit-window' => AppGlyphs.fitScreen,
   'reader.actual-size' => AppGlyphs.aspectRatio,
   'reader.reset-view' => AppGlyphs.reset,

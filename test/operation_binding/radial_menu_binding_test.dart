@@ -64,7 +64,16 @@ class _Api implements RustLibApi {
 }
 
 void main() {
-  for (final mode in ['drag', 'submenu', 'click', 'cancel', 'dismiss']) {
+  for (final mode in [
+    'drag',
+    'submenu',
+    'click',
+    'cancel',
+    'dismiss',
+    'reopen',
+    'close-during-open',
+    'reduced-close',
+  ]) {
     final submenu = mode == 'submenu';
     testWidgets('右键轮盘完整指针链：$mode', (tester) async {
       RustLib.initMock(api: _Api(submenu: submenu));
@@ -82,6 +91,14 @@ void main() {
       late ReaderActionDispatcher dispatcher;
       await tester.pumpWidget(
         MaterialApp(
+          builder: mode == 'reduced-close'
+              ? (context, child) => MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(disableAnimations: true),
+                  child: child!,
+                )
+              : null,
           home: Builder(
             builder: (context) {
               dispatcher = ReaderActionDispatcher(
@@ -119,7 +136,41 @@ void main() {
         kind: PointerDeviceKind.mouse,
         buttons: kSecondaryMouseButton,
       );
+      if (mode == 'close-during-open') {
+        await tester.pump();
+        ReaderRadialMenu.dismiss();
+        await tester.pumpAndSettle();
+        expect(find.byType(RayMenu), findsNothing);
+        expect(ReaderRadialMenu.isOpen, isFalse);
+        expect(executed, 0);
+        expect(tester.takeException(), isNull);
+        return;
+      }
       await tester.pumpAndSettle();
+      if (mode == 'reopen' || mode == 'reduced-close') {
+        await mouse.up();
+        ReaderRadialMenu.dismiss();
+        ReaderRadialMenu.dismiss();
+        if (mode == 'reopen') {
+          ReaderRadialMenu.show(
+            dispatcher.context,
+            globalCenter: const Offset(40, 40),
+            configJson:
+                '{"enabled":true,"activeMenuId":"default","menus":[{"id":"default","layers":[]}]}',
+            bindingsArrayJson: '[]',
+            dispatcher: dispatcher,
+          );
+        }
+        await tester.pumpAndSettle();
+        expect(
+          find.byType(RayMenu),
+          mode == 'reopen' ? findsOneWidget : findsNothing,
+        );
+        expect(ReaderRadialMenu.isOpen, mode == 'reopen');
+        expect(executed, 0);
+        expect(tester.takeException(), isNull);
+        return;
+      }
       if (mode == 'click') {
         await mouse.up();
         await tester.pumpAndSettle();

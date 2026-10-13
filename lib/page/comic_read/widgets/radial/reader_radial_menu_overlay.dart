@@ -10,6 +10,8 @@ import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
 import 'package:zephyr/service/operation_binding/binding_doc.dart';
 import 'package:zephyr/service/operation_binding/radial_doc.dart';
 import 'package:zephyr/widgets/radial/reader_ray_menu_adapter.dart';
+import 'package:zephyr/widgets/radial/expressive_ray_menu.dart';
+import 'package:zephyr/widgets/common_popup.dart';
 
 /// 轮盘浮层的出入口（同一时刻只开一个）。
 abstract final class ReaderRadialMenu {
@@ -73,10 +75,19 @@ abstract final class ReaderRadialMenu {
     final entry = _entry;
     _entry = null;
     openState.value = false;
+    final current = _current;
     _current = null;
     if (entry != null) {
-      entry.remove();
-      entry.dispose();
+      void remove() {
+        entry.remove();
+        entry.dispose();
+      }
+
+      if (current != null && current.mounted) {
+        current.close(remove);
+      } else {
+        remove();
+      }
     }
   }
 }
@@ -111,6 +122,14 @@ class _ReaderRadialMenuViewState extends State<_ReaderRadialMenuView> {
   String _menuId = '';
   late List<RadialSlotPaint> _slots;
   late List<RayMenuRing> _rings;
+  bool _closing = false;
+  VoidCallback? _removeAfterClose;
+
+  void close(VoidCallback remove) {
+    if (_closing) return;
+    _removeAfterClose = remove;
+    setState(() => _closing = true);
+  }
 
   /// 唤出那次手势在指针上移动过没有（见 [forwardPointer]）。
   var _openingMoved = false;
@@ -144,11 +163,20 @@ class _ReaderRadialMenuViewState extends State<_ReaderRadialMenuView> {
       configJson: _doc.encode(),
       menuId: _menuId,
     );
-    _rings = readerRayRings(_slots);
+    _rings = readerRayRings(
+      _slots,
+      doc: _doc,
+      resolveBinding: (slot) => OperationBindingStore.resolveBinding(
+        bindingsArrayJson: widget.bindingsArrayJson,
+        inputJson: radialInputJson(menuId: slot.menuId, itemId: slot.itemId),
+        contexts: widget.contexts,
+      ),
+    );
   }
 
   /// 转交唤出指针的后续事件；返回是否由本浮层接住（见 [ReaderRadialMenu.forwardPointer]）。
   bool forwardPointer(PointerEvent event, int pointer) {
+    if (_closing) return true;
     if (pointer != widget.openingPointer) return false;
     if (event is PointerMoveEvent &&
         (event.position - widget.globalCenter).distance >= kTouchSlop) {
@@ -166,6 +194,7 @@ class _ReaderRadialMenuViewState extends State<_ReaderRadialMenuView> {
   }
 
   void _commit(RadialSlotPaint slot) {
+    if (_closing) return;
     final moveTo = slot.moveToMenuId;
     if (moveTo != null && _doc.menu(moveTo) != null) {
       setState(() {
@@ -189,6 +218,7 @@ class _ReaderRadialMenuViewState extends State<_ReaderRadialMenuView> {
   // ── 键盘 ───────────────────────────────────────────────────────────────────
 
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+    if (_closing) return KeyEventResult.handled;
     if (event is! KeyDownEvent) return KeyEventResult.handled;
     final key = event.logicalKey;
     if (key == LogicalKeyboardKey.escape) {
@@ -239,20 +269,32 @@ class _ReaderRadialMenuViewState extends State<_ReaderRadialMenuView> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final box = context.findRenderObject()! as RenderBox;
-          return RayMenu(
-            controller: _controller,
-            rings: _rings,
-            center: box.globalToLocal(widget.globalCenter),
-            openingPointer: widget.openingPointer,
-            openingPosition: widget.globalCenter,
-            geometry: readerRayGeometry(_doc),
-            style: readerRayStyle(context),
-            centerLabel: t.reader.radialMenuHintMove,
-            cancelLabel: t.common.cancel,
-            keyboardEnabled: false,
-            onSelected: (item) =>
-                _commit(_slots.firstWhere((slot) => slot.itemId == item.id)),
-            onDismiss: widget.onClose,
+          return CommonPopupOverlayMotion(
+            size: constraints.biggest,
+            anchor: box.globalToLocal(widget.globalCenter) & Size.zero,
+            visible: !_closing,
+            surfaceColor: Colors.transparent,
+            drawShadow: false,
+            onDismissed: () => _removeAfterClose?.call(),
+            child: IgnorePointer(
+              ignoring: _closing,
+              child: ExpressiveRayMenu(
+                controller: _controller,
+                rings: _rings,
+                center: box.globalToLocal(widget.globalCenter),
+                openingPointer: widget.openingPointer,
+                openingPosition: widget.globalCenter,
+                geometry: readerRayGeometry(_doc),
+                style: readerRayStyle(context),
+                centerLabel: t.reader.radialMenuHintMove,
+                cancelLabel: t.common.cancel,
+                keyboardEnabled: false,
+                onSelected: (item) => _commit(
+                  _slots.firstWhere((slot) => slot.itemId == item.id),
+                ),
+                onDismiss: widget.onClose,
+              ),
+            ),
           );
         },
       ),
