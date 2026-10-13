@@ -65,7 +65,8 @@ class CoverWidget extends StatelessWidget {
                   width: width,
                   height: height,
                   decoration: BoxDecoration(
-                    color: Colors.grey[200],
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest
+                        .withValues(alpha: .35),
                     borderRadius: BorderRadius.circular(
                       roundedCorner
                           ? themeRadius(
@@ -98,7 +99,10 @@ class CoverWidget extends StatelessWidget {
                         width: width,
                         height: height,
                         decoration: BoxDecoration(
-                          color: Colors.grey[300],
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest
+                              .withValues(alpha: .35),
                           borderRadius: BorderRadius.circular(
                             roundedCorner ? 5.0 : 0.0,
                           ),

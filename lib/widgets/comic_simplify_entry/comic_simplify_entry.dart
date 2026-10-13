@@ -193,6 +193,7 @@ class ComicSimplifyEntry extends StatelessWidget {
   /// 由调用方批量算好再传进来（见 `FolderShelfState.unreadComicKeys`）：
   /// 卡片自己查库的话，一屏几十张卡就是几十次查询。
   final bool unread;
+  final bool showTitle;
   final String? collectionTargetId;
   final String? collectionTargetName;
 
@@ -213,6 +214,7 @@ class ComicSimplifyEntry extends StatelessWidget {
     this.showTranslationBadge = true,
     this.showReadAction = true,
     this.unread = false,
+    this.showTitle = true,
     this.collectionTargetId,
     this.collectionTargetName,
   });
@@ -229,7 +231,9 @@ class ComicSimplifyEntry extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final height = width / 0.75;
+        final height = constraints.hasBoundedHeight
+            ? constraints.maxHeight
+            : width / 0.75;
 
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -279,6 +283,7 @@ class ComicSimplifyEntry extends StatelessWidget {
     isSelected: isSelected,
     selectionMode: selectionMode,
     unread: unread,
+    showTitle: showTitle,
   );
 
   void _navigateToComicInfo(BuildContext context) {
