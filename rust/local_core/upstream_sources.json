@@ -1,5 +1,24 @@
 [
   {
+    "id": "adjustment",
+    "upstream": "src/adjustment.rs",
+    "local": "rust/local_core/src/adjustment.rs",
+    "items": [
+      "const HISTOGRAM_SAMPLE_LIMIT",
+      "enum AutoMode",
+      "fn color_log_summary",
+      "fn build_u8_lut",
+      "fn apply_brightness_contrast",
+      "fn apply_saturation",
+      "fn apply_temperature",
+      "fn apply_color_pipeline"
+    ],
+    "public": [
+      "fn build_u8_lut",
+      "fn apply_color_pipeline"
+    ]
+  },
+  {
     "id": "archive_metadata",
     "upstream": "src/archive_converter.rs",
     "local": "rust/local_core/src/archive_converter.rs",

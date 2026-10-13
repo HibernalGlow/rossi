@@ -52,6 +52,7 @@ pub mod folder_source;
 pub mod activity_gate;
 pub mod ai_size_limit;
 pub mod ai_tiles;
+pub mod adjustment;
 pub mod animation;
 pub mod archive_converter;
 pub mod auto_aspect;

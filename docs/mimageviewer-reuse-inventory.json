@@ -8,6 +8,55 @@
   ],
   "entries": [
     {
+      "id": "margin_fit",
+      "classification": "source_port",
+      "local": [
+        "rust/local_core/src/margin_fit.rs"
+      ],
+      "upstream": [
+        "src/margin_fit.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "只剥 egui 类型：Color32/ColorImage 用本地 RGBA8 替身，Rect/Pos2/pos2 转发 page_split 已有的 B3 产物；检测与保护算法逐字保留，上游 13 条测试全部随迁。上游 ColorImage 的 source_size 检测从不读，故替身没有该字段（测试里唯一的字面量构造改成构造函数）。",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "margin_fit 内置回归测试（13 条）",
+        "sync_vendored_modules.py 源码对比"
+      ],
+      "parity_gaps": [
+        "上游在 egui 纹理路径上取输入，本仓在解码 RGBA（宽度随降采样档位变化）；每边裁切上限 20%、安全余量 0.6% 等阈值按上游原值未重标",
+        "条漫（纵向滚动）与双页的裁边规则是本仓侧策略（lib/page/comic_read/model/page_trim.dart），不属于上游 margin_fit"
+      ],
+      "parity": "登记范围内源码对比通过",
+      "action": "继续同步 PORTS；上游若改阈值或新增边类型，按 PORTS 偏离清单逐项复核"
+    },
+    {
+      "id": "margin_fit_bridge",
+      "classification": "adapter",
+      "local": [
+        "rust/src/api/margin_fit.rs"
+      ],
+      "upstream": [
+        "src/margin_fit.rs",
+        "src/ui_view_trim.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "过桥适配层：把 RGBA 缓冲接进移植的检测算法，输出摊平成归一化 ContentBBox{left,top,right,bottom}。上游显示侧在 ui_view_trim.rs（egui 手动裁边 UI，按 B3 不搬），本仓显示几何落在 lib/page/comic_read/model/page_trim.dart。",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "windcore 编译检查",
+        "test/reader/page_trim_test.dart（显示几何与模式策略 14 条）"
+      ],
+      "parity_gaps": [
+        "只做非破坏式显示裁切；上游的手动裁边与按书/按页持久化（view_trim.rs / view_trim_db.rs）、导出裁切（export_crop.rs）未搬",
+        "半页（横长页分割）不接裁边：整页矩形套在半页上会错位，需按半页各自检测"
+      ],
+      "parity": "未证明与上游完整链路等价",
+      "action": "下一轮接手动裁边与按页记忆时，先取上游 view_trim.rs 的数据结构与合并规则，再补本仓独有行为"
+    },
+    {
       "id": "folder_tree",
       "classification": "source_port",
       "local": [
@@ -1284,6 +1333,34 @@
       ],
       "parity": "构建边界测试通过",
       "action": "维护源码选择器与最小边界适配，禁止在产物里复制手改函数"
+    },
+    {
+      "id": "adjustment",
+      "classification": "source_slice",
+      "local": [
+        "rust/local_core/src/adjustment.rs"
+      ],
+      "upstream": [
+        "src/adjustment.rs"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reason": "非破坏式色调补正（ADR-0024 阶段 A）。编译期直接抽取八项：HISTOGRAM_SAMPLE_LIMIT、AutoMode、color_log_summary、build_u8_lut、apply_brightness_contrast、apply_saturation、apply_temperature、apply_color_pipeline（见 upstream_sources.json 的 adjustment 条目）。AdjustParams 保住上游的字段名、量程与默认值。",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "adjustment 内置回归测试 15 条：恒等参数不改像素、亮度、色温双向、饱和度 -100 落灰度、两条路径都保留 alpha、Auto 与 MangaCleanup 的档位覆写值、指纹逐字段变化且档序分离、只改色调时 AI 缓存判等仍成立",
+        "sync_vendored_modules.py 源码对比"
+      ],
+      "parity_gaps": [
+        "上游入口收 egui::ColorImage，本仓收 RGBA8 字节切片：pixels_to_f32/f32_to_image 两次整页搬运因此不存在。pixel_lum、apply_pipeline_u8_lut、build_luma_histogram、resolve_auto_mode、compute_auto_levels、compute_manga_levels 六项按上游公式手抄、不走编译期抽取，上游改这些函数时脚本不会报漂移，必须人工对照",
+        "不含 post_filter / creative_lut / colorize（ADR-0024 明确不做风格化滤镜与上色），is_identity 因此少三项判定，differs_only_in_final_stage 整条未取",
+        "smart_sharpen 只进参数与档间判定（effective_smart_sharpen 逐字照抄）；锐化核 apply_smart_sharpen_rgba 在 crates/local-adjust-core，本轮尚未接入",
+        "上游 AdjustParamsWire 向后兼容层未取：本仓是新结构，没有历史设置要迁移，字段缺失应当报错而不是静默补默认",
+        "ai_settings_eq 额外比较档序（上游只比两个模型标识），因为本仓把降噪与超分做成了可选顺序",
+        "尚无生产消费者：FRB 暴露、设置存储与渲染链接入都还没做，今天只有单元测试消费这个模块"
+      ],
+      "parity": "选中符号直接编译；手抄六项按公式对照，未证明逐行等价",
+      "action": "接入呈现链（FRB + 设置存储 + 缓存身份）后补端到端判据；上游改动色调公式时对手抄六项逐项复核"
     }
   ]
 }
