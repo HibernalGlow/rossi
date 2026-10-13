@@ -7,6 +7,28 @@
 > 其中的两个策略模块**不能用 path 依赖**，理由见下；文件浏览器使用的源码模块
 > 另列在第 2 节。
 
+## 2026-10-13 直接源码接入与完整维护台账
+
+本轮将重复函数体改为直接引用：`filename_sort`、`auto_aspect` 用 `#[path]` 编译原文件；
+`prefetch_policy` 在构建期编译整个纯模块并提升可见性；`path_key` 也直接编译上游模块，
+只保留盘符根策略适配；归档元数据/去重、缩放、旋转、
+自然排序、动图容器、EXIF、AI 尺寸/tile/NCHW 输入从上游 Rust AST 选取后直接编译。
+构建清单是 [`rust/local_core/upstream_sources.json`](../rust/local_core/upstream_sources.json)，
+不保存本地函数体副本，不要求构建机安装 Python。符号消失/重名会阻止编译。
+
+`PORTS` 现在有 **22 个来源绑定**（可包含同一本地文件的多个上游切片），不代表
+22 个完整后端模块。`path_key` 新增直接源码绑定与接口复核。能力分类、产品冲突、验证缺口及负责人
+统一见 [复用台账](mimageviewer-reuse-inventory.json) 和 [本轮审计](mimageviewer-reuse-audit.md)。
+
+`thumb_loader/catalog/file_ops` 等复杂改写仍不做整文件逐行比较，但**上游对应文件的变化
+现在会报警**。历史段落所说的“脚本不报警，只能记得人工读”已失效。`reviewed_at..HEAD`
+变更门禁覆盖包括解码、AI runtime/blend、GPU、未实现转换/日志等来源；新增 Rust 能力漏登记也会失败。
+
+`--bump` 仅更新 PORTS；人工台账的 `reviewed_at` 不能自动提升，必须完成逐项复核。
+直接切片只能证明选中符号来自上游，不能证明完整转换、缓存、decoder 或 AI 管线已实现。
+
+以下各节保留人工移植的原理由与历史同步记录；当前直接引用模式以上述清单为准。
+
 ---
 
 ## 1. 为什么是搬源码，而不是 `use`

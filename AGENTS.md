@@ -24,6 +24,10 @@
 
 - **Dart/Flutter 应用**：`lib/`
 - **Rust FFI 库**：`rust/`（crate 名 `windcore`）
+- **本地阅读核心**：`rust/local_core/`（`rossi_local_core`，归档、解码、缩略图、文件浏览与纯策略）
+- **GPU 呈现 / OCR**：`rust/gpu_present/`、`rust/ocr_core/`；Flutter 桥接留在 `windcore`
+- **mImageViewer 上游**：`vendor/mimageviewer/`（gitlink）；UnRAR 使用其 `crates/unrar-patched` path 依赖
+- **Rust 复用审计**：`docs/mimageviewer-reuse-audit.md`；逐项来源、差异与负责人见 `docs/mimageviewer-reuse-inventory.json`。同步检查 `python3 script/sync_vendored_modules.py` 同时检查源码引用、移植偏离与人工复核基线；不把同名模块或格式识别当作完整能力。
 - **QuickJS 运行时封装**：`rust/rquickjs_playground/`（独立子 crate，可整体抽离）
 - **Windows 安装器前端**：`windows-installer/`（SvelteKit + Tauri v2）
 - **构建/发布脚本**：`script/`
@@ -86,7 +90,10 @@
 │   ├── type/                   # 通用枚举与类型工具
 │   ├── util/                   # 工具类、路由、桌面端适配、下载队列等
 │   └── widgets/                # 通用 UI 组件
-├── rust/                       # Rust FFI 主库（windcore）
+├── rust/                       # Cargo workspace；默认构建根包 windcore
+│   ├── local_core/             # 本地阅读核心与上游纯逻辑；upstream_sources.json 声明直接源码切片
+│   ├── gpu_present/            # Flutter C ABI / DXGI / IOSurface / wgpu 呈现
+│   ├── ocr_core/               # 独立 OCR / inpaint 管线
 │   ├── src/api/                # 暴露给 Dart 的 API
 │   ├── src/compressed/         # 压缩/打包（tar/zip/brotli/zstd）
 │   ├── src/decode/             # 禁漫图片反混淆
