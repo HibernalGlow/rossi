@@ -12,7 +12,7 @@
 //   那份 FlClash 动画 —— 托盘沿弧线长成卡片、内容由糊变清）。筛选 / 表单
 //   这类「随手用一下」的轻面板走它，省掉一次「先找到它从哪儿冒出来」的眼动。
 // - [`PopupPresentation.modal`]：全屏遮罩 + 居中卡片，也就是改造前
-//   `showDialog` 的样子。警告 / 删除这类「要先看清再决定」的弹层走它 ——
+//   居中的样子。警告 / 删除这类「要先看清再决定」的弹层走它 ——
 //   分量重的动作不该长得像一次随手点击。
 //
 // 走哪一条由 [`resolvePopupRelative`] 定，纯函数：**声明为 modal 的**、
@@ -82,36 +82,25 @@ Future<T?> showPopupPanel<T>({
   PopupPresentation presentation = PopupPresentation.modal,
   PopupAnchorResolver? anchorOf,
 }) {
-  if (!resolvePopupRelative(
+  final relative = resolvePopupRelative(
     presentation: presentation,
     width: MediaQuery.sizeOf(context).width,
-  )) {
-    // 改造前 `showDialog` 的样子：全屏遮罩 + 居中卡片。
-    //
-    // 内边距用 MD3 对话框那一档（水平 40 / 垂直 24），所以内容的换行位置
-    // 与旧弹层一致 —— 「原本是什么大小就什么大小」这条要求落在这一行上。
-    return showDialog<T>(
-      context: context,
-      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-      builder: (routeContext) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
-        child: Center(child: builder(routeContext)),
-      ),
-    );
-  }
-
-  // 有触发钮的调用点把矩形传进来（卡片会贴它的右边、从它那儿长出来）。
-  // 没有的就退回指针落点，「点了哪儿就从哪儿长」总比「从屏幕正中长」像话。
+  );
   final byTrigger = anchorOf != null;
-  final anchor = anchorOf ?? _pointerAnchor(context);
-  return Navigator.of(context).push(
+  final anchor = anchorOf ?? _pointerAnchor(context, rootNavigator: !relative);
+  // 居中与相对弹出只改变落点，进出场始终是同一份托盘弹簧。
+  return Navigator.of(context, rootNavigator: !relative).push(
     CommonPopupRoute<T>(
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       anchorOf: () => anchor(),
-      placement: byTrigger
-          ? PopupPlacement.overAnchorEnd
-          : PopupPlacement.belowPoint,
-      builder: builder,
+      placement: relative
+          ? (byTrigger
+                ? PopupPlacement.overAnchorEnd
+                : PopupPlacement.belowPoint)
+          : PopupPlacement.center,
+      scrimColor: relative ? null : Colors.black54,
+      builder: (routeContext) =>
+          InheritedTheme.captureAll(context, builder(routeContext)),
     ),
   );
 }
@@ -120,14 +109,20 @@ Future<T?> showPopupPanel<T>({
 ///
 /// 一次都没记到（键盘触发的弹层、测试里直接 pump）就退回屏幕中心 ——
 /// 那是唯一不需要任何上下文就成立的「用户大概在看的地方」。
-Rect Function() _pointerAnchor(BuildContext context) {
+Rect Function() _pointerAnchor(
+  BuildContext context, {
+  bool rootNavigator = false,
+}) {
   final position = PopupPointerOrigin.last;
   final size = MediaQuery.sizeOf(context);
   if (position == null) {
     return () =>
         Rect.fromCenter(center: size.center(Offset.zero), width: 0, height: 0);
   }
-  final renderObject = Navigator.maybeOf(context)?.context.findRenderObject();
+  final renderObject = Navigator.maybeOf(
+    context,
+    rootNavigator: rootNavigator,
+  )?.context.findRenderObject();
   return () {
     final local = renderObject is RenderBox && renderObject.attached
         ? renderObject.globalToLocal(position)

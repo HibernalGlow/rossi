@@ -255,7 +255,7 @@ class _SettingBrowserState extends State<SettingBrowser> {
                   outerRadius: 24,
                   innerRadius: 4,
                   gap: 2,
-                  padding: EdgeInsets.zero,
+                  // 让 M3EListItem 保留行内留白；列表 padding 会接管并关闭它。
                   color: theme.colorScheme.surfaceContainerLow,
                   colorBuilder: (index) =>
                       wide && group.entries[index].id == selectedId
@@ -277,6 +277,7 @@ class _SettingBrowserState extends State<SettingBrowser> {
                           : null,
                       child: ActionBubbleTarget(
                         corner: 24,
+                        observeFocus: false,
                         enabled: !eInkInstantRoutes,
                         child: ElasticPress(
                           enabled:

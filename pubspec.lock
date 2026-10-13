@@ -1041,6 +1041,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.12.20"
+  material_3_expressive:
+    dependency: "direct main"
+    description:
+      name: material_3_expressive
+      sha256: "34dc1f23ab47d6cd3f1b3627b8e8533652564fddb229e6c908d9790076781c5e"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.6"
   material_color_utilities:
     dependency: transitive
     description:
@@ -1153,6 +1161,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.5.8"
+  motor:
+    dependency: transitive
+    description:
+      name: motor
+      sha256: cbd49f21b00e568c2b1a55f134ed803614a107782f4fea7769693bca32940c58
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.0"
   multi_split_view:
     dependency: "direct main"
     description:

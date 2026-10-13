@@ -168,11 +168,15 @@ class ActionBubbleTarget extends StatefulWidget {
     super.key,
     required this.child,
     this.enabled = true,
+    this.observeFocus = true,
     this.rectAt,
     this.corner = ControlShape.corner,
   });
   final Widget child;
   final bool enabled;
+
+  /// 外层组件已经管理键盘焦点时，不额外插入焦点节点。
+  final bool observeFocus;
   final double corner;
 
   /// 多个页签共用一个入口时，按指针位置返回某一格的静止几何。
@@ -207,25 +211,29 @@ class _ActionBubbleTargetState extends State<ActionBubbleTarget> {
         ? (event) => _region?.show(this, point: event.position)
         : null,
     onExit: (_) => _region?.hide(this),
-    child: Focus(
-      canRequestFocus: false,
-      onFocusChange: (focused) {
-        if (focused && widget.enabled) {
-          _region?.show(this, focus: true);
-        } else {
-          _region?.hide(this, focus: true);
-        }
-      },
-      child: Listener(
-        onPointerDown: widget.enabled
-            ? (event) => _region?.show(this, point: event.position)
-            : null,
-        onPointerUp: (event) {
-          if (event.kind != PointerDeviceKind.mouse) _region?.hide(this);
-        },
-        onPointerCancel: (_) => _region?.hide(this),
-        child: widget.child,
-      ),
-    ),
+    child: widget.observeFocus
+        ? Focus(
+            canRequestFocus: false,
+            onFocusChange: (focused) {
+              if (focused && widget.enabled) {
+                _region?.show(this, focus: true);
+              } else {
+                _region?.hide(this, focus: true);
+              }
+            },
+            child: _pointerFeedback(),
+          )
+        : _pointerFeedback(),
+  );
+
+  Widget _pointerFeedback() => Listener(
+    onPointerDown: widget.enabled
+        ? (event) => _region?.show(this, point: event.position)
+        : null,
+    onPointerUp: (event) {
+      if (event.kind != PointerDeviceKind.mouse) _region?.hide(this);
+    },
+    onPointerCancel: (_) => _region?.hide(this),
+    child: widget.child,
   );
 }

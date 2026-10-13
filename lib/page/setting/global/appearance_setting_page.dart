@@ -10,6 +10,9 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/i18n/system_locale_service.dart';
 import 'package:zephyr/page/font_setting/view/font_setting_page.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
+import 'package:zephyr/page/setting/common/setting_route.dart';
+import 'package:zephyr/page/setting/common/setting_group.dart';
+import 'package:zephyr/page/setting/global/widgets/appearance_theme_picker.dart';
 import 'package:zephyr/page/setting/global/widgets.dart';
 import 'package:zephyr/page/theme_color/theme_color.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
@@ -41,33 +44,62 @@ class AppearanceSettingPage extends StatelessWidget {
     return SettingPageShell(
       title: t.settings.appearance,
       child: ListView(
+        padding: kSettingPagePadding,
         children: [
-          settingSectionTitle(
-            context,
-            t.settings.appearance,
+          SettingGroup(
+            title: t.settings.theme,
             icon: AppGlyphs.palette,
+            children: [
+              AppearanceThemePicker(
+                value: state.themeMode,
+                seedColor: state.seedColor,
+                onChanged: (value) => cubit.updateState(
+                  (current) => current.copyWith(themeMode: value),
+                ),
+              ),
+              _dynamicColor(state, cubit),
+              // 以前只在关掉动态取色时才给这一项（种子色在动态色下没意义）。
+              // 现在这页还承载「导入 tweakcn 主题」，而导入的 token 是**覆盖**在
+              // 动态色 / fromSeed 之上的，两者可以共存 —— 入口不该再被动态色挡掉。
+              changeThemeColor(context),
+              _comicReadTopContainer(state, cubit),
+              _isAMOLED(state, cubit),
+            ],
           ),
-          _languageTile(context, state, cubit),
-          _systemTheme(state, cubit),
-          _dynamicColor(state, cubit),
-          // 以前只在关掉动态取色时才给这一项（种子色在动态色下没意义）。
-          // 现在这页还承载「导入 tweakcn 主题」，而导入的 token 是**覆盖**在
-          // 动态色 / fromSeed 之上的，两者可以共存 —— 入口不该再被动态色挡掉。
-          changeThemeColor(context),
-          // 导入入口放在这一屏：它和「主题颜色 / 动态取色」是同一层的决定，
-          // 藏在子页里没人找得到（用户实测就是在这一屏找的）。
+          // 导入保留独立表单分组，避免在主题分组里再次套容器。
           const TweakcnImportCard(),
-          _comicReadTopContainer(state, cubit),
-          _isAMOLED(state, cubit),
-          // 桌面专属：那一条 40px 的自制标题栏改成透明浮层。
-          if (_isDesktopPlatform) _transparentDesktopTitleBar(state, cubit),
-          // 摆放方式只在开关打开时才需要回答 —— 关着时摆出来只会让人犹豫。
-          if (_isDesktopPlatform && state.transparentDesktopTitleBar)
-            _transparentTitleBarMode(state, cubit),
+          SettingGroup(
+            title: t.settings.language,
+            icon: AppGlyphs.translate,
+            children: [
+              _languageTile(context, state, cubit),
+              _fontSettings(context),
+            ],
+          ),
+          if (_isDesktopPlatform)
+            SettingGroup(
+              title: t.settings.windowGroup,
+              icon: AppGlyphs.devices,
+              children: [
+                // 桌面专属：那一条 40px 的自制标题栏改成透明浮层。
+                if (_isDesktopPlatform)
+                  _transparentDesktopTitleBar(state, cubit),
+                // 摆放方式只在开关打开时才需要回答 —— 关着时摆出来只会让人犹豫。
+                if (_isDesktopPlatform && state.transparentDesktopTitleBar)
+                  _transparentTitleBarMode(state, cubit),
+              ],
+            ),
           // 导航栏那一段摆在「外观」这一屏：它和主题、标题栏一样是
           // 「应用外壳长什么样」，而不是工作台内部的事。
-          ...navigationChromeTiles(context: context, state: state, cubit: cubit),
-          _fontSettings(context),
+          SettingGroup(
+            title: t.navigation.navigationChrome,
+            icon: AppGlyphs.layoutTabs,
+            children: navigationChromeTiles(
+              context: context,
+              state: state,
+              cubit: cubit,
+            ).skip(1).toList(),
+          ),
           const SizedBox(height: 32),
         ],
       ),
@@ -114,28 +146,6 @@ class AppearanceSettingPage extends StatelessWidget {
     );
   }
 
-  Widget _systemTheme(GlobalSettingState state, GlobalSettingCubit cubit) {
-    final themeItems = <ThemeMode, String>{
-      ThemeMode.system: t.common.followSystem,
-      ThemeMode.light: t.common.lightMode,
-      ThemeMode.dark: t.common.darkMode,
-    };
-
-    return ListTile(
-      leading: const GlyphIcon(AppGlyphs.moon),
-      title: Text(t.settings.theme),
-      subtitle: Text(t.settings.themeSubtitle),
-      trailing: FluentDropdown<ThemeMode>(
-        value: state.themeMode,
-        displayValue: themeItems[state.themeMode]!,
-        items: themeItems,
-        onChanged: (ThemeMode value) {
-          cubit.updateState((current) => current.copyWith(themeMode: value));
-        },
-      ),
-    );
-  }
-
   Widget _dynamicColor(GlobalSettingState state, GlobalSettingCubit cubit) {
     return SwitchListTile(
       secondary: const GlyphIcon(AppGlyphs.palette),
@@ -156,9 +166,12 @@ class AppearanceSettingPage extends StatelessWidget {
       subtitle: Text(t.settings.fontSettingsSubtitle),
       trailing: const GlyphIcon(AppGlyphs.chevronForward),
       onTap: () {
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const FontSettingPage()));
+        Navigator.of(context).push(
+          settingPageRoute(
+            context: context,
+            builder: (_) => const FontSettingPage(),
+          ),
+        );
       },
     );
   }

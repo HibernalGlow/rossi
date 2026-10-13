@@ -241,6 +241,15 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	final TranslationsEnUs _root; // ignore: unused_field
 
 	// Translations
+	@override String get overviewSubtitle => 'Make Rossi feel like yours';
+	@override String get searchCategories => 'Search settings categories';
+	@override String get noMatchingCategories => 'No matching categories. Try another keyword.';
+	@override String get personalizationGroup => 'Appearance & feedback';
+	@override String get readingGroup => 'Reading & image';
+	@override String get libraryGroup => 'Files, library & data';
+	@override String get applicationGroup => 'App & controls';
+	@override String get windowGroup => 'Window';
+	@override String get syncDestinationsSubtitle => 'Sync service · Cloud backup';
 	@override String get title => 'Settings';
 	@override String get globalTitle => 'Settings';
 	@override String get appearance => 'Appearance';
@@ -2638,6 +2647,15 @@ extension on TranslationsEnUs {
 			'navigation.workspace' => 'Workspace',
 			'navigation.openLocalComic' => 'Open local comic',
 			'navigation.gpuPresent' => 'GPU present',
+			'settings.overviewSubtitle' => 'Make Rossi feel like yours',
+			'settings.searchCategories' => 'Search settings categories',
+			'settings.noMatchingCategories' => 'No matching categories. Try another keyword.',
+			'settings.personalizationGroup' => 'Appearance & feedback',
+			'settings.readingGroup' => 'Reading & image',
+			'settings.libraryGroup' => 'Files, library & data',
+			'settings.applicationGroup' => 'App & controls',
+			'settings.windowGroup' => 'Window',
+			'settings.syncDestinationsSubtitle' => 'Sync service · Cloud backup',
 			'settings.title' => 'Settings',
 			'settings.globalTitle' => 'Settings',
 			'settings.appearance' => 'Appearance',
@@ -3014,6 +3032,8 @@ extension on TranslationsEnUs {
 			'settings.colorPreviewVariableFont' => 'Variable Font test',
 			'settings.colorPreviewFontLoaded' => ({required Object path}) => 'Loaded: ${path}',
 			'settings.colorPreviewNoFont' => 'No font loaded. Try the recommended sample or pick a TTF/OTF file.',
+			_ => null,
+		} ?? switch (path) {
 			'settings.colorPreviewLoadRecommended' => 'Load recommended sample',
 			'settings.colorPreviewSelectFont' => 'Select font file',
 			'settings.colorPreviewByWeight' => 'Render by fontWeight',
@@ -3023,8 +3043,6 @@ extension on TranslationsEnUs {
 			'settings.colorPreviewLoadSuccess' => 'Font loaded. Compare different weights.',
 			'settings.colorPreviewLoadFailed' => ({required Object error}) => 'Font load failed: ${error}',
 			'settings.colorRed' => 'Red',
-			_ => null,
-		} ?? switch (path) {
 			'settings.colorPink' => 'Pink',
 			'settings.colorPurple' => 'Purple',
 			'settings.colorDeepPurple' => 'Deep purple',
@@ -3528,6 +3546,8 @@ extension on TranslationsEnUs {
 			'reader.readingDirectionToggleRightOpen' => 'Right-opening now (next page on the right) · tap for left-opening',
 			'reader.readingDirectionToggleDisabled' => 'Webtoon mode has no horizontal reading direction',
 			'reader.readingDirectionToggleSetting' => 'Show reading direction toggle in top bar',
+			_ => null,
+		} ?? switch (path) {
 			'reader.swipePreview' => 'Page-turn preview',
 			'reader.swipePreviewSubtitle' => 'Show the actual image on both sides while turning, instead of a large page-number placeholder (decodes one extra viewport-width bitmap per page)',
 			'reader.doublePage' => 'Double page',
@@ -3537,8 +3557,6 @@ extension on TranslationsEnUs {
 			'reader.doublePageLeadingBlank' => 'Leading blank',
 			'reader.doublePageLeadingBlankSubtitle' => 'Insert a blank page at the start of each chapter to shift page pairing',
 			'reader.splitLandscapePages' => 'Split landscape pages',
-			_ => null,
-		} ?? switch (path) {
 			'reader.splitLandscapePagesSubtitle' => 'Automatically split wide double-page images into left and right halves',
 			'reader.landscapeSplitDirection' => 'Split reading order',
 			'reader.splitDirectionAuto' => 'Follow reading direction',
@@ -4042,6 +4060,8 @@ extension on TranslationsEnUs {
 			'realSr.coremlGeneralOption' => 'General option (scale)',
 			'realSr.coremlTileInfo' => 'Tile info',
 			'about.title' => 'About app',
+			_ => null,
+		} ?? switch (path) {
 			'about.version' => ({required Object version}) => 'Version: ${version}',
 			'about.loading' => 'Loading...',
 			'about.fetchFailed' => 'Failed to load',
@@ -4051,8 +4071,6 @@ extension on TranslationsEnUs {
 			'about.projectLink' => 'Go to GitHub repo (deretame/Breeze) ⭐',
 			'about.contact' => 'Contact',
 			'about.contactDesc' => 'Have ideas or questions? Feel free to reach out~',
-			_ => null,
-		} ?? switch (path) {
 			'about.feedback' => 'Feedback',
 			'about.feedbackDesc' => 'Found a bug or have a new idea?',
 			'about.feedbackLink' => 'Open a GitHub Issue',
@@ -4556,6 +4574,8 @@ extension on TranslationsEnUs {
 			'bindingEditor.middleLeft' => 'Middle left',
 			'bindingEditor.middleCenter' => 'Center',
 			'bindingEditor.middleRight' => 'Middle right',
+			_ => null,
+		} ?? switch (path) {
 			'bindingEditor.bottomLeft' => 'Bottom left',
 			'bindingEditor.bottomCenter' => 'Bottom center',
 			'bindingEditor.bottomRight' => 'Bottom right',
@@ -4565,8 +4585,6 @@ extension on TranslationsEnUs {
 			'bindingEditor.wheel' => 'Wheel',
 			'bindingEditor.touch' => 'Touch',
 			'bindingEditor.gamepad' => 'Gamepad',
-			_ => null,
-		} ?? switch (path) {
 			'bindingEditor.radial' => 'Radial',
 			'bindingEditor.command' => 'Command',
 			'bindingEditor.global' => 'Global',

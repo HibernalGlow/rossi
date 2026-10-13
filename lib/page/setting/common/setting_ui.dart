@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/page/setting/common/setting_detail_scope.dart';
+import 'package:zephyr/page/setting/common/setting_group.dart';
 
 const EdgeInsets kSettingPagePadding = EdgeInsets.fromLTRB(16, 12, 16, 24);
 
@@ -27,46 +29,78 @@ class SettingPageShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final embedded = SettingDetailScope.isEmbedded(context);
     return Scaffold(
+      backgroundColor: embedded
+          ? theme.colorScheme.surface
+          : theme.colorScheme.surfaceContainerLowest,
       appBar: AppBar(
+        automaticallyImplyLeading: !embedded,
+        backgroundColor: embedded
+            ? theme.colorScheme.surface
+            : theme.colorScheme.surfaceContainerLowest,
+        toolbarHeight: 72,
         title: Text(
           title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
         ),
         centerTitle: false,
         scrolledUnderElevation: 0,
       ),
-      body: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxWidth),
-          child: child,
+      body: SafeArea(
+        top: false,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: ListTileTheme(
+              data: ListTileThemeData(
+                minTileHeight: 64,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 4,
+                ),
+                titleTextStyle: theme.textTheme.titleMedium,
+                subtitleTextStyle: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                iconColor: theme.colorScheme.primary,
+              ),
+              child: child,
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-Widget settingSectionTitle(
-  BuildContext context,
-  String title, {
-  Glyph? icon,
-}) {
+Widget settingSectionTitle(BuildContext context, String title, {Glyph? icon}) {
   return Padding(
     padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
     child: Row(
       children: [
         if (icon != null) ...[
-          GlyphIcon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+          GlyphIcon(
+            icon,
+            size: 18,
+            color: Theme.of(context).colorScheme.primary,
+          ),
           const SizedBox(width: 8),
         ],
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.primary,
-            letterSpacing: 0.5,
+        Expanded(
+          child: Semantics(
+            header: true,
+            child: Text(
+              title,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
           ),
         ),
       ],
@@ -103,41 +137,15 @@ class SettingSectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      child: Column(
-        children: [
-          ListTile(
-            leading: GlyphIcon(icon),
-            title: Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-          const Divider(height: 1),
-          ..._withDividers(children),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _withDividers(List<Widget> children) {
-    final widgets = <Widget>[];
-    for (var i = 0; i < children.length; i++) {
-      widgets.add(children[i]);
-      if (i != children.length - 1) {
-        widgets.add(const Divider(height: 1));
-      }
-    }
-    return widgets;
+    return SettingGroup(title: title, icon: icon, children: children);
   }
 }
 
 ButtonStyle settingDangerButtonStyle(BuildContext context) {
   final scheme = Theme.of(context).colorScheme;
   return FilledButton.styleFrom(
-    minimumSize: const Size.fromHeight(44),
+    minimumSize: const Size.fromHeight(48),
+    shape: const StadiumBorder(),
     backgroundColor: scheme.errorContainer,
     foregroundColor: scheme.onErrorContainer,
   );

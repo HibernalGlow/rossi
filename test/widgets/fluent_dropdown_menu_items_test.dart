@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 共享菜单面板的**条目语义**：选中怎么画、分隔线算不算一项、长菜单放不下的时候
 /// 怎么办。文件管理卡片（视图模式 / 排序 / 更多）整片复用这套，所以行为要钉在这里，
@@ -61,7 +62,12 @@ void main() {
       matching: find.byType(Row),
     );
     expect(
-      find.descendant(of: checkedRow, matching: find.byIcon(Icons.check)),
+      find.descendant(
+        of: checkedRow,
+        matching: find.byWidgetPredicate(
+          (widget) => widget is GlyphIcon && widget.glyph == AppGlyphs.check,
+        ),
+      ),
       findsOneWidget,
     );
     final plainRow = find.ancestor(
@@ -69,7 +75,12 @@ void main() {
       matching: find.byType(Row),
     );
     expect(
-      find.descendant(of: plainRow, matching: find.byIcon(Icons.check)),
+      find.descendant(
+        of: plainRow,
+        matching: find.byWidgetPredicate(
+          (widget) => widget is GlyphIcon && widget.glyph == AppGlyphs.check,
+        ),
+      ),
       findsNothing,
     );
   });
@@ -85,7 +96,12 @@ void main() {
       find.descendant(of: row, matching: find.byIcon(Icons.grid_view)),
       findsOneWidget,
     );
-    final checks = find.descendant(of: row, matching: find.byIcon(Icons.check));
+    final checks = find.descendant(
+      of: row,
+      matching: find.byWidgetPredicate(
+        (widget) => widget is GlyphIcon && widget.glyph == AppGlyphs.check,
+      ),
+    );
     expect(checks, findsOneWidget);
     // 勾在文字的右边 —— 开头那一格让给图标。
     expect(

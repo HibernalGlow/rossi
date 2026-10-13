@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 
@@ -79,5 +79,11 @@ void main() {
       isTrue,
       reason: '$itemRect 越出右下（泳道外应该还有整屏可用）',
     );
+  });
+  testWidgets('菜单打开时移除宿主，不触发 Navigator 锁定异常', (tester) async {
+    await pumpLaneWithMenuButton(tester);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
   });
 }
