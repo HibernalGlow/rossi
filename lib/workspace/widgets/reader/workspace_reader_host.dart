@@ -10,6 +10,7 @@ import 'package:zephyr/workspace/model/workspace_reveal_zones.dart';
 import 'package:zephyr/workspace/router/workspace_lane_dispatch.dart';
 import 'package:zephyr/workspace/router/workspace_navigation_bridge.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_empty_canvas.dart';
+import 'package:zephyr/workspace/widgets/reader/reader_viewport.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_fullscreen_scope.dart';
 
 /// **阅读器泳道的真正内容**：上游原版 `ComicReadPage`，一个字都没改。
@@ -91,34 +92,19 @@ class _WorkspaceReaderHostState extends State<WorkspaceReaderHost> {
       return const WorkspaceReaderEmptyCanvas();
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final size = Size(
-          constraints.maxWidth.isFinite
-              ? constraints.maxWidth
-              : MediaQuery.sizeOf(context).width,
-          constraints.maxHeight.isFinite
-              ? constraints.maxHeight
-              : MediaQuery.sizeOf(context).height,
-        );
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(size: size),
-          child: Listener(
-            // translucent：空白处按下也算「用户在这条泳道里」，
-            // 但不抢子节点的命中（阅读器自己的翻页 / 唤出上下栏照旧）。
-            behavior: HitTestBehavior.translucent,
-            onPointerDown: (_) =>
-                WorkspaceNavigationBridge.instance.noteLaneInteraction(_host),
-            child: Navigator(
-              key: ValueKey<String>('reader-navigator:${current.identityKey}'),
-              onGenerateRoute: (settings) => MaterialPageRoute<void>(
-                settings: settings,
-                builder: (_) => _buildReader(context, current),
-              ),
-            ),
+    return ReaderViewport(
+      child: Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (_) =>
+            WorkspaceNavigationBridge.instance.noteLaneInteraction(_host),
+        child: Navigator(
+          key: ValueKey<String>('reader-navigator:${current.identityKey}'),
+          onGenerateRoute: (settings) => MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => _buildReader(context, current),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
