@@ -499,6 +499,120 @@ class Translations$settings$zh_CN {
 
 	// Translations
 
+	/// zh-CN: '泳道未单独设置延时时使用此值'
+	String get defaultHoverDelaySubtitle => '泳道未单独设置延时时使用此值';
+
+	/// zh-CN: '默认悬停定位延迟'
+	String get defaultHoverDelay => '默认悬停定位延迟';
+
+	/// zh-CN: '按下面选好的呈现打开；退出用系统返回键'
+	String get enterWorkspaceSubtitle => '按下面选好的呈现打开；退出用系统返回键';
+
+	/// zh-CN: '进入工作台'
+	String get enterWorkspace => '进入工作台';
+
+	/// zh-CN: '泳道右移'
+	String get kanbanLaneMoveRight => '泳道右移';
+
+	/// zh-CN: '泳道左移'
+	String get kanbanLaneMoveLeft => '泳道左移';
+
+	/// zh-CN: '下移面板'
+	String get kanbanPanelMoveDown => '下移面板';
+
+	/// zh-CN: '上移面板'
+	String get kanbanPanelMoveUp => '上移面板';
+
+	/// zh-CN: '默认隐藏'
+	String get kanbanLaneDefaultHidden => '默认隐藏';
+
+	/// zh-CN: '固定泳道'
+	String get kanbanLanePinned => '固定泳道';
+
+	/// zh-CN: '已彻底隐藏'
+	String get kanbanFullyHidden => '已彻底隐藏';
+
+	/// zh-CN: '显示中'
+	String get kanbanVisible => '显示中';
+
+	/// zh-CN: '恢复默认排布'
+	String get kanbanRestoreDefault => '恢复默认排布';
+
+	/// zh-CN: '使用看板调整泳道顺序、各泳道上面板的顺序以及显示与彻底隐藏'
+	String get swimlanePanelKanbanDesc => '使用看板调整泳道顺序、各泳道上面板的顺序以及显示与彻底隐藏';
+
+	/// zh-CN: '恢复继承全局延迟'
+	String get laneHoverDelayInherit => '恢复继承全局延迟';
+
+	/// zh-CN: '悬停定位延迟'
+	String get laneHoverDelay => '悬停定位延迟';
+
+	/// zh-CN: '停留后自动移动工作台，让本泳道完整显示'
+	String get laneHoverRevealSubtitle => '停留后自动移动工作台，让本泳道完整显示';
+
+	/// zh-CN: '悬停后完整显示'
+	String get laneHoverReveal => '悬停后完整显示';
+
+	/// zh-CN: '鼠标进入本泳道后，将键盘操作交给本泳道'
+	String get laneKeyboardFollowsMouseSubtitle => '鼠标进入本泳道后，将键盘操作交给本泳道';
+
+	/// zh-CN: '键盘目标跟随鼠标'
+	String get laneKeyboardFollowsMouse => '键盘目标跟随鼠标';
+
+	/// zh-CN: '泳道交互'
+	String get laneInteraction => '泳道交互';
+
+	/// zh-CN: '泳道顺序 · 各泳道面板排序 · 面板显示与彻底隐藏'
+	String get swimlanePanelKanbanSubtitle => '泳道顺序 · 各泳道面板排序 · 面板显示与彻底隐藏';
+
+	/// zh-CN: '泳道与面板看板'
+	String get swimlanePanelKanban => '泳道与面板看板';
+
+	/// zh-CN: '预设默认值仅在“使用预设默认值”时采用；默认递归范围沿用下方搜索设置。复制与恢复已关闭页签保留原有设置。'
+	String get fmNewTabPresetHint => '预设默认值仅在“使用预设默认值”时采用；默认递归范围沿用下方搜索设置。复制与恢复已关闭页签保留原有设置。';
+
+	/// zh-CN: '默认显示内部条目'
+	String get fmNewTabShowInternal => '默认显示内部条目';
+
+	/// zh-CN: '默认显示隐藏项'
+	String get fmNewTabShowHidden => '默认显示隐藏项';
+
+	/// zh-CN: '默认启用穿透'
+	String get fmNewTabPassthrough => '默认启用穿透';
+
+	/// zh-CN: '新页签启动选项'
+	String get fmNewTabStartup => '新页签启动选项';
+
+	/// zh-CN: '导入文件 (TXT/JSON/EMM setting.json)'
+	String get importFileTxtJsonEmm => '导入文件 (TXT/JSON/EMM setting.json)';
+
+	/// zh-CN: '搜索画师...'
+	String get searchArtistHint => '搜索画师...';
+
+	/// zh-CN: '导入文件 (TXT/JSON)'
+	String get importFileTxtJson => '导入文件 (TXT/JSON)';
+
+	/// zh-CN: 'Rust 解码 → wgpu → GPU 拷贝 → 共享纹理，像素不过桥'
+	String get debugGpuPresentSubtitle => 'Rust 解码 → wgpu → GPU 拷贝 → 共享纹理，像素不过桥';
+
+	/// zh-CN: 'GPU 上屏（D3D12 共享纹理）'
+	String get debugGpuPresent => 'GPU 上屏（D3D12 共享纹理）';
+
+	/// zh-CN: '选一张页 → 检测/识别/擦字/翻译/回填，逐段看耗时与产物'
+	String get debugOcrSmokeSubtitle => '选一张页 → 检测/识别/擦字/翻译/回填，逐段看耗时与产物';
+
+	/// zh-CN: 'OCR 成品页冒烟'
+	String get debugOcrSmoke => 'OCR 成品页冒烟';
+
+	/// zh-CN: '散图文件夹 / CBZ / CBR 直读，含逐页耗时与拒绝类别'
+	String get debugLocalSourceSubtitle => '散图文件夹 / CBZ / CBR 直读，含逐页耗时与拒绝类别';
+
+	/// zh-CN: '本地来源读取（判据 A）'
+	String get debugLocalSource => '本地来源读取（判据 A）';
+
+	/// zh-CN: '设置重置 PIN'
+	String get setResetPin => '设置重置 PIN';
+
 	/// zh-CN: '让 Rossi 更合你的习惯'
 	String get overviewSubtitle => '让 Rossi 更合你的习惯';
 
@@ -1444,11 +1558,11 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '计算失败'
 	String get calculateCacheFailed => '计算失败';
 
-	/// zh-CN: '数据导入/导出'
-	String get dataBackup => '数据导入/导出';
+	/// zh-CN: '本地导入/导出'
+	String get dataBackup => '本地导入/导出';
 
-	/// zh-CN: '备份或恢复应用数据与下载的漫画'
-	String get dataBackupSubtitle => '备份或恢复应用数据与下载的漫画';
+	/// zh-CN: '通过 ZIP 在移动端与桌面端迁移设置和数据，保留本机专属配置'
+	String get dataBackupSubtitle => '通过 ZIP 在移动端与桌面端迁移设置和数据，保留本机专属配置';
 
 	/// zh-CN: '包含下载的漫画'
 	String get includeDownloaded => '包含下载的漫画';
@@ -2767,6 +2881,45 @@ class Translations$comicInfo$zh_CN {
 	/// zh-CN: '下载'
 	String get download => '下载';
 
+	/// zh-CN: '标记已读'
+	String get markRead => '标记已读';
+
+	/// zh-CN: '标记未读'
+	String get markUnread => '标记未读';
+
+	/// zh-CN: '标记至此为已读'
+	String get markThroughRead => '标记至此为已读';
+
+	/// zh-CN: '清除标记'
+	String get clearReadMark => '清除标记';
+
+	/// zh-CN: '阅读状态'
+	String get readStateMenu => '阅读状态';
+
+	/// zh-CN: '标记只记录你的人为判决，不改动阅读进度，也不影响「继续阅读」的定位。'
+	String get readStateMenuHint => '标记只记录你的人为判决，不改动阅读进度，也不影响「继续阅读」的定位。';
+
+	/// zh-CN: '已标记 $count 话为已读'
+	String markReadDone({required Object count}) => '已标记 ${count} 话为已读';
+
+	/// zh-CN: '已标记 $count 话为未读'
+	String markUnreadDone({required Object count}) => '已标记 ${count} 话为未读';
+
+	/// zh-CN: '已把此前 $count 话标记为已读'
+	String markThroughReadDone({required Object count}) => '已把此前 ${count} 话标记为已读';
+
+	/// zh-CN: '未读'
+	String get readStateUnread => '未读';
+
+	/// zh-CN: '读到过'
+	String get readStateInferred => '读到过';
+
+	/// zh-CN: '已标记已读'
+	String get readStateManualRead => '已标记已读';
+
+	/// zh-CN: '已标记未读'
+	String get readStateManualUnread => '已标记未读';
+
 	/// zh-CN: '该插件暂不支持此功能'
 	String get downloadForbidden => '该插件暂不支持此功能';
 
@@ -3685,6 +3838,12 @@ class Translations$reader$zh_CN {
 	/// zh-CN: '画面处理'
 	String get tuningSection => '画面处理';
 
+	/// zh-CN: '自动裁边'
+	String get autoTrimMargins => '自动裁边';
+
+	/// zh-CN: '检测每页内容区并放大显示，不修改原图'
+	String get autoTrimMarginsSubtitle => '检测每页内容区并放大显示，不修改原图';
+
 	/// zh-CN: '暂停自动阅读'
 	String get pauseAutoRead => '暂停自动阅读';
 
@@ -3721,11 +3880,11 @@ class Translations$reader$zh_CN {
 	/// zh-CN: '松手切换轮盘'
 	String get radialMenuHintSwitch => '松手切换轮盘';
 
-	/// zh-CN: '单页式（从左到右）'
-	String get singlePageLtr => '单页式（从左到右）';
+	/// zh-CN: '从左到右'
+	String get singlePageLtr => '从左到右';
 
-	/// zh-CN: '单页式（从右到左）'
-	String get singlePageRtl => '单页式（从右到左）';
+	/// zh-CN: '从右到左'
+	String get singlePageRtl => '从右到左';
 }
 
 // Path: plugin
@@ -3735,6 +3894,9 @@ class Translations$plugin$zh_CN {
 	final Translations _root; // ignore: unused_field
 
 	// Translations
+
+	/// zh-CN: '高级能力加载中...'
+	String get advancedCapabilityLoading => '高级能力加载中...';
 
 	/// zh-CN: '插件商店'
 	String get store => '插件商店';
@@ -4261,8 +4423,8 @@ class Translations$dataBackup$zh_CN {
 
 	// Translations
 
-	/// zh-CN: '数据导入/导出'
-	String get title => '数据导入/导出';
+	/// zh-CN: '本地导入/导出'
+	String get title => '本地导入/导出';
 
 	/// zh-CN: '导出'
 	String get exportSection => '导出';
@@ -4327,8 +4489,8 @@ class Translations$dataBackup$zh_CN {
 	/// zh-CN: '导入数据'
 	String get importTitle => '导入数据';
 
-	/// zh-CN: '导入将覆盖当前应用内的所有数据，是否继续？'
-	String get importConfirm => '导入将覆盖当前应用内的所有数据，是否继续？';
+	/// zh-CN: '导入将覆盖备份中的设置与应用数据；本机路径、代理、应用锁及同步配置会保留。是否继续？'
+	String get importConfirm => '导入将覆盖备份中的设置与应用数据；本机路径、代理、应用锁及同步配置会保留。是否继续？';
 
 	/// zh-CN: '该备份包含下载的漫画文件，导入时会先删除本机现有的下载文件。'
 	String get includesDownloadsWarning => '该备份包含下载的漫画文件，导入时会先删除本机现有的下载文件。';
@@ -4663,6 +4825,150 @@ class Translations$realSr$zh_CN {
 
 	// Translations
 
+	/// zh-CN: '删除条件'
+	String get deleteCondition => '删除条件';
+
+	/// zh-CN: '下移优先级'
+	String get lowerPriority => '下移优先级';
+
+	/// zh-CN: '上移优先级'
+	String get raisePriority => '上移优先级';
+
+	/// zh-CN: '添加条件'
+	String get addCondition => '添加条件';
+
+	/// zh-CN: '定位最近生成的超分图；尚未生成时打开超分缓存目录。'
+	String get openImageFolderHint => '定位最近生成的超分图；尚未生成时打开超分缓存目录。';
+
+	/// zh-CN: '打开图片文件夹'
+	String get openImageFolder => '打开图片文件夹';
+
+	/// zh-CN: '查看超分日志'
+	String get viewUpscaleLog => '查看超分日志';
+
+	/// zh-CN: '超分日志'
+	String get upscaleLog => '超分日志';
+
+	/// zh-CN: '下载 Rossi 原生模型'
+	String get downloadNativeModel => '下载 Rossi 原生模型';
+
+	/// zh-CN: '之前页：'
+	String get pagesBefore => '之前页：';
+
+	/// zh-CN: '后续页：'
+	String get pagesAfter => '后续页：';
+
+	/// zh-CN: '分块大小：'
+	String get blockSizeLabel => '分块大小：';
+
+	/// zh-CN: '输出倍率：'
+	String get outputScaleLabel => '输出倍率：';
+
+	/// zh-CN: '图片路径正则 (imagePathRegex)'
+	String get imagePathRegex => '图片路径正则 (imagePathRegex)';
+
+	/// zh-CN: '书籍路径正则 (bookPathRegex)'
+	String get bookPathRegex => '书籍路径正则 (bookPathRegex)';
+
+	/// zh-CN: '任一满足 (OR)'
+	String get matchAnyOr => '任一满足 (OR)';
+
+	/// zh-CN: '全部满足 (AND)'
+	String get matchAllAnd => '全部满足 (AND)';
+
+	/// zh-CN: '尺寸匹配逻辑：'
+	String get sizeMatchLogic => '尺寸匹配逻辑：';
+
+	/// zh-CN: '最大像素 (MPx)'
+	String get maxPixelsMpx => '最大像素 (MPx)';
+
+	/// zh-CN: '最小像素 (MPx)'
+	String get minPixelsMpx => '最小像素 (MPx)';
+
+	/// zh-CN: '最大高度 (px)'
+	String get maxHeightPx => '最大高度 (px)';
+
+	/// zh-CN: '最小高度 (px)'
+	String get minHeightPx => '最小高度 (px)';
+
+	/// zh-CN: '最大宽度 (px)'
+	String get maxWidthPx => '最大宽度 (px)';
+
+	/// zh-CN: '最小宽度 (px)'
+	String get minWidthPx => '最小宽度 (px)';
+
+	/// zh-CN: '条件名称'
+	String get conditionName => '条件名称';
+
+	/// zh-CN: '应用导入'
+	String get applyImport => '应用导入';
+
+	/// zh-CN: '导入条件超分配置'
+	String get importConditions => '导入条件超分配置';
+
+	/// zh-CN: '复制到剪贴板'
+	String get copyToClipboard => '复制到剪贴板';
+
+	/// zh-CN: '导出条件超分配置 (JSON)'
+	String get exportConditions => '导出条件超分配置 (JSON)';
+
+	/// zh-CN: '确定将所有条件恢复为出厂默认设置吗？现有规则将被清除。'
+	String get resetConditionsContent => '确定将所有条件恢复为出厂默认设置吗？现有规则将被清除。';
+
+	/// zh-CN: '重置条件超分'
+	String get resetConditions => '重置条件超分';
+
+	/// zh-CN: '浏览器下载'
+	String get downloadInBrowser => '浏览器下载';
+
+	/// zh-CN: '导入本地 ONNX'
+	String get importLocalOnnx => '导入本地 ONNX';
+
+	/// zh-CN: '删除当前模型'
+	String get deleteCurrentModel => '删除当前模型';
+
+	/// zh-CN: '重新下载当前模型'
+	String get redownloadCurrentModel => '重新下载当前模型';
+
+	/// zh-CN: '下载当前模型'
+	String get downloadCurrentModel => '下载当前模型';
+
+	/// zh-CN: '自定义超分模型'
+	String get customModel => '自定义超分模型';
+
+	/// zh-CN: 'ONNX 模型'
+	String get onnxModel => 'ONNX 模型';
+
+	/// zh-CN: '默认收起，展开后才会加载图片'
+	String get exampleCollapsedHint => '默认收起，展开后才会加载图片';
+
+	/// zh-CN: '当前页的图片还没有准备好'
+	String get exampleImageNotReady => '当前页的图片还没有准备好';
+
+	/// zh-CN: '关闭示例'
+	String get closeExample => '关闭示例';
+
+	/// zh-CN: '移除模型'
+	String get removeModel => '移除模型';
+
+	/// zh-CN: '尚未生成'
+	String get noOutputYet => '尚未生成';
+
+	/// zh-CN: 'Rossi 超分日志（本次运行）'
+	String get logWindowTitle => 'Rossi 超分日志（本次运行）';
+
+	/// zh-CN: '超分'
+	String get logCategory => '超分';
+
+	/// zh-CN: '桌面 NCNN 模型的实际倍率设置'
+	String get outputScaleSubtitle => '桌面 NCNN 模型的实际倍率设置';
+
+	/// zh-CN: '输出倍率'
+	String get outputScale => '输出倍率';
+
+	/// zh-CN: '未命名条件'
+	String get unnamedCondition => '未命名条件';
+
 	/// zh-CN: '图片超分（实验性）'
 	String get title => '图片超分（实验性）';
 
@@ -4909,20 +5215,17 @@ class Translations$about$zh_CN {
 	/// zh-CN: '网络错误'
 	String get networkError => '网络错误';
 
+	/// zh-CN: '跨平台漫画阅读器'
+	String get tagline => '跨平台漫画阅读器';
+
 	/// zh-CN: '项目地址'
 	String get projectAddress => '项目地址';
 
 	/// zh-CN: '喜欢这个项目吗？点个star支持一下吧！'
 	String get projectAddressDesc => '喜欢这个项目吗？点个star支持一下吧！';
 
-	/// zh-CN: '前往 GitHub 仓库 (deretame/Breeze) ⭐'
-	String get projectLink => '前往 GitHub 仓库 (deretame/Breeze) ⭐';
-
-	/// zh-CN: '联系方式'
-	String get contact => '联系方式';
-
-	/// zh-CN: '有任何想法或问题，欢迎来找我聊聊~'
-	String get contactDesc => '有任何想法或问题，欢迎来找我聊聊~';
+	/// zh-CN: '前往 GitHub 仓库 (HibernalGlow/rossi) ⭐'
+	String get projectLink => '前往 GitHub 仓库 (HibernalGlow/rossi) ⭐';
 
 	/// zh-CN: '反馈与建议'
 	String get feedback => '反馈与建议';
@@ -4932,6 +5235,21 @@ class Translations$about$zh_CN {
 
 	/// zh-CN: '在 GitHub Issues 中提出'
 	String get feedbackLink => '在 GitHub Issues 中提出';
+
+	/// zh-CN: '上游致谢'
+	String get upstream => '上游致谢';
+
+	/// zh-CN: 'Rossi 在 Breeze 的基础上继续开发，感谢上游作者与社区。'
+	String get upstreamDesc => 'Rossi 在 Breeze 的基础上继续开发，感谢上游作者与社区。';
+
+	/// zh-CN: '前往上游仓库 (deretame/Breeze)'
+	String get upstreamLink => '前往上游仓库 (deretame/Breeze)';
+
+	/// zh-CN: '本项目以 Mozilla Public License 2.0 授权发布。'
+	String get licenseDesc => '本项目以 Mozilla Public License 2.0 授权发布。';
+
+	/// zh-CN: '查看完整许可文本'
+	String get licenseLink => '查看完整许可文本';
 
 	/// zh-CN: '贡献者'
 	String get contributors => '贡献者';
@@ -4951,8 +5269,8 @@ class Translations$about$zh_CN {
 	/// zh-CN: '1. 项目性质与声明'
 	String get disclaimerItem1Title => '1. 项目性质与声明';
 
-	/// zh-CN: '本项目为开源软件，由本人独立开发并维护。项目以"原样"形式提供，开发者不对项目的功能完整性、稳定性、安全性或适用性作出任何明示或暗示的担保。'
-	String get disclaimerItem1Content => '本项目为开源软件，由本人独立开发并维护。项目以"原样"形式提供，开发者不对项目的功能完整性、稳定性、安全性或适用性作出任何明示或暗示的担保。';
+	/// zh-CN: '本项目为开源软件，由社区贡献者共同开发与维护。项目以"原样"形式提供，开发者不对项目的功能完整性、稳定性、安全性或适用性作出任何明示或暗示的担保。'
+	String get disclaimerItem1Content => '本项目为开源软件，由社区贡献者共同开发与维护。项目以"原样"形式提供，开发者不对项目的功能完整性、稳定性、安全性或适用性作出任何明示或暗示的担保。';
 
 	/// zh-CN: '2. 责任限制'
 	String get disclaimerItem2Title => '2. 责任限制';
@@ -4987,8 +5305,8 @@ class Translations$about$zh_CN {
 	/// zh-CN: '7. 贡献者责任'
 	String get disclaimerItem7Title => '7. 贡献者责任';
 
-	/// zh-CN: '如果本项目接受外部贡献，贡献者的行为仅代表其个人立场，不代表开发者的观点或立场。开发者对贡献者的行为及其贡献内容不承担责任。'
-	String get disclaimerItem7Content => '如果本项目接受外部贡献，贡献者的行为仅代表其个人立场，不代表开发者的观点或立场。开发者对贡献者的行为及其贡献内容不承担责任。';
+	/// zh-CN: '外部贡献者的行为仅代表其个人立场，不代表项目维护者的观点或立场。项目维护者对贡献者的行为及其贡献内容不承担责任。'
+	String get disclaimerItem7Content => '外部贡献者的行为仅代表其个人立场，不代表项目维护者的观点或立场。项目维护者对贡献者的行为及其贡献内容不承担责任。';
 
 	/// zh-CN: '8. 法律合规性'
 	String get disclaimerItem8Title => '8. 法律合规性';
@@ -5863,6 +6181,69 @@ class Translations$download$zh_CN {
 	/// zh-CN: '请选择要下载的章节'
 	String get selectChaptersPrompt => '请选择要下载的章节';
 
+	/// zh-CN: '已选 $selected / 共 $total 章'
+	String selectedCount({required Object selected, required Object total}) => '已选 ${selected} / 共 ${total} 章';
+
+	/// zh-CN: '本地已有 $count 章'
+	String downloadedCount({required Object count}) => '本地已有 ${count} 章';
+
+	/// zh-CN: '跳过已下载'
+	String get skipDownloaded => '跳过已下载';
+
+	/// zh-CN: '本地已有 $count 章，已跳过'
+	String skippedAlreadyDownloaded({required Object count}) => '本地已有 ${count} 章，已跳过';
+
+	/// zh-CN: '开始下载 $started 章，跳过 $skipped 章（本地已有）'
+	String startedWithSkipped({required Object started, required Object skipped}) => '开始下载 ${started} 章，跳过 ${skipped} 章（本地已有）';
+
+	/// zh-CN: '下载这本漫画'
+	String get optionsTitle => '下载这本漫画';
+
+	/// zh-CN: '下载整本'
+	String get optionWholeBook => '下载整本';
+
+	/// zh-CN: '全部 $count 章'
+	String optionWholeBookCounted({required Object count}) => '全部 ${count} 章';
+
+	/// zh-CN: '全部章节'
+	String get optionWholeBookPlain => '全部章节';
+
+	/// zh-CN: '下载最近 $count 章'
+	String optionLatest({required Object count}) => '下载最近 ${count} 章';
+
+	/// zh-CN: '按章节序号取最新的几章'
+	String get optionLatestSubtitle => '按章节序号取最新的几章';
+
+	/// zh-CN: '手动选章节'
+	String get optionPicker => '手动选章节';
+
+	/// zh-CN: '逐章勾选，也可全选'
+	String get optionPickerPlain => '逐章勾选，也可全选';
+
+	/// zh-CN: '「整本」与「最近 N 章」会自动跳过本地已有的章节'
+	String get optionSkipHint => '「整本」与「最近 N 章」会自动跳过本地已有的章节';
+
+	/// zh-CN: '全部'
+	String get filterAll => '全部';
+
+	/// zh-CN: '当前筛选没有任务'
+	String get filterNoMatches => '当前筛选没有任务';
+
+	/// zh-CN: '还剩 $count 章'
+	String overviewRemaining({required Object count}) => '还剩 ${count} 章';
+
+	/// zh-CN: '已下 $done/$total 页'
+	String overviewPages({required Object done, required Object total}) => '已下 ${done}/${total} 页';
+
+	/// zh-CN: '失败 $count 章'
+	String overviewFailed({required Object count}) => '失败 ${count} 章';
+
+	/// zh-CN: '全部漫画'
+	String get comicScopeAll => '全部漫画';
+
+	/// zh-CN: '$name（$count 章）'
+	String comicScopeCounted({required Object name, required Object count}) => '${name}（${count} 章）';
+
 	/// zh-CN: '下载任务已启动'
 	String get taskStarted => '下载任务已启动';
 
@@ -5877,6 +6258,24 @@ class Translations$download$zh_CN {
 
 	/// zh-CN: '等待中 ($count)'
 	String pending({required Object count}) => '等待中 (${count})';
+
+	/// zh-CN: '失败 ($count)'
+	String failedTasks({required Object count}) => '失败 (${count})';
+
+	/// zh-CN: '已暂停 ($count)'
+	String pausedTasks({required Object count}) => '已暂停 (${count})';
+
+	/// zh-CN: '优先下载'
+	String get pinTask => '优先下载';
+
+	/// zh-CN: '取消优先'
+	String get unpinTask => '取消优先';
+
+	/// zh-CN: '已排到队首'
+	String get taskPinned => '已排到队首';
+
+	/// zh-CN: '已取消优先'
+	String get taskUnpinned => '已取消优先';
 
 	/// zh-CN: '已删除任务'
 	String get taskDeleted => '已删除任务';
@@ -5905,8 +6304,20 @@ class Translations$download$zh_CN {
 	/// zh-CN: '全部暂停'
 	String get pauseAll => '全部暂停';
 
+	/// zh-CN: '全部取消'
+	String get cancelAll => '全部取消';
+
+	/// zh-CN: '确定要取消全部 $count 个下载任务吗？已下载的章节图片会一并删除。'
+	String cancelAllConfirm({required Object count}) => '确定要取消全部 ${count} 个下载任务吗？已下载的章节图片会一并删除。';
+
 	/// zh-CN: '清除已完成'
 	String get clearCompleted => '清除已完成';
+
+	/// zh-CN: '紧凑视图'
+	String get viewModeCompact => '紧凑视图';
+
+	/// zh-CN: '完整视图'
+	String get viewModeComfortable => '完整视图';
 
 	/// zh-CN: '获取漫画信息中...'
 	String get statusFetchingComicInfo => '获取漫画信息中...';
@@ -5938,6 +6349,9 @@ class Translations$download$zh_CN {
 	/// zh-CN: '下载设置'
 	String get settingsTitle => '下载设置';
 
+	/// zh-CN: '$chapters 章 · 每章 $images 图 · 间隔 $delayMs ms'
+	String settingsValueSummary({required Object chapters, required Object images, required Object delayMs}) => '${chapters} 章 · 每章 ${images} 图 · 间隔 ${delayMs} ms';
+
 	/// zh-CN: '当前最多同时请求 $count 张图（同时下载章节数 × 单章节图片并发）'
 	String settingsBudgetHint({required Object count}) => '当前最多同时请求 ${count} 张图（同时下载章节数 × 单章节图片并发）';
 
@@ -5946,6 +6360,15 @@ class Translations$download$zh_CN {
 
 	/// zh-CN: '还没有已下载的漫画'
 	String get offlineEmpty => '还没有已下载的漫画';
+
+	/// zh-CN: '统计占用'
+	String get offlineMeasureSize => '统计占用';
+
+	/// zh-CN: '统计中…'
+	String get offlineMeasuring => '统计中…';
+
+	/// zh-CN: '共 $size'
+	String offlineTotalSize({required Object size}) => '共 ${size}';
 
 	/// zh-CN: '已下 $completed/$total 章'
 	String offlineChapterCount({required Object completed, required Object total}) => '已下 ${completed}/${total} 章';
@@ -6872,6 +7295,44 @@ extension on Translations {
 			'navigation.workspace' => '工作台',
 			'navigation.openLocalComic' => '打开本地漫画',
 			'navigation.gpuPresent' => 'GPU 上屏',
+			'settings.defaultHoverDelaySubtitle' => '泳道未单独设置延时时使用此值',
+			'settings.defaultHoverDelay' => '默认悬停定位延迟',
+			'settings.enterWorkspaceSubtitle' => '按下面选好的呈现打开；退出用系统返回键',
+			'settings.enterWorkspace' => '进入工作台',
+			'settings.kanbanLaneMoveRight' => '泳道右移',
+			'settings.kanbanLaneMoveLeft' => '泳道左移',
+			'settings.kanbanPanelMoveDown' => '下移面板',
+			'settings.kanbanPanelMoveUp' => '上移面板',
+			'settings.kanbanLaneDefaultHidden' => '默认隐藏',
+			'settings.kanbanLanePinned' => '固定泳道',
+			'settings.kanbanFullyHidden' => '已彻底隐藏',
+			'settings.kanbanVisible' => '显示中',
+			'settings.kanbanRestoreDefault' => '恢复默认排布',
+			'settings.swimlanePanelKanbanDesc' => '使用看板调整泳道顺序、各泳道上面板的顺序以及显示与彻底隐藏',
+			'settings.laneHoverDelayInherit' => '恢复继承全局延迟',
+			'settings.laneHoverDelay' => '悬停定位延迟',
+			'settings.laneHoverRevealSubtitle' => '停留后自动移动工作台，让本泳道完整显示',
+			'settings.laneHoverReveal' => '悬停后完整显示',
+			'settings.laneKeyboardFollowsMouseSubtitle' => '鼠标进入本泳道后，将键盘操作交给本泳道',
+			'settings.laneKeyboardFollowsMouse' => '键盘目标跟随鼠标',
+			'settings.laneInteraction' => '泳道交互',
+			'settings.swimlanePanelKanbanSubtitle' => '泳道顺序 · 各泳道面板排序 · 面板显示与彻底隐藏',
+			'settings.swimlanePanelKanban' => '泳道与面板看板',
+			'settings.fmNewTabPresetHint' => '预设默认值仅在“使用预设默认值”时采用；默认递归范围沿用下方搜索设置。复制与恢复已关闭页签保留原有设置。',
+			'settings.fmNewTabShowInternal' => '默认显示内部条目',
+			'settings.fmNewTabShowHidden' => '默认显示隐藏项',
+			'settings.fmNewTabPassthrough' => '默认启用穿透',
+			'settings.fmNewTabStartup' => '新页签启动选项',
+			'settings.importFileTxtJsonEmm' => '导入文件 (TXT/JSON/EMM setting.json)',
+			'settings.searchArtistHint' => '搜索画师...',
+			'settings.importFileTxtJson' => '导入文件 (TXT/JSON)',
+			'settings.debugGpuPresentSubtitle' => 'Rust 解码 → wgpu → GPU 拷贝 → 共享纹理，像素不过桥',
+			'settings.debugGpuPresent' => 'GPU 上屏（D3D12 共享纹理）',
+			'settings.debugOcrSmokeSubtitle' => '选一张页 → 检测/识别/擦字/翻译/回填，逐段看耗时与产物',
+			'settings.debugOcrSmoke' => 'OCR 成品页冒烟',
+			'settings.debugLocalSourceSubtitle' => '散图文件夹 / CBZ / CBR 直读，含逐页耗时与拒绝类别',
+			'settings.debugLocalSource' => '本地来源读取（判据 A）',
+			'settings.setResetPin' => '设置重置 PIN',
 			'settings.overviewSubtitle' => '让 Rossi 更合你的习惯',
 			'settings.searchCategories' => '搜索设置分类',
 			'settings.noMatchingCategories' => '没有匹配的分类，请尝试其他关键词',
@@ -7187,8 +7648,8 @@ extension on Translations {
 			'settings.clearCacheConfirm' => '确定要清理所有缓存文件吗？此操作不可撤销。',
 			'settings.calculatingCache' => '计算中...',
 			'settings.calculateCacheFailed' => '计算失败',
-			'settings.dataBackup' => '数据导入/导出',
-			'settings.dataBackupSubtitle' => '备份或恢复应用数据与下载的漫画',
+			'settings.dataBackup' => '本地导入/导出',
+			'settings.dataBackupSubtitle' => '通过 ZIP 在移动端与桌面端迁移设置和数据，保留本机专属配置',
 			'settings.includeDownloaded' => '包含下载的漫画',
 			'settings.includeDownloadedSubtitle' => '导出时一并打包已下载的漫画文件',
 			'settings.exportData' => '导出数据',
@@ -7219,6 +7680,8 @@ extension on Translations {
 			'settings.einkRefreshHint' => '整屏刷新会闪一次白或黑白，用来清掉上一页残影。',
 			'settings.einkRefreshNow' => '立即整屏刷新',
 			'settings.einkRefreshDone' => '已完成整屏刷新',
+			_ => null,
+		} ?? switch (path) {
 			'settings.einkAutoRefreshTurns' => '每翻 N 页自动整屏刷新',
 			'settings.einkAutoRefreshOff' => '不自动刷新',
 			'settings.einkShowRefreshButton' => '显示刷新按钮',
@@ -7257,8 +7720,6 @@ extension on Translations {
 			'settings.colorPreviewVariableFont' => 'Variable Font 测试',
 			'settings.colorPreviewFontLoaded' => ({required Object path}) => '已加载: ${path}',
 			'settings.colorPreviewNoFont' => '还没加载字体，先试推荐样本或者手动选一个 TTF/OTF 文件。',
-			_ => null,
-		} ?? switch (path) {
 			'settings.colorPreviewLoadRecommended' => '加载推荐样本',
 			'settings.colorPreviewSelectFont' => '选择字体文件',
 			'settings.colorPreviewByWeight' => '按 fontWeight 渲染',
@@ -7624,6 +8085,19 @@ extension on Translations {
 			'comicInfo.collected' => '已收藏',
 			'comicInfo.collect' => '收藏',
 			'comicInfo.download' => '下载',
+			'comicInfo.markRead' => '标记已读',
+			'comicInfo.markUnread' => '标记未读',
+			'comicInfo.markThroughRead' => '标记至此为已读',
+			'comicInfo.clearReadMark' => '清除标记',
+			'comicInfo.readStateMenu' => '阅读状态',
+			'comicInfo.readStateMenuHint' => '标记只记录你的人为判决，不改动阅读进度，也不影响「继续阅读」的定位。',
+			'comicInfo.markReadDone' => ({required Object count}) => '已标记 ${count} 话为已读',
+			'comicInfo.markUnreadDone' => ({required Object count}) => '已标记 ${count} 话为未读',
+			'comicInfo.markThroughReadDone' => ({required Object count}) => '已把此前 ${count} 话标记为已读',
+			'comicInfo.readStateUnread' => '未读',
+			'comicInfo.readStateInferred' => '读到过',
+			'comicInfo.readStateManualRead' => '已标记已读',
+			'comicInfo.readStateManualUnread' => '已标记未读',
 			'comicInfo.downloadForbidden' => '该插件暂不支持此功能',
 			'comicInfo.addedToCollection' => '已添加收藏',
 			'comicInfo.removedFromCollection' => '已取消收藏',
@@ -7720,6 +8194,8 @@ extension on Translations {
 			'reader.saveToDirectory' => '导出至文件夹',
 			'reader.exportZip' => '导出为 ZIP',
 			'reader.downloadSelected' => '下载选中项',
+			_ => null,
+		} ?? switch (path) {
 			'reader.selectAll' => '全选',
 			'reader.deselectAll' => '取消全选',
 			'reader.invertSelection' => '反选',
@@ -7771,8 +8247,6 @@ extension on Translations {
 			'reader.readingDirectionLtr' => '从左到右',
 			'reader.readingDirectionRtl' => '从右到左',
 			'reader.readingDirectionVertical' => '从上到下',
-			_ => null,
-		} ?? switch (path) {
 			'reader.webtoon' => '条漫',
 			'reader.singlePageRow' => '单页式（横向翻页）',
 			'reader.readingDirectionLeftOpen' => '左开模式 · 下一页在左',
@@ -7929,6 +8403,8 @@ extension on Translations {
 			'reader.tabTranslate' => '翻译',
 			'reader.chromeSection' => '上下栏与边距',
 			'reader.tuningSection' => '画面处理',
+			'reader.autoTrimMargins' => '自动裁边',
+			'reader.autoTrimMarginsSubtitle' => '检测每页内容区并放大显示，不修改原图',
 			'reader.pauseAutoRead' => '暂停自动阅读',
 			'reader.resumeAutoRead' => '继续自动阅读',
 			'reader.imageLoadFailedRetry' => ({required Object error}) => '${error}\n加载失败，点击重试',
@@ -7941,8 +8417,9 @@ extension on Translations {
 			'reader.radialMenuHintMove' => '移动以选择',
 			'reader.radialMenuHintRelease' => '松手执行',
 			'reader.radialMenuHintSwitch' => '松手切换轮盘',
-			'reader.singlePageLtr' => '单页式（从左到右）',
-			'reader.singlePageRtl' => '单页式（从右到左）',
+			'reader.singlePageLtr' => '从左到右',
+			'reader.singlePageRtl' => '从右到左',
+			'plugin.advancedCapabilityLoading' => '高级能力加载中...',
 			'plugin.store' => '插件商店',
 			'plugin.searchHint' => '搜索插件名称或作者...',
 			'plugin.localInstall' => '本地安装',
@@ -8103,7 +8580,7 @@ extension on Translations {
 			'cache.autoCleanSubtitle' => '关闭后将不再自动清理任何缓存',
 			'cache.calculating' => '计算中...',
 			'cache.calculateFailed' => '计算失败',
-			'dataBackup.title' => '数据导入/导出',
+			'dataBackup.title' => '本地导入/导出',
 			'dataBackup.exportSection' => '导出',
 			'dataBackup.importSection' => '导入',
 			'dataBackup.includeDownloads' => '包含下载的漫画',
@@ -8125,7 +8602,7 @@ extension on Translations {
 			'dataBackup.importing' => '正在导入，请稍后…',
 			'dataBackup.importFailed' => '导入失败',
 			'dataBackup.importTitle' => '导入数据',
-			'dataBackup.importConfirm' => '导入将覆盖当前应用内的所有数据，是否继续？',
+			'dataBackup.importConfirm' => '导入将覆盖备份中的设置与应用数据；本机路径、代理、应用锁及同步配置会保留。是否继续？',
 			'dataBackup.includesDownloadsWarning' => '该备份包含下载的漫画文件，导入时会先删除本机现有的下载文件。',
 			'dataBackup.versionMismatch' => '版本不一致，数据导入可能会出问题，是否继续？',
 			'dataBackup.exportedVersion' => ({required Object version}) => '导出数据版本：${version}',
@@ -8228,6 +8705,56 @@ extension on Translations {
 			'ocr.engineAppleUnavailable' => '这台机器上没有系统翻译这条路（仅 macOS 15+ / iOS 18+）',
 			'ocr.glossaryIgnoredOnApple' => '系统翻译没有术语表接口：这一档下术语表不生效，专名会按通用译法翻',
 			'ocr.engineHunyuanHint' => '这一档要本机先起服务，例如：llama-server -m Hy-MT2-1.8B-Q4_K_M.gguf --device MTL0 -ngl 99 --port 8080\n端点填 http://127.0.0.1:8080/v1，模型名与 --model 一致。术语表会走它原生的 Terminology 模式生效。\n实测 1.8B 就够（约 158 ms/条、一页约 2.4 s）：术语表把 ヤモリ/危機契約 这类错逐条修对了，7B 并不更好且大 4 倍。macOS 上 --device 必须写 MTL0 —— 不写会静默走 CPU，实测慢 4.8 倍。',
+			'realSr.deleteCondition' => '删除条件',
+			'realSr.lowerPriority' => '下移优先级',
+			'realSr.raisePriority' => '上移优先级',
+			_ => null,
+		} ?? switch (path) {
+			'realSr.addCondition' => '添加条件',
+			'realSr.openImageFolderHint' => '定位最近生成的超分图；尚未生成时打开超分缓存目录。',
+			'realSr.openImageFolder' => '打开图片文件夹',
+			'realSr.viewUpscaleLog' => '查看超分日志',
+			'realSr.upscaleLog' => '超分日志',
+			'realSr.downloadNativeModel' => '下载 Rossi 原生模型',
+			'realSr.pagesBefore' => '之前页：',
+			'realSr.pagesAfter' => '后续页：',
+			'realSr.blockSizeLabel' => '分块大小：',
+			'realSr.outputScaleLabel' => '输出倍率：',
+			'realSr.imagePathRegex' => '图片路径正则 (imagePathRegex)',
+			'realSr.bookPathRegex' => '书籍路径正则 (bookPathRegex)',
+			'realSr.matchAnyOr' => '任一满足 (OR)',
+			'realSr.matchAllAnd' => '全部满足 (AND)',
+			'realSr.sizeMatchLogic' => '尺寸匹配逻辑：',
+			'realSr.maxPixelsMpx' => '最大像素 (MPx)',
+			'realSr.minPixelsMpx' => '最小像素 (MPx)',
+			'realSr.maxHeightPx' => '最大高度 (px)',
+			'realSr.minHeightPx' => '最小高度 (px)',
+			'realSr.maxWidthPx' => '最大宽度 (px)',
+			'realSr.minWidthPx' => '最小宽度 (px)',
+			'realSr.conditionName' => '条件名称',
+			'realSr.applyImport' => '应用导入',
+			'realSr.importConditions' => '导入条件超分配置',
+			'realSr.copyToClipboard' => '复制到剪贴板',
+			'realSr.exportConditions' => '导出条件超分配置 (JSON)',
+			'realSr.resetConditionsContent' => '确定将所有条件恢复为出厂默认设置吗？现有规则将被清除。',
+			'realSr.resetConditions' => '重置条件超分',
+			'realSr.downloadInBrowser' => '浏览器下载',
+			'realSr.importLocalOnnx' => '导入本地 ONNX',
+			'realSr.deleteCurrentModel' => '删除当前模型',
+			'realSr.redownloadCurrentModel' => '重新下载当前模型',
+			'realSr.downloadCurrentModel' => '下载当前模型',
+			'realSr.customModel' => '自定义超分模型',
+			'realSr.onnxModel' => 'ONNX 模型',
+			'realSr.exampleCollapsedHint' => '默认收起，展开后才会加载图片',
+			'realSr.exampleImageNotReady' => '当前页的图片还没有准备好',
+			'realSr.closeExample' => '关闭示例',
+			'realSr.removeModel' => '移除模型',
+			'realSr.noOutputYet' => '尚未生成',
+			'realSr.logWindowTitle' => 'Rossi 超分日志（本次运行）',
+			'realSr.logCategory' => '超分',
+			'realSr.outputScaleSubtitle' => '桌面 NCNN 模型的实际倍率设置',
+			'realSr.outputScale' => '输出倍率',
+			'realSr.unnamedCondition' => '未命名条件',
 			'realSr.title' => '图片超分（实验性）',
 			'realSr.unlimited' => '不限制',
 			'realSr.modelDownloadFailed' => '模型下载失败',
@@ -8287,8 +8814,6 @@ extension on Translations {
 			'realSr.noise3' => '降噪 3',
 			'realSr.variantWaifu2xAnime' => 'waifu2x upconv 动漫',
 			'realSr.variantRealCuganDenoise' => ({required Object noise}) => 'Real-CUGAN 降噪 ${noise}',
-			_ => null,
-		} ?? switch (path) {
 			'realSr.coremlSpeed' => '速度优先 (waifu2x)',
 			'realSr.coremlQuality' => '质量优先 (Real-CUGAN)',
 			'realSr.coremlNoise0' => '降噪 0',
@@ -8309,21 +8834,25 @@ extension on Translations {
 			'about.loading' => '加载中...',
 			'about.fetchFailed' => '获取失败',
 			'about.networkError' => '网络错误',
+			'about.tagline' => '跨平台漫画阅读器',
 			'about.projectAddress' => '项目地址',
 			'about.projectAddressDesc' => '喜欢这个项目吗？点个star支持一下吧！',
-			'about.projectLink' => '前往 GitHub 仓库 (deretame/Breeze) ⭐',
-			'about.contact' => '联系方式',
-			'about.contactDesc' => '有任何想法或问题，欢迎来找我聊聊~',
+			'about.projectLink' => '前往 GitHub 仓库 (HibernalGlow/rossi) ⭐',
 			'about.feedback' => '反馈与建议',
 			'about.feedbackDesc' => '发现BUG或者有新的点子？',
 			'about.feedbackLink' => '在 GitHub Issues 中提出',
+			'about.upstream' => '上游致谢',
+			'about.upstreamDesc' => 'Rossi 在 Breeze 的基础上继续开发，感谢上游作者与社区。',
+			'about.upstreamLink' => '前往上游仓库 (deretame/Breeze)',
+			'about.licenseDesc' => '本项目以 Mozilla Public License 2.0 授权发布。',
+			'about.licenseLink' => '查看完整许可文本',
 			'about.contributors' => '贡献者',
 			'about.contributorsCount' => ({required Object count}) => '${count}人',
 			'about.contributionsTooltip' => ({required Object login, required Object count}) => '${login} (${count} 次提交)',
 			'about.disclaimer' => '免责声明',
 			'about.disclaimerTitle' => '开源项目免责声明',
 			'about.disclaimerItem1Title' => '1. 项目性质与声明',
-			'about.disclaimerItem1Content' => '本项目为开源软件，由本人独立开发并维护。项目以"原样"形式提供，开发者不对项目的功能完整性、稳定性、安全性或适用性作出任何明示或暗示的担保。',
+			'about.disclaimerItem1Content' => '本项目为开源软件，由社区贡献者共同开发与维护。项目以"原样"形式提供，开发者不对项目的功能完整性、稳定性、安全性或适用性作出任何明示或暗示的担保。',
 			'about.disclaimerItem2Title' => '2. 责任限制',
 			'about.disclaimerItem2Content' => '开发者对因使用、修改或分发本项目（包括但不限于直接使用、二次开发或集成至其他项目）而导致的任何直接、间接、特殊、附带或后果性损害不承担任何责任。这些损害可能包括但不限于数据丢失、设备损坏、业务中断、利润损失或其他经济损失。',
 			'about.disclaimerItem3Title' => '3. 用户责任',
@@ -8335,7 +8864,7 @@ extension on Translations {
 			'about.disclaimerItem6Title' => '6. 项目修改与终止',
 			'about.disclaimerItem6Content' => '开发者保留随时修改、暂停或终止本项目的权利，且无需提前通知用户。开发者不对因项目修改、暂停或终止而导致的任何后果负责。',
 			'about.disclaimerItem7Title' => '7. 贡献者责任',
-			'about.disclaimerItem7Content' => '如果本项目接受外部贡献，贡献者的行为仅代表其个人立场，不代表开发者的观点或立场。开发者对贡献者的行为及其贡献内容不承担责任。',
+			'about.disclaimerItem7Content' => '外部贡献者的行为仅代表其个人立场，不代表项目维护者的观点或立场。项目维护者对贡献者的行为及其贡献内容不承担责任。',
 			'about.disclaimerItem8Title' => '8. 法律合规性',
 			'about.disclaimerItem8Content' => '用户在使用本项目时，应确保其行为符合所在国家或地区的法律法规。开发者不对用户因违反法律法规而导致的任何后果负责。',
 			'about.disclaimerImportant' => '重要提示',
@@ -8585,11 +9114,38 @@ extension on Translations {
 			'download.title' => '下载任务',
 			'download.startDownload' => '开始下载',
 			'download.selectChaptersPrompt' => '请选择要下载的章节',
+			'download.selectedCount' => ({required Object selected, required Object total}) => '已选 ${selected} / 共 ${total} 章',
+			'download.downloadedCount' => ({required Object count}) => '本地已有 ${count} 章',
+			'download.skipDownloaded' => '跳过已下载',
+			'download.skippedAlreadyDownloaded' => ({required Object count}) => '本地已有 ${count} 章，已跳过',
+			'download.startedWithSkipped' => ({required Object started, required Object skipped}) => '开始下载 ${started} 章，跳过 ${skipped} 章（本地已有）',
+			'download.optionsTitle' => '下载这本漫画',
+			'download.optionWholeBook' => '下载整本',
+			'download.optionWholeBookCounted' => ({required Object count}) => '全部 ${count} 章',
+			'download.optionWholeBookPlain' => '全部章节',
+			'download.optionLatest' => ({required Object count}) => '下载最近 ${count} 章',
+			'download.optionLatestSubtitle' => '按章节序号取最新的几章',
+			'download.optionPicker' => '手动选章节',
+			'download.optionPickerPlain' => '逐章勾选，也可全选',
+			'download.optionSkipHint' => '「整本」与「最近 N 章」会自动跳过本地已有的章节',
+			'download.filterAll' => '全部',
+			'download.filterNoMatches' => '当前筛选没有任务',
+			'download.overviewRemaining' => ({required Object count}) => '还剩 ${count} 章',
+			'download.overviewPages' => ({required Object done, required Object total}) => '已下 ${done}/${total} 页',
+			'download.overviewFailed' => ({required Object count}) => '失败 ${count} 章',
+			'download.comicScopeAll' => '全部漫画',
+			'download.comicScopeCounted' => ({required Object name, required Object count}) => '${name}（${count} 章）',
 			'download.taskStarted' => '下载任务已启动',
 			'download.taskStartFailed' => ({required Object error}) => '下载任务启动失败，${error}',
 			'download.noTasks' => '暂无下载任务',
 			'download.downloading' => '正在下载',
 			'download.pending' => ({required Object count}) => '等待中 (${count})',
+			'download.failedTasks' => ({required Object count}) => '失败 (${count})',
+			'download.pausedTasks' => ({required Object count}) => '已暂停 (${count})',
+			'download.pinTask' => '优先下载',
+			'download.unpinTask' => '取消优先',
+			'download.taskPinned' => '已排到队首',
+			'download.taskUnpinned' => '已取消优先',
 			'download.taskDeleted' => '已删除任务',
 			'download.deleteLastChapterContent' => '删除当前章节后，会删除下载记录，是否确认删除？',
 			'download.cancelTask' => '取消任务',
@@ -8599,7 +9155,11 @@ extension on Translations {
 			'download.failed' => '失败',
 			'download.startAll' => '全部开始',
 			'download.pauseAll' => '全部暂停',
+			'download.cancelAll' => '全部取消',
+			'download.cancelAllConfirm' => ({required Object count}) => '确定要取消全部 ${count} 个下载任务吗？已下载的章节图片会一并删除。',
 			'download.clearCompleted' => '清除已完成',
+			'download.viewModeCompact' => '紧凑视图',
+			'download.viewModeComfortable' => '完整视图',
 			'download.statusFetchingComicInfo' => '获取漫画信息中...',
 			'download.statusDownloadingCover' => '下载封面中...',
 			'download.statusFetchingChapterInfo' => '获取章节信息中...',
@@ -8610,9 +9170,13 @@ extension on Translations {
 			'download.progressPagesWithSpeed' => ({required Object completed, required Object total, required Object speed}) => '已下载 ${completed}/${total} 页 · ${speed}',
 			'download.parallelTaskProgress' => ({required Object count, required Object message}) => '同时下载 ${count} 个任务 · ${message}',
 			'download.settingsTitle' => '下载设置',
+			'download.settingsValueSummary' => ({required Object chapters, required Object images, required Object delayMs}) => '${chapters} 章 · 每章 ${images} 图 · 间隔 ${delayMs} ms',
 			'download.settingsBudgetHint' => ({required Object count}) => '当前最多同时请求 ${count} 张图（同时下载章节数 × 单章节图片并发）',
 			'download.offlineTitle' => '已离线漫画',
 			'download.offlineEmpty' => '还没有已下载的漫画',
+			'download.offlineMeasureSize' => '统计占用',
+			'download.offlineMeasuring' => '统计中…',
+			'download.offlineTotalSize' => ({required Object size}) => '共 ${size}',
 			'download.offlineChapterCount' => ({required Object completed, required Object total}) => '已下 ${completed}/${total} 章',
 			'download.offlineChapterCountOnly' => ({required Object count}) => '已下 ${count} 章',
 			'download.statusComicProgress' => ({required Object completedChapters, required Object totalChapters, required Object currentChapterCompletedImages, required Object currentChapterTotalImages}) => '漫画进度: ${completedChapters}/${totalChapters} 章，当前章节: ${currentChapterCompletedImages}/${currentChapterTotalImages} 页',
@@ -8658,6 +9222,8 @@ extension on Translations {
 			'shelfMenu.copiedTitle' => ({required Object title}) => '已复制标题「${title}」',
 			'shelfMenu.copiedLink' => ({required Object link}) => '已复制链接「${link}」',
 			'shelfMenu.fileManagerTabOpened' => '已在文件管理新页签打开',
+			_ => null,
+		} ?? switch (path) {
 			'shelfMenu.fileManagerTabUnavailable' => '文件管理面板还没准备好，稍后再试',
 			'shelfMenu.fileManagerTabNoLocalPath' => '这条漫画没有本地目录，无法在文件管理里打开',
 			'shelfMenu.favoriteAdded' => ({required Object title}) => '已收藏「${title}」',
@@ -8803,8 +9369,6 @@ extension on Translations {
 			'bindingEditor.swipeRight' => '右滑',
 			'bindingEditor.swipeUp' => '上滑',
 			'bindingEditor.swipeDown' => '下滑',
-			_ => null,
-		} ?? switch (path) {
 			'bindingEditor.tap' => '点击',
 			'bindingEditor.longPress' => '长按',
 			'bindingEditor.fingers' => '手指数',

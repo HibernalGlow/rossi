@@ -31,6 +31,13 @@ abstract class ReadSettingState with _$ReadSettingState {
     @Default(50) int readFilterOpacityPercent,
     @Default(false) bool einkOptimization,
     @Default(120) int einkDelayMs,
+    // 自动裁页面四周的白/黑余白：**显示时**放大内容区，一个像素都不改。
+    //
+    // 检测算法是 mImageViewer `margin_fit.rs` 的移植（Rust 侧
+    // `rossi_local_core::margin_fit`），检测不了 / 满版出血 / 灰色背景一律返回
+    // 「不裁」。放这里而不是阅读器 State：阅读页每个 route 一份 State，换书换章
+    // 就重建，而这个值得跨书保持，并且要能被「本漫独立设置」逐本覆盖。
+    @Default(false) bool autoTrimPageMargins,
     @Default(false) bool autoScroll,
     @Default(false) bool autoScrollHidePauseButton,
     @Default(false) bool autoScrollSmooth,
@@ -152,6 +159,41 @@ abstract class ReadSettingState with _$ReadSettingState {
     // 期间留着它。所以这一项是**可关**的，而且默认开 = 用户要的「直接出图」，
     // 关掉即回到改制前的行为（邻页只画号码，上屏成功就释放位图）。
     @Default(true) bool swipePreviewEnabled,
+    // ── 页面排序（顶栏「排序」面板）────────────────────────────────────────
+    //
+    // 只存**档位**；手动那一档的具体排列活在阅读会话里
+    // （`ReaderPageOrderCubit`）。理由是排列是按「这一章的页表」下标写的，
+    // 换一本书、甚至图源重新给出页表，那些下标就不再指向同一页 —— 落盘等于
+    // 把一份对不上号的索引留给下一本书。
+    @JsonKey(unknownEnumValue: ReaderPageOrderMode.source)
+    @Default(ReaderPageOrderMode.source)
+    ReaderPageOrderMode readerPageOrderMode,
+    // ── 幻灯片（顶栏「幻灯片」面板）────────────────────────────────────────
+    //
+    // 与上面那组 `autoScroll*` **各管各的**：自动滚屏是按像素连续滚，
+    // 幻灯片是「一页停 N 秒」整页推进，并且带结束策略（停 / 循环本章 / 续下一章）。
+    // 两者可以同时开着读同一份阅读模式，但计时器各自独立，不会互相抢翻页。
+    @Default(false) bool slideshowEnabled,
+    @JsonKey(unknownEnumValue: ReaderSlideshowEndAction.stop)
+    @Default(ReaderSlideshowEndAction.stop)
+    ReaderSlideshowEndAction slideshowEndAction,
+    @Default(4000) int slideshowIntervalMs,
+    @Default(100) int slideshowColumnStepPercent,
+    // 放映时的页码驻留指示：放映需要一个「现在放到第几页 / 还有多久」的回读，
+    // 否则开关是否真的生效只能靠猜（与缩略图条、进度条同一口径）。
+    @Default(true) bool slideshowShowProgress,
+    // ── 放大镜（顶栏「放大镜」面板）──────────────────────────────────────
+    @Default(false) bool magnifierEnabled,
+    @JsonKey(unknownEnumValue: ReaderMagnifierMode.auto)
+    @Default(ReaderMagnifierMode.auto)
+    ReaderMagnifierMode magnifierMode,
+    // 倍率取整数百分比而不是 double：这一份要进云同步 JSON，
+    // 而 float 在不同编解码器之间的末位差异会让「同步回来的设置」和上传的不完全等值。
+    @Default(300) int magnifierZoomPercent,
+    @Default(220) int magnifierSizeLogical,
+    // 锁止 = 松手/移开鼠标后窗口不消失，靠拖窗口本身移动。
+    // 检端部细节时这才有意义：不锁的话指针一挪出页面，取样窗口跟着没了。
+    @Default(false) bool magnifierLocked,
   }) = _ReadSettingState;
 
   factory ReadSettingState.fromJson(Map<String, dynamic> json) =>
