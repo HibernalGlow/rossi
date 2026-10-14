@@ -47,6 +47,17 @@ PageTrimGeometry? computePageTrim({
   required Size imageSize,
   required Rect contentRect,
 }) {
+  if (!contentRect.left.isFinite ||
+      !contentRect.top.isFinite ||
+      !contentRect.right.isFinite ||
+      !contentRect.bottom.isFinite ||
+      contentRect.left < 0 ||
+      contentRect.top < 0 ||
+      contentRect.right > 1 ||
+      contentRect.bottom > 1 ||
+      contentRect.isEmpty) {
+    return null;
+  }
   if (!boxSize.width.isFinite ||
       !boxSize.height.isFinite ||
       !imageSize.width.isFinite ||
@@ -83,18 +94,18 @@ PageTrimGeometry? computePageTrim({
   final double contentHeight = bottom - top;
   if (contentWidth <= 0 || contentHeight <= 0) return null;
 
-  // 让内容矩形以 contain 的方式重新铺满「整页原本占的那块」，
-  // 而不是铺满整个盒子 —— 留边仍然按整页的纵横比来，不因为裁边改变横竖比。
-  final double scale = drawn.width / contentWidth < drawn.height / contentHeight
-      ? drawn.width / contentWidth
-      : drawn.height / contentHeight;
+  // 内容区等比铺满可用盒子。条漫外层同步增加高度，因此不丢上下接缝。
+  final double scale =
+      boxSize.width / contentWidth < boxSize.height / contentHeight
+      ? boxSize.width / contentWidth
+      : boxSize.height / contentHeight;
   if (scale <= _kMinTrimScale) return null;
 
-  // 缩放后内容矩形的目标位置：与 drawn 同中心。
+  // 缩放后内容矩形在可用盒子内居中。
   final double targetWidth = contentWidth * scale;
   final double targetHeight = contentHeight * scale;
-  final double targetLeft = drawn.center.dx - targetWidth / 2;
-  final double targetTop = drawn.center.dy - targetHeight / 2;
+  final double targetLeft = boxSize.width / 2 - targetWidth / 2;
+  final double targetTop = boxSize.height / 2 - targetHeight / 2;
 
   return PageTrimGeometry(
     scale,

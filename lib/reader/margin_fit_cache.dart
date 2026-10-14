@@ -1,6 +1,7 @@
 import 'dart:collection';
 import 'dart:typed_data';
 import 'dart:ui' show Rect;
+import 'package:zephyr/reader/auto_trim_settings.dart';
 
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/src/rust/api/margin_fit.dart';
@@ -45,8 +46,22 @@ class MarginFitCache {
     required int width,
     required int height,
     int? tolerance,
-  }) {
+  }) async {
+    await AutoTrimSettings.load();
+    final options = AutoTrimSettings.options.value;
+    tolerance ??= options.tolerance;
     final String key = _keyFor(source, pageIndex, width, height, tolerance);
+    return _bboxFor(key, source, rgba, width, height, tolerance).then(options.protect);
+  }
+
+  Future<Rect?> _bboxFor(
+    String key,
+    PageSource source,
+    Uint8List rgba,
+    int width,
+    int height,
+    int? tolerance,
+  ) {
     final _Entry? hit = _entries[key];
     if (hit != null) {
       // 触碰一下，维持 LRU 顺序。

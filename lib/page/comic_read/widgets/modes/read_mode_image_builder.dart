@@ -1,4 +1,9 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
+import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
+import 'package:zephyr/reader/auto_trim_settings.dart';
+import 'package:zephyr/reader/page_trim_transform.dart';
 import 'package:zephyr/page/comic_read/model/page_split.dart';
 import 'package:zephyr/page/comic_read/model/reader_frame.dart';
 import 'package:zephyr/page/comic_read/widgets/image/read_image_widget.dart';
@@ -89,13 +94,34 @@ Widget buildReadModeImage({
   // 自己裁（与底图那一路同一把尺 `PageSlice.uvRect`）。
   // 之前这里直接不挂叠层，于是横长页拆半读时芯片说「译文页」而画面上一个中文都没有 ——
   // 那是最难发现的一类错：状态是真的（这一页确实翻好了），只是没画。
-  final overlay = !ocrSupportedHere
+  final rawOverlay = !ocrSupportedHere
       ? const SizedBox.shrink()
       : TranslatedPageOverlay(
           pageIndex: slotIndex,
           boxSize: painted,
           slice: slice,
         );
+
+  final trimLayout = context.read<ImageSizeCubit>().trimLayout;
+  final trimEnabled = context.watchEffectiveReadSetting().autoTrimPageMargins;
+  final overlay = ListenableBuilder(
+    listenable: Listenable.merge([trimLayout, AutoTrimSettings.options]),
+    builder: (context, _) {
+      final intrinsic = context.read<ImageSizeCubit>().state.getIntrinsic(
+        cacheIndex,
+      );
+      if (!trimEnabled || slice.isHalf || intrinsic == null) return rawOverlay;
+      return PageTrimTransform(
+        boxSize: painted,
+        imageSize: intrinsic,
+        contentRect: trimLayout.rectFor(
+          cacheIndex,
+          AutoTrimSettings.options.value.cacheKey,
+        ),
+        child: rawOverlay,
+      );
+    },
+  );
 
   Widget withOverlay(Widget child) => Stack(
     fit: StackFit.passthrough,
