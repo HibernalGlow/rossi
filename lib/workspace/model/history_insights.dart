@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:zephyr/util/path_util.dart';
 import 'package:zephyr/workspace/model/shelf_library_query.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 历史洞察的**纯聚合**（neoview `cards/insights/reader-history-insights.ts` 的同位物）。
 ///
@@ -316,22 +317,32 @@ SourceBreakdownSummary buildSourceBreakdown(List<HistoryInsightEvent> events) {
 /// 返回的是**分组键**而不是给人看的名字：uuid 先按 [shelfSourceKey] 归一大小写
 /// （同一个插件的 `source` 在库里可能是两种写法），解析成插件名是界面层的事。
 String classifyHistorySource(HistoryInsightEvent event) {
-  if (isLocalComicSource(event.source, event.comicId)) return '本地';
+  if (isLocalComicSource(event.source, event.comicId))
+    return t.workspace.localLabel;
   final source = shelfSourceKey(event.source);
   return source.isEmpty ? '未知' : source;
 }
 
 // ── 日期工具 ────────────────────────────────────────────────────────────────
 
-const List<String> weekdayLabels = ['日', '一', '二', '三', '四', '五', '六'];
-const List<String> weekdayFullLabels = [
-  '周日',
-  '周一',
-  '周二',
-  '周三',
-  '周四',
-  '周五',
-  '周六',
+List<String> get weekdayLabels => [
+  t.workspace.shortSun,
+  t.workspace.shortMon,
+  t.workspace.shortTue,
+  t.workspace.shortWed,
+  t.workspace.shortThu,
+  t.workspace.shortFri,
+  t.workspace.shortSat,
+];
+
+List<String> get weekdayFullLabels => [
+  t.workspace.weekdaySun,
+  t.workspace.weekdayMon,
+  t.workspace.weekdayTue,
+  t.workspace.weekdayWed,
+  t.workspace.weekdayThu,
+  t.workspace.weekdayFri,
+  t.workspace.weekdaySat,
 ];
 
 /// 本地日的键（`yyyy-MM-dd`）。它同时是**分组键**与卡片上的可读数。

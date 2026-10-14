@@ -92,7 +92,7 @@ Future<FileManagerActionCall?> planFileManagerEntryAction(
       final name = await _promptName(
         context,
         title: '重命名',
-        label: '新名称',
+        label: t.workspace.newName,
         initial: target.name,
         confirmLabel: '重命名',
       );
@@ -106,7 +106,7 @@ Future<FileManagerActionCall?> planFileManagerEntryAction(
         title: '新建文件夹',
         label: '文件夹名称',
         initial: _defaultFolderName,
-        confirmLabel: '创建',
+        confirmLabel: t.workspace.create,
       );
       return name == null
           ? null
@@ -151,14 +151,21 @@ Future<bool> confirmFileManagerDestructive(
       // 「删了就没了」这一句必须把**不可撤销**写在正文里，而不是靠按钮颜色 ——
       // 确认框最常见的错法是正文只描述事实、危险只在配色上，于是色盲用户
       // 与「一路点确定」的用户看到的是同一个框。
-      ? '$subject将被永久删除，不进入回收站，也无法撤销。'
-      : '$subject将被删除。${trashOutcomeHint(restoreSupported: prompt.restoreSupported)}。';
+      ? t.workspace.deleteForeverWarning(subject: subject)
+      : t.workspace.deleteConfirmSubject(
+          subject: subject,
+          outcome: trashOutcomeHint(restoreSupported: prompt.restoreSupported),
+        );
 
   final confirmed = await showPopupPanel<bool>(
     context: context,
     presentation: PopupPresentation.modal,
     builder: (dialogContext) => PopupPanel(
-      title: Text(prompt.permanent ? '永久删除？' : '删除？'),
+      title: Text(
+        prompt.permanent
+            ? t.workspace.deleteForeverQuestion
+            : t.workspace.deleteQuestion,
+      ),
       content: Text(body),
       actions: [
         TextButton(
@@ -170,7 +177,7 @@ Future<bool> confirmFileManagerDestructive(
           style: TextButton.styleFrom(
             foregroundColor: Theme.of(dialogContext).colorScheme.error,
           ),
-          child: Text(prompt.permanent ? '永久删除' : '删除'),
+          child: Text(prompt.permanent ? t.workspace.deleteForever : '删除'),
         ),
       ],
     ),
@@ -279,8 +286,8 @@ Future<void> copyFileManagerPathsToClipboard(
   await Clipboard.setData(ClipboardData(text: text));
   if (!context.mounted) return;
   showSuccessToast(
-    paths.length > 1 ? '已复制 ${paths.length} 条路径' : text,
-    title: '已复制路径',
+    paths.length > 1 ? t.workspace.pathsCopied(count: paths.length) : text,
+    title: t.workspace.pathCopied,
     context: context,
   );
 }
@@ -299,20 +306,27 @@ Future<void> revealFileManagerEntry(
   final host = currentRevealHost();
   if (host == RevealHost.unsupported) {
     if (!context.mounted) return;
-    showErrorToast('这个平台没有可调用的文件管理器', context: context);
+    showErrorToast(t.workspace.noFileManagerOnPlatform, context: context);
     return;
   }
   try {
     final outcome = await revealInFileManager(path, host: host);
     if (!context.mounted) return;
-    showSuccessToast(outcome, title: '已打开文件管理器', context: context);
+    showSuccessToast(
+      outcome,
+      title: t.workspace.fileManagerOpened,
+      context: context,
+    );
   } on UnsupportedError catch (error) {
     if (!context.mounted) return;
     showErrorToast('${error.message}', context: context);
   } catch (error) {
     // `ProcessException`（可执行文件起不来）与 `StateError`（命令报了失败）。
     if (!context.mounted) return;
-    showErrorToast('打不开文件管理器：$error', context: context);
+    showErrorToast(
+      t.workspace.cannotOpenFileManager(error: error),
+      context: context,
+    );
   }
 }
 
@@ -329,9 +343,9 @@ String fileManagerTrashOutcome({
   final hint = trashOutcomeHint(restoreSupported: restoreSupported);
   final subject = selectionSubject(count);
   return restoreSupported
-      ? '已把$subject移到回收站，$hint'
+      ? t.workspace.movedToTrash(subject: subject, hint: hint)
       // 不可撤销时补一句「在哪儿」—— 用户还能自己去系统废纸篓里捞回来。
-      : '已把$subject移到回收站，$hint（在系统废纸篓里）';
+      : t.workspace.movedToTrashSystem(subject: subject, hint: hint);
 }
 
 /// 「已复制 / 已剪切」之后提示条要说的话。
@@ -339,8 +353,11 @@ String fileManagerTrashOutcome({
 /// 明说「选个目录粘贴」：内部剪贴板是**两步式**的，第一条提示不说清下一步，
 /// 用户会以为复制就是复制到系统剪贴板，然后在别处粘贴失败。
 String fileManagerClipboardHint({required bool cut, required int count}) {
-  final verb = cut ? '已剪切' : '已复制';
-  return '$verb${selectionSubject(count)}，选个目录粘贴';
+  final verb = cut ? t.workspace.cutDone : t.workspace.copied;
+  return t.workspace.pickPasteTarget(
+    verb: verb,
+    subject: selectionSubject(count),
+  );
 }
 
 /// 一次批量操作的提示条该怎么弹。
@@ -379,7 +396,10 @@ void showFileManagerReport(BuildContext context, FileOpsReport report) {
   showWarningToast(
     firstFailure == null
         ? report.summary
-        : '${report.summary}　首个失败原因：$firstFailure',
+        : t.workspace.opFirstFailure(
+            summary: report.summary,
+            failure: firstFailure,
+          ),
     context: context,
   );
 }

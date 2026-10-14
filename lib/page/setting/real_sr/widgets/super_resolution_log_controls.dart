@@ -4,6 +4,7 @@ import 'package:zephyr/page/setting/real_sr/service/super_resolution_log.dart';
 import 'package:zephyr/widgets/app_log_dialog.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 class SuperResolutionLogControls extends StatelessWidget {
   const SuperResolutionLogControls({super.key});
@@ -11,7 +12,7 @@ class SuperResolutionLogControls extends StatelessWidget {
   Future<void> _copy(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: SuperResolutionLog.text));
     if (context.mounted) {
-      showSuccessToast('超分日志已复制', context: context);
+      showSuccessToast(t.realSr.upscaleLogCopied, context: context);
     }
   }
 
@@ -31,13 +32,13 @@ class SuperResolutionLogControls extends StatelessWidget {
   void _showLog(BuildContext context) => showAppLogDialog(
     context,
     log: SuperResolutionLog.log,
-    title: '超分日志',
-    emptyText: '尚无超分日志。启用超分后，推理和替换过程会记录在这里。',
-    copyLabel: '复制日志',
-    copiedToast: '超分日志已复制',
+    title: t.realSr.upscaleLog,
+    emptyText: t.realSr.logEmptyText,
+    copyLabel: t.realSr.copyLog,
+    copiedToast: t.realSr.upscaleLogCopied,
     // 这个按钮开的是**最近产物**所在目录，不是日志文件 —— 超分的用法是
     // 「刚超分完那张图在哪」，所以把去向整个交给 SuperResolutionLog 自己决定。
-    openLabel: '打开图片文件夹',
+    openLabel: t.realSr.openImageFolder,
     openAction: SuperResolutionLog.openOutputFolder,
     closeLabel: '关闭',
   );
@@ -53,7 +54,7 @@ class SuperResolutionLogControls extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: () => _showLog(context),
             icon: const GlyphIcon(AppGlyphs.article),
-            label: const Text('查看超分日志'),
+            label: Text(t.realSr.viewUpscaleLog),
           ),
           TextButton.icon(
             onPressed: () => _copy(context),
@@ -63,12 +64,12 @@ class SuperResolutionLogControls extends StatelessWidget {
           TextButton.icon(
             onPressed: () => _openFolder(context),
             icon: const GlyphIcon(AppGlyphs.folder),
-            label: const Text('打开图片文件夹'),
+            label: Text(t.realSr.openImageFolder),
           ),
         ],
       ),
       const SizedBox(height: 4),
-      const Text('定位最近生成的超分图；尚未生成时打开超分缓存目录。', style: TextStyle(fontSize: 12)),
+      Text(t.realSr.openImageFolderHint, style: TextStyle(fontSize: 12)),
     ],
   );
 }

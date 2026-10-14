@@ -67,7 +67,7 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      current.enabled ? '已启用' : '已停用',
+                      current.enabled ? t.realSr.conditionEnabledBadge : '已停用',
                       style: TextStyle(
                         fontSize: 11,
                         color: current.enabled
@@ -78,7 +78,7 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
                     ),
                     const SizedBox(width: 4),
                     M3ESwitch(
-                      semanticLabel: '启用此条件',
+                      semanticLabel: t.realSr.enableThisCondition,
                       value: current.enabled,
                       selectedIcon: const Icon(Icons.check, size: 16),
                       onChanged: (val) {
@@ -92,7 +92,7 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
 
             const SizedBox(height: 12),
             Text(
-              '尺寸与规则匹配 (Match)',
+              t.realSr.matchSectionTitle,
               style: theme.textTheme.labelMedium?.copyWith(
                 color: colorScheme.primary,
                 fontWeight: FontWeight.w600,
@@ -213,8 +213,14 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
                 Expanded(
                   child: SegmentedButton<String>(
                     segments: [
-                      ButtonSegment(value: 'and', label: Text(t.realSr.matchAllAnd)),
-                      ButtonSegment(value: 'or', label: Text(t.realSr.matchAnyOr)),
+                      ButtonSegment(
+                        value: 'and',
+                        label: Text(t.realSr.matchAllAnd),
+                      ),
+                      ButtonSegment(
+                        value: 'or',
+                        label: Text(t.realSr.matchAnyOr),
+                      ),
                     ],
                     selected: {match.dimensionMode},
                     onSelectionChanged: (set) {
@@ -236,7 +242,9 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
               initialValue: match.bookPathRegex ?? '',
               decoration: InputDecoration(
                 labelText: t.realSr.bookPathRegex,
-                hintText: r'例: (?:^|/)02COS(?:/|$)',
+                hintText:
+                    '${t.realSr.regexExamplePrefix}'
+                    r'(?:^|/)02COS(?:/|$)',
                 isDense: true,
                 contentPadding: EdgeInsets.symmetric(
                   horizontal: 10,
@@ -259,7 +267,11 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
               initialValue: match.imagePathRegex ?? '',
               decoration: InputDecoration(
                 labelText: t.realSr.imagePathRegex,
-                hintText: r'例: ^chapter/ 或 \.webp$',
+                hintText:
+                    '${t.realSr.regexExamplePrefix}'
+                    r'^chapter/ '
+                    '${t.realSr.regexExampleOr}'
+                    r' \.webp$',
                 isDense: true,
                 contentPadding: EdgeInsets.symmetric(
                   horizontal: 10,
@@ -285,8 +297,8 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                     visualDensity: VisualDensity.compact,
-                    title: const Text(
-                      '匹配归档内部路径',
+                    title: Text(
+                      t.realSr.matchArchivePath,
                       style: TextStyle(fontSize: 11),
                     ),
                     value: match.matchInnerPath,
@@ -302,8 +314,8 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                     visualDensity: VisualDensity.compact,
-                    title: const Text(
-                      '排除预超分队列',
+                    title: Text(
+                      t.realSr.excludePreUpscale,
                       style: TextStyle(fontSize: 11),
                     ),
                     value: match.excludeFromPreload,
@@ -322,7 +334,7 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
             const SizedBox(height: 12),
 
             Text(
-              '触发动作 (Action)',
+              t.realSr.actionSectionTitle,
               style: theme.textTheme.labelMedium?.copyWith(
                 color: colorScheme.primary,
                 fontWeight: FontWeight.w600,
@@ -353,7 +365,9 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      action.skip ? '命中此条件时：跳过超分（不处理）' : '命中此条件时：执行超分',
+                      action.skip
+                          ? t.realSr.actionSkipHit
+                          : t.realSr.actionUpscaleHit,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -385,7 +399,10 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
                   Expanded(
                     child: Row(
                       children: [
-                        Text(t.realSr.outputScaleLabel, style: TextStyle(fontSize: 11)),
+                        Text(
+                          t.realSr.outputScaleLabel,
+                          style: TextStyle(fontSize: 11),
+                        ),
                         const SizedBox(width: 4),
                         Expanded(
                           child: FluentDropdown<int>(
@@ -406,7 +423,10 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
                   Expanded(
                     child: Row(
                       children: [
-                        Text(t.realSr.blockSizeLabel, style: TextStyle(fontSize: 11)),
+                        Text(
+                          t.realSr.blockSizeLabel,
+                          style: TextStyle(fontSize: 11),
+                        ),
                         const SizedBox(width: 4),
                         Expanded(
                           child: FluentDropdown<int>(
@@ -438,8 +458,8 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       visualDensity: VisualDensity.compact,
-                      title: const Text(
-                        '启用分块 Tile',
+                      title: Text(
+                        t.realSr.enableTile,
                         style: TextStyle(fontSize: 11),
                       ),
                       value: action.tileEnabled ?? true,
@@ -455,8 +475,8 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       visualDensity: VisualDensity.compact,
-                      title: const Text(
-                        '写入结果缓存',
+                      title: Text(
+                        t.realSr.writeResultCache,
                         style: TextStyle(fontSize: 11),
                       ),
                       value: action.useCache ?? true,
@@ -476,8 +496,8 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       visualDensity: VisualDensity.compact,
-                      title: const Text(
-                        '启用 TTA 增强',
+                      title: Text(
+                        t.realSr.enableTta,
                         style: TextStyle(fontSize: 11),
                       ),
                       value: action.tta ?? false,

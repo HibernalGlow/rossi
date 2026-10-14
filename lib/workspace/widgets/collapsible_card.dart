@@ -1,26 +1,37 @@
+import 'dart:async';
+
+import 'package:flutter/gestures.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_new_shapes/material_new_shapes.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/config/global/theme_shape.dart';
+import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/common_popup.dart';
 import 'package:zephyr/widgets/expressive/expressive_blob.dart';
+import 'package:zephyr/widgets/expressive/expressive_icon_button.dart';
 import 'package:zephyr/widgets/expressive/expressive_shape.dart';
 import 'package:zephyr/widgets/motion/action_bubble.dart';
-import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
-import 'package:zephyr/config/global/global_setting.dart';
-import 'package:zephyr/icons/icons.dart';
-import 'package:zephyr/config/global/theme_shape.dart';
-import 'package:zephyr/widgets/expressive/expressive_icon_button.dart';
 import 'package:zephyr/widgets/motion/expressive_motion.dart';
 import 'package:zephyr/widgets/motion/retained_panel_switcher.dart';
+import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
+import 'package:zephyr/workspace/widgets/card_header_actions.dart';
 import 'package:zephyr/workspace/widgets/cards/expressive_control_kit.dart';
 import 'package:zephyr/workspace/widgets/cards/expressive_widgets.dart';
-import 'package:zephyr/workspace/widgets/library_view/shelf_menu_button.dart';
 import 'package:zephyr/workspace/widgets/grid/card_layout_scope.dart';
-import 'package:zephyr/workspace/widgets/card_header_actions.dart';
+import 'package:zephyr/workspace/widgets/library_view/shelf_menu_button.dart';
 
 /// 通用可折叠卡片组件外壳（支持泳道与边栏中 100% 复用）
 ///
 /// 轨道上关于「位置」的三个动作 —— 上移 / 下移 / 收起 —— 都由宿主
 /// （面板 / 抽屉）通过 [onMoveUp] / [onMoveDown] / [onHide] 传进来。
 /// 卡片自己不需要知道自己在第几位，也不需要知道有没有下家。
+///
+/// 当 [headerless] 为 `true` 时，采用「无常驻标题栏 MD3 小组件 + 悬浮/右键控制层」：
+/// - **日常展开态**：隐藏常驻标题栏，空间 100% 让给内容；右键或长按组件任意位置弹出上下文菜单（折叠、自定义布局、尺寸预设、全宽并撑满高度、收起/恢复）；
+/// - **日常折叠态**：保留紧凑的可恢复胶囊条（图标 + 标题/摘要 + 点击展开），防止组件折叠后难以找回；
+/// - **编辑布局态**：浮现顶部独立拖拽手柄、临时组件名称标签、布局菜单、折叠按钮与右下角尺寸调整手柄，内容区域本身不响应拖拽以免与滚动/滑块冲突。
 class CollapsibleCard extends StatelessWidget {
   final String cardId;
   final String title;
@@ -173,7 +184,9 @@ class CollapsibleCard extends StatelessWidget {
                           final titleRegion = Semantics(
                             button: true,
                             expanded: isExpanded,
-                            hint: isExpanded ? '点击折叠' : '点击展开',
+                            hint: isExpanded
+                                ? t.workspace.clickToCollapse
+                                : t.workspace.clickToExpand,
                             child: InkWell(
                               onTap: onToggle,
                               splashFactory: expressive
@@ -275,7 +288,9 @@ class CollapsibleCard extends StatelessWidget {
                                 _buildTrackMenu(context, layout),
                               if (showLayoutControls)
                                 ExpressiveIconButton(
-                                  tooltip: isExpanded ? '折叠$title' : '展开$title',
+                                  tooltip: isExpanded
+                                      ? t.workspace.collapseNamed(title: title)
+                                      : '展开$title',
                                   glyph: AppGlyphs.chevronDown,
                                   active: isExpanded,
                                   activeTurns: .5,
@@ -368,7 +383,10 @@ class CollapsibleCard extends StatelessWidget {
                         if (layout?.resizing == true)
                           Expanded(
                             child: Text(
-                              '${layout!.previewSize?.width.round()} × ${layout.previewSize?.height.round()} · 松开保存',
+                              t.workspace.resizePreview(
+                                w: layout!.previewSize?.width.round() ?? 0,
+                                h: layout.previewSize?.height.round() ?? 0,
+                              ),
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: theme.colorScheme.primary,
                               ),
@@ -390,6 +408,385 @@ class CollapsibleCard extends StatelessWidget {
     );
   }
 
+  /// 构建无常驻标题栏的 MD3 Expressive 小组件外壳。
+  Widget _buildHeaderlessCard({
+    required BuildContext context,
+    required ThemeData theme,
+    required CardLayoutScope? layout,
+    required double radius,
+    required bool showLayoutControls,
+    required Widget content,
+  }) {
+    final borderRadius = expressive
+        ? const BorderRadius.only(
+            topLeft: Radius.circular(22),
+            topRight: Radius.circular(22),
+            bottomLeft: Radius.circular(10),
+            bottomRight: Radius.circular(22),
+          )
+        : BorderRadius.circular(radius);
+
+    return CardHeaderActionsHost(
+      builder: (context, headerActions) => _HeaderlessContextMenuRegion(
+        enableLongPress: !showLayoutControls,
+        onOpenMenu: (globalPosition) =>
+            _openContextMenu(context, globalPosition, layout),
+        child: Padding(
+          padding: margin ?? EdgeInsets.zero,
+          child: Material(
+            color: theme.colorScheme.surfaceContainerHigh,
+            shape: RoundedRectangleBorder(
+              borderRadius: borderRadius,
+              side: layout?.resizing == true || layout?.dragging == true
+                  ? BorderSide(color: theme.colorScheme.primary, width: 2)
+                  : showLayoutControls
+                  ? BorderSide(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.55),
+                      width: 1.2,
+                    )
+                  : BorderSide(
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.22,
+                      ),
+                      width: 0.5,
+                    ),
+            ),
+            animationDuration: ExpressiveMotion.duration(
+              context,
+              ExpressiveMotion.effectDuration,
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Stack(
+              fit: StackFit.passthrough,
+              children: [
+                LayoutBuilder(
+                  builder: (context, bounds) {
+                    // 1. 日常折叠态：不显示编辑栏，展示紧凑可恢复的胶囊条
+                    if (!showLayoutControls && !isExpanded) {
+                      return _buildHeaderlessCollapsedStrip(context, theme);
+                    }
+
+                    // 2. 日常展开态或编辑态
+                    return Column(
+                      mainAxisSize: bounds.hasBoundedHeight
+                          ? MainAxisSize.max
+                          : MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (showLayoutControls)
+                          _buildHeaderlessEditBar(
+                            context: context,
+                            theme: theme,
+                            layout: layout,
+                            headerActions: headerActions,
+                          ),
+                        if (isExpanded)
+                          if (bounds.hasBoundedHeight)
+                            Expanded(
+                              child: scrollContent
+                                  ? SingleChildScrollView(
+                                      primary: false,
+                                      child: content,
+                                    )
+                                  : content,
+                            )
+                          else
+                            content,
+                      ],
+                    );
+                  },
+                ),
+                if (isExpanded &&
+                    showLayoutControls &&
+                    layout?.resizeHandle != null)
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: IgnorePointer(
+                      ignoring: false,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Row(
+                          children: [
+                            if (layout?.resizing == true)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: theme
+                                      .colorScheme
+                                      .surfaceContainerHighest
+                                      .withValues(alpha: 0.9),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  t.workspace.resizePreview(
+                                    w: layout!.previewSize?.width.round() ?? 0,
+                                    h: layout.previewSize?.height.round() ?? 0,
+                                  ),
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              )
+                            else
+                              const Spacer(),
+                            layout!.resizeHandle!,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 无标题栏组件在日常折叠后的紧凑可恢复胶囊条。
+  Widget _buildHeaderlessCollapsedStrip(BuildContext context, ThemeData theme) {
+    final scheme = theme.colorScheme;
+    return Semantics(
+      button: true,
+      expanded: false,
+      label: '展开$title',
+      child: InkWell(
+        onTap: onToggle,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 40),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 26,
+                  height: 26,
+                  child: M3EShapeContainer(
+                    kind: M3EShapeKind.cookie6Sided,
+                    color: scheme.primaryContainer,
+                    child: Center(
+                      child: GlyphIcon(
+                        icon,
+                        size: 14,
+                        color: scheme.onPrimaryContainer,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child:
+                      collapsedChild ??
+                      Text(
+                        title,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: scheme.onSurface,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                ),
+                if (trailing != null) ...[
+                  const SizedBox(width: 6),
+                  Flexible(child: trailing!),
+                ],
+                const SizedBox(width: 6),
+                Tooltip(
+                  message: '展开$title',
+                  child: GlyphIcon(
+                    AppGlyphs.chevronDown,
+                    size: 16,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 无标题栏组件在编辑模式下的顶部控制条：独立拖拽手柄 + 临时组件标签 + 菜单与折叠。
+  Widget _buildHeaderlessEditBar({
+    required BuildContext context,
+    required ThemeData theme,
+    required CardLayoutScope? layout,
+    required Widget? headerActions,
+  }) {
+    final scheme = theme.colorScheme;
+    final dragHandleRegion = Container(
+      height: 30,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GlyphIcon(
+            AppGlyphs.dragHandle,
+            size: 15,
+            color: scheme.onPrimaryContainer,
+          ),
+          const SizedBox(width: 6),
+          GlyphIcon(icon, size: 14, color: scheme.onPrimaryContainer),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              title,
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: scheme.onPrimaryContainer,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return Container(
+      height: 36,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.65),
+        border: Border(
+          bottom: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: 0.3),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: layout?.wrapHeader(dragHandleRegion) ?? dragHandleRegion,
+          ),
+          if (isExpanded && headerActions != null)
+            Flexible(child: headerActions),
+          if (trailing != null) ...[
+            const SizedBox(width: 4),
+            Flexible(child: trailing!),
+          ],
+          const SizedBox(width: 4),
+          _buildTrackMenu(context, layout),
+          ExpressiveIconButton(
+            tooltip: isExpanded
+                ? t.workspace.collapseNamed(title: title)
+                : '展开$title',
+            glyph: AppGlyphs.chevronDown,
+            active: isExpanded,
+            activeTurns: .5,
+            size: 28,
+            onPressed: onToggle,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 右键或长按无标题栏组件时弹出的上下文菜单。
+  void _openContextMenu(
+    BuildContext context,
+    Offset globalPosition,
+    CardLayoutScope? layout,
+  ) {
+    final hide = layout?.onHide ?? onHide;
+    final items = <CommonPopupMenuItem>[
+      CommonPopupMenuItem(
+        label: isExpanded
+            ? t.workspace.collapseNamed(title: title)
+            : '展开$title',
+        glyph: isExpanded ? AppGlyphs.fold : AppGlyphs.unfold,
+        onPressed: onToggle,
+      ),
+      if (layout?.onToggleEditing != null)
+        CommonPopupMenuItem(
+          label: layout!.editing ? '完成布局' : '自定义布局',
+          glyph: layout.editing ? AppGlyphs.checkCircle : AppGlyphs.gridPlus,
+          onPressed: layout.onToggleEditing,
+        ),
+    ];
+
+    if (layout?.onResize != null || layout?.onFillRemainingHeight != null) {
+      items.add(const CommonPopupMenuItem.divider());
+      if (layout?.onFillRemainingHeight != null) {
+        items.add(
+          CommonPopupMenuItem(
+            label: t.workspace.fullWidthFullHeight,
+            glyph: AppGlyphs.openInFull,
+            checked: layout!.fillRemainingHeight && layout.widthSpan == 4,
+            onPressed: layout.onFillRemainingHeight,
+          ),
+        );
+      }
+      if (layout?.onResize != null) {
+        for (final preset in [
+          (1, 1, '1×1'),
+          (2, 1, '2×1'),
+          (2, 2, '2×2'),
+          (4, 2, t.workspace.fullWidth),
+        ]) {
+          items.add(
+            CommonPopupMenuItem(
+              label: preset.$3,
+              checked:
+                  !layout!.fillRemainingHeight &&
+                  layout.widthSpan == preset.$1 &&
+                  layout.heightSpan == preset.$2,
+              onPressed: () => layout.onResize!(preset.$1, preset.$2),
+            ),
+          );
+        }
+      }
+    }
+
+    if (layout != null &&
+        layout.hiddenCards.isNotEmpty &&
+        layout.onRestoreCard != null) {
+      items.add(const CommonPopupMenuItem.divider());
+      for (final hidden in layout.hiddenCards) {
+        items.add(
+          CommonPopupMenuItem(
+            label: t.workspace.restoreNamed(title: hidden.title),
+            glyph: hidden.icon,
+            onPressed: () => layout.onRestoreCard!(hidden.id),
+          ),
+        );
+      }
+    }
+
+    if (hide != null) {
+      items.add(const CommonPopupMenuItem.divider());
+      items.add(
+        CommonPopupMenuItem(
+          label: t.workspace.collapseFromPanel,
+          glyph: AppGlyphs.eyeOff,
+          danger: true,
+          onPressed: hide,
+        ),
+      );
+    }
+
+    unawaited(
+      showCommonPopupMenu(
+        context: context,
+        position: globalPosition,
+        items: items,
+      ),
+    );
+  }
+
   /// 卡片尺寸预设与收起入口；网格内排序由标题拖动完成。
   ///
   /// 放在卡片的**标题栏里**而不是卡内：这几个动作改的是「卡片在面板里的位置」，
@@ -399,22 +796,50 @@ class CollapsibleCard extends StatelessWidget {
   Widget _buildTrackMenu(BuildContext context, CardLayoutScope? layout) {
     final hide = layout?.onHide ?? onHide;
     return ShelfMenuButton(
-      tooltip: layout == null ? '卡片位置' : '卡片布局',
+      tooltip: layout == null
+          ? t.workspace.cardPosition
+          : t.workspace.cardLayout,
       glyph: layout?.editing == true ? AppGlyphs.gridPlus : AppGlyphs.more,
-      size: 32,
+      size: headerless ? 28 : 32,
       shape: ExpressiveButtonShape.roundedSquare,
       menuChildren: [
+        if (headerless) ...[
+          ShelfMenuItem(
+            label: isExpanded
+                ? t.workspace.collapseNamed(title: title)
+                : '展开$title',
+            glyph: isExpanded ? AppGlyphs.fold : AppGlyphs.unfold,
+            onPressed: onToggle,
+          ),
+          if (layout?.onToggleEditing != null)
+            ShelfMenuItem(
+              label: layout!.editing ? '完成布局' : '自定义布局',
+              glyph: layout.editing
+                  ? AppGlyphs.checkCircle
+                  : AppGlyphs.gridPlus,
+              onPressed: layout.onToggleEditing,
+            ),
+          const ShelfMenuDivider(),
+        ],
+        if (layout?.onFillRemainingHeight != null)
+          ShelfMenuItem(
+            label: t.workspace.fullWidthFullHeight,
+            glyph: AppGlyphs.openInFull,
+            selected: layout!.fillRemainingHeight && layout.widthSpan == 4,
+            onPressed: layout.onFillRemainingHeight,
+          ),
         if (layout?.onResize != null) ...[
           for (final preset in [
             (1, 1, '1×1'),
             (2, 1, '2×1'),
             (2, 2, '2×2'),
-            (4, 2, '全宽'),
+            (4, 2, t.workspace.fullWidth),
           ])
             ShelfMenuItem(
               label: preset.$3,
               selected:
-                  layout!.widthSpan == preset.$1 &&
+                  !(layout!.fillRemainingHeight) &&
+                  layout.widthSpan == preset.$1 &&
                   layout.heightSpan == preset.$2,
               onPressed: () => layout.onResize!(preset.$1, preset.$2),
             ),
@@ -432,10 +857,21 @@ class CollapsibleCard extends StatelessWidget {
             onPressed: onMoveDown,
           ),
         ],
+        if (layout != null &&
+            layout.hiddenCards.isNotEmpty &&
+            layout.onRestoreCard != null) ...[
+          const ShelfMenuDivider(),
+          for (final hidden in layout.hiddenCards)
+            ShelfMenuItem(
+              label: t.workspace.restoreNamed(title: hidden.title),
+              glyph: hidden.icon,
+              onPressed: () => layout.onRestoreCard!(hidden.id),
+            ),
+        ],
         if (hide != null) ...[
           const ShelfMenuDivider(),
           ShelfMenuItem(
-            label: '从该面板收起',
+            label: t.workspace.collapseFromPanel,
             glyph: AppGlyphs.eyeOff,
             onPressed: hide,
             destructive: true,

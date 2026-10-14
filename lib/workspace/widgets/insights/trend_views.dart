@@ -4,6 +4,7 @@ import 'package:zephyr/workspace/model/history_insights.dart';
 import 'package:zephyr/workspace/widgets/cards/history_insights_window.dart';
 import 'package:zephyr/workspace/widgets/insights/insight_components.dart';
 import 'package:zephyr/widgets/motion/action_bubble.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 export 'package:zephyr/workspace/widgets/insights/reading_streak_view.dart'
     show ReadingStreakView;
@@ -24,7 +25,9 @@ class _DailyTrendViewState extends State<DailyTrendView> {
         .where((day) => day.key == _selected)
         .firstOrNull;
     final delta = summary.previousWeek == 0
-        ? (summary.currentWeek > 0 ? '上一窗口无记录' : '两周均无记录')
+        ? (summary.currentWeek > 0
+              ? t.workspace.prevWindowNoRecord
+              : t.workspace.bothWeeksNoRecord)
         : '${summary.deltaPercent >= 0 ? '+' : ''}${summary.deltaPercent}% 对比前 7 日';
     return ActionBubbleRegion(
       child: Column(
@@ -34,10 +37,13 @@ class _DailyTrendViewState extends State<DailyTrendView> {
             children: [
               InsightMetric(
                 value: '${summary.currentWeek}',
-                label: '近 7 日记录',
+                label: t.workspace.last7Records,
                 highlight: true,
               ),
-              InsightMetric(value: '${summary.previousWeek}', label: '前 7 日记录'),
+              InsightMetric(
+                value: '${summary.previousWeek}',
+                label: t.workspace.last7DaysRecords,
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -58,7 +64,10 @@ class _DailyTrendViewState extends State<DailyTrendView> {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 2),
                           child: InsightSelectable(
-                            label: '${day.key}：${day.count} 条记录',
+                            label: t.workspace.dayRecordLine(
+                              key: day.key,
+                              count: day.count,
+                            ),
                             selected: day.key == _selected,
                             onSelected: () =>
                                 setState(() => _selected = day.key),
@@ -98,9 +107,14 @@ class _DailyTrendViewState extends State<DailyTrendView> {
           if (selected != null)
             Padding(
               padding: const EdgeInsets.only(top: 10),
-              child: Text('${selected.key} · ${selected.count} 条记录'),
+              child: Text(
+                t.workspace.dayRecordLine(
+                  key: selected.key,
+                  count: selected.count,
+                ),
+              ),
             ),
-          const InsightFootnote(),
+          InsightFootnote(),
         ],
       ),
     );

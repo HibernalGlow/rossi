@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 顶栏「版式」面板。
 ///
@@ -21,12 +22,12 @@ class ReaderLayoutPanel extends StatelessWidget {
 
     return ReaderToolbarPanelRow(
       children: [
-        const ReaderToolbarLabel('双页'),
+        ReaderToolbarLabel(t.reader.twoPages),
         ReaderToolbarPill(
           children: [
             _Toggle(
               icon: AppGlyphs.columnsThree,
-              tooltip: '消除双页之间的拼接缝隙',
+              tooltip: t.reader.removeTwoPageSeam,
               selected: readSetting.doublePageSeamless,
               onTap: () => context.read<GlobalSettingCubit>().updateReadSetting(
                 (s) => s.copyWith(doublePageSeamless: !s.doublePageSeamless),
@@ -40,7 +41,9 @@ class ReaderLayoutPanel extends StatelessWidget {
           children: [
             _Toggle(
               icon: AppGlyphs.motion,
-              tooltip: readSetting.noAnimation ? '当前已关闭翻页动画' : '当前已开启平滑翻页动画',
+              tooltip: readSetting.noAnimation
+                  ? t.reader.pageAnimationOff
+                  : t.reader.pageAnimationOn,
               selected: !readSetting.noAnimation,
               onTap: () => context.read<GlobalSettingCubit>().updateReadSetting(
                 (s) => s.copyWith(noAnimation: !s.noAnimation),
@@ -49,12 +52,12 @@ class ReaderLayoutPanel extends StatelessWidget {
           ],
         ),
         const ReaderToolbarSeparator(),
-        const ReaderToolbarLabel('留白'),
+        ReaderToolbarLabel(t.reader.marginWhitespace),
         ReaderToolbarPill(
           children: [
             _Toggle(
               icon: AppGlyphs.aspectRatio,
-              tooltip: '阅读器两侧是否保留适度安全边距',
+              tooltip: t.reader.readerSafeMarginBothSides,
               selected: readSetting.sidePaddingEnabled,
               onTap: () => context.read<GlobalSettingCubit>().updateReadSetting(
                 (s) => s.copyWith(sidePaddingEnabled: !s.sidePaddingEnabled),
@@ -69,7 +72,7 @@ class ReaderLayoutPanel extends StatelessWidget {
           children: [
             _Toggle(
               icon: AppGlyphs.eye,
-              tooltip: '切换阅读滤镜与护眼遮罩',
+              tooltip: t.reader.toggleReaderFilter,
               selected: readSetting.readFilterEnabled,
               onTap: () => context.read<GlobalSettingCubit>().updateReadSetting(
                 (s) => s.copyWith(readFilterEnabled: !s.readFilterEnabled),
@@ -78,7 +81,7 @@ class ReaderLayoutPanel extends StatelessWidget {
           ],
         ),
         const ReaderToolbarSeparator(),
-        const ReaderToolbarLabel('滚屏'),
+        ReaderToolbarLabel(t.reader.autoScroll),
         _AutoScrollSpeedControl(readSetting: readSetting),
       ],
     );
@@ -160,7 +163,9 @@ class _AutoScrollSpeedControl extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Text(
-            '间隔 ${(intervalMs / 1000).toStringAsFixed(1)}s',
+            t.reader.intervalSeconds(
+              seconds: (intervalMs / 1000).toStringAsFixed(1),
+            ),
             style: theme.textTheme.labelSmall,
           ),
         ),

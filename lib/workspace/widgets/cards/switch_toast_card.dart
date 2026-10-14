@@ -12,6 +12,7 @@ import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
 import 'package:zephyr/workspace/widgets/cards/expressive_widgets.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 「切换提示」卡片 —— neoview「控制」面板的 `SwitchToastCard` 的 Flutter 重建。
 ///
@@ -44,18 +45,30 @@ class SwitchToastCard extends StatefulWidget {
 }
 
 class _SwitchToastCardState extends State<SwitchToastCard> {
-  static const List<(String, String, Glyph)> _bookVariables = [
-    ('{{book.displayName}}', '书籍显示名', AppGlyphs.book),
-    ('{{book.currentPageDisplay}}', '当前页码', AppGlyphs.bookmark),
-    ('{{book.totalPages}}', '总页数', AppGlyphs.layers),
-    ('{{book.progressPercent}}', '阅读进度（%）', AppGlyphs.pieChart),
-    ('{{book.path}}', '书籍路径（本地来源才有值）', AppGlyphs.folder),
+  static List<(String, String, Glyph)> get _bookVariables => [
+    ('{{book.displayName}}', t.workspace.bookDisplayName, AppGlyphs.book),
+    (
+      '{{book.currentPageDisplay}}',
+      t.workspace.currentPageNumber,
+      AppGlyphs.bookmark,
+    ),
+    ('{{book.totalPages}}', t.workspace.totalPagesLabel, AppGlyphs.layers),
+    (
+      '{{book.progressPercent}}',
+      t.workspace.readingProgressPercent,
+      AppGlyphs.pieChart,
+    ),
+    ('{{book.path}}', t.workspace.bookPathLocalOnly, AppGlyphs.folder),
   ];
 
-  static const List<(String, String, Glyph)> _pageVariables = [
-    ('{{page.indexDisplay}}', '当前页码', AppGlyphs.linearScale),
-    ('{{page.name}}', '页面文件名', AppGlyphs.article),
-    ('{{page.path}}', '页面路径', AppGlyphs.folderCopy),
+  static List<(String, String, Glyph)> get _pageVariables => [
+    (
+      '{{page.indexDisplay}}',
+      t.workspace.currentPageNumber,
+      AppGlyphs.linearScale,
+    ),
+    ('{{page.name}}', t.workspace.pageFileName, AppGlyphs.article),
+    ('{{page.path}}', t.workspace.pagePath, AppGlyphs.folderCopy),
   ];
 
   final GlobalKey<_DraftFieldState> _boundaryFieldKey =
@@ -86,11 +99,13 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
               ? ExpressiveTone.secondary
               : ExpressiveTone.neutral,
           active: activeCount > 0,
-          title: '阅读切换悬浮提示',
-          subtitle: '位置与外观在「设置 → 提示样式」里调整。',
+          title: t.workspace.readingToastOverlay,
+          subtitle: t.workspace.toastStyleInSettings,
           pills: [
             ExpressiveStatusPill(
-              text: activeCount == 0 ? '触发全关' : '已开 $activeCount / 3 项',
+              text: activeCount == 0
+                  ? t.workspace.triggersAllOff
+                  : t.workspace.switchToastActiveOf3(activeCount: activeCount),
               icon: activeCount == 0 ? AppGlyphs.bellOff : AppGlyphs.bell,
               dot: false,
               compact: true,
@@ -99,24 +114,24 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
                   : ExpressiveTone.neutral,
             ),
             if (setting.enableBook)
-              const ExpressiveStatusPill(
-                text: '切书提示',
+              ExpressiveStatusPill(
+                text: t.workspace.bookSwitchToast,
                 icon: AppGlyphs.book,
                 dot: false,
                 compact: true,
                 tone: ExpressiveTone.primary,
               ),
             if (setting.enablePage)
-              const ExpressiveStatusPill(
-                text: '翻页提示',
+              ExpressiveStatusPill(
+                text: t.workspace.pageTurnToast,
                 icon: AppGlyphs.photos,
                 dot: false,
                 compact: true,
                 tone: ExpressiveTone.secondary,
               ),
             if (setting.enableBoundaryToast)
-              const ExpressiveStatusPill(
-                text: '末页提示',
+              ExpressiveStatusPill(
+                text: t.workspace.lastPageToast,
                 icon: AppGlyphs.locate,
                 dot: false,
                 compact: true,
@@ -126,7 +141,11 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
           trailing: FilledButton.tonalIcon(
             onPressed: () {
               HapticFeedback.lightImpact();
-              showInfoToast('这是一条切换提示的预览', title: '切换提示测试', context: context);
+              showInfoToast(
+                t.workspace.thisIsSwitchToastPreview,
+                title: t.workspace.switchToastTest,
+                context: context,
+              );
             },
             icon: const GlyphIcon(AppGlyphs.play, size: 14),
             label: const Text('显示测试提示', style: TextStyle(fontSize: 11)),
@@ -139,7 +158,7 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
         ),
         const SizedBox(height: 6),
         _Section(
-          title: '触发条件',
+          title: t.workspace.triggerCondition,
           icon: AppGlyphs.bell,
           children: [
             ExpressiveTileGrid(
@@ -147,8 +166,8 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
               spacing: 8,
               children: [
                 ExpressiveToggleTile(
-                  title: '切换书籍时显示提示',
-                  subtitle: '打开或切到另一本漫画时弹出',
+                  title: t.workspace.toastOnBookSwitch,
+                  subtitle: t.workspace.toastOnOpenOrSwitch,
                   icon: AppGlyphs.book,
                   shape: ExpressiveButtonShape.clover4Leaf,
                   activeTone: ExpressiveTone.primary,
@@ -160,8 +179,8 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
                       ),
                 ),
                 ExpressiveToggleTile(
-                  title: '切换页面时显示提示',
-                  subtitle: '翻页或跳页时实时反馈页码',
+                  title: t.workspace.toastOnPageSwitch,
+                  subtitle: t.workspace.pageToastShowsNumber,
                   icon: AppGlyphs.photos,
                   shape: ExpressiveButtonShape.sunny,
                   activeTone: ExpressiveTone.secondary,
@@ -173,8 +192,8 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
                       ),
                 ),
                 ExpressiveToggleTile(
-                  title: '到达最后一页时显示提示',
-                  subtitle: '读到章节末尾继续翻页时提醒',
+                  title: t.workspace.toastOnLastPage,
+                  subtitle: t.workspace.toastAtChapterEnd,
                   icon: AppGlyphs.locate,
                   shape: ExpressiveButtonShape.puffyDiamond,
                   activeTone: ExpressiveTone.tertiary,
@@ -192,18 +211,18 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
         _TemplateSection(
           seed: expressiveBlobSeed('book_template_section'),
           tone: ExpressiveTone.primary,
-          title: '书籍提示模板',
+          title: t.workspace.bookToastTemplate,
           icon: AppGlyphs.book,
-          titleLabel: '书籍标题模板',
+          titleLabel: t.workspace.bookTitleTemplate,
           titleValue: setting.bookTitleTemplate,
-          titlePlaceholder: '例如：已切换到 {{book.displayName}}',
+          titlePlaceholder: t.workspace.egSwitchedToBook,
           onTitleCommit: (v) =>
               context.read<GlobalSettingCubit>().updateSwitchToastSetting(
                 (c) => c.copyWith(bookTitleTemplate: v),
               ),
-          descriptionLabel: '书籍描述模板',
+          descriptionLabel: t.workspace.bookDescriptionTemplate,
           descriptionValue: setting.bookDescriptionTemplate,
-          descriptionPlaceholder: '例如：路径：{{book.path}}',
+          descriptionPlaceholder: t.workspace.egBookPath,
           onDescriptionCommit: (v) =>
               context.read<GlobalSettingCubit>().updateSwitchToastSetting(
                 (c) => c.copyWith(bookDescriptionTemplate: v),
@@ -213,18 +232,18 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
         _TemplateSection(
           seed: expressiveBlobSeed('page_template_section'),
           tone: ExpressiveTone.tertiary,
-          title: '页面提示模板',
+          title: t.workspace.pageToastTemplate,
           icon: AppGlyphs.photos,
-          titleLabel: '页面标题模板',
+          titleLabel: t.workspace.pageTitleTemplate,
           titleValue: setting.pageTitleTemplate,
-          titlePlaceholder: '例如：第 {{page.indexDisplay}} 页',
+          titlePlaceholder: t.workspace.egPageIndex,
           onTitleCommit: (v) =>
               context.read<GlobalSettingCubit>().updateSwitchToastSetting(
                 (c) => c.copyWith(pageTitleTemplate: v),
               ),
-          descriptionLabel: '页面描述模板',
+          descriptionLabel: t.workspace.pageDescriptionTemplate,
           descriptionValue: setting.pageDescriptionTemplate,
-          descriptionPlaceholder: '例如：{{page.name}}',
+          descriptionPlaceholder: t.workspace.egPageName,
           onDescriptionCommit: (v) =>
               context.read<GlobalSettingCubit>().updateSwitchToastSetting(
                 (c) => c.copyWith(pageDescriptionTemplate: v),
@@ -240,7 +259,7 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
               const SizedBox(width: 5),
               Expanded(
                 child: Text(
-                  '页面模板同样可以使用 {{book.*}} 变量；点击任一变量胶囊可直接插入。',
+                  t.workspace.pageTemplateBookVars,
                   style: TextStyle(
                     fontSize: 10.5,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -251,7 +270,7 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
           ),
         ),
         _Section(
-          title: '边界提示文案',
+          title: t.workspace.boundaryToastText,
           icon: AppGlyphs.chevronForward,
           children: [
             ExpressivePatchBackdrop(
@@ -266,10 +285,10 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
                 children: [
                   _DraftField(
                     key: _boundaryFieldKey,
-                    label: '最后一页提示文案',
+                    label: t.workspace.lastPageToastText,
                     icon: AppGlyphs.locate,
                     value: setting.lastPageMessage,
-                    placeholder: '例如：已经是最后一页',
+                    placeholder: t.workspace.egLastPage,
                     onCommit: (v) => context
                         .read<GlobalSettingCubit>()
                         .updateSwitchToastSetting(
@@ -281,14 +300,17 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
                     spacing: 6,
                     runSpacing: 6,
                     children: [
-                      for (final (preset, glyph) in const [
-                        ('已经是最后一页', AppGlyphs.checkCircle),
-                        ('本话已读完 · 准备下一话', AppGlyphs.openBook),
-                        ('到底啦 ~ 没有更多页面', AppGlyphs.sparkle),
+                      for (final (preset, glyph) in [
+                        (t.workspace.isLastPage, AppGlyphs.checkCircle),
+                        (
+                          t.workspace.chapterDonePreparingNext,
+                          AppGlyphs.openBook,
+                        ),
+                        (t.workspace.reachedLastPage, AppGlyphs.sparkle),
                       ])
                         _VariableCapsule(
                           variable: preset,
-                          description: '点击填入',
+                          description: t.workspace.clickToFill,
                           icon: glyph,
                           tone: ExpressiveTone.secondary,
                           onTap: () {
@@ -317,7 +339,7 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
     return CollapsibleCard(
       cardId: WorkspaceCardRegistry.switchToast,
       expressive: true,
-      title: '切换提示',
+      title: t.workspace.switchToast,
       icon: AppGlyphs.bell,
       isExpanded: widget.isExpanded,
       onToggle: widget.onToggle,
@@ -325,7 +347,9 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
       onMoveDown: widget.onMoveDown,
       onHide: widget.onHide,
       trailing: ExpressiveStatusPill(
-        text: activeCount == 0 ? '全部关闭' : '$activeCount 项开启',
+        text: activeCount == 0
+            ? t.workspace.closeAllTabs
+            : t.workspace.activeSwitchCount(activeCount: activeCount),
         dot: false,
         compact: true,
         tone: activeCount > 0 ? ExpressiveTone.primary : ExpressiveTone.neutral,
@@ -447,7 +471,7 @@ class _TemplateSectionState extends State<_TemplateSection> {
       trailing: GestureDetector(
         onTap: () => setState(() => _activeTarget = 1 - _activeTarget),
         child: ExpressiveStatusPill(
-          text: '插入至：$targetName',
+          text: t.workspace.insertTarget(name: targetName),
           icon: AppGlyphs.edit,
           dot: false,
           compact: true,

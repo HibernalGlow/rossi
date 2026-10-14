@@ -5,6 +5,7 @@ import 'package:zephyr/plugin/plugin_registry_service.dart';
 import 'package:zephyr/workspace/widgets/cards/info_card_kit.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 插件运行状态卡 —— 发现面板的「这批图源现在到底能不能用」。
 ///
@@ -50,7 +51,7 @@ class PluginStatusCard extends StatelessWidget {
 
     return CollapsibleCard(
       cardId: 'plugin_status',
-      title: '插件运行状态',
+      title: t.workspace.pluginRunState,
       icon: AppGlyphs.puzzle,
       expressive: true,
       isExpanded: isExpanded,
@@ -58,12 +59,14 @@ class PluginStatusCard extends StatelessWidget {
       onMoveUp: onMoveUp,
       onMoveDown: onMoveDown,
       onHide: onHide,
-      trailing: InfoCardCounter('${ready.length} / ${enabled.length} 就绪'),
+      trailing: InfoCardCounter(
+        t.workspace.readyOfTotal(ready: ready.length, total: enabled.length),
+      ),
       child: states.isEmpty
-          ? const ExpressiveEmptyState(
+          ? ExpressiveEmptyState(
               icon: AppGlyphs.puzzle,
-              text: '还没有安装任何插件',
-              hint: '去「插件市场」装一个图源，或导入本地插件包',
+              text: t.workspace.noPluginsInstalled,
+              hint: t.workspace.installOrImportPlugin,
             )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -77,11 +80,11 @@ class PluginStatusCard extends StatelessWidget {
                       label: '已启用',
                       icon: AppGlyphs.power,
                       highlight: enabled.isNotEmpty,
-                      caption: '共 ${states.length} 个在册',
+                      caption: t.workspace.registeredCount(n: states.length),
                     ),
                     ExpressiveStatTile(
                       value: '${ready.length}',
-                      label: '已就绪',
+                      label: t.workspace.gpuReadyState,
                       icon: AppGlyphs.checkCircle,
                       gauge: enabled.isEmpty
                           ? null
@@ -92,7 +95,9 @@ class PluginStatusCard extends StatelessWidget {
                       label: '加载失败',
                       icon: AppGlyphs.warning,
                       highlight: failed.isNotEmpty,
-                      caption: failed.isEmpty ? '全部正常' : '见下方明细',
+                      caption: failed.isEmpty
+                          ? t.workspace.allHealthy
+                          : t.workspace.seeDetailsBelow,
                     ),
                   ],
                 ),
@@ -124,22 +129,24 @@ class PluginStatusCard extends StatelessWidget {
   /// 三态：就绪 / 加载中 / 失败（失败时把宿主报的那句原样带出来）。
   Widget _statusPill(PluginRuntimeState plugin) {
     if (!plugin.isEnabled) {
-      return const ExpressiveStatusPill(
-        text: '未启用',
+      return ExpressiveStatusPill(
+        text: t.workspace.notEnabled,
         tone: ExpressiveTone.neutral,
         compact: true,
       );
     }
     if (plugin.lastLoadSuccess) {
-      return const ExpressiveStatusPill(
-        text: '就绪',
+      return ExpressiveStatusPill(
+        text: t.workspace.readyState,
         tone: ExpressiveTone.primary,
         compact: true,
       );
     }
     final error = plugin.lastLoadError;
     return ExpressiveStatusPill(
-      text: error == null || error.isEmpty ? '加载中' : '失败 · $error',
+      text: error == null || error.isEmpty
+          ? t.workspace.loadingState
+          : t.workspace.failedWith(error: error),
       tone: ExpressiveTone.warning,
       compact: true,
     );

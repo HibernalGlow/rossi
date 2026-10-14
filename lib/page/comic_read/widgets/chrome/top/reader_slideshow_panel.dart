@@ -4,6 +4,7 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_read/model/reader_slideshow.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 顶栏「幻灯片」面板。
 ///
@@ -67,10 +68,10 @@ class ReaderSlideshowPanel extends StatelessWidget {
           },
         ),
         const ReaderToolbarSeparator(),
-        const ReaderToolbarLabel('间隔'),
+        ReaderToolbarLabel(t.reader.intervalLabel),
         _IntervalStepper(intervalMs: intervalMs, enabled: true),
         const ReaderToolbarSeparator(),
-        const ReaderToolbarLabel('放完'),
+        ReaderToolbarLabel(t.reader.slideshowFinished),
         ReaderToolbarPill(
           children: [
             for (final action in ReaderSlideshowEndAction.values)
@@ -89,14 +90,14 @@ class ReaderSlideshowPanel extends StatelessWidget {
         const ReaderToolbarLabel('条漫'),
         _ColumnStepStepper(percent: columnStepPercent, enabled: true),
         const ReaderToolbarSeparator(),
-        const ReaderToolbarLabel('回读'),
+        ReaderToolbarLabel(t.reader.readback),
         ReaderToolbarPill(
           children: [
             ReaderToolbarIconButton(
               icon: AppGlyphs.info,
               tooltip: showProgress
-                  ? '放映时在画面上显示「第几页 / 是否暂停」'
-                  : '驻留指示已关闭：放映到哪一页只能靠猜',
+                  ? t.reader.slideshowDwellIndicator
+                  : t.reader.dwellIndicatorOff,
               selected: showProgress,
               onPressed: () =>
                   context.read<GlobalSettingCubit>().updateReadSetting(
@@ -121,10 +122,10 @@ class ReaderSlideshowPanel extends StatelessWidget {
   /// 这一颗在没开的时候就是开启键，写成「先去设置里打开」会把人指向一个不存在的入口
   /// （幻灯片没有设置页条目，只有这块面板）。
   String _toggleTooltipFor(bool slideshowEnabled) {
-    if (!slideshowEnabled) return '放映未开启：点击开始放映';
-    if (isPaused) return '已暂停，点击继续放映（不改设置）';
-    if (isRunning) return '放映中，点击暂停';
-    return '放映已开启但没在计时：点击继续';
+    if (!slideshowEnabled) return t.reader.slideshowOffTapStart;
+    if (isPaused) return t.reader.slideshowPausedTapResume;
+    if (isRunning) return t.reader.slideshowPlayingTapPause;
+    return t.reader.slideshowOnButIdle;
   }
 }
 
@@ -135,9 +136,9 @@ Glyph _endActionIcon(ReaderSlideshowEndAction action) => switch (action) {
 };
 
 String _endActionTooltip(ReaderSlideshowEndAction action) => switch (action) {
-  ReaderSlideshowEndAction.stop => '放到本章最后一页就停住，并关掉放映',
-  ReaderSlideshowEndAction.loopChapter => '放到章末就回到第一页，一直放',
-  ReaderSlideshowEndAction.nextChapter => '放到章末就翻进下一章；没有下一章时停住',
+  ReaderSlideshowEndAction.stop => t.reader.slideshowStopAtChapterEnd,
+  ReaderSlideshowEndAction.loopChapter => t.reader.slideshowLoopInChapter,
+  ReaderSlideshowEndAction.nextChapter => t.reader.slideshowAdvanceChapter,
 };
 
 /// 每页驻留时长：一步一个 `kReaderSlideshowIntervalStepMs`，读写都过
@@ -152,11 +153,11 @@ class _IntervalStepper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-      message:
-          '每一页停多久：一步 '
-          '${_secondsLabel(kReaderSlideshowIntervalStepMs)}，'
-          '${_secondsLabel(kReaderSlideshowIntervalMinMs)}~'
-          '${_secondsLabel(kReaderSlideshowIntervalMaxMs)} 之间',
+      message: t.reader.slideshowDwellHint(
+        step: _secondsLabel(kReaderSlideshowIntervalStepMs),
+        min: _secondsLabel(kReaderSlideshowIntervalMinMs),
+        max: _secondsLabel(kReaderSlideshowIntervalMaxMs),
+      ),
       child: ReaderToolbarPill(
         emphasized: true,
         children: [
@@ -199,12 +200,12 @@ class _ColumnStepStepper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-      message: '条漫（上下滚动）每一拍推进多少屏：只作用于条漫，横翻按整页走',
+      message: t.reader.webtoonStepScreens,
       child: ReaderToolbarPill(
         emphasized: true,
         children: [
           _SlideshowStepper(
-            label: '一屏 $percent%',
+            label: t.reader.oneScreenPercent(percent: percent),
             enabled: enabled,
             onDecrement: () =>
                 context.read<GlobalSettingCubit>().updateReadSetting(

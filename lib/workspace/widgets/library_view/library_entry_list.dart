@@ -8,17 +8,19 @@ import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_legacy_focus.dart';
+import 'package:zephyr/workspace/widgets/library_view/shelf_timeline_view.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 六档视图的宿主。对应 neoview 的 `ReaderLibraryList`：
 /// 只负责「按当前视图模式把行排出来 + 边框 + 忙遮罩 + 空态」，
 /// 行内容一概交给 [LibraryEntrySurface]。
 class LibraryEntryList extends StatelessWidget {
-  const LibraryEntryList({
+  LibraryEntryList({
     super.key,
     required this.mode,
     required this.entries,
     required this.onTap,
-    this.emptyText = '没有条目',
+    String? emptyText,
     this.columns = const [],
     this.titleColumn,
     this.sortKey,
@@ -38,13 +40,18 @@ class LibraryEntryList extends StatelessWidget {
     this.onDetailChanged,
     this.onPresentationChanged,
     this.fileStats = false,
-  });
-
+    this.initialEditorial,
+    this.timeline = false,
+    this.timelineTimeOf,
+  }) : emptyText = emptyText ?? t.workspace.noEntries;
   final String? editorialScope;
   final GlobalKey<LibraryEditorialCanvasState>? editorialKey;
   final LibraryDetailBuilder? detailBuilder;
   final bool tapOpensDetail;
   final bool fileStats;
+  final bool? initialEditorial;
+  final bool timeline;
+  final DateTime Function(LibraryEntry entry)? timelineTimeOf;
   final ValueChanged<LibraryEntry?>? onDetailChanged;
   final ValueChanged<LibraryPresentation>? onPresentationChanged;
   final LibraryViewMode mode;
@@ -165,7 +172,7 @@ class LibraryEntryList extends StatelessWidget {
                   top: geometry.isGrid ? null : 0,
                   bottom: geometry.isGrid ? 0 : null,
                   child: IconButton(
-                    tooltip: '展开信息',
+                    tooltip: t.workspace.expandInformation,
                     onPressed: enabled ? () => toggle(entry) : null,
                     icon: const GlyphIcon(AppGlyphs.info, size: 18),
                   ),

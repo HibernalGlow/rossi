@@ -37,6 +37,7 @@ import 'package:zephyr/workspace/widgets/library_view/editorial/library_gap_medi
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_gap_rhythm_widgets.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_gap_shape.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_gap_stat_widgets.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 默认组件套件（书签、历史、发现、书架、本地文件都适用）。
 ///
@@ -48,23 +49,25 @@ List<LibraryGapWidgetSpec> defaultLibraryGapWidgets() =>
 final List<LibraryGapWidgetSpec> _builtin = [
   LibraryGapWidgetSpec(
     id: 'gap_cover_collage',
-    label: '封面拼贴',
+    label: t.workspace.coverCollage,
     glyph: AppGlyphs.panorama,
     minWidth: 104,
     minHeight: 104,
     accepts: (s) => s.entries.any((e) => e.media != null),
     builder: (context, s) => GapExpressiveShell(
       glyph: AppGlyphs.panorama,
-      title: '封面',
+      title: t.workspace.coverLabel,
       seed: s.seed,
       tone: GapTone.surfaceHigh,
-      badgeText: '${s.entries.where((e) => e.media != null).length} 图',
+      badgeText: t.workspace.imagesCountBadge(
+        n: s.entries.where((e) => e.media != null).length,
+      ),
       body: GapCollageBody(sample: s),
     ),
   ),
   LibraryGapWidgetSpec(
     id: 'gap_continue',
-    label: '接着看',
+    label: t.workspace.keepReading,
     glyph: AppGlyphs.playCircle,
     minWidth: 132,
     minHeight: 92,
@@ -73,7 +76,7 @@ final List<LibraryGapWidgetSpec> _builtin = [
       final entry = continueGapEntry(s.entries);
       return GapExpressiveShell(
         glyph: AppGlyphs.playCircle,
-        title: '接着看',
+        title: t.workspace.keepReading,
         seed: s.seed,
         tone: GapTone.primary,
         badgeText: '继续',
@@ -85,17 +88,17 @@ final List<LibraryGapWidgetSpec> _builtin = [
   ),
   LibraryGapWidgetSpec(
     id: 'gap_streak_days',
-    label: '连续天数',
+    label: t.workspace.streakDays,
     glyph: AppGlyphs.fire,
     minWidth: 96,
     minHeight: 56,
     accepts: (s) => streakGapDays(s.entries) >= 2,
     builder: (context, s) => GapExpressiveShell(
       glyph: AppGlyphs.fire,
-      title: '连续',
+      title: t.workspace.streakLabel,
       seed: s.seed,
       tone: GapTone.tertiary,
-      badgeText: '活跃',
+      badgeText: t.workspace.activeState,
       body: GapStreakBody(
         days: streakGapDays(s.entries),
         weekFlags: recentGapDayFlags(s.entries, 7),
@@ -104,7 +107,7 @@ final List<LibraryGapWidgetSpec> _builtin = [
   ),
   LibraryGapWidgetSpec(
     id: 'gap_week_bars',
-    label: '近 7 日',
+    label: t.workspace.last7Days,
     glyph: AppGlyphs.calendar,
     minWidth: 108,
     minHeight: 76,
@@ -113,7 +116,7 @@ final List<LibraryGapWidgetSpec> _builtin = [
       final (bars, total) = weeklyGapBuckets(s.entries);
       return GapExpressiveShell(
         glyph: AppGlyphs.calendar,
-        title: '近 7 日',
+        title: t.workspace.last7Days,
         seed: s.seed,
         tone: GapTone.secondary,
         body: GapBarsBody(counts: bars, caption: '$total 条'),
@@ -122,7 +125,7 @@ final List<LibraryGapWidgetSpec> _builtin = [
   ),
   LibraryGapWidgetSpec(
     id: 'gap_day_parts',
-    label: '阅读时段',
+    label: t.workspace.readingPeriods,
     glyph: AppGlyphs.moon,
     minWidth: 108,
     minHeight: 64,
@@ -131,7 +134,7 @@ final List<LibraryGapWidgetSpec> _builtin = [
       final (counts, caption) = dayPartsGapBuckets(s.entries);
       return GapExpressiveShell(
         glyph: AppGlyphs.moon,
-        title: '时段',
+        title: t.workspace.timePeriod,
         seed: s.seed,
         tone: GapTone.surfaceHigh,
         body: GapDayPartsBody(counts: counts, caption: caption),
@@ -140,30 +143,30 @@ final List<LibraryGapWidgetSpec> _builtin = [
   ),
   LibraryGapWidgetSpec(
     id: 'gap_random_pick',
-    label: '随机漫游',
+    label: t.workspace.randomRoam,
     glyph: AppGlyphs.dice,
     minWidth: 116,
     minHeight: 80,
     accepts: (s) => s.entries.where((e) => e.media != null).length >= 2,
     builder: (context, s) => GapExpressiveShell(
       glyph: AppGlyphs.dice,
-      title: '随机漫游',
+      title: t.workspace.randomRoam,
       seed: s.seed,
       tone: GapTone.secondary,
-      badgeText: '偶遇',
+      badgeText: t.workspace.serendipity,
       body: GapRandomPickBody(entry: randomGapEntry(s), seed: s.seed),
     ),
   ),
   LibraryGapWidgetSpec(
     id: 'gap_reading_queue',
-    label: '待看叠卡',
+    label: t.workspace.queueStackCards,
     glyph: AppGlyphs.bookmark,
     minWidth: 124,
     minHeight: 82,
     accepts: (s) => readingQueueGapEntries(s.entries).length >= 2,
     builder: (context, s) => GapExpressiveShell(
       glyph: AppGlyphs.bookmark,
-      title: '待看叠卡',
+      title: t.workspace.queueStackCards,
       seed: s.seed,
       tone: GapTone.tertiary,
       body: GapReadingQueueBody(queue: readingQueueGapEntries(s.entries)),
@@ -171,14 +174,14 @@ final List<LibraryGapWidgetSpec> _builtin = [
   ),
   LibraryGapWidgetSpec(
     id: 'gap_top_tags',
-    label: '高频标签',
+    label: t.workspace.topTags,
     glyph: AppGlyphs.sell,
     minWidth: 112,
     minHeight: 76,
     accepts: (s) => topGapTags(s.entries).isNotEmpty,
     builder: (context, s) => GapExpressiveShell(
       glyph: AppGlyphs.sell,
-      title: '常见标签',
+      title: t.workspace.commonTags,
       seed: s.seed,
       tone: GapTone.secondary,
       body: GapTagsBody(tags: topGapTags(s.entries)),
@@ -186,14 +189,14 @@ final List<LibraryGapWidgetSpec> _builtin = [
   ),
   LibraryGapWidgetSpec(
     id: 'gap_creators',
-    label: '常看创作者',
+    label: t.workspace.topCreators,
     glyph: AppGlyphs.palette,
     minWidth: 112,
     minHeight: 74,
     accepts: (s) => topGapCreators(s.entries).isNotEmpty,
     builder: (context, s) => GapExpressiveShell(
       glyph: AppGlyphs.palette,
-      title: '创作者',
+      title: t.workspace.creator,
       seed: s.seed,
       tone: GapTone.surfaceHigh,
       body: GapCreatorsBody(creators: topGapCreators(s.entries)),
@@ -201,7 +204,7 @@ final List<LibraryGapWidgetSpec> _builtin = [
   ),
   LibraryGapWidgetSpec(
     id: 'gap_progress',
-    label: '在读进度',
+    label: t.workspace.readingProgress,
     glyph: AppGlyphs.trend,
     minWidth: 96,
     minHeight: 72,
@@ -219,7 +222,7 @@ final List<LibraryGapWidgetSpec> _builtin = [
       final active = s.entries.where((e) => e.reading == true).length;
       return GapExpressiveShell(
         glyph: AppGlyphs.openBook,
-        title: '在读',
+        title: t.workspace.currentlyReading,
         seed: s.seed,
         tone: GapTone.primary,
         body: GapProgressBody(
@@ -232,14 +235,14 @@ final List<LibraryGapWidgetSpec> _builtin = [
   ),
   LibraryGapWidgetSpec(
     id: 'gap_rediscover',
-    label: '尘封重温',
+    label: t.workspace.dustyReread,
     glyph: AppGlyphs.hourglass,
     minWidth: 118,
     minHeight: 76,
     accepts: (s) => oldestGapEntry(s.entries) != null,
     builder: (context, s) => GapExpressiveShell(
       glyph: AppGlyphs.hourglass,
-      title: '尘封重温',
+      title: t.workspace.dustyReread,
       seed: s.seed,
       tone: GapTone.tertiary,
       body: GapRediscoverBody(entry: oldestGapEntry(s.entries)),
@@ -247,14 +250,14 @@ final List<LibraryGapWidgetSpec> _builtin = [
   ),
   LibraryGapWidgetSpec(
     id: 'gap_peak_day',
-    label: '活跃峰值',
+    label: t.workspace.activePeak,
     glyph: AppGlyphs.trophy,
     minWidth: 100,
     minHeight: 64,
     accepts: (s) => peakGapDay(s.entries) != null,
     builder: (context, s) => GapExpressiveShell(
       glyph: AppGlyphs.trophy,
-      title: '峰值日',
+      title: t.workspace.peakDay,
       seed: s.seed,
       tone: GapTone.secondary,
       body: GapPeakDayBody(peak: peakGapDay(s.entries)),
@@ -262,14 +265,14 @@ final List<LibraryGapWidgetSpec> _builtin = [
   ),
   LibraryGapWidgetSpec(
     id: 'gap_page_scale',
-    label: '篇幅分布',
+    label: t.workspace.lengthDistribution,
     glyph: AppGlyphs.openBook,
     minWidth: 104,
     minHeight: 64,
     accepts: (s) => pageScaleGapCounts(s.entries).length >= 2,
     builder: (context, s) => GapExpressiveShell(
       glyph: AppGlyphs.openBook,
-      title: '篇幅',
+      title: t.workspace.lengthLabel,
       seed: s.seed,
       tone: GapTone.primary,
       body: GapPageScaleBody(pages: pageScaleGapCounts(s.entries)),
@@ -277,7 +280,7 @@ final List<LibraryGapWidgetSpec> _builtin = [
   ),
   LibraryGapWidgetSpec(
     id: 'gap_aspect_mix',
-    label: '画幅构成',
+    label: t.workspace.aspectComposition,
     glyph: AppGlyphs.dashboard,
     minWidth: 108,
     minHeight: 68,
@@ -290,7 +293,7 @@ final List<LibraryGapWidgetSpec> _builtin = [
       final (portrait, square, landscape) = aspectMixGapCounts(s.entries);
       return GapExpressiveShell(
         glyph: AppGlyphs.dashboard,
-        title: '画幅',
+        title: t.workspace.aspectFormat,
         seed: s.seed,
         tone: GapTone.surfaceHigh,
         body: GapAspectMixBody(
@@ -303,14 +306,14 @@ final List<LibraryGapWidgetSpec> _builtin = [
   ),
   LibraryGapWidgetSpec(
     id: 'gap_media_format',
-    label: '载体分布',
+    label: t.workspace.carrierDistribution,
     glyph: AppGlyphs.category,
     minWidth: 108,
     minHeight: 68,
     accepts: (s) => mediaFormatGapCounts(s.entries).length >= 2,
     builder: (context, s) => GapExpressiveShell(
       glyph: AppGlyphs.category,
-      title: '载体',
+      title: t.workspace.carrierLabel,
       seed: s.seed,
       tone: GapTone.secondary,
       body: GapMediaFormatBody(formats: mediaFormatGapCounts(s.entries)),
@@ -318,14 +321,14 @@ final List<LibraryGapWidgetSpec> _builtin = [
   ),
   LibraryGapWidgetSpec(
     id: 'gap_source_mix',
-    label: '来源构成',
+    label: t.workspace.sourceComposition,
     glyph: AppGlyphs.pieChart,
     minWidth: 112,
     minHeight: 68,
     accepts: (s) => sourceGapCounts(s.entries).length > 1,
     builder: (context, s) => GapExpressiveShell(
       glyph: AppGlyphs.pieChart,
-      title: '来源',
+      title: t.workspace.sourceLabel,
       seed: s.seed,
       tone: GapTone.surfaceHigh,
       body: GapSourceBody(sources: sourceGapCounts(s.entries)),
@@ -333,7 +336,7 @@ final List<LibraryGapWidgetSpec> _builtin = [
   ),
   LibraryGapWidgetSpec(
     id: 'gap_recent_new',
-    label: '近 3 天',
+    label: t.workspace.last3Days,
     glyph: AppGlyphs.sparkle,
     minWidth: 92,
     minHeight: 60,
@@ -342,12 +345,12 @@ final List<LibraryGapWidgetSpec> _builtin = [
       final (d0, d1, d2, total) = recentThreeDayGapCounts(s.entries);
       return GapExpressiveShell(
         glyph: AppGlyphs.sparkle,
-        title: '近 3 天',
+        title: t.workspace.last3Days,
         seed: s.seed,
         tone: GapTone.primary,
         body: GapExpressiveMetricBody(
           value: '$total',
-          unit: '条有更新',
+          unit: t.workspace.itemsUpdated,
           pillText: d0 > 0 ? '今日 +$d0' : (d1 > 0 ? '昨日 +$d1' : '前日 +$d2'),
         ),
       );
@@ -355,7 +358,7 @@ final List<LibraryGapWidgetSpec> _builtin = [
   ),
   LibraryGapWidgetSpec(
     id: 'gap_volume',
-    label: '占用体积',
+    label: t.workspace.occupiedSize,
     glyph: AppGlyphs.storage,
     minWidth: 96,
     minHeight: 56,
@@ -365,7 +368,7 @@ final List<LibraryGapWidgetSpec> _builtin = [
       final avg = s.entries.isEmpty ? 0.0 : bytes / s.entries.length;
       return GapExpressiveShell(
         glyph: AppGlyphs.storage,
-        title: '体积',
+        title: t.workspace.sizeVolume,
         seed: s.seed,
         tone: GapTone.secondary,
         body: GapExpressiveMetricBody(
@@ -378,7 +381,7 @@ final List<LibraryGapWidgetSpec> _builtin = [
   ),
   LibraryGapWidgetSpec(
     id: 'gap_count',
-    label: '条目数',
+    label: t.workspace.entryCount,
     glyph: AppGlyphs.layers,
     minWidth: 80,
     minHeight: 52,
@@ -386,13 +389,13 @@ final List<LibraryGapWidgetSpec> _builtin = [
       final pages = s.entries.fold<int>(0, (a, e) => a + (e.itemCount ?? 0));
       return GapExpressiveShell(
         glyph: AppGlyphs.layers,
-        title: '这一墙',
+        title: t.workspace.thisWall,
         seed: s.seed,
         tone: GapTone.surfaceHigh,
         body: GapExpressiveMetricBody(
           value: '${s.entries.length}',
-          unit: pages > 0 ? '共 $pages 话' : '条内容',
-          pillText: pages > 0 ? '$pages 话' : '馆藏',
+          unit: pages > 0 ? '共 $pages 话' : t.workspace.itemsContent,
+          pillText: pages > 0 ? '$pages 话' : t.workspace.libraryLabel,
         ),
       );
     },

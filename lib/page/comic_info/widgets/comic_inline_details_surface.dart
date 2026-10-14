@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 原位详情的内容布局。封面和书名属于上方被选中的卡片，不在这里重复。
 /// 业务宿主提供真实操作、元数据和章节；这里仅负责空间与层级。
@@ -39,12 +40,12 @@ class ComicInlineDetailsSurface extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    '作品工具',
+                    t.comicInfo.workTools,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
                 IconButton(
-                  tooltip: '收起详情',
+                  tooltip: t.comicInfo.collapseDetails,
                   constraints: const BoxConstraints(
                     minWidth: 48,
                     minHeight: 48,
@@ -129,7 +130,10 @@ class ComicInlinePreviewGallery extends StatelessWidget {
       Row(
         children: [
           Expanded(
-            child: Text('画面预览', style: Theme.of(context).textTheme.titleMedium),
+            child: Text(
+              t.comicInfo.imagePreview,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
           ),
           if (onMore != null)
             TextButton(onPressed: onMore, child: const Text('加载更多')),
@@ -197,7 +201,7 @@ class _ComicInlineChapterBoardState extends State<ComicInlineChapterBoard> {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(
-            '章节 · ${widget.count}',
+            t.comicInfo.chapterCount(count: widget.count),
             style: Theme.of(context).textTheme.titleMedium,
           ),
           TextButton.icon(
@@ -207,12 +211,19 @@ class _ComicInlineChapterBoardState extends State<ComicInlineChapterBoard> {
               glyph: AppGlyphs.arrowDown,
               turns: 0.5,
             ),
-            label: Text(widget.reversed ? '恢复正序' : '倒序'),
+            label: Text(
+              widget.reversed
+                  ? t.comicInfo.restoreForwardOrder
+                  : t.comicInfo.reverseOrderLabel,
+            ),
           ),
         ],
       ),
       if (widget.count == 0)
-        const Padding(padding: EdgeInsets.all(12), child: Text('暂无章节')),
+        Padding(
+          padding: EdgeInsets.all(12),
+          child: Text(t.comicInfo.noChaptersYet),
+        ),
       LayoutBuilder(
         builder: (context, constraints) {
           final columns = constraints.maxWidth >= 680 ? 2 : 1;
@@ -233,7 +244,7 @@ class _ComicInlineChapterBoardState extends State<ComicInlineChapterBoard> {
           child: TextButton.icon(
             onPressed: () => setState(() => _visible += 24),
             icon: const GlyphIcon(AppGlyphs.chevronDown),
-            label: const Text('显示更多章节'),
+            label: Text(t.comicInfo.showMoreChapters),
           ),
         ),
     ],

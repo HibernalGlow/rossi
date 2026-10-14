@@ -86,7 +86,7 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
                 minLines: 5,
                 decoration: InputDecoration(
                   border: const OutlineInputBorder(),
-                  hintText: '武田弘光\n[circle (artist)]\n水龙敬',
+                  hintText: t.settings.favoriteArtistExampleHint,
                   filled: true,
                   fillColor: Theme.of(
                     dialogContext,
@@ -419,7 +419,7 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
               padding: const EdgeInsets.symmetric(vertical: 36),
               alignment: Alignment.center,
               child: Text(
-                '未找到匹配的画师',
+                t.settings.noMatchingArtist,
                 style: TextStyle(
                   color: theme.colorScheme.onSurfaceVariant,
                   fontSize: 13,

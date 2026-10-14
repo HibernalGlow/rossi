@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 条件超分的元数据单项表达式
 class ConditionMetadataExpression {
@@ -354,7 +355,7 @@ class SuperResolutionCondition {
       id:
           json['id'] as String? ??
           'condition-${DateTime.now().millisecondsSinceEpoch}',
-      name: json['name'] as String? ?? '未命名条件',
+      name: json['name'] as String? ?? t.realSr.unnamedCondition,
       enabled: json['enabled'] as bool? ?? true,
       priority: (json['priority'] as num?)?.toInt() ?? 0,
       match: json['match'] is Map
@@ -373,12 +374,12 @@ class SuperResolutionCondition {
   /// 默认出厂初始条件
   static SuperResolutionCondition createDefault({
     String id = 'condition-default',
-    String name = '默认条件',
+    String? name,
     int priority = 0,
   }) {
     return SuperResolutionCondition(
       id: id,
-      name: name,
+      name: name ?? t.realSr.defaultCondition,
       enabled: true,
       priority: priority,
       match: const ConditionMatch(dimensionMode: 'and'),

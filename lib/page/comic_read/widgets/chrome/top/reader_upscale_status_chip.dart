@@ -13,6 +13,7 @@ import 'package:zephyr/reader/super_resolution_status.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 当前页超分状态与本书启停。主体切换原图对比，电源独立启停；
 /// 分辨率和阶段保留在详情及悬停提示中，在线来源回退到本书开关。
@@ -102,7 +103,9 @@ class _ReaderUpscaleStatusChipState extends State<ReaderUpscaleStatusChip> {
               (widget.availableWidth >= 880
                   ? imageEnhancementPhaseLabel(status)
                   : null),
-          tooltip: '${superResolutionTooltip(status)}\n点击切换；按住暂看原图；右侧电源只影响本书',
+          tooltip: t.reader.upscaleChipTail(
+            tooltip: superResolutionTooltip(status),
+          ),
           selected: processing && !presenter.isOriginalPreview,
           showSelection: false,
           busy: superResolutionPhaseIsBusy(status.phase),
@@ -115,7 +118,9 @@ class _ReaderUpscaleStatusChipState extends State<ReaderUpscaleStatusChip> {
         ReaderToolbarFeatureButton(
           icon: AppGlyphs.power,
           label: '超分',
-          tooltip: enabled ? '关闭本书超分' : '开启本书超分',
+          tooltip: enabled
+              ? t.reader.disableBookUpscale
+              : t.reader.enableBookUpscale,
           selected: enabled,
           showLabel: false,
           onPressed: () =>
@@ -139,7 +144,11 @@ class _ReaderUpscaleStatusChipState extends State<ReaderUpscaleStatusChip> {
     final bool willBeOriginal =
         status.phase != SuperResolutionPagePhase.originalPreview;
     await presenter.setOriginalPreview(willBeOriginal);
-    showInfoToast(willBeOriginal ? '已切换为原图对比' : '已切回处理后画面');
+    showInfoToast(
+      willBeOriginal
+          ? t.reader.switchedToOriginalCompare
+          : t.reader.switchedBackToProcessed,
+    );
   }
 
   /// 打开超分。**模型没下载时不偷偷失败** —— 先问一句再下。
@@ -153,13 +162,13 @@ class _ReaderUpscaleStatusChipState extends State<ReaderUpscaleStatusChip> {
     if (!await ensureSuperResolutionModel(context)) return;
     await RealSrBookScope.setForActiveLocalBook(true);
     await presenter.setUpscaleEnabled(true);
-    showInfoToast('本书已启用 AI 超分');
+    showInfoToast(t.reader.bookAiUpscaleOn);
   }
 
   Future<void> _disable(GpuPresentController presenter) async {
     await RealSrBookScope.setForActiveLocalBook(false);
     await presenter.setUpscaleEnabled(false);
-    showInfoToast('本书已关闭 AI 超分（其它书仍按全局设置）');
+    showInfoToast(t.reader.bookAiUpscaleOff);
   }
 }
 
@@ -175,8 +184,8 @@ Future<bool> ensureSuperResolutionModel(BuildContext context) async {
     context: context,
     presentation: PopupPresentation.modal,
     builder: (ctx) => PopupPanel(
-      title: const Text('下载 AI 超分模型'),
-      content: const Text('当前设备尚未下载 mImage ONNX 超分模型（约 5.4 MB），是否立即下载并启用？'),
+      title: Text(t.reader.downloadAiUpscaleModel),
+      content: Text(t.reader.mimageModelMissingPrompt),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(false),
@@ -184,18 +193,18 @@ Future<bool> ensureSuperResolutionModel(BuildContext context) async {
         ),
         FilledButton(
           onPressed: () => Navigator.of(ctx).pop(true),
-          child: const Text('立即下载'),
+          child: Text(t.reader.downloadNow),
         ),
       ],
     ),
   );
   if (confirm != true) return false;
-  showInfoToast('正在后台下载超分模型...');
+  showInfoToast(t.reader.downloadingUpscaleInBackground);
   try {
     await RealSrSuperResolution.downloadModel();
     return true;
   } catch (e) {
-    showInfoToast('下载模型失败: $e');
+    showInfoToast(t.reader.modelDownloadFailed(error: e));
     return false;
   }
 }
@@ -289,11 +298,20 @@ class _ReaderOnlineUpscaleChipState extends State<ReaderOnlineUpscaleChip> {
   }
 
   String get _tooltip => [
-    '在线图源：超分在取图/解码层发生，这颗是本书的开关（没有逐页状态）',
-    '本书：${_bookEnabled == true ? '已开启' : '未开启'}',
-    '全局（所有书默认）：${_globalEnabled ? '已开启' : '未开启'}',
-    '模型：${_modelReady ? '已下载' : '未下载（开启时会先问一句）'}',
-    if (_thresholdLabel.isNotEmpty) '生效阈值：$_thresholdLabel',
+    t.reader.onlineUpscaleAtFetchLayer,
+    t.reader.thisBookState(
+      state: _bookEnabled == true ? t.reader.stateOn : t.reader.stateOff,
+    ),
+    t.reader.globalDefaultState(
+      state: _globalEnabled ? t.reader.stateOn : t.reader.stateOff,
+    ),
+    t.reader.modelState(
+      state: _modelReady
+          ? t.reader.stateDownloaded
+          : t.reader.stateNotDownloadedAsk,
+    ),
+    if (_thresholdLabel.isNotEmpty)
+      t.reader.activeThreshold(value: _thresholdLabel),
   ].join('\n');
 
   Future<void> _toggle(bool value) async {
@@ -301,7 +319,9 @@ class _ReaderOnlineUpscaleChipState extends State<ReaderOnlineUpscaleChip> {
     await RealSrBookScope.save(_bookKey, value);
     if (!mounted) return;
     setState(() => _bookEnabled = value);
-    showInfoToast(value ? '本书已开启超分（后续取图在取图层处理）' : '本书已关闭超分（其它书仍按全局设置）');
+    showInfoToast(
+      value ? t.reader.bookUpscaleOnFetch : t.reader.bookUpscaleOff,
+    );
   }
 
   @override

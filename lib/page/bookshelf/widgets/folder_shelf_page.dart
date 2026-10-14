@@ -245,7 +245,7 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
       builder: (dialogContext) => ShelfListEditor(
         title: t.bookshelf.createFolder,
         label: t.bookshelf.folderName,
-        description: '把相关漫画放在一起，方便下次找到。',
+        description: t.bookshelf.createFolderHint,
         onSave: (name) => Navigator.of(dialogContext).pop(name),
       ),
     );

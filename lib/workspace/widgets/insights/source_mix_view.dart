@@ -3,6 +3,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/workspace/model/history_insights.dart';
 import 'package:zephyr/workspace/widgets/insights/insight_components.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 class SourceMixView extends StatelessWidget {
   const SourceMixView({
@@ -30,7 +31,7 @@ class SourceMixView extends StatelessWidget {
           builder: (context, constraints) {
             final metrics = InsightMetric(
               value: '${summary.total}',
-              label: '样本记录 · ${summary.items.length} 个来源',
+              label: t.workspace.sourceMixHeader(n: summary.items.length),
               highlight: true,
             );
             final ring = SizedBox(
@@ -127,7 +128,12 @@ class SourceMixView extends StatelessWidget {
                           ),
                         ],
                       ),
-                      Text('${item.count} 条 · ${item.percent}%'),
+                      Text(
+                        t.workspace.sourceMixItem(
+                          count: item.count,
+                          percent: item.percent,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -138,14 +144,17 @@ class SourceMixView extends StatelessWidget {
                       color: palette[index % palette.length],
                       trackColor: colors.surfaceContainerHighest,
                       semanticsLabel: sourceLabel(item.source),
-                      semanticsValue: '${item.count} 条 · ${item.percent}%',
+                      semanticsValue: t.workspace.sourceMixItem(
+                        count: item.count,
+                        percent: item.percent,
+                      ),
                     ),
                   ),
                 ],
               );
             }(),
           ),
-        const InsightFootnote(),
+        InsightFootnote(),
       ],
     );
   }

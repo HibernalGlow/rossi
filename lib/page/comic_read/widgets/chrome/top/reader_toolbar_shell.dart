@@ -6,6 +6,7 @@ import 'package:zephyr/widgets/motion/expressive_motion.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/widgets/expressive/expressive_icon_button.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 export 'package:zephyr/widgets/expressive/expressive_shape.dart'
     show ExpressiveButtonShape;
@@ -347,7 +348,7 @@ class ReaderToolbarComingSoonButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return ReaderToolbarIconButton(
       icon: icon,
-      tooltip: '$name（本仓尚未实现）',
+      tooltip: t.reader.notImplementedYet(name: name),
       onPressed: () => showReaderToolbarComingSoon(context, name),
     );
   }
@@ -467,7 +468,7 @@ class ReaderToolbarToggleChip extends StatelessWidget {
 /// 但它不能是静默失效的一颗 —— 点了要给一句话，否则人只会以为是自己点歪了。
 void showReaderToolbarComingSoon(BuildContext context, String name) {
   showInfoToast(
-    '$name 还没接进本仓的阅读器',
+    t.reader.notWiredIntoReader(name: name),
     duration: const Duration(milliseconds: 1800),
     context: context,
   );

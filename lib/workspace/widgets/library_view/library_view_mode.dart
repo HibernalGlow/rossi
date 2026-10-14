@@ -1,4 +1,5 @@
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 与 Rust 侧 `FileManagerViewMode` 一一对应的 Dart 视图模式。
 ///
@@ -19,17 +20,17 @@ extension LibraryViewModeX on LibraryViewMode {
   String get label {
     switch (this) {
       case LibraryViewMode.compact:
-        return '紧凑列表';
+        return t.workspace.compactList;
       case LibraryViewMode.coverList:
-        return '封面列表';
+        return t.workspace.coverList;
       case LibraryViewMode.mosaicList:
-        return '横幅';
+        return t.workspace.bannerLabel;
       case LibraryViewMode.details:
-        return '详细信息';
+        return t.workspace.detailedInformation;
       case LibraryViewMode.coverGrid:
-        return '封面网格';
+        return t.workspace.coverGrid;
       case LibraryViewMode.mosaicGrid:
-        return '自由缩略图';
+        return t.workspace.freeThumbnails;
     }
   }
 

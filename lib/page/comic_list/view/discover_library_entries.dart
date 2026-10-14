@@ -7,12 +7,13 @@ import 'package:zephyr/widgets/comic_simplify_entry/comic_cover_surface.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_info.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_entry.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 扩展标签种类只需提供一个稳定 id、默认权重和匹配信号，不改展墙算法。
-const discoverWeightSignals = [
-  LibraryWeightSignal('favoriteTag', '喜欢的 tag', 3),
-  LibraryWeightSignal('favoriteArtist', '喜欢的画师', 2),
-  LibraryWeightSignal('translated', '汉化', 1),
+List<LibraryWeightSignal> get discoverWeightSignals => [
+  LibraryWeightSignal('favoriteTag', t.comicList.likedTags, 3),
+  LibraryWeightSignal('favoriteArtist', t.comicList.likedArtists, 2),
+  LibraryWeightSignal('translated', t.comicList.chineseLocalized, 1),
 ];
 
 LibraryEntry discoverLibraryEntry(

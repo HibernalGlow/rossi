@@ -25,6 +25,7 @@ import 'package:zephyr/workspace/widgets/cards/reading_streak_card.dart';
 import 'package:zephyr/workspace/widgets/cards/reading_heatmap_card.dart';
 import 'package:zephyr/workspace/widgets/cards/source_breakdown_card.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 卡片外壳交给卡片自己的那点上下文。
 ///
@@ -201,7 +202,7 @@ class WorkspaceCardRegistry {
   late final List<WorkspaceCardDefinition> cards = List.unmodifiable([
     WorkspaceCardDefinition(
       id: favorite,
-      title: '书签',
+      title: t.workspace.bookmarks,
       icon: AppGlyphs.bookmark,
       defaultPanelId: WorkspacePanelId.favorite,
       defaultOrder: 0,
@@ -216,7 +217,7 @@ class WorkspaceCardRegistry {
     ),
     WorkspaceCardDefinition(
       id: history,
-      title: '阅读历史',
+      title: t.workspace.readingHistory,
       icon: AppGlyphs.history,
       defaultPanelId: WorkspacePanelId.history,
       defaultOrder: 0,
@@ -231,7 +232,7 @@ class WorkspaceCardRegistry {
     ),
     WorkspaceCardDefinition(
       id: download,
-      title: '下载与离线',
+      title: t.workspace.downloadsOffline,
       icon: AppGlyphs.downloadDone,
       defaultPanelId: WorkspacePanelId.download,
       defaultOrder: 0,
@@ -246,7 +247,7 @@ class WorkspaceCardRegistry {
     ),
     WorkspaceCardDefinition(
       id: plugins,
-      title: '图源与扩展',
+      title: t.workspace.imageSources,
       icon: AppGlyphs.puzzle,
       defaultPanelId: WorkspacePanelId.plugins,
       defaultOrder: 0,
@@ -261,7 +262,7 @@ class WorkspaceCardRegistry {
     ),
     WorkspaceCardDefinition(
       id: localFolder,
-      title: '本地漫画',
+      title: t.workspace.localComics,
       icon: AppGlyphs.folderCopy,
       defaultPanelId: WorkspacePanelId.fileManager,
       defaultOrder: 0,
@@ -277,15 +278,15 @@ class WorkspaceCardRegistry {
     // ── 页面导航面板：无标题栏 MD3 小组件三件套（搜索栏 / 展示栏 / 跳转栏） ──
     WorkspaceCardDefinition(
       id: pageListSearch,
-      title: '搜索栏',
+      title: t.workspace.searchField,
       icon: AppGlyphs.search,
       defaultPanelId: WorkspacePanelId.pageList,
-      defaultOrder: 0,
+      defaultOrder: -1,
       defaultWidthSpan: 4,
       defaultHeightSpan: 1,
       minimumWidth: 200,
       headerless: true,
-      compactMainAxisExtent: 46,
+      compactMainAxisExtent: 50,
       builder: (context, chrome) => PageListSearchCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
@@ -297,12 +298,12 @@ class WorkspaceCardRegistry {
     ),
     WorkspaceCardDefinition(
       id: pageList,
-      title: '页面导航',
+      title: t.workspace.pageNavigation,
       icon: AppGlyphs.cardMedium,
       defaultPanelId: WorkspacePanelId.pageList,
-      defaultOrder: 1,
+      defaultOrder: 0,
       defaultWidthSpan: 4,
-      defaultHeightSpan: 4,
+      defaultHeightSpan: 5,
       minimumWidth: 200,
       headerless: true,
       fillRemainingHeight: true,
@@ -317,15 +318,15 @@ class WorkspaceCardRegistry {
     ),
     WorkspaceCardDefinition(
       id: pageListJump,
-      title: '跳转栏',
+      title: t.workspace.jumpBar,
       icon: AppGlyphs.linearScale,
       defaultPanelId: WorkspacePanelId.pageList,
-      defaultOrder: 2,
+      defaultOrder: 1,
       defaultWidthSpan: 4,
       defaultHeightSpan: 1,
       minimumWidth: 200,
       headerless: true,
-      compactMainAxisExtent: 44,
+      compactMainAxisExtent: 46,
       builder: (context, chrome) => PageListJumpCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
@@ -339,7 +340,7 @@ class WorkspaceCardRegistry {
     // 卡片面板规则照旧：归属 / 展开 / 次序 / 隐藏都按 `WorkspacePanelId.info` 记账。
     WorkspaceCardDefinition(
       id: bookInformation,
-      title: '书籍信息',
+      title: t.workspace.bookInformation,
       icon: AppGlyphs.book,
       defaultPanelId: WorkspacePanelId.info,
       defaultOrder: 0,
@@ -356,7 +357,7 @@ class WorkspaceCardRegistry {
     ),
     WorkspaceCardDefinition(
       id: imageInformation,
-      title: '图像信息',
+      title: t.workspace.imageInformation,
       icon: AppGlyphs.photos,
       defaultPanelId: WorkspacePanelId.info,
       defaultOrder: 1,
@@ -372,7 +373,7 @@ class WorkspaceCardRegistry {
     ),
     WorkspaceCardDefinition(
       id: storageInformation,
-      title: '存储信息',
+      title: t.workspace.storageInformation,
       icon: AppGlyphs.storage,
       defaultPanelId: WorkspacePanelId.info,
       defaultOrder: 2,
@@ -388,7 +389,7 @@ class WorkspaceCardRegistry {
     ),
     WorkspaceCardDefinition(
       id: timeInformation,
-      title: '时间信息',
+      title: t.workspace.timeInformation,
       icon: AppGlyphs.clock,
       defaultPanelId: WorkspacePanelId.info,
       defaultOrder: 3,
@@ -404,7 +405,7 @@ class WorkspaceCardRegistry {
     ),
     WorkspaceCardDefinition(
       id: preloadStatus,
-      title: '预加载状态',
+      title: t.workspace.preloadStatus,
       icon: AppGlyphs.bolt,
       defaultPanelId: WorkspacePanelId.info,
       defaultOrder: 4,
@@ -421,7 +422,7 @@ class WorkspaceCardRegistry {
     // ── 发现面板：只注册插件小组件；上游发现页是面板本身 ────────────────
     WorkspaceCardDefinition(
       id: pluginStatus,
-      title: '插件运行状态',
+      title: t.workspace.pluginRunState,
       icon: AppGlyphs.puzzle,
       defaultPanelId: WorkspacePanelId.discover,
       defaultOrder: 1,
@@ -440,7 +441,7 @@ class WorkspaceCardRegistry {
     ),
     WorkspaceCardDefinition(
       id: pluginShortcuts,
-      title: '图源快捷入口',
+      title: t.workspace.sourceShortcuts,
       icon: AppGlyphs.apps,
       defaultPanelId: WorkspacePanelId.discover,
       defaultOrder: 2,
@@ -459,7 +460,7 @@ class WorkspaceCardRegistry {
     ),
     WorkspaceCardDefinition(
       id: switchToast,
-      title: '切换提示',
+      title: t.workspace.switchToast,
       icon: AppGlyphs.bell,
       defaultPanelId: WorkspacePanelId.control,
       defaultOrder: 0,
@@ -506,7 +507,7 @@ class WorkspaceCardRegistry {
       // 识别模型还是 fp32 的 441 MB。入口画出来却必然报错比不画更坏 ——
       // 但整张卡凭空消失又会被读成「没有这个功能」，所以留壳、灰显、说明。
       supportedHere: () => ocrSupportedHere,
-      unsupportedHint: '仅桌面',
+      unsupportedHint: t.workspace.desktopOnly,
       builder: (context, chrome) => TranslateCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
@@ -519,7 +520,7 @@ class WorkspaceCardRegistry {
     ),
     WorkspaceCardDefinition(
       id: imageTuning,
-      title: '画面调节',
+      title: t.workspace.imageTuning,
       icon: AppGlyphs.wand,
       defaultPanelId: WorkspacePanelId.control,
       defaultOrder: 3,
@@ -541,7 +542,7 @@ class WorkspaceCardRegistry {
     // 与 neoview 一样独立成一张面板，用户想拆再拖。
     WorkspaceCardDefinition(
       id: readingOverview,
-      title: '阅读概览',
+      title: t.workspace.readingOverview,
       icon: AppGlyphs.openBook,
       defaultPanelId: WorkspacePanelId.insights,
       defaultOrder: -1,
@@ -550,7 +551,7 @@ class WorkspaceCardRegistry {
       builder: (context, chrome) => ReadingActivityCard(
         kind: ReadingActivityKind.overview,
         cardId: readingOverview,
-        title: '阅读概览',
+        title: t.workspace.readingOverview,
         icon: AppGlyphs.openBook,
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
@@ -561,7 +562,7 @@ class WorkspaceCardRegistry {
     ),
     WorkspaceCardDefinition(
       id: activityCalendar,
-      title: '近 28 日活跃',
+      title: t.workspace.last28Active,
       icon: AppGlyphs.calendar,
       defaultPanelId: WorkspacePanelId.insights,
       defaultOrder: 4,
@@ -570,7 +571,7 @@ class WorkspaceCardRegistry {
       builder: (context, chrome) => ReadingActivityCard(
         kind: ReadingActivityKind.calendar,
         cardId: activityCalendar,
-        title: '近 28 日活跃',
+        title: t.workspace.last28Active,
         icon: AppGlyphs.calendar,
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
@@ -581,7 +582,7 @@ class WorkspaceCardRegistry {
     ),
     WorkspaceCardDefinition(
       id: weeklyRhythm,
-      title: '每周阅读节奏',
+      title: t.workspace.weeklyReadingRhythm,
       icon: AppGlyphs.trend,
       defaultPanelId: WorkspacePanelId.insights,
       defaultOrder: 5,
@@ -590,7 +591,7 @@ class WorkspaceCardRegistry {
       builder: (context, chrome) => ReadingActivityCard(
         kind: ReadingActivityKind.rhythm,
         cardId: weeklyRhythm,
-        title: '每周阅读节奏',
+        title: t.workspace.weeklyReadingRhythm,
         icon: AppGlyphs.trend,
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
@@ -601,7 +602,7 @@ class WorkspaceCardRegistry {
     ),
     WorkspaceCardDefinition(
       id: readingPeriods,
-      title: '阅读时段',
+      title: t.workspace.readingPeriods,
       icon: AppGlyphs.clock,
       defaultPanelId: WorkspacePanelId.insights,
       defaultOrder: 6,
@@ -610,7 +611,7 @@ class WorkspaceCardRegistry {
       builder: (context, chrome) => ReadingActivityCard(
         kind: ReadingActivityKind.periods,
         cardId: readingPeriods,
-        title: '阅读时段',
+        title: t.workspace.readingPeriods,
         icon: AppGlyphs.clock,
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
@@ -621,7 +622,7 @@ class WorkspaceCardRegistry {
     ),
     WorkspaceCardDefinition(
       id: dailyTrend,
-      title: '近 7 日阅读趋势',
+      title: t.workspace.last7ReadingTrend,
       icon: AppGlyphs.trend,
       defaultPanelId: WorkspacePanelId.insights,
       defaultOrder: 0,
@@ -637,7 +638,7 @@ class WorkspaceCardRegistry {
     ),
     WorkspaceCardDefinition(
       id: readingStreak,
-      title: '连续阅读',
+      title: t.workspace.streakReading,
       icon: AppGlyphs.fire,
       defaultPanelId: WorkspacePanelId.insights,
       defaultOrder: 1,
@@ -653,7 +654,7 @@ class WorkspaceCardRegistry {
     ),
     WorkspaceCardDefinition(
       id: readingHeatmap,
-      title: '阅读热力',
+      title: t.workspace.readingHeat,
       icon: AppGlyphs.calendar,
       defaultPanelId: WorkspacePanelId.insights,
       defaultOrder: 2,
@@ -669,7 +670,7 @@ class WorkspaceCardRegistry {
     ),
     WorkspaceCardDefinition(
       id: sourceBreakdown,
-      title: '来源拆分',
+      title: t.workspace.sourceBreakdown,
       icon: AppGlyphs.pieChart,
       defaultPanelId: WorkspacePanelId.insights,
       defaultOrder: 3,

@@ -12,6 +12,7 @@ import 'package:zephyr/workspace/widgets/library_view/editorial/library_gap_fill
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_settings_controls.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_weight_selector.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_cover_tap_settings.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 Future<LibraryPresentation?> showLibrarySizeSettings(
   BuildContext context,
@@ -123,7 +124,10 @@ class _LibrarySizeSettingsState extends State<_LibrarySizeSettings> {
         builder: (context, constraints) {
           if (constraints.maxWidth < 240 ||
               MediaQuery.textScalerOf(context).scale(14) > 20) {
-            return Text('展墙自定义', style: theme.textTheme.titleSmall);
+            return Text(
+              t.workspace.displayWallCustom,
+              style: theme.textTheme.titleSmall,
+            );
           }
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,10 +153,13 @@ class _LibrarySizeSettingsState extends State<_LibrarySizeSettings> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('展墙自定义', style: theme.textTheme.titleLarge),
+                    Text(
+                      t.workspace.displayWallCustom,
+                      style: theme.textTheme.titleLarge,
+                    ),
                     const SizedBox(height: 4),
                     Text(
-                      '适合当前面板的布局与尺寸',
+                      t.workspace.layoutFitsPanel,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -172,11 +179,11 @@ class _LibrarySizeSettingsState extends State<_LibrarySizeSettings> {
           LibrarySettingsGroup(
             title: '尺寸',
             glyph: AppGlyphs.resize,
-            description: '宽度为目标尺寸，列数随面板可用空间自动调整。宽卡占两格，可与普通卡并排。',
+            description: t.workspace.cardWidthAutoColumns,
             children: [
               if (widget.availableWidth != null) _densityChoices(context),
               slider(
-                '卡片宽度',
+                t.workspace.cardWidth,
                 value.cardWidth,
                 80,
                 420,
@@ -184,7 +191,7 @@ class _LibrarySizeSettingsState extends State<_LibrarySizeSettings> {
                 unit: ' dp',
               ),
               slider(
-                '卡片高度',
+                t.workspace.cardHeight,
                 value.cardHeight,
                 180,
                 600,
@@ -192,7 +199,7 @@ class _LibrarySizeSettingsState extends State<_LibrarySizeSettings> {
                 unit: ' dp',
               ),
               slider(
-                '卡片间距',
+                t.workspace.cardSpacing,
                 value.gap,
                 4,
                 32,
@@ -200,7 +207,7 @@ class _LibrarySizeSettingsState extends State<_LibrarySizeSettings> {
                 unit: ' dp',
               ),
               slider(
-                '图片尺寸',
+                t.workspace.imageSize,
                 value.imageScale,
                 .5,
                 1,
@@ -220,29 +227,29 @@ class _LibrarySizeSettingsState extends State<_LibrarySizeSettings> {
                   runSpacing: 4,
                   children: [
                     toggle(
-                      '展墙',
+                      t.workspace.displayWall,
                       value.editorial,
                       (v) => value = value.copyWith(editorial: v),
                     ),
                     if (widget.hasReading)
                       toggle(
-                        '主视觉',
+                        t.workspace.heroVisual,
                         value.hero,
                         (v) => value = value.copyWith(hero: v),
                       ),
                     toggle(
-                      '内容分区',
+                      t.workspace.contentSections,
                       value.sections,
                       (v) => value = value.copyWith(sections: v),
                     ),
                     toggle(
-                      '不对称',
+                      t.workspace.asymmetric,
                       value.asymmetric,
                       (v) => value = value.copyWith(asymmetric: v),
                     ),
                     if (widget.fileStats)
                       toggle(
-                        '含子目录统计',
+                        t.workspace.includeSubdirStats,
                         value.recursiveStats,
                         (v) => value = value.copyWith(recursiveStats: v),
                       ),
@@ -271,7 +278,7 @@ class _LibrarySizeSettingsState extends State<_LibrarySizeSettings> {
                     setState(() => value = value.copyWith(weight: w)),
               ),
               slider(
-                '大小对比',
+                t.workspace.sizeCompare,
                 value.emphasis,
                 0,
                 1,
@@ -289,9 +296,9 @@ class _LibrarySizeSettingsState extends State<_LibrarySizeSettings> {
             ),
           if (widget.signals.isNotEmpty)
             LibrarySettingsGroup(
-              title: '偏好标签权重',
+              title: t.workspace.favouriteTagWeight,
               glyph: AppGlyphs.sell,
-              description: '数值越大越突出；0 关闭该项。多项命中时取最高权重。',
+              description: t.workspace.weightBiggerWins,
               children: [
                 for (final signal in widget.signals)
                   slider(
@@ -337,12 +344,12 @@ class _LibrarySizeSettingsState extends State<_LibrarySizeSettings> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '当前每行 $columns 格',
+            t.workspace.columnsPerRow(columns: columns),
             style: Theme.of(context).textTheme.titleSmall,
           ),
           const SizedBox(height: 4),
           Text(
-            '普通卡占 1 格，宽卡占 2 格',
+            t.workspace.normalOneWideTwoSlots,
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 8),
@@ -354,7 +361,7 @@ class _LibrarySizeSettingsState extends State<_LibrarySizeSettings> {
                 ElasticButton(
                   enabled: !MediaQuery.disableAnimationsOf(context),
                   child: ChoiceChip(
-                    label: Text('$count 格'),
+                    label: Text(t.workspace.slotCount(count: count)),
                     selected: columns == count,
                     side: BorderSide.none,
                     shape: columns == count ? AppShape.xl : AppShape.md,

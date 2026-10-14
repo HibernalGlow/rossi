@@ -73,7 +73,7 @@ extension _FileManagerCardViewPart on _FileManagerCardState {
       if (!entry.isDir) return null;
       return IconButton(
         icon: const GlyphIcon(AppGlyphs.folder, size: 16),
-        tooltip: '进入文件夹',
+        tooltip: t.workspace.enterFolder,
         visualDensity: VisualDensity.compact,
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
@@ -84,7 +84,7 @@ extension _FileManagerCardViewPart on _FileManagerCardState {
       if (entry.isDir) {
         return IconButton(
           icon: const GlyphIcon(AppGlyphs.folder, size: 18),
-          tooltip: '进入文件夹',
+          tooltip: t.workspace.enterFolder,
           visualDensity: VisualDensity.compact,
           onPressed: _busy ? null : () => _openEntry(entry, forceEnter: true),
         );
@@ -151,20 +151,23 @@ extension _FileManagerCardViewPart on _FileManagerCardState {
     if (entry.isDir) return '文件夹';
     final lower = entry.name.toLowerCase();
     if (entry.isArchive) {
-      if (lower.endsWith('.zip')) return 'ZIP 归档';
-      if (lower.endsWith('.cbz')) return 'CBZ 归档';
-      if (lower.endsWith('.rar')) return 'RAR 归档';
-      if (lower.endsWith('.cbr')) return 'CBR 归档';
-      if (lower.endsWith('.7z')) return '7Z 归档';
-      if (lower.endsWith('.tar') || lower.endsWith('.tar.gz')) return 'TAR 归档';
-      return '压缩归档';
+      if (lower.endsWith('.zip')) return t.workspace.archiveZip;
+      if (lower.endsWith('.cbz')) return t.workspace.archiveCbz;
+      if (lower.endsWith('.rar')) return t.workspace.archiveRar;
+      if (lower.endsWith('.cbr')) return t.workspace.archiveCbr;
+      if (lower.endsWith('.7z')) return t.workspace.archive7z;
+      if (lower.endsWith('.tar') || lower.endsWith('.tar.gz'))
+        return t.workspace.archiveTar;
+      return t.workspace.compressedArchive;
     }
-    if (entry.isImage) return '图片';
+    if (entry.isImage) return t.workspace.imagesLabel;
     if (entry.isVideo) return '视频';
-    if (entry.isAudio) return '音频';
+    if (entry.isAudio) return t.workspace.audioLabel;
     final dot = entry.name.lastIndexOf('.');
     if (dot != -1 && dot < entry.name.length - 1) {
-      return '${entry.name.substring(dot + 1).toUpperCase()} 文件';
+      return t.workspace.fileKindLabel(
+        kind: entry.name.substring(dot + 1).toUpperCase(),
+      );
     }
     return '文件';
   }

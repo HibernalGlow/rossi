@@ -18,6 +18,7 @@
 library;
 
 import 'dart:convert';
+import 'package:zephyr/i18n/strings.g.dart';
 
 const String kHistoryLibraryVersion = 'v1';
 
@@ -182,7 +183,9 @@ HistoryLibraryParseResult parseHistoryLibrary(String raw) {
   try {
     decoded = jsonDecode(raw);
   } on FormatException catch (e) {
-    throw HistoryLibraryFormatException('不是合法的 JSON：${e.message}');
+    throw HistoryLibraryFormatException(
+      t.workspace.invalidJson(error: e.message),
+    );
   }
   if (decoded is! Map) {
     throw HistoryLibraryFormatException('顶层必须是一个对象');
@@ -192,7 +195,9 @@ HistoryLibraryParseResult parseHistoryLibrary(String raw) {
     throw HistoryLibraryFormatException('缺少 version 字段');
   }
   if (version.split('.').first != kHistoryLibraryVersion) {
-    throw HistoryLibraryFormatException('不支持的格式版本 $version');
+    throw HistoryLibraryFormatException(
+      t.workspace.unsupportedFormatVersion(version: version),
+    );
   }
   final list = decoded['items'];
   if (list is! List) {
@@ -204,7 +209,12 @@ HistoryLibraryParseResult parseHistoryLibrary(String raw) {
   for (var index = 0; index < list.length; index++) {
     final entry = list[index];
     if (entry is! Map) {
-      rejected.add(HistoryRejection(label: '第 ${index + 1} 条', reason: '不是对象'));
+      rejected.add(
+        HistoryRejection(
+          label: t.workspace.itemNumber(n: index + 1),
+          reason: t.workspace.notAnObject,
+        ),
+      );
       continue;
     }
     final parsed = _itemAt(entry, index);
@@ -230,9 +240,12 @@ HistoryLibraryParseResult parseHistoryLibrary(String raw) {
 Object _itemAt(Map<dynamic, dynamic> json, int index) {
   final source = json['source']?.toString().trim() ?? '';
   final comicId = json['comicId']?.toString().trim() ?? '';
-  final label = '第 ${index + 1} 条';
+  final label = t.workspace.itemNumber(n: index + 1);
   if (source.isEmpty || comicId.isEmpty) {
-    return HistoryRejection(label: label, reason: '缺少 source 或 comicId');
+    return HistoryRejection(
+      label: label,
+      reason: t.workspace.missingSourceOrComicId,
+    );
   }
   final expected = HistoryLibraryItem.keyFor(source: source, comicId: comicId);
   final declared = json['uniqueKey']?.toString().trim() ?? '';
@@ -241,7 +254,7 @@ Object _itemAt(Map<dynamic, dynamic> json, int index) {
   if (declared.isNotEmpty && declared != expected) {
     return HistoryRejection(
       label: '$label（$declared）',
-      reason: 'uniqueKey 与 source:comicId 不一致，应为 $expected',
+      reason: t.workspace.keyMismatch(expected: expected),
     );
   }
   return HistoryLibraryItem(
@@ -365,13 +378,14 @@ class HistoryMergePlan {
   /// 知道的是「为什么导入 100 条只变了 3 条」。
   String get summary {
     final parts = [
-      '新增 $addCount 条',
-      '复活 $reviveCount 条',
-      '更新进度 $overwriteCount 条',
-      '保留本地 $staleCount 条',
-      '文件内重复 $duplicateCount 条',
+      t.workspace.addedCount(n: addCount),
+      t.workspace.revivedCount(n: reviveCount),
+      t.workspace.progressUpdatedCount(n: overwriteCount),
+      t.workspace.keptLocalCount(n: staleCount),
+      t.workspace.duplicateInFileCount(n: duplicateCount),
     ];
-    if (rejected.isNotEmpty) parts.add('跳过 ${rejected.length} 条');
+    if (rejected.isNotEmpty)
+      parts.add(t.workspace.skippedCount(n: rejected.length));
     return parts.join(' · ');
   }
 }

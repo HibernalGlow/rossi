@@ -101,7 +101,7 @@ abstract class CoreMLModelConfig {
     ),
     CoreMLModelFamily(
       id: 'realesrgan',
-      label: 'Real-ESRGAN x4plus · 照片/CG',
+      label: t.realSr.coremlModelPhoto,
       variants: <CoreMLModelVariant>[
         CoreMLModelVariant(
           displayName: '模型自带降噪',

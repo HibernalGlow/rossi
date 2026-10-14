@@ -10,6 +10,7 @@ import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
 import 'package:zephyr/workspace/registry/workspace_panel_registry.dart';
 import 'package:zephyr/workspace/widgets/grid/card_layout_scope.dart';
 import 'package:zephyr/workspace/widgets/grid/grid_widgets.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 一个面板的**卡片网格列表**。
 ///
@@ -346,7 +347,7 @@ class PanelCardList extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              '这个面板里的卡片都被收起来了',
+              t.workspace.allCardsCollapsed,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

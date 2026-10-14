@@ -6,6 +6,7 @@ import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/cards/info_card_kit.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 图像信息卡（对齐 Neo 的 `image-information`）：
 /// 当前页的文件名 / 格式 / 编码大小 / 像素尺寸 / 呈现路径。
@@ -46,7 +47,7 @@ class ImageInformationCard extends StatelessWidget {
         final hasSession = coordinator.hasActiveSession;
         return CollapsibleCard(
           cardId: 'image_information',
-          title: '图像信息',
+          title: t.workspace.imageInformation,
           icon: AppGlyphs.photos,
           expressive: true,
           isExpanded: isExpanded,
@@ -57,15 +58,15 @@ class ImageInformationCard extends StatelessWidget {
           trailing: hasSession ? InfoCardCounter('#${slot + 1}') : null,
           child: hasSession
               ? _buildRows(coordinator, presenter, slot)
-              : const InfoEmpty(
+              : InfoEmpty(
                   icon: AppGlyphs.photos,
-                  text: '打开书本后显示当前页信息',
-                  hint: '随翻页刷新；量不到的项不猜',
+                  text: t.workspace.showCurrentPageWhenOpen,
+                  hint: t.workspace.refreshPerPageNoGuessing,
                   fields: [
-                    ('文件名', AppGlyphs.article),
-                    ('编码大小', AppGlyphs.compress),
-                    ('像素尺寸', AppGlyphs.cropFree),
-                    ('渲染路径', AppGlyphs.devices),
+                    (t.workspace.fileNameLabel, AppGlyphs.article),
+                    (t.workspace.encodedSize, AppGlyphs.compress),
+                    (t.workspace.pixelSize, AppGlyphs.cropFree),
+                    (t.workspace.renderPath, AppGlyphs.devices),
                   ],
                 ),
         );
@@ -93,10 +94,10 @@ class ImageInformationCard extends StatelessWidget {
         : null;
 
     final String renderPath = source == null
-        ? '网络图片 · 下载后走图片缓存'
+        ? t.workspace.networkImageCached
         : (presenter != null && presenter.canPresent)
-        ? 'GPU 共享纹理'
-        : 'CPU 解码兜底';
+        ? t.workspace.gpuSharedTexture
+        : t.workspace.cpuDecodeFallback;
 
     final stats = presenter?.stats;
     final displaySize = (stats != null && stats.width > 0 && stats.height > 0)
@@ -112,13 +113,13 @@ class ImageInformationCard extends StatelessWidget {
           children: [
             ExpressiveStatTile(
               value: name == null ? '—' : formatInfoExt(name),
-              label: '编码格式',
+              label: t.workspace.encodedFormat,
               icon: AppGlyphs.code,
               highlight: true,
             ),
             ExpressiveStatTile(
               value: formatInfoBytes(pageRef?.size),
-              label: '编码大小',
+              label: t.workspace.encodedSize,
               icon: AppGlyphs.compress,
             ),
             ExpressiveStatTile(
@@ -127,10 +128,10 @@ class ImageInformationCard extends StatelessWidget {
                       ? null
                       : formatImageSize(raster.sourceSize)) ??
                   '—',
-              label: '像素尺寸',
+              label: t.workspace.pixelSize,
               icon: AppGlyphs.cropFree,
               caption: raster == null
-                  ? '量不到图头'
+                  ? t.workspace.imageHeaderUnmeasured
                   : '超分后 ${formatImageSize(raster.enhancedSize) ?? '—'}',
             ),
           ],
@@ -139,23 +140,27 @@ class ImageInformationCard extends StatelessWidget {
         InfoFacts(
           children: [
             InfoRow(
-              label: '页码',
+              label: t.workspace.pageNumber,
               value: '${slot + 1} / ${coordinator.totalSlots}',
               icon: AppGlyphs.cardMedium,
             ),
-            InfoRow(label: '文件名', value: name, icon: AppGlyphs.article),
             InfoRow(
-              label: '编码大小',
+              label: t.workspace.fileNameLabel,
+              value: name,
+              icon: AppGlyphs.article,
+            ),
+            InfoRow(
+              label: t.workspace.encodedSize,
               value: formatInfoBytes(pageRef?.size),
               icon: AppGlyphs.compress,
             ),
             InfoRow(
-              label: '像素尺寸',
+              label: t.workspace.pixelSize,
               value: raster == null ? null : formatImageSize(raster.sourceSize),
               icon: AppGlyphs.cropFree,
             ),
             InfoRow(
-              label: '超分后',
+              label: t.workspace.afterUpscale,
               value: raster == null
                   ? null
                   : formatImageSize(raster.enhancedSize),
@@ -163,20 +168,24 @@ class ImageInformationCard extends StatelessWidget {
             ),
             if (displaySize != null)
               InfoRow(
-                label: '显示目标',
+                label: t.workspace.showTarget,
                 value: displaySize,
                 icon: AppGlyphs.fitScreen,
               ),
             InfoRow(
-              label: '渲染路径',
+              label: t.workspace.renderPath,
               value: renderPath,
               emphasis: source == null || (presenter?.canPresent ?? false),
               icon: AppGlyphs.devices,
             ),
             if (doc != null && source == null) ...[
-              InfoRow(label: '页地址', value: doc.path, icon: AppGlyphs.link),
               InfoRow(
-                label: '服务器',
+                label: t.workspace.pageUrl,
+                value: doc.path,
+                icon: AppGlyphs.link,
+              ),
+              InfoRow(
+                label: t.workspace.serverLabel,
                 value: doc.fileServer,
                 icon: AppGlyphs.router,
               ),

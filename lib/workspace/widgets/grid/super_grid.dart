@@ -9,6 +9,7 @@ import 'package:zephyr/workspace/widgets/grid/card_layout_scope.dart';
 import 'package:zephyr/workspace/widgets/grid/card_resize_handle.dart';
 import 'package:zephyr/workspace/widgets/grid/grid.dart';
 import 'package:zephyr/workspace/widgets/grid/motion_grid.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 typedef CardResizeCallback =
     void Function(Key key, int widthSpan, int heightSpan);
@@ -297,7 +298,7 @@ class SuperGridState extends State<SuperGrid> {
                     widget.onResizeCard != null
                 ? CardResizeHandle(
                     label: preview == null
-                        ? '拖动调整大小'
+                        ? t.workspace.dragToResize
                         : '${preview.width.round()} × ${preview.height.round()}',
                     onStart: () => _startResize(item),
                     onUpdate: _updateResize,
@@ -419,7 +420,7 @@ class _CardHeaderDragHandleState extends State<_CardHeaderDragHandle> {
             }
 
             return Tooltip(
-              message: '按住标题拖动排序',
+              message: t.workspace.dragTitleToReorder,
               child: LongPressDraggable<Key>(
                 data: widget.cardKey,
                 delay: const Duration(milliseconds: 200),

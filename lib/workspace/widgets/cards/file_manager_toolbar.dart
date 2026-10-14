@@ -3,6 +3,7 @@ import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/action_group.dart';
 import 'package:zephyr/widgets/motion/action_bubble.dart';
 import 'package:zephyr/workspace/widgets/cards/file_manager_navigation_pad.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 文件管理器工具栏的度量档：**画图与「摊开还是收成掌」的判断读同一份常数**。
 ///
@@ -119,8 +120,10 @@ class FileManagerNavigation extends StatelessWidget {
   });
 
   String get _homeTooltip {
-    if (!hasHome) return '主页：还没设置 · 单击把当前目录设为主页';
-    return atHome ? '主页（当前）· 右键/长按管理' : '主页 · 右键/长按管理';
+    if (!hasHome) return t.workspace.homeNotSetYet;
+    return atHome
+        ? t.workspace.homeCurrentManageHint
+        : t.workspace.homeManageHint;
   }
 
   @override
@@ -152,21 +155,21 @@ class FileManagerNavigation extends StatelessWidget {
       children: [
         FileManagerToolbarIconButton(
           glyph: AppGlyphs.arrowBack,
-          tooltip: '后退',
+          tooltip: t.workspace.back,
           enabled: !busy && canGoBack,
           onPressed: onNavigateBack,
         ),
         gap,
         FileManagerToolbarIconButton(
           glyph: AppGlyphs.arrowForward,
-          tooltip: '前进',
+          tooltip: t.workspace.forward,
           enabled: !busy && canGoForward,
           onPressed: onNavigateForward,
         ),
         gap,
         FileManagerToolbarIconButton(
           glyph: AppGlyphs.arrowUp,
-          tooltip: '上一级',
+          tooltip: t.workspace.parentDirectory,
           enabled: !busy && canGoUp,
           onPressed: onNavigateUp,
         ),

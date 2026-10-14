@@ -76,7 +76,7 @@ extension _ComicInfoInlinePart on _ComicInfoState {
             TextButton.icon(
               onPressed: _reloadInline,
               icon: const GlyphIcon(AppGlyphs.refresh),
-              label: const Text('刷新信息'),
+              label: Text(t.comicInfo.refreshInformation),
             ),
             if (_type == ComicEntryType.download)
               TextButton.icon(

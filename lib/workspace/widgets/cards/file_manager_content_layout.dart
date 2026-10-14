@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:multi_split_view/multi_split_view.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/src/rust/api/file_manager/types.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 官方树视口的数据适配。目录展开来自 Rust，网格档把连续叶子节点排进同一行。
 class FileManagerHierarchyView extends StatelessWidget {
@@ -35,7 +36,8 @@ class FileManagerHierarchyView extends StatelessWidget {
     if (snapshot == null) {
       return const Center(child: CircularProgressIndicator(strokeWidth: 2));
     }
-    if (snapshot.rows.isEmpty) return const Center(child: Text('没有可显示的条目'));
+    if (snapshot.rows.isEmpty)
+      return Center(child: Text(t.workspace.nothingToDisplay));
     final roots = <TreeSliverNode<FileManagerTreeRow>>[];
     final parents = <TreeSliverNode<FileManagerTreeRow>>[];
     for (final row in snapshot.rows) {
@@ -122,15 +124,18 @@ class FileManagerHierarchyView extends StatelessWidget {
           controller: controller,
           slivers: [
             if (mode == LibraryViewMode.details)
-              const SliverToBoxAdapter(
+              SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.only(left: 32),
                   child: Row(
                     children: [
-                      Expanded(child: Text('名称')),
+                      Expanded(child: Text(t.workspace.nameLabel)),
                       SizedBox(width: 74, child: Text('类型')),
-                      SizedBox(width: 79, child: Text('大小')),
-                      SizedBox(width: 114, child: Text('修改时间')),
+                      SizedBox(width: 79, child: Text(t.workspace.sizeLabel)),
+                      SizedBox(
+                        width: 114,
+                        child: Text(t.workspace.modifiedTime),
+                      ),
                     ],
                   ),
                 ),
@@ -167,7 +172,9 @@ class FileManagerHierarchyView extends StatelessWidget {
                                 key: ValueKey(
                                   'file-manager-tree-toggle:${row.path}',
                                 ),
-                                tooltip: row.expanded ? '收起' : '展开',
+                                tooltip: row.expanded
+                                    ? '收起'
+                                    : t.workspace.expandLabel,
                                 padding: EdgeInsets.zero,
                                 icon: GlyphIcon(
                                   row.expanded
@@ -198,7 +205,7 @@ class FileManagerHierarchyView extends StatelessWidget {
                                     _card(context, cards.rows[index]),
                               )
                             : DetailsColumns(
-                                columns: const [
+                                columns: [
                                   LibraryColumn(
                                     key: 'type',
                                     label: '类型',
@@ -206,13 +213,13 @@ class FileManagerHierarchyView extends StatelessWidget {
                                   ),
                                   LibraryColumn(
                                     key: 'size',
-                                    label: '大小',
+                                    label: t.workspace.sizeLabel,
                                     width: 75,
                                     alignRight: true,
                                   ),
                                   LibraryColumn(
                                     key: 'date',
-                                    label: '修改时间',
+                                    label: t.workspace.modifiedTime,
                                     width: 110,
                                   ),
                                 ],

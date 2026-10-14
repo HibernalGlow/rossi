@@ -219,6 +219,26 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     );
   }
 
+  /// 泳道面板栏上的那颗面板图标要不要吃右键（触摸端长按）= 收起这块面板。
+  /// 消费点在 `PanelTabStrip` / `WorkspacePanelTabs`：关掉时连手势都不挂。
+  Widget _panelTabRightClickHide(
+    GlobalSettingState state,
+    GlobalSettingCubit cubit,
+  ) {
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.eyeOff),
+      title: Text(t.settings.panelTabRightClickHide),
+      subtitle: Text(t.settings.panelTabRightClickHideSubtitle),
+      value: state.panelTabRightClickHide,
+      onChanged: (bool value) {
+        cubit.updateState(
+          (current) => current.copyWith(panelTabRightClickHide: value),
+        );
+        showSuccessToast(t.common.settingSaved);
+      },
+    );
+  }
+
   /// 启动时要不要跳过「检查上游新版本」。默认开：本仓是 fork，版本号永远低于
   /// 上游，弹窗只会把人引向 deretame/Breeze 的安装包。
   Widget _skipUpdateCheck(GlobalSettingState state, GlobalSettingCubit cubit) {
@@ -612,7 +632,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     final pin = await showPinCodeSetupDialog(
       context,
       title: t.settings.setResetPin,
-      confirmTitle: '确认重置 PIN',
+      confirmTitle: t.settings.confirmResetPin,
     );
     if (pin == null) {
       return null;

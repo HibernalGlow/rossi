@@ -4,6 +4,7 @@ import 'package:zephyr/workspace/widgets/cards/history_insights_window.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/workspace/widgets/insights/trend_views.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 近 7 日阅读趋势（neoview `DailyTrendCard` 的同位物）。
 ///
@@ -30,7 +31,7 @@ class DailyTrendCard extends StatelessWidget {
     return CollapsibleCard(
       expressive: true,
       cardId: 'daily_trend',
-      title: '近 7 日阅读趋势',
+      title: t.workspace.last7ReadingTrend,
       icon: AppGlyphs.trend,
       isExpanded: isExpanded,
       onToggle: onToggle,

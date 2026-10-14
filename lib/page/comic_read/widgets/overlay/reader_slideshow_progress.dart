@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/comic_read/widgets/overlay/reader_progress_bar.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 放映时的驻留指示：本章第几页 + 是不是暂停了。
 ///
@@ -87,7 +88,7 @@ class ReaderSlideshowProgress extends StatelessWidget {
                   if (showLabel) ...[
                     const SizedBox(width: 6),
                     Text(
-                      isPaused ? '已暂停' : '放映中',
+                      isPaused ? '已暂停' : t.reader.slideshowPlaying,
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: foreground,
                       ),

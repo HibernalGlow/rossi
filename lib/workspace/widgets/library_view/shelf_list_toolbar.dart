@@ -10,6 +10,7 @@ import 'package:zephyr/workspace/widgets/library_view/library_view_mode.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_menu_button.dart';
 import 'package:zephyr/widgets/search/search_history_field.dart';
 import 'package:zephyr/widgets/search/search_history_store.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 书签 / 历史面板的工具栏：视图模式 + 排序 + 搜索 + 导入导出 + 计数。
 ///
@@ -29,7 +30,7 @@ import 'package:zephyr/widgets/search/search_history_store.dart';
 /// 所以槽本身不另传 [ActionGroup.fill]，用默认那档（`surfaceContainer`，比卡片
 /// 底低一档，读作「这一片是可操作区」而不是又加一层海拔）。
 class ShelfListToolbar extends StatefulWidget {
-  const ShelfListToolbar({
+  ShelfListToolbar({
     super.key,
     required this.viewMode,
     required this.onViewMode,
@@ -41,14 +42,13 @@ class ShelfListToolbar extends StatefulWidget {
     this.onExport,
     this.presentationButton,
     this.onImport,
-    this.portLabel = '导入 / 导出',
+    this.portLabel,
     this.timelineOn = false,
     this.onTimeline,
     this.busy = false,
     this.historyScope = 'library-filter',
-    this.searchHint = '搜索标题 / 作者 / 来源',
-  });
-
+    String? searchHint,
+  }) : searchHint = searchHint ?? t.workspace.searchTitleAuthorSource;
   final Widget? presentationButton;
   final LibraryViewMode viewMode;
   final ValueChanged<LibraryViewMode> onViewMode;
@@ -158,7 +158,7 @@ class _ShelfListToolbarState extends State<ShelfListToolbar> {
                     children: [
                       ShelfMenuButton(
                         tooltip: widget.timelineOn
-                            ? '视图模式（时间线下不适用）'
+                            ? t.workspace.viewModeNotInTimeline
                             : '视图模式：${mode.label}',
                         glyph: mode.icon,
                         shape: ExpressiveButtonShape.gem,
@@ -182,7 +182,7 @@ class _ShelfListToolbarState extends State<ShelfListToolbar> {
                       within,
                       ShelfMenuButton(
                         tooltip: widget.timelineOn
-                            ? '排序（时间线固定按时间排）'
+                            ? t.workspace.sortingTimelineFixed
                             : '排序：${widget.sort.field.label} · '
                                   '${widget.sort.ascending ? '升序' : '降序'}',
                         glyph: AppGlyphs.sort,
@@ -198,7 +198,9 @@ class _ShelfListToolbarState extends State<ShelfListToolbar> {
                             ),
                           const ShelfMenuDivider(),
                           ShelfMenuItem(
-                            label: widget.sort.ascending ? '切换为降序' : '切换为升序',
+                            label: widget.sort.ascending
+                                ? t.workspace.switchDescending
+                                : t.workspace.switchAscending,
                             glyph: widget.sort.ascending
                                 ? AppGlyphs.arrowDown
                                 : AppGlyphs.arrowUp,
@@ -220,7 +222,9 @@ class _ShelfListToolbarState extends State<ShelfListToolbar> {
                       if (widget.onTimeline != null) ...[
                         ActionToggleButton(
                           glyph: AppGlyphs.clock,
-                          tooltip: widget.timelineOn ? '退出时间线' : '按天看时间线',
+                          tooltip: widget.timelineOn
+                              ? t.workspace.exitTimeline
+                              : t.workspace.timelineByDay,
                           on: widget.timelineOn,
                           onPressed: widget.onTimeline,
                         ),
@@ -229,7 +233,9 @@ class _ShelfListToolbarState extends State<ShelfListToolbar> {
                       // 搜索键不参与 busy 门控：展开/收起只是 UI 状态切换，不碰数据。
                       ActionToggleButton(
                         glyph: AppGlyphs.search,
-                        tooltip: _searchExpanded ? '收起搜索' : '搜索',
+                        tooltip: _searchExpanded
+                            ? t.workspace.collapseSearch
+                            : '搜索',
                         on: searchOn,
                         onPressed: () =>
                             setState(() => _searchExpanded = !_searchExpanded),
@@ -243,17 +249,17 @@ class _ShelfListToolbarState extends State<ShelfListToolbar> {
                     ActionGroup(
                       children: [
                         ShelfMenuButton(
-                          tooltip: widget.portLabel,
+                          tooltip: widget.portLabel ?? t.workspace.importExport,
                           glyph: AppGlyphs.export,
                           enabled: !widget.busy,
                           menuChildren: [
                             ShelfMenuItem(
-                              label: '导出为 JSON',
+                              label: t.workspace.exportAsJson,
                               glyph: AppGlyphs.cloudDownload,
                               onPressed: widget.busy ? null : widget.onExport,
                             ),
                             ShelfMenuItem(
-                              label: '从 JSON 导入',
+                              label: t.workspace.importFromJson,
                               glyph: AppGlyphs.upload,
                               onPressed: widget.busy ? null : widget.onImport,
                             ),
@@ -311,7 +317,7 @@ class _ShelfListToolbarState extends State<ShelfListToolbar> {
         ),
         prefixIcon: const GlyphIcon(AppGlyphs.search),
         suffixIcon: IconButton(
-          tooltip: '清除搜索并收起',
+          tooltip: t.workspace.clearSearchAndCollapse,
           icon: const GlyphIcon(AppGlyphs.close),
           onPressed: () {
             widget.searchController.clear();

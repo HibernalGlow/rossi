@@ -9,6 +9,7 @@ import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dar
 import 'package:zephyr/page/setting/real_sr/widgets/super_resolution_log_controls.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 阅读器和全局设置共用的模型配置，关闭超分时也能选择、下载模型。
 class MImageModelSettings extends StatefulWidget {
@@ -88,8 +89,8 @@ class _MImageModelSettingsState extends State<MImageModelSettings> {
     final file = await openFile(
       acceptedTypeGroups: [
         Platform.isIOS
-            ? const XTypeGroup(label: 'ONNX 模型')
-            : const XTypeGroup(label: 'ONNX 模型', extensions: ['onnx']),
+            ? XTypeGroup(label: t.realSr.onnxModel)
+            : XTypeGroup(label: t.realSr.onnxModel, extensions: ['onnx']),
       ],
     );
     if (file != null) {
@@ -106,7 +107,10 @@ class _MImageModelSettingsState extends State<MImageModelSettings> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('自定义超分模型', style: Theme.of(context).textTheme.titleSmall),
+          Text(
+            t.realSr.customModel,
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
           const SizedBox(height: 8),
           DropdownButton<MImageOnnxModel>(
             key: const ValueKey('mimage-model-selector'),
@@ -132,18 +136,18 @@ class _MImageModelSettingsState extends State<MImageModelSettings> {
                   },
           ),
           const SizedBox(height: 8),
-          Text('倍率：原生 ${_model.scale}×（由模型决定）'),
+          Text(t.realSr.modelScaleNote(scale: _model.scale)),
           const SizedBox(height: 6),
           Text(
             _model.supportsDenoise
-                ? '降噪：Real-CUGAN 保守修复，强度由模型固定'
-                : '降噪：由模型固定，不支持单独调节强度',
+                ? t.realSr.modelDenoiseCugan
+                : t.realSr.modelDenoiseFixed,
           ),
           const SizedBox(height: 6),
-          Text('运行时：$mImageRuntimeLabel'),
+          Text(t.realSr.modelRuntime(runtime: mImageRuntimeLabel)),
           const SizedBox(height: 12),
           Text(
-            _available ? '当前模型已安装' : '当前模型未安装，下载或导入后才能使用',
+            _available ? t.realSr.modelInstalled : t.realSr.modelNotInstalled,
             style: TextStyle(
               color: _available ? colors.primary : colors.onSurfaceVariant,
             ),
@@ -173,12 +177,16 @@ class _MImageModelSettingsState extends State<MImageModelSettings> {
                         ),
                       ),
                 icon: const GlyphIcon(AppGlyphs.download),
-                label: Text(_available ? '重新下载当前模型' : '下载当前模型'),
+                label: Text(
+                  _available
+                      ? t.realSr.redownloadCurrentModel
+                      : t.realSr.downloadCurrentModel,
+                ),
               ),
               OutlinedButton.icon(
                 onPressed: _busy ? null : () => _run(_import),
                 icon: const GlyphIcon(AppGlyphs.folder),
-                label: const Text('导入本地 ONNX'),
+                label: Text(t.realSr.importLocalOnnx),
               ),
               TextButton(
                 onPressed: _busy
@@ -194,7 +202,7 @@ class _MImageModelSettingsState extends State<MImageModelSettings> {
                           throw StateError('无法打开下载链接');
                         }
                       }),
-                child: const Text('浏览器下载'),
+                child: Text(t.realSr.downloadInBrowser),
               ),
               if (_available)
                 TextButton(
@@ -205,17 +213,21 @@ class _MImageModelSettingsState extends State<MImageModelSettings> {
                             context: context,
                             presentation: PopupPresentation.modal,
                             builder: (context) => PopupPanel(
-                              title: const Text('删除当前模型'),
-                              content: Text('删除 ${_model.label}？需要时可以重新下载。'),
+                              title: Text(t.realSr.deleteCurrentModel),
+                              content: Text(
+                                t.realSr.deleteModelConfirmNamed(
+                                  name: _model.label,
+                                ),
+                              ),
                               actions: [
                                 TextButton(
                                   onPressed: () =>
                                       Navigator.pop(context, false),
-                                  child: const Text('取消'),
+                                  child: Text(t.common.cancel),
                                 ),
                                 TextButton(
                                   onPressed: () => Navigator.pop(context, true),
-                                  child: const Text('删除'),
+                                  child: Text(t.common.delete),
                                 ),
                               ],
                             ),
@@ -226,13 +238,13 @@ class _MImageModelSettingsState extends State<MImageModelSettings> {
                             );
                           }
                         },
-                  child: const Text('删除当前模型'),
+                  child: Text(t.realSr.deleteCurrentModel),
                 ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            '本地导入请选择上方文件名对应的 mImage ONNX 模型。切换后当前页会重新生成超分图。',
+            t.realSr.importLocalHint,
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
@@ -243,7 +255,10 @@ class _MImageModelSettingsState extends State<MImageModelSettings> {
           ],
           if (_error != null) ...[
             const SizedBox(height: 8),
-            Text('操作失败：$_error', style: TextStyle(color: colors.error)),
+            Text(
+              t.realSr.actionFailedDetail(error: _error!),
+              style: TextStyle(color: colors.error),
+            ),
           ],
         ],
       ),

@@ -9,6 +9,7 @@ import 'package:zephyr/workspace/widgets/cards/plugin_status_card.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 图源快捷入口卡 —— 一格一个插件，点开直接进那个图源的搜索。
 ///
@@ -52,7 +53,7 @@ class PluginShortcutsCard extends StatelessWidget {
 
     return CollapsibleCard(
       cardId: 'plugin_shortcuts',
-      title: '图源快捷入口',
+      title: t.workspace.sourceShortcuts,
       icon: AppGlyphs.apps,
       expressive: true,
       isExpanded: isExpanded,
@@ -61,7 +62,7 @@ class PluginShortcutsCard extends StatelessWidget {
       onMoveDown: onMoveDown,
       onHide: onHide,
       trailing: ExpressiveStatusPill(
-        text: '${plugins.length} 个图源',
+        text: t.workspace.sourceCountLabel(n: plugins.length),
         dot: false,
         compact: true,
       ),
@@ -74,7 +75,7 @@ class PluginShortcutsCard extends StatelessWidget {
             children: [
               _ShortcutTile(
                 label: '聚合搜索',
-                caption: '全部图源',
+                caption: t.workspace.allImageSources,
                 icon: AppGlyphs.search,
                 tone: ExpressiveTone.primary,
                 onTap: () => context.pushRoute(
@@ -85,8 +86,8 @@ class PluginShortcutsCard extends StatelessWidget {
                 ),
               ),
               _ShortcutTile(
-                label: '插件市场',
-                caption: '装新图源',
+                label: t.workspace.pluginMarket,
+                caption: t.workspace.installNewSource,
                 icon: AppGlyphs.storefront,
                 tone: ExpressiveTone.secondary,
                 onTap: () => context.pushRoute(const PluginStoreRoute()),
@@ -107,10 +108,10 @@ class PluginShortcutsCard extends StatelessWidget {
           ),
           if (plugins.isEmpty) ...[
             const SizedBox(height: 12),
-            const ExpressiveEmptyState(
+            ExpressiveEmptyState(
               icon: AppGlyphs.apps,
-              text: '没有已启用的图源',
-              hint: '上面三颗入口仍然可用：装一个图源后这里会一格一个列出来',
+              text: t.workspace.noEnabledSource,
+              hint: t.workspace.topEntriesStillWork,
             ),
           ],
         ],
@@ -124,8 +125,8 @@ class PluginShortcutsCard extends StatelessWidget {
   }
 
   static String _subtitle(PluginRuntimeState plugin) {
-    if (plugin.debug) return '调试源';
-    return plugin.version.isEmpty ? '内置' : 'v${plugin.version}';
+    if (plugin.debug) return t.workspace.debugSource;
+    return plugin.version.isEmpty ? t.workspace.builtin : 'v${plugin.version}';
   }
 }
 

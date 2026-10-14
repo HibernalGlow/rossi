@@ -14,6 +14,8 @@
 /// 代价与收益不对。所以时间线是书架本地的一档**开关**，见 `ShelfListToolbar.timelineOn`。
 library;
 
+import 'package:zephyr/i18n/strings.g.dart';
+
 /// 一个「按本地日历日」切出来的段。
 class ShelfTimelineDay {
   const ShelfTimelineDay({required this.dayStart, required this.indexes});
@@ -66,8 +68,8 @@ List<ShelfTimelineDay> groupShelfTimelineByDay(List<DateTime> times) {
 String shelfTimelineDayLabel(
   DateTime day, {
   required DateTime now,
-  String today = '今天',
-  String yesterday = '昨天',
+  String? today,
+  String? yesterday,
 }) {
   final target = shelfDayStart(day);
   final reference = shelfDayStart(now);
@@ -80,11 +82,15 @@ String shelfTimelineDayLabel(
     reference.month,
     reference.day,
   ).difference(DateTime.utc(target.year, target.month, target.day)).inDays;
-  if (daysApart == 0) return today;
-  if (daysApart == 1) return yesterday;
+  if (daysApart == 0) return today ?? t.workspace.today;
+  if (daysApart == 1) return yesterday ?? t.workspace.yesterday;
   // 往前跨到去年、或者往后（导入了一条未来时间的记录）都要能认出「不是今年」。
   if (target.year != reference.year) {
-    return '${target.year}年${target.month}月${target.day}日';
+    return t.workspace.dateYMD(
+      year: target.year,
+      month: target.month,
+      day: target.day,
+    );
   }
-  return '${target.month}月${target.day}日';
+  return t.workspace.dateMD(month: target.month, day: target.day);
 }

@@ -5,6 +5,7 @@ import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/cards/info_card_kit.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 书籍信息卡（对齐 Neo 信息面板的 `book-information`）：
 /// 书名 / 类型 / 图源 / 章节 / 页码与进度。
@@ -45,7 +46,7 @@ class BookInformationCard extends StatelessWidget {
 
         return CollapsibleCard(
           cardId: 'book_information',
-          title: '书籍信息',
+          title: t.workspace.bookInformation,
           icon: AppGlyphs.book,
           expressive: true,
           isExpanded: isExpanded,
@@ -58,17 +59,17 @@ class BookInformationCard extends StatelessWidget {
               : null,
           child: hasSession
               ? _buildRows(coordinator, target)
-              : const InfoEmpty(
+              : InfoEmpty(
                   icon: AppGlyphs.openBook,
-                  text: '打开一本书后显示书籍信息',
-                  hint: '开书后这几格会当场填上，量不到的留 —',
+                  text: t.workspace.showBookInfoWhenOpen,
+                  hint: t.workspace.fieldsFillOnOpen,
                   fields: [
-                    ('书名', AppGlyphs.book),
+                    (t.workspace.bookTitle, AppGlyphs.book),
                     ('作者', AppGlyphs.profiles),
                     ('类型', AppGlyphs.category),
                     ('章节', AppGlyphs.article),
-                    ('页码', AppGlyphs.linearScale),
-                    ('进度', AppGlyphs.speed),
+                    (t.workspace.pageNumber, AppGlyphs.linearScale),
+                    (t.workspace.progressLabel, AppGlyphs.speed),
                   ],
                 ),
         );
@@ -104,20 +105,24 @@ class BookInformationCard extends StatelessWidget {
           children: [
             ExpressiveStatTile(
               value: '${current + 1}',
-              label: '当前页 · 共 $total 页',
+              label: t.workspace.currentOfTotalPages(total: total),
               icon: AppGlyphs.layers,
               highlight: true,
               gauge: ratio,
             ),
             ExpressiveStatTile(
               value: progress,
-              label: '阅读进度',
+              label: t.workspace.readingProgressLabel,
               icon: AppGlyphs.trend,
-              caption: total <= 0 ? '页表未就绪' : '还剩 ${total - current - 1} 页',
+              caption: total <= 0
+                  ? t.workspace.pageListNotReady
+                  : t.workspace.pagesRemaining(n: total - current - 1),
             ),
             ExpressiveStatTile(
-              value: isLocal ? '本地' : (from.isEmpty ? '在线' : from),
-              label: '来源',
+              value: isLocal
+                  ? t.workspace.localLabel
+                  : (from.isEmpty ? t.workspace.onlineLabel : from),
+              label: t.workspace.sourceLabel,
               icon: isLocal ? AppGlyphs.folder : AppGlyphs.globe,
               maxValueLines: 1,
             ),
@@ -127,7 +132,7 @@ class BookInformationCard extends StatelessWidget {
         InfoFacts(
           children: [
             InfoRow(
-              label: '书名',
+              label: t.workspace.bookTitle,
               value: coordinator.displayTitle,
               emphasis: true,
               icon: AppGlyphs.book,
@@ -140,17 +145,19 @@ class BookInformationCard extends StatelessWidget {
               ),
             if (infoField('status') != null)
               InfoRow(
-                label: '状态',
+                label: t.workspace.statusLabel,
                 value: infoField('status'),
                 icon: AppGlyphs.info,
               ),
             InfoRow(
               label: '类型',
-              value: isLocal ? '本地漫画' : '在线图源 · $from',
+              value: isLocal
+                  ? t.workspace.localComics
+                  : t.workspace.onlineSourceFrom(from: from),
               icon: AppGlyphs.category,
             ),
             InfoRow(
-              label: '漫画 ID',
+              label: t.workspace.comicIdLabel,
               value: coordinator.comicId,
               icon: AppGlyphs.key,
             ),
@@ -161,15 +168,27 @@ class BookInformationCard extends StatelessWidget {
                 icon: AppGlyphs.article,
               ),
             if (epInfo != null && epInfo.epId.isNotEmpty)
-              InfoRow(label: '章节 ID', value: epInfo.epId, icon: AppGlyphs.tree),
+              InfoRow(
+                label: t.workspace.chapterIdLabel,
+                value: epInfo.epId,
+                icon: AppGlyphs.tree,
+              ),
             InfoRow(
-              label: '页码',
+              label: t.workspace.pageNumber,
               value: '${current + 1} / $total',
               icon: AppGlyphs.linearScale,
             ),
-            InfoRow(label: '进度', value: progress, icon: AppGlyphs.speed),
+            InfoRow(
+              label: t.workspace.progressLabel,
+              value: progress,
+              icon: AppGlyphs.speed,
+            ),
             if (from.isNotEmpty && isLocal)
-              InfoRow(label: '来源键', value: from, icon: AppGlyphs.link),
+              InfoRow(
+                label: t.workspace.sourceKey,
+                value: from,
+                icon: AppGlyphs.link,
+              ),
           ],
         ),
       ],

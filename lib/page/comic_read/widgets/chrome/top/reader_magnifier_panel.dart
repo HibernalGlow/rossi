@@ -4,17 +4,21 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_read/model/reader_magnifier.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 // 上下限写在文案里而不是各写一遍数字：这三条是从 `model/reader_magnifier.dart`
 // 的常数插出来的，改那边这里跟着动，不会出现「文案说 800、实际钳到 600」。
-final String _zoomTooltip =
-    '放大倍率（${kReaderLoupeZoomPercentMin}%~${kReaderLoupeZoomPercentMax}%，一档 25%，400% 起一档翻倍）';
-final String _sizeTooltip =
-    '窗口边长，逻辑像素（${kReaderLoupeSizeMin.toInt()}~${kReaderLoupeSizeMax.toInt()}，一次 20）';
-final String _lockOnTooltip = '已锁止：指针离开画面、手指抬起后窗口仍留着，拖窗口本身可以移动它；双击窗口可取消锁止';
-final String _lockOffTooltip = '未锁止：指针一离开画面、手指一抬，窗口就收掉；锁止后窗口留在原地，可以先拖到别处再对焦点';
-final String _autoModeTooltip =
-    '自动：按指针自己的类型选 —— 鼠标/触控板跟随悬停，手指与触屏笔按住才出窗口（不看平台，触屏笔记本与外接鼠标都判得对）';
+String get _zoomTooltip => t.reader.loupeZoomRange(
+  min: kReaderLoupeZoomPercentMin,
+  max: kReaderLoupeZoomPercentMax,
+);
+String get _sizeTooltip => t.reader.loupeSizeRange(
+  min: kReaderLoupeSizeMin.toInt(),
+  max: kReaderLoupeSizeMax.toInt(),
+);
+final String _lockOnTooltip = t.reader.loupeLockedOn;
+final String _lockOffTooltip = t.reader.loupeUnlockedFollows;
+final String _autoModeTooltip = t.reader.pointerTypeAuto;
 
 /// 顶栏「放大镜」面板。
 ///
@@ -48,17 +52,15 @@ class ReaderMagnifierPanel extends StatelessWidget {
       children: [
         ReaderToolbarToggleChip(
           icon: AppGlyphs.zoomIn,
-          label: '放大镜',
-          tooltip: enabled
-              ? '放大镜已开：把指针那一小块像素原样放大到旁边的窗口里'
-              : '放大镜：把指针那一小块像素原样放大到旁边的窗口里（检网点与端部细节）',
+          label: t.reader.loupe,
+          tooltip: enabled ? t.reader.loupeEnabled : t.reader.loupeTooltip,
           selected: enabled,
           onTap: () => context.read<GlobalSettingCubit>().updateReadSetting(
             (s) => s.copyWith(magnifierEnabled: !s.magnifierEnabled),
           ),
         ),
         const ReaderToolbarSeparator(),
-        const ReaderToolbarLabel('倍率'),
+        ReaderToolbarLabel(t.reader.scaleLabel),
         _MagnifierStepper(
           icon: AppGlyphs.linearScale,
           label: '$zoomPercent%',
@@ -78,7 +80,7 @@ class ReaderMagnifierPanel extends StatelessWidget {
           onIncrement: () => _setSize(context, sizeLogical, 1),
         ),
         const ReaderToolbarSeparator(),
-        const ReaderToolbarLabel('触发'),
+        ReaderToolbarLabel(t.reader.trigger),
         ReaderToolbarPill(
           children: [
             for (final value in ReaderMagnifierMode.values)
@@ -99,7 +101,7 @@ class ReaderMagnifierPanel extends StatelessWidget {
         const ReaderToolbarSeparator(),
         ReaderToolbarToggleChip(
           icon: locked ? AppGlyphs.lock : AppGlyphs.lockOpen,
-          label: '锁止',
+          label: t.reader.lockLoupe,
           tooltip: locked ? _lockOnTooltip : _lockOffTooltip,
           selected: locked,
           enabled: enabled,
@@ -140,8 +142,8 @@ class ReaderMagnifierPanel extends StatelessWidget {
 
   String _modeTooltip(ReaderMagnifierMode mode) => switch (mode) {
     ReaderMagnifierMode.auto => _autoModeTooltip,
-    ReaderMagnifierMode.hover => '悬停：只跟随鼠标，指针离开画面即收',
-    ReaderMagnifierMode.touch => '手指：按住才出窗口，抬手即收（配锁止可拖窗口移动）',
+    ReaderMagnifierMode.hover => t.reader.hoverFollowsMouse,
+    ReaderMagnifierMode.touch => t.reader.touchHoldToShow,
   };
 }
 

@@ -8,6 +8,7 @@ import 'package:zephyr/widgets/expressive/expressive_shape.dart';
 import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
 import 'package:zephyr/workspace/widgets/cards/expressive_widgets.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 「画面调节」卡片 —— 滤镜 / 墨水屏 / 禁用动画 / 自动裁边。
 ///
@@ -67,7 +68,7 @@ class ImageTuningCard extends StatelessWidget {
     return CollapsibleCard(
       cardId: WorkspaceCardRegistry.imageTuning,
       expressive: true,
-      title: '画面调节',
+      title: t.workspace.imageTuning,
       icon: AppGlyphs.wand,
       isExpanded: isExpanded,
       onToggle: onToggle,
@@ -95,10 +96,10 @@ class ImageTuningCard extends StatelessWidget {
   static String _summary(ReadSettingState readSetting) {
     final on = <String>[
       if (readSetting.readFilterEnabled) '滤镜',
-      if (readSetting.noAnimation) '无动画',
+      if (readSetting.noAnimation) t.workspace.noAnimation,
       if (readSetting.einkOptimization) '墨水屏',
     ];
-    return on.isEmpty ? '全部关闭' : on.join(' · ');
+    return on.isEmpty ? t.workspace.closeAllTabs : on.join(' · ');
   }
 }
 
@@ -133,7 +134,7 @@ class _TuningStateStrip extends StatelessWidget {
           _TuningOverviewTile(
             seed: expressiveBlobSeed('tuning-trim'),
             label: '自动裁边',
-            value: autoTrim ? '已开启' : '未开启',
+            value: autoTrim ? '已开启' : t.workspace.notTurnedOn,
             icon: AppGlyphs.cropFree,
             shape: ExpressiveButtonShape.clover8Leaf,
             tone: ExpressiveTone.primary,
@@ -141,7 +142,7 @@ class _TuningStateStrip extends StatelessWidget {
           ),
           _TuningOverviewTile(
             seed: expressiveBlobSeed('tuning-filter'),
-            label: '阅读滤镜',
+            label: t.workspace.readingFilter,
             value: filterOn ? '$filterPercent%' : '已关闭',
             icon: AppGlyphs.moon,
             shape: ExpressiveButtonShape.clover4Leaf,
@@ -150,8 +151,8 @@ class _TuningStateStrip extends StatelessWidget {
           ),
           _TuningOverviewTile(
             seed: expressiveBlobSeed('tuning-motion'),
-            label: '翻页动画',
-            value: noAnimation ? '已禁用' : '正常',
+            label: t.workspace.pageAnimation,
+            value: noAnimation ? '已禁用' : t.workspace.normalState,
             icon: AppGlyphs.motion,
             shape: ExpressiveButtonShape.softBurst,
             tone: ExpressiveTone.tertiary,
@@ -159,7 +160,7 @@ class _TuningStateStrip extends StatelessWidget {
           ),
           _TuningOverviewTile(
             seed: expressiveBlobSeed('tuning-eink'),
-            label: '墨水屏刷屏',
+            label: t.workspace.einkRefresh,
             value: eink ? '${einkDelayMs}ms' : '已关闭',
             icon: AppGlyphs.contrast,
             shape: ExpressiveButtonShape.puffyDiamond,

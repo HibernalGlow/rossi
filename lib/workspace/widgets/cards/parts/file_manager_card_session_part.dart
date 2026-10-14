@@ -120,7 +120,7 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
     context.read<GlobalSettingCubit>().updateFileManagerSetting(
       (current) => current.copyWith(homePath: applied),
     );
-    showSuccessToast(applied, title: '主页已设为', context: context);
+    showSuccessToast(applied, title: t.workspace.homeSetTo, context: context);
   }
 
   Future<void> _clearHomePath() async {
@@ -178,14 +178,14 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
         builder: (_) => CommonPopupMenu(
           items: [
             CommonPopupMenuItem(
-              label: '回到主页',
+              label: t.workspace.backHome,
               glyph: AppGlyphs.home,
               onPressed: hasHome && !snapshot.isHome
                   ? () => _apply((id) => fileManagerGoHome(id: id))
                   : null,
             ),
             CommonPopupMenuItem(
-              label: '把当前目录设为主页',
+              label: t.workspace.setHomeHere,
               glyph: AppGlyphs.pin,
               onPressed: snapshot.canSetHome
                   ? () => _setHomePath(snapshot.activePath)

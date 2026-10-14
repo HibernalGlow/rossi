@@ -3,6 +3,7 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/workspace/model/history_insights.dart';
 import 'package:zephyr/workspace/widgets/insights/insight_components.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 洞察卡片共用的**历史样本窗口**（neoview 里每张卡各自 `listRecent(0, 500)` 的同位物）。
 ///
@@ -17,14 +18,13 @@ typedef HistoryInsightsBuilder =
     Widget Function(BuildContext context, List<HistoryInsightEvent> events);
 
 class HistoryInsightsWindow extends StatefulWidget {
-  const HistoryInsightsWindow({
+  HistoryInsightsWindow({
     super.key,
     this.limit = kHistoryInsightWindow,
     this.skeletonHeight = 88,
-    this.loadingLabel = '正在统计阅读历史',
+    String? loadingLabel,
     required this.builder,
-  });
-
+  }) : loadingLabel = loadingLabel ?? t.workspace.countingReadingHistory;
   final int limit;
 
   /// 占位块的高度：柱状图与热力格的天然高度不同，让它们各自报一个。
@@ -121,7 +121,7 @@ class _HistoryInsightsWindowState extends State<HistoryInsightsWindow> {
       padding: const EdgeInsets.symmetric(vertical: 22),
       child: Center(
         child: Text(
-          '暂无历史访问记录',
+          t.workspace.noVisitHistory,
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),

@@ -201,7 +201,7 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'NeoView 视口感应交互示意',
+                        t.reader.neoviewViewportDemo,
                         style: context.theme.textTheme.labelSmall?.copyWith(
                           color: colorScheme.onSurfaceVariant.withValues(
                             alpha: 0.5,
@@ -243,8 +243,10 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
                       alignment: Alignment.center,
                       child: Text(
                         readSetting.hoverRevealTop
-                            ? '顶部唤出 (${readSetting.hoverTriggerAreaTop}px)'
-                            : '已禁用',
+                            ? t.reader.topRevealPx(
+                                px: readSetting.hoverTriggerAreaTop,
+                              )
+                            : t.reader.alreadyDisabled,
                         style: context.theme.textTheme.labelSmall?.copyWith(
                           color: readSetting.hoverRevealTop
                               ? primaryColor
@@ -292,8 +294,10 @@ class _HoverRevealSectionState extends State<_HoverRevealSection> {
                       alignment: Alignment.center,
                       child: Text(
                         readSetting.hoverRevealBottom
-                            ? '底部唤出 (${readSetting.hoverTriggerAreaBottom}px)'
-                            : '已禁用',
+                            ? t.reader.bottomRevealPx(
+                                px: readSetting.hoverTriggerAreaBottom,
+                              )
+                            : t.reader.alreadyDisabled,
                         style: context.theme.textTheme.labelSmall?.copyWith(
                           color: readSetting.hoverRevealBottom
                               ? primaryColor

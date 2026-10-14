@@ -4,6 +4,7 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/network/utils/github_proxy.dart';
 import 'package:zephyr/plugin/utils/plugin_cloud_download_utils.dart';
 import 'package:zephyr/util/json/json_value.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 从 getInfo 结果读取 npmName。
 String readNpmNameFromInfo(Map<String, dynamic> info) {
@@ -30,7 +31,10 @@ Map<String, dynamic>? parseGetInfoJson(String raw) {
     return null;
   }
   try {
-    return requireJsonMap(jsonDecode(text), message: 'getInfoJson 格式错误');
+    return requireJsonMap(
+      jsonDecode(text),
+      message: t.plugin.getInfoJsonBadFormat,
+    );
   } catch (e, st) {
     logger.w('解析 getInfoJson 失败', error: e, stackTrace: st);
     return null;

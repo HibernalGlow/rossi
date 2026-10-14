@@ -1,6 +1,8 @@
 /// 展墙空隙里的**时间节律、连续活跃、画幅与载体分布类** MD3 Expressive 小组件。
 library;
 
+import 'package:zephyr/i18n/strings.g.dart';
+
 import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
@@ -63,7 +65,12 @@ List<bool> recentGapDayFlags(List<LibraryEntry> entries, [int window = 7]) {
 
 /// 四个时段桶（凌晨 / 上午 / 下午 / 晚上）+ 一句「多在 X」。
 (List<int>, String) dayPartsGapBuckets(List<LibraryEntry> entries) {
-  const names = ['凌晨', '上午', '下午', '晚上'];
+  final names = [
+    t.workspace.earlyMorning,
+    t.workspace.morning,
+    t.workspace.afternoon,
+    t.workspace.eveningLabel,
+  ];
   final counts = [0, 0, 0, 0];
   var total = 0;
   for (final e in entries) {
@@ -72,12 +79,12 @@ List<bool> recentGapDayFlags(List<LibraryEntry> entries, [int window = 7]) {
     counts[at.hour ~/ 6]++;
     total++;
   }
-  if (total == 0) return (counts, '暂无记录');
+  if (total == 0) return (counts, t.workspace.noRecordsYet);
   var peak = 0;
   for (var i = 1; i < counts.length; i++) {
     if (counts[i] > counts[peak]) peak = i;
   }
-  return (counts, '多在${names[peak]}');
+  return (counts, t.workspace.mostlyAt(period: names[peak]));
 }
 
 /// 找出单日记录最多的一天：（日期文本如 `10/13`, 当日条数, 占比）。
@@ -170,15 +177,15 @@ Map<String, int> mediaFormatGapCounts(List<LibraryEntry> entries) {
         (e.section?.contains('视频') ?? false)) {
       kind = '视频';
     } else if (_kArchiveExtPattern.hasMatch(hay) ||
-        (e.section?.contains('归档') ?? false)) {
-      kind = '归档';
-    } else if (e.section == '文件夹' || e.section == '收藏夹') {
-      kind = '目录';
+        (e.section?.contains(t.workspace.archiveLabel) ?? false)) {
+      kind = t.workspace.archiveLabel;
+    } else if (e.section == '文件夹' || e.section == t.workspace.favouriteList) {
+      kind = t.workspace.folderLabel;
     } else if (hay.contains('Pixiv') ||
         hay.contains('图') ||
         hay.contains('P.') ||
         e.preserveMedia) {
-      kind = '图集';
+      kind = t.workspace.gallery;
     } else if (e.section != null && e.section!.isNotEmpty) {
       kind = e.section!;
     } else {
@@ -236,7 +243,7 @@ class GapStreakBody extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '天有记录',
+                      t.workspace.daysWithRecords,
                       style: TextStyle(
                         fontSize: isTall ? 13 : 11.5,
                         fontWeight: FontWeight.w700,
@@ -377,7 +384,7 @@ class GapDayPartsBody extends StatelessWidget {
   final List<int> counts;
   final String caption;
 
-  static const _shortNames = ['夜', '晨', '午', '晚'];
+  static List<String> get _shortNames => ['夜', '晨', t.workspace.noon, '晚'];
 
   @override
   Widget build(BuildContext context) {
@@ -478,7 +485,7 @@ class GapPeakDayBody extends StatelessWidget {
     return GapExpressiveMetricBody(
       value: '${data.$2}',
       unit: '${data.$1} 单日最高',
-      pillText: '占 ${(data.$3 * 100).round()}%',
+      pillText: t.workspace.sharePercent(v: (data.$3 * 100).round()),
     );
   }
 }
@@ -502,9 +509,9 @@ class GapAspectMixBody extends StatelessWidget {
     final total = portrait + square + landscape;
     if (total <= 0) return const SizedBox.shrink();
     final items = <(String, int, double, double, Color)>[
-      ('竖幅', portrait, 10, 15, scheme.primary),
-      ('方幅', square, 13, 13, scheme.tertiary),
-      ('横幅', landscape, 16, 10, scheme.secondary),
+      (t.workspace.portraitFormat, portrait, 10, 15, scheme.primary),
+      (t.workspace.squareFormat, square, 13, 13, scheme.tertiary),
+      (t.workspace.bannerLabel, landscape, 16, 10, scheme.secondary),
     ];
 
     return LayoutBuilder(

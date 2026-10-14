@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
@@ -57,9 +58,10 @@ class PageListJumpCard extends StatelessWidget {
 
         return CollapsibleCard(
           cardId: WorkspaceCardRegistry.pageListJump,
-          title: '跳转栏',
+          title: t.workspace.jumpBar,
           icon: AppGlyphs.linearScale,
           expressive: true,
+          headerless: true,
           scrollContent: false,
           margin: EdgeInsets.zero,
           contentPadding: const EdgeInsets.symmetric(
@@ -73,7 +75,7 @@ class PageListJumpCard extends StatelessWidget {
           onHide: onHide,
           trailing: hasSession
               ? InfoCardCounter('${currentSlot + 1} / $totalSlots')
-              : const InfoCardCounter('空闲'),
+              : InfoCardCounter(t.workspace.idleState),
           child: Align(alignment: Alignment.centerLeft, child: bar),
         );
       },
@@ -137,7 +139,7 @@ class PageListJumpToolbar extends StatelessWidget {
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 11),
               decoration: InputDecoration(
-                hintText: '页码',
+                hintText: t.workspace.pageNumber,
                 hintStyle: const TextStyle(fontSize: 10),
                 contentPadding: EdgeInsets.zero,
                 border: OutlineInputBorder(

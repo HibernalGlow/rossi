@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/workspace/widgets/cards/file_manager_toolbar.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 文件管理器的五向导航掌（**窄卡片上的收起形态**，对齐 NeoView 的 `FolderNavigationPad`）。
 ///
@@ -98,7 +99,7 @@ class FileManagerNavigationPad extends StatelessWidget {
               key: null,
               points: _leftPoints,
               enabled: canGoBack && !busy,
-              tooltip: '后退',
+              tooltip: t.workspace.back,
               onTap: onNavigateBack,
             ),
             _region(
@@ -106,7 +107,7 @@ class FileManagerNavigationPad extends StatelessWidget {
               key: null,
               points: _rightPoints,
               enabled: canGoForward && !busy,
-              tooltip: '前进',
+              tooltip: t.workspace.forward,
               onTap: onNavigateForward,
             ),
             _region(
@@ -114,7 +115,7 @@ class FileManagerNavigationPad extends StatelessWidget {
               key: null,
               points: _upPoints,
               enabled: canGoUp && !busy,
-              tooltip: '上一级',
+              tooltip: t.workspace.parentDirectory,
               onTap: onNavigateUp,
             ),
             if (homeEnabled)
@@ -124,8 +125,10 @@ class FileManagerNavigationPad extends StatelessWidget {
                 points: _downPoints,
                 enabled: !busy,
                 tooltip: hasHome
-                    ? (atHome ? '主页（当前）· 右键/长按管理' : '主页 · 右键/长按管理')
-                    : '主页：还没设置 · 单击把当前目录设为主页',
+                    ? (atHome
+                          ? t.workspace.homeCurrentManageHint
+                          : t.workspace.homeManageHint)
+                    : t.workspace.homeNotSetYet,
                 active: atHome,
                 onTap: onGoHome,
                 onMenu: onHomeMenu,

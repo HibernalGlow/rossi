@@ -306,7 +306,7 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
       badgeTextColor = colorScheme.onSecondaryContainer;
       statusIcon = AppGlyphs.clock;
     } else {
-      statusText = '未下载';
+      statusText = t.reader.notDownloaded;
       badgeContainerColor = colorScheme.surfaceContainerHighest;
       badgeTextColor = colorScheme.onSurfaceVariant;
       statusIcon = AppGlyphs.cloudDownload;
@@ -588,7 +588,7 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
             child: Text(
-              '下载偏好',
+              t.reader.downloadPreference,
               style: context.theme.textTheme.labelLarge?.copyWith(
                 color: colorScheme.primary,
                 fontWeight: FontWeight.w700,
@@ -629,7 +629,7 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
       presentation: PopupPresentation.modal,
       builder: (ctx) => PopupPanel(
         title: Text(t.reader.restartDownload),
-        content: const Text('确认要重置进度并重新下载本漫画吗？'),
+        content: Text(t.reader.confirmResetAndRedownload),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -647,7 +647,7 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
         from: widget.from,
         comicId: widget.comicId,
       );
-      showInfoToast('已重新加入下载队列');
+      showInfoToast(t.reader.requeuedToDownload);
     }
   }
 

@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/expressive/expressive_blob.dart';
 import 'package:zephyr/widgets/expressive/expressive_shape.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 图形池：语义中性、在一面藏书墙上读得通的符号。
 ///
@@ -108,7 +109,7 @@ class LibraryGapShape extends StatelessWidget {
     final (fill, content, patch) = tones[seed.abs() % tones.length];
     return IgnorePointer(
       child: Semantics(
-        label: '装饰图形',
+        label: t.workspace.decorativeShapes,
         child: CustomPaint(
           painter: _GapBlobPainter(
             seed: seed,

@@ -83,7 +83,7 @@ class ReaderOnlineTranslatedPageChip extends StatelessWidget {
         TranslatedPageChipState.failed => controller.lastError,
         TranslatedPageChipState.showing => t.ocr.chipOn,
         TranslatedPageChipState.building => t.ocr.building,
-        _ => inputReady ? t.reader.tabTranslate : '这一页还没加载出来，稍等一下再译',
+        _ => inputReady ? t.reader.tabTranslate : t.reader.pageNotLoadedYet,
       },
       onPressed: () async {
         switch (translatedPageTapFor(state)) {
@@ -94,7 +94,7 @@ class ReaderOnlineTranslatedPageChip extends StatelessWidget {
             break;
         }
         if (!inputReady) {
-          showErrorToast('这一页还没加载出来，稍等一下再译');
+          showErrorToast(t.reader.pageNotLoadedYet);
           return;
         }
         final ok = await controller.toggle(

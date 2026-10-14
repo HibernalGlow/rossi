@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/workspace/widgets/cards/expressive_widgets.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 // 信息卡的「外壳 + 小组件」是一套：卡片只需要 import 本文件就能同时拿到
 // InfoRow / InfoFacts 与 ExpressiveStatTile 等通用件。
@@ -261,7 +262,7 @@ String formatInfoTimeOfDay(DateTime? time) {
 
   if (days == 0) return '${two(local.hour)}:${two(local.minute)}';
   if (days == 1) return '昨天';
-  if (days < 7) return '$days 天前';
+  if (days < 7) return t.workspace.daysAgo(days: days);
   if (local.year == now.year) return '${two(local.month)}-${two(local.day)}';
   return '${local.year}';
 }

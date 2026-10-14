@@ -29,6 +29,7 @@ import 'package:zephyr/src/rust/api/simple.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// Breeze 内置 RealSR / Real-CUGAN / CoreML 超分封装
 ///
@@ -303,7 +304,10 @@ class RealSrSuperResolution {
     }
     if (p.basename(filePath) != model.fileName) {
       throw FormatException(
-        '文件名与当前模型不匹配: 期望 ${model.fileName}, 实际 ${p.basename(filePath)}',
+        t.realSr.modelFileNameMismatch(
+          expected: model.fileName,
+          actual: p.basename(filePath),
+        ),
       );
     }
     final length = await file.length();
@@ -349,7 +353,9 @@ class RealSrSuperResolution {
 
       final missing = await _missingModelFiles(tempDir);
       if (missing != null) {
-        throw FormatException('压缩包内容不符合当前引擎要求: $missing');
+        throw FormatException(
+          t.realSr.archiveContentMismatch(missing: missing),
+        );
       }
 
       if (await _usesOnnxModel) {
@@ -364,7 +370,9 @@ class RealSrSuperResolution {
           }
         }
         if (imported == null) {
-          throw FormatException('压缩包缺少 mImage ONNX 模型 ${model.fileName}');
+          throw FormatException(
+            t.realSr.archiveMissingOnnx(file: model.fileName),
+          );
         }
         final destDir = Directory(p.join(await _modelDirectory, 'mimage_onnx'));
         await destDir.create(recursive: true);
@@ -414,7 +422,7 @@ class RealSrSuperResolution {
           return null;
         }
       }
-      return '缺少 mImage ONNX 模型 ${model.fileName}';
+      return t.realSr.missingOnnxModel(file: model.fileName);
     }
 
     if (Platform.isAndroid) {
@@ -424,11 +432,13 @@ class RealSrSuperResolution {
       );
       final modelDir = Directory(p.join(extractedRoot.path, variant.modelDir));
       if (!modelDir.existsSync()) {
-        return '缺少模型目录 ${variant.modelDir}';
+        return t.realSr.missingModelDir(dir: variant.modelDir);
       }
       for (final relative in _androidModelFilesFor(variant)) {
         if (!File(p.join(modelDir.path, relative)).existsSync()) {
-          return '缺少模型文件 ${p.join(variant.modelDir, relative)}';
+          return t.realSr.missingModelFile(
+            file: p.join(variant.modelDir, relative),
+          );
         }
       }
       return null;
@@ -441,7 +451,7 @@ class RealSrSuperResolution {
         (name) => File(p.join(extractedRoot.path, '$name$suffix')).existsSync(),
       );
       if (!hasExecutable) {
-        return '缺少 waifu2x / Real-CUGAN 可执行文件';
+        return t.realSr.missingExecutable;
       }
       const modelDirs = [
         'models-pro',
@@ -452,12 +462,12 @@ class RealSrSuperResolution {
         (name) => Directory(p.join(extractedRoot.path, name)).existsSync(),
       );
       if (!hasModelDir) {
-        return '缺少模型目录（models-pro / models-se 等）';
+        return t.realSr.missingModelDirs;
       }
       return null;
     }
 
-    return '当前平台不支持手动导入超分模型';
+    return t.realSr.manualImportUnsupported;
   }
 
   /// 把目录移动到目标位置；跨磁盘/分区失败时退回复制后删除。
@@ -570,7 +580,7 @@ class RealSrSuperResolution {
       }
 
       _missingModelNotified = false;
-      showSuccessToast('模型下载完成');
+      showSuccessToast(t.realSr.modelDownloadDone);
     } finally {
       try {
         await File(archivePath).delete();
@@ -792,7 +802,7 @@ class RealSrSuperResolution {
     if (!await isAvailable) {
       if (!_missingModelNotified) {
         _missingModelNotified = true;
-        showErrorToast('模型不完整');
+        showErrorToast(t.realSr.modelIncomplete);
       }
       return;
     }
@@ -958,7 +968,9 @@ class RealSrSuperResolution {
         : await isProfileAvailable(profile))) {
       logger.d('RealSR 不可用，跳过超分: $inputPath');
       SuperResolutionLog.add(
-        '模型不可用：${profile?.engine.label ?? executable}，请先在超分设置中下载模型。',
+        t.realSr.modelUnavailableHint(
+          engine: profile?.engine.label ?? executable,
+        ),
       );
       return false;
     }
@@ -1227,11 +1239,11 @@ class RealSrSuperResolution {
       logger.i('mImage ONNX 超分完成: $result');
       SuperResolutionLog.add('mImage ONNX：$result');
     } catch (e) {
-      SuperResolutionLog.add('mImage ONNX 推理失败：$e');
+      SuperResolutionLog.add(t.realSr.mimageInferenceFailed(error: e));
       logger.w('mImage ONNX 推理失败', error: e);
       if (!_onnxErrorNotified) {
         _onnxErrorNotified = true;
-        showErrorToast('mImage ONNX 推理失败：$e');
+        showErrorToast(t.realSr.mimageInferenceFailed(error: e));
       }
       rethrow;
     }

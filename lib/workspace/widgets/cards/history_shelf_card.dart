@@ -64,11 +64,11 @@ class HistoryShelfCard extends StatefulWidget {
 }
 
 class _HistoryShelfCardState extends State<HistoryShelfCard> {
-  static const _kDetailsColumns = [
+  static List<LibraryColumn> get _kDetailsColumns => [
     // 「章节」没有对应的排序字段（排序口径见 ShelfSortField），所以表头
     // 只是标签，不做成能点了没反应的假可点区。
     LibraryColumn(key: 'chapter', label: '章节', width: 110, sortable: false),
-    LibraryColumn(key: 'source', label: '来源', width: 70),
+    LibraryColumn(key: 'source', label: t.workspace.sourceLabel, width: 70),
     LibraryColumn(key: 'time', label: '最后阅读', width: 90),
   ];
 
@@ -167,7 +167,7 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
         }
         return CollapsibleCard(
           cardId: 'history',
-          title: '阅读历史 (History)',
+          title: t.workspace.readingHistoryEn,
           icon: AppGlyphs.history,
           isExpanded: widget.isExpanded,
           onToggle: widget.onToggle,
@@ -228,7 +228,7 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
           onKeywordChanged: (value) => setState(() => _keyword = value),
           count: rows.length,
           busy: _busy,
-          portLabel: '历史数据',
+          portLabel: t.workspace.historyData,
           onExport: _export,
           onImport: _import,
           timelineOn: _timeline,
@@ -268,12 +268,12 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
       entries: rows,
       standalone: widget.isStandalone,
       emptyText: rows.isEmpty && _keyword.trim().isNotEmpty
-          ? '没有匹配的阅读记录'
-          : '暂无阅读历史',
+          ? t.workspace.noMatchingHistory
+          : t.workspace.noReadingHistory,
       onTap: (row) => _open(context, row.source! as UnifiedComicHistory),
-      titleColumn: const LibraryColumn(
+      titleColumn: LibraryColumn(
         key: 'title',
-        label: '标题',
+        label: t.workspace.titleLabel,
         flex: LibraryViewLayout.detailsTitleFlex,
       ),
       columns: _kDetailsColumns,
@@ -300,47 +300,6 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
     );
   }
 
-  /// 时间线档：按「最后阅读」那一天分段。
-  ///
-  /// 行内容仍然由 `ShelfTimelineView` 转给 `LibraryEntrySurface`，这里只负责
-  /// 供时间与右键壳子 —— 与列表档共用同一套，两档不会长歪。
-  final _timelineExpanded = <String>{};
-
-  Widget _buildTimeline(
-    BuildContext context,
-    List<LibraryEntry> rows,
-    bool menuEnabled,
-  ) {
-    final timeline = ShelfTimelineView(
-      entries: rows,
-      expandedKeys: _timelineExpanded,
-      onCloseDetail: (key) => setState(() => _timelineExpanded.remove(key)),
-      detailBuilder: (context, row, close) {
-        final item = row.source! as UnifiedComicHistory;
-        return LibraryBookDetails(
-          entry: row,
-          comicId: item.comicId,
-          from: item.source,
-          onClose: close,
-        );
-      },
-      standalone: widget.isStandalone,
-      timeOf: (row) => (row.source! as UnifiedComicHistory).lastReadAt,
-      emptyText: _keyword.trim().isNotEmpty ? '没有匹配的阅读记录' : '暂无阅读历史',
-      onTap: (row) => setState(() {
-        if (!_timelineExpanded.remove(row.key)) _timelineExpanded.add(row.key);
-      }),
-      wrapRow: (context, row, child) => ShelfEntryContextMenuRegion(
-        enabled: menuEnabled,
-        inputBuilder: () => _menuInput(row.source! as UnifiedComicHistory),
-        onAction: (context, action) =>
-            _onMenuAction(context, row.source! as UnifiedComicHistory, action),
-        child: child,
-      ),
-    );
-    return timeline;
-  }
-
   // ── 导入 / 导出 ───────────────────────────────────────────────────────────
   //
   // 管路（权限、选目录、iOS 的分享面板回退、确认对话框、忙状态）在
@@ -357,7 +316,7 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
     final items = HistoryLibraryService.collect();
     await exportShelfDocument(
       context: context,
-      label: '阅读历史',
+      label: t.workspace.readingHistory,
       fileStem: 'history',
       count: items.length,
       encode: () => encodeHistoryLibrary(items),
@@ -367,8 +326,8 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
 
   Future<void> _import() => importShelfDocument(
     context: context,
-    label: '阅读历史',
-    fileLabel: '历史记录文件',
+    label: t.workspace.readingHistory,
+    fileLabel: t.workspace.historyFile,
     planFrom: (path) async {
       final HistoryMergePlan plan;
       try {
@@ -385,7 +344,7 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
         ],
         // 历史的合并语义与书签不同，所以这句话必须说清楚（口径见
         // `planHistoryImport`）：一条都不删，且本地那条读得更靠后时保留本地。
-        note: '只合并：一条历史都不会删除；本地进度比文件里更新的，保留本地。',
+        note: t.workspace.mergeOnlyHistoryDetail,
         apply: () => HistoryLibraryService.applyPlan(plan),
       );
     },

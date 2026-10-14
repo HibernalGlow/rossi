@@ -5,6 +5,7 @@ import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_gap_fill.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_settings_controls.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 「空隙填充」：先选总口径，再对**每一项**单独开关。
 ///
@@ -49,7 +50,7 @@ class LibraryGapFillChoices extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('空隙填充', style: theme.textTheme.labelLarge),
+          Text(t.workspace.gapFill, style: theme.textTheme.labelLarge),
           const SizedBox(height: 8),
           Wrap(
             spacing: 6,
@@ -76,10 +77,10 @@ class LibraryGapFillChoices extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             switch (value) {
-              LibraryGapFill.off => '不规则轮廓之间保留空白。',
-              LibraryGapFill.shapes => '用随机的 Expressive 轮廓与图标补满空隙。',
-              LibraryGapFill.widgets => '只插入尺寸相符的汇总小组件，同一款可以重复。',
-              LibraryGapFill.both => '小组件每面墙各出现一次，其余空隙用随机图形补。',
+              LibraryGapFill.off => t.workspace.keepGapIrregularOutline,
+              LibraryGapFill.shapes => t.workspace.fillWithExpressiveShapes,
+              LibraryGapFill.widgets => t.workspace.onlyFittingWidgetsRepeat,
+              LibraryGapFill.both => t.workspace.widgetsOnceThenShapes,
             },
             style: theme.textTheme.bodySmall?.copyWith(
               color: scheme.onSurfaceVariant,

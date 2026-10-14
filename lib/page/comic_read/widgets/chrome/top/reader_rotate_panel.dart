@@ -4,6 +4,7 @@ import 'package:zephyr/page/comic_read/cubit/reader_presentation_cubit.dart';
 import 'package:zephyr/page/comic_read/model/reader_presentation.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 顶栏「旋转」面板 —— neoview `RotatePanel` 的对应物。
 ///
@@ -20,23 +21,25 @@ class ReaderRotatePanel extends StatelessWidget {
 
     return ReaderToolbarPanelRow(
       children: [
-        ReaderToolbarLabel('手动旋转 ${presentation.rotation}°'),
+        ReaderToolbarLabel(
+          t.reader.manualRotationDeg(deg: presentation.rotation),
+        ),
         ReaderToolbarPill(
           children: [
             ReaderToolbarIconButton(
               icon: AppGlyphs.rotateRight,
-              tooltip: '顺时针旋转 90°',
+              tooltip: t.reader.rotateClockwise90,
               onPressed: () => cubit.rotate(1),
             ),
             ReaderToolbarIconButton(
               icon: AppGlyphs.rotateLeft,
-              tooltip: '逆时针旋转 90°',
+              tooltip: t.reader.rotateCounterclockwise90,
               onPressed: () => cubit.rotate(-1),
             ),
           ],
         ),
         const ReaderToolbarSeparator(),
-        const ReaderToolbarLabel('自动旋转'),
+        ReaderToolbarLabel(t.reader.autoRotate),
         _AutoRotationPill(
           current: presentation.autoRotation,
           modes: const [
@@ -46,7 +49,7 @@ class ReaderRotatePanel extends StatelessWidget {
           ],
         ),
         const ReaderToolbarSeparator(),
-        const ReaderToolbarLabel('横屏'),
+        ReaderToolbarLabel(t.reader.landscape),
         _AutoRotationPill(
           current: presentation.autoRotation,
           modes: const [
@@ -55,7 +58,7 @@ class ReaderRotatePanel extends StatelessWidget {
           ],
         ),
         const ReaderToolbarSeparator(),
-        const ReaderToolbarLabel('强制'),
+        ReaderToolbarLabel(t.reader.force),
         _AutoRotationPill(
           current: presentation.autoRotation,
           modes: const [
@@ -103,12 +106,12 @@ class _AutoRotationPill extends StatelessWidget {
   };
 
   static String _label(ReaderAutoRotation mode) => switch (mode) {
-    ReaderAutoRotation.none => '关闭自动旋转',
-    ReaderAutoRotation.left => '纵向页左旋',
-    ReaderAutoRotation.right => '纵向页右旋',
-    ReaderAutoRotation.horizontalLeft => '横向页左旋',
-    ReaderAutoRotation.horizontalRight => '横向页右旋',
-    ReaderAutoRotation.forcedLeft => '一律左旋',
-    ReaderAutoRotation.forcedRight => '一律右旋',
+    ReaderAutoRotation.none => t.reader.disableAutoRotate,
+    ReaderAutoRotation.left => t.reader.rotatePortraitLeft,
+    ReaderAutoRotation.right => t.reader.rotatePortraitRight,
+    ReaderAutoRotation.horizontalLeft => t.reader.rotateLandscapeLeft,
+    ReaderAutoRotation.horizontalRight => t.reader.rotateLandscapeRight,
+    ReaderAutoRotation.forcedLeft => t.reader.rotateAlwaysLeft,
+    ReaderAutoRotation.forcedRight => t.reader.rotateAlwaysRight,
   };
 }

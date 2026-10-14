@@ -180,9 +180,9 @@ class _WorkspaceSwimlanePanelKanbanCardState
     final configured = _layout.lanes[laneId]?.title;
     if (configured != null && configured.isNotEmpty) return configured;
     return switch (laneId) {
-      LaneId.left => '左泳道',
+      LaneId.left => t.settings.leftLane,
       LaneId.reader => '阅读器',
-      LaneId.right => '右泳道',
+      LaneId.right => t.settings.rightLane,
       _ => laneId,
     };
   }
@@ -223,8 +223,7 @@ class _WorkspaceSwimlanePanelKanbanCardState
             children: [
               Expanded(
                 child: Text(
-                  '拖拽或点击按钮即可调整泳道顺序、各泳道内面板顺序及显示/隐藏状态。'
-                  '隐藏后的面板将从面板栏彻底移除，不再显示隐藏图标。',
+                  t.settings.kanbanDragHint,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
@@ -250,20 +249,21 @@ class _WorkspaceSwimlanePanelKanbanCardState
             children: [
               _StatPill(
                 icon: AppGlyphs.columnsThree,
-                label:
-                    '泳道顺序：${_layout.laneOrder.map(_laneTitle).join(' → ')}',
+                label: t.settings.kanbanLaneOrder(
+                  order: _layout.laneOrder.map(_laneTitle).join(' → '),
+                ),
                 color: scheme.secondaryContainer,
                 foreground: scheme.onSecondaryContainer,
               ),
               _StatPill(
                 icon: AppGlyphs.eye,
-                label: '显示中 $visibleCount 个面板',
+                label: t.settings.kanbanVisiblePanels(count: visibleCount),
                 color: scheme.primaryContainer,
                 foreground: scheme.onPrimaryContainer,
               ),
               _StatPill(
                 icon: AppGlyphs.eyeOff,
-                label: '已彻底隐藏 $hiddenCount 个面板',
+                label: t.settings.kanbanHiddenPanels(count: hiddenCount),
                 color: scheme.surfaceContainerHighest,
                 foreground: scheme.onSurfaceVariant,
               ),
@@ -363,7 +363,7 @@ class _WorkspaceSwimlanePanelKanbanCardState
               ),
               const SizedBox(width: 6),
               Text(
-                '泳道顺序（可左右拖拽或点击箭头调整位置）',
+                t.settings.kanbanLaneOrderTitle,
                 style: theme.textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
@@ -584,7 +584,7 @@ class _WorkspaceSwimlanePanelKanbanCardState
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                '第 ${laneIndex + 1} 栏',
+                                t.settings.kanbanLaneIndex(n: laneIndex + 1),
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: scheme.onSurfaceVariant,
                                   fontWeight: FontWeight.w600,
@@ -595,7 +595,7 @@ class _WorkspaceSwimlanePanelKanbanCardState
                         ),
                         Text(
                           side == null
-                              ? '阅读器主视图泳道'
+                              ? t.settings.kanbanReaderLaneTitle
                               : _panelLaneSummary(side),
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: scheme.onSurfaceVariant,
@@ -656,9 +656,9 @@ class _WorkspaceSwimlanePanelKanbanCardState
         .length;
     final hidden = all.length - visible;
     if (hidden == 0) {
-      return '共 ${all.length} 个面板（全部显示）';
+      return t.settings.kanbanAllVisible(count: all.length);
     }
-    return '显示 $visible 个 · 隐藏 $hidden 个';
+    return t.settings.kanbanVisibleHidden(visible: visible, hidden: hidden);
   }
 
   Widget _buildReaderLanePlaceholder(
@@ -686,7 +686,7 @@ class _WorkspaceSwimlanePanelKanbanCardState
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '漫画阅读器主画布',
+                  t.settings.kanbanReaderCanvasTitle,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -696,8 +696,7 @@ class _WorkspaceSwimlanePanelKanbanCardState
           ),
           const SizedBox(height: 6),
           Text(
-            '此泳道专用于承载正在阅读的漫画页面。可通过上方泳道顺序条或本列右上角箭头，'
-            '将阅读器调整到左侧、居中或右侧位置。',
+            t.settings.kanbanReaderLaneDesc,
             style: theme.textTheme.bodySmall?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -869,7 +868,9 @@ class _WorkspaceSwimlanePanelKanbanCardState
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             _MiniStatusTag(
-                              label: isVisible ? t.settings.kanbanVisible : t.settings.kanbanFullyHidden,
+                              label: isVisible
+                                  ? t.settings.kanbanVisible
+                                  : t.settings.kanbanFullyHidden,
                               active: isVisible,
                             ),
                             if (!panel.canMove)
@@ -890,8 +891,8 @@ class _WorkspaceSwimlanePanelKanbanCardState
                   // 显示 / 彻底隐藏切换开关
                   Tooltip(
                     message: isVisible
-                        ? '从面板栏彻底隐藏（不留隐藏图标）'
-                        : '在面板栏中显示此面板',
+                        ? t.settings.kanbanHideCompletely
+                        : t.settings.kanbanShowPanel,
                     child: IconButton(
                       key: ValueKey<String>(
                         'kanban-panel-visibility:${panel.id}',
@@ -923,7 +924,7 @@ class _WorkspaceSwimlanePanelKanbanCardState
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
-                    '顺位 #${index + 1}',
+                    t.settings.kanbanRank(n: index + 1),
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
@@ -942,7 +943,9 @@ class _WorkspaceSwimlanePanelKanbanCardState
                         size: 14,
                       ),
                       label: Text(
-                        side == WorkspacePanelSide.left ? '移至右泳道' : '移至左泳道',
+                        side == WorkspacePanelSide.left
+                            ? t.settings.moveToRightLane
+                            : t.settings.moveToLeftLane,
                         style: const TextStyle(fontSize: 12),
                       ),
                       style: TextButton.styleFrom(
@@ -1051,7 +1054,7 @@ class _WorkspaceSwimlanePanelKanbanCardState
             ),
           ),
           child: Text(
-            hovering ? '松手放到此泳道末尾' : '拖拽面板到此追加至末尾',
+            hovering ? t.settings.dropToLaneEnd : t.settings.dragToLaneEnd,
             style: theme.textTheme.labelSmall?.copyWith(
               color: hovering ? scheme.primary : scheme.onSurfaceVariant,
             ),

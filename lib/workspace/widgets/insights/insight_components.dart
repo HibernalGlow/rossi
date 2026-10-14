@@ -5,6 +5,7 @@ import 'package:zephyr/widgets/motion/action_bubble.dart';
 import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
 import 'package:zephyr/widgets/spring_lens/spring_lens_value.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 class InsightBadge extends StatelessWidget {
   const InsightBadge({super.key, required this.text, this.glyph});
@@ -132,7 +133,8 @@ class InsightMetrics extends StatelessWidget {
 }
 
 class InsightFootnote extends StatelessWidget {
-  const InsightFootnote({super.key, this.text = '基于最近 500 本漫画的最后阅读记录'});
+  InsightFootnote({super.key, String? text})
+    : text = text ?? t.workspace.basedOnLast500;
   final String text;
   @override
   Widget build(BuildContext context) => Padding(

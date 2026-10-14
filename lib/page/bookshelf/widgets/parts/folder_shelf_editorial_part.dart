@@ -181,10 +181,10 @@ extension _FolderShelfEditorialPart on _FolderShelfPageContentState {
       reading: history != null,
       timestamp: history?.lastReadAt,
       section: unread
-          ? '未读作品'
+          ? t.bookshelf.unreadWorks
           : history != null
-          ? '正在阅读'
-          : '藏书',
+          ? t.bookshelf.readingNow
+          : t.bookshelf.collectedWorks,
       subtitle: history == null
           ? comic.tags.take(3).join(' · ')
           : '${history.chapterTitle} · 第 ${history.pageIndex + 1} 页',

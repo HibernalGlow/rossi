@@ -24,26 +24,35 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
     // 类型过滤的图标直接沿用 `file_manager_thumbnail.dart` 里条目本来的类型图标，
     // 同一颗图形在列表行和过滤菜单里指同一种文件。「全部」用九宫格，避免和
     // 二级菜单父行那颗 `category` 撞成同一选择。
-    const filters = {
+    final filters = {
       FileManagerEntryFilter.all: ('全部', AppGlyphs.apps),
       FileManagerEntryFilter.folders: ('文件夹', AppGlyphs.folder),
-      FileManagerEntryFilter.archives: ('归档', AppGlyphs.openBook),
-      FileManagerEntryFilter.images: ('图片', AppGlyphs.photos),
+      FileManagerEntryFilter.archives: (
+        t.workspace.archiveLabel,
+        AppGlyphs.openBook,
+      ),
+      FileManagerEntryFilter.images: (
+        t.workspace.imagesLabel,
+        AppGlyphs.photos,
+      ),
       FileManagerEntryFilter.video: ('视频', AppGlyphs.playCircle),
-      FileManagerEntryFilter.audio: ('音频', AppGlyphs.music),
+      FileManagerEntryFilter.audio: (t.workspace.audioLabel, AppGlyphs.music),
     };
-    const fields = {
-      FileManagerSortField.name: ('名称', AppGlyphs.textShort),
+    final fields = {
+      FileManagerSortField.name: (t.workspace.nameLabel, AppGlyphs.textShort),
       FileManagerSortField.type: ('类型', AppGlyphs.category),
-      FileManagerSortField.size: ('大小', AppGlyphs.resize),
-      FileManagerSortField.date: ('修改日期', AppGlyphs.calendar),
-      FileManagerSortField.random: ('随机', AppGlyphs.dice),
+      FileManagerSortField.size: (t.workspace.sizeLabel, AppGlyphs.resize),
+      FileManagerSortField.date: (t.workspace.modifiedDate, AppGlyphs.calendar),
+      FileManagerSortField.random: (t.workspace.randomLabel, AppGlyphs.dice),
     };
     // 深度只有一个写法：父行与子项共用，收起与展开时读到的字不会变样。
-    String depthLabel(int depth) => depth == 32 ? '最多 32 层' : '$depth 层';
+    String depthLabel(int depth) =>
+        depth == 32 ? t.workspace.maxThirtyTwoLevels : '$depth 层';
     // 二级菜单收起时父行是唯一的状态出口（子菜单的箭头会顶掉勾选标记），
     // 于是把当前值写进父行标签，而不是留一个光秃秃的组名。
-    final filterLabel = '类型：${filters[snapshot.entryFilter]!.$1}';
+    final filterLabel = t.workspace.filterTypeLabel(
+      value: filters[snapshot.entryFilter]!.$1,
+    );
 
     Widget toggle({
       Glyph? icon,
@@ -144,7 +153,9 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                 FileManagerToolbarGroup(
                   children: [
                     popupTrigger(
-                      tooltip: '条目样式：${snapshot.viewMode.label}',
+                      tooltip: t.workspace.entryStyleLabel(
+                        value: snapshot.viewMode.label,
+                      ),
                       icon: GlyphIcon(snapshot.viewMode.icon),
                       items: [
                         for (final mode in FileManagerViewMode.values)
@@ -171,7 +182,9 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                     ),
                     within,
                     popupTrigger(
-                      tooltip: '排序：${fields[snapshot.sortField]!.$1}',
+                      tooltip: t.workspace.sortFieldLabel(
+                        value: fields[snapshot.sortField]!.$1,
+                      ),
                       icon: const GlyphIcon(AppGlyphs.sort),
                       items: [
                         for (final field in fields.entries)
@@ -192,8 +205,8 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                           label:
                               snapshot.sortOrder ==
                                   FileManagerSortOrder.ascending
-                              ? '切换为降序'
-                              : '切换为升序',
+                              ? t.workspace.switchDescending
+                              : t.workspace.switchAscending,
                           // 箭头指本次点击后的方向，与上面的字段图标同一读法。
                           glyph:
                               snapshot.sortOrder ==
@@ -213,7 +226,7 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                           ),
                         ),
                         CommonPopupMenuItem(
-                          label: '临时排序（不记住本目录）',
+                          label: t.workspace.temporarySort,
                           glyph: AppGlyphs.hourglass,
                           checked: snapshot.sortTemporary,
                           onPressed: snapshot.canSortPreference
@@ -231,7 +244,9 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                     within,
                     FileManagerToolbarToggleButton(
                       glyph: AppGlyphs.search,
-                      tooltip: _searchExpanded ? '收起搜索' : '搜索（空格分词，-排除）',
+                      tooltip: _searchExpanded
+                          ? t.workspace.collapseSearch
+                          : t.workspace.searchSpaceExclude,
                       on: _searchExpanded || snapshot.searchQuery.isNotEmpty,
                       onPressed: () {
                         // ignore: invalid_use_of_protected_member
@@ -240,7 +255,9 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                     ),
                     within,
                     popupTrigger(
-                      tooltip: '内容布局：${snapshot.layoutMode.label}',
+                      tooltip: t.workspace.contentLayoutLabel(
+                        value: snapshot.layoutMode.label,
+                      ),
                       icon: GlyphIcon(snapshot.layoutMode.icon),
                       items: [
                         for (final mode in FileManagerLayoutMode.values)
@@ -258,7 +275,9 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                     within,
                     toggle(
                       glyph: AppGlyphs.passThrough,
-                      tooltip: snapshot.penetrationEnabled ? '关闭穿透模式' : '穿透模式',
+                      tooltip: snapshot.penetrationEnabled
+                          ? t.workspace.closePassthroughMode
+                          : t.workspace.passthroughMode,
                       on: snapshot.penetrationEnabled,
                       onPressed: () => _apply(
                         (id) => fileManagerSetPenetration(
@@ -275,7 +294,9 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                       within,
                       toggle(
                         glyph: AppGlyphs.selectAll,
-                        tooltip: _selectionModeOn ? '退出多选' : '多选',
+                        tooltip: _selectionModeOn
+                            ? t.workspace.exitMultiselect
+                            : '多选',
                         on: _selectionModeOn,
                         onPressed: _toggleSelectionMode,
                       ),
@@ -293,7 +314,7 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                       icon: const GlyphIcon(AppGlyphs.more),
                       items: [
                         CommonPopupMenuItem(
-                          label: '文件操作（复制 / 移动 / 删除）',
+                          label: t.workspace.fileOperations,
                           glyph: AppGlyphs.folderCopy,
                           checked: _fileOpsEnabled,
                           onPressed: () =>
@@ -303,14 +324,14 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                         // 立刻生效、跨重启保持），下面 divider 之后才是**目录级**的
                         // 视图偏好（跟着 `settings.db` 按目录记）。
                         CommonPopupMenuItem(
-                          label: '显示快速切换栏',
+                          label: t.workspace.showQuickSwitchBar,
                           glyph: AppGlyphs.storage,
                           checked: _showRootsBar,
                           onPressed: () => _setShowRootsBar(!_showRootsBar),
                         ),
                         const CommonPopupMenuItem.divider(),
                         CommonPopupMenuItem(
-                          label: '显示隐藏文件',
+                          label: t.workspace.showHiddenFiles,
                           glyph: AppGlyphs.eye,
                           checked: snapshot.showHiddenFiles,
                           onPressed: () => _apply(
@@ -321,7 +342,7 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                           ),
                         ),
                         CommonPopupMenuItem(
-                          label: '文件夹优先',
+                          label: t.workspace.foldersFirst,
                           glyph: AppGlyphs.folder,
                           checked: snapshot.directoriesFirst,
                           onPressed: () => _apply(
@@ -332,7 +353,7 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                           ),
                         ),
                         CommonPopupMenuItem(
-                          label: '显示子文件名',
+                          label: t.workspace.showSubFileNames,
                           glyph: AppGlyphs.subtitles,
                           checked: snapshot.showChildNames,
                           onPressed: () => _apply(
@@ -346,8 +367,8 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                           label:
                               snapshot.internalItemsMode ==
                                   FileManagerInternalItemsMode.single
-                              ? '子文件：显示一个'
-                              : '子文件：显示全部',
+                              ? t.workspace.subFilesShowOne
+                              : t.workspace.subFilesShowAll,
                           glyph: AppGlyphs.layers,
                           onPressed: () => _apply(
                             (id) => fileManagerSetInternalItemsMode(
@@ -367,7 +388,9 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                         // （`common_popup.dart` 的 `_buildRow` 里 subItems 优先），
                         // 收起之后父行就是唯一的状态出口。
                         CommonPopupMenuItem(
-                          label: '穿透深度：${depthLabel(snapshot.maxDepth)}',
+                          label: t.workspace.passthroughDepthLabel(
+                            value: depthLabel(snapshot.maxDepth),
+                          ),
                           // 与工具栏那颗穿透开关同一颗：这一组调的就是它的深度。
                           glyph: AppGlyphs.passThrough,
                           subItems: [

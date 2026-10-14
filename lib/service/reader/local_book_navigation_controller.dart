@@ -1,4 +1,5 @@
 import 'package:zephyr/src/rust/api/file_manager/entry_ops.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 跟随一本书存活：连按合并，旧阅读器销毁后忽略尚未完成的目录查找。
 class LocalBookNavigationController {
@@ -48,7 +49,7 @@ class LocalBookNavigationController {
       await open(target);
     } catch (error) {
       _committed = false;
-      if (!_disposed) notify('切换书籍失败：$error');
+      if (!_disposed) notify(t.reader.switchBookFailed(error: error));
     } finally {
       _busy = false;
     }

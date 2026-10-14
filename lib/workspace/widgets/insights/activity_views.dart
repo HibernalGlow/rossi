@@ -3,6 +3,7 @@ import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/workspace/model/history_insight_activity.dart';
 import 'package:zephyr/workspace/widgets/insights/insight_components.dart';
 import 'package:zephyr/widgets/motion/action_bubble.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 class ReadingOverviewView extends StatelessWidget {
   const ReadingOverviewView({super.key, required this.summary});
@@ -15,23 +16,23 @@ class ReadingOverviewView extends StatelessWidget {
         children: [
           InsightMetric(
             value: '${summary.records}',
-            label: '近 28 日记录',
+            label: t.workspace.last28Records,
             highlight: true,
             glyph: AppGlyphs.openBook,
           ),
           InsightMetric(
             value: '${summary.activeDays} / 28',
-            label: '活跃天数',
+            label: t.workspace.activeDays,
             glyph: AppGlyphs.calendar,
           ),
           InsightMetric(
             value: '${summary.sources}',
-            label: '阅读来源',
+            label: t.workspace.readingSources,
             glyph: AppGlyphs.pieChart,
           ),
         ],
       ),
-      const InsightFootnote(text: '最近 500 本漫画的最后阅读记录 · 不代表总次数或阅读时长'),
+      InsightFootnote(text: t.workspace.footnoteLast500),
     ],
   );
 }
@@ -61,10 +62,10 @@ class _ActivityCalendarViewState extends State<ActivityCalendarView> {
             runSpacing: 8,
             children: [
               InsightBadge(
-                text: '${summary.activeDays} 天活跃',
+                text: t.workspace.activeDaysCount(n: summary.activeDays),
                 glyph: AppGlyphs.fire,
               ),
-              const InsightBadge(text: '近 28 日'),
+              InsightBadge(text: t.workspace.last28Days),
             ],
           ),
           const SizedBox(height: 14),
@@ -101,7 +102,10 @@ class _ActivityCalendarViewState extends State<ActivityCalendarView> {
                                       ? Colors.black
                                       : Colors.white;
                                   return InsightSelectable(
-                                    label: '${day.key}：${day.count} 条记录',
+                                    label: t.workspace.dayRecordLine(
+                                      key: day.key,
+                                      count: day.count,
+                                    ),
                                     selected: active,
                                     onSelected: () =>
                                         setState(() => _selected = day.key),
@@ -144,10 +148,13 @@ class _ActivityCalendarViewState extends State<ActivityCalendarView> {
           ),
           const SizedBox(height: 12),
           Text(
-            '${selected.key} · ${selected.count} 条最后阅读记录',
+            t.workspace.selectedLastReadLines(
+              key: selected.key,
+              count: selected.count,
+            ),
             style: Theme.of(context).textTheme.bodyMedium,
           ),
-          const InsightFootnote(text: '四行连续日期 · 描边为选中日 · 颜色越强，记录越多'),
+          InsightFootnote(text: t.workspace.heatmapFourRowsHint),
         ],
       ),
     );
@@ -166,8 +173,10 @@ class WeeklyRhythmView extends StatelessWidget {
       children: [
         InsightBadge(
           text: summary.records == 0
-              ? '近 28 日暂无记录'
-              : '周${labels[summary.busiestWeekday]}最活跃',
+              ? t.workspace.last28NoRecords
+              : t.workspace.busiestWeekdayLabel(
+                  day: labels[summary.busiestWeekday],
+                ),
           glyph: AppGlyphs.trend,
         ),
         const SizedBox(height: 14),
@@ -175,7 +184,10 @@ class WeeklyRhythmView extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 5),
             child: Semantics(
-              label: '周${labels[index]}：${summary.weekdays[index]} 条记录',
+              label: t.workspace.weekdayRecordLine(
+                day: labels[index],
+                count: summary.weekdays[index],
+              ),
               child: Row(
                 children: [
                   SizedBox(width: 28, child: Text(labels[index])),
@@ -216,7 +228,7 @@ class WeeklyRhythmView extends StatelessWidget {
               ),
             ),
           ),
-        const InsightFootnote(text: '近 28 日 · 按星期汇总最后阅读记录'),
+        InsightFootnote(text: t.workspace.footnoteWeekday28),
       ],
     );
   }
@@ -225,7 +237,12 @@ class WeeklyRhythmView extends StatelessWidget {
 class ReadingPeriodsView extends StatelessWidget {
   const ReadingPeriodsView({super.key, required this.summary});
   final ReadingActivitySummary summary;
-  static const labels = ['深夜', '上午', '午后', '晚间'];
+  static List<String> get labels => [
+    t.workspace.lateNight,
+    t.workspace.morning,
+    t.workspace.earlyAfternoon,
+    t.workspace.eveningNight,
+  ];
   static const hours = [
     '00:00–06:00',
     '06:00–12:00',
@@ -238,8 +255,10 @@ class ReadingPeriodsView extends StatelessWidget {
     children: [
       InsightBadge(
         text: summary.records == 0
-            ? '近 28 日暂无记录'
-            : '${labels[summary.busiestPeriod]}记录最多',
+            ? t.workspace.last28NoRecords
+            : t.workspace.busiestPeriodLabel(
+                period: labels[summary.busiestPeriod],
+              ),
         glyph: AppGlyphs.clock,
       ),
       const SizedBox(height: 14),
@@ -249,13 +268,16 @@ class ReadingPeriodsView extends StatelessWidget {
             InsightMetric(
               value:
                   '${summary.records == 0 ? 0 : (summary.periods[index] * 100 / summary.records).round()}%',
-              label:
-                  '${labels[index]} · ${summary.periods[index]} 条\n${hours[index]}',
+              label: t.workspace.periodDetailLine(
+                label: labels[index],
+                count: summary.periods[index],
+                hours: hours[index],
+              ),
               highlight: summary.records > 0 && index == summary.busiestPeriod,
             ),
         ],
       ),
-      const InsightFootnote(text: '近 28 日 · 按最后阅读的本地时间分布'),
+      InsightFootnote(text: t.workspace.footnotePeriod28),
     ],
   );
 }

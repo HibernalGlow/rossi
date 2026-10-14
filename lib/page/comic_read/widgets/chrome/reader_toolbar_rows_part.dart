@@ -86,8 +86,9 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
                       for (final panel in kReaderPrimaryToolbarPanels)
                         ReaderToolbarIconButton(
                           icon: _readerPanelIcon(panel, fitMode),
-                          tooltip:
-                              '${_readerPanelLabel(panel, fitMode)}（点击展开面板）',
+                          tooltip: t.reader.tapToExpandPanel(
+                            label: _readerPanelLabel(panel, fitMode),
+                          ),
                           selected: _expandedPanel == panel,
                           onPressed: () => _togglePanel(panel),
                         ),
@@ -156,7 +157,9 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
                   for (final panel in kReaderPrimaryToolbarPanels)
                     ReaderToolbarIconButton(
                       icon: _readerPanelIcon(panel, fitMode),
-                      tooltip: '${_readerPanelLabel(panel, fitMode)}（点击展开面板）',
+                      tooltip: t.reader.tapToExpandPanel(
+                        label: _readerPanelLabel(panel, fitMode),
+                      ),
                       selected: _expandedPanel == panel,
                       onPressed: () => _togglePanel(panel),
                     ),
@@ -287,7 +290,9 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
         for (final panel in kReaderPrimaryToolbarPanels)
           ReaderToolbarIconButton(
             icon: _readerPanelIcon(panel, fitMode),
-            tooltip: '${_readerPanelLabel(panel, fitMode)}（点击展开面板）',
+            tooltip: t.reader.tapToExpandPanel(
+              label: _readerPanelLabel(panel, fitMode),
+            ),
             selected: _expandedPanel == panel,
             onPressed: () => _togglePanel(panel),
           ),

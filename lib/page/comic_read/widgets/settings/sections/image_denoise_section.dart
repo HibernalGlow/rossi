@@ -15,6 +15,7 @@ import 'package:zephyr/page/setting/real_sr/widgets/image_processing/processing_
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/widgets/expressive/expressive_shape.dart';
 import 'package:zephyr/workspace/widgets/cards/expressive_widgets.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 class ImageDenoiseSection extends StatefulWidget {
   const ImageDenoiseSection({
@@ -72,16 +73,16 @@ class _ImageDenoiseSectionState extends State<ImageDenoiseSection> {
 
   @override
   Widget build(BuildContext context) => ProcessingSettingsCard(
-    title: 'AI JPEG 降噪',
+    title: t.reader.aiJpegDenoise,
     icon: Icons.auto_fix_high,
-    description: '在线和本地漫画共用；保持原分辨率，降噪后再超分',
+    description: t.reader.sharedDenoiseThenUpscale,
     status: !supportsMImageOnnx
-        ? '当前平台暂无 RealPLKSR 推理后端'
+        ? t.reader.noRealPlksrBackendHere
         : _loading
-        ? '读取设置…'
+        ? t.reader.loadingSettings
         : (_bookKey == null ? _global : _book)
-        ? '已开启 · RealPLKSR 1×'
-        : '已关闭 · 原图保持不变',
+        ? t.reader.denoiseOnRealPlksr
+        : t.reader.trimOffOriginalKept,
     children: [
       ProcessingExample(
         kind: ProcessingExampleKind.denoise,
@@ -100,12 +101,14 @@ class _ImageDenoiseSectionState extends State<ImageDenoiseSection> {
               tone: ExpressiveTone.primary,
               active: _book,
             ),
-            title: const Text(
-              '本书启用 JPEG 降噪',
+            title: Text(
+              t.reader.bookEnableJpegDenoise,
               style: TextStyle(fontWeight: FontWeight.w700),
             ),
             subtitle: Text(
-              _bookKey == null ? '打开在线或本地漫画后可单独设置' : '只影响当前漫画；超分由它自己的开关决定',
+              _bookKey == null
+                  ? t.reader.perBookAfterOpening
+                  : t.reader.onlyThisComicUpscaleOwn,
             ),
             value: _book,
             onChanged: _loading || _bookKey == null
@@ -125,8 +128,8 @@ class _ImageDenoiseSectionState extends State<ImageDenoiseSection> {
             tone: ExpressiveTone.secondary,
             active: _global,
           ),
-          title: const Text(
-            '所有漫画默认启用降噪',
+          title: Text(
+            t.reader.denoiseDefaultForAll,
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
           value: _global,
@@ -139,12 +142,12 @@ class _ImageDenoiseSectionState extends State<ImageDenoiseSection> {
         ),
         DenoiseModelCard(download: _downloads),
         ProcessingAdvancedDisclosure(
-          title: '降噪高级设置',
+          title: t.reader.denoiseAdvancedSettings,
           child: Column(
             children: [
               SettingsDropdownTile<int>(
-                title: '降噪分块大小',
-                subtitle: '与超分独立。较小的分块降低推理内存占用；固定输入模型按模型尺寸处理',
+                title: t.reader.denoiseBlockSize,
+                subtitle: t.reader.denoiseBlockIndependentHint,
                 icon: AppGlyphs.gridPlus,
                 badgeShape: ExpressiveButtonShape.cookie6Sided,
                 badgeTone: ExpressiveTone.tertiary,
@@ -170,11 +173,11 @@ class _ImageDenoiseSectionState extends State<ImageDenoiseSection> {
                   tone: ExpressiveTone.tertiary,
                   active: _options.jpegOnly,
                 ),
-                title: const Text(
-                  '仅处理 JPEG 页面',
+                title: Text(
+                  t.reader.jpegPagesOnly,
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
-                subtitle: const Text('按文件头识别。PNG、WebP 等页面保留原样'),
+                subtitle: Text(t.reader.detectByFileHeader),
                 value: _options.jpegOnly,
                 onChanged: (v) {
                   HapticFeedback.lightImpact();
@@ -185,14 +188,14 @@ class _ImageDenoiseSectionState extends State<ImageDenoiseSection> {
                   );
                 },
               ),
-              const Text('动画页面不参与处理。模型效果强度固定；原图、降噪和超分结果分别缓存。'),
+              Text(t.reader.animatedNotProcessed),
               const SizedBox(height: 12),
               Align(
                 alignment: Alignment.centerLeft,
                 child: OutlinedButton.icon(
                   style: processingActionStyle(),
                   icon: const Icon(Icons.restart_alt),
-                  label: const Text('恢复默认参数'),
+                  label: Text(t.reader.restoreDefaultParams),
                   onPressed: () {
                     HapticFeedback.lightImpact();
                     unawaited(

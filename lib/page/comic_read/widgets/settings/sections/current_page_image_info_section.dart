@@ -9,6 +9,7 @@ import 'package:zephyr/page/comic_read/model/current_page_image_info.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_primitives.dart';
 import 'package:zephyr/reader/super_resolution_status.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 ({String? format, int? width, int? height}) inspectImageBytes(Uint8List bytes) {
   final decoder = image.findDecoderForData(bytes);
@@ -141,9 +142,12 @@ class _CurrentPageImageInfoSectionState
         : null;
     final rows = <Widget>[
       if (facts?.name != null)
-        ListTile(title: const Text('文件'), subtitle: Text(facts!.name!)),
+        ListTile(title: Text(t.reader.fileLabel), subtitle: Text(facts!.name!)),
       if (facts?.format != null)
-        ListTile(title: const Text('格式'), trailing: Text(facts!.format!)),
+        ListTile(
+          title: Text(t.reader.formatLabel),
+          trailing: Text(facts!.format!),
+        ),
       if (facts?.width != null && facts?.height != null)
         ListTile(
           title: const Text('尺寸'),
@@ -151,7 +155,7 @@ class _CurrentPageImageInfoSectionState
         ),
       if (facts?.bytes != null)
         ListTile(
-          title: const Text('文件大小'),
+          title: Text(t.reader.fileSize),
           trailing: Text('${facts!.bytes} B'),
         ),
     ];
@@ -162,7 +166,7 @@ class _CurrentPageImageInfoSectionState
           builder: (context, _) {
             final status = presenter.currentPageUpscaleStatus;
             return ListTile(
-              title: const Text('处理状态'),
+              title: Text(t.reader.processingStatus),
               trailing: Text(imageEnhancementPhaseLabel(status)),
             );
           },
@@ -170,12 +174,12 @@ class _CurrentPageImageInfoSectionState
       );
     }
     return SettingsSection(
-      title: '当前图片',
+      title: t.reader.currentImage,
       icon: AppGlyphs.info,
       children: [
         if (_loading) const LinearProgressIndicator(),
         if (rows.isNotEmpty) SettingsCardGroup(children: rows),
-        if (!_loading && rows.isEmpty) const Text('当前没有可读取的图片信息'),
+        if (!_loading && rows.isEmpty) Text(t.reader.noImageInfoAvailable),
       ],
     );
   }

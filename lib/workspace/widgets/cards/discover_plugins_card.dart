@@ -7,6 +7,7 @@ import 'package:zephyr/plugin/plugin_registry_service.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 真实发现与插件图源卡片（读取 PluginRegistryService 已注册的图源插件）
 class DiscoverPluginsCard extends StatelessWidget {
@@ -55,7 +56,7 @@ class DiscoverPluginsCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '图源与扩展',
+                    t.workspace.imageSources,
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -63,7 +64,7 @@ class DiscoverPluginsCard extends StatelessWidget {
                   const Spacer(),
                   IconButton(
                     icon: const GlyphIcon(AppGlyphs.search, size: 18),
-                    tooltip: '跨图源聚合搜索',
+                    tooltip: t.workspace.aggregateSourceSearch,
                     onPressed: () {
                       context.pushRoute(
                         SearchRoute(
@@ -78,7 +79,7 @@ class DiscoverPluginsCard extends StatelessWidget {
                     onPressed: () =>
                         context.pushRoute(const PluginStoreRoute()),
                     icon: const GlyphIcon(AppGlyphs.storefront, size: 14),
-                    label: const Text('市场'),
+                    label: Text(t.workspace.market),
                     style: TextButton.styleFrom(
                       visualDensity: VisualDensity.compact,
                       padding: const EdgeInsets.symmetric(
@@ -95,7 +96,7 @@ class DiscoverPluginsCard extends StatelessWidget {
               child: enabledPlugins.isEmpty
                   ? Center(
                       child: Text(
-                        '暂无启用的插件',
+                        t.workspace.noEnabledPlugins,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -119,7 +120,7 @@ class DiscoverPluginsCard extends StatelessWidget {
     return CollapsibleCard(
       cardId: 'discover_plugins',
       expressive: true,
-      title: '图源与扩展 (Extensions)',
+      title: t.workspace.imageSourcesEn,
       icon: AppGlyphs.puzzle,
       isExpanded: isExpanded,
       onToggle: onToggle,
@@ -131,7 +132,7 @@ class DiscoverPluginsCard extends StatelessWidget {
         children: [
           IconButton(
             icon: const GlyphIcon(AppGlyphs.search, size: 18),
-            tooltip: '跨图源聚合搜索',
+            tooltip: t.workspace.aggregateSourceSearch,
             onPressed: () {
               context.pushRoute(
                 SearchRoute(
@@ -145,7 +146,7 @@ class DiscoverPluginsCard extends StatelessWidget {
           TextButton.icon(
             onPressed: () => context.pushRoute(const PluginStoreRoute()),
             icon: const GlyphIcon(AppGlyphs.storefront, size: 14),
-            label: const Text('市场'),
+            label: Text(t.workspace.market),
             style: TextButton.styleFrom(
               visualDensity: VisualDensity.compact,
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -161,7 +162,7 @@ class DiscoverPluginsCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 16.0),
               child: Center(
                 child: Text(
-                  '暂无启用的插件',
+                  t.workspace.noEnabledPlugins,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -231,7 +232,7 @@ class DiscoverPluginsCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    '${plugin.version.isEmpty ? "内置" : "v${plugin.version}"} · ${isReady ? "已就绪" : "正在加载"}',
+                    '${plugin.version.isEmpty ? t.workspace.builtinWord : "v${plugin.version}"} · ${isReady ? t.workspace.gpuReadyState : t.workspace.loadingShort}',
                     style: theme.textTheme.labelSmall?.copyWith(
                       // 「正在加载」用 tertiary 而不是硬编码橙色：
                       // 调色板里没有 #FF9800 这个值，深色模式下它几乎刺眼。

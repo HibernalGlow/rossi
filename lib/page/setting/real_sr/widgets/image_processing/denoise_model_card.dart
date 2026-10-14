@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/setting/real_sr/service/denoise_model_download.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/image_processing/processing_settings_card.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 class DenoiseModelCard extends StatelessWidget {
   const DenoiseModelCard({super.key, required this.download});
@@ -18,14 +19,15 @@ class DenoiseModelCard extends StatelessWidget {
       final colors = Theme.of(context).colorScheme;
       final phase = download.phase;
       final status = switch (phase) {
-        DenoiseDownloadPhase.checking => '正在检查模型',
-        DenoiseDownloadPhase.missing => '模型未安装',
+        DenoiseDownloadPhase.checking => t.realSr.denoiseChecking,
+        DenoiseDownloadPhase.missing => t.realSr.denoiseMissing,
         DenoiseDownloadPhase.downloading => '正在下载模型',
-        DenoiseDownloadPhase.verifying => '正在校验模型',
-        DenoiseDownloadPhase.ready =>
-          '模型已安装 · ${_bytes(download.installedBytes)}',
+        DenoiseDownloadPhase.verifying => t.realSr.denoiseVerifying,
+        DenoiseDownloadPhase.ready => t.realSr.denoiseInstalled(
+          size: _bytes(download.installedBytes),
+        ),
         DenoiseDownloadPhase.failed =>
-          download.installedBytes > 0 ? '更新失败 · 已安装的模型仍可使用' : '模型下载失败',
+          download.installedBytes > 0 ? t.realSr.denoiseUpdateFailed : '模型下载失败',
       };
       return Material(
         color: colors.surfaceContainerHighest,
@@ -36,7 +38,7 @@ class DenoiseModelCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'RealPLKSR · JPEG 降噪 · 1×',
+                t.realSr.denoiseSubtitle,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
@@ -46,8 +48,8 @@ class DenoiseModelCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 Semantics(
                   label: phase == DenoiseDownloadPhase.verifying
-                      ? '校验模型完整性'
-                      : '模型下载进度',
+                      ? t.realSr.denoiseVerifyTooltip
+                      : t.realSr.denoiseProgressTooltip,
                   value: download.progress == null
                       ? _bytes(download.received)
                       : '${(download.progress! * 100).round()}%',
@@ -92,10 +94,10 @@ class DenoiseModelCard extends StatelessWidget {
                     ),
                     label: Text(
                       phase == DenoiseDownloadPhase.failed
-                          ? '重试下载'
+                          ? t.realSr.retryDownload
                           : download.installedBytes > 0
                           ? '重新下载'
-                          : '下载模型 · 28.2 MB',
+                          : t.realSr.downloadModel,
                     ),
                   ),
                   if (download.installedBytes > 0)
@@ -108,13 +110,13 @@ class DenoiseModelCard extends StatelessWidget {
                               unawaited(download.delete());
                             },
                       icon: const Icon(Icons.delete_outline),
-                      label: const Text('移除模型'),
+                      label: Text(t.realSr.removeModel),
                     ),
                 ],
               ),
               const SizedBox(height: 12),
               Text(
-                '来自 mImageViewer · CC BY 4.0\n首次使用需下载；大小与 SHA-256 校验通过后安装。',
+                t.realSr.denoiseAttribution,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],

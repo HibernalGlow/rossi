@@ -37,7 +37,7 @@ class FileManagerNewTabSettings extends StatelessWidget {
       icon: AppGlyphs.layoutTabs,
       children: [
         select(
-          '选项来源',
+          t.settings.fmTabPolicySource,
           setting.newTabPolicy,
           {
             for (final policy in FileManagerTabStartupPolicy.values)
@@ -54,14 +54,12 @@ class FileManagerNewTabSettings extends StatelessWidget {
             FileManagerTabStartupPolicy.triggering => AppGlyphs.target,
           },
         ),
-        const Padding(
+        Padding(
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text(
-            '“最近使用”跟随当前活跃页签；“触发页签”跟随发起动作的页签。只继承浏览与搜索选项，查询、结果、历史和选中项各自独立。首次打开没有继承来源时使用预设。',
-          ),
+          child: Text(t.settings.fmTabPolicyHint),
         ),
         select(
-          '默认条目样式',
+          t.settings.fmDefaultEntryStyle,
           LibraryViewMode.values.any((m) => m.name == setting.newTabViewMode)
               ? setting.newTabViewMode
               : 'compact',
@@ -74,7 +72,7 @@ class FileManagerNewTabSettings extends StatelessWidget {
           glyphOf: (name) => LibraryViewMode.values.asNameMap()[name]?.icon,
         ),
         select(
-          '默认内容布局',
+          t.settings.fmDefaultContentLayout,
           const [
                 'content',
                 'tree',
@@ -82,7 +80,11 @@ class FileManagerNewTabSettings extends StatelessWidget {
               ].contains(setting.newTabLayoutMode)
               ? setting.newTabLayoutMode
               : 'content',
-          const {'content': '内容视图', 'tree': '树形视图', 'columns': '分栏视图'},
+          {
+            'content': t.settings.fmViewContent,
+            'tree': t.settings.fmViewTree,
+            'columns': t.settings.fmViewColumns,
+          },
           (value) => cubit.updateFileManagerSetting(
             (s) => s.copyWith(newTabLayoutMode: value),
           ),

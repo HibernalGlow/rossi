@@ -6,6 +6,7 @@ import 'package:zephyr/workspace/model/workspace_mode.dart';
 import 'package:zephyr/workspace/model/workspace_pointer_mode.dart';
 import 'package:zephyr/workspace/model/workspace_reveal_zones.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 工作台顶栏的**两种形态** —— 区别不在长相，在**它占不占地方**。
 ///
@@ -146,7 +147,7 @@ class WorkspaceTopChrome extends StatelessWidget {
         children: [
           IconButton(
             icon: const GlyphIcon(AppGlyphs.arrowBack, size: 18),
-            tooltip: '退出工作台（Esc 亦可）',
+            tooltip: t.workspace.exitWorkspaceHint,
             visualDensity: VisualDensity.compact,
             onPressed: onExit,
           ),
@@ -173,7 +174,9 @@ class WorkspaceTopChrome extends StatelessWidget {
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
-              isSwimlane ? '多列泳道' : '沉浸工作孔',
+              isSwimlane
+                  ? t.workspace.multiColumnLanes
+                  : t.workspace.immersiveWorkhole,
               style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -200,7 +203,7 @@ class WorkspaceTopChrome extends StatelessWidget {
           if (target != null)
             IconButton(
               icon: const GlyphIcon(AppGlyphs.close, size: 18),
-              tooltip: '关闭当前漫画（回到空态）',
+              tooltip: t.workspace.closeCurrentComicFull,
               visualDensity: VisualDensity.compact,
               onPressed: cubit.closeReader,
             ),
@@ -209,13 +212,15 @@ class WorkspaceTopChrome extends StatelessWidget {
               isSwimlane ? AppGlyphs.columnsTwo : AppGlyphs.columnsThree,
               size: 18,
             ),
-            tooltip: isSwimlane ? '切换为沉浸工作孔' : '切换为多列泳道',
+            tooltip: isSwimlane
+                ? t.workspace.switchToWorkhole
+                : t.workspace.switchToSwimlane,
             visualDensity: VisualDensity.compact,
             onPressed: cubit.toggleMode,
           ),
           IconButton(
             icon: const GlyphIcon(AppGlyphs.reset, size: 18),
-            tooltip: '重置布局（不影响当前正在读的这一本）',
+            tooltip: t.workspace.resetLayoutHint,
             visualDensity: VisualDensity.compact,
             onPressed: onResetLayout,
           ),

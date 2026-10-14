@@ -11,6 +11,7 @@ import 'package:zephyr/page/setting/real_sr/widgets/image_processing/processing_
 import 'package:zephyr/reader/auto_trim_settings.dart';
 import 'package:zephyr/widgets/expressive/expressive_shape.dart';
 import 'package:zephyr/workspace/widgets/cards/expressive_widgets.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 class AutoTrimSection extends StatefulWidget {
   const AutoTrimSection({super.key});
@@ -63,14 +64,16 @@ class _AutoTrimSectionState extends State<AutoTrimSection> {
     final enabled = global;
 
     final status = effective == global
-        ? (enabled ? '已开启 · 白边和黑边自动检测' : '已关闭 · 显示完整页面')
-        : (effective ? '本书已单独开启裁边 · 全局为关闭' : '本书已单独关闭裁边 · 全局为开启，当前阅读不会裁边');
+        ? (enabled ? t.reader.trimOnAutoDetect : t.reader.trimOffFullPage)
+        : (effective
+              ? t.reader.bookTrimOnOverride
+              : t.reader.bookTrimOffOverride);
     return ValueListenableBuilder(
       valueListenable: AutoTrimSettings.options,
       builder: (context, options, _) => ProcessingSettingsCard(
         title: '自动裁边',
         icon: Icons.crop_free,
-        description: '在线和本地漫画共用；阅读时放大内容区域',
+        description: t.reader.sharedUpscaleEnlarge,
         status: status,
         children: [
           ProcessingExample(
@@ -87,11 +90,11 @@ class _AutoTrimSectionState extends State<AutoTrimSection> {
               tone: ExpressiveTone.primary,
               active: enabled,
             ),
-            title: const Text(
-              '默认启用自动裁边',
+            title: Text(
+              t.reader.autoTrimEnabledByDefault,
               style: TextStyle(fontWeight: FontWeight.w700),
             ),
-            subtitle: const Text('不修改原图；单本开关仍可在阅读设置覆盖'),
+            subtitle: Text(t.reader.denoiseOriginalSafeBookOverride),
             value: enabled,
             onChanged: (value) {
               HapticFeedback.lightImpact();
@@ -101,12 +104,12 @@ class _AutoTrimSectionState extends State<AutoTrimSection> {
             },
           ),
           ProcessingAdvancedDisclosure(
-            title: '裁边高级设置',
+            title: t.reader.trimAdvancedSettings,
             child: Column(
               children: [
                 ProcessingSlider(
-                  title: '背景检测容差',
-                  description: '增大可容忍纸张底色和轻微噪点；浅色细节较多时使用较小值',
+                  title: t.reader.backgroundTolerance,
+                  description: t.reader.bgToleranceHint,
                   value: options.tolerance,
                   min: 0,
                   max: 64,
@@ -116,8 +119,8 @@ class _AutoTrimSectionState extends State<AutoTrimSection> {
                   ),
                 ),
                 ProcessingSlider(
-                  title: '单边裁切上限',
-                  description: '限制每一侧最多裁掉的比例；0% 等同于保留完整页面',
+                  title: t.reader.trimSideLimit,
+                  description: t.reader.trimSideLimitHint,
                   value: options.maxCropPercent,
                   min: 0,
                   max: 20,
@@ -127,8 +130,8 @@ class _AutoTrimSectionState extends State<AutoTrimSection> {
                   ),
                 ),
                 ProcessingSlider(
-                  title: '安全留边',
-                  description: '在检测内容周围额外保留空间，保护文字、页码和线条',
+                  title: t.reader.safeMargin,
+                  description: t.reader.trimSafeMarginKeeps,
                   value: options.safetyMarginPermille,
                   min: 6,
                   max: 40,
@@ -139,7 +142,7 @@ class _AutoTrimSectionState extends State<AutoTrimSection> {
                     ),
                   ),
                 ),
-                const Text('条漫只裁左右，保留上下接缝。满版或检测不可靠的页面保留原样。'),
+                Text(t.reader.webtoonTrimSidesOnly),
                 const SizedBox(height: 12),
                 Align(
                   alignment: Alignment.centerLeft,
@@ -150,7 +153,7 @@ class _AutoTrimSectionState extends State<AutoTrimSection> {
                       unawaited(AutoTrimSettings.save(const AutoTrimOptions()));
                     },
                     icon: const Icon(Icons.restart_alt),
-                    label: const Text('恢复保守默认值'),
+                    label: Text(t.reader.restoreConservativeDefaults),
                   ),
                 ),
               ],

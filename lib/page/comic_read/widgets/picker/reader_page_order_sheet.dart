@@ -6,6 +6,7 @@ import 'package:zephyr/page/comic_read/cubit/reader_page_order_cubit.dart';
 import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
 import 'package:zephyr/page/comic_read/model/reader_page_order.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 本章页面的手动排序表。
 ///
@@ -76,13 +77,13 @@ class _ReaderPageOrderSheetState extends State<_ReaderPageOrderSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '手动页序 · ${widget.epInfo.epName}',
+                        t.reader.manualPageOrderFor(name: widget.epInfo.epName),
                         style: theme.textTheme.titleSmall,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        '拖动调整显示顺序；应用后画面仍停在当前这一页',
+                        t.reader.dragReorderStaysOnPage,
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -187,7 +188,7 @@ class _PageOrderRow extends StatelessWidget {
       // 源下标是这一行唯一能说明「它原本是哪一页」的东西：只看名字的话，
       // 图源给的名字本身就可能是乱序的，用户分不清自己拖的是同一页。
       subtitle: Text(
-        '源第 ${sourceIndex + 1} / $total 页',
+        t.reader.sourcePageOf(index: sourceIndex + 1, total: total),
         style: theme.textTheme.labelSmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
         ),
