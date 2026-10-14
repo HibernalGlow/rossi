@@ -78,6 +78,8 @@ import 'package:zephyr/page/setting/global/file_manager_setting_page.dart'
 import 'package:zephyr/page/setting/global/global_setting.dart' as _i28;
 import 'package:zephyr/page/setting/global/notify_setting_page.dart' as _i32;
 import 'package:zephyr/page/setting/global/storage_setting_page.dart' as _i48;
+import 'package:zephyr/page/setting/global/swimlane_panel_setting_page.dart'
+    as _i69;
 import 'package:zephyr/page/setting/global/sync_setting_page.dart' as _i49;
 import 'package:zephyr/page/setting/global/toast_setting_page.dart' as _i51;
 import 'package:zephyr/page/setting/global/workspace_layout_setting_page.dart'
@@ -1880,6 +1882,22 @@ class WorkspaceLayoutSettingRoute extends _i55.PageRouteInfo<void> {
     name,
     builder: (data) {
       return const _i54.WorkspaceLayoutSettingPage();
+    },
+  );
+}
+
+/// generated route for
+/// [_i69.SwimlanePanelSettingPage]
+class SwimlanePanelSettingRoute extends _i55.PageRouteInfo<void> {
+  const SwimlanePanelSettingRoute({List<_i55.PageRouteInfo>? children})
+    : super(SwimlanePanelSettingRoute.name, initialChildren: children);
+
+  static const String name = 'SwimlanePanelSettingRoute';
+
+  static _i55.PageInfo page = _i55.PageInfo(
+    name,
+    builder: (data) {
+      return const _i69.SwimlanePanelSettingPage();
     },
   );
 }

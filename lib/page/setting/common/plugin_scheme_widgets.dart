@@ -1,3 +1,4 @@
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'dart:convert';
 
 import 'package:material_ui/material_ui.dart';
@@ -129,7 +130,7 @@ class _PluginSettingSchemeSectionState
 
     if (kind == 'switch') {
       final current = value == true;
-      return SwitchListTile(
+      return SettingGroup.switchTile(
         title: Text(label),
         value: current,
         onChanged: (next) async {
@@ -202,7 +203,7 @@ class _PluginAdvancedActionSectionState
       future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const ListTile(title: Text('高级能力加载中...'));
+          return ListTile(title: Text(t.plugin.advancedCapabilityLoading));
         }
         if (snapshot.hasError || !snapshot.hasData) {
           return const SizedBox.shrink();

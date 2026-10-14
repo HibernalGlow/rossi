@@ -73,6 +73,10 @@ class AppRouter extends RootStackRouter with WorkspaceBackInterceptor {
       customRouteBuilder: settingAutoRoute,
     ),
     CustomRoute(
+      page: SwimlanePanelSettingRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
       page: FileManagerSettingRoute.page,
       customRouteBuilder: settingAutoRoute,
     ),
