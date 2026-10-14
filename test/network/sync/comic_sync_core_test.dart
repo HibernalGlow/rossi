@@ -555,6 +555,93 @@ void main() {
       expect(store.box<ComicLink>().getAll().length, count);
     });
   });
+
+  // 章节标记是全库第一张「按章计数」的同步表，合并错了就是用户手动判决被洗掉，
+  // 所以这四条各自的失败模式都要单独钉住。
+  group('ComicSyncCore.mergeUnifiedData 章节标记', () {
+    test('云端载荷里没有这一项时保留本地标记（旧客户端不抹标记）', () async {
+      putAll(store, readMarks: [createReadMark('c7')]);
+
+      // buildPayload() 不带 chapterReadMarks —— 模拟还没这个功能的对端。
+      await runMerge(store, buildPayload());
+
+      final rows = store.box<ComicChapterReadMark>().getAll();
+      expect(rows.single.chapterId, 'c7');
+      expect(rows.single.markedRead, isTrue);
+    });
+
+    test('两边标了不同章 ⇒ 取并集，不是互相覆盖', () async {
+      putAll(store, readMarks: [createReadMark('c7')]);
+      final data = buildPayload(
+        chapterReadMarks: [createReadMark('c8', chapterOrder: 8).toJson()],
+      );
+
+      await runMerge(store, data);
+
+      final ids = store.box<ComicChapterReadMark>()
+          .getAll()
+          .map((e) => e.chapterId)
+          .toList()
+        ..sort();
+      expect(ids, ['c7', 'c8']);
+    });
+
+    test('同一章两边判决不同 ⇒ 时间新的赢，相等保留本地', () async {
+      final local = createReadMark(
+        'c7',
+        markedRead: false,
+        updatedAt: DateTime.utc(2026, 10, 13, 10),
+      );
+      putAll(store, readMarks: [local]);
+      final cloudNewer = createReadMark(
+        'c7',
+        markedRead: true,
+        updatedAt: local.updatedAt.add(const Duration(hours: 1)),
+      );
+
+      await runMerge(store, buildPayload(chapterReadMarks: [cloudNewer.toJson()]));
+
+      expect(store.box<ComicChapterReadMark>().getAll().single.markedRead, isTrue);
+
+      store.box<ComicChapterReadMark>().removeAll();
+      final tie = createReadMark(
+        'c8',
+        markedRead: false,
+        updatedAt: DateTime.utc(2026, 10, 13, 10),
+      );
+      final tieCloud = createReadMark('c8', markedRead: true, updatedAt: tie.updatedAt);
+      putAll(store, readMarks: [tie]);
+
+      await runMerge(store, buildPayload(chapterReadMarks: [tieCloud.toJson()]));
+
+      expect(
+        store.box<ComicChapterReadMark>().getAll().single.markedRead,
+        isFalse,
+        reason: '时间戳相等时按既有口径保留本地',
+      );
+    });
+
+    test('本机撤销留下的墓碑不被对端那份活跃行复活', () async {
+      // 场景：两台设备都标过第 7 话已读，本机随后撤销（写墓碑）。
+      // 若撤销是物理删行，合并时本机这一章已经没有任何行，对端的活跃行会直接回来。
+      final peerActive = createReadMark(
+        'c7',
+        updatedAt: DateTime.utc(2026, 10, 1, 9),
+      );
+      final localTombstone = createReadMark(
+        'c7',
+        updatedAt: DateTime.utc(2026, 10, 13, 9),
+        deleted: true,
+      );
+      putAll(store, readMarks: [localTombstone]);
+
+      await runMerge(store, buildPayload(chapterReadMarks: [peerActive.toJson()]));
+
+      final row = store.box<ComicChapterReadMark>().getAll().single;
+      expect(row.deleted, isTrue, reason: '撤销必须赢：墓碑行的 updatedAt 更新');
+      expect(store.box<ComicChapterReadMark>().getAll().length, 1);
+    });
+  });
 }
 
 // ==================== 测试工具函数 ====================
@@ -564,6 +651,7 @@ Map<String, dynamic> buildPayload({
   List<Map<String, dynamic>> histories = const [],
   List<Map<String, dynamic>> folders = const [],
   List<Map<String, dynamic>> links = const [],
+  List<Map<String, dynamic>> chapterReadMarks = const [],
 }) {
   return {
     'version': 'v1',
@@ -571,6 +659,7 @@ Map<String, dynamic> buildPayload({
     'histories': histories,
     'folders': folders,
     'links': links,
+    'chapterReadMarks': chapterReadMarks,
   };
 }
 
@@ -580,11 +669,34 @@ void putAll(
   List<UnifiedComicHistory> histories = const [],
   List<ComicFolder> folders = const [],
   List<ComicLink> links = const [],
+  List<ComicChapterReadMark> readMarks = const [],
 }) {
   store.box<UnifiedComicFavorite>().putMany(favorites);
   store.box<UnifiedComicHistory>().putMany(histories);
   store.box<ComicFolder>().putMany(folders);
   store.box<ComicLink>().putMany(links);
+  store.box<ComicChapterReadMark>().putMany(readMarks);
+}
+
+/// 一条章节标记；`uniqueKey` 与生产端同一拼法 `source:comicId:chapterId`。
+ComicChapterReadMark createReadMark(
+  String chapterId, {
+  bool markedRead = true,
+  int chapterOrder = 7,
+  DateTime? updatedAt,
+  bool deleted = false,
+}) {
+  final now = updatedAt ?? DateTime.utc(2026, 10, 13, 9);
+  return ComicChapterReadMark(
+    uniqueKey: 'test:comic1:$chapterId',
+    source: 'test',
+    comicId: 'comic1',
+    chapterId: chapterId,
+    chapterOrder: chapterOrder,
+    markedRead: markedRead,
+    updatedAt: now,
+    deleted: deleted,
+  );
 }
 
 UnifiedComicFavorite createFavorite(
