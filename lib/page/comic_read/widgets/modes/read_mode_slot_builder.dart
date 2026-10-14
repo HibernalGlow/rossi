@@ -1,3 +1,4 @@
+import 'package:zephyr/reader/auto_trim_settings.dart';
 import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
@@ -489,49 +490,70 @@ Widget _buildColumnSingleImage({
   final entry = item.entry;
   final cacheIndex = _resolveImageCacheIndex(entry, item.entryIndex);
 
-  return BlocSelector<ImageSizeCubit, ImageSizeState, (Size, Size?)>(
-    selector: (state) =>
-        (state.getSizeValue(cacheIndex), state.getIntrinsic(cacheIndex)),
-    builder: (context, sizes) {
-      final frame = _frameOf(
-        sizes: [(cached: sizes.$1, intrinsic: sizes.$2)],
-        contentWidth: contentWidth,
-        viewportHeight: viewportHeight,
-        presentation: presentation,
-        axis: ReaderFrameAxis.strip,
-      );
-      final placed = frame?.pages.first;
+  final trimLayout = context.read<ImageSizeCubit>().trimLayout;
+  final trimEnabled = context.watchEffectiveReadSetting().autoTrimPageMargins;
+  return ListenableBuilder(
+    listenable: Listenable.merge([trimLayout, AutoTrimSettings.options]),
+    builder: (context, _) =>
+        BlocSelector<ImageSizeCubit, ImageSizeState, (Size, Size?)>(
+          selector: (state) =>
+              (state.getSizeValue(cacheIndex), state.getIntrinsic(cacheIndex)),
+          builder: (context, sizes) {
+            final rect = trimEnabled
+                ? trimLayout.rectFor(
+                    cacheIndex,
+                    AutoTrimSettings.options.value.cacheKey,
+                  )
+                : null;
+            final ratio = rect?.width ?? 1.0;
+            final cached = Size(sizes.$1.width * ratio, sizes.$1.height);
+            final intrinsic = sizes.$2 == null
+                ? null
+                : Size(sizes.$2!.width * ratio, sizes.$2!.height);
+            final frame = _frameOf(
+              sizes: [(cached: cached, intrinsic: intrinsic)],
+              contentWidth: contentWidth,
+              viewportHeight: viewportHeight,
+              presentation: presentation,
+              axis: ReaderFrameAxis.strip,
+            );
+            final placed = frame?.pages.first;
 
-      // 长条滚动下「列表项多高」必须等于「这一节画多高」，否则节与节重叠。
-      // 呈现层没参与时退回改造前那套按宽高比推的高度。
-      final finalHeight =
-          placed?.boxSize.height ??
-          _resolveDisplayHeight(
-            cachedSize: sizes.$1,
-            targetWidth: contentWidth,
-          );
+            // 长条滚动下「列表项多高」必须等于「这一节画多高」，否则节与节重叠。
+            // 呈现层没参与时退回改造前那套按宽高比推的高度。
+            final finalHeight =
+                placed?.boxSize.height ??
+                _resolveDisplayHeight(
+                  cachedSize: cached,
+                  targetWidth: contentWidth,
+                );
 
-      final image = buildReadModeImage(
-        context: context,
-        entry: entry,
-        comicId: comicId,
-        from: from,
-        slotIndex: entry.chapterPageIndex ?? item.entryIndex,
-        cacheIndex: cacheIndex,
-        isColumn: true,
-        placed: placed,
-      );
+            final image = buildReadModeImage(
+              context: context,
+              entry: entry,
+              comicId: comicId,
+              from: from,
+              slotIndex: entry.chapterPageIndex ?? item.entryIndex,
+              cacheIndex: cacheIndex,
+              isColumn: true,
+              placed: placed,
+            );
 
-      return Container(
-        color: backgroundColor,
-        height: finalHeight,
-        width: containerWidth,
-        alignment: presentation.fitMode.alignment,
-        child: placed == null
-            ? SizedBox(width: contentWidth, height: finalHeight, child: image)
-            : image,
-      );
-    },
+            return Container(
+              color: backgroundColor,
+              height: finalHeight,
+              width: containerWidth,
+              alignment: presentation.fitMode.alignment,
+              child: placed == null
+                  ? SizedBox(
+                      width: contentWidth,
+                      height: finalHeight,
+                      child: image,
+                    )
+                  : image,
+            );
+          },
+        ),
   );
 }
 
@@ -557,91 +579,107 @@ Widget _buildColumnDoublePageImage({
 
   final panelWidth = (contentWidth / 2).clamp(1.0, contentWidth);
 
-  return BlocSelector<ImageSizeCubit, ImageSizeState, (Size, Size)>(
-    selector: (state) => (
-      left != null
-          ? state.getSizeValue(
-              _resolveImageCacheIndex(left.entry, left.entryIndex),
-            )
-          : const Size(0, 0),
-      right != null
-          ? state.getSizeValue(
-              _resolveImageCacheIndex(right.entry, right.entryIndex),
-            )
-          : const Size(0, 0),
-    ),
-    builder: (context, pairSize) {
-      final leftHeight = left != null
-          ? _resolveDisplayHeight(
-              cachedSize: pairSize.$1,
-              targetWidth: panelWidth,
-            )
-          : 0.0;
-      final rightHeight = right != null
-          ? _resolveDisplayHeight(
-              cachedSize: pairSize.$2,
-              targetWidth: panelWidth,
-            )
-          : 0.0;
-      final rowHeight = math
-          .max(leftHeight, rightHeight)
-          .clamp(1.0, double.infinity);
+  final trimLayout = context.read<ImageSizeCubit>().trimLayout;
+  final trimEnabled = context.watchEffectiveReadSetting().autoTrimPageMargins;
+  Size trimmedSize(ReadModeSlotItem? item, Size size) {
+    if (!trimEnabled || item == null) return size;
+    final rect = trimLayout.rectFor(
+      _resolveImageCacheIndex(item.entry, item.entryIndex),
+      AutoTrimSettings.options.value.cacheKey,
+    );
+    return Size(size.width * (rect?.width ?? 1), size.height);
+  }
 
-      final leftChild = SizedBox(
-        width: panelWidth,
-        height: rowHeight,
-        child: left != null
-            ? buildReadModeImage(
-                context: context,
-                entry: left.entry,
-                comicId: comicId,
-                from: from,
-                slotIndex: left.entry.chapterPageIndex ?? left.entryIndex,
-                cacheIndex: _resolveImageCacheIndex(
-                  left.entry,
-                  left.entryIndex,
-                ),
-                isColumn: true,
-              )
-            : const SizedBox.shrink(),
-      );
-      final rightChild = SizedBox(
-        width: panelWidth,
-        height: rowHeight,
-        child: right != null
-            ? buildReadModeImage(
-                context: context,
-                entry: right.entry,
-                comicId: comicId,
-                from: from,
-                slotIndex: right.entry.chapterPageIndex ?? right.entryIndex,
-                cacheIndex: _resolveImageCacheIndex(
-                  right.entry,
-                  right.entryIndex,
-                ),
-                isColumn: true,
-              )
-            : const SizedBox.shrink(),
-      );
-
-      final children = isRtl
-          ? [rightChild, leftChild]
-          : [leftChild, rightChild];
-
-      return Container(
-        color: backgroundColor,
-        width: containerWidth,
-        height: rowHeight,
-        alignment: Alignment.center,
-        child: SizedBox(
-          width: contentWidth,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: children,
+  return ListenableBuilder(
+    listenable: Listenable.merge([trimLayout, AutoTrimSettings.options]),
+    builder: (context, _) =>
+        BlocSelector<ImageSizeCubit, ImageSizeState, (Size, Size)>(
+          selector: (state) => (
+            left != null
+                ? state.getSizeValue(
+                    _resolveImageCacheIndex(left.entry, left.entryIndex),
+                  )
+                : const Size(0, 0),
+            right != null
+                ? state.getSizeValue(
+                    _resolveImageCacheIndex(right.entry, right.entryIndex),
+                  )
+                : const Size(0, 0),
           ),
+          builder: (context, pairSize) {
+            final leftHeight = left != null
+                ? _resolveDisplayHeight(
+                    cachedSize: trimmedSize(left, pairSize.$1),
+                    targetWidth: panelWidth,
+                  )
+                : 0.0;
+            final rightHeight = right != null
+                ? _resolveDisplayHeight(
+                    cachedSize: trimmedSize(right, pairSize.$2),
+                    targetWidth: panelWidth,
+                  )
+                : 0.0;
+            final rowHeight = math
+                .max(leftHeight, rightHeight)
+                .clamp(1.0, double.infinity);
+
+            final leftChild = SizedBox(
+              width: panelWidth,
+              height: rowHeight,
+              child: left != null
+                  ? buildReadModeImage(
+                      context: context,
+                      entry: left.entry,
+                      comicId: comicId,
+                      from: from,
+                      slotIndex: left.entry.chapterPageIndex ?? left.entryIndex,
+                      cacheIndex: _resolveImageCacheIndex(
+                        left.entry,
+                        left.entryIndex,
+                      ),
+                      isColumn: true,
+                    )
+                  : const SizedBox.shrink(),
+            );
+            final rightChild = SizedBox(
+              width: panelWidth,
+              height: rowHeight,
+              child: right != null
+                  ? buildReadModeImage(
+                      context: context,
+                      entry: right.entry,
+                      comicId: comicId,
+                      from: from,
+                      slotIndex:
+                          right.entry.chapterPageIndex ?? right.entryIndex,
+                      cacheIndex: _resolveImageCacheIndex(
+                        right.entry,
+                        right.entryIndex,
+                      ),
+                      isColumn: true,
+                    )
+                  : const SizedBox.shrink(),
+            );
+
+            final children = isRtl
+                ? [rightChild, leftChild]
+                : [leftChild, rightChild];
+
+            return Container(
+              color: backgroundColor,
+              width: containerWidth,
+              height: rowHeight,
+              alignment: Alignment.center,
+              child: SizedBox(
+                width: contentWidth,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: children,
+                ),
+              ),
+            );
+          },
         ),
-      );
-    },
   );
 }
 

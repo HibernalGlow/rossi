@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:zephyr/reader/page_trim_layout.dart';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -36,6 +37,7 @@ class ImageSizeState {
 }
 
 class ImageSizeCubit extends Cubit<ImageSizeState> {
+  final trimLayout = PageTrimLayout();
   static const Duration _saveDebounceDuration = Duration(milliseconds: 300);
 
   final int count;
@@ -268,6 +270,7 @@ class ImageSizeCubit extends Cubit<ImageSizeState> {
     _saveTimer?.cancel();
     await flushNow();
     _isDisposed = true;
+    trimLayout.dispose();
     return super.close();
   }
 }
