@@ -16,7 +16,8 @@ class LibraryImageGeometryScope extends InheritedWidget {
       context.dependOnInheritedWidgetOfExactType<LibraryImageGeometryScope>();
   @override
   bool updateShouldNotify(LibraryImageGeometryScope oldWidget) =>
-      oldWidget.keepFullImage != keepFullImage || oldWidget.onRatio != onRatio ||
+      oldWidget.keepFullImage != keepFullImage ||
+      oldWidget.onRatio != onRatio ||
       oldWidget.imageScale != imageScale;
 }
 
