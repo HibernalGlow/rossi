@@ -151,12 +151,21 @@ fn model_kind_file(model_id: &str) -> Result<&'static str> {
         "realesrgan_x4plus" => Ok("realesrgan_x4plus.onnx"),
         "realesr_general_v3" => Ok("realesr_general_x4v3.onnx"),
         "nmkd_siax_4x" => Ok("4x_NMKD-Siax_200k.onnx"),
+        "denoise_realplksr" => Ok("dejpg_realplksr_otf.onnx"),
         _ => Err(anyhow!("unknown mImage ONNX model: {model_id}")),
     }
 }
 
-/// Run one mImage ONNX model and write a PNG. `model_path` must be a real
-/// ONNX file; Git-LFS pointer files are rejected before inference.
+fn model_output_scale(model_id: &str) -> u32 {
+    if model_id == "denoise_realplksr" {
+        1
+    } else {
+        4
+    }
+}
+
+/// Run one mImage ONNX model and write a PNG. Upscalers output 4x; RealPLKSR
+/// removes JPEG noise at 1x. Git-LFS pointer files are rejected before inference.
 #[frb]
 pub async fn mimage_onnx_upscale(
     input_path: String,
@@ -176,6 +185,7 @@ pub async fn mimage_onnx_upscale(
             ));
         }
         let expected = model_kind_file(&model_id)?;
+        let expected_scale = model_output_scale(&model_id);
         if !Path::new(&model_path)
             .file_name()
             .map(|v| v == expected)
@@ -258,8 +268,8 @@ pub async fn mimage_onnx_upscale(
         let mut inference_time = Duration::ZERO;
         let mut merge_time = Duration::ZERO;
         let mut scale = None;
-        let out_w = iw.saturating_mul(4);
-        let out_h = ih.saturating_mul(4);
+        let out_w = iw.saturating_mul(expected_scale);
+        let out_h = ih.saturating_mul(expected_scale);
         let mut out = ImageBuffer::<Rgb<u8>, Vec<u8>>::new(out_w, out_h);
         let mut weights = vec![0.0f32; (out_w as usize).saturating_mul(out_h as usize)];
         let tiles = compute_tiles(iw, ih, tile as u32, TILE_OVERLAP);
@@ -309,9 +319,9 @@ pub async fn mimage_onnx_upscale(
             } else {
                 scale = Some(s);
             }
-            if s != 4 {
+            if s != expected_scale {
                 return Err(anyhow!(
-                    "mImage model {model_id} returned {s}x, expected its native 4x output"
+                    "mImage model {model_id} returned {s}x, expected {expected_scale}x output"
                 ));
             }
             let crop_w = tw * s as usize;
@@ -362,7 +372,7 @@ pub async fn mimage_onnx_upscale(
             }
             merge_time += merge_start.elapsed();
         }
-        let final_scale = scale.unwrap_or(4);
+        let final_scale = scale.unwrap_or(expected_scale);
         let encode_start = Instant::now();
         out.save(&output_path)
             .with_context(|| format!("write output: {output_path}"))?;
@@ -413,4 +423,57 @@ pub async fn mimage_onnx_release_sessions() -> Result<u64> {
     })
     .await
     .map_err(|e| anyhow!(e.to_string()))?
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use super::{model_kind_file, model_output_scale};
+
+    #[test]
+    fn denoise_uses_its_fixed_one_x_model() {
+        assert_eq!(
+            model_kind_file("denoise_realplksr").unwrap(),
+            "dejpg_realplksr_otf.onnx"
+        );
+        assert_eq!(model_output_scale("denoise_realplksr"), 1);
+    }
+
+    #[test]
+    fn upscalers_remain_four_x() {
+        for id in [
+            "realcugan_4x",
+            "realesrgan_anime6b",
+            "realesrgan_x4plus",
+            "realesr_general_v3",
+            "nmkd_siax_4x",
+        ] {
+            assert!(model_kind_file(id).is_ok());
+            assert_eq!(model_output_scale(id), 4);
+        }
+    }
+
+    #[tokio::test]
+    #[ignore = "runs a 28 MB ONNX model; use for local backend verification"]
+    async fn realplksr_preserves_image_size() {
+        let model = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../vendor/mimageviewer/models/dejpg_realplksr_otf.onnx");
+        let dir = tempfile::tempdir().unwrap();
+        let input = dir.path().join("input.png");
+        let output = dir.path().join("output.png");
+        image::RgbImage::from_pixel(16, 16, image::Rgb([80, 110, 140]))
+            .save(&input)
+            .unwrap();
+        super::mimage_onnx_upscale(
+            input.display().to_string(),
+            output.display().to_string(),
+            model.display().to_string(),
+            "denoise_realplksr".to_string(),
+            0,
+        )
+        .await
+        .unwrap();
+        assert_eq!(image::image_dimensions(output).unwrap(), (16, 16));
+    }
 }
